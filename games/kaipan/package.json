@@ -1,0 +1,35 @@
+{
+  "name": "kaipan",
+  "description": "《开盘》：股市主题的肉鸽网页游戏（arcade 的一个模块）",
+  "private": true,
+  "license": "MIT",
+  "version": "0.31.22",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "pretest": "npm run lint",
+    "test": "vitest run",
+    "sim": "node tools/sim.ts",
+    "shot": "node tools/shot.ts",
+    "audio-check": "node tools/audio-check.ts",
+    "build:cf": "tsc --noEmit && node tools/build-cf.ts",
+    "deploy": "npm run build:cf && wrangler deploy"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "playwright-core": "1.58.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3",
+    "wrangler": "^4.149.0"
+  },
+  "dependencies": {
+    "arcade-kit": "npm:@yyyu-star/arcade-kit@^0.22.0",
+    "phaser": "^4.2.1"
+  }
+}

@@ -1,0 +1,254 @@
+/** 结算：打完后的存档结算调度（finish）、战役结算框（showResult）、失败建议和归咎圈、战利品飞入、稀有宝箱 */
+import { CAMPAIGN } from '../content/index.ts';
+import { trimText } from './basefeel.ts';
+import { aliveByBoat, armyCost, battleResult, startCampaign, totalStars } from '../core/index.ts';
+import { UNIT, type BattleResult, type Res, type BBuilding, type TroopKind } from '../core/types.ts';
+import { app, fmt } from './app.ts';
+import { bArt, iconA, troopF } from './art.ts';
+import { topBlame } from './fxlayout.ts';
+import { vibrate } from './feel.ts';
+import type { Ach } from './meta.ts';
+import { nextUnlock } from './unlock.ts';
+import { sfx } from './audio/sfx.ts';
+import { playBeats } from './audio/beats.ts';
+import { resultBeats, resultTimes, resultTiming } from './audio/result.ts';
+import { adviceLines } from './battleadvice.ts';
+import { lossStreakOf, NO_EXTRA, settleOutcome, type Extra } from './battlesettle.ts';
+import { tutSet, tutStep } from './tutorial.ts';
+import { badgePopup, button, el, img, openModal, toast } from './ui.ts';
+import { TITLES, rewardName } from './battlecommon.ts';
+import type { BattleScene } from './BattleScene.ts';
+import { DEPTH } from './depth.ts';
+import { battleEnd } from './endfx.ts';
+
+/** 战利品飞进顶栏（仓库的位置）：几枚小图标从数字处弧线飞到左上角 */
+export function flyTo(bs: BattleScene, from: HTMLElement, kind: 'gold' | 'wood'): void {
+  const root = bs.ui.getBoundingClientRect();
+  const a = from.getBoundingClientRect();
+  for (let i = 0; i < 5; i++) {
+    const ic = img(iconA(kind), 22);
+    ic.style.cssText += `;position:absolute;left:${a.left - root.left + 10}px;top:${a.top - root.top}px;z-index:60;pointer-events:none`;
+    bs.ui.appendChild(ic);
+    const an = ic.animate(
+      [{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${-(a.left - root.left) + 120 + (kind === 'wood' ? 70 : 0)}px,${-(a.top - root.top) + 20}px) scale(.6)`, opacity: 0.2 }],
+      { duration: 650 + i * 90, delay: i * 70, easing: 'cubic-bezier(.4,0,.8,.6)', fill: 'forwards' },
+    );
+    an.onfinish = () => ic.remove();
+  }
+}
+
+/** 稀有掉落：宝箱弹开、光、物品跳出来 */
+export function openChest(bs: BattleScene, id: string): void {
+  sfx('star');
+  const mask = openModal({ cls: 'hd-badgemask', closable: true, stack: true, parent: bs.ui });
+  const box = el('div', 'hd-dialog hd-chestbox', undefined, mask);
+  el('small', '', '稀有掉落！', box);
+  const chest = el('div', 'hd-chest', undefined, box);
+  const lid = el('div', 'hd-chest-lid', undefined, chest);
+  el('div', 'hd-chest-body', undefined, chest);
+  el('div', 'hd-chest-glow', undefined, chest);
+  const nm = rewardName(id);
+  const item = el('div', 'hd-chest-item', undefined, chest);
+  const [type, a, b] = id.split(':');
+  try {
+    const piece = type === 'skin' ? troopF(a as TroopKind, 'idle', b)[0] : bArt(a as 'statue', 1);
+    if (piece) item.appendChild(img(piece, 64));
+  } catch {
+    item.textContent = '★';
+  }
+  el('h2', '', nm, box);
+  el('p', 'hd-sub', type === 'skin' ? '去“成就 → 收藏”里装备' : '去“成就 → 收藏”里摆到岛上', box);
+  setTimeout(() => lid.classList.add('open'), 400);
+  setTimeout(() => item.classList.add('out'), 900);
+  button('收下', 'hd-btn-gold', () => mask.remove(), box).style.width = '100%';
+}
+
+/** 失败时在岛上把"杀兵最多的那座防御"圈出来（红圈弹出再呼吸），结算框后面也看得见 */
+export function markBlame(bs: BattleScene): void {
+  const tb = topBlame(bs.deathBy);
+  if (!tb) return;
+  const cand = bs.st.buildings.filter((b) => b.kind === tb.kind && !b.destroyed);
+  if (!cand.length) return;
+  const n = bs.landPts.length || 1;
+  const ax = bs.landPts.reduce((q, p) => q + p.x, 0) / n;
+  const ay = bs.landPts.reduce((q, p) => q + p.y, 0) / n;
+  const d2 = (b: BBuilding): number => ((b.x + b.size / 2) * UNIT - ax) ** 2 + ((b.y + b.size / 2) * UNIT - ay) ** 2;
+  const b = cand.reduce((m, q) => (d2(q) < d2(m) ? q : m));
+  const sp = bs.bsp.get(b.id);
+  if (!sp) return;
+  const g = bs.add.ellipse(sp.img.x, sp.img.y - 6, 96, 48).setStrokeStyle(5, 0xff4a3a, 1).setFillStyle(0xff4a3a, 0.18).setDepth(DEPTH.slowMark).setScale(1.6).setAlpha(0);
+  bs.tweens.add({
+    targets: g, scale: 1, alpha: 1, duration: 320, ease: 'Back.easeOut',
+    onComplete: () => bs.tweens.add({ targets: g, scale: 1.12, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }),
+  });
+}
+
+/** 失败原因：按这场的统计给 1–2 句话，连输再加一句换打法（拼装在 battleadvice.ts） */
+export function lossAdvice(bs: BattleScene, res: BattleResult): string[] {
+  return adviceLines(res, {
+    buildings: bs.st.buildings,
+    deathBy: bs.deathBy,
+    landPts: bs.landPts,
+    casts: bs.casts,
+    hasBrute: bs.d.setup.army.boats.some((b) => b.troop === 'brute'),
+    streak: lossStreakOf(bs.d.levelId),
+  });
+}
+
+export function finish(bs: BattleScene, delay: number): void {
+  if (bs.ended) return;
+  bs.ended = true;
+  app.inBattle = false;
+  bs.selBoat = bs.selSkill = -1;
+  bs.beachG.setVisible(false);
+  bs.tut.hide();
+  // 结算当场算完存好，延迟只管弹窗：这 1 秒多里点"大厅"、切后台、关页面，战利品和星都不会丢
+  const res = { ...battleResult(bs.st), over: true };
+  const mp = bs.d.map;
+  if (mp) {
+    // 航线一站：数每条出战船还剩几个人（没登陆的船人都在），交给航线写回；站间条由 maproute.ts 出
+    const alive = aliveByBoat(bs.st, bs.d.setup.army, bs.lands);
+    const energy = bs.st.energy;
+    setTimeout(() => bs.ui.isConnected && mp.onFinish(res, alive, energy), Math.min(delay, 900));
+    return;
+  }
+  const pvp = bs.d.pvp;
+  if (pvp) {
+    // 异步攻防：结果由服务端重放算，弹窗由 pvp.ts 出
+    const log = bs.log.slice();
+    const end = bs.st.tick;
+    const done = (): void => pvp.onFinish(log, end, res);
+    if (!battleEnd(bs, res.stars > 0, delay, done)) bs.time.delayedCall(delay, done);
+    return;
+  }
+  const oc = settleOutcome(app.profile, bs.d.levelId, res, { settle: bs.d.settle, bounty: bs.d.bounty });
+  if (bs.d.settle) app.commit(oc.profile);
+  const { loot, newStars, bonus, fresh, extra } = oc;
+  // 弹窗之前先演收尾（endfx.ts，游戏时钟、点一下跳过、减弱动态时不演）；不演就按原来的真实时间延迟（慢机器上游戏时钟会拖慢）
+  const show = (): void => {
+    if (bs.ui.isConnected) showResult(bs, res, loot, newStars, bonus, fresh, extra);
+  };
+  if (!battleEnd(bs, res.stars > 0, delay, show)) setTimeout(show, delay);
+}
+
+export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newStars: number, bonus: Res | null = null, fresh: Ach[] = [], extra: Extra = NO_EXTRA): void {
+  app.api.scene = 'result';
+  if (tutStep() === 5) tutSet(6);
+  const win = res.stars > 0;
+  const tm = resultTimes('battle', res.stars, win);
+  playBeats(resultBeats({ kind: 'battle', stars: res.stars, win, roll: loot.gold + loot.wood > 0 }), () => bs.ui.isConnected);
+  vibrate(win ? 'win' : 'lose');
+  // 结算必须点按钮：点遮罩不理，Esc = 主按钮（回家）
+  let main: HTMLButtonElement | undefined;
+  const mask = openModal({ cls: res.stars >= 3 ? 'hd-s3' : '', closable: false, onEsc: () => main?.click(), parent: bs.ui });
+  const box = el('div', `hd-dialog hd-result${res.stars === 0 ? ' hd-lose' : ''}`, undefined, mask);
+  // 入场节奏（样式在 skin.ts）：框落下 → 横幅落下 → 星星依次落（--sd 是星星落完的时刻）→ 战利品滚动 → 按钮最后淡入（--fin）
+  box.style.setProperty('--sd', `${tm.sd}ms`);
+  box.style.setProperty('--fin', `${tm.fin}ms`);
+  el('h2', '', TITLES[res.stars] ?? '', box);
+  const row = el('div', 'hd-stars', undefined, box);
+  row.style.justifyContent = 'center';
+  for (let i = 0; i < 3; i++) {
+    const im = img(iconA(i < res.stars ? 'star' : 'starEmpty'), 52);
+    row.appendChild(im);
+    if (i < res.stars) {
+      im.style.visibility = 'hidden';
+      setTimeout(() => {
+        im.style.visibility = '';
+        im.classList.add('drop');
+      }, tm.starAt(i));
+    }
+  }
+  el('div', 'hd-big', `摧毁 ${res.destroyedPct}%`, box);
+  const lo = el('div', 'hd-loot', undefined, box);
+  // 星星一颗颗落完（时间点见 audio/result.ts），战利品数字再从 0 滚到实数（ease-out），滚完图标才飞进仓库
+  const rollAt = tm.rollAt;
+  for (const k of ['gold', 'wood'] as const) {
+    const s = el('span', 'hd-cost-i', undefined, lo);
+    s.appendChild(img(iconA(k), 28));
+    const num = el('b', 'hd-pos hd-n', '+0', s);
+    if (loot[k] > 0) setTimeout(() => flyTo(bs, s, k), tm.flyAt);
+    setTimeout(() => {
+      const t0 = performance.now();
+      const tick = (): void => {
+        const f = Math.min(1, (performance.now() - t0) / resultTiming('battle', win).rollDur);
+        num.textContent = `+${fmt(loot[k] * (1 - (1 - f) * (1 - f)))}`;
+        if (f < 1 && num.isConnected) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, rollAt);
+  }
+  if (newStars > 0) el('p', '', `新拿到 ${newStars} 颗星，主寨升级要用`, box).style.margin = '0 0 12px';
+  if (extra.streak >= 2 || extra.bonusPct > 0) {
+    const st = el('p', 'hd-streak', `连胜 ×${extra.streak}${extra.bonusPct > 0 ? `  掠夺 +${extra.bonusPct}%` : ''}`, box);
+    st.style.cssText = 'text-align:center;margin:0 0 8px;font-weight:900';
+  }
+  if (extra.consolation) {
+    const cp = el('p', 'hd-consol', '安慰奖已经放进仓库，别灰心，下一场会更好', box);
+    cp.style.cssText = 'text-align:center;margin:0 0 8px;font-weight:800';
+  }
+  const gifts = extra.drops.filter((d) => d.kind !== 'cosmetic') as Array<{ kind: 'gold' | 'wood'; amount: number }>;
+  if (gifts.length) {
+    const dr = el('div', 'hd-chips', undefined, box);
+    dr.style.justifyContent = 'center';
+    for (const d of gifts) {
+      const c = el('span', 'hd-chip', d.kind === 'gold' ? '掉落：金币袋 ' : '掉落：木材箱 ', dr);
+      c.appendChild(img(iconA(d.kind), 16));
+      c.append(` +${fmt(d.amount)}`);
+    }
+  }
+  const rare = extra.drops.find((d) => d.kind === 'cosmetic') as { kind: 'cosmetic'; id: string } | undefined;
+  if (rare) setTimeout(() => openChest(bs, rare.id), rollAt + 1200);
+  if (bonus) {
+    const bl = el('p', 'hd-bountyline', `今日悬赏完成，奖励翻倍（上面的战利品就是）。明天再来！`, box);
+    bl.style.cssText = 'text-align:center;margin:0 0 10px';
+  }
+  // 结算页先完整呈现（星星、战利品、宝箱）；成就只在结算页写一行，玩家点离开按钮后合成一张卡弹出，不盖住结算
+  const leave = (): void => {
+    if (fresh.length) setTimeout(() => badgePopup(fresh), 700);
+  };
+  if (fresh.length) {
+    const al = el('p', 'hd-sub', `新成就：${fresh.map((a) => a.name).join('、')}`, box);
+    al.style.cssText = 'text-align:center;margin:0 0 8px';
+  }
+  if (res.stars === 0 && bs.d.settle) {
+    markBlame(bs);
+    const adv = el('div', 'hd-advice', undefined, box);
+    el('b', '', '这次为什么没成功：', adv);
+    for (const t of lossAdvice(bs, res)) el('p', '', t, adv);
+  }
+  const nu = nextUnlock(app.profile);
+  if (nu) {
+    const names = nu.items.map((i) => i.name).join('、');
+    const tail = nu.starsLeft > 0 ? `还差 ${nu.starsLeft} 颗星` : '星数够了，回家就能升级';
+    const p = el('p', 'hd-sub', `下一个解锁：主寨 ${nu.hq} 级开放 ${names} · ${tail}`, box);
+    p.style.cssText = 'text-align:center;margin:0 0 12px;font-size:14px';
+  }
+  if (!bs.d.settle) el('p', '', '（演示局，不记进度）', box).style.margin = '0 0 12px';
+  if (bs.d.settle && !bs.d.bounty) {
+    const again = el('div', 'hd-row', undefined, box);
+    again.style.marginBottom = '8px';
+    const go = (id: string): void => {
+      const before = app.profile;
+      const r = startCampaign(before, id, (Date.now() & 0x3fffffff) | 1);
+      if (!r.ok) return toast(r.error === 'no_wood' ? `木材连一个兵都带不起，先回家收一收` : '这座岛还没解锁');
+      leave();
+      app.commit(r.value.profile);
+      app.startBattle(id, false, r.value.setup);
+      if (r.value.trimmed) toast(trimText(r.value.trimmed, armyCost(before), before.res));
+    };
+    button('再打一次', 'hd-btn-wood', () => go(bs.d.levelId), again);
+    const idx = CAMPAIGN.findIndex((l) => l.id === bs.d.levelId);
+    const next = CAMPAIGN[idx + 1];
+    if (next) {
+      const open = totalStars(app.profile) >= next.reqStars;
+      const nb = button(open ? '下一关' : `还差 ${next.reqStars - totalStars(app.profile)} 颗星`, 'hd-btn-wood', () => go(next.id), again);
+      nb.disabled = !open;
+    }
+  }
+  main = button('回家', 'hd-btn-gold', () => {
+    leave();
+    app.goBase();
+  }, box);
+  main.style.width = '100%';
+}

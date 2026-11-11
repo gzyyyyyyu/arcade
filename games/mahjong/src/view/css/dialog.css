@@ -1,0 +1,94 @@
+/* ---------- 弹窗 ---------- */
+/* 遮罩从顶栏下面开始：任何弹窗开着（第一次进来的"怎么胡"、规则、结算）都能直接点"大厅"回去，不用先关框（10-27 平台走查） */
+.mask {
+  position: absolute;
+  inset: 40px 0 0 0;
+  background: #0009;
+  display: grid;
+  place-items: center;
+  z-index: 60;
+}
+.dialog {
+  position: relative;
+  max-width: min(720px, 94%);
+  max-height: 92%;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  box-shadow: inset 0 1px 0 #ffffff1a, var(--sh-3);
+}
+.dialog .x {
+  position: absolute;
+  right: var(--sp-2);
+  top: var(--sp-2);
+  /* 压在弹窗内容上面：说明的"1 / 4"、标题带入场动画（transform）时会叠到 × 上，点 × 没反应（11-01 亲手玩） */
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-size: var(--fs-2xl);
+  opacity: 0.7;
+}
+/* 手机上舞台缩小，--tap 换算出来比 36 大好多：居中撑开的点按区右、上会伸出弹窗边，弹窗跟着横滚几像素（11-02 五尺寸量）。伸出最多到弹窗边为止 */
+.dialog .x::after {
+  top: max(calc((100% - var(--tap)) / 2), calc(-1 * var(--sp-2)));
+  right: max(calc((100% - var(--tap)) / 2), calc(-1 * var(--sp-2)));
+}
+.dialog h2 {
+  margin: 0 var(--sp-6) var(--sp-3) 0;
+  color: var(--gold);
+  font-size: var(--fs-xl);
+}
+.dialog p {
+  margin: var(--sp-2) 0;
+  line-height: 1.6;
+}
+/* 弹窗里单独一个按钮（下一局、知道了、回选桌）居中 */
+.dialog > .act {
+  display: flex;
+  margin: var(--sp-4) auto 0;
+}
+.dialog .row {
+  display: flex;
+  gap: var(--sp-3);
+  justify-content: center;
+  margin-top: var(--sp-4);
+}
+.dialog .step {
+  font-size: var(--fs-xs);
+  opacity: 0.6;
+}
+/* 快速匹配的排队卡（0.21.0）：档位一条小签，下面一行大字"已有几人、还剩几秒"（数字不换行、不截） */
+.mask.match .dialog {
+  min-width: min(360px, 94%);
+  text-align: center;
+}
+.mask.match .dialog h2 {
+  margin-right: 0;
+}
+.mask.match .match-tier {
+  display: inline-block;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: #ffffff14;
+  color: var(--gold);
+  /* 小标签条和下面的大字只差一档，不再 14 对 18 以上落差太大 */
+  font-size: var(--fs-md);
+}
+.mask.match .match-wait {
+  margin: var(--sp-4) 0 var(--sp-2);
+  font-size: var(--fs-lg);
+  font-weight: bold;
+}
+.mask.match .row {
+  flex-wrap: wrap;
+}
+/* 两个按钮同高同字号：主按钮（不等了）带 .big 之类的放大会让它比"取消"高，这里统一 */
+.mask.match .row > .act {
+  min-height: max(48px, var(--tap, 48px));
+  font-size: var(--fs-lg);
+}

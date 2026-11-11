@@ -1,0 +1,178 @@
+/* ---------- 好友房 ---------- */
+.screen.room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-6) var(--sp-5) var(--sp-5);
+  /* 内容整体在可用高度里居中：大屏上不再整块贴着顶栏、下面空一大截；放不下时从上往下排（safe） */
+  justify-content: safe center;
+  /* 一屏放下（docs/ui.md 第 11 节）：不滚动，手机上间距收紧 */
+  overflow: hidden;
+}
+.stage:not([data-fit='desk']) .screen.room {
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+}
+.room-head {
+  text-align: center;
+  /* 房间号小字不贴着顶栏的木条 */
+  padding-top: var(--sp-3);
+}
+.room-label {
+  font-size: var(--fs-sm);
+  opacity: 0.8;
+}
+.room-code {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: 12px;
+  /* 字距会加在最后一个字后面，左边补一样多才居中 */
+  padding-left: 12px;
+  color: var(--gold);
+  text-shadow: 0 3px 0 #0008;
+}
+.room-rules,
+.room-hint,
+.room-wait {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  opacity: 0.85;
+  text-align: center;
+  max-width: 640px;
+}
+/* 规则一行里每一项不断行，折行只发生在两项之间 */
+.screen.room .room-rules .part {
+  white-space: nowrap;
+}
+.room-hint.warn {
+  color: var(--gold);
+  opacity: 1;
+}
+.room-seats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-3);
+  width: min(720px, 100%);
+}
+[data-orient='port'] .room-seats {
+  grid-template-columns: repeat(2, 1fr);
+}
+.room-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  padding: var(--sp-3) var(--sp-2);
+  border-radius: var(--r-md);
+  background: linear-gradient(#00000020, #00000040);
+  border: 2px solid #ffffff20;
+}
+.room-seat.me {
+  border-color: var(--gold);
+}
+.room-seat .avatar {
+  width: 56px;
+  height: 56px;
+}
+.room-seat .avatar.ghost {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px dashed #ffffff50;
+  font-size: 26px;
+  opacity: 0.7;
+}
+.room-seat .name {
+  max-width: 100%;
+  font-size: var(--fs-md);
+  text-align: center;
+  /* 长名折成两行居中，不再省略号截断：名字和头像同在一条中线上 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+.screen.room .room-seat .role {
+  font-size: var(--fs-xs);
+  color: var(--gold);
+}
+.room-seat .tag {
+  font-size: var(--fs-xs);
+  color: #ffb4a2;
+}
+.room-note {
+  position: absolute;
+  left: 50%;
+  top: var(--sp-2);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-pill);
+  background: #000000a0;
+  box-shadow: var(--sh-1);
+  font-size: var(--fs-sm);
+  z-index: 5;
+  max-width: 90%;
+}
+/* 旁观中：金色小牌子，一眼看出自己不在桌上 */
+.room-note .watch-tag {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-pill);
+  background: var(--gold);
+  color: #2b1d14;
+  white-space: nowrap;
+}
+/* 旁观条按钮多、比别的提示宽：放在对家手牌和中控盘之间的空处，不压顶上两家的名牌 */
+.room-note.watch {
+  top: 24%;
+}
+.room-note.watch .act {
+  min-height: 0;
+  padding: var(--sp-1) var(--sp-3);
+}
+.room-hint.watch {
+  color: var(--gold);
+}
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  max-width: 90%;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-pill);
+  background: #000000c8;
+  box-shadow: var(--sh-2);
+  font-size: var(--fs-md);
+  text-align: center;
+  z-index: 60;
+  pointer-events: none;
+}
+.pill.share {
+  background: var(--gold);
+  color: #3a2a00;
+}
+
+/* 手机横拿（不是电脑版）只有 520 高：等人页的规则一行、底下说明一行放宽到一行写完，房间号和座位卡收一点，"开打"那排按钮留在屏幕里（11-02 五尺寸量，844×390 底下按钮出界） */
+.stage[data-orient='land']:not([data-fit='desk']) .screen.room :is(.room-rules, .room-hint, .room-wait) {
+  max-width: 920px;
+  line-height: 1.35;
+}
+.stage[data-orient='land']:not([data-fit='desk']) .screen.room .room-code {
+  font-size: 40px;
+}
+.stage[data-orient='land']:not([data-fit='desk']) .screen.room .room-seat {
+  gap: var(--sp-1);
+  padding: var(--sp-2);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .screen.room .room-seat .avatar {
+  width: 44px;
+  height: 44px;
+}

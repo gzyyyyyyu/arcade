@@ -1,0 +1,22 @@
+/* 首领连战结算页的首领一排（view/ui/rushResult.ts），限定在结算面板下 */
+.yx-result-panel .yx-rushlist { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.yx-result-panel .yx-rushlist span {
+  padding: 2px 8px; border: 2px solid rgba(23, 19, 28, 0.35); border-radius: 10px;
+  font-size: var(--fs-xs, 12px); font-weight: 700; color: rgba(23, 19, 28, 0.45); background: rgba(23, 19, 28, 0.06);
+}
+.yx-result-panel .yx-rushlist span.down { border-color: #17131c; color: #fbf5e4; background: #c8402f; }
+/* 连战结算比守夜多一排首领，矮屏（手机横屏、竖屏 360×640）上把大字、首领小牌、间距收紧，保证底下三个按钮一屏放下 */
+@media (max-height: 500px), (orientation: portrait) and (max-width: 700px) and (max-height: 700px) {
+  .yx-result-panel.rush .yx-rushlist { gap: 3px; margin: 2px 0 0; }
+  .yx-result-panel.rush .yx-rushlist span { padding: 0 6px; border-width: 1.5px; border-radius: 8px; line-height: 1.35; }
+  .yx-result-panel.rush .yx-rtime b { font-size: 26px; }
+  .yx-result-panel.rush { gap: 4px; }
+}
+@media (orientation: portrait) and (max-width: 700px) and (max-height: 700px) {
+  .yx-result-panel.rush { padding-top: 8px; padding-bottom: 10px; }
+  .yx-result-panel.rush .yx-rhead .yx-brush { font-size: 36px; }
+  .yx-result-panel.rush .yx-rmain { gap: 6px; }
+  .yx-result-panel.rush .yx-rleft { gap: 4px; }
+  .yx-result-panel.rush .yx-rbest { padding: 3px 8px; }
+  .yx-result-panel.rush .yx-rbest img { width: 30px; height: 30px; }
+}

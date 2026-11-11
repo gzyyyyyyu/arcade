@@ -1,0 +1,65 @@
+/* 街机厅徽章（战绩页的"徽章"卡）：全部限定在 .badges 下。
+   页面色用 styles.css 的变量；铜银金是金属渐变，styles.css 里没有对应色，只在这里的 .badges 作用域定义。
+   档位另有文字（"铜牌"等），不靠颜色一个信号 */
+.badges {
+  --m-bronze-hi: #f0b27a; --m-bronze: #b8692f; --m-bronze-lo: #7a3f16;
+  --m-silver-hi: #f4f6f8; --m-silver: #aab3bd; --m-silver-lo: #6b7580;
+  --m-gold-hi: #fff0a8; --m-gold: #e8aa1c; --m-gold-lo: #96620a;
+}
+.badges__count { margin: 0 0 var(--s-3); color: var(--muted); font-size: var(--fs-sm); }
+.badges__count strong { color: var(--ink); font-size: var(--fs-xl); }
+.badges__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: var(--s-2); }
+.badges__grid > li { min-width: 0; }
+.badges .badge { width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: var(--s-2) var(--s-1); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--highlight-warm); color: var(--ink); font: inherit; cursor: pointer; box-shadow: var(--sh-sm); }
+.badges .badge:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+.badges .badge[aria-pressed="true"] { border-width: var(--bw); }
+.badges .badge__name { font-weight: 700; font-size: var(--fs-sm); line-height: 1.2; overflow-wrap: anywhere; text-align: center; }
+.badges .badge__tier { text-align: center; overflow-wrap: anywhere; font-size: var(--fs-xs); color: var(--muted); }
+.badges__tip { margin: var(--s-3) 0 0; padding: var(--s-2) var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--highlight); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.badges__tip strong { margin-right: var(--s-2); }
+
+/* 奖章：径向渐变做球面感，再叠一层顶部高光；外描边用档位暗色，内圈一道亮边 */
+/* 上下各留 4px：金牌的外光环画在圆盘外 4px，不留会压住下面的名字；各档留一样多，同一行卡片一样高 */
+.badges .badge__disc { position: relative; display: grid; place-items: center; width: 48px; height: 48px; margin: 4px 0; border-radius: var(--r-pill); overflow: hidden; color: var(--muted); }
+.badges .badge[data-tier="1"] { --hi: var(--m-bronze-hi); --mid: var(--m-bronze); --lo: var(--m-bronze-lo); }
+.badges .badge[data-tier="2"] { --hi: var(--m-silver-hi); --mid: var(--m-silver); --lo: var(--m-silver-lo); }
+.badges .badge[data-tier="3"] { --hi: var(--m-gold-hi); --mid: var(--m-gold); --lo: var(--m-gold-lo); }
+.badges .badge:not(.badge--locked) .badge__disc {
+  color: var(--white);
+  background: radial-gradient(circle at 35% 28%, var(--hi) 0%, var(--mid) 55%, var(--lo) 100%);
+  border: 2px solid var(--lo);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hi) 70%, transparent), inset 0 -3px 5px color-mix(in srgb, var(--lo) 55%, transparent), 0 2px 3px color-mix(in srgb, var(--ink) 35%, transparent);
+}
+.badges .badge:not(.badge--locked) .badge__disc svg { filter: drop-shadow(0 1px 0 var(--lo)); }
+/* 顶部高光：半透明白的椭圆，盖在上半部 */
+.badges .badge:not(.badge--locked) .badge__disc::before { content: ""; position: absolute; left: 12%; right: 12%; top: 4%; height: 42%; border-radius: 50%; background: linear-gradient(to bottom, rgb(255 255 255 / .7), rgb(255 255 255 / 0)); pointer-events: none; }
+/* 金牌多一圈外光，跟银牌拉开 */
+.badges .badge[data-tier="3"] .badge__disc { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hi) 70%, transparent), inset 0 -3px 5px color-mix(in srgb, var(--lo) 55%, transparent), 0 0 0 2px var(--highlight), 0 0 0 4px var(--m-gold); }
+
+/* 没拿到：凹进去的空槽，去饱和，不用虚线 */
+.badges .badge--locked { background: var(--soft); box-shadow: inset 0 2px 4px color-mix(in srgb, var(--ink) 18%, transparent); }
+.badges .badge--locked .badge__disc { background: var(--divider); border: 2px solid var(--dashed); color: var(--dashed); box-shadow: inset 0 3px 6px color-mix(in srgb, var(--ink) 30%, transparent), inset 0 -1px 0 var(--white); }
+.badges .badge--locked .badge__disc svg { opacity: .55; filter: grayscale(1); }
+.badges .badge--locked .badge__name { color: var(--muted); }
+
+/* 离下一档的细进度条；有数才画，没数只留上面的字 */
+.badges .badge__bar { display: block; width: 80%; height: 4px; margin-top: 2px; border-radius: var(--r-pill); background: var(--divider); box-shadow: inset 0 1px 1px color-mix(in srgb, var(--ink) 25%, transparent); overflow: hidden; }
+.badges .badge__fill { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+
+/* 解锁亮相：整枚翻转进来 + 一道光扫过；只用 transform / opacity，约 0.8 秒，只播一次。
+   减弱动效和站内 no-motion 下不加 badge--fx（脚本已判断），这里再兜一层 */
+.badges .badge--fx .badge__disc { animation: badges-flip .8s cubic-bezier(.2, .8, .3, 1) both; }
+.badges .badge--fx .badge__disc::after { content: ""; position: absolute; inset: -20% auto -20% -60%; width: 45%; background: linear-gradient(100deg, rgb(255 255 255 / 0), rgb(255 255 255 / .85), rgb(255 255 255 / 0)); transform: translateX(0) skewX(-20deg); opacity: 0; animation: badges-sweep .8s .35s ease-out both; pointer-events: none; }
+@keyframes badges-flip {
+  0% { transform: perspective(240px) rotateY(-180deg) scale(.6); opacity: 0; }
+  60% { transform: perspective(240px) rotateY(12deg) scale(1.12); opacity: 1; }
+  100% { transform: perspective(240px) rotateY(0) scale(1); opacity: 1; }
+}
+@keyframes badges-sweep {
+  0% { transform: translateX(0) skewX(-20deg); opacity: 0; }
+  20% { opacity: 1; }
+  /* 从 -60% 起、宽 45%：走 360% 刚好扫过整个圆片；原来走 520%，后三成时间光已经出了圆片，看着像卡了一下才结束（frames 段逐帧量出来的） */
+  100% { transform: translateX(360%) skewX(-20deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .badges .badge--fx .badge__disc, .badges .badge--fx .badge__disc::after { animation: none; } }
+html.no-motion .badges .badge--fx .badge__disc, html.no-motion .badges .badge--fx .badge__disc::after { animation: none; }

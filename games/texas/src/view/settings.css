@@ -1,0 +1,63 @@
+/* 设置面板（view/settings.ts）：盖在舞台上，沿用 .mask / .dialog 的遮罩和框，里面的类名都限定在 .settings 下 */
+.settings .st-box { width: 860px; max-width: calc(100% - 24px); display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-3) var(--s-4); }
+.settings .st-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.settings .st-x {
+  display: grid; place-items: center; flex: none;
+  width: max(34px, calc(34px * var(--ui))); height: max(34px, calc(34px * var(--ui)));
+  padding: 0; border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: var(--btn-glass); color: var(--ink);
+}
+.settings .st-x svg { width: 18px; height: 18px; }
+.settings .st-body { display: grid; gap: var(--s-2); }
+/* 横屏三栏等高（声音 / 玩法互动 / 画面和账号），栏间一条竖线 */
+.settings .st-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); align-items: stretch; }
+.settings .st-col { display: grid; gap: var(--s-2); align-content: start; }
+.settings .st-col + .st-col { padding-left: var(--s-4); border-left: 1px solid var(--line); }
+.settings .st-group { display: grid; gap: 0; }
+.settings .st-tabs { display: none; }
+.settings h3 { margin: 0; font-size: var(--fs-3); font-weight: 800; color: var(--muted); letter-spacing: .08em; }
+.settings .st-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: 34px; padding: var(--s-1) 0; }
+/* 同一组里行和行之间一条细线：按钮和它那一行的名字对得上 */
+.settings .st-group .st-row + .st-row { border-top: 1px solid var(--line); }
+.settings .st-label { display: grid; min-width: 0; flex: 1 1 0; }
+.settings .st-name { font-size: var(--fs-3); font-weight: 700; color: var(--ink); }
+.settings .st-hint { font-size: max(12px, var(--fs-2)); color: var(--muted); }
+/* 右边的控件一律同宽、右对齐成一列：开 / 关两个并排的宽度，单个按钮（聊天、止盈、登录）撑满这一格 */
+.settings .st-ctl { display: flex; align-items: center; justify-content: flex-end; gap: var(--s-2); flex: none; width: calc(112px + var(--s-2)); }
+.settings .st-ctl > .pill { flex: 1; min-width: 0; white-space: nowrap; }
+.settings .st-ctl.wide { width: auto; }
+.settings .st-seg { display: flex; gap: var(--s-2); flex: 1; }
+.settings .st-seg .pill { flex: 1; }
+.settings .st-seg .pill, .settings .st-ctl > .pill { min-width: 56px; height: 32px; }
+.settings .st-vol { width: 120px; }
+.settings .st-pct { min-width: 3.2em; text-align: right; font-size: var(--fs-3); color: var(--muted); font-variant-numeric: tabular-nums; }
+.settings .st-wallet { font-size: var(--fs-4); font-weight: 800; color: var(--gold); }
+.settings .st-foot { display: flex; justify-content: flex-end; padding-top: var(--s-1); border-top: 1px solid var(--line); }
+/* 触屏：可点的行不低于 44 个屏幕像素 */
+@media (pointer: coarse), (max-width: 959px) {
+  .settings .st-x { width: max(34px, var(--hit)); height: max(34px, var(--hit)); }
+}
+@media (pointer: coarse) {
+  .settings .st-row { min-height: var(--hit); }
+  .settings .st-seg .pill, .settings .st-ctl > .pill, .settings .st-tabs .pill, .settings .st-foot .pill { height: var(--hit); }
+}
+/* 手机横屏（舞台缩小、字放大）：同样三栏，框铺满 */
+.stage.tight:not(.tall) .settings .st-box { width: 100%; }
+.stage.tight:not(.tall) .settings .st-cols { gap: var(--s-3); }
+.stage.tight:not(.tall) .settings .st-col + .st-col { padding-left: var(--s-3); }
+/* 手机竖屏：舞台只有 540 宽，音量滑条收窄，说明放不下就让它折行 */
+.stage.tall .settings .st-box { width: 100%; padding-top: var(--s-2); padding-bottom: var(--s-3); gap: 0; }
+.stage.tall .settings .st-body { gap: var(--s-1); }
+.stage.tall .settings .st-foot { padding-top: var(--s-1); }
+.stage.tall .settings .st-cols { display: block; }
+.stage.tall .settings .st-col { display: contents; padding: 0; border: 0; }
+.stage.tall .settings .st-group { display: none; }
+.stage.tall .settings .st-cols[data-tab="0"] .st-group[data-tab="0"],
+.stage.tall .settings .st-cols[data-tab="1"] .st-group[data-tab="1"],
+.stage.tall .settings .st-cols[data-tab="2"] .st-group[data-tab="2"] { display: grid; }
+.stage.tall .settings .st-tabs { display: flex; gap: var(--s-2); }
+.stage.tall .settings .st-tabs .pill { flex: 1; min-width: 0; }
+.stage.tall .settings .st-vol { width: 110px; }
+@media (hover: hover) and (pointer: fine) {
+  .settings .st-x:hover { border-color: var(--gold); }
+}

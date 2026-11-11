@@ -1,0 +1,30 @@
+/* 电脑版补充：主按钮的悬停 / 按下 / 禁用手感。全部限定在已有的根节点下 */
+
+/* 选桌页：内容一项也不许被压扁（竖屏一列时），只有茶馆画按剩下的高度缩 */
+.screen.lobby :is(.lobby-l, .lobby-r) > * {
+  flex-shrink: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .screen.lobby :is(.act, .link, .chip, .stake):not(:disabled, .off),
+  .bar .act:not(:disabled) {
+    cursor: pointer;
+  }
+  .screen.lobby .act.go:not(:disabled):hover,
+  .bar .act.go:not(:disabled):hover {
+    filter: brightness(1.08) saturate(1.1);
+    box-shadow:
+      inset 0 1px 0 #ffffff55,
+      0 3px 0 #0006,
+      0 0 14px #f3c86b66;
+  }
+  .screen.lobby .act.go:not(:disabled):active,
+  .bar .act.go:not(:disabled):active {
+    filter: brightness(0.92);
+  }
+  .screen.lobby .act:disabled,
+  .bar .act:disabled {
+    cursor: not-allowed;
+    filter: saturate(0.4);
+  }
+}

@@ -1,0 +1,920 @@
+/* ---------- 牌桌 ---------- */
+.table {
+  position: absolute;
+  inset: 0;
+}
+.table > * {
+  position: absolute;
+}
+.badge {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3) var(--sp-1) var(--sp-1);
+  border-radius: var(--r-pill);
+  background: linear-gradient(#00000030, #00000058);
+  border: 1px solid #ffffff14;
+  box-shadow: var(--sh-1);
+  min-width: 120px;
+  transition: box-shadow var(--t-mid);
+}
+.badge.turn {
+  box-shadow: 0 0 0 3px var(--gold), 0 0 18px #f3c86b80;
+}
+.badge.won {
+  opacity: 0.85;
+}
+.badge .avatar {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  /* 圆框：金边外再压一道深色，任何底色上都框得住 */
+  box-shadow:
+    0 0 0 2px #f3c86bcc,
+    0 0 0 3px #0008,
+    0 2px 6px #0008;
+}
+.badge.turn .avatar {
+  box-shadow:
+    0 0 0 3px var(--gold),
+    0 0 12px var(--gold);
+}
+.badge .info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* 不加上下内边距：头像牌再高一点，横屏左右两家就压到下面的牌墙 */
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  background: linear-gradient(#00000059, #00000080);
+  box-shadow: inset 0 1px 0 #ffffff14;
+}
+.badge .avatar svg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.badge .dealer {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+}
+/* 庄、缺门、托管这些小标记一个样子：圆角小牌、浅色描边，只按颜色区分 */
+.badge .dealer,
+.tag {
+  font-size: var(--fs-xs);
+  /* 连上下 1 像素描边一共 16 高：头像牌不能再高（横屏左右两家下面紧挨着牌墙） */
+  line-height: 14px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: var(--r-sm);
+  padding: 0 var(--sp-1);
+  border: 1px solid #ffffff59;
+  box-shadow: 0 1px 2px #0006;
+}
+.badge .dealer {
+  background: linear-gradient(#ff6b5b, #c0262d);
+}
+.badge .name {
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.badge .chips {
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  color: var(--gold);
+}
+.badge .tags {
+  display: flex;
+  gap: var(--sp-1);
+}
+.tag {
+  background: #ffffff26;
+}
+.tag.que.wan {
+  background: #c0262d;
+}
+.tag.que.tong {
+  background: #1f5fa8;
+}
+.tag.que.tiao {
+  background: #1f8a4c;
+}
+.tag.ok {
+  background: #4cc38a66;
+}
+.tag.away {
+  background: #9998;
+}
+.badge .stamp {
+  position: absolute;
+  right: -10px;
+  top: -10px;
+  background: var(--red);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-sm);
+  transform: rotate(-12deg);
+  box-shadow: 0 2px 6px #0008;
+}
+/* 胡、自摸章不盖头像、名字和庄标：下面三家的章放在名牌上方，上面两家的章放在名牌朝牌桌里的那一侧，垂直居中 */
+.table .badge.r0 .stamp,
+.table .badge.r1 .stamp {
+  right: auto;
+  top: -30px;
+  left: 50%;
+  margin-left: -17px;
+}
+.table .badge.r3 .stamp {
+  right: -30px;
+  top: 50%;
+  margin-top: -17px;
+}
+.table .badge.r2 .stamp {
+  right: auto;
+  left: -30px;
+  top: 50%;
+  margin-top: -17px;
+}
+.badge .stamp.wide {
+  width: auto;
+  min-width: 34px;
+  padding: 0 8px;
+  border-radius: 17px;
+  white-space: nowrap;
+}
+.badge .clock {
+  position: absolute;
+  left: 50%;
+  /* 离名牌顶边留 4：原来 -16 正好贴着名牌的描边，自己那家的倒计时数字像压在卡片上（好友房 11-02 看图） */
+  top: -20px;
+  transform: translateX(-50%);
+  padding: 0 var(--sp-1);
+  border-radius: var(--r-pill);
+  background: #000000a0;
+  font-size: var(--fs-xs);
+  line-height: 16px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.badge .clock.low {
+  color: #ff6b5b;
+}
+/* 上面两家的名牌贴着牌桌顶边（离边 8–14），倒计时放在上面会被舞台裁掉：改放名牌底下 */
+.table .badge.r2 .clock,
+.table .badge.r3 .clock {
+  top: auto;
+  bottom: -20px;
+}
+.badge.empty {
+  opacity: 0.5;
+}
+
+.opp-hand {
+  display: flex;
+  gap: 2px;
+}
+/* 牌墙里一张挨一张：图里自带缝和厚度，不要间距 */
+.opp-hand:not(:has(.tile)) {
+  gap: 0;
+}
+.opp-hand .back {
+  background: var(--wall-h) center / 100% 100% no-repeat;
+}
+.opp-hand.r1 .back,
+.opp-hand.r3 .back {
+  background-image: var(--wall-v);
+}
+.opp-hand.r2 .back {
+  width: 18px;
+  height: 27px;
+}
+.opp-hand.r1,
+.opp-hand.r3 {
+  flex-direction: column;
+}
+.opp-hand.r1 .back,
+.opp-hand.r3 .back {
+  width: 27px;
+  height: 13px;
+}
+.opp-hand.r1 .tile.xs,
+.opp-hand.r3 .tile.xs {
+  width: 20px;
+  height: 28px;
+}
+
+.melds {
+  display: flex;
+  gap: 6px;
+}
+.meld {
+  display: flex;
+}
+.melds.r1,
+.melds.r3 {
+  flex-direction: column;
+}
+.melds:empty {
+  display: none;
+}
+/* 一家的手牌加碰杠：自己的横排在底边、对家的横排在顶边（碰杠在他右手边，从我这儿看是左边），左右两家竖排在两边，都沿桌边居中 */
+.side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.side.r0 {
+  align-items: flex-end;
+  gap: 16px;
+}
+.side.r2 {
+  flex-direction: row-reverse;
+}
+.side.r1 {
+  flex-direction: column-reverse;
+}
+.side.r3 {
+  flex-direction: column;
+}
+.side.r1,
+.side.r3 {
+  gap: 8px;
+}
+/* 亮出来的手牌（胡了、一局完了）：左右两家四张一行，不然一竖条比桌子还高 */
+.opp-hand.r1:has(.tile),
+.opp-hand.r3:has(.tile) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 88px;
+}
+.opp-hand.r2:has(.tile) {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 340px;
+}
+
+.river {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  align-content: flex-start;
+}
+.river .tile {
+  position: relative;
+}
+.river .tile.taken {
+  opacity: 0.35;
+}
+.river .tile.fresh {
+  animation: drop 0.25s ease-out;
+}
+.river .tile.hot,
+.river .tile.last {
+  border-radius: 11% / 8%;
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 10px var(--gold);
+}
+/* 全桌最近打出的那张：金边慢慢呼吸两下再停住，头上一个往下点的小箭头，一眼找得到 */
+.river .tile.last {
+  z-index: 1;
+  animation: last-in 0.9s ease-out 2;
+}
+.river .tile.last::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -13px;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-top: 9px solid var(--gold);
+  border-bottom-width: 0;
+  filter: drop-shadow(0 1px 1px #000a);
+  animation: last-arrow 0.8s ease-in-out infinite alternate;
+}
+@keyframes last-arrow {
+  to {
+    transform: translateY(-4px);
+  }
+}
+@keyframes last-in {
+  50% {
+    box-shadow:
+      0 0 0 3px var(--gold),
+      0 0 18px var(--gold);
+  }
+}
+@keyframes drop {
+  from {
+    transform: translateY(-14px) scale(1.25);
+    opacity: 0.2;
+  }
+}
+
+.center {
+  width: 156px;
+  height: 112px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(#00000030, #00000058);
+  border: 1px solid #ffffff1f;
+  box-shadow: inset 0 1px 0 #ffffff14, var(--sh-1);
+}
+.center .mid {
+  position: absolute;
+  inset: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.center .wall {
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--gold);
+}
+.center .wall-label {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  /* 手机上字号放大后三行要挤进盘子，两行小字行高收紧（0.17.6） */
+  line-height: 1.15;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  opacity: 0.75;
+}
+.center .round {
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  line-height: 1.15;
+  opacity: 0.9;
+}
+/* 四边的方向灯：轮到谁谁那边亮，外面再出一个箭头指着他 */
+.center .dir {
+  position: absolute;
+  background: #ffffff1a;
+  border-radius: 3px;
+}
+.center .dir.r0,
+.center .dir.r2 {
+  left: 38px;
+  right: 38px;
+  height: 7px;
+}
+.center .dir.r0 {
+  bottom: 4px;
+}
+.center .dir.r2 {
+  top: 4px;
+}
+.center .dir.r1,
+.center .dir.r3 {
+  top: 30px;
+  bottom: 30px;
+  width: 7px;
+}
+.center .dir.r1 {
+  right: 4px;
+}
+.center .dir.r3 {
+  left: 4px;
+}
+.center .dir.on {
+  background: var(--gold);
+  box-shadow: 0 0 10px var(--gold);
+}
+.center .dir.on::after {
+  content: '';
+  position: absolute;
+  border: 8px solid transparent;
+  animation: dir-point 0.7s ease-in-out infinite alternate;
+}
+.center .dir.r0.on::after {
+  left: 50%;
+  top: 100%;
+  margin: 6px 0 0 -8px;
+  border-top: 10px solid var(--c, var(--gold));
+  border-bottom-width: 0;
+  --dx: 0;
+  --dy: 4px;
+}
+.center .dir.r2.on::after {
+  left: 50%;
+  bottom: 100%;
+  margin: 0 0 6px -8px;
+  border-bottom: 10px solid var(--c, var(--gold));
+  border-top-width: 0;
+  --dx: 0;
+  --dy: -4px;
+}
+.center .dir.r1.on::after {
+  top: 50%;
+  left: 100%;
+  margin: -8px 0 0 6px;
+  border-left: 10px solid var(--c, var(--gold));
+  border-right-width: 0;
+  --dx: 4px;
+  --dy: 0;
+}
+.center .dir.r3.on::after {
+  top: 50%;
+  right: 100%;
+  margin: -8px 6px 0 0;
+  border-right: 10px solid var(--c, var(--gold));
+  border-left-width: 0;
+  --dx: -4px;
+  --dy: 0;
+}
+@keyframes dir-point {
+  to {
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+.center .dir.done {
+  background: #e0484888;
+}
+
+.my-hand {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+}
+.my-hand .tile {
+  transition: transform 0.12s;
+  cursor: pointer;
+}
+.my-hand .tile.up {
+  transform: translateY(-14px);
+}
+/* 有鼠标时悬停先抬一点（0.16.2，对标雀魂），点下去再抬到选中的高度；触屏没有悬停，不受影响 */
+@media (hover: hover) and (pointer: fine) {
+  .my-hand .tile:not(.off):not(.up):not(.drag):hover {
+    transform: translateY(-7px);
+  }
+}
+/* 轮到我打牌：手牌底下一道金边，轻轻呼吸（减少动态效果时只亮不动） */
+.my-hand.turn {
+  border-radius: 8px;
+  box-shadow: 0 6px 0 -2px var(--gold);
+  animation: turn-glow 1.6s ease-in-out infinite;
+}
+@keyframes turn-glow {
+  50% {
+    box-shadow: 0 6px 10px -2px var(--gold);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .my-hand.turn {
+    animation: none;
+  }
+}
+.my-hand .tile.drawn {
+  margin-left: calc(var(--lg-w) / 2);
+}
+.my-hand .tile.ghost {
+  visibility: hidden;
+}
+.my-hand .tile {
+  position: relative;
+}
+/* 能点的手牌把点按区往上撑到 --tap 高（屏幕上 44）：竖屏手机上每张牌只有 25×35 像素（0.18.0 手机专项）。
+ * 宽度没法撑，14 张已经铺满一排；往上撑的那截是牌和头像、按钮之间的空呢子，不压别的东西。
+ * 不能点的牌（.off）不撑；.ban 用的 ::after 只出现在不能点的牌上，不冲突 */
+.my-hand .tile:not(.off)::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc(100% - var(--tap))) 0 0;
+}
+.my-hand .tile.off {
+  cursor: default;
+}
+/* 拖着的牌跟手（不要过渡），拖够了亮一圈表示松手就打 */
+.my-hand .tile:not(.off) {
+  touch-action: none;
+}
+.my-hand .tile.drag {
+  transition: none;
+  z-index: 5;
+  filter: drop-shadow(0 6px 8px #0008);
+}
+.my-hand .tile.drag.out {
+  box-shadow: 0 0 0 3px var(--gold);
+  border-radius: 5px;
+}
+/* 新摸的牌从上面落进来 */
+.my-hand .tile.drawn.new {
+  animation: draw-in 0.22s ease-out;
+}
+@keyframes draw-in {
+  from {
+    transform: translateY(-24px);
+    opacity: 0;
+  }
+}
+.my-hand .tile.ban::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 11% / 8%;
+  background: #0b1f18a0;
+}
+/* 缺门的牌：底下一道红线，提醒先打掉 */
+.my-hand .tile.que {
+  box-shadow: 0 -4px 0 #e04848 inset;
+  border-radius: 5px;
+}
+.my-hand .tile.win-tile {
+  box-shadow: 0 0 0 3px var(--gold);
+  border-radius: 5px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  justify-content: flex-end;
+}
+/* "再点一下打出"这类提示：一个小签贴在操作条上，不是一行飘在桌面上的灰字（0.17.3） */
+.bar .hint {
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-pill);
+  background: #0000005c;
+  border: 1px solid #ffffff1a;
+}
+.table .bar .bar-clock {
+  min-width: 2ch;
+  text-align: center;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-pill);
+  background: #000000a0;
+  font-size: var(--fs-sm);
+  line-height: 24px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.table .bar .bar-clock:empty {
+  display: none;
+}
+.table .bar .bar-clock.low {
+  color: #ff6b5b;
+}
+.bar .claim-tile {
+  display: flex;
+}
+/* 给 kit 的"互动"按钮留的空位：不画东西、不挡点击，只告诉 kit 按钮放哪、多大。
+ * 正方形、边长约 1.1 个 --tap（屏幕上约 48 像素）：互动和聊天都是图标圆钮（见下），不和碰杠胡过抢眼；
+ * kit 给按钮保底 44 像素，空位比它小时按钮会撑出来压到手牌（iPhone SE 竖屏） */
+.fun-slot {
+  width: calc(max(44px, var(--tap, 44px)) * 1.1);
+  height: calc(max(44px, var(--tap, 44px)) * 1.1);
+  pointer-events: none;
+}
+/* kit 的"互动""聊天"按钮浮在舞台外面（屏幕像素）：电脑和手机（横竖屏）都只留一个图标圆钮，边长由上面的空位定（不小于 44 像素），
+ * 颜色和牌桌上别的按钮一个样子；字藏起来、图标按舞台缩放（view/fun.ts 的 buttonStyle 给 --atf-icon）；碰杠胡过才是桌上最醒目的按钮 */
+html .atf-btn {
+  border: 1px solid #ffffff26;
+  padding: 0;
+  background: linear-gradient(#ffffff38, #ffffff1a), #2a4a3c;
+  box-shadow:
+    inset 0 1px 0 #ffffff40,
+    0 3px 0 #0006;
+}
+html .atf-btn span { display: none; }
+/* kit 聊天框的标题"聊天"在标题行里被挤成一个字宽（flex:1 可缩），竖排成两行、和右边的按钮不齐：标题不缩、不折行（框挂在 body 下，只能认 kit 的类名） */
+html .atc-dock .atc-head b { flex: none; white-space: nowrap; }
+/* 碰杠胡过：大、醒目，浮在手牌右上方；每个按钮看得见的部分也不小于 --tap（屏幕上 44 像素），相邻两个之间空 --sp-3 */
+.bar .act {
+  min-width: max(84px, var(--tap, 0px));
+  min-height: max(60px, var(--tap, 0px));
+  font-size: var(--fs-2xl);
+  border-radius: var(--r-lg);
+  box-shadow: 0 4px 0 #0006, 0 8px 18px #000a;
+}
+.bar .act.ron {
+  min-width: 104px;
+  min-height: 68px;
+  font-size: var(--fs-3xl);
+}
+.bar .act.pass {
+  min-width: max(64px, var(--tap, 0px));
+  min-height: max(48px, var(--tap, 0px));
+  font-size: var(--fs-lg);
+}
+/* 听牌提示：打了能听的牌头上一个小"听"，操作条上摆听哪些、各剩几张 */
+.my-hand .tile.ting::before {
+  content: '听';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--gold);
+  color: #3a2a00;
+  font-size: var(--fs-xs);
+  line-height: 15px;
+  font-weight: 700;
+}
+.bar .ting {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-md);
+  background: #0b1f18c0;
+  box-shadow: var(--sh-1);
+  white-space: nowrap;
+}
+.bar .ting .lead {
+  color: var(--gold);
+  font-weight: 700;
+}
+.bar .ting .k {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+}
+.bar .ting .k small {
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+.bar .ting .k.none {
+  opacity: 0.4;
+}
+.bar .ting .sum {
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/* 动作大字、气泡、天气 */
+.fx {
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.fx > * {
+  position: absolute;
+}
+.banner {
+  font-size: 54px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 2px;
+  -webkit-text-stroke: 2px #6a1d00;
+  text-shadow:
+    0 2px 0 #9a3a10,
+    0 4px 0 #6a1d00,
+    0 8px 12px #0008,
+    0 0 28px #ffb34d;
+  animation: pop 1.5s ease-out forwards;
+  white-space: nowrap;
+}
+.banner.hu {
+  color: #ffe08a;
+  font-size: 68px;
+}
+.banner.kan {
+  color: #ffd1a1;
+}
+.banner.pon {
+  color: #fff0c4;
+}
+.banner.swap {
+  font-size: 40px;
+}
+@keyframes pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -60%) scale(1);
+    opacity: 0;
+  }
+}
+/* 胡牌亮牌：盖在牌桌中间，不挡点击；--ms 由 fx.overlay 写（摆多久） */
+.hu-card {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  /* 基础样式本身就居中：动画被取消、减少动效时都不会偏到右边出屏 */
+  transform: translate(-50%, -50%);
+  max-width: 96%;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(ellipse at 50% 0%, #f3c86b26, transparent 60%),
+    linear-gradient(#1d4b3cf2, #0e2e24f2);
+  border: 2px solid #f3c86b80;
+  box-shadow: inset 0 1px 0 #ffffff26, var(--sh-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  overflow: hidden;
+  animation: hu-card var(--ms, 2200ms) ease-out forwards;
+}
+@keyframes hu-card {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0;
+  }
+  10% {
+    transform: translate(-50%, -50%) scale(1.04);
+    opacity: 1;
+  }
+  16%,
+  88% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -54%) scale(1);
+    opacity: 0;
+  }
+}
+.hu-card .head {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: baseline;
+  font-size: var(--fs-lg);
+}
+.hu-card .how {
+  color: var(--gold);
+  font-weight: 800;
+  font-size: var(--fs-2xl);
+  text-shadow: 0 2px 0 #0008;
+}
+.hu-card .tiles {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-end;
+}
+.hu-card .meld {
+  display: flex;
+}
+.hu-card .tile.win {
+  margin-left: 4px;
+  box-shadow: 0 0 0 3px var(--gold), 0 0 14px var(--gold);
+  border-radius: 5px;
+}
+.hu-card .items {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+}
+.hu-card .fan,
+.hu-card .total {
+  padding: 2px var(--sp-3);
+  border-radius: var(--r-pill);
+  background: #00000050;
+  border: 1px solid #ffffff1a;
+  font-size: var(--fs-md);
+  opacity: 0;
+  animation: fan-in 0.3s ease-out forwards;
+}
+.hu-card .total {
+  background: linear-gradient(var(--gold-hi), var(--gold-lo));
+  border-color: #fff3c4;
+  color: var(--on-gold);
+  font-weight: 800;
+}
+@keyframes fan-in {
+  from {
+    transform: translateY(8px) scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+/* 2 番以上：金边、扫一道光；3 番以上（封顶）：背后转一圈光 */
+.hu-card.big {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px #f3c86b60, 0 0 36px #f3c86b90, 0 10px 30px #000a;
+}
+.hu-card.big::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, #fff6 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: shine 1.1s 0.4s ease-in-out 2;
+  pointer-events: none;
+}
+@keyframes shine {
+  to {
+    transform: translateX(100%);
+  }
+}
+.hu-card.huge::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260%;
+  aspect-ratio: 1;
+  background: repeating-conic-gradient(#f3c86b30 0 10deg, transparent 10deg 20deg);
+  transform: translate(-50%, -50%);
+  animation: rays 3s linear infinite;
+  z-index: -1;
+}
+@keyframes rays {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hu-card,
+  .hu-card .fan,
+  .hu-card .total {
+    animation-duration: 0.01s;
+  }
+  .river .tile.last::after,
+  .center .dir.on::after {
+    animation: none;
+  }
+  .hu-card {
+    animation: none;
+  }
+  .hu-card.big::after,
+  .hu-card.huge::before {
+    animation: none;
+  }
+}
+.weather {
+  inset: 0;
+  overflow: hidden;
+}
+.weather i {
+  position: absolute;
+  display: block;
+}
+.weather.wind i {
+  width: 160px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #ffffffb0, transparent);
+  animation: gust 0.9s ease-in forwards;
+}
+@keyframes gust {
+  from {
+    transform: translateX(-300px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(900px);
+    opacity: 0;
+  }
+}
+.weather.rain i {
+  width: 2px;
+  height: 22px;
+  background: linear-gradient(#bfe6ff00, #bfe6ffd0);
+  animation: rain 0.7s linear forwards;
+}
+@keyframes rain {
+  from {
+    transform: translate(0, -120px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(-30px, 420px);
+    opacity: 0;
+  }
+}
+

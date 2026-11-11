@@ -1,0 +1,96 @@
+/*
+ * 好友页（按需加载）：一屏放下不滚（docs/ui.md 第 9、11 节）。
+ * 外框一屏高；电脑上 <PageTabs> 并排两栏等高（左：加好友、好友码、请求；右：好友列表翻页），窄屏用页签；
+ * 列表区吃剩下的高，用 <Paged> 翻页。新规则都限定在 .friends-page 下。
+ */
+.friends-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.friends-page > .banner, .friends-page > .form-error { flex: none; margin: 0; }
+.friends-page .friends-tabs { gap: var(--s-2); }
+.friends-page .ptabs__bar button { min-height: 36px; font-size: var(--fs-sm); }
+.friends-page .ptabs__panes, .friends-page .ptabs__pane { gap: var(--s-3); }
+@media (pointer: coarse) { .friends-page .ptabs__bar button { min-height: var(--tap); } }
+
+/* 卡片：紧一点的内边距，卡片头不留大空白 */
+.friends-page .panel { display: flex; flex-direction: column; gap: var(--s-2); min-height: 0; min-width: 0; padding: var(--s-3) var(--s-4); overflow: hidden; }
+.friends-page .panel > .panel__head, .friends-page .panel > .panel__title { flex: none; margin: 0; align-items: center; }
+.friends-page .panel__title { display: flex; align-items: center; gap: var(--s-2); margin: 0; white-space: nowrap; }
+.friends-page .panel__head > .feed-entry { padding: 0 var(--s-3); gap: 6px; font-size: var(--fs-sm); }
+.friends-page .panel__head > .feed-entry { flex: none; }
+.friends-page .panel > .note, .friends-page .panel > .row { margin: 0; }
+.friends-page .friends-list, .friends-page .friends-req { flex: 1 1 0; }
+.friends-page .friends-req__fill { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.friends-page .friends-list > .skeleton { flex: 1; min-height: 0; overflow: hidden; }
+.friends-page .friends-list > .empty { flex: 1; min-height: 0; justify-content: center; overflow: hidden; padding: 0; }
+/* 空、加载中、出错、人少（一页放得下）：卡片按内容高，空状态紧跟标题，不撑满一屏再居中；人多时上面的撑满规则照旧 */
+.friends-page .friends-list--few, .friends-page .friends-req--few { flex: none; }
+.friends-page .friends-list--few > .skeleton { flex: none; }
+.friends-page .friends-list--few > .empty { flex: none; overflow: visible; padding: var(--s-4) 0 var(--s-3); }
+.friends-page .friends-list--few > .empty .empty__art, .friends-page .friends-list--few > .empty svg { max-height: 72px; width: auto; }
+.friends-page .friends-req--few .friends-req__fill { flex: none; }
+.friends-page .friends-list--few .paged, .friends-page .friends-req--few .paged { flex: none; }
+.friends-page .friends-list--few .paged__list, .friends-page .friends-req--few .paged__list { flex: none; overflow: visible; }
+/* 矮屏（手机横屏）一屏只有三百多高：空状态不加上下留白，不然按钮被页脚压住 */
+@media (max-height: 600px) { .friends-page .friends-list--few > .empty { padding: 0; } }
+
+/* 电脑：左栏（好友码、加好友）和右栏（请求）定宽，好友列表吃剩下的；左栏最后一块撑满到和别的栏一样高 */
+.friends-page .friends-side { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.friends-page .ptabs--wide .ptabs__pane:first-child { flex: 0 0 clamp(300px, 28%, 380px); }
+.friends-page .ptabs--wide .ptabs__pane:nth-child(2) { flex: 1 1 0; }
+.friends-page .friends-tabs--3.ptabs--wide .ptabs__pane:last-child { flex: 0 0 clamp(300px, 26%, 380px); }
+.friends-page .friends-side > .friends-code { flex: none; }
+.friends-page .friends-side > .friends-add { flex: none; }
+/* 电脑两栏顶部对齐、不要求等高：左栏（好友码、加好友）永远按内容高；中间、右边两栏人少时也按内容高，人多才拉到整栏高好翻页 */
+@media (min-width: 1100px) and (min-height: 600px) {
+  .friends-page .ptabs--wide .ptabs__panes { align-items: stretch; }
+  .friends-page .ptabs--wide .ptabs__pane:first-child { align-self: flex-start; }
+  .friends-page .ptabs--wide .ptabs__pane:has(> .friends-list--few), .friends-page .ptabs--wide .ptabs__pane:has(> .friends-side > .friends-req--few):not(:has(.panel:not(.friends-req--few))) { align-self: flex-start; }
+}
+
+/* 我的好友码、加好友：紧凑 */
+.friends-page .friends-code .code-big { margin: 0; font-size: 26px; }
+.friends-page .friends-code .note { margin: 0; overflow-wrap: anywhere; }
+.friends-page .friends-code .row { flex-wrap: wrap; align-items: center; }
+.friends-page .friends-add .form { flex-direction: row; align-items: flex-end; gap: var(--s-2); }
+.friends-page .friends-add .field { flex: 1; min-width: 0; }
+.friends-page .friends-add .form > .btn { flex: none; }
+
+/* 一行人：电脑上名字在左、按钮在同一行右边；手机上按钮在名字下面 */
+.friends-page .people { gap: var(--s-2); }
+.friends-page .people__item { padding: var(--s-2) var(--s-3); gap: var(--s-2); }
+.friends-page .people__btns { flex-wrap: wrap; gap: var(--s-2); }
+@media (min-width: 560px) {
+  .friends-page .people__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s-4); }
+  .friends-page .people__btns { justify-content: flex-end; flex-wrap: nowrap; }
+  .friends-page .people__item > .form-error { grid-column: 1 / -1; }
+}
+/* 请求那一栏窄：按钮永远在名字下面 */
+.friends-page .friends-req .people__item { display: flex; flex-direction: column; align-items: stretch; }
+.friends-page .friends-req .people__btns { justify-content: flex-start; flex-wrap: wrap; }
+@media (hover: hover) { .friends-page .people__item:hover { background: var(--highlight-warm); } }
+/* 确认换掉整行：文字在左、按钮在右，窄屏文字在上按钮在下 */
+.friends-page .people__item--confirm { display: flex; flex-direction: column; justify-content: center; }
+.friends-page .people__confirm { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); border: 0; padding: 0; }
+.friends-page .people__confirm .check { flex: 1 1 220px; min-width: 0; }
+.friends-page .people__confirm .form-error { flex: 1 1 100%; }
+.friends-page .people__confirm-btns { margin: 0; gap: var(--s-2); flex: none; }
+.friends-page .paged__bar .btn { min-height: 36px; }
+@media (pointer: coarse) { .friends-page .paged__bar .btn { min-height: var(--tap); } }
+
+/* 矮屏（手机横屏）：卡片再紧一点 */
+@media (max-height: 500px) {
+  .friends-page .panel { padding: var(--s-2) var(--s-3); gap: var(--s-1); }
+  .friends-page .people__item { padding-block: var(--s-1); }
+  /* 好友码一栏在横屏只有 390 高：码字号原来被上面带 .friends-code 的规则压着不变，这里一起缩 */
+  .friends-page .code-big, .friends-page .friends-code .code-big { font-size: 20px; }
+}
+
+/* 在线的绿点挂在头像右下角 */
+.people__face { position: relative; display: inline-flex; flex: none; }
+.people__online { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border: 2px solid var(--surface); border-radius: 50%; background: #3fae5f; }
+.people__sub--online { color: #2f8a4b; font-weight: 700; }
+/* 搭子战绩：昵称下面第二行小字；最佳搭档是一个小牌子 */
+.people__mates { display: block; font-size: 0.85em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.people__best { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 999px; background: #f6c445; color: #3a2a00; font-weight: 700; }
+/* 删好友、屏蔽：文字样式的危险按钮（红字、无底色），点开后换成的确认行里才是实心红按钮；一行里只有"接受"或"加入"是主按钮 */
+.people .btn--quiet-danger { background: transparent; box-shadow: none; border-color: transparent; color: var(--danger); text-decoration: underline; }
+@media (hover: hover) { .people .btn--quiet-danger:not(:disabled):hover { background: var(--highlight-warm); } }

@@ -1,0 +1,252 @@
+/* ---------- 选桌页 ---------- */
+/* 右下角的版本号：线上核对发的是哪一版 */
+.screen.lobby .ver {
+  position: absolute;
+  right: var(--sp-4);
+  bottom: var(--sp-3);
+  font-size: var(--fs-xs);
+  opacity: 0.45;
+}
+.screen.lobby {
+  --lobby-pad: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5) var(--lobby-pad) 0;
+  /* 一屏放下（docs/ui.md 第 11 节）：不滚动，放不下就缩间距、横屏分两栏 */
+  overflow: hidden;
+}
+/* 档位卡一档一格：娱乐三格、实盘四格各一排，不折行 */
+.screen.lobby .stakes {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  flex-wrap: nowrap;
+}
+.screen.lobby .stake {
+  min-width: 0;
+}
+/* 手机（不是电脑版）：一屏放下。档位卡的小图标、和顶栏重复的"雀馆 · 玩法"那行不要，间距收紧，"主页"和标题同一行 */
+.stage:not([data-fit='desk']) .screen.lobby {
+  gap: var(--sp-2);
+}
+.stage:not([data-fit='desk']) .screen.lobby .lobby-head .variant,
+.stage:not([data-fit='desk']) .screen.lobby .stake .art-icon,
+.stage:not([data-fit='desk']) .screen.lobby .stake > svg {
+  display: none;
+}
+.stage:not([data-fit='desk']) .screen.lobby .go-row {
+  padding-block: var(--sp-2);
+}
+/* 手机上规则设置两项一行挤：标签不留固定宽、小按钮内边距收一点 */
+.stage:not([data-fit='desk']) .rules-opts .opt {
+  gap: var(--sp-1);
+}
+.stage:not([data-fit='desk']) .rules-opts .opt .label {
+  min-width: 0;
+  margin-right: var(--sp-1);
+}
+.stage:not([data-fit='desk']) .rules-opts .chip {
+  padding: 0 var(--sp-2);
+}
+/* 标题让开顶上的帘子 */
+.stage:not([data-fit='desk']) .screen.lobby .lobby-head {
+  margin-top: var(--sp-2);
+}
+.stage:not([data-fit='desk']) .screen.lobby .lobby-head h1 {
+  font-size: 36px;
+  letter-spacing: 6px;
+}
+/* 竖屏两栏不分开，照旧一列从上往下 */
+.lobby-l,
+.lobby-r {
+  display: contents;
+}
+.lobby-head {
+  text-align: center;
+}
+.lobby-head h1 {
+  margin: 0;
+  font-size: 54px;
+  letter-spacing: 8px;
+  color: var(--gold);
+  text-shadow: 0 3px 0 #0008;
+}
+.lobby-head .variant {
+  font-size: var(--fs-lg);
+  opacity: 0.9;
+}
+.stakes {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.stake {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 112px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 2px solid #ffffff30;
+  border-radius: var(--r-md);
+  background: linear-gradient(#00000020, #00000040);
+  box-shadow: inset 0 1px 0 #ffffff14;
+}
+.stake b {
+  font-size: var(--fs-lg);
+}
+.stake small {
+  font-size: var(--fs-xs);
+  opacity: 0.8;
+}
+.stake.on {
+  border-color: var(--gold);
+  background: linear-gradient(#f3c86b33, #f3c86b14);
+  box-shadow: inset 0 1px 0 #ffffff26, 0 0 0 1px #f3c86b40, var(--sh-1);
+}
+.stake.off {
+  opacity: 0.35;
+}
+/* 选档：娱乐三个难度一排、实盘四档一排，每排上面一行小标题 */
+.stakes-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.stakes-label {
+  font-size: var(--fs-sm);
+  opacity: 0.75;
+}
+.stake .stars {
+  font-size: var(--fs-sm);
+  letter-spacing: 1px;
+  color: var(--gold);
+}
+.wallet-note {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  opacity: 0.8;
+  text-align: center;
+  max-width: 640px;
+}
+/* 规则设置不折叠：两项一行，四个以上选项的（局数）独占一行。
+   每列至少放得下自己那项（标签 + 三个按钮）：等分的话"封顶 3/4/5 番"比半格宽，"5 番"压在右边"换三张"的标签上（11-02 试玩，1280×800） */
+.rules-opts {
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(max-content, 1fr);
+  column-gap: var(--sp-4);
+  width: min(620px, 100%);
+  background: var(--surface);
+  border: 1px solid #ffffff14;
+  border-radius: var(--r-md);
+  padding: var(--sp-1) var(--sp-3) var(--sp-2);
+}
+.rules-opts > :not(.opt),
+.rules-opts > .opt:has(> button:nth-of-type(4)) {
+  grid-column: 1 / -1;
+}
+/* 只有一项的行（手机上的"长度"）独占一整行：不然它被关在半格里，标签被按钮压成一个字 */
+.rules-opts > .opt:nth-of-type(2):last-of-type {
+  grid-column: 1 / -1;
+}
+.rules-opts .rules-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+}
+.rules-opts .rules-title > span {
+  opacity: 0.75;
+}
+.opt {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  /* 一行至少一个点按区高（--tap）：手机上缩放后 --tap 比 chip 高很多，行挨得近时下一行 chip 的隐形点按区会盖住上一行，点"4 局"选中的是"3 番"（0.17.2） */
+  min-height: max(44px, var(--tap));
+}
+.opt .label {
+  /* 四个字的（呼叫转移、三人两房）不折成两行 */
+  min-width: 72px;
+  white-space: nowrap;
+  opacity: 0.8;
+  font-size: var(--fs-sm);
+}
+.chip {
+  height: 28px;
+  border: 1px solid #ffffff40;
+  background: transparent;
+  border-radius: var(--r-pill);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-sm);
+}
+.chip.on {
+  border-color: var(--gold);
+  background: #f3c86b1f;
+  color: var(--gold);
+}
+.go-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-4);
+  /* 排在最底下 */
+  margin: auto calc(-1 * var(--lobby-pad)) 0;
+  align-self: stretch;
+  padding: var(--sp-3) var(--lobby-pad) var(--sp-4);
+}
+.join {
+  display: flex;
+  gap: var(--sp-2);
+}
+.join input,
+.nick input {
+  /* 输入框没法用 ::after 撑点按区：直接按 --tap 定高，屏幕上至少 44 */
+  height: max(44px, var(--tap));
+  font: inherit;
+  font-size: var(--fs-lg);
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  border: 2px solid transparent;
+  background: #fffdf6;
+  color: #1d2a24;
+  box-shadow: inset 0 2px 4px #0003;
+  outline: none;
+  transition: border-color var(--t-fast);
+}
+.join input:focus,
+.nick input:focus {
+  border-color: var(--gold);
+}
+.join input {
+  width: 128px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+}
+/* 单独部署时的昵称框（好友房里别人看到的名字） */
+.nick {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+}
+.nick input {
+  width: 160px;
+  font-size: var(--fs-md);
+}
+.link {
+  border: 0;
+  background: none;
+  padding: var(--sp-1) var(--sp-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.8;
+}
+

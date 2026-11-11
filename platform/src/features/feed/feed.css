@@ -1,0 +1,35 @@
+/*
+ * 动态（Feed.tsx）一屏放下不滚（docs/ui.md 第 11 节）：动态页和顶栏浮层的列表都在 <Paged> 里按高度翻页。
+ * 基础样式在 styles.css；这里只放翻页带来的改动，限定在 .feedpage（动态页）和 .feedpop（浮层）下。
+ */
+.feed { text-align: left; }
+.feed__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-1) var(--s-2); }
+.feed__foot .feed__meta { font-variant-numeric: tabular-nums; }
+.feed__foot .feed__actions { margin-left: auto; }
+.feed__full { margin: var(--s-3) 0 0; line-height: 1.6; overflow-wrap: anywhere; }
+.feed__props { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s-2); margin-top: var(--s-3); }
+/* 翻页里每条自己一个 div，最后一条的分隔线不能被 :last-child 去掉 */
+.feedlist .paged__item > .feed__item { border-bottom: 1px dashed var(--dashed); }
+
+/* 动态页：外框一屏高，卡片吃满，电脑上列表排两列 */
+.feedpage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.feedpage > .panel { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3) var(--s-4); overflow: hidden; }
+.feedpage > .panel > .panel__title { flex: none; margin: 0; }
+/* 有要翻页的长列表才把外框撑满一屏；加载中、出错、空、条数少（一页放得下）都按内容高，空状态紧跟标题 */
+.feedpage > .panel:has(.feedlist:not(.feedlist--few)) { flex: 1; }
+.feedpage > .panel > .skeleton, .feedpage > .panel > .empty, .feedpage > .panel > .note { flex: none; }
+.feedpage > .panel > .empty { padding: var(--s-4) 0 var(--s-3); }
+.feedpage > .panel > .empty .empty__art, .feedpage > .panel > .empty svg { max-height: 72px; width: auto; }
+.feedpage .feedlist--few { flex: none; }
+.feedpage .feedlist--few .paged__list { flex: none; overflow: visible; }
+.feedpage .feedlist .paged__list--grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: var(--s-2) var(--s-4); }
+.feedpage .feedlist .paged__item > .feed__item { height: 100%; box-sizing: border-box; padding: var(--s-2) var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); }
+@media (min-width: 960px) { .page .feedpage { max-width: none; } }
+@media (pointer: coarse) { .feedpage .paged__bar .btn { min-height: var(--tap); } }
+@media (max-height: 500px) { .feedpage > .panel { padding: var(--s-2) var(--s-3); } }
+
+/* 顶栏浮层：高度定死，列表吃剩下的，放不下的翻页（手机上的高度 styles.css 已定） */
+.feedpop__list { overflow: hidden; display: flex; flex-direction: column; padding-bottom: var(--s-1); }
+@media (min-width: 960px) and (pointer: fine) { .feedpop .feedpop__panel { height: min(600px, 75vh); } }
+.feedpop .paged__bar .btn { min-height: 36px; }
+@media (pointer: coarse) { .feedpop .paged__bar .btn { min-height: var(--tap); } }

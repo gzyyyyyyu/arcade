@@ -1,0 +1,58 @@
+{
+  // 全仓的 lint 模板（docs/engineering.md 第 2 节），各模块原样复制，不在模块里改规则；要改先改这一份。
+  // 只开 lint、只查 TS/JS：格式化和 CSS 的检查先不开（各模块一次性整理之前开，会和在审的 PR 全冲突）。
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**/*.ts", "**/*.tsx", "**/*.mts", "**/*.js", "**/*.mjs",
+      "!**/dist*", "!**/public", "!**/fixture", "!**/fixtures"
+    ]
+  },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        // strict 下 DOM 查询、Map.get 后的 `!` 是全仓的惯用写法，禁掉只会换成更啰嗦的断言
+        "noNonNullAssertion": "off",
+        // 字符串拼接还是模板字符串按可读性选，自动改写出来的混合写法反而难读
+        "useTemplate": "off"
+      },
+      "suspicious": {
+        // `if ((r = f()))`、`while ((m = re.exec(s)))`、`(cache[k] ??= …)` 是有意的写法，外面多一层括号表明不是笔误
+        "noAssignInExpressions": "off",
+        // 把名叫 after 的测试辅助函数当成重复的钩子，误报多、价值小
+        "noDuplicateTestHooks": "off",
+        // `xs.forEach((x) => set.add(x))` 这类单行箭头的返回值没人用，改成花括号只是多两个字符
+        "useIterableCallbackReturn": "off"
+      },
+      "correctness": {
+        // 返回 void 的函数里 `return end(w)` 是"做完这件事就结束"的提前返回，不是返回值
+        "noVoidTypeReturn": "off",
+        // 同一张表里的函数签名要一致（成就判定、事件处理），用不到的参数也得占位；真没用的参数交给 tsc 的 noUnusedParameters
+        "noUnusedFunctionParameters": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // tools/、scripts/ 下是冒烟、截图这类无头浏览器脚本：Playwright 的 locator.innerText() 只取看得见的文字，
+      // 这条规则的自动修会把它改成 textContent()，把隐藏元素的文字也带进来，"界面上有没有这句话"的检查就悄悄变宽松了
+      "includes": ["**/tools/**", "**/scripts/**"],
+      "linter": { "rules": { "performance": { "useDomNodeTextContent": "off" } } }
+    },
+    {
+      // 源码里叫 fit 的函数（适配尺寸）会被当成 jasmine 的聚焦测试；只在测试文件里查 .only / fit
+      "includes": ["**", "!**/test/**", "!**/tests/**", "!**/*.test.ts"],
+      "linter": { "rules": { "suspicious": { "noFocusedTests": "off" } } }
+    },
+    {
+      // 测试读任意形状的 JSON 响应，`any` 只用在这类辅助函数里
+      "includes": ["**/test/**", "**/tests/**", "**/*.test.ts"],
+      "linter": { "rules": { "suspicious": { "noExplicitAny": "off" } } }
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+import { describe, expect, it } from 'vitest';
+import { ENEMY_BY_KIND } from '../../src/content/enemies.ts';
+import { MAPS, pushOut } from '../../src/content/maps.ts';
+import { ARENA, PLAYER } from '../../src/content/player.ts';
+import { createWorld, step } from '../../src/core/index.ts';
+import { spawnNow } from '../../src/core/debug.ts';
+import { fresh, mapOpen } from '../../src/platform/save.ts';
+
+const inside = (x: number, y: number, r: number): boolean =>
+  MAPS.yizhuang.blocks.some((b) => x + r > b.x && x - r < b.x + b.w && y + r > b.y && y - r < b.y + b.h && (Math.max(b.x, Math.min(x, b.x + b.w)) - x) ** 2 + (Math.max(b.y, Math.min(y, b.y + b.h)) - y) ** 2 < r * r - 1e-6);
+
+describe('义庄', () => {
+  it('挡路的东西都在场地里，出生点附近空着', () => {
+    for (const b of MAPS.yizhuang.blocks) {
+      expect(b.x).toBeGreaterThan(0);
+      expect(b.y).toBeGreaterThan(0);
+      expect(b.x + b.w).toBeLessThan(ARENA.w);
+      expect(b.y + b.h).toBeLessThan(ARENA.h);
+    }
+    expect(inside(ARENA.w / 2, ARENA.h / 2, 120)).toBe(false);
+  });
+
+  it('推出来以后不再压着墙（从各个方向撞）', () => {
+    for (const b of MAPS.yizhuang.blocks) {
+      for (const [fx, fy] of [[0.5, 0.5], [0, 0], [1, 1], [0.1, 0.9], [1.05, 0.5], [0.5, -0.05]] as const) {
+        const p = { x: b.x + b.w * fx, y: b.y + b.h * fy };
+        // 推一次可能推进相邻的另一块，最多推三次
+        for (let k = 0; k < 3 && pushOut(MAPS.yizhuang.blocks, p, PLAYER.r); k++);
+        expect(inside(p.x, p.y, PLAYER.r)).toBe(false);
+      }
+    }
+  });
+
+  it('主角走不进院墙；怪也推不进棺材', () => {
+    const w = createWorld({ seed: 2, mode: 'vigil', danger: 0, map: 'yizhuang' });
+    w.nextEvent = 1 << 30;
+    // 一直往上走（方向 25 = 正上），会撞上正堂
+    for (let t = 0; t < 400 && w.phase !== 'over'; t++) {
+      step(w, 25, 0);
+      w.hp = 100;
+      expect(inside(w.x, w.y, PLAYER.r - 0.5)).toBe(false);
+    }
+    expect(w.y).toBeGreaterThan(ARENA.h / 2 - 330);
+    const coffin = MAPS.yizhuang.blocks.find((b) => b.look === 'coffin')!;
+    const i = spawnNow(w, 'jiangshi', coffin.x + coffin.w / 2, coffin.y + coffin.h / 2);
+    step(w, 0, 0);
+    expect(inside(w.eX[i]!, w.eY[i]!, w.eR[i]! * 0.7 - 0.5)).toBe(false);
+  });
+
+  it('义庄跳尸多；雪原没有挡路的东西', () => {
+    const count = (map: 'snow' | 'yizhuang'): number => {
+      const w = createWorld({ seed: 4, mode: 'vigil', danger: 0, map });
+      w.weapons.length = 0;
+      w.wstats.length = 0;
+      let n = 0;
+      // 第 4 分钟起跳尸多：直接数补进来的怪
+      w.tick = 30 * 240;
+      w.nextEvent = 1 << 30;
+      for (let t = 0; t < 30 * 20; t++) {
+        step(w, 0, 0);
+        w.hp = 100;
+      }
+      for (let i = 0; i < w.eAlive.length; i++) if (w.eAlive[i] && w.eKind[i] === ENEMY_BY_KIND.jiangshi.code) n++;
+      return n / w.eCount;
+    };
+    expect(count('yizhuang')).toBeGreaterThan(count('snow'));
+    expect(createWorld({ seed: 1, mode: 'vigil', danger: 0 }).blocks.length).toBe(0);
+  });
+
+  it('雪原、义庄一开始就开；别的图按守夜撑过的时间开', () => {
+    const s = { ...fresh(), maxSeconds: 0 };
+    expect(mapOpen(s, 'snow')).toBe(true);
+    expect(mapOpen(s, 'yizhuang')).toBe(true);
+    expect(mapOpen(s, 'bamboo')).toBe(false);
+    expect(mapOpen({ ...s, maxSeconds: 240 }, 'bamboo')).toBe(true);
+    expect(mapOpen({ ...s, maxSeconds: 479 }, 'riverbank')).toBe(false);
+    expect(mapOpen({ ...s, maxSeconds: 720 }, 'icelake')).toBe(true);
+  });
+
+});
+
+describe('义庄、荒庙的院墙按规则版本（0.17.3，规则 41）', () => {
+  // 这次开口的院墙角上有没有墙：看贴着角的一个点是否被某块盖住（荒庙的东北、西南角本来就塌着）
+  const CORNERS = { yizhuang: [[-1, -1], [1, -1], [-1, 1], [1, 1]], temple: [[-1, -1], [1, 1]] } as const;
+  const cornerWalls = (blocks: readonly { x: number; y: number; w: number; h: number }[], map: keyof typeof CORNERS): number => {
+    const C = ARENA.w / 2;
+    const half = map === 'yizhuang' ? 520 : 560;
+    let n = 0;
+    for (const [sx, sy] of CORNERS[map]) {
+      const x = C + sx * half + 13;
+      const y = C + sy * half + 13;
+      if (blocks.some((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h)) n++;
+    }
+    return n;
+  };
+
+  it('新开的局四角开了缺口；规则 40 的旧录像回放用当时封死的四角', () => {
+    for (const map of ['yizhuang', 'temple'] as const) {
+      const now = createWorld({ seed: 1, mode: 'vigil', danger: 0, map });
+      const old = createWorld({ seed: 1, mode: 'vigil', danger: 0, map }, 40);
+      expect(now.blocks).toBe(MAPS[map].blocks);
+      expect(old.blocks).toBe(MAPS[map].blocksV40);
+      expect(cornerWalls(now.blocks, map)).toBe(0);
+      expect(cornerWalls(old.blocks, map)).toBe(CORNERS[map].length);
+    }
+  });
+
+  it('别的图没有旧版墙，回放旧录像照用现在的', () => {
+    const old = createWorld({ seed: 1, mode: 'vigil', danger: 0, map: 'bamboo' }, 40);
+    expect(old.allBlocks).toBe(MAPS.bamboo.blocks);
+  });
+});

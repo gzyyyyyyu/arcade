@@ -1,0 +1,48 @@
+{
+  "name": "texas",
+  "private": true,
+  "license": "MIT",
+  "version": "0.37.9",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "description": "德州扑克：单机对电脑和好友房，筹码跨场保留（无任何现金价值）",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:cf": "tsc --noEmit && vite build --outDir dist-cf/games/texas --emptyOutDir",
+    "preview": "vite preview",
+    "deploy": "npm run build:cf && wrangler deploy",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/worker && tsc --noEmit -p test/standalone",
+    "test": "npm run typecheck && vitest run && vitest run -c vitest.worker.config.ts && vitest run -c vitest.standalone.config.ts",
+    "test:unit": "vitest run",
+    "test:worker": "vitest run -c vitest.worker.config.ts && vitest run -c vitest.standalone.config.ts",
+    "dev:worker": "wrangler dev -c wrangler.local.jsonc -c test/arcade.dev.jsonc --ip 0.0.0.0 --port ${TEXAS_WORKER:-0}",
+    "sim": "node scripts/sim.ts",
+    "gen:preflop": "node scripts/gen-preflop.ts",
+    "capture": "node scripts/capture.ts",
+    "tour-sim": "node scripts/tour-sim.ts",
+    "tour-balance": "node scripts/tour-balance.ts",
+    "vs": "node scripts/sim.ts --vs",
+    "balance": "node scripts/sim.ts --balance",
+    "scenes": "node scripts/smoke.ts --only scenes",
+    "smoke": "node scripts/smoke.ts",
+    "lint": "biome lint ."
+  },
+  "dependencies": {
+    "arcade-kit": "npm:@yyyu-star/arcade-kit@^0.25.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "@cloudflare/vitest-plugin": "^1.4.2",
+    "@cloudflare/workers-types": "^5.20261015.1",
+    "@types/node": "^22.0.0",
+    "playwright-core": "1.58.0",
+    "sharp": "0.35.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4",
+    "wrangler": "^4.151.0"
+  }
+}

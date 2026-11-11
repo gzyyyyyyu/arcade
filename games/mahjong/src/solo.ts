@@ -1,0 +1,299 @@
+/**
+ * 单机（DESIGN.md 4、5 节）：在浏览器里对三个电脑打一场，不连房间、不占任何额度。
+ * - 电脑一步一步出，每步停一下给画面播动画（声明窗口里电脑的回答不停）；
+ * - 每一步存进 mahjong.solo，关了页面回来接着打；
+ * - 实盘（client 模式）：开场经 Worker 从钱包带入，一场打完（或中途离开）带着小结结回；带入、结回的操作号都先存下来，
+ *   断网、刷新后用同一个号重发，平台按号去重，不会多扣多给。
+ * - 存档只有一份（mahjong.solo），每一场有自己的号（id）：已经停下的旧一场（晚到的结回）只改、只删自己那份，不碰新开的一场（自审 C1）。
+ * - 玩法按状态里的 variant 走（core/variants 的登记表、ai 的 AIS）：川麻、立直共用这一套流程；
+ *   存档里的玩法 id 和规则版本就是 state.variant、state.v，规则版本对不上的旧存档不接着打（loadSolo）。
+ */
+import { readJson, removeKey, writeJson } from './storage.ts';
+import { stream } from 'arcade-kit/rng';
+import { AIS } from './ai/index.ts';
+import { PERSONAS } from './ai/personas.ts';
+import { seatPlan, venueOf, type Level } from './ai/venues.ts';
+import type { SettleStats } from './core/match/index.ts';
+import { DEFAULT_VARIANT, variantOf, type ActionOf, type AnyAi, type AnyVariant, type OptsOf, type StateOf, type ViewOf } from './core/variants/index.ts';
+import type { SeatKind } from './core/variants/types.ts';
+import { dailyKey } from './game/daily.ts';
+import type { LadderMode } from './game/ladder.ts';
+import { baseOf, stakesOf, type StakesId, type TierId } from './game/stakes.ts';
+import { maybeApplied, randomId, soloBuyin, soloSettle, type WalletReply } from './net/wallet.ts';
+import { TIMING } from './app/timing.ts';
+
+export const SOLO_KEY = 'mahjong.solo';
+const KINDS: SeatKind[] = ['human', 'ai', 'ai', 'ai'];
+/** 三人两房只有 3 个座位 */
+const kindsOf = (n: number): SeatKind[] => KINDS.slice(0, n);
+export const ME = 0;
+
+/** 单机打的玩法：状态、视图、动作、规则选项都是登记表里各玩法的联合（按 variant 字段分） */
+export type SoloState = StateOf;
+export type SoloView = ViewOf;
+export type SoloAction = ActionOf;
+export type SoloOpts = OptsOf;
+
+/** 存档里的玩法；认不得的（以后删了的玩法）当没有存档 */
+const variantIn = (s: { variant: string }): AnyVariant | null => variantOf(s.variant);
+
+export interface SoloSave {
+  v: 1;
+  /** 这一场的号（0.3.8 起；之前的存档没有，当作就是存着的那一场） */
+  id?: string;
+  state: SoloState;
+  stakes: StakesId;
+  /** 娱乐的难度（0.10.0 起；之前的存档没有，按新手） */
+  level?: Level;
+  names: string[];
+  /** 实盘：钱包里这一份的号；结回的操作号和小结（先存再发，重发用同一个） */
+  ref: string | null;
+  settle: { op: string; amount: number; stats: SettleStats } | null;
+  /** 实盘带入还没确认：先存再发，没回话（断网、刷新）下次用同一个操作号重发 */
+  buying?: { op: string; amount: number } | null;
+  /** 每日挑战：开这一场时的日期（北京时间 YYYY-MM-DD）；没有就是普通单机。过了零点接着打，仍按这个旧日期算 */
+  daily?: string;
+  /** 茶馆擂台的一桌（game/ladder.ts）：哪种打法、第几桌（0 起）；一场打完按它记擂台。没有就是普通单机 */
+  ladder?: { mode: LadderMode; table: number };
+  /** 已经结回（或者娱乐局打完） */
+  done: boolean;
+}
+
+export interface SoloUi {
+  /** 画一帧（每一步之后） */
+  frame(v: SoloView, names: string[]): void;
+  /** 一局打完（停在结算）或一场打完 */
+  roundEnd(v: SoloView, names: string[]): void;
+  /** 结回的结果（实盘） */
+  settled(r: WalletReply): void;
+}
+
+export function loadSolo(): SoloSave | null {
+  const s = readJson<SoloSave | null>(SOLO_KEY, null);
+  const v = s?.state ? variantIn(s.state) : null;
+  return s && s.v === 1 && v && s.state.v === v.rulesVersion ? s : null;
+}
+
+/** 实盘、还没结回钱包的存档：开新的一场前要先把它结了（自审 C1） */
+export function unsettled(s: SoloSave | null): boolean {
+  return !!s && !s.done && !!s.ref && !!stakesOf(s.stakes)?.wallet;
+}
+
+/**
+ * 存档。own 是"这一场正在打"：正在打的那一场总能写；已经停下的（离开了、换成了新的一场）只在存着的还是自己时才改、才删，
+ * 免得晚到的结回把新一场的存档删掉或者盖掉。
+ */
+function persist(s: SoloSave, own: boolean): void {
+  const cur = readJson<SoloSave | null>(SOLO_KEY, null)?.id;
+  const mine = cur === undefined || cur === s.id;
+  if (!own && !mine) return;
+  // 存不上（隐私模式、满了）：这一场照打，只是关了页面就接不上，所以不看返回值
+  if (!s.done) writeJson(SOLO_KEY, s);
+  else if (mine) removeKey(SOLO_KEY);
+}
+
+/** 开一场：密钥浏览器现生成（擂台的一桌用 ladder.key，按这一轮的密钥派生）；chips 是实盘带进来的（一整份，0.15.1 起不少带）；variant 是玩法 id，不给就是川麻 */
+export function newSolo(stakes: StakesId, opts: SoloOpts, myName: string, ref: string | null, chips: number, level: Level = 'easy', variant: string = DEFAULT_VARIANT, daily?: string, ladder?: { mode: LadderMode; table: number; key: number[] }): SoloSave {
+  const st = stakesOf(stakes)!;
+  const V = variantOf(variant)!;
+  // 每日挑战的密钥由日期定（game/daily.ts），同一天所有人同一副牌
+  const key = daily ? dailyKey(daily, variant) : ladder ? ladder.key : [...crypto.getRandomValues(new Uint32Array(8))];
+  // 三个电脑按场地挑性格、各配这一场的状态；0 号座位是自己（性格、状态用不上）
+  const n = (opts as { three?: boolean }).three ? 3 : 4;
+  const plan = seatPlan(stream(key, 'persona'), venueOf('solo', stakes, true, level, n === 3), n - 1);
+  const personas = [0, ...plan.personas];
+  const tunes = [{ mood: 0, soft: 0 }, ...plan.tunes];
+  const state = V.begin(key, opts, kindsOf(n), { share: st.share, base: baseOf(st.share, opts as { flow?: boolean }), personas, tunes, chips: [chips, ...Array<number>(n - 1).fill(st.share)] }) as SoloState;
+  return { v: 1, id: randomId(), state, stakes, ...(st.wallet ? {} : { level }), names: [myName, ...personas.slice(1).map((p) => PERSONAS[p]!.name)], ref, settle: null, ...(daily ? { daily } : {}), ...(ladder ? { ladder: { mode: ladder.mode, table: ladder.table } } : {}), done: false };
+}
+
+/**
+ * 电脑出手的快慢跟性格走（tempo：幺妹儿快、盖碗儿慢），每一手再有一点起伏，不拖、也不秒出。
+ * 起伏由局面算（不用随机数，但这里只是画面节奏，不影响结果）
+ */
+function paceOf(s: SoloState, seat: number): number {
+  const tempo = PERSONAS[s.personas[seat]!]?.tempo ?? 1_000;
+  const round = 'round' in s ? s.round : s.kyoku;
+  const wobble = 850 + ((s.wall.head * 7 + seat * 13 + round * 31) % 300);
+  return (tempo * wobble) / 1_000_000;
+}
+
+/** 电脑每一步之后停多久（毫秒，再乘性格的快慢和速度） */
+export function delayOf(prev: SoloState, next: SoloState): number {
+  const seen = new Set((next.events as { e: string }[]).map((e) => e.e));
+  if (seen.has('hu') || seen.has('win')) return TIMING.soloAfterWinMs;
+  if (seen.has('pon') || seen.has('chi') || seen.has('kan') || seen.has('riichi')) return TIMING.soloAfterMeldMs;
+  if (seen.has('discard')) return TIMING.soloAfterDiscardMs;
+  if (prev.phase === 'claim' && next.phase === 'claim') return 0;
+  return TIMING.soloAfterOtherMs;
+}
+
+export class Solo {
+  private s: SoloSave;
+  private busy = false;
+  private stopped = false;
+  speed = 1;
+  private readonly ui: SoloUi;
+
+  constructor(save: SoloSave, ui: SoloUi) {
+    this.s = save;
+    this.ui = ui;
+  }
+
+  get save(): SoloSave {
+    return this.s;
+  }
+
+  /** 这一场的玩法（状态里的 variant） */
+  private get V(): AnyVariant {
+    return variantIn(this.s.state)!;
+  }
+
+  get view(): SoloView {
+    return this.V.view(this.s.state, ME);
+  }
+
+  get stakes(): StakesId {
+    return this.s.stakes;
+  }
+
+  get names(): string[] {
+    return this.s.names;
+  }
+
+  /** 存档（停下以后只碰自己那份） */
+  private save$(): void {
+    persist(this.s, !this.stopped);
+  }
+
+  /**
+   * 实盘带入：先把"带入中"（ref、操作号）存下来再发（自审 C3）。成了就清掉；平台明确拒了（没扣）就丢掉这一场；
+   * 没回话、平台暂时不行（可能扣了）就留着，下次用同一个操作号重发，平台按号去重，不会多扣
+   */
+  async buyin(): Promise<WalletReply> {
+    const b = this.s.buying;
+    if (!b || !this.s.ref) return { ok: true };
+    this.save$();
+    const r = await soloBuyin({ op: b.op, session: this.s.ref, stakes: this.s.stakes as TierId, amount: b.amount });
+    if (r.ok) this.s.buying = null;
+    else if (!maybeApplied(r.error)) this.s.done = true;
+    this.save$();
+    return r;
+  }
+
+  /** 画当前的局面，接着让电脑出（回来接着打时也从这里开始） */
+  /** play 为 false 时只画出来、电脑先不动（第一次进桌的说明开着时，app/solo-flow.ts） */
+  resume(play = true): void {
+    // 已经离开、结回没成的（存着结回的数）：不再接着打，只把结回再办一次（自审 C2）
+    if (this.s.settle) {
+      this.ui.frame(this.view, this.s.names);
+      void this.finish();
+      return;
+    }
+    this.save$();
+    this.ui.frame(this.view, this.s.names);
+    if (this.s.state.phase === 'end' || this.s.state.phase === 'over') this.ui.roundEnd(this.view, this.s.names);
+    if (this.s.state.phase === 'over') void this.finish();
+    else if (play) void this.runAi();
+  }
+
+  act(a: SoloAction): string | null {
+    if (this.busy || this.stopped) return 'busy';
+    const next = this.V.apply(this.s.state, ME, a);
+    if ('error' in next) return next.error;
+    this.step(next);
+    void this.runAi();
+    return null;
+  }
+
+  /** 一局结算看完了：开下一局 */
+  next(): void {
+    if (this.s.state.phase !== 'end') return;
+    this.step(this.V.resume(this.s.state) as SoloState);
+    void this.runAi();
+  }
+
+  stop(): void {
+    this.stopped = true;
+  }
+
+  private step(next: SoloState): void {
+    this.s.state = next;
+    this.save$();
+    this.ui.frame(this.view, this.s.names);
+    if (next.phase === 'end' || next.phase === 'over') this.ui.roundEnd(this.view, this.s.names);
+    if (next.phase === 'over') void this.finish();
+  }
+
+  private async runAi(): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      const V = this.V;
+      const ai: AnyAi = AIS[V.id];
+      for (;;) {
+        if (this.stopped) return;
+        const s = this.s.state;
+        const act = V.actors(s);
+        if (!act) return;
+        const seat = act.seats.find((i) => KINDS[i] === 'ai');
+        if (seat === undefined) return;
+        const next = V.apply(s, seat, V.auto(s, seat, ai)) as SoloState | { error: string };
+        if ('error' in next) throw new Error(`ai move rejected: ${next.error}`);
+        const wait = delayOf(s, next) * paceOf(s, seat) * this.speed;
+        if (wait > 0) await sleep(wait);
+        if (this.stopped) return;
+        this.step(next);
+      }
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  /**
+   * 实盘结回（一场打完，或者中途离开）：先把操作号和小结存下来再发，失败了下次用同一个号重发。
+   * 带入还没确认的也走这里：没扣成的平台回 no_stake，算结完。返回结回的回话（娱乐局是 null）
+   */
+  async finish(): Promise<WalletReply | null> {
+    const st = stakesOf(this.s.stakes)!;
+    if (!st.wallet || !this.s.ref) {
+      if (this.s.state.phase === 'over') {
+        this.s.done = true;
+        this.save$();
+      }
+      return null;
+    }
+    if (!this.s.settle) {
+      const r = this.V.result(this.s.state).seats[ME]!;
+      this.s.settle = { op: randomId(), amount: Math.max(0, r.chips), stats: r.stats };
+      this.save$();
+    }
+    const r = await soloSettle({ op: this.s.settle.op, session: this.s.ref, amount: this.s.settle.amount, stats: this.s.settle.stats });
+    // 结过了、放太久已经退回：都算结完
+    if (r.ok || r.error === 'no_stake' || r.error === 'expired') {
+      this.s.done = true;
+      this.save$();
+    }
+    this.ui.settled(r);
+    return r;
+  }
+
+  /** 中途离开：马上结算（娱乐局直接丢掉） */
+  async leave(): Promise<void> {
+    this.stop();
+    const st = stakesOf(this.s.stakes)!;
+    // 擂台的一桌：存档留着，下次在擂台接着这一桌打（不换牌、不重来）
+    if (this.s.ladder) return;
+    if (!st.wallet) {
+      this.s.done = true;
+      this.save$();
+      return;
+    }
+    // 立直的筹码只在终局才动：没打完时 result 按"现在就收场"算（只算点数差、这一局不算，见 riichi/rules.ts 的 standings），这里不用另外处理
+    await this.finish();
+  }
+}
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => window.setTimeout(r, ms));
+
+export type { TierId };

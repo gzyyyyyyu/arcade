@@ -1,0 +1,161 @@
+/* ---------- 横屏布局（牌桌 1000×520） ----------
+ * 照主流四人麻将摆：四家的牌沿各自桌边居中（自己的手牌加碰杠一整排在底边正中），头像各在自己左手那个角（我左下、下家右下、
+ * 对家右上、上家左上），中控盘在正中，四个牌河围着它：上下两块 8 张一行、宽 240，左右两块 6 张一行、宽 180，
+ * 左右两块躲开上下两块的横向范围（牌河多到第 4 行也不压）。竖着从对家一排（到 52）到我抬起的牌（426）：上牌河 3 行、中控盘、下牌河 3 行
+ * 正好塞下。碰杠胡过浮在手牌右上方、下家头像左边。 */
+/* 四家名牌同宽（以前自己的跟着名字撑到约 194，别家只有 140 多）：名字超出截断 */
+[data-orient='land'] .badge { width: 176px; }
+[data-orient='land'] .badge .name { max-width: none; }
+[data-orient='land'] .badge.r0 { left: 14px; bottom: 98px; }
+[data-orient='land'] .badge.r1 { right: 14px; bottom: 98px; flex-direction: row-reverse; padding: 4px 4px 4px 10px; }
+[data-orient='land'] .badge.r2 { right: 14px; top: 14px; flex-direction: row-reverse; padding: 4px 4px 4px 10px; }
+[data-orient='land'] .badge.r3 { left: 14px; top: 14px; }
+[data-orient='land'] .side.r0 { left: 50%; bottom: 10px; transform: translateX(-50%); }
+[data-orient='land'] .side.r2 { left: 50%; top: 14px; transform: translateX(-50%); }
+[data-orient='land'] .side.r1 { right: 22px; top: calc(237px + var(--grow, 0px) / 2); transform: translateY(-50%); }
+[data-orient='land'] .side.r3 { left: 22px; top: calc(237px + var(--grow, 0px) / 2); transform: translateY(-50%); }
+/* 高 112 和竖屏一样：手机上字号放大后（0.17.6）104 高放不下数字、"剩余"、局数三行 */
+[data-orient='land'] .center { left: 422px; top: calc(181px + var(--grow, 0px) / 2); height: 112px; }
+[data-orient='land'] .river .tile { width: 29px; height: 41px; }
+[data-orient='land'] .river.r2 { left: 380px; bottom: calc(341px + var(--grow, 0px) / 2); width: 240px; flex-wrap: wrap-reverse; flex-direction: row-reverse; }
+[data-orient='land'] .river.r0 { left: 380px; top: calc(295px + var(--grow, 0px) / 2); width: 240px; }
+[data-orient='land'] .river.r3 { left: 196px; top: calc(175px + var(--grow, 0px) / 2); width: 180px; flex-direction: row-reverse; }
+[data-orient='land'] .river.r1 { left: 624px; top: calc(175px + var(--grow, 0px) / 2); width: 180px; }
+[data-orient='land'] .bar { right: 176px; bottom: 106px; height: max(64px, var(--tap, 0px)); }
+/* 横屏同理：换牌那句长提示加两个按钮会伸到左边"互动"底下，提示挪到按钮上面一行、靠右对齐（0.17.6） */
+[data-orient='land'] .bar .hint { position: absolute; right: 0; bottom: calc(100% + var(--sp-2)); }
+/* "互动"按钮（kit 的 table-fun 画，view/fun.ts）放在这个空位：自己头像右边（名牌最长约 194），不进手牌那一排 */
+[data-orient='land'] .fun-slot { left: 212px; bottom: 102px; }
+[data-orient='land'] .banner.r0 { left: 50%; top: 66%; }
+[data-orient='land'] .banner.r1 { left: 80%; top: 46%; }
+[data-orient='land'] .banner.r2 { left: 50%; top: 20%; }
+[data-orient='land'] .banner.r3 { left: 20%; top: 46%; }
+/* 换三张的方向写在中控盘上方，不压盘，也不压底下的定缺按钮（0.17.3） */
+[data-orient='land'] .banner.swap { left: 50%; top: 30%; }
+
+/* ---------- 横屏电脑版（data-fit="desk"：viewport.ts，看得见的区域 ≥ 900×600） ----------
+ * 舞台高 640–700（--grow 是比 560 高出多少），牌桌宽到 1200 铺满舞台；牌河照主流麻将摆：每家 6 张一行、紧挨中控盘，牌比手机版大
+ * （--rw 随 --grow 变，约手牌宽的 70%），四个牌河围着中控盘对齐：上下两块居中、左右两块贴在它们外侧，左右块和上下块在横向上不重叠，所以能自由长到第 4 行。
+ * 对家、上家、下家的手牌条也放大一号，别家的牌墙不再是细细一条。 */
+.stage[data-orient='land'][data-fit='desk'] {
+  --rw: calc(26px + var(--grow, 0px) * 0.1);
+  --rh: calc(var(--rw) * 1.41);
+  --rwid: calc(var(--rw) * 6 + 6px);
+}
+.stage[data-orient='land'][data-fit='desk'] .table {
+  inset: 0 max(0px, calc(50% - 600px));
+  width: auto;
+}
+[data-fit='desk'] .river .tile { width: var(--rw); height: var(--rh); }
+[data-fit='desk'] .river.r0,
+[data-fit='desk'] .river.r2 { width: var(--rwid); left: calc(50% - var(--rwid) / 2); }
+[data-fit='desk'] .river.r3 { width: var(--rwid); left: calc(50% - var(--rwid) * 1.5 - 6px); }
+[data-fit='desk'] .river.r1 { width: var(--rwid); left: calc(50% + var(--rwid) / 2 + 6px); }
+[data-fit='desk'] .river.r2 { bottom: calc(343px + var(--grow, 0px) / 2); }
+[data-fit='desk'] .river.r0 { top: calc(297px + var(--grow, 0px) / 2); }
+[data-fit='desk'] .river.r3,
+[data-fit='desk'] .river.r1 { top: calc(237px + var(--grow, 0px) / 2 - var(--rh) * 1.5); }
+[data-fit='desk'] .center { left: calc(50% - 100px); width: 200px; }
+[data-fit='desk'] .opp-hand.r2 .back { width: 22px; height: 33px; }
+[data-fit='desk'] .opp-hand.r1 .back,
+[data-fit='desk'] .opp-hand.r3 .back { width: 33px; height: 16px; }
+/* 超大屏（宽 ≥ 1600 且高 ≥ 900，1920×1080 这类）：舞台缩放后手牌约 86 像素、牌盒偏小、中间空区大，把手牌、牌盒、牌河放大一档；
+ * 用已有的牌尺寸变量和 --rw，1280×720、手机和平板不在这个范围，不变。牌盒高加 16，上下牌河各让 8 */
+@media (min-width: 1600px) and (min-height: 900px) {
+  .stage[data-orient='land'][data-fit='desk'] {
+    --lg-w: 56px;
+    --lg-h: 78px;
+    --md-w: 38px;
+    --md-h: 54px;
+    --sm-w: 30px;
+    --sm-h: 42px;
+    --rw: calc((26px + var(--grow, 0px) * 0.1) * 1.1);
+  }
+  [data-fit='desk'] .center { left: calc(50% - 116px); width: 232px; top: calc(173px + var(--grow, 0px) / 2); height: 128px; }
+  [data-fit='desk'] .river.r2 { bottom: calc(351px + var(--grow, 0px) / 2); }
+  [data-fit='desk'] .river.r0 { top: calc(305px + var(--grow, 0px) / 2); }
+}
+/* "互动"：电脑版只留一个图标圆钮（屏幕上约 50 像素），放在自己头像右边，不和右边的碰杠胡过抢位置；
+ * 按钮在舞台外面（kit 画），认 html 上的 data-fit（viewport.ts） */
+[data-fit='desk'] .fun-slot { width: calc(max(44px, var(--tap, 44px)) * 1.15); height: calc(max(44px, var(--tap, 44px)) * 1.15); left: 218px; bottom: 104px; }
+html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
+
+/* ---------- 竖屏布局（舞台 560 × 920–1240，牌桌高 1080 − --cut；--cut 在高过 1120 时是负数） ----------
+ * 上下两截贴边：顶上对家一排、两个上角是上家（左）和对家（右）的头像；底下自己的手牌一排、上面左角我、右角下家的头像，
+ * 再往上是浮着的碰杠胡过。中间一截（左右两家竖排、四个牌河、中控盘）以 C = 525 − --cut/2 为中心（比正中偏下 40：底下常有浮着的按钮和听牌提示）（viewport.ts 按屏幕比例写 --cut，
+ * 最多 200）；屏幕越高（--spread，0–106），牌河的牌越大，多出来的高度给牌河长行，不全挤在中间。 */
+.stage[data-orient='port'] {
+  --c: calc(525px - var(--cut, 0px) / 2);
+  --spread: calc((200px - var(--cut, 0px)) / 3);
+  /* 牌河的牌：舞台在手机上缩到约 0.7 倍，牌宽 34–41 到屏幕上才有 24–29 像素看得清；屏幕越高越大，用掉上下的空呢子 */
+  --pw: calc(34px + min(var(--spread), 100px) / 14);
+}
+[data-orient='port'] .badge.r0 { left: 8px; bottom: 84px; max-width: 190px; }
+[data-orient='port'] .badge.r1 { right: 8px; bottom: 84px; flex-direction: row-reverse; padding: 4px 4px 4px 10px; }
+[data-orient='port'] .badge.r2 { right: 8px; top: 8px; flex-direction: row-reverse; padding: 4px 4px 4px 10px; }
+[data-orient='port'] .badge.r3 { left: 8px; top: 8px; }
+/* 下面两家的章在名牌上方居中（宽章「自摸」不再从中线往右伸、压到名字），再抬高一点：章高 34，转 12 度后角会探进名牌 */
+[data-orient='port'] .table .badge.r0 .stamp,
+[data-orient='port'] .table .badge.r1 .stamp { top: -40px; left: 50%; margin-left: 0; transform: translateX(-50%) rotate(-12deg); }
+/* 竖屏名牌上的状态签（选好了、换牌中、缺门、自风）：舞台缩到约 0.64 倍，原来 12 × --fs-k 的字配 14 的行高，字比签框还高，
+ * 屏幕上看着只有约 10px。字放到 12.5 屏幕像素（× --fs-k 折回设计像素，360 宽约 19.4），行高跟着字走；
+ * 名字和筹码两行行高 1.3 → 1.15 腾出这几像素（两行共省约 7 设计像素），名牌整体高度基本不变 */
+[data-orient='port'] .badge .tag {
+  font-size: calc(12.5px * var(--fs-k, 1));
+  line-height: 1.1;
+  padding: 0 4px;
+}
+[data-orient='port'] .badge .name,
+[data-orient='port'] .badge .chips { line-height: 1.15; }
+/* 手牌一排左右只留 8：手机竖屏每张牌尽量大（37 宽，摸的那张隔 10） */
+[data-orient='port'] .side.r0 { left: 50%; bottom: 12px; transform: translateX(-50%); gap: 6px; }
+[data-orient='port'] .my-hand .tile.drawn { margin-left: 10px; }
+[data-orient='port'] .side.r2 { left: 50%; top: 72px; transform: translateX(-50%); }
+[data-orient='port'] .side.r1 { right: 10px; top: var(--c); transform: translateY(-50%); }
+[data-orient='port'] .side.r3 { left: 10px; top: var(--c); transform: translateY(-50%); }
+/* 左右两家的副露用和亮出的手牌一样的小牌，每一组也竖着摞：横着摆一组就有 60 多宽，把整列撑宽、伸进旁边的牌河 */
+[data-orient='port'] .melds.r1 .tile,
+[data-orient='port'] .melds.r3 .tile { width: 20px; height: 28px; }
+[data-orient='port'] .melds.r1 .meld,
+[data-orient='port'] .melds.r3 .meld { flex-direction: column; }
+/* 血战里胡了的人手牌一直亮到这局完：竖屏两张一行，不伸进旁边的牌河 */
+[data-orient='port'] .opp-hand.r1:has(.tile),
+[data-orient='port'] .opp-hand.r3:has(.tile) { width: 42px; }
+/* 中控盘缩小一点，让出位置给牌河：四个牌河围着它，上下两块各四张一行、左右两块各三张一行竖着往下长，横向互不重叠 */
+[data-orient='port'] .center { left: 228px; top: calc(var(--c) - 50px); width: 104px; height: 100px; }
+[data-orient='port'] .center .mid { inset: 8px; }
+/* 竖屏中控盘离左右牌河只有 12：左右的箭头小一号、贴近一点 */
+[data-orient='port'] .center .dir.r1.on::after { margin-left: 2px; border-width: 6px 0 6px 8px; margin-top: -6px; }
+[data-orient='port'] .center .dir.r3.on::after { margin-right: 2px; border-width: 6px 8px 6px 0; margin-top: -6px; }
+[data-orient='port'] .center .dir.r0,
+[data-orient='port'] .center .dir.r2 { left: 26px; right: 26px; }
+[data-orient='port'] .river .tile { width: var(--pw); height: calc(var(--pw) * 1.39); }
+[data-orient='port'] .river.r2 { left: calc(280px - var(--pw) * 2 - 2px); bottom: calc(1080px - var(--cut, 0px) - var(--c) + 58px); width: calc(var(--pw) * 4 + 3px); flex-wrap: wrap-reverse; flex-direction: row-reverse; }
+[data-orient='port'] .river.r0 { left: calc(280px - var(--pw) * 2 - 2px); top: calc(var(--c) + 58px); width: calc(var(--pw) * 4 + 3px); }
+[data-orient='port'] .river.r3 { left: 54px; top: calc(var(--c) - var(--pw) * 2.8); width: calc(var(--pw) * 3 + 2px); flex-direction: row-reverse; }
+[data-orient='port'] .river.r1 { right: 54px; top: calc(var(--c) - var(--pw) * 2.8); width: calc(var(--pw) * 3 + 2px); }
+[data-orient='port'] .bar { left: 50%; bottom: 172px; height: max(64px, var(--tap, 0px)); transform: translateX(-50%); justify-content: center; }
+/* 竖屏一行放不下提示加三个按钮（字号放大以后，0.17.6）：提示挪到按钮上面一行，不缩字 */
+[data-orient='port'] .bar .hint { position: absolute; left: 50%; bottom: calc(100% + var(--sp-2)); transform: translateX(-50%); }
+@media (max-width: 600px) {
+  [data-orient='port'] .topbar > .title .var { display: none; }
+}
+@media (max-width: 380px) {
+  [data-orient='port'] .topbar > .title .pre { display: none; }
+}
+/* 窄竖屏（≤ 400）字号保底把两边名牌撑宽，对家那排（牌背加碰杠）两头会碰到名牌：整排挪到名牌底下，下面到对家的牌河还空得很（10-20 多尺寸） */
+@media (max-width: 400px) {
+  [data-orient='port'] .side.r2 { top: 150px; }
+}
+@media (max-width: 340px) {
+  [data-orient='port'] .topbar > .title .lv { display: none; }
+}
+/* 头像右边、手牌抬起来（离底 78）也碰不到 */
+[data-orient='port'] .fun-slot { left: 204px; bottom: 84px; }
+[data-orient='port'] .banner { font-size: 44px; }
+[data-orient='port'] .banner.r0 { left: 50%; top: 72%; }
+[data-orient='port'] .banner.r1 { left: 78%; top: 40%; }
+[data-orient='port'] .banner.r2 { left: 50%; top: 18%; }
+[data-orient='port'] .banner.r3 { left: 22%; top: 40%; }
+[data-orient='port'] .banner.swap { left: 50%; top: 34%; }
+

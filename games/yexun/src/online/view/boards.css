@@ -1,0 +1,23 @@
+.yx-boards { width: min(640px, 100%); height: 100%; overflow: hidden; }
+/* 七个榜四个一排，宽度一样、字不折行（"每日守夜"挤在一排五个里会折成两行） */
+.yx-boards .yx-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.yx-boards .yx-tab {
+  min-height: 44px; min-width: 56px; padding: 0 4px; white-space: nowrap; border: 2.5px solid var(--ink); border-radius: 12px;
+  background: #fbf5e4; color: var(--ink); font: inherit; cursor: pointer;
+}
+.yx-boards .yx-tab.on { background: var(--red); color: #fbf5e4; }
+.yx-boards ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; overflow: hidden; }
+.yx-boards li { display: grid; grid-template-columns: 2.4em 1fr auto; gap: 8px; align-items: baseline; padding: 4px 8px; border-radius: 8px; }
+.yx-boards li.me { background: rgba(242, 201, 76, 0.55); }
+.yx-boards li em { font-style: normal; color: #5a4a3a; }
+.yx-boards .yx-bnote { flex: none; color: #5a4a3a; font-size: var(--fs-md, 14px); min-height: 1.3em; }
+/* 宽一点（电脑、手机横屏）七个榜一排，少占一行高度 */
+@media (min-width: 640px) {
+  .yx-boards .yx-tabs { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .yx-boards .yx-tab { min-width: 0; font-size: var(--fs-md, 14px); }
+}
+.yx-boards .yx-panel-head .yx-tab { min-width: 56px; padding: 0 8px; }
+@media (max-height: 500px) {
+  .yx-boards { padding: 8px 12px 10px; gap: 6px; }
+  .yx-boards li { padding: 2px 8px; }
+}

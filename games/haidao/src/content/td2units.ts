@@ -1,0 +1,171 @@
+/**
+ * 守岛 2.0 能调的数（规则版本 7）：塔的三阶数值和价格、统一的敌人表、英雄和技能、局内经济、难度预算、"海盗来袭"。
+ * 数值由 tools/td-sim.ts 配平（DESIGN 10.7 的验收表）；规则核心只按字段名读，单测不写死这些数。
+ * 规则表（克制倍率、类型归属、折阶、星数区间）不在这里，在 core/td2types.ts。
+ * 速度是每拍多少单位（20 拍 1 秒，100 单位 1 格），射程、溅射是单位，伤害、血量是整数。
+ */
+import type { TdEnemyDef, TdEnemyKind } from '../core/tdtypes.ts';
+import type { TdTier, TdTowerKind } from '../core/td2types.ts';
+
+/** 一座塔某一阶的数值 */
+export interface TdTierStats {
+  dmg: number;
+  /** 两发之间隔几拍 */
+  reload: number;
+  range: number;
+  minRange: number;
+  splash: number;
+  /** 一次打几个不同的目标 */
+  shots: number;
+}
+
+/** 木台上 1 阶的造价（局内金币）。升 1→2 阶花造价的 TD2_UP_PCT[0]%，2→3 阶花 TD2_UP_PCT[1]% */
+export const TD2_COST: Readonly<Record<TdTowerKind, number>> = {
+  gunTower: 90,
+  cannon: 100,
+  mortar: 120,
+  flame: 120,
+  harpoon: 140,
+  rocket: 150,
+  shock: 150,
+  sniper: 180,
+};
+export const TD2_UP_PCT: readonly [number, number] = [80, 120];
+
+const tiers = (s: Omit<TdTierStats, 'dmg'>, dmg1: number): readonly [TdTierStats, TdTierStats, TdTierStats] =>
+  // 2 阶伤害 ×1.85、3 阶 ×3.2：累计花费是 1、1.8、3.0 倍造价，每 100 金的秒伤随阶略涨，升级有收益但不压倒铺开
+  [{ ...s, dmg: dmg1 }, { ...s, dmg: Math.floor((dmg1 * 185) / 100) }, { ...s, dmg: Math.floor((dmg1 * 320) / 100) }];
+
+/**
+ * 三阶数值。拉平口径（DESIGN 10.2）：1 阶"每 100 金单体秒伤"单体塔约 15、溅射塔约 9（按平均打到 2 个折算），差 ±10% 以内。
+ * 火枪 11×20/16 = 13.75 秒伤 / 90 金 ≈ 15.3；加农 60×20/80 = 15 / 100 金 = 15；鱼叉 105×20/100 = 21 / 140 ≈ 15；
+ * 臼炮 54×20/100 = 10.8 / 120 = 9；喷火 6×20/11 ≈ 10.9 / 120 ≈ 9；火箭 3 发合计 22×3×20/100 = 13.2 / 150 ≈ 8.8。
+ */
+export const TD2_TOWERS: Readonly<Record<TdTowerKind, readonly [TdTierStats, TdTierStats, TdTierStats]>> = {
+  gunTower: tiers({ reload: 16, range: 600, minRange: 0, splash: 0, shots: 1 }, 11),
+  cannon: tiers({ reload: 80, range: 700, minRange: 0, splash: 0, shots: 1 }, 60),
+  harpoon: tiers({ reload: 100, range: 900, minRange: 0, splash: 0, shots: 1 }, 105),
+  mortar: tiers({ reload: 100, range: 1000, minRange: 300, splash: 150, shots: 1 }, 41),
+  flame: tiers({ reload: 14, range: 450, minRange: 0, splash: 80, shots: 1 }, 6),
+  rocket: tiers({ reload: 100, range: 800, minRange: 0, splash: 80, shots: 3 }, 18),
+  // 震荡炮（规则版本 10）：3 秒一发、1 格小溅射，伤害是加农的七成，值钱的是命中震晕 TD2_SHOCK_STUN 拍
+  shock: tiers({ reload: 60, range: 600, minRange: 0, splash: 80, shots: 1 }, 24),
+  // 狙击塔（规则版本 11）：射程全岛最远（11 格）、4 秒一发（含 0.5 秒锁定预警）、不溅射；单发 2 倍多的加农，枪弹对重甲只有一半
+  sniper: tiers({ reload: 80, range: 1100, minRange: 0, splash: 0, shots: 1 }, 90),
+};
+
+/** 震荡炮命中震晕几拍（1.2 秒）；之后 2 倍时长免控（combat.ts applyStun），首领减半 */
+export const TD2_SHOCK_STUN = 24;
+
+/** 某种塔某一阶 */
+export function td2TierStats(kind: TdTowerKind, tier: TdTier): TdTierStats {
+  return TD2_TOWERS[kind][tier - 1] as TdTierStats;
+}
+
+/**
+ * 统一的敌人表：全关同一份，不再按关拧 hpPct。没有 armor 百分比和 flying（护甲在 core/td2types.ts 的 TD_ENEMY_ARMOR，飞的 = air）。
+ * 初稿照搬 0.21.0 的 TD_ENEMIES 去掉减伤；铁甲不再减伤 60%，靠炮弹 1.5 / 枪弹火 0.5 的倍率体现。
+ */
+export const TD2_ENEMIES: Readonly<Record<TdEnemyKind, TdEnemyDef>> = {
+  sailor: { name: '水手', hp: 90, speed: 5, dmg: 12, reload: 20, reach: 90, carry: 1, gold: 5 },
+  ironclad: { name: '铁甲', hp: 180, speed: 3, dmg: 20, reload: 24, reach: 90, carry: 2, gold: 12 },
+  fog: { name: '雾船', hp: 90, speed: 5, dmg: 10, reload: 20, reach: 90, carry: 1, gold: 9, fog: true },
+  skiff: { name: '分裂小艇', hp: 140, speed: 4, dmg: 12, reload: 20, reach: 90, carry: 1, gold: 6, split: { kind: 'skiffling', n: 3 } },
+  skiffling: { name: '小艇', hp: 40, speed: 6, dmg: 6, reload: 20, reach: 80, carry: 1, gold: 2 },
+  sapper: { name: '工兵', hp: 100, speed: 5, dmg: 10, reload: 20, reach: 90, carry: 1, gold: 9, bomb: { dmg: 1000, r: 120 } },
+  parrot: { name: '鹦鹉群', hp: 30, speed: 6, dmg: 6, reload: 20, reach: 80, carry: 1, gold: 4 },
+  captain: { name: '船长', hp: 1600, speed: 3, dmg: 45, reload: 24, reach: 100, carry: 3, gold: 60, aura: { r: 300, pct: 30 } },
+  // 掷弹兵（规则版本 10）：布衣甲怕火；离挡路的墙、拒马、英雄 3 格就停下扔手雷，不贴脸砸
+  // 盾兵（规则版本 11）：重甲；正面挡枪和炮的单体伤害（SHIELD.frontPct），火和爆照吃；被震晕盾放下
+  shield: { name: '盾兵', hp: 240, speed: 3, dmg: 18, reload: 24, reach: 90, carry: 2, gold: 14 },
+  grenadier: { name: '掷弹兵', hp: 85, speed: 4, dmg: 30, reload: 50, reach: 90, carry: 1, gold: 8, lob: { range: 300, r: 120, wallPct: 30 } },
+};
+
+/**
+ * 难度预算：B关 = base × (levelPct/100)^关，第 w 波 = B关 × (100 + wavePct × w)/100（core/td2types.ts 的 waveBudget）。
+ * 配平只拧 base（整体）和单关的地图、开局金、驻守台上限；每次 ±2% 看 td-sim 的三星率变化（> 15 点说明这关太悬崖，改地图不改数）。
+ */
+export const TD2_BUDGET = { base: 100, levelPct: 103, wavePct: 10 } as const;
+
+/** 每个敌人花多少预算点：≈ 等效血量 ÷ 最克它的倍率（1.5）÷ 10，雾船、工兵、首领按难对付加价；分裂小艇算上分出来的 */
+export const TD2_ENEMY_POINTS: Readonly<Record<TdEnemyKind, number>> = {
+  sailor: 6,
+  ironclad: 15,
+  fog: 8,
+  skiff: 17,
+  skiffling: 3,
+  sapper: 9,
+  parrot: 6,
+  captain: 120,
+  grenadier: 9,
+  shield: 20,
+};
+
+/** 首领波前多给的倒数（拍）：10 秒，预告条变红 */
+export const TD2_BOSS_EXTRA_TICKS = 200;
+
+/** 局内经济 */
+export const TD2_ECON = {
+  /** 卖塔退已花金币的百分之几 */
+  sellPct: 70,
+  /** 花钱立刻清掉压木台的沉船 */
+  clearGold: 60,
+  /** 英雄打掉沉船给多少金 */
+  heroClearGold: 30,
+  /** 压木台的沉船血量（英雄 1 级约 10 秒打掉） */
+  wreckHp: 220,
+  /** 叫波奖励 = ⌊下一波击杀金 × 剩余倒数 ÷ 总倒数 × callPct / 100⌋ */
+  callPct: 60,
+  /** 叫波时剩下的倒数每 1 拍抵多少拍英雄技能冷却（100 = 一比一） */
+  callCdPct: 100,
+  /** 修一段墙 */
+  repairGold: 25,
+} as const;
+
+/** 地上的宝藏几拍没人捡就自己滚回箱子 */
+export const TD2_TREASURE_ROLL_TICKS = 100;
+/** 地雷炸完几拍重新埋好 */
+export const TD2_MINE_REARM_TICKS = 400;
+
+/**
+ * 英雄（规则版本 7）：每级 +8%（旧版 15%）；技能按"这一关每波平均"写成相对值，各关一致。
+ * 注意：登陆战的驻岛英雄 RAID_HERO 仍由 tdunits.ts 的 TD_HERO 派生，攻防不读这里。
+ */
+export const TD2_HERO = {
+  hp: 420,
+  dmg: 22,
+  reload: 20,
+  range: 250,
+  speed: 6,
+  growPct: 8,
+  respawnTicks: 240,
+  /** 最多同时缠住几个地面敌人，多的绕过去 */
+  maxEngaged: 3,
+} as const;
+
+export const TD2_HERO_SKILL = {
+  /** 拒马：英雄 range 内的路上，挡 ticks 拍；血 = 这一关一波平均敌人总血 × hpPct% */
+  barricade: { range: 400, ticks: 100, hpPct: 15, cd: 400 },
+  /** 炸药桶：扔 range 内，伤害 = 这一关每波平均单个敌人血量 × dmgPct%，半径 r，按爆破算 */
+  bomb: { range: 500, dmgPct: 250, r: 180, cd: 500 },
+  /** 号令（被动）：英雄身边 r 内的塔攻速 +pct% */
+  rally: { r: 300, pct: 15 },
+} as const;
+
+/**
+ * 海盗来袭：自己的岛和布局，波次按 waveBudget(levelByHq[主寨-1], w) 现生成，打到丢 TD2_LOSE_AT 枚为止。
+ * 奖励：每撑住一波给 tdRunReward(主寨, 3★) 的 perWavePct%，最多算 maxWaves 波，再照守岛的每日上限截（和战役共用一个上限）。
+ * lanes / slots / kegs 是候选位置，照旧由 placeTdLevel 按玩家布局挑空的摆。
+ */
+export const TD2_HOME = {
+  levelByHq: [0, 2, 10, 18, 26, 34, 42, 50] as readonly number[],
+  gold: 300,
+  first: 400,
+  waveTicks: 360,
+  perWavePct: 6,
+  maxWaves: 20,
+  lanes: [{ x: 10, y: -2 }, { x: -2, y: 11 }, { x: 23, y: 10 }] as ReadonlyArray<{ x: number; y: number }>,
+  tide: { x: 11, y: 23 },
+  slots: [{ x: 5, y: 7 }, { x: 15, y: 7 }, { x: 2, y: 12 }, { x: 15, y: 15 }, { x: 11, y: 19 }, { x: 18, y: 10 }] as ReadonlyArray<{ x: number; y: number }>,
+  kegs: [{ x: 10, y: 0 }, { x: 11, y: 0 }, { x: 0, y: 10 }, { x: 0, y: 11 }, { x: 21, y: 10 }] as ReadonlyArray<{ x: number; y: number }>,
+} as const;

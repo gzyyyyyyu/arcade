@@ -1,0 +1,135 @@
+/**
+ * 测试用：生成发布目录、起真的 workerd（本包钉死版本的二进制）、停掉重起。临时目录在 os.tmpdir() 下，测完删掉。
+ */
+import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { generate, type GenerateOptions } from '../src/gen/generate.ts';
+import type { Site } from '../src/gen/site.ts';
+import workerdPath from 'workerd';
+
+export const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), 'fixture');
+/** workerd 的真二进制（workerd 包的默认导出是按平台装好的那个文件；不经 node 包装，停进程时停的就是它） */
+export const workerdBin = (): string => (typeof workerdPath === 'string' ? workerdPath : (workerdPath as { default: string }).default);
+
+export async function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const s = createServer();
+    s.once('error', reject);
+    s.listen(0, '127.0.0.1', () => {
+      const { port } = s.address() as { port: number };
+      s.close(() => resolve(port));
+    });
+  });
+}
+
+export interface Running {
+  base: string;
+  admin: string;
+  dir: string;
+  data: string;
+  log: () => string;
+  stop(): Promise<void>;
+  /** 重起；给了 importDir 就改用它做 -I（之后一直用它），起不来会抛错 */
+  restart(importDir?: string): Promise<void>;
+  cleanup(): Promise<void>;
+}
+
+export async function startSite(site: Site, opts: Omit<GenerateOptions, 'out' | 'listen' | 'adminListen'> = {}, env: Record<string, string> = {}): Promise<Running> {
+  const dir = mkdtempSync(join(tmpdir(), 'arcade-host-test-'));
+  const out = join(dir, 'release');
+  const data = join(dir, 'data');
+  const [port, adminPort] = [await freePort(), await freePort()];
+  mkdirSync(data);
+  generate(site, { ...opts, out, listen: `127.0.0.1:${port}`, adminListen: `127.0.0.1:${adminPort}` });
+  const base = `http://127.0.0.1:${port}`;
+  let child: ChildProcess | null = null;
+  let logs = '';
+  let importDir = out;
+  const start = async () => {
+    // -I：runtime_vars 的 embed("/vars/…") 从这里读；默认就是发布目录
+    const args = ['serve', 'config.capnp', '-I', importDir];
+    if ((opts.storage ?? 'sqlite') === 'sqlite') args.push('--directory-path', `data=${data}`);
+    // 有的机器给所有进程预加载了代理库（LD_PRELOAD），workerd 连本机的 PG 会被它截走；测试里不要
+    const { LD_PRELOAD: _preload, ...inherited } = process.env;
+    child = spawn(workerdBin(), args, { cwd: out, env: { ...inherited, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+    child.stdout!.on('data', (d) => (logs += d));
+    child.stderr!.on('data', (d) => (logs += d));
+    const proc = child;
+    const deadline = Date.now() + 10_000;
+    for (;;) {
+      try {
+        if ((await fetch(`${base}/__health`, { signal: AbortSignal.timeout(1_000) })).ok) return;
+      } catch {
+        // 还没起来
+      }
+      if (proc.exitCode !== null) throw new Error(`workerd 起不来：\n${logs}`);
+      if (Date.now() > deadline) throw new Error(`workerd 10 秒没起来：\n${logs}`);
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
+  const stop = async () => {
+    const c = child;
+    if (!c || c.exitCode !== null) return;
+    await new Promise<void>((resolve) => {
+      c.once('exit', () => resolve());
+      c.kill('SIGTERM');
+    });
+    child = null;
+  };
+  await start();
+  return {
+    base,
+    admin: `http://127.0.0.1:${adminPort}`,
+    dir: out,
+    data,
+    log: () => logs,
+    stop,
+    restart: async (dir?: string) => {
+      if (dir) importDir = dir;
+      await stop();
+      await start();
+    },
+    cleanup: async () => {
+      await stop();
+      rmSync(dir, { recursive: true, force: true });
+    },
+  };
+}
+
+/** 测试站点：probe（DO、D1、变量、Secret、RPC、定时任务）挂 /games/probe，home（静态资源 + 兜底的 Worker）兜底 */
+export function fixtureSite(): Site {
+  return {
+    fallback: 'home',
+    workers: [
+      {
+        name: 'probe',
+        main: join(FIXTURE, 'worker.js'),
+        compatibility_date: '2026-10-01',
+        vars: { TEXT: 'plain', OBJ: { a: 1, nested: { b: [1, 2] } }, CN: '中文变量', RV_JSON: { n: 1, list: ['a'] }, RV_TEXT: '默认文本' },
+        runtime_vars: ['RV_JSON', 'RV_TEXT'],
+        secrets: ['PROBE_SECRET'],
+        services: [
+          { binding: 'SELF_RPC', service: 'probe', entrypoint: 'Hello', props: { game: 'probe' } },
+          { binding: 'SELF_DEFAULT', service: 'probe' },
+        ],
+        durable_objects: [{ name: 'ROOM', class_name: 'Probe' }],
+        d1_databases: [
+          { binding: 'DB', database_name: 'probe', migrations_dir: join(FIXTURE, 'migrations'), pg: { migrations_dir: join(FIXTURE, 'migrations-pg') } },
+        ],
+        crons: ['17 19 * * *'],
+        routes: ['/games/probe', '/games/probe/*'],
+      },
+      {
+        name: 'home',
+        main: join(FIXTURE, 'home.js'),
+        compatibility_date: '2026-10-01',
+        assets: { directory: join(FIXTURE, 'assets'), binding: 'ASSETS', not_found_handling: 'none' },
+        crons: ['* * * * *'],
+      },
+    ],
+  };
+}

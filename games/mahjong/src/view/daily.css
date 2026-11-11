@@ -1,0 +1,78 @@
+/* 每日挑战：选桌页的入口卡和结算里的成绩行，样式都限定在自己的根类名下 */
+.daily-entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--gold-lo);
+  border-radius: 12px;
+  background: linear-gradient(#5a4a1a99, #2e250d99);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.daily-entry .daily-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+.daily-entry b {
+  font-size: var(--fs-lg);
+  color: var(--gold-hi);
+}
+.daily-entry .daily-state {
+  font-size: var(--fs-sm);
+}
+.daily-entry .daily-week {
+  display: flex;
+  gap: var(--sp-1);
+}
+.daily-entry .daily-week span {
+  flex: 1;
+  padding: 2px 0;
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: var(--fs-xs);
+  text-align: center;
+  opacity: 0.6;
+}
+.daily-entry .daily-week span.done {
+  opacity: 1;
+  background: var(--surface-hi);
+}
+.daily-entry .daily-week span.today {
+  outline: 1px solid var(--gold);
+}
+.daily-line {
+  margin: var(--sp-2) 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: 8px;
+  background: var(--surface-hi);
+  font-size: var(--fs-md);
+  text-align: center;
+}
+.daily-line b {
+  color: var(--gold-hi);
+}
+.daily-line.practice {
+  opacity: 0.8;
+}
+.daily-line .daily-ranked {
+  color: var(--gold-hi);
+}
+/* 分数赢绿输红，和结算一样；每日入口的金色大字不套到分数上 */
+.daily-entry .pts.up,
+.daily-entry .daily-week span.up,
+.daily-line .pts.up {
+  color: var(--green);
+}
+.daily-entry .pts.down,
+.daily-entry .daily-week span.down,
+.daily-line .pts.down {
+  color: var(--red-hi);
+}
+.daily-entry .pts,
+.daily-line .pts {
+  font-variant-numeric: tabular-nums;
+}

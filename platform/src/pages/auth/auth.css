@@ -1,0 +1,79 @@
+/* 登录、注册、找回密码页（.auth-page 是 Panel 本身）：表单一屏放下不滚（docs/ui.md 第 11 节）；
+ * 矮屏上字段并排、欢迎条收掉，窄屏上提示字压成一行 */
+.auth-page { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-4) var(--s-5); overflow: hidden; }
+.auth-page .panel__title { margin: 0; flex: none; }
+.auth-page .welcome { margin: 0; flex: none; padding: var(--s-2) var(--s-3); }
+.auth-page .welcome .logo-mark { width: 44px; height: 44px; }
+.auth-page .tabs { margin: 0; flex: none; }
+.auth-page .tabs a { min-height: 40px; }
+.auth-page .form { gap: var(--s-2); }
+.auth-page .field__hint { line-height: 1.3; }
+.auth-page .note { line-height: 1.4; }
+.auth-page .invited { margin: 0; }
+
+/* 注册、找回表单：能并排的字段两列 */
+.auth-page .form--register, .auth-page .form--forgot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-2) var(--s-3); align-items: start; }
+.auth-page .form--register > .form__lead, .auth-page .form--register > .field:nth-of-type(1), .auth-page .form--register > .form-error, .auth-page .form--register > .btn,
+.auth-page .form--forgot > .form__lead, .auth-page .form--forgot > .field:nth-of-type(2), .auth-page .form--forgot > .form-error, .auth-page .form--forgot > .btn, .auth-page .form--forgot > .note { grid-column: 1 / -1; }
+
+/* 恢复码卡片 */
+.auth-page .recovery { gap: var(--s-2); }
+.auth-page .recovery__lead { line-height: 1.5; }
+.auth-page .recovery__code { padding: var(--s-2); }
+.auth-page .recovery .check { min-height: 32px; }
+@media (pointer: coarse) { .auth-page .recovery .check { min-height: var(--tap); } }
+
+@media (max-width: 560px) {
+  .auth-page { padding: var(--s-3); }
+}
+/* 不太高的屏（手机、小窗口）：欢迎条收掉，把高度给表单 */
+@media (max-height: 760px) {
+  .auth-page .welcome { display: none; }
+}
+
+/* 矮屏（手机横屏）：标题放进内容左边一列不另占一行，表单字段并排 */
+@media (max-height: 600px) {
+  .narrow:has(> .auth-page) { max-width: 760px; }
+  .auth-page { padding-block: var(--s-2); }
+  .auth-page .form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-1) var(--s-3); align-items: start; }
+  .auth-page .form > .form-error, .auth-page .form > .btn, .auth-page .form > .note, .auth-page .form > .form__lead { grid-column: 1 / -1; }
+  .auth-page .form--forgot > .field:nth-of-type(2) { grid-column: auto; }
+}
+
+/* 一屏放下：不太高的屏上字段的提示字改成输入框里的灰字（placeholder），不另占一行 */
+@media (max-height: 800px) {
+  .auth-page .field__hint { display: none; }
+}
+.auth-page .form--register { gap: var(--s-1) var(--s-3); }
+
+/* 矮屏（手机横屏）：标题和登录/注册页签并一行，字段并排，提示说明收掉 */
+@media (max-height: 600px) {
+  .auth-page { flex-direction: row; flex-wrap: wrap; align-items: center; align-content: flex-start; column-gap: var(--s-3); row-gap: var(--s-1); }
+  .auth-page > * { flex: 1 1 100%; min-width: 0; }
+  .auth-page > .panel__title { flex: none; }
+  .auth-page > .tabs { flex: 1 1 0; }
+  .auth-page .form--register > .form__lead, .auth-page .form--forgot > .form__lead { display: none; }
+  .auth-page .form--register > .field:nth-of-type(1) { grid-column: auto; }
+  .auth-page .form--register { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .auth-page .form--forgot { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .auth-page .form--forgot > .field:nth-of-type(2) { grid-column: auto; }
+  .auth-page .form--login { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
+  .auth-page .form--login > .btn { grid-column: auto; }
+  .auth-page .form--login > .note { grid-column: 1 / -1; }
+  .auth-page .recovery { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-1) var(--s-3); align-items: center; }
+  .auth-page .recovery > .btn { grid-column: 1 / -1; justify-self: start; }
+}
+.auth-page .form-error { padding: var(--s-1) var(--s-3); line-height: 1.4; }
+@media (max-height: 600px) {
+  /* 注册：按钮放在第二行第三格，出错提示单占第三行 */
+  .auth-page .form--register > .btn { grid-column: 3; grid-row: 2; align-self: end; }
+  .auth-page .form--register > .form-error { grid-row: 3; }
+}
+@media (max-height: 600px) {
+  .auth-page { padding-block: 4px; row-gap: 2px; }
+  .auth-page .panel__title { min-height: 0; }
+  .auth-page .field { gap: 2px; }
+  .auth-page .field__label { line-height: 1.2; }
+  .auth-page .form { gap: 2px var(--s-3); }
+  .auth-page .form-error { padding-block: 2px; }
+}

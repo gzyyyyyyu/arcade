@@ -1,0 +1,48 @@
+/* 单机锦标赛（0.23.0）：大厅入口和结束页。限定在界面根节点下，不碰 style.css */
+.lobby .tour-fmts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-top: var(--s-2); }
+.lobby .tour-fmts .size.tfmt { flex: 0 0 auto; height: 38px; padding: 0 var(--s-3); font-size: var(--fs-2); white-space: nowrap; }
+/* 实盘时只开娱乐的赛制（9 人赛）：还能点选（选了下面写为什么报不了），只是淡一点 */
+.lobby .tour-fmts .size.tfmt.fun-only { opacity: .5; }
+.lobby .tour-note { flex: 1 1 150px; min-width: 0; font-size: var(--fs-1); opacity: 0.85; line-height: 1.3; }
+.lobby .go-row .start { white-space: nowrap; }
+.dialog .tour-sum { display: grid; gap: var(--s-3); text-align: center; }
+.dialog .tour-place { font-size: 34px; font-weight: 900; }
+.dialog .tour-score { font-size: var(--fs-5); font-weight: 800; color: var(--gold); }
+.dialog .tour-daily { font-size: var(--fs-2); color: var(--muted); min-height: 1.2em; }
+.dialog .tour-prize { font-size: var(--fs-4); font-weight: 700; }
+.dialog .tour-top { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); text-align: left; }
+.dialog .tour-top li { display: flex; gap: var(--s-3); padding: var(--s-2) var(--s-3); border-radius: 10px; background: rgba(255, 255, 255, 0.08); }
+.dialog .tour-top li.me { outline: 2px solid currentColor; }
+.dialog .tour-top b { min-width: 4.5em; }
+.dialog .tour-out { display: grid; gap: var(--s-2); }
+.dialog .tour-out-place { font-size: var(--fs-5, 22px); font-weight: 800; }
+
+/* 好友房锦标赛（0.24.0）：开房那一行的玩法键和电脑补开关、娱乐档的卡、结束页的奖金列 */
+.lobby .friends.open .size.kind { flex: 0 0 auto; height: 52px; padding: 0 var(--s-3); font-size: var(--fs-3); white-space: nowrap; }
+.lobby .friends.open .size.kind.fill { padding: 0 var(--s-2); }
+.lobby .friends.open.rt .pill { letter-spacing: 0; font-size: var(--fs-4); white-space: nowrap; }
+.lobby .stakes .tile.room-fun { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: var(--s-3); padding: var(--s-1) var(--s-2); }
+.lobby .stakes .tile.room-fun small { display: none; }
+.dialog .tour-top li .tour-row-prize { margin-left: auto; opacity: 0.9; }
+/* 1280×720 的实盘选桌已经满屏（选赛制多一行）：矮屏上收紧这一行和上面一行的间距，赛制按钮仍有 30 高 */
+@media (max-height: 760px) and (min-width: 900px) {
+  .lobby .tour-fmts { margin-top: 4px; gap: 6px; }
+  .lobby .tour-fmts .size.tfmt { height: 30px; }
+  .lobby .go-row { margin-top: var(--s-2); }
+}
+
+/* 快速局 · 全下或弃牌（docs/features.md 13.9）：娱乐选桌上、锦标赛赛制行下面的一行 */
+.lobby .go-row { flex-wrap: wrap; }
+
+/* 全下或弃牌的快速局：操作区只有"弃牌"和"全下"两个大键。键位角标和普通桌同一套（style.css） */
+.actions.pf .buttons { gap: var(--s-3); }
+.actions.pf .act { min-width: 150px; height: 64px; font-size: var(--fs-5); }
+.stage.tall .actions.pf .act { height: 64px; }
+.actions.pf .act.fold { flex: 0 0 34%; }
+/* 快速局的结果卡 */
+.dialog .pf-sum { display: grid; gap: var(--s-3); text-align: center; }
+.dialog .pf-sum .pf-score { font-size: 34px; font-weight: 900; }
+.dialog .pf-sum .pf-score.up { color: var(--win-ink); }
+.dialog .pf-sum .pf-score.down { color: var(--lose-ink); }
+.dialog .pf-sum .pf-line { font-size: var(--fs-3); opacity: .9; }
+.dialog .pf-sum .pf-best { font-size: var(--fs-3); color: var(--gold); font-weight: 800; }

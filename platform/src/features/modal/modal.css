@@ -1,0 +1,27 @@
+/* 全站统一弹窗（src/features/modal/Modal.tsx）。进场 160ms 淡入上移，退场 120ms；关了动效的不动。 */
+.modal { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: var(--s-4); padding: max(var(--s-4), env(safe-area-inset-top, 0px)) max(var(--s-4), env(safe-area-inset-right, 0px)) max(var(--s-4), env(safe-area-inset-bottom, 0px)) max(var(--s-4), env(safe-area-inset-left, 0px)); background: rgb(40 25 30 / 45%); animation: modal-mask-in var(--modal-in, 160ms) ease-out both; }
+.modal[data-state="closing"] { pointer-events: none; animation: modal-mask-out var(--modal-out, 120ms) ease-in both; }
+.modal__box { width: min(520px, 100%); max-height: calc(100vh - 2 * var(--s-4)); max-height: calc(100dvh - 2 * var(--s-4)); overflow: auto; padding: var(--s-5); border: var(--bw) solid var(--line); border-radius: var(--r-lg); background: var(--face-paper); color: var(--ink); box-shadow: var(--sh-lg); animation: modal-box-in var(--modal-in, 160ms) ease-out both; }
+.modal__box:focus { outline: none; }
+.modal[data-state="closing"] .modal__box { animation: modal-box-out var(--modal-out, 120ms) ease-in both; }
+.modal__box--narrow { width: min(420px, 100%); }
+.modal__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.modal__head h2 { margin: 0; }
+.modal__close { flex: none; width: 44px; height: 44px; margin: calc(-1 * var(--s-2)) calc(-1 * var(--s-2)) calc(-1 * var(--s-2)) 0; display: grid; place-items: center; font: inherit; font-size: var(--fs-lg); color: var(--ink); background: transparent; border: 0; border-radius: var(--r-md); cursor: pointer; }
+.modal__close:hover { background: rgb(0 0 0 / 6%); }
+.modal__close:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: -3px; }
+.modal__row { display: flex; gap: var(--s-2); margin: var(--s-4) 0 var(--s-2); }
+.modal__row .field__input { flex: 1; min-width: 0; }
+.modal__form { display: grid; gap: var(--s-2); margin: var(--s-2) 0; }
+.modal__who { margin: var(--s-2) 0; }
+.modal__done { margin: var(--s-2) 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--ok-bg); font-weight: 700; }
+
+@keyframes modal-mask-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-mask-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes modal-box-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes modal-box-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .modal, .modal__box, .modal[data-state="closing"], .modal[data-state="closing"] .modal__box { animation: none; }
+}
+html.no-motion .modal, html.no-motion .modal__box, html.no-motion .modal[data-state="closing"], html.no-motion .modal[data-state="closing"] .modal__box { animation: none; }

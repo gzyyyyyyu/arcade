@@ -1,0 +1,473 @@
+{
+ "syn-normal-d1": {
+  "id": "syn-normal-d1",
+  "phase": "lost",
+  "events": 1340,
+  "eventsHash": "2c717c7d2beb025d",
+  "months": [
+   "1:f6d3fbe8e45691a4",
+   "2:0c6db762370b1c35",
+   "3:4bc5aacd46909c9c",
+   "4:1a0f1cd0a526e689",
+   "5:f1e84d7b14f78465",
+   "6:68032037d9d62481",
+   "7:e2b5465242403254",
+   "8:c35b0e5b2006927d",
+   "9:01f7399672a9adbb",
+   "10:9878187145ce47ef",
+   "11:ec64ce21169ff906",
+   "11:1451a2b38b99d022"
+  ],
+  "final": "1451a2b38b99d022"
+ },
+ "syn-normal-d1-ext": {
+  "id": "syn-normal-d1-ext",
+  "phase": "lost",
+  "events": 1184,
+  "eventsHash": "b8023f196168ddc8",
+  "months": [
+   "1:82e094d2ca7e6c8f",
+   "2:7383d480ab710ab0",
+   "3:18eafeb68d185337",
+   "4:5f9904dc84a1284b",
+   "5:2ff94f36c4d1db8f",
+   "6:7275425cbde42ee5",
+   "7:6f2496d558f98495",
+   "8:25bc418bbb5f9ac5",
+   "9:e52fe6251ff2987e",
+   "10:0a955df4cab852ff",
+   "10:31c93689ea68dfe7"
+  ],
+  "final": "31c93689ea68dfe7"
+ },
+ "syn-smart-d1": {
+  "id": "syn-smart-d1",
+  "phase": "won",
+  "events": 1443,
+  "eventsHash": "ce53a1536ed35099",
+  "months": [
+   "1:47ce0aa40ac29227",
+   "2:5782a2b8631f4ea4",
+   "3:d98ae611c1dacf06",
+   "4:4fddd8f06b1959cc",
+   "5:da9861b80a5a5604",
+   "6:b601d0bbbcab456b",
+   "7:ed033d342301b604",
+   "8:017d23695214973c",
+   "9:6bef83bc5856ded2",
+   "10:c86f84f5b0eb6010",
+   "11:0fc2a830a6ef030d",
+   "12:fd5420d90b8900db",
+   "12:ec0c1ad51cbf3475"
+  ],
+  "final": "ec0c1ad51cbf3475"
+ },
+ "syn-smart-d8-ext": {
+  "id": "syn-smart-d8-ext",
+  "phase": "won",
+  "events": 1551,
+  "eventsHash": "ebf21375fe19d403",
+  "months": [
+   "1:abd64a9a5e8b4a9b",
+   "2:64a5a5cad2b01556",
+   "3:eaef01d4ba38ff4e",
+   "4:abce1bb32f116726",
+   "5:ec171c8b26868e8e",
+   "6:66450283987d1272",
+   "7:a474831dc811a2be",
+   "8:7b4f4657cc7cdba5",
+   "9:910c774c8daca06e",
+   "10:5a7d3c4214722872",
+   "11:afa83f2d34c937f5",
+   "12:7ed5c91140829f41",
+   "12:8a21f14efa5b37ad"
+  ],
+  "final": "8a21f14efa5b37ad"
+ },
+ "syn-normal-d8": {
+  "id": "syn-normal-d8",
+  "phase": "lost",
+  "events": 852,
+  "eventsHash": "a937697ab012c9cf",
+  "months": [
+   "1:6d1dc8f77e068df1",
+   "2:2bb48df1f988ea45",
+   "3:f0b8972723a7e68e",
+   "4:c2dc2bf641d6b465",
+   "5:116963aa0627e8cf",
+   "6:cb4656137dc75226",
+   "7:154f4538affd6ac8",
+   "7:0efa99836fc4537d"
+  ],
+  "final": "0efa99836fc4537d"
+ },
+ "syn-normal-d4-items": {
+  "id": "syn-normal-d4-items",
+  "phase": "lost",
+  "events": 1326,
+  "eventsHash": "851bf5e8b04f56aa",
+  "months": [
+   "1:00b92ac0155514fd",
+   "2:c17b11267f2f3e27",
+   "3:3998a06a75949a76",
+   "4:9936ea3bfb3fb337",
+   "5:b539ac01c0d9c3f2",
+   "6:07ba58c01f7e60b6",
+   "7:cb691c789d1869e1",
+   "8:b9f09527a63b05a1",
+   "9:8459b402c312f197",
+   "10:f06ccb4918a4ea60",
+   "11:b05e9911a7d9c786",
+   "11:6ac09384a20cb35f"
+  ],
+  "final": "6ac09384a20cb35f"
+ },
+ "syn-chaser-d3": {
+  "id": "syn-chaser-d3",
+  "phase": "lost",
+  "events": 906,
+  "eventsHash": "a383d5abf0dc4451",
+  "months": [
+   "1:2e70b997083a5fe4",
+   "2:f4999771e0104433",
+   "3:9653b15b70580a52",
+   "4:2ea65f65154ae1f3",
+   "5:b4c2e4ce0a13dcbd",
+   "6:4b0e007c125232dc",
+   "7:2d897d9d003974fc",
+   "7:e8a84fd66c708cfb"
+  ],
+  "final": "e8a84fd66c708cfb"
+ },
+ "syn-random-d2": {
+  "id": "syn-random-d2",
+  "phase": "lost",
+  "events": 924,
+  "eventsHash": "63fde26c44fc9b71",
+  "months": [
+   "1:16a83ef54d86ab63",
+   "2:3f42a6e85df2dc4f",
+   "3:4493545135be7cd4",
+   "4:e35350a9540d0a34",
+   "5:7499838a0fb7b5b7",
+   "6:43d986c37092a4ee",
+   "7:ba1df74db7e7a8e7",
+   "8:ed30ee9f1613ae3a",
+   "8:e484d5c8ec9ef1cb"
+  ],
+  "final": "e484d5c8ec9ef1cb"
+ },
+ "syn-gambler-d6": {
+  "id": "syn-gambler-d6",
+  "phase": "lost",
+  "events": 611,
+  "eventsHash": "c5251bd20b7db518",
+  "months": [
+   "1:32651b0a8b245c22",
+   "2:84bae84edd8e2765",
+   "3:23023941c5561603",
+   "4:ab3a214951b24900",
+   "5:e3ed8a0953548fbd",
+   "5:150e856158634078"
+  ],
+  "final": "150e856158634078"
+ },
+ "syn-shorter-d5": {
+  "id": "syn-shorter-d5",
+  "phase": "lost",
+  "events": 1158,
+  "eventsHash": "9bc41ee4acbfc385",
+  "months": [
+   "1:9a156c9b66d6823f",
+   "2:4ddb23ae87938b85",
+   "3:9d77d108287a2437",
+   "4:268c522dfcf2515d",
+   "5:047e864119eaec1d",
+   "6:1c315727e246900e",
+   "7:f74495ddc9a5630f",
+   "8:92f0d276f46ebd32",
+   "9:b5be5a74bdede811",
+   "9:db1f7efeda466dac"
+  ],
+  "final": "db1f7efeda466dac"
+ },
+ "syn-ipo-only": {
+  "id": "syn-ipo-only",
+  "phase": "lost",
+  "events": 777,
+  "eventsHash": "5167ad9c8cb878c0",
+  "months": [
+   "1:9c11d471ee3a6fba",
+   "2:340837190f834c4e",
+   "3:6436b8050c29103c",
+   "4:c85e62b57ec5ef18",
+   "5:2ff405ad382892bf",
+   "6:d3d3263511e90b00",
+   "7:ca804506b23c18af",
+   "8:3e72b035b4ab384d",
+   "8:92a6e14c56a2a282"
+  ],
+  "final": "92a6e14c56a2a282"
+ },
+ "real0-normal-d1": {
+  "id": "real0-normal-d1",
+  "phase": "won",
+  "events": 2087,
+  "eventsHash": "6cf4513965f640f4",
+  "months": [
+   "1:97c65d2bd7597442",
+   "2:624333d72ae0d06f",
+   "3:0e8d1bb0b9286076",
+   "4:7f70e383fc41eed3",
+   "5:28804dd69a8ceecc",
+   "6:3c7c745dccd10383",
+   "7:664ed29352cd8bd8",
+   "8:10a08f2a62d70e55",
+   "9:940834c164fae5cc",
+   "10:f9f9dc125ced37b9",
+   "11:4bff4037419cc385",
+   "12:30a1ac77ba9628a6",
+   "12:16d72d5fc57ba83a"
+  ],
+  "final": "16d72d5fc57ba83a"
+ },
+ "real0-smart-d8-ext": {
+  "id": "real0-smart-d8-ext",
+  "phase": "lost",
+  "events": 2031,
+  "eventsHash": "12d69e224a5191ec",
+  "months": [
+   "1:b262a0e60ad7f177",
+   "2:dc109ad760960865",
+   "3:d57175660df2da16",
+   "4:add0fc5d3aa9c37c",
+   "5:4029e97956858c8a",
+   "6:4e94a9c5c4a46c5d",
+   "7:56c4e6937d235b0a",
+   "8:6540410458df6008",
+   "9:e5d6750aa7d61dcc",
+   "10:cc688ae4a9672394",
+   "11:262f709bc2739caa",
+   "11:29c29f5e5973fe1d"
+  ],
+  "final": "29c29f5e5973fe1d"
+ },
+ "real1-normal-d4-ext": {
+  "id": "real1-normal-d4-ext",
+  "phase": "won",
+  "events": 1944,
+  "eventsHash": "357ff65d4bff40ef",
+  "months": [
+   "1:00fef9107977944c",
+   "2:54a6abd4374c5a68",
+   "3:f91c6bf02a1785f7",
+   "4:eb6412d4414ba95b",
+   "5:7c5db02d7506082c",
+   "6:77496f7d5bb16476",
+   "7:f0e56465ba08ab46",
+   "8:e7a56f97e555e266",
+   "9:09d21230f489f866",
+   "10:a861855666341b5c",
+   "11:90fe9b4a54df4afa",
+   "12:980714e8aef30514",
+   "12:1739043227979b5e"
+  ],
+  "final": "1739043227979b5e"
+ },
+ "real1-smart-d2": {
+  "id": "real1-smart-d2",
+  "phase": "won",
+  "events": 2103,
+  "eventsHash": "217619053a6a613e",
+  "months": [
+   "1:aa73cfad42aaf970",
+   "2:2a1a720a4ec311d3",
+   "3:fc61c7fe6e5556c5",
+   "4:7cfdc8b760397ba2",
+   "5:d792ae8ac3fe7118",
+   "6:e6975a6773c9c188",
+   "7:f5a73fdbffd47b9a",
+   "8:e94812c7e9fdaf23",
+   "9:6b1efed682848efb",
+   "10:918702d63537cd62",
+   "11:7083729dfcb3a0e3",
+   "12:f47a161236c920d8",
+   "12:28844135cd9e0b08"
+  ],
+  "final": "28844135cd9e0b08"
+ },
+ "real2-smart-d6-ext": {
+  "id": "real2-smart-d6-ext",
+  "phase": "lost",
+  "events": 1942,
+  "eventsHash": "5a1c4101e9543a53",
+  "months": [
+   "1:1c011c54bc1072c4",
+   "2:7a4624598eac4db4",
+   "3:861a2728f0df3d4b",
+   "4:08626e697a199d45",
+   "5:d95e6837d5b521cc",
+   "6:633ddc5c500d79a0",
+   "7:6e6dabeb2b0f3c8e",
+   "8:8fcf03d04f949095",
+   "9:f8cc7d98f40ce62a",
+   "10:7e13ef75ea6fe661",
+   "11:8e791fcec550e039",
+   "11:2cc4982399834d0b"
+  ],
+  "final": "2cc4982399834d0b"
+ },
+ "real0-ipo-only": {
+  "id": "real0-ipo-only",
+  "phase": "lost",
+  "events": 1384,
+  "eventsHash": "562473ca272d32c2",
+  "months": [
+   "1:4facbddb38589e17",
+   "2:0012cf3f352108ef",
+   "3:8e9e8172a1893384",
+   "4:5f37f6a5f4ab6e1e",
+   "5:2ca3dd3370ee9325",
+   "6:45d7cbb4df53c804",
+   "7:2cd89a4bedeba305",
+   "8:57acb3df833f6e11",
+   "9:3d8e846081c331c4",
+   "10:2137922038631b7c",
+   "11:93312a40de69e043",
+   "11:8a1ab9eab984caf2"
+  ],
+  "final": "8a1ab9eab984caf2"
+ },
+ "real1-ipo-only-half": {
+  "id": "real1-ipo-only-half",
+  "phase": "lost",
+  "events": 1483,
+  "eventsHash": "0b53eba488faec2f",
+  "months": [
+   "1:b8c5410be3e30ffc",
+   "2:1ea93d5fdb85d03c",
+   "3:d0570ebf99ded026",
+   "4:90cbd61948e88450",
+   "5:bc6ed4a680ed2a93",
+   "6:47a659d600b2ec4a",
+   "7:111d2bbc3143afcf",
+   "8:926e12af586e1c79",
+   "9:7c21faa373dfae66",
+   "10:f01bdf8985c0ad40",
+   "11:7f1912c2f53cf47b",
+   "12:3cbedcf5538c997a",
+   "12:678a712568473b2f"
+  ],
+  "final": "678a712568473b2f"
+ },
+ "real2-ipo-only-heavy": {
+  "id": "real2-ipo-only-heavy",
+  "phase": "lost",
+  "events": 1266,
+  "eventsHash": "e1b5cb4928d75cf3",
+  "months": [
+   "1:81ebe1130ec264f5",
+   "2:eddd60e03ea127e8",
+   "3:adcfe93f5d6d53b4",
+   "4:07aa5f1619f2263c",
+   "5:d1b23b16dc735fc0",
+   "6:e9d29c8eac07fa01",
+   "7:e5a5dbd5d5c9db5c",
+   "8:a0bbd3f7adf402fc",
+   "9:6f16b88d0039b6bc",
+   "10:1c356b17061f445e",
+   "10:ab2c02b21c842564"
+  ],
+  "final": "ab2c02b21c842564"
+ },
+ "daily": {
+  "id": "daily",
+  "phase": "lost",
+  "events": 1800,
+  "eventsHash": "c54b58138ba5b7c1",
+  "months": [
+   "1:4b09463a443f0a89",
+   "2:b65d67b65157049f",
+   "3:978589bd8d1f87a0",
+   "4:0cede955604dd07a",
+   "5:d07deaeadeae6211",
+   "6:9d30a55bc15ae9d5",
+   "7:8ad645a0f54a224d",
+   "8:f1bbf2d9f0b7ea81",
+   "9:15241eebdf0832e9",
+   "10:c719e4cec5203081",
+   "11:b4baec68d1d339aa",
+   "11:146775b345e2bca7"
+  ],
+  "final": "146775b345e2bca7"
+ },
+ "flash": {
+  "id": "flash",
+  "phase": "won",
+  "events": 304,
+  "eventsHash": "a8dfb76304153670",
+  "months": [
+   "1:cfdcb6bb911b2503",
+   "2:e49b9ac6528e221e",
+   "2:fdaa46379617e101"
+  ],
+  "final": "fdaa46379617e101"
+ },
+ "weekly": {
+  "id": "weekly",
+  "phase": "won",
+  "events": 274,
+  "eventsHash": "135df21fbc05e8e8",
+  "months": [
+   "1:027077e4e4903cfc",
+   "2:f5d8a0437f96d461",
+   "2:dd0c1dad256ef593"
+  ],
+  "final": "dd0c1dad256ef593"
+ },
+ "short": {
+  "id": "short",
+  "phase": "won",
+  "events": 622,
+  "eventsHash": "c85457397ebd735d",
+  "months": [
+   "1:3a17c862531b9dcd",
+   "2:4e40556a53e8da5a",
+   "3:1a54b68e2e7e67ac",
+   "4:dfd1657281ed98a1",
+   "5:099e8c465b0ea53e",
+   "5:6392f524f67a4aee"
+  ],
+  "final": "6392f524f67a4aee"
+ },
+ "live-small": {
+  "id": "live-small",
+  "phase": "won",
+  "events": 876,
+  "eventsHash": "824359a81169d403",
+  "months": [
+   "1:cc46973e25101ee5",
+   "2:d7e181b868c6b571",
+   "3:029a212b0831e37a",
+   "4:58396668d552d8b6",
+   "5:a63f0fba69ca7633",
+   "5:219ecfd37c4511ba"
+  ],
+  "final": "219ecfd37c4511ba"
+ },
+ "live-mid-gear": {
+  "id": "live-mid-gear",
+  "phase": "won",
+  "events": 753,
+  "eventsHash": "352eff91b0fdfec9",
+  "months": [
+   "1:c3cd55fda2ae28b3",
+   "2:ec24579ea19638ec",
+   "3:679b3868862fe86e",
+   "4:3c3998dd8822cef1",
+   "5:100046283c71af84",
+   "5:76bf0acdd1efa999"
+  ],
+  "final": "76bf0acdd1efa999"
+ }
+}

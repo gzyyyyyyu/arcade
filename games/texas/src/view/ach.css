@@ -1,0 +1,86 @@
+/* 成就：提示和成就墙。类名都带 ach- 前缀，选择器从 .ach-toast / .ach-panel 往下写，不碰别的界面 */
+:is(.ach-toast, .ach-panel) .ach-ico { width: 40px; height: 40px; flex: none; }
+:is(.ach-toast, .ach-panel) .ach-ring { fill: var(--ach-ring); }
+:is(.ach-toast, .ach-panel) .ach-disc { fill: var(--ach-disc); }
+:is(.ach-toast, .ach-panel) .ach-glyph { fill: var(--ach-glyph); stroke: var(--ach-ring); stroke-width: 1; stroke-linejoin: round; }
+:is(.ach-toast, .ach-panel) .ach-g2 { fill: var(--ach-ring); stroke: none; }
+:is(.ach-toast, .ach-panel) .ach-stroke { stroke: var(--ach-glyph); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+:is(.ach-toast, .ach-panel) .ach-t { fill: var(--ach-glyph); stroke: none; font: 900 20px/1 sans-serif; }
+:is(.ach-toast, .ach-panel) .ach-bronze { --ach-ring: #8a4f22; --ach-disc: #d9955a; --ach-glyph: #fff1dc; }
+:is(.ach-toast, .ach-panel) .ach-silver { --ach-ring: #5c6b78; --ach-disc: #c4ced6; --ach-glyph: #ffffff; }
+:is(.ach-toast, .ach-panel) .ach-gold { --ach-ring: #9a6a00; --ach-disc: #f7c43a; --ach-glyph: #fff8d8; }
+:is(.ach-toast, .ach-panel) .ach-lock { --ach-ring: #8b8b86; --ach-disc: #cfcfc8; --ach-glyph: #f0f0ea; opacity: .55; }
+
+/* 提示：右上角（小一点，压到对面的牌也只一会儿）、顶栏下面，不拦点击；舞台里底牌和操作按钮在下半，不会压到 */
+.ach-toast {
+  position: absolute; right: var(--s-3); top: 64px; z-index: 44;
+  display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-2);
+  pointer-events: none;
+}
+.ach-toast .ach-item {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-0) var(--s-3) var(--s-0) var(--s-1);
+  border-radius: var(--r-pill, 999px);
+  background: var(--cg-cream, rgba(10, 20, 15, .92)); color: var(--cg-ink, var(--ink));
+  border: 2px solid var(--cg-ink, rgba(243, 200, 107, .5));
+  box-shadow: 0 3px 0 var(--cg-ink, rgba(0, 0, 0, .4));
+  animation: ach-in .35s cubic-bezier(.2, 1.3, .4, 1);
+  transition: opacity .35s, transform .35s;
+}
+.ach-toast .ach-item.out { opacity: 0; transform: translateX(24px); }
+.ach-toast .ach-txt { display: flex; flex-direction: column; line-height: 1.2; }
+.ach-toast .ach-txt small { font-size: var(--fs-1); opacity: .7; }
+.ach-toast .ach-ico { width: 32px; height: 32px; }
+.ach-toast .ach-txt b { font-size: var(--fs-2); white-space: nowrap; }
+@keyframes ach-in { from { opacity: 0; transform: translateX(40px) scale(.9); } }
+@media (prefers-reduced-motion: reduce) { .ach-toast .ach-item { animation: none; } }
+
+/* 成就墙（放在弹窗里）：框有定高，格子按行列翻页（ach.ts），不出现滚动条；舞台宽了（电脑）框跟着宽、一页多放几列 */
+.dialog:has(.ach-panel) {
+  width: min(880px, calc(100% - 24px)); height: calc(100% - 24px); max-height: 640px;
+  display: flex; flex-direction: column;
+  padding-top: var(--s-3); padding-bottom: var(--s-3);
+}
+.dialog:has(.ach-panel) .d-body { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: var(--s-1); }
+.dialog:has(.ach-panel) .d-buttons { margin-top: var(--s-2); }
+.ach-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ach-panel .ach-sum { font-size: var(--fs-4); font-weight: 900; text-align: center; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.ach-panel .ach-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); grid-auto-rows: 60px; gap: var(--s-2);
+  margin-top: var(--s-2); flex: 1; min-height: 0; overflow: hidden; align-content: start;
+}
+.ach-panel .ach-cell {
+  text-align: left; min-width: 0; overflow: hidden;
+  padding: var(--s-1) var(--s-2); border-radius: var(--r-3, 10px); background: rgba(43, 29, 20, .07); line-height: 1.2;
+}
+.ach-panel .ach-cell[hidden] { display: none; }
+.ach-panel .ach-cell.got { background: rgba(247, 196, 58, .28); }
+.ach-panel .ach-cell .ach-ico { width: 40px; height: 40px; }
+.ach-panel .ach-cell > b, .ach-panel .ach-cell > small { min-width: 0; }
+.ach-panel .ach-name { font-size: var(--fs-3); font-weight: 800; }
+.ach-panel .ach-how { font-size: var(--fs-2); opacity: .75; font-variant-numeric: tabular-nums; }
+/* 名字和条件上下叠着、放在图标右边 */
+.ach-panel .ach-cell { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: var(--s-2); row-gap: 0; align-content: center; }
+.ach-panel .ach-cell .ach-ico { grid-row: 1 / span 2; align-self: center; }
+.ach-panel .ach-cell .ach-name { align-self: end; }
+.ach-panel .ach-cell .ach-how { align-self: start; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ach-panel .ach-cell.nohow .ach-name { grid-row: 1 / span 2; align-self: center; }
+.stage.tight .ach-panel .ach-grid { grid-auto-rows: 76px; }
+.ach-panel .ach-pager { display: flex; align-items: center; justify-content: center; gap: var(--s-3); padding-top: var(--s-2); }
+.ach-panel .ach-pager.single :is(.ach-prev, .ach-next) { visibility: hidden; }
+.ach-panel .ach-pager button {
+  min-width: 88px; min-height: 34px; padding: 0 var(--s-3); border-radius: var(--r-3, 10px);
+  border: 2px solid var(--cg-ink, var(--line-2)); background: rgba(43, 29, 20, .08); font-size: var(--fs-3); font-weight: 800; color: inherit;
+}
+.ach-panel .ach-page { min-width: 4em; text-align: center; font-size: var(--fs-3); font-weight: 800; font-variant-numeric: tabular-nums; }
+@media (pointer: coarse) { .ach-panel .ach-pager button { min-height: var(--hit); } }
+
+/* 大厅主页的入口：战绩小卡下面一行，今日谜题和成就并排（谜题的样式在 puzzle.css） */
+.lobby .extras { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
+.lobby .ach-open {
+  display: flex; align-items: center; justify-content: center; gap: var(--s-2);
+  min-height: 44px; border-radius: var(--r-3); border: 1px solid var(--line); background: rgba(0, 0, 0, .28);
+  font-size: var(--fs-3); font-weight: 800;
+}
+.lobby .ach-open svg { width: 22px; height: 22px; fill: var(--gold); }
+.lobby .ach-open span { color: var(--gold); font-variant-numeric: tabular-nums; }

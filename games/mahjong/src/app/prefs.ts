@@ -1,0 +1,76 @@
+/**
+ * 偏好（localStorage 的 mahjong.prefs）：声音、速度、档位、难度、选着的玩法和各玩法的规则设置。
+ * 各玩法的规则设置（opts、rc）怎么读、怎么改在玩法的页面钩子里（view/variants/<id>/page.ts 的 loadRules / setRules），这里只负责存取。
+ */
+import { readJson, writeJson } from '../storage.ts';
+import { LEVELS, type Level } from '../ai/venues.ts';
+import { DEFAULT_VARIANT } from '../core/variants/index.ts';
+import { stakesOf, type StakesId } from '../game/stakes.ts';
+import type { RulesStore } from '../view/variants/page.ts';
+import { allPages, findPage } from '../view/variants/pages.ts';
+
+const PREFS_KEY = 'mahjong.prefs';
+
+export interface Prefs extends RulesStore {
+  sound: boolean;
+  /** 总音量 0–1（静音另算：sound 关着时一点声音都不出） */
+  volume: number;
+  fast: boolean;
+  /** 茶馆底噪（0.17.4）：默认开、很轻，跟着静音和音量走，声音面板里能单独关 */
+  ambience: boolean;
+  /** 安全牌提示（立直）：别家立直后手牌上标安全程度，默认开 */
+  safeHint: boolean;
+  stakes: StakesId;
+  /** 单机娱乐的难度：第一次玩默认新手 */
+  level: Level;
+  /** 玩法（入口收起来的玩法选不到，见 activeVariant）；各玩法的规则设置（opts、rc）见 RulesStore */
+  variant: string;
+}
+
+/** 各玩法从存着的偏好里读自己的规则设置（缺的、坏的补默认） */
+const rulesFrom = (raw: Partial<RulesStore>): RulesStore => Object.assign({}, ...allPages().map((pg) => pg.loadRules(raw))) as RulesStore;
+
+/** 顶栏"声"面板管的偏好的出厂值（loadPrefs 的缺省也是它们） */
+export const SOUND_DEFAULTS = { sound: true, volume: 0.8, ambience: true, safeHint: true } as const;
+
+function loadPrefs(): Prefs {
+  try {
+    const p = readJson<Partial<Prefs> | null>(PREFS_KEY, null) ?? {};
+    const vol = typeof p.volume === 'number' && p.volume >= 0 && p.volume <= 1 ? p.volume : SOUND_DEFAULTS.volume;
+    const level = LEVELS.includes(p.level as Level) ? (p.level as Level) : 'easy';
+    return {
+      sound: p.sound !== false,
+      volume: vol,
+      fast: p.fast === true,
+      ambience: p.ambience !== false,
+      safeHint: p.safeHint !== false,
+      stakes: stakesOf(p.stakes)?.id ?? 'fun',
+      level,
+      ...rulesFrom(p),
+      variant: findPage(p.variant)?.id ?? DEFAULT_VARIANT,
+    };
+  } catch {
+    // 存储读写已由 storage.ts 兜住；这里接的是各玩法 loadRules 遇到存档里的怪值抛错，整份回出厂值
+    return { ...SOUND_DEFAULTS, fast: false, stakes: 'fun', level: 'easy', ...rulesFrom({}), variant: DEFAULT_VARIANT };
+  }
+}
+
+export const prefs = loadPrefs();
+
+export function savePrefs(): void {
+  // 存不上就这一次有效，不看返回值
+  writeJson(PREFS_KEY, prefs);
+}
+
+/** "声"面板的恢复默认：音量、静音、茶馆声、安全牌提示回出厂值并存回（互动、聊天另存，由面板自己复位）。返回 p 方便测试 */
+export function resetSoundPrefs(p: Prefs = prefs): Prefs {
+  Object.assign(p, SOUND_DEFAULTS);
+  if (p === prefs) savePrefs();
+  return p;
+}
+
+/** 现在选的玩法：入口收起来的玩法（立直的 gate.ts）一律川麻，存着的选择留着不动 */
+export function activeVariant(): string {
+  const page = findPage(prefs.variant);
+  return page?.open() ? page.id : DEFAULT_VARIANT;
+}

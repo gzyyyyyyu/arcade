@@ -1,0 +1,32 @@
+// 本地试"有平台"的样子用：复制成 wrangler.local.jsonc（已 gitignore）再 `npm run dev:worker`，见 README "本地试 Worker"。
+// 和 wrangler.jsonc 的区别：入口换成 test/support/dev-entry.ts（把浏览器的 /api/wallet* 转给假平台），
+// 加平台的两个服务绑定（由 test/arcade.dev.jsonc 起的假 Worker `arcade` 提供）、GATE 和 SITE_ORIGIN。
+{
+  "name": "texas",
+  "main": "test/support/dev-entry.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    // 先 `npm run build:cf`；只想看 Worker 的接口可以换成 ./test/support/assets
+    "directory": "./dist-cf",
+    "binding": "ASSETS",
+    "not_found_handling": "none",
+    "run_worker_first": ["/games/texas", "/games/texas/", "/games/texas/index.html", "/games/texas/health", "/games/texas/api/*", "/games/texas/rooms", "/games/texas/rooms/*", "/api/wallet", "/api/wallet/*"]
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOM", "class_name": "TexasRoom" },
+      { "name": "METER", "class_name": "RoomMeter" },
+      { "name": "MATCH", "class_name": "Queue" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["TexasRoom", "RoomMeter"] },
+    { "tag": "v2", "new_sqlite_classes": ["Queue"] }
+  ],
+  "services": [
+    { "binding": "ARCADE", "service": "arcade" },
+    { "binding": "WALLET", "service": "arcade", "entrypoint": "WalletService", "props": { "game": "texas" } }
+  ],
+  // SITE_ORIGIN 写页面的地址：经 vite 转发时请求落在 Worker 的端口，和页面的 Origin 对不上
+  "vars": { "GATE": "login", "SITE_ORIGIN": "http://localhost:5175", "KIT_QUOTA": { "busyWrites": 15000, "stopWrites": 20000 } }
+}

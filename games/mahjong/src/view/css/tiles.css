@@ -1,0 +1,39 @@
+/* ---------- 牌 ---------- */
+.tile {
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  flex: none;
+}
+.tile.lg {
+  width: var(--lg-w);
+  height: var(--lg-h);
+}
+.tile.md {
+  width: var(--md-w);
+  height: var(--md-h);
+}
+.tile.sm {
+  width: var(--sm-w);
+  height: var(--sm-h);
+}
+.tile.xs {
+  width: 22px;
+  height: 31px;
+}
+.stage[data-orient='land'] {
+  --lg-w: 50px;
+  --lg-h: 70px;
+  --md-w: 34px;
+  --md-h: 48px;
+  --sm-w: 27px;
+  --sm-h: 38px;
+}
+.stage[data-orient='port'] {
+  --lg-w: 37px;
+  --lg-h: 52px;
+  --md-w: 26px;
+  --md-h: 36px;
+  --sm-w: 26px;
+  --sm-h: 36px;
+}
+

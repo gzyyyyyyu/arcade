@@ -1,0 +1,19 @@
+/* 一屏放下的公共件（src/features/fit/Fit.tsx）。外面的布局给高度（flex: 1; min-height: 0），列表区吃掉剩下的高，翻页条贴底 */
+.paged { display: flex; flex-direction: column; gap: var(--s-2); min-height: 0; flex: 1; }
+.paged__list { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+/* 网格的列数由调用方的类名定（比如大厅的 .lobby-grid），这里只给默认 */
+.paged__list--grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); align-content: start; }
+.paged__item { min-width: 0; }
+.paged__bar { flex: none; display: flex; align-items: center; justify-content: center; gap: var(--s-3); }
+.paged__bar .btn { min-width: var(--tap); font-size: var(--fs-lg); }
+.paged__at { min-width: 4em; text-align: center; color: var(--muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+
+.ptabs { display: flex; flex-direction: column; gap: var(--s-3); min-height: 0; flex: 1; }
+/* 多一层选择器：styles.css 的 .seg 带 margin-bottom，后加载会压过单个类名 */
+.ptabs > .ptabs__bar { flex: none; margin: 0; flex-wrap: nowrap; }
+.ptabs__bar button { flex: 1; }
+.ptabs__panes { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-4); }
+.ptabs__pane { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-4); }
+/* 宽屏几栏并排，每栏各自吃满高度 */
+.ptabs--wide .ptabs__panes { flex-direction: row; align-items: stretch; }
+.ptabs--wide .ptabs__pane { min-width: 0; }

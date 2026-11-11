@@ -1,0 +1,132 @@
+/* 排行页（.boards-page 是 Panel 本身）：顶上一排游戏页签，下面一块或两块榜。外框和卡片都按内容高，不留一大块空框；
+   要翻页的名单按外框能长到的高度算一页几条（BoardsCard.tsx 的 boardRoom），页面不滚 */
+.boards-page { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3) var(--s-4); }
+.boards-page .panel__head { margin: 0; align-items: center; }
+.boards-page .panel__title { margin: 0; }
+.boards-page .panel__head .seg { margin: 0; border-width: var(--bw-thin); }
+.boards-page .panel__head .seg button { min-height: 36px; padding: 0 var(--s-3); font-size: var(--fs-sm); }
+.boards-page .seg button + button { border-left-width: var(--bw-thin); }
+
+/* 页签多时一行横滑，不折行占高 */
+.boards-page .boards-tabs { flex: none; display: flex; gap: var(--s-2); overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.boards-page .boards-tabs::-webkit-scrollbar { display: none; }
+.boards-page .boards-tabs button { flex: none; white-space: nowrap; min-height: 36px; padding: 0 var(--s-4); font: inherit; font-size: var(--fs-sm); font-weight: 700; color: var(--ink); background: var(--white); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); cursor: pointer; }
+.boards-page .boards-tabs button.tabs__on { background: var(--accent); color: var(--white); box-shadow: inset 0 -3px 0 var(--accent-deep); }
+@media (hover: hover) { .boards-page .boards-tabs button:not(.tabs__on):hover { background: var(--highlight-warm); } }
+@media (pointer: coarse) { .boards-page .boards-tabs button { min-height: var(--tap); } }
+/* 竖屏一排放不下：折成几行排满，不横着滑（横滑时右边的雀馆、夜巡、海岛新人看不到） */
+@media (max-width: 599px) {
+  .boards-page .boards-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); overflow: visible; }
+  .boards-page .boards-tabs button { padding-inline: var(--s-1); }
+}
+
+.boards-page .boards-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.boards-page .boards-solo { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; max-width: 720px; margin: 0 auto; }
+.boards-page .ptabs { gap: var(--s-2); }
+.boards-page .ptabs__bar button { min-height: 36px; font-size: var(--fs-sm); }
+.boards-page .ptabs__panes, .boards-page .ptabs__pane { gap: var(--s-3); }
+
+/* 一块榜 */
+.boards-page .bcard { flex: none; min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--face-paper); overflow: hidden; }
+/* 矮屏要翻页：外框和卡片撑满剩下的高度，列表量自己能放几行（BoardsCard.tsx 的 bcard--fill） */
+.boards-page:has(.bcard--fill) { flex: 1; }
+.boards-page .bcard--fill { flex: 1; }
+.boards-page .bcard__head { flex: none; display: flex; align-items: center; gap: var(--s-2) var(--s-3); min-width: 0; min-height: 32px; }
+.boards-page .bcard__title { margin: 0; font-size: var(--fs-md); white-space: nowrap; }
+.boards-page .bcard__sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: var(--fs-sm); }
+/* 晒战绩靠标题行右边，和标题同一条中线 */
+.boards-page .bcard__head .btn { flex: none; margin-left: auto; white-space: nowrap; min-height: 32px; padding-block: 0; }
+/* 触屏和窄屏（手机、平板）：晒战绩按得到的范围至少 44 见方，标题行跟着按钮高度居中对齐（原来 72×32，不够按） */
+@media (pointer: coarse), (max-width: 959px) {
+  .boards-page .bcard__head .btn { min-height: var(--tap); min-width: var(--tap); }
+}
+.boards-page .bcard__ranks { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.boards-page .bcard__mine { flex: none; margin: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); font-weight: 700; font-size: var(--fs-md); }
+.boards-page .bcard__mine .btn { flex: none; white-space: nowrap; min-height: 32px; padding-block: 0; }
+.boards-page .bcard > .empty { flex: none; padding: var(--s-4) 0 var(--s-3); }
+.boards-page .bcard > .empty .empty__art, .boards-page .bcard > .empty svg { max-height: 72px; width: auto; }
+.boards-page .bcard > .skeleton { flex: none; }
+
+/* 列表行：名次、名字、分数（右对齐，正绿负红，等宽数字） */
+.boards-page .ranks .rank { min-height: 44px; padding: var(--s-1) var(--s-3); }
+.boards-page .rank__value { justify-self: end; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (hover: hover) { .boards-page .ranks .rank:hover { background: var(--highlight-warm); } }
+
+/* 领奖台：第二、第一、第三从左到右，台子一个比一个矮；自己站上去了就整格高亮 */
+/* 宽度按人数给（每格最宽 240），不按内容收缩（11-02 线上：一个人上榜时缩成一根竖条） */
+.boards-page .podium { flex: none; list-style: none; margin: 0 auto; padding: 0; display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); align-items: end; gap: var(--s-2); width: 100%; max-width: calc(var(--n, 3) * 240px); justify-self: center; }
+.boards-page .podium--2 { --n: 2; }
+.boards-page .podium--1 { --n: 1; }
+.boards-page .podium .podium__item { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 0; padding: var(--s-2) var(--s-1) 0; text-align: center; border-radius: var(--r-md) var(--r-md) 0 0; overflow: hidden; }
+.boards-page .podium .rank__no { position: relative; z-index: 1; margin-bottom: -12px; width: 28px; height: 28px; }
+.boards-page .podium__avatar { display: grid; place-items: center; width: 40px; height: 40px; border: var(--bw) solid var(--line); border-radius: 50%; background: var(--accent); color: var(--white); font-size: var(--fs-lg); font-weight: 800; box-shadow: var(--sh-sm); }
+.boards-page .podium__item--1 .podium__avatar { width: 48px; height: 48px; font-size: var(--fs-xl); }
+.boards-page .podium .rank__name { max-width: 100%; }
+.boards-page .podium .rank__value { font-size: var(--fs-md); }
+.boards-page .podium__step { align-self: stretch; margin: var(--s-1) calc(-1 * var(--s-1)) 0; height: 16px; background: repeating-linear-gradient(135deg, var(--soft) 0 8px, #e6dccf 8px 16px); border-top: var(--bw-thin) solid var(--line); }
+.boards-page .podium__item--1 .podium__step { height: 32px; background: repeating-linear-gradient(135deg, #ffe7a3 0 8px, #f9d877 8px 16px); }
+.boards-page .podium__item--2 .podium__step { height: 24px; background: repeating-linear-gradient(135deg, #eef1f4 0 8px, #dfe4e9 8px 16px); }
+.boards-page .podium__item--3 .podium__step { background: repeating-linear-gradient(135deg, #f7e2cc 0 8px, #efd0b0 8px 16px); }
+.boards-page .podium .rank--me { box-shadow: inset 0 0 0 1px var(--line); }
+@media (max-width: 560px) {
+  .boards-page { padding: var(--s-2) var(--s-3); }
+  /* 领奖台一格只有三分之一屏宽：长一点的分数（夜巡守夜"危险2 · 12:34 · 斩 1,234"）字小一号 */
+  .boards-page .podium .rank__value { font-size: var(--fs-sm); white-space: normal; }
+  /* 副标题放不下一行：换到标题下面一行，不藏（"周一 0 点清零"这类说明窄屏也要看得到） */
+  .boards-page .bcard__head { flex-wrap: wrap; }
+  .boards-page .bcard__sub { order: 1; flex-basis: 100%; white-space: normal; }
+}
+
+/* 领奖台升起：台子自下长出（三、二、一依次），台子到位后头像和名字淡入下落；总长 ≤ 900ms，只用 transform/opacity */
+.boards-page .podium .podium__step { transform-origin: bottom; animation: podium-rise 380ms cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.boards-page .podium .podium__item--3 .podium__step { animation-delay: 0ms; }
+.boards-page .podium .podium__item--2 .podium__step { animation-delay: 140ms; }
+.boards-page .podium .podium__item--1 .podium__step { animation-delay: 280ms; }
+.boards-page .podium .podium__item > :not(.podium__step) { animation: podium-drop 220ms ease-out both; }
+.boards-page .podium .podium__item--3 > :not(.podium__step) { animation-delay: 300ms; }
+.boards-page .podium .podium__item--2 > :not(.podium__step) { animation-delay: 440ms; }
+.boards-page .podium .podium__item--1 > :not(.podium__step) { animation-delay: 580ms; }
+@keyframes podium-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes podium-drop { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .boards-page .podium .podium__step, .boards-page .podium .podium__item > :not(.podium__step) { animation: none; }
+}
+html.no-motion .boards-page .podium .podium__step, html.no-motion .boards-page .podium .podium__item > :not(.podium__step) { animation: none; }
+
+/* 矮屏（手机横屏）：标题和"全部/只看好友"并进页签那一行，页签已经写了榜名，卡片不再重复标题，把高度让给名单 */
+@media (max-height: 600px) {
+  .boards-page { position: relative; gap: var(--s-1); padding-block: var(--s-2); }
+  .boards-page .panel__head { position: absolute; top: var(--s-2); right: var(--s-3); z-index: 1; }
+  .boards-page .panel__head .panel__title { display: none; }
+  .boards-page .boards-tabs { margin-right: 160px; }
+  .boards-page .bcard__head { display: none; }
+  .boards-page .ranks .rank { min-height: 36px; padding-block: 0; }
+  .boards-page .paged__bar .btn { min-height: 32px; min-width: 40px; }
+  .boards-page .bcard__mine .btn { min-height: 28px; }
+  .boards-page .bcard { padding: var(--s-2); gap: var(--s-1); }
+}
+
+/* 宽屏只有一块榜（总榜、海岛）、人多要翻页时：左栏领奖台在上、"我的名次"卡在下，右栏翻页名单，两栏顶部对齐（不要中间一窄条、两边空着）。
+   台子按固定高度，第一名最高约 200：原来按左栏剩下的高度拉伸，1920 下三根斜纹柱拉到约 500 高，像图表不像台子 */
+@media (min-width: 960px) and (min-height: 600px) {
+  .boards-page .boards-solo { max-width: none; }
+  .boards-page .boards-solo .bcard:not(.bcard--fit) .bcard__ranks { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); align-items: start; gap: var(--s-3) var(--s-6); }
+  .boards-page .boards-solo .bcard:not(.bcard--fit) .podium { grid-column: 1; grid-row: 1; }
+  .boards-page .boards-solo .bcard:not(.bcard--fit) .bcard__mine { grid-column: 1; grid-row: 2; flex-direction: column; justify-content: center; gap: var(--s-3); min-height: 0; padding: var(--s-4); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--highlight-warm); font-size: var(--fs-xl); text-align: center; }
+  .boards-page .boards-solo .bcard:not(.bcard--fit) .bcard__ranks > .paged { grid-column: 2; grid-row: 1 / -1; align-self: stretch; min-height: 0; }
+  /* 台子高低差：第一名台子 96、第二 64、第三 40，加上头像名字分数，第一名一格约 200 高 */
+  .boards-page .boards-solo .bcard:not(.bcard--fit) .podium__item--1 .podium__step { height: 96px; }
+  .boards-page .boards-solo .bcard:not(.bcard--fit) .podium__item--2 .podium__step { height: 64px; }
+  .boards-page .boards-solo .bcard:not(.bcard--fit) .podium__item--3 .podium__step { height: 40px; }
+}
+
+/* 触屏：晒战绩、翻页看着小，按得到的范围透明外扩到 44 见方；全部/只看好友在圆角框里外扩会被裁，直接 44 高（docs/ui.md 第 11 节） */
+@media (pointer: coarse) {
+  .boards-page .panel__head .seg button { min-height: var(--tap); }
+  .boards-page .bcard__mine .btn, .boards-page .paged__bar .btn { position: relative; }
+  .boards-page .bcard__mine .btn::after, .boards-page .paged__bar .btn::after {
+    content: ''; position: absolute;
+    top: min(0px, calc(50% - var(--tap) / 2)); bottom: min(0px, calc(50% - var(--tap) / 2));
+    left: min(0px, calc(50% - var(--tap) / 2)); right: min(0px, calc(50% - var(--tap) / 2));
+  }
+}

@@ -1,0 +1,403 @@
+/* 听牌速判：整页样式都限定在 .ting-drill 下（view/ting.ts） */
+.ting-drill {
+  /* 全页内容统一一个宽度：标题行、倒计时、手牌、按键、成绩卡、按钮行都按它对齐 */
+  --td-w: 860px;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4) var(--sp-5);
+  /* 一屏放下（docs/ui.md 第 11 节）：不滚动；横屏手机矮，说明卡放宽、间距收紧（下面） */
+  overflow: hidden;
+  color: var(--ink);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .ting-drill {
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .ting-drill .td-card {
+  width: min(100%, 860px);
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+}
+.ting-drill > * {
+  flex: none;
+}
+/* 标题行留在顶上，以下的内容在剩余高度里垂直居中，不让下半屏空着：
+ * 标题行和内容之间、内容和页底之间各放一块等份的弹性空白（用 margin:auto 的话，横屏把最后一项提示藏掉后下边那份就丢了）；放不下时空白归零，照常顶对齐 */
+.ting-drill::before,
+.ting-drill::after {
+  content: '';
+  flex: 1 1 0;
+  min-height: 0;
+}
+.ting-drill::before {
+  order: -1;
+}
+.ting-drill > .td-head {
+  order: -2;
+}
+.ting-drill::after {
+  order: 99;
+}
+.ting-drill .td-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: min(100%, var(--td-w));
+}
+.ting-drill .td-back {
+  position: relative;
+  /* 高度不超过标题行：外观只比标题字略高，点按范围靠 ::after 撑到 --tap */
+  min-height: 0;
+  padding: var(--sp-1) var(--sp-3);
+  line-height: 1.2;
+  white-space: nowrap;
+  border: 1px solid #ffffff26;
+  border-radius: var(--r-md);
+  background: var(--surface-hi);
+  color: var(--ink);
+  /* 返回钮的字比标题小一档，标题才是这一行的重点 */
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.ting-drill .td-back::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--tap, 44px)) / 2));
+}
+.ting-drill .td-title {
+  line-height: 1.2;
+  font-size: var(--fs-2xl);
+  color: var(--gold-hi);
+}
+/* 说明屏和成绩卡 */
+.ting-drill .td-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  width: min(100%, 560px);
+  padding: var(--sp-5) var(--sp-6);
+  border: 1px solid var(--gold-lo);
+  border-radius: 16px;
+  background: linear-gradient(#5a4a1a99, #2e250d99);
+  text-align: center;
+}
+.ting-drill .td-lead {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--gold-hi);
+}
+.ting-drill .td-rules {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+  text-align: left;
+}
+.ting-drill .td-rules li::before {
+  content: '·';
+  margin-right: var(--sp-2);
+  color: var(--gold);
+}
+.ting-drill .td-best {
+  font-size: var(--fs-md);
+  color: var(--gold);
+}
+.ting-drill .td-today,
+.ting-drill .td-kind {
+  font-size: var(--fs-md);
+  color: var(--paper, inherit);
+  opacity: 0.85;
+}
+.ting-drill .td-go,
+.ting-drill .td-submit {
+  min-width: 240px;
+}
+/* 倒计时条、分数、连击 */
+.ting-drill .td-hud {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(100%, var(--td-w));
+}
+.ting-drill .td-time {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.ting-drill .td-time .td-bar {
+  flex: 1;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: #ffffff22;
+  overflow: hidden;
+}
+.ting-drill .td-bar i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--gold);
+}
+.ting-drill .td-time.low .td-bar i {
+  background: #e0594b;
+}
+.ting-drill .td-secs {
+  min-width: 2ch;
+  /* 和下面的分数大字同一档，一行倒计时、一行分数读起来是一套 */
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.ting-drill .td-stats {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-4);
+}
+.ting-drill .td-score {
+  font-size: var(--fs-lg);
+}
+.ting-drill .td-score i {
+  font-style: normal;
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  color: var(--gold-hi);
+  font-variant-numeric: tabular-nums;
+}
+.ting-drill .td-combo {
+  margin-left: auto;
+  font-size: var(--fs-md);
+  color: var(--gold-hi);
+}
+.ting-drill .td-combo.on {
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-pill);
+  background: #f3c86b33;
+}
+.ting-drill .td-ask {
+  font-size: var(--fs-lg);
+}
+/* 13 张手牌一行排开：牌宽跟着舞台宽缩 */
+.ting-drill .td-hand {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  width: min(100%, var(--td-w));
+}
+.ting-drill .td-tile {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 54px;
+  aspect-ratio: 54 / 76;
+  background-color: transparent;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border-radius: 5px;
+}
+/* 9 个按钮：横屏一排，竖屏 3×3（1–9 的小键盘样子），每个至少 44 屏幕像素 */
+.ting-drill .td-pad {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(max(44px, var(--tap)), 1fr));
+  gap: var(--sp-2);
+  width: min(100%, var(--td-w));
+}
+.stage[data-orient='port'] .ting-drill .td-pad {
+  grid-template-columns: repeat(3, 1fr);
+  width: min(100%, 420px);
+  gap: var(--sp-3);
+}
+.ting-drill .td-key {
+  position: relative;
+  min-height: max(64px, var(--tap));
+  padding: 0;
+  border: 1px solid #ffffff30;
+  border-radius: var(--r-md);
+  background-color: #f6efdc;
+  background-size: auto 78%;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  transition: transform var(--t-fast, 0.12s), box-shadow var(--t-fast, 0.12s);
+}
+.stage[data-orient='port'] .ting-drill .td-key {
+  min-height: max(84px, var(--tap));
+}
+.ting-drill .td-key:disabled {
+  cursor: default;
+}
+.ting-drill .td-num {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: #3a2a00;
+  opacity: 0.55;
+}
+.ting-drill .td-tick {
+  display: none;
+  position: absolute;
+  right: -6px;
+  top: -8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  border-radius: var(--r-pill);
+  background: var(--gold);
+  color: #3a2a00;
+  font-style: normal;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+}
+/* 已选：抬起 + 金色描边 + 角上一个勾 */
+.ting-drill .td-key.on {
+  transform: translateY(-10px);
+  box-shadow: 0 0 0 3px var(--gold), 0 8px 14px #0006;
+}
+.ting-drill .td-key.on .td-tick,
+.ting-drill .td-key.hit .td-tick,
+.ting-drill .td-key.missed .td-tick,
+.ting-drill .td-key.wrong .td-tick {
+  display: block;
+}
+/* 揭晓：选对（金框 + 勾）、漏了（虚线金框 + 漏）、选错（红框压暗 + ×） */
+.ting-drill .td-key.hit {
+  box-shadow: 0 0 0 3px var(--gold), 0 0 16px 4px #ffd35a88;
+}
+.ting-drill .td-key.missed {
+  outline: 3px dashed var(--gold);
+  outline-offset: 2px;
+}
+.ting-drill .td-key.missed .td-tick {
+  background: #ffffff;
+}
+.ting-drill .td-key.wrong {
+  box-shadow: 0 0 0 3px #e0594b;
+  filter: saturate(0.5) brightness(0.8);
+}
+.ting-drill .td-key.wrong .td-tick {
+  background: #e0594b;
+  color: #fff;
+}
+.ting-drill .td-verdict {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--surface-hi);
+  font-size: var(--fs-lg);
+}
+.ting-drill .td-verdict.ok {
+  background: linear-gradient(#f3c86b66, #e2a93b33);
+  animation: td-flash 0.9s ease-out;
+}
+.ting-drill .td-verdict.bad {
+  background: #7a2a2a66;
+}
+.ting-drill .td-gain {
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  color: var(--gold-hi);
+  font-variant-numeric: tabular-nums;
+}
+@keyframes td-flash {
+  0% {
+    box-shadow: 0 0 0 0 #ffd35a;
+  }
+  100% {
+    box-shadow: 0 0 36px 12px #ffd35a00;
+  }
+}
+.ting-drill .td-hint {
+  max-width: 90%;
+  font-size: var(--fs-sm);
+  text-align: center;
+  opacity: 0.85;
+}
+/* 成绩 */
+.ting-drill .td-big i {
+  font-style: normal;
+  font-size: 72px;
+  font-weight: 900;
+  color: var(--gold-hi);
+  font-variant-numeric: tabular-nums;
+}
+.ting-drill .td-big small {
+  font-size: var(--fs-xl);
+  opacity: 0.8;
+}
+.ting-drill .td-result.record {
+  border-color: var(--gold-hi);
+  box-shadow: 0 0 40px 6px #ffd35a66;
+}
+.ting-drill .td-new {
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-pill);
+  background: var(--gold);
+  color: #3a2a00;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+}
+.ting-drill .td-sum {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2) var(--sp-5);
+  font-size: var(--fs-md);
+}
+.ting-drill .td-note {
+  font-size: var(--fs-sm);
+  opacity: 0.85;
+}
+/* 成绩页的三个按钮等宽（原来分享 120、再练 430、回主页 150 差太多），离上面的成绩卡留出一截 */
+.ting-drill .td-acts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+  width: min(100%, 560px);
+  margin-top: var(--sp-4);
+}
+.ting-drill .td-acts > .act {
+  /* 字长了就折行，不超出按钮左右边（全局 .act 是不折行的） */
+  white-space: normal;
+  text-align: center;
+  min-width: 0;
+  padding-inline: var(--sp-2);
+}
+/* 横屏矮：说明、提示收紧，一屏放得下 */
+.stage[data-orient='land'] .ting-drill {
+  gap: var(--sp-2);
+}
+.stage[data-orient='land'] .ting-drill .td-hint {
+  display: none;
+}
+.stage[data-orient='land'] .ting-drill .td-tile {
+  max-width: 44px;
+}
+.stage[data-orient='land'] .ting-drill .td-key {
+  min-height: max(56px, var(--tap));
+}
+@media (prefers-reduced-motion: reduce) {
+  .ting-drill .td-verdict.ok {
+    animation: none;
+  }
+  .ting-drill .td-key {
+    transition: none;
+  }
+}
+/* 庆祝按传进来的坐标摆，得是绝对定位（同 hekiri.css），不然字跑到左上角只露半截 */
+.ting-drill > .celeb {
+  position: absolute;
+}

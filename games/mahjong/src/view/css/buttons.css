@@ -1,0 +1,179 @@
+/* ---------- 按钮 ----------
+ * 一套状态给所有能点的：常态、悬停（有鼠标时）、按下（下沉一点）、禁用、键盘焦点（金边）、加载中（转圈，aria-busy）。
+ * 主按钮 .act.go（金）> 次按钮 .act（浅色玻璃）> 轻按钮 .act.soft、.pill、.chip、.link；碰杠胡按动作配色。
+ * ::after 是看不见的点按区：外观小于 --tap 的按钮，点按范围向四周撑到 --tap（屏幕上 44 像素）。 */
+.act,
+.pill,
+.icon,
+.chip,
+.stake,
+.link,
+.home,
+.dialog .x {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition:
+    transform var(--t-fast),
+    filter var(--t-fast),
+    box-shadow var(--t-fast),
+    background-color var(--t-fast);
+}
+.act::after,
+.pill::after,
+.icon::after,
+.chip::after,
+.stake::after,
+.link::after,
+.home::after,
+.dialog .x::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--tap)) / 2)) min(0px, calc((100% - var(--tap)) / 2));
+}
+/* 顶栏的按钮贴着屏幕上沿，居中撑开的点按区上面一截落在屏幕外：改成从顶栏顶上往下撑满 --tap（手机上屏幕里实打实 44 高，10-27 平台走查） */
+.topbar :is(.home, .pill, .icon)::after {
+  top: calc(-1 * (40px - 100%) / 2);
+  bottom: auto;
+  height: max(40px, var(--tap));
+}
+/* 不是按钮样式、外观也小于 --tap 的几处能点的东西（0.17.5 手机审计）：头像（点了扔道具）、小册子的页签、音量滑块。
+ * 同样用看不见的 ::after 把点按区撑到 --tap，外观不变 */
+.badge .avatar::after,
+.rules .tab::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--tap)) / 2)) min(0px, calc((100% - var(--tap)) / 2));
+}
+@media (hover: hover) {
+  :is(.act, .pill, .icon, .chip, .stake, .link, .home, .dialog .x):not(:disabled, .off):hover {
+    filter: brightness(1.12);
+  }
+}
+:is(.act, .pill, .icon, .chip, .stake, .home):not(:disabled, .off):active {
+  transform: translateY(1px) scale(0.97);
+  filter: brightness(0.95);
+}
+:is(.act, .pill, .icon, .chip, .stake, .link, .home, .dialog .x):focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+:is(.act, .pill, .icon, .chip, .stake, .link):disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* 加载中：字隐去、中间转一个圈（dom.ts 的 busy 给按钮挂 aria-busy 并禁用，等请求回来再放开） */
+.act[aria-busy='true'] {
+  color: transparent;
+  opacity: 1;
+}
+.act[aria-busy='true']::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  border-right-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+.act.go[aria-busy='true']::before {
+  border-color: var(--on-gold);
+  border-right-color: transparent;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.act {
+  min-height: 44px;
+  border: 1px solid #ffffff26;
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  background: linear-gradient(#ffffff38, #ffffff1a);
+  box-shadow:
+    inset 0 1px 0 #ffffff40,
+    0 3px 0 #0006,
+    var(--sh-1);
+  gap: var(--sp-2);
+  text-decoration: none;
+  color: var(--ink);
+  text-shadow: 0 1px 0 #0004;
+}
+.act:not(:disabled):active {
+  box-shadow:
+    inset 0 1px 0 #ffffff30,
+    0 1px 0 #0006;
+}
+.act.go {
+  border-color: #fff3c4;
+  background: linear-gradient(var(--gold-hi), var(--gold-lo));
+  color: var(--on-gold);
+  text-shadow: 0 1px 0 #fff6;
+}
+.act.big {
+  min-height: 56px;
+  font-size: var(--fs-2xl);
+  padding: var(--sp-3) var(--sp-6);
+  border-radius: var(--r-lg);
+}
+.act.soft {
+  border-color: transparent;
+  background: var(--surface-hi);
+  box-shadow: none;
+  font-weight: 400;
+  text-shadow: none;
+}
+/* 碰杠胡过按紧急程度分级（0.17.3，docs/art.md）：胡 = 灯笼红底金字、最大；杠、碰 = 暖金（杠深一点）；过 = 半透明、最小。
+ * 定缺三个按钮是茶馆木色，和碰杠胡一眼分开 */
+.act.ron {
+  border-color: var(--gold);
+  background: linear-gradient(#e8503f, #a8231a);
+  color: #ffe9a8;
+  text-shadow: 0 2px 0 #5a0a06;
+  font-size: var(--fs-2xl);
+}
+.act.kan {
+  border-color: #ffe2a0;
+  background: linear-gradient(#f2b54a, #c47a12);
+  color: var(--on-gold);
+  text-shadow: 0 1px 0 #ffffff59;
+}
+.act.pon {
+  border-color: #fff0c4;
+  background: linear-gradient(var(--gold-hi), var(--gold-lo));
+  color: var(--on-gold);
+  text-shadow: 0 1px 0 #ffffff59;
+}
+.act.pass {
+  background: linear-gradient(#ffffff26, #ffffff0f);
+  border-color: #ffffff33;
+  box-shadow: none;
+}
+.act.que {
+  flex-direction: column;
+  gap: 0;
+  border-color: #f3c86b4d;
+  background:
+    linear-gradient(#ffffff14, transparent 45%),
+    linear-gradient(#5a2d18, #3a1a0c);
+}
+.act.que small {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  opacity: 0.85;
+}
+.act.que.best {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
