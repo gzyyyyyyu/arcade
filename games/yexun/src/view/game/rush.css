@@ -1,0 +1,36 @@
+/* 首领连战的演出（view/game/rush.ts）：都限定在对局 HUD 下 */
+
+/* 屏幕中间的大字："石狮怪 伏诛"、"全 清"；入场一下盖章，过一会儿淡出 */
+.yx-hud .yx-rushfx {
+  position: absolute; left: 50%; top: 38%; z-index: 24; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  transform: translate(-50%, -50%) scale(1.6); opacity: 0;
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+  text-align: center; white-space: nowrap;
+}
+.yx-hud .yx-rushfx.on { opacity: 1; transform: translate(-50%, -50%) scale(1); transition: opacity 0.12s ease-out, transform 0.18s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.yx-hud .yx-rushfx b {
+  font-size: calc(64px * var(--s, 1)); line-height: 1; color: #ffd23a;
+  -webkit-text-stroke: 7px #17131c; paint-order: stroke fill;
+  text-shadow: 0 0 24px rgba(255, 190, 60, 0.75);
+}
+.yx-hud .yx-rushfx span {
+  padding: 4px 14px; border: 2.5px solid #17131c; border-radius: 12px;
+  background: rgba(28, 34, 48, 0.88); color: #f6efdc;
+  font-size: max(var(--fs-md, 14px), calc(var(--fs-xl, 18px) * var(--s, 1)));
+}
+.yx-hud .yx-rushfx.clear b { font-size: calc(96px * var(--s, 1)); letter-spacing: 12px; color: #fff3b0; text-shadow: 0 0 40px rgba(255, 210, 90, 0.95); }
+.yx-hud .yx-rushfx.clear.on { animation: yx-rushglow 0.9s ease-in-out 3 alternate; }
+@keyframes yx-rushglow { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+
+/* 计时下面的小牌："连战 3/9"；本周夜事挑战的"本周夜事 宝箱周"用同一个样子（GameScene 挂，两种局不会同时有） */
+.yx-hud .yx-rushchip, .yx-hud .yx-weekchip {
+  position: absolute; left: 50%; top: calc(76px * var(--s, 1)); transform: translateX(-50%); z-index: 5;
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 2px 12px; border: 2.5px solid var(--ink, #17131c); border-radius: 12px;
+  background: rgba(107, 44, 44, 0.9); color: #f6efdc; box-shadow: 0 2px 0 var(--ink, #17131c);
+  font-size: max(var(--fs-xs, 12px), calc(var(--fs-md, 14px) * var(--s, 1)));
+}
+.yx-hud .yx-rushchip span, .yx-hud .yx-weekchip span { font-size: max(var(--fs-md, 14px), calc(var(--fs-xl, 18px) * var(--s, 1))); color: #ffd23a; }
+/* 本周夜事的小牌：蓝底和连战的红底区分 */
+.yx-hud .yx-weekchip { background: rgba(43, 62, 107, 0.9); }

@@ -1,0 +1,161 @@
+/* 今日谜题（docs/features.md 13.11）：标题页入口 + 一屏的谜题。全部限定在 .pz / .lobby .pz-open 下，不串到别的界面 */
+
+/* ---- 标题页入口（和成就并排）---- */
+.lobby .pz-open {
+  display: flex; align-items: center; justify-content: center; gap: var(--s-2);
+  min-height: max(44px, calc(47px * var(--ui))); padding: 0 var(--s-2); border-radius: var(--r-3); border: 1px solid var(--line); background: rgba(0, 0, 0, .28);
+  font-size: var(--fs-3); font-weight: 800; white-space: nowrap;
+}
+.lobby .pz-open svg { width: 20px; height: 20px; flex: none; fill: var(--gold); }
+.lobby .pz-open span { color: var(--gold); font-variant-numeric: tabular-nums; font-size: var(--fs-2); }
+.lobby .pz-open[data-state='new'] { border-color: rgba(243, 200, 107, .55); }
+.lobby .pz-open[data-state='ok'] span { color: var(--win-ink); }
+.lobby .pz-open[data-state='bad'] span { color: var(--lose-ink); }
+.lobby .extras > button { min-height: max(44px, calc(47px * var(--ui))); }
+
+/* ---- 谜题本体：舞台里的一层，和弹窗一样的奶油底、深棕描边（skin.css 的 .mask .dialog） ---- */
+.pz {
+  --pz-ok: #1d9a56;
+  --pz-bad: #d23b30;
+  --pz-ink: var(--cg-ink, #2b1d14);
+  --cw: 52px; --ch: 73px;
+  width: min(880px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  border-radius: 16px;
+  background: var(--cg-cream, #f5e6c0);
+  color: var(--pz-ink);
+  border: 3px solid var(--pz-ink);
+  box-shadow: 0 5px 0 var(--pz-ink), 0 16px 30px rgba(43, 29, 20, .4);
+  animation: rise .18s ease-out;
+}
+.pz-head { display: flex; align-items: center; gap: var(--s-3); }
+.pz-x, .pz-ch, .pz-actions button {
+  border: 2.5px solid var(--pz-ink); border-radius: 12px; box-shadow: 0 3px 0 var(--pz-ink);
+  background: #fff; color: var(--pz-ink); font-weight: 800;
+}
+.pz-x:active, .pz-ch:not(:disabled):active, .pz-actions button:active { box-shadow: 0 0 0 var(--pz-ink); translate: 0 3px; }
+.pz-x { width: max(44px, calc(48px * var(--ui))); height: max(44px, calc(48px * var(--ui))); flex: none; font-size: var(--fs-4); }
+.pz-title { font-size: var(--fs-5); font-weight: 900; letter-spacing: 2px; }
+.pz-date { font-size: var(--fs-3); color: var(--muted); font-weight: 700; }
+.pz-body { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); align-items: start; }
+.pz-left, .pz-right { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+.pz-name { align-self: flex-start; padding: var(--s-1) var(--s-3); border-radius: var(--r-pill); background: var(--cg-cream-2, #ead29a); border: 2px solid var(--pz-ink); font-size: var(--fs-2); font-weight: 900; }
+.pz-sit { margin: 0; font-size: var(--fs-4); line-height: 1.5; font-weight: 700; }
+.pz-felt {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-2);
+  padding: var(--s-3) var(--s-2); border-radius: 12px; color: #f4efe1;
+  background: radial-gradient(ellipse at 50% 30%, #2a8a5f, #17603f); border: 2.5px solid var(--pz-ink);
+}
+.pz-row { display: flex; gap: var(--s-2); justify-content: center; }
+/* 牌在牌桌上是绝对定位居中的：这里摆成普通排版 */
+.pz .card { position: relative; transform: none; flex: none; }
+.pz-slot, .pz .pz-board .card { width: var(--cw); height: var(--ch); }
+.pz .pz-hero .card.mine { width: calc(var(--cw) * 1.12); height: calc(var(--ch) * 1.12); }
+.pz-slot { border-radius: 6px; border: 2px dashed rgba(255, 255, 255, .4); position: relative; }
+.pz-slot .card { position: absolute; left: -2px; top: -2px; }
+.pz-slot:has(.card) { border-color: transparent; }
+.pz-slot.runout:has(.card) { border-color: var(--cg-gold, #f7c43a); }
+.pz-cap { font-size: var(--fs-2); opacity: .85; }
+.pz-info { font-size: var(--fs-3); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.pz-range { margin: 0; font-size: var(--fs-3); color: var(--muted); line-height: 1.5; font-weight: 700; }
+.pz-ask { font-size: var(--fs-4); font-weight: 900; }
+.pz-choices { display: flex; flex-direction: column; gap: var(--s-3); }
+.pz-ch {
+  display: flex; align-items: center; justify-content: center; gap: var(--s-3);
+  min-height: max(52px, calc(48px * var(--ui)));
+  font-size: var(--fs-5); font-weight: 900;
+}
+.pz-ch kbd { font: 800 var(--fs-2)/1 var(--font); min-width: 1.6em; padding: 3px 0; border-radius: 5px; border: 2px solid var(--pz-ink); background: var(--cg-cream, #f5e6c0); text-align: center; }
+.pz.done .pz-ask { display: none; }
+.pz.done .pz-choices { flex-direction: row; }
+.pz.done .pz-ch { flex: 1; min-height: max(44px, calc(47px * var(--ui))); font-size: var(--fs-4); }
+.pz.done .pz-ch kbd { display: none; }
+.pz-ch:not(:disabled):hover, .pz-ch:focus-visible { background: var(--cg-gold, #f7c43a); }
+.pz-ch:disabled { cursor: default; opacity: .6; box-shadow: none; translate: 0 3px; }
+.pz-ch.right { opacity: 1; background: #b9efcf; }
+.pz-ch.wrong { opacity: 1; background: #ffc3bb; }
+.pz.fresh .pz-ch.wrong { animation: pz-shake .4s; }
+.pz-reveal { display: flex; flex-direction: column; gap: var(--s-2); }
+.pz.fresh .pz-reveal { animation: rise .25s ease-out; }
+.pz-verdict { display: flex; align-items: baseline; gap: var(--s-3); }
+.pz-verdict b { font-size: 26px; font-weight: 900; }
+.pz-verdict span { font-size: var(--fs-4); color: var(--muted); font-weight: 700; }
+.pz-verdict.ok b { color: var(--pz-ok); }
+.pz-verdict.bad b { color: var(--pz-bad); }
+.pz.fresh .pz-verdict.ok b { animation: pz-pop .5s cubic-bezier(.2, 1.6, .4, 1); }
+.pz.fresh .pz-verdict.bad b { animation: pz-shake .4s; }
+/* 赢面条：绿 / 红是我的赢面，竖线是要的赢面 */
+.pz-bar { position: relative; height: 20px; margin: 22px 0 24px; border-radius: var(--r-pill); background: rgba(43, 29, 20, .16); border: 2px solid var(--pz-ink); }
+.pz-fill { height: 100%; border-radius: inherit; background: var(--pz-bad); transition: width .9s cubic-bezier(.2, .8, .2, 1); }
+.pz-fill.above { background: var(--pz-ok); }
+.pz-need { position: absolute; top: -7px; bottom: -7px; width: 0; border-left: 4px solid var(--pz-ink); }
+.pz-need span { position: absolute; top: 100%; left: 0; transform: translateX(-50%); margin-top: 3px; font-size: var(--fs-2); font-weight: 900; white-space: nowrap; }
+.pz-eq { position: absolute; left: 0; bottom: 100%; margin-bottom: 5px; font-size: var(--fs-2); font-weight: 900; white-space: nowrap; }
+.pz-why { margin: 0; font-size: var(--fs-4); line-height: 1.55; font-weight: 800; }
+.pz-sample { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-2) var(--s-3); border-radius: 12px; background: rgba(43, 29, 20, .1); }
+.pz-s-cap { font-size: var(--fs-2); color: var(--muted); font-weight: 700; }
+.pz-s-cards { display: flex; gap: var(--s-1); }
+.pz-s-res { font-size: var(--fs-3); font-weight: 900; }
+.pz-s-res.win { color: var(--pz-ok); }
+.pz-s-res.lose { color: var(--pz-bad); }
+.pz-s-note { flex-basis: 100%; font-size: var(--fs-1); color: var(--muted); }
+.pz-actions { display: flex; gap: var(--s-3); }
+.pz-actions button { flex: 1; min-height: max(48px, calc(47px * var(--ui))); font-size: var(--fs-4); }
+.pz-actions .pz-share { background: var(--cg-gold, #f7c43a); }
+
+/* 5 道题的进度点：对绿、错红、当前题金边 */
+.pz-dots { margin-left: auto; display: flex; gap: var(--s-2); align-items: center; }
+.pz-dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--pz-ink); background: rgba(43, 29, 20, .12); }
+.pz-dots i.ok { background: var(--pz-ok); }
+.pz-dots i.bad { background: var(--pz-bad); }
+.pz-dots i.cur { background: var(--cg-gold, #f7c43a); }
+.pz-name b { margin-right: var(--s-2); }
+.pz-score { margin-left: auto; font-size: var(--fs-3); font-weight: 900; font-variant-numeric: tabular-nums; }
+.pz-actions .pz-next { background: var(--cg-gold, #f7c43a); }
+/* 总结卡：总分、5 道对错、连续天数、交榜结果 */
+.pz.sum .pz-body { grid-template-columns: 1fr; }
+.pz-sum { display: grid; grid-template-columns: 1fr 1.2fr; gap: var(--s-4); width: 100%; align-items: center; }
+.pz-sum-l, .pz-sum-r { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+.pz-sum-t { font-size: var(--fs-4); font-weight: 900; text-align: center; }
+.pz-total { display: flex; align-items: baseline; justify-content: center; gap: var(--s-2); }
+.pz-total b { font-size: 56px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; }
+.pz-total small { font-size: var(--fs-4); font-weight: 800; color: var(--muted); }
+.pz.fresh .pz-total b { animation: pz-pop .5s cubic-bezier(.2, 1.6, .4, 1); }
+.pz-res { display: flex; flex-direction: column; gap: var(--s-2); }
+.pz-res > div { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2) var(--s-3); border-radius: 12px; border: 2px solid var(--pz-ink); background: #fff; font-size: var(--fs-3); }
+.pz-res > .ok { background: #d5f4e2; }
+.pz-res > .bad { background: #ffd9d4; }
+.pz-res > .near { background: #fff0b8; }
+.pz-res span { font-weight: 900; }
+.pz-res b { flex: 1; min-width: 0; font-weight: 800; }
+.pz-res em { font-style: normal; font-weight: 900; font-variant-numeric: tabular-nums; }
+.pz-line { text-align: center; font-size: var(--fs-3); font-weight: 800; }
+.pz-line:empty { display: none; }
+.pz-board-note { color: var(--muted); }
+
+/* 竖屏：单列，一屏放下 */
+.stage.tall .pz-sum { grid-template-columns: 1fr; }
+.stage.tall .pz { --cw: 62px; --ch: 87px; width: calc(100% - 20px); padding: var(--s-3); gap: var(--s-2); }
+.stage.tall .pz-body { grid-template-columns: 1fr; gap: var(--s-3); }
+.stage.tall .pz-felt { padding: var(--s-2); }
+
+/* 手机横屏、矮竖屏（360×640）：牌桌上的公共牌和我的两张牌排成一行（原来两行），牌小一点；"你的牌"和底池说明各占一行放在下面，
+   揭晓页一屏放下（审计：横屏多出 19–21、360×640 多出 80） */
+@media (max-height: 700px) {
+  .stage:is(.tall, .tight) .pz { --cw: 46px; --ch: 64px; }
+  .stage:is(.tall, .tight) .pz-felt { flex-flow: row wrap; justify-content: center; align-items: flex-end; column-gap: var(--s-4); }
+  .stage:is(.tall, .tight) .pz-felt > :is(.pz-cap, .pz-info) { flex: 0 0 100%; text-align: center; }
+  /* 横屏右栏（答案、赢面条、讲解、抽样、下一题）最高：各块的缝和上下内边距收小 */
+  .stage.tight:not(.tall) .pz { gap: var(--s-2); padding-block: var(--s-2); }
+  .stage.tight:not(.tall) .pz-right { gap: var(--s-2); }
+}
+
+@keyframes pz-pop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pz-shake { 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) {
+  .pz, .pz-reveal, .pz-verdict b, .pz-ch { animation: none !important; }
+  .pz-fill { transition: none; }
+}

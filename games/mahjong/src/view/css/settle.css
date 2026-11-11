@@ -1,0 +1,242 @@
+/* 好友房颁奖：每个奖一张小牌子，奖名金色小字、得奖的人大字、下面一句话；窄屏一行放不下就折行 */
+.summary.awards .award-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-3);
+}
+.summary.awards .award {
+  flex: 1 1 0;
+  min-width: 140px;
+  max-width: 260px;
+  padding: var(--sp-3);
+  border: 1px solid var(--gold-lo);
+  border-radius: var(--r-md);
+  background: #00000048;
+  text-align: center;
+}
+.summary.awards .award.mvp {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px #f3c86b55;
+}
+.summary.awards .award-name {
+  color: var(--gold);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+.summary.awards .award-who {
+  margin: var(--sp-1) 0;
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.summary.awards .award-line {
+  font-size: var(--fs-sm);
+  opacity: 0.85;
+}
+.summary .rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.summary .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2);
+  border-radius: var(--r-sm);
+  background: #ffffff0d;
+  justify-content: flex-start;
+  margin: 0;
+}
+.summary .row.me {
+  background: #f3c86b1f;
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.summary .who {
+  /* 至少 90 宽，有空就放宽到 8 个字左右（手机竖屏原来只露"本地q…"，10-19 试玩） */
+  min-width: 90px;
+  max-width: 8em;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.summary .what .how,
+.summary .what .fx-total {
+  white-space: nowrap;
+}
+.summary .what {
+  flex: 1;
+  font-size: var(--fs-sm);
+  opacity: 0.9;
+}
+.summary .net {
+  font-weight: 700;
+  min-width: 80px;
+  text-align: right;
+}
+.summary .net.up {
+  color: var(--green);
+}
+.summary .net.down {
+  color: var(--red-hi);
+}
+.summary .rank {
+  width: 22px;
+  color: var(--gold);
+  font-weight: 700;
+}
+/* 竖屏一场的名次表：名字、得分、输赢一行，"胡 1 · 自摸 0……"另起一行排在名字底下（挤在中间会折成三四行） */
+[data-orient='port'] .summary.final .row {
+  row-gap: 2px;
+}
+/* 横屏一场的名次表："大赢家"这类称号跟在得分前面同一行，不另起一行把这一行撑高一截；放不下时 flex-wrap 才折行 */
+[data-orient='land'] .summary.final .row .titles {
+  order: 3;
+  width: auto;
+  padding-left: 0;
+}
+[data-orient='land'] .summary.final .row .net {
+  order: 4;
+}
+/* 名字吃掉剩下的宽，得分、输赢贴右边（docs/ui.md 第 9 节：数字右对齐）；名字太长照样省略号 */
+[data-orient='port'] .summary.final .row .who {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+}
+[data-orient='port'] .summary.final .row .what {
+  order: 1;
+  flex-basis: 100%;
+  padding-left: calc(22px + var(--sp-3));
+}
+[data-orient='port'] .summary.final .row .titles {
+  order: 2;
+}
+.summary .titles {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding-left: var(--sp-6);
+}
+.summary .title {
+  font-size: var(--fs-xs);
+  /* 手机上字号按舞台缩放放大（--fs-k），写死 20px 的行高装不下，字底被裁 2–3px（11-02 裁字检查）：行高跟着字号走，至少 20 */
+  line-height: max(20px, 1.4em);
+  background: linear-gradient(var(--gold-hi), var(--gold-lo));
+  color: var(--on-gold);
+  border-radius: var(--r-pill);
+  padding: 0 var(--sp-2);
+}
+.summary .fair {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-xs);
+  opacity: 0.8;
+}
+/* 一局打完每家最后的牌（碰杠、手牌、胡的那张） */
+.summary .hand-line {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+.summary .hand-line .group {
+  display: flex;
+}
+.summary .mini {
+  width: 20px;
+  height: 28px;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.summary .mini.won {
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px var(--gold);
+}
+.summary .flows {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  opacity: 0.85;
+  columns: 2;
+}
+/* 手机竖屏两栏太窄，"160 分"的"分"会掉到下一行：改一栏（10-19 试玩） */
+[data-orient='port'] .summary .flows {
+  columns: 1;
+}
+.cheer {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+.cheer p {
+  margin: 0;
+  opacity: 0.9;
+}
+.settle-note {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--gold);
+  text-align: center;
+}
+.end .dialog > .room-hint {
+  /* room.css 给它 max-width:640 又没居中，宽弹窗里整块偏左 */
+  max-width: none;
+  margin-inline: auto;
+  text-align: center;
+}
+.end .dialog .summary + .summary {
+  /* 结算内容在翻页容器里，不是 dialog 的直接子元素：每局、每节小标题和上面的表格隔开 */
+  margin-top: var(--sp-4);
+}
+/* 结算的按钮行贴在弹窗底：内容再长（一场打完的总结算、名场面），"下一局""再来一场"也不用滚到下面去找（0.16.3，1920 宽时被切掉一半） */
+/* 滚到某一行时让出贴底按钮条的高度（按钮 56 + 上下留白），最后一行不被它压住（10-19 试玩） */
+.end .dialog {
+  scroll-padding-bottom: 104px;
+}
+.end .dialog > .end-acts {
+  position: sticky;
+  bottom: calc(-1 * var(--sp-5));
+  margin: var(--sp-3) calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5));
+  padding: var(--sp-3) var(--sp-5) var(--sp-5);
+  background: linear-gradient(#0f2c2200, #0f2c22 var(--sp-4));
+  z-index: 1;
+}
+/* 横屏高度只有 560：每家的牌并进名字那一行（名字、牌、胡了什么、分），一局的结算一屏放得下 */
+[data-orient='land'] .end .dialog {
+  /* 宽度写死：血战、立直的结算一样宽，不随内容收窄；pager.ts 钉的 minWidth 取的就是这个宽度，不冲突 */
+  width: min(960px, 96%);
+  max-width: min(960px, 96%);
+}
+[data-orient='land'] .summary .row .hand-line {
+  order: 1;
+  width: auto;
+}
+[data-orient='land'] .summary .row:has(> .hand-line) .what {
+  order: 2;
+  min-width: 0;
+}
+[data-orient='land'] .summary .row:has(> .hand-line) .net {
+  order: 3;
+}
+
+/* 从平台大厅的"好友房"进来：开房、进房亮两下 */
+.spot {
+  animation: spot 0.9s ease-in-out 2;
+}
+@keyframes spot {
+  50% {
+    box-shadow: 0 0 0 4px var(--gold), 0 0 22px #f3c86b;
+  }
+}
+

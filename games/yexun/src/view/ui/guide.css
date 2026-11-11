@@ -1,0 +1,120 @@
+/* 玩法说明：和图鉴同一套宣纸面板，内容区不滚、长文翻页（pager.ts）；图标小而多，字 ≥ 13px。手机横屏（高度 < 500）收紧。 */
+.yx-guide { z-index: 56; }
+.yx-guide-panel { width: min(820px, 100%); height: 100%; overflow: hidden; }
+.yx-guide .yx-gtabs { flex-wrap: wrap; gap: 6px; }
+.yx-guide .yx-gtabs .yx-tab { flex: 1 1 0; min-width: 0; padding: 0 4px; font-size: var(--fs-lg, 16px); white-space: nowrap; }
+.yx-guide .yx-gbody { flex: 1; min-height: 0; overflow: hidden; }
+.yx-guide .yx-gsec { margin: 0 0 12px; padding: 10px 12px; border: 2.5px solid var(--ink, #17131c); border-radius: 12px; background: #fbf5e4; }
+.yx-guide .yx-gsec h3 { margin: 0 0 6px; font-size: 17px; color: var(--red, #c8402a); }
+.yx-guide .yx-gsec h4 { margin: 0 0 2px; font-size: var(--fs-lg, 16px); }
+.yx-guide .yx-gsec p { margin: 4px 0; font-size: var(--fs-md, 14px); line-height: 1.55; color: #3a3140; }
+.yx-guide .yx-gnote { color: #6a5a48; font-size: var(--fs-sm, 13px); }
+.yx-guide .yx-glist { margin: 2px 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-md, 14px); line-height: 1.45; }
+.yx-guide .yx-glist.num { padding-left: 1.4em; list-style: decimal; }
+.yx-guide .yx-glist.two { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; }
+/* 条目按普通行内排：原来是换行的 flex，图标或开头的粗体后面那一整段字是一个弹性项，窄屏放不下就整段掉到下一行，图标、"走位"孤零零占一行 */
+.yx-guide .yx-glist li { display: block; }
+.yx-guide .yx-glist.num li { display: list-item; }
+.yx-guide .yx-glist li b { color: var(--ink, #17131c); }
+.yx-guide .yx-glist li > b:first-child { margin-right: 6px; }
+.yx-guide .yx-glist li > .yx-gi { margin-right: 4px; }
+.yx-guide .yx-glist li small { display: block; margin-top: 2px; font-size: var(--fs-sm, 13px); color: #6a5a48; }
+.yx-guide .yx-gi { width: 26px; height: 26px; object-fit: contain; vertical-align: middle; flex: none; }
+.yx-guide .yx-gw { display: inline-flex; align-items: center; gap: 3px; margin: 0 2px; padding: 1px 7px 1px 2px; border: 1.5px solid rgba(23, 19, 28, 0.35); border-radius: 9px; background: #fff; font-size: var(--fs-sm, 13px); white-space: nowrap; }
+.yx-guide .yx-gw.evo { border-color: var(--red, #c8402a); background: #fff1d6; }
+.yx-guide .yx-gw b { font-weight: 700; }
+.yx-guide .yx-grecipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px 12px; }
+.yx-guide .yx-grecipe { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: var(--fs-sm, 13px); }
+.yx-guide .yx-grecipe > i, .yx-guide .yx-gto > i { font-style: normal; color: #6a5a48; }
+/* "→ 进化后的样子"捆在一起换行：窄屏上箭头留在上一行末尾、结果孤零零掉到下一行，看不出是谁进化成了谁 */
+.yx-guide .yx-gto { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.yx-guide .yx-gtag { font-style: normal; font-size: var(--fs-xs, 12px); color: #fff; background: var(--mc, #b58cff); border-radius: 7px; padding: 0 6px; }
+.yx-guide .yx-gcards { display: flex; gap: 8px; margin: 2px 0 6px; }
+.yx-guide .yx-gcards span { flex: 1; padding: 10px 4px; text-align: center; font-size: var(--fs-md, 14px); font-weight: 700; border: 2.5px solid var(--ink, #17131c); border-radius: 10px; background: #fff3c4; box-shadow: 0 3px 0 var(--ink, #17131c); }
+.yx-guide .yx-groles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.yx-guide .yx-gcol .yx-groles { grid-template-columns: minmax(0, 1fr); }
+.yx-guide .yx-grole { padding: 6px 8px; border: 2px dashed rgba(23, 19, 28, 0.3); border-radius: 10px; }
+.yx-guide .yx-gsteps b { margin-right: 4px; }
+@media (max-height: 500px) {
+  .yx-guide .yx-gtabs .yx-tab { min-height: 44px; font-size: var(--fs-md, 14px); }
+  .yx-guide .yx-gsec { padding: 6px 10px; margin-bottom: 8px; }
+  .yx-guide .yx-gsec h3 { font-size: 15px; }
+}
+@media (orientation: portrait) and (max-width: 700px) {
+  .yx-guide .yx-gtabs .yx-tab { flex: 1 1 17%; }
+  .yx-guide .yx-grecipes { grid-template-columns: 1fr; }
+}
+/* 快捷键表：左列键名（等宽感的小牌），右列作用 */
+.yx-guide .yx-gkeys { width: 100%; border-collapse: collapse; font-size: var(--fs-md, 14px); }
+.yx-guide .yx-gkeys th { width: 9.5em; padding: 5px 8px 5px 0; text-align: left; white-space: nowrap; color: var(--red, #c8402a); vertical-align: top; }
+.yx-guide .yx-gkeys td { padding: 5px 0; line-height: 1.5; color: #3a3140; font-weight: 600; }
+.yx-guide .yx-gkeys tr + tr { border-top: 1px dashed #b9ad96; }
+
+/* ── 页签和页一一对应：十一个短页签；电脑上页内分两栏一屏放下，手机单栏、放不下的页再翻页 ── */
+.yx-guide .yx-gtabs .yx-tab { padding: 0 2px; }
+.yx-guide .yx-gcols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 12px; align-items: start; }
+.yx-guide .yx-gcol { min-width: 0; }
+.yx-guide .yx-gface { width: 24px; height: 24px; border-radius: 50%; background: #e8d8aa; }
+.yx-guide .yx-gevo { grid-template-columns: minmax(0, 1fr); }
+.yx-guide .yx-gtop { margin: 0 0 6px; }
+.yx-guide .yx-ginline li small { display: inline; margin-left: 8px; }
+.yx-guide .yx-gtwo { display: flex; flex-direction: column; gap: 6px; padding: 0; list-style: none; }
+/* 流派：一张卡一个流派，头一行是章 + 名 + 一句话 + 核心法器和被动（只有图标），第二行是主修角色、心法、起手 */
+.yx-guide .yx-gschools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px 12px; }
+.yx-guide .yx-gschool { padding: 4px 10px; border: 2.5px solid var(--ink, #17131c); border-radius: 12px; background: #fbf5e4; display: flex; flex-direction: column; gap: 2px; }
+.yx-guide .yx-gsh { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; }
+.yx-guide .yx-gsh b { font-size: var(--fs-lg, 16px); color: var(--red, #c8402a); }
+.yx-guide .yx-gsh > span:not(.yx-gsi) { font-size: var(--fs-md, 14px); color: #3a3140; min-width: 0; }
+.yx-guide .yx-gsi { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; }
+.yx-guide .yx-gsi u { width: 1.5px; height: 18px; margin: 0 4px; background: rgba(23, 19, 28, 0.35); }
+.yx-guide .yx-gbadge { width: 28px; height: 28px; }
+.yx-guide .yx-gsr { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; font-size: var(--fs-xs, 12px); }
+.yx-guide .yx-gsr > i { font-style: normal; color: #6a5a48; }
+.yx-guide .yx-gsr > i:not(:first-child) { margin-left: 8px; }
+.yx-guide .yx-gsr > b { font-size: var(--fs-md, 14px); }
+.yx-guide .yx-gsr > em { font-style: normal; color: #6a5a48; }
+.yx-guide .yx-gsr .yx-gbadge { width: 22px; height: 22px; }
+.yx-guide .yx-gsr .yx-gw { margin: 0; padding-right: 5px; font-size: var(--fs-xs, 12px); }
+.yx-guide .yx-gsr .yx-gw .yx-gi { width: 20px; height: 20px; }
+.yx-guide .yx-gsh .yx-gsi .yx-gi { width: 22px; height: 22px; }
+/* 合成·双修：一行一个配方，条件徽记在行尾 */
+.yx-guide .yx-gmhead { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 0 0 6px; padding: 3px 10px; border: 2.5px solid var(--ink, #17131c); border-radius: 12px; background: #fbf5e4; font-size: var(--fs-md, 14px); }
+.yx-guide .yx-gmhead > b { font-size: 17px; color: var(--red, #c8402a); }
+.yx-guide .yx-gmhead > span { display: inline-flex; align-items: center; gap: 5px; }
+.yx-guide .yx-gmhead .yx-gnote { margin: 0 0 0 auto; font-size: var(--fs-xs, 12px); }
+.yx-guide .yx-gmlist { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px 10px; }
+.yx-guide .yx-gmrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 0 6px; margin: 2px 0; border: 1.5px solid rgba(23, 19, 28, 0.3); border-radius: 10px; background: #fff8e8; font-size: var(--fs-xs, 12px); }
+.yx-guide .yx-gmlist .yx-gmrow { margin: 0; }
+.yx-guide .yx-gmrow > i { font-style: normal; color: #6a5a48; }
+.yx-guide .yx-gmrow .yx-gw { margin: 0; padding: 0; border: 0; background: transparent; font-size: var(--fs-xs, 12px); }
+.yx-guide .yx-gmrow .yx-gw.evo b { color: var(--red, #c8402a); }
+.yx-guide .yx-gmrow .yx-gi { width: 20px; height: 20px; }
+.yx-guide .yx-gmrow .yx-gtag { margin-left: auto; }
+.yx-guide .yx-gmrow .yx-gtag + .yx-gtag { margin-left: 0; }
+.yx-guide .yx-gtag.mix { background: #c8402a; }
+.yx-guide .yx-gtag.dual { background: #7a4ab0; }
+.yx-guide .yx-gtag.only { background: #2f5a8a; }
+@media (min-width: 900px) and (min-height: 560px) {
+  .yx-guide .yx-guide-panel { width: min(1120px, 100%); max-width: min(1120px, 100%); }
+  .yx-guide .yx-gcols, .yx-guide .yx-gschools, .yx-guide .yx-gmlist { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .yx-guide .yx-gevo { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .yx-guide .yx-gschools { gap: 10px 12px; }
+  .yx-guide .yx-gschool { padding: 9px 10px; gap: 4px; }
+  .yx-guide .yx-gmlist .yx-gmrow { padding-top: 2px; padding-bottom: 2px; }
+  .yx-guide .yx-gcols.yx-g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .yx-guide .yx-gtwo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; }
+  .yx-guide .yx-grole { padding: 3px 8px; }
+  .yx-guide .yx-grole p { margin: 1px 0; }
+  .yx-guide .yx-gbig .yx-glist { font-size: var(--fs-lg, 16px); line-height: 1.6; gap: 10px; }
+  .yx-guide .yx-gbig .yx-gsec h3 { font-size: 20px; }
+  .yx-guide .yx-gtabs .yx-tab { flex: 1 1 0; }
+}
+
+/* 横屏矮屏：右上角 ✕（44×44，top 4px）压住第二行的最后一个页签 3px，贴着面板上沿放，两个点区不再相交 */
+@media (max-height: 500px) {
+  .yx-guide.yx-modal-root > .yx-panel > .yx-mx { top: 0; }
+}
+
+/* 例子：一栏一个流派，句子里夹着法器小牌，行距收紧才放得下 */
+.yx-guide .yx-gsteps { gap: 4px; line-height: 1.25; }
+.yx-guide .yx-gsteps .yx-gw { margin: 1px 2px; }

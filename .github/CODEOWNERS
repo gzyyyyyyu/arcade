@@ -1,0 +1,17 @@
+# 每个路径由谁审。现在都是仓库所有者；按路径列，是为了以后给某个模块加审阅人只改一行，
+# 也让要维护者本人审的路径（docs/review-policy.md 第 6 节）一眼看得到。后面的规则覆盖前面的。
+
+* @gzyyyyyyu
+
+# 流程、仓库工具和仓库规范：改这些的 PR 由维护者本人审
+/.github/ @gzyyyyyyu
+/tools/ @gzyyyyyyu
+/AGENTS.md @gzyyyyyyu
+/CLAUDE.md @gzyyyyyyu
+/CONTRIBUTING.md @gzyyyyyyu
+/docs/ @gzyyyyyyu
+
+# 模块
+/platform/ @gzyyyyyyu
+/packages/ @gzyyyyyyu
+/games/ @gzyyyyyyu

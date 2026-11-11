@@ -1,0 +1,39 @@
+{
+  "name": "haidao",
+  "private": true,
+  "version": "0.31.31",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "license": "MIT",
+  "description": "海岛：海盗题材的海岛攻防，建基地、开船登陆打别的海盗岛；筹码无任何现金价值",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "build:cf": "npm run typecheck && vite build --outDir dist-cf/games/haidao --emptyOutDir",
+    "preview": "vite preview",
+    "deploy": "npm run build:cf && wrangler deploy",
+    "lint": "biome lint .",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p worker",
+    "test": "npm run typecheck && vitest run",
+    "art": "node tools/art-preview.ts",
+    "sim": "node tools/sim.ts",
+    "shot": "node tools/shot.ts"
+  },
+  "dependencies": {
+    "arcade-kit": "npm:@yyyu-star/arcade-kit@^0.22.0",
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "@cloudflare/workers-types": "^5.20261015.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^22.0.0",
+    "playwright-core": "1.58.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4",
+    "wrangler": "^4.151.0"
+  }
+}

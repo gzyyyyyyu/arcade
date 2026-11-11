@@ -1,0 +1,140 @@
+/* 吃碰杠胡立直的过场条（cutin.ts）。挂在牌桌画面层 .fx 里；只动 transform / opacity，不接指针。
+ * 带子是一条比画面宽一截的色块，斜 4 度；位置和高度由脚本按座位、画面高度写进行内样式。 */
+.fx .cutin {
+  left: -10%;
+  width: 120%;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  --c1: #1f7a5a;
+  --c2: #0d3d2e;
+  --edge: #bff0d8;
+  --ink: #f2fff8;
+  --ink-line: #0a2e22;
+}
+.fx .cutin.gold { --c1: #d99a1c; --c2: #7a3b05; --edge: #ffe9a0; --ink: #fff3b8; --ink-line: #5a2406; }
+.fx .cutin.redgold { --c1: #b8321e; --c2: #5a1408; --edge: #ffcf7a; --ink: #ffe3a6; --ink-line: #4a0f06; }
+.fx .cutin.blue { --c1: #2a6fd6; --c2: #0f2c6e; --edge: #b8dcff; --ink: #eaf5ff; --ink-line: #0a1f55; }
+
+.fx .cutin-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--c1), var(--c2));
+  border-top: 3px solid var(--edge);
+  border-bottom: 3px solid var(--edge);
+  box-shadow: 0 8px 22px #0009;
+}
+.fx .cutin.calm .cutin-bg { background: #0006; border-color: transparent; box-shadow: none; }
+.fx .cutin-sweep {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent 0%, #ffffffb0 50%, transparent 100%);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.fx .cutin-in {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--h) * 0.22);
+}
+.fx .cutin.from-right .cutin-in { flex-direction: row-reverse; }
+.fx .cutin-av {
+  flex: none;
+  width: calc(var(--h) * 0.78);
+  height: calc(var(--h) * 0.78);
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--edge);
+  box-shadow: 0 3px 8px #0008;
+  background: #0004;
+  will-change: transform, opacity;
+}
+.fx .cutin-av svg { display: block; width: 100%; height: 100%; }
+.fx .cutin-word {
+  font-family: 'Quehall Title', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  /* 先描边再填字；底下几层投影堆出厚度，投影是静态的，不放进动画 */
+  -webkit-text-stroke: 4px var(--ink-line);
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 var(--ink-line), 0 4px 0 var(--ink-line), 0 8px 10px #000a;
+  will-change: transform, opacity;
+}
+/* 立直棒：字下面一根白棒，红点居中，光点从上面划过 */
+.fx .cutin-stick {
+  position: relative;
+  flex: none;
+  width: calc(var(--h) * 1.1);
+  height: calc(var(--h) * 0.1);
+  border-radius: 99px;
+  overflow: hidden;
+  background: linear-gradient(#fff, #cfd8e6);
+  box-shadow: 0 2px 4px #0008;
+}
+.fx .cutin-stick::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #d8322a;
+  transform: translate(-50%, -50%);
+}
+.fx .cutin-stick i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 34%;
+  background: linear-gradient(100deg, transparent, #fff, transparent);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* 自己胡了：整屏闪一下、桌面震 120 毫秒 */
+.fx .cutin-flash {
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 55%, #fff6cf, #ffd35a88 60%, transparent 100%);
+}
+.cutin-shake { animation: cutin-shake 120ms linear; }
+@keyframes cutin-shake {
+  0% { translate: 0 0; }
+  25% { translate: -4px 2px; }
+  50% { translate: 3px -2px; }
+  75% { translate: -2px 1px; }
+  100% { translate: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cutin-shake { animation: none; }
+}
+
+/* 血流成河连胡（cutin.ts 的 streak）：档越高边越粗、光越亮；都是静态样式，动画还是 transform / opacity */
+.fx .cutin.streak .cutin-bg { border-top-width: 4px; border-bottom-width: 4px; }
+.fx .cutin.s2 .cutin-bg { border-top-width: 5px; border-bottom-width: 5px; box-shadow: 0 0 26px #ffd35aaa, 0 8px 22px #0009; }
+.fx .cutin.s3 .cutin-bg { border-top-width: 6px; border-bottom-width: 6px; box-shadow: 0 0 40px #ff5a3ccc, 0 0 16px #ffd35a, 0 8px 22px #0009; }
+.fx .cutin.s3 .cutin-word { text-shadow: 0 2px 0 var(--ink-line), 0 4px 0 var(--ink-line), 0 0 18px #ff8a3d, 0 8px 10px #000a; }
+
+/* 过场横幅播放时，kit 的"互动""聊天"按钮挂在 body 下、在舞台外面，z-index 比舞台里的横幅高，盖不住：横幅在时把它们淡出（几百毫秒，不接点击） */
+html:has(.stage .fx .cutin) :is(.atf-btn, .atc-pill) {
+  opacity: 0;
+  pointer-events: none;
+}
+/* 竖屏第一次进牌桌的"横过来玩更舒服"（guide.ts 的 rotateTip，顶上 210px）正好落在竖屏横幅的高度，开局 3 秒内有人碰杠就叠在大字和头像上（11-03 逐帧审）。
+ * 它自己的淡入淡出动画管着 opacity，这里用 visibility 藏 */
+.stage:has(.fx .cutin) .rotate-tip {
+  visibility: hidden;
+}

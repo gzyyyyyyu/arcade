@@ -1,0 +1,57 @@
+# 代码结构
+
+开盘各目录放什么、几个大文件怎么分工，以及冒烟截图为什么能复现。模块约定见 `../AGENTS.md`，各工具脚本的命令见 `../tools/README.md`。
+
+## 目录和分工
+
+### `src/core/`：规则核心（纯函数、确定性）
+
+- `types.ts`、`queries.ts` 只是入口，实际按领域拆在 `types/`（base、state、report、run、action、event）和 `queries/`（themes、cards、chat、topbar、items、summary、history）。
+- `content/` 是内容表：股票、道具、事件、群友、月度主题、故事模板等。
+- `engine/` 是规则引擎，按职责分文件（每个 ≤ 800 行），`index.ts` 只列对外导出：
+  - `run.ts`：`createRun` / `dispatch` / `replay`；
+  - `open.ts`：一天的开盘结算，分步；`day.ts`：开月、盘前行情；
+  - `month.ts`、`reward.ts`、`event.ts`：月底、三选一、事件；
+  - `actions.ts`：买卖等操作；`validate.ts`：操作校验；
+  - `calendar.ts`、`ext.ts`、`holdings.ts`、`gear.ts`：日程查询、仓位押跌抵押、持仓小件、实盘杠杆。
+
+### `src/view/`：Phaser 画面层
+
+目录：`scenes/`、`trade/`（交易界面）、`end/`（结束页）、`meta/`（图鉴、成就、开局等）、`ui/`、`fx/`、`audio/`。颜色、字号（`TYPE`）、间距和圆角（`SPACE` / `RADIUS`）在 `theme.ts`，新写和改动的布局从这里取；按钮的状态和键盘焦点见 `ui/button.ts`、`ui/focus.ts`。
+
+- **交易场景** `scenes/TradeScene.ts` 只管搭画面和渲染，其余按职责拆在 `trade/` 的协作者里（拿场景引用 `s`，状态都留在场景）：
+  `tradeActions`（玩家操作）、`tradeInput`（键盘、拖拽）、`dayPlayback`（一天的结算演出）、`monthFlow`（月底和新月份衔接）、`tradeFx`（短动画飘字）、
+  `tradeHints`（教程和提示）、`tradeRegions`（`controls()` / `regions()` 给自动化的坐标）、`tradeConsts`（共用常量）。
+- **群聊** `trade/chat.ts` 同样按职责拆出 `chatBubbles`（消息、吐槽）、`chatRec`（推荐卡）、`chatBanners`（横条、待揭晓）、`chatNews`（新闻）、`chatFluffView`（热闹元素）、`chatConsts`（尺寸常量）。
+- **持仓格** `trade/holdings.ts`（`HoldingsView`）+ `slotCard.ts`（单张卡）+ `holdingsShared.ts`（冻结格、选择模式等共用小件）。
+- **结束页** `scenes/EndScene.ts` 保留生命周期、主结算页和对外方法，其余在 `end/`（拿场景引用 `s`）：`endGeo`（电脑 / 手机两套尺寸和分句换行）、
+  `endFlash`（闪电盘 / 本周盘的结束页和滚数字演出）、`endRows`（右栏的挑战、排行榜、下次试试和「收获」一排）。
+
+### 其他
+
+- `src/platform/`：浏览器存档、档案、设置、错误兜底、云存档（`cloud.ts` 只管同步，不认识具体数据；同步哪些槽在 `view/cloudSync.ts`）。
+- `src/debug/`：调试桥（截图脚本用 `window.__game`）。
+- `tools/`：`sim.ts`（机器人模拟）；`bots.ts` 是机器人入口，实现在 `bots/`（common 公共小件、simple、normal、smart-belief + smart、variants、run 注册表和 `playRun`）；
+  `shot.ts` 是无头冒烟与截图的入口，`shot/` 里 `harness.ts` 开页面和点按截图、`fakes.ts` 假档案假钱包、`modes/` 每种模式一个文件；`realness.ts` 真实度实测；`art/` 程序生成美术；`data/` 数据管线。
+- `public/data/segments/`：135 段行情段，只存逐日涨跌基点，文件名是不透明 id。
+- `tools/data/raw/years/`：年包，数据管线的产物和切段的默认输入，`tests/core/story.test.ts` 拿它核对化名；不在 `public/` 下，不进任何构建。
+- `tools/data/story-aliases.json`：故事稿化名表（id、化名、改写代码、真实代码、可交易），`tests/core/story.test.ts` 和 `tools/data/check.ts` 读它。
+
+## 冒烟截图怎么做到可复现
+
+自动化（`navigator.webdriver`）下，同一份代码、同样的参数跑两次，除动画中途截的几张外逐像素一致。真人玩时行为不变。新加画面层的随机或待机循环动画要照下面做，否则截图又会每次不同。
+
+- **随机**：做法集中在 `src/view/ui/stable.ts`。画面层的随机一律走 `viewRandom()` / `viewBetween()`（真人是 `Math.random`，自动化是固定种子），不直接用 `Math.random`、`Phaser.Math.Between`。
+  Phaser 自带的随机（相机抖动、粒子发射器）直接调 `Math.random`，所以自动化下 `stable.ts` 把 `Math.random` 整个换成同一个固定种子的。
+- **待机动画**：按真实时间一直循环的待机动画（呼吸、眨眼、浮动、气泡、环境动画）在自动化下不播，由 `BaseScene.lively` 和 `StockGuy` 判断；专门测待机动画的冒烟（眨眼）在地址里加 `idle=1` 打开。竖屏提示层这类 DOM 的 CSS 无限动画自动化下也停。
+- **时间**：游戏时间按真实时间走，不用固定步长：无头浏览器出帧很不均匀，每帧固定 1/60 秒时游戏时间会停住好几秒，长按、开新局都跟着卡。
+  调试桥 `freezeAfterCue` 按游戏循环时间（`session.loopTime`）冻结，不用 `setTimeout`。画面代码里的 `performance.now` / `setTimeout`（点击防抖、右键认领、加载超时等）仍按真实时间，别拿它们决定截图里画什么。
+- **什么时候截**：截「播完」的画面不要 `waitForTimeout` 后直接截（同样的真实时间跑出的帧数不同），用 `tools/shot/harness.ts` 的 `quietShot`（调试桥 `freezeWhenQuiet`：补间、计时器、粒子、相机效果都播完才冻结再截）。
+  截动画中途用 `cueShot`：冻结点落在动画的哪一帧随机器快慢变，这些图（结算、涨跌停、账单等）不做逐像素比对，文件名记在输出目录的 `midway.txt`。
+- **长按和等待**：冒烟的长按（`longPress`）不按固定时长，等游戏认了长按（调试桥 `longPresses` 加一）再松手，30 秒不生效才算失败（机器满载时要 5–10 秒）；
+  按住时整个场景重建的那一步（旧场景的计时器没了，说明不会出来）改为按满两倍长按时长再松手。等「空闲」（`waitIdle`）的上限按游戏时间算。
+
+## 待重构
+
+- 群友性格校正用了整段数据；若要只按开局前表现判定，需要更长的开局前历史。
+- 可变的全局开关 `swanSwitch`（`src/core/swan.ts`）、`ipoSwitch`（`src/core/ipo.ts`）改成参数传入：放进 `createRun` 的选项、记在 state 里（回放、存档带着走），模拟器的 `--no-swan` / `--no-ipo` 和测试改传参数，不再改全局变量。

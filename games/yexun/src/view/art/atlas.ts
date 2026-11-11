@@ -1,0 +1,275 @@
+/**
+ * 开局时把所有精灵用 Canvas 画进一张图集（≤ 2048 × 2048），再交给 Phaser。
+ * 不带任何图片文件：首包小、换色改形只改代码（DESIGN.md 第 7.2 节）。
+ * 雪地是单独的一张可平铺贴图，按 1 倍画（整屏大图按 1 倍光栅化，AGENTS.md 第 4 节）。
+ */
+import { SPRITES, type SpriteDef } from './sprites.ts';
+import { SPRITES2 } from './sprites-mobs.ts';
+import { SPRITES3 } from './sprites-relics.ts';
+import { SPRITES4 } from './sprites-evo.ts';
+import { SPRITES5 } from './sprites-elites.ts';
+import { SPRITES6 } from './sprites-yizhuang.ts';
+import { SPRITES7 } from './sprites-title.ts';
+import { SPRITES8 } from './sprites-raid.ts';
+import { SPRITES9 } from './sprites-decor.ts';
+import { SPRITES10 } from './sprites-buildings.ts';
+import { SPRITES11 } from './sprites-drops.ts';
+import { SPRITES12 } from './sprites-regional.ts';
+import { SPRITES13 } from './sprites-paper.ts';
+import { SPRITES14 } from './sprites-water.ts';
+import { SPRITES_GUISHI } from './sprites-guishi.ts';
+import { SPRITES_HUAPI } from './sprites-huapi.ts';
+import { SPRITES_ARMS } from './sprites-arms.ts';
+import { SPRITES_ARMS2 } from './sprites-arms2.ts';
+import { SPRITES_FOES } from './sprites-foes.ts';
+import { HERO_SPRITES } from './heroes.ts';
+import { CHARS2_SPRITES } from './sprites-chars2.ts';
+import { SKILL_ICON_SPRITES } from './sprites-skillicons.ts';
+import { INK, artRng } from './draw.ts';
+
+export interface Frame {
+  key: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** 锚点（0–1） */
+  ox: number;
+  oy: number;
+  /** 显示时按 1 / res 缩放就是它在世界里的大小（画得更细的大怪，res 照基础倍数算，显示出来就是放大的） */
+  res: number;
+  /** 所在的 Phaser 贴图名；缺省是主图集 'atlas'（夜探的图在第二张 RAID_TEX） */
+  tex?: string;
+}
+
+export interface Atlas {
+  canvas: HTMLCanvasElement;
+  frames: Map<string, Frame>;
+}
+
+const MAX = 2048;
+const PAD = 2;
+
+/** 伤害数字：0–9 各一帧，白字黑边，用时按颜色着色（暴击金色） */
+const DIGIT_H = 30;
+function digitDefs(): SpriteDef[] {
+  return [...'0123456789'].map((d) => ({
+    key: `d${d}`,
+    w: 22,
+    h: DIGIT_H,
+    ox: 0.5,
+    oy: 0.5,
+    draw: (c: CanvasRenderingContext2D): void => {
+      c.font = `900 26px "Arial Black", "Helvetica Neue", system-ui, sans-serif`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.lineJoin = 'round';
+      c.lineWidth = 6;
+      c.strokeStyle = INK;
+      c.strokeText(d, 11, 16);
+      c.fillStyle = '#ffffff';
+      c.fillText(d, 11, 16);
+    },
+  }));
+}
+
+/** 主图集在 res 3 时已经用掉 1,866 / 2,048，装不下夜探的图：夜探的图单独一张（守夜不用，进夜探前才需要） */
+export const RAID_TEX = 'atlas8';
+
+/** 把精灵画好、按高度排成一行行装进图集 */
+export function buildAtlas(res: number): Atlas {
+  return pack([...SPRITES, ...SPRITES2, ...SPRITES3, ...SPRITES4, ...SPRITES5, ...SPRITES6, ...SPRITES7, ...SPRITES11, ...digitDefs()], res);
+}
+
+/**
+ * 各地区的特色怪（sprites-regional）也装不进主图集，单独一张；守夜、夜探都要用。
+ * 纸兵（sprites-paper）也放这张：0.4.2 放进主图集后 res 3（平板、高分屏）主图集高 2,056 超过 2,048，开局就报错（10-20 多尺寸矩阵 768×1024 查出）。
+ * 水府（sprites-water）同理：主图集 res 3 已 1,998，再加 5 个图标就到 2,056；这张 res 3 加上后约 440。
+
+ * 2.0 第一批法器、被动、搭配的图标（sprites-arms，21 个）也在这张：加上后 res 3 约 814 / 2,048；第二批（sprites-arms2，19 个）再加后见 tests/content/arms.test.ts 的图集高度检查（≤ 2,048）。
+ * 鬼市的怪和摊子（sprites-guishi）、画皮（sprites-huapi）也在这张，都放进来离 2,048 还远。
+ * 新首领、特色怪和夜探怪（sprites-foes）也在这张；res 3 的装箱高度见交付时的测算，不得超过 2,048。
+ */
+export const MOB_TEX = 'atlas9';
+
+let mobCache: { res: number; atlas: Atlas } | null = null;
+
+/** 特色怪的图集；同一个 res 只画一次 */
+export function buildMobAtlas(res: number): Atlas {
+  if (mobCache?.res === res) return mobCache.atlas;
+  mobCache = { res, atlas: pack([...SPRITES12, ...SPRITES13, ...SPRITES14, ...SPRITES_ARMS, ...SPRITES_ARMS2, ...SPRITES_GUISHI, ...SPRITES_HUAPI, ...SPRITES_FOES], res, MOB_TEX) };
+  return mobCache.atlas;
+}
+
+/** 画好的特色怪图集（没画过回 null） */
+export function peekMobAtlas(): Atlas | null {
+  return mobCache?.atlas ?? null;
+}
+
+/** 角色的第三张小图集（9 个角色 × 对局图和头像，小道士在主图集里；再加 10 个技能按钮图标）：不挤主图集的 2,048，开局就画好，对局和角色页都用 */
+export const HERO_TEX = 'atlasH';
+let heroCache: { res: number; atlas: Atlas } | null = null;
+export function buildHeroAtlas(res: number): Atlas {
+  if (heroCache?.res === res) return heroCache.atlas;
+  heroCache = { res, atlas: pack([...HERO_SPRITES, ...CHARS2_SPRITES, ...SKILL_ICON_SPRITES], res, HERO_TEX) };
+  return heroCache.atlas;
+}
+export function peekHeroAtlas(): Atlas | null {
+  return heroCache?.atlas ?? null;
+}
+
+let raidCache: { res: number; atlas: Atlas } | null = null;
+
+/** 夜探的第二张图集（巡夜将、石兽、房子、宝箱、门、宝物图标）；同一个 res 只画一次 */
+export function buildRaidAtlas(res: number): Atlas {
+  if (raidCache?.res === res) return raidCache.atlas;
+  raidCache = { res, atlas: pack([...SPRITES8, ...SPRITES9, ...SPRITES10], res, RAID_TEX) };
+  return raidCache.atlas;
+}
+
+/** 画好的夜探图集（没画过回 null） */
+export function peekRaidAtlas(): Atlas | null {
+  return raidCache?.atlas ?? null;
+}
+
+/** 图集里一帧画成 data URL（HUD 的头像、法器和宝物图标用）：先找主图集，再找夜探图集；同一张只画一次 */
+export function makeIcons(atlas: Atlas): (key: string, px?: number) => string {
+  const cache = new Map<string, string>();
+  return (key, px = 64) => {
+    const id = `${key}@${px}`;
+    let url = cache.get(id);
+    if (url) return url;
+    const hit = atlas.frames.has(key) ? atlas : peekHeroAtlas()?.frames.has(key) ? peekHeroAtlas()! : peekRaidAtlas()?.frames.has(key) ? peekRaidAtlas()! : peekMobAtlas()?.frames.has(key) ? peekMobAtlas()! : atlas;
+    const f = hit.frames.get(key) ?? atlas.frames.get('soul')!;
+    const c = document.createElement('canvas');
+    c.width = px;
+    c.height = Math.round((px * f.h) / f.w);
+    c.getContext('2d')!.drawImage(hit.canvas, f.x, f.y, f.w, f.h, 0, 0, c.width, c.height);
+    url = c.toDataURL();
+    cache.set(id, url);
+    return url;
+  };
+}
+
+/** 排版：每张图占多大、放哪、图集一共多高（不碰画布，测试用它算 res 3 下的高度） */
+export function layout(defs: SpriteDef[], res: number): { items: { d: SpriteDef; r: number; pw: number; ph: number }[]; place: { x: number; y: number }[]; height: number } {
+  const items = defs.map((d) => {
+    const r = res * (d.scale ?? 1);
+    return { d, r, pw: Math.ceil(d.w * r) + PAD * 2, ph: Math.ceil(d.h * r) + PAD * 2 };
+  });
+  items.sort((a, b) => b.ph - a.ph);
+  let x = 0;
+  let y = 0;
+  let rowH = 0;
+  const place: { x: number; y: number }[] = [];
+  for (const it of items) {
+    if (x + it.pw > MAX) {
+      x = 0;
+      y += rowH;
+      rowH = 0;
+    }
+    place.push({ x, y });
+    x += it.pw;
+    rowH = Math.max(rowH, it.ph);
+  }
+  return { items, place, height: y + rowH };
+}
+
+function pack(defs: SpriteDef[], res: number, tex?: string): Atlas {
+  const { items, place, height } = layout(defs, res);
+  if (height > MAX) throw new Error(`图集超过 ${MAX}：${height}`);
+  const canvas = document.createElement('canvas');
+  canvas.width = MAX;
+  canvas.height = height;
+  const c = canvas.getContext('2d')!;
+  const frames = new Map<string, Frame>();
+  items.forEach((it, i) => {
+    const p = place[i]!;
+    c.save();
+    c.translate(p.x + PAD, p.y + PAD);
+    c.scale(it.r, it.r);
+    // 每张只画在自己的格子里（画出界的部分裁掉，不压到隔壁）
+    c.beginPath();
+    c.rect(0, 0, it.d.w, it.d.h);
+    c.clip();
+    it.d.draw(c);
+    c.restore();
+    frames.set(it.d.key, { key: it.d.key, x: p.x + PAD, y: p.y + PAD, w: it.pw - PAD * 2, h: it.ph - PAD * 2, ox: it.d.ox, oy: it.d.oy, res: it.r / (it.d.scale ?? 1), tex });
+  });
+  return { canvas, frames };
+}
+
+/**
+ * 月光下的雪地（可平铺，512 × 512 世界单位、1 倍）：偏冷的浅灰白，几道风吹出的雪痕、零星的脚窝和碎冰。
+ * 底色浅，怪和特效才跳得出来。所有东西都按 512 取模画两遍，接缝看不出来。
+ */
+export function buildGround(size = 512): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const c = canvas.getContext('2d')!;
+  c.fillStyle = '#e4e8f0';
+  c.fillRect(0, 0, size, size);
+  const rnd = artRng(42);
+  const wrap = (fn: (ox: number, oy: number) => void): void => {
+    for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size]) fn(ox, oy);
+  };
+  // 大块的明暗起伏
+  for (let i = 0; i < 26; i++) {
+    const x = rnd() * size;
+    const y = rnd() * size;
+    const r = 40 + rnd() * 90;
+    const light = rnd() < 0.5;
+    wrap((ox, oy) => {
+      const g = c.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+      g.addColorStop(0, light ? 'rgba(250,252,255,0.55)' : 'rgba(196,204,222,0.32)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g;
+      c.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
+    });
+  }
+  // 风吹的雪痕：细长的浅蓝影子
+  for (let i = 0; i < 18; i++) {
+    const x = rnd() * size;
+    const y = rnd() * size;
+    const len = 30 + rnd() * 60;
+    wrap((ox, oy) => {
+      c.save();
+      c.translate(x + ox, y + oy);
+      c.rotate(-0.25 + rnd() * 0.1);
+      c.fillStyle = 'rgba(170,182,210,0.28)';
+      c.beginPath();
+      c.ellipse(0, 0, len, 2.2 + rnd() * 1.5, 0, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.7)';
+      c.beginPath();
+      c.ellipse(-2, -2.5, len * 0.8, 1.4, 0, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+    });
+  }
+  // 细碎的颗粒和亮点
+  for (let i = 0; i < 900; i++) {
+    const x = rnd() * size;
+    const y = rnd() * size;
+    const dark = rnd() < 0.55;
+    c.fillStyle = dark ? 'rgba(160,170,196,0.35)' : 'rgba(255,255,255,0.9)';
+    c.fillRect(x, y, dark ? 1.4 : 1.2, dark ? 1.4 : 1.2);
+  }
+  // 零星的小坑（脚窝、落雪）
+  for (let i = 0; i < 14; i++) {
+    const x = rnd() * size;
+    const y = rnd() * size;
+    wrap((ox, oy) => {
+      c.fillStyle = 'rgba(150,160,190,0.3)';
+      c.beginPath();
+      c.ellipse(x + ox, y + oy, 4 + rnd() * 3, 2, 0, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.8)';
+      c.beginPath();
+      c.ellipse(x + ox - 1, y + oy - 1.6, 3.5, 1, 0, 0, Math.PI * 2);
+      c.fill();
+    });
+  }
+  return canvas;
+}

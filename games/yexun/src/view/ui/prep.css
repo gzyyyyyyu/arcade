@@ -1,0 +1,184 @@
+/* 开局准备：角色、咒印、加成（prep.ts）。风格跟着 screens.css 的面板走 */
+.yx-prep-layer { display: flex; align-items: center; justify-content: center; background: rgba(20, 22, 36, 0.55); z-index: 30; }
+/* 限定在面板上：选模式屏的角色按钮也带 .yx-prep 类（yx-chip yx-prep），不限定会被撑成 760 宽 */
+.yx-panel.yx-prep { width: min(1200px, 100%); max-width: min(1200px, 100%); height: 100%; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
+.yx-prep-head { display: flex; align-items: center; gap: 10px; }
+.yx-ptabs { display: flex; gap: 6px; flex: 1; }
+.yx-ptab { min-width: 72px; min-height: 44px; border: 2.5px solid var(--ink); border-radius: 12px; background: #fbf5e4; font: inherit; font-size: var(--fs-lg, 16px); color: var(--ink); cursor: pointer; }
+.yx-ptab.on { background: var(--ink); color: #fbf5e4; }
+.yx-pcoins { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xl, 18px); font-weight: 700; }
+.yx-pclose { width: 44px; height: 44px; font-size: var(--fs-xl, 18px); }
+.yx-prep-body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
+.yx-pnote { font-size: var(--fs-sm, 13px); color: #5a4a3a; }
+.yx-pgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-content: start; }
+.yx-pcard {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px; min-height: 44px;
+  border: 2.5px solid var(--ink); border-radius: 12px; background: #fbf5e4; font: inherit; color: var(--ink); cursor: pointer; text-align: center;
+}
+.yx-pcard img { width: 40px; height: 40px; }
+.yx-pcard b { font-size: var(--fs-lg, 16px); }
+.yx-pcard small { font-size: var(--fs-sm, 13px); color: #8a6a3a; }
+.yx-pcard p { margin: 2px 0; font-size: var(--fs-sm, 13px); line-height: 1.35; color: #3a3028; }
+.yx-pcard em { font-style: normal; font-size: var(--fs-sm, 13px); font-weight: 700; display: flex; align-items: center; gap: 4px; color: #b8322a; }
+.yx-pcard.on { background: #f2e2b0; box-shadow: inset 0 0 0 2px #b8892a; }
+.yx-pcard.locked em { color: #5a4a3a; font-weight: 400; font-size: var(--fs-sm, 13px); }
+.yx-pcard[aria-disabled='true'] { opacity: 0.55; cursor: default; }
+.yx-pcurse b { font-size: 26px; color: #6a2a6a; }
+.yx-pcurse.on { background: #3a2440; color: #fbf5e4; }
+.yx-pcurse.on p, .yx-pcurse.on b { color: #fbf5e4; }
+.yx-pperks { grid-template-columns: repeat(5, 1fr); }
+.yx-pips { display: flex; gap: 3px; }
+.yx-pips i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--ink); background: #fbf5e4; }
+.yx-pips i.on { background: #e2702a; }
+.yx-prefund { align-self: flex-end; flex: none; min-height: 44px; }
+
+/* ───────────── 角色页：固定顺序的九张小卡 + 一块详情区（docs/ui.md 第 11 节）─────────────
+   为什么这样排：点谁都只换高亮和详情，小卡位置不动；详情区位置固定，写全技能、被动、数值。
+   宽屏和横屏左右排，竖屏上下排；放不下时缩字号、间距，不滚动、不折叠。 */
+.yx-prep .yx-pchars { flex: 1; min-height: 0; display: flex; flex-direction: row; gap: var(--yx-pgap, 10px); }
+.yx-prep .yx-pcards { flex: 0 0 var(--yx-pcw, 40%); min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(44px, 1fr); gap: var(--yx-pcg, 8px); }
+.yx-prep .yx-pchar { position: relative; box-sizing: border-box; min-width: 0; min-height: 44px; padding: 4px; gap: 2px; justify-content: center; align-items: center; text-align: center;
+  display: flex; flex-direction: column; border: 2.5px solid var(--ink); border-radius: 12px; background: #fbf5e4; font: inherit; color: var(--ink); cursor: pointer; }
+.yx-prep .yx-pchar.on { background: #f2e2b0; border-color: #b8892a; box-shadow: inset 0 0 0 3px #b8892a; }
+.yx-prep .yx-pchar > b { font-size: var(--fs-md, 14px); line-height: 1.2; }
+.yx-prep .yx-pcsk { font-size: var(--fs-xs, 12px); line-height: 1.2; color: #2f5a8a; white-space: nowrap; }
+.yx-prep .yx-pchar em { font-style: normal; display: flex; align-items: center; justify-content: center; gap: 3px; font-size: var(--fs-xs, 12px); font-weight: 700; color: #b8322a; white-space: nowrap; line-height: 1.2; }
+.yx-prep .yx-pchar em.yx-pnow { color: #2f7a3a; }
+.yx-prep .yx-pchar .yx-pgap { display: none; }
+.yx-prep .yx-pface { box-sizing: border-box; width: var(--yx-pfs, 56px); height: var(--yx-pfs, 56px); flex: none; display: flex; align-items: flex-end; justify-content: center; border-radius: 50%; background: radial-gradient(circle at 50% 70%, #fff6dc, #e8d8aa); border: 2px solid var(--ink); overflow: hidden; }
+.yx-prep .yx-pface img { width: 92%; height: auto; margin-bottom: -2px; }
+.yx-prep .yx-pchar.locked { background: #d9d4c6; color: #4a4a4a; }
+.yx-prep .yx-pchar.locked.on { background: #e6dcc0; }
+.yx-prep .yx-pchar.locked .yx-pface { filter: grayscale(1) brightness(0.8); }
+.yx-prep .yx-pchar.locked .yx-pcsk { color: #5a4a3a; }
+.yx-prep .yx-pchar.locked em { color: #5a4a3a; font-weight: 400; }
+.yx-prep .yx-pchar.locked[data-a='buychar'] em { color: #b8322a; font-weight: 700; }
+.yx-prep .yx-pchar[aria-disabled='true'] { cursor: default; }
+.yx-lock { width: 11px; height: 11px; vertical-align: -1px; }
+
+/* 详情区：宽屏两列（左：身份、技能、被动、流派；右：数值、特权、台词、按钮） */
+.yx-prep .yx-pdet { flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-areas: 'i b' 's b' 'p v' 'o v' 'o l' 'a a'; grid-template-rows: auto auto auto auto 1fr auto; column-gap: var(--yx-pdg, 16px); row-gap: var(--yx-pdr, 6px);
+  padding: var(--yx-pdp, 12px 16px); border: 2.5px solid var(--ink); border-radius: 12px; background: #fbf5e4; color: var(--ink); font-size: var(--yx-pdf, 14px); line-height: 1.35; align-content: start; overflow: hidden; }
+.yx-prep .yx-pdet.locked { background: #e6dcc0; }
+.yx-prep .yx-pd-id { grid-area: i; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.yx-prep .yx-pd-id .yx-pface { width: var(--yx-pdfs, 72px); height: var(--yx-pdfs, 72px); }
+.yx-prep .yx-pd-id > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.yx-prep .yx-pd-name { font-size: var(--yx-pdn, 22px); line-height: 1.2; }
+.yx-prep .yx-pstart { display: flex; align-items: center; gap: 4px; font-size: 1em; color: #8a6a3a; }
+.yx-prep .yx-pstart img { width: 20px; height: 20px; }
+.yx-prep .yx-plook { font-size: var(--fs-xs, 12px); color: #7a6a58; line-height: 1.25; }
+.yx-prep .yx-pskill { grid-area: s; display: grid; grid-template-columns: var(--yx-pdsk, 34px) minmax(0, 1fr); column-gap: 8px; align-items: center; padding: 5px 8px; border-radius: 8px; background: rgba(184, 137, 42, 0.16); text-align: left; }
+.yx-prep .yx-pskill img { grid-row: 1 / 3; width: var(--yx-pdsk, 34px); height: var(--yx-pdsk, 34px); }
+.yx-prep .yx-pskill b { font-size: 1em; color: #2f5a8a; }
+.yx-prep .yx-pskill small { font-size: var(--fs-xs, 12px); font-size: max(12px, calc(var(--yx-pdf, 14px) - 1px)); line-height: 1.3; color: #3a3028; }
+.yx-prep .yx-pcd { font-weight: 400; color: #5a4a3a; }
+.yx-prep .yx-pd-perk { grid-area: p; margin: 0; font-size: 1em; line-height: 1.3; color: #3a3028; }
+.yx-prep .yx-pd-perk b { color: #b8322a; }
+.yx-prep .yx-ppool { grid-area: o; display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start; gap: 2px 8px; font-size: 1em; font-weight: 700; color: #8a4a1a; }
+.yx-prep .yx-ppool b { font-size: inherit; color: #8a4a1a; }
+.yx-prep .yx-pwl { display: flex; flex-wrap: wrap; gap: 2px; }
+.yx-prep .yx-pwl img { width: var(--yx-pdw, 28px); height: var(--yx-pdw, 28px); object-fit: contain; }
+.yx-prep .yx-pbars { grid-area: b; display: flex; flex-direction: column; gap: var(--yx-pbg, 5px); align-self: start; }
+.yx-prep .yx-pbar { display: grid; grid-template-columns: 4.2em 1fr 3.6em; align-items: center; gap: 6px; font-size: max(12px, calc(var(--yx-pdf, 14px) - 1px)); line-height: 1.3; }
+.yx-prep .yx-pbn { font-style: normal; text-align: left; white-space: nowrap; color: #5a4a3a; }
+.yx-prep .yx-pbv { font-style: normal; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: #7a6a58; }
+.yx-prep .yx-pbar.up .yx-pbv { color: var(--yx-up, #2f7a3a); }
+.yx-prep .yx-pbar.down .yx-pbv { color: var(--yx-down, #b8322a); }
+.yx-prep .yx-pbt { position: relative; display: block; height: 7px; border-radius: 3px; background: rgba(0, 0, 0, 0.12); overflow: hidden; }
+.yx-prep .yx-pbt::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(0, 0, 0, 0.55); }
+.yx-prep .yx-pbf { position: absolute; left: 0; top: 0; bottom: 0; background: var(--yx-base, #9a8a6a); }
+.yx-prep .yx-pbd { position: absolute; top: 0; bottom: 0; }
+.yx-prep .yx-pbar.up .yx-pbd { background: var(--yx-up, #2f7a3a); }
+.yx-prep .yx-pbar.down .yx-pbd { background: var(--yx-down, #b8322a); }
+.yx-prep .yx-ppriv { grid-area: v; font-weight: 700; color: #2f5a8a; }
+.yx-prep .yx-pline { grid-area: l; display: block; color: #5a2a6a; font-style: italic; }
+.yx-prep .yx-pline::before { content: '“'; }
+.yx-prep .yx-pline::after { content: '”'; }
+.yx-prep .yx-pneed { grid-area: l; font-weight: 700; color: #8a3a2a; }
+.yx-prep .yx-pd-act { grid-area: a; justify-self: stretch; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 2.5px solid var(--ink); border-radius: 12px; background: #e2702a; color: #fff; font: inherit; font-size: var(--fs-lg, 16px); font-weight: 700; cursor: pointer; }
+.yx-prep .yx-pdet.locked .yx-pd-act { background: #d9d4c6; color: #4a4a4a; font-weight: 400; cursor: default; }
+.yx-prep .yx-pdet.locked .yx-pd-act[data-a='buychar'] { background: #e2702a; color: #fff; font-weight: 700; cursor: pointer; }
+.yx-prep .yx-pd-act[aria-disabled='true'] { opacity: 0.7; cursor: default; }
+
+/* 电脑大屏：整块按 prep.ts 算的 --pk 放大，宽不超屏宽 70%、高不超屏高 85%（screens.css 里面板统一放大 1.3 在这里压过） */
+@media (min-width: 1600px) and (min-height: 900px) {
+  .yx-prep-layer > .yx-panel.yx-prep { zoom: var(--pk, 1.3); width: var(--pw, min(1200px, 100%)); max-width: var(--pw, min(1200px, 100%)); height: var(--ph, 100%); max-height: var(--ph, 100%); }
+}
+
+/* 电脑宽屏 */
+@media (min-width: 1000px) and (min-height: 620px) {
+  .yx-prep .yx-pchars { --yx-pdf: 16px; --yx-pdn: 26px; --yx-pdfs: 96px; --yx-pdsk: 44px; --yx-pdw: 34px; --yx-pdp: 18px 22px; --yx-pdr: 10px; --yx-pbg: 8px; --yx-pdg: 28px; --yx-pfs: 72px; --yx-pcg: 12px; }
+  .yx-prep .yx-pchar > b { font-size: var(--fs-lg, 16px); }
+  .yx-prep .yx-pcsk, .yx-prep .yx-pchar em { font-size: var(--fs-sm, 13px); }
+}
+@media (min-width: 1000px) and (min-height: 620px) and (max-height: 800px) {
+  .yx-prep .yx-pchars { --yx-pdf: 16px; --yx-pdn: 26px; --yx-pdfs: 88px; --yx-pdsk: 42px; --yx-pdw: 34px; --yx-pdp: 14px 18px; --yx-pdr: 11px; --yx-pbg: 9px; --yx-pfs: 60px; --yx-pcg: 8px; }
+}
+@media (min-width: 1500px) and (min-height: 900px) {
+  .yx-prep .yx-pchars { --yx-pdf: 18px; --yx-pdn: 30px; --yx-pdfs: 120px; --yx-pdsk: 52px; --yx-pdw: 40px; --yx-pfs: 92px; --yx-pdr: 14px; --yx-pbg: 12px; }
+  .yx-prep .yx-pchar > b { font-size: 20px; }
+}
+
+@media (max-width: 999px), (max-height: 619px) {
+  .yx-panel.yx-prep { padding: 8px 12px 10px; }
+  .yx-pgrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+  /* 咒印、加成：名字和说明在左，状态在右 */
+  .yx-pcurse, .yx-pperk { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 0; align-items: center; justify-items: start; text-align: left; padding: 5px 8px; }
+  .yx-pcurse b { font-size: var(--fs-xl, 18px); grid-column: 1; }
+  .yx-pcurse p, .yx-pperk p { grid-column: 1; margin: 0; }
+  .yx-pcurse em, .yx-pperk em { grid-column: 2; grid-row: 1 / span 3; justify-self: end; }
+  .yx-pperk b, .yx-pperk .yx-pips { grid-column: 1; }
+  .yx-pperk .yx-pips { margin-top: 2px; }
+}
+/* 横屏手机（844×390）：小卡窄一点，详情字号和间距收紧，数值条放右列 */
+@media (max-height: 619px) and (orientation: landscape) {
+  .yx-prep .yx-pchars { --yx-pcw: 34%; --yx-pcg: 5px; --yx-pgap: 8px; --yx-pdf: 12px; --yx-pdn: 17px; --yx-pdfs: 40px; --yx-pdsk: 24px; --yx-pdw: 20px; --yx-pdp: 5px 9px; --yx-pdr: 2px; --yx-pbg: 1px; --yx-pdg: 10px; --yx-pfs: 34px; }
+  .yx-prep .yx-pchar { flex-direction: column; padding: 2px; gap: 0; }
+  .yx-prep .yx-pchar > b { font-size: var(--fs-sm, 13px); }
+  .yx-prep .yx-pd-id .yx-pface img { width: 90%; }
+  .yx-prep .yx-pd-id > div { gap: 0; }
+  .yx-prep .yx-plook { display: none; }
+  .yx-prep .yx-pskill { padding: 2px 6px; }
+  .yx-prep .yx-pskill small { line-height: 1.2; }
+  .yx-prep .yx-pd-perk, .yx-prep .yx-pbar { line-height: 1.2; }
+  .yx-prep .yx-pbt { height: 5px; }
+  .yx-prep .yx-pd-act { min-height: 44px; font-size: var(--fs-md, 14px); }
+}
+/* 竖屏：小卡在上（三行三列），详情在下，单列；数值条排三列 */
+@media (orientation: portrait) and ((max-width: 999px) or (max-height: 619px)) {
+  .yx-prep .yx-pchars { flex-direction: column; --yx-pcw: auto; --yx-pdf: 13px; --yx-pdn: 19px; --yx-pdfs: 46px; --yx-pdsk: 28px; --yx-pdw: 22px; --yx-pdp: 7px 10px; --yx-pdr: 4px; --yx-pgap: 8px; --yx-pcg: 5px; --yx-pfs: 30px; }
+  .yx-prep .yx-pcards { flex: 0 0 auto; grid-auto-rows: auto; }
+  /* 小卡改成头像在左、名字和技能名在右；状态（出战 / 价钱 / 锁）贴右上角，不撑高 */
+  .yx-prep .yx-pchar { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'f n' 'f k'; column-gap: 4px; overflow: hidden; row-gap: 0; align-content: center; justify-items: start; text-align: left; padding: 3px 5px; }
+  .yx-prep .yx-pchar .yx-pface { grid-area: f; }
+  .yx-prep .yx-pchar > b { grid-area: n; font-size: var(--fs-sm, 13px); white-space: nowrap; }
+  .yx-prep .yx-pcsk { grid-area: k; }
+  .yx-prep .yx-pchar em { position: absolute; left: 3px; bottom: 1px; padding: 0 3px; border-radius: 6px; background: rgba(251, 245, 228, 0.92); font-size: var(--fs-xs, 12px); line-height: 1.25; }
+  .yx-prep .yx-pcsk { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .yx-prep .yx-pchar .yx-plt, .yx-prep .yx-pchar .yx-coin { display: none; }
+  .yx-prep .yx-pdet { flex: 1; grid-template-columns: minmax(0, 1fr); grid-template-areas: 'i' 's' 'p' 'o' 'b' 'v' 'l' 'a'; grid-template-rows: none; }
+  .yx-prep .yx-pbars { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px 10px; }
+  .yx-prep .yx-pbar { grid-template-columns: auto 1fr; gap: 4px; }
+  .yx-prep .yx-pbt { display: none; }
+  .yx-prep .yx-pbv { text-align: left; }
+  .yx-prep .yx-pd-act { align-self: end; }
+}
+@media (orientation: portrait) and (min-height: 760px) and (max-width: 999px) {
+  .yx-prep .yx-pchars { --yx-pdf: 15px; --yx-pdn: 22px; --yx-pdfs: 64px; --yx-pdsk: 38px; --yx-pdw: 26px; --yx-pdr: 12px; --yx-pdp: 14px; --yx-pfs: 36px; --yx-pcg: 6px; --yx-pbg: 8px; }
+  .yx-prep .yx-pchar { padding: 6px 4px; column-gap: 4px; }
+  .yx-prep .yx-pbt { display: block; }
+  .yx-prep .yx-pbars { grid-template-columns: 1fr 1fr; }
+  .yx-prep .yx-pbar { grid-template-columns: 4.2em 1fr 3.4em; }
+  .yx-prep .yx-pbv { text-align: right; }
+}
+@media (max-width: 480px) {
+  .yx-prep-head { gap: 6px; }
+  .yx-ptabs { gap: 4px; }
+  .yx-ptab { min-width: 56px; padding: 0 6px; }
+  .yx-pcoins { font-size: var(--fs-lg, 16px); gap: 4px; }
+  .yx-pclose { flex: none; }
+}
+/* 电脑大屏上小字也不小于 14（放在最后压过上面几档的 12 / 13） */
+@media (min-width: 1600px) and (min-height: 900px) {
+  .yx-prep .yx-plook, .yx-prep .yx-pcsk, .yx-prep .yx-pchar em { font-size: var(--fs-md, 14px); }
+}

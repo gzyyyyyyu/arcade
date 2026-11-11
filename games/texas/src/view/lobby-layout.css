@@ -1,0 +1,233 @@
+/*
+ * 标题页、选桌页的布局：只管尺寸、间距、排法，材质和颜色在 skin.css。
+ * 舞台按高度缩放，1920×900 这类宽而矮的浏览器里只有约 960×540 个设计单位：实盘选桌一屏放不下，
+ * 左半边却只有大标题和扇形牌。所以电脑版把左边收成窄栏、右栏加宽给选桌；各行压矮；
+ * 还放不下时右栏自己滚（页面本身不滚），带一条看得见的细滚动条。
+ * 全部限定在 .lobby 下；电脑版 = 不是竖屏 .tall、不是手机横屏 .tight。
+ */
+
+/* ---------- 所有排法共用：几处会顶出面板的地方 ---------- */
+/* 滑杆自带的最小宽度会把"止盈"挤出面板边：让它能缩 */
+.lobby .buyin .slider { min-width: 0; }
+.lobby .buyin :is(.label, .buy-amt, .tp-pick-btn) { flex: none; }
+/* 档位卡按列平分、不被里面不折行的字撑开（第四张"豪华桌"原来顶出面板） */
+.lobby .stakes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.lobby .stakes.fun { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stage.tall .lobby .stakes:not(.fun) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lobby .tile small, .lobby .tile span { overflow: hidden; text-overflow: ellipsis; }
+/* 窄一点的电脑屏上这两句会折出一个字孤零零占一行：两行匀开 */
+.lobby :is(.subtitle, .mode-note) { text-wrap: balance; }
+/* 右栏内容放不下时在栏里滚，不让页面被切；细滚动条做提示 */
+.lobby .side > :is(.panel, .front) {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cg-gold-deep, #a85a00) transparent;
+}
+.lobby .side > :is(.panel, .front)::-webkit-scrollbar { width: 6px; }
+.lobby .side > :is(.panel, .front)::-webkit-scrollbar-thumb { background: var(--cg-gold-deep, #a85a00); border-radius: 3px; }
+
+/* 右栏上面的"上次没打完"横幅：不丢内容，只收紧——上下不留内边距、按钮矮一点（触屏的 44 由按钮自己的 ::before 外扩撑开）、和下面面板的缝收小，
+   选桌面板才不被它挤出滚动条（审计：五个尺寸都多出 14–27）。只作用于看得见的横幅 */
+.lobby .side > .banner:not(.hidden) { padding-block: 0; }
+.lobby .side > .banner:not(.hidden) .go { height: 28px; }
+.lobby .side > .banner:not(.hidden) ~ :is(.panel, .front) { margin-top: calc(var(--s-2) * -1); }
+/* 手机横屏只有 470 个设计单位高，选桌面板收紧后还多 2：横幅和面板之间的缝全部吃掉 */
+.stage.tight:not(.tall) .lobby .side > .banner:not(.hidden) ~ :is(.panel, .front) { margin-top: calc(var(--s-3) * -1); }
+
+/* ---------- 电脑版：左边窄栏、右边宽栏 ---------- */
+.stage:not(.tall):not(.tight) .lobby { gap: var(--s-6); padding: 52px var(--s-6) var(--s-3); }
+.stage:not(.tall):not(.tight) .lobby .hero { flex: 0 1 280px; max-width: 300px; min-width: 0; }
+.stage:not(.tall):not(.tight) .lobby .title { font-size: 52px; letter-spacing: 4px; }
+.stage:not(.tall):not(.tight) .lobby .subtitle { margin-top: var(--s-2); font-size: var(--fs-2); letter-spacing: 0; line-height: 1.5; }
+.stage:not(.tall):not(.tight) .lobby .fan { height: 96px; margin-top: var(--s-4); margin-bottom: var(--s-2); transform: scale(.66); transform-origin: 50% 40%; }
+.stage:not(.tall):not(.tight) .lobby .ver { margin-top: 0; }
+.stage:not(.tall):not(.tight) .lobby .side { width: 600px; flex: none; margin-left: 0; }
+
+/* 主页：压矮一点，成就条不被切 */
+.stage:not(.tall):not(.tight) .lobby .front { padding: var(--s-3) var(--s-4); gap: var(--s-2); }
+.stage:not(.tall):not(.tight) .lobby .qstart { min-height: 70px; padding: var(--s-2) var(--s-4); }
+.stage:not(.tall):not(.tight) .lobby .mcard { min-height: 0; padding: var(--s-2); }
+.stage:not(.tall):not(.tight) .lobby .mcard svg { width: 22px; height: 22px; padding: 6px; margin-bottom: 0; }
+.stage:not(.tall):not(.tight) .lobby .howto { min-height: 38px; }
+.stage:not(.tall):not(.tight) .lobby .mystats { min-height: 44px; padding: var(--s-1) var(--s-3); }
+.stage:not(.tall):not(.tight) .lobby .ach-open { min-height: 42px; }
+
+/* 选桌：每一行压矮，间距收到 8 */
+.stage:not(.tall):not(.tight) .lobby .panel { padding: var(--s-3) var(--s-4); }
+.stage:not(.tall):not(.tight) .lobby :is(.modes, .stakes, .sizes, .buyin, .go-row, .friends, .tour-fmts, .plays) { margin-top: var(--s-2); }
+.stage:not(.tall):not(.tight) .lobby .p-head { margin-bottom: 0; }
+.stage:not(.tall):not(.tight) .lobby .p-back { height: 32px; }
+.stage:not(.tall):not(.tight) .lobby .mode { height: 34px; }
+.stage:not(.tall):not(.tight) .lobby .size { height: 34px; }
+/* 右栏上面多了一条"上次没打完"之类的横幅（要占约 60px）：1280×720 这类矮屏下各行的间距收到最小，整页才不滚 */
+.stage:not(.tall):not(.tight) .lobby .side > :is(.banner, .note):not(.hidden) ~ .panel :is(.modes, .stakes, .sizes, .buyin, .go-row, .friends, .tour-fmts, .plays) { margin-top: var(--s-1); }
+.stage:not(.tall):not(.tight) .lobby .side > :is(.banner, .note):not(.hidden) ~ .front { gap: var(--s-1); padding-block: var(--s-2); }
+.stage:not(.tall):not(.tight) .lobby .buyin .slider { height: 32px; }
+.stage:not(.tall):not(.tight) .lobby .buyin .tp-pick-btn { height: 32px; }
+.stage:not(.tall):not(.tight) .lobby .go-row > .start { height: 42px; }
+.stage:not(.tall):not(.tight) .lobby .friends.open .size.kind { height: 40px; }
+.stage:not(.tall):not(.tight) .lobby .tour-fmts .size.tfmt { height: 30px; }
+/* 档位卡：宽了就不用挤，字大一点点、行距松一点 */
+.stage:not(.tall):not(.tight) .lobby .tile { padding: var(--s-1); gap: var(--s-0); }
+/* 选项不折叠、一屏放下：电脑版档位卡不画桌面小图（名字在 em 里），省一行 */
+.stage:not(.tall):not(.tight) .lobby .tile .mini { display: none; }
+.stage:not(.tall):not(.tight) .lobby .tile b { font-size: var(--fs-5); }
+.stage:not(.tall):not(.tight) .lobby .tile small { font-size: var(--fs-2); letter-spacing: 0; }
+/* 盲注那一行最长（"盲注 1,000/2,000"），用小一号，不贴卡边 */
+.stage:not(.tall):not(.tight) .lobby .tile span { font-size: var(--fs-1); letter-spacing: 0; }
+.stage:not(.tall):not(.tight) .lobby .tile .stars { font-size: var(--fs-3); }
+
+/* 舞台窄（1280×800 这种，设计宽 860 多）：右栏收一点，标题再小一点 */
+@container lobby (max-width: 940px) {
+  .stage:not(.tall):not(.tight) .lobby .side { width: 540px; }
+  .stage:not(.tall):not(.tight) .lobby .hero { flex-basis: 230px; }
+  .stage:not(.tall):not(.tight) .lobby .title { font-size: 44px; letter-spacing: 3px; }
+}
+/* 舞台宽（超宽屏）：右栏更宽，档位卡更松 */
+@container lobby (min-width: 1040px) {
+  .stage:not(.tall):not(.tight) .lobby .side { width: 680px; margin-left: 0; }
+  .stage:not(.tall):not(.tight) .lobby .hero { max-width: 340px; flex-basis: 320px; }
+}
+
+/* ---------- 选桌：选项不折叠（docs/ui.md 第 11 节）。主按钮只有"坐下开打"一个，玩法入口是一排次按钮 ---------- */
+.lobby .go-row { flex-wrap: nowrap; align-items: stretch; }
+.lobby .go-row .start { min-width: 0; }
+/* 其他玩法：一排次按钮，等分一行；放不下时按钮里的字不折行，整排收窄间距 */
+.lobby .plays { display: flex; flex-wrap: nowrap; gap: var(--s-2); margin-top: var(--s-2); }
+.lobby .plays .pill { flex: 1 1 0; min-width: 0; height: 34px; padding: 0 var(--s-2); font-size: var(--fs-3); font-weight: 800; white-space: nowrap; }
+/* 每个玩法按钮下面一行小字说明（手机没有悬停，直接摆出来）；灰了的按钮把它换成原因（.why 加粗） */
+.lobby .plays { align-items: flex-start; }
+.lobby .plays .play { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lobby .plays .play .pill { flex: none; width: 100%; }
+.lobby .play-note { font-size: var(--fs-1); line-height: 1.2; text-align: center; opacity: .8; text-wrap: balance; }
+.lobby .play-note.why { opacity: 1; font-weight: 800; }
+/* 灰着的档位卡：原来"最多输"那一行写要多少筹码；手机横屏收起了小字，这一行留着 */
+.lobby .tile small.need { font-weight: 800; opacity: 1; }
+.stage.tight:not(.tall) .lobby .stakes:not(.fun) .tile small.need { display: block; }
+/* 快速匹配原来是绿色大按钮；现在和其他玩法一样是次按钮，选桌页不再有第二个抢眼的实色按钮 */
+.stage .lobby .plays .pill.match { background-color: var(--cg-cream, #f5e6c0); color: var(--cg-ink, #2b1d14); text-shadow: none; }
+/* 竖屏、手机横屏：选桌页收起一句话和扇形牌（标题和版本号留着），整页一屏放下；
+   舞台缩小以后（--ui = 1/缩放）按钮的真实高度按 32 个屏幕像素算，触屏的 44 由按钮自己的 ::before 撑开 */
+.stage:is(.tall, .tight) .lobby.on-pick :is(.subtitle, .fan) { display: none; }
+.stage:is(.tall, .tight) .lobby.on-pick .tile .mini { display: none; }
+.stage:is(.tall, .tight) .lobby :is(.mode, .size, .pill, .p-back, .howto) { min-height: calc(32px * var(--ui)); }
+/* 触屏：选桌页的按钮本身就做到 44 个屏幕像素高（--hit）。只靠 ::before 外扩不够：上下两行挨得近，外扩被相邻按钮盖掉一截
+   （审计：返回 37、模式 40–43、快速匹配和锦标赛 37–38、人数键横屏只有 24 宽） */
+@media (pointer: coarse), (max-width: 959px) {
+  .stage:is(.tall, .tight) .lobby :is(.mode, .size, .pill, .p-back, .howto) { min-height: var(--hit); }
+  /* 人数 2–9：八个键各占一个 --hit 宽的格子（键间的缝算在格子里），"人数"两个字放在键的上面，不再和键抢宽度 */
+  .stage:is(.tall, .tight) .lobby .sizes { flex-wrap: wrap; row-gap: 0; column-gap: 0; }
+  .stage:is(.tall, .tight) .lobby .sizes .label { width: 100%; }
+  .stage:is(.tall, .tight) .lobby .sizes .size { flex: 1 0 0; min-width: calc(var(--hit) - 4px * var(--ui)); margin-inline: calc(2px * var(--ui)); padding: 0; }
+  /* 手机横屏：人数和带上桌各占一行（并排时人数键放不下 44 宽），说明小字收起（灰了的按钮上写原因的那句留着） */
+  .stage.tight:not(.tall) .lobby.on-pick .opts { flex-wrap: wrap; gap: 0; }
+  .stage.tight:not(.tall) .lobby.on-pick .opts > :is(.sizes, .buyin) { flex: 1 0 100%; margin-top: 0; }
+  .stage.tight:not(.tall) .lobby .sizes .label { width: auto; }
+  .stage.tight:not(.tall) .lobby .sizes { flex-wrap: nowrap; }
+  .stage.tight:not(.tall) .lobby .play-note:not(.why) { display: none; }
+  /* 按钮都到 44 后横屏竖着放不下（多出一行）：返回和"选桌"并进模式那一行，选项一个不少 */
+  .stage.tight:not(.tall) .lobby.on-pick .panel { flex-flow: row wrap; align-content: center; column-gap: var(--s-2); }
+  .stage.tight:not(.tall) .lobby.on-pick .panel > * { flex: 1 0 100%; }
+  .stage.tight:not(.tall) .lobby.on-pick .panel > .p-head { flex: 0 0 auto; margin-bottom: 0; }
+  .stage.tight:not(.tall) .lobby.on-pick .panel > .modes { flex: 1 1 0; min-width: 0; }
+  /* 竖屏人数键一行八个：360 宽的屏上一个键放不满 44 宽（面板里只有约 312），宁可窄一点也不折成两行（折了整页要滚） */
+  /* 竖屏人数键：一行八个在 390 宽的屏上每个只有约 42 宽，排成两行各四个（选桌时上面的大标题收起，腾出这一行） */
+  .stage.tall .lobby .sizes { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .stage.tall .lobby .sizes .label { grid-column: 1 / -1; }
+  .stage.tall .lobby .sizes .size { min-width: 0; }
+  .stage.tall .lobby.on-pick .hero { display: none; }
+  .stage:is(.tall, .tight) .lobby .tile { min-height: var(--hit); }
+  .stage:is(.tall, .tight) .lobby .mode { min-width: var(--hit); }
+  /* 手机横屏还差一行的高度："坐下开打"和其他玩法并成一行（主按钮在最前、最宽），档位牌的名字和星星并成一行 */
+  .stage.tight:not(.tall) .lobby.on-pick .panel > .go-row { flex: 1.3 1 0; min-width: 0; }
+  .stage.tight:not(.tall) .lobby.on-pick .panel > .plays { flex: 3 1 0; min-width: 0; }
+  .stage.tight:not(.tall) .lobby .tile { flex-flow: row wrap; justify-content: center; align-content: center; column-gap: var(--s-1); padding-block: 2px; }
+  .stage.tight:not(.tall) .lobby .tile > * { flex: 1 0 100%; }
+  .stage.tight:not(.tall) .lobby .tile > :is(b, .stars) { flex: 0 0 auto; }
+  .stage:is(.tall, .tight) .lobby .go-row > .start { min-height: var(--hit); }
+}
+.stage:is(.tall, .tight) .lobby .front { gap: var(--s-2); }
+.stage.tight:not(.tall) .lobby :is(.panel, .front) { padding-block: var(--s-2); }
+.stage.tight:not(.tall) .lobby .qstart { height: 58px; min-height: 0; }
+/* 手机横屏主页：各行的缝和上下内边距收到 4、战绩条矮一点，主页一屏放下（审计：多出 3–40） */
+.stage.tight:not(.tall) .lobby .front { gap: var(--s-1); padding-block: var(--s-0); }
+.stage.tight:not(.tall) .lobby .mystats { min-height: 0; padding-block: var(--s-1); }
+/* 人数和带上桌：竖排时各占一行（opts 不生成盒子），手机横屏宽的时候并排 */
+.lobby .opts { display: contents; }
+.stage.tight:not(.tall) .lobby .opts { display: flex; gap: var(--s-3); margin-top: var(--s-2); }
+.stage.tight:not(.tall) .lobby .opts > * { margin-top: 0; min-width: 0; }
+.stage.tight:not(.tall) .lobby .opts > .sizes { flex: 1 1 0; }
+.stage.tight:not(.tall) .lobby .opts > .buyin { flex: 1.1 1 0; }
+.stage.tight:not(.tall) .lobby .opts .label { width: auto; }
+/* 两栏等高、一起填满内容区（电脑版和手机横屏）：左边标题居中，右边面板撑满、内容在面板里居中 */
+.stage:not(.tall) .lobby { align-items: stretch; }
+.stage:not(.tall) .lobby .hero { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.stage:not(.tall) .lobby .side > :is(.panel, .front) { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+.stage:not(.tall) .lobby .side > :is(.panel, .front) > * { flex: none; }
+/* 手机横屏（只有约 470 个设计单位高）：玩法按钮下多了一行说明，其余行收紧一点才一屏放下；档位卡去掉房间名那一行（和矮竖屏一样），按钮不压矮（可点高度不小于 32 个屏幕像素） */
+.stage.tight:not(.tall) .lobby :is(.modes, .stakes, .opts, .go-row, .plays, .tour-fmts) { margin-top: var(--s-1); }
+.stage.tight:not(.tall) .lobby .tile em { display: none; }
+.stage.tight:not(.tall) .lobby .play { gap: 0; }
+/* 手机横屏：右栏加宽，四张档位卡一排（收起了小字） */
+.stage.tight:not(.tall) .lobby .side { width: 720px; }
+.stage.tight:not(.tall) .lobby .stakes:not(.fun) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stage.tight:not(.tall) .lobby .hero { max-width: 300px; }
+.stage.tight:not(.tall) .lobby .title { font-size: 52px; }
+/* 360×640 这类矮竖屏：档位卡去掉房间名那一行 */
+@media (max-height: 700px) {
+  .stage.tall .lobby .tile em { display: none; }
+  /* 玩法按钮下多了一行说明：各行间距收紧，360×640 才一屏放下 */
+  .stage.tall .lobby :is(.modes, .stakes, .sizes, .buyin, .go-row, .plays, .tour-fmts) { margin-top: var(--s-1); }
+  .stage.tall .lobby .play { gap: 0; }
+  .stage.tall .lobby .qstart { min-height: 68px; }
+  .stage.tall .lobby .fan { height: 84px; margin-top: var(--s-1); }
+}
+/* 手机横屏矮：四张档位卡的小字（最多输、赢很少过）收起，让"坐下开打"留在第一屏；档位的盲注、星还在，细节选中后桌上都有 */
+.stage.tight:not(.tall) .lobby .stakes:not(.fun) .tile small { display: none; }
+.stage.tight:not(.tall) .lobby .tile.diff small { display: none; }
+/* 键位角标只给有鼠标的设备（触屏没有键盘） */
+.lobby .start .k-hint { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .lobby .start .k-hint {
+    display: inline-block;
+    margin-left: var(--s-2);
+    padding: 1px var(--s-1);
+    border-radius: var(--r-1);
+    border: 1px solid currentColor;
+    font-family: inherit;
+    font-size: var(--fs-1);
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0;
+    opacity: .55;
+    vertical-align: middle;
+  }
+}
+/* 选中的档位卡、模式钮：描边加勾加浅底，不用金色填充（金色填充只给"坐下开打"，docs/ui.md 第 4 节） */
+.stage .lobby :is(.tile, .mode).sel {
+  background: #fff8e1;
+  border-color: var(--cg-gold-deep, #a85a00);
+  color: var(--cg-ink, #2b1d14);
+  box-shadow: 0 0 0 3px var(--cg-gold-deep, #a85a00), 0 3px 0 3px var(--cg-ink, #2b1d14);
+}
+.stage .lobby .tile.sel :is(b, span, small, .stars) { color: var(--cg-ink, #2b1d14); }
+.stage .lobby .tile.sel .stars { color: var(--cg-gold-deep, #a85a00); }
+/* 勾：档位卡的名字前、模式钮的字后（按钮自己的 ::before 留给点按范围，所以挂在名字上） */
+.lobby .tile.sel > b::before { content: '✓ '; color: var(--cg-gold-deep, #a85a00); }
+.lobby .mode.sel::after { content: ' ✓'; color: var(--cg-gold-deep, #a85a00); white-space: pre; }
+
+/* ---------- 顶栏图标：电脑宽屏（≥1280）、不在牌桌上时，图标后面带两个字，认得出是什么 ---------- */
+@media (min-width: 1280px) {
+  .stage:not(.at-table) .topbar .icon[data-lbl] { width: auto; padding: 0 var(--s-3) 0 var(--s-2); gap: var(--s-1); }
+  .stage:not(.at-table) .topbar .icon[data-lbl]::after { content: attr(data-lbl); font-size: var(--fs-3); font-weight: 700; white-space: nowrap; }
+}
+
+/* 矮竖屏（360×640、375×667）选桌：人数键两行时"人数"放左边一格不另占一行，档位牌收起星星、上下内边距收小（强弱在档位名和盲注里看得出），一屏放下 */
+@media (orientation: portrait) and (max-height: 700px) and ((pointer: coarse) or (max-width: 959px)) {
+  .stage.tall .lobby .sizes { grid-template-columns: auto repeat(4, 1fr); }
+  .stage.tall .lobby .sizes .label { grid-column: 1; grid-row: 1 / 3; align-self: center; width: auto; }
+  .stage.tall .lobby.on-pick .tile .stars { display: none; }
+  .stage.tall .lobby.on-pick .tile { padding-block: 2px; }
+}

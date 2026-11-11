@@ -1,0 +1,15 @@
+/* 金币飞入层：盖在页面最上，不拦点击 */
+.coinfly { position: fixed; inset: 0; z-index: 10000; pointer-events: none; overflow: hidden; }
+.coinfly__coin, .account--chips .chips-burst__coin {
+  --coinfly-gold: #f9c93c;
+  --coinfly-gold-deep: #e0a21a;
+  position: absolute; left: 0; top: 0; width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3b8 0 18%, var(--coinfly-gold) 45%, var(--coinfly-gold-deep) 100%);
+  border: 2px solid var(--line, #2b1d14);
+  will-change: transform, opacity; opacity: 0;
+}
+.coinfly__bump { animation: coinfly-bump 200ms ease-out; }
+@keyframes coinfly-bump { 0% { transform: scale(1); } 50% { transform: scale(1.18); } 100% { transform: scale(1); } }
+/* 从游戏回来赢了筹码：顶栏牌子上迸一小撮同样的金币（burst.ts），金币小一号 */
+.account--chips .chips-burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; z-index: 1; }
+.account--chips .chips-burst__coin { left: -6px; top: -6px; width: 12px; height: 12px; box-sizing: border-box; }

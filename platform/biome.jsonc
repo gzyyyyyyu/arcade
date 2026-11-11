@@ -1,0 +1,79 @@
+{
+  // 全仓的 lint 模板（docs/engineering.md 第 2 节）。规则以 packages/arcade-host/biome.jsonc 为准，本文件只是同一份配置加了注释：
+  // 规则部分（"$schema" 以下）和它逐字相同，各模块原样复制，不在模块里改规则；要改先改 arcade-host 那份，再同步本文件和各模块。
+  // 版本：@biomejs/biome 2.6.4（精确版本、--ignore-scripts 安装），package.json 加 "lint": "biome lint ."。
+  //
+  // 规则怎么分级：用 Biome 的 recommended 预设，严重程度沿用它的默认值，不逐条改级别，只关掉下面几条。
+  //   error（npm run lint 失败）：recommended 里 correctness、suspicious、a11y 等组的大部分规则，多是可能的 bug，
+  //          例如 noUnsafeOptionalChaining、noImplicitAnyLet、正则里的控制字符、a11y 的 role/键盘规则。接入时必须清到零。
+  //   warn / info（只提示，不让 lint 失败）：写法建议，例如 useOptionalChain、useImportType、noCommaOperator、useLiteralKeys、
+  //          没用到的 import 和变量（noUnusedImports、noUnusedVariables）。接入时照开盘的做法一并清掉
+  //          （开盘 0.x 接入时 106 处清到零）：先 --write，再对能自动修的几类 --write --unsafe --only=<规则> 逐类看 diff，其余手改。
+  //   off：和全仓现有写法冲突、误报多或价值小的，下面逐条写了理由。
+  //
+  // 和现有代码风格冲突时：确实是有意的写法，在那一行上面写 `// biome-ignore lint/<组>/<规则>: <理由>`；
+  //   不在模块里关规则。同一条在三个以上模块都要 ignore 的，提给质量代理，评估后改 arcade-host 那份模板，全仓一起改。
+  //   已知一处：tsconfig 开了 noPropertyAccessFromIndexSignature 的模块（牌馆、kit），useLiteralKeys 会建议把 obj['k'] 改成 obj.k，
+  //   改了 tsc 报错——这类是 info，不让 lint 失败，保持原样即可，不要按建议改。
+  //
+  // 格式化（formatter）不开：全仓没有统一过格式，一开就是每个文件都改，和所有在做的分支冲突，也让 git blame 失效。
+  //   以后要开，每个模块单独一个"只格式化"的提交（不夹别的改动）。CSS、JSON 不查，只查 TS/JS。
+  //
+  // 按 local/main 6a55671f、用这份配置实测的接入前 error / warn（info 另计）：
+  //   平台 25 / 45；牌馆 2 / 62；德州 0 / 23；雀馆 1 / 47；夜巡 5 / 64；海岛 1 / 32；飞驰 0 / 4；弹里个弹 0 / 11；arcade-kit 4 / 8；
+  //   开盘已在自己的分支上清零（106 处）；arcade-host 零报告。
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**/*.ts", "**/*.tsx", "**/*.mts", "**/*.js", "**/*.mjs",
+      "!**/dist*", "!**/public", "!**/fixture", "!**/fixtures"
+    ]
+  },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        // strict 下 DOM 查询、Map.get 后的 `!` 是全仓的惯用写法，禁掉只会换成更啰嗦的断言
+        "noNonNullAssertion": "off",
+        // 字符串拼接还是模板字符串按可读性选，自动改写出来的混合写法反而难读
+        "useTemplate": "off"
+      },
+      "suspicious": {
+        // `if ((r = f()))`、`while ((m = re.exec(s)))`、`(cache[k] ??= …)` 是有意的写法，外面多一层括号表明不是笔误
+        "noAssignInExpressions": "off",
+        // 把名叫 after 的测试辅助函数当成重复的钩子，误报多、价值小
+        "noDuplicateTestHooks": "off",
+        // `xs.forEach((x) => set.add(x))` 这类单行箭头的返回值没人用，改成花括号只是多两个字符
+        "useIterableCallbackReturn": "off"
+      },
+      "correctness": {
+        // 返回 void 的函数里 `return end(w)` 是"做完这件事就结束"的提前返回，不是返回值
+        "noVoidTypeReturn": "off",
+        // 同一张表里的函数签名要一致（成就判定、事件处理），用不到的参数也得占位；真没用的参数交给 tsc 的 noUnusedParameters
+        "noUnusedFunctionParameters": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // tools/、scripts/ 下是冒烟、截图这类无头浏览器脚本：Playwright 的 locator.innerText() 只取看得见的文字，
+      // 这条规则的自动修会把它改成 textContent()，把隐藏元素的文字也带进来，"界面上有没有这句话"的检查就悄悄变宽松了
+      "includes": ["**/tools/**", "**/scripts/**"],
+      "linter": { "rules": { "performance": { "useDomNodeTextContent": "off" } } }
+    },
+    {
+      // 源码里叫 fit 的函数（适配尺寸）会被当成 jasmine 的聚焦测试；只在测试文件里查 .only / fit
+      "includes": ["**", "!**/test/**", "!**/tests/**", "!**/*.test.ts"],
+      "linter": { "rules": { "suspicious": { "noFocusedTests": "off" } } }
+    },
+    {
+      // 测试读任意形状的 JSON 响应，`any` 只用在这类辅助函数里
+      "includes": ["**/test/**", "**/tests/**", "**/*.test.ts"],
+      "linter": { "rules": { "suspicious": { "noExplicitAny": "off" } } }
+    }
+  ]
+}

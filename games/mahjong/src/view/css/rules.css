@@ -1,0 +1,242 @@
+/* 规则小册子和新手引导是宣纸卡片（docs/art.md）：米色纸、茶褐字、朱红小标题，和牌桌上的深色玻璃面板分开，一看就是"说明书" */
+.mask:is(.rules, .guide) .dialog {
+  --ink: #3b2414;
+  color: var(--ink);
+  background:
+    radial-gradient(120% 80% at 50% 0%, #fffaf0 0%, #0000 70%),
+    linear-gradient(#f3e6c8, #e9d7b0);
+  border: 1px solid #b08a54;
+  box-shadow: inset 0 0 0 4px #f8eed6, inset 0 0 0 5px #c8a46c88, var(--sh-3);
+}
+.mask:is(.rules, .guide) .dialog h2 {
+  color: #9a2a1a;
+  font-family: 'Quehall Title', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+}
+.mask:is(.rules, .guide) .dialog .x {
+  color: var(--ink);
+}
+.mask:is(.rules, .guide) .dialog .act.soft {
+  color: var(--ink);
+  border-color: #8a643a88;
+  background: #fff6;
+}
+/* 翻页（view/pager.ts，docs/ui.md 第 11 节）：放不下的弹窗不滚动，内容区吃掉剩下的高度、切成几页，底下"‹ 2 / 5 ›" */
+.dialog:has(> .paged) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dialog:has(> .paged) > :not(.paged) {
+  flex-shrink: 0;
+}
+.paged {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+/* 翻走的项用 hidden 藏：作者样式里写了 display（行是 flex、表格行是 grid）的也得藏住 */
+.paged [hidden] {
+  display: none !important;
+}
+/* 横屏弹窗宽、不高：规则小册子的表（番型、图鉴）两列并排，一页多摆一倍 */
+[data-orient='land'] .rules .paged table:not(.keys) {
+  display: grid;
+  /* 两列各是"名字 番数 说明"，用 subgrid 让同一列里上下行的名字、番数对齐 */
+  grid-template-columns: auto auto 1fr auto auto 1fr;
+}
+[data-orient='land'] .rules .paged table:not(.keys) tr {
+  display: grid;
+  grid-column: span 3;
+  grid-template-columns: subgrid;
+  align-items: start;
+  border-bottom: 1px dashed #8a643a55;
+}
+/* 两列中间空一截（左列的说明格右边留白；翻页藏掉的行会打乱单双数，不能按 nth-child 加） */
+[data-orient='land'] .rules .paged table:not(.keys) td.d {
+  padding-right: var(--sp-4);
+}
+[data-orient='land'] .rules .paged table:not(.keys) td {
+  border-bottom: 0;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+.pager .chip {
+  min-width: 48px;
+  height: 32px;
+  font-size: var(--fs-lg);
+}
+.pager .chip:disabled {
+  opacity: 0.3;
+}
+.pager .pg-at {
+  min-width: 48px;
+  text-align: center;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+.mask:is(.rules, .guide) .pager .chip {
+  border-color: #8a643a88;
+  color: var(--ink);
+}
+.guide .ex {
+  margin: var(--sp-2) 0 var(--sp-3);
+  justify-content: center;
+}
+.guide .ex .mini {
+  width: 28px;
+  height: 39px;
+}
+/* 换三张那一屏：三张同门的牌盖一个"缺"字印，说清"这一门打干净" */
+.guide .ex.swap {
+  position: relative;
+}
+.guide .ex.swap::after {
+  content: '缺';
+  position: absolute;
+  left: calc(50% + 34px);
+  top: -6px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #b8321e;
+  border-radius: 4px;
+  color: #b8321e;
+  font: 900 18px/1 'Quehall Title', serif;
+  transform: rotate(-12deg);
+  opacity: 0.85;
+}
+.ex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ex .group {
+  display: flex;
+}
+.ex .mini {
+  width: 18px;
+  height: 25px;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 1px 0 #0003);
+}
+.rules .tabs {
+  /* 页签等宽排格子：窄屏折成两行时每格一样宽、每格自带下划线，选中态在哪一行都看得出（原来 flex 折行，只有末行贴着底线，360 宽时第一行选中不明显） */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.6em, 1fr));
+  gap: 0 var(--sp-1);
+  margin: 0 var(--sp-6) var(--sp-3) 0;
+  border-bottom: 1px solid #8a643a55;
+  row-gap: var(--sp-1);
+}
+.rules .tab {
+  position: relative;
+  min-height: max(36px, var(--tap));
+  min-width: 0;
+  padding: 0 var(--sp-1);
+  border: 0;
+  /* 每格自带底线：选中态不论在第几行都一样（下划线加浅底色） */
+  border-bottom: 3px solid #8a643a33;
+  background: none;
+  color: var(--ink);
+  opacity: 0.7;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.rules .tab.on {
+  opacity: 1;
+  font-weight: 700;
+  border-bottom-color: #9a2a1a;
+  background: #9a2a1a14;
+}
+/* 规则弹窗定宽定高：切页签时框不跟着内容变大变小（1920 下看着在抖）；内容放不下走翻页，不滚动 */
+.mask.rules .dialog {
+  width: min(720px, 94%);
+  height: min(600px, 92%);
+}
+/* 牌例和上面的小标题、下面的字隔开，同引导里的 .ex 一样 */
+.rules .page > .ex {
+  margin: var(--sp-2) 0 var(--sp-3);
+}
+.rules .page > h2:not(:first-child) {
+  margin-top: var(--sp-4);
+}
+/* 新手说明：标题、正文、牌例统一居中（原来只有牌例居中） */
+.guide .step,
+.guide h2,
+.guide p {
+  text-align: center;
+}
+.guide h2 {
+  margin-right: 0;
+}
+.rules table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--fs-sm);
+}
+.rules td {
+  padding: var(--sp-2);
+  border-bottom: 1px dashed #8a643a55;
+  vertical-align: top;
+}
+.rules td.n {
+  white-space: nowrap;
+  font-weight: 700;
+}
+.rules td.f {
+  white-space: nowrap;
+  color: #9a2a1a;
+  font-weight: 700;
+}
+.rules td .ex {
+  margin-top: var(--sp-1);
+}
+.rules .note {
+  font-size: var(--fs-sm);
+  opacity: 0.8;
+}
+/* 图鉴：没和过的整行变灰；说明和"和过 N 次"在同一格里，窄屏不横向撑开 */
+.rules .dex-progress {
+  margin: 0 0 var(--sp-1);
+  color: #9a2a1a;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+.rules table.dex {
+  table-layout: auto;
+}
+.rules table.dex td.d {
+  overflow-wrap: anywhere;
+}
+/* 名字和番数只占自己那么宽，剩下的都给说明（竖屏 390 宽时番数那格空出一大截、说明挤成三四行，10-27 详测） */
+.rules table.dex :is(td.n, td.f) {
+  width: 1%;
+  white-space: nowrap;
+}
+.rules table.dex tr.lock {
+  opacity: 0.45;
+}
+.rules table.dex .dex-new {
+  margin-left: var(--sp-1);
+  padding: 0 var(--sp-1);
+  border-radius: var(--r-pill);
+  background: #b8322a;
+  color: #fff;
+  font-size: var(--fs-xs, 0.75em);
+  font-weight: 700;
+  vertical-align: middle;
+}
+.rules table.dex .cnt {
+  margin-top: var(--sp-1);
+  font-weight: 700;
+}
+.rules table.dex tr.lock .cnt {
+  font-weight: 400;
+}

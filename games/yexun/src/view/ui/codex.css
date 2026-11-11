@@ -1,0 +1,154 @@
+/* 图鉴和成就：宣纸卡片 + 墨边，和 screens.css 一套。手机横屏（高度 < 500）收紧。 */
+.yx-codex { z-index: 55; }
+.yx-codex-panel { width: min(760px, 100%); height: 100%; overflow: hidden; }
+.yx-cbar { height: 10px; border: 2px solid var(--ink); border-radius: 6px; background: #d9ccaa; overflow: hidden; flex: none; }
+.yx-cbar i { display: block; height: 100%; background: var(--red); }
+/* 标签的底样式在 screens.css（几个面板共用）；平分一排只是图鉴和藏宝阁（根也带 .yx-codex）的排法，原来裸写在这里，串到排行榜把"全部"和第二排标签拉得很宽 */
+.yx-codex .yx-tab { flex: 1; }
+.yx-cbody { flex: 1; min-height: 0; overflow: hidden; align-content: start; }
+.yx-csub { font-size: var(--fs-md, 14px); color: #5a4a3a; margin: 0; flex: none; }
+.yx-cbody .yx-csub { margin: 2px 0 6px; }
+.yx-cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.yx-ccard {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 8px 10px; text-align: center;
+  border: 2.5px solid var(--ink); border-radius: 12px; background: #fbf5e4;
+}
+.yx-ccard.done { background: #f7e9b8; }
+.yx-ccard img { width: 56px; height: 56px; object-fit: contain; }
+.yx-ccard img.sil { filter: brightness(0); opacity: 0.28; }
+.yx-ccard b { font-size: var(--fs-lg, 16px); }
+.yx-ccard > span { font-size: var(--fs-sm, 13px); color: #fbf5e4; background: #6a5a48; border-radius: 8px; padding: 1px 8px; }
+.yx-ccard p { margin: 2px 0 0; font-size: var(--fs-sm, 13px); font-weight: 600; color: #4a3d30; }
+.yx-ccard p.evo { color: var(--red); }
+.yx-ccard em { font-style: normal; font-size: var(--fs-sm, 13px); color: #5a4a3a; }
+.yx-ccard.lock { background: #e2d8bd; }
+.yx-ccard.dual { border-color: var(--mc); box-shadow: 0 0 0 2px var(--mc); }
+.yx-ccard.dual > span { background: var(--mc); }
+.yx-ccard.lock b { color: #7a6c58; }
+.yx-badges { display: flex; gap: 4px; margin-top: 4px; }
+.yx-badges i { font-style: normal; font-size: var(--fs-sm, 13px); padding: 1px 6px; border-radius: 8px; border: 1.5px solid #b9ad96; color: #a09478; }
+.yx-badges i.on { border-color: var(--ink); background: var(--gold); color: var(--ink); }
+.yx-cbody h4 { margin: 8px 0 6px; font-size: 15px; color: var(--red); }
+.yx-cbody h4:first-child { margin-top: 0; }
+.yx-alist { display: flex; flex-direction: column; gap: 6px; }
+.yx-arow {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px;
+  border: 2.5px solid var(--ink); border-radius: 12px; background: #e2d8bd; opacity: 0.85;
+}
+.yx-arow.done { background: #f7e9b8; opacity: 1; }
+.yx-arow .mark {
+  flex: none; width: 24px; height: 24px; border: 2.5px solid var(--ink); border-radius: 50%; background: #fbf5e4;
+  display: flex; align-items: center; justify-content: center; color: #fbf5e4; font-size: 15px; line-height: 1;
+}
+.yx-arow.done .mark { background: #4a9a5a; }
+.yx-arow > div { flex: 1; min-width: 0; }
+.yx-arow b { font-size: 13px; }
+.yx-arow u { text-decoration: none; margin-left: 8px; font-size: var(--fs-sm, 13px); color: #fbf5e4; background: var(--red); border-radius: 8px; padding: 1px 7px; }
+.yx-arow p { margin: 1px 0 0; font-size: var(--fs-sm, 13px); font-weight: 600; color: #4a3d30; }
+.yx-arow em { flex: none; font-style: normal; font-size: var(--fs-sm, 13px); color: #8a5a10; }
+
+/* 夜事页：圆形图标和颜色跟预告横幅（banner.css 的 ev-*）一致 */
+.yx-codex .yx-cn-ic {
+  --evc: #ff7a5a; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--evc); color: #17131c; border: 3px solid #17131c; font: 400 26px/1 'YxBrush', serif;
+}
+.yx-codex .yx-cn-wind { --evc: #a8d8f5; }
+.yx-codex .yx-cn-sprouts { --evc: #6cc46a; }
+.yx-codex .yx-cn-icefall { --evc: #5fe0d6; }
+.yx-codex .yx-cn-tide { --evc: #4a8ee8; }
+.yx-codex .yx-cn-risen { --evc: #b07ae0; }
+.yx-codex .yx-cn-bell { --evc: #f2c744; }
+.yx-codex .yx-cn-parade { --evc: #f08a4a; }
+.yx-codex .yx-cn-blood { --evc: #e0303a; }
+.yx-codex .yx-cn-row { align-items: flex-start; }
+.yx-codex .yx-cn-row b { margin-right: 6px; }
+
+/* 解锁提示条 */
+.yx-atoast { position: absolute; left: 0; right: 0; top: max(10px, env(safe-area-inset-top, 0px)); z-index: 70; display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+.yx-atoast-item {
+  display: flex; flex-direction: column; align-items: center; max-width: min(92vw, 420px); padding: 6px 22px;
+  border: 3px solid #17131c; border-radius: 12px; background: #f7e9b8; box-shadow: 0 4px 0 #17131c; color: #17131c;
+  font: 700 15px/1.3 system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  animation: yx-at-in 0.3s ease-out both;
+}
+.yx-atoast-item .k { font-size: var(--fs-sm, 13px); color: #c8402f; letter-spacing: 2px; }
+.yx-atoast-item b { font-family: 'YxBrush', serif; font-weight: 400; font-size: 26px; }
+.yx-atoast-item .s { font-size: var(--fs-sm, 13px); opacity: 0.85; text-align: center; }
+.yx-atoast-item.out { animation: yx-at-out 0.35s ease-in both; }
+@keyframes yx-at-in { from { opacity: 0; transform: translateY(-24px) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes yx-at-out { to { opacity: 0; transform: translateY(-20px); } }
+
+@media (max-width: 480px) {
+  .yx-codex .yx-tabs { gap: 5px; }
+  .yx-codex .yx-tab { font-size: 15px; padding: 0 2px; min-width: 44px; }
+}
+
+@media (max-height: 500px) {
+  .yx-codex-panel { padding: 8px 12px 10px; gap: 6px; }
+  .yx-codex .yx-panel-head .yx-brush { font-size: 30px; }
+  .yx-cbar { height: 8px; }
+  .yx-cgrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+  /* 矮屏：卡片改成左图右字，一屏多放几张 */
+  .yx-ccard { display: grid; grid-template-columns: 40px 1fr; grid-auto-rows: min-content; column-gap: 6px; row-gap: 0; align-items: center; text-align: left; padding: 4px 6px; border-width: 2px; }
+  .yx-ccard > * { grid-column: 2; }
+  .yx-ccard > img { width: 40px; height: 40px; grid-column: 1; grid-row: 1 / span 3; }
+  .yx-ccard > span { justify-self: start; }
+  .yx-ccard .yx-cn-ic { width: 36px; height: 36px; font-size: 22px; grid-column: 1; grid-row: 1 / span 3; }
+  .yx-ccard p { margin: 0; font-size: var(--fs-xs, 12px); line-height: 1.25; }
+  .yx-badges { margin-top: 2px; }
+  .yx-arow { padding: 3px 8px; }
+}
+
+/* 手机竖屏：解锁提示条压在结算页标题上（"收工"被盖住），收成一条矮的：名字和说明一行，不放大字 */
+@media (max-width: 700px) and (orientation: portrait) {
+  .yx-atoast-item { padding: 3px 14px; max-width: 94vw; }
+  .yx-atoast-item b { font-size: 20px; line-height: 1.15; }
+  .yx-atoast-item .k { display: none; }
+  .yx-atoast-item .s { font-size: var(--fs-xs, 12px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yx-atoast-item, .yx-atoast-item.out { animation-duration: 0.01s; }
+}
+
+/* 搭配页（codexCombos.ts）：一屏放下，不滚动；搭配表的行交给共用翻页（pager.ts）按高度切页 */
+.yx-codex .yx-cc { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.yx-codex .yx-cc-views, .yx-codex .yx-cc-chars { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.yx-codex .yx-cc-views em { font-style: normal; font-size: var(--fs-sm, 13px); color: #5a4a3a; }
+.yx-codex .yx-cc-chip { min-height: 44px; min-width: 44px; padding: 0 12px; border-radius: 10px; border: 2px solid #6a5a48; background: #f7e9b8; font: inherit; font-size: var(--fs-sm, 13px); font-weight: 700; color: #3a2d20; }
+.yx-codex .yx-cc-chip.on { background: #6a5a48; color: #fbf5e4; }
+.yx-codex .yx-cc-chip:disabled { opacity: 0.4; }
+.yx-codex .yx-cc-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.yx-codex .yx-cc-row { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 12px; border: 2px solid var(--mc, #6a5a48); background: #e2d8bd; }
+.yx-codex .yx-cc-row.done { background: #f7e9b8; }
+.yx-codex .yx-cc-row img { width: 40px; height: 40px; object-fit: contain; flex: none; }
+.yx-codex .yx-cc-row b { font-size: var(--fs-lg, 16px); }
+.yx-codex .yx-cc-row span { margin-left: 6px; font-size: var(--fs-sm, 13px); color: #5a4a3a; }
+.yx-codex .yx-cc-row p { margin: 2px 0 0; font-size: var(--fs-sm, 13px); font-weight: 600; color: #4a3d30; }
+.yx-codex .yx-cc-line { margin: 0; font-size: var(--fs-sm, 13px); font-weight: 600; color: #4a3d30; }
+.yx-codex .yx-cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px; }
+.yx-codex .yx-cc-w { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: #e2d8bd; border: 2px solid transparent; min-width: 0; }
+.yx-codex .yx-cc-w.main { border-color: var(--red); background: #f7e9b8; }
+.yx-codex .yx-cc-w img { width: 40px; height: 40px; object-fit: contain; flex: none; }
+.yx-codex .yx-cc-w b { font-size: var(--fs-sm, 13px); color: #3a2d20; }
+.yx-codex .yx-cc-w i { margin-left: 6px; font-style: normal; font-size: var(--fs-sm, 13px); font-weight: 700; color: var(--red); }
+.yx-codex .yx-cc-w p { margin: 1px 0 0; font-size: var(--fs-sm, 13px); line-height: 1.25; font-weight: 600; color: #4a3d30; }
+/* 横屏矮屏：可用高度不够放两排按钮加一格法器，视图按钮和角色按钮并成一排，格子压成单行 */
+@media (max-height: 460px) {
+  .yx-codex .yx-cc { flex-direction: row; flex-wrap: wrap; column-gap: 6px; row-gap: 4px; align-items: center; }
+  .yx-codex .yx-cc-chip { padding: 0 8px; }
+  .yx-codex .yx-cc-line, .yx-codex .yx-cc-grid, .yx-codex .yx-cc-list { flex: 1 0 100%; }
+  .yx-codex .yx-cc-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px; }
+  .yx-codex .yx-cc-w { padding: 2px 6px; gap: 6px; border-width: 1px; }
+  .yx-codex .yx-cc-w img { width: 28px; height: 28px; }
+  .yx-codex .yx-cc-w p { line-height: 1.15; margin: 0; }
+  .yx-codex .yx-cc-w b { line-height: 1.15; }
+}
+/* 宽屏：12 件一页放完后下面会空一截，格子放大（图标、字号、内边距）把高度用起来 */
+@media (min-width: 1600px), (min-height: 900px) {
+  .yx-codex .yx-cc-grid { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
+  .yx-codex .yx-cc-w { padding: 10px 10px; gap: 10px; }
+  .yx-codex .yx-cc-w img { width: 44px; height: 44px; }
+  .yx-codex .yx-cc-w b { font-size: 16px; }
+  .yx-codex .yx-cc-w i, .yx-codex .yx-cc-w p { font-size: 13px; }
+  .yx-codex .yx-cc-w p { margin-top: 4px; }
+}

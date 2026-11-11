@@ -1,0 +1,13 @@
+node_modules/
+dist/
+shots/
+*.log
+.vite/
+dist-cf/
+.wrangler/
+.data/
+coverage/
+.DS_Store
+
+# tools/art 生成的股票分层部件（运行时不读），node tools/art/build.ts 重新生成
+public/assets/art/v3/stocks/*/parts/

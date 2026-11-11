@@ -1,0 +1,146 @@
+/* 我的账号页（.me-page 是 Panel 本身）：外框一屏高，顶上一排页签，下面一个页签的内容；长列表按高度翻页，页面不滚（docs/ui.md 第 9、11 节） */
+.me-page { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3) var(--s-4); }
+/* 外框默认按内容高（资料、隐私、安全、邀请码空或少），不留一大块空框；有要按高度翻页的名单（云存档、邀请码多）时撑满一屏、Paged 才量得出高度 */
+.me-page:has(.me-list:not(.me-list--fit)) { flex: 1; }
+.me-page .panel__title { margin: 0; flex: none; }
+.me-page .banner { flex: none; margin: 0; }
+
+/* 页签：窄屏均分一行，宽屏靠左排 */
+.me-page .me-tabs { flex: none; display: flex; gap: var(--s-2); }
+.me-page .me-tabs button { flex: 1 1 0; min-width: 0; white-space: nowrap; min-height: 36px; padding: 0 var(--s-2); font: inherit; font-size: var(--fs-sm); font-weight: 700; color: var(--ink); background: var(--white); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); cursor: pointer; }
+.me-page .me-tabs button.tabs__on { background: var(--accent); color: var(--white); box-shadow: inset 0 -3px 0 var(--accent-deep); }
+@media (hover: hover) { .me-page .me-tabs button:not(.tabs__on):hover { background: var(--highlight-warm); } }
+@media (pointer: coarse) { .me-page .me-tabs button { min-height: var(--tap); } }
+
+.me-page .me-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.me-page .me-one { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.me-page .me-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-4); align-items: start; }
+/* 两栏顶部对齐、不等高；要翻页的名单仍拉满这一行的高度 */
+.me-page .me-cols > .me-list:not(.me-list--fit) { align-self: stretch; }
+.me-page .me-cols > * { min-width: 0; min-height: 0; }
+
+/* 一块内容：和排行页的卡片一个样 */
+.me-page .me-card, .me-page .me-list { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--face-paper); }
+.me-page .me-list { flex: 1; }
+.me-page .me-list--fit { flex: none; }
+.me-page .me-card--note { flex: none; justify-content: center; }
+.me-page .me-cols > .me-card--note { flex: 1; justify-content: flex-start; }
+.me-page .me-card .row { margin: 0; gap: var(--s-2); }
+.me-page .me-body > .me-one > .me-card { flex: none; }
+/* 说明卡按内容高，剩下的高度给下面的列表（窄屏原来被上一条撑到半屏、字飘在中间） */
+.me-page .me-body > .me-one > .me-card--note { flex: none; }
+
+/* 资料 */
+.me-page .facts { margin: 0; gap: var(--s-1) var(--s-4); }
+.me-page .facts .inline-link { min-height: 32px; }
+@media (pointer: coarse) { .me-page .facts .inline-link { min-height: var(--tap); } }
+.me-page .me-rename { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-1) var(--s-2); align-items: end; }
+.me-page .me-rename .field { min-width: 0; }
+.me-page .me-rename .form-error, .me-page .me-rename .ok { grid-column: 1 / -1; }
+.me-page .me-card .me-actions { margin-top: auto; }
+/* 窄屏够高时资料卡里三块（资料、改昵称、按钮）上下排开，不在底下空一截 */
+@media (max-width: 599px) and (min-height: 700px) {
+  .me-page [data-testid="me-profile"] { justify-content: space-evenly; }
+  .me-page [data-testid="me-profile"] .me-actions { margin-top: 0; }
+  .me-page [data-testid="me-profile"] .facts { row-gap: var(--s-3); font-size: var(--fs-md); }
+}
+
+/* 隐私开关 */
+.me-page .me-switch { display: flex; flex-direction: column; gap: 0; }
+.me-page .me-switch .check { min-height: 0; padding: var(--s-1) 0; align-items: flex-start; line-height: 1.4; }
+.me-page .me-switch .check input { margin-top: 1px; }
+.me-page .me-switch .note, .me-page .me-card--note .note { line-height: 1.4; }
+.me-page .me-switch + .me-switch { border-top: var(--bw-thin) dashed var(--dashed); padding-top: var(--s-2); }
+
+/* 云存档、邀请码的行 */
+.me-page .saves-row, .me-page .invite-code { padding: var(--s-2) var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); }
+.me-page .saves-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-3); }
+.me-page .saves__info { min-width: 0; text-align: right; font-size: var(--fs-sm); }
+.me-page .invite-code { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); }
+.me-page .invite-code .row { margin-left: auto; }
+.me-page .code-mid { font-size: var(--fs-lg); }
+.me-page .me-list .paged__list { gap: var(--s-2); }
+.me-page .me-list > .empty { flex: 1; justify-content: center; padding: 0; }
+.me-page .me-list > .empty svg { max-height: 72px; width: auto; }
+
+/* 安全：窄屏上面一排选操作，下面一个表单；宽屏左边一列选 */
+.me-page .me-safe { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.me-page .me-safe__menu { flex: none; display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.me-page .me-safe__menu button { flex: 1 1 0; white-space: nowrap; min-height: 36px; padding: 0 var(--s-2); font: inherit; font-size: var(--fs-sm); font-weight: 700; color: var(--ink); background: var(--white); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); cursor: pointer; }
+.me-page .me-safe__menu button.tabs__on { background: var(--highlight-warm); box-shadow: inset 0 -3px 0 var(--accent); }
+.me-page .me-safe__menu button.me-safe__danger { color: var(--danger); }
+@media (pointer: coarse) { .me-page .me-safe__menu button { min-height: var(--tap); } }
+.me-page .me-safe__pane { flex: 1; overflow: hidden; }
+.me-page .me-safe__pane .form { gap: var(--s-2); }
+.me-page .me-safe__pane .linkish { min-height: 32px; }
+.me-page .me-safe__pane .check { min-height: 32px; }
+@media (pointer: coarse) { .me-page .me-safe__pane .linkish, .me-page .me-safe__pane .check { min-height: var(--tap); } }
+
+/* 恢复码卡片（换恢复码） */
+.me-page .recovery { gap: var(--s-2); }
+.me-page .recovery__lead { line-height: 1.5; font-size: var(--fs-sm); }
+.me-page .recovery__code { padding: var(--s-2); font-size: var(--fs-lg); }
+.me-page .recovery .check { min-height: 32px; }
+@media (pointer: coarse) { .me-page .recovery .check { min-height: var(--tap); } }
+
+/* 窄屏：说明和提示字压紧一点 */
+@media (max-width: 560px) {
+  .me-page { padding: var(--s-2) var(--s-3); }
+  .me-page .field__hint { line-height: 1.3; }
+}
+
+/* 矮屏（手机横屏）：标题和页签并一行，内容两栏 */
+@media (max-height: 600px) {
+  .me-page { flex: 1; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: var(--s-3); row-gap: var(--s-2); padding-block: var(--s-2); }
+  .me-page > .banner { grid-column: 1 / -1; }
+  .me-page .me-tabs { grid-column: 2; align-self: center; }
+  .me-page .me-body { grid-column: 1 / -1; grid-row: 2; }
+  .me-page .me-one { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-2) var(--s-3); }
+  .me-page .me-safe { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: var(--s-3); }
+  .me-page .me-safe__menu { flex-direction: column; flex-wrap: nowrap; }
+  .me-page .me-safe__menu button { flex: 1 1 0; min-height: 0; }
+}
+
+/* 宽屏：页签靠左不拉满，安全页左边一列选操作 */
+@media (min-width: 960px) and (min-height: 600px) {
+  .me-page { padding: var(--s-4) var(--s-5); gap: var(--s-3); }
+  .me-page .me-tabs { justify-content: flex-start; }
+  .me-page .me-tabs button { flex: none; padding: 0 var(--s-5); min-height: 40px; }
+  .me-page .me-card, .me-page .me-list { padding: var(--s-4); gap: var(--s-3); }
+  .me-page .me-safe { display: grid; grid-template-columns: 200px minmax(0, 480px); gap: var(--s-4); justify-content: center; align-items: start; }
+  .me-page .me-safe__menu { flex-direction: column; flex-wrap: nowrap; justify-content: flex-start; }
+  .me-page .me-safe__menu button { flex: none; min-height: 44px; text-align: left; padding: 0 var(--s-4); }
+}
+
+/* 矮屏的资料页：左边账号信息，右边改昵称和按钮 */
+@media (max-height: 600px) {
+  .me-page .me-card[data-testid='me-profile'] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; align-content: start; column-gap: var(--s-4); }
+  .me-page .me-card[data-testid='me-profile'] .facts { grid-row: 1 / -1; align-content: start; }
+  .me-page .me-card[data-testid='me-profile'] .me-actions { margin-top: 0; align-self: start; }
+  .me-page .facts .inline-link { min-height: 28px; }
+}
+
+/* 矮屏：内容区放宽，隐私三块并排，安全页的表单两列 */
+@media (max-height: 600px) {
+  .narrow:has(> .me-page) { max-width: none; }
+  .me-page .me-card[data-testid='me-privacy'] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); align-content: start; }
+  .me-page .me-card[data-testid='me-privacy'] .me-switch + .me-switch { border-top: 0; padding-top: 0; }
+  .me-page .me-safe__pane .form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-1) var(--s-3); align-items: center; }
+  .me-page .me-safe__pane .form > .note, .me-page .me-safe__pane .form > .form-error, .me-page .me-safe__pane .form > .ok, .me-page .me-safe__pane .form > .btn { grid-column: 1 / -1; }
+  .me-page .me-safe__pane .form > .btn { justify-self: start; }
+  .me-page .me-safe__pane .check { align-items: center; }
+}
+@media (max-height: 600px) {
+  .me-page .me-one > .me-card[data-testid='me-profile'] { grid-column: 1 / -1; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto; grid-template-rows: auto; }
+  .me-page .me-card[data-testid='me-profile'] .me-actions { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+  .me-page .me-card[data-testid='me-profile'] .me-rename { align-self: start; }
+}
+
+/* 安全页签常驻（Me.tsx）：显示时这层包装不占位，里面照旧是 .me-body 的直接一块 */
+.me-page .me-keep:not([hidden]) { display: contents; }
+
+/* 触屏："去好友页"这类行内链接看着小，按得到的范围透明外扩到 44 高，不改排版 */
+@media (pointer: coarse) {
+  .me-page .inline-link { position: relative; }
+  .me-page .inline-link::after { content: ''; position: absolute; left: 0; right: 0; top: min(0px, calc(50% - var(--tap) / 2)); bottom: min(0px, calc(50% - var(--tap) / 2)); }
+}

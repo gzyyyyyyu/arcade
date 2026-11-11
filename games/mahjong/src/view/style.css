@@ -1,0 +1,18 @@
+/* 雀馆的样式。舞台是设计尺寸（横屏 1000×560、竖屏 560×1120），宽高随屏幕比例变（横屏宽 1000–1500，竖屏高 920–1240、宽 560–700），viewport.ts 等比缩放；safe-area 由 #app 让出来。
+ * 下面的尺寸都是舞台里的设计像素。间距、字号、圆角、阴影只用这里的刻度；牌桌上各块的绝对位置（文件末尾两段布局）是例外，按牌桌几何定。 */
+
+/* 按界面分文件（css/ 下），顺序就是原来一整个文件里的顺序：后面的规则压前面的，调换顺序会改画面 */
+@import './css/base.css'; /* 颜色、间距、字号的刻度和舞台 */
+@import './css/topbar.css'; /* 顶栏 */
+@import './css/lobby.css'; /* 选桌页 */
+@import './css/home.css'; /* 游戏主页 */
+@import './css/room.css'; /* 好友房 */
+@import './css/buttons.css'; /* 按钮和点按区 */
+@import './css/tiles.css'; /* 牌 */
+@import './css/table.css'; /* 牌桌 */
+@import './css/table-layout.css'; /* 牌桌的横屏、电脑、竖屏布局 */
+@import './css/dialog.css'; /* 弹窗外壳和快速匹配 */
+@import './css/rules.css'; /* 规则小册子、新手引导、翻页、图鉴 */
+@import './css/settle.css'; /* 结算和颁奖 */
+@import './css/volume.css'; /* 音量面板和转屏提示 */
+@import './css/table-variants.css'; /* 血流成河、三人两房的牌桌补丁 */

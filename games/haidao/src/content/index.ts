@@ -1,0 +1,10 @@
+export * from './defs.ts';
+export { BUILDINGS, BUILDING_KINDS, DEFENSE_KINDS } from './buildings.ts';
+export { TROOPS, SKILLS, SHIELD, TROOP_KINDS, SKILL_KINDS } from './troops.ts';
+export { HQ_LEVELS } from './hq.ts';
+export { RANKS, RANK_HQ, type PirateRank } from './rank.ts';
+export { CAMPAIGN } from './campaign.ts';
+export { BRANCHES, BRANCH_BY_ID, BRANCH_LEVEL, ANTI_AIR, PIERCE, branchOptions } from './branches.ts';
+export * from './tdunits.ts';
+export * from './escortmaps.ts';
+export * from './escortlevels.ts';

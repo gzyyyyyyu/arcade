@@ -1,0 +1,388 @@
+/* ---------- 游戏主页（0.17.0，docs/art.md） ----------
+ * 横屏左边主视觉、右边店名和按钮；竖屏上面主视觉、下面按钮。一屏放下不滚动，8px 网格 */
+.screen.front {
+  display: grid;
+  overflow: hidden;
+}
+[data-orient='land'] .screen.front {
+  grid-template-columns: 1.15fr 1fr;
+}
+
+.home-art {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.home-art .scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* 画的边缘渐隐进板壁：横屏往右、竖屏往下，不和按钮那一栏硬切 */
+[data-orient='land'] .home-art .scene {
+  -webkit-mask-image: linear-gradient(to right, #000 80%, transparent);
+  mask-image: linear-gradient(to right, #000 80%, transparent);
+}
+[data-orient='port'] .home-art .scene {
+  -webkit-mask-image: linear-gradient(#000 82%, transparent);
+  mask-image: linear-gradient(#000 82%, transparent);
+}
+.home-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* 一屏放下（docs/ui.md 第 11 节）：不滚动，手机上缩间距、藏掉和顶栏重复的那行（下面） */
+  justify-content: safe center;
+  overflow: hidden;
+  gap: var(--sp-4);
+  padding: var(--sp-5) var(--sp-5) var(--sp-6);
+  min-height: 0;
+}
+[data-orient='port'] .home-main {
+  padding-top: 0;
+}
+/* 手机（不是电脑版）：玩法名顶栏上已经写着，这里不重复；店名小一号、行距收紧，一屏放下 */
+.stage:not([data-fit='desk']) .home-main {
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4) var(--sp-3);
+}
+/* 横屏手机没有多余高度，仍然不写；竖屏有空，副标题写回来（玩法名顶栏上虽有，主页上没有就找不到当前选的是哪种） */
+.stage[data-orient='land']:not([data-fit='desk']) .home-head .variant {
+  display: none;
+}
+.stage[data-orient='port']:not([data-fit='desk']) .home-head .variant {
+  font-size: var(--fs-md);
+  line-height: 1.3;
+}
+/* 三张入口卡的小字不低于 13px（屏幕上），上下留够间距 */
+.stage:not([data-fit='desk']) .home-main .mode small {
+  font-size: calc(13px * var(--fs-k, 1));
+}
+.stage:not([data-fit='desk']) .home-head .brand {
+  font-size: 48px;
+  letter-spacing: 8px;
+  margin-right: -8px;
+}
+.stage:not([data-fit='desk']) .home-main .pitch {
+  font-size: var(--fs-md);
+  text-align: center;
+}
+.stage:not([data-fit='desk']) .home-main .mode {
+  padding: var(--sp-2);
+}
+[data-orient='port'] .screen.front {
+  grid-template-rows: 42% 1fr;
+}
+/* 竖屏手机：进度胶囊整体下移、离开茶杯和窗台；底下的行距收紧，规则链接离开屏幕底边 */
+.stage[data-orient='port']:not([data-fit='desk']) .home-art .progress {
+  bottom: 1%;
+}
+.stage[data-orient='port']:not([data-fit='desk']) .home-main {
+  padding-bottom: var(--sp-5);
+}
+.stage[data-orient='port']:not([data-fit='desk']) .home-head .brand {
+  font-size: 44px;
+}
+.stage[data-orient='port']:not([data-fit='desk']) .home-main .act.quick {
+  padding-block: var(--sp-1);
+}
+.stage[data-orient='port']:not([data-fit='desk']) .home-main .record {
+  padding-block: 0;
+}
+.home-head {
+  text-align: center;
+}
+.home-head .brand {
+  margin: 0;
+  font-size: 72px;
+  line-height: 1.1;
+  letter-spacing: 12px;
+  /* 字距加在每个字后面，最后一个字后面那截让回去，才真正居中 */
+  margin-right: -12px;
+}
+[data-orient='port'] .home-head .brand {
+  font-size: 56px;
+}
+.home-head .variant {
+  font-size: var(--fs-lg);
+  opacity: 0.85;
+}
+.pitch {
+  margin: 0;
+  font-size: var(--fs-lg);
+  /* 折两行时两行差不多长，不让最后一个字单独落到第二行（三人两房那句在 1920 上就这样） */
+  text-wrap: balance;
+}
+.act.quick {
+  flex-direction: column;
+  flex-shrink: 0;
+  min-width: 288px;
+  height: auto;
+  padding: var(--sp-2) var(--sp-6);
+  line-height: 1.3;
+}
+.act.quick small {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  opacity: 0.8;
+}
+.home-main .quick-variants {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--sp-2);
+  justify-content: center;
+  margin-top: calc(-1 * var(--sp-1));
+}
+.home-main .quick-variants .chip {
+  min-height: max(36px, var(--tap, 36px));
+}
+.modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: var(--sp-3);
+  width: min(100%, 480px);
+}
+.mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-2);
+  border: 2px solid #f3c86b33;
+  border-radius: var(--r-md);
+}
+.mode b {
+  font-size: var(--fs-xl);
+}
+.mode small {
+  font-size: var(--fs-xs);
+  opacity: 0.8;
+}
+.mode.off {
+  opacity: 0.45;
+}
+.record {
+  display: flex;
+  gap: var(--sp-4);
+  padding: var(--sp-1) var(--sp-4);
+  border-radius: var(--r-pill);
+  background: #0000004d;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+.record .down {
+  color: var(--red-hi);
+}
+/* 我的进度：插画底部六个小胶囊，三个一排两排（插画那块是 position: relative 的容器）；不左右滑（docs/ui.md 第 11 节） */
+.home-art .progress {
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  bottom: 3%;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: center;
+  gap: var(--sp-1) var(--sp-2);
+}
+/* 电脑上右边让开茶碗、往上挪一点 */
+[data-fit='desk'] .home-art .progress {
+  right: 24%;
+  bottom: 7%;
+}
+.home-art .prog {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 var(--sp-3);
+  border: 1px solid #ffffff40;
+  border-radius: var(--r-pill);
+  background: #0000008c;
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.home-art .prog svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.home-art .prog-name {
+  opacity: 0.8;
+}
+.home-art .prog-val {
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.screen.front .ver {
+  position: absolute;
+  right: var(--sp-4);
+  bottom: var(--sp-3);
+  font-size: var(--fs-xs);
+  opacity: 0.45;
+}
+/* 竖屏顶家的座位贴着顶栏：章收进座位框里，不被顶栏压住（10-31 立直结算） */
+[data-orient='port'] .badge .stamp {
+  right: 2px;
+  top: 2px;
+}
+/* 选桌页左上角回主页 */
+.screen.lobby > .back {
+  position: absolute;
+  left: var(--sp-4);
+  top: 40px;
+  z-index: 1;
+  background: #00000059;
+}
+/* 竖屏：主页按钮在左上角，和标题同一行（标题居中、两边有空），不单占一行；版本号主页还有，这里藏掉（规范 docs/ui.md 手机） */
+[data-orient='port'] .screen.lobby > .back {
+  top: var(--sp-3);
+}
+[data-orient='port'] .screen.lobby .ver {
+  display: none;
+}
+
+/* 选桌页横屏（11-01 一屏放下）：左右两栏等高，左边标题、玩法、档位，右边规则设置、番型表、开打 */
+[data-orient='land'] .screen.lobby {
+  --lobby-pad: var(--sp-6);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* 行高只取内容那么高：两栏从同一条线起、最高的那栏撑出行高，右栏的"开打"贴着这一行的底，和左栏最后一项底边对齐 */
+  align-content: start;
+  /* 基础的 .screen.lobby 是 flex 居中用的 align-items: center，到了网格里会把两栏各自竖着居中、顶部对不齐 */
+  align-items: stretch;
+  column-gap: var(--sp-5);
+  padding: var(--sp-6) var(--lobby-pad) 0;
+}
+[data-orient='land'] .lobby-l,
+[data-orient='land'] .lobby-r {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 从顶上排：娱乐 / 实盘 / 好友房三页标题在同一位置，左右两栏顶部同一条线（原先各自居中，内容多少不同就上下跳）。
+   * 大屏多垫一截（720 高为 0，1080 高约 90），不让整块贴着顶栏 */
+  justify-content: flex-start;
+  padding-top: clamp(0px, 25vh - 180px, 90px);
+  gap: var(--sp-3);
+  min-height: 0;
+}
+[data-orient='land'] .lobby-r .rules-opts {
+  width: 100%;
+}
+[data-orient='land'] .lobby-r .go-row {
+  margin: auto calc(-1 * var(--sp-5)) 0;
+  padding-bottom: 0;
+}
+/* 钱包说明比一排档位卡窄一点：折成两行居中，和卡组同一条中线（原先一行比卡组宽，居中参照不一致） */
+[data-orient='land'] .screen.lobby .lobby-l .wallet-note {
+  max-width: 30em;
+}
+/* 横屏只有 560 高：店名和玩法顶栏上已经写着，选桌页不重复，档位和规则设置往上挪一行（0.18.0 手机专项） */
+[data-orient='land'] .screen.lobby .lobby-head .variant {
+  display: none;
+}
+/* 竖屏高：档位、规则下面空一大块（0.18.0 前），上面垫一块主页同款的茶馆画，占掉剩下的高度，开打按钮还是贴底（0.18.1） */
+.screen.lobby > .lobby-art {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  align-self: stretch;
+  /* 上沿让开顶栏按钮向下撑出的点按区（--tap 比顶栏高出的那截），灯笼不再被它盖住 */
+  margin: calc(-1 * var(--sp-5) + max(0px, var(--tap, 0px) - 40px)) calc(-1 * var(--lobby-pad)) calc(-1 * var(--sp-4));
+  container-type: size;
+}
+/* 剩下的高度不够（实盘、好友房档位多，规则设置展开）：画只剩半截窗户不好看，整块不画 */
+@container (max-height: 260px) {
+  .screen.lobby > .lobby-art .scene {
+    display: none;
+  }
+}
+.screen.lobby > .lobby-art .scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: linear-gradient(#000 70%, transparent);
+  mask-image: linear-gradient(#000 70%, transparent);
+}
+[data-orient='land'] .screen.lobby > .lobby-art {
+  display: none;
+}
+/* 选桌页的标题是模式名（娱乐 / 实盘 / 好友房），比主页的店名小一号 */
+.screen.lobby .lobby-head h1 {
+  font-size: 44px;
+}
+[data-orient='land'] .stake { min-width: 128px; }
+/* 横屏牌桌还是 1000 宽的几何，舞台变宽时居中，两边露出茶馆的板壁（art.css，0.17.1）；竖屏同理，560 宽（iPad 竖着拿，0.18.0） */
+[data-orient='port'] .table {
+  inset: 0 auto 0 calc(50% - 280px);
+  width: 560px;
+}
+[data-orient='land'] .table {
+  inset: 0 auto 0 calc(50% - 500px);
+  width: 1000px;
+  /* 木框的倒角高光（同 art.css 的 .table）加一圈落在板壁上的投影，桌子像是摆在屋里 */
+  box-shadow:
+    inset 0 1px 0 #ffd9a040,
+    inset 0 0 0 1px #1a0a04,
+    0 10px 28px #000000b3,
+    0 0 0 1px #00000080;
+}
+
+
+/* ---------- 主页版面修正（只管两种尺寸，别的尺寸不受影响） ---------- */
+/* 360 级窄竖屏手机（视口宽 ≤ 380）：舞台缩到约 0.64 倍，进度胶囊字放到屏幕约 15px，
+ * 插画矮一截、让出两排胶囊的位置（胶囊不再压窗台和茶杯），底部多留一截安全边距。一屏放下不滚动 */
+@media (max-width: 380px) {
+  .stage[data-orient='port']:not([data-fit='desk']) .screen.front {
+    grid-template-rows: 40% 1fr;
+  }
+  .stage[data-orient='port']:not([data-fit='desk']) .home-art .scene {
+    height: calc(100% - 84px);
+  }
+  .stage[data-orient='port']:not([data-fit='desk']) .home-art .progress {
+    bottom: 4px;
+    gap: var(--sp-1);
+  }
+  .stage[data-orient='port']:not([data-fit='desk']) .home-art .prog {
+    height: 40px;
+    padding: 0 var(--sp-2);
+    font-size: calc(15px * var(--fs-k, 1));
+  }
+  .stage[data-orient='port']:not([data-fit='desk']) .home-main {
+    padding-bottom: 36px;
+    gap: 6px;
+  }
+}
+
+/* 大屏电脑（视口宽 ≥ 1600）：左边标签条所在的呢子不再渐隐（以前 80% 就开始淡，胶囊一半压在渐变上），
+ * 右边入口区的副标题、小字放大一档；介绍句和模式卡标题不放大（放大后三人两房那句折两行，规则链接被挤出屏幕，11-03 量测） */
+@media (min-width: 1600px) {
+  .stage[data-fit='desk'][data-orient='land'] .home-art .scene {
+    -webkit-mask-image: linear-gradient(to right, #000 94%, transparent);
+    mask-image: linear-gradient(to right, #000 94%, transparent);
+  }
+  .stage[data-fit='desk'][data-orient='land'] .home-art .prog {
+    background: #000000b3;
+  }
+  .stage[data-fit='desk'][data-orient='land'] .home-head .variant {
+    font-size: var(--fs-xl);
+  }
+  .stage[data-fit='desk'][data-orient='land'] .home-main .act.quick small,
+  .stage[data-fit='desk'][data-orient='land'] .home-main .record {
+    font-size: var(--fs-md);
+  }
+  .stage[data-fit='desk'][data-orient='land'] .home-main .mode small {
+    font-size: var(--fs-md);
+  }
+  .stage[data-fit='desk'][data-orient='land'] .home-main .modes {
+    width: min(100%, 520px);
+  }
+}

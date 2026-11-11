@@ -1,0 +1,183 @@
+# 快速匹配
+
+> 好友房之外，能在游戏里直接匹配别人。本文写 kit 这一层怎么做、游戏接什么、现在不做什么；接法的代码见本文第 8 节。
+> 房间规范以仓库根 `docs/platform-backend.md` 第 4 节为准，聊天以本目录 `chat.md` 为准，钱包和档位以仓库根 `docs/economy.md` 为准。
+
+## 0. 结论
+
+- 入口：游戏主页 / 选档页加一个"快速匹配"，选好档位后进入排队。同一个游戏、同一个档位的人排在一起；娱乐和实盘分开排，档位不同不凑。
+- 等多久：最多 **15 秒**（`waitMs`，游戏可调）。凑满一桌立刻开；到 15 秒时：
+  - 排着的真人 **≥ 2**：开一个房间，真人入座、空位电脑补，马上开打；
+  - 只有自己 **1 个**：不开房间，直接转成本机单机（同一档位，和现在点"单机"一样），不占任何联机额度。界面说"现在没人在排，先和电脑打"。
+- 开出来的是普通的联机房间（现有 `GameRoom`，规则、计时、托管、钱包、互动都不变），只是没有房主、不用点"开打"，房间码不给人看。
+- **不新建 Worker**：每个游戏现有的 Worker 里加一个 Durable Object 类（排队），房间仍用现有的房间 DO。
+- 陌生人桌：快捷短语和表情照常；**打字聊天默认开**，设置里有"和陌生人打字聊天"开关可以关；"屏蔽他"照常可用。
+  平台屏蔽名单（`ARCADE.blockedAmong`）直接用："屏蔽过的人不会被排到一桌"；单独部署没有平台时跳过（第 5 节）。
+- 计量照旧：排队本身 0 行存储写入；每张匹配桌对每个真人都占一个开房名额（同时 1 个、每天 6 个这套），写入走同一个计量。
+
+## 1. 流程
+
+```
+浏览器                    游戏 Worker                 排队 DO（每个档位一个）             房间 DO
+  │ 点"快速匹配"(档位 t)     │                            │                                   │
+  │── WS /match?t=… ───────▶│ acceptMatch：认人、查 Origin │                                   │
+  │                         │ 查计量（有在打的房间就回码）── RPC kitEnqueue ─▶│ ctx.acceptWebSocket，附件记人  │
+  │◀──── {t:'waiting', n, left} ───────────────────────────│ 人数变了就推一次                    │
+  │                         │                            │ 满一桌或到 15 秒且 ≥2 人：           │
+  │                         │                            │ 逐个向计量占名额 → kitCreateMatch ─▶│ 建房、记下这几个人的座位
+  │◀──── {t:'matched', code} ──────────────────────────────│ 关掉这几条排队连接                  │
+  │── 现有的 RoomClient 进房（acceptJoin）────────────────────────────────────────────────────▶│ 全到齐或 20 秒后自动开打
+  │                                                                                         │ 没来的座位电脑补
+  │◀──── {t:'solo'}（只剩自己、到 15 秒；或联机忙）── 页面转本机单机                              │
+```
+
+- 排队连接用 WebSocket（休眠），不用轮询：人数变化服务端推，用户关页面就自动出队，不用另外"退出排队"的请求。
+- 页面显示："正在找人 · 已有 2 人 · 还剩 9 秒"，下面一个"取消"（关连接）和一个"不等了，和电脑打"（转单机）。
+- 匹配到以后，页面用现有的 `RoomClient` 进房，和好友房同一套界面，只是不显示房间码、邀请、叫人这些好友房的按钮。
+
+## 2. 排队 DO（kit：`arcade-kit/match` 的 `MatchQueue`）
+
+- **一个档位一个实例**：`idFromName('<档位 key>')`。现在一天几个人，一个实例足够；档位 key 由游戏给（如 `real-2`、`fun-normal`），排队 DO 只当字符串比较，不认识档位的含义。
+- **0 行存储**：排着的人就是 `ctx.getWebSockets()`，附件里放 `{ userId, name, since }`（4.1 一样只放这些）。DO 被驱逐后连接和附件还在，名单不丢。
+- **一个闹钟**：最早那个人的 `since + waitMs`。只在"队里从空变成有人"或"凑桌后还有剩下的人"时设，只往早挪（4.1）。每次醒来写 1 行（闹钟）。
+  一天几十次排队，写入可以忽略。
+- **凑桌**：按排队先后取前 `tableSize(tier)` 个人（这个档位一桌最多几个真人，游戏给，默认 `seats`）。坐哪几个座位由房间定：
+  默认随机（`crypto.getRandomValues`，不在规则核心里），游戏有特殊要求（比如掼蛋两个真人坐对家）在房间类覆盖 `matchSeats(n, count)`。房间按现有规则补电脑。
+- **凑桌途中**要 await 平台和房间：这时进来的人、到点的闹钟只记一笔，凑完再来一轮；被选中的人这一轮里不会被别的桌再选。
+  入队先回 101 再凑桌（`ctx.waitUntil`），新来的人不用等别人凑桌。两个外部调用各等最多 3 秒（`MATCH_CALL_MS`）：屏蔽名单超时按空的算；
+  建房超时、出错时这一桌的人转单机（`unavailable`），这一次不接着凑，剩下的人等下一次闹钟——锁不会被一连串超时占着（安全审阅）。
+  页面的 `MatchClient` 另有兜底：到点再过 10 秒（`MATCH_GRACE_MS`）还没有结果就自己转单机。
+- **配置对不上**：`tableSize` 比这一局的座位多、`roomOptions` 过不了 `RoomGame.options` 时，房间每桌都回 bad，排到的人都转单机，线上只有日志。
+  游戏在自己的测试里用 `arcade-kit/game` 的 `matchConfigErrors` 先查（纯函数，Node 测试能用）。
+- **同一个人只排一次**：同一个 userId 再连进来，旧连接 4001 让位（和房间一样）；在别的档位排着的，由游戏 Worker 在入队前看不出来，第一版接受（同一个人两个标签页各排一个档位，最多凑到两桌，各占一个开房名额，名额管住了上限）。
+- **限速**：每个连接沿用令牌桶（4.6，每秒 5 条），排队连接其实只收不发；每人每小时入队 ≤ 30 次（内存里记，被驱逐就清零，接受），超了 4029。
+  没入队的连接不存在（入队就是连接本身），所以没有"没入座的连接满了"这一类。队长上限 200，满了回"人太多，稍后再试"（1013），挡住刷连接。
+- **不碰牌局**：排队 DO 不 import 规则、不读房间状态、不知道谁赢谁输。电脑补位、公平底线全在房间里，和好友房一样。
+
+## 3. 房间的改动（kit：`GameRoom`）
+
+- 新 RPC `kitCreateMatch(code, players: Identity[], options)`：只有排队 DO 调（和 `kitCreate` 一样走 RPC，身份是参数）。
+  先向计量一次占齐所有人的名额（`kitReserveMany`，占不齐一个都不占，回第一个被挡的人和原因）；
+  建房时把这几个人预先记在座位上（`kind: 'human'`、`awaySince` = 建房时间），状态里记 `match: { users, joinBy }`。`host` 只是第一个人，不起房主作用。
+  开房写入和现在一样（建表另算，状态 1 + 闹钟 1）。
+- **自动开打**：预定的人都连上就开（和最后一个人进房同一步）；`matchJoinMs`（默认 20 秒）到了还没来的座位照样绑给他、由电脑代打（`auto`），
+  他后来连上就交还（和掉线托管一样）。用现有的那一个闹钟（4.1），开打这一步写 ≤ 2 行。
+  没来的人的开房名额和当天次数在开打那一步退给他（`kitReleaseMany` 的 cancel，全站开房数不退）：关了页面的人不白扣一个、也不被 `has_room` 卡到这桌打完。
+  开打以后的一切（30 秒一手、掉线 60 秒托管、收回、寿命、入站额度）都是现有逻辑。
+- **只有被排进来的人能进**：别人拿到码进房也回 4004（和"没有这个房间"一样），所以没有旁观；等人时不能换座（`seat_taken`）。
+  有人中途离开，座位交给电脑（现有的离座逻辑），不再补真人。`RoomInfo.match` 为 true，页面据此藏起房间码、邀请、叫人和"开打"。
+- **再来一局**：沿用游戏现有的续局（同一房间、同一批人）；有人走了就电脑补。不回到排队。
+- 没有房主：现有只给房主的操作（开打、改选项）在 `match` 房间里都不需要，统一回 `not_host`。
+- 打完、关房时还的是排进来的每个人的名额（`kitReleaseMany`），不只第一个人。
+
+## 4. 计量和限速（照 platform-backend 第 4 节）
+
+| 事 | 存储写入 | 计量 |
+|---|---|---|
+| 入队、出队、人数变化推送 | 0 | 不占名额；只在 `acceptMatch` 时问一次"这个人有没有在打的房间"（只读） |
+| 排队闹钟醒来 | 1（闹钟） | — |
+| 凑出一桌 | 房间 4 行 + 计量（每人 1 行 + 当天 1 行） | 每个真人各占一个开房名额（`roomsPerUser` 同时 1 个、`dailyRoomsPerUser` 每天 6 个）；全站开房数只记 1；`busyWrites` 照旧 |
+| 匹配桌开打以后 | 和好友房一样（每步 ≤ 2 行） | 和好友房一样 |
+
+- **每天 6 个开房名额，匹配也占**：好友房和匹配桌共用 `dailyRoomsPerUser`。这个数在游戏 `wrangler.jsonc` 的 `vars.KIT_QUOTA` 里改
+  （比如 `{ "dailyRoomsPerUser": 20 }`），不用发版；`roomsPerUser`、`dailyRooms` 同理。
+- **入队前先问一次计量**（`kitPeek`，只读）：已经有在打的房间回 `{ t: 'has_room', code }`，页面带他回那个房间；
+  今天的次数用完了回 `{ t: 'solo', why: 'daily_limit' }`，页面说"今天联机局数用完了，先和电脑打"（`MATCH_TEXT`），不让他白等 15 秒。
+- **凑桌时才被挡的人**（排着的时候别处开了房、用完了次数）：这个人单独收到 `has_room` 或 `solo`，其他人照常凑。
+- **联机忙**（计量说 `busy`，或者连不上）：整队人都收到 `solo`，页面转单机，说"联机人多，先和电脑打"。不开新房这条和好友房一致。
+- 入站、重连、寿命、单连接令牌桶：房间里全部沿用（4.6）。排队 DO 每次请求都计费，所以页面只建一条排队连接、不轮询；推送只在人数变了时发（带剩余毫秒数，页面自己倒计时），不每秒推。
+  排队连接只收不发，浏览器发任何东西都 1008 断开。
+- 资源总账：匹配桌和好友房都记在本游戏的 `stopWrites` 里（4.7 的表），不另分额度。
+
+## 5. 陌生人：聊天、屏蔽、举报
+
+快速匹配排到的是不认识的人，和好友房（互相给过房间码）不一样，边界这样定：
+
+- **能看到什么**：别人只看到昵称和头像字（和好友房一样）；不给 userId、好友码、用户名。牌桌上没有"加好友"（第一版不做）。
+- **快捷短语、表情、道具**：照常（预设的内容，不会冒犯人）；"屏蔽他 / 全部屏蔽"照常，本地生效、对方不知道（`table-fun`）。
+- **打字聊天默认开**：
+  - 游戏设置里加一项"和陌生人打字聊天"（默认开；好友房的"聊天"开关不变）。存在游戏自己的存储里（`<id>.` 前缀）。
+  - 关掉时，页面进匹配房间就不带 `chat=1`：现有机制下房间不给这条连接转发聊天，自己也发不了，聊天页显示"陌生人桌没开打字聊天（设置里可以开）"。
+  - 两个人都开着才互相看得到。房间、过滤、限速全部沿用 `chat.md`，kit 房间这一层**不用为匹配改聊天代码**。
+  - 理由：现在是邀请制，排到的都是受邀用户；聊天是重要功能；过滤（挡链接和号码、30 个字）、限速、屏蔽都在。
+  - **以后开放公开注册时重新评估这个默认值**（陌生人之间打字最容易出事：骚扰、引流）。
+- **平台屏蔽名单**：
+  - 生效方式是"屏蔽过的人排不到一桌"：排队 DO 凑桌前调平台的 `ARCADE.blockedAmong(userIds)`（`chat.md` 第 6 节说的同一个 RPC，最多 9 人、只读），
+    有屏蔽关系的两个人不放进同一桌（后来的那个留在队里继续等；等到点只剩他就转单机）。
+  - 单独部署没有 `ARCADE`、调用出错都跳过，只剩牌桌上的本地屏蔽。
+  - 牌桌上"屏蔽他"同时写进平台屏蔽名单（以后不再排到）：要平台再出一个按房间座位屏蔽的 RPC（页面拿不到对方 userId，只能经房间转），**第一版不做**，先只有本地屏蔽。
+- **举报**：第一版不做。聊天不落库（`chat.md` 第 4 节），没有能举证的记录；先靠过滤、限速、屏蔽和设置里的开关。以后做的话要先定记录保留多久、谁来看，再动存储。
+- **实盘档**：钱包和好友房实盘一样走房间的 `perform`（每人一份、只结回一次），陌生人之间筹码只在牌局里输赢，不能转让（`economy.md`）。
+
+## 6. 代码在哪、游戏要做什么
+
+**kit 里**
+- `src/match.ts`（`arcade-kit/match`）：`MatchQueue` 基类（DO，依赖 `cloudflare:workers`，不进浏览器包）。游戏填 `seats`，可选覆盖 `tableSize(tier)`、`roomOptions(tier)`、`waitMs`、`maxQueue`、`perHour`。
+- `src/worker.ts`：`acceptMatch(request, env, tier, { tiers, ...GateOptions })`：和 `acceptJoin` 一样认人、查 Origin；入队前问计量（`kitPeek`），计量连不上回 `solo: unavailable`（fail-closed，但不报错）。
+- `src/room.ts`：`kitCreateMatch`、可覆盖的 `matchSeats(n, count)`、`RoomLimits.matchJoinMs`、预定座位、自动开打、外人 4004、名额按人还。
+- `src/meter.ts`：`kitReserveMany`、`kitReleaseMany`（一张桌一次办完）、`kitPeek`（只读）；`kitReserve`、`kitRelease` 经它们走。
+- `src/client.ts`：`MatchClient`（`start()`、`cancel()`、`onWaiting(n, seats, leftMs)`、`onMatched(code)`、`onSolo(why)`、`onHasRoom(code)`）、`MATCH_TEXT`；断线不重连（直接 `solo`）。
+- `src/protocol.ts`：`MatchDownMsg`（`waiting`、`matched`、`solo`、`has_room`）、`MatchSoloWhy`、`RoomInfo.match`。协议只加不改。
+- `src/game.ts`：`matchConfigErrors`。
+- 测试 `test/match.test.ts`：排队 0 行写入、满桌立刻开、到点 ≥2 人开 / 1 人 solo、同人顶替、每小时上限、入队前 has_room / daily_limit、不开放的档位、只收不发、
+  屏蔽的两人不同桌、自动开打 ≤2 行、外人进不来、not_host、等人不换座、没来的电脑代打回来交还、关房一起还名额、计量挡人一个都不占。
+- 根文档 `docs/platform-backend.md` 第 4 节有一行"匹配桌"。
+
+**每个游戏**
+- `worker/`：导出一个继承 `MatchQueue` 的类（填 `seats`，按档位不同的覆盖 `tableSize` / `roomOptions`）；`wrangler.jsonc` 加 DO 绑定 `MATCH` 和迁移（`new_sqlite_classes`）；
+  路由 `/match/<档位>` 接 `acceptMatch`（`tiers` 列出开放的档位）。两个真人要坐特定座位的，在房间类覆盖 `matchSeats`。
+- 页面：选档页加"快速匹配"、排队界面（人数、倒计时、取消、不等了）、收到 `matched` 用现有 `RoomClient` 进房（`room.match` 时藏起房间码、邀请、叫人）、收到 `solo` 转本机单机（同档位）。
+- 设置：加"和陌生人打字聊天"（默认开），匹配房间按它决定带不带 `chat=1`。
+- 档位：只开放已经有单机的档位（`solo` 要能接住）；某档单机不支持实盘的，这一档的 `solo` 改成"现在没人，过会儿再来"，由游戏决定。
+- 冒烟：两个浏览器上下文同档排队 → 同一桌；一个人排 15 秒 → 转单机。
+
+**平台**：提供 `ARCADE.blockedAmong(userIds)`；大厅显示"现在有人在排"现在不做。
+
+## 7. 现在不做
+
+- 按水平匹配（段位、ELO）、跨档位或跨游戏凑桌、"任意档位都行"。
+- 中途加入别人在打的匹配桌、匹配桌旁观、匹配桌里换人补真人。
+- 牌桌上加陌生人好友、"屏蔽他"写进平台名单、举报。
+- 排队时一边玩单机、排到了再切过去；排队推送通知（"有人在排"）、大厅显示排队人数。
+- 每个档位多个排队实例（一天几个人用不上；人多了再按 `idFromName('<档位>:<分片>')` 分）。
+- 同一个人跨档位只排一个（名额管住上限，第一版接受）。
+
+## 8. 接法示例（代码）
+
+Worker 里加一个排队类、一条路由（`wrangler.jsonc` 加 DO 绑定 `MATCH` 和迁移 `new_sqlite_classes`，不新建 Worker）：
+
+```ts
+import { MatchQueue } from 'arcade-kit/match';
+import { acceptMatch } from 'arcade-kit/worker';
+
+export class Queue extends MatchQueue<Env> {
+  protected readonly seats = 4; // 一桌最多几个真人
+  // 按档位不同的：tableSize(tier)、roomOptions(tier)（开桌带的开局选项，房间照常用 RoomGame.options 校验）
+  // 可调：waitMs（15 秒）、maxQueue（200）、perHour（每人每小时 30 次）
+}
+
+// fetch 里：
+const m = /^\/games\/mygame\/match\/([a-z0-9-]+)$/.exec(url.pathname);
+if (m) return acceptMatch(request, env, m[1]!, { tiers: ['fun', 'real-1'], siteOrigin: env.SITE_ORIGIN });
+```
+
+页面：
+
+```ts
+import { MATCH_TEXT, MatchClient } from 'arcade-kit/client';
+
+const mc = new MatchClient({
+  url: `${wsBase}/match/${tier}`,
+  onWaiting: (n, seats, leftMs) => showQueue(n, seats, leftMs), // 人数变了才推，倒计时页面自己走
+  onMatched: (code) => enterRoom(code), // 照常 new RoomClient 进房；room.match 为 true 时藏起房间码、邀请、"开打"
+  onHasRoom: (code) => enterRoom(code), // 已经有开着的房间
+  onSolo: (why) => playSolo(tier, MATCH_TEXT[why]), // 只剩自己、今天局数用完、联机忙……转单机
+});
+mc.start(); // "取消""不等了"都是 mc.cancel()
+```
+
+- 档位配置在游戏自己的测试里查一遍：`expect(matchConfigErrors(game, tiers, tableSizeOf, roomOptionsOf)).toEqual([])`（`arcade-kit/game`），对不上的话线上每桌都会转单机。
+- 房间不用改：匹配桌是普通的 `GameRoom`，排进来的人建房时已经坐好，人到齐（或等满 `RoomLimits.matchJoinMs`，默认 20 秒）自动开打，没来的电脑代打、来了交还；
+  只有排进来的人能进（别人 4004），`start` 回 `not_host`。两个真人要坐特定座位（比如对家）的，房间类覆盖 `matchSeats(n, count)`。
+- 额度：每张匹配桌每个真人占一个开房名额，和好友房共用 `dailyRoomsPerUser`（默认每天 6 个，游戏 `vars.KIT_QUOTA` 里改）；入队前就问计量，用完了直接 `solo: daily_limit`。
+- 陌生人聊天：房间不用为匹配改，页面按设置"和陌生人打字聊天"（默认开）决定带不带 `chat=1`。平台的屏蔽名单（`ARCADE.blockedAmong`）由排队自动用，屏蔽过的人排不到一桌。

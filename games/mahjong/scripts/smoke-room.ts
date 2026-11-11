@@ -1,0 +1,522 @@
+/**
+ * 好友房双浏览器冒烟（AGENTS.md 第 4 节）：真的 Worker + 页面跑在本地 wrangler dev 里，平台和平台钱包换成 dev/arcade.dev.ts
+ * （认 cookie __Host-sid，钱包用 arcade-kit/testing 的假钱包）。A 横屏 1280×720，B 竖屏 390×844，两个人用不同的 sid。
+ *
+ *   npm run build:cf && npm run smoke:room [-- --rounds 2] [--shots 目录] [--only flow|three]
+ *
+ * 内容：
+ * 1. 娱乐房：A 开房（局数 4）、B 凭 ?room= 进等人页坐下、A 开打，两边自动打满 N 局（换三张、定缺、能胡就胡、不然过、打最右边那张），
+ *    B 离开并确认，A 继续打、牌桌还在动；
+ *    中途 C 凭链接进来旁观（看得到桌面、没有手牌、不能扔东西），点"坐下"接管电脑座位，离开再进来是"回到我的座位"；
+ * 2. 实盘小档房：A 一个人时"开打"灰着、有"至少要两个人"的提示；A、B 进房开打，检查假钱包各扣 2,000、stakes 里各有 mahjong 的 server 模式一份；
+ *    B 一局打到一半离开：这一局由电脑替他打完、那一份先还在；A 打完这一局，只剩 A 一个人在下注：这一场结束，两个人的那一份都结回、余额加回结回的数，A 的结算上写着提前结束。
+ * 3. 血流成河娱乐房：A 在规则设置里开"血流成河"再开房，等人页写着血流成河；两边自动打到有人胡第二次（名牌上"胡×2"），
+ *    其间胡过的真人手里能点的牌最多一张（锁手牌）。
+ * 4. 三人两房娱乐房（`--only three` 只跑这一段）：A 在规则设置里开"三人两房"再开房，等人页只有 3 个座位；A 一个真人加两个电脑打完一局，
+ *    其间页面没有"和房间断开了"，控制台零报错。
+ * 两边控制台零报错。端口由系统分配（不占 5176 / 4176）。截图放在 shots/（--shots 可改）。
+ */
+import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core';
+
+const args = process.argv.slice(2);
+const opt = (name: string, def: string): string => {
+  const i = args.indexOf(`--${name}`);
+  return i >= 0 && args[i + 1] ? args[i + 1]! : def;
+};
+const ROUNDS = Number(opt('rounds', '2'));
+/** `--only flow` 只跑第 3 段（血流房），`--only three` 只跑第 4 段（三人两房） */
+const ONLY = opt('only', '');
+const ROOT = new URL('..', import.meta.url).pathname;
+const SHOTS = opt('shots', join(ROOT, 'shots'));
+mkdirSync(SHOTS, { recursive: true });
+
+const errors: string[] = [];
+const failures: string[] = [];
+const t0 = Date.now();
+const log = (...a: unknown[]): void => console.log(`[smoke-room ${Math.round((Date.now() - t0) / 1000)}s]`, ...a);
+const check = (ok: boolean, what: string): void => {
+  log(ok ? 'ok  ' : 'FAIL', what);
+  if (!ok) failures.push(what);
+};
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+function freePort(): Promise<number> {
+  return new Promise((ok, fail) => {
+    const s = createServer();
+    s.listen(0, '127.0.0.1', () => {
+      const p = (s.address() as { port: number }).port;
+      s.close(() => ok(p));
+    });
+    s.on('error', fail);
+  });
+}
+
+async function startWorker(port: number, state: string): Promise<ChildProcess> {
+  const origin = `http://localhost:${port}`;
+  const p = spawn('npx', ['wrangler', 'dev', '-c', 'dev/wrangler.smoke.jsonc', '-c', 'dev/arcade.dev.jsonc', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', state, '--var', `SITE_ORIGIN:${origin}`], {
+    cwd: ROOT,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true,
+  });
+  let out = '';
+  p.stdout!.on('data', (d) => (out += d));
+  p.stderr!.on('data', (d) => (out += d));
+  for (let i = 0; i < 120; i++) {
+    try {
+      const r = await fetch(`${origin}/games/mahjong/`, { redirect: 'manual' });
+      if (r.status === 302) return p;
+    } catch {
+      // 还没起来
+    }
+    await sleep(500);
+  }
+  throw new Error(`wrangler dev did not start:\n${out.slice(-2000)}`);
+}
+
+async function newContext(browser: Browser, base: string, sid: string, viewport: { width: number; height: number }): Promise<BrowserContext> {
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1 });
+  const host = new URL(base).hostname;
+  await ctx.addCookies([
+    { name: '__Host-sid', value: sid, domain: host, path: '/', secure: true },
+    { name: '__Host-arcade_li', value: '1', domain: host, path: '/', secure: true },
+  ]);
+  await ctx.addInitScript(() => localStorage.setItem('mahjong.guide', '1'));
+  // CSP 违规（cf/_headers）打成控制台报错，和别的报错一起算进"零报错"
+  await ctx.addInitScript(() =>
+    document.addEventListener('securitypolicyviolation', (e) => console.error(`csp ${e.disposition}: ${e.effectiveDirective} ${e.blockedURI || '(inline)'} ${e.sourceFile}:${e.lineNumber}`)),
+  );
+  return ctx;
+}
+
+function watch(page: Page, tag: string): void {
+  // 本地假平台没有云存档接口，启动时拉存档会 404（页面按"没有存档"处理）：这一条不算报错
+  let saves404 = 0;
+  page.on('response', (r) => r.status() === 404 && new URL(r.url()).pathname === '/api/saves/mahjong' && saves404++);
+  page.on('console', (m) => {
+    if (m.text().startsWith('Failed to load resource') && m.text().includes('404') && saves404 > 0) {
+      saves404--;
+      return;
+    }
+    if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${tag}] console.${m.type()}: ${m.text()}`);
+  });
+  page.on('pageerror', (e) => errors.push(`[${tag}] pageerror: ${e.message}`));
+  // 控制台只说"Failed to load resource: 500"，不说是哪个地址：服务端出错的请求单独记上地址
+  page.on('response', (r) => r.status() >= 404 && new URL(r.url()).pathname !== '/api/saves/mahjong' && errors.push(`[${tag}] ${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}`));
+}
+
+interface Wallet {
+  balance: number;
+  stakes: { game: string; mode: string; amount: number; tier: string }[];
+}
+const wallet = (page: Page): Promise<Wallet> => page.evaluate(async () => ((await (await fetch('/api/wallet')).json()) as { wallet: Wallet }).wallet);
+
+interface Player {
+  page: Page;
+  tag: string;
+  /** 打到的最大局序号（第 N/M 局的 N）和打出去的牌数 */
+  round: number;
+  discards: number;
+}
+
+/** 自动操作一步；返回是否点了什么 */
+async function step(p: Player): Promise<void> {
+  const page = p.page;
+  const T = { timeout: 1_000 };
+  const r = await page.$eval('.round', (e) => e.textContent ?? '').catch(() => '');
+  const m = /第\s*(\d+)\//.exec(r);
+  if (m) p.round = Math.max(p.round, Number(m[1]));
+  if (await page.$('text=和房间断开了')) throw new Error(`${p.tag}: 页面显示"和房间断开了"（回合 ${p.round}）`);
+  if (await page.$('.mask')) return;
+  if (await page.$('text=帮我选')) {
+    await page.click('text=帮我选', T).catch(() => {});
+    await page.click('button:has-text("换出")', T).catch(() => {});
+  } else if (await page.$('.act.que.best')) await page.click('.act.que.best', T).catch(() => {});
+  else if (await page.$('.bar .act.ron')) await page.click('.bar .act.ron', T).catch(() => {});
+  else if (await page.$('.bar .act.pass')) await page.click('.bar .act.pass', T).catch(() => {});
+  else {
+    const t = (await page.$$('.my-hand .tile:not(.off)')).at(-1);
+    if (t) {
+      // 第一下选牌，第二下打出；打出去后那张牌会被换掉，第二下点不到就当没打
+      if (await t.click(T).then(() => true, () => false)) p.discards++;
+      await t.click(T).catch(() => {});
+    }
+  }
+}
+
+/** 一直打，直到 done() 为真或超时 */
+async function playUntil(players: Player[], done: () => boolean, ms: number, what: string): Promise<void> {
+  const end = Date.now() + ms;
+  while (!done()) {
+    if (Date.now() > end) throw new Error(`${what}: 超时（${ms / 1000} 秒），回合 ${players.map((p) => `${p.tag}=${p.round}`).join(' ')}`);
+    await Promise.all(players.map((p) => step(p)));
+    // kit 每个连接每秒只补 5 个令牌（攒 10 个），点太快会被 1008 断开，真人不会点这么快
+    await sleep(300);
+  }
+}
+
+/** 选桌页开房，返回房间号 */
+async function openRoom(page: Page, base: string, stake: '娱乐' | '小档', flow: boolean | 'three' = false): Promise<string> {
+  const res = await page.goto(`${base}/games/mahjong/`);
+  const csp = res?.headers()['content-security-policy'] ?? '';
+  const script = /script-src ([^;]*)/.exec(csp)?.[1] ?? '';
+  check(/frame-ancestors 'self'/.test(csp) && script.startsWith("'self'") && !/unsafe/.test(script), `首页带安全响应头（script-src ${script}）`);
+  // 主页（0.17.0）点好友房卡进选桌页
+  await page.waitForSelector('.home-main');
+  await page.click('.mode.room');
+  await page.waitForSelector('.lobby-head');
+  // 娱乐分三个难度（0.10.0），好友房用哪个都一样（房间按自己的场地表挑电脑），点"新手"那张
+  await page.click(`.stakes .stake:has-text("${stake === '娱乐' ? '新手' : stake}")`);
+  await page.click('.rules-opts .chip:has-text("4 局")');
+  if (flow === 'three') await page.click('.rules-opts .flow-opt:has(.label:text-is("三人两房")) .chip:text-is("开")');
+  else if (flow) await page.click('.rules-opts .flow-opt:has(.label:text-is("血流成河")) .chip:text-is("开")');
+  await page.click('text=开房间叫朋友');
+  await page.waitForSelector('.room-code');
+  const code = ((await page.textContent('.room-code')) ?? '').trim();
+  if (!/^\d{6}$/.test(code)) throw new Error(`房间号不对：${code}`);
+  return code;
+}
+
+async function joinAndStart(a: Page, b: Page, base: string, code: string): Promise<void> {
+  await b.goto(`${base}/games/mahjong/?room=${code}`);
+  await b.waitForSelector('.room-code');
+  check(((await b.textContent('.room-code')) ?? '').trim() === code, `B 凭 ?room= 直接进等人页，房间号 ${code}`);
+  await b.click('.room-seat.empty .act');
+  await b.waitForSelector('.room-seat.me');
+  // A 这边要看到 B 坐下（两个真人）
+  await a.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length >= 2);
+  await a.click('button:text-is("开打")');
+  await Promise.all([a.waitForSelector('.my-hand .tile', { timeout: 20_000 }), b.waitForSelector('.my-hand .tile', { timeout: 20_000 })]);
+}
+
+/** 点"离开"并确认，回到选桌页；再等一会儿，旧房间还在路上的帧不能把牌桌画回来（0.2.0 冒烟抓到过，online.ts 的 closed） */
+async function leaveRoom(page: Page, tag: string): Promise<void> {
+  await page.click('.pill.leave');
+  await page.click('.mask.confirm .act.go');
+  await page.waitForSelector('.lobby-head', { timeout: 5_000 });
+  await sleep(2_500);
+  if (!(await page.$('.lobby-head'))) {
+    await page.screenshot({ path: join(SHOTS, `fail-leave-${tag}.png`) });
+    throw new Error(`${tag} 离开后选桌页被旧房间的牌桌盖掉`);
+  }
+}
+
+let proc: ChildProcess | null = null;
+const pages: Page[] = [];
+let browser: Browser | null = null;
+const state = mkdtempSync(join(tmpdir(), 'mahjong-smoke-'));
+try {
+  const port = await freePort();
+  proc = await startWorker(port, state);
+  const base = `http://localhost:${port}`;
+  log('wrangler dev 起来了', base);
+  browser = await chromium.launch({ args: ['--no-zygote', '--disable-gpu'] });
+  const ctxA = await newContext(browser, base, 'smokeA0001', { width: 1280, height: 720 });
+  const ctxB = await newContext(browser, base, 'smokeB0002', { width: 390, height: 844 });
+  const pa = await ctxA.newPage();
+  const pb = await ctxB.newPage();
+  // 电脑由房间发的表情（kit 的 botEmote，消息带 bot: true）
+  let botEmotes = 0;
+  pa.on('websocket', (ws) => ws.on('framereceived', (f) => typeof f.payload === 'string' && f.payload.includes('"bot":true') && botEmotes++));
+  pages.push(pa, pb);
+  // 好友部件报的位置（docs/social.md 1.2）：进房以后要有一次 place: room、带房间号和人数
+  const presence: string[] = [];
+  pa.on('request', (r) => r.url().endsWith('/api/presence') && presence.push(r.postData() ?? ''));
+  watch(pa, 'A');
+  watch(pb, 'B');
+  const A: Player = { page: pa, tag: 'A', round: 0, discards: 0 };
+  const B: Player = { page: pb, tag: 'B', round: 0, discards: 0 };
+
+  if (ONLY === '') {
+    // ---------- 娱乐房 ----------
+    let t = Date.now();
+    let code = await openRoom(pa, base, '娱乐');
+    log('A 开娱乐房', code);
+    // 叫朋友来（docs/social.md 1.3，kit 的面板）：好友列表里有老王，点"叫他来"发出邀请（按钮变灰），关掉
+    const invites: string[] = [];
+    pa.on('request', (r) => r.url().endsWith('/api/invites') && r.method() === 'POST' && invites.push(r.postData() ?? ''));
+    await pa.click('button.big.share');
+    await pa.click('[data-key="invite:call:friend-wang"]');
+    await pa.waitForFunction(() => (document.querySelector('[data-key="invite:call:friend-wang"]') as HTMLButtonElement | null)?.disabled === true, null, { timeout: 5_000 });
+    await pa.screenshot({ path: join(SHOTS, 'room-invite-a.png') });
+    await pa.click('[data-key="invite:close"]');
+    const sent = JSON.parse(invites[0] ?? '{}') as { to?: string; game?: string; room?: string };
+    check(sent.to === 'friend-wang' && sent.game === 'mahjong' && sent.room === code, `A 在等人页点"叫朋友来"，叫了老王（${invites[0]}）`);
+    // 等人页"离开房间"先离座（自审 C4）：B 坐下再离开，A 这边那个座位要空出来（只断开的话 kit 只记掉线、座位还占着）
+    await pb.goto(`${base}/games/mahjong/?room=${code}`);
+    await pb.waitForSelector('.room-code');
+    await pb.click('.room-seat.empty .act');
+    await pa.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length >= 2);
+    await pb.click('button:text-is("离开房间")');
+    await pb.waitForSelector('.lobby-head');
+    const freed = await pa.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length === 1, null, { timeout: 5_000 }).then(() => true, () => false);
+    check(freed, 'B 在等人页点"离开房间"，A 这边他的座位空出来');
+    await joinAndStart(pa, pb, base, code);
+    check(true, `娱乐房开打，两边进牌桌（${Math.round((Date.now() - t) / 1000)} 秒）`);
+    const here = presence.map((x) => JSON.parse(x || '{}') as { place?: string; room?: string; seats?: string }).find((x) => x.place === 'room');
+    check(here?.room === code && /^[1-4]\/4$/.test(here.seats ?? ''), `A 进房后报了位置：在房间里（${JSON.stringify(here)}）`);
+    // 开局换三张时操作条最宽：截一张看"互动"按钮、自己的头像牌有没有压住它
+    await pa.screenshot({ path: join(SHOTS, 'room-start-a.png') });
+    await pb.screenshot({ path: join(SHOTS, 'room-start-b.png') });
+
+    // 互动（kit 的 table-fun，0.11.0 起）：按 kit 的 DOM 点（头像热区 .atf-hot[data-seat]、菜单里的 [data-key]、"互动"按钮 .atf-btn）。
+    // A 是 0 号、B 是 1 号，2、3 号是电脑
+    const hot = (page: Page, seat: number): Promise<void> => page.click(`.atf-hot[data-seat="${seat}"]`);
+    const key = (page: Page, k: string): Promise<void> => page.click(`[data-key="${k}"]`);
+    await pa.click('.atf-btn');
+    await key(pa, 'fun:tab:phrase');
+    await key(pa, 'fun:phrase0');
+    check(!!(await pb.waitForSelector('.atf-bubble:has-text("雄起！")', { timeout: 4_000 }).catch(() => null)), 'A 说的短语 B 看得到');
+    await sleep(1_200);
+    await hot(pa, 0);
+    await key(pa, 'fun:sticker0');
+    check(!!(await pb.waitForSelector('.arcade-fun > *', { timeout: 4_000 }).catch(() => null)), 'A 发的表情 B 看得到');
+    await sleep(2_500);
+    await hot(pa, 1);
+    await key(pa, 'fun:prop0');
+    check(!!(await pb.waitForSelector('.arcade-fun > *', { timeout: 4_000 }).catch(() => null)), 'A 冲 B 扔的道具 B 看得到');
+    await pb.screenshot({ path: join(SHOTS, 'room-fun-b.png') });
+    // 点名：A 点 B 的头像，菜单里的点名短语，B 看到气泡
+    await sleep(1_700);
+    await hot(pa, 1);
+    await key(pa, 'fun:named0');
+    check(!!(await pb.waitForSelector('.atf-bubble', { timeout: 4_000 }).catch(() => null)), 'A 点名 B 说的话 B 看得到');
+    await pa.screenshot({ path: join(SHOTS, 'room-fun-a.png') });
+    // B 屏蔽 A：A 再说 B 就看不到；解开以后照常
+    await sleep(2_800);
+    await hot(pb, 0);
+    await key(pb, 'fun:block');
+    await pa.click('.atf-btn');
+    await key(pa, 'fun:tab:phrase');
+    await key(pa, 'fun:phrase8');
+    check(!(await pb.waitForSelector('.atf-bubble:has-text("安逸！")', { timeout: 2_000 }).catch(() => null)), 'B 屏蔽了 A，A 说的 B 看不到');
+    await hot(pb, 0);
+    await key(pb, 'fun:block');
+    // 好友房聊天（kit 0.18.0，0.19.0）：A 在"互动"面板的聊天页说一句，B 头像旁看到气泡
+    await pa.click('.atf-btn');
+    await key(pa, 'fun:tab:chat');
+    await pa.fill('[data-key="fun:chatInput"]', '这把稳了');
+    await key(pa, 'fun:chatSend');
+    check(!!(await pb.waitForSelector('.atf-say:has-text("这把稳了")', { timeout: 4_000 }).catch(() => null)), 'A 在聊天页说的话 B 看得到');
+    await pa.screenshot({ path: join(SHOTS, 'room-chat-a.png') });
+    await pb.screenshot({ path: join(SHOTS, 'room-chat-b.png') });
+    // 聊天页发完不会自己收起：点一下面板外面（kit 铺的 .atf-away）收起来，后面点头像热区才不被挡住
+    await pa.click('.atf-away', { position: { x: 5, y: 5 } });
+    await pa.waitForSelector('[data-kind="panel"]', { state: 'detached', timeout: 2_000 }).catch(() => null);
+    // 冲两个电脑轮流扔几下：房间里的电脑按 kit 的 botReact 回（60%，再乘性格），回的东西两边都看得到
+    for (let i = 0; i < 8; i++) {
+      await sleep(1_700);
+      await hot(pa, 2 + (i % 2));
+      await key(pa, 'fun:prop0');
+    }
+    // 旁观（docs/social.md 1.4）：C 在开打后凭链接进来，座位都有人（A、B 和两个电脑），进"旁观中"：看得到牌桌、没有自己的手牌、不能扔东西，
+    // 两个没绑人的电脑座位各有一个"坐下"；坐下接管一个，离开后再进来是"回到我的座位"（kit 的座位绑人规则）
+    const ctxC = await newContext(browser, base, 'smokeC0003', { width: 390, height: 844 });
+    const pc = await ctxC.newPage();
+    pages.push(pc);
+    watch(pc, 'C');
+    await pc.goto(`${base}/games/mahjong/?room=${code}`);
+    await pc.waitForSelector('.room-note.watch .watch-tag:has-text("旁观中")', { timeout: 10_000 });
+    const backs = await pc.$$eval('.my-hand .tile:not([title])', (xs) => xs.length);
+    const faces = await pc.$$eval('.my-hand .tile[title]', (xs) => xs.length);
+    const sits = await pc.$$eval('.room-note.watch button', (xs) => xs.map((x) => x.textContent ?? ''));
+    check(backs >= 13 && faces === 0 && sits.length === 2 && sits.every((x) => x.startsWith('坐下')), `C 开打后进来是旁观：底下那家是 ${backs} 张牌背、没有牌面，两个"坐下"（${sits.join(' / ')}）`);
+    check(!(await pc.$('.atf-btn')), 'C 旁观时没有"互动"按钮（不能扔表情道具）');
+    await pc.screenshot({ path: join(SHOTS, 'room-watch-c.png') });
+    await pc.setViewportSize({ width: 1280, height: 720 });
+    await sleep(500);
+    await pc.screenshot({ path: join(SHOTS, 'room-watch-c-land.png') });
+    await pc.setViewportSize({ width: 390, height: 844 });
+    await sleep(500);
+    await pc.click('.room-note.watch button >> nth=0');
+    await pc.waitForSelector('.room-note.watch', { state: 'detached', timeout: 10_000 });
+    // 牌面带 title（牌名），牌背没有；换三张、定缺时手牌是 off，所以不按能不能点数
+    const mine = await pc.$$eval('.my-hand .tile[title]', (xs) => xs.length);
+    check(mine >= 13 && !!(await pc.$('.atf-btn')), `C 点"坐下"接管了一个电脑座位：手牌亮出来（${mine} 张），有"互动"按钮了`);
+    await leaveRoom(pc, 'C');
+    await pc.goto(`${base}/games/mahjong/?room=${code}`);
+    await pc.waitForSelector('.room-note.watch button:has-text("回到我的座位")', { timeout: 10_000 });
+    check(true, 'C 离开后再进来：旁观中，有"回到我的座位"');
+    await pc.close();
+    pages.splice(pages.indexOf(pc), 1);
+    await ctxC.close();
+
+    await playUntil([A, B], () => A.round > ROUNDS && B.round > ROUNDS, 6 * 60_000, '娱乐房打局');
+    check(true, `娱乐房打满 ${ROUNDS} 局（A 打出 ${A.discards} 张，B 打出 ${B.discards} 张，${Math.round((Date.now() - t) / 1000)} 秒）`);
+    check(botEmotes > 0, `电脑在好友房里由房间发表情（A 收到 ${botEmotes} 条）`);
+    await pa.screenshot({ path: join(SHOTS, 'room-a.png') });
+    await pb.screenshot({ path: join(SHOTS, 'room-b.png') });
+    await leaveRoom(pb, 'B');
+    check(true, 'B 对局中点离开并确认，回到选桌页');
+    const before = A.discards;
+    const rBefore = A.round;
+    await playUntil([A], () => A.discards >= before + 3 || A.round > rBefore, 90_000, 'B 走后 A 继续打');
+    check(true, `B 走后 A 还能动（又打出 ${A.discards - before} 张，回合 ${rBefore}→${A.round}）`);
+    await pa.screenshot({ path: join(SHOTS, 'room-a-after-leave.png') });
+
+    // ---------- 实盘小档房 ----------
+    await leaveRoom(pa, 'A');
+    t = Date.now();
+    const w0 = { a: await wallet(pa), b: await wallet(pb) };
+    log('开房前钱包', w0.a.balance, w0.b.balance);
+    code = await openRoom(pa, base, '小档');
+    log('A 开实盘小档房', code);
+    await pa.waitForSelector('.room-seat.me');
+    check(await pa.isDisabled('button:text-is("开打")'), '实盘房只有 A 一个人："开打"灰着');
+    check(!!(await pa.$('.room-hint.warn:has-text("至少要两个人")')), '实盘房只有 A 一个人：提示"至少要两个人"');
+    await joinAndStart(pa, pb, base, code);
+    // 带入是房间开打后异步办的，等两边到账
+    let w1 = { a: await wallet(pa), b: await wallet(pb) };
+    for (let i = 0; i < 50 && (w1.a.stakes.length === 0 || w1.b.stakes.length === 0); i++) {
+      await sleep(200);
+      w1 = { a: await wallet(pa), b: await wallet(pb) };
+    }
+    log('开打后钱包', w1.a.balance, w1.b.balance, JSON.stringify(w1.a.stakes));
+    check(w0.a.balance - w1.a.balance === 2_000, `A 余额 ${w0.a.balance} → ${w1.a.balance}，少 2,000`);
+    check(w0.b.balance - w1.b.balance === 2_000, `B 余额 ${w0.b.balance} → ${w1.b.balance}，少 2,000`);
+    for (const [n, w] of [['A', w1.a], ['B', w1.b]] as const) {
+      const s = w.stakes.filter((x) => x.game === 'mahjong' && x.mode === 'server');
+      check(s.length === 1 && s[0]!.amount === 2_000, `${n} 的 stakes 里有一份 mahjong/server/2000（${JSON.stringify(w.stakes)}）`);
+    }
+    // 先打一会儿（半局以上），再让 B 走
+    const d0 = B.discards;
+    await playUntil([A, B], () => B.discards >= d0 + 3, 120_000, '实盘房先打几张');
+    await pa.screenshot({ path: join(SHOTS, 'room-stake-a.png') });
+    await leaveRoom(pb, 'B');
+    // 一局打到一半走的：这一局由电脑替他打完（输赢照算），那一份还在；A 接着打完这一局才结回
+    let w2 = await wallet(pb);
+    check(w2.stakes.length === 1, 'B 一局打到一半离开：这一局还没完，那一份还在（电脑替他打完）');
+    for (let i = 0; i < 900 && w2.stakes.length > 0; i++) {
+      await step(A);
+      await sleep(150);
+      if (i % 4 === 0) w2 = await wallet(pb);
+    }
+    log('B 离开后钱包', w2.balance, JSON.stringify(w2.stakes));
+    check(w2.stakes.length === 0, 'A 打完这一局，B 的那一份结回了');
+    check(w2.balance >= w1.b.balance, `B 余额加回结回的数：${w1.b.balance} → ${w2.balance}（结回 ${w2.balance - w1.b.balance}）`);
+    // 只剩 A 一个人在下注：这一场当场结束，A 的那一份也马上结回（实盘至少两个真人）
+    let wa = await wallet(pa);
+    for (let i = 0; i < 25 && wa.stakes.length > 0; i++) {
+      await sleep(200);
+      wa = await wallet(pa);
+    }
+    check(wa.stakes.length === 0 && wa.balance > w1.a.balance, `B 走后只剩 A：这一场提前结束，A 的那一份也结回了（余额 ${w1.a.balance} → ${wa.balance}）`);
+    await pa.waitForSelector('.mask.end .settle-note:has-text("提前结束")', { timeout: 10_000 });
+    check(true, 'A 的结算上写着"实盘这一场提前结束"');
+    await pb.screenshot({ path: join(SHOTS, 'room-stake-b.png') });
+    await pa.screenshot({ path: join(SHOTS, 'room-stake-cut.png') });
+    await pa.click('.mask.end button:text-is("回选桌")');
+    await pa.waitForSelector('.lobby-head', { timeout: 5_000 });
+
+    // ---------- 再来一场（0.3.6）：娱乐房打完一整场，A 点"再来一场"，B 看到提示、自动跟进新房间，坐回和上一场一样的相对位置 ----------
+    t = Date.now();
+    code = await openRoom(pa, base, '娱乐');
+    log('A 开娱乐房（打一整场）', code);
+    await joinAndStart(pa, pb, base, code);
+    const atEnd = async (pg: Page): Promise<boolean> => !!(await pg.$('.mask.end .rematch'));
+    const deadline = Date.now() + 10 * 60_000;
+    while (!((await atEnd(pa)) && (await atEnd(pb)))) {
+      if (Date.now() > deadline) throw new Error('一整场没打完');
+      await Promise.all([step(A), step(B)]);
+      await sleep(300);
+    }
+    check(true, `一整场打完，两边结算上都有"再来一场"（${Math.round((Date.now() - t) / 1000)} 秒）`);
+    // 颁奖（docs/social.md 第 2 节）：两边看到的奖一样；"分享颁奖"出 kit 的分享预览，关掉
+    const prizes = (p: Page): Promise<string[]> => p.$$eval('.mask.end .award', (xs) => xs.map((x) => x.textContent ?? ''));
+    const [pa1, pb1] = [await prizes(pa), await prizes(pb)];
+    check(pa1.length >= 1 && pa1.length <= 3 && JSON.stringify(pa1) === JSON.stringify(pb1), `结算上有颁奖，两边一样（${pa1.join(' / ')}）`);
+    await pa.screenshot({ path: join(SHOTS, 'room-awards-a.png') });
+    await pb.screenshot({ path: join(SHOTS, 'room-awards-b.png') });
+    await pa.click('.mask.end .share-awards');
+    await pa.waitForSelector('[data-key="share:close"]', { timeout: 5_000 });
+    await pa.screenshot({ path: join(SHOTS, 'room-awards-share.png') });
+    await pa.click('[data-key="share:close"]');
+    check(true, '"分享颁奖"出了分享预览');
+    await pa.click('.mask.end .rematch');
+    await pa.waitForFunction((old) => /^\d{6}$/.test(document.querySelector('.room-code')?.textContent?.trim() ?? '') && document.querySelector('.room-code')?.textContent?.trim() !== old, code);
+    const code2 = ((await pa.textContent('.room-code')) ?? '').trim();
+    check(!!(await pb.waitForSelector('.mask.end .end-acts:has-text("现在过去")', { timeout: 5_000 }).catch(() => null)), `B 的结算上写着 A 开了新房间 ${code2}、有"现在过去"`);
+    check(!(await pb.$('.mask.end .rematch')), 'B 的"再来一场"收起来了');
+    await pb.screenshot({ path: join(SHOTS, 'room-rematch-b.png') });
+    await pb.waitForFunction((c) => document.querySelector('.room-code')?.textContent?.trim() === c, code2, { timeout: 15_000 });
+    await pb.waitForSelector('.room-seat.me', { timeout: 5_000 });
+    const seatB = await pb.$$eval('.room-seats .room-seat', (cs) => cs.findIndex((c) => c.classList.contains('me')));
+    check(seatB === 1, `B 自动跟进新房间 ${code2}，坐回 1 号位（${seatB}）`);
+    await pa.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length >= 2);
+    await pa.screenshot({ path: join(SHOTS, 'room-rematch-a.png') });
+  }
+
+  // ---------- 血流成河娱乐房：服务端按 flow 走同一套核心，胡了不下桌、能胡第二次 ----------
+  if (ONLY === '' || ONLY === 'flow') {
+    const t = Date.now();
+    const code = await openRoom(pa, base, '娱乐', true);
+    check(/血流成河/.test((await pa.textContent('.room-rules')) ?? ''), `A 开血流房 ${code}，等人页的规则写着"血流成河"`);
+    await joinAndStart(pa, pb, base, code);
+    // 两个真人能胡就胡；已经胡过的真人，手里能点的牌最多一张（锁手牌：只能打刚摸的那张）
+    let twice = '';
+    let lockedTurns = 0;
+    const loose: string[] = [];
+    const end = Date.now() + 6 * 60_000;
+    while (!twice) {
+      if (Date.now() > end) throw new Error(`血流房 6 分钟内没人胡第二次（回合 A=${A.round} B=${B.round}）`);
+      await Promise.all([step(A), step(B)]);
+      await sleep(300);
+      for (const p of [A, B]) {
+        const won = !!(await p.page.$('.badge.r0 .stamp'));
+        const free = (await p.page.$$('.my-hand .tile:not(.off)')).length;
+        if (won && free === 1) lockedTurns++;
+        if (won && free > 1) loose.push(`${p.tag} 胡后能点 ${free} 张`);
+      }
+      twice = await pa.$$eval('.stamp', (ss) => ss.map((s) => s.textContent ?? '').find((x) => /胡×\d/.test(x)) ?? '');
+    }
+    check(true, `血流房有人胡第二次，名牌上写着"${twice}"（${Math.round((Date.now() - t) / 1000)} 秒）`);
+    // 两个真人是"打最右边那张"的笨打法，不一定胡得了：没轮到就只记一笔（锁手牌由 test/xuezhan-flow.test.ts 守着）
+    if (lockedTurns || loose.length) check(!loose.length, `胡过的真人手牌锁住，只能打刚摸的那张（轮到时看了 ${lockedTurns} 次${loose.length ? `；${loose[0]}` : ''}）`);
+    else log('--   这一局两个真人都没胡，锁手牌没在浏览器里看到（单测覆盖）');
+    await pa.screenshot({ path: join(SHOTS, 'room-flow-a.png') });
+    await pb.screenshot({ path: join(SHOTS, 'room-flow-b.png') });
+  }
+
+  // ---------- 三人两房娱乐房：房间按 3 个座位开，一个真人加两个电脑打完一局 ----------
+  if (ONLY === '' || ONLY === 'three') {
+    const t = Date.now();
+    A.round = 0;
+    const code = await openRoom(pa, base, '娱乐', 'three');
+    check(/三人两房/.test((await pa.textContent('.room-rules')) ?? ''), `A 开三人房 ${code}，等人页的规则写着"三人两房"`);
+    const seats = await pa.$$eval('.room-seat', (ss) => ss.length);
+    check(seats === 3, `三人房等人页只有 3 个座位（实际 ${seats}）`);
+    await pa.click('.room-seat.empty .act');
+    await pa.waitForSelector('.room-seat.me');
+    await pa.click('button:text-is("开打")');
+    await pa.waitForSelector('.my-hand .tile', { timeout: 20_000 });
+    await playUntil([A], () => A.round >= 2, 6 * 60_000, '三人房打完一局');
+    check(true, `三人房一个真人加两个电脑打完一局（${Math.round((Date.now() - t) / 1000)} 秒）`);
+    await pa.screenshot({ path: join(SHOTS, 'room-three-a.png') });
+  }
+
+  if (errors.length) {
+    console.log(`控制台报错 ${errors.length} 条：\n${[...new Set(errors)].join('\n')}`);
+    failures.push('控制台有报错');
+  } else log('ok   两边控制台零报错');
+} catch (e) {
+  console.log(String((e as Error).stack ?? e));
+  for (const [i, pg] of pages.entries()) await pg.screenshot({ path: join(SHOTS, `fail-${i ? 'b' : 'a'}.png`) }).catch(() => {});
+  if (errors.length) console.log(`（出错时控制台报错：\n${[...new Set(errors)].join('\n')}）`);
+  failures.push(String(e));
+} finally {
+  await browser?.close().catch(() => {});
+  if (proc?.pid) {
+    try {
+      process.kill(-proc.pid, 'SIGTERM');
+    } catch {
+      // 已经退了
+    }
+  }
+  rmSync(state, { recursive: true, force: true });
+}
+log(failures.length ? `失败 ${failures.length} 项` : '全部通过', `总耗时 ${Math.round((Date.now() - t0) / 1000)} 秒`);
+process.exit(failures.length ? 1 : 0);

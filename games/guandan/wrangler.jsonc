@@ -1,0 +1,51 @@
+{
+  // 掼蛋 Worker 的独立配置（仓库根 docs/new-game.md 第 4、7 节）：静态资源 + 一个很小的脚本（登录闸门、联机房间的开房进房、单机实盘接口），
+  // 不要平台也能部署（npm run deploy 或 README 里的 Deploy to Cloudflare 按钮，得到 guandan.<子域>.workers.dev；没有平台时认游客 cookie，没有钱包和实盘）。
+  // 本站正式部署时由仓库的部署工具（tools/deployer，按 tools/workers.json）补上平台绑定 ARCADE、WALLET 和 GATE=login，关掉 workers_dev，
+  // 注入路由（<站点>/games/guandan、<站点>/games/guandan/*）和 SITE_ORIGIN；这些都不写在这里，站点的主机名只在部署环境的 secret 里。
+  // 入口 worker/main.ts：默认导出（worker/index.ts）+ 房间类 Room（Durable Object）。
+  // 产物由 tools/build-cf.ts 生成在 dist-cf/games/guandan/ 下（npm run build:cf），_headers/_redirects 在 dist-cf/ 根。
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "guandan",
+  "main": "worker/main.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  // Workers 日志和调用记录（线上排查用；只在 Cloudflare 后台看，不进仓库）
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./dist-cf",
+    "binding": "ASSETS",
+    "not_found_handling": "none",
+    // 只有首页导航先进 Worker 做登录检查（单独部署时发游客 cookie）、房间接口（开房、进房）和单机实盘接口（带入、结回、放弃）进 Worker；js、图片等照旧直接走静态资源，不花 Worker 请求额度。
+    // 站点根 / 和 /api/me 也先进 Worker：单独部署时 / 转到 /games/guandan/，/api/me 回 { standalone: true }（kit 0.10.2，页面认作没有平台，控制台不冒 404）；
+    // 有平台时这两个原样交给静态资源——本站的根和 /api/* 由平台的路由接，到不了这里。
+    // 实盘接口放在 /api/ 下面，才在网关的限速范围里（/games/* 下含 /api/）；/games/guandan/health 是监控读的健康检查（不认人、不读存储）
+    "run_worker_first": ["/", "/api/me", "/games/guandan", "/games/guandan/", "/games/guandan/index.html", "/games/guandan/room/*", "/games/guandan/api/stake/*", "/games/guandan/health"]
+  },
+  // 联机房间：一个房间码一个 Durable Object（worker/room.ts）。免费版只能用 SQLite 后端。
+  // METER 是 arcade-kit 的计量（全局一个）：每天的写入额度、按人和全站的开房名额。删了它就不限额（tests/config.test.ts 会挂）
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOM", "class_name": "Room" },
+      { "name": "METER", "class_name": "RoomMeter" },
+      // 快速匹配的排队（0.26.0，worker/match.ts）：每个档位一个实例，0 行存储（排着的人就是休眠的连接），只用闹钟
+      { "name": "MATCH", "class_name": "Queue" }
+    ]
+  },
+  // v1、v2 已经上线，不能改；新的类另加一条
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Room"] },
+    { "tag": "v2", "new_sqlite_classes": ["RoomMeter"] },
+    { "tag": "v3", "new_sqlite_classes": ["Queue"] }
+  ],
+  // 不写 services 和 GATE：本站部署时部署工具补上 ARCADE（问平台登录状态 /api/me）、WALLET（平台钱包 RPC，props.game = guandan）和 GATE=login。
+  // 没有它们就是单独部署（kit 的独立模式）：游客身份，实盘接口回 409 no_wallet
+  "vars": {
+    // "on"：开联机；其他值开房 404、进房 4004。出问题时改成 "off" 再走 PR 就能一键关掉
+    "ONLINE": "on",
+    // 每天的额度门槛（arcade-kit 的计量）。10 万行写入是全账户共用的：掼蛋 4.5 万停开新房、5.5 万收场，各游戏怎么分见仓库根 docs/platform-backend.md 4.7。
+    // 每人开房（0.6.0 起放宽，不给玩家设没必要的限制）：同时 5 个、每天 100 个；全站每天 300 个照 kit 默认（防账单的不放宽）
+    "KIT_QUOTA": { "busyWrites": 45000, "stopWrites": 55000, "roomsPerUser": 5, "dailyRoomsPerUser": 100 }
+  }
+}

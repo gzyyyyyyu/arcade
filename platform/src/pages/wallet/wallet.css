@@ -1,0 +1,121 @@
+/* 钱包页一屏放下（docs/ui.md 第 9、11 节）：外框已经是一屏高；列表多时面板吃剩下的高、用翻页，
+   空、加载中和内容少（--fit / --none）时面板按内容高、顶部对齐，不撑出一大块空框 */
+.wallet-page { display: flex; flex-direction: column; flex: 1; gap: var(--s-3); min-height: 0; }
+.wallet-page .ptabs { gap: var(--s-2); }
+.wallet-page .ptabs__panes, .wallet-page .ptabs__pane { gap: var(--s-3); }
+.wallet-page .ptabs__bar { margin-bottom: 0; }
+.wallet-page .panel { display: flex; flex-direction: column; gap: var(--s-2); min-height: 0; padding: var(--s-3) var(--s-4); }
+.wallet-page .panel > * { margin-top: 0; margin-bottom: 0; }
+.wallet-page .panel__title { margin: 0; }
+.wallet-page .note { margin: 0; }
+.wallet-page .wallet-page__card, .wallet-page .wallet-page__week { flex: none; }
+.wallet-page .wallet-page__stakes, .wallet-page .wallet-page__flow { flex: 1; }
+.wallet-page .wallet-page__stakes { min-height: 110px; }
+/* 内容少：按内容高。矮屏横排那段（.ptabs__pane > .panel，优先级更高）仍两块等分，不受影响 */
+.wallet-page .wallet-page__stakes--fit, .wallet-page .wallet-page__flow--fit { flex: 0 1 auto; min-height: 0; }
+.wallet-page .wallet-page__flow--fit > .empty { flex: none; padding: var(--s-4) 0 var(--s-3); }
+.wallet-page .wallet-page__flow--fit > .empty svg { max-height: 72px; width: auto; }
+.wallet-page .chips { flex: none; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; margin-bottom: 0; padding-bottom: 2px; }
+.wallet-page .chips::-webkit-scrollbar { display: none; }
+.wallet-page .chips button { flex: none; white-space: nowrap; min-height: 32px; }
+@media (pointer: coarse) { .wallet-page .chips button { min-height: var(--tap); } }
+.wallet-page .ptabs--wide .ptabs__pane:first-child { flex: 0 0 clamp(340px, 34%, 420px); }
+.wallet-page .ptabs--wide .ptabs__pane:last-child { flex: 1; }
+
+/* 钱包卡：余额、领补给一行，走势在下；去掉卡自己的入场位移，高度紧凑 */
+.wallet-page .wcard { gap: var(--s-2); padding: var(--s-3) var(--s-4); box-shadow: none; }
+.wallet-page .wcard__top .wcard__main { flex: 1; }
+.wallet-page .wcard__balance { font-size: 36px; white-space: nowrap; }
+.wallet-page .wcard__svg { height: 36px; }
+.wallet-page .wcard__relief { flex: none; }
+/* 左栏窄（1280 上约 330 宽）时余额数字和领补给一行放不下：按钮折到下一行，不顶出卡边 */
+.wallet-page .wcard__top { flex-wrap: wrap; }
+.wallet-page .wcard__relief .btn { min-height: 44px; white-space: nowrap; }
+
+/* 桌上的筹码：每条紧凑，翻页 */
+.wallet-page .wallet-page__stakelist .paged__list { gap: var(--s-2); }
+.wallet-page .stake { padding: var(--s-2) var(--s-3); }
+.wallet-page .stake__head { flex-wrap: wrap; align-items: baseline; gap: var(--s-2); }
+/* 窄屏放不下一行时整块换行，不把游戏名、标签拆成一字一行 */
+.wallet-page .stake__head > * { white-space: nowrap; }
+.wallet-page .stake__amount { margin-left: auto; }
+.wallet-page .stake__amount { font-size: var(--fs-lg); text-align: right; }
+.wallet-page .stake .note { margin: 2px 0 0; font-size: var(--fs-xs); }
+
+/* 这周：合计一行，条紧凑 */
+.wallet-page .week-sum { gap: var(--s-2); }
+.wallet-page .week-sum__total strong { font-size: var(--fs-xl); }
+.wallet-page .week-bars { gap: var(--s-1); }
+.wallet-page .week-bars__track { height: 8px; }
+.wallet-page .wallet-page__caps { display: grid; gap: 2px; }
+.wallet-page .wallet-page__caps .note { font-size: var(--fs-xs); }
+
+/* 最近进出：一行一笔，带日期，翻页 */
+.wallet-page .wallet-page__ledger .paged__list { gap: 0; border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); }
+.wallet-page .wallet-page__ledger .paged__item + .paged__item { border-top: 1px solid var(--divider); }
+.wallet-page .ledger__row { grid-template-columns: 7.5em auto minmax(0, 1fr) auto; min-height: 36px; padding: 2px var(--s-3); }
+.wallet-page .ledger__row + .ledger__row { border-top: 0; }
+.wallet-page .ledger__time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wallet-page .ledger__amount { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 420px) {
+  .wallet-page .ledger__row { grid-template-columns: 6.4em auto minmax(0, 1fr) auto; row-gap: 0; column-gap: var(--s-2); }
+  .wallet-page .ledger__kind { grid-column: auto; }
+  .wallet-page .ledger__what { grid-column: auto; grid-row: auto; }
+  .wallet-page .ledger__amount { grid-column: auto; grid-row: auto; }
+}
+@media (max-height: 420px) {
+  .wallet-page .panel { padding: var(--s-2) var(--s-3); }
+}
+
+/* 手机横屏（矮）：两块并排，标题收掉（横屏单栏子页放宽到 760，卡片照竖排放得下） */
+@media (max-height: 500px) and (min-width: 561px) {
+  .wallet-page .ptabs__pane { flex-direction: row; }
+  .wallet-page .ptabs__pane > .panel { flex: 1 1 0; min-width: 0; }
+  .wallet-page .panel__title { display: none; }
+  .wallet-page .wallet-page__flow > .note { display: none; }
+  .wallet-page .paged__bar .btn { min-height: 36px; }
+  .wallet-page .chips button { min-height: 36px; }
+  /* 看着 36 高，按得到的范围上下各透明外扩 4px 补到 44（docs/ui.md 第 11 节） */
+  .wallet-page .paged__bar .btn, .wallet-page .chips button { position: relative; }
+  .wallet-page .paged__bar .btn::after, .wallet-page .chips button::after { content: ''; position: absolute; inset: -4px 0; }
+  .wallet-page .ledger__row { min-height: 32px; padding-block: 0; }
+  .wallet-page .panel { gap: var(--s-1); }
+  /* 卡里放不下走势和"补到多少"（最后一行"新号送的"被卡片切掉一截）：走势在"这周"页签里，按钮写着"领补给" */
+  .wallet-page .wcard__trend, .wallet-page .wcard__empty, .wallet-page [data-testid="relief-hint"] { display: none; }
+  /* 桌上没筹码那块只剩"没有，都在钱包里"，标题收掉就不知道说的是什么：这一块留着标题 */
+  .wallet-page .wallet-page__stakes--none > .panel__title { display: flex; }
+}
+
+/* 余额卡和这周的块自己有"余额""本周净赢"的字，标题只留给读屏器，省出高度给桌上的筹码 */
+.wallet-page .wallet-page__card > .panel__title, .wallet-page .wallet-page__week > .panel__title { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* 手机竖屏：领补给挪到卡片最下面一整行，单手拇指够得着（冒烟 phone 量"主按钮不在屏幕最上面三分之一"） */
+@media (max-width: 599px) {
+  .wallet-page .wcard { grid-template-columns: auto minmax(0, 1fr); align-items: center; }
+  .wallet-page .wcard > * { grid-column: 1 / -1; }
+  .wallet-page .wcard__top { display: contents; }
+  .wallet-page .wcard__top .coin { grid-column: 1; }
+  .wallet-page .wcard__top .wcard__main { grid-column: 2; }
+  .wallet-page .wcard__relief { grid-column: 1 / -1; order: 1; }
+  .wallet-page .wcard__relief .btn { width: 100%; }
+}
+/* 矮的竖屏（360×640 这类）：卡里的走势收起（"这周"页签里有），领补给挪下去以后桌上的筹码还放得下一整条 */
+@media (max-width: 599px) and (max-height: 700px) {
+  .wallet-page .wcard { gap: var(--s-1); }
+  .wallet-page .wcard__trend, .wallet-page .wcard__empty { display: none; }
+  /* 补到多少收起：按钮写着"领补给"，桌上的筹码要放得下一整条（页脚触屏做到 44 高以后又少了一截） */
+  .wallet-page [data-testid="relief-hint"] { display: none; }
+}
+
+/* 桌上没筹码：收成一行（标题和"没有"并排），不占半屏；后面的"这周"也按内容高，不再撑满剩下的高 */
+.wallet-page .wallet-page__stakes--none { flex: none; min-height: 0; flex-direction: row; align-items: center; flex-wrap: wrap; gap: var(--s-1) var(--s-3); padding-block: var(--s-2); }
+.wallet-page .wallet-page__stakes--none .panel__title { font-size: var(--fs-md); }
+/* 这时标题放回来：卡片后面紧跟"本周净赢"，不用读屏专用的隐藏标题 */
+.wallet-page .wallet-page__stakes--none ~ .wallet-page__week > .panel__title { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip-path: none; }
+
+/* 这周没打带筹码的局：收成一行（标题和一句话并排），不占一大块 */
+.wallet-page .wallet-page__week--none,
+.wallet-page .wallet-page__stakes--none ~ .wallet-page__week--none { flex: none; flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: var(--s-1) var(--s-3); padding-block: var(--s-2); }
+.wallet-page .wallet-page__week--none > .panel__title,
+.wallet-page .wallet-page__stakes--none ~ .wallet-page__week--none > .panel__title { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip-path: none; font-size: var(--fs-md); }
+/* 余额卡永远按内容高（不再在两块都收成一行时撑满整屏、内容居中），内容靠上；下面的空白留给页面底 */

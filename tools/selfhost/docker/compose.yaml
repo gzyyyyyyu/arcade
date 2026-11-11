@@ -1,0 +1,68 @@
+# 自托管的 compose：arcade（自己打的镜像，默认叫 arcade:local，打法见同目录 Dockerfile 开头）+ caddy（自动 HTTPS、真实 IP）；PostgreSQL 档再加 postgres（profile pg）。
+# 本文件和同目录的 Caddyfile 放进一个空目录，再放 secrets.env（Secret 和 SITE_ORIGIN，生成办法见仓库根 README 的 Self-hosting 一节）：
+#   SQLite 档：SITE_HOST=game.example.com docker compose up -d
+#   PG 档：    SITE_HOST=game.example.com ARCADE_DB=pg docker compose --profile pg up -d
+#             （另放 pg_password.txt，secrets.env 里加 ARCADE_PG_URL，指向下面的 postgres 服务）
+# 镜像叫别的名字（或放在自己的镜像仓库里）时用 ARCADE_IMAGE 指过去。
+# 备份：docker compose exec arcade /app/ops/backup.sh /data/backups（管理入口只在容器里，宿主连不到）。
+services:
+  arcade:
+    image: ${ARCADE_IMAGE:-arcade:local}
+    restart: unless-stopped
+    env_file: secrets.env
+    environment:
+      # sqlite 或 pg：镜像里两份配置都有，按这个选
+      ARCADE_DB: ${ARCADE_DB:-sqlite}
+    depends_on:
+      # 只有 --profile pg 时才有 postgres；没开 profile 时这条不算（required: false）
+      postgres:
+        condition: service_healthy
+        required: false
+    volumes:
+      - arcade-data:/data
+    # 不发布端口：只有 caddy 经内部网络连 8787；8788（管理入口）只听容器内的 127.0.0.1
+    expose:
+      - "8787"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      arcade:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_HOST: ${SITE_HOST:?要设 SITE_HOST（站点主机名）}
+      UPSTREAM: arcade:8787
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+  postgres:
+    # PostgreSQL 模式才用：docker compose --profile pg 才会起。不发布端口，只有 arcade 经内部网络连
+    profiles: [pg]
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: arcade
+      POSTGRES_USER: arcade
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+    secrets:
+      - pg_password
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "arcade", "-d", "arcade"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+secrets:
+  pg_password:
+    file: pg_password.txt
+volumes:
+  arcade-data:
+  caddy-data:
+  caddy-config:
+  pg-data:

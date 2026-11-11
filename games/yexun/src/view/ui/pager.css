@@ -1,0 +1,18 @@
+/* 翻页控件（pager.ts）：放在面板页脚，和"返回"同一行。触屏 ≥ 44，鼠标设备同样按 44 做，页脚本来就有 48 高 */
+.yx-pg-off { display: none !important; }
+.yx-screen .yx-pgfoot { display: flex; align-items: center; justify-content: center; gap: 10px; flex: none; }
+.yx-screen .yx-pager { display: flex; align-items: center; gap: 6px; }
+.yx-screen .yx-pager[hidden] { display: none; }
+.yx-screen .yx-pgbtn {
+  min-width: 44px; min-height: 44px; padding: 0 10px; border: 2.5px solid var(--ink); border-radius: 12px; background: #fbf5e4;
+  font: inherit; font-size: var(--fs-lg, 16px); color: var(--ink); cursor: pointer; white-space: nowrap;
+}
+.yx-screen .yx-pgbtn:disabled { opacity: 0.4; cursor: default; }
+@media (hover: hover) and (pointer: fine) { .yx-screen .yx-pgbtn:not(:disabled):hover { background: #fff3c4; } }
+.yx-screen .yx-pgno { min-width: 3.6em; text-align: center; font-size: var(--fs-md, 14px); font-variant-numeric: tabular-nums; color: #5a4a3a; }
+@media (max-width: 480px) {
+  .yx-screen .yx-pgw { display: none; }
+  .yx-screen .yx-pgbtn { font-size: var(--fs-xl, 18px); }
+  .yx-screen .yx-pgfoot { gap: 6px; }
+  .yx-screen .yx-pgfoot .yx-big { min-width: 0; flex: 1; max-width: 160px; }
+}

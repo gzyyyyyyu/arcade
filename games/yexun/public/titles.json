@@ -1,0 +1,74 @@
+{
+  "dawn_hard": {
+    "name": "老道",
+    "desc": "在危险 4 或更高撑到天亮"
+  },
+  "dawn_20": {
+    "name": "守夜人",
+    "desc": "一共撑到天亮 20 次"
+  },
+  "kills_2000": {
+    "name": "割草宗师",
+    "desc": "一局斩 2,000 只"
+  },
+  "total_50000": {
+    "name": "万鬼克星",
+    "desc": "一共斩 50,000 只"
+  },
+  "boss_kill": {
+    "name": "伏尸",
+    "desc": "打倒尸王"
+  },
+  "boss_hard": {
+    "name": "镇尸人",
+    "desc": "在危险 4 或更高打倒尸王"
+  },
+  "kill_regular_all": {
+    "name": "百鬼录",
+    "desc": "每种常规怪都打倒过"
+  },
+  "kill_elite_all": {
+    "name": "精英克星",
+    "desc": "每种精英怪都打倒过"
+  },
+  "evolve_all": {
+    "name": "万法归宗",
+    "desc": "累计让全部法器都进化过"
+  },
+  "merge_all": {
+    "name": "合成宗师",
+    "desc": "三种合成都做过"
+  },
+  "no_hit": {
+    "name": "不沾尘",
+    "desc": "撑到天亮，一下都没挨"
+  },
+  "close_call": {
+    "name": "命硬",
+    "desc": "撑到天亮时，血只剩一成以下"
+  },
+  "nightmare_1": {
+    "name": "入梦人",
+    "desc": "在噩梦 1（危险 6）或更高撑到天亮"
+  },
+  "nightmare_2": {
+    "name": "长夜孤灯",
+    "desc": "在噩梦 2（危险 7）或更高撑到天亮"
+  },
+  "nightmare_3": {
+    "name": "血月行者",
+    "desc": "在噩梦 3（危险 8）撑到天亮"
+  },
+  "dawn_six_maps": {
+    "name": "行脚道士",
+    "desc": "六张地图都撑到天亮过"
+  },
+  "nightmare_boss": {
+    "name": "斩梦人",
+    "desc": "在噩梦档（危险 6 或更高）打倒尸王"
+  },
+  "nightmare_clean": {
+    "name": "梦中人",
+    "desc": "在噩梦档（危险 6 或更高）撑到天亮，这一局挨打不超过 5 次"
+  }
+}

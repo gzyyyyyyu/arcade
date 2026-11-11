@@ -1,0 +1,16 @@
+/* 主页面板的右上角 ✕：只在 .yx-modal-root（modal.ts 加的）下生效，点区 44×44 */
+.yx-modal-root > .yx-panel { position: relative; }
+.yx-modal-root > .yx-panel .yx-panel-head { padding-right: 48px; }
+.yx-modal-root > .yx-panel > .yx-mx {
+  position: absolute; top: 4px; right: 4px; z-index: 3;
+  width: 44px; height: 44px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; background: transparent; color: var(--ink, #17131c);
+  font: inherit; font-size: var(--fs-2xl, 22px); line-height: 1; cursor: pointer;
+}
+.yx-modal-root > .yx-panel > .yx-mx:active { transform: translateY(1px); }
+@media (hover: hover) and (pointer: fine) {
+  .yx-modal-root > .yx-panel > .yx-mx:hover { color: var(--red, #c8402f); }
+}
+.yx-modal-root > .yx-panel > .yx-mx:focus-visible { outline: 3px solid var(--gold, #f2c94c); outline-offset: -4px; border-radius: 10px; }
+.yx-modal-root > .yx-panel:focus { outline: none; }

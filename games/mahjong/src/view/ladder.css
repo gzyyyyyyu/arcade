@@ -1,0 +1,261 @@
+/* 茶馆擂台：整页样式限定在 .ladder-page 下，结算弹窗里那一行限定在 .ladder-end 下（view/ladder.ts） */
+.ladder-page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4) var(--sp-5);
+  /* 一屏放下（docs/ui.md 第 11 节）：不滚动；横屏手机矮，间距收紧（下面） */
+  overflow: hidden;
+  color: var(--ink);
+}
+.stage:not([data-fit='desk']) .ladder-page {
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-3);
+}
+.ladder-page > * {
+  flex: none;
+}
+/* 标题行以下的内容在剩余高度里垂直居中，宽屏下半屏不空着；放不下时 auto 外边距归零，照常顶对齐 */
+.ladder-page > .ld-intro {
+  margin-top: auto;
+}
+.ladder-page > .ld-cards {
+  margin-bottom: auto;
+}
+.ladder-page .ld-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: min(100%, 940px);
+}
+.ladder-page .ld-back {
+  position: relative;
+  /* 高度不超过标题行：外观只比标题字略高，点按范围靠 ::after 撑到 --tap */
+  min-height: 0;
+  padding: var(--sp-1) var(--sp-3);
+  line-height: 1.2;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-hi);
+  color: var(--ink);
+  /* 返回钮的字比标题小一档，标题才是这一行的重点 */
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.ladder-page .ld-back::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--tap, 44px)) / 2));
+}
+.ladder-page .ld-title {
+  line-height: 1.2;
+  font-size: var(--fs-2xl);
+  color: var(--gold-hi);
+}
+/* 云朵：已同步、已合并是金色，停下了（暂停、存储满）带小红点 */
+.ladder-page .ld-cloud {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: max(44px, var(--tap, 44px));
+  margin-left: auto;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: #f6f1e3cc;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.ladder-page .ld-cloud svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.ladder-page .ld-cloud[data-state='ok'],
+.ladder-page .ld-cloud[data-state='merged'] {
+  color: var(--gold-hi);
+}
+.ladder-page .ld-cloud[data-state='paused']::after,
+.ladder-page .ld-cloud[data-state='full']::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.ladder-page .ld-intro {
+  width: min(100%, 940px);
+  text-align: left;
+}
+.ladder-page .ld-lead {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+.ladder-page .ld-rules {
+  /* 整块和下面的卡片同宽，项目符号紧贴卡片左缘内侧，不再居中飘着 */
+  margin: var(--sp-2) 0 0;
+  padding-left: 1.2em;
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: #f6f1e3cc;
+}
+.ladder-page .ld-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-3);
+  width: min(100%, 940px);
+}
+.stage[data-orient='port'] .ladder-page .ld-cards {
+  grid-template-columns: 1fr;
+}
+/* 竖屏四张卡上下摆：每张横着排——左边第一行名字加三个圆点、下面称号、说明各一行，右边按钮；
+ * 比原来少一行，行间留得开，一屏放下不滚动（docs/ui.md 第 11 节） */
+.stage[data-orient='port'] .ladder-page .ld-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  justify-items: start;
+  column-gap: var(--sp-3);
+  row-gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.4;
+  text-align: left;
+}
+.stage[data-orient='port'] .ladder-page .ld-card > .ld-name {
+  grid-area: 1 / 1;
+}
+.stage[data-orient='port'] .ladder-page .ld-card > .ld-pips {
+  grid-area: 1 / 2;
+}
+.stage[data-orient='port'] .ladder-page .ld-card > .ld-title-badge {
+  grid-area: 2 / 1 / 3 / 3;
+}
+.stage[data-orient='port'] .ladder-page .ld-card > .ld-note {
+  grid-area: 3 / 1 / 4 / 3;
+}
+.stage[data-orient='port'] .ladder-page .ld-card > .act {
+  grid-column: 3;
+  grid-row: span 2;
+  justify-self: stretch;
+}
+.stage[data-orient='port'] .ladder-page .ld-card > .act:only-of-type {
+  grid-row: 1 / span 3;
+}
+.stage[data-orient='port'] .ladder-page .ld-go {
+  min-width: 6em;
+}
+/* 竖屏手机（360×640 这类矮的）四张卡：说明行距、卡片内边距收一点，一屏放下 */
+.stage[data-orient='port']:not([data-fit='desk']) .ladder-page .ld-rules {
+  line-height: 1.4;
+  margin-top: var(--sp-1);
+}
+.stage[data-orient='port']:not([data-fit='desk']) .ladder-page .ld-card {
+  padding-block: var(--sp-2);
+}
+.stage[data-orient='port']:not([data-fit='desk']) .ladder-page .ld-cards {
+  gap: var(--sp-2);
+}
+.ladder-page .ld-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-hi);
+  text-align: center;
+}
+.ladder-page .ld-card.got {
+  border-color: var(--gold-lo);
+  background: linear-gradient(#5a4a1a99, #2e250d99);
+}
+.ladder-page .ld-name {
+  font-size: var(--fs-lg);
+}
+.ladder-page .ld-title-badge {
+  font-size: var(--fs-sm);
+  color: #f6f1e3cc;
+}
+.ladder-page .ld-card.got .ld-title-badge {
+  padding: 2px var(--sp-3);
+  border-radius: 999px;
+  background: var(--gold-hi);
+  color: var(--on-gold);
+  font-weight: 700;
+}
+.ladder-page .ld-note {
+  font-size: var(--fs-sm);
+  color: #f6f1e3cc;
+}
+.ladder-page .ld-go {
+  min-width: 10em;
+}
+.ladder-page .ld-quit {
+  min-height: max(44px, var(--tap, 44px));
+}
+/* 三桌的小圆点（擂台页和结算弹窗共用） */
+.ladder-page .ld-pips,
+.ladder-end .ld-pips {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: center;
+}
+/* 关卡编号是 CSS 画的圆加数字（不用系统的 ①②③ 字符），各尺寸同一种实心底加粗描边的圆 */
+.ladder-page .ld-pip,
+.ladder-end .ld-pip {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #ffffff80;
+  border-radius: 50%;
+  background: #ffffff1f;
+  font-size: var(--fs-sm);
+  line-height: 1;
+  font-weight: 700;
+  color: #f6f1e3cc;
+}
+.ladder-page .ld-pip.won,
+.ladder-end .ld-pip.won {
+  border-color: var(--gold-hi);
+  background: var(--gold-hi);
+  color: var(--on-gold);
+}
+.ladder-page .ld-pip.at,
+.ladder-end .ld-pip.at {
+  border-color: var(--gold-hi);
+  color: var(--gold-hi);
+}
+.ladder-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  text-align: center;
+}
+.ladder-end .le-head {
+  font-size: var(--fs-lg);
+}
+.ladder-end.clear {
+  border-color: var(--gold-hi);
+  background: linear-gradient(#5a4a1a99, #2e250d99);
+}
+.ladder-end.clear .le-head {
+  color: var(--gold-hi);
+}

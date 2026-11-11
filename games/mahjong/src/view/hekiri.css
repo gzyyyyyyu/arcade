@@ -1,0 +1,399 @@
+/* 每日何切：整页样式都限定在 .hekiri 下（view/hekiri.ts） */
+.hekiri {
+  --hk-w: 54px;
+  --hk-h: 76px;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4) var(--sp-5);
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: var(--ink);
+}
+.stage[data-orient='port'] .hekiri {
+  --hk-w: 64px;
+  --hk-h: 90px;
+  gap: var(--sp-4);
+}
+/* 标题和题号留在顶上，题目和按钮在剩余高度里垂直居中，不让下半屏空着（内容放不下时 auto 外边距归零，照常顶对齐） */
+.hekiri > .hk-ask,
+.hekiri > .hk-verdict,
+.hekiri > .hk-result {
+  margin-top: auto;
+}
+.hekiri > :last-child {
+  margin-bottom: auto;
+}
+.hekiri > * {
+  flex: none;
+}
+.hekiri .hk-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: min(100%, 940px);
+}
+.hekiri .hk-back {
+  position: relative;
+  /* 高度不超过标题行：外观只比标题字略高，点按范围靠 ::after 撑到 --tap */
+  min-height: 0;
+  padding: var(--sp-1) var(--sp-3);
+  line-height: 1.2;
+  white-space: nowrap;
+  border: 1px solid #ffffff26;
+  border-radius: var(--r-md);
+  background: var(--surface-hi);
+  color: var(--ink);
+  /* 返回钮的字比标题小一档，标题才是这一行的重点 */
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.hekiri .hk-back::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--tap, 44px)) / 2));
+}
+.hekiri .hk-title {
+  font-size: var(--fs-2xl);
+  line-height: 1.2;
+  color: var(--gold-hi);
+}
+.hekiri .hk-tag {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-hi);
+  font-size: var(--fs-xs);
+}
+.hekiri .hk-score {
+  /* 分数和标题同行高、同字号的大字，基线对齐（原来分数大字比标题低几像素） */
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-1);
+  margin-left: auto;
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+}
+.hekiri .hk-score i {
+  font-style: normal;
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  color: var(--gold-hi);
+  font-variant-numeric: tabular-nums;
+}
+.hekiri .hk-dots,
+.hekiri .hk-marks {
+  display: flex;
+  gap: var(--sp-2);
+}
+.hekiri .hk-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid #ffffff30;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+.hekiri .hk-dot.now {
+  border-color: var(--gold);
+  color: var(--gold-hi);
+}
+.hekiri .hk-dot.ok {
+  background: var(--gold);
+  border-color: var(--gold-hi);
+  color: #3a2a00;
+}
+.hekiri .hk-dot.near {
+  background: #ffffff33;
+  border-color: var(--gold-lo);
+  color: var(--gold-hi);
+}
+.hekiri .hk-dot.bad {
+  background: #7a2a2a99;
+  border-color: #c85a5a;
+}
+.hekiri .hk-ask {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+.hekiri .hk-seen {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  max-width: min(100%, 940px);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.hekiri .hk-label {
+  font-size: var(--fs-sm);
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.hekiri .hk-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.hekiri .hk-tile {
+  display: inline-block;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.hekiri .hk-tile.mini {
+  width: 24px;
+  height: 34px;
+}
+.hekiri .hk-tile.mid {
+  width: 38px;
+  height: 54px;
+}
+.hekiri .hk-tile.hand {
+  width: var(--hk-w);
+  height: var(--hk-h);
+  border-radius: 6px;
+}
+.hekiri button.hk-tile.hand {
+  cursor: pointer;
+  transition: transform var(--t-fast, 0.12s);
+}
+.hekiri .hk-hand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 18px;
+  max-width: min(100%, 980px);
+}
+.hekiri .hk-tile.hand.sel {
+  transform: translateY(-16px);
+  box-shadow: 0 0 0 3px var(--gold);
+}
+.hekiri .hk-hand.shown .hk-tile.hand.mine {
+  transform: translateY(-16px);
+  box-shadow: 0 0 0 3px #ffffffcc;
+}
+.hekiri .hk-hand.shown .hk-tile.hand.best {
+  box-shadow: 0 0 0 3px var(--gold);
+}
+.hekiri .hk-hand.shown .hk-tile.hand.mine.best {
+  box-shadow: 0 0 0 3px var(--gold), 0 0 18px 4px #ffd35a99;
+}
+.hekiri .hk-hint {
+  max-width: 90%;
+  font-size: var(--fs-sm);
+  text-align: center;
+  opacity: 0.85;
+}
+.hekiri .hk-main {
+  min-width: 240px;
+}
+.hekiri .hk-verdict {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--surface-hi);
+  font-size: var(--fs-lg);
+}
+.hekiri .hk-verdict.ok {
+  background: linear-gradient(#f3c86b66, #e2a93b33);
+  animation: hk-flash 0.9s ease-out;
+}
+.hekiri .hk-verdict.bad {
+  background: #7a2a2a66;
+}
+.hekiri .hk-pts {
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--gold-hi);
+}
+@keyframes hk-flash {
+  0% {
+    box-shadow: 0 0 0 0 #ffd35a;
+  }
+  100% {
+    box-shadow: 0 0 36px 12px #ffd35a00;
+  }
+}
+.hekiri .hk-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(100%, 760px);
+}
+.hekiri .hk-row-c {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid #ffffff1f;
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.hekiri .hk-row-c.best {
+  border-color: var(--gold);
+}
+.hekiri .hk-row-c.mine {
+  background: var(--surface-hi);
+}
+.hekiri .hk-info {
+  flex: none;
+  min-width: 150px;
+}
+.hekiri .hk-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+}
+.hekiri .hk-chip {
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-style: normal;
+  background: var(--surface-hi);
+  white-space: nowrap;
+}
+.hekiri .hk-chip.best {
+  background: var(--gold);
+  color: #3a2a00;
+}
+.hekiri .hk-sub {
+  font-size: var(--fs-sm);
+  opacity: 0.85;
+}
+.hekiri .hk-eff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+/* 有效牌摆不下的种数（hekiri.ts 的 EFF_MAX） */
+.hekiri .hk-eff .hk-more {
+  margin-left: var(--sp-1);
+  font-size: var(--fs-sm);
+  opacity: 0.8;
+}
+.hekiri .hk-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-6);
+  border: 1px solid var(--gold-lo);
+  border-radius: 16px;
+  background: linear-gradient(#5a4a1a99, #2e250d99);
+}
+.hekiri .hk-result.perfect {
+  border-color: var(--gold-hi);
+  box-shadow: 0 0 40px 6px #ffd35a66;
+}
+.hekiri .hk-big i {
+  font-style: normal;
+  font-size: 72px;
+  font-weight: 900;
+  color: var(--gold-hi);
+  font-variant-numeric: tabular-nums;
+}
+.hekiri .hk-big small {
+  font-size: var(--fs-xl);
+  opacity: 0.8;
+}
+.hekiri .hk-sum {
+  font-size: var(--fs-lg);
+}
+.hekiri .hk-marks .hk-dot {
+  width: 44px;
+  height: 44px;
+  font-size: var(--fs-xl);
+}
+.hekiri .hk-stats {
+  display: flex;
+  gap: var(--sp-5);
+  font-size: var(--fs-md);
+}
+/* 成绩页的三个按钮等宽，离上面的成绩卡留出一截 */
+.hekiri .hk-acts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+  width: min(100%, 560px);
+  margin-top: var(--sp-4);
+}
+.hekiri .hk-acts > .act {
+  min-width: 0;
+  padding-inline: var(--sp-2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hekiri .hk-verdict.ok {
+    animation: none;
+  }
+}
+/* 揭晓页内容多：竖屏够高，"下一题"贴在底边一直点得到 */
+.stage[data-orient='port'] .hekiri .hk-main {
+  position: sticky;
+  bottom: var(--sp-2);
+}
+/* 横屏（电脑、手机横拿）矮：收起桌上的牌，"下一题"提到评语下面，不用滚也点得到，也不压住下面几种打法 */
+.stage[data-orient='land'] .hekiri .hk-verdict ~ .hk-seen {
+  display: none;
+}
+.stage[data-orient='land'] .hekiri > .hk-head,
+.stage[data-orient='land'] .hekiri > .hk-dots,
+.stage[data-orient='land'] .hekiri > .hk-verdict {
+  order: -2;
+}
+.stage[data-orient='land'] .hekiri > .hk-verdict ~ .hk-main {
+  order: -1;
+}
+/* 揭晓页一屏放下（docs/ui.md 第 11 节，11-02 五尺寸量：1280 多 52、844 横拿多 179、360 竖屏多 6）：
+ * 横屏收起底下那句说明、收紧间距和每种打法那一行；手机横拿（不是电脑版）再收起整排手牌，打哪张、进几张在下面几行里都有 */
+.stage[data-orient='land'] .hekiri:has(> .hk-verdict) {
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+}
+.stage[data-orient='land'] .hekiri > .hk-verdict ~ .hk-hint {
+  display: none;
+}
+.stage[data-orient='land'] .hekiri .hk-row-c {
+  padding: var(--sp-1) var(--sp-3);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .hekiri > .hk-hand.shown {
+  display: none;
+}
+.stage[data-orient='port'] .hekiri:has(> .hk-verdict) {
+  padding-bottom: var(--sp-2);
+}
+/* "好牌！""全对！"的庆祝按传进来的坐标摆：得是绝对定位（牌桌上靠 .fx > *），不然它排进竖排里，字跑到左上角只露半截、还占一格间距 */
+.hekiri > .celeb {
+  position: absolute;
+}
+/* 分享预览是 kit 挂在 body 上的一层（id 固定，内联样式），这里调三处：
+ * 遮罩底色不在这里改，走 css/base.css :root 的 --ak-overlay（kit 的公开接口，kit 结构变了也不失效）；
+ * 说明字和按钮字调大一点；图的最大高度多让出一行按钮的位置，窄屏上说明字不再压着卡片底边 */
+#arcade-share-preview {
+  gap: 12px !important;
+}
+#arcade-share-preview > img {
+  max-height: calc(100% - 210px) !important;
+  object-fit: contain;
+}
+#arcade-share-preview > div:not([style*='flex']) {
+  font-size: 15px !important;
+}
+#arcade-share-preview button {
+  font-size: 17px !important;
+}

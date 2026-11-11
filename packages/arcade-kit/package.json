@@ -1,0 +1,87 @@
+{
+  "name": "@yyyu-star/arcade-kit",
+  "version": "0.25.2",
+  "description": "Multiplayer toolkit for small Cloudflare Workers games: Durable Object game rooms, room create/join entry points, browser client, daily write quota, ChaCha20 RNG, platform or standalone (guest) identity. 小游戏共用的联机底座",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "durable-objects",
+    "websocket",
+    "multiplayer",
+    "game",
+    "room",
+    "turn-based",
+    "chacha20"
+  ],
+  "homepage": "https://github.com/gzyyyyyyu/arcade/tree/main/packages/arcade-kit#readme",
+  "bugs": {
+    "url": "https://github.com/gzyyyyyyu/arcade/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gzyyyyyyu/arcade.git",
+    "directory": "packages/arcade-kit"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
+  "exports": {
+    "./room": "./src/room.ts",
+    "./worker": "./src/worker.ts",
+    "./game": "./src/game.ts",
+    "./client": "./src/client.ts",
+    "./protocol": "./src/protocol.ts",
+    "./meter": "./src/meter.ts",
+    "./rng": "./src/rng.ts",
+    "./prng": "./src/prng.ts",
+    "./viewport": "./src/viewport.ts",
+    "./auth": "./src/auth.ts",
+    "./fun": "./src/fun.ts",
+    "./fun-logic": "./src/fun-logic.ts",
+    "./table-fun": "./src/table-fun.ts",
+    "./share": "./src/share.ts",
+    "./social": "./src/social.ts",
+    "./theme": "./src/theme.ts",
+    "./testing": "./src/testing.ts",
+    "./guest": "./src/guest.ts",
+    "./chat": "./src/chat.ts",
+    "./match": "./src/match.ts",
+    "./report": "./src/report.ts"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
+    "check:dist": "npm run build && node scripts/manifest.mjs check",
+    "test": "npm run typecheck && vitest run && vitest run -c vitest.pg.config.ts && npm run check:dist",
+    "prepack": "npm run build && node scripts/manifest.mjs pack",
+    "postpack": "node scripts/manifest.mjs restore"
+  },
+  "peerDependencies": {
+    "@cloudflare/workers-types": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "@cloudflare/workers-types": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.1",
+    "@cloudflare/workers-types": "^5.20261014.1",
+    "jsqr": "^1.4.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4",
+    "wrangler": "^4.150.0"
+  }
+}

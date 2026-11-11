@@ -1,0 +1,89 @@
+/* 动效：弹窗开关、换页淡入、手牌上的"换"标记。只动 opacity 和 transform，不触发重排 */
+
+/* ---------- 弹窗 ---------- */
+.mask {
+  animation: mask-in 0.16s ease-out;
+}
+.mask > .dialog {
+  animation: dialog-in 0.2s ease-out;
+}
+.mask.closing {
+  pointer-events: none;
+  animation: mask-out 0.12s ease-in forwards;
+}
+.mask.closing > .dialog {
+  animation: dialog-out 0.12s ease-in forwards;
+}
+@keyframes mask-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes mask-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+/* ---------- 换页 ---------- */
+.screen.enter {
+  animation: screen-in 0.2s ease-out;
+}
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---------- 换三张换进来的牌：右上角"换"字角标 + 一圈微光（只有自己看得见） ---------- */
+.my-hand .tile.swapped {
+  filter: drop-shadow(0 0 5px #f2c14ecc);
+}
+.my-hand .tile .swap-badge {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  z-index: 2;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--gold);
+  color: #3a2605;
+  font: 700 11px/16px system-ui, sans-serif;
+  font-style: normal;
+  pointer-events: none;
+  animation: badge-pulse 1.6s ease-in-out 3;
+}
+@keyframes badge-pulse {
+  50% {
+    transform: scale(1.18);
+  }
+}
+/* 点了不能打的牌：指针别装作能点 */
+.my-hand .tile.ban {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mask,
+  .mask.closing {
+    animation-duration: 0.01s;
+  }
+  .mask > .dialog,
+  .mask.closing > .dialog,
+  .my-hand .tile .swap-badge {
+    animation: none;
+  }
+}

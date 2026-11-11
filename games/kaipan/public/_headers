@@ -1,0 +1,27 @@
+# Cloudflare 静态资源缓存规则
+# 构建产物带内容哈希，可以永久缓存
+/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+# 美术素材和图集不带哈希，缓存一小时后重新验证，避免更新后拿到旧图
+/assets/art/*
+  Cache-Control: public, max-age=3600, must-revalidate
+# 数字字体（0.16.0）同样不带哈希
+/assets/fonts/*
+  Cache-Control: public, max-age=3600, must-revalidate
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/early.js
+  Cache-Control: no-cache
+# 安全头（0.13.1）：游戏页的 CSP 按开盘实际用到的来源收（先用 Report-Only 跑冒烟和正式构建，零违规后切成生效）：
+# - 脚本只认同域；例外是 Cloudflare Web Analytics 在边缘自动注入的 beacon（本地冒烟看不到）；
+# - 样式要 unsafe-inline：index.html 的首屏样式、横屏提示和共用包的面板都是插进来的 <style>；
+# - 图片 data:（Phaser 内置的占位贴图）和 blob:（SVG 素材转贴图、分享卡预览）；
+# - 请求只认同域，外加 beacon 的上报地址 cloudflareinsights.com（麻将上线后线上实测会往那里报，不放就违规、统计丢）；开盘没有好友房，不连 WebSocket；
+# - 只许同源的页面用 iframe 嵌（frame-ancestors，老浏览器认 X-Frame-Options）。
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: same-origin

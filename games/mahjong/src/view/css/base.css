@@ -1,0 +1,119 @@
+:root {
+  /* 颜色 */
+  --felt: #0f5a41;
+  --felt-dark: #0a3d2c;
+  --gold: #f3c86b;
+  --gold-hi: #f7d488;
+  --gold-lo: #e2a93b;
+  --on-gold: #3a2300;
+  --ink: #f6f1e3;
+  --red: #e04848;
+  --red-hi: #ff7b6b;
+  --green: #4cc38a;
+  --surface: #00000040;
+  --surface-hi: #ffffff1f;
+  --line: #ffffff2a;
+  --panel: linear-gradient(#183f31, #0f2c22);
+  /* 间距：4 的倍数 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  /* 字号：手机上舞台缩到 0.67–0.7 倍，14px 的字到屏幕上只剩 9.4px（0.17.5 手机审计）。viewport.ts 写 --fs-k = max(1, 1/缩放)，
+   * 每档给一个屏幕上的下限：xs 12px、sm 14px（分数、局数这些数字多用它）、md 15、lg 16、xl 17；2xl 往上缩完也够大，不动。
+   * 电脑和 iPad 上 --fs-k 是 1，跟原来一样 */
+  --fs-xs: calc(12px * var(--fs-k, 1));
+  --fs-sm: calc(14px * var(--fs-k, 1));
+  --fs-md: max(16px, calc(15px * var(--fs-k, 1)));
+  --fs-lg: max(18px, calc(16px * var(--fs-k, 1)));
+  --fs-xl: max(20px, calc(17px * var(--fs-k, 1)));
+  --fs-2xl: 24px;
+  --fs-3xl: 28px;
+  /* 圆角 */
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+  /* 阴影：浮起一点、浮起、弹窗 */
+  --sh-1: 0 2px 6px #0006;
+  --sh-2: 0 6px 20px #0008;
+  --sh-3: 0 10px 40px #000a;
+  /* 动效 */
+  --t-fast: 120ms;
+  --t-mid: 200ms;
+  /* 点按区域最小边长：屏幕上 44 像素折成设计像素，viewport.ts 按缩放写 */
+  --tap: 44px;
+  --app-h: 100vh;
+  /* kit 的面板（分享预览、叫朋友、互动菜单）跟着茶馆的样子走（kit 0.16.0 的 --ak-*，靠继承，不用每个组件传 theme） */
+  --ak-bg: #2a160c;
+  --ak-fg: #f6efdc;
+  --ak-accent: #f3c86b;
+  --ak-accent-fg: #3a2300;
+  --ak-border: #f3c86b40;
+  --ak-radius: 16px;
+  --ak-radius-btn: 12px;
+  --ak-font: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans CJK SC', 'Microsoft YaHei', system-ui, sans-serif;
+  /* 分享预览的遮罩要几乎不透明，免得后面页面的按钮透出来 */
+  --ak-overlay: #07261cfa;
+  --ak-soft: #ffffff14;
+  --ak-title: #f3c86b;
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans CJK SC', 'Microsoft YaHei', system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100vh;
+  height: 100dvh;
+  height: var(--app-h);
+  overflow: hidden;
+  background: #071f17;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#app {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  right: env(safe-area-inset-right, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  left: env(safe-area-inset-left, 0px);
+}
+.stage {
+  font-size: var(--fs-md);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+  background: radial-gradient(ellipse at 50% 45%, #187152 0%, var(--felt) 45%, var(--felt-dark) 100%);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+/* hidden 属性一律藏起来：按钮统一了 display，不写这条会盖过浏览器自带的 [hidden] */
+[hidden] {
+  display: none !important;
+}
+/* 数字一律等宽：筹码、剩几张、倒计时、房间号对得齐，跳动时不晃 */
+.chips,
+.wallet-chip,
+.wall,
+.clock,
+.net,
+.room-code,
+.stake small,
+.ver {
+  font-variant-numeric: tabular-nums;
+}
+

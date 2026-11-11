@@ -1,0 +1,58 @@
+/*
+ * 收池与摊牌的重点（piece B）：底池飞向赢家的小筹码、摊牌时赢的五张放大发光、牌型名大字。
+ * 都限定在牌桌根 .table 下（飞行层 .fx 也在里面），不写裸类名，免得串到别的界面。
+ * 动的只有 transform / opacity / scale；.lowfx（省内存设备）和"减少动态效果"只留透明度和光圈，不放大不位移。
+ */
+
+/* 跟在领头那摞后面的小筹码：和 .chip 同色系的一枚圆片，位置由 fx.ts 的 WAAPI 关键帧推，这里只管长相 */
+.table .fx .pfx-chip {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #fff 0 22%, #c9362d 24% 62%, #f3e6c2 64% 70%, #a82820 72%);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, .45), inset 0 0 0 2px rgba(255, 255, 255, .55);
+  pointer-events: none;
+}
+
+/* 牌型名：公共牌上方的一块金牌，比结果条里的字大得多 */
+.table .fx .pfx-hand {
+  position: absolute;
+  padding: 4px 22px 6px;
+  border-radius: 999px;
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 3px;
+  white-space: nowrap;
+  color: #fff4cf;
+  background: linear-gradient(#a8741f, #6d4510);
+  box-shadow: 0 0 0 3px #f3c86b, 0 5px 0 #2b1d14, 0 0 28px 4px rgba(255, 214, 110, .55);
+  text-shadow: 0 2px 0 rgba(43, 29, 20, .85);
+  pointer-events: none;
+}
+.table.tall .fx .pfx-hand,
+.stage.tall .table .fx .pfx-hand { font-size: 30px; padding: 3px 16px 5px; }
+
+/* 摊牌：赢的五张放大一点、金边加光晕、压在别的牌上；输的牌压暗但字看得清（原来 .55 在小屏上发糊） */
+.table.showdown .card.best {
+  scale: 1.12;
+  z-index: 6;
+  box-shadow: 0 0 0 3px var(--cg-gold, #f3c86b), 0 0 0 5px var(--cg-ink, #2b1d14), 0 0 20px 7px rgba(255, 214, 110, .7);
+  animation: pfx-win .55s ease-out;
+}
+/* 我自己的底牌已经是最大的一档，再放大会顶到上面的结果条（冒烟报压住 7 像素）：只留光圈 */
+.table.showdown .card.mine.best { scale: 1; animation: none; }
+.table.showdown .card.up:not(.best) .c-face { filter: brightness(.7) saturate(.85); }
+@keyframes pfx-win {
+  0% { scale: 1; }
+  55% { scale: 1.2; }
+  100% { scale: 1.12; }
+}
+
+/* 省内存设备、减少动态效果：不放大、不弹，只留光圈 */
+.lowfx .table.showdown .card.best { scale: 1; animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .table.showdown .card.best { scale: 1; animation: none; }
+}

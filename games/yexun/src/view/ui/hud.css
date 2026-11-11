@@ -1,0 +1,464 @@
+/*
+ * HUD：宣纸色卡片 + 墨色描边，朱红做强调（DESIGN.md 7.1）。
+ * 手机横屏（高度 < 500）整体缩小一档，但可点的东西始终 ≥ 44 × 44 CSS 像素（验收 ④）。
+ */
+@font-face {
+  font-family: 'YxBrush';
+  src: url('/fonts/brush.woff2') format('woff2');
+  font-display: block;
+}
+
+.yx-hud {
+  --ink: #17131c;
+  --paper: #f6efdc;
+  --paper-2: #e8dcc0;
+  --red: #c8402f;
+  --gold: #f2c94c;
+  --s: 1;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--ink);
+  font: 700 calc(15px * var(--s, 1)) / 1.2 system-ui, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-height: 500px) {
+  .yx-hud { --s: 0.8; }
+}
+/* 电脑大屏（1920 这一档）整体放大一档 */
+@media (min-width: 1600px) and (min-height: 900px) {
+  .yx-hud { --s: 1.25; }
+}
+
+/* 顶栏容器：默认不生成盒子，左上、计时、右上各自定位（手机横屏、1280 的老样子） */
+.yx-hud .yx-top { display: contents; }
+
+.yx-btn {
+  pointer-events: auto;
+  min-width: max(44px, calc(44px * var(--s, 1)));
+  min-height: max(44px, calc(44px * var(--s, 1)));
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 10px;
+  font: inherit;
+  cursor: pointer;
+}
+.yx-hud .yx-btn svg { width: calc(22px * var(--s, 1)); height: calc(22px * var(--s, 1)); }
+.yx-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+
+/* 左上 */
+.yx-hud .yx-tl { position: absolute; left: max(10px, env(safe-area-inset-left, 0px)); top: 10px; display: flex; align-items: flex-start; gap: 10px; }
+.yx-hud .yx-home span { font-size: max(var(--fs-xs, 12px), calc(var(--fs-md, 14px) * var(--s, 1))); }
+.yx-card { display: flex; align-items: center; gap: calc(8px * var(--s, 1)); }
+.yx-avatar {
+  position: relative;
+  width: calc(54px * var(--s, 1));
+  height: calc(54px * var(--s, 1));
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff8e6, #e9d7ae);
+  overflow: hidden;
+  box-shadow: 0 3px 0 var(--ink);
+  flex: none;
+}
+.yx-avatar img { position: absolute; left: -6%; top: 6%; width: 112%; }
+.yx-lv {
+  position: absolute; right: -2px; bottom: -2px;
+  min-width: calc(22px * var(--s, 1)); padding: 0 3px;
+  border: 2px solid var(--ink); border-radius: 8px;
+  background: var(--red); color: #fff;
+  font-size: max(var(--fs-xs, 12px), calc(var(--fs-xs, 12px) * var(--s, 1))); text-align: center; line-height: calc(18px * var(--s, 1));
+}
+.yx-bars { display: flex; flex-direction: column; gap: 4px; }
+.yx-bar {
+  position: relative;
+  width: calc(190px * var(--s, 1));
+  height: calc(18px * var(--s, 1));
+  border: 2.5px solid var(--ink);
+  border-radius: 6px;
+  background: #3a3140;
+  overflow: hidden;
+  box-shadow: 0 2px 0 var(--ink);
+}
+.yx-sh { height: calc(11px * var(--s, 1)); width: calc(150px * var(--s, 1)); }
+.yx-fill { position: absolute; left: 0; top: 0; bottom: 0; transition: width 0.15s ease-out; }
+.yx-hp .yx-fill { background: linear-gradient(#ff8a7a, #e0453a 55%, #b8312a); }
+.yx-sh .yx-fill { background: linear-gradient(#a8dcff, #4ba3e6 60%, #2f7cc0); }
+.yx-bar-text {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  color: #fff; font-size: max(var(--fs-xs, 12px), calc(var(--fs-xs, 12px) * var(--s, 1)));
+  text-shadow: -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink), 1px 1px 0 var(--ink);
+}
+
+/* 顶部：经验条横贯屏幕，计时在正中 */
+.yx-xp {
+  position: absolute; left: 0; right: 0; top: 0; height: 6px;
+  background: rgba(23, 19, 28, 0.55);
+}
+.yx-xp .yx-fill { background: linear-gradient(90deg, #5fe0b0, #b8ffe6); box-shadow: 0 0 8px #8ff0c8; }
+.yx-timer {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 14px 4px 8px;
+  border: 2.5px solid var(--ink); border-radius: 14px;
+  background: rgba(28, 34, 48, 0.86); color: #f6efdc;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.yx-moon {
+  width: calc(26px * var(--s, 1)); height: calc(26px * var(--s, 1)); border-radius: 50%;
+  background: radial-gradient(circle at 65% 40%, transparent 46%, #f6e7b0 48%);
+  box-shadow: 0 0 10px rgba(246, 231, 176, 0.6);
+  transform: rotate(-20deg);
+}
+.yx-tcol { display: flex; flex-direction: column; align-items: center; }
+.yx-tlabel { font-size: max(var(--fs-xs, 12px), calc(var(--fs-xs, 12px) * var(--s, 1))); opacity: 0.75; letter-spacing: 2px; }
+.yx-time { font-size: calc(26px * var(--s, 1)); line-height: 1; letter-spacing: 1px; }
+
+/* 夜探：14:00 起顶上的倒计时醒目，最后 30 秒变红闪 */
+.yx-timer.warn { background: rgba(120, 70, 16, 0.92); }
+.yx-timer.warn .yx-time { color: #ffd23a; }
+.yx-timer.red { background: rgba(150, 28, 24, 0.94); animation: yx-dawn 0.9s ease-in-out infinite; }
+.yx-timer.red .yx-time { color: #fff; }
+@keyframes yx-dawn {
+  0%, 100% { box-shadow: 0 3px 0 var(--ink), 0 0 0 rgba(255, 70, 50, 0); }
+  50% { box-shadow: 0 3px 0 var(--ink), 0 0 18px rgba(255, 70, 50, 0.9); }
+}
+
+/* 撤离箭头：贴着屏幕边，位置由脚本写（transform），图标按朝向转 */
+.yx-xa { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+.yx-xa-ico { position: absolute; left: 0; top: 0; width: calc(40px * var(--s, 1)); height: calc(40px * var(--s, 1)); animation: yx-xa 0.8s ease-in-out infinite alternate; }
+.yx-xa-ico svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 0 4px rgba(255, 210, 58, 0.8)); }
+@keyframes yx-xa { from { opacity: 0.75; } to { opacity: 1; } }
+.yx-xa.gb .yx-xa-ico svg { filter: drop-shadow(0 0 4px rgba(255, 138, 42, 0.8)); }
+.yx-xa-text {
+  position: absolute; left: 0; top: 0; white-space: nowrap;
+  padding: 2px 8px; border: 2px solid var(--ink); border-radius: 8px;
+  background: rgba(28, 34, 48, 0.9); color: #ffe9a0; font-size: max(var(--fs-xs, 12px), calc(var(--fs-sm, 13px) * var(--s, 1)));
+}
+.yx-xa.gb .yx-xa-text { color: #ffd9a8; }
+.yx-xa.mk .yx-xa-ico svg { filter: drop-shadow(0 0 4px rgba(95, 224, 176, 0.8)); }
+.yx-xa.mk .yx-xa-text { color: #b8ffe6; }
+/* 夜市买的临时增益：顶栏计时下面一个小标签 */
+.yx-hud .yx-buffs {
+  position: absolute; left: 50%; top: calc(66px * var(--s, 1)); transform: translateX(-50%);
+  padding: 2px 10px; border: 2px solid var(--ink); border-radius: 10px; white-space: nowrap; pointer-events: none;
+  background: rgba(28, 34, 48, 0.88); color: #b8ffe6; font-size: max(var(--fs-xs, 12px), calc(var(--fs-sm, 13px) * var(--s, 1)));
+}
+
+/* 右上 */
+.yx-hud .yx-tr { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); top: 10px; display: flex; align-items: center; gap: 8px; }
+.yx-stat {
+  display: flex; align-items: center; gap: 6px; height: calc(32px * var(--s, 1));
+  padding: 0 10px 0 6px;
+  border: 2.5px solid var(--ink); border-radius: 10px;
+  background: var(--paper); box-shadow: 0 3px 0 var(--ink);
+  font-size: calc(var(--fs-lg, 16px) * var(--s, 1));
+}
+/* 击杀 + 铜钱：一个胶囊，两段并排 */
+.yx-hud .yx-caps { gap: calc(10px * var(--s, 1)); padding: 0 calc(10px * var(--s, 1)) 0 calc(6px * var(--s, 1)); white-space: nowrap; }
+.yx-hud .yx-cap { display: inline-flex; align-items: center; gap: 4px; }
+.yx-ico { width: calc(20px * var(--s, 1)); height: calc(20px * var(--s, 1)); flex: none; }
+.yx-ico-kill {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1.5c-4.4 0-7.5 3-7.5 7 0 2.4 1.2 4 2.6 4.9V16a1.5 1.5 0 0 0 1.5 1.5h6.8a1.5 1.5 0 0 0 1.5-1.5v-2.6c1.4-.9 2.6-2.5 2.6-4.9 0-4-3.1-7-7.5-7z' fill='%23f4f1ea' stroke='%2317131c' stroke-width='1.8'/%3E%3Cellipse cx='7' cy='9.2' rx='1.9' ry='2.2' fill='%2317131c'/%3E%3Cellipse cx='13' cy='9.2' rx='1.9' ry='2.2' fill='%2317131c'/%3E%3Cpath d='M8.2 14.4v2.4M11.8 14.4v2.4' stroke='%2317131c' stroke-width='1.4'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.yx-ico-bag {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M7 4.5h6l1.4 3C16.6 9 17.5 11.5 17 14c-.4 2.2-2 3.5-4 3.5H7c-2 0-3.6-1.3-4-3.5-.5-2.5.4-5 2.6-6.5z' fill='%23d9503e' stroke='%2317131c' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M6.8 5.5c1.8 1.2 4.6 1.2 6.4 0' fill='none' stroke='%2317131c' stroke-width='1.6'/%3E%3Ccircle cx='10' cy='12' r='2.2' fill='%23ffe08a' stroke='%2317131c' stroke-width='1.2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.yx-ico-coin {
+  border-radius: 50%; border: 2px solid var(--ink); box-sizing: border-box;
+  background: radial-gradient(circle, transparent 20%, #e7bd52 22%);
+  outline: 0;
+}
+
+/* 右侧：法器格，冷却用一圈扇形遮罩 */
+.yx-side {
+  position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); top: 50%; transform: translateY(-50%);
+  display: flex; align-items: flex-start; gap: calc(6px * var(--s, 1)); pointer-events: none;
+}
+/* 被动格和法器格顶边对齐：居中时被动只有一两件，小格子悬在半空、手机竖屏正好挨着主角，像掉在地上的东西 */
+.yx-slots, .yx-passives {
+  display: flex; flex-direction: column; gap: calc(8px * var(--s, 1));
+  padding: calc(8px * var(--s, 1)) calc(7px * var(--s, 1)) calc(10px * var(--s, 1));
+  border-radius: 14px; background: rgba(23, 19, 28, 0.32); box-shadow: inset 0 0 0 1.5px rgba(246, 239, 220, 0.25);
+}
+.yx-passives { gap: calc(5px * var(--s, 1)); padding: calc(6px * var(--s, 1)); }
+.yx-pass {
+  position: relative; width: calc(28px * var(--s, 1)); height: calc(28px * var(--s, 1));
+  border: 2px solid var(--ink); border-radius: 7px; background: linear-gradient(#fbf5e6, #e9dcbc);
+}
+.yx-pass img { position: absolute; inset: 6%; width: 88%; height: 88%; }
+.yx-pass .yx-slot-lv { left: -5px; bottom: -5px; font-size: var(--fs-xs, 12px); line-height: 13px; min-width: 14px; padding: 0 2px; }
+.yx-slot {
+  position: relative;
+  width: calc(46px * var(--s, 1)); height: calc(46px * var(--s, 1));
+  border: 2.5px solid var(--ink); border-radius: 10px;
+  background: linear-gradient(#fbf5e6, #e9dcbc);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.yx-slot img { position: absolute; inset: 8%; width: 84%; height: 84%; }
+.yx-cd { position: absolute; inset: 0; border-radius: 8px; background: conic-gradient(rgba(23, 19, 28, 0.55) var(--cd, 0deg), transparent 0); }
+.yx-slot.ready { box-shadow: 0 3px 0 var(--ink), 0 0 10px rgba(242, 201, 76, 0.8); }
+.yx-slot-lv {
+  position: absolute; left: -6px; bottom: -6px;
+  min-width: 16px; padding: 0 3px;
+  border: 2px solid var(--ink); border-radius: 6px;
+  background: var(--gold); font-size: var(--fs-xs, 12px); line-height: 14px; text-align: center;
+}
+
+/* 连斩横幅：毛笔字 + 墨点，数字一变就弹一下 */
+.yx-combo {
+  position: absolute; left: max(10px, env(safe-area-inset-left, 0px)); top: 30%;
+  display: flex; align-items: baseline; gap: 2px;
+  font-family: 'YxBrush', serif; font-weight: 400;
+  opacity: 0; transform: rotate(-6deg);
+  transition: opacity 0.3s;
+}
+.yx-combo.on { opacity: 1; }
+.yx-combo.pop .yx-combo-num { animation: yx-combo-pop 0.22s ease-out; }
+.yx-combo-num {
+  font-size: calc(56px * var(--s, 1)); line-height: 1; color: var(--ink);
+  -webkit-text-stroke: 4px #fff; paint-order: stroke fill;
+  text-shadow: 3px 4px 0 rgba(23, 19, 28, 0.2);
+}
+.yx-combo-word {
+  font-size: calc(30px * var(--s, 1)); color: var(--red);
+  margin-top: calc(22px * var(--s, 1));
+  -webkit-text-stroke: 4px #fff; paint-order: stroke fill;
+  text-shadow: 2px 3px 0 rgba(23, 19, 28, 0.25);
+}
+.yx-ink { position: absolute; border-radius: 50%; background: var(--ink); }
+.yx-ink-a { width: 10px; height: 10px; left: -10px; top: 6px; box-shadow: 14px -8px 0 -2px var(--ink), -6px 18px 0 -3px var(--ink); }
+.yx-ink-b { width: 7px; height: 7px; right: -14px; bottom: 4px; box-shadow: 10px -12px 0 -2px var(--ink); }
+/* 动画名全局共用：原来和结算面板（screens.css）的 yx-pop 重名，后加载的那份把这边的盖掉，连斩数字每次都从全透明淡入，打得快时整个看不见 */
+@keyframes yx-combo-pop {
+  0% { transform: scale(1.5); }
+  60% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+/* 手机：虚拟摇杆（按下处出现，松手消失） */
+.yx-stick { position: absolute; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; border: 2.5px solid rgba(246, 239, 220, 0.26); background: rgba(23, 19, 28, 0.06); pointer-events: none; }
+.yx-stick b { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 2.5px solid rgba(23, 19, 28, 0.55); background: rgba(246, 239, 220, 0.45); box-shadow: 0 2px 0 rgba(23, 19, 28, 0.35); }
+.yx-stick b.slow { width: 34px; height: 34px; margin: -17px 0 0 -17px; opacity: 0.6; }
+
+/* 月光暗角：四边偏冷偏暗，中间亮（只是一层渐变，不进画布） */
+.yx-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 75% 70% at 50% 52%, transparent 55%, rgba(40, 48, 84, 0.28) 85%, rgba(22, 26, 48, 0.5) 100%);
+}
+
+/* 摇杆层：铺满全屏、在 HUD 下面，按哪儿摇杆就出现在哪儿；HUD 的按钮在上层，点按钮不算走路 */
+.yx-touch { position: absolute; inset: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+
+/* ── 新手提示条：缩成一行小条，放在顶栏和夜探目标条下面，不盖主角、小地图和摇杆 ──
+ * 条本身在 screens.css 里（.yx-tip），这里只改位置和大小，选择器多一层 #stage 压过去 */
+#stage .yx-tip {
+  top: 124px; bottom: auto; padding: 0 0 0 12px; gap: 4px; border-radius: 12px;
+  background: rgba(251, 245, 228, 0.9); box-shadow: 0 2px 0 var(--ink); max-width: calc(100% - 16px);
+}
+#stage .yx-tip span { font-size: var(--fs-sm, 13px); }
+/* 技能提示有两行长：允许折行、宽度不超过屏幕，"不再提示"留在条里（原来一行到底，手机竖屏伸出屏幕） */
+#stage .yx-tip { white-space: normal; box-sizing: border-box; width: max-content; }
+#stage .yx-tip span { flex: 1 1 auto; min-width: 0; padding: 4px 0; line-height: 1.4; }
+#stage .yx-tip button { flex: none; white-space: nowrap; }
+#stage .yx-tip button { font-size: var(--fs-xs, 12px); background: none; }
+/* 提示条还在时，关卡横幅整体下移到它下面（连战第一关的横幅原来压住 WASD 提示） */
+#stage:has(.yx-tip) .yx-banners { padding-top: 200px; }
+@media (max-width: 767px) and (orientation: portrait) {
+  #stage:has(.yx-tip) .yx-banners { padding-top: 260px; }
+}
+/* 选卡时提示条让开：竖屏下它正好压在"升到 N 级"上，选卡时也用不上走位提示 */
+#stage:has(.yx-picks.open) .yx-tip { visibility: hidden; }
+@media (max-height: 500px) {
+  #stage .yx-tip { top: 108px; }
+  /* 夜探目标条：缩到 0.8 倍时顶在 54 像素，压到计时和血条下沿几像素（10-20 矩阵 568–932 横屏） */
+  .yx-hud .yx-rs { top: 62px; }
+}
+/* 小手机横屏（≤ 700 宽、矮）：血条、计时、右上三件一排放不下，血条压到计时、夜探的背包压到胶囊（10-20 矩阵 568–667 宽）。
+   血条短一截、计时去掉月亮和"离天亮"（竖屏同样的做法）、"大厅"只留小房子；夜探背包挪到胶囊下面 */
+@media (max-height: 500px) and (max-width: 700px) and (orientation: landscape) {
+  .yx-hud .yx-bar { width: calc(130px * var(--s, 1)); }
+  .yx-hud .yx-sh { width: calc(100px * var(--s, 1)); }
+  .yx-hud .yx-moon, .yx-hud .yx-tlabel { display: none; }
+  .yx-hud .yx-timer { padding: 4px 10px; }
+  .yx-hud .yx-home span { display: none; }
+  .yx-hud .yx-home { padding: 0; }
+  /* 0.4.4 铜钱胶囊底下多了一行小字，背包再往下让一行 */
+  .yx-hud .yx-bag { position: absolute; right: 0; top: calc(100% + 24px); }
+  .yx-hud .yx-bagpanel { top: 128px; max-height: calc(100% - 136px); }
+}
+
+/* ── 手机竖屏：顶栏并成一行（大厅、头像血条、计时、胶囊、暂停），夜探的背包在第二行右边 ──
+   平板竖屏（768、820、884 宽）也用这一套：老样子血条固定 190 宽、计时居中，两者相交（10-20 多尺寸矩阵） */
+@media (max-width: 999px) and (orientation: portrait) {
+  .yx-hud .yx-top {
+    position: absolute; display: flex; align-items: center; gap: 4px;
+    left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); top: 12px;
+  }
+  .yx-hud .yx-tl, .yx-hud .yx-tr, .yx-hud .yx-timer { position: static; transform: none; }
+  .yx-hud .yx-tl { flex: 1 1 0; min-width: 0; gap: 4px; align-items: center; }
+  .yx-hud .yx-tr { display: contents; }
+  .yx-hud .yx-home span { display: none; }
+  .yx-hud .yx-home { padding: 0; flex: none; }
+  .yx-hud .yx-card { flex: 1 1 0; min-width: 0; gap: 3px; }
+  .yx-hud .yx-avatar { width: 34px; height: 34px; flex: none; border-width: 2.5px; }
+  .yx-hud .yx-lv { min-width: 16px; font-size: var(--fs-xs, 12px); line-height: 13px; right: -4px; bottom: -4px; }
+  .yx-hud .yx-bars { flex: 1 1 0; min-width: 0; gap: 3px; }
+  .yx-hud .yx-bar { width: 100%; min-width: 0; height: 16px; }
+  .yx-hud .yx-sh { width: 72%; height: 9px; }
+  /* 竖屏血条也留数字（缩小一点、贴右），只看红条看不出掉了多少 */
+  .yx-hud .yx-bar-text { right: 4px; font-size: var(--fs-xs, 12px); line-height: 1; }
+  .yx-hud .yx-timer { flex: none; padding: 4px 8px; gap: 0; }
+  .yx-hud .yx-moon, .yx-hud .yx-tlabel { display: none; }
+  .yx-hud .yx-time { font-size: 20px; }
+  /* 击杀、铜钱上下叠两行：并排时胶囊随数字变宽，挤的是同一行里的血条（390 宽击杀上千时只剩 23 像素，360 宽只剩 4 像素） */
+  .yx-hud .yx-caps { flex: none; height: 34px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; padding: 0 7px 0 5px; font-size: var(--fs-sm, 13px); line-height: 15px; }
+  .yx-hud .yx-cap { gap: 3px; }
+  .yx-hud .yx-ico { width: 14px; height: 14px; }
+  .yx-hud .yx-pause { flex: none; padding: 0; }
+  /* 0.4.4 铜钱胶囊底下多了一行小字，背包再往下让一行 */
+  .yx-hud .yx-bag { position: absolute; right: 0; top: calc(100% + 24px); }
+  .yx-hud .yx-bagpanel { top: 128px; right: 8px; }
+  .yx-hud .yx-rs { top: 152px; }
+  .yx-hud .yx-rs.lower { top: 190px; }
+  .yx-hud .yx-mm { left: max(8px, env(safe-area-inset-left, 0px)); top: 108px; bottom: auto; width: 80px; height: 80px; }
+  #stage .yx-tip { top: 204px; }
+}
+/* 再窄一点（≤ 400 宽）：夜探目标条居中时压到左边的小地图（10-20 矩阵 320、360 宽），往右让出小地图的宽度、字小一号 */
+@media (max-width: 400px) and (orientation: portrait) {
+  .yx-hud .yx-rs { left: calc(50% + 44px); }
+  .yx-hud .yx-rs-1, .yx-hud .yx-rs-2 { font-size: var(--fs-sm, 13px); padding: 3px 8px; }
+  /* 320 宽提示条折成两行，底边压到法器格 2 像素：往上提一点 */
+  #stage .yx-tip { top: 198px; }
+}
+
+/* ── 电脑（≥1000 宽、≥600 高）：左上、中间、右上收进居中的一排，不再散在三个角 ── */
+@media (min-width: 1000px) and (min-height: 600px) {
+  .yx-hud .yx-top {
+    position: absolute; left: 0; right: 0; top: calc(14px * var(--s, 1)); margin: 0 auto;
+    width: min(94%, calc(960px * var(--s, 1)));
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; column-gap: calc(24px * var(--s, 1));
+  }
+  .yx-hud .yx-tl, .yx-hud .yx-tr, .yx-hud .yx-timer { position: static; transform: none; }
+  .yx-hud .yx-tl { justify-self: start; gap: calc(10px * var(--s, 1)); }
+  .yx-hud .yx-tr { justify-self: end; gap: calc(8px * var(--s, 1)); }
+  .yx-hud .yx-timer { justify-self: center; }
+  .yx-hud .yx-xa-text { font-size: max(var(--fs-xs, 12px), calc(var(--fs-sm, 13px) * var(--s, 1))); }
+  .yx-hud .yx-side { right: max(24px, 2vw); }
+  .yx-hud .yx-slot-lv { font-size: max(var(--fs-xs, 12px), calc(11px * var(--s, 1))); line-height: max(14px, calc(14px * var(--s, 1))); }
+  #stage .yx-tip { top: 150px; }
+}
+
+/* 下一场地图事件的倒计时小牌：计时和法器加成牌下面居中，距离 ≤ 60 秒才出现，≤ 10 秒变红脉动 */
+.yx-hud .yx-evtag {
+  position: absolute; left: 50%; top: calc(94px * var(--s, 1)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px; padding: 2px 10px 2px 3px; white-space: nowrap; pointer-events: none;
+  border: 2px solid var(--evc, #ff7a5a); border-radius: 12px; background: rgba(28, 34, 48, 0.88); color: #f6efdc;
+  font-size: max(var(--fs-xs, 12px), calc(var(--fs-sm, 13px) * var(--s, 1)));
+}
+.yx-hud .yx-evtag i {
+  width: max(22px, calc(22px * var(--s, 1))); height: max(22px, calc(22px * var(--s, 1))); border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--evc, #ff7a5a); color: #17131c; font: 400 15px/1 'YxBrush', serif;
+}
+.yx-hud .yx-evtag b { font-variant-numeric: tabular-nums; min-width: 2.6em; text-align: right; }
+.yx-hud .yx-evtag.ev-wind { --evc: #a8d8f5; }
+.yx-hud .yx-evtag.ev-sprouts { --evc: #6cc46a; }
+.yx-hud .yx-evtag.ev-icefall { --evc: #5fe0d6; }
+.yx-hud .yx-evtag.ev-tide { --evc: #4a8ee8; }
+.yx-hud .yx-evtag.ev-risen { --evc: #b07ae0; }
+.yx-hud .yx-evtag.ev-bell { --evc: #f2c744; }
+.yx-hud .yx-evtag.ev-parade { --evc: #f08a4a; }
+.yx-hud .yx-evtag.urgent { background: rgba(150, 28, 24, 0.94); border-color: #ff5a4a; animation: yx-evpulse 0.8s ease-in-out infinite; }
+.yx-hud .yx-evtag.urgent b { color: #fff; }
+@keyframes yx-evpulse { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .yx-hud .yx-evtag.urgent { animation: none; } }
+
+/* ── 排版整理（2026-10-30）：HUD 按钮三态；电脑顶栏摊宽一点，不缩在中间一条 ── */
+.yx-hud .yx-btn { transition: transform 0.08s ease-out, filter 0.12s, box-shadow 0.08s; -webkit-tap-highlight-color: transparent; }
+@media (hover: hover) {
+  .yx-hud .yx-btn:not(:disabled):hover { transform: translateY(-1px); filter: brightness(1.06); }
+  .yx-hud .yx-btn:not(:disabled):active { transform: translateY(2px); filter: none; }
+}
+.yx-hud .yx-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.yx-hud .yx-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+@media (min-width: 1000px) and (min-height: 600px) {
+  .yx-hud .yx-top { width: min(96%, calc(1200px * var(--s, 1))); }
+}
+
+/* 技能按钮：右下角的圆钮，外圈是冷却环（走满 = 好了，发亮）；持续中环反着退、蓝边。
+ * 竖屏和电脑在右下角（法器格在右边居中，够不着它）；手机横屏矮，法器格能排到底，按钮挪到法器格左边 */
+.yx-hud .yx-skill {
+  --cd: 360deg;
+  position: absolute; pointer-events: auto; touch-action: none;
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 8px));
+  bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px));
+  width: max(44px, calc(64px * var(--s, 1))); height: max(44px, calc(64px * var(--s, 1)));
+  padding: 0; border: 3px solid var(--ink); border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff8e6, #e9d7ae);
+  box-shadow: 0 3px 0 var(--ink); cursor: pointer; font: inherit;
+}
+.yx-hud .yx-skill:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.yx-hud .yx-skill img { position: absolute; inset: 14%; width: 72%; height: 72%; filter: grayscale(0.75) brightness(0.8); pointer-events: none; }
+.yx-hud .yx-skill.ready img, .yx-hud .yx-skill.on img { filter: none; }
+.yx-hud .yx-skill-ring {
+  position: absolute; inset: -9px; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(#8a8f9c var(--cd), rgba(23, 19, 28, 0.5) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+}
+.yx-hud .yx-skill.ready .yx-skill-ring { background: #f2c94c; }
+.yx-hud .yx-skill.ready { box-shadow: 0 3px 0 var(--ink), 0 0 14px rgba(242, 201, 76, 0.9); animation: yx-skill-ready 1.2s ease-in-out infinite; }
+.yx-hud .yx-skill.on .yx-skill-ring { background: conic-gradient(#4ba3e6 var(--cd), rgba(23, 19, 28, 0.5) 0); }
+.yx-hud .yx-skill-key {
+  display: none; position: absolute; left: -6px; top: -6px; min-width: 16px; padding: 0 3px;
+  border: 2px solid var(--ink); border-radius: 6px; background: var(--paper);
+  font-size: var(--fs-xs, 12px); line-height: 14px; text-align: center; pointer-events: none;
+}
+@media (hover: hover) { .yx-hud .yx-skill-key { display: block; } }
+/* 技能名：钮上面一行小字（下面贴着屏幕边放不下），好了变金 */
+.yx-hud .yx-skill-name {
+  position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%);
+  padding: 0 6px; border-radius: 6px; background: rgba(23, 19, 28, 0.92); color: #f4ead2; box-shadow: 0 0 0 1.5px rgba(246, 239, 220, 0.35);
+  font-size: var(--fs-xs, 12px); line-height: 16px; white-space: nowrap; pointer-events: none;
+}
+.yx-hud .yx-skill.ready .yx-skill-name { color: #f2c94c; }
+/* 触屏：名条压在怪群上看不清，只在技能就绪或持续中显示（名字在长按说明里也有） */
+@media (hover: none), (pointer: coarse) { .yx-hud .yx-skill:not(.ready):not(.on) .yx-skill-name { display: none; } }
+/* 悬停 / 长按的完整说明 */
+.yx-hud .yx-skill-tip {
+  position: absolute; z-index: 5; width: min(300px, calc(100% - 24px)); padding: 8px 10px;
+  border: 2px solid var(--ink); border-radius: 10px; background: var(--paper, #f6ecd4); color: var(--ink, #17131c);
+  font-size: var(--fs-s, 13px); line-height: 1.45; box-shadow: 0 3px 0 var(--ink); pointer-events: none;
+}
+.yx-hud .yx-skill-tip b { font-size: var(--fs-m, 15px); }
+.yx-hud .yx-skill-tip p { margin: 3px 0 0; }
+.yx-hud .yx-skill-tip small { display: block; margin-top: 4px; opacity: 0.75; font-size: var(--fs-xs, 12px); }
+@keyframes yx-skill-ready { 50% { box-shadow: 0 3px 0 var(--ink), 0 0 22px rgba(242, 201, 76, 1); } }
+@media (prefers-reduced-motion: reduce) { .yx-hud .yx-skill.ready { animation: none; } }
+/* 技能还没解锁（教学局 2 级前）时按了键：在技能钮的位置闪一块小牌，1.4 秒淡出 */
+.yx-hud .yx-skill-lock {
+  position: absolute; pointer-events: none; opacity: 0; white-space: nowrap;
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 8px));
+  bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px));
+  padding: 6px 12px; border: 2.5px solid var(--ink); border-radius: 12px;
+  background: var(--paper, #f6ecd4); color: var(--ink); box-shadow: 0 3px 0 var(--ink);
+  font-size: var(--fs-md, 14px); font-weight: 700;
+}
+.yx-hud .yx-skill-lock.on { animation: yx-skill-lock 1.4s ease-out both; }
+@keyframes yx-skill-lock { 0% { opacity: 0; transform: translateY(8px); } 12%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@media (max-height: 500px) {
+  .yx-hud .yx-skill { right: max(112px, calc(env(safe-area-inset-right, 0px) + 104px)); bottom: max(18px, calc(env(safe-area-inset-bottom, 0px) + 12px)); }
+  .yx-hud .yx-skill-lock { right: max(112px, calc(env(safe-area-inset-right, 0px) + 104px)); bottom: max(18px, calc(env(safe-area-inset-bottom, 0px) + 12px)); }
+}
+/* 手机横屏：右侧法器格往内缩一点，底板加深一档（雪地和怪群上也托得住，数字不被压着） */
+@media (max-height: 500px) and (orientation: landscape) {
+  .yx-hud .yx-side { right: max(14px, calc(env(safe-area-inset-right, 0px) + 8px)); }
+  .yx-hud .yx-slots, .yx-hud .yx-passives { background: rgba(23, 19, 28, 0.55); }
+}
