@@ -77,7 +77,7 @@ export function renderFriendRoom(host: HTMLElement, o: FriendRoomOpts): Stage {
     const amHost = !!view && d.seat !== null && view.host === d.seat;
     const mySlot = view && d.seat !== null ? view.slots.findIndex((x) => x?.k === 'human' && x.seat === d.seat) : -1;
     const me = mySlot >= 0 ? (view!.slots[mySlot] as Extract<SlotView, { k: 'human' }>) : null;
-    if (typeof edit === 'number' && (!view || !view.slots[edit] || (view.slots[edit]!.k === 'human' && !amHost))) {
+    if (typeof edit === 'number' && (!view?.slots[edit] || (view.slots[edit]!.k === 'human' && !amHost))) {
       edit = 'me';
       if (tab === 'seat') tab = 'weapon';
     }

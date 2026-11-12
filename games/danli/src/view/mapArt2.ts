@@ -10,7 +10,7 @@
  */
 import type { Material } from './mapArt.ts';
 import type { MapId2, MaterialId2 } from '../core/mapData2.ts';
-import type { Area, Theme } from './backdrops.ts';
+import type { Theme } from './backdrops.ts';
 import type { Tone } from './scorchPaint.ts';
 
 import { blobs, cloud, halo, hash, tiles } from './paintKit.ts';

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { COMMONS, DIG_PCT, digRadius, FORK_PCT, FORK_SPREAD, loadout, loadoutCost, loadoutError, MAX_VOLLEYS, PLAIN, shellCount, shotScale, SPECIALS, VOLLEY_PCT, volleys } from '../src/core/items.ts';
 import { BODY_CY } from '../src/core/physics.ts';
 import { apply, MAX_HP, MAX_STAMINA, previewShot, replay, STEP_COST } from '../src/core/rules.ts';
-import { carve, cloneTerrain, dig as digCrater, solidAt } from '../src/core/terrain.ts';
+import { cloneTerrain, dig as digCrater, solidAt } from '../src/core/terrain.ts';
 import type { Ev, FireAction, State } from '../src/core/types.ts';
 import { blastDamage, weapon } from '../src/core/weapons.ts';
 import { flat, KEY, SETUP, slab } from './helpers.ts';

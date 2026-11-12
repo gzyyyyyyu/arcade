@@ -326,7 +326,7 @@ describe('一回合一条 act', () => {
     for (const k of [1, 2, 3, 4, 5]) s = ok(s, k, { t: 'ready', on: true });
     // 腾一个位子给电脑：5 号下场
     s = ok(s, 5, { t: 'bench' });
-    const free = s.slots.findIndex((x) => x === null);
+    const free = s.slots.indexOf(null);
     s = ok(s, 0, { t: 'addbot', slot: free });
     s = R.resume!(ok(s, 0, { t: 'start' }));
     while (s.game!.owners[s.game!.lite.actor] !== null) s = R.resume!(ok(s, actor(s)!, { t: 'pass' }));
