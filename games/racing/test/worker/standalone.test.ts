@@ -1,5 +1,5 @@
 /**
- * 独立部署（kit 0.10 的独立模式，docs/new-game.md 第 7 节）：wrangler.jsonc 原样部署、没有平台时，
+ * 独立部署（kit 的独立模式，docs/new-game.md 第 7 节）：wrangler.jsonc 原样部署、没有平台时，
  * env 里没有 ARCADE、GATE 也不是 login。这里拿测试 Worker 的 env 去掉这两样，直接调 Worker 的 fetch（不另加 wrangler 配置）。
  */
 import { env } from 'cloudflare:workers';
@@ -19,6 +19,12 @@ describe('独立部署', () => {
     const home = await call('/games/racing/');
     expect(home.status).toBe(200);
     expect(cookieOf(home)).toMatch(/kit-guest=/);
+  });
+
+  it('/api/me 回"没有平台"（页面的 detectPlatform 开局问一次，不让它落到静态资源回 404）', async () => {
+    const res = await call('/api/me');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ standalone: true });
   });
 
   it('游客能开房、进房；昵称不许冒充电脑', async () => {

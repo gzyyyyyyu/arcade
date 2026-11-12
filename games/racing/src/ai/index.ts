@@ -40,10 +40,6 @@ function flipDist(pool: readonly number[]): Dist {
   return d;
 }
 
-function shift(d: Dist, k: number): Dist {
-  return new Map([...d].map(([v, p]) => [v + k, p]));
-}
-
 function convolve(a: Dist, b: Dist): Dist {
   const out: Dist = new Map();
   for (const [x, p] of a) for (const [y, q] of b) out.set(x + y, (out.get(x + y) ?? 0) + p * q);

@@ -530,7 +530,7 @@ export class Board {
    * 框着的时候不跟车、不跟预览
    */
   focus(pts: Pt[] | null, minK = 0): void {
-    this.focusOn = pts && pts.length ? { pts, minK } : null;
+    this.focusOn = pts?.length ? { pts, minK } : null;
     this.free = false;
     window.clearTimeout(this.settleTimer);
     this.paintTools();

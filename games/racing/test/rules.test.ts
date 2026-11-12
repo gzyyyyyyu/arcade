@@ -301,7 +301,7 @@ describe('过弯', () => {
   it('刚好等于限速不付，超了几格付几张', () => {
     let s = duel();
     const v = c0.limit;
-    setCar(s, 0, { pos: c0.at - 1, hand: [v, v + 2 <= 4 ? v + 2 : 4, 1, 1, 1, 1, 1] });
+    setCar(s, 0, { pos: c0.at - 1, hand: [v, Math.min(v + 2, 4), 1, 1, 1, 1, 1] });
     s = plan(s, 0, 1, [0]);
     s = plan(s, 1, 1, [0]);
     expect(s.events).toContainEqual({ e: 'corner', seat: 0, line: c0.at, limit: c0.limit, speed: v, paid: 0 });
