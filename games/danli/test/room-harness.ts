@@ -5,7 +5,7 @@
  */
 import type { RoomInfo } from 'arcade-kit/protocol';
 import { CLIENT_VERSION, type NetAction, type RoomView } from '../src/net/rules.ts';
-import { FakeCtx, FakeSocket } from './fake-workers.ts';
+import { FakeCtx, type FakeSocket } from './fake-workers.ts';
 
 interface RoomLike {
   kitCreate(code: string, host: { userId: string; name: string }): Promise<{ r: string }>;

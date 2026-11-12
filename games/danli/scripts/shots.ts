@@ -1,5 +1,5 @@
 /**
- * 验收截图（真实运行，正常速度，不开 ?turbo）：电脑 1280×720、手机竖屏 390×844，存到 shots/v030-<屏>-<场景>.png。
+ * 验收截图（真实运行，正常速度，不开 ?turbo）：电脑 1280×720、手机竖屏 390×844，存到 shots/<屏>-<场景>.png。
  * - lobby 首页；room-weapons 准备房间（3v3、我的武器页签）、room-maps（地图页签）、room-maps-2（往下滑，"快图""慢图"角标）、room-maps-3（滑到底：0.4.0 的新图和"随机"）、room-bot（给黄队 2 号换人物和武器）；
  * - map-<id> 11 张图各开一局 3v3，轮到我时截一张；items 第一张轮得到我的图上道具栏叠了一组（三岔 + 连发 +1 + 连发 +2）；
  * - lobby-resume 打到一半回首页（有"接着上一局"）；
@@ -9,7 +9,7 @@
  * - tilt 角色贴着斜坡站（找一个开局我就站在斜坡上、先手是我的种子，读档进来）；
  *   craters 8 把武器的坑形和焦痕在实战里：每把一局 1v1（两边同一把武器），我先往身边打一发、电脑回一发，轮到我时截我身边，8 张拼成一张。
  * "我"用真按钮和手势出手（scripts/drive.ts），电脑那边照常。种子写死（?seed=1），每屏一样。
- * - v031-desk-flight 一发高抛（冲天烟花筒，我真按发射）从出手到落地每 0.25 秒截一张，拼成一张（看上升减速、到顶、下落加速，DESIGN.md 2.2.1）。
+ * - desk-flight 一发高抛（冲天烟花筒，我真按发射）从出手到落地每 0.25 秒截一张，拼成一张（看上升减速、到顶、下落加速，DESIGN.md 2.2.1）。
  * 用法：npm run shots [desk|port|friend|art|flight]（friend 只截好友房，art 只截 tilt、craters，flight 只截连拍）
  */
 import { mkdirSync } from 'node:fs';
@@ -93,7 +93,7 @@ for (const [name, opts] of SCREENS) {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && !/^Failed to load resource/.test(m.text()) && errors.push(m.text()));
-  const file = (s: string): string => `${root}shots/v030-${name}-${s}.png`;
+  const file = (s: string): string => `${root}shots/${name}-${s}.png`;
   await page.goto(`http://127.0.0.1:${port}/games/danli/?seed=1`);
   await page.waitForSelector('.dl-lobby');
   await page.evaluate(() => {
@@ -228,7 +228,7 @@ for (const [name, opts] of SCREENS) {
   }
   if (!found) throw new Error('找不到开局站在斜坡上的种子');
   await resumeSave(page, found.key, found.setup, []);
-  await page.screenshot({ path: `${root}shots/v030-${name}-tilt.png` });
+  await page.screenshot({ path: `${root}shots/${name}-tilt.png` });
   // 8 把武器的坑：每把一局，我往身边打一发、电脑回一发，轮到我时截我身边
   const tiles: string[] = [];
   for (const w of WEAPON_IDS) {
@@ -248,7 +248,7 @@ for (const [name, opts] of SCREENS) {
             const r = apply(st, act);
             if (!r.ok) continue;
             const b = r.events.find((e) => e.t === 'boom');
-            if (!b || b.t !== 'boom' || r.events.some((e) => e.t === 'hurt' || e.t === 'fall')) continue;
+            if (b?.t !== 'boom' || r.events.some((e) => e.t === 'hurt' || e.t === 'fall')) continue;
             const dx = Math.abs(b.x - me.x);
             if (dx >= 70 && dx <= 130 && b.y > me.y - 10 && b.y < me.y + 30) {
               shot = act;
@@ -289,7 +289,7 @@ for (const [name, opts] of SCREENS) {
       `figure{margin:0}img{width:360px;display:block;border:2px solid #46291a;border-radius:8px}figcaption{text-align:center;padding-top:4px}</style>${tiles.join('')}`,
   );
   await sheet.waitForTimeout(300);
-  await sheet.screenshot({ path: `${root}shots/v030-${name}-craters.png`, fullPage: true });
+  await sheet.screenshot({ path: `${root}shots/${name}-craters.png`, fullPage: true });
   await sheet.close();
   console.log(`${name} 斜坡（${found.deg.toFixed(0)}°）、坑形：${errors.length ? errors.join('；') : '截完'}`);
   await page.close();
@@ -315,7 +315,7 @@ if (!only || only === 'desk' || only === 'flight') {
       if (!r.ok) continue;
       const shot = r.events.find((e) => e.t === 'shot');
       const boom = r.events.find((e) => e.t === 'boom');
-      if (!shot || shot.t !== 'shot' || !boom || boom.t !== 'boom' || r.events.some((e) => e.t === 'hurt' && e.id === 0)) continue;
+      if (shot?.t !== 'shot' || !boom || boom.t !== 'boom' || r.events.some((e) => e.t === 'hurt' && e.id === 0)) continue;
       const steps = shot.flights[0]!.path.length / 2;
       const dx = Math.abs(boom.x - me.x);
       if (steps >= 120 && steps <= 180 && dx >= 500 && dx <= 1000) pick = { key, setup, facing, power };
@@ -354,7 +354,7 @@ if (!only || only === 'desk' || only === 'flight') {
       frames.map((f) => `<figure><img src="data:image/png;base64,${f.png}"><figcaption>${f.label}</figcaption></figure>`).join(''),
   );
   await sheet.waitForTimeout(300);
-  await sheet.screenshot({ path: `${root}shots/v031-desk-flight.png`, fullPage: true });
+  await sheet.screenshot({ path: `${root}shots/desk-flight.png`, fullPage: true });
   await sheet.close();
   console.log(`连拍：飞了 ${(end - start).toFixed(2)} 秒，${frames.length - 1} 张飞行中 + 1 张落地后（录到 ${shots.length} 帧）${errors.length ? `；${errors.join('；')}` : '，截完'}`);
   await page.close();
@@ -367,7 +367,7 @@ for (const [name, opts] of SCREENS) {
     a: opts,
     b: opts,
     turbo: false,
-    snap: (moment, who, page) => page.waitForTimeout(400).then(() => page.screenshot({ path: `${root}shots/v030-${name}-friend-${moment}-${who}.png` })).then(() => {}),
+    snap: (moment, who, page) => page.waitForTimeout(400).then(() => page.screenshot({ path: `${root}shots/${name}-friend-${moment}-${who}.png` })).then(() => {}),
   });
   console.log(`${name} 好友房：${errors.length ? errors.join('；') : '截完'}`);
 }

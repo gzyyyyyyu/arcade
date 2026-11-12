@@ -74,7 +74,7 @@ export class Sound {
   /** 能放吗：解锁了、没静音、没超过同时的声音数、这种声音没太密；能放就占一个位子，dur 秒后让出来 */
   private take(name: Sfx, dur: number): Ctx | null {
     const ctx = this.ctx;
-    if (!ctx || ctx.state !== 'running' || this.muted || this.voices >= MAX_VOICES) return null;
+    if (ctx?.state !== 'running' || this.muted || this.voices >= MAX_VOICES) return null;
     const now = performance.now();
     if (now - (this.last.get(name) ?? -1e9) < (GAP[name] ?? 0)) return null;
     this.last.set(name, now);
@@ -205,7 +205,7 @@ export class Sound {
       this.charging.osc.frequency.setTargetAtTime(f, ctx.currentTime, 0.03);
       return;
     }
-    if (!ctx || ctx.state !== 'running' || this.muted || this.voices >= MAX_VOICES) return;
+    if (ctx?.state !== 'running' || this.muted || this.voices >= MAX_VOICES) return;
     this.voices++;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();

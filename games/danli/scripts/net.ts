@@ -176,7 +176,7 @@ export async function netRoute(browser: Browser, o: NetOpts): Promise<string[]> 
     log('开打');
 
     // 各打几手；B 刷新一次；B 超时弃权一次；B 最后把自己炸出局
-    let shots = { a: 0, b: 0 };
+    const shots = { a: 0, b: 0 };
     let reloaded = false;
     let passed = false;
     let aimShot = false;

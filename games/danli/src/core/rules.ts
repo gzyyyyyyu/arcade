@@ -14,7 +14,7 @@ import { COMMON, digRadius, FORK_SPREAD, loadoutCost, loadoutError, PLAIN, shell
 import { buildTerrain, isMapId, MAPS, type MapDef } from './maps.ts';
 import { BODY_CY, BODY_H, BODY_R, launch, simulate, type Shot } from './physics.ts';
 import { cloneTerrain, dig as digCrater, solidAt, type Terrain } from './terrain.ts';
-import { LOOKS, type Action, type Char, type Dir, type Ev, type FireAction, type Flight, type OutWhy, type Setup, type State, type Step, type Team } from './types.ts';
+import { LOOKS, type Action, type Char, type Dir, type Ev, type Flight, type OutWhy, type Setup, type State, type Step, type Team } from './types.ts';
 import { blastDamage, isWeaponId, weapon } from './weapons.ts';
 
 /** 血量上限（0.1.0 平衡调整：DESIGN.md 2.6 定 150，模拟器调到 180，见 README"数值"） */
