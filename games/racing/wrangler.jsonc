@@ -1,6 +1,6 @@
 // racing Worker 的独立配置（docs/new-game.md 第 4、7 节；DESIGN.md 第 6 节）：页面 + 登录闸门 + 好友房。
 // 别人拿到这个目录不要平台也能部署（kit 的独立模式：游客 cookie，任何人打开就能玩），npm run deploy 或 Deploy to Cloudflare 按钮。
-// 本站正式部署时，维护者的部署工具按 tools/workers.json 在上面补平台绑定 ARCADE、GATE=login、路由和 SITE_ORIGIN，并关掉 workers_dev；
+// 接入 Arcade 平台时，部署工具在上面补平台绑定 ARCADE、GATE=login、路由和 SITE_ORIGIN，并关掉 workers_dev；
 // 所以这里不写 services 和 GATE。
 {
   "name": "racing",
@@ -8,12 +8,17 @@
   "compatibility_date": "2026-10-01",
   "workers_dev": true,
   "preview_urls": false,
+  // 线上日志和调用记录（Workers Logs）：浏览器报错的原文也在这里按签名找（仓库根 docs/monitoring.md）
+  "observability": { "enabled": true },
   "assets": {
     "directory": "./dist-cf",
     "binding": "ASSETS",
     "not_found_handling": "none",
-    // 只有这些先过 Worker：站点根（独立部署时转到 /games/racing/）、首页（登录闸门）、开房进房；其余静态资源直接回
-    "run_worker_first": ["/", "/games/racing", "/games/racing/", "/games/racing/index.html", "/games/racing/rooms", "/games/racing/rooms/*"]
+    // 只有这些先过 Worker：站点根和 /api/me（单独部署时）、首页（登录闸门）、巡检的 health、开房进房；其余静态资源直接回
+    "run_worker_first": [
+      "/", "/api/me", "/games/racing", "/games/racing/", "/games/racing/index.html",
+      "/games/racing/health", "/games/racing/rooms", "/games/racing/rooms/*"
+    ]
   },
   "durable_objects": {
     "bindings": [

@@ -8,6 +8,7 @@ import { Banter, factsOf, react, reply, snapOf, urge, type Snap, type Talk } fro
 import type { Action, Ev, Opts, Plan } from './core/types.ts';
 import type { View } from './core/view.ts';
 import { detectPlatform } from 'arcade-kit/client';
+import { reportErrors } from 'arcade-kit/report';
 import { clockSkew, createError, createRoom, Online, setNickname, type OnlineState } from './online.ts';
 import { clearSolo, loadSolo, ME, newSolo, Solo } from './solo.ts';
 import { TUTORIAL_KEY, TUTORIAL_OPTS, TUTORIAL_STORE } from './game/tutorial.ts';
@@ -26,6 +27,9 @@ import { play, setSound, unlockAudio, type Sfx } from './view/sound.ts';
 import { CAR_COLORS, GAME_NAME, MOVE_ERROR } from './view/text.ts';
 import { watchViewport } from './view/viewport.ts';
 import './view/style.css';
+
+// 没人接住的报错交给平台的 /api/client-error（仓库根 docs/monitoring.md）；单独部署时没有这个接口，kit 发不出去就算了
+reportErrors({ game: 'racing', version: __RACING_VERSION__ });
 
 // ---------- 设置 ----------
 
@@ -404,7 +408,7 @@ const soloUi = {
     window.clearTimeout(overTimer);
     overTimer = window.setTimeout(() => {
       overTimer = 0;
-      if (!solo || solo.save.state.phase !== 'over') return;
+      if (solo?.save.state.phase !== 'over') return;
       if (tutor) {
         // 教程：阿驰的毕业气泡先出（"正式开跑""再练一次"在它上面），结算随后在下边出来，只看成绩（还有"大厅"）
         const t = tutor;
