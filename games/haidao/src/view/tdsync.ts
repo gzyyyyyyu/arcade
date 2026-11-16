@@ -18,10 +18,11 @@ import { isTurret, type LandMat } from './aim.ts';
 import { sfx } from './audio/sfx.ts';
 import { DEPTH } from './depth.ts';
 import { stepFog, inFog } from './tdworld.ts';
-import { STEP_MS, W, RIG_OF, ATK_MS, buildCost } from './tdcommon.ts';
+import { W, RIG_OF, ATK_MS, buildCost } from './tdcommon.ts';
 import { padState, boom, drawBars } from './tdoverlay.ts';
 import { wreckOf } from './tdsheet.ts';
 import { ftx } from './tdhud.ts';
+import { STEP_MS } from './motion.ts';
 
 /** 把规则状态画出来：敌人、塔、英雄、地上的宝藏、火药桶、障碍、血条、弹道 */
 export function sync(bs: TdScene, dt: number): void {
@@ -282,18 +283,6 @@ export function renderSnipe(bs: TdScene, now: number): void {
     e.fy = es.rig.y;
     return true;
   });
-}
-
-/** 盾上火星：金属火花几粒 + 一点木屑 + 一闪（对象池，粒子吃紧时减量） */
-export function guardFx(bs: TdScene, x: number, y: number, depth: number): void {
-  const pt = bs.pt;
-  pt.bloom.flash(x, y, 16, 0xffe9a8, 140, 0.6);
-  const n = pt.live > 100 ? 2 : 6;
-  for (let i = 0; i < n; i++) {
-    const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.55 + (i % 2 ? 0.2 : -0.2);
-    pt.emit('ember', x, y, { vx: Math.cos(a) * (70 + (i % 3) * 30), vy: Math.sin(a) * (80 + (i % 2) * 40), g: 220, life: 260 + (i % 3) * 60, s0: 0.8, s1: 0.2, a0: 1, tint: i % 2 ? 0xfff2a0 : 0xffc23f, depth: depth + 1 });
-  }
-  if (pt.live < 100) pt.splinters(x, y, 2);
 }
 
 /** 炮台每帧：炮口只跟规则的 t.aim（不自己挑目标，免得追着打不到的敌人转）；没有目标就不动 */

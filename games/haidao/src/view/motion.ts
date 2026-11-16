@@ -3,6 +3,10 @@
  * 统一缓动曲线、拍间插值、转向过渡、攻击三段（预备 - 出手 - 收招）、受击、死亡、建筑受损阶段和升起。
  * 场景里需要"按动作选 ease"时一律从这里取，不在各处自己写 'Quad.easeOut' 之类的字符串或线性插值。
  */
+import { TICKS_PER_SEC } from '../core/types.ts';
+
+/** 一个逻辑拍多少毫秒：画面在两拍之间插值、按墙钟追拍都用它（登陆战和守岛同一个） */
+export const STEP_MS = 1000 / TICKS_PER_SEC;
 
 // ---------------------------------------------------------------- 缓动
 
@@ -101,11 +105,6 @@ export function turnStep(cur: number, target: number, dtMs: number, ms = TURN_MS
   if (cur < target) return Math.min(target, cur + step);
   if (cur > target) return Math.max(target, cur - step);
   return cur;
-}
-
-/** 转身中间的纵向微跳：翻过去的一瞬间身体抬一点 */
-export function turnHop(facing: number): number {
-  return 1 - Math.abs(facing);
 }
 
 // ---------------------------------------------------------------- 攻击

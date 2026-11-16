@@ -18,7 +18,7 @@ import { SNIPE_WARN, applyStun, flightTicks, inRing, keepLock, laneOffset, leadP
 import { Rng, hash32 } from './rng.ts';
 import { branchError, sanitizeBranch } from './tdbase.ts';
 import { GRID, INF, cellIdx, cellOf, cellX, cellY, flowField, inGrid, nextCell } from './grid.ts';
-import { ISLAND, UNIT } from './types.ts';
+import { ISLAND, UNIT, since } from './types.ts';
 import type { BuildingKind } from './types.ts';
 import {
   TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BURN_DAMAGE, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE, TD_TOWER_DAMAGE,
@@ -196,8 +196,6 @@ export const TD_LANE_SPREAD = 18;
 export const TD_HERO_GUARD = 450;
 /** 英雄迎敌时，离敌人多近就站住开火（射程的几分之几，留一点余量免得在射程边上进进出出） */
 export const TD_HERO_STAND_PCT = 80;
-/** 从这个规则版本起英雄没被指挥时自己守：站到威胁最大那条路的路口，永远不站在木台上 */
-export const TD_HERO_AUTO_RULES = 14;
 /** 自己守时多久重选一次站位（拍） */
 const TD_HERO_AUTO_EVERY = 50;
 /** 自己守的站位：那条路去宝藏的路线上，离宝藏还有几格（≈ 迎敌圈 4.5 格，站在路口也罩得住宝藏） */
@@ -349,7 +347,7 @@ function costToTier(kind: TdTowerKind, tier: TdTier): number {
 export function createTd(setup: TdSetup): TdState {
   const level = setup.level;
   // 规则版本 10 以前没有震荡炮、11 以前没有狙击塔：岛上的、驻守台的、能造的都去掉（旧版本的局里本来就没有，回放逐位不变）
-  const missing = (k: string): boolean => (setup.rules < 10 && k === 'shock') || (setup.rules < 11 && k === 'sniper');
+  const missing = (k: string): boolean => (!since(setup, 'shockGrenadier') && k === 'shock') || (!since(setup, 'sniperShield') && k === 'sniper');
   ensureWaves(level, ENDLESS_AHEAD);
   const fixed = new Uint8Array(GRID * GRID);
   const towers: TdTower[] = [];
@@ -1118,7 +1116,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     case 'move':
       if (h.respawn >= 0 || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
       h.goal = { x: Math.round(a.x), y: Math.round(a.y) };
-      if (s.rules >= TD_HERO_AUTO_RULES) {
+      if (since(s, 'tdHeroAuto')) {
         // 指到木台上就挪到台边：英雄站在台上会挡住造塔
         h.goal = offSlot(s, h.goal.x, h.goal.y);
         inner(s).heroCmd = true;
@@ -1668,7 +1666,7 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
       // 瞄提前量：落点 = 敌人 fl 拍后的位置（直射的伤害跟着目标走，炸的按落点炸，所以炸的更要瞄准）
       const at = leadPoint(e, fl);
       ev.push({ type: 'shoot', id: t.id, x0: cx, y0: cy, x1: at.x, y1: at.y, t1: s.tick + fl, target: e.id });
-      const base = { hit: { dt: st.dt, branch: st.branch, heavy: st.heavy }, slowPct: st.slowPct, slowTicks: st.slowTicks, burnDps: 0, burnTicks: 0, pull: 0, ...(s.rules >= 11 ? { sx: cx, sy: cy } : {}) };
+      const base = { hit: { dt: st.dt, branch: st.branch, heavy: st.heavy }, slowPct: st.slowPct, slowTicks: st.slowTicks, burnDps: 0, burnTicks: 0, pull: 0, ...(since(s, 'sniperShield') ? { sx: cx, sy: cy } : {}) };
       if (st.line) {
         // 贯穿：从塔到射程尽头这条线上 0.5 格内的都中
         const dx = at.x - cx;
@@ -1777,7 +1775,7 @@ function stepHero(s: TdState, ev: TdEvent[]): void {
     h.respawn = -1;
     h.hp = h.maxHp;
     placeHero(s);
-    if (s.rules >= TD_HERO_AUTO_RULES) {
+    if (since(s, 'tdHeroAuto')) {
       I.heroCmd = false;
       h.post = undefined;
     }
@@ -1785,7 +1783,7 @@ function stepHero(s: TdState, ev: TdEvent[]): void {
     return;
   }
   if (s.escort) followShip(s);
-  if (s.rules >= TD_HERO_AUTO_RULES && !s.escort && !I.heroCmd && s.tick % TD_HERO_AUTO_EVERY === 0) {
+  if (since(s, 'tdHeroAuto') && !s.escort && !I.heroCmd && s.tick % TD_HERO_AUTO_EVERY === 0) {
     const p = autoPost(s);
     if (p) h.post = p;
   }
@@ -1875,7 +1873,7 @@ function heroGuard(s: TdState, range: number): void {
   const stand = Math.floor((range * TD_HERO_STAND_PCT) / 100);
   if (best) {
     // 规则版本 ≥ 14：站在木台上不停下，接着朝敌人走，走出木台再站住
-    if (bd > stand * stand || (s.rules >= TD_HERO_AUTO_RULES && onSlot(s, h.x, h.y) >= 0)) {
+    if (bd > stand * stand || (since(s, 'tdHeroAuto') && onSlot(s, h.x, h.y) >= 0)) {
       h.goal = { x: best.x, y: best.y };
       I.heroAuto = true;
     } else if (I.heroAuto) {

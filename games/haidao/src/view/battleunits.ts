@@ -16,13 +16,14 @@ import { stunned } from '../core/combat.ts';
 import { slowUntil } from '../core/battle.ts';
 import { wobbleAt } from './stunfx.ts';
 import { depthOf } from './iso.ts';
-import { SPREAD_R, HERO_ATK_MS, STEP_MS, PROJ_FX, AIMED, AREA, CELL_RX } from './battlecommon.ts';
+import { SPREAD_R, HERO_ATK_MS, PROJ_FX, AIMED, AREA, CELL_RX } from './battlecommon.ts';
 import type { USpr } from './battlecommon.ts';
 import type { BattleScene } from './BattleScene.ts';
 import { damageLook, fogOf } from './battlebuildings.ts';
 import { isWater } from './battleevents.ts';
 import { DEPTH } from './depth.ts';
 import { landShift } from './landfx.ts';
+import { STEP_MS } from './motion.ts';
 
 /** 兵种 → 骨架键（`t.<兵种>`），拼好存着，每帧每个兵不再拼字符串 */
 const RIG_KEYS = new Map<TroopKind, RigKind>();

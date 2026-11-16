@@ -1,4 +1,6 @@
 import { fresh, mergeSave, reviveSave, savePayload, type Save } from './sync.ts';
+import { isObj } from '../core/validate.ts';
+import { SAVE_KEY } from './save.ts';
 
 /** 本地存储的最小接口（localStorage 满足；测试里换成内存假的） */
 export interface KeyValueStore {
@@ -40,10 +42,6 @@ function keepaliveSend<T>(body: string, send: () => Promise<T>): Promise<T> {
   return p.finally(() => {
     kaUsed -= n;
   });
-}
-/** 测试用：清掉没回来的请求留下的账 */
-export function resetKeepalive(): void {
-  kaUsed = 0;
 }
 
 /**
@@ -129,7 +127,6 @@ interface Meta {
   dirty: string[];
 }
 
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const bytes = (s: string): number => new TextEncoder().encode(s).length;
 
 /** 键排好序的 JSON：比较"内容一样不一样"用 */
@@ -694,8 +691,6 @@ export class Cloud {
 export function hasLoginHint(): boolean {
   return typeof document !== 'undefined' && /(?:^|;\s*)__Host-arcade_li=1(?:;|$)/.test(document.cookie);
 }
-
-const SAVE_KEY = 'haidao.save';
 
 /** 存档这一槽：读写的就是 save.ts 的 `haidao.save`（用传进来的存储，测试里是内存假的） */
 export const profileSlot: SlotDef<Save> = {

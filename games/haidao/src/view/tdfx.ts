@@ -8,11 +8,6 @@ export function isoRing(cells: number): { w: number; h: number } {
   return { w: cells * 64 * Math.SQRT2, h: cells * 32 * Math.SQRT2 };
 }
 
-/** 单位（1 格 = 100）换成屏幕上的椭圆 */
-export function ringOfUnits(units: number, unit = 100): { w: number; h: number } {
-  return isoRing(units / unit);
-}
-
 /**
  * 单位圆里的斜线（u + v = c）截成的线段，用来在内圈死区里画斜线：n 条，两端点是 [u0, v0, u1, v1]（-1..1）。
  * 调用方把它按椭圆的半宽半高缩放，等距画面里自然也是斜的。

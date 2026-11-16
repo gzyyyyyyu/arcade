@@ -5,7 +5,8 @@
  * 本文件不 import ui.ts（ui.ts 反过来用它），样式由 ui.ts 的 css() 之后拼进去。
  */
 import { app } from './app.ts';
-import { REDUCED, tween } from './mapfx.ts';
+import { tween } from './mapfx.ts';
+import { REDUCED } from './feel.ts';
 
 /** 离场时长（毫秒）：淡出加微缩 */
 export const LEAVE_MS = 140;

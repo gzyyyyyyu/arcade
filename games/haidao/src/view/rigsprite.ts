@@ -8,6 +8,7 @@ import {
   addPose, arcLook, charLevel, stopK, copyPose, deathAlpha, hatDrop, mixPose, newXf, onRest, rigLod, sampleClip, solveRig, strideOf, zeroPose,
   type Clip, type DeathStyle, type Pose, type RigKind, type RigStyle, type RigXf, type Skel,
 } from './rig.ts';
+import { REDUCED } from './feel.ts';
 
 /**
  * 分件骨架的 Phaser 一侧（数学和关键帧在 rig.ts，素材在 art/rigparts.ts）：
@@ -81,7 +82,6 @@ export function flashStep(el: number, heavy: boolean): number {
 }
 /** 减速（焦油）的染色：比原来的灰更黑一点，远看就是一身黑油 */
 const TINT_SLOW = 0x4c4a52;
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class Rig {
   readonly c: Phaser.GameObjects.Container;
@@ -343,7 +343,7 @@ export class Rig {
     lerpPlace(this.sPlace, this.sWant, 1 - Math.exp(-dtMs / 70));
     this.sLower += ((o.gdown ? 1 : 0) - this.sLower) * (1 - Math.exp(-dtMs / 90));
     const P = this.sPlace;
-    const k = guardKick(now - this.guardT0, STILL);
+    const k = guardKick(now - this.guardT0, REDUCED);
     const sgn = this.c.scaleX < 0 ? -1 : 1;
     const s = this.sk.s;
     const lx = (P.x - P.nx * k.push) * s;

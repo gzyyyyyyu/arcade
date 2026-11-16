@@ -7,7 +7,7 @@ import { injectEscortCss } from './escortcss.ts';
 import { bestText, diffName, lockText, mapTitle, starRuleText } from './escorttext.ts';
 import { mapCss } from './mapcss.ts';
 import { sfx } from './audio/sfx.ts';
-import { injectTdCss } from './td-ui.ts';
+import { injectTdCss } from './tdcss.ts';
 import { button, el, img, lockIcon, toast, uiRoot } from './ui.ts';
 
 interface MapGroup { map: string; title: string; levels: Partial<Record<EscortDiff, EscortLevel>> }

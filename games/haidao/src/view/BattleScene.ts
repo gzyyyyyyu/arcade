@@ -34,7 +34,7 @@ import { BEACH_PTS } from './battleadvice.ts';
 import { takeActions } from './battleflow.ts';
 import type { Tutorial } from './tutorial.ts';
 import { el } from './ui.ts';
-import { STEP_MS } from './battlecommon.ts';
+
 import type { BattleData, USpr, BSpr } from './battlecommon.ts';
 import { drawBuildings, renderBars, renderSnipe, renderTurrets, smokeTick } from './battlebuildings.ts';
 import { onEvent } from './battleevents.ts';
@@ -45,6 +45,7 @@ import { afterSelect, beachPulse, buildUi, clearSel, drawBeach, hint, hover, ren
 import { finish } from './battleresult.ts';
 import { renderProjectiles, renderUnits, syncUnits } from './battleunits.ts';
 import { DEPTH } from './depth.ts';
+import { STEP_MS } from './motion.ts';
 export type { BattleData, MapStopHooks, PvpHooks } from './battlecommon.ts';
 
 export class BattleScene extends Phaser.Scene {

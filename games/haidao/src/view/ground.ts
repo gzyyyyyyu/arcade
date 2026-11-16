@@ -125,20 +125,3 @@ export function put(scene: Phaser.Scene, r: number, p: { key: string; w: number;
   return scene.add.image(wx, wy, p.key).setOrigin(p.ax / p.w, p.ay / p.h).setScale(1 / r);
 }
 
-/**
- * 开场视角：横屏、电脑把整座岛（含海滩）装进屏幕；竖屏手机把岛撑满顶栏和底部操作区之间的空白，
- * 岛比屏幕宽一点没关系（拖动、双指缩放照常）：缩放取"撑满高度"和"最多比铺满宽度大 1.6 倍"里小的，免得两侧被切太多。
- * top、bottom 是顶栏、底部操作区占的 CSS 像素；返回的 cx、cy 是相机中心（世界坐标）。
- */
-export function fitView(w: number, h: number, top: number, bottom: number): { z: number; minZ: number; maxZ: number; cx: number; cy: number } {
-  const c = iso(ISLAND / 2, ISLAND / 2);
-  if (h > w) {
-    const zW = (1.15 * w) / (ISLAND * 64);
-    const zH = Math.max(40, h - top - bottom) / ((ISLAND + 2) * 32);
-    const z = Math.min(zH, zW * 1.6);
-    const mid = (top + h - bottom) / 2;
-    return { z, minZ: zW * 0.6, maxZ: z * 2.5, cx: c.x, cy: c.y - (mid - h / 2) / z };
-  }
-  const z = Math.min((0.96 * w) / ((ISLAND + 2 * BEACH) * 64), (h - 250) / 1000);
-  return { z, minZ: z * 0.7, maxZ: z * 2.5, cx: c.x, cy: c.y - 20 };
-}

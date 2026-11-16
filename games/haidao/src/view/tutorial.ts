@@ -49,6 +49,8 @@ export class Tutorial {
   private raf = 0;
   private shown = false;
   private key = '';
+  private ins: { top: number; bottom: number; left: number; right: number } | null = null;
+  private insAt = 0;
 
   private readonly root: HTMLElement;
 
@@ -69,6 +71,7 @@ export class Tutorial {
     this.target = target;
     if (key !== this.key) {
       this.key = key;
+      this.ins = null;
       this.txt.textContent = text;
       // 换一步时横幅重新淡入一下：瞬间换字看不出「下一步变了」
       this.tip.classList.remove('hd-tut-new');
@@ -104,8 +107,19 @@ export class Tutorial {
     this.raf = requestAnimationFrame(this.loop);
   };
 
-  /** 顶栏、底栏和两侧竖排占掉的地方：横幅停在它们外面 */
+  /**
+   * 顶栏、底栏和两侧竖排占掉的地方：横幅停在它们外面。横幅每帧跟目标走，可这些栏不会每帧变，
+   * 量一次要查一遍 DOM 再逐个读布局，缓存 200 毫秒（换一步时 show 清掉缓存）
+   */
   private insets(): { top: number; bottom: number; left: number; right: number } {
+    const now = performance.now();
+    if (this.ins && now - this.insAt < 200) return this.ins;
+    this.insAt = now;
+    this.ins = this.measure();
+    return this.ins;
+  }
+
+  private measure(): { top: number; bottom: number; left: number; right: number } {
     const root = this.root.getBoundingClientRect();
     let top = 56;
     for (const e of this.root.querySelectorAll('.hd-bar, .hd-bar2, .hd-hall, .hd-mute')) {

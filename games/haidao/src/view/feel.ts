@@ -13,6 +13,9 @@ export const SHAKE: Record<ShakeLevel, { ms: number; k: number; rank: number }> 
   heavy: { ms: 260, k: 0.0055, rank: 3 },
 };
 
+/** 单次伤害到这个数就算重击（炮、迫击炮、爆破手一类）：数字画大、触发命中停顿；登陆战和守岛同一个门槛 */
+export const HEAVY_HIT = 90;
+
 /** 两次震屏之间至少隔这么久；冷却里只有更高一档的能打断 */
 export const SHAKE_COOLDOWN_MS = 300;
 
@@ -99,7 +102,6 @@ export function resolveFeel(stored: string | null, reducedMotion: boolean): bool
 }
 
 let cached: boolean | null = null;
-const listeners = new Set<() => void>();
 
 function readStored(): string | null {
   try {
@@ -108,16 +110,11 @@ function readStored(): string | null {
     return null;
   }
 }
-function reducedMotion(): boolean {
-  try {
-    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch {
-    return false;
-  }
-}
+/** 系统开了"减弱动态效果"（全画面层只在这里读一次）：演出压短、不晃、不飘；Node 里跑测试时没有 matchMedia，当没开 */
+export const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function feelOn(): boolean {
-  if (cached === null) cached = resolveFeel(readStored(), reducedMotion());
+  if (cached === null) cached = resolveFeel(readStored(), REDUCED);
   return cached;
 }
 
@@ -128,7 +125,6 @@ export function setFeel(on: boolean): void {
   } catch {
     /* 隐私模式写不进去：本次内存里生效 */
   }
-  for (const f of listeners) f();
 }
 
 /** 恢复默认：清掉存的开关，重新跟随系统的"减弱动态效果" */
@@ -139,12 +135,6 @@ export function resetFeel(): void {
   } catch {
     /* 隐私模式：本次内存里已重算 */
   }
-  for (const f of listeners) f();
-}
-
-export function onFeelChange(f: () => void): () => void {
-  listeners.add(f);
-  return () => listeners.delete(f);
 }
 
 // ---------------------------------------------------------------- 短振动

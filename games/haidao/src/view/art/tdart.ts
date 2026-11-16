@@ -1,7 +1,7 @@
 /** 守岛模式的素材：八种敌人（走路、攻击各几帧，朝右，脚底是锚点）和场地道具。风格同 troops.ts：描边 Q 版。 */
 import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
-import { woodShield } from './troops.ts';
+import { limb, woodShield } from './troops.ts';
 import { OUT, P, box, cyl, darken, ell, f, lighten, line, mat, path, piece, poly, rect, shadow, skull, uid } from './kit.ts';
 
 export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield'] as const;
@@ -59,7 +59,6 @@ interface Hooks {
   skip?: { legs?: boolean };
 }
 
-const limb = (a: Pt, b: Pt, w: number, c: string): string => line(a, b, OUT, w + 2.6) + line(a, b, c, w);
 const handDot = (to: Pt, skin: string): string => ell(to[0], to[1], 2.9, 2.9, skin, { sw: 1.5 });
 
 function headBall(L: Look, p: Pd, atk: boolean): { svg: string; cx: number; cy: number } {

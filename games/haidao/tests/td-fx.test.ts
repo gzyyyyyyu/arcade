@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FIRE_FLASH_MS, FlashPool, flashLook, forEachDash, hatchSegments, isoRing, ringOfUnits, shotTracks, forEachEllipseDash, RANGE_RING } from '../src/view/tdfx.ts';
+import { FIRE_FLASH_MS, FlashPool, flashLook, forEachDash, hatchSegments, isoRing, shotTracks, forEachEllipseDash, RANGE_RING } from '../src/view/tdfx.ts';
 
 describe('射程圈尺寸', () => {
   it('1 格 = 100 单位，等距椭圆宽高 2:1', () => {
-    const r = ringOfUnits(300);
-    expect(r.w).toBeCloseTo(isoRing(3).w);
+    const r = isoRing(3);
     expect(r.w / r.h).toBeCloseTo(2);
-    expect(ringOfUnits(0).w).toBe(0);
+    expect(isoRing(0).w).toBe(0);
   });
   it('斜线端点都落在单位圆上，且满足 u+v=c', () => {
     for (const [u0, v0, u1, v1] of hatchSegments(7) as [number, number, number, number][]) {

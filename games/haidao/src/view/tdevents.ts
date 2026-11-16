@@ -8,7 +8,7 @@ import { EASE } from './motion.ts';
 import { deathStyleFor } from './rig.ts';
 import { trackOf, isHeavyDmg } from './dmgkind.ts';
 import { bigEvent } from './fx.ts';
-import { vibrate, isBigBlast } from './feel.ts';
+import { vibrate, isBigBlast, HEAVY_HIT } from './feel.ts';
 import { shotTracks } from './tdfx.ts';
 import { put } from './ground.ts';
 import { footCenter, iso } from './iso.ts';
@@ -20,11 +20,12 @@ import { towerFire, projectileFire, hitSound } from './audio/pick.ts';
 import { DEPTH } from './depth.ts';
 import { banner, ftx, stolenNote } from './tdhud.ts';
 import { closeSheet, renderSheet } from './tdsheet.ts';
-import { W, PROJ, STEP_MS, SHOCK_RING, HEAVY_HIT } from './tdcommon.ts';
-import { matAt, guardFx } from './tdsync.ts';
+import { W, PROJ, SHOCK_RING } from './tdcommon.ts';
+import { matAt } from './tdsync.ts';
 import { boom } from './tdoverlay.ts';
 import { refreshWalls } from './tdworld.ts';
 import { throwKeg } from './tdinput.ts';
+import { STEP_MS } from './motion.ts';
 
 /** 每个场景一份扎堆合并记录（不往 TdScene 里加字段） */
 const CLUSTERS = new WeakMap<object, DmgClusters>();
@@ -163,7 +164,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       const sp = bs.esp.get(e.id);
       if (sp) {
         sp.rig.guard(bs.time.now);
-        guardFx(bs, sp.rig.shX, sp.rig.shY, sp.rig.c.depth);
+        bs.pt.guardSparks(sp.rig.shX, sp.rig.shY, sp.rig.c.depth);
       }
       sfx('guard');
       break;

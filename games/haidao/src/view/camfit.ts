@@ -5,6 +5,7 @@ import { iso } from './iso.ts';
 import { INTRO_HOLD, INTRO_PUSH, camAt, focusCx } from './camguide.ts';
 import { takesCamera } from './camgesture.ts';
 import { button } from './ui.ts';
+import { REDUCED } from './feel.ts';
 
 /**
  * 镜头"按岛适配"（fit）：基地、登陆战、守岛进场时，整座岛加四面沙滩（再加各场景要求的额外点）
@@ -191,7 +192,6 @@ export function measureInsets(ui: HTMLElement, w: number, h = 800): Inset {
 }
 
 const BACK_ICON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b1a15" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** 点边缘箭头、"全景"钮切换时镜头移过去的时长（毫秒） */
 const PAN_MS = 320;
 
@@ -329,7 +329,7 @@ export class FitCam {
     }
     this.anim = null;
     if (keepView) this.cc.apply();
-    else if (this.live && !this.introDone && !STILL) {
+    else if (this.live && !this.introDone && !REDUCED) {
       // 开场：先停在整岛全景，再推到要守 / 要登陆的那一侧
       this.cc.setView(this.pano.cx, this.pano.cy, this.pano.z);
       this.anim = { from: this.pano, to: this.home, t0: -1, hold: INTRO_HOLD, push: INTRO_PUSH };
@@ -356,7 +356,7 @@ export class FitCam {
   }
 
   private moveTo(to: { cx: number; cy: number; z: number }, ms: number): void {
-    if (ms <= 0 || STILL) {
+    if (ms <= 0 || REDUCED) {
       this.anim = null;
       this.cc.setView(to.cx, to.cy, to.z);
     } else this.anim = { from: { cx: this.cc.cx, cy: this.cc.cy, z: this.cc.z }, to, t0: -1, hold: 0, push: ms };

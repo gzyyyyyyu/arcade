@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { LOW_MEMORY } from './viewport.ts';
 import { DEPTH } from './depth.ts';
+import { REDUCED } from './feel.ts';
 
 /**
  * 整屏后期，全部是便宜的做法：
@@ -108,8 +109,7 @@ export class Bloom {
 
   constructor(scene: Phaser.Scene, r: number) {
     this.scene = scene;
-    const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.on = FORCE ?? (!LOW_MEMORY && !still);
+    this.on = FORCE ?? (!LOW_MEMORY && !REDUCED);
     this.sc = 1 / r;
     if (!this.on) return;
     ensureGlowTexture(scene);

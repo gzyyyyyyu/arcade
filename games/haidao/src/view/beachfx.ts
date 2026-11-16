@@ -9,8 +9,8 @@ import type Phaser from 'phaser';
 import { BEACH, ISLAND } from '../core/types.ts';
 import { iso } from './iso.ts';
 import { DEPTH } from './depth.ts';
+import { REDUCED } from './feel.ts';
 
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 type P = { x: number; y: number };
 
@@ -90,7 +90,7 @@ export class BeachGlow {
     this.hk += ((this.hover && selected ? 1 : 0) - this.hk) * k;
     g.setVisible(true).clear();
     const w = Math.max(1, Math.min(2.4, 1 / Math.max(0.01, zoom)));
-    const breath = STILL ? 0.5 : 0.5 + 0.5 * Math.sin((time / (selected ? 650 : 1000)) * Math.PI * 2);
+    const breath = REDUCED ? 0.5 : 0.5 + 0.5 * Math.sin((time / (selected ? 650 : 1000)) * Math.PI * 2);
     const ring = (width: number, color: number, alpha: number): void => {
       const c = ringCorners();
       g.lineStyle(width * w, color, alpha);
@@ -121,7 +121,7 @@ export class BeachGlow {
     ring((16 + 10 * breath) * (1 + 0.6 * s), 0xffd86a, (0.14 + 0.1 * breath) * (0.8 + 0.8 * s));
     ring(7 + 4 * s, 0xffe885, Math.min(1, 0.35 + 0.25 * breath + 0.3 * s));
     // 绕圈跑的光点（带拖尾）：选了兵种两颗、跑得更快；没选一颗慢慢走。减少动效时不跑
-    if (!STILL) {
+    if (!REDUCED) {
       const n = s > 0.5 ? 2 : 1;
       const speed = 1 / (s > 0.5 ? 5200 : 9000);
       for (let j = 0; j < n; j++) {

@@ -195,15 +195,6 @@ export function archL(xc: number, hw: number, y: number, za: number, zs: number,
   a.push(P(xc + hw, y, za));
   return a;
 }
-export function archR(x: number, yc: number, hw: number, za: number, zs: number, ah: number): Pt[] {
-  const a: Pt[] = [P(x, yc + hw, za)];
-  for (let i = 0; i <= 8; i++) {
-    const t = Math.PI - (Math.PI * i) / 8;
-    a.push(P(x, yc - hw * Math.cos(t), zs + ah * Math.sin(t)));
-  }
-  a.push(P(x, yc - hw, za));
-  return a;
-}
 
 /** 四坡屋顶（金字塔形） */
 export function hip(x0: number, y0: number, x1: number, y1: number, z: number, h: number, m: Mat, over = 0.12, tiles = true): string {
@@ -230,22 +221,6 @@ export function hip(x0: number, y0: number, x1: number, y1: number, z: number, h
 }
 function mixPt(a: Pt, b: Pt, t: number): Pt {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-}
-
-/** 两坡屋顶：屋脊沿 gx 方向 */
-export function gable(x0: number, y0: number, x1: number, y1: number, z: number, h: number, m: Mat, wall: Mat, over = 0.1): string {
-  const cy = (y0 + y1) / 2;
-  const gEnd = poly([P(x1, y0, z), P(x1, y1, z), P(x1, cy, z + h)], wall.r, { sw: 0 });
-  const front = [P(x0 - over, y1 + over, z), P(x1 + over, y1 + over, z), P(x1 + over, cy, z + h), P(x0 - over, cy, z + h)];
-  let s = gEnd + poly(front, m.l, { sw: 0 });
-  const n = Math.max(3, Math.round((x1 - x0) * 5));
-  for (let i = 1; i < n; i++) {
-    const x = x0 - over + ((x1 - x0 + over * 2) * i) / n;
-    s += line(P(x, y1 + over, z), P(x, cy, z + h), m.line, 0.75, 0.45);
-  }
-  s += line(P(x0 - over, cy, z + h), P(x1 + over, cy, z + h), mix(m.t, BEVEL, 0.48), 1.6);
-  s += outline([P(x0 - over, y1 + over, z), P(x1 + over, y1 + over, z), P(x1, y0, z), P(x1 + over, cy, z + h), P(x0 - over, cy, z + h)], m.l, 2);
-  return s;
 }
 
 /** 圆柱：中心格坐标 (gx, gy)、屏幕半径 rx，高度 z0..z1 */

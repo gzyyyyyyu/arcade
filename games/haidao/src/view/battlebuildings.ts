@@ -8,12 +8,13 @@ import { bigEvent, burst } from './fx.ts';
 import { jitter, put } from './ground.ts';
 import { depthOf, footCenter, iso } from './iso.ts';
 import { sfx } from './audio/sfx.ts';
-import { BAR_GAP, STEP_MS } from './battlecommon.ts';
+import { BAR_GAP } from './battlecommon.ts';
 import type { BSpr } from './battlecommon.ts';
 import type { BattleScene } from './BattleScene.ts';
 import { artTop, playFrames } from './battleevents.ts';
 import { nearUnit } from './battleunits.ts';
 import { DEPTH } from './depth.ts';
+import { STEP_MS } from './motion.ts';
 
 /** 城墙按四邻选图（和基地一致） */
 export function wallMaskOf(bs: BattleScene, w: { x: number; y: number; id: number }): number {
@@ -188,18 +189,6 @@ export function renderSnipe(bs: BattleScene, frac: number, time: number): void {
     e.fy = ty;
     return true;
   });
-}
-
-/** 盾上火星：金属火花几粒 + 一点木屑 + 一闪（对象池，粒子吃紧时减量） */
-export function guardFx(bs: BattleScene, x: number, y: number, depth: number): void {
-  const pt = bs.pt;
-  pt.bloom.flash(x, y, 16, 0xffe9a8, 140, 0.6);
-  const n = pt.live > 100 ? 2 : 6;
-  for (let i = 0; i < n; i++) {
-    const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.55 + (i % 2 ? 0.2 : -0.2);
-    pt.emit('ember', x, y, { vx: Math.cos(a) * (70 + (i % 3) * 30), vy: Math.sin(a) * (80 + (i % 2) * 40), g: 220, life: 260 + (i % 3) * 60, s0: 0.8, s1: 0.2, a0: 1, tint: i % 2 ? 0xfff2a0 : 0xffc23f, depth: depth + 1 });
-  }
-  if (pt.live < 100) pt.splinters(x, y, 2);
 }
 
 /** 血条清单：整个画面层同一时间只有一个登陆战场景，帧内同步用完，复用对象不每帧新建 */

@@ -1,10 +1,9 @@
 import Phaser from 'phaser';
 import { reportErrors } from 'arcade-kit/report';
-import { BUILDINGS, CAMPAIGN, TROOPS } from './content/index.ts';
-import { CAMPAIGN_FUN } from './content/fun.ts';
-import { RULES_VERSION, armyFor, produce, tdGrowthProfile } from './core/index.ts';
+import { CAMPAIGN } from './content/index.ts';
+import { produce, tdGrowthProfile } from './core/index.ts';
 import { dayIndex } from './view/meta.ts';
-import { ISLAND, type BattleSetup, type TroopKind } from './core/types.ts';
+import type { BattleSetup } from './core/types.ts';
 import { escortLive, live, tdLive } from './net/live.ts';
 import { startSnapshotSync } from './net/pvp.ts';
 import { startCloud } from './platform/cloud.ts';
@@ -12,6 +11,7 @@ import { loadSave, saveHooks } from './platform/save.ts';
 import { app, type Api } from './view/app.ts';
 import { BaseScene } from './view/BaseScene.ts';
 import { BattleScene, type BattleData } from './view/BattleScene.ts';
+import { battleData } from './view/battlestart.ts';
 import { TdScene, prepareTd, prepareTide } from './view/TdScene.ts';
 import { checkRaided } from './view/pvp.ts';
 import { piecesFor, tdPieces, troopF } from './view/art.ts';
@@ -175,33 +175,9 @@ function main(): void {
   // 驻岛英雄借船长的帧：进攻方没带船长时开局没烘，这里一起补
   const battlePieces = (st: BattleSetup) => [...piecesFor(st.layout), ...(st.hero ? (['idle', 'walk', 'attack'] as const).flatMap((an) => troopF('captain', an)) : [])];
   app.startBattle = (levelId, auto, setup, opts) => {
-    const lv = CAMPAIGN.find((l) => l.id === levelId);
-    if (!lv && !setup) return;
-    // 每局不一样（DESIGN 15）：只有战役娱乐局（不是今日悬赏、不是别人给的 setup）打开宝箱和援军，种子每局现取，宝箱和援军才不一样（开发参数 funseed=<数> 固定种子，截图用）
-    let s: BattleSetup = setup ?? { layout: lv!.layout, army: armyFor(app.profile), seed: opts?.bounty ? 20261027 : Number(q.get('funseed')) || (Date.now() & 0x3fffffff) | 1, rules: RULES_VERSION, ...(opts?.bounty ? {} : { fun: { ...CAMPAIGN_FUN } }) };
-    // 开发参数 devarmy=sailor,brute:2,…：战役局换成这几种兵各一船（冒号后是每船几个，默认 4，船长 1 个），录各兵种的动作用
-    const da = q.get('devarmy');
-    if (lv && !setup && da) {
-      const boats = da.split(',').map((t) => t.split(':')).filter(([k]) => !!k && k in TROOPS).map(([k, n]) => ({ troop: k as TroopKind, count: k === 'captain' ? 1 : Math.max(1, Math.min(8, Number(n) || 4)), level: 2 }));
-      if (boats.length) s = { ...s, army: { ...s.army, boats } };
-    }
-    // 开发参数 devhero=<1-8>：战役局里临时放一个宝藏箱并带驻岛英雄，截图用
-    const dh = Number(q.get('devhero'));
-    if (lv && !opts?.bounty && dh >= 1 && dh <= 8 && !s.layout.some((p) => p.kind === 'treasure')) {
-      const used = new Set<string>();
-      for (const p of s.layout) for (let i = 0; i < BUILDINGS[p.kind].size; i++) for (let j = 0; j < BUILDINGS[p.kind].size; j++) used.add(`${p.x + i},${p.y + j}`);
-      const c = Math.floor(ISLAND / 2);
-      let best: { x: number; y: number } | null = null;
-      for (let y = 0; y < ISLAND; y++) for (let x = 0; x < ISLAND; x++) {
-        if (used.has(`${x},${y}`)) continue;
-        if (!best || Math.abs(x - c) + Math.abs(y - c) < Math.abs(best.x - c) + Math.abs(best.y - c)) best = { x, y };
-      }
-      if (best) {
-        const id = s.layout.reduce((m, p) => Math.max(m, p.id), 0) + 1;
-        s = { ...s, layout: [...s.layout, { id, kind: 'treasure', level: 1, ...best }], hero: dh };
-      }
-    }
-    const data: BattleData = { levelId, setup: s, auto, settle: !setup ? false : !auto, bounty: opts?.bounty === true, speed: q.has('fast') ? 4 : 1 };
+    const data = battleData(levelId, auto, setup, opts, q);
+    if (!data) return;
+    const s = data.setup;
     // 敌岛里用到的（种类, 等级）没烘过的先烘，再开战；烘不出来也能开（用低等级顶替）
     void Promise.all([ensureArt(game.textures, battlePieces(s), r), ensureTurrets(game.textures, s.layout, r)]).finally(() => toScene('battle', data));
   };

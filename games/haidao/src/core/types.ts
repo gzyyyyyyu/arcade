@@ -27,6 +27,34 @@ export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
  */
 export const RULES_VERSION = 14;
 
+/**
+ * 每条规则从哪个版本起生效（上面版本说明的名字版）。核心里一律写 `since(s, 'combat')`，不写裸数字，
+ * 一眼看得出这是哪次改动、旧分支给谁用：低于这些版本的分支**只给旧防守回放**（服务端每人留最近 10 条、不设期限，
+ * 回放按录制时的版本重放才逐位一致）。删旧分支要先让旧回放显示过期，算删现有功能（2026-11-15 主线定：不删）。
+ */
+export const RULES_SINCE = {
+  /** 6：英雄驻岛参与异步防守、防御塔和地雷的新结算（旧的是 stepDefensesLegacy / stepMinesLegacy） */
+  raidHero: 6,
+  /** 9：进攻接入 combat.ts（塔锁定、炸的瞄提前量、兵按小道错开） */
+  combat: 9,
+  /** 10：震荡炮和掷弹兵 */
+  shockGrenadier: 10,
+  /** 11：狙击塔和盾兵 */
+  sniperShield: 11,
+  /** 12：进攻兵寻敌（掷弹兵挑溅射目标、远程兵等盾兵、船医挑伤员） */
+  raidAi: 12,
+  /** 13：误放撤回、漂流宝箱、中途援军 */
+  fun: 13,
+  /** 14：守岛英雄没被指挥时自己守 */
+  tdHeroAuto: 14,
+} as const;
+export type RulesFeature = keyof typeof RULES_SINCE;
+
+/** 这一局（按它录制时的规则版本）有没有这条规则 */
+export function since(s: { readonly rules: number }, f: RulesFeature): boolean {
+  return s.rules >= RULES_SINCE[f];
+}
+
 export type BuildingKind =
   | 'hq' // 主寨
   | 'goldmine' // 金矿

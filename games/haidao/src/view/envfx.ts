@@ -6,6 +6,7 @@ import { hqFlagF, palmFrames } from './art.ts';
 import type { Particles } from './fx.ts';
 import { bakeSome, isBaked } from './textures.ts';
 import { LOW_MEMORY } from './viewport.ts';
+import { REDUCED } from './feel.ts';
 
 /** 王旗比主寨自带的骷髅旗大一号：它是这座岛上最显眼的展示 */
 const RANK_FLAG_SCALE = 1.5;
@@ -22,7 +23,6 @@ const RANK_FLAG_SCALE = 1.5;
  */
 
 const SEQ = [2, 3, 4, 3, 2, 1, 0, 1];
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 interface Palm {
   im: Phaser.GameObjects.Image;
@@ -86,7 +86,7 @@ export class EnvAnim {
       this.hq = im;
       this.mountRank();
     }
-    if (STILL) return;
+    if (REDUCED) return;
     this.strip(im);
     if (kind === 'palm') {
       if (!this.palmKeys?.length) {
@@ -120,7 +120,7 @@ export class EnvAnim {
   /** 王阶变了（献上升阶）：换一面新旗 */
   setRank(rank: number): void {
     if (rank === this.rank) return;
-    this.popNext = rank > this.rank && this.hq !== null && !STILL;
+    this.popNext = rank > this.rank && this.hq !== null && !REDUCED;
     this.rank = rank;
     this.mountRank();
   }
@@ -185,7 +185,7 @@ export class EnvAnim {
     if (this.rflag && this.hq) {
       const rf = this.rflag;
       this.followRank(this.hq);
-      if (!STILL) {
+      if (!REDUCED) {
         // 6 帧波浪循环；4 阶起每 5 个循环有一个循环换成带闪光扫过的帧（相位对得上，不跳）
         const ws = LOW_MEMORY ? 200 : 130;
         const i = Math.floor(t / ws) % FLAG_WAVE;
@@ -197,7 +197,7 @@ export class EnvAnim {
         }
       }
     }
-    if (STILL) return;
+    if (REDUCED) return;
     const step = LOW_MEMORY ? 260 : 200;
     for (const p of this.palms) {
       if (!p.im.active) continue;

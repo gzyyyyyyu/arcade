@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COUNTER, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_TOWER_DAMAGE, TD_TOWER_KINDS } from '../src/core/index.ts';
 import {
-  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, fitSuggest, laneName, pctText, pctTier, spotSide, starRule, suggestText, tdVerdict, towerCounter, towerCounterLine,
+  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, fitSuggest, laneName, pctText, pctTier, spotSide, starRule, suggestText, tdVerdict, towerCounter,
 } from '../src/view/td-ui.ts';
 
 describe('守岛结算文案和路名', () => {
@@ -43,12 +43,6 @@ describe('克制表的显示（只读 COUNTER，不另算）', () => {
         expect(c.weak.includes(a)).toBe(row[a] > 0 && row[a] < 100);
         expect(c.none.includes(a)).toBe(row[a] === 0);
       }
-      const line = towerCounterLine(k);
-      expect(line.startsWith(DAMAGE_NAME[c.dmg])).toBe(true);
-      if (c.none.length) expect(line).toContain(`打不到${c.none.map((a) => ARMOR_NAME[a]).join('、')}`);
-      if (c.good.length) expect(line).toContain(`克${c.good.map((a) => ARMOR_NAME[a]).join('、')}`);
-      // 旧说法不再出现
-      expect(line).not.toMatch(/首领|鹦鹉|铁甲/);
     }
   });
   it('分叉卡只写克制表的两条例外', () => {

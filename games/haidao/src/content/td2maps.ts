@@ -199,13 +199,6 @@ export function mapLayout(m: MapSpec, hqLevel: number): Placed[] {
   return out;
 }
 
-export interface Td2MapInfo {
-  def: TdMapDef;
-  blurb: string;
-  /** 木台数、驻守台数的上限 */
-  spec: MapSpec;
-}
-
 function defOf(m: MapSpec): TdMapDef {
   return {
     id: m.id,

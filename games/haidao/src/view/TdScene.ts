@@ -35,7 +35,7 @@ import { isEscortId, escortUnlocked, escortSetup } from './escortapi.ts';
 import type { EscortView } from './escortview.ts';
 import { escortShipArt } from './art/escort.ts';
 import { DEPTH } from './depth.ts';
-import { type TdData, type ESpr, type TSpr, W, STEP_MS, EDGE_MS, TEMP_KINDS } from './tdcommon.ts';
+import { type TdData, type ESpr, type TSpr, W, EDGE_MS, TEMP_KINDS } from './tdcommon.ts';
 import { drawLayout, drawProps, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges } from './tdworld.ts';
 import { tap, hover, press, cancelAll, callWave, toggleHero } from './tdinput.ts';
 import { newCycle } from './tdpick.ts';
@@ -45,6 +45,7 @@ import { onEvent } from './tdevents.ts';
 import { type ReasonLog, newReasonLog } from './tdreason.ts';
 import { sync } from './tdsync.ts';
 import { endFxLead, finish } from './tdresult.ts';
+import { STEP_MS } from './motion.ts';
 
 export class TdScene extends Phaser.Scene {
   r = 1;

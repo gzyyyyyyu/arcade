@@ -7,7 +7,7 @@ import { showEscortLiveResult } from './livemore.ts';
 import { app, fmt } from './app.ts';
 import { bTex, iconA } from './art.ts';
 import { flyIcons } from './fx.ts';
-import { vibrate } from './feel.ts';
+import { vibrate, feelOn } from './feel.ts';
 import { dayIndex } from './meta.ts';
 import { tdVerdict, dropStars, HOME_ID } from './td-ui.ts';
 import { sfx } from './audio/sfx.ts';
@@ -20,7 +20,6 @@ import { ESCORT_DIFFS } from '../core/escorttypes.ts';
 import { closeSheet } from './tdsheet.ts';
 import { tdReason, escortReason, lostAtText, lostTreasureText } from './tdreason.ts';
 import { tdEnd } from './endfx.ts';
-import { feelOn } from './feel.ts';
 
 /** 结算框里的「原因 + 关键时刻」两行（样式限定在 .hd-td-result 下） */
 function reasonLines(bs: TdScene, box: HTMLElement, res: ReturnType<typeof tdResult>): void {

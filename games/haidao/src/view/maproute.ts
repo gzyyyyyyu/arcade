@@ -17,12 +17,12 @@ import { iconA, shipA, tArt } from './art.ts';
 import { mapIslandArt } from './art/index.ts';
 import { isleLook } from './art/mapart.ts';
 import { sfx } from './audio/sfx.ts';
-import { vibrate } from './feel.ts';
+import { vibrate, REDUCED } from './feel.ts';
 import { keyBadge } from './inputs.ts';
 import { readLiveRun, writeLiveRun } from './livemore-logic.ts';
 import { mapCss } from './mapcss.ts';
 import { playFinal, type FinalOpts } from './mapend.ts';
-import { REDUCED, every, rollNum, tween, wait } from './mapfx.ts';
+import { every, rollNum, tween, wait } from './mapfx.ts';
 import { beijingDay, mapRules, type MapSource } from './maprules.ts';
 import { button, confirmBox, el, hallButton, img, openModal, toast, uiRoot } from './ui.ts';
 

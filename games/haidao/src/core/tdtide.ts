@@ -7,10 +7,9 @@ import { TIDE_FOG_FROM, TIDE_MAPS, tideWave } from '../content/tdtide.ts';
 import type { TideMap } from '../content/tdtide.ts';
 import { BUILDINGS } from '../content/buildings.ts';
 import { hash32 } from './rng.ts';
-import { ISLAND, RULES_VERSION } from './types.ts';
+import { ISLAND, RULES_SINCE, RULES_VERSION } from './types.ts';
 import type { TdLevel, TdSetup } from './tdtypes.ts';
 import { TD_TOWER_KINDS } from './td2types.ts';
-import { TD_HERO_AUTO_RULES } from './td.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
 /** 北京时间 = UTC+8，不用时区库 */
@@ -119,7 +118,7 @@ export function tideMap(w: IsoWeek): TideMap {
 export const TIDE_HERO_AUTO_FROM: IsoWeek = { year: 2026, week: 46 };
 export function tideRules(w: IsoWeek): number {
   const before = w.year < TIDE_HERO_AUTO_FROM.year || (w.year === TIDE_HERO_AUTO_FROM.year && w.week < TIDE_HERO_AUTO_FROM.week);
-  return before ? Math.min(RULES_VERSION, TD_HERO_AUTO_RULES - 1) : RULES_VERSION;
+  return before ? Math.min(RULES_VERSION, RULES_SINCE.tdHeroAuto - 1) : RULES_VERSION;
 }
 
 export function tideSetup(w: IsoWeek, rules: number = tideRules(w)): TdSetup {

@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
 import { type TdSetup, type IsoWeek, type TdAction, type TdTowerKind, TD2_COST, TD2_HERO_SKILL, type BuildingKind, type TdEnemyKind } from '../core/index.ts';
 import type { LiveTier } from '../core/live.ts';
-import { TICKS_PER_SEC, UNIT } from '../core/types.ts';
+import { UNIT } from '../core/types.ts';
 import { BarList } from './bars.ts';
 import type { RigKind } from './rig.ts';
 import type { Rig } from './rigsprite.ts';
@@ -27,7 +27,6 @@ export interface TdData {
 
 export type Act = TdAction extends infer U ? (U extends { t: number } ? Omit<U, 't'> : never) : never;
 
-export const STEP_MS = 1000 / TICKS_PER_SEC;
 
 /** 血条清单（帧内同步用完，对象复用） */
 export const tdBarList = new BarList();
@@ -52,7 +51,6 @@ export const PROJ: Partial<Record<BuildingKind, ['ball' | 'bullet' | 'shell' | '
   cannon: ['ball', 1, false], gunTower: ['bullet', 0, true], mortar: ['shell', 1.6, false], flame: ['flame', 0, false], harpoon: ['harpoon', 0, true], rocket: ['rocket', 0.35, true], shock: ['shock', 0.5, false], sniper: ['snipe', 0, true],
 };
 
-export const HEAVY_HIT = 90;
 
 /** 地面上半径 1 格的圆画在等距屏幕上，横向半径多少像素（√2 × 32） */
 export const SHOCK_RING = 45.25;
