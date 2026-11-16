@@ -5,7 +5,7 @@ import { BUILDING_SIZE, CHIMNEY_AT, HQ_FLAG_AT, buildingArt, hqFlagFrames, hqNoF
 import { coastArt } from './coast.ts';
 import { decoArt } from './deco.ts';
 import { krakenArt, wallArt } from './buildings.ts';
-import { badgeArt } from './icons.ts';
+import { badgeArt, lootChestArt } from './icons.ts';
 import { fxArt, fxFrames } from './fx.ts';
 import { scaffoldArt, scaffoldPieces } from './scaffold.ts';
 import { iconArt } from './icons.ts';
@@ -16,7 +16,7 @@ import { troopArt, troopFrames } from './troops.ts';
 import type { ArtPiece } from './kit.ts';
 
 export { scaffoldArt, scaffoldPieces };
-export { CHIMNEY_AT, HQ_FLAG_AT, hqFlagFrames, hqNoFlagArt, palmSwayFrames, krakenArt, wallArt, fxFrames, troopFrames, badgeArt, coastArt, decoArt, mapDecoArt, mapIslandArt, PALETTE, BUILDING_SIZE, buildingArt, fxArt, iconArt, shipArt, tileArt, troopArt };
+export { CHIMNEY_AT, HQ_FLAG_AT, hqFlagFrames, hqNoFlagArt, palmSwayFrames, krakenArt, wallArt, fxFrames, troopFrames, badgeArt, lootChestArt, coastArt, decoArt, mapDecoArt, mapIslandArt, PALETTE, BUILDING_SIZE, buildingArt, fxArt, iconArt, shipArt, tileArt, troopArt };
 export type { ArtPiece };
 
 export const BUILDING_KINDS: BuildingKind[] = ['hq', 'goldmine', 'sawmill', 'vault', 'woodyard', 'dock', 'armory', 'cannon', 'gunTower', 'mortar', 'mine', 'flame', 'harpoon', 'tar', 'rocket', 'fogTower', 'shock', 'sniper', 'kraken', 'wall', 'statue', 'flagpole', 'chest', 'palm', 'rock'];
@@ -30,7 +30,7 @@ export const FX_FRAME_KINDS = ['hit', 'boom', 'collapse', 'slash', 'muzzle'] as 
 /** 皮肤帧不进 allArt（太占内存）：画面层按需 troopFrames(kind, anim, skin) 再烘焙 */
 export const TROOP_SKINS = ['gold', 'shadow', 'royal'] as const;
 export const FX_KINDS = ['ball', 'bullet', 'shell', 'flame', 'boom', 'smoke', 'spark', 'rubble', 'flare', 'heal', 'rocket', 'harpoon', 'tar', 'tentacle', 'fog', 'levelup', 'coins', 'grenade', 'stars', 'shock', 'snipe'] as const;
-export const ICON_KINDS = ['gold', 'wood', 'star', 'starEmpty', 'energy', 'hammer', 'sword', 'shield', 'ship', 'map', 'home', 'skull', 'barrage', 'flare', 'medkit', 'bounty', 'trophy', 'shieldOn', 'replay', 'revenge'] as const;
+export const ICON_KINDS = ['gold', 'wood', 'star', 'starEmpty', 'energy', 'hammer', 'sword', 'shield', 'ship', 'map', 'home', 'skull', 'barrage', 'flare', 'medkit', 'bounty', 'trophy', 'shieldOn', 'replay', 'revenge', 'treasure'] as const;
 /** 建筑外观的最大等级（更高的等级沿用这一级的样子） */
 export const ART_MAX_LEVEL = 8;
 

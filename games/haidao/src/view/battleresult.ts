@@ -5,6 +5,7 @@ import { aliveByBoat, armyCost, battleResult, hqLevel, startCampaign, totalStars
 import { UNIT, type BattleResult, type Res, type BBuilding, type TroopKind } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { bArt, iconA, troopF } from './art.ts';
+import { lootChestArt } from './art/index.ts';
 import { topBlame } from './fxlayout.ts';
 import { vibrate } from './feel.ts';
 import type { Ach } from './meta.ts';
@@ -43,10 +44,12 @@ export function openChest(bs: BattleScene, id: string): void {
   const mask = openModal({ cls: 'hd-badgemask', closable: true, stack: true, parent: bs.ui });
   const box = el('div', 'hd-dialog hd-chestbox', undefined, mask);
   el('small', '', '稀有掉落！', box);
+  // 合着的箱子先晃两下，换成开着的、箱口放光，物品从箱口跳到箱子上方（容器上半截留给它，不压标题）
   const chest = el('div', 'hd-chest', undefined, box);
-  const lid = el('div', 'hd-chest-lid', undefined, chest);
-  el('div', 'hd-chest-body', undefined, chest);
   el('div', 'hd-chest-glow', undefined, chest);
+  const shut = img(lootChestArt(false), 96, 'hd-img hd-chest-shut');
+  const open = img(lootChestArt(true), 112, 'hd-img hd-chest-open');
+  chest.append(shut, open);
   const nm = rewardName(id);
   const item = el('div', 'hd-chest-item', undefined, chest);
   const [type, a, b] = id.split(':');
@@ -58,7 +61,7 @@ export function openChest(bs: BattleScene, id: string): void {
   }
   el('h2', '', nm, box);
   el('p', 'hd-sub', type === 'skin' ? '去“成就 → 收藏”里装备' : '去“成就 → 收藏”里摆到岛上', box);
-  setTimeout(() => lid.classList.add('open'), 400);
+  setTimeout(() => chest.classList.add('open'), 520);
   setTimeout(() => item.classList.add('out'), 900);
   button('收下', 'hd-btn-gold', () => mask.remove(), box).style.width = '100%';
 }
@@ -204,9 +207,16 @@ export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newSta
     const bl = el('p', 'hd-bountyline', `今日悬赏完成，奖励翻倍（上面的战利品就是）。明天再来！`, box);
     bl.style.cssText = 'text-align:center;margin:0 0 10px';
   }
-  // 结算页先完整呈现（星星、战利品、宝箱）；成就只在结算页写一行，玩家点离开按钮后合成一张卡弹出，不盖住结算
+  // 结算页先完整呈现（星星、战利品、宝箱）；成就只在结算页写一行，玩家点离开按钮时合成一张卡弹出，不盖住结算。
+  // 回家：卡在岛上弹；再打 / 下一关：先在结算页弹，点「太棒了」再进下一局，不然卡会挡在下一局的开场上
+  let badgesShown = false;
   const leave = (): void => {
-    if (fresh.length) setTimeout(() => badgePopup(fresh), 700);
+    if (fresh.length && !badgesShown) setTimeout(() => badgePopup(fresh), 700);
+  };
+  const afterBadges = (then: () => void): void => {
+    if (badgesShown || !fresh.length) return then();
+    badgesShown = true;
+    badgePopup(fresh, then);
   };
   if (fresh.length) {
     const al = el('p', 'hd-sub', `新成就：${fresh.map((a) => a.name).join('、')}`, box);
@@ -233,10 +243,11 @@ export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newSta
       const before = app.profile;
       const r = startCampaign(before, id, (Date.now() & 0x3fffffff) | 1);
       if (!r.ok) return toast(r.error === 'no_wood' ? `木材连一个兵都带不起，先回家收一收` : '这座岛还没解锁');
-      leave();
-      app.commit(r.value.profile);
-      app.startBattle(id, false, r.value.setup);
-      if (r.value.trimmed) toast(trimText(r.value.trimmed, armyCost(before), before.res));
+      afterBadges(() => {
+        app.commit(r.value.profile);
+        app.startBattle(id, false, r.value.setup);
+        if (r.value.trimmed) toast(trimText(r.value.trimmed, armyCost(before), before.res));
+      });
     };
     button('再打一次', 'hd-btn-wood', () => go(bs.d.levelId), again);
     const idx = CAMPAIGN.findIndex((l) => l.id === bs.d.levelId);

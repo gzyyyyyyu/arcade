@@ -18,6 +18,7 @@ import type { MapStopHooks } from './battlecommon.ts';
 import type { BattleScene } from './BattleScene.ts';
 import { finish } from './battleresult.ts';
 import { skillCanCast, skillHint } from './aimcalc.ts';
+import { snapLanding } from './beachfx.ts';
 import { funHud } from './funui.ts';
 import { SCOUT_LABEL } from './battlescout.ts';
 
@@ -125,7 +126,8 @@ export function renderCards(bs: BattleScene): void {
     el('small', '', done ? `已出发 ${g.idx.reduce((n, i) => n + army.boats[i]!.count, 0)}` : `${left.length} 船待命`, c);
     c.addEventListener('click', () => {
       if (done || s.over) return;
-      bs.selBoat = bs.selBoat === gi ? -1 : gi;
+      // 再点已选中的卡不取消：出完一船再点卡是常见手势，取消了之后点沙滩就没反应；取消用右键、Esc 或点技能
+      bs.selBoat = gi;
       bs.selSkill = -1;
       afterSelect(bs);
     });
@@ -187,9 +189,21 @@ export function afterSelect(bs: BattleScene): void {
 export function tap(bs: BattleScene, wx: number, wy: number): void {
   const s = bs.st;
   if (s.over || bs.paused) return;
-  const g = unIso(wx, wy);
+  const g0 = unIso(wx, wy);
+  // 出船（或什么都没选）时，点在沙滩外沿、草边的点吸到登陆圈上；放技能照点的位置
+  const snap = bs.selSkill < 0 ? snapLanding(g0.gx, g0.gy) : null;
+  const g = snap ? { gx: snap.x, gy: snap.y } : g0;
   const ux = Math.round(g.gx * UNIT);
   const uy = Math.round(g.gy * UNIT);
+  if (bs.selBoat < 0 && bs.selSkill < 0) {
+    // 什么都没选就点了沙滩：替玩家选上第一组还有船的卡、提示再点一下，这一下不出船（免得误放）
+    const gi = bs.groups.findIndex((q) => q.idx.some((i) => s.landed[i] !== true));
+    if (!snap || gi < 0) return;
+    bs.selBoat = gi;
+    afterSelect(bs);
+    tapNote(bs, wx, wy, `选上了${TROOPS[bs.groups[gi]!.troop].name}，再点沙滩出船`, '#ffe885', 18);
+    return;
+  }
   if (bs.selBoat >= 0) {
     if (!canLand(s, ux, uy)) {
       sfx('error');
@@ -226,14 +240,20 @@ function skillRadius(bs: BattleScene, i: number): number {
   return SKILLS[k.kind].levels[k.level - 1]?.radius ?? 2;
 }
 
-/** 点到了不能登陆的地方：提示夹在可见区内（点边缘也看得全），沙滩亮一下提醒往哪点 */
-export function badTap(bs: BattleScene, wx: number, wy: number, text = '✕ 只能在沙滩登陆'): void {
+/** 点哪儿就在哪儿飘一句提示，夹在可见区内（点边缘也看得全） */
+function tapNote(bs: BattleScene, wx: number, wy: number, text: string, color: string, size: number): void {
   const z = bs.cc.z;
   const css = { w: bs.scale.width / bs.r, h: bs.scale.height / bs.r };
   const sc = bs.cc.toScreen(wx, wy);
-  const cx = clampCenter(sc.x, 170, css.w, 8);
+  // 宽按字数估（中文一字一个字号宽），长提示不会出屏
+  const cx = clampCenter(sc.x, text.length * size + 16, css.w, 8);
   const cy = Math.min(css.h - 210, Math.max(120, sc.y));
-  floatText(bs, bs.r, z, wx + (cx - sc.x) / z, wy + (cy - sc.y) / z, text, '#ff8a7a', 18);
+  floatText(bs, bs.r, z, wx + (cx - sc.x) / z, wy + (cy - sc.y) / z, text, color, size);
+}
+
+/** 点到了不能登陆的地方：提示一句，沙滩亮一下提醒往哪点 */
+export function badTap(bs: BattleScene, wx: number, wy: number, text = '✕ 只能在沙滩登陆'): void {
+  tapNote(bs, wx, wy, text, '#ff8a7a', 18);
   if (bs.selBoat < 0) return;
   bs.tweens.killTweensOf(bs.beachG);
   bs.beachG.setAlpha(1);
@@ -249,9 +269,11 @@ export function clearSel(bs: BattleScene): void {
 /** 鼠标悬停：选着船时，指到能登陆的格子画金色菱形；选着技能时指到的格子画圈 */
 export function hover(bs: BattleScene, wx: number, wy: number): void {
   const g = unIso(wx, wy);
-  const cx = Math.floor(g.gx);
-  const cy = Math.floor(g.gy);
-  const on = !Number.isNaN(wx) && !bs.st.over && (bs.selBoat >= 0 || bs.selSkill >= 0) && (bs.selSkill >= 0 || canLand(bs.st, cx * UNIT + 50, cy * UNIT + 50));
+  // 选着船时按点下去会吸到的那一格画，悬停和真正落点一致
+  const snap = bs.selBoat >= 0 ? snapLanding(g.gx, g.gy) : null;
+  const cx = Math.floor(snap ? snap.x : g.gx);
+  const cy = Math.floor(snap ? snap.y : g.gy);
+  const on = !Number.isNaN(wx) && !bs.st.over && (bs.selBoat >= 0 || bs.selSkill >= 0) && (bs.selSkill >= 0 || (!!snap && canLand(bs.st, cx * UNIT + 50, cy * UNIT + 50)));
   // 技能的圈跟着鼠标走（四分之一格一档），船只在格子间换
   const key = on ? (bs.selBoat >= 0 ? `${cx},${cy},b` : `${Math.round(g.gx * 4)},${Math.round(g.gy * 4)},s${bs.selSkill}`) : '';
   bs.beachGlow.hover = on && bs.selBoat >= 0 ? { x: cx + 0.5, y: cy + 0.5 } : null;
