@@ -34,7 +34,14 @@ function six(f: (level: number) => Omit<BuildingLevel, 'cost'>, gold: number, wo
 /** 每小时产量：基础表 × INCOME_PCT（金矿上限 = 12 小时产量，跟着涨） */
 const RATE_GOLD = [150, 200, 260, 330, 420, 520, 640, 780].map((v) => Math.round((v * INCOME_PCT.gold) / 100));
 const RATE_WOOD = [120, 160, 210, 270, 340, 420, 520, 640].map((v) => Math.round((v * INCOME_PCT.wood) / 100));
-const VAULT_CAP = [1800, 3000, 4800, 7200, 10200, 14400, 20400, 28800];
+/**
+ * 金库每座存多少金币。规则（tests/base.test.ts 锁住）：每个主寨等级建满后，能花的金币（主寨自带 + 金库）
+ * ≥ 这一级能买的最贵单项（建筑升级或升下一级主寨）× 1.25，且 ≥ 这一级守岛 3★ 两局的收入；只加不减。
+ * 6–8 级卡在狙击塔（6 / 7 / 8 级 104,000 / 130,000 / 180,000 金），原来 14,400 / 20,400 / 28,800 装不下，建不了。
+ */
+const VAULT_CAP = [1800, 3000, 4800, 7200, 10200, 40400, 44000, 48000];
+/** 木料仓每座存多少木材：同一条规则下原来的数就够（最贵是 8 级船坞 33,750 木），不跟金库一起涨 */
+const WOODYARD_CAP = [1800, 3000, 4800, 7200, 10200, 14400, 20400, 28800];
 const HQ_CAP = [1500, 2200, 3200, 4500, 6500, 9000, 13000, 18000];
 const HQ_COST = [
   { gold: 0, wood: 0 },
@@ -94,7 +101,7 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     unlockHq: 1,
     maxLevel: 8,
     desc: '多存木材。',
-    levels: six((l) => ({ hp: hpOf(300, 20, l), cap: VAULT_CAP[l - 1] ?? 0 }), 100, 100, ECO_MUL),
+    levels: six((l) => ({ hp: hpOf(300, 20, l), cap: WOODYARD_CAP[l - 1] ?? 0 }), 100, 100, ECO_MUL),
   },
   dock: {
     name: '船坞',

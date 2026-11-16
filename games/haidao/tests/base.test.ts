@@ -3,7 +3,9 @@ import {
   BUILDINGS, CAMPAIGN, HQ_LEVELS, armyCost, armyFor, boatSlots, build, buildLimit, canPlace, capacity, collect,
   hqLevel, move, newProfile, produce, research, researchCost, setBoat, totalStars, upgrade, upgradeCost,
 } from '../src/core/index.ts';
-import type { Profile } from '../src/core/index.ts';
+import type { BuildingKind, Profile } from '../src/core/index.ts';
+import { TD_RUN_REWARD } from '../src/content/tdreward.ts';
+import { maxCapacity } from '../src/core/validate.ts';
 
 function rich(p: Profile): Profile {
   return { ...p, res: { gold: 999999, wood: 999999 } };
@@ -205,5 +207,42 @@ describe('船长只能带一个', () => {
     expect(a.boats.filter((b) => b.troop === 'captain' && b.count > 0)).toHaveLength(1);
     expect(a.boats[1]!.count).toBe(0);
     expect(a.boats).toHaveLength(4);
+  });
+});
+
+describe('仓库上限：每个主寨等级建满后装得下这一级要花的钱', () => {
+  /** 这一级能买的最贵单项：名额里每种建筑升到 min(主寨, 上限) 的各级花费，加上升下一级主寨 */
+  const priciest = (hq: number): { gold: number; wood: number } => {
+    const lim = HQ_LEVELS[hq - 1]!.limits as Partial<Record<BuildingKind, number>>;
+    const costs = (Object.keys(BUILDINGS) as BuildingKind[])
+      .filter((k) => k !== 'hq' && (lim[k] ?? 0) > 0 && BUILDINGS[k].unlockHq <= hq)
+      .flatMap((k) => BUILDINGS[k].levels.slice(0, Math.min(hq, BUILDINGS[k].maxLevel)).map((l) => l.cost));
+    const up = HQ_LEVELS[hq]?.cost;
+    if (up) costs.push(up);
+    return { gold: Math.max(...costs.map((c) => c.gold)), wood: Math.max(...costs.map((c) => c.wood)) };
+  };
+  it('能花的上限 ≥ 最贵单项 × 1.25，且 ≥ 守岛 3★ 两局', () => {
+    for (let hq = 1; hq <= HQ_LEVELS.length; hq++) {
+      const cap = maxCapacity(hq);
+      const top = priciest(hq);
+      const run = TD_RUN_REWARD[hq - 1]!;
+      for (const k of ['gold', 'wood'] as const) {
+        expect(cap[k], `主寨 ${hq} ${k}`).toBeGreaterThanOrEqual(Math.ceil(top[k] * 1.25));
+        expect(cap[k], `主寨 ${hq} ${k}`).toBeGreaterThanOrEqual(2 * run[k]);
+      }
+    }
+  });
+  it('只加不减：各级不低于 0.36.1 的数，逐级不降', () => {
+    const OLD = [1800, 3000, 4800, 7200, 10200, 14400, 20400, 28800];
+    const OLD_HQ = [1500, 2200, 3200, 4500, 6500, 9000, 13000, 18000];
+    for (const k of ['vault', 'woodyard', 'hq'] as const) {
+      const caps = BUILDINGS[k].levels.map((l) => l.cap!);
+      const old = k === 'hq' ? OLD_HQ : OLD;
+      caps.forEach((c, i) => {
+        expect(c).toBeGreaterThanOrEqual(old[i]!);
+        if (i > 0) expect(c).toBeGreaterThan(caps[i - 1]!);
+      });
+    }
+    expect(maxCapacity(6).gold).toBe(9000 + 3 * 40400);
   });
 });
