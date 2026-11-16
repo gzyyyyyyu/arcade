@@ -387,7 +387,8 @@ function css(): string {
 .hd-ui .hd-celebrate h2 { text-align:center; margin:0 0 6px; font-size:20px; }
 .hd-ui .hd-newlist { display:flex; flex-direction:column; gap:8px; margin:8px 0 14px; max-height:46vh; overflow:hidden; }
 .hd-ui .hd-newitem { display:flex; gap:10px; align-items:center; background:#fff8e6; border:2px solid ${ink}; border-radius:12px; padding:6px 10px; transition:opacity .25s; }
-.hd-ui .hd-newitem.pop { animation:hd-pop .45s cubic-bezier(.2,1.6,.4,1); }
+/* 整行不转圈：hd-pop 的旋转回弹会让一整行的外框伸出列表（overflow:hidden）十几像素，最后一行弹出时角被裁掉 */
+.hd-ui .hd-newitem.pop { animation:hd-rowin .35s cubic-bezier(.2,1.2,.4,1); }
 .hd-ui .hd-advice { text-align:left; background:#fff8e6; border:2px solid ${red}; border-radius:12px; padding:8px 10px; margin:0 0 12px; font-size:14px; }
 .hd-ui .hd-advice p { margin:4px 0 0; text-align:left; font-size:14px; }
 .hd-ui .hd-bossintro { position:absolute; left:8px; right:8px; top:38%; z-index:45; pointer-events:none; text-align:center; background:linear-gradient(rgba(60,10,10,.92),rgba(110,20,20,.92)); border:3px solid ${ink}; border-radius:16px; padding:10px 14px; color:#fff3d6; animation:hd-pop .5s cubic-bezier(.2,1.5,.4,1); }
@@ -561,6 +562,7 @@ function css(): string {
 @media (prefers-reduced-motion: reduce) { .hd-ui .hd-tut-tip.hd-tut-new { animation:none; } }
 .hd-ui .hd-tut-arrow { position:absolute; z-index:42; width:0; height:0; border:12px solid transparent; pointer-events:none; }
 @keyframes hd-pop { 0% { transform:scale(.2) rotate(-40deg); } 100% { transform:scale(1); } }
+@keyframes hd-rowin { 0% { transform:translateY(10px) scale(.94); } 100% { transform:none; } }
 @keyframes hd-breathe { 50% { transform:scale(1.1); opacity:.6; } }
 @keyframes hd-drift { from { transform:translate(-50%,-50%) translateX(-18px); } to { transform:translate(-50%,-50%) translateX(26px) translateY(-8px); } }
 @keyframes hd-pulse { 50% { transform:scale(1.12); } }

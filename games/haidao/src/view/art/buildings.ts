@@ -22,7 +22,9 @@ const UP: Record<BuildingKind, number> = {
 };
 /** 小建筑的整体放大倍数：它们的占地菱形比画出来的大，放大后才不显得空 */
 const SCALE: Partial<Record<BuildingKind, number>> = { cannon: 1.4, gunTower: 1.12, hq: 1.15, mortar: 1.35, shock: 1.4, sniper: 1.05, mine: 1.4, flame: 1.2, palm: 0.85, harpoon: 1.3, tar: 1.0, rocket: 1.15, fogTower: 1.1 };
-const PADX: Partial<Record<BuildingKind, number>> = { palm: 44, hq: 40, harpoon: 10, rocket: 30, rock: 16, mine: 10, cannon: 24, mortar: 24, shock: 10, sniper: 14, flame: 14 };
+/** 画布底下多留几像素（脚下伸出去的原木、矿车、金币堆）：不改锚点，只加高画布 */
+const DOWN: Partial<Record<BuildingKind, number>> = { goldmine: 12, sawmill: 30, vault: 18, woodyard: 16 };
+const PADX: Partial<Record<BuildingKind, number>> = { woodyard: 14, palm: 44, hq: 40, harpoon: 10, rocket: 30, rock: 16, mine: 10, cannon: 24, mortar: 24, shock: 10, sniper: 14, flame: 14 };
 
 /** 画炮台底座（不带会转的炮管 / 喷嘴 / 发射架 / 火枪手和屋顶）时置真：turretBaseArt 用，转的部分在 art/turrets.ts */
 let NOGUN = false;
@@ -45,6 +47,8 @@ const M = {
 };
 
 const DARK = '#241410';
+/** 7–8 级的冷钢（和炮头 turrets.ts 的 STEEL 同色） */
+const STEEL_C = '#3d4d63';
 const GLOW = '#ffcf5a';
 
 function nugget(x: number, y: number, s: number): string {
@@ -89,12 +93,12 @@ function win(a: Pt[], glow = GLOW): string {
 /** 画布裁剪框 [x0, y0, x1, y1]：各建筑 1–8 级所有外观的包围盒（含阴影），同一种建筑所有等级同一尺寸、锚点一致；省纹理内存 */
 const CROP: Partial<Record<BuildingKind, [number, number, number, number]>> = {
   hq: [18, 83, 342, 446],
-  goldmine: [5, 70, 216, 249],
-  sawmill: [5, 37, 216, 234],
-  vault: [5, 63, 216, 244],
-  woodyard: [5, 16, 216, 214],
-  dock: [5, 69, 216, 237],
-  armory: [5, 56, 216, 262],
+  goldmine: [9, 71, 204, 260],
+  sawmill: [9, 28, 208, 263],
+  vault: [24, 70, 204, 261],
+  woodyard: [32, 14, 242, 229],
+  dock: [12, 45, 204, 232],
+  armory: [15, 50, 204, 257],
   cannon: [2, 9, 186, 190],
   gunTower: [13, 32, 140, 325],
   mortar: [12, 40, 183, 188],
@@ -171,7 +175,7 @@ function shell(kind: BuildingKind, body: string, level: number, shadowK = 1): Ar
   const up = UP[kind];
   const w = size * 64 + 24 + (PADX[kind] ?? 0) * 2;
   const ay = up + 8 + size * 16;
-  const h = ay + size * 16 + 10;
+  const h = ay + size * 16 + 10 + (DOWN[kind] ?? 0);
   const ax = w / 2;
   const deco = kind === 'palm' || kind === 'rock' || kind === 'statue' || kind === 'flagpole' || kind === 'chest' || kind === 'treasure' || kind === 'wall';
   // 等级不再靠金框、等级点、四角小旗、金冠（满岛亮黄，把草地和剪影切碎），改由建筑本身的材质（LVC）和地坪垫分三代、名次钉分代内第几级
@@ -188,18 +192,20 @@ function shell(kind: BuildingKind, body: string, level: number, shadowK = 1): Ar
 
 // ================================================================= 等级外观（每一级都不同）
 
-/** 每级一种主材质，三代：1 亮木 → 2 中木 → 3 亮石 → 4–5 花岗岩 → 6–8 玄武岩（不是死黑）；7–8 级只在包边、箍圈上点铜金（trim） */
-const LVC = ['', C.woodLight!, C.wood!, C.stone!, C.wallMid!, '#76849a', C.wallDark!, '#566278', '#525e74'];
+/**
+ * 每级一种主材质，跟轮廓一样两级一档：1–2 亮木 / 中木 → 3–4 亮石 / 花岗岩 → 5–6 暖灰重石 → 7–8 蓝灰玄武岩。
+ * 后两档靠冷暖分开、亮度相近：玄武岩受光面要亮到看得清体积，满级岛上才不是一坨近黑；7–8 级只在包边、箍圈上点铜金（trim）
+ */
+const LVC = ['', C.woodLight!, C.wood!, C.stone!, C.wallMid!, '#948c7e', '#8a8274', C.wallDark!, '#62759a'];
 const lm = (lv: number): Mat => mat(LVC[lv] ?? LVC[1]!, lv <= 2 ? 'wood' : 'stone');
 const trim = (lv: number): string => (lv <= 2 ? C.woodD! : lv === 3 ? C.ironD! : lv === 4 ? C.ironL! : lv <= 6 ? C.copper! : lv === 7 ? C.copperL! : C.gold!);
 /**
- * 旗：每栋最多一面。防御塔 1–2 级只挂一块绿色小布标，3 级起是红色主旗、越高越大，7–8 级才镶金边；
- * 经济建筑一律只挂小布标、用自己的颜色（帆布、蓝、紫、绿），不和防御塔共用大红旗，免得满岛红旗抢主寨
+ * 旗：主寨挂大旗；防御塔只在 7–8 级挂一面小红旗（镶金边），1–6 级防御塔和资源、生产建筑都不插。
+ * 满级岛上几十栋建筑，旗一多就比建筑还抢眼、认不出谁是谁，所以旗只留给主寨和顶级防御
  */
-const flagW = (lv: number): number => (lv <= 2 ? 12 : 14 + lv * 4);
-const flagH = (lv: number): number => (lv <= 2 ? 8 : 9 + lv * 2.5);
-const flagCol = (lv: number): string => (lv <= 2 ? C.green! : C.red!);
-const tag = (gx: number, gy: number, z: number, h: number, color: string): string => flag(gx, gy, z, h, flagW(1), flagH(1), color, false);
+const TOWER_FLAG_W = 22;
+const towerFlag = (gx: number, gy: number, z: number, h: number, lv: number, skull = false, color = C.red!): string =>
+  lv >= 7 ? flag(gx, gy, z, h, TOWER_FLAG_W, 14, color, skull, C.gold!) : '';
 
 // ================================================================= 主寨
 
@@ -217,11 +223,17 @@ function chimney(gx: number, gy: number, z0: number, z1: number): string {
   const m = P(gx, gy, z1 + 2);
   return o + ell(m[0], m[1], 5.2, 2.6, '#1a1210', { sw: 0 });
 }
-/** 锯木厂、伐木场的棚顶、烟囱高度 */
-const sawPH = (lv: number): number => (lv >= 2 ? 84 : 52);
-const woodPH = (lv: number): number => 52 + lv * 5;
-const sawCZ = (lv: number): number => (lv >= 2 ? sawPH(lv) + 22 : 40);
-const woodCZ = (lv: number): number => (lv >= 2 ? woodPH(lv) + 18 : 40);
+/** 伐木场的棚顶高（1 级露天为 0）和烟囱 [gx, gy, 底 z, 柱顶 z]：画图和 CHIMNEY_AT 都读它 */
+function sawGeom(lv: number): { ph: number; chim: [number, number, number, number] } {
+  const t = tier4(lv);
+  const ph = lv === 1 ? 0 : [60, 74, 84, 92][t]!;
+  return { ph, chim: ph ? [0.9, -1.15, ph + 2, ph + [22, 22, 30, 40][t]!] : [0.9, -1.15, 4, 40] };
+}
+/** 木料仓的棚顶高（1 级露天为 0）和烟囱 [gx, gy, 底 z, 柱顶 z] */
+function woodGeom(lv: number): { ph: number; chim: [number, number, number, number] } {
+  const ph = lv === 1 ? 0 : [58, 68, 80, 90][tier4(lv)]! + (lv % 2 === 0 && lv > 2 ? 4 : 0);
+  return { ph, chim: ph ? [0.9, -1.1, ph - 2, ph + 18] : [0.9, -1.1, 3, 40] };
+}
 
 /**
  * 主寨四代剪影（spec 第 6.2 节）：1–2 级木桩地台上的船长木屋，3–4 级石基座木石大厅（4 级长出左前副仓、屋角望台），
@@ -474,12 +486,12 @@ function cannon(lv: number): string {
   }
   if (NOGUN) {
     // 分件版：炮架、轮子、炮管整体在转盘上转（art/turrets.ts）
-    if (lv >= 2) o += flag(-1.1, -0.2, deck - 2, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
+    o += towerFlag(-1.1, -0.2, deck - 2, 22 + lv * 4, lv);
     return o;
   }
   // 整张图（图标、没烘好分件时）：朝右前的炮头（和分件版同一套画法）
   o += turretHead('cannon', lv, deck);
-  if (lv >= 2) o += flag(-1.1, -0.2, deck - 2, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
+  o += towerFlag(-1.1, -0.2, deck - 2, 22 + lv * 4, lv);
   return o;
 }
 
@@ -520,7 +532,7 @@ function mortar(lv: number): string {
     o += rim(26, deck, lv, M.ironD);
   }
   if (!NOGUN) o += turretHead('mortar', lv, deck);
-  if (lv >= 2) o += flag(-1.1, 0.4, deck, 24 + lv * 3, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
+  o += towerFlag(-1.1, 0.4, deck, 24 + lv * 3, lv);
   return o;
 }
 
@@ -566,7 +578,7 @@ function flameTower(lv: number): string {
     o += path(`M${f(fx)},${f(fy + 8)} Q${f(fx + fl * 0.3)},${f(fy + 10)} ${f(fx + fl)},${f(fy - 2)} Q${f(fx + fl * 0.6)},${f(fy - 16)} ${f(fx + fl * 0.2)},${f(fy - 10)} Q${f(fx - 4)},${f(fy - 12)} ${f(fx)},${f(fy + 8)} Z`, C.fire!, { sw: 1.6 });
     o += path(`M${f(fx + 2)},${f(fy + 5)} Q${f(fx + fl * 0.4)},${f(fy + 6)} ${f(fx + fl * 0.7)},${f(fy - 1)} Q${f(fx + fl * 0.4)},${f(fy - 9)} ${f(fx + 2)},${f(fy - 5)} Z`, C.fireL!, { sw: 0 });
   }
-  if (lv >= 2) o += flag(-0.55, -0.45, deck - 6, 18 + lv * 3, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
+  o += towerFlag(-0.55, -0.45, deck - 6, 18 + lv * 3, lv);
   return o;
 }
 
@@ -592,7 +604,7 @@ function harpoon(lv: number): string {
   if (t === 3) o += rim(30, top, lv, m);
   o += cyl(0, 0, 11, top, deck, t === 0 ? M.woodD : M.ironD, 0, 1.6);
   if (!NOGUN) o += turretHead('harpoon', lv, deck);
-  o += flag(-1.0, 0.5, top, 20 + lv * 4, flagW(lv), flagH(lv), lv <= 2 ? C.blue! : flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
+  o += towerFlag(-1.0, 0.5, top, 20 + lv * 4, lv);
   return o;
 }
 
@@ -627,7 +639,7 @@ function rocket(lv: number): string {
   if (!NOGUN) o += turretHead('rocket', lv, deck + 4);
   o += barrel(-0.8, 0.8, 0, 6, 12, C.red!) + crate(0.8, 0.85, 0, 14, 13);
   if (t === 2) o += crate(0.95, 0.5, 0, 12, 11);
-  o += flag(0.6, -0.6, deck, 10 + lv * 3, flagW(lv), flagH(lv), C.red!, false, lv >= 7 ? C.gold! : undefined);
+  o += towerFlag(0.6, -0.6, deck, 10 + lv * 3, lv);
   return o;
 }
 
@@ -672,7 +684,7 @@ function shock(lv: number): string {
   o += cyl(0, 0, 20, top, deck, mat(C.ironD!), 0, 1.6);
   if (!NOGUN) o += turretHead('shock', lv, deck);
   // 旗插在左前，让开台后的线圈柱
-  if (lv >= 2) o += flag(-1.0, 0.6, top, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
+  o += towerFlag(-1.0, 0.6, top, 22 + lv * 4, lv);
   return o;
 }
 
@@ -723,7 +735,7 @@ function sniper(lv: number): string {
   }
   if (t === 3) o += merlons(-h, -h, h, h, pz + 6, 8, 2, bodyM, false);
   if (!NOGUN) o += turretHead('sniper', lv, SNIPER_Z(lv));
-  o += flag(-0.42, -0.42, pz + 6, 26 + lv * 3, flagW(lv) * 0.8, flagH(lv) * 0.8, flagCol(lv), lv >= 6, lv >= 7 ? C.gold! : undefined);
+  o += towerFlag(-0.42, -0.42, pz + 6, 26 + lv * 3, lv, true);
   return o;
 }
 
@@ -816,7 +828,7 @@ function gunTower(lv: number): string {
   }
   o += gtPosts(lv);
   // 没顶棚的几级：旗插在平台后角
-  if (!gtRoofed(lv)) o += flag(-0.55, -0.55, plat, 26 + lv * 3, flagW(lv), flagH(lv), flagCol(lv), lv >= 5, lv >= 7 ? C.gold! : undefined);
+  if (!gtRoofed(lv)) o += towerFlag(-0.55, -0.55, plat, 26 + lv * 3, lv, true);
   if (NOGUN) return o;
   // 整张图（图标、没烘好分件时）：平台上一个火枪手的剪影 + 顶棚
   const ring = P(0, 0, plat + 6);
@@ -847,7 +859,7 @@ function gtRoofBody(lv: number): string {
     const a = P(0, 0, zr + h);
     o += ell(a[0], a[1], 3.4, 3.4, C.copperL!, { sw: 1.2 });
   }
-  o += flag(lv === 2 ? -0.5 : 0, lv === 2 ? -0.5 : 0, apex - 2, 18 + lv * 3, flagW(lv), flagH(lv), flagCol(lv), lv >= 6, lv >= 7 ? C.gold! : undefined);
+  o += towerFlag(0, 0, apex - 2, 18 + lv * 3, lv, true);
   return o;
 }
 
@@ -872,7 +884,13 @@ function mine(lv: number): string {
 
 // ================================================================= 资源与仓库
 
+/**
+ * 金矿（矮宽的岩丘，丘前挖出矿洞，越高级洞口越大、井架越高）：1–2 级木框小洞口、一辆手推矿车；3–4 级切石门洞、旁边木吊架；
+ * 5–6 级花岗岩门楼、木井架塔；7–8 级玄武岩门楼带宽垛口和铁闸、冷钢桁架井架、两辆冷钢矿车。
+ */
+const MINE_GATE = [0, 30, 42, 52] as const;
 function goldmine(lv: number): string {
+  const t = tier4(lv);
   let o = '';
   const rock = '#a59077';
   o += path('M-80,22 C-86,-6 -66,-30 -42,-46 C-24,-76 22,-88 44,-56 C62,-40 84,-22 86,10 C60,40 -50,44 -80,22 Z', rock, { sw: 2.4 });
@@ -882,32 +900,63 @@ function goldmine(lv: number): string {
   o += line([-30, -52], [-18, -30], darken(rock, 0.4), 1.4, 0.7) + line([10, -62], [18, -40], darken(rock, 0.45), 1.4, 0.7);
   const veins: Array<[number, number, number]> = [[-52, -14, 6], [18, -52, 7], [34, -22, 5], [-22, -62, 5], [58, -6, 6], [-6, -66, 6], [0, -40, 6], [-60, -30, 5], [66, -30, 5]];
   for (let i = 0; i < Math.min(veins.length, 2 + lv); i++) o += nugget(veins[i]![0], veins[i]![1], veins[i]![2]);
-  // 矿洞口 + 框：木 → 浅木 → 石 → 蓝石 → 金 → 金（更宽）
-  const fw = trim(lv);
-  const fc = lv <= 2 ? C.woodD! : lv === 3 ? C.stoneD! : lv === 4 ? C.ironD! : C.goldD!;
-  o += path('M-26,24 L-26,-6 Q-10,-24 8,-6 L8,24 Z', DARK, { sw: 2 });
-  o += line([-28, 26], [-28, -6], fc, 5) + line([10, 26], [10, -6], fc, 5) + line([-32, -5], [14, -5], fc, 5.5);
-  o += line([-28, 26], [-28, -6], fw, 1.5) + line([-32, -6.5], [14, -6.5], fw, 1.5);
-  if (lv >= 4) o += line([-32, -3], [14, -3], C.gold!, 1.6);
-  o += line([-12, 30], [-48, 50], C.woodDD!, 2) + line([2, 30], [-34, 50], C.woodDD!, 2);
-  for (let i = 0; i < 4; i++) o += line([-8 - i * 9 - 5, 30 + i * 4.5 + 4], [-8 - i * 9 + 8, 30 + i * 4.5 - 2], C.woodD!, 2.2);
+  // 井架（右后）：吊架 → 木井架塔 → 冷钢桁架，越高级越高
+  if (t >= 1) {
+    const hh = [0, 50, 72, 88][t]! + (lv % 2 === 0 ? 6 : 0);
+    const leg = t === 3 ? STEEL_C : C.woodD!;
+    if (t === 1) {
+      o += line([46, -2], [54, -hh], leg, 4) + line([62, -4], [58, -hh], leg, 4);
+      o += line([50, -hh - 2], [82, -hh + 6], C.woodDD!, 4.5);
+      o += line([80, -hh + 6], [80, -hh + 30], C.cream!, 1.4) + rect(72, -hh + 30, 16, 12, C.woodD!, { sw: 1.8 });
+    } else {
+      // 两对斜腿收到顶上的滑轮台，中间几道横撑（7–8 级加交叉斜撑）
+      const L: Pt[] = [[44, 4], [58, 10], [74, 2], [86, 6]];
+      const top: Pt = [65, -hh];
+      for (const q of L) o += line(q, [top[0] + (q[0] - 65) * 0.18, top[1] + 6], leg, t === 3 ? 3.6 : 4.2);
+      for (let k = 1; k <= 3; k++) {
+        const u = k / 4;
+        const at = (q: Pt): Pt => [q[0] + (top[0] + (q[0] - 65) * 0.18 - q[0]) * u, q[1] + (top[1] + 6 - q[1]) * u];
+        o += line(at(L[0]!), at(L[3]!), leg, 2.4);
+        if (t === 3 && k < 3) o += line(at(L[0]!), [at(L[3]!)[0], at(L[3]!)[1] - (hh / 4)], leg, 1.6) + line(at(L[3]!), [at(L[0]!)[0], at(L[0]!)[1] - (hh / 4)], leg, 1.6);
+      }
+      o += rect(top[0] - 13, top[1] - 2, 26, 6, t === 3 ? STEEL_C : C.woodDD!, { sw: 1.6 });
+      o += ell(top[0], top[1] - 9, 10, 10, t === 3 ? '#4b5a70' : C.ironD!, { sw: 2 }) + ell(top[0], top[1] - 9, 3, 3, t === 3 ? trim(lv) : C.ironL!, { sw: 1 });
+      if (t === 3) o += ell(top[0], top[1] - 9, 10, 10, 'none', { stroke: trim(lv), sw: 1.6 });
+      o += line([top[0] - 9, top[1] - 6], [-2, 2], C.cream!, 1.2, 0.8);
+    }
+  }
+  // 矿洞口：木框 → 切石门洞 → 花岗岩门楼 → 玄武岩门楼（垛口、铁闸）
+  if (t === 0) {
+    o += path('M-26,24 L-26,-6 Q-10,-24 8,-6 L8,24 Z', DARK, { sw: 2 });
+    o += line([-28, 26], [-28, -6], C.woodD!, 5) + line([10, 26], [10, -6], C.woodD!, 5) + line([-32, -5], [14, -5], C.woodD!, 5.5);
+    o += line([-28, 26], [-28, -6], C.woodL!, 1.5) + line([-32, -6.5], [14, -6.5], C.woodL!, 1.5);
+  } else {
+    const H = MINE_GATE[t] + (lv % 2 === 0 ? 4 : 0);
+    const g = t === 1 ? mat(C.stone!, 'stone') : t === 2 ? mat(C.wallMid!, 'stone') : mat(C.wallDark!, 'stone');
+    const [x0, y0, x1, y1] = t === 1 ? [0.1, 0.55, 1.05, 1.1] : [-0.05, 0.5, 1.2, 1.2];
+    o += box(x0, y0, x1, y1, 0, H, g, 'brick');
+    const xc = (x0 + x1) / 2 - 0.05;
+    o += poly(archL(xc, t === 1 ? 0.24 : 0.3, y1, 0, H * 0.42, H * 0.26), DARK, { sw: 2 });
+    if (t === 1) o += poly(Lq(xc - 0.06, xc + 0.06, y1, H * 0.66, H * 0.8), C.stoneL!, { sw: 1.2 });
+    if (t === 2) o += line(P(xc - 0.34, y1, H * 0.7), P(xc + 0.34, y1, H * 0.7), C.woodD!, 3.4);
+    if (t === 3) {
+      for (const dx of [-0.16, -0.05, 0.06, 0.17]) o += line(P(xc + dx, y1, 2), P(xc + dx, y1, H * 0.62), STEEL_C, 1.8);
+      o += line(P(x0, y1, H - 6), P(x1, y1, H - 6), trim(lv), 2.2) + line(P(x1, y1, H - 6), P(x1, y0, H - 6), darken(trim(lv), 0.25), 2.2);
+      o += merlons(x0, y0, x1, y1, H, 7, 3, g, true) + merlons(x0, y0, x1, y1, H, 7, 3, g, false);
+    }
+  }
+  // 矿车：木轮手推车 → 铁车（4 级起两辆）→ 冷钢车（包边铜）
   const cart = (cx: number, cy: number, pile: number): string => {
-    let s = poly([[cx - 16, cy - 14], [cx + 16, cy - 14], [cx + 12, cy + 4], [cx - 12, cy + 4]], lv >= 5 ? C.goldD! : C.ironD!, { sw: 2 });
+    const body = t === 0 ? C.wood! : t === 3 ? STEEL_C : C.ironD!;
+    let s = poly([[cx - 16, cy - 14], [cx + 16, cy - 14], [cx + 12, cy + 4], [cx - 12, cy + 4]], body, { sw: 2 });
+    if (t === 3) s += line([cx - 16, cy - 13], [cx + 16, cy - 13], trim(lv), 1.6);
     s += goldPile(cx, cy - 18, pile);
     return s + ell(cx - 9, cy + 6, 4, 4, '#1a1a22', { sw: 1.4 }) + ell(cx + 9, cy + 6, 4, 4, '#1a1a22', { sw: 1.4 });
   };
-  o += cart(-40, 36, 9 + lv);
-  if (lv >= 4) o += cart(-70, 48, 8);
-  if (lv >= 3) {
-    const hh = 52 + lv * 3;
-    o += line([46, -2], [54, -hh], C.woodD!, 4) + line([62, -4], [58, -hh], C.woodD!, 4);
-    o += line([50, -hh - 2], [82, -hh + 6], C.woodDD!, 4.5);
-    o += ell(52, -hh + 2, 6, 6, C.ironD!, { sw: 2 }) + ell(52, -hh + 2, 2, 2, C.ironL!, { sw: 0 });
-    o += line([80, -hh + 6], [80, -hh + 30], C.cream!, 1.4) + rect(72, -hh + 30, 16, 12, lv >= 5 ? C.gold! : C.woodD!, { sw: 1.8 });
-  }
-  if (lv >= 2) o += tag(0, -0.9, 38, 22 + lv * 5, C.green!);
-  if (lv >= 5) o += goldPile(36, 22, 12);
-  if (lv >= 6) o += goldPile(62, 12, 10) + goldPile(-60, -4, 9);
+  o += cart(t === 0 ? -40 : -52, t === 0 ? 40 : 44, 9 + lv);
+  if (lv >= 4) o += cart(-80, 56, 8);
+  if (lv >= 5) o += goldPile(36, 26, 12);
+  if (lv >= 6) o += goldPile(-64, -4, 9);
   return o;
 }
 
@@ -932,84 +981,135 @@ function sawWheel(gx: number, gy: number, z: number, R: number, hub: string, ste
   return `<g transform="translate(${f(c[0])} ${f(c[1])}) matrix(0.894 0.447 0 1 0 0)">${inner}</g>`;
 }
 
+/**
+ * 伐木场（敞开的锯棚，大锯轮是主剪影，越高级棚越实、锯轮越多）：1–2 级露天木锯架、单锯轮（2 级茅草棚）；
+ * 3–4 级石脚木柱、赤陶瓦棚，一大一小两锯轮；5–6 级后两面石墙的半封闭锯房、蓝灰板瓦、高烟囱；7–8 级玄武岩锯坊、冷钢双锯轮、前面一只蒸汽锅炉。
+ */
 function sawmill(lv: number): string {
+  const t = tier4(lv);
+  const g = sawGeom(lv);
   const wm = lm(lv);
+  const floor = [mat('#a37a46', 'wood'), mat(C.stone!, 'stone'), mat(C.wallMid!, 'stone'), mat(C.wallDark!, 'stone')][t]!;
   let o = '';
-  o += box(-1.4, -1.4, 1.4, 1.4, 0, 4, lv <= 2 ? mat('#a37a46') : mat('#9aa1a8'), lv <= 2 ? 'h' : 'brick');
-  const R = 16 + lv * 3;
-  const zc = 14 + R;
-  // 后柱 + 锯架
+  o += box(-1.4, -1.4, 1.4, 1.4, 0, t === 0 ? 4 : 6, floor, t === 0 ? 'h' : 'brick');
+  const z0 = t === 0 ? 4 : 6;
+  // 半封闭锯房：后两面墙（5 级起）
+  if (t >= 2) {
+    o += box(-1.4, -1.4, 1.4, -1.12, z0, g.ph, wm, 'brick');
+    o += box(-1.4, -1.12, -1.12, 1.0, z0, g.ph, wm, 'brick');
+  }
   const post = (gx: number, gy: number, h: number): string => {
-    const p = P(gx, gy, 4);
-    return line(p, [p[0], p[1] - h], C.woodDD!, 5) + line([p[0] - 1, p[1]], [p[0] - 1, p[1] - h], wm.t, 1.6, 0.8);
+    const p = P(gx, gy, z0);
+    let s = '';
+    if (t === 1) s += box(gx - 0.12, gy - 0.12, gx + 0.12, gy + 0.12, z0, z0 + 10, mat(C.stoneD!, 'stone'), '', 1.4);
+    return s + line(p, [p[0], p[1] - h], C.woodDD!, 5) + line([p[0] - 1, p[1]], [p[0] - 1, p[1] - h], wm.t, 1.6, 0.8);
   };
-  const ph = lv >= 2 ? 84 : 52;
-  o += post(-1.2, -1.2, ph) + post(1.2, -1.2, ph);
-  // 锯轮机架 + 大锯轮
-  o += box(-0.9, -0.2, 0.9, 0.2, 4, 10, wm, 'h', 1.8);
-  o += sawWheel(0, 0.25, zc, R, C.gold!, lv >= 5 ? '#c9d6e4' : C.ironL!, 0.2);
-  if (lv >= 4) o += sawWheel(-0.95, 0.6, 4 + 22, 20, C.goldD!, C.ironL!, 0.5);
-  // 工作台 + 原木正被锯
-  o += box(-1.0, 0.45, 1.0, 0.85, 4, 12, M.woodL, 'h', 1.8);
+  if (t <= 1) o += post(-1.2, -1.2, g.ph - z0) + post(1.2, -1.2, g.ph - z0);
+  // 锯轮机架 + 大锯轮（3 级起左前再一只小锯轮）
+  const steel = [C.ironL!, C.ironL!, '#c9d6e4', '#aebccc'][t]!;
+  const R = [20 + lv * 2, 26, 28, 30][t]!;
+  o += box(-0.9, -0.2, 0.9, 0.2, z0, z0 + 6, t === 3 ? mat(STEEL_C, 'iron') : wm, 'h', 1.8);
+  o += sawWheel(0, 0.25, z0 + 10 + R, R, t === 3 ? trim(lv) : C.gold!, steel, 0.2);
+  if (t >= 1) o += sawWheel(-0.95, 0.6, z0 + 22, [0, 16, 20, 22][t]!, C.goldD!, steel, 0.5);
+  // 工作台 + 正在锯的原木
+  o += box(-1.0, 0.45, 1.0, 0.85, z0, z0 + 8, M.woodL, 'h', 1.8);
   o += log(-34, 36 - lv, 38, 6, C.wood!) + log(-30, 25, 38, 5.5, C.woodL!);
-  // 屋顶遮阳（2 级起）：茅草 → 帆布 → 瓦 → 红条纹 → 金边
-  if (lv >= 2) {
-    const z = ph + 4;
+  // 棚顶：1 级没有，2 级茅草、3–4 级赤陶瓦、5–6 级蓝灰板瓦、7–8 级深板瓦镶铜边
+  if (g.ph > 0 && lv >= 2) {
+    // 3 级起是靠后墙的单坡棚，只盖后半，前面的大锯轮露在外面
+    const z = g.ph + 4;
+    const fy = t === 0 ? 1.5 : 0.05;
     const A = P(-1.5, -1.5, z);
     const B = P(1.5, -1.5, z);
-    const Cc = P(1.5, 1.5, z - 6);
-    const D = P(-1.5, 1.5, z - 6);
-    const roofC = lv === 2 ? '#c9a24f' : lv === 3 ? '#e9dfc2' : lv === 4 ? '#9aa1a8' : C.red!;
+    const Cc = P(1.5, fy, z - (t === 0 ? 6 : 14));
+    const D = P(-1.5, fy, z - (t === 0 ? 6 : 14));
+    const roofC = ['#c9a24f', C.roofTile!, C.roofSlate!, C.roofSlateD!][t]!;
     o += poly([A, B, Cc, D], roofC);
     for (let i = 1; i < 6; i++) {
-      const t = i / 6;
-      const l0: Pt = [A[0] + (D[0] - A[0]) * t, A[1] + (D[1] - A[1]) * t];
-      const l1: Pt = [B[0] + (Cc[0] - B[0]) * t, B[1] + (Cc[1] - B[1]) * t];
-      if (lv === 5 || lv === 6) {
-        if (i % 2) o += poly([l0, l1, [l1[0] + (Cc[0] - B[0]) / 6, l1[1] + (Cc[1] - B[1]) / 6], [l0[0] + (D[0] - A[0]) / 6, l0[1] + (D[1] - A[1]) / 6]], C.cream!, { sw: 0 });
-      } else o += line(l0, l1, darken(roofC, 0.3), 1, 0.5);
+      const u = i / 6;
+      o += line([A[0] + (D[0] - A[0]) * u, A[1] + (D[1] - A[1]) * u], [B[0] + (Cc[0] - B[0]) * u, B[1] + (Cc[1] - B[1]) * u], darken(roofC, 0.3), 1, 0.5);
     }
     o += poly([A, B, Cc, D], 'none');
-    if (lv >= 5) o += line(D, Cc, C.gold!, 3) + line(Cc, B, C.goldD!, 3);
+    if (t === 3) o += line(D, Cc, trim(lv), 3) + line(Cc, B, darken(trim(lv), 0.25), 3);
+  }
+  if (t === 0 && lv === 2) o += post(-1.2, 1.2, g.ph - z0) + post(1.2, 1.2, g.ph - z0);
+  if (t >= 1) o += post(-1.2, -0.05, g.ph - z0 - 14) + post(1.2, -0.05, g.ph - z0 - 14);
+  // 蒸汽锅炉（7–8 级，右前）
+  if (t === 3) {
+    o += cyl(1.1, 0.35, 13, z0, z0 + 30, mat(STEEL_C, 'iron'), 2, 1.6);
+    o += cyl(1.1, 0.35, 14, z0 + 26, z0 + 30, mat(trim(lv), 'iron'), 0, 1.2);
   }
   // 木板堆、圆木堆
-  o += box(0.6, 1.0, 1.3, 1.3, 4, 14 + lv * 2, M.woodL, 'h', 1.8);
+  o += box(0.6, 1.0, 1.3, 1.3, z0, z0 + 10 + lv * 2, M.woodL, 'h', 1.8);
   o += log(-84, 50, 34, 6, C.wood!) + log(-80, 61, 34, 6, C.woodL!);
   if (lv >= 3) o += log(-60, 56, 34, 6, C.wood!);
   if (lv >= 4) o += log(-76, 40, 34, 6, C.woodL!);
-  o += chimney(0.9, -1.15, lv >= 2 ? sawPH(lv) + 2 : 4, sawCZ(lv));
-  o += tag(1.2, 1.2, 4, 26 + lv * 4, C.cream!);
+  const [cx, cy, c0, c1] = g.chim;
+  o += chimney(cx, cy, c0, c1);
   return o;
 }
 
+/** 圆柱正面的一道箍（前半圈的弧，z 处、半径 r 屏幕像素、宽 w） */
+function hoopArc(r: number, z: number, color: string, w: number): string {
+  const c = P(0, 0, z);
+  return path(`M${f(c[0] - r)},${f(c[1])} A${r},${r / 2} 0 0 0 ${f(c[0] + r)},${f(c[1])}`, 'none', { stroke: OUT, sw: w + 2 }) + path(`M${f(c[0] - r)},${f(c[1])} A${r},${r / 2} 0 0 0 ${f(c[0] + r)},${f(c[1])}`, 'none', { stroke: color, sw: w });
+}
+/** 圆顶：底圆半径 r（屏幕像素）、高 dh，顶上一颗球 */
+function dome(z: number, r: number, dh: number, color: string, knob: string): string {
+  const c = P(0, 0, z);
+  const ry = r / 2;
+  let o = path(`M${f(c[0] - r)},${f(c[1])} A${r},${dh} 0 0 1 ${f(c[0] + r)},${f(c[1])} A${r},${ry} 0 0 1 ${f(c[0] - r)},${f(c[1])} Z`, color, { sw: 2.2 });
+  o += path(`M${f(c[0] + r * 0.25)},${f(c[1] - dh + 3)} A${r},${dh} 0 0 1 ${f(c[0] + r)},${f(c[1])} A${r},${ry} 0 0 1 ${f(c[0])},${f(c[1] + ry)} Q${f(c[0] + r * 0.32)},${f(c[1] - 10)} ${f(c[0] + r * 0.25)},${f(c[1] - dh + 3)} Z`, darken(color, 0.25), { sw: 0, op: 0.85 });
+  o += path(`M${f(c[0] - r * 0.7)},${f(c[1] - 8)} Q${f(c[0] - r * 0.53)},${f(c[1] - dh + 6)} ${f(c[0] - r * 0.1)},${f(c[1] - dh + 3)}`, 'none', { stroke: lighten(color, 0.5), sw: 3, op: 0.7 });
+  return o + ell(c[0], c[1] - dh + 1, 5, 5, knob, { sw: 1.6 });
+}
+
+/**
+ * 金库（矮胖的圆仓加圆顶，越高级越高越实）：1–2 级箍木圆仓、木瓦圆顶；3–4 级切石圆仓、铁皮圆顶；
+ * 5–6 级两层收分的花岗岩圆堡、深铁圆顶；7–8 级玄武岩圆堡、四个扶壁、一圈宽垛口，冷钢圆顶尖上铜（8 级金）球。
+ */
 function vault(lv: number): string {
+  const t = tier4(lv);
+  const rank = lv % 2 === 0 ? 1 : 0;
   const sm = lm(lv);
-  const hgt = 30 + lv * 4;
+  const hoop = mat(t === 3 ? trim(lv) : C.ironD!, 'iron');
   let o = '';
-  o += cyl(0, 0, 66, 0, 6, mat('#8f979e'), 0);
-  o += cyl(0, 0, 56, 6, hgt, sm, lv >= 3 ? 3 : 2);
-  o += cyl(0, 0, 58, 6, 12, mat(trim(lv)), 0, 1.6);
-  o += cyl(0, 0, 58, hgt - 6, hgt, mat(trim(lv)), 0, 1.6);
-  // 圆顶
-  const c = P(0, 0, hgt);
-  const dh = 30 + lv * 2;
-  const dome = lv >= 5 ? C.gold! : lv >= 3 ? '#9aa6b4' : '#c98c4e';
-  o += path(`M${f(c[0] - 56)},${f(c[1])} A56,${dh} 0 0 1 ${f(c[0] + 56)},${f(c[1])} A56,28 0 0 1 ${f(c[0] - 56)},${f(c[1])} Z`, dome, { sw: 2.2 });
-  o += path(`M${f(c[0] + 14)},${f(c[1] - dh + 3)} A56,${dh} 0 0 1 ${f(c[0] + 56)},${f(c[1])} A56,28 0 0 1 ${f(c[0])},${f(c[1] + 28)} Q${f(c[0] + 18)},${f(c[1] - 10)} ${f(c[0] + 14)},${f(c[1] - dh + 3)} Z`, darken(dome, 0.25), { sw: 0, op: 0.85 });
-  o += path(`M${f(c[0] - 40)},${f(c[1] - 8)} Q${f(c[0] - 30)},${f(c[1] - dh + 6)} ${f(c[0] - 6)},${f(c[1] - dh + 3)}`, 'none', { stroke: lighten(dome, 0.5), sw: 3, op: 0.7 });
-  o += ell(c[0], c[1] - dh + 1, 5, 5, C.gold!, { sw: 1.6 });
-  // 铁门（前）
-  const door = P(0, 0.9, 6);
-  void door;
+  o += cyl(0, 0, 66, 0, 6, [mat('#c49a62', 'wood'), mat('#8f979e', 'stone'), mat(C.wallMidD!, 'stone'), mat(C.wallDarkD!, 'stone')][t]!, 0);
+  let top: number;
+  let r: number;
+  if (t <= 1) {
+    r = t === 0 ? 50 : 56;
+    top = (t === 0 ? 34 : 44) + rank * 4;
+    o += cyl(0, 0, r, 6, top, t === 0 ? mat(lv === 1 ? C.woodLight! : C.wood!, 'wood') : sm, t === 0 ? 0 : 3);
+    // 箍：只画前半圈的弧（画成矮圆柱的话，它的顶面会盖住圆仓的正面）；木仓两道细铁箍，石仓两道宽箍
+    const hb = t === 0 ? 3 : 5;
+    o += hoopArc(r, 12, hoop.l, hb) + hoopArc(r, top - 7, hoop.l, hb);
+  } else {
+    if (t === 3) for (const [x, y] of [[-1.05, -1.05], [1.05, -1.05], [-1.05, 1.05], [1.05, 1.05]] as const) {
+      if (x + y < 0) o += box(x - 0.2, y - 0.2, x + 0.2, y + 0.2, 6, 34, mat(C.wallDarkD!, 'stone'), 'brick', 1.4);
+    }
+    o += cyl(0, 0, 60, 6, 36, sm, 2);
+    if (t === 3) {
+      for (const [x, y] of [[1.05, -1.05], [-1.05, 1.05], [1.05, 1.05]] as const) o += box(x - 0.2, y - 0.2, x + 0.2, y + 0.2, 6, 34, mat(C.wallDarkD!, 'stone'), 'brick', 1.4);
+      o += ringBlocks(1.25, Math.PI * 0.75, Math.PI * 1.75, 5, 36, 44, sm, 0.26);
+    }
+    r = 46;
+    top = (t === 2 ? 60 : 68) + rank * 4;
+    o += cyl(0, 0, r, 36, top, sm, 2);
+    o += hoopArc(60, 30, hoop.l, 4) + hoopArc(r, top - 6, hoop.l, 5);
+    if (t === 3) o += ringBlocks(1.25, Math.PI * -0.25, Math.PI * 0.75, 5, 36, 44, sm, 0.26);
+  }
+  const domeC = ['#a8703a', '#9aa6b4', '#6f7c8c', '#56667c'][t]!;
+  o += dome(top, r, 24 + r * 0.12 + rank * 2, domeC, t === 3 ? trim(lv) : t === 0 ? C.woodD! : C.ironL!);
+  // 铁门（前）：5 级起门上加一道石门罩
   const d0 = P(-0.3, 0.84, 6);
   const d1 = P(0.3, 0.84, 6);
-  const dd = (dy: number): Pt => [d0[0] + dy, d0[1]];
-  void dd;
-  o += poly([[d0[0] - 12, d0[1] + 10], [d1[0] + 12, d1[1] + 18 - 6], [d1[0] + 12, d1[1] - 20], [d0[0] - 12, d0[1] - 26]], '#3b4150', { sw: 2.2 });
-  o += poly([[d0[0] - 8, d0[1] + 8], [d1[0] + 8, d1[1] + 12 - 6], [d1[0] + 8, d1[1] - 17], [d0[0] - 8, d0[1] - 21]], C.ironD!, { sw: 1.4 });
+  o += poly([[d0[0] - 12, d0[1] + 10], [d1[0] + 12, d1[1] + 12], [d1[0] + 12, d1[1] - 20], [d0[0] - 12, d0[1] - 26]], '#3b4150', { sw: 2.2 });
+  o += poly([[d0[0] - 8, d0[1] + 8], [d1[0] + 8, d1[1] + 6], [d1[0] + 8, d1[1] - 17], [d0[0] - 8, d0[1] - 21]], t === 3 ? STEEL_C : C.ironD!, { sw: 1.4 });
   const mid: Pt = [(d0[0] + d1[0]) / 2, (d0[1] + d1[1]) / 2 - 6];
-  o += ell(mid[0], mid[1], 5, 5, C.gold!, { sw: 1.6 }) + ell(mid[0], mid[1], 1.6, 1.6, DARK, { sw: 0 });
-  for (const k of [-10, 8]) o += line([d0[0] - 8, d0[1] + k * 0.2 - 4 + k], [d1[0] + 8, d1[1] + k * 0.2 - 8 + k], lv >= 4 ? C.gold! : C.iron!, 2.2, 0.0);
+  o += ell(mid[0], mid[1], 5, 5, t === 3 ? trim(lv) : C.ironL!, { sw: 1.6 }) + ell(mid[0], mid[1], 1.6, 1.6, DARK, { sw: 0 });
+  for (const k of [-10, 8]) o += line([d0[0] - 8, d0[1] + k * 0.2 - 4 + k], [d1[0] + 8, d1[1] + k * 0.2 - 8 + k], C.iron!, 2.2);
+  if (t >= 2) o += poly([[d0[0] - 16, d0[1] - 26], [d1[0] + 16, d1[1] - 20], [d1[0] + 12, d1[1] - 30], [d0[0] - 12, d0[1] - 36]], sm.t, { sw: 1.6 });
   // 金币堆：级别越高越多
   o += goldPile(-62, 52, 9 + lv);
   if (lv >= 3) o += goldPile(54, 48, 8 + lv / 2);
@@ -1019,127 +1119,184 @@ function vault(lv: number): string {
   const cy = 22;
   o += poly([[cx - 12, cy - 8], [cx + 12, cy - 8], [cx + 12, cy + 6], [cx - 12, cy + 6]], C.woodD!, { sw: 2 });
   o += path(`M${cx - 12},${cy - 8} Q${cx},${cy - 22} ${cx + 12},${cy - 8} Z`, C.wood!, { sw: 2 }) + rect(cx - 2.5, cy - 10, 5, 7, C.gold!, { sw: 1.4 });
-  o += tag(1.0, -1.0, 8, 60 + lv * 6, C.blue!);
   return o;
 }
 
+/**
+ * 木料仓（方的木材仓，木垛是主剪影，越高级垛越高、仓越实）：1–2 级露天木垛（2 级四柱草棚）；3–4 级石脚木柱、赤陶瓦棚；
+ * 5–6 级后两面石墙、挑出吊杆吊着一捆木头、蓝灰板瓦；7–8 级玄武岩仓、深板瓦镶铜边、铁吊臂。
+ */
 function woodyard(lv: number): string {
+  const t = tier4(lv);
+  const g = woodGeom(lv);
   const wm = lm(lv);
+  const z0 = t === 0 ? 3 : 6;
   let o = '';
-  o += box(-1.35, -1.35, 1.35, 1.35, 0, 3, mat('#b89258'), 'h', 1.8);
+  o += box(-1.35, -1.35, 1.35, 1.35, 0, z0, [mat('#b89258', 'wood'), mat(C.stone!, 'stone'), mat(C.wallMid!, 'stone'), mat(C.wallDark!, 'stone')][t]!, t === 0 ? 'h' : 'brick', 1.8);
   const post = (gx: number, gy: number, h: number): string => {
-    const p = P(gx, gy, 3);
-    return rect(p[0] - 3, p[1] - h, 6, h, wm.l, { sw: 1.8 }) + ell(p[0], p[1] - h, 3, 1.5, wm.t, { sw: 1 });
+    const p = P(gx, gy, z0);
+    let s = '';
+    if (t === 1) s += box(gx - 0.12, gy - 0.12, gx + 0.12, gy + 0.12, z0, z0 + 10, mat(C.stoneD!, 'stone'), '', 1.4);
+    return s + rect(p[0] - 3, p[1] - h, 6, h, (t === 0 ? lm(2) : M.wood).l, { sw: 1.8 }) + ell(p[0], p[1] - h, 3, 1.5, wm.t, { sw: 1 });
   };
   const stack = (x0: number, x1: number, y0: number, y1: number, rows: number, cols: number): string => {
     const h = rows * 9;
-    let s = box(x0, y0, x1, y1, 3, 3 + h, mat(C.wood!), 'h', 1.8);
+    let s = box(x0, y0, x1, y1, z0, z0 + h, mat(C.wood!), 'h', 1.8);
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const yy = y0 + ((c + 0.5) / cols) * (y1 - y0);
-        const p = P(x1, yy, 3 + 4.5 + r * 9);
+        const p = P(x1, yy, z0 + 4.5 + r * 9);
         s += ell(p[0], p[1], 3.2, 4.2, r % 2 ? C.woodL! : lighten(C.woodL!, 0.15), { sw: 1.1 }) + ell(p[0], p[1], 1.2, 1.7, C.wood!, { sw: 0, op: 0.7 });
       }
     }
     return s;
   };
-  const pH = 52 + lv * 5;
-  // 后面两根柱 + 横梁
-  o += post(-1.25, -1.25, pH) + post(1.25, -1.25, pH) + post(-1.25, 0, pH);
-  o += stack(-1.2, 0.2, -1.0, -0.2, 2 + Math.ceil(lv / 2), 3);
+  if (t >= 2) {
+    o += box(-1.35, -1.35, 1.35, -1.08, z0, g.ph, wm, 'brick');
+    o += box(-1.35, -1.08, -1.08, 1.0, z0, g.ph, wm, 'brick');
+  }
+  if (g.ph && t <= 1) o += post(-1.25, -1.25, g.ph - z0) + post(1.25, -1.25, g.ph - z0) + post(-1.25, 0, g.ph - z0);
+  o += stack(-1.0, 0.2, -1.0, -0.2, 2 + Math.ceil(lv / 2), 3);
   o += stack(-0.9, 0.4, 0.0, 0.8, 1 + Math.ceil(lv / 2), 3);
-  o += stack(0.5, 1.2, -1.0, -0.3, 2, 2);
+  o += stack(0.5, 1.2, -1.0, -0.3, 2 + t, 2);
   o += log(14, 38, 30, 6, C.wood!) + log(18, 49, 30, 6, C.woodL!);
-  o += post(1.25, 1.1, pH) + post(-1.25, 1.1, pH);
-  // 棚顶：每级不同
-  const A = P(-1.4, -1.4, pH);
-  const B = P(1.4, -1.4, pH);
-  const Cc = P(1.4, 1.3, pH - 8);
-  const D = P(-1.4, 1.3, pH - 8);
-  const roofC = lv === 1 ? 'none' : lv === 2 ? '#c9a24f' : lv === 3 ? '#8c542a' : lv === 4 ? '#9aa1a8' : lv === 5 ? C.red! : C.gold!;
-  if (lv >= 2) {
+  if (g.ph && t <= 1) o += post(1.25, 1.1, g.ph - z0) + post(-1.25, 1.1, g.ph - z0);
+  if (lv === 1) {
+    // 露天：两道麻绳捆住木垛
+    o += line(P(-0.9, 0.0, z0 + 2), P(-0.9, 0.0, z0 + 30), C.cream!, 1.6) + line(P(0.4, 0.0, z0 + 2), P(0.4, 0.0, z0 + 30), C.cream!, 1.6);
+  } else {
+    const A = P(-1.4, -1.4, g.ph);
+    const B = P(1.4, -1.4, g.ph);
+    const Cc = P(1.4, 1.3, g.ph - 8);
+    const D = P(-1.4, 1.3, g.ph - 8);
+    const roofC = ['#c9a24f', C.roofTile!, C.roofSlate!, C.roofSlateD!][t]!;
     o += poly([A, B, Cc, D], roofC);
     for (let i = 1; i < 6; i++) {
-      const t = i / 6;
-      o += line([A[0] + (D[0] - A[0]) * t, A[1] + (D[1] - A[1]) * t], [B[0] + (Cc[0] - B[0]) * t, B[1] + (Cc[1] - B[1]) * t], darken(roofC, 0.3), 1, 0.5);
+      const u = i / 6;
+      o += line([A[0] + (D[0] - A[0]) * u, A[1] + (D[1] - A[1]) * u], [B[0] + (Cc[0] - B[0]) * u, B[1] + (Cc[1] - B[1]) * u], darken(roofC, 0.3), 1, 0.5);
     }
-    if (lv >= 5) o += line(D, Cc, C.gold!, 3) + line(Cc, B, C.goldD!, 3);
-  } else {
-    o += line(A, B, C.woodDD!, 3.4) + line(B, Cc, C.woodDD!, 3.4) + line(D, Cc, C.woodDD!, 3.4);
+    if (t === 3) o += line(D, Cc, trim(lv), 3) + line(Cc, B, darken(trim(lv), 0.25), 3);
   }
-  o += chimney(0.9, -1.1, lv >= 2 ? pH - 2 : 3, woodCZ(lv));
-  o += tag(1.2, 1.25, pH - 6, 14 + lv * 3, C.cream!);
+  // 吊杆（5 级起）：从右边挑出去，吊着一捆木头
+  if (t >= 2) {
+    const arm = t === 3 ? STEEL_C : C.woodDD!;
+    const a0 = P(1.35, -0.6, g.ph - 6);
+    const a1 = P(2.5, -0.6, g.ph - 6);
+    o += line(a0, a1, OUT, 7.4) + line(a0, a1, arm, 5) + line(P(1.35, -0.6, g.ph - 40), [a1[0] - 10, a1[1] + 3], arm, 3);
+    o += line([a1[0] - 3, a1[1] + 1], [a1[0] - 3, a1[1] + 30], C.cream!, 1.6);
+    o += log(a1[0] - 18, a1[1] + 34, 30, 6, C.wood!) + log(a1[0] - 15, a1[1] + 43, 30, 6, C.woodL!);
+  }
+  const [cx, cy, c0, c1] = g.chim;
+  o += chimney(cx, cy, c0, c1);
   return o;
 }
 
 // ================================================================= 船坞与军械所
 
+/**
+ * 船坞（平的码头加一条船，桅杆是主剪影，越高级船越大、桅越多）：1–2 级木栈桥、小舢板（2 级一根小桅）；3–4 级石码头、单桅船、木吊杆；
+ * 5–6 级石船台、双桅船、门式吊架；7–8 级玄武岩干船坞（后两面坞墙）、三桅深色船壳、冷钢吊架。
+ */
 function dock(lv: number): string {
+  const t = tier4(lv);
   let o = '';
-  const wm = lm(lv);
-  o += box(-1.45, -1.45, 1.45, 1.45, 0, 6, lv <= 2 ? mat('#b98448') : mat('#a8aeb4'), lv <= 2 ? 'h' : 'brick');
-  o += box(-1.45, 0.9, 1.45, 1.45, 6, 7, mat(lv <= 2 ? '#8d5c2e' : '#7b858f'), 'h', 1.6);
-  for (const [gx, gy] of [[-1.2, 1.2], [1.2, 1.2], [1.2, -1.2]] as const) o += cyl(gx, gy, 5, 6, 16, wm, 0, 1.6);
+  const deck = [mat('#b98448', 'wood'), mat('#a8aeb4', 'stone'), mat(C.wallMid!, 'stone'), mat(C.wallDark!, 'stone')][t]!;
+  o += box(-1.45, -1.45, 1.45, 1.45, 0, 6, deck, t === 0 ? 'h' : 'brick');
+  o += box(-1.45, 0.9, 1.45, 1.45, 6, 7, mat(t === 0 ? '#8d5c2e' : '#7b858f'), 'h', 1.6);
+  // 干船坞的后两面坞墙（7–8 级）
+  if (t === 3) {
+    o += box(-1.45, -1.45, 1.45, -1.15, 6, 20, deck, 'brick') + box(-1.45, -1.15, -1.15, 0.9, 6, 20, deck, 'brick');
+    o += line(P(-1.15, -1.15, 20), P(1.45, -1.15, 20), trim(lv), 2) + line(P(-1.15, -1.15, 20), P(-1.15, 0.9, 20), darken(trim(lv), 0.2), 2);
+  }
+  for (const [gx, gy] of [[-1.2, 1.2], [1.2, 1.2], [1.2, -1.2]] as const) o += cyl(gx, gy, 5, 6, 16, t === 0 ? M.wood : mat(C.ironD!, 'iron'), 0, 1.6);
   const rc = P(-0.3, 0.3, 7);
   o += ell(rc[0], rc[1], 9, 4.5, C.cream!, { sw: 1.6 }) + ell(rc[0], rc[1], 4, 2, '#a9824f', { sw: 1.2 });
-  const sc = P(0.5, 0.2, 7);
-  const hl = 30 + lv * 5;
-  const hull: Pt[] = [[sc[0] - hl, sc[1] - 6], [sc[0] + hl, sc[1] - 20], [sc[0] + hl + 20, sc[1] - 24], [sc[0] + hl - 4, sc[1] + 14], [sc[0] - hl + 10, sc[1] + 20]];
-  o += poly(hull, lv <= 2 ? C.wood! : lv <= 4 ? C.woodD! : lv === 5 ? C.redD! : '#2c313c', { sw: 2 });
-  o += line([hull[0]![0] + 3, hull[0]![1] + 5], [hull[3]![0] - 3, hull[3]![1] - 5], C.woodL!, 2);
-  o += line([hull[4]![0] + 4, hull[4]![1] - 4], [hull[3]![0] - 2, hull[3]![1] - 4], lv >= 5 ? C.gold! : C.woodDD!, 2.2);
-  const masts = lv >= 4 ? 2 : lv >= 2 ? 1 : 0;
-  for (let k = 0; k < masts; k++) {
-    const mh = 50 + lv * 6;
-    const mx = sc[0] - 14 + k * 30;
-    const my = sc[1] - 6 - k * 8;
-    o += line([mx, my], [mx, my - mh], C.woodDD!, 3.6);
-    o += path(`M${f(mx + 2)},${f(my - mh + 6)} Q${f(mx + 26 + lv * 2)},${f(my - mh * 0.55)} ${f(mx + 2)},${f(my - 12)} Z`, C.cream!, { sw: 1.8 });
-    if (lv >= 5 && k === 0) o += skull(mx + 12, my - mh * 0.55, 10, false);
-  }
-  if (lv >= 3) {
+  // 吊杆 / 门式吊架（左后）
+  if (t === 1) {
     const bp = P(-1.1, -0.9, 6);
     o += line(bp, [bp[0], bp[1] - 50], C.woodD!, 4.6) + line([bp[0], bp[1] - 48], [bp[0] + 36, bp[1] - 30], C.woodD!, 3.6) + line([bp[0] + 34, bp[1] - 30], [bp[0] + 34, bp[1] - 12], C.cream!, 1.4);
     o += rect(bp[0] + 27, bp[1] - 12, 14, 12, C.woodL!, { sw: 1.8 });
+  } else if (t >= 2) {
+    const leg = t === 3 ? STEEL_C : C.woodD!;
+    const H = t === 3 ? 92 : 80;
+    const p0 = P(-1.05, -1.0, 6);
+    const p1 = P(0.95, -1.0, 6);
+    o += line(p0, [p0[0], p0[1] - H], leg, 5) + line(p1, [p1[0], p1[1] - H], leg, 5);
+    o += line([p0[0] - 4, p0[1] - H + 2], [p1[0] + 4, p1[1] - H + 2], leg, 6);
+    if (t === 3) o += line([p0[0] - 4, p0[1] - H - 1], [p1[0] + 4, p1[1] - H - 1], trim(lv), 1.8);
+    const hk = (p0[0] + p1[0]) / 2 + 12;
+    o += line([hk, (p0[1] + p1[1]) / 2 - H + 4], [hk, (p0[1] + p1[1]) / 2 - H + 40], C.cream!, 1.4) + rect(hk - 7, (p0[1] + p1[1]) / 2 - H + 40, 14, 12, C.woodL!, { sw: 1.8 });
+  }
+  // 船：舢板 → 单桅 → 双桅 → 三桅，越高级船身越长
+  const sc = P(0.5, 0.2, 7);
+  const hl = [lv === 1 ? 18 : 26, 36, 44, 52][t]!;
+  const hull: Pt[] = [[sc[0] - hl, sc[1] - 6], [sc[0] + hl, sc[1] - 20], [sc[0] + hl + 14 + t * 2, sc[1] - 24], [sc[0] + hl - 4, sc[1] + 14], [sc[0] - hl + 10, sc[1] + 20]];
+  o += poly(hull, [C.wood!, C.woodD!, C.redD!, '#2c313c'][t]!, { sw: 2 });
+  o += line([hull[0]![0] + 3, hull[0]![1] + 5], [hull[3]![0] - 3, hull[3]![1] - 5], C.woodL!, 2);
+  o += line([hull[4]![0] + 4, hull[4]![1] - 4], [hull[3]![0] - 2, hull[3]![1] - 4], t === 3 ? trim(lv) : C.woodDD!, 2.2);
+  const masts = lv === 1 ? 0 : [1, 1, 2, 3][t]!;
+  const mh = [36, 56, 66, 76][t]! + (lv % 2 === 0 && lv > 2 ? 4 : 0);
+  for (let k = 0; k < masts; k++) {
+    const mx = sc[0] - (masts - 1) * 13 + k * 26;
+    const my = sc[1] - 6 - k * 6;
+    const h = k === Math.floor(masts / 2) ? mh : mh - 12;
+    o += line([mx, my], [mx, my - h], C.woodDD!, 3.6);
+    o += path(`M${f(mx + 2)},${f(my - h + 6)} Q${f(mx + 18 + t * 3)},${f(my - h * 0.55)} ${f(mx + 2)},${f(my - 12)} Z`, C.cream!, { sw: 1.8 });
+    if (t >= 2 && k === Math.floor(masts / 2)) o += skull(mx + 9, my - h * 0.55, 9, false);
   }
   o += barrel(-0.8, 0.95, 7, 6.5, 12) + barrel(-0.5, 1.15, 7, 6.5, 12, C.woodD!);
-  o += tag(1.2, -1.2, 7, 26 + lv * 5, C.blue!);
   return o;
 }
 
+/** 军械所的屋身高和烟囱 [gx, gy, 柱顶 z]（第一根是主烟囱，CHIMNEY_AT 读它） */
+function armGeom(lv: number): { hgt: number; chims: Array<[number, number, number]> } {
+  const t = tier4(lv);
+  const r = lv % 2 === 0 ? 4 : 0;
+  const hgt = [34, 40, 52, 60][t]! + r;
+  const main = [70, 82, 96, 106][t]! + r;
+  const chims: Array<[number, number, number]> = [[0.6, -0.8, main]];
+  if (t >= 1) chims.push([-0.6, -0.8, main - 10]);
+  if (t === 3) chims.push([0.0, -0.8, main - 16]);
+  return { hgt, chims };
+}
+
+/**
+ * 军械所（方的锻造房，烟囱是主剪影，越高级越像堡、烟囱越多）：1–2 级木墙草顶的铁匠棚、一根石烟囱；3–4 级切石作坊、赤陶瓦顶、两根烟囱；
+ * 5–6 级花岗岩碉堡、宽垛口、两根更高的烟囱；7–8 级玄武岩堡、四角扶壁、三根烟囱、冷钢大门。
+ */
 function armory(lv: number): string {
-  const sm = lm(Math.max(3, lv));
+  const t = tier4(lv);
+  const g = armGeom(lv);
+  const sm = lm(lv);
   let o = '';
-  o += box(-1.4, -1.4, 1.4, 1.4, 0, 4, mat('#9aa1a8'), 'brick');
-  // 烟囱（2 级起两根）
+  o += box(-1.4, -1.4, 1.4, 1.4, 0, 4, t === 0 ? mat('#b89258', 'wood') : mat('#9aa1a8', 'stone'), t === 0 ? 'h' : 'brick');
   const chim = (gx: number, gy: number, h: number): string => {
     let s = box(gx - 0.22, gy - 0.22, gx + 0.22, gy + 0.22, 4, h, mat('#a08f80', 'stone'), 'brick');
     s += box(gx - 0.27, gy - 0.27, gx + 0.27, gy + 0.27, h - 4, h + 4, mat('#6e6258', 'stone'), 'brick', 1.8);
-    const t = P(gx, gy, h + 4);
-    s += path(`M${f(t[0] - 7)},${f(t[1] - 2)} q3,-14 7,-4 q4,-10 8,2 q-8,6 -15,2z`, C.fire!, { sw: 1.4 }) + path(`M${f(t[0] - 3)},${f(t[1] - 3)} q2,-8 4,-2 q2,-5 4,1 q-4,3 -8,1z`, C.fireL!, { sw: 0 });
-    s += ell(t[0] + 6, t[1] - 22, 7, 5, C.smokeL!, { sw: 1.4, op: 0.55 });
-    return s;
+    const q = P(gx, gy, h + 4);
+    s += path(`M${f(q[0] - 7)},${f(q[1] - 2)} q3,-14 7,-4 q4,-10 8,2 q-8,6 -15,2z`, C.fire!, { sw: 1.4 }) + path(`M${f(q[0] - 3)},${f(q[1] - 3)} q2,-8 4,-2 q2,-5 4,1 q-4,3 -8,1z`, C.fireL!, { sw: 0 });
+    return s + ell(q[0] + 6, q[1] - 22, 7, 5, C.smokeL!, { sw: 1.4, op: 0.55 });
   };
-  o += chim(0.6, -0.8, 78 + lv * 3);
-  if (lv >= 4) o += chim(-0.6, -0.8, 66 + lv * 2);
-  // 石屋身：带垛口的方碉堡
-  const hgt = 40 + lv * 3;
-  o += box(-1.15, -1.0, 1.1, 1.0, 4, hgt, sm, 'brick');
-  o += line(P(-1.15, 1.0, hgt - 8), P(1.1, 1.0, hgt - 8), trim(lv), 2.2) + line(P(1.1, 1.0, hgt - 8), P(1.1, -1.0, hgt - 8), darken(trim(lv), 0.25), 2.2);
-  // 垛口
-  const nM = 5;
-  for (let i = 0; i < nM; i++) {
-    const x = -1.1 + (i / (nM - 1)) * 2.0;
-    o += box(x - 0.1, 0.8, x + 0.1, 1.0, hgt, hgt + 8, sm, '', 1.6);
+  // 烟囱在屋后：从远到近画（gy 相同，gx 小的在左后）
+  for (const [gx, gy, h] of [...g.chims].sort((a, b) => a[0] - b[0])) o += chim(gx, gy, h);
+  const hgt = g.hgt;
+  if (t === 3) for (const [x, y] of [[-1.15, -1.0], [1.1, -1.0], [-1.15, 1.0]] as const) o += box(x - 0.2, y - 0.2, x + 0.2, y + 0.2, 4, hgt - 10, mat(C.wallDarkD!, 'stone'), 'brick', 1.4);
+  o += box(-1.15, -1.0, 1.1, 1.0, 4, hgt, t === 0 ? mat(lv === 1 ? C.woodLight! : C.wood!, 'wood') : sm, t === 0 ? 'h' : 'brick');
+  if (t <= 1) {
+    o += hip(-1.15, -1.0, 1.1, 1.0, hgt, t === 0 ? 20 : 24, mat(t === 0 ? '#c9a24f' : C.roofTile!, t === 0 ? 'wood' : 'stone'), 0.14, t === 1);
+  } else {
+    o += line(P(-1.15, 1.0, hgt - 8), P(1.1, 1.0, hgt - 8), t === 3 ? trim(lv) : C.ironD!, 2.2) + line(P(1.1, 1.0, hgt - 8), P(1.1, -1.0, hgt - 8), darken(t === 3 ? trim(lv) : C.ironD!, 0.25), 2.2);
+    o += merlons(-1.15, -1.0, 1.1, 1.0, hgt, 8, 4, sm, true) + merlons(-1.15, -1.0, 1.1, 1.0, hgt, 8, 4, sm, false);
   }
-  for (let i = 1; i < 4; i++) o += box(0.9, -0.8 + i * 0.4, 1.1, -0.6 + i * 0.4, hgt, hgt + 8, sm, '', 1.6);
-  // 大熔炉拱门：橙色火光
-  o += poly(archL(-0.35, 0.5, 1.0, 4, 18, 14), '#3a1d10', { sw: 2 });
-  o += poly(archL(-0.35, 0.38, 1.01, 4, 17, 11), '#ff7a1c', { sw: 0 });
-  o += poly(archL(-0.35, 0.22, 1.02, 4, 15, 7), C.fireL!, { sw: 0 });
+  if (t === 3) o += box(1.1 - 0.2, 1.0 - 0.2, 1.1 + 0.2, 1.0 + 0.2, 4, hgt - 10, mat(C.wallDarkD!, 'stone'), 'brick', 1.4);
+  // 大熔炉拱门：橙色火光（7–8 级包冷钢门框）
+  const ah = Math.min(14, hgt - 22);
+  if (t === 3) o += poly(archL(-0.35, 0.58, 1.0, 4, 20, 15), STEEL_C, { sw: 2 });
+  o += poly(archL(-0.35, 0.5, 1.0, 4, 18, ah), '#3a1d10', { sw: 2 });
+  o += poly(archL(-0.35, 0.38, 1.01, 4, 17, ah - 3), '#ff7a1c', { sw: 0 });
+  o += poly(archL(-0.35, 0.22, 1.02, 4, 15, ah - 7), C.fireL!, { sw: 0 });
   o += ell(P(-0.35, 1.04, 8)[0], P(-0.35, 1.04, 8)[1], 22, 6, '#ffa94a', { sw: 0, op: 0.28 });
-  // 侧窗
-  o += win(Rq(1.1, -0.4, 0.1, 18, 32), '#ff9a3a');
+  o += win(Rq(1.1, -0.4, 0.1, 18, Math.min(32, hgt - 4)), '#ff9a3a');
   // 铁砧、武器架、盾牌
   const ap = P(0.55, 1.35, 4);
   o += rect(ap[0] - 7, ap[1] - 9, 14, 9, C.woodD!, { sw: 1.6 });
@@ -1148,9 +1305,8 @@ function armory(lv: number): string {
   const wr = P(-1.0, 1.35, 4);
   o += rect(wr[0] - 12, wr[1] - 4, 24, 4, C.woodD!, { sw: 1.4 });
   for (const dx of [-8, 0, 8]) o += line([wr[0] + dx, wr[1] - 3], [wr[0] + dx + 2, wr[1] - 26], C.ironL!, 2.4);
-  const sp = P(0.45, 1.0, hgt - 14);
-  o += path(`M${f(sp[0] - 8)},${f(sp[1] - 6)} h16 v8 q0,8 -8,12 q-8,-4 -8,-12 Z`, lv >= 5 ? C.gold! : C.red!, { sw: 1.8 }) + line([sp[0] - 10, sp[1] + 8], [sp[0] + 10, sp[1] - 12], C.ironL!, 2.4);
-  o += tag(-0.9, -0.8, hgt, 20 + lv * 4, C.purple!);
+  const sp = P(0.45, 1.0, Math.max(26, hgt - 14));
+  o += path(`M${f(sp[0] - 8)},${f(sp[1] - 6)} h16 v8 q0,8 -8,12 q-8,-4 -8,-12 Z`, C.red!, { sw: 1.8 }) + line([sp[0] - 10, sp[1] + 8], [sp[0] + 10, sp[1] - 12], t === 3 ? trim(lv) : C.ironL!, 2.4);
   return o;
 }
 
@@ -1204,7 +1360,7 @@ function fogTower(lv: number): string {
     o += ell(x, y, 11 + (i % 3) * 2, 8 + (i % 2) * 2, i % 2 ? '#c6bedc' : '#a79fc4', { sw: 1.6, stroke: '#5e5878', op: 0.82 });
   }
   o += ell(-30, 22, 18, 7, '#c6bedc', { sw: 0, op: 0.7 }) + ell(30, 26, 20, 8, '#c6bedc', { sw: 0, op: 0.7 }) + ell(2, 34, 24, 8, '#d6d0e8', { sw: 0, op: 0.6 });
-  o += flag(0, 0, th + 10 + 14, 14 + lv * 3, flagW(lv), flagH(lv), '#6a4bbf', false, lv >= 7 ? C.gold! : undefined);
+  o += towerFlag(0, 0, th + 10 + 14, 14 + lv * 3, lv, false, '#6a4bbf');
   return o;
 }
 
@@ -1295,7 +1451,9 @@ export function wallArt(level: number, mask = 0): ArtPiece {
   const seg = (x0: number, y0: number, x1: number, y1: number): string => {
     return box(x0, y0, x1, y1, 0, h - 3, wm, tex, 1.8);
   };
-  const trimLine = (x0: number, y0: number, x1: number, y1: number): string => (lv >= 4 ? line(P(x0, y1, h - 5), P(x1, y1, h - 5), trim(lv), 2) + line(P(x1, y1, h - 5), P(x1, y0, h - 5), darken(trim(lv), 0.25), 2) : '');
+  // 包边压暗一档：满岛的墙沿是长长一圈，用建筑那样的亮铜金会比建筑还抢眼
+  const wt = darken(trim(lv), 0.3);
+  const trimLine = (x0: number, y0: number, x1: number, y1: number): string => (lv >= 4 ? line(P(x0, y1, h - 5), P(x1, y1, h - 5), wt, 2) + line(P(x1, y1, h - 5), P(x1, y0, h - 5), darken(wt, 0.25), 2) : '');
   // 后两段（上、左）先画
   if (m4 & 1) o += seg(-t, -0.5, t, 0) + trimLine(-t, -0.5, t, 0);
   if (m4 & 8) o += seg(-0.5, -t, 0, t) + trimLine(-0.5, -t, 0, t);
@@ -1303,17 +1461,16 @@ export function wallArt(level: number, mask = 0): ArtPiece {
   const pw = 0.19;
   const ph = h + 12;
   o += box(-pw, -pw, pw, pw, 0, ph, wm, tex, 2);
-  o += box(-pw - 0.04, -pw - 0.04, pw + 0.04, pw + 0.04, ph - 3, ph + 3, mat(trim(lv)), '', 1.8);
+  o += box(-pw - 0.04, -pw - 0.04, pw + 0.04, pw + 0.04, ph - 3, ph + 3, mat(wt), '', 1.8);
   if (lv <= 2) {
     // 木尖桩
     o += poly([P(-pw, pw, ph + 3), P(pw, pw, ph + 3), P(pw, -pw, ph + 3), P(0, 0, ph + 16)], wm.l, { sw: 1.8 });
   } else if (lv <= 4) {
     for (const [dx, dy] of [[-0.16, -0.16], [0.16, 0.16]] as const) o += box(dx - 0.07, dy - 0.07, dx + 0.07, dy + 0.07, ph + 3, ph + 9, wm, '', 1.4);
   } else {
-    o += cone(0, 0, 8, ph + 3, 10 + (lv - 5) * 2, mat(lv >= 7 ? C.gold! : C.ironL!), 1);
-    if (lv >= 7) o += ell(P(0, 0)[0], P(0, 0)[1] - ph - 16 - (lv - 5) * 2, 2.2, 2.2, '#fff0a0', { sw: 1 });
+    // 墙是背景：墩顶只压一顶矮帽（5–6 铁、7–8 暗铜），不用金尖，满墙一排排才不比建筑抢眼
+    o += cone(0, 0, 8, ph + 3, 6, mat(lv >= 7 ? C.copperD! : C.ironL!), 1);
   }
-  if (lv >= 6) o += line(P(-pw, pw, 6), P(pw, pw, 6), C.gold!, 1.6);
   // 前两段（右、下）
   if (m4 & 2) o += seg(0, -t, 0.5, t) + trimLine(0, -t, 0.5, t);
   if (m4 & 4) o += seg(-t, 0, t, 0.5) + trimLine(-t, 0, t, 0.5);
@@ -1558,7 +1715,7 @@ export function gunTowerRoof(level: number): ArtPiece | null {
     const top = (apex - 2 + 18 + lv * 3 + 6) * k;
     const bot = (zr - 10 - rx / 2 - 6) * k;
     const ax = (rx + 10) * k;
-    const w = Math.ceil(ax + (Math.max(rx, flagW(lv) + 4) + 10) * k);
+    const w = Math.ceil(ax + (Math.max(rx, TOWER_FLAG_W + 4) + 10) * k);
     p = piece(`b.gunTower.${lv}.roof`, w, Math.ceil(top - bot), ax, top, `<g transform="scale(${k})">${gtRoofBody(lv)}</g>`);
     roofCache.set(lv, p);
   }
@@ -1633,9 +1790,18 @@ export function CHIMNEY_AT(kind: BuildingKind, level: number): { dx: number; dy:
     const [gx, gy, , z1] = hqGeom(lv).chim;
     q = P(gx, gy, z1 + 2);
   }
-  else if (kind === 'sawmill') q = P(0.9, -1.15, sawCZ(lv) + 2);
-  else if (kind === 'woodyard') q = P(0.9, -1.1, woodCZ(lv) + 2);
-  else if (kind === 'armory') q = P(0.6, -0.8, 82 + lv * 3);
+  else if (kind === 'sawmill') {
+    const [gx, gy, , z1] = sawGeom(lv).chim;
+    q = P(gx, gy, z1 + 2);
+  }
+  else if (kind === 'woodyard') {
+    const [gx, gy, , z1] = woodGeom(lv).chim;
+    q = P(gx, gy, z1 + 2);
+  }
+  else if (kind === 'armory') {
+    const [gx, gy, h] = armGeom(lv).chims[0]!;
+    q = P(gx, gy, h + 4);
+  }
   else return null;
   return { dx: q[0] * k, dy: q[1] * k };
 }
