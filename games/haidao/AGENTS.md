@@ -10,7 +10,7 @@
 
 ```
 src/core/      规则核心：基地、战役结算、战斗（固定步长 20 拍/秒、确定性）、机器人、异步攻防结算（pvp.ts）、快照校验（validate.ts）、各种实盘的档位表、守岛塔防（td*.ts）、大潮无尽（tdtide.ts）、护航和寻宝航线（escort*.ts）；进攻战斗里按规则版本区间分几套防御函数（`battle.ts` 的 `stepDefenses*`）。每个文件的分工见 [docs/tools-haidao.md](docs/tools-haidao.md) 第一节
-src/content/   内容表：建筑、兵、旗舰技能、主寨等级、战役关卡、塔的分叉（branches.ts）；守岛的数（td2units.ts：塔的三阶、统一敌人表、英雄技能、局内经济、难度预算、海盗来袭）、9 张关卡岛（td2maps.ts）、18 关的波次配方和旋钮（td2levels.ts，tdmaps.ts 是出口加单测用的样板关）、守岛里分叉的解释（tdbranches.ts）；护航的 3 张航线图（escortmaps.ts）和 9 关（escortlevels.ts）；改数值只改这里
+src/content/   内容表：建筑、兵、旗舰技能、主寨等级、战役关卡、塔的分叉（branches.ts）、收入倍率（income.ts）、守岛奖励表（tdreward.ts，从战役掠夺推出来）；守岛的数（td2units.ts：塔的三阶、统一敌人表、英雄技能、局内经济、难度预算、海盗来袭）、9 张关卡岛（td2maps.ts）、18 关的波次配方和旋钮（td2levels.ts，tdmaps.ts 是出口加单测用的样板关）、守岛里分叉的解释（tdbranches.ts）；护航的 3 张航线图（escortmaps.ts）和 9 关（escortlevels.ts）；改数值只改这里
 src/view/      画面层：art/（SVG 程序画的素材）、iso.ts（等距投影）、depth.ts（`DEPTH`：所有 setDepth 层级的常量表，新加画面元素先在这里找层、别直接写数字）、Phaser 场景和 DOM 界面
 src/platform/  本地存档（save.ts）、云存档（cloud.ts；同步流程——首次对齐、防抖上传、冲突合并、429 退避、换账号备份和并回、存储满了暂停——由 tests/cloud.test.ts 用内存存储和假平台锁住）
 src/net/       异步攻防的接口调用、快照上传、待扣 / 待领（pvp.ts）；实盘和兑换（live.ts；本机进度的状态机——先写再发、断线和刷新后收尾、换账号不收尾——由 tests/live-client.test.ts 锁住）；大潮无尽往平台每周榜交分和浏览器本地最好（tide.ts）；寻宝航线的浏览器本地进度、最好和每日榜交分（mapscore.ts）；界面在 src/view/pvp.ts、src/view/live.ts

@@ -1,5 +1,6 @@
 import type { BuildingKind } from '../core/types.ts';
 import type { BuildingDef, BuildingLevel } from './defs.ts';
+import { INCOME_PCT } from './income.ts';
 
 /** 第 L 级（1 起）的数值：基础值按每级百分比增长，全程整数运算 */
 function grow(base: number, pctPerLevel: number, level: number): number {
@@ -30,8 +31,9 @@ function six(f: (level: number) => Omit<BuildingLevel, 'cost'>, gold: number, wo
   return c.map((cost, i) => ({ cost, ...f(i + 1) }));
 }
 
-const RATE_GOLD = [150, 200, 260, 330, 420, 520, 640, 780];
-const RATE_WOOD = [120, 160, 210, 270, 340, 420, 520, 640];
+/** 每小时产量：基础表 × INCOME_PCT（金矿上限 = 12 小时产量，跟着涨） */
+const RATE_GOLD = [150, 200, 260, 330, 420, 520, 640, 780].map((v) => Math.round((v * INCOME_PCT.gold) / 100));
+const RATE_WOOD = [120, 160, 210, 270, 340, 420, 520, 640].map((v) => Math.round((v * INCOME_PCT.wood) / 100));
 const VAULT_CAP = [1800, 3000, 4800, 7200, 10200, 14400, 20400, 28800];
 const HQ_CAP = [1500, 2200, 3200, 4500, 6500, 9000, 13000, 18000];
 const HQ_COST = [

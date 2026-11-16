@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BUILDINGS, CAMPAIGN, RULES_VERSION, battleFingerprint, battleResult, botActions, createBattle, equipSkin, newProfile, presetLayout, rollDrops,
+  BUILDINGS, CAMPAIGN, RULES_VERSION, battleFingerprint, income, battleResult, botActions, createBattle, equipSkin, newProfile, presetLayout, rollDrops,
   runBattle, settleCampaign, stepBattle,
 } from '../src/core/index.ts';
 import type { BattleResult, BuildingKind, Placed, Profile } from '../src/core/index.ts';
@@ -157,11 +157,11 @@ describe('收获感', () => {
     p = { ...first.profile, res: { gold: 0, wood: 0 }, stats: { ...first.profile.stats, streak: 7, maxStreak: 7 } };
     const big = settleCampaign(p, 'c02', win(3), 1);
     expect(big.streakBonusPct).toBe(50);
-    expect(big.loot.gold).toBeGreaterThan(Math.floor(lv.loot.gold * 0.3 * 1.5) - 1);
+    expect(big.loot.gold).toBeGreaterThan(Math.floor(lv.loot.gold * 0.3 * 1.5 * 1.7) - 1);
     const lost = settleCampaign({ ...p, res: { gold: 0, wood: 0 } }, 'c04', win(0, 20), 1);
     expect(lost.streak).toBe(0);
     expect(lost.consolation).toBe(true);
-    expect(lost.loot.gold).toBe(Math.floor((CAMPAIGN[3]!.loot.gold * 15) / 100));
+    expect(lost.loot.gold).toBe(income({ gold: Math.floor((CAMPAIGN[3]!.loot.gold * 15) / 100), wood: 0 }).gold);
     expect(lost.loot.wood).toBeGreaterThan(0);
     expect(lost.profile.stats.maxStreak).toBe(7);
   });

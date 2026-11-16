@@ -1,12 +1,12 @@
 /**
  * 守岛的出海与结算（DESIGN 10.4；守岛 2.0）：战役 18 关是写死的关卡岛（content/tdmaps.ts 的 TD2_LEVELS，关 id td01–td18，旧星数照算），
- * 开局读存档算驻守台、基地加成、能造的塔（不花木材）；结算按星数给金币木材，每天有上限（超了只记星数、不给资源），
+ * 开局读存档算驻守台、基地加成、能造的塔（不花木材）；结算按星数给金币木材（奖励表 content/tdreward.ts），每天有上限（超了只记星数、不给资源），
  * 首次拿到星的奖励另算、不计入上限。纯函数，不改入参。
  */
-import { BUILDINGS, HQ_LEVELS } from '../content/index.ts';
+import { BUILDINGS, HQ_LEVELS, TD_BONUS_PER_STAR, TD_CAP_RUNS, TD_RUN_REWARD, TD_STAR_PCT } from '../content/index.ts';
 import { TD2_LEVELS, TD2_LEVEL_BY_ID } from '../content/tdmaps.ts';
 import { branchOptions } from '../content/branches.ts';
-import { hqLevel, newProfile } from './base.ts';
+import { capacity, hqLevel, newProfile } from './base.ts';
 import { heroLevel } from './tdbase.ts';
 import { TD_TOWER_KINDS, baseBonusPct, garrisonTier } from './td2types.ts';
 import type { TdGarrisonOption, TdGarrisonPick, TdGarrisonTower, TdIslandLevel, TdTier, TdTowerKind } from './td2types.ts';
@@ -14,34 +14,67 @@ import type { TdLevel, TdResult, TdSetup } from './tdtypes.ts';
 import { ISLAND, RULES_VERSION } from './types.ts';
 import type { Placed, Profile, Res, Result } from './types.ts';
 
-/** 一局的基础奖励 = 这一关建议主寨等级下全部产出建筑 15 分钟的产量，按星数折：0★ 不给 */
-export const TD_RUN_PCT = [0, 40, 70, 100];
-/** 每个首次拿到的星另给（乘关卡建议主寨等级）：不计入每日上限 */
-export const TD_BONUS_PER_STAR: Res = { gold: 30, wood: 15 };
-/** 每日上限按几小时的产量算（DESIGN 10.4：8 小时） */
-const CAP_HOURS = 8;
 
 const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const err = <T>(error: string): Result<T> => ({ ok: false, error });
 
-/** 某主寨等级下"全部金矿 / 伐木场每小时产量" */
-function hourly(hq: number): Res {
-  const lim = HQ_LEVELS[hq - 1]?.limits ?? {};
-  const rate = (k: 'goldmine' | 'sawmill'): number => (lim[k] ?? 0) * (BUILDINGS[k].levels[hq - 1]?.rate ?? 0);
-  return { gold: rate('goldmine'), wood: rate('sawmill') };
-}
+const runAt = (hq: number): Res => TD_RUN_REWARD[Math.max(1, Math.min(HQ_LEVELS.length, hq)) - 1]!;
 
-/** 每天守岛收入上限：当前主寨等级的金矿名额 × 每小时产量 × 8（伐木场同理）；1–8 级金币 1,200 / 3,200 / 4,160 / 7,920 / 10,080 / 16,640 / 25,600 / 37,440 */
+/** 每天守岛收入上限：当前主寨等级 3★ 一局 × TD_CAP_RUNS */
 export function tdDailyCap(p: Profile): Res {
-  const h = hourly(hqLevel(p));
-  return { gold: h.gold * CAP_HOURS, wood: h.wood * CAP_HOURS };
+  const r = runAt(hqLevel(p));
+  return { gold: r.gold * TD_CAP_RUNS, wood: r.wood * TD_CAP_RUNS };
 }
 
-/** 一局拿 stars 颗星的基础奖励（还没按每日上限截） */
+/** 守岛类（战役、护航、海盗来袭）一局实际发多少，以及写回存档的 res、当天已拿 */
+export interface TdGrant {
+  /** 本局奖励：先按今天剩的上限截，再按仓库剩的空间截 */
+  run: Res;
+  /** 首次拿星的奖励：不占每日上限，只按仓库截（先装它） */
+  bonus: Res;
+  /** 每日上限截掉了一部分 */
+  capped: boolean;
+  /** 仓库装不下截掉了一部分 */
+  full: boolean;
+  cap: Res;
+  /** 今天已拿的（含这一局；只算真进了仓库的） */
+  got: Res;
+  res: Res;
+}
+
+/**
+ * 发放：和出海一样按仓库上限截。异步攻防上传快照时资源不许超过仓库（validate.ts），所以不能把仓库撑破；
+ * 截掉的部分不计入当天已拿。dayIndex 换天就从 0 重新计。
+ */
+export function tdGrant(p: Profile, raw: Res, bonusRaw: Res, dayIndex: number): TdGrant {
+  const same = p.td === undefined || p.td.day === dayIndex;
+  const got0: Res = { gold: same ? (p.td?.gotGold ?? 0) : 0, wood: same ? (p.td?.gotWood ?? 0) : 0 };
+  const cap = tdDailyCap(p);
+  const room = capacity(p);
+  const part = (k: keyof Res): { bonus: number; today: number; run: number } => {
+    const space = Math.max(0, room[k] - p.res[k]);
+    const bonus = Math.min(bonusRaw[k], space);
+    const today = Math.max(0, Math.min(raw[k], cap[k] - got0[k]));
+    return { bonus, today, run: Math.min(today, space - bonus) };
+  };
+  const g = part('gold');
+  const w = part('wood');
+  return {
+    run: { gold: g.run, wood: w.run },
+    bonus: { gold: g.bonus, wood: w.bonus },
+    capped: g.today < raw.gold || w.today < raw.wood,
+    full: g.run < g.today || w.run < w.today || g.bonus < bonusRaw.gold || w.bonus < bonusRaw.wood,
+    cap,
+    got: { gold: got0.gold + g.run, wood: got0.wood + w.run },
+    res: { gold: p.res.gold + g.run + g.bonus, wood: p.res.wood + w.run + w.bonus },
+  };
+}
+
+/** 一局拿 stars 颗星的基础奖励（还没按每日上限截）：关卡建议主寨等级的 3★ 奖励 × TD_STAR_PCT */
 export function tdRunReward(level: Pick<TdLevel, 'hq'>, stars: number): Res {
-  const h = hourly(Math.max(1, Math.min(HQ_LEVELS.length, level.hq)));
-  const pct = TD_RUN_PCT[Math.max(0, Math.min(3, stars))] ?? 0;
-  return { gold: Math.floor((h.gold * pct) / 400), wood: Math.floor((h.wood * pct) / 400) };
+  const r = runAt(level.hq);
+  const pct = TD_STAR_PCT[Math.max(0, Math.min(3, stars))] ?? 0;
+  return { gold: Math.floor((r.gold * pct) / 100), wood: Math.floor((r.wood * pct) / 100) };
 }
 
 export interface TdNextUnlock {
@@ -159,6 +192,8 @@ export interface TdReward {
   newStars: number;
   /** 因为每日上限少给了（有一项被截就是 true；上限已满时 gold、wood 为 0） */
   capped: boolean;
+  /** 因为仓库装不下少给了 */
+  full: boolean;
   /** 今天已拿的（含这一局）和上限 */
   gotGold: number;
   gotWood: number;
@@ -172,7 +207,7 @@ export interface TdReward {
 
 /**
  * 结算一局守岛。dayIndex 是北京时间的天数（画面层算好传进来，和每日悬赏同一口径），换天就重新计当天已拿的。
- * 超过上限照样记星、给首次星奖励，只是不给本局的金币木材。
+ * 超过上限照样记星、给首次星奖励，只是不给本局的金币木材；仓库装不下的部分不给（tdGrant）。
  */
 export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex: number): Result<{ profile: Profile; reward: TdReward }> {
   const lv = TD2_LEVEL_BY_ID.get(levelId);
@@ -183,30 +218,21 @@ export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex
   const stars = Math.max(0, Math.min(3, Math.floor(result.stars)));
   const prev = starsOf(p, levelId);
   const newStars = Math.max(0, stars - prev);
-  const td = p.td ?? { stars: {}, day: dayIndex, gotGold: 0, gotWood: 0 };
-  const sameDay = td.day === dayIndex;
-  const cap = tdDailyCap(p);
-  const gotG = sameDay ? td.gotGold : 0;
-  const gotW = sameDay ? td.gotWood : 0;
-  const raw = tdRunReward(lv, stars);
-  const gold = Math.max(0, Math.min(raw.gold, cap.gold - gotG));
-  const wood = Math.max(0, Math.min(raw.wood, cap.wood - gotW));
-  const bonusGold = newStars * lv.hq * TD_BONUS_PER_STAR.gold;
-  const bonusWood = newStars * lv.hq * TD_BONUS_PER_STAR.wood;
+  const g = tdGrant(p, tdRunReward(lv, stars), { gold: newStars * lv.hq * TD_BONUS_PER_STAR.gold, wood: newStars * lv.hq * TD_BONUS_PER_STAR.wood }, dayIndex);
   const unlockedBefore = nextTdUnlock(p);
   const profile: Profile = {
     ...p,
-    res: { gold: p.res.gold + gold + bonusGold, wood: p.res.wood + wood + bonusWood },
-    td: { stars: { ...td.stars, [levelId]: Math.max(prev, stars) }, day: dayIndex, gotGold: gotG + gold, gotWood: gotW + wood },
+    res: g.res,
+    td: { stars: { ...(p.td?.stars ?? {}), [levelId]: Math.max(prev, stars) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
   };
   const next = nextTdUnlock(profile);
   const unlocked = unlockedBefore && unlockedBefore.after === levelId && stars >= 1 && prev === 0 ? unlockedBefore.id : null;
   return ok({
     profile,
     reward: {
-      gold, wood, bonusGold, bonusWood, newStars,
-      capped: gold < raw.gold || wood < raw.wood,
-      gotGold: profile.td!.gotGold, gotWood: profile.td!.gotWood, capGold: cap.gold, capWood: cap.wood,
+      gold: g.run.gold, wood: g.run.wood, bonusGold: g.bonus.gold, bonusWood: g.bonus.wood, newStars,
+      capped: g.capped, full: g.full,
+      gotGold: g.got.gold, gotWood: g.got.wood, capGold: g.cap.gold, capWood: g.cap.wood,
       unlocked, next,
     },
   });

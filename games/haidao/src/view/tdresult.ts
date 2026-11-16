@@ -106,7 +106,7 @@ function settle(bs: TdScene): void {
   if (rw) {
     loot(bs, mask, box, before, { gold: rw.gold, wood: rw.wood }, { gold: rw.bonusGold, wood: rw.bonusWood }, tm.flyAt);
     if (rw.newStars > 0) bonusLine(bs, box, rw.bonusGold, rw.bonusWood);
-    if (rw.capped) el('p', 'hd-sub hd-td-line cap', rw.gold + rw.wood === 0 ? '今天的守岛收入已满，这局只拿星' : '到今天的守岛收入上限了，多出的部分没有发放', box);
+    capNotes(box, rw, '今天的守岛收入已满，这局只拿星');
     if (rw.unlocked) {
       const nm = tdCampaign().find((l) => l.id === rw.unlocked)?.name ?? '';
       el('p', 'hd-sub hd-td-line', `新解锁：${nm}`, box);
@@ -214,7 +214,7 @@ export function finishEscort(bs: TdScene, res: ReturnType<typeof tdResult>): voi
   if (rw) {
     loot(bs, mask, box, before, { gold: rw.gold, wood: rw.wood }, { gold: rw.bonusGold, wood: rw.bonusWood }, tm.flyAt);
     if (rw.newStars > 0) bonusLine(bs, box, rw.bonusGold, rw.bonusWood);
-    if (rw.capped) el('p', 'hd-sub hd-td-line cap', rw.gold + rw.wood === 0 ? '今天的守岛收入已满，这局只拿星' : '到今天的守岛收入上限了，多出的部分没有发放', box);
+    capNotes(box, rw, '今天的守岛收入已满，这局只拿星');
   }
   const btns = el('div', 'hd-td-btns', undefined, box);
   button('回岛', 'hd-btn-plain', () => app.goBase(), btns);
@@ -251,7 +251,7 @@ export function finishHome(bs: TdScene, res: ReturnType<typeof tdResult>): void 
   el('p', 'hd-td-kept', `击退 ${res.kills ?? 0} 个海盗`, box);
   reasonLines(bs, box, res);
   if (rw && rw.gold + rw.wood > 0) loot(bs, mask, box, before, { gold: rw.gold, wood: rw.wood }, { gold: 0, wood: 0 }, tm.flyAt);
-  if (rw?.capped) el('p', 'hd-sub hd-td-line cap', rw.gold + rw.wood === 0 ? '今天的守岛收入已满，这局不发金币木材' : '到今天的守岛收入上限了，多出的部分没有发放', box);
+  if (rw && (rw.capped || rw.full)) capNotes(box, rw, '今天的守岛收入已满，这局不发金币木材');
   else if (rw && rw.gold + rw.wood === 0) el('p', 'hd-sub hd-td-line', '一波都没撑住，没有奖励', box);
   el('p', 'hd-sub hd-td-line', '海盗来袭不算星：撑得越久，奖励越多', box);
   const btns = el('div', 'hd-td-btns', undefined, box);
@@ -304,4 +304,10 @@ export function finishTide(bs: TdScene, res: ReturnType<typeof tdResult>, week: 
   button('回岛', 'hd-btn-plain', () => app.goBase(), btns);
   main = button('再守一次', 'hd-btn-gold', () => app.startTdTide(), btns);
   app.api.scene = 'result';
+}
+
+/** 少发了的原因：今天的守岛收入到顶（allCapped 是一点没发时的说法），或者仓库装不下 */
+function capNotes(box: HTMLElement, rw: { gold: number; wood: number; capped: boolean; full: boolean }, allCapped: string): void {
+  if (rw.capped) el('p', 'hd-sub hd-td-line cap', rw.gold + rw.wood === 0 ? allCapped : '到今天的守岛收入上限了，多出的部分没有发放', box);
+  else if (rw.full) el('p', 'hd-sub hd-td-line cap', '仓库满了，装不下的没有发放（升级金库、木料仓能装更多）', box);
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BUILDINGS, ISLAND, TD2_HOME, TD2_LEVEL_BY_ID, TD2_LEVELS, TD_BONUS_PER_STAR, TD_BASE_BONUS, TD_RUN_PCT, TD_TOWER_KINDS, baseBonusPct, createTd,
-  garrisonTier, newProfile, nextTdUnlock, placeTdLevel, settleTd, startTd, startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdDailyCap,
+  BUILDINGS, CAMPAIGN, INCOME_PCT, ISLAND, REPLAY_PCT, TD2_HOME, TD2_LEVEL_BY_ID, TD2_LEVELS, TD_BONUS_PER_STAR, TD_BASE_BONUS, TD_CAP_RUNS, TD_RUN_RAIDS,
+  TD_RUN_REWARD, TD_STAR_PCT, TD_TOWER_KINDS, baseBonusPct, capacity, createTd, garrisonTier, newProfile, nextTdUnlock, placeTdLevel, settleTd, startTd, startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdDailyCap,
   tdGarrisonOptions, tdGrowthProfile, tdGrowthSetup, tdLevelUnlocked, tdRunReward, tdUnlockedTowers,
 } from '../src/core/index.ts';
 import type { Placed, Profile, TdPlacedLevel, TdResult } from '../src/core/index.ts';
@@ -13,6 +13,12 @@ const withHq = (hq: number, extra: Placed[] = []): Profile => {
   const p = newProfile();
   return { ...p, base: { buildings: [...p.base.buildings.map((b) => (b.kind === 'hq' ? { ...b, level: hq } : b)), ...extra], nextId: 300 } };
 };
+/** 仓库够大的存档（另放一座 8 级金库和木料仓）：结算测试只看每日上限时用，免得被仓库截 */
+const STORE: Placed[] = [
+  { id: 280, kind: 'vault', level: 8, x: 0, y: 0 },
+  { id: 281, kind: 'woodyard', level: 8, x: 0, y: 3 },
+];
+const roomy = (hq: number): Profile => withHq(hq, STORE);
 const res = (stars: number, over = true): TdResult => ({ over, stars, lost: 0, waves: 8, total: 8, ticks: 3000, goldEarned: 0 });
 const withTd = (p: Profile, td: NonNullable<Profile['td']>): Profile => ({ ...p, td });
 const SAMPLE = 'td2-sample';
@@ -144,17 +150,31 @@ describe('养成档位（配平用）', () => {
 });
 
 describe('每日上限和一局奖励', () => {
-  it('= 当前主寨等级的金矿名额 × 每小时产量 × 8（金币 1–8 级与 DESIGN 10.4 一致）', () => {
-    expect([1, 2, 3, 4, 5, 6, 7, 8].map((hq) => tdDailyCap(withHq(hq)).gold)).toEqual([1200, 3200, 4160, 7920, 10080, 16640, 25600, 37440]);
-    expect([1, 2, 3, 4, 5, 6, 7, 8].map((hq) => tdDailyCap(withHq(hq)).wood)).toEqual([960, 2560, 3360, 6480, 8160, 13440, 20800, 30720]);
+  it('3★ 一局 = 同主寨等级战役关满 3★ 重打 TD_RUN_RAIDS 场的掠夺（loot 平均 × REPLAY_PCT × INCOME_PCT），取整到 10', () => {
+    expect([TD_RUN_RAIDS, REPLAY_PCT, INCOME_PCT, TD_STAR_PCT, TD_CAP_RUNS]).toEqual([2, 30, { gold: 170, wood: 130 }, [0, 40, 70, 100], 6]);
+    TD_RUN_REWARD.forEach((r, i) => {
+      const lv = CAMPAIGN.filter((l) => l.hq === i + 1);
+      for (const k of ['gold', 'wood'] as const) {
+        const avg = lv.reduce((s, l) => s + l.loot[k], 0) / lv.length;
+        expect(r[k]).toBe(Math.round((avg * REPLAY_PCT * INCOME_PCT[k] * TD_RUN_RAIDS) / 10000 / 10) * 10);
+      }
+    });
+    // DESIGN 10.4 的表：改了战役掠夺或倍率，这里和文档一起改
+    expect(TD_RUN_REWARD.map((r) => r.gold)).toEqual([950, 1430, 3110, 6120, 9280, 15860, 27540, 50800]);
+    expect(TD_RUN_REWARD.map((r) => r.wood)).toEqual([440, 550, 1190, 2280, 3510, 5110, 8420, 15530]);
   });
-  it('一局奖励按星数折，3★ = 建议主寨等级全部产出建筑 15 分钟的产量，远小于上限', () => {
-    expect(TD_RUN_PCT).toEqual([0, 40, 70, 100]);
+  it('每日上限 = 当前主寨等级 3★ 一局 × TD_CAP_RUNS', () => {
+    for (let hq = 1; hq <= 8; hq++) {
+      const r = TD_RUN_REWARD[hq - 1]!;
+      expect(tdDailyCap(withHq(hq))).toEqual({ gold: r.gold * TD_CAP_RUNS, wood: r.wood * TD_CAP_RUNS });
+    }
+  });
+  it('一局奖励按星数折（40% / 70% / 100%），0★ 不给；按关卡的建议主寨等级取', () => {
     expect(tdRunReward({ hq: 2 }, 0)).toEqual({ gold: 0, wood: 0 });
-    expect(tdRunReward({ hq: 2 }, 3)).toEqual({ gold: 100, wood: 80 });
-    expect(tdRunReward({ hq: 2 }, 1).gold).toBe(40);
-    expect(tdRunReward({ hq: 2 }, 2).gold).toBe(70);
-    for (const l of [...tdCampaign(), sampleLv]) expect(tdRunReward(l, 3).gold * 20).toBeLessThanOrEqual(tdDailyCap(withHq(l.hq)).gold);
+    expect(tdRunReward({ hq: 2 }, 3)).toEqual(TD_RUN_REWARD[1]);
+    expect(tdRunReward({ hq: 2 }, 1).gold).toBe(Math.floor((1430 * 40) / 100));
+    expect(tdRunReward({ hq: 2 }, 2).gold).toBe(Math.floor((1430 * 70) / 100));
+    for (const l of [...tdCampaign(), sampleLv]) expect(tdRunReward(l, 3)).toEqual(TD_RUN_REWARD[l.hq - 1]);
   });
 });
 
@@ -162,13 +182,13 @@ describe('结算 settleTd', () => {
   const hq = sampleLv.hq;
   const full = tdRunReward(sampleLv, 3);
   it('第一局：按星数给金币木材，另有首次拿星的奖励（每颗新星 × 关卡建议主寨等级），记星数和当天已拿', () => {
-    const p = withHq(2);
+    const p = roomy(2);
     const r = settleTd(p, SAMPLE, res(2), 10);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const { profile, reward } = r.value;
     const two = tdRunReward(sampleLv, 2);
-    expect(reward).toMatchObject({ gold: two.gold, wood: two.wood, newStars: 2, capped: false, unlocked: null });
+    expect(reward).toMatchObject({ gold: two.gold, wood: two.wood, newStars: 2, capped: false, full: false, unlocked: null });
     expect(reward.bonusGold).toBe(2 * hq * TD_BONUS_PER_STAR.gold);
     expect(reward.bonusWood).toBe(2 * hq * TD_BONUS_PER_STAR.wood);
     expect(reward.next).toEqual(nextTdUnlock(profile));
@@ -178,7 +198,7 @@ describe('结算 settleTd', () => {
     expect(p.td).toBeUndefined();
   });
   it('再打：没有新星就没有首次奖励；星数只升不降', () => {
-    const a = settleTd(withHq(2), SAMPLE, res(3), 10);
+    const a = settleTd(roomy(2), SAMPLE, res(3), 10);
     if (!a.ok) throw new Error('settle');
     const b = settleTd(a.value.profile, SAMPLE, res(1), 10);
     if (!b.ok) throw new Error('settle');
@@ -188,15 +208,15 @@ describe('结算 settleTd', () => {
     expect(b.value.profile.td!.stars[SAMPLE]).toBe(3);
   });
   it('0★ 不给资源，只记 0 星', () => {
-    const r = settleTd(withHq(2), SAMPLE, res(0), 3);
+    const r = settleTd(roomy(2), SAMPLE, res(0), 3);
     if (!r.ok) throw new Error('settle');
     expect(r.value.reward).toMatchObject({ gold: 0, wood: 0, bonusGold: 0, bonusWood: 0, newStars: 0, unlocked: null });
-    expect(r.value.profile.res).toEqual(withHq(2).res);
+    expect(r.value.profile.res).toEqual(roomy(2).res);
     expect(r.value.profile.td!.stars[SAMPLE]).toBe(0);
   });
   it('上限边界：差一点满就只给剩下的；刚好满之后只拿星、不拿资源；首次星奖励照给、不计入上限', () => {
-    const cap = tdDailyCap(withHq(2));
-    const near = withTd(withHq(2), { stars: {}, day: 4, gotGold: cap.gold - 30, gotWood: cap.wood - 100 });
+    const cap = tdDailyCap(roomy(2));
+    const near = withTd(roomy(2), { stars: {}, day: 4, gotGold: cap.gold - 30, gotWood: cap.wood - 100 });
     const a = settleTd(near, SAMPLE, res(3), 4);
     if (!a.ok) throw new Error('settle');
     expect(a.value.reward.gold).toBe(30);
@@ -212,23 +232,43 @@ describe('结算 settleTd', () => {
     expect(b.value.profile.res.gold).toBe(a.value.profile.res.gold);
   });
   it('换天（dayIndex 变了）当天已拿清零；主寨升级后上限跟着涨', () => {
-    const fullDay = withTd(withHq(2), { stars: { [SAMPLE]: 3 }, day: 9, gotGold: 3200, gotWood: 2560 });
+    const cap2 = tdDailyCap(roomy(2));
+    const fullDay = withTd(roomy(2), { stars: { [SAMPLE]: 3 }, day: 9, gotGold: cap2.gold, gotWood: cap2.wood });
     const same = settleTd(fullDay, SAMPLE, res(3), 9);
     const next = settleTd(fullDay, SAMPLE, res(3), 10);
     if (!same.ok || !next.ok) throw new Error('settle');
     expect(same.value.reward.gold).toBe(0);
     expect(next.value.reward.gold).toBe(full.gold);
     expect(next.value.profile.td).toMatchObject({ day: 10, gotGold: full.gold });
-    const up = withTd(withHq(3), { stars: { [SAMPLE]: 3 }, day: 9, gotGold: 3200, gotWood: 2560 });
+    const up = withTd(roomy(3), { stars: { [SAMPLE]: 3 }, day: 9, gotGold: cap2.gold, gotWood: cap2.wood });
     const r = settleTd(up, SAMPLE, res(3), 9);
     if (!r.ok) throw new Error('settle');
-    expect(r.value.reward.gold).toBe(full.gold); // 3 级上限 4160，还剩 960
+    expect(r.value.reward.gold).toBe(full.gold); // 3 级上限比 2 级高出一局以上
+  });
+  it('仓库装不下：先装首次星奖励，本局奖励截到装满为止，full；截掉的不计入当天已拿，资源不超过仓库', () => {
+    const p0 = withHq(2);
+    const room = capacity(p0);
+    const p = { ...p0, res: { gold: room.gold - 700, wood: room.wood - 10 } };
+    const r = settleTd(p, SAMPLE, res(3), 7);
+    if (!r.ok) throw new Error('settle');
+    const { reward, profile } = r.value;
+    expect(reward.bonusGold).toBe(3 * hq * TD_BONUS_PER_STAR.gold);
+    expect(reward.gold).toBe(700 - reward.bonusGold);
+    expect(reward.bonusWood).toBe(10);
+    expect(reward.wood).toBe(0);
+    expect(reward).toMatchObject({ full: true, capped: false });
+    expect(profile.res).toEqual(room);
+    expect(profile.td).toMatchObject({ gotGold: reward.gold, gotWood: 0 });
+    const again = settleTd(profile, SAMPLE, res(3), 7);
+    if (!again.ok) throw new Error('settle');
+    expect(again.value.reward).toMatchObject({ gold: 0, wood: 0, full: true });
+    expect(again.value.profile.res).toEqual(room);
   });
   it('拒绝：没有这关、没打完、天数不对；没解锁的战役关', () => {
     expect(settleTd(withHq(8), 'nope', res(3), 1)).toEqual({ ok: false, error: 'unknown' });
-    expect(settleTd(withHq(2), SAMPLE, res(3, false), 1)).toEqual({ ok: false, error: 'not_over' });
-    expect(settleTd(withHq(2), SAMPLE, res(3), -1)).toEqual({ ok: false, error: 'bad_day' });
-    expect(settleTd(withHq(2), SAMPLE, res(3), 1.5)).toEqual({ ok: false, error: 'bad_day' });
+    expect(settleTd(roomy(2), SAMPLE, res(3, false), 1)).toEqual({ ok: false, error: 'not_over' });
+    expect(settleTd(roomy(2), SAMPLE, res(3), -1)).toEqual({ ok: false, error: 'bad_day' });
+    expect(settleTd(roomy(2), SAMPLE, res(3), 1.5)).toEqual({ ok: false, error: 'bad_day' });
     const list = tdCampaign();
     if (list.length > 1) expect(settleTd(withHq(8), list[1]!.id, res(3), 1)).toEqual({ ok: false, error: 'locked' });
   });

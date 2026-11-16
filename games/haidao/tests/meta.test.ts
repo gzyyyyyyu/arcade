@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, checkAchievements, dailyBounty, newProfile } from '../src/core/index.ts';
+import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, checkAchievements, dailyBounty, income, newProfile } from '../src/core/index.ts';
 import type { Profile } from '../src/core/index.ts';
 
 describe('每日悬赏', () => {
@@ -11,7 +11,7 @@ describe('每日悬赏', () => {
     for (let d = 20500; d < 20520; d++) days.add(JSON.stringify(dailyBounty(d, p).layout));
     expect(days.size).toBeGreaterThan(1);
     const tpl = CAMPAIGN.find((l) => l.id === a.levelId)!;
-    expect(a.loot).toEqual({ gold: tpl.loot.gold * 2, wood: tpl.loot.wood * 2 });
+    expect(a.loot).toEqual(income({ gold: tpl.loot.gold * 2, wood: tpl.loot.wood * 2 }));
     for (let d = 0; d < 40; d++) {
       const g = dailyBounty(d, { ...p, stars: { ...p.stars, c20: 1 } });
       const seen = new Set<string>();

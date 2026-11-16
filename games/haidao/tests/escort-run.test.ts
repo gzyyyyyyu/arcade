@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ESCORT_LEVELS } from '../src/content/index.ts';
-import { escortSetup, escortUnlocked, settleEscort, settleTd, tdDailyCap, tdRunReward, TD_BONUS_PER_STAR } from '../src/core/index.ts';
+import { escortRunReward, escortSetup, escortUnlocked, settleEscort, settleTd, tdDailyCap, TD_BONUS_PER_STAR } from '../src/core/index.ts';
 import { newProfile } from '../src/core/base.ts';
 import type { TdResult } from '../src/core/index.ts';
 import type { Profile } from '../src/core/types.ts';
@@ -61,7 +61,9 @@ describe('settleEscort', () => {
     expect(a.reward.unlocked).toBe('bays-easy');
     expect(a.profile.res.gold).toBeGreaterThan(p.res.gold);
     const lv = ESCORT_LEVELS.find((l) => l.id === 'strait-easy')!;
-    expect(a.reward.gold).toBe(tdRunReward(lv, 2).gold);
+    expect(a.reward.gold).toBe(escortRunReward(lv, 2).gold);
+    // 护航不跟守岛的战役掠夺表：3★ = 建议主寨等级下全部金矿 / 伐木场 15 分钟的产量
+    expect(escortRunReward({ hq: 2 }, 3)).toEqual({ gold: Math.floor((2 * 340 * 100) / 400), wood: Math.floor((2 * 208 * 100) / 400) });
     const b = ok(settleEscort(a.profile, 'strait-easy', res(1), 5));
     expect(b.profile.escort!.stars['strait-easy']).toBe(2);
     expect(b.reward.newStars).toBe(0);
