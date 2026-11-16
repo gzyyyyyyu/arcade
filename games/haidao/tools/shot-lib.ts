@@ -32,7 +32,7 @@ export const VIEWS = [
 ];
 export type View = (typeof VIEWS)[number];
 
-export type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { tick: number; wave: number; vault: number; lost: number; gold: number; over: boolean; slots: Array<{ x: number; y: number; tower: number; wreck: boolean; garrison: boolean }>; flags: number; routes: number; barricades: number; hero: { x: number; y: number; goal: { x: number; y: number } | null }; jammed: number; skilled: number }; ready?: boolean; level?: string; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number): void }; where?(k: string): { x: number; y: number } | null; beach?(i: number): { x: number; y: number } | null };
+export type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { tick: number; wave: number; vault: number; lost: number; gold: number; over: boolean; slots: Array<{ x: number; y: number; tower: number; wreck: boolean; garrison: boolean }>; flags: number; routes: number; barricades: number; hero: { x: number; y: number; goal: { x: number; y: number } | null }; jammed: number; skilled: number }; ready?: boolean; level?: string; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void }; where?(k: string): { x: number; y: number } | null; beach?(i: number): { x: number; y: number } | null };
 export const hook = (page: Page): Promise<Hook> => page.evaluate(() => ((window as unknown as { __haidao?: Hook }).__haidao ?? {}) as Hook);
 
 // ---------------------------------------------------------------- 音效触发统计（--sfx-out <文件> 写 json，控制台总是打印）

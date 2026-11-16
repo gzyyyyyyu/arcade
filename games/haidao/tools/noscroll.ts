@@ -65,7 +65,7 @@ const VIEWS = [
 ];
 const ONLY = opt('--view')?.split(',') ?? VIEWS.map((v) => v.name);
 
-type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { slots: Array<{ x: number; y: number; tower: number; wreck: boolean }> }; ready?: boolean; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number): void }; where?(k: string): { x: number; y: number } | null };
+type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { slots: Array<{ x: number; y: number; tower: number; wreck: boolean }> }; ready?: boolean; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void }; where?(k: string): { x: number; y: number } | null };
 
 // ---------------------------------------------------------------- --pvp 的假平台
 
@@ -593,10 +593,11 @@ try {
         skips.push({ screen: `${name}（流程中断）`, view: v.name, reason: (e as Error).message.split('\n')[0]!.slice(0, 120) });
       }
     };
-    const fresh = async (hq = 5, q = '?dev'): Promise<void> => {
+    /** branch：塔选上分叉（一档、两档交替），驻守台卡片上的分叉牌才量得到挤压 */
+    const fresh = async (hq = 5, q = '?dev', branch = false): Promise<void> => {
       await page.goto(`${ROOT}${q}`, { timeout: 60_000 });
       await ready();
-      await page.evaluate((h) => (window as unknown as { __haidao: Hook }).__haidao.dev?.td(h), hq);
+      await page.evaluate(([h, br]) => (window as unknown as { __haidao: Hook }).__haidao.dev?.td(h, br), [hq, branch] as const);
       await page.waitForTimeout(900);
     };
     const closeSheet = async (): Promise<void> => {
@@ -775,7 +776,8 @@ try {
 
     // ---- 守岛：选关页各章节、驻守台选塔
     await group('守岛选关', async () => {
-      await fresh(10);
+      // 带分叉的存档：选关页不受影响，驻守台选塔卡片上有一张、两张分叉牌
+      await fresh(10, '?dev', true);
       await click('.hd-bottom button:has-text("守岛")');
       await page.locator('.hd-tdtab').first().waitFor({ timeout: 8000 });
       const tabs = await page.locator('.hd-tdtab').count();

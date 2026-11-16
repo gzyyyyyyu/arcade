@@ -601,11 +601,12 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
         el('b', '', towerName(o.kind), c);
         const t = el('span', 'hd-tdgar-tier', undefined, c);
         el('strong', '', `${o.tier} 阶`, t);
-        if (o.tier < garrisonTier(o.baseLevel, 3)) el('small', '', '（台子封顶）', t);
-        const tags = el('span', 'hd-tdgar-tags', undefined, c);
-        dmgBadge(TD_TOWER_DAMAGE[o.kind], tags);
-        for (const b of o.branch) el('small', 'hd-chip', branchName(b), tags);
-        if (o.bonusPct > 0) el('small', 'hd-tdgar-bonus', `伤害 +${o.bonusPct}%`, c);
+        // 名字下面一行排开：伤害类型、加成、台子封顶、带进来的分叉；同一个能换行的容器，宽卡一行放下，窄卡折行，谁也压不住谁
+        const meta = el('span', 'hd-tdgar-meta', undefined, c);
+        dmgBadge(TD_TOWER_DAMAGE[o.kind], meta);
+        if (o.bonusPct > 0) el('small', 'hd-tdgar-bonus', `伤害 +${o.bonusPct}%`, meta);
+        if (o.tier < garrisonTier(o.baseLevel, 3)) el('small', 'hd-tdgar-cap', '台子封顶', meta);
+        for (const b of o.branch) el('small', 'hd-chip', branchName(b), meta);
         c.title = `${towerName(o.kind)}：基地最高 ${o.baseLevel} 级 → ${o.tier} 阶`;
       } else {
         el('b', '', '空着', c);

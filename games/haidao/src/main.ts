@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { reportErrors } from 'arcade-kit/report';
-import { CAMPAIGN } from './content/index.ts';
-import { produce, tdGrowthProfile } from './core/index.ts';
+import { BRANCH_LEVEL, CAMPAIGN, branchOptions } from './content/index.ts';
+import { TD_TOWER_KINDS, produce, tdGrowthProfile, type TdTowerKind } from './core/index.ts';
 import { dayIndex } from './view/meta.ts';
-import type { BattleSetup } from './core/types.ts';
+import type { BattleSetup, Profile } from './core/types.ts';
 import { escortLive, live, tdLive } from './net/live.ts';
 import { startSnapshotSync } from './net/pvp.ts';
 import { startCloud } from './platform/cloud.ts';
@@ -232,14 +232,27 @@ function main(): void {
     app.volatile = true;
     app.startBattle(id, auto);
   };
+  /**
+   * 测试辅助：塔选上分叉，按塔种在 TD_TOWER_KINDS 里的序号交替——偶数位够 6 级的两档都选，其余只选第一档；
+   * 驻守台卡片上一张、两张分叉牌都有，noscroll 的重叠检查才覆盖得到
+   */
+  const withBranches = (base: Profile['base']): Profile['base'] => ({
+    ...base,
+    buildings: base.buildings.map((b) => {
+      const o1 = branchOptions(b.kind, 1)[0];
+      if (!o1 || b.level < BRANCH_LEVEL[1]) return b;
+      const o2 = TD_TOWER_KINDS.indexOf(b.kind as TdTowerKind) % 2 === 0 && b.level >= BRANCH_LEVEL[2] ? branchOptions(b.kind, 2)[0] : undefined;
+      return { ...b, branch: o2 ? [o1.id, o2.id] : [o1.id] };
+    }),
+  });
   if (q.has('dev')) {
     // 测试辅助：给资源和星数，不写存档（volatile）
     app.volatile = true;
     app.api.dev = {
-      td: (hq) => {
+      td: (hq, branch = false) => {
         // 建议养成的存档：每种能造的塔各一座、英雄等级跟主寨，战役全部 1★；资源给够
         const g = tdGrowthProfile({ hq }, 'suggest');
-        app.save.profile = { ...app.profile, base: g.base, res: { gold: 5000, wood: 5000 }, tutorial: 99, stats: { ...app.profile.stats, attacks: 1 }, research: { ...app.profile.research, hero: g.research.hero ?? 1 }, td: { ...g.td!, day: dayIndex(), gotGold: 0, gotWood: 0 } };
+        app.save.profile = { ...app.profile, base: branch ? withBranches(g.base) : g.base, res: { gold: 5000, wood: 5000 }, tutorial: 99, stats: { ...app.profile.stats, attacks: 1 }, research: { ...app.profile.research, hero: g.research.hero ?? 1 }, td: { ...g.td!, day: dayIndex(), gotGold: 0, gotWood: 0 } };
         app.reload();
       },
       give: (gold, wood, stars) => {
