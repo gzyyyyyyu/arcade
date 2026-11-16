@@ -76,8 +76,6 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-card:disabled { opacity:.5; filter:grayscale(.7); cursor:default; }
 @media (hover:hover) and (pointer:fine) { .hd-ui .hd-tdgar-card:hover:not(:disabled) { filter:brightness(1.08); } }
 .hd-ui .hd-tdgar-tier strong { font-size:14px; font-weight:900; color:${c.grassDD}; }
-.hd-ui .hd-tdgar-tags { display:flex; flex-wrap:wrap; gap:3px; justify-content:center; align-items:center; }
-.hd-ui .hd-tdgar-tags .hd-chip { font-size:12px; padding:0 5px; }
 .hd-ui .hd-tdgar-bonus { color:${c.grassDD}; font-weight:800; }
 .hd-ui .hd-tdgar-empty { display:block; margin-top:6px; color:${redD}; font-weight:800; }
 .hd-ui .hd-tdgar-btns { width:min(100%,560px); margin:12px auto 0; }
@@ -190,6 +188,13 @@ function tdCss(): string {
   .hd-ui .hd-tdgar-top .hd-tdgar-note { flex:none; }
 }
 @media (max-height:700px) { .hd-ui .hd-tdgar-map { display:none; } }
+/* 横屏手机、360×640 这种矮小屏：小地图本来就不画，顶上那段阶数折算说明也收起（每张卡写着几阶、台子标题写着最高几阶、
+   悬停提示有折算），让带两档分叉的三行塔卡一屏放下 */
+@media (max-height:500px), (max-width:420px) and (max-height:700px) { .hd-ui .hd-tdgar-main .hd-tdgar-top { display:none; } }
+/* 横屏收起说明后页签贴上来，和顶角的大厅、回岛钮至少隔 8 像素 */
+@media (max-height:500px) { .hd-ui .hd-tdgar-main .hd-tdgar-tabs { margin-top:2px; } }
+/* 矮的电脑屏（720–800 高）：小地图缩一号，给塔卡让出高度 */
+@media (min-width:701px) and (min-height:701px) and (max-height:800px) { .hd-ui .hd-tdgar-map { width:150px; } }
 .hd-ui .hd-tdgar-main .hd-tdgar-note { font-size:12px; line-height:1.3; }
 .hd-ui .hd-tdgar-main .hd-tdgar-spots { display:grid; grid-template-columns:repeat(var(--spots,1),minmax(0,1fr)); gap:8px; align-items:start; }
 .hd-ui .hd-tdgar-main .hd-tdgar-spot { margin:0; width:auto; padding:6px 8px; }
@@ -197,17 +202,19 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-main .hd-tdgar-title { margin-bottom:8px; }
 .hd-ui .hd-tdgar-main .hd-tdgar-row { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
 .hd-ui .hd-tdgar-main .hd-tdgar-card { display:grid; grid-template-columns:minmax(0,1fr); align-content:center; justify-items:start; text-align:left; gap:0 6px; min-height:48px; padding:3px 6px; }
-/* 名字列按内容宽、不许折行（窄卡上"加农炮"被挤成竖排一字一行，卡片高出一倍）；阶数和加成靠右占剩下的宽 */
-.hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) { grid-template-columns:32px auto minmax(0,1fr); min-height:44px; }
+/* 塔卡：第 1 行名字 | 阶数（都不折行，第 2 列吃剩下的宽、第 3 列按阶数宽）；下面是一个跨两列、能换行的容器，
+   伤害类型、加成、台子封顶、分叉牌依次排开（以前分叉牌在第 2 列、加成在第 3 列，分叉牌溢进第 3 列压住加成） */
+.hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) { grid-template-columns:32px minmax(0,1fr) auto; min-height:44px; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card > b { white-space:nowrap; }
-.hd-ui .hd-tdgar-main .hd-tdgar-card > img { width:32px; height:32px; }
-.hd-ui .hd-tdgar-main .hd-tdgar-bonus { white-space:nowrap; }
-.hd-ui .hd-tdgar-main .hd-tdgar-card > img { grid-column:1; grid-row:1 / span 2; align-self:center; }
+.hd-ui .hd-tdgar-main .hd-tdgar-card > img { width:32px; height:32px; grid-column:1; grid-row:1 / span 2; align-self:center; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) > b { grid-column:2; grid-row:1; }
-.hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) > .hd-tdgar-tier { grid-column:3; grid-row:1; justify-self:end; }
-.hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) > .hd-tdgar-tags { grid-column:2; grid-row:2; }
-.hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) > .hd-tdgar-bonus { grid-column:3; grid-row:2; justify-self:end; }
-.hd-ui .hd-tdgar-main .hd-tdgar-tags { justify-content:flex-start; }
+.hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) > .hd-tdgar-tier { grid-column:3; grid-row:1; justify-self:end; white-space:nowrap; }
+.hd-ui .hd-tdgar-main .hd-tdgar-meta { grid-column:2 / -1; grid-row:2; display:flex; flex-wrap:wrap; align-items:center; gap:1px 5px; }
+.hd-ui .hd-tdgar-main .hd-tdgar-meta small { white-space:nowrap; }
+/* 后期每座塔两档分叉，窄卡要折成三行：行高收紧，整面板在 720 高的电脑、手机上也一屏放下 */
+.hd-ui .hd-tdgar-main .hd-tdgar-card { line-height:1.15; }
+.hd-ui .hd-tdgar-main .hd-tdgar-meta .hd-chip { font-size:12px; padding:0 5px; line-height:1.3; }
+.hd-ui .hd-tdgar-main .hd-tdgar-cap { color:${redD}; font-weight:800; }
 .hd-ui .hd-tdgar-main .hd-tdgar-tabs { display:flex; gap:8px; }
 .hd-ui .hd-tdgar-main .hd-tdgar-tab { flex:1 1 0; min-width:0; min-height:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px 4px; font:inherit; color:inherit; cursor:pointer; background:#fff8e6; border:3px solid ${ink}; border-radius:12px; box-shadow:0 3px 0 ${ink}; }
 .hd-ui .hd-tdgar-main .hd-tdgar-tab b { font-size:14px; font-weight:900; }
