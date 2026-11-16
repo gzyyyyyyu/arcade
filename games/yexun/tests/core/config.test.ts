@@ -60,13 +60,14 @@ describe('A：第二件起手', () => {
 });
 
 describe('B：心法', () => {
-  it('同种子升级三选一里心法流派卡出现得更多', () => {
+  // 只量权重 ×XINFA_MUL 本身，钉在规则 59：规则 60 起娱乐局还有保底和缘分，40 局量不出权重的差（保底见 picks60.test.ts）
+  it('同种子升级三选一里心法流派卡出现得更多（规则 59 的权重）', () => {
     const count = (xinfa?: Setup['xinfa']): number => {
       const school = SCHOOLS.wood;
       let n = 0;
       let seen = 0;
       for (let seed = 1; seed <= 40; seed++) {
-        const w = createWorld({ ...base, seed, ...(xinfa ? { xinfa } : {}) });
+        const w = createWorld({ ...base, seed, ...(xinfa ? { xinfa } : {}) }, 59);
         // 直接记一次待选的升级，推一拍就弹三选一
         w.level = 2;
         w.pendingLevels = 1;

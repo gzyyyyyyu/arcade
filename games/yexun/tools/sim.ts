@@ -14,7 +14,7 @@
  */
 import { availableParallelism } from 'node:os';
 import { Worker, isMainThread, parentPort } from 'node:worker_threads';
-import { createWorld, rushResult, step, Ev } from '../src/core/index.ts';
+import { createWorld, rushResult, step, Ev, type Setup } from '../src/core/index.ts';
 import { rushDaily } from '../src/online/rush.ts';
 import { shiftDate } from '../src/online/daily.ts';
 import { writeFileSync } from 'node:fs';
@@ -69,9 +69,10 @@ const dualsOf = (w: { merges: readonly string[] }): number => w.merges.filter((i
 export const RAID_LEAVE: Record<string, number> = { novice: 0, normal: 600 * 30, greedy: 780 * 30 };
 
 /** 夜探一局：RaidBot 指路（去哪），守夜的机器人躲怪、选卡；返回结局和带出价值 */
-export function runRaid(seed: number, danger: Danger, who: string, build: Build, template: RaidTemplateId, character: CharacterId = 'xiaodao', skills = true, liveTier?: RaidLiveTier): RunResult {
+export function runRaid(seed: number, danger: Danger, who: string, build: Build, template: RaidTemplateId, character: CharacterId = 'xiaodao', skills = true, liveTier?: RaidLiveTier, loadout: Pick<Setup, 'startAlt' | 'xinfa'> = {}): RunResult {
   // 实盘局：和 platform/live.ts liveSetup 一样的配置（危险按实盘档、不带加成），结回倍数 bp 由 settleRaid 算
-  const w = createWorld(liveTier ? { seed, mode: 'raid', danger: RAID_LIVE.danger[liveTier] as Danger, raid: { template, live: liveTier }, character, perks: {}, assist: false, live: true } : { seed, mode: 'raid', danger, raid: { template }, character });
+  // loadout：开局配置（规则 52），按起手配对比较时用；sim 命令行不带
+  const w = createWorld(liveTier ? { seed, mode: 'raid', danger: RAID_LIVE.danger[liveTier] as Danger, raid: { template, live: liveTier }, character, perks: {}, assist: false, live: true, ...loadout } : { seed, mode: 'raid', danger, raid: { template }, character, ...loadout });
   const bot = new Bot(who === 'novice' ? 'novice' : 'normal', build, seed, { skills });
   const leave = RAID_LEAVE[who] ?? 0;
   const guide = new RaidBot(w.raid!, leave);
@@ -106,7 +107,7 @@ export function runRush(date: string, skill: Skill): { down: number; total: numb
   return { down: r.down, total: r.total, cleared: r.cleared, ticks: r.ticks, dead: w.hp <= 0 };
 }
 
-export function runOne(seed: number, danger: Danger, skill: Skill, build: Build, map: MapId = 'snow', character: CharacterId = 'xiaodao', noDual = false, tall = false, live = false, pool = '', skills = true, startAlt = false, xinfa = ''): RunResult {
+export function runOne(seed: number, danger: Danger, skill: Skill, build: Build, map: MapId = 'snow', character: CharacterId = 'xiaodao', noDual = false, tall = false, live = false, pool: PoolCharacterId | 'all' | '' = '', skills = true, startAlt = false, xinfa = ''): RunResult {
   const w = createWorld({ seed, mode: 'vigil', danger, map, character, ...(startAlt ? { startAlt } : {}), ...(xinfa ? { xinfa: xinfa as SchoolId } : {}), ...(noDual ? { noDual } : {}), ...(tall ? { tall } : {}), ...(live ? { live } : {}), ...(pool ? { pool } : {}) });
   const bot = new Bot(skill, build, seed, { skills });
   let firstLevel = -1;
@@ -159,7 +160,7 @@ interface Task {
   /** --live：按实盘局开（Setup.live，老卡池，不放 2.0 新内容） */
   live: boolean;
   /** --pool：法器池按这个 id（'all' 不限池） */
-  pool: string;
+  pool: PoolCharacterId | 'all' | '';
   /** 机器人放技能（--noskill 关） */
   skills: boolean;
   /** --start alt */
@@ -213,7 +214,9 @@ if (!isMainThread) {
   // 竖屏开的局（刷怪圈转 90°，Setup.tall）：和横屏同种子对照，量横竖屏是不是一套难度（主线 10-20）
   const tall = process.argv.includes('--tall');
   const live = process.argv.includes('--live');
-  const pool = arg('--pool', '');
+  const poolArg = arg('--pool', '');
+  if (poolArg && poolArg !== 'all' && !(POOL_CHARACTER_IDS as readonly string[]).includes(poolArg)) throw new Error(`--pool 只认 all 或 ${POOL_CHARACTER_IDS.join('/')}，收到 ${poolArg}`);
+  const pool = poolArg as PoolCharacterId | 'all' | '';
   // 机器人默认会放技能（bots.ts pressSkill）；--noskill 是不放技能的对照臂
   const useSkills = !process.argv.includes('--noskill');
   // 开局配置（规则 52）：--start alt = 第二件起手；--xinfa 流派 / auto（auto 按每格 --build 的流派，不是本角色主修就不带）

@@ -120,6 +120,7 @@
 .yx-codex .yx-cc-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
 .yx-codex .yx-cc-row { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 12px; border: 2px solid var(--mc, #6a5a48); background: #e2d8bd; }
 .yx-codex .yx-cc-row.done { background: #f7e9b8; }
+.yx-codex .yx-cc-row.no { opacity: 0.55; border-style: dashed; }
 .yx-codex .yx-cc-row img { width: 40px; height: 40px; object-fit: contain; flex: none; }
 .yx-codex .yx-cc-row b { font-size: var(--fs-lg, 16px); }
 .yx-codex .yx-cc-row span { margin-left: 6px; font-size: var(--fs-sm, 13px); color: #5a4a3a; }

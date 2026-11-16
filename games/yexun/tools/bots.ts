@@ -282,10 +282,10 @@ export class Bot {
     }
     // 夜探：隔着墙的魂珠不去捡（按直线距离挑最近的，魂珠在墙那边就一直往墙上顶）
     if (best >= 0 && w.raid && blockedBy(w, w.x, w.y, tx, ty)) best = -1;
-    // 守夜夜市：开着时去买一样买得起的（法器 +1 级最先；血少先回血），站到摊上就不再拉
+    // 守夜夜市：开着时去买一样买得起的（法器 +1 级最先、求签其次；血少先回血），站到摊上就不再拉
     let atStall = false;
     if (!w.raid && w.mkPhase === 2) {
-      const want: MarketGood[] = w.hp < w.stats.hpMax * 0.6 ? ['heal', 'upgrade', 'might', 'reroll', 'vacuum', 'speed', 'ban'] : ['upgrade', 'might', 'reroll', 'heal', 'vacuum', 'speed', 'ban'];
+      const want: MarketGood[] = w.hp < w.stats.hpMax * 0.6 ? ['heal', 'upgrade', 'omen', 'might', 'reroll', 'vacuum', 'speed', 'ban'] : ['upgrade', 'omen', 'might', 'reroll', 'heal', 'vacuum', 'speed', 'ban'];
       let pick = -1;
       for (const g of want) {
         pick = w.mkGood.findIndex((x, k) => MARKET_GOODS[x] === g && !w.mkSold[k] && w.coins >= w.mkPrice[k]!);

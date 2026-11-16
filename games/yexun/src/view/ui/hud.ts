@@ -44,6 +44,8 @@ export interface HudSkill {
   cd: number;
   /** 持续中（亮蓝边，环显示还剩多少） */
   active: number;
+  /** 冷却还剩几秒（向上取整；0 = 好了或在持续中，不显示） */
+  left: number;
   /** 键盘提示（电脑上显示在角上） */
   key: string;
 }
@@ -123,6 +125,8 @@ export class Hud {
   private skillImg: HTMLImageElement;
   private skillKey: HTMLElement;
   private skillName: HTMLElement;
+  /** 冷却中压在图标上的剩余秒数：只看环估不准还要等多久，手机上又没有名字可看 */
+  private skillSec: HTMLElement;
   /** 悬停 / 长按技能钮弹出的完整说明（内容由 setSkillInfo 给） */
   private skillTip: HTMLElement;
   private tipTimer = 0;
@@ -228,6 +232,7 @@ export class Hud {
     el('i', 'yx-skill-ring', this.skillBtn);
     this.skillKey = el('b', 'yx-skill-key', this.skillBtn);
     this.skillName = el('span', 'yx-skill-name', this.skillBtn);
+    this.skillSec = el('em', 'yx-skill-sec', this.skillBtn);
     this.lockTag = el('div', 'yx-skill-lock', root, '2 级解锁技能');
     this.skillTip = el('div', 'yx-skill-tip', root);
     this.skillTip.style.display = 'none';
@@ -376,6 +381,8 @@ export class Hud {
     b.style.setProperty('--cd', `${Math.round((on ? s.active : s.cd) * 360)}deg`);
     b.classList.toggle('ready', ready);
     b.classList.toggle('on', on);
+    const sec = !ready && !on && s.left > 0 ? String(s.left) : '';
+    if (this.skillSec.textContent !== sec) this.skillSec.textContent = sec;
   }
 
   /** 撤离箭头：null 收起；x、y 是屏幕边上的位置（CSS 像素），dx、dy 是朝向的单位向量 */

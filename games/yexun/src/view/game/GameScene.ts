@@ -27,7 +27,7 @@ import { MAP_EVENTS, MAP_EVENT_KINDS, nextMapEvent } from '../../content/mapEven
 import { newNightLog, noteNight, type NightLog } from '../ui/eventIcons.ts';
 import { MERGES, PASSIVE_IDS, PASSIVES, WEAPON_IDS, WEAPONS } from '../../content/weapons.ts';
 import { autoSkillSetting, wantAutoSkill } from './autoskill.ts';
-import { Drop, Ev, MAX_ENEMIES, MERGE_CODE, skillCooldown, skillOf, skillReady, step, type World } from '../../core/index.ts';
+import { Drop, Ev, MAX_ENEMIES, MERGE_CODE, skillCooldown, skillOf, skillReady, step, TICKS_PER_SECOND, type World } from '../../core/index.ts';
 import { COS, SIN } from '../../core/dirs.ts';
 import { HERO_TEX, MOB_TEX, RAID_TEX, makeIcons, peekHeroAtlas, type Atlas, type Frame } from '../art/atlas.ts';
 import { faceKey, heroKey } from '../art/heroes.ts';
@@ -218,7 +218,7 @@ interface StallItem {
 }
 
 /** 夜市货的图标：从现有图集里挑意思接近的帧 */
-const MARKET_ICON: Record<MarketGood, string> = { heal: 'bun', reroll: 'p_luopan', ban: 'p_lingpai', might: 'p_zhusha', speed: 'p_caoxie', vacuum: 'scroll', upgrade: 'chest' };
+const MARKET_ICON: Record<MarketGood, string> = { heal: 'bun', reroll: 'p_luopan', ban: 'p_lingpai', might: 'p_zhusha', speed: 'p_caoxie', vacuum: 'scroll', upgrade: 'chest', omen: 'talisman' };
 
 export class GameScene extends Phaser.Scene {
   private d!: GameDeps;
@@ -1514,7 +1514,9 @@ export class GameScene extends Phaser.Scene {
       this.priceFloat(x, y, this.w.mkPrice[stall] ?? 0);
       this.burst(this.w.x, this.w.y - 30, 0xffc928, 1.3);
       const g = MARKET_GOODS[good];
-      if (g) this.d.banners.say(`买到了：${MARKET_NAME[g]}`, 'gold', 1800);
+      // 求签：说清楚签指的是哪个搭配（买下那一拍核心已经定了 w.omen；-1 是没有缺料的搭配，换成了刷新）
+      const omen = g === 'omen' ? (this.w.omen >= 0 ? `下次升级必出「${MERGES[this.w.omen]!.name}」的料` : '没有差料的搭配，换成刷新 +2') : undefined;
+      if (g) this.d.banners.say(`买到了：${MARKET_NAME[g]}`, 'gold', omen ? 2600 : 1800, omen);
     }
   }
 
@@ -2507,6 +2509,7 @@ export class GameScene extends Phaser.Scene {
       name: def.name,
       cd: w.skill.cd <= 0 ? 1 : Math.max(0, 1 - w.skill.cd / total),
       active: def.dur > 0 && w.skill.active > 0 ? w.skill.active / def.dur : 0,
+      left: w.skill.cd > 0 ? Math.ceil(w.skill.cd / TICKS_PER_SECOND) : 0,
       key: 'Q',
     });
   }

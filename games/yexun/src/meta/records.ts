@@ -6,6 +6,7 @@
 import { ENEMIES, type EnemyKind } from '../content/enemies.ts';
 import { SHELVED_KINDS } from '../content/foes.ts';
 import { MAP_IDS, type MapId } from '../content/maps.ts';
+import { SHOWN_MERGES } from '../content/combos.ts';
 import type { Danger } from '../content/waves.ts';
 
 /** 危险档当键（JSON 里是字符串） */
@@ -91,6 +92,8 @@ const COUNT_KINDS = KINDS.filter((k) => !SHELVED_KINDS.includes(k));
 const WEAPON_IDS = Object.keys(WEAPONS) as WeaponId[];
 const PASSIVE_IDS = Object.keys(PASSIVES) as PassiveId[];
 const MERGE_IDS = MERGES.map((m) => m.id);
+/** 收集度只算能选的角色凑得出的搭配（收起角色的专属搭配不算，见 content/combos.ts SHOWN_MERGES）；存读照旧用全部 */
+const COUNT_MERGES = SHOWN_MERGES.map((m) => m.id);
 
 export function emptyRecords(): Records {
   return { v: 1, runs: 0, wins: 0, kills: 0, seconds: 0, winsByDanger: {}, winsByMap: {}, seen: [], killed: {}, weaponsUsed: [], weaponsMaxed: [], weaponsEvolved: [], merges: [], passivesMaxed: [], achievements: [] };
@@ -204,14 +207,14 @@ export function applyRun(records: Records, run: RunSummary): { records: Records;
 
 /** 总收集度：怪见过 1 + 打倒过 1；法器用过、满级、进化各 1；合成 1；成就 1。返回已得 / 总数 / 百分比（整数） */
 export function collection(r: Records): { done: number; total: number; percent: number } {
-  const total = COUNT_KINDS.length * 2 + WEAPON_IDS.length * 3 + MERGE_IDS.length + ACHIEVEMENTS.length;
+  const total = COUNT_KINDS.length * 2 + WEAPON_IDS.length * 3 + COUNT_MERGES.length + ACHIEVEMENTS.length;
   const done =
     COUNT_KINDS.filter((k) => r.seen.includes(k)).length +
     COUNT_KINDS.filter((k) => (r.killed[k] ?? 0) > 0).length +
     WEAPON_IDS.filter((k) => r.weaponsUsed.includes(k)).length +
     WEAPON_IDS.filter((k) => r.weaponsMaxed.includes(k)).length +
     WEAPON_IDS.filter((k) => r.weaponsEvolved.includes(k)).length +
-    MERGE_IDS.filter((k) => r.merges.includes(k)).length +
+    COUNT_MERGES.filter((k) => r.merges.includes(k)).length +
     ACHIEVEMENTS.filter((a) => r.achievements.includes(a.id)).length;
   return { done, total, percent: Math.floor((100 * done) / total) };
 }

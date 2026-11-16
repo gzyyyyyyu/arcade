@@ -6,7 +6,7 @@
  */
 import { CHAR_FX, PERK_FX, type CharacterId } from '../content/meta.ts';
 import { PICKUP, PLAYER } from '../content/player.ts';
-import { WEAPONS, weaponStats, type WeaponId } from '../content/weapons.ts';
+import { WEAPONS, weaponStats, type WeaponId, type WeaponStats } from '../content/weapons.ts';
 import { dcos, dsin, fsqrt } from './fmath.ts';
 import type { Grid } from './grid.ts';
 import { ENEMIES } from '../content/enemies.ts';
@@ -173,10 +173,25 @@ export function paperRefund(w: World, shot: number): boolean {
   return ((h >>> 8) % 100) < CHAR_FX.zhijiangRefund * 100;
 }
 
-/** 起手法器当前的伤害：拿在手上的按现在的等级，没有按 1 级 */
-function baseDmg(w: World, id: WeaponId): number {
+/**
+ * 技能借的那件法器没拿在手上时按几级算：规则 59 起 = 手上最高的法器等级（封顶那件法器的满级），
+ * 第二起手的技能跟着成长走，不再一直是 1 级；规则 58 以前的录像照旧按 1 级
+ */
+function borrowLevel(w: World, id: WeaponId): number {
+  if (!w.rulesFrom(59)) return 1;
+  let lv = 1;
+  for (const o of w.weapons) if (o.level > lv) lv = o.level;
+  return Math.min(lv, WEAPONS[id].ups.length + 1);
+}
+
+/** 技能借的那件法器的数值：拿在手上的按现在的（等级、流派加成都算上），没有按 borrowLevel 级的白板数值 */
+export function borrowStats(w: World, id: WeaponId): WeaponStats {
   const k = w.weapons.findIndex((o) => o.id === id);
-  return k >= 0 ? w.wstats[k]!.dmg : weaponStats(id, 1, false).dmg;
+  return k >= 0 ? w.wstats[k]! : weaponStats(id, borrowLevel(w, id), false);
+}
+
+function baseDmg(w: World, id: WeaponId): number {
+  return borrowStats(w, id).dmg;
 }
 
 /**
@@ -414,14 +429,18 @@ function clap(w: World, g: Grid, ops: SkillOps): void {
 
 // ───────────────────────── 纸匠：剪纸成军 ─────────────────────────
 
-/** 在主角身边围一圈剪出纸兵：挂在纸兵法器的槽位上（吃它的等级、伤害），不看上限；寿命吃巧手 */
+/**
+ * 在主角身边围一圈剪出纸兵，不看上限；寿命吃巧手。手上有纸兵法器就挂在它的槽位上（吃它的等级、伤害、合成）；
+ * 没有（第二起手、纸兵还没抽到）规则 59 起挂在槽位 -1 上，数值按 borrowStats（step 的 movePaper 认 -1）；规则 58 以前没有就剪不出
+ */
 function paperArmy(w: World, ops: SkillOps): void {
   const f = SKILL_FX.paper;
   const k = w.weapons.findIndex((o) => o.id === 'zhibing');
-  w.ev.push(Ev.SkillUse, w.x, w.y, SKILLS.zhijiang.code, k >= 0 ? f.n : 0, f.ring);
-  if (k < 0) return;
+  const can = k >= 0 || w.rulesFrom(59);
+  w.ev.push(Ev.SkillUse, w.x, w.y, SKILLS.zhijiang.code, can ? f.n : 0, f.ring);
+  if (!can) return;
   const life = Math.round(f.life * w.stats.durMul * paperLifeMul(w) * (1 + 0.2 * (w.passives.jiandao ?? 0)));
-  const dmg = w.wstats[k]!.dmg;
+  const dmg = baseDmg(w, 'zhibing');
   for (let j = 0; j < f.n; j++) {
     const a = ((j * 256) / f.n) | 0;
     // 站位编号从 40 起，和平时补的纸兵（0–5）错开，各自围着主角站不同的位置

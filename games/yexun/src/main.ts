@@ -210,12 +210,12 @@ async function boot(): Promise<void> {
   };
   menu.onCodex = () => {
     menu.hide();
-    codex.show();
+    codex.show(undefined, menuState().character);
   };
   menu.onGuide = () => {
     menu.hide();
     guideFromMenu = true;
-    guide.show();
+    guide.show(undefined, menuState().character);
   };
   menu.onClick = () => sfx.play('click');
 
@@ -286,7 +286,7 @@ async function boot(): Promise<void> {
   pause.onHome = askHome;
   pause.onGuide = () => {
     guideFromMenu = false;
-    guide.show();
+    guide.show(undefined, world?.setup.character);
   };
   pause.onQuit = () =>
     confirm.ask('认输就算这一局结束，确定吗？', '认输', '接着打', (ok) => {

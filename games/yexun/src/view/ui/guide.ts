@@ -15,19 +15,19 @@ import { MAP_EVENT_AT, MAP_EVENTS } from '../../content/mapEvents.ts';
 import { MAP_IDS, MAP_UNLOCK, MAPS } from '../../content/maps.ts';
 import { CHARACTER_IDS, CHARACTERS, PICK_CHAR_IDS, CURSE_COIN_BONUS, MAX_CURSES, PERK_IDS, PERKS } from '../../content/meta.ts';
 import { altStart, mainSchools, type PoolCharacterId } from '../../content/pools.ts';
-import { RULES_VERSION } from '../../core/state.ts';
 import { schoolIcon } from '../art/sprites-selicons.ts';
 import { heroKey } from '../art/heroes.ts';
 import { DANGER_IDS, DANGERS, DAWN_TICK, EVENTS, MID_BOSS } from '../../content/waves.ts';
 import {
-  ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, MERGES, NEXT_ELEMENT, PASSIVES, TYPE_SETS, WEAPONS,
+  ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, NEXT_ELEMENT, PASSIVES, TYPE_SETS, WEAPONS,
   type MergeDef, type WeaponId, type WeaponType,
 } from '../../content/weapons.ts';
 import { MONSTER_INFO } from './codex.ts';
 import { counters } from './counters.ts';
 import { closeModal, modalChrome, openModal } from './modal.ts';
 import { PAGER_CTL, Pager } from './pager.ts';
-import { mergeHow, poolCharName } from './codexCombos.ts';
+import { mergeHow, poolCharName, schoolMerges, whoText } from './codexCombos.ts';
+import { mergeReach, mergeWho, SHOWN_MERGES } from '../../content/combos.ts';
 import './guide.css';
 
 const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -64,6 +64,8 @@ export class Guide {
   private tab: GuideTab = 'play';
   private pager: Pager | null = null;
   private readonly icons: (k: string, px?: number) => string;
+  /** 按谁看「合成·双修」：当前出战的角色凑不出的搭配压暗（content/combos.ts） */
+  private char: PoolCharacterId = 'xiaodao';
   onClose: () => void = () => undefined;
 
   constructor(parent: HTMLElement, icons: (k: string, px?: number) => string) {
@@ -88,8 +90,10 @@ export class Guide {
     return this.root.style.display !== 'none';
   }
 
-  show(tab?: GuideTab): void {
+  /** character：当前出战的角色（主页上是选着的，局里是这一局的） */
+  show(tab?: GuideTab, character?: string): void {
     if (tab) this.tab = tab;
+    if (character) this.char = (PICK_CHAR_IDS as readonly string[]).includes(character) ? (character as PoolCharacterId) : 'xiaodao';
     this.render();
     this.root.style.display = '';
     openModal(this.root, () => this.onClose(), () => this.hide());
@@ -197,8 +201,8 @@ export class Guide {
       this.sec(
         '升级三选一',
         '<div class="yx-gcards"><span>新法器</span><span>法器升一级</span><span>被动</span></div>' +
-          `<ul class="yx-glist"><li><b>刷新</b>三张都不想要，整批换掉。起步 ${PICKS.rerolls} 次，进化一件、打倒精英或首领各补 1 次，最多攒 ${PICKS.rerollMax} 次。</li><li><b>封禁</b>先点它再点一张卡，这张整局不再出现。起步 ${PICKS.bans} 次。</li><li><b>跳过</b>不拿，随机拿个小奖：铜钱、回血、下次多一张卡、刷新 +1。</li></ul>` +
-          '<p class="yx-gnote">卡上写着拿了以后能凑成什么，留意「凑成」「再拿 X」。</p>',
+          `<ul class="yx-glist"><li><b>刷新</b>三张都不想要，整批换掉。起步 ${PICKS.rerolls} 次，进化一件、打倒精英或首领各补 1 次（心法流派的法器进化补 2 次），最多攒 ${PICKS.rerollMax} 次。</li><li><b>封禁</b>先点它再点一张卡，这张整局不再出现。起步 ${PICKS.bans} 次。</li><li><b>跳过</b>不拿，随机拿个小奖：铜钱、回血、下次多一张卡、刷新 +1。</li></ul>` +
+          '<p class="yx-gnote">卡上写着拿了以后能凑成什么，留意「凑成」「再拿 X」。手上有某个搭配的一件料，另一件更常出；带了心法，每次至少一张那个流派的卡（这两条实盘不算）。</p>',
       ),
       this.keys(),
     );
@@ -239,7 +243,7 @@ export class Guide {
       const k = SKILLS[id];
       return `<li>${this.img(heroKey(id), 'yx-gface', 64)}<b>${esc(c.name)}</b>技能「${esc(k.name)}」${Math.round(k.cd / 30)} 秒 · 被动「${esc(c.perkName)}」<small>${esc(c.unlock)}${c.privilege ? `；小特权：${esc(c.privilege)}` : ''}</small></li>`;
     }).join('');
-    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派，升级抽卡时这个流派的法器和被动会多出现一些（只是更常见，不加数值）。每个角色各记一份，实盘也能用；每日挑战、每周夜事、首领连战不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
+    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新（实盘里只是更常出现，不保底）；不加数值。每个角色各记一份，实盘也能用；每日挑战、每周夜事、首领连战不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
   }
 
   // ── 地图：地图、各图的事件 ──
@@ -256,7 +260,7 @@ export class Guide {
   // ── 流派：十个流派一张卡 ──
   private schools(): string {
     return (
-      '<div class="yx-gpage"><p class="yx-gnote yx-gtop">每张卡右上先是核心法器，再是被动。选角页的「心法」就是挑一个流派，它的法器和被动更常出现；「起手」可换成另一个主修流派的法器。</p>' +
+      '<div class="yx-gpage"><p class="yx-gnote yx-gtop">每张卡右上先是核心法器，再是被动。选角页的「心法」就是挑一个流派，每次升级保底一张它的卡；「起手」可换成另一个主修流派的法器。</p>' +
       `<div class="yx-gschools">${SCHOOL_IDS.map((id) => this.schoolCard(id)).join('')}</div></div>`
     );
   }
@@ -309,22 +313,28 @@ export class Guide {
     );
   }
 
-  // ── 合成·双修：当前规则下的全部配方 ──
+  // ── 合成·双修：能选的角色凑得出的全部配方（content/combos.ts SHOWN_MERGES），当前角色凑不出的压暗 ──
   private merges(): string {
-    const list = MERGES.filter((m) => !m.since || m.since <= RULES_VERSION);
+    const list = SHOWN_MERGES;
+    const mine = list.filter((m) => mergeReach(m, this.char) === 'ok').length;
     return (
       '<div class="yx-gpage"><div class="yx-gmhead"><b>合成·双修</b>' +
       `<span><em class="yx-gtag mix">合成</em>${esc(mergeHow({}))}</span>` +
       `<span><em class="yx-gtag dual">双修</em>${esc(mergeHow({ dual: true }))}</span>` +
-      `<span class="yx-gnote">条件齐了，下一个宝箱就合上，空出一格；共 ${list.length} 个</span></div>` +
+      `<span class="yx-gnote">条件齐了，下一个宝箱就合上，空出一格；共 ${list.length} 个，${esc(poolCharName(this.char))}凑得出 ${mine} 个（压暗的凑不出）</span></div>` +
       `<div class="yx-gmlist">${list.map((m) => this.mergeRow(m)).join('')}</div></div>`
     );
   }
 
+  /** 一行配方：专属的标谁的；不是人人能合的标几个人能合（名字在悬停提示里）；当前角色凑不出的压暗 */
   private mergeRow(m: MergeDef): string {
-    const who = m.only ? `<em class="yx-gtag only">${m.only.split(',').map((c) => esc(poolCharName(c as PoolCharacterId))).join('、')}专属</em>` : '';
+    const n = mergeWho(m).length;
+    const who = m.only
+      ? `<em class="yx-gtag only">${m.only.split(',').map((c) => esc(poolCharName(c as PoolCharacterId))).join('、')}专属</em>`
+      : n < PICK_CHAR_IDS.length ? `<em class="yx-gtag only">${n} 人能合</em>` : '';
+    const no = mergeReach(m, this.char) !== 'ok';
     return (
-      `<div class="yx-gmrow" style="--mc:${m.color}" title="${esc(m.desc)}｜${esc(mergeHow(m))}">` +
+      `<div class="yx-gmrow${no ? ' no' : ''}" style="--mc:${m.color}" title="${esc(m.desc)}｜${esc(mergeHow(m))}｜${esc(whoText(m))}">` +
       `${this.evo(m.a) || this.w(m.a)}<i>+</i>${m.dual ? this.w(m.b) : this.evo(m.b) || this.w(m.b)}<span class="yx-gto"><i>→</i><span class="yx-gw evo">${this.img(m.icon)}<b>${esc(m.name)}</b></span></span>` +
       `<em class="yx-gtag ${m.dual ? 'dual' : 'mix'}">${m.dual ? '双修' : '合成'}</em>${who}</div>`
     );
@@ -371,7 +381,7 @@ export class Guide {
     const closed = LIVE_MAP_CLOSED.map((m) => MAPS[m].name).join('、');
     const s = [
       this.sec('守夜', `<p>选地图和危险档，撑到天亮（${clock(DAWN_TICK)}）。打倒尸王提前天亮。也可以选「天亮不收工」一直打到倒下。</p>` +
-        `<p><b>夜市</b>开打后第 ${NIGHT_MARKET.at.map((t) => Math.round(t / 1800)).join('、')} 分钟，货郎在你附近摆 ${NIGHT_MARKET.stalls} 个摊，开 ${NIGHT_MARKET.open / 30} 秒，屏幕边的箭头指路；站在摊前一会儿就用局里的铜钱买下：回血、刷新、封禁、临时增益、法器升一级。第二次贵一些，怪照样来。</p>`),
+        `<p><b>夜市</b>开打后第 ${NIGHT_MARKET.at.map((t) => Math.round(t / 1800)).join('、')} 分钟，货郎在你附近摆 ${NIGHT_MARKET.stalls} 个摊，开 ${NIGHT_MARKET.open / 30} 秒，屏幕边的箭头指路；站在摊前一会儿就用局里的铜钱买下：回血、刷新、封禁、临时增益、法器升一级（娱乐局升离满级最近的那件）、求签（下次升级必出离凑成最近的搭配缺的料，只在娱乐局）。第二次贵一些，怪照样来。</p>`),
       this.sec(
         '本周夜事',
         '<p>主页的「本周夜事」按钮单独开一局：每周换一个事件（铜钱周、灯会周、精英周、月蚀周、宝箱周轮着来），地图每周也换，危险固定 2、固定小道士，不带加成和咒印。</p>' +
@@ -418,7 +428,7 @@ export class Guide {
     const s = SCHOOLS[id];
     const core = s.weapons.slice(0, 3);
     const char = CHARACTER_IDS.find((c) => CHARACTERS[c].start === s.weapons[0]);
-    const merges = MERGES.filter((m) => (!m.since || m.since <= RULES_VERSION) && ((s.weapons.includes(m.a) && s.weapons.includes(m.b)) || (m.dual && (core.includes(m.a) || core.includes(m.b))))).slice(0, 2);
+    const merges = schoolMerges(id);
     return this.sec(
       `${esc(s.name)}怎么玩`,
       '<ol class="yx-glist yx-gsteps">' +

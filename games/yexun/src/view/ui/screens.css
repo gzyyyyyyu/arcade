@@ -847,6 +847,15 @@
 
 /* ───────────── 选模式 · 角色按钮 + 开局配置（起手、心法）：娱乐和实盘同一行，不另占行 ─────────────
    起手二选一、心法三选一，只放图标（名字和效果在悬停提示里） */
+/* 点了起手、心法后浮出的说明：贴在这一行下面盖住下一行一会儿，不占版面（冒烟要求娱乐、实盘的配置面板等高） */
+.yx-sel .yx-livechar { position: relative; }
+.yx-sel .yx-ldnote {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; margin: 0; padding: 6px 10px; pointer-events: none;
+  font-size: var(--fs-xs, 12px); line-height: 1.4; color: #fbf5e4; background: rgba(23, 19, 28, 0.92); border: 2px solid var(--gold, #e8c46a); border-radius: 8px;
+  animation: yx-ldnote 4.5s ease-in forwards;
+}
+@keyframes yx-ldnote { 0%, 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .yx-sel .yx-ldnote { animation-timing-function: step-end; } }
 .yx-sel .yx-ldctl { flex: none; display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .yx-sel .yx-ldseg { display: flex; align-items: center; gap: 3px; }
 .yx-sel .yx-ldseg > i { margin-right: 3px; font-style: normal; font-size: var(--fs-xs, 12px); font-weight: 700; color: #5a4a3a; white-space: nowrap; }

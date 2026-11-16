@@ -414,6 +414,11 @@
   mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
 }
 .yx-hud .yx-skill.ready .yx-skill-ring { background: #f2c94c; }
+.yx-hud .yx-skill-sec {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  font-style: normal; font-weight: 700; font-size: var(--fs-xl, 20px); color: #fff8e6; text-shadow: 0 0 3px var(--ink), 0 1px 0 var(--ink);
+}
+.yx-hud .yx-skill-sec:empty { display: none; }
 .yx-hud .yx-skill.ready { box-shadow: 0 3px 0 var(--ink), 0 0 14px rgba(242, 201, 76, 0.9); animation: yx-skill-ready 1.2s ease-in-out infinite; }
 .yx-hud .yx-skill.on .yx-skill-ring { background: conic-gradient(#4ba3e6 var(--cd), rgba(23, 19, 28, 0.5) 0); }
 .yx-hud .yx-skill-key {
