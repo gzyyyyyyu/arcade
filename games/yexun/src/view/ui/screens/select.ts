@@ -258,8 +258,9 @@ export class Select {
     const townGrid = `<div class="yx-pickgrid yx-towns">${townCards}</div>`;
     const mapGrid = `<div class="yx-pickgrid yx-maps" aria-label="地图">${mapCards}</div>`;
     const tierOn = (t: LiveTier): boolean => !raid || raidTierOk(t);
-    // 档位：铜钱堆小图（堆越高档越大）+ 名字和筹码数
-    const tiers = `<div class="yx-chips yx-tiers">${LIVE_TIER_IDS.map((t) => `<button type="button" class="yx-chip yx-tierchip${t === this.live.tier ? ' on' : ''}${tierOn(t) ? '' : ' locked'}" data-a="tier" data-t="${t}"${tierOn(t) ? '' : ' disabled aria-disabled="true"'}><img alt="" src="${tierIcon(t)}"><b>${LIVE_TIERS[t].name}</b><small>${LIVE_TIERS[t].stake.toLocaleString('zh-CN')}</small></button>`).join('')}</div>`;
+    // 档位：铜钱堆小图（堆越高档越大）+ 名字和筹码数；夜探开不了的档灰着点不动，原因直接写在按钮上（选中后的说明行玩家看不到）
+    const tierSub = (t: LiveTier): string => (tierOn(t) ? LIVE_TIERS[t].stake.toLocaleString('zh-CN') : '只有守夜');
+    const tiers = `<div class="yx-chips yx-tiers">${LIVE_TIER_IDS.map((t) => `<button type="button" class="yx-chip yx-tierchip${t === this.live.tier ? ' on' : ''}${tierOn(t) ? '' : ' locked'}" data-a="tier" data-t="${t}"${tierOn(t) ? '' : ' disabled aria-disabled="true" title="这一档只开守夜，夜探还没开"'}><img alt="" src="${tierIcon(t)}"><b>${LIVE_TIERS[t].name}</b><small>${tierSub(t)}</small></button>`).join('')}</div>`;
 
     let pick: string;
     let opts = '';

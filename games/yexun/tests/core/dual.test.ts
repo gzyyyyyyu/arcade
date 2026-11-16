@@ -190,10 +190,10 @@ describe('双修：确定性和登记', () => {
     });
   }
 
-  it('二十二个双修各有自己的颜色，两件法器的类型或五行不同', () => {
+  it('二十七个双修各有自己的颜色，两件法器的类型或五行不同', () => {
     const duals = MERGES.filter((m) => m.dual);
-    expect(duals.length).toBe(22);
-    expect(new Set(duals.map((m) => m.color)).size).toBe(22);
+    expect(duals.length).toBe(27);
+    expect(new Set(duals.map((m) => m.color)).size).toBe(27);
     for (const m of duals) {
       // 阴律斩（桃木剑 + 判官笔）、阴兵借道（纸兵 + 招魂幡）是角色专属的同类合璧，类型五行都一样
       if (m.id === 'yinlv' || m.id === 'yinbing') continue;

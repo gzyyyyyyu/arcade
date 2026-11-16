@@ -5,15 +5,16 @@
  * 规则版本按现行规则算（界面只给现行规则的局看）。
  */
 import { PICK_CHAR_IDS } from './meta.ts';
-import { CHARACTER_POOLS, type PoolCharacterId } from './pools.ts';
+import { CHARACTER_POOLS, type CharacterPool, type PoolCharacterId } from './pools.ts';
 import { MERGES, mergeFor, WEAPONS, type MergeDef, type WeaponId } from './weapons.ts';
 
 /** ok 凑得出；only 是别人的专属；pool 料不在池里；evo 进化用的被动不在池里 */
 export type Reach = 'ok' | 'only' | 'pool' | 'evo';
 
-export function mergeReach(m: MergeDef, c: PoolCharacterId): Reach {
+/** pools：按哪份池算（界面用现在的；局内的合成提示按这一局的，见 pools.ts poolsFor） */
+export function mergeReach(m: MergeDef, c: PoolCharacterId, pools: Record<PoolCharacterId, CharacterPool> = CHARACTER_POOLS): Reach {
   if (!mergeFor(m, c, () => true)) return 'only';
-  const p = CHARACTER_POOLS[c];
+  const p = pools[c];
   if (!p.weapons.includes(m.a) || !p.weapons.includes(m.b)) return 'pool';
   const evo = (w: WeaponId): boolean => {
     const e = WEAPONS[w].evolve;

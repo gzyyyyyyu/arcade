@@ -6,6 +6,7 @@
 import { liveAllows, MAX_WEAPON_LEVEL, MERGES, mergeFor, PASSIVES, WEAPONS, type MergeDef, type WeaponId } from '../../content/weapons.ts';
 import type { Choice, World } from '../../core/index.ts';
 import { mergeReach } from '../../content/combos.ts';
+import { poolsFor } from '../../content/pools.ts';
 
 export interface MergeHint {
   /** 卡上的短字："凑成 诛邪剑阵！" / "再拿 朱砂 → 诛邪剑阵" */
@@ -63,7 +64,7 @@ export function mergeHint(w: World, card: Choice): MergeHint | null {
     if (w.merges.includes(m.id)) continue;
     // 这个角色合不出的不提示：别人的专属、实盘暂不放的（老卡池）、料或进化被动不在他的法器池里的（content/combos.ts；老卡池不看池）
     if (!mergeFor(m, w.setup.character, (v) => w.contentFrom(v)) || !liveAllows(w.oldPool, m.id)) continue;
-    if (!w.oldPool && who !== 'all' && mergeReach(m, who) !== 'ok') continue;
+    if (!w.oldPool && who !== 'all' && mergeReach(m, who, poolsFor(w.armsCombos)) !== 'ok') continue;
     const before = need(w, m, null);
     const left = need(w, m, card);
     // 这张卡得真补上一个缺口，而且补完最多只剩一个

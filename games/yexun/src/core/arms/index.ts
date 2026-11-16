@@ -5,7 +5,7 @@
  * 数值在 content/weapons.ts 的 ARM_FX。只用四则运算、方向表和 fsqrt；随机走 w.rWeapon。
  */
 import { ENEMIES } from '../../content/enemies.ts';
-import { CURSE_FX } from '../../content/meta.ts';
+import { CHAR_FX, CURSE_FX } from '../../content/meta.ts';
 import { ARM_FX, ARM_FX2, WEAPON_IDS, type WeaponId, type Element, type WeaponStats, type WeaponType } from '../../content/weapons.ts';
 import { DIR_N } from '../dirs.ts';
 import { Ev } from '../events.ts';
@@ -14,7 +14,9 @@ import type { Grid } from '../grid.ts';
 import { MAX_ENEMIES, MAX_SHOTS, Shot, type OwnedWeapon, type World } from '../state.ts';
 import { ArmEv, ArmFx } from './events.ts';
 import { armsSchool, armsStalls, secondFire, secondHitMul, secondTick } from './second.ts';
+import { fourthTick } from './fourth.ts';
 import { thirdTick } from './third.ts';
+import { yinyangSide } from '../skills.ts';
 
 export { ArmEv, ArmFx } from './events.ts';
 export { ArmsState } from './state.ts';
@@ -71,9 +73,10 @@ export function armsRecompute(w: World, s: { coinBonus: number; magnet: number; 
   if (A.tier >= 4 && was < 4) A.autoAt = w.tick + ARM_FX.flag.autoEvery;
 }
 
-/** 绳、阵里定住的拍数再加多少：阵法 2 件 + 令旗 */
+/** 绳、阵里定住的拍数再加多少：阵法 2 件 + 令旗 + 阴阳先生在阴（规则 62，只娱乐局：阳打得狠，阴定得久） */
 export function armsBindBonus(w: World): number {
-  return (w.arms.tier >= 2 ? ARM_FX.set.two : 0) + ARM_FX.flag.qizhiTicks * (w.passives.qizhi ?? 0);
+  const yin = w.armsCombos && yinyangSide(w) === 'yin' ? CHAR_FX.yinyangBind : 0;
+  return (w.arms.tier >= 2 ? ARM_FX.set.two : 0) + ARM_FX.flag.qizhiTicks * (w.passives.qizhi ?? 0) + yin;
 }
 
 /** 命中倍数：被勾魂锁拉过的怪易伤；阵法 3 件时被定住、捆住的怪多挨 */
@@ -133,7 +136,10 @@ export function armsTick(w: World, g: Grid, api: ArmApi): void {
   if (A.tier >= 4 && w.tick >= A.autoAt) autoZone(w, g, api);
   if (w.merges.length > 0) combos(w, g, api);
   secondTick(w, g, api);
-  if (w.merges.length > 0) thirdTick(w, g, api);
+  if (w.merges.length > 0) {
+    thirdTick(w, g, api);
+    fourthTick(w, g, api);
+  }
 }
 
 // ───────────────────────── 阵旗 ─────────────────────────
@@ -273,6 +279,8 @@ function castChain(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStats
   }
   // 位置变了，格子重建一次，后面的查询才找得到
   g.build(w);
+  // 锁魂幡：先记下再打（这一下打死的也算）
+  if (w.merges.includes('suohun')) for (let r = 0; r < got; r++) w.arms.souled[pulled[r]!] = 1;
   for (let r = 0; r < got; r++) api.hitEnemy(w, pulled[r]!, e.dmg, k, 0, 0, 0, s.rehit);
   // 雷劫锁魂：被拉到一处的怪里最靠近锚点的几只，头上落一道雷
   if (w.merges.includes('leijie')) {

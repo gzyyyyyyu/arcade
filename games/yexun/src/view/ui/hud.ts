@@ -281,7 +281,7 @@ export class Hud {
     if (this.yy.textContent !== yy) {
       this.yy.textContent = yy;
       this.yy.className = `yx-yy${s.yy ? ` ${s.yy}` : ''}`;
-      this.yy.title = s.yy === 'yang' ? '阳：血过半，伤害高一点' : s.yy === 'yin' ? '阴：血不足一半，技能冷却短一点' : '';
+      this.yy.title = s.yy === 'yang' ? '阳：血过半，伤害高一点' : s.yy === 'yin' ? '阴：血不足一半，技能冷却短一点，捆住的怪定得更久' : '';
     }
     this.xpFill.style.width = `${Math.round(s.xp * 100)}%`;
     const left = Math.max(0, Math.ceil(s.left));

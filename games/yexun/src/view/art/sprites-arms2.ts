@@ -264,6 +264,43 @@ function mZhonggu(c: Ctx): void {
   blob(c, (k) => { k.moveTo(10.5, 23); k.quadraticCurveTo(11, 12, 16, 12); k.quadraticCurveTo(21, 12, 21.5, 23); k.closePath(); }, '#ffe08a', '#d8a020', 1.3, 1.1);
   dab(c, circle(16, 24.4, 1.5), '#7a5410');
 }
+// 规则 62 的五个搭配
+function mJianzou(c: Ctx): void {
+  badge(c, '#d8b04a', '#7a5a14');
+  // 一把飞剑斜着飞，剑尖甩出一枚铜钱
+  blob(c, poly(5, 26, 19, 12, 22, 15, 8, 29), '#e6f0ff', '#9fb4d0', 1.3, 1);
+  stroke(c, (k) => { k.moveTo(6, 22); k.lineTo(11, 27); }, 2, WOOD_D);
+  coin(c, 23.5, 9, 4.6);
+}
+function mLongshe(c: Ctx): void {
+  badge(c, '#4a8ad8', '#1a3a70');
+  // 一道浪头，浪尖上一笔朱砂
+  blob(c, (k) => { k.moveTo(4, 26); k.quadraticCurveTo(8, 14, 16, 16); k.quadraticCurveTo(12, 19, 15, 22); k.quadraticCurveTo(22, 14, 28, 18); k.lineTo(28, 26); k.closePath(); }, '#8ad0ff', '#2a6aa8', 1.4, 1.1);
+  stroke(c, (k) => { k.moveTo(17, 5); k.quadraticCurveTo(21, 9, 23, 13); }, 3, RED);
+  dab(c, circle(23.4, 13.6, 1.8), RED);
+}
+function mPanzhen(c: Ctx): void {
+  badge(c, '#8a5ad8', '#3a1a70');
+  // 方阵的框，框里一个朱笔圈
+  stroke(c, (k) => { k.moveTo(5, 6); k.lineTo(27, 6); k.lineTo(27, 27); k.lineTo(5, 27); k.closePath(); }, 1.3, '#c8b0f0');
+  stroke(c, (k) => { k.moveTo(11, 13); k.quadraticCurveTo(16, 8, 21, 13); k.quadraticCurveTo(24, 19, 16, 22); k.quadraticCurveTo(9, 21, 11, 15); }, 2.4, RED);
+  dab(c, circle(16, 16.5, 1.6), RED);
+}
+function mSuohun(c: Ctx): void {
+  badge(c, '#5a6a9a', '#1e2a4a');
+  // 一截锁链，链尾升起一缕魂
+  for (const [x, y] of [[7, 24], [11.5, 19.5], [16, 15]] as const) stroke(c, (k) => { k.ellipse(x, y, 3.2, 2, -0.8, 0, Math.PI * 2); }, 1.6, '#c8ccd8');
+  dab(c, (k) => { k.moveTo(21, 16); k.quadraticCurveTo(19, 9, 23, 4); k.quadraticCurveTo(28, 8, 26, 13); k.quadraticCurveTo(27, 17, 21, 16); }, GHOST, 0.95);
+  dab(c, circle(22.6, 9.5, 0.7), GHOST_D);
+  dab(c, circle(25, 9.5, 0.7), GHOST_D);
+}
+function mHanzhong(c: Ctx): void {
+  badge(c, '#6ac8e8', '#1a5a7a');
+  // 铃下一汪泉，泉上结着冰花
+  blob(c, ellipse(16, 24, 11, 4), '#bfefff', '#4aa8d0', 1.3, 1);
+  blob(c, (k) => { k.moveTo(9.5, 21); k.quadraticCurveTo(10, 8, 16, 8); k.quadraticCurveTo(22, 8, 22.5, 21); k.closePath(); }, '#ffe08a', '#d8a020', 1.4, 1.2);
+  stroke(c, (k) => { k.moveTo(24, 6); k.lineTo(28, 10); k.moveTo(28, 6); k.lineTo(24, 10); k.moveTo(26, 5); k.lineTo(26, 11); }, 1.1, '#ffffff');
+}
 const icon = (key: string, draw: (c: Ctx) => void): SpriteDef => ({ key, w: 32, h: 32, ox: 0.5, oy: 0.5, draw });
 
 export const SPRITES_ARMS2: SpriteDef[] = [
@@ -290,4 +327,9 @@ export const SPRITES_ARMS2: SpriteDef[] = [
   icon('m_linfu', mLinfu),
   icon('m_lingyan', mLingyan),
   icon('m_zhonggu', mZhonggu),
+  icon('m_jianzou', mJianzou),
+  icon('m_longshe', mLongshe),
+  icon('m_panzhen', mPanzhen),
+  icon('m_suohun', mSuohun),
+  icon('m_hanzhong', mHanzhong),
 ];

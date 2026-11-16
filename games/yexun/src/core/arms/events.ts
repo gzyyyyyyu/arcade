@@ -77,5 +77,15 @@ export const ArmFx = {
   Lingyan: 17,
   /** 钟鼓齐鸣：站在阵里铃一响，光环里的怪上易伤（b = 半径） */
   Zhonggu: 18,
+  /** 规则 62：剑走偏锋：飞剑甩出铜钱镖（x, y = 剑） */
+  Jianzou: 19,
+  /** 笔走龙蛇：浪前补一笔 */
+  Longshe: 20,
+  /** 判阵：方阵里点名补一笔 */
+  Panzhen: 21,
+  /** 锁魂幡：被锁过的怪变冤魂 */
+  Suohun: 22,
+  /** 寒钟：泉里的怪冻住（b = 泉的半径） */
+  Hanzhong: 23,
 } as const;
 export type ArmFx = (typeof ArmFx)[keyof typeof ArmFx];

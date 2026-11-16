@@ -3747,7 +3747,7 @@ function upgradePassive(w: World, id: PassiveId): void {
 function cardAllowed(w: World, id: WeaponId | PassiveId): boolean {
   if (w.oldPool) return liveAllows(true, id) || (w.liveOwnArms && !!LIVE_OWN_ARMS[w.setup.character ?? 'xiaodao']?.includes(id));
   if (w.weapons.some((o) => o.id === id) || (w.passives as Record<string, number>)[id] !== undefined) return true;
-  return inPool(w.setup.pool ?? w.setup.character, id);
+  return inPool(w.setup.pool ?? w.setup.character, id, w.armsCombos);
 }
 
 /** 三选一的候选：手上没满级的法器、还能拿的新法器、被动同理 */
