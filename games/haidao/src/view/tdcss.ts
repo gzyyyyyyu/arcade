@@ -35,7 +35,8 @@ function tdCss(): string {
 .hd-ui .hd-tdtab b { font-size:14px; font-weight:900; }
 .hd-ui .hd-tdtab small { font-size:12px; opacity:.85; }
 .hd-ui .hd-tdtab.on { background:linear-gradient(${c.goldL},${gold}); transform:translateY(2px); box-shadow:0 1px 0 ${ink}; }
-.hd-ui .hd-tdtheme { display:block; width:min(100%,520px); margin:0 auto 8px; font-size:14px; font-weight:800; color:#fff; text-shadow:0 1px 2px ${c.seaDark}; text-align:center; }
+/* 说明行压在浅青的海上：白字直接压对比度只有 2:1，垫一块深海色底（白字对比度约 6:1） */
+.hd-ui .hd-tdtheme { display:block; width:fit-content; max-width:min(100%,720px); margin:0 auto 8px; padding:2px 10px; border-radius:8px; background:rgba(11,74,110,.88); font-size:14px; font-weight:800; color:#fff; text-align:center; }
 .hd-ui .hd-tdsel-list { width:min(100%,520px); margin:0 auto; display:flex; flex-direction:column; gap:10px; }
 .hd-ui .hd-tdcard { display:flex; align-items:center; gap:10px; background:${cream}; border:3px solid ${ink}; border-radius:14px; padding:8px 10px; box-shadow:0 3px 0 ${ink}; min-height:84px; }
 .hd-ui .hd-tdcard.lock { filter:grayscale(.7); opacity:.8; }
@@ -59,7 +60,7 @@ function tdCss(): string {
 .hd-ui .hd-tdmodes .hd-tidecard { width:auto; margin:0 0 10px; }
 .hd-ui .hd-homecard { background:linear-gradient(#fff1d6,${cream}); }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdcard.next { border-color:${gold}; box-shadow:0 3px 0 ${ink}, 0 0 0 3px ${gold}, 0 0 14px ${gold}; }
-.hd-ui .hd-tdrule { opacity:.95; font-weight:700; }
+.hd-ui .hd-tdrule { font-weight:700; }
 .hd-ui .hd-tdgar { z-index:22; }
 .hd-ui .hd-tdgar-note { width:min(100%,560px); margin:0 auto 10px; font-size:14px; color:#fff; text-shadow:0 1px 2px ${c.seaDark}; }
 .hd-ui .hd-tdgar-spot { width:min(100%,560px); margin:0 auto 10px; background:${cream}; border:3px solid ${ink}; border-radius:14px; padding:8px 10px; box-shadow:0 3px 0 ${ink}; }
@@ -96,7 +97,7 @@ function tdCss(): string {
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdmodes .hd-tidecard { margin:0; min-height:0; padding:6px 10px; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tidecard .hd-tdmid small { font-size:12px; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab { min-height:44px; }
-.hd-ui.hd-skin .hd-tdsel-main .hd-tdtheme { margin:0; font-size:12px; line-height:1.25; }
+.hd-ui.hd-skin .hd-tdsel-main .hd-tdtheme { width:fit-content; max-width:100%; align-self:center; margin:0; font-size:12px; line-height:1.25; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; align-content:start; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-foot { grid-column:1 / -1; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdcard { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:4px 8px; min-height:0; padding:6px 8px; }
@@ -107,6 +108,12 @@ function tdCss(): string {
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdinfo small.hd-tdnew { color:${c.grassDD}; font-weight:800; opacity:1; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdinfo small.hd-tdlock { color:${redD}; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdname { font-size:14px; line-height:1.2; }
+/* 主寨不够的提醒是这一页最要紧的一句：羊皮纸小条 + 深红字（对比度约 6.7:1） */
+.hd-ui.hd-skin .hd-tdsel-main .hd-tdwarn { background:${cream}; color:${redD}; border:2px solid ${ink}; }
+/* 电脑和竖拿的平板：卡片顶上一张岛缩略图（td-ui.ts 的 THUMB_QUERY 才画）。两排卡分掉页面上半截（约 510 像素）以外的高度，720 到 1080 高都一屏放下 */
+.hd-ui.hd-skin .hd-tdsel-main .hd-tdcard.thumb { align-content:start; }
+.hd-ui.hd-skin .hd-tdsel-main .hd-tdthumb { grid-column:1 / -1; height:clamp(72px, calc((var(--app-h, 100vh) - 510px) / 2), 190px); margin:-2px -4px 2px; border-radius:10px; background:linear-gradient(#5fb8d6,#3d93b8); overflow:hidden; justify-content:center; }
+.hd-ui.hd-skin .hd-tdsel-main .hd-tdthumb svg { width:auto; height:100%; max-width:100%; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdnum { font-size:16px; }
 .hd-ui.hd-skin .hd-tdpager { display:none; align-items:center; justify-content:center; gap:12px; }
 .hd-ui.hd-skin .hd-tdsel-main.paged .hd-tdpager { display:flex; }
@@ -149,24 +156,32 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-main .hd-tdsel-head { padding:0 136px 0 84px; }
 .hd-ui .hd-tdgar-top { display:flex; align-items:center; gap:12px; }
 .hd-ui .hd-tdgar-top .hd-tdgar-note { flex:1 1 0; margin:0; }
-.hd-ui .hd-tdgar-map { flex:none; width:200px; display:flex; flex-direction:column; align-items:center; gap:2px; }
-.hd-ui .hd-tdgar-map svg { display:block; width:100%; height:auto; min-height:0; filter:drop-shadow(0 2px 0 rgba(20,60,80,.45)); }
-.hd-ui .hd-tdgar-map .sand { fill:#f1d89a; }
-.hd-ui .hd-tdgar-map .land { fill:#8cc56a; }
-.hd-ui .hd-tdgar-map .wall { fill:#6d5b4b; }
-.hd-ui .hd-tdgar-map .hq { fill:#a0603a; }
-.hd-ui .hd-tdgar-map .treasure { fill:${gold}; stroke:${ink}; stroke-width:.3; }
-.hd-ui .hd-tdgar-map .pad { fill:#c9a36b; }
-.hd-ui .hd-tdgar-map .lane { fill:${red}; stroke:#fff; stroke-width:.4; }
-.hd-ui .hd-tdgar-map .spot { cursor:pointer; }
-.hd-ui .hd-tdgar-map .spot circle { fill:#fff8e6; stroke:${ink}; stroke-width:.5; }
-.hd-ui .hd-tdgar-map .spot text { font-weight:900; text-anchor:middle; fill:${ink}; pointer-events:none; }
-.hd-ui .hd-tdgar-map .spot.on circle { fill:${gold}; stroke:#fff; stroke-width:.7; }
-.hd-ui .hd-tdgar-legend { display:flex; gap:10px; font-size:12px; font-weight:800; color:#fff; text-shadow:0 1px 2px ${c.seaDark}; }
-.hd-ui .hd-tdgar-legend span::before { content:''; display:inline-block; width:10px; height:10px; margin-right:3px; border-radius:50%; border:1px solid ${ink}; vertical-align:-1px; }
-.hd-ui .hd-tdgar-legend .lg-lane::before { background:${red}; }
-.hd-ui .hd-tdgar-legend .lg-treasure::before { background:${gold}; border-radius:2px; }
-.hd-ui .hd-tdgar-legend .lg-spot::before { background:#fff8e6; }
+.hd-ui .hd-minimap { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.hd-ui .hd-minimap svg { display:block; width:100%; height:auto; min-height:0; filter:drop-shadow(0 2px 0 rgba(20,60,80,.45)); }
+.hd-ui .hd-minimap .sand { fill:#f1d89a; }
+.hd-ui .hd-minimap .land { fill:#8cc56a; }
+.hd-ui .hd-minimap .wall { fill:#6d5b4b; }
+.hd-ui .hd-minimap .hq { fill:#a0603a; }
+.hd-ui .hd-minimap .treasure { fill:${gold}; stroke:${ink}; stroke-width:.3; }
+.hd-ui .hd-minimap .pad { fill:#c9a36b; }
+.hd-ui .hd-minimap .lane { fill:${red}; stroke:#fff; stroke-width:.4; }
+.hd-ui .hd-minimap .route { fill:none; stroke:#fff8e6; stroke-width:.9; stroke-dasharray:1.6 1; stroke-linecap:round; stroke-linejoin:round; }
+.hd-ui .hd-minimap .gate { fill:${redD}; stroke:#fff; stroke-width:.4; }
+.hd-ui .hd-minimap .start { fill:#fff8e6; stroke:${ink}; stroke-width:.4; }
+.hd-ui .hd-minimap .port { fill:${gold}; stroke:${ink}; stroke-width:.5; }
+.hd-ui .hd-minimap .spot { cursor:pointer; }
+.hd-ui .hd-minimap .spot circle { fill:#fff8e6; stroke:${ink}; stroke-width:.5; }
+.hd-ui .hd-minimap .spot text { font-weight:900; text-anchor:middle; fill:${ink}; pointer-events:none; }
+.hd-ui .hd-minimap .spot.on circle { fill:${gold}; stroke:#fff; stroke-width:.7; }
+.hd-ui .hd-minimap-legend { display:flex; flex-wrap:wrap; justify-content:center; gap:2px 10px; font-size:12px; font-weight:800; color:#fff; text-shadow:0 1px 2px ${c.seaDark}; }
+.hd-ui .hd-minimap-legend span::before { content:''; display:inline-block; width:10px; height:10px; margin-right:3px; border-radius:50%; border:1px solid ${ink}; vertical-align:-1px; }
+.hd-ui .hd-minimap-legend .lg-lane::before { background:${red}; }
+.hd-ui .hd-minimap-legend .lg-treasure::before { background:${gold}; border-radius:2px; }
+.hd-ui .hd-minimap-legend .lg-spot::before { background:#fff8e6; }
+.hd-ui .hd-minimap-legend .lg-start::before { background:#fff8e6; }
+.hd-ui .hd-minimap-legend .lg-gate::before { background:${redD}; }
+.hd-ui .hd-minimap-legend .lg-port::before { background:${gold}; }
+.hd-ui .hd-tdgar-map { flex:none; width:200px; }
 /* 竖屏手机：小地图吃掉面板上方的空当，选塔面板和开打钮沉到屏幕下半（拇指够得着）；矮屏（横屏手机、360×640）放不下，不画 */
 @media (max-width:700px) and (orientation:portrait) and (min-height:701px) {
   .hd-ui .hd-tdgar-top { flex:1 1 0; min-height:0; flex-direction:column; align-items:stretch; gap:6px; }

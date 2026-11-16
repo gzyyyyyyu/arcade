@@ -16,7 +16,7 @@ import { bArt, iconA, tdE } from './art.ts';
 import { dayIndex } from './meta.ts';
 import { button, el, img, uiRoot } from './ui.ts';
 import { injectTdCss } from './tdcss.ts';
-import { garrisonMap } from './tdgarmap.ts';
+import { garrisonMap, islandMap } from './islemap.ts';
 
 /** 守岛的 DOM 界面公共件：选关页、驻守台选塔、克制表卡、预告条、分叉选择卡（守岛局内和基地的塔面板共用）、样式 */
 
@@ -341,6 +341,36 @@ export function cardLine(lv: TdIslandLevel, all: readonly TdIslandLevel[], i: nu
   return nw ? ['hd-tdnew', nw] : ['', `建议主寨 ${lv.hq} 级`];
 }
 
+/**
+ * 一章的卡片说明：每张卡的 cardLine，外加章节标题下的一句提醒。两张及以上卡都是「主寨不够」时，那句红字只在章节下写一次
+ * （同一句重复六遍像报错），这些卡改写各自不一样的那句：没打过写新东西，打过写建议主寨。i0 是这一章第一关在 all 里的序号。
+ */
+export function chapterLines(
+  levels: readonly TdIslandLevel[],
+  all: readonly TdIslandLevel[],
+  i0: number,
+  locked: (i: number) => boolean,
+  hq: number,
+  stars: (id: string) => number,
+): { warn: string; lines: Array<[string, string]> } {
+  const lines = levels.map((lv, j) => cardLine(lv, all, i0 + j, locked(i0 + j), hq, stars(lv.id)));
+  const short = levels.filter((_, j) => lines[j]![0] === 'hd-short');
+  if (short.length < 2) return { warn: '', lines };
+  const lo = Math.min(...short.map((l) => l.hq));
+  const hi = Math.max(...short.map((l) => l.hq));
+  const who = short.length === levels.length ? '这一章' : `这一章有 ${short.length} 关`;
+  const warn = `${who}建议主寨 ${lo === hi ? lo : `${lo}–${hi}`} 级（你 ${hq} 级，会偏难）`;
+  return {
+    warn,
+    lines: lines.map((ln, j) => {
+      if (ln[0] !== 'hd-short') return ln;
+      const lv = levels[j]!;
+      const nw = stars(lv.id) === 0 ? levelIntro(all, i0 + j) : '';
+      return nw ? ['hd-tdnew', nw] : ['', `建议主寨 ${lv.hq} 级`];
+    }),
+  };
+}
+
 /** 选关页的章节：战役 18 关按章分好（样板关不在里面） */
 export function campaignChapters(): readonly Td2ChapterInfo[] {
   return TD2_CHAPTERS.filter((c) => c.levels.length > 0);
@@ -391,12 +421,14 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
   const startChapter = nextIdx < 0 ? chapters.length - 1 : chapters.findIndex((c) => c.levels.some((l) => l.id === all[nextIdx]!.id));
   const tabs = el('div', 'hd-tdtabs', undefined, right);
   const theme = el('small', 'hd-tdtheme', undefined, right);
+  const warn = el('small', 'hd-tdtheme hd-tdwarn', undefined, right);
   el('small', 'hd-tdtheme hd-tdrule', starRule(), right);
   const list = el('div', 'hd-tdsel-list', undefined, right);
   // 手机上一章 6 关一屏放不下，章内再翻页（每页 3 关，360×640 这种矮屏每页 2 关）；电脑一章一屏全摆出来
   const pager = el('div', 'hd-tdpager', undefined, right);
   const mq2 = matchMedia(PAGED2_QUERY);
   const mq3 = matchMedia(PAGED3_QUERY);
+  const mqThumb = matchMedia(THUMB_QUERY);
   let page = 0;
   let curChapter = 0;
 
@@ -437,6 +469,11 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
     const ch = chapters[ci]!;
     theme.textContent = ch.theme ? `新东西：${ch.theme}` : '';
     theme.style.display = ch.theme ? '' : 'none';
+    const i0 = all.indexOf(ch.levels[0]!);
+    const cl = chapterLines(ch.levels, all, i0, (i) => !open(i), hq, (id) => p.td?.stars[id] ?? 0);
+    warn.textContent = cl.warn;
+    warn.style.display = cl.warn ? '' : 'none';
+    const thumbs = mqThumb.matches;
     const per = mq2.matches ? 2 : mq3.matches ? 3 : ch.levels.length;
     const pages = Math.ceil(ch.levels.length / per);
     wrap.classList.toggle('paged', pages > 1);
@@ -446,7 +483,8 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
       const locked = !open(i);
       const stars = p.td?.stars[lv.id] ?? 0;
       // 下一关（第一个还没拿星的已解锁关）描金边：一眼看出该打哪关
-      const c = el('div', `hd-tdcard${locked ? ' lock' : ''}${i === nextIdx ? ' next' : ''}`, undefined, list);
+      const c = el('div', `hd-tdcard${locked ? ' lock' : ''}${i === nextIdx ? ' next' : ''}${thumbs ? ' thumb' : ''}`, undefined, list);
+      if (thumbs) islandMap({ lv, layout: lv.layout }, c, 'hd-tdthumb');
       el('span', 'hd-tdnum hd-n', String(j + 1), c);
       const mid = el('div', 'hd-tdmid', undefined, c);
       el('b', 'hd-tdname', lv.name, mid);
@@ -455,7 +493,8 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
       const b = button(locked ? '未解锁' : stars > 0 ? '再守' : '出发', locked ? 'hd-btn-plain' : 'hd-btn-gold', () => go(lv), c);
       b.disabled = locked;
       b.dataset.level = lv.id;
-      el('small', ...cardLine(lv, all, i, locked, hq, stars), el('div', 'hd-tdinfo', undefined, c));
+      const [cls, line] = cl.lines[j]!;
+      if (line) el('small', cls, line, el('div', 'hd-tdinfo', undefined, c));
     });
     if (pages > 1) {
       const prevB = button('上一页', 'hd-btn-wood hd-tdpg-prev', () => show(ci, page - 1), pager);
@@ -472,6 +511,7 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
   const onMq = (): void => show(curChapter);
   mq2.addEventListener('change', onMq);
   mq3.addEventListener('change', onMq);
+  mqThumb.addEventListener('change', onMq);
   const close = button('回岛', 'hd-btn-wood hd-tdsel-close', () => {
     stop();
     onClose();
@@ -479,6 +519,7 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
   function stop(): void {
     mq2.removeEventListener('change', onMq);
     mq3.removeEventListener('change', onMq);
+    mqThumb.removeEventListener('change', onMq);
     pick?.();
     wrap.remove();
     close.remove();
@@ -490,6 +531,8 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
 const PAGED2_QUERY = '(max-width:420px) and (max-height:700px)';
 /** 手机（竖屏窄、横屏矮）：一章分两页，每页 3 关 */
 const PAGED3_QUERY = '(max-width:700px), (max-height:500px)';
+/** 电脑（宽、够高）和竖拿的平板：一章 6 关一屏摆得下还有富余，卡片顶上加这一关的岛缩略图，不让下半屏空着 */
+const THUMB_QUERY = '(min-width:960px) and (min-height:700px), (min-width:701px) and (min-height:1000px)';
 
 /**
  * 驻守台选塔面板（开局前）：每座台一排卡片，卡上是基地里这种塔折出来的阶、带进来的分叉、伤害加成；"空着"也是一项。

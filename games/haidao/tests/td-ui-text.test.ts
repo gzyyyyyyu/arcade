@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COUNTER, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_TOWER_DAMAGE, TD_TOWER_KINDS } from '../src/core/index.ts';
 import {
-  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, campaignChapters, cardLine, fitSuggest, laneName, pctText, pctTier, spotSide, starRule, suggestText, tdVerdict, towerCounter,
+  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, campaignChapters, cardLine, chapterLines, fitSuggest, laneName, levelIntro, pctText, pctTier, spotSide, starRule, suggestText, tdVerdict, towerCounter,
 } from '../src/view/td-ui.ts';
 
 describe('守岛结算文案和路名', () => {
@@ -98,5 +98,32 @@ describe('选关卡片只写一句', () => {
     expect(cls).toBe('hd-tdnew');
     expect(text.startsWith('新：')).toBe(true);
     expect(cardLine(lv, all, 1, false, 9, 2)).toEqual(['', `建议主寨 ${lv.hq} 级`]);
+  });
+});
+
+describe('主寨不够的红字一章只写一次', () => {
+  const chapters = campaignChapters();
+  const all = chapters.flatMap((c) => c.levels);
+  const ch = chapters[1]!.levels;
+  const i0 = all.indexOf(ch[0]!);
+  const lo = Math.min(...ch.map((l) => l.hq));
+  const hi = Math.max(...ch.map((l) => l.hq));
+  it('整章都不够：章节下一句写区间，卡片改写新东西或建议主寨，不再有红字', () => {
+    const r = chapterLines(ch, all, i0, () => false, 1, (id) => (id === ch[0]!.id ? 2 : 0));
+    expect(r.warn).toBe(`这一章建议主寨 ${lo === hi ? lo : `${lo}–${hi}`} 级（你 1 级，会偏难）`);
+    expect(r.lines.some(([c]) => c === 'hd-short')).toBe(false);
+    expect(r.lines[0]).toEqual(['', `建议主寨 ${ch[0]!.hq} 级`]);
+    expect(r.lines[1]![1]).toBe(levelIntro(all, i0 + 1) || `建议主寨 ${ch[1]!.hq} 级`);
+  });
+  it('锁着的照写解锁条件；只有一张不够时不提上去', () => {
+    const r = chapterLines(ch, all, i0, (i) => i > i0, 1, () => 0);
+    expect(r.warn).toBe('');
+    expect(r.lines[0]![0]).toBe('hd-short');
+    expect(r.lines[1]![0]).toBe('hd-tdlock');
+  });
+  it('主寨够了就和逐张 cardLine 一样', () => {
+    const r = chapterLines(ch, all, i0, () => false, 99, () => 0);
+    expect(r.warn).toBe('');
+    expect(r.lines).toEqual(ch.map((l, j) => cardLine(l, all, i0 + j, false, 99, 0)));
   });
 });
