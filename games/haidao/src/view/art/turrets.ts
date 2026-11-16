@@ -4,7 +4,7 @@
  *
  * 每种按 DIRS 个地面方向各画一张（真透视：用等距投影算每个点，不是把一张侧视图转着贴），场景再按剩下的小角度转一点补齐，
  * 转起来连续（aim.ts 的 dirResidual）。锚点 = 转轴（建筑上的位置见 buildings.ts 的 TURRET_PIVOT）；已含建筑的整体放大倍数。
- * 同种同档（1–2 / 3–4 / 5 级以上）的帧烘进一张图集 `tur.<种类>.<档>`（textures.ts 的 bakeAtlas），按需烘焙。
+ * 同种同档的帧烘进一张图集 `tur.<种类>.<档>`（textures.ts 的 bakeAtlas），按需烘焙；分档见 turretTier。
  */
 import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
@@ -12,11 +12,13 @@ import { P, darken, ell, f, lighten, line, mat, path, piece, pieceRaw, poly, tub
 import { towerScale, towerTrim } from './buildings.ts';
 import { DIRS, dirAngle, isoVec, type TurretKind } from '../aim.ts';
 
+/** 每两级一档轮廓（spec 6.1）：0 = 1–2 级，1 = 3–4 级，2 = 5–6 级，3 = 7–8 级。炮台底座（buildings.ts）和炮头同一套分档 */
+export const tier4 = (level: number): 0 | 1 | 2 | 3 => (level <= 2 ? 0 : level <= 4 ? 1 : level <= 6 ? 2 : 3);
 /**
- * 等级 → 外观档（炮管画法按档，底座按级）：1–2 / 3–4 / 5 级以上三档；加农炮多一档 7–8 级（楔形装甲炮塔，spec 6.2），
+ * 等级 → 炮头图集的档：炮台每两级换一次轮廓，四档；火枪塔的火枪手只分三档（5 级起换深蓝制服、黑帽，7–8 级的变化在塔身和屋顶上）。
  * 每档一张图集，按需烘焙。
  */
-export const turretTier = (kind: TurretKind, level: number): number => (level <= 2 ? 0 : level <= 4 ? 1 : level <= 6 || kind !== 'cannon' ? 2 : 3);
+export const turretTier = (kind: TurretKind, level: number): number => (kind === 'gunTower' ? Math.min(2, tier4(level)) : tier4(level));
 /** 每档拿来画炮管的代表等级 */
 const TIER_LV = [2, 4, 6, 8] as const;
 
@@ -102,6 +104,11 @@ function wheel(phi: number, at: Pt, R: number, lv: number): string {
   return ell(at[0], at[1] - R, rx, R, rim, { sw: 2 }) + ell(at[0], at[1] - R, rx * 0.45, R * 0.45, lv >= 3 ? C.ironL! : C.woodL!, { sw: 1.2 });
 }
 
+/** 7–8 级装甲的冷钢色（spec 6.2：炮身主体是深冷钢，铜金只点在箍和边上） */
+const STEEL = '#3d4d63';
+/** 7 级铜、8 级赤金：只用在细箍、包边上 */
+const brightTrim = (lv: number): string => (lv >= 8 ? C.gold! : C.copper!);
+
 /** 前后排序后拼接（屏幕 y 小的先画） */
 const sortCat = (parts: Array<[number, string]>): string => parts.sort((a, b) => a[0] - b[0]).map((p) => p[1]).join('');
 
@@ -130,7 +137,7 @@ function wedgeShell(phi: number, lv: number, ps: Pt[]): string {
   // 顶点：后下、后上、前下、前上（斜面的上沿在 A2、下沿在 A1）
   const v = (al: number, sd: number, z: number): Pt => Q(phi, al, sd, z);
   const faces: Array<{ n: [number, number]; pts: Pt[]; fill: string }> = [];
-  const steel = mat('#3d4d63', 'iron');
+  const steel = mat(STEEL, 'iron');
   const along: [number, number] = [c, sn];
   const side: [number, number] = [-sn, c];
   faces.push({ n: [-along[0], -along[1]], pts: [v(A0, -S, Z0), v(A0, S, Z0), v(A0, S, Z1), v(A0, -S, Z1)], fill: steel.r });
@@ -143,7 +150,7 @@ function wedgeShell(phi: number, lv: number, ps: Pt[]): string {
   o += poly([v(A1, -S, ZF), v(A1, S, ZF), v(A2, S, Z1), v(A2, -S, Z1)], lighten(steel.l, 0.08), { sw: 1.6 });
   o += poly([v(A0, -S, Z1), v(A2, -S, Z1), v(A2, S, Z1), v(A0, S, Z1)], lighten(steel.l, 0.18), { sw: 1.6 });
   // 顶脊一道铜条（8 级赤金）
-  o += line(v(A0 + 0.04, 0, Z1), v(A2 - 0.02, 0, Z1), lv >= 8 ? C.gold! : C.copper!, 2.4);
+  o += line(v(A0 + 0.04, 0, Z1), v(A2 - 0.02, 0, Z1), brightTrim(lv), 2.4);
   ps.push(v(A0, -S, Z0), v(A0, S, Z0), v(A1, -S, Z0), v(A1, S, Z0), v(A0, -S, Z1), v(A0, S, Z1), v(A2, -S, Z1), v(A2, S, Z1));
   return o;
 }
@@ -152,15 +159,15 @@ function wedgeShell(phi: number, lv: number, ps: Pt[]): string {
  * 加农炮炮头四档（spec 6.2）：1–2 级木轮车上的短灰铁炮；3–4 级锻铁炮车上的加长重炮、炮口粗箍（4 级两侧半高弧形护盾）；
  * 5–6 级宽肩炮架上的双联炮管 + 前斜护盾；7–8 级楔形装甲炮塔壳伸出双联重炮，炮口箍红铜（8 级赤金）。
  */
-export function cannonDir(phi: number, lv: number): { body: string; ps: Pt[] } {
-  const tier = lv <= 2 ? 0 : lv <= 4 ? 1 : lv <= 6 ? 2 : 3;
+function cannonDir(phi: number, lv: number): { body: string; ps: Pt[] } {
+  const tier = tier4(lv);
   const len = CANNON_LEN[tier];
   const ps: Pt[] = [];
   if (tier === 3) {
     const shell = wedgeShell(phi, lv, ps);
     const bars: Array<[number, string]> = [];
     for (const off of [-0.14, 0.14]) {
-      const r = barrel(phi, off, 18, len, 13, '#3d4d63', lv >= 8 ? C.gold! : C.copper!, [[0.62, lv >= 8 ? C.gold! : C.copper!]]);
+      const r = barrel(phi, off, 18, len, 13, STEEL, brightTrim(lv), [[0.62, brightTrim(lv)]]);
       ps.push(r.a, r.b);
       bars.push([r.a[1] + r.b[1], r.s]);
     }
@@ -209,7 +216,10 @@ export function cannonDir(phi: number, lv: number): { body: string; ps: Pt[] } {
   return { body: back + carriage + shield + sortCat(bars) + front, ps };
 }
 
-/** 震荡炮：短粗的炮管，炮口是向外张开的喇叭，按档加铜环（1–2 级光口，3–4 级一道，5 级以上两道加发光的口） */
+/**
+ * 震荡炮：短粗的炮管，炮口是向外张开的喇叭，按档加铜环（1–2 级光口，3–4 级一道，5 级以上两道加发光的口）；
+ * 7–8 级喇叭口再张大一圈、炮身绕三道铜线圈（轮廓变成"大喇叭 + 线圈"）
+ */
 function shockDir(phi: number, lv: number): { body: string; ps: Pt[] } {
   const ps: Pt[] = [];
   const th = 15 + lv * 1.2;
@@ -221,24 +231,28 @@ function shockDir(phi: number, lv: number): { body: string; ps: Pt[] } {
   ps.push(a, b, Q(phi, 0, -0.3, 0), Q(phi, 0, 0.3, 0));
   let s = tube(Q(phi, -0.4, 0, 15), Q(phi, -0.28, 0, 15), th + 4, th + 4, C.ironD!);
   s += tube(a, Q(phi, len - 0.16, 0, 16), th + 2, th + 1, lv >= 5 ? '#2c313c' : C.ironD!, C.ironL!);
+  const big = lv >= 7 ? 7 : 0;
   // 喇叭口
-  s += tube(Q(phi, len - 0.17, 0, 16), b, th + 2, th + 13, C.iron!, C.ironL!);
+  s += tube(Q(phi, len - 0.17, 0, 16), b, th + 2, th + 13 + big, lv >= 7 ? STEEL : C.iron!, C.ironL!);
+  if (lv >= 7) for (const at of [-0.24, -0.16, -0.08]) s += tube(Q(phi, at, 0, 15.5), Q(phi, at + 0.035, 0, 15.5), th + 6, th + 6, brightTrim(lv));
   const rings = lv >= 5 ? 2 : lv >= 3 ? 1 : 0;
   for (let i = 0; i < rings; i++) {
     const at = len - 0.04 - i * 0.12;
-    s += tube(Q(phi, at - 0.05, 0, 16), Q(phi, at, 0, 16), th + 16 - i * 5, th + 16 - i * 5, copper, copperL);
+    s += tube(Q(phi, at - 0.05, 0, 16), Q(phi, at, 0, 16), th + 16 + big - i * 5, th + 16 + big - i * 5, copper, copperL);
   }
   // 炮身中段一道细铁箍（所有档都有，一眼看出是震荡炮）
   s += tube(Q(phi, -0.1, 0, 15.5), Q(phi, -0.06, 0, 15.5), th + 4, th + 4, C.ironL!);
-  s += muzzleHole(phi, b, th + 12);
+  s += muzzleHole(phi, b, th + 12 + big);
+  const hr = (th + 18 + big) / 2;
+  ps.push([b[0] - hr, b[1] - hr], [b[0] + hr, b[1] + hr]);
   const v = isoVec(phi);
-  if (v[1] >= -8) s += ell(b[0], b[1], (th + 12) * 0.2, (th + 12) * 0.28, lv >= 5 ? '#bff0ff' : '#7fd8ff', { sw: 0, op: 0.85 });
+  if (v[1] >= -8) s += ell(b[0], b[1], (th + 12 + big) * 0.2, (th + 12 + big) * 0.28, lv >= 5 ? '#bff0ff' : '#7fd8ff', { sw: 0, op: 0.85 });
   return { body: s, ps };
 }
 
 /**
  * 狙击塔：全岛最长的炮管（1.1 格），细而直，管上架一支瞄准镜，炮口有消焰口；按档：1–2 级铁管 + 木托，
- * 3–4 级加铜箍和黄铜镜筒，5 级以上乌铁加金箍、镜筒带发红的镜片。
+ * 3–4 级加铜箍和黄铜镜筒，5 级以上乌铁加金箍、镜筒带发红的镜片；7–8 级枪身前立一块冷钢护盾（铜边），轮廓多一块方板。
  */
 function sniperDir(phi: number, lv: number): { body: string; ps: Pt[] } {
   const ps: Pt[] = [];
@@ -273,9 +287,17 @@ function sniperDir(phi: number, lv: number): { body: string; ps: Pt[] } {
   s += tube(Q(phi, len - 0.09, 0, 5), Q(phi, len - 0.075, 0, 5), th + 6, th + 6, '#14141c');
   s += tube(Q(phi, len - 0.04, 0, 5), Q(phi, len - 0.025, 0, 5), th + 6, th + 6, '#14141c');
   s += muzzleHole(phi, b, th + 5);
+  if (lv >= 7) {
+    // 护盾垂直于枪管、套在座箍前面；枪口朝镜头时盾在枪后（先画），背着镜头时盾挡在枪前
+    const pts = [Q(phi, -0.02, -0.24, 0), Q(phi, -0.02, 0.24, 0), Q(phi, -0.02, 0.22, 20), Q(phi, -0.02, -0.22, 20)];
+    ps.push(...pts);
+    const shield = poly(pts, STEEL, { sw: 1.6 }) + line(pts[3]!, pts[2]!, brightTrim(lv), 2.2);
+    s = isoVec(phi)[1] > 0 ? shield + s : s + shield;
+  }
   return { body: s, ps };
 }
 
+/** 臼炮：粗短朝天的炮筒；5 级起三联；7–8 级三联筒脚下套一圈冷钢装甲护环（铜边），轮廓从"三根管"变成"一圈盔甲里伸出三根管" */
 function mortarDir(phi: number, lv: number): { body: string; ps: Pt[] } {
   const ps: Pt[] = [];
   const tubes: Array<[number, string]> = [];
@@ -296,15 +318,26 @@ function mortarDir(phi: number, lv: number): { body: string; ps: Pt[] } {
       const n2: Pt = [a[0] + (b[0] - a[0]) * 0.78, a[1] + (b[1] - a[1]) * 0.78];
       s += tube(n1, n2, w1 + 2, w1 + 2, towerTrim(lv));
     }
-    s += ell(b[0], b[1], (10 + lv * 1.3) * k, (5 + lv * 0.7) * k, '#101018', { sw: 2 });
+    const rx = (10 + lv * 1.3) * k;
+    const ry = (5 + lv * 0.7) * k;
+    s += ell(b[0], b[1], rx, ry, '#101018', { sw: 2 });
+    // 炮口、炮脚的椭圆比炮管中线宽，外沿也算进帧的包围盒
+    ps.push([b[0] - w1 / 2, b[1] - ry], [b[0] + w1 / 2, b[1] + ry], [a[0] - w0 * 0.55, a[1] - w0 * 0.3], [a[0] + w0 * 0.55, a[1] + w0 * 0.3]);
     tubes.push([a[1], s]);
   };
   mk(0, 1);
   if (lv >= 5) mk(-0.42, 0.7);
   if (lv >= 6) mk(0.42, 0.7);
-  return { body: sortCat(tubes), ps };
+  let collar = '';
+  if (lv >= 7) {
+    const c0 = Q(phi, 0, 0, 2);
+    ps.push([c0[0] - 40, c0[1]], [c0[0] + 40, c0[1]], [c0[0], c0[1] - 26], [c0[0], c0[1] + 24]);
+    collar = ell(c0[0], c0[1] + 5, 38, 19, darken(STEEL, 0.15), { sw: 1.8 }) + ell(c0[0], c0[1], 38, 19, STEEL, { sw: 1.8 }) + ell(c0[0], c0[1], 38, 19, 'none', { stroke: brightTrim(lv), sw: 2.4 });
+  }
+  return { body: collar + sortCat(tubes), ps };
 }
 
+/** 喷火塔的喷嘴：1 / 2 / 3 根（3–4 级两根、5 级起三根）；7–8 级三根喷嘴后面包一个冷钢护罩（铜边），轮廓变成一个厚实的炮头 */
 function flameDir(phi: number, lv: number): { body: string; ps: Pt[] } {
   const ps: Pt[] = [];
   const nz: Array<[number, string]> = [];
@@ -323,25 +356,47 @@ function flameDir(phi: number, lv: number): { body: string; ps: Pt[] } {
   const h0 = Q(phi, -0.3, 0, -2);
   ps.push(h0);
   const hose = path(`M${f(h0[0])},${f(h0[1])} Q${f(h0[0])},${f(h0[1] + 8)} ${f(Q(phi, -0.1, 0, 0)[0])},${f(Q(phi, -0.1, 0, 0)[1])}`, 'none', { stroke: '#3a2a22', sw: 4 });
-  return { body: hose + sortCat(nz), ps };
+  let shroud = '';
+  if (lv >= 7) {
+    const a = Q(phi, -0.28, 0, 3);
+    const b = Q(phi, 0.2, 0, 4);
+    ps.push([a[0] - 22, a[1] - 22], [a[0] + 22, a[1] + 22], [b[0] - 22, b[1] - 22], [b[0] + 22, b[1] + 22]);
+    shroud = tube(a, b, 40, 34, STEEL, C.ironL!) + tube(Q(phi, 0.16, 0, 4), b, 37, 37, brightTrim(lv));
+  }
+  return { body: hose + shroud + sortCat(nz), ps };
 }
 
+/** 鱼叉炮弩臂的半展宽（格）：每两级张开一截，横向张开的弩臂是鱼叉炮的主剪影 */
+const BOW_SPAN = [0.46, 0.56, 0.64, 0.74] as const;
+/**
+ * 鱼叉炮：横着张开的大弩；1–2 级木弩，3–4 级弩臂加宽、木臂包铁，5–6 级两层弩臂（复合弩），
+ * 7–8 级冷钢弩臂、两头铜（8 级金）弩尖。鱼叉 1 / 2 / 2 / 3 支
+ */
 function harpoonDir(phi: number, lv: number, loaded: boolean): { body: string; ps: Pt[] } {
   const ps: Pt[] = [];
-  const bowC = lv >= 5 ? C.goldD! : C.woodD!;
+  const tier = tier4(lv);
+  const span = BOW_SPAN[tier];
+  const bowC = tier === 3 ? STEEL : tier >= 1 ? C.ironD! : C.woodD!;
   const z = 6;
   const s0 = Q(phi, -0.3, 0, z);
   const s1 = Q(phi, 0.4, 0, z);
-  const e0 = Q(phi, 0.12, -0.52, z);
-  const e1 = Q(phi, 0.12, 0.52, z);
+  const e0 = Q(phi, 0.12, -span, z);
+  const e1 = Q(phi, 0.12, span, z);
   const mid = Q(phi, 0.42, 0, z);
   const nock = loaded ? Q(phi, -0.2, 0, z) : Q(phi, 0.1, 0, z);
   ps.push(s0, s1, e0, e1, mid);
-  let o = tube(s0, s1, 7, 6, C.woodD!, C.woodL!);
-  const bow = `M${f(e0[0])},${f(e0[1])} Q${f(mid[0])},${f(mid[1])} ${f(e1[0])},${f(e1[1])}`;
+  let o = tube(s0, s1, 7, 6, tier >= 1 ? C.ironD! : C.woodD!, C.woodL!);
+  const arc = (a: Pt, m: Pt, b: Pt): string => `M${f(a[0])},${f(a[1])} Q${f(m[0])},${f(m[1])} ${f(b[0])},${f(b[1])}`;
+  const bow = arc(e0, mid, e1);
+  // 复合弩：主臂后面再一层短一点的副臂
+  if (tier >= 2) {
+    const back = arc(Q(phi, 0.02, -span * 0.82, z + 6), Q(phi, 0.3, 0, z + 6), Q(phi, 0.02, span * 0.82, z + 6));
+    o += path(back, 'none', { stroke: C.ink!, sw: 7 }) + path(back, 'none', { stroke: bowC, sw: 4 });
+  }
   // 弦：装好时拉到后面绷紧，射出后弹回去
   o += line(e0, nock, C.cream!, 1.3) + line(e1, nock, C.cream!, 1.3);
   o += path(bow, 'none', { stroke: C.ink!, sw: 8 }) + path(bow, 'none', { stroke: bowC, sw: 5 });
+  if (tier === 3) for (const e of [e0, e1]) o += ell(e[0], e[1], 3.6, 3.6, brightTrim(lv), { sw: 1.4 });
   if (loaded) {
     const n = lv >= 7 ? 3 : lv >= 4 ? 2 : 1;
     for (let i = 0; i < n; i++) {
@@ -370,6 +425,7 @@ export function harpoonHead(tip: Pt, from: Pt, lv: number): string {
   return poly([p(9, 0), p(-2, -4.5), p(-2, 4.5)], lv >= 5 ? C.gold! : C.ironL!, { sw: 1.5 }) + poly([p(-3, -3), p(-8, -7.5), p(0, -4.5)], C.ironL!, { sw: 1.1 });
 }
 
+/** 火箭塔发射架：管数随级别 3 / 4 / 5 / 7（按档的代表等级）；7–8 级两侧各立一块冷钢装甲板（铜边），轮廓从一排管子变成"装甲箱里的一排管子" */
 function rocketDir(phi: number, lv: number, loaded: boolean): { body: string; ps: Pt[] } {
   const ps: Pt[] = [];
   const n = Math.min(7, 2 + Math.ceil(lv / 2) + (lv >= 8 ? 1 : 0));
@@ -398,6 +454,15 @@ function rocketDir(phi: number, lv: number, loaded: boolean): { body: string; ps
       ps.push(t);
     }
     tubes.push([a[1] + b[1], s]);
+  }
+  if (lv >= 7) {
+    // 板子收在管排宽度以内（管排两端在 ±0.36 格），不撑大帧的画布
+    for (const sd of [-0.42, 0.42]) {
+      const pts = [Q(phi, -0.22, sd, 0), Q(phi, 0.24, sd, 0), Q(phi, 0.24, sd, 22), Q(phi, -0.22, sd, 14)];
+      ps.push(...pts);
+      const y = pts.reduce((n, q) => n + q[1], 0) / 2;
+      tubes.push([y, poly(pts, STEEL, { sw: 1.6 }) + line(pts[3]!, pts[2]!, brightTrim(lv), 2.2)]);
+    }
   }
   o += sortCat(tubes);
   return { body: o, ps };
@@ -442,6 +507,30 @@ function ramrod(): { body: string; ps: Pt[] } {
   return { body: line([0, 0], [0, -15], C.ironL!, 1.6) + ell(0, -15, 1.4, 1.4, C.ironD!, { sw: 0 }), ps: [[0, 0], [0, -16]] };
 }
 
+/**
+ * 整张图（图标、没烘好分件时）上的炮头：朝右前（phi = 0），画法和分件图集同一套、同一个代表等级，所以图标和开打后的炮头一致。
+ * 画在转轴上（相对转轴、未乘放大倍数），火枪塔不走这里（火枪手和屋顶在 buildings.ts）。
+ */
+export function turretHeadBody(kind: Exclude<TurretKind, 'gunTower'>, level: number): string {
+  const lv = TIER_LV[turretTier(kind, level) as 0 | 1 | 2 | 3];
+  switch (kind) {
+    case 'cannon':
+      return cannonDir(0, lv).body;
+    case 'mortar':
+      return mortarDir(0, lv).body;
+    case 'shock':
+      return shockDir(0, lv).body;
+    case 'sniper':
+      return sniperDir(0, lv).body;
+    case 'flame':
+      return flameDir(0, lv).body;
+    case 'harpoon':
+      return harpoonDir(0, lv, true).body;
+    case 'rocket':
+      return rocketDir(0, lv, true).body;
+  }
+}
+
 // ---------------------------------------------------------------- 图集
 
 const cache = new Map<string, ArtPiece[]>();
@@ -465,8 +554,8 @@ export function turretPieces(kind: TurretKind, tier: number): ArtPiece[] {
       fr(`d${i}`, harpoonDir(phi, lv, true), 12);
       fr(`e${i}`, harpoonDir(phi, lv, false), 12);
     } else if (kind === 'rocket') {
-      fr(`d${i}`, rocketDir(phi, lv, true), 10);
-      fr(`e${i}`, rocketDir(phi, lv, false), 10);
+      fr(`d${i}`, rocketDir(phi, lv, true), 12);
+      fr(`e${i}`, rocketDir(phi, lv, false), 12);
     } else fr(`d${i}`, musketDir(phi, lv), 6);
   }
   if (kind === 'gunTower') {
