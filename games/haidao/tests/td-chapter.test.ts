@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { BUILDINGS } from '../src/content/index.ts';
 import { TD2_CHAPTERS, TD2_LEVELS as ALL_LEVELS, TD2_LEVEL_BY_ID, TD2_MAPS, buildLevel, TD2_LEVEL_DEFS } from '../src/content/tdmaps.ts';
 import { TD2_ENEMY_POINTS } from '../src/content/td2units.ts';
-import { createTd, tdRoute } from '../src/core/td.ts';
+import { createTd } from '../src/core/td.ts';
+import { tdPreview, tdRoute, tdRoutes, tdWaveLanes } from '../src/core/tdquery.ts';
+import { tdGrowthSetup } from '../src/core/tdrun.ts';
 import { waveBudget } from '../src/core/td2types.ts';
 import { RULES_VERSION } from '../src/core/types.ts';
 import type { TdLevel } from '../src/core/tdtypes.ts';
@@ -159,6 +161,24 @@ describe('关卡岛的地形', () => {
       for (const l of ls) {
         expect(l.lanes).toEqual(m.lanes);
         expect(l.layout.filter((b) => b.kind !== 'hq')).toEqual(m.layout.filter((b) => b.kind !== 'hq'));
+      }
+    }
+  });
+});
+
+describe('每一波的登陆口（竖屏镜头推过去看的地方）', () => {
+  it('每关每一波：tdWaveLanes 和预告卡说的那几路是同一组登陆口，不重复', () => {
+    for (const lv of ALL_LEVELS) {
+      const r = tdGrowthSetup(lv.id, 'suggest', 1);
+      if (!r.ok) throw new Error(lv.id);
+      const s = createTd(r.value);
+      const routes = tdRoutes(s);
+      for (let w = 0; w < s.level.waves.length; w++) {
+        s.wave = w;
+        const want = (tdPreview(s, 1)[0]?.lanes ?? []).map((l) => routes.find((q) => q.lane === l.lane)!).map((q) => `${q.x},${q.y}`);
+        const got = tdWaveLanes(s, w).map((c) => `${c.x},${c.y}`);
+        expect(new Set(got).size, `${lv.id} 第 ${w + 1} 波`).toBe(got.length);
+        expect([...got].sort(), `${lv.id} 第 ${w + 1} 波`).toEqual([...new Set(want)].sort());
       }
     }
   });

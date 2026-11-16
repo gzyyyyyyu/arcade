@@ -5,14 +5,10 @@
  */
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
+import { num } from './args.ts';
 
-const argv = process.argv.slice(2);
-const opt = (n: string, d: string): string => {
-  const i = argv.indexOf(n);
-  return i >= 0 ? (argv[i + 1] ?? d) : d;
-};
-const RUNS = Number(opt('--runs', '3'));
-const THROTTLE = Number(opt('--throttle', '1'));
+const RUNS = num('--runs', 3);
+const THROTTLE = num('--throttle', 1);
 
 const server = await createServer({ logLevel: 'warn', server: { host: '127.0.0.1', port: 0, hmr: false } });
 await server.listen();

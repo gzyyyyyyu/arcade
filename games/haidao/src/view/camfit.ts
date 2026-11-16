@@ -213,6 +213,8 @@ export class FitCam {
   private readonly btn: HTMLButtonElement;
   private readonly label: HTMLSpanElement;
   private lastCheck = 0;
+  /** 玩家上次自己动镜头的场景时间（拖、捏、滚轮、点屏边箭头）：开新一波要不要替他挪镜头看它 */
+  private userAt = Number.NEGATIVE_INFINITY;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private readonly onResize = (): void => {
     if (this.timer) clearTimeout(this.timer);
@@ -244,11 +246,25 @@ export class FitCam {
   };
   private readonly onWheel = (): void => {
     this.anim = null;
+    this.markUser();
   };
   private checkTakeover(p: Phaser.Input.Pointer): void {
     if (!this.press) return;
     const fingers = this.scene.input.manager.pointers.filter((q) => q.isDown).length;
-    if (takesCamera((p.x - this.press.x) / this.r, (p.y - this.press.y) / this.r, this.press.touch, fingers)) this.anim = null;
+    if (takesCamera((p.x - this.press.x) / this.r, (p.y - this.press.y) / this.r, this.press.touch, fingers)) {
+      this.anim = null;
+      this.markUser();
+    }
+  }
+
+  /** 记一笔「玩家自己动了镜头」（点屏边箭头这类不经过拖动的也算） */
+  markUser(): void {
+    this.userAt = this.scene.time.now;
+  }
+
+  /** 离玩家上次自己动镜头过了多少毫秒 */
+  sinceUser(): number {
+    return this.scene.time.now - this.userAt;
   }
 
   private readonly scene: Phaser.Scene;

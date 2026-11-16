@@ -8,16 +8,12 @@ import { runTdBot } from '../src/core/tdbot.ts';
 import { LIVE_TIER_IDS, type LiveTier } from '../src/core/live.ts';
 import { tdLiveSetup } from '../src/core/tdlive.ts';
 import { line, zero, type Raw, type Style } from './td-live-lib.ts';
+import { flag, num, opt } from './args.ts';
 
-const args = process.argv.slice(2);
-const opt = (k: string): string | undefined => {
-  const i = args.indexOf(k);
-  return i >= 0 ? args[i + 1] : undefined;
-};
-const n = Number(opt('--n') ?? 500) || 500;
-const from = Number(opt('--from') ?? 1) || 1;
+const n = num('--n', 500);
+const from = num('--from', 1);
 const only = opt('--tier');
-const json = args.includes('--json');
+const json = flag('--json');
 
 if (!json) console.log(`每格 ${n} 局（种子 ${from}–${from + n - 1}）；期望单位：份（结回倍数 − 1），± 2SE`);
 const all: Raw[] = [];

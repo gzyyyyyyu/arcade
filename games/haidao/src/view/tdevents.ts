@@ -23,7 +23,7 @@ import { closeSheet, renderSheet } from './tdsheet.ts';
 import { W, PROJ, SHOCK_RING } from './tdcommon.ts';
 import { matAt } from './tdsync.ts';
 import { boom } from './tdoverlay.ts';
-import { refreshWalls } from './tdworld.ts';
+import { followWaveCam, refreshWalls } from './tdworld.ts';
 import { throwKeg } from './tdinput.ts';
 import { STEP_MS } from './motion.ts';
 
@@ -47,6 +47,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       const early = e.early ? callBonusText(e.bonus, e.cdCut ?? 0) : '';
       banner(bs, w?.boss ? '首领来袭！' : `第 ${e.wave + 1} 波`, early ? `提前开打 ${early}` : (w?.note ?? ''), w?.boss === true);
       if (w?.boss) bigEvent(bs, bs.hs, 'bossEnter');
+      followWaveCam(bs, e.wave);
       if (e.early && e.bonus > 0) bs.hud.gold.parentElement?.classList.add('bump');
       break;
     }

@@ -140,7 +140,7 @@ export function renderCards(bs: BattleScene): void {
     const on = s.energy >= cost && !s.over;
     const c = el('button', `hd-btn hd-skill${bs.selSkill === i ? ' sel' : ''}`, undefined, bs.skillsEl);
     c.type = 'button';
-    // 能量不够：去饱和加锁，底下一条进度（现有能量 / 要的能量）
+    // 能量不够：灰掉、费用变浅红，底下一条进度（现有能量 / 要的能量）
     c.classList.toggle('off', !on);
     if (!on) c.style.setProperty('--p', `${Math.min(100, Math.round((s.energy / Math.max(1, cost)) * 100))}%`);
     c.title = on || s.over ? def.name : `${def.name}：还差 ${cost - s.energy} 点能量`;
@@ -175,7 +175,8 @@ export function afterSelect(bs: BattleScene): void {
   bs.beachG.setVisible(beachOn(bs));
   beachPulse(bs);
   const army = bs.d.setup.army;
-  if (bs.selBoat >= 0) hint(bs, '点沙滩，把船开上去');
+  if (bs.st.over) hint(bs, '');
+  else if (bs.selBoat >= 0) hint(bs, '点沙滩，把船开上去');
   else if (bs.selSkill >= 0) hint(bs, skillHint(army.skills[bs.selSkill]!.kind, SKILLS[army.skills[bs.selSkill]!.kind].name));
   else if (beachOn(bs) && !bs.st.landed.some(Boolean) && !bs.d.pvp?.replay) hint(bs, '先点船卡，再点发光的沙滩');
   else hint(bs, '');

@@ -6,14 +6,10 @@
  */
 import { ESCORT_LEVELS, escortSetup } from '../src/core/index.ts';
 import { runEscortBot } from '../src/core/escortbot.ts';
+import { num, opt } from './args.ts';
 
-const args = process.argv.slice(2);
-const opt = (k: string): string | undefined => {
-  const i = args.indexOf(k);
-  return i >= 0 ? args[i + 1] : undefined;
-};
-const n = Math.max(1, Number(opt('--n') ?? 50) || 50);
-const from = Number(opt('--from') ?? 1) || 1;
+const n = Math.max(1, num('--n', 50));
+const from = num('--from', 1);
 const only = opt('--level');
 const KINDS = ['novice', 'normal'] as const;
 const pct = (x: number): string => `${((100 * x) / n).toFixed(0)}%`;

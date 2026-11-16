@@ -118,6 +118,8 @@ describe('escorttext：文案', () => {
     expect(resultTitle({ arrived: true, sunk: false })).toBe('到港');
     expect(resultTitle({ arrived: false, sunk: true })).toBe('沉没');
     expect(resultTitle({ arrived: false, sunk: false })).toBe('误了潮');
+    // 玩家点撤退和误了潮在规则里一样（没到也没沉），标题照实写撤退
+    expect(resultTitle({ arrived: false, sunk: false, retreated: true })).toBe('撤退');
     expect(resultBig(82)).toBe('82%');
     expect(resultLine({ stars: 2, cells: 14, mends: 3 })).toBe('2 星 · 走了 14 格 · 修了 3 次');
   });

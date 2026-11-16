@@ -1,12 +1,12 @@
 import type { TdScene } from './TdScene.ts';
 import Phaser from 'phaser';
 import { BUILDINGS } from '../content/index.ts';
-import { tdLanes, tdRoutes, tdPreview } from '../core/index.ts';
+import { tdLanes, tdRoutes, tdWaveLanes } from '../core/index.ts';
 import { cellX, cellY } from '../core/grid.ts';
 import { UNIT, BEACH } from '../core/types.ts';
 import { sTex, bTex, wTex, fxA, tdP, troopF, iconA } from './art.ts';
 import { type Box, islandBox, type Content, cellsBox } from './camfit.ts';
-import { type EdgeItem, type EdgeKind, edgeMarks } from './camguide.ts';
+import { type EdgeItem, type EdgeKind, edgeMarks, followWave } from './camguide.ts';
 import { EASE } from './motion.ts';
 import { RIG_TEX } from './rigsprite.ts';
 import { isoRing } from './tdfx.ts';
@@ -238,16 +238,37 @@ export function contentBox(bs: TdScene): Content {
   return { box: cellsBox(rs, 1), whole: true };
 }
 
+/** 开新一波镜头跟过去时，落点沿路线往岛里走几格 */
+const FOLLOW_INLAND = 3;
+
+/** 一波的登陆口投到世界坐标（格子中心） */
+function wavePoints(bs: TdScene, w: number): Array<{ x: number; y: number }> {
+  return tdWaveLanes(bs.s, w).map((c) => iso(c.x + 0.5, c.y + 0.5));
+}
+
 /** 竖屏开场推镜的落点（世界 x）：第一波要用的登陆口的中间 */
 export function introFocus(bs: TdScene): number | null {
-  const pv = tdPreview(bs.s, 1)[0];
+  const ps = wavePoints(bs, bs.s.wave);
+  return ps.length ? ps.reduce((a, p) => a + p.x, 0) / ps.length : null;
+}
+
+/**
+ * 竖屏放大时开了第 w 波：它的登陆口都在可见区外，就把镜头缓推到登陆口的中间（同点屏边箭头的平移）。
+ * 玩家刚自己动过镜头、开着面板或在瞄技能时不推（followWave 判）；减弱动态时 panTo 直接到位。
+ */
+export function followWaveCam(bs: TdScene, w: number): void {
+  const ps = wavePoints(bs, w);
+  const busy = bs.openSlot >= 0 || bs.bestOpen || bs.mode !== 'none';
+  const points = ps.map((p) => bs.cc.toScreen(p.x, p.y));
+  if (!followWave({ live: bs.fit.live && !bs.ended, busy, sinceUser: bs.fit.sinceUser(), points, view: bs.fit.visible() })) return;
+  // 落点不对准沙滩上的登陆口（那样半屏是海），对准沿去宝藏的路往岛里走 FOLLOW_INLAND 格的地方：登陆口在画面上部，下面是他们要走的路
   const routes = tdRoutes(bs.s);
-  const xs: number[] = [];
-  for (const l of pv?.lanes ?? []) {
-    const r = routes.find((q) => q.lane === l.lane);
-    if (r) xs.push(iso(r.x + 0.5, r.y + 0.5).x);
-  }
-  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+  const at = tdWaveLanes(bs.s, w).map((c) => {
+    const cells = routes.find((r) => r.x === c.x && r.y === c.y)?.cells ?? [];
+    const k = cells[Math.min(FOLLOW_INLAND, cells.length - 1)];
+    return k === undefined ? iso(c.x + 0.5, c.y + 0.5) : iso(cellX(k) / UNIT, cellY(k) / UNIT);
+  });
+  bs.fit.panTo(at.reduce((a, p) => a + p.x, 0) / at.length, at.reduce((a, p) => a + p.y, 0) / at.length);
 }
 
 /** 屏外的敌人在可见区边上出箭头加数量（点了镜头移过去），屏外的空木台出小标；只在竖屏放大（FitCam.live）时有 */
@@ -302,7 +323,9 @@ export function drawEdges(bs: TdScene): void {
       const box: HTMLElement =
         m.kind === 'enemy'
           ? button('', 'hd-td-edge', () => {
-              if (box.dataset.wx) bs.fit.panTo(Number(box.dataset.wx), Number(box.dataset.wy));
+              if (!box.dataset.wx) return;
+              bs.fit.markUser();
+              bs.fit.panTo(Number(box.dataset.wx), Number(box.dataset.wy));
             }, bs.edges)
           : el('span', 'hd-td-edge', undefined, bs.edges);
       // 皮肤的木板底不要：箭头自己一套样式（敌人 = 红圈 + 剑 + 个数；木台 = 木牌 + 加号；路口 = 黄旗）

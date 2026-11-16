@@ -9,21 +9,17 @@ import { runEscortBot } from '../src/core/escortbot.ts';
 import { ESCORT_LIVE_TIERS, escortLiveSetup } from '../src/core/escortlive.ts';
 import { LIVE_TIER_IDS, type LiveTier } from '../src/core/live.ts';
 import { type Raw, type Style, add, line, zero } from './live-fit-lib.ts';
+import { argv, num, opt } from './args.ts';
 
-const args = process.argv.slice(2);
-const opt = (k: string): string | undefined => {
-  const i = args.indexOf(k);
-  return i >= 0 ? args[i + 1] : undefined;
-};
 const STYLES: Style[] = ['novice', 'normal'];
 
 function print(raws: Raw[]): void {
   for (const r of raws) console.log(`${ESCORT_LIVE_TIERS[r.tier].level.padEnd(15)}${line(r, ESCORT_LIVE_TIERS[r.tier].bp)}`);
 }
 
-if (args[0] === '--merge') {
+if (argv[0] === '--merge') {
   const acc = new Map<string, Raw>();
-  for (const f of args.slice(1)) {
+  for (const f of argv.slice(1)) {
     for (const r of JSON.parse(readFileSync(f, 'utf8')) as Raw[]) {
       const k = `${r.tier}.${r.style}`;
       if (!acc.has(k)) acc.set(k, zero(r.tier, r.style));
@@ -32,8 +28,8 @@ if (args[0] === '--merge') {
   }
   print([...acc.values()]);
 } else {
-  const n = Math.max(1, Number(opt('--n') ?? 200) || 200);
-  const from = Number(opt('--from') ?? 1) || 1;
+  const n = Math.max(1, num('--n', 200));
+  const from = num('--from', 1);
   const only = opt('--tier');
   const tiers = LIVE_TIER_IDS.filter((t) => !only || t === only) as LiveTier[];
   const out: Raw[] = [];

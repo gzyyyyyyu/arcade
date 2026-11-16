@@ -9,15 +9,11 @@ import { botActions, heroLevel } from '../src/core/index.ts';
 import type { BattleSetup, PresetStyle } from '../src/core/index.ts';
 import { replayRaid } from '../src/core/pvp.ts';
 import { fullBase, sampleArmy } from './sample.ts';
+import { num, opt } from './args.ts';
 
-const args = process.argv.slice(2);
-const opt = (k: string): string | undefined => {
-  const i = args.indexOf(k);
-  return i >= 0 ? args[i + 1] : undefined;
-};
-const n = Math.max(1, Number(opt('--n')) || 200);
+const n = Math.max(1, num('--n', 200));
 const hqs = opt('--hq') ? [Number(opt('--hq'))] : [3, 5, 7];
-const plus = Math.max(0, Number(opt('--plus')) || 0);
+const plus = Math.max(0, num('--plus', 0));
 const styles: PresetStyle[] = opt('--style') ? [opt('--style') as PresetStyle] : ['turtle', 'spread', 'trap'];
 
 function measure(setupOf: (seed: number) => BattleSetup): { stars: number; win: number; pct: number; dist: number[] } {

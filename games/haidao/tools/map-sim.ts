@@ -24,15 +24,11 @@ import {
   takeReef,
 } from '../src/core/index.ts';
 import type { MapBotStyle, MapState } from '../src/core/index.ts';
+import { flag, num, opt } from './args.ts';
 
-const args = process.argv.slice(2);
-const opt = (k: string): string | undefined => {
-  const i = args.indexOf(k);
-  return i >= 0 ? args[i + 1] : undefined;
-};
-const days = Number(opt('--days') ?? 60) || 60;
+const days = num('--days', 60);
 const from = opt('--from') ?? '2026-11-01';
-const verbose = args.includes('--v');
+const verbose = flag('--v');
 
 /** 'YYYY-MM-DD' 加 k 天（工具里用 Date 没关系，核心不用） */
 function dayAdd(day: string, k: number): string {
@@ -114,7 +110,7 @@ function islandTable(): void {
 }
 
 const isMain = process.argv[1]?.endsWith('map-sim.ts');
-if (isMain && args.includes('--islands')) islandTable();
+if (isMain && flag('--islands')) islandTable();
 else if (isMain) {
   console.log(`${days} 天（${from} 起），每天每种机器人一局；星阈值 ${MAP_STAR_PTS.join(' / ')}`);
   console.log('机器人 | 平均宝分 | 平均星 | 0★ / 1★ / 2★ / 3★ | 三星率 | 平均时长 | 覆灭率 | 收航率 | 平均战斗站');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EDGE_PAD, EDGE_STEP, INTRO_HOLD, INTRO_PUSH, camAt, edgeMarks, focusCx, type EdgeItem } from '../src/view/camguide.ts';
+import { EDGE_PAD, EDGE_STEP, FOLLOW_IDLE, FOLLOW_PAD, INTRO_HOLD, INTRO_PUSH, camAt, edgeMarks, focusCx, followWave, type EdgeItem } from '../src/view/camguide.ts';
 
 const view = { l: 0, t: 100, r: 390, b: 760 };
 const item = (kind: EdgeItem['kind'], sx: number, sy: number): EdgeItem => ({ kind, sx, sy, wx: sx * 2, wy: sy * 2 });
@@ -88,5 +88,23 @@ describe('屏外指示', () => {
   it('结果确定（顺序不随输入顺序变）', () => {
     const a = [item('slot', 500, 200), item('enemy', -10, 300), item('enemy', 200, 1000)];
     expect(edgeMarks(a, view)).toEqual(edgeMarks([...a].reverse(), view));
+  });
+});
+
+describe('开新一波时镜头要不要跟过去', () => {
+  const base = { live: true, busy: false, sinceUser: FOLLOW_IDLE, points: [{ x: 600, y: 300 }], view };
+  it('登陆口都在可见区外、玩家没在动镜头、没开面板：推过去', () => {
+    expect(followWave(base)).toBe(true);
+  });
+  it('有一个登陆口在可见区里就不推；贴着边（FOLLOW_PAD 内）算看不见', () => {
+    expect(followWave({ ...base, points: [{ x: 600, y: 300 }, { x: 200, y: 400 }] })).toBe(false);
+    expect(followWave({ ...base, points: [{ x: view.r - FOLLOW_PAD + 1, y: 400 }] })).toBe(true);
+    expect(followWave({ ...base, points: [{ x: view.r - FOLLOW_PAD, y: 400 }] })).toBe(false);
+  });
+  it('玩家刚自己动过镜头、开着面板 / 在瞄技能、不是竖屏放大、没有登陆口：都不推', () => {
+    expect(followWave({ ...base, sinceUser: FOLLOW_IDLE - 1 })).toBe(false);
+    expect(followWave({ ...base, busy: true })).toBe(false);
+    expect(followWave({ ...base, live: false })).toBe(false);
+    expect(followWave({ ...base, points: [] })).toBe(false);
   });
 });

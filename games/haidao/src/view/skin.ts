@@ -225,18 +225,17 @@ ${W} .hd-boats, ${W} .hd-skills { padding-top:14px; padding-bottom:6px; }
 ${W} .hd-boat { position:relative; min-height:96px; }
 ${W} .hd-boat.sel { transform:translateY(-9px); border-color:${ink}; box-shadow:inset 0 2px 0 rgba(255,250,210,.7),0 6px 0 ${ink},0 0 0 3px rgba(255,214,90,.95),0 0 18px rgba(255,214,90,.85); }
 ${W} .hd-boat.done { filter:grayscale(1) brightness(.82); opacity:.72; }
-${W} .hd-boat.done::after { content:''; position:absolute; left:4px; top:4px; width:20px; height:20px; background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='7' width='10' height='7' rx='1.5' fill='%23e0a824' stroke='%232b1a15' stroke-width='1.5'/><path d='M5 7V5a3 3 0 0 1 6 0v2' fill='none' stroke='%232b1a15' stroke-width='1.8'/></svg>") center/contain no-repeat; }
 ${W} .hd-skill { position:relative; min-height:52px; overflow:hidden; }
 ${W} .hd-skill.sel, ${W} .hd-td-skill.sel { transform:translateY(-8px); box-shadow:${lift},0 6px 0 ${ink},0 0 0 3px rgba(255,214,90,.95),0 0 16px rgba(255,214,90,.8); }
-/* 进攻技能：能用 = 深胡桃木、奶白字、内圈一道金边（像充好能的样子）；能量不够 = 冷灰石板、图标去色、左上角一把锁、底下一条进度。
+/* 进攻技能：能用 = 深胡桃木、奶白字、内圈一道金边（像充好能的样子）；能量不够 = 冷灰石板、图标去色、费用变浅红、底下一条进度（不挂锁：锁在建造列表里是「主寨几级才开放」，这里挂锁会被当成没解锁）。
    字和底的对比度都 ≥ 4.5（奶白 / 深木 5.8，能量数亮金 / 深木 4.9，浅灰 / 石板 5.0）；选中仍是上面那条金底深字 */
 ${W} .hd-btn.hd-skill:not(.sel) { background:${plank('#8a5230', '#663a1e')}; color:#fff4dc; text-shadow:0 1px 1px #24160e; box-shadow:${lift},${drop},inset 0 0 0 2px rgba(255,214,90,.8); }
 ${W} .hd-btn.hd-skill:not(.sel):not(.off) small { color:#ffe08a; font-weight:800; }
 ${W} .hd-btn.hd-skill.off { background:linear-gradient(#5a616c,#454a54); color:#ece6da; box-shadow:${drop}; padding-bottom:8px; }
 ${W} .hd-skill.off .hd-img { filter:grayscale(1) brightness(.85); }
+${W} .hd-btn.hd-skill.off small { color:#ffc0b5; font-weight:800; }
 ${W} .hd-skill.off::before { content:''; position:absolute; left:8px; right:8px; bottom:4px; height:6px; border:1.5px solid ${ink}; border-radius:4px;
   background:linear-gradient(90deg,#ffd23f var(--p,0%),rgba(43,26,21,.6) 0); }
-${W} .hd-skill.off::after { content:''; position:absolute; left:3px; top:3px; width:16px; height:16px; background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='7' width='10' height='7' rx='1.5' fill='%23e0a824' stroke='%232b1a15' stroke-width='1.5'/><path d='M5 7V5a3 3 0 0 1 6 0v2' fill='none' stroke='%232b1a15' stroke-width='1.8'/></svg>") center/contain no-repeat; }
 ${W} .hd-td-skill { min-height:68px; }
 ${W} .hd-td-skill .hd-cd { background:conic-gradient(rgba(14,22,40,.7) var(--cd,0deg),transparent 0); }
 ${W} .hd-td-skill.cool { filter:saturate(.35) brightness(.88); }

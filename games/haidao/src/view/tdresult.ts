@@ -180,7 +180,7 @@ export function loot(_bs: TdScene, mask: HTMLElement, box: HTMLElement, before: 
  * 下面一行"X 星 · 走了 N 格 · 修了 M 次"；奖励由 settleEscort 按每日上限截过。
  */
 export function finishEscort(bs: TdScene, res: ReturnType<typeof tdResult>): void {
-  const er = escortResultOf(bs.s);
+  const er = { ...escortResultOf(bs.s), retreated: bs.retreated };
   if (bs.d.escortLive) {
     // 护航实盘：只结筹码，不动自己的存档（没有金币木材、不记星数）；撤退 / 误了潮按走过的格数折算
     const win = er.arrived && er.stars > 0;

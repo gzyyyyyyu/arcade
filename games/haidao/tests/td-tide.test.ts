@@ -6,7 +6,7 @@ import type { IsoWeek, TdEnemyKind, TdSetup, TdWave } from '../src/core/index.ts
 import { TIDE_BOSS_EVERY, tideBudget, tideHpPct, tideWave } from '../src/content/tdtide.ts';
 import { readTide, recordTide, submitTide, tideBest } from '../src/net/tide.ts';
 import { BUILDINGS } from '../src/content/index.ts';
-import { tdRoute } from '../src/core/td.ts';
+import { tdRoute } from '../src/core/tdquery.ts';
 
 /** 平台 platform/src/weekly.ts 的 beijingIsoWeek 原样抄一份（用 Date 求年份）：核心里的整数算法必须和它逐个时刻对齐 */
 function platformWeek(ms: number): string {

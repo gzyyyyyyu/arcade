@@ -34,17 +34,13 @@ import { HarborCore } from '../worker/pvp/harbor.ts';
 import { MemKv } from '../worker/pvp/kv.ts';
 import { Bank } from './fake-bank.ts';
 import { sampleProfile } from './sample.ts';
+import { flag, opt } from './args.ts';
 
-const argv = process.argv.slice(2);
-const opt = (name: string): string | null => {
-  const i = argv.indexOf(name);
-  return i >= 0 ? (argv[i + 1] ?? null) : null;
-};
 const USAGE = `用法：node tools/noscroll.ts --out <目录> [--view desktop,wide,phone,phonep,small,tablet] [--only <界面名片段>] [--group <流程名片段>]
 尺寸：desktop 1280×720、wide 1920×1080、phone 844×390、phonep 390×844、small 360×640、tablet 820×1180（iPad Air 竖屏）；--view 不写就全量。
 量：超出（要滚动）、可点元素（含数字牌 .hd-pill）重叠、字被裁，以及质量线四项（写进 noscroll.json 的 q，终端按「不达标」列出）：
   顶底栏占比 ≤ 22%（触屏）、岛可见比例 ≥ 60%（基地 / 登陆战 / 守岛）、点按目标 < 44 像素和间距 < 8 像素各 0（触屏）、同屏文字牌 ≤ 6。`;
-if (argv.includes('--help') || argv.includes('-h')) {
+if (flag('--help') || flag('-h')) {
   console.log(USAGE);
   process.exit(0);
 }

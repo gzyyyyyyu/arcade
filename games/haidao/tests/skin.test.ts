@@ -57,6 +57,10 @@ describe('底部卡和技能钮的三态', () => {
     expect(css).toMatch(/\.hd-btn\.hd-skill\.off\s*\{[^}]*#5a616c/);
     expect(css).toMatch(/\.hd-skill\.off \.hd-img\s*\{[^}]*grayscale\(1\)/);
     expect(css).toContain('.hd-skill.off::before');
+    // 能量不够只是暂时用不了：费用变浅红，不挂锁（锁留给「没解锁」）；出完的船卡只灰掉
+    expect(css).toMatch(/\.hd-btn\.hd-skill\.off small\s*\{[^}]*color:#ffc0b5/);
+    expect(css).not.toContain('.hd-skill.off::after');
+    expect(css).not.toContain('.hd-boat.done::after');
     expect(css).toMatch(/\.hd-td-skill \.hd-cd\s*\{[^}]*conic-gradient/);
     expect(css).toMatch(/\.hd-td-skill\.off/);
   });

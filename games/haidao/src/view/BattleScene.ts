@@ -463,7 +463,12 @@ export class BattleScene extends Phaser.Scene {
     this.frameN++;
     if (this.frameN % 5 === 0) updateHud(this);
     if (sig(this) !== this.cardsSig) renderCards(this);
-    if (s.over && !this.ended) finish(this, 1300);
+    if (s.over && !this.ended) {
+      // 结束了：收起选中的船 / 技能和底部的操作提示，免得在结算窗后面还亮着、像还能点
+      this.selBoat = this.selSkill = -1;
+      afterSelect(this);
+      finish(this, 1300);
+    }
     if (this.followT) this.followCam(this.followT);
   }
 

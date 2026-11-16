@@ -338,6 +338,7 @@ export function askEnd(bs: TdScene): void {
         ? '现在撤退？这局到此为止，按撑住的波数给奖励。'
         : '现在撤退？这局算宝藏被抢光，不拿奖励。';
   confirmBox(msg, '撤退', () => {
+    bs.retreated = true;
     bs.s.lost = TD_TREASURE;
     bs.s.over = true;
     finish(bs);

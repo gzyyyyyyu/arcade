@@ -20,12 +20,8 @@ import type { Browser, CDPSession, Page } from 'playwright-core';
 import { createServer } from 'vite';
 import { Resvg } from '@resvg/resvg-js';
 import { tdCampaign } from '../src/core/index.ts';
+import { opt } from './args.ts';
 
-const argv = process.argv.slice(2);
-const opt = (name: string): string | null => {
-  const i = argv.indexOf(name);
-  return i >= 0 ? (argv[i + 1] ?? null) : null;
-};
 const OUT = opt('--out');
 if (!OUT) throw new Error('要用 --out <目录> 指定输出目录');
 const SECS = Number(opt('--secs') ?? 25);

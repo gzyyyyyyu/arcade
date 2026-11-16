@@ -11,15 +11,11 @@ import { tmpdir } from 'node:os';
 import { chromium } from 'playwright-core';
 import { recordFixed } from './record.ts';
 import { createServer } from 'vite';
+import { flag, opt } from './args.ts';
 
-const argv = process.argv.slice(2);
-const opt = (n: string): string | null => {
-  const i = argv.indexOf(n);
-  return i >= 0 ? (argv[i + 1] ?? null) : null;
-};
 const OUT = opt('--out') ?? join(tmpdir(), 'haidao-ui-compare');
 const ONLY = opt('--view')?.split(',') ?? ['phonep', 'phonel', 'pc720', 'pc1080'];
-const REC_UP = argv.includes('--rec-up');
+const REC_UP = flag('--rec-up');
 mkdirSync(OUT, { recursive: true });
 const VIEWS = [
   { name: 'phonep', viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
@@ -96,7 +92,7 @@ try {
       /** 选中一座建筑（手机点一下弹操作环，电脑左键开面板），再 Esc 收起，快捷键 U 就作用在它上面 */
 
       const dismiss = async (): Promise<void> => {
-        const go = page.locator('.hd-mask button:has-text("去看看")');
+        const go = page.locator('.hd-mask .hd-celebrate .hd-btn-gold');
         await go.waitFor({ timeout: 20_000 });
         await page.waitForTimeout(600);
         await go.click();

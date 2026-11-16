@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { TdBarricade, TdRouteLine, WavePreview } from '../core/index.ts';
-import type { TdState } from '../core/td.ts';
+import type { TdState } from '../core/tdstate.ts';
 import { cellX, cellY } from '../core/grid.ts';
 import { UNIT } from '../core/types.ts';
 import { tdE } from './art.ts';
