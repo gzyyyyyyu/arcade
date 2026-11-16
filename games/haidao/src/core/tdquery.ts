@@ -96,6 +96,13 @@ export function tdWaveLanes(s: TdState, w: number): Array<{ x: number; y: number
   return out;
 }
 
+/** 还有敌人没上岛的最早一波（0 起）；都上岛了或还没开波为 -1。竖屏自动构图用它判断"人马上要来"，没人来时镜头不动 */
+export function tdIncomingWave(s: TdState): number {
+  let w = -1;
+  for (const sp of inner(s).spawns) if (w < 0 || sp.wave < w) w = sp.wave;
+  return w;
+}
+
 /** 这条地面路线有没有经过雾区（雾区按 fogFrom 晚来的，按那一波算） */
 function routeFoggy(s: TdState, lane: number, w: number): boolean {
   const zones = s.level.fogZones;

@@ -77,6 +77,9 @@ export interface ESpr {
   tx: number;
   ty: number;
   tick: number;
+  /** 画面上的挤开偏移（逻辑单位，crowd.ts 算目标、按时间追过去）：只影响显示，规则位置不动 */
+  ox: number;
+  oy: number;
   /** 朝向过渡（-1..1）、走过的屏幕距离、上一帧屏幕位置 */
   face: number;
   dist: number;

@@ -1,6 +1,6 @@
 /**
  * 护航的纯函数（tests/escort-ui.test.ts 锁住）：商船在航线上的位置、画面按帧插值、走过的实线和没走的虚线、
- * 竖屏跟船的镜头落点、玩家一碰就停跟随。不依赖 Phaser 和 DOM。
+ * 竖屏跟船看的点（船前方，镜头怎么跟在 camguide.ts 的自动构图里）、"回到船"钮。不依赖 Phaser 和 DOM。
  * 航线是格子序列（格子坐标，格心 +0.5）；位置 pos 是整数，1 格 = ESCORT_CELL。
  */
 import { ESCORT_CELL } from '../core/escorttypes.ts';
@@ -115,29 +115,7 @@ export function nextGate(gates: readonly number[], passed: number): number {
   return gates[passed] ?? -1;
 }
 
-export interface View { cx: number; cy: number; z: number }
-
-/** 让世界点 (wx, wy) 落在可见区正中的镜头中心（缩放 z，屏幕 w×h，vis 是可见区，CSS 像素） */
-export function centerFor(wx: number, wy: number, vis: { l: number; t: number; r: number; b: number }, w: number, h: number, z: number): { cx: number; cy: number } {
-  return { cx: wx - ((vis.l + vis.r) / 2 - w / 2) / z, cy: wy - ((vis.t + vis.b) / 2 - h / 2) / z };
-}
-
-/** 镜头平滑跟：每帧按指数逼近（rate 每秒），dt 毫秒；很近时直接到 */
-export function followStep(cur: { cx: number; cy: number }, target: { cx: number; cy: number }, dt: number, rate = 5): { cx: number; cy: number } {
-  const k = 1 - Math.exp((-rate * Math.max(0, dt)) / 1000);
-  const dx = target.cx - cur.cx;
-  const dy = target.cy - cur.cy;
-  if (Math.hypot(dx, dy) < 0.5) return { cx: target.cx, cy: target.cy };
-  return { cx: cur.cx + dx * k, cy: cur.cy + dy * k };
-}
-
-/** 镜头不是我们上次放的位置了 = 玩家拖、捏、滚轮过：停跟随 */
-export function userMoved(set: View | null, now: View, eps = 0.75): boolean {
-  if (!set) return false;
-  return Math.abs(set.cx - now.cx) > eps || Math.abs(set.cy - now.cy) > eps || Math.abs(set.z - now.z) > 0.002;
-}
-
-/** "回到船"钮：竖屏跟船模式下，玩家停了跟随、这局还没结束 */
+/** "回到船"钮：竖屏放大时，玩家拖开了镜头（自动构图让位）、这局还没结束 */
 export function showBackToShip(live: boolean, following: boolean, over: boolean): boolean {
   return live && !following && !over;
 }

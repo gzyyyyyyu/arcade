@@ -80,6 +80,8 @@ export function installHooks(bs: BattleScene): void {
     const cw = bs.scale.width / bs.r;
     if (sc.x < 24 || sc.x > cw - 24) {
       bs.cc.setView(w.x, bs.cc.cy, bs.cc.z);
+      // 和玩家拖过去一样：自动构图让位，免得脚本拿到坐标后、点下去前镜头又滑走
+      bs.fit.markUser();
       return pagePoint(bs.cc.toScreen(w.x, w.y));
     }
     return pagePoint(sc);

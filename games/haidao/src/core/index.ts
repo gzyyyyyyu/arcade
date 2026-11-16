@@ -37,7 +37,7 @@ export type { Drop } from './run.ts';
 export * from './tdtypes.ts';
 export { createTd, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
 export { TD_TIER_LEVEL, tdBuildRange, tdHeroStats, tdJammed, tdTowerRange } from './tdstate.ts';
-export { tdBuildBlock, tdCallBonus, tdClearCost, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSellRefund, tdWaveLanes, tideOpenAt } from './tdquery.ts';
+export { tdBuildBlock, tdCallBonus, tdClearCost, tdIncomingWave, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSellRefund, tdWaveLanes, tideOpenAt } from './tdquery.ts';
 export { TD_HERO_GUARD } from './tdhero.ts';
 export type { TdState } from './tdstate.ts';
 export { branchError, chooseBranch, hasBranches, heroCap, heroLevel, heroResearchCost, pvpSnapshot, researchHero, sanitizeBranch } from './tdbase.ts';

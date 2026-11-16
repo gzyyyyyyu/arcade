@@ -11,7 +11,7 @@ import { sfx } from './audio/sfx.ts';
 import { escortIcon, escortShipArt } from './art/escort.ts';
 import type { CamCtl } from './camctl.ts';
 import type { FitCam } from './camfit.ts';
-import { aheadPoint, centerFor, dashes, followStep, interpPos, meetPoint, nextGate, pathFrom, pathTo, shipPoint, showBackToShip, userMoved, type Pt, type View } from './escortcam.ts';
+import { aheadPoint, dashes, interpPos, meetPoint, nextGate, pathFrom, pathTo, shipPoint, showBackToShip, type Pt } from './escortcam.ts';
 import { injectEscortCss } from './escortcss.ts';
 import { PACE_INFO, PACE_ORDER, hullPercent, hullTone, meetText, mendView, paceOfKey } from './escorttext.ts';
 import { put } from './ground.ts';
@@ -36,8 +36,6 @@ export interface EscortHost {
   float: (wx: number, wy: number, str: string, color: string, size: number) => void;
 }
 
-/** 开场推镜走完之前不抢镜头（毫秒，FitCam 的 INTRO_HOLD + INTRO_PUSH 再留一点） */
-const INTRO_MS = 2100;
 const LAND_PHONE = '(orientation:landscape) and (max-height:500px)';
 
 export class EscortView {
@@ -72,9 +70,9 @@ export class EscortView {
   private follow: HTMLButtonElement | null = null;
   private back: HTMLButtonElement | null = null;
   private liftSig = '';
-  private camFollow = true;
-  private camSet: View | null = null;
   private backOn = false;
+  /** 这一帧船在航线上的插值位置：自动构图看船前方用 */
+  private shownPos = 0;
   private hullShown = -1;
 
   constructor(h: EscortHost) {
@@ -187,10 +185,7 @@ export class EscortView {
         this.speedMirror = { src, btn };
       }
     }
-    this.back = button('', 'hd-btn-wood hd-esc-back', () => {
-      this.camFollow = true;
-      this.camSet = null;
-    }, this.h.ui);
+    this.back = button('', 'hd-btn-wood hd-esc-back', () => this.h.fit().resume(), this.h.ui);
     this.back.innerHTML = `${escortIcon('ship')}<span>回到船</span>`;
     this.back.setAttribute('aria-label', '镜头回到船');
   }
@@ -257,8 +252,6 @@ export class EscortView {
   private liftFound = false;
   private liftSheet: HTMLElement | null = null;
   private liftBottom: HTMLElement | null = null;
-  /** 第一帧的时间：Phaser 的 time.now 是从游戏启动算的，开场推镜的等待要按本局起算 */
-  private t0 = -1;
 
   /** 造塔面板弹出来时，速度钮跟着抬到它上面一排（竖屏、电脑）；手机横屏钮在左下角，面板开着就收起 */
   private lift(): void {
@@ -335,16 +328,16 @@ export class EscortView {
 
   // ---------------------------------------------------------------- 画面（每帧）
 
-  frame(dt: number, frac: number, now: number): void {
+  frame(frac: number, now: number): void {
     const s = this.st();
     const e = s.escort!;
-    if (this.t0 < 0) this.t0 = now;
     if (s.tick !== this.lastTick) {
       this.prev = this.last;
       this.last = e.pos;
       this.lastTick = s.tick;
     }
     const pos = interpPos(this.prev, this.last, frac);
+    this.shownPos = pos;
     const sp = shipPoint(this.route, pos);
     const w = iso(sp.x, sp.y);
     const ahead = iso(sp.x + sp.hx, sp.y + sp.hy);
@@ -356,7 +349,7 @@ export class EscortView {
     this.overShip(w.x, w.y + bob, sp.x + sp.y + 0.4, sdx < 0, e, now);
     this.drawWake(w.x, w.y, sdx, sdy, e.pace, now, sp.x + sp.y);
     this.drawRoute(pos, e);
-    this.follow2(dt, pos, now - this.t0);
+    this.syncBack();
     // 造塔面板开着时游戏暂停、HUD 不刷新，所以抬升 / 收起放在每帧里（隔 100 毫秒查一次）
     if (now - this.liftAt > 100) {
       this.liftAt = now;
@@ -468,28 +461,18 @@ export class EscortView {
     });
   }
 
-  // 竖屏跟船：镜头中心 = 船前方 3 格；玩家一碰就停，出"回到船"钮
-  private follow2(dt: number, pos: number, now: number): void {
-    const fit = this.h.fit();
+  /** 自动构图看哪里（tdDirector 转过来）：船前方 AHEAD_CELLS 格，船走到哪跟到哪；结束了不动 */
+  camFocus(): Pt | null {
     const s = this.st();
-    const cc = this.h.cc;
-    const live = fit.live;
-    if (live && this.camFollow && !s.over && now > INTRO_MS) {
-      const cur: View = { cx: cc.cx, cy: cc.cy, z: cc.z };
-      if (userMoved(this.camSet, cur)) this.camFollow = false;
-      else {
-        const a = aheadPoint(this.route, pos);
-        const wp = iso(a.x, a.y);
-        const w = this.h.scene.scale.width / this.h.r;
-        const hh = this.h.scene.scale.height / this.h.r;
-        const z = fit.home.z;
-        const tgt = centerFor(wp.x, wp.y, fit.visible(), w, hh, z);
-        const nx = this.camSet ? followStep(cur, tgt, dt) : tgt;
-        cc.setView(nx.cx, nx.cy, z);
-        this.camSet = { cx: cc.cx, cy: cc.cy, z: cc.z };
-      }
-    }
-    const show = showBackToShip(live, this.camFollow, s.over);
+    if (s.over) return null;
+    const a = aheadPoint(this.route, this.shownPos);
+    return iso(a.x, a.y);
+  }
+
+  /** 玩家拖开了镜头（自动构图让位）就出"回到船"钮，点了马上接回 */
+  private syncBack(): void {
+    const fit = this.h.fit();
+    const show = showBackToShip(fit.live, fit.following(), this.st().over);
     if (show !== this.backOn && this.back) {
       this.backOn = show;
       this.back.classList.toggle('on', show);

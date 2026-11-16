@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { BUILDINGS } from '../src/content/index.ts';
 import { TD2_CHAPTERS, TD2_LEVELS as ALL_LEVELS, TD2_LEVEL_BY_ID, TD2_MAPS, buildLevel, TD2_LEVEL_DEFS } from '../src/content/tdmaps.ts';
 import { TD2_ENEMY_POINTS } from '../src/content/td2units.ts';
-import { createTd } from '../src/core/td.ts';
-import { tdPreview, tdRoute, tdRoutes, tdWaveLanes } from '../src/core/tdquery.ts';
+import { createTd, stepTd } from '../src/core/td.ts';
+import { tdIncomingWave, tdPreview, tdRoute, tdRoutes, tdWaveLanes } from '../src/core/tdquery.ts';
 import { tdGrowthSetup } from '../src/core/tdrun.ts';
 import { waveBudget } from '../src/core/td2types.ts';
 import { RULES_VERSION } from '../src/core/types.ts';
@@ -181,5 +181,19 @@ describe('每一波的登陆口（竖屏镜头推过去看的地方）', () => {
         expect([...got].sort(), `${lv.id} 第 ${w + 1} 波`).toEqual([...new Set(want)].sort());
       }
     }
+  });
+});
+
+describe('还有敌人没上岛的那一波（竖屏自动构图：没人要来时镜头不动）', () => {
+  it('开波前是 -1；叫波后是这一波，直到这一波都上岛', () => {
+    const r = tdGrowthSetup('td03', 'suggest', 1);
+    if (!r.ok) throw new Error('td03');
+    const s = createTd(r.value);
+    expect(tdIncomingWave(s)).toBe(-1);
+    stepTd(s, [{ t: s.tick, type: 'call' }]);
+    expect(tdIncomingWave(s)).toBe(0);
+    for (let i = 0; i < 2000 && tdIncomingWave(s) === 0; i++) stepTd(s, []);
+    expect(tdIncomingWave(s)).not.toBe(0);
+    expect(s.enemies.length).toBeGreaterThan(0);
   });
 });

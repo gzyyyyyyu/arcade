@@ -1,12 +1,12 @@
 import type { TdScene } from './TdScene.ts';
 import Phaser from 'phaser';
 import { BUILDINGS } from '../content/index.ts';
-import { tdLanes, tdRoutes, tdWaveLanes } from '../core/index.ts';
+import { tdIncomingWave, tdLanes, tdRoutes, tdWaveLanes } from '../core/index.ts';
 import { cellX, cellY } from '../core/grid.ts';
 import { UNIT, BEACH } from '../core/types.ts';
 import { sTex, bTex, wTex, fxA, tdP, troopF, iconA } from './art.ts';
-import { type Box, islandBox, type Content, cellsBox } from './camfit.ts';
-import { type EdgeItem, type EdgeKind, edgeMarks, followWave } from './camguide.ts';
+import { type Box, islandBox, type Content, cellsBox, type Director } from './camfit.ts';
+import { type EdgeItem, type EdgeKind, type FPt, edgeMarks, frameFocus, groupAround } from './camguide.ts';
 import { EASE } from './motion.ts';
 import { RIG_TEX } from './rigsprite.ts';
 import { isoRing } from './tdfx.ts';
@@ -238,7 +238,7 @@ export function contentBox(bs: TdScene): Content {
   return { box: cellsBox(rs, 1), whole: true };
 }
 
-/** 开新一波镜头跟过去时，落点沿路线往岛里走几格 */
+/** 看下一波时，落点沿路线往岛里走几格 */
 const FOLLOW_INLAND = 3;
 
 /** 一波的登陆口投到世界坐标（格子中心） */
@@ -253,26 +253,48 @@ export function introFocus(bs: TdScene): number | null {
 }
 
 /**
- * 竖屏放大时开了第 w 波：它的登陆口都在可见区外，就把镜头缓推到登陆口的中间（同点屏边箭头的平移）。
- * 玩家刚自己动过镜头、开着面板或在瞄技能时不推（followWave 判）；减弱动态时 panTo 直接到位。
+ * 守岛的自动构图（竖屏放大时，FitCam 每帧问一次看哪里）：
+ * - 岛上有敌人：离宝藏最近的那个当锚，它周围一拨是主组，和离主组最近的宝藏能一起框住就框住，放不下只看主组。
+ *   所以一拨人正在冲宝藏时，新一波从别处上岸也不会把镜头拉走（新来的看屏边箭头）；
+ * - 岛上没敌人：看下一波的登陆口沿路往岛里走 FOLLOW_INLAND 格（登陆口在画面上部，下面是他们要走的路）；
+ * - 护航：看船前方（escortview 给）。
+ * 开着造塔 / 升级面板、在瞄技能、录像钩子在控镜头时不动。
  */
-export function followWaveCam(bs: TdScene, w: number): void {
-  const ps = wavePoints(bs, w);
-  const busy = bs.openSlot >= 0 || bs.bestOpen || bs.mode !== 'none';
-  const points = ps.map((p) => bs.cc.toScreen(p.x, p.y));
-  const fighting = bs.s.enemies.filter((e) => e.wave < w && (e.mode === 'in' || e.mode === 'out')).map((e) => {
-    const q = W(e.x, e.y);
-    return bs.cc.toScreen(q.x, q.y);
-  });
-  if (!followWave({ live: bs.fit.live && !bs.ended, busy, sinceUser: bs.fit.sinceUser(), points, fighting, view: bs.fit.visible() })) return;
-  // 落点不对准沙滩上的登陆口（那样半屏是海），对准沿去宝藏的路往岛里走 FOLLOW_INLAND 格的地方：登陆口在画面上部，下面是他们要走的路
+export function tdDirector(bs: TdScene): Director {
+  return {
+    busy: () => bs.openSlot >= 0 || bs.bestOpen || bs.mode !== 'none' || bs.followT !== null || bs.ended,
+    track: () => !!bs.esc,
+    focus: (vw, vh) => {
+      if (bs.esc) return bs.esc.camFocus();
+      const s = bs.s;
+      const chests = s.treasures.map((t) => iso(t.x + 0.5, t.y + 0.5));
+      const foes: FPt[] = [];
+      for (const e of s.enemies) if (e.mode === 'in' || e.mode === 'out') foes.push(W(e.x, e.y));
+      if (foes.length) {
+        const near = (p: FPt): number => Math.min(...chests.map((c) => Math.hypot(c.x - p.x, c.y - p.y)));
+        let anchor = foes[0]!;
+        for (const p of foes) if (chests.length && near(p) < near(anchor)) anchor = p;
+        const group = groupAround(foes, anchor);
+        let obj: FPt | null = null;
+        for (const c of chests) if (!obj || Math.hypot(c.x - group.x, c.y - group.y) < Math.hypot(obj.x - group.x, obj.y - group.y)) obj = c;
+        return frameFocus(group, obj, vw, vh);
+      }
+      const w = tdIncomingWave(s);
+      return w < 0 ? null : laneFocus(bs, w);
+    },
+  };
+}
+
+/** 第 w 波登陆口沿去宝藏的路往岛里走 FOLLOW_INLAND 格的点的中间（世界坐标）；这一波没有登陆口为 null */
+function laneFocus(bs: TdScene, w: number): FPt | null {
   const routes = tdRoutes(bs.s);
   const at = tdWaveLanes(bs.s, w).map((c) => {
     const cells = routes.find((r) => r.x === c.x && r.y === c.y)?.cells ?? [];
     const k = cells[Math.min(FOLLOW_INLAND, cells.length - 1)];
     return k === undefined ? iso(c.x + 0.5, c.y + 0.5) : iso(cellX(k) / UNIT, cellY(k) / UNIT);
   });
-  bs.fit.panTo(at.reduce((a, p) => a + p.x, 0) / at.length, at.reduce((a, p) => a + p.y, 0) / at.length);
+  if (!at.length) return null;
+  return { x: at.reduce((a, p) => a + p.x, 0) / at.length, y: at.reduce((a, p) => a + p.y, 0) / at.length };
 }
 
 /** 屏外的敌人在可见区边上出箭头加数量（点了镜头移过去），屏外的空木台出小标；只在竖屏放大（FitCam.live）时有 */

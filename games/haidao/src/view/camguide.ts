@@ -1,6 +1,7 @@
 /**
  * 手机竖屏放大后的镜头辅助（纯函数，tests/camguide.test.ts 锁住）：
- * 开场"先看整岛、再推到要守 / 要登陆的那一侧"的时间线，推过去的落点，开新一波时要不要跟过去，以及屏外东西在屏幕边缘的指示（箭头、小标）。
+ * 开场"先看整岛、再推到要守 / 要登陆的那一侧"的时间线，推过去的落点，之后的自动构图（框住正在交战的主组和它的目标，玩家一碰就让位、
+ * 停手 AUTO_IDLE 后接回），以及屏外东西在屏幕边缘的指示（箭头、小标）。登陆战、守岛、护航都走这一套（FitCam 每帧调），各场景只给「看什么」。
  * 竖屏下登陆战和守岛放大到内容约占屏高 60%，左右会裁掉一截，所以要告诉玩家"那边还有东西"。
  */
 import { clamp01, easeInOutSine } from './motion.ts';
@@ -26,24 +27,78 @@ export function camAt(t: number, from: View, to: View, hold = INTRO_HOLD, push =
   return { view: { cx: from.cx + (to.cx - from.cx) * e, cy: from.cy + (to.cy - from.cy) * e, z }, done: false };
 }
 
-/** 玩家自己动过镜头（拖、捏、滚轮、点屏边箭头）之后多久内，开新一波也不替他挪镜头（毫秒） */
-export const FOLLOW_IDLE = 5000;
-/** 登陆口离可见区边缘至少这么多像素才算「看得见」：贴着边的一半在屏外，敌人一上岛就出去了 */
-export const FOLLOW_PAD = 40;
+/** 玩家自己动过镜头（拖、捏、滚轮、点屏边箭头、切全景）之后多久内，自动构图不接管（毫秒） */
+export const AUTO_IDLE = 4000;
+/** 点了一下画面（下船、放技能、点塔）之后多久内不动镜头：刚点完画面就滑走，下一下会点歪（毫秒） */
+export const TAP_HOLD = 2500;
+/** 主组的半径（世界像素，约 4 格宽）：离锚点这么近的算同一拨 */
+export const GROUP_R = 260;
+/** 死区：落点偏离当前中心超过可见宽的这一比例才开始挪，挪到差不到 AUTO_SETTLE 就停（来回小抖不跟） */
+export const AUTO_DEAD = 0.18;
+export const AUTO_SETTLE = 0.02;
+
+export interface FPt { x: number; y: number }
+
+/** anchor 周围 r 以内的点的中心（anchor 自己一定算进去） */
+export function groupAround(points: readonly FPt[], anchor: FPt, r = GROUP_R): FPt {
+  let x = 0;
+  let y = 0;
+  let n = 0;
+  for (const p of points) {
+    if (Math.hypot(p.x - anchor.x, p.y - anchor.y) > r) continue;
+    x += p.x;
+    y += p.y;
+    n++;
+  }
+  return n ? { x: x / n, y: y / n } : { x: anchor.x, y: anchor.y };
+}
+
+/** 最大的一簇的中心：每个点数 r 以内有几个，取最多的那个当锚（并列取先出现的），没有点为 null */
+export function biggestCluster(points: readonly FPt[], r = GROUP_R): FPt | null {
+  let best = -1;
+  let bn = -1;
+  for (let i = 0; i < points.length; i++) {
+    let n = 0;
+    for (const q of points) if (Math.hypot(q.x - points[i]!.x, q.y - points[i]!.y) <= r) n++;
+    if (n > bn) {
+      bn = n;
+      best = i;
+    }
+  }
+  return best < 0 ? null : groupAround(points, points[best]!, r);
+}
 
 /**
- * 开新一波时要不要把镜头推到它的登陆口（只在竖屏放大模式）：这波的登陆口已经有一个在可见区里、
- * 玩家 FOLLOW_IDLE 内自己动过镜头、开着造塔 / 升级面板或正在瞄技能，都不推。
- * 前面几波还有敌人在可见区里（正和塔打着）也不推：镜头拉走了玩家就看不见自己的塔在打什么，新一波靠屏边箭头提醒。
- * points 是登陆口、fighting 是前面几波还活着的敌人投到屏幕上的位置（CSS 像素，和 view 同一个坐标系），sinceUser 是离玩家上次动镜头多少毫秒。
+ * 构图的落点（世界坐标）：主组和目标（要守的宝藏 / 要打的建筑）放得进可见区的八成，就看两者的中间，一起框住；
+ * 放不下只看主组（交战的人比目标要紧）。vw、vh 是可见区的世界宽高
  */
-export function followWave(o: { live: boolean; busy: boolean; sinceUser: number; points: ReadonlyArray<{ x: number; y: number }>; fighting?: ReadonlyArray<{ x: number; y: number }>; view: Rect }): boolean {
-  if (!o.live || o.busy || o.sinceUser < FOLLOW_IDLE || o.points.length === 0) return false;
-  const v = o.view;
-  const p = FOLLOW_PAD;
-  const seen = (q: { x: number; y: number }): boolean => q.x >= v.l + p && q.x <= v.r - p && q.y >= v.t + p && q.y <= v.b - p;
-  if (o.fighting?.some(seen)) return false;
-  return !o.points.some(seen);
+export function frameFocus(group: FPt, objective: FPt | null, vw: number, vh: number): FPt {
+  if (!objective) return group;
+  const fits = Math.abs(group.x - objective.x) <= vw * 0.8 && Math.abs(group.y - objective.y) <= vh * 0.8;
+  return fits ? { x: (group.x + objective.x) / 2, y: (group.y + objective.y) / 2 } : group;
+}
+
+/** 让世界点 (wx, wy) 落在可见区正中的镜头中心（缩放 z，屏幕 w×h，vis 是可见区，CSS 像素） */
+export function centerFor(wx: number, wy: number, vis: Rect, w: number, h: number, z: number): { cx: number; cy: number } {
+  return { cx: wx - ((vis.l + vis.r) / 2 - w / 2) / z, cy: wy - ((vis.t + vis.b) / 2 - h / 2) / z };
+}
+
+/**
+ * 自动构图的一帧（纯函数）：cur 是现在的镜头中心，tgt 是想去的（都是世界坐标），vw 是可见区的世界宽，dt 毫秒。
+ * 没在挪时，偏差超过 vw × AUTO_DEAD 才起步（track = 一直跟，没有死区，护航跟船用）；挪起来就按指数逼近、限速，差到 vw × AUTO_SETTLE 以内停下。
+ * 减弱动态（reduced）时只慢慢平移：逼近更慢、限速更低。
+ */
+export function autoStep(cur: { cx: number; cy: number }, tgt: { cx: number; cy: number }, moving: boolean, dt: number, vw: number, o: { reduced?: boolean; track?: boolean } = {}): { cx: number; cy: number; moving: boolean } {
+  const dx = tgt.cx - cur.cx;
+  const dy = tgt.cy - cur.cy;
+  const d = Math.hypot(dx, dy);
+  if (!moving && !o.track && d <= vw * AUTO_DEAD) return { cx: cur.cx, cy: cur.cy, moving: false };
+  if (d <= vw * AUTO_SETTLE) return { cx: tgt.cx, cy: tgt.cy, moving: false };
+  if (dt <= 0) return { cx: cur.cx, cy: cur.cy, moving };
+  const rate = o.reduced ? 0.9 : 2.6;
+  const cap = (o.reduced ? 0.35 : 1.1) * vw * (dt / 1000);
+  const step = Math.min(d * (1 - Math.exp((-rate * dt) / 1000)), cap);
+  return { cx: cur.cx + (dx / d) * step, cy: cur.cy + (dy / d) * step, moving: true };
 }
 
 /**

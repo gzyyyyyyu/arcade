@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ESCORT_CELL } from '../src/core/escorttypes.ts';
-import { AHEAD_CELLS, aheadPoint, centerFor, dashes, followStep, interpPos, meetPoint, nextGate, pathFrom, pathTo, shipPoint, showBackToShip, userMoved } from '../src/view/escortcam.ts';
+import { AHEAD_CELLS, aheadPoint, dashes, interpPos, meetPoint, nextGate, pathFrom, pathTo, shipPoint, showBackToShip } from '../src/view/escortcam.ts';
 import { ESCORT_CSS } from '../src/view/escortcss.ts';
 import { PACE_INFO, PACE_ORDER, bestText, hullPercent, hullTone, lockText, mapTitle, meetText, mendView, paceOfKey, resultBig, resultLine, resultTitle, starRuleText } from '../src/view/escorttext.ts';
 
@@ -60,27 +60,7 @@ describe('escortcam：实线虚线', () => {
 });
 
 describe('escortcam：竖屏跟船', () => {
-  it('centerFor 让目标落在可见区正中', () => {
-    const vis = { l: 0, t: 100, r: 400, b: 700 };
-    const c = centerFor(1000, 500, vis, 400, 800, 2);
-    // 可见区中心 (200, 400) 相对屏中心 (200, 400) 没偏，中心就是目标
-    expect(c).toEqual({ cx: 1000, cy: 500 });
-    const d = centerFor(1000, 500, { l: 0, t: 200, r: 400, b: 800 }, 400, 800, 2);
-    expect(d.cy).toBe(500 - 100 / 2);
-  });
-  it('followStep 逼近目标，很近时直接到，dt 为 0 不动', () => {
-    const a = followStep({ cx: 0, cy: 0 }, { cx: 100, cy: 0 }, 100);
-    expect(a.cx).toBeGreaterThan(0);
-    expect(a.cx).toBeLessThan(100);
-    expect(followStep({ cx: 0, cy: 0 }, { cx: 100, cy: 0 }, 0).cx).toBe(0);
-    expect(followStep({ cx: 99.8, cy: 0 }, { cx: 100, cy: 0 }, 16)).toEqual({ cx: 100, cy: 0 });
-  });
-  it('玩家一碰镜头就停跟随，出"回到船"钮', () => {
-    const set = { cx: 10, cy: 20, z: 1.5 };
-    expect(userMoved(null, set)).toBe(false);
-    expect(userMoved(set, { ...set })).toBe(false);
-    expect(userMoved(set, { ...set, cx: 14 })).toBe(true);
-    expect(userMoved(set, { ...set, z: 1.7 })).toBe(true);
+  it('自动构图让位时出"回到船"钮，跟着船、不是竖屏放大、结束了都不出', () => {
     expect(showBackToShip(true, false, false)).toBe(true);
     expect(showBackToShip(true, true, false)).toBe(false);
     expect(showBackToShip(false, false, false)).toBe(false);

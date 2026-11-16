@@ -36,7 +36,7 @@ import type { EscortView } from './escortview.ts';
 import { escortShipArt } from './art/escort.ts';
 import { DEPTH } from './depth.ts';
 import { type TdData, type ESpr, type TSpr, W, EDGE_MS, TEMP_KINDS } from './tdcommon.ts';
-import { drawLayout, drawProps, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges } from './tdworld.ts';
+import { drawLayout, drawProps, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector } from './tdworld.ts';
 import { tap, hover, press, cancelAll, callWave, toggleHero } from './tdinput.ts';
 import { newCycle } from './tdpick.ts';
 import { canCall, buildUi, updateHud } from './tdhud.ts';
@@ -301,6 +301,7 @@ export class TdScene extends Phaser.Scene {
     buildUi(this);
     // 镜头按岛适配：整座岛、临时塔位、所有登陆口（含落潮那条）都在顶栏和操作区之间的可见区里，敌人一落地就看得见
     this.fit = new FitCam(this, this.cc, this.ui, () => this.fitIsland(), this.r, () => this.fitContent(), () => introFocus(this));
+    this.fit.setDirector(tdDirector(this));
     this.events.once('shutdown', () => {
       this.ui.remove();
       app.inBattle = false;
@@ -315,7 +316,10 @@ export class TdScene extends Phaser.Scene {
       // 竖屏放大时这一格可能在屏外：先把镜头移过去（和玩家拖过去一样），再给坐标
       const v = this.fit.visible();
       const p = this.cc.toScreen(w.x, w.y);
-      if (p.x < v.l + 24 || p.x > v.r - 24 || p.y < v.t + 24 || p.y > v.b - 24) this.fit.panTo(w.x, w.y, 0);
+      if (p.x < v.l + 24 || p.x > v.r - 24 || p.y < v.t + 24 || p.y > v.b - 24) {
+        this.fit.markUser();
+        this.fit.panTo(w.x, w.y, 0);
+      }
       return pagePoint(this.cc.toScreen(w.x, w.y));
     };
     app.api.tdInfo = () => ({ tick: s.tick, wave: s.wave, vault: s.vault, lost: s.lost, gold: s.gold, over: s.over, slots: s.slots.map((q) => ({ x: q.x + 1, y: q.y + 1, tower: q.tower, wreck: wreckOf(this, q) !== null, garrison: q.garrison !== undefined })), flags: this.plan.flagCount, routes: this.plan.routeCount, barricades: s.barricades?.length ?? 0, hero: { x: s.hero.x / UNIT, y: s.hero.y / UNIT, goal: s.hero.goal ? { x: s.hero.goal.x / UNIT, y: s.hero.goal.y / UNIT } : null }, jammed: s.towers.filter((t) => tdJammed(s, t.id)).length, skilled: (s.internal as { skilled: Set<number> }).skilled.size, objects: countObjects(this) });
@@ -399,7 +403,7 @@ export class TdScene extends Phaser.Scene {
     this.dying.timeScale = ts;
     this.dying.step(dt);
     sync(this, dt);
-    this.esc?.frame(dt, this.acc / STEP_MS, this.time.now);
+    this.esc?.frame(this.acc / STEP_MS, this.time.now);
     updateHud(this);
     if (this.openSlot >= 0 && slotSig(this) !== this.sheetSig) renderSheet(this);
     reopenWatch(this);

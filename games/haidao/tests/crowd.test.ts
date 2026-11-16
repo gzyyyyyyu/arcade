@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { approach, CROWD_D, CROWD_MAX, crowdOffsets } from '../src/view/crowd.ts';
+import { approach, CROWD_D, CROWD_MAX, CROWD_MAX_TD, crowdOffsets } from '../src/view/crowd.ts';
 
 function run(items: Array<{ id: number; x: number; y: number }>): { ox: Float64Array; oy: Float64Array } {
   const ox = new Float64Array(items.length);
@@ -90,5 +90,27 @@ describe('crowdOffsets 大个子和遮挡', () => {
     const t0 = performance.now();
     crowdOffsets(many, mx, my, 56, 80, 5, blocked);
     expect(performance.now() - t0).toBeLessThan(500);
+  });
+});
+
+describe('守岛的人堆', () => {
+  it('一条路上挤成一坨的 30 个敌人：推开后最近邻间距变大，每人偏移不超过 CROWD_MAX_TD', () => {
+    // 规则里一波沿同一条路走，几乎重合：沿 x 方向每人只差 6 个单位
+    const items = Array.from({ length: 30 }, (_, i) => ({ id: i + 1, x: 1000 + i * 6, y: 800 + (i % 3) * 4 }));
+    const ox = new Float64Array(items.length);
+    const oy = new Float64Array(items.length);
+    const nearest = (dx: Float64Array, dy: Float64Array): number => {
+      let sum = 0;
+      for (let i = 0; i < items.length; i++) {
+        let best = Infinity;
+        for (let j = 0; j < items.length; j++) if (i !== j) best = Math.min(best, Math.hypot(items[i]!.x + dx[i]! - items[j]!.x - dx[j]!, items[i]!.y + dy[i]! - items[j]!.y - dy[j]!));
+        sum += best;
+      }
+      return sum / items.length;
+    };
+    const before = nearest(new Float64Array(30), new Float64Array(30));
+    crowdOffsets(items, ox, oy, CROWD_D, CROWD_MAX_TD, 4);
+    expect(nearest(ox, oy)).toBeGreaterThan(before * 2.5);
+    for (let i = 0; i < items.length; i++) expect(Math.hypot(ox[i]!, oy[i]!)).toBeLessThanOrEqual(CROWD_MAX_TD + 1e-9);
   });
 });
