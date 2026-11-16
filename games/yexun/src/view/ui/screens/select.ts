@@ -10,7 +10,7 @@ import { RAID_LIVE, RAID_TEMPLATES, type RaidLiveTier, type RaidTemplateId } fro
 import { RAID_REGIONS, VIGIL_REGIONS, type Region } from '../../../content/regions.ts';
 import type { RaidPick } from '../../../platform/save.ts';
 import { MONSTER_INFO } from '../codex.ts';
-import { LOCK_SVG, esc, layer, onAction, type MenuState, RAID_PICK, LIVE_PICK, isLiveTown, HOME_BTN, bestText, raidTierOk } from './shared.ts';
+import { LOCK_SVG, esc, layer, onAction, type MenuState, RAID_PICK, LIVE_PICK, isLiveTown, HOME_BTN, bestText, raidTierOk, loadoutNote } from './shared.ts';
 import { zoomed } from '../../viewport.ts';
 import { sceneUrl, TitleArt } from './titleArt.ts';
 import type { Menu } from './menu.ts';
@@ -38,6 +38,8 @@ export class Select {
   private map: MapId = 'snow';
   private tpl: RaidPick = 'guzhen';
   private endless = false;
+  /** 刚点了起手或心法：下一次重绘在那一行下面浮出一条说明（几秒后淡出，不占版面；触屏看不到悬停提示） */
+  private ldTip = false;
   /** "更多选项"展开了没有：只在本次会话里记住，不写存储 */
   private live: MenuState['live'] = { available: false, on: false, tier: 'small' };
   private s: MenuState | null = null;
@@ -95,8 +97,14 @@ export class Select {
       },
       prep: (el) => this.m.onPrep(el.dataset.t as 'char' | 'curse' | 'perk'),
       // 起手二选一、心法三选一：点已选的心法不会取消，要不带点「不带」
-      alt: (el) => this.m.onLoadout({ alt: el.dataset.v === '1' }),
-      xinfa: (el) => this.m.onLoadout({ xinfa: el.dataset.v ? (el.dataset.v as SchoolId) : null }),
+      alt: (el) => {
+        this.ldTip = true;
+        this.m.onLoadout({ alt: el.dataset.v === '1' });
+      },
+      xinfa: (el) => {
+        this.ldTip = true;
+        this.m.onLoadout({ xinfa: el.dataset.v ? (el.dataset.v as SchoolId) : null });
+      },
       vault: () => this.m.onVault(),
       go: () => this.go(),
     });
@@ -188,7 +196,7 @@ export class Select {
   }
 
   /**
-   * 开局配置的紧凑控件：起手二选一（两件法器的图标）、心法三选一（不带 / 两个主修流派的小图标），名字和效果在悬停提示里。
+   * 开局配置的紧凑控件：起手二选一（两件法器的图标）、心法三选一（不带 / 两个主修流派的小图标）；点了以后下面浮出一条说明（loadoutNote），名字也在悬停提示里。
    * 娱乐和实盘共用，记在存档里每个角色各一份；点已选的心法不会取消，要不带点「不带」
    */
   private loadoutCtl(s: MenuState): string {
@@ -199,7 +207,7 @@ export class Select {
     const starts = l.starts.map((w, i) => btn(l.alt === (i === 1), 'alt', String(i), w.icon, `起手：${w.name}${i === 1 ? '（第二件）' : ''}`)).join('');
     const schools =
       btn(l.xinfa === null, 'xinfa', '', noSchoolIcon(), '心法：不带') +
-      l.schools.map((x) => btn(l.xinfa === x.id, 'xinfa', x.id, schoolIcon(x.id), `心法：${x.name}（${x.name}的法器和被动出现多一半）`)).join('');
+      l.schools.map((x) => btn(l.xinfa === x.id, 'xinfa', x.id, schoolIcon(x.id), `心法：${x.name}`)).join('');
     return `<div class="yx-ldctl"><span class="yx-ldseg" role="group" aria-label="起手"><i>起手</i>${starts}</span><span class="yx-ldseg" role="group" aria-label="心法"><i>心法</i>${schools}</span></div>`;
   }
 
@@ -288,7 +296,7 @@ export class Select {
     }
     const charChip = `<button type="button" class="yx-chip yx-prep yx-prepchar" data-a="prep" data-t="char">${s.charFace ? `<img alt="" src="${s.charFace}">` : ''}<b>${CHARACTERS[s.character].name}</b><small>角色</small></button>`;
     // 角色：娱乐和实盘同一个按钮（点开角色页选人）+ 起手心法；夜探教学局不让换
-    const charLine = raid && s.raidFirst ? '' : `<div class="yx-chips yx-livechar">${charChip}${this.loadoutCtl(s)}</div>`;
+    const charLine = raid && s.raidFirst ? '' : `<div class="yx-chips yx-livechar">${charChip}${this.loadoutCtl(s)}${s.loadout && this.ldTip ? `<p class="yx-ldnote" role="status">${esc(loadoutNote(s.loadout, live))}</p>` : ''}</div>`;
     if (!live) {
       const shown = raid ? raidDanger(this.diff) : this.diff;
       const dangerBtn = (d: Danger): string => {
@@ -321,6 +329,7 @@ export class Select {
     const vault = raid && s.vault && !live ? `<button type="button" class="yx-chip yx-vaultbtn" data-a="vault"><b>藏宝阁</b><small>${s.vault.got} / ${s.vault.total}</small></button>` : '';
     const aside = `<div class="yx-aside"><div class="yx-opts">${opts}</div><div class="yx-startbar"><button type="button" class="yx-big" data-a="go"${startOff ? ' disabled' : ''}>${startLabel}</button>${vault}</div></div>`;
 
+    this.ldTip = false;
     this.ui.innerHTML = `${top}<div class="yx-sel">${lvSw}${kinds}<div class="yx-pickarea">${pick}</div>${aside}</div>`;
     this.drawThumbs();
     this.root.scrollTop = keep;

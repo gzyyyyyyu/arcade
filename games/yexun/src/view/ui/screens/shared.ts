@@ -164,3 +164,14 @@ export function raidTierOk(t: LiveTier): boolean {
 }
 
 // ───────────────────────── 开始菜单（两屏的总管） ─────────────────────────
+
+/**
+ * 点了起手或心法后浮出的一条说明（触屏没有悬停，图标的提示看不到）：起手是哪件、心法这局管什么用。
+ * 娱乐局心法保底一张主修卡、主修进化多补一次刷新（规则 60）；实盘不进规则 60，只有主修的卡出现多一半（core/step.ts choicePool）
+ */
+export function loadoutNote(l: NonNullable<MenuState['loadout']>, live: boolean): string {
+  const start = `起手 ${l.starts[l.alt ? 1 : 0]?.name ?? ''}`;
+  const x = l.schools.find((s) => s.id === l.xinfa);
+  if (!x) return `${start} · 不带心法`;
+  return live ? `${start} · 心法 ${x.name}：${x.name}的卡出现多一半（实盘不保底）` : `${start} · 心法 ${x.name}：每次升级保底一张${x.name}的卡，${x.name}的法器进化多补一次刷新`;
+}

@@ -22,7 +22,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 59;
+export const RULES_VERSION = 60;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
 export const TICKS_PER_SECOND = 30;
@@ -242,6 +242,13 @@ export class World {
   get xinfa(): SchoolId | undefined {
     return this.rulesFrom(52) ? this.setup.xinfa : undefined;
   }
+  /**
+   * 规则 60 的选卡（DESIGN 3.9）：心法保底一张主修卡、主修法器进化多补一次刷新、缘分（手上有搭配的一件料，另一件和它的进化被动更常出）、
+   * 夜市求签。实盘不进（实盘系数按原来的抽卡量的；要进实盘另交主线重拟）
+   */
+  get newPicks(): boolean {
+    return this.rulesFrom(60) && !this.setup.live;
+  }
   /** 旧卡池：抽卡和宝箱合成走实盘那条老路径（不看角色池、不放 2.0 新法器）；录像规则版本 < 37 */
   get legacyPool(): boolean {
     return this.replayRules !== undefined && this.replayRules < 37;
@@ -357,6 +364,8 @@ export class World {
   bans = 1;
   /** 跳过抽中"下次多一张卡"：下一次升级多给一张（不叠加） */
   bonusCard = 0;
+  /** 夜市求签买下后：下一次升级必出这个搭配（MERGES 的下标）缺的料；-1 = 没有（规则 60） */
+  omen = -1;
   /** 守夜夜市（content/market.ts）：第几次（0、1 是还没开的那次，2 = 都开过了）、这次的阶段 0 没到 / 1 预告 / 2 开着 */
   mkIndex = 0;
   mkPhase = 0;

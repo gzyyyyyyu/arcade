@@ -53,7 +53,7 @@ import { RAID_REGIONS, VIGIL_REGIONS, vigilRegion, EMERGE_KINDS, regionKind, reg
 import { BALANCE_57, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, EVENTS_57, FIRST_RUN_GUARD, lampShare, LIVE_EASE, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
 import { ASSIST, CHAR_FX, CHARACTERS, CURSE_FX, PERK_FX, REVIVE, type CurseId, type PerkId } from '../content/meta.ts';
 import { WEEKLY_FX } from '../content/weekly.ts';
-import { PICKS, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
+import { PICKS, PICKS_60, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
 import { BELL_STUN, PARADE, MAP_EVENT_AT, MAP_EVENT_KINDS, MAP_EVENT_WARN, MAP_EVENTS, TIDE_SLOW, WIND_PUSH, type MapEventKind } from '../content/mapEvents.ts';
 import { MARKET_GOODS, MARKET_PRICE, NIGHT_MARKET, type MarketGood } from '../content/market.ts';
 import {
@@ -3749,12 +3749,28 @@ function choicePool(w: World): { c: Choice; weight: number }[] {
     const { weapons, passives } = SCHOOLS[xf];
     for (const p of pool) if (p.c.kind === 'weapon' ? weapons.includes(p.c.id as WeaponId) : p.c.kind === 'passive' && passives.includes(p.c.id as PassiveId)) p.weight *= XINFA_MUL;
   }
+  // 缘分（规则 60）：手上有某个搭配的一件料，另一件料和它的进化被动权重 ×fateMul（几个搭配都指向同一张也只乘一次）
+  if (w.newPicks) {
+    const fate = new Set<string>();
+    for (const def of MERGES) {
+      if (!mergeOpen(w, def)) continue;
+      const hasA = w.weapons.some((o) => o.id === def.a);
+      const hasB = w.weapons.some((o) => o.id === def.b);
+      if (hasA === hasB) continue;
+      const other = hasA ? def.b : def.a;
+      fate.add(other);
+      const evo = WEAPONS[other].evolve;
+      if (evo) fate.add(evo.with);
+    }
+    for (const p of pool) if (fate.has(p.c.id)) p.weight *= PICKS_60.fateMul;
+  }
   return pool;
 }
 
 function openChoices(w: World): void {
   const pool = choicePool(w);
   const picks: Choice[] = [];
+  const weights: number[] = [];
   // 新手档前几次升级：先从法器里抽两张，保证有能打的（主线 #144）
   const arms = w.level <= dangerDef(w.setup.mode, w.setup.danger).armsFirst + 1 ? 2 : 0;
   while (picks.length < w.cardCount + w.bonusCard && pool.length > 0) {
@@ -3770,11 +3786,56 @@ function openChoices(w: World): void {
       if (r < 0) break;
     }
     picks.push(pool[k]!.c);
+    weights.push(pool[k]!.weight);
     pool.splice(k, 1);
   }
+  if (w.newPicks) guarantee(w, pool, picks, weights);
   if (picks.length === 0) picks.push({ kind: 'coins', id: 'coins' });
   w.choices = picks;
   w.phase = 'choose';
+}
+
+/**
+ * 规则 60 的保底：求签买下后这一次必有它指的搭配缺的料；带心法的，每次至少一张主修流派的卡。
+ * 抽出来的里已经有就不动；没有就从剩下的卡池里按权重抽一张同类的，换掉抽出来的里权重最低、没被保底占住的那张（不加卡）
+ */
+function guarantee(w: World, pool: { c: Choice; weight: number }[], picks: Choice[], weights: number[]): void {
+  const locked: number[] = [];
+  const ensure = (want: (c: Choice) => boolean): void => {
+    const have = picks.findIndex((c) => want(c));
+    if (have >= 0) {
+      locked.push(have);
+      return;
+    }
+    let total = 0;
+    for (const p of pool) if (want(p.c)) total += p.weight;
+    if (total <= 0) return;
+    let slot = -1;
+    for (let q = 0; q < picks.length; q++) if (!locked.includes(q) && (slot < 0 || weights[q]! < weights[slot]!)) slot = q;
+    if (slot < 0) return;
+    let r = w.rUp.next() * total;
+    let k = -1;
+    for (let q = 0; q < pool.length; q++) {
+      if (!want(pool[q]!.c)) continue;
+      k = q;
+      r -= pool[q]!.weight;
+      if (r < 0) break;
+    }
+    picks[slot] = pool[k]!.c;
+    weights[slot] = pool[k]!.weight;
+    pool.splice(k, 1);
+    locked.push(slot);
+  };
+  if (w.omen >= 0) {
+    const wants = mergeWants(w, MERGES[w.omen]!);
+    w.omen = -1;
+    ensure((c) => (wants as string[]).includes(c.id));
+  }
+  const xf = w.xinfa;
+  if (xf) {
+    const { weapons, passives } = SCHOOLS[xf];
+    ensure((c) => (c.kind === 'weapon' ? weapons.includes(c.id as WeaponId) : c.kind === 'passive' && passives.includes(c.id as PassiveId)));
+  }
 }
 
 function applyChoice(w: World, c: Choice): void {
@@ -3888,7 +3949,7 @@ function stallsUp(w: World): void {
   const py = dcos(a);
   const buff: MarketGood = (['might', 'speed', 'vacuum'] as const)[w.rMarket.int(3)]!;
   const canUp = w.weapons.some((o) => !o.evolved && o.level < MAX_WEAPON_LEVEL);
-  const kinds: MarketGood[] = ['heal', 'reroll', 'ban', buff, ...(canUp ? (['upgrade'] as const) : [])];
+  const kinds: MarketGood[] = ['heal', 'reroll', 'ban', buff, ...(canUp ? (['upgrade'] as const) : []), ...(w.newPicks && omenTarget(w) >= 0 ? (['omen'] as const) : [])];
   const goods: MarketGood[] = [];
   while (goods.length < M.stalls + armsStalls(w) && kinds.length > 0) goods.push(kinds.splice(w.rMarket.int(kinds.length), 1)[0]!);
   const price = (w.mkIndex > 0 ? M.later : 1) * (w.setup.character === 'caiyao' ? CHAR_FX.caiyaoMarket : w.setup.character === 'huolang' ? CHAR_FX.huolangMarket : 1);
@@ -3920,10 +3981,23 @@ function marketGive(w: World, g: MarketGood): void {
     recompute(w);
   } else if (g === 'vacuum') {
     for (let s = 0; s < MAX_DROPS; s++) if (w.dAlive[s] && w.dKind[s] === Drop.Soul) w.dPull[s] = PICKUP.pull;
+  } else if (g === 'omen') {
+    // 求签：买的那一刻定指哪个搭配（摊是开市时摆的，到买的时候手上可能又变了）；没有缺料的搭配了就换成刷新 +2
+    w.omen = omenTarget(w);
+    if (w.omen < 0) for (let k = 0; k < PICKS_60.omenRerolls; k++) addReroll(w, -1);
   } else {
     const pool = w.weapons.filter((o) => !o.evolved && o.level < MAX_WEAPON_LEVEL);
-    if (pool.length) upgradeWeapon(w, pool[w.rMarket.int(pool.length)]!.id);
+    if (!pool.length) return;
+    // 规则 60 起升离满级最近的那件（同样近按拿到的先后）：想凑进化、搭配的人不再看运气；之前随机挑一件
+    if (w.newPicks) upgradeWeapon(w, pool.reduce((a, b) => (b.level > a.level ? b : a)).id);
+    else upgradeWeapon(w, pool[w.rMarket.int(pool.length)]!.id);
   }
+}
+
+/** 进化补一次刷新；规则 60 起主修（心法）单子上的法器进化再多补一次：专心修一路换来找卡的手段，不加伤害 */
+function evolveReroll(w: World, id: WeaponId): void {
+  addReroll(w, 0);
+  if (w.newPicks && w.xinfa && SCHOOLS[w.xinfa].weapons.includes(id)) addReroll(w, 0);
 }
 
 /** 补一次刷新（最多攒到 PICKS.rerollMax）；why：-1 跳过奖（事件由跳过发）、0 进化、1 精英首领 */
@@ -3948,14 +4022,43 @@ export function mergeReady(w: World, def: MergeDef): boolean {
 
 /** 宝箱里能结的合成（没合过、这一局放、这个角色合得出、凑齐了），按 MERGES 的顺序；没有回 -1 */
 function readyMerge(w: World): number {
+  for (let m = 0; m < MERGES.length; m++) if (mergeOpen(w, MERGES[m]!) && mergeReady(w, MERGES[m]!)) return m;
+  return -1;
+}
+
+/** 这个搭配这一局还能合：没合过、这一局放（双修没被关、实盘老卡池放）、这个角色合得出 */
+function mergeOpen(w: World, def: MergeDef): boolean {
+  if (w.merges.includes(def.id) || (def.dual && w.setup.noDual)) return false;
+  return liveAllows(w.oldPool, def.id) && mergeFor(def, w.setup.character, (v) => w.contentFrom(v));
+}
+
+/** 能把搭配往前推一步的卡（这一局卡池里有的）：没拿的料、拿了没满级的料、料缺的进化被动；规则 60 的缘分、求签用 */
+function mergeWants(w: World, def: MergeDef): (WeaponId | PassiveId)[] {
+  const out: (WeaponId | PassiveId)[] = [];
+  for (const id of [def.a, def.b]) {
+    const o = w.weapons.find((x) => x.id === id);
+    if (o?.evolved) continue;
+    if (!o || o.level < MAX_WEAPON_LEVEL) out.push(id);
+    const evo = WEAPONS[id].evolve;
+    if (evo && (w.passives[evo.with] ?? 0) === 0) out.push(evo.with);
+  }
+  return out.filter((id) => !w.banned.includes(id) && cardAllowed(w, id));
+}
+
+/** 手上至少有一件料、还差得最少的那个搭配（同样少按 MERGES 顺序）；没有回 -1。求签指的就是它 */
+function omenTarget(w: World): number {
+  let best = -1;
+  let fewest = Number.POSITIVE_INFINITY;
   for (let m = 0; m < MERGES.length; m++) {
     const def = MERGES[m]!;
-    if (w.merges.includes(def.id) || (def.dual && w.setup.noDual)) continue;
-    if (!liveAllows(w.oldPool, def.id)) continue;
-    if (!mergeFor(def, w.setup.character, (v) => w.contentFrom(v))) continue;
-    if (mergeReady(w, def)) return m;
+    if (!mergeOpen(w, def) || !w.weapons.some((o) => o.id === def.a || o.id === def.b)) continue;
+    const n = mergeWants(w, def).length;
+    if (n > 0 && n < fewest) {
+      best = m;
+      fewest = n;
+    }
   }
-  return -1;
+  return best;
 }
 
 /** 宝箱里能进化的一件（满级、带着进化要的被动、没进化过）；没有回 null */
@@ -3974,7 +4077,7 @@ function settleChest(w: World): void {
     if (o) {
       o.evolved = true;
       recompute(w);
-      addReroll(w, 0);
+      evolveReroll(w, o.id);
       w.ev.push(Ev.Evolve, w.x, w.y, WEAPON_CODE[o.id]);
       w.ev.push(Ev.Chest, w.x, w.y, WEAPON_CODE[o.id]);
       continue;
@@ -4028,7 +4131,7 @@ function openChest(w: World): void {
     if (!o.evolved && evo && o.level >= MAX_WEAPON_LEVEL && (w.passives[evo.with] ?? 0) > 0) {
       o.evolved = true;
       recompute(w);
-      addReroll(w, 0);
+      evolveReroll(w, o.id);
       w.ev.push(Ev.Evolve, w.x, w.y, WEAPON_CODE[o.id]);
       w.ev.push(Ev.Chest, w.x, w.y, WEAPON_CODE[o.id]);
       return;

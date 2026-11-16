@@ -5,8 +5,9 @@
  */
 const S = 30;
 
-export type MarketGood = 'heal' | 'reroll' | 'ban' | 'might' | 'speed' | 'vacuum' | 'upgrade';
-export const MARKET_GOODS: readonly MarketGood[] = ['heal', 'reroll', 'ban', 'might', 'speed', 'vacuum', 'upgrade'];
+export type MarketGood = 'heal' | 'reroll' | 'ban' | 'might' | 'speed' | 'vacuum' | 'upgrade' | 'omen';
+/** 下标进录像和指纹（w.mkGood）：新货只往后加 */
+export const MARKET_GOODS: readonly MarketGood[] = ['heal', 'reroll', 'ban', 'might', 'speed', 'vacuum', 'upgrade', 'omen'];
 
 export const NIGHT_MARKET = {
   /** 开市的拍数（开局后第 5、第 10 分钟） */
@@ -31,8 +32,11 @@ export const NIGHT_MARKET = {
   speed: 0.15,
 } as const;
 
-/** 底价（第一次开市）。临时增益三选一随机上一样（伤害 / 移速 / 全屏吸珠）；法器 +1 级最贵 */
-export const MARKET_PRICE: Record<MarketGood, number> = { heal: 60, reroll: 50, ban: 50, might: 70, speed: 70, vacuum: 70, upgrade: 120 };
+/**
+ * 底价（第一次开市）。临时增益三选一随机上一样（伤害 / 移速 / 全屏吸珠）；法器 +1 级最贵。
+ * 求签（规则 60）：下一次升级必出离成形最近的搭配缺的料（没有缺的就刷新 +2），手上至少有一件某个搭配的料才摆
+ */
+export const MARKET_PRICE: Record<MarketGood, number> = { heal: 60, reroll: 50, ban: 50, might: 70, speed: 70, vacuum: 70, upgrade: 120, omen: 80 };
 
 /** 摊上的货名（画面层用） */
-export const MARKET_NAME: Record<MarketGood, string> = { heal: '回血', reroll: '刷新 +1', ban: '封禁 +1', might: '伤害 +15%', speed: '移速 +15%', vacuum: '全屏吸珠', upgrade: '法器 +1 级' };
+export const MARKET_NAME: Record<MarketGood, string> = { heal: '回血', reroll: '刷新 +1', ban: '封禁 +1', might: '伤害 +15%', speed: '移速 +15%', vacuum: '全屏吸珠', upgrade: '法器 +1 级', omen: '求签' };
