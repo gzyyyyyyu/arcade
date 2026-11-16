@@ -1,4 +1,5 @@
 import { drawFlakes, drawModeScene, drawTitleLive, drawTitleStill, makeFlakes, type Flake } from '../../art/sprites-title.ts';
+import type { CharacterId } from '../../../content/meta.ts';
 
 /** 模式卡上的小场景图（画一次缓存成 data URL） */
 const sceneCache = new Map<string, string>();
@@ -27,6 +28,8 @@ export class TitleArt {
   private info: ReturnType<typeof drawTitleStill> | null = null;
   private flakes: Flake[] = [];
   private last = 0;
+  /** 立绘画谁：出战角色；换了人下一帧重画底图 */
+  private character: CharacterId = 'xiaodao';
 
   private readonly host: HTMLElement;
 
@@ -35,6 +38,12 @@ export class TitleArt {
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'yx-art';
     this.canvas.setAttribute('aria-hidden', 'true');
+  }
+
+  setCharacter(c: CharacterId): void {
+    if (c === this.character) return;
+    this.character = c;
+    this.artSize = '';
   }
 
   start(): void {
@@ -58,7 +67,7 @@ export class TitleArt {
         const sc = st.getContext('2d')!;
         sc.scale(dpr, dpr);
         // 菜单内容的起点（含 safe-area），竖屏时灯笼挂在它下面
-        this.info = drawTitleStill(sc, w, h, parseFloat(getComputedStyle(this.host).paddingTop) || undefined, this.host.classList.contains('yx-selscreen'));
+        this.info = drawTitleStill(sc, w, h, parseFloat(getComputedStyle(this.host).paddingTop) || undefined, this.host.classList.contains('yx-selscreen'), this.character);
         this.still = st;
         this.flakes = makeFlakes(w < 600 ? 50 : 90, w, h);
       }

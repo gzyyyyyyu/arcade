@@ -187,6 +187,7 @@ export class Select {
     this.fitScale();
     this.render();
     this.root.style.display = '';
+    this.art.setCharacter(s.character);
     this.art.start();
   }
 

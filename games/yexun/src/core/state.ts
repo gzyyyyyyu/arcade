@@ -4,7 +4,7 @@
  */
 import { ENEMIES } from '../content/enemies.ts';
 import { LIVE_EASE, RAID_MAX_DANGER, type Danger, type WaveEvent } from '../content/waves.ts';
-import { CHARACTERS, CURSE_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type PerkId } from '../content/meta.ts';
+import { CHAR_FX, CHARACTERS, CURSE_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type PerkId } from '../content/meta.ts';
 import { isWeeklyId, type WeeklyId } from '../content/weekly.ts';
 import { MAPS, type Block, type MapId, type Rect } from '../content/maps.ts';
 import { PICKS } from '../content/picks.ts';
@@ -22,7 +22,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 60;
+export const RULES_VERSION = 61;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
 export const TICKS_PER_SECOND = 30;
@@ -249,6 +249,13 @@ export class World {
   get newPicks(): boolean {
     return this.rulesFrom(60) && !this.setup.live;
   }
+  /**
+   * 规则 61 的角色技能钩子（DESIGN 3.7，core/skills.ts SKILL_FX.hooks）：技能和角色的流派扣在一起、看得见，让「这个角色玩起来哪里不一样」说得清。
+   * 先只娱乐局；实盘等最后整体重拟时一起进（主线 11-15）
+   */
+  get skillHooks(): boolean {
+    return this.rulesFrom(61) && !this.setup.live;
+  }
   /** 旧卡池：抽卡和宝箱合成走实盘那条老路径（不看角色池、不放 2.0 新法器）；录像规则版本 < 37 */
   get legacyPool(): boolean {
     return this.replayRules !== undefined && this.replayRules < 37;
@@ -312,6 +319,8 @@ export class World {
   coins = 0;
   /** 铜钱从哪来的（结算页列来源用，只记不影响规则）：地上捡的、铜钱袋、摆设、宝箱 */
   readonly coinBy = { drop: 0, purse: 0, prop: 0, chest: 0, weekly: 0 };
+  /** 货郎（规则 61）：捡到的铜钱攒到这个数补一次刷新，补完往后加 CHAR_FX.huolangRerollEvery */
+  rerollAt = CHAR_FX.huolangRerollEvery;
   /** 开过几个宝箱、一共升了几件；碰碎几个摆设（结算页用） */
   chests = 0;
   chestUps = 0;
@@ -532,7 +541,8 @@ export class World {
    * 角色的主动技能（core/skills.ts）：cd 还要几拍能再放，active 持续中还剩几拍，uses 放过几次。
    * 一次都没放过时不进指纹（没按技能键的局指纹和加技能前一样）
    */
-  readonly skill = { cd: 0, active: 0, uses: 0, zx: 0, zy: 0 };
+  /** store：胖师叔铁布衫期间挡下的伤害（规则 61，结束时震出去） */
+  readonly skill = { cd: 0, active: 0, uses: 0, zx: 0, zy: 0, store: 0 };
 
   /** 复活还剩几次（永久加成"复活"） */
   revives = 0;

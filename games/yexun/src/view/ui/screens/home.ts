@@ -121,6 +121,7 @@ export class Home {
         '</div>';
     }
     this.root.style.display = '';
+    this.art.setCharacter(s.character);
     this.art.start();
   }
 

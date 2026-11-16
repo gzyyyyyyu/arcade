@@ -521,6 +521,32 @@ function heal(w: World, n: number): void {
 }
 
 /** by：谁打的（怪的编号；远程弹 = SHOT_BY + 弹种），只记给模拟器的死因统计，不进指纹、不影响结算 */
+/**
+ * 纸匠·纸人替身（规则 61）：身边 zhijiangStandInR 以内有纸兵，这一下由最近的那个替你挨，主角不掉血、照常短暂无敌。
+ * 纸兵寿命改成 1，下一拍走正常的倒下（paperFall：进化爆开、阴兵借道、巧手都照常）；当场 killShot 的话，挨打在 armsTick 之后，搭配看不到这次倒下
+ * 起因（11-15 根因）：小白常被一群怪贴身，纸兵各缠一只、挡不住一圈；纸兵起手小白 9 分钟前就倒下一大半。替身直接管「被围着挨打」
+ */
+function paperStandIn(w: World): boolean {
+  if (!w.skillHooks || w.setup.character !== 'zhijiang') return false;
+  const r2 = CHAR_FX.zhijiangStandInR * CHAR_FX.zhijiangStandInR;
+  let best = -1;
+  let bd = r2;
+  for (let i = 0; i < MAX_SHOTS; i++) {
+    if (!w.sAlive[i] || w.sKind[i] !== Shot.Paper || w.sLife[i]! <= 1) continue;
+    const dx = w.sX[i]! - w.x;
+    const dy = w.sY[i]! - w.y;
+    const d = dx * dx + dy * dy;
+    if (d <= bd) {
+      bd = d;
+      best = i;
+    }
+  }
+  if (best < 0) return false;
+  w.sLife[best] = 1;
+  w.invuln = PLAYER.invuln;
+  return true;
+}
+
 function hurt(w: World, dmg: number, by = -1): void {
   if (w.invuln > 0 || w.phase !== 'play') return;
   w.hurtBy = by;
@@ -531,9 +557,12 @@ function hurt(w: World, dmg: number, by = -1): void {
     w.invuln = PLAYER.invuln;
     return;
   }
+  if (paperStandIn(w)) return;
   const diff = dangerDef(w.setup.mode, w.setup.danger);
   const d = Math.max(1, Math.round(dmg * diff.dmgMul * (w.liveEase ? LIVE_EASE.dmgScale : 1) * (w.tick < EARLY_TICKS ? diff.earlyDmg : 1) * (w.setup.assist ? ASSIST.dmg : 1) * skillHurtMul(w) * foeHurtMul(w) - w.stats.armor));
   w.hp -= d;
+  // 胖师叔·铁布衫（规则 61）：挡下的那部分攒起来，结束时震出去（skills.ts tickSkill）。上面的乘法顺序别动，旧局要逐位一致
+  if (w.skillHooks && skillHurtMul(w) < 1) w.skill.store += dmg * diff.dmgMul * (1 - skillHurtMul(w));
   // 胖师叔：挨打时震开身边（下一拍有格子时结算）
   if (w.setup.character === 'pang') w.quake = true;
   // 第一局 3 分钟前不会死：血最少留 1
@@ -3328,12 +3357,14 @@ function collect(w: World, i: number): void {
         const c = val + (w.stats.coinBonus > 0 && w.rDrop.next() < w.stats.coinBonus ? 1 : 0);
         w.coins += c;
         w.coinBy.drop += c;
+        coinReroll(w);
       }
       break;
     case Drop.Purse: {
       const c = PURSE.min + w.rDrop.int(PURSE.span);
       w.coins += c;
       w.coinBy.purse += c;
+      coinReroll(w);
       break;
     }
     case Drop.Bomb:
@@ -4000,7 +4031,16 @@ function evolveReroll(w: World, id: WeaponId): void {
   if (w.newPicks && w.xinfa && SCHOOLS[w.xinfa].weapons.includes(id)) addReroll(w, 0);
 }
 
-/** 补一次刷新（最多攒到 PICKS.rerollMax）；why：-1 跳过奖（事件由跳过发）、0 进化、1 精英首领 */
+/** 货郎·讨价（规则 61）：捡到的铜钱每攒满 huolangRerollEvery 枚补一次刷新（经济换选择权） */
+function coinReroll(w: World): void {
+  if (!w.skillHooks || w.setup.character !== 'huolang') return;
+  while (w.coinBy.drop + w.coinBy.purse >= w.rerollAt) {
+    w.rerollAt += CHAR_FX.huolangRerollEvery;
+    addReroll(w, 2);
+  }
+}
+
+/** 补一次刷新（最多攒到 PICKS.rerollMax）；why：-1 跳过奖（事件由跳过发）、0 进化、1 精英首领、2 货郎攒铜钱 */
 function addReroll(w: World, why: number): void {
   if (w.setup.curses?.includes('noreroll') || w.rerolls >= PICKS.rerollMax) return;
   w.rerolls++;
