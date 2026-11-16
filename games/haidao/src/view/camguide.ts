@@ -34,13 +34,16 @@ export const FOLLOW_PAD = 40;
 /**
  * 开新一波时要不要把镜头推到它的登陆口（只在竖屏放大模式）：这波的登陆口已经有一个在可见区里、
  * 玩家 FOLLOW_IDLE 内自己动过镜头、开着造塔 / 升级面板或正在瞄技能，都不推。
- * points 是登陆口投到屏幕上的位置（CSS 像素，和 view 同一个坐标系），sinceUser 是离玩家上次动镜头多少毫秒。
+ * 前面几波还有敌人在可见区里（正和塔打着）也不推：镜头拉走了玩家就看不见自己的塔在打什么，新一波靠屏边箭头提醒。
+ * points 是登陆口、fighting 是前面几波还活着的敌人投到屏幕上的位置（CSS 像素，和 view 同一个坐标系），sinceUser 是离玩家上次动镜头多少毫秒。
  */
-export function followWave(o: { live: boolean; busy: boolean; sinceUser: number; points: ReadonlyArray<{ x: number; y: number }>; view: Rect }): boolean {
+export function followWave(o: { live: boolean; busy: boolean; sinceUser: number; points: ReadonlyArray<{ x: number; y: number }>; fighting?: ReadonlyArray<{ x: number; y: number }>; view: Rect }): boolean {
   if (!o.live || o.busy || o.sinceUser < FOLLOW_IDLE || o.points.length === 0) return false;
   const v = o.view;
   const p = FOLLOW_PAD;
-  return !o.points.some((q) => q.x >= v.l + p && q.x <= v.r - p && q.y >= v.t + p && q.y <= v.b - p);
+  const seen = (q: { x: number; y: number }): boolean => q.x >= v.l + p && q.x <= v.r - p && q.y >= v.t + p && q.y <= v.b - p;
+  if (o.fighting?.some(seen)) return false;
+  return !o.points.some(seen);
 }
 
 /**

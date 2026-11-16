@@ -4,7 +4,7 @@ import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
 import { ell, line, path, pieceRaw as piece, poly, rect, skull as skullPic, tube } from './kit.ts';
 
-type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | SkillKind;
+type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | 'treasure' | SkillKind;
 
 function starPts(r1: number, r2: number): Pt[] {
   const a: Pt[] = [];
@@ -52,6 +52,10 @@ function make(kind: IconKind): string {
       return poly([[0, -14], [3, -4], [13, -3], [5, 3], [8, 13], [0, 7], [-8, 13], [-5, 3], [-13, -3], [-3, -4]], '#ff4b30', { sw: 2.2 }) + ell(0, 0, 4.6, 4.6, C.fireL!, { sw: 0 }) + ell(0, 0, 2, 2, '#fff', { sw: 0 });
     case 'bounty':
       return path('M-12,-14 L12,-14 L12,12 L-12,12 Z', '#f1dca0', { sw: 2.2 }) + path('M-12,-14 L-9,-17 L-5,-14 L-1,-17 L3,-14 L7,-17 L12,-14', 'none', { stroke: C.ink!, sw: 1.4 }) + skullPic(0, -4, 12, false) + line([-8, 6], [8, 6], C.red!, 2) + ell(0, 9, 2.4, 2.4, C.gold!, { sw: 1 });
+    case 'treasure':
+      // 守岛的宝藏：敞口铁箍小箱、金币冒尖（和金币图标分开，顶栏里「20/20」不会被看成金币）
+      return path('M-13,-2 L13,-2 L12,12 L-12,12 Z', C.wood!, { sw: 2.2 }) + rect(-13, 2, 26, 3, C.ironD!, { sw: 0 }) + rect(-2.5, -2, 5, 7, C.gold!, { sw: 1.4 }) +
+        path('M-12,-2 Q-6,-12 0,-9 Q6,-13 12,-2 Z', C.gold!, { sw: 2 }) + ell(-5, -6, 3, 2, C.goldL!, { sw: 0 }) + ell(4, -8, 2.6, 1.8, C.goldL!, { sw: 0 }) + path('M8,-15 l1.2,3 l3,1.2 l-3,1.2 l-1.2,3 l-1.2,-3 l-3,-1.2 l3,-1.2z', '#fff6c0', { sw: 0 });
     case 'trophy':
       return path('M-9,-12 L9,-12 L8,0 Q0,8 -8,0 Z', C.gold!, { sw: 2.2 }) + path('M-9,-9 Q-16,-9 -13,-2 Q-11,2 -8,1 M9,-9 Q16,-9 13,-2 Q11,2 8,1', 'none', { stroke: C.ink!, sw: 2.2 }) + rect(-2, 5, 4, 5, C.goldD!, { sw: 1.6 }) + rect(-7, 10, 14, 4, C.woodD!, { sw: 1.8 }) + path('M-6,-10 Q-6,-2 -3,2', 'none', { stroke: C.goldL!, sw: 2, op: 0.9 });
     case 'shieldOn':
@@ -79,4 +83,37 @@ export function badgeArt(tier: 'bronze' | 'silver' | 'gold'): ArtPiece {
   s += ell(0, -4, 16, 16, c[1]!, { sw: 2.2 }) + ell(0, -5, 14, 14, c[0]!, { sw: 1.6 }) + ell(0, -5, 10, 10, 'none', { sw: 1.4, stroke: c[1]! });
   s += poly(starPts(8, 3.4).map((p) => [p[0], p[1] - 6] as Pt), c[2]!, { sw: 1.4, stroke: c[1]! }) + path('M-10,-10 Q-6,-16 2,-17', 'none', { stroke: '#fff', sw: 2, op: 0.7 });
   return piece(`i.badge.${tier}`, 44, 52, 22, 22, s);
+}
+
+/**
+ * 稀有掉落弹窗的宝箱（正面略俯视，120×96）：合着的是铁箍木箱带锁；开着的盖子向后掀、箱口冒金光。
+ * 只给 DOM 弹窗用（img），不进开局烘焙的纹理
+ */
+export function lootChestArt(open: boolean): ArtPiece {
+  const key = `i.lootchest.${open ? 1 : 0}`;
+  let a = cache.get(key);
+  if (a) return a;
+  let s = ell(0, 40, 50, 8, '#000', { sw: 0, op: 0.18 });
+  // 箱身：前脸、顶面（开着时是箱口）、两道铁箍、包角
+  s += path('M-46,0 L46,0 L42,38 L-42,38 Z', C.wood!, { sw: 2.6 });
+  s += path('M-46,0 L46,0 L44,8 L-44,8 Z', C.woodL!, { sw: 0, op: 0.6 });
+  for (const x of [-30, 30]) s += path(`M${x - 5},0 L${x + 5},0 L${x + 4.6},38 L${x - 4.6},38 Z`, C.ironD!, { sw: 1.8 });
+  for (let i = 0; i < 3; i++) s += line([-40, 13 + i * 9], [40, 13 + i * 9], C.woodD!, 1.4, 0.55);
+  if (open) {
+    // 箱口：深色内壁上堆着金币，后面掀起的盖子
+    s += path('M-44,-24 L44,-24 L46,0 L-46,0 Z', C.woodD!, { sw: 2.6 });
+    s += path('M-42,-26 Q-44,-58 0,-62 Q44,-58 42,-26 Z', C.wood!, { sw: 2.6 }) + path('M-36,-30 Q-38,-52 0,-56 Q38,-52 36,-30', 'none', { stroke: C.woodL!, sw: 2, op: 0.7 });
+    for (const x of [-30, 30]) s += path(`M${x - 5},-27 Q${x - 5},-54 ${x},-57 Q${x + 5},-54 ${x + 5},-27 Z`, C.ironD!, { sw: 1.6 });
+    s += path('M-40,-2 Q-30,-22 -10,-16 Q0,-26 12,-17 Q30,-24 40,-2 Z', C.gold!, { sw: 2 });
+    for (const [x, y] of [[-26, -12], [-12, -18], [2, -21], [16, -16], [28, -10], [-4, -10], [10, -8]] as const) s += ell(x, y, 5, 3, C.goldL!, { sw: 1, stroke: C.goldD! });
+    s += path('M-6,-30 l2,6 l6,2 l-6,2 l-2,6 l-2,-6 l-6,-2 l6,-2z', '#fff6c0', { sw: 0 }) + path('M22,-34 l1.4,4 l4,1.4 l-4,1.4 l-1.4,4 l-1.4,-4 l-4,-1.4 l4,-1.4z', '#fff6c0', { sw: 0 });
+  } else {
+    // 合着的拱顶盖和锁
+    s += path('M-46,0 L-46,-12 Q-46,-34 0,-36 Q46,-34 46,-12 L46,0 Z', C.wood!, { sw: 2.6 }) + path('M-40,-12 Q-40,-28 0,-30 Q40,-28 40,-12', 'none', { stroke: C.woodL!, sw: 2, op: 0.7 });
+    for (const x of [-30, 30]) s += path(`M${x - 5},0 L${x - 5},-28 Q${x},-31 ${x + 5},-28 L${x + 5},0 Z`, C.ironD!, { sw: 1.8 });
+    s += rect(-8, -8, 16, 18, C.gold!, { sw: 2, r: 3 }) + ell(0, 0, 2.6, 2.6, C.ink!, { sw: 0 }) + rect(-1, 1, 2, 5, C.ink!, { sw: 0 });
+  }
+  a = piece(key, 120, open ? 112 : 96, 60, open ? 70 : 54, s);
+  cache.set(key, a);
+  return a;
 }

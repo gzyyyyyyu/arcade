@@ -101,6 +101,11 @@ describe('开新一波时镜头要不要跟过去', () => {
     expect(followWave({ ...base, points: [{ x: view.r - FOLLOW_PAD + 1, y: 400 }] })).toBe(true);
     expect(followWave({ ...base, points: [{ x: view.r - FOLLOW_PAD, y: 400 }] })).toBe(false);
   });
+  it('前面几波还有敌人在可见区里打着：不推；都在屏外或已经没了：照推', () => {
+    expect(followWave({ ...base, fighting: [{ x: 200, y: 400 }] })).toBe(false);
+    expect(followWave({ ...base, fighting: [{ x: -300, y: 400 }, { x: 200, y: 2000 }] })).toBe(true);
+    expect(followWave({ ...base, fighting: [] })).toBe(true);
+  });
   it('玩家刚自己动过镜头、开着面板 / 在瞄技能、不是竖屏放大、没有登陆口：都不推', () => {
     expect(followWave({ ...base, sinceUser: FOLLOW_IDLE - 1 })).toBe(false);
     expect(followWave({ ...base, busy: true })).toBe(false);

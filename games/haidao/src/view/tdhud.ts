@@ -32,7 +32,8 @@ export function buildUi(bs: TdScene): void {
   hallButton(() => app.leave(), bs.ui);
   const bar = el('div', 'hd-td-bar', undefined, bs.ui);
   const tp = el('div', 'hd-pill', undefined, bar);
-  tp.appendChild(img(iconA('gold'), 22));
+  // 宝藏用宝箱图标，不和造塔的金币混（手机上「宝藏」两个字藏起来，只剩图标和 20/20）
+  tp.appendChild(img(iconA('treasure'), 22));
   const treasure = el('b', '', '', tp);
   tp.title = '宝藏';
   if (bs.esc) tp.style.display = 'none';

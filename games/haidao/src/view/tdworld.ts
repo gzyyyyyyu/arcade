@@ -260,7 +260,11 @@ export function followWaveCam(bs: TdScene, w: number): void {
   const ps = wavePoints(bs, w);
   const busy = bs.openSlot >= 0 || bs.bestOpen || bs.mode !== 'none';
   const points = ps.map((p) => bs.cc.toScreen(p.x, p.y));
-  if (!followWave({ live: bs.fit.live && !bs.ended, busy, sinceUser: bs.fit.sinceUser(), points, view: bs.fit.visible() })) return;
+  const fighting = bs.s.enemies.filter((e) => e.wave < w && (e.mode === 'in' || e.mode === 'out')).map((e) => {
+    const q = W(e.x, e.y);
+    return bs.cc.toScreen(q.x, q.y);
+  });
+  if (!followWave({ live: bs.fit.live && !bs.ended, busy, sinceUser: bs.fit.sinceUser(), points, fighting, view: bs.fit.visible() })) return;
   // 落点不对准沙滩上的登陆口（那样半屏是海），对准沿去宝藏的路往岛里走 FOLLOW_INLAND 格的地方：登陆口在画面上部，下面是他们要走的路
   const routes = tdRoutes(bs.s);
   const at = tdWaveLanes(bs.s, w).map((c) => {

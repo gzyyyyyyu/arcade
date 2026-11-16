@@ -35,6 +35,34 @@ export function ringPoint(t: number, e = BEACH, n = ISLAND): P {
   return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
 }
 
+/** 点在登陆圈外多远（格）还算点中：画出来的海岸线是波浪形的，鼓出去的沙子和最外那条湿沙线在规则的方环外 */
+export const SNAP_OUT = 0.8;
+/** 点在岛内多远（格）还往外推到沙滩上：草边也是波浪形的，盖住了一点能登陆的格子 */
+export const SNAP_IN = 0.4;
+/** 吸附后离边界留的余量，保证取整后的格子落在方环里 */
+const SNAP_EPS = 0.05;
+
+/**
+ * 出船时的落点吸附（格坐标）：方环（BEACH 宽）里的点原样返回；环外 SNAP_OUT、岛内 SNAP_IN 以内的点挪到环上最近处；
+ * 再远就是 null（点的是海或岛里面）。只在画面层用，规则照旧只认方环，发出去的坐标始终合法
+ */
+export function snapLanding(gx: number, gy: number, e = BEACH, n = ISLAND): P | null {
+  const lo = -e + SNAP_EPS;
+  const hi = n + e - SNAP_EPS;
+  const cx = Math.min(hi, Math.max(lo, gx));
+  const cy = Math.min(hi, Math.max(lo, gy));
+  if (Math.hypot(gx - cx, gy - cy) > SNAP_OUT) return null;
+  // 岛内：离四条边最近的那条有多远
+  const inX = Math.min(cx, n - cx);
+  const inY = Math.min(cy, n - cy);
+  if (cx > 0 && cx < n && cy > 0 && cy < n) {
+    if (Math.min(inX, inY) > SNAP_IN) return null;
+    if (inX <= inY) return { x: cx < n / 2 ? -SNAP_EPS : n + SNAP_EPS, y: cy };
+    return { x: cx, y: cy < n / 2 ? -SNAP_EPS : n + SNAP_EPS };
+  }
+  return { x: cx, y: cy };
+}
+
 /** 离某个格坐标最近的圈上位置 t */
 export function ringNearest(gx: number, gy: number, e = BEACH, n = ISLAND): number {
   const c = ringCorners(e, n);
