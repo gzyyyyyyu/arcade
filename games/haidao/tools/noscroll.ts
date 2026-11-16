@@ -475,7 +475,7 @@ async function measure(page: Page, touch: boolean, screen: string): Promise<Omit
       });
     };
     const hits = [...layer.querySelectorAll<HTMLElement>('button, [role=button], a, input, select, .hd-pill')]
-      .filter((e) => e.closest('.hd-ui') && !e.closest('.hd-map-in, .hd-scout-map, .hd-tdgar-map'))
+      .filter((e) => e.closest('.hd-ui') && !e.closest('.hd-map-in, .hd-scout-map, .hd-minimap'))
       .map((e) => ({ e, r: vis(e) }))
       .filter((x): x is { e: HTMLElement; r: DOMRect } => !!x.r && x.r.right > 0 && x.r.bottom > 0 && x.r.left < innerWidth && x.r.top < innerHeight)
       .filter((x) => reach(x.e, x.r));
@@ -493,7 +493,7 @@ async function measure(page: Page, touch: boolean, screen: string): Promise<Omit
     const cut: string[] = [];
     for (const e of document.querySelectorAll<HTMLElement>('.hd-ui *')) {
       if (cut.length >= 12) break;
-      if (e.clientWidth === 0 || e.closest('.hd-map-in, .hd-scout-map, .hd-tdgar-map')) continue;
+      if (e.clientWidth === 0 || e.closest('.hd-map-in, .hd-scout-map, .hd-minimap')) continue;
       if (![...e.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? '').trim())) continue;
       const r = vis(e);
       if (!r || r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) continue;

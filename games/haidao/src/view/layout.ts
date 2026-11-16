@@ -219,7 +219,7 @@ ${W} .hd-key { display:none; }
 
 /* 宽屏守岛选关页：列宽放到 720，别在大片空海里缩成窄条 */
 @media (min-width:900px) {
-  ${W} .hd-tdsel-head, ${W} .hd-td-income, ${W} .hd-tidecard, ${W} .hd-tdsel-live, ${W} .hd-tdtabs, ${W} .hd-tdtheme, ${W} .hd-tdsel-list, ${W} .hd-tdmodes { width:min(100%,720px); }
+  ${W} .hd-tdsel-head, ${W} .hd-td-income, ${W} .hd-tidecard, ${W} .hd-tdsel-live, ${W} .hd-tdtabs, ${W} .hd-tdsel-list, ${W} .hd-tdmodes { width:min(100%,720px); }
 }
 
 ${LAND} {

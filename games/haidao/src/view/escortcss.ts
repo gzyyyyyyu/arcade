@@ -98,6 +98,20 @@ ${U} .hd-esc-go { display:block; width:min(100%,560px); min-height:56px; margin:
 ${U} .hd-esc-gorow { display:flex; gap:8px; width:min(100%,560px); margin:12px auto 0; }
 ${U} .hd-esc-gorow .hd-esc-go { flex:1 1 0; min-width:0; width:auto; margin:0; }
 ${U} .hd-esc-gorow .hd-esc-live { flex:none; min-width:84px; min-height:56px; font-size:16px; }
+/* 航线小地图：电脑上摆右栏，竖拿的平板摆在出发钮下面；手机竖屏、横屏都放不下，不摆 */
+${U} .hd-esc-view { display:none; padding:10px; border:3px solid ${INK}; border-radius:14px; background:linear-gradient(#5fb8d6,#3d93b8); box-shadow:0 3px 0 ${INK}; }
+${U} .hd-esc-view .hd-esc-isle { flex:1 1 0; min-height:0; justify-content:center; gap:6px; }
+${U} .hd-esc-view .hd-esc-isle svg { flex:1 1 0; min-height:0; height:100%; }
+@media (min-width:701px) and (max-width:959px) and (min-height:1000px) {
+  ${U} .hd-esc-sel .hd-esc-view { display:flex; width:min(100%,560px); height:360px; margin:12px auto 0; }
+}
+@media (min-width:960px) and (min-height:600px) {
+  ${U} .hd-esc-sel { display:grid; grid-template-columns:minmax(0,520px) minmax(0,560px); justify-content:center; align-content:center; gap:10px 24px; }
+  ${U} .hd-esc-sel > .hd-tdsel-head, ${U} .hd-esc-sel > .hd-esc-sub { grid-column:1 / -1; }
+  ${U} .hd-esc-sel > .hd-esc-sub { margin:0 auto; text-align:center; }
+  ${U} .hd-esc-sel .hd-esc-maps, ${U} .hd-esc-sel .hd-esc-diffs, ${U} .hd-esc-sel .hd-esc-info, ${U} .hd-esc-sel .hd-esc-gorow { grid-column:1; width:100%; margin:0; }
+  ${U} .hd-esc-sel .hd-esc-view { display:flex; grid-column:2; grid-row:3 / span 4; min-height:0; }
+}
 
 /* ---------- 手机横屏：操作区在右边一列，速度钮、修船、跟随排在左下角；造塔面板开着时（游戏暂停）整排收起 ---------- */
 @media ${LAND} {

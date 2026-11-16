@@ -1,4 +1,5 @@
 /** 护航的入口：海图上的"护航"卡，和点开后的选图 + 选难度页（娱乐版）。选好点"出发"交给 onGo（关卡 id = `<图>-<难度>`）。 */
+import { ESCORT_MAPS } from '../core/index.ts';
 import { ESCORT_DIFFS, type EscortDiff, type EscortLevel } from '../core/escorttypes.ts';
 import { app } from './app.ts';
 import { iconA } from './art.ts';
@@ -7,6 +8,7 @@ import { injectEscortCss } from './escortcss.ts';
 import { bestText, diffName, lockText, mapTitle, starRuleText } from './escorttext.ts';
 import { mapCss } from './mapcss.ts';
 import { sfx } from './audio/sfx.ts';
+import { islandMap, isleLegend } from './islemap.ts';
 import { injectTdCss } from './tdcss.ts';
 import { button, el, img, lockIcon, toast, uiRoot } from './ui.ts';
 
@@ -62,6 +64,8 @@ export function openEscortSelect(onGo: (levelId: string) => void, onClose: () =>
   const diffs = el('div', 'hd-esc-diffs', undefined, wrap);
   const info = el('div', 'hd-esc-info', undefined, wrap);
   const goRow = el('div', 'hd-esc-gorow', undefined, wrap);
+  // 电脑上右栏放这一关的航线小地图（起点、隘口、港口、登陆点），手机放不下、CSS 里藏掉
+  const view = el('div', 'hd-esc-view', undefined, wrap);
   const go = button('出发', 'hd-btn-gold hd-esc-go', () => {
     const l = gs[mi]?.levels[diff];
     if (!l || !open(l)) return toast('这一关还没解锁');
@@ -115,6 +119,12 @@ export function openEscortSelect(onGo: (levelId: string) => void, onClose: () =>
     }
     const l = g?.levels[diff];
     info.textContent = '';
+    view.textContent = '';
+    const m = ESCORT_MAPS.find((x) => x.id === g?.map);
+    if (l && m) {
+      const { box } = islandMap({ lv: l, layout: m.layout, escort: l.escort }, view, 'hd-esc-isle');
+      isleLegend(box, [['start', '起点'], ['gate', '隘口'], ['port', '港口'], ['lane', '登陆点']]);
+    }
     if (l) {
       el('div', '', starRuleText(l.escort.stars), info);
       el('div', '', `航线 ${l.escort.route.length} 格，${l.escort.gates.length} 个隘口。点「停 / 巡航 / 冲」定船速，金币够了随时修船。`, info);
