@@ -85,7 +85,7 @@ describe('海盗来袭：结算', () => {
     const r = settleTdHome(p, res(6), 3);
     if (!r.ok) throw new Error(r.error);
     const raw = tdHomeRawReward(3, 6);
-    expect(r.value.reward).toEqual({ waves: 6, gold: raw.gold, wood: raw.wood, capped: false });
+    expect(r.value.reward).toEqual({ waves: 6, gold: raw.gold, wood: raw.wood, capped: false, full: false });
     expect(r.value.profile.res).toEqual({ gold: p.res.gold + raw.gold, wood: p.res.wood + raw.wood });
     expect(r.value.profile.td).toEqual({ stars: { td01: 2 }, day: 3, gotGold: raw.gold, gotWood: raw.wood });
     expect(p.td!.gotGold).toBe(0); // 不改入参
@@ -93,7 +93,7 @@ describe('海盗来袭：结算', () => {
     const near: Profile = { ...p, td: { ...p.td!, gotGold: cap.gold - 10, gotWood: cap.wood } };
     const c = settleTdHome(near, res(6), 3);
     if (!c.ok) throw new Error(c.error);
-    expect(c.value.reward).toEqual({ waves: 6, gold: 10, wood: 0, capped: true });
+    expect(c.value.reward).toEqual({ waves: 6, gold: 10, wood: 0, capped: true, full: false });
     // 换天清零
     const d = settleTdHome(near, res(6), 4);
     if (!d.ok) throw new Error(d.error);

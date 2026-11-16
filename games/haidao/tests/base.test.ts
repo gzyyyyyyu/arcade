@@ -148,7 +148,9 @@ describe('基地', () => {
   it('产出、收取与仓库上限', () => {
     let p = { ...newProfile(), res: { gold: 0, wood: 0 } };
     p = produce(p, 3600);
-    expect(p.base.buildings.find((b) => b.id === 2)!.stored).toBeCloseTo(150, 5);
+    expect(p.base.buildings.find((b) => b.id === 2)!.stored).toBeCloseTo(BUILDINGS.goldmine.levels[0]!.rate!, 5);
+    expect(BUILDINGS.goldmine.levels.map((l) => l.rate)).toEqual([255, 340, 442, 561, 714, 884, 1088, 1326]);
+    expect(BUILDINGS.sawmill.levels.map((l) => l.rate)).toEqual([156, 208, 273, 351, 442, 546, 676, 832]);
     p = produce(p, 3600 * 100);
     const cap = BUILDINGS.goldmine.levels[0]!.cap!;
     expect(p.base.buildings.find((b) => b.id === 2)!.stored).toBe(cap);

@@ -62,7 +62,7 @@ function tdCss(): string {
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdcard.next { border-color:${gold}; box-shadow:0 3px 0 ${ink}, 0 0 0 3px ${gold}, 0 0 14px ${gold}; }
 .hd-ui .hd-tdrule { font-weight:700; }
 .hd-ui .hd-tdgar { z-index:22; }
-.hd-ui .hd-tdgar-note { width:min(100%,560px); margin:0 auto 10px; font-size:14px; color:#fff; text-shadow:0 1px 2px ${c.seaDark}; }
+.hd-ui .hd-tdgar-note { width:min(100%,560px); margin:0 auto 10px; padding:2px 10px; border-radius:8px; background:rgba(11,74,110,.88); font-size:14px; color:#fff; }
 .hd-ui .hd-tdgar-spot { width:min(100%,560px); margin:0 auto 10px; background:${cream}; border:3px solid ${ink}; border-radius:14px; padding:8px 10px; box-shadow:0 3px 0 ${ink}; }
 .hd-ui .hd-tdgar-title { display:flex; align-items:baseline; gap:8px; margin-bottom:6px; }
 .hd-ui .hd-tdgar-title b { font-size:16px; font-weight:900; }
@@ -206,7 +206,7 @@ function tdCss(): string {
    伤害类型、加成、台子封顶、分叉牌依次排开（以前分叉牌在第 2 列、加成在第 3 列，分叉牌溢进第 3 列压住加成） */
 .hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) { grid-template-columns:32px minmax(0,1fr) auto; min-height:44px; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card > b { white-space:nowrap; }
-.hd-ui .hd-tdgar-main .hd-tdgar-card > img { width:32px; height:32px; grid-column:1; grid-row:1 / span 2; align-self:center; }
+.hd-ui .hd-tdgar-main .hd-tdgar-card > img { width:32px !important; height:32px !important; object-fit:contain; grid-column:1; grid-row:1 / span 2; align-self:center; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) > b { grid-column:2; grid-row:1; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) > .hd-tdgar-tier { grid-column:3; grid-row:1; justify-self:end; white-space:nowrap; }
 .hd-ui .hd-tdgar-main .hd-tdgar-meta { grid-column:2 / -1; grid-row:2; display:flex; flex-wrap:wrap; align-items:center; gap:1px 5px; }

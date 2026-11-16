@@ -1,5 +1,5 @@
 /** 战役：出海扣木材、结算掠夺和星数 */
-import { CAMPAIGN } from '../content/index.ts';
+import { CAMPAIGN, REPLAY_PCT, income } from '../content/index.ts';
 import { armyFor, capacity, totalStars, trimArmy } from './base.ts';
 import { Rng, hash32 } from './rng.ts';
 import { RULES_VERSION } from './types.ts';
@@ -7,8 +7,6 @@ import type { BattleResult, BattleSetup, Profile, Res, Result, TroopKind } from 
 
 /** 首次拿到一颗星奖多少金币 */
 export const STAR_BONUS_GOLD = 50;
-/** 已经三星的关再打只给这么多（百分比） */
-export const REPLAY_PCT = 30;
 
 /** 出海：木材不够整支船队就自动少带兵（trimArmy，trimmed 是少带了几个），一个兵都带不起才回 no_wood */
 export function startCampaign(p: Profile, levelId: string, seed: number): Result<{ profile: Profile; setup: BattleSetup; trimmed: number }> {
@@ -58,8 +56,9 @@ export function rollDrops(seed: number, result: BattleResult, levelId: string, o
   const rng = new Rng(seed, `drops:${levelId}`);
   const base = lv?.loot ?? { gold: 300, wood: 150 };
   const pct = 4 * result.stars + rng.int(5);
-  if (rng.int(2) === 0) out.push({ kind: 'gold', amount: Math.max(10, Math.floor((base.gold * pct) / 100)) });
-  else out.push({ kind: 'wood', amount: Math.max(10, Math.floor((base.wood * pct) / 100)) });
+  const box = income({ gold: Math.max(10, Math.floor((base.gold * pct) / 100)), wood: Math.max(10, Math.floor((base.wood * pct) / 100)) });
+  if (rng.int(2) === 0) out.push({ kind: 'gold', amount: box.gold });
+  else out.push({ kind: 'wood', amount: box.wood });
   const chance = result.stars === 1 ? 3 : result.stars === 2 ? 6 : 10;
   if (firstThree || rng.int(100) < chance) {
     const start = rng.int(RARE_POOL.length);
@@ -86,7 +85,7 @@ export function equipSkin(p: Profile, troop: TroopKind, skin: string | null): Re
 }
 
 /**
- * loot 是实际进了仓库的数量（含连胜加成、首次星级奖励、掉落的金币木材箱，已按仓库上限截断）。
+ * loot 是实际进了仓库的数量（含连胜加成、首次星级奖励、掉落的金币木材箱，都已乘收入倍率 INCOME_PCT，再按仓库上限截断）。
  * 连胜：连续 ≥1 星的场数；0 星清零并给安慰奖。seed 用来掉宝（不传就按战绩算一个）。
  */
 export function settleCampaign(
@@ -116,6 +115,8 @@ export function settleCampaign(
       gold = Math.floor((lv.loot.gold * CONSOLATION_PCT) / 100);
       wood = Math.floor((lv.loot.wood * CONSOLATION_PCT) / 100) + CONSOLATION_WOOD;
     }
+    // 收入倍率乘在结算里、不改关卡的 loot：流浪海盗岛（异步攻防，服务端重放）也读 lv.loot，那边不调
+    ({ gold, wood } = income({ gold, wood }));
   }
   const owned = p.cosmetics ?? [];
   const firstThree = lv?.boss === true && prev < 3 && result.stars >= 3;

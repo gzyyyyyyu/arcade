@@ -10,7 +10,7 @@ import { Rng } from './rng.ts';
 import { waveBudget } from './td2types.ts';
 import type { TdHomeGen, TdHomeReward, TdHomeSnapshot } from './td2types.ts';
 import { heroLevel } from './tdbase.ts';
-import { placeTdLevel, tdBaseBonus, tdDailyCap, tdRunReward, tdUnlockedTowers } from './tdrun.ts';
+import { placeTdLevel, tdBaseBonus, tdGrant, tdRunReward, tdUnlockedTowers } from './tdrun.ts';
 import type { TdPlacedLevel } from './tdrun.ts';
 import type { TdEnemyKind, TdGroup, TdResult, TdSetup, TdWave } from './tdtypes.ts';
 import { RULES_VERSION } from './types.ts';
@@ -133,23 +133,16 @@ export function tdHomeRawReward(hq: number, waves: number): Res {
   return { gold: Math.floor((r.gold * TD2_HOME.perWavePct * w) / 100), wood: Math.floor((r.wood * TD2_HOME.perWavePct * w) / 100) };
 }
 
-/** 结算一局海盗来袭：按每日上限截（和 settleTd 共用 Profile.td 的 day / gotGold / gotWood），不记星。dayIndex 同 settleTd */
+/** 结算一局海盗来袭：按每日上限和仓库截（tdGrant，和 settleTd 共用 Profile.td 的 day / gotGold / gotWood），不记星。dayIndex 同 settleTd */
 export function settleTdHome(p: Profile, result: TdResult, dayIndex: number): Result<{ profile: Profile; reward: TdHomeReward }> {
   if (!result.over) return err('not_over');
   if (!Number.isInteger(dayIndex) || dayIndex < 0) return err('bad_day');
   const waves = Math.max(0, Math.min(TD2_HOME.maxWaves, Math.floor(result.waves)));
-  const td = p.td ?? { stars: {}, day: dayIndex, gotGold: 0, gotWood: 0 };
-  const sameDay = td.day === dayIndex;
-  const cap = tdDailyCap(p);
-  const gotG = sameDay ? td.gotGold : 0;
-  const gotW = sameDay ? td.gotWood : 0;
-  const raw = tdHomeRawReward(hqLevel(p), waves);
-  const gold = Math.max(0, Math.min(raw.gold, cap.gold - gotG));
-  const wood = Math.max(0, Math.min(raw.wood, cap.wood - gotW));
+  const g = tdGrant(p, tdHomeRawReward(hqLevel(p), waves), { gold: 0, wood: 0 }, dayIndex);
   const profile: Profile = {
     ...p,
-    res: { gold: p.res.gold + gold, wood: p.res.wood + wood },
-    td: { stars: { ...td.stars }, day: dayIndex, gotGold: gotG + gold, gotWood: gotW + wood },
+    res: g.res,
+    td: { stars: { ...(p.td?.stars ?? {}) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
   };
-  return ok({ profile, reward: { waves, gold, wood, capped: gold < raw.gold || wood < raw.wood } });
+  return ok({ profile, reward: { waves, gold: g.run.gold, wood: g.run.wood, capped: g.capped, full: g.full } });
 }

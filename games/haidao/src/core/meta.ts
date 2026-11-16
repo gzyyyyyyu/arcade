@@ -1,5 +1,5 @@
 /** 每日悬赏和成就：纯函数，画面传天数（北京时间的天数）和档案进来 */
-import { BUILDINGS, CAMPAIGN } from '../content/index.ts';
+import { BUILDINGS, CAMPAIGN, income } from '../content/index.ts';
 import { hqLevel, totalStars } from './base.ts';
 import { Rng, hash32 } from './rng.ts';
 import { ISLAND } from './types.ts';
@@ -7,7 +7,7 @@ import type { Placed, Profile, Res } from './types.ts';
 
 /**
  * 每日悬赏：按天数确定性生成一座岛。取玩家当前进度附近的关卡当模板（已通关最远一关上下浮动），
- * 左右 / 上下随机翻转，掠夺翻倍。同一天同一进度结果相同。
+ * 左右 / 上下随机翻转，掠夺翻倍（再乘收入倍率 INCOME_PCT）。同一天同一进度结果相同。
  */
 export function dailyBounty(dayIndex: number, p: Profile): { levelId: string; layout: Placed[]; loot: Res; seed: number } {
   let far = -1;
@@ -28,7 +28,7 @@ export function dailyBounty(dayIndex: number, p: Profile): { levelId: string; la
   return {
     levelId: tpl.id,
     layout,
-    loot: { gold: tpl.loot.gold * 2, wood: tpl.loot.wood * 2 },
+    loot: income({ gold: tpl.loot.gold * 2, wood: tpl.loot.wood * 2 }),
     seed: hash32('daily-seed', dayIndex),
   };
 }
