@@ -33,7 +33,6 @@ export function escortCard(onOpen: () => void, parent: HTMLElement = uiRoot()): 
   b.appendChild(img(iconA('ship'), 36));
   const t = el('span', 'hd-mc-t', undefined, b);
   el('b', '', '护航', t);
-  el('small', '', '商船队 · 约 3 分钟', t);
   el('small', '', best > 0 ? `最好 ${best} 星` : '把商船平安送到港', t);
   el('span', 'hd-mc-go', '出海', b);
   b.addEventListener('click', () => {

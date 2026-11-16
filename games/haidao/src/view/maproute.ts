@@ -125,11 +125,11 @@ export function mapCard(onOpen: () => void, parent: HTMLElement = uiRoot()): () 
   const boss = nodeName(R, route.layers[MAP_LAYERS - 1]?.[0]);
   const b = el('button', 'hd-mapcard', undefined, parent);
   b.type = 'button';
+  b.title = `今日航线，终点：${boss}`;
   b.appendChild(img(iconA('map'), 36));
   const t = el('span', 'hd-mc-t', undefined, b);
   // 标题不带日期：带上在 390 宽会折成两行；日期在点进去的航线图页顶上
   el('b', '', '今日航线', t);
-  el('small', '', `终点：${boss}`, t);
   el('small', '', loc.state ? `航行中，第 ${loc.state.layer + 1}/${MAP_LAYERS} 站` : loc.best > 0 ? `今天最好 ${fmt(loc.best)} 宝分` : '今天还没出航 · 4 站 3 分钟', t);
   el('span', 'hd-mc-go', loc.state ? '接着走' : '出航', b);
   b.addEventListener('click', () => {

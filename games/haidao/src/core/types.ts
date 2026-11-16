@@ -28,7 +28,7 @@ export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
 export const RULES_VERSION = 14;
 
 /**
- * 每条规则从哪个版本起生效（上面版本说明的名字版）。核心里一律写 `since(s, 'combat')`，不写裸数字，
+ * 每条规则从哪个版本起生效（上面版本说明的名字版）。核心里一律写 `s.rules >= RULES_SINCE.combat`，不写裸数字，
  * 一眼看得出这是哪次改动、旧分支给谁用：低于这些版本的分支**只给旧防守回放**（服务端每人留最近 10 条、不设期限，
  * 回放按录制时的版本重放才逐位一致）。删旧分支要先让旧回放显示过期，算删现有功能（2026-11-15 主线定：不删）。
  */
@@ -48,12 +48,8 @@ export const RULES_SINCE = {
   /** 14：守岛英雄没被指挥时自己守 */
   tdHeroAuto: 14,
 } as const;
-export type RulesFeature = keyof typeof RULES_SINCE;
-
-/** 这一局（按它录制时的规则版本）有没有这条规则 */
-export function since(s: { readonly rules: number }, f: RulesFeature): boolean {
-  return s.rules >= RULES_SINCE[f];
-}
+// 不包成 since(s, 'combat') 这样的小函数：一个函数里读各种形状对象（登陆战开局、局面、守岛局面）的 rules，
+// V8 把那一处读取标成多态，内联了也慢；2026-11-15 背靠背量过，登陆战步进慢约 2–6%。调用处直接比，各处只见一种形状。
 
 export type BuildingKind =
   | 'hq' // 主寨

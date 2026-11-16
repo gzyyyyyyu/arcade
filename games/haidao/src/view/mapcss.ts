@@ -246,13 +246,24 @@ ${U} .hd-map { overflow:hidden; overflow:clip; touch-action:none; overscroll-beh
 ${U} .hd-map .hd-map-in { will-change:transform; }
 ${U} .hd-map .hd-map-in.glide { transition:transform .35s cubic-bezier(.2,.9,.3,1); }
 /* 横屏放不下「卡片栏（左 8–368）+ 520 宽的海图」时，海图挪到卡片栏右边：手机横屏原来当前那座岛正好躲在卡片后面，看不见也点不到
-   （岛的横坐标是海图宽的百分比，挪了照样排得开；右边让出回岛 / 回到当前关那一列） */
+   （岛的横坐标是海图宽的百分比，挪了照样排得开；右边让出回岛 / 回到下一关那一列） */
 @media (orientation:landscape) and (max-width:1271px) {
   ${U} .hd-map .hd-map-in { margin-left:376px; width:min(520px, calc(100% - 484px)); }
 }
 ${U} button.hd-map-home { position:absolute; top:114px; right:6px; z-index:31; min-width:44px; min-height:44px; padding:0 10px; }
+/* 下一关：岛上插「下一关」小旗，旁边一颗晃动的大「出发」钮（岛在右半边放左边、左半边放右边） */
+${U} .hd-map .hd-nextflag { position:absolute; left:50%; top:-22px; translate:-50% 0; z-index:1; padding:0 8px; border:3px solid ${ink}; border-radius:10px; background:linear-gradient(#ffe58a,#e0a824); color:${ink}; font-size:14px; font-weight:900; white-space:nowrap; box-shadow:0 2px 0 ${ink}; }
+${U} .hd-map button.hd-node-go { position:absolute; z-index:2; min-width:76px; min-height:48px; padding:0 14px; font-size:16px; animation:hd-nextbob 1.4s ease-in-out infinite; }
+${U} .hd-map button.hd-node-go.r { translate:70px -50%; }
+${U} .hd-map button.hd-node-go.l { translate:calc(-100% - 70px) -50%; }
+/* 光圈的外发光会漫到名牌上把字洗白：名牌压在光圈上面 */
+${U} .hd-map .hd-node.next span.hd-lb { position:relative; z-index:1; }
+@keyframes hd-nextbob { 0%,100% { margin-top:0; } 50% { margin-top:-5px; } }
+@media (prefers-reduced-motion:reduce) { ${U} .hd-map button.hd-node-go { animation:none; } }
+/* 电脑和横屏：入口卡只留图标、标题和一行状态，不再一闪一闪地抢下一关的风头 */
+${U} .hd-seacards .hd-mapcard { animation:none; min-height:52px; }
 /* 手机竖屏：今日悬赏、今日航线、护航收成顶上一条单行小卡（只留图标 + 标题，细节点进去再看），原来三张叠起来占 31% 屏高盖住航线；
-   回岛、回到当前关挪到这一条的下面 */
+   回岛、回到下一关挪到这一条的下面 */
 @media (max-width:559px) and (orientation:portrait) {
   ${U} .hd-bounty { top:58px; width:114px; max-width:none; min-height:44px; padding:2px 6px; gap:4px; }
   ${U} .hd-bounty .hd-img { height:24px !important; width:24px !important; }

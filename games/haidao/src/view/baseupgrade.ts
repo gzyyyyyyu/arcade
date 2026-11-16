@@ -85,6 +85,8 @@ export function celebrate(bs: BaseScene, level: number): void {
       sfx('star');
     }, 250 + i * 450);
   });
+  // 新开放的东西多（矮屏、一次升好几项）时按弹窗高度翻页，不出滚动条；翻到后面那页的已经弹完了
+  paginate(list, [...list.children] as HTMLElement[], list);
   const go = celebrateGo(items) === 'build';
   // 新开放里有建筑：弹窗关掉（先不了、点外面、Esc）后，在岛上亮一下“建造”和主寨；点了「去建造看看」直接开列表，不用亮
   bs.newHint = go;

@@ -16,6 +16,7 @@ import { bArt, iconA, tdE } from './art.ts';
 import { dayIndex } from './meta.ts';
 import { button, el, img, uiRoot } from './ui.ts';
 import { injectTdCss } from './tdcss.ts';
+import { garrisonMap } from './tdgarmap.ts';
 
 /** 守岛的 DOM 界面公共件：选关页、驻守台选塔、克制表卡、预告条、分叉选择卡（守岛局内和基地的塔面板共用）、样式 */
 
@@ -329,6 +330,17 @@ export function tdIncome(): { gold: number; wood: number; capGold: number; capWo
   return { gold: Math.max(0, cap.gold - (same ? (p.td?.gotGold ?? 0) : 0)), wood: Math.max(0, cap.wood - (same ? (p.td?.gotWood ?? 0) : 0)), capGold: cap.gold, capWood: cap.wood };
 }
 
+/**
+ * 选关卡片上只写一句（驻守台几座、几阶在点进去的选塔页上）：锁着写解锁条件；主寨不够写差几级；
+ * 没打过的写这关的新东西；其余写建议主寨。返回 [类名, 文字]。
+ */
+export function cardLine(lv: TdIslandLevel, all: readonly TdIslandLevel[], i: number, locked: boolean, hq: number, stars: number): [string, string] {
+  if (locked) return ['hd-tdlock', `先守下「${all[i - 1]?.name ?? ''}」（≥1 星）`];
+  if (hq < lv.hq) return ['hd-short', `建议主寨 ${lv.hq} 级（你 ${hq} 级，会偏难）`];
+  const nw = stars === 0 ? levelIntro(all, i) : '';
+  return nw ? ['hd-tdnew', nw] : ['', `建议主寨 ${lv.hq} 级`];
+}
+
 /** 选关页的章节：战役 18 关按章分好（样板关不在里面） */
 export function campaignChapters(): readonly Td2ChapterInfo[] {
   return TD2_CHAPTERS.filter((c) => c.levels.length > 0);
@@ -433,37 +445,17 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
       const i = all.indexOf(lv);
       const locked = !open(i);
       const stars = p.td?.stars[lv.id] ?? 0;
-      const c = el('div', `hd-tdcard${locked ? ' lock' : ''}`, undefined, list);
+      // 下一关（第一个还没拿星的已解锁关）描金边：一眼看出该打哪关
+      const c = el('div', `hd-tdcard${locked ? ' lock' : ''}${i === nextIdx ? ' next' : ''}`, undefined, list);
       el('span', 'hd-tdnum hd-n', String(j + 1), c);
       const mid = el('div', 'hd-tdmid', undefined, c);
-      const nm = el('b', 'hd-tdname', lv.name, mid);
-      // 守岛 2.0 换了关卡：以前拿过星的关挂"新版"角标（星数照算，可以再来）
-      if (stars > 0) el('em', 'hd-tdnewver', '新版', nm).title = '关卡改版了：地图和波次都换了，以前的星照算';
+      el('b', 'hd-tdname', lv.name, mid);
       const st = el('span', 'hd-stars', undefined, mid);
       for (let n = 0; n < 3; n++) st.appendChild(img(iconA(n < stars ? 'star' : 'starEmpty'), 18));
       const b = button(locked ? '未解锁' : stars > 0 ? '再守' : '出发', locked ? 'hd-btn-plain' : 'hd-btn-gold', () => go(lv), c);
       b.disabled = locked;
       b.dataset.level = lv.id;
-      const info = el('div', 'hd-tdinfo', undefined, c);
-      const sm = el('small', hq < lv.hq ? 'hd-short' : '', `建议主寨 ${lv.hq} 级`, info);
-      // 各段之间留一个普通空格当折行点（nowrap 段自己的首尾空格不算折行点）
-      if (hq < lv.hq) {
-        sm.append(' ');
-        el('span', 'hd-nowrap', `（你 ${hq} 级，会偏难）`, sm);
-      }
-      // 括号里的话、驻守台的数各自不拆行：窄卡里折行只能整段换到下一行，不能把「阶）」单独剩在第二行
-      if (lv.garrison.length) {
-        sm.append(' ');
-        el('span', 'hd-nowrap', `· 驻守台 ${lv.garrison.length} 座`, sm);
-        sm.append(' ');
-        el('span', 'hd-nowrap', `（最高 ${Math.max(...lv.garrison.map((g) => g.cap))} 阶）`, sm);
-      }
-      const nw = levelIntro(all, i);
-      if (nw) el('small', 'hd-tdnew', nw, info);
-      if (locked) {
-        const prev = all[i - 1];
-        el('small', 'hd-tdlock', `先守下「${prev?.name ?? ''}」（≥1 星）`, info);
-      }
+      el('small', ...cardLine(lv, all, i, locked, hq, stars), el('div', 'hd-tdinfo', undefined, c));
     });
     if (pages > 1) {
       const prevB = button('上一页', 'hd-btn-wood hd-tdpg-prev', () => show(ci, page - 1), pager);
@@ -515,7 +507,10 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
   const wrap = el('div', 'hd-tdsel hd-tdgar hd-tdgar-main hd-tdpage', undefined, uiRoot());
   const head = el('div', 'hd-tdsel-head', undefined, wrap);
   el('h2', '', `${lv.name} · 驻守台`, head);
-  el('p', 'hd-tdgar-note', '从自己的基地带塔上岛：阶数按基地里同种塔的最高等级折算（1–3 级 1 阶、4–6 级 2 阶、7–8 级 3 阶），不超过台子的上限。带上岛的塔照样能升级、能卖。', wrap);
+  // 小地图和说明并排（竖屏手机上小地图占满面板上方的空当，选塔面板沉到底下，见 tdcss）
+  const top = el('div', 'hd-tdgar-top', undefined, wrap);
+  const markSpot = garrisonMap(lv, top, (k) => showSpot(k));
+  el('p', 'hd-tdgar-note', '从自己的基地带塔上岛：阶数按基地里同种塔的最高等级折算（1–3 级 1 阶、4–6 级 2 阶、7–8 级 3 阶），不超过台子的上限。带上岛的塔照样能升级、能卖。', top);
   // 多座台：电脑上并排摆成几列；手机和矮屏放不下，改成顶上几个台子页签（页签上写这座台现在挑了什么），一次摆一座台的选项
   const mqTab = matchMedia('(max-width:700px), (max-height:700px)');
   const tabbed = lv.garrison.length > 1 && mqTab.matches;
@@ -527,6 +522,8 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
   const showSpot = (k: number): void => {
     spotEls.forEach((e, i) => e.classList.toggle('off', tabbed && i !== k));
     tabEls.forEach((t, i) => t.classList.toggle('on', i === k));
+    // 并排摆全部台子时（电脑）小地图上不单独描亮哪一座
+    markSpot(tabbed || lv.garrison.length === 1 ? k : -1);
   };
   lv.garrison.forEach((spot, si) => {
     const box = el('div', 'hd-tdgar-spot', undefined, spotsBox);
@@ -623,8 +620,8 @@ function homeCard(parent: HTMLElement, stars: number, onHome: () => void): void 
   el('b', 'hd-tdname', locked ? '海盗来袭 · 未解锁' : '海盗来袭', mid);
   if (locked) el('small', 'hd-tdlock', `先守下「${TD2_LEVELS.find((l) => l.id === HOME_UNLOCK)?.name ?? '第 1 关'}」（≥1 星）`, mid);
   else {
-    el('small', '', '守自己的岛：海盗一波比一波多，撑住几波拿几波的奖励', mid);
-    el('small', 'hd-tidebest', '不算星 · 和关卡共用今日守岛收入', mid);
+    el('small', '', '守自己的岛，撑几波拿几波的奖励', mid);
+    c.title = '海盗一波比一波多；不算星，和关卡共用今日守岛收入';
   }
   const go = button(locked ? '未解锁' : '出发', locked ? 'hd-btn-plain' : 'hd-btn-gold', onHome, c);
   go.disabled = locked;
@@ -641,13 +638,13 @@ function tideCard(parent: HTMLElement, stars: number, onTide: () => void): void 
   const locked = stars < 1;
   const c = el('div', `hd-tidecard${locked ? ' lock' : ''}`, undefined, parent);
   const mid = el('div', 'hd-tdmid', undefined, c);
-  el('b', 'hd-tdname', locked ? '大潮无尽 · 未解锁' : `大潮无尽 · ${week.year} 年第 ${week.week} 周`, mid);
+  el('b', 'hd-tdname', locked ? '大潮无尽 · 未解锁' : `大潮无尽 · 第 ${week.week} 周`, mid);
   if (locked) {
     el('small', 'hd-tdlock', `先守下「${TD2_LEVELS.find((l) => l.id === TIDE_UNLOCK)?.name ?? '第 3 关'}」（第一章第 3 关，≥1 星）`, mid);
   } else {
-    el('small', '', `本周的图：${tideMap(week).name}，所有人守同一座岛，比谁撑得久`, mid);
     const best = tideBest(label);
-    el('small', 'hd-tidebest', best > 0 ? `我的本周最好：${tideLine(best)}` : '这周还没打过', mid);
+    el('small', best > 0 ? 'hd-tidebest' : '', best > 0 ? `本周最好：${tideLine(best)}` : `本周守${tideMap(week).name}，比谁撑得久`, mid);
+    c.title = `${week.year} 年第 ${week.week} 周：所有人守同一座岛，波次无限`;
   }
   const go = button(locked ? '未解锁' : '出发', locked ? 'hd-btn-plain' : 'hd-btn-gold', onTide, c);
   go.disabled = locked;

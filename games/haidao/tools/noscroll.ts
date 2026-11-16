@@ -24,7 +24,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, type Page, type Route } from 'playwright-core';
 import { createServer } from 'vite';
-import { RULES_VERSION, TD2_LEVEL_BY_ID, botActions, newProfile, presetLayout } from '../src/core/index.ts';
+import { CAMPAIGN, RULES_VERSION, TD2_LEVEL_BY_ID, botActions, newProfile, presetLayout } from '../src/core/index.ts';
 import type { Placed, Profile } from '../src/core/index.ts';
 import { validateBase } from '../src/core/validate.ts';
 import { handleLive, type LiveEnv } from '../worker/live.ts';
@@ -33,6 +33,7 @@ import { BaseCore } from '../worker/pvp/base.ts';
 import { HarborCore } from '../worker/pvp/harbor.ts';
 import { MemKv } from '../worker/pvp/kv.ts';
 import { Bank } from './fake-bank.ts';
+import { sampleProfile } from './sample.ts';
 
 const argv = process.argv.slice(2);
 const opt = (name: string): string | null => {
@@ -478,7 +479,7 @@ async function measure(page: Page, touch: boolean, screen: string): Promise<Omit
       });
     };
     const hits = [...layer.querySelectorAll<HTMLElement>('button, [role=button], a, input, select, .hd-pill')]
-      .filter((e) => e.closest('.hd-ui') && !e.closest('.hd-map-in, .hd-scout-map'))
+      .filter((e) => e.closest('.hd-ui') && !e.closest('.hd-map-in, .hd-scout-map, .hd-tdgar-map'))
       .map((e) => ({ e, r: vis(e) }))
       .filter((x): x is { e: HTMLElement; r: DOMRect } => !!x.r && x.r.right > 0 && x.r.bottom > 0 && x.r.left < innerWidth && x.r.top < innerHeight)
       .filter((x) => reach(x.e, x.r));
@@ -496,7 +497,7 @@ async function measure(page: Page, touch: boolean, screen: string): Promise<Omit
     const cut: string[] = [];
     for (const e of document.querySelectorAll<HTMLElement>('.hd-ui *')) {
       if (cut.length >= 12) break;
-      if (e.clientWidth === 0 || e.closest('.hd-map-in, .hd-scout-map')) continue;
+      if (e.clientWidth === 0 || e.closest('.hd-map-in, .hd-scout-map, .hd-tdgar-map')) continue;
       if (![...e.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? '').trim())) continue;
       const r = vis(e);
       if (!r || r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) continue;
@@ -536,6 +537,13 @@ const ROOT = `http://127.0.0.1:${addr.port}/`;
 const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--no-proxy-server', '--no-zygote', '--in-process-gpu', '--autoplay-policy=no-user-gesture-required'] });
 
 const OLD_SAVE = JSON.stringify({ profile: { ...newProfile(), tutorial: 99, res: { gold: 1500, wood: 1500 }, stats: { attacks: 1, wins: 1, lootGold: 0, lootWood: 0 } }, lastSeen: Date.now() });
+/** 主寨 8、船坞还是 7 级、前 22 关都三星：海图 c23 的岛面板要出「建议船坞 8 级」那行（中段卡关的提醒） */
+const DOCK_BEHIND_SAVE = (() => {
+  const p = sampleProfile(8);
+  const stars = Object.fromEntries(CAMPAIGN.slice(0, 22).map((l) => [l.id, 3]));
+  const buildings = p.base.buildings.map((b) => (b.kind === 'dock' ? { ...b, level: 7 } : b));
+  return JSON.stringify({ profile: { ...p, base: { ...p.base, buildings }, stars, tutorial: 99, res: { gold: 9000, wood: 9000 } }, lastSeen: Date.now() });
+})();
 const GARRISON_LEVEL = [...TD2_LEVEL_BY_ID.values()].find((l) => l.garrison.length > 2);
 
 try {
@@ -714,6 +722,18 @@ try {
         await page.locator('.hd-live-card .hd-btn-gold:not(:disabled)').first().click({ timeout: 8000 });
         await page.locator('.hd-dialog:has-text("确定出海")').first().waitFor({ timeout: 8000 });
         await snap('确认框（悬赏出海）', 500);
+      });
+      await attempt('海图岛屿面板（船坞没跟上）', async () => {
+        await page.goto(`${ROOT}?fast`, { timeout: 60_000 });
+        await page.evaluate((sv) => localStorage.setItem('haidao.save', sv), DOCK_BEHIND_SAVE);
+        await page.goto(`${ROOT}?fast`, { timeout: 60_000 });
+        await ready();
+        await page.waitForTimeout(800);
+        await click('.hd-bottom button:has-text("出海")');
+        await page.locator('.hd-map').first().waitFor({ timeout: 8000 });
+        await page.locator('.hd-map .hd-node:has(.hd-num:text-is("23"))').first().dispatchEvent('click');
+        await page.locator('.hd-map .hd-sheet .hd-dockhint').first().waitFor({ timeout: 5000 });
+        await snap('海图岛屿面板（船坞没跟上）', 400);
       });
     });
 

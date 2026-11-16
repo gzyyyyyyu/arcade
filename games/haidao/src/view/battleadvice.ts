@@ -16,6 +16,25 @@ export interface AdviceInput {
   hasBrute: boolean;
   /** 这一关连输的次数（含这一场） */
   streak: number;
+  /** 船坞等级和能升到的等级（= 主寨）：没跟上时连输建议改指船坞（不给就按跟上算） */
+  dock?: { have: number; can: number };
+}
+
+/**
+ * 船坞从 have 级升到 want 级多出来的东西：「多 1 条船、每船 14→16 人」；跟上了返回 null。
+ * 中段（主寨 8 第一关 c23）卡关的真正原因是船坞比主寨低一级，不是研究（DESIGN 2.4）：输了要指对路。
+ */
+export function dockGain(have: number, want: number): string | null {
+  // 还没造船坞（have = 0）不在这里管：造船坞有新手引导
+  if (have < 1 || have >= want) return null;
+  const a = BUILDINGS.dock.levels[have - 1];
+  const b = BUILDINGS.dock.levels[want - 1];
+  if (!b) return null;
+  const parts: string[] = [];
+  const boats = (b.boats ?? 0) - (a?.boats ?? 0);
+  if (boats > 0) parts.push(`多 ${boats} 条船`);
+  if ((b.boatCap ?? 0) > (a?.boatCap ?? 0)) parts.push(`每船 ${a?.boatCap ?? 0}→${b.boatCap} 人`);
+  return parts.length ? parts.join('、') : null;
 }
 
 /** 失败原因：按这场的统计给 1–2 句话，连输再加一句换打法 */
@@ -42,6 +61,9 @@ export function adviceLines(res: Pick<BattleResult, 'destroyedPct'>, a: AdviceIn
   if (out.length < 2 && !a.hasBrute && lay.length >= 4) out.push('防御不少：带壮汉顶在前面吸引火力。');
   if (!out.length) out.push(res.destroyedPct < 5 ? '这次兵没打出伤害：换个登陆点，或先升级兵种和军械所再来。' : '再试一次：先点炮击打掉最凶的那座防御，再换个登陆点。');
   const lines = out.slice(0, 2);
-  if (a.streak >= 2) lines.push(`已经连输 ${a.streak} 次了：换兵种搭配、换登陆点，或先去军械所升兵种。`);
+  if (a.streak >= 2) {
+    const gain = a.dock ? dockGain(a.dock.have, a.dock.can) : null;
+    lines.push(a.dock && gain ? `已经连输 ${a.streak} 次了：先把船坞升到 ${a.dock.can} 级（${gain}），比升兵种管用。` : `已经连输 ${a.streak} 次了：换兵种搭配、换登陆点，或先去军械所升兵种。`);
+  }
   return lines;
 }

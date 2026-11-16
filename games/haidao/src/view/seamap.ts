@@ -1,8 +1,9 @@
 import { CAMPAIGN } from '../content/index.ts';
-import { armyCost, armyFor, totalStars, trimArmy } from '../core/index.ts';
+import { armyCost, armyFor, hqLevel, totalStars, trimArmy } from '../core/index.ts';
 import { mapDecoArt, mapIslandArt } from './art/index.ts';
 import { app } from './app.ts';
 import { lackText } from './basefeel.ts';
+import { dockGain } from './battleadvice.ts';
 import { iconA } from './art.ts';
 import { button, costRow, el, img, lockIcon, toast, uiRoot } from './ui.ts';
 import { openPvp, pvpMapButton } from './pvp.ts';
@@ -12,6 +13,7 @@ import { liveEntryReady, liveMapButton, openLive } from './live.ts';
 import { openEscortLive, openMapLive } from './livemore.ts';
 import { mapCard, mapLiveChip, openRoute } from './maproute.ts';
 import { escortCard, openEscortSelect } from './escortsel.ts';
+import { TUT_DONE, tutStep } from './tutorial.ts';
 
 const X = [50, 30, 68, 34, 70, 38, 64, 30, 62, 36, 68, 50];
 const STEP = 138;
@@ -65,11 +67,17 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
   svgEl('polyline', { points: CAMPAIGN.map((_, i) => `${pos(i).x},${pos(i).y}`).join(' '), fill: 'none', stroke: '#effcf7', 'stroke-width': '4', 'stroke-dasharray': '2 10', 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke', opacity: '.85' }, svg);
   inner.appendChild(svg);
 
-  // 当前可打的最新关：解锁了的最靠后的那座
+  // 解锁了的最靠后的那座
   let current = 0;
   CAMPAIGN.forEach((l, i) => {
     if (stars >= l.reqStars) current = i;
   });
+  // 下一关：第一座解锁了还没拿星的岛；都拿过星就是第一座没三星的；全三星停在最后解锁的那座。光圈、「下一关」旗、出发钮和「回到下一关」都认它
+  let focus = CAMPAIGN.findIndex((l) => stars >= l.reqStars && (p.stars[l.id] ?? 0) === 0);
+  if (focus < 0) focus = CAMPAIGN.findIndex((l) => stars >= l.reqStars && (p.stars[l.id] ?? 0) < 3);
+  if (focus < 0) focus = current;
+  // 新手引导还在带路时，引导自己的高亮框和箭头指着这座岛：旗和出发钮会被框压住、和箭头抢位置，先不画（引导走完再出现）
+  const guided = tutStep() < TUT_DONE;
   let detail: HTMLElement | null = null;
   let bountyEl: HTMLElement | null = null;
 
@@ -87,6 +95,11 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
     el('p', 'hd-desc', `${l.boss ? '首领' : '岛主'}：${l.bossName ?? l.captain}。${l.blurb}`, d);
     if (l.boss && l.mechanic) el('p', 'hd-mech', `特殊机制：${l.mechanic}`, d);
     if (bounty) el('p', 'hd-bountyline', '今日悬赏：这一关通关奖励翻倍（每天一次）', d);
+    // 船坞比这关的建议低（只算主寨允许升到的）：中段卡关多半卡在这里，提前说
+    const dockLv = p.base.buildings.find((b) => b.kind === 'dock')?.level ?? 0;
+    const dockWant = Math.min(l.hq, hqLevel(p));
+    const gain = locked ? null : dockGain(dockLv, dockWant);
+    if (gain) el('p', 'hd-bountyline hd-dockhint', `建议船坞 ${dockWant} 级（你 ${dockLv} 级，升上去${gain}）`, d);
     const row = el('div', 'hd-chips', undefined, d);
     const c = el('span', 'hd-chip', '预计掠夺 ', row);
     c.appendChild(costRow(l.loot));
@@ -120,12 +133,15 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
   CAMPAIGN.forEach((l, i) => {
     const locked = stars < l.reqStars;
     const q = pos(i);
-    const b = el('button', `hd-node${locked ? ' lock' : ''}${l.boss ? ' boss' : ''}`, undefined, inner);
+    const b = el('button', `hd-node${locked ? ' lock' : ''}${l.boss ? ' boss' : ''}${i === focus ? ' next' : ''}`, undefined, inner);
     b.type = 'button';
     b.style.left = `${q.x}%`;
     b.style.top = `${q.y}px`;
     const isle = el('span', 'hd-isle', undefined, b);
-    if (i === current && !locked) el('span', 'hd-ring', undefined, isle);
+    if (i === focus) {
+      el('span', 'hd-ring', undefined, isle);
+      if (!guided) el('span', 'hd-nextflag', '下一关', isle);
+    }
     const art = mapIslandArt(i % 30);
     isle.appendChild(img(art, l.boss ? 112 : 84, 'hd-img hd-isle-img'));
     el('span', 'hd-num', String(i + 1), isle);
@@ -145,6 +161,13 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
       show(i);
     });
   });
+  // 下一关旁边一颗大的「出发」：新玩家第一眼就知道点哪儿（点开岛面板，木材、星数、侦察都在面板上）；岛在右半边时钮放左边，反之放右边
+  if (!guided) {
+    const fq = pos(focus);
+    const goNext = button('出发', `hd-btn-gold hd-node-go ${fq.x >= 50 ? 'l' : 'r'}`, () => show(focus), inner);
+    goNext.style.left = `${fq.x}%`;
+    goNext.style.top = `${fq.y}px`;
+  }
 
   // 今日悬赏告示：一天一次，奖励翻倍
   const bo = bountyOf(p);
@@ -212,7 +235,7 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
     cards.remove();
   }
   // 海图是可拖动的游戏地图：页面本身不滚（容器 overflow:clip），内容用 transform 平移；
-  // 拖动平移，滚轮不响应（不滚页面），按钮和面板都在 wrap 外固定在屏幕上，「回到当前关」把地图平移回当前该打的岛
+  // 拖动平移，滚轮不响应（不滚页面），按钮和面板都在 wrap 外固定在屏幕上，「回到下一关」把地图平移回下一关
   let off = 0;
   const maxOff = (): number => Math.max(0, H - wrap.clientHeight);
   const setOff = (v: number, anim = false): void => {
@@ -220,9 +243,7 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
     inner.classList.toggle('glide', anim);
     inner.style.transform = `translate3d(0,${-off}px,0)`;
   };
-  // 下一步该打的岛（解锁了、还没三星的第一座）放在靠下的位置，上面留出几座岛的视野；新号当前是第 1 关，贴着底部，顶上留给引导横幅的是空白海面
-  let focus = CAMPAIGN.findIndex((l) => stars >= l.reqStars && (p.stars[l.id] ?? 0) < 3);
-  if (focus < 0) focus = current;
+  // 下一关放在靠下的位置，上面留出几座岛的视野；新号下一关是第 1 关，贴着底部，顶上留给引导横幅的是空白海面
   const homeOff = (): number => i0(pos(focus).y - (wrap.clientHeight - 200));
   let drag: { id: number; y: number; off: number; moved: boolean } | null = null;
   let swallow = false;
@@ -261,7 +282,7 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
   wrap.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
   const onResize = (): void => setOff(off);
   window.addEventListener('resize', onResize);
-  const home = button('回到当前关', 'hd-btn-plain hd-map-home', () => setOff(homeOff(), true), uiRoot());
+  const home = button('回到下一关', 'hd-btn-plain hd-map-home', () => setOff(homeOff(), true), uiRoot());
   requestAnimationFrame(() => setOff(homeOff()));
   return stop;
 }

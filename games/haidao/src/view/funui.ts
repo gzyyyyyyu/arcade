@@ -6,7 +6,7 @@
  */
 import type Phaser from 'phaser';
 import { BUILDINGS, CAMPAIGN, TROOPS } from '../content/index.ts';
-import { UNIT, TICKS_PER_SEC, type BChest, type BattleEvent, type ChestReward, since } from '../core/types.ts';
+import { UNIT, TICKS_PER_SEC, type BChest, type BattleEvent, type ChestReward, RULES_SINCE } from '../core/types.ts';
 import { canRecall } from '../core/index.ts';
 import { bTex, iconA, shipA } from './art.ts';
 import { halfLostHint } from './battlescout.ts';
@@ -112,7 +112,7 @@ export function funHud(bs: BattleScene): void {
   halfHint(bs);
   const chests: BChest[] = s.chests ?? [];
   const army = bs.d.setup.army;
-  if (chests.length === 0 && !bs.d.setup.fun?.ally && !since(s, 'fun')) return;
+  if (chests.length === 0 && !bs.d.setup.fun?.ally && s.rules < RULES_SINCE.fun) return;
   const v = viewOf(bs);
   for (const c of chests) {
     if (c.taken || v.chests.has(c.id)) continue;

@@ -1,7 +1,7 @@
 /** 结算：打完后的存档结算调度（finish）、战役结算框（showResult）、失败建议和归咎圈、战利品飞入、稀有宝箱 */
 import { CAMPAIGN } from '../content/index.ts';
 import { trimText } from './basefeel.ts';
-import { aliveByBoat, armyCost, battleResult, startCampaign, totalStars } from '../core/index.ts';
+import { aliveByBoat, armyCost, battleResult, hqLevel, startCampaign, totalStars } from '../core/index.ts';
 import { UNIT, type BattleResult, type Res, type BBuilding, type TroopKind } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { bArt, iconA, troopF } from './art.ts';
@@ -92,6 +92,7 @@ export function lossAdvice(bs: BattleScene, res: BattleResult): string[] {
     casts: bs.casts,
     hasBrute: bs.d.setup.army.boats.some((b) => b.troop === 'brute'),
     streak: lossStreakOf(bs.d.levelId),
+    dock: { have: app.profile.base.buildings.find((b) => b.kind === 'dock')?.level ?? 0, can: hqLevel(app.profile) },
   });
 }
 
