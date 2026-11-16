@@ -1,6 +1,6 @@
 import { WEAPONS, type WeaponId } from '../content/weapons.ts';
 import { step, type World } from '../core/index.ts';
-import { grantWeapon, openChestNow } from '../core/debug.ts';
+import { grantWeapon, openEliteChestNow } from '../core/debug.ts';
 import type { RunTally } from '../meta/records.ts';
 
 export type Autopilot = (w: World) => { dir: number; choice: number };
@@ -19,8 +19,9 @@ export async function applyDebugStart(q: URLSearchParams, w: World, tally: RunTa
       const [id, lv = '1'] = part.split(':');
       if (id && id in WEAPONS) grantWeapon(w, id as WeaponId, parseInt(lv, 10), lv.endsWith('e'));
     }
-    // &merge=late：第 28 拍才开宝箱（带合成演出，截图看横幅用）；平时 &merge 开局就合成
-    if (q.has('merge') && q.get('merge') !== 'late') for (let k = 0; k < 3; k++) openChestNow(w);
+    // &merge=late：第 28 拍才开宝箱（带合成演出，截图看横幅用；late:90 指定第几拍）；平时 &merge 开局就合成
+    // 走捡到宝箱的那条路（规则 63 的初成、大成只在这条路上结）
+    if (q.has('merge') && !q.get('merge')?.startsWith('late')) openEliteChestNow(w, 0);
   }
   if (import.meta.env.DEV && (q.has('auto') || q.has('warp'))) {
     const { Bot } = await import('../../tools/bots.ts');

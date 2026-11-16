@@ -55,6 +55,8 @@ export interface WeaponDef {
 }
 
 export const MAX_WEAPON_LEVEL = 8;
+/** 规则 63 的两段式合成（World.mergeStages）：两件料各到 halfLevel 级（进化了也算）合初成，初成的效果按 halfPower 打折 */
+export const MERGE_STAGE = { halfLevel: 5, halfPower: 0.5 } as const;
 export const MAX_WEAPONS = 6;
 export const MAX_PASSIVES = 6;
 
@@ -762,7 +764,7 @@ export const PASSIVES: Record<PassiveId, PassiveDef> = {
 };
 
 /**
- * 合成（DESIGN.md 3.3、3.3b）：两件都进化了，宝箱里合成一件，空出一个法器格；a 留在原来的格子里，b 也照常出手。
+ * 合成（DESIGN.md 3.3、3.3b）：两件都进化了，宝箱里合成一件，空出一个法器格（规则 63 的娱乐局先合初成、大成才空格，3.3f）；a 留在原来的格子里，b 也照常出手。
  * dual = 双修：两件不同流派（类型或五行）的法器合成，效果把两边的打法接在一起。
  * color：这个合成自己的颜色（图标底牌、合成演出、图鉴边）。
  */

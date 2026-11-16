@@ -321,7 +321,7 @@ export class Guide {
       '<div class="yx-gpage"><div class="yx-gmhead"><b>合成·双修</b>' +
       `<span><em class="yx-gtag mix">合成</em>${esc(mergeHow({}))}</span>` +
       `<span><em class="yx-gtag dual">双修</em>${esc(mergeHow({ dual: true }))}</span>` +
-      `<span class="yx-gnote">条件齐了，下一个宝箱就合上，空出一格；共 ${list.length} 个，${esc(poolCharName(this.char))}凑得出 ${mine} 个（压暗的凑不出）</span></div>` +
+      `<span class="yx-gnote">条件齐了，下一个宝箱就合上，大成才空出一格；共 ${list.length} 个，${esc(poolCharName(this.char))}凑得出 ${mine} 个（压暗的凑不出）</span></div>` +
       `<div class="yx-gmlist">${list.map((m) => this.mergeRow(m)).join('')}</div></div>`
     );
   }

@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import { DAWN_TICK, type Danger } from './content/waves.ts';
 import { CURSE_IDS, MAX_CURSES } from './content/meta.ts';
 import { createWorld, type Setup, type World } from './core/index.ts';
-import { openChestNow } from './core/debug.ts';
+import { openEliteChestNow } from './core/debug.ts';
 import { autoSkillSetting } from './view/game/autoskill.ts';
 import { buyChar, buyPerk, dangerOpen, loadoutSetup, loadSave, mapOpen, refundPerks, saveHooks, setLoadout, settings, writeSave } from './platform/save.ts';
 import { SCHOOLS } from './content/guide.ts';
@@ -399,7 +399,7 @@ async function boot(): Promise<void> {
       beforeStep: (x: World, dir: number, choice: number, skill: number) => sess.rec?.before(x, dir, choice, skill),
       afterStep: (x: World) => {
         sess.tally.feed(x);
-        if (import.meta.env.DEV && x.tick === 28 && q.get('merge') === 'late') openChestNow(x);
+        if (import.meta.env.DEV && q.get('merge')?.startsWith('late') && x.tick === (Number(q.get('merge')!.slice(5)) || 28)) openEliteChestNow(x, 0);
         if (sess.liveRun && x.tick % 300 === 0) live.progress(sess.liveRun.seed, x.tick);
       },
     });

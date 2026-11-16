@@ -7,13 +7,17 @@ import { CHARACTERS, PICK_CHAR_IDS } from '../../content/meta.ts';
 import { SCHOOLS, SCHOOL_IDS, type SchoolId } from '../../content/guide.ts';
 import { CHARACTER_POOLS, mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId } from '../../content/pools.ts';
 import { mergeReach, mergeWho, reachWhy, SHOWN_MERGES } from '../../content/combos.ts';
-import { PASSIVES, SCHOOL_SETS, WEAPONS, type MergeDef } from '../../content/weapons.ts';
+import { MERGE_STAGE, PASSIVES, SCHOOL_SETS, WEAPONS, type MergeDef } from '../../content/weapons.ts';
 import type { Records } from '../../meta/records.ts';
 
 const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
-/** 怎么合（规则 57 起四个新搭配也一样）：合成两件都进化；双修一件进化、另一件满级；都是之后开宝箱 */
-export const mergeHow = (m: { dual?: boolean }): string => (m.dual ? '一件进化、另一件满级，开宝箱' : '两件都进化，开宝箱');
+/**
+ * 怎么合（规则 63 的两段式，DESIGN 3.3f）：两件都到 5 级开宝箱合初成（效果减半），到原条件再开宝箱升大成（合成两件都进化；双修一件进化、另一件满级）。
+ * 图鉴和玩法说明给现行规则的局看，实盘局还是一步合（实盘面板不显示这句）
+ */
+export const mergeHow = (m: { dual?: boolean }): string =>
+  `两件到 ${MERGE_STAGE.halfLevel} 级合初成（效果减半）；${m.dual ? '一件进化、另一件满级' : '两件都进化'}升大成`;
 
 /** 新 4 个角色的名字（角色表那一路还没合进来时用） */
 const NEW_NAMES: Record<string, string> = { zhijiang: '纸匠', baidu: '摆渡人', huolang: '货郎', yinyang: '阴阳先生' };

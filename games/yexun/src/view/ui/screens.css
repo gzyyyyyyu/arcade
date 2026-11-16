@@ -179,6 +179,13 @@
 .yx-cell.evo { background: #ffe0d8; border-color: var(--red); }
 .yx-cell.evo em, .yx-cell.max em { background: var(--red); color: #fbf5e4; }
 .yx-cell.sel { transform: translateY(-2px); background: #fff; }
+/* 规则 63 的初成搭配：和 HUD 一样虚线框 + 右上角「初」 */
+.yx-cell.half { border-style: dashed; }
+.yx-cell i {
+  position: absolute; right: -6px; top: -6px; min-width: 18px; padding: 0 3px; box-sizing: border-box;
+  font-style: normal; font-size: var(--fs-xs, 12px); line-height: 15px; text-align: center; color: #fff;
+  border: 2px solid var(--ink); border-radius: 6px; background: #8a6ad0;
+}
 .yx-bdetail {
   margin-top: auto; min-height: 64px; padding: 8px 12px; box-sizing: border-box; border-radius: 10px;
   background: rgba(23, 19, 28, 0.08); font-size: var(--fs-md, 14px); line-height: 1.45;

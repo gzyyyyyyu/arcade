@@ -280,15 +280,21 @@ function castChain(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStats
   // 位置变了，格子重建一次，后面的查询才找得到
   g.build(w);
   // 锁魂幡：先记下再打（这一下打死的也算）
-  if (w.merges.includes('suohun')) for (let r = 0; r < got; r++) w.arms.souled[pulled[r]!] = 1;
+  // 规则 63 的初成：锁魂是开关，按 mergePower 的概率记（大成每只都记，不抽随机数）
+  if (w.merges.includes('suohun')) {
+    const p = w.mergePower('suohun');
+    for (let r = 0; r < got; r++) if (p === 1 || w.rWeapon.next() < p) w.arms.souled[pulled[r]!] = 1;
+  }
   for (let r = 0; r < got; r++) api.hitEnemy(w, pulled[r]!, e.dmg, k, 0, 0, 0, s.rehit);
   // 雷劫锁魂：被拉到一处的怪里最靠近锚点的几只，头上落一道雷
   if (w.merges.includes('leijie')) {
     const kt = slotOf(w, 'thunder');
     if (kt >= 0) {
       const M = ARM_FX.combo.leijie;
-      const dmg = api.eff(w, w.wstats[kt]!).dmg * M.mul;
-      for (let r = 0; r < got && r < M.bolts; r++) {
+      const p = w.mergePower('leijie');
+      const dmg = api.eff(w, w.wstats[kt]!).dmg * M.mul * p;
+      const bolts = Math.max(1, Math.round(M.bolts * p));
+      for (let r = 0; r < got && r < bolts; r++) {
         const i = pulled[r]!;
         if (!w.eAlive[i]) continue;
         emit(w, Ev.Thunder, w.eX[i]!, w.eY[i]!, 0, M.r, 0);
@@ -353,7 +359,7 @@ function puddlesTick(w: World, g: Grid, api: ArmApi): void {
     }
     // 渡魂灯：亮着灯的水痕每隔几拍烧一下里面的怪（按长明灯的伤害）
     if (p.lit && kl >= 0 && w.tick % M.every === q % M.every) {
-      const dmg = api.eff(w, w.wstats[kl]!).dmg * M.mul;
+      const dmg = api.eff(w, w.wstats[kl]!).dmg * M.mul * w.mergePower('dudeng');
       const n = g.query(w, p.x, p.y, p.r);
       for (let j = 0; j < n; j++) tmp[j] = g.out[j]!;
       let hit = 0;
@@ -469,7 +475,7 @@ function combos(w: World, g: Grid, api: ArmApi): void {
         emit(w, ArmEv.Combo, w.x, w.y, ArmFx.Hejin, r);
         const n = g.query(w, w.x, w.y, r);
         for (let j = 0; j < n; j++) tmp[j] = g.out[j]!;
-        for (let j = 0; j < n; j++) api.hitEnemy(w, tmp[j]!, dmg * C.hejin.diveMul, -1, 0, 0, 0, 0, k);
+        for (let j = 0; j < n; j++) api.hitEnemy(w, tmp[j]!, dmg * C.hejin.diveMul * w.mergePower('hejin'), -1, 0, 0, 0, 0, k);
       }
     }
     if (has('qiankun')) {
@@ -481,10 +487,12 @@ function combos(w: World, g: Grid, api: ArmApi): void {
         for (let j = 0; j < n; j++) tmp[j] = g.out[j]!;
         for (let j = 0; j < n; j++) {
           const i = tmp[j]!;
-          api.hitEnemy(w, i, dmg * C.qiankun.mul, -1, w.eX[i]! - w.x, w.eY[i]! - w.y, 26, 0, k);
+          api.hitEnemy(w, i, dmg * C.qiankun.mul * w.mergePower('qiankun'), -1, w.eX[i]! - w.x, w.eY[i]! - w.y, 26, 0, k);
         }
       }
-      const b2 = C.qiankun.blockR * C.qiankun.blockR;
+      // 规则 63 的初成：挡弹幕的圈小一半（挡弹幕是开关，只能缩范围）
+      const br = C.qiankun.blockR * w.mergePower('qiankun');
+      const b2 = br * br;
       for (let q = 0; q < MAX_SHOTS; q++) {
         if (!w.sAlive[q] || w.sKind[q] !== Shot.Fireball) continue;
         const dx = w.sX[q]! - w.x;
@@ -502,7 +510,7 @@ function combos(w: World, g: Grid, api: ArmApi): void {
     const t = k >= 0 ? api.nearest(w, g, w.x, w.y, C.hejin.peckReach) : -1;
     if (t >= 0) {
       emit(w, ArmEv.Combo, w.eX[t]!, w.eY[t]!, ArmFx.Hejin, 0);
-      api.hitEnemy(w, t, dmg * C.hejin.peckMul, -1, 0, 0, 0, 0, k);
+      api.hitEnemy(w, t, dmg * C.hejin.peckMul * w.mergePower('hejin'), -1, 0, 0, 0, 0, k);
     }
   }
   // 铃响：引魂鹤铃（纸鹤啄铃里最近的怪）、晨钟暮鼓（站在阵里，铃再响一遍）
@@ -515,7 +523,7 @@ function combos(w: World, g: Grid, api: ArmApi): void {
         const t = k >= 0 ? api.nearest(w, g, w.x, w.y, r) : -1;
         if (t >= 0) {
           emit(w, ArmEv.Combo, w.eX[t]!, w.eY[t]!, ArmFx.Heling, 0);
-          api.hitEnemy(w, t, dmg * C.heling.mul, -1, 0, 0, 0, 0, k);
+          api.hitEnemy(w, t, dmg * C.heling.mul * w.mergePower('heling'), -1, 0, 0, 0, 0, k);
         }
       }
       if (has('chenzhong') && inAnyZone(w)) {
@@ -525,7 +533,7 @@ function combos(w: World, g: Grid, api: ArmApi): void {
           emit(w, ArmEv.Combo, w.x, w.y, ArmFx.Chenzhong, r);
           const n = g.query(w, w.x, w.y, r);
           for (let j = 0; j < n; j++) tmp[j] = g.out[j]!;
-          for (let j = 0; j < n; j++) api.hitEnemy(w, tmp[j]!, dmg * C.chenzhong.mul, -1, 0, 0, 0, 0, k);
+          for (let j = 0; j < n; j++) api.hitEnemy(w, tmp[j]!, dmg * C.chenzhong.mul * w.mergePower('chenzhong'), -1, 0, 0, 0, 0, k);
         }
       }
     }
@@ -539,7 +547,7 @@ function combos(w: World, g: Grid, api: ArmApi): void {
         const n = g.query(w, w.sX[q]!, w.sY[q]!, C.qianjian.r);
         for (let j = 0; j < n; j++) tmp[j] = g.out[j]!;
         let hit = 0;
-        for (let j = 0; j < n; j++) if (api.hitEnemy(w, tmp[j]!, dmg * C.qianjian.mul, -1, 0, 0, 0, 0, k)) hit++;
+        for (let j = 0; j < n; j++) if (api.hitEnemy(w, tmp[j]!, dmg * C.qianjian.mul * w.mergePower('qianjian'), -1, 0, 0, 0, 0, k)) hit++;
         if (hit > 0) emit(w, ArmEv.Combo, w.sX[q]!, w.sY[q]!, ArmFx.Qianjian, C.qianjian.r);
       }
     }
@@ -547,7 +555,7 @@ function combos(w: World, g: Grid, api: ArmApi): void {
   if (has('yiwei') && w.tick % C.yiwei.every === 0) {
     for (let q = 0; q < MAX_SHOTS; q++) {
       if (!w.sAlive[q] || w.sKind[q] !== Shot.Fly || w.sState[q] === 0) continue;
-      addPuddle(w, w.sX[q]!, w.sY[q]!, C.yiwei.r, Math.round(C.yiwei.life * w.stats.durMul));
+      addPuddle(w, w.sX[q]!, w.sY[q]!, C.yiwei.r, Math.round(C.yiwei.life * w.stats.durMul * w.mergePower('yiwei')));
     }
   }
   // 花灯会：站在灯光里，花瓣追着灯边的怪落下并回血
@@ -560,8 +568,8 @@ function combos(w: World, g: Grid, api: ArmApi): void {
       const t = k >= 0 ? api.nearest(w, g, l.x, l.y, l.r + C.huadeng.reach) : -1;
       if (t >= 0) {
         emit(w, ArmEv.Combo, w.eX[t]!, w.eY[t]!, ArmFx.Huadeng, 0);
-        api.hitEnemy(w, t, dmg * C.huadeng.mul, -1, 0, 0, 0, 0, k);
-        api.heal(w, C.huadeng.heal);
+        api.hitEnemy(w, t, dmg * C.huadeng.mul * w.mergePower('huadeng'), -1, 0, 0, 0, 0, k);
+        api.heal(w, C.huadeng.heal * w.mergePower('huadeng'));
       }
       break;
     }
@@ -584,10 +592,11 @@ function combos(w: World, g: Grid, api: ArmApi): void {
         if (ax > z.half || ay > z.half) continue;
         const ex = z.half - ax;
         const ey = z.half - ay;
-        if (ex < ey) w.eX[i]! += dx < 0 ? -C.liangyi.push : C.liangyi.push;
-        else w.eY[i]! += dy < 0 ? -C.liangyi.push : C.liangyi.push;
+        const push = C.liangyi.push * w.mergePower('liangyi');
+        if (ex < ey) w.eX[i]! += dx < 0 ? -push : push;
+        else w.eY[i]! += dy < 0 ? -push : push;
         moved++;
-        if ((Math.min(ex, ey)) < C.liangyi.band && k >= 0) api.hitEnemy(w, i, dmg * C.liangyi.mul, -1, 0, 0, 0, 0, k);
+        if ((Math.min(ex, ey)) < C.liangyi.band && k >= 0) api.hitEnemy(w, i, dmg * C.liangyi.mul * w.mergePower('liangyi'), -1, 0, 0, 0, 0, k);
       }
       if (moved > 0) emit(w, ArmEv.Combo, z.x, z.y, ArmFx.Liangyi, z.half);
     }

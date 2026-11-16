@@ -204,6 +204,14 @@
 }
 .yx-pass img { position: absolute; inset: 6%; width: 88%; height: 88%; }
 .yx-pass .yx-slot-lv { left: -5px; bottom: -5px; font-size: var(--fs-xs, 12px); line-height: 13px; min-width: 14px; padding: 0 2px; }
+/* 规则 63 的初成搭配：虚线框 + 右上角「初」角标，和大成一眼分开 */
+.yx-hud .yx-slot.half { border-style: dashed; }
+.yx-hud .yx-slot-stage {
+  position: absolute; right: -6px; top: -6px;
+  min-width: 16px; padding: 0 3px;
+  border: 2px solid var(--ink); border-radius: 6px;
+  background: #8a6ad0; color: #fff; font-size: var(--fs-xs, 12px); line-height: 14px; text-align: center;
+}
 .yx-slot {
   position: relative;
   width: calc(46px * var(--s, 1)); height: calc(46px * var(--s, 1));

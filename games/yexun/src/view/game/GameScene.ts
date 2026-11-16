@@ -41,6 +41,7 @@ import '../audio/sfx-skills.ts';
 import { browserHaptics } from '../haptics.ts';
 import type { Banners } from '../ui/banner.ts';
 import { type Cards, describe } from '../ui/cards.ts';
+import { upgradeNeed } from '../ui/mergeHint.ts';
 import type { Hud, HudArrow, HudSlot } from '../ui/hud.ts';
 import { RaidHud } from '../ui/raidhud.ts';
 import { LOW_MEMORY } from '../viewport.ts';
@@ -1171,7 +1172,14 @@ export class GameScene extends Phaser.Scene {
     const w = this.w;
     if (code >= MERGE_CODE) {
       const m = MERGES[code - MERGE_CODE]!;
-      return { icon: m.icon, title: m.name, sub: `${m.dual ? '双修' : '合成'}！${m.desc}。空出一个法器格`, kind: 'merge', tint: m.color };
+      const kind = m.dual ? '双修' : '合成';
+      // 规则 63 的两段式：初成写打折和升大成还差什么；大成（一步到位或初成升上来）才空法器格
+      if (w.mergeHalf.includes(m.id)) {
+        const left = upgradeNeed(w, m);
+        return { icon: m.icon, title: `${m.name}·初成`, sub: `${kind}初成！${m.desc}（效果减半）。${left.length ? `还差 ${left.join('、')} 升大成` : '下个宝箱升大成'}`, kind: 'merge', tint: m.color };
+      }
+      if (w.mergeStages) return { icon: m.icon, title: `${m.name}·大成`, sub: `${kind}大成！${m.desc}。空出一个法器格`, kind: 'merge', tint: m.color };
+      return { icon: m.icon, title: m.name, sub: `${kind}！${m.desc}。空出一个法器格`, kind: 'merge', tint: m.color };
     }
     if (code >= 100) {
       const p = PASSIVES[PASSIVE_IDS[code - 100]!];
@@ -2519,7 +2527,8 @@ export class GameScene extends Phaser.Scene {
     const slots: HudSlot[] = w.weapons.map((o, k) => {
       const s = w.wstats[k]!;
       const cd = Math.max(4, Math.round(s.cd * w.stats.cdMul));
-      return { icon: weaponLook(w, o).icon, level: o.evolved ? 9 : o.level, cd: o.id === 'flysword' || o.id === 'coins' || o.id === 'crane' || o.id === 'shield' ? 1 : Math.max(0, Math.min(1, 1 - o.timer / cd)) };
+      const look = weaponLook(w, o);
+      return { icon: look.icon, ...(look.half ? { half: true } : {}), level: o.evolved ? 9 : o.level, cd: o.id === 'flysword' || o.id === 'coins' || o.id === 'crane' || o.id === 'shield' ? 1 : Math.max(0, Math.min(1, 1 - o.timer / cd)) };
     });
     const raid = this.raid;
     this.drawSkillButton();

@@ -259,7 +259,7 @@ function settle(w: World, g: Grid, k: number, wp: OwnedWeapon, e: Eff, api: ArmA
     const { k: kd, dmg } = dmgOf(w, api, 'dart');
     if (kd >= 0) {
       const t = api.nearest(w, g, w.eX[top]!, w.eY[top]!, 260, top);
-      spawnDart(w, w.eX[top]!, w.eY[top]!, t, dmg * ARM_FX2.combo.caiyuan.mul, kd, w.weapons[kd]!.evolved ? 1 : 0);
+      spawnDart(w, w.eX[top]!, w.eY[top]!, t, dmg * ARM_FX2.combo.caiyuan.mul * w.mergePower('caiyuan'), kd, w.weapons[kd]!.evolved ? 1 : 0);
       emit(w, ArmEv.Combo, w.eX[top]!, w.eY[top]!, ArmFx.Caiyuan, 0);
     }
   }
@@ -552,14 +552,16 @@ function rain(w: World, g: Grid, api: ArmApi): void {
 
 function maibuBurst(w: World, g: Grid, api: ArmApi, x: number, y: number): void {
   const M = ARM_FX2.combo.maibu;
-  w.coins += M.coins;
-  w.coinBy.drop += M.coins;
+  const p = w.mergePower('maibu');
+  const coins = Math.max(1, Math.round(M.coins * p));
+  w.coins += coins;
+  w.coinBy.drop += coins;
   emit(w, ArmEv.Combo, x, y, ArmFx.Maibu, M.r, 1);
   const { k, dmg } = dmgOf(w, api, 'dart');
   if (k < 0) return;
   const n = g.query(w, x, y, M.r);
   for (let j = 0; j < n; j++) tmp[j] = g.out[j]!;
-  for (let j = 0; j < n; j++) api.hitEnemy(w, tmp[j]!, dmg * M.mul, -1, 0, 0, 0, 0, k);
+  for (let j = 0; j < n; j++) api.hitEnemy(w, tmp[j]!, dmg * M.mul * p, -1, 0, 0, 0, 0, k);
 }
 
 function secondCombos(w: World, g: Grid, api: ArmApi): void {
@@ -581,7 +583,7 @@ function secondCombos(w: World, g: Grid, api: ArmApi): void {
       }
       if (best >= 0) {
         emit(w, ArmEv.Combo, w.eX[best]!, w.eY[best]!, ArmFx.Yinlv, 0);
-        api.hitEnemy(w, best, dmg * C.yinlv.mul, -1, 0, 0, 0, 0, k);
+        api.hitEnemy(w, best, dmg * C.yinlv.mul * w.mergePower('yinlv'), -1, 0, 0, 0, 0, k);
       }
     }
   }
@@ -610,9 +612,12 @@ function secondCombos(w: World, g: Grid, api: ArmApi): void {
   // 阴兵借道：纸兵倒下时变成一个冤魂
   if (hasMerge(w, 'yinbing')) {
     const ks = slotOf(w, 'banner');
+    // 规则 63 的初成：变冤魂是开关，按 mergePower 的概率（大成每只都变，不抽随机数）
+    const p = w.mergePower('yinbing');
     if (ks >= 0) {
       for (let q = 0; q < w.ev.n; q++) {
         if (w.ev.type[q] !== Ev.Paper || w.ev.a[q] !== 0) continue;
+        if (p < 1 && w.rWeapon.next() >= p) continue;
         emit(w, ArmEv.Combo, w.ev.x[q]!, w.ev.y[q]!, ArmFx.Yinbing, 0);
         spawnGhost(w, api, w.ev.x[q]!, w.ev.y[q]!, ks, w.weapons[ks]!.evolved ? 1 : 0, w.x, w.y);
       }
@@ -623,14 +628,16 @@ function secondCombos(w: World, g: Grid, api: ArmApi): void {
     const { k, dmg } = dmgOf(w, api, 'cracker');
     if (k >= 0) {
       const M = C.baozhu;
+      const p = w.mergePower('baozhu');
+      const n2 = Math.max(1, Math.round((M.crackers >> 1) * p));
       emit(w, ArmEv.Combo, w.x, w.y, ArmFx.Baozhu, 600);
       for (let r = 0; r < 8; r++) {
         const d = r * 32;
-        pushCracker(w, { x: w.x + dcos(d) * 40, y: w.y + dsin(d) * 40, ux: dcos(d), uy: dsin(d), step: 46, total: M.crackers >> 1, left: M.crackers >> 1, next: w.tick + r, dmg: dmg * M.mul, r: 46, knock: M.knock, evo: 0, round: 1, slot: k });
+        pushCracker(w, { x: w.x + dcos(d) * 40, y: w.y + dsin(d) * 40, ux: dcos(d), uy: dsin(d), step: 46, total: n2, left: n2, next: w.tick + r, dmg: dmg * M.mul * p, r: 46, knock: M.knock, evo: 0, round: 1, slot: k });
       }
       const n = g.query(w, w.x, w.y, 600);
       for (let j = 0; j < n; j++) tmp[j] = g.out[j]!;
-      for (let j = 0; j < n; j++) api.hitEnemy(w, tmp[j]!, dmg * M.mul, -1, w.eX[tmp[j]!]! - w.x, w.eY[tmp[j]!]! - w.y, M.knock, 0, k);
+      for (let j = 0; j < n; j++) api.hitEnemy(w, tmp[j]!, dmg * M.mul * p, -1, w.eX[tmp[j]!]! - w.x, w.eY[tmp[j]!]! - w.y, M.knock, 0, k);
     }
   }
 }
