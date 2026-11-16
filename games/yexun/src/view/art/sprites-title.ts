@@ -1,10 +1,13 @@
 /**
  * 标题页主视觉和结算图标（DESIGN.md 第 7 节）。
  * 主视觉不进图集：标题页自己开一张 canvas，静的部分（夜空、月、古镇屋檐、地面、立绘）画一次，
- * 动的部分（月晕、灯笼晃动、飘雪）每帧叠上去。小道士直接放大画 sprites.ts 里的 `hero`（矢量，放大不糊），保证和对局里是同一个人。
+ * 动的部分（月晕、灯笼晃动、飘雪）每帧叠上去。立绘直接放大画出战角色在对局里用的那张（小道士是 sprites.ts 的 `hero`，别人是角色图集的 `hero_<id>`；矢量，放大不糊），保证和对局里是同一个人。
  * 图集里只登记两个小图标：灯笼（夜探卡）、奖牌（结算的本局最强）。
  */
 import { SPRITES, type SpriteDef } from './sprites.ts';
+import { HERO_SPRITES, heroKey } from './heroes.ts';
+import { CHARS2_SPRITES } from './sprites-chars2.ts';
+import type { CharacterId } from '../../content/meta.ts';
 import { INK, blob, circle, dab, ellipse, poly, rrect, stroke, type Ctx } from './draw.ts';
 
 const ROOF = '#1d2038';
@@ -115,7 +118,7 @@ export function titleLayout(w: number, h: number, padTop = 118, select = false):
 }
 
 /** 静的底图：夜空渐变、星、月（不含月晕）、远处古镇、雪地、近处的屋檐剪影、道士。返回雪线 y 供动画层用 */
-export function drawTitleStill(c: Ctx, w: number, h: number, padTop?: number, select = false): { horizon: number; moon: { x: number; y: number; r: number }; hero: { x: number; y: number; s: number }; lamps: Lamp[] } {
+export function drawTitleStill(c: Ctx, w: number, h: number, padTop?: number, select = false, character: CharacterId = 'xiaodao'): { horizon: number; moon: { x: number; y: number; r: number }; hero: { x: number; y: number; s: number }; lamps: Lamp[] } {
   const lay = titleLayout(w, h, padTop, select);
   const horizon = h * 0.66;
   const sky = c.createLinearGradient(0, 0, 0, horizon);
@@ -168,8 +171,10 @@ export function drawTitleStill(c: Ctx, w: number, h: number, padTop?: number, se
   c.save();
   c.translate(hero.x, hero.y);
   c.scale(hs, hs);
-  c.translate(-30, -66.5);
-  SPRITES.find((d) => d.key === 'hero')!.draw(c);
+  // 画当前出战的角色（11-15：原来固定小道士，换了人主页看不出这局是谁）；小道士在主图集，别人在角色图集，画法同一份
+  const def = character === 'xiaodao' ? SPRITES.find((d) => d.key === 'hero')! : [...HERO_SPRITES, ...CHARS2_SPRITES].find((d) => d.key === heroKey(character))!;
+  c.translate(-def.w / 2, -66.5);
+  def.draw(c);
   c.restore();
   return { horizon, moon, hero, lamps: lay.lamps };
 }

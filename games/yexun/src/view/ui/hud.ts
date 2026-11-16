@@ -27,6 +27,8 @@ export interface HudState {
   slots: HudSlot[];
   /** 被动：只显示图标和等级，不点 */
   passives: { icon: string; level: number }[];
+  /** 阴阳先生头像上的阴阳标（core/skills.ts yinyangSide）；别的角色 null */
+  yy: 'yang' | 'yin' | null;
   /** 夜探：顶上换成天亮倒计时（label 是"离天亮"或"天亮"，level 1 = 14:00 起醒目，2 = 最后 30 秒变红），右上多一个背包件数 */
   /** 守夜：下一次地图事件的倒计时小牌（mapEvents.ts 的 nextMapEvent；没有就不给） */
   event?: { kind: string; name: string; left: number; urgent: boolean } | null;
@@ -81,6 +83,8 @@ export class Hud {
   private shFill: HTMLDivElement;
   private shBar: HTMLDivElement;
   private lv: HTMLSpanElement;
+  /** 阴阳先生的阴阳标 */
+  private yy: HTMLSpanElement;
   private xpFill: HTMLDivElement;
   private time: HTMLSpanElement;
   private tlabel: HTMLSpanElement;
@@ -163,6 +167,7 @@ export class Hud {
     img.src = face;
     img.alt = '';
     this.lv = el('span', 'yx-lv', av, '1');
+    this.yy = el('span', 'yx-yy', av);
     const bars = el('div', 'yx-bars', card);
     const hp = el('div', 'yx-bar yx-hp', bars);
     this.hpFill = el('div', 'yx-fill', hp);
@@ -272,6 +277,12 @@ export class Hud {
     this.shBar.style.visibility = s.shieldMax > 0 ? '' : 'hidden';
     if (s.shieldMax > 0) this.shFill.style.width = `${(100 * s.shield) / s.shieldMax}%`;
     this.lv.textContent = String(s.level);
+    const yy = s.yy === 'yang' ? '阳' : s.yy === 'yin' ? '阴' : '';
+    if (this.yy.textContent !== yy) {
+      this.yy.textContent = yy;
+      this.yy.className = `yx-yy${s.yy ? ` ${s.yy}` : ''}`;
+      this.yy.title = s.yy === 'yang' ? '阳：血过半，伤害高一点' : s.yy === 'yin' ? '阴：血不足一半，技能冷却短一点' : '';
+    }
     this.xpFill.style.width = `${Math.round(s.xp * 100)}%`;
     const left = Math.max(0, Math.ceil(s.left));
     this.time.textContent = `${pad2(Math.floor(left / 60))}:${pad2(left % 60)}`;

@@ -12,7 +12,7 @@
  */
 import Phaser from 'phaser';
 import { DROWN, ENEMIES, HOP_AIR, HOP_PERIOD, HUAPI, SPROUT, WATER } from '../../content/enemies.ts';
-import { CHARACTERS } from '../../content/meta.ts';
+import { CHAR_FX, CHARACTERS } from '../../content/meta.ts';
 import { ARENA, DROPS, xpNeed } from '../../content/player.ts';
 import { MAPS } from '../../content/maps.ts';
 import { BEAST, DAWN_RED, DAWN_WARN, GATE, RAID_DAWN, RAID_LATE } from '../../content/explore.ts';
@@ -27,7 +27,7 @@ import { MAP_EVENTS, MAP_EVENT_KINDS, nextMapEvent } from '../../content/mapEven
 import { newNightLog, noteNight, type NightLog } from '../ui/eventIcons.ts';
 import { MERGES, PASSIVE_IDS, PASSIVES, WEAPON_IDS, WEAPONS } from '../../content/weapons.ts';
 import { autoSkillSetting, wantAutoSkill } from './autoskill.ts';
-import { Drop, Ev, MAX_ENEMIES, MERGE_CODE, skillCooldown, skillOf, skillReady, step, TICKS_PER_SECOND, type World } from '../../core/index.ts';
+import { Drop, Ev, MAX_ENEMIES, MERGE_CODE, skillCooldown, skillOf, skillReady, step, TICKS_PER_SECOND, yinyangSide, type World } from '../../core/index.ts';
 import { COS, SIN } from '../../core/dirs.ts';
 import { HERO_TEX, MOB_TEX, RAID_TEX, makeIcons, peekHeroAtlas, type Atlas, type Frame } from '../art/atlas.ts';
 import { faceKey, heroKey } from '../art/heroes.ts';
@@ -991,7 +991,7 @@ export class GameScene extends Phaser.Scene {
           break;
         }
         case Ev.Reroll:
-          this.d.banners.say('刷新 +1', 'gold', 1400, ev.a[i] === 0 ? '进化补一次' : '打倒精英补一次');
+          this.d.banners.say('刷新 +1', 'gold', 1400, ev.a[i] === 0 ? '进化补一次' : ev.a[i] === 2 ? `攒满 ${CHAR_FX.huolangRerollEvery} 枚铜钱` : '打倒精英补一次');
           break;
         case Ev.NightMarket:
           this.onNightMarket(x, y, ev.a[i]!, ev.b[i]!, ev.c[i]!);
@@ -2539,6 +2539,7 @@ export class GameScene extends Phaser.Scene {
       coins: w.coins,
       slots,
       passives: PASSIVE_IDS.filter((id) => w.passives[id] !== undefined).map((id) => ({ icon: PASSIVES[id].icon, level: w.passives[id]! })),
+      yy: yinyangSide(w),
     });
     // 低血：屏幕边红框 + 心跳（手感清单第 9 条）
     // 夜探最后 30 秒也用这层红框和心跳催人

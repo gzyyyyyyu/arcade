@@ -4,6 +4,7 @@
  */
 import { raidHooks } from './raid-port.ts';
 import { ARMS_NEW_MERGES, MERGES } from '../content/weapons.ts';
+import { CHAR_FX } from '../content/meta.ts';
 import { MAX_ENEMIES, WEAPON_SLOTS, type World } from './state.ts';
 
 function mix(h: number, v: number): number {
@@ -62,6 +63,10 @@ export function fingerprint(w: World): number {
   }
   // 技能的冷却和持续：放过才进指纹（没按过技能键的局，指纹和有技能之前一样）
   if (w.skill.uses > 0) for (const v of [w.skill.cd, w.skill.active, w.skill.uses]) h = num(h, v);
+  // 规则 61 胖师叔攒的伤害：攒过才进指纹
+  if (w.skill.store > 0) h = num(h, w.skill.store);
+  // 货郎攒铜钱补刷新（规则 61）：补过才进指纹
+  if (w.rerollAt !== CHAR_FX.huolangRerollEvery) h = num(h, w.rerollAt);
   // 2.0 的首领和特色怪留在地上的东西：只在用过的局进指纹
   if (w.foe.used) {
     const f = w.foe;

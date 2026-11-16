@@ -48,6 +48,11 @@ export const SKILL_FX = {
   paper: { n: 4, life: 8 * S, ring: 46 },
   /** 横江一渡：水域半径、里面主角的速度倍数（怪慢 40%：记 1 档减速，实际 ×0.62） */
   ferry: { r: 190, speed: 1.3 },
+  /**
+   * 规则 61 的角色技能钩子（娱乐局，World.skillHooks）：小道士手上剑类 ≥ 2 件时身后补一刀；符师每多一件符类多飞几张、封顶；
+   * 剑侠冲刺打倒精英当场转好；胖师叔挡下的伤害 × storeMul 在结束时震出去；采药女回春每秒伤药香圈里的怪（底 + 每级 × 等级）
+   */
+  hooks: { backSlashAt: 2, fuPer: 3, fuMax: 21, storeMul: 2, herbDmg: 8, herbPerLevel: 2 },
   /** 招财进宝：打倒的怪多掉几枚铜钱 */
   fortune: { extra: 1 },
   /** 定阵：阵的半径、布阵那一刻定住几拍（之后在阵里的怪慢 40%，同样记 1 档减速） */
@@ -92,9 +97,15 @@ export function skillOf(w: World): SkillDef {
  * 冷却的实际拍数：香炉、灵气这类冷却加成只算一半（免得香炉流技能满屏）；
  * 角色初始数值的 cd 和套装的冷却不算（它们是出手快慢，不是技能）。
  */
+/** 阴阳先生·阴阳互济：血过半（含半）是阳（伤害高），不足一半是阴（技能冷却短）；别的角色 null。HUD 头像上的阴阳标读它 */
+export function yinyangSide(w: World): 'yang' | 'yin' | null {
+  if (w.setup.character !== 'yinyang') return null;
+  return w.hp * 2 >= w.stats.hpMax ? 'yang' : 'yin';
+}
+
 export function skillCooldown(w: World): number {
   // 阴阳先生·阴阳互济：血不足一半时冷却再 −8%（和香炉一样只算一半，按放的那一刻的血算）
-  const yy = w.setup.character === 'yinyang' && w.hp * 2 < w.stats.hpMax ? CHAR_FX.yinyangCd : 0;
+  const yy = yinyangSide(w) === 'yin' ? CHAR_FX.yinyangCd : 0;
   const bonus = 0.08 * (w.passives.xianglu ?? 0) + PERK_FX.lingqi * (w.setup.perks?.lingqi ?? 0) + yy;
   return Math.max(S, Math.round(skillOf(w).cd * (1 - bonus / 2)));
 }
@@ -155,7 +166,7 @@ export function charDmgMul(w: World, owner: WeaponId | undefined): number {
     case 'huolang':
       return 1 + Math.min(CHAR_FX.huolangMax, CHAR_FX.huolangStep * Math.floor(w.coins / CHAR_FX.huolangPer));
     case 'yinyang':
-      return w.hp * 2 >= w.stats.hpMax ? CHAR_FX.yinyangHigh : 1;
+      return yinyangSide(w) === 'yang' ? CHAR_FX.yinyangHigh : 1;
     default:
       return 1;
   }
@@ -171,6 +182,13 @@ export function paperRefund(w: World, shot: number): boolean {
   if (w.setup.character !== 'zhijiang') return false;
   const h = Math.imul(w.tick + 1, 2654435761) ^ Math.imul(shot + 1, 40503);
   return ((h >>> 8) % 100) < CHAR_FX.zhijiangRefund * 100;
+}
+
+/** 手上某一类（剑 / 符 / 镇 / 灵）的法器有几件 */
+function typeCount(w: World, type: string): number {
+  let n = 0;
+  for (const o of w.weapons) if (WEAPONS[o.id].type === type) n++;
+  return n;
 }
 
 /**
@@ -263,10 +281,29 @@ export function tickSkill(w: World, g: Grid, ops: SkillOps): void {
     const n = w.stats.hpMax * SKILL_FX.spring.perSec;
     heal(w, n);
     w.ev.push(Ev.SkillBeat, w.x, w.y, def.code, SKILL_FX.spring.slowR, n);
+    // 规则 61：药香圈里的怪每秒受一次伤（回春从「只回血」变成也能清身边）
+    if (w.skillHooks) hitAround(w, g, ops, SKILL_FX.spring.slowR, SKILL_FX.hooks.herbDmg + SKILL_FX.hooks.herbPerLevel * w.level, 0);
   }
   if (k.active > 0) return;
-  if (id === 'pang') knockAround(w, g, w.x, w.y, SKILL_FX.iron.r, SKILL_FX.iron.knock);
+  if (id === 'pang') {
+    knockAround(w, g, w.x, w.y, SKILL_FX.iron.r, SKILL_FX.iron.knock);
+    // 规则 61：铁布衫挡下的伤害 × storeMul 震出去（先挨打、再反打）
+    if (k.store > 0) {
+      hitAround(w, g, ops, SKILL_FX.iron.r * w.stats.areaMul, k.store * SKILL_FX.hooks.storeMul, SKILL_FX.iron.knock);
+      k.store = 0;
+    }
+  }
   w.ev.push(Ev.SkillEnd, id === 'yinyang' ? w.skill.zx : w.x, id === 'yinyang' ? w.skill.zy : w.y, def.code, id === 'pang' ? SKILL_FX.iron.r : id === 'yinyang' ? SKILL_FX.array.r * w.stats.areaMul : 0);
+}
+
+/** 打 r 以内所有怪一下（从主角往外推 knock） */
+function hitAround(w: World, g: Grid, ops: SkillOps, r: number, dmg: number, knock: number): void {
+  const n = g.query(w, w.x, w.y, r);
+  for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
+  for (let q = 0; q < n; q++) {
+    const i = scratch[q]!;
+    ops.hit(w, i, dmg, w.eX[i]! - w.x, w.eY[i]! - w.y, knock);
+  }
 }
 
 function heal(w: World, n: number): void {
@@ -291,12 +328,20 @@ function knockAround(w: World, g: Grid, x: number, y: number, r: number, knock: 
 // ───────────────────────── 小道士：剑气纵横 ─────────────────────────
 
 function sweep(w: World, g: Grid, ops: SkillOps): void {
+  slashAt(w, g, ops, w.face);
+  // 规则 61：剑修成长——手上剑类法器够数，身后同样斩一刀
+  if (w.skillHooks && typeCount(w, '剑') >= SKILL_FX.hooks.backSlashAt) slashAt(w, g, ops, w.face + 128);
+}
+
+/** 朝 face 方向斩一道扇形（方向表 256 个方向，+128 = 正后方） */
+function slashAt(w: World, g: Grid, ops: SkillOps, face: number): void {
   const f = SKILL_FX.sweep;
   const r = f.r * w.stats.areaMul;
-  const fx = dcos(w.face);
-  const fy = dsin(w.face);
+  const dir = face & 255;
+  const fx = dcos(dir);
+  const fy = dsin(dir);
   const dmg = baseDmg(w, 'sword') * f.mul;
-  w.ev.push(Ev.SkillUse, w.x, w.y, SKILLS.xiaodao.code, w.face, r);
+  w.ev.push(Ev.SkillUse, w.x, w.y, SKILLS.xiaodao.code, dir, r);
   const n = g.query(w, w.x, w.y, r);
   for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
   for (let q = 0; q < n; q++) {
@@ -314,12 +359,15 @@ function sweep(w: World, g: Grid, ops: SkillOps): void {
 
 function volley(w: World, g: Grid, ops: SkillOps): void {
   const f = SKILL_FX.volley;
+  const h = SKILL_FX.hooks;
   const dmg = baseDmg(w, 'talisman');
-  w.ev.push(Ev.SkillUse, w.x, w.y, SKILLS.fushi.code, w.face, f.n);
+  // 规则 61：手上每多一件符类法器多飞 fuPer 张（封顶 fuMax）
+  const count = w.skillHooks ? Math.min(h.fuMax, f.n + h.fuPer * Math.max(0, typeCount(w, '符') - 1)) : f.n;
+  w.ev.push(Ev.SkillUse, w.x, w.y, SKILLS.fushi.code, w.face, count);
   const n = g.query(w, w.x, w.y, f.find);
   for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
   let taken = 0;
-  for (let j = 0; j < f.n; j++) {
+  for (let j = 0; j < count; j++) {
     // 每张挑一只还没被挑过的最近的怪；怪不够的朝扇面里飞
     let best = -1;
     let bd = Infinity;
@@ -340,7 +388,7 @@ function volley(w: World, g: Grid, ops: SkillOps): void {
       scratch[taken++] = target;
     }
     // 出手时往两边扇开，再各自拐向自己的目标
-    const a = w.face + (j - (f.n - 1) / 2) * f.spread;
+    const a = w.face + (j - (count - 1) / 2) * f.spread;
     ops.shot(w, Shot.SkillFu, w.x, w.y - 24, dcos(a) * f.speed, dsin(a) * f.speed, f.life, dmg, f.r, 0, -1, target);
   }
 }
@@ -404,6 +452,8 @@ function dash(w: World, g: Grid, ops: SkillOps): void {
       ops.hit(w, i, dmg, ux, uy, 20);
     }
   }
+  // 规则 61：冲刺打倒了精英，冷却当场转好（点杀精英、接着冲）
+  if (w.skillHooks && hitList.some((i) => !w.eAlive[i] && ENEMIES[w.eKind[i]!]!.elite)) w.skill.cd = 0;
   // 冲的这段不挨打；冰上冲完不带着滑
   w.invuln = Math.max(w.invuln, f.invuln);
   w.pvx = 0;
@@ -416,6 +466,8 @@ function dash(w: World, g: Grid, ops: SkillOps): void {
 
 function clap(w: World, g: Grid, ops: SkillOps): void {
   const f = SKILL_FX.clapper;
+  // 规则 61：梆子护身——每一梆补一层护身（没带金钟罩也有一层），挨一下挡掉
+  if (w.skillHooks && w.shield < Math.max(1, w.shieldMax)) w.shield++;
   const r = f.r * w.stats.areaMul;
   const dmg = f.dmg + f.perLevel * w.level;
   w.ev.push(Ev.SkillBeat, w.x, w.y, SKILLS.gengfu.code, r, 0);
