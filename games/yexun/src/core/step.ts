@@ -59,6 +59,7 @@ import { MARKET_GOODS, MARKET_PRICE, NIGHT_MARKET, type MarketGood } from '../co
 import {
   MAX_PASSIVES,
   MAX_WEAPON_LEVEL,
+  MERGE_STAGE,
   MAX_WEAPONS,
   DUAL_FX,
   PAPER_FX,
@@ -862,8 +863,8 @@ function markSlow(w: World, g: Grid): void {
     const o = w.weapons[k]!;
     if (o.id !== 'bell') continue;
     const area = w.wstats[k]!.area * w.stats.areaMul;
-    // 阴阳镇魂：光环里减速一半（记 2）；往生铃：光环里的怪死了回血（记下半径）
-    const mark = w.merges.includes('yinyang') ? 2 : 1;
+    // 阴阳镇魂：光环里减速一半（记 2）；规则 63 的初成隔一拍才记 2（减速档是离散的，乘不了，按时间打对折）；往生铃：光环里的怪死了回血（记下半径）
+    const mark = w.merges.includes('yinyang') && (w.mergePower('yinyang') === 1 || (w.tick & 1) === 0) ? 2 : 1;
     if (o.evolved) w.bellArea = area;
     if (!built) {
       g.build(w);
@@ -2485,7 +2486,7 @@ function movePaper(w: World, g: Grid, i: number, k: number, s: WeaponStats): voi
     w.sLife[i]!--;
     if (k >= 0 && w.merges.includes('huobing') && --w.sDist[i]! <= 0) {
       w.sDist[i] = DUAL_FX.paperFire.every;
-      addShot(w, Shot.Burn, w.sX[i]!, w.sY[i]!, 0, 0, DUAL_FX.paperFire.life, w.sDmg[i]! * DUAL_FX.paperFire.mul, DUAL_FX.paperFire.r, 0, k, 0);
+      addShot(w, Shot.Burn, w.sX[i]!, w.sY[i]!, 0, 0, DUAL_FX.paperFire.life, w.sDmg[i]! * DUAL_FX.paperFire.mul * w.mergePower('huobing'), DUAL_FX.paperFire.r, 0, k, 0);
     }
   }
   if (--w.sLife[i]! > 0) return;
@@ -2508,8 +2509,8 @@ function paperFall(w: World, g: Grid, i: number, k: number, s: WeaponStats): voi
     for (let q = 0; q < n; q++) hitEnemy(w, scratch[q]!, d, -1, w.eX[scratch[q]!]! - x, w.eY[scratch[q]!]! - y, knock, 0, k);
   };
   if (evolved) ring(PAPER_FX.boomR * w.stats.areaMul, dmg * PAPER_FX.boomMul, s.knock, 1);
-  if (w.merges.includes('mingbing')) ring(DUAL_FX.paperBell.r * w.stats.areaMul, dmg * DUAL_FX.paperBell.mul, DUAL_FX.paperBell.knock, 2);
-  if (k >= 0 && w.merges.includes('huobing')) addShot(w, Shot.Burn, x, y, 0, 0, DUAL_FX.paperFire.deathLife, dmg * DUAL_FX.paperFire.mul, DUAL_FX.paperFire.deathR, 0, k, 0);
+  if (w.merges.includes('mingbing')) ring(DUAL_FX.paperBell.r * w.stats.areaMul, dmg * DUAL_FX.paperBell.mul * w.mergePower('mingbing'), DUAL_FX.paperBell.knock, 2);
+  if (k >= 0 && w.merges.includes('huobing')) addShot(w, Shot.Burn, x, y, 0, 0, DUAL_FX.paperFire.deathLife, dmg * DUAL_FX.paperFire.mul * w.mergePower('huobing'), DUAL_FX.paperFire.deathR, 0, k, 0);
 }
 
 /**
@@ -2547,7 +2548,7 @@ function swordSwing(w: World, g: Grid, k: number, s: WeaponStats, e: { dmg: numb
   if (w.merges.includes('zhuxie')) {
     const kf = w.weapons.findIndex((o) => o.id === 'flysword');
     const t = kf >= 0 ? nearest(w, g, w.x, w.y, 420) : -1;
-    if (t >= 0) launchAllFly(w, kf, w.wstats[kf]!, eff(w, w.wstats[kf]!).dmg, w.eX[t]!, w.eY[t]! - 20);
+    if (t >= 0) launchAllFly(w, kf, w.wstats[kf]!, eff(w, w.wstats[kf]!).dmg * w.mergePower('zhuxie'), w.eX[t]!, w.eY[t]! - 20);
   }
 }
 
@@ -2726,7 +2727,7 @@ function conduct(w: World, g: Grid, k: number, x: number, y: number, dmg: number
     w.ev.push(Ev.Spring, cx, cy, 2, r);
     const m = g.query(w, cx, cy, r);
     for (let j = 0; j < m; j++) scratch2[j] = g.out[j]!;
-    for (let j = 0; j < m; j++) hitEnemy(w, scratch2[j]!, dmg * DUAL_FX.rain.mul, -1, 0, 0, 0, 0, k);
+    for (let j = 0; j < m; j++) hitEnemy(w, scratch2[j]!, dmg * DUAL_FX.rain.mul * w.mergePower('leiyu'), -1, 0, 0, 0, 0, k);
     return;
   }
 }
@@ -2901,7 +2902,7 @@ function moveTalisman(w: World, g: Grid, i: number, k: number, wp: OwnedWeapon, 
       if (kt >= 0) {
         const te = eff(w, w.wstats[kt]!);
         w.ev.push(Ev.Thunder, bx, by, 0, te.area, 0);
-        strike(w, g, kt, bx, by, te.dmg, te.area, w.wstats[kt]!.knock);
+        strike(w, g, kt, bx, by, te.dmg * w.mergePower('leihuo'), te.area, w.wstats[kt]!.knock);
       }
     }
     killShot(w, i);
@@ -3618,7 +3619,7 @@ function clearDeadSeals(w: World): void {
 function dualTick(w: World, g: Grid): void {
   if (w.marks > 0) {
     const kt = w.weapons.findIndex((o) => o.id === 'talisman');
-    const dmg = kt >= 0 ? eff(w, w.wstats[kt]!).dmg * DUAL_FX.seal.mul : 0;
+    const dmg = kt >= 0 ? eff(w, w.wstats[kt]!).dmg * DUAL_FX.seal.mul * w.mergePower('fujian') : 0;
     const area = DUAL_FX.seal.area * w.stats.areaMul;
     // 先收齐到点的，再统一炸（炸的时候怪可能死，不能边扫边改）
     let due = 0;
@@ -3647,7 +3648,7 @@ function dualTick(w: World, g: Grid): void {
     if (kg < 0) return;
     const R = DUAL_FX.ring.radius * w.stats.areaMul;
     const inner = R * DUAL_FX.ring.inner;
-    const dmg = eff(w, w.wstats[kg]!).dmg * DUAL_FX.ring.mul;
+    const dmg = eff(w, w.wstats[kg]!).dmg * DUAL_FX.ring.mul * w.mergePower('fenzhong');
     w.ev.push(Ev.FireRing, w.x, w.y, 0, R);
     const n = g.query(w, w.x, w.y, R);
     for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
@@ -3666,7 +3667,7 @@ function shieldFire(w: World): void {
   const kg = w.weapons.findIndex((o) => o.id === 'gourd');
   if (kg < 0) return;
   const F = DUAL_FX.ring;
-  const dmg = eff(w, w.wstats[kg]!).dmg * F.poolMul;
+  const dmg = eff(w, w.wstats[kg]!).dmg * F.poolMul * w.mergePower('fenzhong');
   const life = Math.round(F.poolLife * w.stats.durMul);
   const r = F.radius * w.stats.areaMul * 0.8;
   for (let j = 0; j < F.pools; j++) {
@@ -3682,7 +3683,8 @@ function shieldFire(w: World): void {
 function homePetal(w: World, g: Grid, i: number): void {
   const P = DUAL_FX.petal;
   if (w.sR[i]! < 34 + P.bonusR) w.sR[i] = 34 + P.bonusR;
-  const t = nearest(w, g, w.sX[i]!, w.sY[i]!, P.reach);
+  // 规则 63 的初成：追得近一半（追踪本身是开关，只能缩范围）
+  const t = nearest(w, g, w.sX[i]!, w.sY[i]!, P.reach * w.mergePower('linghua'));
   if (t < 0) return;
   const dx = w.eX[t]! - w.sX[i]!;
   const dy = w.eY[t]! - w.sY[i]!;
@@ -3759,7 +3761,7 @@ function choicePool(w: World): { c: Choice; weight: number }[] {
     if (o) {
       // 黄历：手上东西的升级更容易出（好卡）
       if (!o.evolved && o.level < MAX_WEAPON_LEVEL) pool.push({ c: { kind: 'weapon', id }, weight: 1.3 * (1 + w.stats.luck) });
-    } else if (w.weapons.length < MAX_WEAPONS + w.merges.length) pool.push({ c: { kind: 'weapon', id }, weight: 1 });
+    } else if (w.weapons.length < MAX_WEAPONS + w.fullMerges) pool.push({ c: { kind: 'weapon', id }, weight: 1 });
   }
   // 前几次升级：和角色初始法器同一类的法器卡更容易出，开局更像这个角色
   if (w.level - w.pendingLevels + 1 <= 1 + CHAR_FX.earlyEvery) {
@@ -4060,9 +4062,31 @@ export function mergeReady(w: World, def: MergeDef): boolean {
   return a.evolved && b.evolved;
 }
 
-/** 宝箱里能结的合成（没合过、这一局放、这个角色合得出、凑齐了），按 MERGES 的顺序；没有回 -1 */
+/** 规则 63 的初成：两件料都到 MERGE_STAGE.halfLevel 级（进化了也算） */
+function mergeHalfReady(w: World, def: MergeDef): boolean {
+  const a = w.weapons.find((o) => o.id === def.a);
+  const b = w.weapons.find((o) => o.id === def.b);
+  return !!a && !!b && (a.evolved || a.level >= MERGE_STAGE.halfLevel) && (b.evolved || b.level >= MERGE_STAGE.halfLevel);
+}
+
+/**
+ * 宝箱里能结的合成（没合过、这一局放、这个角色合得出、凑齐了），按 MERGES 的顺序；没有回 -1。
+ * 规则 63（mergeStages）：到了原条件直接大成；只到初成的条件先合初成（记进 mergeHalf）
+ */
 function readyMerge(w: World): number {
-  for (let m = 0; m < MERGES.length; m++) if (mergeOpen(w, MERGES[m]!) && mergeReady(w, MERGES[m]!)) return m;
+  for (let m = 0; m < MERGES.length; m++) {
+    const def = MERGES[m]!;
+    if (mergeOpen(w, def) && (mergeReady(w, def) || (w.mergeStages && mergeHalfReady(w, def)))) return m;
+  }
+  return -1;
+}
+
+/** 规则 63：能升大成的初成搭配（到了原条件），按 MERGES 的顺序；没有回 -1 */
+function readyUpgrade(w: World): number {
+  for (const id of w.mergeHalf) {
+    const m = MERGES.findIndex((x) => x.id === id);
+    if (mergeReady(w, MERGES[m]!)) return m;
+  }
   return -1;
 }
 
@@ -4122,11 +4146,22 @@ function settleChest(w: World): void {
       w.ev.push(Ev.Chest, w.x, w.y, WEAPON_CODE[o.id]);
       continue;
     }
+    // 规则 63：先把初成升大成（升完空出法器格），再结新的；Merge 事件的 b：0 大成（一步到位或规则 62 以前）、1 初成、2 初成升大成
+    const up = w.mergeHalf.length > 0 ? readyUpgrade(w) : -1;
+    if (up >= 0) {
+      w.mergeHalf.splice(w.mergeHalf.indexOf(MERGES[up]!.id), 1);
+      recompute(w);
+      w.ev.push(Ev.Merge, w.x, w.y, up, 2);
+      w.ev.push(Ev.Chest, w.x, w.y, MERGE_CODE + up);
+      continue;
+    }
     const m = readyMerge(w);
     if (m < 0) return;
+    const half = w.mergeStages && !mergeReady(w, MERGES[m]!);
     w.merges.push(MERGES[m]!.id);
+    if (half) w.mergeHalf.push(MERGES[m]!.id);
     recompute(w);
-    w.ev.push(Ev.Merge, w.x, w.y, m);
+    w.ev.push(Ev.Merge, w.x, w.y, m, half ? 1 : 0);
     w.ev.push(Ev.Chest, w.x, w.y, MERGE_CODE + m);
   }
 }

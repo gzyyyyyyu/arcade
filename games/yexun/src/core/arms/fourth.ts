@@ -46,7 +46,7 @@ export function fourthTick(w: World, g: Grid, api: ArmApi): void {
     const kd = slotOf(w, 'dart');
     if (kd >= 0) {
       const M = COMBO62.jianzou;
-      const dmg = api.eff(w, w.wstats[kd]!).dmg * M.mul;
+      const dmg = api.eff(w, w.wstats[kd]!).dmg * M.mul * w.mergePower('jianzou');
       const evo = w.weapons[kd]!.evolved ? 1 : 0;
       for (let q = 0; q < ev.n; q++) {
         if (ev.type[q] !== Ev.Fire || ev.a[q] !== CODE.flysword) continue;
@@ -67,7 +67,7 @@ export function fourthTick(w: World, g: Grid, api: ArmApi): void {
       const t = mostHp(w, g, g.query(w, w.x, w.y, M.reach));
       if (t >= 0) {
         emit(w, ArmEv.Combo, w.eX[t]!, w.eY[t]!, ArmFx.Longshe, 0);
-        api.hitEnemy(w, t, api.eff(w, w.wstats[kb]!).dmg * M.mul, -1, 0, 0, 0, 0, kb);
+        api.hitEnemy(w, t, api.eff(w, w.wstats[kb]!).dmg * M.mul * w.mergePower('longshe'), -1, 0, 0, 0, 0, kb);
       }
     }
   }
@@ -106,10 +106,13 @@ function judge(w: World, g: Grid, api: ArmApi, kb: number): void {
   const A = w.arms;
   // 易伤和勾魂锁、钟鼓齐鸣共用一份：倍数大的、时间长的留着，不把别人的盖低
   const end = w.tick + M.ticks;
-  if (A.vulnUntil[best]! <= w.tick || A.vulnMul[best]! < M.vuln) A.vulnMul[best] = M.vuln;
+  // 规则 63 的初成：伤害和多出来的易伤都打折
+  const p = w.mergePower('panzhen');
+  const vm = p === 1 ? M.vuln : 1 + (M.vuln - 1) * p;
+  if (A.vulnUntil[best]! <= w.tick || A.vulnMul[best]! < vm) A.vulnMul[best] = vm;
   if (A.vulnUntil[best]! < end) A.vulnUntil[best] = end;
   emit(w, ArmEv.Combo, w.eX[best]!, w.eY[best]!, ArmFx.Panzhen, 0);
-  api.hitEnemy(w, best, api.eff(w, w.wstats[kb]!).dmg * M.mul, -1, 0, 0, 0, 0, kb);
+  api.hitEnemy(w, best, api.eff(w, w.wstats[kb]!).dmg * M.mul * p, -1, 0, 0, 0, 0, kb);
 }
 
 function chill(w: World, g: Grid): void {
@@ -123,7 +126,8 @@ function chill(w: World, g: Grid): void {
       const i = g.out[j]!;
       const e = ENEMIES[w.eKind[i]!]!;
       if (e.boss) continue;
-      const t = w.tick + (e.elite ? M.ticks >> 1 : M.ticks);
+      const ticks = Math.max(1, Math.round(M.ticks * w.mergePower('hanzhong')));
+      const t = w.tick + (e.elite ? ticks >> 1 : ticks);
       if (w.eBind[i]! < t) w.eBind[i] = t;
     }
   }

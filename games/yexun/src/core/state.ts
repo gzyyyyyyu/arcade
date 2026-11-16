@@ -9,7 +9,7 @@ import { isWeeklyId, type WeeklyId } from '../content/weekly.ts';
 import { MAPS, type Block, type MapId, type Rect } from '../content/maps.ts';
 import { PICKS } from '../content/picks.ts';
 import { liveSkillOpen, tierOfDanger } from '../content/live.ts';
-import { MAX_WEAPONS, MERGES, type MergeDef, type PassiveId, type WeaponId, type WeaponStats } from '../content/weapons.ts';
+import { MAX_WEAPONS, MERGE_STAGE, MERGES, type MergeDef, type PassiveId, type WeaponId, type WeaponStats } from '../content/weapons.ts';
 import { ARENA, PLAYER } from '../content/player.ts';
 import { Events } from './events.ts';
 import { Rng } from './rng.ts';
@@ -22,7 +22,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 62;
+export const RULES_VERSION = 63;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
 export const TICKS_PER_SECOND = 30;
@@ -263,6 +263,21 @@ export class World {
   get armsCombos(): boolean {
     return this.rulesFrom(62) && !this.setup.live;
   }
+  /**
+   * 规则 63 的两段式合成（DESIGN 3.3f）：两件料都到 MERGE_STAGE.halfLevel 级先合「初成」（效果打折、不空法器格），
+   * 到原来的条件（双修一件进化另一件满级、合成两件都进化）再开宝箱升「大成」。先只娱乐局；实盘等最后整体重拟时一起进
+   */
+  get mergeStages(): boolean {
+    return this.rulesFrom(63) && !this.setup.live;
+  }
+  /** 这个搭配效果的强度：初成按 MERGE_STAGE.halfPower，大成（和规则 62 以前的所有搭配）1。每个搭配效果里的数都乘它 */
+  mergePower(id: MergeDef['id']): number {
+    return this.mergeHalf.length > 0 && this.mergeHalf.includes(id) ? MERGE_STAGE.halfPower : 1;
+  }
+  /** 空出法器格的搭配数：初成不算（大成才空格） */
+  get fullMerges(): number {
+    return this.merges.length - this.mergeHalf.length;
+  }
   /** 旧卡池：抽卡和宝箱合成走实盘那条老路径（不看角色池、不放 2.0 新法器）；录像规则版本 < 37 */
   get legacyPool(): boolean {
     return this.replayRules !== undefined && this.replayRules < 37;
@@ -404,6 +419,8 @@ export class World {
   banned: (WeaponId | PassiveId)[] = [];
   /** 合成了哪几个（MergeDef.id） */
   merges: MergeDef['id'][] = [];
+  /** 规则 63 的两段式合成（World.mergeStages）：merges 里还在「初成」的那些（效果按 MERGE_STAGE.halfPower 打折、不空法器格），升了大成就移出去 */
+  mergeHalf: MergeDef['id'][] = [];
   /** 规则 57：只掉单件宝箱的精英（1:45 那只）的格子号；格子被别的怪占用时清掉 */
   smallElites: number[] = [];
   /** 2.0 法器第一批（阵旗、勾魂锁、竹篙、长明灯）的阵、灯、水痕和按怪记的状态，逻辑在 core/arms/ */

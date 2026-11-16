@@ -1,7 +1,8 @@
 import { SCHOOL_IDS, SCHOOLS } from '../content/guide.ts';
-import { ELEMENT_SET, PASSIVE_IDS, PASSIVES, SCHOOL_SETS, TYPE_SETS, WEAPONS } from '../content/weapons.ts';
+import { ELEMENT_SET, MERGES, PASSIVE_IDS, PASSIVES, SCHOOL_SETS, TYPE_SETS, WEAPONS } from '../content/weapons.ts';
 import type { OwnedWeapon, World } from '../core/index.ts';
 import { weaponLook } from '../view/game/look.ts';
+import { upgradeNeed } from '../view/ui/mergeHint.ts';
 import type { BuildRow } from '../view/ui/screens.ts';
 
 /** 进化还差什么（13.4：卡片和暂停页写清"还差哪个被动"） */
@@ -30,8 +31,19 @@ export function setLines(w: World): string[] {
   });
 }
 
+/** 规则 63 的初成：这件是哪个初成搭配的主件，就写升大成还差什么（只差练满时写成「再把 X、Y 练满升大成」） */
+function upgradeHint(w: World, o: OwnedWeapon): string | undefined {
+  const m = MERGES.find((x) => x.a === o.id && w.mergeHalf.includes(x.id));
+  if (!m) return undefined;
+  const left = upgradeNeed(w, m);
+  if (left.length === 0) return '下个宝箱升大成';
+  const full = '满级';
+  if (left.every((x) => x.endsWith(full))) return `再把 ${left.map((x) => x.slice(0, -full.length)).join('、')} 练满升大成`;
+  return `还差 ${left.join('、')} 升大成`;
+}
+
 /** 暂停页和结算页的"本局法器"行：法器加被动 */
 export const buildRows = (w: World): BuildRow[] => [
-  ...w.weapons.map((o) => ({ ...weaponLook(w, o), level: o.evolved ? 9 : o.level, dmg: o.dmg, kills: o.kills, hint: evolveHint(w, o) })),
+  ...w.weapons.map((o) => ({ ...weaponLook(w, o), level: o.evolved ? 9 : o.level, dmg: o.dmg, kills: o.kills, hint: upgradeHint(w, o) ?? evolveHint(w, o) })),
   ...PASSIVE_IDS.filter((id) => w.passives[id] !== undefined).map((id) => ({ icon: PASSIVES[id].icon, name: PASSIVES[id].name, level: w.passives[id]!, dmg: -1, kills: 0 })),
 ];

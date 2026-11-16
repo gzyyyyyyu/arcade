@@ -119,7 +119,8 @@ describe('规则 62：法器池', () => {
     const w = createWorld(liveSetup('medium', 3, undefined, 'jianxia'));
     grantWeapon(w, 'flysword', 8, true);
     expect(mergeHint(w, { kind: 'weapon', id: 'dart' })?.id).not.toBe('jianzou');
-    const fun = createWorld({ seed: 3, mode: 'vigil', danger: 0, character: 'jianxia' });
+    // 规则 62 的一步合（规则 63 的两段式提示另见 merge-hint.test.ts）
+    const fun = createWorld({ seed: 3, mode: 'vigil', danger: 0, character: 'jianxia' }, 62);
     grantWeapon(fun, 'flysword', 8, true);
     grantWeapon(fun, 'dart', 7);
     expect(mergeHint(fun, { kind: 'weapon', id: 'dart' })?.id).toBe('jianzou');

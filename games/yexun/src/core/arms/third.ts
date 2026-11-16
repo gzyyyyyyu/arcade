@@ -65,7 +65,7 @@ export function thirdTick(w: World, g: Grid, api: ArmApi): void {
       const t = api.nearest(w, g, w.x, w.y, M.reach);
       if (t >= 0) {
         const life = Math.round(M.life * w.stats.durMul);
-        api.burn(w, w.eX[t]!, w.eY[t]!, life, api.eff(w, w.wstats[kg]!).dmg * M.mul, M.r, kg);
+        api.burn(w, w.eX[t]!, w.eY[t]!, life, api.eff(w, w.wstats[kg]!).dmg * M.mul * w.mergePower('fuhuo'), M.r, kg);
         emit(w, ArmEv.Combo, w.eX[t]!, w.eY[t]!, ArmFx.Fuhuo, M.r);
       }
     }
@@ -90,7 +90,7 @@ function bellCombos(w: World, g: Grid, api: ArmApi, r: number): void {
         }
       }
       emit(w, ArmEv.Combo, w.eX[best]!, w.eY[best]!, ArmFx.Linfu, 0);
-      api.hitEnemy(w, best, api.eff(w, w.wstats[kt]!).dmg * COMBO55.linfu.mul, -1, 0, 0, 0, 0, kt);
+      api.hitEnemy(w, best, api.eff(w, w.wstats[kt]!).dmg * COMBO55.linfu.mul * w.mergePower('linfu'), -1, 0, 0, 0, 0, kt);
     }
   }
   if (has(w, 'lingyan') && Math.floor(w.tick / 15) % COMBO55.lingyan.rings === 0) {
@@ -98,13 +98,16 @@ function bellCombos(w: World, g: Grid, api: ArmApi, r: number): void {
     const t = kg >= 0 ? api.nearest(w, g, w.x, w.y, r) : -1;
     if (t >= 0) {
       const M = COMBO55.lingyan;
-      api.burn(w, w.eX[t]!, w.eY[t]!, Math.round(M.life * w.stats.durMul), api.eff(w, w.wstats[kg]!).dmg * M.mul, M.r, kg);
+      api.burn(w, w.eX[t]!, w.eY[t]!, Math.round(M.life * w.stats.durMul), api.eff(w, w.wstats[kg]!).dmg * M.mul * w.mergePower('lingyan'), M.r, kg);
       emit(w, ArmEv.Combo, w.eX[t]!, w.eY[t]!, ArmFx.Lingyan, M.r);
     }
   }
   if (has(w, 'zhonggu') && inZone(w, w.x, w.y)) {
     const M = COMBO55.zhonggu;
-    for (let j = 0; j < n; j++) vuln(w, tmp[j]!, M.mul, M.ticks);
+    // 规则 63 的初成：只打折多出来的那部分（+40% → +20%），大成原样
+    const p = w.mergePower('zhonggu');
+    const mul = p === 1 ? M.mul : 1 + (M.mul - 1) * p;
+    for (let j = 0; j < n; j++) vuln(w, tmp[j]!, mul, M.ticks);
     emit(w, ArmEv.Combo, w.x, w.y, ArmFx.Zhonggu, r);
   }
 }

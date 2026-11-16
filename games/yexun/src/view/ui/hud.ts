@@ -11,6 +11,8 @@ export interface HudSlot {
   level: number;
   /** 冷却进度 0–1（1 = 刚好转好） */
   cd: number;
+  /** 规则 63 的初成搭配：虚线框 + 「初」角标 */
+  half?: boolean;
 }
 
 export interface HudState {
@@ -309,15 +311,19 @@ export class Hud {
     }
     this.kills.textContent = fmtKills(s.kills);
     this.coins.textContent = fmt(s.coins);
-    const sig = s.slots.map((x) => x.icon).join();
+    const sig = s.slots.map((x) => `${x.icon}${x.half ? '~' : ''}`).join();
     if (sig !== this.slotSig) {
       this.slotSig = sig;
       this.slotsCol.innerHTML = '';
       this.slotEls = s.slots.map((x) => {
-        const box = el('div', 'yx-slot', this.slotsCol);
+        const box = el('div', `yx-slot${x.half ? ' half' : ''}`, this.slotsCol);
         const i = el('img', '', box);
         i.src = this.icons(x.icon);
         i.alt = '';
+        if (x.half) {
+          box.title = '初成：效果减半，练满升大成';
+          el('span', 'yx-slot-stage', box, '初');
+        }
         return { box, cd: el('div', 'yx-cd', box), lv: el('span', 'yx-slot-lv', box) };
       });
       this.slotsCol.style.display = s.slots.length ? '' : 'none';

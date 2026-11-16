@@ -48,6 +48,8 @@ export function fingerprint(w: World): number {
   for (const v of [w.tick, w.x, w.y, w.hp, w.face, w.invuln, w.level, w.xp, w.pendingLevels, w.kills, w.coins, w.spawnAcc, w.nextEvent, w.regenAcc, w.slowUntil, w.calmUntil, w.mercyAt, w.revives, w.rerolls, w.bans, w.bonusCard, w.mkIndex, w.mkPhase, w.mkStall, w.mkHold, w.mightUntil, w.speedUntil, ...w.mkSold]) h = num(h, v);
   // 规则 60 的求签：没买过时不进指纹，旧局的指纹不变
   if (w.omen >= 0) h = num(h, w.omen);
+  // 规则 63 的初成：没有初成的搭配时不进指纹，旧局的指纹不变
+  for (const id of w.mergeHalf) h = num(h, MERGES.findIndex((m) => m.id === id));
   h = mix(h, w.phase === 'play' ? 1 : w.phase === 'choose' ? 2 : 3);
   for (const o of w.weapons) for (const v of [o.level, o.evolved ? 1 : 0, o.timer, o.phase, o.angle]) h = num(h, v);
   for (const [k, v] of Object.entries(w.passives).sort()) h = num(h ^ k.charCodeAt(0), v ?? 0);

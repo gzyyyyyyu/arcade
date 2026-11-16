@@ -11,8 +11,10 @@ export interface BuildRow {
   /** 法器：伤害；被动：-1 */
   dmg: number;
   kills: number;
-  /** 进化还差什么（暂停页显示；进化好了或没有进化的为空） */
+  /** 进化还差什么（暂停页显示；进化好了或没有进化的为空）；初成的搭配写升大成还差什么 */
   hint?: string;
+  /** 规则 63 的初成搭配（格子虚线框、右上角「初」） */
+  half?: boolean;
   /** 一句说明（悬停/点一下在面板下方显示）；没有就只显示名字和成绩 */
   desc?: string;
 }
@@ -55,7 +57,7 @@ export class Pause {
     this.rows = build;
     this.hero = hero ? this.heroDetail(hero, noSkill, xinfa) : '';
     const cell = (r: BuildRow, i: number): string =>
-      `<button type="button" class="yx-cell${r.level > 8 ? ' evo' : r.level === 8 ? ' max' : ''}" data-i="${i}" aria-label="${esc(r.name)}"><img alt="" src="${this.icons(r.icon)}"><em>${r.level > 8 ? '进' : r.level === 8 ? '满' : r.level}</em></button>`;
+      `<button type="button" class="yx-cell${r.level > 8 ? ' evo' : r.level === 8 ? ' max' : ''}${r.half ? ' half' : ''}" data-i="${i}" aria-label="${esc(r.name)}"><img alt="" src="${this.icons(r.icon)}">${r.half ? '<i>初</i>' : ''}<em>${r.level > 8 ? '进' : r.level === 8 ? '满' : r.level}</em></button>`;
     const weapons = build.map((r, i) => (r.dmg >= 0 ? cell(r, i) : '')).join('');
     const passives = build.map((r, i) => (r.dmg < 0 ? cell(r, i) : '')).join('');
     this.root.innerHTML =
