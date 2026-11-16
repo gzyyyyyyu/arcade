@@ -4,7 +4,7 @@ import { produce, rankOf } from '../core/index.ts';
 import type { BuildingKind, Res } from '../core/types.ts';
 import { app, pagePoint } from './app.ts';
 import { artBox, ensureArt } from './textures.ts';
-import { wTex, sTex, piecesFor } from './art.ts';
+import { bArt, piecesFor, sTex, wArt, wTex } from './art.ts';
 import { CamCtl } from './camctl.ts';
 import { Particles } from './fx.ts';
 import { LOW_MEMORY } from './viewport.ts';
@@ -326,9 +326,13 @@ export class BaseScene extends Phaser.Scene {
     const p = app.profile;
     this.env?.setRank(rankOf(p));
     const seen = new Set<number>();
+    // 贴的是逐级退到已烘好的图（wTex / sTex），要不要补烘得看这一级本该用的那张烘没烘
+    let unbaked = false;
     for (const b of p.base.buildings) {
       seen.add(b.id);
-      const art = b.kind === 'wall' ? wTex(b.level, wallMask(this, b)) : sTex(b.kind, b.level);
+      const mask = b.kind === 'wall' ? wallMask(this, b) : 0;
+      const art = b.kind === 'wall' ? wTex(b.level, mask) : sTex(b.kind, b.level);
+      if (!unbaked && !this.textures.exists((b.kind === 'wall' ? wArt(b.level, mask) : bArt(b.kind, b.level)).key)) unbaked = true;
       let n = this.nodes.get(b.id);
       if (!n) {
         n = { img: jitter(put(this, this.r, art, 0, 0), b.kind, b.id), key: art.key };
@@ -351,7 +355,7 @@ export class BaseScene extends Phaser.Scene {
       syncBubble(this, n, b);
     }
     // 存档里有还没烘过的外观（开局只烘 1–2 级；示范岛、云存档合并、按需物件如宝藏箱）：补烘完再同步一次，任何路径都不留缺图
-    if (!this.baking && [...this.nodes.values()].some((n) => !this.textures.exists(n.key))) {
+    if (!this.baking && unbaked) {
       this.baking = true;
       void ensureArt(this.textures, piecesFor(p.base.buildings), this.r).finally(() => {
         this.baking = false;

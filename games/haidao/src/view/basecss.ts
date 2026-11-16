@@ -157,6 +157,10 @@ ${W} .hd-scout-map { overflow:clip !important; }
   ${W} .hd-base > .hd-sheet { width:560px; }
 }
 
+/* 平板竖屏：主寨面板（升级对比 + 开放项 + 接着升）比 60% 高出几像素就出滚动条；屏高够，放到 64%，上面照样露出主寨 */
+@media (orientation:portrait) and (min-width:560px) {
+  ${W} .hd-base > .hd-sheet { max-height:64%; }
+}
 /* 手机竖屏：抽屉可以到顶栏下面，不再只给 60% */
 @media (max-width:559px) and (orientation:portrait) {
   ${W} .hd-base > .hd-sheet { max-height:calc(100% - 104px); padding:8px 10px 10px; }

@@ -32,7 +32,7 @@ function plainPieces(kind: TurretKind, level: number): ArtPiece[] {
 }
 
 export function turretReady(tm: Phaser.Textures.TextureManager, kind: TurretKind, level: number): boolean {
-  return tm.exists(turretTex(kind, turretTier(level))) && plainPieces(kind, level).every((p) => isBaked(p.key)) && isBaked(flameJetArt().key);
+  return tm.exists(turretTex(kind, turretTier(kind, level))) && plainPieces(kind, level).every((p) => isBaked(p.key)) && isBaked(flameJetArt().key);
 }
 
 const pending = new Map<string, Promise<void>>();
@@ -46,13 +46,13 @@ export function ensureTurret(tm: Phaser.Textures.TextureManager, kind: TurretKin
   const k = `${kind}.${level}`;
   let p = pending.get(k);
   if (!p) {
-    const tex = turretTex(kind, turretTier(level));
+    const tex = turretTex(kind, turretTier(kind, level));
     p = Promise.all([
       bakeSome(tm, plainPieces(kind, level), r),
       bakeJet(tm, r),
       tm.exists(tex)
         ? Promise.resolve()
-        : (atlasPending.get(tex) ?? atlasPending.set(tex, bakeAtlas(tm, tex, turretPieces(kind, turretTier(level)), r).then(() => {
+        : (atlasPending.get(tex) ?? atlasPending.set(tex, bakeAtlas(tm, tex, turretPieces(kind, turretTier(kind, level)), r).then(() => {
             const t = tm.get(tex);
             for (const name of t.getFrameNames()) {
               const fr = t.get(name);
@@ -200,13 +200,13 @@ export class Turret {
     const b = turretBaseArt(this.kind, this.level);
     this.base.setTexture(b.key).setOrigin(b.ax / b.w, b.ay / b.h);
     this.piv = TURRET_PIVOT(this.kind, this.level);
-    this.tex = turretTex(this.kind, turretTier(this.level));
-    const mk = (): Phaser.GameObjects.Image => this.scene.add.image(0, 0, this.tex, turretFrame(this.kind, turretTier(this.level), 'd0'));
+    this.tex = turretTex(this.kind, turretTier(this.kind, this.level));
+    const mk = (): Phaser.GameObjects.Image => this.scene.add.image(0, 0, this.tex, turretFrame(this.kind, turretTier(this.kind, this.level), 'd0'));
     this.gun ??= mk();
-    this.gun.setTexture(this.tex, turretFrame(this.kind, turretTier(this.level), 'd0')).setVisible(true);
+    this.gun.setTexture(this.tex, turretFrame(this.kind, turretTier(this.kind, this.level), 'd0')).setVisible(true);
     this.frameName = '';
     if (this.kind === 'gunTower') {
-      const tier = turretTier(this.level);
+      const tier = turretTier(this.kind, this.level);
       this.body ??= mk();
       this.body.setTexture(this.tex, turretFrame(this.kind, tier, 'body')).setVisible(true);
       this.rod ??= mk();
@@ -434,7 +434,7 @@ export class Turret {
     const py = b.y + this.piv.dy * rel;
     const a = this.st.a;
     const i = dirIndex(a);
-    const tier = turretTier(this.level);
+    const tier = turretTier(this.kind, this.level);
     const empty = (this.kind === 'harpoon' && this.out > 0) || (this.kind === 'rocket' && o.now < this.emptyUntil);
     const fn = turretFrame(this.kind, tier, `${empty ? 'e' : 'd'}${i}`);
     const gun = this.gun!;

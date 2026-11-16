@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COUNTER, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_TOWER_DAMAGE, TD_TOWER_KINDS } from '../src/core/index.ts';
 import {
-  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, fitSuggest, laneName, pctText, pctTier, spotSide, starRule, suggestText, tdVerdict, towerCounter,
+  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, campaignChapters, cardLine, fitSuggest, laneName, pctText, pctTier, spotSide, starRule, suggestText, tdVerdict, towerCounter,
 } from '../src/view/td-ui.ts';
 
 describe('守岛结算文案和路名', () => {
@@ -83,5 +83,20 @@ describe('叫波按钮、驻守台', () => {
     expect(spotSide({ x: 1, y: 11 })).toBe('西边');
     expect(spotSide({ x: 19, y: 9 })).toBe('东边');
     expect(spotSide({ x: 10, y: 10 })).toBe('岛中间');
+  });
+});
+
+describe('选关卡片只写一句', () => {
+  const all = campaignChapters().flatMap((c) => c.levels);
+  const lv = all[1]!;
+  it('锁着写怎么解锁，主寨不够写差几级（优先于新东西）', () => {
+    expect(cardLine(lv, all, 1, true, 9, 0)).toEqual(['hd-tdlock', `先守下「${all[0]!.name}」（≥1 星）`]);
+    expect(cardLine(lv, all, 1, false, lv.hq - 1, 0)).toEqual(['hd-short', `建议主寨 ${lv.hq} 级（你 ${lv.hq - 1} 级，会偏难）`]);
+  });
+  it('没打过写这关的新东西，打过了写建议主寨', () => {
+    const [cls, text] = cardLine(all[0]!, all, 0, false, 9, 0);
+    expect(cls).toBe('hd-tdnew');
+    expect(text.startsWith('新：')).toBe(true);
+    expect(cardLine(lv, all, 1, false, 9, 2)).toEqual(['', `建议主寨 ${lv.hq} 级`]);
   });
 });

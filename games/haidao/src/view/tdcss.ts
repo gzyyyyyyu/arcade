@@ -58,7 +58,7 @@ function tdCss(): string {
 @media (min-width:700px) { .hd-ui .hd-tdmodes { width:min(100%,760px); grid-template-columns:1fr 1fr; } }
 .hd-ui .hd-tdmodes .hd-tidecard { width:auto; margin:0 0 10px; }
 .hd-ui .hd-homecard { background:linear-gradient(#fff1d6,${cream}); }
-.hd-ui .hd-tdnewver { display:inline-block; margin-left:6px; padding:0 6px; font-size:12px; font-style:normal; font-weight:900; color:#fff; background:${red}; border:2px solid ${ink}; border-radius:8px; vertical-align:2px; }
+.hd-ui.hd-skin .hd-tdsel-main .hd-tdcard.next { border-color:${gold}; box-shadow:0 3px 0 ${ink}, 0 0 0 3px ${gold}, 0 0 14px ${gold}; }
 .hd-ui .hd-tdrule { opacity:.95; font-weight:700; }
 .hd-ui .hd-tdgar { z-index:22; }
 .hd-ui .hd-tdgar-note { width:min(100%,560px); margin:0 auto 10px; font-size:14px; color:#fff; text-shadow:0 1px 2px ${c.seaDark}; }
@@ -147,6 +147,34 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-main { display:flex; flex-direction:column; align-items:center; gap:8px; padding:6px 8px 8px; }
 .hd-ui .hd-tdgar-main > * { width:min(100%,1040px); margin:0; }
 .hd-ui .hd-tdgar-main .hd-tdsel-head { padding:0 136px 0 84px; }
+.hd-ui .hd-tdgar-top { display:flex; align-items:center; gap:12px; }
+.hd-ui .hd-tdgar-top .hd-tdgar-note { flex:1 1 0; margin:0; }
+.hd-ui .hd-tdgar-map { flex:none; width:200px; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.hd-ui .hd-tdgar-map svg { display:block; width:100%; height:auto; min-height:0; filter:drop-shadow(0 2px 0 rgba(20,60,80,.45)); }
+.hd-ui .hd-tdgar-map .sand { fill:#f1d89a; }
+.hd-ui .hd-tdgar-map .land { fill:#8cc56a; }
+.hd-ui .hd-tdgar-map .wall { fill:#6d5b4b; }
+.hd-ui .hd-tdgar-map .hq { fill:#a0603a; }
+.hd-ui .hd-tdgar-map .treasure { fill:${gold}; stroke:${ink}; stroke-width:.3; }
+.hd-ui .hd-tdgar-map .pad { fill:#c9a36b; }
+.hd-ui .hd-tdgar-map .lane { fill:${red}; stroke:#fff; stroke-width:.4; }
+.hd-ui .hd-tdgar-map .spot { cursor:pointer; }
+.hd-ui .hd-tdgar-map .spot circle { fill:#fff8e6; stroke:${ink}; stroke-width:.5; }
+.hd-ui .hd-tdgar-map .spot text { font-weight:900; text-anchor:middle; fill:${ink}; pointer-events:none; }
+.hd-ui .hd-tdgar-map .spot.on circle { fill:${gold}; stroke:#fff; stroke-width:.7; }
+.hd-ui .hd-tdgar-legend { display:flex; gap:10px; font-size:12px; font-weight:800; color:#fff; text-shadow:0 1px 2px ${c.seaDark}; }
+.hd-ui .hd-tdgar-legend span::before { content:''; display:inline-block; width:10px; height:10px; margin-right:3px; border-radius:50%; border:1px solid ${ink}; vertical-align:-1px; }
+.hd-ui .hd-tdgar-legend .lg-lane::before { background:${red}; }
+.hd-ui .hd-tdgar-legend .lg-treasure::before { background:${gold}; border-radius:2px; }
+.hd-ui .hd-tdgar-legend .lg-spot::before { background:#fff8e6; }
+/* 竖屏手机：小地图吃掉面板上方的空当，选塔面板和开打钮沉到屏幕下半（拇指够得着）；矮屏（横屏手机、360×640）放不下，不画 */
+@media (max-width:700px) and (orientation:portrait) and (min-height:701px) {
+  .hd-ui .hd-tdgar-top { flex:1 1 0; min-height:0; flex-direction:column; align-items:stretch; gap:6px; }
+  .hd-ui .hd-tdgar-map { flex:1 1 0; min-height:0; width:100%; }
+  .hd-ui .hd-tdgar-map svg { flex:1 1 0; height:100%; }
+  .hd-ui .hd-tdgar-top .hd-tdgar-note { flex:none; }
+}
+@media (max-height:700px) { .hd-ui .hd-tdgar-map { display:none; } }
 .hd-ui .hd-tdgar-main .hd-tdgar-note { font-size:12px; line-height:1.3; }
 .hd-ui .hd-tdgar-main .hd-tdgar-spots { display:grid; grid-template-columns:repeat(var(--spots,1),minmax(0,1fr)); gap:8px; align-items:start; }
 .hd-ui .hd-tdgar-main .hd-tdgar-spot { margin:0; width:auto; padding:6px 8px; }

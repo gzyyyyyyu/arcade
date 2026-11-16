@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CAMPAIGN, RULES_VERSION, battleFingerprint, botActions, newProfile, runBattle } from '../src/core/index.ts';
 import type { BBuilding, BattleAction, BattleResult, BattleSetup } from '../src/core/index.ts';
-import { adviceLines, BEACH_PTS, SIDE_NAME } from '../src/view/battleadvice.ts';
+import { adviceLines, BEACH_PTS, dockGain, SIDE_NAME } from '../src/view/battleadvice.ts';
 import { driveBattle, takeActions } from '../src/view/battleflow.ts';
 import { lossStreakOf, NO_EXTRA, settleOutcome } from '../src/view/battlesettle.ts';
 import { sampleArmy } from '../tools/sample.ts';
@@ -121,6 +121,19 @@ describe('失败建议 adviceLines', () => {
     expect(out[0]).toBe('炮击一次都没放：能量够了就点技能，再点那门最凶的炮。');
     expect(out[1]).toBe('防御不少：带壮汉顶在前面吸引火力。');
     expect(out[2]).toBe('已经连输 3 次了：换兵种搭配、换登陆点，或先去军械所升兵种。');
+  });
+  it('船坞没跟上主寨：连输建议指船坞（中段卡关的真正原因），跟上了照旧指军械所', () => {
+    const behind = adviceLines(res, { ...base, streak: 2, dock: { have: 7, can: 8 } });
+    expect(behind.at(-1)).toBe('已经连输 2 次了：先把船坞升到 8 级（多 1 条船、每船 14→16 人），比升兵种管用。');
+    const even = adviceLines(res, { ...base, streak: 2, dock: { have: 8, can: 8 } });
+    expect(even.at(-1)).toBe('已经连输 2 次了：换兵种搭配、换登陆点，或先去军械所升兵种。');
+  });
+  it('dockGain：按船坞表算多几条船、每船多几人；没造船坞、已跟上都不说', () => {
+    expect(dockGain(7, 8)).toBe('多 1 条船、每船 14→16 人');
+    expect(dockGain(6, 7)).toBe('每船 12→14 人');
+    expect(dockGain(5, 8)).toBe('多 2 条船、每船 10→16 人');
+    expect(dockGain(8, 8)).toBeNull();
+    expect(dockGain(0, 4)).toBeNull();
   });
 });
 

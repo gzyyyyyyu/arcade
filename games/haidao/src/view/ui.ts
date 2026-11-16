@@ -270,6 +270,8 @@ export function badgePopup(list: Array<{ name: string; desc: string; tier: 'bron
       el('b', '', q.name, tx);
       el('span', '', q.title ? `${q.desc}（称号「${q.title}」）` : q.desc, tx);
     });
+    // 一次拿很多个（老号补发）时按弹窗高度翻页，不出滚动条
+    paginate(col, [...col.children] as HTMLElement[], col);
   }
   button('太棒了', 'hd-btn-gold', () => mask.remove(), box).style.width = '100%';
 }
@@ -383,7 +385,7 @@ function css(): string {
 .hd-ui .hd-need { margin:0; color:${red}; font-weight:800; }
 .hd-ui .hd-lockrow { display:inline-flex; align-items:center; gap:4px; }
 .hd-ui .hd-celebrate h2 { text-align:center; margin:0 0 6px; font-size:20px; }
-.hd-ui .hd-newlist { display:flex; flex-direction:column; gap:8px; margin:8px 0 14px; max-height:46vh; overflow:auto; }
+.hd-ui .hd-newlist { display:flex; flex-direction:column; gap:8px; margin:8px 0 14px; max-height:46vh; overflow:hidden; }
 .hd-ui .hd-newitem { display:flex; gap:10px; align-items:center; background:#fff8e6; border:2px solid ${ink}; border-radius:12px; padding:6px 10px; transition:opacity .25s; }
 .hd-ui .hd-newitem.pop { animation:hd-pop .45s cubic-bezier(.2,1.6,.4,1); }
 .hd-ui .hd-advice { text-align:left; background:#fff8e6; border:2px solid ${red}; border-radius:12px; padding:8px 10px; margin:0 0 12px; font-size:14px; }
@@ -408,9 +410,11 @@ function css(): string {
 .hd-ui .hd-badge small { font-size:14px; font-weight:900; color:${c.redD}; }
 .hd-ui .hd-badge h2 { margin:0; font-size:20px; }
 .hd-ui .hd-badge p { margin:0 0 6px; }
-.hd-ui .hd-badgelist { display:flex; flex-direction:column; gap:6px; width:100%; max-height:46vh; overflow:auto; text-align:left; }
-.hd-ui .hd-badgerow { display:flex; gap:10px; align-items:center; background:#fff8e6; border:2px solid ${ink}; border-radius:12px; padding:4px 10px 4px 6px; }
-.hd-ui .hd-badgetx { display:flex; flex-direction:column; line-height:1.25; font-size:14px; }
+.hd-ui .hd-badgelist { display:flex; flex-direction:column; gap:6px; width:100%; max-height:46vh; overflow:hidden; text-align:left; }
+.hd-ui .hd-badgerow { display:flex; gap:10px; align-items:center; background:#fff8e6; border:2px solid ${ink}; border-radius:12px; padding:4px 6px; }
+.hd-ui .hd-badgetx { display:flex; flex-direction:column; min-width:0; line-height:1.25; font-size:14px; }
+/* 弹窗里列表翻页条和下面的主按钮隔开，别挤成一对相邻的点按目标 */
+.hd-ui .hd-badge .hd-pager, .hd-ui .hd-celebrate .hd-pager { margin-bottom:10px; }
 .hd-ui .hd-badgetx b { font-size:14px; }
 .hd-ui .hd-badge .pop { animation:hd-pop .6s cubic-bezier(.2,1.8,.4,1); }
 .hd-ui .hd-ach { display:flex; align-items:center; gap:10px; padding:6px 8px; border:2px solid ${ink}; border-radius:12px; background:#fff8e6; margin-bottom:6px; }
