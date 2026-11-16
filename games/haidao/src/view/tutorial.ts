@@ -62,7 +62,6 @@ export class Tutorial {
       tutSet(TUT_DONE);
       this.hide();
     }, this.tip);
-    el('div', '', undefined, this.tip).style.clear = 'both';
     this.hide();
   }
 
@@ -71,6 +70,10 @@ export class Tutorial {
     if (key !== this.key) {
       this.key = key;
       this.txt.textContent = text;
+      // 换一步时横幅重新淡入一下：瞬间换字看不出「下一步变了」
+      this.tip.classList.remove('hd-tut-new');
+      void this.tip.offsetWidth;
+      this.tip.classList.add('hd-tut-new');
     }
     if (!this.shown) {
       this.shown = true;
@@ -101,8 +104,8 @@ export class Tutorial {
     this.raf = requestAnimationFrame(this.loop);
   };
 
-  /** 顶栏、底栏占掉的高度：横幅停在它们外面 */
-  private insets(): { top: number; bottom: number } {
+  /** 顶栏、底栏和两侧竖排占掉的地方：横幅停在它们外面 */
+  private insets(): { top: number; bottom: number; left: number; right: number } {
     const root = this.root.getBoundingClientRect();
     let top = 56;
     for (const e of this.root.querySelectorAll('.hd-bar, .hd-bar2, .hd-hall, .hd-mute')) {
@@ -111,12 +114,18 @@ export class Tutorial {
       if (b.width > 0 && b.top - root.top < root.height * 0.3) top = Math.max(top, b.bottom - root.top);
     }
     let bottom = root.height;
-    for (const e of this.root.querySelectorAll('.hd-bottom, .hd-cards, .hd-place, .hd-sheet')) {
+    let left = 0;
+    let right = root.width;
+    for (const e of this.root.querySelectorAll('.hd-bottom, .hd-cards, .hd-place, .hd-sheet, .hd-bounty, .hd-mapcard')) {
       const b = e.getBoundingClientRect();
+      if (b.width === 0 || b.height === 0) continue;
       // 手机横屏的底栏挪到右侧竖排：窄的不算底部（和镜头适配 measureInsets 同一口径），否则底部像是没地方，横幅只能停顶上压住目标
-      if (b.width > root.width * 0.5 && b.height > 0) bottom = Math.min(bottom, b.top - root.top);
+      if (b.width > root.width * 0.5) bottom = Math.min(bottom, b.top - root.top);
+      // 贴边的竖排（横屏的兵种卡和技能列、海图左上的悬赏和航线卡）：横幅左右让开，免得盖住引导要你点的那个钮
+      else if (b.left - root.left > root.width * 0.6) right = Math.min(right, b.left - root.left - 8);
+      else if (b.right - root.left < root.width * 0.4) left = Math.max(left, b.right - root.left + 8);
     }
-    return { top, bottom };
+    return { top, bottom, left, right };
   }
 
   /**
@@ -127,11 +136,14 @@ export class Tutorial {
     const W = this.root.clientWidth;
     const H = this.root.clientHeight;
     const r = this.target?.() ?? null;
-    const { top: topInset, bottom: botInset } = this.insets();
-    const tw = Math.min(W - 16, 560);
-    this.tip.style.width = `${tw}px`;
-    this.tip.style.left = `${(W - tw) / 2}px`;
-    const th = this.tip.offsetHeight || 80;
+    const { top: topInset, bottom: botInset, left: l0, right: r0 } = this.insets();
+    // 宽度跟着字走（字和「跳过引导」一行），最宽 560，左右让开竖排；让完太窄（< 240）就不让
+    const room = r0 - l0 >= 240 ? [l0, r0] : [0, W];
+    const maxW = Math.min(room[1]! - room[0]! - 16, 560);
+    this.tip.style.maxWidth = `${maxW}px`;
+    const tw = Math.min(this.tip.offsetWidth || maxW, maxW);
+    this.tip.style.left = `${room[0]! + (room[1]! - room[0]! - tw) / 2}px`;
+    const th = this.tip.offsetHeight || 60;
     const atTop = !r || r.y + r.h / 2 >= H * 0.5;
     this.tip.style.top = `${atTop ? topInset + 6 : Math.max(topInset + 6, botInset - th - 6)}px`;
     if (!r) {

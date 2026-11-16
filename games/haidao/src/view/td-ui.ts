@@ -693,28 +693,35 @@ export function planCard(box: HTMLElement, pv: readonly WavePreview[], o: { titl
     return;
   }
   box.style.display = '';
+  // 三行，和改前一样高（平板竖屏顶底栏要 ≤ 22%）：① 第几波、来什么敌人（头像 × 数量）、倒数 ② 护甲全名和建议 ③ 从哪来、再下一波
+  // 头像和护甲全名替代原来只有一个「布」字的小圆章：新玩家看不出那是护甲，更不知道该造什么
   const r1 = el('div', 'hd-plan-r1', undefined, box);
   el('b', 'hd-plan-w', p.boss ? `首领波 · ${o.title(p.wave)}` : o.title(p.wave), r1);
-  const arm = el('span', 'hd-plan-arm', undefined, r1);
-  for (const a of armorOrder(p.armorShare)) {
-    const s = el('span', '', undefined, arm);
-    armorBadge(a, s);
-    el('small', '', `${p.armorShare[a]}%`, s);
+  const foes = el('span', 'hd-plan-foes', undefined, r1);
+  for (const e of waveEnemies(p)) enemyChip(e.kind, e.n, e.fog, foes, 20);
+  if (o.left >= 0) el('span', 'hd-plan-left', `${o.left}秒`, r1);
+  const arm = el('div', 'hd-plan-arm', undefined, box);
+  const kinds = armorOrder(p.armorShare);
+  for (const a of kinds) {
+    const sp = el('span', '', undefined, arm);
+    armorBadge(a, sp);
+    sp.append(kinds.length === 1 ? `全是${ARMOR_NAME[a]}` : `${ARMOR_NAME[a]} ${p.armorShare[a]}%`);
   }
   if (p.suggest) {
-    const sg = el('span', 'hd-plan-sug', undefined, r1);
+    const sg = el('span', 'hd-plan-sug', undefined, arm);
     dmgBadge(p.suggest, sg);
     sg.append(suggestText(p));
   }
-  if (o.left >= 0) el('span', 'hd-plan-left', `${o.left}秒`, r1);
   const lanes = p.lanes.map((l) => `${o.laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`);
   const note = [lanes.length ? `${lanes.join('、')}来` : '', o.tide, p.note ?? '', ...enemyHints(p)].filter(Boolean).join(' · ');
-  if (note) el('div', 'hd-plan-note', note, box);
   const q = pv[1];
-  if (q) {
-    const r3 = el('div', 'hd-plan-next', undefined, box);
-    el('small', '', q.boss ? '再下一波是首领波' : '再下一波', r3);
-    for (const a of armorOrder(q.armorShare)) armorBadge(a, r3);
+  if (note || q) {
+    const r3 = el('div', 'hd-plan-note', note, box);
+    if (q) {
+      const nx = el('span', 'hd-plan-next', undefined, r3);
+      el('small', '', q.boss ? '再下一波是首领波' : '再下一波', nx);
+      for (const a of armorOrder(q.armorShare)) armorBadge(a, nx);
+    }
   }
 }
 
@@ -1013,13 +1020,15 @@ function tdCss(): string {
 .hd-ui .hd-td-plan.boss { background:linear-gradient(#ffd0c4,#ffab98); border-color:${redD}; }
 .hd-ui .hd-plan-r1 { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .hd-ui .hd-plan-w { font-size:14px; font-weight:900; }
-.hd-ui .hd-plan-arm { display:inline-flex; gap:5px; }
-.hd-ui .hd-plan-arm span { display:inline-flex; align-items:center; gap:2px; }
-.hd-ui .hd-plan-arm small { font-size:12px; }
+.hd-ui .hd-plan-foes { display:inline-flex; flex-wrap:wrap; align-items:flex-end; gap:2px 8px; }
+.hd-ui .hd-plan-foes .hd-tden .hd-arm { display:none; } /* 护甲在下一行写了全名，头像上的小圆章只会盖住脸 */
+.hd-ui .hd-plan-foes .hd-tden b { font-size:12px; }
+.hd-ui .hd-plan-arm { display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; margin-top:2px; font-size:12px; font-weight:800; }
+.hd-ui .hd-plan-arm span { display:inline-flex; align-items:center; gap:3px; }
 .hd-ui .hd-plan-sug { display:inline-flex; align-items:center; gap:3px; padding:0 6px 0 2px; border-radius:9px; background:#fff1c4; border:2px solid ${ink}; }
 .hd-ui .hd-plan-left { margin-left:auto; font-variant-numeric:tabular-nums; }
 .hd-ui .hd-plan-note { font-size:12px; margin-top:2px; opacity:.9; }
-.hd-ui .hd-plan-next { display:flex; align-items:center; gap:3px; margin-top:2px; font-size:12px; opacity:.85; }
+.hd-ui .hd-plan-next { display:inline-flex; align-items:center; gap:3px; margin-left:8px; opacity:.85; white-space:nowrap; }
 .hd-ui .hd-plan-next .hd-arm { width:16px; height:16px; font-size:12px; border-width:1.5px; }
 @keyframes hd-tdplanin { 0% { transform:translateY(-10px) scale(.92); opacity:0; } 60% { transform:scale(1.04); opacity:1; } 100% { transform:none; } }
 @media (hover:hover) and (pointer:fine) { .hd-ui .hd-td-plan:hover { filter:brightness(1.06); } }

@@ -549,9 +549,12 @@ function css(): string {
 .hd-ui button.hd-live-mapbtn { right:8px; left:auto; }
 .hd-ui .hd-map-close { position:absolute; top:60px; right:6px; z-index:31; }
 .hd-ui .hd-tut-ring { position:absolute; border:4px solid ${gold}; border-radius:14px; box-shadow:0 0 0 3px ${ink}, 0 0 16px 4px rgba(248,198,48,.8); pointer-events:none; animation:hd-pulse 1s infinite; z-index:40; }
-.hd-ui .hd-tut-tip { position:absolute; z-index:41; background:#fff8e6; border:3px solid ${ink}; border-radius:14px; padding:10px 12px; box-shadow:0 4px 0 ${ink}; pointer-events:auto; }
-.hd-ui .hd-tut-tip p { margin:0 0 6px; font-size:14px; }
-.hd-ui .hd-tut-tip .hd-btn { min-height:44px; font-size:14px; padding:0 10px; float:right; }
+.hd-ui .hd-tut-tip { position:absolute; z-index:41; box-sizing:border-box; width:max-content; display:flex; align-items:center; gap:10px; background:#fff8e6; border:3px solid ${ink}; border-radius:14px; padding:6px 6px 6px 12px; box-shadow:0 4px 0 ${ink}; pointer-events:auto; }
+.hd-ui .hd-tut-tip p { flex:1 1 auto; min-width:0; margin:0; font-size:14px; }
+.hd-ui .hd-tut-tip .hd-btn { flex:none; min-height:44px; font-size:14px; padding:0 10px; }
+.hd-ui .hd-tut-tip.hd-tut-new { animation:hd-tut-in .25s ease-out; }
+@keyframes hd-tut-in { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) { .hd-ui .hd-tut-tip.hd-tut-new { animation:none; } }
 .hd-ui .hd-tut-arrow { position:absolute; z-index:42; width:0; height:0; border:12px solid transparent; pointer-events:none; }
 @keyframes hd-pop { 0% { transform:scale(.2) rotate(-40deg); } 100% { transform:scale(1); } }
 @keyframes hd-breathe { 50% { transform:scale(1.1); opacity:.6; } }

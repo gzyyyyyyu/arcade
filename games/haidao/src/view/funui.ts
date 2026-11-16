@@ -10,7 +10,8 @@ import { UNIT, TICKS_PER_SEC, type BChest, type BattleEvent, type ChestReward } 
 import { canRecall } from '../core/index.ts';
 import { bTex, iconA, shipA } from './art.ts';
 import { halfLostHint } from './battlescout.ts';
-import { DEFENSE_KEY, hintAllowed, hintText, newDefenses, parseSeen } from './battlehint.ts';
+import { DEFENSE_KEY, hintAllowed, hintText, newDefenses } from './battlehint.ts';
+import { hintCard, takeNew } from './hintcard.ts';
 import { floatText } from './fx.ts';
 import { put } from './ground.ts';
 import { depthOf } from './iso.ts';
@@ -52,11 +53,6 @@ function style(): void {
   st.textContent = `
 .hd-ui .hd-recall { position:absolute; right:8px; bottom:calc(100% + 40px); display:flex; gap:8px; z-index:32; }
 .hd-ui .hd-recall button { position:relative; overflow:hidden; min-height:44px; padding:6px 14px; border-radius:12px; border:2px solid #2b1a15; background:#ffe885; color:#2b1a15; font-weight:900; font-size:14px; box-shadow:0 2px 0 #2b1a15; }
-.hd-ui .hd-defhint { position:absolute; left:50%; top:92px; transform:translateX(-50%); z-index:46; width:max-content; max-width:min(92%,420px); display:flex; flex-direction:column; gap:6px; padding:8px 12px; border-radius:14px; border:3px solid #2b1a15; background:#fff3d6; color:#2b1a15; box-shadow:0 3px 0 #2b1a15; animation:hd-pop .4s cubic-bezier(.2,1.5,.4,1); }
-.hd-ui .hd-defhint div { display:flex; align-items:center; gap:8px; }
-.hd-ui .hd-defhint b { font-size:16px; }
-.hd-ui .hd-defhint span { font-size:14px; }
-@media (prefers-reduced-motion: reduce) { .hd-ui .hd-defhint { animation:none; } }
 .hd-ui .hd-recall button i { position:absolute; left:0; bottom:0; height:4px; width:100%; background:#d4572f; transform-origin:left; animation:hd-recall-bar .5s linear forwards; }
 @keyframes hd-recall-bar { from { transform:scaleX(1); } to { transform:scaleX(0); } }
 `;
@@ -95,39 +91,8 @@ const hinted = new WeakSet<BattleScene>();
 function defenseHint(bs: BattleScene): void {
   hinted.add(bs);
   if (!hintAllowed(bs.d, !!CAMPAIGN.find((l) => l.id === bs.d.levelId)?.boss)) return;
-  let seen = new Set<string>();
-  try {
-    seen = parseSeen(localStorage.getItem(DEFENSE_KEY));
-  } catch {
-    // 存储不可用：当没见过，本局提示一次
-  }
-  const fresh = newDefenses(bs.d.setup.layout.map((p) => p.kind), seen);
-  if (fresh.length === 0) return;
-  try {
-    localStorage.setItem(DEFENSE_KEY, JSON.stringify([...seen, ...fresh]));
-  } catch {
-    // 存储不可用：不记
-  }
-  style();
-  const card = el('div', 'hd-defhint', undefined, bs.ui);
-  for (const k of fresh) {
-    const row = el('div', '', undefined, card);
-    row.appendChild(img(bTex(k, 1), 40));
-    const t = el('p', '', undefined, row);
-    t.style.margin = '0';
-    el('b', '', BUILDINGS[k].name, t);
-    el('br', '', undefined, t);
-    el('span', '', hintText(k), t);
-  }
-  const timer = setTimeout(() => card.remove(), 4000);
-  card.addEventListener('pointerdown', () => {
-    clearTimeout(timer);
-    card.remove();
-  });
-  bs.events.once('shutdown', () => {
-    clearTimeout(timer);
-    card.remove();
-  });
+  const fresh = takeNew(DEFENSE_KEY, (seen) => newDefenses(bs.d.setup.layout.map((p) => p.kind), seen));
+  hintCard(bs, bs.ui, fresh.map((k) => ({ icon: img(bTex(k, 1), 40), name: BUILDINGS[k].name, text: hintText(k) })));
 }
 
 const halfDone = new WeakSet<object>();
