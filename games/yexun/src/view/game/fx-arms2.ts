@@ -164,6 +164,12 @@ export class Arms2FxView {
       case ArmFx.Linfu: this.add('flash', x, y, 0, 24, 0, 200, hx, hy); return true;
       case ArmFx.Lingyan: this.add('flash', x, y, 0, b, 0, 260, hx, hy); return true;
       case ArmFx.Zhonggu: this.add('flash', x, y, 0, Math.min(b, 120), 0, 240, hx, hy); return true;
+      // 规则 62 的搭配：笔一类借阴律斩的一笔，锁魂借阴兵借道的升魂；剑走偏锋、寒钟触发勤，只给淡光
+      case ArmFx.Jianzou: this.add('flash', x, y, 0, 18, 0, 180, hx, hy); return true;
+      case ArmFx.Longshe:
+      case ArmFx.Panzhen: this.say('armYinlv', 0.6); this.add('yinlv', x, y, 0, 0, 0, 420, hx, hy); return true;
+      case ArmFx.Suohun: this.say('armYinbing', 0.6); this.add('yinbing', x, y, 0, 0, 0, 700, hx, hy); return true;
+      case ArmFx.Hanzhong: this.add('flash', x, y, 0, Math.min(b, 140), 0, 260, hx, hy); return true;
       default: return false;
     }
   }

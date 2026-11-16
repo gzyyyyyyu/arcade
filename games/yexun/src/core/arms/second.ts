@@ -164,7 +164,7 @@ function castDart(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStats,
   return true;
 }
 
-function spawnDart(w: World, x: number, y: number, tgt: number, dmg: number, slot: number, evo: number): void {
+export function spawnDart(w: World, x: number, y: number, tgt: number, dmg: number, slot: number, evo: number): void {
   const D = ARM_FX2.dart;
   if (w.arms.darts.length >= 24) return;
   const hops = D.hops + (evo ? D.evoHops : 0);
@@ -316,7 +316,7 @@ function spawnGhost(w: World, api: ArmApi, x: number, y: number, slot: number, e
   emit(w, ArmEv.Ghost, x, y, 0, 0, evo);
 }
 
-/** 这一拍死的怪：死在幡里的按概率变冤魂；贴了符的爆成铜钱 */
+/** 这一拍死的怪：锁魂幡记下的必定变冤魂，死在幡里的按概率变冤魂；贴了符的爆成铜钱 */
 function killsTick(w: World, g: Grid, api: ArmApi): void {
   const A = w.arms;
   const ev = w.ev;
@@ -325,7 +325,19 @@ function killsTick(w: World, g: Grid, api: ArmApi): void {
     if (ev.type[q] !== Ev.Kill) continue;
     const x = ev.x[q]!;
     const y = ev.y[q]!;
-    if (ks >= 0) {
+    const slot = ev.c[q]!;
+    // 锁魂幡：被锁拉过的怪死了必定变冤魂（不看在不在幡下；冤魂挂在招魂幡上）
+    let souled = false;
+    if (slot >= 0 && slot < MAX_ENEMIES && A.souled[slot]) {
+      A.souled[slot] = 0;
+      const kb = slotOf(w, 'banner');
+      if (kb >= 0) {
+        souled = true;
+        emit(w, ArmEv.Combo, x, y, ArmFx.Suohun, 0);
+        spawnGhost(w, api, x, y, kb, w.weapons[kb]!.evolved ? 1 : 0, w.x, w.y);
+      }
+    }
+    if (ks >= 0 && !souled) {
       for (const b of A.banners) {
         const dx = x - b.x;
         const dy = y - b.y;
@@ -334,7 +346,6 @@ function killsTick(w: World, g: Grid, api: ArmApi): void {
         break;
       }
     }
-    const slot = ev.c[q]!;
     if (slot >= 0 && slot < MAX_ENEMIES && A.marked[slot]) {
       A.marked[slot] = 0;
       maibuBurst(w, g, api, x, y);

@@ -767,7 +767,7 @@ export const PASSIVES: Record<PassiveId, PassiveDef> = {
  * color：这个合成自己的颜色（图标底牌、合成演出、图鉴边）。
  */
 export interface MergeDef {
-  id: 'zhuxie' | 'leihuo' | 'yinyang' | 'fujian' | 'fenzhong' | 'linghua' | 'huobing' | 'mingbing' | 'leiyu' | 'leijie' | 'hejin' | 'qiankun' | 'qianjian' | 'heling' | 'yiwei' | 'chenzhong' | 'huadeng' | 'dudeng' | 'liangyi' | 'yinlv' | 'maibu' | 'yinbing' | 'baozhu' | 'caiyuan' | 'fuhuo' | 'linfu' | 'lingyan' | 'zhonggu';
+  id: 'zhuxie' | 'leihuo' | 'yinyang' | 'fujian' | 'fenzhong' | 'linghua' | 'huobing' | 'mingbing' | 'leiyu' | 'leijie' | 'hejin' | 'qiankun' | 'qianjian' | 'heling' | 'yiwei' | 'chenzhong' | 'huadeng' | 'dudeng' | 'liangyi' | 'yinlv' | 'maibu' | 'yinbing' | 'baozhu' | 'caiyuan' | 'fuhuo' | 'linfu' | 'lingyan' | 'zhonggu' | 'jianzou' | 'longshe' | 'panzhen' | 'suohun' | 'hanzhong';
   name: string;
   icon: string;
   desc: string;
@@ -822,12 +822,19 @@ export const MERGES: readonly MergeDef[] = [
   { id: 'linfu', name: '铃符', icon: 'm_linfu', desc: '每响一次铃，光环里血最多的怪挨一道符', a: 'talisman', b: 'bell', color: '#e8b04a', dual: true, early: 5, since: 55 },
   { id: 'lingyan', name: '铃焰', icon: 'm_lingyan', desc: '铃响三次，最近的怪脚下烧起一摊火', a: 'gourd', b: 'bell', color: '#ff8a4a', dual: true, early: 5, since: 55 },
   { id: 'zhonggu', name: '钟鼓齐鸣', icon: 'm_zhonggu', desc: '你站在阵旗方阵里时，每响一次铃，光环里的怪挨打 +40%', a: 'flag', b: 'bell', color: '#d89a50', dual: true, only: 'zhijiang,yinyang', early: 5, since: 55 },
+  // 规则 62（只娱乐局，World.armsCombos）：给搭配少的剑侠、阴阳先生、胖师叔补跨流派搭配，料用他们池里原来没人拿的件（DESIGN 3.3e）。
+  // 必须接在末尾：指纹按「老槽位在前」截掉没有它们的局的尾巴
+  { id: 'jianzou', name: '剑走偏锋', icon: 'm_jianzou', desc: '每飞出一把剑，就朝最近的怪甩出一枚铜钱镖', a: 'flysword', b: 'dart', color: '#d8b04a', dual: true, since: 62 },
+  { id: 'longshe', name: '笔走龙蛇', icon: 'm_longshe', desc: '每推一道浪，浪前血最多的那只挨判官笔一笔', a: 'tide', b: 'brush', color: '#4a8ad8', dual: true, only: 'jianxia', since: 62 },
+  { id: 'panzhen', name: '判阵', icon: 'm_panzhen', desc: '方阵里血最多的怪隔一会儿被判官笔点名：挨一笔，之后挨打更疼', a: 'flag', b: 'brush', color: '#8a5ad8', dual: true, since: 62 },
+  { id: 'suohun', name: '锁魂幡', icon: 'm_suohun', desc: '被勾魂锁拉过的怪死了必定变成冤魂', a: 'chain', b: 'banner', color: '#5a6a9a', dual: true, since: 62 },
+  { id: 'hanzhong', name: '寒钟', icon: 'm_hanzhong', desc: '铃一响，泉里的怪冻住一下', a: 'bell', b: 'spring', color: '#6ac8e8', dual: true, since: 62 },
 ];
 
 /** 老卡池（规则 51 之前的实盘局、旧录像，World.oldPool）不放的 2.0 内容（DESIGN 4.3）。包括全部新法器、新被动、新套件、新搭配 */
 export const ARMS_NEW_WEAPONS: readonly WeaponId[] = ['flag', 'chain', 'pole', 'lamp', 'dart', 'abacus', 'banner', 'brush', 'cracker'];
 export const ARMS_NEW_PASSIVES: readonly PassiveId[] = ['qizhi', 'tielian', 'dengyou', 'qiandai', 'baifan', 'zhubi', 'liuhuang'];
-export const ARMS_NEW_MERGES: readonly MergeDef['id'][] = ['leijie', 'hejin', 'qiankun', 'qianjian', 'heling', 'yiwei', 'chenzhong', 'huadeng', 'dudeng', 'liangyi', 'yinlv', 'maibu', 'yinbing', 'baozhu', 'caiyuan', 'fuhuo', 'linfu', 'lingyan', 'zhonggu'];
+export const ARMS_NEW_MERGES: readonly MergeDef['id'][] = ['leijie', 'hejin', 'qiankun', 'qianjian', 'heling', 'yiwei', 'chenzhong', 'huadeng', 'dudeng', 'liangyi', 'yinlv', 'maibu', 'yinbing', 'baozhu', 'caiyuan', 'fuhuo', 'linfu', 'lingyan', 'zhonggu', 'jianzou', 'longshe', 'panzhen', 'suohun', 'hanzhong'];
 /** 这张卡 / 这个搭配在老卡池（live 传 World.oldPool）里能不能出 */
 export const liveAllows = (live: boolean | undefined, id: string): boolean =>
   !live || !(ARMS_NEW_WEAPONS as readonly string[]).includes(id) && !(ARMS_NEW_PASSIVES as readonly string[]).includes(id) && !(ARMS_NEW_MERGES as readonly string[]).includes(id);
@@ -935,6 +942,20 @@ export const COMBO55 = {
   lingyan: { rings: 3, mul: 1.2, life: 90, r: 56 },
   /** 钟鼓齐鸣：站在方阵里时铃光环里的怪易伤的倍数、每次续的拍数 */
   zhonggu: { mul: 1.4, ticks: 20 },
+} as const;
+
+/** 规则 62 的五个搭配（core/arms/fourth.ts） */
+export const COMBO62 = {
+  /** 剑走偏锋：每飞出一把剑甩一枚铜钱镖，伤害是铜钱镖的 mul 倍，找 reach 以内最近的怪 */
+  jianzou: { mul: 0.6, reach: 360 },
+  /** 笔走龙蛇：每推一道浪，reach 以内血最多的那只挨判官笔 mul 倍 */
+  longshe: { mul: 1.5, reach: 420 },
+  /** 判阵：每 every 拍点名方阵里血最多的一只，挨判官笔 mul 倍并易伤 vuln 倍 ticks 拍 */
+  panzhen: { every: 45, mul: 1.2, vuln: 1.3, ticks: 60 },
+  /** 锁魂幡：被锁拉过的怪死了一定变冤魂（只看有没有拉过，不另设数） */
+  suohun: {},
+  /** 寒钟：铃响时泉里的怪定住 ticks 拍（精英减半、首领不定） */
+  hanzhong: { ticks: 10 },
 } as const;
 
 /** 幽冥、聚财套件的说明（2 / 3 / 4 件），阵法的在 SCHOOL_SETS.array */

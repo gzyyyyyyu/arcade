@@ -65,7 +65,7 @@ describe('角色法器池（content/pools.ts）', () => {
           }
         }
       }
-      for (const id of seen) if (id !== 'coins') expect(inPool(ch, id), `${ch} 抽到池外的 ${id}`).toBe(true);
+      for (const id of seen) if (id !== 'coins') expect(inPool(ch, id, true), `${ch} 抽到池外的 ${id}`).toBe(true);
       expect(seen.size).toBeGreaterThan(4);
     }
   }, 60_000);

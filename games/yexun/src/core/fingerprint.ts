@@ -33,6 +33,8 @@ function num(h: number, v: number): number {
  */
 /** 规则 55 新增的搭配数：规则 54 的录像按没有它们的长度哈（它们在 54 里出不来，槽位永远是 0），指纹和 55 之前一样 */
 const RULES55_MERGES = MERGES.filter((m) => m.since === 55).length;
+/** 规则 62 的搭配接在最末尾：关着它们的局（实盘、规则 61 以前）按没有它们的长度哈 */
+const RULES62_MERGES = MERGES.filter((m) => m.since === 62).length;
 
 function legacyHitAt(w: World, cut = ARMS_NEW_MERGES.length): Int32Array {
   const old = WEAPON_SLOTS - cut;
@@ -60,6 +62,8 @@ export function fingerprint(w: World): number {
   if (w.arms.live()) {
     for (const v of w.arms.nums()) h = num(h, v);
     h = arr(arr(arr(arr(arr(h, w.arms.freezeAt), w.arms.vulnUntil), w.arms.vulnMul), w.arms.beads), w.arms.marked);
+    // 锁魂幡记下的怪：只有合了它才会有，别的局不进指纹
+    if (w.merges.includes('suohun')) h = arr(h, w.arms.souled);
   }
   // 技能的冷却和持续：放过才进指纹（没按过技能键的局，指纹和有技能之前一样）
   if (w.skill.uses > 0) for (const v of [w.skill.cd, w.skill.active, w.skill.uses]) h = num(h, v);
@@ -79,6 +83,6 @@ export function fingerprint(w: World): number {
     h = num(num(h, w.pvx), w.pvy);
     h = arr(arr(h, w.eVX), w.eVY);
   }
-  for (const a of [w.eAlive, w.eKind, w.eX, w.eY, w.eKX, w.eKY, w.eHp, w.eT, w.eS, w.ePhase, w.legacyPool ? legacyHitAt(w) : w.new55 ? w.eHitAt : legacyHitAt(w, RULES55_MERGES), w.eMark, w.sAlive, w.sKind, w.sX, w.sY, w.sVX, w.sVY, w.sLife, w.sState, w.dAlive, w.dKind, w.dX, w.dY, w.dVal, w.dPull, w.pAlive, w.pX, w.pY]) h = arr(h, a);
+  for (const a of [w.eAlive, w.eKind, w.eX, w.eY, w.eKX, w.eKY, w.eHp, w.eT, w.eS, w.ePhase, w.legacyPool ? legacyHitAt(w) : !w.new55 ? legacyHitAt(w, RULES55_MERGES + RULES62_MERGES) : w.armsCombos ? w.eHitAt : legacyHitAt(w, RULES62_MERGES), w.eMark, w.sAlive, w.sKind, w.sX, w.sY, w.sVX, w.sVY, w.sLife, w.sState, w.dAlive, w.dKind, w.dX, w.dY, w.dVal, w.dPull, w.pAlive, w.pX, w.pY]) h = arr(h, a);
   return h >>> 0;
 }

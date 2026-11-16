@@ -87,7 +87,7 @@ export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   zhijiang: { id: 'zhijiang', name: '纸匠', start: 'zhibing', perkName: '巧手', perk: '纸兵活得久 30%，倒下时两成概率还你一张纸兵的冷却；身边的纸兵会替你挨一下，挨完就碎（娱乐局）', unlock: '一开始就有', look: '蓝布衫挽着袖子，手里总捏着一把剪刀', line: '纸也能站岗——你信不信？', base: { ...EVEN, hp: 0.9, speed: 1.05, might: 0.95, cd: 0.95, area: 1.1, magnet: 1.1 } },
   baidu: { id: 'baidu', name: '摆渡人', start: 'pole', perkName: '顺水', perk: '水里不减速，冰面不打滑，水类法器伤害 +10%', unlock: '夜探撤出 1 次后，守夜撑过 6 分钟', look: '蓑衣斗笠，肩上扛着长竹篙', line: '上船不问来路，下船不问归途。', base: { ...EVEN, hp: 1.05, speed: 1.1, might: 0.9, cd: 1.05, area: 1.05 } },
   huolang: { id: 'huolang', name: '货郎', start: 'dart', perkName: '讨价', perk: '夜市九折，局内铜钱 +15%，铜钱每满 100 枚伤害 +1%（最多 +10%）；每捡 100 枚铜钱补一次刷新（娱乐局）', unlock: '夜市买过 3 次东西', look: '花布头巾，挑着一副叮当响的货担', line: '好货不贵，不好的白送。', base: { ...EVEN, hp: 1, speed: 1.05, might: 0.95, magnet: 1.3, luck: 0.1 } },
-  yinyang: { id: 'yinyang', name: '阴阳先生', start: 'flag', perkName: '阴阳互济', perk: '血过半是阳：伤害 +8%；不足一半是阴：技能冷却 −8%；头像上标着现在是阴是阳', unlock: '一开始就有', look: '黑袍方巾，腰间挂着罗盘和八卦牌', line: '阴阳有序，今晚的账我来算。', base: { ...EVEN, hp: 0.95, speed: 0.95, might: 1.05, cd: 1.05, area: 1.1 } },
+  yinyang: { id: 'yinyang', name: '阴阳先生', start: 'flag', perkName: '阴阳互济', perk: '血过半是阳：伤害 +8%；不足一半是阴：技能冷却 −8%，捆、定住的怪多定半秒（娱乐局）；头像上标着现在是阴是阳', unlock: '一开始就有', look: '黑袍方巾，腰间挂着罗盘和八卦牌', line: '阴阳有序，今晚的账我来算。', base: { ...EVEN, hp: 0.95, speed: 0.95, might: 1.05, cd: 1.05, area: 1.1 } },
 };
 
 /** 角色被动的数值 */
@@ -132,6 +132,8 @@ export const CHAR_FX = {
   /** 阴阳先生·阴阳互济：血过半（含半）时的伤害倍数；不足一半时技能冷却的减幅 */
   yinyangHigh: 1.08,
   yinyangCd: 0.08,
+  /** 规则 62（娱乐局，World.armsCombos）：阴时缚妖索、阵旗定身多几拍——阳靠打，阴靠控 */
+  yinyangBind: 15,
   /**
    * 规则 61 的角色钩子（娱乐局，World.skillHooks）：纸匠身边 zhijiangStandInR 以内的纸兵替他挨一下（纸兵下一拍倒下）；
    * 货郎每捡 huolangRerollEvery 枚铜钱补一次刷新（一局常捡五百到一千多枚，约补 5～13 次；刷新存满时不补）

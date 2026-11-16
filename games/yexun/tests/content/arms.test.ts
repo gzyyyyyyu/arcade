@@ -57,11 +57,11 @@ const armed = (w: World, ids: Parameters<typeof grantWeapon>[1][], evolved = fal
 const damaged = (w: World, es: number[]): number => es.filter((e) => w.eHp[e]! < 1e6).length;
 
 describe('2.0 第一批：登记', () => {
-  it('内容一致性锁：法器 24、被动 20、进化 24、合成 + 双修 28、流派 10', () => {
+  it('内容一致性锁：法器 24、被动 20、进化 24、合成 + 双修 33、流派 10', () => {
     expect(WEAPON_IDS.length).toBe(24);
     expect(PASSIVE_IDS.length).toBe(20);
     expect(WEAPON_IDS.filter((id) => WEAPONS[id].evolve).length).toBe(24);
-    expect(MERGES.length).toBe(28);
+    expect(MERGES.length).toBe(33);
     expect(SCHOOL_IDS.length).toBe(10);
   });
 

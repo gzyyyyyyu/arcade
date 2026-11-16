@@ -22,7 +22,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 61;
+export const RULES_VERSION = 62;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
 export const TICKS_PER_SECOND = 30;
@@ -256,6 +256,13 @@ export class World {
   get skillHooks(): boolean {
     return this.rulesFrom(61) && !this.setup.live;
   }
+  /**
+   * 规则 62 的法器池和搭配（DESIGN 3.3e）：池里换掉对这个角色没用的件、五个新搭配、阴阳先生阴时定身更久。
+   * 先只娱乐局；实盘等最后整体重拟时一起进（主线 11-15）
+   */
+  get armsCombos(): boolean {
+    return this.rulesFrom(62) && !this.setup.live;
+  }
   /** 旧卡池：抽卡和宝箱合成走实盘那条老路径（不看角色池、不放 2.0 新法器）；录像规则版本 < 37 */
   get legacyPool(): boolean {
     return this.replayRules !== undefined && this.replayRules < 37;
@@ -278,9 +285,9 @@ export class World {
   get new57(): boolean {
     return this.rulesFrom(57) && (!this.setup.live || (this.replayRules ?? RULES_VERSION) >= RULES_57_LIVE);
   }
-  /** 按版本分叉的内容闸：规则 55、57 的新内容走 new55 / new57（实盘晚一版），其余同 rulesFrom */
+  /** 按版本分叉的内容闸：规则 55、57 的新内容走 new55 / new57（实盘晚一版），62 走 armsCombos（只娱乐局），其余同 rulesFrom */
   contentFrom(v: number): boolean {
-    return v === 55 ? this.new55 : v === 57 ? this.new57 : this.rulesFrom(v);
+    return v === 55 ? this.new55 : v === 57 ? this.new57 : v === 62 ? this.armsCombos : this.rulesFrom(v);
   }
   /**
    * 老卡池：抽卡、宝箱合成只出 2.0 之前的老内容（加本角色自己的起手件），2.0 的套件和被动效果不生效。

@@ -123,6 +123,8 @@ export class ArmsState {
   /** 算盘：每只怪记了几层账；买路符钱：贴了符的怪 */
   readonly beads: Uint8Array;
   readonly marked: Uint8Array;
+  /** 锁魂幡（规则 62）：被勾魂锁拉过的怪，死了必定变冤魂 */
+  readonly souled: Uint8Array;
   /** 幽冥、聚财套件档（0 / 2 / 3 / 4） */
   ghostTier = 0;
   wealthTier = 0;
@@ -143,6 +145,7 @@ export class ArmsState {
     this.vulnMul = new Float64Array(maxEnemies);
     this.beads = new Uint8Array(maxEnemies);
     this.marked = new Uint8Array(maxEnemies);
+    this.souled = new Uint8Array(maxEnemies);
   }
 
   /** 这一局有没有用上（没用上就不进指纹，别的局的金标准指纹不受影响） */
@@ -166,9 +169,10 @@ export class ArmsState {
     return out;
   }
 
-  /** 按怪记的状态（算盘的层数、贴符）：新怪出生时清零 */
+  /** 按怪记的状态（算盘的层数、贴符、锁魂）：新怪出生时清零 */
   resetEnemy(i: number): void {
     this.beads[i] = 0;
     this.marked[i] = 0;
+    this.souled[i] = 0;
   }
 }
