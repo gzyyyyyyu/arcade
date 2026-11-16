@@ -142,45 +142,50 @@ export function applySkin(root: HTMLElement): void {
 
 export function skinCss(): string {
   const ink = P.ink!;
-  // 铜钉：四角各一颗（8×8），亮点 → 铜 → 暗边
-  const nail = 'radial-gradient(circle at 38% 36%,#fff3c0 0 1px,#dcaa3e 2px,#6e4812 3.4px,rgba(60,35,10,.0) 4px)';
-  const nails = ['left 4px top 4px', 'right 4px top 4px', 'left 4px bottom 4px', 'right 4px bottom 4px'].map((p) => `${nail} ${p}/8px 8px no-repeat`).join(',');
-  // 胶囊只在两头各一颗，不挤数字
-  const nails2 = ['left 6px center', 'right 6px center'].map((p) => `${nail} ${p}/8px 8px no-repeat`).join(',');
-  const plank = (a: string, b: string): string => `${nails},var(--hd-wood),linear-gradient(${a},${b})`;
-  const plank2 = (a: string, b: string): string => `${nails2},var(--hd-wood),linear-gradient(${a},${b})`;
-  const lift = 'inset 0 2px 0 rgba(255,238,200,.5),inset 0 -3px 0 rgba(66,34,10,.34)';
+  // 界面退后半步：最亮、最饱和、最黑的留给海岛和战斗特效。木板改沉稳的胡桃木、细边框、软投影，普通按钮不再钉四颗亮白钉；
+  // 只有主行动的金色按钮两头各一颗暗铜钉
+  const edge = '#3a2418';
+  const nail = 'radial-gradient(circle at 38% 36%,#e8a66b 0 0.8px,#c87d44 1.6px,#874f32 2.6px,rgba(60,35,10,.0) 3px)';
+  const nailsGo = ['left 5px center', 'right 5px center'].map((p) => `${nail} ${p}/6px 6px no-repeat`).join(',');
+  const plank = (a: string, b: string, c?: string): string => `var(--hd-wood),linear-gradient(${a},${c ? `${b},${c}` : b})`;
+  const walnut = plank('#d09e68', '#b27d4a', '#94613a');
+  const goBg = `${nailsGo},var(--hd-wood),linear-gradient(#e5b24c,#c68928)`;
+  const selBg = plank('#f0c860', '#cf9a30');
+  const lift = 'inset 0 1px 0 rgba(252,224,139,.45),inset 0 -2px 0 rgba(66,34,10,.3)';
+  const drop = `0 2px 0 ${edge},0 5px 10px rgba(18,32,48,.28)`;
+  // 顶栏的牌子：半透明深木底，透出后面的海；白字加深影，对比度 > 7:1
+  const glass = 'background:rgba(38,28,22,.72); border:1.5px solid rgba(212,162,98,.45); color:#f7efe0; text-shadow:0 1px 2px #24160e; box-shadow:0 2px 6px rgba(18,32,48,.3);';
   const W = '.hd-ui.hd-skin';
-  const parchBg = (a = '#f7ead0', b = '#e6cf9c'): string => `var(--hd-parch),linear-gradient(${a},${b})`;
+  // 羊皮纸压到旧海图的温润米黄（最亮不超过浪花和受光干沙）
+  const parchBg = (a = '#eadbc0', b = '#decaa8'): string => `var(--hd-parch),linear-gradient(${a},${b})`;
   const frame = `border:6px solid transparent; border-image:var(--hd-rope) 8 round; border-radius:4px; background-clip:padding-box;`;
   const frameShadow = `box-shadow:0 0 0 2px ${ink}, inset 0 0 0 2px rgba(43,26,21,.55), inset 0 0 26px rgba(120,72,22,.34), 0 12px 24px rgba(10,8,20,.5);`;
   return `
 /* ---------- 界面皮肤（skin.ts）：木板 + 铜钉、羊皮纸、麻绳 ---------- */
-${W} { --hd-plank-a:#ecc088; --hd-plank-b:#cf9250; }
-/* 按钮：木板，按下去（下移 3 像素、阴影缩短）再弹回来（回弹曲线） */
-${W} .hd-btn { border:3px solid ${ink}; border-radius:10px; background:${plank('#ecc088', '#cf9250')}; color:${ink}; text-shadow:0 1px 0 rgba(255,236,200,.35);
-  box-shadow:${lift},0 4px 0 ${ink}; transition:transform .18s cubic-bezier(.3,2,.5,1),box-shadow .18s ease-out,filter .15s; }
-${W} .hd-btn:active:not(:disabled) { transform:translateY(3px); transition-duration:.04s;
-  box-shadow:inset 0 2px 0 rgba(0,0,0,.2),inset 0 -2px 0 rgba(66,34,10,.25),0 1px 0 ${ink}; }
-${W} .hd-btn:disabled { opacity:.6; filter:grayscale(.6) brightness(.9); box-shadow:inset 0 2px 0 rgba(255,238,200,.3),0 2px 0 ${ink}; }
-${W} .hd-btn.hd-btn-plain { background:${plank('#ecc088', '#cf9250')}; }
-${W} .hd-btn.hd-btn-gold { background:${plank('#ffe58a', '#e0a824')}; color:${ink}; text-shadow:0 1px 0 rgba(255,250,210,.5); }
-${W} .hd-btn.hd-btn-wood { background:${plank('#b3703a', '#7f4824')}; color:#fff4dc; text-shadow:0 1px 0 ${P.woodDD}; }
-${W} .hd-btn.hd-btn-red { background:${plank('#dd4a3d', '#a8261f')}; color:#fff; text-shadow:0 1px 0 rgba(70,10,8,.6); }
-${W} .hd-btn.sel, ${W} .hd-btn.hd-skill.sel { background:${plank('#ffe58a', '#e0a824')}; }
-/* 两个右上角的小开关和关闭键：不画钉子，免得 44 像素的方块里挤 */
-${W} .hd-mute, ${W} .hd-feel, ${W} .hd-x, ${W} .hd-hall { background:var(--hd-wood),linear-gradient(#ecc088,#cf9250); }
+${W} { --hd-plank-a:#d09e68; --hd-plank-b:#94613a; }
+/* 按钮：胡桃木板，按下去（下移 2 像素、阴影缩短）再弹回来（回弹曲线） */
+${W} .hd-btn { border:2px solid ${edge}; border-radius:10px; background:${walnut}; color:${ink}; text-shadow:0 1px 0 rgba(255,236,200,.3);
+  box-shadow:${lift},${drop}; transition:transform .18s cubic-bezier(.3,2,.5,1),box-shadow .18s ease-out,filter .15s; }
+${W} .hd-btn:active:not(:disabled) { transform:translateY(2px); transition-duration:.04s;
+  box-shadow:inset 0 2px 0 rgba(0,0,0,.2),inset 0 -2px 0 rgba(66,34,10,.25),0 1px 0 ${edge}; }
+${W} .hd-btn:disabled { opacity:.6; filter:grayscale(.6) brightness(.9); box-shadow:inset 0 2px 0 rgba(255,238,200,.3),0 2px 0 ${edge}; }
+${W} .hd-btn.hd-btn-plain { background:${walnut}; }
+${W} .hd-btn.hd-btn-gold { background:${goBg}; color:${ink}; border-color:#4a2c14; text-shadow:0 1px 0 rgba(255,250,210,.45); }
+${W} .hd-btn.hd-btn-wood { background:${plank('#a86a38', '#774525')}; color:#fff4dc; text-shadow:0 1px 0 ${P.woodDD}; }
+${W} .hd-btn.hd-btn-red { background:${plank('#d24a3d', '#9e2a22')}; color:#fff; text-shadow:0 1px 0 rgba(70,10,8,.6); }
+${W} .hd-btn.sel, ${W} .hd-btn.hd-skill.sel { background:${selBg}; }
+/* 两个右上角的小开关和关闭键、回大厅 */
+${W} .hd-mute, ${W} .hd-feel, ${W} .hd-x, ${W} .hd-hall { background:${walnut}; }
 
-/* 顶栏胶囊：深色木牌，两头一颗钉；字用奶白，红色提示改浅 */
-${W} .hd-pill { border:3px solid ${ink}; border-radius:20px; padding:0 15px 0 14px; background:${plank2('#a86a34', '#76441f')}; color:#fff4dc; text-shadow:0 1px 0 rgba(40,20,6,.7);
-  box-shadow:${lift},0 3px 0 ${ink}; }
+/* 顶栏胶囊：半透明深木牌，奶白字；红色提示改浅 */
+${W} .hd-pill { border-radius:20px; padding:0 14px; ${glass} }
 ${W} .hd-pill small { opacity:.85; }
 ${W} .hd-pill.full b, ${W} .hd-pill .hd-short { color:#ffb7a8; }
-${W} .hd-pill.hurt { background:${plank2('#d4553f', '#9a2a20')}; border-color:${ink}; }
-${W} .hd-en, ${W} .hd-td-store { background:${plank2('#a86a34', '#76441f')}; color:#fff4dc; border:3px solid ${ink}; box-shadow:${lift},0 3px 0 ${ink}; padding-left:16px; padding-right:16px; }
+${W} .hd-pill.hurt { background:rgba(150,40,30,.82); border-color:rgba(255,170,150,.5); }
+${W} .hd-en, ${W} .hd-td-store { ${glass} padding-left:14px; padding-right:14px; }
 ${W} .hd-td-store .hd-short, ${W} .hd-en .hd-short { color:#ffb7a8; }
-${W} .hd-bounty { background:${plank2('#a86a34', '#76441f')}; color:#fff4dc; border:3px solid ${ink}; box-shadow:${lift},0 3px 0 ${ink}; padding-left:16px; }
-${W} .hd-td-paused { background:var(--hd-wood),linear-gradient(#ffe58a,#e0a824); }
+${W} .hd-bounty { ${glass} padding-left:14px; }
+${W} .hd-td-paused { background:${selBg}; }
 
 /* 底栏：一条横木板，上沿有光、下沿暗，按钮坐在上面 */
 ${W} .hd-bottom, ${W} .hd-td-bottom { background:linear-gradient(rgba(255,226,170,.5) 0 2px,rgba(43,26,21,.0) 2px),var(--hd-wood),linear-gradient(#8a5028,#5e3719);
@@ -191,16 +196,16 @@ ${W} .hd-bottom .hd-btn, ${W} .hd-td-bottom .hd-btn { box-shadow:${lift},0 4px 0
 ${W} .hd-dialog, ${W} .hd-sheet, ${W} .hd-td-sheet, ${W} .hd-tut-tip { background:${parchBg()}; ${frame} ${frameShadow} }
 ${W} .hd-sheet, ${W} .hd-td-sheet { border-bottom-width:0; border-radius:4px 4px 0 0; }
 ${W} .hd-td-income, ${W} .hd-tidecard, ${W} .hd-tdcard, ${W} .hd-scout-info, ${W} .hd-preset, ${W} .hd-live-card, ${W} .hd-pvp-item {
-  background:${parchBg('#f7ead0', '#e9d4a2')}; border:3px solid ${ink}; border-radius:8px; box-shadow:inset 0 0 18px rgba(120,72,22,.28),0 3px 0 ${ink}; }
+  background:${parchBg()}; border:2px solid #4a3120; border-radius:8px; box-shadow:inset 0 0 12px rgba(108,74,40,.22),0 2px 0 #4a3120; }
 ${W} .hd-live-card, ${W} .hd-pvp-item { box-shadow:inset 0 0 14px rgba(120,72,22,.26); border:2px solid rgba(94,55,25,.7); }
-${W} .hd-card, ${W} .hd-td-tower, ${W} .hd-td-branch, ${W} .hd-tdtab, ${W} .hd-boat { background:${parchBg('#f9eed6', '#e8d2a0')}; border:3px solid ${ink};
-  box-shadow:inset 0 2px 0 rgba(255,250,230,.7),inset 0 0 14px rgba(120,72,22,.25),0 3px 0 ${ink}; transition:transform .18s cubic-bezier(.3,2,.5,1),box-shadow .18s ease-out; }
+${W} .hd-card, ${W} .hd-td-tower, ${W} .hd-td-branch, ${W} .hd-tdtab, ${W} .hd-boat { background:${parchBg()}; border:2px solid #4a3120;
+  box-shadow:inset 0 1px 0 rgba(255,250,230,.5),inset 0 0 12px rgba(108,74,40,.22),0 2px 0 #4a3120; transition:transform .18s cubic-bezier(.3,2,.5,1),box-shadow .18s ease-out; }
 ${W} .hd-card:active, ${W} .hd-td-tower:active:not(:disabled), ${W} .hd-td-branch:active:not(:disabled), ${W} .hd-tdtab:active, ${W} .hd-boat:active { transform:translateY(3px); transition-duration:.04s; box-shadow:inset 0 0 14px rgba(120,72,22,.25),0 0 0 ${ink}; }
-${W} .hd-boat.sel, ${W} .hd-tdtab.on { background:var(--hd-wood),linear-gradient(#ffe58a,#e0a824); }
+${W} .hd-boat.sel, ${W} .hd-tdtab.on { background:${selBg}; }
 ${W} .hd-td-tower:disabled, ${W} .hd-td-branch:disabled { filter:grayscale(.5) brightness(.92); }
 ${W} .hd-unlock, ${W} .hd-newitem, ${W} .hd-advice, ${W} .hd-badgerow, ${W} .hd-ach { background:rgba(255,250,232,.5); border:2px solid rgba(94,55,25,.7); }
 ${W} .hd-chip, ${W} .hd-item { background:rgba(150,100,40,.18); }
-${W} .hd-node span.hd-lb { background:var(--hd-wood),linear-gradient(#e6b878,#c78d4c); border:3px solid ${ink}; border-radius:8px; box-shadow:${lift},0 2px 0 ${ink}; }
+${W} .hd-node span.hd-lb { background:${walnut}; border:2px solid ${edge}; border-radius:8px; box-shadow:${lift},0 2px 0 ${ink}; }
 ${W} .hd-node.lock span.hd-lb { background:var(--hd-wood),linear-gradient(#b8aa94,#8d806c); }
 ${W} .hd-num, ${W} .hd-tdnum { background:var(--hd-wood),radial-gradient(circle at 38% 34%,#ffe58a,#d9a02a); }
 ${W} .hd-scout-map, ${W} .hd-preset-map { border:4px solid ${ink}; }
@@ -223,7 +228,12 @@ ${W} .hd-boat.done { filter:grayscale(1) brightness(.82); opacity:.72; }
 ${W} .hd-boat.done::after { content:''; position:absolute; left:4px; top:4px; width:20px; height:20px; background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='7' width='10' height='7' rx='1.5' fill='%23e0a824' stroke='%232b1a15' stroke-width='1.5'/><path d='M5 7V5a3 3 0 0 1 6 0v2' fill='none' stroke='%232b1a15' stroke-width='1.8'/></svg>") center/contain no-repeat; }
 ${W} .hd-skill { position:relative; min-height:52px; overflow:hidden; }
 ${W} .hd-skill.sel, ${W} .hd-td-skill.sel { transform:translateY(-8px); box-shadow:${lift},0 6px 0 ${ink},0 0 0 3px rgba(255,214,90,.95),0 0 16px rgba(255,214,90,.8); }
-${W} .hd-skill.off { filter:saturate(.25) brightness(.8); opacity:1; padding-bottom:8px; }
+/* 进攻技能：能用 = 深胡桃木、奶白字、内圈一道金边（像充好能的样子）；能量不够 = 冷灰石板、图标去色、左上角一把锁、底下一条进度。
+   字和底的对比度都 ≥ 4.5（奶白 / 深木 5.8，能量数亮金 / 深木 4.9，浅灰 / 石板 5.0）；选中仍是上面那条金底深字 */
+${W} .hd-btn.hd-skill:not(.sel) { background:${plank('#8a5230', '#663a1e')}; color:#fff4dc; text-shadow:0 1px 1px #24160e; box-shadow:${lift},${drop},inset 0 0 0 2px rgba(255,214,90,.8); }
+${W} .hd-btn.hd-skill:not(.sel):not(.off) small { color:#ffe08a; font-weight:800; }
+${W} .hd-btn.hd-skill.off { background:linear-gradient(#5a616c,#454a54); color:#ece6da; box-shadow:${drop}; padding-bottom:8px; }
+${W} .hd-skill.off .hd-img { filter:grayscale(1) brightness(.85); }
 ${W} .hd-skill.off::before { content:''; position:absolute; left:8px; right:8px; bottom:4px; height:6px; border:1.5px solid ${ink}; border-radius:4px;
   background:linear-gradient(90deg,#ffd23f var(--p,0%),rgba(43,26,21,.6) 0); }
 ${W} .hd-skill.off::after { content:''; position:absolute; left:3px; top:3px; width:16px; height:16px; background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='7' width='10' height='7' rx='1.5' fill='%23e0a824' stroke='%232b1a15' stroke-width='1.5'/><path d='M5 7V5a3 3 0 0 1 6 0v2' fill='none' stroke='%232b1a15' stroke-width='1.8'/></svg>") center/contain no-repeat; }

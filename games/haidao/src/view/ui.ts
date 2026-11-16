@@ -344,6 +344,8 @@ export function openSettings(): void {
 /** 常驻的"大厅"按钮（左上角，小房子 + 大厅） */
 export function hallButton(onClick: () => void, parent: HTMLElement): void {
   const b = button('', 'hd-hall', onClick, parent);
+  // 窄屏的登陆战只留图标（layout.ts），读屏照样读得出是哪个钮
+  b.setAttribute('aria-label', '大厅');
   b.appendChild(img(iconA('home'), 22));
   el('span', '', '大厅', b);
 }

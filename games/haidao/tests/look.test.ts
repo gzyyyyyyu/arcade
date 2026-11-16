@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { GRADE, VIVID, gradeHex, gradeSvg, h32, materialOf, outlineOf, rng } from '../src/view/art/grade.ts';
 import { wear } from '../src/view/art/wear.ts';
-import { CHIMNEY_AT, HQ_FLAG_AT, buildingArt, coastArt, hqFlagFrames, hqNoFlagArt, palmSwayFrames } from '../src/view/art/index.ts';
+import { box, mat } from '../src/view/art/kit.ts';
+import { baseHalf, rankPegSpots } from '../src/view/art/buildings.ts';
+import { PALETTE as C } from '../src/view/art/palette.ts';
+import { BUILDING_KINDS, CHIMNEY_AT, HQ_FLAG_AT, buildingArt, coastArt, hqFlagFrames, hqNoFlagArt, palmSwayFrames } from '../src/view/art/index.ts';
 import { shoreline, vnoise } from '../src/view/terrain.ts';
 import { BEACH } from '../src/core/types.ts';
 
@@ -20,8 +23,9 @@ describe('配色分级', () => {
     }
     expect(GRADE.sat).toBeLessThan(1);
   });
-  it('关键色（宝藏金、旗帜红、火焰）保持原样', () => {
-    for (const c of ['#f8c630', '#d93b32', '#ff6a1f', '#ffe885']) {
+  it('关键色（宝藏的亮金点、旗帜红、火焰）保持原样；调色板的黄铜金跟着分级', () => {
+    expect(VIVID.has('#e5af2e')).toBe(false);
+    for (const c of ['#ffd646', '#cf3e34', '#ff641c', '#ffd447']) {
       expect(VIVID.has(c)).toBe(true);
       expect(gradeHex(c)).toBe(c);
     }
@@ -34,9 +38,9 @@ describe('配色分级', () => {
     expect(rb(dim)).toBeLessThan(rb('#30343c') + 1);
   });
   it('整张 SVG 里的色都被分级，格式不变', () => {
-    const out = gradeSvg('<rect fill="#6ec24b"/><rect fill="#f8c630"/>');
+    const out = gradeSvg('<rect fill="#6ec24b"/><rect fill="#cf3e34"/>');
     expect(out).toMatch(/fill="#[0-9a-f]{6}"/);
-    expect(out).toContain('#f8c630');
+    expect(out).toContain('#cf3e34');
     expect(out).not.toContain('#6ec24b');
   });
 });
@@ -67,9 +71,45 @@ describe('确定性变体', () => {
   });
   it('材质层：同一个面永远同样的纹路，小面不画', () => {
     const q: Array<[number, number]> = [[0, 40], [60, 40], [60, 0], [0, 0]];
-    expect(wear(q, '#b97a3d', 'L').replace(/wc\d+|wg\d+/g, '')).toBe(wear(q, '#b97a3d', 'L').replace(/wc\d+|wg\d+/g, ''));
-    expect(wear(q, '#b97a3d', 'L')).toContain('clip-path');
-    expect(wear([[0, 5], [8, 5], [8, 0], [0, 0]], '#b97a3d', 'L')).toBe('');
+    expect(wear(q, '#b97a3d', 'L', 'wood').replace(/wc\d+|wg\d+/g, '')).toBe(wear(q, '#b97a3d', 'L', 'wood').replace(/wc\d+|wg\d+/g, ''));
+    expect(wear(q, '#b97a3d', 'L', 'wood')).toContain('clip-path');
+    expect(wear([[0, 5], [8, 5], [8, 0], [0, 0]], '#b97a3d', 'L', 'wood')).toBe('');
+  });
+  it('石头的三个面都按石头画：蓝灰玄武岩和冷色背光面不会被猜成铁', () => {
+    // 3–8 级的三代石材（含按颜色会被猜成铁的玄武岩）；铁的锤痕是 3×2 的 #272c3a 小块，石头立面是 #48566b 的砌缝
+    for (const c of [C.stone!, C.wallMid!, '#76849a', C.wallDark!, '#566278', '#525e74']) {
+      const m = mat(c, 'stone');
+      expect(m.kind).toBe('stone');
+      const s = box(-1, -1, 1, 1, 0, 40, m);
+      expect(s, c).not.toContain('fill="#272c3a" opacity="0.22"');
+      // 灰缝按面并成一条 path：数 path 里的线段
+      const mortar = [...s.matchAll(/<path d="([^"]*)"[^>]*stroke="#48566b"/g)].map((m) => (m[1]!.match(/M/g) ?? []).length);
+      expect(mortar.length, c).toBeGreaterThanOrEqual(2);
+      expect(mortar.reduce((a, b) => a + b, 0), c).toBeGreaterThan(8);
+    }
+    // 不指定时按基色猜一次，三个面共用
+    expect(mat('#b97a3d').kind).toBe('wood');
+  });
+  it('等级外观：代内名次钉 1–2 / 1–3 颗，每栋最多一面旗', () => {
+    // 名次钉是 9×6 的暗铜方块；旗杆顶的小金球 2.4×2.4 每面旗一个（主寨的旗布由场景画，旗杆照样有一个球）
+    const pegs = (k: (typeof BUILDING_KINDS)[number], lv: number): number => (buildingArt(k, lv).svg.match(/width="9" height="6"/g) ?? []).length;
+    expect([1, 2, 3, 4, 5, 6, 7, 8].map((lv) => pegs('cannon', lv))).toEqual([1, 2, 1, 2, 3, 1, 2, 3]);
+    for (const k of BUILDING_KINDS) {
+      for (let lv = 1; lv <= 8; lv++) expect((buildingArt(k, lv).svg.match(/rx="2.4" ry="2.4"/g) ?? []).length, `${k} ${lv}`).toBeLessThanOrEqual(1);
+    }
+  });
+  it('名次钉压在底座边上，不落到建筑外面的草地上', () => {
+    // 屏幕坐标换回格坐标的「方形半径」max(|gx|, |gy|) = (|x|/32 + |y|/16) / 2，和底座半边长（已乘放大倍数）比：
+    // 不远出底座 0.4 格，也不缩进底座中间（半边长的一半以内）
+    for (const k of BUILDING_KINDS) {
+      for (const lv of [1, 5, 8]) {
+        for (const [x, y] of rankPegSpots(k, lv)) {
+          const r = (Math.abs(x) / 32 + Math.abs(y) / 16) / 2;
+          expect(r, `${k} ${lv}`).toBeLessThanOrEqual(baseHalf(k) + 0.4);
+          expect(r, `${k} ${lv}`).toBeGreaterThanOrEqual(baseHalf(k) * 0.5);
+        }
+      }
+    }
   });
   it('建筑素材每次生成一样（缓存之外也一样）', () => {
     const strip = (s: string): string => s.replace(/(wc|wg|sh|cy|tg|sg|sp|pg|sw)\d+/g, '$1');

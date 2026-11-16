@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { centerAfterZoom, clampZoom, DRAG_PX, exceedsDrag, isTap } from '../src/view/camgesture.ts';
+import { centerAfterZoom, clampZoom, DRAG_PX, exceedsDrag, isTap, takesCamera } from '../src/view/camgesture.ts';
 
 describe('点和拖的判定', () => {
   it('触屏阈值比鼠标宽', () => {
@@ -36,5 +36,15 @@ describe('缩放', () => {
     const c = centerAfterZoom(wp, sx, sy, k2, w, h);
     expect(c.cx + (sx - w / 2) / k2).toBeCloseTo(wp.x);
     expect(c.cy + (sy - h / 2) / k2).toBeCloseTo(wp.y);
+  });
+});
+
+describe('开场推镜什么时候交给玩家', () => {
+  it('单击（没动、一根手指）不打断，拖开、捏合才打断', () => {
+    expect(takesCamera(0, 0, true, 1)).toBe(false);
+    expect(takesCamera(DRAG_PX.touch, 0, true, 1)).toBe(false);
+    expect(takesCamera(DRAG_PX.touch + 1, 0, true, 1)).toBe(true);
+    expect(takesCamera(DRAG_PX.mouse + 1, 0, false, 1)).toBe(true);
+    expect(takesCamera(0, 0, true, 2)).toBe(true);
   });
 });

@@ -27,7 +27,7 @@ describe('界面皮肤的样式', () => {
     for (const k of ['hd-resin', 'hd-banner', 'hd-rise', '--sd', '--fin', 'hd-s3', 'hd-lose', 'prefers-reduced-motion']) expect(css).toContain(k);
   });
   it('按钮按下去再弹回来', () => {
-    expect(body).toMatch(/\.hd-btn:active:not\(:disabled\)\s*\{[^}]*translateY\(3px\)/);
+    expect(body).toMatch(/\.hd-btn:active:not\(:disabled\)\s*\{[^}]*translateY\(2px\)/);
     expect(body).toMatch(/\.hd-btn\s*\{[^}]*cubic-bezier/);
   });
 });
@@ -49,10 +49,13 @@ describe('关卡天气（只在画面层查，不改关卡数据）', () => {
 
 describe('底部卡和技能钮的三态', () => {
   const css = skinCss();
-  it('选中上浮加金光、冷却或充能暗化加进度、不可用去饱和加锁', () => {
+  it('选中上浮加金光、冷却或充能暗化加进度、不可用去饱和加锁；登陆战技能能用 / 能量不够两态一眼分清', () => {
     expect(css).toMatch(/\.hd-boat\.sel\s*\{[^}]*translateY\(-9px\)/);
     expect(css).toMatch(/\.hd-boat\.done\s*\{[^}]*grayscale\(1\)/);
-    expect(css).toMatch(/\.hd-skill\.off\s*\{[^}]*saturate/);
+    // 能用 = 深木奶白字加内圈金边；能量不够 = 冷灰石板、图标去色（不再整块去饱和，那样满能量也像灰的）
+    expect(css).toMatch(/\.hd-btn\.hd-skill:not\(\.sel\)\s*\{[^}]*color:#fff4dc[^}]*inset 0 0 0 2px rgba\(255,214,90/);
+    expect(css).toMatch(/\.hd-btn\.hd-skill\.off\s*\{[^}]*#5a616c/);
+    expect(css).toMatch(/\.hd-skill\.off \.hd-img\s*\{[^}]*grayscale\(1\)/);
     expect(css).toContain('.hd-skill.off::before');
     expect(css).toMatch(/\.hd-td-skill \.hd-cd\s*\{[^}]*conic-gradient/);
     expect(css).toMatch(/\.hd-td-skill\.off/);

@@ -153,7 +153,7 @@ export function renderCards(bs: BattleScene): void {
     c.addEventListener('click', () => {
       if (s.over) return;
       if (!on) sfx('error');
-      if (!on) return toast(`还差 ${Math.max(1, Math.ceil(cost - s.energy))} 能量，拆掉建筑能回能量`);
+      if (!on) return toast(`${def.name}：还差 ${Math.max(1, Math.ceil(cost - s.energy))} 能量，拆掉建筑能回能量`);
       bs.selSkill = bs.selSkill === i ? -1 : i;
       bs.selBoat = -1;
       afterSelect(bs);

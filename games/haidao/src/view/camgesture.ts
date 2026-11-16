@@ -12,6 +12,11 @@ export function exceedsDrag(dx: number, dy: number, touch: boolean): boolean {
   return Math.hypot(dx, dy) > t;
 }
 
+/** 玩家这一下是不是在动镜头（要把开场推镜交给玩家）：多指（捏合）或位移超过拖动阈值；单击（下船、放技能）不算 */
+export function takesCamera(dx: number, dy: number, touch: boolean, fingers: number): boolean {
+  return fingers > 1 || exceedsDrag(dx, dy, touch);
+}
+
 export interface TapCheck {
   /** 这次按下中途动过超过阈值（只升不降：拖出去再拖回原处也不算点） */
   moved: boolean;

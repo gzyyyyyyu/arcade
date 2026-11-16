@@ -65,7 +65,7 @@ function finish(c: HTMLCanvasElement, key: string, r: number): void {
   const g = cx.createLinearGradient(0, 0, c.width, c.height);
   g.addColorStop(0, 'rgba(255,228,170,0.12)');
   g.addColorStop(0.5, 'rgba(255,228,170,0)');
-  g.addColorStop(1, 'rgba(40,60,130,0.14)');
+  g.addColorStop(1, 'rgba(31,69,110,0.14)');
   cx.fillStyle = g;
   cx.fillRect(0, 0, c.width, c.height);
   let h = 0;
@@ -161,6 +161,20 @@ export async function bakeAtlas(tm: Phaser.Textures.TextureManager, key: string,
   c.height = y + rowH + PAD;
   const cx = c.getContext('2d')!;
   ims.forEach((it, i) => cx.drawImage(it.im, at[i]!.x, at[i]!.y, it.w, it.h));
+  // 炮塔会转的部分（炮管、喷嘴）补上和底座（finish）一样的左上暖、右下冷，不然炮头比底座平、比底座亮；不加颗粒
+  if (key.startsWith('tur.')) {
+    cx.globalCompositeOperation = 'source-atop';
+    ims.forEach((it, i) => {
+      const { x: ox, y: oy } = at[i]!;
+      const g = cx.createLinearGradient(ox, oy, ox + it.w, oy + it.h);
+      g.addColorStop(0, 'rgba(255,228,170,0.12)');
+      g.addColorStop(0.5, 'rgba(255,228,170,0)');
+      g.addColorStop(1, 'rgba(31,69,110,0.16)');
+      cx.fillStyle = g;
+      cx.fillRect(ox, oy, it.w, it.h);
+    });
+    cx.globalCompositeOperation = 'source-over';
+  }
   const tex = tm.addCanvas(key, c);
   if (!tex) return;
   ims.forEach((it, i) => {

@@ -2,7 +2,7 @@
 import type { BuildingKind } from '../../core/types.ts';
 import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
-import { P, box, cone, cyl, darken, ell, f, flag, hip, lighten, line, Lq, mat, mix, path, piece, poly, rect, Rq, archL, shadow, skull, tube, uid } from './kit.ts';
+import { OUT, P, box, cone, cyl, darken, ell, f, flag, hip, lighten, line, Lq, mat, mix, path, piece, poly, rect, Rq, archL, shadow, skull, tube, uid } from './kit.ts';
 import type { Mat } from './kit.ts';
 
 /** 占地边长（格）：和规则表一致；规则表以后若有改动，只需改这里 */
@@ -23,7 +23,6 @@ const UP: Record<BuildingKind, number> = {
 const SCALE: Partial<Record<BuildingKind, number>> = { cannon: 1.4, gunTower: 1.12, hq: 1.15, mortar: 1.35, shock: 1.4, sniper: 1.05, mine: 1.4, flame: 1.2, palm: 0.85, harpoon: 1.3, tar: 1.0, rocket: 1.15, fogTower: 1.1 };
 const PADX: Partial<Record<BuildingKind, number>> = { palm: 44, hq: 20, harpoon: 10, rocket: 10, rock: 16, mine: 10, cannon: 10, mortar: 10, shock: 10, sniper: 14 };
 
-const tierOf = (lv: number): 0 | 1 | 2 => (lv <= 2 ? 0 : lv <= 4 ? 1 : 2);
 /** 画炮台底座（不带会转的炮管 / 喷嘴 / 发射架 / 火枪手和屋顶）时置真：turretBaseArt 用，转的部分在 art/turrets.ts */
 let NOGUN = false;
 
@@ -31,8 +30,8 @@ const M = {
   wood: mat(C.wood!),
   woodD: mat(C.woodD!),
   woodL: mat(C.woodL!),
-  stone: mat(C.stone!),
-  stoneD: mat(C.stoneD!),
+  stone: mat(C.stone!, 'stone'),
+  stoneD: mat(C.stoneD!, 'stone'),
   iron: mat(C.iron!),
   ironD: mat(C.ironD!),
   red: mat(C.red!),
@@ -113,6 +112,59 @@ const CROP: Partial<Record<BuildingKind, [number, number, number, number]>> = {
   rock: [17, 28, 103, 85],
 };
 
+/** 等级分三代（1–2 木、3–5 石、6–8 玄武岩），rank = 这一代里的第几级（1–2 级 1–2，3–5 级 1–3，6–8 级 1–3）。地坪垫和名次钉都按它画 */
+function levelBand(level: number): { tier: 0 | 1 | 2; rank: number } {
+  const tier = level <= 2 ? 0 : level <= 5 ? 1 : 2;
+  return { tier, rank: level - [1, 3, 6][tier]! + 1 };
+}
+
+/**
+ * 哪些建筑垫地坪（圆垫，数字 = 屏幕半径：塔身半径 × 放大倍数 + 一圈边）：只有细圆塔。
+ * 其余不垫：主寨、锯木厂、木料场、船坞、军械所自带方底板，火箭塔自带方墩，炮台、电击塔、臼炮、喷火塔、鱼叉、焦油池、金库、地雷自带大圆盘，
+ * 再垫一层就是双层底框、圆盘套方垫；金矿是天然石丘
+ */
+const PLINTH: Partial<Record<BuildingKind, number>> = { gunTower: 38, sniper: 42, fogTower: 38 };
+/** 方底板半边长（格，已乘放大倍数）/ 圆盘屏幕半径（已乘放大倍数）→ 底座左前沿中点（屏幕坐标：左角 (−64h, 0) 和前角 (0, 32h) 的中点 / 椭圆 135° 那一点），名次钉排在这里 */
+const sqFoot = (h: number): Pt => [-32 * h, 16 * h];
+const rdFoot = (r: number): Pt => [-Math.SQRT1_2 * r, (Math.SQRT1_2 / 2) * r];
+const FOOT: Partial<Record<BuildingKind, Pt>> = {
+  hq: sqFoot(1.95 * 1.15), sawmill: sqFoot(1.4), woodyard: sqFoot(1.35), dock: sqFoot(1.45), armory: sqFoot(1.4), rocket: sqFoot(0.9 * 1.15),
+  cannon: rdFoot(44 * 1.4), shock: rdFoot(44 * 1.4), mortar: rdFoot(44 * 1.35), harpoon: rdFoot(44 * 1.3), tar: rdFoot(58), vault: rdFoot(66), mine: rdFoot(26 * 1.4),
+  gunTower: rdFoot(38), sniper: rdFoot(42), flame: rdFoot(36 * 1.2), fogTower: rdFoot(38), goldmine: [-56, 30],
+};
+
+/** 细圆塔脚下的圆地坪：tier 0/1/2 = 1–2 级压实沙土 / 3–5 级切石（厚 4）/ 6–8 级玄武岩石座（厚 7，带一道箍） */
+function plinth(r: number, tier: 0 | 1 | 2): string {
+  if (tier === 0) return ell(0, 1, r, r / 2, C.sandD!, { sw: 0, op: 0.55 });
+  return cyl(0, 0, r, 0, tier === 1 ? 4 : 7, mat(tier === 1 ? C.stone! : C.wallDark!, 'stone'), tier === 2 ? 1 : 0, 1.6);
+}
+
+/**
+ * 代内名次：底座左前沿外侧顺着边排 rank 颗暗铜方钉（每颗 9×9 像素，1× 下也数得清；不用白和金，免得又成满岛亮点）。
+ * 进攻前看塔有多强靠它和材质：材质分代（木 / 石 / 玄武岩），钉数分代内第几级。画在建筑本体之上（本体放大后会盖住地面）
+ */
+/** 名次钉的中心（屏幕坐标，相对锚点）：沿左前边（屏幕方向 (2, 1)）排开，整体往边外（左下）让 2 像素，正好压在底座边上 */
+export function rankPegSpots(kind: BuildingKind, level: number): Pt[] {
+  const foot = FOOT[kind];
+  if (!foot) return [];
+  const { rank } = levelBand(level);
+  const cx = foot[0] - 0.447 * 2;
+  const cy = foot[1] + 0.894 * 2;
+  return Array.from({ length: rank }, (_, i): Pt => {
+    const d = (i - (rank - 1) / 2) * 14;
+    return [cx + 0.894 * d, cy + 0.447 * d];
+  });
+}
+/** 底座的半边长（格，已乘整体放大倍数）：钉子不能离它太远（测试用） */
+export const baseHalf = (kind: BuildingKind): number => (BUILDING_SIZE[kind] / 2) * (SCALE[kind] ?? 1);
+function rankPegs(spots: Pt[]): string {
+  const m = mat(C.copperD!, 'iron');
+  let o = '';
+  for (const [x, y] of spots) {
+    o += rect(x - 4.5, y - 6, 9, 6, m.l, { sw: 1.2, stroke: OUT }) + poly([[x - 4.5, y - 6], [x, y - 8.5], [x + 4.5, y - 6], [x, y - 3.5]], m.t, { sw: 1.2, stroke: OUT });
+  }
+  return o;
+}
 function shell(kind: BuildingKind, body: string, level: number, shadowK = 1): ArtPiece {
   const size = BUILDING_SIZE[kind];
   const up = UP[kind];
@@ -121,60 +173,32 @@ function shell(kind: BuildingKind, body: string, level: number, shadowK = 1): Ar
   const h = ay + size * 16 + 10;
   const ax = w / 2;
   const deco = kind === 'palm' || kind === 'rock' || kind === 'statue' || kind === 'flagpole' || kind === 'chest' || kind === 'treasure' || kind === 'wall';
-  const t = tierOf(level);
-  let base = '';
-  let pips = '';
-  if (!deco && t >= 1) {
-    // 地面光环：银（中级）、金（高级）一眼能和 1–2 级区分
-    const k = size * 0.98;
-    const col = t === 2 ? C.gold! : '#dfe9f2';
-    base = poly([P(-k / 2, -k / 2), P(k / 2, -k / 2), P(k / 2, k / 2), P(-k / 2, k / 2)], t === 2 ? 'rgba(255,214,70,0.22)' : 'rgba(220,235,250,0.16)', { sw: t === 2 ? 3 : 2.2, stroke: col });
-  }
-  if (!deco) {
-    const y = size * 16 + 2;
-    const n = level;
-    for (let i = 0; i < n; i++) pips += ell((i - (n - 1) / 2) * 7, y, 2.8, 2.8, i >= 6 ? '#fff0a0' : i >= 4 ? C.gold! : i >= 2 ? '#e4edf5' : '#c98a4b', { sw: 1.4 });
-  }
-  let extra = '';
-  if (!deco && level >= 7) {
-    // 7 级起：地面金环加粗，四角立金旗，8 级再加光点
-    const k = size * 1.02;
-    extra += poly([P(-k / 2, -k / 2), P(k / 2, -k / 2), P(k / 2, k / 2), P(-k / 2, k / 2)], 'none', { sw: 3.6, stroke: level >= 8 ? '#fff0a0' : C.gold! });
-    for (const [gx, gy] of [[-k / 2, k / 2], [k / 2, -k / 2]] as const) extra += flag(gx, gy, 0, 26 + level * 2, 14, 9, C.gold!, false);
-    if (level >= 8) for (const [x, y] of [[-30, -20], [34, -26], [0, -50]] as const) extra += poly([[x, y - 6], [x + 1.6, y - 1.6], [x + 6, y], [x + 1.6, y + 1.6], [x, y + 6], [x - 1.6, y + 1.6], [x - 6, y], [x - 1.6, y - 1.6]], '#fff6c8', { sw: 1 });
-  }
-  if (!deco && level >= 4 && level <= 6) {
-    // 4–6 级：脚下两个前角各立一面小旗，旗色随级变（红 → 金 → 金加白边），一眼比 3 级强
-    const k = size * 1.0;
-    const fc = level === 4 ? flagCol(4) : C.gold!;
-    for (const [gx, gy] of [[-k / 2, k / 2], [k / 2, -k / 2]] as const) extra += flag(gx, gy, 0, 18 + level * 2.5, 9 + level, 6 + level / 2, fc, false, level >= 6 ? '#fff0a0' : level === 5 ? C.goldD! : undefined);
-  }
-  if (!deco && level >= 5) {
-    // 5 级起：脚下一圈金色底座（前两面有厚度）；6 级起顶上再戴一个金冠
-    const h = (size / 2) * 1.0;
-    base += poly([P(-h, h, 0), P(h, h, 0), P(h, h, 5), P(-h, h, 5)], C.gold!, { sw: 1.4 }) + poly([P(h, h, 0), P(h, -h, 0), P(h, -h, 5), P(h, h, 5)], C.goldD!, { sw: 1.4 });
-    base += line(P(-h, h, 5), P(h, h, 5), '#fff0a0', 1.4, 0.9) + line(P(h, h, 5), P(h, -h, 5), C.gold!, 1.4, 0.9);
-    const cr0 = CROP[kind];
-    const ty = cr0 ? cr0[1] - ay + 16 : -(UP[kind] * (SCALE[kind] ?? 1)) - 8;
-    if (level === 5) extra += poly([[0, ty - 7], [5, ty], [0, ty + 7], [-5, ty]], C.gold!, { sw: 1.4 }) + poly([[0, ty - 5], [2.4, ty - 0.5], [0, ty + 2], [-2.4, ty - 0.5]], '#fff0a0', { sw: 0 });
-    else extra += poly([[-8, ty + 6], [-8, ty - 5], [-4, ty], [0, ty - 8], [4, ty], [8, ty - 5], [8, ty + 6]], C.gold!, { sw: 1.6 }) + ell(0, ty - 8.5, 1.8, 1.8, C.red!, { sw: 0 }) + line([-8, ty + 3], [8, ty + 3], '#fff0a0', 1.4);
-  }
+  // 等级不再靠金框、等级点、四角小旗、金冠（满岛亮黄，把草地和剪影切碎），改由建筑本身的材质（LVC）和地坪垫分三代、名次钉分代内第几级
+  const band = levelBand(level);
+  const pl = PLINTH[kind];
+  const base = deco || pl === undefined ? '' : plinth(pl, band.tier);
+  const pegs = deco ? '' : rankPegs(rankPegSpots(kind, level));
   const scaled = SCALE[kind] ? `<g transform="scale(${SCALE[kind]})">${body}</g>` : body;
   // 光从左上来：一层偏向右下的长投影 + 脚下一圈更深更紧的接触阴影，建筑才像落在地上
-  const bodyAll = shadow(size * 28, size * 14.5, size * 5, size * 2.8, 0.26 + (shadowK - 1) * 0.1) + shadow(size * 24, size * 12, size * 1, size * 1.2, 0.4 + (shadowK - 1) * 0.1) + base + scaled + extra + pips;
+  const bodyAll = shadow(size * 28, size * 14.5, size * 5, size * 2.8, 0.26 + (shadowK - 1) * 0.1) + shadow(size * 24, size * 12, size * 1, size * 1.2, 0.4 + (shadowK - 1) * 0.1) + base + scaled + pegs;
   const cr = CROP[kind];
   return cr ? piece('', cr[2] - cr[0], cr[3] - cr[1], ax - cr[0], ay - cr[1], bodyAll) : piece('', w, h, ax, ay, bodyAll);
 }
 
 // ================================================================= 等级外观（每一级都不同）
 
-/** 每级一种主材质：1 木 → 2 浅木加铁钉 → 3 石 → 4 蓝灰石加铁箍 → 5 深铁镶金 → 6 乌铁包金 */
-const LVC = ['', '#b57a3f', '#d19a5c', '#bcc2c8', '#8d9bad', '#657388', '#454f62', '#2e3850', '#d9a82a'];
-const lm = (lv: number): Mat => mat(LVC[lv] ?? LVC[1]!);
-const trim = (lv: number): string => (lv <= 2 ? C.woodD! : lv === 3 ? C.ironD! : lv === 4 ? C.ironL! : lv === 5 ? C.gold! : lv === 6 ? C.goldL! : lv === 7 ? '#fff0a0' : '#ffffff');
-const flagW = (lv: number): number => 14 + lv * 4;
-const flagH = (lv: number): number => 9 + lv * 2.5;
-const flagCol = (lv: number): string => (lv <= 2 ? C.green! : lv <= 4 ? C.red! : C.gold!);
+/** 每级一种主材质，三代：1 亮木 → 2 中木 → 3 亮石 → 4–5 花岗岩 → 6–8 玄武岩（不是死黑）；7–8 级只在包边、箍圈上点铜金（trim） */
+const LVC = ['', C.woodLight!, C.wood!, C.stone!, C.wallMid!, '#76849a', C.wallDark!, '#566278', '#525e74'];
+const lm = (lv: number): Mat => mat(LVC[lv] ?? LVC[1]!, lv <= 2 ? 'wood' : 'stone');
+const trim = (lv: number): string => (lv <= 2 ? C.woodD! : lv === 3 ? C.ironD! : lv === 4 ? C.ironL! : lv <= 6 ? C.copper! : lv === 7 ? C.copperL! : C.gold!);
+/**
+ * 旗：每栋最多一面。防御塔 1–2 级只挂一块绿色小布标，3 级起是红色主旗、越高越大，7–8 级才镶金边；
+ * 经济建筑一律只挂小布标、用自己的颜色（帆布、蓝、紫、绿），不和防御塔共用大红旗，免得满岛红旗抢主寨
+ */
+const flagW = (lv: number): number => (lv <= 2 ? 12 : 14 + lv * 4);
+const flagH = (lv: number): number => (lv <= 2 ? 8 : 9 + lv * 2.5);
+const flagCol = (lv: number): string => (lv <= 2 ? C.green! : C.red!);
+const tag = (gx: number, gy: number, z: number, h: number, color: string): string => flag(gx, gy, z, h, flagW(1), flagH(1), color, false);
 
 // ================================================================= 主寨
 
@@ -187,8 +211,8 @@ function poleOnly(gx: number, gy: number, z: number, h: number): string {
 
 /** 小烟囱：砖砌细柱 + 加宽的顶圈 + 黑色烟口；烟口中心是 P(gx, gy, z1 + 2) */
 function chimney(gx: number, gy: number, z0: number, z1: number): string {
-  let o = box(gx - 0.17, gy - 0.17, gx + 0.17, gy + 0.17, z0, z1, mat('#a08f80'), 'brick', 1.6);
-  o += box(gx - 0.22, gy - 0.22, gx + 0.22, gy + 0.22, z1 - 3, z1 + 2, mat('#6e6258'), '', 1.6);
+  let o = box(gx - 0.17, gy - 0.17, gx + 0.17, gy + 0.17, z0, z1, mat('#a08f80', 'stone'), 'brick', 1.6);
+  o += box(gx - 0.22, gy - 0.22, gx + 0.22, gy + 0.22, z1 - 3, z1 + 2, mat('#6e6258', 'stone'), '', 1.6);
   const m = P(gx, gy, z1 + 2);
   return o + ell(m[0], m[1], 5.2, 2.6, '#1a1210', { sw: 0 });
 }
@@ -221,7 +245,6 @@ function hq(lv: number, noFlag = false): string {
     s += cone(gx, gy, 18, towerH + (lv >= 4 ? 3 : 0), 26 + lv * 2, lv === 6 ? mat(C.gold!) : roofM, 4);
     const top = P(gx, gy);
     if (lv >= 5) s += ell(top[0], top[1] - towerH - 28 - lv * 2, 3.4, 3.4, C.gold!, { sw: 1.5 });
-    if (lv >= 2) s += flag(gx, gy, towerH + 22 + lv * 2, 12 + lv, 9 + lv, 6 + lv / 2, lv >= 5 ? C.gold! : C.red!);
     return s;
   };
   const towers: Array<[number, number]> = lv <= 1 ? [[-1.5, 1.5], [1.5, -1.5]] : lv === 2 ? [[-1.5, -1.5], [-1.5, 1.5], [1.5, -1.5]] : [[-1.5, -1.5], [-1.5, 1.5], [1.5, -1.5], [1.5, 1.5]];
@@ -267,8 +290,7 @@ function hq(lv: number, noFlag = false): string {
   if (lv >= 3) o += barrel(-0.7, 1.7, 8, 5, 9, C.red!);
   // 大旗：越高级越大
   const pole = 40 + lv * 6;
-  o += noFlag ? poleOnly(0, 0, uh + rh, pole) : flag(0, 0, uh + rh, pole, 30 + lv * 6, 22 + lv * 3, C.black!, true, lv >= 5 ? C.gold! : undefined);
-  if (lv >= 6) o += flag(0.3, 0.3, uh + rh - 6, pole - 18, 30, 20, C.red!, false, C.gold!);
+  o += noFlag ? poleOnly(0, 0, uh + rh, pole) : flag(0, 0, uh + rh, pole, 30 + lv * 6, 22 + lv * 3, C.black!, true, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
@@ -296,8 +318,7 @@ function cannon(lv: number): string {
   if (NOGUN) {
     // 分件版：炮架、轮子、炮管整体在转盘上转（art/turrets.ts），底座只留转盘
     o += cyl(0, 0, 20, 10, 13, mat(lv >= 3 ? C.ironD! : C.woodD!), 0, 1.6);
-    if (lv >= 2) o += flag(-1.1, -0.2, 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
-    if (lv >= 6) o += flag(-0.9, 0.6, 8, 30, 18, 12, C.black!, true);
+    if (lv >= 2) o += flag(-1.1, -0.2, 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
     return o;
   }
   const c = P(0, 0, 8);
@@ -317,8 +338,7 @@ function cannon(lv: number): string {
     if (lv >= 4) o += tube([a[0] + 18, a[1] + 9], [a[0] + 21, a[1] + 10.5], th + 2, th + 2, trim(lv));
   }
   o += ell(c[0] + 14, c[1] + 2, 12, 12, C.woodDD!, { sw: 2 }) + ell(c[0] + 14, c[1] + 2, 5.5, 5.5, C.woodL!, { sw: 1.2 });
-  if (lv >= 2) o += flag(-1.1, -0.2, 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
-  if (lv >= 6) o += flag(-0.9, 0.6, 8, 30, 18, 12, C.black!, true);
+  if (lv >= 2) o += flag(-1.1, -0.2, 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
@@ -342,8 +362,7 @@ function shock(lv: number): string {
   }
   o += cyl(0, 0, 20, 10, 13, mat(C.ironD!), 0, 1.6);
   if (NOGUN) {
-    if (lv >= 2) o += flag(-1.1, -0.2, 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
-    if (lv >= 6) o += flag(-0.9, 0.6, 8, 30, 18, 12, C.black!, true);
+    if (lv >= 2) o += flag(-1.1, -0.2, 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
     return o;
   }
   // 整张图（图标、没烘好分件时）：一根短粗的炮管，炮口铜环
@@ -354,7 +373,7 @@ function shock(lv: number): string {
   o += tube(a, b, th + 2, th, C.ironD!, C.ironL!);
   o += tube([b[0] - 7, b[1] - 3.5], [b[0] - 2, b[1] - 1], th + 6, th + 6, '#c9783a');
   o += ell(b[0], b[1], th * 0.36, th * 0.55, '#14141c', { sw: 2 }) + ell(b[0], b[1], th * 0.2, th * 0.3, '#7fd8ff', { sw: 0 });
-  if (lv >= 2) o += flag(-1.1, -0.2, 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
+  if (lv >= 2) o += flag(-1.1, -0.2, 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
@@ -364,12 +383,12 @@ function gunTower(lv: number): string {
   let o = '';
   o += cyl(0, 0, 25, 0, 10, mat(lv <= 2 ? '#8a5a30' : '#8c949c'), 0);
   o += cyl(0, 0, 18 + (lv >= 4 ? 2 : 0), 8, top, bodyM, lv >= 3 ? 3 : 2);
-  if (lv >= 3) o += cyl(0, 0, 21, 4, 12, mat(C.stoneD!), 0, 1.6);
+  if (lv >= 3) o += cyl(0, 0, 21, 4, 12, M.stoneD, 0, 1.6);
   for (let i = 0; i < (lv >= 4 ? 2 : 1); i++) o += cyl(0, 0, 21, top - 14 - i * 22, top - 8 - i * 22, mat(trim(lv)), 0, 1.5);
   o += poly(archL(0, 0.18, 0.55, 8, 20, 8), DARK, { sw: 1.8 });
   o += win(Lq(-0.12, 0.12, 0.62, 30, 42));
   const pz = top;
-  o += cyl(0, 0, 29, pz, pz + 6, lv <= 2 ? M.woodL : mat('#8b97a6'), 0);
+  o += cyl(0, 0, 29, pz, pz + 6, lv <= 2 ? M.woodL : mat('#8b97a6', 'stone'), 0);
   const ring = P(0, 0, pz + 6);
   for (let i = 0; i < 9; i++) {
     const an = (i / 9) * Math.PI * 2;
@@ -382,7 +401,7 @@ function gunTower(lv: number): string {
   }
   if (NOGUN) {
     // 分件版：火枪手（turrets.ts）站在平台上，屋顶另一张图（gunTowerRoof）盖在他上面
-    if (lv < 2) o += flag(0, 0, pz + 4, 18 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), lv >= 6, lv >= 5 ? C.gold! : undefined);
+    if (lv < 2) o += flag(0, 0, pz + 4, 18 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), lv >= 6, lv >= 7 ? C.gold! : undefined);
     return o;
   }
   // 火枪：1 级 1 支，4 级 2 支，6 级 3 支
@@ -396,7 +415,7 @@ function gunTower(lv: number): string {
   if (lv >= 2) o += cone(0, 0, 31, pz + 6 + 38, 24 + lv * 2, lv >= 5 ? mat(C.red!) : mat(C.redD!), 6);
   if (lv >= 5) o += ell(ring[0], ring[1] - 38 - 30 - lv * 2 + 4, 3, 3, C.gold!, { sw: 1.4 });
   const fz = lv >= 2 ? pz + 6 + 38 + 24 + lv * 2 : pz + 6;
-  o += flag(0, 0, fz - 2, 18 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), lv >= 6, lv >= 5 ? C.gold! : undefined);
+  o += flag(0, 0, fz - 2, 18 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), lv >= 6, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
@@ -444,7 +463,7 @@ function sniper(lv: number): string {
   if (lv >= 3) for (const [dx, dy] of [[-16, 2], [-9, 6], [14, 5]] as const) o += ell(ring[3]![0] + dx + 14, ring[3]![1] + dy - 6, 6.5, 4, '#d9c08a', { sw: 1.4 });
   if (NOGUN) {
     // 分件版：长炮管在转座上（turrets.ts）；岗亭的小顶棚另一张图太麻烦，这里只在后方立一面旗
-    o += flag(-0.42, -0.42, pz + 6, 26 + lv * 3, flagW(lv) * 0.8, flagH(lv) * 0.8, flagCol(lv), lv >= 6, lv >= 5 ? C.gold! : undefined);
+    o += flag(-0.42, -0.42, pz + 6, 26 + lv * 3, flagW(lv) * 0.8, flagH(lv) * 0.8, flagCol(lv), lv >= 6, lv >= 7 ? C.gold! : undefined);
     return o;
   }
   // 整张图（图标、没烘好分件时）：一根长炮管
@@ -454,7 +473,7 @@ function sniper(lv: number): string {
   o += tube(a, b, 7, 5.6, lv >= 5 ? '#2c313c' : C.ironD!, C.ironL!);
   o += tube([b[0] - 8, b[1] - 3], b, 8.6, 8.6, '#2a2b36');
   o += ell(b[0], b[1], 2.4, 3.4, '#14141c', { sw: 1.4 });
-  o += flag(-0.42, -0.42, pz + 6, 26 + lv * 3, flagW(lv) * 0.8, flagH(lv) * 0.8, flagCol(lv), lv >= 6, lv >= 5 ? C.gold! : undefined);
+  o += flag(-0.42, -0.42, pz + 6, 26 + lv * 3, flagW(lv) * 0.8, flagH(lv) * 0.8, flagCol(lv), lv >= 6, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
@@ -477,13 +496,13 @@ function mortar(lv: number): string {
     return s;
   };
   if (NOGUN) {
-    if (lv >= 2) o += flag(-1.1, 0.4, 14 + lv, 24 + lv * 3, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
+    if (lv >= 2) o += flag(-1.1, 0.4, 14 + lv, 24 + lv * 3, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
     return o;
   }
   if (lv >= 5) o += mk(-14, -4, 0.7);
   o += mk(0, 0, 1);
   if (lv >= 6) o += mk(16, 5, 0.7);
-  if (lv >= 2) o += flag(-1.1, 0.4, 14 + lv, 24 + lv * 3, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
+  if (lv >= 2) o += flag(-1.1, 0.4, 14 + lv, 24 + lv * 3, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
@@ -520,7 +539,7 @@ function flameTower(lv: number): string {
   if (NOGUN) {
     // 分件版：喷嘴在转座上转（turrets.ts），火舌由场景画；这里只留转座
     o += cyl(0, 0, 13, th + 8, th + 13, mat(lv >= 5 ? C.goldD! : C.ironD!), 0, 1.6);
-    if (lv >= 2) o += flag(-0.7, -0.4, th + 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
+    if (lv >= 2) o += flag(-0.7, -0.4, th + 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
     return o;
   }
   const nozz = lv >= 6 ? 3 : lv >= 4 ? 2 : 1;
@@ -537,7 +556,7 @@ function flameTower(lv: number): string {
     o += path(`M${f(fx + 2)},${f(fy + 5)} Q${f(fx + fl * 0.4)},${f(fy + 6)} ${f(fx + fl * 0.7)},${f(fy - 1)} Q${f(fx + fl * 0.4)},${f(fy - 9)} ${f(fx + 2)},${f(fy - 5)} Z`, C.fireL!, { sw: 0 });
   }
   o += path(`M${f(c[0] - 12)},${f(c[1] - 2)} q3,-12 6,-2 q3,-8 6,0 q-6,4 -12,2z`, C.fire!, { sw: 1.2 });
-  if (lv >= 2) o += flag(-0.7, -0.4, th + 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
+  if (lv >= 2) o += flag(-0.7, -0.4, th + 8, 22 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
@@ -576,7 +595,7 @@ function goldmine(lv: number): string {
     o += ell(52, -hh + 2, 6, 6, C.ironD!, { sw: 2 }) + ell(52, -hh + 2, 2, 2, C.ironL!, { sw: 0 });
     o += line([80, -hh + 6], [80, -hh + 30], C.cream!, 1.4) + rect(72, -hh + 30, 16, 12, lv >= 5 ? C.gold! : C.woodD!, { sw: 1.8 });
   }
-  if (lv >= 2) o += flag(0, -0.9, 38, 22 + lv * 5, flagW(lv), flagH(lv), lv >= 5 ? C.black! : C.green!, lv >= 5, lv >= 5 ? C.gold! : undefined);
+  if (lv >= 2) o += tag(0, -0.9, 38, 22 + lv * 5, C.green!);
   if (lv >= 5) o += goldPile(36, 22, 12);
   if (lv >= 6) o += goldPile(62, 12, 10) + goldPile(-60, -4, 9);
   return o;
@@ -649,7 +668,7 @@ function sawmill(lv: number): string {
   if (lv >= 3) o += log(-60, 56, 34, 6, C.wood!);
   if (lv >= 4) o += log(-76, 40, 34, 6, C.woodL!);
   o += chimney(0.9, -1.15, lv >= 2 ? sawPH(lv) + 2 : 4, sawCZ(lv));
-  o += flag(1.2, 1.2, 4, 26 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), false);
+  o += tag(1.2, 1.2, 4, 26 + lv * 4, C.cream!);
   return o;
 }
 
@@ -690,7 +709,7 @@ function vault(lv: number): string {
   const cy = 22;
   o += poly([[cx - 12, cy - 8], [cx + 12, cy - 8], [cx + 12, cy + 6], [cx - 12, cy + 6]], C.woodD!, { sw: 2 });
   o += path(`M${cx - 12},${cy - 8} Q${cx},${cy - 22} ${cx + 12},${cy - 8} Z`, C.wood!, { sw: 2 }) + rect(cx - 2.5, cy - 10, 5, 7, C.gold!, { sw: 1.4 });
-  o += flag(1.0, -1.0, 8, 60 + lv * 6, flagW(lv), flagH(lv), lv >= 5 ? C.gold! : C.blue!, false);
+  o += tag(1.0, -1.0, 8, 60 + lv * 6, C.blue!);
   return o;
 }
 
@@ -739,7 +758,7 @@ function woodyard(lv: number): string {
     o += line(A, B, C.woodDD!, 3.4) + line(B, Cc, C.woodDD!, 3.4) + line(D, Cc, C.woodDD!, 3.4);
   }
   o += chimney(0.9, -1.1, lv >= 2 ? pH - 2 : 3, woodCZ(lv));
-  o += flag(1.2, 1.25, pH - 6, 14 + lv * 3, flagW(lv), flagH(lv), flagCol(lv), false);
+  o += tag(1.2, 1.25, pH - 6, 14 + lv * 3, C.cream!);
   return o;
 }
 
@@ -765,9 +784,8 @@ function dock(lv: number): string {
     const mx = sc[0] - 14 + k * 30;
     const my = sc[1] - 6 - k * 8;
     o += line([mx, my], [mx, my - mh], C.woodDD!, 3.6);
-    o += path(`M${f(mx + 2)},${f(my - mh + 6)} Q${f(mx + 26 + lv * 2)},${f(my - mh * 0.55)} ${f(mx + 2)},${f(my - 12)} Z`, lv >= 5 ? C.red! : C.cream!, { sw: 1.8 });
+    o += path(`M${f(mx + 2)},${f(my - mh + 6)} Q${f(mx + 26 + lv * 2)},${f(my - mh * 0.55)} ${f(mx + 2)},${f(my - 12)} Z`, C.cream!, { sw: 1.8 });
     if (lv >= 5 && k === 0) o += skull(mx + 12, my - mh * 0.55, 10, false);
-    o += poly([[mx + 2, my - mh], [mx + 16, my - mh + 3], [mx + 2, my - mh + 7]], lv >= 6 ? C.gold! : C.red!, { sw: 1.4 });
   }
   if (lv >= 3) {
     const bp = P(-1.1, -0.9, 6);
@@ -775,7 +793,7 @@ function dock(lv: number): string {
     o += rect(bp[0] + 27, bp[1] - 12, 14, 12, C.woodL!, { sw: 1.8 });
   }
   o += barrel(-0.8, 0.95, 7, 6.5, 12) + barrel(-0.5, 1.15, 7, 6.5, 12, C.woodD!);
-  o += flag(1.2, -1.2, 7, 26 + lv * 5, flagW(lv), flagH(lv), flagCol(lv), false);
+  o += tag(1.2, -1.2, 7, 26 + lv * 5, C.blue!);
   return o;
 }
 
@@ -785,8 +803,8 @@ function armory(lv: number): string {
   o += box(-1.4, -1.4, 1.4, 1.4, 0, 4, mat('#9aa1a8'), 'brick');
   // 烟囱（2 级起两根）
   const chim = (gx: number, gy: number, h: number): string => {
-    let s = box(gx - 0.22, gy - 0.22, gx + 0.22, gy + 0.22, 4, h, mat('#a08f80'), 'brick');
-    s += box(gx - 0.27, gy - 0.27, gx + 0.27, gy + 0.27, h - 4, h + 4, mat('#6e6258'), 'brick', 1.8);
+    let s = box(gx - 0.22, gy - 0.22, gx + 0.22, gy + 0.22, 4, h, mat('#a08f80', 'stone'), 'brick');
+    s += box(gx - 0.27, gy - 0.27, gx + 0.27, gy + 0.27, h - 4, h + 4, mat('#6e6258', 'stone'), 'brick', 1.8);
     const t = P(gx, gy, h + 4);
     s += path(`M${f(t[0] - 7)},${f(t[1] - 2)} q3,-14 7,-4 q4,-10 8,2 q-8,6 -15,2z`, C.fire!, { sw: 1.4 }) + path(`M${f(t[0] - 3)},${f(t[1] - 3)} q2,-8 4,-2 q2,-5 4,1 q-4,3 -8,1z`, C.fireL!, { sw: 0 });
     s += ell(t[0] + 6, t[1] - 22, 7, 5, C.smokeL!, { sw: 1.4, op: 0.55 });
@@ -822,7 +840,7 @@ function armory(lv: number): string {
   for (const dx of [-8, 0, 8]) o += line([wr[0] + dx, wr[1] - 3], [wr[0] + dx + 2, wr[1] - 26], C.ironL!, 2.4);
   const sp = P(0.45, 1.0, hgt - 14);
   o += path(`M${f(sp[0] - 8)},${f(sp[1] - 6)} h16 v8 q0,8 -8,12 q-8,-4 -8,-12 Z`, lv >= 5 ? C.gold! : C.red!, { sw: 1.8 }) + line([sp[0] - 10, sp[1] + 8], [sp[0] + 10, sp[1] - 12], C.ironL!, 2.4);
-  o += flag(-0.9, -0.8, hgt, 20 + lv * 4, flagW(lv), flagH(lv), lv >= 5 ? C.gold! : C.purple!, false);
+  o += tag(-0.9, -0.8, hgt, 20 + lv * 4, C.purple!);
   return o;
 }
 
@@ -842,7 +860,7 @@ function harpoon(lv: number): string {
   o += cyl(0, 0, 10, 12, 24, lm(lv), 0, 1.6);
   const top = P(0, 0, 24);
   if (NOGUN) {
-    o += flag(-1.0, 0.5, 10, 20 + lv * 4, flagW(lv), flagH(lv), lv <= 2 ? C.blue! : flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
+    o += flag(-1.0, 0.5, 10, 20 + lv * 4, flagW(lv), flagH(lv), lv <= 2 ? C.blue! : flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
     return o;
   }
   const bowC = lv >= 5 ? C.goldD! : C.woodD!;
@@ -860,7 +878,7 @@ function harpoon(lv: number): string {
     o += poly([[b[0] - 2, b[1] - 3], [b[0] - 6, b[1] - 8], [b[0] + 1, b[1] - 5]], C.ironL!, { sw: 1.2 });
   }
   void c;
-  o += flag(-1.0, 0.5, 10, 20 + lv * 4, flagW(lv), flagH(lv), lv <= 2 ? C.blue! : flagCol(lv), false, lv >= 5 ? C.gold! : undefined);
+  o += flag(-1.0, 0.5, 10, 20 + lv * 4, flagW(lv), flagH(lv), lv <= 2 ? C.blue! : flagCol(lv), false, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
@@ -899,7 +917,7 @@ function rocket(lv: number): string {
     // 分件版：发射架在转盘上转（turrets.ts）
     o += cyl(0, 0, 16, 22 + lv * 2, 26 + lv * 2, mat(C.ironD!), 0, 1.6);
     o += barrel(-0.9, 1.0, 0, 6, 12, C.red!) + crate(0.9, 1.05, 0, 14, 13);
-    o += flag(0.6, -0.6, 22 + lv * 2, 10 + lv * 3, flagW(lv), flagH(lv), C.red!, false, lv >= 5 ? C.gold! : undefined);
+    o += flag(0.6, -0.6, 22 + lv * 2, 10 + lv * 3, flagW(lv), flagH(lv), C.red!, false, lv >= 7 ? C.gold! : undefined);
     return o;
   }
   // 发射架
@@ -917,13 +935,13 @@ function rocket(lv: number): string {
     o += rect(b[0] - 2.2, b[1] - 2, 5, 3, lv >= 5 ? C.gold! : C.cream!, { sw: 0.8 });
   }
   o += barrel(-0.9, 1.0, 0, 6, 12, C.red!) + crate(0.9, 1.05, 0, 14, 13);
-  o += flag(0.6, -0.6, 22 + lv * 2, 10 + lv * 3, flagW(lv), flagH(lv), C.red!, false, lv >= 5 ? C.gold! : undefined);
+  o += flag(0.6, -0.6, 22 + lv * 2, 10 + lv * 3, flagW(lv), flagH(lv), C.red!, false, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
 function fogTower(lv: number): string {
   let o = '';
-  const stone = mat(mix('#8a82a8', LVC[Math.min(lv, 8)]!, 0.25));
+  const stone = mat(mix('#8a82a8', LVC[Math.min(lv, 8)]!, 0.25), 'stone');
   const th = 52 + lv * 5;
   o += ell(0, 8, 54, 22, '#bfb6d8', { sw: 0, op: 0.35 });
   o += cyl(0, 0, 25, 0, 10, mat('#7b7494'), 0);
@@ -942,7 +960,7 @@ function fogTower(lv: number): string {
     o += ell(x, y, 11 + (i % 3) * 2, 8 + (i % 2) * 2, i % 2 ? '#c6bedc' : '#a79fc4', { sw: 1.6, stroke: '#5e5878', op: 0.82 });
   }
   o += ell(-30, 22, 18, 7, '#c6bedc', { sw: 0, op: 0.7 }) + ell(30, 26, 20, 8, '#c6bedc', { sw: 0, op: 0.7 }) + ell(2, 34, 24, 8, '#d6d0e8', { sw: 0, op: 0.6 });
-  o += flag(0, 0, th + 10 + 14, 14 + lv * 3, flagW(lv), flagH(lv), '#6a4bbf', false, lv >= 5 ? C.gold! : undefined);
+  o += flag(0, 0, th + 10 + 14, 14 + lv * 3, flagW(lv), flagH(lv), '#6a4bbf', false, lv >= 7 ? C.gold! : undefined);
   return o;
 }
 
@@ -1295,7 +1313,7 @@ export function gunTowerRoof(level: number): ArtPiece | null {
     const ring = P(0, 0, pz + 6);
     if (lv >= 5) o += ell(ring[0], ring[1] - 38 - 30 - lv * 2 + 4, 3, 3, C.gold!, { sw: 1.4 });
     const fz = pz + 6 + 38 + 24 + lv * 2;
-    o += flag(0, 0, fz - 2, 18 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), lv >= 6, lv >= 5 ? C.gold! : undefined);
+    o += flag(0, 0, fz - 2, 18 + lv * 4, flagW(lv), flagH(lv), flagCol(lv), lv >= 6, lv >= 7 ? C.gold! : undefined);
     // 包围盒：屋檐（半径 37、半高 19）到旗尖、旗面右沿
     const top = (fz - 2 + 18 + lv * 4 + 6) * k;
     const bot = (pz + 6 + 38 - 22) * k;

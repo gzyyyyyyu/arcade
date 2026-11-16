@@ -107,7 +107,7 @@ export function updateHud(bs: BaseScene): void {
     const pill = bs.hud[k];
     pill.className = `hd-pill hd-flex${p.res[k] >= cap[k] ? ' full' : ''}`;
     if (!bs.rolling[k]) pill.querySelector('b')!.textContent = fmt(p.res[k]);
-    // 「上限」两个字单独包一层：矮竖屏资源牌放不下，CSS 把它藏起来只剩「/ 6,500」
+    // 「上限」两个字单独包一层：手机竖屏资源牌放不下，CSS 把它藏起来只剩「/ 6,500」
     const sm = pill.querySelector('small')!;
     sm.textContent = '';
     el('span', 'hd-capk', '上限 ', sm);
