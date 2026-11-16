@@ -91,7 +91,7 @@ import { armsStalls, armsBindBonus, armsFire, armsHitMul, armsRecompute, armsSlo
 import { DIR_N } from './dirs.ts';
 import { clamp, dcos, dirIndex, dsin, fsqrt, INPUT_DIRS, inputCos, inputSin, SLOW_WALK } from './fmath.ts';
 import { Grid } from './grid.ts';
-import { charDmgMul, moveSkillFu, paperLifeMul, paperRefund, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, type SkillOps } from './skills.ts';
+import { borrowStats, charDmgMul, moveSkillFu, paperLifeMul, paperRefund, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, type SkillOps } from './skills.ts';
 import { baseStats, Drop, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, WEAPON_SLOTS, World, type Choice, type Setup } from './state.ts';
 
 /** 法器在事件里的编号 */
@@ -2442,15 +2442,19 @@ function movePaper(w: World, g: Grid, i: number, k: number, s: WeaponStats): voi
       w.sY[i] = y + (dy / d) * s.speed * 1.4;
     }
   }
-  if (touching) {
+  // 不挂槽位的（k = -1）没有逐怪的再打间隔，改用这只纸兵自己的计时（sState）每 rehit 拍打一下
+  if (touching && (k >= 0 || --w.sState[i]! <= 0)) {
+    if (k < 0) w.sState[i] = s.rehit;
     const n = g.query(w, w.sX[i]!, w.sY[i]!, w.sR[i]! + 24);
     for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
     for (let q = 0; q < n; q++) {
       const j = scratch[q]!;
       hitEnemy(w, j, w.sDmg[i]!, k, w.eX[j]! - w.sX[i]!, w.eY[j]! - w.sY[i]!, s.knock, s.rehit);
     }
+  }
+  if (touching) {
     w.sLife[i]!--;
-    if (w.merges.includes('huobing') && --w.sDist[i]! <= 0) {
+    if (k >= 0 && w.merges.includes('huobing') && --w.sDist[i]! <= 0) {
       w.sDist[i] = DUAL_FX.paperFire.every;
       addShot(w, Shot.Burn, w.sX[i]!, w.sY[i]!, 0, 0, DUAL_FX.paperFire.life, w.sDmg[i]! * DUAL_FX.paperFire.mul, DUAL_FX.paperFire.r, 0, k, 0);
     }
@@ -2458,7 +2462,7 @@ function movePaper(w: World, g: Grid, i: number, k: number, s: WeaponStats): voi
   if (--w.sLife[i]! > 0) return;
   paperFall(w, g, i, k, s);
   // 纸匠·巧手：倒下时两成概率还一张纸兵的冷却（下一拍就补一个）
-  if (paperRefund(w, i)) w.weapons[k]!.timer = 1;
+  if (k >= 0 && paperRefund(w, i)) w.weapons[k]!.timer = 1;
   killShot(w, i);
 }
 
@@ -2476,7 +2480,7 @@ function paperFall(w: World, g: Grid, i: number, k: number, s: WeaponStats): voi
   };
   if (evolved) ring(PAPER_FX.boomR * w.stats.areaMul, dmg * PAPER_FX.boomMul, s.knock, 1);
   if (w.merges.includes('mingbing')) ring(DUAL_FX.paperBell.r * w.stats.areaMul, dmg * DUAL_FX.paperBell.mul, DUAL_FX.paperBell.knock, 2);
-  if (w.merges.includes('huobing')) addShot(w, Shot.Burn, x, y, 0, 0, DUAL_FX.paperFire.deathLife, dmg * DUAL_FX.paperFire.mul, DUAL_FX.paperFire.deathR, 0, k, 0);
+  if (k >= 0 && w.merges.includes('huobing')) addShot(w, Shot.Burn, x, y, 0, 0, DUAL_FX.paperFire.deathLife, dmg * DUAL_FX.paperFire.mul, DUAL_FX.paperFire.deathR, 0, k, 0);
 }
 
 /**
@@ -3168,6 +3172,12 @@ function moveShots(w: World, g: Grid): void {
       continue;
     }
     const k = w.sSlot[i]!;
+    // 纸匠技能剪的纸兵，手上没有纸兵法器（规则 59，skills.ts paperArmy）：数值借白板纸兵，不挂槽位
+    if (kind === Shot.Paper && k < 0) {
+      if (w.blockHp.length) chop(w, w.sX[i]!, w.sY[i]!, w.sR[i]! + 4, w.sDmg[i]!);
+      movePaper(w, g, i, -1, borrowStats(w, 'zhibing'));
+      continue;
+    }
     const wp = w.weapons[k];
     const s = w.wstats[k];
     if (!wp || !s) {

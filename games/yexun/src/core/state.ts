@@ -22,7 +22,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 58;
+export const RULES_VERSION = 59;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
 export const TICKS_PER_SECOND = 30;
@@ -170,7 +170,7 @@ export interface Setup {
    * 法器池按这个 id 算（content/pools.ts），缺省 = 角色。只给模拟器用：新角色还没加进来之前量幽冥、聚财；
    * 'all' = 不限池（量新法器稀释老流派用）。界面不开、录像和存档里不会有
    */
-  pool?: string;
+  pool?: PoolCharacterId | 'all';
   /**
    * 竖屏开的局：刷怪圈转 90°（纵向远、横向近）。竖屏看得见的世界是竖长条，横屏那圈的上下两边会落在屏幕里，
    * 怪凭空冒出来（10-20）。开局按屏幕定、录进录像，转屏不改（缺省 false = 横屏那圈）

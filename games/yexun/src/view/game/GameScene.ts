@@ -27,7 +27,7 @@ import { MAP_EVENTS, MAP_EVENT_KINDS, nextMapEvent } from '../../content/mapEven
 import { newNightLog, noteNight, type NightLog } from '../ui/eventIcons.ts';
 import { MERGES, PASSIVE_IDS, PASSIVES, WEAPON_IDS, WEAPONS } from '../../content/weapons.ts';
 import { autoSkillSetting, wantAutoSkill } from './autoskill.ts';
-import { Drop, Ev, MAX_ENEMIES, MERGE_CODE, skillCooldown, skillOf, skillReady, step, type World } from '../../core/index.ts';
+import { Drop, Ev, MAX_ENEMIES, MERGE_CODE, skillCooldown, skillOf, skillReady, step, TICKS_PER_SECOND, type World } from '../../core/index.ts';
 import { COS, SIN } from '../../core/dirs.ts';
 import { HERO_TEX, MOB_TEX, RAID_TEX, makeIcons, peekHeroAtlas, type Atlas, type Frame } from '../art/atlas.ts';
 import { faceKey, heroKey } from '../art/heroes.ts';
@@ -2507,6 +2507,7 @@ export class GameScene extends Phaser.Scene {
       name: def.name,
       cd: w.skill.cd <= 0 ? 1 : Math.max(0, 1 - w.skill.cd / total),
       active: def.dur > 0 && w.skill.active > 0 ? w.skill.active / def.dur : 0,
+      left: w.skill.cd > 0 ? Math.ceil(w.skill.cd / TICKS_PER_SECOND) : 0,
       key: 'Q',
     });
   }
