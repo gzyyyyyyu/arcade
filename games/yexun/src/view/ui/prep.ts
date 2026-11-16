@@ -2,6 +2,7 @@
  * 开局准备（DESIGN.md 3.7、3.8、13.2）：选角色、挂咒印、买永久加成。只管画和点，规则和存档在 save.ts，状态由 main.ts 每次重新给。
  */
 import { CHARACTER_POOLS } from '../../content/pools.ts';
+import { reachableMerges } from '../../content/combos.ts';
 import { SCHOOLS } from '../../content/guide.ts';
 import { skillInfo } from './skillInfo.ts';
 import { CHARACTERS, PICK_CHAR_IDS, CURSE_COIN_BONUS, CURSE_IDS, CURSES, MAX_CURSES, PERK_IDS, PERKS, type CharacterId, type CurseId, type PerkId } from '../../content/meta.ts';
@@ -236,11 +237,11 @@ export class Prep {
     );
   }
 
-  /** 主修流派 + 法器池的一排小图标（只有选中的宽卡显示；池的内容见 content/pools.ts） */
+  /** 主修流派、凑得出几个搭配（content/combos.ts）+ 法器池的一排小图标（只有选中的宽卡显示；池的内容见 content/pools.ts） */
   private poolHtml(id: (typeof PICK_CHAR_IDS)[number]): string {
     const p = CHARACTER_POOLS[id];
     const icons = p.weapons.map((w) => `<img alt="${esc(WEAPONS[w].name)}" title="${esc(WEAPONS[w].name)}" src="${this.icons(WEAPONS[w].icon)}">`).join('');
-    return `<span class="yx-ppool"><b>主修 ${esc(p.schools.map((k) => SCHOOLS[k].name).join('·'))}</b><span class="yx-pwl">${icons}</span></span>`;
+    return `<span class="yx-ppool"><b>主修 ${esc(p.schools.map((k) => SCHOOLS[k].name).join('·'))} · 能合 ${reachableMerges(id).length} 个搭配</b><span class="yx-pwl">${icons}</span></span>`;
   }
 
   private cursesHtml(s: PrepState): string {

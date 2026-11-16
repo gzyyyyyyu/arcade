@@ -15,19 +15,19 @@ import { MAP_EVENT_AT, MAP_EVENTS } from '../../content/mapEvents.ts';
 import { MAP_IDS, MAP_UNLOCK, MAPS } from '../../content/maps.ts';
 import { CHARACTER_IDS, CHARACTERS, PICK_CHAR_IDS, CURSE_COIN_BONUS, MAX_CURSES, PERK_IDS, PERKS } from '../../content/meta.ts';
 import { altStart, mainSchools, type PoolCharacterId } from '../../content/pools.ts';
-import { RULES_VERSION } from '../../core/state.ts';
 import { schoolIcon } from '../art/sprites-selicons.ts';
 import { heroKey } from '../art/heroes.ts';
 import { DANGER_IDS, DANGERS, DAWN_TICK, EVENTS, MID_BOSS } from '../../content/waves.ts';
 import {
-  ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, MERGES, NEXT_ELEMENT, PASSIVES, TYPE_SETS, WEAPONS,
+  ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, NEXT_ELEMENT, PASSIVES, TYPE_SETS, WEAPONS,
   type MergeDef, type WeaponId, type WeaponType,
 } from '../../content/weapons.ts';
 import { MONSTER_INFO } from './codex.ts';
 import { counters } from './counters.ts';
 import { closeModal, modalChrome, openModal } from './modal.ts';
 import { PAGER_CTL, Pager } from './pager.ts';
-import { mergeHow, poolCharName } from './codexCombos.ts';
+import { mergeHow, poolCharName, schoolMerges, whoText } from './codexCombos.ts';
+import { mergeReach, mergeWho, SHOWN_MERGES } from '../../content/combos.ts';
 import './guide.css';
 
 const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -64,6 +64,8 @@ export class Guide {
   private tab: GuideTab = 'play';
   private pager: Pager | null = null;
   private readonly icons: (k: string, px?: number) => string;
+  /** 按谁看「合成·双修」：当前出战的角色凑不出的搭配压暗（content/combos.ts） */
+  private char: PoolCharacterId = 'xiaodao';
   onClose: () => void = () => undefined;
 
   constructor(parent: HTMLElement, icons: (k: string, px?: number) => string) {
@@ -88,8 +90,10 @@ export class Guide {
     return this.root.style.display !== 'none';
   }
 
-  show(tab?: GuideTab): void {
+  /** character：当前出战的角色（主页上是选着的，局里是这一局的） */
+  show(tab?: GuideTab, character?: string): void {
     if (tab) this.tab = tab;
+    if (character) this.char = (PICK_CHAR_IDS as readonly string[]).includes(character) ? (character as PoolCharacterId) : 'xiaodao';
     this.render();
     this.root.style.display = '';
     openModal(this.root, () => this.onClose(), () => this.hide());
@@ -309,22 +313,28 @@ export class Guide {
     );
   }
 
-  // ── 合成·双修：当前规则下的全部配方 ──
+  // ── 合成·双修：能选的角色凑得出的全部配方（content/combos.ts SHOWN_MERGES），当前角色凑不出的压暗 ──
   private merges(): string {
-    const list = MERGES.filter((m) => !m.since || m.since <= RULES_VERSION);
+    const list = SHOWN_MERGES;
+    const mine = list.filter((m) => mergeReach(m, this.char) === 'ok').length;
     return (
       '<div class="yx-gpage"><div class="yx-gmhead"><b>合成·双修</b>' +
       `<span><em class="yx-gtag mix">合成</em>${esc(mergeHow({}))}</span>` +
       `<span><em class="yx-gtag dual">双修</em>${esc(mergeHow({ dual: true }))}</span>` +
-      `<span class="yx-gnote">条件齐了，下一个宝箱就合上，空出一格；共 ${list.length} 个</span></div>` +
+      `<span class="yx-gnote">条件齐了，下一个宝箱就合上，空出一格；共 ${list.length} 个，${esc(poolCharName(this.char))}凑得出 ${mine} 个（压暗的凑不出）</span></div>` +
       `<div class="yx-gmlist">${list.map((m) => this.mergeRow(m)).join('')}</div></div>`
     );
   }
 
+  /** 一行配方：专属的标谁的；不是人人能合的标几个人能合（名字在悬停提示里）；当前角色凑不出的压暗 */
   private mergeRow(m: MergeDef): string {
-    const who = m.only ? `<em class="yx-gtag only">${m.only.split(',').map((c) => esc(poolCharName(c as PoolCharacterId))).join('、')}专属</em>` : '';
+    const n = mergeWho(m).length;
+    const who = m.only
+      ? `<em class="yx-gtag only">${m.only.split(',').map((c) => esc(poolCharName(c as PoolCharacterId))).join('、')}专属</em>`
+      : n < PICK_CHAR_IDS.length ? `<em class="yx-gtag only">${n} 人能合</em>` : '';
+    const no = mergeReach(m, this.char) !== 'ok';
     return (
-      `<div class="yx-gmrow" style="--mc:${m.color}" title="${esc(m.desc)}｜${esc(mergeHow(m))}">` +
+      `<div class="yx-gmrow${no ? ' no' : ''}" style="--mc:${m.color}" title="${esc(m.desc)}｜${esc(mergeHow(m))}｜${esc(whoText(m))}">` +
       `${this.evo(m.a) || this.w(m.a)}<i>+</i>${m.dual ? this.w(m.b) : this.evo(m.b) || this.w(m.b)}<span class="yx-gto"><i>→</i><span class="yx-gw evo">${this.img(m.icon)}<b>${esc(m.name)}</b></span></span>` +
       `<em class="yx-gtag ${m.dual ? 'dual' : 'mix'}">${m.dual ? '双修' : '合成'}</em>${who}</div>`
     );
@@ -418,7 +428,7 @@ export class Guide {
     const s = SCHOOLS[id];
     const core = s.weapons.slice(0, 3);
     const char = CHARACTER_IDS.find((c) => CHARACTERS[c].start === s.weapons[0]);
-    const merges = MERGES.filter((m) => (!m.since || m.since <= RULES_VERSION) && ((s.weapons.includes(m.a) && s.weapons.includes(m.b)) || (m.dual && (core.includes(m.a) || core.includes(m.b))))).slice(0, 2);
+    const merges = schoolMerges(id);
     return this.sec(
       `${esc(s.name)}怎么玩`,
       '<ol class="yx-glist yx-gsteps">' +

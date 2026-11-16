@@ -6,10 +6,11 @@
 import { ACHIEVEMENTS, rewardCoins } from '../../content/achievements.ts';
 import { ENEMIES, type EnemyKind } from '../../content/enemies.ts';
 import { SHELVED_KINDS } from '../../content/foes.ts';
-import { MERGES, PASSIVES, WEAPONS, type WeaponId } from '../../content/weapons.ts';
+import { PASSIVES, WEAPONS, type WeaponId } from '../../content/weapons.ts';
 import { collection, type Records } from '../../meta/records.ts';
 import { beijingDate } from '../../online/daily.ts';
-import { combosClick, mergeHow, newCombosState, renderCombos } from './codexCombos.ts';
+import { combosClick, combosFor, mergeHow, newCombosState, renderCombos, whoText } from './codexCombos.ts';
+import { SHOWN_MERGES } from '../../content/combos.ts';
 import { nightData } from './codexNights.ts';
 import { closeModal, modalChrome, openModal } from './modal.ts';
 import { PAGER_CTL, Pager } from './pager.ts';
@@ -113,8 +114,10 @@ export class Codex {
     });
   }
 
-  show(tab?: Tab): void {
+  /** character：当前出战的角色，搭配页默认按他看 */
+  show(tab?: Tab, character?: string): void {
     if (tab) this.tab = tab;
+    if (character) combosFor(this.combos, character);
     this.render();
     this.root.style.display = '';
     openModal(this.root, () => this.onClose(), () => this.hide());
@@ -176,19 +179,19 @@ export class Codex {
         );
       })
       .join('');
-    // 合成页：配方一直写明（让玩家知道凑什么），没做成过的压暗；双修用自己的颜色描边
-    const merges = MERGES.map((m) => {
+    // 合成页：配方一直写明（让玩家知道凑什么），没做成过的压暗；双修用自己的颜色描边。
+    // 合成要两件都进化，配方写两件进化后的名字；双修一件进化、另一件满级就行，写两件法器的名字（条件在下面的 em 里）。只列能选的角色凑得出的
+    const merges = SHOWN_MERGES.map((m) => {
       const done = rec.merges.includes(m.id);
-      const recipe = `${esc(WEAPONS[m.a].evolve!.name)} + ${esc(WEAPONS[m.b].evolve!.name)}`;
-      const tags = m.dual ? `${esc(WEAPONS[m.a].el)}·${esc(WEAPONS[m.a].type)} × ${esc(WEAPONS[m.b].el)}·${esc(WEAPONS[m.b].type)}` : '合成';
+      const recipe = m.dual ? `${esc(WEAPONS[m.a].name)} + ${esc(WEAPONS[m.b].name)}` : `${esc(WEAPONS[m.a].evolve!.name)} + ${esc(WEAPONS[m.b].evolve!.name)}`;
       return (
         `<div class="yx-ccard ${done ? 'done' : 'lock'}${m.dual ? ' dual' : ''}" style="--mc:${m.color}">` +
-        `<img${done ? '' : ' class="sil"'} alt="" src="${this.icons(done ? m.icon : WEAPONS[m.a].icon)}"><b>${m.dual ? '双修 · ' : ''}${esc(m.name)}</b><span>${tags}</span>` +
+        `<img${done ? '' : ' class="sil"'} alt="" src="${this.icons(done ? m.icon : WEAPONS[m.a].icon)}"><b>${m.dual ? '双修 · ' : ''}${esc(m.name)}</b><span>${esc(whoText(m))}</span>` +
         `<p class="evo">${recipe}</p><p>${esc(m.desc)}</p>${done ? '<em>合成过</em>' : `<em>${mergeHow(m)}</em>`}</div>`
       );
     }).join('');
     const usedN = rec.weaponsUsed.length;
-    return [`用过 ${usedN}/${ids.length} · 满级 ${rec.weaponsMaxed.length} · 进化 ${rec.weaponsEvolved.length} · 合成 ${rec.merges.length}/${MERGES.length}`, `<div class="yx-cgrid">${cards}${merges}</div>`];
+    return [`用过 ${usedN}/${ids.length} · 满级 ${rec.weaponsMaxed.length} · 进化 ${rec.weaponsEvolved.length} · 合成 ${SHOWN_MERGES.filter((m) => rec.merges.includes(m.id)).length}/${SHOWN_MERGES.length}`, `<div class="yx-cgrid">${cards}${merges}</div>`];
   }
 
   private nights(): ['', string] {

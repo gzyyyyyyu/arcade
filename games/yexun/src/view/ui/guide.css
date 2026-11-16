@@ -91,6 +91,7 @@
 .yx-guide .yx-gmrow .yx-gi { width: 20px; height: 20px; }
 .yx-guide .yx-gmrow .yx-gtag { margin-left: auto; }
 .yx-guide .yx-gmrow .yx-gtag + .yx-gtag { margin-left: 0; }
+.yx-guide .yx-gmrow.no { opacity: 0.5; border-style: dashed; }
 .yx-guide .yx-gtag.mix { background: #c8402a; }
 .yx-guide .yx-gtag.dual { background: #7a4ab0; }
 .yx-guide .yx-gtag.only { background: #2f5a8a; }
