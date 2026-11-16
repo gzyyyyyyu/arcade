@@ -232,6 +232,8 @@ export class BattleScene extends Phaser.Scene {
     this.sailRank = this.d.pvp?.replay ? 0 : rankOf(app.profile);
     if (this.sailRank > 0) void bakeSome(this.textures, [shipA('raft', this.sailRank)], this.r).catch(() => undefined);
     for (const b of this.st.buildings) {
+      // 开场就建好 id → 建筑的表：侦察阶段战斗时钟还没走，炮台也要每帧摆到底座上（不然炮头停在原点）
+      this.bbyId.set(b.id, b);
       const sp = this.bsp.get(b.id);
       if (sp && b.kind !== 'wall') this.env.dress(sp.img, b.kind, b.level, b.id);
       if (sp && isTurret(b.kind)) this.tur.set(b.id, new Turret(this, this.r, this.pt, b.kind, b.level, b.id, sp.img, sp.baseX, sp.baseY));

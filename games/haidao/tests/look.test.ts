@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { GRADE, VIVID, gradeHex, gradeSvg, h32, materialOf, outlineOf, rng } from '../src/view/art/grade.ts';
 import { wear } from '../src/view/art/wear.ts';
 import { box, mat } from '../src/view/art/kit.ts';
-import { baseHalf, rankPegSpots } from '../src/view/art/buildings.ts';
+import { baseHalf, rankPegSpots, turretBaseArt } from '../src/view/art/buildings.ts';
+import { turretHeadBody, turretPieces, turretTier } from '../src/view/art/turrets.ts';
 import { PALETTE as C } from '../src/view/art/palette.ts';
 import { BUILDING_KINDS, CHIMNEY_AT, HQ_FLAG_AT, buildingArt, coastArt, hqFlagFrames, hqNoFlagArt, palmSwayFrames } from '../src/view/art/index.ts';
 import { shoreline, vnoise } from '../src/view/terrain.ts';
@@ -201,5 +202,25 @@ describe('海岸线和海面素材', () => {
       expect(p.svg).toContain('<svg');
       expect(p.key).toBe(`c.${k}`);
     }
+  });
+});
+
+describe('防御塔每两级换一次轮廓（spec 6.1）', () => {
+  const KINDS = ['cannon', 'mortar', 'flame', 'harpoon', 'rocket', 'shock', 'sniper'] as const;
+  const LV = [1, 2, 3, 4, 5, 6, 7, 8];
+  it('炮头图集四档，火枪手三档', () => {
+    for (const k of KINDS) expect(LV.map((l) => turretTier(k, l)), k).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
+    expect(LV.map((l) => turretTier('gunTower', l))).toEqual([0, 0, 1, 1, 2, 2, 2, 2]);
+  });
+  it('四档炮头各不相同；整张图上的炮头同档两级是同一份、跨档就换', () => {
+    for (const k of KINDS) {
+      const d3 = [0, 1, 2, 3].map((t) => turretPieces(k, t).find((p) => p.key.endsWith('.d3'))!.svg);
+      expect(new Set(d3).size, k).toBe(4);
+      for (const lo of [1, 3, 5, 7]) expect(turretHeadBody(k, lo), `${k} ${lo}`).toBe(turretHeadBody(k, lo + 1));
+      for (const lo of [2, 4, 6]) expect(turretHeadBody(k, lo), `${k} ${lo}`).not.toBe(turretHeadBody(k, lo + 1));
+    }
+  });
+  it('底座跨档换图', () => {
+    for (const k of KINDS) for (const lo of [2, 4, 6]) expect(turretBaseArt(k, lo).svg, `${k} ${lo}`).not.toBe(turretBaseArt(k, lo + 1).svg);
   });
 });

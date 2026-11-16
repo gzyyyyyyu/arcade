@@ -35,7 +35,6 @@ function rigKey(kind: TroopKind): RigKind {
 
 export function syncUnits(bs: BattleScene): void {
   bs.ubyId.clear();
-  if (bs.bbyId.size === 0) for (const b of bs.st.buildings) bs.bbyId.set(b.id, b);
   for (const u of bs.st.units) {
     bs.ubyId.set(u.id, u as BUnit);
     let sp = bs.usp.get(u.id);
