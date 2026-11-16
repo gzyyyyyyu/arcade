@@ -77,8 +77,8 @@ describe('确定性变体', () => {
     expect(wear([[0, 5], [8, 5], [8, 0], [0, 0]], '#b97a3d', 'L', 'wood')).toBe('');
   });
   it('石头的三个面都按石头画：蓝灰玄武岩和冷色背光面不会被猜成铁', () => {
-    // 3–8 级的三代石材（含按颜色会被猜成铁的玄武岩）；铁的锤痕是 3×2 的 #272c3a 小块，石头立面是 #48566b 的砌缝
-    for (const c of [C.stone!, C.wallMid!, '#76849a', C.wallDark!, '#566278', '#525e74']) {
+    // 3–8 级的各档石材（含按颜色会被猜成铁的蓝灰玄武岩）；铁的锤痕是 3×2 的 #272c3a 小块，石头立面是 #48566b 的砌缝
+    for (const c of [C.stone!, C.wallMid!, '#948c7e', '#8a8274', C.wallDark!, '#62759a']) {
       const m = mat(c, 'stone');
       expect(m.kind).toBe('stone');
       const s = box(-1, -1, 1, 1, 0, 40, m);
@@ -222,5 +222,22 @@ describe('防御塔每两级换一次轮廓（spec 6.1）', () => {
   });
   it('底座跨档换图', () => {
     for (const k of KINDS) for (const lo of [2, 4, 6]) expect(turretBaseArt(k, lo).svg, `${k} ${lo}`).not.toBe(turretBaseArt(k, lo + 1).svg);
+  });
+});
+
+describe('资源和生产建筑每两级换一次轮廓（spec 6.1）', () => {
+  const KINDS = ['goldmine', 'sawmill', 'vault', 'woodyard', 'dock', 'armory'] as const;
+  it('1–8 级同一张画布（共用 CROP、锚点不动），跨档换图', () => {
+    for (const k of KINDS) {
+      const ps = [1, 2, 3, 4, 5, 6, 7, 8].map((l) => buildingArt(k, l));
+      for (const p of ps) expect([p.w, p.h, p.ax, p.ay], k).toEqual([ps[0]!.w, ps[0]!.h, ps[0]!.ax, ps[0]!.ay]);
+      for (const lo of [2, 4, 6]) expect(ps[lo - 1]!.svg, `${k} ${lo}`).not.toBe(ps[lo]!.svg);
+    }
+  });
+  it('有烟囱的越高级烟囱口越高（烟的位置和画读同一份几何）', () => {
+    for (const k of ['sawmill', 'woodyard', 'armory'] as const) {
+      const dy = [1, 3, 5, 7].map((l) => CHIMNEY_AT(k, l)!.dy);
+      for (let i = 1; i < dy.length; i++) expect(dy[i]!, `${k} 档 ${i}`).toBeLessThan(dy[i - 1]!);
+    }
   });
 });
