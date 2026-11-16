@@ -10,12 +10,8 @@ import { chromium } from 'playwright-core';
 import sharp from 'sharp';
 import { createServer } from 'vite';
 import { CAMPAIGN } from '../src/core/index.ts';
+import { opt } from './args.ts';
 
-const argv = process.argv.slice(2);
-const opt = (n: string): string | null => {
-  const i = argv.indexOf(n);
-  return i >= 0 ? (argv[i + 1] ?? null) : null;
-};
 const OUT = opt('--out') ?? join(tmpdir(), 'haidao-strip');
 const NAME = opt('--name') ?? 'strip';
 const LEVEL = opt('--level') ?? CAMPAIGN[0]?.id ?? '';

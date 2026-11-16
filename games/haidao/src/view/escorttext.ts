@@ -43,10 +43,11 @@ export function mendView(o: { hull: number; max: number; gold: number; tick: num
   return { state: 'ready', cd: 0, label: '修船', sub: `${ESCORT_MEND.gold} 金币`, disabled: false };
 }
 
-export interface ResultLike { arrived: boolean; sunk: boolean }
-/** 结算标题：到港 / 沉没 / 误了潮（没到也没沉就结束了） */
+/** retreated：玩家点了撤退（规则里和误了潮一样是「没到也没沉」，只有画面层知道是谁结束的） */
+export interface ResultLike { arrived: boolean; sunk: boolean; retreated?: boolean }
+/** 结算标题：到港 / 沉没 / 撤退 / 误了潮（没到也没沉、时间到了） */
 export function resultTitle(r: ResultLike): string {
-  return r.arrived ? '到港' : r.sunk ? '沉没' : '误了潮';
+  return r.arrived ? '到港' : r.sunk ? '沉没' : r.retreated ? '撤退' : '误了潮';
 }
 export const resultBig = (pct: number): string => `${pct}%`;
 export function resultLine(r: { stars: number; cells: number; mends: number }): string {

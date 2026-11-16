@@ -186,10 +186,11 @@ export function escortMoment(bites: readonly BiteRec[], hull: number): string | 
   return `第 ${wave} 波：${count} 个${enemyName(kind)}咬住船，掉了 ${pct}% 血`;
 }
 
-/** 护航：丢的是船血。到港夸一句，沉了说沉没，误潮说没赶上；关键时刻是船血掉得最多的那一波 */
-export function escortReason(r: { arrived: boolean; sunk: boolean; hullPct: number; stars: number }, bites: readonly BiteRec[] = [], hull = 0): Reason {
+/** 护航：丢的是船血。到港夸一句，沉了说沉没，撤退照实说，误潮说没赶上；关键时刻是船血掉得最多的那一波 */
+export function escortReason(r: { arrived: boolean; sunk: boolean; hullPct: number; stars: number; retreated?: boolean }, bites: readonly BiteRec[] = [], hull = 0): Reason {
   const key = r.arrived && r.hullPct >= 100 ? null : escortMoment(bites, hull);
   if (r.arrived) return { line: r.hullPct >= 100 ? '到港了，船一点没伤' : `到港了，船还剩 ${r.hullPct}% 血`, key };
   if (r.sunk) return { line: '船被海盗咬沉了', key };
+  if (r.retreated) return { line: '中途撤退，商船没到港', key };
   return { line: '没赶在潮退前到港', key };
 }

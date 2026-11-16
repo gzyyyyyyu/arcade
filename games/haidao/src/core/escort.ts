@@ -6,7 +6,7 @@
 import { isqrt } from './fmath.ts';
 import { ESCORT_BITE_PCT, ESCORT_CELL, ESCORT_PACE, ESCORT_PIN_AT } from './escorttypes.ts';
 import type { EscortDef, EscortResult, EscortState } from './escorttypes.ts';
-import type { TdState } from './td.ts';
+import type { TdState } from './tdstate.ts';
 
 /** 船的终点位置 */
 export function escortEnd(def: EscortDef): number {

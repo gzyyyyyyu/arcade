@@ -12,9 +12,8 @@ import { join } from 'node:path';
 import { chromium, type Page } from 'playwright-core';
 import { createServer } from 'vite';
 import { recordFixed } from './record.ts';
+import { opt } from './args.ts';
 
-const argv = process.argv.slice(2);
-const opt = (k: string): string | undefined => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : undefined);
 const OUT = opt('--out') ?? join(process.cwd(), 'shots-fun');
 const ONLY = opt('--view')?.split(',') ?? ['desktop', 'phonep'];
 const VIEWS = [

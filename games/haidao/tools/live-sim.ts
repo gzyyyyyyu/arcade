@@ -5,14 +5,10 @@
  */
 import { battleResult, botActions, createBattle, stepBattle } from '../src/core/index.ts';
 import { LIVE_TIER_IDS, liveBp, liveSetup, type LiveTier } from '../src/core/live.ts';
+import { num, opt } from './args.ts';
 
-const args = process.argv.slice(2);
-const opt = (k: string): string | undefined => {
-  const i = args.indexOf(k);
-  return i >= 0 ? args[i + 1] : undefined;
-};
-const n = Number(opt('--n') ?? 500) || 500;
-const from = Number(opt('--from') ?? 1) || 1;
+const n = num('--n', 500);
+const from = num('--from', 1);
 const only = opt('--tier');
 
 console.log(`每格 ${n} 局（种子 ${from}–${from + n - 1}）；期望单位：份（结回倍数 − 1），± 2SE`);

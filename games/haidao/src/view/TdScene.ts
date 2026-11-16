@@ -126,6 +126,8 @@ export class TdScene extends Phaser.Scene {
   /** 被炸哑的塔头上的烟：塔 id → 图 */
   jamFx = new Map<number, Phaser.GameObjects.Image>();
   ended = false;
+  /** 玩家点了撤退结束的（护航结算据此写「撤退」，不写「误了潮」） */
+  retreated = false;
   /** 结算「原因」用的局内记录（tdevents.ts 写、tdresult.ts 读） */
   reasonLog: ReasonLog = newReasonLog();
   /** 瞄准中的技能：keg 炸药桶、barricade 拒马 */
@@ -205,6 +207,7 @@ export class TdScene extends Phaser.Scene {
     this.fogRings = [];
     this.jamFx = new Map();
     this.ended = false;
+    this.retreated = false;
     this.reasonLog = newReasonLog();
     this.mode = 'none';
     this.openSlot = -1;
@@ -315,7 +318,7 @@ export class TdScene extends Phaser.Scene {
       if (p.x < v.l + 24 || p.x > v.r - 24 || p.y < v.t + 24 || p.y > v.b - 24) this.fit.panTo(w.x, w.y, 0);
       return pagePoint(this.cc.toScreen(w.x, w.y));
     };
-    app.api.tdInfo = () => ({ tick: s.tick, wave: s.wave, vault: s.vault, lost: s.lost, gold: s.gold, over: s.over, slots: s.slots.map((q) => ({ x: q.x + 1, y: q.y + 1, tower: q.tower, wreck: wreckOf(this, q) !== null, garrison: q.garrison !== undefined })), flags: this.plan.flagCount, routes: this.plan.routeCount, barricades: s.barricades?.length ?? 0, hero: { x: s.hero.x / UNIT, y: s.hero.y / UNIT }, jammed: s.towers.filter((t) => tdJammed(s, t.id)).length, skilled: (s.internal as { skilled: Set<number> }).skilled.size, objects: countObjects(this) });
+    app.api.tdInfo = () => ({ tick: s.tick, wave: s.wave, vault: s.vault, lost: s.lost, gold: s.gold, over: s.over, slots: s.slots.map((q) => ({ x: q.x + 1, y: q.y + 1, tower: q.tower, wreck: wreckOf(this, q) !== null, garrison: q.garrison !== undefined })), flags: this.plan.flagCount, routes: this.plan.routeCount, barricades: s.barricades?.length ?? 0, hero: { x: s.hero.x / UNIT, y: s.hero.y / UNIT, goal: s.hero.goal ? { x: s.hero.goal.x / UNIT, y: s.hero.goal.y / UNIT } : null }, jammed: s.towers.filter((t) => tdJammed(s, t.id)).length, skilled: (s.internal as { skilled: Set<number> }).skilled.size, objects: countObjects(this) });
     app.api.units = () => s.enemies.filter((e) => e.mode === 'in' || e.mode === 'out').map((e) => ({ id: e.id, kind: e.kind, mode: e.mode, hp: e.hp, maxHp: e.maxHp, gx: e.gx, gy: e.gy }));
     app.api.follow = (id, z = 3) => {
       this.followT = id === null ? null : { id, z, x: 0, y: 0 };

@@ -91,7 +91,7 @@ async function startEscortLive(tier: LiveTier, onClose: () => void): Promise<voi
  * 一趟护航结束（到港、沉没、误了潮、撤退都走这里）：按 escortLiveBp 结回、弹结算框。
  * 不碰自己的存档：没有金币木材、不记护航星数。撤退按走过的格数折算，所以到这里的结果一定有 cells / total。
  */
-export async function showEscortLiveResult(tier: LiveTier, er: EscortResult): Promise<void> {
+export async function showEscortLiveResult(tier: LiveTier, er: EscortResult & { retreated?: boolean }): Promise<void> {
   const bp = escortLiveBp(tier, er);
   let main: HTMLButtonElement | undefined;
   const { mask, box } = dialog({ closable: false, onEsc: () => main?.click() });

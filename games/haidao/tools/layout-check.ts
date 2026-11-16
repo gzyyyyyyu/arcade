@@ -6,13 +6,11 @@
  */
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
+import { opt } from './args.ts';
 
-const argv = process.argv.slice(2);
-const i = argv.indexOf('--view');
-const ONLY = i >= 0 ? (argv[i + 1] ?? '').split(',') : ['phonep', 'phonel', 'pc720', 'pc1080'];
+const ONLY = opt('--view')?.split(',') ?? ['phonep', 'phonel', 'pc720', 'pc1080'];
 /** 守岛量哪一关（默认第 1 关；带驻守台的关会先过选塔面板） */
-const li = argv.indexOf('--level');
-const TD_LEVEL = li >= 0 ? (argv[li + 1] ?? 'td01') : 'td01';
+const TD_LEVEL = opt('--level') ?? 'td01';
 const VIEWS = [
   { name: 'phonep', viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
   { name: 'phonel', viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },

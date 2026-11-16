@@ -9,8 +9,9 @@
 import { BRANCH_LEVEL, branchOptions } from '../content/branches.ts';
 import { TD2_COST, TD2_ECON, TD2_HERO_SKILL, td2TierStats } from '../content/td2units.ts';
 import { Rng } from './rng.ts';
-import { createTd, stepTd, tdClearCost, tdPreview, tdResult, tdRoute, tdRoutes, tdSellRefund, tdUpCost } from './td.ts';
-import type { TdState } from './td.ts';
+import { createTd, stepTd, tdResult, tdUpCost } from './td.ts';
+import { tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund } from './tdquery.ts';
+import type { TdState } from './tdstate.ts';
 import { cellX, cellY } from './grid.ts';
 import { TD_ARMORS, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
 import type { TdArmor, TdTowerKind, WavePreview } from './td2types.ts';

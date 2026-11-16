@@ -1,6 +1,6 @@
 /**
  * 手机竖屏放大后的镜头辅助（纯函数，tests/camguide.test.ts 锁住）：
- * 开场"先看整岛、再推到要守 / 要登陆的那一侧"的时间线，推过去的落点，以及屏外东西在屏幕边缘的指示（箭头、小标）。
+ * 开场"先看整岛、再推到要守 / 要登陆的那一侧"的时间线，推过去的落点，开新一波时要不要跟过去，以及屏外东西在屏幕边缘的指示（箭头、小标）。
  * 竖屏下登陆战和守岛放大到内容约占屏高 60%，左右会裁掉一截，所以要告诉玩家"那边还有东西"。
  */
 import { clamp01, easeInOutSine } from './motion.ts';
@@ -24,6 +24,23 @@ export function camAt(t: number, from: View, to: View, hold = INTRO_HOLD, push =
   const e = easeInOutSine(k);
   const z = from.z > 0 && to.z > 0 ? from.z * (to.z / from.z) ** e : from.z + (to.z - from.z) * e;
   return { view: { cx: from.cx + (to.cx - from.cx) * e, cy: from.cy + (to.cy - from.cy) * e, z }, done: false };
+}
+
+/** 玩家自己动过镜头（拖、捏、滚轮、点屏边箭头）之后多久内，开新一波也不替他挪镜头（毫秒） */
+export const FOLLOW_IDLE = 5000;
+/** 登陆口离可见区边缘至少这么多像素才算「看得见」：贴着边的一半在屏外，敌人一上岛就出去了 */
+export const FOLLOW_PAD = 40;
+
+/**
+ * 开新一波时要不要把镜头推到它的登陆口（只在竖屏放大模式）：这波的登陆口已经有一个在可见区里、
+ * 玩家 FOLLOW_IDLE 内自己动过镜头、开着造塔 / 升级面板或正在瞄技能，都不推。
+ * points 是登陆口投到屏幕上的位置（CSS 像素，和 view 同一个坐标系），sinceUser 是离玩家上次动镜头多少毫秒。
+ */
+export function followWave(o: { live: boolean; busy: boolean; sinceUser: number; points: ReadonlyArray<{ x: number; y: number }>; view: Rect }): boolean {
+  if (!o.live || o.busy || o.sinceUser < FOLLOW_IDLE || o.points.length === 0) return false;
+  const v = o.view;
+  const p = FOLLOW_PAD;
+  return !o.points.some((q) => q.x >= v.l + p && q.x <= v.r - p && q.y >= v.t + p && q.y <= v.b - p);
 }
 
 /**

@@ -11,12 +11,8 @@ import { MAP_LIVE_TIERS } from '../src/core/maplive.ts';
 import { LIVE_TIER_IDS } from '../src/core/live.ts';
 import { type Raw, type Style, add, line, zero } from './live-fit-lib.ts';
 import { playDay } from './map-sim.ts';
+import { argv, num, opt } from './args.ts';
 
-const args = process.argv.slice(2);
-const opt = (k: string): string | undefined => {
-  const i = args.indexOf(k);
-  return i >= 0 ? args[i + 1] : undefined;
-};
 const STYLES: Style[] = ['novice', 'normal'];
 
 function dayAdd(day: string, k: number): string {
@@ -30,9 +26,9 @@ function print(raws: Raw[]): void {
   for (const tier of LIVE_TIER_IDS) for (const r of raws) console.log(line({ ...r, tier }, MAP_LIVE_TIERS[tier].bp));
 }
 
-if (args[0] === '--merge') {
+if (argv[0] === '--merge') {
   const acc = new Map<Style, Raw>();
-  for (const f of args.slice(1)) {
+  for (const f of argv.slice(1)) {
     for (const r of JSON.parse(readFileSync(f, 'utf8')) as Raw[]) {
       if (!acc.has(r.style)) acc.set(r.style, zero('small', r.style));
       add(acc.get(r.style)!, r);
@@ -40,7 +36,7 @@ if (args[0] === '--merge') {
   }
   print([...acc.values()]);
 } else {
-  const days = Math.max(1, Number(opt('--days') ?? 200) || 200);
+  const days = Math.max(1, num('--days', 200));
   const from = opt('--from') ?? '2026-11-10';
   const out: Raw[] = [];
   for (const style of STYLES) {

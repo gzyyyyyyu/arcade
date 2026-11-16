@@ -14,18 +14,14 @@ import { readFileSync } from 'node:fs';
 import { RULES_VERSION, TD_ENEMY_ARMOR, runTdBot, tdGrowthSetup } from '../src/core/index.ts';
 import type { TdArmor, TdBotKind, TdBotOpts, TdGrowth, TdSetup } from '../src/core/index.ts';
 import { buildLevel, TD2_LEVEL_DEFS } from '../src/content/td2levels.ts';
+import { argv, flag, num, opt } from './args.ts';
 
 // ---------------------------------------------------------------- 参数
 
-const args = process.argv.slice(2);
-const opt = (k: string): string | undefined => {
-  const i = args.indexOf(k);
-  return i >= 0 ? args[i + 1] : undefined;
-};
-const n = Math.max(1, Number(opt('--n') ?? 50) || 50);
-const from = Number(opt('--from') ?? 1) || 1;
+const n = Math.max(1, num('--n', 50));
+const from = num('--from', 1);
 const only = opt('--level');
-const json = args.includes('--json');
+const json = flag('--json');
 const parts = new Set((opt('--parts') ?? 'main').split(','));
 // --rules 13：按旧规则版本打（比规则改动前后，同一份代码两次跑）
 const rulesOpt = opt('--rules') ? Number(opt('--rules')) : undefined;
@@ -202,8 +198,8 @@ function table(levels: LevelRaw[]): string {
 
 // ---------------------------------------------------------------- 入口
 
-if (args.includes('--merge')) {
-  const files = args.slice(args.indexOf('--merge') + 1).filter((a) => !a.startsWith('--'));
+if (flag('--merge')) {
+  const files = argv.slice(argv.indexOf('--merge') + 1).filter((a) => !a.startsWith('--'));
   const all = files.flatMap((f) => JSON.parse(readFileSync(f, 'utf8')) as LevelRaw[]);
   console.log(`合并 ${files.length} 片\n`);
   console.log(table(merge(all)));

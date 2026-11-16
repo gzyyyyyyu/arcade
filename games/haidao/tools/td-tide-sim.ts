@@ -6,14 +6,10 @@
 import { RULES_VERSION, TIDE_MAPS, runTdBot, tideSetup } from '../src/core/index.ts';
 import type { IsoWeek, TdSetup } from '../src/core/index.ts';
 import { tideMap, tidePick } from '../src/core/tdtide.ts';
+import { flag, num } from './args.ts';
 
-const args = process.argv.slice(2);
-const opt = (k: string, d: string): string => {
-  const i = args.indexOf(k);
-  return i >= 0 ? (args[i + 1] ?? d) : d;
-};
-const n = Math.max(1, Number(opt('--n', '20')) || 20);
-const only = args.includes('--map') ? Number(opt('--map', '0')) : -1;
+const n = Math.max(1, num('--n', 20));
+const only = flag('--map') ? num('--map', 0) : -1;
 
 // 找一周对应某张图、某个镜像：扫周号直到凑齐（图和镜像都由周标签的哈希定）
 const picks: Array<{ week: IsoWeek; map: number; mirror: boolean }> = [];

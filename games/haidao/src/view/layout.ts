@@ -111,13 +111,11 @@ ${W} .hd-key { display:none; }
   /* 48×44 里放得下图标、能量数、进度条和锁，但不能互相压：能量不够时图标缩到 18，锁缩到 12 挪到右上角，进度条贴底边、高 4 */
   ${W} .hd-cards .hd-skill.off .hd-img { height:18px !important; width:18px !important; }
   ${W} .hd-cards .hd-skill.off::before { left:6px; right:6px; bottom:2px; height:4px; border-width:1px; }
-  ${W} .hd-cards .hd-skill.off::after { left:auto; right:0; top:0; width:12px; height:12px; }
   ${W} .hd-cards .hd-skill .hd-img { height:20px !important; width:20px !important; }
   ${W} .hd-cards .hd-skill .hd-sk-n { display:none; }
   ${W} .hd-cards .hd-boat small { display:none; }
   ${W} .hd-cards .hd-boat .hd-img { height:26px !important; width:auto !important; }
   /* 出完的兵种卡只有 44 高，原来 20 的锁压在左上角正好盖住小兵；照技能钮缩到 12、挪到右上角 */
-  ${W} .hd-cards .hd-boat.done::after { left:auto; right:0; top:0; width:12px; height:12px; }
   ${W} .hd-cards .hd-hint { position:absolute; left:50%; bottom:calc(100% + 4px); transform:translateX(-50%); white-space:nowrap; }
 }
 

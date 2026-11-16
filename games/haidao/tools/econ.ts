@@ -8,12 +8,8 @@ import {
 } from '../src/core/index.ts';
 import type { BuildingKind, Profile } from '../src/core/index.ts';
 import { sampleProfile } from './sample.ts';
+import { num } from './args.ts';
 
-const args = process.argv.slice(2);
-const num = (name: string, d: number): number => {
-  const i = args.indexOf(name);
-  return i >= 0 ? Number(args[i + 1]) || d : d;
-};
 const days = num('--days', 10);
 const sessions = num('--sessions', 2);
 const fights = num('--fights', 3);
