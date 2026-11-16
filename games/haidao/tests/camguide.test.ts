@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EDGE_PAD, EDGE_STEP, FOLLOW_IDLE, FOLLOW_PAD, INTRO_HOLD, INTRO_PUSH, camAt, edgeMarks, focusCx, followWave, type EdgeItem } from '../src/view/camguide.ts';
+import { AUTO_DEAD, AUTO_SETTLE, EDGE_PAD, EDGE_STEP, GROUP_R, INTRO_HOLD, INTRO_PUSH, autoStep, biggestCluster, camAt, centerFor, edgeMarks, focusCx, frameFocus, groupAround, type EdgeItem } from '../src/view/camguide.ts';
 
 const view = { l: 0, t: 100, r: 390, b: 760 };
 const item = (kind: EdgeItem['kind'], sx: number, sy: number): EdgeItem => ({ kind, sx, sy, wx: sx * 2, wy: sy * 2 });
@@ -91,25 +91,54 @@ describe('屏外指示', () => {
   });
 });
 
-describe('开新一波时镜头要不要跟过去', () => {
-  const base = { live: true, busy: false, sinceUser: FOLLOW_IDLE, points: [{ x: 600, y: 300 }], view };
-  it('登陆口都在可见区外、玩家没在动镜头、没开面板：推过去', () => {
-    expect(followWave(base)).toBe(true);
+describe('自动构图', () => {
+  it('主组：锚点周围 GROUP_R 以内的点取中心，远处的不算', () => {
+    const pts = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 5000, y: 0 }];
+    expect(groupAround(pts, pts[0]!)).toEqual({ x: 50, y: 0 });
+    expect(groupAround([], { x: 7, y: 8 })).toEqual({ x: 7, y: 8 });
   });
-  it('有一个登陆口在可见区里就不推；贴着边（FOLLOW_PAD 内）算看不见', () => {
-    expect(followWave({ ...base, points: [{ x: 600, y: 300 }, { x: 200, y: 400 }] })).toBe(false);
-    expect(followWave({ ...base, points: [{ x: view.r - FOLLOW_PAD + 1, y: 400 }] })).toBe(true);
-    expect(followWave({ ...base, points: [{ x: view.r - FOLLOW_PAD, y: 400 }] })).toBe(false);
+  it('最大的一簇：三个挤在一起的比两个散的多，取前者；没有点为 null', () => {
+    const pts = [{ x: 0, y: 0 }, { x: 2000, y: 0 }, { x: 2050, y: 0 }, { x: 2100, y: 0 }, { x: 4000, y: 0 }];
+    expect(biggestCluster(pts)).toEqual({ x: 2050, y: 0 });
+    expect(biggestCluster([])).toBeNull();
+    expect(GROUP_R).toBeGreaterThan(100);
   });
-  it('前面几波还有敌人在可见区里打着：不推；都在屏外或已经没了：照推', () => {
-    expect(followWave({ ...base, fighting: [{ x: 200, y: 400 }] })).toBe(false);
-    expect(followWave({ ...base, fighting: [{ x: -300, y: 400 }, { x: 200, y: 2000 }] })).toBe(true);
-    expect(followWave({ ...base, fighting: [] })).toBe(true);
+  it('主组和目标放得进可见区八成就框中间，放不下只看主组', () => {
+    expect(frameFocus({ x: 0, y: 0 }, { x: 200, y: 100 }, 400, 600)).toEqual({ x: 100, y: 50 });
+    expect(frameFocus({ x: 0, y: 0 }, { x: 900, y: 0 }, 400, 600)).toEqual({ x: 0, y: 0 });
+    expect(frameFocus({ x: 3, y: 4 }, null, 400, 600)).toEqual({ x: 3, y: 4 });
   });
-  it('玩家刚自己动过镜头、开着面板 / 在瞄技能、不是竖屏放大、没有登陆口：都不推', () => {
-    expect(followWave({ ...base, sinceUser: FOLLOW_IDLE - 1 })).toBe(false);
-    expect(followWave({ ...base, busy: true })).toBe(false);
-    expect(followWave({ ...base, live: false })).toBe(false);
-    expect(followWave({ ...base, points: [] })).toBe(false);
+  it('centerFor 让目标落在可见区正中', () => {
+    const vis = { l: 0, t: 100, r: 400, b: 700 };
+    expect(centerFor(1000, 500, vis, 400, 800, 2)).toEqual({ cx: 1000, cy: 500 });
+    expect(centerFor(1000, 500, { l: 0, t: 200, r: 400, b: 800 }, 400, 800, 2).cy).toBe(500 - 100 / 2);
+  });
+  it('死区：偏一点不动，偏过可见宽的 AUTO_DEAD 才起步，起步后一路追到 AUTO_SETTLE 以内停下', () => {
+    const vw = 1000;
+    const cur = { cx: 0, cy: 0 };
+    expect(autoStep(cur, { cx: vw * AUTO_DEAD * 0.9, cy: 0 }, false, 16, vw)).toEqual({ cx: 0, cy: 0, moving: false });
+    let st = autoStep(cur, { cx: vw * 0.5, cy: 0 }, false, 16, vw);
+    expect(st.moving).toBe(true);
+    expect(st.cx).toBeGreaterThan(0);
+    for (let i = 0; i < 400 && st.moving; i++) st = autoStep(st, { cx: vw * 0.5, cy: 0 }, st.moving, 16, vw);
+    expect(st).toEqual({ cx: vw * 0.5, cy: 0, moving: false });
+    // 起步后在死区以内也接着追（不会停在半路）
+    expect(autoStep({ cx: vw * 0.45, cy: 0 }, { cx: vw * 0.5, cy: 0 }, true, 16, vw).moving).toBe(vw * 0.05 > vw * AUTO_SETTLE);
+  });
+  it('限速、单调、不过冲；减弱动态更慢；track 没有死区；dt 为 0 不动', () => {
+    const vw = 1000;
+    const a = autoStep({ cx: 0, cy: 0 }, { cx: 5000, cy: 0 }, true, 100, vw);
+    expect(a.cx).toBeLessThanOrEqual(1.1 * vw * 0.1 + 1e-9);
+    const r = autoStep({ cx: 0, cy: 0 }, { cx: 5000, cy: 0 }, true, 100, vw, { reduced: true });
+    expect(r.cx).toBeLessThan(a.cx);
+    let st = { cx: 0, cy: 0, moving: true };
+    for (let i = 0; i < 300; i++) {
+      const nx = autoStep(st, { cx: 600, cy: 0 }, st.moving, 16, vw);
+      expect(nx.cx).toBeGreaterThanOrEqual(st.cx);
+      expect(nx.cx).toBeLessThanOrEqual(600);
+      st = nx;
+    }
+    expect(autoStep({ cx: 0, cy: 0 }, { cx: 50, cy: 0 }, false, 16, vw, { track: true }).cx).toBeGreaterThan(0);
+    expect(autoStep({ cx: 0, cy: 0 }, { cx: 500, cy: 0 }, true, 0, vw)).toEqual({ cx: 0, cy: 0, moving: true });
   });
 });

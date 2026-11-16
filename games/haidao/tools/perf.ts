@@ -1,11 +1,13 @@
 /**
  * 画面帧率 / 长帧测量：node tools/perf.ts --out <目录> [--secs 25] [--runs 2] [--views phone4,desktop] [--scenes battle,td] [--only fps|diag|shot|sheet] [--query rs=1.5]
+ *   [--battle c07] [--army <主寨等级>] [--td td03] [--calls 2]
  *
  * - 自己起 vite 开发服务（端口由系统分配）+ playwright-core 无头 Chromium（WebGL 走 SwiftShader，启动参数同 shot.ts）。
  *   所以绝对帧率偏低，只用来前后对比；对比要在相近的机器负载下跑（结果里记了 /proc/loadavg）；
  * - 两个视口：phone4 = 手机竖屏 390×844 @2x，CDP 把 CPU 降 4 倍（就绪之后才降）；desktop = 1280×800 不降速；
  * - 两个场景，都用固定存档（新档 / dev.td）加固定操作序列，操作全是真人点击（不开 auto），按「规则的拍数」对齐，不按墙钟：
  *   battle = 战役 c07（新档的小队能撑过 25 秒；c10 海怪关 9 秒就全灭），按拍数放全部兵，再放一次炮击；td = 守岛 td03，造三座炮塔、英雄走位、放号令、叫两次波；
+ *   大场面：--army 8 用这一级主寨的满编船队（tools/sample.ts 的 sampleProfile）打登陆战；--td td14 --calls 6 换关、每 60 拍叫一次波，把几波敌人叠在岛上；
  * - 三种跑法（--only 只跑一种）：
  *   fps  = 页面里 requestAnimationFrame 计帧，录 --secs 秒：平均帧率、帧时长 p50/p95/p99、>33ms、>50ms 的长帧个数、longtask 个数和总时长；--runs 次取 p95 最好的一次；
  *   diag = 同样的操作录 --secs 秒，但开 CDP CPU 采样（按函数 / 文件归自身耗时，GC 单列）+ 包 WebGL 的 draw / 贴图上传计数（每帧多少次绘制、多少次传贴图）。
@@ -20,6 +22,7 @@ import type { Browser, CDPSession, Page } from 'playwright-core';
 import { createServer } from 'vite';
 import { Resvg } from '@resvg/resvg-js';
 import { tdCampaign } from '../src/core/index.ts';
+import { sampleProfile } from './sample.ts';
 import { opt } from './args.ts';
 
 const OUT = opt('--out');
@@ -32,7 +35,11 @@ const SCENES = (opt('--scenes') ?? 'battle,td').split(',');
 const BATTLE_LEVEL = opt('--battle') ?? 'c07';
 /** 附加到页面地址的查询参数（不带 ?，如 rs=1.5 强制渲染倍数，做 A/B） */
 const EXTRA = opt('--query') ? `&${opt('--query')}` : '';
-const TD_LEVEL = 'td03';
+const TD_LEVEL = opt('--td') ?? 'td03';
+/** 守岛叫几次波（第一次开打算一次）：越多场上同时的敌人越多 */
+const TD_CALLS = Number(opt('--calls') ?? 2);
+/** 登陆战用哪一级主寨的满编船队（不给 = 新档的小队） */
+const ARMY_HQ = opt('--army') ? Number(opt('--army')) : 0;
 const TD_HQ = tdCampaign().find((l) => l.id === TD_LEVEL)?.hq ?? 3;
 mkdirSync(OUT, { recursive: true });
 
@@ -139,6 +146,8 @@ interface Fps {
   js?: number[];
   /** 录完时场景里的显示对象个数（容器里的部件也算） */
   objects?: number;
+  /** 录完时场上的兵 / 敌人数 */
+  units?: number;
   drawsAvg?: number;
   drawsP95?: number;
   uploadsPerSec?: number;
@@ -365,6 +374,10 @@ async function runScene(view: View, scene: string, mode: Run['mode']): Promise<R
     let t0 = 0;
 
     if (scene === 'battle') {
+      if (ARMY_HQ > 0) {
+        const save = JSON.stringify({ profile: { ...sampleProfile(ARMY_HQ), tutorial: 99, res: { gold: 50_000, wood: 50_000 } }, lastSeen: 0 });
+        await page.addInitScript((sv: string) => localStorage.setItem('haidao.save', sv), save);
+      }
       await page.goto(`${ROOT}?battle=${BATTLE_LEVEL}${EXTRA}`, { timeout: 60_000 });
       await ready();
       if (record && view.throttle > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: view.throttle });
@@ -372,7 +385,7 @@ async function runScene(view: View, scene: string, mode: Run['mode']): Promise<R
       await start();
       t0 = await tickOf();
       // 放全部兵：每 8 拍放一队，轮流用四面沙滩；点船卡、点沙滩都是真点击
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 24; i++) {
         const info = await call<{ landed: boolean[] }>('battleInfo');
         if (info.landed.every(Boolean)) break;
         // 第一队马上放：侦察期里第一个操作之前拍数不走（BattleScene.scouting），等拍会一直等不到
@@ -456,9 +469,11 @@ async function runScene(view: View, scene: string, mode: Run['mode']): Promise<R
       await waitTick(t0 + 40);
       await page.locator('.hd-td-skill').nth(1).click({ timeout: 8000 }).catch(() => ops.push('号令点不动'));
       ops.push(`第 ${await tickOf()} 拍放号令`);
-      await waitTick(t0 + 100);
-      await page.locator('.hd-td-call').click({ timeout: 8000 }).catch(() => ops.push('第二次叫波点不动'));
-      ops.push(`第 ${await tickOf()} 拍叫第二波`);
+      for (let c = 2; c <= TD_CALLS; c++) {
+        await waitTick(t0 + 100 + (c - 2) * 60);
+        await page.locator('.hd-td-call').click({ timeout: 8000 }).catch(() => ops.push(`第 ${c} 次叫波点不动`));
+        ops.push(`第 ${await tickOf()} 拍叫第 ${c} 波`);
+      }
       if (mode === 'shot') {
         await waitTick(t0 + 160);
         await page.screenshot({ path: join(OUT!, `${view.name === 'phone4' ? 'phone' : view.name}-td.png`) });
@@ -481,6 +496,8 @@ async function runScene(view: View, scene: string, mode: Run['mode']): Promise<R
       await page.evaluate(() => ((window as unknown as { __pf: { on: boolean } }).__pf.on = false));
       run.fps = await collect(page, gl);
       run.fps.objects = (await call<{ objects: number }>(scene === 'battle' ? 'battleInfo' : 'tdInfo')).objects;
+      // 场上同时有几个兵 / 敌人（看大场面压到多少）
+      run.fps.units = (await call<unknown[] | undefined>('units'))?.length ?? 0;
       if (mode === 'diag') {
         const prof = (await cdp.send('Profiler.stop')) as unknown as { profile: CpuProfile };
         run.cpu = summarize(prof.profile);
@@ -567,14 +584,14 @@ try {
 }
 
 // 表格
-const name: Record<string, string> = { battle: `登陆战 ${BATTLE_LEVEL}`, td: `守岛 ${TD_LEVEL}`, phone4: '手机竖屏 CPU×4', desktop: '桌面 1280×800' };
+const name: Record<string, string> = { battle: `登陆战 ${BATTLE_LEVEL}${ARMY_HQ ? `（主寨 ${ARMY_HQ} 满编）` : ''}`, td: `守岛 ${TD_LEVEL}${TD_CALLS !== 2 ? `（叫 ${TD_CALLS} 次波）` : ''}`, phone4: '手机竖屏 CPU×4', desktop: '桌面 1280×800' };
 lines.push(`# 帧率测量（${new Date().toISOString().slice(0, 16)}，每格 ${SECS} 秒，${RUNS} 次取 p95 最好的一次）`, '');
-lines.push('| 视口 | 场景 | 平均帧率 | 中位 ms | p95 ms | p95/中位 | p99 ms | >33ms | >50ms | JS 每帧 平均 / p95 ms | 非脚本（光栅化）ms | 显示对象 | longtask 个数 / 总 ms | 负载（跑前 -> 跑后） |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+lines.push('| 视口 | 场景 | 平均帧率 | 中位 ms | p95 ms | p95/中位 | p99 ms | >33ms | >50ms | JS 每帧 平均 / p95 ms | 非脚本（光栅化）ms | 显示对象 / 兵和敌人 | longtask 个数 / 总 ms | 负载（跑前 -> 跑后） |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
 for (const [vn, cells] of Object.entries(result)) {
   for (const [sn, c] of Object.entries(cells)) {
     const f = c.best?.fps;
     if (!f) continue;
-    lines.push(`| ${name[vn]} | ${name[sn]} | ${f.avgFps} | ${f.p50} | ${f.p95} | ${f.ratio} | ${f.p99} | ${f.over33} | ${f.over50} | ${f.jsAvg} / ${f.jsP95} | ${f.rasterMs} | ${f.objects ?? ''} | ${f.longtasks} / ${f.longtaskMs} | ${c.best!.load} |`);
+    lines.push(`| ${name[vn]} | ${name[sn]} | ${f.avgFps} | ${f.p50} | ${f.p95} | ${f.ratio} | ${f.p99} | ${f.over33} | ${f.over50} | ${f.jsAvg} / ${f.jsP95} | ${f.rasterMs} | ${f.objects ?? ''} / ${f.units ?? ''} | ${f.longtasks} / ${f.longtaskMs} | ${c.best!.load} |`);
     curve(`curve-${vn}-${sn}.png`, `${name[vn]} / ${name[sn]}`, f);
   }
 }

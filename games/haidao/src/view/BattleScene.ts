@@ -43,7 +43,7 @@ import { AimPreview } from './aimpreview.ts';
 import { BeachGlow } from './beachfx.ts';
 import { afterSelect, beachPulse, buildUi, clearSel, drawBeach, hint, hover, renderCards, SKILL_KEYS, sig, tap, updateHud } from './battleinput.ts';
 import { finish } from './battleresult.ts';
-import { renderProjectiles, renderUnits, syncUnits } from './battleunits.ts';
+import { battleDirector, renderProjectiles, renderUnits, syncUnits } from './battleunits.ts';
 import { DEPTH } from './depth.ts';
 import { STEP_MS } from './motion.ts';
 export type { BattleData, MapStopHooks, PvpHooks } from './battlecommon.ts';
@@ -270,6 +270,7 @@ export class BattleScene extends Phaser.Scene {
     buildUi(this);
     // 镜头按岛适配：整座岛含四面沙滩（登陆区）都在顶栏和操作区之间的可见区里，不用拖就能点到任何登陆点
     this.fit = new FitCam(this, this.cc, this.ui, () => islandBox(BEACH_PTS), this.r, () => this.fitContent(), () => this.introFocus());
+    this.fit.setDirector(battleDirector(this));
     app.api.fitInfo = () => this.fit.info();
     // 沙滩从进场就亮着（呼吸），不用先选船才知道往哪点
     afterSelect(this);

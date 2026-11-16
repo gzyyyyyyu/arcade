@@ -2,7 +2,7 @@ import type Phaser from 'phaser';
 import { BEACH, ISLAND } from '../core/types.ts';
 import type { CamCtl } from './camctl.ts';
 import { iso } from './iso.ts';
-import { INTRO_HOLD, INTRO_PUSH, camAt, focusCx } from './camguide.ts';
+import { AUTO_IDLE, INTRO_HOLD, INTRO_PUSH, TAP_HOLD, autoStep, camAt, centerFor, focusCx, type FPt } from './camguide.ts';
 import { takesCamera } from './camgesture.ts';
 import { button } from './ui.ts';
 import { REDUCED } from './feel.ts';
@@ -196,6 +196,16 @@ const BACK_ICON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" s
 const PAN_MS = 320;
 
 /**
+ * 自动构图要看什么（各场景给）：focus 是想放在可见区正中的世界点（vw、vh 是可见区的世界宽高），null = 原地不动；
+ * busy 为真时（开着面板、瞄着技能、还在下船）不动镜头；track 为真时一直跟（不留死区，护航跟船）
+ */
+export interface Director {
+  focus(vw: number, vh: number): FPt | null;
+  busy(): boolean;
+  track?(): boolean;
+}
+
+/**
  * 场景的镜头适配：进场时 refit，转屏 / 窗口变化时（没放大过）重新适配；放大或平移后出现"回到全景"按钮。
  * boxOf 是整座岛（缩出去的下限）；contentOf（可选）是有内容的区域，竖屏按它适配。每次现算（基地的包围盒随不变，战斗里是岛 + 登陆点，守岛要加登陆口）。
  * focusOf（可选，世界 x）：竖屏放大时开场先停 1 秒整岛全景，再推到这一侧（守岛 = 第一波的登陆口，登陆战 = 发光沙滩那一侧）；
@@ -220,21 +230,27 @@ export class FitCam {
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => this.refit(this.away()), 60);
   };
-  private readonly onUpdate = (time: number): void => {
+  private readonly onUpdate = (time: number, delta: number): void => {
     if (this.anim) {
       const a = this.anim;
       if (a.t0 < 0) a.t0 = time;
       const st = camAt(time - a.t0, a.from, a.to, a.hold, a.push);
       this.cc.setView(st.view.cx, st.view.cy, st.view.z);
       if (st.done) this.anim = null;
-    }
+    } else if (this.following() && time - this.pressAt >= TAP_HOLD && !this.director!.busy()) this.autoFrame(delta);
+    else this.autoMoving = false;
     if (time - this.lastCheck < 150) return;
     this.lastCheck = time;
     this.syncBtn();
   };
   /** 这次按下的起点（画布像素）：单击（下船、放技能）不打断开场推镜，拖开、捏合、滚轮才把镜头交给玩家 */
   private press: { x: number; y: number; touch: boolean } | null = null;
+  /** 上次按下画面的场景时间：刚点完画面不挪镜头（TAP_HOLD） */
+  private pressAt = Number.NEGATIVE_INFINITY;
+  private director: Director | null = null;
+  private autoMoving = false;
   private readonly onDown = (p: Phaser.Input.Pointer): void => {
+    this.pressAt = this.scene.time.now;
     this.press = { x: p.x, y: p.y, touch: p.wasTouch };
     this.checkTakeover(p);
   };
@@ -265,6 +281,43 @@ export class FitCam {
   /** 离玩家上次自己动镜头过了多少毫秒 */
   sinceUser(): number {
     return this.scene.time.now - this.userAt;
+  }
+
+  /** 场景给自动构图的"看什么"；竖屏放大（live）时开场推镜走完后才生效 */
+  setDirector(d: Director): void {
+    this.director = d;
+  }
+
+  /** 马上把镜头交回自动构图（护航的"回到船"钮） */
+  resume(): void {
+    this.userAt = Number.NEGATIVE_INFINITY;
+  }
+
+  /**
+   * 自动构图在不在管镜头：竖屏放大、开场推镜走完、玩家 AUTO_IDLE 内没自己动过镜头、没停在整岛全景。
+   * 玩家拖、捏、滚轮、点屏边箭头、切全景都记一笔（markUser），停手 AUTO_IDLE 后接回
+   */
+  following(): boolean {
+    return this.live && !!this.director && this.introDone && !this.anim && this.sinceUser() >= AUTO_IDLE && !this.atPano();
+  }
+
+  /** 自动构图的一帧：缩放不动，只平移到场景给的落点（夹在镜头边界里），死区和限速在 autoStep */
+  private autoFrame(dt: number): void {
+    const v = this.visible();
+    const z = this.cc.z;
+    const vw = (v.r - v.l) / z;
+    const f = this.director!.focus(vw, (v.b - v.t) / z);
+    if (!f) {
+      this.autoMoving = false;
+      return;
+    }
+    const w = this.scene.scale.width / this.r;
+    const h = this.scene.scale.height / this.r;
+    const c = centerFor(f.x, f.y, v, w, h, z);
+    const tgt = this.clamped({ cx: c.cx, cy: c.cy, z });
+    const st = autoStep({ cx: this.cc.cx, cy: this.cc.cy }, tgt, this.autoMoving, dt, vw, { reduced: REDUCED, track: this.director!.track?.() });
+    this.autoMoving = st.moving;
+    if (st.cx !== this.cc.cx || st.cy !== this.cc.cy) this.cc.setView(st.cx, st.cy, z);
   }
 
   private readonly scene: Phaser.Scene;
@@ -396,6 +449,8 @@ export class FitCam {
   /** "全景"钮 / 空格：live 模式下在整岛全景和开场视角之间切换，其余回到适配视角 */
   toggle(): void {
     if (!this.live) return this.back();
+    // 切全景 / 放大是玩家自己定的视角：自动构图先让位
+    this.markUser();
     this.moveTo(this.atPano() ? this.home : this.pano, PAN_MS);
     this.syncBtn();
   }

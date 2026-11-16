@@ -5,6 +5,8 @@ import { app } from './app.ts';
 import { troopF } from './art.ts';
 import { EASE, STAGE_LOOK, interpPos, turnStep } from './motion.ts';
 import { approach, crowdOffsets, CROWD_D, CROWD_MAX, type CrowdItem } from './crowd.ts';
+import { GROUP_R, biggestCluster, frameFocus, type FPt } from './camguide.ts';
+import type { Director } from './camfit.ts';
 import { LOD_MARGIN, SKEL, STYLE, atkPhase, deathStyleFor, poseEvery, type RigKind } from './rig.ts';
 import { trackOf } from './dmgkind.ts';
 import { tarGroundOf } from './tarfx.ts';
@@ -405,4 +407,29 @@ export function renderProjectiles(bs: BattleScene, frac: number, dt: number): vo
   // 没对上弹道的开火记录（同一拍被清掉的）别越攒越多
   if (bs.shotFrom.size > 32) bs.shotFrom.clear();
   bs.shots.update(s.tick - 1 + frac, dt);
+}
+
+/**
+ * 登陆战的自动构图（竖屏放大时，FitCam 每帧问一次看哪里）：自己的兵里最大的一簇是主组，主组里多数人正在打的那座建筑是目标，
+ * 两者放得进可见区就一起框住，放不下只看主组。还没有兵上岛不动；选着船（还在下船）、瞄着技能、录像钩子在控镜头时不动。
+ */
+export function battleDirector(bs: BattleScene): Director {
+  return {
+    busy: () => bs.selSkill >= 0 || bs.selBoat >= 0 || bs.followT !== null || bs.ended,
+    focus: (vw, vh) => {
+      const alive = bs.st.units.filter((u) => u.mode !== 'dead');
+      const pts: FPt[] = alive.map((u) => bs.W(u.x, u.y));
+      const group = biggestCluster(pts);
+      if (!group) return null;
+      const votes = new Map<number, number>();
+      alive.forEach((u, i) => {
+        if (u.target >= 0 && Math.hypot(pts[i]!.x - group.x, pts[i]!.y - group.y) <= GROUP_R) votes.set(u.target, (votes.get(u.target) ?? 0) + 1);
+      });
+      let tid = -1;
+      let best = 0;
+      for (const [id, n] of votes) if (n > best || (n === best && id < tid)) [tid, best] = [id, n];
+      const b = bs.st.buildings.find((q) => q.id === tid && !q.destroyed);
+      return frameFocus(group, b ? bs.W((b.x + b.size / 2) * UNIT, (b.y + b.size / 2) * UNIT) : null, vw, vh);
+    },
+  };
 }

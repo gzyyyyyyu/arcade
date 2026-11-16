@@ -23,6 +23,47 @@ import { padState, boom, drawBars } from './tdoverlay.ts';
 import { wreckOf } from './tdsheet.ts';
 import { ftx } from './tdhud.ts';
 import { STEP_MS } from './motion.ts';
+import { approach, crowdOffsets, CROWD_D, CROWD_MAX_TD, type CrowdItem } from './crowd.ts';
+
+/**
+ * 守岛的挤开：一波几十个同样的水手走同一条路，规则里站得几乎重合，画面上叠成一坨、看不清谁挨打。
+ * 和登陆战同一套（crowd.ts），只是推得少一点（CROWD_MAX_TD），也不推进墙和塔台里；飞的不参与
+ */
+const tdCrowdItems: CrowdItem[] = [];
+const tdCrowdIds: number[] = [];
+let tdOx = new Float64Array(64);
+let tdOy = new Float64Array(64);
+const tdBlockedCells = new Set<number>();
+const cellOf = (x: number, y: number): number => (Math.floor(y / UNIT) + 64) * 256 + Math.floor(x / UNIT) + 64;
+
+/** 先算这一帧每个敌人插值后的位置，挤开，偏移按时间追目标；结果写进 sp.ox / sp.oy */
+function crowdEnemies(bs: TdScene, dt: number): void {
+  const s = bs.s;
+  tdCrowdItems.length = 0;
+  tdCrowdIds.length = 0;
+  for (const e of s.enemies) {
+    if (e.mode !== 'in' && e.mode !== 'out') continue;
+    if (TD_ENEMY_ARMOR[e.kind] === 'air') continue;
+    const sp = bs.esp.get(e.id);
+    if (!sp) continue;
+    const ip = interpPos(bs.ipt, sp.fx, sp.fy, sp.tx, sp.ty, bs.acc / STEP_MS, 4 * UNIT);
+    tdCrowdItems.push({ id: e.id, x: ip.x, y: ip.y });
+    tdCrowdIds.push(e.id);
+  }
+  if (tdOx.length < tdCrowdItems.length) {
+    tdOx = new Float64Array(tdCrowdItems.length * 2);
+    tdOy = new Float64Array(tdCrowdItems.length * 2);
+  }
+  tdBlockedCells.clear();
+  for (const w of s.walls) if (!w.destroyed) tdBlockedCells.add(cellOf(w.x * UNIT, w.y * UNIT));
+  for (const q of s.slots) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) tdBlockedCells.add(cellOf((q.x + dx) * UNIT, (q.y + dy) * UNIT));
+  crowdOffsets(tdCrowdItems, tdOx, tdOy, CROWD_D, CROWD_MAX_TD, 4, (x, y) => tdBlockedCells.has(cellOf(x, y)));
+  for (let i = 0; i < tdCrowdIds.length; i++) {
+    const sp = bs.esp.get(tdCrowdIds[i]!)!;
+    sp.ox = approach(sp.ox, tdOx[i]!, dt);
+    sp.oy = approach(sp.oy, tdOy[i]!, dt);
+  }
+}
 
 /** 把规则状态画出来：敌人、塔、英雄、地上的宝藏、火药桶、障碍、血条、弹道 */
 export function sync(bs: TdScene, dt: number): void {
@@ -37,6 +78,7 @@ export function sync(bs: TdScene, dt: number): void {
   const every = poseEvery(bs.fullRigs);
   let full = 0;
   bs.frameN++;
+  crowdEnemies(bs, dt);
   const tk = s.tick + bs.acc / STEP_MS;
   bs.occ.begin();
   bs.stunMarks.begin();
@@ -52,7 +94,7 @@ export function sync(bs: TdScene, dt: number): void {
       const kind = e.kind;
       const rig = bs.pool.get(rk, RIG_TEX, (an) => tdE(kind, an === 'attack' ? 'attack' : 'walk'), now);
       rig.c.setPosition(w.x, w.y);
-      sp = { rig, kind: e.kind, px: e.x, py: e.y, still: 0, carry: null, phase: e.id * 37, lastDmg: 0, fx: e.x, fy: e.y, tx: e.x, ty: e.y, tick: s.tick, face: e.face < 0 ? -1 : 1, dist: e.id * 7, lx: w.x, ly: w.y };
+      sp = { rig, kind: e.kind, px: e.x, py: e.y, still: 0, carry: null, phase: e.id * 37, lastDmg: 0, fx: e.x, fy: e.y, tx: e.x, ty: e.y, tick: s.tick, ox: 0, oy: 0, face: e.face < 0 ? -1 : 1, dist: e.id * 7, lx: w.x, ly: w.y };
       bs.esp.set(e.id, sp);
     }
     // 位置：上一拍到这一拍之间按帧内比例插（20 拍 / 秒的逻辑拍不再一格一跳）；一拍跳 > 4 格（传送）直接到位
@@ -66,7 +108,7 @@ export function sync(bs: TdScene, dt: number): void {
       sp.tick = s.tick;
     }
     const ip = interpPos(bs.ipt, sp.fx, sp.fy, sp.tx, sp.ty, bs.acc / STEP_MS, 4 * UNIT);
-    const iw = W(ip.x, ip.y);
+    const iw = W(ip.x + sp.ox, ip.y + sp.oy);
     const step = Math.hypot(iw.x - sp.lx, iw.y - sp.ly);
     if (step < 40) sp.dist += step;
     sp.lx = iw.x;
@@ -93,7 +135,8 @@ export function sync(bs: TdScene, dt: number): void {
     if (lod === 0 && rk) full++;
     let a = 1;
     if ((e.kind === 'fog' || inFog(bs, e.x, e.y)) && !lit(bs, e)) a = 0.3;
-    const edep = depthOf(ip.x / UNIT, ip.y / UNIT) + 0.2 + (flying ? 100 : 0);
+    // 前后遮挡按挤开后的显示位置排，推开的两人不会前后颠倒
+    const edep = depthOf((ip.x + sp.ox) / UNIT, (ip.y + sp.oy) / UNIT) + 0.2 + (flying ? 100 : 0);
     // 被震晕：站住不动（待机姿势）、整个人晃，头顶转星
     sp.rig.update({ x: iw.x, y: iw.y, depth: edep, face: sp.face, mode: stun ? 'idle' : attacking ? 'attack' : 'walk', dist: sp.dist, atk, oy: 0, sq: 0, alpha: a, lod, full: every === 1 || (bs.frameN + e.id) % every === 0, wob: stun ? wobbleAt(now, e.id) : 0, gx: e.gx, gy: e.gy, gdown: stun }, now);
     if (stun && lod !== 2) bs.stunMarks.mark(iw.x, sp.rig.topY - 4, now, edep, ((e.stunUntil ?? 0) - tk) * STEP_MS);
