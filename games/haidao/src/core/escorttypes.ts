@@ -96,7 +96,3 @@ export type EscortDiff = 'easy' | 'normal' | 'hard';
 export const ESCORT_DIFFS: readonly EscortDiff[] = ['easy', 'normal', 'hard'];
 export const ESCORT_DIFF_NAME: Readonly<Record<EscortDiff, string>> = { easy: '新手', normal: '普通', hard: '高手' };
 
-/** 存档里的护航进度（Profile.escort）：每关（`<图>-<难度>`）最好的星数 */
-export interface EscortSave {
-  stars: Record<string, number>;
-}

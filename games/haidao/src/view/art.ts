@@ -1,6 +1,6 @@
 import type { BuildingKind, SkillKind, TroopKind } from '../core/types.ts';
 import { isBaked } from './textures.ts';
-import { buildingArt, fxArt, fxFrames, hqFlagFrames, hqNoFlagArt, iconArt, palmSwayFrames, shipArt, tileArt, troopArt, troopFrames, wallArt, type ArtPiece } from './art/index.ts';
+import { buildingArt, fxArt, fxFrames, hqFlagFrames, hqNoFlagArt, iconArt, palmSwayFrames, shipArt, troopArt, troopFrames, wallArt, type ArtPiece } from './art/index.ts';
 
 /** 美术函数每次现画 SVG 字符串，按参数记下来 */
 const memo = new Map<string, ArtPiece>();
@@ -27,7 +27,6 @@ export const troopF = (kind: TroopKind, anim: 'idle' | 'walk' | 'attack', skin?:
 /** 特效序列帧 */
 export const fxF = (kind: 'hit' | 'boom' | 'collapse' | 'slash' | 'muzzle'): ArtPiece[] => fxFrames(kind);
 export const tArt = (kind: TroopKind, pose: 'idle' | 'walk1' | 'walk2' | 'attack'): ArtPiece => m(`t${kind}${pose}`, () => troopArt(kind, pose));
-export const tileA = (kind: Arg<typeof tileArt>): ArtPiece => m(`l${kind}`, () => tileArt(kind));
 export const fxA = (kind: Arg<typeof fxArt>): ArtPiece => m(`f${kind}`, () => fxArt(kind));
 export const iconA = (kind: Arg<typeof iconArt> | SkillKind): ArtPiece => m(`i${kind}`, () => iconArt(kind as Arg<typeof iconArt>));
 /** rank：自己的船按王阶涂装（0 = 原样） */

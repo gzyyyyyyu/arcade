@@ -4,14 +4,14 @@
  * 全部在生成 SVG 字符串时做一次（烘焙前），运行时每帧零开销。
  */
 
-/** 保持鲜艳的颜色（小写）：金币宝藏、旗帜红、火焰爆炸、紫色技能 */
+/** 保持鲜艳的颜色（小写）：旗帜红、火焰爆炸、紫色技能、宝藏的亮金点。调色板里的 gold 是黄铜色，跟着全局分级走，不再免检 */
 export const VIVID = new Set([
-  '#f8c630', '#ffe885', '#c68a12', '#ffd23f', '#ffcf5a', '#fff0a0', '#fff6c8', '#ffd646',
-  '#d93b32', '#f56c55', '#a1241f', '#ff6a1f', '#ff8a2a', '#8a4bbf', '#ff5d73', '#ffe14a', '#c08bff', '#ffffff',
+  '#ffd447', '#ffcf5a', '#fff0a0', '#fff6c8', '#ffd646',
+  '#cf3e34', '#ee6a52', '#8f292b', '#ff641c', '#f28326', '#7e46b3', '#ff5d73', '#ffe14a', '#c08bff', '#ffffff',
 ]);
 
 /** 饱和度保留比例、明暗拉开幅度、冷暖偏移（0–255 的通道值） */
-export const GRADE = { sat: 0.8, contrast: 0.12, warm: 14 } as const;
+export const GRADE = { sat: 0.92, contrast: 0.08, warm: 8 } as const;
 
 function parse(h: string): [number, number, number] {
   const n = parseInt(h.slice(1), 16);

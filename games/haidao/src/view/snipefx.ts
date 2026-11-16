@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { snipeLook, warnK } from './snipelook.ts';
 import { DEPTH } from './depth.ts';
+import { REDUCED } from './feel.ts';
 
 /**
  * 狙击预警（登陆战和守岛共用）：每座正在锁定的狙击塔一条记录（对象池里取，不在每个事件新建），
@@ -8,7 +9,6 @@ import { DEPTH } from './depth.ts';
  * 谁画在哪由场景用回调给（炮口位置、目标位置），这里只管时间和样子（snipelook.ts）。
  */
 
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export interface SnipeAim {
   /** 塔的编号 */
@@ -91,7 +91,7 @@ export class SnipeLines {
         a.on = false;
         continue;
       }
-      const L = snipeLook(warnK(a.fireAt, vt), now, STILL);
+      const L = snipeLook(warnK(a.fireAt, vt), now, REDUCED);
       const e = this.ends;
       this.mid ??= { x: (e.mx + e.tx) / 2, y: (e.my + e.ty) / 2 };
       // 红线：外层柔光 + 内层红 + 临近开火的白芯

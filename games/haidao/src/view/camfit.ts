@@ -3,7 +3,9 @@ import { BEACH, ISLAND } from '../core/types.ts';
 import type { CamCtl } from './camctl.ts';
 import { iso } from './iso.ts';
 import { INTRO_HOLD, INTRO_PUSH, camAt, focusCx } from './camguide.ts';
+import { takesCamera } from './camgesture.ts';
 import { button } from './ui.ts';
+import { REDUCED } from './feel.ts';
 
 /**
  * 镜头"按岛适配"（fit）：基地、登陆战、守岛进场时，整座岛加四面沙滩（再加各场景要求的额外点）
@@ -51,6 +53,9 @@ export function cellsBox(rects: ReadonlyArray<readonly [number, number, number, 
 const PORTRAIT_FILL = 0.92;
 /** 竖屏的登陆战、守岛：内容盒的高放大到约占屏高的这个比例，左右可以裁（裁掉的由边缘箭头、拖动补上） */
 export const PORTRAIT_LIVE = 0.6;
+/** 基地竖屏：内容盒（全部建筑连同高出的屋顶）放到约占屏高的这个比例就够了（docs/ui.md 要求岛占屏高 ≥ 60%），
+ * 再放大只会把两侧建筑拦腰切掉；矮竖屏（360×640）原来放到 73%，左右只看得到一半 */
+export const PORTRAIT_BASE_H = 0.6;
 /** 基地竖屏放大时，可见区至少要看到内容盒宽度的这个比例（能拖，不是实时操作，可以裁左右的空沙角） */
 const PORTRAIT_MIN_W = 0.4;
 /** 竖屏全景（pano）：有 must（主寨）时可以裁掉内容盒左右的空沙角，可见区至少看到内容盒宽的这个比例；没有 must 就整个内容盒都装进来 */
@@ -113,6 +118,7 @@ export function fitView(w: number, h: number, inset: Inset, full: Box, content?:
   if (content.whole) z = Math.min(Z_CAP, cap, Math.max(fitAll.z, (h * PORTRAIT_LIVE) / bh));
   else {
     z = Math.min(Z_CAP, Math.max(fitAll.z, Math.min(cap, aw / (bw * PORTRAIT_MIN_W))));
+    z = Math.min(z, Math.max(fitAll.z, (h * PORTRAIT_BASE_H) / bh));
     if (content.must) z = Math.min(z, aw / Math.max(1, content.must.r - content.must.l));
   }
   const midX = inset.left + (w - inset.left - inset.right) / 2;
@@ -186,7 +192,6 @@ export function measureInsets(ui: HTMLElement, w: number, h = 800): Inset {
 }
 
 const BACK_ICON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b1a15" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** 点边缘箭头、"全景"钮切换时镜头移过去的时长（毫秒） */
 const PAN_MS = 320;
 
@@ -225,10 +230,26 @@ export class FitCam {
     this.lastCheck = time;
     this.syncBtn();
   };
-  /** 玩家一碰（拖、捏、滚轮）就停下开场推镜，镜头交给玩家 */
-  private readonly onTouch = (): void => {
+  /** 这次按下的起点（画布像素）：单击（下船、放技能）不打断开场推镜，拖开、捏合、滚轮才把镜头交给玩家 */
+  private press: { x: number; y: number; touch: boolean } | null = null;
+  private readonly onDown = (p: Phaser.Input.Pointer): void => {
+    this.press = { x: p.x, y: p.y, touch: p.wasTouch };
+    this.checkTakeover(p);
+  };
+  private readonly onMove = (p: Phaser.Input.Pointer): void => {
+    if (p.isDown) this.checkTakeover(p);
+  };
+  private readonly onUp = (): void => {
+    this.press = null;
+  };
+  private readonly onWheel = (): void => {
     this.anim = null;
   };
+  private checkTakeover(p: Phaser.Input.Pointer): void {
+    if (!this.press) return;
+    const fingers = this.scene.input.manager.pointers.filter((q) => q.isDown).length;
+    if (takesCamera((p.x - this.press.x) / this.r, (p.y - this.press.y) / this.r, this.press.touch, fingers)) this.anim = null;
+  }
 
   private readonly scene: Phaser.Scene;
   private readonly cc: CamCtl;
@@ -252,8 +273,11 @@ export class FitCam {
     this.btn.setAttribute('aria-label', '回到全景');
     scene.scale.on('resize', this.onResize, this);
     scene.events.on('update', this.onUpdate, this);
-    scene.input.on('pointerdown', this.onTouch, this);
-    scene.input.on('wheel', this.onTouch, this);
+    scene.input.on('pointerdown', this.onDown, this);
+    scene.input.on('pointermove', this.onMove, this);
+    scene.input.on('pointerup', this.onUp, this);
+    scene.input.on('pointerupoutside', this.onUp, this);
+    scene.input.on('wheel', this.onWheel, this);
     scene.events.once('shutdown', () => this.destroy());
     this.refit(false);
   }
@@ -261,8 +285,11 @@ export class FitCam {
   private destroy(): void {
     this.scene.scale.off('resize', this.onResize, this);
     this.scene.events.off('update', this.onUpdate, this);
-    this.scene.input.off('pointerdown', this.onTouch, this);
-    this.scene.input.off('wheel', this.onTouch, this);
+    this.scene.input.off('pointerdown', this.onDown, this);
+    this.scene.input.off('pointermove', this.onMove, this);
+    this.scene.input.off('pointerup', this.onUp, this);
+    this.scene.input.off('pointerupoutside', this.onUp, this);
+    this.scene.input.off('wheel', this.onWheel, this);
     if (this.timer) clearTimeout(this.timer);
   }
 
@@ -302,7 +329,7 @@ export class FitCam {
     }
     this.anim = null;
     if (keepView) this.cc.apply();
-    else if (this.live && !this.introDone && !STILL) {
+    else if (this.live && !this.introDone && !REDUCED) {
       // 开场：先停在整岛全景，再推到要守 / 要登陆的那一侧
       this.cc.setView(this.pano.cx, this.pano.cy, this.pano.z);
       this.anim = { from: this.pano, to: this.home, t0: -1, hold: INTRO_HOLD, push: INTRO_PUSH };
@@ -329,7 +356,7 @@ export class FitCam {
   }
 
   private moveTo(to: { cx: number; cy: number; z: number }, ms: number): void {
-    if (ms <= 0 || STILL) {
+    if (ms <= 0 || REDUCED) {
       this.anim = null;
       this.cc.setView(to.cx, to.cy, to.z);
     } else this.anim = { from: { cx: this.cc.cx, cy: this.cc.cy, z: this.cc.z }, to, t0: -1, hold: 0, push: ms };

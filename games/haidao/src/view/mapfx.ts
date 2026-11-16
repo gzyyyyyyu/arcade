@@ -5,6 +5,7 @@
  */
 import { app } from './app.ts';
 import { EASE_FN, type EaseName } from './motion.ts';
+import { REDUCED } from './feel.ts';
 
 interface Job {
   t0: number;
@@ -18,17 +19,12 @@ interface Job {
 }
 
 const jobs: Job[] = [];
-let now = -1;
 let hooked = false;
-
-/** 系统开了"减弱动态效果"：演出时长压到很短，直接看结果 */
-export const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function hook(): void {
   if (hooked || !app.booted) return;
   hooked = true;
   app.game.events.on('step', (t: number) => {
-    now = t;
     for (let i = jobs.length - 1; i >= 0; i--) {
       const j = jobs[i]!;
       if (j.t0 < 0) j.t0 = t;
@@ -85,4 +81,3 @@ export function rollNum(el: HTMLElement, a: number, b: number, ms: number, fmtN:
   }, 'strike', alive);
 }
 
-export const clockNow = (): number => now;

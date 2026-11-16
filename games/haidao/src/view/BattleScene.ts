@@ -34,7 +34,7 @@ import { BEACH_PTS } from './battleadvice.ts';
 import { takeActions } from './battleflow.ts';
 import type { Tutorial } from './tutorial.ts';
 import { el } from './ui.ts';
-import { STEP_MS } from './battlecommon.ts';
+
 import type { BattleData, USpr, BSpr } from './battlecommon.ts';
 import { drawBuildings, renderBars, renderSnipe, renderTurrets, smokeTick } from './battlebuildings.ts';
 import { onEvent } from './battleevents.ts';
@@ -45,6 +45,7 @@ import { afterSelect, beachPulse, buildUi, clearSel, drawBeach, hint, hover, ren
 import { finish } from './battleresult.ts';
 import { renderProjectiles, renderUnits, syncUnits } from './battleunits.ts';
 import { DEPTH } from './depth.ts';
+import { STEP_MS } from './motion.ts';
 export type { BattleData, MapStopHooks, PvpHooks } from './battlecommon.ts';
 
 export class BattleScene extends Phaser.Scene {
@@ -415,7 +416,7 @@ export class BattleScene extends Phaser.Scene {
     }
     hint(this, ''); // 俯瞰期间只留下面这一条提示，收起后 afterSelect 再把"先点船卡"补回来
     const tip = el('div', '', this.d.pvp?.replay || this.d.auto ? '红圈是防御的射程 · 点任意处开始' : SCOUT_TIP, cover);
-    tip.style.cssText = 'position:absolute;left:0;right:0;bottom:30%;text-align:center;color:#fff;font:600 14px system-ui;text-shadow:0 1px 3px #000';
+    tip.style.cssText = 'position:absolute;left:0;right:0;bottom:30%;box-sizing:border-box;padding:0 16px;text-wrap:balance;text-align:center;color:#fff;font:600 14px system-ui;text-shadow:0 1px 3px #000';
     let done = false;
     const end = (): void => {
       if (done) return;

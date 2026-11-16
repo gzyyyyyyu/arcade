@@ -4,6 +4,7 @@ import { coastArt, mapDecoArt } from './art/index.ts';
 import { h32 } from './art/grade.ts';
 import { iso } from './iso.ts';
 import { LOW_MEMORY } from './viewport.ts';
+import { REDUCED } from './feel.ts';
 
 /**
  * 海面上"活"的东西（装饰，不影响规则，不碰存档）：沿岸推上来又退下去的浪舌、波光、偶尔游过的鱼群、偶尔飞过的海鸥。
@@ -41,7 +42,6 @@ function onEdge(side: number, e: number, t: number): { x: number; y: number } {
 const frac = (n: number, k: number): number => (h32(n, k, 77) % 1000) / 1000;
 
 export function startAmbient(scene: Phaser.Scene, r: number): void {
-  const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sc = 1 / r;
   const img = (p: { key: string; ax: number; ay: number; w: number; h: number }, x: number, y: number, depth: number): Phaser.GameObjects.Image =>
     scene.add.image(x, y, p.key).setOrigin(p.ax / p.w, p.ay / p.h).setScale(sc).setDepth(depth);
@@ -53,8 +53,8 @@ export function startAmbient(scene: Phaser.Scene, r: number): void {
     const side = i % 4;
     const base = onEdge(side, BEACH + 0.2, 0.12 + 0.76 * frac(i, 1));
     const n = NORMAL[side]!;
-    const im = img(swash, base.x - n.nx * 5, base.y - n.ny * 5, -99).setRotation(n.rot).setAlpha(still ? 0.5 : 0);
-    if (still) continue;
+    const im = img(swash, base.x - n.nx * 5, base.y - n.ny * 5, -99).setRotation(n.rot).setAlpha(REDUCED ? 0.5 : 0);
+    if (REDUCED) continue;
     scene.tweens.add({
       targets: im,
       x: base.x + n.nx * 9,
@@ -69,7 +69,7 @@ export function startAmbient(scene: Phaser.Scene, r: number): void {
       ease: 'Sine.easeInOut',
     });
   }
-  if (still) return;
+  if (REDUCED) return;
 
   // 波光：外海里的小亮点，一闪一闪
   const glint = coastArt('glint');

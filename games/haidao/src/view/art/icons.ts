@@ -27,7 +27,8 @@ function make(kind: IconKind): string {
     case 'star':
       return poly(starPts(14, 6), C.gold!, { sw: 2.2 }) + poly([[0, -12], [3, -4], [-1, -3], [-10, -2]], C.goldL!, { sw: 0 }) + poly([[0, 12], [6, 5], [3, -1], [0, 0]], C.goldD!, { sw: 0, op: 0.7 });
     case 'starEmpty':
-      return poly(starPts(14, 6), '#5b6070', { sw: 2.2, stroke: '#2a2d38' }) + poly([[0, -10], [2, -4], [-8, -2]], '#7b8194', { sw: 0 });
+      // 空星：外圈深色边在羊皮纸上看得清，里面一圈奶白细边在顶栏的半透明深木底上看得清（烘进图标，不用运行时的 CSS 滤镜）
+      return poly(starPts(14, 6), '#6f7686', { sw: 2.2, stroke: '#2a2d38' }) + poly(starPts(11.2, 4.8), 'none', { sw: 1.3, stroke: '#ece2cc' }) + poly([[0, -9], [1.8, -4], [-7, -2]], '#9aa1b2', { sw: 0 });
     case 'energy':
       return poly([[3, -15], [-9, 2], [-1, 2], [-4, 15], [9, -3], [1, -3]], C.fireL!, { sw: 2.2 }) + poly([[2, -11], [-5, 0], [0, 0]], '#fff7c8', { sw: 0 });
     case 'hammer':

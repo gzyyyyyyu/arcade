@@ -493,6 +493,8 @@ try {
         }
       };
       const click = (sel: string): Promise<void> => page.locator(sel).first().click({ timeout: 8000 });
+      // 守岛类的加速钮：电脑和横屏在底栏，手机竖屏挪到顶栏（.hd-td-speedtop，layout.ts）；竖屏护航在展开的速度排里（.hd-esc-speed，escortview.ts）
+      const TD_SPEED = '.hd-td-bar2 button:has-text("×"):visible, .hd-td-speedtop:visible, .hd-esc-speed:visible';
       const where = (k: string): Promise<{ x: number; y: number } | null> => page.evaluate((kk) => (window as unknown as { __haidao: Hook }).__haidao.where?.(kk) ?? null, k);
       const beach = (i: number): Promise<{ x: number; y: number } | null> => page.evaluate((ii) => (window as unknown as { __haidao: Hook }).__haidao.beach?.(ii) ?? null, i);
 
@@ -666,7 +668,11 @@ try {
             if (inf.flags < 1 || inf.routes < 1) throw new Error(`地图上没有预告旗 / 路线：旗 ${inf.flags}，路线 ${inf.routes}`);
             const txt = (await page.locator('.hd-td-plan').textContent()) ?? '';
             if (!/第 1\/\d+ 波/.test(txt)) throw new Error(`预告卡没写第几波：${txt}`);
-            if (!/建议：/.test(txt)) throw new Error(`预告卡没写建议：${txt}`);
+            // 只有一种能造的伤害（或并列）时不给建议（td-ui.ts 的 fitSuggest），这里只查：本波敌人有头像、护甲写了全名
+            if (!(await page.locator('.hd-td-plan .hd-plan-foes .hd-tden').count())) throw new Error(`预告卡没画本波敌人：${txt}`);
+            if (!/布衣|重甲|木船|飞禽/.test(txt)) throw new Error(`预告卡没写护甲名：${txt}`);
+            // 手机竖屏预告卡收在顶栏的波次小钮里（layout.ts），先点开
+            if (await page.locator('.hd-plan-tog').isVisible()) await click('.hd-plan-tog');
             await shot('preview');
             await click('.hd-td-plan');
             await page.waitForTimeout(400);
@@ -753,7 +759,9 @@ try {
             await tap(hp.x, hp.y);
             await page.waitForTimeout(700);
             const h1 = (await info()).hero;
-            if (Math.hypot(h1.x - h0.x, h1.y - h0.y) > 0.3) throw new Error(`没选中英雄点地面他也走了：(${h0.x.toFixed(1)},${h0.y.toFixed(1)}) → (${h1.x.toFixed(1)},${h1.y.toFixed(1)})`);
+            // 敌人进了守点附近英雄会自己去打（守点 AI，td.ts heroGuard），所以不查「没动」，只查「没朝点的地方走」
+            const toTap = (h: { x: number; y: number }): number => Math.hypot(h.x - 10, h.y - 7);
+            if (toTap(h1) < toTap(h0) - 0.3) throw new Error(`没选中英雄点地面他也走了：(${h0.x.toFixed(1)},${h0.y.toFixed(1)}) → (${h1.x.toFixed(1)},${h1.y.toFixed(1)})`);
             await click('.hd-td-herobtn');
             await page.waitForTimeout(200);
             await tap(hp.x, hp.y);
@@ -791,7 +799,7 @@ try {
           })) &&
           (await step('新机制出现', async () => {
             if (!TD_MECHANIC) return;
-            for (let i = 0; i < 2; i++) await click('.hd-td-bar2 button:has-text("×")');
+            for (let i = 0; i < 2; i++) await click(TD_SPEED);
             for (let k = 0; k < 360; k++) {
               const inf = await info();
               if (inf.over || inf.jammed > 0 || inf.skilled > 0) break;
@@ -802,7 +810,7 @@ try {
             await check('新机制');
           })) &&
           (await step('打完', async () => {
-            if (!TD_MECHANIC) for (let i = 0; i < 2; i++) await click('.hd-td-bar2 button:has-text("×")');
+            if (!TD_MECHANIC) for (let i = 0; i < 2; i++) await click(TD_SPEED);
             await page.waitForTimeout(25_000);
             await shot('fight-late');
             await sceneIs('result', 300_000);
@@ -849,11 +857,11 @@ try {
             await ready();
             await page.waitForTimeout(800);
             await click('.hd-bottom button:has-text("出海")');
-            await page.locator('.hd-mapcard').waitFor({ timeout: 8000 });
+            await page.locator('.hd-mapcard:not(.hd-esc-card)').waitFor({ timeout: 8000 });
             await page.waitForTimeout(500);
             await shot('map-card');
             await check('海图');
-            await click('.hd-mapcard');
+            await click('.hd-mapcard:not(.hd-esc-card)');
             await page.locator('.hd-route .hd-route-node.cur').first().waitFor({ timeout: 8000 });
             await page.waitForTimeout(600);
             await shot('route');
@@ -1179,6 +1187,8 @@ try {
             }
           })) &&
           (await step('停冲修船跟随', async () => {
+            // 手机竖屏速度排收成底栏的船速小钮（escortcss.ts），点血条展开三档、修船、跟随
+            if (await page.locator('.hd-esc-sum').isVisible()) await click('.hd-esc-hullw');
             await click('.hd-esc-pbtn[data-pace="hold"]');
             await page.waitForTimeout(500);
             if ((await paceOn()) !== 'hold') throw new Error('点停之后高亮没跟过去');
@@ -1203,7 +1213,7 @@ try {
             await check('护航战斗中');
           })) &&
           (await step('打到结束', async () => {
-            for (let i = 0; i < 2; i++) await click('.hd-td-bar2 button:has-text("×")');
+            for (let i = 0; i < 2; i++) await click(TD_SPEED);
             const done = await page.locator('.hd-esc-result').waitFor({ timeout: 300_000 }).then(() => true, () => false);
             if (!done) {
               await click('.hd-td-bar2 button:has-text("撤退")');
@@ -1278,7 +1288,7 @@ try {
             await click('.hd-homecard button[data-home]');
             await sceneIs('td', 40_000);
             await page.waitForTimeout(1500);
-            if (!/波 0\/\d+|第 1 波待开/.test((await page.locator('.hd-td-bar').textContent()) ?? '')) throw new Error('顶栏没有显示波数');
+            if (!/0\/\d+ 波|波 0\/\d+|第 1 波待开/.test((await page.locator('.hd-td-bar').textContent()) ?? '')) throw new Error('顶栏没有显示波数');
             const inf = await info();
             if (inf.flags < 1) throw new Error('海盗来袭开局没有预告旗');
             await shot('home-start');
@@ -1306,7 +1316,7 @@ try {
             await check('海盗来袭战斗中');
           })) &&
           (await step('撑到结束', async () => {
-            for (let i = 0; i < 2; i++) await click('.hd-td-bar2 button:has-text("×")');
+            for (let i = 0; i < 2; i++) await click(TD_SPEED);
             const done = await page.locator('.hd-home-result').waitFor({ timeout: 240_000 }).then(() => true, () => false);
             if (!done) {
               await click('.hd-td-bar2 button:has-text("撤退")');
@@ -1383,6 +1393,8 @@ try {
             await click('.hd-td-herobtn');
             await tap(hp.x, hp.y);
             await page.waitForTimeout(700);
+            // 横屏上 (10,7) 正好落在刚造的塔上，会打开这座塔的面板（游戏暂停、技能钮被盖住），关掉再往下
+            if (await page.locator('.hd-td-sheet .hd-x').count()) await click('.hd-td-sheet .hd-x');
             await shot('tide-built');
             await page.locator('.hd-td-skill:not(.hd-td-herobtn)').nth(1).click({ timeout: 5000 });
             await page.waitForTimeout(400);
@@ -1392,7 +1404,7 @@ try {
             await check('大潮战斗中');
           })) &&
           (await step('撑到结束', async () => {
-            for (let i = 0; i < 2; i++) await click('.hd-td-bar2 button:has-text("×")');
+            for (let i = 0; i < 2; i++) await click(TD_SPEED);
             // 放着打，最多等 4 分钟；还没输就点撤退（也是结算的一条路）
             const done = await page.locator('.hd-tide-result').waitFor({ timeout: 240_000 }).then(() => true, () => false);
             if (!done) {
@@ -1495,7 +1507,7 @@ try {
             await check('护航实盘战斗中');
           })) &&
           (await step('打完或撤退后结算', async () => {
-            for (let i = 0; i < 2; i++) await click('.hd-td-bar2 button:has-text("×")');
+            for (let i = 0; i < 2; i++) await click(TD_SPEED);
             const done = await page.locator('.hd-live button:has-text("回家")').waitFor({ timeout: 150_000 }).then(() => true, () => false);
             if (!done) {
               // 撤退：按走过的格数折算
@@ -1729,7 +1741,7 @@ try {
             await check('悬赏守岛战斗中');
           })) &&
           (await step('打完结算', async () => {
-            for (let i = 0; i < 2; i++) await click('.hd-td-bar2 button:has-text("×")');
+            for (let i = 0; i < 2; i++) await click(TD_SPEED);
             await page.locator('.hd-live button:has-text("回家")').waitFor({ timeout: 300_000 });
             await page.waitForTimeout(600);
             await shot('tdlive-result');

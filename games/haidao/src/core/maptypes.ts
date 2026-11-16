@@ -4,7 +4,7 @@
  * 兵的损耗和旗舰能量跨站累计。同一天全服同一条航线、同一支船队（种子 = 北京时间日期），所以每日榜可比。
  * 确定性：整数、sfc32 按用途分流，规则同 core 其余部分（tests/arch.test.ts 扫源码）。
  */
-import type { ArmySetup, BattleResult, BattleSetup, Placed, SkillKind, TroopKind } from './types.ts';
+import type { BattleResult, BattleSetup, Placed, SkillKind, TroopKind } from './types.ts';
 
 /** 每站战斗最多打多少拍（20 拍 / 秒 × 50 秒），到点按当时的摧毁率结算这一站 */
 export const MAP_STOP_TICKS = 1000;
@@ -110,4 +110,3 @@ export interface MapRules {
 }
 
 /** 战斗站出战的船队（去掉休整的、去掉全灭的），给 stopSetup 和画面共用 */
-export type MapArmy = ArmySetup;

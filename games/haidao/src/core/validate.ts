@@ -15,7 +15,8 @@ import type { BuildingKind, Placed, Profile, SkillKind, TroopKind } from './type
 
 export type Validated = { ok: true; value: Profile } | { ok: false; error: string };
 
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+/** 是普通对象（不是 null、不是数组）：存档、攻防快照、云存档回包的形状检查共用 */
+export const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isInt = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
 const own = <T extends object>(o: T, k: unknown): k is keyof T => typeof k === 'string' && Object.hasOwn(o, k);
 /** 存量、统计数的上限：远大于任何正常存档，挡住 1e308 这类会把乘法算爆的数（仓库里的资源另按主寨等级的容量封顶） */

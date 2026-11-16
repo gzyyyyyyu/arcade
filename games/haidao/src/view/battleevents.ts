@@ -6,20 +6,21 @@ import { fxA, fxF } from './art.ts';
 import { BAR_SIZE } from './bars.ts';
 import { EASE, collapseScale } from './motion.ts';
 import { bigEvent, burst, flash, shake } from './fx.ts';
-import { buildingDownEvent, isBigBlast, isKeyHit, vibrate } from './feel.ts';
+import { buildingDownEvent, isBigBlast, isKeyHit, vibrate, HEAVY_HIT } from './feel.ts';
 import { put, ringOf } from './ground.ts';
 import { isHeavyDmg, trackOf } from './dmgkind.ts';
 import { sfx } from './audio/sfx.ts';
 import { crumbleSound, hitSound, isBigBuilding, projectileFire, towerFire } from './audio/pick.ts';
 import { artBox } from './textures.ts';
-import { HEAVY_HIT, STEP_MS } from './battlecommon.ts';
+
 import type { BattleScene } from './BattleScene.ts';
-import { collapse, guardFx, slam } from './battlebuildings.ts';
+import { collapse, slam } from './battlebuildings.ts';
 import { fade, recoil, tallyDeath } from './battleunits.ts';
 import { isTarTrap, tarGroundOf } from './tarfx.ts';
 import { DEPTH } from './depth.ts';
 import { startLanding } from './landfx.ts';
 import { funEvent } from './funui.ts';
+import { STEP_MS } from './motion.ts';
 
 export function onEvent(bs: BattleScene, e: BattleEvent): void {
   switch (e.type) {
@@ -120,7 +121,7 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
       const sp = bs.usp.get(e.id);
       if (sp && !sp.fading) {
         sp.rig.guard(bs.nowT);
-        guardFx(bs, sp.rig.shX, sp.rig.shY, sp.rig.c.depth);
+        bs.pt.guardSparks(sp.rig.shX, sp.rig.shY, sp.rig.c.depth);
       }
       sfx('guard');
       break;

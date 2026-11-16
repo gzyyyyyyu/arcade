@@ -113,7 +113,8 @@ ${W} .hd-scout-map { overflow:clip !important; }
   ${W} .hd-sbody > .hd-grid, ${W} .hd-sbody > .hd-pager { width:100%; }
   ${W} .hd-base > .hd-sheet .hd-grid { grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; }
   ${W} .hd-base > .hd-sheet .hd-card { min-height:0; padding:3px 4px; gap:1px; }
-  ${W} .hd-base > .hd-sheet .hd-card .hd-img { height:36px !important; width:auto !important; }
+  /* 只缩卡上的建筑图（卡的直接子元素）；写成后代选择器会把花费里 18 的金币、木材小图标也撑到 36，伐木场、船坞的木材数被挤出卡外 */
+  ${W} .hd-base > .hd-sheet .hd-card > .hd-img { height:36px !important; width:auto !important; }
   ${W} .hd-base > .hd-sheet .hd-pager { margin-top:8px; }
   ${W} .hd-base > .hd-sheet .hd-tabs { margin-bottom:4px; }
   ${W} .hd-base > .hd-sheet .hd-fleetgrid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin-bottom:2px; }

@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { LOW_MEMORY } from './viewport.ts';
 import { DEPTH } from './depth.ts';
+import { REDUCED } from './feel.ts';
 
 /**
  * 整屏后期，全部是便宜的做法：
@@ -45,8 +46,8 @@ export function mountPost(): void {
 }
 
 const SCENE: Record<Weather, string> = {
-  // 暖色调色（很淡的橘）+ 暗角
-  clear: 'radial-gradient(ellipse 78% 74% at 50% 46%,rgba(255,200,130,0) 52%,rgba(22,12,26,.46) 100%),linear-gradient(rgba(255,190,110,.055),rgba(255,190,110,.055))',
+  // 暖色调色（很淡的橘）+ 清透的深海蓝暗角（紫黑暗角会把四角海水压成浑浊的灰紫）
+  clear: 'radial-gradient(ellipse 78% 74% at 50% 46%,rgba(255,200,130,0) 52%,rgba(10,42,68,.22) 100%),linear-gradient(rgba(255,190,110,.055),rgba(255,190,110,.055))',
   // 雾：灰蓝罩一层，暗角更轻
   fog: 'radial-gradient(ellipse 80% 76% at 50% 46%,rgba(150,170,190,.1) 40%,rgba(40,52,68,.42) 100%),linear-gradient(rgba(150,172,196,.2),rgba(130,150,174,.26))',
   // 黄昏：上橘下紫
@@ -108,8 +109,7 @@ export class Bloom {
 
   constructor(scene: Phaser.Scene, r: number) {
     this.scene = scene;
-    const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.on = FORCE ?? (!LOW_MEMORY && !still);
+    this.on = FORCE ?? (!LOW_MEMORY && !REDUCED);
     this.sc = 1 / r;
     if (!this.on) return;
     ensureGlowTexture(scene);

@@ -6,7 +6,7 @@
 import { FUN } from '../content/fun.ts';
 import { TROOPS } from '../content/index.ts';
 import { Rng } from './rng.ts';
-import { BEACH, ISLAND, UNIT } from './types.ts';
+import { BEACH, ISLAND, UNIT, since } from './types.ts';
 import type { BBuilding, BChest, BUnit, BattleEvent, BattleSetup, BattleState, ChestReward, TroopKind } from './types.ts';
 
 export interface AllyPlan {
@@ -110,7 +110,7 @@ export function placeChests(buildings: readonly BBuilding[], rng: Rng): BChest[]
 /** 开局：没有开关（或规则版本不够）返回 undefined，调用方一项都不碰 */
 export function makeFun(setup: BattleSetup, buildings: readonly BBuilding[]): { fun: FunState; chests?: BChest[] } | undefined {
   const f = setup.fun;
-  if (setup.rules < 13 || !f || (!f.chest && !f.ally)) return undefined;
+  if (!since(setup, 'fun') || !f || (!f.chest && !f.ally)) return undefined;
   const fun: FunState = { chest: f.chest === true, shield: [] };
   let chests: BChest[] | undefined;
   if (f.chest) chests = placeChests(buildings, new Rng(setup.seed, 'fun.chest'));

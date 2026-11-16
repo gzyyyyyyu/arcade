@@ -12,8 +12,8 @@
 src/core/      规则核心：基地、战役结算、战斗（固定步长 20 拍/秒、确定性）、机器人、异步攻防结算（pvp.ts）、快照校验（validate.ts）、各种实盘的档位表、守岛塔防（td*.ts）、大潮无尽（tdtide.ts）、护航和寻宝航线（escort*.ts）；进攻战斗里按规则版本区间分几套防御函数（`battle.ts` 的 `stepDefenses*`）。每个文件的分工见 [docs/tools-haidao.md](docs/tools-haidao.md) 第一节
 src/content/   内容表：建筑、兵、旗舰技能、主寨等级、战役关卡、塔的分叉（branches.ts）；守岛的数（td2units.ts：塔的三阶、统一敌人表、英雄技能、局内经济、难度预算、海盗来袭）、9 张关卡岛（td2maps.ts）、18 关的波次配方和旋钮（td2levels.ts，tdmaps.ts 是出口加单测用的样板关）、守岛里分叉的解释（tdbranches.ts）；护航的 3 张航线图（escortmaps.ts）和 9 关（escortlevels.ts）；改数值只改这里
 src/view/      画面层：art/（SVG 程序画的素材）、iso.ts（等距投影）、depth.ts（`DEPTH`：所有 setDepth 层级的常量表，新加画面元素先在这里找层、别直接写数字）、Phaser 场景和 DOM 界面
-src/platform/  本地存档（save.ts）、云存档（cloud.ts）
-src/net/       异步攻防的接口调用、快照上传、待扣 / 待领（pvp.ts）；实盘和兑换（live.ts）；大潮无尽往平台每周榜交分和浏览器本地最好（tide.ts）；寻宝航线的浏览器本地进度、最好和每日榜交分（mapscore.ts）；界面在 src/view/pvp.ts、src/view/live.ts
+src/platform/  本地存档（save.ts）、云存档（cloud.ts；同步流程——首次对齐、防抖上传、冲突合并、429 退避、换账号备份和并回、存储满了暂停——由 tests/cloud.test.ts 用内存存储和假平台锁住）
+src/net/       异步攻防的接口调用、快照上传、待扣 / 待领（pvp.ts）；实盘和兑换（live.ts；本机进度的状态机——先写再发、断线和刷新后收尾、换账号不收尾——由 tests/live-client.test.ts 锁住）；大潮无尽往平台每周榜交分和浏览器本地最好（tide.ts）；寻宝航线的浏览器本地进度、最好和每日榜交分（mapscore.ts）；界面在 src/view/pvp.ts、src/view/live.ts
 worker/        Worker（登录闸门、单独部署的根路径、巡检用的 health、/games/haidao/api/pvp/*、实盘钱包接口 live.ts 的 /games/haidao/api/{live,td,escort,map}/*），自己一份 tsconfig；
                pvp/ 是 Base、Harbor 的逻辑类（只依赖 kv.ts 的存储接口，测试用内存假存储），do.ts 是 DO 外壳（只由 index.ts 引用）
 public/        封面、图标，weekly.json（平台每周榜的分数怎么显示：大潮 `tide` 子榜），daily.json（平台每日榜：寻宝航线 `map` 子榜）
@@ -46,7 +46,7 @@ tests/         vitest
 - **一屏放下**（仓库根 docs/ui.md 第 11 节）：任何界面在五个尺寸（1280×720、1920×1080、844×390、390×844、360×640）不出滚动条、不截内容；放不下先缩间距和排布，长列表（建造列表、成就、收藏、图鉴、防守记录）用页内翻页（`.hd-pager`），不用滚动。出海海图是例外：拖动平移的地图（`.hd-map` 用 `overflow:clip` + transform，滚轮不响应，按钮和面板在地图外固定），「回到当前关」平移回下一座该打的岛；侦察取景框同理。改界面后跑 `node tools/noscroll.ts --out <目录> [--group 流程名] [--only 界面名] [--view 尺寸]`，它同时查滚动 / 截断、触屏点按区 < 44、可点元素互相压住（同一层、交叠 > 2 像素）、字被裁（`scrollWidth > clientWidth`）和质量线四项（不达标的在终端列出，数字在 `noscroll.json` 的 `q`）。数字列用 `.hd-n`（等宽右对齐），带符号的增减用 `.hd-pos` / `.hd-neg`（`ui.ts`）。
 - DOM 界面类名一律 `hd-` 前缀，限定在所属根节点下；可点的东西 ≥ 44×44 CSS 像素，字不小于 12 像素。
 - 浏览器存储的 key 一律 `haidao.` 前缀：`haidao.save`（存档）、`haidao.cloud`（云存档元数据）及其备份 `haidao.profile.pre-sync`、`haidao.profile.pre-switch.<userId>`、
-  `haidao.pvp`（异步攻防：已经加 / 扣进存档的 raidId、上次看过防守记录的时间）、`haidao.live`（悬赏出海实盘：这一份筹码走到哪一步）、`haidao.tdlive`（悬赏守岛实盘，同一套流程，断线 / 刷新后下次打开时结回或退回）、`haidao.escortlive`（护航实盘，同上）、`haidao.maplive`（寻宝航线实盘，同上；一趟跨好几站，进度另存 `haidao.maplive.run`，同一天刷新后接着跑，不碰娱乐的 `haidao.map`）、`haidao.tide`（大潮无尽的本周最好：`{ week, best }`，换周重新算）、`haidao.map`（寻宝航线：`{ day, best, state?, pending? }`，当天走到哪、今天最好；换天清掉，`pending` 还在说明战斗中途离开，下次打开按 0 宝分结那一站）、`haidao.hint.chest` / `haidao.hint.ally`（漂流宝箱、援军的首次提示看过没有）、`haidao.hint.defense`（JSON 数组：看过首次提示的防御种类；纯逻辑在 `battlehint.ts`，卡片在 `funui.ts` 的 `defenseHint`，首领关、?auto、回放、异步攻防、航线、悬赏不弹）、`haidao.feel`（"震屏和振动"开关，`'1'` / `'0'`；没存过就跟随系统的"减弱动态效果"：开了默认关）。
+  `haidao.pvp`（异步攻防：已经加 / 扣进存档的 raidId、上次看过防守记录的时间）、`haidao.live`（悬赏出海实盘：这一份筹码走到哪一步）、`haidao.tdlive`（悬赏守岛实盘，同一套流程，断线 / 刷新后下次打开时结回或退回）、`haidao.escortlive`（护航实盘，同上）、`haidao.maplive`（寻宝航线实盘，同上；一趟跨好几站，进度另存 `haidao.maplive.run`，同一天刷新后接着跑，不碰娱乐的 `haidao.map`）、`haidao.tide`（大潮无尽的本周最好：`{ week, best }`，换周重新算）、`haidao.map`（寻宝航线：`{ day, best, state?, pending? }`，当天走到哪、今天最好；换天清掉，`pending` 还在说明战斗中途离开，下次打开按 0 宝分结那一站）、`haidao.hint.chest` / `haidao.hint.ally`（漂流宝箱、援军的首次提示看过没有）、`haidao.hint.defense`（JSON 数组：看过首次提示的防御种类；纯逻辑在 `battlehint.ts`，卡片在 `funui.ts` 的 `defenseHint`，首领关、?auto、回放、异步攻防、航线、悬赏不弹）、`haidao.hint.foe`（JSON 数组：守岛里看过首次提示的敌人种类；纯逻辑在 `tdhint.ts`，`tdhud.ts` 的 `foeHint` 在预告翻到新一波时弹，卡片和「见过」的记法与防御提示共用 `hintcard.ts`）、`haidao.feel`（"震屏和振动"开关，`'1'` / `'0'`；没存过就跟随系统的"减弱动态效果"：开了默认关）。
 
 ## 4.1 后端（异步攻防）
 

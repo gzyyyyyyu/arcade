@@ -6,6 +6,7 @@
 import { ESCORT_LEVELS } from '../content/index.ts';
 import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, RARE_POOL, SKILLS, HERO_RESEARCH_MAX, RANKS, tdCampaign, TROOPS, canPlace, hqLevel, newProfile, sanitizeBranch, tdDailyCap, totalStars } from '../core/index.ts';
 import type { Placed, Profile } from '../core/types.ts';
+import { isObj } from '../core/validate.ts';
 
 export interface Save {
   profile: Profile;
@@ -17,7 +18,6 @@ export function fresh(): Save {
   return { profile: newProfile(), lastSeen: 0 };
 }
 
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isInt = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
 /** 只认自己的键：`in` 会把 'toString' 这类原型链上的名字放过去 */

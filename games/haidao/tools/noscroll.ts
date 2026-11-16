@@ -502,6 +502,27 @@ async function measure(page: Page, touch: boolean, screen: string): Promise<Omit
       if (!r || r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) continue;
       if (e.scrollWidth > e.clientWidth + 1) cut.push(`${label(e)} ${e.scrollWidth}/${e.clientWidth}`);
     }
+    // 字穿出牌子 / 按钮：上面那条只看直接带字的元素，字所在的元素（如资源牌里的 <small>）自己会撑开，撑破的是外面的牌子，
+    // 牌子本身没有直接的字就漏了（390 宽基地「上限 25,200」穿出右框就是这样漏的）。这里对牌子和按钮，取里面每段可见文字的实际矩形，
+    // 越出外框 > 1 像素算
+    const rg = document.createRange();
+    for (const box of document.querySelectorAll<HTMLElement>('.hd-ui .hd-pill, .hd-ui button')) {
+      if (cut.length >= 12) break;
+      if (box.closest('.hd-map-in, .hd-scout-map')) continue;
+      const br = vis(box);
+      if (!br || br.right < 0 || br.bottom < 0 || br.left > innerWidth || br.top > innerHeight) continue;
+      const tw = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      let over = 0;
+      for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+        if (!(n.textContent ?? '').trim()) continue;
+        rg.selectNodeContents(n);
+        for (const q of rg.getClientRects()) {
+          if (q.width === 0) continue;
+          over = Math.max(over, q.right - br.right, br.left - q.left, q.bottom - br.bottom, br.top - q.top);
+        }
+      }
+      if (over > 1) cut.push(`${label(box)} 字出框 +${Math.round(over * 10) / 10}`);
+    }
     return { items: out, small, off, overlap, cut };
   }, touch);
   return { ...r, q };
@@ -603,6 +624,9 @@ try {
 
     // ---- 基地、建造、船队、建筑信息、船长档案、设置
     await group('基地', async () => {
+      // dev.td(10) 的存档主寨 8 级、资源上限 18,000（五位数带逗号），资源牌放不放得下要在这种长数字下量
+      await fresh(10);
+      await attempt('基地主界面·满级', () => snap('基地主界面·满级'));
       await fresh();
       await attempt('基地主界面', () => snap('基地主界面'));
       await attempt('建造列表', async () => {

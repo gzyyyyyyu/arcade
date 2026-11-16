@@ -74,8 +74,6 @@ export function netText(credited: number, stake: number): string {
 /** 护航实盘结算里的一行："商船剩余血量 N% · 走了 a/b 格" */
 export const escortLiveLine = (r: { hullPct: number; cells: number; total: number }): string => `商船剩余血量 ${r.hullPct}% · 走了 ${r.cells}/${r.total} 格`;
 
-/** 航线实盘结算里的一行："宝分 N · M 星 · 走了 K 站" */
-export const mapLiveLine = (f: { pts: number; stars: number }, stops: number): string => `宝分 ${Math.floor(f.pts).toLocaleString('en-US')} · ${f.stars} 星 · 走了 ${stops} 站`;
 
 /** 选档页顶上的"今天还剩几场"；打完了给 over 版本（按钮灰掉） */
 export function quotaText(kind: 'escort' | 'map', left: number, max: number): { text: string; full: boolean } {

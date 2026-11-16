@@ -10,6 +10,7 @@ import { EASE, turnStep } from './motion.ts';
 import { bakeAtlas, bakeSome, isBaked } from './textures.ts';
 import type { Particles } from './fx.ts';
 import { DEPTH } from './depth.ts';
+import { REDUCED } from './feel.ts';
 
 /**
  * 炮台的 Phaser 一侧（数学在 aim.ts，素材在 art/turrets.ts）：底座是场景原来那张建筑图（换成不带炮管的 `b.<种类>.<级>.ng`），
@@ -110,7 +111,6 @@ export interface Muzzle {
 }
 
 const LOD_MARGIN = 90;
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const tmpV = { x: 0, y: 0 };
 const pose: MusketPose = { lift: 0, ram: 0, lean: 0 };
 
@@ -342,8 +342,8 @@ export class Turret {
         // 放出去：炮口一团蓝白亮光，一圈冲击圈从炮口扩开，地上扬起一圈灰
         this.charged = false;
         pt.bloom.flash(m.x, m.y, 24, 0x9fe8ff, 200, 0.7);
-        pt.emit('ring', m.x, m.y + 4, { life: STILL ? 300 : 420, s0: STILL ? 0.9 : 0.2, s1: 0.9, a0: 0.95, tint: 0xbff0ff, depth: DEPTH.muzzle });
-        if (STILL) break;
+        pt.emit('ring', m.x, m.y + 4, { life: REDUCED ? 300 : 420, s0: REDUCED ? 0.9 : 0.2, s1: 0.9, a0: 0.95, tint: 0xbff0ff, depth: DEPTH.muzzle });
+        if (REDUCED) break;
         pt.emit('dust', m.x + ux * 4, m.y + uy * 4, { vx: ux * 150, vy: uy * 150, life: 110, s0: 2.4, s1: 4.2, a0: 1, tint: 0xe8fbff, depth: DEPTH.muzzle });
         if (!again) {
           for (let i = 0; i < 4; i++) {
@@ -373,11 +373,11 @@ export class Turret {
     if (!this.charged) {
       this.charged = true;
       // 一圈光收进炮口：收拢的速度刚好在开火那一拍合上
-      pt.emit('ring', m.x, m.y, { life: Math.max(120, o.until), s0: STILL ? 0.5 : 1.1, s1: 0.2, a0: 0.8, tint: 0x8fe0ff, depth: DEPTH.muzzleLow });
+      pt.emit('ring', m.x, m.y, { life: Math.max(120, o.until), s0: REDUCED ? 0.5 : 1.1, s1: 0.2, a0: 0.8, tint: 0x8fe0ff, depth: DEPTH.muzzleLow });
     }
     // 炮口越攒越亮
     const k = 1 - Math.max(0, o.until) / SHOCK_CHARGE_MS;
-    if (!STILL && pt.live < 110) pt.emit('dust', m.x, m.y, { life: 70, s0: 0.6 + k * 1.6, s1: 0.8 + k * 1.8, a0: 0.5 + k * 0.5, tint: 0xbff0ff, depth: DEPTH.muzzle });
+    if (!REDUCED && pt.live < 110) pt.emit('dust', m.x, m.y, { life: 70, s0: 0.6 + k * 1.6, s1: 0.8 + k * 1.8, a0: 0.5 + k * 0.5, tint: 0xbff0ff, depth: DEPTH.muzzle });
   }
 
   /** 炮口位置（按地面角 a，含现在的后坐）写进 out */

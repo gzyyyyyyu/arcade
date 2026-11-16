@@ -1,12 +1,16 @@
 import type { TdScene } from './TdScene.ts';
 import { TD_TREASURE } from '../content/index.ts';
-import { tdPreview, tdRoutes, tdCallBonus, tdNextTide } from '../core/index.ts';
+import { TD2_ENEMIES } from '../content/td2units.ts';
+import { tdPreview, tdRoutes, tdCallBonus, tdNextTide, type WavePreview } from '../core/index.ts';
 import { TICKS_PER_SEC } from '../core/types.ts';
 import { app, fmt } from './app.ts';
-import { iconA } from './art.ts';
+import { iconA, tdE } from './art.ts';
 import { keyBadge } from './inputs.ts';
 import { floatText } from './fx.ts';
-import { injectTdCss, laneName, planCard, callBonusText, fitSuggest } from './td-ui.ts';
+import { laneName, planCard, callBonusText, fitSuggest, waveEnemies } from './td-ui.ts';
+import { injectTdCss } from './tdcss.ts';
+import { FOE_KEY, foeText, newFoes } from './tdhint.ts';
+import { hintCard, takeNew } from './hintcard.ts';
 import { screen, hallButton, el, img, button, confirmBox } from './ui.ts';
 import { EscortView } from './escortview.ts';
 import { injectEscortCss } from './escortcss.ts';
@@ -139,9 +143,11 @@ export function refreshPlan(bs: TdScene, force = false): void {
   const walls = s.walls.reduce((n, w, i) => (w.destroyed ? n + (i + 1) * 7 : n), 0);
   const sig = `${s.wave}|${walls}|${s.over}`;
   if (!force && sig === bs.planSig) return;
-  const fresh = bs.planSig !== '' && !bs.planSig.startsWith(`${s.wave}|`);
+  const newWave = !bs.planSig.startsWith(`${s.wave}|`);
+  const fresh = bs.planSig !== '' && newWave;
   bs.planSig = sig;
   bs.pv = s.over ? [] : fitSuggest(tdPreview(s, 2), s.unlocked);
+  if (newWave && bs.pv[0]) foeHint(bs, bs.pv[0]);
   bs.plan.set(s, bs.pv, s.over ? [] : tdRoutes(s));
   bs.hudSig = '';
   // 新的一波预告：卡片弹一下，提示"现在该看下一波了"
@@ -152,6 +158,16 @@ export function refreshPlan(bs: TdScene, force = false): void {
     // 收起时有了新的预告（新一波的推荐）：小钮亮一个提示点
     if (!bs.ui.classList.contains('hd-plan-open')) bs.ui.querySelector('.hd-plan-tog')?.classList.add('hint');
   }
+}
+
+/** 预告里的下一波有第一次见到的敌人：弹一张不挡操作的小卡（头像、会干什么、最怕什么伤害），每种只提示一次 */
+function foeHint(bs: TdScene, p: WavePreview): void {
+  const fresh = takeNew(FOE_KEY, (seen) => newFoes(waveEnemies(p).map((e) => e.kind), seen));
+  const rows = fresh.flatMap((k) => {
+    const f = tdE(k, 'walk')[0];
+    return f ? [{ icon: img(f, 40), name: TD2_ENEMIES[k].name, text: foeText(k, bs.s.unlocked) }] : [];
+  });
+  hintCard(bs, bs.ui, rows, fresh.length ? '新敌人' : undefined);
 }
 
 export function hintText(bs: TdScene, t: string): void {

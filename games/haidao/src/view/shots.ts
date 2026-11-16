@@ -4,6 +4,7 @@ import { fxA, type ArtPiece } from './art.ts';
 import type { Particles } from './fx.ts';
 import type { Muzzle, Turret } from './turret.ts';
 import { DEPTH } from './depth.ts';
+import { REDUCED } from './feel.ts';
 
 /**
  * 弹道（登陆战和守岛共用）：炮弹、子弹、鱼叉、火箭按规则的发射拍 / 命中拍逐帧插值，弧线（aim.ts 的 arcLift）
@@ -46,7 +47,6 @@ export interface ShotIn {
 }
 
 /** 减少动效：范围圈不脉动、冲击波只画一帧淡出的圈 */
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** 各弹种阴影的大小（像素，贴地时） */
 const SHADOW: Record<ShotFx, number> = { ball: 11, shell: 15, bullet: 5, harpoon: 9, rocket: 9, tar: 12, flame: 0, shock: 7, grenade: 7, snipe: 4 };
@@ -203,7 +203,7 @@ export class Shots {
           const dy = s.ty - s.gy - arcSlope(k, s.e0, s.e1, s.arc);
           s.im.setRotation(Math.atan2(dy, dx));
         } else if (s.fx === 'ball' || s.fx === 'shell') s.im.setRotation(s.im.rotation + dt * 0.012);
-        else if (s.fx === 'grenade') s.im.setRotation(s.im.rotation + dt * (STILL ? 0 : 0.016));
+        else if (s.fx === 'grenade') s.im.setRotation(s.im.rotation + dt * (REDUCED ? 0 : 0.016));
         // 火箭尾烟：隔几帧留一团
         if (s.fx === 'rocket' && ++this.trail % 3 === 0 && this.pt.live < 110) this.pt.emit('puff', x, y, { life: 380, s0: 0.3, s1: 0.75, a0: 0.65, tint: 0xc3c5cc, depth: DEPTH.rocketTrail });
         const sz = SHADOW[s.fx];
@@ -240,7 +240,7 @@ export class Shots {
         this.waves.splice(i, 1);
         continue;
       }
-      const e = STILL ? 1 : 1 - (1 - Math.min(1, w.age / w.grow)) ** 3;
+      const e = REDUCED ? 1 : 1 - (1 - Math.min(1, w.age / w.grow)) ** 3;
       const fade = w.age <= w.grow ? 1 : 1 - (w.age - w.grow) / (w.life - w.grow);
       if (fade < 0.02) continue;
       const rx = w.R * (0.15 + 0.85 * e);
@@ -265,7 +265,7 @@ export class Shots {
   }
 
   private drawStreaks(g: Phaser.GameObjects.Graphics, dt: number): void {
-    const life = STILL ? 140 : STREAK_MS;
+    const life = REDUCED ? 140 : STREAK_MS;
     for (const t of this.streaks) {
       if (!t.on) continue;
       t.age += dt;
@@ -281,13 +281,13 @@ export class Shots {
   }
 
   private wave(x: number, y: number, R: number, color: number, edge: number, flash = 0): void {
-    this.waves.push({ x, y, R, age: 0, grow: STILL ? 1 : 420, life: STILL ? 700 : 800, color, edge, flash });
+    this.waves.push({ x, y, R, age: 0, grow: REDUCED ? 1 : 420, life: REDUCED ? 700 : 800, color, edge, flash });
   }
 
   /** 手雷的落点范围圈：着色的椭圆（等距地面上的圆）+ 外沿描边，k 越大越实 */
   private zone(g: Phaser.GameObjects.Graphics, s: Slot, k: number, now: number): void {
     // 抛出去就亮着淡淡的圈，越飞越近越实：最后半秒左右填充到 0.4、描边到满
-    const pulse = STILL ? 1 : 0.94 + 0.06 * Math.sin(now / 80);
+    const pulse = REDUCED ? 1 : 0.94 + 0.06 * Math.sin(now / 80);
     const rx = s.ring! * pulse;
     const t = k * k;
     g.fillStyle(0xe8431a, 0.1 + 0.3 * t).fillEllipse(s.tx, s.ty, rx * 2, rx);
@@ -349,11 +349,11 @@ export class Shots {
     if (s.land === 'snipe') {
       // 命中点一团白亮闪（只有一发，不怕多）
       pt.bloom.flash(x, gy - 10, 12, 0xffffff, 120, 0.5);
-      if (s.mat !== 'water' && !STILL) pt.sparks(x, gy - 10, 2);
+      if (s.mat !== 'water' && !REDUCED) pt.sparks(x, gy - 10, 2);
     }
     const heavy = s.land === 'shell';
     const small = s.land === 'bullet' || s.land === 'harpoon' || s.land === 'snipe';
-    if (STILL) {
+    if (REDUCED) {
       // 减弱动态：只一帧淡淡的闪光，不放粒子
       if (s.land !== 'snipe') this.flick(x, gy, s.mat);
       return;
@@ -391,7 +391,7 @@ export class Shots {
     const pt = this.pt;
     pt.bloom.flash(x, gy - 4, 20, 0x9fe8ff, 200, 0.5);
     this.wave(x, gy, Math.max(20, s.ring || 45), 0x6fd0ff, 0xeaffff, 0.35);
-    if (STILL) return;
+    if (REDUCED) return;
     if (pt.live < 100) {
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2;
@@ -409,7 +409,7 @@ export class Shots {
     const pt = this.pt;
     pt.bloom.flash(x, gy - 6, 44, 0xffb050, 320, 1);
     this.wave(x, gy, Math.max(20, s.ring || 45), 0xff6a2a, 0xfff0b0, 0.55);
-    if (STILL) {
+    if (REDUCED) {
       this.flick(x, gy, 'ground');
       return;
     }

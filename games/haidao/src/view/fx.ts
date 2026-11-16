@@ -337,6 +337,17 @@ export class Particles {
     }
   }
 
+  /** 盾上火星（登陆战盾兵、守岛盾兵挡下一击）：金属火花几粒 + 一点木屑 + 一闪；粒子吃紧时减量 */
+  guardSparks(x: number, y: number, depth: number): void {
+    this.bloom.flash(x, y, 16, 0xffe9a8, 140, 0.6);
+    const n = this.live > 100 ? 2 : 6;
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.55 + (i % 2 ? 0.2 : -0.2);
+      this.emit('ember', x, y, { vx: Math.cos(a) * (70 + (i % 3) * 30), vy: Math.sin(a) * (80 + (i % 2) * 40), g: 220, life: 260 + (i % 3) * 60, s0: 0.8, s1: 0.2, a0: 1, tint: i % 2 ? 0xfff2a0 : 0xffc23f, depth: depth + 1 });
+    }
+    if (this.live < 100) this.splinters(x, y, 2);
+  }
+
   /** 木屑 */
   splinters(x: number, y: number, n: number): void {
     for (let i = 0; i < n; i++) {

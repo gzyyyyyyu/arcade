@@ -1,6 +1,6 @@
 /** 画图小工具：等距投影下的方盒、屋顶、圆柱、圆锥、炮管、旗子……所有素材共用。 */
 import { PALETTE as C } from './palette.ts';
-import { gradeSvg, outlineOf } from './grade.ts';
+import { gradeSvg, materialOf, outlineOf, type Material } from './grade.ts';
 import { wear } from './wear.ts';
 
 export type Pt = [number, number];
@@ -15,7 +15,12 @@ export interface ArtPiece {
 }
 
 export const OUT = C.ink!;
-export const SW = 2;
+/** 默认线宽 = 内部结构线（门窗框、屋檐、分层）；外轮廓由图元自己按 OUTLINE 倍画，外重内轻（像积木的黑缝就是内外一样粗） */
+export const SW = 1.4;
+/** 外轮廓相对图元 sw 参数的倍数：box(…, 2) 的外轮廓是 2.2 */
+const OUTLINE = 1.1;
+/** 迎光倒角亮棱：顶面和立面交界的前两条边，按受光色向它混 */
+const BEVEL = '#fff7dc';
 
 export const f = (n: number): string => String(Math.round(n * 10) / 10);
 export const pts = (a: Pt[]): string => a.map((p) => `${f(p[0])},${f(p[1])}`).join(' ');
@@ -35,18 +40,38 @@ export function mix(a: string, b: string, t: number): string {
   const r = x.map((v, i) => Math.round(v + (y[i]! - v) * t));
   return '#' + r.map((v) => v.toString(16).padStart(2, '0')).join('');
 }
-export const lighten = (c: string, t: number): string => mix(c, '#ffffff', t);
-export const darken = (c: string, t: number): string => mix(c, '#1a0f2a', t);
+/** 提亮向暖阳色混、压暗向海天冷蓝混：不向纯白（发粉）、紫黑（发脏）混 */
+export const lighten = (c: string, t: number): string => mix(c, '#fff4d8', t);
+export const darken = (c: string, t: number): string => mix(c, '#163250', t);
+/** 各通道乘 k（封顶 255） */
+function scale(c: string, k: number): string {
+  return '#' + hex2(c).map((v) => Math.min(255, Math.round(v * k)).toString(16).padStart(2, '0')).join('');
+}
 
-/** 一种材质：顶面最亮、左面居中、右面最暗（光从左上来） */
+/**
+ * 一种材质：光从左上来。顶面 = 基色 ×1.06 再向暖阳色混（金属多混一点）；左面 = 基色；
+ * 右面（背光）= 基色 ×0.78 再向海天冷蓝混（金属最冷、石头次之、木头和其他最少），不是加黑；line = 内部结构线色。
+ * kind 是材质类别，三个面共用、交给 wear() 画纹理：调用方知道画的是什么就明说（蓝灰的玄武岩按颜色会被猜成铁），
+ * 不传才按基色猜一次。不能按混过冷暖的面色各猜各的，否则同一块石头的背光面会画成铁
+ */
 export interface Mat {
   t: string;
   l: string;
   r: string;
   line: string;
+  kind: Material;
 }
-export function mat(base: string): Mat {
-  return { t: lighten(base, 0.28), l: base, r: darken(base, 0.3), line: darken(base, 0.55) };
+export function mat(base: string, kind: Material = materialOf(base)): Mat {
+  const sun = kind === 'iron' ? 0.3 : 0.24;
+  const cool = kind === 'iron' ? 0.35 : kind === 'stone' ? 0.32 : 0.28;
+  return { t: mix(scale(base, 1.06), C.sunWarm!, sun), l: base, r: mix(scale(base, 0.78), C.shadowCool!, cool), line: mix(base, C.inkSoft!, 0.55), kind };
+}
+
+/** 外轮廓色：本体色向深褐靠拢，比内线重 */
+const rim = (c: string): string => outlineOf(c, OUT, OUT, 0.62);
+/** 闭合外轮廓（不填色） */
+function outline(a: Pt[], c: string, sw: number): string {
+  return `<polygon points="${pts(a)}" fill="none" stroke="${rim(c)}" stroke-width="${f(sw * OUTLINE)}" stroke-linejoin="round"/>`;
 }
 
 // ---------------------------------------------------------------- 基本图元
@@ -68,6 +93,12 @@ export function poly(a: Pt[], fill: string, o: PolyOpt = {}): string {
 }
 export function line(a: Pt, b: Pt, stroke: string, sw = 1, op = 1): string {
   return `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"${op < 1 ? ` opacity="${op}"` : ''}/>`;
+}
+/** 一组同色同宽的线段并成一条 path（纹线、板缝用；交叉处不叠两次透明度） */
+export function lines(segs: Array<[Pt, Pt]>, stroke: string, sw = 1, op = 1): string {
+  if (!segs.length) return '';
+  const d = segs.map(([a, b]) => `M${f(a[0])},${f(a[1])}L${f(b[0])},${f(b[1])}`).join('');
+  return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"${op < 1 ? ` opacity="${op}"` : ''}/>`;
 }
 export function path(d: string, fill: string, o: PolyOpt = {}): string {
   const sw = o.sw ?? SW;
@@ -97,24 +128,28 @@ export function box(x0: number, y0: number, x1: number, y1: number, z0: number, 
   const L = [P(x0, y1, z0), P(x1, y1, z0), P(x1, y1, z1), P(x0, y1, z1)];
   const R = [P(x1, y1, z0), P(x1, y0, z0), P(x1, y0, z1), P(x1, y1, z1)];
   const T = [P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)];
-  let s = poly(R, m.r, { sw }) + poly(L, m.l, { sw }) + poly(T, m.t, { sw });
+  let s = poly(R, m.r, { sw: 0 }) + poly(L, m.l, { sw: 0 }) + poly(T, m.t, { sw: 0 });
   // 材质（木纹、石头斑驳青苔、锈迹）和光照（左面偏暖、右面偏冷、下沿暗角）
-  s += wear(R, m.r, 'R') + wear(L, m.l, 'L') + wear(T, m.t, 'T');
+  s += wear(R, m.r, 'R', m.kind) + wear(L, m.l, 'L', m.kind) + wear(T, m.t, 'T', m.kind);
   if (tex) {
     const lc = m.line;
     const lp = (u: number, z: number): Pt => P(x0 + (x1 - x0) * u, y1, z);
     const rp = (u: number, z: number): Pt => P(x1, y1 + (y0 - y1) * u, z);
+    // 左右两面的纹线各并成一条 path（一面墙十几条线原来是十几个元素，烘焙时逐个光栅化）
+    const L: Array<[Pt, Pt]> = [];
+    const Rr: Array<[Pt, Pt]> = [];
     const step = tex === 'v' ? 0 : tex === 'brick' ? 8 : 7;
     if (step) {
       for (let z = z0 + step; z < z1 - 1; z += step) {
-        s += line(lp(0, z), lp(1, z), lc, 1, 0.45) + line(rp(0, z), rp(1, z), lc, 1, 0.55);
+        L.push([lp(0, z), lp(1, z)]);
+        Rr.push([rp(0, z), rp(1, z)]);
       }
     }
     if (tex === 'v') {
       const nl = Math.max(2, Math.round((x1 - x0) * 5));
       const nr = Math.max(2, Math.round((y1 - y0) * 5));
-      for (let i = 1; i < nl; i++) s += line(lp(i / nl, z0 + 1), lp(i / nl, z1 - 1), lc, 1, 0.4);
-      for (let i = 1; i < nr; i++) s += line(rp(i / nr, z0 + 1), rp(i / nr, z1 - 1), lc, 1, 0.5);
+      for (let i = 1; i < nl; i++) L.push([lp(i / nl, z0 + 1), lp(i / nl, z1 - 1)]);
+      for (let i = 1; i < nr; i++) Rr.push([rp(i / nr, z0 + 1), rp(i / nr, z1 - 1)]);
     }
     if (tex === 'brick') {
       const nl = Math.max(2, Math.round((x1 - x0) * 3));
@@ -124,15 +159,21 @@ export function box(x0: number, y0: number, x1: number, y1: number, z0: number, 
         const zt = Math.min(z + 8, z1);
         for (let i = 0; i < nl; i++) {
           const u = (i + (row % 2 ? 0.5 : 0)) / nl;
-          if (u > 0 && u < 1) s += line(lp(u, z), lp(u, zt), lc, 1, 0.4);
+          if (u > 0 && u < 1) L.push([lp(u, z), lp(u, zt)]);
         }
         for (let i = 0; i < nr; i++) {
           const u = (i + (row % 2 ? 0.5 : 0)) / nr;
-          if (u > 0 && u < 1) s += line(rp(u, z), rp(u, zt), lc, 1, 0.5);
+          if (u > 0 && u < 1) Rr.push([rp(u, z), rp(u, zt)]);
         }
       }
     }
+    s += lines(L, lc, 1, tex === 'h' ? 0.45 : 0.4) + lines(Rr, lc, 1, tex === 'h' ? 0.55 : 0.5);
   }
+  // 内部结构：左右立面交界的竖棱（暗、细），顶面前两条边（迎光亮棱）；最后一圈外轮廓（重）
+  s += line(P(x1, y1, z0), P(x1, y1, z1), m.line, Math.min(1, sw), 0.85);
+  const bev = mix(m.t, BEVEL, 0.48);
+  s += line(P(x0, y1, z1), P(x1, y1, z1), bev, 1.1, 0.75) + line(P(x1, y1, z1), P(x1, y0, z1), bev, 1.1, 0.55);
+  if (sw > 0) s += outline([P(x0, y1, z0), P(x1, y1, z0), P(x1, y0, z0), P(x1, y0, z1), P(x0, y0, z1), P(x0, y1, z1)], m.l, sw);
   return s;
 }
 
@@ -154,15 +195,6 @@ export function archL(xc: number, hw: number, y: number, za: number, zs: number,
   a.push(P(xc + hw, y, za));
   return a;
 }
-export function archR(x: number, yc: number, hw: number, za: number, zs: number, ah: number): Pt[] {
-  const a: Pt[] = [P(x, yc + hw, za)];
-  for (let i = 0; i <= 8; i++) {
-    const t = Math.PI - (Math.PI * i) / 8;
-    a.push(P(x, yc - hw * Math.cos(t), zs + ah * Math.sin(t)));
-  }
-  a.push(P(x, yc - hw, za));
-  return a;
-}
 
 /** 四坡屋顶（金字塔形） */
 export function hip(x0: number, y0: number, x1: number, y1: number, z: number, h: number, m: Mat, over = 0.12, tiles = true): string {
@@ -172,35 +204,23 @@ export function hip(x0: number, y0: number, x1: number, y1: number, z: number, h
   const b = P(x1 + over, y1 + over, z);
   const c = P(x1 + over, y0 - over, z);
   const ap = P(cx, cy, z + h);
-  let s = poly([b, c, ap], m.r) + poly([a, b, ap], m.l);
+  let s = poly([b, c, ap], m.r, { sw: 0 }) + poly([a, b, ap], m.l, { sw: 0 });
   if (tiles) {
     for (let i = 1; i < 4; i++) {
       const t = i / 4;
       const la = mixPt(a, ap, t);
       const lb = mixPt(b, ap, t);
       const lc = mixPt(c, ap, t);
-      s += line(la, lb, m.line, 1, 0.35) + line(lb, lc, m.line, 1, 0.45);
+      s += line(la, lb, m.line, 0.75, 0.4) + line(lb, lc, m.line, 0.75, 0.5);
     }
   }
+  // 两坡交界的脊：迎光一侧，亮棱；外圈重轮廓
+  s += line(b, ap, mix(m.l, BEVEL, 0.48), 1.1, 0.6);
+  s += outline([a, b, c, ap], m.l, 2);
   return s;
 }
 function mixPt(a: Pt, b: Pt, t: number): Pt {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-}
-
-/** 两坡屋顶：屋脊沿 gx 方向 */
-export function gable(x0: number, y0: number, x1: number, y1: number, z: number, h: number, m: Mat, wall: Mat, over = 0.1): string {
-  const cy = (y0 + y1) / 2;
-  const gEnd = poly([P(x1, y0, z), P(x1, y1, z), P(x1, cy, z + h)], wall.r);
-  const front = [P(x0 - over, y1 + over, z), P(x1 + over, y1 + over, z), P(x1 + over, cy, z + h), P(x0 - over, cy, z + h)];
-  let s = gEnd + poly(front, m.l);
-  const n = Math.max(3, Math.round((x1 - x0) * 5));
-  for (let i = 1; i < n; i++) {
-    const x = x0 - over + ((x1 - x0 + over * 2) * i) / n;
-    s += line(P(x, y1 + over, z), P(x, cy, z + h), m.line, 1, 0.4);
-  }
-  s += line(P(x0 - over, cy, z + h), P(x1 + over, cy, z + h), m.t, 2);
-  return s;
 }
 
 /** 圆柱：中心格坐标 (gx, gy)、屏幕半径 rx，高度 z0..z1 */
@@ -214,13 +234,27 @@ export function cyl(gx: number, gy: number, rx: number, z0: number, z1: number, 
   let s = `<defs><linearGradient id="${g}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${lighten(m.l, 0.15)}"/><stop offset="0.45" stop-color="${m.l}"/><stop offset="1" stop-color="${m.r}"/></linearGradient></defs>`;
   const body = `M${f(x - rx)},${f(yt)} L${f(x - rx)},${f(yb)} A${f(rx)},${f(ry)} 0 0 0 ${f(x + rx)},${f(yb)} L${f(x + rx)},${f(yt)} Z`;
   s += path(body, `url(#${g})`, { sw: 0 });
-  s += wear([[x - rx, yb + ry], [x + rx, yb + ry], [x + rx, yt], [x - rx, yt]], m.l, 'L', { d: body });
-  s += path(body, 'none', { sw, stroke: outlineOf(m.l, OUT) });
+  s += wear([[x - rx, yb + ry], [x + rx, yb + ry], [x + rx, yt], [x - rx, yt]], m.l, 'L', m.kind, { d: body });
+  s += path(body, 'none', { sw: sw * OUTLINE, stroke: rim(m.l) });
   for (let i = 1; i <= bands; i++) {
     const yy = yt + ((yb - yt) * i) / (bands + 1);
-    s += path(`M${f(x - rx)},${f(yy)} A${f(rx)},${f(ry)} 0 0 0 ${f(x + rx)},${f(yy)}`, 'none', { stroke: m.line, sw: 1.2, op: 0.55 });
+    s += path(`M${f(x - rx)},${f(yy)} A${f(rx)},${f(ry)} 0 0 0 ${f(x + rx)},${f(yy)}`, 'none', { stroke: m.line, sw: 1, op: 0.55 });
   }
-  s += ell(x, yt, rx, ry, m.t, { sw });
+  // 顶面：前半圈是和侧面的交界（迎光亮棱），后半圈是外轮廓（重）
+  s += ell(x, yt, rx, ry, m.t, { sw: 0 });
+  // 木台顶面拼板：顺等距方向 (2, 1) 每 7 像素一道板缝（1× 下光滑平涂像塑料）。端点直接解到椭圆上（(d+2t)² + 4t² = rx²），不用 clipPath
+  if (m.kind === 'wood' && rx >= 14) {
+    const seg: Array<[Pt, Pt]> = [];
+    for (let d = -rx + 7; d < rx - 2; d += 7) {
+      const k = Math.sqrt(2 * rx * rx - d * d);
+      const ta = (-d - k) / 4 + 0.6;
+      const tb = (-d + k) / 4 - 0.6;
+      seg.push([[x + d + 2 * ta, yt + ta], [x + d + 2 * tb, yt + tb]]);
+    }
+    s += lines(seg, m.line, 1, 0.4);
+  }
+  s += path(`M${f(x - rx)},${f(yt)} A${f(rx)},${f(ry)} 0 0 0 ${f(x + rx)},${f(yt)}`, 'none', { stroke: mix(m.t, BEVEL, 0.48), sw: 1.1, op: 0.75 });
+  if (sw > 0) s += path(`M${f(x - rx)},${f(yt)} A${f(rx)},${f(ry)} 0 0 1 ${f(x + rx)},${f(yt)}`, 'none', { stroke: rim(m.l), sw: sw * OUTLINE });
   return s;
 }
 
@@ -232,13 +266,20 @@ export function cone(gx: number, gy: number, rx: number, z: number, h: number, m
   const x = c[0];
   const yb = c[1] - z;
   const ya = yb - h;
-  let s = path(`M${f(x - r)},${f(yb)} L${f(x)},${f(ya)} L${f(x + r)},${f(yb)} A${f(r)},${f(ry)} 0 0 1 ${f(x - r)},${f(yb)} Z`, m.l);
+  let s = path(`M${f(x - r)},${f(yb)} L${f(x)},${f(ya)} L${f(x + r)},${f(yb)} A${f(r)},${f(ry)} 0 0 1 ${f(x - r)},${f(yb)} Z`, m.l, { sw: 0 });
   s += path(`M${f(x + r * 0.15)},${f(ya + h * 0.04)} L${f(x + r)},${f(yb)} A${f(r)},${f(ry)} 0 0 1 ${f(x)},${f(yb + ry)} Z`, m.r, { sw: 0 });
-  s += path(`M${f(x - r)},${f(yb)} L${f(x)},${f(ya)} L${f(x + r)},${f(yb)} A${f(r)},${f(ry)} 0 0 1 ${f(x - r)},${f(yb)} Z`, 'none');
+  // 迎光的左前一条亮面 + 两圈瓦缝，最后才是外轮廓（不然锥顶是一块平涂色板）
+  s += path(`M${f(x)},${f(ya)} L${f(x - r * 0.7)},${f(yb + ry * 0.71)} L${f(x - r * 0.3)},${f(yb + ry * 0.95)} Z`, mix(m.t, BEVEL, 0.25), { sw: 0, op: 0.6 });
+  s += line([x, ya + 1], [x - r * 0.3, yb + ry * 0.95], mix(m.t, BEVEL, 0.48), 1.1, 0.7);
+  for (const t of [0.35, 0.68]) {
+    const rr = r * (1 - t);
+    s += path(`M${f(x - rr)},${f(yb - h * t)} A${f(rr)},${f(rr / 2)} 0 0 0 ${f(x + rr)},${f(yb - h * t)}`, 'none', { stroke: m.line, sw: 0.9, op: 0.45 });
+  }
+  s += path(`M${f(x - r)},${f(yb)} L${f(x)},${f(ya)} L${f(x + r)},${f(yb)} A${f(r)},${f(ry)} 0 0 1 ${f(x - r)},${f(yb)} Z`, 'none', { sw: 2 * OUTLINE, stroke: rim(m.l) });
   return s;
 }
 
-/** 一根粗管子（炮管、枪管）：从 a 到 b，粗细 w1→w2 */
+/** 一根粗管子（炮管、枪管）：从 a 到 b，粗细 w1→w2；fill 必须是 #rrggbb（要按它混出四段色带和外轮廓） */
 export function tube(a: Pt, b: Pt, w1: number, w2: number, fill: string, hi?: string): string {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
@@ -251,17 +292,22 @@ export function tube(a: Pt, b: Pt, w1: number, w2: number, fill: string, hi?: st
     [b[0] - (nx * w2) / 2, b[1] - (ny * w2) / 2],
     [a[0] - (nx * w1) / 2, a[1] - (ny * w1) / 2],
   ];
-  let s = poly(p, fill);
+  // 金属圆柱四段色带（受光一侧在 -n）：上沿受光 28% → 中调 32% → 核心暗带 25% → 下沿地面反光 15%；外轮廓最后画
+  const band = (u0: number, u1: number, c: string): string => {
+    const q = (pt: Pt, w: number, u: number): Pt => [pt[0] - nx * w * (0.5 - u), pt[1] - ny * w * (0.5 - u)];
+    return poly([q(a, w1, u0), q(b, w2, u0), q(b, w2, u1), q(a, w1, u1)], c, { sw: 0 });
+  };
+  let s = poly(p, fill, { sw: 0 });
+  s += band(0, 0.28, mix(fill, '#c4d4e2', 0.45)) + band(0.6, 0.85, mix(scale(fill, 0.78), C.shadowCool!, 0.35)) + band(0.85, 1, mix(fill, '#586b82', 0.5));
   if (hi) {
-    const k = 0.25;
-    s += line(
-      [a[0] + nx * w1 * k * -1 - nx * 0, a[1] + ny * w1 * k * -1],
-      [b[0] + nx * w2 * k * -1, b[1] + ny * w2 * k * -1],
-      hi,
-      Math.max(1, Math.min(w1, w2) * 0.22),
-      0.85,
-    );
+    // 高光反射窄带：沿受光一侧、只占管长的 65%，留断口
+    const k = 0.32;
+    const t0 = 0.12;
+    const t1 = 0.77;
+    const at = (t: number): Pt => [a[0] + dx * t - nx * (w1 + (w2 - w1) * t) * k, a[1] + dy * t - ny * (w1 + (w2 - w1) * t) * k];
+    s += line(at(t0), at(t1), hi, Math.max(1, Math.min(w1, w2) * 0.2), 0.8);
   }
+  s += outline(p, fill, 1.6);
   return s;
 }
 

@@ -164,6 +164,8 @@ export function renderSheet(bs: TdScene): void {
         if (c.disabled) return;
         sfx(buildSound(false));
         act(bs, { type: 'build', slot: bs.openSlot, kind: k });
+        // 造完就关面板、游戏接着走：留着面板（换成这座塔的升级页）每造一座都要多点一下关掉，开着又一直暂停；要升级再点这座塔
+        closeSheet(bs);
       });
     });
     const locked = TEMP_KINDS.length - kinds.length;

@@ -6,6 +6,7 @@ import { BUILDINGS, CAMPAIGN, RAID_HERO, SKILLS } from '../content/index.ts';
 import { battleFingerprint, battleResult, createBattle, stepBattle } from './battle.ts';
 import { BATTLE_TICKS, BEACH, ISLAND, RULES_VERSION, UNIT } from './types.ts';
 import type { ArmySetup, BattleAction, BattleResult, BattleSetup, Placed, Res, SkillKind } from './types.ts';
+import { isObj } from './validate.ts';
 
 /** 防守方一场最多掉仓库里的百分之几（按摧毁率折算） */
 export const LOOT_PCT = 20;
@@ -32,7 +33,6 @@ export function replayRaid(setup: BattleSetup, actions: BattleAction[], endTick 
   return { result: { ...battleResult(s), over: true }, fingerprint: battleFingerprint(s), ticks: s.tick };
 }
 
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isInt = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
 const CMIN = -BEACH * UNIT;
 const CMAX = (ISLAND + BEACH) * UNIT;

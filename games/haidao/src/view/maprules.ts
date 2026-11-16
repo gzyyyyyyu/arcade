@@ -9,13 +9,9 @@ export interface MapSource extends MapRules {
   island(id: string): MapIslandDef | undefined;
 }
 
-let src: MapSource = { ...MAP_RULES, island: mapIsland };
+const src: MapSource = { ...MAP_RULES, island: mapIsland };
 
 export const mapRules = (): MapSource => src;
-/** 换规则实现（测试用） */
-export function setMapRules(r: MapSource): void {
-  src = r;
-}
 
 /** 北京时间的日期 'YYYY-MM-DD'（航线一天一条，按北京时间换天） */
 export function beijingDay(now = Date.now()): string {

@@ -79,29 +79,45 @@ ${W} .hd-key { display:none; }
   ${W} .hd-td-skill { width:60px; min-height:60px; }
   ${W} .hd-td-call { min-height:60px; }
   ${W} .hd-battle .hd-bar { left:88px; right:52px; max-width:none; flex-wrap:nowrap; gap:4px; }
+  /* 窄于 380（360、375）：侦察期计时牌带「侦察中」，三块牌子要约 235 宽，左边让给「大厅」后 360 宽只剩 220，字溢出、星星出框。
+     「大厅」只留小房子图标（docs/ui.md 第 1 节允许窄屏只留图标，点区仍是 44×44），顶栏左边从 88 让到 54；390 宽放得下，不动 */
+  @media (max-width:379px) {
+    ${W} .hd-battle .hd-hall { width:44px; min-width:44px; padding:0; justify-content:center; }
+    ${W} .hd-battle .hd-hall span { display:none; }
+    ${W} .hd-battle .hd-bar { left:54px; }
+  }
   ${W} .hd-battle .hd-bar .hd-pill { flex:0 1 auto; min-width:0; padding:0 8px 0 6px; gap:4px; }
   ${W} .hd-battle .hd-bar .hd-pill b { font-size:14px; }
   ${W} .hd-battle .hd-bar .hd-stars .hd-img { height:18px !important; width:18px !important; }
-  /* 登陆战竖屏底部两行：上一行 = 能量 + 技能（小方块）+ 右端的加速 / 撤退，下一行 = 兵种卡占满整宽（出兵是主操作，在拇指区；放不下的横向滑，右缘渐隐提示）。
-     兵种行高度写死（62），加速 / 撤退按它算贴在上一行的右端 */
-  ${W} .hd-battle .hd-bar2 { top:auto; bottom:calc(70px + env(safe-area-inset-bottom,0px)); left:auto; right:6px; z-index:31; gap:8px; }
-  ${W} .hd-battle .hd-bar2 .hd-btn { min-width:44px; min-height:44px; padding:0 8px; }
-  ${W} .hd-cards { padding-bottom:calc(4px + env(safe-area-inset-bottom,0px)); }
-  ${W} .hd-cards .hd-boat.sel { transform:translateY(-4px); }
-  ${W} .hd-cards { flex-direction:column; align-items:stretch; gap:2px; left:0; right:0; padding:2px 0 calc(4px + env(safe-area-inset-bottom,0px)); }
-  ${W} .hd-cards .hd-skills { flex:none; justify-content:flex-start; align-items:flex-end; gap:8px; padding:4px 114px 0 6px; overflow:visible; }
-  ${W} .hd-cards .hd-boats { flex:none; box-sizing:border-box; height:62px; min-width:0; gap:4px; padding:6px 6px 2px; justify-content:flex-start; }
+  /* 登陆战竖屏底部两行，合计 96：上一行 = 能量 + 技能（48×44：图标在上、能量在下；名字藏起来，选中时提示条、能量不够时的提示都会说出技能名）
+     + 右端的加速 / 撤退，下一行 = 兵种卡（44 高，宽跟着「图标 + 名字 ×数量」走、至少 76，免得数量压到隔壁卡）占满整宽（出兵是主操作，在拇指区；放不下的横向滑，右缘渐隐提示）。
+     相邻点按目标一律隔 8（docs/ui.md）：两行之间 8、卡与卡 8、第三个技能和加速钮 8；选中的兵种卡竖屏不上浮（上浮会吃掉两行之间的 8），
+     靠金底和外圈金光认。兵种行高度写死（52 = 上边距 8 + 卡 44），加速 / 撤退按它算贴在上一行的右端；
+     360×640 上顶栏贴顶（下面 max-height:700px 那段），上下 HUD 合计 44 + 96 = 140，≤ 22% 屏高 */
+  ${W} .hd-battle .hd-bar2 { top:auto; bottom:calc(52px + env(safe-area-inset-bottom,0px)); left:auto; right:6px; z-index:31; gap:8px; }
+  ${W} .hd-battle .hd-bar2 .hd-btn { min-width:44px; min-height:44px; height:44px; padding:0 8px; }
+  ${W} .hd-cards .hd-boat.sel { transform:none; }
+  ${W} .hd-cards { flex-direction:column; align-items:stretch; gap:0; left:0; right:0; padding:0 0 env(safe-area-inset-bottom,0px); }
+  ${W} .hd-cards .hd-skills { flex:none; justify-content:flex-start; align-items:center; gap:8px; padding:0 114px 0 6px; overflow:visible; }
+  ${W} .hd-cards .hd-boats { flex:none; box-sizing:border-box; height:52px; min-width:0; gap:8px; padding:8px 6px 0; justify-content:flex-start; }
   ${W} .hd-cards .hd-boats > :first-child { margin-left:auto; }
   ${W} .hd-cards .hd-boats > :last-child { margin-right:auto; }
   ${W} .hd-cards .hd-boats.hd-more { -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent); }
-  ${W} .hd-cards .hd-boat, ${W} .hd-cards .hd-boats.hd-tight .hd-boat { flex:0 0 72px; min-width:72px; max-width:none; min-height:54px; }
-  ${W} .hd-cards .hd-en { padding:2px 6px; }
-  ${W} .hd-cards .hd-skill { flex:none; width:48px; min-width:44px; flex-direction:column; gap:0; padding:2px 2px; }
+  ${W} .hd-cards .hd-boat, ${W} .hd-cards .hd-boats.hd-tight .hd-boat { flex:0 0 auto; min-width:76px; max-width:none; min-height:44px; height:44px; flex-direction:row; gap:2px; padding:0 6px; white-space:nowrap; }
+  ${W} .hd-cards .hd-en { padding:2px 6px; min-height:36px; }
+  ${W} .hd-cards .hd-skill { flex:none; width:48px; min-width:48px; height:44px; min-height:44px; flex-direction:column; gap:0; padding:0 2px; }
+  ${W} .hd-cards .hd-skill small { font-size:14px; line-height:1; }
+  ${W} .hd-cards .hd-skill.off { padding-bottom:8px; }
+  /* 48×44 里放得下图标、能量数、进度条和锁，但不能互相压：能量不够时图标缩到 18，锁缩到 12 挪到右上角，进度条贴底边、高 4 */
+  ${W} .hd-cards .hd-skill.off .hd-img { height:18px !important; width:18px !important; }
+  ${W} .hd-cards .hd-skill.off::before { left:6px; right:6px; bottom:2px; height:4px; border-width:1px; }
+  ${W} .hd-cards .hd-skill.off::after { left:auto; right:0; top:0; width:12px; height:12px; }
   ${W} .hd-cards .hd-skill .hd-img { height:20px !important; width:20px !important; }
-  ${W} .hd-cards .hd-skill .hd-sk-t { align-items:center; }
+  ${W} .hd-cards .hd-skill .hd-sk-n { display:none; }
   ${W} .hd-cards .hd-boat small { display:none; }
-  ${W} .hd-cards .hd-skill { min-height:44px; }
-  ${W} .hd-cards .hd-boat .hd-img { height:28px !important; width:auto !important; }
+  ${W} .hd-cards .hd-boat .hd-img { height:26px !important; width:auto !important; }
+  /* 出完的兵种卡只有 44 高，原来 20 的锁压在左上角正好盖住小兵；照技能钮缩到 12、挪到右上角 */
+  ${W} .hd-cards .hd-boat.done::after { left:auto; right:0; top:0; width:12px; height:12px; }
   ${W} .hd-cards .hd-hint { position:absolute; left:50%; bottom:calc(100% + 4px); transform:translateX(-50%); white-space:nowrap; }
 }
 
@@ -110,8 +126,13 @@ ${W} .hd-key { display:none; }
    （主寨等级在个人面板里看）；底栏钮压到 52 / 48 高、内边距 4。顶上只剩第一行。点按目标 ≥ 44、间距 ≥ 8 */
 @media (max-width:559px) and (orientation:portrait) {
   ${W} .hd-td .hd-td-bar2 { top:auto; left:auto; right:6px; z-index:31; align-items:center; gap:8px; }
+  /* 资源牌的上限在所有手机竖屏都写成「/ 25,200」（去掉「上限」两个字）：390 宽上「上限 25,200」比牌子宽 3 像素、穿出右边框，
+     金额不截断（仓库约定），放不下就换短说法 */
+  ${W} .hd-base .hd-bar .hd-pill .hd-capk { display:none; }
+  ${W} .hd-base .hd-bar .hd-pill small::before { content:'/ '; }
   /* 基地只在矮竖屏收（390×844 的基地顶底栏本来就只占 13%） */
   @media (max-height:700px) {
+  ${W} .hd-battle .hd-hall, ${W} .hd-battle .hd-bar { top:0; }
   ${W} .hd-base .hd-bar2 { top:auto; left:auto; right:6px; z-index:31; align-items:center; gap:8px; }
   ${W} .hd-base .hd-bar2 { bottom:calc(4px + env(safe-area-inset-bottom,0px)); height:52px; }
   ${W} .hd-base .hd-bar2 .hd-pill { display:none; }
@@ -119,8 +140,6 @@ ${W} .hd-key { display:none; }
   ${W} .hd-base .hd-bar { gap:6px; }
   ${W} .hd-base .hd-bar .hd-pill { padding:0 6px 0 4px; gap:4px; }
   ${W} .hd-base .hd-bar .hd-pill .hd-img { height:20px !important; width:20px !important; }
-  ${W} .hd-capk { display:none; }
-  ${W} .hd-base .hd-bar .hd-pill small::before { content:'/ '; }
   ${W} .hd-base .hd-profile { width:44px; }
   ${W} .hd-base .hd-live-xbtn { margin-left:0; }
   ${W} .hd-bottom { gap:8px; padding:4px 110px calc(4px + env(safe-area-inset-bottom,0px)) 6px; }
@@ -151,8 +170,9 @@ ${W} .hd-key { display:none; }
   ${W} .hd-td-call small { display:none; }
   @media (max-height:700px) { ${W} .hd-tdsel.hd-tdsel-main { padding-top:4px; padding-bottom:4px; } }
   ${W} .hd-td-plan, ${W} .hd-td-banner { top:calc(env(safe-area-inset-top, 0px) + 58px); }
-  /* 第二行搬走后顶栏下面是空的：「全景」「回到船」钮上提到预告卡右边的那一列（卡展开时已给它们让出 74 像素，见 td-ui.ts） */
-  ${W} .hd-td .hd-fitbtn { top:calc(env(safe-area-inset-top, 0px) + 62px); }
+  /* 第二行搬走后顶栏下面是空的：「全景」「回到船」钮上提到预告卡右边的那一列（卡展开时已给它们让出 74 像素，见 td-ui.ts）；
+     登陆战竖屏的次顶栏也搬到了底部，「全景」同样贴着顶栏下沿，落在岛上方的空海里，不压右上的沙滩 */
+  ${W} .hd-td .hd-fitbtn, ${W} .hd-battle .hd-fitbtn { top:calc(env(safe-area-inset-top, 0px) + 62px); }
   ${W} .hd-td .hd-esc-back { top:calc(env(safe-area-inset-top, 0px) + 126px); }
   ${W} .hd-td-paused { top:calc(env(safe-area-inset-top, 0px) + 104px); }
   ${W} .hd-td-store { top:calc(env(safe-area-inset-top, 0px) + 70px); }

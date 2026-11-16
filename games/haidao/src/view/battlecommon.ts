@@ -1,7 +1,7 @@
 /** 登陆战场景共用的类型、常量和小工具（BattleScene 和拆出去的 battle*.ts 都用，不依赖场景实例） */
 import Phaser from 'phaser';
 import { TROOPS } from '../content/index.ts';
-import { TICKS_PER_SEC, type BattleAction, type BattleResult, type BattleSetup, type TroopKind } from '../core/types.ts';
+import type { BattleAction, BattleResult, BattleSetup, TroopKind } from '../core/types.ts';
 import type { DamageStage } from './motion.ts';
 import type { Rig } from './rigsprite.ts';
 
@@ -77,8 +77,6 @@ export interface BSpr {
 
 /** 兵在画面上按 id 散开的半径（世界单位，1 格 = 100）：只动画面，不进规则；和规则的小道偏移叠加最多约半格 */
 export const SPREAD_R = 10;
-/** 单次伤害到这个数就算重击（炮、迫击炮、爆破手一类）：数字画大、触发命中停顿 */
-export const HEAVY_HIT = 90;
 
 /** 血条上下错开时的缝（CSS 像素）；条的大小、显示时间见 bars.ts */
 export const BAR_GAP = 2;
@@ -86,7 +84,6 @@ export const BAR_GAP = 2;
 /** 英雄攻击没有出手拍可对齐，按这个周期循环 */
 export const HERO_ATK_MS = 700;
 
-export const STEP_MS = 1000 / TICKS_PER_SEC;
 /** 弹道样子：核心新增的弹种（火箭、鱼叉）查不到时按普通炮弹画 */
 export const PROJ_FX: Record<string, 'ball' | 'bullet' | 'shell' | 'flame' | 'rocket' | 'harpoon' | 'tar' | 'shock' | 'grenade'> = { grenade: 'grenade', shock: 'shock', ball: 'ball', shell: 'shell', barrage: 'shell', dynamite: 'ball', keg: 'shell', bullet: 'bullet', flame: 'flame', rocket: 'rocket', harpoon: 'harpoon', tar: 'tar' };
 /** 要朝飞行方向转的弹种 */

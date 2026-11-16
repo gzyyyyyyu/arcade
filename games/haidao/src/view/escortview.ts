@@ -20,6 +20,7 @@ import { button, el, toast } from './ui.ts';
 import { DEPTH } from './depth.ts';
 import type { Occluder } from './occlude.ts';
 import { SHIP_BAR, ghostAlpha, trailStep } from './shiplook.ts';
+import { REDUCED } from './feel.ts';
 
 type EAct = EscortAction extends infer U ? (U extends { t: number } ? Omit<U, 't'> : never) : never;
 
@@ -35,7 +36,6 @@ export interface EscortHost {
   float: (wx: number, wy: number, str: string, color: string, size: number) => void;
 }
 
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** 开场推镜走完之前不抢镜头（毫秒，FitCam 的 INTRO_HOLD + INTRO_PUSH 再留一点） */
 const INTRO_MS = 2100;
 const LAND_PHONE = '(orientation:landscape) and (max-height:500px)';
@@ -350,7 +350,7 @@ export class EscortView {
     const ahead = iso(sp.x + sp.hx, sp.y + sp.hy);
     const sdx = ahead.x - w.x;
     const sdy = ahead.y - w.y;
-    const bob = STILL ? 0 : Math.sin(now / 420) * (e.pace === 'hold' ? 1 : 2.4);
+    const bob = REDUCED ? 0 : Math.sin(now / 420) * (e.pace === 'hold' ? 1 : 2.4);
     this.ship.setPosition(w.x, w.y + bob).setDepth(sp.x + sp.y + 0.4).setFlipX(sdx < 0).setVisible(!e.sunk);
     this.ship.setAlpha(e.sunk ? 0 : 1);
     this.overShip(w.x, w.y + bob, sp.x + sp.y + 0.4, sdx < 0, e, now);
@@ -370,7 +370,7 @@ export class EscortView {
     this.lastNow = now;
     const occ = (this.h.scene as unknown as { occ?: Occluder }).occ;
     const top = !e.sunk && occ ? occ.blocker(x, y - 30, depth) : null;
-    this.ghostA = ghostAlpha(this.ghostA, !!top, dt, STILL);
+    this.ghostA = ghostAlpha(this.ghostA, !!top, dt, REDUCED);
     const g = this.ghost;
     if (this.ghostA > 0.01) {
       g.setVisible(true).setAlpha(this.ghostA).setPosition(x, y).setFlipX(flip);
@@ -382,7 +382,7 @@ export class EscortView {
       return;
     }
     const pct = hullPercent(e.hull, e.def.hull);
-    this.trail = STILL ? pct : trailStep(this.trail, pct, dt);
+    this.trail = REDUCED ? pct : trailStep(this.trail, pct, dt);
     const sig = `${pct}|${Math.round(this.trail)}`;
     hb.setVisible(true).setPosition(x, y - SHIP_BAR.up);
     if (sig === this.barSig) return;
@@ -404,7 +404,7 @@ export class EscortView {
     const px = -uy;
     const py = ux;
     const reach = pace === 'rush' ? 70 : pace === 'sail' ? 44 : 0;
-    const pulse = STILL ? 0 : Math.sin(now / 180) * 3;
+    const pulse = REDUCED ? 0 : Math.sin(now / 180) * 3;
     if (reach === 0) {
       g.lineStyle(2.5, 0xffffff, 0.55).strokeEllipse(x, y + 6, 70 + pulse, 22 + pulse / 2);
       return;
@@ -506,7 +506,7 @@ export class EscortView {
     switch (e.type) {
       case 'bite':
         this.hit(e.dmg);
-        if (!STILL) this.h.float(w.x, w.y - 70, `-${e.dmg}`, '#ff6b5a', 16);
+        if (!REDUCED) this.h.float(w.x, w.y - 70, `-${e.dmg}`, '#ff6b5a', 16);
         sfx('hitWood');
         break;
       case 'mend':
@@ -528,7 +528,7 @@ export class EscortView {
   private hit(dmg: number): void {
     const b = this.bar;
     if (!b) return;
-    if (!STILL) {
+    if (!REDUCED) {
       b.wrap.classList.remove('bite');
       void b.wrap.offsetWidth;
       b.wrap.classList.add('bite');

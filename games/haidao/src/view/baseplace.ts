@@ -20,10 +20,10 @@ import { closeCtx, closeRing, drawSel, openRing } from './basemenu.ts';
 import { doCollect } from './baseupgrade.ts';
 import { closeSheet, openInfo, openSheet, openPresets, short } from './basepanel.ts';
 import { measureSafe, topOf } from './basegeom.ts';
+import { REDUCED } from './feel.ts';
 
 /** 贴图不透明的判定阈值（和 textures.ts 的外框扫描一致） */
 const ALPHA_MIN = 24;
-const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** 参与选中判定的建筑：占地 + 画的先后（读存档和精灵，不画东西） */
 function pickItems(bs: BaseScene): PickItem[] {
@@ -129,7 +129,7 @@ export function fadeFrame(bs: BaseScene, time: number, dt: number): void {
     }
     if (bs.upfx.busy(n.img) || bs.place?.id === id) continue;
     const cur = bs.fade.get(id) ?? 1;
-    const nxt = fadeStep(cur, bs.occ.has(id) ? OCC_ALPHA : 1, dt, STILL);
+    const nxt = fadeStep(cur, bs.occ.has(id) ? OCC_ALPHA : 1, dt, REDUCED);
     n.img.setAlpha(nxt);
     if (nxt >= 1) bs.fade.delete(id);
     else bs.fade.set(id, nxt);

@@ -20,12 +20,12 @@ export const SEA_EXT = BEACH + 3;
 const g = (c: string): string => gradeHex(c);
 /** 地面用色（都过一遍配色分级，和素材统一） */
 export const TERRAIN = {
-  seaFar: g('#1b86ab'),
-  seaMid: g('#2aa9c0'),
-  seaNear: g('#62d6cb'),
-  seaShore: g('#a4efdc'),
+  seaFar: g(C.seaDeep!),
+  seaMid: g(C.sea!),
+  seaNear: g(C.shallow!),
+  seaShore: g(C.shallowL!),
   foam: '#f4fdf8',
-  sandWet: g('#c9a868'),
+  sandWet: g(C.sandWet!),
   sandMid: g('#e3c57e'),
   sand: g(C.sand!),
   sandL: g(C.sandL!),
@@ -34,7 +34,7 @@ export const TERRAIN = {
   grassD: g('#3f9a3c'),
   grassDD: g('#2f7d36'),
   grassL: g('#9bd868'),
-  soil: g('#8a6234'),
+  soil: g('#9e7442'),
   soilD: g('#5f4120'),
 };
 /** 摄像机背景色 = 最远处海色，画布边缘不露底 */
@@ -134,36 +134,62 @@ export interface TerrainOpts {
 export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void {
   const T = TERRAIN;
   const soft = o.soft;
-  // ---- 海：一圈圈由远到近的色带，轮廓带起伏
-  cx.fillStyle = T.seaFar;
-  cx.fillRect(o.x0 - 4, o.y0 - 4, o.w + 8, o.h + 8);
-  const BANDS = 30;
-  const e0 = SEA_EXT;
-  const e1 = BEACH;
-  for (let i = 0; i < BANDS; i++) {
-    const t = i / (BANDS - 1); // 0 最远 → 1 最近
-    const e = e0 + (e1 - e0) * t;
-    // 远处深 → 中 → 近处浅 → 岸边最亮（分段混色，近岸变化快）
-    const c = t < 0.5 ? mix(T.seaFar, T.seaMid, t / 0.5) : t < 0.85 ? mix(T.seaMid, T.seaNear, (t - 0.5) / 0.35) : mix(T.seaNear, T.seaShore, (t - 0.85) / 0.15);
-    trace(cx, shoreline(e, 10, 90 + (i >> 2)));
-    cx.fillStyle = c;
-    cx.fill();
+  // ---- 海：远海底色上一层压扁成岛形的径向渐变（近岸浅青 → 远海深蓝，平滑过渡），叠 6 层环礁浅带和大片深浅斑（洋流）。
+  // 这一层全是没有细节的柔和底色，整层画在 1/4 分辨率的小画布上再一次拉伸贴回：全尺寸的渐变填充、羽化、几十个大斑各要几十毫秒，
+  // 小画布上只要几毫秒，贴回一次十来毫秒，整层比改前 30 圈硬色阶还省。细的短波纹、亮点还在全尺寸上画
+  const q = o.s / 4;
+  const sm = document.createElement('canvas');
+  sm.width = Math.ceil(o.w * q);
+  sm.height = Math.ceil(o.h * q);
+  const sx = sm.getContext('2d')!;
+  sx.setTransform(q, 0, 0, q, -o.x0 * q, -o.y0 * q);
+  sx.fillStyle = T.seaFar;
+  sx.fillRect(o.x0 - 4, o.y0 - 4, o.w + 8, o.h + 8);
+  const mid = iso(ISLAND / 2, ISLAND / 2);
+  const far = iso(ISLAND / 2, -SEA_EXT).y - mid.y;
+  sx.save();
+  sx.translate(mid.x, mid.y);
+  sx.scale(2, 1);
+  const rg = sx.createRadialGradient(0, 0, 0, 0, 0, -far);
+  rg.addColorStop(0, T.seaNear);
+  rg.addColorStop(0.42, T.seaNear);
+  rg.addColorStop(0.62, T.seaMid);
+  rg.addColorStop(0.85, T.seaFar);
+  rg.addColorStop(1, T.seaFar);
+  sx.fillStyle = rg;
+  sx.fillRect(-o.w, -o.h, o.w * 2, o.h * 2);
+  sx.restore();
+  // 环礁浅带只画羽化后的影子（形状本身移到画布外，影子偏移回来），叠起来是渐变、没有一圈圈硬边。
+  // 6 层收在离岛 3.2–5.2 格，加上羽化也落在地形画布（离岛 SEA_EXT = 6 格）以内，四个尖角外不会被画布边直线切断
+  const off = (o.w + 200) * 2;
+  sx.save();
+  sx.shadowOffsetX = -off * q;
+  sx.shadowBlur = 22 * q;
+  sx.fillStyle = '#000';
+  for (let i = 0; i < 6; i++) {
+    const e = BEACH + 0.2 + i * 0.4;
+    trace(sx, shoreline(e, 10, 90 + i).map((p) => ({ x: p.x + off, y: p.y })));
+    sx.shadowColor = rgba(i < 3 ? g(C.shallowL!) : g(C.seaLight!), 0.2);
+    sx.fill();
   }
-  // 海面质感：大片深浅斑（洋流）、零散的短波纹和细碎的亮点（沙滩画在它上面，盖住岛内的部分）
+  sx.restore();
+  // 海面质感：大片深浅斑（洋流，在小画布上）、零散的短波纹和细碎的亮点（全尺寸；沙滩画在它上面，盖住岛内的部分）
   const Rw = rng(h32(5, 9, 1));
   // 只在离岛不到 SEA_EXT-1 格的范围里撒（画布边缘保持纯远海色，和摄像机背景接上）
   const sea = (): Pt => {
     for (let k = 0; k < 40; k++) {
       const p = { x: o.x0 + Rw() * o.w, y: o.y0 + Rw() * o.h };
-      const q = unIso(p.x, p.y);
-      if (Math.max(-q.gx, q.gx - ISLAND, -q.gy, q.gy - ISLAND) < SEA_EXT - 1) return p;
+      const u = unIso(p.x, p.y);
+      if (Math.max(-u.gx, u.gx - ISLAND, -u.gy, u.gy - ISLAND) < SEA_EXT - 1) return p;
     }
     return iso(ISLAND / 2, ISLAND / 2);
   };
   for (let i = 0; i < 46; i++) {
     const p = sea();
-    blob(cx, p.x, p.y, 70 + Rw() * 110, Rw() < 0.5 ? T.seaFar : T.seaNear, soft ? 0.1 : 0.16);
+    blob(sx, p.x, p.y, 70 + Rw() * 110, Rw() < 0.5 ? T.seaFar : T.seaNear, soft ? 0.1 : 0.16);
   }
+  // 双线性拉伸（默认的 low）：底色本来就柔，看不出差别；'high' 的滤波在大图上要多花几十毫秒
+  cx.drawImage(sm, o.x0, o.y0, sm.width / q, sm.height / q);
   cx.lineCap = 'round';
   for (const [col, n, lw, a] of [[T.seaNear, 150, 1.6, 0.4], [T.foam, 90, 1.2, 0.28]] as const) {
     cx.strokeStyle = rgba(col, a);
@@ -212,17 +238,22 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     }
     cx.fill();
   }
-  // 沙丘波纹：几条浅色弧线
-  cx.strokeStyle = rgba(T.sandL, 0.5);
-  cx.lineWidth = 1.4;
-  cx.beginPath();
-  for (let i = 0; i < 70; i++) {
+  // 风成沙波纹：亮暗成对的 2 像素弧线，长 14–24（1× 下看得清）
+  cx.lineWidth = 2;
+  const rip: Array<[number, number, number]> = [];
+  for (let i = 0; i < 60; i++) {
     const p = iso(-BEACH + Rs() * (ISLAND + BEACH * 2), -BEACH + Rs() * (ISLAND + BEACH * 2));
-    const len = 8 + Rs() * 14;
-    cx.moveTo(p.x, p.y);
-    cx.quadraticCurveTo(p.x + len / 2, p.y - 2.2, p.x + len, p.y);
+    rip.push([p.x, p.y, 14 + Rs() * 10]);
   }
-  cx.stroke();
+  for (const [col, dy] of [[T.sandL, 0], [T.sandD, 2.2]] as const) {
+    cx.strokeStyle = rgba(col, 0.32);
+    cx.beginPath();
+    for (const [x, y, l] of rip) {
+      cx.moveTo(x, y + dy);
+      cx.quadraticCurveTo(x + l / 2, y + dy - 2.6, x + l, y + dy);
+    }
+    cx.stroke();
+  }
   // 贝壳：小圆片，粉、白、米色
   const shells = [g('#f6dccf'), g('#fff6e8'), g('#e9c7a6')];
   for (let i = 0; i < 46; i++) {
@@ -262,32 +293,36 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     }
   }
   cx.restore();
-  // 浪花线：沙滩外缘一条白边 + 外面一圈淡的
+  // 潮间带：湿沙内缘一条水渍线
+  cx.strokeStyle = rgba(g(C.sandWetD!), 0.45);
+  cx.lineWidth = 1.5;
+  trace(cx, shoreline(BEACH - 0.4, 7, 7));
+  cx.stroke();
+  // 浪花线：贴着水陆交界一条主浪（4 像素）+ 外面一圈淡的；再往外一道断续的副浪
   trace(cx, sandOuter);
   cx.strokeStyle = rgba(T.foam, 0.28);
   cx.lineWidth = 9;
   cx.stroke();
-  cx.strokeStyle = rgba(T.foam, 0.85);
-  cx.lineWidth = 2.6;
+  cx.strokeStyle = rgba(T.foam, 0.9);
+  cx.lineWidth = 4;
   cx.stroke();
-  cx.setLineDash([14, 22]);
+  cx.setLineDash([32, 15]);
   cx.strokeStyle = rgba(T.foam, 0.55);
   cx.lineWidth = 2;
-  trace(cx, shoreline(BEACH + 0.55, 12, 41));
+  trace(cx, shoreline(BEACH + 0.4, 12, 41));
   cx.stroke();
   cx.setLineDash([]);
 
-  // ---- 草地：先是泥土边（落在背光面：右下露一圈），再草坪
+  // ---- 草地：草皮比沙滩高一截。先在右下落一片沙上的影子，再垫一圈草根土唇（右下露出来），最后草坪
   const grassEdge = shoreline(0, 13, 3, true);
   cx.save();
-  cx.translate(0, 5);
+  cx.translate(5, 7);
+  trace(cx, grassEdge);
+  cx.fillStyle = 'rgba(110,78,38,0.28)';
+  cx.fill();
+  cx.translate(-2, -3);
   trace(cx, grassEdge);
   cx.fillStyle = T.soil;
-  cx.fill();
-  cx.translate(0, -2.5);
-  trace(cx, grassEdge);
-  cx.fillStyle = T.soilD;
-  cx.globalAlpha = 0.5;
   cx.fill();
   cx.restore();
   // 沙滩在草地边缘的阴影：贴着草边一圈暗沙
@@ -325,7 +360,7 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     blob(cx, p.x, p.y, 14 + Rg() * 18, T.soil, 0.2);
   }
   // 草叶：一把一把的小短线，深浅两色
-  for (const [col, n, a2] of [[T.grassDD, 1600, 0.5], [T.grassL, 1300, 0.55]] as const) {
+  for (const [col, n, a2] of [[T.grassDD, 900, 0.45], [T.grassL, 700, 0.5]] as const) {
     cx.strokeStyle = rgba(col, a2);
     cx.lineWidth = 1.1;
     cx.beginPath();
@@ -339,6 +374,19 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
       cx.lineTo(p.x + 2 - lean * 0.6, p.y - hh * 0.8);
     }
     cx.stroke();
+  }
+  // 三叶小草丛：6–10 像素的一簇，1× 下认得出（比满地的碎草叶清楚）
+  for (let i = 0; i < 45; i++) {
+    const p = onIsland(Rg, 0.5);
+    const k = 6 + Rg() * 4;
+    for (const [col, dx] of [[T.grassD, 0], [T.grassL, -1]] as const) {
+      cx.fillStyle = rgba(col, 0.35 + (dx ? 0.1 : 0));
+      cx.beginPath();
+      for (const an of [-0.6, 0, 0.6]) {
+        cx.ellipse(p.x + dx + Math.sin(an) * k * 0.45, p.y - k * 0.35, k * 0.18, k * 0.42, an, 0, Math.PI * 2);
+      }
+      cx.fill();
+    }
   }
   // 小花：白、黄、淡粉，稀疏
   const flowers = [g('#fffdf4'), g('#ffe27a'), g('#f7b8c4'), g('#cbb2f0')];
@@ -383,12 +431,52 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     cx.lineTo(b2.x, b2.y);
   }
   cx.stroke();
-  // 草地边缘内侧压暗一圈（背光感），和沙滩分开
-  cx.strokeStyle = rgba(T.grassDD, 0.35);
-  cx.lineWidth = 10;
+  cx.restore();
+  // 受光草眉：草边朝左上的那一半描一条亮绿（背光的右下只露土唇和落影，不画亮边）
+  const l1e = iso(0, ISLAND);
+  const l3e = iso(ISLAND, 0);
+  cx.save();
+  cx.beginPath();
+  cx.moveTo(l1e.x - 400, l1e.y + 40);
+  cx.lineTo(l3e.x + 400, l3e.y + 40);
+  cx.lineTo(l3e.x + 400, l3e.y - 4000);
+  cx.lineTo(l1e.x - 400, l1e.y - 4000);
+  cx.closePath();
+  cx.clip();
+  cx.strokeStyle = rgba(T.grassL, 0.65);
+  cx.lineWidth = 2;
   trace(cx, grassEdge);
   cx.stroke();
   cx.restore();
+  // 草簇：沿草边每 18–26 像素一簇三瓣，伸到沙上 4–6 像素，打碎一整条光滑的边
+  {
+    const c0 = iso(ISLAND / 2, ISLAND / 2);
+    const Rt = rng(h32(31, 7, 3));
+    let acc = 0;
+    let next = 18 + Rt() * 8;
+    for (let i = 1; i < grassEdge.length; i++) {
+      const { x: ax, y: ay } = grassEdge[i - 1]!;
+      const { x: bx, y: by } = grassEdge[i]!;
+      acc += Math.hypot(bx - ax, by - ay);
+      if (acc < next) continue;
+      acc = 0;
+      next = 18 + Rt() * 8;
+      const dx = bx - c0.x;
+      const dy = (by - c0.y) * 2;
+      const dl = Math.hypot(dx, dy) || 1;
+      const ox = (dx / dl) * (4 + Rt() * 2);
+      const oy = ((dy / dl) * (4 + Rt() * 2)) / 2;
+      const k = 8 + Rt() * 4;
+      cx.fillStyle = T.grass;
+      cx.beginPath();
+      for (const t of [-0.35, 0, 0.35]) cx.ellipse(bx + ox * 0.5 + t * k, by + oy * 0.5 - Math.abs(t) * 2, k * 0.22, k * 0.3, t, 0, Math.PI * 2);
+      cx.fill();
+      cx.fillStyle = rgba(T.grassL, 0.8);
+      cx.beginPath();
+      for (const t of [-0.35, 0, 0.35]) cx.ellipse(bx + ox * 0.5 + t * k - 0.6, by + oy * 0.5 - Math.abs(t) * 2 - 1.2, k * 0.1, k * 0.14, t, 0, Math.PI * 2);
+      cx.fill();
+    }
+  }
   // 草边的亮线（左上迎光的两条边更亮）
   cx.save();
   cx.strokeStyle = rgba('#fff4c0', 0.22);
