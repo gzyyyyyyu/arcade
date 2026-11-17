@@ -53,7 +53,7 @@ import { RAID_REGIONS, VIGIL_REGIONS, vigilRegion, EMERGE_KINDS, regionKind, reg
 import { BALANCE_57, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, EVENTS_57, FIRST_RUN_GUARD, lampShare, LIVE_EASE, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
 import { ASSIST, CHAR_FX, CHARACTERS, CURSE_FX, PERK_FX, REVIVE, type CurseId, type PerkId } from '../content/meta.ts';
 import { WEEKLY_FX } from '../content/weekly.ts';
-import { PICKS, PICKS_60, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
+import { PICKS, PICKS_60, PICKS_65, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
 import { BELL_STUN, PARADE, MAP_EVENT_AT, MAP_EVENT_KINDS, MAP_EVENT_WARN, MAP_EVENTS, TIDE_SLOW, WIND_PUSH, type MapEventKind } from '../content/mapEvents.ts';
 import { MARKET_GOODS, MARKET_PRICE, NIGHT_MARKET, type MarketGood } from '../content/market.ts';
 import {
@@ -3782,20 +3782,33 @@ function choicePool(w: World): { c: Choice; weight: number }[] {
     const { weapons, passives } = SCHOOLS[xf];
     for (const p of pool) if (p.c.kind === 'weapon' ? weapons.includes(p.c.id as WeaponId) : p.c.kind === 'passive' && passives.includes(p.c.id as PassiveId)) p.weight *= XINFA_MUL;
   }
-  // 缘分（规则 60）：手上有某个搭配的一件料，另一件料和它的进化被动权重 ×fateMul（几个搭配都指向同一张也只乘一次）
+  // 缘分（规则 60）：手上有某个搭配的一件料，另一件料和它的进化被动权重 ×fateMul；
+  // 规则 65 起本角色专属的搭配更重：都没拿时两件 ×ownMul，拿了一件时另一件和它的进化被动 ×ownHeldMul。几个搭配指向同一张只取最大的那个倍数
   if (w.newPicks) {
-    const fate = new Set<string>();
+    const mul = new Map<string, number>();
+    const bump = (id: string, m: number): void => {
+      if ((mul.get(id) ?? 1) < m) mul.set(id, m);
+    };
+    const own = w.identity65;
     for (const def of MERGES) {
       if (!mergeOpen(w, def)) continue;
+      const mine = own && !!def.only;
       const hasA = w.weapons.some((o) => o.id === def.a);
       const hasB = w.weapons.some((o) => o.id === def.b);
-      if (hasA === hasB) continue;
+      if (hasA === hasB) {
+        if (mine && !hasA) {
+          bump(def.a, PICKS_65.ownMul);
+          bump(def.b, PICKS_65.ownMul);
+        }
+        continue;
+      }
       const other = hasA ? def.b : def.a;
-      fate.add(other);
+      const m = mine ? PICKS_65.ownHeldMul : PICKS_60.fateMul;
+      bump(other, m);
       const evo = WEAPONS[other].evolve;
-      if (evo) fate.add(evo.with);
+      if (evo) bump(evo.with, m);
     }
-    for (const p of pool) if (fate.has(p.c.id)) p.weight *= PICKS_60.fateMul;
+    for (const p of pool) p.weight *= mul.get(p.c.id) ?? 1;
   }
   return pool;
 }

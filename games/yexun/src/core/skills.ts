@@ -5,6 +5,8 @@
  * 这个文件不 import step.ts（step 反过来 import 它）：要借 step 里的伤害、发子弹，由 step 传一份 SkillOps 进来。
  */
 import { CHAR_FX, PERK_FX, type CharacterId } from '../content/meta.ts';
+import { SCHOOLS } from '../content/guide.ts';
+import { XINFA_DMG } from '../content/pools.ts';
 import { PICKUP, PLAYER } from '../content/player.ts';
 import { WEAPONS, weaponStats, type WeaponId, type WeaponStats } from '../content/weapons.ts';
 import { dcos, dsin, fsqrt } from './fmath.ts';
@@ -64,9 +66,9 @@ export const SKILL_IDS: readonly CharacterId[] = ['xiaodao', 'fushi', 'jianxia',
 
 export const SKILLS: Record<CharacterId, SkillDef> = {
   xiaodao: { name: '剑气纵横', text: '向面前放一道大斩，伤害是桃木剑的 4 倍，砍中的怪被推开', cd: 12 * S, dur: 0, code: 0, icon: 'sk_sweep' },
-  fushi: { name: '万符齐发', text: '一口气射出 12 张追踪符，各找不同的怪', cd: 18 * S, dur: 0, code: 1, icon: 'sk_volley' },
+  fushi: { name: '万符齐发', text: '一口气射出 12 张追踪符，各找不同的怪', cd: 12 * S, dur: 0, code: 1, icon: 'sk_volley' },
   jianxia: { name: '御剑突进', text: '沿面向冲出一段，穿过的怪挨一刀，冲的时候不挨打', cd: 10 * S, dur: SKILL_FX.dash.invuln, code: 2, icon: 'sk_dash' },
-  pang: { name: '铁布衫', text: '3 秒内挨打只掉两成，结束时震开身边的怪', cd: 22 * S, dur: 3 * S, code: 3, icon: 'sk_iron' },
+  pang: { name: '铁布衫', text: '3 秒内挨打只掉两成，结束时震开身边的怪', cd: 15 * S, dur: 3 * S, code: 3, icon: 'sk_iron' },
   gengfu: { name: '梆子声声', text: '12 秒里每 2 秒敲一次小梆，近处的怪退一步并受伤', cd: 50 * S, dur: 12 * S, code: 4, icon: 'sk_clap' },
   caiyao: { name: '回春', text: '立刻回 35% 血，再 6 秒每秒回 3%，期间身边的怪走得慢一半', cd: 40 * S, dur: 6 * S, code: 5, icon: 'sk_spring' },
   zhijiang: { name: '剪纸成军', text: '身边立刻剪出 4 个纸兵，8 秒后散，可超过纸兵的上限', cd: 22 * S, dur: 0, code: 6, icon: 'sk_paper' },
@@ -103,11 +105,18 @@ export function yinyangSide(w: World): 'yang' | 'yin' | null {
   return w.hp * 2 >= w.stats.hpMax ? 'yang' : 'yin';
 }
 
+/**
+ * 规则 65 缩短的冷却（DESIGN 3.7）：关技能对照里铁布衫、万符齐发值的胜率最少（−1～+2 个点），铁布衫机器人放得也最少；
+ * 这里是改之前的拍数，只给规则 65 以前的录像逐位重放用
+ */
+const SKILL_CD_BEFORE_65: Partial<Record<CharacterId, number>> = { fushi: 18 * S, pang: 22 * S };
+
 export function skillCooldown(w: World): number {
   // 阴阳先生·阴阳互济：血不足一半时冷却再 −8%（和香炉一样只算一半，按放的那一刻的血算）
   const yy = yinyangSide(w) === 'yin' ? CHAR_FX.yinyangCd : 0;
   const bonus = 0.08 * (w.passives.xianglu ?? 0) + PERK_FX.lingqi * (w.setup.perks?.lingqi ?? 0) + yy;
-  return Math.max(S, Math.round(skillOf(w).cd * (1 - bonus / 2)));
+  const base = (w.identity65 ? undefined : SKILL_CD_BEFORE_65[w.setup.character ?? 'xiaodao']) ?? skillOf(w).cd;
+  return Math.max(S, Math.round(base * (1 - bonus / 2)));
 }
 
 /** 能不能放：冷却完了、没在持续中、在打、不是实盘（实盘先不开技能，等带技能配平之后再放，DESIGN 4.3；HUD 的"好了"也看它） */
@@ -156,10 +165,17 @@ export function skillFortune(w: World): boolean {
 }
 
 /**
- * 角色被动里"乘在每一下伤害上"的那部分（hitEnemy 用；别的角色恒为 1）：
- * 摆渡人的水类法器 +10%；货郎每 100 枚铜钱 +1%（最多 +10%）；阴阳先生血过半 +8%。owner = 记功的法器（技能打的没有）
+ * 乘在每一下伤害上的角色和开局配置那部分（hitEnemy 用）：
+ * 摆渡人的水类法器 +10%；货郎每 100 枚铜钱 +1%（最多 +10%）；阴阳先生血过半 +8%；规则 65 起心法流派单子上的法器 ×XINFA_DMG。
+ * owner = 记功的法器（技能打的没有）
  */
 export function charDmgMul(w: World, owner: WeaponId | undefined): number {
+  const xf = w.xinfa;
+  const school = xf && owner !== undefined && w.identity65 && SCHOOLS[xf].weapons.includes(owner) ? XINFA_DMG : 1;
+  return school * charPerkMul(w, owner);
+}
+
+function charPerkMul(w: World, owner: WeaponId | undefined): number {
   switch (w.setup.character) {
     case 'baidu':
       return owner !== undefined && WEAPONS[owner].el === '水' ? CHAR_FX.baiduWater : 1;

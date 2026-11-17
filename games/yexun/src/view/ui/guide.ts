@@ -14,7 +14,7 @@ import { SKILLS } from '../../core/skills.ts';
 import { MAP_EVENT_AT, MAP_EVENTS } from '../../content/mapEvents.ts';
 import { MAP_IDS, MAP_UNLOCK, MAPS } from '../../content/maps.ts';
 import { CHARACTER_IDS, CHARACTERS, PICK_CHAR_IDS, CURSE_COIN_BONUS, MAX_CURSES, PERK_IDS, PERKS } from '../../content/meta.ts';
-import { altStart, mainSchools, type PoolCharacterId } from '../../content/pools.ts';
+import { altStart, mainSchools, XINFA_DMG, type PoolCharacterId } from '../../content/pools.ts';
 import { schoolIcon } from '../art/sprites-selicons.ts';
 import { heroKey } from '../art/heroes.ts';
 import { DANGER_IDS, DANGERS, DAWN_TICK, EVENTS, MID_BOSS } from '../../content/waves.ts';
@@ -29,6 +29,9 @@ import { PAGER_CTL, Pager } from './pager.ts';
 import { mergeHow, poolCharName, schoolMerges, whoText } from './codexCombos.ts';
 import { mergeReach, mergeWho, SHOWN_MERGES } from '../../content/combos.ts';
 import './guide.css';
+
+/** 心法流派法器的伤害加成，百分数（content/pools.ts XINFA_DMG） */
+const XF = Math.round((XINFA_DMG - 1) * 100);
 
 const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
@@ -243,7 +246,7 @@ export class Guide {
       const k = SKILLS[id];
       return `<li>${this.img(heroKey(id), 'yx-gface', 64)}<b>${esc(c.name)}</b>技能「${esc(k.name)}」${Math.round(k.cd / 30)} 秒 · 被动「${esc(c.perkName)}」<small>${esc(c.unlock)}${c.privilege ? `；小特权：${esc(c.privilege)}` : ''}</small></li>`;
     }).join('');
-    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新；不加数值。每个角色各记一份，实盘也能用；每日挑战、每周夜事、首领连战不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
+    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：这个流派的法器伤害 +${XF}%（升级卡名字旁标着「心法+${XF}%」），每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新。每个角色各记一份，实盘也能用；每日挑战、每周夜事、首领连战不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
   }
 
   // ── 地图：地图、各图的事件 ──
@@ -260,7 +263,7 @@ export class Guide {
   // ── 流派：十个流派一张卡 ──
   private schools(): string {
     return (
-      '<div class="yx-gpage"><p class="yx-gnote yx-gtop">每张卡右上先是核心法器，再是被动。选角页的「心法」就是挑一个流派，每次升级保底一张它的卡；「起手」可换成另一个主修流派的法器。</p>' +
+      `<div class="yx-gpage"><p class="yx-gnote yx-gtop">每张卡右上先是核心法器，再是被动。选角页的「心法」就是挑一个流派，它的法器伤害 +${XF}%，每次升级保底一张它的卡；「起手」可换成另一个主修流派的法器。</p>` +
       `<div class="yx-gschools">${SCHOOL_IDS.map((id) => this.schoolCard(id)).join('')}</div></div>`
     );
   }

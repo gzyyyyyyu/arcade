@@ -1,4 +1,5 @@
 import type { SchoolId } from '../../../content/guide.ts';
+import { XINFA_DMG } from '../../../content/pools.ts';
 import type { MapId } from '../../../content/maps.ts';
 import { DANGERS, type Danger } from '../../../content/waves.ts';
 import type { CharacterId, CurseId } from '../../../content/meta.ts';
@@ -163,11 +164,11 @@ export function quickOffWhy(s: MenuState): string {
 
 /**
  * 点了起手或心法后浮出的一条说明（触屏没有悬停，图标的提示看不到）：起手是哪件、心法这局管什么用。
- * 心法保底一张主修卡、主修进化多补一次刷新（规则 60，实盘规则 64 起也有）
+ * 心法保底一张主修卡、主修进化多补一次刷新（规则 60，实盘规则 64 起也有），心法流派的法器伤害 +10%（规则 65）
  */
 export function loadoutNote(l: NonNullable<MenuState['loadout']>): string {
   const start = `起手 ${l.starts[l.alt ? 1 : 0]?.name ?? ''}`;
   const x = l.schools.find((s) => s.id === l.xinfa);
   if (!x) return `${start} · 不带心法`;
-  return `${start} · 心法 ${x.name}：每次升级保底一张${x.name}的卡，${x.name}的法器进化多补一次刷新`;
+  return `${start} · 心法 ${x.name}：${x.name}的法器伤害 +${Math.round((XINFA_DMG - 1) * 100)}%，每次升级保底一张${x.name}的卡，进化多补一次刷新`;
 }

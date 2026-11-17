@@ -5,6 +5,9 @@ import { LIVE_SKILL_BP, vigilBp, type LiveTier } from '../../src/content/live.ts
 import type { CharacterId } from '../../src/content/meta.ts';
 import type { MapId } from '../../src/content/maps.ts';
 
+/** 规则 65 又压过的格子（tests/content/live-65.test.ts 锁新值） */
+const REFIT_65 = new Set(['luxe snow xiaodao', 'medium snow fushi', 'large snow fushi', 'luxe snow fushi', 'medium snow zhijiang']);
+
 describe('规则 64 守夜重拟的格子', () => {
   // [档, 图, 角色, 规则 63 天亮, 规则 63 打倒尸王, 规则 63 第 10 分钟倒下, 规则 64 组合系数]：前三个数是 0.26.0 的代码算的
   const CELLS: [LiveTier, MapId, CharacterId, number, number, number, number][] = [
@@ -155,11 +158,11 @@ describe('规则 64 守夜重拟的格子', () => {
     }
   });
 
-  it('规则 64 起天亮按新组合系数结（现行规则同）', () => {
+  it('规则 64 的局天亮按新组合系数结；现行规则也是（规则 65 又压过的格子除外，见 live-65.test.ts）', () => {
     for (const [t, m, c, , , , k] of CELLS) {
       const want = Math.floor((LIVE_SKILL_BP.dawn[t]! * k) / 10_000);
       expect(vigilBp(t, 0, true, false, c, m, 64), `${t} ${m} ${c}`).toBe(want);
-      expect(vigilBp(t, 0, true, false, c, m), `${t} ${m} ${c}`).toBe(want);
+      if (!REFIT_65.has(`${t} ${m} ${c}`)) expect(vigilBp(t, 0, true, false, c, m), `${t} ${m} ${c}`).toBe(want);
     }
   });
 });

@@ -243,6 +243,16 @@ const LIVE_SKILL_COMBO_BP_54: Partial<Record<CharacterId, Partial<Record<MapId, 
   yinyang: { snow: { medium: 8_400, large: 7_600 }, bamboo: { medium: 7_600, large: 6_800 }, icelake: { large: 8_900 }, riverbank: { luxe: 8_600 }, yizhuang: { large: 8_500, luxe: 9_100 }, temple: { medium: 9_700, large: 9_900, luxe: 9_800 }, guishi: { medium: 9_500, large: 8_700 } },
 };
 /**
+ * 规则 65（0.28.0）：专属搭配的料加权、铁布衫和万符齐发冷却缩短、心法流派的法器伤害 +10% 进实盘后压回的格子。
+ * 量法：雪原守夜 9 个角色默认线、带心法线和三条最优配置线，每格 150 局和 0.27.0 的大样本同种子配对，新期望 = 大样本期望 + 配对差；
+ * 只压估计值超多发线、而且配对差本身显著（差 − 2SE > 0）的格，压到小白不超多发线（这 5 格压完普通都在带内）。没列的格子照规则 64 的表。规则 ≤64 的局不用这张
+ */
+const LIVE_SKILL_COMBO_BP_65: Partial<Record<CharacterId, Partial<Record<MapId, Partial<Record<LiveTier, number>>>>>> = {
+  xiaodao: { snow: { luxe: 8_900 } },
+  fushi: { snow: { medium: 9_800, large: 9_100, luxe: 8_500 } },
+  zhijiang: { snow: { medium: 9_200 } },
+};
+/**
  * 规则 64（0.27.0）：规则 60–63 的内容（选卡、角色钩子、换池和新搭配、两段式合成）进实盘后统一重拟。sim --stop 重量守夜 63 个「角色 × 地图」默认线
  * 和纸匠、阴阳先生、货郎的最优配置线（最多 2,000 局）。口径「宁简勿难」（docs/balance.md 开头）：多发线 = 带上限 + 0.15，只压超过它的格子，
  * 压到普通回到带上限、小白不超多发线；普通低于带下限的抬到带上限（同样两条线、最多 2 倍）。两条线都量过的：任一线要压取压得低的，两条都偏低才抬。
@@ -364,10 +374,11 @@ export function vigilBp(tier: LiveTier, ticks: number, won: boolean, bossKilled:
   const mapFit = mapBpAt(tier, map, COMBO_FIT_RULES);
   // 规则 40 及以前的局组合系数直接替换乘积、不折算（和当时线上逐位一致）
   const combo = combo0 !== undefined && (rules === undefined || rules > COMBO_FIT_RULES) && mapNow !== mapFit ? Math.floor((combo0 * mapNow) / mapFit) : combo0;
-  // 开了技能的格子：规则 44 起超上限的组合替换「技能角色 × 技能地图」乘积（规则 46 起再加货郎那几格，47 起荒庙那几格，49 起抬普通偏低的格子，50 起降难度后压回的格子，51 起同池后压回的格子，54 起新怪和开局配置进实盘后压回的格子，56 起规则 55 的新内容进实盘后压回的格子，58 起规则 57 的内容进实盘、目标带 +0.15 后抬的格子，64 起规则 60–63 的内容进实盘后重拟的格子）；规则 43 开的局按乘积结（和 0.17.8 线上一致）
+  // 开了技能的格子：规则 44 起超上限的组合替换「技能角色 × 技能地图」乘积（规则 46 起再加货郎那几格，47 起荒庙那几格，49 起抬普通偏低的格子，50 起降难度后压回的格子，51 起同池后压回的格子，54 起新怪和开局配置进实盘后压回的格子，56 起规则 55 的新内容进实盘后压回的格子，58 起规则 57 的内容进实盘、目标带 +0.15 后抬的格子，64 起规则 60–63 的内容进实盘后重拟的格子，65 起规则 65 的内容进实盘后压回的格子）；规则 43 开的局按乘积结（和 0.17.8 线上一致）
   const after = (v: number) => rules === undefined || rules > v;
   const skillCombo = !open || !after(43) ? undefined
-    : ((after(63) ? LIVE_SKILL_COMBO_BP_64[character]?.[map]?.[tier] : undefined)
+    : ((after(64) ? LIVE_SKILL_COMBO_BP_65[character]?.[map]?.[tier] : undefined)
+      ?? (after(63) ? LIVE_SKILL_COMBO_BP_64[character]?.[map]?.[tier] : undefined)
       ?? (after(57) ? LIVE_SKILL_COMBO_BP_58[character]?.[map]?.[tier] : undefined)
       ?? (after(55) ? LIVE_SKILL_COMBO_BP_56[character]?.[map]?.[tier] : undefined)
       ?? (after(53) ? LIVE_SKILL_COMBO_BP_54[character]?.[map]?.[tier] : undefined)
