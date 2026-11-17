@@ -512,7 +512,6 @@ async function boot(): Promise<void> {
     writeSave(save);
   };
   const startLive = async (tier: LiveTier, raid?: RaidLiveTemplate, pickMap?: MapId, fallback?: () => void): Promise<void> => {
-    if (raid && tier === 'luxe') return;
     // 实盘带已解锁的角色和地图（0.3.6），没解锁的退回小道士、雪原；加成、咒印照旧不带
     const picked = menuState().character;
     const map = !raid && pickMap && mapOpen(save, pickMap) && liveMapOk(pickMap) ? pickMap : 'snow';
@@ -527,7 +526,7 @@ async function boot(): Promise<void> {
       if (raid) save.raidTpl = raid;
       else save.map = map;
       writeSave(save);
-      const danger = raid ? (RAID_LIVE.danger[tier as Exclude<LiveTier, 'luxe'>] as Danger) : LIVE_TIERS[tier].danger;
+      const danger = raid ? (RAID_LIVE.danger[tier] as Danger) : LIVE_TIERS[tier].danger;
       return startRun(danger, map, true, liveSetup(tier, seed, raid, character, map, loadoutSetup(save, character)), 'live');
     }
     const why = buyinWhy(r.outcome);

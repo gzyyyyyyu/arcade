@@ -824,7 +824,7 @@ export const MERGES: readonly MergeDef[] = [
   { id: 'linfu', name: '铃符', icon: 'm_linfu', desc: '每响一次铃，光环里血最多的怪挨一道符', a: 'talisman', b: 'bell', color: '#e8b04a', dual: true, early: 5, since: 55 },
   { id: 'lingyan', name: '铃焰', icon: 'm_lingyan', desc: '铃响三次，最近的怪脚下烧起一摊火', a: 'gourd', b: 'bell', color: '#ff8a4a', dual: true, early: 5, since: 55 },
   { id: 'zhonggu', name: '钟鼓齐鸣', icon: 'm_zhonggu', desc: '你站在阵旗方阵里时，每响一次铃，光环里的怪挨打 +40%', a: 'flag', b: 'bell', color: '#d89a50', dual: true, only: 'zhijiang,yinyang', early: 5, since: 55 },
-  // 规则 62（只娱乐局，World.armsCombos）：给搭配少的剑侠、阴阳先生、胖师叔补跨流派搭配，料用他们池里原来没人拿的件（DESIGN 3.3e）。
+  // 规则 62（World.armsCombos）：给搭配少的剑侠、阴阳先生、胖师叔补跨流派搭配，料用他们池里原来没人拿的件（DESIGN 3.3e）。
   // 必须接在末尾：指纹按「老槽位在前」截掉没有它们的局的尾巴
   { id: 'jianzou', name: '剑走偏锋', icon: 'm_jianzou', desc: '每飞出一把剑，就朝最近的怪甩出一枚铜钱镖', a: 'flysword', b: 'dart', color: '#d8b04a', dual: true, since: 62 },
   { id: 'longshe', name: '笔走龙蛇', icon: 'm_longshe', desc: '每推一道浪，浪前血最多的那只挨判官笔一笔', a: 'tide', b: 'brush', color: '#4a8ad8', dual: true, only: 'jianxia', since: 62 },

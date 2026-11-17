@@ -1,6 +1,6 @@
-// 规则 62（DESIGN 3.3e）：法器池换件、五个新搭配、阴阳先生阴时定身更久。只娱乐局：实盘局和规则 61 逐位一致
+// 规则 62（DESIGN 3.3e）：法器池换件、五个新搭配、阴阳先生阴时定身更久。实盘从规则 64 起有；规则 63 以前开的实盘局和规则 61 逐位一致
 import { describe, expect, it } from 'vitest';
-import { CHARACTER_POOLS, POOLS_61 } from '../../src/content/pools.ts';
+import { CHARACTER_POOLS, POOLS_BEFORE_62 } from '../../src/content/pools.ts';
 import { LIVE_CHAR_IDS } from '../../src/content/live.ts';
 import { CHAR_FX } from '../../src/content/meta.ts';
 import { MERGES, WEAPONS, type MergeDef, type WeaponId } from '../../src/content/weapons.ts';
@@ -53,13 +53,14 @@ describe('规则 62：新搭配', () => {
   });
 
   for (const m of NEW) {
-    it(`${m.name}：合上就出手；规则 61、实盘合不上`, () => {
+    it(`${m.name}：合上就出手（实盘也是）；规则 61、规则 63 开的实盘局合不上`, () => {
       const c = WHO[m.id]!;
       const w = merged(c, m);
       expect(w.merges).toEqual([m.id]);
       expect(count(w, 60 * 30, FX[m.id]!, m.id === 'suohun'), m.id).toBeGreaterThan(0);
       expect(merged(c, m, 61).merges).toEqual([]);
-      expect(merged(c, m, undefined, true).merges).toEqual([]);
+      expect(merged(c, m, undefined, true).merges).toEqual([m.id]);
+      expect(merged(c, m, 63, true).merges).toEqual([]);
     });
   }
 
@@ -82,9 +83,9 @@ describe('规则 62：新搭配', () => {
 });
 
 describe('规则 62：法器池', () => {
-  it('娱乐局按新池，实盘和规则 61 按老池；每件法器仍至少在 2 个池里', () => {
+  it('现行按新池，规则 61 按老池；每件法器仍至少在 2 个池里', () => {
     expect(CHARACTER_POOLS.jianxia.weapons).toContain('shield');
-    expect(POOLS_61.jianxia.weapons).not.toContain('shield');
+    expect(POOLS_BEFORE_62.jianxia.weapons).not.toContain('shield');
     expect(CHARACTER_POOLS.yinyang.weapons).not.toContain('sword');
     expect(CHARACTER_POOLS.yinyang.weapons).toContain('gourd');
     expect(CHARACTER_POOLS.zhijiang.weapons).not.toContain('lamp');
@@ -108,15 +109,16 @@ describe('规则 62：法器池', () => {
     }
     return false;
   };
-  it('剑侠：娱乐局抽得到金钟罩，规则 61 和实盘抽不到', () => {
+  it('剑侠：现行（娱乐、实盘）抽得到金钟罩，规则 61 和规则 63 开的实盘局抽不到', () => {
     const fun: Setup = { seed: 3, mode: 'vigil', danger: 0, character: 'jianxia' };
     expect(drawsShield(fun)).toBe(true);
     expect(drawsShield(fun, 61)).toBe(false);
-    expect(drawsShield(liveSetup('medium', 3, undefined, 'jianxia'))).toBe(false);
+    expect(drawsShield(liveSetup('small', 3, undefined, 'jianxia'))).toBe(true);
+    expect(drawsShield(liveSetup('small', 3, undefined, 'jianxia'), 63)).toBe(false);
   });
 
-  it('实盘局的合成提示不提新搭配', () => {
-    const w = createWorld(liveSetup('medium', 3, undefined, 'jianxia'));
+  it('规则 63 开的实盘局的合成提示不提新搭配', () => {
+    const w = createWorld(liveSetup('medium', 3, undefined, 'jianxia'), 63);
     grantWeapon(w, 'flysword', 8, true);
     expect(mergeHint(w, { kind: 'weapon', id: 'dart' })?.id).not.toBe('jianzou');
     // 规则 62 的一步合（规则 63 的两段式提示另见 merge-hint.test.ts）
@@ -151,8 +153,8 @@ describe('规则 62：阴阳先生', () => {
   });
 });
 
-describe('规则 62：实盘逐位不变', () => {
-  it('实盘局（全部角色，第一、第二起手）一直按技能跑 4 分钟，和规则 61 一样', () => {
+describe('规则 62：旧实盘局逐位不变', () => {
+  it('规则 63 开的实盘局（全部角色，第一、第二起手）一直按技能跑 4 分钟，和规则 61 一样', () => {
     for (const c of LIVE_CHAR_IDS) {
       for (const startAlt of [false, true]) {
         const run = (rules?: number): number => {
@@ -160,7 +162,7 @@ describe('规则 62：实盘逐位不变', () => {
           for (let t = 0; t < 7200 && w.phase !== 'over'; t++) step(w, Math.floor(t / 45) % 8, w.phase === 'choose' ? t % 3 : -1, 1);
           return fingerprint(w);
         };
-        expect(run(), `${c} ${startAlt}`).toBe(run(61));
+        expect(run(63), `${c} ${startAlt}`).toBe(run(61));
       }
     }
   }, 120_000);

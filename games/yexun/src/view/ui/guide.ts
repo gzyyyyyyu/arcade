@@ -243,7 +243,7 @@ export class Guide {
       const k = SKILLS[id];
       return `<li>${this.img(heroKey(id), 'yx-gface', 64)}<b>${esc(c.name)}</b>技能「${esc(k.name)}」${Math.round(k.cd / 30)} 秒 · 被动「${esc(c.perkName)}」<small>${esc(c.unlock)}${c.privilege ? `；小特权：${esc(c.privilege)}` : ''}</small></li>`;
     }).join('');
-    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新（实盘里只是更常出现，不保底）；不加数值。每个角色各记一份，实盘也能用；每日挑战、每周夜事、首领连战不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
+    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新；不加数值。每个角色各记一份，实盘也能用；每日挑战、每周夜事、首领连战不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
   }
 
   // ── 地图：地图、各图的事件 ──
@@ -381,7 +381,7 @@ export class Guide {
     const closed = LIVE_MAP_CLOSED.map((m) => MAPS[m].name).join('、');
     const s = [
       this.sec('守夜', `<p>选地图和危险档，撑到天亮（${clock(DAWN_TICK)}）。打倒尸王提前天亮。也可以选「天亮不收工」一直打到倒下。</p>` +
-        `<p><b>夜市</b>开打后第 ${NIGHT_MARKET.at.map((t) => Math.round(t / 1800)).join('、')} 分钟，货郎在你附近摆 ${NIGHT_MARKET.stalls} 个摊，开 ${NIGHT_MARKET.open / 30} 秒，屏幕边的箭头指路；站在摊前一会儿就用局里的铜钱买下：回血、刷新、封禁、临时增益、法器升一级（娱乐局升离满级最近的那件）、求签（下次升级必出离凑成最近的搭配缺的料，只在娱乐局）。第二次贵一些，怪照样来。</p>`),
+        `<p><b>夜市</b>开打后第 ${NIGHT_MARKET.at.map((t) => Math.round(t / 1800)).join('、')} 分钟，货郎在你附近摆 ${NIGHT_MARKET.stalls} 个摊，开 ${NIGHT_MARKET.open / 30} 秒，屏幕边的箭头指路；站在摊前一会儿就用局里的铜钱买下：回血、刷新、封禁、临时增益、法器升一级（升离满级最近的那件）、求签（下次升级必出离凑成最近的搭配缺的料）。第二次贵一些，怪照样来。</p>`),
       this.sec(
         '本周夜事',
         '<p>主页的「本周夜事」按钮单独开一局：每周换一个事件（铜钱周、灯会周、精英周、月蚀周、宝箱周轮着来），地图每周也换，危险固定 2、固定小道士，不带加成和咒印。</p>' +

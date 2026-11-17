@@ -28,14 +28,14 @@ const papers = (w: World, slot: number): number => {
 };
 
 describe('规则 59：第二件起手的技能', () => {
-  it('实盘（开了技能的中档）：第一起手全部角色、第二起手另外五个角色和规则 58 逐位一致', () => {
+  it('实盘（开了技能的中档，规则 63 开的局：规则 60–63 的内容还没进实盘）：第一起手全部角色、第二起手另外五个角色和规则 58 逐位一致', () => {
     // 四个受影响角色的第二起手不在这里比：前几分钟技能打的怪大多一下就死，修没修指纹未必分得出，改在下面逐个量伤害
     for (const c of LIVE_CHAR_IDS) {
       for (const startAlt of [false, true]) {
         if (startAlt && AFFECTED.includes(c)) continue;
         const s = liveSetup('medium', 7, undefined, c, 'snow', startAlt ? { startAlt } : {});
         expect(s.character, c).toBe(c);
-        expect(fingerprint(run(s)), `${c} ${startAlt ? '第二起手' : '第一起手'}`).toBe(fingerprint(run(s, 58)));
+        expect(fingerprint(run(s, 63)), `${c} ${startAlt ? '第二起手' : '第一起手'}`).toBe(fingerprint(run(s, 58)));
       }
     }
   }, 60_000);

@@ -22,9 +22,11 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 63;
+export const RULES_VERSION = 64;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
+/** 规则 60–63 的内容（先只在娱乐局）进实盘的版本：实盘统一重拟那一版（DESIGN 4.2a）；之前开的实盘局照旧 */
+export const RULES_63_LIVE = 64;
 export const TICKS_PER_SECOND = 30;
 
 export const MAX_ENEMIES = 300;
@@ -242,33 +244,24 @@ export class World {
   get xinfa(): SchoolId | undefined {
     return this.rulesFrom(52) ? this.setup.xinfa : undefined;
   }
-  /**
-   * 规则 60 的选卡（DESIGN 3.9）：心法保底一张主修卡、主修法器进化多补一次刷新、缘分（手上有搭配的一件料，另一件和它的进化被动更常出）、
-   * 夜市求签。实盘不进（实盘系数按原来的抽卡量的；要进实盘另交主线重拟）
-   */
+  /** 规则 60 的选卡（DESIGN 3.9）：心法保底一张主修卡、主修法器进化多补一次刷新、缘分（手上有搭配的一件料，另一件和它的进化被动更常出）、夜市求签 */
   get newPicks(): boolean {
-    return this.rulesFrom(60) && !this.setup.live;
+    return this.contentFrom(60);
   }
-  /**
-   * 规则 61 的角色技能钩子（DESIGN 3.7，core/skills.ts SKILL_FX.hooks）：技能和角色的流派扣在一起、看得见，让「这个角色玩起来哪里不一样」说得清。
-   * 先只娱乐局；实盘等最后整体重拟时一起进（主线 11-15）
-   */
+  /** 规则 61 的角色技能钩子（DESIGN 3.7，core/skills.ts SKILL_FX.hooks）：技能和角色的流派扣在一起、看得见，让「这个角色玩起来哪里不一样」说得清 */
   get skillHooks(): boolean {
-    return this.rulesFrom(61) && !this.setup.live;
+    return this.contentFrom(61);
   }
-  /**
-   * 规则 62 的法器池和搭配（DESIGN 3.3e）：池里换掉对这个角色没用的件、五个新搭配、阴阳先生阴时定身更久。
-   * 先只娱乐局；实盘等最后整体重拟时一起进（主线 11-15）
-   */
+  /** 规则 62 的法器池和搭配（DESIGN 3.3e）：池里换掉对这个角色没用的件、五个新搭配、阴阳先生阴时定身更久 */
   get armsCombos(): boolean {
-    return this.rulesFrom(62) && !this.setup.live;
+    return this.contentFrom(62);
   }
   /**
    * 规则 63 的两段式合成（DESIGN 3.3f）：两件料都到 MERGE_STAGE.halfLevel 级先合「初成」（效果打折、不空法器格），
-   * 到原来的条件（双修一件进化另一件满级、合成两件都进化）再开宝箱升「大成」。先只娱乐局；实盘等最后整体重拟时一起进
+   * 到原来的条件（双修一件进化另一件满级、合成两件都进化）再开宝箱升「大成」
    */
   get mergeStages(): boolean {
-    return this.rulesFrom(63) && !this.setup.live;
+    return this.contentFrom(63);
   }
   /** 这个搭配效果的强度：初成按 MERGE_STAGE.halfPower，大成（和规则 62 以前的所有搭配）1。每个搭配效果里的数都乘它 */
   mergePower(id: MergeDef['id']): number {
@@ -300,9 +293,15 @@ export class World {
   get new57(): boolean {
     return this.rulesFrom(57) && (!this.setup.live || (this.replayRules ?? RULES_VERSION) >= RULES_57_LIVE);
   }
-  /** 按版本分叉的内容闸：规则 55、57 的新内容走 new55 / new57（实盘晚一版），62 走 armsCombos（只娱乐局），其余同 rulesFrom */
+  /**
+   * 按版本分叉的内容闸，旧录像逐位重放靠它：规则 55、57 的新内容走 new55 / new57（实盘晚一版）；
+   * 规则 60–63 的内容（选卡、角色钩子、换池和新搭配、两段式合成）娱乐局从各自的版本起有，实盘局从 RULES_63_LIVE 起才有（之前开的实盘局照旧）；其余同 rulesFrom
+   */
   contentFrom(v: number): boolean {
-    return v === 55 ? this.new55 : v === 57 ? this.new57 : v === 62 ? this.armsCombos : this.rulesFrom(v);
+    if (v === 55) return this.new55;
+    if (v === 57) return this.new57;
+    if (v >= 60 && v <= 63) return this.rulesFrom(v) && (!this.setup.live || this.rulesFrom(RULES_63_LIVE));
+    return this.rulesFrom(v);
   }
   /**
    * 老卡池：抽卡、宝箱合成只出 2.0 之前的老内容（加本角色自己的起手件），2.0 的套件和被动效果不生效。

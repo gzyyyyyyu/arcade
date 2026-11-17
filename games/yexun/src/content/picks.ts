@@ -10,7 +10,7 @@ export const PICKS = {
   rerollMax: 9,
 } as const;
 
-/** 规则 60 的选卡（娱乐局；实盘不进）：缘分的权重倍数、求签没有缺料的搭配时换成几次刷新 */
+/** 规则 60 的选卡：缘分的权重倍数、求签没有缺料的搭配时换成几次刷新 */
 export const PICKS_60 = { fateMul: 1.5, omenRerolls: 2 } as const;
 
 /** 跳过的随机小奖：0 铜钱、1 回血、2 下次升级多一张卡（不叠加）、3 刷新 +1。weight 是概率（合计 1） */

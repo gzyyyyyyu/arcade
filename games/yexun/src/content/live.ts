@@ -243,6 +243,23 @@ const LIVE_SKILL_COMBO_BP_54: Partial<Record<CharacterId, Partial<Record<MapId, 
   yinyang: { snow: { medium: 8_400, large: 7_600 }, bamboo: { medium: 7_600, large: 6_800 }, icelake: { large: 8_900 }, riverbank: { luxe: 8_600 }, yizhuang: { large: 8_500, luxe: 9_100 }, temple: { medium: 9_700, large: 9_900, luxe: 9_800 }, guishi: { medium: 9_500, large: 8_700 } },
 };
 /**
+ * 规则 64（0.27.0）：规则 60–63 的内容（选卡、角色钩子、换池和新搭配、两段式合成）进实盘后统一重拟。sim --stop 重量守夜 63 个「角色 × 地图」默认线
+ * 和纸匠、阴阳先生、货郎的最优配置线（最多 2,000 局）。口径「宁简勿难」（docs/balance.md 开头）：多发线 = 带上限 + 0.15，只压超过它的格子，
+ * 压到普通回到带上限、小白不超多发线；普通低于带下限的抬到带上限（同样两条线、最多 2 倍）。两条线都量过的：任一线要压取压得低的，两条都偏低才抬。
+ * 没列的格子照规则 58 的表。规则 ≤63 的局不用这张
+ */
+const LIVE_SKILL_COMBO_BP_64: Partial<Record<CharacterId, Partial<Record<MapId, Partial<Record<LiveTier, number>>>>>> = {
+  xiaodao: { snow: { small: 12_100, medium: 9_600, large: 8_800, luxe: 9_500 }, bamboo: { small: 11_800, medium: 9_600, large: 8_700 }, icelake: { small: 11_800, medium: 9_700, large: 8_900 }, riverbank: { small: 13_200 }, yizhuang: { small: 12_300 }, temple: { small: 13_100 }, guishi: { small: 12_700 } },
+  fushi: { snow: { small: 12_300 }, bamboo: { small: 12_200, luxe: 9_000 }, icelake: { small: 12_100, luxe: 9_400 }, riverbank: { small: 13_200 }, yizhuang: { small: 13_200 }, temple: { small: 13_100 }, guishi: { small: 13_100, large: 9_400 } },
+  jianxia: { snow: { small: 11_900, large: 8_600 }, bamboo: { small: 11_900, large: 8_500, luxe: 8_700 }, icelake: { small: 11_800, medium: 9_200, large: 8_800, luxe: 8_900 }, riverbank: { luxe: 9_300 }, yizhuang: { small: 12_200, luxe: 8_900 }, guishi: { luxe: 9_400 } },
+  pang: { snow: { small: 11_800, medium: 9_200, large: 8_600, luxe: 8_600 }, bamboo: { small: 11_800, medium: 9_200, large: 8_200, luxe: 8_100 }, icelake: { small: 11_900, medium: 9_200, large: 8_400, luxe: 8_400 }, riverbank: { medium: 10_200, large: 9_300 }, yizhuang: { small: 12_400, luxe: 8_800 }, guishi: { small: 12_500, large: 9_400 } },
+  gengfu: { snow: { small: 11_900, medium: 9_900 }, bamboo: { small: 11_800, medium: 10_300, large: 9_600 }, icelake: { small: 11_900, medium: 9_800, large: 9_900 }, yizhuang: { small: 12_000 }, temple: { small: 13_100 } },
+  caiyao: { snow: { small: 11_800, medium: 9_100, large: 8_600, luxe: 9_000 }, bamboo: { small: 11_800, large: 8_700, luxe: 9_000 }, icelake: { small: 11_900, medium: 9_300, large: 8_600, luxe: 9_200 }, riverbank: { small: 12_400, large: 10_600, luxe: 10_700 }, yizhuang: { small: 12_000, medium: 10_200, large: 9_700, luxe: 9_100 }, temple: { large: 10_600, luxe: 11_200 }, guishi: { small: 11_900, medium: 10_500, large: 9_900, luxe: 10_000 } },
+  zhijiang: { snow: { small: 11_800, medium: 9_400, large: 8_400, luxe: 8_600 }, bamboo: { small: 11_800, medium: 9_400, large: 8_200, luxe: 8_600 }, icelake: { small: 11_800, medium: 9_200, large: 8_400, luxe: 8_400 }, temple: { large: 9_600, luxe: 9_200 }, guishi: { large: 9_400 } },
+  huolang: { snow: { small: 11_800, medium: 9_100, large: 8_900, luxe: 8_400 }, bamboo: { small: 12_000, medium: 9_400, large: 8_600, luxe: 8_300 }, icelake: { small: 11_900, medium: 9_300, large: 8_800, luxe: 8_700 }, riverbank: { small: 12_800, medium: 10_200, large: 9_200 }, yizhuang: { small: 11_900, luxe: 8_800 }, temple: { small: 13_100, medium: 10_200, large: 9_200 }, guishi: { small: 12_200, large: 9_100 } },
+  yinyang: { snow: { small: 11_800, medium: 9_500, large: 8_700 }, bamboo: { small: 11_800, medium: 9_300, large: 8_600, luxe: 8_900 }, icelake: { small: 11_900, medium: 9_500, luxe: 9_800 }, temple: { small: 13_100 }, guishi: { small: 13_100, luxe: 9_800 } },
+};
+/**
  * 规则 58（0.21.1）：规则 57 的新内容进实盘，目标带整体 +0.15（balance.md 4.4，所有者 11-07「收益要配得上难度」）。按 sim --stop 重量守夜 63 个「角色 × 地图」
  * 默认线和纸匠、阴阳先生、货郎的最优配置线：没有多发格；普通低于下限 0.10 以上的抬向带中点（两线都不超上限、最多 2 倍，两条线都量过的要两条都偏低才抬）。
  * 多数格子小白先碰到上限，普通只抬到小白上限为止。没列的格子照规则 56 的表。规则 ≤57 的局不用这张
@@ -347,10 +364,11 @@ export function vigilBp(tier: LiveTier, ticks: number, won: boolean, bossKilled:
   const mapFit = mapBpAt(tier, map, COMBO_FIT_RULES);
   // 规则 40 及以前的局组合系数直接替换乘积、不折算（和当时线上逐位一致）
   const combo = combo0 !== undefined && (rules === undefined || rules > COMBO_FIT_RULES) && mapNow !== mapFit ? Math.floor((combo0 * mapNow) / mapFit) : combo0;
-  // 开了技能的格子：规则 44 起超上限的组合替换「技能角色 × 技能地图」乘积（规则 46 起再加货郎那几格，47 起荒庙那几格，49 起抬普通偏低的格子，50 起降难度后压回的格子，51 起同池后压回的格子，54 起新怪和开局配置进实盘后压回的格子，56 起规则 55 的新内容进实盘后压回的格子，58 起规则 57 的内容进实盘、目标带 +0.15 后抬的格子）；规则 43 开的局按乘积结（和 0.17.8 线上一致）
+  // 开了技能的格子：规则 44 起超上限的组合替换「技能角色 × 技能地图」乘积（规则 46 起再加货郎那几格，47 起荒庙那几格，49 起抬普通偏低的格子，50 起降难度后压回的格子，51 起同池后压回的格子，54 起新怪和开局配置进实盘后压回的格子，56 起规则 55 的新内容进实盘后压回的格子，58 起规则 57 的内容进实盘、目标带 +0.15 后抬的格子，64 起规则 60–63 的内容进实盘后重拟的格子）；规则 43 开的局按乘积结（和 0.17.8 线上一致）
   const after = (v: number) => rules === undefined || rules > v;
   const skillCombo = !open || !after(43) ? undefined
-    : ((after(57) ? LIVE_SKILL_COMBO_BP_58[character]?.[map]?.[tier] : undefined)
+    : ((after(63) ? LIVE_SKILL_COMBO_BP_64[character]?.[map]?.[tier] : undefined)
+      ?? (after(57) ? LIVE_SKILL_COMBO_BP_58[character]?.[map]?.[tier] : undefined)
       ?? (after(55) ? LIVE_SKILL_COMBO_BP_56[character]?.[map]?.[tier] : undefined)
       ?? (after(53) ? LIVE_SKILL_COMBO_BP_54[character]?.[map]?.[tier] : undefined)
       ?? (after(50) ? LIVE_SKILL_COMBO_BP_51[character]?.[map]?.[tier] : undefined)

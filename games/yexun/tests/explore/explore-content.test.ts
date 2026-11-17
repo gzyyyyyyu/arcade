@@ -70,8 +70,8 @@ describe('夜探内容表', () => {
     expect(RAID_ENEMIES.patrol.speed).toBeLessThan(3);
   });
 
-  it('夜探实盘（4.2、balance.md 4.4）：档位放低一档（小 0、中 1、大 2），基准按档位 × 镇子，保底 < 封顶，0.1.0 只开小档', () => {
-    expect(RAID_LIVE.danger).toEqual({ small: 0, medium: 1, large: 2 });
+  it('夜探实盘（4.2、balance.md 4.4）：档位放低一档（小 0、中 1、大 2、豪华 3），基准按档位 × 镇子，保底 < 封顶', () => {
+    expect(RAID_LIVE.danger).toEqual({ small: 0, medium: 1, large: 2, luxe: 3 });
     for (const t of RAID_LIVE_TIERS) {
       expect(RAID_LIVE.floor[t]).toBeGreaterThan(1);
       expect(RAID_LIVE.floor[t]).toBeLessThan(RAID_LIVE.cap);
@@ -83,6 +83,5 @@ describe('夜探内容表', () => {
     for (const tier of RAID_LIVE_TIERS) for (const t of RAID_LIVE_TEMPLATES) expect(RAID_LIVE.base[tier][t]).toBeGreaterThan(0);
     for (const per of Object.values(RAID_LIVE.charBp))
       for (const c of Object.values(per!)) if (typeof c === 'object') for (const t of RAID_LIVE_TEMPLATES) if (t !== 'guzhen' && t !== 'dukou' && t !== 'shansi') expect(c[t], t).toBeDefined();
-    expect(RAID_LIVE.open).toContain('small');
   });
 });
