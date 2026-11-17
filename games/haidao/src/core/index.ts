@@ -35,7 +35,7 @@ export type { UnlockItem } from './unlock.ts';
 export { CONSOLATION_PCT, RARE_POOL, STAR_BONUS_GOLD, STREAK_MAX_PCT, STREAK_STEP_PCT, equipSkin, rollDrops, settleCampaign, startCampaign } from './run.ts';
 export type { Drop } from './run.ts';
 export * from './tdtypes.ts';
-export { createTd, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
+export { createTd, levelForRules, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
 export { TD_TIER_LEVEL, tdBuildRange, tdHeroStats, tdJammed, tdTowerRange } from './tdstate.ts';
 export { tdBuildBlock, tdCallBonus, tdClearCost, tdIncomingWave, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSellRefund, tdWaveLanes, tideOpenAt } from './tdquery.ts';
 export { TD_HERO_GUARD } from './tdhero.ts';

@@ -38,6 +38,8 @@ const SPAN: Readonly<Record<TdEnemyKind, { span: number; min: number }>> = {
   captain: { span: 1, min: 1 },
   grenadier: { span: 300, min: 20 },
   shield: { span: 300, min: 20 },
+  bosun: { span: 280, min: 20 },
+  macaw: { span: 220, min: 16 },
 };
 
 function expand(r: Recipe, budget: number): TdWave {

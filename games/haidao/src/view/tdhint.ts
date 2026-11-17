@@ -22,16 +22,18 @@ const FOE_TRAIT: Readonly<Record<TdEnemyKind, string>> = {
   captain: '首领：身边的海盗走得更快',
   shield: '正面挡枪和炮，火和爆照吃',
   grenadier: '隔着墙扔手雷，炸墙',
+  bosun: '一个顶四个，狙击、臼炮打它最划算',
+  macaw: '一只顶一群，会飞，要多留火枪塔',
 };
 
 /**
- * 一句话：会干什么 + 护甲 + 最怕什么伤害。「最怕」和预告卡的建议同一口径（td-ui.ts 的 fitSuggest）：只从这局能造的塔里挑，
- * 只有一种伤害可选或并列时不写（前几关只有加农炮和火枪塔，写「最怕火」等于让玩家找一座造不了的塔）；unlocked 为空（没限制）按克制表挑。
+ * 一句话：会干什么 + 护甲 + 什么伤害打它多一半（和克制表、图鉴同一个说法）。挑哪种伤害和预告卡的建议同一口径（td-ui.ts 的 fitSuggest）：只从这局能造的塔里挑，
+ * 只有一种伤害可选或并列时不写（前几关只有加农炮和火枪塔，写「火打它多一半」等于让玩家找一座造不了的塔）；unlocked 为空（没限制）按克制表挑。
  */
 export function foeText(k: TdEnemyKind, unlocked?: readonly TdTowerKind[]): string {
   const a = TD_ENEMY_ARMOR[k];
   const best = bestOf(a, unlocked?.length ? [...new Set(unlocked.map((t) => TD_TOWER_DAMAGE[t]))] : null);
-  return `${FOE_TRAIT[k]}。${ARMOR_NAME[a]}${best ? `，最怕${DAMAGE_NAME[best]}` : ''}`;
+  return `${FOE_TRAIT[k]}。${ARMOR_NAME[a]}${best ? `：${DAMAGE_NAME[best]}打它多一半` : ''}`;
 }
 
 function bestOf(a: TdArmor, dmgs: TdDamage[] | null): TdDamage | null {

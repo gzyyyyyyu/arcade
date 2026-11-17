@@ -27,9 +27,9 @@ describe('守岛结算文案和路名', () => {
 
 describe('克制表的显示（只读 COUNTER，不另算）', () => {
   it('倍率写法和分档', () => {
-    expect(pctText(150)).toBe('×1.5');
-    expect(pctText(100)).toBe('×1');
-    expect(pctText(50)).toBe('×0.5');
+    expect(pctText(150)).toBe('多打一半');
+    expect(pctText(100)).toBe('照常');
+    expect(pctText(50)).toBe('只打一半');
     expect(pctText(0)).toBe('打不到');
     expect([pctTier(150), pctTier(100), pctTier(50), pctTier(0)]).toEqual(['good', 'even', 'weak', 'none']);
   });

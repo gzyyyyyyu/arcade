@@ -7,6 +7,7 @@
 import type { TdEnemyKind, TdGroup, TdWave } from '../core/tdtypes.ts';
 import type { TdGarrisonSpot, TdIslandLevel, TdMapId, TdPadDef, TdTier } from '../core/td2types.ts';
 import { waveBudget } from '../core/td2types.ts';
+import { RULES_SINCE } from '../core/types.ts';
 import { TD2_ECON, TD2_ENEMY_POINTS } from './td2units.ts';
 import { TD2_MAPS, TD2_MAP_SPECS, mapLayout } from './td2maps.ts';
 
@@ -53,6 +54,12 @@ interface LevelDef {
   flank?: boolean;
   /** 首领波前多给的倒数（拍），不写用 TD2_BOSS_EXTRA_TICKS */
   bossExtraTicks?: number;
+  /**
+   * 规则版本 15 起的精英配方（少而精）：第 ELITE.from 波起，水手、鹦鹉每组的份额 ELITE.pct% 换成水手长、鹦鹉王，
+   * 整关预算改乘这里的 scale（按 td-sim 拟合到规则 14 下实测的三星率，保持现在的难度）；from 换精英从第几波（0 起）出。
+   * 旧版本的局照旧用上面的 scale 和原配方（组带 until，回放逐位不变）
+   */
+  elite?: { scale: number; from?: number };
   waves: WaveRecipe[];
 }
 
@@ -163,7 +170,7 @@ const DEFS: readonly LevelDef[] = [
   },
   // ---------------------------------------------------------------- 第二章：潮水涨落、成片的雾
   {
-    id: 'td07', name: '潮起潮落', index: 6, map: 'D', chapter: 2, hq: 6, gold: 550, waveTicks: 340, scale: 280, pads: 7, garrison: [2, 2], tide: [1, 2, 5, 6, 9, 10],
+    id: 'td07', name: '潮起潮落', index: 6, map: 'D', chapter: 2, hq: 6, gold: 550, waveTicks: 340, scale: 280, elite: { scale: 280, from: 5 }, pads: 7, garrison: [2, 2], tide: [1, 2, 5, 6, 9, 10],
     waves: [
       w([S, 100, 0]),
       note('南边的落潮路开着：预告条会提前一波告诉你', w([S, 60, 2], [I, 40, 1])),
@@ -212,7 +219,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td10', name: '浓雾锁港', index: 9, map: 'F', chapter: 2, hq: 7, gold: 300, waveTicks: 340, scale: 166, pads: 8, garrison: [2, 2], fog: [0, 1],
+    id: 'td10', name: '浓雾锁港', index: 9, map: 'F', chapter: 2, hq: 7, gold: 300, waveTicks: 340, scale: 166, elite: { scale: 149 }, pads: 8, garrison: [2, 2], fog: [0, 1],
     waves: [
       w([S, 100, 0]),
       w([S, 70, 0], [S, 30, 0, 80]),
@@ -278,7 +285,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td14', name: '绕后的鹦鹉', index: 13, map: 'H', chapter: 3, hq: 8, gold: 780, waveTicks: 320, scale: 175, pads: 8, garrison: [2, 2], flank: true,
+    id: 'td14', name: '绕后的鹦鹉', index: 13, map: 'H', chapter: 3, hq: 8, gold: 780, waveTicks: 320, scale: 175, elite: { scale: 175 }, pads: 8, garrison: [2, 2], flank: true,
     waves: [
       w([S, 100, 0]),
       w([P, 20, 2], [S, 80, 1]),
@@ -377,7 +384,13 @@ const SPAN: Readonly<Record<TdEnemyKind, { span: number; min: number }>> = {
   captain: { span: 1, min: 1 },
   grenadier: { span: 300, min: 20 },
   shield: { span: 300, min: 20 },
+  bosun: { span: 280, min: 20 },
+  macaw: { span: 220, min: 16 },
 };
+
+/** 精英从第几波（0 起）出、占水手和鹦鹉份额的百分之几；精英一个顶四个（TD2_ENEMY_POINTS） */
+export const TD_ELITE = { from: 3, pct: 60 } as const;
+const ELITE_OF: Partial<Record<TdEnemyKind, TdEnemyKind>> = { sailor: 'bosun', parrot: 'macaw' };
 
 function everyOf(kind: TdEnemyKind, n: number): number {
   const s = SPAN[kind];
@@ -388,7 +401,7 @@ function everyOf(kind: TdEnemyKind, n: number): number {
  * 一波的组：预算先扣掉首领（固定 1 个），剩下的按份额分给各组，个数 = 份额 ÷ 敌人点数（四舍五入，至少 1 个；份额 0 的组不出）。
  * budgetPct：预算整体再乘多少百分比（100 = 原样；td-sim 用 98 / 102 量"预算 ±2%"）。
  */
-function expand(r: WaveRecipe, budget: number): TdWave {
+function expand(r: WaveRecipe, budget: number, elite = false): TdWave {
   let left = budget;
   const groups: TdGroup[] = [];
   for (const [kind, , lane] of r.groups) {
@@ -396,10 +409,19 @@ function expand(r: WaveRecipe, budget: number): TdWave {
     groups.push({ enemy: 'captain', n: 1, lane, every: 1 });
     left = Math.max(0, left - TD2_ENEMY_POINTS.captain);
   }
-  for (const [kind, share, lane, delay] of r.groups) {
-    if (kind === 'captain' || share <= 0) continue;
+  const put = (kind: TdEnemyKind, share: number, lane: number, delay: number | undefined): void => {
     const n = Math.max(1, Math.round((left * share) / 100 / TD2_ENEMY_POINTS[kind]));
     groups.push({ enemy: kind, n, lane, every: everyOf(kind, n), ...(delay ? { delay } : {}) });
+  };
+  for (const [kind, share, lane, delay] of r.groups) {
+    if (kind === 'captain' || share <= 0) continue;
+    const ek = elite ? ELITE_OF[kind] : undefined;
+    if (!ek) {
+      put(kind, share, lane, delay);
+      continue;
+    }
+    put(ek, (share * TD_ELITE.pct) / 100, lane, delay);
+    put(kind, (share * (100 - TD_ELITE.pct)) / 100, lane, delay);
   }
   const out: TdWave = { groups };
   if (r.boss) out.boss = true;
@@ -407,9 +429,19 @@ function expand(r: WaveRecipe, budget: number): TdWave {
   return out;
 }
 
-/** 一关的波次（预算按 budgetPct 缩放） */
+/**
+ * 一关的波次（预算按 budgetPct 缩放）。带精英配方的关，每一波是新旧两套组并排：旧的带 until、新的带 since（RULES_SINCE.tdElite），
+ * 引擎按局的规则版本挑一套（createTd）
+ */
 export function levelWaves(def: LevelDef, budgetPct = 100): TdWave[] {
-  return def.waves.map((r, i) => expand(r, Math.floor((waveBudget(def.index, i) * (def.scale ?? 100) * budgetPct) / 10_000)));
+  const budget = (i: number, scale: number): number => Math.floor((waveBudget(def.index, i) * scale * budgetPct) / 10_000);
+  return def.waves.map((r, i) => {
+    const old = expand(r, budget(i, def.scale ?? 100));
+    if (!def.elite) return old;
+    const now = expand(r, budget(i, def.elite.scale), i >= (def.elite.from ?? TD_ELITE.from));
+    const since = RULES_SINCE.tdElite;
+    return { ...old, groups: [...old.groups.map((g) => ({ ...g, until: since })), ...now.groups.map((g) => ({ ...g, since }))] };
+  });
 }
 
 /**

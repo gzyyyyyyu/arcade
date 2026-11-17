@@ -5,7 +5,7 @@ import { type TdState, tdBuildBlock, tdClearCost, TD2_ECON, type TdTowerKind, is
 import { TICKS_PER_SEC, UNIT } from '../core/types.ts';
 import { iconA } from './art.ts';
 import { keyBadge } from './inputs.ts';
-import { bestiary, towerIcon, TOWER_INFO, rangeText, towerCounter, dmgBadge, armorBadge, counterCard, ARMOR_NAME, branchName, pendingTier, branchCards, branchDamageHint } from './td-ui.ts';
+import { bestiary, towerIcon, TOWER_INFO, rangeText, towerCounter, dmgBadge, armorBadge, counterCard, ARMOR_NAME, DAMAGE_NAME, branchName, pendingTier, branchCards, branchDamageHint } from './td-ui.ts';
 import { sfx } from './audio/sfx.ts';
 import { buildSound, upgradeSound } from './audio/pick.ts';
 import { el, button, img } from './ui.ts';
@@ -139,8 +139,9 @@ export function renderSheet(bs: TdScene): void {
       const cc = towerCounter(k);
       const ctr = el('small', 'hd-td-ctr', undefined, c);
       dmgBadge(cc.dmg, ctr);
+      ctr.append(DAMAGE_NAME[cc.dmg]);
       if (cc.good.length) {
-        ctr.append('克');
+        ctr.append(' · 克');
         for (const a of cc.good) armorBadge(a, ctr);
       }
       for (const a of cc.none) armorBadge(a, ctr).classList.add('ng');
@@ -182,7 +183,7 @@ export function renderSheet(bs: TdScene): void {
     const cc = towerCounter(t.kind);
     const c = el('span', 'hd-chip', undefined, chips);
     dmgBadge(cc.dmg, c);
-    c.append(` ${cc.good.length ? `克${cc.good.map((a) => ARMOR_NAME[a]).join('、')}` : ''}`);
+    c.append(` ${DAMAGE_NAME[cc.dmg]}${cc.good.length ? ` · 克${cc.good.map((a) => ARMOR_NAME[a]).join('、')}` : ''}`);
     const bonus = bs.d.setup.bonus?.[t.kind] ?? 0;
     if (bonus > 0) el('span', 'hd-chip', `基地加成 伤害 +${bonus}%`, chips);
   }

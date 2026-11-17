@@ -2,10 +2,11 @@ import { BRANCH_BY_ID, BRANCH_LEVEL, BUILDINGS, branchOptions } from '../content
 import { TD2_ENEMIES } from '../content/td2units.ts';
 import { TD2_CHAPTERS } from '../content/tdmaps.ts';
 import type { Td2ChapterInfo } from '../content/tdmaps.ts';
-import { ISLAND, UNIT } from '../core/types.ts';
-import { tdBuildRange } from '../core/index.ts';
+import { ISLAND, RULES_VERSION, UNIT } from '../core/types.ts';
+import { levelForRules, tdBuildRange } from '../core/index.ts';
 import {
-  COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE,
+  COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
+  TD_TOWER_DAMAGE, TD_TOWER_KINDS,
   beijingIsoWeek, branchError, garrisonTier, hqLevel, tdAutoPicks, nextTdUnlock, tdDailyCap, tdGarrisonOptions, tdLevelUnlocked, tideLine, tideMap, weekLabel,
 } from '../core/index.ts';
 import { tideBest } from '../net/tide.ts';
@@ -14,7 +15,7 @@ import type { BuildingKind, TdEnemyKind } from '../core/index.ts';
 import { app, fmt } from './app.ts';
 import { bArt, iconA, tdE } from './art.ts';
 import { dayIndex } from './meta.ts';
-import { button, el, img, uiRoot } from './ui.ts';
+import { button, el, img, toast, uiRoot } from './ui.ts';
 import { injectTdCss } from './tdcss.ts';
 import { garrisonMap, islandMap } from './islemap.ts';
 
@@ -47,14 +48,76 @@ export const ARMOR_NAME: Readonly<Record<TdArmor, string>> = { cloth: '布衣', 
 export const DAMAGE_CHAR: Readonly<Record<TdDamage, string>> = { shot: '枪', shell: '炮', fire: '火', blast: '爆' };
 export const ARMOR_CHAR: Readonly<Record<TdArmor, string>> = { cloth: '布', heavy: '甲', wood: '船', air: '飞' };
 
-/** 倍率怎么写：150 → ×1.5，0 → 打不到 */
+/** 倍率怎么写（人话）：150 → 多打一半，100 → 照常，50 → 只打一半，0 → 打不到；表里没有的倍率退回 ×n */
 export function pctText(pct: number): string {
-  return pct <= 0 ? '打不到' : `×${pct / 100}`;
+  if (pct <= 0) return '打不到';
+  if (pct === 150) return '多打一半';
+  if (pct === 100) return '照常';
+  if (pct === 50) return '只打一半';
+  return `×${pct / 100}`;
 }
 
 /** 倍率的档：克（> 100）、平（100）、弱（0–100）、打不到（0），格子按档上色 */
 export function pctTier(pct: number): 'good' | 'even' | 'weak' | 'none' {
   return pct <= 0 ? 'none' : pct > 100 ? 'good' : pct < 100 ? 'weak' : 'even';
+}
+
+/**
+ * 不是塔、也打伤害的东西（英雄、火药桶、地雷、地上的火）：伤害类型读核心的常量，名字只写在这一处。
+ * 克制表的「谁打这种伤害」、伤害徽记的说明都从 damageSources 现算，不手写塔的名单。
+ */
+const DAMAGE_EXTRA: ReadonlyArray<readonly [string, TdDamage]> = [
+  ['英雄', TD_HERO_DAMAGE],
+  ['火药桶', TD_KEG_DAMAGE],
+  ['地雷', TD_MINE_DAMAGE],
+  ['地上的火', TD_BURN_DAMAGE],
+];
+
+/** 打这种伤害的塔（按 TD_TOWER_KINDS 的顺序） */
+export function damageTowers(d: TdDamage): TdTowerKind[] {
+  return TD_TOWER_KINDS.filter((k) => TD_TOWER_DAMAGE[k] === d);
+}
+
+/** 打这种伤害的所有东西的名字：塔在前，英雄、火药桶这些在后 */
+export function damageSources(d: TdDamage): string[] {
+  return [...damageTowers(d).map((k) => BUILDINGS[k].name), ...DAMAGE_EXTRA.filter(([, x]) => x === d).map(([n]) => n)];
+}
+
+/** 穿这种护甲的敌人（小艇是分裂小艇分出来的，不单列） */
+export function armorFoes(a: TdArmor): TdEnemyKind[] {
+  return (Object.keys(TD_ENEMY_ARMOR) as TdEnemyKind[]).filter((k) => TD_ENEMY_ARMOR[k] === a && k !== 'skiffling');
+}
+
+/** 一种护甲吃哪些伤害多一半、哪些只打一半、哪些打不到：「火打它多一半，枪弹、炮弹照常」这种句子的原料 */
+function armorTiers(a: TdArmor): Record<'good' | 'even' | 'weak' | 'none', TdDamage[]> {
+  const out: Record<'good' | 'even' | 'weak' | 'none', TdDamage[]> = { good: [], even: [], weak: [], none: [] };
+  for (const d of TD_DAMAGES) out[pctTier(COUNTER[d][a])].push(d);
+  return out;
+}
+
+/** 一种护甲怎么打，一句话：「火打它多一半，枪弹、火只打一半，炮弹打不到」，照常的不写 */
+export function armorLine(a: TdArmor): string {
+  const t = armorTiers(a);
+  const names = (ds: TdDamage[]): string => ds.map((d) => DAMAGE_NAME[d]).join('、');
+  return [t.good.length ? `${names(t.good)}打它多一半` : '', t.weak.length ? `${names(t.weak)}只打一半` : '', t.none.length ? `${names(t.none)}打不到` : '']
+    .filter(Boolean)
+    .join('，');
+}
+
+/** 敌人的一行说明：「水手 · 布衣：火打它多一半」（图鉴、徽记说明用） */
+export function foeLine(k: TdEnemyKind): string {
+  const a = TD_ENEMY_ARMOR[k];
+  return `${TD2_ENEMIES[k].name} · ${ARMOR_NAME[a]}：${armorLine(a)}`;
+}
+
+/** 一种伤害打哪种护甲多一半 / 只打一半 / 打不到，一句话（徽记说明用） */
+function damageLine(d: TdDamage): string {
+  const row = COUNTER[d];
+  const by = (tier: 'good' | 'weak' | 'none'): string => TD_ARMORS.filter((a) => pctTier(row[a]) === tier).map((a) => ARMOR_NAME[a]).join('、');
+  const good = by('good');
+  const weak = by('weak');
+  const none = by('none');
+  return [good ? `打${good}多一半` : '', weak ? `打${weak}只打一半` : '', none ? `打不到${none}` : ''].filter(Boolean).join('，') || '打谁都照常';
 }
 
 /** 一种塔克谁、怕谁、打不到谁（从 COUNTER 读，分叉例外另算在 branchDamageHint） */
@@ -78,16 +141,34 @@ export function branchDamageHint(id: string): string | undefined {
   return undefined;
 }
 
-/** 伤害 / 护甲的小徽记（单字圆章，颜色按种类）：塔卡、敌人、预告条、克制表共用 */
-export function dmgBadge(d: TdDamage, parent?: HTMLElement): HTMLElement {
-  const b = el('i', `hd-dmg d-${d}`, DAMAGE_CHAR[d], parent);
-  b.title = `伤害：${DAMAGE_NAME[d]}`;
+/** 伤害徽记的说明：谁打这种伤害、它克谁 */
+export function damageTip(d: TdDamage): string {
+  return `${DAMAGE_NAME[d]}（${damageSources(d).join('、')}）：${damageLine(d)}`;
+}
+/** 护甲徽记的说明：谁穿这种护甲、什么打它多一半 */
+export function armorTip(a: TdArmor): string {
+  return `${ARMOR_NAME[a]}（${armorFoes(a).map((k) => TD2_ENEMIES[k].name).join('、')}）：${armorLine(a)}`;
+}
+
+/**
+ * 徽记悬停出说明（title）；不在按钮里的点一下弹一条（手机没有悬停）。在塔卡这类按钮里的不接点击：点卡是造塔，不能被徽记吃掉
+ */
+function explain(b: HTMLElement, tip: string): HTMLElement {
+  b.title = tip;
+  b.addEventListener('click', (e) => {
+    if (b.closest('button')) return;
+    e.stopPropagation();
+    toast(tip);
+  });
   return b;
 }
+
+/** 伤害 / 护甲的小徽记（单字圆章，颜色按种类）：塔卡、敌人、预告条、克制表共用 */
+export function dmgBadge(d: TdDamage, parent?: HTMLElement): HTMLElement {
+  return explain(el('i', `hd-dmg d-${d}`, DAMAGE_CHAR[d], parent), damageTip(d));
+}
 export function armorBadge(a: TdArmor, parent?: HTMLElement): HTMLElement {
-  const b = el('i', `hd-arm a-${a}`, ARMOR_CHAR[a], parent);
-  b.title = `护甲：${ARMOR_NAME[a]}`;
-  return b;
+  return explain(el('i', `hd-arm a-${a}`, ARMOR_CHAR[a], parent), armorTip(a));
 }
 
 /** 敌人的小头像（行走第 1 帧）加护甲徽记；雾船、雾区里的再加一只"眼睛"（要照亮才打得到） */
@@ -103,7 +184,9 @@ export function enemyChip(kind: TdEnemyKind, n: number, fog: boolean, parent: HT
 }
 
 /**
- * 克制表卡：伤害（行）× 护甲（列），格子写倍率、按档上色；表头的护甲列出这一类有哪些敌人的头像。
+ * 克制表卡：伤害（行）× 护甲（列）。行头是伤害加打这种伤害的塔的小图，列头是护甲加穿这种护甲的敌人头像，
+ * 格子写人话（多打一半 / 照常 / 只打一半 / 打不到）按档上色；表上一句怎么读，表下按名字列出每种伤害、每种护甲都有谁。
+ * 塔、敌人、英雄这些全部从核心的表现算（damageSources、armorFoes），不手写名单。
  * 默认收起成一个"克制表"按钮，点开展开（建塔菜单和敌人图鉴共用）。open 为 true 时直接展开。
  */
 export function counterCard(parent: HTMLElement, open = false): HTMLElement {
@@ -112,34 +195,44 @@ export function counterCard(parent: HTMLElement, open = false): HTMLElement {
   const tog = button('', 'hd-btn-wood hd-ctr-tog', () => wrap.classList.toggle('on'), wrap);
   tog.title = '克制表（C）';
   el('span', '', '克制表', tog);
-  el('small', '', '哪种伤害打哪种护甲', tog);
+  el('small', '', '什么塔打什么敌人最狠', tog);
+  const key = el('p', 'hd-ctr-key', '每座塔打一种伤害，每个敌人穿一种护甲。', wrap);
+  for (const [tier, word] of [['good', '多打一半'], ['weak', '只打一半'], ['none', '打不到']] as const) el('i', `c-${tier}`, word, key);
   const tb = el('table', 'hd-ctr-tb', undefined, wrap);
   const hr = el('tr', '', undefined, tb);
-  el('th', '', '', hr);
+  el('th', 'hd-ctr-corner', '塔 \\ 敌人', hr);
   for (const a of TD_ARMORS) {
     const th = el('th', '', undefined, hr);
-    armorBadge(a, th);
-    el('span', '', ARMOR_NAME[a], th);
+    const h = el('div', 'hd-ctr-h', undefined, th);
+    armorBadge(a, h);
+    el('span', '', ARMOR_NAME[a], h);
+    const ic = el('div', 'hd-ctr-ic', undefined, th);
+    for (const k of armorFoes(a)) {
+      const f = tdE(k, 'walk')[0];
+      if (f) ic.appendChild(img(f, 18)).title = TD2_ENEMIES[k].name;
+    }
   }
   for (const d of TD_DAMAGES) {
     const tr = el('tr', '', undefined, tb);
     const th = el('th', '', undefined, tr);
-    dmgBadge(d, th);
-    el('span', '', DAMAGE_NAME[d], th);
-    for (const a of TD_ARMORS) el('td', `c-${pctTier(COUNTER[d][a])} hd-n`, pctText(COUNTER[d][a]), tr);
+    const h = el('div', 'hd-ctr-h', undefined, th);
+    dmgBadge(d, h);
+    el('span', '', DAMAGE_NAME[d], h);
+    const ic = el('div', 'hd-ctr-ic', undefined, th);
+    for (const k of damageTowers(d)) ic.appendChild(towerIcon(k, 1, 18)).title = BUILDINGS[k].name;
+    for (const a of TD_ARMORS) el('td', `c-${pctTier(COUNTER[d][a])}`, pctText(COUNTER[d][a]), tr);
   }
-  const who = el('p', 'hd-ctr-who', undefined, wrap);
+  const who = el('div', 'hd-ctr-who', undefined, wrap);
+  for (const d of TD_DAMAGES) {
+    const s = el('span', '', undefined, who);
+    dmgBadge(d, s);
+    s.append(`${DAMAGE_NAME[d]}：${damageSources(d).join('、')}`);
+  }
   for (const a of TD_ARMORS) {
     const s = el('span', '', undefined, who);
     armorBadge(a, s);
-    s.append(
-      (Object.keys(TD_ENEMY_ARMOR) as TdEnemyKind[])
-        .filter((k) => TD_ENEMY_ARMOR[k] === a && k !== 'skiffling')
-        .map((k) => TD2_ENEMIES[k].name)
-        .join('、'),
-    );
+    s.append(`${ARMOR_NAME[a]}：${armorFoes(a).map((k) => TD2_ENEMIES[k].name).join('、')}`);
   }
-  el('p', 'hd-ctr-who', '塔：枪弹 = 火枪塔、鱼叉炮、狙击塔、英雄；炮弹 = 加农炮、臼炮、火箭塔；火 = 喷火塔、留在地上的火；爆破 = 火药桶、地雷', wrap);
   // 展开后在建塔面板里只留克制表（其余收起让位），靠这个钮收回去；图鉴里克制表一直展开，没有这个钮
   button('收起克制表', 'hd-btn-wood hd-ctr-off', () => wrap.classList.remove('on'), wrap);
   return wrap;
@@ -149,6 +242,8 @@ export function counterCard(parent: HTMLElement, open = false): HTMLElement {
 export const ENEMY_HINT: Partial<Record<TdEnemyKind, string>> = {
   grenadier: '掷弹兵：先用火',
   shield: '盾兵：先用火、爆',
+  bosun: '水手长：狙击、臼炮打它最划算',
+  macaw: '鹦鹉王：要多留火枪塔',
 };
 /** 这一波里出现的、带提醒的敌人，对应的提醒句（没有规则已写的重复） */
 export function enemyHints(p: WavePreview): string[] {
@@ -292,10 +387,10 @@ function mechanics(lv: TdIslandLevel): string[] {
   return out;
 }
 
-/** 这一关新出现什么：对比同一张关表里前面的关（第一关写基础玩法）。i 是 levels 里的序号 */
+/** 这一关新出现什么：对比同一张关表里前面的关（第一关写基础玩法）。i 是 levels 里的序号；波次按现在的规则版本挑（levelForRules） */
 export function levelIntro(levels: readonly TdIslandLevel[], i: number): string {
-  const lv = levels[i];
-  if (!lv) return '';
+  if (!levels[i]) return '';
+  const lv = levelForRules(levels[i]!, RULES_VERSION);
   if (i === 0) return '新：建塔、驻守台、英雄、叫下一波';
   const seen = new Set<TdEnemyKind>();
   const seenMech = new Set<string>();
@@ -303,7 +398,7 @@ export function levelIntro(levels: readonly TdIslandLevel[], i: number): string 
   for (let k = 0; k < i; k++) {
     const q = levels[k]!;
     for (const m of mechanics(q)) seenMech.add(m);
-    for (const w of q.waves) {
+    for (const w of levelForRules(q, RULES_VERSION).waves) {
       if (w.boss) boss = true;
       for (const g of w.groups) seen.add(g.enemy);
     }
@@ -603,7 +698,9 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
         el('strong', '', `${o.tier} 阶`, t);
         // 名字下面一行排开：伤害类型、加成、台子封顶、带进来的分叉；同一个能换行的容器，宽卡一行放下，窄卡折行，谁也压不住谁
         const meta = el('span', 'hd-tdgar-meta', undefined, c);
-        dmgBadge(TD_TOWER_DAMAGE[o.kind], meta);
+        const dm = el('small', 'hd-tdgar-dmg', undefined, meta);
+        dmgBadge(TD_TOWER_DAMAGE[o.kind], dm);
+        el('span', '', DAMAGE_NAME[TD_TOWER_DAMAGE[o.kind]], dm);
         if (o.bonusPct > 0) el('small', 'hd-tdgar-bonus', `伤害 +${o.bonusPct}%`, meta);
         if (o.tier < garrisonTier(o.baseLevel, 3)) el('small', 'hd-tdgar-cap', '台子封顶', meta);
         for (const b of o.branch) el('small', 'hd-chip', branchName(b), meta);
@@ -756,7 +853,7 @@ export function planCard(box: HTMLElement, pv: readonly WavePreview[], o: { titl
   }
 }
 
-/** 敌人图鉴（点预告卡打开）：下两波每一路什么敌人几个，再加一张展开的克制表 */
+/** 敌人图鉴（点预告卡打开）：下两波每一路什么敌人几个、每种敌人怎么打，再加一张展开的克制表 */
 export function bestiary(box: HTMLElement, pv: readonly WavePreview[], title: (w: number) => string, laneTitle: (lane: number) => string): void {
   injectTdCss();
   const waves = el('div', 'hd-best-waves', undefined, box);
@@ -775,6 +872,14 @@ export function bestiary(box: HTMLElement, pv: readonly WavePreview[], title: (w
       const notes = [p.note ?? '', ...enemyHints(p)].filter(Boolean).join(' · ');
       if (notes) el('p', 'hd-td-note', notes, waves);
     });
+    // 看得到的这几波里每种敌人一行（两波重复的只写一次）：叫什么、穿什么护甲、什么打它多一半——头像上的单字圆章新玩家看不懂
+    const kinds = new Set(pv.filter((_, k) => !paged || k === pg).flatMap((p) => waveEnemies(p).map((e) => e.kind)));
+    const foes = el('div', 'hd-best-foes', undefined, waves);
+    for (const k of kinds) {
+      const r = el('span', '', undefined, foes);
+      armorBadge(TD_ENEMY_ARMOR[k], r);
+      r.append(foeLine(k));
+    }
     if (paged) {
       const pg2 = el('div', 'hd-best-pager', undefined, waves);
       button('上一波', 'hd-btn-wood', () => draw(pg - 1), pg2).disabled = pg <= 0;

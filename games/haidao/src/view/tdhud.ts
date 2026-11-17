@@ -161,7 +161,7 @@ export function refreshPlan(bs: TdScene, force = false): void {
   }
 }
 
-/** 预告里的下一波有第一次见到的敌人：弹一张不挡操作的小卡（头像、会干什么、最怕什么伤害），每种只提示一次 */
+/** 预告里的下一波有第一次见到的敌人：弹一张不挡操作的小卡（头像、会干什么、什么伤害打它多一半），每种只提示一次 */
 function foeHint(bs: TdScene, p: WavePreview): void {
   const fresh = takeNew(FOE_KEY, (seen) => newFoes(waveEnemies(p).map((e) => e.kind), seen));
   const rows = fresh.flatMap((k) => {

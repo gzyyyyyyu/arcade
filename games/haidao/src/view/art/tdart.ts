@@ -1,10 +1,10 @@
-/** 守岛模式的素材：八种敌人（走路、攻击各几帧，朝右，脚底是锚点）和场地道具。风格同 troops.ts：描边 Q 版。 */
+/** 守岛模式的素材：各种敌人（走路、攻击各几帧，朝右，脚底是锚点）和场地道具。风格同 troops.ts：描边 Q 版。 */
 import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
 import { limb, woodShield } from './troops.ts';
 import { OUT, P, box, cyl, darken, ell, f, lighten, line, mat, path, piece, poly, rect, shadow, skull, uid } from './kit.ts';
 
-export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield'] as const;
+export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw'] as const;
 export type TdEnemyKind = (typeof TD_ENEMY_KINDS)[number];
 export type TdAnim = 'walk' | 'attack';
 export type TdPropKind = 'pad' | 'padBuilt' | 'keg' | 'wreck' | 'barrel' | 'tideEdge' | 'mist' | 'jam' | 'tideWave';
@@ -183,6 +183,36 @@ function sailorSpec(p: Pd): Spec {
   } };
 }
 const sailorBody = (p: Pd, atk: boolean): string => manOf(sailorSpec(p), p, atk);
+
+/**
+ * 水手长（精英水手）：同一身条纹衫，一眼认得是水手那一伙；个子大一圈、皮背心、红头巾上金骷髅、络腮胡、大弯刀。
+ * 和船长（红外套、披风、三角帽）、铁甲（灰甲、圆盾）分得开
+ */
+function bosunSpec(p: Pd): Spec {
+  const L: Look = { skin: '#d89868', pants: '#3a3240', boot: '#2a1a14', shirt: '#f4ead0', sleeve: '#7a4a2a', half: 8.4, top: -25, head: 10 };
+  return { L, h: {
+    torso: (x, yt) => {
+      let s = '';
+      for (let i = 0; i < 3; i++) s += rect(x - 3.4, yt + 3.5 + i * 4.4, 6.8, 2.1, C.red!, { sw: 0, op: 0.95 });
+      // 皮背心：两片盖住条纹衫外侧
+      s += path(`M${f(x - 8.4)},${f(yt + 3)} L${f(x - 3.6)},${f(yt + 2)} L${f(x - 3.4)},${f(-12 + p.bob)} L${f(x - 8.2)},${f(-12 + p.bob)} Z`, '#6a3e22', { sw: 1.6 });
+      s += path(`M${f(x + 8.6)},${f(yt + 3)} L${f(x + 3.6)},${f(yt + 2)} L${f(x + 3.4)},${f(-12 + p.bob)} L${f(x + 8.4)},${f(-12 + p.bob)} Z`, '#7a4a2a', { sw: 1.6 });
+      s += rect(x - 8.8, -13.4 + p.bob, 17.6, 3.6, '#2e2018', { sw: 1.4 }) + rect(x - 2.4, -14 + p.bob, 4.8, 4.6, C.gold!, { sw: 1 });
+      return s;
+    },
+    face: (cx, cy, r) =>
+      path(`M${f(cx - r * 0.2)},${f(cy + 2)} Q${f(cx + r * 0.5)},${f(cy + r + 3)} ${f(cx + r + 0.6)},${f(cy + 1)} Q${f(cx + r * 0.5)},${f(cy + 4)} ${f(cx - r * 0.2)},${f(cy + 2)} Z`, '#3a2418', { sw: 1.2 }) +
+      ell(cx + r * 0.42 + 1, cy - 0.6, 1.6, 1.8, '#1b1214', { sw: 0 }) + line([cx + r * 0.1, cy - 3.6], [cx + r * 0.85, cy - 2.4], '#1b1214', 1.6),
+    hat: (cx, cy) => {
+      let s = path(`M${f(cx - 10.6)},${f(cy - 2.2)} A10.6,10.2 0 0 1 ${f(cx + 10.6)},${f(cy - 2.4)} Q${f(cx)},${f(cy - 6.8)} ${f(cx - 10.6)},${f(cy - 2.2)} Z`, C.red!, { sw: 2 });
+      s += path(`M${f(cx - 10)},${f(cy - 3)} q-9,-2 -10,6 q5,-2 8,-1 Z`, C.redD!, { sw: 1.8 });
+      s += ell(cx + 1, cy - 7, 3.4, 3.2, C.gold!, { sw: 1.2 }) + ell(cx, cy - 7.4, 0.8, 0.8, '#3a2418', { sw: 0 }) + ell(cx + 2, cy - 7.4, 0.8, 0.8, '#3a2418', { sw: 0 });
+      return s;
+    },
+    weapon: (hd, pd) => sword(hd, pd.ang, 27, 4.4, '#e8eef4', 5),
+  } };
+}
+const bosunBody = (p: Pd, atk: boolean): string => manOf(bosunSpec(p), p, atk);
 
 function ironcladSpec(p: Pd): Spec {
   const L: Look = { skin: '#d8a070', pants: '#4a4e58', boot: STEEL, shirt: '#7c8794', sleeve: '#6a7482', half: 9.6, top: -25, head: 9 };
@@ -466,6 +496,25 @@ function parrotFrame(anim: TdAnim, i: number): ArtPiece {
   return piece(`td.parrot.${anim}.${i}`, 96, 92, 48, 78, body);
 }
 
+/** 鹦鹉王（精英鹦鹉）：一只大金刚鹦鹉戴金冠，带两只小的；和鹦鹉群（三只一般大）一眼分得开 */
+function macawFrame(anim: TdAnim, i: number): ArtPiece {
+  const wingSeq = anim === 'walk' ? [0, 1, 2, 1] : [0, 2, 1];
+  const dive = anim === 'attack' && i > 0;
+  const lift = anim === 'attack' ? [-50, -32, -40][i]! : -54 - (i % 2) * 2;
+  const push = anim === 'attack' ? [-4, 8, 4][i]! : 0;
+  const w = (k: number): number => wingSeq[(i + k) % wingSeq.length]!;
+  let body = shadow(20, 6, push, 1, 0.38) + shadow(8, 3, -26 + push, 1, 0.3) + shadow(8, 3, 26 + push, 1, 0.3);
+  // 两只小的跟在大鸟身后（朝右飞，身后 = 左边），不挨着头上的冠
+  body += birdAt(-34 + push, lift + 2, w(1), 0.6, 1, dive) + birdAt(-24 + push, lift - 22, w(2), 0.6, 2, dive);
+  body += birdAt(push, lift, w(0), 1.7, 0, dive);
+  // 金冠：压在大鸟头顶（birdAt 的头心 (9, -4)、半径 5.2，乘 1.7）
+  const hx = push + 15.3;
+  const hy = lift - 12.6;
+  body += path(`M${f(hx - 7)},${f(hy)} L${f(hx - 7.5)},${f(hy - 8)} L${f(hx - 3.5)},${f(hy - 4)} L${f(hx)},${f(hy - 10)} L${f(hx + 3.5)},${f(hy - 4)} L${f(hx + 7.5)},${f(hy - 8)} L${f(hx + 7)},${f(hy)} Z`, C.gold!, { sw: 1.6 });
+  body += ell(hx, hy - 3, 1.4, 1.4, C.red!, { sw: 0 });
+  return piece(`td.macaw.${anim}.${i}`, 128, 116, 64, 100, body);
+}
+
 function captainSpec(p: Pd, atk = false): Spec {
   const L: Look = { skin: '#eaa972', pants: '#2c3e6a', boot: '#2a1a14', shirt: '#cc2a24', sleeve: '#b82620', half: 8.2, top: -25, head: 9.6 };
   return { L, h: {
@@ -553,8 +602,9 @@ function specParts(sp: Spec, trail: number, ghost = false): TdManSpec {
   };
 }
 
-export function tdMan(kind: 'sailor' | 'ironclad' | 'fog' | 'sapper' | 'grenadier' | 'captain' | 'shield' | 'skiff' | 'skiffling'): TdManSpec {
+export function tdMan(kind: 'sailor' | 'ironclad' | 'fog' | 'sapper' | 'grenadier' | 'captain' | 'shield' | 'bosun' | 'skiff' | 'skiffling'): TdManSpec {
   if (kind === 'sailor') return specParts(sailorSpec(P0), 23);
+  if (kind === 'bosun') return specParts(bosunSpec(P0), 27);
   if (kind === 'ironclad') return specParts(ironcladSpec(P0), 25);
   if (kind === 'fog') return specParts(fogSpec(P0, 0), 23, true);
   if (kind === 'sapper') return specParts(sapperSpec(P0, 1), 0);
@@ -594,6 +644,8 @@ const DEF: Record<TdEnemyKind, EnemyDef> = {
   parrot: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
   captain: { scale: 2.25, box: { x0: -28, y0: -68, x1: 44, y1: 6 }, shadow: [22, 7] },
   shield: { scale: 1.6, box: { x0: -30, y0: -62, x1: 42, y1: 6 }, shadow: [24, 8] },
+  bosun: { scale: 1.95, box: { x0: -30, y0: -64, x1: 44, y1: 6 }, shadow: [24, 8] },
+  macaw: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
 };
 
 const ecache = new Map<string, ArtPiece[]>();
@@ -606,6 +658,8 @@ export function tdEnemyFrames(kind: TdEnemyKind, anim: TdAnim): ArtPiece[] {
   const atk = anim === 'attack';
   if (kind === 'parrot') {
     r = ps.map((_, i) => parrotFrame(anim, i));
+  } else if (kind === 'macaw') {
+    r = ps.map((_, i) => macawFrame(anim, i));
   } else {
     const d = DEF[kind];
     r = ps.map((p, i) => {
@@ -619,6 +673,7 @@ export function tdEnemyFrames(kind: TdEnemyKind, anim: TdAnim): ArtPiece[] {
       else if (kind === 'sapper') body = sapperBody(p, a, i);
       else if (kind === 'grenadier') body = grenadierBody(p, a, i);
       else if (kind === 'shield') body = shieldBody(p, a, i);
+      else if (kind === 'bosun') body = bosunBody(p, a);
       else body = captainBody(p, a);
       return frame(`td.${kind}.${anim}.${i}`, d.scale, d.box, stdShadow(d.shadow[0] * d.scale, d.shadow[1] * d.scale), body);
     });

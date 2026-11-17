@@ -22,7 +22,7 @@ import { ESCORT_CELL, ESCORT_MEND, ESCORT_SHIP_R } from './escorttypes.ts';
 import type { EscortState } from './escorttypes.ts';
 import { escortBite, escortHullPct, escortRate, escortResult, escortShip } from './escort.ts';
 import type { TdBarricade, TdTier, TdTowerKind } from './td2types.ts';
-import type { TdAction, TdBlock, TdEnemy, TdEnemyKind, TdEvent, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
+import type { TdAction, TdBlock, TdEnemy, TdEnemyKind, TdEvent, TdGroup, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
 import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
 import { tideOpenAt, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus } from './tdquery.ts';
@@ -53,8 +53,18 @@ function costToTier(kind: TdTowerKind, tier: TdTier): number {
   return c;
 }
 
+/**
+ * 按局的规则版本挑波次里的组（TdGroup.since / until）：关卡换配方时新旧两套并排写，旧版本的局只看旧的那套。
+ * 没有分版本的组就原样返回（不复制，大潮这类按需往后生成波次的关卡照旧）
+ */
+export function levelForRules<L extends TdLevel>(lv: L, rules: number): L {
+  const keep = (g: TdGroup): boolean => (g.since === undefined || rules >= g.since) && (g.until === undefined || rules < g.until);
+  if (lv.waves.every((w) => w.groups.every((g) => g.since === undefined && g.until === undefined))) return lv;
+  return { ...lv, waves: lv.waves.map((w) => ({ ...w, groups: w.groups.filter(keep) })) };
+}
+
 export function createTd(setup: TdSetup): TdState {
-  const level = setup.level;
+  const level = levelForRules(setup.level, setup.rules);
   // 规则版本 10 以前没有震荡炮、11 以前没有狙击塔：岛上的、驻守台的、能造的都去掉（旧版本的局里本来就没有，回放逐位不变）
   const missing = (k: string): boolean => (setup.rules < RULES_SINCE.shockGrenadier && k === 'shock') || (setup.rules < RULES_SINCE.sniperShield && k === 'sniper');
   ensureWaves(level, ENDLESS_AHEAD);
