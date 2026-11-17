@@ -158,7 +158,8 @@ describe('受伤补偿不能被利用（DESIGN.md 2.4）', () => {
     return { won: w.won, seconds: w.tick / S };
   }
   it('不躲只等肉包，撑的时间和胜率都比正常躲怪差得多', () => {
-    const seeds = [1, 2, 3, 4];
+    // 8 局：4 局时一局翻面就能让胜局数反过来（规则 65 换了选卡，种子 4 站着挨打的赢了、躲怪的输在尸王）；12 局对照是站着 2 胜、躲怪 7 胜
+    const seeds = [1, 2, 3, 4, 5, 6, 7, 8];
     const t = seeds.map(tank);
     const d = seeds.map(dodge);
     const avg = (xs: { seconds: number }[]): number => xs.reduce((s, x) => s + x.seconds, 0) / xs.length;

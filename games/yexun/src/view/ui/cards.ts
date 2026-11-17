@@ -4,6 +4,8 @@
  */
 import { ELEMENT_SET, PASSIVES, TYPE_SETS, WEAPONS, MAX_WEAPON_LEVEL, type PassiveId, type WeaponId } from '../../content/weapons.ts';
 import { Pick, type Choice, type World } from '../../core/index.ts';
+import { SCHOOLS } from '../../content/guide.ts';
+import { XINFA_DMG } from '../../content/pools.ts';
 import { MONSTER_INFO } from './codex.ts';
 import { counterLine } from './counters.ts';
 import { mergeHint, type MergeHint } from './mergeHint.ts';
@@ -14,6 +16,8 @@ export interface CardView {
   name: string;
   /** "新" 或 "Lv 3 → 4" */
   tag: string;
+  /** 心法流派的法器："心法+10%"（规则 65），和 tag 一样的小标 */
+  xinfa?: string;
   text: string;
   /** 进化提示："进化还差：朱砂" / "满级 + 朱砂 → 斩妖剑" */
   hint: string | null;
@@ -40,6 +44,9 @@ function describeBase(w: World, c: Choice): CardView {
     const evo = def.evolve;
     const hint = evo ? `满级 + ${PASSIVES[evo.with].name} → ${evo.name}${(w.passives[evo.with] ?? 0) > 0 ? '（已有）' : ''}` : null;
     const tags = `${def.el}·${def.type}`;
+    // 心法流派的法器（规则 65 起伤害 +10%，core/skills.ts charDmgMul）：名字旁边标一个小标，让心法在局里看得见（手机上五行·类型那行是藏着的）
+    const xf = w.xinfa;
+    const xinfa = xf && w.identity65 && SCHOOLS[xf].weapons.includes(def.id) ? `心法+${Math.round((XINFA_DMG - 1) * 100)}%` : undefined;
     const counter = counterLine(def.type, def.el, (k) => MONSTER_INFO[k].name) ?? undefined;
     if (!o) {
       // 新法器：拿了以后能凑成哪个套装
@@ -48,9 +55,9 @@ function describeBase(w: World, c: Choice): CardView {
       let set: string | undefined;
       if (sameType === 2 || sameType === 3) set = `${def.type} ${sameType} 件：${TYPE_SETS[def.type][sameType - 2]}`;
       else if (sameEl === 2 || sameEl === 3) set = `${def.el} ${sameEl} 件：${ELEMENT_SET[sameEl - 2]}`;
-      return { icon: def.icon, name: def.name, tag: '新', text: def.desc, hint, tags, set, counter };
+      return { icon: def.icon, name: def.name, tag: '新', xinfa, text: def.desc, hint, tags, set, counter };
     }
-    return { icon: def.icon, name: def.name, tag: o.level + 1 >= MAX_WEAPON_LEVEL ? `Lv ${o.level} → 满` : `Lv ${o.level} → ${o.level + 1}`, text: def.ups[o.level - 1]?.text ?? '', hint, tags, counter };
+    return { icon: def.icon, name: def.name, xinfa, tag: o.level + 1 >= MAX_WEAPON_LEVEL ? `Lv ${o.level} → 满` : `Lv ${o.level} → ${o.level + 1}`, text: def.ups[o.level - 1]?.text ?? '', hint, tags, counter };
   }
   if (c.kind === 'passive') {
     const def = PASSIVES[c.id as PassiveId];
@@ -134,7 +141,7 @@ export class Cards {
       b.innerHTML =
         `<span class="yx-pick-key">${i + 1}</span>` +
         `<img alt="" src="${this.icons(c.icon)}">` +
-        `<span class="yx-pick-name">${c.name}${c.tag ? `<em${c.tag === '新' ? ' class="new"' : ''}>${c.tag}</em>` : ''}</span>` +
+        `<span class="yx-pick-name">${c.name}${c.tag ? `<em${c.tag === '新' ? ' class="new"' : ''}>${c.tag}</em>` : ''}${c.xinfa ? `<em>${c.xinfa}</em>` : ''}</span>` +
         (c.tags ? `<span class="yx-pick-tags">${c.tags}</span>` : '') +
         `<span class="yx-pick-text">${c.text}</span>` +
         (c.counter ? `<span class="yx-pick-counter">${c.counter}</span>` : '') +

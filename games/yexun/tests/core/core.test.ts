@@ -37,10 +37,10 @@ describe('确定性', () => {
     const w = play(20261016, 30 * 180);
     expect({ tick: w.tick, kills: w.kills, level: w.level, fp: fingerprint(w) }).toMatchInlineSnapshot(`
       {
-        "fp": 3715468302,
-        "kills": 470,
+        "fp": 2707369637,
+        "kills": 376,
         "level": 5,
-        "tick": 4107,
+        "tick": 3584,
       }
     `);
   });

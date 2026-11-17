@@ -22,7 +22,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 64;
+export const RULES_VERSION = 65;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
 /** 规则 60–63 的内容（先只在娱乐局）进实盘的版本：实盘统一重拟那一版（DESIGN 4.2a）；之前开的实盘局照旧 */
@@ -262,6 +262,14 @@ export class World {
    */
   get mergeStages(): boolean {
     return this.contentFrom(63);
+  }
+  /**
+   * 规则 65 的「角色特点」三件事，娱乐和实盘同一版起：
+   * 本角色专属搭配的料在三选一里加权（step.ts choicePool，DESIGN 3.9）；铁布衫、万符齐发冷却缩短（skills.ts skillCooldown，3.7）；
+   * 心法流派单子上的法器伤害 ×XINFA_DMG（skills.ts charDmgMul，升级卡上的小标 view/ui/cards.ts，3.7 开局配置 B）
+   */
+  get identity65(): boolean {
+    return this.contentFrom(65);
   }
   /** 这个搭配效果的强度：初成按 MERGE_STAGE.halfPower，大成（和规则 62 以前的所有搭配）1。每个搭配效果里的数都乘它 */
   mergePower(id: MergeDef['id']): number {
