@@ -57,18 +57,23 @@ describe('规则 63：两段式合成的流程', () => {
     expect(mergeEvents(w)).toContain(0);
   });
 
-  it('4 级合不上；规则 62 和实盘两件 5 级也合不上', () => {
+  it('4 级合不上；规则 62 和规则 63 开的实盘局两件 5 级也合不上，现行实盘局合初成', () => {
     const four = bare();
     grantWeapon(four, 'sword', MERGE_STAGE.halfLevel - 1);
     grantWeapon(four, 'flysword', 8);
     settle(four);
     expect(four.merges).toEqual([]);
-    for (const w of [bare({}, 62), bare({ live: true } as Partial<Setup>)]) {
+    for (const w of [bare({}, 62), bare({ live: true } as Partial<Setup>, 63)]) {
       grantWeapon(w, 'sword', MERGE_STAGE.halfLevel);
       grantWeapon(w, 'flysword', MERGE_STAGE.halfLevel);
       settle(w);
       expect(w.merges).toEqual([]);
     }
+    const live = bare({ live: true } as Partial<Setup>);
+    grantWeapon(live, 'sword', MERGE_STAGE.halfLevel);
+    grantWeapon(live, 'flysword', MERGE_STAGE.halfLevel);
+    settle(live);
+    expect(live.mergeHalf).toEqual(['zhuxie']);
   });
 
   it('初成不空法器格：手上满 6 件时升级卡里不出第 7 件法器', () => {
@@ -96,14 +101,14 @@ describe('规则 63：两段式合成的流程', () => {
     }
   });
 
-  it('实盘局（全部能带的角色）一直按技能跑 4 分钟，和规则 62 逐位一致', () => {
+  it('规则 63 开的实盘局（全部能带的角色）一直按技能跑 4 分钟，和规则 62 逐位一致', () => {
     for (const c of ['xiaodao', 'fushi', 'jianxia', 'pang', 'gengfu', 'caiyao', 'zhijiang', 'huolang', 'yinyang'] as const) {
       const run = (rules?: number): number => {
         const w = createWorld(liveSetup('medium', 7, undefined, c), rules);
         for (let t = 0; t < 7200 && w.phase !== 'over'; t++) step(w, Math.floor(t / 45) % 8, w.phase === 'choose' ? t % 3 : -1, 1);
         return fingerprint(w);
       };
-      expect(run(), c).toBe(run(62));
+      expect(run(63), c).toBe(run(62));
     }
   }, 120_000);
 });

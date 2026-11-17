@@ -1,4 +1,4 @@
-// 规则 60 的选卡（DESIGN 3.9）：心法保底、主修进化多补刷新、缘分、夜市求签和「法器 +1 级」升最近的那件。实盘不进：实盘局和规则 59 逐位一致
+// 规则 60 的选卡（DESIGN 3.9）：心法保底、主修进化多补刷新、缘分、夜市求签和「法器 +1 级」升最近的那件。实盘从规则 64 起有（RULES_63_LIVE）；之前开的实盘局和规则 59 逐位一致
 import { describe, expect, it } from 'vitest';
 import { createWorld, fingerprint, Pick, step, type Choice, type Setup, type World } from '../../src/core/index.ts';
 import { grantWeapon, openChestNow } from '../../src/core/debug.ts';
@@ -36,7 +36,7 @@ const inSchool = (school: keyof typeof SCHOOLS) => (c: Choice): boolean => {
 };
 
 describe('规则 60：选卡', () => {
-  it('实盘不进：实盘局（带心法）和规则 59 逐位一致', () => {
+  it('规则 63 以前开的实盘局（带心法）和规则 59 逐位一致；现行实盘局有新选卡', () => {
     for (const c of ['xiaodao', 'fushi', 'zhijiang'] as const) {
       const s = liveSetup('medium', 5, undefined, c, 'snow', { xinfa: c === 'fushi' ? 'fire' : c === 'zhijiang' ? 'ghost' : 'sword' });
       const run = (rules?: number): number => {
@@ -49,7 +49,8 @@ describe('规则 60：选卡', () => {
         expect(w.mkIndex).toBe(2);
         return fingerprint(w);
       };
-      expect(run(), c).toBe(run(59));
+      expect(run(63), c).toBe(run(59));
+      expect(run(), c).not.toBe(run(59));
     }
   }, 120_000);
 

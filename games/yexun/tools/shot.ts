@@ -135,7 +135,7 @@ try {
       // http 的本地地址种不了 __Host- cookie，直接让页面读到它
       await page.addInitScript(() => Object.defineProperty(document, 'cookie', { get: () => '__Host-arcade_li=1', set: () => undefined }));
       await page.route('**/api/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
-      // 把进度放开（地图、危险档、夜探镇子都解锁），看带特色怪头像的大卡和实盘里灰掉的档位
+      // 把进度放开（地图、危险档、夜探镇子都解锁），看带特色怪头像的大卡和实盘的档位
       await page.evaluate(() => {
         const o = JSON.parse(localStorage.getItem('yexun.save') ?? '{}');
         localStorage.setItem('yexun.save', JSON.stringify({ ...o, maxSeconds: 9999, cleared: 3, raidDone: true, extracts: 1 }));
@@ -149,6 +149,8 @@ try {
       if (await page.locator('[data-a="lv"][data-m="live"]').count()) {
         await click('[data-a="lv"][data-m="live"]');
         await snap('select-live-raid');
+        await click('[data-a="tier"][data-t="luxe"]');
+        await snap('select-live-raid-luxe');
         await click('[data-a="kind"][data-k="vigil"]');
         await snap('select-live');
       } else console.log(`${v.name}：没出实盘开关（登录提示没被认）`);

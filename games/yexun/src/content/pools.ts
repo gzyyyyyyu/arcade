@@ -44,10 +44,10 @@ const SPEC: Record<PoolCharacterId, { start: WeaponId; schools: SchoolId[]; extr
 };
 
 /**
- * 规则 62（只娱乐局，World.armsCombos；DESIGN 3.3e）换掉的搭配件：池里没人拿、对这个角色也凑不出东西的件换成能合上搭配的，或者干脆拿掉。
+ * 规则 62（World.armsCombos；DESIGN 3.3e）换掉的搭配件：池里没人拿、对这个角色也凑不出东西的件换成能合上搭配的，或者干脆拿掉。
  * 剑侠加金钟罩（鹤翼金身、乾坤护阵），铜钱镖、判官笔有了新搭配，算盘留着（拿走就只剩货郎一个池）；胖师叔铜钱剑换符咒（铃符、符火燎原）；
  * 采药女鞭炮换寒泉（雷雨）；货郎鞭炮换火葫芦（符火燎原、铃焰）；纸匠拿掉长明灯（已有 15 个搭配）；阴阳先生桃木剑换火葫芦（铃焰、火五行套）。
- * 实盘和规则 61 以前的局照旧用 SPEC 的（POOLS_61），等最后整体重拟实盘时合成一份
+ * 规则 61 以前的局（和规则 64 以前开的实盘局）用 SPEC 的老搭配件（POOLS_BEFORE_62），只为旧录像逐位重放
  */
 const EXTRA_62: Partial<Record<PoolCharacterId, WeaponId[]>> = {
   jianxia: ['brush', 'dart', 'abacus', 'shield'],
@@ -79,12 +79,12 @@ function build(id: PoolCharacterId, extra: readonly WeaponId[]): CharacterPool {
 
 const pools = (extra: (id: PoolCharacterId) => readonly WeaponId[]): Record<PoolCharacterId, CharacterPool> =>
   Object.fromEntries(POOL_CHARACTER_IDS.map((id) => [id, build(id, extra(id))])) as Record<PoolCharacterId, CharacterPool>;
-/** 现在的池（娱乐局；界面、图鉴、可达性都按它） */
+/** 现在的池（界面、图鉴、可达性都按它） */
 export const CHARACTER_POOLS = pools((id) => EXTRA_62[id] ?? SPEC[id].extra);
-/** 规则 61 以前和实盘的池 */
-export const POOLS_61 = pools((id) => SPEC[id].extra);
-/** 一局用哪份池：now = World.armsCombos（规则 62 起的娱乐局）。重拟实盘后只剩一份，这里和 POOLS_61 一起删 */
-export const poolsFor = (now: boolean): Record<PoolCharacterId, CharacterPool> => (now ? CHARACTER_POOLS : POOLS_61);
+/** 老池：只给旧录像用——规则 61 以前的局、规则 64 以前开的实盘局（World.armsCombos 为假） */
+export const POOLS_BEFORE_62 = pools((id) => SPEC[id].extra);
+/** 一局用哪份池：now = World.armsCombos（假的只有旧录像） */
+export const poolsFor = (now: boolean): Record<PoolCharacterId, CharacterPool> => (now ? CHARACTER_POOLS : POOLS_BEFORE_62);
 
 /** 起手法器（和 meta.ts CHARACTERS[id].start 一致，测试锁住；新角色在 meta 里还没有时用这里的） */
 export const POOL_START: Record<PoolCharacterId, WeaponId> = Object.fromEntries(POOL_CHARACTER_IDS.map((id) => [id, SPEC[id].start])) as Record<PoolCharacterId, WeaponId>;
@@ -92,7 +92,7 @@ export const POOL_START: Record<PoolCharacterId, WeaponId> = Object.fromEntries(
 const sets = (P: Record<PoolCharacterId, CharacterPool>): Record<string, { w: Set<string>; p: Set<string> }> =>
   Object.fromEntries(POOL_CHARACTER_IDS.map((id) => [id, { w: new Set<string>(P[id].weapons), p: new Set<string>(P[id].passives) }]));
 const SETS = sets(CHARACTER_POOLS);
-const SETS_61 = sets(POOLS_61);
+const SETS_61 = sets(POOLS_BEFORE_62);
 
 /** 这个角色的池里有没有这件法器 / 被动（不认识的角色按小道士）；now = 用现在的池（World.armsCombos），否则用规则 61 的 */
 export function inPool(character: string | undefined, id: string, now: boolean): boolean {

@@ -134,8 +134,8 @@ describe('实盘选角色、地图：vigilBp', () => {
     const mv = RAID_LIVE.base.medium.guzhen * 2;
     expect(liveBp(mv, 'medium', 'guzhen', RAID_LIVE.floorRamp.medium, 'pang')).toBe(plain(mv, 'medium'));
   });
-  it('夜探：小道士只在大档山寺有系数（0.17.14），实盘结回经 settleRaid 带上所选角色', () => {
-    expect(Object.keys(RAID_LIVE.charBp.xiaodao ?? {})).toEqual(['large']);
+  it('夜探：小道士只在中档渡口（0.27.0）、大档山寺（0.17.14）有系数，实盘结回经 settleRaid 带上所选角色', () => {
+    expect(Object.keys(RAID_LIVE.charBp.xiaodao ?? {})).toEqual(['medium', 'large']);
     const s = liveSetup('small', 3, 'guzhen', 'pang');
     expect(s.character).toBe('pang');
     expect(new World(s).raid!.setup.character).toBe('pang');
@@ -250,7 +250,8 @@ describe('实盘技能的形状表 LIVE_SKILL_SHAPE（0.17.0 起中档以上开�
     expect(liveSkillOpen('medium', 'snow', undefined, 'gengfu')).toBe(true);
     const base = LIVE_SKILL_BP.dawn.medium!;
     const c = LIVE_SKILL_BP.char.gengfu?.medium ?? 10_000;
-    expect(vigilBp('medium', 0, true, false, 'gengfu', 'snow')).toBe(Math.floor((base * c) / 10_000));
+    // 钉在规则 63：规则 64 起这一格有重拟的组合系数（live-64.test.ts）
+    expect(vigilBp('medium', 0, true, false, 'gengfu', 'snow', 63)).toBe(Math.floor((base * c) / 10_000));
   });
   it('规则 40–44 开的局：当时关技能的角色照那时结（不放技能、不带技能那套倍数，含组合系数），和 0.16.0 逐位一致；0.17.10 起都放技能', () => {
     // 0.16.0 的值：大档 dawn 17,600 × 更夫雪原大档组合 11,400；豪华档 19,200 × 组合 11,800；中档胖师叔 16,900 × 8,400

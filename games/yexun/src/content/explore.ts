@@ -362,39 +362,34 @@ export const RAID_LIVE = {
    * 保底满额和几拍给满：撤出越早给得越少，从 1.0 线性涨到满额（1.1：认真搜要比开门就走多拿 ≥ 0.15 份）。
    * 按档分开：中、大档第一座门 5 分钟才开，开门就走也在 6 分钟左右，同样的保底在那里就等于白送，所以中档给满拖到 10 分钟、大档满额压到 1.25。
    */
-  floor: { small: 1.6, medium: 1.6, large: 1.25 } as Record<RaidLiveTier, number>,
-  floorRamp: { small: 5 * 60 * 30, medium: 10 * 60 * 30, large: 8 * 60 * 30 } as Record<RaidLiveTier, number>,
+  // 豪华档（规则 64 开）照大档的思路：8 分钟给满，满额比大档低（豪华档目标带低一截），数值是拟出来的（DESIGN 4.2）
+  floor: { small: 1.6, medium: 1.6, large: 1.25, luxe: 1.2 } as Record<RaidLiveTier, number>,
+  floorRamp: { small: 5 * 60 * 30, medium: 10 * 60 * 30, large: 8 * 60 * 30, luxe: 8 * 60 * 30 } as Record<RaidLiveTier, number>,
   // 戏楼镇、粮仓镇（0.17.6）：小道士每格 300 局，普通锚区间中点，两条线期望 + 2SE 不超上限（DESIGN.md 4.2）
   base: {
     small: { guzhen: 250, dukou: 182, shansi: 220, xilou: 176, liangcang: 246 },
     medium: { guzhen: 211, dukou: 241, shansi: 153, xilou: 184, liangcang: 224 },
     large: { guzhen: 175, dukou: 153, shansi: 98, xilou: 135, liangcang: 210 },
+    luxe: { guzhen: 139, dukou: 121, shansi: 45, xilou: 79, liangcang: 164 },
   } as Record<RaidLiveTier, Record<RaidLiveTemplate, number>>,
-  danger: { small: 0, medium: 1, large: 2 } as Record<RaidLiveTier, number>,
-  open: ['small', 'medium', 'large'] as readonly RaidLiveTier[],
+  danger: { small: 0, medium: 1, large: 2, luxe: 3 } as Record<RaidLiveTier, number>,
   /**
    * 角色系数（万分比，默认 10_000；0.3.6 实盘可选已解锁的角色）：乘在按保底、封顶算好的倍数上，结果仍至少 1 份、最多封顶（liveMultiplier）。
    * 某角色同档的实盘期望比最高、最低的差出 0.15 份以上才单独给，按档写，不改角色本身的数值。
-   * 戏楼镇、粮仓镇还没按角色量：先取这个角色同档三个老镇里最低的一个（保守，不多发），以后按局量了再改。
    */
   charBp: {
-    // 0.19.2：0.18.0 起夜探实盘能放技能，粗跑（sim --stop，两线最多 300 局）量出普通超上限 +0.15 的 11 格压到两线都不超上限：
-    // 符师小档古镇 / 山寺 / 戏楼、中档戏楼、大档渡口 / 山寺 / 戏楼，纸匠中档古镇，剑侠大档古镇，小道士、胖师叔大档山寺；
-    // 0.19.3：后量完的 16 个「角色 × 镇子」里只剩剑侠大档粮仓多发（普通 +0.56），压到 6,300
-    // 0.20.3：规则 56 起新怪、新搭配进实盘后重量 45 个「角色 × 镇子」，普通超上限 +0.15 的 9 格压到两线都不超上限：
-    // 符师小档粮仓、中档山寺，更夫中档古镇 / 山寺、大档山寺 / 戏楼，阴阳先生中档山寺、大档山寺 / 粮仓（新搭配铃符、铃焰在夜探也能合）
-    jianxia: { small: { guzhen: 8_300, dukou: 8_200, shansi: 9_400, xilou: 8_200, liangcang: 8_200 }, medium: { guzhen: 7_900, dukou: 9_100, shansi: 8_500, xilou: 9_300, liangcang: 7_900 }, large: { guzhen: 6_700, dukou: 8_100, shansi: 8_500, xilou: 7_900, liangcang: 6_300 } },
-    pang: { small: { guzhen: 9_000, dukou: 8_900, shansi: 9_000, xilou: 8_900, liangcang: 9_900 }, medium: { guzhen: 8_200, dukou: 9_200, shansi: 8_100, xilou: 9_200, liangcang: 8_100 }, large: { guzhen: 7_200, dukou: 8_800, shansi: 6_200, xilou: 7_700, liangcang: 9_000 } },
-    caiyao: { small: { guzhen: 10_000, dukou: 8_700, shansi: 8_400, xilou: 8_400, liangcang: 9_600 }, medium: { guzhen: 8_000, dukou: 9_100, shansi: 7_600, xilou: 9_900, liangcang: 9_000 }, large: { guzhen: 7_800, dukou: 8_600, shansi: 7_100, xilou: 9_100, liangcang: 9_600 } },
-    fushi: { small: { guzhen: 8_800, dukou: 8_600, shansi: 8_700, xilou: 10_600, liangcang: 8_900 }, medium: { guzhen: 8_400, dukou: 10_000, shansi: 7_600, xilou: 9_100, liangcang: 8_400 }, large: { guzhen: 8_100, dukou: 8_600, shansi: 6_300, xilou: 8_700, liangcang: 8_500 } },
-    // 新三人 0.17.10 开夜探实盘：古镇普通机器人 100 局粗跑，期望超过带上限 +0.15 的档压到上限（各镇通用），其余按 1 倍
-    zhijiang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 10_000, xilou: 10_000, liangcang: 12_200 }, medium: { guzhen: 8_900, dukou: 12_100, shansi: 10_000, xilou: 17_000, liangcang: 15_100 }, large: { guzhen: 8_900, dukou: 12_200, shansi: 11_100, xilou: 10_800, liangcang: 14_900 } },
-    // 0.17.13（规则 48）：全覆盖测量每格两线各 300 局，货郎小档渡口、山寺和大档山寺普通 +0.52～+0.83，超带上限 0.15 以上，压到两线期望都不超上限
-    huolang: { small: { guzhen: 10_000, dukou: 10_500, shansi: 10_600, xilou: 11_000, liangcang: 10_000 }, medium: { guzhen: 10_400, dukou: 10_500, shansi: 9_900, xilou: 10_400, liangcang: 10_400 }, large: { guzhen: 10_200, dukou: 11_400, shansi: 9_200, xilou: 9_600, liangcang: 11_300 } },
-    // 0.17.14 全覆盖测量（每格两线各 300 局）补上的：普通期望超上限 +0.15 的压到上限，低于下限 0.10 以上的在两线都不超上限的前提下抬向带中点（最多 1.5 倍）
-    xiaodao: { large: { guzhen: 10_000, dukou: 10_000, shansi: 9_200, xilou: 10_000, liangcang: 10_000 } },
-    gengfu: { small: { guzhen: 10_000, dukou: 10_000, shansi: 10_000, xilou: 8_900, liangcang: 11_500 }, medium: { guzhen: 8_800, dukou: 10_000, shansi: 8_400, xilou: 10_000, liangcang: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 8_600, xilou: 9_500, liangcang: 16_800 } },
-    yinyang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 11_000, xilou: 12_200, liangcang: 10_000 }, medium: { guzhen: 10_000, dukou: 10_000, shansi: 11_300, xilou: 12_100, liangcang: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 10_700, xilou: 10_000, liangcang: 10_500 } },
+    // 0.27.0（规则 64 的内容进实盘）：45 个「角色 × 镇子」小、中、大三档 sim --stop 重量（最多 2,000 局），豪华档每格 2,000 局。
+    // 口径「宁简勿难」：只压超过多发线（带上限 + 0.15）的，压到普通回到带上限、小白不超多发线；普通低于带下限的抬到带上限（最多 2 倍）；其余照旧。
+    // 豪华档的基准把小道士普通锚到 +0.40（主线 11-17：往多给提，但不到大档带上限 +0.45），角色系数按同一个锚压。逐格的拟出值和之前的历史见 docs/balance-yexun.md 第 1 节
+    xiaodao: { medium: { guzhen: 10_000, dukou: 11_400, shansi: 10_000, xilou: 10_000, liangcang: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 9_200, xilou: 10_000, liangcang: 10_000 } },
+    fushi: { small: { guzhen: 8_800, dukou: 9_400, shansi: 9_600, xilou: 9_200, liangcang: 8_900 }, medium: { guzhen: 8_400, dukou: 10_000, shansi: 8_300, xilou: 10_100, liangcang: 8_400 }, large: { guzhen: 8_100, dukou: 8_600, shansi: 7_300, xilou: 8_700, liangcang: 8_500 }, luxe: { guzhen: 8_200, dukou: 8_300, shansi: 7_000, xilou: 8_300, liangcang: 7_900 } },
+    jianxia: { small: { guzhen: 8_300, dukou: 8_200, shansi: 9_400, xilou: 8_200, liangcang: 8_200 }, medium: { guzhen: 7_900, dukou: 9_100, shansi: 7_700, xilou: 8_400, liangcang: 7_900 }, large: { guzhen: 6_700, dukou: 8_100, shansi: 6_800, xilou: 7_900, liangcang: 7_100 }, luxe: { guzhen: 7_200, dukou: 7_900, shansi: 7_100, xilou: 7_300, liangcang: 6_400 } },
+    pang: { small: { guzhen: 9_000, dukou: 8_900, shansi: 9_000, xilou: 8_900, liangcang: 9_900 }, medium: { guzhen: 8_200, dukou: 10_200, shansi: 8_100, xilou: 9_200, liangcang: 8_100 }, large: { guzhen: 7_200, dukou: 8_800, shansi: 8_200, xilou: 8_700, liangcang: 9_000 }, luxe: { guzhen: 7_100, dukou: 7_900, shansi: 6_200, xilou: 7_100, liangcang: 7_100 } },
+    gengfu: { small: { guzhen: 10_000, dukou: 10_000, shansi: 10_000, xilou: 8_900, liangcang: 11_500 }, medium: { guzhen: 8_800, dukou: 10_000, shansi: 8_400, xilou: 10_000, liangcang: 10_000 }, large: { guzhen: 8_700, dukou: 10_000, shansi: 6_800, xilou: 9_500, liangcang: 10_300 }, luxe: { guzhen: 8_500, dukou: 9_600, shansi: 7_500, xilou: 8_400, liangcang: 10_000 } },
+    caiyao: { small: { guzhen: 10_000, dukou: 8_700, shansi: 8_400, xilou: 8_400, liangcang: 9_600 }, medium: { guzhen: 8_000, dukou: 10_000, shansi: 7_600, xilou: 9_900, liangcang: 9_000 }, large: { guzhen: 7_800, dukou: 8_600, shansi: 7_100, xilou: 9_100, liangcang: 9_600 }, luxe: { guzhen: 7_300, dukou: 8_500, shansi: 6_800, xilou: 8_200, liangcang: 8_900 } },
+    zhijiang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 10_000, xilou: 9_100, liangcang: 10_300 }, medium: { guzhen: 8_900, dukou: 10_600, shansi: 7_900, xilou: 9_700, liangcang: 9_100 }, large: { guzhen: 8_900, dukou: 9_300, shansi: 7_900, xilou: 9_200, liangcang: 10_000 }, luxe: { guzhen: 8_300, dukou: 9_000, shansi: 8_400, xilou: 9_000, liangcang: 9_400 } },
+    huolang: { small: { guzhen: 11_300, dukou: 11_700, shansi: 10_600, xilou: 11_000, liangcang: 11_000 }, medium: { guzhen: 10_400, dukou: 10_500, shansi: 9_900, xilou: 10_400, liangcang: 10_400 }, large: { guzhen: 10_200, dukou: 11_400, shansi: 9_200, xilou: 9_600, liangcang: 11_300 }, luxe: { guzhen: 10_000, dukou: 10_000, shansi: 6_800, xilou: 7_800, liangcang: 9_500 } },
+    yinyang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 11_000, xilou: 12_200, liangcang: 11_300 }, medium: { guzhen: 10_000, dukou: 10_000, shansi: 11_300, xilou: 12_100, liangcang: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 10_700, xilou: 10_000, liangcang: 11_800 }, luxe: { guzhen: 9_300, dukou: 10_000, shansi: 9_500, xilou: 9_300, liangcang: 10_000 } },
   } as Partial<Record<CharacterId, Partial<Record<RaidLiveTier, RaidCharCoef>>>>,
 };
 
@@ -405,11 +400,11 @@ export function raidCharCoef(character: CharacterId, tier: RaidLiveTier, templat
   const c = RAID_LIVE.charBp[character]?.[tier];
   return typeof c === 'object' ? (c[template] ?? 10_000) : c;
 }
-export type RaidLiveTier = 'small' | 'medium' | 'large';
+export type RaidLiveTier = 'small' | 'medium' | 'large' | 'luxe';
 /** 能开实盘的镇子（教学镇不能）；菜单、实盘记录、结回都按这一份 */
 export type RaidLiveTemplate = Exclude<RaidTemplateId, 'teach'>;
 export const RAID_LIVE_TEMPLATES: readonly RaidLiveTemplate[] = ['guzhen', 'dukou', 'shansi', 'xilou', 'liangcang'];
-export const RAID_LIVE_TIERS: readonly RaidLiveTier[] = ['small', 'medium', 'large'];
+export const RAID_LIVE_TIERS: readonly RaidLiveTier[] = ['small', 'medium', 'large', 'luxe'];
 
 /** 娱乐：撤出时背包按价值换铜钱（1 价值 = 1 铜钱）；死了或迷失拿这局捡到的铜钱的一半 */
 export const RAID_EXCHANGE = { rate: 1, deathCoinShare: 0.5 };

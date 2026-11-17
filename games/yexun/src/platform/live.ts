@@ -36,8 +36,8 @@ export function liveSetup(tier: LiveTier, seed: number, raid?: RaidLiveTemplate,
   const character = liveCharOk(tier, picked, map, !!raid) ? picked : 'xiaodao';
   // 开局配置（起手、心法）实盘也带，和娱乐对齐；换成小道士时不带上原角色的心法（流派不属于小道士的会被核心丢掉，这里先收干净）
   const cfg = character === picked ? loadout : {};
-  if (raid && tier !== 'luxe') {
-    // 夜探实盘：危险档按夜探自己的表（小 0、中 2、大 3）
+  if (raid) {
+    // 夜探实盘：危险档按夜探自己的表（RAID_LIVE.danger）
     return { seed, mode: 'raid', danger: RAID_LIVE.danger[tier] as Setup['danger'], raid: { template: raid, live: tier }, character, perks: {}, assist: false, live: true, ...cfg };
   }
   return { seed, mode: 'vigil', danger: LIVE_TIERS[tier].danger, character, map, perks: {}, assist: false, live: true, ...cfg };

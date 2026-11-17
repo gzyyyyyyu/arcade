@@ -2,8 +2,8 @@ import type { SchoolId } from '../../../content/guide.ts';
 import type { MapId } from '../../../content/maps.ts';
 import { DANGERS, type Danger } from '../../../content/waves.ts';
 import type { CharacterId, CurseId } from '../../../content/meta.ts';
-import { LIVE_TIERS, type LiveTier } from '../../../content/live.ts';
-import { RAID_LIVE, RAID_LIVE_TEMPLATES, type RaidLiveTemplate } from '../../../content/explore.ts';
+import type { LiveTier } from '../../../content/live.ts';
+import { RAID_LIVE_TEMPLATES, type RaidLiveTemplate } from '../../../content/explore.ts';
 import { RAID_PICKS, type Best, type LastMode, type RaidPick } from '../../../platform/save.ts';
 import { beijingDate, daysToNightmareSunday } from '../../../online/daily.ts';
 
@@ -144,34 +144,30 @@ export const bestText = (b: Best | undefined): { big: string; small: string } =>
 
 // ───────────────────────── 主页 ─────────────────────────
 
-/** 主页一键开的实盘：上次选了实盘、现在开得了，夜探还要过了教学镇、档位开着；否则 null（按娱乐开） */
+/** 主页一键开的实盘：上次选了实盘、现在开得了，夜探还要过了教学镇、选的是能开实盘的镇子；否则 null（按娱乐开） */
 export function quickLive(s: MenuState): { tier: LiveTier; raid?: RaidLiveTemplate } | null {
   if (!s.live.on || !s.live.available) return null;
   if (s.lastMode !== 'raid') return { tier: s.live.tier };
-  return !s.raidFirst && raidTierOk(s.live.tier) && isLiveTown(s.raidTpl) ? { tier: s.live.tier, raid: s.raidTpl } : null;
+  return !s.raidFirst && isLiveTown(s.raidTpl) ? { tier: s.live.tier, raid: s.raidTpl } : null;
 }
 
 /** 上次选了实盘、这次却按娱乐开的原因（主页按钮下面那行字） */
 export function quickOffWhy(s: MenuState): string {
   if (!s.live.available) return s.live.offWhy ?? '现在开不了实盘';
   if (s.raidFirst) return '第一次夜探先走教学镇';
-  return `夜探没有${LIVE_TIERS[s.live.tier].name}档`;
+  return '教学镇不开实盘';
 }
 
-/** 夜探实盘能开的档（豪华档只有守夜；中、大档看 RAID_LIVE.open） */
-export function raidTierOk(t: LiveTier): boolean {
-  return t !== 'luxe' && RAID_LIVE.open.includes(t);
-}
 
 // ───────────────────────── 开始菜单（两屏的总管） ─────────────────────────
 
 /**
  * 点了起手或心法后浮出的一条说明（触屏没有悬停，图标的提示看不到）：起手是哪件、心法这局管什么用。
- * 娱乐局心法保底一张主修卡、主修进化多补一次刷新（规则 60）；实盘不进规则 60，只有主修的卡出现多一半（core/step.ts choicePool）
+ * 心法保底一张主修卡、主修进化多补一次刷新（规则 60，实盘规则 64 起也有）
  */
-export function loadoutNote(l: NonNullable<MenuState['loadout']>, live: boolean): string {
+export function loadoutNote(l: NonNullable<MenuState['loadout']>): string {
   const start = `起手 ${l.starts[l.alt ? 1 : 0]?.name ?? ''}`;
   const x = l.schools.find((s) => s.id === l.xinfa);
   if (!x) return `${start} · 不带心法`;
-  return live ? `${start} · 心法 ${x.name}：${x.name}的卡出现多一半（实盘不保底）` : `${start} · 心法 ${x.name}：每次升级保底一张${x.name}的卡，${x.name}的法器进化多补一次刷新`;
+  return `${start} · 心法 ${x.name}：每次升级保底一张${x.name}的卡，${x.name}的法器进化多补一次刷新`;
 }

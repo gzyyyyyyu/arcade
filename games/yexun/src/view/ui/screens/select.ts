@@ -6,11 +6,11 @@ import { noSchoolIcon, schoolIcon, tierIcon } from '../../art/sprites-selicons.t
 import { DANGER_IDS, DANGERS, NIGHTMARE_FROM, RAID_MAX_DANGER, type Danger } from '../../../content/waves.ts';
 import { CHARACTERS, CURSES } from '../../../content/meta.ts';
 import { LIVE_TIER_IDS, LIVE_TIERS, liveCharOk, liveMapOk, type LiveTier } from '../../../content/live.ts';
-import { RAID_LIVE, RAID_TEMPLATES, type RaidLiveTier, type RaidTemplateId } from '../../../content/explore.ts';
+import { RAID_LIVE, RAID_TEMPLATES, type RaidTemplateId } from '../../../content/explore.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, type Region } from '../../../content/regions.ts';
 import type { RaidPick } from '../../../platform/save.ts';
 import { MONSTER_INFO } from '../codex.ts';
-import { LOCK_SVG, esc, layer, onAction, type MenuState, RAID_PICK, LIVE_PICK, isLiveTown, HOME_BTN, bestText, raidTierOk, loadoutNote } from './shared.ts';
+import { LOCK_SVG, esc, layer, onAction, type MenuState, RAID_PICK, LIVE_PICK, isLiveTown, HOME_BTN, bestText, loadoutNote } from './shared.ts';
 import { zoomed } from '../../viewport.ts';
 import { sceneUrl, TitleArt } from './titleArt.ts';
 import type { Menu } from './menu.ts';
@@ -62,14 +62,11 @@ export class Select {
       },
       lv: (el) => {
         this.live = { ...this.live, on: el.dataset.m === 'live' };
-        this.fixTier();
         this.m.onLiveMode(this.live.on, this.live.tier);
         this.render();
       },
       kind: (el) => {
-        if (el.getAttribute('aria-disabled') === 'true') return;
         this.kind = el.dataset.k as Kind;
-        this.fixTier();
         this.render();
       },
       tier: (el) => {
@@ -156,17 +153,12 @@ export class Select {
     this.fresh = true;
   }
 
-  /** 实盘里夜探只开 RAID_LIVE.open 里的档（豪华档只有守夜）：当前档开不了就换成第一个能开的 */
-  private fixTier(): void {
-    if (this.live.on && this.kind === 'raid' && !raidTierOk(this.live.tier) && RAID_LIVE.open.length) this.live = { ...this.live, tier: RAID_LIVE.open[0]! };
-  }
-
   private go(): void {
     const s = this.s!;
     const live = this.live.available && this.live.on;
     if (this.kind === 'vigil') return live ? this.m.onLive(this.live.tier, this.map) : this.m.onStart(this.diff, this.map, this.endless);
     if (s.raidFirst) return this.m.onRaid('teach', 0);
-    if (live) return raidTierOk(this.live.tier) ? this.m.onRaidLive(this.live.tier as RaidLiveTier, isLiveTown(this.tpl) ? this.tpl : 'guzhen') : undefined;
+    if (live) return this.m.onRaidLive(this.live.tier, isLiveTown(this.tpl) ? this.tpl : 'guzhen');
     this.m.onRaid(this.tpl, raidDanger(this.diff));
   }
 
@@ -180,7 +172,6 @@ export class Select {
       this.endless = false;
       this.diff = Math.min(s.danger, s.dangerOpen) as Danger;
       this.map = s.maps[s.map] ? s.map : 'snow';
-      if (this.live.on && this.live.available) this.fixTier();
     }
     this.diff = Math.min(this.diff, s.dangerOpen) as Danger;
     if (!s.maps[this.map]) this.map = 'snow';
@@ -227,12 +218,10 @@ export class Select {
     const lvSw = this.live.available
       ? `<div class="yx-chips yx-modesw yx-selfx"><button type="button" class="yx-chip${live ? '' : ' on'}" data-a="lv" data-m="fun"><b>娱乐</b><small>不花筹码</small></button><button type="button" class="yx-chip${live ? ' on' : ''}" data-a="lv" data-m="live"><b>实盘</b><small>带一份筹码</small></button></div>`
       : '';
-    // 模式卡：实盘里夜探一档都没开就灰着
-    const raidOff = live && RAID_LIVE.open.length === 0;
     const kinds =
       '<div class="yx-kinds">' +
       `<button type="button" class="yx-kind${raid ? '' : ' on'}" data-a="kind" data-k="vigil"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>守夜</b><em>15 分钟 · 撑到天亮</em></span></button>` +
-      `<button type="button" class="yx-kind${raid ? ' on' : ''}${raidOff ? ' locked' : ''}" data-a="kind" data-k="raid"${raidOff ? ' aria-disabled="true"' : ''}><img class="yx-scene" alt="" src="${sceneUrl('raid', 320, 100)}"><span class="yx-kindtxt"><span class="yx-lamp"></span><b>夜探</b><em>搜宝、打怪、找门撤离</em></span></button>` +
+      `<button type="button" class="yx-kind${raid ? ' on' : ''}" data-a="kind" data-k="raid"><img class="yx-scene" alt="" src="${sceneUrl('raid', 320, 100)}"><span class="yx-kindtxt"><span class="yx-lamp"></span><b>夜探</b><em>搜宝、打怪、找门撤离</em></span></button>` +
       '</div>';
 
     // 地图 / 镇子大卡
@@ -257,16 +246,13 @@ export class Select {
     ).join('');
     const townGrid = `<div class="yx-pickgrid yx-towns">${townCards}</div>`;
     const mapGrid = `<div class="yx-pickgrid yx-maps" aria-label="地图">${mapCards}</div>`;
-    const tierOn = (t: LiveTier): boolean => !raid || raidTierOk(t);
-    // 档位：铜钱堆小图（堆越高档越大）+ 名字和筹码数；夜探开不了的档灰着点不动，原因直接写在按钮上（选中后的说明行玩家看不到）
-    const tierSub = (t: LiveTier): string => (tierOn(t) ? LIVE_TIERS[t].stake.toLocaleString('zh-CN') : '只有守夜');
-    const tiers = `<div class="yx-chips yx-tiers">${LIVE_TIER_IDS.map((t) => `<button type="button" class="yx-chip yx-tierchip${t === this.live.tier ? ' on' : ''}${tierOn(t) ? '' : ' locked'}" data-a="tier" data-t="${t}"${tierOn(t) ? '' : ' disabled aria-disabled="true" title="这一档只开守夜，夜探还没开"'}><img alt="" src="${tierIcon(t)}"><b>${LIVE_TIERS[t].name}</b><small>${tierSub(t)}</small></button>`).join('')}</div>`;
+    // 档位：铜钱堆小图（堆越高档越大）+ 名字和筹码数
+    const tiers = `<div class="yx-chips yx-tiers">${LIVE_TIER_IDS.map((t) => `<button type="button" class="yx-chip yx-tierchip${t === this.live.tier ? ' on' : ''}" data-a="tier" data-t="${t}"><img alt="" src="${tierIcon(t)}"><b>${LIVE_TIERS[t].name}</b><small>${LIVE_TIERS[t].stake.toLocaleString('zh-CN')}</small></button>`).join('')}</div>`;
 
     let pick: string;
     let opts = '';
     let note = '';
     const startLabel = raid ? '开始夜探' : '开始';
-    let startOff = false;
     let facts = '';
     // 实盘数字小牌：一行等宽排完（守夜 4 格，夜探 5 格），大字写数、小字写它是什么，整段细则在悬停里
     const factCards = (list: LiveFact[], tip: string): string =>
@@ -276,16 +262,13 @@ export class Select {
     } else if (live) {
       if (raid) {
         const t = this.live.tier;
-        startOff = !raidTierOk(t);
         const ok = liveCharOk(t, s.character, 'snow', true);
         const swap = ok ? '' : ` · <b class="yx-livewarn">${CHARACTERS[s.character].name}带不进来，按小道士出战</b>`;
         const town = isLiveTown(this.tpl) ? this.tpl : 'guzhen';
+        const who = ok ? s.character : 'xiaodao';
         pick = townGrid;
-        if (raidTierOk(t)) {
-          const who = ok ? s.character : 'xiaodao';
-          note = `危险 ${RAID_LIVE.danger[t as RaidLiveTier]} · 不带加成${swap}`;
-          facts = factCards(raidLiveFacts(t as RaidLiveTier, town, who), plainNote(`${raidLiveNote(t as RaidLiveTier, town, who)}<br>不能放技能`));
-        } else note = '豪华档只有守夜；夜探先开小档';
+        note = `危险 ${RAID_LIVE.danger[t]} · 不带加成${swap}`;
+        facts = factCards(raidLiveFacts(t, town, who), plainNote(raidLiveNote(t, town, who)));
       } else {
         pick = mapGrid;
         const ok = liveCharOk(this.live.tier, s.character, this.map);
@@ -298,7 +281,7 @@ export class Select {
     }
     const charChip = `<button type="button" class="yx-chip yx-prep yx-prepchar" data-a="prep" data-t="char">${s.charFace ? `<img alt="" src="${s.charFace}">` : ''}<b>${CHARACTERS[s.character].name}</b><small>角色</small></button>`;
     // 角色：娱乐和实盘同一个按钮（点开角色页选人）+ 起手心法；夜探教学局不让换
-    const charLine = raid && s.raidFirst ? '' : `<div class="yx-chips yx-livechar">${charChip}${this.loadoutCtl(s)}${s.loadout && this.ldTip ? `<p class="yx-ldnote" role="status">${esc(loadoutNote(s.loadout, live))}</p>` : ''}</div>`;
+    const charLine = raid && s.raidFirst ? '' : `<div class="yx-chips yx-livechar">${charChip}${this.loadoutCtl(s)}${s.loadout && this.ldTip ? `<p class="yx-ldnote" role="status">${esc(loadoutNote(s.loadout))}</p>` : ''}</div>`;
     if (!live) {
       const shown = raid ? raidDanger(this.diff) : this.diff;
       const dangerBtn = (d: Danger): string => {
@@ -329,7 +312,7 @@ export class Select {
       opts = `${tiers}${charLine}<div class="yx-livenote">${note}</div>${facts}`;
     }
     const vault = raid && s.vault && !live ? `<button type="button" class="yx-chip yx-vaultbtn" data-a="vault"><b>藏宝阁</b><small>${s.vault.got} / ${s.vault.total}</small></button>` : '';
-    const aside = `<div class="yx-aside"><div class="yx-opts">${opts}</div><div class="yx-startbar"><button type="button" class="yx-big" data-a="go"${startOff ? ' disabled' : ''}>${startLabel}</button>${vault}</div></div>`;
+    const aside = `<div class="yx-aside"><div class="yx-opts">${opts}</div><div class="yx-startbar"><button type="button" class="yx-big" data-a="go">${startLabel}</button>${vault}</div></div>`;
 
     this.ldTip = false;
     this.ui.innerHTML = `${top}<div class="yx-sel">${lvSw}${kinds}<div class="yx-pickarea">${pick}</div>${aside}</div>`;

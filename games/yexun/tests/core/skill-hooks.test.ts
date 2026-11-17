@@ -1,4 +1,4 @@
-// 规则 61 的角色技能钩子（DESIGN 3.7，core/skills.ts SKILL_FX.hooks）：只娱乐局；实盘、规则 60 以前的局逐位不变
+// 规则 61 的角色技能钩子（DESIGN 3.7，core/skills.ts SKILL_FX.hooks）：实盘从规则 64 起有；规则 60 以前的局、规则 63 以前开的实盘局逐位不变
 import { describe, expect, it } from 'vitest';
 import { createWorld, Ev, fingerprint, Shot, step, MAX_SHOTS, type Setup, type World } from '../../src/core/index.ts';
 import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
@@ -43,11 +43,12 @@ function cast(w: World): number {
 }
 
 describe('规则 61：角色技能钩子', () => {
-  it('小道士：手上剑类 ≥ 2 件，剑气纵横身后再斩一刀；一件剑、规则 60、实盘都只一刀', () => {
+  it('小道士：手上剑类 ≥ 2 件，剑气纵横身后再斩一刀（实盘也是）；一件剑、规则 60、规则 63 开的实盘局都只一刀', () => {
     expect(cast(arena('xiaodao', ['sword', 'flysword']))).toBe(2);
     expect(cast(arena('xiaodao', ['sword']))).toBe(1);
     expect(cast(arena('xiaodao', ['sword', 'flysword'], 60))).toBe(1);
-    expect(cast(arena('xiaodao', ['sword', 'flysword'], undefined, true))).toBe(1);
+    expect(cast(arena('xiaodao', ['sword', 'flysword'], undefined, true))).toBe(2);
+    expect(cast(arena('xiaodao', ['sword', 'flysword'], 63, true))).toBe(1);
   });
 
   it('符师：每多一件符类多飞 3 张，封顶 21', () => {
@@ -162,14 +163,14 @@ describe('规则 61：角色技能钩子', () => {
     expect(refills(60)).toBe(0);
   }, 30_000);
 
-  it('实盘逐位不变：八个角色一直按技能跑 4 分钟，和规则 60 一样', () => {
+  it('规则 63 开的实盘局：八个角色一直按技能跑 4 分钟，和规则 60 一样', () => {
     for (const c of ['xiaodao', 'fushi', 'jianxia', 'pang', 'caiyao', 'zhijiang', 'gengfu', 'huolang'] as const) {
       const run = (rules?: number): number => {
         const w = createWorld(liveSetup('medium', 9, undefined, c, 'snow'), rules);
         for (let t = 0; t < 7200 && w.phase !== 'over'; t++) step(w, Math.floor(t / 45) % 8, w.phase === 'choose' ? 0 : -1, 1);
         return fingerprint(w);
       };
-      expect(run(), c).toBe(run(60));
+      expect(run(63), c).toBe(run(60));
     }
   }, 120_000);
 });

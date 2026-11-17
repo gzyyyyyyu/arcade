@@ -46,7 +46,8 @@ export function raidLiveFacts(tier: RaidLiveTier, tpl: RaidLiveTemplate, charact
     { big: `${Number(floor.toFixed(2))} 份`, small: `待满 ${RAID_LIVE.floorRamp[tier] / 1800} 分钟再撤` },
     { big: base.toLocaleString('zh-CN'), small: '铜钱宝物算 1 份' },
     { big: `${RAID_LIVE.cap} 份`, small: '最多' },
-    { big: '不能', small: '放技能' },
+    // 夜探实盘规则 51 起能放技能（World.liveNoSkill）
+    { big: '能', small: '放技能' },
   ];
 }
 

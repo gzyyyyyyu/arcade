@@ -553,7 +553,9 @@ describe('夜探后半段（RAID_LATE：补刷、宝妖、鬼市、宝库和钥�
 
 // 0.21.1（目标带整体 +0.15）抬过的夜探格子：新值锁在 tests/content/live-58.test.ts，下面几节旧的锁定跳过它们（夜探系数不跟规则版本走，只有现行一份）
 const LIFTED_0211 = new Set(['small|guzhen|caiyao', 'small|dukou|huolang', 'small|shansi|jianxia', 'small|shansi|huolang', 'small|xilou|fushi', 'small|xilou|huolang', 'small|liangcang|pang', 'small|liangcang|gengfu', 'small|liangcang|zhijiang', 'medium|guzhen|huolang', 'medium|dukou|zhijiang', 'medium|dukou|huolang', 'medium|shansi|huolang', 'medium|xilou|jianxia', 'medium|xilou|zhijiang', 'medium|xilou|huolang', 'medium|liangcang|zhijiang', 'medium|liangcang|huolang', 'large|guzhen|huolang', 'large|dukou|fushi', 'large|dukou|zhijiang', 'large|dukou|huolang', 'large|shansi|huolang', 'large|xilou|fushi', 'large|xilou|gengfu', 'large|xilou|huolang', 'large|liangcang|pang', 'large|liangcang|gengfu', 'large|liangcang|zhijiang', 'large|liangcang|huolang']);
-const lifted = (t: string, tp: string, c: string): boolean => LIFTED_0211.has(`${t}|${tp}|${c}`);
+// 0.27.0（规则 64 的内容进实盘后重拟）又改过的夜探格子：新值锁在 tests/content/live-64.test.ts
+const REFIT_0270 = new Set(['large|dukou|zhijiang', 'large|guzhen|gengfu', 'large|liangcang|gengfu', 'large|liangcang|jianxia', 'large|liangcang|yinyang', 'large|liangcang|zhijiang', 'large|shansi|fushi', 'large|shansi|gengfu', 'large|shansi|jianxia', 'large|shansi|pang', 'large|shansi|zhijiang', 'large|xilou|pang', 'large|xilou|zhijiang', 'medium|dukou|caiyao', 'medium|dukou|pang', 'medium|dukou|xiaodao', 'medium|dukou|zhijiang', 'medium|liangcang|zhijiang', 'medium|shansi|fushi', 'medium|shansi|jianxia', 'medium|shansi|zhijiang', 'medium|xilou|fushi', 'medium|xilou|jianxia', 'medium|xilou|zhijiang', 'small|dukou|fushi', 'small|dukou|huolang', 'small|guzhen|huolang', 'small|liangcang|huolang', 'small|liangcang|yinyang', 'small|liangcang|zhijiang', 'small|shansi|fushi', 'small|xilou|fushi', 'small|xilou|zhijiang']);
+const lifted = (t: string, tp: string, c: string): boolean => LIFTED_0211.has(`${t}|${tp}|${c}`) || REFIT_0270.has(`${t}|${tp}|${c}`);
 
 describe('0.17.13（规则 48）夜探货郎多发热修', () => {
   // [档, 镇子, 带出 2 倍基准时的 bp, 撤出没带东西（保底给满）时的 bp]：取自 0.17.12 线上（规则 47）；小档戏楼 0.17.14 另压了，见下一节

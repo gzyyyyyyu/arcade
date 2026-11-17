@@ -67,7 +67,7 @@ describe('0.17.15 降难度后压回的 5 格（规则 50）', () => {
     for (const [t, m, c, dawn49, mid49, dawn50] of CELLS) {
       expect(vigilBp(t, 0, true, false, c, m, 49), `${t} ${m} ${c}`).toBe(dawn49);
       expect(vigilBp(t, 600 * 30, false, false, c, m, 49), `${t} ${m} ${c}`).toBe(mid49);
-      expect(vigilBp(t, 0, true, false, c, m), `${t} ${m} ${c}`).toBe(dawn50);
+      expect(vigilBp(t, 0, true, false, c, m, 63), `${t} ${m} ${c}`).toBe(dawn50);
       expect(vigilBp(t, 0, true, false, c, m, 50), `${t} ${m} ${c}`).toBe(dawn50);
     }
     expect(vigilBp('large', 0, true, false, 'xiaodao', 'temple')).toBe(vigilBp('large', 0, true, false, 'xiaodao', 'temple', 49));

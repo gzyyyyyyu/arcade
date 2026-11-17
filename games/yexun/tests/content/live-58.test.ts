@@ -117,37 +117,27 @@ describe('0.21.1 规则 57 的内容进实盘、目标带 +0.15 后抬的格子�
     }
   });
 
-  // 夜探角色系数不跟规则版本走（撤出时按当时的系数结），只锁新值
+  // 夜探角色系数不跟规则版本走（撤出时按当时的系数结），只锁新值；0.27.0 又改过的格子在 live-64.test.ts 里锁
   const RAID: [RaidLiveTier, RaidLiveTemplate, CharacterId, number][] = [
     ['small', 'guzhen', 'caiyao', 10000],
-    ['small', 'dukou', 'huolang', 10500],
     ['small', 'shansi', 'jianxia', 9400],
     ['small', 'shansi', 'huolang', 10600],
-    ['small', 'xilou', 'fushi', 10600],
     ['small', 'xilou', 'huolang', 11000],
     ['small', 'liangcang', 'pang', 9900],
     ['small', 'liangcang', 'gengfu', 11500],
-    ['small', 'liangcang', 'zhijiang', 12200],
     ['medium', 'guzhen', 'huolang', 10400],
-    ['medium', 'dukou', 'zhijiang', 12100],
     ['medium', 'dukou', 'huolang', 10500],
     ['medium', 'shansi', 'huolang', 9900],
-    ['medium', 'xilou', 'jianxia', 9300],
-    ['medium', 'xilou', 'zhijiang', 17000],
     ['medium', 'xilou', 'huolang', 10400],
-    ['medium', 'liangcang', 'zhijiang', 15100],
     ['medium', 'liangcang', 'huolang', 10400],
     ['large', 'guzhen', 'huolang', 10200],
     ['large', 'dukou', 'fushi', 8600],
-    ['large', 'dukou', 'zhijiang', 12200],
     ['large', 'dukou', 'huolang', 11400],
     ['large', 'shansi', 'huolang', 9200],
     ['large', 'xilou', 'fushi', 8700],
     ['large', 'xilou', 'gengfu', 9500],
     ['large', 'xilou', 'huolang', 9600],
     ['large', 'liangcang', 'pang', 9000],
-    ['large', 'liangcang', 'gengfu', 16800],
-    ['large', 'liangcang', 'zhijiang', 14900],
     ['large', 'liangcang', 'huolang', 11300],
   ];
   it('夜探抬过的格子是新系数', () => {

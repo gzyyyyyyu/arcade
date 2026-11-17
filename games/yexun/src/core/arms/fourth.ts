@@ -1,5 +1,5 @@
 /**
- * 规则 62 的搭配（DESIGN 3.3e，只娱乐局）：剑走偏锋、笔走龙蛇、判阵、寒钟（锁魂幡挂在勾魂锁和怪死的地方，见 index.ts castChain、second.ts killsTick）。
+ * 规则 62 的搭配（DESIGN 3.3e）：剑走偏锋、笔走龙蛇、判阵、寒钟（锁魂幡挂在勾魂锁和怪死的地方，见 index.ts castChain、second.ts killsTick）。
  * 给搭配少的剑侠、阴阳先生、胖师叔补跨流派的搭配，料用他们池里原来没人拿的件。
  * 能不能合由 MERGES 的 since: 62 把关（World.contentFrom(62) = armsCombos），所以这里只看 w.merges。
  * 和前几批一样只用四则运算，不用随机。

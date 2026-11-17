@@ -49,7 +49,7 @@ export const SKILL_FX = {
   /** 横江一渡：水域半径、里面主角的速度倍数（怪慢 40%：记 1 档减速，实际 ×0.62） */
   ferry: { r: 190, speed: 1.3 },
   /**
-   * 规则 61 的角色技能钩子（娱乐局，World.skillHooks）：小道士手上剑类 ≥ 2 件时身后补一刀；符师每多一件符类多飞几张、封顶；
+   * 规则 61 的角色技能钩子（World.skillHooks）：小道士手上剑类 ≥ 2 件时身后补一刀；符师每多一件符类多飞几张、封顶；
    * 剑侠冲刺打倒精英当场转好；胖师叔挡下的伤害 × storeMul 在结束时震出去；采药女回春每秒伤药香圈里的怪（底 + 每级 × 等级）
    */
   hooks: { backSlashAt: 2, fuPer: 3, fuMax: 21, storeMul: 2, herbDmg: 8, herbPerLevel: 2 },

@@ -75,13 +75,13 @@ export function replayStop(lines: { novice: readonly number[]; normal: readonly 
 }
 
 const VIGIL_TIER: Partial<Record<number, LiveTier>> = { 0: 'small', 2: 'medium', 3: 'large', 4: 'luxe' };
-const RAID_TIER: Partial<Record<number, LiveTier>> = { 0: 'small', 1: 'medium', 2: 'large' };
-/** 实盘档（守夜危险 0/2/3/4，夜探 0/1/2），别的危险不是实盘 */
+const RAID_TIER: Partial<Record<number, LiveTier>> = { 0: 'small', 1: 'medium', 2: 'large', 3: 'luxe' };
+/** 实盘档（守夜危险 0/2/3/4，夜探 0/1/2/3），别的危险不是实盘 */
 export const tierOf = (raid: boolean, danger: number): LiveTier | undefined => (raid ? RAID_TIER : VIGIL_TIER)[danger];
 
 /** sim 的 json 一局 → 实盘结回 − 1 份（按现在的系数；守夜 [赢, 尸王, 拍, …]，夜探 [撤出, 价值, 拍, …]） */
 export function runEv(raid: boolean, tier: LiveTier, map: string, char: CharacterId, r: readonly number[]): number {
-  if (raid) return (r[0] ? liveBp(r[1]!, tier as 'small' | 'medium' | 'large', map as RaidLiveTemplate, r[2]!, char) : 0) / 10_000 - 1;
+  if (raid) return (r[0] ? liveBp(r[1]!, tier, map as RaidLiveTemplate, r[2]!, char) : 0) / 10_000 - 1;
   return vigilBp(tier, r[2]!, r[0] === 1, r[1] === 1, char, map as MapId) / 10_000 - 1;
 }
 

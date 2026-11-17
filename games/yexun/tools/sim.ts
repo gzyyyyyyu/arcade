@@ -27,7 +27,7 @@ import { Bot, routeDone, type Build, type Skill } from './bots.ts';
 import { RaidBot } from '../src/explore/bot.ts';
 import { settleRaid } from '../src/explore/settle.ts';
 import '../src/explore/register.ts';
-import { RAID_LIVE, type RaidLiveTier, type RaidTemplateId } from '../src/content/explore.ts';
+import { RAID_LIVE, RAID_LIVE_TIERS, type RaidLiveTier, type RaidTemplateId } from '../src/content/explore.ts';
 import { MERGES } from '../src/content/weapons.ts';
 import { mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId } from '../src/content/pools.ts';
 import type { SchoolId } from '../src/content/guide.ts';
@@ -136,7 +136,7 @@ export function runOne(seed: number, danger: Danger, skill: Skill, build: Build,
 }
 
 /** 夜探实盘的危险 → 档（小 0、中 1、大 2） */
-const tierOfRaidDanger = (d: number): RaidLiveTier | undefined => (['small', 'medium', 'large'] as const).find((t) => RAID_LIVE.danger[t] === d);
+const tierOfRaidDanger = (d: number): RaidLiveTier | undefined => RAID_LIVE_TIERS.find((t) => RAID_LIVE.danger[t] === d);
 
 interface Cell {
   diff: Danger;
