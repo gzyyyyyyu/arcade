@@ -4,7 +4,7 @@ import type { ArtPiece, Pt } from './kit.ts';
 import { limb, woodShield } from './troops.ts';
 import { OUT, P, box, cyl, darken, ell, f, lighten, line, mat, path, piece, poly, rect, shadow, skull, uid } from './kit.ts';
 
-export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate', 'medic', 'gunboat'] as const;
+export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate', 'medic', 'gunboat', 'king'] as const;
 export type TdEnemyKind = (typeof TD_ENEMY_KINDS)[number];
 export type TdAnim = 'walk' | 'attack';
 export type TdPropKind = 'pad' | 'padBuilt' | 'keg' | 'wreck' | 'barrel' | 'tideEdge' | 'mist' | 'jam' | 'tideWave' | 'sluiceUp' | 'sluiceDown' | 'battery' | 'crate';
@@ -206,6 +206,34 @@ function medicSpec(p: Pd): Spec {
   } };
 }
 const medicBody = (p: Pd, atk: boolean): string => manOf(medicSpec(p), p, atk);
+
+/**
+ * 海盗王（第四章终局）：停在海上的大旗舰，整帧画。船身是炮艇的两倍长、金边，船舷三个炮门，两根桅杆挂黑帆，
+ * 主帆上一个戴金冠的骷髅，桅顶红旗；walk 是在浪里慢慢起伏，attack 是三个炮门一起冒火、船身往后一坐
+ */
+function kingFrame(anim: TdAnim, i: number): ArtPiece {
+  const bob = anim === 'walk' ? [0, -2, 0, 2][i]! : [0, 3, 1][i]!;
+  const fire = anim === 'attack' && i === 1;
+  const y = (v: number): string => f(v + bob);
+  let o = ell(0, 4, 84, 16, '#bfe7f2', { sw: 0, op: 0.55 }) + ell(0, 4, 66, 11, '#8fd0e6', { sw: 0, op: 0.5 });
+  const hull = `M-80,${y(-40)} Q-76,${y(-6)} -36,${y(0)} L44,${y(0)} Q78,${y(-10)} 88,${y(-46)} Q40,${y(-34)} -10,${y(-34)} Q-46,${y(-34)} -80,${y(-40)} Z`;
+  o += path(hull, '#5a2f1c', { sw: 3 });
+  o += path(`M-80,${y(-40)} Q-10,${y(-28)} 88,${y(-46)}`, 'none', { stroke: C.gold!, sw: 3.2 });
+  o += path(`M-66,${y(-16)} Q0,${y(-10)} 70,${y(-22)}`, 'none', { stroke: C.gold!, sw: 1.6, op: 0.8 });
+  // 船舷三个炮门，开炮时炮口冒火
+  for (const x of [-34, 0, 34]) {
+    o += rect(x - 6, -27 + bob, 12, 9, '#2b1a15', { sw: 1.6 }) + rect(x - 2, -25 + bob, 8, 5, '#3a3a44', { sw: 1 });
+    if (fire) o += ell(x + 2, -14 + bob, 8, 6, '#ffcf5a', { sw: 0 }) + ell(x + 2, -8 + bob, 5, 4, '#fff1b8', { sw: 0, op: 0.9 });
+  }
+  // 两根桅杆：后桅小黑帆，主桅大黑帆上戴金冠的骷髅，桅顶红旗
+  o += line([-40, -36 + bob], [-40, -104 + bob], C.woodDD!, 4) + line([14, -36 + bob], [14, -138 + bob], C.woodDD!, 5);
+  o += path(`M-62,${y(-96)} Q-40,${y(-90)} -20,${y(-96)} L-22,${y(-50)} Q-40,${y(-46)} -60,${y(-50)} Z`, '#24202a', { sw: 2 });
+  o += path(`M-20,${y(-128)} Q14,${y(-120)} 48,${y(-128)} L44,${y(-52)} Q14,${y(-46)} -16,${y(-52)} Z`, '#24202a', { sw: 2.4 });
+  o += skull(14, -88 + bob, 7, true);
+  o += poly([[4, -100 + bob], [8, -110 + bob], [14, -103 + bob], [20, -110 + bob], [24, -100 + bob]], C.gold!, { sw: 1.6 });
+  o += path(`M15,${y(-138)} L40,${y(-132)} L15,${y(-125)} Z`, '#c8382e', { sw: 1.6 });
+  return piece(`td.king.${anim}.${i}`, 200, 168, 100, 150, o);
+}
 
 /**
  * 炮艇（第四章）：不上岸的一条小炮船，整帧画（不走骨架）。船身比小艇大一圈，甲板上一门短炮、一根桅杆挂黑旗，
@@ -701,6 +729,7 @@ const DEF: Record<TdEnemyKind, EnemyDef> = {
   mate: { scale: 1.95, box: { x0: -30, y0: -64, x1: 44, y1: 6 }, shadow: [24, 8] },
   medic: { scale: 1.5, box: { x0: -28, y0: -62, x1: 40, y1: 6 }, shadow: [24, 8] },
   gunboat: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
+  king: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
   macaw: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
 };
 
@@ -718,6 +747,8 @@ export function tdEnemyFrames(kind: TdEnemyKind, anim: TdAnim): ArtPiece[] {
     r = ps.map((_, i) => macawFrame(anim, i));
   } else if (kind === 'gunboat') {
     r = ps.map((_, i) => gunboatFrame(anim, i));
+  } else if (kind === 'king') {
+    r = ps.map((_, i) => kingFrame(anim, i));
   } else {
     const d = DEF[kind];
     r = ps.map((p, i) => {

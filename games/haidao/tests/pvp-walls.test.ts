@@ -56,6 +56,9 @@ describe('快照校验：城墙、主寨 8 级、掉宝装饰', () => {
     expect(validateBase(legacy)).toMatchObject({ ok: true });
     // 名额照样管：一种装饰最多 1 个
     expect(validateBase(json(island(2, { flagpole: 2 }, ['deco:flagpole'])))).toMatchObject({ ok: false, error: 'limit' });
+    // 守岛第四章全部过关送的「海盗王的舵轮」同一条规矩
+    expect(validateBase(json(island(2, { wheel: 1 }, ['deco:wheel'])))).toMatchObject({ ok: true });
+    expect(validateBase(json(island(2, { wheel: 1 }, [])))).toMatchObject({ ok: false, error: 'deco' });
   });
 });
 

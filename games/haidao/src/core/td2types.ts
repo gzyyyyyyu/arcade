@@ -68,6 +68,7 @@ export const TD_ENEMY_ARMOR: Readonly<Record<TdEnemyKind, TdArmor>> = {
   mate: 'cloth',
   medic: 'cloth',
   gunboat: 'wood',
+  king: 'heavy',
   macaw: 'air',
 };
 
@@ -335,7 +336,9 @@ export type Td2Action =
   /** 漂流补给箱（规则版本 16）：叫英雄去捡这个箱子，捡到后回原来的守点 */
   | { t: number; type: 'pickup'; id: number }
   /** 岸防老炮（规则版本 16）：往 (x, y)（单位）打一发 */
-  | { t: number; type: 'battery'; x: number; y: number };
+  | { t: number; type: 'battery'; x: number; y: number }
+  /** 友军巡航船（规则版本 19）：叫船（冷却好了、不在海上时才有用） */
+  | { t: number; type: 'fleet' };
 
 /** 守岛 2.0 新增的事件（并进 TdEvent） */
 export type Td2Event =
@@ -356,7 +359,11 @@ export type Td2Event =
   /** 第四章（规则版本 18）：炮艇往一座塔打了一炮（塔同时有 jam 事件）、炮艇开走了、军医回了一次血 */
   | { type: 'shell'; id: number; tower: number; x0: number; y0: number; x1: number; y1: number }
   | { type: 'sail'; id: number }
-  | { type: 'heal'; id: number };
+  | { type: 'heal'; id: number }
+  /** 规则版本 19：友军船来了（come，冷却到 ready 拍）、开了一炮（shot，从船打向 (x1, y1)，t1 拍落地）、开走了（go）；x、y 是船此刻的位置（单位） */
+  | { type: 'fleet'; what: 'come' | 'shot' | 'go'; x: number; y: number; x1: number; y1: number; t1: number; ready: number }
+  /** 海盗王放下一船人（drop）、叫来护航（escort）；x、y 是它的位置 */
+  | { type: 'king'; what: 'drop' | 'escort'; id: number; x: number; y: number };
 
 /** 场上的拒马（x、y 是格子坐标，事件 barricade 里的也是）：挡住周围 3×3 格的地面敌人，血掉光或到时间就没了 */
 export interface TdBarricade {

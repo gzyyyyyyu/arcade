@@ -44,6 +44,10 @@ export const RARE_POOL: string[] = [
   'deco:chest',
   ...TROOP_IDS.flatMap((t) => SKIN_NAMES.map((n) => `skin:${t}:${n}`)),
 ];
+/** 守岛第四章全部过关送的纪念装饰「海盗王的舵轮」：不进掉宝池 */
+export const TD_WHEEL = 'deco:wheel';
+/** 存档认得的全部收藏（掉宝池 + 纪念装饰）：读存档、校验快照按它过滤，没在这里的收藏和摆着的装饰都丢掉 */
+export const COSMETICS: readonly string[] = [...RARE_POOL, TD_WHEEL];
 
 /**
  * 掉宝：带种子、确定性。1 星以上给 1 个普通掉落（金币或木材箱，量随星数和关卡掠夺涨）；

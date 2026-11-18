@@ -1,5 +1,5 @@
 /**
- * 守岛 2.0 的 22 关（td01–td22）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
+ * 守岛 2.0 的 24 关（td01–td24）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
  * 波次不写死个数，写"这一波的预算分给哪几组敌人"：个数 = 预算份额 ÷ 敌人点数（TD2_ENEMY_POINTS），预算见 waveBudget。
  * 这样改 TD2_BUDGET 或敌人点数，各关的强度跟着连续变；td-sim 还能用 buildLevel 的 budgetPct 量"预算 ±2% 时的三星率"。
  * 难度只来自预算、敌人种类和路数、地图，没有每关单独的血量百分比（hpPct 一律 100）。
@@ -58,6 +58,8 @@ interface LevelDef {
   crates?: Array<{ wave: number; x: number; y: number }>;
   /** 岸防老炮（规则版本 16，第三章最后两关）：炮台摆在哪一格（TdLevel.battery） */
   battery?: { x: number; y: number };
+  /** 友军巡航船（规则版本 19，第四章最后两关；TdLevel.fleet） */
+  fleet?: boolean;
   /** 首领波前多给的倒数（拍），不写用 TD2_BOSS_EXTRA_TICKS */
   bossExtraTicks?: number;
   /**
@@ -95,6 +97,7 @@ const X = 'sapper';
 const C = 'captain';
 const M = 'medic';
 const B = 'gunboat';
+const G = 'king';
 
 const DEFS: readonly LevelDef[] = [
   // ---------------------------------------------------------------- 第一章：登陆、铁甲、雾船、鹦鹉、首领
@@ -452,6 +455,44 @@ const DEFS: readonly LevelDef[] = [
       note('最后一波：远程、溅射、单点都要有', w([S, 40, 1], [I, 25, 2], [M, 15, 2, 40], [B, 20, 0])),
     ],
   },
+  {
+    // 友军巡航船第一次出现：炮艇比前两关多，叫船去清海面；后岛那一路照旧。
+    // 炮艇从第 4 波才来：第 3 波就来时，机器人看到预告提前改造远程塔，第 2 波北边的水手漏过去（三星 24–32%，对预算不敏感）
+    id: 'td23', name: '远洋舰队', index: 22, map: 'J', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 160, elite: { scale: 160, kind: 'mate' }, pads: 10, garrison: [3, 3, 3],
+    fleet: true,
+    waves: [
+      w([S, 100, 0]),
+      w([S, 50, 1], [I, 50, 0]),
+      w([S, 64, 0], [M, 16, 1, 40], [S, 20, 3]),
+      note('炮艇成群来了：按「援船」叫友军船沿着岸边开一圈', w([S, 40, 2], [I, 20, 0], [B, 20, 2], [S, 20, 3])),
+      w([P, 20, 0], [S, 36, 1], [M, 12, 1, 40], [B, 12, 0], [S, 20, 3]),
+      w([I, 32, 2], [S, 28, 1], [B, 20, 0], [S, 20, 3]),
+      w([K, 24, 0], [S, 32, 2], [M, 12, 2, 40], [B, 12, 1], [S, 20, 3]),
+      note('首领：船长带着炮艇来', boss([C, 0, 0], [S, 36, 1, 30], [I, 20, 2, 20], [B, 24, 0], [S, 20, 3])),
+      w([P, 20, 1], [S, 36, 0], [M, 12, 0, 40], [B, 12, 2], [S, 20, 3]),
+      w([S, 40, 2], [I, 20, 1], [B, 20, 0], [S, 20, 3]),
+      note('最后一波：桥上和海上一起来', w([S, 36, 0], [S, 20, 2], [M, 12, 1, 40], [B, 12, 1], [S, 20, 3])),
+    ],
+  },
+  {
+    // 终局：海盗王停在北边海上，只有远程塔和友军船够得着；它放下的人和护航炮艇是这关的压力。
+    // 前四波是铺垫波（份额 50% / 60% / 80% / 80%）：整关预算要撑住最后的海盗王，前几波照满份额会在开局一分钟里压上五六十个水手；
+    // 只放轻前两波时，三星率随预算乱跳（147 / 149 / 150% 是 69 / 84 / 49%，丢宝全在第 3、4 波，看机器人先造了哪种塔），四波都放轻后考验落在后半段
+    id: 'td24', name: '海盗王', index: 23, map: 'K', chapter: 4, hq: 8, gold: 680, waveTicks: 320, scale: 161, elite: { scale: 161, kind: 'mate' }, pads: 10, garrison: [3, 3, 3],
+    fleet: true,
+    waves: [
+      w([S, 50, 0]),
+      w([S, 35, 1], [I, 25, 2]),
+      w([S, 32, 0], [M, 16, 0, 40], [B, 16, 1], [S, 16, 2]),
+      w([K, 24, 1], [S, 32, 2], [B, 24, 0]),
+      w([P, 20, 0], [S, 40, 2], [M, 20, 2, 40], [B, 20, 1]),
+      w([I, 30, 2], [S, 40, 1], [B, 30, 0]),
+      w([S, 40, 0], [K, 20, 1], [M, 20, 0, 40], [B, 20, 2]),
+      w([P, 20, 2], [S, 40, 0], [I, 20, 1], [B, 20, 1]),
+      w([S, 50, 1], [M, 20, 1, 40], [B, 30, 2]),
+      note('海盗王：旗舰停在北边海上，过一阵放下一船人，血过半叫两艘炮艇护航', boss([G, 0, 0], [S, 40, 1, 40], [I, 30, 2, 60], [M, 30, 0, 80])),
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------- 展开成引擎吃的关卡
@@ -473,11 +514,15 @@ const SPAN: Readonly<Record<TdEnemyKind, { span: number; min: number }>> = {
   mate: { span: 280, min: 20 },
   medic: { span: 280, min: 30 },
   gunboat: { span: 200, min: 60 },
+  king: { span: 1, min: 1 },
 };
 
 /** 精英从第几波（0 起）出、占水手和鹦鹉份额的百分之几；精英一个顶四个（TD2_ENEMY_POINTS） */
 export const TD_ELITE = { from: 3, pct: 60 } as const;
 const ELITE_OF: Partial<Record<TdEnemyKind, TdEnemyKind>> = { sailor: 'bosun', parrot: 'macaw' };
+
+/** 首领（船长、第四章的海盗王）：一波固定 1 个，份额写 0 */
+const BOSS: ReadonlySet<TdEnemyKind> = new Set(['captain', 'king']);
 
 function everyOf(kind: TdEnemyKind, n: number): number {
   const s = SPAN[kind];
@@ -492,16 +537,16 @@ function expand(r: WaveRecipe, budget: number, elite: Partial<Record<TdEnemyKind
   let left = budget;
   const groups: TdGroup[] = [];
   for (const [kind, , lane] of r.groups) {
-    if (kind !== 'captain') continue;
-    groups.push({ enemy: 'captain', n: 1, lane, every: 1 });
-    left = Math.max(0, left - TD2_ENEMY_POINTS.captain);
+    if (!BOSS.has(kind)) continue;
+    groups.push({ enemy: kind, n: 1, lane, every: 1 });
+    left = Math.max(0, left - TD2_ENEMY_POINTS[kind]);
   }
   const put = (kind: TdEnemyKind, share: number, lane: number, delay: number | undefined): void => {
     const n = Math.max(1, Math.round((left * share) / 100 / TD2_ENEMY_POINTS[kind]));
     groups.push({ enemy: kind, n, lane, every: everyOf(kind, n), ...(delay ? { delay } : {}) });
   };
   for (const [kind, share, lane, delay] of r.groups) {
-    if (kind === 'captain' || share <= 0) continue;
+    if (BOSS.has(kind) || share <= 0) continue;
     const ek = elite?.[kind];
     if (!ek) {
       put(kind, share, lane, delay);
@@ -566,6 +611,7 @@ export function buildLevel(def: LevelDef, budgetPct = 100): TdIslandLevel {
     ...(def.bossExtraTicks ? { bossExtra: def.bossExtraTicks } : {}),
     ...(def.sluice ? { sluice: def.sluice } : {}),
     ...(def.battery ? { battery: { ...def.battery } } : {}),
+    ...(def.fleet ? { fleet: true } : {}),
     ...(def.crates ? { crates: def.crates.map((c) => ({ ...c })) } : {}),
     ...(map.water ? { water: map.water.map((p) => ({ ...p })) } : {}),
     ...(map.bridges ? { bridges: map.bridges.map((p) => ({ ...p })) } : {}),
@@ -594,5 +640,5 @@ export const TD2_CHAPTERS: readonly Td2ChapterInfo[] = [
   { id: 1, name: '第一章', theme: '登陆、铁甲、雾船、鹦鹉、船长', levels: TD2_LEVELS.filter((l) => l.chapter === 1) },
   { id: 2, name: '第二章', theme: '潮水涨落 · 成片的雾', levels: TD2_LEVELS.filter((l) => l.chapter === 2) },
   { id: 3, name: '第三章', theme: '炸塔工兵 · 绕后鹦鹉 · 首领发怒', levels: TD2_LEVELS.filter((l) => l.chapter === 3) },
-  { id: 4, name: '第四章', theme: '远洋 · 军医回血 · 海上炮艇', levels: TD2_LEVELS.filter((l) => l.chapter === 4) },
+  { id: 4, name: '第四章', theme: '远洋 · 军医回血 · 海上炮艇 · 友军船 · 海盗王', levels: TD2_LEVELS.filter((l) => l.chapter === 4) },
 ];

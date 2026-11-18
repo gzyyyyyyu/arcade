@@ -7,7 +7,7 @@
  *   （旧版开局只造 2 座攒到第 5 波、有钱先升阶：那是机器人自己把自己饿死，不是玩法；叫波的条件太严也几乎从不触发）
  */
 import { BRANCH_LEVEL, branchOptions } from '../content/branches.ts';
-import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_HERO_SKILL, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO_SKILL, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { Rng } from './rng.ts';
 import { createTd, stepTd, tdResult, tdUpCost } from './td.ts';
 import { tdSluiceCan } from './tdmech.ts';
@@ -95,9 +95,22 @@ export function counterKind(s: TdState, pv: WavePreview[]): TdTowerKind {
   return best;
 }
 
-/** 预告的这两波里有没有炮艇 */
+/** 预告的这两波里有没有停在海上的船（炮艇、海盗王） */
 function gunboatAhead(pv: readonly WavePreview[]): boolean {
-  return pv.some((w) => w.lanes.some((l) => l.enemies.some((e) => e.kind === 'gunboat')));
+  return pv.some((w) => w.lanes.some((l) => l.enemies.some((e) => !!TD2_ENEMIES[e.kind].shell)));
+}
+
+/** 友军船值得叫吗：船好了、不在海上，海上停着至少 min 艘船（炮艇、海盗王；海盗王一艘就叫） */
+function fleetWorth(s: TdState, min: number): boolean {
+  const f = s.fleet;
+  if (!f || f.sail || s.tick < f.ready) return false;
+  let n = 0;
+  for (const e of s.enemies) {
+    if ((e.mode !== 'in' && e.mode !== 'out') || !TD2_ENEMIES[e.kind].shell) continue;
+    if (e.kind === 'king') return true;
+    n++;
+  }
+  return n >= min;
 }
 
 /** 一条地面路线被塔盖住多少："路线上的格 × 够得着它的塔"的对数（塔中心按占地中心、射程含最小射程） */
@@ -311,6 +324,8 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
         const at = batteryTarget(s, 3);
         if (at) out.push({ t, type: 'battery', x: at.x, y: at.y });
       }
+      // 小白看见海上有船（炮艇、海盗王）也会想起友军船，一半的时候
+      if (fleetWorth(s, 1) && t % 20 === 0 && mrng.int(2) === 0) out.push({ t, type: 'fleet' });
       if (s.unlocked.length === 0) return out;
       const i = free[0];
       if (i !== undefined) {
@@ -490,6 +505,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
         const at = batteryTarget(s, 4);
         if (at) out.push({ t, type: 'battery', x: at.x, y: at.y });
       }
+      if (skills && fleetWorth(s, 2)) out.push({ t, type: 'fleet' });
       // 补给箱：宝藏箱附近安全（crateSafe）才叫英雄去捡最近的那个，敌人压到宝藏边还去捡会漏（td06 一漂来就去捡，三星 100% → 0%）；
       // 波是叠着来的、岛上几乎不会清空，所以不等清场。去捡的路上不再给他别的走位
       const drift = s.drift;

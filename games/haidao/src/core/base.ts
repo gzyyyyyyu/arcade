@@ -1,5 +1,6 @@
 /** 基地函数：全部是纯函数，不改入参，返回新对象 */
 import { BUILDINGS, HQ_LEVELS, SKILLS, TROOPS } from '../content/index.ts';
+import { COSMETICS } from './run.ts';
 import { ISLAND } from './types.ts';
 import type { ArmySetup, BuildingKind, Placed, Profile, ResKind, Res, Result, SkillKind, TroopKind } from './types.ts';
 
@@ -73,7 +74,7 @@ function sub(res: Res, cost: Res): Res {
 export function build(p: Profile, kind: BuildingKind, x: number, y: number): Result<Profile> {
   const def = BUILDINGS[kind];
   if (def.unlockHq > hqLevel(p)) return err('locked');
-  if ((kind === 'statue' || kind === 'flagpole' || kind === 'chest') && !(p.cosmetics ?? []).includes(`deco:${kind}`)) return err('locked');
+  if (COSMETICS.includes(`deco:${kind}`) && !(p.cosmetics ?? []).includes(`deco:${kind}`)) return err('locked');
   const lim = buildLimit(p, kind);
   if (lim.have >= lim.max) return err('limit');
   if (!canPlace(p, kind, x, y)) return err('blocked');

@@ -15,7 +15,7 @@ import { ESCORT_LEVELS } from '../src/content/escortlevels.ts';
  * 新旧两套组并排写在关卡里（TdGroup.since / until），createTd 按局的规则版本挑：15 以前的局逐位不变。
  * 大副（规则版本 17）：td16 第 4 波起水手的份额换成大副（倒下散成 3 个水手），鹦鹉照常换鹦鹉王；17 以前的 td16 逐位不变。
  */
-const ELITE_LEVELS = ['td07', 'td10', 'td14', 'td16', 'td20', 'td22'];
+const ELITE_LEVELS = ['td07', 'td10', 'td14', 'td16', 'td20', 'td22', 'td23', 'td24'];
 const ELITES: readonly TdEnemyKind[] = ['bosun', 'macaw', 'mate'];
 const count = (lv: TdLevel): number => lv.waves.reduce((a, w) => a + w.groups.reduce((b, g) => b + g.n, 0), 0);
 const kinds = (lv: TdLevel): Set<TdEnemyKind> => new Set(lv.waves.flatMap((w) => w.groups.map((g) => g.enemy)));
@@ -133,10 +133,10 @@ describe('大副（规则版本 17）', () => {
     expect(TD_ENEMY_ARMOR.mate).toBe('cloth');
   });
 
-  it('只在 td16 和第四章的 td20、td22，水手换大副、鹦鹉换鹦鹉王；规则 17 以前 td16 没有大副，规则 15、16 的 td16 一个精英都没有', () => {
+  it('只在 td16 和第四章的 td20、td22、td23、td24，水手换大副、鹦鹉换鹦鹉王；规则 17 以前 td16 没有大副，规则 15、16 的 td16 一个精英都没有', () => {
     for (const raw of TD2_LEVELS) {
       const has = kinds(levelForRules(raw, RULES_VERSION)).has('mate');
-      expect(has, raw.id).toBe(['td16', 'td20', 'td22'].includes(raw.id));
+      expect(has, raw.id).toBe(['td16', 'td20', 'td22', 'td23', 'td24'].includes(raw.id));
     }
     const td16 = TD2_LEVELS.find((l) => l.id === 'td16')!;
     const now = kinds(levelForRules(td16, RULES_VERSION));

@@ -105,4 +105,6 @@ export const tdPieces = (): ArtPiece[] => [
   ...(['cannon', 'gunTower', 'mortar', 'flame', 'harpoon', 'rocket', 'shock', 'sniper'] as const).flatMap((k) => [2, 5, 8].map((l) => bArt(k, l))),
   ...(['captain'] as const).flatMap((k) => (['idle', 'walk', 'attack'] as const).flatMap((an) => troopF(k, an))),
   bArt('treasure', 1),
+  // 第四章的友军巡航船就是玩家自己的旗舰（不带王阶涂装）
+  shipA('flagship'),
 ];
