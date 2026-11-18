@@ -53,14 +53,14 @@ function monthCtx(month: number, difficulty: number, real: Readonly<RealMarket> 
 }
 
 /** 开局：12 个月的主题（不重复；第 4、8 个月是 boss）。 */
-export function planTempo(seed: string, difficulty: number, real: Readonly<RealMarket> | null, ext: boolean, newThemes = false): string[] {
+export function planTempo(seed: string, difficulty: number, real: Readonly<RealMarket> | null, ext: boolean, regular = false): string[] {
   const rng = rngFor(seed, 'tempo');
   const used = new Set<string>();
   const out: string[] = [];
   for (let month = 1; month <= BALANCE.monthDays.length; month++) {
     const boss = BALANCE.tempo.bossMonths.includes(month);
     const c = monthCtx(month, difficulty, real, ext);
-    const pool = MONTH_THEMES.filter((d) => !!d.boss === boss && !used.has(d.id) && (ext || !d.needsExt) && (newThemes || !d.realOnly));
+    const pool = MONTH_THEMES.filter((d) => !!d.boss === boss && !used.has(d.id) && (ext || !d.needsExt) && (regular || !d.realOnly));
     if (pool.length === 0) break;
     let w = pool.map((d) => Math.max(0, d.weight(c)));
     if (w.every((x) => x <= 0)) w = pool.map(() => 1);
@@ -71,17 +71,29 @@ export function planTempo(seed: string, difficulty: number, real: Readonly<RealM
   return out;
 }
 
-export function newTempo(seed: string, difficulty: number, real: Readonly<RealMarket> | null, ext: boolean, newThemes = false): TempoState {
-  return { plan: planTempo(seed, difficulty, real, ext, newThemes), cur: null, streak: 0, bestStreak: 0, shards: 0, results: [], bonus: 0 };
+/**
+ * 月度目标的规则版本，开局记进 TempoState.goalRules，之后改默认值不影响已经开了的局。
+ * 2（0.32.0）：「连续 N 天收盘赚钱」少要一天——它是完成率最低的目标（新手档普通打法约 36%），按「宁简勿难」放宽。
+ * 只给真实行情的普通局（和 realOnly 主题同一个口径）：每日挑战、闪电盘、本周市场、实盘的结果和排行榜不变；以前的存档没有这一项，按 1 算。
+ */
+export const GOAL_RULES = 2;
+
+/**
+ * 开局的节奏状态。regular = 真实行情的普通局（不是每日挑战、闪电盘、本周市场、实盘）：
+ * 只有它抽得到 realOnly 的主题、用新的目标规则。
+ */
+export function newTempo(seed: string, difficulty: number, real: Readonly<RealMarket> | null, ext: boolean, regular = false): TempoState {
+  return { plan: planTempo(seed, difficulty, real, ext, regular), cur: null, streak: 0, bestStreak: 0, shards: 0, results: [], bonus: 0, ...(regular ? { goalRules: GOAL_RULES } : {}) };
 }
 
-/** 难度加码后的目标数值。 */
-export function goalTarget(def: MonthThemeDef, difficulty: number): number {
+/** 难度加码后的目标数值。goalRules 是这一局开局时记下的目标规则版本（缺省 1）。 */
+export function goalTarget(def: MonthThemeDef, difficulty: number, goalRules = 1): number {
   const k = 1 + BALANCE.tempo.goalStep * (Math.max(1, difficulty) - 1);
   const g = def.goal;
   if (g.kind === 'keep') return Math.round((g.base / k) * 10) / 10;
   if (g.kind === 'gain' || g.kind === 'beat' || g.kind === 'bigDay') return Math.round(g.base * k * 10) / 10;
-  return Math.ceil(g.base * k - 1e-9);
+  const n = Math.ceil(g.base * k - 1e-9);
+  return g.kind === 'streak' && goalRules >= 2 ? n - 1 : n;
 }
 
 /** 本月常规月供（不含突发账单），奖励按它算。 */
@@ -117,7 +129,7 @@ export function beginMonth(s: GameState): void {
     id,
     boss: !!def.boss,
     kind: def.goal.kind,
-    target: goalTarget(def, s.difficulty),
+    target: goalTarget(def, s.difficulty, t.goalRules),
     progress: 0,
     done: false,
     failed: false,

@@ -20,7 +20,7 @@ import { COLOR, FS, GAME_WIDTH, LOW_MEMORY, PHONE } from '../theme.ts';
 import { addGlyph, addImage, addPill } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
-import { addText, fitWidth, MIN_TEXT_SIZE, setWrap } from '../ui/text.ts';
+import { addText, clauseWrap, fitWidth, MIN_TEXT_SIZE, setWrap } from '../ui/text.ts';
 import { CloudBadge } from '../ui/cloudBadge.ts';
 import { attachDomProxy } from '../ui/domProxy.ts';
 import { setFocusHome } from '../ui/focus.ts';
@@ -350,8 +350,10 @@ export class TitleScene extends BaseScene {
     // 手机上大卡只有 300–404 宽：快速开始的说明折成两行；「继续」时账户单占一行，说明放不下才截（全文在悬停里）
     const room = H.w - tx - (ph ? 14 : 56);
     const subT = ph
-      ? addText(this, tx, can ? 76 : 50, sub, { size: FS.sm, bold: true, color: COLOR.white, wrap: can ? undefined : room })
+      ? addText(this, tx, can ? 76 : 50, sub, { size: FS.sm, bold: true, color: COLOR.white })
       : addText(this, tx, 66, sub, { size: 17, bold: true, color: COLOR.white });
+    // 快速开始的说明在「·」处折成两行，不把「新手」拆开
+    if (ph && !can) clauseWrap(subT, room);
     parts.push(subT);
     if (can) {
       const money = ph

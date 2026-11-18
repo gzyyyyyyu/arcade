@@ -5,7 +5,8 @@
 import { BALANCE } from '../core/balance.ts';
 import { LIVE_TIERS, liveGear, liveReturn, type LiveTierDef } from '../core/liveTiers.ts';
 import type { LiveRecord } from '../platform/live.ts';
-import { group } from '../core/format.ts';
+import { formatMoney, formatPct, group } from '../core/format.ts';
+import type { RunSummary } from '../core/index.ts';
 
 /** 筹码数：千分位（不用 toLocaleString：各浏览器的分隔符不一样） */
 export function chips(n: number): string {
@@ -96,6 +97,20 @@ export function buyinFailText(error: string, why?: 'offline' | 'login', code?: s
     default:
       return { title: '出了点问题', body: '出了点问题，这一份筹码没动，刷新一下再试。可以先玩娱乐模式。' };
   }
+}
+
+/**
+ * 0.32.0 实盘结束页的账本：炒股赚了多少、生活费（账单）吃掉多少，资产比开局涨跌几成、按几倍算进筹码。
+ * 以前只写「结回 1.01 倍」，和旁边「炒股净赚 +¥5,070」对不上，玩家以为算错了。旧存档没有炒股和账单合计时为 null。
+ */
+export function liveLedger(s: Pick<RunSummary, 'tradeMoney' | 'billMoney' | 'otherMoney' | 'live'>): string | null {
+  const lv = s.live;
+  if (!lv || s.tradeMoney === null || s.billMoney === null || s.otherMoney === null || !(lv.start > 0)) return null;
+  const parts = [`炒股 ${formatMoney(s.tradeMoney, { sign: true })}`, `生活费 ${formatMoney(-s.billMoney, { sign: true })}`];
+  if (Math.round(s.otherMoney) !== 0) parts.push(`其他 ${formatMoney(s.otherMoney, { sign: true })}`);
+  const pct = formatPct(lv.assets / lv.start - 1);
+  const times = [lv.lev !== 1 ? `${levText(lv.lev)} 倍` : '', lv.gear > 1 ? `再乘杠杆 ×${lv.gear}` : ''].filter(Boolean).join('、');
+  return `${parts.join('，')}；资产比开局 ${pct}${times ? `，按 ${times}算进筹码` : ''}。`;
 }
 
 /** 结算的说法：head 是一行大字（结回多少），body 是一两句话。won 是打满了（不是破产、不是提前收手）。 */

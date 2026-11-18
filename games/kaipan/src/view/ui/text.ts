@@ -119,6 +119,35 @@ export function fitWidth(t: Phaser.GameObjects.Text, room: number, min = 2): Pha
   return t;
 }
 
+/**
+ * 一行放不下时按逗号、分号、顿号、间隔号「·」分行，不在词中间按字数硬折（硬折会把「上岸」的「岸」、「新手」的「手」单独甩到下一行）。
+ * 在「·」处断开时去掉行尾的点。只靠量宽度（t.width），文字要用不带 wrap 的 addText 先建好；某一小句自己就超宽时才退回按字折行。
+ */
+export function clauseWrap(t: Phaser.GameObjects.Text, width: number): Phaser.GameObjects.Text {
+  const full = t.text;
+  if (t.width <= width) return t;
+  const lines: string[] = [];
+  let cur = '';
+  // 不用正则的后行断言：iOS 16.4 以前的 Safari 不认
+  for (const part of (full.match(/[^，；、·]*[，；、·]?/g) ?? [full]).filter((p) => p !== '')) {
+    t.setText(cur + part);
+    if (cur && t.width > width) {
+      lines.push(cur);
+      cur = part.trimStart();
+    } else cur += part;
+  }
+  lines.push(cur);
+  const clean = lines.map((l) => l.replace(/\s*·\s*$/, ''));
+  let tooWide = false;
+  for (const l of clean) {
+    t.setText(l);
+    if (t.width > width) tooWide = true;
+  }
+  t.setText(clean.join('\n'));
+  if (tooWide) setWrap(t, width);
+  return t;
+}
+
 export function setColor(t: Phaser.GameObjects.Text, color: number): Phaser.GameObjects.Text {
   return t.setColor(css(color));
 }

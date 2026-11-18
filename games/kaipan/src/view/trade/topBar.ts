@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
-import { BALANCE, bankView, billView, calendarView, formatMoney, fx, isFlash, itemView, monthThemeView, runMonths, shortGoal, topBar, type GameState, type ItemView, type Mood } from '../../core/index.ts';
+import { BALANCE, bankView, billView, calendarView, formatMoney, fx, isFlash, itemView, monthThemeView, runMonths, shortGoal, shortNeed, topBar, type GameState, type ItemView, type Mood } from '../../core/index.ts';
 import { goalShort, stamp } from './tempoFx.ts';
 import type { Animator } from '../fx/anim.ts';
 import { flashBox, floatText, pop } from '../fx/effects.ts';
 import { sparkles } from '../fx/particles.ts';
-import { billLine, billStatus, dailyTag, dayLabel, flashFinal, flashLeft, flashTag, levelHint, shortItemName, weeklyTag } from '../labels.ts';
+import { billLine, billStatus, dailyTag, dayLabel, downPaymentLine, flashFinal, flashLeft, flashTag, levelHint, shortItemName, weeklyTag } from '../labels.ts';
 import type { Rect } from '../rect.ts';
 import { sound } from '../sound.ts';
 import { COLOR, FS, ITEM_KIND_COLOR, PHONE, TYPE, VIEW, signColor, textOn } from '../theme.ts';
@@ -202,7 +202,12 @@ export class TopBarView {
       // 0.10.0 娱乐短局：最终目标（最后一个月月底的首付）开局就说清楚
       const short = this.state.setup?.short;
       const goal = shortGoal(this.state);
-      const shortLine = short && goal > 0 ? `\n短局：打 ${short.months} 个月，${short.months} 月底除了账单还要交一笔首付 ${formatMoney(goal)}，交得上就赢。` : '';
+      const need = shortNeed(this.state);
+      const shortLine =
+        short && goal > 0
+          ? `\n短局：打 ${short.months} 个月，${short.months} 月底除了账单还要交一笔首付 ${formatMoney(goal)}，交得上就赢。` +
+            (need ? `\n账户下面那行：剩下几个月的账单加首付，一共约 ${formatMoney(need.need)}（以后几个月的账单按现在估，突发账单月初才知道）。` : '')
+          : '';
       if (t.flash) {
         const mode = t.weekly ? '本周市场' : '闪电盘';
         return {
@@ -319,8 +324,14 @@ export class TopBarView {
     // 手机上这一行右边紧挨着月度目标的图标，豪华档的数字长，省掉一份是多少（悬停里有）
     // 0.11.0 杠杆常显：「实盘 · 小档 2,000 · 杠杆×2 → 约 2,480」
     const gx = gearNow(s);
-    this.accLabel.setText(lv ? (PHONE ? `实盘${lv.tierName}×${gx} → 约 ${chips(lv.value)}` : `实盘 · ${lv.tierName} ${chips(lv.stake)} · 杠杆×${gx} → 约 ${chips(lv.value)}`) : `${PHONE ? '' : '账户 · '}${t.personaName} · Lv${t.difficulty}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
-    setColor(this.accLabel, t.daily || t.flash || lv ? COLOR.accentDark : COLOR.muted);
+    // 0.32.0 娱乐短局：这一行换成剩下的账单加首付还差多少（人设、难度在悬停里），够了变绿
+    const need = lv || t.daily || t.flash ? null : shortNeed(s);
+    const dp = need ? downPaymentLine(s.account, need.need, PHONE) : null;
+    this.accLabel.setText(dp ? dp.text : lv ? (PHONE ? `实盘${lv.tierName}×${gx} → 约 ${chips(lv.value)}` : `实盘 · ${lv.tierName} ${chips(lv.stake)} · 杠杆×${gx} → 约 ${chips(lv.value)}`) : `${PHONE ? '' : '账户 · '}${t.personaName} · Lv${t.difficulty}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
+    setColor(this.accLabel, dp ? (dp.enough ? COLOR.up : COLOR.accentDark) : t.daily || t.flash || lv ? COLOR.accentDark : COLOR.muted);
+    this.accLabel.setFontStyle(dp ? 'bold' : '');
+    // 金额不截：放不下就换手机上的短说法「首付差¥x」
+    if (dp && this.accLabel.width > TB.accHit.x + (this.tempo ? ACC_W : TB.accWideW) - this.accLabel.x - 4) this.accLabel.setText(downPaymentLine(s.account, need?.need ?? 0, true).text);
     // 闪电盘最后三天：日期变红
     setColor(this.day, t.flash && flashFinal(t.flash) ? COLOR.danger : COLOR.ink);
     this.renderDanger(lv ? marginWarn(s) : null);

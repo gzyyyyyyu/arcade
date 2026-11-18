@@ -4,7 +4,7 @@ import { onBoardChange, runBoard } from '../dailyBoard.ts';
 import { attachDomProxy } from '../ui/domProxy.ts';
 import { goLobby, lobbyLabel } from '../lobby.ts';
 import { live, onLiveChange } from '../live.ts';
-import { chips, liveEndText } from '../liveText.ts';
+import { chips, liveEndText, liveLedger } from '../liveText.ts';
 import { setColor } from '../ui/text.ts';
 import { bestKey, isDifficultyUnlocked, isPersonaUnlocked, loadProfile, type Profile, type RecordResult } from '../../platform/profile.ts';
 import { ensureMetaArt, hasArt, queueLazy, stockKey, type Glyph } from '../assets.ts';
@@ -24,7 +24,7 @@ import { addBadge, addPortrait } from '../meta/setupPanel.ts';
 import { Button } from '../ui/button.ts';
 import { moneyShort } from '../ui/dialog.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
-import { addText, } from '../ui/text.ts';
+import { addText, clauseWrap } from '../ui/text.ts';
 import type Phaser from 'phaser';
 import { Room } from '../trade/room.ts';
 import { END_CUTSCENE_MS } from '../trade/billTiming.ts';
@@ -36,7 +36,7 @@ import { standalone } from '../../platform/mode.ts';
 import { prepareShare, type PreparedShare } from 'arcade-kit/share';
 import { myName } from '../../platform/mode.ts';
 import { BaseScene } from './BaseScene.ts';
-import { DESK_GEO, clauseWrap, phoneGeo } from '../end/endGeo.ts';
+import { DESK_GEO, phoneGeo } from '../end/endGeo.ts';
 import { EndFlash } from '../end/endFlash.ts';
 import { EndRows } from '../end/endRows.ts';
 
@@ -54,6 +54,7 @@ export class EndScene extends BaseScene {
   /** 0.6.0 实盘局：结算的大字和说明（结回的回话晚到时就地改字，不重建场景） */
   private liveHead: Phaser.GameObjects.Text | null = null;
   private liveBody: Phaser.GameObjects.Text | null = null;
+  private liveBodyW = 0;
   private readonly flash = new EndFlash(this);
   private readonly rows = new EndRows(this);
 
@@ -70,6 +71,7 @@ export class EndScene extends BaseScene {
     this.buttons = {};
     this.liveHead = null;
     this.liveBody = null;
+    this.liveBodyW = 0;
     this.flashNum = null;
     this.flashDelta = null;
     const s = this.session.state;
@@ -276,7 +278,9 @@ export class EndScene extends BaseScene {
     }));
     // 实盘：最好成绩、经历两行的位置换成结算的说明（实盘局不进最好成绩）
     if (lv0) {
-      this.liveBody = addText(this, mx + 12, ky + G.dy.best, '', { size: TYPE.label, color: COLOR.ink, wrap: ph ? G.rightW - 24 : 392, lineSpacing: 3 });
+      // 不按字折行：updateLive 里按分句断（金额不会被折成两半）
+      this.liveBody = addText(this, mx + 12, ky + G.dy.best, '', { size: TYPE.label, color: COLOR.ink, lineSpacing: 3 });
+      this.liveBodyW = ph ? G.rightW - 24 : 392;
       this.updateLive();
       const off = onLiveChange(() => this.updateLive());
       this.events.once('shutdown', off);
@@ -468,7 +472,12 @@ export class EndScene extends BaseScene {
     const r = live.record;
     const t = r && r.seed === this.session.state.seed ? liveEndText(r, sum.won, sum.live ? { x: sum.live.gear, margin: sum.live.margin } : undefined) : { head: '这局不算筹码', body: '这局没有带入筹码（或者本金已经原样退回），只是打着玩。' };
     head.setText(t.head);
-    body.setText(t.body);
+    // 0.32.0 结回了（或正在结）：先写一行账本，讲清炒股赚的钱被生活费吃掉多少、按几倍算进筹码
+    const ledger = r && r.seed === this.session.state.seed && r.kind !== 'refund' && (r.step === 'done' || r.step === 'settling') ? liveLedger(sum) : null;
+    // 每段各自按分句断行再拼起来（clauseWrap 只认一段）
+    body.setText(ledger ? `${ledger}\n${t.body}` : t.body);
+    const paras = body.text.split('\n').map((p) => clauseWrap(body.setText(p), this.liveBodyW).text);
+    body.setText(paras.join('\n'));
     setColor(head, r?.step === 'error' || r?.step === 'void' ? COLOR.danger : COLOR.accentDark);
     if (r && r.seed === this.session.state.seed && this.session.liveOk) live.markTold();
   }

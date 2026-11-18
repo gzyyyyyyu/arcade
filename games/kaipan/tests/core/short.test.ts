@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BALANCE, createRun, dailySetup, isRankedSetup, replay, rulesOf, runMonths, runSummary, shortGoal, shortSetup } from '../../src/core/index.ts';
+import { BALANCE, createRun, dailySetup, isRankedSetup, replay, rulesOf, runMonths, runSummary, shortGoal, shortNeed, shortSetup } from '../../src/core/index.ts';
 import { recordRun, emptyProfile, bestKey } from '../../src/platform/profile.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 import { segmentForSeed } from '../../tools/segments-disk.ts';
@@ -74,5 +74,46 @@ describe('打完短局', () => {
     expect(r.profile.best[bestKey('newbie', 1, true)]?.wins).toBe(1);
     expect(r.profile.best[bestKey('newbie', 1)]).toBeUndefined();
     expect(r.profile.maxDifficulty).toBe(2);
+  });
+});
+
+describe('0.32.0 shortNeed：剩下的账单加首付', () => {
+  it('不是短局为 null；开局包含首付；最后一个月就是已经公布的那张账单（含首付）', () => {
+    expect(shortNeed(createRun('need-0', { persona: 'newbie', difficulty: 1 }).state)).toBeNull();
+    const s = createRun('need-1', shortSetup('newbie', 1)).state;
+    const n = shortNeed(s);
+    expect(n?.goal).toBe(shortGoal(s));
+    expect(n && n.need > n.goal).toBe(true);
+  });
+
+  it('真打一局：每个月初的估算和后来真交的钱对得上（以后几个月按估，误差在两成内；最后一个月一分不差）', () => {
+    useExt(true);
+    useMarket(null);
+    let checked = 0;
+    for (let i = 0; i < 8; i++) {
+      const est: Record<number, number> = {};
+      const paid: Record<number, number> = {};
+      let lastBill = 0;
+      const end = playRun(`need-run-${i}`, botByName('normal'), shortSetup('newbie', 1), (st, evs) => {
+        for (const e of evs) {
+          if (e.type === 'monthStarted') {
+            est[e.month] = shortNeed(st)?.need ?? -1;
+            if (e.month === runMonths(st)) lastBill = st.bill.amount;
+          }
+          if (e.type === 'billPaid') paid[e.month] = e.amount;
+        }
+      });
+      if (end.phase !== 'won') continue;
+      checked += 1;
+      const months = runMonths(end);
+      expect(est[months]).toBe(lastBill);
+      // 第 1 个月的 monthStarted 在开局里，不经过 onStep：从第 2 个月比
+      for (let m = 2; m <= months; m++) {
+        let actual = 0;
+        for (let k = m; k <= months; k++) actual += paid[k] ?? 0;
+        expect(Math.abs((est[m] ?? 0) - actual) / actual, `第 ${i} 局第 ${m} 月`).toBeLessThan(0.2);
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });

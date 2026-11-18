@@ -295,13 +295,14 @@ validate(state, action): string | null
   顶栏用 `monthThemeView(s)`（`goal.progress / target / done / failed / boss`、`daysLeft`、短版 `ruleShort / line`）。
 - **目标** `GoalKind`：`gain` 本月涨 X%、`keep` 最大回撤不超过 X%（破线当场失败）、`limitUp` 抓到涨停 N 次、`shortWin` 押跌赚 N 次、`streak` 连续 N 天赚钱、`themes` 同时拿 N 个风口、
   `beat` 跑赢大环境 X pp、`quickWin` 当天买当天赚 N 次、`bigDay` 持仓单日涨 ≥ X%。难度每高一级目标 × (1 + `tempo.goalStep` 0.08)（`keep` 反过来收紧，`goalTarget`）。
+  目标规则有版本（`GOAL_RULES`，开局记进 `tempo.goalRules`，没有按 1）：2 起 `streak` 少要一天；只有真实行情的普通局记 2，每日挑战、闪电盘、本周市场、实盘和旧存档照 1 算。
   计数类达成当场发奖；`gain / beat / keep` 月底还钱之前判定（`goalDone / goalFailed`）。
 - **奖励**：现金 = 当月常规月供 × `tempo.cash`（0.2；boss `bossCash` 0.5），加碎片；boss 另给一个道具。
 - **主题**（17 个普通（基金抱团月 `herd_month`、群聊刷屏月 `flood_month` 只在真实行情普通局，`realOnly`）+ 4 个 boss，`MONTH_THEMES`，规则与第 1 级目标见 `content/monthThemes.ts`；每个有一句开场白和一句群友吐槽，群友不在群里时换成群主）：
   过山车月（推荐里过山车股多三倍；抓涨停）、收割机带单月（群主说话和推荐翻三倍；涨 3%）、年终奖到账（月初多半个月的钱但这月要还的多 20%；涨 4%）、
   银行搞活动（ext，借款利息减半；涨 3%）、空头来袭（ext，白送押跌许可；押跌赚 2 次）、考试月（只能买老实股；回撤 ≤ 4%）、丈母娘查岗（回撤 ≤ 5%）、
   消息满天飞（每天多 2 条消息；当天买当天赚 2 次）、提前看一天（每天一条重磅情报；涨 5%）、券商送福利（免手续费、每天多买一只；同时拿 3 个风口）、
-  涨跌停放宽（宽一倍；持仓一天涨 12%）、连胜挑战（连击奖励翻倍；连续 3 天赚钱）、鸡蛋别放一个篮子（每天多一条推荐；同时拿 3 个风口）、
+  涨跌停放宽（宽一倍；持仓一天涨 12%）、连胜挑战（连击奖励翻倍；连续 3 天赚钱，规则版本 2 起 2 天）、鸡蛋别放一个篮子（每天多一条推荐；同时拿 3 个风口）、
   散户狂欢（每天多两条推荐；涨 5%）、逆风翻盘（跑赢大环境 2pp）；boss：股灾来袭（白送押跌、每天一条重磅情报；回撤 ≤ 6%）、年中考核（涨 6%）、
   庄家对决（过山车推荐 ×2、涨跌停宽一半；抓涨停 2 次）、基金经理挑战（跑赢大环境 4pp）。
   抽选偏好随这一段的真实行情（真实下跌月更容易抽到空头 / 逆风，上涨月更容易抽到散户狂欢；段内有真实大跌的月份几乎必抽股灾 boss）。主题只改规则和信息，不改走势。
@@ -321,7 +322,7 @@ validate(state, action): string | null
 | 种类 | 开局 | 规则差别 |
 |---|---|---|
 | 完整一年 | `createRun(seed, { persona, difficulty })` | 12 个月，打完最后一个月月底的账单即通关（`runWon`），没有奖励 |
-| 娱乐短局 | `shortSetup(persona, difficulty)` | 只打 `BALANCE.short.months`（5）个月；账单 × `billMult`（0.25）；最后一个月月底多交一笔「首付」（突发账单 `SHORT_GOAL_BILL`，金额 = 开局资产 × `short.goal[难度]`，`shortGoal(s)`）。`runMonths(s)` 给出这局打几个月 |
+| 娱乐短局 | `shortSetup(persona, difficulty)` | 只打 `BALANCE.short.months`（5）个月；账单 × `billMult`（0.25）；最后一个月月底多交一笔「首付」（突发账单 `SHORT_GOAL_BILL`，金额 = 开局资产 × `short.goal[难度]`，`shortGoal(s)`）。`runMonths(s)` 给出这局打几个月；`shortNeed(s)` 给出剩下的账单加首付一共约多少（本月用已公布的账单，以后几个月按不带主题的规则表 `rulesWithoutTheme` 估，不透露没公布的主题和突发账单） |
 | 实盘 | `liveSetup(tier, persona, x)` | 档位 `small / mid / big / lux`（`LIVE_TIERS`：一份 2,000 / 10,000 / 50,000 / 200,000 筹码，难度 1/2/3/3）；打 5 个月；账单 × 档位 `billMult`。结回倍数见下 |
 | 每日挑战 | `dailySetup(date)` → `{ date, seed, setup }` | 种子 `daily-<日期>`；人设从 5 个里挑（含未解锁的）、难度 2..5（`DAILY_LEVELS`）；段在冻结池里抽，大家同一段；日期用玩家本地日期，由画面决定 |
 | 闪电盘 | `flashSetup(date)` → `{ date, seed, setup }` | 种子 `flash-<日期>`，独立的 rng 用途名；人设 5 选 1、难度 2..4（`FLASH_LEVELS`）；段 `flashSegmentId(date)` 在每日冻结池里抽。只打 `BALANCE.flash.months`（2）个月 = `flashDays()`（10）个交易日：没有月供、突发账单、股灾传闻、月度主题（`startMonth` 的 `isFlash` 分支，不发 `monthStarted`），月底不发奖励不抽事件，不会出局。开局 `phase = 'reward'`，三选一只出道具（`rollFlashRewards`，不含 `credit / crowd_fund`，rng 用途 `flashReward`），领完才 `startDay`；第 `BALANCE.flash.eventAfter`（4、8）个交易日收盘后必来一个事件，从 `FLASH_EVENTS`（当场见分晓的 9 个）里抽、不重复（`flashEvent`，rng 用途 `flashEvent`），选完直接接着打。`isFlash(s)` 判断；`flashScore(s)` 是分数。不进档案，不能发好友挑战 |
