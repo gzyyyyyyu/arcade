@@ -45,9 +45,8 @@
 .screen.room .room-rules .part {
   white-space: nowrap;
 }
-.room-hint.warn {
+.screen.room .room-hint .warn {
   color: var(--gold);
-  opacity: 1;
 }
 .room-seats {
   display: grid;
@@ -137,7 +136,7 @@
   min-height: 0;
   padding: var(--sp-1) var(--sp-3);
 }
-.room-hint.watch {
+.screen.room .room-hint .watch {
   color: var(--gold);
 }
 .toast {

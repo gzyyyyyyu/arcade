@@ -629,6 +629,27 @@ html .atc-dock .atc-head b { flex: none; white-space: nowrap; }
   line-height: 15px;
   font-weight: 700;
 }
+/* 推荐出牌（单机娱乐新手、实盘小档）：推荐的那张描一圈绿边，头上一个小"荐"；已经标了"听"的只描边，不叠字 */
+.my-hand .tile.rec {
+  outline: 2px solid #4fd18b;
+  outline-offset: 1px;
+}
+.my-hand .tile .rec-badge {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: #2f9e58;
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-style: normal;
+  line-height: 15px;
+  font-weight: 700;
+  pointer-events: none;
+}
 .bar .ting {
   display: flex;
   align-items: center;

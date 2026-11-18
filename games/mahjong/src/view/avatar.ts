@@ -181,7 +181,7 @@ const robot: Art = (p) =>
     BOT_RING,
   );
 
-/** 按名字前缀认性格：好友房实盘里同一个性格会坐好几家，名字后面带编号（火锅婆婆2） */
+/** 电脑按名字认性格的画像（一桌的电脑性格各不相同，名字不带编号） */
 const PERSONA_ART: readonly (readonly [string, Art])[] = [
   ['幺妹儿', yaomei],
   ['熊猫哥', panda],
@@ -223,6 +223,6 @@ function humanSvg(name: string, p: string): string {
 export function avatarSvg(name: string, bot: boolean): string {
   const p = `mjav${(seq++).toString(36)}`;
   if (!bot) return humanSvg(name, p);
-  const art = PERSONA_ART.find(([n]) => name.startsWith(n))?.[1] ?? robot;
+  const art = PERSONA_ART.find(([n]) => n === name)?.[1] ?? robot;
   return art(p);
 }

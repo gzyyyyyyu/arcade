@@ -7,7 +7,7 @@
  */
 import { stream } from 'arcade-kit/rng';
 import { PERSONAS } from '../src/ai/personas.ts';
-import { seatPlan, VENUES, type Venue } from '../src/ai/venues.ts';
+import { roomSeatPlan, VENUES, type Venue } from '../src/ai/venues.ts';
 import { sichuanXuezhan as XZ } from '../src/core/variants/sichuan-xuezhan/index.ts';
 import { STAKES, stakesOf, type StakesId } from '../src/game/stakes.ts';
 import { meanSe, playMatch, PLAYER, signed } from './play.ts';
@@ -43,7 +43,8 @@ function run(tier: StakesId, venue: Venue): { mean: number; se: number; house: n
   for (let i = 0; i < N; i++) {
     const pair = PAIRS[i % PAIRS.length]!;
     const key = [i, st.share, 11, 7, 7, 7, 7, 7];
-    const plan = seatPlan(stream(key, 'persona'), id, 4);
+    // 和房间一样：电脑座位先拿性格（各不相同），真人座位拿剩下的
+    const plan = roomSeatPlan(stream(key, 'persona'), id, [0, 1, 2, 3].map((seat) => (pair as readonly number[]).includes(seat)));
     const proxies = new Map(pair.map((seat) => [seat, PLAYER] as const));
     const { s } = playMatch(key, st.share, plan.personas, plan.tunes, proxies);
     const r = XZ.result(s);

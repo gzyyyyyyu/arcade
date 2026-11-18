@@ -26,7 +26,7 @@ Before a pull request run `npm run lint`, `npm test` and `npm run smoke`. Contri
 - **每日挑战、每日何切、听牌速判、茶馆擂台**：每天同一副牌或同一套题，登录后进平台每日榜；擂台连打三桌拿称号，称号云存档（[docs/practice-modes.md](docs/practice-modes.md)）。
 - **快速一局**：主页最大的按钮，一键开一局一结的单机，约 2 分钟。
 - **互动和社交**：扔道具、表情、四川话短语、电脑起哄；战绩分享图（不含牌）、好友房颁奖、好友在线和叫人（[docs/online-social.md](docs/online-social.md)）。
-- **手感和画面**：听牌提示、安全牌角标、拖牌出牌、大牌演出，减少动态效果时自动收敛（第 7 节）。
+- **手感和画面**：听牌提示、新手和小档的推荐出牌、安全牌角标、拖牌出牌、大牌演出，减少动态效果时自动收敛（第 7 节）。
 - **图鉴和成就**：番型 / 役收集、22 个成就，存在本机（[docs/collection.md](docs/collection.md)）。
 - **手机**：横屏竖屏都能玩，小到 iPhone SE。
 

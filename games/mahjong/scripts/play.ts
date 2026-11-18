@@ -8,6 +8,7 @@
  * 两个都是确定性的（同一个种子同一个结果），只拿自己座位的视图（decideAs），不读别人的牌。
  */
 import { AIS } from '../src/ai/index.ts';
+import { NORMAL_PLAYER } from '../src/ai/coach.ts';
 import type { Persona } from '../src/ai/personas.ts';
 import { fixedStyle } from '../src/ai/style.ts';
 import { decideAs } from '../src/ai/xuezhan.ts';
@@ -16,7 +17,8 @@ import type { Tune, VariantAi } from '../src/core/variants/types.ts';
 import { baseOf } from '../src/game/stakes.ts';
 
 const base = { kanLove: 400, temper: 0, swing: 0, tempo: 1_000, talk: 0, skill: 0, fun: 'normal' as const };
-export const PLAYER: Persona = { ...base, name: '普通', style: '', defense: 500, greed: 300, pon: 500, slip: 40, reads: 300, level: 1 };
+/** 普通玩家：和牌桌上的"推荐出牌"同一份参数（src/ai/coach.ts） */
+export const PLAYER: Persona = NORMAL_PLAYER;
 /** 小白（docs/balance.md 第 1 节）：只会按牌效打孤张，一点不防守、不读牌，见碰就碰、见杠就杠，常打错 */
 export const NOVICE: Persona = { ...base, name: '小白', style: '', defense: 0, greed: 100, kanLove: 1_000, pon: 1_000, slip: 250, reads: 0, level: 0 };
 

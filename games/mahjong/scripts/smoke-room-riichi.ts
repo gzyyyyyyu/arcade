@@ -140,7 +140,9 @@ async function openRoom(page: Page, base: string, stake: '娱乐' | '小档'): P
 async function joinAndStart(a: Page, b: Page, base: string, code: string): Promise<void> {
   await b.goto(`${base}/games/mahjong/?room=${code}`);
   await b.waitForSelector('.room-code');
-  await b.click('.room-seat.empty .act');
+  // 娱乐房凭链接进来自动坐第一个空位；实盘房要自己点（坐下就要带一份）
+  const auto = await b.waitForSelector('.room-seat.me', { timeout: 4_000 }).then(() => true, () => false);
+  if (!auto) await b.click('.room-seat.empty .act');
   await b.waitForSelector('.room-seat.me');
   await a.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length >= 2);
   await a.click('button:text-is("开打")');

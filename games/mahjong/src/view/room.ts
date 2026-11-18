@@ -72,13 +72,19 @@ export function renderWaiting(box: HTMLElement, p: WaitingProps): void {
     }
   });
   const watchingFull = (p.you?.seat === null || p.you?.seat === undefined) && !p.room.seats.some((s) => s.kind === 'empty');
-  if (watchingFull) el('p', 'room-hint watch', box, '旁观中：座位满了，开打后你能看桌面和出牌，看不到手牌；有人离开就能坐下。');
-  else if (!full) el('p', 'room-hint', box, '空着的座位开打时由电脑补上；开打以后朋友也能进来接管电脑的座位。');
   const wallet = !!stakesOf(p.opts?.stakes)?.wallet;
   // 实盘至少两个真人：好友房是来和朋友打的，电脑座位的钱归庄家（房间那边也拦，这里先说清楚）
   const few = wallet && p.room.seats.filter((s) => s.kind === 'human').length < MIN_HUMANS;
-  if (wallet) el('p', 'room-hint', box, '实盘：坐下的人在房主开打时各从钱包带一份；不想带就别坐，看着也行。电脑都是最强的。');
-  if (few) el('p', 'room-hint warn', box, '实盘好友房至少要两个人；一个人想玩实盘，去单机。');
+  // 几句提示并成一段：分成三段时 1280×720 上把底下的"开打""离开房间"挤出屏外（11-18 体检）
+  const hints: [string, string][] = [];
+  if (watchingFull) hints.push(['旁观中：座位满了，开打后你能看桌面和出牌，看不到手牌；有人离开就能坐下。', 'watch']);
+  else if (!full) hints.push(['空着的座位开打时由电脑补上；开打以后朋友也能进来接管电脑的座位。', '']);
+  if (wallet) hints.push(['实盘：坐下的人在房主开打时各从钱包带一份；不想带就别坐，看着也行。', '']);
+  if (few) hints.push(['实盘好友房至少要两个人；一个人想玩实盘，去单机。', 'warn']);
+  if (hints.length) {
+    const hint = el('p', 'room-hint', box);
+    for (const [text, cls] of hints) el('span', cls, hint, text);
+  }
   const row = el('div', 'go-row', box);
   button('act soft', row, '离开房间', p.onLeave);
   if (p.host) button('act go big', row, '开打', p.onStart).disabled = few;
