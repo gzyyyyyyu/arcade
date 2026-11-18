@@ -32,7 +32,8 @@ jobs:
       # PR 上新推送取消旧的检查
       group: game-haidao-test-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-    timeout-minutes: 30
+    # 海岛整套测试（含 td-golden 和配平模拟）在 GitHub 的机器上要 30 分钟上下（11-18 #42 跑了 29 分 40 秒被掐在构建上），留到 50
+    timeout-minutes: 50
     outputs:
       deployable: ${{ steps.pack.outputs.deployable }}
     steps:
