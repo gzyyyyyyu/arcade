@@ -9,9 +9,12 @@
  * - 收到 1008、1009 或 4000 段关闭码时不重连（违规、房间关了、被别处顶掉、版本太旧、没登录 4401、别的网站 4403）；
  * - 平台暂时不可用（1013）照常按退避重连；
  * - 连着 maxFailures 次（默认 20 次，约 4 分钟）都没进得了房间（没收到 welcome）就停下，状态变成 failed，由界面提示"连不上"、让用户点 retry()。
- *   退避和失败次数都在收到 welcome 时才清零，不在 onopen：被拒的连接也会先 open 再关，按 onopen 清零就会一直快速重连；
+ *   失败次数在收到 welcome 时清零，不在 onopen：被拒的连接也会先 open 再关，按 onopen 清零就会一直快速重连；
+ *   退避要进了房间、连着待够 STABLE_MS 再断才清零（0.26.0）：连上就断的链路（弱网、代理掐连接）照样越等越久，不会每次半秒就重连；
  * - 下行消息按 seq 去重，旧的丢掉；上行操作带 moveId 和 baseSeq（做决定时看到的 seq），没收到 ack 的在重连后原样重发：
- *   房间认得出重复的 moveId；牌局在那之后变过的，房间回 stale，不会把旧操作套到新的一手上；
+ *   房间认得出重复的 moveId；牌局在那之后变过的，房间回 stale，不会把旧操作套到新的一手上。
+ *   重发有分寸（0.26.0）：最多留 PENDING_MAX 个、超过 PENDING_TTL_MS 的丢掉，一次先发 RESEND_BATCH 个、其余等前面的有了回音再发，
+ *   免得一下子撞上房间的令牌桶被当成违规（1008）断开；
  * - 心跳发纯文本 "ping"，房间由运行时自动回 "pong"（setWebSocketAutoResponse），不唤醒房间。
  *
  * 浏览器里的计时器（重连、心跳）可以用 setTimeout，"只用一个闹钟"是房间（Durable Object）那边的规矩。
@@ -81,6 +84,14 @@ const HEARTBEAT_MS = 25_000;
 export const PONG_WAIT_MS = 8_000;
 /** 建连最多等多久（0.11.1）：卡在 CONNECTING 的按一次失败算，重连 */
 export const CONNECT_MS = 10_000;
+/** 进了房间连着待够这么久再断，退避才清零（0.26.0） */
+export const STABLE_MS = 30_000;
+/** 没确认的操作最多留几个（0.26.0）：和房间记得的 moveId 一样多（room.ts 的 RECENT_MOVES），更早的房间认不出是重发，补发可能做两遍 */
+export const PENDING_MAX = 8;
+/** 没确认的操作留多久（0.26.0）：断了这么久，牌局早变了，补发只会被回 stale */
+export const PENDING_TTL_MS = 60_000;
+/** 重连后一次先补发几个（0.26.0）：房间给每个人的令牌桶最多攒 10 个（还要留给 ping、进房后的消息） */
+export const RESEND_BATCH = 4;
 /**
  * 看门狗（0.13.1）：房间说的出手时限（或停顿的结束时间）过了 STALL_GRACE_MS 再加最多 STALL_JITTER_MS 的随机抖动，还没有新状态，
  * 就当房间的闹钟没设上（存储出错、没人发消息时房间不会自己醒），重连一次把房间叫醒：进房是房间的一个入口，它会按 getAlarm() 重排闹钟、
@@ -111,6 +122,8 @@ export class RoomClient<A = unknown, V = unknown> {
   private failures = 0;
   /** 这条连接收到过 welcome */
   private welcomed = false;
+  /** 这条连接收到 welcome 的时间（STABLE_MS 用） */
+  private welcomedAt = 0;
   private lastSeq = -1;
   private retryTimer: unknown = null;
   private beatTimer: unknown = null;
@@ -121,8 +134,10 @@ export class RoomClient<A = unknown, V = unknown> {
   /** 看门狗（0.13.1）：到点还停在 watchSeq 就重连一次；kickedSeq 是踢过的，不再踢 */
   private watchTimer: unknown = null;
   private kickedSeq = -1;
-  /** 没收到 ack 的操作：重连后按原 moveId 重发 */
-  private pending = new Map<string, UpMsg<A>>();
+  /** 没收到 ack 的操作：重连后按原 moveId 重发（Map 按放进去的先后排，最早的在前） */
+  private pending = new Map<string, { msg: UpMsg<A>; at: number }>();
+  /** 重连后还没补发的 moveId：前面的有了回音（ack 或被拒）再发下一个 */
+  private resendQueue: string[] = [];
   private moveCounter = 0;
   /** 快捷短语的本地令牌桶（0.7.0）：节奏按房间 welcome 里给的，没收到前按默认 1 秒 1 个、攒 3 个 */
   private emoteRate = { ms: 1000, burst: 3 };
@@ -162,7 +177,8 @@ export class RoomClient<A = unknown, V = unknown> {
   act(action: A): string {
     const moveId = `${Date.now().toString(36)}-${(this.moveCounter++).toString(36)}-${Math.floor(this.opts.random() * 1e9).toString(36)}`;
     const msg: UpMsg<A> = { t: 'act', moveId, baseSeq: this.lastSeq, action };
-    this.pending.set(moveId, msg);
+    this.pending.set(moveId, { msg, at: Date.now() });
+    if (this.pending.size > PENDING_MAX) this.pending.delete(this.pending.keys().next().value!);
     this.trySend(msg);
     return moveId;
   }
@@ -282,8 +298,11 @@ export class RoomClient<A = unknown, V = unknown> {
       this.welcomed = false;
       this.setStatus('open');
       this.heartbeat();
-      // 重发没确认的操作（房间按 moveId 去重）
-      for (const msg of this.pending.values()) this.trySend(msg);
+      // 重发没确认的操作（房间按 moveId 去重）：过期的丢掉，先发一批，其余等回音
+      const now = Date.now();
+      for (const [id, p] of this.pending) if (now - p.at > PENDING_TTL_MS) this.pending.delete(id);
+      this.resendQueue = [...this.pending.keys()];
+      for (let i = 0; i < RESEND_BATCH; i++) this.resendNext();
     };
     ws.onmessage = (ev) => {
       if (this.ws !== ws) return;
@@ -316,18 +335,19 @@ export class RoomClient<A = unknown, V = unknown> {
         // 快照：整桌重画，从它的 seq 往后接；真的进了房间，退避和失败次数清零
         this.lastSeq = msg.seq;
         this.welcomed = true;
-        this.attempt = 0;
+        this.welcomedAt = Date.now();
         this.failures = 0;
         this.watch(ws, msg);
       } else if (msg.t === 'state') {
         const mine = msg.ack !== undefined && this.pending.delete(msg.ack);
+        if (mine) this.resendNext();
         // 旧的、重复的丢掉（ack 已经处理过了）。例外：别人看不出来的一步（0.7.1，quiet），房间只回给我、seq 不加，第一次收到要交给页面
         if (msg.seq < this.lastSeq || (msg.seq === this.lastSeq && !(mine && msg.quiet === true))) return;
         this.lastSeq = msg.seq;
         this.watch(ws, msg);
       } else if (msg.t === 'error' && msg.moveId) {
         // 被拒的操作不再重发
-        this.pending.delete(msg.moveId);
+        if (this.pending.delete(msg.moveId)) this.resendNext();
       }
       this.opts.onMessage(msg);
     };
@@ -343,6 +363,8 @@ export class RoomClient<A = unknown, V = unknown> {
   /** 这条连接断了（或者被判死了）：最终关闭码停下，没进过房间的累计失败次数，其余按退避重连 */
   private lost(code: number, reason?: string): void {
     const entered = this.status === 'open' && this.welcomed;
+    if (entered && Date.now() - this.welcomedAt >= STABLE_MS) this.attempt = 0;
+    this.resendQueue = [];
     this.ws = null;
     this.clearTimers();
     if (this.status === 'closed') return;
@@ -453,6 +475,16 @@ export class RoomClient<A = unknown, V = unknown> {
     for (const t of [this.retryTimer, this.emoteTimer, this.beatTimer, this.probeTimer, this.connectTimer, this.watchTimer]) if (t !== null) this.opts.clearTimer(t);
     this.retryTimer = this.emoteTimer = this.beatTimer = this.probeTimer = this.connectTimer = this.watchTimer = null;
     this.probing = false;
+  }
+
+  /** 补发队列里下一个还没确认的操作（已经确认、被拒、挤掉的跳过） */
+  private resendNext(): void {
+    for (let id = this.resendQueue.shift(); id !== undefined; id = this.resendQueue.shift()) {
+      const p = this.pending.get(id);
+      if (!p) continue;
+      this.trySend(p.msg);
+      return;
+    }
   }
 
   private trySend(msg: UpMsg<A> | typeof PING): void {
