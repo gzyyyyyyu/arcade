@@ -244,6 +244,7 @@ export const ENEMY_HINT: Partial<Record<TdEnemyKind, string>> = {
   shield: '盾兵：先用火、爆',
   bosun: '水手长：狙击、臼炮打它最划算',
   macaw: '鹦鹉王：要多留火枪塔',
+  mate: '大副：狙击打本体、臼炮收散开的水手',
 };
 /** 这一波里出现的、带提醒的敌人，对应的提醒句（没有规则已写的重复） */
 export function enemyHints(p: WavePreview): string[] {

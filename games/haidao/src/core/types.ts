@@ -26,8 +26,9 @@ export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
  * 14 = 守岛英雄没被指挥时自己守（站到威胁最大那条路的路口、不站木台上，只改守岛）；
  * 15 = 守岛精英敌人水手长、鹦鹉王，td10 / td14 第 4 波起、td07 第 6 波起水手、鹦鹉六成换成精英（只改守岛战役这三关）；
  * 16 = 守岛每章最后两关的新机制：漂流补给箱（td05、td06）、潮汐水闸（td11、td12）、岸防老炮（td17、td18），只改守岛战役这六关
+ * 17 = 守岛新精英大副（倒下散成水手），只上 td16
  */
-export const RULES_VERSION = 16;
+export const RULES_VERSION = 17;
 
 /**
  * 每条规则从哪个版本起生效（上面版本说明的名字版）。核心里一律写 `s.rules >= RULES_SINCE.combat`，不写裸数字，
@@ -53,6 +54,8 @@ export const RULES_SINCE = {
   tdElite: 15,
   /** 16：守岛章末机制——漂流补给箱、潮汐水闸、岸防老炮（关卡字段打开，tdmech.ts） */
   tdChapterMech: 16,
+  /** 17：守岛精英大副（倒下散成水手，td16 的水手精英换成它；LevelDef.elite.kind） */
+  tdMate: 17,
 } as const;
 // 不包成 since(s, 'combat') 这样的小函数：一个函数里读各种形状对象（登陆战开局、局面、守岛局面）的 rules，
 // V8 把那一处读取标成多态，内联了也慢；2026-11-15 背靠背量过，登陆战步进慢约 2–6%。调用处直接比，各处只见一种形状。

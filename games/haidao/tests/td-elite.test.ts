@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { TD2_ENEMIES, TD2_ENEMY_POINTS } from '../src/content/td2units.ts';
 import { TD2_LEVEL_DEFS, TD2_LEVELS, TD_ELITE } from '../src/content/td2levels.ts';
-import { RULES_SINCE, RULES_VERSION, TIDE_MAPS, createTd, levelForRules, runTdBot, tdFingerprint, tdGrowthSetup, tideSetup } from '../src/core/index.ts';
+import { RULES_SINCE, RULES_VERSION, TIDE_MAPS, createTd, levelForRules, runTdBot, stepTd, tdBotActions, tdFingerprint, tdGrowthSetup, tideSetup } from '../src/core/index.ts';
 import type { IsoWeek, TdEnemyKind, TdLevel } from '../src/core/index.ts';
 import { TD_ENEMY_ARMOR } from '../src/core/td2types.ts';
 import { LIVE_TIER_IDS, tdLiveSetup } from '../src/core/tdlive.ts';
@@ -13,9 +13,10 @@ import { ESCORT_LEVELS } from '../src/content/escortlevels.ts';
 /**
  * 守岛精英（规则版本 15，DESIGN 10.3 末尾）：td07（第 6 波起）、td10 / td14（第 4 波起）水手、鹦鹉六成换成水手长、鹦鹉王。
  * 新旧两套组并排写在关卡里（TdGroup.since / until），createTd 按局的规则版本挑：15 以前的局逐位不变。
+ * 大副（规则版本 17）：td16 第 4 波起水手的份额换成大副（倒下散成 3 个水手），鹦鹉照常换鹦鹉王；17 以前的 td16 逐位不变。
  */
-const ELITE_LEVELS = ['td07', 'td10', 'td14'];
-const ELITES: readonly TdEnemyKind[] = ['bosun', 'macaw'];
+const ELITE_LEVELS = ['td07', 'td10', 'td14', 'td16'];
+const ELITES: readonly TdEnemyKind[] = ['bosun', 'macaw', 'mate'];
 const count = (lv: TdLevel): number => lv.waves.reduce((a, w) => a + w.groups.reduce((b, g) => b + g.n, 0), 0);
 const kinds = (lv: TdLevel): Set<TdEnemyKind> => new Set(lv.waves.flatMap((w) => w.groups.map((g) => g.enemy)));
 
@@ -49,7 +50,7 @@ describe('哪几关、从第几波', () => {
     }
   });
 
-  it('同一关敌人总数少一成五以上', () => {
+  it('同一关敌人总数少一成五以上（大副散出来的水手不算从船上下来的）', () => {
     for (const id of ELITE_LEVELS) {
       const raw = TD2_LEVELS.find((l) => l.id === id)!;
       const before = count(levelForRules(raw, RULES_SINCE.tdElite - 1));
@@ -120,3 +121,55 @@ describe('精英只在规则 15 的战役新配方里', () => {
   });
 });
 
+
+describe('大副（规则版本 17）', () => {
+  it('倒下散成 3 个水手；预算点按本体加分身的等效血量折，金按水手的比例连分身一起算；布衣', () => {
+    const m = TD2_ENEMIES.mate;
+    expect(m.split).toEqual({ kind: 'sailor', n: 3 });
+    const ehp = m.hp + 3 * TD2_ENEMIES.sailor.hp;
+    expect(TD2_ENEMY_POINTS.mate).toBe(Math.round(ehp / 15));
+    const total = m.gold + 3 * TD2_ENEMIES.sailor.gold;
+    expect(Math.abs(total - (TD2_ENEMY_POINTS.mate * TD2_ENEMIES.sailor.gold) / TD2_ENEMY_POINTS.sailor)).toBeLessThanOrEqual(1);
+    expect(TD_ENEMY_ARMOR.mate).toBe('cloth');
+  });
+
+  it('只在 td16，水手换大副、鹦鹉换鹦鹉王；规则 17 以前 td16 没有大副，规则 15、16 的 td16 一个精英都没有', () => {
+    for (const raw of TD2_LEVELS) {
+      const has = kinds(levelForRules(raw, RULES_VERSION)).has('mate');
+      expect(has, raw.id).toBe(raw.id === 'td16');
+    }
+    const td16 = TD2_LEVELS.find((l) => l.id === 'td16')!;
+    const now = kinds(levelForRules(td16, RULES_VERSION));
+    expect(now.has('bosun')).toBe(false);
+    expect(now.has('macaw')).toBe(true);
+    for (const rules of [14, 15, 16]) {
+      const old = kinds(levelForRules(td16, rules));
+      for (const k of ELITES) expect(old.has(k), `v${rules} ${k}`).toBe(false);
+    }
+  });
+
+  it('打倒大副原地散出 3 个水手（离倒下的地方不到半格），算在同一波里', () => {
+    const r = tdGrowthSetup('td16', 'suggest', 1);
+    if (!r.ok) throw new Error('td16');
+    const s = createTd({ ...r.value, rules: RULES_VERSION });
+    const bot = tdBotActions('normal', 1);
+    let checked = 0;
+    while (!s.over && checked < 3) {
+      const before = new Map(s.enemies.map((e) => [e.id, e]));
+      const ev = stepTd(s, bot(s));
+      for (const d of ev) {
+        if (d.type !== 'die' || d.kind !== 'mate') continue;
+        const mate = before.get(d.id)!;
+        const kids = ev.filter((e) => e.type === 'spawn' && e.kind === 'sailor') as Array<{ x: number; y: number; id: number }>;
+        expect(kids.length).toBeGreaterThanOrEqual(3);
+        for (const k of kids.slice(0, 3)) {
+          expect(Math.abs(k.x - mate.x)).toBeLessThanOrEqual(50);
+          expect(Math.abs(k.y - mate.y)).toBeLessThanOrEqual(50);
+          expect(s.enemies.find((e) => e.id === k.id)!.wave).toBe(mate.wave);
+        }
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});

@@ -831,9 +831,9 @@ export interface RigStyle {
 
 export type RigKind =
   | 't.sailor' | 't.gunner' | 't.brute' | 't.bomber' | 't.captain' | 't.medic' | 't.cannoneer' | 't.harpooner' | 't.grenadier' | 't.shield'
-  | 'e.sailor' | 'e.ironclad' | 'e.fog' | 'e.skiff' | 'e.skiffling' | 'e.sapper' | 'e.grenadier' | 'e.captain' | 'e.shield' | 'e.bosun';
+  | 'e.sailor' | 'e.ironclad' | 'e.fog' | 'e.skiff' | 'e.skiffling' | 'e.sapper' | 'e.grenadier' | 'e.captain' | 'e.shield' | 'e.bosun' | 'e.mate';
 
-export const RIG_KINDS: RigKind[] = ['t.sailor', 't.gunner', 't.brute', 't.bomber', 't.captain', 't.medic', 't.cannoneer', 't.harpooner', 't.grenadier', 't.shield', 'e.sailor', 'e.ironclad', 'e.fog', 'e.skiff', 'e.skiffling', 'e.sapper', 'e.grenadier', 'e.captain', 'e.shield', 'e.bosun'];
+export const RIG_KINDS: RigKind[] = ['t.sailor', 't.gunner', 't.brute', 't.bomber', 't.captain', 't.medic', 't.cannoneer', 't.harpooner', 't.grenadier', 't.shield', 'e.sailor', 'e.ironclad', 'e.fog', 'e.skiff', 'e.skiffling', 'e.sapper', 'e.grenadier', 'e.captain', 'e.shield', 'e.bosun', 'e.mate'];
 
 /** 人形骨架的默认数：髋 -11、腿 10.4、肩在身体顶下 3～4 */
 function man(s: number, top: number, sh: [number, number], arm: number, headTop: number): Skel {
@@ -858,6 +858,7 @@ export const SKEL: Record<RigKind, Skel> = {
   'e.grenadier': man(1.5, -24, [4.6, -20], 9.5, -48),
   'e.shield': man(1.6, -24, [4.8, -20], 9.5, -49),
   'e.bosun': man(1.95, -25, [6, -21], 9.5, -50),
+  'e.mate': man(1.95, -25, [6, -21], 9.5, -50),
   'e.captain': man(2.25, -25, [5.7, -21], 10, -58),
   // 小艇怪：船身当身体（髋 = 船底中间），两支桨当腿，船员探出的脑袋和一只手
   'e.skiff': { s: 1.45, hipY: -9, hipX: 9, leg: 9.5, neck: [3, -13], shF: [1, -7], shB: [-3, -7], arm: 9, top: -40 },
@@ -936,6 +937,8 @@ export const STYLE: Record<RigKind, RigStyle> = {
   'e.sailor': { rest: rest({ ...STD_REST, armF: 30, wep: 55 }), walk: WALKS.eSailor, idle: IDLE, attack: SLASH, extras: [], legScale: GAIT.eSailor.leg, hitScale: 1 },
   // 水手长：步子重、大刀抡得更开更慢，挨打晃得小（皮厚）
   'e.bosun': { rest: rest({ ...STD_REST, armF: 30, wep: 58 }), walk: WALKS.eBosun, idle: IDLE, attack: scaleClip(SLASH, { armF: 1.15, wep: 1.15, lean: 1.3, sq: 1.3 }, { ms: 760 }), extras: [], legScale: GAIT.eBosun.leg, hitScale: 0.6 },
+  // 大副：和水手长同一副身板、同样的步子和刀法，只换了衣服
+  'e.mate': { rest: rest({ ...STD_REST, armF: 30, wep: 58 }), walk: WALKS.eBosun, idle: IDLE, attack: scaleClip(SLASH, { armF: 1.15, wep: 1.15, lean: 1.3, sq: 1.3 }, { ms: 760 }), extras: [], legScale: GAIT.eBosun.leg, hitScale: 0.6 },
   'e.ironclad': { rest: rest({ ...STD_REST, armF: 30, armB: 10, wep: 60 }), walk: WALKS.eIronclad, idle: IDLE, attack: scaleClip(SMASH, {}, { ms: 900 }), extras: [], legScale: GAIT.eIronclad.leg, hitScale: 0.5 },
   'e.fog': { rest: rest({ armF: 30, armB: -25, wep: 55 }), walk: WALKS.fog, idle: IDLE, attack: SLASH, extras: [], legScale: 1, hitScale: 1.2, noLegs: true },
   'e.sapper': { rest: rest({ ...STD_REST, armF: 45 }), walk: WALKS.eSapper, idle: IDLE, attack: scaleClip(THROW, { wep: 0.2 }), extras: [], legScale: GAIT.eSapper.leg, hitScale: 1 },
