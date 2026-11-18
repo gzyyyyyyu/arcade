@@ -106,7 +106,7 @@ export function peekMobAtlas(): Atlas | null {
   return mobCache?.atlas ?? null;
 }
 
-/** 角色的第三张小图集（9 个角色 × 对局图和头像，小道士在主图集里；再加 10 个技能按钮图标）：不挤主图集的 2,048，开局就画好，对局和角色页都用 */
+/** 角色的第三张小图集（小道士以外 9 个角色的对局图和头像；再加 10 个技能按钮图标）：不挤主图集的 2,048，开局就画好，对局和角色页都用 */
 export const HERO_TEX = 'atlasH';
 let heroCache: { res: number; atlas: Atlas } | null = null;
 export function buildHeroAtlas(res: number): Atlas {

@@ -49,7 +49,8 @@ export const SKILL_FX = {
   /** 剪纸成军：剪几个、从主角身边什么距离冒出来（纸兵的伤害、寿命随纸兵法器；寿命 8 秒 = 纸兵法器的"持续"以外另算，见 life） */
   paper: { n: 4, life: 8 * S, ring: 46 },
   /** 横江一渡：水域半径、里面主角的速度倍数（怪慢 40%：记 1 档减速，实际 ×0.62） */
-  ferry: { r: 190, speed: 1.3 },
+  // dmg、perLevel：规则 67 起水域里的怪每秒挨一下 dmg + perLevel × 等级（采药女药香圈的两倍）
+  ferry: { r: 190, speed: 1.3, dmg: 16, perLevel: 4 },
   /**
    * 规则 61 的角色技能钩子（World.skillHooks）：小道士手上剑类 ≥ 2 件时身后补一刀；符师每多一件符类多飞几张、封顶；
    * 剑侠冲刺打倒精英当场转好；胖师叔挡下的伤害 × storeMul 在结束时震出去；采药女回春每秒伤药香圈里的怪（底 + 每级 × 等级）
@@ -72,7 +73,7 @@ export const SKILLS: Record<CharacterId, SkillDef> = {
   gengfu: { name: '梆子声声', text: '12 秒里每 2 秒敲一次小梆，近处的怪退一步并受伤', cd: 50 * S, dur: 12 * S, code: 4, icon: 'sk_clap' },
   caiyao: { name: '回春', text: '立刻回 35% 血，再 6 秒每秒回 3%，期间身边的怪走得慢一半；满血时回不进去的血变成药香圈的伤害', cd: 40 * S, dur: 6 * S, code: 5, icon: 'sk_spring' },
   zhijiang: { name: '剪纸成军', text: '身边立刻剪出 4 个纸兵，8 秒后散，可超过纸兵的上限', cd: 22 * S, dur: 0, code: 6, icon: 'sk_paper' },
-  baidu: { name: '横江一渡', text: '脚下展开一片水域 5 秒：里面你快三成，怪慢四成，跟着你走', cd: 20 * S, dur: 5 * S, code: 7, icon: 'sk_ferry' },
+  baidu: { name: '横江一渡', text: '脚下展开一片水域 5 秒：里面你快三成，怪慢四成、每秒挨一下，跟着你走', cd: 20 * S, dur: 5 * S, code: 7, icon: 'sk_ferry' },
   huolang: { name: '招财进宝', text: '全屏魂珠和铜钱飞到身上，10 秒里打倒的怪多掉一枚铜钱', cd: 30 * S, dur: 10 * S, code: 8, icon: 'sk_fortune' },
   yinyang: { name: '定阵', text: '脚下布一座阵 6 秒：阵里的怪先定住 1.5 秒，再慢四成', cd: 20 * S, dur: 6 * S, code: 9, icon: 'sk_array' },
 };
@@ -178,7 +179,7 @@ export function charDmgMul(w: World, owner: WeaponId | undefined): number {
 function charPerkMul(w: World, owner: WeaponId | undefined): number {
   switch (w.setup.character) {
     case 'baidu':
-      return owner !== undefined && WEAPONS[owner].el === '水' ? CHAR_FX.baiduWater : 1;
+      return owner !== undefined && WEAPONS[owner].el === '水' ? (w.identity67 ? CHAR_FX.baiduWater67 : CHAR_FX.baiduWater) : 1;
     case 'huolang':
       return 1 + Math.min(CHAR_FX.huolangMax, CHAR_FX.huolangStep * Math.floor(w.coins / CHAR_FX.huolangPer));
     case 'yinyang':
@@ -303,6 +304,12 @@ export function tickSkill(w: World, g: Grid, ops: SkillOps): void {
     w.ev.push(Ev.SkillBeat, w.x, w.y, def.code, SKILL_FX.spring.slowR, n);
     // 规则 61：药香圈里的怪每秒受一次伤（回春从「只回血」变成也能清身边）
     if (w.skillHooks) hitAround(w, g, ops, SKILL_FX.spring.slowR, ((SKILL_FX.hooks.herbDmg + SKILL_FX.hooks.herbPerLevel * w.level) * (1000 + k.store)) / 1000, 0);
+  }
+  // 规则 67：摆渡人的水域每秒打一下（放出时补强，横江一渡从只减速变成也能清身边）
+  else if (id === 'baidu' && w.identity67 && elapsed % S === 0) {
+    const r = SKILL_FX.ferry.r * w.stats.areaMul;
+    hitAround(w, g, ops, r, SKILL_FX.ferry.dmg + SKILL_FX.ferry.perLevel * w.level, 0);
+    w.ev.push(Ev.SkillBeat, w.x, w.y, def.code, 0, r);
   }
   if (k.active > 0) return;
   if (id === 'caiyao') k.store = 0;

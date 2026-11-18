@@ -390,6 +390,8 @@ export const RAID_LIVE = {
     zhijiang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 10_000, xilou: 9_100, liangcang: 10_300 }, medium: { guzhen: 8_900, dukou: 10_600, shansi: 7_900, xilou: 9_700, liangcang: 9_100 }, large: { guzhen: 8_900, dukou: 9_300, shansi: 7_900, xilou: 9_200, liangcang: 10_000 }, luxe: { guzhen: 8_300, dukou: 9_000, shansi: 8_400, xilou: 9_000, liangcang: 9_400 } },
     huolang: { small: { guzhen: 11_300, dukou: 11_700, shansi: 10_600, xilou: 11_000, liangcang: 11_000 }, medium: { guzhen: 10_400, dukou: 10_500, shansi: 9_900, xilou: 10_400, liangcang: 10_400 }, large: { guzhen: 10_200, dukou: 11_400, shansi: 9_200, xilou: 9_600, liangcang: 11_300 }, luxe: { guzhen: 10_000, dukou: 10_000, shansi: 6_800, xilou: 7_800, liangcang: 9_500 } },
     yinyang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 11_000, xilou: 12_200, liangcang: 11_300 }, medium: { guzhen: 10_000, dukou: 10_000, shansi: 11_300, xilou: 12_100, liangcang: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 10_700, xilou: 10_000, liangcang: 11_800 }, luxe: { guzhen: 9_300, dukou: 10_000, shansi: 9_500, xilou: 9_300, liangcang: 10_000 } },
+    // 摆渡人 0.30.0 放出才进实盘（之前的局里没有他）：五个镇子小、中、大三档默认线各 150 局，普通低于带下限的抬到带上限（最多 2 倍；山寺中档按配对的小白不超多发线收一点）；古镇小档普通和小道士配对正好贴多发线，压 1%；豪华档照默认
+    baidu: { small: { guzhen: 9_900, dukou: 10_000, shansi: 11_700, xilou: 10_000, liangcang: 10_000 }, medium: { guzhen: 10_000, dukou: 12_000, shansi: 14_200, xilou: 10_000, liangcang: 10_000 }, large: { guzhen: 10_000, dukou: 13_200, shansi: 20_000, xilou: 14_300, liangcang: 12_900 } },
   } as Partial<Record<CharacterId, Partial<Record<RaidLiveTier, RaidCharCoef>>>>,
 };
 

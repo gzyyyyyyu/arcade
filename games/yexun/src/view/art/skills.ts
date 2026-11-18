@@ -162,6 +162,11 @@ function ferryStart(c: SkillFxCtx, x: number, y: number, ticks: number, r: numbe
   c.shake(110, 0.004);
 }
 
+/** 摆渡人水域打一下：跟着主角的一圈浅蓝水纹荡到水域边上 */
+function ferryPulse(c: SkillFxCtx, r: number): void {
+  c.ground.spawn({ frame: 'ring', x: 0, y: 0, life: 520, s0: 0.3, s1: (r * 2) / 128, a0: 0.9, a1: 0, tint: 0xcdeeff, ground: true, follow: () => c.hero() });
+}
+
 /** 货郎·招财进宝：金币从四面八方飞向身上，身上裹一圈金光（持续 10 秒，提示"多掉铜钱"开着） */
 function fortuneStart(c: SkillFxCtx, x: number, y: number, ticks: number): void {
   const ms = (ticks * 1000) / 30;
@@ -218,6 +223,8 @@ export function playSkillFx(c: SkillFxCtx, type: number, x: number, y: number, a
     if (a === SK.dash) dash(c, x, y, b, k);
     else if (a === SK.clap) clap(c, x, y, b);
     else if (a === SK.spring) springPulse(c, x, y);
+    // 摆渡人的水域每秒打一下（规则 67）：k = 水域半径，从脚下荡开一圈水纹
+    else if (a === SK.ferry) ferryPulse(c, k);
     // 阴阳先生阴阳互换（规则 66）：b = 定住的拍数、k = 半径，画一个短的定阵
     else if (a === SK.array) arrayStart(c, x, y, b, k);
   } else if (type === Ev.SkillEnd) {

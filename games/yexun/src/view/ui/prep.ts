@@ -188,10 +188,10 @@ export class Prep {
     );
   }
 
-  /** 角色页：左边九张固定顺序的小卡（点哪个都不重排，只换高亮），右边（竖屏在下面）一块固定位置的详情区，写选中那位的全部信息 */
+  /** 角色页：左边十张固定顺序的小卡（两列五行；竖屏在上面五列两行，点哪个都不重排，只换高亮），右边（竖屏在下面）一块固定位置的详情区，写选中那位的全部信息 */
   private chars(s: PrepState): string {
     const sel = this.view && !s.chars[this.view]?.open ? this.view : s.character;
-    /** 每位角色的动作：按钮上的字（选他 / 请他 / 还没解锁）和点击属性，小卡和详情区共用 */
+    /** 每位角色的动作：按钮上的字（选他 / 请他 / 没解锁）和点击属性，小卡和详情区共用 */
     const act = (id: CharacterId): { foot: string; attrs: string } => {
       const st = s.chars[id];
       const canBuy = !st.open && st.price !== undefined;
@@ -201,7 +201,7 @@ export class Prep {
         const foot = afford ? `<span class="yx-coin"></span>${st.price} 请他` : `<span class="yx-coin"></span>${st.price}<span class="yx-pgap">（还差 ${st.price! - s.coins}）</span>`;
         return { foot, attrs: `data-a="buychar" data-id="${id}"${afford ? '' : ' aria-disabled="true"'}` };
       }
-      return { foot: `${LOCK_SVG}<span class="yx-plt">还没解锁</span>`, attrs: `data-a="peek" data-id="${id}"` };
+      return { foot: `${LOCK_SVG}<span class="yx-plt">没解锁</span>`, attrs: `data-a="peek" data-id="${id}"` };
     };
     const cards = PICK_CHAR_IDS.map((id) => {
       const st = s.chars[id];
@@ -209,7 +209,7 @@ export class Prep {
       const a = act(id);
       const mark = st.open ? (id === s.character ? '<em class="yx-pnow">出战</em>' : '') : `<em>${a.foot}</em>`;
       return (
-        `<button type="button" class="yx-pchar${id === sel ? ' on' : ''}${st.open ? '' : ' locked'}" ${a.attrs}${id === sel ? ' aria-pressed="true"' : ''}>` +
+        `<button type="button" class="yx-pchar${id === sel ? ' on' : ''}${st.open ? '' : ' locked'}${mark ? ' st' : ''}" ${a.attrs}${id === sel ? ' aria-pressed="true"' : ''}>` +
         `<span class="yx-pface"><img alt="" src="${this.icons(heroKey(id), 128)}"></span>` +
         `<b>${esc(CHARACTERS[id].name)}</b><span class="yx-pcsk">${esc(sk.name)}</span>${mark}</button>`
       );

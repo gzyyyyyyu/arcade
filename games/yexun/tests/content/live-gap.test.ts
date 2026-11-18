@@ -19,10 +19,6 @@ describe('实盘缺口清单（tools/live-gap.ts）', () => {
     expect(gaps.map((g) => g.category)).toEqual(['法器', '被动', '进化', '合成', '怪', '首领/精英', '地图事件', '守夜地图', '夜探镇子', '角色', '技能']);
   });
 
-  it('摆渡人两边都收着，不算差异', () => {
-    for (const g of gaps) expect(g.items.some((it) => it.includes('baidu') || it.includes('摆渡人')), g.category).toBe(false);
-  });
-
   it('规则 52 起实盘完全对齐娱乐：每一类都是空的', () => {
     for (const g of gaps) expect(g.items, g.category).toEqual([]);
   });
@@ -42,7 +38,7 @@ describe('按角色比（charGaps）', () => {
       const g = charGaps(ch);
       for (const c of CHAR_CATEGORIES) expect(Array.isArray(g[c]), `${ch} ${c}`).toBe(true);
     }
-    expect(LIVE_CHAR_IDS).not.toContain('baidu');
+    expect(LIVE_CHAR_IDS).toContain('baidu');
   });
 
   it('货郎实盘里有飞镖，不算法器差异', async () => {

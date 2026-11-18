@@ -120,8 +120,8 @@ export function liveSkillOpen(tier: LiveTier | undefined, map: MapId | undefined
   return table[tier].includes(map ?? 'snow') && !(character && LIVE_SKILL_CHAR_SHUT_44[tier]?.includes(character));
 }
 
-/** 实盘能选的角色：娱乐里能选的都能（0.17.10 起新三人各档、各图、夜探都开；摆渡人娱乐里也收着，不开） */
-export const LIVE_CHAR_IDS: readonly CharacterId[] = ['xiaodao', 'fushi', 'jianxia', 'pang', 'gengfu', 'caiyao', 'zhijiang', 'huolang', 'yinyang'];
+/** 实盘能选的角色：娱乐里能选的都能（0.17.10 起新三人各档、各图、夜探都开；摆渡人 0.30.0 放出，同时进实盘） */
+export const LIVE_CHAR_IDS: readonly CharacterId[] = ['xiaodao', 'fushi', 'jianxia', 'pang', 'gengfu', 'caiyao', 'zhijiang', 'baidu', 'huolang', 'yinyang'];
 /** 这个角色能不能带进实盘（档位、地图、守夜 / 夜探都不再限；参数留着给界面和旧调用） */
 export function liveCharOk(_tier: LiveTier, character: CharacterId, _map: MapId = 'snow', _raid = false): boolean {
   return LIVE_CHAR_IDS.includes(character);
@@ -251,6 +251,18 @@ const LIVE_SKILL_COMBO_BP_65: Partial<Record<CharacterId, Partial<Record<MapId, 
   xiaodao: { snow: { luxe: 8_900 } },
   fushi: { snow: { medium: 9_800, large: 9_100, luxe: 8_500 } },
   zhijiang: { snow: { medium: 9_200 } },
+  // 摆渡人 0.30.0（规则 67）放出才进实盘，之前的实盘局里没有他（选了也退回小道士），所以不另开一张表。七张图四档默认线各 150 局，
+  // 同一口径：普通低于带下限的抬到带上限（最多 2 倍；雪原另量了水府、阵法两条心法线，两条都偏低才抬，所以大档、豪华档不抬）；
+  // 超多发线的只压和小道士大样本同种子配对差显著的（豪华档冰湖），荒庙豪华档差不显著不压
+  baidu: {
+    snow: { small: 12_100 },
+    bamboo: { small: 12_000, large: 10_100, luxe: 11_000 },
+    icelake: { small: 11_800, luxe: 10_100 },
+    riverbank: { small: 13_100, large: 11_400, luxe: 12_400 },
+    yizhuang: { small: 12_900, large: 12_000 },
+    temple: { small: 13_100 },
+    guishi: { small: 13_000 },
+  },
 };
 /**
  * 规则 64（0.27.0）：规则 60–63 的内容（选卡、角色钩子、换池和新搭配、两段式合成）进实盘后统一重拟。sim --stop 重量守夜 63 个「角色 × 地图」默认线

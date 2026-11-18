@@ -47,10 +47,11 @@ describe('组合可达性：和规则核心、角色池一致', () => {
     });
   }
 
-  it('界面上列的搭配：能选的角色里至少一人凑得出；收起角色的专属不列', () => {
+  it('界面上列的搭配：能选的角色里至少一人凑得出；0.30.0 起十个都能选，搭配全列', () => {
     for (const m of MERGES) expect(SHOWN_MERGES.includes(m), m.id).toBe(mergeWho(m).length > 0);
-    // 渡魂灯只给收起的摆渡人
-    expect(SHOWN_MERGES.some((m) => m.id === 'dudeng')).toBe(false);
+    expect(SHOWN_MERGES).toHaveLength(MERGES.length);
+    // 渡魂灯是摆渡人的专属，只有他凑得出
+    expect(mergeWho(MERGES.find((m) => m.id === 'dudeng')!)).toEqual(['baidu']);
   });
 
   it('每个能选的角色至少凑得出 6 个搭配，且至少一个是自己的专属', () => {
@@ -76,13 +77,15 @@ describe('组合可达性：界面如实显示', () => {
         expect(yes.includes(`<b>${m.name}</b>`), `${c} ${m.name}`).toBe(ok);
         expect(no.includes(`<b>${m.name}</b>`), `${c} ${m.name}`).toBe(!ok);
       }
-      expect(html.includes('渡魂灯'), c).toBe(false);
       expect((no.match(/yx-cc-row[^"]* no"/g) ?? []).length, c).toBe(SHOWN_MERGES.length - reachableMerges(c).length);
     }
   });
 
-  it('「人人能合」只写给九个角色都凑得出的', () => {
+  it('「人人能合」只写给能选的角色都凑得出的', () => {
     for (const m of SHOWN_MERGES) expect(whoText(m) === '人人能合', m.id).toBe(mergeWho(m).length === PICK_CHAR_IDS.length);
+    // 凑不出的人少时写排除的人：阴阳镇魂只有符师凑不出；诛邪剑阵四人能合，照常列名字
+    expect(whoText(MERGES.find((m) => m.id === 'yinyang')!)).toBe('除符师都能合');
+    expect(whoText(MERGES.find((m) => m.id === 'zhuxie')!)).toBe('小道士、符师、剑侠、货郎能合');
   });
 
   it('玩法说明的流派例子只推荐主修这个流派的人凑得出的搭配', () => {

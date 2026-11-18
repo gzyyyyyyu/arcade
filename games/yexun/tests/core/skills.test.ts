@@ -228,8 +228,8 @@ describe('每个技能的效果', () => {
     idle(w, SKILLS.baidu.dur);
     expect(w.skill.active).toBe(0);
     expect(count(w, Ev.SkillEnd)).toBeLessThanOrEqual(1);
-    // 水类法器 +10%，别的不变（记功的法器是水的才加）
-    expect(charDmgMul(w, 'tide')).toBe(CHAR_FX.baiduWater);
+    // 水类法器 +50%（规则 67 起，之前 +10%），别的不变（记功的法器是水的才加）
+    expect(charDmgMul(w, 'tide')).toBe(CHAR_FX.baiduWater67);
     expect(charDmgMul(w, 'sword')).toBe(1);
   });
 
