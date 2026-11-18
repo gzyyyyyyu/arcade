@@ -35,7 +35,7 @@ describe('场地 → 电脑（docs/ai.md）', () => {
 
   it('单机实盘越往上越难（docs/stake.md 1.3）：对手一档比一档不弱；大档两个对手一普通一较强', () => {
     expect(SOLO_BOTS).toEqual({
-      small: { mate: 'easy', opp: 'novice' },
+      small: { mate: 'normal', opp: 'novice' },
       mid: { mate: 'good', opp: 'normal' },
       big: { mate: 'good', opp: 'normal', opp3: 'good' },
       lux: { mate: 'hard', opp: 'hard' },

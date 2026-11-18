@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   BIG_JOKER,
+  DEFAULT_OPTIONS,
   SMALL_JOKER,
   createGame,
   dispatch,
   hashSeed,
   hint,
+  interpret,
   isWild,
   makeCard,
   partnerOf,
@@ -20,7 +22,7 @@ import {
   type GameState,
   type Play,
 } from '../../src/variants/guandan/core/index.ts';
-import { decide, hintList, planHand, suggest } from '../../src/variants/guandan/ai/index.ts';
+import { decide, hintList, hintedPlay, planHand, suggest } from '../../src/variants/guandan/ai/index.ts';
 import type { Venue } from '../../src/variants/guandan/ai/venue.ts';
 import { guandanRoom, testKey } from '../../src/variants/guandan/net/rules.ts';
 import { Session } from '../../src/view/guandan/session.ts';
@@ -592,5 +594,21 @@ describe('电脑不看别人的牌（反事实）', () => {
     // 随机流混进全桌的牌，几乎每个要抽随机数的点都会变（177 个点里 32 个）
     expect(caught.partner.mismatch).toBeGreaterThan(0);
     expect(caught.rng.mismatch).toBeGreaterThan(caught.rng.points / 10);
+  });
+});
+
+describe('提示选的牌按提示的出法出（hintedPlay）', () => {
+  // 逢人配让 55 66 + 红桃 2 能当"三个 5 带对 6"或"三个 6 带对 5"：提示挑了哪个，出牌就按哪个，不再问玩家
+  const sel = C('S5 D5 S6 D6 H2');
+  const plays = interpret(sel, 2, DEFAULT_OPTIONS);
+  it('同样几张牌：按提示的那一种', () => {
+    expect(plays.length).toBe(2);
+    for (const h of plays) expect(hintedPlay(h, sel, plays)).toBe(plays.find((q) => q.rank === h.rank && q.extra === h.extra));
+    expect(hintedPlay(plays[1]!, [...sel].reverse(), plays)?.rank).toBe(plays[1]!.rank);
+  });
+  it('换了牌、没点过提示、提示是"建议不要"：交给玩家挑', () => {
+    expect(hintedPlay(plays[0]!, sel.slice(0, 4), plays)).toBeNull();
+    expect(hintedPlay(null, sel, plays)).toBeNull();
+    expect(hintedPlay(plays[0]!, sel, [plays[1]!])).toBeNull();
   });
 });

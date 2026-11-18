@@ -1,5 +1,5 @@
 /** 我这一手的判定、提示、出牌和不要（从 TableScene.ts 拆出，只搬家；函数接收场景实例）。 */
-import { hintList } from '../../variants/guandan/ai/index.ts';
+import { hintList, hintedPlay } from '../../variants/guandan/ai/index.ts';
 import { beats, canPass, interpret, isBomb, partnerOf, samePlayShape, type Card, type Play, type PlayerView } from '../../variants/guandan/core/index.ts';
 import { audio } from '../common/audio.ts';
 import { playDetail, playLabel } from './labels.ts';
@@ -45,6 +45,7 @@ export function onHint(sc: TableScene): void {
   }
   const p = list[sc.hintIdx % list.length]!;
   sc.hintIdx++;
+  sc.hinted = p;
   if (p === null) {
     sc.hand.setSelected([]);
     sc.refreshButtons();
@@ -81,8 +82,8 @@ export function onPlay(sc: TableScene): void {
     if (r.reason) toast(sc, r.reason, worldW(sc) / 2, TOAST_Y, COLOR.redDark);
     return;
   }
-  if (r.plays.length === 1) {
-    const p = r.plays[0]!;
+  const p = r.plays.length === 1 ? r.plays[0]! : hintedPlay(sc.hintStep === v.step ? sc.hinted : null, sel, r.plays);
+  if (p) {
     sc.act({ type: 'play', seat: ME, cards: sel, as: { type: p.type, rank: p.rank, extra: p.extra } });
     return;
   }

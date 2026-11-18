@@ -18,7 +18,7 @@ import { hideErrorPanel, installErrorHandler, showErrorPanel } from './view/comm
 import { installIdleLimiter } from './view/common/idle.ts';
 import { goLobby, inOnlineGame, leaveText, mountLobbyOverlay, savedGameInProgress } from './view/common/lobby.ts';
 import { autoJoin, forgetRoom, lobbySession, openOnline } from './view/online.ts';
-import { mountRotateHint, setRotateLobbyLabel } from './view/common/orientation.ts';
+import { mountRotateHint, setAtTable, setRotateLobbyLabel } from './view/common/orientation.ts';
 import { detectOnce, lobbyName, standalone } from './view/common/platform.ts';
 import { mountSocialOnce } from './view/common/social.ts';
 import { BootScene } from './view/scenes/BootScene.ts';
@@ -28,9 +28,8 @@ import { TitleScene } from './view/scenes/TitleScene.ts';
 import { Session } from './view/guandan/session.ts';
 import { randomSeed } from './view/common/seed.ts';
 import { EMPTY_STATS, KEYS, backupKey, SYNC_SLOTS, getSettings, getStats, loadDdzSave, loadSave, onSyncedChange, rawStore, tutorialDone, type SyncSlot } from './view/store.ts';
-import { GAME_HEIGHT, RENDER_SCALE, worldWidthFor } from './view/common/theme.ts';
+import { GAME_HEIGHT, RENDER_SCALE, worldSizeFor, worldWidthFor } from './view/common/theme.ts';
 import { dropBackdrops, ensureBackdrops } from './view/common/textures.ts';
-import { worldW } from './view/ui/kit.ts';
 import { applyAudio } from './view/ui/panels.ts';
 
 installErrorHandler();
@@ -124,7 +123,12 @@ window.addEventListener('pageshow', () => markForeground(true));
 const host = document.getElementById('app')!;
 fitAppToViewport(host);
 const box0 = appBox();
-app.width = worldWidthFor(box0.w, box0.h);
+{
+  // 启动先进主页（竖屏时是竖屏世界）；带种子、邀请链接直接进牌桌的，进的时候 toTableWorld 再换成横屏
+  const s0 = worldSizeFor(box0.w, box0.h);
+  app.width = s0.w;
+  app.height = s0.h;
+}
 /** 现在的世界宽度是按横屏还是竖屏排的（触屏设备只在转屏时重排） */
 let laidLandscape = box0.w >= box0.h;
 
@@ -132,7 +136,7 @@ const config: Phaser.Types.Core.GameConfig = {
   type: webglUsable() ? Phaser.WEBGL : Phaser.CANVAS,
   parent: host,
   width: app.width * RENDER_SCALE,
-  height: GAME_HEIGHT * RENDER_SCALE,
+  height: app.height * RENDER_SCALE,
   backgroundColor: '#123a2b',
   banner: false,
   fps: { panicMax: 12 },
@@ -153,6 +157,14 @@ try {
   game = new Phaser.Game({ ...config, type: Phaser.CANVAS });
 }
 app.game = game;
+// 牌桌在跑时竖屏才盖"请横过来"（主页竖屏能用）
+game.events.once(Phaser.Core.Events.READY, () => {
+  for (const key of ['table', 'ddz']) {
+    const sc = game.scene.getScene(key);
+    sc.events.on(Phaser.Scenes.Events.START, () => setAtTable(true));
+    sc.events.on(Phaser.Scenes.Events.SHUTDOWN, () => setAtTable(false));
+  }
+});
 mountLobbyOverlay(game);
 installIdleLimiter(game);
 
@@ -176,30 +188,44 @@ onWebglLoss(game.canvas, {
 // 电脑上窗口宽度差 40 以上才重建；牌桌在播动画、有弹层或选着牌时推迟到空闲再做。
 let resizeTimer = 0;
 const coarse = (): boolean => typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+/** 这个画面该用的世界尺寸：牌桌只认横屏（竖着拿时被"请横过来"盖着，按横过来以后排），主页和启动页按现在的方向 */
+const wantSize = (b: { w: number; h: number }, key: string | undefined): { w: number; h: number } =>
+  key === 'table' || key === 'ddz' ? { w: b.w >= b.h ? worldWidthFor(b.w, b.h) : worldWidthFor(b.h, b.w), h: GAME_HEIGHT } : worldSizeFor(b.w, b.h);
+const setWorld = (s: { w: number; h: number }): void => {
+  app.width = s.w;
+  app.height = s.h;
+  game.scale.setGameSize(s.w * RENDER_SCALE, s.h * RENDER_SCALE);
+};
 const settle = (): void => {
   window.clearTimeout(resizeTimer);
   const b = appBox();
-  const w = worldWidthFor(b.w, b.h);
+  const active = game.scene.getScenes(true)[0] as (Phaser.Scene & { canRebuild?: () => boolean }) | undefined;
+  const want = wantSize(b, active?.scene.key);
   const landscape = b.w >= b.h;
-  // 宽度刚好没变也记下转到了哪个方向，不然竖过去再横回来会被当成没转屏
-  if (w === app.width) {
+  // 尺寸刚好没变也记下转到了哪个方向，不然竖过去再横回来会被当成没转屏
+  if (want.w === app.width && want.h === app.height) {
     laidLandscape = landscape;
     return;
   }
-  if (coarse() ? landscape === laidLandscape : Math.abs(w - app.width) < 40) return;
-  // 还在加载（iOS 工具栏常在这时收放）或者牌桌正忙：等进了标题页或牌桌、空下来再换，不然宽度一直停在旧值
-  const active = game.scene.getScenes(true)[0] as (Phaser.Scene & { canRebuild?: () => boolean }) | undefined;
+  // 触屏只在转屏时重建（地址栏一收一放只是比例小变，留边就够）；电脑上宽度差 40 以上、或者横竖换了才重建
+  const turned = landscape !== laidLandscape;
+  if (coarse() ? !turned : !turned && Math.abs(want.w - app.width) < 40 && Math.abs(want.h - app.height) < 40) return;
+  // 还在加载（iOS 工具栏常在这时收放）或者牌桌正忙：等进了标题页或牌桌、空下来再换，不然尺寸一直停在旧值
   if (!app.ready || !active || active.scene.key === 'boot' || active.canRebuild?.() === false) {
     resizeTimer = window.setTimeout(settle, 500);
     return;
   }
-  app.width = w;
   laidLandscape = landscape;
-  game.scale.setGameSize(w * RENDER_SCALE, GAME_HEIGHT * RENDER_SCALE);
-  void ensureBackdrops(active, w, GAME_HEIGHT).then(() => {
-    active.events.once(Phaser.Scenes.Events.CREATE, () => dropBackdrops(active, worldW(active)));
+  setWorld(want);
+  void ensureBackdrops(active, want.w, want.h).then(() => {
+    active.events.once(Phaser.Scenes.Events.CREATE, () => dropBackdrops(active, app.width, app.height));
     active.scene.restart();
   });
+};
+// 竖屏主页点开局：牌桌要横屏世界，进之前换好（牌桌背景按横过来以后的宽度烘过，textures.ts 的 tableW）
+app.toTableWorld = () => {
+  const want = wantSize(appBox(), 'table');
+  if (want.w !== app.width || want.h !== app.height) setWorld(want);
 };
 
 // 跟着可见区走（kit 的 watchViewport）：每次转屏、地址栏收放、窗口变化当下把 #app 贴回可见区（扣安全区），真变了才让 Phaser 重新缩放；

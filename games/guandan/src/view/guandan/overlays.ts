@@ -90,7 +90,7 @@ export async function refundAndLeave(sc: TableScene, st: StakeSession, to: 'lobb
   if (r.kind === 'later' || r.kind === 'failed') {
     // 没退成：存档留着，标题页还能"接着打"；到期钱包也会原样退回
     const title = sc.scene.get('title');
-    title.events.once('create', () => toast(title, r.kind === 'later' ? STAKE_ERROR.unavailable! : stakeError(r.error), worldW(title) / 2, worldH - 60));
+    title.events.once('create', () => toast(title, r.kind === 'later' ? STAKE_ERROR.unavailable! : stakeError(r.error), worldW(title) / 2, worldH(title) - 60));
   }
 }
 

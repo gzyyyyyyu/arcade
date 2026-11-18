@@ -1,5 +1,6 @@
 /**
- * 手机、平板竖屏时盖一层"请横过来"的提示（纯 CSS 媒体查询控制显隐，转过来自动消失）。
+ * 手机、平板竖屏时在牌桌上盖一层"请横过来"的提示（纯 CSS 媒体查询控制显隐，转过来自动消失）。
+ * 只盖牌桌：主页、弹窗、好友房大厅竖屏也能用（主页换竖屏排版，theme.ts 的 worldSizeFor），点开局进了牌桌才要横过来。
  * 宽到 1024 都算：iPad 竖屏牌桌只剩 820×461 也打不了，按 820 划线时 iPad Air、mini 弹、Pro 11（834）不弹，同类设备不一样（0.20.1）。
  * 左上角留一个"大厅"按钮：竖屏时牌桌整个被盖住，不放这里就回不去平台首页。
  */
@@ -36,7 +37,7 @@ export function mountRotateHint(onLobby: () => void): void {
 @keyframes rh-turn { 0%, 18% { transform: rotate(0deg); } 52%, 80% { transform: rotate(90deg); } 100% { transform: rotate(0deg); } }
 #rh-lobby { position: absolute; top: max(var(--gd-s3), env(safe-area-inset-top, 0px)); left: max(var(--gd-s3), env(safe-area-inset-left, 0px));
   border-radius: var(--gd-r-pill); border-color: var(--gd-gold); background: #6b3f20; color: #ffe9c2; font-size: 17px; }
-@media ${QUERY} { #rotate-hint { display: flex; } }`;
+@media ${QUERY} { html.gd-at-table #rotate-hint { display: flex; } }`;
   document.head.appendChild(style);
   const el = document.createElement('div');
   el.id = 'rotate-hint';
@@ -54,3 +55,7 @@ export function setRotateLobbyLabel(name: string): void {
   if (b) b.innerHTML = `${HOUSE}${name}`;
 }
 
+/** 进出牌桌（main.ts 按牌桌场景的启停调）：只有在牌桌上竖着拿才盖"请横过来" */
+export function setAtTable(on: boolean): void {
+  document.documentElement.classList.toggle('gd-at-table', on);
+}

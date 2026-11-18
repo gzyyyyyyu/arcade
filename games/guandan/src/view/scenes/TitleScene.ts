@@ -69,17 +69,17 @@ export class TitleScene extends Phaser.Scene {
   create(): void {
     // 启动时不等 /api/me：先按有平台画；问完发现是单独部署（没有实盘、云存档、每日挑战，"大厅"变"首页"）就重画一次
     if (!platformKnown()) void detectOnce().then(() => standalone() && this.scene.isActive() && this.scene.restart());
-    this.cameras.main.setOrigin(0, 0).setZoom(this.scale.gameSize.height / worldH);
+    this.cameras.main.setOrigin(0, 0).setZoom(this.scale.gameSize.height / worldH(this));
     const W = worldW(this);
-    const L = homeLayout(W);
+    const L = homeLayout(W, worldH(this));
     const P = L.panel;
     // 灯笼晃、人物呼吸、火星：省内存设备和关了动画（anim=0、截图）时不开
     const lively = LOW_MEMORY === 0 && !anim.instant;
     this.buttons = {};
     this.overlay = null;
     this.variantAt = null;
-    const bg = this.add.image(0, 0, titleBackdrop(this, W)).setOrigin(0, 0).setDisplaySize(W, worldH);
-    upgradeTitleBackdrop(this, bg, W, worldH);
+    const bg = this.add.image(0, 0, titleBackdrop(this, W, worldH(this))).setOrigin(0, 0).setDisplaySize(W, worldH(this));
+    upgradeTitleBackdrop(this, bg, W, worldH(this));
 
     // 灯笼轻摆、四个人轻轻起伏（错开节奏）；省内存模式只摆静图
     for (const [i, l] of L.lanterns.entries()) {
@@ -147,7 +147,7 @@ export class TitleScene extends Phaser.Scene {
       // 今日残局现算一次要几百毫秒（慢手机上一两秒）：牌桌素材烘完、主页闲着时先算好，点开选关就不卡
       void startBackgroundBake(this).then(() => this.scene.isActive() && this.time.delayedCall(800, () => dailyPuzzleOf()));
       this.buildDdzPanel(P, cx, inner);
-      this.buildCorner(W);
+      this.buildCorner(W, L.portrait);
       return;
     }
 
@@ -158,7 +158,7 @@ export class TitleScene extends Phaser.Scene {
     if (stake && stakeExpired(stake)) {
       clearStake(stake.ref);
       stake = null;
-      this.time.delayedCall(600, () => toast(this, STAKE_ERROR.expired!, W / 2, worldH - 60));
+      this.time.delayedCall(600, () => toast(this, STAKE_ERROR.expired!, W / 2, worldH(this) - 60));
     }
     const saved = save && save.state.phase !== 'gameOver' ? `第 ${save.state.dealNo} 副 · 我方 ${levelName(save.state.levels[0])} · 对方 ${levelName(save.state.levels[1])}` : null;
     const by = P.y + 256;
@@ -237,7 +237,7 @@ export class TitleScene extends Phaser.Scene {
       this.buttons.daily = new Button(this, P.x + 24 + inner - 88, sy, 160, 48, '每日挑战', 'gold', () => this.newGdDaily(), 'crown').setHit(160, dh, top + dh / 2 - sy).setDepth(20);
     }
 
-    this.buildCorner(W);
+    this.buildCorner(W, L.portrait);
   }
 
   /** 主按钮的点按区：minHit() 高，居中会压到上面的切换时整体往下挪（下面的模式卡离得够远） */
@@ -248,7 +248,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   /** 右上角的图标、左上角的回大厅和回到房间、版本号、音乐（掼蛋和斗地主的主页共用） */
-  private buildCorner(W: number): void {
+  private buildCorner(W: number, portrait: boolean): void {
     // 右上角：规则、设置、战绩、成就、云存档（图标），左上角：回大厅、回到房间
     const icons: [string, string, () => void][] = [
       ['rules', 'rules', () => (this.overlay = getVariant() === 'ddz' ? openDdzRules(this) : openRules(this))],
@@ -281,16 +281,18 @@ export class TitleScene extends Phaser.Scene {
     this.lobbyBtn = new Button(this, 74, 40, 120, 52, '大厅', 'wood', () => goLobby(), 'home').setDepth(20);
     setTopHit(this.lobbyBtn, 120, topH);
     if (standalone()) this.lobbyBtn.setVisible(false).disableInteractive();
-    // 本机记着这个账号刚才的房间（回大厅、关了页面）时左上角给"回到房间"，先问平台现在是谁，换了账号的人看不到上一个人的房间
-    const bx = standalone() ? 108 : 244;
+    // 本机记着这个账号刚才的房间（回大厅、关了页面）时左上角给"回到房间"，先问平台现在是谁，换了账号的人看不到上一个人的房间。
+    // 竖屏只有 720 宽，右上角的图标排到中间了：放到"大厅"下面一行
+    const bx = standalone() || portrait ? 108 : 244;
+    const byy = portrait && !standalone() ? 40 + topH + 8 : 40;
     this.backBtn = null;
     void myRoom().then((back) => {
       if (!back || !this.sys.isActive() || this.backBtn) return;
-      this.backBtn = new Button(this, bx, 40, 180, 52, '回到房间', 'red', () => join(back.code, back.host, null, false, back.variant ?? 'guandan'), 'cards').setDepth(20);
+      this.backBtn = new Button(this, bx, byy, 180, 52, '回到房间', 'red', () => join(back.code, back.host, null, false, back.variant ?? 'guandan'), 'cards').setDepth(20);
       setTopHit(this.backBtn, 180, topH);
     });
 
-    text(this, W - 16, worldH - 10, `v${__APP_VERSION__}`, { size: TYPE.small, color: 0xb8a690, ox: 1, oy: 1 }).setDepth(20).setAlpha(0.7);
+    text(this, W - 16, worldH(this) - 10, `v${__APP_VERSION__}`, { size: TYPE.small, color: 0xb8a690, ox: 1, oy: 1 }).setDepth(20).setAlpha(0.7);
     audio.music('title');
     showA2hs(true);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => showA2hs(false));
@@ -401,7 +403,7 @@ export class TitleScene extends Phaser.Scene {
     const r = await DDZ_FLOW.buyin(tier);
     if (!this.scene.isActive()) return;
     if (r.ok) this.startDdzStake(r.ses);
-    else toast(this, stakeError(r.error), worldW(this) / 2, worldH - 60);
+    else toast(this, stakeError(r.error), worldW(this) / 2, worldH(this) - 60);
   }
 
   startDdzStake(ses: DdzStakeSession): void {
@@ -531,7 +533,7 @@ export class TitleScene extends Phaser.Scene {
     const r = await buyinStake(tier);
     if (!this.scene.isActive()) return;
     if (r.ok) this.startStake(r.ses);
-    else toast(this, stakeError(r.error), worldW(this) / 2, worldH - 60);
+    else toast(this, stakeError(r.error), worldW(this) / 2, worldH(this) - 60);
   }
 
   /** 掼蛋每日挑战：今天的种子、三个普通电脑、默认规则，不存档、不记战绩（不碰"继续上局"的那一局） */

@@ -10,8 +10,8 @@ import { stopFlash } from '../common/attention.ts';
 import { countLeft } from './counter.ts';
 import { getSettings, updateSettings } from '../store.ts';
 import { LOW_MEMORY } from '../common/device.ts';
-import { COLOR, TYPE, minDrawH, minHit, phoneType } from '../common/theme.ts';
-import { Button, iconButton, setHit, setTopHit, signedLine, text, worldH, worldW } from '../ui/kit.ts';
+import { COLOR, TYPE, minDrawH, minHit, phoneType, GAME_HEIGHT } from '../common/theme.ts';
+import { Button, iconButton, setHit, setTopHit, signedLine, text, worldW } from '../ui/kit.ts';
 import { stakeLabelParts } from './overlays.ts';
 import { ACTION_ROW, BUTTON_Y, COUNTER, FUN_UI, ME_AVATAR, PULSE, STAKE_STRIP, TOPBAR, TOPBAR_H } from '../table/layout.ts';
 import { Nudges } from '../table/nudge.ts';
@@ -100,7 +100,7 @@ export function buildFun(sc: TableScene): void {
         temper: persona ? TEMPER[persona] : 'normal',
       };
     }),
-    avoid: () => [sc.worldRect(0, BUTTON_Y - FUN_UI.avoidPad, W, worldH - BUTTON_Y + FUN_UI.avoidPad)],
+    avoid: () => [sc.worldRect(0, BUTTON_Y - FUN_UI.avoidPad, W, GAME_HEIGHT - BUTTON_Y + FUN_UI.avoidPad)],
     // 桌上各家出的牌：弹幕不横穿、气泡不压（kit 0.19.0）
     center: () => sc.trick.boxes().map((b) => sc.worldRect(b.x, b.y, b.w, b.h)),
     button: () => (seated() ? sc.worldRect(left, FUN_UI.btnCy - bh / 2, bw, bh) : null),
@@ -456,6 +456,34 @@ export function refreshButtons(sc: TableScene): void {
   if (sel.length === 0) {
     const hints = sc.ensureHints(v);
     if (hints.length === 0) sc.setStatus('要不起，点 不要', true);
+    else if (guideHint(sc, v)) sc.setStatus('不会出？点「提示」，再点「出牌」');
     else sc.setStatus(v.trick.last ? '轮到你：压过它，或者不要' : '轮到你出牌');
   } else sc.setStatus(r.ok ? r.label : r.reason, !r.ok);
+}
+
+/** 引导翻完接着带几步：小白卡在"第一手出什么"，指给他「提示」比再讲一遍规则管用 */
+const HINT_GUIDE_TURNS = 3;
+
+export function startHintGuide(sc: TableScene): void {
+  sc.hintGuide = { left: HINT_GUIDE_TURNS, at: null };
+}
+
+/**
+ * 第一副前几次轮到我：「提示」跳两下、状态行说怎么用。只加不拦，不挡别的按钮；
+ * 过了第一副、托管时不指。返回这一步要不要说那句话。
+ */
+function guideHint(sc: TableScene, v: ReturnType<TableScene['ses']['view']>): boolean {
+  const g = sc.hintGuide;
+  if (!g || sc.ses.autoplay || sc.overlay !== null) return false;
+  if (v.dealNo > 1 || g.left <= 0) {
+    sc.hintGuide = null;
+    return false;
+  }
+  const key = `${v.dealNo}:${v.step}`;
+  if (g.at !== key) {
+    g.at = key;
+    g.left--;
+    sc.pulse(sc.btnHint);
+  }
+  return true;
 }

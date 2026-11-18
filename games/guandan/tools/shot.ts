@@ -371,6 +371,9 @@ async function smokeDesktop(browser: Browser): Promise<void> {
   // 真实鼠标：等轮到我，点提示 → 出牌
   await until(ctx, '轮到我', "g.idle && g.view().toAct.includes(0) && g.overlay === null");
   await shot(ctx, '04-table-myturn');
+  // 引导看完的第一副：轮到我时状态行指着「提示」（要不起的那步照旧说"点 不要"）
+  const guide = await page.evaluate(() => window.__game!.texts().some((t) => /不会出？点「提示」|要不起/.test(t.s)));
+  assert(guide, '引导后第一副轮到我要指着「提示」');
   await click(ctx, 'hint');
   await page.waitForTimeout(300);
   let sel = await page.evaluate(() => window.__game!.selected().length);
@@ -810,20 +813,32 @@ async function smokeMobile(browser: Browser): Promise<void> {
   await toLogin;
   await t.page.context().close();
 
-  const p = await open(browser, '竖屏', 'debug=1', { w: 390, h: 844, dpr: 3, touch: true, noWait: true });
+  // 竖屏：主页和弹窗竖着能用（单列），只有牌桌要横过来
+  const pt = await open(browser, '竖屏主页', 'debug=1', { w: 390, h: 844, dpr: 3, touch: true });
+  await until(pt, '竖屏标题页', "g.scene === 'title'");
+  await pt.page.waitForTimeout(900);
+  const onTitle = await pt.page.evaluate(() => getComputedStyle(document.getElementById('rotate-hint')!).display);
+  assert(onTitle === 'none', '竖屏主页不盖"请横过来"');
+  await shot(pt, '24a-portrait-title');
+  await pt.page.context().close();
+  const p = await open(browser, '竖屏', 'debug=1&seed=portrait-1', { w: 390, h: 844, dpr: 3, touch: true, noWait: true });
   await p.page.waitForTimeout(1200);
+  await p.page.waitForFunction(() => getComputedStyle(document.getElementById('rotate-hint')!).display === 'flex', null, { timeout: 60_000 }).catch(() => undefined);
   const vis = await p.page.evaluate(() => getComputedStyle(document.getElementById('rotate-hint')!).display);
-  assert(vis === 'flex', '竖屏要提示横过来');
+  assert(vis === 'flex', '竖屏进了牌桌要提示横过来');
   await shot(p, '24-portrait');
-  // 竖屏时牌桌被盖住：提示层左上角的"大厅"也要能回平台首页（没有打到一半的存档：直接走）
+  // 竖屏时牌桌被盖住：提示层左上角的"大厅"也要能回平台首页（这局刚开、可能已写存档：有确认框就点确定；问不问由下面有存档那段断言）
+  p.page.on('dialog', (d) => void d.accept());
   await p.page.tap('#rh-lobby');
   await toLobby(p, '竖屏点大厅');
   await p.page.context().close();
 
   // 有打到一半的存档：先用浏览器自带的确认框问一句；取消就留下，确定才走
   const save = { v: 1, state: createGame('portrait-save').state, difficulty: 'normal', counted: false, dealsCounted: 0 };
-  const q = await open(browser, '竖屏有存档', 'debug=1', { w: 390, h: 844, dpr: 3, touch: true, noWait: true, storage: { 'guandan.save': JSON.stringify(save) } });
-  await q.page.waitForTimeout(1200);
+  const q = await open(browser, '竖屏有存档', 'debug=1', { w: 390, h: 844, dpr: 3, touch: true, storage: { 'guandan.save': JSON.stringify(save) } });
+  await until(q, '竖屏标题页（有存档）', "g.scene === 'title'");
+  await click(q, 'continue', true);
+  await q.page.waitForFunction(() => getComputedStyle(document.getElementById('rotate-hint')!).display === 'flex', null, { timeout: 60_000 });
   const asked: string[] = [];
   let answer = false;
   q.page.on('dialog', (d) => {

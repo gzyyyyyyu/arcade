@@ -99,7 +99,7 @@ export async function playEvent(sc: DdzScene, e: DdzEvent): Promise<void> {
       break;
     case 'dealEnd': {
       const r = e.result;
-      sc.showUnlocked();
+      sc.showUnlocked(true);
       if (r.spring && !sc.puzzle) {
         sc.fxLog.push(r.spring === 'spring' ? '春天' : '反春');
         audio.sfx('spring');
@@ -112,7 +112,7 @@ export async function playEvent(sc: DdzScene, e: DdzEvent): Promise<void> {
       break;
     }
     case 'gameOver':
-      sc.showUnlocked();
+      sc.showUnlocked(true);
       break;
   }
 }

@@ -20,6 +20,7 @@ import { banner, bigWord, bombClash, bombStrike, burst, flash, rays, shake } fro
 import { dealMoment, momentOf } from '../../variants/guandan/net/fun-moments.ts';
 import { bombDrama, bombOnBomb } from './highlights.ts';
 import { BOMB_ON_BOMB_TOAST_Y, BOMB_RAYS_Y, BOMB_SMOKE, DEAL_ORIGIN_Y, KING_BOMB, PREV_TRICK, TRIBUTE_FLY } from '../table/layout.ts';
+import { startHintGuide } from './table-ui.ts';
 import type { TableScene } from '../scenes/TableScene.ts';
 
 export async function playEvent(sc: TableScene, e: GameEvent): Promise<void> {
@@ -53,6 +54,7 @@ export async function playEvent(sc: TableScene, e: GameEvent): Promise<void> {
       if (!tutorialDone() && !sc.dailyRun && !sc.ses.autoplay && !sc.ses.online && app.params?.seed === null) {
         // 第一次玩：发完牌后出新手引导（URL 调试开局不弹）
         await sc.startTutorialAsync();
+        startHintGuide(sc);
       }
       break;
     }
@@ -144,14 +146,14 @@ export async function playEvent(sc: TableScene, e: GameEvent): Promise<void> {
       break;
     }
     case 'dealEnd':
-      sc.showUnlocked();
+      sc.showUnlocked(true);
       sc.funMoment(dealMoment(e.result));
       sc.feedDeal(e.result);
       // 最后一手和名次章留在桌上看清楚，再弹结算（1500 → 1100 → 0.31.0 的 500）
       await wait(sc, PACE.dealEnd);
       break;
     case 'gameOver':
-      sc.showUnlocked();
+      sc.showUnlocked(true);
       break;
   }
 }

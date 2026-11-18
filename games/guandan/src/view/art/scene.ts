@@ -155,8 +155,10 @@ function teacup(x: number, y: number, s: number): string {
  * 四个人和灯笼是单独的纹理（homeFigureSvg、lanternArtSvg），在场景里摆、能动；位置都来自 home-layout.ts 的同一份排版
  */
 export function titleArtSvg(w: number, h: number): string {
-  const L = homeLayout(w);
+  const L = homeLayout(w, h);
   const A = L.artW;
+  // 竖屏时桌上的散牌、铜钱、茶杯跟着主视觉往下挪（L.top），桌子和人已经按它排了
+  const T = L.top;
   const { x: wx, y: wy, r: wr } = L.window;
   let lattice = '';
   for (let i = -6; i <= 6; i++) {
@@ -191,6 +193,7 @@ export function titleArtSvg(w: number, h: number): string {
   for (let i = 0; i < 4; i++) coins += `<g transform="translate(${f(A * 0.1 + i * 6)} ${f(600 - i * 6)}) scale(1 .5)"><circle r="20" fill="${C.gold}" stroke="${C.ink}" stroke-width="3"/><rect x="-6" y="-6" width="12" height="12" fill="#2e1208"/></g>`;
   // 灯笼的光晕画在背景里（静的），灯笼本身是能摆的纹理
   const glows = L.lanterns.map((l) => `<circle cx="${f(l.x)}" cy="${f(l.y + 140 * l.s)}" r="${f(150 * l.s)}" fill="url(#lglow)"/>`).join('');
+  const props = `<g transform="translate(0 ${f(T)})">${cards}${coins}${teacup(A * 0.8, 560, 0.9)}</g>`;
   return svg(w, h,
     `<defs>` +
     `<linearGradient id="wall" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a2a17"/><stop offset=".6" stop-color="#3c1a0f"/><stop offset="1" stop-color="#2a120a"/></linearGradient>` +
@@ -216,7 +219,7 @@ export function titleArtSvg(w: number, h: number): string {
     `<circle cx="${f(wx)}" cy="${f(wy)}" r="${f(wr + 9)}" fill="none" stroke="${C.gold}" stroke-width="2" opacity=".7"/>` +
     `<rect width="${w}" height="${h}" fill="url(#warm)"/>` +
     glows +
-    table + cards + coins + teacup(A * 0.8, 560, 0.9) +
+    table + props +
     // 顶灯：和牌桌同一个光源（正上方）——从上沿往下的暖光渐隐，再把下半部压暗，让光落在画面上半部的人和面板上
     `<rect width="${w}" height="${h}" fill="url(#top)"/>` +
     `<rect width="${w}" height="${h}" fill="url(#vig)"/>`);

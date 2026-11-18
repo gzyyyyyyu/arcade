@@ -24,8 +24,9 @@ import {
 import { app } from '../app.ts';
 import { FIGURE_SIZE, LANTERN_SIZE } from './home-layout.ts';
 import { withSvgFont } from './fonts.ts';
+import { appBox } from './device.ts';
 import { showErrorPanel } from './errors.ts';
-import { COLOR, GAME_HEIGHT, RENDER_SCALE, TYPE } from './theme.ts';
+import { COLOR, GAME_HEIGHT, RENDER_SCALE, TYPE, isPortrait, worldWidthFor } from './theme.ts';
 import { text, worldW } from '../ui/kit.ts';
 
 /** 牌的烘焙尺寸（世界单位）；手牌约 92 宽，略大一点烘焙，缩小显示更锐利。 */
@@ -183,16 +184,21 @@ async function bakeJobs(scene: Phaser.Scene, jobs: Job[], batch: number, onProgr
 }
 
 /**
- * 主页背景整屏大图，分两档：首帧只烘 1 倍（`title:<宽>`，像素是 2 倍的四分之一，解码快得多，手机物理分辨率下基本一样清楚），
- * 标题页出来、牌桌素材烘完后再烘全倍数的 `title:<宽>:hi` 换上（titleBackdrop / upgradeTitleBackdrop）。渲染倍数本来就是 1 时只有前一档。
+ * 主页背景整屏大图，分两档：首帧只烘 1 倍（`title:<宽>x<高>`，像素是 2 倍的四分之一，解码快得多，手机物理分辨率下基本一样清楚），
+ * 标题页出来、牌桌素材烘完后再烘全倍数的 `title:<宽>x<高>:hi` 换上（titleBackdrop / upgradeTitleBackdrop）。渲染倍数本来就是 1 时只有前一档。
+ * key 带高：竖屏的主页世界高度随屏幕比例变（theme.ts 的 worldSizeFor）
  */
+function titleKey(w: number, h: number, hi: boolean): string {
+  return `title:${w}x${h}${hi ? ':hi' : ''}`;
+}
+
 function titleJob(w: number, h: number, hi: boolean): Job {
-  return { key: hi ? `title:${w}:hi` : `title:${w}`, svg: () => titleArtSvg(w, h), w, h, maxPx: 4096, maxScale: hi ? undefined : 1 };
+  return { key: titleKey(w, h, hi), svg: () => titleArtSvg(w, h), w, h, maxPx: 4096, maxScale: hi ? undefined : 1 };
 }
 
 /** 标题页该用哪张背景：全倍数的烘好了就用它，否则用首帧的 1 倍图 */
-export function titleBackdrop(scene: Phaser.Scene, w: number): string {
-  return scene.textures.exists(`title:${w}:hi`) ? `title:${w}:hi` : `title:${w}`;
+export function titleBackdrop(scene: Phaser.Scene, w: number, h: number): string {
+  return scene.textures.exists(titleKey(w, h, true)) ? titleKey(w, h, true) : titleKey(w, h, false);
 }
 
 /** 标题页的背景图换成全倍数的：等牌桌素材烘完（别和它抢主线程），烘好后直接换纹理，不闪；出错只留着 1 倍图 */
@@ -201,9 +207,10 @@ export function upgradeTitleBackdrop(scene: Phaser.Scene, img: Phaser.GameObject
   void (async () => {
     await startBackgroundBake(scene).catch(() => undefined);
     await bake(scene, titleJob(w, h, true));
-    if (!img.scene || !img.active || scene.textures.exists(`title:${w}:hi`) === false) return;
+    const hi = titleKey(w, h, true);
+    if (!img.scene || !img.active || scene.textures.exists(hi) === false) return;
     const lo = img.texture.key;
-    img.setTexture(`title:${w}:hi`).setDisplaySize(w, h);
+    img.setTexture(hi).setDisplaySize(w, h);
     // 1 倍图用不着了（场景重开时 titleBackdrop 直接取全倍数的）
     if (lo !== img.texture.key) dropTexture(scene, lo);
   })().catch((err) => console.warn('主页背景升级失败，沿用 1 倍图', err));
@@ -245,7 +252,7 @@ export function startBackgroundBake(scene: Phaser.Scene): Promise<void> {
     corePart = (async () => {
       await bakeJobs(scene, core, 6, (p) => (tableDone = Math.round(p * core.length)), true);
       // 当前宽度的牌桌背景也在这里先烘：以前要等点了开局才烘这一张整屏大图，手机上素材早就烘完了还要干等 2 秒多
-      await bake(scene, tableJob(worldW(scene)));
+      await bake(scene, tableJob(tableW()));
       tableDone = coreTotal;
       performance.mark('gd:table-core');
     })();
@@ -314,9 +321,15 @@ function tableJob(w: number): Job {
   return { key: `table:${w}`, svg: () => tableSvg(w, GAME_HEIGHT), w, h: GAME_HEIGHT, maxPx: 4096 };
 }
 
-/** 牌桌要用的纹理是否都已就绪（含当前宽度的牌桌背景） */
+/** 牌桌的世界宽度：竖屏时按横过来以后的可见区算（主页是竖屏世界，牌桌只在横屏打） */
+function tableW(): number {
+  const b = appBox();
+  return isPortrait(b.w, b.h) ? worldWidthFor(b.h, b.w) : worldWidthFor(b.w, b.h);
+}
+
+/** 牌桌要用的纹理是否都已就绪（含牌桌宽度的背景） */
 export function texturesReady(scene: Phaser.Scene): boolean {
-  return tablePart !== null && tableDone >= readyNeed() && scene.textures.exists(`table:${worldW(scene)}`);
+  return tablePart !== null && tableDone >= readyNeed() && scene.textures.exists(`table:${tableW()}`);
 }
 
 /** 等牌桌的素材烘完；onProgress 0..1。世界宽度换过时顺便补烘当前宽度的牌桌背景 */
@@ -325,8 +338,7 @@ export async function ensureTextures(scene: Phaser.Scene, onProgress: (p: number
   try {
     const all = startBackgroundBake(scene);
     await (app.params?.bakeAll ? all : corePart);
-    const w = worldW(scene);
-    await bake(scene, tableJob(w));
+    await bake(scene, tableJob(tableW()));
     onProgress(1);
   } finally {
     window.clearInterval(timer);
@@ -345,6 +357,7 @@ export function startWhenReady(scene: Phaser.Scene, key: 'table' | 'ddz'): void 
   holdExtraBake();
   if (texturesReady(scene)) {
     performance.mark('gd:enter-start');
+    app.toTableWorld?.();
     scene.scene.start(key);
     return;
   }
@@ -358,7 +371,9 @@ export function startWhenReady(scene: Phaser.Scene, key: 'table' | 'ddz'): void 
     .then(() => {
       waiting.delete(scene);
       performance.mark('gd:enter-start');
-      if (scene.scene.isActive()) scene.scene.start(key);
+      if (!scene.scene.isActive()) return;
+      app.toTableWorld?.();
+      scene.scene.start(key);
     })
     .catch((err) => {
       waiting.delete(scene);
@@ -369,24 +384,19 @@ export function startWhenReady(scene: Phaser.Scene, key: 'table' | 'ddz'): void 
 }
 
 /**
- * 背景大图随世界宽度变化，按需烘焙（key 带宽度）。iOS Safari 地址栏一收一放、转屏都会换宽度，
- * 旧宽度的两张不删就越攒越多（2 倍渲染时一套约 28 MB），换完画面后用 dropBackdrops 删掉。
+ * 背景大图随世界尺寸变化，按需烘焙（key 带尺寸）：牌桌背景按牌桌宽度（竖屏时是横过来以后的），主页背景按现在的世界宽高。
+ * iOS Safari 地址栏一收一放、转屏都会换尺寸，旧尺寸的不删就越攒越多（2 倍渲染时一套约 28 MB），换完画面后用 dropBackdrops 删掉。
  */
-export async function ensureBackdrops(scene: Phaser.Scene, w: number, h: number): Promise<{ table: string; title: string }> {
-  const table = `table:${w}`;
-  const title = titleBackdrop(scene, w);
-  await Promise.all([
-    bake(scene, { key: table, svg: () => tableSvg(w, h), w, h, maxPx: 4096 }),
-    bake(scene, titleJob(w, h, false)),
-  ]);
-  return { table, title };
+export async function ensureBackdrops(scene: Phaser.Scene, w: number, h: number): Promise<void> {
+  const tw = tableW();
+  await Promise.all([bake(scene, tableJob(tw)), bake(scene, titleJob(w, h, false))]);
 }
 
-/** 删掉不是这个宽度的背景大图（场景已经换用新宽度之后再调） */
-export function dropBackdrops(scene: Phaser.Scene, keepW: number): void {
+/** 删掉不是现在这套尺寸的背景大图（场景已经换用新尺寸之后再调） */
+export function dropBackdrops(scene: Phaser.Scene, w: number, h: number): void {
+  const keepTable = `table:${tableW()}`;
   for (const key of scene.textures.getTextureKeys()) {
-    const m = /^(table|title):(\d+)(:hi)?$/.exec(key);
-    if (!m || Number(m[2]) === keepW) continue;
+    if (/^table:\d+$/.test(key) ? key === keepTable : !/^title:\d+x\d+(:hi)?$/.test(key) || key.startsWith(`title:${w}x${h}`)) continue;
     dropTexture(scene, key);
   }
 }

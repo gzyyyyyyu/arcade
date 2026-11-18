@@ -21,8 +21,11 @@ export const app = {
   params: null as LaunchParams | null,
   /** 云存档（main.ts 启动） */
   cloud: null as CloudSync | null,
-  /** 当前世界宽度（随窗口宽高比变化） */
+  /** 当前世界宽度、高度（宽随窗口宽高比变化；高在横屏和牌桌是 720，竖屏的主页更高，theme.ts 的 worldSizeFor） */
   width: 1280,
+  height: 720,
+  /** 进牌桌前把世界换成横屏的尺寸（竖屏主页的世界牌桌用不了；main.ts 装上） */
+  toTableWorld: null as (() => void) | null,
   /** 启动耗时（毫秒） */
   bootMs: 0,
   ready: false,

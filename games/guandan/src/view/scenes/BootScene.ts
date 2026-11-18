@@ -14,13 +14,13 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.setOrigin(0, 0).setZoom(this.scale.gameSize.height / worldH);
+    this.cameras.main.setOrigin(0, 0).setZoom(this.scale.gameSize.height / worldH(this));
     const W = worldW(this);
     const g = this.add.graphics();
     const bar = (p: number): void => {
       g.clear();
-      g.fillStyle(0x000000, 0.4).fillRoundedRect(W / 2 - 200, worldH / 2 + 40, 400, 14, 7);
-      g.fillStyle(COLOR.gold, 1).fillRoundedRect(W / 2 - 200, worldH / 2 + 40, Math.max(14, 400 * p), 14, 7);
+      g.fillStyle(0x000000, 0.4).fillRoundedRect(W / 2 - 200, worldH(this) / 2 + 40, 400, 14, 7);
+      g.fillStyle(COLOR.gold, 1).fillRoundedRect(W / 2 - 200, worldH(this) / 2 + 40, Math.max(14, 400 * p), 14, 7);
     };
     bar(0);
     const t0 = performance.now();
@@ -30,7 +30,7 @@ export class BootScene extends Phaser.Scene {
         const font = loadTitleFont();
         performance.mark('gd:boot-create');
         // 只等主页要用的（图标、logo、灯笼、人物、标题背景）；牌桌的牌面、头像、印章、粒子、牌桌背景等标题页出来后在后台烘
-        await bakeHome(this, W, worldH, (p) => bar(p * 0.85));
+        await bakeHome(this, W, worldH(this), (p) => bar(p * 0.85));
         performance.mark('gd:bake');
         await font;
         performance.mark('gd:font');

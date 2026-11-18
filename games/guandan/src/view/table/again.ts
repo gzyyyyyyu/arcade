@@ -15,7 +15,7 @@ export function backToPicker(scene: Phaser.Scene, variant: 'guandan' | 'ddz', ms
       if (!title.scene.isActive()) return;
       if (variant === 'ddz') title.pickDdzStake();
       else title.pickStake();
-      toast(title, msg, worldW(title) / 2, worldH - 60);
+      toast(title, msg, worldW(title) / 2, worldH(title) - 60);
     });
   });
   scene.scene.start('title');

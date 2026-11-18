@@ -61,6 +61,31 @@ export function worldWidthFor(w: number, h: number): number {
   return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, want));
 }
 
+/**
+ * 手机、平板竖着拿（和"请横过来"同一条线：竖屏且宽不过 1024）：主页和弹窗按竖屏排，牌桌仍只认横屏（orientation.ts 只盖牌桌）
+ */
+export function isPortrait(w: number, h: number): boolean {
+  return w > 0 && h > w && w <= 1024;
+}
+
+/** 竖屏世界：宽 720（和横屏手机缩到同一个比例，字号、点按区的托底照旧），高按屏幕比例，夹在 1080..1600 */
+export const PORTRAIT_WIDTH = 720;
+const PORTRAIT_MIN_H = 1080;
+const PORTRAIT_MAX_H = 1600;
+
+/** 可见区 w×h 下主页用的世界尺寸：竖屏 720 × 按比例的高；横屏照旧（高 720，宽按 worldWidthFor） */
+export function worldSizeFor(w: number, h: number): { w: number; h: number } {
+  if (!isPortrait(w, h)) return { w: worldWidthFor(w, h), h: GAME_HEIGHT };
+  const want = Math.round((PORTRAIT_WIDTH * h) / w / 4) * 4;
+  return { w: PORTRAIT_WIDTH, h: Math.max(PORTRAIT_MIN_H, Math.min(PORTRAIT_MAX_H, want)) };
+}
+
+/** 画布按 FIT 缩放后，一个世界坐标合多少 CSS 像素（竖屏按竖屏世界算；竖屏时牌桌被"请横过来"盖着，不用管它的比例） */
+function cssPerWorld(w: number, h: number): number {
+  const s = worldSizeFor(w, h);
+  return Math.min(w / s.w, h / s.h);
+}
+
 /** 渲染倍数（1..3）：按实际可见区域 × DPR，iOS 封顶 2，省内存模式 1；算法见 device.ts。 */
 export const RENDER_SCALE = pickRenderScale();
 
@@ -93,7 +118,7 @@ export function phoneType(): boolean {
 
 /** 可见区域 w×h CSS 像素时的字号下限（纯函数，测试用） */
 export function floorFor(w: number, h: number, num: boolean): number {
-  const k = Math.min(w / worldWidthFor(w, h), h / GAME_HEIGHT);
+  const k = cssPerWorld(w, h);
   return Math.ceil((num ? TYPE_FLOOR_PX.num : TYPE_FLOOR_PX.text) / k);
 }
 
@@ -122,7 +147,7 @@ export function minHit(): number {
 
 /** 可见区域 w×h CSS 像素时，44 CSS 像素合多少世界坐标（画布按 FIT 缩放，取宽、高两个方向小的那个比例） */
 export function hitFor(w: number, h: number): number {
-  const k = Math.min(w / worldWidthFor(w, h), h / GAME_HEIGHT);
+  const k = cssPerWorld(w, h);
   return Math.max(44, Math.min(100, Math.ceil(44 / k)));
 }
 
