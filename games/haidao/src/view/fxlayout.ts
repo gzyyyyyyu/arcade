@@ -102,4 +102,4 @@ export function boxOf(img: { x: number; y: number; originX: number; originY: num
  * 不算挡人的：贴地矮的（城墙、陷阱、岩石）、海里的（海怪）、装饰（棕榈、旗杆、雕像、宝箱）。
  * 装饰的外框按整片树冠 / 整张图算，人其实看得见，在上面再画剪影就成了站在旁边的一个浅蓝残影。
  */
-export const NO_OCC: ReadonlySet<string> = new Set(['wall', 'mine', 'tar', 'rock', 'kraken', 'palm', 'flagpole', 'statue', 'chest', 'treasure']);
+export const NO_OCC: ReadonlySet<string> = new Set(['wall', 'mine', 'tar', 'rock', 'kraken', 'palm', 'flagpole', 'statue', 'chest', 'wheel', 'treasure']);

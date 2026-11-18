@@ -43,6 +43,8 @@ export interface Api {
   turretStats?(): { shots: number; snaps: number; maxSnap: number };
   /** 取证钩子：在第一个敌人身上演一次震晕 / 手雷（只改画面状态，冒烟和截图用） */
   tdFx?(what: 'stun' | 'lob' | 'shield'): { x: number; y: number; lx: number; ly: number } | null;
+  /** 守岛取证：稳机器人接着打（截后期波次用） */
+  tdAuto?(): void;
   /** 取证钩子：狙击预警线现在有几条在画（连拍等到预警出现再开拍） */
   snipeLive?(): number;
   /** 取证钩子（只在 ?dev）：强制所有盾兵的盾朝向（世界坐标 ×100），不传 / null 恢复规则给的朝向；用来拍盾换边 */

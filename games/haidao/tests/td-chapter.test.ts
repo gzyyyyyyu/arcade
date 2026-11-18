@@ -19,9 +19,9 @@ const TD2_LEVELS = ALL_LEVELS.filter((l) => /^td\d\d$/.test(l.id));
 const ID = (i: number): string => `td${String(i + 1).padStart(2, '0')}`;
 
 describe('关卡表', () => {
-  it('4 章 22 关（前三章各 6 关，第四章先 4 关），id td01–td22，建议主寨不降，一波 15–18 秒、8–12 波', () => {
-    expect(TD2_CHAPTERS.map((c) => c.levels.length)).toEqual([6, 6, 6, 4]);
-    expect(TD2_LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 22 }, (_, i) => ID(i)));
+  it('4 章 24 关（每章 6 关），id td01–td24，建议主寨不降，一波 15–18 秒、8–12 波', () => {
+    expect(TD2_CHAPTERS.map((c) => c.levels.length)).toEqual([6, 6, 6, 6]);
+    expect(TD2_LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 24 }, (_, i) => ID(i)));
     TD2_LEVELS.forEach((l, i) => {
       expect(l.index).toBe(i);
       expect(l.chapter).toBe(Math.floor(i / 6) + 1);
@@ -36,17 +36,17 @@ describe('关卡表', () => {
     expect(TD2_LEVEL_BY_ID.has('td2-sample')).toBe(true);
     expect(TD2_CHAPTERS.flatMap((c) => c.levels).some((l) => l.id === 'td2-sample')).toBe(false);
   });
-  it('11 张图都用上：双滩只出一关，潮沟出三关，其余各两关', () => {
+  it('11 张图都用上：双滩只出一关，潮沟、双子岛、火山口各出三关，其余各两关', () => {
     expect(TD2_MAPS.map((m) => m.id)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']);
     const count = new Map<string, number>();
     for (const l of TD2_LEVELS) count.set(l.map, (count.get(l.map) ?? 0) + 1);
     expect([...count.keys()].sort()).toEqual(TD2_MAPS.map((m) => m.id));
-    expect(TD2_MAPS.map((m) => count.get(m.id))).toEqual([2, 1, 2, 3, 2, 2, 2, 2, 2, 2, 2]);
+    expect(TD2_MAPS.map((m) => count.get(m.id))).toEqual([2, 1, 2, 3, 2, 2, 2, 2, 2, 3, 3]);
   });
   it('木台数和沉船、驻守台数按 DESIGN 10.7 的关卡表', () => {
-    const pads = [4, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 9, 9, 10, 9, 10, 9, 10];
-    const wrecks = [0, 0, 0, 1, 1, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0];
-    const garrison = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3];
+    const pads = [4, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 9, 9, 10, 9, 10, 9, 10, 10, 10];
+    const wrecks = [0, 0, 0, 1, 1, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0];
+    const garrison = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3];
     TD2_LEVELS.forEach((l, i) => {
       expect(l.slots, l.id).toHaveLength(pads[i]!);
       expect(l.slots.filter((p) => p.wreck).length, l.id).toBe(wrecks[i]);
@@ -76,11 +76,14 @@ describe('关卡表', () => {
     expect(c3!.some((l) => l.sapperJam)).toBe(true);
     expect(c3!.some((l) => l.bossSkill)).toBe(true);
     expect(c3!.filter((l) => l.waves.some((w) => w.boss)).length).toBeGreaterThanOrEqual(3);
-    // 第四章：两张带水面的新图、军医、炮艇、大副
+    // 第四章：两张带水面的新图、军医、炮艇、大副、海盗王（只在最后一关），最后两关有友军船
     const c4 = TD2_CHAPTERS[3]!.levels;
     expect(c4.every((l) => (l.water?.length ?? 0) > 0)).toBe(true);
     const kinds = new Set(c4.flatMap((l) => l.waves.flatMap((w) => w.groups.map((g) => g.enemy))));
-    for (const k of ['medic', 'gunboat', 'mate'] as const) expect(kinds.has(k), k).toBe(true);
+    for (const k of ['medic', 'gunboat', 'mate', 'king'] as const) expect(kinds.has(k), k).toBe(true);
+    expect(c4.filter((l) => l.waves.some((w) => w.groups.some((g) => g.enemy === 'king'))).map((l) => l.id)).toEqual(['td24']);
+    expect(c4.filter((l) => l.fleet).map((l) => l.id)).toEqual(['td23', 'td24']);
+    expect(TD2_LEVELS.filter((l) => l.fleet).length).toBe(2);
     expect(TD2_CHAPTERS.slice(0, 3).some((c) => c.levels.some((l) => l.water))).toBe(false);
   });
 });

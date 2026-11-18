@@ -1,6 +1,6 @@
 /**
  * 守岛 2.0 的关卡岛和战役关表的出口（契约：core/index.ts 从这里取 TD2_MAPS、TD2_LEVELS、TD2_LEVEL_BY_ID）。
- * 11 张图在 td2maps.ts，22 关的波次配方和旋钮在 td2levels.ts；这里再加一关只给单测用的样板关（不进选关页和战役关表）。
+ * 11 张图在 td2maps.ts，24 关的波次配方和旋钮在 td2levels.ts；这里再加一关只给单测用的样板关（不进选关页和战役关表）。
  */
 import type { Placed } from '../core/types.ts';
 import type { TdIslandLevel } from '../core/td2types.ts';
@@ -60,7 +60,7 @@ export const TD2_SAMPLE_LEVEL: TdIslandLevel = {
   ],
 };
 
-/** 全部关：战役 22 关（td01–td22，按解锁顺序）加样板关；战役关表用 tdCampaign()，它按 id 滤掉样板关 */
+/** 全部关：战役 24 关（td01–td24，按解锁顺序）加样板关；战役关表用 tdCampaign()，它按 id 滤掉样板关 */
 export const TD2_LEVELS: readonly TdIslandLevel[] = [...REAL_LEVELS, TD2_SAMPLE_LEVEL];
 /** 按 id 查关 */
 export const TD2_LEVEL_BY_ID: ReadonlyMap<string, TdIslandLevel> = new Map(TD2_LEVELS.map((l) => [l.id, l]));

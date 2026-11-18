@@ -2,9 +2,10 @@ import type { TdScene } from './TdScene.ts';
 import Phaser from 'phaser';
 import { BUILDINGS } from '../content/index.ts';
 import { tdIncomingWave, tdLanes, tdRoutes, tdWaveLanes } from '../core/index.ts';
+import { fleetAt } from '../core/tdmech.ts';
 import { cellX, cellY } from '../core/grid.ts';
 import { UNIT, BEACH } from '../core/types.ts';
-import { sTex, bTex, wTex, fxA, tdP, troopF, iconA } from './art.ts';
+import { sTex, bTex, wTex, fxA, tdP, troopF, iconA, shipA } from './art.ts';
 import { type Box, islandBox, type Content, cellsBox, type Director } from './camfit.ts';
 import { type EdgeItem, type EdgeKind, type FPt, edgeMarks, frameFocus, groupAround } from './camguide.ts';
 import { EASE } from './motion.ts';
@@ -531,4 +532,28 @@ export function drawEdges(bs: TdScene): void {
       it.el.style.display = 'none';
     }
   }
+}
+
+/**
+ * 友军巡航船（规则版本 19）：船在海上时每帧按规则的航线摆（两拍之间按帧插值），朝开的方向翻转；不在海上就藏起来。
+ * 船就是玩家旗舰那张图缩小，第一次出海时才建
+ */
+export function syncFleet(bs: TdScene, frac: number): void {
+  const sail = bs.s.fleet?.sail;
+  if (!sail) {
+    bs.fleetImg?.setVisible(false);
+    return;
+  }
+  const t = bs.s.tick + frac;
+  const a = fleetAt(sail, Math.floor(t));
+  const b = fleetAt(sail, Math.floor(t) + 1);
+  const k = t - Math.floor(t);
+  const ux = a.x + (b.x - a.x) * k;
+  const uy = a.y + (b.y - a.y) * k;
+  const q = iso(ux / UNIT, uy / UNIT);
+  if (!bs.fleetImg) bs.fleetImg = put(bs, bs.r, shipA('flagship'), q.x, q.y).setScale(0.42 / bs.r);
+  const img = bs.fleetImg.setVisible(true).setPosition(q.x, q.y).setDepth(depthOf(ux / UNIT, uy / UNIT));
+  const ahead = iso(b.x / UNIT, b.y / UNIT);
+  const back = iso(a.x / UNIT, a.y / UNIT);
+  if (ahead.x !== back.x) img.setFlipX(ahead.x < back.x);
 }

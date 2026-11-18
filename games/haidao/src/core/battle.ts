@@ -152,7 +152,7 @@ function isCounted(b: BBuilding): boolean {
 }
 
 function isDeco(b: BBuilding): boolean {
-  return b.kind === 'palm' || b.kind === 'rock' || b.kind === 'statue' || b.kind === 'flagpole' || b.kind === 'chest';
+  return b.kind === 'palm' || b.kind === 'rock' || b.kind === 'statue' || b.kind === 'flagpole' || b.kind === 'chest' || b.kind === 'wheel';
 }
 
 function bldById(s: BattleState, id: number): BBuilding | undefined {

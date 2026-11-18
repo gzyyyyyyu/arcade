@@ -69,6 +69,14 @@ export function pressSluice(bs: TdScene): void {
   act(bs, { type: 'sluice' });
 }
 
+/** 友军巡航船（4）：不用瞄，一按就来；冷却中或船还在海上时按了只响一声 */
+export function pressFleet(bs: TdScene): void {
+  const f = bs.s.fleet;
+  if (bs.s.over || !f) return;
+  if (f.sail || bs.s.tick < f.ready) return sfx('error');
+  act(bs, { type: 'fleet' });
+}
+
 /** 岸防老炮（4）：和炸药桶一样先进入瞄准、再点地面；全岛都够得着，不画范围圈 */
 export function pickBattery(bs: TdScene): void {
   const b = bs.s.battery;

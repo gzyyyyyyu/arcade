@@ -4,7 +4,7 @@
  * 进度一样时取最近玩过的。另一份会被 cloud.ts 先备份到 haidao.profile.pre-sync。
  */
 import { ESCORT_LEVELS } from '../content/index.ts';
-import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, RARE_POOL, SKILLS, HERO_RESEARCH_MAX, RANKS, tdCampaign, TROOPS, canPlace, hqLevel, newProfile, sanitizeBranch, tdDailyCap, totalStars } from '../core/index.ts';
+import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, COSMETICS, SKILLS, HERO_RESEARCH_MAX, RANKS, tdCampaign, TROOPS, canPlace, hqLevel, newProfile, sanitizeBranch, tdDailyCap, totalStars } from '../core/index.ts';
 import type { Placed, Profile } from '../core/types.ts';
 import { isObj } from '../core/validate.ts';
 
@@ -113,8 +113,8 @@ export function reviveSave(raw: unknown): Save | null {
     if (isObj(p.escort.stars)) for (const l of ESCORT_LEVELS) if (isInt(p.escort.stars[l.id], 0, 3)) stars[l.id] = p.escort.stars[l.id] as number;
     profile.escort = { stars };
   }
-  // 掉宝：只留稀有池里认识的；装备的皮肤必须已拥有；摆出来的装饰也必须已拥有（规则核心 build 同样这么查）
-  const pool = new Set(RARE_POOL);
+  // 收藏：只留认识的（掉宝池 + 纪念装饰）；装备的皮肤必须已拥有；摆出来的装饰也必须已拥有（规则核心 build 同样这么查）
+  const pool = new Set(COSMETICS);
   profile.cosmetics = Array.isArray(p.cosmetics) ? [...new Set(p.cosmetics.filter((c): c is string => typeof c === 'string' && pool.has(c)))] : [];
   profile.skins = {};
   if (isObj(p.skins)) {
@@ -122,7 +122,7 @@ export function reviveSave(raw: unknown): Save | null {
       if (own(TROOPS, t) && typeof s === 'string' && profile.cosmetics.includes(`skin:${t}:${s}`)) profile.skins[t] = s;
     }
   }
-  profile.base.buildings = profile.base.buildings.filter((b) => BUILDINGS[b.kind].category !== 'deco' || !RARE_POOL.includes(`deco:${b.kind}`) || profile.cosmetics.includes(`deco:${b.kind}`));
+  profile.base.buildings = profile.base.buildings.filter((b) => BUILDINGS[b.kind].category !== 'deco' || !pool.has(`deco:${b.kind}`) || profile.cosmetics.includes(`deco:${b.kind}`));
   return { profile, lastSeen: isNum(raw.lastSeen) && raw.lastSeen > 0 ? raw.lastSeen : 0 };
 }
 

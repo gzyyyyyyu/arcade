@@ -107,6 +107,8 @@ function settle(bs: TdScene): void {
     loot(bs, mask, box, before, { gold: rw.gold, wood: rw.wood }, { gold: rw.bonusGold, wood: rw.bonusWood }, tm.flyAt);
     if (rw.newStars > 0) bonusLine(bs, box, rw.bonusGold, rw.bonusWood);
     capNotes(box, rw, '今天的守岛收入已满，这局只拿星');
+    // 第四章全部过关：送纪念装饰（在收藏里摆到岛上）
+    if (rw.wheel) el('p', 'hd-sub hd-td-line hd-pos', '远洋通关！得到装饰「海盗王的舵轮」，在收藏里摆到岛上', box);
     if (rw.unlocked) {
       const nm = tdCampaign().find((l) => l.id === rw.unlocked)?.name ?? '';
       el('p', 'hd-sub hd-td-line', `新解锁：${nm}`, box);

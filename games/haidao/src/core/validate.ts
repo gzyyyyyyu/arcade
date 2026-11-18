@@ -7,7 +7,7 @@
  */
 import { BUILDINGS, HQ_LEVELS, SKILLS, TROOPS } from '../content/index.ts';
 import { capacityOfBuildings } from './base.ts';
-import { RARE_POOL } from './run.ts';
+import { COSMETICS } from './run.ts';
 import { branchError, heroCap } from './tdbase.ts';
 import { RANK_HQ, RANKS } from '../content/rank.ts';
 import { ISLAND } from './types.ts';
@@ -124,8 +124,8 @@ export function validateBase(raw: unknown): Validated {
     if (!isObj(bt) || !own(TROOPS, bt.troop) || TROOPS[bt.troop].unlockHq > hq) return fail('boat');
     boats.push({ troop: bt.troop });
   }
-  // 掉宝装饰的归属
-  const pool = new Set(RARE_POOL);
+  // 掉宝装饰、纪念装饰的归属
+  const pool = new Set(COSMETICS);
   let cosmetics: string[] = [];
   if (raw.cosmetics !== undefined) {
     if (!Array.isArray(raw.cosmetics) || raw.cosmetics.length > 200) return fail('shape');

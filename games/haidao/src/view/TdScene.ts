@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { BUILDINGS } from '../content/index.ts';
-import { type TdState, type TdAction, type BuildingKind, type TdTowerKind, type WavePreview, createTd, tdJammed, stepTd, beijingIsoWeek, tideSetup, type Result, type TdSetup, tdHomeSetup, tdAutoPicks, startTd2, TD_TIER_LEVEL } from '../core/index.ts';
+import { type TdState, type TdAction, type BuildingKind, type TdTowerKind, type WavePreview, createTd, tdJammed, stepTd, tdBotActions, beijingIsoWeek, tideSetup, type Result, type TdSetup, tdHomeSetup, tdAutoPicks, startTd2, TD_TIER_LEVEL } from '../core/index.ts';
 import { StunMarks } from './stunmarks.ts';
 import { SnipeLines } from './snipefx.ts';
 import { UNIT, ISLAND } from '../core/types.ts';
@@ -36,7 +36,7 @@ import type { EscortView } from './escortview.ts';
 import { escortShipArt } from './art/escort.ts';
 import { DEPTH } from './depth.ts';
 import { type TdData, type ESpr, type TSpr, W, EDGE_MS, TEMP_KINDS } from './tdcommon.ts';
-import { drawLayout, drawProps, drawWater, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector } from './tdworld.ts';
+import { drawLayout, drawProps, drawWater, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector, syncFleet } from './tdworld.ts';
 import { tap, hover, press, cancelAll, callWave, toggleHero } from './tdinput.ts';
 import { newCycle } from './tdpick.ts';
 import { canCall, buildUi, updateHud } from './tdhud.ts';
@@ -60,6 +60,8 @@ export class TdScene extends Phaser.Scene {
   acc = 0;
   speed = 1;
   pending: TdAction[] = [];
+  /** 取证钩子 tdAuto 打开后由稳机器人出操作（只给截图脚本用） */
+  autoBot: ((s: TdState) => TdAction[]) | null = null;
   hs = new HitStop();
   /** 英雄上次扔火药桶的拍数：爆炸事件靠它认出是不是桶 */
   kegAt = -999;
@@ -132,6 +134,8 @@ export class TdScene extends Phaser.Scene {
   reasonLog: ReasonLog = newReasonLog();
   /** 瞄准中的技能：keg 炸药桶、barricade 拒马 */
   mode: 'none' | 'keg' | 'barricade' | 'battery' = 'none';
+  /** 友军巡航船的图（第一次出海时建，tdworld.ts 的 syncFleet 每帧摆） */
+  fleetImg: Phaser.GameObjects.Image | null = null;
   openSlot = -1;
   /** 造塔面板里手指 / 鼠标正压着的塔卡：地上预览它 1 阶的射程圈 */
   previewKind: TdTowerKind | null = null;
@@ -374,6 +378,10 @@ export class TdScene extends Phaser.Scene {
       return { x: w.x, y: w.y, lx: l.x, ly: l.y };
     };
     app.api.occluded = () => this.occ?.frames ?? 0;
+    // 取证：让规则核心的稳机器人接着打（截后期波次的画面用，例如第四章最后一波的海盗王），手动点的操作照常一起送
+    app.api.tdAuto = () => {
+      this.autoBot = tdBotActions('normal', this.d.setup.seed);
+    };
   }
 
   /** 飘字：位置夹在看得见的区域里（顶栏、底部按钮、安全区之外），同处同类的字合并加数 */
@@ -404,6 +412,7 @@ export class TdScene extends Phaser.Scene {
     this.dying.timeScale = ts;
     this.dying.step(dt);
     sync(this, dt);
+    if (this.s.fleet) syncFleet(this, this.acc / STEP_MS);
     this.esc?.frame(this.acc / STEP_MS, this.time.now);
     updateHud(this);
     if (this.openSlot >= 0 && slotSig(this) !== this.sheetSig) renderSheet(this);
@@ -442,7 +451,7 @@ export class TdScene extends Phaser.Scene {
   }
 
   stepOnce(): void {
-    const acts = this.pending;
+    const acts = this.autoBot ? [...this.pending, ...this.autoBot(this.s)] : this.pending;
     this.pending = [];
     const before = this.s.wave;
     const ev = stepTd(this.s, acts);

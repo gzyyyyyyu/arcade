@@ -69,7 +69,7 @@ describe('reviveSave', () => {
 
   it('掉宝：不认识的去掉，没拥有的皮肤不能装备、装饰不能摆', () => {
     const s = clone(fresh());
-    s.profile.cosmetics = ['skin:sailor:gold', 'skin:x:gold', 'deco:statue', 7] as unknown as string[];
+    s.profile.cosmetics = ['skin:sailor:gold', 'skin:x:gold', 'deco:statue', 'deco:wheel', 7] as unknown as string[];
     s.profile.skins = { sailor: 'gold', gunner: 'royal', toString: 'gold' } as unknown as Profile['skins'];
     const spot = (kind: 'statue' | 'chest'): [number, number] => {
       for (let y = 0; y < ISLAND; y++) for (let x = 0; x < ISLAND; x++) if (canPlace(s.profile, kind, x, y)) return [x, y];
@@ -81,7 +81,7 @@ describe('reviveSave', () => {
     s.profile.base.buildings.push({ id: 901, kind: 'chest', level: 1, x: cx, y: cy });
     s.profile.base.nextId = 902;
     const r = reviveSave(s)!;
-    expect(r.profile.cosmetics).toEqual(['skin:sailor:gold', 'deco:statue']);
+    expect(r.profile.cosmetics).toEqual(['skin:sailor:gold', 'deco:statue', 'deco:wheel']);
     expect(r.profile.skins).toEqual({ sailor: 'gold' });
     expect(r.profile.base.buildings.some((b) => b.id === 900)).toBe(true);
     expect(r.profile.base.buildings.some((b) => b.id === 901)).toBe(false);

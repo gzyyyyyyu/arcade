@@ -1,6 +1,6 @@
 import type { BaseScene } from './BaseScene.ts';
 import { BUILDINGS } from '../content/index.ts';
-import { hqLevel, rankOf, totalStars, upgradeCost, hasBranches, chooseBranch, upgrade, presetLayout } from '../core/index.ts';
+import { hqLevel, rankOf, tdOceanCleared, totalStars, upgradeCost, hasBranches, chooseBranch, upgrade, presetLayout } from '../core/index.ts';
 import type { Res, TroopKind, BuildingKind } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { hasAchievements, achievementList } from './meta.ts';
@@ -40,6 +40,7 @@ export function openProfile(bs: BaseScene): void {
   if (hasAchievements()) chip(iconA('trophy'), `成就 ${p.achievements.length}/${achievementList().length}`);
   if (p.title) el('p', 'hd-desc', `当前称号：「${p.title}」`, body);
   if (rankOf(p) > 0) el('p', 'hd-desc hd-rank-title', rankTitle(rankOf(p)), body);
+  if (tdOceanCleared(p.td?.stars ?? {})) el('p', 'hd-desc', '远洋通关：守岛第四章全部过关', body);
   if (hasAchievements()) {
     const row = el('div', 'hd-row', undefined, body);
     button('成就和称号', 'hd-btn-gold', () => openAchievements(bs, 'ach'), row);

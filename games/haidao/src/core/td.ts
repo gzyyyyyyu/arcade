@@ -9,7 +9,7 @@
 import { BUILDINGS, DEFENSE_KINDS } from '../content/index.ts';
 import { SHIELD } from '../content/troops.ts';
 import { HERO_RESEARCH_MAX, TD_KEG, TD_MAX_TICKS, TD_PICK_R, TD_SAPPER_WALL_COST, TD_TREASURE, TD_WALL_COST } from '../content/tdunits.ts';
-import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO, TD2_HERO_SKILL, TD2_MINE_REARM_TICKS, TD2_TREASURE_ROLL_TICKS, TD2_UP_PCT } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_FLEET, TD2_HERO, TD2_HERO_SKILL, TD2_MINE_REARM_TICKS, TD2_TREASURE_ROLL_TICKS, TD2_UP_PCT } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
 import { SNIPE_WARN, applyStun, flightTicks, inRing, keepLock, laneOffset, leadPoint, rankTargets, shieldFaces, stunned } from './combat.ts';
 import { Rng, hash32 } from './rng.ts';
@@ -25,7 +25,7 @@ import type { TdBarricade, TdTier, TdTowerKind } from './td2types.ts';
 import type { TdAction, TdBlock, TdEnemy, TdEnemyDef, TdEnemyKind, TdEvent, TdGroup, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
 import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
-import { driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, toggleSluice } from './tdmech.ts';
+import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, stepFleet, toggleSluice } from './tdmech.ts';
 import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus } from './tdquery.ts';
 import { placeHero, stepHero, offSlot } from './tdhero.ts';
 
@@ -568,6 +568,11 @@ export function tdBatteryDmg(s: TdState): number {
   return Math.max(1, Math.floor((levelAvg(s).unit * TD2_BATTERY.dmgPct) / 100));
 }
 
+/** 友军巡航船一炮的伤害：同一个口径，TD2_FLEET.dmgPct% */
+export function tdFleetDmg(s: TdState): number {
+  return Math.max(1, Math.floor((levelAvg(s).unit * TD2_FLEET.dmgPct) / 100));
+}
+
 // ------------------------------------------------------------ 操作
 
 function startWave(s: TdState, ev: TdEvent[], early: boolean): void {
@@ -780,6 +785,9 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     case 'battery':
       if (s.battery) fireBattery(s, ev, a.x, a.y, tdBatteryDmg(s));
       return;
+    case 'fleet':
+      callFleet(s, ev);
+      return;
     case 'rally':
       // 规则版本 7 起号令是被动（英雄身边的塔攻速加成，见 stepTowers），这条旧命令不做事
       return;
@@ -940,6 +948,8 @@ function stepGunboat(s: TdState, ev: TdEvent[], e: TdEnemy, sh: NonNullable<TdEn
     resolveEnemy(s, e);
     return;
   }
+  const def = TD2_ENEMIES[e.kind];
+  if (def.drop || def.escort) stepKing(s, ev, e, sh, def);
   if (stunned(e, s.tick) || s.tick < e.cd) return;
   let best: TdTower | undefined;
   let bd = sh.range * sh.range + 1;
@@ -958,6 +968,33 @@ function stepGunboat(s: TdState, ev: TdEvent[], e: TdEnemy, sh: NonNullable<TdEn
   if ((I.jam.get(best.id) ?? 0) < until) {
     I.jam.set(best.id, until);
     ev.push({ type: 'jam', id: best.id, until });
+  }
+}
+
+/**
+ * 海盗王（规则版本 19）：停泊期间每 drop.every 拍在身边放下一船人（震晕时照放，船上的人不归它管）；血掉到一半时叫来护航（一局一次），
+ * 护航沿着它所在的那条岸边一左一右各摆一艘，停泊时间照自己的算
+ */
+function stepKing(s: TdState, ev: TdEvent[], e: TdEnemy, sh: NonNullable<TdEnemyDef['shell']>, def: TdEnemyDef): void {
+  const I = inner(s);
+  const age = s.tick - ((e.until ?? 0) - sh.moor);
+  if (def.drop && age > 0 && age % def.drop.every === 0) {
+    ev.push({ type: 'king', what: 'drop', id: e.id, x: e.x, y: e.y });
+    for (let i = 0; i < def.drop.n; i++) {
+      I.waveLeft[e.wave] = (I.waveLeft[e.wave] ?? 0) + 1;
+      spawnEnemy(s, ev, def.drop.kind, e.x + I.rng.int(121) - 60, e.y + I.rng.int(121) - 60, e.hx, e.hy, e.wave);
+    }
+  }
+  if (def.escort && e.hp * 2 <= e.maxHp && !I.skilled.has(e.id)) {
+    I.skilled.add(e.id);
+    ev.push({ type: 'king', what: 'escort', id: e.id, x: e.x, y: e.y });
+    const mid = (GRID * UNIT) / 2;
+    const alongY = Math.abs(e.x - mid) > Math.abs(e.y - mid);
+    for (let i = 0; i < def.escort.n; i++) {
+      const off = (i % 2 === 0 ? 1 : -1) * 250 * (1 + (i >> 1));
+      I.waveLeft[e.wave] = (I.waveLeft[e.wave] ?? 0) + 1;
+      spawnEnemy(s, ev, def.escort.kind, alongY ? e.x : e.x + off, alongY ? e.y + off : e.y, e.hx, e.hy, e.wave);
+    }
   }
 }
 
@@ -1238,7 +1275,7 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
     if (sniper) {
       // 狙击塔：优先打首领（船长）和军医（第四章：不先打掉它，后面一串都打不死），再是拿着宝藏的，其余按路程；
       // 装填完先锁定并推 aim 预警，SNIPE_WARN 拍后才开火，锁定的敌人死了或走出射程（cand 里没有）就作废重挑（DESIGN 14）
-      const sCls = (e: TdEnemy): number => doomed(e) + (e.kind === 'captain' || e.kind === 'medic' ? 0 : urgent(e) ? 1 : 2);
+      const sCls = (e: TdEnemy): number => doomed(e) + (e.kind === 'captain' || e.kind === 'king' || e.kind === 'medic' ? 0 : urgent(e) ? 1 : 2);
       let sn = I.snipe.get(t.id);
       let tgt = sn ? cand.find((e) => e.id === sn!.target) : undefined;
       if (sn && !tgt) {
@@ -1404,6 +1441,7 @@ export function stepTd(s: TdState, actions: TdAction[]): TdEvent[] {
   stepBoss(s, ev);
   stepHero(s, ev);
   stepCrates(s, ev);
+  if (s.fleet) stepFleet(s, ev, tdFleetDmg(s));
   stepTowers(s, ev);
   stepTraps(s, ev);
   stepFires(s, ev);
@@ -1484,6 +1522,7 @@ export function tdFingerprint(s: TdState): number {
   // 章末机制（规则版本 16）只在有的局里进指纹，旧版本、没有机制的关的指纹不变
   if (s.sluice) parts.push(s.sluice.left, ...s.sluice.shut);
   if (s.battery) parts.push(s.battery.ready);
+  if (s.fleet) parts.push(s.fleet.ready, ...(s.fleet.sail ? [s.fleet.sail.p0, s.fleet.sail.t0, s.fleet.sail.next] : [-1]));
   if (s.drift) {
     parts.push(s.drift.chase);
     for (const c of s.drift.crates) parts.push(c.id, c.until);

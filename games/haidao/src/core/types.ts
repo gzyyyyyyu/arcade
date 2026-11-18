@@ -28,8 +28,9 @@ export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
  * 16 = 守岛每章最后两关的新机制：漂流补给箱（td05、td06）、潮汐水闸（td11、td12）、岸防老炮（td17、td18），只改守岛战役这六关
  * 17 = 守岛新精英大副（倒下散成水手），只上 td16
  * 18 = 守岛第四章：水面地形、军医、炮艇，狙击先打军医；只有第四章的关用得到
+ * 19 = 守岛第四章后两关：友军巡航船（章末机制）、终局首领海盗王；只有 td23、td24 用得到
  */
-export const RULES_VERSION = 18;
+export const RULES_VERSION = 19;
 
 /**
  * 每条规则从哪个版本起生效（上面版本说明的名字版）。核心里一律写 `s.rules >= RULES_SINCE.combat`，不写裸数字，
@@ -59,6 +60,8 @@ export const RULES_SINCE = {
   tdMate: 17,
   /** 18：守岛第四章（水面格、军医回血、炮艇炸哑塔、海上目标要射程够远）；这些都只由关卡和敌人种类打开 */
   tdChapter4: 18,
+  /** 19：守岛第四章后两关——友军巡航船（关卡写了 fleet 才建，tdmech.ts）、海盗王（敌人种类打开） */
+  tdFleet: 19,
 } as const;
 // 不包成 since(s, 'combat') 这样的小函数：一个函数里读各种形状对象（登陆战开局、局面、守岛局面）的 rules，
 // V8 把那一处读取标成多态，内联了也慢；2026-11-15 背靠背量过，登陆战步进慢约 2–6%。调用处直接比，各处只见一种形状。
@@ -87,6 +90,7 @@ export type BuildingKind =
   | 'statue' // 雕像（掉宝装饰）
   | 'flagpole' // 旗杆（掉宝装饰）
   | 'chest' // 宝箱（掉宝装饰）
+  | 'wheel' // 海盗王的舵轮（守岛第四章全部过关的纪念装饰）
   | 'treasure' // 宝藏箱（守岛里敌人来抢的目标；攻防里是普通建筑，驻岛英雄守在旁边，规则版本 6）
   | 'shock' // 震荡炮：小溅射、命中的兵震晕（DESIGN 13，规则版本 10）
   | 'sniper'; // 狙击塔：射程最远、单发重伤害，先打船长、船医这类后排（DESIGN 14，规则版本 11）
@@ -144,7 +148,7 @@ export interface Profile {
     /** 当前连胜（连续 ≥1 星的场数） */
     streak?: number;
   };
-  /** 掉宝得到的收藏：`skin:<兵>:<gold|shadow|royal>`、`deco:<statue|flagpole|chest>` */
+  /** 收藏：掉宝得到的 `skin:<兵>:<gold|shadow|royal>`、`deco:<statue|flagpole|chest>`，守岛第四章全部过关送的 `deco:wheel` */
   cosmetics: string[];
   /** 装备的皮肤：兵种 → 皮肤名 */
   skins: Partial<Record<TroopKind, string>>;

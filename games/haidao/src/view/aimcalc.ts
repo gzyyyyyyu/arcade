@@ -9,7 +9,7 @@ import { UNIT, type BBuilding } from '../core/types.ts';
 export const LAND_SPREAD = 0.6;
 
 /** 不会被信号弹标记的东西：装饰、地雷、焦油（规则的 isDeco 加 mine / tar） */
-const NOT_FLARE = new Set(['palm', 'rock', 'statue', 'flagpole', 'chest', 'mine', 'tar']);
+const NOT_FLARE = new Set(['palm', 'rock', 'statue', 'flagpole', 'chest', 'wheel', 'mine', 'tar']);
 
 /** 点 (x, y)（单位）到建筑占地矩形的距离平方 */
 function d2Rect(x: number, y: number, b: BBuilding): number {
