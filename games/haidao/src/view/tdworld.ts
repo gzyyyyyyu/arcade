@@ -82,6 +82,11 @@ export function refreshWalls(bs: TdScene): void {
 /** 木台、火药桶、沉船、木桶 */
 export function drawProps(bs: TdScene): void {
   const s = bs.s;
+  // 岸防老炮（规则版本 16）：沙滩上的炮台，炮弹从炮口飞出去（tdevents.ts 的 battery）
+  if (s.battery) {
+    const q = iso(s.battery.x + 0.5, s.battery.y + 0.5);
+    put(bs, bs.r, tdP('battery'), q.x, q.y).setDepth(depthOf(s.battery.x + 0.5, s.battery.y + 0.5));
+  }
   for (const sl of s.slots) {
     const f = footCenter(sl.x, sl.y, 2);
     const p = iso(f.gx, f.gy);
@@ -165,6 +170,60 @@ export function inFog(bs: TdScene, x: number, y: number): boolean {
 }
 
 /** 落潮：登陆路旁那片沙滩平时被水盖着，落潮后露出湿沙；登陆口插小旗 */
+/** 每个场景沙滩上的补给箱：箱子图 + 脚下一圈呼吸的金光（规则版本 16 的章末机制，tdevents.ts 的 crate 事件增删） */
+const CRATES = new WeakMap<object, Map<number, Phaser.GameObjects.GameObject[]>>();
+
+export function addCrate(bs: TdScene, id: number, ux: number, uy: number): void {
+  let m = CRATES.get(bs);
+  if (!m) CRATES.set(bs, (m = new Map()));
+  const p = W(ux, uy);
+  const R = isoRing(1.2);
+  const ring = bs.add.ellipse(p.x, p.y + 4, R.w, R.h, 0xffe885, 0.18).setStrokeStyle(3, 0xffe885, 0.9).setDepth(depthOf(ux / UNIT, uy / UNIT) - 0.1);
+  bs.tweens.add({ targets: ring, scaleX: 1.15, scaleY: 1.15, alpha: 0.5, duration: 700, yoyo: true, repeat: -1, ease: EASE.recover });
+  const im = put(bs, bs.r, tdP('crate'), p.x, p.y - 30).setDepth(depthOf(ux / UNIT, uy / UNIT));
+  bs.tweens.add({ targets: im, y: p.y, duration: 600, ease: 'Bounce.easeOut' });
+  bs.tweens.add({ targets: im, angle: { from: -4, to: 4 }, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  m.set(id, [ring, im]);
+}
+
+/** 捡到（往上一跳再消失）或漂走（往海里滑、淡出） */
+export function removeCrate(bs: TdScene, id: number, picked: boolean): void {
+  const objs = CRATES.get(bs)?.get(id);
+  if (!objs) return;
+  CRATES.get(bs)!.delete(id);
+  for (const o of objs) {
+    bs.tweens.killTweensOf(o);
+    bs.tweens.add({ targets: o, alpha: 0, y: (o as Phaser.GameObjects.Image).y + (picked ? -30 : 16), duration: picked ? 260 : 600, onComplete: () => o.destroy() });
+  }
+}
+
+/** 点到的是哪个补给箱（点在箱子 1.2 格内；没有为 -1） */
+export function crateAt(bs: TdScene, ux: number, uy: number): number {
+  for (const c of bs.s.drift?.crates ?? []) if ((c.x - ux) ** 2 + (c.y - uy) ** 2 <= 120 * 120) return c.id;
+  return -1;
+}
+
+/** 每个场景一张水闸图（不往 TdScene 里加字段），按"下一波关没关"换提起 / 放下 */
+const SLUICE = new WeakMap<object, { im: Phaser.GameObjects.Image; down: boolean }>();
+
+/** 落潮路口的水闸（规则版本 16 的章末机制）：开局摆上，玩家关上下一波就放下闸板（updateHud 里每次状态变了调） */
+export function syncSluice(bs: TdScene, down: boolean): void {
+  const lv = bs.s.level;
+  if (!bs.s.sluice || !lv.tide) return;
+  let g = SLUICE.get(bs);
+  if (!g) {
+    const { x, y } = lv.tide.lane;
+    const q = iso(x + 0.5, y + 0.5);
+    g = { im: put(bs, bs.r, tdP(down ? 'sluiceDown' : 'sluiceUp'), q.x, q.y - 4).setDepth(depthOf(x + 0.5, y + 0.5)), down };
+    SLUICE.set(bs, g);
+    return;
+  }
+  if (g.down === down) return;
+  g.down = down;
+  g.im.setTexture(tdP(down ? 'sluiceDown' : 'sluiceUp').key);
+  bs.tweens.add({ targets: g.im, y: { from: g.im.y - 6, to: g.im.y }, duration: 180, ease: 'Quad.easeOut' });
+}
+
 export function drawTide(bs: TdScene, first: boolean): void {
   const lv = bs.s.level;
   const lanes = tdLanes(bs.s);
@@ -195,7 +254,8 @@ export function drawTide(bs: TdScene, first: boolean): void {
         bs.tideImgs.push(put(bs, bs.r, tdP('tideEdge'), p.x, p.y).setDepth(DEPTH.tideEdge));
       }
       if (!first) banner(bs, '落潮了', `${laneName(lv.tide.lane)}多露出一条登陆路`, false);
-    } else if (!first) banner(bs, '涨潮了', `${laneName(lv.tide.lane)}被水淹没，敌人只走原来的路`, false);
+    } else if (!first && bs.s.sluice?.shut.includes(bs.s.wave - 1)) banner(bs, '水闸关上了', `${laneName(lv.tide.lane)}的敌人改走${laneName(lv.lanes[0] ?? lv.tide.lane)}`, false);
+    else if (!first) banner(bs, '涨潮了', `${laneName(lv.tide.lane)}被水淹没，敌人只走原来的路`, false);
   }
   if (first && lv.tide) {
     // 落潮路在岛外那一边的名字（北路 / 西路 / 南路 / 东路），和顶部预告条的说法对上
@@ -297,7 +357,7 @@ function laneFocus(bs: TdScene, w: number): FPt | null {
   return { x: at.reduce((a, p) => a + p.x, 0) / at.length, y: at.reduce((a, p) => a + p.y, 0) / at.length };
 }
 
-/** 屏外的敌人在可见区边上出箭头加数量（点了镜头移过去），屏外的空木台出小标；只在竖屏放大（FitCam.live）时有 */
+/** 屏外的敌人在可见区边上出箭头加数量、屏外的补给箱出箱子（点了镜头移过去），屏外的空木台出小标；只在竖屏放大（FitCam.live）时有 */
 export function drawEdges(bs: TdScene): void {
   const s = bs.s;
   const items: EdgeItem[] = [];
@@ -319,6 +379,14 @@ export function drawEdges(bs: TdScene): void {
       items.push({ kind: 'slot', sx: p.x, sy: p.y, wx: w.x, wy: w.y });
     }
   }
+  // 补给箱漂到屏外时也标出来：竖屏镜头跟着敌人走，宝藏边的箱子常在画面外，不标就等于没漂来
+  if (bs.fit.live && !bs.ended) {
+    for (const c of s.drift?.crates ?? []) {
+      const w = W(c.x, c.y);
+      const p = bs.cc.toScreen(w.x, w.y);
+      items.push({ kind: 'crate', sx: p.x, sy: p.y, wx: w.x, wy: w.y });
+    }
+  }
   if (bs.esc && bs.fit.live && !bs.ended) {
     for (const w of bs.esc.edgePoints()) {
       const p = bs.cc.toScreen(w.x, w.y);
@@ -338,26 +406,30 @@ export function drawEdges(bs: TdScene): void {
   }
   const ox = bs.edgeOx;
   const oy = bs.edgeOy;
-  // 敌人是按钮（点了镜头移过去），空木台和路口旗是不能点的小标：三个池子，同一个下标一直对着同一个元素
-  const pools: Record<EdgeKind, typeof bs.edgeEls> = { enemy: [], slot: [], gate: [] };
+  // 敌人和补给箱是按钮（点了镜头移过去），空木台和路口旗是不能点的小标：每种一个池子，同一个下标一直对着同一个元素
+  const pools: Record<EdgeKind, typeof bs.edgeEls> = { enemy: [], slot: [], gate: [], crate: [] };
   for (const it of bs.edgeEls) pools[(it.el.dataset.k as EdgeKind | undefined) ?? 'slot'].push(it);
-  const used = { enemy: 0, slot: 0, gate: 0 };
+  const used = { enemy: 0, slot: 0, gate: 0, crate: 0 };
   for (const m of marks) {
     const pool = pools[m.kind];
     let it = pool[used[m.kind]++];
     if (!it) {
       const box: HTMLElement =
-        m.kind === 'enemy'
+        m.kind === 'enemy' || m.kind === 'crate'
           ? button('', 'hd-td-edge', () => {
               if (!box.dataset.wx) return;
               bs.fit.markUser();
               bs.fit.panTo(Number(box.dataset.wx), Number(box.dataset.wy));
             }, bs.edges)
           : el('span', 'hd-td-edge', undefined, bs.edges);
-      // 皮肤的木板底不要：箭头自己一套样式（敌人 = 红圈 + 剑 + 个数；木台 = 木牌 + 加号；路口 = 黄旗）
+      // 皮肤的木板底不要：箭头自己一套样式（敌人 = 红圈 + 剑 + 个数；补给箱 = 金圈 + 箱子；木台 = 木牌 + 加号；路口 = 黄旗）
       box.className = m.kind === 'enemy' ? 'hd-td-edge' : `hd-td-edge ${m.kind}`;
       box.dataset.k = m.kind;
       if (m.kind === 'enemy') box.appendChild(img(iconA('sword'), 16));
+      if (m.kind === 'crate') {
+        box.appendChild(img(tdP('crate'), 30));
+        box.setAttribute('aria-label', '那边漂来了补给箱，点一下看过去');
+      }
       const arrow = el('i', undefined, undefined, box);
       const n = el('b', undefined, undefined, box);
       it = { el: box, arrow, n, sig: '' };
@@ -385,7 +457,7 @@ export function drawEdges(bs: TdScene): void {
       it.el.setAttribute('aria-label', `那边有 ${m.n} 个空木台可以造塔`);
     }
   }
-  for (const k of ['enemy', 'slot', 'gate'] as const) {
+  for (const k of ['enemy', 'slot', 'gate', 'crate'] as const) {
     for (const it of pools[k].slice(used[k])) {
       if (it.sig === '') continue;
       it.sig = '';

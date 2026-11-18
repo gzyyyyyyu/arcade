@@ -38,6 +38,7 @@ export * from './tdtypes.ts';
 export { createTd, levelForRules, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
 export { TD_TIER_LEVEL, tdBuildRange, tdHeroStats, tdJammed, tdTowerRange } from './tdstate.ts';
 export { tdBuildBlock, tdCallBonus, tdClearCost, tdIncomingWave, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSellRefund, tdWaveLanes, tideOpenAt } from './tdquery.ts';
+export { tdSluiceCan } from './tdmech.ts';
 export { TD_HERO_GUARD } from './tdhero.ts';
 export type { TdState } from './tdstate.ts';
 export { branchError, chooseBranch, hasBranches, heroCap, heroLevel, heroResearchCost, pvpSnapshot, researchHero, sanitizeBranch } from './tdbase.ts';

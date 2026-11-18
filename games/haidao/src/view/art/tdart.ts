@@ -7,8 +7,8 @@ import { OUT, P, box, cyl, darken, ell, f, lighten, line, mat, path, piece, poly
 export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw'] as const;
 export type TdEnemyKind = (typeof TD_ENEMY_KINDS)[number];
 export type TdAnim = 'walk' | 'attack';
-export type TdPropKind = 'pad' | 'padBuilt' | 'keg' | 'wreck' | 'barrel' | 'tideEdge' | 'mist' | 'jam' | 'tideWave';
-export const TD_PROP_KINDS: TdPropKind[] = ['pad', 'padBuilt', 'keg', 'wreck', 'barrel', 'tideEdge', 'mist', 'jam', 'tideWave'];
+export type TdPropKind = 'pad' | 'padBuilt' | 'keg' | 'wreck' | 'barrel' | 'tideEdge' | 'mist' | 'jam' | 'tideWave' | 'sluiceUp' | 'sluiceDown' | 'battery' | 'crate';
+export const TD_PROP_KINDS: TdPropKind[] = ['pad', 'padBuilt', 'keg', 'wreck', 'barrel', 'tideEdge', 'mist', 'jam', 'tideWave', 'sluiceUp', 'sluiceDown', 'battery', 'crate'];
 
 // ================================================================= 人形的共用部分
 
@@ -824,6 +824,64 @@ function tideWaveBody(): string {
   return o;
 }
 
+/**
+ * 潮汐水闸（第二章最后两关）：落潮路口两根粗木桩、顶上一根铁箍横梁，中间一扇闸板。
+ * 提起（up）时闸板挂在横梁下、露出底下的路；放下（down）时闸板落到底、挡住的水在外侧堆起浪花
+ */
+function sluiceBody(down: boolean): string {
+  let o = ell(0, 6, 46, 14, C.sandD!, { sw: 0, op: 0.5 });
+  if (down) {
+    o += path('M-44,4 q8,-10 16,0 t16,0 t16,0 t16,0 t16,0', 'none', { stroke: '#2b7fa3', sw: 7 });
+    o += path('M-44,4 q8,-10 16,0 t16,0 t16,0 t16,0 t16,0', 'none', { stroke: '#effcf7', sw: 3 });
+  }
+  const gy = down ? -30 : -58;
+  o += rect(-26, gy, 52, 30, C.wood!, { sw: 2.4 });
+  for (const y of [gy + 10, gy + 20]) o += line([-26, y], [26, y], C.woodDD!, 1.6);
+  o += rect(-30, gy - 2, 4, 32, C.ironD!, { sw: 0, op: 0.4 }) + rect(26, gy - 2, 4, 32, C.ironD!, { sw: 0, op: 0.4 });
+  for (const x of [-38, 30]) {
+    o += rect(x, -74, 8, 80, C.woodD!, { sw: 2.4 });
+    o += line([x + 2, -70], [x + 2, 2], C.woodL!, 1.6, 0.7);
+  }
+  o += rect(-42, -80, 84, 9, C.iron!, { sw: 2.4 }) + ell(-34, -75.5, 2.4, 2.4, C.ironL!, { sw: 0 }) + ell(34, -75.5, 2.4, 2.4, C.ironL!, { sw: 0 });
+  // 提闸的绳和轮
+  o += ell(0, -84, 7, 7, C.woodD!, { sw: 2 }) + line([0, -84], [0, gy], '#d9c08a', 2);
+  return o;
+}
+
+/** 漂流补给箱（第一章最后两关）：搁在浪花边的木箱，铁角、麻绳十字捆着，顶上插一面小黄旗 */
+function crateBody(): string {
+  let o = path('M-34,10 q8,-8 16,0 t16,0 t16,0 t16,0', 'none', { stroke: '#2b7fa3', sw: 6, op: 0.9 }) + path('M-34,10 q8,-8 16,0 t16,0 t16,0 t16,0', 'none', { stroke: '#effcf7', sw: 2.6 });
+  // 箱子：正面、侧面、顶面
+  o += poly([[-22, -10], [0, 0], [0, 18], [-22, 8]], '#a36a38', { sw: 2.4 }) + poly([[22, -10], [0, 0], [0, 18], [22, 8]], '#8c542a', { sw: 2.4 }) + poly([[-22, -10], [0, -20], [22, -10], [0, 0]], '#c98a4b', { sw: 2.4 });
+  for (const [a, b] of [[[-22, -1], [0, 9]], [[22, -1], [0, 9]]] as Array<[Pt, Pt]>) o += line(a, b, '#5e3719', 1.4, 0.8);
+  // 绳十字
+  o += line([-11, -15], [11, -5], '#e6cf94', 2.6) + line([11, -15], [-11, -5], '#e6cf94', 2.6) + line([-11, -5], [-11, 13], '#e6cf94', 2.4) + line([11, -5], [11, 13], '#e6cf94', 2.4);
+  // 铁角
+  for (const [x, y] of [[-22, -10], [22, -10], [0, 18], [0, 0]] as Array<[number, number]>) o += ell(x, y, 2.4, 2.4, C.ironD!, { sw: 0 });
+  // 小旗
+  o += line([12, -14], [12, -42], C.woodDD!, 2.4) + poly([[12, -42], [30, -36], [12, -30]], C.gold!, { sw: 2 });
+  return o;
+}
+
+/** 岸防老炮（第三章最后两关）：沙滩上一圈沙袋围着的石墩，上面一门粗短的旧铜炮朝岛里，旁边一摞炮弹 */
+function batteryBody(): string {
+  let o = ell(0, 8, 58, 20, C.sandD!, { sw: 0, op: 0.55 });
+  // 沙袋一圈
+  for (const [x, y] of [[-46, 2], [-30, 10], [-10, 14], [12, 14], [32, 10], [48, 2]] as Array<[number, number]>) o += ell(x, y, 13, 8, '#c8a868', { sw: 2 });
+  // 石墩
+  o += path('M-34,-2 L0,-18 L34,-2 L0,14 Z', C.stone!, { sw: 2.4 }) + path('M-34,-2 L0,14 L0,24 L-34,8 Z', C.stoneD!, { sw: 2.4 }) + path('M34,-2 L0,14 L0,24 L34,8 Z', C.stone!, { sw: 2.4, op: 0.9 });
+  // 炮架和炮管（朝左上，指向岛里）
+  o += poly([[-16, -8], [10, -20], [16, -12], [-8, 0]], C.woodD!, { sw: 2.2 });
+  o += path('M10,-22 Q2,-34 -12,-36 L-40,-44 L-44,-34 L-18,-22 Q-4,-12 10,-14 Z', '#b07a3a', { sw: 2.6 });
+  o += path('M-12,-34 L-38,-41', 'none', { stroke: '#e3b06a', sw: 2.4, op: 0.8 });
+  o += ell(-42, -39, 4, 6, '#2b1a15', { sw: 1.8 }) + ell(4, -22, 4, 6, '#8a5a24', { sw: 1.8 });
+  for (const x of [-14, 0]) o += line([x, -30], [x + 2, -16], '#6b4a1e', 2.2);
+  o += ell(-4, -6, 7, 7, C.woodD!, { sw: 2 }) + ell(-4, -6, 2.4, 2.4, C.gold!, { sw: 0 });
+  // 一摞炮弹
+  for (const [x, y] of [[20, 2], [28, -2], [24, -8]] as Array<[number, number]>) o += ell(x, y, 5, 5, '#2f3140', { sw: 1.6 }) + ell(x - 1.6, y - 1.6, 1.4, 1, '#8a8da2', { sw: 0 });
+  return o;
+}
+
 const pcache = new Map<TdPropKind, ArtPiece>();
 /** 场地道具。2x2 的按建筑一样以占地中心为锚点；1x1 同理。 */
 export function tdPropArt(kind: TdPropKind): ArtPiece {
@@ -838,6 +896,9 @@ export function tdPropArt(kind: TdPropKind): ArtPiece {
   else if (kind === 'mist') a = piece(key, 190, 100, 95, 50, mistBody());
   else if (kind === 'jam') a = piece(key, 100, 80, 50, 60, jamBody());
   else if (kind === 'tideWave') a = piece(key, 90, 40, 45, 20, tideWaveBody());
+  else if (kind === 'battery') a = piece(key, 132, 96, 66, 66, batteryBody());
+  else if (kind === 'crate') a = piece(key, 80, 72, 40, 52, crateBody());
+  else if (kind === 'sluiceUp' || kind === 'sluiceDown') a = piece(key, 104, 112, 52, 96, sluiceBody(kind === 'sluiceDown'));
   else a = piece(key, 64, 32, 32, 16, tideEdgeBody());
   pcache.set(kind, a);
   return a;

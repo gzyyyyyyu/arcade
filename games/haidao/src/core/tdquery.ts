@@ -18,6 +18,11 @@ export function tideOpenAt(lv: TdLevel, w: number): boolean {
   return lv.tideOpen ? lv.tideOpen.includes(w) : w >= lv.tide.wave;
 }
 
+/** 这一局第 w 波落潮路开不开：关卡的潮 + 玩家关了水闸的波（规则版本 16 的章末机制，tdmech.ts；没有水闸的局和 tideOpenAt 一样） */
+export function tdTideOpen(s: TdState, w: number): boolean {
+  return tideOpenAt(s.level, w) && !(s.sluice?.shut.includes(w) ?? false);
+}
+
 /**
  * 现在开着的登陆路（格子）：落潮前不含落潮路。机器人和画面层用。
  * 潮水涨落的关（写了 `tideOpen`）按"最近开打的那一波"算，下一波的潮用 `tdNextTide` 预告。
@@ -25,7 +30,7 @@ export function tideOpenAt(lv: TdLevel, w: number): boolean {
 export function tdLanes(s: TdState): Array<{ x: number; y: number }> {
   const lv = s.level;
   const out = lv.lanes.slice();
-  if (lv.tide && (lv.tideOpen ? tideOpenAt(lv, Math.max(0, s.wave - 1)) : s.wave >= lv.tide.wave)) out.push(lv.tide.lane);
+  if (lv.tide && (lv.tideOpen ? tdTideOpen(s, Math.max(0, s.wave - 1)) : s.wave >= lv.tide.wave)) out.push(lv.tide.lane);
   return out;
 }
 
@@ -33,7 +38,7 @@ export function tdLanes(s: TdState): Array<{ x: number; y: number }> {
 export function tdNextTide(s: TdState): boolean | null {
   const lv = s.level;
   if (!lv.tide || !lv.tideOpen || s.wave >= lv.waves.length) return null;
-  return tideOpenAt(lv, s.wave);
+  return tdTideOpen(s, s.wave);
 }
 
 /** 从某格出发，地面敌人去最近宝藏箱会走的格子序列（不含起点，最多 200 步）。机器人选塔位、英雄站位用 */
@@ -67,9 +72,10 @@ export function tdRoute(s: TdState, cx: number, cy: number): number[] {
 }
 
 
-/** 第 w 波第 g 组实际走哪条路：落潮路（下标 = lanes.length）在涨潮的波改走 0 号路 */
-export function laneOf(lv: TdLevel, lane: number, w: number): number {
-  if (lane === lv.lanes.length) return tideOpenAt(lv, w) ? lane : 0;
+/** 第 w 波第 g 组实际走哪条路：落潮路（下标 = lanes.length）在涨潮的波、关了水闸的波改走 0 号路 */
+export function laneOf(s: TdState, lane: number, w: number): number {
+  const lv = s.level;
+  if (lane === lv.lanes.length) return tdTideOpen(s, w) ? lane : 0;
   return lane % Math.max(1, lv.lanes.length);
 }
 
@@ -87,7 +93,7 @@ export function tdWaveLanes(s: TdState, w: number): Array<{ x: number; y: number
   const seen = new Set<number>();
   const out: Array<{ x: number; y: number }> = [];
   for (const g of wave.groups) {
-    const lane = laneOf(lv, g.lane, w);
+    const lane = laneOf(s, g.lane, w);
     if (seen.has(lane)) continue;
     seen.add(lane);
     const c = laneCell(lv, lane);
@@ -138,7 +144,7 @@ export function tdPreview(s: TdState, n = 2): WavePreview[] {
     const byLane = new Map<number, WaveLanePreview>();
     const hp: Record<TdArmor, number> = { cloth: 0, heavy: 0, wood: 0, air: 0 };
     for (const g of wave.groups) {
-      const lane = laneOf(lv, g.lane, w);
+      const lane = laneOf(s, g.lane, w);
       let lp = byLane.get(lane);
       if (!lp) {
         lp = { lane, fly: true, enemies: [] };
@@ -167,7 +173,7 @@ export function tdPreview(s: TdState, n = 2): WavePreview[] {
       wave: w,
       at: s.next < 0 ? -1 : at,
       boss: !!wave.boss,
-      tide: lv.tide ? tideOpenAt(lv, w) : null,
+      tide: lv.tide ? tdTideOpen(s, w) : null,
       lanes: [...byLane.values()].sort((a, b) => a.lane - b.lane),
       armorShare: share,
       suggest: top === null ? null : bestDamageVs(top),
@@ -177,7 +183,7 @@ export function tdPreview(s: TdState, n = 2): WavePreview[] {
       // 先头敌人和船最早相遇在航线哪一格（各组取最靠前的；追不上 -1）
       let meet = -1;
       for (const g of wave.groups) {
-        const c = laneCell(lv, laneOf(lv, g.lane, w));
+        const c = laneCell(lv, laneOf(s, g.lane, w));
         if (!c) continue;
         const m = escortMeet(s.escort, s.next < 0 ? 0 : Math.max(0, at - s.tick), c, TD2_ENEMIES[g.enemy].speed);
         if (m >= 0 && (meet < 0 || m < meet)) meet = m;
@@ -195,7 +201,7 @@ export function tdRoutes(s: TdState): TdRouteLine[] {
   const out: TdRouteLine[] = lv.lanes.map((l, i) => ({ lane: i, x: l.x, y: l.y, cells: tdRoute(s, l.x, l.y), tide: false, open: true }));
   if (lv.tide) {
     const l = lv.tide.lane;
-    const open = s.wave < lv.waves.length ? tideOpenAt(lv, s.wave) : tideOpenAt(lv, Math.max(0, s.wave - 1));
+    const open = s.wave < lv.waves.length ? tdTideOpen(s, s.wave) : tdTideOpen(s, Math.max(0, s.wave - 1));
     out.push({ lane: lv.lanes.length, x: l.x, y: l.y, cells: tdRoute(s, l.x, l.y), tide: true, open });
   }
   return out;

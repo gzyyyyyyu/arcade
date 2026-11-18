@@ -76,8 +76,8 @@ export function drawBars(bs: TdScene): void {
     }
   }
   drawAim(bs, f, now, z);
-  // 技能瞄准：英雄身边能放的范围（拒马、炸药桶）
-  if (bs.mode !== 'none') {
+  // 技能瞄准：英雄身边能放的范围（拒马、炸药桶）；老炮全岛都够得着，不画
+  if (bs.mode === 'keg' || bs.mode === 'barricade') {
     const w = W(h.x, h.y);
     const R = isoRing((bs.mode === 'keg' ? SKILL.bomb.range : SKILL.barricade.range) / UNIT);
     f.lineStyle(3, 0xffe885, 0.85).strokeEllipse(w.x, w.y, R.w, R.h);

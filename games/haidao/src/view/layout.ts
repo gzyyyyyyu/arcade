@@ -166,6 +166,8 @@ ${W} .hd-key { display:none; }
   ${W} .hd-td.hd-plan-open .hd-td-plan { z-index:36; box-shadow:0 0 0 3px #fff3b0, 0 4px 0 ${ink}; }
   ${W} .hd-td-call { flex:1 1 0; min-width:44px; max-width:none; min-height:48px; padding:0 4px; font-size:14px; line-height:1.1; }
   ${W} .hd-td-call small { display:none; }
+  /* 带章末机制钮（水闸）的关同一行多一个 44 宽的钮：间距收到 4，右边让出的金币牌 + 撤退收到 128（金币牌去掉锤子图标的左边距） */
+  ${W} .hd-td-hasmech .hd-td-bottom { gap:4px; padding-right:128px; }
   @media (max-height:700px) { ${W} .hd-tdsel.hd-tdsel-main { padding-top:4px; padding-bottom:4px; } }
   ${W} .hd-td-plan, ${W} .hd-td-banner { top:calc(env(safe-area-inset-top, 0px) + 58px); }
   /* 第二行搬走后顶栏下面是空的：「全景」「回到船」钮上提到预告卡右边的那一列（卡展开时已给它们让出 74 像素，见 td-ui.ts）；
@@ -273,6 +275,9 @@ ${LAND} {
   /* 守岛：技能和叫波挪到右下角一块板 */
   ${W} .hd-td-bottom { left:auto; right:6px; bottom:6px; width:170px; flex-wrap:wrap; justify-content:center; padding:8px 6px 8px; border:3px solid ${ink}; border-radius:14px; }
   ${W} .hd-td-call { flex:1 1 100%; max-width:none; min-height:56px; }
+  /* 章末机制钮（水闸）排在炸药桶旁边（第二行），叫波照旧独占最后一行；快捷键仍按 DOM 顺序（叫波 3、机制 4） */
+  ${W} .hd-td-hasmech .hd-td-mech { order:1; }
+  ${W} .hd-td-hasmech .hd-td-call { order:2; }
   ${W} .hd-td .hd-hint { left:calc((100% - 182px) / 2); bottom:10px; }
   /* 造塔 / 升级面板开着时游戏暂停，底下一半被面板盖住：右下角那块板（拒马钮 68×68）和面板的关闭钮只隔 3 像素，一起收起 */
   ${W} .hd-td:has(> .hd-td-sheet) .hd-td-bottom { visibility:hidden; }

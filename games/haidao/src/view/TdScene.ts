@@ -131,7 +131,7 @@ export class TdScene extends Phaser.Scene {
   /** 结算「原因」用的局内记录（tdevents.ts 写、tdresult.ts 读） */
   reasonLog: ReasonLog = newReasonLog();
   /** 瞄准中的技能：keg 炸药桶、barricade 拒马 */
-  mode: 'none' | 'keg' | 'barricade' = 'none';
+  mode: 'none' | 'keg' | 'barricade' | 'battery' = 'none';
   openSlot = -1;
   /** 造塔面板里手指 / 鼠标正压着的塔卡：地上预览它 1 阶的射程圈 */
   previewKind: TdTowerKind | null = null;
@@ -154,7 +154,7 @@ export class TdScene extends Phaser.Scene {
   pv: WavePreview[] = [];
   planSig = '';
   planKey = '';
-  hud!: { treasure: HTMLElement; tpill: HTMLElement; wave: HTMLElement; count: HTMLElement; gold: HTMLElement; speed: HTMLButtonElement; call: HTMLButtonElement; keg: HTMLButtonElement; bar: HTMLButtonElement; hero: HTMLButtonElement; hint: HTMLElement; flash: HTMLElement; plan: HTMLElement; paused: HTMLElement };
+  hud!: { treasure: HTMLElement; tpill: HTMLElement; wave: HTMLElement; count: HTMLElement; gold: HTMLElement; speed: HTMLButtonElement; call: HTMLButtonElement; keg: HTMLButtonElement; bar: HTMLButtonElement; hero: HTMLButtonElement; mech: HTMLButtonElement | null; hint: HTMLElement; flash: HTMLElement; plan: HTMLElement; paused: HTMLElement };
   hudTick = -1;
   hudMode = '';
   hudSig = '';

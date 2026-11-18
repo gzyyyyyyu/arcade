@@ -154,6 +154,12 @@ export interface TdState {
   over: boolean;
   /** 护航的商船（关卡带 escort 时才有） */
   escort?: EscortState;
+  /** 潮汐水闸（规则版本 16 且关卡写了 sluice 才有，tdmech.ts）：还能关几次、关了哪几波（0 起） */
+  sluice?: { left: number; shut: number[] };
+  /** 漂流补给箱（规则版本 16 且关卡写了 crates 才有）：沙滩上还在的箱子（单位坐标），英雄正被叫去捡哪一个（-1 没有） */
+  drift?: { crates: Array<{ id: number; x: number; y: number; until: number; wave: number }>; chase: number };
+  /** 岸防老炮（规则版本 16 且关卡写了 battery 才有）：炮台在哪一格、下一发能打的拍 */
+  battery?: { x: number; y: number; ready: number };
   internal: unknown;
 }
 
