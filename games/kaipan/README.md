@@ -77,7 +77,7 @@ node tools/mem-probe.ts  # 按几种手机、平板、电脑的视口和 DPR 估
 开局参数映射到规则层的开局设置（`RunSetup`，见 `docs/core-api.md`）：`seed`、`account`、`items=a,b`、`friends=a,b`、`themes=a,b,…`（6 个登场题材）、
 `holdings=a,b`（开局持仓，须属于登场题材）、`difficulty`（1–8）、`persona`、`daily=1|YYYY-MM-DD`、`ext=1`（打开仓位、押跌、银行）。带调试开局参数的局跳过主页、不计入档案，而且是模拟行情。
 其余：`anim=0`、`speed=N`、`debug=1`（调试浮层，显示预先掷好的行情等隐藏信息）、`scale=N`（渲染倍数）、`soundboard=1`（音频试听）、
-`atlas=0|1`、`layout=phone|desktop`（强制布局）、`challenge=<id>`（好友挑战链接，开始菜单弹挑战卡片）、`market=synthetic|<段 id>`（从界面开的局用模拟行情或指定一段，id 查 `tools/data/segments-manifest.json`）。
+`atlas=0|1`、`layout=phone|portrait|desktop`（强制横屏版、竖屏版或电脑布局）、`challenge=<id>`（好友挑战链接，开始菜单弹挑战卡片）、`market=synthetic|<段 id>`（从界面开的局用模拟行情或指定一段，id 查 `tools/data/segments-manifest.json`）。
 开发版和 `debug=1` 时挂出 `window.__game` 调试接口（`src/debug/bridge.ts`：`controls()` 控件坐标、`loadState()`、`skip()` 等）。
 
 ## 部署

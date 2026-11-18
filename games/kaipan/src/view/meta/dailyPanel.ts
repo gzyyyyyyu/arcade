@@ -35,7 +35,10 @@ export class DailyPanel extends Dialog {
     const W = PW ? PW.w : DESK_W;
     const H = PW ? PW.h : 440;
     super(scene, W, H, `${kind === 'weekly' ? '本周市场' : kind === 'flash' ? '闪电盘' : '每日挑战'} · ${date}`, undefined, SOLID_BACKDROP_ALPHA);
-    const tops = ph ? [68, 152, 226] : [72, 168, 256];
+    // 竖屏版（0.33.0）：立绘在上居中，三块小卡整宽排在下面，按钮两排（开始单独一排、最下面）
+    const pt = ph && H > W;
+    const ptTop = pt ? 296 + Math.round(Math.max(0, H - 694) * 0.3) : 0;
+    const tops = pt ? [ptTop, ptTop + 84, ptTop + 158] : ph ? [68, 152, 226] : [72, 168, 256];
     const hs = ph ? [76, 66, 62] : [80, 72, 64];
     const weekly = kind === 'weekly';
     // 闪电盘、本周市场都是 10 天短局：第三块写玩法（本周市场写这周的规则），不记进档案
@@ -44,9 +47,9 @@ export class DailyPanel extends Dialog {
     const wk = weekly ? weeklyInfo(date) : null;
     const p = personaView(d.setup.persona);
     const lv = difficultyView(d.setup.difficulty);
-    this.inner.add(addPortrait(scene, ph ? 112 : 120, ph ? 182 : 196, p, false, ph ? 150 : 160));
+    this.inner.add(addPortrait(scene, pt ? W / 2 : ph ? 112 : 120, pt ? 80 + (ptTop - 296) / 2 + 100 : ph ? 182 : 196, p, false, 160));
     // 右：三块整宽的小卡（0.16.0，以前三行字挤在左边、右半空着）：人设、难度、今日最好；长说明都在悬停
-    const R = 230;
+    const R = pt ? 16 : 230;
     const RW = W - 32 - R;
     const row = (y: number, h: number): Phaser.GameObjects.Rectangle =>
       scene.add.rectangle(R, y, RW, h, COLOR.paperHi, 0.9).setOrigin(0, 0).setRounded(12).setStrokeStyle(2, COLOR.edge, 1);
@@ -91,18 +94,25 @@ export class DailyPanel extends Dialog {
           },
     );
     this.inner.add([pHit, dHit, rHit]);
-    const go = new Button(scene, W - 32 - 180, H - (ph ? 62 : 66), { width: 180, height: 48, label: '开始', variant: 'primary', fontSize: FS.lg, hotkey: '回车' });
+    const bw2 = Math.floor((W - 32 - 12) / 2);
+    const go = pt
+      ? new Button(scene, 16, H - 68, { width: W - 32, height: 52, label: '开始', variant: 'primary', fontSize: FS.lg })
+      : new Button(scene, W - 32 - 180, H - (ph ? 62 : 66), { width: 180, height: 48, label: '开始', variant: 'primary', fontSize: FS.lg, hotkey: '回车' });
     go.setHandler(() => {
       this.close();
       onStart(d.seed, d.setup);
     });
-    const back = new Button(scene, 32, H - (ph ? 58 : 62), { width: 110, height: 40, label: '返回', fontSize: 15, hotkey: 'Esc' });
+    const back = pt
+      ? new Button(scene, 16, H - 68 - 56, { width: onBoard ? bw2 : W - 32, height: 44, label: '返回', fontSize: 15 })
+      : new Button(scene, 32, H - (ph ? 58 : 62), { width: 110, height: 40, label: '返回', fontSize: 15, hotkey: 'Esc' });
     back.setHandler(() => this.close());
     this.inner.add([go, back]);
     this.named['daily:start'] = go;
     this.named['daily:back'] = back;
     if (onBoard) {
-      const board = new Button(scene, 32 + 110 + 16, H - (ph ? 58 : 62), { width: 120, height: 40, label: '排行榜', icon: 'trophy', fontSize: 15 });
+      const board = pt
+        ? new Button(scene, 16 + bw2 + 12, H - 68 - 56, { width: bw2, height: 44, label: '排行榜', icon: 'trophy', fontSize: 15 })
+        : new Button(scene, 32 + 110 + 16, H - (ph ? 58 : 62), { width: 120, height: 40, label: '排行榜', icon: 'trophy', fontSize: 15 });
       // 榜单叠在面板上开，关掉榜单回到这里
       board.setHandler(() => onBoard(date));
       this.inner.add(board);

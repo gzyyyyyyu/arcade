@@ -25,7 +25,17 @@ export const TOP_DIALOG = 'topDialog';
  */
 export function phonePanel(scene: Phaser.Scene): { w: number; h: number } {
   const V = viewOf(scene);
+  // 竖屏版（0.33.0，世界 404 × 718–960）：整屏面板占满高度，上下各留 12，内容按单列排（各面板自己的竖屏几何）
+  if (V.h > V.w) return { w: V.w - 16, h: V.h - 24 };
   return { w: Math.min(940, V.w - 16), h: Math.min(430, V.h - 12) };
+}
+
+/**
+ * 定宽弹窗的宽：竖屏版（0.33.0）世界只有 404 宽，按设计宽和「屏宽 − 16」取小。
+ * 用到它的弹窗在变窄后自己重排（按钮均分、说明折行），不整体缩小（字号守 docs/ui.md 的下限）。
+ */
+export function dialogW(scene: Phaser.Scene, w: number): number {
+  return Math.min(w, viewOf(scene).w - 16);
 }
 
 export class Dialog extends Phaser.GameObjects.Container {

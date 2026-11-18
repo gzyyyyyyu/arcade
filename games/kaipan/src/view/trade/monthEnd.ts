@@ -11,7 +11,7 @@ import { sound } from '../sound.ts';
 import { ROLE_WORD } from '../glossary.ts';
 import { COLOR, FS, ITEM_KIND_COLOR, RARITY_COLOR, THEME_COLOR, TYPE, signColor, textOn } from '../theme.ts';
 import { addGlyph, addImage, addPaper, addPill } from '../ui/art.ts';
-import { actionButtons, iconChip, moneyShort } from '../ui/dialog.ts';
+import { actionButtons, iconChip, moneyShort, dialogW } from '../ui/dialog.ts';
 import { extraChip } from './tempoFx.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
 import { Button } from '../ui/button.ts';
@@ -56,10 +56,12 @@ export async function playBill(scene: Phaser.Scene, anim: Animator, b: BillInfo,
   const W = 320;
   const H = 400;
   const V = viewOf(scene);
-  const ph = phoneLayout(scene);
-  // 手机上高度只够放下账单本身：卡片往左挪一点，印章和信用卡提示放在右边
+  // 手机横屏高度只够放下账单本身：卡片往左挪一点，印章和信用卡提示放在右边
+  // 竖屏版（0.33.0）左右没地方：卡片居中，印章骑在账单下沿（不盖「剩下」的钱），信用卡提示放在印章下面
+  const ph = phoneLayout(scene) && V.w > V.h;
+  const pt = phoneLayout(scene) && !ph;
   const x = Math.round(V.w / 2 - W / 2 - (ph ? 90 : 0));
-  const y = ph ? Math.round((V.h - H) / 2) : 150;
+  const y = ph ? Math.round((V.h - H) / 2) : pt ? Math.round((V.h - H) / 2 - 30) : 150;
   const card = scene.add.container(x, y);
   card.add(addImage(scene, W / 2, H / 2, 'ui:bill_card', W, H));
   card.add(addText(scene, 190, 42, `${b.month}月账单`, { size: 24, bold: true, originX: 0.5, originY: 0.5 }));
@@ -150,7 +152,7 @@ export async function playBill(scene: Phaser.Scene, anim: Animator, b: BillInfo,
   total.setAlpha(1);
   // 印章
   // 印章盖在账单右边（压一点卡边，不压数字）
-  const stamp = scene.add.container(x + W + (b.paid ? 64 : 100), y + 150).setAngle(-14);
+  const stamp = (pt ? scene.add.container(x + W - 90, y + H + 20) : scene.add.container(x + W + (b.paid ? 64 : 100), y + 150)).setAngle(-14);
   if (b.paid) {
     stamp.add(addImage(scene, 0, 0, 'ui:stamp_paid', 160));
     stamp.add(addText(scene, 0, -5, '还上了', { size: 30, bold: true, color: 0xd8342c, originX: 0.5, originY: 0.5 }));
@@ -168,12 +170,12 @@ export async function playBill(scene: Phaser.Scene, anim: Animator, b: BillInfo,
   stamp.setScale(1).setAlpha(1);
   if (b.credit) {
     const nx = ph ? x + W + 150 : V.w / 2;
-    const ny = ph ? y + 300 : y + H + 26;
+    const ny = ph ? y + 300 : pt ? y + H + 96 : y + H + 26;
     const note = addText(scene, nx, ny, `${itemView('credit').name}垫上了 · 下月账单×${fx('credit', 'nextBillMult')}`, { size: 16, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5 });
     if (ph) note.setWordWrapWidth(220, true).setAlign('center');
     const pill = ph
       ? addPill(scene, nx - note.width / 2 - 16, ny - note.height / 2 - 8, note.width + 32, note.height + 16, COLOR.info)
-      : addPill(scene, nx - note.width / 2 - 16, y + H + 10, note.width + 32, 32, COLOR.info);
+      : addPill(scene, nx - note.width / 2 - 16, ny - 16, note.width + 32, 32, COLOR.info);
     c.add([pill, note]);
   }
   return c;
@@ -218,14 +220,18 @@ export class RewardPanel {
     const ph = phoneLayout(scene);
     // 手机上标题贴顶、卡片矮一截（卡面排布见 CARD_LAYOUT），「都不要」和电脑一样放在卡片下方居中（0.9.2：以前在右上角，盖住顶栏的道具栏、贴着 ? 和设置）
     // 电脑上本周市场的标题上移一点，给标题和卡片之间的「本周规则」一行让地方（放更上面会压住顶栏）
-    const ty = ph ? 30 : s.setup?.weekly !== undefined ? 94 : 104;
+    // 竖屏版（0.33.0）屏高：标题、卡片、「都不要」整组在屏幕中间，不挤在顶上
+    const pt = ph && V.h > V.w;
+    const pt0 = pt ? Math.max(0, Math.round((V.h - 404) / 2)) : 0;
+    const ty = ph ? 30 + pt0 : s.setup?.weekly !== undefined ? 94 : 104;
     const title = addText(scene, V.w / 2 + 22, ty, s.setup?.weekly !== undefined ? '本周市场开局 · 挑一样' : s.setup?.flash !== undefined ? '闪电盘开局 · 挑一样' : '挑一样', { size: TYPE.big + 6, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5, stroke: COLOR.ink, strokeWidth: 7 });
     this.root.add([addGlyph(scene, V.w / 2 - title.width / 2 - 14, ty, 'gift', ph ? 44 : 52), title]);
-    const gap = ph ? 20 : 30;
+    // 竖屏版只有 404 宽：卡间距收到 10，三张卡各约 118 宽
+    const gap = ph ? (V.h > V.w ? 10 : 20) : 30;
     const CW = Math.min(236, Math.floor((V.w - 24 - gap * (cards.length - 1)) / cards.length));
     // 0.19.0 手机世界高 404：卡片高按剩下的算（标题 58 起，下面还要放「都不要」）
     const CH = ph ? Math.min(308, V.h - 58 - 60) : 350;
-    const top = ph ? 58 : 146;
+    const top = ph ? 58 + pt0 : 146;
     const x0 = V.w / 2 - (CW * cards.length + gap * (cards.length - 1)) / 2;
     let rare = false;
     cards.forEach((r, i) => {
@@ -310,7 +316,10 @@ export class RewardPanel {
       // 风口小图标（右上角）
       c.add(addImage(scene, ax + 50, iy - 30, `theme:${r.stock.theme}`, 34));
     }
-    c.add(addText(scene, ax, y + L.name, r.name, { size: TYPE.title + 2, bold: true, originX: 0.5 }));
+    const nm = addText(scene, ax, y + L.name, r.name, { size: TYPE.title + 2, bold: true, originX: 0.5 });
+    // 竖屏版卡窄：长名字（「过山车爱好者」）先缩一号字，还放不下再截（全名在悬停里）
+    if (nm.width > w - 16) nm.setFontSize(TYPE.title - 2);
+    c.add(fitWidth(nm, w - 16));
     const big = r.brief.big;
     if (r.stock) {
       // 股票卡：风口 · 角色的色签放在大数字的位置
@@ -629,7 +638,7 @@ export function eventResult(scene: Phaser.Scene, anim: Animator, name: string, t
 export function monthIntro(scene: Phaser.Scene, cal: CalendarView, bill: { name: string; amount: number }, extras: string[]): Phaser.GameObjects.Container {
   const root = scene.add.container(0, 0).setDepth(DEPTH);
   root.add(addBackdrop(scene, 0.3));
-  const W = 480;
+  const W = dialogW(scene, 480);
   const shown = extras.slice(0, 5);
   const H = 196 + shown.length * 38;
   const V = viewOf(scene);

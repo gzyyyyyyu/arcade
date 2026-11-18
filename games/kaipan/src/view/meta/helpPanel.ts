@@ -99,31 +99,35 @@ export class HelpPanel extends Dialog {
   /** 0.19.0 手机世界窄了以后插图按比例缩小（SE 上约 0.79），右栏跟着插图右边走 */
   private readonly picK: number;
   private readonly rx: number;
+  /** 竖屏版（0.33.0）：插图占整宽在上，一句话和要点签在图下面，翻页按钮在最下面一排、圆点夹在中间 */
+  private readonly portrait: boolean;
 
   constructor(scene: Phaser.Scene, onClosed?: () => void) {
     const phone = phoneLayout(scene);
     const V = viewOf(scene);
-    const pw = Math.min(PHONE_UI.w, V.w - 16);
-    const phH = Math.min(PHONE_UI.h, V.h - 12);
+    const portrait = phone && V.h > V.w;
+    const pw = portrait ? V.w - 16 : Math.min(PHONE_UI.w, V.w - 16);
+    const phH = portrait ? V.h - 24 : Math.min(PHONE_UI.h, V.h - 12);
     super(scene, phone ? pw : W, phone ? phH : H, '怎么玩', onClosed);
     this.phone = phone;
-    this.picX = phone ? PHONE_UI.picX : PIC_X;
+    this.portrait = portrait;
+    this.picX = portrait ? 16 : phone ? PHONE_UI.picX : PIC_X;
     this.picY = phone ? PHONE_UI.picY : PIC_Y;
-    this.picK = phone ? Math.min(1, (pw - PHONE_UI.picX - 268) / PIC_W, (phH - PHONE_UI.picY - 16) / PIC_H) : 1;
-    this.rx = phone ? Math.round(this.picX + PIC_W * this.picK + 24) : PHONE_UI.rx;
+    this.picK = portrait ? (pw - 32) / PIC_W : phone ? Math.min(1, (pw - PHONE_UI.picX - 268) / PIC_W, (phH - PHONE_UI.picY - 16) / PIC_H) : 1;
+    this.rx = portrait ? 12 : phone ? Math.round(this.picX + PIC_W * this.picK + 24) : PHONE_UI.rx;
     const w = this.dw;
     const h = this.dh;
     const narrow = phone && w < 900;
     this.pageBox = scene.add.container(0, 0);
     this.inner.add(this.pageBox);
-    // 手机：两个翻页按钮都在右栏底部，页码圆点在它们上面
-    this.prevBtn = new Button(scene, phone ? this.rx : 32, phone ? h - 64 : H - 64, { width: narrow ? 96 : 120, height: phone ? 44 : 42, label: '上一页', fontSize: 15, hotkey: '←' });
+    // 手机：两个翻页按钮都在右栏底部，页码圆点在它们上面（竖屏：按钮在最下面一排两头，圆点在中间）
+    this.prevBtn = new Button(scene, portrait ? 16 : phone ? this.rx : 32, phone ? h - 64 : H - 64, { width: narrow ? 96 : 120, height: phone ? 44 : 42, label: '上一页', fontSize: 15, hotkey: '←' });
     this.prevBtn.setHandler(() => this.go(this.page - 1));
-    this.nextBtn = new Button(scene, w - (phone ? 24 : 32) - (narrow ? 110 : 150), h - 66, { width: narrow ? 110 : 150, height: 46, label: '下一页', variant: 'primary', fontSize: FS.md, hotkey: '回车' });
+    this.nextBtn = new Button(scene, w - (portrait ? 16 : phone ? 24 : 32) - (narrow ? 110 : 150), h - 66, { width: narrow ? 110 : 150, height: 46, label: '下一页', variant: 'primary', fontSize: FS.md, hotkey: '回车' });
     this.nextBtn.setHandler(() => (this.page + 1 < HELP_PAGES.length ? this.go(this.page + 1) : this.close()));
     this.inner.add([this.prevBtn, this.nextBtn]);
-    const dotsX = phone ? (this.rx + w - 24) / 2 : W / 2;
-    const dotsY = phone ? h - 84 : H - 43;
+    const dotsX = portrait ? w / 2 + 12 : phone ? (this.rx + w - 24) / 2 : W / 2;
+    const dotsY = portrait ? h - 43 : phone ? h - 84 : H - 43;
     HELP_PAGES.forEach((_, i) => {
       const d = scene.add.circle(dotsX - (phone ? 36 : 24) + i * 24, dotsY, 6, COLOR.edge).setStrokeStyle(2, COLOR.ink, 1);
       this.dots.push(d);
@@ -179,7 +183,7 @@ export class HelpPanel extends Dialog {
     const colX = this.rx + colW / 2;
     let chipY = PIC_Y + PIC_H + 70;
     if (this.phone) {
-      const top = py0 + 10;
+      const top = this.portrait ? py0 + PIC_H * this.picK + 24 : py0 + 10;
       const made = p.short
         ? addText(s, colX, top, p.short, { size: TYPE.title, bold: true, color: COLOR.ink, originX: 0.5, align: 'center', wrap: colW, lineSpacing: 4 })
         : this.cycle(top + 14, colX, colW);
@@ -291,14 +295,18 @@ export class HelpPanel extends Dialog {
     const ph = this.phone;
     const side = ph ? 24 : 32;
     const n = lines.length;
-    const cw = (this.dw - side * 2 - gap * (n - 1)) / n;
-    const y = ph ? 66 : 90;
-    const ch = ph ? 210 : 330;
+    // 竖屏：两张一排
+    const cols = this.portrait ? 2 : n;
+    const rows = Math.ceil(n / cols);
+    const cw = (this.dw - side * 2 - gap * (cols - 1)) / cols;
+    const y0 = ph ? 66 : 90;
+    const ch = this.portrait ? Math.min(250, Math.floor((this.dh - 96 - y0 - gap * (rows - 1)) / rows)) : ph ? 210 : 330;
     const k = ph ? { cy: 62, r: 48, g: 76, head: 122, text: 164 } : { cy: 100, r: 66, g: 104, head: 200, text: 250 };
     lines.forEach((line, i) => {
       const [g, text] = line.split('|') as [Glyph, string];
       const head = heads[i] ?? '';
-      const x = side + i * (cw + gap);
+      const x = side + (i % cols) * (cw + gap);
+      const y = y0 + Math.floor(i / cols) * (ch + gap);
       this.pageBox.add(s.add.rectangle(x, y, cw, ch, COLOR.paperHi).setOrigin(0, 0).setRounded(18).setStrokeStyle(3, COLOR.edge, 1));
       this.pageBox.add(s.add.circle(x + cw / 2, y + k.cy, k.r, COLOR.paperLo).setStrokeStyle(2, COLOR.edge, 1));
       this.pageBox.add(addGlyph(s, x + cw / 2, y + k.cy, g, k.g));

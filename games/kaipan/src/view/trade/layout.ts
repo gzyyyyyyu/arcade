@@ -1,5 +1,6 @@
 import type { Rect } from '../rect.ts';
-import { PHONE, VIEW } from '../theme.ts';
+import { PHONE, PORTRAIT, VIEW } from '../theme.ts';
+import { PORTRAIT_TOP_H } from './topBarGeo.ts';
 
 /**
  * 交易主场景的布局，见设计稿第 10 节。电脑是 1280×720 的世界；
@@ -55,7 +56,39 @@ export function mobileLayout(W: number, H: number): typeof DESKTOP {
   };
 }
 
-const L = PHONE ? mobileLayout(VIEW.w, VIEW.h) : DESKTOP;
+/**
+ * 竖屏版（0.33.0，世界 404 × 718–960）：一栏从上往下——两行顶栏（高 92）、持仓（高 214，矮屏 204）、群聊 / 推荐 / 风口的标签和那一块（吃掉多出来的高度），
+ * 最下面一排是收盘小结（左）和显示器状态条 + 开盘键（右，宽 150，拇指够得着）。
+ */
+export function portraitLayout(W: number, H: number): typeof DESKTOP {
+  const top = { x: 4, y: 4, w: W - 8, h: PORTRAIT_TOP_H };
+  const slotsY = top.y + top.h + 6;
+  // 矮屏（360×640）也留 204：两排矮卡各 98 高，放大镜和「卖出」的点击区上下都够 50（HIT_MIN），群聊那块还剩 232
+  const slotsH = H >= 800 ? 214 : 204;
+  const tabsY = slotsY + slotsH + 6;
+  const lowH = 112;
+  const lowY = H - 4 - lowH;
+  const openW = 150;
+  const ox = W - 8 - openW;
+  // 页签高 50：360 宽上点击区也够 44 像素（横屏那边是 46，下沿再撑 4）
+  const tabsH = 50;
+  const panelY = tabsY + tabsH + 2;
+  const recap = { x: 8, y: lowY, w: ox - 8 - 8, h: lowH };
+  return {
+    TOP: top,
+    BOARD: { x: 6, y: panelY, w: W - 12, h: lowY - 6 - panelY },
+    PHONE: { x: 6, y: panelY, w: W - 12, h: lowY - 6 - panelY },
+    SLOTS: { x: 8, y: slotsY, w: W - 16, h: slotsH },
+    MONITOR: { x: ox, y: lowY, w: openW, h: 46 },
+    OPEN: { x: ox, y: lowY + 50, w: openW, h: lowH - 50 },
+    RECAP: recap,
+    // 猫的提示比小结卡高一截（往上压住群聊那块的底边 60）：底下一排只有 230 宽，新玩法那句要折三行才放得下；提示有 ×，看完就收
+    HINT: { ...recap, y: recap.y - 60, h: recap.h + 60 },
+    TABS: { x: 6, y: tabsY, w: W - 12, h: tabsH },
+  };
+}
+
+const L = PORTRAIT ? portraitLayout(VIEW.w, VIEW.h) : PHONE ? mobileLayout(VIEW.w, VIEW.h) : DESKTOP;
 
 export const TOP: Rect = L.TOP;
 export const BOARD: Rect = L.BOARD;
@@ -67,8 +100,34 @@ export const RECAP_AREA: Rect = L.RECAP;
 export const HINT_AREA: Rect = L.HINT;
 export const TABS: Rect | null = L.TABS;
 
-/** n 格持仓时每张卡的位置（居中排开）。 */
+/**
+ * 竖屏版的持仓卡是矮卡（slotCard 的 compact 画法），排成两行：4 格以内一行 2 张，5、6 格一行 3 张。
+ * 一行排 4 张的话一张只有 90 宽，「卖出」「加减」挤不下（docs/ui.md 可点区域）。
+ */
+export const COMPACT_SLOTS = PORTRAIT;
+
+/** n 格持仓时每张卡的位置（居中排开；竖屏版两行）。 */
 export function slotRects(n: number): Rect[] {
+  if (COMPACT_SLOTS) return gridRects(n, SLOTS);
+  return rowRects(n);
+}
+
+/** 竖屏：两行，行距 8（卖出键的点击区往下撑 8，不压到下一行的卡） */
+export function gridRects(n: number, area: Rect): Rect[] {
+  const cols = n <= 4 ? 2 : 3;
+  const rows = Math.max(1, Math.ceil(n / cols));
+  const gap = 8;
+  const w = Math.floor((area.w - gap * (cols - 1)) / cols);
+  const h = Math.floor((area.h - gap * (rows - 1)) / rows);
+  return Array.from({ length: n }, (_, i) => {
+    const r = Math.floor(i / cols);
+    const inRow = Math.min(cols, n - r * cols);
+    const x0 = area.x + Math.round((area.w - (w * inRow + gap * (inRow - 1))) / 2);
+    return { x: x0 + (i % cols) * (w + gap), y: area.y + r * (h + gap), w, h };
+  });
+}
+
+function rowRects(n: number): Rect[] {
   const gap = PHONE ? (n <= 4 ? 8 : 6) : n <= 4 ? 16 : 10;
   const w = Math.min(160, Math.floor((SLOTS.w - gap * (n - 1)) / n));
   const total = w * n + gap * (n - 1);

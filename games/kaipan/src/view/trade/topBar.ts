@@ -7,7 +7,7 @@ import { sparkles } from '../fx/particles.ts';
 import { billLine, billStatus, dailyTag, dayLabel, downPaymentLine, flashFinal, flashLeft, flashTag, levelHint, shortItemName, weeklyTag } from '../labels.ts';
 import type { Rect } from '../rect.ts';
 import { sound } from '../sound.ts';
-import { COLOR, FS, ITEM_KIND_COLOR, PHONE, TYPE, VIEW, signColor, textOn } from '../theme.ts';
+import { COLOR, FS, ITEM_KIND_COLOR, PHONE, PORTRAIT, TYPE, VIEW, signColor, textOn } from '../theme.ts';
 import { hasArt, itemKey } from '../assets.ts';
 import { addGlyph, addImage, addPill, addWood } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
@@ -18,7 +18,7 @@ import { MOOD_WORD, term } from '../glossary.ts';
 /** 大环境方向：只决定顶栏箭头和颜色（文字说明在日历提示里）。 */
 const MOOD_SIGN: Record<Mood, number> = { bull: 1, flat: 0, bear: -1 };
 import { TOP } from './layout.ts';
-import { phoneTopBar } from './topBarGeo.ts';
+import { phoneTopBar, portraitTopBar } from './topBarGeo.ts';
 import { moneyShort } from '../ui/dialog.ts';
 import { gearNow, isLiveRun, marginWarn } from '../live.ts';
 import { chips, levText } from '../liveText.ts';
@@ -33,7 +33,9 @@ import { lobbyLabel } from '../lobby.ts';
  * 0.9.2 最左边是常驻的「大厅」（小房子在上、字在下，和银行按钮一个样子），日期那一块整体右移让出位置。
  * goalX：有月度目标时「目标 + 要还的钱」那一块的左边（账户那一列收窄到 accW）；billLeft：没有目标时那一块的左边。
  */
-const TB = PHONE
+const TB = PORTRAIT
+  ? portraitTopBar(VIEW.w)
+  : PHONE
   ? phoneTopBar(VIEW.w)
   : {
       lobby: { x: 16, y: 10, w: 52, h: 46, iconDy: 15, iconS: 22 },
@@ -41,7 +43,7 @@ const TB = PHONE
       calHit: { x: 78, y: 8, w: 212, h: 52 }, flagsRight: 290, flagY: 39,
       accLabel: { x: 330, y: 48 }, wallet: { x: 312, y: 26, s: 28 }, account: { x: 330, y: 7, size: 26 }, accHit: { x: 296, y: 8, w: 232, h: 52 }, accWideW: 280,
       goalX: 534, billLeft: 584, billRight: 884, billBox: { y: 10, h: 48 }, hourglass: { x: 842, y: 26, s: 20 }, daysLeft: { x: 856, y: 26 },
-      billY: 14, billNoteY: 48, goalIconY: 24, goalWordY: 48, goalBarY: 44, goalBarW: 110, houseY: 48, houseNoGoalY: 26, billTitleSize: TYPE.title,
+      billHit: { y: 8, h: 52 }, billY: 14, billNoteY: 48, goalIconY: 24, goalWordY: 48, goalBarY: 44, goalBarW: 110, houseY: 48, houseNoGoalY: 26, billTitleSize: TYPE.title,
       itemsX: 896, itemsY: 10, itemsW: 258, itemsWExt: 168, rowIconY: 18, rowChipY: 24, row2Y0: 12, row2H: 26, row2Icon: 24,
       bank: { x: 1080, y: 10, w: 74, h: 46 }, bankIconDy: 17, bankIconS: 24,
       help: { x: 1172, y: 14, w: 44, h: 40 }, settings: { x: 1222, y: 14, w: 40, h: 40 }, gear: { x: 1242, y: 34, r: 11 }, rollY: 56,
@@ -234,8 +236,9 @@ export class TopBarView {
     this.houseIcon = addGlyph(scene, 0, 0, 'house', 22).setDepth(d).setVisible(false);
     this.bill = addText(scene, bx + 12, TB.billY, '', { size: this.tempo ? 14 : 15, bold: true }).setDepth(d);
     this.billNote = addText(scene, bx + 12, TB.billNoteY, '', { size: 12, color: COLOR.muted, originY: 0.5 }).setDepth(d);
-    const billHit = scene.add.rectangle(bx, ah.y, bw, ah.h, 0xffffff, 0.001).setOrigin(0, 0).setDepth(d);
-    bindTooltip(billHit, () => ({ x: bx, y: ah.y, w: bw, h: ah.h }), () => {
+    const bh = TB.billHit;
+    const billHit = scene.add.rectangle(bx, bh.y, bw, bh.h, 0xffffff, 0.001).setOrigin(0, 0).setDepth(d);
+    bindTooltip(billHit, () => ({ x: bx, y: bh.y, w: bw, h: bh.h }), () => {
       const tb = topBar(this.state);
       const f = tb.flash;
       const weekly = !!tb.weekly;
@@ -331,7 +334,10 @@ export class TopBarView {
     setColor(this.accLabel, dp ? (dp.enough ? COLOR.up : COLOR.accentDark) : t.daily || t.flash || lv ? COLOR.accentDark : COLOR.muted);
     this.accLabel.setFontStyle(dp ? 'bold' : '');
     // 金额不截：放不下就换手机上的短说法「首付差¥x」
-    if (dp && this.accLabel.width > TB.accHit.x + (this.tempo ? ACC_W : TB.accWideW) - this.accLabel.x - 4) this.accLabel.setText(downPaymentLine(s.account, need?.need ?? 0, true).text);
+    const accRoom = TB.accHit.x + (this.tempo ? ACC_W : TB.accWideW) - this.accLabel.x - 4;
+    if (dp && this.accLabel.width > accRoom) this.accLabel.setText(downPaymentLine(s.account, need?.need ?? 0, true).text);
+    // 竖屏顶栏窄（右边是「怎么玩」「设置」）：放不下就省掉人设名（在悬停里），实盘省掉杠杆
+    else if (!dp && this.accLabel.width > accRoom) this.accLabel.setText(lv ? `实盘${lv.tierName} → 约 ${chips(lv.value)}` : `Lv${t.difficulty}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
     // 闪电盘最后三天：日期变红
     setColor(this.day, t.flash && flashFinal(t.flash) ? COLOR.danger : COLOR.ink);
     this.renderDanger(lv ? marginWarn(s) : null);

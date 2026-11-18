@@ -50,6 +50,9 @@ export class RecapCard {
   /** 0.5.5 手机：小结和猫的提示共用左下角。猫有话等着时卡上挂一只小猫，点它收起小结、换猫说 */
   private catBadge = false;
   private catBtn: Phaser.GameObjects.GameObject | null = null;
+  private catPos = { x: 0, y: 0 };
+  /** 竖屏版小结窄（约 230 宽）：大数字会伸到右上角，小猫改蹲在左上角报纸图标的位置 */
+  private readonly catOnIcon = RECAP_RECT.w < 300;
   /** 卡片出现、换内容、收起时通知场景（手机上据此决定猫的提示露不露出来） */
   onChange: (() => void) | null = null;
 
@@ -65,7 +68,7 @@ export class RecapCard {
 
   /** 小猫的位置（自动化点击用；没挂时为 null）。 */
   catCenter(): { x: number; y: number } | null {
-    return this.catBtn?.active && this.root ? { x: RECAP_RECT.x + RECAP_RECT.w - 92, y: RECAP_RECT.y + 22 } : null;
+    return this.catBtn?.active && this.root ? this.catPos : null;
   }
 
   get showing(): 'recap' | 'breakdown' | null {
@@ -250,17 +253,24 @@ export class RecapCard {
     const h = Math.min(RECAP_RECT.h, this.expanded ? bodyTop + 4 + bodyH + 6 : chips.length > 0 ? 122 + (fx.length > 0 ? 28 : 0) : 64 + (fx.length > 0 ? 28 : 0));
     const { root, x, y } = this.frame(h);
     const iconX = x + PAD;
-    if (hasArt(s.textures, NEWS_KEY)) root.add(addImage(s, iconX + 14, y + 26, NEWS_KEY, 28));
+    if (hasArt(s.textures, NEWS_KEY) && !(this.catOnIcon && this.catBtn)) root.add(addImage(s, iconX + 14, y + 26, NEWS_KEY, 28));
     // 「今天 / 昨天」小签：这张小结说的是哪一天（0.5 删了标题，0.5.1 用小签找回）；只有一行时卡高 64，小签不压纸边
     root.add(addText(s, iconX + 14, y + 42, this.when, { size: 12, bold: true, color: COLOR.accentDark, originX: 0.5 }));
     // 一行大字：+¥1,990  ↑1.99%
     const tint = signColor(r.total);
     const money = addText(s, iconX + 36, y + 12, Math.round(r.total) === 0 ? '¥0' : formatMoney(r.total, { sign: true }), { size: TYPE.big, bold: true, num: true, color: tint });
     const pct = addText(s, money.x + money.width + 10, y + 22, pctArrow(r.ret, 2), { size: 15, bold: true, num: true, color: tint });
-    root.add([money, pct]);
+    // 右上角「详情」左边为止；放不下（竖屏版五位数以上）换成「+¥1.2万」，不截断
+    const headRoom = x + RECAP_RECT.w - PAD - 26 - 30;
+    if (money.x + money.width > headRoom) money.setText(moneyShort(r.total, true));
+    root.add(money);
+    // 竖屏版小结窄：百分比会压到右上角的「详情」「×」，放不下就只写钱（钱比百分比直观）
+    const headR = pct.x + pct.width;
+    if (headR <= headRoom) root.add(pct);
+    else pct.destroy();
     // 最精彩的一件事：星星 + 一句（放不下就截短，整句在详情里）
     if (r.star) {
-      const sx = pct.x + pct.width + 22;
+      const sx = headR + 22;
       const room = x + RECAP_RECT.w - PAD - 60 - (sx + 16) - (this.catBtn ? 32 : 0);
       // 窄卡上放不下四个字就不写（整句在详情里）
       if (room >= 60) {
@@ -422,18 +432,19 @@ export class RecapCard {
     root.add([close, closeHit]);
     this.catBtn = null;
     if (this.catBadge && this.mode === 'recap') {
-      const cx = x + w - 92;
-      const cy = y + 22;
+      const cx = this.catOnIcon ? x + PAD + 14 : x + w - 92;
+      const cy = this.catOnIcon ? y + 24 : y + 22;
+      this.catPos = { x: cx, y: cy };
       const cat = hasArt(s.textures, CAT_HINT_KEY)
         ? addImage(s, cx, cy, CAT_HINT_KEY, 30)
         : s.add.circle(cx, cy, 13, 0xf3a54a).setStrokeStyle(2, COLOR.ink, 1);
       const dot = s.add.circle(cx + 11, cy - 10, 5, COLOR.danger).setStrokeStyle(1.5, 0xffffff, 1);
-      const hit = s.add.circle(cx, cy, 20, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      const hit = s.add.circle(cx, cy, 22, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
         ev.stopPropagation();
         this.hide();
       });
-      bindTooltip(hit, () => ({ x: cx - 20, y: cy - 20, w: 40, h: 40 }), () => ({ title: '猫有话说', body: '点一下收起小结，看猫今天的建议' }));
+      bindTooltip(hit, () => ({ x: cx - 22, y: cy - 22, w: 44, h: 44 }), () => ({ title: '猫有话说', body: '点一下收起小结，看猫今天的建议' }));
       root.add([cat, dot, hit]);
       this.catBtn = hit;
     }

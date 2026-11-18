@@ -43,6 +43,11 @@ export interface Geo {
   trackPitch: number;
   /** 账单轨道离「收获」、最好成绩 / 经历 / 排行榜 / 下次试试离轨道的距离 */
   dy: { track: number; best: number; recap: number; row: number; hint: number };
+  /**
+   * 竖屏版（0.33.0）一栏排下来：「最赚的一笔」卡的高度（定高，不再撑到纸卡底），右栏（战绩、收获、账单、按钮）接在它下面。
+   * 横屏两栏时为 null。
+   */
+  single: { boxH: number } | null;
 }
 
 export const DESK_GEO: Geo = {
@@ -51,6 +56,7 @@ export const DESK_GEO: Geo = {
   gainsInline: false, chipIcon: 34, btnH: 50, btnBottom: 74, stacked: false, trackPitch: 31,
   // 图标格（高 44）从收获下 34 起，到 78 为止；轨道的深色条顶在 track − 22，留 6 的空
   dy: { track: 106, best: 44, recap: 92, row: 114, hint: 150 },
+  single: null,
 };
 /**
  * 手机横屏（0.19.1 按世界宽度，718–960×404）：纸卡 = 整屏弹窗大小（SE 702×392，宽屏 940×392）；
@@ -58,6 +64,7 @@ export const DESK_GEO: Geo = {
  * 「收获」两个字和图标并在一行，按钮 46 高，按右栏宽度分。
  */
 export function phoneGeo(V: { w: number; h: number }): Geo {
+  if (V.h > V.w) return portraitGeo(V);
   const w = Math.min(940, V.w - 16);
   const h = Math.min(430, V.h - 12);
   const pad = w >= 900 ? 24 : 20;
@@ -73,6 +80,27 @@ export function phoneGeo(V: { w: number; h: number }): Geo {
     gainsInline: true, chipIcon: 30, btnH: 46, btnBottom: 64, stacked, trackPitch: Math.min(31, Math.floor((rightW - 44) / 12)),
     // 轨道离「收获」一行（图标格高 44）至少隔 6，不压住收获的图标
     dy: { track: 66, best: 40, recap: 84, row: 98, hint: 132 },
+    single: null,
+  };
+}
+
+/**
+ * 竖屏版（0.33.0，世界 404 × 718–960）：纸卡占满一屏（四周留 8 / 12），一栏从上往下排：头像和标签、称号、账户、
+ * 「最赚的一笔」卡（高 150：小人 + 一列字和「这段日子」），下面接战绩 3 × 2（竖排的窄格）、收获、账单轨道，最下面一排按钮。
+ * 矮屏（360×640 是 694 高）上经历、排行榜、下次试试这几行放不下就不放（排行在每日挑战面板里也能看）。
+ */
+function portraitGeo(V: { w: number; h: number }): Geo {
+  const w = V.w - 16;
+  const h = V.h - 24;
+  const pad = 16;
+  const rightW = w - pad * 2;
+  const tileGap = 8;
+  return {
+    x: Math.round((V.w - w) / 2), y: 12, w, h, pad, leftW: rightW, headY: 34, portrait: 34, badge: 30, titleY: 64, titleSize: 28, moneySize: 28, wallet: 32,
+    boxW: rightW, guyMax: 110, boxBottom: 0, mx: pad, rightW, tileCols: 3, tw: Math.floor((rightW - tileGap * 2) / 3), tileIcon: 20, tileSize: TYPE.title, tileGap,
+    gainsInline: true, chipIcon: 30, btnH: 46, btnBottom: 64, stacked: true, trackPitch: Math.min(31, Math.floor((rightW - 44) / 12)),
+    dy: { track: 66, best: 40, recap: 84, row: 98, hint: 132 },
+    single: { boxH: 150 },
   };
 }
 

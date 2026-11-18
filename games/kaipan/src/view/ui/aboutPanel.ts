@@ -20,7 +20,9 @@ export class AboutPanel extends Dialog {
     super(scene, w, pp ? pp.h : 580, '关于《开盘》');
     const touch = isTouch();
     const built = BUILD_TIME ? BUILD_TIME.replace('T', ' ').slice(0, 16) : '开发版';
-    const leftW = phone ? Math.round((w - 64 - 28) * 0.62) : W - 64;
+    // 竖屏版（0.33.0）面板高、窄：和电脑一样一栏排下来（操作接在玩法下面）
+    const two = !!pp && pp.w > pp.h;
+    const leftW = two ? Math.round((w - 64 - 28) * 0.62) : w - 64;
     const note = addText(scene, 32, phone ? 90 : 94, '画面和声音都是程序生成的原创内容；股票、群友、公司全是虚构的。', { size: 13, color: COLOR.muted, wrap: leftW });
     this.inner.add([addText(scene, 32, phone ? 66 : 72, `版本 ${APP_VERSION} · 构建于 ${built}`, { size: FS.sm }), note]);
     // 手机：说明可能折成两行，玩法从它下面接着排，行距收一点好让四段放进 392
@@ -32,8 +34,8 @@ export class AboutPanel extends Dialog {
     }
     y += 8;
     // 手机：操作列在右栏，从玩法同一高度开始
-    const cx = phone ? 32 + leftW + 36 : 32;
-    if (phone) y = 66;
+    const cx = two ? 32 + leftW + 36 : 32;
+    if (two) y = 66;
     const keyW = phone ? (touch ? 80 : 110) : 188;
     const descW = w - (cx + keyW) - 32;
     this.inner.add(addText(scene, cx, y, touch ? '操作' : '操作与快捷键', { size: FS.md, bold: true, color: COLOR.accentDark }));

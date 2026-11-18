@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { HIT_MIN } from '../ui/button.ts';
 import { friendView, type Comment, type FriendView, type MessageView } from '../../core/index.ts';
 import { avatarKey, type AvatarFace } from '../assets.ts';
 import { TURN_LABEL, claimSign, recordText } from '../labels.ts';
@@ -115,16 +116,20 @@ export function addMessage(v: ChatView3, m: MessageView, y: number, size: number
     const py = buyRow > 0 ? y + v.head + bh - 18 - 4 : y + v.head + Math.round((bh - 18) / 2);
     const pill = addPill(s, BUBBLE_X + BUBBLE_W - pw - 10, py, pw, 18, COLOR.up, false);
     bt.setPosition(pill.x + pw / 2, py + 9);
-    const hit = s.add.rectangle(BUBBLE_X, y + v.head, BUBBLE_W, bh, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    // 竖屏版气泡宽、一行就放下，只有约 29 高：点击区往上撑进名字那一行，凑够 HIT_MIN（头像在左边，不盖）
+    // 最多撑到和上一条之间空隙的一半（不盖上一条的点击区）
+    const hy = Math.max(y - v.gap / 2, y + v.head + bh - Math.max(bh, HIT_MIN));
+    const hh = y + v.head + bh - hy;
+    const hit = s.add.rectangle(BUBBLE_X, hy, BUBBLE_W, hh, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     hit.on(Phaser.Input.Events.POINTER_UP, (p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
       // 和推荐卡的「买入」一样：右键不算，拖拽刚松手落在这条消息上也不算（不然拖卡卖出时会顺手误买一笔）
       if (p.button !== 0 || clickSuppressed(performance.now())) return;
       ev.stopPropagation();
       v.onBuy(recIdx);
     });
-    bindTooltip(hit, () => ({ x: BUBBLE_X, y: y + v.head, w: BUBBLE_W, h: bh }), () => ({ title: '点一下买入', body: `${m.friend.name}今天有推荐，点这条消息和「推荐」页的买入一样。` }));
+    bindTooltip(hit, () => ({ x: BUBBLE_X, y: hy, w: BUBBLE_W, h: hh }), () => ({ title: '点一下买入', body: `${m.friend.name}今天有推荐，点这条消息和「推荐」页的买入一样。` }));
     root.add([pill, bt, hit]);
-    v.recBuy.push({ index: m.index, x: BUBBLE_X + BUBBLE_W / 2, y: y + v.head + bh / 2 });
+    v.recBuy.push({ index: m.index, x: BUBBLE_X + BUBBLE_W / 2, y: hy + hh / 2 });
   }
   if (big) {
     // 重磅情报：金色粗框 + 「重磅」签压在气泡左上角

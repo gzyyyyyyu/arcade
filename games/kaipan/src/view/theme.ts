@@ -113,13 +113,13 @@ export const GAME_HEIGHT = 720;
 /**
  * 手机布局：短边不超过 500（CSS 像素）就用手机世界（见下面的 phoneWorld；按 1280×720 缩到 844×390 只有 0.54 倍，
  * 字小得看不清）。URL 参数 layout=phone / layout=desktop 可以强制。
- * 竖屏打开也要算进来（微信里点开链接默认是竖屏，先看到「横过来」提示，转过来后铺满的应该是手机版）；
+ * 竖屏打开也要算进来（微信里点开链接默认是竖屏，用的是手机布局的竖屏版，见 pickPortrait）；
  * 竖屏时再要求是触屏，免得把又窄又高的电脑窗口判成手机。
  * 开局时定下来，中途改窗口大小不切换（布局是开局时搭的；转屏只是同一块画布换个方向铺满）。
  */
 export function pickPhoneLayout(o: { w: number; h: number; search: string; coarse: boolean }): boolean {
   const forced = new URLSearchParams(o.search).get('layout');
-  if (forced === 'phone') return true;
+  if (forced === 'phone' || forced === 'portrait') return true;
   if (forced === 'desktop') return false;
   // 0.19.5 触屏平板：电脑布局（1280×720）横过来缩小以后，11 号字到不了 12 像素（1024×768 只有 8.8、1180×820 只有 10）时也用手机布局，
   // 字和按钮按屏幕放大。不看方向：平板常常竖着打开再转过来，布局开局时就定了
@@ -147,16 +147,32 @@ export const PHONE = ((): boolean => {
  */
 export const PHONE_H = 404;
 export const PHONE_W = { min: 718, max: 960 } as const;
-export function phoneWorld(w: number, h: number): { w: number; h: number } {
+export function phoneWorld(w: number, h: number, portrait = false): { w: number; h: number } {
   const long = Math.max(w, h);
   const short = Math.max(1, Math.min(w, h));
   const raw = Math.round((PHONE_H * long) / short / 2) * 2;
-  return { w: Math.min(PHONE_W.max, Math.max(PHONE_W.min, raw)), h: PHONE_H };
+  const len = Math.min(PHONE_W.max, Math.max(PHONE_W.min, raw));
+  return portrait ? { w: PHONE_H, h: len } : { w: len, h: PHONE_H };
 }
 
-/** 实际的世界尺寸：电脑 1280×720，手机横屏见 phoneWorld。适配过手机的界面按它布局。 */
+/**
+ * 竖屏版（0.33.0）：手机布局下开局时竖着拿（或 URL 参数 layout=portrait），世界换成竖的 404 × 718–960（phoneWorld 横竖对调），
+ * 各界面排成单列。和横屏版一样开局时定一次；中途转屏由 platform/orientation.ts 提示按新方向重排（重新载入，进度都存着）。
+ * layout=phone 仍是横屏版（老的冒烟脚本靠它在任何视口里拿到横屏世界）。
+ */
+export function pickPortrait(o: { w: number; h: number; search: string; phone: boolean }): boolean {
+  const forced = new URLSearchParams(o.search).get('layout');
+  if (forced === 'portrait') return true;
+  if (forced === 'phone' || forced === 'desktop') return false;
+  return o.phone && o.h > o.w;
+}
+
+export const PORTRAIT =
+  typeof window !== 'undefined' && pickPortrait({ w: window.innerWidth, h: window.innerHeight, search: window.location.search, phone: PHONE });
+
+/** 实际的世界尺寸：电脑 1280×720，手机见 phoneWorld（竖屏版横竖对调）。适配过手机的界面按它布局。 */
 export const VIEW =
-  PHONE && typeof window !== 'undefined' ? phoneWorld(window.innerWidth || 844, window.innerHeight || 390) : { w: GAME_WIDTH, h: GAME_HEIGHT };
+  PHONE && typeof window !== 'undefined' ? phoneWorld(window.innerWidth || 844, window.innerHeight || 390, PORTRAIT) : { w: GAME_WIDTH, h: GAME_HEIGHT };
 
 /**
  * 0.19.5 手机世界横过来铺到屏幕上是几倍（SE 0.93、844×390 0.97、平板 1.4 以上）。
@@ -166,7 +182,8 @@ export const PHONE_SCALE = ((): number => {
   if (!PHONE || typeof window === 'undefined') return 1;
   const w = window.innerWidth || 844;
   const h = window.innerHeight || 390;
-  return Math.min(Math.max(w, h) / VIEW.w, Math.min(w, h) / VIEW.h);
+  const [along, across] = PORTRAIT ? [Math.min(w, h), Math.max(w, h)] : [Math.max(w, h), Math.min(w, h)];
+  return Math.min(along / VIEW.w, across / VIEW.h);
 })();
 
 /**
@@ -202,8 +219,9 @@ export const RENDER_SCALE = ((): number => {
   const visible = LOW_MEMORY && Math.max(iw, ih) >= 0.9 * Math.max(scw, sch);
   const sw = (visible ? iw : scw) || VIEW.w;
   const sh = (visible ? ih : sch) || VIEW.h;
-  const w = (PHONE ? Math.max(sw, sh) : sw) * dpr;
-  const h = (PHONE ? Math.min(sw, sh) : sh) * dpr;
+  // 手机按布局的方向对齐屏幕（横屏版长边对世界的宽，竖屏版短边对世界的宽）
+  const w = (PHONE ? (PORTRAIT ? Math.min(sw, sh) : Math.max(sw, sh)) : sw) * dpr;
+  const h = (PHONE ? (PORTRAIT ? Math.max(sw, sh) : Math.min(sw, sh)) : sh) * dpr;
   return Math.min(LOW_MEMORY ? 2 : 3, Math.max(1, Math.ceil(Math.min(w / VIEW.w, h / VIEW.h))));
 })();
 

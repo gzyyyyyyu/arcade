@@ -4,7 +4,8 @@ import { isTouch } from '../input.ts';
 import { sound } from '../sound.ts';
 import { addPaper } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
-import { MIN_TEXT_SIZE, addText } from '../ui/text.ts';
+import { MIN_TEXT_SIZE, addText, fitWidth } from '../ui/text.ts';
+import { PORTRAIT, VIEW } from '../theme.ts';
 import { hideTooltip } from '../ui/tooltip.ts';
 import { recAction } from '../trade/chat.ts';
 import type { PickMode } from '../trade/holdings.ts';
@@ -280,15 +281,20 @@ export class TradeActions {
     const minX = lobby.x + lobby.w + 6;
     const cam = this.s.cameras.main;
     const maxR = cam.scrollX + this.s.scale.width / cam.zoom - 4;
-    for (let size = 16; t.width + 150 > maxR - minX && size > MIN_TEXT_SIZE; size--) t.setFontSize(size - 1);
-    const w = t.width + 150;
-    const x = Math.max(minX, Math.min(SLOTS.x + SLOTS.w / 2 - w / 2, maxR - w));
-    const y = SLOTS.y - 58;
+    // 竖屏版（0.33.0）：顶栏两行，提示条整宽盖在第二行（目标、账单、道具、银行）上，不碰第一行的大厅、怎么玩、设置
+    const pt = PORTRAIT;
+    const room = pt ? VIEW.w - 8 - 150 : maxR - minX - 150;
+    for (let size = 16; t.width > room && size > MIN_TEXT_SIZE; size--) t.setFontSize(size - 1);
+    if (pt) fitWidth(t, room);
+    const w = pt ? VIEW.w - 8 : t.width + 150;
+    const x = pt ? 4 : Math.max(minX, Math.min(SLOTS.x + SLOTS.w / 2 - w / 2, maxR - w));
+    const y = pt ? SLOTS.y - 52 : SLOTS.y - 58;
     const paper = addPaper(this.s, x, y, w, 46, false);
     t.setPosition(x + 20, y + 23);
-    this.s.bannerCancel = new Button(this.s, x + w - 104, y + 8, {
+    // 竖屏版键高 34：点击区上下各撑 8，正好夹在第一行的怎么玩、设置（到 51）和持仓格（102 起）中间
+    this.s.bannerCancel = new Button(this.s, x + w - 104, y + (pt ? 6 : 8), {
       width: 90,
-      height: 30,
+      height: pt ? 34 : 30,
       label: '取消',
       fontSize: 14,
       hotkey: 'Esc',

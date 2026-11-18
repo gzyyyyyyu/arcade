@@ -2,7 +2,7 @@ import type Phaser from 'phaser';
 import { currentCalendar, eventView, formatMoney, friendView, itemView, monthThemeView, type GameEvent, type GameState } from '../../core/index.ts';
 import { floatText } from '../fx/effects.ts';
 import { sound } from '../sound.ts';
-import { COLOR, PHONE as PHONE_MODE, VIEW } from '../theme.ts';
+import { COLOR, PHONE as PHONE_MODE, PORTRAIT, VIEW } from '../theme.ts';
 import { Button } from '../ui/button.ts';
 import { addText } from '../ui/text.ts';
 import { PHONE_RECT as PHONE } from '../trade/layout.ts';
@@ -29,8 +29,9 @@ export class MonthFlow {
     const layer = this.s.add.container(0, 0).setDepth(300);
     const cv = coverOf(this.s);
     layer.add(this.s.add.rectangle(cv.x, cv.y, cv.w, cv.h, COLOR.ink, 0.45).setOrigin(0, 0).setInteractive());
-    const cw = PHONE_MODE ? 520 : 560;
-    const cy = PHONE_MODE ? 190 : 330;
+    // 竖屏版：卡跟屏宽、放在屏幕正中
+    const cw = PHONE_MODE ? Math.min(520, VIEW.w - 16) : 560;
+    const cy = PORTRAIT ? VIEW.h / 2 : PHONE_MODE ? 190 : 330;
     const x = gearNow(this.s.session.state);
     const body = addText(this.s, VIEW.w / 2, cy + 6, `开了杠杆 ×${x}，资产跌到了清零线，这局按 0 结。\n杠杆越高，赢得越多，也越容易一下清零。`, {
       size: 16,

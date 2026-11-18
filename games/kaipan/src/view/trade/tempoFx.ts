@@ -12,7 +12,7 @@ import { COLOR, TYPE } from '../theme.ts';
 import { addGlyph, addImage, addPaper, addPill } from '../ui/art.ts';
 import { iconChip, moneyShort } from '../ui/dialog.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
-import { addText } from '../ui/text.ts';
+import { addText, fitWidth } from '../ui/text.ts';
 import { phoneLayout, viewOf } from '../viewport.ts';
 import { ellipsize } from '../../core/format.ts';
 
@@ -113,11 +113,14 @@ export function monthCard(
   const mt = monthThemeView(s);
   const V = viewOf(scene);
   const ph = phoneLayout(scene);
-  const pad = 30;
-  // 手机（0.5.5）高度不够，摆成两栏：左栏月份、开场白、目标和奖励；右栏胶囊、规则、台词、附加说明
-  const colW = ph ? 400 : 460;
-  const col2 = ph ? pad + colW + 30 : pad;
-  const W = ph ? col2 + colW + pad : 520;
+  // 手机横屏（0.5.5）高度不够，摆成两栏：左栏月份、开场白、目标和奖励；右栏胶囊、规则、台词、附加说明
+  // 竖屏版（0.33.0）和电脑一样一栏，宽度跟屏
+  const two = ph && V.w > V.h;
+  const narrow = ph && !two;
+  const pad = narrow ? 20 : 30;
+  const colW = two ? 400 : narrow ? V.w - 16 - 2 * pad : 460;
+  const col2 = two ? pad + colW + 30 : pad;
+  const W = two ? col2 + colW + pad : narrow ? V.w - 16 : 520;
   const boss = info.boss;
   const ink = boss ? BOSS_INK : COLOR.ink;
   const muted = boss ? 0xd9c6e6 : COLOR.muted;
@@ -140,7 +143,7 @@ export function monthCard(
   if (info.intro) {
     const strip = scene.add.rectangle(pad, y, colW, 34, boss ? 0x46305a : 0xfff6dc).setOrigin(0, 0).setRounded(10).setStrokeStyle(1.5, boss ? COLOR.gold : COLOR.edge, 1);
     const q = addGlyph(scene, pad + 18, y + 17, 'horn', 20);
-    const introT = addText(scene, pad + 34, y + 17, ellipsize(info.intro, 30), { size: TYPE.label, color: ink, originY: 0.5 });
+    const introT = fitWidth(addText(scene, pad + 34, y + 17, ellipsize(info.intro, 30), { size: TYPE.label, color: ink, originY: 0.5 }), colW - 42);
     body.push(strip, q, introT);
     y += 42;
   }
@@ -181,7 +184,7 @@ export function monthCard(
   bindTooltip(rewardBox, tipRect, () => goalTip);
   y = ringY + R + 34;
   const leftBottom = y;
-  if (ph) y = 24;
+  if (two) y = 24;
   // ---- 图标胶囊：规则、要还的钱、交易日
   const chips: { node: Phaser.GameObjects.Container; w: number }[] = [
     iconChip(scene, 0, 0, 'book', mt?.ruleShort ?? info.rule, { tip: { title: '本月规则', body: info.rule } }),
@@ -231,7 +234,7 @@ export function monthCard(
     bindTooltip(rowBg, () => ({ x: card.x + col2, y: card.y + ry, w: colW, h: 32 }), () => ({ title: head.replace(/…$/, ''), body: e }));
     y += 38;
   }
-  const H = ph ? Math.min(V.h - 8, Math.max(leftBottom, y) + 28) : Math.min(680, y + 28);
+  const H = two ? Math.min(V.h - 8, Math.max(leftBottom, y) + 28) : Math.min(narrow ? V.h - 8 : 680, y + 28);
   const y0 = Math.round(V.h / 2 - H / 2);
   const panel = boss
     ? scene.add.rectangle(0, 0, W, H, BOSS_BG).setOrigin(0, 0).setRounded(18).setStrokeStyle(5, COLOR.gold, 1)

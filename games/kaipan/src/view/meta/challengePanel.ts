@@ -6,7 +6,7 @@ import { boardScoreText } from '../labels.ts';
 import { COLOR, FS, SPACE, TYPE } from '../theme.ts';
 import { addGlyph } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
-import { Dialog, phonePanel } from '../ui/dialog.ts';
+import { Dialog, dialogW, phonePanel } from '../ui/dialog.ts';
 import { addText, fitWidth } from '../ui/text.ts';
 import { phoneLayout } from '../viewport.ts';
 import { addBadge, addPortrait } from './setupPanel.ts';
@@ -29,6 +29,8 @@ interface Geo {
  */
 function phoneUi(scene: Phaser.Scene): Geo {
   const { w, h } = phonePanel(scene);
+  // 竖屏版（0.33.0）：面板高，一页的行数按高度算（最多 15 行，行高 32）
+  if (h > w) return { w, h, per: Math.min(15, Math.floor((h - 100 - 16 - 64) / 32)), rowH: 32, top: 64, meY: h - 100, pagerY: h - 52 };
   return { w, h, per: 7, rowH: 30, top: 64, meY: h - 100, pagerY: h - 52 };
 }
 
@@ -111,9 +113,11 @@ export class ChallengePanel extends Dialog {
  */
 export class ChallengeLinkDialog extends Dialog {
   constructor(scene: Phaser.Scene, url: string, text: string) {
-    super(scene, 520, 280, '挑战建好了');
+    // 竖屏版收到屏宽，正文多折一两行，框高一截
+    const W = dialogW(scene, 520);
+    super(scene, W, W < 520 ? 320 : 280, '挑战建好了');
     this.inner.add(
-      addText(scene, 32, 76, '好友打开链接就是这一局的同一个开局，你的成绩已经记在第一条。每人只算第一次，30 天内有效。', { size: TYPE.label + 2, color: COLOR.ink, wrap: 520 - 64, lineSpacing: 6 }),
+      addText(scene, 32, 76, '好友打开链接就是这一局的同一个开局，你的成绩已经记在第一条。每人只算第一次，30 天内有效。', { size: TYPE.label + 2, color: COLOR.ink, wrap: W - 64, lineSpacing: 6 }),
     );
     const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
     const { primary } = this.actions(
@@ -145,16 +149,18 @@ export class ChallengeLinkDialog extends Dialog {
  */
 export class ChallengeInviteDialog extends Dialog {
   constructor(scene: Phaser.Scene, v: ChallengeView, onAccept: () => void) {
-    const W = 600;
-    const H = 320;
+    // 竖屏版收到屏宽：立绘小一号、右栏往左挪，说明折行多，框高一截
+    const W = dialogW(scene, 600);
+    const narrow = W < 600;
+    const H = narrow ? 380 : 320;
     super(scene, W, H, '好友挑战');
     // 接不接要玩家自己定：不能点遮罩带过
     this.closeOnBackdrop = false;
     const p = v.payload.setup;
     const pv = personaView(p.persona);
     const lv = difficultyView(p.difficulty);
-    this.inner.add(addPortrait(scene, 112, 178, pv, false, 136));
-    const R = 216;
+    this.inner.add(addPortrait(scene, narrow ? 76 : 112, 178, pv, false, narrow ? 104 : 136));
+    const R = narrow ? 148 : 216;
     const head = Array.from(v.owner)[0] ?? '?';
     this.inner.add([
       scene.add.circle(R + 22, 98, 22, COLOR.accent).setStrokeStyle(3, COLOR.ink, 1),
@@ -165,7 +171,7 @@ export class ChallengeInviteDialog extends Dialog {
     this.inner.add(who);
     const len = p.short ? `短局 ${p.short.months} 个月` : '完整一年';
     this.inner.add(addBadge(scene, R + 22, 152, lv.level, 40));
-    this.inner.add(addText(scene, R + 56, 152, `${pv.name} · ${lv.name} · ${len}`, { size: TYPE.label + 2, bold: true, color: COLOR.ink, originY: 0.5 }));
+    this.inner.add(fitWidth(addText(scene, R + 56, 152, `${pv.name} · ${lv.name} · ${len}`, { size: TYPE.label + 2, bold: true, color: COLOR.ink, originY: 0.5 }), W - 32 - R - 56));
     if (v.ownerScore !== null) {
       this.inner.add(addGlyph(scene, R + 22, 196, 'trophy', 30));
       this.inner.add(addText(scene, R + 56, 196, boardScoreText(v.ownerScore), { size: TYPE.title, bold: true, num: true, color: COLOR.ink, originY: 0.5 }));

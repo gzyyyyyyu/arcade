@@ -4,9 +4,9 @@ import { hasArt, roleKey, stockKey } from '../assets.ts';
 import { dayWord as ipoDayWord } from './ipo.ts';
 import { boardsText, holdText, sellKey, stText, todayText } from '../labels.ts';
 import type { Rect } from '../rect.ts';
-import { COLOR, FS, PHONE, THEME_COLOR, signColor, textOn } from '../theme.ts';
+import { COLOR, FS, PHONE, PORTRAIT, THEME_COLOR, signColor, textOn } from '../theme.ts';
 import { addImage, addPill, addSlice } from '../ui/art.ts';
-import { Button, touchHit } from '../ui/button.ts';
+import { Button, HIT_MIN, touchHit } from '../ui/button.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
 import { addText, setColor, fitWidth } from '../ui/text.ts';
 import { pctArrow } from '../labels.ts';
@@ -19,6 +19,7 @@ import { openStockDetail } from './detail.ts';
 import { clickSuppressed } from './dragGeo.ts';
 import { preCount, stockMoves, streakOf, vsMarket, vsWord } from './tape.ts';
 import { frozenKeyOf, type FrozenInfo, type PickMode, type SlotExt } from './holdingsShared.ts';
+import { COMPACT_SLOTS } from './layout.ts';
 
 /** 一张持仓卡：股票小人卡或「现金」空格。 */
 export class SlotCard {
@@ -78,8 +79,12 @@ export class SlotCard {
       // 空格画成纸垫（HoldingsView.drawPurse），这里只留点击区和悬停说明，选格子模式照样能点。
       // 推荐卡一屏只出现一处（右栏），空格里不再放推荐位
       const hit = scene.add.rectangle(x, y, w, h, 0xffffff, 0.001).setOrigin(0, 0);
-      bindTooltip(hit, () => rect, () => ({ title: '空格 = 现金', body: ext ? `空格是现金，不涨不跌。手里还有 ${ext.cash} 份现金，可以从右边的推荐里买一只。` : '空格是现金，不涨不跌，可以从右边的推荐里买一只。' }));
+      bindTooltip(hit, () => rect, () => ({ title: '空格 = 现金', body: ext ? `空格是现金，不涨不跌。手里还有 ${ext.cash} 份现金，可以从${PORTRAIT ? '下面' : '右边'}的推荐里买一只。` : `空格是现金，不涨不跌，可以从${PORTRAIT ? '下面' : '右边'}的推荐里买一只。` }));
       this.root.add(hit);
+      return;
+    }
+    if (COMPACT_SLOTS) {
+      this.drawCompact(card, idle, onSell, busy, onInspect, ext, onMore, onMenu);
       return;
     }
     const small = w < 150;
@@ -185,6 +190,94 @@ export class SlotCard {
     this.spark.play(500, !idle);
   }
 
+  /** 竖屏版的矮卡（0.33.0）：第一行的签从这里往右排、到这里为止（放大镜在右上角） */
+  private compact = false;
+  private row1X = 0;
+  private row1Right = 0;
+
+  /**
+   * 竖屏版的矮卡（0.33.0，约 124–190 宽、94–103 高）：第一行风口签（押跌写「押跌」）、仓位份数、连板签，右上角放大镜；
+   * 左边小人，右边名字和涨跌（宽卡再写累计）；最下面「卖出」「加减」。走势框、热度、跑赢跑输、ST 签都在悬停和详情里。
+   */
+  private drawCompact(card: HoldingCard, idle: boolean, onSell: (slot: number) => void, busy: boolean, onInspect?: (slot: number) => void, ext: SlotExt | null = null, onMore?: (slot: number) => void, onMenu?: (slot: number) => void): void {
+    const { scene, slot } = this;
+    const { x, y, w, h } = this.rect;
+    this.compact = true;
+    this.tiny = true;
+    const frame = addSlice(scene, x, y, w, h, 'card_holding');
+    const flip = this.short ? scene.add.rectangle(x + 5, y + 5, w - 10, h - 10, 0xcdd5f3).setOrigin(0, 0).setRounded(10) : null;
+    const tc = this.short ? SHORT_COLOR : THEME_COLOR[card.theme];
+    const tagText = addText(scene, 0, y + 15, this.short ? '押跌' : card.themeName, { size: 11, bold: true, color: textOn(tc), originX: 0.5, originY: 0.5 });
+    const tagW = tagText.width + 14;
+    const tag = addPill(scene, x + 8, y + 6, tagW, 18, tc);
+    tagText.setX(x + 8 + tagW / 2);
+    tag.setInteractive();
+    bindTooltip(tag, () => ({ x: x + 8, y: y + 6, w: tagW, h: 18 }), () => (this.short ? { title: '押跌', body: '押它跌：它跌你赚，它涨你亏。它涨停那天会被轧，亏得最狠。' } : termTip('theme', `这只属于「${card.themeName}」这个风口。`)));
+    this.row1X = x + 8 + tagW + 4;
+    this.row1Right = x + w - 32;
+    // 卖出键 30 高：点击区往下撑 6（两行之间隔 8，下面一行的卡、标签页都不压），其余往上撑到 HIT_MIN（360 宽上 50）
+    const sellH = 30;
+    const sellY = y + h - sellH - 4;
+    const pad = { top: Math.max(11, HIT_MIN - sellH - 6), bottom: 6 };
+    const magX = x + w - 16;
+    const magY = y + 15;
+    const magIcon = addGlyph(scene, magX, magY, 'magnifier', 18);
+    // 点击区贴着卡片右上角往里长（不往上、往右伸到隔壁卡和上一排的「加减」里）
+    const magS = Math.max(40, HIT_MIN);
+    const mag = scene.add.rectangle(x + w - magS, y, magS, Math.min(magS, sellY - pad.top - y), 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    this.magCenter = { x: magX, y: magY };
+    mag.on(Phaser.Input.Events.POINTER_UP, (p: Phaser.Input.Pointer) => {
+      if (p.button !== 0 || clickSuppressed(performance.now())) return;
+      if (this.state) openStockDetail(scene, this.state, card.id);
+    });
+    bindTooltip(mag, () => ({ x: magX - 14, y: magY - 14, w: 28, h: 28 }), () => ({ title: '看详情', body: '走势图、连涨连跌、风口热度、比大环境强还是弱。' }));
+    this.guy = new StockGuy(scene, x + 26, this.short ? y + 26 : sellY - 2, card.id, card.face, 34, { idle });
+    if (this.short) this.guy.setScale(1, -1);
+    const colX = x + 48;
+    const name = fitWidth(addText(scene, colX, y + 24, card.name, { size: 13, bold: true, color: this.short ? SHORT_COLOR : COLOR.ink }), w - 48 - 6);
+    this.nameText = name;
+    this.today = addText(scene, colX, y + 40, '', { size: 17, bold: true, num: true });
+    // 累计：宽卡（2 张一行）写在涨跌右边；窄卡只在悬停里
+    this.hold = addText(scene, x + w - 8, y + 50, '', { size: 12, bold: true, num: true, color: COLOR.muted, originX: 1, originY: 0.5 }).setVisible(w >= 170);
+    // 点卡身看详情：从卡顶到「卖出」的点击区为止、让开右上角放大镜那一列，高约 55（点击区够 HIT_MIN）
+    const bodyH = sellY - pad.top - y;
+    const bodyW = w - magS;
+    const body = scene.add.rectangle(x, y, bodyW, bodyH, 0xffffff, 0.001).setOrigin(0, 0);
+    bindTooltip(body, () => ({ x, y, w: bodyW, h: bodyH }), () => this.tip(card));
+    body.setInteractive({ useHandCursor: true });
+    body.on(Phaser.Input.Events.POINTER_UP, (p: Phaser.Input.Pointer) => {
+      if (clickSuppressed(performance.now())) return;
+      if (p.button === 2) onMenu?.(slot);
+      else if (p.button === 0) onInspect?.(slot);
+    });
+    const cardHit = scene.add.rectangle(x, y, w, h, 0xffffff, 0.001).setOrigin(0, 0).setInteractive();
+    cardHit.on(Phaser.Input.Events.POINTER_UP, (p: Phaser.Input.Pointer) => {
+      if (p.button === 2 && !clickSuppressed(performance.now())) onMenu?.(slot);
+    });
+    const moreW = ext ? 44 : 0;
+    const gap = ext ? 4 : 0;
+    const sellW = w - 16 - moreW - gap;
+    this.sellNarrow = sellW < 56;
+    this.sell = new Button(scene, x + 8, sellY, { width: sellW, height: sellH, label: this.sellWord(true), variant: 'danger', fontSize: 14, hotkey: sellKey(slot), hitPad: pad, hitPadX: { right: 0 }, onClick: () => onSell(slot) });
+    if (ext) {
+      this.more = new Button(scene, x + w - 8 - moreW, sellY, { width: moreW, height: sellH, label: '加减', fontSize: 13, hitPad: pad, hitPadX: { left: 0 }, onClick: () => onMore?.(slot) });
+      this.more.tooltip(() => ({ title: '加仓 / 减一半', body: '再买一份，或者先卖一半落袋。在卡上点右键也能打开。' }));
+      this.more.onDenied(() => (this.sellBlocked === 'busy' ? '今天在加班，顾不上炒股，不能买也不能卖' : null));
+    }
+    this.sell.tooltip(() =>
+      this.sell?.isEnabled() === false && this.sellBlocked === 'busy'
+        ? { title: '今天在加班', body: '顾不上炒股，今天不能买也不能卖，只能直接开盘。' }
+        : this.sell?.isEnabled() === false && this.sellBlocked === 't1'
+          ? termTip('t1')
+          : this.sell?.isEnabled()
+            ? { title: this.short ? '不押了' : '卖出', body: ext ? '一步全部卖掉。想加仓或只卖一半，点旁边的「加减」。也可以把卡拖出持仓区。' : '把这只全部卖掉。也可以把卡拖出持仓区。' }
+            : null,
+    );
+    this.sell.onDenied(() => (this.sellBlocked === 'busy' ? '今天在加班，顾不上炒股，不能买也不能卖' : this.sellBlocked === 't1' ? '今天买的，明天才能卖' : null));
+    this.root.add([frame, ...(flip ? [flip] : []), cardHit, body, tag, tagText, this.guy, magIcon, mag, name, this.today, this.hold, this.sell, ...(this.more ? [this.more] : [])]);
+    this.update(card, true, busy);
+  }
+
   /**
    * 申购中的卡（打新冻结）：新股形象置灰，写「申购中」和几天出签；整张卡只有悬停说明，没有卖出、没有加减、不能拖。
    * 画法跟持仓卡一个底（card_holding），再盖一层灰，让人一眼分得出它还不是持仓。
@@ -192,6 +285,7 @@ export class SlotCard {
   private drawFrozen(f: FrozenInfo): void {
     const { scene } = this;
     const { x, y, w, h } = this.rect;
+    if (COMPACT_SLOTS) return this.drawFrozenCompact(f);
     const small = w < 150;
     const frame = addSlice(scene, x, y, w, h, 'card_holding');
     const dim = scene.add.rectangle(x + 5, y + 5, w - 10, h - 10, 0xcfc6b8, 0.75).setOrigin(0, 0).setRounded(10);
@@ -211,6 +305,28 @@ export class SlotCard {
     this.root.add([frame, dim, tag, tagText, face, name, word, when, cash, hit]);
   }
 
+  /** 竖屏矮卡的申购中：左边置灰的新股，右边名字、「申购中」、几天出签、冻结几份 */
+  private drawFrozenCompact(f: FrozenInfo): void {
+    const { scene } = this;
+    const { x, y, w, h } = this.rect;
+    const frame = addSlice(scene, x, y, w, h, 'card_holding');
+    const dim = scene.add.rectangle(x + 5, y + 5, w - 10, h - 10, 0xcfc6b8, 0.75).setOrigin(0, 0).setRounded(10);
+    const tc = THEME_COLOR[f.offer.theme];
+    const tagText = addText(scene, 0, y + 15, themeById(f.offer.theme).name, { size: 11, bold: true, color: textOn(tc), originX: 0.5, originY: 0.5 });
+    const tagW = tagText.width + 14;
+    const tag = addPill(scene, x + 8, y + 6, tagW, 18, tc);
+    tagText.setX(x + 8 + tagW / 2);
+    const key = stockKey(f.offer.stockId, 'calm');
+    const face = hasArt(scene.textures, key) ? addImage(scene, x + 26, y + h / 2 + 8, key, 38).setTint(0x9a9a9a).setAlpha(0.85) : scene.add.rectangle(0, 0, 1, 1, 0xffffff, 0);
+    const colX = x + 48;
+    const name = fitWidth(addText(scene, colX, y + 26, f.offer.name, { size: 13, bold: true, color: COLOR.muted }), w - 54);
+    const word = addText(scene, colX, y + 44, '申购中', { size: 16, bold: true, color: COLOR.accentDark });
+    const when = fitWidth(addText(scene, colX, y + 64, `${ipoDayWord(f.daysLeft)}出签 · 冻结 ${unitsWord(f.units)}`, { size: FS.xs, bold: true, color: COLOR.ink }), w - 54);
+    const hit = scene.add.rectangle(x, y, w, h, 0xffffff, 0.001).setOrigin(0, 0).setInteractive();
+    bindTooltip(hit, () => this.rect, () => ({ title: `申购中：${f.offer.name}`, body: `冻结了 ${unitsWord(f.units)}的现金，${ipoDayWord(f.daysLeft)}收盘出签。期间不涨不跌，也不能卖。\n中了：配 1 份新股，剩下的现金退回；没中：现金原样退回。` }));
+    this.root.add([frame, dim, tag, tagText, face, name, word, when, hit]);
+  }
+
   /** 新股角标（上市头两天）：名字旁的小签，「新」、首日涨了写「新 +X%」、跌了写「新 -X%」；null 去掉。 */
   setNewTag(tag: { text: string; fill: number; ink: number } | null): void {
     const key = tag ? `${tag.text}|${tag.fill}` : '';
@@ -221,6 +337,20 @@ export class SlotCard {
     const name = this.nameText;
     if (!name) return;
     const { x, w } = this.rect;
+    if (this.compact) {
+      // 矮卡：名字左对齐，签挂在名字左边（名字往右让）
+      name.setX(x + 48);
+      if (!tag) return;
+      const t = addText(this.scene, 0, 0, tag.text, { size: FS.xs, bold: true, color: tag.ink, originX: 0.5, originY: 0.5 });
+      const pw = t.width + 10;
+      name.setX(x + 48 + pw + 4);
+      fitWidth(name, w - 48 - 6 - pw - 4);
+      const pill = addPill(this.scene, x + 48, name.y, pw, 17, tag.fill);
+      t.setPosition(x + 48 + pw / 2, name.y + 8);
+      this.newTag = this.scene.add.container(0, 0, [pill, t]);
+      this.root.add(this.newTag);
+      return;
+    }
     name.setX(x + w / 2);
     if (!tag) return;
     const t = addText(this.scene, 0, 0, tag.text, { size: FS.xs, bold: true, color: tag.ink, originX: 0.5, originY: 0.5 });
@@ -244,6 +374,8 @@ export class SlotCard {
 
   /** 第二行：左边风口热度（数字 + 小条），右边连涨 / 连跌签。 */
   private setRow2(c: HoldingCard, hideHeat: boolean): void {
+    // 竖屏矮卡没有第二行：热度、连涨连跌在悬停和详情里
+    if (this.compact) return;
     const { x, y, w } = this.rect;
     const sc = this.scene;
     this.heatNode?.removeAll(true);
@@ -370,6 +502,17 @@ export class SlotCard {
     this.units = null;
     if (!this.ext) return;
     const { x, y } = this.rect;
+    if (this.compact) {
+      // 矮卡：第一行风口签右边写「N 份」（放不下就只在悬停里）
+      const t = addText(this.scene, this.row1X, y + 15, unitsWord(c.units), { size: FS.xs, bold: true, color: this.short ? SHORT_COLOR : COLOR.accentDark, originY: 0.5 });
+      if (t.x + t.width > this.row1Right) {
+        t.destroy();
+        return;
+      }
+      this.units = this.scene.add.container(0, 0, [t]);
+      this.root.add(this.units);
+      return;
+    }
     const fill = this.short ? SHORT_COLOR : COLOR.gold;
     const parts: Phaser.GameObjects.GameObject[] = [chipStack(this.scene, x + 22, y + 104, c.units, fill)];
     const label = addText(this.scene, x + 22, y + 106, unitsWord(c.units), { size: FS.xs, bold: true, color: this.short ? SHORT_COLOR : COLOR.accentDark, originX: 0.5 });
@@ -411,6 +554,21 @@ export class SlotCard {
     this.st?.destroy();
     this.st = null;
     const bt = boardsText(boards);
+    if (this.compact) {
+      // 矮卡：连板签贴在放大镜左边，和风口签、份数不叠才放；ST、低吸签在悬停里
+      if (!bt) return;
+      const t = addText(this.scene, 0, 0, bt, { size: FS.xs, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5 });
+      const pw = t.width + 10;
+      const used = this.units ? this.row1X + (this.units.getBounds().width + 4) : this.row1X;
+      if (this.row1Right - pw < used) {
+        t.destroy();
+        return;
+      }
+      const pill = addPill(this.scene, -pw / 2, -9, pw, 18, COLOR.up);
+      this.boards = this.scene.add.container(this.row1Right - pw / 2, y + 15, [pill, t]);
+      this.root.add(this.boards);
+      return;
+    }
     if (bt) {
       const t = addText(this.scene, 0, 0, bt, { size: 12, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5 });
       const pw = t.width + 14;

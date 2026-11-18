@@ -8,7 +8,7 @@ import { jiggle } from '../fx/effects.ts';
 import type { Animator } from '../fx/anim.ts';
 import { bestText, difficultyLockText, levelLabel, personaLockText } from '../labels.ts';
 import { sound } from '../sound.ts';
-import { COLOR, FS, TYPE } from '../theme.ts';
+import { COLOR, FS, PORTRAIT, TYPE } from '../theme.ts';
 import { addGlyph, addImage, addSlice } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
 import { Dialog, phonePanel, SOLID_BACKDROP_ALPHA } from '../ui/dialog.ts';
@@ -75,6 +75,23 @@ interface Geo {
   /** 难度一句话的中心 y，下面一行是完整说明 */
   diffY: number;
   side: number;
+  /** 竖屏版（0.33.0）才有：单列里各排的位置 */
+  pt?: PortraitGeo;
+}
+
+/** 竖屏版单列：人设卡 3+2、难度徽章 4+4、档位卡 2×2，「娱乐 | 实盘」挪进标题行，「短局 | 完整一年」单独一排 */
+interface PortraitGeo {
+  cols: number;
+  modeX0: number;
+  lengthY: number;
+  badgeCols: number;
+  badgeRowH: number;
+  tierY: number;
+  gearY: number;
+  /** 实盘：杠杆风险那一行的上沿 */
+  liveDiffY: number;
+  /** 底部按钮上面一排（叠加的难度 / 没结的实盘 / 钱包）的中线 */
+  stackY: number;
 }
 
 const DESKTOP: Geo = { w: W, h: H, cardW: CARD_W, cardH: CARD_H, cardGap: CARD_GAP, cardsY: CARDS_Y, badge: BADGE, badgesY: BADGES_Y, personaY: CARDS_Y + CARD_H + 20, diffY: BADGES_Y + BADGE / 2 + 48, side: 32 };
@@ -100,6 +117,38 @@ function phoneGeo(v: { w: number; h: number }): Geo {
     personaY: 184,
     diffY: 309 + Math.round(extra * 0.7),
     side,
+  };
+}
+
+/**
+ * 竖屏版（0.33.0）：面板 388 宽、高 694（360×640）到 850 左右（390×844）。从上到下：标题行（标题 + 娱乐 | 实盘）、
+ * 短局 | 完整一年、人设卡两排、人设一行、难度徽章两排、难度两行，最下面叠加的难度一排和返回 / 开局。比 694 高出来的匀给徽章和难度行。
+ */
+function portraitGeo(v: { w: number; h: number }, live: boolean): Geo {
+  const { w, h } = v;
+  const side = 16;
+  const gap = 8;
+  const extra = Math.max(0, h - 694);
+  const cardH = 110;
+  const cardsY = live ? 62 : 110;
+  const personaY = cardsY + cardH * 2 + gap + 18;
+  const badgesY = personaY + 61 + Math.round(extra * 0.1);
+  const badgeRowH = 80 + Math.round(extra * 0.2);
+  const tierY = personaY + 26 + Math.round(extra * 0.15);
+  const gearY = tierY + 78 * 2 + gap + 10 + Math.round(extra * 0.1);
+  return {
+    w,
+    h,
+    cardW: Math.floor((w - side * 2 - gap * 2) / 3),
+    cardH,
+    cardGap: gap,
+    cardsY,
+    badge: 40,
+    badgesY,
+    personaY,
+    diffY: badgesY + badgeRowH + 72 + Math.round(extra * 0.2),
+    side,
+    pt: { cols: 3, modeX0: 118, lengthY: 62, badgeCols: 4, badgeRowH, tierY, gearY, liveDiffY: gearY + 44, stackY: h - 52 - 30 },
   };
 }
 
@@ -200,7 +249,7 @@ export class SetupPanel extends Dialog {
   private startBtn: Button | null = null;
 
   constructor(scene: Phaser.Scene, opts: SetupOpts) {
-    const g = phoneLayout(scene) ? phoneGeo(phonePanel(scene)) : DESKTOP;
+    const g = !phoneLayout(scene) ? DESKTOP : PORTRAIT ? portraitGeo(phonePanel(scene), !!opts.live) : phoneGeo(phonePanel(scene));
     super(scene, g.w, g.h, '新一局', undefined, SOLID_BACKDROP_ALPHA);
     this.g = g;
     const W = g.w;
@@ -215,8 +264,14 @@ export class SetupPanel extends Dialog {
     this.short = opts.initial.short;
 
     const people = personasView();
-    const x0 = (W - (g.cardW * people.length + g.cardGap * (people.length - 1))) / 2;
-    people.forEach((p, i) => this.personaCard(p, x0 + i * (g.cardW + g.cardGap), g.cardsY, unlockedP(p.id), opts.anim));
+    // 一排几张（竖屏 3 张一排，第二排居中）
+    const cols = g.pt?.cols ?? people.length;
+    people.forEach((p, i) => {
+      const row = Math.floor(i / cols);
+      const inRow = Math.min(cols, people.length - row * cols);
+      const x0 = (W - (g.cardW * inRow + g.cardGap * (inRow - 1))) / 2;
+      this.personaCard(p, x0 + (i % cols) * (g.cardW + g.cardGap), g.cardsY + row * (g.cardH + g.cardGap), unlockedP(p.id), opts.anim);
+    });
     // 选中的人设：一行「本钱 · 一句短话」
     const ly = g.personaY;
     this.personaMoney = addText(scene, W / 2, ly, '', { size: TYPE.title, bold: true, num: true, color: COLOR.accentDark, originX: 1, originY: 0.5 });
@@ -233,28 +288,31 @@ export class SetupPanel extends Dialog {
     else {
       const levels = difficultiesView();
       const edge = g === DESKTOP ? 42 : g.side;
-      const slot = (W - edge * 2) / levels.length;
-      levels.forEach((d, i) => this.badge(d.level, d.name, edge + slot * i + slot / 2, opts.anim));
+      const cols = g.pt?.badgeCols ?? levels.length;
+      const slot = (W - edge * 2) / cols;
+      levels.forEach((d, i) => this.badge(d.level, d.name, edge + slot * (i % cols) + slot / 2, g.badgesY + Math.floor(i / cols) * (g.pt?.badgeRowH ?? 0), opts.anim));
     }
     if (opts.onMode) this.modeSwitch(opts.onMode);
     if (!this.live) this.lengthSwitch();
     // 手机：开局在右下角（150×46，底边留 6），左边依次是返回、叠加的徽章；实盘的两行说明太长，第二行挪到底下一排中间换行
     const phoneStartW = 150;
     const phoneSy = H - 52;
-    const phoneMidX = g.side + 100 + 10;
+    // 竖屏：叠加的难度、没结的实盘、钱包那行单独在按钮上面一排，从左边起
+    const phoneMidX = g.pt ? g.side : g.side + 100 + 10;
+    const stackY = g.pt ? g.pt.stackY : phoneSy + 23;
     const liveWrap = g !== DESKTOP && !!this.live;
     this.diffText = addText(scene, W / 2, g.diffY, '', { size: TYPE.title, color: COLOR.ink, originX: 0.5, originY: 0.5, wrap: g === DESKTOP ? undefined : W - 32, lineSpacing: 0 });
-    this.diffDesc = addText(scene, W / 2, g.diffY + (g === DESKTOP ? 26 : 18), '', { size: TYPE.label, color: COLOR.muted, originX: 0.5, originY: 0.5, wrap: liveWrap ? W - phoneStartW - g.side - 12 - phoneMidX : undefined, lineSpacing: 0 });
-    this.stack = scene.add.container(g === DESKTOP ? 176 : phoneMidX, g === DESKTOP ? H - 42 : phoneSy + 23);
+    this.diffDesc = addText(scene, W / 2, g.diffY + (g === DESKTOP ? 26 : 18), '', { size: TYPE.label, color: COLOR.muted, originX: 0.5, originY: 0.5, wrap: liveWrap ? (g.pt ? W - g.side * 2 : W - phoneStartW - g.side - 12 - phoneMidX) : undefined, lineSpacing: 0 });
+    this.stack = scene.add.container(g === DESKTOP ? 176 : phoneMidX, g === DESKTOP ? H - 42 : stackY);
     this.diffStars = scene.add.container(0, g.diffY);
     this.inner.add([this.diffText, this.diffDesc, this.stack, this.diffStars]);
     // 0.11.0 实盘：档位卡下面多了一排杠杆，杠杆的风险和钱包那两行往下挪
     if (this.live) {
-      this.diffText.setY(g === DESKTOP ? 566 : 314).setFontSize(g === DESKTOP ? 16 : 14);
+      this.diffText.setY(g === DESKTOP ? 566 : (g.pt?.liveDiffY ?? 314)).setFontSize(g === DESKTOP ? 16 : 14);
       if (g === DESKTOP) this.diffDesc.setY(588);
       else {
         this.diffText.setOrigin(0.5, 0);
-        this.diffDesc.setOrigin(0, 0.5).setPosition(phoneMidX, phoneSy + 23);
+        this.diffDesc.setOrigin(0, 0.5).setPosition(phoneMidX, stackY);
       }
     }
 
@@ -274,15 +332,16 @@ export class SetupPanel extends Dialog {
     const mid = g === DESKTOP ? H - 43 : sy + sh / 2;
     const back = new Button(scene, g.side, mid - 19, { width: g === DESKTOP ? 120 : 100, height: 40, label: '返回', fontSize: 15, hotkey: 'Esc' });
     back.setHandler(() => this.close());
-    // 这个组合的最好成绩：奖杯 + 数字，完整说法在悬停
-    const bx = W - g.side - sw - 20;
-    const cup = addGlyph(scene, bx - 6, mid, 'trophy', 30);
-    this.best = addText(scene, bx - 28, mid, '', { size: TYPE.label, bold: true, num: true, color: COLOR.muted, originX: 1, originY: 0.5 });
+    // 这个组合的最好成绩：奖杯 + 数字，完整说法在悬停（竖屏挪到按钮上面一排的右端）
+    const bx = g.pt ? W - g.side - 9 : W - g.side - sw - 20;
+    const bestMid = g.pt ? stackY : mid;
+    const cup = addGlyph(scene, bx - 6, bestMid, 'trophy', 30);
+    this.best = addText(scene, bx - 28, bestMid, '', { size: TYPE.label, bold: true, num: true, color: COLOR.muted, originX: 1, originY: 0.5 });
     // 点击区：手机上至少 50 高、宽 130（奖杯加数字）
     const bhw = g === DESKTOP ? 190 : 130;
     const bhh = g === DESKTOP ? 40 : 50;
-    const bestHit = scene.add.rectangle(bx - bhw, mid - bhh / 2, bhw, bhh, 0xffffff, 0.001).setOrigin(0, 0);
-    bindTooltip(bestHit, () => ({ x: this.inner.x + bx - bhw, y: this.inner.y + mid - bhh / 2, w: bhw, h: bhh }), () => ({ title: '这个组合的最好成绩', body: bestText(this.profile.best[bestKey(this.persona, this.difficulty, this.short)]) }));
+    const bestHit = scene.add.rectangle(bx - bhw, bestMid - bhh / 2, bhw, bhh, 0xffffff, 0.001).setOrigin(0, 0);
+    bindTooltip(bestHit, () => ({ x: this.inner.x + bx - bhw, y: this.inner.y + bestMid - bhh / 2, w: bhw, h: bhh }), () => ({ title: '这个组合的最好成绩', body: bestText(this.profile.best[bestKey(this.persona, this.difficulty, this.short)]) }));
     this.inner.add([start, back, cup, this.best, bestHit]);
     // 实盘没有"这个组合的最好成绩"
     if (this.live) for (const o of [cup, this.best, bestHit]) o.setVisible(false);
@@ -374,13 +433,12 @@ export class SetupPanel extends Dialog {
     }
   }
 
-  private badge(level: number, name: string, cx: number, anim: Animator): void {
+  private badge(level: number, name: string, cx: number, BADGES_Y: number, anim: Animator): void {
     const s = this.scene;
     const BADGE = this.g.badge;
-    const BADGES_Y = this.g.badgesY;
-    // 点击区域：电脑 120 宽；手机一格按面板宽均分（SE 上 84），比格宽小 2
+    // 点击区域：电脑 120 宽；手机一格按面板宽均分（SE 上 84，竖屏一排 4 枚约 89），比格宽小 2
     const phone = this.g !== DESKTOP;
-    const hw = phone ? Math.floor((this.g.w - this.g.side * 2) / difficultiesView().length) - 2 : 120;
+    const hw = phone ? Math.floor((this.g.w - this.g.side * 2) / (this.g.pt?.badgeCols ?? difficultiesView().length)) - 2 : 120;
     const unlocked = isDifficultyUnlocked(this.profile, level);
     const c = s.add.container(cx, BADGES_Y);
     const art = addBadge(s, 0, 0, level, BADGE);
@@ -436,13 +494,15 @@ export class SetupPanel extends Dialog {
   private lengthSwitch(): void {
     const s = this.scene;
     const desk = this.g === DESKTOP;
-    const bw = desk ? 140 : 118;
-    const bh = desk ? 38 : 34;
-    const y = desk ? 18 : 12;
-    const x0 = desk ? 170 : 120;
+    const pt = this.g.pt;
+    // 竖屏：单独一排，两段各占一半
+    const bw = desk ? 140 : pt ? Math.floor((this.g.w - this.g.side * 2 - 8) / 2) : 118;
+    const bh = desk ? 38 : pt ? 38 : 34;
+    const y = desk ? 18 : pt ? pt.lengthY : 12;
+    const x0 = desk ? 170 : pt ? this.g.side : 120;
     const btns: Button[] = [];
     ([[true, `短局 · ${BALANCE.short.months} 个月`], [false, '完整一年']] as const).forEach(([short, label], i) => {
-      const b = new Button(s, x0 + i * (bw + (desk ? 8 : 6)), y, { width: bw, height: bh, label, fontSize: desk ? 15 : 13 });
+      const b = new Button(s, x0 + i * (bw + (desk ? 8 : pt ? 8 : 6)), y, { width: bw, height: bh, label, fontSize: desk ? 15 : pt ? 15 : 13 });
       b.setSelected(short === this.short);
       b.setHandler(() => {
         if (short === this.short) return;
@@ -471,7 +531,7 @@ export class SetupPanel extends Dialog {
     const bh = desk ? 38 : 34;
     const y = desk ? 18 : 12;
     // 手机：「短局 | 完整一年」占了 120–362，开关挪到它右边，别压住
-    const x0 = desk || this.live ? this.g.w / 2 - bw - 4 : Math.max(this.g.w / 2 - bw - 4, 120 + 118 * 2 + 6 + 14);
+    const x0 = this.g.pt ? this.g.pt.modeX0 : desk || this.live ? this.g.w / 2 - bw - 4 : Math.max(this.g.w / 2 - bw - 4, 120 + 118 * 2 + 6 + 14);
     ([['fun', '娱乐'], ['live', '实盘']] as const).forEach(([mode, label], i) => {
       const on = (mode === 'live') === !!this.live;
       const b = new Button(s, x0 + i * (bw + 8), y, { width: bw, height: bh, label, fontSize: FS.md, icon: mode === 'live' ? 'moneybag' : undefined });
@@ -494,13 +554,16 @@ export class SetupPanel extends Dialog {
     const s = this.scene;
     const desk = this.g === DESKTOP;
     const gap = desk ? 16 : 8;
-    const cw = desk ? 260 : Math.floor((this.g.w - this.g.side * 2 - gap * 3) / 4);
+    // 竖屏 2×2
+    const cols = this.g.pt ? 2 : LIVE_TIERS.length;
+    const cw = desk ? 260 : Math.floor((this.g.w - this.g.side * 2 - gap * (cols - 1)) / cols);
     const ch = desk ? 106 : 78;
     // 上面是人设的一句介绍（电脑到 y≈400；手机上只有人设那一行，到 y≈194），卡片从它下面开始；下面是杠杆那一排
-    const y = desk ? 406 : 198;
-    const x0 = (this.g.w - (cw * LIVE_TIERS.length + gap * (LIVE_TIERS.length - 1))) / 2;
+    const y0 = desk ? 406 : (this.g.pt?.tierY ?? 198);
+    const x0 = (this.g.w - (cw * cols + gap * (cols - 1))) / 2;
     LIVE_TIERS.forEach((t, i) => {
-      const x = x0 + i * (cw + gap);
+      const x = x0 + (i % cols) * (cw + gap);
+      const y = y0 + Math.floor(i / cols) * (ch + gap);
       const c = s.add.container(x, y);
       const afford = this.affords(t.stake);
       const d = difficultiesView()[t.difficulty - 1];
@@ -549,10 +612,10 @@ export class SetupPanel extends Dialog {
   private gearRow(): void {
     const s = this.scene;
     const desk = this.g === DESKTOP;
-    const bw = desk ? 150 : 118;
-    const bh = desk ? 34 : 28;
     const gap = desk ? 12 : 8;
-    const y = desk ? 520 : 282;
+    const bw = desk ? 150 : this.g.pt ? Math.floor((this.g.w - this.g.side * 2 - gap * 2) / 3) : 118;
+    const bh = desk ? 34 : this.g.pt ? 34 : 28;
+    const y = desk ? 520 : (this.g.pt?.gearY ?? 282);
     const x0 = (this.g.w - (bw * 3 + gap * 2)) / 2;
     const btns: Button[] = [];
     [1, 2, 3].forEach((x, i) => {

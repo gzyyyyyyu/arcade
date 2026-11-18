@@ -16,7 +16,7 @@ import { randomSeed } from '../session.ts';
 import { addBackdrop } from '../fx/effects.ts';
 import type { Session } from '../session.ts';
 import { sound } from '../sound.ts';
-import { COLOR, FS, GAME_WIDTH, LOW_MEMORY, PHONE } from '../theme.ts';
+import { COLOR, FS, GAME_WIDTH, LOW_MEMORY, PHONE, PORTRAIT } from '../theme.ts';
 import { addGlyph, addImage, addPill } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
@@ -38,7 +38,7 @@ import type { ChallengeFail, ChallengeView } from '../../platform/challenge.ts';
 import { hideHomeTip, showHomeTip } from '../../platform/viewportFit.ts';
 import { Room } from '../trade/room.ts';
 import { bleedOf, coverOf, phoneLayout, viewOf } from '../viewport.ts';
-import { phoneHome } from '../meta/homeGeo.ts';
+import { phoneHome, portraitHome } from '../meta/homeGeo.ts';
 import { BaseScene } from './BaseScene.ts';
 
 /**
@@ -72,6 +72,8 @@ const CROWD: readonly [number, number, number][] = [
 const CLOUDS: readonly [number, number, number][] = [[192, 376, 1], [1104, 336, 0.86], [448, 448, 0.64], [896, 472, 0.72], [-170, 320, 0.8], [1460, 390, 0.86]];
 
 type Item = { key: string; label: string; fn: () => void };
+/** 山坡下沿的草色（竖屏版往下铺草地用） */
+const GRASS = 0x87bd5f;
 
 export class TitleScene extends BaseScene {
   protected override readonly phoneReady = PHONE;
@@ -102,7 +104,8 @@ export class TitleScene extends BaseScene {
     this.profile = loadProfile().profile;
     const ph = phoneLayout(this);
     const V0 = viewOf(this);
-    this.G = ph ? phoneHome(V0.w, V0.h, standalone() ? 4 : 5) : null;
+    const n = standalone() ? 4 : 5;
+    this.G = !ph ? null : PORTRAIT ? portraitHome(V0.w, V0.h, n, this.canContinue()) : phoneHome(V0.w, V0.h, n);
     const G = this.G;
     const art = titleArtReady(this.textures);
     if (art) this.buildArt(ph);
@@ -175,7 +178,10 @@ export class TitleScene extends BaseScene {
     const hills = this.layer(8);
     const h = this.at(640, 664);
     if (this.G) h.y = this.G.hillsY;
-    hills.add(addImage(this, h.x, h.y, TITLE_ART.hills.key, TITLE_ART.hills.w * h.k, TITLE_ART.hills.h * h.k));
+    const hillH = TITLE_ART.hills.h * h.k;
+    // 竖屏版山坡底下还有两行模式卡和大卡：往下铺一块草地，卡片之间的缝里看到的不是天
+    if (PORTRAIT && this.G) hills.add(this.add.rectangle(coverOf(this).x, h.y, coverOf(this).w, coverOf(this).h, GRASS).setOrigin(0, 0));
+    hills.add(addImage(this, h.x, h.y, TITLE_ART.hills.key, TITLE_ART.hills.w * h.k, hillH));
     const house = this.layer(10);
     const hs = this.at(696, 571);
     house.add(addImage(this, hs.x, hs.y, TITLE_ART.house.key, TITLE_ART.house.w * hs.k, TITLE_ART.house.h * hs.k));
