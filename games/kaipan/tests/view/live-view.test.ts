@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createRun, liveSetup, runSummary, type RunSummary } from '../../src/core/index.ts';
+import { createRun, formatMoney, liveSetup, runSummary, type RunSummary } from '../../src/core/index.ts';
 import { emptyProfile, recordRun } from '../../src/platform/profile.ts';
 import type { LiveRecord } from '../../src/platform/live.ts';
-import { LIVE_GUARD, LIVE_LOBBY_CONFIRM, LIVE_RULE, buyinFailText, chips, chipsDiff, liveEndText, liveNoticeTitle, quitConfirm } from '../../src/view/liveText.ts';
+import { LIVE_GUARD, LIVE_LOBBY_CONFIRM, LIVE_RULE, buyinFailText, chips, chipsDiff, liveEndText, liveLedger, liveNoticeTitle, quitConfirm } from '../../src/view/liveText.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 
 /** 0.6.0 实盘在画面这一层的规矩：说话的分寸（设计稿第 5 节）、档案只记图鉴（第 7 节）。 */
@@ -129,5 +129,30 @@ describe('档案：实盘局只记图鉴', () => {
   it('结算页的数：档位、一份、按倍数结回多少', () => {
     const s = createRun('live-sum', liveSetup('big'), { ext: true }).state;
     expect(runSummary(s).live).toMatchObject({ tier: 'big', stake: 50_000, value: 50_000, bp: 10_000, clean: true });
+  });
+});
+
+describe('0.32.0 实盘结束页的账本', () => {
+  const base = { tradeMoney: 5070, billMoney: 4760, otherMoney: 0 };
+  const lv = (over: Partial<NonNullable<RunSummary['live']>> = {}): NonNullable<RunSummary['live']> => ({
+    months: 5, start: 100_000, assets: 100_310, bp: 10_086, tier: 'small', stake: 2_000, value: 2_017, clean: true, gear: 1, margin: false, lev: 2.8, ...over,
+  });
+  it('炒股赚的、生活费吃掉的、资产涨跌、按几倍算，一句讲清', () => {
+    expect(liveLedger({ ...base, live: lv() })).toBe('炒股 +¥5,070，生活费 -¥4,760；资产比开局 +0.3%，按 2.8 倍算进筹码。');
+  });
+  it('开了杠杆一起写；其他收支不是 0 才写；亏了照实写', () => {
+    expect(liveLedger({ ...base, otherMoney: 1200, live: lv({ gear: 2, assets: 101_510 }) })).toBe('炒股 +¥5,070，生活费 -¥4,760，其他 +¥1,200；资产比开局 +1.5%，按 2.8 倍、再乘杠杆 ×2算进筹码。');
+    expect(liveLedger({ tradeMoney: -3000, billMoney: 4760, otherMoney: 0, live: lv({ assets: 92_240 }) })).toBe('炒股 -¥3,000，生活费 -¥4,760；资产比开局 -7.8%，按 2.8 倍算进筹码。');
+  });
+  it('老局（涨跌倍数 1）不写倍数；旧存档没有炒股合计、不是实盘的局为 null', () => {
+    expect(liveLedger({ ...base, live: lv({ lev: 1 }) })).toBe('炒股 +¥5,070，生活费 -¥4,760；资产比开局 +0.3%。');
+    expect(liveLedger({ ...base, tradeMoney: null, live: lv() })).toBeNull();
+    expect(liveLedger({ ...base, live: null })).toBeNull();
+  });
+  it('真打完的一局：账本和结算的数对得上', () => {
+    const sum = runSummary(playRun('live-ledger', botByName('normal'), liveSetup('small')));
+    const line = liveLedger(sum);
+    expect(line).toContain(`炒股 ${formatMoney(sum.tradeMoney ?? 0, { sign: true })}`);
+    expect(sum.live?.lev).toBeGreaterThan(1);
   });
 });

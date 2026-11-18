@@ -151,6 +151,8 @@ export function createRun(seed: string, setup: RunSetup | null = null, opts: Cre
   for (const id of themeIds) themes[id] = real ? warmUpReal(real, id) : warmUpTheme(seed, id);
   const account = setup?.account ?? personaAccount(persona);
   const rules0 = rulesFor([], difficulty, persona);
+  // 真实行情的普通局：每日挑战、闪电盘、本周市场、实盘之外的局，新主题和新的目标规则只给它们（那几种要和排行榜、配平表对得上）
+  const regular = !!real && setup?.daily === undefined && setup?.flash === undefined && setup?.weekly === undefined && setup?.live === undefined;
   const s: GameState = {
     version: 4,
     seed,
@@ -186,7 +188,7 @@ export function createRun(seed: string, setup: RunSetup | null = null, opts: Cre
     actions: [],
     real,
     ...(opts.ext ? { ext: newExt() } : {}),
-    ...((opts.tempo ?? !!real) ? { tempo: newTempo(seed, difficulty, real, !!opts.ext, !!real && setup?.daily === undefined && setup?.flash === undefined && setup?.weekly === undefined && setup?.live === undefined), watch: [] } : {}),
+    ...((opts.tempo ?? !!real) ? { tempo: newTempo(seed, difficulty, real, !!opts.ext, regular), watch: [] } : {}),
   };
   const em: Emitter = { events: [], enabled: true };
   for (const def of FRIENDS) if (def.founding) addFriend(s, def.id, em);

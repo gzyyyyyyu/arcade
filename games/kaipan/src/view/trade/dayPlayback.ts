@@ -1,4 +1,4 @@
-import { BALANCE, faceOf, formatMoney, formatPoints, ipoToday, itemView, monthThemeView, stockById, swanNotice, type GameEvent, type GameState, type HoldingMove, type StockMove } from '../../core/index.ts';
+import { BALANCE, faceOf, formatMoney, formatPoints, ipoToday, itemView, monthThemeView, runMonths, shortNeed, stockById, swanNotice, type GameEvent, type GameState, type HoldingMove, type StockMove } from '../../core/index.ts';
 import { floatText, pop, shake } from '../fx/effects.ts';
 import { swanCurtain, swanGlow } from '../fx/swan.ts';
 import { ipoDraw, ipoGlow } from '../fx/ipo.ts';
@@ -6,7 +6,7 @@ import { fireworks, rainCloud } from '../fx/particles.ts';
 import { isTouch } from '../input.ts';
 import { sound } from '../sound.ts';
 import { COLOR, PHONE as PHONE_MODE, VIEW, signColor } from '../theme.ts';
-import { pctArrow } from '../labels.ts';
+import { downPaymentRow, pctArrow } from '../labels.ts';
 import { addText } from '../ui/text.ts';
 import { hideTooltip } from '../ui/tooltip.ts';
 import { playBill } from '../trade/monthEnd.ts';
@@ -372,10 +372,13 @@ export class DayPlayback {
       // 本月目标写在账单上
       const mt = monthThemeView(prev);
       const goal = mt ? { name: mt.name, done: mt.goal.done || !!first(events, 'goalDone') } : undefined;
+      // 0.32.0 短局：还上了、又不是最后一个月，账单里多一行收据：剩下的账单加首付还差多少（最后一个月的账单里已经含着首付）
+      const dp = paid && paid.month < runMonths(prev) ? shortNeed(next) : null;
+      const downPayment = paid && dp ? downPaymentRow(paid.after, dp.need) : undefined;
       const quick = loadViewPrefs().bill === 'quick';
       a.relax();
       this.s.room.setTime('night', a);
-      const bill = await playBill(this.s, a, { ...info, goal }, quick);
+      const bill = await playBill(this.s, a, { ...info, goal, downPayment }, quick);
       if (paid) this.s.top.setAccount(paid.after);
       if (billBank) await this.s.month.playBank(events);
       if (called) {

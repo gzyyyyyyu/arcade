@@ -117,7 +117,15 @@ export function runBillMult(setup: Readonly<RunSetup> | null): number {
 
 export function rulesOf(s: Readonly<GameState>): Rules {
   const cur = s.tempo?.cur;
-  const mod = cur && cur.month === s.month && isMonthThemeId(cur.id) ? monthThemeById(cur.id).rules : undefined;
+  return runRules(s, cur && cur.month === s.month && isMonthThemeId(cur.id) ? monthThemeById(cur.id).rules : undefined);
+}
+
+/** 不带月度主题的规则表：以后几个月的主题还没公布，估那几个月的常规月供时用（topbar.ts 的 shortNeed）。 */
+export function rulesWithoutTheme(s: Readonly<GameState>): Rules {
+  return runRules(s, undefined);
+}
+
+function runRules(s: Readonly<GameState>, mod: Parameters<typeof rulesFor>[4]): Rules {
   const r = rulesFor(s.items, s.difficulty, s.persona, s.real?.track ? s.real.regime : false, mod, !!s.setup?.short);
   // 0.6.0 实盘、0.10.0 娱乐短局：常规月供整体打折（突发账单在 surprisePlan 里打同样的折）
   r.billMult *= runBillMult(s.setup);

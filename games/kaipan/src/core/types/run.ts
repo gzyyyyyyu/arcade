@@ -298,6 +298,8 @@ export interface TempoState {
   results: { month: number; id: string; done: boolean }[];
   /** 小奖励、月度奖励累计发的钱（元） */
   bonus: number;
+  /** 月度目标的规则版本（tempo.ts 的 GOAL_RULES）；没有 = 1（0.32.0 以前开的局，以及每日挑战、闪电盘、本周市场、实盘） */
+  goalRules?: number;
 }
 
 /** 0.5：一次高光。 */

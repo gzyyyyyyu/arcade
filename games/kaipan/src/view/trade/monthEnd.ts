@@ -42,6 +42,8 @@ interface BillInfo {
   interest?: number;
   /** 0.17.0 有月度目标的月份：目标叫什么、达成没有（写在账单上，以前是窗户里一行小字） */
   goal?: { name: string; done: boolean };
+  /** 0.32.0 短局（最后一个月之外）：剩下的账单加首付还差多少，作为一行收据（labels.ts 的 downPaymentRow） */
+  downPayment?: { label: string; value: string; enough: boolean };
 }
 
 
@@ -86,6 +88,7 @@ export async function playBill(scene: Phaser.Scene, anim: Animator, b: BillInfo,
   rows.push(['还前账户', formatMoney(b.before), COLOR.muted, b.before]);
   // 这笔账单吃掉账户的几成：保守打法被账单慢慢放血时一眼看得出来（也补上收据中间那行空线）
   if (b.before > 0 && rows.length < 4) rows.push(['占账户', `${Math.min(999, Math.round((b.amount / b.before) * 100))}%`, b.amount > b.before ? COLOR.danger : COLOR.muted]);
+  if (b.downPayment) rows.push([b.downPayment.label, b.downPayment.value, b.downPayment.enough ? COLOR.up : COLOR.accentDark]);
   const step = rows.length <= 3 ? 44 : Math.floor(170 / rows.length);
   rows.forEach(([k, v, color, money], i) => row(98 + i * step, k, v, color, money));
   const totalLabel = b.paid ? (b.credit ? `${itemView('credit').name}垫上了` : '剩下') : '还差';

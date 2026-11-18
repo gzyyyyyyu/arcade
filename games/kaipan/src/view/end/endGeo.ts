@@ -1,6 +1,4 @@
 import { GAME_WIDTH, TYPE } from '../theme.ts';
-import { setWrap } from '../ui/text.ts';
-import type Phaser from 'phaser';
 
 const W = 960;
 const H = 600;
@@ -78,30 +76,3 @@ export function phoneGeo(V: { w: number; h: number }): Geo {
   };
 }
 
-/**
- * 一行放不下时按逗号、分号分行，不在句子中间按字数硬折（硬折会把「上岸」的「岸」单独甩到下一行）。
- * 只靠量宽度（t.width），文字要用不带 wrap 的 addText 先建好；某一小句自己就超宽时才退回按字折行。
- */
-export function clauseWrap(t: Phaser.GameObjects.Text, width: number): Phaser.GameObjects.Text {
-  const full = t.text;
-  if (t.width <= width) return t;
-  const lines: string[] = [];
-  let cur = '';
-  // 不用正则的后行断言：iOS 16.4 以前的 Safari 不认
-  for (const part of (full.match(/[^，；、]*[，；、]?/g) ?? [full]).filter((p) => p !== '')) {
-    t.setText(cur + part);
-    if (cur && t.width > width) {
-      lines.push(cur);
-      cur = part;
-    } else cur += part;
-  }
-  lines.push(cur);
-  let tooWide = false;
-  for (const l of lines) {
-    t.setText(l);
-    if (t.width > width) tooWide = true;
-  }
-  t.setText(lines.join('\n'));
-  if (tooWide) setWrap(t, width);
-  return t;
-}

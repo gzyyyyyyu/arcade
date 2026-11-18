@@ -3,7 +3,8 @@ import { CALENDAR, calendarOf, difficultyDef, eventById, personaAccount, persona
 import { liveTierOf, liveValue } from '../live.ts';
 import { weeklyInfo, weeklyRule } from '../weekly.ts';
 import type { WeeklyRuleId } from '../weekly.ts';
-import { daysInMonth, daysLeftInMonth, flashDays, isBusy, isFlash, swanNotice } from '../engine/index.ts';
+import { billFor, daysInMonth, daysLeftInMonth, flashDays, isBusy, isFlash, runMonths, shortGoal, swanNotice } from '../engine/index.ts';
+import { rulesWithoutTheme } from '../market.ts';
 import { WEATHER_LABEL } from '../labels.ts';
 import type { BillExtra, GameState, MarketNotice, SwanNotice, Mood, PersonaId } from '../types.ts';
 import { type ItemView, itemView } from './items.ts';
@@ -118,6 +119,24 @@ export function billView(s: Readonly<GameState>): BillView {
     enough: s.account >= s.bill.amount,
     credit: s.items.includes('credit'),
   };
+}
+
+/**
+ * 0.32.0 娱乐短局：到最后一个月月底还要交多少——还没交的各月账单加首付（顶栏账户下面一行、月底账单的一行收据用）。
+ * 还没交的这个月用已经公布的账单（s.bill，最后一个月里已含首付）；以后几个月的主题和突发账单要到月初才公布，不能透露，
+ * 只按不带主题的规则表估常规月供（下个月乘上已经公布的 nextBillMult），所以是个估计（顶栏的悬停里说明）。不是短局为 null。
+ */
+export function shortNeed(s: Readonly<GameState>): { goal: number; need: number } | null {
+  const goal = shortGoal(s);
+  if (goal <= 0) return null;
+  const last = runMonths(s);
+  const rules = rulesWithoutTheme(s);
+  let need = 0;
+  for (let m = s.stats.billsPaid + 1; m <= last; m++) {
+    if (m === s.bill.month) need += s.bill.amount;
+    else need += billFor(m, rules, m === s.month + 1 ? s.nextBillMult : 1) + (m === last ? goal : 0);
+  }
+  return { goal, need };
 }
 
 export interface CalendarView {
