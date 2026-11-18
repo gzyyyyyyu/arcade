@@ -85,19 +85,19 @@ const tag = (name: string, id: string): string => `${name}（${id}）`;
 /** 实盘局这个角色是不是还走老卡池（开一个实盘局读 World.oldPool；规则 51 起是否，和娱乐同池） */
 const oldPool = (ch: CharacterId): boolean => createWorld({ seed: SEED, mode: 'vigil', danger: 2, map: 'snow', character: ch, perks: {}, assist: false, live: true }).oldPool;
 /** 实盘局这个角色拿不拿得到（和 core/step.ts cardAllowed 同一套判断） */
-const liveHas = (ch: CharacterId, id: string): boolean => (oldPool(ch) ? liveAllows(true, id) || !!LIVE_OWN_ARMS[ch]?.includes(id) : inPool(ch, id, false));
+const liveHas = (ch: CharacterId, id: string): boolean => (oldPool(ch) ? liveAllows(true, id) || !!LIVE_OWN_ARMS[ch]?.includes(id) : inPool(ch, id, 61));
 
 export const CHAR_CATEGORIES = ['法器', '被动', '进化', '合成'] as const;
 
 /** 按角色比：这个角色娱乐局能拿到（角色池 inPool）、实盘局拿不到的法器、被动、进化、合成 */
 export function charGaps(ch: CharacterId): Record<(typeof CHAR_CATEGORIES)[number], string[]> {
-  const weapons = WEAPON_IDS.filter((id) => inPool(ch, id, false) && !liveHas(ch, id));
-  const passives = PASSIVE_IDS.filter((id) => inPool(ch, id, false) && !liveHas(ch, id));
+  const weapons = WEAPON_IDS.filter((id) => inPool(ch, id, 61) && !liveHas(ch, id));
+  const passives = PASSIVE_IDS.filter((id) => inPool(ch, id, 61) && !liveHas(ch, id));
   const evolves = WEAPON_IDS.filter((id) => {
     const e = WEAPONS[id].evolve;
-    return !!e && inPool(ch, id, false) && inPool(ch, e.with, false) && !(liveHas(ch, id) && liveHas(ch, e.with));
+    return !!e && inPool(ch, id, 61) && inPool(ch, e.with, 61) && !(liveHas(ch, id) && liveHas(ch, e.with));
   });
-  const merges = MERGES.filter((m) => (!m.only || m.only.split(',').includes(ch)) && inPool(ch, m.a, false) && inPool(ch, m.b, false) && !(liveAllows(oldPool(ch), m.id) && liveHas(ch, m.a) && liveHas(ch, m.b)));
+  const merges = MERGES.filter((m) => (!m.only || m.only.split(',').includes(ch)) && inPool(ch, m.a, 61) && inPool(ch, m.b, 61) && !(liveAllows(oldPool(ch), m.id) && liveHas(ch, m.a) && liveHas(ch, m.b)));
   return {
     法器: weapons.map((id) => tag(WEAPONS[id].name, id)),
     被动: passives.map((id) => tag(PASSIVES[id].name, id)),

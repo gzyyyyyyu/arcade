@@ -76,7 +76,7 @@ export function mergeHint(w: World, card: Choice): MergeHint | null {
     if (w.merges.includes(m.id) && !half) continue;
     // 这个角色合不出的不提示：别人的专属、实盘暂不放的（老卡池）、料或进化被动不在他的法器池里的（content/combos.ts；老卡池不看池）
     if (!mergeFor(m, w.setup.character, (v) => w.contentFrom(v)) || !liveAllows(w.oldPool, m.id)) continue;
-    if (!w.oldPool && who !== 'all' && mergeReach(m, who, poolsFor(w.armsCombos)) !== 'ok') continue;
+    if (!w.oldPool && who !== 'all' && mergeReach(m, who, poolsFor(w.poolRules)) !== 'ok') continue;
     const stage = half ? 'full' : w.mergeStages ? 'half' : undefined;
     const gap = stage === 'half' ? needHalf : need;
     const before = gap(w, m, null);

@@ -85,6 +85,9 @@
 .yx-hud .yx-yy:empty { display: none; }
 .yx-hud .yx-yy.yang { background: #d9482a; color: #fff; }
 .yx-hud .yx-yy.yin { background: #2b2640; color: #e8e4ff; }
+/* 阴阳互换炸了一圈（规则 66）：字放大、亮一下 */
+.yx-hud .yx-yy.flip { animation: yx-yy-flip 0.9s ease-out; }
+@keyframes yx-yy-flip { 0% { transform: translateX(-50%) scale(1); } 20% { transform: translateX(-50%) scale(1.7); box-shadow: 0 0 14px #c0b4ff; } 100% { transform: translateX(-50%) scale(1); } }
 .yx-bars { display: flex; flex-direction: column; gap: 4px; }
 .yx-bar {
   position: relative;

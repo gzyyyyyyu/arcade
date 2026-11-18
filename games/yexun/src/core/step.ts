@@ -92,7 +92,7 @@ import { armsStalls, armsBindBonus, armsFire, armsHitMul, armsRecompute, armsSlo
 import { DIR_N } from './dirs.ts';
 import { clamp, dcos, dirIndex, dsin, fsqrt, INPUT_DIRS, inputCos, inputSin, SLOW_WALK } from './fmath.ts';
 import { Grid } from './grid.ts';
-import { borrowStats, charDmgMul, moveSkillFu, paperLifeMul, paperRefund, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, type SkillOps } from './skills.ts';
+import { borrowStats, charDmgMul, moveSkillFu, paperLifeMul, paperRefund, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, yinyangFlip, type SkillOps } from './skills.ts';
 import { baseStats, Drop, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, WEAPON_SLOTS, World, type Choice, type Setup } from './state.ts';
 
 /** 法器在事件里的编号 */
@@ -271,6 +271,7 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
   if (w.blocks.length) blockEnemies(w);
   // 角色技能（core/skills.ts）：冷却在走、持续中、或这拍按了键才进去
   if (skill !== 0 || w.skill.cd > 0 || w.skill.active > 0) skillStep(w, g, skill !== 0, SKILL_OPS);
+  if (w.setup.character === 'yinyang' && w.identity66) yinyangFlip(w, g);
   fireWeapons(w, g);
   moveShots(w, g);
   dualTick(w, g);
@@ -3749,7 +3750,7 @@ function upgradePassive(w: World, id: PassiveId): void {
 function cardAllowed(w: World, id: WeaponId | PassiveId): boolean {
   if (w.oldPool) return liveAllows(true, id) || (w.liveOwnArms && !!LIVE_OWN_ARMS[w.setup.character ?? 'xiaodao']?.includes(id));
   if (w.weapons.some((o) => o.id === id) || (w.passives as Record<string, number>)[id] !== undefined) return true;
-  return inPool(w.setup.pool ?? w.setup.character, id, w.armsCombos);
+  return inPool(w.setup.pool ?? w.setup.character, id, w.poolRules);
 }
 
 /** 三选一的候选：手上没满级的法器、还能拿的新法器、被动同理 */

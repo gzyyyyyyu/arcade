@@ -282,7 +282,8 @@ export class Hud {
     const yy = s.yy === 'yang' ? '阳' : s.yy === 'yin' ? '阴' : '';
     if (this.yy.textContent !== yy) {
       this.yy.textContent = yy;
-      this.yy.className = `yx-yy${s.yy ? ` ${s.yy}` : ''}`;
+      // 换字时保留正在闪的 flip（阴阳互换那一拍字和闪同时发生）
+      this.yy.className = `yx-yy${s.yy ? ` ${s.yy}` : ''}${this.yy.classList.contains('flip') ? ' flip' : ''}`;
       this.yy.title = s.yy === 'yang' ? '阳：血过半，伤害高一点' : s.yy === 'yin' ? '阴：血不足一半，技能冷却短一点，捆住的怪定得更久' : '';
     }
     this.xpFill.style.width = `${Math.round(s.xp * 100)}%`;
@@ -459,6 +460,13 @@ export class Hud {
   }
 
   /** 技能没解锁时按了 Q / 空格：技能位闪一下提示（重复按就重新闪） */
+  /** 阴阳先生阴阳互换炸了一圈（规则 66）：头像上的阴阳字闪一下，看得出是他触发的 */
+  flashYinyang(): void {
+    this.yy.classList.remove('flip');
+    void this.yy.offsetWidth;
+    this.yy.classList.add('flip');
+  }
+
   flashSkillLocked(): void {
     this.lockTag.classList.remove('on');
     void this.lockTag.offsetWidth;

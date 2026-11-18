@@ -1764,9 +1764,18 @@ export class GameScene extends Phaser.Scene {
     if (type === Ev.SkillUse) {
       const name = a === SK.sweep ? 'skillSweep' : a === SK.volley ? 'skillVolley' : a === SK.dash ? 'skillDash' : a === SK.iron ? 'skillIron' : a === SK.spring ? 'skillSpring' : a === SK.paper ? 'skillPaper' : a === SK.ferry ? 'skillFerry' : a === SK.fortune ? 'skillFortune' : a === SK.array ? 'skillArray' : null;
       if (name) sfx.play(name);
+      // 采药女满血放回春（规则 66）：回不进去的血换成了药香伤害，飘字写多少倍，让人看出伤害来自药香
+      const herb = a === SK.spring ? this.w.skill.store : 0;
+      if (herb > 0) this.items.floatText(x, y - 74, `药香伤害 ×${((1000 + herb) / 1000).toFixed(1)}`, '#7be07b');
     } else if (type === Ev.SkillBeat) {
       if (a === SK.clap) sfx.play('skillClap');
       else if (a === SK.spring) sfx.play('skillSpringTick');
+      else if (a === SK.array) {
+        sfx.play('skillArray');
+        this.d.hud.flashYinyang();
+        // 白字深描边（和伤害数字一样）：浅紫字落在同色的八卦圈上看不清
+        this.items.floatText(x, y - 74, '阴阳互换 · 定身', '#ffffff');
+      }
     } else if (a === SK.iron) sfx.play('skillIronEnd');
     else if (a === SK.array) sfx.play('skillArrayEnd');
   }

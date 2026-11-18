@@ -70,7 +70,7 @@ export const SKILLS: Record<CharacterId, SkillDef> = {
   jianxia: { name: '御剑突进', text: '沿面向冲出一段，穿过的怪挨一刀，冲的时候不挨打', cd: 10 * S, dur: SKILL_FX.dash.invuln, code: 2, icon: 'sk_dash' },
   pang: { name: '铁布衫', text: '3 秒内挨打只掉两成，结束时震开身边的怪', cd: 15 * S, dur: 3 * S, code: 3, icon: 'sk_iron' },
   gengfu: { name: '梆子声声', text: '12 秒里每 2 秒敲一次小梆，近处的怪退一步并受伤', cd: 50 * S, dur: 12 * S, code: 4, icon: 'sk_clap' },
-  caiyao: { name: '回春', text: '立刻回 35% 血，再 6 秒每秒回 3%，期间身边的怪走得慢一半', cd: 40 * S, dur: 6 * S, code: 5, icon: 'sk_spring' },
+  caiyao: { name: '回春', text: '立刻回 35% 血，再 6 秒每秒回 3%，期间身边的怪走得慢一半；满血时回不进去的血变成药香圈的伤害', cd: 40 * S, dur: 6 * S, code: 5, icon: 'sk_spring' },
   zhijiang: { name: '剪纸成军', text: '身边立刻剪出 4 个纸兵，8 秒后散，可超过纸兵的上限', cd: 22 * S, dur: 0, code: 6, icon: 'sk_paper' },
   baidu: { name: '横江一渡', text: '脚下展开一片水域 5 秒：里面你快三成，怪慢四成，跟着你走', cd: 20 * S, dur: 5 * S, code: 7, icon: 'sk_ferry' },
   huolang: { name: '招财进宝', text: '全屏魂珠和铜钱飞到身上，10 秒里打倒的怪多掉一枚铜钱', cd: 30 * S, dur: 10 * S, code: 8, icon: 'sk_fortune' },
@@ -266,10 +266,14 @@ export function useSkill(w: World, g: Grid, ops: SkillOps): void {
       w.ev.push(Ev.SkillUse, w.x, w.y, def.code, def.dur, SKILL_FX.clapper.r);
       clap(w, g, ops);
       break;
-    case 'caiyao':
+    case 'caiyao': {
+      const burst = w.stats.hpMax * SKILL_FX.spring.burst;
+      // 规则 66：满血时回不进去的血变成药香圈的伤害——回不进去的占立刻回的那一下的几成，药香每一下就多几成（store 记千分比，满血 = 翻倍）
+      k.store = w.identity66 ? Math.round((1000 * Math.max(0, burst - (w.stats.hpMax - w.hp))) / burst) : 0;
       w.ev.push(Ev.SkillUse, w.x, w.y, def.code, def.dur, SKILL_FX.spring.slowR);
-      heal(w, w.stats.hpMax * SKILL_FX.spring.burst);
+      heal(w, burst);
       break;
+    }
     case 'zhijiang':
       paperArmy(w, ops);
       break;
@@ -298,9 +302,10 @@ export function tickSkill(w: World, g: Grid, ops: SkillOps): void {
     heal(w, n);
     w.ev.push(Ev.SkillBeat, w.x, w.y, def.code, SKILL_FX.spring.slowR, n);
     // 规则 61：药香圈里的怪每秒受一次伤（回春从「只回血」变成也能清身边）
-    if (w.skillHooks) hitAround(w, g, ops, SKILL_FX.spring.slowR, SKILL_FX.hooks.herbDmg + SKILL_FX.hooks.herbPerLevel * w.level, 0);
+    if (w.skillHooks) hitAround(w, g, ops, SKILL_FX.spring.slowR, ((SKILL_FX.hooks.herbDmg + SKILL_FX.hooks.herbPerLevel * w.level) * (1000 + k.store)) / 1000, 0);
   }
   if (k.active > 0) return;
+  if (id === 'caiyao') k.store = 0;
   if (id === 'pang') {
     knockAround(w, g, w.x, w.y, SKILL_FX.iron.r, SKILL_FX.iron.knock);
     // 规则 61：铁布衫挡下的伤害 × storeMul 震出去（先挨打、再反打）
@@ -310,6 +315,28 @@ export function tickSkill(w: World, g: Grid, ops: SkillOps): void {
     }
   }
   w.ev.push(Ev.SkillEnd, id === 'yinyang' ? w.skill.zx : w.x, id === 'yinyang' ? w.skill.zy : w.y, def.code, id === 'pang' ? SKILL_FX.iron.r : id === 'yinyang' ? SKILL_FX.array.r * w.stats.areaMul : 0);
+}
+
+/**
+ * 阴阳先生·阴阳互换（规则 66）：血量越过一半那一拍（阳 → 阴、阴 → 阳都算），脚下定阵那么大的一圈里的怪定住 yinyangFlipBind 拍（首领除外），
+ * 两个方向共用 yinyangFlipCd 的冷却。发 skillBeat（画面复用定阵的特效，头像上的阴阳字闪一下）。每拍由 step 调用
+ */
+export function yinyangFlip(w: World, g: Grid): void {
+  const side = yinyangSide(w) === 'yang' ? 1 : -1;
+  const f = w.flip;
+  const was = f.side;
+  f.side = side;
+  if (was === 0 || was === side || w.tick < f.next) return;
+  f.next = w.tick + CHAR_FX.yinyangFlipCd;
+  const r = SKILL_FX.array.r * w.stats.areaMul;
+  w.ev.push(Ev.SkillBeat, w.x, w.y, SKILLS.yinyang.code, CHAR_FX.yinyangFlipBind, r);
+  const n = g.query(w, w.x, w.y, r);
+  for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
+  for (let q = 0; q < n; q++) {
+    const i = scratch[q]!;
+    if (ENEMIES[w.eKind[i]!]!.boss) continue;
+    w.eBind[i] = Math.max(w.eBind[i]!, w.tick + CHAR_FX.yinyangFlipBind);
+  }
 }
 
 /** 打 r 以内所有怪一下（从主角往外推 knock） */
