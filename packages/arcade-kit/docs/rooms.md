@@ -56,6 +56,8 @@
 6. 浏览器：`new RoomClient({ url, clientVersion, onMessage, onStatus })`，`sit`、`start`（只有房主能开）、`act`、`leave`、`close`。
    - 收到 `welcome`（进房、重连）整桌重画；收到 `state` 按 `frames` 依次播放（每帧带相对延迟，电脑连续出手时用）；
    - `act` 自动带上 `baseSeq`（看到的最新 seq）；牌局在那之后变过的，房间回 `stale`，界面按最新状态让玩家重新出；
+   - 没确认的 `act` 在重连后按原 `moveId` 补发：最多留 `PENDING_MAX`（8，和房间记得的 moveId 一样多，更早的房间认不出是重发）个、超过 `PENDING_TTL_MS`（60 秒）的丢掉，
+     先发 `RESEND_BATCH`（4）个，其余等前面的有了回音（ack 或被拒）再发，不会一下子撞上房间每人 10 个的令牌桶被 1008 断开；
    - 开打以后换座位有限制（见本文"房间怎么守规矩"的"座位绑人"）：坐过的人回别的座位是 `not_your_seat`，接管别人坐过的电脑座位是 `seat_reserved`，按"座位被占"提示；
    - 大厅和牌桌用这几个字段：
      - `room.seats[i].reserved`：开打后这个座位绑了人（主人离座了也算）。`kind: 'ai'` 且 `reserved` 的座位别人接管不了，不要挂"接管"按钮；
@@ -66,11 +68,13 @@
    - `onStatus('reconnecting', 关闭码)`：正在重连，码是这次断开的原因（1006 网断了、1013 平台忙），可以据此换提示；
    - `onStatus('closed', 关闭码, 原因)`：按码提示（4401 去登录、4005 刷新页面、4503 今天人太多……）；4000 带原因 `CLOSE_REASON.quota` 是今天的额度满了、房间在这一副打完时收场，
      页面可以说"今天联机的人太多了，这一副打完先散了，单机照常玩"；`onStatus('failed')`：连着 `maxFailures`（默认 20）次没进得了房间，提示"连不上"，用户点了调 `retry()`。
-     退避和失败次数在收到 `welcome` 时才清零（被拒的连接也会先 open 再关）。
+     失败次数在收到 `welcome` 时才清零（被拒的连接也会先 open 再关）；退避要进了房间、连着待够 `STABLE_MS`（30 秒）再断才清零，连上就断的链路照样越等越久。
    - 断线怎么认：每 25 秒的心跳和每次切回前台都发一个 `ping`，`PONG_WAIT_MS`（8 秒）内什么都没收到（房间自动回的 `pong` 也算）就判这条连接死了，
      不等 `close`、直接按 1006 重连——iOS 锁屏、切 App 后 socket 常常还显示 OPEN、也不触发 close。建连卡在 CONNECTING 超过 `CONNECT_MS`（10 秒）同样重连。
      监听 `document` 的 `visibilitychange`、`window` 的 `pageshow` 和 `online`：网络恢复、切回前台时别等退避；从往返缓存（bfcache，`pageshow` 带 `persisted`）回来的页面旧连接一律作废。
      测试和非浏览器环境可以传 `events`、`windowEvents` 注入事件源。
+   - 房间那头也清半开的连接：闹钟醒来时，回过 ping、之后 `RoomLimits.deadSocketMs`（默认 90 秒）没再回过的连接关掉（1001，客户端照常重连；从没回过 ping 的不管：不发心跳的旧页面、测试连接不会被误关），
+     当掉线处理（座位记 away、开始算"没人"），和这一步的其他改动一起提交。以前浏览器那头没了、关闭帧又没到时，房间一直当他在线，掉线托管和"没人"关房都不开始算。
 
 ## 登录闸门、开房、默认文案、假钱包
 

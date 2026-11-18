@@ -123,6 +123,12 @@ export interface RoomLimits {
    * 都连上了就不等，马上开
    */
   matchJoinMs: number;
+  /**
+   * 半开的连接（0.26.0）：浏览器那头早没了（手机断网、休眠被杀）但关闭帧没到，房间还当他在线，掉线托管、"没人"关房都不会开始算。
+   * 闹钟醒来时，一条回过 ping 的连接（RoomClient 每 25 秒发一个，房间自动回 pong，见 setWebSocketAutoResponse）这么久没再回过就关掉，当掉线处理。
+   * 从没回过 ping 的不管：不发心跳的旧页面、测试里的连接都不会被误关；代价是连上不到一个心跳就断的半开连接要等关闭帧
+   */
+  deadSocketMs: number;
 }
 
 /** 4.5、4.6 的默认值。 */
@@ -148,6 +154,7 @@ export const DEFAULT_LIMITS: RoomLimits = {
   meterBatch: 200,
   closingMs: 60 * 60_000,
   matchJoinMs: 20_000,
+  deadSocketMs: 90_000,
 };
 
 /** 闹钟里出错时，过这么久再醒来重试（不用"马上"，免得每次都出错时连着计费）。 */
@@ -1130,11 +1137,14 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     const me = attachmentOf(ws);
     ws.serializeAttachment(null);
     if (!st || !me) return;
-    const stillHere = this.sockets().some((o) => o !== ws && attachmentOf(o)?.userId === me.userId);
-    if (stillHere) return;
-    const now = Date.now();
+    if (this.markGone(st, ws, me.userId, Date.now())) this.commit({ frames: [{ state: st.game, delay: 0 }] }, ws);
+  }
+
+  /** 记下这个人掉线了（他别的连接还在就不算）；改了状态返回 true，由调用方提交。ws 的附件要先清掉 */
+  private markGone(st: Persist<S>, ws: WebSocket, userId: string, now: number): boolean {
+    if (this.sockets().some((o) => o !== ws && attachmentOf(o)?.userId === userId)) return false;
     let changed = false;
-    const seat = this.seatOf(me.userId);
+    const seat = this.seatOf(userId);
     if (seat !== null && st.seats[seat]!.awaySince === null) {
       st.seats[seat]!.awaySince = now;
       changed = true;
@@ -1143,7 +1153,27 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
       st.noHumanSince = now;
       changed = true;
     }
-    if (changed) this.commit({ frames: [{ state: st.game, delay: 0 }] }, ws);
+    return changed;
+  }
+
+  /**
+   * 关掉半开的连接（见 RoomLimits.deadSocketMs），当掉线记下；改了状态返回 true。在闹钟里做，和这一步的其他改动一起提交（还是一步最多 2 行）。
+   * 先把这些连接的附件都清掉再记，几条一起死的不会互相当成"还在"
+   */
+  private sweepDead(st: Persist<S>, now: number): boolean {
+    const dead: [WebSocket, string][] = [];
+    for (const ws of this.sockets()) {
+      const me = attachmentOf(ws);
+      if (!me) continue;
+      const last = this.ctx.getWebSocketAutoResponseTimestamp(ws)?.getTime();
+      if (last === undefined || now - last < this.limits.deadSocketMs) continue;
+      ws.serializeAttachment(null);
+      this.closeWs(ws, CLOSE.goingAway, 'idle');
+      dead.push([ws, me.userId]);
+    }
+    let changed = false;
+    for (const [ws, userId] of dead) changed = this.markGone(st, ws, userId, now) || changed;
+    return changed;
   }
 
   // ---------- 闹钟 ----------
@@ -1157,7 +1187,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     if (st.noHumanSince !== null && now >= st.noHumanSince + this.limits.noHumanMs) return this.closeRoom();
 
     const frames: { state: S | null; delay: number }[] = [];
-    let changed = false;
+    let changed = this.sweepDead(st, now);
     // 匹配桌等够了（0.20.0）：没来的由电脑代打，照样开
     if (st.match && st.status === 'waiting' && now >= st.match.joinBy) return this.commit({ frames: this.beginPlay(st, now) });
     // 掉线超过宽限：电脑托管（只在开打以后有意义，等人时不管）

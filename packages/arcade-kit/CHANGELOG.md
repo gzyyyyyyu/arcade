@@ -1,5 +1,21 @@
 # 更新日志
 
+## 0.26.0（2026-11-18）
+
+联机稳定性第二轮（10-16 审 kit 时清单里剩的三条）：
+
+- **重连后补发有分寸**（`RoomClient`）：以前没确认的操作在 onopen 一次全发，断线时攒得多就撞上房间每人 10 个的令牌桶，被当成违规 1008 断开、不再重连。
+  现在最多留 `PENDING_MAX`（8，和房间记得的 moveId 一样多：更早的房间认不出是重发，补发可能做两遍）个，挤掉最早的；超过 `PENDING_TTL_MS`（60 秒）的丢掉；
+  先发 `RESEND_BATCH`（4）个，其余等前面的有了 ack 或被拒再发。
+- **连上就断不再快速重连**（`RoomClient`）：以前收到 welcome 就把退避清零，弱网、代理掐连接时"进房 → 马上断"每次都半秒就重连。
+  现在进了房间、连着待够 `STABLE_MS`（30 秒）再断才清零；失败次数照旧在 welcome 时清零（不会因此变成 failed）。
+- **房间清半开的连接**（`GameRoom`）：浏览器那头没了、关闭帧又没到时，房间一直当他在线，掉线托管、"没人"关房都不开始算。
+  新的 `RoomLimits.deadSocketMs`（默认 90 秒）：闹钟醒来时，回过 ping、之后这么久没再回过的连接（看 `getWebSocketAutoResponseTimestamp`）
+  关掉（新的 `CLOSE.goingAway` 1001，客户端照常重连），当掉线记下，和这一步的其他改动一起提交（还是一步最多 2 行）。从没回过 ping 的连接不管：不发心跳的旧页面、各游戏测试里不发 ping 的连接都不会被误关（各游戏的 test:room 不用改）。
+- 测试：`test/client.test.ts` 加"进房马上断退避不清零""补发有分寸"两条，原来"进房后退避清零"改成待够 30 秒；`test/room.test.ts` 加"半开的连接"一条。三条新测试都做了反证（改回旧行为会失败）。
+- 用本地打包的 0.26.0 跑过每个游戏和平台的 `npm test`、有 `test:room` 的也跑了，都过；只有弹里个弹的 `test/room-do.test.ts` 用自己的假 `ctx`（`test/fake-workers.ts`），
+  缺 `getWebSocketAutoResponseTimestamp`，闹钟里一调就抛错。**升级注意**：自己写假 `ctx` 的游戏补一个 `getWebSocketAutoResponseTimestamp(): Date | null { return null; }`（补上后那 5 条都过）。
+
 ## 0.25.2（2026-11-10）
 
 - 只改文档和注释，代码行为不变。README 压到约 180 行：先写直接安装再写按别名装，开头加英文最小示例（规则、Worker、浏览器三段）和子路径表；各部分的用法挪到 `docs/`（`rooms.md`、`room-options.md`、`deploy-modes.md`、`table-fun.md`、`chat.md`、`match.md`、`viewport.md`、`share.md`、`theme.md`），README 里指向仓库文件的链接改成 GitHub 绝对链接（npm 包里不带 `docs/`）。

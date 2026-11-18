@@ -414,6 +414,37 @@ describe('断线、电脑接管、回来交还', () => {
   });
 });
 
+describe('半开的连接（0.26.0）', () => {
+  // 房间看的是运行时记的"上次自动回 pong 的时间"（真钟）；测试的假钟拨在 2030 年，所以回过 ping 的连接在假钟看来早就没动静了，
+  // 正好当"回过 ping、后来再也没回"的半开连接用。从没回过 ping 的（测试连接、不发心跳的旧页面）不管
+  it('闹钟醒来时，回过 ping 后久没动静的连接关掉（1001，客户端照常重连）、当掉线记下；从没回过 ping 的不动；一步最多 2 行', async () => {
+    const { code, conns } = await fullTable();
+    await startAll(conns);
+    for (const c of [conns[1]!, conns[2]!]) c.send('ping');
+    // 等运行时回了 pong（自动回复不进房间、不发别的消息）：探一下时间戳都有了
+    await vi.waitFor(async () => {
+      const n = await runInDurableObject(stub(code), (_r, state) => state.getWebSockets().filter((w) => state.getWebSocketAutoResponseTimestamp(w) !== null).length);
+      expect(n).toBe(2);
+    });
+    advance(30_000);
+    const t = Date.now();
+    expect(await runDurableObjectAlarm(stub(code))).toBe(true);
+    expect(await conns[1]!.closedWith()).toBe(1001);
+    expect(await conns[2]!.closedWith()).toBe(1001);
+    expect(conns[0]!.closed).toBeNull();
+    expect(conns[3]!.closed).toBeNull();
+    const p = (await inspect(code)).persist;
+    expect(p.seats.map((s: { awaySince: number | null }) => s.awaySince)).toEqual([null, t, t, null]);
+    // 0、3 号还连着：还不算"没人"
+    expect(p.noHumanSince).toBeNull();
+    await writesOk(code);
+    // 回来照常：座位交还
+    const back = await join(code, 'u2');
+    expect(back.welcome.you.seat).toBe(1);
+    expect(back.welcome.room.seats[1]).toMatchObject({ away: false });
+  });
+});
+
 describe('电脑补位与接管', () => {
   it('1 个真人开局：空位电脑补满；真人出完，电脑连着出到再轮到真人，一次广播、每步带延迟', async () => {
     const code = await openRoom('solo');
