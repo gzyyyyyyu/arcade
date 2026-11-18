@@ -12,6 +12,7 @@ export function dispose(): void {
   stopFollow();
   stopMatch();
   session.arrive = null;
+  session.autoSit = false;
   session.solo?.stop();
   session.solo = null;
   session.online?.close();

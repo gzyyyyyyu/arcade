@@ -20,6 +20,8 @@ export interface Prefs extends RulesStore {
   ambience: boolean;
   /** 安全牌提示（立直）：别家立直后手牌上标安全程度，默认开 */
   safeHint: boolean;
+  /** 推荐出牌：单机娱乐新手、实盘小档的手牌上标一张"荐"（game/coach.ts），默认开 */
+  coach: boolean;
   stakes: StakesId;
   /** 单机娱乐的难度：第一次玩默认新手 */
   level: Level;
@@ -31,7 +33,7 @@ export interface Prefs extends RulesStore {
 const rulesFrom = (raw: Partial<RulesStore>): RulesStore => Object.assign({}, ...allPages().map((pg) => pg.loadRules(raw))) as RulesStore;
 
 /** 顶栏"声"面板管的偏好的出厂值（loadPrefs 的缺省也是它们） */
-export const SOUND_DEFAULTS = { sound: true, volume: 0.8, ambience: true, safeHint: true } as const;
+export const SOUND_DEFAULTS = { sound: true, volume: 0.8, ambience: true, safeHint: true, coach: true } as const;
 
 function loadPrefs(): Prefs {
   try {
@@ -44,6 +46,7 @@ function loadPrefs(): Prefs {
       fast: p.fast === true,
       ambience: p.ambience !== false,
       safeHint: p.safeHint !== false,
+      coach: p.coach !== false,
       stakes: stakesOf(p.stakes)?.id ?? 'fun',
       level,
       ...rulesFrom(p),
@@ -62,7 +65,7 @@ export function savePrefs(): void {
   writeJson(PREFS_KEY, prefs);
 }
 
-/** "声"面板的恢复默认：音量、静音、茶馆声、安全牌提示回出厂值并存回（互动、聊天另存，由面板自己复位）。返回 p 方便测试 */
+/** "声"面板的恢复默认：音量、静音、茶馆声、安全牌提示、推荐出牌回出厂值并存回（互动、聊天另存，由面板自己复位）。返回 p 方便测试 */
 export function resetSoundPrefs(p: Prefs = prefs): Prefs {
   Object.assign(p, SOUND_DEFAULTS);
   if (p === prefs) savePrefs();

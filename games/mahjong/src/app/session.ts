@@ -57,6 +57,8 @@ export const session = {
   ownShown: false,
   /** 跟着"再来一场"进新房间：娱乐自动坐到 seat，实盘只把那个座位亮一下、自己点了才坐（坐下的人开打时带入） */
   arrive: null as { seat: number; sit: boolean } | null,
+  /** 凭链接或房间号进的别人的娱乐房：房间信息一到就坐第一个空位（只这一次；实盘房坐下就要带一份，照旧自己点） */
+  autoSit: false,
   /** 别人开了新房间：几秒后跟过去（让大家先看清结算） */
   followTimer: 0,
   /** 进的是快速匹配排到的桌（0.21.0）：进房时就知道（排到的、地址栏带 match=1），房间信息到了以 room.match 为准 */

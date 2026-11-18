@@ -49,7 +49,7 @@ export const PERSONAS: readonly Persona[] = [
 /** 最强的性格（档最高的那个） */
 export const STRONGEST = PERSONAS.reduce((best, p, i) => (p.level > PERSONAS[best]!.level ? i : best), 0);
 
-/** 按权重挑 n 个不同的性格（weights[i] 是 PERSONAS[i] 的权重，0 不挑）；挑不够 n 个时剩下的用第一个补（好友房实盘只有火锅婆婆一个） */
+/** 按权重挑 n 个不同的性格（weights[i] 是 PERSONAS[i] 的权重，0 不挑）；挑不够 n 个时剩下的用第一个补（场地表都给够了，只是兜住座位比权重多的情况） */
 export function pickPersonas(rng: RandomStream, weights: readonly number[], n: number): number[] {
   const pool = weights.map((w, i) => ({ i, w })).filter((x) => x.w > 0);
   const out: number[] = [];

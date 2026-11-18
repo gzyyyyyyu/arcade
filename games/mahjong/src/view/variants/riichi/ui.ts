@@ -15,6 +15,8 @@ import { tileName, tileUrl } from '../../tiles.ts';
 import { yakuLines, scoreHead } from './summary.ts';
 import { END_NAME, FURITEN_WHY, RC_WIND, roundName } from './text.ts';
 import { safetyOf, type Safety } from '../../../ai/riichi-danger.ts';
+import { COACH_STYLE, discardOf } from '../../../ai/coach.ts';
+import { decideAs } from '../../../ai/riichi.ts';
 import { tingOf } from './ting.ts';
 import { noYakuOf, noYakuText } from '../../../game/riichi/noyaku.ts';
 import { ended, type RcTable } from './view.ts';
@@ -312,6 +314,8 @@ export const riichiUi: VariantUi<RcTable, RcAction> = {
   },
   red: isRed,
   bar,
+
+  suggest: (v) => (v.me && v.prompt?.discard ? discardOf(decideAs(v, COACH_STYLE)) : null),
 
   discardable(v) {
     sync(v);

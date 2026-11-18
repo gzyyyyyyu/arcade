@@ -21,7 +21,7 @@ import { loadMe } from './app/identity.ts';
 import { installLeaveGuard } from './app/leave.ts';
 import { prefs } from './app/prefs.ts';
 import { enterRoom } from './app/room-flow.ts';
-import { homePage, lobby } from './app/routes.ts';
+import { homePage, lobby, startQuick } from './app/routes.ts';
 import { session } from './app/session.ts';
 import { app, paintTop, stage } from './app/shell.ts';
 import { quietUi, settleLeftover } from './app/solo-flow.ts';
@@ -74,6 +74,7 @@ void (async () => {
   // 上一场单机实盘离开时没结上：打开就自动再结一次（自审 C2）
   const left = loadSolo();
   if (left?.settle && !left.done) void settleLeftover(new Solo(left, quietUi));
-  // 说明按主页上选着的玩法弹：选着立直却弹川麻的"不能吃"，说的和要打的对不上（11-02 试玩）
-  if (!readText(guideKey(prefs.variant)) && !loadSolo()) showGuide(stage, 0, undefined, prefs.variant);
+  // 说明按主页上选着的玩法弹：选着立直却弹川麻的"不能吃"，说的和要打的对不上（11-02 试玩）。
+  // 在主页上点"开打"就开快速一局；从平台的"好友房"进来的是来开房的，只关掉说明
+  if (!readText(guideKey(prefs.variant)) && !loadSolo()) showGuide(stage, 0, undefined, prefs.variant, friends ? undefined : () => void startQuick());
 })();

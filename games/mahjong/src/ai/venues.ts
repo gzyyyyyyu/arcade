@@ -3,8 +3,8 @@
  * 0.10.0 按 docs/balance.md 配平（scripts/balance.ts 拿"小白""普通"两个模拟玩家量，结果在 DESIGN.md 4.1）：
  * 单机娱乐分新手、普通、高手三个难度，实盘四档逐档变强。新手档、小档手软大（少防守、少做大牌、多打错、偶尔放过真人的小胡），
  * 豪华档和娱乐高手再加手紧（功力、读牌）、火锅婆婆最常见。
- * 好友房实盘至少两个真人，电脑一律最强（火锅婆婆）：真人之间可以互通配合，最强更稳；
- * scripts/stake-room.ts 量过两个普通真人对它们的期望（DESIGN.md 4.1），作佐证。
+ * 好友房实盘至少两个真人，电脑用最强的两个（火锅婆婆、熊猫哥）：真人之间可以互通配合，电脑要强；
+ * scripts/stake-room.ts 量过两个普通真人对它们的期望（docs/balance-results.md），作佐证。
  * 每个座位再给这一场的状态（Tune.mood，带种子的随机数），同一个性格不同场次打法不一样。
  */
 import type { RandomStream } from 'arcade-kit/rng';
@@ -41,11 +41,12 @@ export const VENUES: Readonly<Record<string, Venue>> = {
   'solo:small:three': { weights: [3, 2, 1, 3, 0, 6], soft: 300 },
   'solo:mid:three': { weights: [3, 3, 1, 3, 0, 5], soft: 150 },
   'room:fun': { weights: [4, 4, 2, 4, 1, 3], soft: 200 },
-  // 好友房实盘：一律最强（只有火锅婆婆，几个座位都是她，名字在页面上按座位编号）；每个座位的状态照样各自浮动
-  'room:small': { weights: [0, 0, 0, 0, 1, 0], soft: 0 },
-  'room:mid': { weights: [0, 0, 0, 0, 1, 0], soft: 0 },
-  'room:big': { weights: [0, 0, 0, 0, 1, 0], soft: 0 },
-  'room:lux': { weights: [0, 0, 0, 0, 1, 0], soft: 0 },
+  // 好友房实盘：最强的两个（火锅婆婆、熊猫哥）。实盘桌至少两个真人，电脑最多两家，两人各坐一家、不重名（以前一律火锅婆婆，页面上只能按座位编号）；
+  // 每个座位的状态照样各自浮动
+  'room:small': { weights: [0, 1, 0, 0, 1, 0], soft: 0 },
+  'room:mid': { weights: [0, 1, 0, 0, 1, 0], soft: 0 },
+  'room:big': { weights: [0, 1, 0, 0, 1, 0], soft: 0 },
+  'room:lux': { weights: [0, 1, 0, 0, 1, 0], soft: 0 },
 };
 
 /** 这一桌是哪个场地：好友房不计输赢的实盘档（只有一个真人）按娱乐算；三人两房有自己一行的档位用那一行（`<场地>:three`） */
@@ -60,5 +61,21 @@ export function seatPlan(rng: RandomStream, venue: string, n: number): { persona
   const personas = pickPersonas(rng, v.weights, n);
   // mood 不能是 0（0 是"不浮动"）
   const tunes = personas.map(() => ({ mood: rng.u32() | 1, soft: v.soft, ...(v.sharp ? { sharp: v.sharp } : {}) }));
+  return { personas, tunes };
+}
+
+/**
+ * 房间用（好友房、匹配桌）：human[i] 是这个座位坐不坐真人。挑出来的性格各不相同，电脑座位先拿、真人座位拿剩下的
+ * （只在真人离座、电脑代打时用到）：按座位号发的话，实盘桌只有两个性格，两家电脑会撞成同一个
+ */
+export function roomSeatPlan(rng: RandomStream, venue: string, human: readonly boolean[]): { personas: number[]; tunes: Tune[] } {
+  const plan = seatPlan(rng, venue, human.length);
+  const botsFirst = [...human.keys()].sort((a, b) => Number(human[a]) - Number(human[b]));
+  const personas = new Array<number>(human.length);
+  const tunes = new Array<Tune>(human.length);
+  botsFirst.forEach((seat, i) => {
+    personas[seat] = plan.personas[i]!;
+    tunes[seat] = plan.tunes[i]!;
+  });
   return { personas, tunes };
 }

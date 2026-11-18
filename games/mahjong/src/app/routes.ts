@@ -38,13 +38,10 @@ export function homePage(): void {
   settleDailyBoards(userIdOf(session.platformInfo));
   screen.className = 'screen front';
   const save = loadSolo();
-  const st = stakesOf(prefs.stakes);
   const kind = (stakes: StakesId, level: Level | undefined): string =>
     stakesOf(stakes)?.wallet ? `实盘 · ${STAKES_NAME[stakes]}档` : `娱乐 · ${LEVEL_NAME[level ?? 'easy']}`;
   const page = pageOf(activeVariant());
-  // 快速一局：规则固定一局一结（碎片时间打一把），不改选桌页里平时的规则设置；照上次的档位
-  const quick = page.quick(prefs);
-  const quickStakes: StakesId = st ? prefs.stakes : 'fun';
+  const quickStakes = quickStakesOf();
   const homeVariant = page.homeId(prefs);
   const { wallet, walletNote } = session;
   renderHome(screen, {
@@ -65,13 +62,21 @@ export function homePage(): void {
         homePage();
       },
     },
-    // 快速一局：上次的档位和难度
-    onQuick: () => startSolo(quickStakes, quick.opts, prefs.level, page.id, undefined, true),
+    onQuick: startQuick,
     onResume: () => void resumeSolo(),
     onMode: (m) => lobby(false, m),
     onRules: () => showRules(stage, undefined, activeVariant()),
     onProgress: (to) => (to === 'daily' ? lobby(false, 'fun') : to === 'hekiri' ? hekiriPage() : to === 'ting' ? tingPage() : to === 'ladder' ? ladderPage() : showRules(stage, to, activeVariant())),
   });
+}
+
+/** 快速一局的档位：上次选的实盘档（还开着的话），不然娱乐 */
+const quickStakesOf = (): StakesId => (stakesOf(prefs.stakes) ? prefs.stakes : 'fun');
+
+/** 快速一局：上次的档位和难度，规则固定一局一结（碎片时间打一把），不改选桌页里平时的规则设置。主页的大按钮和新手说明的"开打"都走这里 */
+export function startQuick(): Promise<void> {
+  const page = pageOf(activeVariant());
+  return startSolo(quickStakesOf(), page.quick(prefs).opts, prefs.level, page.id, undefined, true);
 }
 
 /** 每日何切（DESIGN.md 7 节）：整页接管 screen，收尾函数在下一次 teardown 前由它自己的"回主页"调 */

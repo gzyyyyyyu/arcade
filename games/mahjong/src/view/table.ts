@@ -97,6 +97,8 @@ export interface VariantUi<V extends TableView, A> {
   swapped?(v: V, tile: Tile): boolean;
   /** 点了不能打的牌时说明为什么（川麻：有缺先打缺）；不用说明返回 null，每局只提示一次 */
   banNote?(v: V): string | null;
+  /** 推荐打哪张（按自己这一家的视图、普通玩家的打法算，src/ai/coach.ts）；这一步不是打牌返回 null。只在牌桌开了推荐（setCoach）时调 */
+  suggest?(v: V): Tile | null;
 }
 
 /** 给玩法画牌用的：和牌桌自己画的牌一个样子（赤宝牌、牌面缓存都一致） */
@@ -174,6 +176,9 @@ export class TableUi<V extends TableView, A> {
   private hoverDraw = 0;
   /** 打哪张听什么：同一手牌同一张只算一次 */
   private readonly tingMemo = memoPerView((v: V, t: Tile | null) => this.ui.ting(v, t));
+  /** 推荐出牌（单机的娱乐新手、实盘小档，见 game/coach.ts）：同一帧只算一次 */
+  private coach = false;
+  private readonly suggestMemo = memoPerView((v: V, _: null) => this.ui.suggest?.(v) ?? null);
   private riverLen = [0, 0, 0, 0];
   /** 最近一次打牌的座位（-1 是这一局还没人打） */
   private lastDiscard = -1;
@@ -209,6 +214,13 @@ export class TableUi<V extends TableView, A> {
     this.fxLayer = el('div', 'fx', this.root);
     devCutin(this.fxLayer, this.root);
     document.addEventListener('keydown', this.onKey);
+  }
+
+  /** 开关推荐出牌（单机按档位和设置开，好友房、匹配桌从不开）；开着的时候马上把手牌重画一遍 */
+  setCoach(on: boolean): void {
+    if (this.coach === on) return;
+    this.coach = on;
+    if (this.frame) this.drawHand();
   }
 
   /**
@@ -496,7 +508,10 @@ export class TableUi<V extends TableView, A> {
     else {
       const red = this.ui.red?.(t) ?? false;
       e.style.backgroundImage = `url("${tileUrl(kindOf(t), red)}")`;
+      // 牌面是背景图：title 只给鼠标悬停看，读屏软件要 role + aria-label 才念得出是什么牌
       e.title = tileName(kindOf(t), red);
+      e.setAttribute('role', 'img');
+      e.setAttribute('aria-label', e.title);
     }
     return e;
   }
@@ -654,6 +669,8 @@ export class TableUi<V extends TableView, A> {
     if (out) tiles = me.hand.filter((t) => t !== s.won!.tile);
     // 轮到我打：打了能听的牌头上标个"听"（同种牌只算一次）
     const ting = new Map<number, boolean>();
+    // 推荐的那一张（具体到哪一张，同种的另一张不标）：只在一张一张打、轮到我打的时候
+    const rec = this.coach && discard && multi === 0 ? this.suggestMemo(v, null) : null;
     const put = (t: Tile, extra = ''): void => {
       const e = this.tile(t, 'lg', box);
       if (extra) e.classList.add(...extra.split(' '));
@@ -661,6 +678,11 @@ export class TableUi<V extends TableView, A> {
         const k = kindOf(t);
         if (!ting.has(k)) ting.set(k, this.tingMemo(v, t) !== null);
         if (ting.get(k)) e.classList.add('ting');
+        if (t === rec) {
+          e.classList.add('rec');
+          // 已经标了"听"的不再叠一个字，只留金边
+          if (!ting.get(k)) el('i', 'rec-badge', e, '荐').title = '推荐打这张';
+        }
         const mk = this.ui.mark?.(v, t);
         if (mk) {
           const m = el('i', `mark ${mk.cls}`, e, mk.text);

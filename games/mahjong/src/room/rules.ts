@@ -15,7 +15,7 @@
  * - 开局时坐着的真人不到 2 个（旧页面、脚本绕过了页面的"开打"）：整场不计输赢、不碰钱包，按娱乐打（unrated）；
  * - 开打以后还在下注的真人（筹码是他的、或者带入在路上）不到 2 个：这一场当场结束，桌上的筹码按那一刻的数结回（cut），
  *   不会变成一个人对电脑赢实盘；
- * - 实盘桌的电脑一律最强（src/ai/venues.ts 的 room:<档>），每个座位的状态各自浮动。
+ * - 实盘桌的电脑是最强的两个（src/ai/venues.ts 的 room:<档>），几家电脑各不相同，每个座位的状态各自浮动。
  *
  * 再来一场：整场打完（结回已经排上）房间停 REMATCH_MS 等人点。谁点了，他的页面先开好新房间，把房间号发过来（next），
  * 这一间就算打完，所有人的页面跟过去；到点没人点也算打完。kit 打完就还开房名额。实盘的新房间不替谁扣：各人自己坐下、房主开打才带入。
@@ -28,7 +28,7 @@ import type { RoomEffect, RoomGame } from 'arcade-kit/game';
 import { ROOM_CODE_RE, type SeatKind as KitSeat } from 'arcade-kit/protocol';
 import { stream } from 'arcade-kit/rng';
 import { AIS } from '../ai/index.ts';
-import { seatPlan, venueOf } from '../ai/venues.ts';
+import { roomSeatPlan, venueOf } from '../ai/venues.ts';
 import { seatsOf } from '../core/variants/sichuan-xuezhan/rules.ts';
 import { DEFAULT_VARIANT, variantOf, VARIANTS, type ActionOf, type AnyAi, type AnyVariant, type OptsOf, type StateOf, type ViewOf } from '../core/variants/index.ts';
 import type { SettleStats } from '../core/match/index.ts';
@@ -184,8 +184,8 @@ export const mahjongRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wa
     // 真人不到两个的实盘档不计输赢（页面会把"开打"灰掉，这里防旧页面、脚本）
     const unrated = st.wallet && kinds.filter((k) => k === 'human').length < MIN_HUMANS;
     const wallet = st.wallet && !unrated;
-    // 电脑按场地挑性格、各配这一场的状态：实盘桌一律最强（venues.ts）
-    const { personas, tunes } = seatPlan(stream(entropy, 'persona'), venueOf('room', st.id, wallet), n);
+    // 电脑按场地挑性格、各配这一场的状态（实盘桌是最强的两个，venues.ts），几家电脑各不相同
+    const { personas, tunes } = roomSeatPlan(stream(entropy, 'persona'), venueOf('room', st.id, wallet), kinds.map((k) => k === 'human'));
     const g = v.begin(entropy, opts.rules, kinds.map((k) => (k === 'human' ? 'human' : 'ai')), { share: st.share, base: baseOf(st.share, opts.rules as { flow?: boolean }), personas, tunes });
     const r = stream(entropy, 'room');
     let s: RoomState = {

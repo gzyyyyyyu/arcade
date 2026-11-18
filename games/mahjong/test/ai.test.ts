@@ -62,10 +62,10 @@ describe('场地', () => {
       expect(VENUES[v]!.weights[BANDENG]).toBe(0);
     }
     expect(VENUES['solo:fun:easy']!.weights[BANDENG]).toBe(Math.max(...VENUES['solo:fun:easy']!.weights));
-    // 好友房实盘一律最强、不手软
+    // 好友房实盘：最强的两个（火锅婆婆、熊猫哥），电脑最多两家、各不相同；不手软
+    const PANDA = PERSONAS.findIndex((p) => p.name === '熊猫哥');
     for (const st of ['small', 'mid', 'big', 'lux']) {
-      expect(VENUES[`room:${st}`]!.weights.filter((w) => w > 0)).toHaveLength(1);
-      expect(VENUES[`room:${st}`]!.weights[STRONGEST]).toBeGreaterThan(0);
+      expect(VENUES[`room:${st}`]!.weights.flatMap((w, i) => (w > 0 ? [i] : []))).toEqual([PANDA, STRONGEST].sort((a, b) => a - b));
       expect(VENUES[`room:${st}`]!.soft).toBe(0);
     }
   });

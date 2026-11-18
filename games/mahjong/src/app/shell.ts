@@ -1,5 +1,5 @@
 /**
- * 页面骨架和顶栏：大厅入口、标题、钱包、速度、声音面板（音量、静音、茶馆声、安全牌提示、互动、聊天、弹幕）、规则、叫朋友、离开，
+ * 页面骨架和顶栏：大厅入口、标题、钱包、速度、声音面板（音量、静音、茶馆声、安全牌提示、推荐出牌、互动、聊天、弹幕）、规则、叫朋友、离开，
  * 以及中间放选桌页 / 牌桌的 screen 和提示条 toast。
  * 骨架在加载这个模块时一次画好（子节点的先后顺序有讲究：顶栏、声音面板、screen），别的文件 import 这里的节点来用。
  */
@@ -15,6 +15,7 @@ import { DEFAULT_VARIANT } from '../core/variants/index.ts';
 import { pageOf } from '../view/variants/pages.ts';
 import { setSafeHint } from '../view/variants/riichi/ui.ts';
 import { leave } from './leave.ts';
+import { coachAllowed } from '../game/coach.ts';
 import { activeVariant, prefs, resetSoundPrefs, savePrefs } from './prefs.ts';
 import { inMatch, session } from './session.ts';
 import { share } from './social.ts';
@@ -99,6 +100,18 @@ const safeBtn = button('act soft', gHint, '', () => {
   savePrefs();
   paintTop();
 });
+// 推荐出牌（单机娱乐新手、实盘小档才出现这个按钮，game/coach.ts）
+const coachBtn = button('act soft', gHint, '', () => {
+  prefs.coach = !prefs.coach;
+  savePrefs();
+  applyCoach();
+  paintTop();
+});
+/** 这一桌该不该标推荐的牌：设置开着、而且是能开推荐的单机桌 */
+const coachHere = (): boolean => !!session.solo && coachAllowed(session.solo.save);
+function applyCoach(): void {
+  session.table?.setCoach(prefs.coach && coachHere());
+}
 // 互动的总开关也放这儿（docs/table-fun.md 第 5 节）：关了别人的一律不播，单机电脑也不反应
 const funBtn = button('act soft', gHint, '', () => {
   setFunOff(!funOff());
@@ -118,13 +131,14 @@ const danBtn = button('act soft', gHint, '', () => {
   session.fun?.setDanmaku(!session.fun.danmaku());
   paintTop();
 });
-// 恢复默认：音量、静音、茶馆声、安全牌提示、互动、聊天回出厂值，立刻生效并存回（弹幕随系统的减少动态设置，不在这里动）
+// 恢复默认：音量、静音、茶馆声、安全牌提示、推荐出牌、互动、聊天回出厂值，立刻生效并存回（弹幕随系统的减少动态设置，不在这里动）
 button('act soft reset', volBox, '恢复默认', () => {
   resetSoundPrefs();
   setVolume(prefs.volume);
   setSound(prefs.sound);
   setAmbience(prefs.ambience);
   setSafeHint(prefs.safeHint);
+  applyCoach();
   setFunOff(false);
   setChatMode('on');
   volRange.value = String(Math.round(prefs.volume * 100));
@@ -153,6 +167,8 @@ export function paintTop(): void {
   ambBtn.textContent = prefs.ambience ? '茶馆声：开' : '茶馆声：关';
   safeBtn.textContent = prefs.safeHint ? '安全牌提示：开' : '安全牌提示：关';
   safeBtn.hidden = !session.table?.root.classList.contains('rc');
+  coachBtn.textContent = prefs.coach ? '推荐出牌：开' : '推荐出牌：关';
+  coachBtn.hidden = !coachHere();
   chatBtn.textContent = CHAT_LABEL[chatMode()];
   chatBtn.hidden = !session.online && !session.solo;
   danBtn.textContent = session.fun?.danmaku() ? '弹幕：开' : '弹幕：关';

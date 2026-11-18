@@ -69,6 +69,7 @@ export function enterRoom(code: string, host: boolean, from: { seat: number; sit
   dispose();
   session.matchJoin = match;
   session.arrive = from;
+  session.autoSit = !host && !match && !from;
   session.hosting = host;
   session.shownN = -1;
   session.ownShown = false;
@@ -95,6 +96,12 @@ const onlineUi = {
       // 跟过来的娱乐房：坐回和上一场一样的相对位置（被人占了就不坐，留在等人页自己挑）
       if (s.room.seats[arrive.seat]?.kind === 'empty') session.online?.sit(arrive.seat);
       session.arrive = { ...arrive, sit: false };
+    }
+    // 凭链接、房间号进来的娱乐房：多数人是来打的，直接坐第一个空位，不用再点"坐这里"（11-18 体检）
+    if (session.autoSit && s.you && s.opts) {
+      session.autoSit = false;
+      const free = tableSeats(s).findIndex((x) => x.kind === 'empty');
+      if (s.room.status === 'waiting' && s.you.seat === null && !stakesOf(s.opts.stakes)?.wallet && free >= 0) session.online?.sit(free);
     }
     if (s.room.status === 'waiting' || !s.view) return drawWaiting(s);
     drawRoomTable(s, s.view, fresh);
@@ -156,15 +163,12 @@ export function tableSeats(s: OnlineState): RoomInfo['seats'] {
 }
 
 export function seatMetas(s: OnlineState, g: { seats: { persona: number }[] }): SeatMeta[] {
-  // 实盘桌的电脑都是同一个最强性格：重名的按座位编号，免得"火锅婆婆点炮火锅婆婆"分不清
+  // 电脑座位的性格各不相同（room/rules.ts 的 begin），名字不会撞
   const named = g.seats.map((x) => PERSONAS[x.persona]?.name ?? '电脑');
   const seats = tableSeats(s);
-  const bots = seats.map((x, i) => (x.kind === 'human' || x.name ? null : named[i]!));
   return seats.map((x, i): SeatMeta => {
-    const same = bots.filter((b) => b === bots[i]).length > 1;
-    const persona = same ? `${named[i]}${bots.slice(0, i + 1).filter((b) => b === bots[i]).length}` : named[i]!;
     // 绑了人、主人离座了的座位：电脑代他打
-    const name = x.kind === 'human' ? (x.name ?? '玩家') : x.name ? `电脑（代${x.name}）` : persona;
+    const name = x.kind === 'human' ? (x.name ?? '玩家') : x.name ? `电脑（代${x.name}）` : named[i]!;
     return { name, bot: x.kind !== 'human', away: x.away, auto: x.auto };
   });
 }

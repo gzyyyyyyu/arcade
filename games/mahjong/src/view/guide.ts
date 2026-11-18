@@ -16,18 +16,21 @@ import { paginate } from './pager.ts';
 /** 新手引导看过没有的记号：每个玩法一个（川麻的沿用原来的键） */
 export const guideKey = (variant: string): string => pageOf(variant).guide.key;
 
-/** onDone：说明关掉时调（点"开打"、×、Esc、点外面都算；翻页不算） */
-export function showGuide(parent: HTMLElement, page = 0, onDone?: () => void, variant: string = DEFAULT_VARIANT): void {
+/**
+ * onDone：说明关掉时调（点"开打"、×、Esc、点外面都算；翻页不算）。
+ * onStart：只在点最后一页的"开打"时调，关掉以后再调：主页上弹的说明靠它真的开一局，不然点了"开打"还在主页（11-18 体检）
+ */
+export function showGuide(parent: HTMLElement, page = 0, onDone?: () => void, variant: string = DEFAULT_VARIANT, onStart?: () => void): void {
   // 怎么关的都算看过（×、Esc、点外面也是）：只认"开打"的话，在主页点 × 关掉，一进牌桌又从第 1 页弹一遍（11-02 试玩）。
   // 回调翻页时要是同一个（dialog.ts 认它判断是翻页还是被换掉），所以在这里做一次再往下传。存不上下次再看一遍，不看返回值
   const done = (): void => {
     writeText(guideKey(variant), '1');
     onDone?.();
   };
-  guidePage(parent, page, done, variant);
+  guidePage(parent, page, done, variant, onStart);
 }
 
-function guidePage(parent: HTMLElement, page: number, done: () => void, variant: string): void {
+function guidePage(parent: HTMLElement, page: number, done: () => void, variant: string, onStart?: () => void): void {
   const guide = pageOf(variant).guide;
   const pages = guide.pages;
   dialog(parent, `guide${guide.cls}`, (box) => {
@@ -37,8 +40,12 @@ function guidePage(parent: HTMLElement, page: number, done: () => void, variant:
     tilesRow(box, ex, page === 1 ? 'swap' : '');
     for (const l of lines) el('p', '', box, l);
     const row = el('div', 'row', box);
-    if (page < pages.length - 1) button('act go', row, '下一页', () => guidePage(parent, page + 1, done, variant));
-    else button('act go', row, '开打', closeDialog);
+    if (page < pages.length - 1) button('act go', row, '下一页', () => guidePage(parent, page + 1, done, variant, onStart));
+    else
+      button('act go', row, '开打', () => {
+        closeDialog();
+        onStart?.();
+      });
   }, true, undefined, done);
 }
 

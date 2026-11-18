@@ -21,7 +21,8 @@
 [data-orient='land'] .river.r0 { left: 380px; top: calc(295px + var(--grow, 0px) / 2); width: 240px; }
 [data-orient='land'] .river.r3 { left: 196px; top: calc(175px + var(--grow, 0px) / 2); width: 180px; flex-direction: row-reverse; }
 [data-orient='land'] .river.r1 { left: 624px; top: calc(175px + var(--grow, 0px) / 2); width: 180px; }
-[data-orient='land'] .bar { right: 176px; bottom: 106px; height: max(64px, var(--tap, 0px)); }
+/* 右边让出下家的名牌（右 14 + 宽 176）再空 8：名牌统一 176 宽以后，原来的 176 压住名牌左边一截（11-18 体检） */
+[data-orient='land'] .bar { right: 198px; bottom: 106px; height: max(64px, var(--tap, 0px)); }
 /* 横屏同理：换牌那句长提示加两个按钮会伸到左边"互动"底下，提示挪到按钮上面一行、靠右对齐（0.17.6） */
 [data-orient='land'] .bar .hint { position: absolute; right: 0; bottom: calc(100% + var(--sp-2)); }
 /* "互动"按钮（kit 的 table-fun 画，view/fun.ts）放在这个空位：自己头像右边（名牌最长约 194），不进手牌那一排 */
@@ -87,8 +88,9 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 .stage[data-orient='port'] {
   --c: calc(525px - var(--cut, 0px) / 2);
   --spread: calc((200px - var(--cut, 0px)) / 3);
-  /* 牌河的牌：舞台在手机上缩到约 0.7 倍，牌宽 34–41 到屏幕上才有 24–29 像素看得清；屏幕越高越大，用掉上下的空呢子 */
-  --pw: calc(34px + min(var(--spread), 100px) / 14);
+  /* 牌河的牌：舞台在手机上缩到约 0.7 倍，牌宽 34–44 到屏幕上才有 24–31 像素看得清；屏幕越高越大，用掉上下的空呢子。
+   * 上限 44：左右牌河右沿（54 + 3 张 + 2）要让开上下牌河左沿（280 − 2 张 − 2），再大就横着碰上（11-18 体检从 41 放到 44） */
+  --pw: calc(34px + min(var(--spread), 100px) / 10);
 }
 [data-orient='port'] .badge.r0 { left: 8px; bottom: 84px; max-width: 190px; }
 [data-orient='port'] .badge.r1 { right: 8px; bottom: 84px; flex-direction: row-reverse; padding: 4px 4px 4px 10px; }
@@ -113,9 +115,10 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 [data-orient='port'] .side.r2 { left: 50%; top: 72px; transform: translateX(-50%); }
 [data-orient='port'] .side.r1 { right: 10px; top: var(--c); transform: translateY(-50%); }
 [data-orient='port'] .side.r3 { left: 10px; top: var(--c); transform: translateY(-50%); }
-/* 左右两家的副露用和亮出的手牌一样的小牌，每一组也竖着摞：横着摆一组就有 60 多宽，把整列撑宽、伸进旁边的牌河 */
+/* 左右两家的副露每一组竖着摞：横着摆一组就有 60 多宽，把整列撑宽、伸进旁边的牌河。
+ * 牌 28 × 39（屏幕上约 20 × 27，以前 20 × 28 只有 14 × 19、看不出是什么牌，11-18 体检）：列宽 28 仍在牌河左沿 54 以内；四组杠 16 张摞起来约 650 高，竖屏中间那一截放得下 */
 [data-orient='port'] .melds.r1 .tile,
-[data-orient='port'] .melds.r3 .tile { width: 20px; height: 28px; }
+[data-orient='port'] .melds.r3 .tile { width: 28px; height: 39px; }
 [data-orient='port'] .melds.r1 .meld,
 [data-orient='port'] .melds.r3 .meld { flex-direction: column; }
 /* 血战里胡了的人手牌一直亮到这局完：竖屏两张一行，不伸进旁边的牌河 */

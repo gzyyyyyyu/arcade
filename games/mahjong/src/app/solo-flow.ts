@@ -7,6 +7,7 @@ import { localChat } from 'arcade-kit/chat';
 import { PERSONAS } from '../ai/personas.ts';
 import type { Level } from '../ai/venues.ts';
 import { DEFAULT_VARIANT } from '../core/variants/index.ts';
+import { coachAllowed } from '../game/coach.ts';
 import { dexKey } from '../game/dex.ts';
 import { isDailyVariant } from '../game/daily.ts';
 import { bindSolo, levelOf, quitRun, startRun, tableKey, type LadderMode } from '../game/ladder.ts';
@@ -372,6 +373,7 @@ export function playSolo(s: Solo): void {
   };
   const table = pageOf(variant).mountTable(screen, act);
   session.table = table;
+  table.setCoach(prefs.coach && coachAllowed(s.save));
   rotateTip(stage);
   session.lastPrompt = false;
   session.fame = [];

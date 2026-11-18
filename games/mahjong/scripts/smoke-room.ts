@@ -181,11 +181,14 @@ async function openRoom(page: Page, base: string, stake: '娱乐' | '小档', fl
   return code;
 }
 
-async function joinAndStart(a: Page, b: Page, base: string, code: string): Promise<void> {
+/** B 凭链接进房坐下、A 开打。娱乐房 B 一进来就自动坐第一个空位；实盘房要自己点"坐这里"（坐下就要带一份） */
+async function joinAndStart(a: Page, b: Page, base: string, code: string, wallet = false): Promise<void> {
   await b.goto(`${base}/games/mahjong/?room=${code}`);
   await b.waitForSelector('.room-code');
   check(((await b.textContent('.room-code')) ?? '').trim() === code, `B 凭 ?room= 直接进等人页，房间号 ${code}`);
-  await b.click('.room-seat.empty .act');
+  const auto = await b.waitForSelector('.room-seat.me', { timeout: 4_000 }).then(() => true, () => false);
+  check(auto === !wallet, wallet ? '实盘房凭链接进来不自动坐下' : '娱乐房凭链接进来自动坐第一个空位');
+  if (!auto) await b.click('.room-seat.empty .act');
   await b.waitForSelector('.room-seat.me');
   // A 这边要看到 B 坐下（两个真人）
   await a.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length >= 2);
@@ -249,7 +252,7 @@ try {
     // 等人页"离开房间"先离座（自审 C4）：B 坐下再离开，A 这边那个座位要空出来（只断开的话 kit 只记掉线、座位还占着）
     await pb.goto(`${base}/games/mahjong/?room=${code}`);
     await pb.waitForSelector('.room-code');
-    await pb.click('.room-seat.empty .act');
+    await pb.waitForSelector('.room-seat.me');
     await pa.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length >= 2);
     await pb.click('button:text-is("离开房间")');
     await pb.waitForSelector('.lobby-head');
@@ -367,8 +370,9 @@ try {
     log('A 开实盘小档房', code);
     await pa.waitForSelector('.room-seat.me');
     check(await pa.isDisabled('button:text-is("开打")'), '实盘房只有 A 一个人："开打"灰着');
-    check(!!(await pa.$('.room-hint.warn:has-text("至少要两个人")')), '实盘房只有 A 一个人：提示"至少要两个人"');
-    await joinAndStart(pa, pb, base, code);
+    check(!!(await pa.$('.room-hint .warn:has-text("至少要两个人")')), '实盘房只有 A 一个人：提示"至少要两个人"');
+    check(await pa.$eval('button:text-is("开打")', (b) => b.getBoundingClientRect().bottom <= innerHeight), '实盘房只有 A 一个人：开打在屏幕里（1280×720）');
+    await joinAndStart(pa, pb, base, code, true);
     // 带入是房间开打后异步办的，等两边到账
     let w1 = { a: await wallet(pa), b: await wallet(pb) };
     for (let i = 0; i < 50 && (w1.a.stakes.length === 0 || w1.b.stakes.length === 0); i++) {

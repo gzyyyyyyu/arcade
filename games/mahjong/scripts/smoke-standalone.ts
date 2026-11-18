@@ -151,7 +151,7 @@ try {
   await nickname(b, '小王');
   await b.goto(`${base}/games/mahjong/?room=${code}`);
   await b.waitForSelector('.room-code');
-  await b.click('.room-seat.empty .act');
+  // 娱乐房凭链接进来自动坐第一个空位
   await b.waitForSelector('.room-seat.me');
   await a.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length >= 2);
   const names = await a.$$eval('.room-seat:not(.empty)', (xs) => xs.map((x) => x.textContent ?? ''));

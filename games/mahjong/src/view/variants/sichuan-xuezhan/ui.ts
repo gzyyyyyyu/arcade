@@ -1,7 +1,8 @@
 /**
  * 川麻·血战到底挂到通用牌桌上的部分（DESIGN.md 第 7 节）：缺门标记、换三张、定缺、碰杠胡的动作字、刮风下雨、结算。
  */
-import { chooseQue, chooseSwap } from '../../../ai/xuezhan.ts';
+import { COACH_STYLE, discardOf } from '../../../ai/coach.ts';
+import { chooseQue, chooseSwap, decideAs } from '../../../ai/xuezhan.ts';
 import { byTile, kindOf, suitOf, type Suit, type Tile } from '../../../core/tiles/index.ts';
 import type { XzAction, XzEvent, XzView } from '../../../core/variants/sichuan-xuezhan/index.ts';
 import { button, el } from '../../dom.ts';
@@ -56,6 +57,9 @@ export const xuezhanUi: VariantUi<XzView, XzAction> = {
     if (me && v.opts.flow && v.seats[me.seat]!.won) return FLOW_LOCK_NOTE;
     return me ? banNote(v.seats[me.seat]!.que, me.hand) : null;
   },
+
+  // 血流里胡过的手牌锁着、只能打摸的那张，不用推荐
+  suggest: (v) => (v.me && v.prompt?.discard && !(v.opts.flow && v.seats[v.me.seat]!.won) ? discardOf(decideAs(v, COACH_STYLE)) : null),
 
   bar(v, bar, ctx) {
     const me = v.me;

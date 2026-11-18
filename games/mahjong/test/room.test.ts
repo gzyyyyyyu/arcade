@@ -6,7 +6,7 @@ import { snapshotBytes } from 'arcade-kit/game';
 import type { SeatKind } from 'arcade-kit/protocol';
 import { describe, expect, test } from 'vitest';
 import type { XzState, XzView } from '../src/core/variants/sichuan-xuezhan/index.ts';
-import { STRONGEST } from '../src/ai/personas.ts';
+import { PERSONAS, STRONGEST } from '../src/ai/personas.ts';
 import { VENUES } from '../src/ai/venues.ts';
 import { EMOTES } from '../src/game/emotes.ts';
 import { roomOp, SOLO_OP, soloOp } from '../src/game/ops.ts';
@@ -191,8 +191,15 @@ describe('实盘至少两个真人', () => {
       expect(allowed(`room:${st}`, s)).toBe(true);
       expect((s.g as XzState).tunes!.every((t) => t.mood !== 0 && t.soft === VENUES[`room:${st}`]!.soft)).toBe(true);
     }
-    // 实盘桌一律最强
-    expect((begin(['human', 'human', 'ai', 'ai'], 'big').g as XzState).personas).toEqual([STRONGEST, STRONGEST, STRONGEST, STRONGEST]);
+    // 实盘桌的两家电脑一个火锅婆婆、一个熊猫哥，不管坐哪两个座位都不重名（真人坐哪儿都一样）
+    const PANDA = PERSONAS.findIndex((p) => p.name === '熊猫哥');
+    for (const kinds of [['human', 'human', 'ai', 'ai'], ['ai', 'human', 'ai', 'human'], ['ai', 'ai', 'human', 'human']] as const) {
+      for (const st of ['small', 'big']) {
+        const ps = (begin([...kinds], st).g as XzState).personas;
+        const bots = kinds.flatMap((k, i) => (k === 'ai' ? [ps[i]!] : []));
+        expect(bots.sort((a, b) => a - b)).toEqual([PANDA, STRONGEST].sort((a, b) => a - b));
+      }
+    }
     expect(allowed('room:fun', begin(['human', 'human', 'ai', 'ai'], 'fun'))).toBe(true);
     expect((begin(['human', 'ai', 'ai', 'ai'], 'lux').g as XzState).tunes![1]!.soft).toBe(VENUES['room:fun']!.soft);
   });
@@ -489,12 +496,15 @@ describe('好友房里电脑的互动（src/room/talk.ts）', () => {
     expect(hus).toBe(st.reduce((n, h) => n + h.wins.length, 0));
     expect(kans).toBeGreaterThan(0);
     expect(eye.watch(s)).toEqual([]);
-    // 真人冲电脑扔了东西（kit 的 botReact，60% 回应）：只有被冲着的电脑回，回一定是表情 + 有时回扔道具；扔 40 次总有回的
+    // 真人冲电脑扔了东西（kit 的 botReact，60% 回应）：只有被冲着的电脑回，回一定是表情 + 有时回扔道具；扔 40 次总有回的。
+    // 冲一家不高冷的电脑扔（高冷的性格本来就少回）
+    const personas = (s.g as XzState).personas;
+    const warm = [1, 2, 3].find((i) => PERSONAS[personas[i]!]!.fun !== 'cool')!;
     let back = 0;
     for (let i = 0; i < 40; i++) {
-      for (const a of talk.reply(0, EMOTES - 4, 1, now + 60_000 + i * 1_600)) {
+      for (const a of talk.reply(0, EMOTES - 4, warm, now + 60_000 + i * 1_600)) {
         back++;
-        expect(a.seat).toBe(1);
+        expect(a.seat).toBe(warm);
         expect(a.id >= 0 && a.id < EMOTES).toBe(true);
       }
     }
