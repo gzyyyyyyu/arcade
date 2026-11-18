@@ -1,6 +1,6 @@
 /** 浏览器连接器（4.5）：退避加抖动、哪些关闭码不重连、切回前台马上连、seq 去重、没确认的操作重发。用假的 WebSocket 和计时器。 */
 import { describe, expect, it, vi } from 'vitest';
-import { backoffMs, CONNECT_MS, MATCH_GRACE_MS, MatchClient, PONG_WAIT_MS, RoomClient, STALL_GRACE_MS, STALL_JITTER_MS, type WebSocketLike } from '../src/client.ts';
+import { backoffMs, CONNECT_MS, MATCH_GRACE_MS, MatchClient, PENDING_MAX, PENDING_TTL_MS, PONG_WAIT_MS, RESEND_BATCH, RoomClient, STABLE_MS, STALL_GRACE_MS, STALL_JITTER_MS, type WebSocketLike } from '../src/client.ts';
 import type { DownMsg } from '../src/protocol.ts';
 
 class FakeWs implements WebSocketLike {
@@ -82,7 +82,8 @@ describe('重连', () => {
     expect(backoffMs(20, () => 0.999)).toBeLessThanOrEqual(15_000);
   });
 
-  it('URL 带客户端版本；异常断开（1006）按退避重连，进了房间（收到 welcome）后退避清零', () => {
+  it('URL 带客户端版本；异常断开（1006）按退避重连，进了房间（收到 welcome）、连着待够 STABLE_MS 再断，退避清零', () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: 1_000_000 });
     const t = setup();
     expect(t.ws().url).toBe('wss://game.example.com/rooms/123456/ws?cv=3');
     t.ws().open();
@@ -98,9 +99,29 @@ describe('重连', () => {
     t.fire(1500);
     t.ws().open();
     t.ws().push(welcome(1));
+    vi.setSystemTime(Date.now() + STABLE_MS);
     t.ws().drop(1006);
     t.fire(375);
     expect(FakeWs.all).toHaveLength(5);
+    vi.useRealTimers();
+  });
+
+  it('连上、进了房间马上又断（0.26.0）：退避不清零，照样越等越久', () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: 1_000_000 });
+    const t = setup();
+    const waits: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      t.ws().open();
+      t.ws().push(welcome(i));
+      vi.setSystemTime(Date.now() + STABLE_MS - 1);
+      t.ws().drop(1006);
+      waits.push(t.timers.at(-1)!.ms);
+      t.fire(waits.at(-1)!);
+    }
+    expect(waits).toEqual([375, 750, 1500, 3000]);
+    // 失败次数照样在进房时清零：这样断下去不会变成 failed
+    expect(t.statuses).not.toContain('failed');
+    vi.useRealTimers();
   });
 
   it('平台暂时不可用（1013，先 open 再关）：照常按退避重连，不会越连越快；一直这样 20 次就停下', () => {
@@ -425,9 +446,33 @@ describe('去重和重发', () => {
     expect(t.ws().sent.map((x) => JSON.parse(x))).toEqual([{ t: 'act', moveId: b, baseSeq: 0, action: { card: 9 } }]);
     t.ws().push({ t: 'error', code: 'stale', moveId: b });
     t.ws().drop(1006);
-    t.fire(375);
+    // 进房后马上断的，退避不清零（0.26.0）
+    t.fire(750);
     t.ws().open();
     expect(t.ws().sent).toEqual([]);
+  });
+
+  it('重发有分寸（0.26.0）：最多留 PENDING_MAX 个（挤掉最早的）、过期的丢掉；先发 RESEND_BATCH 个，有回音再发下一个', () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: 1_000_000 });
+    const t = setup();
+    const old = t.client.act({ card: 0 });
+    vi.setSystemTime(Date.now() + PENDING_TTL_MS + 1);
+    const ids = Array.from({ length: PENDING_MAX + 1 }, (_, i) => t.client.act({ card: i + 1 }));
+    t.ws().open();
+    const sent = () => t.ws().sent.map((x) => JSON.parse(x).moveId as string);
+    // 过期的 old 和被挤掉的最早一个都不发；先发一批
+    expect(sent()).toEqual(ids.slice(1, 1 + RESEND_BATCH));
+    expect(sent()).not.toContain(old);
+    t.ws().push(welcome(0));
+    // 一个确认、一个被拒：各放出下一个
+    t.ws().push(state(1, ids[1]));
+    expect(sent()).toEqual(ids.slice(1, 2 + RESEND_BATCH));
+    t.ws().push({ t: 'error', code: 'stale', moveId: ids[2]! });
+    expect(sent()).toEqual(ids.slice(1, 3 + RESEND_BATCH));
+    // 不相干的状态（没带我的 ack）不放
+    t.ws().push(state(2));
+    expect(sent()).toHaveLength(2 + RESEND_BATCH);
+    vi.useRealTimers();
   });
 
   it('没连上时先存着，连上后发；ack 对应的重复状态（seq 没变）不再交给游戏', () => {
