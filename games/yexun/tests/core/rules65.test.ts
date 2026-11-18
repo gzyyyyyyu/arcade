@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { createWorld, fingerprint, Pick, skillCooldown, step, type Choice, type Setup, type World } from '../../src/core/index.ts';
 import { charDmgMul } from '../../src/core/skills.ts';
 import { XINFA_DMG } from '../../src/content/pools.ts';
+import { CHAR_FX } from '../../src/content/meta.ts';
 import { ReplayPlayer } from '../../src/replay/player.ts';
 import type { ReplayRecord } from '../../src/replay/format.ts';
 
@@ -75,7 +76,7 @@ describe('规则 65：心法流派的法器伤害', () => {
   });
   it('和角色被动相乘：摆渡人水府心法下的寒泉 = 心法 × 顺水', () => {
     const w = make({ character: 'baidu', xinfa: 'water' });
-    expect(charDmgMul(w, 'spring')).toBeCloseTo(XINFA_DMG * 1.1, 12);
+    expect(charDmgMul(w, 'spring')).toBeCloseTo(XINFA_DMG * CHAR_FX.baiduWater67, 12);
   });
 });
 

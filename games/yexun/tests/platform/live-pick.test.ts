@@ -376,11 +376,11 @@ describe('实盘选角色、地图：liveSetup 与记录', () => {
   it('不传 = 小道士、雪原；传了就带上，仍无咒印、加成', () => {
     expect(liveSetup('small', 1)).toMatchObject({ mode: 'vigil', character: 'xiaodao', map: 'snow', perks: {}, assist: false });
     expect(liveSetup('large', 1, undefined, 'fushi', 'icelake')).toMatchObject({ mode: 'vigil', danger: 3, character: 'fushi', map: 'icelake', perks: {}, assist: false });
-    // 0.17.10 起新三人各档、各图、夜探都能带；摆渡人娱乐里也收着，退回小道士
-    for (const c of ['zhijiang', 'huolang', 'yinyang'] as const)
+    // 0.17.10 起新三人、0.30.0 起摆渡人各档、各图、夜探都能带
+    for (const c of ['zhijiang', 'baidu', 'huolang', 'yinyang'] as const)
       for (const t of LIVE_TIER_IDS) for (const m of MAP_IDS) expect(liveSetup(t, 1, undefined, c, m).character, `${t} ${m} ${c}`).toBe(c);
     expect(liveSetup('small', 1, 'guzhen', 'yinyang').character).toBe('yinyang');
-    expect(liveSetup('small', 1, undefined, 'baidu').character).toBe('xiaodao');
+    expect(liveSetup('small', 1, 'guzhen', 'baidu').character).toBe('baidu');
     expect(liveSetup('large', 1, undefined, 'gengfu').character).toBe('gengfu');
     expect(liveSetup('medium', 1, 'dukou', 'caiyao')).toMatchObject({ mode: 'raid', character: 'caiyao', perks: {}, assist: false });
   });

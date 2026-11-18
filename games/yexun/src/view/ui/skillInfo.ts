@@ -27,7 +27,7 @@ const DETAIL: Record<CharacterId, string> = {
   gengfu: `${sec(SKILLS.gengfu.dur)} 秒里每 ${sec(SKILL_FX.clapper.every)} 秒敲一下：${SKILL_FX.clapper.r} 以内的怪退一步，受 ${SKILL_FX.clapper.dmg} + ${SKILL_FX.clapper.perLevel} × 等级的伤害；每一梆补一层护身，没带金钟罩也有一层`,
   caiyao: `立刻回血量上限的 ${pct(SKILL_FX.spring.burst)}，之后 ${sec(SKILLS.caiyao.dur)} 秒每秒回 ${pct(SKILL_FX.spring.perSec)}；这段时间身边 ${SKILL_FX.spring.slowR} 以内的怪走得慢一半，每秒受 ${SKILL_FX.hooks.herbDmg} + ${SKILL_FX.hooks.herbPerLevel} × 等级的伤害；满血时回不进去的血变成药香圈的伤害（满血放翻倍）`,
   zhijiang: `身边立刻剪出 ${SKILL_FX.paper.n} 个纸兵，${sec(SKILL_FX.paper.life)} 秒后散；不占纸兵的上限，伤害跟着纸兵法器的等级（${BORROW}）`,
-  baidu: `脚下展开半径 ${SKILL_FX.ferry.r} 的水域 ${sec(SKILLS.baidu.dur)} 秒，跟着你走：里面你快 ${pct(SKILL_FX.ferry.speed - 1)}，怪慢四成`,
+  baidu: `脚下展开半径 ${SKILL_FX.ferry.r} 的水域 ${sec(SKILLS.baidu.dur)} 秒，跟着你走：里面你快 ${pct(SKILL_FX.ferry.speed - 1)}，怪慢四成、每秒受 ${SKILL_FX.ferry.dmg} + ${SKILL_FX.ferry.perLevel} × 等级的伤害`,
   huolang: `全屏的魂珠和铜钱飞到身上；之后 ${sec(SKILLS.huolang.dur)} 秒打倒的怪多掉 ${SKILL_FX.fortune.extra} 枚铜钱`,
   yinyang: `脚下布一座半径 ${SKILL_FX.array.r} 的阵 ${sec(SKILLS.yinyang.dur)} 秒：阵里的怪先定住 ${sec(SKILL_FX.array.bind)} 秒，之后慢四成`,
 };

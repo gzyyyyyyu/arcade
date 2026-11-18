@@ -51,7 +51,7 @@ import { BlockIndex, type RaidBlock } from './blocks.ts';
 import { raidHooks, type RaidPort } from './raid-port.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, vigilRegion, EMERGE_KINDS, regionKind, regionTotal, type Region } from '../content/regions.ts';
 import { BALANCE_57, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, EVENTS_57, FIRST_RUN_GUARD, lampShare, LIVE_EASE, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
-import { ASSIST, CHAR_FX, CHARACTERS, CURSE_FX, PERK_FX, REVIVE, type CurseId, type PerkId } from '../content/meta.ts';
+import { ASSIST, CHAR_FX, charBase, CURSE_FX, PERK_FX, REVIVE, type CurseId, type PerkId } from '../content/meta.ts';
 import { WEEKLY_FX } from '../content/weekly.ts';
 import { PICKS, PICKS_60, PICKS_65, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
 import { BELL_STUN, PARADE, MAP_EVENT_AT, MAP_EVENT_KINDS, MAP_EVENT_WARN, MAP_EVENTS, TIDE_SLOW, WIND_PUSH, type MapEventKind } from '../content/mapEvents.ts';
@@ -3522,7 +3522,7 @@ function recompute(w: World): void {
   s.bindDouble = w.weapons.some((o) => o.id === 'rope' && o.evolved);
   // 角色初始数值（所有者 10-20，content/meta.ts 的 base）：血量只乘底子的 100，仙桃、加成的血照加
   const ch = w.setup.character ?? 'xiaodao';
-  const b = CHARACTERS[ch].base;
+  const b = charBase(ch, w.identity67);
   s.hpMax += PLAYER.hp * (b.hp - 1);
   s.speed *= b.speed;
   s.might *= b.might;
@@ -3591,6 +3591,11 @@ function recompute(w: World): void {
     ws.dmg *= (elMul[d.el] ?? 1) * (d.type === '灵' && t('灵') >= 3 ? 1.25 : 1);
     if (d.type === '符' && t('符') >= 3) ws.amount += 1;
     if (d.type === '符' && ch === 'fushi') ws.cd *= CHAR_FX.fushiCd;
+    // 规则 67：摆渡人的竹篙出手快、多戳一下（起手竹篙清怪慢是他放出前偏弱的大头，DESIGN 3.7）
+    if (o.id === 'pole' && ch === 'baidu' && w.identity67) {
+      ws.cd *= CHAR_FX.baiduPoleCd;
+      ws.amount += 1;
+    }
     armsStats(w, d.type, ws, d.el);
     return ws;
   });

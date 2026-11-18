@@ -233,14 +233,13 @@ describe('角色初始数值和小特权（所有者 10-20，0.4.5）', () => {
 });
 
 describe('能选的角色（PICK_CHAR_IDS）', () => {
-  it('摆渡人收起：选不到，旧存档里选着他的回到小道士；他的局照样能开（旧录像要能回放）', async () => {
+  it('0.30.0 起十个角色都能选：存档里选着摆渡人的留着；他的局照样能开', async () => {
     const { PICK_CHAR_IDS } = await import('../../src/content/meta.ts');
     const { reviveSave } = await import('../../src/platform/save.ts');
-    expect(PICK_CHAR_IDS).toHaveLength(9);
-    expect(PICK_CHAR_IDS).not.toContain('baidu');
-    expect(CHARACTER_IDS).toContain('baidu');
+    expect(PICK_CHAR_IDS).toHaveLength(10);
+    expect(PICK_CHAR_IDS).toEqual(CHARACTER_IDS);
     const s = { ...fresh(), character: 'baidu' };
-    expect(reviveSave(JSON.parse(JSON.stringify(s)))!.character).toBe('xiaodao');
+    expect(reviveSave(JSON.parse(JSON.stringify(s)))!.character).toBe('baidu');
     const w = make('baidu');
     for (let i = 0; i < 90; i++) step(w, 0, -1);
     expect(w.phase).not.toBe('over');

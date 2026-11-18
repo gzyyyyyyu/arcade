@@ -32,7 +32,7 @@ const LIVE_FETCH_MS = 10_000;
  * 不带咒印、永久加成（perks 空对象），不开降低伤害；loadout 是角色的开局配置（起手、心法），实盘也带。解锁与否由界面判断，这里不看存档。
  */
 export function liveSetup(tier: LiveTier, seed: number, raid?: RaidLiveTemplate, picked: CharacterId = 'xiaodao', map: MapId = 'snow', loadout: Pick<Setup, 'startAlt' | 'xinfa'> = {}): Setup {
-  // 带不进这一档、这张图的（摆渡人已收起；新三人只在开了技能的格子里能带）传进来也退回小道士
+  // 带不进这一档、这张图的（LIVE_CHAR_IDS 之外的）传进来也退回小道士
   const character = liveCharOk(tier, picked, map, !!raid) ? picked : 'xiaodao';
   // 开局配置（起手、心法）实盘也带，和娱乐对齐；换成小道士时不带上原角色的心法（流派不属于小道士的会被核心丢掉，这里先收干净）
   const cfg = character === picked ? loadout : {};

@@ -22,7 +22,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 66;
+export const RULES_VERSION = 67;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
 /** 规则 60–63 的内容（先只在娱乐局）进实盘的版本：实盘统一重拟那一版（DESIGN 4.2a）；之前开的实盘局照旧 */
@@ -274,6 +274,10 @@ export class World {
   /** 规则 66（DESIGN 3.3e、3.7）：小道士池加龙王令、笔走龙蛇共享给小道士；采药女满血回春转药香伤害、阴阳先生阴阳互换时炸一圈；娱乐和实盘同一版起 */
   get identity66(): boolean {
     return this.contentFrom(66);
+  }
+  /** 规则 67（DESIGN 3.7）：摆渡人放出时补强——初始伤害不再低一档（meta.ts charBase），顺水的水类伤害 +10% → +50%、竹篙冷却 −25% 多戳一下（step.ts），横江一渡的水域里每秒打一下；娱乐和实盘同一版起 */
+  get identity67(): boolean {
+    return this.contentFrom(67);
   }
   /** 这一局用哪份角色法器池（content/pools.ts poolsFor）：规则 66 起最新的，62–65 规则 62 的，再早的老池 */
   get poolRules(): PoolRules {

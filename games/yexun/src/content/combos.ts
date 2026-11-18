@@ -37,7 +37,7 @@ export function reachWhy(m: MergeDef, c: PoolCharacterId): string {
 /** 能选的角色里谁凑得出这个搭配（按选角页的顺序） */
 export const mergeWho = (m: MergeDef): PoolCharacterId[] => PICK_CHAR_IDS.filter((c) => mergeReach(m, c) === 'ok');
 
-/** 界面上列的搭配：能选的角色里至少一个人凑得出（收起的角色的专属搭配不列，数据留着等角色回来） */
+/** 界面上列的搭配：能选的角色里至少一个人凑得出（以后再收起某个角色，他的专属搭配就不列，数据留着） */
 export const SHOWN_MERGES: readonly MergeDef[] = MERGES.filter((m) => mergeWho(m).length > 0);
 
 /** 这个角色凑得出的搭配（按 MERGES 的顺序） */

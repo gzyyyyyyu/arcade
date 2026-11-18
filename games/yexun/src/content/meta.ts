@@ -39,11 +39,10 @@ export type CharacterId = 'xiaodao' | 'fushi' | 'jianxia' | 'pang' | 'gengfu' | 
 /** 顺序 = 技能编号（core/skills.ts 的 SKILL_IDS）= 角色页的排列；以后加角色往后加，别插队 */
 export const CHARACTER_IDS: readonly CharacterId[] = ['xiaodao', 'fushi', 'jianxia', 'pang', 'gengfu', 'caiyao', 'zhijiang', 'baidu', 'huolang', 'yinyang'];
 /**
- * 现在能选的角色（选模式页、角色页、玩法说明只列这些）。摆渡人先收起来（所有者 11-01：新角色两三个就够）：
- * 他的技能「横江一渡」和阴阳先生的「定阵」都是脚下一片让怪变慢的区域，留着重复。数据、技能和图都还在，
- * 旧存档里选着他的回到小道士，录过的局照常回放；以后要放回来，把他加回这张表即可。
+ * 能选的角色（选模式页、角色页、玩法说明列这些）：十个全开。摆渡人 0.13.0–0.29.0 收着（所有者 11-01：横江一渡和定阵都是减速区，重复），
+ * 0.30.0 放出（所有者 11-18）：阴阳先生规则 66 起有了阴阳互换那一下，两人不再只是同一种减速区
  */
-export const PICK_CHAR_IDS: readonly CharacterId[] = CHARACTER_IDS.filter((c) => c !== 'baidu');
+export const PICK_CHAR_IDS: readonly CharacterId[] = CHARACTER_IDS;
 
 export interface CharacterDef {
   id: CharacterId;
@@ -85,10 +84,17 @@ export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   gengfu: { id: 'gengfu', name: '更夫', start: 'shield', perkName: '三更锣', perk: '每 24 秒敲一声锣：全屏的怪被震退并受伤，金钟罩补一层', unlock: '守夜撑过 8 分钟', look: '灰袄毡帽，一手锣一手灯笼', line: '天干物燥——小心火烛——咣！', base: { ...EVEN, hp: 0.95, area: 1, cd: 1.1 }, privilege: '夜市提前 10 秒预告、多开 5 秒' },
   caiyao: { id: 'caiyao', name: '采药女', start: 'petals', perkName: '百草香', perk: '每秒回 0.7 血，肉包回血加倍，经验 +20%', unlock: '夜探成功撤出 1 次', look: '青裙双髻，背着药篓采药', line: '药篓里什么都有，也有给你的。', base: { ...EVEN, hp: 0.95, luck: 0.15, magnet: 1.2 }, privilege: '夜市打九折' },
   zhijiang: { id: 'zhijiang', name: '纸匠', start: 'zhibing', perkName: '巧手', perk: '纸兵活得久 30%，倒下时两成概率还你一张纸兵的冷却；身边的纸兵会替你挨一下，挨完就碎', unlock: '一开始就有', look: '蓝布衫挽着袖子，手里总捏着一把剪刀', line: '纸也能站岗——你信不信？', base: { ...EVEN, hp: 0.9, speed: 1.05, might: 0.95, cd: 0.95, area: 1.1, magnet: 1.1 } },
-  baidu: { id: 'baidu', name: '摆渡人', start: 'pole', perkName: '顺水', perk: '水里不减速，冰面不打滑，水类法器伤害 +10%', unlock: '夜探撤出 1 次后，守夜撑过 6 分钟', look: '蓑衣斗笠，肩上扛着长竹篙', line: '上船不问来路，下船不问归途。', base: { ...EVEN, hp: 1.05, speed: 1.1, might: 0.9, cd: 1.05, area: 1.05 } },
+  baidu: { id: 'baidu', name: '摆渡人', start: 'pole', perkName: '顺水', perk: '水里不减速，冰面不打滑，水类法器伤害 +50%，竹篙冷却 −25%、多戳一下', unlock: '夜探撤出 1 次后，守夜撑过 6 分钟', look: '蓑衣斗笠，肩上扛着长竹篙', line: '上船不问来路，下船不问归途。', base: { ...EVEN, hp: 1.05, speed: 1.1, cd: 1.05, area: 1.05 } },
   huolang: { id: 'huolang', name: '货郎', start: 'dart', perkName: '讨价', perk: '夜市九折，局内铜钱 +15%，铜钱每满 100 枚伤害 +1%（最多 +10%）；每捡 100 枚铜钱补一次刷新', unlock: '夜市买过 3 次东西', look: '花布头巾，挑着一副叮当响的货担', line: '好货不贵，不好的白送。', base: { ...EVEN, hp: 1, speed: 1.05, might: 0.95, magnet: 1.3, luck: 0.1 } },
   yinyang: { id: 'yinyang', name: '阴阳先生', start: 'flag', perkName: '阴阳互济', perk: '血过半是阳：伤害 +8%；不足一半是阴：技能冷却 −8%，捆、定住的怪多定半秒；血量越过一半那一下（阳变阴、阴变阳都算）脚下炸一圈，身边的怪定住 1 秒，两个方向共用 20 秒冷却', unlock: '一开始就有', look: '黑袍方巾，腰间挂着罗盘和八卦牌', line: '阴阳有序，今晚的账我来算。', base: { ...EVEN, hp: 0.95, speed: 0.95, might: 1.05, cd: 1.05, area: 1.1 } },
 };
+
+/** 规则 67 之前的初始数值（摆渡人放出时把伤害 0.9 补成 1，出手 −5% 留着当短板，所有者 10-20 每人都有吃亏的一项；DESIGN 3.7）；旧录像按这份重放。顺水的倍数见 CHAR_FX.baiduWater67 */
+const BASE_BEFORE_67: Partial<Record<CharacterId, CharBase>> = {
+  baidu: { ...EVEN, hp: 1.05, speed: 1.1, might: 0.9, cd: 1.05, area: 1.05 },
+};
+/** 这一局角色的初始数值：v67 = World.identity67 */
+export const charBase = (id: CharacterId, v67: boolean): CharBase => (v67 ? undefined : BASE_BEFORE_67[id]) ?? CHARACTERS[id].base;
 
 /** 角色被动的数值 */
 export const CHAR_FX = {
@@ -121,8 +127,11 @@ export const CHAR_FX = {
   /** 纸匠·巧手：纸兵寿命倍数；纸兵倒下时还冷却的概率（由拍号和槽位算出的固定散列决定，不占随机流） */
   zhijiangLife: 1.3,
   zhijiangRefund: 0.2,
-  /** 摆渡人·顺水：水类法器（五行为水）的伤害倍数 */
+  /** 摆渡人·顺水：水类法器（五行为水）的伤害倍数；规则 67 起 baiduWater67（放出时补强，起手竹篙也是水类），之前 baiduWater */
   baiduWater: 1.1,
+  baiduWater67: 1.5,
+  /** 规则 67 起摆渡人的竹篙冷却倍数（另外多戳一下，core/step.ts） */
+  baiduPoleCd: 0.75,
   /** 货郎·讨价：夜市价格倍数、局内铜钱额外概率、每满多少枚铜钱伤害 +1%（最多 +10%） */
   huolangMarket: 0.9,
   huolangCoin: 0.15,

@@ -36,10 +36,13 @@ export function combosFor(st: CombosState, c: string): void {
   st.char = (PICKABLE as readonly string[]).includes(c) ? (c as PoolCharacterId) : 'xiaodao';
 }
 
-/** 谁能合：能选的角色全都凑得出写「人人能合」，否则列名字（专属也是这样列出来的） */
+/** 谁能合：能选的角色全都凑得出写「人人能合」；凑不出的人少时写「除 X 都能合」（七八个名字一行放不下）；否则列名字（专属也是这样列出来的） */
 export function whoText(m: MergeDef): string {
   const who = mergeWho(m);
-  return who.length === PICKABLE.length ? '人人能合' : `${who.map(poolCharName).join('、')}能合`;
+  if (who.length === PICKABLE.length) return '人人能合';
+  const out = PICKABLE.filter((c) => !who.includes(c));
+  if (out.length < who.length) return `除${out.map(poolCharName).join('、')}都能合`;
+  return `${who.map(poolCharName).join('、')}能合`;
 }
 
 /** 点击：data-a 是 cview / cchar；返回要不要重画 */
