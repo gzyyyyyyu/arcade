@@ -14,14 +14,14 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('设置面板的存取', () => {
-  it('什么都没存过：音效开、音量 0.8、正常速度、不自动下一手', () => {
+  it('什么都没存过：音效开、音量 0.8、正常速度、不自动下一手、跟注提示开', () => {
     expect(readPrefs()).toEqual(DEFAULT_PREFS);
-    expect(DEFAULT_PREFS).toEqual({ sound: true, volume: 0.8, fast: false, autoNext: false });
+    expect(DEFAULT_PREFS).toEqual({ sound: true, volume: 0.8, fast: false, autoNext: false, hint: true });
   });
 
   it('旧存档（只有 sound / volume 0.35 / fast）照读，缺的字段补默认', () => {
     mem.set(KEYS.settings, JSON.stringify({ sound: false, volume: 0.35, fast: true, stakes: 'mid' }));
-    expect(readPrefs()).toEqual({ sound: false, volume: 0.35, fast: true, autoNext: false });
+    expect(readPrefs()).toEqual({ sound: false, volume: 0.35, fast: true, autoNext: false, hint: true });
   });
 
   it('音量是滑条上的任意值：夹在 0–1，坏值回默认', () => {
@@ -38,14 +38,14 @@ describe('设置面板的存取', () => {
 
   it('存了刷新后还在，且不覆盖大厅记住的字段', () => {
     patchSettings({ stakes: 'big', players: 9 });
-    savePrefs({ sound: false, volume: 0.45, fast: true, autoNext: true });
-    expect(readPrefs()).toEqual({ sound: false, volume: 0.45, fast: true, autoNext: true });
+    savePrefs({ sound: false, volume: 0.45, fast: true, autoNext: true, hint: false });
+    expect(readPrefs()).toEqual({ sound: false, volume: 0.45, fast: true, autoNext: true, hint: false });
     expect(readSettings()).toMatchObject({ stakes: 'big', players: 9 });
   });
 
   it('恢复默认：开关、聊天、止盈回默认，大厅记住的档位和人数不动', () => {
     patchSettings({ stakes: 'big', chatOff: true, strangerChat: false, takeProfit: { kind: 'pct', pct: 100 } });
-    savePrefs({ sound: false, volume: 0.2, fast: true, autoNext: true });
+    savePrefs({ sound: false, volume: 0.2, fast: true, autoNext: true, hint: false });
     resetSettings();
     expect(readPrefs()).toEqual(DEFAULT_PREFS);
     const left = readSettings();

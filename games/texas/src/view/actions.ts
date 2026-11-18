@@ -10,6 +10,7 @@ import type { View } from '../core/view.ts';
 import { el, setText, toggle } from './dom.ts';
 import { chips } from './text.ts';
 import { must } from '../must.ts';
+import { handOdds } from '../fun/odds.ts';
 
 type Pre = 'checkfold' | 'callany' | null;
 
@@ -29,6 +30,9 @@ export class ActionBar {
   private readonly preCheck: HTMLButtonElement;
   private readonly preCall: HTMLButtonElement;
   private v: View | null = null;
+  /** 跟注提示上次算的局面和结果：同一个局面重画不再抽样 */
+  private oddsKey = '';
+  private oddsVal = 0;
   private preset: Pre = null;
   /** 预选是在哪一手、面对多大的注时选的：注变了"过牌或弃牌"就不再自动弃 */
   private presetHand = -1;
@@ -89,8 +93,12 @@ export class ActionBar {
     window.addEventListener('keydown', (e) => this.key(e));
   }
 
-  /** 按视图摆出来；轮到我且有预选时返回要自动做的操作 */
-  update(v: View | null, enabled: boolean): Action | null {
+  /**
+   * 按视图摆出来；轮到我且有预选时返回要自动做的操作。
+   * hint：要跟注时写上"我的牌大约赢几成"（src/fun/odds.ts）。只有单机现金桌传 true（app/table.ts，设置里能关）；
+   * 好友房、快速匹配、锦标赛的调用不传这个参数，真人桌上永远不显示（test/arch.test.ts 查）
+   */
+  update(v: View | null, enabled: boolean, hint = false): Action | null {
     this.v = v;
     const lg = v && enabled && v.me !== null && v.toAct === v.me ? v.legal : null;
     toggle(this.root, 'on', lg !== null);
@@ -122,7 +130,7 @@ export class ActionBar {
     // 能过牌时弃牌放一边、淡一点（白白弃牌多半是点错了）
     toggle(this.fold, 'soft', lg.check);
     toggle(this.odds, 'hidden', false);
-    this.drawOdds(v);
+    this.drawOdds(v, hint);
     queueMicrotask(() => this.cover());
     this.slider.min = String(lg.minTo);
     this.slider.max = String(lg.maxTo);
@@ -152,21 +160,42 @@ export class ActionBar {
     return null;
   }
 
+  /** 我的赢面（整数百分比）：对着还没弃牌的几家（全下了的也算）；同一个局面只算一次 */
+  private myOdds(v: View): number | null {
+    if (v.me === null || v.hole.length !== 2) return null;
+    const opp = v.seats.filter((s, i) => i !== v.me && (s.status === 'active' || s.status === 'allin')).length;
+    if (!opp) return null;
+    const key = `${v.hole.join(',')}|${v.board.join(',')}|${opp}`;
+    if (key !== this.oddsKey) {
+      this.oddsKey = key;
+      this.oddsVal = Math.round(handOdds(v.hole, v.board, opp) / 10);
+    }
+    return this.oddsVal;
+  }
+
   /**
    * 池子多大、要跟多少、赔率。赔率 = 跟了以后能赢的（现在的池子）: 要跟的；
    * "要赢 X%" = 跟的 ÷（池子 + 跟的）：赢面比这个大，长期跟就不亏
    */
-  private drawOdds(v: View): void {
+  private drawOdds(v: View, hint: boolean): void {
     const lg = must(v.legal, 'v.legal');
     const pot = v.pot;
     // 桌心已经摆着池子（翻牌后：前几轮收进去的）：加注面板展开时这条的「底池」就是重复的，样式里据此收起（style.css）
     toggle(this.odds, 'pot-shown', v.pots.some((x) => x > 0));
+    toggle(this.odds, 'with-hint', false);
     if (lg.check) this.odds.innerHTML = `底池 <b>${chips(pot)}</b>`;
     else {
       const ratio = pot / lg.call;
       const need = Math.round((lg.call / (pot + lg.call)) * 100);
-      // 括号去掉、字缩短并放进小字：电脑版 1280 宽上原来折成两行；金额一个字都不截
-      this.odds.innerHTML = `底池 <b>${chips(pot)}</b> · 跟 <b>${chips(lg.call)}</b> · 赔率 <b>${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)} : 1</b><span class="need">赢面 ${need}%+ 可跟</span>`;
+      // 括号去掉、字缩短并放进小字：电脑版 1280 宽上原来折成两行；金额一个字都不截。有跟注提示时赔率那一段收起（style.css 的 .with-hint .ratio）
+      const head = `底池 <b>${chips(pot)}</b> · 跟 <b>${chips(lg.call)}</b><span class="ratio"> · 赔率 <b>${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)} : 1</b></span>`;
+      const eq = hint ? this.myOdds(v) : null;
+      toggle(this.odds, 'with-hint', eq !== null);
+      // 只给"要多少"新手读不懂（以为写的是"可以跟"）：有提示时把我的赢面和要的摆在一起，够了标绿
+      this.odds.innerHTML =
+        eq === null
+          ? `${head}<span class="need">赢面要过 ${need}%</span>`
+          : `${head}<span class="hint ${eq >= need ? 'ok' : 'bad'}">你约 <b>${eq}%</b><span class="h-need"> · 要 ${need}%</span> · ${eq >= need ? '划算' : '不太划算'}</span>`;
     }
     // 一键下注：每个按钮写上会下到多少；和最小加注、全下一样多的不重复给
     toggle(this.quick, 'hidden', !lg.raise);

@@ -75,7 +75,7 @@ export function patchSettings(patch: Record<string, unknown>): void {
   writeJson(KEYS.settings, { ...readSettings(), ...patch });
 }
 
-/** 设置面板里的几个开关（texas.settings 里的这四个字段） */
+/** 设置面板里的几个开关（texas.settings 里的这五个字段） */
 export interface Prefs {
   /** 音效开关（游戏里没有背景音乐，声音全是音效；道具声音也跟着它） */
   sound: boolean;
@@ -84,24 +84,26 @@ export interface Prefs {
   fast: boolean;
   /** 单机一手打完，结果摆几秒后自己发下一手（默认关：试玩时大家要"点了才发"） */
   autoNext: boolean;
+  /** 单机桌要跟注时写"你约 X% · 要 Y%"（src/fun/odds.ts；默认开，宁简勿难） */
+  hint: boolean;
 }
 
-export const DEFAULT_PREFS: Readonly<Prefs> = { sound: true, volume: 0.8, fast: false, autoNext: false };
+export const DEFAULT_PREFS: Readonly<Prefs> = { sound: true, volume: 0.8, fast: false, autoNext: false, hint: true };
 
-/** 读这四个开关：没存过、存坏了的字段按默认（音效开、音量 0.8、正常速度、不自动下一手）；旧存档里的 0.35 / 0.8 原样认 */
+/** 读这五个开关：没存过、存坏了的字段按默认（音效开、音量 0.8、正常速度、不自动下一手、跟注提示开）；旧存档里的 0.35 / 0.8 原样认 */
 export function readPrefs(): Prefs {
   const s = readSettings() as Partial<Record<keyof Prefs, unknown>>;
   const v = s.volume;
   const volume = typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : DEFAULT_PREFS.volume;
-  return { sound: s.sound !== false, volume, fast: s.fast === true, autoNext: s.autoNext === true };
+  return { sound: s.sound !== false, volume, fast: s.fast === true, autoNext: s.autoNext === true, hint: s.hint !== false };
 }
 
-/** 四个字段一起写回（合并写，不动大厅和聊天、止盈存的字段） */
+/** 五个字段一起写回（合并写，不动大厅和聊天、止盈存的字段） */
 export function savePrefs(p: Prefs): void {
   patchSettings({ ...p });
 }
 
-/** 设置面板"恢复默认"：四个开关回默认，聊天（chatOff、strangerChat）和止盈删掉回默认；大厅记住的档位、人数这些不动 */
+/** 设置面板"恢复默认"：五个开关回默认，聊天（chatOff、strangerChat）和止盈删掉回默认；大厅记住的档位、人数这些不动 */
 export function resetSettings(): void {
   const { chatOff: _a, strangerChat: _b, takeProfit: _c, ...rest } = readSettings();
   writeJson(KEYS.settings, { ...rest, ...DEFAULT_PREFS });

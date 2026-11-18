@@ -3,7 +3,8 @@
  * 用假 WebSocket 喂房间消息，假的 ui 记每次 play 的 prev / next。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Online, type OnlineUi } from '../../src/online.ts';
+import type { RoomInfo } from 'arcade-kit/protocol';
+import { Online, rememberNames, seatName, type OnlineState, type OnlineUi } from '../../src/online.ts';
 import type { RoomView } from '../../src/room/rules.ts';
 
 type Handler = ((ev: { data: string }) => void) | null;
@@ -139,5 +140,29 @@ describe('Online 帧播放', () => {
     expect(calls.at(-1)).toEqual([null, 9]);
     expect(calls.filter((c) => c[1] === 3)).toEqual([]);
     expect(skips).toContain(true);
+  });
+});
+
+describe('结算和名次表上的名字（rememberNames、seatName）', () => {
+  const seat = (kind: 'human' | 'bot', name: string | null) => ({ kind, name, away: false }) as unknown as RoomInfo['seats'][number];
+  const room = (seats: RoomInfo['seats']): RoomInfo => ({ seats }) as unknown as RoomInfo;
+
+  it('朋友先走了：座位变回电脑，名字还是他的，加"（走了）"；从没坐过真人的写座位号', () => {
+    const before = room([seat('human', '我'), seat('human', '阿明'), seat('bot', null)]);
+    const after = room([seat('human', '我'), seat('bot', null), seat('bot', null)]);
+    const names = rememberNames(rememberNames([], before), after);
+    expect(names).toEqual(['我', '阿明', null]);
+    const s = { room: after, names } as unknown as OnlineState;
+    expect(seatName(s, 0, 0, '本机')).toBe('本机');
+    expect(seatName(s, 1, 0, '本机')).toBe('阿明（走了）');
+    expect(seatName(s, 2, 0, '本机')).toBe('3 号座（走了）');
+  });
+
+  it('电脑代打的座位写原主人，同一个座位后来换了人记后来的', () => {
+    const names = rememberNames(['阿明'], room([seat('human', '小李')]));
+    expect(names).toEqual(['小李']);
+    const s = { room: room([seat('bot', '小李')]), names } as unknown as OnlineState;
+    expect(seatName(s, 0, null, '本机')).toBe('小李（走了）');
+    expect(seatName({ ...s, room: room([seat('human', '小李')]) }, 0, null, '本机')).toBe('小李');
   });
 });

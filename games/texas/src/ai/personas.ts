@@ -146,7 +146,7 @@ const LUX: Skill = { read: 240, pre: 215, raiser: 30, caller: 55, limper: 80, sl
 export const SKILL: readonly Skill[] = [
   { read: 600, pre: 600, raiser: 100, caller: 100, limper: 100, slack: 150, bluff: 100, tight: -250, soft: 1000, slip: 400, value: 300, third: 1000, passive: 950, shy: 800, memory: 0, style: 300, adapt: 0, depth: false },
   { read: 550, pre: 500, raiser: 100, caller: 100, limper: 100, slack: 120, bluff: 120, tight: -220, soft: 1000, slip: 350, value: 330, third: 1000, passive: 930, shy: 750, memory: 0, style: 600, adapt: 0, depth: false },
-  { read: 460, pre: 400, raiser: 100, caller: 100, limper: 100, slack: 40, bluff: 250, tight: -200, soft: 1000, slip: 300, value: 400, third: 1000, passive: 900, shy: 700, memory: 0, style: 500, adapt: 0, depth: false },
+  { read: 500, pre: 400, raiser: 100, caller: 100, limper: 100, slack: 40, bluff: 250, tight: -200, soft: 1000, slip: 340, value: 340, third: 1000, passive: 900, shy: 700, memory: 0, style: 500, adapt: 0, depth: false },
   { read: 420, pre: 300, raiser: 100, caller: 100, limper: 100, slack: 30, bluff: 500, tight: -150, soft: 800, slip: 250, value: 500, third: 800, passive: 700, shy: 450, memory: 0, style: 550, adapt: 0, depth: false },
   { ...LUX, value: 900, passive: 150, shy: 150 },
   LUX,
