@@ -158,7 +158,7 @@ function darkenHex(c: string, t: number): string {
 
 // ---------------------------------------------------------------- 守岛敌人（tdart.ts 的外观）
 
-type TdRigKind = 'sailor' | 'ironclad' | 'fog' | 'sapper' | 'grenadier' | 'captain' | 'shield' | 'skiff' | 'skiffling';
+type TdRigKind = 'sailor' | 'ironclad' | 'fog' | 'sapper' | 'grenadier' | 'captain' | 'shield' | 'bosun' | 'skiff' | 'skiffling';
 
 function tdParts(kind: TdRigKind): Partial<Record<RigFrame, Part>> {
   const sk = SKEL[`e.${kind}`];

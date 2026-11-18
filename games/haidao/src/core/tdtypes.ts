@@ -8,7 +8,7 @@ import type {
   Td2Action, Td2Event, TdGarrisonSpot, TdGarrisonTower, TdHomeGen, TdMode, TdPadDef, TdTier, TdTowerKind,
 } from './td2types.ts';
 
-export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield';
+export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield' | 'bosun' | 'macaw';
 
 export interface TdEnemyDef {
   name: string;
@@ -103,6 +103,12 @@ export interface TdGroup {
   every: number;
   /** 这一波开始后多少拍才开始上这一组 */
   delay?: number;
+  /**
+   * 只在这个规则版本区间 [since, until) 的局里出（没写 = 不限）。关卡换配方时新旧两套组并排写，
+   * createTd 按 setup.rules 挑，旧版本的局逐位不变（RULES_SINCE.tdElite）
+   */
+  since?: number;
+  until?: number;
 }
 
 export interface TdWave {

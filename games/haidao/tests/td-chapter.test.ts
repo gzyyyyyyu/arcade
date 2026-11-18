@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BUILDINGS } from '../src/content/index.ts';
 import { TD2_CHAPTERS, TD2_LEVELS as ALL_LEVELS, TD2_LEVEL_BY_ID, TD2_MAPS, buildLevel, TD2_LEVEL_DEFS } from '../src/content/tdmaps.ts';
 import { TD2_ENEMY_POINTS } from '../src/content/td2units.ts';
-import { createTd, stepTd } from '../src/core/td.ts';
+import { createTd, levelForRules, stepTd } from '../src/core/td.ts';
 import { tdIncomingWave, tdPreview, tdRoute, tdRoutes, tdWaveLanes } from '../src/core/tdquery.ts';
 import { tdGrowthSetup } from '../src/core/tdrun.ts';
 import { waveBudget } from '../src/core/td2types.ts';
@@ -82,10 +82,12 @@ describe('关卡表', () => {
 describe('波次 = 预算公式', () => {
   it('每一波的点数（个数 × 敌人点数，首领另算）和 waveBudget 差不到两成；预算逐波上涨', () => {
     for (const l of TD2_LEVELS) {
-      l.waves.forEach((w, i) => {
+      // 带精英配方的关新旧两套组并排写，按现在的规则版本挑一套、用那一套的预算（精英一个顶四个，点数照算）
+      const def = TD2_LEVEL_DEFS[l.index]!;
+      levelForRules(l, RULES_VERSION).waves.forEach((w, i) => {
         // 份额加起来不到 100 的波是有意放轻的铺垫波（td02 / td04 / td05 的前几波），预算按份额之和折算
-        const shares = TD2_LEVEL_DEFS[l.index]!.waves[i]!.groups.reduce((s, g) => s + (g[0] === 'captain' ? 0 : g[1]), 0);
-        const budget = (waveBudget(l.index, i) * (TD2_LEVEL_DEFS[l.index]!.scale ?? 100) * Math.min(100, shares || 100)) / 10_000;
+        const shares = def.waves[i]!.groups.reduce((s, g) => s + (g[0] === 'captain' ? 0 : g[1]), 0);
+        const budget = (waveBudget(l.index, i) * (def.elite?.scale ?? def.scale ?? 100) * Math.min(100, shares || 100)) / 10_000;
         let pts = 0;
         for (const g of w.groups) pts += g.n * TD2_ENEMY_POINTS[g.enemy];
         // 个数四舍五入、至少 1 个：小波次会偏，预算大的波偏差小

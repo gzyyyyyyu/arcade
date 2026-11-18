@@ -64,6 +64,8 @@ export const TD_ENEMY_ARMOR: Readonly<Record<TdEnemyKind, TdArmor>> = {
   parrot: 'air',
   grenadier: 'cloth',
   shield: 'heavy',
+  bosun: 'cloth',
+  macaw: 'air',
 };
 
 /** 不是塔打出来的伤害：英雄普攻是枪弹；火药桶（地上的、英雄扔的）、地雷是爆破；燃烧弹、火油、火油坑留在地上的火是火 */

@@ -37,7 +37,7 @@ const HOME_FROM: ReadonlyArray<[TdEnemyKind, number]> = [
 
 /** 每种敌人一组里隔几拍上一个 */
 const EVERY: Readonly<Record<TdEnemyKind, number>> = {
-  sailor: 22, ironclad: 50, fog: 30, skiff: 45, skiffling: 20, sapper: 40, parrot: 18, captain: 1, grenadier: 40, shield: 45,
+  sailor: 22, ironclad: 50, fog: 30, skiff: 45, skiffling: 20, sapper: 40, parrot: 18, captain: 1, grenadier: 40, shield: 45, bosun: 45, macaw: 30,
 };
 
 /** 从存档取岛快照（布局深拷贝、主寨等级、英雄等级） */

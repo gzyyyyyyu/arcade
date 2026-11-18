@@ -79,6 +79,10 @@ export const TD2_ENEMIES: Readonly<Record<TdEnemyKind, TdEnemyDef>> = {
   // 盾兵（规则版本 11）：重甲；正面挡枪和炮的单体伤害（SHIELD.frontPct），火和爆照吃；被震晕盾放下
   shield: { name: '盾兵', hp: 240, speed: 3, dmg: 18, reload: 24, reach: 90, carry: 2, gold: 14 },
   grenadier: { name: '掷弹兵', hp: 85, speed: 4, dmg: 30, reload: 50, reach: 90, carry: 1, gold: 8, lob: { range: 300, r: 120, wallPct: 30 } },
+  // 精英（规则版本 15）：4 倍血、4 倍预算点、4 倍金，一个顶四个，让后期少而精。速度和普通兵一样，搬宝比四个普通兵少一点：
+  // 初稿走得慢、只搬 2 枚，同样预算下明显好守（漏一个丢得少、挨打时间长），拟预算时得加到敌人比原来还多
+  bosun: { name: '水手长', hp: 360, speed: 5, dmg: 30, reload: 20, reach: 90, carry: 3, gold: 20 },
+  macaw: { name: '鹦鹉王', hp: 120, speed: 6, dmg: 15, reload: 20, reach: 80, carry: 2, gold: 16 },
 };
 
 /**
@@ -99,6 +103,8 @@ export const TD2_ENEMY_POINTS: Readonly<Record<TdEnemyKind, number>> = {
   captain: 120,
   grenadier: 9,
   shield: 20,
+  bosun: 24,
+  macaw: 24,
 };
 
 /** 首领波前多给的倒数（拍）：10 秒，预告条变红 */

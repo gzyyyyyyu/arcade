@@ -253,18 +253,35 @@ function tdCss(): string {
 .hd-ui .hd-ctr { margin:8px 0 2px; }
 .hd-ui .hd-ctr-tog { width:100%; min-height:44px; flex-direction:row; gap:8px; justify-content:center; }
 .hd-ui .hd-ctr-tog small { font-size:12px; opacity:.85; }
-.hd-ui .hd-ctr-tb, .hd-ui .hd-ctr-who { display:none; }
+.hd-ui .hd-ctr-tb, .hd-ui .hd-ctr-who, .hd-ui .hd-ctr-key { display:none; }
 .hd-ui .hd-ctr.on .hd-ctr-tb { display:table; }
-.hd-ui .hd-ctr.on .hd-ctr-who { display:flex; }
+.hd-ui .hd-ctr.on .hd-ctr-who, .hd-ui .hd-ctr.on .hd-ctr-key { display:flex; }
+/* 表上一句怎么读，后面三个色块就是格子的颜色 */
+.hd-ui .hd-ctr-key { flex-wrap:wrap; align-items:center; gap:2px 6px; margin:0 0 2px; font-size:12px; font-weight:700; }
+.hd-ui .hd-ctr-key i { font-style:normal; font-weight:900; padding:0 5px; border:2px solid ${ink}; border-radius:6px; }
 .hd-ui .hd-ctr.on .hd-ctr-tog { display:none; }
 .hd-ui .hd-ctr-tb { width:100%; border-collapse:separate; border-spacing:3px; font-size:14px; animation:hd-tdin .22s cubic-bezier(.3,1.4,.5,1); }
 .hd-ui .hd-ctr-tb th { font-weight:800; font-size:12px; white-space:nowrap; text-align:center; }
 .hd-ui .hd-ctr-tb th span { margin-left:3px; }
-.hd-ui .hd-ctr-tb td { text-align:center; font-weight:900; border:2px solid ${ink}; border-radius:7px; padding:3px 2px; background:#fff8e6; }
-.hd-ui .hd-ctr-tb td.c-good { background:#9fe08a; }
-.hd-ui .hd-ctr-tb td.c-weak { background:#ffc9a0; }
-.hd-ui .hd-ctr-tb td.c-none { background:#cfcfcf; color:#5b5b5b; font-size:12px; }
+.hd-ui .hd-ctr-tb th.hd-ctr-corner { font-weight:700; opacity:.7; vertical-align:bottom; }
+.hd-ui .hd-ctr-h { display:flex; align-items:center; justify-content:center; }
+/* 表头里属于这一行 / 这一列的塔和敌人小图，放不下就折行 */
+.hd-ui .hd-ctr-ic { display:flex; justify-content:center; gap:0 1px; margin:1px auto 0; }
+.hd-ui .hd-ctr-ic img { width:18px; height:18px; object-fit:contain; }
+/* 矮屏（手机横屏、360×640）一屏放不下表头的小图：只留徽记和名字，谁属于哪一行、哪一列看表下按名字列的两组 */
+@media (max-height:700px) { .hd-ui .hd-ctr-ic { display:none; } }
+.hd-ui .hd-ctr-tb td { text-align:center; font-weight:900; border:2px solid ${ink}; border-radius:7px; padding:2px 2px; background:#fff8e6; }
+.hd-ui .hd-ctr-tb td.c-good, .hd-ui .hd-ctr-key .c-good { background:#9fe08a; }
+.hd-ui .hd-ctr-tb td.c-weak, .hd-ui .hd-ctr-key .c-weak { background:#ffc9a0; }
+.hd-ui .hd-ctr-tb td.c-none, .hd-ui .hd-ctr-key .c-none { background:#cfcfcf; color:#5b5b5b; }
+.hd-ui .hd-ctr-tb td { font-size:12px; white-space:nowrap; }
 .hd-ui .hd-ctr-who { flex-wrap:wrap; gap:2px 10px; margin:4px 0 0; font-size:12px; }
+/* 图鉴里这一波每种敌人一行：护甲章 + 「水手 · 布衣：火打它多一半」 */
+.hd-ui .hd-best-foes { display:flex; flex-direction:column; gap:2px; margin:2px 0 4px; font-size:12px; font-weight:700; }
+.hd-ui .hd-best-foes span { display:flex; align-items:center; gap:4px; }
+.hd-ui .hd-tdgar-dmg { display:inline-flex; align-items:center; gap:2px; font-weight:800; }
+/* 矮屏驻守台卡只留伤害徽记（悬停 / 点一下有说明），全名会把这一行挤成两行、整页放不下 */
+@media (max-height:700px) { .hd-ui .hd-tdgar-dmg span { display:none; } }
 .hd-ui .hd-ctr-who span { display:inline-flex; align-items:center; gap:3px; }
 /* 顶部预告卡：一整块，首领波变红；点它打开敌人图鉴 */
 .hd-ui .hd-td-plan { position:absolute; top:calc(env(safe-area-inset-top, 0px) + 110px); left:6px; max-width:min(360px,calc(100% - 12px)); z-index:30; pointer-events:auto; cursor:pointer; padding:4px 9px 5px; border:2px solid ${ink}; border-radius:12px; background:${cream}; box-shadow:0 2px 0 ${ink}; font-size:14px; font-weight:800; line-height:1.25; transition:transform .18s cubic-bezier(.3,1.5,.5,1); }

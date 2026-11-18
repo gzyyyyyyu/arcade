@@ -212,6 +212,11 @@ ${W} .hd-key { display:none; }
 @media (min-width:900px) and (min-height:560px) {
   ${W} .hd-base > .hd-sheet, ${W} .hd-td > .hd-td-sheet { left:auto; right:12px; top:68px; bottom:auto; margin:0; width:400px; max-height:calc(100% - 80px); border-bottom-width:6px; border-radius:4px; }
   ${W} .hd-bottom .hd-btn { max-width:132px; }
+  /* 敌人图鉴：两波、每种敌人怎么打、带塔和敌人小图的克制表，一列 400 宽放不下 720 高；左右两栏（左波次、右克制表），和手机横屏一样 */
+  ${W} .hd-td > .hd-td-sheet.hd-td-best { width:min(780px,calc(100% - 24px)); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:16px; align-content:start; }
+  ${W} .hd-td > .hd-td-sheet.hd-td-best > .hd-head { grid-column:1 / -1; }
+  ${W} .hd-td-best .hd-best-waves { grid-column:1; }
+  ${W} .hd-td-best .hd-ctr { grid-column:2; grid-row:2; margin:0; }
 }
 
 /* 没写字号的 small 不吃浏览器默认的"比周围小一号"（11.67px），最小就是 12 */
