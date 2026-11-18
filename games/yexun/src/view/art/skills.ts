@@ -218,6 +218,8 @@ export function playSkillFx(c: SkillFxCtx, type: number, x: number, y: number, a
     if (a === SK.dash) dash(c, x, y, b, k);
     else if (a === SK.clap) clap(c, x, y, b);
     else if (a === SK.spring) springPulse(c, x, y);
+    // 阴阳先生阴阳互换（规则 66）：b = 定住的拍数、k = 半径，画一个短的定阵
+    else if (a === SK.array) arrayStart(c, x, y, b, k);
   } else if (type === Ev.SkillEnd) {
     if (a === SK.iron) ironEnd(c, x, y, b);
     else if (a === SK.array) arrayEnd(c, x, y, b);

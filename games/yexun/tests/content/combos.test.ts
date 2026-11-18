@@ -32,16 +32,16 @@ describe('组合可达性：和规则核心、角色池一致', () => {
         const r = mergeReach(m, c);
         if (r === 'ok') {
           // 凑得出：两件料、进化要的被动都抽得到，照门槛给齐后宝箱里真的合上
-          expect(inPool(c, m.a, true) && inPool(c, m.b, true), m.id).toBe(true);
+          expect(inPool(c, m.a) && inPool(c, m.b), m.id).toBe(true);
           expect(chestWith(c, m).merges, `${c} ${m.id}`).toContain(m.id);
         } else if (r === 'only') {
           // 别人的专属：料给齐了宝箱里也不合
           expect(chestWith(c, m).merges, `${c} ${m.id}`).not.toContain(m.id);
         } else if (r === 'pool') {
-          expect(inPool(c, m.a, true) && inPool(c, m.b, true), m.id).toBe(false);
+          expect(inPool(c, m.a) && inPool(c, m.b), m.id).toBe(false);
         } else {
           const evo = [m.a, m.b].map((id) => WEAPONS[id].evolve?.with).filter((p) => p !== undefined);
-          expect(evo.filter((p) => inPool(c, p!, true)).length, m.id).toBeLessThan(m.dual ? 1 : 2);
+          expect(evo.filter((p) => inPool(c, p!)).length, m.id).toBeLessThan(m.dual ? 1 : 2);
         }
       }
     });
@@ -97,12 +97,12 @@ describe('组合可达性：界面如实显示', () => {
       for (const m of MERGES) {
         if (mergeReach(m, c) === 'ok') continue;
         // 手上有其中一件（满级），把这个角色池里所有的卡都试一遍
-        const held = inPool(c, m.a, true) ? m.a : inPool(c, m.b, true) ? m.b : null;
+        const held = inPool(c, m.a) ? m.a : inPool(c, m.b) ? m.b : null;
         if (!held) continue;
         const w = createWorld({ seed: 3, mode: 'vigil', danger: 2, character: c });
         grantWeapon(w, held, 8, false);
-        for (const id of WEAPON_IDS) if (inPool(c, id, true)) expect(mergeHint(w, { kind: 'weapon', id })?.id, `${c} ${m.id} ${id}`).not.toBe(m.id);
-        for (const id of Object.keys(PASSIVES)) if (inPool(c, id, true)) expect(mergeHint(w, { kind: 'passive', id: id as never })?.id, `${c} ${m.id} ${id}`).not.toBe(m.id);
+        for (const id of WEAPON_IDS) if (inPool(c, id)) expect(mergeHint(w, { kind: 'weapon', id })?.id, `${c} ${m.id} ${id}`).not.toBe(m.id);
+        for (const id of Object.keys(PASSIVES)) if (inPool(c, id)) expect(mergeHint(w, { kind: 'passive', id: id as never })?.id, `${c} ${m.id} ${id}`).not.toBe(m.id);
       }
     }
   });

@@ -58,6 +58,15 @@ const EXTRA_62: Partial<Record<PoolCharacterId, WeaponId[]>> = {
   yinyang: ['thunder', 'gourd', 'zhibing'],
 };
 
+/**
+ * 规则 66（World.poolRules；DESIGN 3.3e）在规则 62 的池上加的件，让不到 3% 的搭配有第二个角色凑：
+ * 小道士加龙王令（笔走龙蛇从剑侠专属扩成剑侠、小道士共享；他九成的局有判官笔，只差这一件）。
+ * 试过采药女加勾魂锁（雷劫锁魂）：她的花灯会 69% → 62%，过了「专属掉 1 个点就不做」的止损线，没加
+ */
+const ADD_66: Partial<Record<PoolCharacterId, WeaponId[]>> = {
+  xiaodao: ['tide'],
+};
+
 function build(id: PoolCharacterId, extra: readonly WeaponId[]): CharacterPool {
   const { start, schools } = SPEC[id];
   const weapons: WeaponId[] = [start];
@@ -79,25 +88,29 @@ function build(id: PoolCharacterId, extra: readonly WeaponId[]): CharacterPool {
 
 const pools = (extra: (id: PoolCharacterId) => readonly WeaponId[]): Record<PoolCharacterId, CharacterPool> =>
   Object.fromEntries(POOL_CHARACTER_IDS.map((id) => [id, build(id, extra(id))])) as Record<PoolCharacterId, CharacterPool>;
-/** 现在的池（界面、图鉴、可达性都按它） */
-export const CHARACTER_POOLS = pools((id) => EXTRA_62[id] ?? SPEC[id].extra);
-/** 老池：只给旧录像用——规则 61 以前的局、规则 64 以前开的实盘局（World.armsCombos 为假） */
+/** 现在的池（界面、图鉴、可达性都按它）：规则 66 起 */
+export const CHARACTER_POOLS = pools((id) => [...(EXTRA_62[id] ?? SPEC[id].extra), ...(ADD_66[id] ?? [])]);
+/** 规则 62–65 的池：只给旧录像用（World.poolRules = 62） */
+export const POOLS_62 = pools((id) => EXTRA_62[id] ?? SPEC[id].extra);
+/** 老池：只给旧录像用——规则 61 以前的局、规则 64 以前开的实盘局（World.poolRules = 61） */
 export const POOLS_BEFORE_62 = pools((id) => SPEC[id].extra);
-/** 一局用哪份池：now = World.armsCombos（假的只有旧录像） */
-export const poolsFor = (now: boolean): Record<PoolCharacterId, CharacterPool> => (now ? CHARACTER_POOLS : POOLS_BEFORE_62);
+/** 池的版本：这份池从哪一版规则起用（World.poolRules；现行规则是最新那份） */
+export type PoolRules = 61 | 62 | 66;
+const BY_RULES: Record<PoolRules, Record<PoolCharacterId, CharacterPool>> = { 61: POOLS_BEFORE_62, 62: POOLS_62, 66: CHARACTER_POOLS };
+/** 一局用哪份池 */
+export const poolsFor = (v: PoolRules): Record<PoolCharacterId, CharacterPool> => BY_RULES[v];
 
 /** 起手法器（和 meta.ts CHARACTERS[id].start 一致，测试锁住；新角色在 meta 里还没有时用这里的） */
 export const POOL_START: Record<PoolCharacterId, WeaponId> = Object.fromEntries(POOL_CHARACTER_IDS.map((id) => [id, SPEC[id].start])) as Record<PoolCharacterId, WeaponId>;
 
 const sets = (P: Record<PoolCharacterId, CharacterPool>): Record<string, { w: Set<string>; p: Set<string> }> =>
   Object.fromEntries(POOL_CHARACTER_IDS.map((id) => [id, { w: new Set<string>(P[id].weapons), p: new Set<string>(P[id].passives) }]));
-const SETS = sets(CHARACTER_POOLS);
-const SETS_61 = sets(POOLS_BEFORE_62);
+const SETS: Record<PoolRules, ReturnType<typeof sets>> = { 61: sets(POOLS_BEFORE_62), 62: sets(POOLS_62), 66: sets(CHARACTER_POOLS) };
 
-/** 这个角色的池里有没有这件法器 / 被动（不认识的角色按小道士）；now = 用现在的池（World.armsCombos），否则用规则 61 的 */
-export function inPool(character: string | undefined, id: string, now: boolean): boolean {
+/** 这个角色的池里有没有这件法器 / 被动（不认识的角色按小道士）；v = 哪份池（World.poolRules，不给 = 现在的） */
+export function inPool(character: string | undefined, id: string, v: PoolRules = 66): boolean {
   if (character === 'all') return true;
-  const S = now ? SETS : SETS_61;
+  const S = SETS[v];
   const s = S[character ?? 'xiaodao'] ?? S.xiaodao!;
   return s.w.has(id) || s.p.has(id);
 }

@@ -71,6 +71,8 @@ export function fingerprint(w: World): number {
   if (w.skill.uses > 0) for (const v of [w.skill.cd, w.skill.active, w.skill.uses]) h = num(h, v);
   // 规则 61 胖师叔攒的伤害：攒过才进指纹
   if (w.skill.store > 0) h = num(h, w.skill.store);
+  // 规则 66 阴阳先生的阴阳互换：看过才进指纹（别的局不变）
+  if (w.flip.side !== 0) h = num(num(h, w.flip.side), w.flip.next);
   // 货郎攒铜钱补刷新（规则 61）：补过才进指纹
   if (w.rerollAt !== CHAR_FX.huolangRerollEvery) h = num(h, w.rerollAt);
   // 2.0 的首领和特色怪留在地上的东西：只在用过的局进指纹

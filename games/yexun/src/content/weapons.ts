@@ -779,6 +779,8 @@ export interface MergeDef {
   dual?: boolean;
   /** 角色专属：只有这个角色的宝箱里出现（CharacterId；2.0 的新角色 id 由角色那一路定，没有这个角色时合不出来）；几个角色共有的用逗号隔开 */
   only?: string;
+  /** 专属扩过人：规则 v 以前只有 who（旧录像逐位重放用）；only 写的是现在的 */
+  onlyBefore?: { v: number; who: string };
   /** 早合：两件法器各升到这个级别（进化了也算）就能合，不用等进化。规则 55 的新搭配用，让它们在中盘就起作用 */
   early?: number;
   /** 规则版本：这个搭配从哪一版规则起才有（旧录像按旧规则重放时不出）；不写 = 一直有 */
@@ -786,8 +788,10 @@ export interface MergeDef {
 }
 
 /** 这个角色的宝箱里能不能出这个搭配（专属的只认自己的角色；规则版本没到的不出） */
-export const mergeFor = (m: MergeDef, character: string | undefined, rulesFrom: (v: number) => boolean): boolean =>
-  (!m.only || m.only.split(',').includes(character ?? 'xiaodao')) && (!m.since || rulesFrom(m.since));
+export const mergeFor = (m: MergeDef, character: string | undefined, rulesFrom: (v: number) => boolean): boolean => {
+  const who = m.onlyBefore && !rulesFrom(m.onlyBefore.v) ? m.onlyBefore.who : m.only;
+  return (!who || who.split(',').includes(character ?? 'xiaodao')) && (!m.since || rulesFrom(m.since));
+};
 
 export const MERGES: readonly MergeDef[] = [
   { id: 'zhuxie', name: '诛邪剑阵', icon: 'm_sword', desc: '每次挥剑，待命的飞剑一起射出去', a: 'sword', b: 'flysword', color: '#b58cff' },
@@ -827,7 +831,7 @@ export const MERGES: readonly MergeDef[] = [
   // 规则 62（World.armsCombos）：给搭配少的剑侠、阴阳先生、胖师叔补跨流派搭配，料用他们池里原来没人拿的件（DESIGN 3.3e）。
   // 必须接在末尾：指纹按「老槽位在前」截掉没有它们的局的尾巴
   { id: 'jianzou', name: '剑走偏锋', icon: 'm_jianzou', desc: '每飞出一把剑，就朝最近的怪甩出一枚铜钱镖', a: 'flysword', b: 'dart', color: '#d8b04a', dual: true, since: 62 },
-  { id: 'longshe', name: '笔走龙蛇', icon: 'm_longshe', desc: '每推一道浪，浪前血最多的那只挨判官笔一笔', a: 'tide', b: 'brush', color: '#4a8ad8', dual: true, only: 'jianxia', since: 62 },
+  { id: 'longshe', name: '笔走龙蛇', icon: 'm_longshe', desc: '每推一道浪，浪前血最多的那只挨判官笔一笔', a: 'tide', b: 'brush', color: '#4a8ad8', dual: true, only: 'jianxia,xiaodao', onlyBefore: { v: 66, who: 'jianxia' }, since: 62 },
   { id: 'panzhen', name: '判阵', icon: 'm_panzhen', desc: '方阵里血最多的怪隔一会儿被判官笔点名：挨一笔，之后挨打更疼', a: 'flag', b: 'brush', color: '#8a5ad8', dual: true, since: 62 },
   { id: 'suohun', name: '锁魂幡', icon: 'm_suohun', desc: '被勾魂锁拉过的怪死了必定变成冤魂', a: 'chain', b: 'banner', color: '#5a6a9a', dual: true, since: 62 },
   { id: 'hanzhong', name: '寒钟', icon: 'm_hanzhong', desc: '铃一响，泉里的怪冻住一下', a: 'bell', b: 'spring', color: '#6ac8e8', dual: true, since: 62 },

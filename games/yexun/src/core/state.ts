@@ -17,12 +17,12 @@ import { raidHooks, type RaidPort } from './raid-port.ts';
 import type { RaidSetup } from './raid-host.ts';
 import { BlockIndex, type RaidBlock } from './blocks.ts';
 import { rushPlan, type RushPlan } from './rush.ts';
-import { altStart, mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId } from '../content/pools.ts';
+import { altStart, mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId, type PoolRules } from '../content/pools.ts';
 import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 65;
+export const RULES_VERSION = 66;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
 /** 规则 60–63 的内容（先只在娱乐局）进实盘的版本：实盘统一重拟那一版（DESIGN 4.2a）；之前开的实盘局照旧 */
@@ -270,6 +270,14 @@ export class World {
    */
   get identity65(): boolean {
     return this.contentFrom(65);
+  }
+  /** 规则 66（DESIGN 3.3e、3.7）：小道士池加龙王令、笔走龙蛇共享给小道士；采药女满血回春转药香伤害、阴阳先生阴阳互换时炸一圈；娱乐和实盘同一版起 */
+  get identity66(): boolean {
+    return this.contentFrom(66);
+  }
+  /** 这一局用哪份角色法器池（content/pools.ts poolsFor）：规则 66 起最新的，62–65 规则 62 的，再早的老池 */
+  get poolRules(): PoolRules {
+    return this.identity66 ? 66 : this.armsCombos ? 62 : 61;
   }
   /** 这个搭配效果的强度：初成按 MERGE_STAGE.halfPower，大成（和规则 62 以前的所有搭配）1。每个搭配效果里的数都乘它 */
   mergePower(id: MergeDef['id']): number {
@@ -572,8 +580,10 @@ export class World {
    * 角色的主动技能（core/skills.ts）：cd 还要几拍能再放，active 持续中还剩几拍，uses 放过几次。
    * 一次都没放过时不进指纹（没按技能键的局指纹和加技能前一样）
    */
-  /** store：胖师叔铁布衫期间挡下的伤害（规则 61，结束时震出去） */
+  /** store：胖师叔铁布衫期间挡下的伤害（规则 61，结束时震出去）；采药女这次回春药香伤害多几成（千分比，规则 66，满血放时回不进去的血换的） */
   readonly skill = { cd: 0, active: 0, uses: 0, zx: 0, zy: 0, store: 0 };
+  /** 阴阳先生阴阳互换（规则 66）：side 上一拍是阳 1 / 阴 −1（0 = 还没看过），next = 下一次能炸的拍号 */
+  readonly flip = { side: 0, next: 0 };
 
   /** 复活还剩几次（永久加成"复活"） */
   revives = 0;

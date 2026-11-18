@@ -70,7 +70,8 @@ describe('规则 60：选卡', () => {
       // 小道士起手桃木剑：诛邪剑阵的另一件是飞剑
       return draws(w, 400).filter((h) => h.some((c) => c.id === 'flysword')).length;
     };
-    expect(count()).toBeGreaterThan(count(59) * 1.3);
+    // 钉在规则 60：之后小道士池里加了龙王令（66）、专属搭配的料加了权（65），会把飞剑冲稀，这里只量缘分本身
+    expect(count(60)).toBeGreaterThan(count(59) * 1.3);
   });
 
   it('主修单子上的法器进化多补一次刷新，别的法器进化照旧补一次', () => {
