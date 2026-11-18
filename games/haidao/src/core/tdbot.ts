@@ -7,7 +7,7 @@
  *   （旧版开局只造 2 座攒到第 5 波、有钱先升阶：那是机器人自己把自己饿死，不是玩法；叫波的条件太严也几乎从不触发）
  */
 import { BRANCH_LEVEL, branchOptions } from '../content/branches.ts';
-import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_HERO_SKILL, td2TierStats } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_HERO_SKILL, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { Rng } from './rng.ts';
 import { createTd, stepTd, tdResult, tdUpCost } from './td.ts';
 import { tdSluiceCan } from './tdmech.ts';
@@ -77,9 +77,12 @@ export function counterKind(s: TdState, pv: WavePreview[]): TdTowerKind {
   if (o.fog && needLight(s) && s.towers.filter((t) => t.kind === 'gunTower' && t.slot >= 0).length < Math.max(1, Math.min(3, s.level.fogZones?.length ?? 0))) {
     if (can('gunTower')) return 'gunTower';
   }
-  let best: TdTowerKind = s.unlocked[0] ?? 'gunTower';
+  // 第四章：预告里有炮艇，木台上够得着海上的塔（射程 ≥ TD_SEA_RANGE）先凑够两座，在这几种里照常按克制挑；没有炮艇的关不走这条
+  const sea = (k: TdTowerKind): boolean => td2TierStats(k, 1).range >= TD_SEA_RANGE;
+  const pool = gunboatAhead(pv) && s.towers.filter((t) => t.slot >= 0 && sea(t.kind as TdTowerKind)).length < 2 && s.unlocked.some(sea) ? s.unlocked.filter(sea) : s.unlocked;
+  let best: TdTowerKind = pool[0] ?? 'gunTower';
   let bestV = -1;
-  for (const k of s.unlocked) {
+  for (const k of pool) {
     let v = 0;
     for (const a of TD_ARMORS) v += o.share[a] * counterPct(TD_TOWER_DAMAGE[k], a);
     const same = s.towers.filter((t) => t.kind === k && t.slot >= 0).length;
@@ -90,6 +93,11 @@ export function counterKind(s: TdState, pv: WavePreview[]): TdTowerKind {
     }
   }
   return best;
+}
+
+/** 预告的这两波里有没有炮艇 */
+function gunboatAhead(pv: readonly WavePreview[]): boolean {
+  return pv.some((w) => w.lanes.some((l) => l.enemies.some((e) => e.kind === 'gunboat')));
 }
 
 /** 一条地面路线被塔盖住多少："路线上的格 × 够得着它的塔"的对数（塔中心按占地中心、射程含最小射程） */

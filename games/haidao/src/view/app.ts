@@ -61,7 +61,7 @@ export interface Api {
   sfxStats?(): { counts: Record<string, { req: number; played: number; gap: number; cap: number; silent: number }>; recent: Array<{ name: string; at: number; ok: boolean }> };
   sfxStatsReset?(): void;
   /** 只在 ?dev 时有：直接给资源和星数（内存里改，不写存档） */
-  dev?: { give(gold: number, wood: number, stars: number): void; /** 主寨升到 hq 级，摆一座带塔、墙、宝藏箱的守岛示范岛（守岛 18 关各给 1 星，全部解锁）；branch：塔选上分叉（一档、两档交替） */ td(hq: number, branch?: boolean): void };
+  dev?: { give(gold: number, wood: number, stars: number): void; /** 主寨升到 hq 级，摆一座带塔、墙、宝藏箱的守岛示范岛（守岛战役各关各给 1 星，全部解锁）；branch：塔选上分叉（一档、两档交替） */ td(hq: number, branch?: boolean): void };
 }
 
 /** 存档和游戏实例在 main.ts 启动时才有；之前读会抛清楚的错，而不是拿到 null 当对象用 */

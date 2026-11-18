@@ -66,6 +66,8 @@ export const TD_ENEMY_ARMOR: Readonly<Record<TdEnemyKind, TdArmor>> = {
   shield: 'heavy',
   bosun: 'cloth',
   mate: 'cloth',
+  medic: 'cloth',
+  gunboat: 'wood',
   macaw: 'air',
 };
 
@@ -160,7 +162,9 @@ export interface TdPadDef {
 }
 
 /** 9 张关卡岛（A–I，见 content/td2maps.ts） */
-export type TdMapId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I';
+export type TdMapId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K';
+/** 战役第几章 */
+export type TdChapterId = 1 | 2 | 3 | 4;
 
 /**
  * 一张关卡岛：地形和路线固定，两关共用一张图（关卡在上面换波次、开局金、驻守台上限）。
@@ -177,6 +181,10 @@ export interface TdMapDef {
   pads: TdPadDef[];
   garrison: TdGarrisonSpot[];
   kegs: Array<{ x: number; y: number }>;
+  /** 水面格（第四章）：谁都走不过去（TdLevel.water） */
+  water?: Array<{ x: number; y: number }>;
+  /** 桥（只画，能走）：水道上留的口子铺木板 */
+  bridges?: Array<{ x: number; y: number }>;
 }
 
 /**
@@ -189,8 +197,10 @@ export interface TdMapDef {
 export interface TdIslandLevel extends TdLevel {
   index: number;
   map: TdMapId;
-  chapter: 1 | 2 | 3;
+  chapter: TdChapterId;
   layout: Placed[];
+  /** 桥（只画，能走，TdMapDef.bridges） */
+  bridges?: Array<{ x: number; y: number }>;
   slots: TdPadDef[];
   garrison: TdGarrisonSpot[];
   bossExtra?: number;
@@ -218,7 +228,7 @@ export const TD2_LOSE_AT = 11;
 // ---------------------------------------------------------------- 模式
 
 /**
- * campaign：战役 18 关（关卡岛 + 驻守台，算星）；
+ * campaign：战役各关（关卡岛 + 驻守台，算星）；
  * home：海盗来袭（自己的岛和布局，波次按预算现生成、一共 TD2_HOME.maxWaves 波，不算星、不进难度曲线，按撑住的波数给奖励，照每日上限）；
  * live：悬赏守岛；tide：大潮无尽；escort：护航（关卡带 escort 字段，escorttypes.ts）。
  */
@@ -342,7 +352,11 @@ export type Td2Event =
   /** 补给箱漂来（drift，until 拍漂走）、被英雄捡到（pick，给了 gold 局内金、技能好了）、没人捡漂走了（gone）；x、y 是单位 */
   | { type: 'crate'; what: 'drift' | 'pick' | 'gone'; id: number; x: number; y: number; until: number; gold: number }
   /** 老炮开了一炮：从炮台 (x0, y0) 打向 (x1, y1)，t1 拍落地（落地另有 explode 事件），冷却到 ready 拍 */
-  | { type: 'battery'; x0: number; y0: number; x1: number; y1: number; t1: number; ready: number };
+  | { type: 'battery'; x0: number; y0: number; x1: number; y1: number; t1: number; ready: number }
+  /** 第四章（规则版本 18）：炮艇往一座塔打了一炮（塔同时有 jam 事件）、炮艇开走了、军医回了一次血 */
+  | { type: 'shell'; id: number; tower: number; x0: number; y0: number; x1: number; y1: number }
+  | { type: 'sail'; id: number }
+  | { type: 'heal'; id: number };
 
 /** 场上的拒马（x、y 是格子坐标，事件 barricade 里的也是）：挡住周围 3×3 格的地面敌人，血掉光或到时间就没了 */
 export interface TdBarricade {

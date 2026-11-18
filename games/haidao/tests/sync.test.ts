@@ -21,11 +21,11 @@ describe('reviveSave', () => {
     expect(reviveSave(s)).toBeNull();
   });
 
-  it('守岛星数：td01–td18 的星原样保留（守岛 2.0 换了关卡表，关 id 不变），不认识的关和越界的星丢掉', () => {
+  it('守岛星数：战役各关的星原样保留（守岛 2.0 换了关卡表，关 id 不变；第四章 td19 起是新关），不认识的关和越界的星丢掉', () => {
     const s = clone(good());
-    const stars: Record<string, number> = { td01: 3, td09: 2, td18: 1, td19: 3, other: 2, td02: 7 };
+    const stars: Record<string, number> = { td01: 3, td09: 2, td18: 1, td22: 2, td99: 3, other: 2, td02: 7 };
     s.profile.td = { stars, day: 0, gotGold: 0, gotWood: 0 };
-    expect(reviveSave(s)?.profile.td?.stars).toEqual({ td01: 3, td09: 2, td18: 1 });
+    expect(reviveSave(s)?.profile.td?.stars).toEqual({ td01: 3, td09: 2, td18: 1, td22: 2 });
   });
 
   it('坏建筑逐座丢掉：原型链上的名字、等级越界、坐标越界或带小数、重叠、重复 id', () => {

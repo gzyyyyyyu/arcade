@@ -8,7 +8,7 @@ import type {
   Td2Action, Td2Event, TdGarrisonSpot, TdGarrisonTower, TdHomeGen, TdMode, TdPadDef, TdTier, TdTowerKind,
 } from './td2types.ts';
 
-export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield' | 'bosun' | 'macaw' | 'mate';
+export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield' | 'bosun' | 'macaw' | 'mate' | 'medic' | 'gunboat';
 
 export interface TdEnemyDef {
   name: string;
@@ -37,6 +37,13 @@ export interface TdEnemyDef {
   aura?: { r: number; pct: number };
   /** 掷弹兵（规则版本 10）：离挡路的墙、拒马、英雄 range 单位内就停下扔手雷，落点半径 r，炸墙按 wallPct% 算 */
   lob?: { range: number; r: number; wallPct: number };
+  /** 军医（规则版本 18）：每秒给 r 单位内别的同伴（首领除外）回最大血量的 pct% */
+  heal?: { r: number; pct: number };
+  /**
+   * 炮艇（规则版本 18）：停在登陆点外的海上不上岸，每 reload 拍炸哑 range 单位内最近的一座塔 jamTicks 拍，停 moor 拍后开走；
+   * 海上的目标只有射程够远的塔打得到（TD_SEA_RANGE），英雄打不到
+   */
+  shell?: { range: number; reload: number; jamTicks: number; moor: number };
 }
 
 /** 塔的分叉加成（branches.ts）：没写的项不变 */
@@ -162,6 +169,8 @@ export interface TdLevel {
   flank?: boolean;
   /** 炸塔工兵（第三章起）：工兵走到离塔 1.5 格就引爆（自己没了），半径（格）内的塔哑火这么多拍 */
   sapperJam?: { r: number; ticks: number };
+  /** 水面格（规则版本 18，第四章的水道、火口湖）：谁都走不过去，塔、木台也不摆在上面；飞的照飞 */
+  water?: Array<{ x: number; y: number }>;
   /**
    * 潮汐水闸（规则版本 16，第二章最后两关）：落潮路口一道闸，下一波落潮路要开时玩家可以关上那一波（走落潮路的组改走 0 号路），
    * 一局能关几次。要和 tide、tideOpen 一起写；规则版本低于 16 的局不起作用（tdmech.ts）
@@ -256,6 +265,8 @@ export interface TdEnemy {
   py?: number;
   /** 每 10 拍记一次位置（拖拽用），最多 6 个 */
   trail: number[];
+  /** 炮艇：哪一拍开走（不带宝藏、不算丢） */
+  until?: number;
 }
 
 export interface TdTower {

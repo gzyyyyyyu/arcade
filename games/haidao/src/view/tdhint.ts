@@ -5,6 +5,7 @@
  */
 import { COUNTER, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, bestDamageVs, type TdArmor, type TdDamage, type TdEnemyKind, type TdTowerKind } from '../core/index.ts';
 import { ARMOR_NAME, DAMAGE_NAME } from './td-ui.ts';
+import { TD2_ENEMIES } from '../content/td2units.ts';
 
 export const FOE_KEY = 'haidao.hint.foe';
 /** 一次最多提示几种，避免一张卡太长 */
@@ -25,6 +26,8 @@ const FOE_TRAIT: Readonly<Record<TdEnemyKind, string>> = {
   bosun: '一个顶四个，狙击、臼炮打它最划算',
   macaw: '一只顶一群，会飞，要多留火枪塔',
   mate: '倒下散成 3 个水手，要有溅射收',
+  medic: '给身边的同伴回血，先打掉它',
+  gunboat: '停在海上炸哑塔，射程 8 格以上的塔才打得到',
 };
 
 /**
@@ -34,6 +37,8 @@ const FOE_TRAIT: Readonly<Record<TdEnemyKind, string>> = {
 export function foeText(k: TdEnemyKind, unlocked?: readonly TdTowerKind[]): string {
   const a = TD_ENEMY_ARMOR[k];
   const best = bestOf(a, unlocked?.length ? [...new Set(unlocked.map((t) => TD_TOWER_DAMAGE[t]))] : null);
+  // 炮艇在海上，克制它的伤害种类里有的塔（火焰、加农）根本够不着，只说特点（特点里写了谁够得着）
+  if (TD2_ENEMIES[k].shell) return `${FOE_TRAIT[k]}。`;
   return `${FOE_TRAIT[k]}。${ARMOR_NAME[a]}${best ? `：${DAMAGE_NAME[best]}打它多一半` : ''}`;
 }
 

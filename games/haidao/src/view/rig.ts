@@ -831,9 +831,9 @@ export interface RigStyle {
 
 export type RigKind =
   | 't.sailor' | 't.gunner' | 't.brute' | 't.bomber' | 't.captain' | 't.medic' | 't.cannoneer' | 't.harpooner' | 't.grenadier' | 't.shield'
-  | 'e.sailor' | 'e.ironclad' | 'e.fog' | 'e.skiff' | 'e.skiffling' | 'e.sapper' | 'e.grenadier' | 'e.captain' | 'e.shield' | 'e.bosun' | 'e.mate';
+  | 'e.sailor' | 'e.ironclad' | 'e.fog' | 'e.skiff' | 'e.skiffling' | 'e.sapper' | 'e.grenadier' | 'e.captain' | 'e.shield' | 'e.bosun' | 'e.mate' | 'e.medic';
 
-export const RIG_KINDS: RigKind[] = ['t.sailor', 't.gunner', 't.brute', 't.bomber', 't.captain', 't.medic', 't.cannoneer', 't.harpooner', 't.grenadier', 't.shield', 'e.sailor', 'e.ironclad', 'e.fog', 'e.skiff', 'e.skiffling', 'e.sapper', 'e.grenadier', 'e.captain', 'e.shield', 'e.bosun', 'e.mate'];
+export const RIG_KINDS: RigKind[] = ['t.sailor', 't.gunner', 't.brute', 't.bomber', 't.captain', 't.medic', 't.cannoneer', 't.harpooner', 't.grenadier', 't.shield', 'e.sailor', 'e.ironclad', 'e.fog', 'e.skiff', 'e.skiffling', 'e.sapper', 'e.grenadier', 'e.captain', 'e.shield', 'e.bosun', 'e.mate', 'e.medic'];
 
 /** 人形骨架的默认数：髋 -11、腿 10.4、肩在身体顶下 3～4 */
 function man(s: number, top: number, sh: [number, number], arm: number, headTop: number): Skel {
@@ -852,6 +852,7 @@ export const SKEL: Record<RigKind, Skel> = {
   't.grenadier': man(1.5, -24, [4.6, -21], 10, -49),
   't.shield': man(1.6, -24, [4.8, -21], 10, -50),
   'e.sailor': man(1.5, -24, [4.6, -20], 9.5, -47),
+  'e.medic': man(1.5, -24, [4.6, -20], 9.5, -47),
   'e.ironclad': man(1.75, -25, [6.7, -21], 9.5, -48),
   'e.fog': man(1.5, -24, [4.9, -20], 9.5, -48),
   'e.sapper': man(1.5, -23, [4.5, -19], 9.5, -46),
@@ -935,6 +936,8 @@ export const STYLE: Record<RigKind, RigStyle> = {
   't.shield': { rest: rest({ ...STD_REST, armF: 52, armB: -16, wep: 62 }), walk: WALKS.shield, idle: IDLE, attack: scaleClip(SLASH, { armF: 0.8, wep: 0.85 }, { ms: 760 }), extras: [LOOK], legScale: GAIT.shield.leg, hitScale: 0.6 },
   'e.shield': { rest: rest({ ...STD_REST, armF: 52, armB: -16, wep: 62 }), walk: WALKS.eShield, idle: IDLE, attack: scaleClip(SLASH, { armF: 0.8, wep: 0.85 }, { ms: 800 }), extras: [], legScale: GAIT.eShield.leg, hitScale: 0.6 },
   'e.sailor': { rest: rest({ ...STD_REST, armF: 30, wep: 55 }), walk: WALKS.eSailor, idle: IDLE, attack: SLASH, extras: [], legScale: GAIT.eSailor.leg, hitScale: 1 },
+  // 军医：水手的身板和步子
+  'e.medic': { rest: rest({ ...STD_REST, armF: 30, wep: 55 }), walk: WALKS.eSailor, idle: IDLE, attack: SLASH, extras: [], legScale: GAIT.eSailor.leg, hitScale: 1 },
   // 水手长：步子重、大刀抡得更开更慢，挨打晃得小（皮厚）
   'e.bosun': { rest: rest({ ...STD_REST, armF: 30, wep: 58 }), walk: WALKS.eBosun, idle: IDLE, attack: scaleClip(SLASH, { armF: 1.15, wep: 1.15, lean: 1.3, sq: 1.3 }, { ms: 760 }), extras: [], legScale: GAIT.eBosun.leg, hitScale: 0.6 },
   // 大副：和水手长同一副身板、同样的步子和刀法，只换了衣服

@@ -135,7 +135,7 @@ describe('规则版本 5 的金标准', () => {
 
 describe('规则版本 7、8（守岛 2.0、守岛寻敌）不碰攻防（版本 9 才改进攻，见 raid-combat.test.ts）', () => {
   it('同一场在版本 6、7、8 下逐位一样：战役、满配岛（宝藏箱、分叉）、带驻岛英雄的攻防', () => {
-    expect(RULES_VERSION).toBe(17);
+    expect(RULES_VERSION).toBe(18);
     const cases: Array<[string, BattleSetup, 'normal' | 'novice']> = Object.keys(GOLDEN_R5).map((key) => [key, goldenSetup(key, 6), styleOf(key)]);
     for (const [hq, style, seed] of [[3, 'spread', 1], [5, 'trap', 2], [7, 'turtle', 3]] as const) cases.push([`hero ${hq}/${style}`, { ...heroSetup(hq, style, seed), rules: 6 }, 'normal']);
     for (const [key, v6, style] of cases) {

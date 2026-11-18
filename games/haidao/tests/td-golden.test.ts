@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { RULES_VERSION, TIDE_MAPS, runTdBot, tdCampaign, tdFingerprint, tdGrowthSetup, tideSetup } from '../src/core/index.ts';
+import { RULES_SINCE, RULES_VERSION, TIDE_MAPS, runTdBot, tdCampaign, tdFingerprint, tdGrowthSetup, tideSetup } from '../src/core/index.ts';
 import type { IsoWeek, TdBotKind, TdSetup } from '../src/core/index.ts';
 import { LIVE_TIER_IDS, tdLiveSetup } from '../src/core/tdlive.ts';
 import { tidePick } from '../src/core/tdtide.ts';
@@ -16,6 +16,7 @@ import { tidePick } from '../src/core/tdtide.ts';
  * 规则版本 15（守岛精英，只改战役 td07 / td10 / td14）：v9–v14 的键一字不变，多出 v15- 的键；除这三关外 v15- 和 v14- 逐个相同（tests/td-elite.test.ts 另锁大潮、悬赏守岛）。
  * 规则版本 16（章末机制，只改战役 td05 / td06 / td11 / td12 / td17 / td18）：v9–v15 的键一字不变，多出 v16- 的键；除这六关外 v16- 和 v15- 逐个相同（tests/td-mech.test.ts 另锁几关）。
  * 规则版本 17（大副，只改 td16）：v9–v16 的键一字不变，多出 v17- 的键；除 td16 外 v17- 和 v16- 逐个相同。
+ * 规则版本 18（第四章 td19 起）：v9–v17 的键一字不变（第四章的关只在 v18 下算），多出 v18- 的键；前 18 关的 v18- 和 v17- 逐个相同。
  * v10 中档 0.29.1 前未开放（线上没有 v10 中档的对局），指纹随 0.29.1 的配平（hpPct 180 → 190）更新，只动了 v10-live-mid-* 9 个键。
  */
 const FILE = new URL('./td-golden.json', import.meta.url);
@@ -42,6 +43,8 @@ function compute(rules: number): Record<string, string> {
     out[`${V}-${key}`] = `${tdFingerprint(r.state)} s${r.result.stars} l${r.result.lost} w${r.result.waves} t${r.result.ticks}`;
   };
   for (const lv of tdCampaign()) {
+    // 第四章是规则版本 18 才有的关：旧版本下不算（旧版本的键和加第四章以前一字不差）
+    if (lv.chapter === 4 && rules < RULES_SINCE.tdChapter4) continue;
     for (const seed of SEEDS) {
       const r = tdGrowthSetup(lv.id, 'suggest', seed);
       if (!r.ok) throw new Error(`${lv.id}: ${r.error}`);
@@ -56,9 +59,9 @@ function compute(rules: number): Record<string, string> {
 }
 
 describe('守岛 2.0 指纹锁', () => {
-  it('战役 18 关、悬赏守岛四档、大潮四图的整局指纹逐位一致', () => {
+  it('战役各关、悬赏守岛四档、大潮四图的整局指纹逐位一致', () => {
     const now: Record<string, string> = {};
-    for (const v of [9, 10, 11, 12, 14, 15, 16, 17]) if (v <= RULES_VERSION) Object.assign(now, compute(v));
+    for (const v of [9, 10, 11, 12, 14, 15, 16, 17, 18]) if (v <= RULES_VERSION) Object.assign(now, compute(v));
     if (process.env.GOLDEN_UPDATE === '1' || !existsSync(FILE)) {
       writeFileSync(FILE, JSON.stringify(now, null, 1) + '\n');
       return;

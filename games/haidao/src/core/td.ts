@@ -22,7 +22,7 @@ import { ESCORT_CELL, ESCORT_MEND, ESCORT_SHIP_R } from './escorttypes.ts';
 import type { EscortState } from './escorttypes.ts';
 import { escortBite, escortHullPct, escortRate, escortResult, escortShip } from './escort.ts';
 import type { TdBarricade, TdTier, TdTowerKind } from './td2types.ts';
-import type { TdAction, TdBlock, TdEnemy, TdEnemyKind, TdEvent, TdGroup, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
+import type { TdAction, TdBlock, TdEnemy, TdEnemyDef, TdEnemyKind, TdEvent, TdGroup, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
 import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
 import { driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, toggleSluice } from './tdmech.ts';
@@ -97,6 +97,8 @@ export function createTd(setup: TdSetup): TdState {
       towers.push({ id: p.id, kind: p.kind, level: lv, x: p.x, y: p.y, size: def.size, branch: sanitizeBranch(p.kind, lv, p.branch) ?? [], cd: 0, aim: -1, lock: -1, slot: -1 });
     }
   }
+  // 第四章的水面（规则版本 18，只有写了 water 的关才有）：和建筑一样整格挡死，谁都走不过去
+  if (setup.rules >= RULES_SINCE.tdChapter4) for (const c of level.water ?? []) if (inGrid(c.x, c.y)) fixed[cellIdx(c.x, c.y)] = 2;
   // 没摆宝藏箱的岛（老档、测试）：放在主寨旁边第一个空格，保证有目标
   if (treasures.length === 0 && !level.escort) {
     const hq = setup.layout.find((b) => b.kind === 'hq');
@@ -257,6 +259,15 @@ export function createTd(setup: TdSetup): TdState {
 
 // ------------------------------------------------------------ 伤害
 
+/** 分裂、召唤的落点在水面上（第四章）就落在原地 (fx, fy)：没有水面的关原样返回，旧关逐位不变 */
+function offWater(s: TdState, x: number, y: number, fx: number, fy: number): { x: number; y: number } {
+  const w = s.level.water;
+  if (!w || s.rules < RULES_SINCE.tdChapter4) return { x, y };
+  const cx = Math.floor(x / UNIT);
+  const cy = Math.floor(y / UNIT);
+  return w.some((c) => c.x === cx && c.y === cy) ? { x: fx, y: fy } : { x, y };
+}
+
 function resolveEnemy(s: TdState, e: TdEnemy): void {
   const I = inner(s);
   I.waveLeft[e.wave] = (I.waveLeft[e.wave] ?? 1) - 1;
@@ -269,6 +280,8 @@ function spawnEnemy(s: TdState, ev: TdEvent[], kind: TdEnemyKind, x: number, y: 
     id: I.nextId++, kind, wave, x, y, hp, maxHp: hp, mode: 'in', carry: 0, hx, hy, cd: s.tick, slowUntil: 0, slowPct: 0, face: 1, trail: [],
     px: x, py: y,
   };
+  const shell = TD2_ENEMIES[kind].shell;
+  if (shell) e.until = s.tick + shell.moor;
   // 盾兵：盾先朝宝藏箱（之后按走的方向更新，见 stepTd）
   const tr = s.treasures[0];
   if (kind === 'shield' && tr) faceShield(e, tr.x * UNIT + 50 - x, tr.y * UNIT + 50 - y);
@@ -320,7 +333,8 @@ function damageEnemy(s: TdState, ev: TdEvent[], e: TdEnemy, dmg: number, h: Hit)
     const I = inner(s);
     for (let i = 0; i < def.split.n; i++) {
       I.waveLeft[e.wave] = (I.waveLeft[e.wave] ?? 0) + 1;
-      spawnEnemy(s, ev, def.split.kind, e.x + I.rng.int(81) - 40, e.y + I.rng.int(81) - 40, e.hx, e.hy, e.wave);
+      const p = offWater(s, e.x + I.rng.int(81) - 40, e.y + I.rng.int(81) - 40, e.x, e.y);
+      spawnEnemy(s, ev, def.split.kind, p.x, p.y, e.hx, e.hy, e.wave);
     }
   }
   resolveEnemy(s, e);
@@ -807,6 +821,7 @@ function pickTreasure(s: TdState, e: TdEnemy, wallCost: number): { f: Int32Array
 function stepEnemies(s: TdState, ev: TdEvent[]): void {
   const h = s.hero;
   const captains = s.enemies.filter((e) => e.kind === 'captain' && (e.mode === 'in' || e.mode === 'out'));
+  if (s.tick % 20 === 0) stepMedics(s, ev);
   // 英雄最多同时缠住 maxEngaged 个地面敌人（按数组顺序先到先缠），多的绕过去
   let engaged = 0;
   if (s.escort) s.escort.biters = 0;
@@ -817,6 +832,11 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
     if (s.tick % 10 === 0) {
       e.trail.push(e.x, e.y);
       if (e.trail.length > 12) e.trail.splice(0, 2);
+    }
+    // 炮艇不上岸：到点开走，其余时间隔一阵打哑一座塔（震晕也照样数着开走的时间）
+    if (def.shell) {
+      stepGunboat(s, ev, e, def.shell);
+      continue;
     }
     // 规则版本 10：震晕中不走不打（stunUntil 只有震荡炮会写）
     if (stunned(e, s.tick)) continue;
@@ -909,6 +929,51 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
       if (fly) moveToward(e, e.hx, e.hy, spd);
       else walk(s, ev, e, cellFlow(s, cellOf(e.hx, e.hy), TD_WALL_COST), spd, e.hx, e.hy);
     }
+  }
+}
+
+/** 炮艇：到点开走（不带宝藏、不算丢）；没震晕、装填好了就打 range 内最近的一座塔（同距离按 id），打中的哑 jamTicks 拍 */
+function stepGunboat(s: TdState, ev: TdEvent[], e: TdEnemy, sh: NonNullable<TdEnemyDef['shell']>): void {
+  if (s.tick >= (e.until ?? INF)) {
+    e.mode = 'gone';
+    ev.push({ type: 'sail', id: e.id });
+    resolveEnemy(s, e);
+    return;
+  }
+  if (stunned(e, s.tick) || s.tick < e.cd) return;
+  let best: TdTower | undefined;
+  let bd = sh.range * sh.range + 1;
+  for (const t of s.towers) {
+    const d = d2(tcx(t), tcy(t), e.x, e.y);
+    if (d < bd || (d === bd && best && t.id < best.id)) {
+      bd = d;
+      best = t;
+    }
+  }
+  if (!best) return;
+  e.cd = s.tick + sh.reload;
+  ev.push({ type: 'shell', id: e.id, tower: best.id, x0: e.x, y0: e.y, x1: tcx(best), y1: tcy(best) });
+  const I = inner(s);
+  const until = s.tick + sh.jamTicks;
+  if ((I.jam.get(best.id) ?? 0) < until) {
+    I.jam.set(best.id, until);
+    ev.push({ type: 'jam', id: best.id, until });
+  }
+}
+
+/** 军医（每秒一次）：给 heal.r 内别的活着的同伴回 heal.pct% 最大血（至少 1，不超过上限），不给自己、不给首领回；回到人了发一次 heal 事件 */
+function stepMedics(s: TdState, ev: TdEvent[]): void {
+  for (const m of s.enemies) {
+    const hl = TD2_ENEMIES[m.kind].heal;
+    if (!hl || (m.mode !== 'in' && m.mode !== 'out') || stunned(m, s.tick)) continue;
+    let any = false;
+    for (const e of s.enemies) {
+      if (e === m || e.hp >= e.maxHp || e.kind === 'captain' || (e.mode !== 'in' && e.mode !== 'out')) continue;
+      if (d2(e.x, e.y, m.x, m.y) > hl.r * hl.r) continue;
+      e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Math.floor((e.maxHp * hl.pct) / 100)));
+      any = true;
+    }
+    if (any) ev.push({ type: 'heal', id: m.id });
   }
 }
 
@@ -1077,7 +1142,8 @@ function stepBoss(s: TdState, ev: TdEvent[]): void {
     ev.push({ type: 'skill', id: e.id, x: e.x, y: e.y });
     for (let i = 0; i < sk.summon.n; i++) {
       I.waveLeft[e.wave] = (I.waveLeft[e.wave] ?? 0) + 1;
-      spawnEnemy(s, ev, sk.summon.kind, e.x + I.rng.int(201) - 100, e.y + I.rng.int(201) - 100, e.hx, e.hy, e.wave);
+      const p = offWater(s, e.x + I.rng.int(201) - 100, e.y + I.rng.int(201) - 100, e.x, e.y);
+      spawnEnemy(s, ev, sk.summon.kind, p.x, p.y, e.hx, e.hy, e.wave);
     }
     jamTowers(s, ev, e.x, e.y, 100000, sk.jamTicks, sk.jam);
   }
@@ -1144,7 +1210,7 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
     const cy = tcy(t);
     const cand: TdEnemy[] = [];
     // 先判射程再判看不看得见：targetable 里雾中的敌人要把全岛的塔挨个查照明，射程外的不用算
-    for (const e of s.enemies) if (inRing(d2(e.x, e.y, cx, cy), st.range, st.minRange) && targetable(s, e, st)) cand.push(e);
+    for (const e of s.enemies) if (inRing(d2(e.x, e.y, cx, cy), st.range, st.minRange) && targetable(s, e, st, st.range)) cand.push(e);
     if (cand.length === 0) {
       t.aim = -1;
       t.lock = -1;
@@ -1170,9 +1236,9 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
     const doomed = (e: TdEnemy): number => (ready && (due.get(e.id) ?? 0) >= e.hp ? 4 : 0);
     let inRange: TdEnemy[];
     if (sniper) {
-      // 狙击塔：优先打首领（船长），再是拿着宝藏的，其余按路程；装填完先锁定并推 aim 预警，SNIPE_WARN 拍后才开火，
-      // 锁定的敌人死了或走出射程（cand 里没有）就作废重挑（DESIGN 14）
-      const sCls = (e: TdEnemy): number => doomed(e) + (e.kind === 'captain' ? 0 : urgent(e) ? 1 : 2);
+      // 狙击塔：优先打首领（船长）和军医（第四章：不先打掉它，后面一串都打不死），再是拿着宝藏的，其余按路程；
+      // 装填完先锁定并推 aim 预警，SNIPE_WARN 拍后才开火，锁定的敌人死了或走出射程（cand 里没有）就作废重挑（DESIGN 14）
+      const sCls = (e: TdEnemy): number => doomed(e) + (e.kind === 'captain' || e.kind === 'medic' ? 0 : urgent(e) ? 1 : 2);
       let sn = I.snipe.get(t.id);
       let tgt = sn ? cand.find((e) => e.id === sn!.target) : undefined;
       if (sn && !tgt) {

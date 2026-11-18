@@ -1,5 +1,5 @@
 /**
- * 守岛的出海与结算（DESIGN 10.4；守岛 2.0）：战役 18 关是写死的关卡岛（content/tdmaps.ts 的 TD2_LEVELS，关 id td01–td18，旧星数照算），
+ * 守岛的出海与结算（DESIGN 10.4；守岛 2.0）：战役 22 关是写死的关卡岛（content/tdmaps.ts 的 TD2_LEVELS，关 id td01–td22，旧星数照算），
  * 开局读存档算驻守台、基地加成、能造的塔（不花木材）；结算按星数给金币木材（奖励表 content/tdreward.ts），每天有上限（超了只记星数、不给资源），
  * 首次拿到星的奖励另算、不计入上限。纯函数，不改入参。
  */
@@ -91,7 +91,7 @@ export function tdCampaign(): TdIslandLevel[] {
   return TD2_LEVELS.filter((l) => /^td\d\d$/.test(l.id)).sort((a, b) => a.index - b.index);
 }
 
-/** 第 n 关要第 n−1 关 ≥ 1★（跨章也一样，三章 18 关排成一条线）；第一关一直开着。不在战役里的关（样板关）一直开着 */
+/** 第 n 关要第 n−1 关 ≥ 1★（跨章也一样，所有章的关排成一条线）；第一关一直开着。不在战役里的关（样板关）一直开着 */
 export function tdLevelUnlocked(p: Profile, id: string): boolean {
   const list = tdCampaign();
   const i = list.findIndex((l) => l.id === id);
