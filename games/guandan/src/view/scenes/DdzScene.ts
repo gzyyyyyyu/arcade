@@ -30,13 +30,13 @@ import { thinkTime, type Situation } from '../personas.ts';
 import { lobbyName } from '../common/platform.ts';
 import { ddzTutorialDone } from '../store.ts';
 import { runDdzTutorial } from '../doudizhu/tutorial.ts';
-import { COLOR, TYPE } from '../common/theme.ts';
+import { COLOR, TYPE, GAME_HEIGHT } from '../common/theme.ts';
 import { HandView } from '../table/hand.ts';
 import { DDZ_BUTTONS, DDZ_CLOSED_MODAL, DDZ_SETTLE_WAIT, seatAnchors3 } from '../table/layout.ts';
 import { SeatView } from '../table/seats.ts';
 import { TrickView } from '../table/trick.ts';
 import { mountShortcuts } from '../ui/shortcuts.ts';
-import { Button, modal, text, toast, worldH, worldW } from '../ui/kit.ts';
+import { Button, modal, text, toast, worldW } from '../ui/kit.ts';
 import { confirm, openDdzRules, openSettings } from '../ui/panels.ts';
 import { openPuzzlePicker } from '../ui/puzzles.ts';
 import { showPuzzleResult, showDailyWin, showSettle, showGameOver, showNetStakeResult, showStakeResult, stakeAgain } from '../doudizhu/overlays.ts';
@@ -138,7 +138,7 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
     this.lastSettleSeen = false;
     // 座位上的人物换成斗地主的两个（labels.ts），离开时换回掼蛋的
     setTablePersons(DDZ_SEAT_PERSON);
-    this.cameras.main.setOrigin(0, 0).setZoom(app.game ? app.game.scale.gameSize.height / worldH : 1);
+    this.cameras.main.setOrigin(0, 0).setZoom(app.game ? app.game.scale.gameSize.height / GAME_HEIGHT : 1);
     this.events.once('shutdown', () => {
       this.alive = false;
       this.cancelBot();
@@ -155,7 +155,7 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
     this.myNetTurn = false;
     this.bindNet();
     const W = worldW(this);
-    this.add.image(0, 0, `table:${W}`).setOrigin(0, 0).setDisplaySize(W, worldH);
+    this.add.image(0, 0, `table:${W}`).setOrigin(0, 0).setDisplaySize(W, GAME_HEIGHT);
     const anchors = seatAnchors3(W);
     for (let s = 0; s < 3; s++) this.seats.push(new SeatView(this, s, anchors[s]!));
     this.trick = new TrickView<DdzPlay>(this, anchors, ddzDescribe);
@@ -564,8 +564,9 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
   protected async playEvent(e: DdzEvent): Promise<void> { return playEvent(this, e); }
 
   /** 新解锁的成就：弹一条不挡操作的横幅（只有单机会话有；好友房不计成就） */
-  showUnlocked(): void {
-    if (this.ses instanceof DdzSession) showUnlocked(this, this.ses.takeUnlocked());
+  /** low：结算弹窗马上要开，横幅直接落到下沿，不压弹窗的标题 */
+  showUnlocked(low?: boolean): void {
+    if (this.ses instanceof DdzSession) showUnlocked(this, this.ses.takeUnlocked(), low);
   }
 
   async animatePlay(seat: number, play: DdzPlay, left: number): Promise<void> { return animatePlay(this, seat, play, left); }

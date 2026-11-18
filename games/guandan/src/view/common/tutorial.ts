@@ -26,7 +26,7 @@ export function runTutorialSteps(scene: Phaser.Scene, steps: number, onDone: () 
     const root = scene.add.container(0, 0).setDepth(6000);
     const dim = scene.add.graphics();
     root.add(dim);
-    const blocker = scene.add.zone(0, 0, W, worldH).setOrigin(0, 0).setInteractive();
+    const blocker = scene.add.zone(0, 0, W, worldH(scene)).setOrigin(0, 0).setInteractive();
     root.add(blocker);
     const page = scene.add.container(0, 0);
     root.add(page);
@@ -58,7 +58,7 @@ export function runTutorialSteps(scene: Phaser.Scene, steps: number, onDone: () 
 
     const fullDim = (): void => {
       dim.clear();
-      dim.fillStyle(COLOR.overlay, 0.66).fillRect(0, 0, W, worldH);
+      dim.fillStyle(COLOR.overlay, 0.66).fillRect(0, 0, W, worldH(scene));
     };
 
     const show = (): void => {

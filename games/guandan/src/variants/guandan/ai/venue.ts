@@ -47,11 +47,11 @@ export const SOLO_FUN_BOTS: Readonly<Record<SoloLevel, SoloBots>> = {
 };
 
 /**
- * 单机实盘每档（docs/stake.md 1.3）：越往上越难。小档按"小白"小赚调，中档往上按"普通"调（docs/balance.md 第 2 节和掼蛋的例外）；
+ * 单机实盘每档（docs/stake.md 1.3）：越往上越难。小档按"小白"小赚调（搭档普通：小白稳在正的、赢过半），中档往上按"普通"调（docs/balance.md 第 2 节和掼蛋的例外）；
  * 大档两个对手一普通一较强，补中档和豪华档之间的断档
  */
 export const SOLO_BOTS: Readonly<Record<TierId, SoloBots>> = {
-  small: { mate: 'easy', opp: 'novice' },
+  small: { mate: 'normal', opp: 'novice' },
   mid: { mate: 'good', opp: 'normal' },
   big: { mate: 'good', opp: 'normal', opp3: 'good' },
   lux: { mate: 'hard', opp: 'hard' },

@@ -9,10 +9,11 @@ import { beijingDate } from '../common/daily.ts';
 import { dailyPuzzleOf, puzzleStatuses, puzzlesDone, type PuzzleStatus } from '../doudizhu/puzzle.ts';
 import { getDdzDailyPuzzle } from '../store.ts';
 import { COLOR, TYPE, minHit, phoneType } from '../common/theme.ts';
-import { Button, fitWidth, modal, text, type ButtonStyle, type Modal } from './kit.ts';
+import { Button, fitWidth, modal, text, worldW, type ButtonStyle, type Modal } from './kit.ts';
 
-// 七列三行：顶上加了今日大卡，五列四行的弹窗会超出 720 高的世界
-const COLS = 7;
+// 横屏七列三行：顶上加了今日大卡，五列四行的弹窗会超出 720 高的世界；竖屏的主页（世界宽 720）高度富余，改五列
+const WIDE_COLS = 7;
+const NARROW_COLS = 5;
 /** 今日大卡占的高度（卡 + 下面一行小字） */
 const DAILY_H = 92;
 const STYLE: Record<PuzzleStatus, ButtonStyle> = { done: 'green', next: 'gold', open: 'wood', locked: 'wood' };
@@ -20,6 +21,7 @@ const STYLE: Record<PuzzleStatus, ButtonStyle> = { done: 'green', next: 'gold', 
 export function openPuzzlePicker(scene: Phaser.Scene, opts: { onPick: (p: DdzPuzzle) => void; onDaily: () => void; onClose?: () => void }): Modal {
   const done = puzzlesDone();
   const status = puzzleStatuses(done);
+  const COLS = worldW(scene) < 1100 ? NARROW_COLS : WIDE_COLS;
   const rows = Math.ceil(DDZ_PUZZLES.length / COLS);
   // 格距至少 minHit()：手机横屏上每格的点按区要 44 CSS 像素
   const pitch = Math.max(104, minHit() + 6);

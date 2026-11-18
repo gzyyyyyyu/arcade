@@ -39,7 +39,7 @@ const NOVICE_BLUNDER = 0.32;
  * 娱乐单机里电脑每档的出牌失误率：普通档的电脑和"普通玩家"打法一样强，不带失误时普通玩家只赢 45%，调不进 docs/balance.md 第 3 节的区间，
  * 所以娱乐单机的电脑按这张表带一点失误（docs/stake.md 10.2）。实盘单机靠换电脑搭配调（10.3），好友房、匹配、提示、代打我都用 decideDdz 的默认
  */
-export const DDZ_FUN_BLUNDER: Readonly<Record<DdzLevel, number>> = { novice: NOVICE_BLUNDER, normal: 0.2, pro: 0.15 };
+export const DDZ_FUN_BLUNDER: Readonly<Record<DdzLevel, number>> = { novice: NOVICE_BLUNDER, normal: 0.25, pro: 0.15 };
 const ENDGAME = { total: 24, samples: 6, nodeCap: 1500 };
 const ENDGAME_MING_TOTAL = 30;
 

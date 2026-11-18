@@ -8,9 +8,10 @@
 import type Phaser from 'phaser';
 import { sortHand, type Card } from '../../variants/guandan/core/index.ts';
 import { audio } from '../common/audio.ts';
+import { GAME_HEIGHT } from '../common/theme.ts';
 import { dur, settle } from '../common/anim.ts';
 import { PACE, dealInMs } from '../common/pace.ts';
-import { worldH, worldW } from '../ui/kit.ts';
+import { worldW } from '../ui/kit.ts';
 import { CardView, HAND_H, HAND_W } from './card.ts';
 
 export type { SortMode } from './columns.ts';
@@ -98,7 +99,7 @@ export class HandView {
   }
 
   get topY(): number {
-    let top = worldH;
+    let top = GAME_HEIGHT;
     for (const s of this.slots.values()) top = Math.min(top, s.y - HAND_H / 2);
     return top;
   }
@@ -230,7 +231,7 @@ export class HandView {
     const x0 = W / 2 - total / 2 + HAND_W / 2;
     const maxLen = Math.max(1, ...cols.map((c) => c.length));
     const dy = maxLen <= 1 ? 0 : Math.min(HAND_LAYOUT.stackStepMax, (MAX_STACK - HAND_H) / (maxLen - 1));
-    const bottomY = worldH - BOTTOM_PAD - HAND_H / 2;
+    const bottomY = GAME_HEIGHT - BOTTOM_PAD - HAND_H / 2;
     this.slots.clear();
     cols.forEach((col, i) => {
       col.forEach((c, j) => {
@@ -248,7 +249,7 @@ export class HandView {
       maxStep: FLAT_MAX_STEP,
       gap: this.mode === 'type' ? FLAT_GAP : 0,
     });
-    const y = worldH - BOTTOM_PAD - HAND_H / 2;
+    const y = GAME_HEIGHT - BOTTOM_PAD - HAND_H / 2;
     this.slots.clear();
     let k = 0;
     for (const g of groups) for (const c of g) this.slots.set(c, { x: xs[k]!, y, depth: HAND_LAYOUT.depthBase + k++ });

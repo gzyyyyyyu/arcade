@@ -5,12 +5,16 @@
 ## 1. 推进状态的路
 
 - 推进状态只有一条路：`Session.apply(action)`（`TableSession` 接口，单机 `guandan/session.ts`、联机 `guandan/net.ts`）→ 核心 `dispatch` → `TableScene` 拿事件按顺序 `await` 播放（`act`、`playEvents`、`pumpNet` 在两个牌桌场景共用的 `scenes/shared/TableSceneBase.ts` 里，玩法的部分由子类的钩子给） → `sync()` 按 `viewFor` 刷新 → `pump()` 决定下一步
-  （电脑"想一会儿"再出、等玩家、弹结算）。画面不自己判断牌型和大小：能否出牌用 `interpret` + `beats`，提示用 `hintList`（首条 null = 建议不要），
+  （电脑"想一会儿"再出、等玩家、弹结算）。画面不自己判断牌型和大小：能否出牌用 `interpret` + `beats`，提示用 `hintList`（首条 null = 建议不要）；点了提示、没改选牌就出，按提示给的那一手出（`hintedPlay`），不弹"当作哪一手"，自己挑的牌有几种解释照旧弹；
+  第一次玩、新手引导看完后的第一副，前 3 次轮到我时「提示」跳两下、状态行说"不会出？点「提示」，再点「出牌」"（`guandan/table-ui.ts` 的 `startHintGuide`，只加不拦），
 - 一副结束时的"下副谁进贡"用 `dispatch(state, nextDeal)` 推演（纯函数，不改当前状态）。
 
 ## 2. 世界坐标和字号
 
-- 世界坐标高 720，宽 1280..1720 随窗口宽高比变（`worldWidthFor`）；画布按 `RENDER_SCALE`（1..3）倍像素绘制，相机同倍 zoom，
+- 横屏世界坐标高 720，宽 1280..1720 随窗口宽高比变（`worldWidthFor`）。手机竖屏（高大于宽、宽 ≤ 1024）的主页和主页上的弹窗换竖的世界：宽 720，高按宽高比在 1080..1600 之间（`theme.ts` 的 `worldSizeFor`）；
+  牌桌永远是横屏世界（`main.ts` 的 `wantSize`，进牌桌前 `app.toTableWorld` 先换好），所以牌桌和只在牌桌用的部件直接用 `GAME_HEIGHT`，主页、弹窗、引导这类两边都会出现的按 `ui/kit.ts` 的 `worldW` / `worldH` 取当前世界的宽高。
+  弹窗按 `worldW < 1100` 分宽窄两套排版（规则、战绩、选难度、选档位、残局闯关），横屏的位置不变。`minHit()` / `typeFloor` 按 CSS 像素每世界单位算，竖屏和手机横屏一样托底。
+  画布按 `RENDER_SCALE`（1..3）倍像素绘制，相机同倍 zoom，
 - Text 的 resolution 同倍，SVG 按目标像素栅格化（`textures.ts`）。新加文字一律走 `ui/kit.ts` 的 `text()`，最小字号 18；手机横屏 `text()` 按 `theme.ts` 的 `typeFloor` 托底到字 12、纯数字 14 CSS 像素，
 - 放不下的地方按 `phoneType()` 删字（`fitWidth` 截断、少放一行），不缩字。改了画面跑 `npm run shot -- --gallery --audit --sizes 667x375,844x390` 看 `audit.md`。
 
@@ -87,14 +91,14 @@
 
 ## 13. 主页
 
-- 主页（标题页，现状见 `docs/art.md` 第 4 节）：左边茶馆一角（背景 SVG + 单独烘焙的灯笼 `home:lantern`、四个人 `home:fig:<id>`），右边一块面板；排版是纯函数 `src/view/common/home-layout.ts`，背景和场景共用，宽屏一起铺开。
+- 主页（标题页，现状见 `docs/art.md` 第 4 节）：左边茶馆一角（背景 SVG + 单独烘焙的灯笼 `home:lantern`、四个人 `home:fig:<id>`），右边一块面板；排版是纯函数 `src/view/common/home-layout.ts`（`homeLayout(W, H)`），背景和场景共用，宽屏一起铺开。手机竖屏单列：上面是茶馆（人物放大到 1.3 倍、整体按面板上方的空当往下挪 `top`），下面是整宽的面板；背景纹理按 `title:<宽>x<高>` 分开烘焙。
 - 面板从上到下：标题"牌馆"、"掼蛋 / 斗地主"切换、主按钮（有实盘存档 `resumeStake`，否则有存档 `continue`，否则 `quick` 快速开始娱乐）、三张卡 `fun` / `stake` / `online`、战绩条（点开战绩；还没有战绩时是"点这里去打一局"，控件 `statsEmpty`，和主按钮同一条路开局）；右上 `stats`、`settings`、`rules`、`cloud`。括号里是冒烟用的控件名。
 - 灯笼晃、人物呼吸、火星只在 `LOW_MEMORY === 0` 且没关动画时开。
 
 ## 14. 回大厅
 
 - 回大厅（`src/view/common/lobby.ts`，所有游戏统一）：左上角"大厅"（小房子）指向平台首页 `/`；单独部署叫"首页"、指向 `./`，标题页本身就是首页，不摆。标题页直接走；牌桌上打到一半先弹确认（这局会存着 / 调试开局不保存 / 好友房：头 60 秒轮到你时等 30 秒按"能不出就不出"代出，之后电脑替你打，回来接着打——回大厅不调 `leave()`，座位和 `guandan.room` 都留着）；
-- 手机竖屏时牌桌被"请横过来"盖住，提示层左上角也有一个（打到一半用浏览器自带的确认框）。电脑（非触屏）上 `mountLobbyOverlay` 在画布按钮正上方叠一个透明的 DOM 按钮（`aria-label="回大厅"`，id `gd-lobby-dom`），每帧渲染完按按钮的位置、大小对一次，点了调画布按钮自己的 `onClick`（对局中先确认也在里面）；有弹层时不叠。离开前调一次 `cloud.flushOnHide()`（pagehide 时也会触发，同槽在途不重发）。
+- 手机竖屏时只有牌桌被"请横过来"盖住（牌桌场景开着时 `html.gd-at-table`，`orientation.ts` 的 `setAtTable`），主页和它的弹窗竖着能用；提示层左上角也有一个（打到一半用浏览器自带的确认框）。电脑（非触屏）上 `mountLobbyOverlay` 在画布按钮正上方叠一个透明的 DOM 按钮（`aria-label="回大厅"`，id `gd-lobby-dom`），每帧渲染完按按钮的位置、大小对一次，点了调画布按钮自己的 `onClick`（对局中先确认也在里面）；有弹层时不叠。离开前调一次 `cloud.flushOnHide()`（pagehide 时也会触发，同槽在途不重发）。
 - 小房子图标只用来表示"回大厅"；回掼蛋自己的首页用箭头。冒烟只断言跳到 `/`，不加载平台页面。
 
 ## 15. 界面的刻度和按钮

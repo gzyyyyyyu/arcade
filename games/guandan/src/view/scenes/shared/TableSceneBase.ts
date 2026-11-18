@@ -17,13 +17,13 @@ import type { LinkFrame, NetEvent, RoomLink } from '../../common/room-link.ts';
 import { presenceNow } from '../../common/social.ts';
 import { roomWhy } from '../../common/stake-text.ts';
 import { standalone } from '../../common/platform.ts';
-import { COLOR, minHit, phoneType } from '../../common/theme.ts';
+import { COLOR, minHit, phoneType, GAME_HEIGHT } from '../../common/theme.ts';
 import { getSettings } from '../../store.ts';
 import type { HandView } from '../../table/hand.ts';
 import { CLOCK_TICK_MS, DEAL_BACK, DEAL_FLY, ERROR_TOAST_DY, STATUS_PILL, TOP_ICONS, TOPBAR_H } from '../../table/layout.ts';
 import type { SeatView } from '../../table/seats.ts';
 import { cloudButton } from '../../ui/cloud.ts';
-import { iconButton, setTopHit, toast, worldH, worldW, type Button, type Modal } from '../../ui/kit.ts';
+import { iconButton, setTopHit, toast, worldW, type Button, type Modal } from '../../ui/kit.ts';
 import { releaseExtraBake } from '../../common/textures.ts';
 
 /** 弹层的种类（两个玩法的并集；null = 没有弹层） */
@@ -262,7 +262,7 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
   /** 世界坐标的矩形 → 屏幕（CSS 像素）：画布的 CSS 矩形 × 世界到 CSS 的比例（相机 zoom 后画布高 = worldH） */
   worldRect(x: number, y: number, w: number, h: number): ScreenRect {
     const r = this.game.canvas.getBoundingClientRect();
-    const f = r.height / worldH;
+    const f = r.height / GAME_HEIGHT;
     return { left: r.left + x * f, top: r.top + y * f, width: w * f, height: h * f };
   }
 
@@ -486,7 +486,7 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
   /** 互动（kit 的 DOM）：屏幕坐标换回世界坐标，冒烟和别的控件一样点 */
   protected addFunControls(out: ControlMap): void {
     const cr = this.game.canvas.getBoundingClientRect();
-    const f = worldH / cr.height;
+    const f = GAME_HEIGHT / cr.height;
     for (const [k, c] of Object.entries(this.fun?.controls() ?? {})) out[k] = { x: (c.x - cr.left) * f, y: (c.y - cr.top) * f, enabled: true, visible: true };
   }
 }

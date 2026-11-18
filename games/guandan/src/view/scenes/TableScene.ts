@@ -32,10 +32,10 @@ import { StakeSession } from '../guandan/stake.ts';
 import type { SettleOutcome } from '../common/stake-api.ts';
 import { emptyMatchLog, type Title } from '../../variants/guandan/stake/titles.ts';
 import type { Award } from '../../variants/guandan/net/awards.ts';
-import { COLOR, TYPE, css, minHit } from '../common/theme.ts';
+import { COLOR, TYPE, css, minHit, GAME_HEIGHT } from '../common/theme.ts';
 import { goLobby, inGame, inOnlineGame, leaveText } from '../common/lobby.ts';
 import { join } from '../online.ts';
-import { Button, modal, text, toast, worldH, worldW, type Modal } from '../ui/kit.ts';
+import { Button, modal, text, toast, worldW, type Modal } from '../ui/kit.ts';
 import { confirm, openRules, openSettings } from '../ui/panels.ts';
 import { runTutorial } from '../guandan/tutorial.ts';
 import { HandView } from '../table/hand.ts';
@@ -79,6 +79,10 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
   hints: (Play | null)[] = [];
   hintIdx = 0;
   hintStep = -1;
+  /** 上一次"提示"选出的那一手：选中的还是这几张就按它出，带逢人配的牌不再问"当作哪一手" */
+  hinted: Play | null = null;
+  /** 第一次玩、引导看完后还要指几次「提示」，at 是上次指的那一步（同一步只指一回） */
+  hintGuide: { left: number; at: string | null } | null = null;
   inviteBtn: Phaser.GameObjects.Container | null = null;
   /** 顶栏上次重建时的内容（topBarKey）、记牌器那一块和它的纵坐标：每一步只重画记牌器 */
   topKey = '';
@@ -126,7 +130,7 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
     this.stakeOutcome = null;
     this.stakeDealSeen = false;
     this.netStakeStatus = null;
-    this.cameras.main.setOrigin(0, 0).setZoom(app.game ? app.game.scale.gameSize.height / worldH : 1);
+    this.cameras.main.setOrigin(0, 0).setZoom(app.game ? app.game.scale.gameSize.height / GAME_HEIGHT : 1);
     this.events.once('shutdown', () => {
       this.alive = false;
       this.hand?.destroy();
@@ -144,7 +148,7 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
       });
     }
     const W = worldW(this);
-    this.add.image(0, 0, `table:${W}`).setOrigin(0, 0).setDisplaySize(W, worldH);
+    this.add.image(0, 0, `table:${W}`).setOrigin(0, 0).setDisplaySize(W, GAME_HEIGHT);
 
     // 顶栏左边只有"大厅"（右边 126）和好友房的邀请按钮（minHit 宽）；对家头像不压着它们（49 是头像半径加空隙）
     const anchors = seatAnchors(W, this.net ? TOPBAR.lobbyRight + minHit() + PARTNER_AVATAR_CLEAR : 0);
@@ -589,8 +593,9 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
   protected async playEvent(e: GameEvent): Promise<void> { return playEvent(this, e); }
 
   /** 新解锁的成就：弹一条不挡操作的横幅（只有单机会话有；好友房、匹配不计成就） */
-  showUnlocked(): void {
-    if (this.ses instanceof Session) showUnlocked(this, this.ses.takeUnlocked());
+  /** low：结算弹窗马上要开，横幅直接落到下沿，不压弹窗的标题 */
+  showUnlocked(low?: boolean): void {
+    if (this.ses instanceof Session) showUnlocked(this, this.ses.takeUnlocked(), low);
   }
 
   async animatePlay(seat: number, play: Play, left: number): Promise<void> { return animatePlay(this, seat, play, left); }

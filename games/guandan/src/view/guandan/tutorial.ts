@@ -7,8 +7,8 @@ import { makeCard } from '../../variants/guandan/core/index.ts';
 import { levelName } from './labels.ts';
 import { runTutorialSteps } from '../common/tutorial.ts';
 import { setTutorialDone } from '../store.ts';
-import { COLOR, TYPE } from '../common/theme.ts';
-import { panel, text, worldH } from '../ui/kit.ts';
+import { COLOR, GAME_HEIGHT, TYPE } from '../common/theme.ts';
+import { panel, text } from '../ui/kit.ts';
 import { PATTERNS, miniCards, patternTile } from '../ui/patterns.ts';
 import type { Button as Btn } from '../ui/kit.ts';
 
@@ -52,7 +52,7 @@ export function runTutorial(scene: Phaser.Scene, t: TutorialTargets, level: numb
       dim.fillStyle(COLOR.overlay, 0.6);
       const top = t.play.y - 44;
       dim.fillRect(0, 0, W, top);
-      dim.fillRect(0, top + 88, W, worldH - top - 88);
+      dim.fillRect(0, top + 88, W, GAME_HEIGHT - top - 88);
       dim.fillRect(0, top, t.sort.x - 80, 88);
       dim.fillRect(t.play.x + 92, top, W - t.play.x - 92, 88);
       const tip = (x: number, y: number, msg: string, color: number = COLOR.goldLight): void => {

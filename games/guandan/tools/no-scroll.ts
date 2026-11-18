@@ -35,7 +35,7 @@ const CLIP_OK: Record<string, string> = {
 /**
  * 不滚不等于排得下（海岛 11-02：竖屏底部按钮压在技能钮上、技能字被裁一截，量滚动全过）。截图时再量两样：
  * - 重叠：看得见、点得到的 DOM 控件（button、a、[role=button]、输入框）两两的包围盒不许相交，被弹层盖住的不算；
- *   画布里的读调试桥 hits()（已经去掉了整屏遮罩下面那层），也两两比；
+ *   画布里的读调试桥 hits()（已经去掉了整屏遮罩下面那层），也两两比；"请横过来"盖着整屏时不比画布；
  * - 裁字：DOM 里自己带字的元素 scrollWidth/scrollHeight 不许超出 clientWidth/clientHeight 1 像素以上（CLIP_OK 里登记的除外）。
  * 画布里的字没有"被裁"这回事可量（Phaser 的 Text 不裁，只会画出框外），这一项只覆盖 DOM。
  */
@@ -73,7 +73,9 @@ export async function layoutIssuesOf(page: Page): Promise<{ overlap: string[]; c
         if (a.e.contains(b.e) || b.e.contains(a.e)) continue;
         if (cross(a.r, b.r)) overlap.push(`${name(a.e)} × ${name(b.e)}`);
       }
-    const hits = window.__game?.hits() ?? [];
+    // 竖屏牌桌整屏盖着"把屏幕横过来"：画布看不见也点不到，下面挤小了的牌桌不算
+    const rotated = getComputedStyle(document.getElementById('rotate-hint') ?? document.body).display === 'flex';
+    const hits = rotated ? [] : (window.__game?.hits() ?? []);
     for (let i = 0; i < hits.length; i++)
       for (let j = i + 1; j < hits.length; j++) {
         const a = hits[i]!;

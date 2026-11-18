@@ -18,13 +18,13 @@ import { LOW_MEMORY } from '../common/device.ts';
 import { seatIdentity, seatName, seatPerson } from '../common/labels.ts';
 import { lobbyName } from '../common/platform.ts';
 import { getSettings, updateSettings } from '../store.ts';
-import { COLOR, TYPE, minDrawH, minHit, phoneType } from '../common/theme.ts';
+import { COLOR, TYPE, minDrawH, minHit, phoneType, GAME_HEIGHT } from '../common/theme.ts';
 import { rankName } from '../../core/cards.ts';
 import { countLeftDdz } from './counter.ts';
 import { CardView } from '../table/card.ts';
 import { BUTTON_Y as TABLE_BUTTON_Y, DDZ_BUTTON_DROP, DDZ_BUTTONS, DDZ_COUNTER, DDZ_FUN, DDZ_FUN_POLL_MS, DDZ_PUZZLE_TIP, DDZ_STAKE_BAR, DDZ_TOPBAR, DDZ_TOPMID, ME_AVATAR, TOPBAR_H } from '../table/layout.ts';
 import { hasLayer } from '../ui/focus.ts';
-import { Button, fitWidth, setHit, setTopHit, signedLine, text, worldH, worldW } from '../ui/kit.ts';
+import { Button, fitWidth, setHit, setTopHit, signedLine, text, worldW } from '../ui/kit.ts';
 import type { DdzScene } from '../scenes/DdzScene.ts';
 
 /** 斗地主手牌横排一行，比掼蛋的分列矮一截：操作按钮那排跟着往下挪，贴近手牌（掼蛋不变） */
@@ -315,7 +315,7 @@ export function buildFun(sc: DdzScene, W: number): void {
           temper: who === 'laozhou' || who === 'wangjie' ? TEMPER_DDZ[who] : 'normal',
         };
       }),
-    avoid: () => [sc.worldRect(0, BUTTON_Y - 40, W, worldH - BUTTON_Y + 40)],
+    avoid: () => [sc.worldRect(0, BUTTON_Y - 40, W, GAME_HEIGHT - BUTTON_Y + 40)],
     center: () => sc.trick.boxes().map((b) => sc.worldRect(b.x, b.y, b.w, b.h)),
     button: () => sc.worldRect(left, DDZ_FUN.y - bh / 2, bw, bh),
     buttonStyle: () => ({ scale: sc.worldRect(0, 0, 100, 100).width / 100 }),

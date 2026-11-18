@@ -3,7 +3,7 @@
  * 底板全用 Graphics 画（矢量，相机 zoom 后依然锐利），尺寸随用随定，不需要预烘焙贴图。
  */
 import Phaser from 'phaser';
-import { BUTTON, BUTTON_TIER, COLOR, FONT, FONT_NUM, FONT_TITLE, GAME_HEIGHT, LIGHT, OUTLINE, RADIUS, RENDER_SCALE, TIER, TYPE, css, minHit, signColor, signColorOnDark, typeFloor } from '../common/theme.ts';
+import { BUTTON, BUTTON_TIER, COLOR, FONT, FONT_NUM, FONT_TITLE, LIGHT, OUTLINE, RADIUS, RENDER_SCALE, TIER, TYPE, css, minHit, signColor, signColorOnDark, typeFloor } from '../common/theme.ts';
 import { signed } from '../common/stake-text.ts';
 import type { ButtonTier } from '../common/theme.ts';
 import { audio } from '../common/audio.ts';
@@ -37,7 +37,10 @@ export function setTopHit(obj: Phaser.GameObjects.Container, w: number, h: numbe
 export function worldW(scene: Phaser.Scene): number {
   return Math.round(scene.scale.gameSize.width / RENDER_SCALE);
 }
-export const worldH = GAME_HEIGHT;
+/** 世界高度：牌桌和横屏主页是 720（GAME_HEIGHT），竖屏的主页按屏幕比例更高（theme.ts 的 worldSizeFor） */
+export function worldH(scene: Phaser.Scene): number {
+  return Math.round(scene.scale.gameSize.height / RENDER_SCALE);
+}
 
 export interface TextOpts {
   size?: number;
@@ -577,14 +580,15 @@ const dismissables = new Map<Phaser.Scene, Modal[]>();
  */
 export function modal(scene: Phaser.Scene, w: number, h: number, title?: string, opts: { closeBtn?: boolean; onClose?: () => void; depth?: number; dismissOnOutside?: boolean } = {}): Modal {
   const W = worldW(scene);
+  const H = worldH(scene);
   const root = scene.add.container(0, 0).setDepth(opts.depth ?? 5000);
   const dim = scene.add.graphics();
-  dim.fillStyle(COLOR.overlay, 0.62).fillRect(0, 0, W, worldH);
+  dim.fillStyle(COLOR.overlay, 0.62).fillRect(0, 0, W, H);
   // 遮罩挡住下面的点击
-  const block = scene.add.zone(0, 0, W, worldH).setOrigin(0, 0).setInteractive();
+  const block = scene.add.zone(0, 0, W, H).setOrigin(0, 0).setInteractive();
   root.add([dim, block]);
   const body = panel(scene, w, h, title);
-  body.setPosition(W / 2, worldH / 2 + (title ? 10 : 0));
+  body.setPosition(W / 2, H / 2 + (title ? 10 : 0));
   root.add(body);
   let closed = false;
   const close = (): void => {

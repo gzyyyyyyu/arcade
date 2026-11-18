@@ -26,16 +26,15 @@ function medal(scene: Phaser.Scene, x: number, y: number, r: number, lit: boolea
 /**
  * 解锁提示：顶部居中一条横幅，不接点击（盖在结算弹窗上也不挡按钮），停约 2.4 秒后淡出；一次解锁几个就叠几条（最多 3 条，多的合成一句）。
  */
-export function showUnlocked(scene: Phaser.Scene, ids: string[]): void {
+export function showUnlocked(scene: Phaser.Scene, ids: string[], low = hasLayer(scene)): void {
   const defs = ids.map(achDef).filter((d): d is AchDef => !!d);
   if (defs.length === 0) return;
   audio.sfx('levelUp');
   const lines = defs.length <= 3 ? defs.map((d) => `成就解锁：${d.name}`) : [`成就解锁：${defs[0]!.name} 等 ${defs.length} 个`];
   const cx = worldW(scene) / 2;
-  // 结算页这类弹窗开着时，顶上正是弹窗的标题飘带：横幅改落到屏幕下沿（弹窗面板最高 worldH-40，下沿基本是空的），多条往上叠，从下往上浮入
-  const low = hasLayer(scene);
+  // 结算页这类弹窗开着（或马上要开：一副、一局刚结束）时，顶上正是弹窗的标题飘带：横幅改落到屏幕下沿（弹窗面板最高 worldH(scene)-40，下沿基本是空的），多条往上叠，从下往上浮入
   lines.forEach((line, i) => {
-    const c = scene.add.container(cx, low ? worldH - 30 - i * 58 : 54 + i * 58).setDepth(6000);
+    const c = scene.add.container(cx, low ? worldH(scene) - 30 - i * 58 : 54 + i * 58).setDepth(6000);
     const t = text(scene, 22, 0, line, { size: TYPE.body, bold: true, color: 0xfff6e0 });
     fitWidth(t, worldW(scene) - 200);
     const w = t.width + 44 + 56;
@@ -57,7 +56,7 @@ const TABS: { label: string; value: AchGroup }[] = [{ label: '掼蛋', value: 'g
 export function openAchievements(scene: Phaser.Scene, group: AchGroup = 'gd'): Modal {
   const W = worldW(scene);
   const PW = Math.min(W - SPACE.xxl * 2, 1100);
-  const PH = Math.min(worldH - 40, 600);
+  const PH = Math.min(worldH(scene) - 40, 600);
   const m = modal(scene, PW, PH, '成就');
   const b = m.body;
   const unlocked = new Set(loadAch().unlocked);

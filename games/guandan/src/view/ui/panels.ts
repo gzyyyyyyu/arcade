@@ -6,7 +6,7 @@ import { levelName } from '../guandan/labels.ts';
 import { audio } from '../common/audio.ts';
 import { SOUND_GAIN, getDdzStats, getSettings, getStats, getVariant, resetSettings, setDdzTutorialDone, setTutorialDone, updateSettings, type Settings, type SoundLevel } from '../store.ts';
 import { COLOR, SPACE, TYPE, css, minHit } from '../common/theme.ts';
-import { Button, modal, segmented, signedLine, text, worldW, type Modal } from './kit.ts';
+import { Button, modal, segmented, signedLine, text, worldH, worldW, type Modal } from './kit.ts';
 import type { SignedRow } from '../common/stake-text.ts';
 import { DDZ_RULE_TABS } from '../doudizhu/rules.ts';
 import { DDZ_PATTERNS, PATTERNS, miniCards, patternTile } from './patterns.ts';
@@ -147,26 +147,32 @@ const NO_RATE = '—';
  */
 export function openStats(scene: Phaser.Scene): Modal {
   const PW = panelW(scene);
-  const PH = 400;
+  // 竖屏的主页弹窗只有 656 宽：六格排成两行三格，空状态的说明折行
+  const narrow = PW < 1000;
+  const PH = narrow ? 560 : 400;
   const m = modal(scene, PW, PH, '战绩', { dismissOnOutside: true });
   const page = scene.add.container(0, 0);
   m.body.add(page);
   const tabY = -PH / 2 + 100;
   const y = tabY + 150;
+  const y0 = y;
   // 没打过的胜率写"—"用灰色：红色在这里是输
   const pct = (a: number, b: number): string => (b > 0 ? `${Math.round((a / b) * 100)}%` : NO_RATE);
 
   const empty = (line: string): void => {
     page.add(scene.add.image(-PW / 2 + 150, y, 'avatar:me:happy').setDisplaySize(140, 140));
     page.add(text(scene, -PW / 2 + 260, y - 34, '还没打过一局', { size: TYPE.title, bold: true, color: COLOR.ink, ox: 0 }));
-    page.add(text(scene, -PW / 2 + 260, y + 20, line, { size: TYPE.label, color: COLOR.muted, ox: 0 }));
+    page.add(text(scene, -PW / 2 + 260, y + 4, line, { size: TYPE.label, color: COLOR.muted, ox: 0, oy: 0, wrap: PW - 300, align: 'left' }));
   };
   const cells = (list: [string, string, number][]): void => {
-    // 一排六格，格宽跟着面板宽
+    // 一排六格，格宽跟着面板宽；窄的两行三格
     const gap = SPACE.md;
-    const cw = Math.min(170, (PW - SPACE.xxl * 2 - gap * 5) / 6);
-    list.forEach(([label, val, color], i) => {
-      const x = (i - 2.5) * (cw + gap);
+    const per = narrow ? 3 : 6;
+    const cw = Math.min(170, (PW - SPACE.xxl * 2 - gap * (per - 1)) / per);
+    list.forEach(([label, val, color], k) => {
+      const i = k % per;
+      const y = y0 + (narrow ? Math.floor(k / per) * 150 : 0);
+      const x = (i - (per - 1) / 2) * (cw + gap);
       const g = scene.add.graphics();
       g.fillStyle(0xf3e6c9, 1).fillRoundedRect(x - cw / 2, y - 64, cw, 128, 14);
       g.lineStyle(2, 0xd8c39a, 1).strokeRoundedRect(x - cw / 2, y - 64, cw, 128, 14);
@@ -261,9 +267,30 @@ export function confirm(scene: Phaser.Scene, msg: string | readonly SignedRow[],
   return m;
 }
 
+/**
+ * 规则页的排版：横屏（世界宽 1280 起）是 1120 宽、640 高的弹窗，牌型四列；竖屏的主页（世界宽 720）弹窗贴两边、往下拉长，牌型两列、长句换行。
+ * top 是弹窗里第一行内容的上沿（页签下面），w 是内容的宽
+ */
+interface RulesBox {
+  narrow: boolean;
+  w: number;
+  h: number;
+  top: number;
+}
+
+function rulesBox(scene: Phaser.Scene, rows: number): RulesBox {
+  const narrow = worldW(scene) < 1100;
+  if (!narrow) return { narrow, w: 1040, h: 640, top: -224 };
+  // 竖屏：高度按要排的行数，封顶在屏幕里（上下各留 60）
+  const h = Math.min(worldH(scene) - 120, 220 + rows * 128);
+  return { narrow, w: worldW(scene) - 80, h, top: -h / 2 + 104 };
+}
+
 /** 规则页：三页（牌型 / 大小 / 怎么打），全部用图示，文字只做标注。level：牌桌上打开时传本副级数，例子跟着变；标题页没有牌局，用 7 举例。 */
 export function openRules(scene: Phaser.Scene, onClose?: () => void, level?: number): Modal {
-  const m = modal(scene, panelW(scene), 640, '规则', { onClose, dismissOnOutside: true });
+  // 竖屏最高的一页是牌型：两列五行加逢人配一行
+  const box = rulesBox(scene, 6);
+  const m = modal(scene, box.narrow ? box.w + 40 : panelW(scene), box.h, '规则', { onClose, dismissOnOutside: true });
   const b = m.body;
   const page = scene.add.container(0, 0);
   b.add(page);
@@ -274,13 +301,13 @@ export function openRules(scene: Phaser.Scene, onClose?: () => void, level?: num
     cur = i;
     page.removeAll(true);
     tabBtns.forEach((t, j) => t.setAlpha(j === cur ? 1 : 0.62));
-    if (i === 0) pagePatterns(scene, page, level);
-    else if (i === 1) pageOrder(scene, page, level);
-    else if (i === 2) pageFlow(scene, page);
-    else pageKeys(scene, page);
+    if (i === 0) pagePatterns(scene, page, box, level);
+    else if (i === 1) pageOrder(scene, page, box, level);
+    else if (i === 2) pageFlow(scene, page, box);
+    else pageKeys(scene, page, box);
   };
   tabs.forEach((t, i) => {
-    const btn = new Button(scene, tabX(i, tabs.length), -248, 150, 48, t, 'red', () => show(i));
+    const btn = new Button(scene, tabX(i, tabs.length), box.top - 24, 150, 48, t, 'red', () => show(i));
     tabBtns.push(btn);
     b.add(btn);
   });
@@ -290,7 +317,9 @@ export function openRules(scene: Phaser.Scene, onClose?: () => void, level?: num
 
 /** 斗地主的规则页：牌型图示 + 叫分、算分两页文字（文字在 doudizhu/rules.ts，牌桌和主页共用） */
 export function openDdzRules(scene: Phaser.Scene, onClose?: () => void): Modal {
-  const m = modal(scene, panelW(scene), 640, '斗地主怎么玩', { onClose, dismissOnOutside: true });
+  // 竖屏最高的一页是牌型：两列六行，下面三段说明
+  const box = rulesBox(scene, 8);
+  const m = modal(scene, box.narrow ? box.w + 40 : panelW(scene), box.h, '斗地主怎么玩', { onClose, dismissOnOutside: true });
   const b = m.body;
   const page = scene.add.container(0, 0);
   b.add(page);
@@ -298,22 +327,24 @@ export function openDdzRules(scene: Phaser.Scene, onClose?: () => void): Modal {
   const show = (i: number): void => {
     page.removeAll(true);
     tabBtns.forEach((t, j) => t.setAlpha(j === i ? 1 : 0.62));
-    if (i >= DDZ_RULE_TABS.length) return pageKeys(scene, page);
+    if (i >= DDZ_RULE_TABS.length) return pageKeys(scene, page, box);
     const lines = DDZ_RULE_TABS[i]!.lines;
-    let y = -190;
+    let y = box.top + 34;
     if (i === 0) {
-      DDZ_PATTERNS.forEach((p, k) => page.add(patternTile(scene, -405 + (k % 4) * 270, -170 + Math.floor(k / 4) * 124, p, 254)));
-      y = 210;
+      const cols = box.narrow ? 2 : 4;
+      const tw = box.narrow ? (box.w - 16) / 2 : 254;
+      DDZ_PATTERNS.forEach((p, k) => page.add(patternTile(scene, ((k % cols) - (cols - 1) / 2) * (tw + 16), box.top + 54 + Math.floor(k / cols) * 124, p, tw)));
+      y = box.top + 54 + Math.ceil(DDZ_PATTERNS.length / cols) * 124 + 8;
     }
     for (const l of lines) {
-      const t = text(scene, -520, y, l, { size: i === 0 ? TYPE.label : TYPE.body, color: COLOR.ink, ox: 0, oy: 0, wrap: 1040, align: 'left' });
+      const t = text(scene, -box.w / 2, y, l, { size: i === 0 ? TYPE.label : TYPE.body, color: COLOR.ink, ox: 0, oy: 0, wrap: box.w, align: 'left' });
       page.add(t);
       y += t.height + (i === 0 ? 6 : 16);
     }
   };
   const tabs = [...DDZ_RULE_TABS.map((t) => t.tab), ...(hasPointerKeys() ? ['快捷键'] : [])];
   tabs.forEach((t, i) => {
-    const btn = new Button(scene, tabX(i, tabs.length), -248, 150, 48, t, 'red', () => show(i));
+    const btn = new Button(scene, tabX(i, tabs.length), box.top - 24, 150, 48, t, 'red', () => show(i));
     tabBtns.push(btn);
     b.add(btn);
   });
@@ -327,12 +358,14 @@ function tabX(i: number, n: number): number {
 }
 
 /** 快捷键一页（只在电脑上有这一页）：左边键，右边干什么 */
-function pageKeys(scene: Phaser.Scene, page: Phaser.GameObjects.Container): void {
-  page.add(text(scene, -520, -190, '用键盘打得更快', { size: TYPE.title, bold: true, ox: 0, color: COLOR.red }));
+function pageKeys(scene: Phaser.Scene, page: Phaser.GameObjects.Container, box: RulesBox): void {
+  const x0 = -box.w / 2;
+  const kw = box.narrow ? 200 : 270;
+  page.add(text(scene, x0, box.top + 34, '用键盘打得更快', { size: TYPE.title, bold: true, ox: 0, color: COLOR.red }));
   SHORTCUT_HELP.forEach((r, i) => {
-    const y = -120 + i * 58;
-    page.add(text(scene, -520, y, r.keys, { size: TYPE.body, bold: true, ox: 0, color: COLOR.ink }));
-    page.add(text(scene, -250, y, r.what, { size: TYPE.body, ox: 0, color: COLOR.ink, align: 'left' }));
+    const y = box.top + 104 + i * 58;
+    page.add(text(scene, x0, y, r.keys, { size: TYPE.body, bold: true, ox: 0, color: COLOR.ink }));
+    page.add(text(scene, x0 + kw, y, r.what, { size: TYPE.body, ox: 0, color: COLOR.ink, align: 'left', wrap: box.w - kw }));
   });
 }
 
@@ -342,60 +375,83 @@ function levelExample(level: number | undefined): { lv: number; when: string } {
   return { lv: level, when: `本副打 ${levelName(level)}` };
 }
 
-function pagePatterns(scene: Phaser.Scene, page: Phaser.GameObjects.Container, level?: number): void {
+function pagePatterns(scene: Phaser.Scene, page: Phaser.GameObjects.Container, box: RulesBox, level?: number): void {
   const { lv, when } = levelExample(level);
+  const cols = box.narrow ? 2 : 4;
+  const tw = box.narrow ? (box.w - 16) / 2 : 254;
+  const pitch = tw + 16;
+  const y0 = box.top + 94;
   PATTERNS.forEach((p, i) => {
-    const col = i % 4;
-    const row = Math.floor(i / 4);
-    const x = -405 + col * 270;
-    const y = -130 + row * 128;
-    page.add(patternTile(scene, x, y, p, 254));
+    const x = ((i % cols) - (cols - 1) / 2) * pitch;
+    page.add(patternTile(scene, x, y0 + Math.floor(i / cols) * 128, p, tw));
   });
-  // 第三行剩两格：逢人配说明
-  const wx = 135 + 135;
+  // 逢人配说明：横屏占第三行剩下的两格，竖屏单独一行占满宽
+  const bw = box.narrow ? box.w : 524;
+  const wx = box.narrow ? 0 : 270;
+  const by = box.narrow ? y0 + Math.ceil(PATTERNS.length / cols) * 128 - 58 : 68;
   const g = scene.add.graphics();
-  g.fillStyle(0xfff0d0, 1).fillRoundedRect(wx - 262, 68, 524, 116, 12);
-  g.lineStyle(2.5, COLOR.gold, 1).strokeRoundedRect(wx - 262, 68, 524, 116, 12);
+  g.fillStyle(0xfff0d0, 1).fillRoundedRect(wx - bw / 2, by, bw, 116, 12);
+  g.lineStyle(2.5, COLOR.gold, 1).strokeRoundedRect(wx - bw / 2, by, bw, 116, 12);
   page.add(g);
-  page.add(miniCards(scene, wx - 210, 126, [makeCard(lv, 1)], 52, 0, lv));
-  page.add(text(scene, wx - 160, 98, '逢人配：红桃级牌', { size: TYPE.body, bold: true, color: COLOR.red, ox: 0 }));
-  page.add(text(scene, wx - 160, 144, `万能牌，能当除王以外的任何牌\n（${when}，就是红桃 ${levelName(lv)}）`, { size: TYPE.small, color: COLOR.ink, ox: 0, align: 'left' }));
+  page.add(miniCards(scene, wx - bw / 2 + 52, by + 58, [makeCard(lv, 1)], 52, 0, lv));
+  page.add(text(scene, wx - bw / 2 + 102, by + 30, '逢人配：红桃级牌', { size: TYPE.body, bold: true, color: COLOR.red, ox: 0 }));
+  page.add(text(scene, wx - bw / 2 + 102, by + 76, `万能牌，能当除王以外的任何牌\n（${when}，就是红桃 ${levelName(lv)}）`, { size: TYPE.small, color: COLOR.ink, ox: 0, align: 'left' }));
 }
-
-function pageOrder(scene: Phaser.Scene, page: Phaser.GameObjects.Container, level?: number): void {
+function pageOrder(scene: Phaser.Scene, page: Phaser.GameObjects.Container, box: RulesBox, level?: number): void {
   const { lv, when } = levelExample(level);
+  const x0 = -box.w / 2;
+  const T = box.top;
+  // 横屏：标题在左、牌和梯子往右排；竖屏：标题一行、下面一排牌（牌小一点、挨紧一点）
+  const n = box.narrow;
   // 单张大小：大王 > 小王 > 级牌 > A > K … > 2（级牌从原位置拿掉，例子里不重复出现）
-  page.add(text(scene, -520, -180, '单张大小', { size: TYPE.title, bold: true, ox: 0, color: COLOR.red }));
-  page.add(text(scene, -520, -146, when, { size: TYPE.small, color: COLOR.muted, ox: 0 }));
+  page.add(text(scene, x0, T + 44, '单张大小', { size: TYPE.title, bold: true, ox: 0, color: COLOR.red }));
+  page.add(text(scene, x0, T + 78, when, { size: TYPE.small, color: COLOR.muted, ox: 0 }));
   const rest = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2].filter((r) => r !== lv);
   const picks = [rest[0]!, rest[1]!, rest[2]!, rest[4]!, rest[rest.length - 4]!, rest[rest.length - 1]!];
   const order = [makeCard(17, 0), makeCard(16, 0), makeCard(lv, 0), ...picks.map((r, i) => makeCard(r, [2, 3, 0, 1, 2, 3][i]!))];
+  const cw = n ? 46 : 56;
+  const cp = n ? (box.w - cw) / (order.length - 1) : 92;
+  const cx0 = n ? x0 + cw / 2 : -330;
+  const cy = n ? T + 150 : T + 74;
   order.forEach((c, i) => {
-    page.add(miniCards(scene, -330 + i * 92, -150, [c], 56, 0, lv));
-    if (i < order.length - 1) page.add(text(scene, -330 + i * 92 + 46, -150, i === 6 ? '…' : '>', { size: TYPE.title, bold: true, color: COLOR.muted }));
+    page.add(miniCards(scene, cx0 + i * cp, cy, [c], cw, 0, lv));
+    if (i < order.length - 1) page.add(text(scene, cx0 + i * cp + cp / 2, cy, i === 6 ? '…' : '>', { size: TYPE.title, bold: true, color: COLOR.muted }));
   });
-  page.add(text(scene, -330 + 2 * 92, -92, '级牌', { size: TYPE.small, bold: true, color: COLOR.goldDark }));
+  page.add(text(scene, cx0 + 2 * cp, cy + 58, '级牌', { size: TYPE.small, bold: true, color: COLOR.goldDark }));
 
   // 炸弹梯子
-  page.add(text(scene, -520, -30, '炸弹谁大', { size: TYPE.title, bold: true, ox: 0, color: COLOR.red }));
-  page.add(text(scene, -520, 4, '炸弹能压任何普通牌型', { size: TYPE.small, color: COLOR.muted, ox: 0 }));
+  const ly = n ? T + 270 : T + 194;
+  page.add(text(scene, x0, ly, '炸弹谁大', { size: TYPE.title, bold: true, ox: 0, color: COLOR.red }));
+  page.add(text(scene, x0, ly + 34, '炸弹能压任何普通牌型', { size: TYPE.small, color: COLOR.muted, ox: 0 }));
   const ladder = ['4 张', '5 张', '同花顺', '6 张', '7 张', '8 张', '9 张', '10 张', '天王炸'];
+  const bp = n ? box.w / ladder.length : 104;
+  const bw = n ? bp - 6 : 84;
+  const bx0 = n ? x0 + bp / 2 : -330;
+  const base = n ? ly + 260 : T + 334;
   ladder.forEach((l, i) => {
-    const x = -330 + i * 104;
+    const x = bx0 + i * bp;
     const h = 30 + i * 13;
     const g = scene.add.graphics();
     const col = i === ladder.length - 1 ? COLOR.gold : i === 2 ? 0xd2603a : COLOR.red;
-    g.fillStyle(col, 1).fillRoundedRect(x - 42, 110 - h, 84, h, 8);
+    g.fillStyle(col, 1).fillRoundedRect(x - bw / 2, base - h, bw, h, 8);
     page.add(g);
-    page.add(text(scene, x, 110 - h - 18, l, { size: TYPE.label, bold: true, color: i === ladder.length - 1 ? COLOR.goldDark : COLOR.ink }));
+    // 竖屏一格只有七十来宽：名字竖着叠在柱子上方两行（"同花顺""天王炸"一行放不下）
+    page.add(text(scene, x, base - h - (n ? 30 : 18), n ? l.replace(' ', '\n') : l, { size: TYPE.label, bold: true, color: i === ladder.length - 1 ? COLOR.goldDark : COLOR.ink, align: 'center' }));
   });
-  page.add(text(scene, -40, 150, '小  →  大', { size: TYPE.body, bold: true, color: COLOR.muted }));
+  page.add(text(scene, n ? 0 : -40, base + 40, '小  →  大', { size: TYPE.body, bold: true, color: COLOR.muted }));
 
-  page.add(text(scene, -520, 200, '其他牌型：同牌型、同张数才能比，比点数', { size: TYPE.label, color: COLOR.ink, ox: 0 }));
-  page.add(text(scene, -520, 232, '顺子里 A 可当 1 也可当 14，级牌按本来的位置', { size: TYPE.label, color: COLOR.ink, ox: 0 }));
+  const notes = ['其他牌型：同牌型、同张数才能比，比点数', '顺子里 A 可当 1 也可当 14，级牌按本来的位置'];
+  if (!n) notes.forEach((t, i) => page.add(text(scene, x0, T + 424 + i * 32, t, { size: TYPE.label, color: COLOR.ink, ox: 0 })));
+  else {
+    let ty = base + 90;
+    for (const t of notes) {
+      const line = text(scene, x0, ty, t, { size: TYPE.label, color: COLOR.ink, ox: 0, oy: 0, wrap: box.w, align: 'left' });
+      page.add(line);
+      ty += line.height + 8;
+    }
+  }
 }
-
-function pageFlow(scene: Phaser.Scene, page: Phaser.GameObjects.Container): void {
+function pageFlow(scene: Phaser.Scene, page: Phaser.GameObjects.Container, box: RulesBox): void {
   const items: [string, string, string][] = [
     ['组队', '你和对面的小美一队', 'cards'],
     ['出牌', '压过上家，或者不要；都不要时最后出牌的人再出', 'play'],
@@ -405,16 +461,23 @@ function pageFlow(scene: Phaser.Scene, page: Phaser.GameObjects.Container): void
     ['进贡', '末游把最大的牌给头游，头游还一张 10 以下的；两张大王可以抗贡', 'back'],
     ['打 A', '打 A 时拿头游、队友不是末游才算过 A，整局获胜', 'check'],
   ];
-  items.forEach(([t, d, icon], i) => {
-    const y = -170 + i * 64;
+  // 横屏一行一条（名字和说明并排）；竖屏说明换到名字下面、按宽度折行，行高跟着说明的行数走
+  const W = box.narrow ? box.w + 20 : 1080;
+  const x0 = -W / 2;
+  let y = box.top + 26;
+  for (const [i, [t, d, icon]] of items.entries()) {
+    const desc = text(scene, box.narrow ? x0 + 70 : -360, 0, d, { size: TYPE.label, color: COLOR.ink, ox: 0, oy: 0, wrap: box.narrow ? W - 84 : 860, align: 'left' });
+    const h = box.narrow ? 46 + desc.height : 56;
     const g = scene.add.graphics();
-    g.fillStyle(i % 2 ? 0xf6ebd3 : 0xefe0c0, 1).fillRoundedRect(-540, y - 28, 1080, 56, 10);
+    g.fillStyle(i % 2 ? 0xf6ebd3 : 0xefe0c0, 1).fillRoundedRect(x0, y, W, h, 10);
     page.add(g);
-    const ic = scene.add.image(-505, y, `icon:${icon}`).setDisplaySize(34, 34).setTint(COLOR.red);
-    page.add(ic);
-    page.add(text(scene, -470, y, t, { size: TYPE.body, bold: true, color: COLOR.red, ox: 0 }));
-    page.add(text(scene, -360, y, d, { size: TYPE.label, color: COLOR.ink, ox: 0 }));
-  });
+    const cy = box.narrow ? y + 26 : y + 28;
+    page.add(scene.add.image(x0 + 35, cy, `icon:${icon}`).setDisplaySize(34, 34).setTint(COLOR.red));
+    page.add(text(scene, x0 + 70, cy, t, { size: TYPE.body, bold: true, color: COLOR.red, ox: 0 }));
+    desc.setY(box.narrow ? y + 44 : cy - desc.height / 2);
+    page.add(desc);
+    y += h + (box.narrow ? 6 : 8);
+  }
 }
 
 export { css };
