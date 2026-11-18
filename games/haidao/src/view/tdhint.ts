@@ -50,3 +50,24 @@ export function newFoes(kinds: Iterable<TdEnemyKind>, seen: ReadonlySet<string>,
   for (const k of kinds) if (!seen.has(k) && !out.includes(k) && out.length < max) out.push(k);
   return out;
 }
+
+// ---------------------------------------------------------------- 章末机制（规则版本 16）
+
+export const MECH_KEY = 'haidao.hint.mech';
+export type MechKind = 'crate' | 'sluice' | 'battery';
+
+/** 每种章末机制一句怎么用（每章倒数第二关第一次见到时弹，和新敌人共用一张卡） */
+export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }>> = {
+  crate: { name: '漂流补给箱', text: '有的波会漂来箱子：点它叫英雄去捡，给金币、技能马上好' },
+  sluice: { name: '潮汐水闸', text: '落潮路要开时点「水闸」关上，那条路的敌人改走主路' },
+  battery: { name: '岸防老炮', text: '点「老炮」再点地面，1 秒后落一发大炸弹；打不到飞的' },
+};
+
+/** 这一局有哪些章末机制（只看规则核心建好的状态：旧版本的局、没有机制的关为空） */
+export function mechsOf(s: { drift?: unknown; sluice?: unknown; battery?: unknown }): MechKind[] {
+  const out: MechKind[] = [];
+  if (s.drift) out.push('crate');
+  if (s.sluice) out.push('sluice');
+  if (s.battery) out.push('battery');
+  return out;
+}

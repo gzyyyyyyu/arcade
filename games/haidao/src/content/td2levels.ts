@@ -52,6 +52,12 @@ interface LevelDef {
   bossSkill?: boolean;
   sapperJam?: boolean;
   flank?: boolean;
+  /** 潮汐水闸（规则版本 16，第二章最后两关）：一局能关几次落潮路（TdLevel.sluice） */
+  sluice?: number;
+  /** 漂流补给箱（规则版本 16，第一章最后两关）：第几波（0 起）在哪一格沙滩漂来箱子（TdLevel.crates） */
+  crates?: Array<{ wave: number; x: number; y: number }>;
+  /** 岸防老炮（规则版本 16，第三章最后两关）：炮台摆在哪一格（TdLevel.battery） */
+  battery?: { x: number; y: number };
   /** 首领波前多给的倒数（拍），不写用 TD2_BOSS_EXTRA_TICKS */
   bossExtraTicks?: number;
   /**
@@ -65,6 +71,17 @@ interface LevelDef {
 
 /** 炸塔工兵：走到离塔 1.5 格引爆，3 格内的塔哑火 5 秒 */
 const SAP = { r: 3, ticks: 100 };
+/** 潮汐水闸一局能关几次：两关的落潮各开 7、8 波，关三次够挑最难的几波，又不至于整关都不用管落潮路 */
+const TD_SLUICE_USES = 3;
+/**
+ * 漂流补给箱：第 3、6、9 波开打时漂来，摆在离登陆路远、离宝藏箱几步的空地上（英雄 5 到 9 秒走得到，箱子 30 秒漂走）。
+ * 去捡就要离开防线一会儿，敌人压到宝藏边时去捡会漏，这就是要玩家想的事。两张图的沙滩都离英雄守的地方
+ * 8 格以上，一波的倒数里来回走不完，所以都摆在宝藏箱两侧、登陆路不经过的空地上：雾港（C）在宝藏左右，潮沟（D）在宝藏东边（格子要能走：tests/td-mech.test.ts 查）
+ */
+const CRATES_C = [{ wave: 2, x: 7, y: 18 }, { wave: 5, x: 13, y: 18 }, { wave: 8, x: 7, y: 18 }];
+const CRATES_D = [{ wave: 2, x: 16, y: 9 }, { wave: 5, x: 15, y: 12 }, { wave: 8, x: 16, y: 9 }];
+/** 黑胡子湾（I 图）的老炮台：东南角的沙滩上，离三条登陆路和落潮路都远，不挡人也不被人挡住 */
+const BATTERY_I = { x: 23, y: 18 };
 /** 首领技能：血一半时在身边召 8 个水手，炸哑最近的 2 座塔 8 秒 */
 const SKILL = { summon: { kind: 'sailor' as const, n: 8 }, jam: 2, jamTicks: 160 };
 
@@ -136,7 +153,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td05', name: '鹦鹉礁', index: 4, map: 'C', chapter: 1, hq: 5, gold: 300, waveTicks: 360, scale: 128, pads: 6, wrecks: [5], garrison: [2],
+    id: 'td05', name: '鹦鹉礁', index: 4, map: 'C', chapter: 1, hq: 5, gold: 300, waveTicks: 360, scale: 128, pads: 6, wrecks: [5], garrison: [2], crates: CRATES_C,
     waves: [
       w([S, 45, 0]),
       w([S, 35, 0], [S, 25, 1, 40]),
@@ -152,7 +169,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td06', name: '船长来了', index: 5, map: 'D', chapter: 1, hq: 6, gold: 335, waveTicks: 340, scale: 120, pads: 7, garrison: [2, 2], tide: 6,
+    id: 'td06', name: '船长来了', index: 5, map: 'D', chapter: 1, hq: 6, gold: 335, waveTicks: 340, scale: 120, pads: 7, garrison: [2, 2], tide: 6, crates: CRATES_D,
     waves: [
       w([S, 45, 0]),
       w([S, 35, 0], [S, 25, 1, 40]),
@@ -235,7 +252,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td11', name: '潮雾夹击', index: 10, map: 'F', chapter: 2, hq: 7, gold: 275, waveTicks: 340, scale: 133, pads: 8, garrison: [2, 2], fog: [0], tide: [1, 3, 4, 6, 8, 9, 11],
+    id: 'td11', name: '潮雾夹击', index: 10, map: 'F', chapter: 2, hq: 7, gold: 275, waveTicks: 340, scale: 133, pads: 8, garrison: [2, 2], fog: [0], tide: [1, 3, 4, 6, 8, 9, 11], sluice: TD_SLUICE_USES,
     waves: [
       w([S, 100, 0]),
       w([S, 60, 0], [X, 40, 1]),
@@ -252,7 +269,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td12', name: '暴潮之夜', index: 11, map: 'D', chapter: 2, hq: 7, gold: 600, waveTicks: 330, scale: 120, pads: 8, garrison: [2, 2], tide: [1, 2, 4, 5, 7, 8, 10, 11],
+    id: 'td12', name: '暴潮之夜', index: 11, map: 'D', chapter: 2, hq: 7, gold: 600, waveTicks: 330, scale: 120, pads: 8, garrison: [2, 2], tide: [1, 2, 4, 5, 7, 8, 10, 11], sluice: TD_SLUICE_USES,
     waves: [
       w([S, 100, 0]),
       w([S, 60, 2], [I, 40, 1]),
@@ -332,7 +349,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td17', name: '海盗联军', index: 16, map: 'I', chapter: 3, hq: 8, gold: 525, waveTicks: 320, scale: 130, pads: 9, wrecks: [7, 8], garrison: [3, 3, 3], flank: true, sapperJam: true, bossSkill: true,
+    id: 'td17', name: '海盗联军', index: 16, map: 'I', chapter: 3, hq: 8, gold: 525, waveTicks: 320, scale: 130, pads: 9, wrecks: [7, 8], garrison: [3, 3, 3], flank: true, sapperJam: true, bossSkill: true, battery: BATTERY_I,
     waves: [
       w([S, 100, 0]),
       w([I, 40, 1], [P, 30, 2], [S, 30, 0]),
@@ -351,7 +368,7 @@ const DEFS: readonly LevelDef[] = [
   },
   {
     id: 'td18', name: '黑胡子', index: 17, map: 'I', chapter: 3, hq: 8, gold: 860, waveTicks: 320, scale: 98, pads: 10, garrison: [3, 3, 3], fog: [0, 1], tide: [1, 2, 5, 6, 9, 10],
-    flank: true, sapperJam: true, bossSkill: true,
+    flank: true, sapperJam: true, bossSkill: true, battery: BATTERY_I,
     waves: [
       w([S, 100, 0]),
       w([I, 40, 3], [S, 40, 1], [F, 20, 3, 30]),
@@ -476,6 +493,9 @@ export function buildLevel(def: LevelDef, budgetPct = 100): TdIslandLevel {
     ...(def.sapperJam ? { sapperJam: SAP } : {}),
     ...(def.flank ? { flank: true } : {}),
     ...(def.bossExtraTicks ? { bossExtra: def.bossExtraTicks } : {}),
+    ...(def.sluice ? { sluice: def.sluice } : {}),
+    ...(def.battery ? { battery: { ...def.battery } } : {}),
+    ...(def.crates ? { crates: def.crates.map((c) => ({ ...c })) } : {}),
     slots: pads,
     garrison,
     kegs: map.kegs.map((p) => ({ ...p })),

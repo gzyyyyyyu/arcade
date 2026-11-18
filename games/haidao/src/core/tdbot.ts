@@ -7,10 +7,13 @@
  *   （旧版开局只造 2 座攒到第 5 波、有钱先升阶：那是机器人自己把自己饿死，不是玩法；叫波的条件太严也几乎从不触发）
  */
 import { BRANCH_LEVEL, branchOptions } from '../content/branches.ts';
-import { TD2_COST, TD2_ECON, TD2_HERO_SKILL, td2TierStats } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_HERO_SKILL, td2TierStats } from '../content/td2units.ts';
 import { Rng } from './rng.ts';
 import { createTd, stepTd, tdResult, tdUpCost } from './td.ts';
+import { tdSluiceCan } from './tdmech.ts';
 import { tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund } from './tdquery.ts';
+import { isqrt } from './fmath.ts';
+import { tdHeroStats, tdTowerRange } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
 import { cellX, cellY } from './grid.ts';
 import { TD_ARMORS, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
@@ -84,6 +87,92 @@ export function counterKind(s: TdState, pv: WavePreview[]): TdTowerKind {
     if (v > bestV) {
       bestV = v;
       best = k;
+    }
+  }
+  return best;
+}
+
+/** 一条地面路线被塔盖住多少："路线上的格 × 够得着它的塔"的对数（塔中心按占地中心、射程含最小射程） */
+function coverage(s: TdState, cells: readonly number[]): number {
+  let n = 0;
+  for (const t of s.towers) {
+    const { range, minRange } = tdTowerRange(s, t);
+    const tx = t.x * UNIT + t.size * 50;
+    const ty = t.y * UNIT + t.size * 50;
+    for (const c of cells) {
+      const d = d2(cellX(c), cellY(c), tx, ty);
+      if (d <= range * range && d >= minRange * minRange) n++;
+    }
+  }
+  return n;
+}
+
+/**
+ * 水闸值不值得关（真人的想法：把敌人赶到自己塔多的那条路上）：下一波走落潮路的占这一波人数的四分之一以上，
+ * 并且关闸后要改走的 0 号路被塔盖住的程度比落潮路多两成以上。只看人数就关会把敌人赶进没塔、有雾的路（td11 实测三星 37% → 5%）
+ */
+export function sluiceWorth(s: TdState, pv: WavePreview[]): boolean {
+  const p = pv[0];
+  if (!p || p.wave !== s.wave) return false;
+  let all = 0;
+  let tide = 0;
+  for (const l of p.lanes) for (const e of l.enemies) {
+    all += e.n;
+    if (l.lane === s.level.lanes.length) tide += e.n;
+  }
+  if (all === 0 || tide * 4 < all) return false;
+  const routes = tdRoutes(s);
+  const main = routes.find((r) => r.lane === 0);
+  const low = routes.find((r) => r.tide);
+  if (!main || !low) return false;
+  const a = coverage(s, main.cells);
+  return a > 0 && a * 100 >= coverage(s, low.cells) * 120;
+}
+
+/**
+ * 去捡这个补给箱安不安全：宝藏箱 8 格内没有地面敌人、没有拿着宝藏往回跑的、地上没有掉的宝藏（飞的不算，英雄在不在都拦不住），
+ * 下一波开打前来得及走个来回，而且箱子离英雄 6 格以内（绕一下就回来；td06 的英雄站位一偏就漏，离开远了 200 局三星 100% → 87%）
+ */
+export function crateSafe(s: TdState, box: { x: number; y: number }): boolean {
+  const tr = s.treasures[0];
+  if (!tr || s.piles.length > 0) return false;
+  if (d2(box.x, box.y, s.hero.x, s.hero.y) > 600 * 600) return false;
+  const trip = Math.floor((2 * isqrt(d2(box.x, box.y, s.hero.x, s.hero.y))) / Math.max(1, tdHeroStats(s.hero.level).speed));
+  if (s.next >= 0 && s.next - s.tick < trip) return false;
+  const r = 8 * UNIT;
+  for (const e of s.enemies) {
+    if ((e.mode !== 'in' && e.mode !== 'out') || isAir(e)) continue;
+    if (e.mode === 'out' && e.carry > 0) return false;
+    if (d2(e.x, e.y, tr.x * UNIT + 50, tr.y * UNIT + 50) <= r * r) return false;
+  }
+  return true;
+}
+
+/**
+ * 老炮往哪打：地面敌人里炸得到最多人的那一点（同样多取离宝藏近的，也就是走得最靠前的），够 min 个或圈里有船长才打；不值得为 null。
+ * 飞的炸不到不算
+ */
+export function batteryTarget(s: TdState, min: number): { x: number; y: number } | null {
+  const ground = s.enemies.filter((e) => (e.mode === 'in' || e.mode === 'out') && !isAir(e));
+  const r2 = TD2_BATTERY.r * TD2_BATTERY.r;
+  const tr = s.treasures[0];
+  let best: { x: number; y: number } | null = null;
+  let bn = 0;
+  let bd = Number.POSITIVE_INFINITY;
+  for (const e of ground) {
+    let n = 0;
+    let boss = false;
+    for (const o of ground) {
+      if (d2(o.x, o.y, e.x, e.y) > r2) continue;
+      n++;
+      if (o.kind === 'captain') boss = true;
+    }
+    if (n < min && !boss) continue;
+    const d = tr ? d2(e.x, e.y, tr.x * UNIT + 50, tr.y * UNIT + 50) : 0;
+    if (n > bn || (n === bn && d < bd)) {
+      bn = n;
+      bd = d;
+      best = { x: e.x, y: e.y };
     }
   }
   return best;
@@ -181,6 +270,10 @@ function focusSlots(s: TdState): Set<number> {
 export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}): TdBot {
   const pickKind = (s: TdState, pv: WavePreview[]): TdTowerKind => (opts.only && s.unlocked.includes(opts.only) ? opts.only : counterKind(s, pv));
   const rng = new Rng(seed, `td-bot-${kind}`);
+  // 章末机制（规则版本 16）的随机另开一条流：没有机制的关，机器人的每一个决定和以前逐位一样
+  const mrng = new Rng(seed, `td-bot-mech-${kind}`);
+  let sluiceAsked = -1;
+  const crateAsked = new Set<number>();
   const want = new Map<number, TdTowerKind>();
   let lastMove = -100;
   let soldWave = -1;
@@ -194,6 +287,22 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
     let gold = s.gold;
     const free = s.slots.map((sl, i) => (sl.tower < 0 && sl.wreck === undefined ? i : -1)).filter((i) => i >= 0);
     if (kind === 'novice') {
+      // 小白一半的时候想得起看一眼水闸（每波只想一次），想起来了和普通一样判断
+      if (sluiceAsked !== s.wave && tdSluiceCan(s) === 'shut' && s.next - t < 100) {
+        sluiceAsked = s.wave;
+        if (mrng.int(2) === 0 && sluiceWorth(s, tdPreview(s, 1))) out.push({ t, type: 'sluice' });
+      }
+      // 小白看见漂来的补给箱、宝藏箱边上又安全时，一半的时候叫英雄去捡（每个箱子只想一次）
+      for (const c of s.drift?.crates ?? []) {
+        if (crateAsked.has(c.id) || !crateSafe(s, c)) continue;
+        crateAsked.add(c.id);
+        if (s.drift!.chase < 0 && mrng.int(2) === 0) out.push({ t, type: 'pickup', id: c.id });
+      }
+      // 小白看见扎堆的也会想起老炮，一半的时候
+      if (s.battery && t >= s.battery.ready && t % 20 === 0 && mrng.int(2) === 0) {
+        const at = batteryTarget(s, 3);
+        if (at) out.push({ t, type: 'battery', x: at.x, y: at.y });
+      }
       if (s.unlocked.length === 0) return out;
       const i = free[0];
       if (i !== undefined) {
@@ -237,6 +346,8 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
     }
     const pv = tdPreview(s, 2);
     const live = s.enemies.filter((e) => e.mode === 'in' || e.mode === 'out');
+    // 开打前 5 秒再定：这时塔基本造好了，按塔的覆盖判断才准
+    if (s.next - t < 100 && t % 10 === 0 && tdSluiceCan(s) === 'shut' && sluiceWorth(s, pv)) out.push({ t, type: 'sluice' });
     if (t % 10 === 0) {
       const sc = slotScores(s, pv);
       const order = s.slots.map((_, i) => i).sort((a, b) => (sc[b] ?? 0) - (sc[a] ?? 0) || a - b);
@@ -367,7 +478,19 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
           if (ahead !== undefined && d2(cellX(ahead), cellY(ahead), h.x, h.y) <= bar.range * bar.range) out.push({ t, type: 'barricade', x: cellX(ahead), y: cellY(ahead) });
         }
       }
-      if (opts.move !== false && t - lastMove >= 10) {
+      if (s.battery && skills && t >= s.battery.ready) {
+        const at = batteryTarget(s, 4);
+        if (at) out.push({ t, type: 'battery', x: at.x, y: at.y });
+      }
+      // 补给箱：宝藏箱附近安全（crateSafe）才叫英雄去捡最近的那个，敌人压到宝藏边还去捡会漏（td06 一漂来就去捡，三星 100% → 0%）；
+      // 波是叠着来的、岛上几乎不会清空，所以不等清场。去捡的路上不再给他别的走位
+      const drift = s.drift;
+      if (drift && drift.chase < 0 && drift.crates.length > 0 && opts.move !== false) {
+        let near = drift.crates[0]!;
+        for (const c of drift.crates) if (d2(c.x, c.y, h.x, h.y) < d2(near.x, near.y, h.x, h.y)) near = c;
+        if (crateSafe(s, near)) out.push({ t, type: 'pickup', id: near.id });
+      }
+      if (opts.move !== false && t - lastMove >= 10 && !(drift && drift.chase >= 0)) {
         let goal: { x: number; y: number } | null = null;
         let bd = Number.POSITIVE_INFINITY;
         // 飞的在场：英雄（枪弹，能打飞的）回箱子边守着

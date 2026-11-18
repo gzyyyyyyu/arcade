@@ -325,6 +325,9 @@ function tdCss(): string {
 .hd-ui .hd-td-skill .hd-cd { position:absolute; inset:0; background:conic-gradient(rgba(20,35,58,.62) var(--cd,0deg), transparent 0); pointer-events:none; }
 .hd-ui .hd-td-skill.cool { filter:grayscale(.6); }
 .hd-ui .hd-td-skill b { position:relative; font-size:12px; }
+/* 章末机制钮（水闸）右上角的剩余次数；灰掉（off）= 这一波按了没用 */
+.hd-ui .hd-td-skill .hd-td-left { position:absolute; right:3px; top:3px; min-width:16px; height:16px; padding:0 3px; border-radius:8px; background:${ink}; color:${cream}; font:800 12px/16px system-ui,sans-serif; font-style:normal; text-align:center; pointer-events:none; }
+.hd-ui .hd-td-skill.hd-td-mech.off { filter:grayscale(.75); opacity:.8; }
 /* 竖屏放大时屏外东西的边缘指示：敌人是红底箭头加数量（点了镜头移过去），空木台是不挡点按的小金标 */
 .hd-ui .hd-td-edges { position:absolute; inset:0; pointer-events:none; z-index:6; }
 /* 屏外的提示三种，都带指向那边的箭头：红圈 = 敌人（剑 + 个数，点一下镜头过去）；木牌加号 = 能造塔的空木台；黄旗 = 路口 / 关口 */
@@ -333,6 +336,8 @@ function tdCss(): string {
 .hd-ui .hd-td-edge i { position:absolute; inset:0; pointer-events:none; }
 .hd-ui .hd-td-edge i::after { content:''; position:absolute; right:-4px; top:50%; margin-top:-8px; border:8px solid transparent; border-left:10px solid #ffd27a; border-right:0; filter:drop-shadow(0 1px 0 rgba(0,0,0,.6)); }
 .hd-ui .hd-td-edge b { position:relative; }
+.hd-ui .hd-td-edge.crate { background:#f2c14e; border-color:#6b4a1e; }
+.hd-ui .hd-td-edge.crate i::after { border-left-color:#6b4a1e; }
 .hd-ui .hd-td-edge.slot, .hd-ui .hd-td-edge.gate { left:-15px; top:-15px; width:30px; min-width:30px; height:30px; min-height:30px; border-radius:6px; transform-origin:center; pointer-events:none; background:#d9a766; border:2px solid #6b4a1e; color:#4a2e12; font-size:16px; }
 .hd-ui .hd-td-edge.slot i::after, .hd-ui .hd-td-edge.gate i::after { right:-3px; margin-top:-6px; border-width:6px; border-left-width:8px; border-left-color:#ffd27a; }
 .hd-ui .hd-td-edge.slot b::before { content:'+' attr(data-n); }

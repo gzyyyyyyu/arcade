@@ -239,7 +239,7 @@ function threatLane(s: TdState): number {
   }
   const wave = lv.waves[s.wave];
   if (!any && wave) for (const g of wave.groups) {
-    const l = laneOf(lv, g.lane, s.wave);
+    const l = laneOf(s, g.lane, s.wave);
     w[l] = (w[l] ?? 0) + g.n * TD2_ENEMIES[g.enemy].hp;
   }
   let best = -1;

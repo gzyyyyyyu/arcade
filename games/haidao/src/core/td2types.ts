@@ -318,7 +318,13 @@ export interface TdRouteLine {
 export type Td2Action =
   | { t: number; type: 'sell'; slot: number }
   | { t: number; type: 'clearNow'; id: number }
-  | { t: number; type: 'barricade'; x: number; y: number };
+  | { t: number; type: 'barricade'; x: number; y: number }
+  /** 潮汐水闸（规则版本 16）：关上 / 重新打开还没开打的下一波（s.wave）的落潮路 */
+  | { t: number; type: 'sluice' }
+  /** 漂流补给箱（规则版本 16）：叫英雄去捡这个箱子，捡到后回原来的守点 */
+  | { t: number; type: 'pickup'; id: number }
+  /** 岸防老炮（规则版本 16）：往 (x, y)（单位）打一发 */
+  | { t: number; type: 'battery'; x: number; y: number };
 
 /** 守岛 2.0 新增的事件（并进 TdEvent） */
 export type Td2Event =
@@ -329,7 +335,13 @@ export type Td2Event =
   /** 地上的宝藏没人捡，自己滚回箱子 */
   | { type: 'roll'; x: number; y: number; n: number }
   /** 地雷重新埋好 */
-  | { type: 'rearm'; id: number };
+  | { type: 'rearm'; id: number }
+  /** 水闸关上（shut）或重新打开了第 wave 波的落潮路，还剩 left 次 */
+  | { type: 'sluice'; wave: number; shut: boolean; left: number }
+  /** 补给箱漂来（drift，until 拍漂走）、被英雄捡到（pick，给了 gold 局内金、技能好了）、没人捡漂走了（gone）；x、y 是单位 */
+  | { type: 'crate'; what: 'drift' | 'pick' | 'gone'; id: number; x: number; y: number; until: number; gold: number }
+  /** 老炮开了一炮：从炮台 (x0, y0) 打向 (x1, y1)，t1 拍落地（落地另有 explode 事件），冷却到 ready 拍 */
+  | { type: 'battery'; x0: number; y0: number; x1: number; y1: number; t1: number; ready: number };
 
 /** 场上的拒马（x、y 是格子坐标，事件 barricade 里的也是）：挡住周围 3×3 格的地面敌人，血掉光或到时间就没了 */
 export interface TdBarricade {

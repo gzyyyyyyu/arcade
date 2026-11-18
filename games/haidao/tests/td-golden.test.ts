@@ -14,6 +14,7 @@ import { tidePick } from '../src/core/tdtide.ts';
  * 必须逐位一样（旧回放照原样放）；v12- 是新版本的锁。重生成后 diff 确认旧键一字不差，只多出新版本的键。
  * 规则版本 14（英雄自己守）只改守岛：v9–v12 的键一字不变，多出 v14- 的键（13 只改登陆战，守岛和 12 一样，不另录）。
  * 规则版本 15（守岛精英，只改战役 td07 / td10 / td14）：v9–v14 的键一字不变，多出 v15- 的键；除这三关外 v15- 和 v14- 逐个相同（tests/td-elite.test.ts 另锁大潮、悬赏守岛）。
+ * 规则版本 16（章末机制，只改战役 td05 / td06 / td11 / td12 / td17 / td18）：v9–v15 的键一字不变，多出 v16- 的键；除这六关外 v16- 和 v15- 逐个相同（tests/td-mech.test.ts 另锁几关）。
  * v10 中档 0.29.1 前未开放（线上没有 v10 中档的对局），指纹随 0.29.1 的配平（hpPct 180 → 190）更新，只动了 v10-live-mid-* 9 个键。
  */
 const FILE = new URL('./td-golden.json', import.meta.url);
@@ -56,7 +57,7 @@ function compute(rules: number): Record<string, string> {
 describe('守岛 2.0 指纹锁', () => {
   it('战役 18 关、悬赏守岛四档、大潮四图的整局指纹逐位一致', () => {
     const now: Record<string, string> = {};
-    for (const v of [9, 10, 11, 12, 14, 15]) if (v <= RULES_VERSION) Object.assign(now, compute(v));
+    for (const v of [9, 10, 11, 12, 14, 15, 16]) if (v <= RULES_VERSION) Object.assign(now, compute(v));
     if (process.env.GOLDEN_UPDATE === '1' || !existsSync(FILE)) {
       writeFileSync(FILE, JSON.stringify(now, null, 1) + '\n');
       return;

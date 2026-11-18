@@ -1,6 +1,8 @@
 import { DmgClusters } from './tddmg.ts';
 import type { TdScene } from './TdScene.ts';
 import { type TdEvent, TD2_ENEMIES, TD2_HERO_SKILL, TD2_HERO } from '../core/index.ts';
+import { TD2_BATTERY } from '../content/td2units.ts';
+import { isoRing } from './tdfx.ts';
 import { stunned } from '../core/combat.ts';
 import { UNIT, TICKS_PER_SEC } from '../core/types.ts';
 import { fxA } from './art.ts';
@@ -23,7 +25,7 @@ import { closeSheet, renderSheet } from './tdsheet.ts';
 import { W, PROJ, SHOCK_RING } from './tdcommon.ts';
 import { matAt } from './tdsync.ts';
 import { boom } from './tdoverlay.ts';
-import { refreshWalls } from './tdworld.ts';
+import { addCrate, refreshWalls, removeCrate } from './tdworld.ts';
 import { throwKeg } from './tdinput.ts';
 import { STEP_MS } from './motion.ts';
 
@@ -245,8 +247,49 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       const w = W(e.x, e.y);
       const cells = e.r / UNIT;
       boom(bs, w.x, w.y, Math.max(0.6, cells * 0.9));
-      // 只有英雄的火药桶（刚扔出去、半径和桶一样）算大事件；塔的炮弹、地雷的爆炸是日常，不震屏
-      if (isBigBlast(cells) && e.r === TD2_HERO_SKILL.bomb.r && bs.s.tick - bs.kegAt <= 12) bigEvent(bs, bs.hs, 'bigBlast');
+      // 只有英雄的火药桶（刚扔出去、半径和桶一样）和老炮（半径独一份）算大事件；塔的炮弹、地雷的爆炸是日常，不震屏
+      if (isBigBlast(cells) && ((e.r === TD2_HERO_SKILL.bomb.r && bs.s.tick - bs.kegAt <= 12) || e.r === TD2_BATTERY.r)) bigEvent(bs, bs.hs, 'bigBlast');
+      break;
+    }
+    case 'crate': {
+      // 补给箱：漂来时箱子落到浪边、飘一句「补给箱」；英雄捡到时飘金币数和「技能好了」；没人捡就滑回海里
+      const w = W(e.x, e.y);
+      if (e.what === 'drift') {
+        sfx('land');
+        addCrate(bs, e.id, e.x, e.y);
+        ftx(bs, w.x, w.y - 50, '补给箱漂来了', '#ffe885', 16);
+      } else if (e.what === 'pick') {
+        sfx('coin');
+        removeCrate(bs, e.id, true);
+        ftx(bs, w.x, w.y - 40, `+${e.gold}`, '#ffe885', 22);
+        ftx(bs, w.x, w.y - 64, '技能好了', '#7dff9a', 16);
+        bs.hud.gold.parentElement?.classList.add('bump');
+      } else removeCrate(bs, e.id, false);
+      break;
+    }
+    case 'battery': {
+      // 老炮：炮口一团火光和烟、震一下，炮弹沿高弧线飞到落点，落点先画一圈红色预警（爆炸本身是 1 秒后的 explode 事件）
+      sfx('cannon');
+      vibrate('skill');
+      const from = W(e.x0, e.y0);
+      const muzzle = { x: from.x - 40, y: from.y - 44 };
+      const to = W(e.x1, e.y1);
+      const dur = Math.max(160, ((e.t1 - s.tick) * STEP_MS) / bs.speed);
+      bs.pt.ringBurst(muzzle.x, muzzle.y, 1);
+      const R = isoRing(TD2_BATTERY.r / UNIT);
+      const warn = bs.add.ellipse(to.x, to.y, R.w, R.h, 0xff4a3a, 0.14).setStrokeStyle(4, 0xff4a3a, 0.95).setDepth(DEPTH.marker);
+      bs.tweens.add({ targets: warn, alpha: 0.4, duration: dur / 3, yoyo: true, repeat: 1, onComplete: () => warn.destroy() });
+      const ball = bs.add.circle(muzzle.x, muzzle.y, 7, 0x2f3140).setStrokeStyle(2, 0x111111).setDepth(DEPTH.fxHigh);
+      const prog = { u: 0 };
+      const peak = Math.min(220, 80 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.35);
+      bs.tweens.add({
+        targets: prog,
+        u: 1,
+        duration: dur,
+        ease: 'Linear',
+        onUpdate: () => ball.setPosition(muzzle.x + (to.x - muzzle.x) * prog.u, muzzle.y + (to.y - muzzle.y) * prog.u - Math.sin(prog.u * Math.PI) * peak),
+        onComplete: () => ball.destroy(),
+      });
       break;
     }
     case 'grab': {

@@ -9,7 +9,7 @@
 import { BUILDINGS, DEFENSE_KINDS } from '../content/index.ts';
 import { SHIELD } from '../content/troops.ts';
 import { HERO_RESEARCH_MAX, TD_KEG, TD_MAX_TICKS, TD_PICK_R, TD_SAPPER_WALL_COST, TD_TREASURE, TD_WALL_COST } from '../content/tdunits.ts';
-import { TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO, TD2_HERO_SKILL, TD2_MINE_REARM_TICKS, TD2_TREASURE_ROLL_TICKS, TD2_UP_PCT } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO, TD2_HERO_SKILL, TD2_MINE_REARM_TICKS, TD2_TREASURE_ROLL_TICKS, TD2_UP_PCT } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
 import { SNIPE_WARN, applyStun, flightTicks, inRing, keepLock, laneOffset, leadPoint, rankTargets, shieldFaces, stunned } from './combat.ts';
 import { Rng, hash32 } from './rng.ts';
@@ -25,7 +25,8 @@ import type { TdBarricade, TdTier, TdTowerKind } from './td2types.ts';
 import type { TdAction, TdBlock, TdEnemy, TdEnemyKind, TdEvent, TdGroup, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
 import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
-import { tideOpenAt, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus } from './tdquery.ts';
+import { driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, toggleSluice } from './tdmech.ts';
+import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus } from './tdquery.ts';
 import { placeHero, stepHero, offSlot } from './tdhero.ts';
 
 /** 敌人在格子里按 id 散开的步长（单位）：同一条路上的敌人错开成几列，不叠成一个点 */
@@ -250,6 +251,7 @@ export function createTd(setup: TdSetup): TdState {
   // 英雄出生点要能站：宝藏箱下面被占就挪到四周第一个空格
   placeHero(s);
   s.hero.post = { x: s.hero.x, y: s.hero.y };
+  initMech(s);
   return s;
 }
 
@@ -547,6 +549,11 @@ export function tdBombDmg(s: TdState): number {
   return Math.max(1, Math.floor((levelAvg(s).unit * TD2_HERO_SKILL.bomb.dmgPct) / 100));
 }
 
+/** 岸防老炮一发的伤害：同一个口径，TD2_BATTERY.dmgPct% */
+export function tdBatteryDmg(s: TdState): number {
+  return Math.max(1, Math.floor((levelAvg(s).unit * TD2_BATTERY.dmgPct) / 100));
+}
+
 // ------------------------------------------------------------ 操作
 
 function startWave(s: TdState, ev: TdEvent[], early: boolean): void {
@@ -571,12 +578,13 @@ function startWave(s: TdState, ev: TdEvent[], early: boolean): void {
   }
   for (const g of wave.groups) {
     let lane = lv.lanes[g.lane % Math.max(1, lv.lanes.length)] ?? { x: -2, y: 10 };
-    if (g.lane === lv.lanes.length) lane = tideOpenAt(lv, w) ? (lv.tide as NonNullable<TdLevel['tide']>).lane : (lv.lanes[0] ?? lane);
+    if (g.lane === lv.lanes.length) lane = tdTideOpen(s, w) ? (lv.tide as NonNullable<TdLevel['tide']>).lane : (lv.lanes[0] ?? lane);
     for (let i = 0; i < g.n; i++) {
       I.spawns.push({ t: s.tick + (g.delay ?? 0) + i * g.every, kind: g.enemy, x: lane.x * UNIT + 50, y: lane.y * UNIT + 50, wave: w });
       I.waveLeft[w] = (I.waveLeft[w] ?? 0) + 1;
     }
   }
+  driftCrates(s, ev, w);
   s.wave++;
   // 大潮无尽：波次补到 w+ENDLESS_AHEAD，下一波永远有
   if (s.wave < lv.waves.length) {
@@ -683,6 +691,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       h.post = { ...h.goal };
       inner(s).heroAuto = false;
       h.clear = -1;
+      forgetFetch(s);
       if (s.escort) s.escort.follow = false; // 自己指了地方就不跟船了
       return;
     case 'clear': {
@@ -691,6 +700,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       h.clear = b.id;
       h.goal = { x: tcx(b), y: tcy(b) };
       inner(s).heroAuto = false;
+      forgetFetch(s);
       return;
     }
     case 'clearNow': {
@@ -746,6 +756,15 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     }
     case 'follow':
       if (s.escort) s.escort.follow = !!a.on;
+      return;
+    case 'sluice':
+      toggleSluice(s, ev);
+      return;
+    case 'pickup':
+      fetchCrate(s, a.id);
+      return;
+    case 'battery':
+      if (s.battery) fireBattery(s, ev, a.x, a.y, tdBatteryDmg(s));
       return;
     case 'rally':
       // 规则版本 7 起号令是被动（英雄身边的塔攻速加成，见 stepTowers），这条旧命令不做事
@@ -1318,6 +1337,7 @@ export function stepTd(s: TdState, actions: TdAction[]): TdEvent[] {
   for (const e of s.enemies) if (e.kind === 'shield') faceShield(e, e.x - (e.px ?? e.x), e.y - (e.py ?? e.y));
   stepBoss(s, ev);
   stepHero(s, ev);
+  stepCrates(s, ev);
   stepTowers(s, ev);
   stepTraps(s, ev);
   stepFires(s, ev);
@@ -1395,6 +1415,13 @@ export function tdFingerprint(s: TdState): number {
   parts.push(h.x, h.y, h.hp, h.respawn, h.cd, h.kegReady, h.barricadeReady ?? 0);
   for (const [id, until] of [...I.jam].sort((a, b) => a[0] - b[0])) parts.push(id, until);
   parts.push(I.skilled.size);
+  // 章末机制（规则版本 16）只在有的局里进指纹，旧版本、没有机制的关的指纹不变
+  if (s.sluice) parts.push(s.sluice.left, ...s.sluice.shut);
+  if (s.battery) parts.push(s.battery.ready);
+  if (s.drift) {
+    parts.push(s.drift.chase);
+    for (const c of s.drift.crates) parts.push(c.id, c.until);
+  }
   if (s.escort) {
     const es = s.escort;
     parts.push(es.pos, es.pace === 'hold' ? 0 : es.pace === 'sail' ? 1 : 2, es.hull, es.biters, es.mendReady, es.follow ? 1 : 0, es.gatesPassed, es.arrived ? 1 : 0, es.sunk ? 1 : 0, es.mends);

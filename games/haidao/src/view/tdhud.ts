@@ -1,24 +1,25 @@
 import type { TdScene } from './TdScene.ts';
 import { TD_TREASURE } from '../content/index.ts';
-import { TD2_ENEMIES } from '../content/td2units.ts';
-import { tdPreview, tdRoutes, tdCallBonus, tdNextTide, type WavePreview } from '../core/index.ts';
+import { TD2_BATTERY, TD2_ENEMIES } from '../content/td2units.ts';
+import { tdPreview, tdRoutes, tdCallBonus, tdNextTide, tdSluiceCan, type WavePreview } from '../core/index.ts';
 import { TICKS_PER_SEC } from '../core/types.ts';
 import { app, fmt } from './app.ts';
-import { iconA, tdE } from './art.ts';
+import { iconA, tdE, tdP } from './art.ts';
 import { keyBadge } from './inputs.ts';
 import { floatText } from './fx.ts';
 import { laneName, planCard, callBonusText, fitSuggest, waveEnemies } from './td-ui.ts';
 import { injectTdCss } from './tdcss.ts';
-import { FOE_KEY, foeText, newFoes } from './tdhint.ts';
+import { FOE_KEY, MECH_HINT, MECH_KEY, foeText, mechsOf, newFoes } from './tdhint.ts';
 import { hintCard, takeNew } from './hintcard.ts';
 import { screen, hallButton, el, img, button, confirmBox } from './ui.ts';
 import { EscortView } from './escortview.ts';
 import { injectEscortCss } from './escortcss.ts';
-import { act, pickSkill, callWave, toggleHero } from './tdinput.ts';
+import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery } from './tdinput.ts';
 import { closeSheet, showBest } from './tdsheet.ts';
 import { SKILL } from './tdcommon.ts';
 import { finish } from './tdresult.ts';
 import { syncPadGuide } from './tdpadguide.ts';
+import { syncSluice } from './tdworld.ts';
 
 // ---------------------------------------------------------------- 界面
 
@@ -94,8 +95,27 @@ export function buildUi(bs: TdScene): void {
   const call = button('', 'hd-btn-gold hd-td-call', () => callWave(bs), bottom);
   call.title = '叫下一波：提前开打，拿金币、技能冷却变短（空格 / 3）';
   keyBadge(call, 3);
+  // 章末机制的钮（规则版本 16，tdmech.ts）：排在叫波后面、快捷键 4，1–3 的老习惯不变；手机竖屏挤进同一行（layout.ts 的 .hd-td-hasmech）
+  let mech: HTMLButtonElement | null = null;
+  if (bs.s.sluice) {
+    mech = button('', 'hd-td-skill hd-btn-wood hd-td-mech', () => pressSluice(bs), bottom);
+    mech.appendChild(img(iconA('sluice'), 28));
+    el('b', '', '水闸', mech);
+    el('i', 'hd-td-left', '', mech);
+    keyBadge(mech, 4);
+    mech.title = '潮汐水闸：下一波落潮路要开时关上它，那条路的敌人改走主路；关上后再点一下打开、次数退回（4）';
+  }
+  if (bs.s.battery) {
+    mech = button('', 'hd-td-skill hd-btn-wood hd-td-mech', () => pickBattery(bs), bottom);
+    el('span', 'hd-cd', undefined, mech);
+    mech.appendChild(img(iconA('battery'), 28));
+    el('b', '', '老炮', mech);
+    keyBadge(mech, 4);
+    mech.title = '岸防老炮：点了再点地面，1 秒后落一发大炸弹，全岛都打得到；打不到飞的（4）';
+  }
+  if (mech) bs.ui.classList.add('hd-td-hasmech');
   bs.esc?.buildCtl();
-  bs.hud = { treasure, tpill: tp, wave, count, gold, speed, call, keg, bar: barBtn, hero: heroBtn, hint, flash: flashEl, plan, paused };
+  bs.hud = { treasure, tpill: tp, wave, count, gold, speed, call, keg, bar: barBtn, hero: heroBtn, mech, hint, flash: flashEl, plan, paused };
   updateHud(bs, true);
 }
 
@@ -142,13 +162,14 @@ export function waveTitle(bs: TdScene, w: number): string {
 export function refreshPlan(bs: TdScene, force = false): void {
   const s = bs.s;
   const walls = s.walls.reduce((n, w, i) => (w.destroyed ? n + (i + 1) * 7 : n), 0);
-  const sig = `${s.wave}|${walls}|${s.over}`;
+  // 水闸关上 / 打开下一波会改路线和预告（规则版本 16）
+  const sig = `${s.wave}|${walls}|${s.over}|${s.sluice?.shut.length ?? ''}`;
   if (!force && sig === bs.planSig) return;
   const newWave = !bs.planSig.startsWith(`${s.wave}|`);
   const fresh = bs.planSig !== '' && newWave;
   bs.planSig = sig;
   bs.pv = s.over ? [] : fitSuggest(tdPreview(s, 2), s.unlocked);
-  if (newWave && bs.pv[0]) foeHint(bs, bs.pv[0]);
+  if (newWave && bs.pv[0]) foeHint(bs, bs.pv[0], !fresh);
   bs.plan.set(s, bs.pv, s.over ? [] : tdRoutes(s));
   bs.hudSig = '';
   // 新的一波预告：卡片弹一下，提示"现在该看下一波了"
@@ -161,14 +182,21 @@ export function refreshPlan(bs: TdScene, force = false): void {
   }
 }
 
-/** 预告里的下一波有第一次见到的敌人：弹一张不挡操作的小卡（头像、会干什么、什么伤害打它多一半），每种只提示一次 */
-function foeHint(bs: TdScene, p: WavePreview): void {
+/**
+ * 预告里的下一波有第一次见到的敌人：弹一张不挡操作的小卡（头像、会干什么、什么伤害打它多一半），每种只提示一次。
+ * 开局那一次（start）还带上这一关第一次见到的章末机制（水闸怎么用），和新敌人挤一张卡，不叠两张
+ */
+function foeHint(bs: TdScene, p: WavePreview, start: boolean): void {
+  const mechs = start ? takeNew(MECH_KEY, (seen) => mechsOf(bs.s).filter((k) => !seen.has(k))) : [];
   const fresh = takeNew(FOE_KEY, (seen) => newFoes(waveEnemies(p).map((e) => e.kind), seen));
-  const rows = fresh.flatMap((k) => {
-    const f = tdE(k, 'walk')[0];
-    return f ? [{ icon: img(f, 40), name: TD2_ENEMIES[k].name, text: foeText(k, bs.s.unlocked) }] : [];
-  });
-  hintCard(bs, bs.ui, rows, fresh.length ? '新敌人' : undefined);
+  const rows = [
+    ...mechs.map((k) => ({ icon: img(k === 'crate' ? tdP('crate') : iconA(k), 40), ...MECH_HINT[k] })),
+    ...fresh.flatMap((k) => {
+      const f = tdE(k, 'walk')[0];
+      return f ? [{ icon: img(f, 40), name: TD2_ENEMIES[k].name, text: foeText(k, bs.s.unlocked) }] : [];
+    }),
+  ];
+  hintCard(bs, bs.ui, rows, mechs.length ? '新玩法' : fresh.length ? '新敌人' : undefined);
 }
 
 export function hintText(bs: TdScene, t: string): void {
@@ -198,13 +226,18 @@ export function updateHud(bs: TdScene, force = false): void {
   const downS = h.respawn >= 0 ? Math.max(0, Math.ceil((h.respawn - s.tick) / TICKS_PER_SEC)) : -1;
   const nextTide = tdNextTide(s);
   const nowTide = s.level.tideOpen ? bs.tideOn : null;
-  const sig = `${nextTide}|${nowTide}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
+  const sluice = s.sluice ? tdSluiceCan(s) : null;
+  const batCd = s.battery ? Math.max(0, s.battery.ready - s.tick) : 0;
+  const sig = `${nextTide}|${nowTide}|${sluice}|${s.sluice?.left}|${batCd >> 2}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (!force && sig === bs.hudSig) return;
   bs.hudSig = sig;
   const H = bs.hud;
   // 预告卡：潮水的变化写进第二行
   const ln = s.level.tide ? laneName(s.level.tide.lane) : '那条路';
-  const tide = nextTide !== null && nowTide !== null ? (nextTide === nowTide ? '' : nextTide ? `落潮：${ln}开通` : `涨潮：${ln}关上`) : '';
+  const shut = sluice === 'open';
+  const tide = shut
+    ? `水闸关了：${ln}的敌人改走${laneName(s.level.lanes[0] ?? s.level.tide!.lane)}`
+    : nextTide !== null && nowTide !== null ? (nextTide === nowTide ? '' : nextTide ? `落潮：${ln}开通` : `涨潮：${ln}关上`) : '';
   // 预告卡只在预告、倒数秒数、潮水变了时重排（金币、冷却这些每拍在变的不牵动它）
   const planKey = `${bs.planSig}|${canCallNow ? left : -1}|${tide}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (force || planKey !== bs.planKey) {
@@ -271,6 +304,21 @@ export function updateHud(bs: TdScene, force = false): void {
   H.hero.classList.toggle('off', downS >= 0);
   H.keg.classList.toggle('sel', bs.mode === 'keg');
   H.bar.classList.toggle('sel', bs.mode === 'barricade');
+  if (H.mech && s.sluice) {
+    // 已经关上下一波：钮亮起写「已关闸」（再点打开）；这一波按了没用（不落潮、用完了）就灰掉
+    H.mech.classList.toggle('sel', shut);
+    H.mech.classList.toggle('off', sluice === null);
+    H.mech.querySelector('b')!.textContent = shut ? '已关闸' : '水闸';
+    H.mech.querySelector('.hd-td-left')!.textContent = String(s.sluice.left);
+    syncSluice(bs, shut);
+  }
+  if (H.mech && s.battery) {
+    // 老炮和英雄技能同一套冷却扫光，但不跟英雄倒下（炮台不是英雄扔的）
+    H.mech.style.setProperty('--cd', `${Math.round((Math.min(batCd, TD2_BATTERY.cd) / TD2_BATTERY.cd) * 360)}deg`);
+    H.mech.classList.toggle('cool', batCd > 0);
+    H.mech.classList.toggle('sel', bs.mode === 'battery');
+    H.mech.querySelector('b')!.textContent = batCd > 0 ? `${Math.ceil(batCd / TICKS_PER_SEC)}秒` : '老炮';
+  }
 }
 
 /** 顶栏下面正中的"被带走了 -N"：1.2 秒内的累加成一条，过后淡出 */

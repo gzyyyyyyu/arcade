@@ -116,7 +116,7 @@ export function focusCx(focusX: number, content: { l: number; r: number }, z: nu
 }
 
 /** enemy = 屏外的敌人；slot = 屏外能造塔的空木台；gate = 屏外的路口 / 关口旗（护航的敌人入口和下一个关口） */
-export type EdgeKind = 'enemy' | 'slot' | 'gate';
+export type EdgeKind = 'enemy' | 'slot' | 'gate' | 'crate';
 /** 一个可能在屏外的东西：屏幕坐标 sx、sy（CSS 像素，相对画布左上），世界坐标 wx、wy（点了箭头镜头往这里移） */
 export interface EdgeItem { kind: EdgeKind; sx: number; sy: number; wx: number; wy: number }
 export type Side = 'l' | 'r' | 't' | 'b';
@@ -129,7 +129,7 @@ export const EDGE_PAD = 26;
 export const EDGE_STEP = 52;
 
 const ORDER: Record<Side, number> = { t: 0, r: 1, b: 2, l: 3 };
-const KIND_ORDER: Record<EdgeKind, number> = { enemy: 0, slot: 1, gate: 2 };
+const KIND_ORDER: Record<EdgeKind, number> = { enemy: 0, slot: 1, gate: 2, crate: 3 };
 
 /**
  * 屏外东西的边缘指示：在可见区 view 里的不管；屏外的沿"可见区中心 → 它"的射线和边缘轨道（view 往里缩 pad）求交，

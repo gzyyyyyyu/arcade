@@ -1,6 +1,6 @@
 /**
  * 「第一次见到」的小提示卡：登陆战第一次见到某种防御（funui.ts）、守岛第一次来某种敌人（tdhud.ts）共用。
- * 一行一张图 + 名字 + 一句话，不挡操作：点一下或 4 秒后收起，场景关掉时一起收。见过的记在本地存储（JSON 数组）。
+ * 一行一张图 + 名字 + 一句话，不挡操作：点一下或 4 秒后收起，场景关掉时一起收，同时只有一张（新的顶掉旧的）。见过的记在本地存储（JSON 数组）。
  */
 import type Phaser from 'phaser';
 import { parseSeen } from './battlehint.ts';
@@ -47,6 +47,8 @@ function style(): void {
 export function hintCard(scene: Phaser.Scene, parent: HTMLElement, rows: readonly HintRow[], title?: string): void {
   if (rows.length === 0) return;
   style();
+  // 上一张还没收（4 秒内连叫几波）就换成新的，不叠两张
+  for (const old of parent.querySelectorAll(':scope > .hd-defhint')) old.remove();
   const card = el('div', 'hd-defhint', undefined, parent);
   if (title) el('b', 'hd-defhint-t', title, card);
   for (const r of rows) {

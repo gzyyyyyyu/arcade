@@ -1,5 +1,5 @@
 import type { TdScene } from './TdScene.ts';
-import { type TdAction, TD2_ECON } from '../core/index.ts';
+import { type TdAction, TD2_ECON, tdSluiceCan } from '../core/index.ts';
 import { UNIT } from '../core/types.ts';
 import { tdP } from './art.ts';
 import { EASE } from './motion.ts';
@@ -13,6 +13,7 @@ import { type Act, SKILL, W } from './tdcommon.ts';
 import { hintText, updateHud, ftx } from './tdhud.ts';
 import { closeSheet, showSlot } from './tdsheet.ts';
 import { drawSlotDiamond, slotAt } from './tdpick.ts';
+import { crateAt } from './tdworld.ts';
 
 // ---------------------------------------------------------------- 操作
 
@@ -53,6 +54,34 @@ export function press(bs: TdScene, wx: number, wy: number): void {
 export function callWave(bs: TdScene): void {
   if (bs.s.over) return;
   act(bs, { type: 'call' });
+}
+
+/** 潮汐水闸（4）：关上 / 打开下一波的落潮路；按了没用时说清为什么（规则核心 tdSluiceCan 判，界面不自己算） */
+export function pressSluice(bs: TdScene): void {
+  const s = bs.s;
+  if (s.over || !s.sluice) return;
+  const can = tdSluiceCan(s);
+  if (!can) {
+    sfx('error');
+    return toast(s.wave >= s.level.waves.length ? '没有下一波了' : s.sluice.left <= 0 ? '水闸的次数用完了' : '下一波不落潮，用不着关闸');
+  }
+  sfx('tap');
+  act(bs, { type: 'sluice' });
+}
+
+/** 岸防老炮（4）：和炸药桶一样先进入瞄准、再点地面；全岛都够得着，不画范围圈 */
+export function pickBattery(bs: TdScene): void {
+  const b = bs.s.battery;
+  if (bs.s.over || !b) return;
+  if (bs.s.tick < b.ready) return sfx('error');
+  if (bs.heroSel) setHeroSel(bs, false);
+  bs.mode = bs.mode === 'battery' ? 'none' : 'battery';
+  closeSheet(bs);
+  hintText(bs, bs.mode === 'battery' ? '点地面，老炮 1 秒后落一发（打不到飞的）' : '');
+  bs.hud.hint.classList.remove('bad');
+  bs.hintTimer?.remove();
+  bs.hintTimer = bs.mode !== 'none' ? bs.time.delayedCall(2500, () => bs.mode !== 'none' && hintText(bs, '')) : null;
+  updateHud(bs, true);
 }
 
 /** 技能 1 拒马 / 2 炸药桶：进入瞄准（再点一次取消），地上画英雄身边能放的范围 */
@@ -99,6 +128,13 @@ export function tap(bs: TdScene, wx: number, wy: number): void {
   const g = unIso(wx, wy);
   const ux = Math.round(g.gx * UNIT);
   const uy = Math.round(g.gy * UNIT);
+  if (bs.mode === 'battery') {
+    act(bs, { type: 'battery', x: ux, y: uy });
+    bs.mode = 'none';
+    bs.hintTimer?.remove();
+    hintText(bs, '');
+    return;
+  }
   if (bs.mode !== 'none') {
     const h = s.hero;
     const range = bs.mode === 'keg' ? SKILL.bomb.range : SKILL.barricade.range;
@@ -116,6 +152,13 @@ export function tap(bs: TdScene, wx: number, wy: number): void {
     hintText(bs, '');
     bs.hud.hint.classList.remove('bad');
     return;
+  }
+  // 补给箱：点它就叫英雄去捡（不用先选中英雄），捡完英雄自己回守点
+  const box = crateAt(bs, ux, uy);
+  if (box >= 0 && s.hero.respawn < 0) {
+    if (bs.heroSel) setHeroSel(bs, false);
+    act(bs, { type: 'pickup', id: box });
+    return moveMark(bs, wx, wy);
   }
   bs.hoverSlot = -2;
   const foot = s.slots.findIndex((q) => ux >= q.x * UNIT && ux < (q.x + 2) * UNIT && uy >= q.y * UNIT && uy < (q.y + 2) * UNIT);
