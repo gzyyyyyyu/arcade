@@ -160,6 +160,10 @@ export interface TdState {
   drift?: { crates: Array<{ id: number; x: number; y: number; until: number; wave: number }>; chase: number };
   /** 岸防老炮（规则版本 16 且关卡写了 battery 才有）：炮台在哪一格、下一发能打的拍 */
   battery?: { x: number; y: number; ready: number };
+  /**
+   * 友军巡航船（规则版本 19 且关卡写了 fleet 才有）：下一次能叫的拍；船在海上时 sail 是这一趟（从一圈上的 p0 出发、t0 拍叫来、until 拍开走、下一炮 next 拍）
+   */
+  fleet?: { ready: number; sail: { p0: number; t0: number; until: number; next: number } | null };
   internal: unknown;
 }
 

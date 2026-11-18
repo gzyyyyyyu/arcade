@@ -19,7 +19,7 @@ export { scaffoldArt, scaffoldPieces };
 export { CHIMNEY_AT, HQ_FLAG_AT, hqFlagFrames, hqNoFlagArt, palmSwayFrames, krakenArt, wallArt, fxFrames, troopFrames, badgeArt, lootChestArt, coastArt, decoArt, mapDecoArt, mapIslandArt, PALETTE, BUILDING_SIZE, buildingArt, fxArt, iconArt, shipArt, tileArt, troopArt };
 export type { ArtPiece };
 
-export const BUILDING_KINDS: BuildingKind[] = ['hq', 'goldmine', 'sawmill', 'vault', 'woodyard', 'dock', 'armory', 'cannon', 'gunTower', 'mortar', 'mine', 'flame', 'harpoon', 'tar', 'rocket', 'fogTower', 'shock', 'sniper', 'kraken', 'wall', 'statue', 'flagpole', 'chest', 'palm', 'rock'];
+export const BUILDING_KINDS: BuildingKind[] = ['hq', 'goldmine', 'sawmill', 'vault', 'woodyard', 'dock', 'armory', 'cannon', 'gunTower', 'mortar', 'mine', 'flame', 'harpoon', 'tar', 'rocket', 'fogTower', 'shock', 'sniper', 'kraken', 'wall', 'statue', 'flagpole', 'chest', 'wheel', 'palm', 'rock'];
 export const TROOP_KINDS: TroopKind[] = ['sailor', 'gunner', 'brute', 'bomber', 'captain', 'medic', 'cannoneer', 'harpooner', 'grenadier', 'shield'];
 export const POSES = ['idle', 'walk1', 'walk2', 'attack'] as const;
 export const TILE_KINDS = ['grass', 'grass2', 'sand', 'shallow', 'sea'] as const;
@@ -34,7 +34,7 @@ export const ICON_KINDS = ['gold', 'wood', 'star', 'starEmpty', 'energy', 'hamme
 /** 建筑外观的最大等级（更高的等级沿用这一级的样子） */
 export const ART_MAX_LEVEL = 8;
 
-const SINGLE = new Set<BuildingKind>(['palm', 'rock', 'statue', 'flagpole', 'chest']);
+const SINGLE = new Set<BuildingKind>(['palm', 'rock', 'statue', 'flagpole', 'chest', 'wheel']);
 
 /** 某一级的全部建筑外观（含这一级的城墙各邻接、海怪拍打姿态）：主寨升到这一级、或第一次出现时按需烘焙（默认开局只带 1 级的城墙和海怪拍打） */
 export function levelArt(level: number): ArtPiece[] {

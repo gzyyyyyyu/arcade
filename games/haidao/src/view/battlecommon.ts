@@ -99,5 +99,5 @@ export const v2 = (p: { x: number; y: number }): Phaser.Math.Vector2 => new Phas
 export function rewardName(id: string): string {
   const [type, a, b] = id.split(':');
   if (type === 'skin') return `${TROOPS[a as TroopKind]?.name ?? a}·${b === 'gold' ? '黄金' : b === 'shadow' ? '暗影' : '皇家'}皮肤`;
-  return a === 'statue' ? '海盗雕像' : a === 'flagpole' ? '骷髅旗杆' : a === 'chest' ? '藏宝箱' : id;
+  return a === 'statue' ? '海盗雕像' : a === 'flagpole' ? '骷髅旗杆' : a === 'chest' ? '藏宝箱' : a === 'wheel' ? '海盗王的舵轮' : id;
 }

@@ -247,6 +247,7 @@ export const ENEMY_HINT: Partial<Record<TdEnemyKind, string>> = {
   mate: '大副：狙击打本体、臼炮收散开的水手',
   medic: '军医：先打掉，狙击塔会先瞄它',
   gunboat: '炮艇：臼炮、鱼叉、火箭、狙击才够得着',
+  king: '海盗王：远程塔和友军船才够得着，先打掉它就不再放人',
 };
 /** 这一波里出现的、带提醒的敌人，对应的提醒句（没有规则已写的重复） */
 export function enemyHints(p: WavePreview): string[] {

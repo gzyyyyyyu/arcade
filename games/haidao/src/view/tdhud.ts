@@ -1,6 +1,6 @@
 import type { TdScene } from './TdScene.ts';
 import { TD_TREASURE } from '../content/index.ts';
-import { TD2_BATTERY, TD2_ENEMIES } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_ENEMIES, TD2_FLEET } from '../content/td2units.ts';
 import { tdPreview, tdRoutes, tdCallBonus, tdNextTide, tdSluiceCan, type WavePreview } from '../core/index.ts';
 import { TICKS_PER_SEC } from '../core/types.ts';
 import { app, fmt } from './app.ts';
@@ -14,7 +14,7 @@ import { hintCard, takeNew } from './hintcard.ts';
 import { screen, hallButton, el, img, button, confirmBox } from './ui.ts';
 import { EscortView } from './escortview.ts';
 import { injectEscortCss } from './escortcss.ts';
-import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery } from './tdinput.ts';
+import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFleet } from './tdinput.ts';
 import { closeSheet, showBest } from './tdsheet.ts';
 import { SKILL } from './tdcommon.ts';
 import { finish } from './tdresult.ts';
@@ -113,6 +113,14 @@ export function buildUi(bs: TdScene): void {
     keyBadge(mech, 4);
     mech.title = '岸防老炮：点了再点地面，1 秒后落一发大炸弹，全岛都打得到；打不到飞的（4）';
   }
+  if (bs.s.fleet) {
+    mech = button('', 'hd-td-skill hd-btn-wood hd-td-mech', () => pressFleet(bs), bottom);
+    el('span', 'hd-cd', undefined, mech);
+    mech.appendChild(img(iconA('ship'), 28));
+    el('b', '', '援船', mech);
+    keyBadge(mech, 4);
+    mech.title = '友军巡航船：叫一艘船沿着岸边开半圈，朝身边的敌人开炮，海上的炮艇也打得到；60 秒一次（4）';
+  }
   if (mech) bs.ui.classList.add('hd-td-hasmech');
   bs.esc?.buildCtl();
   bs.hud = { treasure, tpill: tp, wave, count, gold, speed, call, keg, bar: barBtn, hero: heroBtn, mech, hint, flash: flashEl, plan, paused };
@@ -190,7 +198,7 @@ function foeHint(bs: TdScene, p: WavePreview, start: boolean): void {
   const mechs = start ? takeNew(MECH_KEY, (seen) => mechsOf(bs.s).filter((k) => !seen.has(k))) : [];
   const fresh = takeNew(FOE_KEY, (seen) => newFoes(waveEnemies(p).map((e) => e.kind), seen));
   const rows = [
-    ...mechs.map((k) => ({ icon: img(k === 'crate' ? tdP('crate') : iconA(k), 40), ...MECH_HINT[k] })),
+    ...mechs.map((k) => ({ icon: img(k === 'crate' ? tdP('crate') : k === 'fleet' ? iconA('ship') : iconA(k), 40), ...MECH_HINT[k] })),
     ...fresh.flatMap((k) => {
       const f = tdE(k, 'walk')[0];
       return f ? [{ icon: img(f, 40), name: TD2_ENEMIES[k].name, text: foeText(k, bs.s.unlocked) }] : [];
@@ -228,7 +236,9 @@ export function updateHud(bs: TdScene, force = false): void {
   const nowTide = s.level.tideOpen ? bs.tideOn : null;
   const sluice = s.sluice ? tdSluiceCan(s) : null;
   const batCd = s.battery ? Math.max(0, s.battery.ready - s.tick) : 0;
-  const sig = `${nextTide}|${nowTide}|${sluice}|${s.sluice?.left}|${batCd >> 2}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
+  const fleetCd = s.fleet ? Math.max(0, s.fleet.ready - s.tick) : 0;
+  const fleetOut = !!s.fleet?.sail;
+  const sig = `${nextTide}|${nowTide}|${sluice}|${s.sluice?.left}|${batCd >> 2}|${fleetCd >> 2}|${fleetOut}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (!force && sig === bs.hudSig) return;
   bs.hudSig = sig;
   const H = bs.hud;
@@ -318,6 +328,13 @@ export function updateHud(bs: TdScene, force = false): void {
     H.mech.classList.toggle('cool', batCd > 0);
     H.mech.classList.toggle('sel', bs.mode === 'battery');
     H.mech.querySelector('b')!.textContent = batCd > 0 ? `${Math.ceil(batCd / TICKS_PER_SEC)}秒` : '老炮';
+  }
+  if (H.mech && s.fleet) {
+    // 船在海上时钮亮着写「出海中」，回航后才转冷却扫光
+    H.mech.style.setProperty('--cd', `${Math.round((Math.min(fleetCd, TD2_FLEET.cd) / TD2_FLEET.cd) * 360)}deg`);
+    H.mech.classList.toggle('cool', fleetCd > 0 && !fleetOut);
+    H.mech.classList.toggle('sel', fleetOut);
+    H.mech.querySelector('b')!.textContent = fleetOut ? '出海中' : fleetCd > 0 ? `${Math.ceil(fleetCd / TICKS_PER_SEC)}秒` : '援船';
   }
 }
 

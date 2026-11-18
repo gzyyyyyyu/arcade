@@ -17,6 +17,7 @@ import { tidePick } from '../src/core/tdtide.ts';
  * 规则版本 16（章末机制，只改战役 td05 / td06 / td11 / td12 / td17 / td18）：v9–v15 的键一字不变，多出 v16- 的键；除这六关外 v16- 和 v15- 逐个相同（tests/td-mech.test.ts 另锁几关）。
  * 规则版本 17（大副，只改 td16）：v9–v16 的键一字不变，多出 v17- 的键；除 td16 外 v17- 和 v16- 逐个相同。
  * 规则版本 18（第四章 td19 起）：v9–v17 的键一字不变（第四章的关只在 v18 下算），多出 v18- 的键；前 18 关的 v18- 和 v17- 逐个相同。
+ * 规则版本 19（友军巡航船、海盗王，td23、td24）：v9–v18 的键一字不变（这两关只在 v19 下算），多出 v19- 的键；别的关的 v19- 和 v18- 逐个相同。
  * v10 中档 0.29.1 前未开放（线上没有 v10 中档的对局），指纹随 0.29.1 的配平（hpPct 180 → 190）更新，只动了 v10-live-mid-* 9 个键。
  */
 const FILE = new URL('./td-golden.json', import.meta.url);
@@ -45,6 +46,8 @@ function compute(rules: number): Record<string, string> {
   for (const lv of tdCampaign()) {
     // 第四章是规则版本 18 才有的关：旧版本下不算（旧版本的键和加第四章以前一字不差）
     if (lv.chapter === 4 && rules < RULES_SINCE.tdChapter4) continue;
+    // 带友军船的关（td23、td24）是规则版本 19 才有的
+    if (lv.fleet && rules < RULES_SINCE.tdFleet) continue;
     for (const seed of SEEDS) {
       const r = tdGrowthSetup(lv.id, 'suggest', seed);
       if (!r.ok) throw new Error(`${lv.id}: ${r.error}`);
@@ -61,7 +64,7 @@ function compute(rules: number): Record<string, string> {
 describe('守岛 2.0 指纹锁', () => {
   it('战役各关、悬赏守岛四档、大潮四图的整局指纹逐位一致', () => {
     const now: Record<string, string> = {};
-    for (const v of [9, 10, 11, 12, 14, 15, 16, 17, 18]) if (v <= RULES_VERSION) Object.assign(now, compute(v));
+    for (const v of [9, 10, 11, 12, 14, 15, 16, 17, 18, 19]) if (v <= RULES_VERSION) Object.assign(now, compute(v));
     if (process.env.GOLDEN_UPDATE === '1' || !existsSync(FILE)) {
       writeFileSync(FILE, JSON.stringify(now, null, 1) + '\n');
       return;

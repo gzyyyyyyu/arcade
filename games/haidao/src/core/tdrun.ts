@@ -1,5 +1,5 @@
 /**
- * 守岛的出海与结算（DESIGN 10.4；守岛 2.0）：战役 22 关是写死的关卡岛（content/tdmaps.ts 的 TD2_LEVELS，关 id td01–td22，旧星数照算），
+ * 守岛的出海与结算（DESIGN 10.4；守岛 2.0）：战役 24 关是写死的关卡岛（content/tdmaps.ts 的 TD2_LEVELS，关 id td01–td24，旧星数照算），
  * 开局读存档算驻守台、基地加成、能造的塔（不花木材）；结算按星数给金币木材（奖励表 content/tdreward.ts），每天有上限（超了只记星数、不给资源），
  * 首次拿到星的奖励另算、不计入上限。纯函数，不改入参。
  */
@@ -7,6 +7,7 @@ import { BUILDINGS, HQ_LEVELS, TD_BONUS_PER_STAR, TD_CAP_RUNS, TD_RUN_REWARD, TD
 import { TD2_LEVELS, TD2_LEVEL_BY_ID } from '../content/tdmaps.ts';
 import { branchOptions } from '../content/branches.ts';
 import { capacity, hqLevel, newProfile } from './base.ts';
+import { TD_WHEEL } from './run.ts';
 import { heroLevel } from './tdbase.ts';
 import { TD_TOWER_KINDS, baseBonusPct, garrisonTier } from './td2types.ts';
 import type { TdGarrisonOption, TdGarrisonPick, TdGarrisonTower, TdIslandLevel, TdTier, TdTowerKind } from './td2types.ts';
@@ -85,6 +86,12 @@ export interface TdNextUnlock {
 }
 
 const starsOf = (p: Profile, id: string): number => p.td?.stars[id] ?? 0;
+
+/** 守岛第四章「远洋」的关都至少 1 星：船长档案多一行「远洋通关」，结算时送纪念装饰「海盗王的舵轮」（TD_WHEEL） */
+export function tdOceanCleared(stars: Readonly<Record<string, number>>): boolean {
+  const c4 = tdCampaign().filter((l) => l.chapter === 4);
+  return c4.length > 0 && c4.every((l) => (stars[l.id] ?? 0) >= 1);
+}
 
 /** 战役关表：TD2_LEVELS 里 id 是 td 加两位数的关（样板关之类的不进战役），按 index 排成一条线 */
 export function tdCampaign(): TdIslandLevel[] {
@@ -203,6 +210,8 @@ export interface TdReward {
   unlocked: string | null;
   /** 还锁着的第一关（"下一个解锁"提示），全开了为 null */
   next: TdNextUnlock | null;
+  /** 这一局让第四章全部过关、送了「海盗王的舵轮」 */
+  wheel: boolean;
 }
 
 /**
@@ -225,6 +234,8 @@ export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex
     res: g.res,
     td: { stars: { ...(p.td?.stars ?? {}), [levelId]: Math.max(prev, stars) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
   };
+  const wheel = tdOceanCleared(profile.td!.stars) && !(p.cosmetics ?? []).includes(TD_WHEEL);
+  if (wheel) profile.cosmetics = [...(p.cosmetics ?? []), TD_WHEEL];
   const next = nextTdUnlock(profile);
   const unlocked = unlockedBefore && unlockedBefore.after === levelId && stars >= 1 && prev === 0 ? unlockedBefore.id : null;
   return ok({
@@ -233,7 +244,7 @@ export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex
       gold: g.run.gold, wood: g.run.wood, bonusGold: g.bonus.gold, bonusWood: g.bonus.wood, newStars,
       capped: g.capped, full: g.full,
       gotGold: g.got.gold, gotWood: g.got.wood, capGold: g.cap.gold, capWood: g.cap.wood,
-      unlocked, next,
+      unlocked, next, wheel,
     },
   });
 }

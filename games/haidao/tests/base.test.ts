@@ -16,8 +16,8 @@ function val<T>(r: { ok: true; value: T } | { ok: false; error: string }): T {
 }
 
 describe('内容表', () => {
-  it('26 种建筑、1–8 级；装饰和宝藏箱 1 级', () => {
-    expect(Object.keys(BUILDINGS)).toHaveLength(26);
+  it('27 种建筑、1–8 级；装饰和宝藏箱 1 级', () => {
+    expect(Object.keys(BUILDINGS)).toHaveLength(27);
     for (const [k, d] of Object.entries(BUILDINGS)) {
       expect(d.levels.length, k).toBe(d.maxLevel);
       expect(d.maxLevel).toBe(d.category === 'deco' || k === 'treasure' ? 1 : 8);

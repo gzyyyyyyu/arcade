@@ -1,14 +1,14 @@
 /**
  * 守岛章末机制（规则版本 16，DESIGN 10.6d）：每章最后两关给玩家多一件工具，不用就和没有一样——
- * 漂流补给箱（第一章）、潮汐水闸（第二章）、岸防老炮（第三章）。只由关卡字段打开，规则版本低于 RULES_SINCE.tdChapterMech 的局一律不建、遇到操作忽略，旧回放逐位不变。
+ * 漂流补给箱（第一章）、潮汐水闸（第二章）、岸防老炮（第三章）、友军巡航船（第四章，规则版本 19）。只由关卡字段打开，规则版本低于对应版本的局一律不建、遇到操作忽略，旧回放逐位不变。
  */
-import { TD2_BATTERY, TD2_CRATE } from '../content/td2units.ts';
-import { inGrid } from './grid.ts';
+import { TD2_BATTERY, TD2_CRATE, TD2_ENEMIES, TD2_FLEET } from '../content/td2units.ts';
+import { GRID, inGrid } from './grid.ts';
 import { tideOpenAt } from './tdquery.ts';
-import { HIT_KEG, addGold, d2, inner, waveGold } from './tdstate.ts';
+import { HIT_KEG, addGold, d2, inner, isAir, waveGold } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
 import { RULES_SINCE, UNIT } from './types.ts';
-import type { TdEvent } from './tdtypes.ts';
+import type { TdEnemy, TdEvent } from './tdtypes.ts';
 
 /** 开局时按关卡字段建好章末机制的状态（createTd 最后调） */
 export function initMech(s: TdState): void {
@@ -17,6 +17,7 @@ export function initMech(s: TdState): void {
   if (lv.sluice && lv.tide && lv.tideOpen) s.sluice = { left: lv.sluice, shut: [] };
   if (lv.battery) s.battery = { x: lv.battery.x, y: lv.battery.y, ready: 0 };
   if (lv.crates?.length) s.drift = { crates: [], chase: -1 };
+  if (lv.fleet && s.rules >= RULES_SINCE.tdFleet) s.fleet = { ready: 0, sail: null };
 }
 
 /** 第 w 波开打：这一波写了补给箱就在沙滩上漂来一个（startWave 调） */
@@ -116,4 +117,98 @@ export function toggleSluice(s: TdState, ev: TdEvent[]): void {
     sl.left++;
   }
   ev.push({ type: 'sluice', wave: s.wave, shut: can === 'shut', left: sl.left });
+}
+
+// ------------------------------------------------------------ 友军巡航船（规则版本 19）
+
+/**
+ * 船走的一圈：格子外 1.5 格的海上连成的方框（单位），左上角起顺时针，一边长 RING_SIDE。
+ * 登陆点（炮艇、海盗王停的地方）在沙滩第 1 排，离这圈 3 格，船的射程（TD2_FLEET.r）够得着；岛里面够不着
+ */
+const RING_LO = -150;
+const RING_SIDE = (GRID + 3) * UNIT;
+const RING = 4 * RING_SIDE;
+
+/** 一圈上的位置 p（0 ≤ p < RING）对应的点 */
+export function ringPoint(p: number): { x: number; y: number } {
+  const q = ((p % RING) + RING) % RING;
+  const side = Math.floor(q / RING_SIDE);
+  const u = q - side * RING_SIDE;
+  const hi = RING_LO + RING_SIDE;
+  if (side === 0) return { x: RING_LO + u, y: RING_LO };
+  if (side === 1) return { x: hi, y: RING_LO + u };
+  if (side === 2) return { x: hi - u, y: hi };
+  return { x: RING_LO, y: hi - u };
+}
+
+/** 离 (x, y) 最近的一圈上的位置：投影到四条边上挑最近的（同样近取 p 小的） */
+function ringNear(x: number, y: number): number {
+  const hi = RING_LO + RING_SIDE;
+  const clamp = (v: number): number => Math.max(RING_LO, Math.min(hi, v));
+  const cands = [clamp(x) - RING_LO, RING_SIDE + clamp(y) - RING_LO, 2 * RING_SIDE + hi - clamp(x), 3 * RING_SIDE + hi - clamp(y)];
+  let best = 0;
+  let bd = Infinity;
+  for (const p of cands) {
+    const q = ringPoint(p);
+    const d = d2(q.x, q.y, x, y);
+    if (d < bd) {
+      bd = d;
+      best = p;
+    }
+  }
+  return best;
+}
+
+/** 船在 tick 拍的位置：从 p0 起顺时针开半圈，匀速（整数） */
+export function fleetAt(sail: { p0: number; t0: number }, tick: number): { x: number; y: number } {
+  const dt = Math.max(0, Math.min(TD2_FLEET.ticks, tick - sail.t0));
+  return ringPoint(sail.p0 + Math.floor((2 * RING_SIDE * dt) / TD2_FLEET.ticks));
+}
+
+/** 海上的敌人（炮艇、海盗王）：船先冲着它们去 */
+const atSea = (e: TdEnemy): boolean => !!TD2_ENEMIES[e.kind].shell && (e.mode === 'in' || e.mode === 'out');
+
+/**
+ * 叫船：冷却好了、船不在海上才来。从一圈上离海上敌人最近的地方进场（有好几艘挑编号最小的），没有海上敌人就从离宝藏箱最近的地方进场
+ */
+export function callFleet(s: TdState, ev: TdEvent[]): void {
+  const f = s.fleet;
+  if (!f || f.sail || s.tick < f.ready) return;
+  const sea = s.enemies.filter(atSea);
+  const aim = sea.length ? sea.reduce((a, b) => (b.id < a.id ? b : a)) : null;
+  const tr = s.treasures[0];
+  const p0 = aim ? ringNear(aim.x, aim.y) : tr ? ringNear(tr.x * UNIT + 50, tr.y * UNIT + 50) : 0;
+  f.sail = { p0, t0: s.tick, until: s.tick + TD2_FLEET.ticks, next: s.tick + TD2_FLEET.reload };
+  f.ready = s.tick + TD2_FLEET.cd;
+  const at = ringPoint(p0);
+  ev.push({ type: 'fleet', what: 'come', x: at.x, y: at.y, x1: at.x, y1: at.y, t1: s.tick, ready: f.ready });
+}
+
+/** 每拍：船在海上就往前开，装填好了朝 r 内最近的地上或海上敌人开一炮（落点爆炸由 td.ts 的 pend 结算），到点开走 */
+export function stepFleet(s: TdState, ev: TdEvent[], dmg: number): void {
+  const sail = s.fleet?.sail;
+  if (!sail) return;
+  const at = fleetAt(sail, s.tick);
+  if (s.tick >= sail.until) {
+    s.fleet!.sail = null;
+    ev.push({ type: 'fleet', what: 'go', x: at.x, y: at.y, x1: at.x, y1: at.y, t1: s.tick, ready: s.fleet!.ready });
+    return;
+  }
+  if (s.tick < sail.next) return;
+  const r2 = TD2_FLEET.r * TD2_FLEET.r;
+  let best: TdEnemy | undefined;
+  let bd = r2 + 1;
+  for (const e of s.enemies) {
+    if ((e.mode !== 'in' && e.mode !== 'out') || isAir(e.kind)) continue;
+    const d = d2(e.x, e.y, at.x, at.y);
+    if (d < bd || (d === bd && best && e.id < best.id)) {
+      bd = d;
+      best = e;
+    }
+  }
+  if (!best) return;
+  sail.next = s.tick + TD2_FLEET.reload;
+  const t1 = s.tick + TD2_FLEET.delay;
+  inner(s).pend.push({ t: t1, kind: 'splash', id: -1, dmg, x: best.x, y: best.y, r: TD2_FLEET.splash, hit: HIT_KEG, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0 });
+  ev.push({ type: 'fleet', what: 'shot', x: at.x, y: at.y, x1: best.x, y1: best.y, t1, ready: s.fleet!.ready });
 }

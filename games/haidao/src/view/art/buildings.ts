@@ -11,14 +11,14 @@ export const BUILDING_SIZE: Record<BuildingKind, number> = {
   hq: 4, goldmine: 3, sawmill: 3, vault: 3, woodyard: 3, dock: 3, armory: 3,
   cannon: 2, gunTower: 2, mortar: 2, shock: 2, sniper: 2, mine: 1, flame: 2, palm: 1, rock: 1,
   harpoon: 2, tar: 2, rocket: 2, kraken: 3, fogTower: 2,
-  wall: 1, statue: 1, flagpole: 1, chest: 1, treasure: 1,
+  wall: 1, statue: 1, flagpole: 1, chest: 1, wheel: 1, treasure: 1,
 };
 
 const UP: Record<BuildingKind, number> = {
   hq: 300, goldmine: 135, sawmill: 120, vault: 130, woodyard: 100, dock: 125, armory: 150,
   cannon: 110, gunTower: 250, mortar: 110, shock: 110, sniper: 230, mine: 50, flame: 150, palm: 118, rock: 40,
   harpoon: 120, tar: 52, rocket: 150, kraken: 130, fogTower: 190,
-  wall: 70, statue: 110, flagpole: 170, chest: 80, treasure: 80,
+  wall: 70, statue: 110, flagpole: 170, chest: 80, wheel: 120, treasure: 80,
 };
 /** 小建筑的整体放大倍数：它们的占地菱形比画出来的大，放大后才不显得空 */
 const SCALE: Partial<Record<BuildingKind, number>> = { cannon: 1.4, gunTower: 1.12, hq: 1.15, mortar: 1.35, shock: 1.4, sniper: 1.05, mine: 1.4, flame: 1.2, palm: 0.85, harpoon: 1.3, tar: 1.0, rocket: 1.15, fogTower: 1.1 };
@@ -177,7 +177,7 @@ function shell(kind: BuildingKind, body: string, level: number, shadowK = 1): Ar
   const ay = up + 8 + size * 16;
   const h = ay + size * 16 + 10 + (DOWN[kind] ?? 0);
   const ax = w / 2;
-  const deco = kind === 'palm' || kind === 'rock' || kind === 'statue' || kind === 'flagpole' || kind === 'chest' || kind === 'treasure' || kind === 'wall';
+  const deco = kind === 'palm' || kind === 'rock' || kind === 'statue' || kind === 'flagpole' || kind === 'chest' || kind === 'wheel' || kind === 'treasure' || kind === 'wall';
   // 等级不再靠金框、等级点、四角小旗、金冠（满岛亮黄，把草地和剪影切碎），改由建筑本身的材质（LVC）和地坪垫分三代、名次钉分代内第几级
   const band = levelBand(level);
   const pl = PLINTH[kind];
@@ -1513,6 +1513,37 @@ function flagpole(): string {
   return o;
 }
 
+/**
+ * 海盗王的舵轮（守岛第四章全部过关的纪念）：石墩上竖着一只深色木舵轮，八根辐条、外圈八个握把，
+ * 轮毂和外圈包金，顶上一顶小金冠（海盗王的），脚下摆一枚炮弹
+ */
+function wheel(): string {
+  let o = box(-0.32, -0.32, 0.32, 0.32, 0, 12, mat('#8c949c'), 'brick');
+  const b = P(0, 0, 12);
+  const cx = b[0];
+  const cy = b[1] - 52;
+  // 支架
+  o += poly([[cx - 6, b[1]], [cx + 6, b[1]], [cx + 3, cy + 6], [cx - 3, cy + 6]], C.woodD!, { sw: 2 });
+  // 握把和辐条（先画在外圈下面）
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    const ex = cx + Math.cos(a) * 44;
+    const ey = cy + Math.sin(a) * 44;
+    o += line([cx, cy], [ex, ey], C.ink!, 6) + line([cx, cy], [ex, ey], '#7a4a26', 3.4);
+    o += ell(ex, ey, 4.4, 4.4, '#7a4a26', { sw: 1.8 });
+  }
+  // 外圈：深色木 + 一圈金边
+  o += ell(cx, cy, 34, 34, 'none', { stroke: C.ink!, sw: 10 }) + ell(cx, cy, 34, 34, 'none', { stroke: '#5a2f1c', sw: 7 }) + ell(cx, cy, 34, 34, 'none', { stroke: C.gold!, sw: 2 });
+  // 轮毂
+  o += ell(cx, cy, 9, 9, C.gold!, { sw: 2 }) + ell(cx - 2, cy - 2, 3, 3, C.goldL!, { sw: 0 });
+  // 小金冠
+  o += poly([[cx - 12, cy - 40], [cx - 10, cy - 52], [cx - 4, cy - 45], [cx, cy - 56], [cx + 4, cy - 45], [cx + 10, cy - 52], [cx + 12, cy - 40]], C.gold!, { sw: 2 });
+  o += ell(cx, cy - 46, 2.2, 2.2, '#c8382e', { sw: 0 });
+  // 一枚炮弹
+  o += ell(b[0] + 18, b[1] - 4, 6, 6, '#2f3140', { sw: 1.6 }) + ell(b[0] + 16, b[1] - 6, 1.6, 1.2, '#8a8da2', { sw: 0 });
+  return o;
+}
+
 function chest(): string {
   let o = '';
   const g = uid('cg');
@@ -1634,14 +1665,14 @@ function rock(): string {
 // ================================================================= 对外
 
 const DRAW: Record<BuildingKind, (lv: number) => string> = {
-  hq, goldmine, sawmill, vault, woodyard, dock, armory, cannon, gunTower, mortar, shock, sniper, mine, flame: flameTower, harpoon, tar, rocket, fogTower, kraken: () => '', wall: () => '', statue: () => statue(), flagpole: () => flagpole(), chest: () => chest(),
+  hq, goldmine, sawmill, vault, woodyard, dock, armory, cannon, gunTower, mortar, shock, sniper, mine, flame: flameTower, harpoon, tar, rocket, fogTower, kraken: () => '', wall: () => '', statue: () => statue(), flagpole: () => flagpole(), chest: () => chest(), wheel: () => wheel(),
   treasure: () => treasure(),
   palm: () => palm(), rock: () => rock(),
 };
 
 const cache = new Map<string, ArtPiece>();
 export function buildingArt(kind: BuildingKind, level: number): ArtPiece {
-  const lv = kind === 'palm' || kind === 'rock' || kind === 'statue' || kind === 'flagpole' || kind === 'chest' || kind === 'treasure' ? 1 : Math.max(1, Math.min(8, Math.floor(level)));
+  const lv = kind === 'palm' || kind === 'rock' || kind === 'statue' || kind === 'flagpole' || kind === 'chest' || kind === 'wheel' || kind === 'treasure' ? 1 : Math.max(1, Math.min(8, Math.floor(level)));
   const key = `${kind}.${lv}`;
   if (kind === 'kraken') return krakenArt('idle', lv);
   if (kind === 'wall') return wallArt(lv, 0);

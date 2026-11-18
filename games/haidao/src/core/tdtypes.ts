@@ -8,7 +8,7 @@ import type {
   Td2Action, Td2Event, TdGarrisonSpot, TdGarrisonTower, TdHomeGen, TdMode, TdPadDef, TdTier, TdTowerKind,
 } from './td2types.ts';
 
-export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield' | 'bosun' | 'macaw' | 'mate' | 'medic' | 'gunboat';
+export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield' | 'bosun' | 'macaw' | 'mate' | 'medic' | 'gunboat' | 'king';
 
 export interface TdEnemyDef {
   name: string;
@@ -44,6 +44,10 @@ export interface TdEnemyDef {
    * 海上的目标只有射程够远的塔打得到（TD_SEA_RANGE），英雄打不到
    */
   shell?: { range: number; reload: number; jamTicks: number; moor: number };
+  /** 海盗王（规则版本 19）：停在海上时每 every 拍在身边放下 n 个 kind（上岸去抢） */
+  drop?: { every: number; n: number; kind: TdEnemyKind };
+  /** 海盗王（规则版本 19）：血掉到一半时叫来 n 个 kind 护航（一局一次） */
+  escort?: { n: number; kind: TdEnemyKind };
 }
 
 /** 塔的分叉加成（branches.ts）：没写的项不变 */
@@ -180,6 +184,8 @@ export interface TdLevel {
   crates?: Array<{ wave: number; x: number; y: number }>;
   /** 岸防老炮（规则版本 16，第三章最后两关）：炮台摆在哪一格（只是画面和炮弹的出膛点，不挡路）；全岛都打得到 */
   battery?: { x: number; y: number };
+  /** 友军巡航船（规则版本 19，第四章最后两关）：写了就有；船沿岛外一圈开，不需要坐标 */
+  fleet?: boolean;
   /**
    * 大潮无尽（DESIGN 10.6e）：写了它，波次按波数现生成（`waves` 只是已经生成的前缀，开局和每开一波都往后补几波），打不完，宝藏丢光才结束。
    * 必须是只由波数（和写死的种子）决定的纯函数，同一个 setup 才能重放出同一局。

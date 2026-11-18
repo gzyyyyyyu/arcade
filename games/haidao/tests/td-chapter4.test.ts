@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { TD2_ENEMIES, TD_SEA_RANGE } from '../src/content/td2units.ts';
+import { TD2_ENEMIES, TD2_FLEET, TD_SEA_RANGE } from '../src/content/td2units.ts';
 import { TD2_LEVEL_BY_ID } from '../src/content/tdmaps.ts';
-import { RULES_SINCE, RULES_VERSION, createTd, stepTd, tdBotActions, tdGrowthSetup } from '../src/core/index.ts';
-import { cellIdx } from '../src/core/grid.ts';
+import { RULES_SINCE, RULES_VERSION, TD_WHEEL, build, canPlace, createTd, settleTd, stepTd, tdBotActions, tdCampaign, tdGrowthProfile, tdGrowthSetup, tdOceanCleared } from '../src/core/index.ts';
+import type { TdResult } from '../src/core/index.ts';
+import { GRID, cellIdx } from '../src/core/grid.ts';
+import { fleetAt } from '../src/core/tdmech.ts';
 import { HIT_HERO, targetable, tdTowerRange } from '../src/core/tdstate.ts';
 import type { TdEvent, TdState } from '../src/core/index.ts';
 
@@ -18,7 +20,7 @@ function setup(id: string, seed = 1, rules = RULES_VERSION) {
 }
 
 /** 机器人打一局，每拍把局面和这拍的事件交给 look；look 返回 true 就停 */
-function play(id: string, look: (s: TdState, ev: TdEvent[]) => boolean | void, seed = 1): TdState {
+function play(id: string, look: (s: TdState, ev: TdEvent[]) => boolean | undefined, seed = 1): TdState {
   const st = setup(id, seed);
   const s = createTd(st);
   const bot = tdBotActions('normal', seed);
@@ -176,5 +178,145 @@ describe('狙击塔先打军医', () => {
       for (const e of ev) if (e.type === 'aim' && s.enemies.find((q) => q.id === e.target)?.kind === 'medic') aimedMedic++;
     }
     expect(aimedMedic).toBeGreaterThan(0);
+  });
+});
+
+describe('友军巡航船（规则版本 19）', () => {
+  it('只有写了 fleet 的关、规则 19 起才有；开局就能叫，叫了沿格子外 1.5 格的海上开半圈、到点回航，冷却 60 秒', () => {
+    expect(createTd(setup('td23', 1, RULES_SINCE.tdFleet - 1)).fleet).toBeUndefined();
+    expect(createTd(setup('td22')).fleet).toBeUndefined();
+    const s = createTd(setup('td23'));
+    expect(s.fleet).toEqual({ ready: 0, sail: null });
+    const ev = stepTd(s, [{ t: s.tick, type: 'fleet' }]);
+    const come = ev.find((e) => e.type === 'fleet' && e.what === 'come');
+    expect(come).toBeDefined();
+    const sail = s.fleet!.sail!;
+    expect(s.fleet!.ready).toBe(sail.t0 + TD2_FLEET.cd);
+    // 船还在海上时再叫没用
+    stepTd(s, [{ t: s.tick, type: 'fleet' }]);
+    expect(s.fleet!.sail!.t0).toBe(sail.t0);
+    const edge = (p: { x: number; y: number }): boolean => p.x === -150 || p.y === -150 || p.x === (GRID + 1) * 100 + 50 || p.y === (GRID + 1) * 100 + 50;
+    let went = false;
+    while (!went) {
+      const at = fleetAt(sail, s.tick);
+      expect(edge(at), `${at.x},${at.y}`).toBe(true);
+      for (const e of stepTd(s, [])) {
+        if (e.type !== 'fleet') continue;
+        if (e.what === 'shot') {
+          // 只打船边 r 内的、不打飞的
+          expect((e.x1 - e.x) ** 2 + (e.y1 - e.y) ** 2).toBeLessThanOrEqual(TD2_FLEET.r * TD2_FLEET.r);
+        }
+        if (e.what === 'go') went = true;
+      }
+    }
+    expect(s.tick - sail.t0).toBe(TD2_FLEET.ticks + 1);
+    expect(s.fleet!.sail).toBeNull();
+  });
+
+  it('有海上的船时从离它最近的那段岸边进场', () => {
+    let checked = false;
+    play('td23', (s) => {
+      if (!s.fleet || s.fleet.sail || s.tick < s.fleet.ready) return;
+      const sea = s.enemies.filter((e) => e.kind === 'gunboat' && e.mode === 'in');
+      if (!sea.length) return;
+      const g = sea.reduce((a, b) => (b.id < a.id ? b : a));
+      stepTd(s, [{ t: s.tick, type: 'fleet' }]);
+      const at = fleetAt(s.fleet!.sail!, s.fleet!.sail!.t0);
+      // 进场点是一圈上离它最近的点：比四个角都近
+      const d = (at.x - g.x) ** 2 + (at.y - g.y) ** 2;
+      const hi = (GRID + 1) * 100 + 50;
+      for (const c of [[-150, -150], [hi, -150], [hi, hi], [-150, hi]]) expect(d).toBeLessThanOrEqual((c[0]! - g.x) ** 2 + (c[1]! - g.y) ** 2);
+      checked = true;
+      return true;
+    });
+    expect(checked).toBe(true);
+  }, 60_000);
+});
+
+describe('海盗王（规则版本 19）', () => {
+  it('停在海上不动，按 drop.every 放人上岸，血过半叫两艘炮艇护航（一局一次）；英雄打不到，远程塔打得到', () => {
+    const def = TD2_ENEMIES.king;
+    let drops = 0;
+    let escorts = 0;
+    let pos: { x: number; y: number } | null = null;
+    let born = -1;
+    play('td24', (s, ev) => {
+      const k = s.enemies.find((e) => e.kind === 'king' && e.mode === 'in');
+      if (k) {
+        if (!pos) {
+          pos = { x: k.x, y: k.y };
+          born = s.tick - 1;
+          expect(targetable(s, k, HIT_HERO)).toBe(false);
+          expect(targetable(s, k, HIT_HERO, TD_SEA_RANGE)).toBe(true);
+        }
+        expect({ x: k.x, y: k.y }).toEqual(pos);
+      }
+      for (const e of ev) {
+        if (e.type !== 'king') continue;
+        if (e.what === 'drop') {
+          drops++;
+          expect((s.tick - 1 - born) % def.drop!.every).toBe(0);
+          expect(ev.filter((q) => q.type === 'spawn' && q.kind === def.drop!.kind).length).toBeGreaterThanOrEqual(def.drop!.n);
+        } else {
+          escorts++;
+          expect(ev.filter((q) => q.type === 'spawn' && q.kind === 'gunboat').length).toBe(def.escort!.n);
+        }
+      }
+    });
+    expect(pos).not.toBeNull();
+    expect(drops).toBeGreaterThan(0);
+    expect(escorts).toBeLessThanOrEqual(1);
+  }, 60_000);
+
+  it('机器人看到海盗王就叫友军船', () => {
+    let called = false;
+    play('td24', (s, ev) => {
+      if (ev.some((e) => e.type === 'fleet' && e.what === 'come') && s.enemies.some((e) => e.kind === 'king' && e.mode === 'in')) called = true;
+      return called;
+    });
+    expect(called).toBe(true);
+  }, 60_000);
+});
+
+describe('远洋通关（第四章全部至少 1 星）', () => {
+  const res = (stars: number): TdResult => ({ over: true, stars, lost: 0, waves: 10, total: 10, ticks: 4000, goldEarned: 0 });
+  const almost = () => {
+    const p = tdGrowthProfile(TD2_LEVEL_BY_ID.get('td24')!, 'suggest');
+    const stars: Record<string, number> = {};
+    for (const l of tdCampaign()) if (l.id !== 'td24') stars[l.id] = 1;
+    return { ...p, cosmetics: [], td: { stars, day: 5, gotGold: 0, gotWood: 0 } };
+  };
+  it('拿下最后一关的第一颗星时送「海盗王的舵轮」，只送一次；船长档案的判断同一个函数', () => {
+    const p = almost();
+    expect(tdOceanCleared(p.td.stars)).toBe(false);
+    const a = settleTd(p, 'td24', res(1), 5);
+    if (!a.ok) throw new Error(a.error);
+    expect(a.value.reward.wheel).toBe(true);
+    expect(a.value.profile.cosmetics).toEqual([TD_WHEEL]);
+    expect(tdOceanCleared(a.value.profile.td!.stars)).toBe(true);
+    const b = settleTd(a.value.profile, 'td24', res(3), 5);
+    if (!b.ok) throw new Error(b.error);
+    expect(b.value.reward.wheel).toBe(false);
+    expect(b.value.profile.cosmetics).toEqual([TD_WHEEL]);
+  });
+  it('第四章还有一关 0 星时不送；0 星这一局也不送', () => {
+    const p = almost();
+    const miss = { ...p, td: { ...p.td, stars: { ...p.td.stars, td19: 0 } } };
+    const a = settleTd(miss, 'td24', res(2), 5);
+    if (!a.ok) throw new Error(a.error);
+    expect(a.value.reward.wheel).toBe(false);
+    const z = settleTd(p, 'td24', res(0), 5);
+    if (!z.ok) throw new Error(z.error);
+    expect(z.value.reward.wheel).toBe(false);
+  });
+  it('没拿到舵轮不能摆', () => {
+    const p = almost();
+    let at: [number, number] | null = null;
+    for (let y = 0; y < 22 && !at; y++) for (let x = 0; x < 22 && !at; x++) if (canPlace(p, 'wheel', x, y)) at = [x, y];
+    expect(at).not.toBeNull();
+    const [x, y] = at!;
+    const r = build(p, 'wheel', x, y);
+    expect(r.ok ? 'ok' : r.error).toBe('locked');
+    expect(build({ ...p, cosmetics: [TD_WHEEL] }, 'wheel', x, y).ok).toBe(true);
   });
 });

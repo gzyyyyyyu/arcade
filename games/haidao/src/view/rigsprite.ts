@@ -272,7 +272,8 @@ export class Rig {
       // 染色只染当时那一套（分件或整张），换套后要重染：远处踩上焦油、镜头拉近换成分件时，身上原来不会变黑
       this.tinted = -1;
     }
-    this.topY = o.y + this.sk.top * this.sk.s;
+    // 只用整帧图的（鹦鹉群、炮艇、海盗王）没有自己的骨架，this.sk 是池子里上一个单位留下的：按整帧图的锚点算头顶
+    this.topY = flatOnly ? o.y - (this.flat.originY * this.flat.height) / this.r : o.y + this.sk.top * this.sk.s;
     this.gMode = o.mode;
     this.gDist = o.dist;
     this.gAtk = o.atk;

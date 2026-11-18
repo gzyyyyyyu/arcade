@@ -28,6 +28,7 @@ const FOE_TRAIT: Readonly<Record<TdEnemyKind, string>> = {
   mate: '倒下散成 3 个水手，要有溅射收',
   medic: '给身边的同伴回血，先打掉它',
   gunboat: '停在海上炸哑塔，射程 8 格以上的塔才打得到',
+  king: '停在海上放人上岸、血过半叫护航；射程 8 格以上的塔才够得着',
 };
 
 /**
@@ -60,20 +61,22 @@ export function newFoes(kinds: Iterable<TdEnemyKind>, seen: ReadonlySet<string>,
 // ---------------------------------------------------------------- 章末机制（规则版本 16）
 
 export const MECH_KEY = 'haidao.hint.mech';
-export type MechKind = 'crate' | 'sluice' | 'battery';
+export type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet';
 
 /** 每种章末机制一句怎么用（每章倒数第二关第一次见到时弹，和新敌人共用一张卡） */
 export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }>> = {
   crate: { name: '漂流补给箱', text: '有的波会漂来箱子：点它叫英雄去捡，给金币、技能马上好' },
   sluice: { name: '潮汐水闸', text: '落潮路要开时点「水闸」关上，那条路的敌人改走主路' },
   battery: { name: '岸防老炮', text: '点「老炮」再点地面，1 秒后落一发大炸弹；打不到飞的' },
+  fleet: { name: '友军巡航船', text: '点「援船」叫船沿岸边开半圈，海上的炮艇也打得到' },
 };
 
 /** 这一局有哪些章末机制（只看规则核心建好的状态：旧版本的局、没有机制的关为空） */
-export function mechsOf(s: { drift?: unknown; sluice?: unknown; battery?: unknown }): MechKind[] {
+export function mechsOf(s: { drift?: unknown; sluice?: unknown; battery?: unknown; fleet?: unknown }): MechKind[] {
   const out: MechKind[] = [];
   if (s.drift) out.push('crate');
   if (s.sluice) out.push('sluice');
   if (s.battery) out.push('battery');
+  if (s.fleet) out.push('fleet');
   return out;
 }

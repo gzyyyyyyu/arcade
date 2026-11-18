@@ -220,7 +220,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
         const style = deathStyleFor(trackOf(bs).take(e.id), sp.lastDmg, TD2_ENEMIES[e.kind].hp, e.kind === 'sapper', !!dead && stunned(dead, s.tick));
         bs.dying.addRig(sp.rig, sp.face, style, (r) => bs.pool.put(r), bs.pt);
         ftx(bs, sp.rig.x, sp.rig.y - 34, `+${TD2_ENEMIES[e.kind].gold}`, '#ffe885', 14);
-        if (e.kind === 'captain') bigEvent(bs, bs.hs, 'bossDown');
+        if (e.kind === 'captain' || e.kind === 'king') bigEvent(bs, bs.hs, 'bossDown');
         // 大副倒下：原地一圈尘土，散出来的水手从这里冲出去（spawn 事件照常建人）；字飘得比伤害数字高，不被盖住
         if (e.kind === 'mate') {
           bs.pt.ringBurst(sp.rig.x, sp.rig.y, 1.2);
@@ -320,6 +320,44 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       });
       break;
     }
+    case 'fleet': {
+      // 友军船：来的时候船边飘一句，开炮时舷侧一团火光、炮弹沿低弧线飞到落点（爆炸是落地那一拍的 explode 事件）
+      const at = W(e.x, e.y);
+      if (e.what === 'come') {
+        sfx('confirm');
+        ftx(bs, at.x, at.y - 90, '友军船来了！', '#7dd8ff', 18);
+      } else if (e.what === 'shot') {
+        sfx('cannon');
+        const muzzle = { x: at.x, y: at.y - 40 };
+        const to = W(e.x1, e.y1);
+        bs.pt.ringBurst(muzzle.x, muzzle.y, 0.7);
+        const dur = Math.max(140, ((e.t1 - s.tick) * STEP_MS) / bs.speed);
+        const ball = bs.add.circle(muzzle.x, muzzle.y, 6, 0x2f3140).setStrokeStyle(2, 0x111111).setDepth(DEPTH.fxHigh);
+        const prog = { u: 0 };
+        const peak = Math.min(120, 40 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.25);
+        bs.tweens.add({
+          targets: prog,
+          u: 1,
+          duration: dur,
+          ease: 'Linear',
+          onUpdate: () => ball.setPosition(muzzle.x + (to.x - muzzle.x) * prog.u, muzzle.y + (to.y - muzzle.y) * prog.u - Math.sin(prog.u * Math.PI) * peak),
+          onComplete: () => ball.destroy(),
+        });
+      } else ftx(bs, at.x, at.y - 90, '友军船回航', '#d8f1ff', 15);
+      break;
+    }
+    case 'king': {
+      // 海盗王放人上岸、叫护航：旗舰头上飘一句；护航算大事件（和首领发怒同一档）
+      const sp = bs.esp.get(e.id);
+      const at = sp ? { x: sp.rig.x, y: sp.rig.y } : W(e.x, e.y);
+      if (e.what === 'drop') ftx(bs, at.x, at.y - 120, '放下一船人！', '#ffb4a8', 16);
+      else {
+        sfx('boom');
+        bigEvent(bs, bs.hs, 'bossSkill');
+        banner(bs, '海盗王叫来护航！', '两艘炮艇停在它旁边，远程塔先打哪个自己挑', true);
+      }
+      break;
+    }
     case 'heal': {
       // 军医回血：脚下一圈绿光，飘一个绿色的「+」
       const sp = bs.esp.get(e.id);
@@ -329,7 +367,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
     case 'sail': {
       // 炮艇停够了开走：飘一句「炮艇开走了」（精灵按局面里的 mode 收掉）
       const sp = bs.esp.get(e.id);
-      if (sp) ftx(bs, sp.rig.x, sp.rig.y - 60, '炮艇开走了', '#d8f1ff', 15);
+      if (sp) ftx(bs, sp.rig.x, sp.rig.y - 60, `${TD2_ENEMIES[sp.kind].name}开走了`, '#d8f1ff', 15);
       break;
     }
     case 'grab': {
