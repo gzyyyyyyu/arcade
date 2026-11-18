@@ -10,7 +10,7 @@ import { FUN_STAKES, stakesOf, type StakesId } from '../core/stakes.ts';
 import type { Action } from '../core/table.ts';
 import { TAUNTS } from '../fun/taunts.ts';
 import { walletError } from '../net/wallet.ts';
-import { createError, createRoom, isRoomCode, matchUrl, Online, type OnlineState, type OnlineUi, type SavedRoom } from '../online.ts';
+import { createError, createRoom, isRoomCode, matchUrl, Online, seatName, type OnlineState, type OnlineUi, type SavedRoom } from '../online.ts';
 import { MATCH_TABLE, matchTierOf } from '../room/match.ts';
 import { HAND_PAUSE_MS, OPENING_MS, TURN_MS, type RoomView } from '../room/rules.ts';
 import { site } from '../site.ts';
@@ -326,10 +326,8 @@ export function createOnline(c: App) {
     const me = s.you?.seat ?? s.you?.bound ?? null;
     const rows = v.net.flatMap((net, i): RoomSummaryRow[] => {
       if (net === null) return [];
-      const info = room.seats[i];
       const lost = leaving && i === me && must(v.seats[i], '视图里每个座位号都有座位').status === 'active' ? must(v.seats[i], '视图里每个座位号都有座位').total : 0;
-      const name = i === me ? c.myName : info?.kind === 'human' && info.name ? info.name : `${i + 1} 号座（走了）`;
-      return [{ name, net: net - lost, me: i === me }];
+      return [{ name: seatName(s, i, me, c.myName), net: net - lost, me: i === me }];
     });
     return rows.length ? rows : null;
   }

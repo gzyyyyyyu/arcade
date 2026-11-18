@@ -232,8 +232,11 @@ export function potFlight(layer: HTMLElement, lead: HTMLElement, a: Pt, b: Pt, m
   return Promise.race([lastAnim.finished.then(() => undefined, () => undefined), new Promise<void>((ok) => window.setTimeout(ok, ms + 500))]);
 }
 
-/** 摊牌赢的牌型名，在公共牌上方放大停一下（结果条照旧）；不占牌局时间。lowFx / 减少动态效果：只淡入淡出 */
-export function handBanner(layer: HTMLElement, at: Pt, text: string, pace: number, quick: boolean): void {
+/**
+ * 摊牌赢的牌型名，在公共牌上方放大停一下（结果条照旧）；不占牌局时间。lowFx / 减少动态效果：只淡入淡出。
+ * place：摆好、开始动画前调一次，量着实际大小再挪（不压座位名牌，见 table/hand.ts）
+ */
+export function handBanner(layer: HTMLElement, at: Pt, text: string, pace: number, quick: boolean, place?: (e: HTMLElement) => void): void {
   const ms = Math.min(2200, Math.round((quick ? 1100 : 1800) * pace));
   if (ms <= 0 || !text) return;
   const t = document.createElement('div');
@@ -241,7 +244,10 @@ export function handBanner(layer: HTMLElement, at: Pt, text: string, pace: numbe
   t.textContent = text;
   t.style.left = `${at.x}px`;
   t.style.top = `${at.y}px`;
+  t.style.translate = '-50% -50%';
   layer.appendChild(t);
+  place?.(t);
+  t.style.translate = '';
   const base = 'translate(-50%, -50%)';
   once(
     t.animate(

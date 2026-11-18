@@ -473,6 +473,8 @@ body .scene {
 .stage :is(.pot-main, .pot-sides .pot-tag) b, .stage .bet-amt { color: var(--cg-ink); text-shadow: none; }
 .stage .odds, .stage .odds .need { color: #1b6b43; font-weight: 700; }
 .stage .odds b { color: var(--cg-ink); }
+.stage .odds .hint.ok { color: #1b6b43; font-weight: 700; }
+.stage .odds .hint.bad { color: #8a5a2b; font-weight: 700; }
 .stage .where, .stage .hand-no { color: var(--cg-ink); font-weight: 700; }
 
 /* ---------- 牌和筹码 ---------- */

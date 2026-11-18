@@ -2,7 +2,7 @@
   "name": "texas",
   "private": true,
   "license": "MIT",
-  "version": "0.37.9",
+  "version": "0.38.0",
   "type": "module",
   "engines": {
     "node": ">=22"

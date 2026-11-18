@@ -65,6 +65,30 @@ describe('架构约束', () => {
     }
   });
 
+  it('跟注提示（我的牌大约赢几成）只在单机桌：好友房、快速匹配（app/online.ts）和锦标赛（app/tour.ts）调 bar.update 只给两个参数，不传 hint', () => {
+    /** 每处 bar.update( … ) 顶层有几个参数（数逗号，跳过括号、方括号、花括号里的） */
+    const argCounts = (src: string): number[] =>
+      [...src.matchAll(/bar\.update\(/g)].map((m) => {
+        let depth = 0;
+        let n = 1;
+        for (let i = m.index + m[0].length; i < src.length; i++) {
+          const ch = src[i]!;
+          if ('([{'.includes(ch)) depth++;
+          else if (')]}'.includes(ch)) {
+            if (depth === 0) break;
+            depth--;
+          } else if (ch === ',' && depth === 0) n++;
+        }
+        return n;
+      });
+    for (const f of ['src/app/online.ts', 'src/app/tour.ts']) {
+      const counts = argCounts(read(f));
+      expect(counts.length, f).toBeGreaterThan(0);
+      for (const n of counts) expect(n, f).toBe(2);
+    }
+    expect(argCounts(read('src/app/table.ts'))).toContain(3);
+  });
+
   it('CSS 里的 :has() 只挂在不常变的小块上（弹窗、结果条、谜题格）：牌桌、舞台、body 上的 :has 在 iOS Safari 上让每次 DOM 变动都大面积重算样式（0.33.2 卡顿）', () => {
     const css = (dir: string): string[] =>
       readdirSync(join(ROOT, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? css(join(dir, e.name)) : e.name.endsWith('.css') ? [join(dir, e.name)] : []));

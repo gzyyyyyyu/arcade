@@ -166,7 +166,9 @@ export function betPos(p: Pt, g: Geo, mine: boolean, packed = false): Pt {
   const dy = f.cy - p.y;
   const dist = Math.hypot(dx, dy);
   const d = Math.min(130, Math.max(90, dist * 0.42));
-  return { x: p.x + (dx / dist) * d, y: p.y + (dy / dist) * d + 6 };
+  // 下半边两侧的再往下 8：几摞筹码里最高的那摞（比如 270 = 两枚 100、两枚 25、四枚 5）往上长，原来顶到桌心的"主池"标签（scenes 667×375 6 人桌）
+  const low = p.y > f.cy && Math.abs(dx) > f.rx * 0.5 ? 8 : 0;
+  return { x: p.x + (dx / dist) * d, y: p.y + (dy / dist) * d + 6 + low };
 }
 
 /** 庄家按钮：在下注的位置旁边偏一点 */

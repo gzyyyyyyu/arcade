@@ -226,7 +226,8 @@ export function createTable(c: App) {
     drawBetween(s.between && v.handNo > 0 && c.animating === 0 && !s.busted && !c.asking && !pfOver);
     if (!v.hold) showBar.hide();
     else if (c.animating === 0) drawShow(v, `s${v.handNo}`, null);
-    const auto = bar.update(v, c.animating === 0 && !s.closing);
+    // 跟注提示只在单机桌（这里）给，设置里能关；好友房、锦标赛的 bar.update 不传（src/view/actions.ts）
+    const auto = bar.update(v, c.animating === 0 && !s.closing, c.settings.hint);
     if (auto) {
       void drive(s.act(auto));
       return;

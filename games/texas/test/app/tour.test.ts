@@ -28,7 +28,8 @@ function ended(o: { fun: boolean; me: number | null; order?: number[] }): Online
   return {
     code: 'ABCD',
     you: o.me === null ? null : { seat: o.me },
-    room: { status: 'over', seats: [{ name: '我' }, null, { name: '阿明' }, null, null, null] },
+    room: { status: 'over', seats: [{ kind: 'human', name: '我' }, null, { kind: 'human', name: '阿明' }, null, null, null] },
+    names: [],
     view: {
       seats: order.map(() => ({ persona: 0 })),
       tour: { over: true, fun: o.fun, order, humans: [0, 2], places: order.map(() => null), prizes: o.fun ? null : order.map(() => 0) },

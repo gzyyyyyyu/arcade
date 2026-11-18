@@ -39,6 +39,25 @@ export interface OnlineState {
   view: RoomView | null;
   /** 正在播动画、还有帧没播完：操作区先别亮 */
   busy: boolean;
+  /** 每个座位最后一次坐着的真人昵称（rememberNames）：人走了座位变回电脑、房间就不再给昵称，结算和颁奖还要写他 */
+  names: readonly (string | null)[];
+}
+
+/** 按座位记住见过的真人昵称：这一刻是真人的换成他的昵称，别的座位留着上次记下的（同一个座位后来换了人就记后来的） */
+export function rememberNames(prev: readonly (string | null)[], room: RoomInfo): (string | null)[] {
+  return room.seats.map((x, i) => (x?.kind === 'human' && x.name ? x.name : (prev[i] ?? null)));
+}
+
+/**
+ * 结算页、名次表上座位的名字：我写自己的昵称；坐着的真人写昵称；
+ * 走了的（座位变回电脑或由电脑代打）写他坐着时的昵称加"（走了）"，从来没见过昵称的才写座位号
+ */
+export function seatName(s: OnlineState, i: number, me: number | null, myName: string): string {
+  if (i === me) return myName;
+  const info = s.room?.seats[i];
+  if (info?.kind === 'human' && info.name) return info.name;
+  const seen = info?.name ?? s.names[i];
+  return `${seen ?? `${i + 1} 号座`}（走了）`;
 }
 
 export interface OnlineUi {
@@ -90,7 +109,7 @@ export class Online {
     this.saved = saved;
     document.addEventListener('visibilitychange', this.onVisible);
     this.chatOn = opts.chat ?? true;
-    this.s = { code: saved.code, host: saved.host, opts: null, status: 'connecting', room: null, you: null, view: null, busy: false };
+    this.s = { code: saved.code, host: saved.host, opts: null, status: 'connecting', room: null, you: null, view: null, busy: false, names: [] };
     this.client = new RoomClient<RoomAction, RoomView>({
       url: opts.url ?? withNickname(roomUrl(saved.code), opts.name),
       clientVersion: CLIENT_VERSION,
@@ -163,7 +182,7 @@ export class Online {
     }
     if (m.seq < this.seq) return;
     this.seq = m.seq;
-    this.s = { ...this.s, room: m.room, you: m.you, opts: (m.room.opts as RoomOpts | undefined) ?? null };
+    this.s = { ...this.s, room: m.room, you: m.you, opts: (m.room.opts as RoomOpts | undefined) ?? null, names: rememberNames(this.s.names, m.room) };
     if (m.t === 'welcome') {
       // 快照：不管还有什么没播，直接摆到最新（不重播、正在播的这一步也瞬间走完）
       this.queue.length = 0;

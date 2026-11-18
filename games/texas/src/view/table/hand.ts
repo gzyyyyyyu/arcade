@@ -18,6 +18,9 @@ import type { TableScene } from './base.ts';
 import type { TableMotion } from './motion.ts';
 import { must } from '../../must.ts';
 
+/** 牌型金牌为了不压名牌最多往下挪多少（舞台像素）：1280×720 上名牌和公共牌之间大约空着这么多 */
+const MAX_DODGE = 48;
+
 export class TableHand {
   private readonly c: TableCtx;
   private readonly scene: TableScene;
@@ -180,7 +183,7 @@ export class TableHand {
       const hn = f.seats[r.pots[0]?.winners[0]?.seat ?? -1]?.hand ?? '';
       if (hn && !hn.endsWith('诈唬') && !hn.startsWith(EQ)) {
         const b = boardPos(this.c.g, 2);
-        handBanner(this.c.fx, { x: b.x, y: b.y - (this.c.g.tall ? 74 : 100) }, hn, this.c.opts.pace(), this.c.opts.quick?.() === true);
+        handBanner(this.c.fx, { x: b.x, y: b.y - (this.c.g.tall ? 74 : 100) }, hn, this.c.opts.pace(), this.c.opts.quick?.() === true, (e) => this.clearOfPlates(e));
       }
     }
     // 被逆转：转牌时领先 80% 以上的人输了；等 kit 的名场面横幅（约 2.1 秒，压在顶上的座位上）收了再冒一个小签
@@ -304,5 +307,20 @@ export class TableHand {
       this.scene.draw(f);
       await this.motion.pause(MS.flip);
     }
+  }
+
+  /**
+   * 牌型金牌不压座位的名牌：电脑版正上方座位的名牌离公共牌近，金牌摆在公共牌上方 100 就盖住了它的名字和筹码。
+   * 压到了就往下挪到名牌下面；最多挪 MAX_DODGE（再往下就压公共牌了，那时宁可压着名牌一点）
+   */
+  private clearOfPlates(e: HTMLElement): void {
+    const r = e.getBoundingClientRect();
+    const hit = [...this.c.root.querySelectorAll('.seat .plate')]
+      .map((p) => p.getBoundingClientRect())
+      .filter((p) => p.width > 0 && p.top < r.top && p.right > r.left && p.left < r.right && p.bottom > r.top);
+    if (!hit.length) return;
+    const k = this.c.root.getBoundingClientRect().width / this.c.g.w || 1;
+    const dy = Math.min(MAX_DODGE, (Math.max(...hit.map((p) => p.bottom)) + 4 - r.top) / k);
+    e.style.top = `${Number.parseFloat(e.style.top) + dy}px`;
   }
 }

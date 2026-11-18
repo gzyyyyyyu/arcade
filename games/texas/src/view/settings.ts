@@ -181,6 +181,7 @@ export function openSettings(stage: HTMLElement, h: SettingsHooks): void {
     play.dataset.tab = '1';
     el('h3', '', play, '玩法和互动');
     onOff(row(play, '互动', '别人的道具、表情和电脑说话'), 'fun', v.fun, h.flipFun);
+    onOff(row(play, '跟注提示', '单机桌写你的牌大约赢几成'), 'hint', v.prefs.hint, () => h.prefs({ hint: !v.prefs.hint }));
     if (v.chat) button(row(play, '聊天', '点一下换下一档'), 'chat', CHAT_TEXT[v.chat], h.nextChat, v.chat !== 'off');
     if (v.takeProfit !== null) {
       button(

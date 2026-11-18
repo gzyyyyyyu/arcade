@@ -7,7 +7,7 @@ import { FUN_LEVEL, FUN_STAKES, type StakesId } from '../core/stakes.ts';
 import { view } from '../core/view.ts';
 import { walletError } from '../net/wallet.ts';
 import { submitScore } from '../net/scores.ts';
-import type { OnlineState } from '../online.ts';
+import { seatName, type OnlineState } from '../online.ts';
 import type { RoomView } from '../room/rules.ts';
 import { site } from '../site.ts';
 import { ME } from '../solo.ts';
@@ -300,10 +300,7 @@ export function createTour(c: App) {
     c.roomTourEnded = s.code;
     f.stopCountdown();
     const me = s.you?.seat ?? s.you?.bound ?? null;
-    const nameOf = (k: number): string => {
-      const info = s.room?.seats[k];
-      return k === me ? c.myName : info?.name ? info.name : `${k + 1} 号座`;
-    };
+    const nameOf = (k: number): string => seatName(s, k, me, c.myName);
     const placeOf = (k: number): number => t.places[k] ?? must(t.order, '锦标赛结束时有名次表').indexOf(k) + 1;
     const rows: TourRow[] = t.order.filter((k) => t.humans.includes(k)).map((k) => ({ name: nameOf(k), place: placeOf(k), prize: t.prizes ? (t.prizes[k] ?? 0) : null, me: k === me }));
     const played = me !== null && t.humans.includes(me);
