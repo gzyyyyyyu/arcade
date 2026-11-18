@@ -416,7 +416,7 @@ validate(state, action): string | null
 | `difficulty` | `RunSetup.difficulty`，截到 1..8 |
 | `persona` | `RunSetup.persona`（须是有效人设 id） |
 | `daily=1` / `daily=YYYY-MM-DD` | 用 `dailySetup` 开那天的每日挑战（种子、人设、难度、`daily`）；再带 `seed / persona / difficulty` 覆盖对应项，仅供调试，档案仍按那天的每日挑战记 |
-| `layout=phone\|desktop` | 强制手机或电脑布局（`view/theme.ts`），缺省按屏幕判断 |
+| `layout=phone\|portrait\|desktop` | 强制手机横屏版、手机竖屏版或电脑布局（`view/theme.ts`），缺省按屏幕和开局时的方向判断 |
 | `atlas=0\|1` | 强制不用 / 用烘焙图集（`BootScene`），缺省自动；对比清晰度、统计请求数用 |
 | `challenge=<id>` | 好友挑战链接：读出挑战 id，有平台时开始菜单弹挑战卡片；id 不合格当没有（`view/challenge.ts`） |
 | `ext=1` | URL 开的局也打开仓位、押跌、银行（缺省按基础玩法开，旧自动化脚本不受影响）。注意：URL 开局直接 `createRun`，**不带行情段**，是合成行情 |

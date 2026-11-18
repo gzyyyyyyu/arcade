@@ -36,3 +36,49 @@ export function phoneHome(W: number, H: number, n: number) {
     hillsY: Math.round(H + 8 - (336 * k) / 2),
   };
 }
+
+/**
+ * 0.33.0 竖屏版主页（世界 404 × 718–960，见 theme.ts 的 PORTRAIT）：和横屏版同一套字段，排成单列。
+ * 顶上两行：「大厅」、云存档、版本号，下面一排小入口；中间 Logo、一句玩法、主视觉（小屋居中，两边各露两三个小人）；
+ * 要点的都在下半屏：模式卡两行（5 张 3+2，4 张 2+2），最下面是整宽的大卡。有没打完的局时大卡让出右边一格给「快速开始」。
+ */
+export function portraitHome(W: number, H: number, n: number, withQuick: boolean) {
+  const pad = 12;
+  const gap = 8;
+  const bandH = 112;
+  const heroY = H - pad - bandH;
+  const quickW = 96;
+  const hero: Box = { x: pad, y: heroY, w: W - 2 * pad - (withQuick ? quickW + gap : 0), h: bandH };
+  const quick: Box = { x: W - pad - quickW, y: heroY, w: quickW, h: bandH };
+  const rows = n <= 3 ? [n] : n === 4 ? [2, 2] : [Math.ceil(n / 2), Math.floor(n / 2)];
+  const cardH = 112;
+  const cardsTop = heroY - gap - rows.length * cardH - (rows.length - 1) * gap;
+  const cards: Box[] = [];
+  rows.forEach((m, r) => {
+    const cw = Math.floor((W - 2 * pad - gap * (m - 1)) / m);
+    for (let i = 0; i < m; i++) cards.push({ x: pad + i * (cw + gap), y: cardsTop + r * (cardH + gap), w: cw, h: cardH });
+  });
+  const toolsY = 70;
+  // 小屋顶（电脑 y≈431）到小人脚（y≈700）是 269：矮屏上主视觉缩一点，不压一句玩法
+  const feet = cardsTop + 4;
+  const logoMin = toolsY + 42 + 40;
+  // 高屏上主视觉放大一些（最多 0.72，小屋约占宽度的八成），不留一大块空天
+  const k = Math.min(0.72, Math.max(0.42, (feet - (logoMin + 48 + 18)) / 269));
+  const artTop = feet - 269 * k;
+  // Logo 和一句玩法在小入口和屋顶之间居中
+  const logoY = Math.max(logoMin, Math.round((toolsY + 42 + artTop) / 2 - 20));
+  return {
+    hero,
+    cards,
+    quick,
+    logo: { x: W / 2, y: logoY, size: 52 },
+    tagY: logoY + 48,
+    tools: { right: W - pad, y: toolsY, h: 42, gap: 6, font: 14 },
+    lobby: { x: pad, y: 8 },
+    cloud: { x: Math.round(W / 2 + 20), y: 26 },
+    version: { x: W - pad, y: 12 },
+    art: { k, ox: Math.round(W / 2 - 696 * k), oy: Math.round(feet - 700 * k) },
+    /** 山坡顶在小人脚下 123×k（和横屏版一样露出一截坡），底下由场景铺草地 */
+    hillsY: Math.round(feet + 45 * k),
+  };
+}

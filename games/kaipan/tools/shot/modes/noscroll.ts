@@ -189,7 +189,7 @@ async function measure(ctx: Ctx, where: string, bad: string[], regionKeys: strin
 
 /** 竖屏先点「照样玩」收起转屏提示 */
 async function playPortrait(ctx: Ctx): Promise<void> {
-  const play = ctx.page.locator('#rotate-hint .rh-play');
+  const play = ctx.page.locator('#rotate-hint .rh-keep');
   if (await play.isVisible()) {
     await play.tap();
     await ctx.page.waitForTimeout(1200);

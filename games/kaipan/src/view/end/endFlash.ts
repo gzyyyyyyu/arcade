@@ -42,20 +42,23 @@ export class EndFlash {
     const start = sum.startAccount;
     const gain = final - start;
     const L = x + G.pad;
-    const hx = ph ? 104 : 0;
-    const hy = y + G.headY;
+    // 竖屏一栏（0.33.0）：「大厅」「分享」占着标题行，两枚标签挪到下面一行；资产和排名上下排、居中，像电脑上一样
+    const one = !!G.single;
+    const hx = one ? 0 : ph ? 104 : 0;
+    const hy = y + (one ? 80 : G.headY);
     this.s.tag(L + hx, hy - 10, weekly ? weeklyTag(date) : flashTag(date), weekly ? COLOR.accent : COLOR.accent, weekly ? 150 : 128);
     const who = `${sum.personaName} · Lv${sum.difficulty}`;
     this.s.tag(L + hx + (weekly ? 160 : 138), hy - 10, who, COLOR.info, Math.max(92, Array.from(who).length * 14 + 24));
     // 版面：电脑一列居中；手机左右两栏
-    const lx = ph ? x + W * 0.27 : x + W / 2;
-    const rx = ph ? x + W * 0.73 : x + W / 2;
-    const ky = y + (ph ? 74 : 94);
-    const ny = y + (ph ? 128 : 170);
-    const dy = y + (ph ? 176 : 232);
-    const rky = ph ? ky : y + 322;
-    const rny = ph ? ny : y + 376;
-    const rly = ph ? dy : y + 428;
+    const two = ph && !one;
+    const lx = two ? x + W * 0.27 : x + W / 2;
+    const rx = two ? x + W * 0.73 : x + W / 2;
+    const ky = y + (one ? 136 : ph ? 74 : 94);
+    const ny = y + (one ? 192 : ph ? 128 : 170);
+    const dy = y + (one ? 244 : ph ? 176 : 232);
+    const rky = two ? ky : y + (one ? 340 : 322);
+    const rny = two ? ny : y + (one ? 396 : 376);
+    const rly = two ? dy : y + (one ? 448 : 428);
     const kick = (cx: number, cy: number, text: string): void => {
       addText(this.s, cx, cy, text, { size: TYPE.label + 2, bold: true, color: COLOR.muted, originX: 0.5, originY: 0.5 });
     };
@@ -72,12 +75,12 @@ export class EndFlash {
     if (best && best.ret > 0) {
       const by = dy + (ph ? 30 : 36);
       const line = addText(this.s, lx + 12, by, `最赚的一笔：${best.name} ${formatPoints(best.ret, 1)}`, { size: TYPE.label, color: COLOR.muted, originX: 0.5, originY: 0.5 });
-      fitWidth(line, ph ? W * 0.46 : W - 120);
+      fitWidth(line, two ? W * 0.46 : W - (one ? 64 : 120));
       addGlyph(this.s, line.x - line.width / 2 - 14, by, 'star', 18);
     }
     // 名次：先写「…」，榜上的状态变了就重画（交完分、读到名次、连不上）
     kick(rx, rky, weekly ? '本周排名' : '今日排名');
-    if (!ph) this.s.add.rectangle(x + 60, rky - 24, W - 120, 2, COLOR.edge, 0.6).setOrigin(0, 0);
+    if (!two) this.s.add.rectangle(x + (one ? 24 : 60), rky - 24, W - (one ? 48 : 120), 2, COLOR.edge, 0.6).setOrigin(0, 0);
     const box = this.s.add.container(0, 0);
     let shownRank: number | null | undefined;
     const draw = (): void => {
@@ -88,14 +91,14 @@ export class EndFlash {
       const rank = b.state === 'done' && b.result.kind === 'ok' ? b.rank : undefined;
       const big = rank ? `第 ${rank} 名` : rank === null ? '1 万名以后' : b.state === 'done' && b.result.kind === 'ok' ? '已上榜' : b.state === 'sending' ? '…' : '—';
       const t = addText(this.s, rx, rny, big, { size: rank ? (ph ? 44 : 64) : ph ? 32 : 44, bold: true, num: true, color: rank ? COLOR.accentDark : COLOR.muted, originX: 0.5, originY: 0.5, stroke: COLOR.paper, strokeWidth: 6 });
-      fitWidth(t, ph ? W * 0.42 : W - 160);
+      fitWidth(t, two ? W * 0.42 : W - (one ? 48 : 160));
       box.add(t);
       if (rank && shownRank !== rank) {
         shownRank = rank;
         this.flashRankIn(t, rx, rny, rank);
       }
       const text = line?.text ?? (b.state === 'none' ? '这局不上榜' : '');
-      const lt = addText(this.s, rx, rly, text, { size: TYPE.label, bold: !!line?.good, color: line?.good ? COLOR.accentDark : COLOR.muted, originX: 0.5, originY: 0.5, wrap: ph ? W * 0.42 : W - 200, align: 'center' });
+      const lt = addText(this.s, rx, rly, text, { size: TYPE.label, bold: !!line?.good, color: line?.good ? COLOR.accentDark : COLOR.muted, originX: 0.5, originY: 0.5, wrap: two ? W * 0.42 : W - (one ? 48 : 200), align: 'center' });
       box.add(lt);
       if (line?.retry) {
         const retry = new Button(this.s, rx - 32, rly + 18, { width: 64, height: 34, label: '重试', fontSize: FS.sm });
@@ -110,7 +113,7 @@ export class EndFlash {
 
     // 按钮：再挑战、排行榜（没有平台时「新一局」）、主菜单；「大厅」「分享」在两个上角
     const by = y + H - G.btnBottom + (ph ? 4 : 0);
-    const bw = ph ? [120, 170, 110] : [140, 190, 130];
+    const bw = one ? [100, 132, 92] : ph ? [120, 170, 110] : [140, 190, 130];
     const total = bw[0]! + bw[1]! + bw[2]! + 32;
     const bx = ph ? x + (W - total) / 2 : x + (W - total) / 2;
     const mk = (key: string, label: string, ax: number, w: number, variant: 'primary' | 'default', fn: () => void, hotkey?: string, icon?: Glyph): Button => {
@@ -128,7 +131,8 @@ export class EndFlash {
       }, '空格', 'trophy');
     }
     mk('menu', '主菜单', bx + bw[0]! + bw[1]! + 32, bw[2]!, 'default', () => this.s.session.toTitle(), 'Esc');
-    addText(this.s, x + G.pad, y + H - (ph ? 17 : 26), `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
+    // 竖屏一栏：按钮那一排占满宽，局号挪到按钮上面
+    addText(this.s, x + G.pad, one ? by - 14 : y + H - (ph ? 17 : 26), `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
     const lobbyAt = ph ? { x: x + 10, y: y + 12 } : { x: 14, y: 10 };
     this.s.buttons.lobby = new Button(this.s, lobbyAt.x, lobbyAt.y, { width: ph ? 96 : 104, height: 42, label: lobbyLabel(), icon: 'house', fontSize: FS.md, onClick: () => goLobby() });
     attachDomProxy(this.s, this.s.buttons.lobby, standalone() ? '回首页' : '回大厅');

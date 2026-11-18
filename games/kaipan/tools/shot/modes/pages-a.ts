@@ -76,7 +76,7 @@ export async function pagesAShots(browser: Browser): Promise<void> {
     const ctx = await openPage(browser, 'pa-portrait', `seed=pre-1&anim=0&${setupQuery(BASIC_SETUP)}`, { touch: true, screen: { width: 390, height: 844, dpr: 2 } });
     await ctx.page.waitForTimeout(800);
     await shot(ctx, 'pa8-portrait');
-    await ctx.page.locator('#rotate-hint .rh-play').tap();
+    await ctx.page.locator('#rotate-hint .rh-keep').tap();
     await ctx.page.waitForTimeout(1500);
     expect(!(await ctx.page.locator('#rotate-hint').isVisible()), '点「照样玩」应收起提示层');
     await shot(ctx, 'pa9-portrait-play');

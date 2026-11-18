@@ -47,6 +47,11 @@ const PHONE_UI = { w: 940, h: 430, label: 32, ctrl: 150, row: [46, 52], note: [5
  * 矮了就收行距（音量 36、其余 44 / 46）、底下一排按钮下移；窄了音量条短一点，说明小字往左挪。
  */
 function phoneGeo(v: { w: number; h: number }) {
+  // 竖屏版（0.33.0，世界 404 宽）：面板占满高度，页签单独一排；标签窄一点、按钮从 116 起，说明小字写在按钮下面一行
+  if (v.h > v.w) {
+    const w = v.w - 16;
+    return { ...PHONE_UI, w, h: v.h - 24, label: 20, ctrl: 116, top: 136, top1: 136, volRow: 50, row: [50, 50], note: [20, 20], slider: w - 116 - 64, footY: 112, doneY: 60, portrait: true };
+  }
   const w = Math.min(PHONE_UI.w, v.w - 16);
   const h = Math.min(PHONE_UI.h, v.h - 12);
   const short = h < 420;
@@ -63,6 +68,7 @@ function phoneGeo(v: { w: number; h: number }) {
     slider: narrow ? 220 : 280,
     footY: short ? 50 : 60,
     doneY: short ? 52 : 64,
+    portrait: false,
   };
 }
 
@@ -121,6 +127,13 @@ export class SettingsPanel extends Dialog {
       y += HEAD_GAP;
     };
     const note = (text: string): Phaser.GameObjects.Text => {
+      if (phone && P.portrait) {
+        // 竖屏：写在按钮下面一行，占整宽
+        const t = addText(scene, P.label, y - P.row[page]! + this.btnH / 2 + 4, text, { size: 13, color: COLOR.muted, wrap: P.w - P.label * 2, lineSpacing: 2 });
+        this.box.add(t);
+        y += t.height + 6;
+        return t;
+      }
       if (phone) {
         // 手机：写在上一行按钮的右边，不另占一行
         const nx = P.note[page]!;
@@ -289,7 +302,7 @@ export class SettingsPanel extends Dialog {
     };
     refreshHelp();
 
-    const close = new Button(scene, this.dw - 32 - 130, this.dh - (phone ? P.doneY : 64), { width: 130, height: 44, label: '完成', variant: 'primary', fontSize: FS.md });
+    const close = new Button(scene, this.dw - (P.portrait && phone ? 16 : 32) - 130, this.dh - (phone ? P.doneY : 64), { width: 130, height: 44, label: '完成', variant: 'primary', fontSize: FS.md });
     close.setHandler(() => this.close());
     this.inner.add(close);
     this.named['settings:done'] = close;
@@ -297,7 +310,10 @@ export class SettingsPanel extends Dialog {
     // 恢复默认：第一下按钮变成「再点一次」（3 秒内不点就还原），第二下才恢复，免得手滑清掉全部设置。
     // 默认值取自 DEFAULT_SETTINGS / DEFAULT_VIEW_PREFS；新手教程的进度不动（它有自己的开关）
     const resetW = phone ? 100 : 120;
-    const reset = new Button(scene, phone ? this.dw - 196 : this.dw - 32 - 130 - 12 - resetW, phone ? 16 : this.dh - 62, { width: resetW, height: phone ? 40 : 40, label: '恢复默认', fontSize: 15 });
+    // 竖屏：和「完成」同一排、在左边
+    const reset = phone && P.portrait
+      ? new Button(scene, 16, this.dh - P.doneY + 2, { width: resetW, height: 40, label: '恢复默认', fontSize: 15 })
+      : new Button(scene, phone ? this.dw - 196 : this.dw - 32 - 130 - 12 - resetW, phone ? 16 : this.dh - 62, { width: resetW, height: phone ? 40 : 40, label: '恢复默认', fontSize: 15 });
     let armed: Phaser.Time.TimerEvent | null = null;
     const disarm = (): void => {
       armed?.remove(false);
@@ -319,9 +335,20 @@ export class SettingsPanel extends Dialog {
     this.once(Phaser.GameObjects.Events.DESTROY, () => armed?.remove(false));
     this.inner.add(reset);
     this.named['settings:reset'] = reset;
+    // 竖屏：回到主菜单、回大厅、提前收手在「完成」上面一排，按个数均分整宽
+    const footN = [opts.onMenu, opts.lobby, opts.onQuitLive].filter(Boolean).length;
+    const footW = Math.floor((this.dw - 32 - 8 * (footN - 1)) / Math.max(1, footN));
+    let footX = 16;
+    const foot = (w: number, x: number): { x: number; w: number } => {
+      if (!(phone && P.portrait)) return { x, w };
+      const at = footX;
+      footX += footW + 8;
+      return { x: at, w: footW };
+    };
     if (opts.onMenu) {
       const onMenu = opts.onMenu;
-      const menu = new Button(scene, COLS[0]!.label, this.dh - (phone ? P.footY : 60), { width: 150, height: 40, label: '回到主菜单', fontSize: 15 });
+      const f = foot(150, COLS[0]!.label);
+      const menu = new Button(scene, f.x, this.dh - (phone ? P.footY : 60), { width: f.w, height: 40, label: '回到主菜单', fontSize: 15 });
       menu.setHandler(() => {
         this.close();
         onMenu();
@@ -330,7 +357,8 @@ export class SettingsPanel extends Dialog {
       this.named['settings:menu'] = menu;
     }
     if (opts.lobby) {
-      const lobby = new Button(scene, COLS[0]!.label + (opts.onMenu ? 162 : 0), this.dh - (phone ? P.footY : 60), { width: 120, height: 40, label: '回大厅', icon: 'house', fontSize: 15 });
+      const f = foot(120, COLS[0]!.label + (opts.onMenu ? 162 : 0));
+      const lobby = new Button(scene, f.x, this.dh - (phone ? P.footY : 60), { width: f.w, height: 40, label: '回大厅', icon: 'house', fontSize: 15 });
       lobby.setHandler(() => {
         toLobby = true;
         this.close();
@@ -340,7 +368,8 @@ export class SettingsPanel extends Dialog {
     }
     if (opts.onQuitLive) {
       const onQuit = opts.onQuitLive;
-      const quit = new Button(scene, COLS[0]!.label + (opts.onMenu ? 162 : 0) + (opts.lobby ? 132 : 0), this.dh - (phone ? P.footY : 60), { width: 120, height: 40, label: '提前收手', fontSize: 15 });
+      const f = foot(120, COLS[0]!.label + (opts.onMenu ? 162 : 0) + (opts.lobby ? 132 : 0));
+      const quit = new Button(scene, f.x, this.dh - (phone ? P.footY : 60), { width: f.w, height: 40, label: '提前收手', fontSize: 15 });
       // 先告诉调用方是收手关的，再关：关的时候 onClosed 是同步调的，要能认出来不去重建画面
       quit.setHandler(() => {
         onQuit();
@@ -367,8 +396,11 @@ export class SettingsPanel extends Dialog {
   /** 手机：标题右边两个页签，切换两页（命名 settings:tab-0 / settings:tab-1）。 */
   private tabs(pages: Phaser.GameObjects.Container[]): void {
     const labels = ['声音画面', '提示节奏'];
+    // 竖屏：标题行放不下，单独一排、各占一半
+    const pt = this.dh > this.dw;
+    const tw = pt ? Math.floor((this.dw - 32 - 8) / 2) : 120;
     const buttons = labels.map((label, i) => {
-      const b = new Button(this.scene, 112 + i * 128, 16, { width: 120, height: 40, label, fontSize: 15, sound: 'select' });
+      const b = new Button(this.scene, pt ? 16 + i * (tw + 8) : 112 + i * 128, pt ? 72 : 16, { width: tw, height: 40, label, fontSize: 15, sound: 'select' });
       b.setHandler(() => show(i));
       this.inner.add(b);
       this.named[`settings:tab-${i}`] = b;

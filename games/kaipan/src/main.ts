@@ -23,14 +23,14 @@ import { installFocus } from './view/ui/focus.ts';
 import { applySettingsToOptions, type ViewOptions } from './view/options.ts';
 import { Session, randomSeed } from './view/session.ts';
 import { sound } from './view/sound.ts';
-import { LOW_MEMORY, applyColorScheme } from './view/theme.ts';
+import { LOW_MEMORY, PHONE, PORTRAIT, applyColorScheme } from './view/theme.ts';
 
 // 最先安装全局错误兜底，之后的任何异常都不会留下白屏
 installErrorHandler();
 // 没人接住的报错发给平台（/api/client-error）；单独部署时没有这个接口，发不出去就算了
 reportErrors({ game: 'kaipan', version: APP_VERSION });
-// 手机竖屏时提示横过来（提示层左上角也有「大厅」，一局进行中先问一次）；触屏设备不显示键盘提示
-mountRotateHint({ inRun: () => session.sceneKey === 'trade', confirm: () => lobbyConfirm(session.state), go: () => goLobby() });
+// 拿的方向和这次的布局对不上时提示换一版（提示层左上角也有「大厅」，一局进行中先问一次）；触屏设备不显示键盘提示
+mountRotateHint(PORTRAIT ? 'portrait' : PHONE ? 'landscape' : 'desktop', { inRun: () => session.sceneKey === 'trade', confirm: () => lobbyConfirm(session.state), go: () => goLobby() });
 initInputMode();
 installFocus();
 

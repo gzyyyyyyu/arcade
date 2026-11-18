@@ -7,7 +7,8 @@ import { COLOR, PHONE, VIEW } from '../theme.ts';
 import { addText } from '../ui/text.ts';
 import { setupCamera } from './BaseScene.ts';
 
-const BAR_W = 420;
+// 竖屏版世界只有 404 宽：进度条两边各留 32
+const BAR_W = Math.min(420, VIEW.w - 64);
 
 /** URL 参数 atlas=0 / atlas=1：强制不用 / 用图集（对比清晰度、统计请求数用）。 */
 function atlasMode(): AtlasMode {

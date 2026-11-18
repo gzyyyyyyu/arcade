@@ -6,11 +6,11 @@ import { flameBurst, iceBurst } from '../fx/particles.ts';
 import { stamp, type FlipTone } from './tempoFx.ts';
 import { buysText } from '../labels.ts';
 import type { Rect } from '../rect.ts';
-import { COLOR, FS, PHONE, TYPE, signColor } from '../theme.ts';
+import { COLOR, FS, PHONE, PORTRAIT, TYPE, signColor } from '../theme.ts';
 import { addText, fitWidth } from '../ui/text.ts';
 import { pctArrow } from '../labels.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
-import { SLOTS, slotRects } from './layout.ts';
+import { COMPACT_SLOTS, SLOTS, slotRects } from './layout.ts';
 import { unitPips } from './ext.ts';
 import { positionsView, formatMoney, freeUnits } from '../../core/index.ts';
 import { addGlyph } from '../ui/art.ts';
@@ -129,6 +129,21 @@ export class HoldingsView {
         root.add(ring);
         if (this.idle) sc.tweens.add({ targets: ring, alpha: { from: 1, to: 0.35 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
+      // 竖屏版的矮卡（约 100 高）：钱袋和现金一行在上，「空位」和一句引导在虚线座位里
+      const guide = glow ? (PORTRAIT ? '点下面的推荐买' : '点右边的推荐买') : buys?.text.replace(/ /g, '');
+      if (COMPACT_SLOTS) {
+        root.add(dashedBox(sc, x + 8, y + 36, w - 16, h - 46, 0xd8c3a8));
+        if (k === 0) {
+          const bag = addGlyph(sc, x + 20, y + 19, 'moneybag', 22);
+          const amt = fitWidth(addText(sc, x + 34, y + 19, formatMoney(cash), { size: 14, bold: true, num: true, color: COLOR.accentDark, originY: 0.5 }), w - 42);
+          root.add([bag, amt]);
+          if (this.cashRect === null) this.cashRect = { x, y, w, h: 34 };
+        }
+        const cx = x + w / 2;
+        root.add(addText(sc, cx, y + 36 + (h - 46) / 2 - (guide ? 9 : 0), '空位', { size: 16, bold: true, color: COLOR.muted, originX: 0.5, originY: 0.5 }));
+        if (guide) root.add(fitWidth(addText(sc, cx, y + 36 + (h - 46) / 2 + 12, guide, { size: FS.xs, bold: true, color: COLOR.muted, originX: 0.5, originY: 0.5 }), w - 24));
+        return;
+      }
       root.add(dashedBox(sc, x + (PHONE ? 8 : 14), y + (PHONE ? 60 : 52), w - (PHONE ? 16 : 28), h - (PHONE ? 74 : 70), 0xd8c3a8));
       if (k === 0) {
         // 缩小的钱袋 + 现金数（左上角）
@@ -145,7 +160,6 @@ export class HoldingsView {
       const cx = x + w / 2;
       root.add(addText(sc, cx, y + 112, '空位', { size: TYPE.title, bold: true, color: COLOR.muted, originX: 0.5, originY: 0.5 }));
       // 能买时纸垫发光，下面一句引导点右边的推荐（拖到这里也行）；今天买不了了写原因（买够了、在加班……）
-      const guide = glow ? '点右边的推荐买' : buys?.text.replace(/ /g, '');
       if (guide) root.add(fitWidth(addText(sc, cx, y + 140, guide, { size: FS.xs, bold: true, color: COLOR.muted, originX: 0.5, originY: 0.5 }), w - 16));
     });
     // 选格子模式时现金块退到后面，格子上的选择按钮照样露出来

@@ -5,7 +5,7 @@ import { FEEL_CYCLE, FEEL_TERM, FEEL_WORD, ROLE_WORD, STAGE_WORD, term } from '.
 import type { Animator } from '../fx/anim.ts';
 import { flameBurst, iceBurst } from '../fx/particles.ts';
 import type { Rect } from '../rect.ts';
-import { COLOR, FEEL_COLOR, FS, PHONE, THEME_COLOR, TYPE, arrowOf, signColor, textOn } from '../theme.ts';
+import { COLOR, FEEL_COLOR, FS, PHONE, PORTRAIT, THEME_COLOR, TYPE, arrowOf, signColor, textOn } from '../theme.ts';
 import { addGlyph, addImage, addPaper, addPill, addWood, setArt } from '../ui/art.ts';
 import { addSpark, type Spark } from '../ui/spark.ts';
 import { openThemeDetail } from './detail.ts';
@@ -27,13 +27,26 @@ function phoneRows(w: number, h: number) {
   const up = 56 - rh;
   const narrow = w < 300;
   return { y0: 3, h: rh, barX: 50, barW: narrow ? 72 : 104, barH: 12, right: 10, badge: { y: 28 - Math.round(up / 2), s: up > 4 ? 30 : 32 }, nameY: 3, nameSize: 15, faceY: 13, pillY: 3, pillH: 22, feelY: 14,
-    barY: 36 - up, heatY: 40 - up, heatSize: 21, flameY: 46 - up, noteY: 31 - up, calY: -1, sparkX: narrow ? 80 : 112, sparkY: 30 - up, sparkW: narrow ? 44 : 64, sparkH: 18, deltaX: 44, deltaY: 40 - up, deltaSize: 13 };
+    barY: 36 - up, heatY: 40 - up, heatSize: 21, heatDX: 0, flameY: 46 - up, noteY: 31 - up, calY: -1, sparkX: narrow ? 80 : 112, sparkY: 30 - up, sparkW: narrow ? 44 : 64, sparkH: 18, deltaX: 44, deltaY: 40 - up, deltaSize: 13 };
 }
 
-const G = PHONE
+/**
+ * 0.33.0 竖屏版：看板占整宽（约 392），高跟着屏幕变。行高够 46 时照横屏手机的两排；矮屏（360×640 一行只有 37）改成一排：
+ * 名字在上、热度条在下贴着左边，折线在中间，右边依次是昨天变化、大号热度、状态签。
+ */
+function portraitRows(w: number, h: number) {
+  const rh = Math.min(56, Math.floor((h - 6) / 6));
+  if (rh >= 46) return phoneRows(w, h);
+  return { y0: 3, h: rh, barX: 50, barW: 104, barH: 10, right: 10, badge: { y: Math.round(rh / 2) - 1, s: 28 }, nameY: 0, nameSize: 15, faceY: 10, pillY: Math.round(rh / 2) - 12, pillH: 22, feelY: Math.round(rh / 2) - 1,
+    barY: rh - 15, heatY: Math.round(rh / 2) - 1, heatSize: 21, heatDX: 64, flameY: rh - 3, noteY: Math.round(rh / 2) - 8, calY: -1, sparkX: 114, sparkY: 4, sparkW: 64, sparkH: rh - 12, deltaX: 106, deltaY: Math.round(rh / 2) - 1, deltaSize: 13 };
+}
+
+const G = PORTRAIT
+  ? portraitRows(BOARD.w, BOARD.h)
+  : PHONE
   ? phoneRows(BOARD.w, BOARD.h)
   : { y0: 50, h: 98, barX: 52, barW: 128, barH: 14, right: 14, badge: { y: 26, s: 38 }, nameY: 6, nameSize: 16, faceY: 16, pillY: 6, pillH: 22, feelY: 17,
-      barY: 48, heatY: 55, heatSize: 24, flameY: 61, noteY: 30, calY: 79, sparkX: 36, sparkY: 70, sparkW: 96, sparkH: 18, deltaX: 0, deltaY: 80, deltaSize: 14 };
+      barY: 48, heatY: 55, heatSize: 24, heatDX: 0, flameY: 61, noteY: 30, calY: 79, sparkX: 36, sparkY: 70, sparkW: 96, sparkH: 18, deltaX: 0, deltaY: 80, deltaSize: 14 };
 const ROW_Y0 = BOARD.y + G.y0;
 const ROW_H = G.h;
 const BAR_X = BOARD.x + G.barX;
@@ -137,7 +150,7 @@ export class ThemeBoardView {
     s.add.rectangle(BAR_X, y + G.barY, BAR_W, BAR_H, 0xeadcc8).setOrigin(0, 0).setRounded(BAR_H / 2).setStrokeStyle(2, COLOR.ink, 1);
     const fill = s.add.rectangle(BAR_X + 2, y + G.barY + 2, 1, BAR_H - 4, THEME_COLOR[c.id]).setOrigin(0, 0).setRounded((BAR_H - 4) / 2);
     const shine = s.add.rectangle(BAR_X + 2, y + G.barY + 2, SHINE_W, BAR_H - 4, 0xffffff, 0.5).setOrigin(0, 0).setVisible(false);
-    const heat = addText(s, RIGHT, y + G.heatY, '', { size: G.heatSize, bold: true, num: true, color: THEME_COLOR[c.id], stroke: COLOR.ink, strokeWidth: 3, originX: 1, originY: 0.5 });
+    const heat = addText(s, RIGHT - G.heatDX, y + G.heatY, '', { size: G.heatSize, bold: true, num: true, color: THEME_COLOR[c.id], stroke: COLOR.ink, strokeWidth: 3, originX: 1, originY: 0.5 });
     const flame = addImage(s, 0, y + G.flameY, 'fx:flame_small', 14, 19).setOrigin(0.5, 1).setVisible(false);
     const ice = addImage(s, 0, y + G.heatY, 'fx:ice', 16).setVisible(false);
     // 「最近 5 天」：日历小图标 + 「5天」，后面是热度折线（手机上没地方写「5天」，说明在悬停里）

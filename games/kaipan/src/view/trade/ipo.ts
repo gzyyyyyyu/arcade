@@ -15,7 +15,7 @@ import {
 import { COLOR, TYPE } from '../theme.ts';
 import { addGlyph } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
-import { Dialog } from '../ui/dialog.ts';
+import { Dialog, dialogW } from '../ui/dialog.ts';
 import { addText } from '../ui/text.ts';
 
 /**
@@ -42,8 +42,9 @@ export function frozenMoney(s: GameState, size: BuySize): number {
 
 export class IpoPanel extends Dialog {
   constructor(scene: Phaser.Scene, s: GameState, offer: IpoOffer, onPick: (a: Action) => void) {
-    const W = 560;
-    const H = 330;
+    // 竖屏版屏窄：框跟屏宽，三个键各约 100 宽，下面两句说明各折成两行，框高一截
+    const W = dialogW(scene, 560);
+    const H = W < 560 ? 390 : 330;
     super(scene, W, H, `抽新股：${offer.name}`);
     this.spaceCloses = true;
     // 题材、几天出签
@@ -51,7 +52,7 @@ export class IpoPanel extends Dialog {
     this.inner.add(addText(scene, 62, 84, `${themeById(offer.theme).name} · 新股 · ${drawWord(s, offer)}`, { size: TYPE.label + 1, bold: true, color: COLOR.accentDark, originY: 0.5 }));
     let done = false;
     SIZES.forEach((size, i) => {
-      const bw = 160;
+      const bw = Math.min(160, Math.floor((W - 60 - 28) / 3));
       const x = 30 + i * (bw + 14);
       const err = validate(s, { type: 'subscribe', size });
       const units = sizeUnits(s, size);
@@ -72,14 +73,18 @@ export class IpoPanel extends Dialog {
           onPick({ type: 'subscribe', size });
         },
       });
-      b.add(addText(scene, bw / 2, 92,units > 0 ? `冻结 ${formatMoney(frozenMoney(s, size))}` : '现金不够', { size: TYPE.label + 1, num: true, color: COLOR.white, originX: 0.5, originY: 0.5 }));
+      const ft = addText(scene, bw / 2, 92, units > 0 ? `冻结 ${formatMoney(frozenMoney(s, size))}` : '现金不够', { size: bw < 120 ? TYPE.label : TYPE.label + 1, num: true, color: COLOR.white, originX: 0.5, originY: 0.5 });
+      // 竖屏版键窄：金额不截，放不下就省掉「冻结」两个字（下面的说明讲了冻结）
+      if (units > 0 && ft.width > bw - 10) ft.setText(formatMoney(frozenMoney(s, size)));
+      b.add(ft);
       b.setEnabled(err === null);
       b.onDenied(() => err);
       b.tooltip(() => ({ title: `抽新股 · ${SIZE_LABEL[size]}`, body: `冻结 ${unitsWord(units)}的现金，到出签那天收盘。抽中只配 1 份新股，剩下的现金退回；没抽中，现金原样退回。` }));
       this.inner.add(b);
       this.named[`ipo:${size}`] = b;
     });
-    this.inner.add(addText(scene, 30, 240, '多冻结只提高抽中率，抽中了都只配 1 份：钱冻得越多，白白闲置得越多。', { size: TYPE.label, color: COLOR.muted, wrap: W - 60, lineSpacing: 4 }));
-    this.inner.add(addText(scene, 30, 284, '申购占一个空格；冻结期间不涨不跌，也不能卖。', { size: TYPE.label, color: COLOR.muted, wrap: W - 60 }));
+    const t1 = addText(scene, 30, 240, '多冻结只提高抽中率，抽中了都只配 1 份：钱冻得越多，白白闲置得越多。', { size: TYPE.label, color: COLOR.muted, wrap: W - 60, lineSpacing: 4 });
+    this.inner.add(t1);
+    this.inner.add(addText(scene, 30, Math.max(284, t1.y + t1.height + 12), '申购占一个空格；冻结期间不涨不跌，也不能卖。', { size: TYPE.label, color: COLOR.muted, wrap: W - 60 }));
   }
 }

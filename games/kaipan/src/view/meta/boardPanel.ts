@@ -18,12 +18,24 @@ interface Geo {
   top: number;
   meY: number;
   pagerY: number;
+  /** 「全部 | 好友」那一排的位置（竖屏挪到标题下面，各占一半） */
+  tabs: { x: number; y: number; w: number };
 }
-const DESK: Geo = { w: 600, h: 540, per: 10, rowH: 32, top: 84, meY: 418, pagerY: 540 - 66 };
+const DESK: Geo = { w: 600, h: 540, per: 10, rowH: 32, top: 84, meY: 418, pagerY: 540 - 66, tabs: { x: 600 - 72 - 192, y: 18, w: 90 } };
 /** 手机：宽按屏幕（最宽 620）、高跟 phonePanel（SE 392）；7 行 + 我 + 翻页键都在 70–376 内 */
 const phoneGeo = (scene: Phaser.Scene): Geo => {
   const pp = phonePanel(scene);
-  return { w: Math.min(620, pp.w), h: pp.h, per: 7, rowH: 30, top: 70, meY: 290, pagerY: pp.h - 56 };
+  if (pp.h > pp.w) {
+    // 竖屏版（0.33.0）：标题占满标题行，「全部 | 好友」单独一排；一页的行数按高度算（行高 34）；
+    // 翻页一排左边放不下「只比当天」那句，它挪到翻页上面单独一行（多留 20）
+    const rowH = 34;
+    const top = 126;
+    const per = Math.min(15, Math.floor((pp.h - 56 - 84 - top) / rowH));
+    const tw = Math.floor((pp.w - 32 - 8) / 2);
+    return { w: pp.w, h: pp.h, per, rowH, top, meY: top + per * rowH + 14, pagerY: pp.h - 56, tabs: { x: 16, y: 66, w: tw } };
+  }
+  const w = Math.min(620, pp.w);
+  return { w, h: pp.h, per: 7, rowH: 30, top: 70, meY: 290, pagerY: pp.h - 56, tabs: { x: w - 72 - 192, y: 12, w: 90 } };
 };
 
 /**
@@ -56,7 +68,7 @@ export class BoardPanel extends Dialog {
     this.boardId = boardId;
     this.kind = kind;
     (['all', 'friends'] as const).forEach((sc, i) => {
-      const b = new Button(scene, G.w - 72 - (2 - i) * 96, ph ? 12 : 18, { width: 90, height: 38, label: sc === 'all' ? '全部' : '好友', fontSize: 15, sound: 'select' });
+      const b = new Button(scene, G.tabs.x + i * (G.tabs.w + 6), G.tabs.y, { width: G.tabs.w, height: 38, label: sc === 'all' ? '全部' : '好友', fontSize: 15, sound: 'select' });
       b.setHandler(() => this.show(sc));
       this.inner.add(b);
       this.tabs.set(sc, b);
@@ -163,7 +175,8 @@ export class BoardPanel extends Dialog {
       this.named['board:prev'] = prev;
       this.named['board:next'] = next;
     }
-    this.rows.add(addText(s, 44, G.pagerY + 20, '只比当天，没有奖励', { size: 13, color: COLOR.dim, originY: 0.5 }));
+    const one = G.h > G.w;
+    this.rows.add(addText(s, one ? G.w / 2 : 44, one ? G.pagerY - 14 : G.pagerY + 20, '只比当天，没有奖励', { size: 13, color: COLOR.dim, originX: one ? 0.5 : 0, originY: 0.5 }));
   }
 
   private turn(d: number): void {

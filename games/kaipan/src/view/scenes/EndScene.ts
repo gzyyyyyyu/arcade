@@ -144,7 +144,8 @@ export class EndScene extends BaseScene {
     // 0.5.2：「最赚的一笔」收进一块浅底卡：左边大小人，右边一列（标题、名字、涨幅、这段日子）在卡里上下居中，
     // 以前三样各自摆在固定坐标上，和小人对不齐、底下空一大截
     const boxY = ay + (ph ? 28 : 36);
-    const boxH = y + H - G.boxBottom - boxY;
+    // 竖屏：卡里没有「这段日子」按钮（合成行情）时矮一截，给下面的几行让地方
+    const boxH = G.single ? (s.real ? G.single.boxH : G.single.boxH - 30) : y + H - G.boxBottom - boxY;
     const boxW = G.boxW;
     this.add.rectangle(L, boxY, boxW, boxH, 0xffffff, 0.55).setOrigin(0, 0).setRounded(18).setStrokeStyle(2, COLOR.edge, 1);
     // 小人 + 右边一列当成一组，在卡里左右、上下都居中（右列按最宽的 170 估）
@@ -198,7 +199,8 @@ export class EndScene extends BaseScene {
     const rowGap = ph ? 8 : 10;
     const cols = G.tileCols;
     const tgx = G.tileGap;
-    const ty0 = y + (ph ? 16 : 28);
+    // 竖屏一栏：战绩接在「最赚的一笔」卡下面
+    const ty0 = G.single ? boxY + boxH + 14 : y + (ph ? 16 : 28);
     // 竖排的窄格里金额写短的（「¥5479.9万」），全数在悬停
     const money = (v: number, sign = false): string => (G.stacked ? moneyShort(v, sign) : formatMoney(v, sign ? { sign: true } : undefined));
     const tiles: [Glyph, string, string, number?][] = [
@@ -245,6 +247,16 @@ export class EndScene extends BaseScene {
     // ---- 12 个月账单轨道（0.5.1）：还上的绿格、没还上的红格、没走到的灰格；实盘只有 6 格
     // 0.18.0 屏幕材质（art-v3：数字在跳的地方用夜蓝小屏）：整条放在一块小屏上，每格上面一根这个月账户涨跌的小柱
     const ky = gy + G.dy.track;
+    // 这局的经历（借钱、押跌……）：最多两条，整段在「收获」的包里；每日挑战第二条的位置给排行榜（0.5.10）
+    const board = sum.daily ? sum.daily : null;
+    // 0.13.0 好友挑战那一行占同一个位置（挑战局不会是每日挑战）：挑战局交成绩；能发起的局（娱乐局、计入了档案、登录了）放「挑战好友」
+    const chal = !board && (runChallenge(s.seed) !== null || (canChallenge(s) && !!this.result && !this.result.ignored && cloudUserId() !== null && !standalone()));
+    const row = !!board || chal;
+    // 竖屏一栏（矮屏）上轨道下面这几行可能挤到按钮：排行 / 挑战那一行要能点，先保它（贴着按钮上面放），最好成绩、经历放不下的就不放。
+    // 横屏和电脑的位置是排好的，照常都放
+    const bottom = y + H - G.btnBottom - 6;
+    const rowY = row && G.single ? Math.min(ky + G.dy.row, bottom - 44) : ky + G.dy.row;
+    const fits = (yy: number): boolean => !G.single || yy + 20 <= (row ? Math.min(bottom, rowY - 4) : bottom);
     const P = G.trackPitch;
     const trackW = 34 + months * P + 6;
     const barH = ph ? 8 : 14;
@@ -288,17 +300,15 @@ export class EndScene extends BaseScene {
       // 最好成绩 / 今日挑战一句（0.5 只在悬停，0.5.1 放回来）
       const best = profile.best[bestKey(sum.persona, sum.difficulty, sum.short)];
       const line = sum.daily ? `今日挑战：${dailyText(profile.daily[sum.daily])}` : `${sum.personaName}·${sum.difficulty}级${sum.short ? '短局' : ''}最好：${bestText(best)}`;
-      addGlyph(this, mx + 12, ky + G.dy.best + 8, 'trophy', 22);
-      const lw = ph ? G.rightW - 100 : 380;
-      const lt = clauseWrap(addText(this, mx + 30, ky + G.dy.best, line, { size: TYPE.label, color: COLOR.ink, lineSpacing: 2 }), lw);
-      if (sum.daily ? this.result?.newDaily : this.result?.newBest) this.newTag(Math.min(mx + 30 + lt.width + 8, mx + lw + 20), ky + G.dy.best - 8);
+      if (fits(ky + G.dy.best)) {
+        addGlyph(this, mx + 12, ky + G.dy.best + 8, 'trophy', 22);
+        const lw = ph ? G.rightW - 100 : 380;
+        const lt = clauseWrap(addText(this, mx + 30, ky + G.dy.best, line, { size: TYPE.label, color: COLOR.ink, lineSpacing: 2 }), lw);
+        if (sum.daily ? this.result?.newDaily : this.result?.newBest) this.newTag(Math.min(mx + 30 + lt.width + 8, mx + lw + 20), ky + G.dy.best - 8);
+      }
     }
-    // 这局的经历（借钱、押跌……）：最多两条，整段在「收获」的包里；每日挑战第二条的位置给排行榜（0.5.10）
-    const board = sum.daily ? sum.daily : null;
-    // 0.13.0 好友挑战那一行占同一个位置（挑战局不会是每日挑战）：挑战局交成绩；能发起的局（娱乐局、计入了档案、登录了）放「挑战好友」
-    const chal = !board && (runChallenge(s.seed) !== null || (canChallenge(s) && !!this.result && !this.result.ignored && cloudUserId() !== null && !standalone()));
-    const row = !!board || chal;
     sum.recap.slice(0, lv0 ? 0 : row ? 1 : 2).forEach((l, i) => {
+      if (!fits(ky + G.dy.recap + i * 22)) return;
       const t = addText(this, mx + 30, ky + G.dy.recap + i * 22, l, { size: TYPE.label - 1, color: COLOR.muted });
       let cut = Array.from(t.text);
       const rw = ph ? G.rightW - 40 : 380;
@@ -309,8 +319,9 @@ export class EndScene extends BaseScene {
       addGlyph(this, mx + 12, ky + G.dy.recap + 8 + i * 22, 'bag', 16);
     });
 
-    if (board) this.rows.boardRow(mx, ky + G.dy.row, ph ? G.rightW : 404, sum.runId, board);
-    else if (chal) this.rows.challengeRow(mx, ky + G.dy.row, ph ? G.rightW : 404, sum);
+    const rowFits = !G.single || rowY + 44 <= bottom;
+    if (board && rowFits) this.rows.boardRow(mx, rowY, ph ? G.rightW : 404, sum.runId, board);
+    else if (chal && rowFits) this.rows.challengeRow(mx, rowY, ph ? G.rightW : 404, sum);
 
     // 0.6.8 下次可以试试：离得最近的一两个成就和这局的进度。只在娱乐局放（实盘局不在筹码局里推"再来"，economy.md 第 0 节），
     // 只说成就进度，不提输赢和筹码；放不下（手机上经历多了）就不放
@@ -338,7 +349,9 @@ export class EndScene extends BaseScene {
     }
     const retry = this.buttons.retry;
     if (retry) tipOnButton(retry, () => ({ x: mx, y: by, w: bw[0]!, h: G.btnH }), () => ({ title: sum.daily ? '再挑战一次' : '同一局再来', body: `这一局的编号：${s.seed}\n输入同一个编号能重玩同一局` }));
-    addText(this, x + G.pad, y + H - (ph ? 17 : 26), `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
+    // 局号：竖屏一栏时按钮那一排从左边起，挪到右上角（头像标签那一行的右端）
+    if (G.single) addText(this, x + W - G.pad, y + G.headY, `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originX: 1, originY: 0.5 });
+    else addText(this, x + G.pad, y + H - (ph ? 17 : 26), `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
     // 回大厅（0.5.8）：和开始菜单一样在左上角；这局已经结束、记进档案了，点了直接走。
     // 手机横屏纸卡几乎铺满：放在纸卡的左上角（0.16.0 以前插在左栏标题行中间）
     const lobbyAt = ph ? { x: x + 10, y: y + 12 } : { x: 14, y: 10 };

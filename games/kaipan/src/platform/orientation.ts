@@ -1,13 +1,18 @@
 /**
- * 竖屏提示：触屏设备（pointer: coarse）竖着拿时，盖一层 DOM 提示「把屏幕横过来」；0.19.5 起平板竖着拿也提示（以前只管 600 宽以下的手机，
- * 平板竖着时电脑布局缩到 0.6 倍，字只有 6–7 像素）；
- * 转成横屏后自动消失。纯 CSS 媒体查询控制显隐；风格与 0.3 的炒股小屋一致（暖色纸面、深梅子棕粗描边、橙色强调），
+ * 拿反了的提示：触屏设备（pointer: coarse）拿的方向和这次的布局对不上时，盖一层 DOM 提示（电脑布局的平板竖着拿也提示：
+ * 电脑布局缩到 0.6 倍，字只有 6–7 像素）；转回去后自动消失。纯 CSS 媒体查询控制显隐；风格与 0.3 的炒股小屋一致（暖色纸面、深梅子棕粗描边、橙色强调），
  * 插画先用内联 SVG（不依赖外部素材，素材没加载时也能显示）；真的要显示时再去取美术的 ui/rotate_phone.svg，
  * 取到了就换上（横屏设备上不会发这个请求）。
  */
 
 const ID = 'rotate-hint';
-const QUERY = '(orientation: portrait) and (pointer: coarse)';
+/**
+ * 0.33.0 有了竖屏版：开局时的方向定了用哪一版（theme.ts 的 PORTRAIT），拿的方向和这一版对不上时才盖这层。
+ * 手机（横屏版、竖屏版）提示「换成 X 屏版」：重新载入按新方向排（进度每一步都存着）；电脑布局的大触屏仍只提示横过来。
+ */
+export type Layout = 'desktop' | 'landscape' | 'portrait';
+let QUERY = '(orientation: portrait) and (pointer: coarse)';
+const queryFor = (layout: Layout): string => `(orientation: ${layout === 'portrait' ? 'landscape' : 'portrait'}) and (pointer: coarse)`;
 const ART = 'assets/art/v3/ui/rotate_phone.svg';
 
 /** 一部卡通手机（屏幕上是群聊气泡和一根红 K 线），旁边一道橙色旋转箭头；手机来回转动。 */
@@ -30,7 +35,7 @@ const ICON = `
   <path d="M110 98 L121 106 L127 93" fill="none" stroke="#ffb03a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
 </svg>`;
 
-const CSS = `
+const css = (): string => `
 #${ID} {
   position: fixed; inset: 0; z-index: 9000; display: none;
   align-items: center; justify-content: center; padding: 24px;
@@ -70,6 +75,7 @@ const CSS = `
   min-height: 48px; padding: 6px 18px; margin-top: 4px;
 }
 #${ID} .rh-play small { display: block; font-size: 12px; font-weight: normal; opacity: 0.9; }
+#${ID} .rh-play.rh-soft { background: #fff6e6; color: #3a2634; }
 #${ID}.asking .rh-play { display: none; }
 #${ID} .rh-lobby { top: calc(14px + env(safe-area-inset-top, 0px)); left: calc(14px + env(safe-area-inset-left, 0px)); }
 @media ${QUERY} { #${ID} { display: flex; } #${ID}.skip { display: none; } }
@@ -98,19 +104,32 @@ export function setRotateLobbyLabel(text: string): void {
   if (span) span.textContent = text;
 }
 
-/** 挂载竖屏提示（重复调用无副作用）。 */
-export function mountRotateHint(lobby?: RotateLobby): void {
+/** 提示卡的字：电脑布局只请人横过来；手机两版都给「换一版」（重新载入）和「照样玩」 */
+function cardHtml(layout: Layout): string {
+  const keep = '<button type="button" class="rh-play rh-keep rh-soft">照样玩<small>画面会缩小，居中显示</small></button>';
+  if (layout === 'desktop') {
+    return `<b>把屏幕横过来</b><span>看板、持仓和群聊要排在一排，竖着只能缩得很小。<br>横过来，画面自动铺满，字也看得清。</span>${keep.replace(' rh-soft', '')}`;
+  }
+  const to = layout === 'portrait' ? '横屏' : '竖屏';
+  return `<b>换成${to}版？</b><span>现在是按${to === '横屏' ? '竖' : '横'}着拿排的版面。<br>换一下，画面按现在的方向铺满，进度都存着。</span><button type="button" class="rh-play rh-relayout">换成${to}版</button>${keep}`;
+}
+
+/** 挂载转屏提示（重复调用无副作用）。layout 是开局时定下的版面（theme.ts 的 PHONE / PORTRAIT）。 */
+export function mountRotateHint(layout: Layout, lobby?: RotateLobby): void {
   if (typeof document === 'undefined' || document.getElementById(ID)) return;
+  QUERY = queryFor(layout);
   const style = document.createElement('style');
-  style.textContent = CSS;
+  style.textContent = css();
   document.head.appendChild(style);
   const el = document.createElement('div');
   el.id = ID;
   el.setAttribute('role', 'alert');
-  el.innerHTML = `<div class="rh-card">${ICON}<b>把屏幕横过来</b><span>看板、持仓和群聊要排在一排，竖着只能缩得很小。<br>横过来，画面自动铺满，字也看得清。</span><button type="button" class="rh-play">照样玩<small>画面会缩小，居中显示</small></button><i>开盘 · 散户的一年</i></div>`;
-  // 「照样玩」：收起提示，画布本来就按看得见的区域铺（EXPAND），横屏的画面缩小居中放在里面（letterbox）；
-  // 转回横屏时提示本来就不显示，同时清掉这个标记，下次再竖过来仍先提示
-  el.querySelector('.rh-play')?.addEventListener('click', () => el.classList.add('skip'));
+  el.innerHTML = `<div class="rh-card">${ICON}${cardHtml(layout)}<i>开盘 · 散户的一年</i></div>`;
+  // 「换成 X 屏版」：版面是开局时按方向搭的，换方向就重新载入（存档每一步都写着，回来接着这一天）
+  el.querySelector('.rh-relayout')?.addEventListener('click', () => window.location.reload());
+  // 「照样玩」：收起提示，画布本来就按看得见的区域铺（EXPAND），原来那一版的画面缩小居中放在里面（letterbox）；
+  // 转回原来的方向时提示本来就不显示，同时清掉这个标记，下次再转过来仍先提示
+  el.querySelector('.rh-keep')?.addEventListener('click', () => el.classList.add('skip'));
   if (typeof window.matchMedia === 'function') {
     window.matchMedia(QUERY).addEventListener?.('change', (e) => {
       if (!e.matches) el.classList.remove('skip', 'asking');

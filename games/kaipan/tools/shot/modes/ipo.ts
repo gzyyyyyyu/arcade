@@ -115,7 +115,7 @@ async function mainFlow(browser: Browser, name: string, o: FlowOpts): Promise<vo
   const screen = o.portrait ? { width: 390, height: 844, dpr: 2 } : undefined;
   const ctx = await openPage(browser, name, o.anim ? 'speed=4' : 'anim=0', { touch: o.touch, ...(screen ? { screen } : {}) });
   if (o.portrait) {
-    await ctx.page.locator('#rotate-hint .rh-play').tap();
+    await ctx.page.locator('#rotate-hint .rh-keep').tap();
     await ctx.page.waitForTimeout(500);
   }
   const { seed, state: st0, offer } = await findRun(ctx, `ipo-${o.tag}`, o.win);

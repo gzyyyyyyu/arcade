@@ -5,7 +5,7 @@ import { COLOR, FS, TYPE } from '../theme.ts';
 import { addGlyph, addImage, addPill } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
 import { Dialog, phonePanel } from '../ui/dialog.ts';
-import { addText } from '../ui/text.ts';
+import { addText, fitWidth } from '../ui/text.ts';
 import { chipLine } from './bits.ts';
 import { phoneLayout } from '../viewport.ts';
 
@@ -69,11 +69,13 @@ export class RevealPanel extends Dialog {
     const L = 36;
     // 手机：标题和市况签上移、小一号，给故事多留一行
     const ty = phone ? 64 : 74;
+    // 竖屏版（0.33.0）：标题占一行，市况签和翻页键在下面一行
+    const pt = !!pp && pp.h > pp.w;
     const title = addText(s, L, ty, `「${v.title}」`, { size: phone ? 20 : 24, bold: true, color: COLOR.accentDark });
-    this.inner.add(title);
-    const pill = addPill(s, L + title.width + 12, ty + (phone ? 0 : 2), 84, phone ? 28 : 30, REGIME_COLOR[v.regime]);
+    this.inner.add(pt ? fitWidth(title, pp.w - L - 64) : title);
+    const pill = pt ? addPill(s, L, ty + 36, 84, 28, REGIME_COLOR[v.regime]) : addPill(s, L + title.width + 12, ty + (phone ? 0 : 2), 84, phone ? 28 : 30, REGIME_COLOR[v.regime]);
     this.inner.add(pill);
-    const py = phone ? ty + 14 : 91;
+    const py = pt ? ty + 50 : phone ? ty + 14 : 91;
     const rg: Glyph = UP_REGIME.has(v.regime) ? 'arrow_up' : DOWN_REGIME.has(v.regime) ? 'arrow_down' : 'hourglass';
     this.inner.add(addGlyph(s, pill.x + 18, py, rg, 22, rg === 'hourglass' ? undefined : COLOR.white));
     this.inner.add(addText(s, pill.x + 52, py, v.regimeWord, { size: TYPE.label + 2, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5 }));
@@ -132,8 +134,10 @@ export class RevealPanel extends Dialog {
     const L = 28;
     const w = this.dw;
     const h = this.dh;
-    const top = PHONE_UI.top;
-    const bottom = h - PHONE_UI.bottomGap;
+    // 竖屏版：标题下面多一行市况签；结局一句单独一行在「知道了」上面
+    const pt = h > w;
+    const top = pt ? 140 : PHONE_UI.top;
+    const bottom = h - (pt ? 136 : PHONE_UI.bottomGap);
     const tx = L + 56;
     const wrap = w - tx - L - 16;
     const gap = 5;
@@ -182,23 +186,25 @@ export class RevealPanel extends Dialog {
         y += rowH + gap;
       }
       if (pages.length <= 1) return;
-      // 翻页：标题行右边（右上角的 × 左边）
-      const right = w - 64;
-      const prev = new Button(s, right - 96, 56, { width: 44, height: 38, label: '‹', fontSize: 20, sound: 'select' });
-      const next = new Button(s, right - 46, 56, { width: 44, height: 38, label: '›', fontSize: 20, sound: 'select' });
+      // 翻页：标题行右边（右上角的 × 左边）；竖屏版在下面市况签那一行的右边
+      const right = pt ? w - L + 2 : w - 64;
+      const py0 = pt ? 95 : 56;
+      const prev = new Button(s, right - 96, py0, { width: 44, height: 38, label: '‹', fontSize: 20, sound: 'select' });
+      const next = new Button(s, right - 46, py0, { width: 44, height: 38, label: '›', fontSize: 20, sound: 'select' });
       prev.setEnabled(k > 0);
       next.setEnabled(k < pages.length - 1);
       prev.setHandler(() => draw(k - 1));
       next.setHandler(() => draw(k + 1));
-      body.add([prev, next, addText(s, right - 106, 75, `${k + 1}/${pages.length}`, { size: FS.sm, bold: true, num: true, color: COLOR.muted, originX: 1, originY: 0.5 })]);
+      body.add([prev, next, addText(s, right - 106, py0 + 19, `${k + 1}/${pages.length}`, { size: FS.sm, bold: true, num: true, color: COLOR.muted, originX: 1, originY: 0.5 })]);
       this.named['reveal:prev'] = prev;
       this.named['reveal:next'] = next;
     };
     draw(0);
     // 底：结局一句、知道了
-    this.inner.add(addGlyph(s, L + 18, h - 44, 'star', 30));
-    this.inner.add(addText(s, L + 42, h - 44, v.verdict, { size: 20, bold: true, color: COLOR.accentDark, wrap: w - 2 * L - 220, originY: 0.5 }));
-    const ok = new Button(s, w - L - 150, h - 68, { width: 150, height: 46, label: '知道了', variant: 'primary', fontSize: 17, hotkey: '空格' });
+    const vy = pt ? h - 104 : h - 44;
+    this.inner.add(addGlyph(s, L + 18, vy, 'star', 30));
+    this.inner.add(addText(s, L + 42, vy, v.verdict, { size: 20, bold: true, color: COLOR.accentDark, wrap: pt ? w - 2 * L - 44 : w - 2 * L - 220, originY: 0.5 }));
+    const ok = new Button(s, pt ? (w - 150) / 2 : w - L - 150, h - 68, { width: 150, height: 46, label: '知道了', variant: 'primary', fontSize: 17, hotkey: '空格' });
     ok.setHandler(() => this.close());
     this.inner.add(ok);
     this.named['reveal:close'] = ok;
