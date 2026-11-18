@@ -83,6 +83,10 @@ export const TD2_ENEMIES: Readonly<Record<TdEnemyKind, TdEnemyDef>> = {
   // 初稿走得慢、只搬 2 枚，同样预算下明显好守（漏一个丢得少、挨打时间长），拟预算时得加到敌人比原来还多
   bosun: { name: '水手长', hp: 360, speed: 5, dmg: 30, reload: 20, reach: 90, carry: 3, gold: 20 },
   macaw: { name: '鹦鹉王', hp: 120, speed: 6, dmg: 15, reload: 20, reach: 80, carry: 2, gold: 16 },
+  // 大副（规则版本 17，DESIGN 10.3）：精英的另一种难法。倒下原地散成水手——本体血厚，高单发塔打它不浪费，
+  // 可散出来的 90 血水手又让高单发每发溢出一大半，挤成一团正好给溅射收；只靠狙击守不住，逼两种塔都摆。
+  // 金按水手的比例（每点 5/6 金）连分身一起算，本体只拿扣掉分身的那部分
+  mate: { name: '大副', hp: 240, speed: 5, dmg: 30, reload: 20, reach: 90, carry: 3, gold: 13, split: { kind: 'sailor', n: 3 } },
 };
 
 /**
@@ -105,6 +109,8 @@ export const TD2_ENEMY_POINTS: Readonly<Record<TdEnemyKind, number>> = {
   shield: 20,
   bosun: 24,
   macaw: 24,
+  // 本体 240 加三个水手 270，按等效血量折 34 点（≈ 5.7 个水手）
+  mate: 34,
 };
 
 /** 首领波前多给的倒数（拍）：10 秒，预告条变红 */

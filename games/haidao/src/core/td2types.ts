@@ -65,6 +65,7 @@ export const TD_ENEMY_ARMOR: Readonly<Record<TdEnemyKind, TdArmor>> = {
   grenadier: 'cloth',
   shield: 'heavy',
   bosun: 'cloth',
+  mate: 'cloth',
   macaw: 'air',
 };
 

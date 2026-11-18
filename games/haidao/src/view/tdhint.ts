@@ -24,6 +24,7 @@ const FOE_TRAIT: Readonly<Record<TdEnemyKind, string>> = {
   grenadier: '隔着墙扔手雷，炸墙',
   bosun: '一个顶四个，狙击、臼炮打它最划算',
   macaw: '一只顶一群，会飞，要多留火枪塔',
+  mate: '倒下散成 3 个水手，要有溅射收',
 };
 
 /**

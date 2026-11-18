@@ -63,9 +63,10 @@ interface LevelDef {
   /**
    * 规则版本 15 起的精英配方（少而精）：第 ELITE.from 波起，水手、鹦鹉每组的份额 ELITE.pct% 换成水手长、鹦鹉王，
    * 整关预算改乘这里的 scale（按 td-sim 拟合到规则 14 下实测的三星率，保持现在的难度）；from 换精英从第几波（0 起）出。
-   * 旧版本的局照旧用上面的 scale 和原配方（组带 until，回放逐位不变）
+   * 旧版本的局照旧用上面的 scale 和原配方（组带 until，回放逐位不变）。
+   * kind：水手的份额换成哪种精英，不写是水手长；写 'mate' 换成大副（倒下散成水手），这套组从规则版本 RULES_SINCE.tdMate 起才出
    */
-  elite?: { scale: number; from?: number };
+  elite?: { scale: number; from?: number; kind?: 'mate' };
   waves: WaveRecipe[];
 }
 
@@ -333,7 +334,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td16', name: '船长的怒火', index: 15, map: 'G', chapter: 3, hq: 8, gold: 360, waveTicks: 320, scale: 185, pads: 9, garrison: [3, 3, 3], bossSkill: true,
+    id: 'td16', name: '船长的怒火', index: 15, map: 'G', chapter: 3, hq: 8, gold: 360, waveTicks: 320, scale: 185, elite: { scale: 185, kind: 'mate' }, pads: 9, garrison: [3, 3, 3], bossSkill: true,
     waves: [
       w([S, 100, 0]),
       w([I, 40, 1], [S, 60, 0]),
@@ -403,6 +404,7 @@ const SPAN: Readonly<Record<TdEnemyKind, { span: number; min: number }>> = {
   shield: { span: 300, min: 20 },
   bosun: { span: 280, min: 20 },
   macaw: { span: 220, min: 16 },
+  mate: { span: 280, min: 20 },
 };
 
 /** 精英从第几波（0 起）出、占水手和鹦鹉份额的百分之几；精英一个顶四个（TD2_ENEMY_POINTS） */
@@ -418,7 +420,7 @@ function everyOf(kind: TdEnemyKind, n: number): number {
  * 一波的组：预算先扣掉首领（固定 1 个），剩下的按份额分给各组，个数 = 份额 ÷ 敌人点数（四舍五入，至少 1 个；份额 0 的组不出）。
  * budgetPct：预算整体再乘多少百分比（100 = 原样；td-sim 用 98 / 102 量"预算 ±2%"）。
  */
-function expand(r: WaveRecipe, budget: number, elite = false): TdWave {
+function expand(r: WaveRecipe, budget: number, elite: Partial<Record<TdEnemyKind, TdEnemyKind>> | null = null): TdWave {
   let left = budget;
   const groups: TdGroup[] = [];
   for (const [kind, , lane] of r.groups) {
@@ -432,7 +434,7 @@ function expand(r: WaveRecipe, budget: number, elite = false): TdWave {
   };
   for (const [kind, share, lane, delay] of r.groups) {
     if (kind === 'captain' || share <= 0) continue;
-    const ek = elite ? ELITE_OF[kind] : undefined;
+    const ek = elite?.[kind];
     if (!ek) {
       put(kind, share, lane, delay);
       continue;
@@ -447,7 +449,7 @@ function expand(r: WaveRecipe, budget: number, elite = false): TdWave {
 }
 
 /**
- * 一关的波次（预算按 budgetPct 缩放）。带精英配方的关，每一波是新旧两套组并排：旧的带 until、新的带 since（RULES_SINCE.tdElite），
+ * 一关的波次（预算按 budgetPct 缩放）。带精英配方的关，每一波是新旧两套组并排：旧的带 until、新的带 since（RULES_SINCE.tdElite，换大副的是 tdMate），
  * 引擎按局的规则版本挑一套（createTd）
  */
 export function levelWaves(def: LevelDef, budgetPct = 100): TdWave[] {
@@ -455,8 +457,9 @@ export function levelWaves(def: LevelDef, budgetPct = 100): TdWave[] {
   return def.waves.map((r, i) => {
     const old = expand(r, budget(i, def.scale ?? 100));
     if (!def.elite) return old;
-    const now = expand(r, budget(i, def.elite.scale), i >= (def.elite.from ?? TD_ELITE.from));
-    const since = RULES_SINCE.tdElite;
+    const kinds = def.elite.kind ? { ...ELITE_OF, sailor: def.elite.kind } : ELITE_OF;
+    const now = expand(r, budget(i, def.elite.scale), i >= (def.elite.from ?? TD_ELITE.from) ? kinds : null);
+    const since = def.elite.kind ? RULES_SINCE.tdMate : RULES_SINCE.tdElite;
     return { ...old, groups: [...old.groups.map((g) => ({ ...g, until: since })), ...now.groups.map((g) => ({ ...g, since }))] };
   });
 }

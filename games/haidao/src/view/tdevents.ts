@@ -221,6 +221,11 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
         bs.dying.addRig(sp.rig, sp.face, style, (r) => bs.pool.put(r), bs.pt);
         ftx(bs, sp.rig.x, sp.rig.y - 34, `+${TD2_ENEMIES[e.kind].gold}`, '#ffe885', 14);
         if (e.kind === 'captain') bigEvent(bs, bs.hs, 'bossDown');
+        // 大副倒下：原地一圈尘土，散出来的水手从这里冲出去（spawn 事件照常建人）；字飘得比伤害数字高，不被盖住
+        if (e.kind === 'mate') {
+          bs.pt.ringBurst(sp.rig.x, sp.rig.y, 1.2);
+          ftx(bs, sp.rig.x, sp.rig.y - 80, '散开了！', '#ffd0c8', 16);
+        }
       }
       break;
     }
