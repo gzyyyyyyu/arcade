@@ -87,7 +87,14 @@ export const TD2_ENEMIES: Readonly<Record<TdEnemyKind, TdEnemyDef>> = {
   // 可散出来的 90 血水手又让高单发每发溢出一大半，挤成一团正好给溅射收；只靠狙击守不住，逼两种塔都摆。
   // 金按水手的比例（每点 5/6 金）连分身一起算，本体只拿扣掉分身的那部分
   mate: { name: '大副', hp: 240, speed: 5, dmg: 30, reload: 20, reach: 90, carry: 3, gold: 13, split: { kind: 'sailor', n: 3 } },
+  // 第四章（规则版本 18）。军医：跟着队伍走，每秒给 2 格内的同伴回 3% 血，不先打掉它，后面一串都打不死；狙击塔先打它
+  medic: { name: '军医', hp: 120, speed: 5, dmg: 10, reload: 20, reach: 90, carry: 1, gold: 10, heal: { r: 200, pct: 3 } },
+  // 炮艇：停在海上不上岸，每 5 秒炸哑 9 格内最近的一座塔 3 秒，停 40 秒开走；不拿宝藏，只有射程 ≥ 8 格的塔打得到（TD_SEA_RANGE）
+  gunboat: { name: '炮艇', hp: 300, speed: 0, dmg: 0, reload: 100, reach: 0, carry: 0, gold: 16, shell: { range: 900, reload: 100, jamTicks: 60, moor: 800 } },
 };
+
+/** 海上的目标（炮艇）只有射程不小于这么多单位的塔打得到：臼炮、鱼叉、火箭、狙击够，加农、火枪、喷火、震荡不够 */
+export const TD_SEA_RANGE = 800;
 
 /**
  * 难度预算：B关 = base × (levelPct/100)^关，第 w 波 = B关 × (100 + wavePct × w)/100（core/td2types.ts 的 waveBudget）。
@@ -111,6 +118,10 @@ export const TD2_ENEMY_POINTS: Readonly<Record<TdEnemyKind, number>> = {
   macaw: 24,
   // 本体 240 加三个水手 270，按等效血量折 34 点（≈ 5.7 个水手）
   mate: 34,
+  // 军医血少，但回血让一串人打不死，按 1.5 倍等效算
+  medic: 12,
+  // 炮艇 300 血木船，近程塔打不到、还要哑塔，按等效血量加价
+  gunboat: 24,
 };
 
 /** 首领波前多给的倒数（拍）：10 秒，预告条变红 */

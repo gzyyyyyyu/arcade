@@ -91,7 +91,7 @@ export interface ESpr {
 export const ATK_MS = 640;
 
 /** 骨架的种类：鹦鹉群不是人形，用整帧图 */
-export const RIG_OF: Record<TdEnemyKind, RigKind | null> = { sailor: 'e.sailor', ironclad: 'e.ironclad', fog: 'e.fog', skiff: 'e.skiff', skiffling: 'e.skiffling', sapper: 'e.sapper', grenadier: 'e.grenadier', parrot: null, captain: 'e.captain', shield: 'e.shield', bosun: 'e.bosun', macaw: null, mate: 'e.mate' };
+export const RIG_OF: Record<TdEnemyKind, RigKind | null> = { sailor: 'e.sailor', ironclad: 'e.ironclad', fog: 'e.fog', skiff: 'e.skiff', skiffling: 'e.skiffling', sapper: 'e.sapper', grenadier: 'e.grenadier', parrot: null, captain: 'e.captain', shield: 'e.shield', bosun: 'e.bosun', macaw: null, mate: 'e.mate', medic: 'e.medic', gunboat: null };
 
 export interface TSpr {
   img: Phaser.GameObjects.Image;

@@ -40,6 +40,8 @@ const SPAN: Readonly<Record<TdEnemyKind, { span: number; min: number }>> = {
   shield: { span: 300, min: 20 },
   bosun: { span: 280, min: 20 },
   mate: { span: 280, min: 20 },
+  medic: { span: 280, min: 30 },
+  gunboat: { span: 200, min: 60 },
   macaw: { span: 220, min: 16 },
 };
 

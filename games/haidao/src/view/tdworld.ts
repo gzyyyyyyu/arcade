@@ -80,6 +80,73 @@ export function refreshWalls(bs: TdScene): void {
 }
 
 /** 木台、火药桶、沉船、木桶 */
+/**
+ * 第四章岛上的水面（TdLevel.water：水道、火口湖）：每格一块深浅两层的水，挨着陆地的边描一道白浪；
+ * 桥（TdIslandLevel.bridges）的格子底下也铺水，上面横铺木板、两边栏杆。开局画一次，不随局面变
+ */
+export function drawWater(bs: TdScene): void {
+  const lv = bs.s.level as { water?: Array<{ x: number; y: number }>; bridges?: Array<{ x: number; y: number }> };
+  const water = lv.water ?? [];
+  const bridges = lv.bridges ?? [];
+  if (water.length === 0 && bridges.length === 0) return;
+  const wet = new Set([...water, ...bridges].map((c) => `${c.x},${c.y}`));
+  const g = bs.add.graphics().setDepth(DEPTH.water);
+  const diamond = (cx: number, cy: number, inset = 0): Phaser.Math.Vector2[] =>
+    [iso(cx + inset, cy + inset), iso(cx + 1 - inset, cy + inset), iso(cx + 1 - inset, cy + 1 - inset), iso(cx + inset, cy + 1 - inset)].map((q) => new Phaser.Math.Vector2(q.x, q.y));
+  // 一整片同色（每格略放大一点盖住接缝），不画每格的内框，免得看成一格格的瓷砖
+  g.fillStyle(0x2f8fb4, 1);
+  for (const c of [...water, ...bridges]) g.fillPoints(diamond(c.x, c.y, -0.02), true);
+  // 挨着陆地的边：先一道宽的浅水，再一道白浪
+  const edges: Array<[number, number, number, number, number, number]> = [
+    [0, -1, 0, 0, 1, 0],
+    [1, 0, 1, 0, 1, 1],
+    [0, 1, 1, 1, 0, 1],
+    [-1, 0, 0, 1, 0, 0],
+  ];
+  const shore: Array<[{ x: number; y: number }, { x: number; y: number }]> = [];
+  for (const c of water) {
+    for (const [dx, dy, ax, ay, bx, by] of edges) {
+      if (wet.has(`${c.x + dx},${c.y + dy}`)) continue;
+      shore.push([iso(c.x + ax, c.y + ay), iso(c.x + bx, c.y + by)]);
+    }
+  }
+  g.lineStyle(14, 0x5fc2dc, 0.75);
+  for (const [a, b] of shore) g.lineBetween(a.x, a.y, b.x, b.y);
+  g.lineStyle(3, 0xeffcf7, 0.9);
+  for (const [a, b] of shore) g.lineBetween(a.x, a.y, b.x, b.y);
+  // 水面的反光：按格子坐标挑一部分格画一道短白线（固定，不随机）
+  g.lineStyle(2, 0xffffff, 0.35);
+  for (const c of water) {
+    if ((c.x * 7 + c.y * 13) % 5 !== 0) continue;
+    const m = iso(c.x + 0.5, c.y + 0.5);
+    g.lineBetween(m.x - 10, m.y, m.x + 6, m.y - 2);
+  }
+  if (bridges.length === 0) return;
+  const bg = bs.add.graphics().setDepth(DEPTH.bridge);
+  for (const c of bridges) {
+    bg.fillStyle(0x9a6a3a, 1).fillPoints(diamond(c.x, c.y, 0.04), true);
+    bg.lineStyle(2, 0x5a3a1e, 0.9);
+    for (let k = 1; k < 4; k++) {
+      const a = iso(c.x + k / 4, c.y);
+      const b = iso(c.x + k / 4, c.y + 1);
+      bg.lineBetween(a.x, a.y, b.x, b.y);
+    }
+  }
+  // 两边栏杆：桥在 x 方向的最左、最右两列各一道
+  const xs = bridges.map((c) => c.x);
+  const x0 = Math.min(...xs);
+  const x1 = Math.max(...xs) + 1;
+  const ys = bridges.map((c) => c.y);
+  const y0 = Math.min(...ys);
+  const y1 = Math.max(...ys) + 1;
+  bg.lineStyle(4, 0x5a3a1e, 1);
+  for (const x of [x0, x1]) {
+    const a = iso(x, y0);
+    const b = iso(x, y1);
+    bg.lineBetween(a.x, a.y - 8, b.x, b.y - 8);
+  }
+}
+
 export function drawProps(bs: TdScene): void {
   const s = bs.s;
   // 岸防老炮（规则版本 16）：沙滩上的炮台，炮弹从炮口飞出去（tdevents.ts 的 battery）

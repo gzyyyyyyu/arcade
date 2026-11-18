@@ -32,6 +32,10 @@ interface MapSpec {
   /** 驻守台：[x, y]，按顺序用 */
   garrison: Pt[];
   kegs: Pt[];
+  /** 水面（第四章）：矩形，和墙一样贴着岛边的一直连到海滩尽头（不然沿沙滩就绕过去了） */
+  water?: Rect[];
+  /** 桥：水面上留的能走的口子，只画木板 */
+  bridges?: Pt[];
 }
 
 const SPECS: readonly MapSpec[] = [
@@ -177,6 +181,40 @@ const SPECS: readonly MapSpec[] = [
     garrison: [[11, 14], [8, 11], [14, 11]],
     kegs: [[10, 0], [11, 0], [0, 10], [0, 11], [21, 9], [15, 21]],
   },
+  {
+    // J 双子岛（第四章）：横穿全岛一道水道，只有正中一座两格宽的桥；大队从北半边上岸、都要过桥，桥口就是卡口。
+    // 东边沙滩靠南还有一处后岛登陆点（第 4 条路），少量人不过桥直接上南半边——只守桥口太好守（每关都三星），要分兵顾后面
+    id: 'J',
+    name: '双子岛',
+    blurb: '一座桥是卡口，后岛也有人上岸',
+    hq: [16, 16],
+    treasures: [[10, 17]],
+    walls: [[0, 4, 7, 5], [14, 4, 21, 5]],
+    water: [[0, 9, 9, 10], [12, 9, 21, 10]],
+    bridges: [[10, 9], [11, 9], [10, 10], [11, 10]],
+    rocks: [[2, 13], [19, 1], [1, 20]],
+    palms: [[4, 19], [20, 12], [19, 7]],
+    lanes: [[5, -2], [16, -2], [-2, 7], [23, 19]],
+    pads: [[8, 12], [12, 12], [13, 6], [6, 6], [5, 13], [15, 12], [3, 7], [17, 7], [6, 17], [13, 19]],
+    garrison: [[7, 15], [13, 15], [9, 19]],
+    kegs: [[5, 0], [6, 0], [16, 0], [17, 0], [0, 7]],
+  },
+  {
+    // K 火山口（第四章）：岛中间一口火口湖，北、西、东三面上岸绕着湖走，路短；东西两道矮墙把人逼到湖边
+    id: 'K',
+    name: '火山口',
+    blurb: '中间一口湖，三面绕湖而来',
+    hq: [1, 17],
+    treasures: [[10, 15]],
+    walls: [[0, 13, 5, 14], [16, 13, 21, 14]],
+    water: [[8, 7, 13, 12]],
+    rocks: [[7, 6], [14, 6], [7, 13], [14, 13], [20, 20]],
+    palms: [[2, 2], [19, 2], [18, 18]],
+    lanes: [[10, -2], [-2, 9], [23, 10]],
+    pads: [[7, 16], [12, 16], [5, 4], [15, 4], [3, 9], [17, 8], [10, 19], [6, 19], [14, 19], [12, 2]],
+    garrison: [[5, 11], [15, 11], [10, 4]],
+    kegs: [[10, 0], [11, 0], [0, 9], [21, 10]],
+  },
 ];
 
 const WALL_LEVEL = 3;
@@ -190,12 +228,17 @@ export function mapLayout(m: MapSpec, hqLevel: number): Placed[] {
   add('hq', Math.max(1, hqLevel), m.hq[0], m.hq[1]);
   for (const [x, y] of m.treasures) add('treasure', 1, x, y);
   // 贴着岛边的墙一直连到海滩尽头：不然敌人会沿沙滩绕过去，S 形的路就白画了
-  for (const [x0, y0, x1, y1] of m.walls) {
-    const [a, b, c, d] = [x0 <= 0 ? -BEACH : x0, y0 <= 0 ? -BEACH : y0, x1 >= ISLAND - 1 ? ISLAND + BEACH - 1 : x1, y1 >= ISLAND - 1 ? ISLAND + BEACH - 1 : y1];
-    for (let y = b; y <= d; y++) for (let x = a; x <= c; x++) add('wall', WALL_LEVEL, x, y);
-  }
+  for (const r of m.walls) for (const [x, y] of rectCells(r)) add('wall', WALL_LEVEL, x, y);
   for (const [x, y] of m.rocks ?? []) add('rock', 1, x, y);
   for (const [x, y] of m.palms ?? []) add('palm', 1, x, y);
+  return out;
+}
+
+/** 矩形里的格子；贴着岛边的一直延到海滩尽头 */
+function rectCells([x0, y0, x1, y1]: Rect): Pt[] {
+  const [a, b, c, d] = [x0 <= 0 ? -BEACH : x0, y0 <= 0 ? -BEACH : y0, x1 >= ISLAND - 1 ? ISLAND + BEACH - 1 : x1, y1 >= ISLAND - 1 ? ISLAND + BEACH - 1 : y1];
+  const out: Pt[] = [];
+  for (let y = b; y <= d; y++) for (let x = a; x <= c; x++) out.push([x, y]);
   return out;
 }
 
@@ -210,6 +253,8 @@ function defOf(m: MapSpec): TdMapDef {
     pads: m.pads.map(([x, y]): TdPadDef => ({ x, y })),
     garrison: m.garrison.map(([x, y]): TdGarrisonSpot => ({ x, y, cap: 3 })),
     kegs: m.kegs.map(([x, y]) => ({ x, y })),
+    ...(m.water ? { water: m.water.flatMap(rectCells).map(([x, y]) => ({ x, y })) } : {}),
+    ...(m.bridges ? { bridges: m.bridges.map(([x, y]) => ({ x, y })) } : {}),
   };
 }
 

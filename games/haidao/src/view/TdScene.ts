@@ -36,7 +36,7 @@ import type { EscortView } from './escortview.ts';
 import { escortShipArt } from './art/escort.ts';
 import { DEPTH } from './depth.ts';
 import { type TdData, type ESpr, type TSpr, W, EDGE_MS, TEMP_KINDS } from './tdcommon.ts';
-import { drawLayout, drawProps, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector } from './tdworld.ts';
+import { drawLayout, drawProps, drawWater, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector } from './tdworld.ts';
 import { tap, hover, press, cancelAll, callWave, toggleHero } from './tdinput.ts';
 import { newCycle } from './tdpick.ts';
 import { canCall, buildUi, updateHud } from './tdhud.ts';
@@ -234,6 +234,7 @@ export class TdScene extends Phaser.Scene {
     this.tideG = this.add.graphics().setDepth(DEPTH.tide);
     this.laneG = this.add.graphics().setDepth(DEPTH.lane);
     drawLayout(this);
+    drawWater(this);
     drawProps(this);
     drawFog(this);
     this.fxG = this.add.graphics().setDepth(DEPTH.hudFx);

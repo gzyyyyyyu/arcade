@@ -1,11 +1,11 @@
 /**
- * 守岛 2.0 的 18 关（td01–td18）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
+ * 守岛 2.0 的 22 关（td01–td22）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
  * 波次不写死个数，写"这一波的预算分给哪几组敌人"：个数 = 预算份额 ÷ 敌人点数（TD2_ENEMY_POINTS），预算见 waveBudget。
- * 这样改 TD2_BUDGET 或敌人点数，18 关的强度跟着连续变；td-sim 还能用 buildLevel 的 budgetPct 量"预算 ±2% 时的三星率"。
+ * 这样改 TD2_BUDGET 或敌人点数，各关的强度跟着连续变；td-sim 还能用 buildLevel 的 budgetPct 量"预算 ±2% 时的三星率"。
  * 难度只来自预算、敌人种类和路数、地图，没有每关单独的血量百分比（hpPct 一律 100）。
  */
 import type { TdEnemyKind, TdGroup, TdWave } from '../core/tdtypes.ts';
-import type { TdGarrisonSpot, TdIslandLevel, TdMapId, TdPadDef, TdTier } from '../core/td2types.ts';
+import type { TdChapterId, TdGarrisonSpot, TdIslandLevel, TdMapId, TdPadDef, TdTier } from '../core/td2types.ts';
 import { waveBudget } from '../core/td2types.ts';
 import { RULES_SINCE } from '../core/types.ts';
 import { TD2_ECON, TD2_ENEMY_POINTS } from './td2units.ts';
@@ -30,7 +30,7 @@ interface LevelDef {
   /** 战役里的下标（0 起，进难度公式） */
   index: number;
   map: TdMapId;
-  chapter: 1 | 2 | 3;
+  chapter: TdChapterId;
   /** 建议主寨等级（"建议养成"的口径） */
   hq: number;
   gold: number;
@@ -93,6 +93,8 @@ const K = 'skiff';
 const P = 'parrot';
 const X = 'sapper';
 const C = 'captain';
+const M = 'medic';
+const B = 'gunboat';
 
 const DEFS: readonly LevelDef[] = [
   // ---------------------------------------------------------------- 第一章：登陆、铁甲、雾船、鹦鹉、首领
@@ -386,6 +388,70 @@ const DEFS: readonly LevelDef[] = [
       note('最后一个首领：黑胡子', boss([C, 0, 0], [S, 24, 0, 20], [I, 24, 1, 20], [K, 12, 0, 40], [P, 20, 2, 60])),
     ],
   },
+  // ---------------------------------------------------------------- 第四章「远洋」（规则版本 18）：主寨已经到顶，难度走平台期（DESIGN 10.6e）
+  {
+    id: 'td19', name: '双子初登', index: 18, map: 'J', chapter: 4, hq: 8, gold: 520, waveTicks: 320, scale: 165, pads: 9, garrison: [3, 3, 3],
+    waves: [
+      w([S, 100, 0]),
+      w([S, 60, 1], [I, 40, 0]),
+      note('军医来了：先打掉它；后岛也有人上岸', w([S, 56, 0], [M, 24, 0, 40], [S, 20, 3])),
+      w([I, 32, 1], [S, 32, 0], [M, 16, 1, 40], [S, 20, 3]),
+      w([P, 24, 0], [S, 36, 1], [M, 20, 1, 40], [S, 20, 3]),
+      w([I, 36, 0], [S, 28, 1], [M, 16, 0, 40], [S, 20, 3]),
+      w([K, 28, 1], [S, 36, 0], [M, 16, 0, 40], [S, 20, 3]),
+      note('首领：船长带着军医', boss([C, 0, 0], [S, 40, 0, 30], [M, 20, 0, 40], [I, 20, 1, 20], [S, 20, 3])),
+      w([P, 24, 1], [I, 32, 0], [M, 24, 0, 40], [S, 20, 3]),
+      w([S, 32, 0], [I, 28, 1], [M, 20, 1, 40], [S, 20, 3]),
+    ],
+  },
+  {
+    id: 'td20', name: '断桥', index: 19, map: 'J', chapter: 4, hq: 8, gold: 560, waveTicks: 320, scale: 198, elite: { scale: 198, kind: 'mate' }, pads: 10, garrison: [3, 3, 3],
+    waves: [
+      w([S, 100, 0]),
+      w([S, 50, 2], [I, 50, 0]),
+      w([S, 48, 1], [M, 16, 1, 40], [P, 16, 0], [S, 20, 3]),
+      note('大副成批来：桥口摆溅射', w([S, 48, 2], [I, 20, 0], [M, 12, 2, 40], [S, 20, 3])),
+      w([S, 44, 0], [K, 20, 1], [M, 16, 0, 40], [S, 20, 3]),
+      w([I, 32, 2], [S, 32, 1], [M, 16, 1, 40], [S, 20, 3]),
+      w([P, 24, 0], [S, 40, 2], [M, 16, 2, 40], [S, 20, 3]),
+      note('首领：三路一起过桥', boss([C, 0, 0], [S, 36, 1, 30], [I, 24, 2, 20], [M, 20, 0, 40], [S, 20, 3])),
+      w([S, 40, 0], [K, 24, 2], [M, 16, 1, 40], [S, 20, 3]),
+      w([S, 40, 1], [I, 24, 2], [M, 16, 0, 40], [S, 20, 3]),
+      note('最后一波：桥上挤满人', w([S, 40, 0], [S, 24, 2], [M, 16, 1, 40], [S, 20, 3])),
+    ],
+  },
+  {
+    // 火山口小、狙击塔在哪都够得着全岛：铁甲少放，多放成群的水手和分裂小艇，只造狙击守不住（溅射要有）
+    id: 'td21', name: '炮艇来袭', index: 20, map: 'K', chapter: 4, hq: 8, gold: 600, waveTicks: 320, scale: 112, pads: 9, garrison: [3, 3, 3],
+    waves: [
+      w([S, 100, 0]),
+      w([S, 60, 1], [I, 40, 2]),
+      note('炮艇来了：要射程 8 格以上的塔', w([S, 45, 0], [S, 25, 1], [B, 30, 2])),
+      w([K, 40, 1], [S, 40, 2], [B, 20, 0]),
+      w([P, 25, 0], [S, 55, 2], [B, 20, 1]),
+      w([K, 40, 2], [S, 40, 0], [B, 20, 1]),
+      w([I, 25, 2], [S, 55, 1], [B, 20, 0]),
+      note('首领：船长在炮艇掩护下登陆', boss([C, 0, 0], [S, 45, 1, 30], [K, 30, 2, 20], [B, 25, 0])),
+      w([P, 25, 2], [S, 55, 0], [B, 20, 1]),
+      w([K, 35, 0], [S, 45, 1], [B, 20, 2]),
+    ],
+  },
+  {
+    id: 'td22', name: '四面楚歌', index: 21, map: 'K', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 200, elite: { scale: 200, kind: 'mate' }, pads: 10, garrison: [3, 3, 3],
+    waves: [
+      w([S, 100, 0]),
+      w([S, 50, 1], [I, 50, 2]),
+      w([S, 50, 0], [M, 20, 0, 40], [B, 30, 2]),
+      w([S, 50, 2], [I, 30, 1], [B, 20, 0]),
+      w([S, 45, 1], [M, 20, 1, 40], [P, 20, 0], [B, 15, 2]),
+      w([K, 35, 0], [S, 35, 2], [M, 15, 2, 40], [B, 15, 1]),
+      w([I, 40, 1], [S, 35, 0], [B, 25, 2]),
+      note('首领：三面一起压上来', boss([C, 0, 0], [S, 35, 1, 30], [I, 25, 2, 20], [M, 20, 0, 40], [B, 20, 0])),
+      w([P, 25, 2], [S, 40, 1], [M, 15, 1, 40], [B, 20, 0]),
+      w([S, 45, 0], [K, 25, 2], [M, 15, 0, 40], [B, 15, 1]),
+      note('最后一波：远程、溅射、单点都要有', w([S, 40, 1], [I, 25, 2], [M, 15, 2, 40], [B, 20, 0])),
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------- 展开成引擎吃的关卡
@@ -405,6 +471,8 @@ const SPAN: Readonly<Record<TdEnemyKind, { span: number; min: number }>> = {
   bosun: { span: 280, min: 20 },
   macaw: { span: 220, min: 16 },
   mate: { span: 280, min: 20 },
+  medic: { span: 280, min: 30 },
+  gunboat: { span: 200, min: 60 },
 };
 
 /** 精英从第几波（0 起）出、占水手和鹦鹉份额的百分之几；精英一个顶四个（TD2_ENEMY_POINTS） */
@@ -499,6 +567,8 @@ export function buildLevel(def: LevelDef, budgetPct = 100): TdIslandLevel {
     ...(def.sluice ? { sluice: def.sluice } : {}),
     ...(def.battery ? { battery: { ...def.battery } } : {}),
     ...(def.crates ? { crates: def.crates.map((c) => ({ ...c })) } : {}),
+    ...(map.water ? { water: map.water.map((p) => ({ ...p })) } : {}),
+    ...(map.bridges ? { bridges: map.bridges.map((p) => ({ ...p })) } : {}),
     slots: pads,
     garrison,
     kegs: map.kegs.map((p) => ({ ...p })),
@@ -514,7 +584,7 @@ export const TD2_LEVEL_BY_ID: ReadonlyMap<string, TdIslandLevel> = new Map(TD2_L
 
 /** 选关页的章节 */
 export interface Td2ChapterInfo {
-  id: 1 | 2 | 3;
+  id: TdChapterId;
   name: string;
   theme: string;
   levels: TdIslandLevel[];
@@ -524,4 +594,5 @@ export const TD2_CHAPTERS: readonly Td2ChapterInfo[] = [
   { id: 1, name: '第一章', theme: '登陆、铁甲、雾船、鹦鹉、船长', levels: TD2_LEVELS.filter((l) => l.chapter === 1) },
   { id: 2, name: '第二章', theme: '潮水涨落 · 成片的雾', levels: TD2_LEVELS.filter((l) => l.chapter === 2) },
   { id: 3, name: '第三章', theme: '炸塔工兵 · 绕后鹦鹉 · 首领发怒', levels: TD2_LEVELS.filter((l) => l.chapter === 3) },
+  { id: 4, name: '第四章', theme: '远洋 · 军医回血 · 海上炮艇', levels: TD2_LEVELS.filter((l) => l.chapter === 4) },
 ];

@@ -4,7 +4,7 @@ import type { ArtPiece, Pt } from './kit.ts';
 import { limb, woodShield } from './troops.ts';
 import { OUT, P, box, cyl, darken, ell, f, lighten, line, mat, path, piece, poly, rect, shadow, skull, uid } from './kit.ts';
 
-export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate'] as const;
+export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate', 'medic', 'gunboat'] as const;
 export type TdEnemyKind = (typeof TD_ENEMY_KINDS)[number];
 export type TdAnim = 'walk' | 'attack';
 export type TdPropKind = 'pad' | 'padBuilt' | 'keg' | 'wreck' | 'barrel' | 'tideEdge' | 'mist' | 'jam' | 'tideWave' | 'sluiceUp' | 'sluiceDown' | 'battery' | 'crate';
@@ -183,6 +183,52 @@ function sailorSpec(p: Pd): Spec {
   } };
 }
 const sailorBody = (p: Pd, atk: boolean): string => manOf(sailorSpec(p), p, atk);
+
+/**
+ * 军医（第四章）：水手的身板，白上衣不带条纹、绿头巾、斜挎一只药包（包上一片叶子，不用红十字），手里一卷绷带当武器；
+ * 一眼认得出"这个人不一样，先打它"
+ */
+function medicSpec(p: Pd): Spec {
+  const L: Look = { skin: '#e8a878', pants: '#3e4a3a', boot: '#2e2420', shirt: '#f6f2e6', sleeve: '#f6f2e6', half: 6.6, top: -24, head: 9.5 };
+  return { L, h: {
+    torso: (x, yt) => {
+      // 斜挎带 + 药包（叶子）
+      let s = line([x - 6, yt + 2], [x + 6, -13 + p.bob], '#5a3a1e', 2.4);
+      s += rect(x + 2.4, -17 + p.bob, 8, 6.4, '#3f7a3a', { sw: 1.4 }) + path(`M${f(x + 6.4)},${f(-15.8 + p.bob)} q2.4,1.8 0,4 q-2.4,-1.8 0,-4 Z`, '#bfe6a0', { sw: 0.8 });
+      s += rect(x - 7, -13 + p.bob, 14, 3, '#3a2a20', { sw: 1.4 });
+      return s;
+    },
+    face: (cx, cy, r) => ell(cx + r * 0.42 + 1, cy - 0.2, 1.6, 1.8, '#1b1214', { sw: 0 }) + line([cx + r * 0.1, cy - 3.4], [cx + r * 0.8, cy - 2.8], '#1b1214', 1.2),
+    hat: (cx, cy) =>
+      path(`M${f(cx - 9.8)},${f(cy - 2.2)} A9.8,9.6 0 0 1 ${f(cx + 9.8)},${f(cy - 2.4)} Q${f(cx)},${f(cy - 6.4)} ${f(cx - 9.8)},${f(cy - 2.2)} Z`, '#3f8a46', { sw: 2 }) +
+      path(`M${f(cx - 9.2)},${f(cy - 3)} q-8,-2 -9,5 q5,-2 7,-1 Z`, '#2f6a36', { sw: 1.8 }),
+    weapon: (hd) => ell(hd[0] + 3, hd[1] - 1, 4, 3, '#f6f2e6', { sw: 1.4 }) + line([hd[0] + 5, hd[1] + 1], [hd[0] + 12, hd[1] + 6], '#f6f2e6', 2.2),
+  } };
+}
+const medicBody = (p: Pd, atk: boolean): string => manOf(medicSpec(p), p, atk);
+
+/**
+ * 炮艇（第四章）：不上岸的一条小炮船，整帧画（不走骨架）。船身比小艇大一圈，甲板上一门短炮、一根桅杆挂黑旗，
+ * 船底一圈浪花；walk 是在浪里起伏，attack 是炮口冒火、船身往后一坐
+ */
+function gunboatFrame(anim: TdAnim, i: number): ArtPiece {
+  const bob = anim === 'walk' ? [0, -1.5, 0, 1.5][i]! : [0, 2, 1][i]!;
+  const fire = anim === 'attack' && i === 1;
+  let o = ell(0, 2, 40, 9, '#bfe7f2', { sw: 0, op: 0.55 }) + ell(0, 2, 30, 6, '#8fd0e6', { sw: 0, op: 0.5 });
+  const hull = `M-38,${f(-20 + bob)} Q-36,${f(-4 + bob)} -16,${f(0 + bob)} L${f(20)},${f(0 + bob)} Q${f(36)},${f(-6 + bob)} ${f(42)},${f(-24 + bob)} Q${f(18)},${f(-17 + bob)} ${f(-6)},${f(-17 + bob)} Q${f(-22)},${f(-17 + bob)} -38,${f(-20 + bob)} Z`;
+  o += path(hull, C.woodD!, { sw: 2.4 });
+  o += path(`M-38,${f(-20 + bob)} Q-6,${f(-14 + bob)} ${f(42)},${f(-24 + bob)}`, 'none', { stroke: C.woodL!, sw: 2.4 });
+  o += path(`M-30,${f(-9 + bob)} Q0,${f(-6 + bob)} ${f(32)},${f(-12 + bob)}`, 'none', { stroke: C.woodDD!, sw: 1.2, op: 0.8 });
+  // 桅杆和黑旗
+  o += line([-14, -18 + bob], [-14, -62 + bob], C.woodDD!, 3) + path(`M-13,${f(-60 + bob)} L8,${f(-54 + bob)} L-13,${f(-46 + bob)} Z`, '#24202a', { sw: 1.6 });
+  o += skull(-6, -53 + bob, 3, false);
+  // 甲板上的炮：炮座 + 炮管朝右上，开炮时往后坐
+  const kick = fire ? -4 : 0;
+  o += rect(6 + kick, -26 + bob, 14, 8, C.woodDD!, { sw: 1.6 });
+  o += path(`M${f(12 + kick)},${f(-28 + bob)} L${f(34 + kick)},${f(-36 + bob)} L${f(35 + kick)},${f(-30 + bob)} L${f(14 + kick)},${f(-22 + bob)} Z`, '#3a3a44', { sw: 1.8 });
+  if (fire) o += ell(40 + kick, -34 + bob, 7, 5, '#ffcf5a', { sw: 0 }) + ell(46 + kick, -37 + bob, 5, 4, '#fff1b8', { sw: 0, op: 0.9 });
+  return piece(`td.gunboat.${anim}.${i}`, 128, 96, 64, 80, o);
+}
 
 /**
  * 水手长（精英水手）：同一身条纹衫，一眼认得是水手那一伙；个子大一圈、皮背心、红头巾上金骷髅、络腮胡、大弯刀。
@@ -607,10 +653,11 @@ function specParts(sp: Spec, trail: number, ghost = false): TdManSpec {
   };
 }
 
-export function tdMan(kind: 'sailor' | 'ironclad' | 'fog' | 'sapper' | 'grenadier' | 'captain' | 'shield' | 'bosun' | 'mate' | 'skiff' | 'skiffling'): TdManSpec {
+export function tdMan(kind: 'sailor' | 'ironclad' | 'fog' | 'sapper' | 'grenadier' | 'captain' | 'shield' | 'bosun' | 'mate' | 'medic' | 'skiff' | 'skiffling'): TdManSpec {
   if (kind === 'sailor') return specParts(sailorSpec(P0), 23);
   if (kind === 'bosun') return specParts(bosunSpec(P0), 27);
   if (kind === 'mate') return specParts(bosunSpec(P0, true), 27);
+  if (kind === 'medic') return specParts(medicSpec(P0), 23);
   if (kind === 'ironclad') return specParts(ironcladSpec(P0), 25);
   if (kind === 'fog') return specParts(fogSpec(P0, 0), 23, true);
   if (kind === 'sapper') return specParts(sapperSpec(P0, 1), 0);
@@ -652,6 +699,8 @@ const DEF: Record<TdEnemyKind, EnemyDef> = {
   shield: { scale: 1.6, box: { x0: -30, y0: -62, x1: 42, y1: 6 }, shadow: [24, 8] },
   bosun: { scale: 1.95, box: { x0: -30, y0: -64, x1: 44, y1: 6 }, shadow: [24, 8] },
   mate: { scale: 1.95, box: { x0: -30, y0: -64, x1: 44, y1: 6 }, shadow: [24, 8] },
+  medic: { scale: 1.5, box: { x0: -28, y0: -62, x1: 40, y1: 6 }, shadow: [24, 8] },
+  gunboat: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
   macaw: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
 };
 
@@ -667,6 +716,8 @@ export function tdEnemyFrames(kind: TdEnemyKind, anim: TdAnim): ArtPiece[] {
     r = ps.map((_, i) => parrotFrame(anim, i));
   } else if (kind === 'macaw') {
     r = ps.map((_, i) => macawFrame(anim, i));
+  } else if (kind === 'gunboat') {
+    r = ps.map((_, i) => gunboatFrame(anim, i));
   } else {
     const d = DEF[kind];
     r = ps.map((p, i) => {
@@ -682,6 +733,7 @@ export function tdEnemyFrames(kind: TdEnemyKind, anim: TdAnim): ArtPiece[] {
       else if (kind === 'shield') body = shieldBody(p, a, i);
       else if (kind === 'bosun') body = bosunBody(p, a);
       else if (kind === 'mate') body = bosunBody(p, a, true);
+      else if (kind === 'medic') body = medicBody(p, a);
       else body = captainBody(p, a);
       return frame(`td.${kind}.${anim}.${i}`, d.scale, d.box, stdShadow(d.shadow[0] * d.scale, d.shadow[1] * d.scale), body);
     });

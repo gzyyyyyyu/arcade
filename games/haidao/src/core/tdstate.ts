@@ -4,7 +4,7 @@
 import { BUILDINGS } from '../content/index.ts';
 import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
 import { TD_HERO_LIGHT } from '../content/tdunits.ts';
-import { TD2_BOSS_EXTRA_TICKS, TD2_ENEMIES, TD2_HERO, TD2_SHOCK_STUN, td2TierStats } from '../content/td2units.ts';
+import { TD2_BOSS_EXTRA_TICKS, TD2_ENEMIES, TD2_HERO, TD2_SHOCK_STUN, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
 import type { Rng } from './rng.ts';
 import { cellIdx, flowField } from './grid.ts';
@@ -378,8 +378,13 @@ export function seen(s: TdState, e: TdEnemy): boolean {
 }
 
 /** 塔、英雄能不能瞄准它：活着、克制倍率不是 0（飞的只给枪弹和高射火箭打）、雾里的要被照亮 */
-export function targetable(s: TdState, e: TdEnemy, h: Hit): boolean {
+/**
+ * 这一发打得到这个敌人吗：活着、这种伤害对它不是 0 倍、看得见；海上的炮艇（规则版本 18）还要射程 range 不小于 TD_SEA_RANGE
+ * （英雄不给 range，打不到海上的）
+ */
+export function targetable(s: TdState, e: TdEnemy, h: Hit, range = 0): boolean {
   if (e.mode !== 'in' && e.mode !== 'out') return false;
+  if (TD2_ENEMIES[e.kind].shell && range < TD_SEA_RANGE) return false;
   if (mult(h, TD_ENEMY_ARMOR[e.kind]) <= 0) return false;
   return seen(s, e);
 }

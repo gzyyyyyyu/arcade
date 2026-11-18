@@ -158,6 +158,7 @@ function tdCss(): string {
 .hd-ui .hd-minimap svg { display:block; width:100%; height:auto; min-height:0; filter:drop-shadow(0 2px 0 rgba(20,60,80,.45)); }
 .hd-ui .hd-minimap .sand { fill:#f1d89a; }
 .hd-ui .hd-minimap .land { fill:#8cc56a; }
+.hd-ui .hd-minimap .water { fill:#3fa0c4; }
 .hd-ui .hd-minimap .wall { fill:#6d5b4b; }
 .hd-ui .hd-minimap .hq { fill:#a0603a; }
 .hd-ui .hd-minimap .treasure { fill:${gold}; stroke:${ink}; stroke-width:.3; }

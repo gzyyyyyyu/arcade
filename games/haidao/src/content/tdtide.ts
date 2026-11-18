@@ -158,7 +158,7 @@ export const TIDE_MAPS: readonly TideMap[] = [
 // ---------------------------------------------------------------- 波次
 
 /** 敌人解锁的波（0 起）：前几波只有水手，越往后种类越多 */
-const UNLOCK: Record<Exclude<TdEnemyKind, 'skiffling' | 'captain' | 'shield' | 'bosun' | 'macaw' | 'mate'>, number> = { sailor: 0, ironclad: 2, skiff: 4, fog: 5, parrot: 6, sapper: 8, grenadier: 7 };
+const UNLOCK: Record<Exclude<TdEnemyKind, 'skiffling' | 'captain' | 'shield' | 'bosun' | 'macaw' | 'mate' | 'medic' | 'gunboat'>, number> = { sailor: 0, ironclad: 2, skiff: 4, fog: 5, parrot: 6, sapper: 8, grenadier: 7 };
 /** 一个敌人折多少点：和战役同一张表（TD2_ENEMY_POINTS），预算也走同一条公式 */
 const COST = TD2_ENEMY_POINTS;
 /** 大潮的预算按战役里第几关（0 起）的底数算：靠这个把"开局多难"和战役对上，往后的涨幅靠 hpPct 曲线 */

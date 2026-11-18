@@ -297,6 +297,41 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       });
       break;
     }
+    case 'shell': {
+      // 炮艇开炮：船头一团火光，炮弹沿低弧线飞到那座塔（塔哑火的画面是同一拍的 jam 事件）
+      sfx('cannon');
+      const from = W(e.x0, e.y0);
+      const muzzle = { x: from.x + 30, y: from.y - 34 };
+      const to = W(e.x1, e.y1);
+      bs.pt.ringBurst(muzzle.x, muzzle.y, 0.7);
+      const ball = bs.add.circle(muzzle.x, muzzle.y, 5, 0x2f3140).setStrokeStyle(2, 0x111111).setDepth(DEPTH.fxHigh);
+      const prog = { u: 0 };
+      const peak = Math.min(140, 50 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.25);
+      bs.tweens.add({
+        targets: prog,
+        u: 1,
+        duration: Math.max(160, 420 / bs.speed),
+        ease: 'Linear',
+        onUpdate: () => ball.setPosition(muzzle.x + (to.x - muzzle.x) * prog.u, muzzle.y + (to.y - muzzle.y) * prog.u - Math.sin(prog.u * Math.PI) * peak),
+        onComplete: () => {
+          ball.destroy();
+          bs.pt.ringBurst(to.x, to.y - 20, 0.8);
+        },
+      });
+      break;
+    }
+    case 'heal': {
+      // 军医回血：脚下一圈绿光，飘一个绿色的「+」
+      const sp = bs.esp.get(e.id);
+      if (sp) ftx(bs, sp.rig.x, sp.rig.y - 52, '+', '#7dff9a', 20);
+      break;
+    }
+    case 'sail': {
+      // 炮艇停够了开走：飘一句「炮艇开走了」（精灵按局面里的 mode 收掉）
+      const sp = bs.esp.get(e.id);
+      if (sp) ftx(bs, sp.rig.x, sp.rig.y - 60, '炮艇开走了', '#d8f1ff', 15);
+      break;
+    }
     case 'grab': {
       // 摸到宝藏箱抢走：红闪、箱子抖、飘"-N"
       sfx('error');

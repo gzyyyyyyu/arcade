@@ -5,9 +5,15 @@ import { ARMOR_NAME, DAMAGE_NAME } from '../src/view/td-ui.ts';
 import { FOE_MAX, foeText, newFoes } from '../src/view/tdhint.ts';
 
 describe('守岛第一次来某种敌人的提示', () => {
-  it('每种敌人都有一句话，护甲和打它多一半的伤害读克制表', () => {
+  it('每种敌人都有一句话，护甲和打它多一半的伤害读克制表（海上的炮艇只说谁够得着，不说克制）', () => {
     for (const k of Object.keys(TD2_ENEMIES) as TdEnemyKind[]) {
       const t = foeText(k);
+      expect(t.length).toBeLessThanOrEqual(40);
+      if (TD2_ENEMIES[k].shell) {
+        expect(t).not.toContain('打它多一半');
+        expect(t).toContain('8 格');
+        continue;
+      }
       const a = TD_ENEMY_ARMOR[k];
       expect(t).toContain(ARMOR_NAME[a]);
       expect(t).toContain(`${DAMAGE_NAME[bestDamageVs(a)]}打它多一半`);

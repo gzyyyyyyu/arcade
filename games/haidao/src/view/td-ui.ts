@@ -245,6 +245,8 @@ export const ENEMY_HINT: Partial<Record<TdEnemyKind, string>> = {
   bosun: '水手长：狙击、臼炮打它最划算',
   macaw: '鹦鹉王：要多留火枪塔',
   mate: '大副：狙击打本体、臼炮收散开的水手',
+  medic: '军医：先打掉，狙击塔会先瞄它',
+  gunboat: '炮艇：臼炮、鱼叉、火箭、狙击才够得着',
 };
 /** 这一波里出现的、带提醒的敌人，对应的提醒句（没有规则已写的重复） */
 export function enemyHints(p: WavePreview): string[] {
@@ -467,7 +469,7 @@ export function chapterLines(
   };
 }
 
-/** 选关页的章节：战役 18 关按章分好（样板关不在里面） */
+/** 选关页的章节：战役各关按章分好（样板关不在里面） */
 export function campaignChapters(): readonly Td2ChapterInfo[] {
   return TD2_CHAPTERS.filter((c) => c.levels.length > 0);
 }
