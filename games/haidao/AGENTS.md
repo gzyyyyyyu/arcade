@@ -62,7 +62,7 @@ tests/         vitest
 |---|---|
 | `npm ci` | 安装依赖 |
 | `npm run dev` / `npm run preview` | 开发 0.0.0.0:5170 / 预览 0.0.0.0:4170 |
-| `npm test` | 类型检查（页面 + Worker）+ vitest（异步攻防的服务端在 `tests/pvp-*.test.ts`，用内存假存储测 Base、Harbor 和接口） |
+| `npm test` | 类型检查（页面 + Worker）+ vitest（异步攻防的服务端在 `tests/pvp-*.test.ts`，用内存假存储测 Base、Harbor 和接口）。测试由 Node 原生加载（`vite.config.ts` 里关了 Vite 的模块执行器，整局重放快 3 倍多）：相对 import 要写 `.ts` 扩展名，不能用 `vi.mock` |
 | `npm run lint` | Biome 检查（`biome.jsonc` 是全仓统一模板，规则不在模块里改；放行写 `// biome-ignore lint/<组>/<规则>: <理由>`）；提交前要零报告 |
 | `npm run build:cf` | 部署用构建到 `dist-cf/games/haidao/` |
 | `npm run sim -- --n 50` | 机器人（小白、普通）打每一关：星数、胜率、时长、掠夺 |
@@ -74,4 +74,4 @@ tests/         vitest
 | `node tools/perf.ts --out <目录>` | 帧率和卡顿测量（手机降速、桌面两种视口），只看前后对比 |
 | `node tools/cover.ts [输出]` | 生成大厅封面 `public/cover.webp`（800×450，无头浏览器） |
 
-`tests/td-golden.test.ts` 锁守岛的指纹，改守岛数值后要重生成：`GOLDEN_UPDATE=1 npx vitest run --testTimeout=3000000 tests/td-golden.test.ts`；生成后 `git diff tests/td-golden.json` 只许出现预期的键变化，其余键变了就是改坏了。
+`tests/td-golden.json` 锁守岛的指纹（两千多局，按序号分 8 片在 `tests/td-golden-<片>.test.ts` 里并行比，`td-golden.test.ts` 锁键的集合和顺序，说明在 `tests/td-golden-lib.ts`），改守岛数值后要重生成：`node tools/td-golden.ts`（工作线程并行，约 1 分钟）；生成后 `git diff tests/td-golden.json` 只许出现预期的键变化，其余键变了就是改坏了。

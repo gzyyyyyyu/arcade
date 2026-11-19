@@ -2,7 +2,7 @@
  * 护航（守岛的新玩法，DESIGN 第 12 节）的类型和常量：商船沿写死的航线从起点开到终点，海盗上岸追着船咬；
  * 玩家在航线边的木台造塔、英雄贴身守、随时定船速（停 / 巡航 / 冲）、花金币修船。到终点时船剩多少血定星。
  *
- * 只在关卡带 `escort` 字段时生效（TdLevel.escort），守岛现有玩法逐位不变（tests/td-golden.test.ts 不重新生成）；
+ * 只在关卡带 `escort` 字段时生效（TdLevel.escort），守岛现有玩法逐位不变（tests/td-golden.json 不重新生成）；
  * 护航自己的规则版本是 ESCORT_RULES，不动 RULES_VERSION。
  */
 import type { TdLevel } from './tdtypes.ts';

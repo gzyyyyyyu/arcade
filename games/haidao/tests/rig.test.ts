@@ -29,7 +29,7 @@ import {
   WALK_SWING,
   zeroPose,
   type Clip,
-} from '../src/view/rig';
+} from '../src/view/rig.ts';
 
 const loopClip: Clip = {
   loop: true,

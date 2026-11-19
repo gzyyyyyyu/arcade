@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { arcLook, CATCH_MS, HITSTOP_MS, RIG_KINDS, sampleClip, SKEL, SLASH, SMASH, STYLE, stopK, strideOf, PX_PER_TILE, THROW, WALK, WALK_BOB, WALK_SQUASH, WALK_SWING, zeroPose, type Clip, type Pose } from '../src/view/rig';
-import { TROOPS } from '../src/content/troops';
-import { boxOf, DMG_MIN_PX, dmgFontPx, NO_OCC, occludes } from '../src/view/fxlayout';
+import { arcLook, CATCH_MS, HITSTOP_MS, RIG_KINDS, sampleClip, SKEL, SLASH, SMASH, STYLE, stopK, strideOf, PX_PER_TILE, THROW, WALK, WALK_BOB, WALK_SQUASH, WALK_SWING, zeroPose, type Clip, type Pose } from '../src/view/rig.ts';
+import { TROOPS } from '../src/content/troops.ts';
+import { boxOf, DMG_MIN_PX, dmgFontPx, NO_OCC, occludes } from '../src/view/fxlayout.ts';
 
 // 主线 10-30 对小兵动作的四条反馈，能锁的数值锁在这里
 const FRAME = 1000 / 60;
