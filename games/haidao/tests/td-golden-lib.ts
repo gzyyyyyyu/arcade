@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { RULES_SINCE, RULES_VERSION, TIDE_MAPS, runTdBot, tdCampaign, tdFingerprint, tdGrowthProfile, tdGrowthSetup, tdHomeSetup, tideSetup } from '../src/core/index.ts';
+import { RULES_SINCE, RULES_VERSION, TIDE_MAPS, TIDE_MODS_FROM, runTdBot, tdCampaign, tdFingerprint, tdGrowthProfile, tdGrowthSetup, tdHomeSetup, tideMod, tideSetup } from '../src/core/index.ts';
+import { TIDE_MOD_ORDER } from '../src/content/tdtide.ts';
 import type { IsoWeek, TdBotKind, TdSetup } from '../src/core/index.ts';
 import { LIVE_TIER_IDS, tdLiveSetup } from '../src/core/tdlive.ts';
 import { tidePick } from '../src/core/tdtide.ts';
@@ -24,12 +25,14 @@ import { tidePick } from '../src/core/tdtide.ts';
  * - 20（英雄锚钩、海盗来袭加难档）：英雄够 8 级的战役局（机器人会钩）才和 v19- 不同，悬赏守岛、大潮的 v20- 和 v19- 逐个相同（tests/td-hook.test.ts 锁住）；
  *   海盗来袭（主寨 6、8 级，普通档和加难档）从 v20 起才进指纹锁，`v20-home-*`；
  * - 21（海盗来袭的登陆点按布局挑）：只改 `v21-home-*` 里登陆点离宝藏箱不够远的局，别的键 v21- 和 v20- 逐个相同（tests/td-home.test.ts 锁住）。
+ * - 22（关内事件、大潮每周海况）：只改写了 events 的 12 关，别的键 v22- 和 v21- 逐个相同（tests/td-event.test.ts 锁住）；
+ *   大潮每周海况从 v22 起进指纹锁，每条海况挑它轮到的第一周，`v22-tidemod-<海况>-*`。
  * v10 中档 0.29.1 前未开放（线上没有 v10 中档的对局），指纹随 0.29.1 的配平（hpPct 180 → 190）更新，只动了 v10-live-mid-* 9 个键。
  */
 export const GOLDEN_FILE = new URL('./td-golden.json', import.meta.url);
 /** 分片数：GitHub 的机器 4 核，8 片让慢片和别的测试文件错开 */
 export const GOLDEN_SHARDS = 8;
-const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21];
+const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22];
 /** 海盗来袭进指纹锁的主寨等级：6 是加难档开放的那一级，8 是满级 */
 const HOME_HQ = [6, 8];
 const SEEDS = [1, 2, 3];
@@ -48,6 +51,18 @@ function tideWeeks(): IsoWeek[] {
     const week: IsoWeek = { year: 2026 + Math.floor((wk - 1) / 52), week: ((wk - 1) % 52) + 1 };
     const p = tidePick(week);
     if (!p.mirror && !out[p.map]) out[p.map] = week;
+  }
+  return out;
+}
+
+/** 每条大潮海况轮到的第一周（从开始有海况的那周往后找） */
+function modWeeks(): Array<[string, IsoWeek]> {
+  const out: Array<[string, IsoWeek]> = [];
+  for (let i = 0; out.length < TIDE_MOD_ORDER.length && i < 60; i++) {
+    const wk = TIDE_MODS_FROM.week - 1 + i;
+    const week: IsoWeek = { year: TIDE_MODS_FROM.year + Math.floor(wk / 52), week: (wk % 52) + 1 };
+    const mod = tideMod(week, RULES_VERSION);
+    if (mod && !out.some(([m]) => m === mod)) out.push([mod, week]);
   }
   return out;
 }
@@ -77,6 +92,9 @@ export function goldenJobs(): GoldenJob[] {
     weeks.forEach((week, i) => {
       for (const seed of SEEDS) for (const bot of BOTS) one(`tide${i}-${bot}-${seed}`, { ...tideSetup(week, rules), seed }, bot);
     });
+    if (rules >= RULES_SINCE.tdEvents) {
+      for (const [mod, week] of modWeeks()) for (const seed of SEEDS) for (const bot of BOTS) one(`tidemod-${mod}-${bot}-${seed}`, { ...tideSetup(week, rules), seed }, bot);
+    }
     if (rules >= RULES_SINCE.tdHook) {
       for (const hq of HOME_HQ) for (const hard of [false, true]) for (const seed of SEEDS) {
         // 按这一版的规则开局：规则 21 起登陆点按布局挑，开局本身就不一样，不能先按新版开再改 rules

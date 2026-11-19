@@ -168,6 +168,20 @@ export const TIDE_BOSS_EVERY = 8;
 /** 雾区从第几波起起作用（开了这么多波之后）、炸塔工兵的冲击波 */
 export const TIDE_FOG_FROM = 8;
 
+/**
+ * 大潮每周海况（规则版本 22，DESIGN 10.6e）：一周一条，按 TIDE_MOD_ORDER 轮换（相邻两周一定不同）。
+ * 每条都用 td-tide-sim 单独验过（普通机器人 15–25 波、小白不超过普通的 65%）；暴雨、赏金、铁甲三条没过（小白是普通的 70%–78%），按"不硬调"拿掉了。
+ */
+export type TideModId = 'fog' | 'rich' | 'hero';
+export const TIDE_MODS: Readonly<Record<TideModId, { name: string; desc: string }>> = {
+  fog: { name: '大雾周', desc: '雾区从第 1 波起就起作用' },
+  rich: { name: '富港周', desc: '开局金多五成，每个敌人的赏金少两成' },
+  hero: { name: '英雄周', desc: '英雄技能的冷却减半' },
+};
+export const TIDE_MOD_ORDER: readonly TideModId[] = ['fog', 'rich', 'hero'];
+/** 海况的数：富港周开局金、击杀金百分比；英雄周冷却百分比 */
+export const TIDE_MOD_NUM = { richGoldPct: 150, richKillPct: 80, heroCdPct: 50 } as const;
+
 /** 第 w 波（0 起）敌人血量再乘多少百分比：线性往上，10 波后每波再多涨一点 */
 export function tideHpPct(w: number): number {
   return 100 + 9 * w + (w > 10 ? 3 * (w - 10) : 0);

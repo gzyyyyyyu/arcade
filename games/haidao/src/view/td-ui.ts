@@ -8,7 +8,7 @@ import { TD2_HOME } from '../content/td2units.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
   TD_TOWER_DAMAGE, TD_TOWER_KINDS,
-  beijingIsoWeek, branchError, garrisonTier, hqLevel, nextTdUnlock, tdDailyCap, tdGarrisonOptions, tdLevelUnlocked, tideLine, tideMap, weekLabel,
+  TIDE_MODS, beijingIsoWeek, branchError, garrisonTier, hqLevel, nextTdUnlock, tdDailyCap, tdGarrisonOptions, tdLevelUnlocked, tideLine, tideMap, tideMod, weekLabel,
 } from '../core/index.ts';
 import { tideBest } from '../net/tide.ts';
 import { garrisonRec } from './garrisonrec.ts';
@@ -814,13 +814,15 @@ function tideCard(parent: HTMLElement, stars: number, onTide: () => void): void 
   const locked = stars < 1;
   const c = el('div', `hd-tidecard${locked ? ' lock' : ''}`, undefined, parent);
   const mid = el('div', 'hd-tdmid', undefined, c);
-  el('b', 'hd-tdname', locked ? '大潮无尽 · 未解锁' : `大潮无尽 · 第 ${week.week} 周`, mid);
+  // 每周海况（规则版本 22）：名字挂在标题后面，怎么回事写在悬停提示里
+  const mod = tideMod(week);
+  el('b', 'hd-tdname', locked ? '大潮无尽 · 未解锁' : `大潮无尽 · 第 ${week.week} 周${mod ? ` · ${TIDE_MODS[mod].name}` : ''}`, mid);
   if (locked) {
     el('small', 'hd-tdlock', `先守下「${TD2_LEVELS.find((l) => l.id === TIDE_UNLOCK)?.name ?? '第 3 关'}」（第一章第 3 关，≥1 星）`, mid);
   } else {
     const best = tideBest(label);
     el('small', best > 0 ? 'hd-tidebest' : '', best > 0 ? `本周最好：${tideLine(best)}` : `本周守${tideMap(week).name}，比谁撑得久`, mid);
-    c.title = `${week.year} 年第 ${week.week} 周：所有人守同一座岛，波次无限`;
+    c.title = `${week.year} 年第 ${week.week} 周：所有人守同一座岛，波次无限${mod ? `。本周海况「${TIDE_MODS[mod].name}」：${TIDE_MODS[mod].desc}` : ''}`;
   }
   const go = button(locked ? '未解锁' : '出发', locked ? 'hd-btn-plain' : 'hd-btn-gold', onTide, c);
   go.disabled = locked;
@@ -847,6 +849,15 @@ export function waveEnemies(p: WavePreview): Array<{ kind: TdEnemyKind; n: numbe
  * 第二行写潮水和关卡的补充（note），首领波整块变红；第三行"再下一波"只列护甲徽记。点它打开敌人图鉴。
  * tide：涨落的潮这一波开不开（不是涨落的关传 null），laneTitle：登陆路下标 → 北路 / 西路…
  */
+/** 关内事件（规则版本 22）在预告卡第三行、图鉴里的短说法；名字给「再下一波」那一小格 */
+export const EVENT_NAME: Readonly<Record<NonNullable<WavePreview['event']>, string>> = { bounty: '赏金船', rain: '暴雨', dare: '战书' };
+export function eventNote(p: WavePreview): string {
+  if (p.event === 'bounty') return '赏金船上岸，打倒多给金币';
+  if (p.event === 'rain') return '暴雨：火弱两成';
+  if (p.event === 'dare') return p.dare ? '已接战书：金币翻倍' : '有战书可接';
+  return '';
+}
+
 export function planCard(box: HTMLElement, pv: readonly WavePreview[], o: { title: (w: number) => string; left: number; tide: string; laneTitle: (lane: number) => string }): void {
   box.textContent = '';
   const p = pv[0];
@@ -878,13 +889,13 @@ export function planCard(box: HTMLElement, pv: readonly WavePreview[], o: { titl
   const lanes = p.lanes.map((l) => `${o.laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`);
   // 关卡说明和敌人打法只在图鉴里写全（点卡打开）：以前全塞进第三行，后几波长到五六行，盖住出生点和海上的炮艇
   const tips = !!p.note || enemyHints(p).length > 0;
-  const note = [lanes.length ? `${lanes.join('、')}来` : '', o.tide, tips ? '点开看打法' : ''].filter(Boolean).join(' · ');
+  const note = [lanes.length ? `${lanes.join('、')}来` : '', o.tide, eventNote(p), tips ? '点开看打法' : ''].filter(Boolean).join(' · ');
   const q = pv[1];
   if (note || q) {
     const r3 = el('div', 'hd-plan-note', note, box);
     if (q) {
       const nx = el('span', 'hd-plan-next', undefined, r3);
-      el('small', '', q.boss ? '再下一波是首领波' : '再下一波', nx);
+      el('small', '', `${q.boss ? '再下一波是首领波' : '再下一波'}${q.event ? ` · ${EVENT_NAME[q.event]}` : ''}`, nx);
       for (const a of armorOrder(q.armorShare)) armorBadge(a, nx);
     }
   }
@@ -906,7 +917,7 @@ export function bestiary(box: HTMLElement, pv: readonly WavePreview[], title: (w
         el('small', 'hd-best-lane', `${laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`, row);
         for (const e of l.enemies) enemyChip(e.kind, e.n, e.fog, row, 30);
       }
-      const notes = [p.note ?? '', ...enemyHints(p)].filter(Boolean).join(' · ');
+      const notes = [eventNote(p), p.note ?? '', ...enemyHints(p)].filter(Boolean).join(' · ');
       if (notes) el('p', 'hd-td-note', notes, waves);
     });
     // 看得到的这几波里每种敌人一行（两波重复的只写一次）：叫什么、穿什么护甲、什么打它多一半——头像上的单字圆章新玩家看不懂

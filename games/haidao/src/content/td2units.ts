@@ -238,3 +238,17 @@ export const TD2_HOME = {
   slots: [{ x: 5, y: 7 }, { x: 15, y: 7 }, { x: 2, y: 12 }, { x: 15, y: 15 }, { x: 11, y: 19 }, { x: 18, y: 10 }] as ReadonlyArray<{ x: number; y: number }>,
   kegs: [{ x: 10, y: 0 }, { x: 11, y: 0 }, { x: 0, y: 10 }, { x: 0, y: 11 }, { x: 21, y: 10 }] as ReadonlyArray<{ x: number; y: number }>,
 } as const;
+
+/**
+ * 守岛关内事件（规则版本 22，DESIGN 10.6g，core/tdevent.ts）：关卡写了 events 才有，落在哪一波由这一局的种子挑，提前一波写进预告。
+ * - bounty 赏金船：开打 delay 拍后从这一波的一条登陆路上岸一个挂金旗的水手（血量 = 同波水手 × hpMul），不抢宝藏，横穿到最远的另一条登陆路离开；
+ *   打倒给局内金 = 这一波击杀金 × goldPct%（至少 minGold），跑掉没有损失。
+ * - rain 暴雨：这一波开打到下一波开打之间，火的伤害只剩 firePct%、地上的火不烧，飞的速度只剩 airPct%。
+ * - dare 战书：开打前玩家可以接（默认不接）；接了这一波每组敌人多 morePct%（向下取整），这一波的击杀金 × goldMul。
+ * 事件不挑首领波。
+ */
+export const TD2_EVENT = {
+  bounty: { delay: 100, hpMul: 3, goldPct: 40, minGold: 30 },
+  rain: { firePct: 80, airPct: 85 },
+  dare: { morePct: 50, goldMul: 2 },
+} as const;

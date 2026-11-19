@@ -9,7 +9,7 @@
 import { BUILDINGS, DEFENSE_KINDS } from '../content/index.ts';
 import { SHIELD } from '../content/troops.ts';
 import { HERO_RESEARCH_MAX, TD_KEG, TD_MAX_TICKS, TD_PICK_R, TD_SAPPER_WALL_COST, TD_TREASURE, TD_WALL_COST } from '../content/tdunits.ts';
-import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_FLEET, TD2_HERO, TD2_HERO_SKILL, TD2_MINE_REARM_TICKS, TD2_TREASURE_ROLL_TICKS, TD2_UP_PCT } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_EVENT, TD2_FLEET, TD2_HERO, TD2_HERO_SKILL, TD2_MINE_REARM_TICKS, TD2_TREASURE_ROLL_TICKS, TD2_UP_PCT } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
 import { SNIPE_WARN, applyStun, flightTicks, inRing, keepLock, laneOffset, leadPoint, rankTargets, shieldFaces, stunned } from './combat.ts';
 import { Rng, hash32 } from './rng.ts';
@@ -29,6 +29,7 @@ import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech,
 import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus } from './tdquery.ts';
 import { placeHero, stepHero, offSlot } from './tdhero.ts';
 import { castHook, hookEnabled, stepHooked } from './tdhook.ts';
+import { dareCount, heroCd, initHappen, killGold, payBounty, queueBounty, raining, toggleDare } from './tdevent.ts';
 
 /** 敌人在格子里按 id 散开的步长（单位）：同一条路上的敌人错开成几列，不叠成一个点 */
 export const TD_LANE_SPREAD = 18;
@@ -256,6 +257,7 @@ export function createTd(setup: TdSetup): TdState {
   placeHero(s);
   s.hero.post = { x: s.hero.x, y: s.hero.y };
   initMech(s);
+  initHappen(s, setup.seed);
   return s;
 }
 
@@ -317,7 +319,9 @@ function damageEnemy(s: TdState, ev: TdEvent[], e: TdEnemy, dmg: number, h: Hit)
   const m = mult(h, TD_ENEMY_ARMOR[e.kind]);
   if (m <= 0) return;
   const def = TD2_ENEMIES[e.kind];
-  const d = Math.floor((dmg * m) / 100);
+  // 暴雨（规则版本 22）：火的伤害打折
+  const wet = h.dt === 'fire' && raining(s) ? TD2_EVENT.rain.firePct : 100;
+  const d = Math.floor((Math.floor((dmg * wet) / 100) * m) / 100);
   e.hp -= d;
   ev.push({ type: 'hit', id: e.id, dmg: d });
   if (e.hp > 0) return;
@@ -325,7 +329,8 @@ function damageEnemy(s: TdState, ev: TdEvent[], e: TdEnemy, dmg: number, h: Hit)
   e.mode = 'dead';
   ev.push({ type: 'die', id: e.id, kind: e.kind });
   inner(s).kills++;
-  addGold(s, def.gold);
+  addGold(s, killGold(s, e, def.gold));
+  if (e.bounty) payBounty(s, ev, e);
   if (e.carry > 0) {
     s.piles.push({ x: e.x, y: e.y, n: e.carry, at: s.tick });
     ev.push({ type: 'drop', x: e.x, y: e.y, n: e.carry });
@@ -601,12 +606,14 @@ function startWave(s: TdState, ev: TdEvent[], early: boolean): void {
   for (const g of wave.groups) {
     let lane = lv.lanes[g.lane % Math.max(1, lv.lanes.length)] ?? { x: -2, y: 10 };
     if (g.lane === lv.lanes.length) lane = tdTideOpen(s, w) ? (lv.tide as NonNullable<TdLevel['tide']>).lane : (lv.lanes[0] ?? lane);
-    for (let i = 0; i < g.n; i++) {
+    const n = dareCount(s, w, g.n);
+    for (let i = 0; i < n; i++) {
       I.spawns.push({ t: s.tick + (g.delay ?? 0) + i * g.every, kind: g.enemy, x: lane.x * UNIT + 50, y: lane.y * UNIT + 50, wave: w });
       I.waveLeft[w] = (I.waveLeft[w] ?? 0) + 1;
     }
   }
   driftCrates(s, ev, w);
+  queueBounty(s, w);
   s.wave++;
   // 大潮无尽：波次补到 w+ENDLESS_AHEAD，下一波永远有
   if (s.wave < lv.waves.length) {
@@ -742,7 +749,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       const sk = TD2_HERO_SKILL.bomb;
       if (h.respawn >= 0 || s.tick < h.kegReady || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
       if (d2(h.x, h.y, a.x, a.y) > sk.range * sk.range) return;
-      h.kegReady = s.tick + sk.cd;
+      h.kegReady = s.tick + heroCd(s, sk.cd);
       I.pend.push({ t: s.tick + 10, kind: 'heroKeg', id: -1, dmg: tdBombDmg(s), x: Math.round(a.x), y: Math.round(a.y), r: sk.r, hit: HIT_KEG, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0 });
       ev.push({ type: 'hero', what: 'keg' });
       return;
@@ -752,7 +759,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       if (h.respawn >= 0 || s.tick < (h.barricadeReady ?? 0) || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
       const c = barricadeCell(s, a.x, a.y);
       if (!c || d2(h.x, h.y, c.cx * UNIT + 50, c.cy * UNIT + 50) > sk.range * sk.range) return;
-      h.barricadeReady = s.tick + sk.cd;
+      h.barricadeReady = s.tick + heroCd(s, sk.cd);
       const hp = tdBarricadeHp(s);
       const b: TdBarricade = { id: I.nextId++, x: c.cx, y: c.cy, hp, maxHp: hp, until: s.tick + sk.ticks };
       s.barricades.push(b);
@@ -794,6 +801,9 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     case 'hook':
       castHook(s, ev, a.id);
       return;
+    case 'dare':
+      toggleDare(s, ev);
+      return;
     case 'rally':
       // 规则版本 7 起号令是被动（英雄身边的塔攻速加成，见 stepTowers），这条旧命令不做事
       return;
@@ -811,7 +821,16 @@ function stepSpawns(s: TdState, ev: TdEvent[]): void {
       keep.push(sp);
       continue;
     }
-    spawnEnemy(s, ev, sp.kind, sp.x + I.rng.int(81) - 40, sp.y + I.rng.int(81) - 40, sp.x, sp.y, sp.wave);
+    const e = spawnEnemy(s, ev, sp.kind, sp.x + I.rng.int(81) - 40, sp.y + I.rng.int(81) - 40, sp.x, sp.y, sp.wave);
+    if (sp.exit) {
+      // 赏金船（规则版本 22）：血量翻几倍，一上岸就当"回船"往另一条登陆路跑（不抢宝藏、跑掉不算丢）
+      e.bounty = true;
+      e.hp = e.maxHp = e.maxHp * TD2_EVENT.bounty.hpMul;
+      e.mode = 'out';
+      e.hx = sp.exit.x;
+      e.hy = sp.exit.y;
+      ev.push({ type: 'bounty', what: 'come', id: e.id, x: e.x, y: e.y, gold: 0 });
+    }
   }
   I.spawns = keep;
 }
@@ -869,6 +888,7 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
       }
     }
     if (s.tick < e.slowUntil) spd = Math.floor((spd * (100 - e.slowPct)) / 100);
+    if (fly && raining(s)) spd = Math.floor((spd * TD2_EVENT.rain.airPct) / 100);
     spd = Math.max(1, Math.floor(spd / 100));
 
     if (e.mode === 'in') {
@@ -938,6 +958,7 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
       // 回船：飞的直线，走的按流场（墙、拒马照样砸）
       if (d2(e.hx, e.hy, e.x, e.y) <= 60 * 60) {
         e.mode = 'gone';
+        if (e.bounty) ev.push({ type: 'bounty', what: 'gone', id: e.id, x: e.x, y: e.y, gold: 0 });
         if (e.carry > 0) {
           s.lost += e.carry;
           ev.push({ type: 'escape', id: e.id, n: e.carry });
@@ -1390,7 +1411,8 @@ function stepTraps(s: TdState, ev: TdEvent[]): void {
 function stepFires(s: TdState, ev: TdEvent[]): void {
   if (s.fires.length === 0) return;
   s.fires = s.fires.filter((f) => f.until > s.tick);
-  if (s.tick % 10 !== 0) return;
+  // 暴雨（规则版本 22）：地上的火不烧（照样到时间灭）
+  if (s.tick % 10 !== 0 || raining(s)) return;
   for (const f of s.fires) {
     for (const e of s.enemies) {
       if ((e.mode === 'in' || e.mode === 'out') && d2(e.x, e.y, f.x, f.y) <= f.r * f.r) damageEnemy(s, ev, e, Math.floor(f.dps / 2), HIT_BURN);
@@ -1527,6 +1549,11 @@ export function tdFingerprint(s: TdState): number {
   if (s.sluice) parts.push(s.sluice.left, ...s.sluice.shut);
   if (s.battery) parts.push(s.battery.ready);
   if (s.fleet) parts.push(s.fleet.ready, ...(s.fleet.sail ? [s.fleet.sail.p0, s.fleet.sail.t0, s.fleet.sail.next] : [-1]));
+  // 关内事件（规则版本 22）只在有的局里进指纹
+  if (s.happen) {
+    parts.push(-22, ...s.happen.dare);
+    for (const a of s.happen.at) parts.push(a.wave, a.kind === 'bounty' ? 0 : a.kind === 'rain' ? 1 : 2);
+  }
   if (s.drift) {
     parts.push(s.drift.chase);
     for (const c of s.drift.crates) parts.push(c.id, c.until);

@@ -8,6 +8,9 @@ import type {
   Td2Action, Td2Event, TdGarrisonSpot, TdGarrisonTower, TdHomeGen, TdMode, TdPadDef, TdTier, TdTowerKind,
 } from './td2types.ts';
 
+/** 守岛关内事件：赏金船、暴雨、战书（规则版本 22，core/tdevent.ts） */
+export type TdEventKind = 'bounty' | 'rain' | 'dare';
+
 export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield' | 'bosun' | 'macaw' | 'mate' | 'medic' | 'gunboat' | 'king';
 
 export interface TdEnemyDef {
@@ -191,6 +194,14 @@ export interface TdLevel {
    * 必须是只由波数（和写死的种子）决定的纯函数，同一个 setup 才能重放出同一局。
    */
   endless?: (w: number) => TdWave;
+  /**
+   * 关内事件（规则版本 22，core/tdevent.ts）：每条在 [from, to] 波（0 起）里由这一局的种子挑一波发生；规则版本低于 22 的局不起作用
+   */
+  events?: Array<{ kind: TdEventKind; from: number; to: number }>;
+  /** 大潮每周海况：击杀金按这个百分比给（没写 100） */
+  killGoldPct?: number;
+  /** 大潮每周海况：英雄技能的冷却按这个百分比算（没写 100） */
+  heroCdPct?: number;
   /** 雾区从第几波开始起作用（开了几波之后；没写就是一开始就有）。大潮无尽前几分钟轻松，雾区晚点来 */
   fogFrom?: number;
   /** 这一局最多多少拍；没写用 TD_MAX_TICKS（8 分钟） */
@@ -275,6 +286,8 @@ export interface TdEnemy {
   hook?: { cells: number[]; at: number };
   /** 炮艇：哪一拍开走（不带宝藏、不算丢） */
   until?: number;
+  /** 赏金船（规则版本 22）：不抢宝藏，一上岸就往 hx、hy（另一条登陆路）跑，打倒多给局内金 */
+  bounty?: true;
 }
 
 export interface TdTower {

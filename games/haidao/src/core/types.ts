@@ -31,8 +31,9 @@ export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
  * 19 = 守岛第四章后两关：友军巡航船（章末机制）、终局首领海盗王；只有 td23、td24 用得到
  * 20 = 守岛英雄第三个技能锚钩（英雄 8 级、只在战役和海盗来袭）、海盗来袭的加难档（主寨 6 级起、开局选）；悬赏守岛、大潮、护航不变
  * 21 = 海盗来袭的登陆点按玩家的布局挑：写死的登陆点离宝藏箱太近就在同一边挪到够远的地方；只改海盗来袭
+ * 22 = 守岛关内事件（赏金船、暴雨、战书，12 关写了 events）和大潮每周海况（第 48 周起）；别的关、实盘、海盗来袭、护航不变
  */
-export const RULES_VERSION = 21;
+export const RULES_VERSION = 22;
 
 /**
  * 每条规则从哪个版本起生效（上面版本说明的名字版）。核心里一律写 `s.rules >= RULES_SINCE.combat`，不写裸数字，
@@ -68,6 +69,8 @@ export const RULES_SINCE = {
   tdHook: 20,
   /** 21：海盗来袭的登陆点按布局挑（TdHomeGen.rules ≥ 21 才挑，tdhome.ts 的 homeLanes） */
   tdHomeLanes: 21,
+  /** 22：守岛关内事件（赏金船、暴雨、战书，关卡写了 events 才有）和大潮每周海况（tdevent.ts、tdtide.ts） */
+  tdEvents: 22,
 } as const;
 // 不包成 since(s, 'combat') 这样的小函数：一个函数里读各种形状对象（登陆战开局、局面、守岛局面）的 rules，
 // V8 把那一处读取标成多态，内联了也慢；2026-11-15 背靠背量过，登陆战步进慢约 2–6%。调用处直接比，各处只见一种形状。

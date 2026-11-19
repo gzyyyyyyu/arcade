@@ -3,8 +3,8 @@
  * 这里是纯函数：周的算法（北京时间 ISO 周，和平台 platform/src/weekly.ts 对齐）、周种子、图和关卡、得分编码。
  * 图和波次的内容表在 content/tdtide.ts；机器人配平用 tools/td-tide-sim.ts。
  */
-import { TIDE_FOG_FROM, TIDE_MAPS, tideWave } from '../content/tdtide.ts';
-import type { TideMap } from '../content/tdtide.ts';
+import { TIDE_FOG_FROM, TIDE_MAPS, TIDE_MOD_NUM, TIDE_MOD_ORDER, tideWave } from '../content/tdtide.ts';
+import type { TideMap, TideModId } from '../content/tdtide.ts';
 import { BUILDINGS } from '../content/buildings.ts';
 import { hash32 } from './rng.ts';
 import { ISLAND, RULES_SINCE, RULES_VERSION } from './types.ts';
@@ -116,12 +116,34 @@ export function tideMap(w: IsoWeek): TideMap {
  * 第 45 周及以前钉在 13——周中换规则，同一周的榜前后难度不一样，不公平。
  */
 export const TIDE_HERO_AUTO_FROM: IsoWeek = { year: 2026, week: 46 };
+/**
+ * 每周海况（规则版本 22）从 2026 年第 48 周（北京时间 11 月 23 日周一）换榜时才进大潮，第 46、47 周钉在 21——同样是周中不换规则。
+ * 0.47.0 赶不上这个周一就把它往后挪一周，代码里只这一处
+ */
+export const TIDE_MODS_FROM: IsoWeek = { year: 2026, week: 48 };
+const before = (w: IsoWeek, from: IsoWeek): boolean => w.year < from.year || (w.year === from.year && w.week < from.week);
 export function tideRules(w: IsoWeek): number {
-  const before = w.year < TIDE_HERO_AUTO_FROM.year || (w.year === TIDE_HERO_AUTO_FROM.year && w.week < TIDE_HERO_AUTO_FROM.week);
-  return before ? Math.min(RULES_VERSION, RULES_SINCE.tdHeroAuto - 1) : RULES_VERSION;
+  if (before(w, TIDE_HERO_AUTO_FROM)) return Math.min(RULES_VERSION, RULES_SINCE.tdHeroAuto - 1);
+  if (before(w, TIDE_MODS_FROM)) return Math.min(RULES_VERSION, RULES_SINCE.tdEvents - 1);
+  return RULES_VERSION;
 }
 
-export function tideSetup(w: IsoWeek, rules: number = tideRules(w)): TdSetup {
+/** 这一周的周一是第几周（1970-01-05 那个周一起算），只给海况轮换用 */
+function weekIndex(w: IsoWeek): number {
+  const jan4 = daysFromCivil(w.year, 1, 4);
+  const monday1 = jan4 - ((((jan4 + 3) % 7) + 7) % 7);
+  return Math.floor((monday1 + (w.week - 1) * 7 - 4) / 7);
+}
+
+/** 这周的海况：第 48 周以前、规则版本不到 22 的局没有（null）；之后按 TIDE_MOD_ORDER 一周一条轮换 */
+export function tideMod(w: IsoWeek, rules: number = tideRules(w)): TideModId | null {
+  if (rules < RULES_SINCE.tdEvents || before(w, TIDE_MODS_FROM)) return null;
+  const n = TIDE_MOD_ORDER.length;
+  return TIDE_MOD_ORDER[((weekIndex(w) % n) + n) % n] as TideModId;
+}
+
+/** mod 只给配平模拟指定海况用（td-tide-sim --mod）；游戏里一律按周算 */
+export function tideSetup(w: IsoWeek, rules: number = tideRules(w), mod: TideModId | null = tideMod(w, rules)): TdSetup {
   const m = tideMap(w);
   const seed = tideSeed(w);
   const level: TdLevel = {
@@ -147,6 +169,12 @@ export function tideSetup(w: IsoWeek, rules: number = tideRules(w)): TdSetup {
     endless: (n) => tideWave(n, seed, m.lanes.length, true, rules),
     maxTicks: TIDE_MAX_TICKS,
   };
+  if (mod === 'fog') level.fogFrom = 0;
+  if (mod === 'rich') {
+    level.gold = Math.floor((level.gold * TIDE_MOD_NUM.richGoldPct) / 100);
+    level.killGoldPct = TIDE_MOD_NUM.richKillPct;
+  }
+  if (mod === 'hero') level.heroCdPct = TIDE_MOD_NUM.heroCdPct;
   // 狙击塔、盾兵同样这版不进大潮（DESIGN 14）
   // 震荡炮这版不进大潮：机器人有了第 7 种塔挑塔就变，单张图差十几波，周榜中途变难不公平；下周换榜时再放开（DESIGN 13）
   const unlocked = TD_TOWER_KINDS.filter((k) => k !== 'shock' && k !== 'sniper');

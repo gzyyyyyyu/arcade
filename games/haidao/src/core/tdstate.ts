@@ -13,7 +13,7 @@ import type { BuildingKind } from './types.ts';
 import { TD_BURN_DAMAGE, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
 import type { EscortState } from './escorttypes.ts';
 import type { TdArmor, TdBarricade, TdDamage, TdMode, TdTier, TdTowerKind } from './td2types.ts';
-import type { TdBlock, TdEnemy, TdEnemyKind, TdEvent, TdHero, TdLevel, TdSlot, TdTower, TdWall } from './tdtypes.ts';
+import type { TdBlock, TdEnemy, TdEnemyKind, TdEvent, TdEventKind, TdHero, TdLevel, TdSlot, TdTower, TdWall } from './tdtypes.ts';
 
 /** 一发伤害的类型：伤害类型、塔的分叉（克制表的例外看它）、打重甲另加的百分点 */
 export interface Hit {
@@ -82,7 +82,8 @@ export interface Internal {
   rng: Rng;
   nextId: number;
   pend: Pend[];
-  spawns: Array<{ t: number; kind: TdEnemyKind; x: number; y: number; wave: number }>;
+  /** exit：赏金船（规则版本 22）要跑去的另一条登陆路（单位）；带它的上岸就往那里跑，不抢宝藏 */
+  spawns: Array<{ t: number; kind: TdEnemyKind; x: number; y: number; wave: number; exit?: { x: number; y: number } }>;
   /** 每一波还没处理完（没死、没回船、还没登陆）的敌人数 */
   waveLeft: number[];
   /** 不会变的占格（主寨、仓库、宝藏箱等）：0 空 / 2 不能走 */
@@ -164,6 +165,11 @@ export interface TdState {
    * 友军巡航船（规则版本 19 且关卡写了 fleet 才有）：下一次能叫的拍；船在海上时 sail 是这一趟（从一圈上的 p0 出发、t0 拍叫来、until 拍开走、下一炮 next 拍）
    */
   fleet?: { ready: number; sail: { p0: number; t0: number; until: number; next: number } | null };
+  /**
+   * 关内事件和大潮海况（规则版本 22 且关卡写了 events / eventEvery / killGoldPct / heroCdPct 才有，tdevent.ts）：
+   * at 是开局挑好的哪一波发生什么（战役），dare 是接了战书的波（0 起）
+   */
+  happen?: { at: Array<{ wave: number; kind: TdEventKind }>; dare: number[] };
   internal: unknown;
 }
 

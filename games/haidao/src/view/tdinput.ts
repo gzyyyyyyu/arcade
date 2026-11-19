@@ -1,6 +1,6 @@
 import type { TdScene } from './TdScene.ts';
 import { pickHookTarget } from './tdhookfx.ts';
-import { type TdAction, TD2_ECON, tdSluiceCan } from '../core/index.ts';
+import { type TdAction, TD2_ECON, tdDareCan, tdSluiceCan } from '../core/index.ts';
 import { UNIT } from '../core/types.ts';
 import { tdP } from './art.ts';
 import { put } from './ground.ts';
@@ -59,6 +59,14 @@ export function press(bs: TdScene, wx: number, wy: number): void {
 export function callWave(bs: TdScene): void {
   if (bs.s.over) return;
   act(bs, { type: 'call' });
+}
+
+/** 战书（规则版本 22）：take 接、否则不接；和现在的状态一样就不发命令（规则核心 tdDareCan 判） */
+export function pressDare(bs: TdScene, take: boolean): void {
+  const can = tdDareCan(bs.s);
+  if (bs.s.over || !can || (can === 'take') !== take) return;
+  sfx(take ? 'coin' : 'tap');
+  act(bs, { type: 'dare' });
 }
 
 /** 潮汐水闸（4）：关上 / 打开下一波的落潮路；按了没用时说清为什么（规则核心 tdSluiceCan 判，界面不自己算） */
