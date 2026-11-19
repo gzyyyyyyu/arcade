@@ -30,7 +30,7 @@ const put = (u: BUnit, x: number, y: number): void => {
 
 describe('规则版本 9：进攻接入 combat.ts', () => {
   it('当前版本是 10（版本 9 的规则照旧，10 只加震荡炮和掷弹兵，见 content1.test.ts）', () => {
-    expect(RULES_VERSION).toBe(20);
+    expect(RULES_VERSION).toBe(21);
   });
 
   it('锁定：近处又来一个兵，塔接着打原来那个；版本 8 会换', () => {
