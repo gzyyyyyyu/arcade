@@ -44,7 +44,7 @@ It is one module of the Arcade monorepo, but deploys on its own too. Docs below 
 上手就是 `npm ci`、`npm run dev`（打开 http://localhost:5170/，没有平台也能玩：游客身份，存档在浏览器本地）、改完提交前 `npm test`，命令见上表。
 
 - 代码分两层：`src/core/` 是规则核心（纯函数、固定步长、带种子的 RNG，不碰 DOM 和 Phaser，同一种子同一串操作结果逐位相同），`src/view/` 是画面（Phaser 场景和 DOM 界面，只读核心给的状态和事件）。目录和约定见 [AGENTS.md](AGENTS.md)。
-- 改了守岛数值，`tests/td-golden.test.ts` 会失败：确认是有意的改动后，用 `GOLDEN_UPDATE=1 npx vitest run tests/td-golden.test.ts` 重生成指纹（命令细节见 AGENTS.md）。
+- 改了守岛数值，`tests/td-golden-<片>.test.ts` 会失败：确认是有意的改动后，用 `node tools/td-golden.ts` 重生成指纹（命令细节见 AGENTS.md）。
 - 冒烟：`npm run shot -- --out <目录>` 起临时端口、开无头浏览器把主流程走一遍并存截图，控制台有报错会失败。需要先装浏览器：`npx playwright-core install chromium`。
 - 看素材不用浏览器：`npm run art -- <目录>` 把图鉴渲成 PNG。机器人跑配平：`npm run sim -- --n 50`；其余脚本在 `tools/`，用法见 AGENTS.md 的命令表。
 - 服务端（异步攻防的匹配、重放结算、实盘钱包接口）在 `worker/`：`worker/pvp/` 是 Base、Harbor 的逻辑类（测试用内存假存储），`worker/do.ts` 是 Durable Object 外壳。

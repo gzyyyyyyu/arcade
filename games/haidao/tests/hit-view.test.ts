@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DmgTrack, HEAVY_ABS, isHeavyDmg, projDmgKind } from '../src/view/dmgkind';
+import { DmgTrack, HEAVY_ABS, isHeavyDmg, projDmgKind } from '../src/view/dmgkind.ts';
 import {
   charLevel,
   DEATH_CLIP,
@@ -22,8 +22,8 @@ import {
   sampleClip,
   zeroPose,
   type DeathStyle,
-} from '../src/view/rig';
-import { PUDDLE_FADE, PUDDLE_HOLD, puddleLook, tarAt } from '../src/view/tarfx';
+} from '../src/view/rig.ts';
+import { PUDDLE_FADE, PUDDLE_HOLD, puddleLook, tarAt } from '../src/view/tarfx.ts';
 
 describe('受击轻重', () => {
   it('占血量四分之一或绝对值到线算重击', () => {

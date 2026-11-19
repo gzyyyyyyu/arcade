@@ -26,5 +26,11 @@ export default defineConfig({
       },
     },
   },
-  test: { include: ['tests/**/*.test.ts'] },
+  test: {
+    include: ['tests/**/*.test.ts'],
+    // 测试代码交给 Node 原生加载（去类型），不走 Vite 的模块执行器：执行器把每次跨模块调用都变成取属性，
+    // 守岛指纹锁这类整局重放慢 3 倍多（同 40 局 23 秒 / 7 秒）。测试不用 vi.mock、import.meta.vitest，
+    // 源码开着 erasableSyntaxOnly、相对 import 都写 .ts 扩展名，所以 Node 能直接跑；要用 vi.mock 时把这行去掉
+    experimental: { viteModuleRunner: false },
+  },
 });
