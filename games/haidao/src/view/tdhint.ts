@@ -6,7 +6,8 @@
 import { COUNTER, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, bestDamageVs, type TdArmor, type TdDamage, type TdEnemyKind, type TdTowerKind } from '../core/index.ts';
 import type { TdEventKind } from '../core/tdtypes.ts';
 import { ARMOR_NAME, DAMAGE_NAME } from './td-ui.ts';
-import { TD2_ENEMIES } from '../content/td2units.ts';
+import { TD2_ENEMIES, TD2_NAV_SKILL } from '../content/td2units.ts';
+import { TICKS_PER_SEC } from '../core/types.ts';
 
 export const FOE_KEY = 'haidao.hint.foe';
 /** 一次最多提示几种，避免一张卡太长 */
@@ -62,8 +63,10 @@ export function newFoes(kinds: Iterable<TdEnemyKind>, seen: ReadonlySet<string>,
 // ---------------------------------------------------------------- 章末机制（规则版本 16）
 
 export const MECH_KEY = 'haidao.hint.mech';
-/** 章末机制和关内事件（规则版本 22）共用这一套首次提示 */
-export type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet' | TdEventKind;
+/** 航海士技能持续几秒（提示、技能钮的悬停说明共用，跟着 TD2_NAV_SKILL 走） */
+export const navSecs = (k: 'flag' | 'reward'): number => Math.round(TD2_NAV_SKILL[k].ticks / TICKS_PER_SEC);
+/** 章末机制、关内事件（规则版本 22）和第一次带航海士（规则版本 23）共用这一套首次提示 */
+export type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet' | TdEventKind | 'nav';
 
 /** 每种章末机制一句怎么用（每章倒数第二关第一次见到时弹，和新敌人共用一张卡） */
 export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }>> = {
@@ -74,14 +77,17 @@ export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }
   bounty: { name: '赏金船', text: '挂金旗的海盗不抢宝藏、横穿上岛就跑；打倒它多给一笔金币' },
   rain: { name: '暴雨', text: '下雨的那一波火弱两成、地上的火不烧，飞的也慢一点' },
   dare: { name: '战书', text: '开打前可以接：这一波敌人多 1/4，打倒的金币翻倍' },
+  nav: { name: '航海士', text: `急射旗：旗边的塔 ${navSecs('flag')} 秒打得快一倍；重赏：倒在圈里的海盗金币翻倍；提前叫波多拿一半金币` },
 };
 
 /** 这一局有哪些章末机制（只看规则核心建好的状态：旧版本的局、没有机制的关为空） */
 export function mechsOf(s: {
   drift?: unknown; sluice?: unknown; battery?: unknown; fleet?: unknown;
   happen?: { at: ReadonlyArray<{ kind: TdEventKind }> };
+  hero?: { kind?: 'nav' };
 }): MechKind[] {
   const out: MechKind[] = [];
+  if (s.hero?.kind) out.push('nav');
   if (s.drift) out.push('crate');
   if (s.sluice) out.push('sluice');
   if (s.battery) out.push('battery');

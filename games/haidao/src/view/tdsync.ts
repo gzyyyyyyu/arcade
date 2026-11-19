@@ -21,7 +21,7 @@ import { Turret } from './turret.ts';
 import { isTurret, type LandMat } from './aim.ts';
 import { sfx } from './audio/sfx.ts';
 import { DEPTH } from './depth.ts';
-import { stepFog, inFog } from './tdworld.ts';
+import { heroRig, stepFog, inFog } from './tdworld.ts';
 import { W, RIG_OF, ATK_MS, SHIP_FOES, RAIN_DIP, buildCost } from './tdcommon.ts';
 import { padState, boom, drawBars } from './tdoverlay.ts';
 import { wreckOf } from './tdsheet.ts';
@@ -347,9 +347,9 @@ export function sync(bs: TdScene, dt: number): void {
   bs.heroDist += Math.abs(hdx) + Math.abs(hw.y - bs.heroPy);
   // 开枪对齐规则的出手拍（和敌人一样用 atkPhase）：h.cd 是下次能开火的拍，枪口火正好落在子弹飞出那一拍；
   // 边走边开的那一枪按开火事件的时刻补演后半段
-  const clip = STYLE['t.captain'].attack;
+  const clip = STYLE[heroRig(h)].attack;
   const hit = clip.hit ?? 0.42;
-  const reload = tdHeroStats(h.level).reload * STEP_MS;
+  const reload = tdHeroStats(h.level, h.kind).reload * STEP_MS;
   const ams = Math.min(clip.ms ?? ATK_MS, reload * 0.95);
   const sinceShot = bs.time.now - bs.heroShotAt;
   const standing = !moving && heroAttacking(bs);

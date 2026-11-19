@@ -4,7 +4,7 @@
  * - 大潮：tideSetup 按周写 killGoldPct / heroCdPct（和开局金、雾区），同一周所有人一样。
  * 只在规则版本 ≥ 22、关卡写了这些字段时建状态（s.happen），没有的局逐位不变。
  */
-import { TD2_EVENT } from '../content/td2units.ts';
+import { TD2_EVENT, TD2_NAV_SKILL } from '../content/td2units.ts';
 import { Rng } from './rng.ts';
 import { tdWaveLanes } from './tdquery.ts';
 import { addGold, d2, inner, waveGold } from './tdstate.ts';
@@ -45,12 +45,17 @@ export function heroCd(s: TdState, cd: number): number {
   return pct === undefined ? cd : Math.max(1, Math.floor((cd * pct) / 100));
 }
 
-/** 打死一个敌人给多少局内金：大潮海况的击杀金百分比、接了战书的波翻倍 */
+/** 打死一个敌人给多少局内金：大潮海况的击杀金百分比、接了战书的波翻倍，倒在航海士重赏圈里的再翻倍（和战书相乘） */
 export function killGold(s: TdState, e: TdEnemy, base: number): number {
   const h = s.happen;
-  if (!h) return base;
-  let g = s.level.killGoldPct === undefined ? base : Math.floor((base * s.level.killGoldPct) / 100);
-  if (h.dare.includes(e.wave)) g *= TD2_EVENT.dare.goldMul;
+  let g = base;
+  if (h) {
+    if (s.level.killGoldPct !== undefined) g = Math.floor((base * s.level.killGoldPct) / 100);
+    if (h.dare.includes(e.wave)) g *= TD2_EVENT.dare.goldMul;
+  }
+  // 重赏（规则版本 23）：只有航海士的局才有 hero.reward，船长局、旧局走不到这里
+  const rw = s.hero.reward;
+  if (rw && s.tick < rw.until && d2(e.x, e.y, rw.x, rw.y) <= TD2_NAV_SKILL.reward.r * TD2_NAV_SKILL.reward.r) g *= TD2_NAV_SKILL.reward.mul;
   return g;
 }
 

@@ -73,7 +73,7 @@ function followShip(s: TdState): void {
 export function stepHero(s: TdState, ev: TdEvent[]): void {
   const h = s.hero;
   const I = inner(s);
-  const hl = tdHeroStats(h.level);
+  const hl = tdHeroStats(h.level, h.kind);
   if (h.respawn >= 0) {
     if (s.tick < h.respawn) return;
     h.respawn = -1;

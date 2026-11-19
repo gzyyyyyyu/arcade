@@ -10,7 +10,7 @@ import { Rng } from './rng.ts';
 import { waveBudget } from './td2types.ts';
 import type { TdHomeGen, TdHomeReward, TdHomeSnapshot } from './td2types.ts';
 import { heroLevel } from './tdbase.ts';
-import { placeTdLevel, tdBaseBonus, tdGrant, tdRunReward, tdUnlockedTowers } from './tdrun.ts';
+import { heroKindOf, placeTdLevel, tdBaseBonus, tdGrant, tdRunReward, tdUnlockedTowers } from './tdrun.ts';
 import type { TdPlacedLevel } from './tdrun.ts';
 import type { TdEnemyKind, TdGroup, TdResult, TdSetup, TdWave } from './tdtypes.ts';
 import { ISLAND, RULES_SINCE, RULES_VERSION } from './types.ts';
@@ -140,6 +140,8 @@ export function tdHomeSetup(p: Profile, seed: number, hard = false, rules = RULE
     bonus: tdBaseBonus(p),
     unlocked: tdUnlockedTowers(p),
     home: gen,
+    // 航海士（规则版本 23）：按旧版本重放时不写，旧局逐位一样
+    ...((gen.rules ?? RULES_VERSION) >= RULES_SINCE.tdNav ? heroKindOf(p) : {}),
   };
   return ok((gen.rules ?? 9) >= RULES_SINCE.tdHomeLanes ? { ...setup, level: { ...setup.level, ...homeLanes(setup) } } : setup);
 }

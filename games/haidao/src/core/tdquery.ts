@@ -2,7 +2,7 @@
  * 守岛给界面和机器人的查询（不改状态）：登陆点和落潮路、到宝藏的路线、波次预告、造塔能不能放、卖塔退钱、清障和叫波的价。英雄自己守的站位也用这里的路线。
  */
 import { TD_WALL_COST } from '../content/tdunits.ts';
-import { TD2_ECON, TD2_ENEMIES } from '../content/td2units.ts';
+import { TD2_ECON, TD2_ENEMIES, TD2_NAV_SKILL } from '../content/td2units.ts';
 import { INF, cellOf, cellX, cellY, nextCell } from './grid.ts';
 import { UNIT } from './types.ts';
 import { TD_ARMORS, TD_ENEMY_ARMOR, bestDamageVs } from './td2types.ts';
@@ -246,14 +246,15 @@ export function tdClearCost(s: TdState, id: number): number {
 
 /**
  * 现在叫下一波能拿多少金、抵掉多少拍英雄技能冷却：
- * 金 = ⌊下一波击杀金 × 剩余倒数 ÷ 这段倒数总长 × callPct%⌋，冷却 = 剩余倒数 × callCdPct%。没有下一波、已经到点为 0。
+ * 金 = ⌊下一波击杀金 × 剩余倒数 ÷ 这段倒数总长 × callPct%⌋（航海士的被动精打细算再 × TD2_NAV_SKILL.call.pct%），冷却 = 剩余倒数 × callCdPct%。没有下一波、已经到点为 0。
  */
 export function tdCallBonus(s: TdState): { gold: number; cdCut: number } {
   if (s.wave >= s.level.waves.length || s.next <= s.tick) return { gold: 0, cdCut: 0 };
   const left = s.next - s.tick;
   const total = Math.max(left, inner(s).cdTotal);
+  const gold = Math.floor((waveGold(s.level, s.wave) * left * TD2_ECON.callPct) / (total * 100));
   return {
-    gold: Math.floor((waveGold(s.level, s.wave) * left * TD2_ECON.callPct) / (total * 100)),
+    gold: s.hero.kind ? Math.floor((gold * TD2_NAV_SKILL.call.pct) / 100) : gold,
     cdCut: Math.floor((left * TD2_ECON.callCdPct) / 100),
   };
 }

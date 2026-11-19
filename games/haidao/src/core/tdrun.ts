@@ -93,6 +93,16 @@ export function tdChapterCleared(stars: Readonly<Record<string, number>>, chapte
   return cs.length > 0 && cs.every((l) => (stars[l.id] ?? 0) >= 1);
 }
 
+/** 航海士（规则版本 23）解锁了没有：守岛第一章的关都至少 1 星 */
+export function navUnlocked(p: Profile): boolean {
+  return tdChapterCleared(p.td?.stars ?? {}, 1);
+}
+
+/** 开局写进 setup 的英雄：存档选了航海士、已经解锁才写（不信存档里的选择），否则不写（船长，setup 和规则 22 一样） */
+export function heroKindOf(p: Profile): { heroKind?: 'nav' } {
+  return p.heroPick === 'nav' && navUnlocked(p) ? { heroKind: 'nav' } : {};
+}
+
 /** 战役关表：TD2_LEVELS 里 id 是 td 加两位数的关（样板关之类的不进战役），按 index 排成一条线 */
 export function tdCampaign(): TdIslandLevel[] {
   return TD2_LEVELS.filter((l) => /^td\d\d$/.test(l.id)).sort((a, b) => a.index - b.index);
@@ -314,6 +324,7 @@ export function startTd2(p: Profile, levelId: string, seed: number, picks: reado
     garrison,
     bonus: tdBaseBonus(p),
     unlocked: tdUnlockedTowers(p),
+    ...heroKindOf(p),
   });
 }
 
@@ -340,7 +351,7 @@ export type TdGrowth = 'zero' | 'suggest' | 'max';
  * 按养成档位造一份存档（模拟器、单测用，不进正式流程）：主寨等级、防御塔、英雄研究按档位摆好，战役全部 1★（哪一关都开着）。
  * 塔的坐标只是占位（存档里不校验摆放），守岛 2.0 只看每种塔的最高等级和分叉。
  */
-export function tdGrowthProfile(level: Pick<TdLevel, 'hq'>, growth: TdGrowth): Profile {
+export function tdGrowthProfile(level: Pick<TdLevel, 'hq'>, growth: TdGrowth, hero?: 'nav'): Profile {
   const p0 = newProfile();
   const hq = growth === 'max' ? HQ_LEVELS.length : Math.max(1, Math.min(HQ_LEVELS.length, level.hq));
   // 新档自带的防御塔也去掉：每种塔只留下面按档位摆的那一座
@@ -360,13 +371,14 @@ export function tdGrowthProfile(level: Pick<TdLevel, 'hq'>, growth: TdGrowth): P
     base: { buildings, nextId },
     research: { ...p0.research, hero: growth === 'zero' ? 1 : hq },
     td: { stars, day: 0, gotGold: 0, gotWood: 0 },
+    ...(hero ? { heroPick: hero } : {}),
   };
 }
 
-/** 按养成档位开一局（td-sim 用）：tdGrowthProfile + tdAutoPicks + startTd2 */
-export function tdGrowthSetup(levelId: string, growth: TdGrowth, seed: number): Result<TdSetup> {
+/** 按养成档位开一局（td-sim 用）：tdGrowthProfile + tdAutoPicks + startTd2；hero = 'nav' 带航海士 */
+export function tdGrowthSetup(levelId: string, growth: TdGrowth, seed: number, hero?: 'nav'): Result<TdSetup> {
   const lv = TD2_LEVEL_BY_ID.get(levelId);
   if (!lv) return err('unknown');
-  const p = tdGrowthProfile(lv, growth);
+  const p = tdGrowthProfile(lv, growth, hero);
   return startTd2(p, levelId, seed, tdAutoPicks(p, levelId));
 }

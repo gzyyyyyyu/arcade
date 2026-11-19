@@ -146,7 +146,7 @@ export class TdScene extends Phaser.Scene {
   /** 结算「原因」用的局内记录（tdevents.ts 写、tdresult.ts 读） */
   reasonLog: ReasonLog = newReasonLog();
   /** 瞄准中的技能：keg 炸药桶、barricade 拒马 */
-  mode: 'none' | 'keg' | 'barricade' | 'battery' | 'hook' = 'none';
+  mode: 'none' | 'keg' | 'barricade' | 'battery' | 'hook' | 'flag' | 'reward' = 'none';
   /** 正在演的锚钩（tdhookfx.ts） */
   hooks: HookFx[] = [];
   /** 友军巡航船的图（第一次出海时建，tdworld.ts 的 syncFleet 每帧摆） */
@@ -185,7 +185,7 @@ export class TdScene extends Phaser.Scene {
   edgeT = 0;
   hintTimer: Phaser.Time.TimerEvent | null = null;
   /** 点在黄圈外的技能：英雄先走过去，够得着了自动放（tdinput.ts 的 stepSkillQ 每拍看一次） */
-  skillQ: { m: 'keg' | 'barricade'; ux: number; uy: number; wx: number; wy: number; range: number; until: number } | null = null;
+  skillQ: { m: 'keg' | 'barricade' | 'reward' | 'flag'; ux: number; uy: number; wx: number; wy: number; range: number; until: number } | null = null;
   /** 玩家按了暂停（顶栏的暂停钮、电脑 P 键）：和开面板一样只停画面层的推进，核心照旧只认拍数 */
   userPaused = false;
   /** 刚扔出去的火药桶落点（世界坐标），hero 事件来时画抛物线 */
@@ -353,7 +353,7 @@ export class TdScene extends Phaser.Scene {
       }
       return pagePoint(this.cc.toScreen(w.x, w.y));
     };
-    app.api.tdInfo = () => ({ tick: s.tick, wave: s.wave, vault: s.vault, lost: s.lost, gold: s.gold, over: s.over, slots: s.slots.map((q) => ({ x: q.x + 1, y: q.y + 1, tower: q.tower, wreck: wreckOf(this, q) !== null, garrison: q.garrison !== undefined })), flags: this.plan.flagCount, routes: this.plan.routeCount, barricades: s.barricades?.length ?? 0, hero: { x: s.hero.x / UNIT, y: s.hero.y / UNIT, goal: s.hero.goal ? { x: s.hero.goal.x / UNIT, y: s.hero.goal.y / UNIT } : null }, jammed: s.towers.filter((t) => tdJammed(s, t.id)).length, skilled: (s.internal as { skilled: Set<number> }).skilled.size, objects: countObjects(this), events: s.happen?.at ?? [], dare: s.happen?.dare ?? [], raining: raining(s) });
+    app.api.tdInfo = () => ({ tick: s.tick, wave: s.wave, vault: s.vault, lost: s.lost, gold: s.gold, over: s.over, slots: s.slots.map((q) => ({ x: q.x + 1, y: q.y + 1, tower: q.tower, wreck: wreckOf(this, q) !== null, garrison: q.garrison !== undefined })), flags: this.plan.flagCount, routes: this.plan.routeCount, barricades: s.barricades?.length ?? 0, hero: { x: s.hero.x / UNIT, y: s.hero.y / UNIT, goal: s.hero.goal ? { x: s.hero.goal.x / UNIT, y: s.hero.goal.y / UNIT } : null, kind: s.hero.kind, flag: !!s.hero.flag && s.tick < s.hero.flag.until, reward: !!s.hero.reward && s.tick < s.hero.reward.until }, jammed: s.towers.filter((t) => tdJammed(s, t.id)).length, skilled: (s.internal as { skilled: Set<number> }).skilled.size, objects: countObjects(this), events: s.happen?.at ?? [], dare: s.happen?.dare ?? [], raining: raining(s) });
     app.api.units = () => s.enemies.filter((e) => e.mode === 'in' || e.mode === 'out').map((e) => ({ id: e.id, kind: e.kind, mode: e.mode, hp: e.hp, maxHp: e.maxHp, x: e.x / UNIT, y: e.y / UNIT, gx: e.gx, gy: e.gy, bounty: !!e.bounty }));
     app.api.follow = (id, z = 3) => {
       this.followT = id === null ? null : { id, z, x: 0, y: 0 };

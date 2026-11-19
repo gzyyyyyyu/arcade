@@ -4,7 +4,7 @@
  * 进度一样时取最近玩过的。另一份会被 cloud.ts 先备份到 haidao.profile.pre-sync。
  */
 import { ESCORT_LEVELS } from '../content/index.ts';
-import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, COSMETICS, SKILLS, HERO_RESEARCH_MAX, RANKS, tdCampaign, TROOPS, canPlace, hqLevel, newProfile, sanitizeBranch, tdDailyCap, totalStars } from '../core/index.ts';
+import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, COSMETICS, SKILLS, HERO_RESEARCH_MAX, RANKS, tdCampaign, TROOPS, canPlace, hqLevel, navUnlocked, newProfile, sanitizeBranch, tdDailyCap, totalStars } from '../core/index.ts';
 import type { Placed, Profile } from '../core/types.ts';
 import { isObj } from '../core/validate.ts';
 
@@ -98,6 +98,8 @@ export function reviveSave(raw: unknown): Save | null {
     const got = (v: unknown, max: number): number => (isNum(v) && v >= 0 ? Math.min(max, Math.floor(v)) : 0);
     profile.td = { stars, day: isInt(p.td.day, 0, 1e7) ? p.td.day : 0, gotGold: got(p.td.gotGold, cap.gold), gotWood: got(p.td.gotWood, cap.wood) };
   }
+  // 守岛带哪个英雄：只认航海士，而且要第一章已经通关（别的值、没解锁的都按船长，不写这个字段）
+  if (p.heroPick === 'nav' && navUnlocked(profile)) profile.heroPick = 'nav';
   // 海盗王阶：0..10；攒了一半的 rankFund 不能超过下一阶的价（满阶就不留）
   if (isInt(p.rank, 1, RANKS.length)) profile.rank = p.rank;
   else delete profile.rank;

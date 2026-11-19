@@ -7,7 +7,7 @@
  *   （旧版开局只造 2 座攒到第 5 波、有钱先升阶：那是机器人自己把自己饿死，不是玩法；叫波的条件太严也几乎从不触发）
  */
 import { BRANCH_LEVEL, branchOptions } from '../content/branches.ts';
-import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO_SKILL, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO_SKILL, TD2_NAV_SKILL, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { Rng } from './rng.ts';
 import { createTd, stepTd, tdResult, tdUpCost } from './td.ts';
 import { tdSluiceCan } from './tdmech.ts';
@@ -15,13 +15,13 @@ import { tdDareCan } from './tdevent.ts';
 import { hookTarget } from './tdhook.ts';
 import { tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund } from './tdquery.ts';
 import { isqrt } from './fmath.ts';
-import { tdHeroStats, tdTowerRange } from './tdstate.ts';
+import { tcx, tcy, tdHeroStats, tdTowerRange } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
 import { cellX, cellY } from './grid.ts';
 import { TD_ARMORS, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
 import type { TdArmor, TdTowerKind, WavePreview } from './td2types.ts';
 import { UNIT } from './types.ts';
-import type { TdAction, TdResult, TdSetup, TdTower } from './tdtypes.ts';
+import type { TdAction, TdEnemy, TdResult, TdSetup, TdTower } from './tdtypes.ts';
 
 export type TdBotKind = 'novice' | 'normal' | 'greedy';
 
@@ -160,7 +160,7 @@ export function crateSafe(s: TdState, box: { x: number; y: number }): boolean {
   const tr = s.treasures[0];
   if (!tr || s.piles.length > 0) return false;
   if (d2(box.x, box.y, s.hero.x, s.hero.y) > 600 * 600) return false;
-  const trip = Math.floor((2 * isqrt(d2(box.x, box.y, s.hero.x, s.hero.y))) / Math.max(1, tdHeroStats(s.hero.level).speed));
+  const trip = Math.floor((2 * isqrt(d2(box.x, box.y, s.hero.x, s.hero.y))) / Math.max(1, tdHeroStats(s.hero.level, s.hero.kind).speed));
   if (s.next >= 0 && s.next - s.tick < trip) return false;
   const r = 8 * UNIT;
   for (const e of s.enemies) {
@@ -298,6 +298,65 @@ function focusSlots(s: TdState): Set<number> {
 }
 
 /** 造一个机器人：返回"看一眼状态 → 这一拍的操作"的函数（自己记着种子流和上次的决定） */
+/** 射程内的活敌人数（minRange 以内的打不到，不算） */
+function inReach(s: TdState, tw: TdTower, live: readonly TdEnemy[]): TdEnemy[] {
+  const { range, minRange } = tdTowerRange(s, tw);
+  const cx = tcx(tw);
+  const cy = tcy(tw);
+  return live.filter((e) => {
+    const d = d2(e.x, e.y, cx, cy);
+    return d <= range * range && d >= minRange * minRange;
+  });
+}
+
+/**
+ * 航海士的急射旗插在哪（冷却没好、没有值得插的为 null）：以英雄够得着的每座「正在打」的塔（射程里有首领，或有 3 个以上敌人）的中心为候选，
+ * 数圈里正在打的塔有几座，挑最多的；同样多挑有首领的，再同样按塔的编号顺序取先到的
+ */
+export function flagSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y: number } | null {
+  const h = s.hero;
+  const fl = TD2_NAV_SKILL.flag;
+  if (h.respawn >= 0 || s.tick < (h.barricadeReady ?? 0)) return null;
+  const busy: Array<{ x: number; y: number; boss: number }> = [];
+  for (const tw of s.towers) {
+    const near = inReach(s, tw, live);
+    const boss = near.some((e) => !!TD2_ENEMIES[e.kind].aura || e.kind === 'king') ? 1 : 0;
+    if (boss || near.length >= 3) busy.push({ x: tcx(tw), y: tcy(tw), boss });
+  }
+  let best: { x: number; y: number; n: number; boss: number } | null = null;
+  for (const c of busy) {
+    if (d2(c.x, c.y, h.x, h.y) > fl.range * fl.range) continue;
+    let n = 0;
+    let boss = 0;
+    for (const o of busy) {
+      if (d2(o.x, o.y, c.x, c.y) > fl.r * fl.r) continue;
+      n++;
+      boss = Math.max(boss, o.boss);
+    }
+    if (!best || n > best.n || (n === best.n && boss > best.boss)) best = { x: c.x, y: c.y, n, boss };
+  }
+  return best ? { x: best.x, y: best.y } : null;
+}
+
+/**
+ * 航海士的重赏画在哪（冷却没好、没有扎堆为 null）：英雄投得到、圈里有 3 个以上敌人、那一点至少两座塔打得到，按敌人顺序取第一个
+ */
+export function rewardSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y: number } | null {
+  const h = s.hero;
+  const rw = TD2_NAV_SKILL.reward;
+  if (h.respawn >= 0 || s.tick < h.kegReady) return null;
+  for (const e of live) {
+    if (d2(e.x, e.y, h.x, h.y) > rw.range * rw.range) continue;
+    let n = 0;
+    for (const o of live) if (d2(o.x, o.y, e.x, e.y) <= rw.r * rw.r) n++;
+    if (n < 3) continue;
+    let cover = 0;
+    for (const tw of s.towers) if (inReach(s, tw, [e]).length > 0) cover++;
+    if (cover >= 2) return { x: e.x, y: e.y };
+  }
+  return null;
+}
+
 export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}): TdBot {
   const pickKind = (s: TdState, pv: WavePreview[]): TdTowerKind => (opts.only && s.unlocked.includes(opts.only) ? opts.only : counterKind(s, pv));
   const rng = new Rng(seed, `td-bot-${kind}`);
@@ -488,8 +547,14 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
       const ground = live.filter((e) => !isAir(e));
       const skills = opts.skills !== false;
       // 炸药桶：投得到的地方有 3 个以上扎堆
+      if (skills && h.kind) {
+        const f = flagSpot(s, live);
+        if (f) out.push({ t, type: 'flag', x: f.x, y: f.y });
+        const r = rewardSpot(s, live);
+        if (r) out.push({ t, type: 'reward', x: r.x, y: r.y });
+      }
       const bomb = TD2_HERO_SKILL.bomb;
-      if (skills && t >= h.kegReady) {
+      if (skills && !h.kind && t >= h.kegReady) {
         for (const e of ground) {
           if (d2(e.x, e.y, h.x, h.y) > bomb.range * bomb.range) continue;
           let n = 0;
@@ -502,7 +567,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
       }
       // 拒马：去抢的地面敌人有 3 个以上在英雄够得着的地方，拦在走得最靠前的那个前面两格
       const bar = TD2_HERO_SKILL.barricade;
-      if (skills && t >= (h.barricadeReady ?? 0)) {
+      if (skills && !h.kind && t >= (h.barricadeReady ?? 0)) {
         const near = ground.filter((e) => e.mode === 'in' && d2(e.x, e.y, h.x, h.y) <= (bar.range + 200) * (bar.range + 200));
         if (near.length >= 3) {
           let lead = near[0]!;

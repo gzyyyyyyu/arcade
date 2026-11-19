@@ -1,5 +1,5 @@
 /**
- * 守岛 2.0 配平模拟：node tools/td-sim.ts [--level td07] [--n 200] [--parts main,anti,hero,care,budget,layouts] [--json] [--from 1] [--rules 13]
+ * 守岛 2.0 配平模拟：node tools/td-sim.ts [--level td07] [--n 200] [--parts main,anti,hero,care,budget,layouts] [--json] [--from 1] [--rules 13] [--hero nav]
  * 18 关（关卡岛 + 驻守台，建议养成的存档）各打 n 局（种子 from..from+n-1），按验收表（DESIGN 10.7）出数：
  *   main    小白、稳（普通）、贪三种机器人的星数分布，稳 / 贪的三星率差，局末没花掉的金币占比；
  *   anti    反压制：把稳机器人造的塔全换成一种（喷火 / 火枪 / 加农各量一次，取最高的）；
@@ -7,11 +7,13 @@
  *   care    养成三档：零养成（只有主寨）、建议养成、满养成（主寨 8 级满配）；
  *   budget  预算 ±2% 时稳机器人的三星率（> 15 点说明这关太悬崖，改地图不改数）；
  *   curve   稳机器人的三星率随预算百分比怎么变（--pcts 70,85,100,115,130），配平时找"预算差多少才对上目标"用。
+ * --hero nav 带航海士（规则版本 23）；每格另记经济：局末没花掉的金币占收入的比例（余金）、第几波开打时木台全都是三阶塔（升满阶，没升满的局不算，另给升满的局占比）。
  * 默认只跑 main；全部：--parts main,anti,hero,care,budget。大批量拆成每关一片在 CI 上跑（--json 出可合并的汇总），
  * 再 `node tools/td-sim.ts --merge 片1.json 片2.json …` 合并成表（本机只跑小样本，用 nice）。
  */
 import { readFileSync } from 'node:fs';
-import { RULES_VERSION, TD_ENEMY_ARMOR, runTdBot, tdGrowthSetup } from '../src/core/index.ts';
+import { RULES_VERSION, TD_ENEMY_ARMOR, createTd, stepTd, tdBotActions, tdGrowthSetup, tdResult } from '../src/core/index.ts';
+import type { TdState } from '../src/core/index.ts';
 import type { TdArmor, TdBotKind, TdBotOpts, TdGrowth, TdSetup } from '../src/core/index.ts';
 import { buildLevel, TD2_LEVEL_DEFS } from '../src/content/td2levels.ts';
 import { argv, flag, num, opt } from './args.ts';
@@ -26,6 +28,7 @@ const parts = new Set((opt('--parts') ?? 'main').split(','));
 // --rules 13：按旧规则版本打（比规则改动前后，同一份代码两次跑）
 const rulesOpt = opt('--rules') ? Number(opt('--rules')) : undefined;
 const pcts = (opt('--pcts') ?? '70,85,100,115,130').split(',').map(Number);
+const hero = opt('--hero') === 'nav' ? ('nav' as const) : undefined;
 
 // ---------------------------------------------------------------- 一局
 
@@ -38,16 +41,37 @@ interface Played {
   /** 局末没花掉的金币、整局的收入（开局金 + 局内挣的） */
   left: number;
   income: number;
+  /** 第几波开打时木台（不算还压着沉船的）全是三阶塔；没升满为 -1 */
+  full: number;
+}
+
+/** 能造的木台全是三阶塔了（驻守台、压着沉船的不算；一座都没有不算） */
+function allMaxed(s: TdState): boolean {
+  let n = 0;
+  for (const sl of s.slots) {
+    if (sl.garrison !== undefined || sl.wreck !== undefined) continue;
+    const t = sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
+    if (t?.tier !== 3) return false;
+    n++;
+  }
+  return n > 0;
 }
 
 function play(setup: TdSetup, kind: TdBotKind, o: TdBotOpts): Played {
-  const { result: r, state: s } = runTdBot(setup, kind, o);
-  return { stars: r.stars, lost: r.lost, waves: r.waves, total: r.total, ticks: r.ticks, left: s.gold, income: setup.level.gold + s.goldEarned };
+  const s = createTd(setup);
+  const bot = tdBotActions(kind, setup.seed, o);
+  let full = -1;
+  while (!s.over) {
+    stepTd(s, bot(s));
+    if (full < 0 && allMaxed(s)) full = s.wave;
+  }
+  const r = tdResult(s);
+  return { stars: r.stars, lost: r.lost, waves: r.waves, total: r.total, ticks: r.ticks, left: s.gold, income: setup.level.gold + s.goldEarned, full };
 }
 
 /** 养成三档：zero 零养成、suggest 建议养成、max 满养成（tdGrowthSetup）；预算不是 100 时换成按百分比缩放的波次 */
 function setupOf(id: string, seed: number, growth: TdGrowth, budgetPct = 100): TdSetup {
-  const r = tdGrowthSetup(id, growth, seed);
+  const r = tdGrowthSetup(id, growth, seed, hero);
   if (!r.ok) throw new Error(`${id}: ${r.error}`);
   const v = rulesOpt === undefined ? r.value : { ...r.value, rules: rulesOpt };
   if (budgetPct === 100) return v;
@@ -66,9 +90,12 @@ export interface Cell {
   left: number;
   income: number;
   waves0: number;
+  /** 升满阶的局数、这些局升满时的波数之和（旧的 json 没有，按 0 合并） */
+  fullN: number;
+  fullW: number;
 }
 
-const blank = (): Cell => ({ n: 0, dist: [0, 0, 0, 0], lost: 0, ticks: 0, left: 0, income: 0, waves0: 0 });
+const blank = (): Cell => ({ n: 0, dist: [0, 0, 0, 0], lost: 0, ticks: 0, left: 0, income: 0, waves0: 0, fullN: 0, fullW: 0 });
 
 function run(id: string, kind: TdBotKind, growth: TdGrowth, o: TdBotOpts = {}, budgetPct = 100): Cell {
   const c = blank();
@@ -81,6 +108,10 @@ function run(id: string, kind: TdBotKind, growth: TdGrowth, o: TdBotOpts = {}, b
     c.left += r.left;
     c.income += r.income;
     if (r.stars === 0) c.waves0 += r.waves;
+    if (r.full >= 0) {
+      c.fullN++;
+      c.fullW += r.full;
+    }
   }
   return c;
 }
@@ -138,6 +169,10 @@ const se2 = (c: Cell | undefined): number => {
   const p = c.dist[3] / c.n;
   return 200 * Math.sqrt((p * (1 - p)) / c.n);
 };
+/** 局末没花掉的金币占整局收入 */
+const leftPct = (c: Cell | undefined): string => (c && c.income > 0 ? `${f0((100 * c.left) / c.income)}%` : '-');
+/** 升满阶：平均第几波（1 起）、升满的局占比 */
+const fullAt = (c: Cell | undefined): string => (c && c.fullN > 0 ? `${(c.fullW / c.fullN).toFixed(1)}（${f0((100 * c.fullN) / c.n)}%）` : '-');
 /** 验收目标：第 i 关（0 起）普通三星率 85 − 3i */
 const target = (i: number): number => 85 - 3 * i;
 
@@ -156,6 +191,8 @@ function merge(a: LevelRaw[]): LevelRaw[] {
       m.left += c.left;
       m.income += c.income;
       m.waves0 += c.waves0;
+      m.fullN += c.fullN ?? 0;
+      m.fullW += c.fullW ?? 0;
     }
   }
   return [...out.values()].sort((x, y) => x.id.localeCompare(y.id));
@@ -163,8 +200,8 @@ function merge(a: LevelRaw[]): LevelRaw[] {
 
 function table(levels: LevelRaw[]): string {
   const rows: string[] = [];
-  rows.push('| 关 | 稳 3★ (±2SE) | 目标 | 稳 0★ | 小白 ≥1★ | 贪 3★ | 稳-贪 | 反压制 3★（塔） | 差 | 不放技能 | 不走位 | 零养成 | 满养成 | 预算 98 / 102 | 余金 |');
-  rows.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  rows.push('| 关 | 稳 3★ (±2SE) | 目标 | 稳 0★ | 小白 ≥1★ | 贪 3★ | 稳-贪 | 反压制 3★（塔） | 差 | 不放技能 | 不走位 | 零养成 | 满养成 | 预算 98 / 102 | 余金 稳 / 贪 | 升满阶 稳 / 贪 |');
+  rows.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   const prev: number[] = [];
   for (const l of levels) {
     const i = TD2_LEVEL_DEFS.findIndex((d) => d.id === l.id);
@@ -180,10 +217,11 @@ function table(levels: LevelRaw[]): string {
       antiDiff = f0(norm - pct(best[1], 3));
     }
     const bud = c['budget.98'] && c['budget.102'] ? `${f0(pct(c['budget.98'], 3))} / ${f0(pct(c['budget.102'], 3))}` : '-';
-    const left = c.normal && c.normal.income > 0 ? `${f0((100 * c.normal.left) / c.normal.income)}%` : '-';
+    const left = `${leftPct(c.normal)} / ${leftPct(c.greedy)}`;
+    const full = `${fullAt(c.normal)} / ${fullAt(c.greedy)}`;
     rows.push(
       `| ${l.id} | ${f0(norm)}% ± ${f0(se2(c.normal))} | ${target(i)}% | ${f0(c.normal ? (100 * c.normal.dist[0]) / c.normal.n : NaN)}% | ${f0(pct(c.novice, 1))}% | ${f0(pct(c.greedy, 3))}% | ${f0(Math.abs(norm - pct(c.greedy, 3)))} | ${anti} | ${antiDiff} | ` +
-        `${f0(pct(c['hero.noskill'], 3))}% | ${f0(pct(c['hero.nomove'], 3))}% | ${f0(pct(c['care.none'], 3))}% | ${f0(pct(c['care.full'], 3))}% | ${bud} | ${left} |`,
+        `${f0(pct(c['hero.noskill'], 3))}% | ${f0(pct(c['hero.nomove'], 3))}% | ${f0(pct(c['care.none'], 3))}% | ${f0(pct(c['care.full'], 3))}% | ${bud} | ${left} | ${full} |`,
     );
   }
   const steps = levels.slice(1).map((l, k) => `${l.id}:${f0(pct(l.cells.normal, 3) - prev[k]!)}`);
@@ -216,5 +254,5 @@ if (flag('--merge')) {
     if (!json) console.error(`${id} 完成 ${Math.round((Date.now() - t0) / 1000)} 秒`);
   }
   if (json) console.log(JSON.stringify(raws));
-  else console.log(`每格 ${n} 局（种子 ${from}–${from + n - 1}），建议养成的存档；目标列 = 验收表的稳三星率\n\n${table(raws)}`);
+  else console.log(`每格 ${n} 局（种子 ${from}–${from + n - 1}），建议养成的存档，英雄${hero ? '航海士' : '船长'}；目标列 = 验收表的稳三星率\n\n${table(raws)}`);
 }

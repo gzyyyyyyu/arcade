@@ -42,6 +42,7 @@ export { tdSluiceCan } from './tdmech.ts';
 export { eventAt, heroCd, killGold, raining, tdDareCan } from './tdevent.ts';
 export { TD_HERO_GUARD } from './tdhero.ts';
 export { hookEnabled, hookable } from './tdhook.ts';
+export { flagOn, navEnabled } from './tdnav.ts';
 export type { TdState } from './tdstate.ts';
 export { branchError, chooseBranch, hasBranches, heroCap, heroLevel, heroResearchCost, pvpSnapshot, researchHero, sanitizeBranch } from './tdbase.ts';
 export { donateRank, rankLeft, rankOf } from './rank.ts';
@@ -53,7 +54,7 @@ export { SNIPE_WARN, STUN_IMMUNE_MUL, applyStun, shieldFaces, stunned } from './
 export type { Stunnable } from './combat.ts';
 export { LEAD_MAX, flightTicks, inRing, keepLock, laneOffset, leadPoint, rankTargets } from './combat.ts';
 export type { Mover } from './combat.ts';
-export { startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdChapterCleared, tdGarrisonOptions, tdGrowthProfile, tdGrowthSetup, tdUnlockedTowers } from './tdrun.ts';
+export { heroKindOf, navUnlocked, startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdChapterCleared, tdGarrisonOptions, tdGrowthProfile, tdGrowthSetup, tdUnlockedTowers } from './tdrun.ts';
 export type { TdGrowth, TdPlacedLevel } from './tdrun.ts';
 export { TD_BRANCH_DESC, TD_BRANCH_MOD } from '../content/tdbranches.ts';
 export type { TdBranchMod } from '../content/tdbranches.ts';

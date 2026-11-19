@@ -105,17 +105,26 @@ export function pickBattery(bs: TdScene): void {
   updateHud(bs, true);
 }
 
-/** 技能 1 拒马 / 2 炸药桶 / 锚钩：进入瞄准（再点一次取消），地上画英雄身边能放的范围 */
-export function pickSkill(bs: TdScene, m: 'keg' | 'barricade' | 'hook'): void {
+/** 进入瞄准的提示：船长 1 拒马 / 2 炸药桶 / 锚钩，航海士 1 急射旗 / 2 重赏 */
+const AIM_TIP: Record<'keg' | 'barricade' | 'hook' | 'flag' | 'reward', string> = {
+  keg: '点地面扔炸药桶（黄圈外的话英雄先走过去）',
+  hook: '点黄圈里金圈标着的敌人，把它钩回来定住（首领和船钩不动）',
+  barricade: '点路面放拒马（黄圈外的话英雄先走过去），地面敌人要砸开才能过',
+  flag: '点地面插急射旗（黄圈外的话英雄先走过去），旗边的塔打得快一倍',
+  reward: '点地面画重赏圈（黄圈外的话英雄先走过去），倒在圈里的海盗金币翻倍',
+};
+
+/** 英雄技能：进入瞄准（再点一次取消），地上画英雄身边能放的范围 */
+export function pickSkill(bs: TdScene, m: 'keg' | 'barricade' | 'hook' | 'flag' | 'reward'): void {
   const h = bs.s.hero;
   if (h.respawn >= 0) return toast('英雄倒下了，等他复活');
-  const ready = m === 'keg' ? h.kegReady : m === 'hook' ? (h.hookReady ?? 0) : (h.barricadeReady ?? 0);
+  // 技能二（炸药桶 / 重赏）走 kegReady，技能一（拒马 / 急射旗）走 barricadeReady（core/tdnav.ts）
+  const ready = m === 'keg' || m === 'reward' ? h.kegReady : m === 'hook' ? (h.hookReady ?? 0) : (h.barricadeReady ?? 0);
   if (bs.s.tick < ready) return sfx('error');
   bs.mode = bs.mode === m ? 'none' : m;
   bs.skillQ = null;
   closeSheet(bs);
-  const tip = m === 'keg' ? '点地面扔炸药桶（黄圈外的话英雄先走过去）' : m === 'hook' ? '点黄圈里金圈标着的敌人，把它钩回来定住（首领和船钩不动）' : '点路面放拒马（黄圈外的话英雄先走过去），地面敌人要砸开才能过';
-  hintText(bs, bs.mode === m ? tip : '');
+  hintText(bs, bs.mode === m ? AIM_TIP[m] : '');
   bs.hud.hint.classList.remove('bad');
   // 提示只挂 2.5 秒：之后靠地上的黄圈提示范围，不一直占着屏幕
   bs.hintTimer?.remove();
@@ -167,13 +176,14 @@ export function tap(bs: TdScene, wx: number, wy: number): void {
     hintText(bs, '');
     bs.hud.hint.classList.remove('bad');
     // 瞄着技能点到了木台：当成想造塔，退出瞄准、开面板（以前会被当成落点吞掉；敌人走路面，不会站在木台的占地格上）
-    const pad = slotFoot(bs, ux, uy);
+    // 急射旗本来就是往塔堆里插，点到木台照样插旗
+    const pad = m === 'flag' ? -1 : slotFoot(bs, ux, uy);
     if (pad >= 0) {
       updateHud(bs, true);
       return showSlot(bs, pad);
     }
     const h = s.hero;
-    const range = m === 'keg' ? SKILL.bomb.range : SKILL.barricade.range;
+    const range = m === 'keg' ? SKILL.bomb.range : m === 'reward' ? SKILL.reward.range : m === 'flag' ? SKILL.flag.range : SKILL.barricade.range;
     if (Math.hypot(h.x - ux, h.y - uy) <= range) return castSkill(bs, m, ux, uy, wx, wy);
     queueSkill(bs, m, ux, uy, wx, wy, range);
     return;
@@ -266,11 +276,12 @@ function tapHook(bs: TdScene, wx: number, wy: number, ux: number, uy: number): v
 }
 
 /** 在够得着的地方放技能 */
-function castSkill(bs: TdScene, m: 'keg' | 'barricade', ux: number, uy: number, wx: number, wy: number): void {
+function castSkill(bs: TdScene, m: 'keg' | 'barricade' | 'reward' | 'flag', ux: number, uy: number, wx: number, wy: number): void {
   if (m === 'keg') {
     act(bs, { type: 'keg', x: ux, y: uy });
     bs.kegAim = { x: wx, y: wy };
-  } else act(bs, { type: 'barricade', x: ux, y: uy });
+  } else if (m === 'reward' || m === 'flag') act(bs, { type: m, x: ux, y: uy });
+  else act(bs, { type: 'barricade', x: ux, y: uy });
   updateHud(bs, true);
 }
 
@@ -281,7 +292,7 @@ const SKILL_WALK_TICKS = 200;
  * 落点在黄圈外：英雄先朝落点走到够得着的地方，到了自动放（像《王国保卫战》）。
  * 走和放都是普通操作（move、keg / barricade），按拍记进操作序列，回放照样一致；规则核心不用改。
  */
-function queueSkill(bs: TdScene, m: 'keg' | 'barricade', ux: number, uy: number, wx: number, wy: number, range: number): void {
+function queueSkill(bs: TdScene, m: 'keg' | 'barricade' | 'reward' | 'flag', ux: number, uy: number, wx: number, wy: number, range: number): void {
   const h = bs.s.hero;
   if (h.respawn >= 0) return;
   const d = Math.hypot(ux - h.x, uy - h.y);
@@ -289,7 +300,7 @@ function queueSkill(bs: TdScene, m: 'keg' | 'barricade', ux: number, uy: number,
   act(bs, { type: 'move', x: Math.round(h.x + (ux - h.x) * k), y: Math.round(h.y + (uy - h.y) * k) });
   bs.skillQ = { m, ux, uy, wx, wy, range, until: bs.s.tick + SKILL_WALK_TICKS };
   moveMark(bs, wx, wy);
-  hintText(bs, m === 'keg' ? '英雄走过去再扔' : '英雄走过去再放拒马');
+  hintText(bs, m === 'keg' ? '英雄走过去再扔' : m === 'reward' ? '英雄走过去再画重赏圈' : m === 'flag' ? '英雄走过去再插旗' : '英雄走过去再放拒马');
   bs.hintTimer?.remove();
   bs.hintTimer = bs.time.delayedCall(1800, () => hintText(bs, ''));
   updateHud(bs, true);

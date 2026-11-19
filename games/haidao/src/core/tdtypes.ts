@@ -237,6 +237,8 @@ export interface TdSetup {
   unlocked?: TdTowerKind[];
   /** 守岛 2.0 海盗来袭：波次生成参数 */
   home?: TdHomeGen;
+  /** 带哪个英雄（规则版本 23）：'nav' 航海士；没写 = 船长。只在战役和海盗来袭起作用（tdnav.ts 的 navEnabled） */
+  heroKind?: 'nav';
 }
 
 export type TdAction =
@@ -343,13 +345,20 @@ export interface TdHero {
   /** 要清的障碍 id，-1 没有 */
   clear: number;
   cd: number;
+  /** 技能二下次能放的拍：船长是炸药桶，航海士是重赏（叫波抵冷却、补给箱刷新都对两个英雄一样） */
   kegReady: number;
   rallyReady: number;
   aim: number;
-  /** 守岛 2.0：拒马下次能放的拍（炸药桶沿用 kegReady） */
+  /** 技能一下次能放的拍：船长是拒马（守岛 2.0），航海士是急射旗 */
   barricadeReady?: number;
   /** 锚钩（规则版本 20）下次能放的拍；这一局没有锚钩（版本、模式、英雄等级不够）为 undefined，旧局的指纹因此不变 */
   hookReady?: number;
+  /** 航海士（规则版本 23）；船长不写，旧局和船长局的指纹因此不变 */
+  kind?: 'nav';
+  /** 急射旗：插在 (x, y)（单位），圈里的塔 until 拍之前装填减半 */
+  flag?: { x: number; y: number; until: number };
+  /** 重赏：(x, y)（单位）圈里 until 拍之前倒下的敌人击杀金翻倍 */
+  reward?: { x: number; y: number; until: number };
   /** 守点：玩家最后一次让他走到的地方（开局是出生点）；没手动指令时在守点附近迎敌，追远了回来 */
   post?: { x: number; y: number };
 }
@@ -382,7 +391,7 @@ export type TdEvent =
   | { type: 'escape'; id: number; n: number }
   | { type: 'wall'; id: number; destroyed: boolean }
   | { type: 'block'; id: number }
-  | { type: 'hero'; what: 'down' | 'up' | 'keg' | 'rally' | 'barricade' | 'hook' }
+  | { type: 'hero'; what: 'down' | 'up' | 'keg' | 'rally' | 'barricade' | 'hook' | 'flag' | 'reward' }
   | { type: 'jam'; id: number; until: number }
   /** 震荡炮震晕了一个敌人（DESIGN 13），until 拍之前不走 */
   | { type: 'stun'; id: number; until: number }

@@ -4,7 +4,7 @@ import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
 import { ell, line, path, pieceRaw as piece, poly, rect, skull as skullPic, tube } from './kit.ts';
 
-type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | 'treasure' | 'sluice' | 'battery' | 'hook' | 'rain' | 'dare' | SkillKind;
+type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | 'treasure' | 'sluice' | 'battery' | 'hook' | 'rain' | 'dare' | 'rushFlag' | 'reward' | SkillKind;
 
 function starPts(r1: number, r2: number): Pt[] {
   const a: Pt[] = [];
@@ -79,6 +79,14 @@ function make(kind: IconKind): string {
       // 战书：卷起两头的羊皮纸，中间一枚红火漆
       return rect(-11, -12, 22, 22, '#f1dca0', { sw: 2.2 }) + ell(-11, -1, 3, 11, C.woodL!, { sw: 1.8 }) + ell(11, -1, 3, 11, C.woodL!, { sw: 1.8 }) +
         line([-6, -6], [6, -6], C.ink!, 1.4) + line([-6, -2], [4, -2], C.ink!, 1.4) + ell(2, 6, 5, 5, C.red!, { sw: 1.8 }) + ell(2, 6, 2, 2, '#ffb3a3', { sw: 0 });
+    case 'rushFlag':
+      // 急射旗：木杆上一面深青三角旗、金边，旗下两道速度线（航海士的主色，和船长的红分开）
+      return line([-9, 14], [-9, -14], C.woodD!, 3.4) + ell(-9, -15, 2.2, 2.2, C.gold!, { sw: 1.2 }) + path('M-8,-13 L13,-7 L-8,0 Z', '#1f7a8c', { sw: 2.2 }) +
+        path('M-8,-13 L13,-7 L-8,0', 'none', { stroke: C.gold!, sw: 1.4 }) + line([-4, 5], [10, 5], '#fff', 2.2, 0.85) + line([-2, 10], [8, 10], '#fff', 2.2, 0.85);
+    case 'reward':
+      // 重赏：鼓鼓的钱袋扎着绳，袋口冒两枚金币，右下「×2」
+      return path('M-11,13 Q-15,1 -6,-4 L6,-4 Q15,1 11,13 Z', '#b07a3a', { sw: 2.2 }) + path('M-6,-4 L-8,-9 L8,-9 L6,-4', 'none', { stroke: C.woodDD!, sw: 2.2 }) +
+        ell(-3, -12, 4.4, 4.4, C.gold!, { sw: 1.6 }) + ell(4, -13, 4.4, 4.4, C.gold!, { sw: 1.6 }) + path('M4,5 l6,6 M10,5 l-6,6', 'none', { stroke: '#fff6c0', sw: 2.4 }) + path('M12,5 h4 l-4,6 h4', 'none', { stroke: '#fff6c0', sw: 1.8 });
     case 'trophy':
       return path('M-9,-12 L9,-12 L8,0 Q0,8 -8,0 Z', C.gold!, { sw: 2.2 }) + path('M-9,-9 Q-16,-9 -13,-2 Q-11,2 -8,1 M9,-9 Q16,-9 13,-2 Q11,2 8,1', 'none', { stroke: C.ink!, sw: 2.2 }) + rect(-2, 5, 4, 5, C.goldD!, { sw: 1.6 }) + rect(-7, 10, 14, 4, C.woodD!, { sw: 1.8 }) + path('M-6,-10 Q-6,-2 -3,2', 'none', { stroke: C.goldL!, sw: 2, op: 0.9 });
     case 'shieldOn':

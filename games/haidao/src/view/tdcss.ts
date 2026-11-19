@@ -66,7 +66,14 @@ function tdCss(): string {
 .hd-ui .hd-tdmodes .hd-tidecard { width:auto; margin:0 0 10px; }
 .hd-ui .hd-homecard { background:linear-gradient(#fff1d6,${cream}); }
 .hd-ui .hd-homecard .hd-home-hard { min-width:60px; }
+/* 加难、带谁、出发三个钮一组，放不下时（手机横竖屏）整组换到第二行靠右，说明不被挤成一字一行 */
+.hd-ui .hd-homecard { flex-wrap:wrap; row-gap:6px; }
+.hd-ui .hd-homecard .hd-tdmid { flex:1 1 150px; }
+.hd-ui .hd-homecard .hd-home-acts { display:flex; gap:10px; margin-left:auto; }
 .hd-ui .hd-homecard .hd-home-hard.on { background:#c0392b; color:#fff8ec; border-color:${ink}; }
+/* 带哪个英雄：航海士用她外套的深青色，船长是默认的木色 */
+.hd-ui :is(.hd-homecard,.hd-tdgar-btns) .hd-tdhero { min-width:92px; white-space:nowrap; flex:0 1 auto; }
+.hd-ui :is(.hd-homecard,.hd-tdgar-btns) .hd-tdhero.on { background:#1f7a8c; color:#fff8ec; border-color:${ink}; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdcard.next { border-color:${gold}; box-shadow:0 3px 0 ${ink}, 0 0 0 3px ${gold}, 0 0 14px ${gold}; }
 .hd-ui .hd-tdrule { font-weight:700; }
 /* 窄屏上星级规则、选关页标题折行时两行匀开，不剩一个字孤零零挂在第二行（「…算输」「…驻守台」） */

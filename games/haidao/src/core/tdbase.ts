@@ -74,7 +74,9 @@ export function researchHero(p: Profile): Result<Profile> {
  * （守岛进度 td、每日悬赏 daily、成就和称号、王阶攒了一半的 rankFund），快照小一点（上限 16 KB）。王阶 rank 留着，只给对面看王旗。
  */
 export function pvpSnapshot(p: Profile): Profile {
-  const { td: _td, daily: _daily, title: _title, rankFund: _fund, ...rest } = p;
+  // 守岛带哪个英雄（heroPick）是自己的偏好，别人打我的岛时驻岛英雄照旧是船长（battle.ts 的 RAID_HERO），不上传
+  const { td: _td, daily: _daily, title: _title, rankFund: _fund, heroPick: _pick, ...rest } = p;
+  void _pick;
   void _td;
   void _daily;
   void _title;
