@@ -1,4 +1,5 @@
 import type { BaseScene } from './BaseScene.ts';
+import { TD2_HERO_SKILL } from '../content/td2units.ts';
 import { BUILDINGS, TROOPS, SKILLS, HQ_LEVELS } from '../content/index.ts';
 import { heroCap, heroLevel, heroResearchCost, hqLevel, researchLevel, research, researchCost, researchHero, totalStars, upgrade, upgradeCost, collect } from '../core/index.ts';
 import type { TroopKind, SkillKind, Placed } from '../core/types.ts';
@@ -185,6 +186,12 @@ function heroRow(bs: BaseScene, body: HTMLElement, armoryId: number): HTMLElemen
   const nm = el('span', '', `守岛英雄  ${cur} 级`, row);
   nm.style.flex = '1';
   nm.title = cap > 8 ? '9 级起只加守岛和海盗来袭，别人来打你的岛时按 8 级算' : `最高到主寨等级（${cap} 级）；主寨 8 级后能升到 12 级`;
+  // 8 级的新技能写在名字下面（守岛和海盗来袭里多一个锚钩），升级前就看得到盼头
+  if (cur < TD2_HERO_SKILL.hook.level) {
+    const nx = el('small', 'hd-hero-next', `${TD2_HERO_SKILL.hook.level} 级解锁新技能「锚钩」`, nm);
+    nx.style.display = 'block';
+    nx.style.fontSize = '12px';
+  }
   const cost = heroResearchCost(cur);
   const r = researchHero(p);
   const b = button('', 'hd-btn-gold', () => {

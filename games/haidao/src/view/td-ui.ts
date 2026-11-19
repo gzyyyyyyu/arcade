@@ -3,7 +3,8 @@ import { TD2_ENEMIES } from '../content/td2units.ts';
 import { TD2_CHAPTERS } from '../content/tdmaps.ts';
 import type { Td2ChapterInfo } from '../content/tdmaps.ts';
 import { ISLAND, RULES_VERSION, UNIT } from '../core/types.ts';
-import { levelForRules, tdBuildRange } from '../core/index.ts';
+import { levelForRules, tdBuildRange, tdHomeHardOpen } from '../core/index.ts';
+import { TD2_HOME } from '../content/td2units.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
   TD_TOWER_DAMAGE, TD_TOWER_KINDS,
@@ -514,7 +515,7 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
   // 悬赏守岛（实盘）入口：没登录、单独部署（liveState.off）时 onLive 不传
   if (onLive) button('悬赏守岛（实盘）', 'hd-btn-gold hd-tdsel-live', onLive, top);
   const modes = el('div', 'hd-tdmodes', undefined, left);
-  homeCard(modes, p.td?.stars[HOME_UNLOCK] ?? 0, () => onGo(HOME_ID));
+  homeCard(modes, p.td?.stars[HOME_UNLOCK] ?? 0, tdHomeHardOpen(hqLevel(p)), () => onGo(HOME_ID));
   if (onTide) tideCard(modes, p.td?.stars[TIDE_UNLOCK] ?? 0, onTide);
   // 默认打开"下一关要打的"那一章：第一个还没拿到星的已解锁关；全拿过星就停在最后一章
   const nextIdx = all.findIndex((lv, i) => open(i) && (p.td?.stars[lv.id] ?? 0) === 0);
@@ -768,15 +769,35 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
 }
 
 /** 选关页上的"海盗来袭"入口：守自己的岛，撑得越久奖励越多，不算星 */
-function homeCard(parent: HTMLElement, stars: number, onHome: () => void): void {
+/** 加难档的奖励比普通档多几成（四舍五入，8% 比 6% 是 3 成；结算页同一个说法） */
+export function hardMore(): number {
+  return Math.round(((TD2_HOME.hard.perWavePct - TD2_HOME.perWavePct) * 10) / TD2_HOME.perWavePct);
+}
+
+function homeCard(parent: HTMLElement, stars: number, hardOpen: boolean, onHome: () => void): void {
   const locked = stars < 1;
   const c = el('div', `hd-tidecard hd-homecard${locked ? ' lock' : ''}`, undefined, parent);
   const mid = el('div', 'hd-tdmid', undefined, c);
   el('b', 'hd-tdname', locked ? '海盗来袭 · 未解锁' : '海盗来袭', mid);
   if (locked) el('small', 'hd-tdlock', `先守下「${TD2_LEVELS.find((l) => l.id === HOME_UNLOCK)?.name ?? '第 1 关'}」（≥1 星）`, mid);
   else {
-    el('small', '', '守自己的岛，撑几波拿几波的奖励', mid);
+    const line = el('small', '', '', mid);
+    const say = (): void => {
+      line.textContent = hardOpen && app.homeHard ? `加难：海盗多、有精英，奖励多 ${hardMore()} 成` : '守自己的岛，撑几波拿几波的奖励';
+    };
+    say();
     c.title = '海盗一波比一波多；不算星，和关卡共用今日守岛收入';
+    // 加难档（主寨 6 级起）：开关只在够级时出现，默认关；和关卡共用今日守岛收入，奖励多也不会超
+    if (hardOpen) {
+      const hard = button('加难', `hd-btn-plain hd-home-hard${app.homeHard ? ' on' : ''}`, () => {
+        app.homeHard = !app.homeHard;
+        hard.classList.toggle('on', app.homeHard);
+        hard.setAttribute('aria-pressed', String(app.homeHard));
+        say();
+      }, c);
+      hard.setAttribute('aria-pressed', String(app.homeHard));
+      hard.title = `海盗多约两成、第 6 波起有精英；每撑住一波的奖励从 ${TD2_HOME.perWavePct}% 提到 ${TD2_HOME.hard.perWavePct}%（一局三星的百分比）`;
+    } else app.homeHard = false;
   }
   const go = button(locked ? '未解锁' : '出发', locked ? 'hd-btn-plain' : 'hd-btn-gold', onHome, c);
   go.disabled = locked;

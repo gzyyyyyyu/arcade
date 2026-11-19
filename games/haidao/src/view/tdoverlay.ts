@@ -11,6 +11,7 @@ import type { Turret } from './turret.ts';
 import { DEPTH } from './depth.ts';
 import { tdBarList, W, SKILL, HATCH } from './tdcommon.ts';
 import { foeTier, type FoeTier } from './tdboss.ts';
+import { drawHookAim, drawHooks } from './tdhookfx.ts';
 
 export function drawBars(bs: TdScene): void {
   const g = bs.bars;
@@ -81,6 +82,8 @@ export function drawBars(bs: TdScene): void {
     }
   }
   drawAim(bs, f, now, z);
+  drawHooks(bs, f, z);
+  if (bs.mode === 'hook') drawHookAim(bs, f, now);
   // 技能瞄准：英雄身边能放的范围（拒马、炸药桶）；老炮全岛都够得着，不画
   if (bs.mode === 'keg' || bs.mode === 'barricade') {
     const w = W(h.x, h.y);

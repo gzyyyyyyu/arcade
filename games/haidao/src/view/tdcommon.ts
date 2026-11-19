@@ -40,10 +40,11 @@ export function buildCost(k: TdTowerKind): number {
 
 export const HATCH = hatchSegments(9);
 
-/** 英雄技能的范围（单位）和冷却（拍）：1 拒马、2 炸药桶 */
+/** 英雄技能的范围（单位）和冷却（拍）：1 拒马、2 炸药桶、锚钩（8 级起） */
 export const SKILL = {
   barricade: { range: TD2_HERO_SKILL.barricade.range, cd: TD2_HERO_SKILL.barricade.cd },
   bomb: { range: TD2_HERO_SKILL.bomb.range, cd: TD2_HERO_SKILL.bomb.cd },
+  hook: { range: TD2_HERO_SKILL.hook.range, cd: TD2_HERO_SKILL.hook.cd },
 } as const;
 
 /** 弹道：[素材, 弧度, 要不要朝飞行方向转] */

@@ -271,6 +271,8 @@ export interface TdEnemy {
   py?: number;
   /** 每 10 拍记一次位置（拖拽用），最多 6 个 */
   trail: number[];
+  /** 被锚钩拉着（规则版本 20）：从 at 拍起每 perCell 拍走完一格，按顺序走到 cells（格下标）的格中心；走完删掉 */
+  hook?: { cells: number[]; at: number };
   /** 炮艇：哪一拍开走（不带宝藏、不算丢） */
   until?: number;
 }
@@ -333,6 +335,8 @@ export interface TdHero {
   aim: number;
   /** 守岛 2.0：拒马下次能放的拍（炸药桶沿用 kegReady） */
   barricadeReady?: number;
+  /** 锚钩（规则版本 20）下次能放的拍；这一局没有锚钩（版本、模式、英雄等级不够）为 undefined，旧局的指纹因此不变 */
+  hookReady?: number;
   /** 守点：玩家最后一次让他走到的地方（开局是出生点）；没手动指令时在守点附近迎敌，追远了回来 */
   post?: { x: number; y: number };
 }
@@ -365,7 +369,7 @@ export type TdEvent =
   | { type: 'escape'; id: number; n: number }
   | { type: 'wall'; id: number; destroyed: boolean }
   | { type: 'block'; id: number }
-  | { type: 'hero'; what: 'down' | 'up' | 'keg' | 'rally' | 'barricade' }
+  | { type: 'hero'; what: 'down' | 'up' | 'keg' | 'rally' | 'barricade' | 'hook' }
   | { type: 'jam'; id: number; until: number }
   /** 震荡炮震晕了一个敌人（DESIGN 13），until 拍之前不走 */
   | { type: 'stun'; id: number; until: number }

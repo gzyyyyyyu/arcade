@@ -4,7 +4,7 @@ import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
 import { ell, line, path, pieceRaw as piece, poly, rect, skull as skullPic, tube } from './kit.ts';
 
-type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | 'treasure' | 'sluice' | 'battery' | SkillKind;
+type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | 'treasure' | 'sluice' | 'battery' | 'hook' | SkillKind;
 
 function starPts(r1: number, r2: number): Pt[] {
   const a: Pt[] = [];
@@ -66,6 +66,11 @@ function make(kind: IconKind): string {
       return rect(-14, 4, 26, 10, C.stone!, { sw: 2 }) + line([-14, 9], [12, 9], C.stoneD!, 1.2) +
         path('M-12,4 L-12,-2 Q-10,-8 -2,-8 L12,-12 L14,-6 L0,2 Z', '#b07a3a', { sw: 2.2 }) + ell(13, -9, 2.6, 3.6, '#2b1a15', { sw: 1.4 }) +
         ell(-7, 5, 5, 5, C.woodD!, { sw: 1.8 }) + ell(-7, 5, 1.6, 1.6, C.gold!, { sw: 0 }) + path('M14,-14 q4,-4 1,-8 q5,1 5,6', 'none', { stroke: '#c9ccd4', sw: 2.2 });
+    case 'hook':
+      // 锚钩：左上一截铁链，下面一只三爪铁钩（中间的柄带一个环）
+      return ell(-11, -12, 3.2, 2.2, 'none', { stroke: C.ironD!, sw: 2.2 }) + ell(-7, -8, 2.2, 3.2, 'none', { stroke: C.ironD!, sw: 2.2 }) + ell(-3, -4, 3.2, 2.2, 'none', { stroke: C.ironD!, sw: 2.2 }) +
+        line([1, -1], [4, 9], C.ink!, 5) + line([1, -1], [4, 9], C.ironL!, 2.4) + ell(1, -2, 2.6, 2.6, 'none', { stroke: C.ink!, sw: 2 }) +
+        path('M4,9 Q-6,11 -8,1 L-5,3 M4,9 Q14,10 13,0 L10,3 M4,9 L5,14', 'none', { stroke: C.ink!, sw: 4.4 }) + path('M4,9 Q-6,11 -8,1 L-5,3 M4,9 Q14,10 13,0 L10,3 M4,9 L5,14', 'none', { stroke: C.iron!, sw: 2.2 });
     case 'trophy':
       return path('M-9,-12 L9,-12 L8,0 Q0,8 -8,0 Z', C.gold!, { sw: 2.2 }) + path('M-9,-9 Q-16,-9 -13,-2 Q-11,2 -8,1 M9,-9 Q16,-9 13,-2 Q11,2 8,1', 'none', { stroke: C.ink!, sw: 2.2 }) + rect(-2, 5, 4, 5, C.goldD!, { sw: 1.6 }) + rect(-7, 10, 14, 4, C.woodD!, { sw: 1.8 }) + path('M-6,-10 Q-6,-2 -3,2', 'none', { stroke: C.goldL!, sw: 2, op: 0.9 });
     case 'shieldOn':

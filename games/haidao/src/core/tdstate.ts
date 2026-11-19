@@ -7,7 +7,7 @@ import { TD_HERO_LIGHT } from '../content/tdunits.ts';
 import { TD2_BOSS_EXTRA_TICKS, TD2_ENEMIES, TD2_HERO, TD2_SHOCK_STUN, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
 import type { Rng } from './rng.ts';
-import { cellIdx, flowField } from './grid.ts';
+import { cellIdx, cellX, cellY, flowField } from './grid.ts';
 import { UNIT } from './types.ts';
 import type { BuildingKind } from './types.ts';
 import { TD_BURN_DAMAGE, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
@@ -456,4 +456,13 @@ export function moveToward(e: { x: number; y: number; face: 1 | -1 }, tx: number
   if (dx !== 0) e.face = dx > 0 ? 1 : -1;
   e.x += Math.round((dx * st) / d);
   e.y += Math.round((dy * st) / d);
+}
+
+/** 格子 n 在拒马挡住的 3×3 范围里 */
+export function barricadeAt(s: TdState, n: number): TdBarricade | undefined {
+  if (s.barricades.length === 0) return undefined;
+  const x = cellX(n);
+  const y = cellY(n);
+  for (const b of s.barricades) if (Math.abs(x - (b.x * UNIT + 50)) <= UNIT && Math.abs(y - (b.y * UNIT + 50)) <= UNIT) return b;
+  return undefined;
 }

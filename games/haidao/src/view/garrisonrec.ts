@@ -1,4 +1,4 @@
-import { COUNTER, TD_ARMORS, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, tdBuildRange, type TdArmor, type TdGarrisonOption, type TdTowerKind, type TdWave } from '../core/index.ts';
+import { COUNTER, TD_ARMORS, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, tdBuildRange, tdGarrisonOptions, type Profile, type TdArmor, type TdGarrisonOption, type TdGarrisonPick, type TdIslandLevel, type TdTowerKind, type TdWave } from '../core/index.ts';
 import { TD2_ENEMIES } from '../content/td2units.ts';
 import { UNIT } from '../core/types.ts';
 
@@ -59,4 +59,9 @@ export function garrisonRec(waves: readonly TdWave[], spots: ReadonlyArray<reado
     used.set(best.kind, (used.get(best.kind) ?? 0) + 1);
   });
   return out;
+}
+
+/** 每座驻守台都挑推荐的那种（没进驻守台面板就直接开打时用，和面板默认选中的同一套） */
+export function garrisonRecPicks(p: Profile, lv: TdIslandLevel): TdGarrisonPick[] {
+  return [...garrisonRec(lv.waves, lv.garrison.map((sp) => tdGarrisonOptions(p, sp.cap)))].map(([spot, kind]) => ({ spot, kind }));
 }

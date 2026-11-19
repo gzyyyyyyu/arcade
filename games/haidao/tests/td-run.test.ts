@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BUILDINGS, CAMPAIGN, INCOME_PCT, ISLAND, REPLAY_PCT, TD2_HOME, TD2_LEVEL_BY_ID, TD2_LEVELS, TD_BONUS_PER_STAR, TD_BASE_BONUS, TD_CAP_RUNS, TD_RUN_RAIDS,
-  TD_RUN_REWARD, TD_STAR_PCT, TD_TOWER_KINDS, baseBonusPct, capacity, createTd, garrisonTier, newProfile, nextTdUnlock, placeTdLevel, settleTd, startTd, startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdDailyCap,
+  TD_RUN_REWARD, TD_STAR_PCT, TD_TOWER_KINDS, baseBonusPct, capacity, createTd, garrisonTier, newProfile, nextTdUnlock, placeTdLevel, settleTd, startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdDailyCap,
   tdGarrisonOptions, tdGrowthProfile, tdGrowthSetup, tdLevelUnlocked, tdRunReward, tdUnlockedTowers,
 } from '../src/core/index.ts';
 import type { Placed, Profile, TdPlacedLevel, TdResult } from '../src/core/index.ts';
@@ -86,7 +86,7 @@ describe('驻守台、基地加成、能造的塔', () => {
   });
 });
 
-describe('出海 startTd2 / startTd', () => {
+describe('出海 startTd2', () => {
   it('关卡岛 + 驻守台（阶、分叉按存档算，不信界面）+ 基地加成 + 能造的塔；不改存档', () => {
     const p = { ...withHq(5, [tower(101, 'cannon', 8, ['cannon.pierce', 'cannon.heavy'])]), research: { hero: 3 as const } };
     const before = JSON.stringify(p);
@@ -118,11 +118,6 @@ describe('出海 startTd2 / startTd', () => {
       expect(startTd2(withHq(8), list[i]!.id, 1, [])).toEqual({ ok: false, error: 'locked' });
       expect(startTd2(cleared(8, i), list[i]!.id, 1, []).ok).toBe(true);
     }
-  });
-  it('旧入口 startTd = startTd2 加每个驻守台的推荐选择', () => {
-    const p = withHq(6, [tower(101, 'gunTower', 6), tower(102, 'cannon', 2)]);
-    expect(startTd(p, SAMPLE, 3)).toEqual(startTd2(p, SAMPLE, 3, tdAutoPicks(p, SAMPLE)));
-    expect(startTd(p, 'nope', 3)).toEqual({ ok: false, error: 'unknown' });
   });
 });
 

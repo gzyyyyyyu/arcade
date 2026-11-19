@@ -40,6 +40,7 @@ export { TD_TIER_LEVEL, tdBuildRange, tdHeroStats, tdJammed, tdTowerRange } from
 export { tdBuildBlock, tdCallBonus, tdClearCost, tdIncomingWave, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSellRefund, tdWaveLanes, tideOpenAt } from './tdquery.ts';
 export { tdSluiceCan } from './tdmech.ts';
 export { TD_HERO_GUARD } from './tdhero.ts';
+export { hookEnabled, hookable } from './tdhook.ts';
 export type { TdState } from './tdstate.ts';
 export { branchError, chooseBranch, hasBranches, heroCap, heroLevel, heroResearchCost, pvpSnapshot, researchHero, sanitizeBranch } from './tdbase.ts';
 export { donateRank, rankLeft, rankOf } from './rank.ts';
@@ -55,12 +56,12 @@ export { startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdOceanCleared, tdGarri
 export type { TdGrowth, TdPlacedLevel } from './tdrun.ts';
 export { TD_BRANCH_DESC, TD_BRANCH_MOD } from '../content/tdbranches.ts';
 export type { TdBranchMod } from '../content/tdbranches.ts';
-export { settleTdHome, tdHomeGen, tdHomeRawReward, tdHomeSetup, tdHomeSnapshot, tdHomeWave } from './tdhome.ts';
+export { settleTdHome, tdHomeGen, tdHomeHardOpen, tdHomeRawReward, tdHomeSetup, tdHomeSnapshot, tdHomeWave } from './tdhome.ts';
 export { TD2_LEVELS, TD2_LEVEL_BY_ID, TD2_MAPS } from '../content/tdmaps.ts';
 export * from '../content/td2units.ts';
 export { tdBotActions, runTdBot } from './tdbot.ts';
 export type { TdBotKind, TdBotOpts } from './tdbot.ts';
-export { nextTdUnlock, placeTdLevel, settleTd, startTd, tdDailyCap, tdLevelUnlocked, tdRunReward } from './tdrun.ts';
+export { nextTdUnlock, placeTdLevel, settleTd, tdDailyCap, tdLevelUnlocked, tdRunReward } from './tdrun.ts';
 export type { TdNextUnlock, TdReward } from './tdrun.ts';
 export { TIDE_HERO_AUTO_FROM, TIDE_KILLS_CAP, TIDE_MAX_TICKS, beijingIsoWeek, tideBoardId, tideDecode, tideLine, tideMap, tidePick, tideRules, tideScore, tideSeed, tideSetup, weekLabel } from './tdtide.ts';
 export type { IsoWeek } from './tdtide.ts';

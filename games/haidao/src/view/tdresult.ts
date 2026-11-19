@@ -9,7 +9,7 @@ import { bTex, iconA } from './art.ts';
 import { flyIcons } from './fx.ts';
 import { vibrate, feelOn } from './feel.ts';
 import { dayIndex } from './meta.ts';
-import { tdVerdict, dropStars, HOME_ID } from './td-ui.ts';
+import { tdVerdict, dropStars, HOME_ID, hardMore } from './td-ui.ts';
 import { sfx } from './audio/sfx.ts';
 import { playBeats } from './audio/beats.ts';
 import { resultBeats, resultTimes } from './audio/result.ts';
@@ -237,7 +237,7 @@ export function finishEscort(bs: TdScene, res: ReturnType<typeof tdResult>): voi
  */
 export function finishHome(bs: TdScene, res: ReturnType<typeof tdResult>): void {
   const before = { ...app.profile.res };
-  const r = settleTdHome(app.profile, res, dayIndex());
+  const r = settleTdHome(app.profile, res, dayIndex(), bs.d.setup.home);
   if (r.ok) app.commit(r.value.profile);
   const rw = r.ok ? r.value.reward : null;
   const waves = rw?.waves ?? res.waves;
@@ -250,14 +250,16 @@ export function finishHome(bs: TdScene, res: ReturnType<typeof tdResult>): void 
   const box = el('div', `hd-dialog hd-td-result hd-home-result${win ? '' : ' hd-lose'}`, undefined, mask);
   box.style.setProperty('--sd', `${tm.sd}ms`);
   box.style.setProperty('--fin', `${tm.fin}ms`);
-  el('h2', '', `撑住 ${waves} 波`, box);
+  const hard = rw?.hard ?? bs.d.setup.home?.hard === true;
+  const h2 = el('h2', '', `撑住 ${waves} 波`, box);
+  if (hard) el('span', 'hd-home-hardtag', '加难', h2);
   if (bs.s.wave > waves) el('p', 'hd-sub hd-td-line', `打到第 ${bs.s.wave} 波时结束，守住了前 ${waves} 波`, box);
   el('p', 'hd-td-kept', `击退 ${res.kills ?? 0} 个海盗`, box);
   reasonLines(bs, box, res);
   if (rw && rw.gold + rw.wood > 0) loot(bs, mask, box, before, { gold: rw.gold, wood: rw.wood }, { gold: 0, wood: 0 }, tm.flyAt);
   if (rw && (rw.capped || rw.full)) capNotes(box, rw, '今天的守岛收入已满，这局不发金币木材');
   else if (rw && rw.gold + rw.wood === 0) el('p', 'hd-sub hd-td-line', '一波都没撑住，没有奖励', box);
-  el('p', 'hd-sub hd-td-line', '海盗来袭不算星：撑得越久，奖励越多', box);
+  el('p', 'hd-sub hd-td-line', hard ? `加难档：每撑住一波的奖励多 ${hardMore()} 成，照样算进今日守岛收入` : '海盗来袭不算星：撑得越久，奖励越多', box);
   const btns = el('div', 'hd-td-btns', undefined, box);
   button('回岛', 'hd-btn-plain', () => app.goBase(), btns);
   main = button('再守一次', 'hd-btn-gold', () => app.startTdLevel(HOME_ID), btns);

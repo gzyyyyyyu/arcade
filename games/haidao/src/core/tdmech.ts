@@ -60,6 +60,7 @@ export function stepCrates(s: TdState, ev: TdEvent[]): void {
       addGold(s, gold);
       h.kegReady = Math.min(h.kegReady, s.tick);
       h.barricadeReady = Math.min(h.barricadeReady ?? 0, s.tick);
+      if (h.hookReady !== undefined) h.hookReady = Math.min(h.hookReady, s.tick);
       ev.push({ type: 'crate', what: 'pick', id: c.id, x: c.x, y: c.y, until: c.until, gold });
     } else if (s.tick >= c.until) {
       ev.push({ type: 'crate', what: 'gone', id: c.id, x: c.x, y: c.y, until: c.until, gold: 0 });

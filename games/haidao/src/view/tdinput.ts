@@ -1,4 +1,5 @@
 import type { TdScene } from './TdScene.ts';
+import { pickHookTarget } from './tdhookfx.ts';
 import { type TdAction, TD2_ECON, tdSluiceCan } from '../core/index.ts';
 import { UNIT } from '../core/types.ts';
 import { tdP } from './art.ts';
@@ -96,16 +97,16 @@ export function pickBattery(bs: TdScene): void {
   updateHud(bs, true);
 }
 
-/** 技能 1 拒马 / 2 炸药桶：进入瞄准（再点一次取消），地上画英雄身边能放的范围 */
-export function pickSkill(bs: TdScene, m: 'keg' | 'barricade'): void {
+/** 技能 1 拒马 / 2 炸药桶 / 锚钩：进入瞄准（再点一次取消），地上画英雄身边能放的范围 */
+export function pickSkill(bs: TdScene, m: 'keg' | 'barricade' | 'hook'): void {
   const h = bs.s.hero;
   if (h.respawn >= 0) return toast('英雄倒下了，等他复活');
-  const ready = m === 'keg' ? h.kegReady : (h.barricadeReady ?? 0);
+  const ready = m === 'keg' ? h.kegReady : m === 'hook' ? (h.hookReady ?? 0) : (h.barricadeReady ?? 0);
   if (bs.s.tick < ready) return sfx('error');
   bs.mode = bs.mode === m ? 'none' : m;
   bs.skillQ = null;
   closeSheet(bs);
-  const tip = m === 'keg' ? '点地面扔炸药桶（黄圈外的话英雄先走过去）' : '点路面放拒马（黄圈外的话英雄先走过去），地面敌人要砸开才能过';
+  const tip = m === 'keg' ? '点地面扔炸药桶（黄圈外的话英雄先走过去）' : m === 'hook' ? '点黄圈里金圈标着的敌人，把它钩回来定住（首领和船钩不动）' : '点路面放拒马（黄圈外的话英雄先走过去），地面敌人要砸开才能过';
   hintText(bs, bs.mode === m ? tip : '');
   bs.hud.hint.classList.remove('bad');
   // 提示只挂 2.5 秒：之后靠地上的黄圈提示范围，不一直占着屏幕
@@ -150,6 +151,7 @@ export function tap(bs: TdScene, wx: number, wy: number): void {
     hintText(bs, '');
     return;
   }
+  if (bs.mode === 'hook') return tapHook(bs, wx, wy, ux, uy);
   if (bs.mode !== 'none') {
     const m = bs.mode;
     bs.mode = 'none';
@@ -223,6 +225,36 @@ function heroHit(bs: TdScene, wx: number, wy: number): 'body' | 'feet' | null {
   if (wy > bs.hero.y - 74 && wy <= bs.hero.y - 24) return 'body';
   if (wy > bs.hero.y - 24 && wy < bs.hero.y + 14) return 'feet';
   return null;
+}
+
+/**
+ * 瞄着锚钩点了一下：点中黄圈里能钩的敌人就放；点中钩不了的（太远、首领、船）提示原因、接着瞄；点到木台当成想造塔（和别的技能一样）；
+ * 点空地接着瞄（敌人在跑，点偏是常事，不让一下点空就得重新按钮）
+ */
+function tapHook(bs: TdScene, wx: number, wy: number, ux: number, uy: number): void {
+  const pick = pickHookTarget(bs, wx, wy);
+  if (pick && 'e' in pick) {
+    bs.mode = 'none';
+    bs.hintTimer?.remove();
+    hintText(bs, '');
+    act(bs, { type: 'hook', id: pick.e.id });
+    updateHud(bs, true);
+    return;
+  }
+  if (!pick) {
+    const pad = slotFoot(bs, ux, uy);
+    if (pad >= 0) {
+      bs.mode = 'none';
+      hintText(bs, '');
+      updateHud(bs, true);
+      return showSlot(bs, pad);
+    }
+  }
+  sfx('error');
+  hintText(bs, pick ? (pick.boss ? '首领和船钩不动' : '太远了，只能钩黄圈里的') : '点一个敌人');
+  bs.hud.hint.classList.toggle('bad', !!pick);
+  bs.hintTimer?.remove();
+  bs.hintTimer = bs.time.delayedCall(1800, () => bs.mode === 'hook' && hintText(bs, ''));
 }
 
 /** 在够得着的地方放技能 */

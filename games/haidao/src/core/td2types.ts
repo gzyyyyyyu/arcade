@@ -252,11 +252,15 @@ export interface TdHomeGen {
   waveTicks: number;
   /** 按哪一版规则出波次（规则版本 10 起掷弹兵进波次池）；没写按 9（旧回放） */
   rules?: number;
+  /** 加难档（规则版本 20，开局选）：没写 = 普通档，旧回放和普通档的生成参数逐位不变 */
+  hard?: true;
 }
 
 /** 海盗来袭的结果：撑住几波、按波数折的奖励（已经按每日上限截过） */
 export interface TdHomeReward {
   waves: number;
+  /** 这一局是加难档（结算页、战绩写明，奖励比例高的原因） */
+  hard: boolean;
   gold: number;
   wood: number;
   /** 今天上限截掉了多少（界面提示"今天的守岛收入已满"） */
@@ -338,7 +342,9 @@ export type Td2Action =
   /** 岸防老炮（规则版本 16）：往 (x, y)（单位）打一发 */
   | { t: number; type: 'battery'; x: number; y: number }
   /** 友军巡航船（规则版本 19）：叫船（冷却好了、不在海上时才有用） */
-  | { t: number; type: 'fleet' };
+  | { t: number; type: 'fleet' }
+  /** 锚钩（规则版本 20）：钩住编号 id 的敌人往英雄这边拉 */
+  | { t: number; type: 'hook'; id: number };
 
 /** 守岛 2.0 新增的事件（并进 TdEvent） */
 export type Td2Event =
@@ -363,7 +369,12 @@ export type Td2Event =
   /** 规则版本 19：友军船来了（come，冷却到 ready 拍）、开了一炮（shot，从船打向 (x1, y1)，t1 拍落地）、开走了（go）；x、y 是船此刻的位置（单位） */
   | { type: 'fleet'; what: 'come' | 'shot' | 'go'; x: number; y: number; x1: number; y1: number; t1: number; ready: number }
   /** 海盗王放下一船人（drop）、叫来护航（escort）；x、y 是它的位置 */
-  | { type: 'king'; what: 'drop' | 'escort'; id: number; x: number; y: number };
+  | { type: 'king'; what: 'drop' | 'escort'; id: number; x: number; y: number }
+  /**
+   * 锚钩（规则版本 20）：英雄从 (x0, y0) 把钩子甩到敌人 id 的 (x1, y1)，t1 拍钩上；之后每 perCell 拍拖一格，path 是一格格的落点（单位，格中心），
+   * 拖到最后一格后定到 until 拍；path 为空 = 钩上了但第一格就被挡住，只定住。ready 是下次能放的拍
+   */
+  | { type: 'hook'; id: number; x0: number; y0: number; x1: number; y1: number; t1: number; path: number[]; until: number; ready: number };
 
 /** 场上的拒马（x、y 是格子坐标，事件 barricade 里的也是）：挡住周围 3×3 格的地面敌人，血掉光或到时间就没了 */
 export interface TdBarricade {

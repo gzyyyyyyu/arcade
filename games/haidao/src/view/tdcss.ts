@@ -65,6 +65,8 @@ function tdCss(): string {
 @media (min-width:700px) { .hd-ui .hd-tdmodes { width:min(100%,760px); grid-template-columns:1fr 1fr; } }
 .hd-ui .hd-tdmodes .hd-tidecard { width:auto; margin:0 0 10px; }
 .hd-ui .hd-homecard { background:linear-gradient(#fff1d6,${cream}); }
+.hd-ui .hd-homecard .hd-home-hard { min-width:60px; }
+.hd-ui .hd-homecard .hd-home-hard.on { background:#c0392b; color:#fff8ec; border-color:${ink}; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdcard.next { border-color:${gold}; box-shadow:0 3px 0 ${ink}, 0 0 0 3px ${gold}, 0 0 14px ${gold}; }
 .hd-ui .hd-tdrule { font-weight:700; }
 /* 窄屏上星级规则、选关页标题折行时两行匀开，不剩一个字孤零零挂在第二行（「…算输」「…驻守台」） */
@@ -391,6 +393,7 @@ function tdCss(): string {
 .hd-ui .hd-td-sheet .hd-td-block .hd-btn { min-height:40px; padding:0 12px; font-size:14px; }
 .hd-ui .hd-td-result { text-align:center; max-width:360px; }
 .hd-ui .hd-td-result h2 { margin:0 0 4px; font-size:24px; }
+.hd-ui .hd-home-result .hd-home-hardtag { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:8px; background:#c0392b; color:#fff8ec; font-size:14px; vertical-align:middle; }
 .hd-ui .hd-td-kept { display:flex; align-items:center; justify-content:center; gap:8px; margin:6px 0; font-size:16px; font-weight:900; }
 .hd-ui .hd-td-line { margin:4px 0 !important; font-size:14px !important; }
 .hd-ui .hd-td-line.cap { color:${redD}; font-weight:800; }

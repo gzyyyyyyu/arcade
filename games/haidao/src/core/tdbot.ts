@@ -11,6 +11,7 @@ import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO_SKILL, TD_SEA_RA
 import { Rng } from './rng.ts';
 import { createTd, stepTd, tdResult, tdUpCost } from './td.ts';
 import { tdSluiceCan } from './tdmech.ts';
+import { hookTarget } from './tdhook.ts';
 import { tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund } from './tdquery.ts';
 import { isqrt } from './fmath.ts';
 import { tdHeroStats, tdTowerRange } from './tdstate.ts';
@@ -500,6 +501,11 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
           const ahead = tdRoute(s, Math.floor(lead.x / UNIT), Math.floor(lead.y / UNIT))[2];
           if (ahead !== undefined && d2(cellX(ahead), cellY(ahead), h.x, h.y) <= bar.range * bar.range) out.push({ t, type: 'barricade', x: cellX(ahead), y: cellY(ahead) });
         }
+      }
+      // 锚钩（规则版本 20，有锚钩的局才有 hookReady）：先钩带着宝藏、离船最近的，没有就钩快摸到宝藏箱的
+      if (skills && h.hookReady !== undefined && t >= h.hookReady) {
+        const e = hookTarget(s);
+        if (e) out.push({ t, type: 'hook', id: e.id });
       }
       if (s.battery && skills && t >= s.battery.ready) {
         const at = batteryTarget(s, 4);
