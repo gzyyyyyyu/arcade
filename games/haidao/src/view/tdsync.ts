@@ -3,7 +3,7 @@ import { hookHeld } from './tdhookfx.ts';
 import type Phaser from 'phaser';
 import { TD_HERO_LIGHT } from '../content/index.ts';
 import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
-import { TD2_ENEMIES, TD_ENEMY_ARMOR, tdHeroStats, tdJammed, tdUpCost, type TdEnemy } from '../core/index.ts';
+import { TD2_ENEMIES, TD_ENEMY_ARMOR, raining, tdHeroStats, tdJammed, tdUpCost, type TdEnemy } from '../core/index.ts';
 import { stunned } from '../core/combat.ts';
 import { wobbleAt } from './stunfx.ts';
 import { UNIT, BEACH, ISLAND } from '../core/types.ts';
@@ -22,7 +22,7 @@ import { isTurret, type LandMat } from './aim.ts';
 import { sfx } from './audio/sfx.ts';
 import { DEPTH } from './depth.ts';
 import { stepFog, inFog } from './tdworld.ts';
-import { W, RIG_OF, ATK_MS, SHIP_FOES, buildCost } from './tdcommon.ts';
+import { W, RIG_OF, ATK_MS, SHIP_FOES, RAIN_DIP, buildCost } from './tdcommon.ts';
 import { padState, boom, drawBars } from './tdoverlay.ts';
 import { wreckOf } from './tdsheet.ts';
 import { ftx } from './tdhud.ts';
@@ -133,6 +133,7 @@ export function sync(bs: TdScene, dt: number): void {
   const cam = bs.cameras.main;
   const every = poseEvery(bs.fullRigs);
   let full = 0;
+  const wet = raining(s) && !REDUCED;
   // 英雄附近（上一帧的位置）最靠前的地面敌人的层级：英雄压在这一团上面画，混战里不被黑帽子埋掉
   let nearTop = Number.NEGATIVE_INFINITY;
   bs.frameN++;
@@ -156,7 +157,7 @@ export function sync(bs: TdScene, dt: number): void {
       const kind = e.kind;
       const rig = bs.pool.get(rk, RIG_TEX, (an) => tdE(kind, an === 'attack' ? 'attack' : 'walk'), now);
       rig.c.setPosition(w.x, w.y);
-      sp = { rig, kind: e.kind, px: e.x, py: e.y, still: 0, carry: null, phase: e.id * 37, lastDmg: 0, fired: -1e9, fx: e.x, fy: e.y, tx: e.x, ty: e.y, tick: s.tick, ox: 0, oy: 0, face: e.face < 0 ? -1 : 1, dist: e.id * 7, lx: w.x, ly: w.y };
+      sp = { rig, kind: e.kind, px: e.x, py: e.y, still: 0, carry: null, phase: e.id * 37, lastDmg: 0, fired: -1e9, fx: e.x, fy: e.y, tx: e.x, ty: e.y, tick: s.tick, ox: 0, oy: 0, dip: 0, face: e.face < 0 ? -1 : 1, dist: e.id * 7, lx: w.x, ly: w.y };
       bs.esp.set(e.id, sp);
     }
     // 位置：上一拍到这一拍之间按帧内比例插（20 拍 / 秒的逻辑拍不再一格一跳）；一拍跳 > 4 格（传送）直接到位
@@ -214,6 +215,10 @@ export function sync(bs: TdScene, dt: number): void {
       oy = shipBob(now, e.id) + rc * 2;
       sq = rc * 0.05;
       rx -= rc * 7;
+    }
+    if (flying) {
+      sp.dip = approach(sp.dip, wet ? RAIN_DIP : 0, dt, 450);
+      oy += sp.dip;
     }
     sp.rig.update({ x: rx, y: iw.y, depth: edep, face: sp.face, mode: stun ? 'idle' : attacking ? 'attack' : 'walk', dist: sp.dist, atk, oy, sq, alpha: a, lod, full: every === 1 || (bs.frameN + e.id) % every === 0, wob: stun && !held ? wobbleAt(now, e.id) : 0, gx: e.gx, gy: e.gy, gdown: stun }, now);
     if (stun && !held && lod !== 2) bs.stunMarks.mark(iw.x, sp.rig.topY - 4, now, edep, ((e.stunUntil ?? 0) - tk) * STEP_MS);
@@ -442,6 +447,7 @@ export function syncTurrets(bs: TdScene, now: number, dt: number): void {
   const s = bs.s;
   const vt = s.tick - 1 + bs.acc / STEP_MS;
   const o = bs.tin;
+  o.wet = raining(s);
   for (const t of s.towers) {
     const sp = bs.tsp.get(t.id);
     if (!sp?.tu) continue;

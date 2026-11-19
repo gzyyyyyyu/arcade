@@ -101,6 +101,8 @@ export type ShotCtx = {
   step: (name: string, f: () => Promise<void>) => Promise<boolean>;
   click: (sel: string) => Promise<void>;
   where: (k: string) => Promise<{ x: number; y: number } | null>;
+  /** 基地里点一座建筑：在屏幕外（竖屏常见）就先像玩家一样拖地图把它拖到屏幕中间，再点；返回点的位置 */
+  tapBuilding: (k: string) => Promise<{ x: number; y: number }>;
   beach: (i: number) => Promise<{ x: number; y: number } | null>;
 };
 
@@ -144,7 +146,38 @@ export async function openView(browser: Browser, v: View, ROOT: string, OUT: str
   const click = (sel: string): Promise<void> => page.locator(sel).first().click({ timeout: 8000 });
   const where = (k: string): Promise<{ x: number; y: number } | null> => page.evaluate((kk) => (window as unknown as { __haidao: Hook }).__haidao.where?.(kk) ?? null, k);
   const beach = (i: number): Promise<{ x: number; y: number } | null> => page.evaluate((ii) => (window as unknown as { __haidao: Hook }).__haidao.beach?.(ii) ?? null, i);
-  const c: ShotCtx = { page, v, ctx, OUT, ROOT, problems, allow409: false, sfxDone, ready, shot, tap, sceneIs, step, click, where, beach };
+  /** 一指（或鼠标左键）从屏幕中间拖 (dx, dy)：分 12 步，像手指慢慢挪，不会被当成点按或快甩 */
+  const drag = async (dx: number, dy: number): Promise<void> => {
+    const sx = v.viewport.width / 2;
+    const sy = v.viewport.height / 2;
+    if (v.hasTouch) {
+      const cdp = await ctx.newCDPSession(page);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: sx, y: sy }] });
+      for (let k = 1; k <= 12; k++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: sx + (dx * k) / 12, y: sy + (dy * k) / 12 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await cdp.detach();
+    } else {
+      await page.mouse.move(sx, sy);
+      await page.mouse.down();
+      await page.mouse.move(sx + dx, sy + dy, { steps: 12 });
+      await page.mouse.up();
+    }
+    await page.waitForTimeout(600);
+  };
+  const tapBuilding = async (k: string): Promise<{ x: number; y: number }> => {
+    const { width: w, height: h } = v.viewport;
+    const inView = (p: { x: number; y: number }): boolean => p.x > 40 && p.x < w - 40 && p.y > 90 && p.y < h - 140;
+    let p = await where(k);
+    // 一次最多拖四分之一屏：拖太远会甩出惯性；四次还不在屏内就照点，让流程按「没弹出来」报
+    for (let i = 0; i < 4 && p && !inView(p); i++) {
+      await drag(Math.max(-w / 4, Math.min(w / 4, w / 2 - p.x)), Math.max(-h / 4, Math.min(h / 4, h / 2 - p.y)));
+      p = await where(k);
+    }
+    if (!p) throw new Error(`找不到 ${k}`);
+    await tap(p.x, p.y);
+    return p;
+  };
+  const c: ShotCtx = { page, v, ctx, OUT, ROOT, problems, allow409: false, sfxDone, ready, shot, tap, sceneIs, step, click, where, tapBuilding, beach };
   page.on('console', (m) => {
     if (m.type() === 'error' && !/GL Driver Message/.test(m.text()) && !(c.allow409 && /status of 409/.test(m.text()))) problems.push(`${v.name} 控制台报错：${m.text()}`);
   });

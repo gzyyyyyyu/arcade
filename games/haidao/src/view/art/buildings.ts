@@ -1,5 +1,6 @@
 /** 14 种建筑 × 外观档位（1–2 级木头、3–4 级加石头和铁、5 级以上加金边和更大的旗）。 */
 import type { BuildingKind } from '../../core/types.ts';
+import { isDecoKind } from '../../content/buildings.ts';
 import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
 import { OUT, P, box, cone, cyl, darken, ell, f, flag, hip, lighten, line, Lq, mat, mix, path, piece, poly, rect, Rq, archL, shadow, skull, tube, uid } from './kit.ts';
@@ -11,20 +12,20 @@ export const BUILDING_SIZE: Record<BuildingKind, number> = {
   hq: 4, goldmine: 3, sawmill: 3, vault: 3, woodyard: 3, dock: 3, armory: 3,
   cannon: 2, gunTower: 2, mortar: 2, shock: 2, sniper: 2, mine: 1, flame: 2, palm: 1, rock: 1,
   harpoon: 2, tar: 2, rocket: 2, kraken: 3, fogTower: 2,
-  wall: 1, statue: 1, flagpole: 1, chest: 1, wheel: 1, treasure: 1,
+  wall: 1, statue: 1, flagpole: 1, chest: 1, wheel: 1, windmill: 1, lighthouse: 1, bonfire: 1, treasure: 1,
 };
 
 const UP: Record<BuildingKind, number> = {
   hq: 300, goldmine: 135, sawmill: 120, vault: 130, woodyard: 100, dock: 125, armory: 150,
   cannon: 110, gunTower: 250, mortar: 110, shock: 110, sniper: 230, mine: 50, flame: 150, palm: 118, rock: 40,
   harpoon: 120, tar: 52, rocket: 150, kraken: 130, fogTower: 190,
-  wall: 70, statue: 110, flagpole: 170, chest: 80, wheel: 120, treasure: 80,
+  wall: 70, statue: 110, flagpole: 170, chest: 80, wheel: 120, windmill: 150, lighthouse: 170, bonfire: 70, treasure: 80,
 };
 /** 小建筑的整体放大倍数：它们的占地菱形比画出来的大，放大后才不显得空 */
-const SCALE: Partial<Record<BuildingKind, number>> = { cannon: 1.4, gunTower: 1.12, hq: 1.15, mortar: 1.35, shock: 1.4, sniper: 1.05, mine: 1.4, flame: 1.2, palm: 0.85, harpoon: 1.3, tar: 1.0, rocket: 1.15, fogTower: 1.1 };
+const SCALE: Partial<Record<BuildingKind, number>> = { bonfire: 1.3, cannon: 1.4, gunTower: 1.12, hq: 1.15, mortar: 1.35, shock: 1.4, sniper: 1.05, mine: 1.4, flame: 1.2, palm: 0.85, harpoon: 1.3, tar: 1.0, rocket: 1.15, fogTower: 1.1 };
 /** 画布底下多留几像素（脚下伸出去的原木、矿车、金币堆）：不改锚点，只加高画布 */
 const DOWN: Partial<Record<BuildingKind, number>> = { goldmine: 12, sawmill: 30, vault: 18, woodyard: 16 };
-const PADX: Partial<Record<BuildingKind, number>> = { woodyard: 14, palm: 44, hq: 40, harpoon: 10, rocket: 30, rock: 16, mine: 10, cannon: 24, mortar: 24, shock: 10, sniper: 14, flame: 14 };
+const PADX: Partial<Record<BuildingKind, number>> = { lighthouse: 46, windmill: 12, bonfire: 14, woodyard: 14, palm: 44, hq: 40, harpoon: 10, rocket: 30, rock: 16, mine: 10, cannon: 24, mortar: 24, shock: 10, sniper: 14, flame: 14 };
 
 /** 画炮台底座（不带会转的炮管 / 喷嘴 / 发射架 / 火枪手和屋顶）时置真：turretBaseArt 用，转的部分在 art/turrets.ts */
 let NOGUN = false;
@@ -177,7 +178,7 @@ function shell(kind: BuildingKind, body: string, level: number, shadowK = 1): Ar
   const ay = up + 8 + size * 16;
   const h = ay + size * 16 + 10 + (DOWN[kind] ?? 0);
   const ax = w / 2;
-  const deco = kind === 'palm' || kind === 'rock' || kind === 'statue' || kind === 'flagpole' || kind === 'chest' || kind === 'wheel' || kind === 'treasure' || kind === 'wall';
+  const deco = isDecoKind(kind) || kind === 'treasure' || kind === 'wall';
   // 等级不再靠金框、等级点、四角小旗、金冠（满岛亮黄，把草地和剪影切碎），改由建筑本身的材质（LVC）和地坪垫分三代、名次钉分代内第几级
   const band = levelBand(level);
   const pl = PLINTH[kind];
@@ -1517,7 +1518,7 @@ function flagpole(): string {
  * 海盗王的舵轮（守岛第四章全部过关的纪念）：石墩上竖着一只深色木舵轮，八根辐条、外圈八个握把，
  * 轮毂和外圈包金，顶上一顶小金冠（海盗王的），脚下摆一枚炮弹
  */
-function wheel(): string {
+function wheel(rot = 0): string {
   let o = box(-0.32, -0.32, 0.32, 0.32, 0, 12, mat('#8c949c'), 'brick');
   const b = P(0, 0, 12);
   const cx = b[0];
@@ -1526,7 +1527,7 @@ function wheel(): string {
   o += poly([[cx - 6, b[1]], [cx + 6, b[1]], [cx + 3, cy + 6], [cx - 3, cy + 6]], C.woodD!, { sw: 2 });
   // 握把和辐条（先画在外圈下面）
   for (let i = 0; i < 8; i++) {
-    const a = (i * Math.PI) / 4;
+    const a = (i * Math.PI) / 4 + rot;
     const ex = cx + Math.cos(a) * 44;
     const ey = cy + Math.sin(a) * 44;
     o += line([cx, cy], [ex, ey], C.ink!, 6) + line([cx, cy], [ex, ey], '#7a4a26', 3.4);
@@ -1541,6 +1542,99 @@ function wheel(): string {
   o += ell(cx, cy - 46, 2.2, 2.2, '#c8382e', { sw: 0 });
   // 一枚炮弹
   o += ell(b[0] + 18, b[1] - 4, 6, 6, '#2f3140', { sw: 1.6 }) + ell(b[0] + 16, b[1] - 6, 1.6, 1.2, '#8a8da2', { sw: 0 });
+  return o;
+}
+
+/**
+ * 小风车（守岛第一章全部过关的纪念）：石脚、木身、红瓦尖顶，正面一只轮毂挂四片帆布叶。
+ * spin 是叶片转过的角度（弧度）；四片叶 90° 一循环，所以只烘 DECO_FRAMES.windmill 帧就能无缝转。
+ */
+function windmill(spin = 0): string {
+  let o = box(-0.32, -0.32, 0.32, 0.32, 0, 8, mat('#8c949c'), 'brick');
+  o += cyl(0, 0, 15, 8, 64, mat(C.woodLight!), 3);
+  o += cone(0, 0, 15, 64, 26, mat(C.roofTile!));
+  const b = P(0, 0, 0);
+  // 门和小窗
+  o += path(`M${f(b[0] - 5)},${f(b[1] - 8)} L${f(b[0] - 5)},${f(b[1] - 20)} Q${f(b[0])},${f(b[1] - 26)} ${f(b[0] + 5)},${f(b[1] - 20)} L${f(b[0] + 5)},${f(b[1] - 8)} Z`, C.woodDD!, { sw: 1.4 });
+  o += rect(b[0] - 3, b[1] - 46, 6, 7, '#2a2f3a', { sw: 1.2 });
+  // 轮毂在塔身前面偏上，叶片绕它转
+  const hx = b[0] + 3;
+  const hy = b[1] - 62;
+  for (let i = 0; i < 4; i++) {
+    const a = spin + (i * Math.PI) / 2;
+    const ux = Math.cos(a);
+    const uy = Math.sin(a);
+    // 叶片的法向（帆布挂在桅杆一侧）
+    const nx = -uy;
+    const ny = ux;
+    const q = (t: number, w: number): Pt => [hx + ux * t + nx * w, hy + uy * t + ny * w];
+    o += poly([q(8, 1), q(44, 1), q(44, 11), q(10, 8)], C.cream!, { sw: 1.6 });
+    o += line(q(20, 1), q(20, 9.6), C.creamD!, 1.2) + line(q(32, 1), q(32, 10.6), C.creamD!, 1.2);
+    o += line([hx, hy], q(46, 0), C.ink!, 4.4) + line([hx, hy], q(46, 0), C.woodD!, 2.4);
+  }
+  o += ell(hx, hy, 5, 5, C.woodDD!, { sw: 1.6 }) + ell(hx - 1, hy - 1, 1.6, 1.6, C.woodL!, { sw: 0 });
+  return o;
+}
+
+/**
+ * 小灯塔（守岛第二章全部过关的纪念）：红白相间的圆塔、深色灯室、红顶，灯室里一盏灯往外打一束光。
+ * frame 是光束朝向（共 DECO_FRAMES.lighthouse 个方向）：朝里的半圈光束画在塔后面，朝外的半圈画在前面，朝着人的那几帧灯最亮
+ */
+function lighthouse(frame = 0): string {
+  const a = (frame / DECO_FRAMES.lighthouse) * Math.PI * 2;
+  let o = box(-0.34, -0.34, 0.34, 0.34, 0, 8, mat('#8c949c'), 'brick');
+  const b = P(0, 0, 0);
+  const lamp: Pt = [b[0], b[1] - 87];
+  // 光束：从灯往外一条渐淡的楔形，等距里横向长、纵向压一半
+  const g = uid('lb');
+  const ex = Math.cos(a) * 78;
+  const ey = Math.sin(a) * 39;
+  const wx = -Math.sin(a) * 20;
+  const wy = Math.cos(a) * 10;
+  const beam = `<defs><linearGradient id="${g}" gradientUnits="userSpaceOnUse" x1="${f(lamp[0])}" y1="${f(lamp[1])}" x2="${f(lamp[0] + ex)}" y2="${f(lamp[1] + ey)}"><stop offset="0" stop-color="#fffbe0" stop-opacity="0.95"/><stop offset="0.6" stop-color="#ffe27a" stop-opacity="0.45"/><stop offset="1" stop-color="#ffe27a" stop-opacity="0"/></linearGradient></defs>`
+    + poly([lamp, [lamp[0] + ex + wx, lamp[1] + ey + wy], [lamp[0] + ex - wx, lamp[1] + ey - wy]], `url(#${g})`, { sw: 0 });
+  const front = Math.sin(a) >= 0;
+  if (!front) o += beam;
+  const red = mat(C.red!);
+  const white = mat(C.cream!);
+  for (let i = 0; i < 4; i++) o += cyl(0, 0, 13 - i, 8 + i * 16, 24 + i * 16, i % 2 ? white : red);
+  o += cyl(0, 0, 13, 72, 76, mat('#3a3f4c'));
+  // 灯室：深色框、玻璃里一盏灯，朝着人时最亮
+  const glow = 0.45 + 0.55 * Math.max(0, Math.sin(a));
+  o += rect(lamp[0] - 8, lamp[1] - 11, 16, 22, '#2f3542', { sw: 1.6 });
+  o += ell(lamp[0], lamp[1] - 1, 6, 5, '#ffe27a', { sw: 0, op: 0.6 + 0.4 * glow }) + ell(lamp[0], lamp[1] - 1, 11 * glow + 4, 9 * glow + 3, '#fff6c8', { sw: 0, op: 0.35 * glow });
+  o += line([lamp[0] - 3, lamp[1] - 10], [lamp[0] - 3, lamp[1] + 10], '#2f3542', 1.4) + line([lamp[0] + 3, lamp[1] - 10], [lamp[0] + 3, lamp[1] + 10], '#2f3542', 1.4);
+  o += cone(0, 0, 10, 98, 14, red, 2);
+  if (front) o += beam;
+  return o;
+}
+
+const FIRE_H = [[1, 0.8, 0.9], [0.85, 1, 0.75], [0.95, 0.75, 1], [0.8, 0.95, 0.85]] as const;
+const FIRE_SWAY = [0, 2, -1.5, 1] as const;
+/**
+ * 篝火（守岛第三章全部过关的纪念）：一圈石头围着交叉的木柴，三股火苗；frame 换火苗的高低和摆向，地上一圈暖光跟着明暗。
+ * 烟从 CHIMNEY_AT 的火口冒（envfx 的烟囱烟）
+ */
+function bonfire(frame = 0): string {
+  const [h0, h1, h2] = FIRE_H[frame % DECO_FRAMES.bonfire]!;
+  const sway = FIRE_SWAY[frame % DECO_FRAMES.bonfire]!;
+  const c = P(0, 0, 0);
+  const g = uid('bf');
+  let o = `<defs><radialGradient id="${g}"><stop offset="0" stop-color="#ffb347" stop-opacity="0.55"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient></defs>`;
+  o += ell(c[0], c[1] - 2, 34 + h0 * 4, 17 + h0 * 2, `url(#${g})`, { sw: 0 });
+  // 后半圈石头 → 木柴 → 火 → 前半圈石头
+  const stone = (k: number): string => {
+    const t = (k / 8) * Math.PI * 2;
+    return ell(c[0] + Math.cos(t) * 20, c[1] + Math.sin(t) * 10 - 2, 6, 4.4, k % 2 ? C.stone! : C.stoneD!, { sw: 1.4 });
+  };
+  for (const k of [4, 5, 6, 7, 0]) o += stone(k);
+  o += line([c[0] - 14, c[1] + 2], [c[0] + 12, c[1] - 10], C.ink!, 7) + line([c[0] - 14, c[1] + 2], [c[0] + 12, c[1] - 10], C.woodD!, 4.6);
+  o += line([c[0] + 14, c[1] + 2], [c[0] - 12, c[1] - 10], C.ink!, 7) + line([c[0] + 14, c[1] + 2], [c[0] - 12, c[1] - 10], C.wood!, 4.6);
+  const tongue = (dx: number, h: number, w: number, fill: string): string =>
+    path(`M${f(c[0] + dx - w)},${f(c[1] - 4)} Q${f(c[0] + dx - w * 0.9)},${f(c[1] - 4 - h * 0.55)} ${f(c[0] + dx + sway)},${f(c[1] - 4 - h)} Q${f(c[0] + dx + w * 0.9)},${f(c[1] - 4 - h * 0.55)} ${f(c[0] + dx + w)},${f(c[1] - 4)} Z`, fill, { sw: 0 });
+  o += tongue(-6, 24 * h0, 7, C.fire!) + tongue(6, 22 * h2, 7, C.fire!) + tongue(0, 34 * h1, 9, C.orange!);
+  o += tongue(-1, 20 * h1, 5, C.fireL!) + tongue(0, 10 * h0, 3, '#fff6c8');
+  for (const k of [1, 2, 3]) o += stone(k);
   return o;
 }
 
@@ -1665,14 +1759,14 @@ function rock(): string {
 // ================================================================= 对外
 
 const DRAW: Record<BuildingKind, (lv: number) => string> = {
-  hq, goldmine, sawmill, vault, woodyard, dock, armory, cannon, gunTower, mortar, shock, sniper, mine, flame: flameTower, harpoon, tar, rocket, fogTower, kraken: () => '', wall: () => '', statue: () => statue(), flagpole: () => flagpole(), chest: () => chest(), wheel: () => wheel(),
+  hq, goldmine, sawmill, vault, woodyard, dock, armory, cannon, gunTower, mortar, shock, sniper, mine, flame: flameTower, harpoon, tar, rocket, fogTower, kraken: () => '', wall: () => '', statue: () => statue(), flagpole: () => flagpole(), chest: () => chest(), wheel: () => wheel(), windmill: () => windmill(), lighthouse: () => lighthouse(), bonfire: () => bonfire(),
   treasure: () => treasure(),
   palm: () => palm(), rock: () => rock(),
 };
 
 const cache = new Map<string, ArtPiece>();
 export function buildingArt(kind: BuildingKind, level: number): ArtPiece {
-  const lv = kind === 'palm' || kind === 'rock' || kind === 'statue' || kind === 'flagpole' || kind === 'chest' || kind === 'wheel' || kind === 'treasure' ? 1 : Math.max(1, Math.min(8, Math.floor(level)));
+  const lv = isDecoKind(kind) || kind === 'treasure' ? 1 : Math.max(1, Math.min(8, Math.floor(level)));
   const key = `${kind}.${lv}`;
   if (kind === 'kraken') return krakenArt('idle', lv);
   if (kind === 'wall') return wallArt(lv, 0);
@@ -1765,6 +1859,25 @@ export function palmSwayFrames(): ArtPiece[] {
   return swayCache;
 }
 
+/** 会动的章节纪念装饰：每种烘几帧（envfx 按 DECO_LOOP 轮换）。风车四片叶 90° 一循环；舵轮来回摆 5 档 */
+export const DECO_FRAMES = { windmill: 6, lighthouse: 8, bonfire: 4, wheel: 5 } as const;
+export type DecoAnimKind = keyof typeof DECO_FRAMES;
+export const isDecoAnim = (k: BuildingKind): k is DecoAnimKind => k in DECO_FRAMES;
+const decoCache = new Map<DecoAnimKind, ArtPiece[]>();
+/** 帧和静态图（buildingArt(kind, 1)）同一个画布、同一个锚点，换纹理不跳；舵轮的第 2 帧就是静态图的样子 */
+export function decoFrames(kind: DecoAnimKind): ArtPiece[] {
+  let r = decoCache.get(kind);
+  if (r) return r;
+  const draw = (i: number): string =>
+    kind === 'windmill' ? windmill((i / DECO_FRAMES.windmill) * (Math.PI / 2))
+      : kind === 'lighthouse' ? lighthouse(i)
+        : kind === 'bonfire' ? bonfire(i)
+          : wheel(((i - 2) * 8 * Math.PI) / 180);
+  r = Array.from({ length: DECO_FRAMES[kind] }, (_, i) => ({ ...shell(kind, draw(i), 1), key: `b.${kind}.f${i}` }));
+  decoCache.set(kind, r);
+  return r;
+}
+
 const nfCache = new Map<number, ArtPiece>();
 /** 主寨不画旗布的版本（旗杆保留），尺寸、锚点同 buildingArt('hq', level)；旗布由 hqFlagFrames 在 HQ_FLAG_AT 处叠上 */
 export function hqNoFlagArt(level: number): ArtPiece {
@@ -1833,6 +1946,8 @@ export function CHIMNEY_AT(kind: BuildingKind, level: number): { dx: number; dy:
     const [gx, gy, h] = armGeom(lv).chims[0]!;
     q = P(gx, gy, h + 4);
   }
+  // 篝火的火尖
+  else if (kind === 'bonfire') q = P(0, 0, 34);
   else return null;
   return { dx: q[0] * k, dy: q[1] * k };
 }

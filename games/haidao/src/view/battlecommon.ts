@@ -1,7 +1,7 @@
 /** 登陆战场景共用的类型、常量和小工具（BattleScene 和拆出去的 battle*.ts 都用，不依赖场景实例） */
 import Phaser from 'phaser';
-import { TROOPS } from '../content/index.ts';
-import type { BattleAction, BattleResult, BattleSetup, TroopKind } from '../core/types.ts';
+import { BUILDINGS, TROOPS } from '../content/index.ts';
+import type { BattleAction, BattleResult, BattleSetup, BuildingKind, TroopKind } from '../core/types.ts';
 import type { DamageStage } from './motion.ts';
 import type { Rig } from './rigsprite.ts';
 
@@ -99,5 +99,6 @@ export const v2 = (p: { x: number; y: number }): Phaser.Math.Vector2 => new Phas
 export function rewardName(id: string): string {
   const [type, a, b] = id.split(':');
   if (type === 'skin') return `${TROOPS[a as TroopKind]?.name ?? a}·${b === 'gold' ? '黄金' : b === 'shadow' ? '暗影' : '皇家'}皮肤`;
-  return a === 'statue' ? '海盗雕像' : a === 'flagpole' ? '骷髅旗杆' : a === 'chest' ? '藏宝箱' : a === 'wheel' ? '海盗王的舵轮' : id;
+  // 掉宝的三件起名时比建造表里的名字多两个字；章节纪念直接用建造表的名字
+  return a === 'statue' ? '海盗雕像' : a === 'flagpole' ? '骷髅旗杆' : a === 'chest' ? '藏宝箱' : (BUILDINGS[a as BuildingKind]?.name ?? id);
 }

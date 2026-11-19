@@ -7,7 +7,7 @@ import { BUILDINGS, HQ_LEVELS, TD_BONUS_PER_STAR, TD_CAP_RUNS, TD_RUN_REWARD, TD
 import { TD2_LEVELS, TD2_LEVEL_BY_ID } from '../content/tdmaps.ts';
 import { branchOptions } from '../content/branches.ts';
 import { capacity, hqLevel, newProfile } from './base.ts';
-import { TD_WHEEL } from './run.ts';
+import { TD_TROPHIES } from './run.ts';
 import { heroLevel } from './tdbase.ts';
 import { TD_TOWER_KINDS, baseBonusPct, garrisonTier } from './td2types.ts';
 import type { TdGarrisonOption, TdGarrisonPick, TdGarrisonTower, TdIslandLevel, TdTier, TdTowerKind } from './td2types.ts';
@@ -87,10 +87,10 @@ export interface TdNextUnlock {
 
 const starsOf = (p: Profile, id: string): number => p.td?.stars[id] ?? 0;
 
-/** 守岛第四章「远洋」的关都至少 1 星：船长档案多一行「远洋通关」，结算时送纪念装饰「海盗王的舵轮」（TD_WHEEL） */
-export function tdOceanCleared(stars: Readonly<Record<string, number>>): boolean {
-  const c4 = tdCampaign().filter((l) => l.chapter === 4);
-  return c4.length > 0 && c4.every((l) => (stars[l.id] ?? 0) >= 1);
+/** 守岛第 chapter 章的关都至少 1 星：结算时送这一章的纪念装饰（TD_TROPHIES）；第四章「远洋」另在船长档案多一行「远洋通关」 */
+export function tdChapterCleared(stars: Readonly<Record<string, number>>, chapter: number): boolean {
+  const cs = tdCampaign().filter((l) => l.chapter === chapter);
+  return cs.length > 0 && cs.every((l) => (stars[l.id] ?? 0) >= 1);
 }
 
 /** 战役关表：TD2_LEVELS 里 id 是 td 加两位数的关（样板关之类的不进战役），按 index 排成一条线 */
@@ -205,8 +205,8 @@ export interface TdReward {
   unlocked: string | null;
   /** 还锁着的第一关（"下一个解锁"提示），全开了为 null */
   next: TdNextUnlock | null;
-  /** 这一局让第四章全部过关、送了「海盗王的舵轮」 */
-  wheel: boolean;
+  /** 这一局送的章节纪念装饰（收藏 id，按章号排），没有为空 */
+  trophies: string[];
 }
 
 /**
@@ -229,9 +229,10 @@ export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex
     res: g.res,
     td: { stars: { ...(p.td?.stars ?? {}), [levelId]: Math.max(prev, stars) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
   };
-  // 只在拿到星的这一局发：没守住的结算框里不该冒出「远洋通关」（老存档第四章早已全有星、还没领到舵轮时，下一次赢了再发）
-  const wheel = stars >= 1 && tdOceanCleared(profile.td!.stars) && !(p.cosmetics ?? []).includes(TD_WHEEL);
-  if (wheel) profile.cosmetics = [...(p.cosmetics ?? []), TD_WHEEL];
+  // 只在拿到星的这一局发：没守住的结算框里不该冒出「通关」（老存档早已全有星、还没领到的章，下一次赢了一起补发）
+  const owned = p.cosmetics ?? [];
+  const trophies = stars >= 1 ? Object.entries(TD_TROPHIES).filter(([ch, id]) => !owned.includes(id) && tdChapterCleared(profile.td!.stars, Number(ch))).map(([, id]) => id) : [];
+  if (trophies.length) profile.cosmetics = [...owned, ...trophies];
   const next = nextTdUnlock(profile);
   const unlocked = unlockedBefore && unlockedBefore.after === levelId && stars >= 1 && prev === 0 ? unlockedBefore.id : null;
   return ok({
@@ -240,7 +241,7 @@ export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex
       gold: g.run.gold, wood: g.run.wood, bonusGold: g.bonus.gold, bonusWood: g.bonus.wood, newStars,
       capped: g.capped, full: g.full,
       gotGold: g.got.gold, gotWood: g.got.wood, capGold: g.cap.gold, capWood: g.cap.wood,
-      unlocked, next, wheel,
+      unlocked, next, trophies,
     },
   });
 }

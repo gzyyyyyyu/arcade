@@ -99,7 +99,12 @@ export interface TurretIn {
   aiming: boolean;
   /** 离规则的下一次开火还有多少毫秒（不知道 = Infinity） */
   until: number;
+  /** 守岛暴雨那一波（规则 raining，火伤害打折）：喷火塔火舌细一圈、火星少、不闪光，喷嘴冒白汽；登陆战不传 */
+  wet?: boolean;
 }
+
+/** 下雨时火舌的粗细（相对平时） */
+const WET_JET = 0.62;
 
 /** 开火时炮口在哪（屏幕）、炮口正下方的地面点、炮口离地多高 */
 export interface Muzzle {
@@ -147,6 +152,8 @@ export class Turret {
   private face = 1;
   private flame = 0;
   private flameUp = true;
+  private wet = false;
+  private nextSteam = 0;
   private jetLen = 60;
   private nextEmber = 0;
   private tint = -1;
@@ -491,6 +498,7 @@ export class Turret {
 
   /** 喷火：规则瞄着人就持续喷（起势 RISE、收尾 FALL），停了冒两团烟 */
   private flameTick(o: TurretIn, since: number): void {
+    this.wet = !!o.wet;
     const on = o.aiming || since < 260;
     const was = this.flame;
     if (on && was === 0) this.flameUp = true;
@@ -518,15 +526,21 @@ export class Turret {
     const reach = flameReach(this.flame, this.flameUp);
     const flick = 0.86 + 0.14 * Math.sin(now / 37 + this.id) + 0.06 * Math.sin(now / 13);
     const ang = screenAngle(this.st.a);
-    jet.setPosition(x, y).setRotation(ang).setScale(((this.jetLen * reach) / 100) * (0.94 + 0.06 * flick) / this.r, (0.7 + 0.35 * this.flame) * flick * s).setAlpha(Math.min(1, this.flame * 1.6)).setDepth(dep + 0.03).setVisible(true);
-    // 火星：持续喷的时候隔一阵沿火舌飞出一粒（对象池，总量吃紧就不放）
+    const thick = this.wet ? WET_JET : 1;
+    jet.setPosition(x, y).setRotation(ang).setScale(((this.jetLen * reach) / 100) * (0.94 + 0.06 * flick) / this.r, (0.7 + 0.35 * this.flame) * flick * s * thick).setAlpha(Math.min(this.wet ? 0.8 : 1, this.flame * 1.6)).setDepth(dep + 0.03).setVisible(true);
+    // 雨里：喷嘴前隔一阵冒一团白汽（对象池）
+    if (this.wet && this.flame > 0.4 && now >= this.nextSteam && this.pt.live < 100) {
+      this.nextSteam = now + 220;
+      this.pt.emit('puff', x, y - 4, { vx: Math.cos(ang) * 10, vy: -30, g: -12, life: 700, s0: 0.3, s1: 0.85, a0: 0.5, tint: 0xe8edf2, depth: dep + 0.05 });
+    }
+    // 火星：持续喷的时候隔一阵沿火舌飞出一粒（对象池，总量吃紧就不放）；雨里少一半、不闪光
     if (this.flame > 0.4 && now >= this.nextEmber && this.pt.live < 100) {
-      this.nextEmber = now + 70;
+      this.nextEmber = now + (this.wet ? 140 : 70);
       const L = this.jetLen * reach;
       const c = Math.cos(ang);
       const sn = Math.sin(ang);
       this.pt.emit('ember', x + c * 6, y + sn * 6, { vx: c * L * 2.6, vy: sn * L * 2.6 - 10, g: -40, life: 300, s0: 0.75, s1: 0.25, a0: 0.95, tint: (now >> 6) % 2 ? 0xffd23f : 0xff7a1f, depth: dep + 0.04 });
-      if (this.flame >= 1 && (now >> 7) % 3 === 0) this.pt.bloom.flash(x + c * L * 0.5, y + sn * L * 0.5, 14, 0xff7a1f, 160, 0.3);
+      if (!this.wet && this.flame >= 1 && (now >> 7) % 3 === 0) this.pt.bloom.flash(x + c * L * 0.5, y + sn * L * 0.5, 14, 0xff7a1f, 160, 0.3);
     }
   }
 

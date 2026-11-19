@@ -100,6 +100,9 @@ export type BuildingKind =
   | 'flagpole' // 旗杆（掉宝装饰）
   | 'chest' // 宝箱（掉宝装饰）
   | 'wheel' // 海盗王的舵轮（守岛第四章全部过关的纪念装饰）
+  | 'windmill' // 小风车（守岛第一章全部过关的纪念装饰）
+  | 'lighthouse' // 小灯塔（守岛第二章全部过关的纪念装饰）
+  | 'bonfire' // 篝火（守岛第三章全部过关的纪念装饰）
   | 'treasure' // 宝藏箱（守岛里敌人来抢的目标；攻防里是普通建筑，驻岛英雄守在旁边，规则版本 6）
   | 'shock' // 震荡炮：小溅射、命中的兵震晕（DESIGN 13，规则版本 10）
   | 'sniper'; // 狙击塔：射程最远、单发重伤害，先打船长、船医这类后排（DESIGN 14，规则版本 11）
@@ -157,7 +160,7 @@ export interface Profile {
     /** 当前连胜（连续 ≥1 星的场数） */
     streak?: number;
   };
-  /** 收藏：掉宝得到的 `skin:<兵>:<gold|shadow|royal>`、`deco:<statue|flagpole|chest>`，守岛第四章全部过关送的 `deco:wheel` */
+  /** 收藏：掉宝得到的 `skin:<兵>:<gold|shadow|royal>`、`deco:<statue|flagpole|chest>`，守岛每章全部过关送的 `deco:<windmill|lighthouse|bonfire|wheel>`（TD_TROPHIES） */
   cosmetics: string[];
   /** 装备的皮肤：兵种 → 皮肤名 */
   skins: Partial<Record<TroopKind, string>>;

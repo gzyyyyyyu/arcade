@@ -132,7 +132,7 @@ export class TdScene extends Phaser.Scene {
   shots!: Shots;
   /** 敌人走到建筑后面时在建筑上画剪影 */
   occ!: Occluder;
-  readonly tin = { now: 0, dt: 0, has: false, tx: 0, ty: 0, aiming: false, until: Infinity };
+  readonly tin = { now: 0, dt: 0, has: false, tx: 0, ty: 0, aiming: false, until: Infinity, wet: false };
   tideOn = false;
   tideImgs: Phaser.GameObjects.Image[] = [];
   /** 雾区的雾团：位置（单位）、当前透明度、相位 */
