@@ -845,7 +845,9 @@ export function planCard(box: HTMLElement, pv: readonly WavePreview[], o: { titl
     sg.append(suggestText(p));
   }
   const lanes = p.lanes.map((l) => `${o.laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`);
-  const note = [lanes.length ? `${lanes.join('、')}来` : '', o.tide, p.note ?? '', ...enemyHints(p)].filter(Boolean).join(' · ');
+  // 关卡说明和敌人打法只在图鉴里写全（点卡打开）：以前全塞进第三行，后几波长到五六行，盖住出生点和海上的炮艇
+  const tips = !!p.note || enemyHints(p).length > 0;
+  const note = [lanes.length ? `${lanes.join('、')}来` : '', o.tide, tips ? '点开看打法' : ''].filter(Boolean).join(' · ');
   const q = pv[1];
   if (note || q) {
     const r3 = el('div', 'hd-plan-note', note, box);

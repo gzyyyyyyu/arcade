@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { approach, CROWD_D, CROWD_MAX, CROWD_MAX_TD, crowdOffsets } from '../src/view/crowd.ts';
+import { approach, CROWD_D, CROWD_MAX, CROWD_MAX_TD, crowdOffsets, MOOR_GAP, MOOR_OUT, moorOffsets } from '../src/view/crowd.ts';
 
 function run(items: Array<{ id: number; x: number; y: number }>): { ox: Float64Array; oy: Float64Array } {
   const ox = new Float64Array(items.length);
@@ -112,5 +112,40 @@ describe('守岛的人堆', () => {
     crowdOffsets(items, ox, oy, CROWD_D, CROWD_MAX_TD, 4);
     expect(nearest(ox, oy)).toBeGreaterThan(before * 2.5);
     for (let i = 0; i < items.length; i++) expect(Math.hypot(ox[i]!, oy[i]!)).toBeLessThanOrEqual(CROWD_MAX_TD + 1e-9);
+  });
+});
+
+describe('moorOffsets：停泊的船画到海上并排开', () => {
+  const run = (items: { id: number; x: number; y: number }[]) => {
+    const ox = new Float64Array(items.length);
+    const oy = new Float64Array(items.length);
+    moorOffsets(items, ox, oy, 22, 3, 100);
+    return items.map((it, i) => ({ x: it.x + ox[i]!, y: it.y + oy[i]! }));
+  };
+  it('停在 x 大那条边沙滩上的炮艇推到沙滩外沿以外，沿岸方向不动', () => {
+    const [p] = run([{ id: 1, x: 2350, y: 1050 }]);
+    expect(p!.x).toBe(2500 + MOOR_OUT);
+    expect(p!.y).toBe(1050);
+  });
+  it('y 小那条边（海盗王）往 y 负方向推，已经在海里的不往回拉', () => {
+    const [a, b] = run([{ id: 1, x: 1040, y: -180 }, { id: 2, x: 500, y: -900 }]);
+    expect(a!.y).toBe(-300 - MOOR_OUT);
+    expect(b!.y).toBe(-900);
+  });
+  it('7 艘叠在一起的炮艇沿岸排开，间距不小于 MOOR_GAP，整排中点不变', () => {
+    const boats = Array.from({ length: 7 }, (_, i) => ({ id: i + 1, x: 2320 + (i % 3) * 20, y: 1030 + (i % 4) * 15 }));
+    const ps = run(boats);
+    const ys = ps.map((p) => p.y).sort((a, b) => a - b);
+    for (let i = 1; i < ys.length; i++) expect(ys[i]! - ys[i - 1]!).toBeGreaterThanOrEqual(MOOR_GAP - 1e-9);
+    const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
+    expect(mean(ys)).toBeCloseTo(mean(boats.map((b) => b.y)), 6);
+    for (const p of ps) expect(p.x).toBe(2500 + MOOR_OUT);
+  });
+  it('同样的输入同样的结果（和输入顺序无关）', () => {
+    const boats = [{ id: 3, x: 2400, y: 1000 }, { id: 1, x: 2400, y: 1000 }, { id: 2, x: 2380, y: 1010 }];
+    const a = run(boats);
+    const b = run([boats[2]!, boats[0]!, boats[1]!]);
+    const key = (ps: { x: number; y: number }[], order: number[]) => order.map((i) => `${ps[i]!.x},${ps[i]!.y}`);
+    expect(key(a, [0, 1, 2]).sort()).toEqual(key(b, [0, 1, 2]).sort());
   });
 });

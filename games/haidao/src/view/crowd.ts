@@ -146,3 +146,50 @@ function cellKey(cx: number, cy: number): number {
 export function approach(cur: number, target: number, dt: number, tau = 140): number {
   return target + (cur - target) * Math.exp(-Math.max(0, dt) / tau);
 }
+
+/** 停泊的船离沙滩外沿多远（逻辑单位）：船身整个落在海里，不压在沙滩上 */
+export const MOOR_OUT = 70;
+/** 同一条岸边停泊的船之间至少隔多远：约一个船身宽，7 艘炮艇排开也不叠成一团 */
+export const MOOR_GAP = 190;
+
+/**
+ * 守岛的炮艇、海盗王（规则里停在海滩圈里，离岸 1–3 格）画在海上：沿离岛最近的那条边往外推到沙滩外沿以外，
+ * 同一条边上的船按沿岸方向排开、间距不小于 gap，整排的中点不变。只影响显示（开炮起点跟着显示位置走），规则位置、射程都不动。
+ * side（0..3：x 小、x 大、y 小、y 大）取超出岛的那一维里超得多的一边；岛内的（不该有）不推。
+ */
+export function moorOffsets(items: readonly CrowdItem[], ox: Float64Array, oy: Float64Array, island: number, beach: number, unit: number, gap = MOOR_GAP): void {
+  const lo = -beach * unit - MOOR_OUT;
+  const hi = (island + beach) * unit + MOOR_OUT;
+  const sides: number[][] = [[], [], [], []];
+  for (let i = 0; i < items.length; i++) {
+    const { x, y } = items[i]!;
+    ox[i] = 0;
+    oy[i] = 0;
+    const out = [-x, x - island * unit, -y, y - island * unit];
+    let side = -1;
+    for (let k = 0; k < 4; k++) if (out[k]! > 0 && (side < 0 || out[k]! > out[side]!)) side = k;
+    if (side < 0) continue;
+    if (side === 0) ox[i] = Math.min(0, lo - x);
+    else if (side === 1) ox[i] = Math.max(0, hi - x);
+    else if (side === 2) oy[i] = Math.min(0, lo - y);
+    else oy[i] = Math.max(0, hi - y);
+    sides[side]!.push(i);
+  }
+  for (let k = 0; k < 4; k++) {
+    const idx = sides[k]!;
+    if (idx.length < 2) continue;
+    // 沿岸方向：x 边上沿 y 排，y 边上沿 x 排；同位置按 id 定先后，排法每帧一样
+    const along = (i: number): number => (k < 2 ? items[i]!.y : items[i]!.x);
+    idx.sort((a, b) => along(a) - along(b) || items[a]!.id - items[b]!.id);
+    const pos = idx.map(along);
+    for (let j = 1; j < pos.length; j++) pos[j] = Math.max(pos[j]!, pos[j - 1]! + gap);
+    let shift = 0;
+    for (let j = 0; j < pos.length; j++) shift += pos[j]! - along(idx[j]!);
+    shift /= pos.length;
+    for (let j = 0; j < pos.length; j++) {
+      const d = pos[j]! - shift - along(idx[j]!);
+      if (k < 2) oy[idx[j]!] = d;
+      else ox[idx[j]!] = d;
+    }
+  }
+}

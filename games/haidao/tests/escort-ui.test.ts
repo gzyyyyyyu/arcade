@@ -131,13 +131,16 @@ describe('escortcss：尺寸和字号规则', () => {
       for (const n of [...w, ...h]) expect(n, cls).toBeGreaterThanOrEqual(44);
     }
   });
-  it('速度钮手机上一眼看出当前档：金底、上浮、外圈金光；另两档变暗', () => {
+  it('速度钮手机上一眼看出当前档：金底、上浮、外圈金光；另两档暖木色能点，和点不了的修船（灰）分得开', () => {
     const on = rules.find((r) => r.sel.endsWith('.hd-esc-pbtn.on'))!;
     expect(on.body).toMatch(/#ffe58a/);
     expect(on.body).toMatch(/translateY\(-6px\)/);
     expect(on.body).toMatch(/box-shadow:[^;]*rgba\(255,214,90/);
     const off = rules.find((r) => r.sel.endsWith('.hd-esc-pbtn'))!;
-    expect(off.body).toMatch(/brightness\(/);
+    expect(off.body).toMatch(/background:linear-gradient\(#c98f55/);
+    expect(off.body).not.toMatch(/brightness\(|grayscale\(/);
+    const dead = rules.find((r) => r.sel.endsWith('.hd-esc-mend.full'))!;
+    expect(dead.body).toMatch(/grayscale\(1\)/);
   });
   it('选图页的按钮也不小于 44', () => {
     for (const cls of ['hd-esc-map', 'hd-esc-diff', 'hd-esc-go']) {

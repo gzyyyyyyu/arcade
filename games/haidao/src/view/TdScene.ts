@@ -37,9 +37,9 @@ import { escortShipArt } from './art/escort.ts';
 import { DEPTH } from './depth.ts';
 import { type TdData, type ESpr, type TSpr, W, EDGE_MS, TEMP_KINDS } from './tdcommon.ts';
 import { drawLayout, drawProps, drawWater, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector, syncFleet } from './tdworld.ts';
-import { tap, hover, press, cancelAll, callWave, toggleHero } from './tdinput.ts';
+import { tap, hover, press, cancelAll, callWave, toggleHero, rightClick, heroDrag, stepSkillQ } from './tdinput.ts';
 import { newCycle } from './tdpick.ts';
-import { canCall, buildUi, updateHud } from './tdhud.ts';
+import { canCall, buildUi, updateHud, togglePause } from './tdhud.ts';
 import { closeSheet, showBest, wreckOf, slotSig, renderSheet, reopenWatch } from './tdsheet.ts';
 import { onEvent } from './tdevents.ts';
 import { type ReasonLog, newReasonLog } from './tdreason.ts';
@@ -85,7 +85,8 @@ export class TdScene extends Phaser.Scene {
   wallLevel = new Map<number, number>();
   blocks = new Map<number, Phaser.GameObjects.Image>();
   kegs = new Map<number, Phaser.GameObjects.Image>();
-  pads: Array<{ img: Phaser.GameObjects.Image; plus: Phaser.GameObjects.Text }> = [];
+  /** 木台：底图、空台上的「+」、塔够钱升级时塔顶的小金箭头 */
+  pads: Array<{ img: Phaser.GameObjects.Image; plus: Phaser.GameObjects.Text; up: Phaser.GameObjects.Text }> = [];
   chests: Phaser.GameObjects.Image[] = [];
   pileSig = '';
   pileObjs: Phaser.GameObjects.GameObject[] = [];
@@ -167,6 +168,10 @@ export class TdScene extends Phaser.Scene {
   edgeEls: Array<{ el: HTMLElement; arrow: HTMLElement; n: HTMLElement; sig: string }> = [];
   edgeT = 0;
   hintTimer: Phaser.Time.TimerEvent | null = null;
+  /** 点在黄圈外的技能：英雄先走过去，够得着了自动放（tdinput.ts 的 stepSkillQ 每拍看一次） */
+  skillQ: { m: 'keg' | 'barricade'; ux: number; uy: number; wx: number; wy: number; range: number; until: number } | null = null;
+  /** 玩家按了暂停（顶栏的暂停钮、电脑 P 键）：和开面板一样只停画面层的推进，核心照旧只认拍数 */
+  userPaused = false;
   /** 刚扔出去的火药桶落点（世界坐标），hero 事件来时画抛物线 */
   kegAim: { x: number; y: number } | null = null;
   /** 护航的画面和操作（只有护航局才有，escortview.ts） */
@@ -275,13 +280,14 @@ export class TdScene extends Phaser.Scene {
 
     this.cc = new CamCtl(this, this.r, worldBounds());
     this.cc.onTap = (x, y) => tap(this, x, y);
-    // 电脑：悬停高亮木台、右键 / Esc 取消；空格 = 开打（叫下一波，倒数里才有用，否则回全景）；
+    // 电脑：悬停高亮木台、右键取消（没什么可取消时右键地面直接指挥英雄）、Esc 取消；按住英雄拖出落点（手指也一样）；P 暂停；空格 = 开打（叫下一波，倒数里才有用，否则回全景）；
     // 数字键：建塔菜单开着时选第 n 种塔，否则 1 拒马、2 炸药桶、3 叫下一波；S 卖塔、U 升级（木台面板开着时）、C 敌人图鉴和克制表、H 选中英雄（再点地面指挥他走）
     this.hoverG = this.add.graphics().setDepth(DEPTH.tdHover);
     this.hoverSlot = -2;
     this.cc.onHover = (x, y) => hover(this, x, y);
     this.cc.onPress = (x, y) => press(this, x, y);
-    this.cc.onRight = () => cancelAll(this);
+    this.cc.onRight = (x, y) => rightClick(this, x, y);
+    this.cc.drag = heroDrag(this);
     bindKeys(this, {
       esc: () => cancelAll(this),
       space: () => (canCall(this) && !this.sheet ? callWave(this) : this.fit.back()),
@@ -300,6 +306,7 @@ export class TdScene extends Phaser.Scene {
       else if (k === 'u') this.sheet?.querySelector<HTMLButtonElement>('.hd-td-up:not(:disabled)')?.click();
       else if (k === 'c') (this.bestOpen ? closeSheet(this) : showBest(this));
       else if (k === 'h' && !this.sheet) toggleHero(this);
+      else if (k === 'p') togglePause(this);
     };
     window.addEventListener('keydown', letters);
     this.events.once('shutdown', () => window.removeEventListener('keydown', letters));
@@ -394,8 +401,10 @@ export class TdScene extends Phaser.Scene {
   override update(_t: number, dt: number): void {
     const s = this.s;
     // 建塔 / 升级 / 卖塔 / 清障面板、敌人图鉴开着时画面层不往前推：只把已经点下的操作送进核心推一拍（核心只认 stepTd，不依赖墙钟）
-    const paused = (this.openSlot >= 0 || this.bestOpen) && !this.ended;
+    const paused = (this.openSlot >= 0 || this.bestOpen || this.userPaused) && !this.ended;
     this.hud.paused.classList.toggle('on', paused);
+    const pt = this.userPaused ? '已暂停 · 点「继续」接着打' : '已暂停 · 关掉面板继续';
+    if (paused && this.hud.paused.textContent !== pt) this.hud.paused.textContent = pt;
     if (paused) {
       if (this.pending.length > 0 && !s.over) this.stepOnce();
     } else if (!this.ended && !this.hs.active) {
@@ -451,6 +460,7 @@ export class TdScene extends Phaser.Scene {
   }
 
   stepOnce(): void {
+    stepSkillQ(this);
     const acts = this.autoBot ? [...this.pending, ...this.autoBot(this.s)] : this.pending;
     this.pending = [];
     const before = this.s.wave;

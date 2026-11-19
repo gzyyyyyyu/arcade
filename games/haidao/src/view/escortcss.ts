@@ -28,7 +28,8 @@ ${U} .hd-esc-ctl > * { pointer-events:auto; }
 ${U} .hd-esc-right { display:contents; }
 ${U} .hd-esc-pace { display:flex; gap:8px; align-items:flex-end; }
 ${U} .hd-esc-ctl .hd-esc-pbtn { position:relative; min-width:56px; min-height:56px; padding:2px 4px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; font-size:14px; font-weight:900; line-height:1.1;
-  border:3px solid ${INK}; border-radius:12px; background:linear-gradient(#7d6e5e,#4c4136); color:#d8cfc0; opacity:.82; filter:saturate(.6) brightness(.85); box-shadow:0 3px 0 ${INK}; transition:transform .16s cubic-bezier(.3,1.8,.5,1), box-shadow .16s; }
+  border:3px solid ${INK}; border-radius:12px; background:linear-gradient(#c98f55,#8a5a30); color:#fff3dc; box-shadow:0 3px 0 ${INK}; transition:transform .16s cubic-bezier(.3,1.8,.5,1), box-shadow .16s; }
+/* 三种样子分得开：选中的金色抬起、能点的暖木色、点不了的（修船：钱不够或船是满的）灰而淡。以前没选中的船速和点不了的修船同是灰底 */
 ${U} .hd-esc-ctl .hd-esc-pbtn svg { width:28px; height:28px; display:block; }
 ${U} .hd-esc-ctl .hd-esc-pbtn.on { background:linear-gradient(#ffe58a,#e0a824); color:${INK}; opacity:1; filter:none; transform:translateY(-6px); box-shadow:0 0 0 3px #fff3b0, 0 0 16px 4px rgba(255,214,90,.85), 0 3px 0 ${INK}; }
 ${U} .hd-esc-ctl .hd-esc-pbtn:active { transform:translateY(-2px); }
@@ -38,7 +39,7 @@ ${U} .hd-esc-ctl .hd-esc-mend svg { width:24px; height:24px; display:block; posi
 ${U} .hd-esc-ctl .hd-esc-mend small { position:relative; font-size:12px; font-weight:800; }
 ${U} .hd-esc-ctl .hd-esc-mend b { position:relative; font-size:14px; }
 ${U} .hd-esc-ctl .hd-esc-mend .cd { position:absolute; inset:0; background:conic-gradient(rgba(20,35,58,.62) var(--cd,0deg), transparent 0); pointer-events:none; }
-${U} .hd-esc-ctl .hd-esc-mend.poor, ${U} .hd-esc-ctl .hd-esc-mend.full { filter:grayscale(.7); opacity:.8; }
+${U} .hd-esc-ctl .hd-esc-mend.poor, ${U} .hd-esc-ctl .hd-esc-mend.full { background:linear-gradient(#8f8a84,#5f5a55); color:#e6e1da; filter:grayscale(1); opacity:.6; }
 ${U} .hd-esc-ctl .hd-esc-follow { min-width:56px; min-height:56px; padding:2px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:14px; font-weight:900; line-height:1.1; }
 ${U} .hd-esc-ctl .hd-esc-follow i { width:20px; height:12px; border:2px solid ${INK}; border-radius:7px; background:#8a7f72; position:relative; }
 ${U} .hd-esc-ctl .hd-esc-follow i::after { content:''; position:absolute; left:1px; top:1px; width:6px; height:6px; border-radius:50%; background:#fff; transition:transform .15s; }
