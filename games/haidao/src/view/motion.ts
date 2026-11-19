@@ -230,3 +230,17 @@ export function collapseScale(k: number): { sx: number; sy: number; dy: number }
   const e = easeInQuad(k);
   return { sx: 1 + 0.06 * e, sy: 1 - 0.28 * e, dy: 5 * e };
 }
+
+// ---------------------------------------------------------------- 锚钩（tdhookfx.ts）
+
+/** 收链几拍（拉完以后链子缩回英雄手里） */
+export const REEL_TICKS = 4;
+export type HookPhase = { kind: 'fly'; k: number } | { kind: 'pull' } | { kind: 'reel'; k: number } | { kind: 'done' };
+
+/** 这一刻（ft 是带小数的拍）锚钩演到哪一段，k 是这一段走了几成（0..1）。纯函数，单测锁住 */
+export function hookPhase(fx: { t0: number; t1: number; t2: number }, ft: number): HookPhase {
+  if (ft < fx.t1) return { kind: 'fly', k: Math.max(0, (ft - fx.t0) / Math.max(1, fx.t1 - fx.t0)) };
+  if (ft < fx.t2) return { kind: 'pull' };
+  if (ft < fx.t2 + REEL_TICKS) return { kind: 'reel', k: (ft - fx.t2) / REEL_TICKS };
+  return { kind: 'done' };
+}

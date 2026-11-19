@@ -49,11 +49,18 @@ export function tdHomeSnapshot(p: Profile): TdHomeSnapshot {
   };
 }
 
-/** 波次生成参数：等效关按主寨等级查 TD2_HOME.levelByHq，种子由界面给（和战役一样） */
-export function tdHomeGen(snap: TdHomeSnapshot, seed: number): TdHomeGen {
+/** 主寨够不够开加难档 */
+export function tdHomeHardOpen(hq: number): boolean {
+  return hq >= TD2_HOME.hard.hq;
+}
+
+/** 波次生成参数：等效关按主寨等级查 TD2_HOME.levelByHq（加难档再加 hard.levelPlus），种子由界面给（和战役一样） */
+export function tdHomeGen(snap: TdHomeSnapshot, seed: number, hard = false): TdHomeGen {
   const t = TD2_HOME.levelByHq;
   const i = Math.max(0, Math.min(t.length - 1, Math.floor(snap.hq) - 1));
-  return { levelIndex: t[i] ?? 0, seed, gold: TD2_HOME.gold, first: TD2_HOME.first, waveTicks: TD2_HOME.waveTicks, rules: RULES_VERSION };
+  const gen: TdHomeGen = { levelIndex: (t[i] ?? 0) + (hard ? TD2_HOME.hard.levelPlus : 0), seed, gold: TD2_HOME.gold, first: TD2_HOME.first, waveTicks: TD2_HOME.waveTicks, rules: RULES_VERSION };
+  if (hard) gen.hard = true;
+  return gen;
 }
 
 /**
@@ -73,6 +80,8 @@ export function tdHomeWave(gen: TdHomeGen, w: number): TdWave {
   const lanes = TD2_HOME.lanes.length + (w >= HOME_TIDE_WAVE ? 1 : 0);
   const open = Math.max(1, Math.min(lanes, 1 + Math.floor(w / 3)));
   const pool = HOME_FROM.filter(([k, from]) => w >= from && (k !== 'grenadier' || (gen.rules ?? 9) >= 10) && (k !== 'shield' || (gen.rules ?? 9) >= 11)).map(([k]) => k);
+  // 加难档：精英按 hard.elite 的波数进池（排在普通敌人后面，普通档的池子和抽签顺序不变）
+  if (gen.hard) for (const [k, from] of TD2_HOME.hard.elite) if (w >= from) pool.push(k);
   for (let g = 0; g < HOME_GROUPS && left > 0; g++) {
     const kind = pool[rng.int(pool.length)] as TdEnemyKind;
     const pts = TD2_ENEMY_POINTS[kind];
@@ -92,11 +101,12 @@ export function tdHomeWave(gen: TdHomeGen, w: number): TdWave {
   return wave;
 }
 
-/** 开一局海盗来袭：TdSetup.mode = 'home'，level 由 TD2_HOME 的候选位置（按玩家布局挑空的摆）和 tdHomeWave 拼出，一共 maxWaves 波 */
-export function tdHomeSetup(p: Profile, seed: number): Result<TdSetup> {
+/** 开一局海盗来袭：TdSetup.mode = 'home'，level 由 TD2_HOME 的候选位置（按玩家布局挑空的摆）和 tdHomeWave 拼出，一共 maxWaves 波；hard 要主寨够级 */
+export function tdHomeSetup(p: Profile, seed: number, hard = false): Result<TdSetup> {
   if (!Number.isInteger(seed)) return err('bad_seed');
   const snap = tdHomeSnapshot(p);
-  const gen = tdHomeGen(snap, seed);
+  if (hard && !tdHomeHardOpen(snap.hq)) return err('hard_locked');
+  const gen = tdHomeGen(snap, seed, hard);
   const raw: TdPlacedLevel = {
     id: 'home',
     name: '海盗来袭',
@@ -126,23 +136,28 @@ export function tdHomeSetup(p: Profile, seed: number): Result<TdSetup> {
   });
 }
 
-/** 撑住 waves 波的原始奖励（还没按每日上限截）：tdRunReward(主寨, 3★) × perWavePct% × min(waves, maxWaves) */
-export function tdHomeRawReward(hq: number, waves: number): Res {
+/** 撑住 waves 波的原始奖励（还没按每日上限截）：tdRunReward(主寨, 3★) × 每波比例% × min(waves, maxWaves)；加难档按 hard.perWavePct */
+export function tdHomeRawReward(hq: number, waves: number, hard = false): Res {
   const w = Math.max(0, Math.min(TD2_HOME.maxWaves, Math.floor(waves)));
   const r = tdRunReward({ hq }, 3);
-  return { gold: Math.floor((r.gold * TD2_HOME.perWavePct * w) / 100), wood: Math.floor((r.wood * TD2_HOME.perWavePct * w) / 100) };
+  const pct = hard ? TD2_HOME.hard.perWavePct : TD2_HOME.perWavePct;
+  return { gold: Math.floor((r.gold * pct * w) / 100), wood: Math.floor((r.wood * pct * w) / 100) };
 }
 
-/** 结算一局海盗来袭：按每日上限和仓库截（tdGrant，和 settleTd 共用 Profile.td 的 day / gotGold / gotWood），不记星。dayIndex 同 settleTd */
-export function settleTdHome(p: Profile, result: TdResult, dayIndex: number): Result<{ profile: Profile; reward: TdHomeReward }> {
+/**
+ * 结算一局海盗来袭：按每日上限和仓库截（tdGrant，和 settleTd 共用 Profile.td 的 day / gotGold / gotWood），不记星。dayIndex 同 settleTd；
+ * gen 是这一局的生成参数（setup.home），加难档按它的 hard 给奖励
+ */
+export function settleTdHome(p: Profile, result: TdResult, dayIndex: number, gen?: Pick<TdHomeGen, 'hard'>): Result<{ profile: Profile; reward: TdHomeReward }> {
   if (!result.over) return err('not_over');
   if (!Number.isInteger(dayIndex) || dayIndex < 0) return err('bad_day');
   const waves = Math.max(0, Math.min(TD2_HOME.maxWaves, Math.floor(result.waves)));
-  const g = tdGrant(p, tdHomeRawReward(hqLevel(p), waves), { gold: 0, wood: 0 }, dayIndex);
+  const hard = gen?.hard === true;
+  const g = tdGrant(p, tdHomeRawReward(hqLevel(p), waves, hard), { gold: 0, wood: 0 }, dayIndex);
   const profile: Profile = {
     ...p,
     res: g.res,
     td: { stars: { ...(p.td?.stars ?? {}) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
   };
-  return ok({ profile, reward: { waves, gold: g.run.gold, wood: g.run.wood, capped: g.capped, full: g.full } });
+  return ok({ profile, reward: { waves, hard, gold: g.run.gold, wood: g.run.wood, capped: g.capped, full: g.full } });
 }

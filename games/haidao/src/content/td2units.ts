@@ -180,6 +180,11 @@ export const TD2_HERO_SKILL = {
   bomb: { range: 500, dmgPct: 250, r: 180, cd: 500 },
   /** 号令（被动）：英雄身边 r 内的塔攻速 +pct% */
   rally: { r: 300, pct: 15 },
+  /**
+   * 锚钩（规则版本 20，英雄 level 级起，只在战役和海盗来袭）：钩 range 内一个敌人，钩子飞 fly 拍，再按整数格朝英雄拉回最多 cells 格
+   * （每格 perCell 拍），拉完再定住 stun 拍；首领和海上的船钩不动。冷却 cd 拍，和炸药桶一样
+   */
+  hook: { level: 8, range: 500, fly: 4, cells: 3, perCell: 2, stun: 20, cd: 500 },
 } as const;
 
 /**
@@ -213,6 +218,16 @@ export const TD2_HOME = {
   waveTicks: 360,
   perWavePct: 6,
   maxWaves: 20,
+  /**
+   * 加难档（规则版本 20）：主寨 hq 级起开局能选，默认关。等效关下标 +levelPlus（每波敌人约多 9%），精英按 elite 写的波数（0 起）进敌人池；
+   * 每撑住一波给 perWavePct%（普通档 6%），照样受守岛每日上限管
+   */
+  hard: {
+    hq: 6,
+    levelPlus: 3,
+    perWavePct: 8,
+    elite: [['bosun', 7], ['macaw', 7], ['mate', 11]] as ReadonlyArray<readonly ['bosun' | 'macaw' | 'mate', number]>,
+  },
   lanes: [{ x: 10, y: -2 }, { x: -2, y: 11 }, { x: 23, y: 10 }] as ReadonlyArray<{ x: number; y: number }>,
   tide: { x: 11, y: 23 },
   slots: [{ x: 5, y: 7 }, { x: 15, y: 7 }, { x: 2, y: 12 }, { x: 15, y: 15 }, { x: 11, y: 19 }, { x: 18, y: 10 }] as ReadonlyArray<{ x: number; y: number }>,

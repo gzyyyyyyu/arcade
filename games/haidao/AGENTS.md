@@ -67,7 +67,7 @@ tests/         vitest
 | `npm run build:cf` | 部署用构建到 `dist-cf/games/haidao/` |
 | `npm run sim -- --n 50` | 机器人（小白、普通）打每一关：星数、胜率、时长、掠夺 |
 | `node tools/live-sim.ts` / `td-live-sim.ts` / `escort-live-sim.ts` | 悬赏出海、悬赏守岛、护航实盘的配平模拟（`--n 2000`，改对应表或内容后要重跑） |
-| `node tools/td-sim.ts` / `escort-sim.ts` / `td-tide-sim.ts` / `raid-sim.ts` | 守岛战役、护航、大潮无尽、攻防的小样本配平（用 `nice`，大批量放 CI） |
+| `node tools/td-sim.ts` / `td-home-sim.ts` / `escort-sim.ts` / `td-tide-sim.ts` / `raid-sim.ts` | 守岛战役、海盗来袭、护航、大潮无尽、攻防的小样本配平（用 `nice`，大批量放 CI） |
 | `npm run art -- <目录>` | 素材图鉴、基地全景、战斗定格渲成 PNG |
 | `npm run shot -- --out <目录>` | 无头浏览器冒烟截图（临时端口），检查控制台零报错和按钮 ≥ 44 像素；`--flow`、`--td`、`--home`、`--cam`、`--pvp`、`--tide`、`--map`、`--tdlive`、`--escort`、`--record` 分别走各条主流程或录像，参数见 docs/tools-haidao.md |
 | `node tools/noscroll.ts --out <目录>` | 量五个尺寸是否滚动、重叠、裁字和质量线；改界面后跑 |

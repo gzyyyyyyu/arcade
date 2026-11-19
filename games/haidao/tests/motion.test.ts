@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEATH_MS, EASE, HIT_SQUASH, hitSquash, STAGE_LOOK, TURN_MS, attackFrame, collapseScale, damageStage, deathPose, easeInOutSine, easeOutBack, easeOutCubic, interpPos, riseScale, shipBob, shipRecoil, sinkPose, strideFrame, TOWER_RISE_MS, towerRise, turnStep } from '../src/view/motion.ts';
+import { DEATH_MS, EASE, HIT_SQUASH, hitSquash, hookPhase, REEL_TICKS, STAGE_LOOK, TURN_MS, attackFrame, collapseScale, damageStage, deathPose, easeInOutSine, easeOutBack, easeOutCubic, interpPos, riseScale, shipBob, shipRecoil, sinkPose, strideFrame, TOWER_RISE_MS, towerRise, turnStep } from '../src/view/motion.ts';
 
 describe('拍间插值', () => {
   it('按比例插，端点精确', () => {
@@ -168,5 +168,20 @@ describe('船的起伏、后坐、沉没', () => {
       expect(sinkPose(k).sy).toBeLessThan(sinkPose(k - 0.1).sy);
       expect(sinkPose(k).dy).toBeGreaterThan(sinkPose(k - 0.1).dy);
     }
+  });
+});
+
+describe('锚钩的演出阶段', () => {
+  const fx = { t0: 10, t1: 14, t2: 20 };
+  it('甩出去 → 拉回 → 收链 → 演完，k 从 0 走到 1', () => {
+    expect(hookPhase(fx, 10)).toEqual({ kind: 'fly', k: 0 });
+    expect(hookPhase(fx, 12)).toEqual({ kind: 'fly', k: 0.5 });
+    expect(hookPhase(fx, 14)).toEqual({ kind: 'pull' });
+    expect(hookPhase(fx, 19.9)).toEqual({ kind: 'pull' });
+    expect(hookPhase(fx, 20 + REEL_TICKS / 2)).toEqual({ kind: 'reel', k: 0.5 });
+    expect(hookPhase(fx, 20 + REEL_TICKS)).toEqual({ kind: 'done' });
+  });
+  it('第一格就被挡住（没有拉的那段）：钩上直接收链', () => {
+    expect(hookPhase({ t0: 0, t1: 4, t2: 4 }, 4)).toEqual({ kind: 'reel', k: 0 });
   });
 });

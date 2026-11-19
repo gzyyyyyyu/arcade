@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
+import { garrisonRecPicks } from './garrisonrec.ts';
+import type { HookFx } from './tdhookfx.ts';
 import { BUILDINGS } from '../content/index.ts';
-import { type TdState, type TdAction, type BuildingKind, type TdTowerKind, type WavePreview, createTd, tdJammed, stepTd, tdBotActions, beijingIsoWeek, tideSetup, type Result, type TdSetup, tdHomeSetup, tdAutoPicks, startTd2, TD_TIER_LEVEL } from '../core/index.ts';
+import { type TdState, type TdAction, type BuildingKind, type TdTowerKind, type WavePreview, createTd, tdJammed, stepTd, tdBotActions, beijingIsoWeek, tideSetup, type Result, type TdSetup, tdHomeSetup, startTd2, TD_TIER_LEVEL, TD2_LEVEL_BY_ID, TD2_HERO_SKILL, hookable, hqLevel, tdHomeHardOpen } from '../core/index.ts';
 import { StunMarks } from './stunmarks.ts';
 import { SnipeLines } from './snipefx.ts';
 import { UNIT, ISLAND } from '../core/types.ts';
@@ -39,7 +41,7 @@ import { escortShipArt } from './art/escort.ts';
 import { DEPTH } from './depth.ts';
 import { type TdData, type ESpr, type TSpr, W, EDGE_MS, SHIP_FOES, TEMP_KINDS } from './tdcommon.ts';
 import { drawLayout, drawProps, drawWater, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector, syncFleet } from './tdworld.ts';
-import { tap, hover, press, cancelAll, callWave, toggleHero, rightClick, heroDrag, stepSkillQ } from './tdinput.ts';
+import { act, tap, hover, press, cancelAll, callWave, toggleHero, rightClick, heroDrag, stepSkillQ } from './tdinput.ts';
 import { newCycle } from './tdpick.ts';
 import { canCall, buildUi, updateHud, togglePause } from './tdhud.ts';
 import { closeSheet, showBest, wreckOf, slotSig, renderSheet, reopenWatch } from './tdsheet.ts';
@@ -141,7 +143,9 @@ export class TdScene extends Phaser.Scene {
   /** 结算「原因」用的局内记录（tdevents.ts 写、tdresult.ts 读） */
   reasonLog: ReasonLog = newReasonLog();
   /** 瞄准中的技能：keg 炸药桶、barricade 拒马 */
-  mode: 'none' | 'keg' | 'barricade' | 'battery' = 'none';
+  mode: 'none' | 'keg' | 'barricade' | 'battery' | 'hook' = 'none';
+  /** 正在演的锚钩（tdhookfx.ts） */
+  hooks: HookFx[] = [];
   /** 友军巡航船的图（第一次出海时建，tdworld.ts 的 syncFleet 每帧摆） */
   fleetImg: Phaser.GameObjects.Image | null = null;
   openSlot = -1;
@@ -168,7 +172,7 @@ export class TdScene extends Phaser.Scene {
   planKey = '';
   /** 顶栏下面的首领粗血条（tdhud.ts 的 syncBossBar）；id = 正在跟的首领，pct = 上次写进样式的百分比 */
   bossUi: { root: HTMLElement; name: HTMLElement; fill: HTMLElement; id: number; pct: number } | null = null;
-  hud!: { treasure: HTMLElement; tpill: HTMLElement; wave: HTMLElement; count: HTMLElement; gold: HTMLElement; speed: HTMLButtonElement; call: HTMLButtonElement; keg: HTMLButtonElement; bar: HTMLButtonElement; hero: HTMLButtonElement; mech: HTMLButtonElement | null; hint: HTMLElement; flash: HTMLElement; plan: HTMLElement; paused: HTMLElement };
+  hud!: { treasure: HTMLElement; tpill: HTMLElement; wave: HTMLElement; count: HTMLElement; gold: HTMLElement; speed: HTMLButtonElement; call: HTMLButtonElement; keg: HTMLButtonElement; bar: HTMLButtonElement; hero: HTMLButtonElement; mech: HTMLButtonElement | null; hook: HTMLButtonElement | null; hint: HTMLElement; flash: HTMLElement; plan: HTMLElement; paused: HTMLElement };
   hudTick = -1;
   hudMode = '';
   hudSig = '';
@@ -259,6 +263,7 @@ export class TdScene extends Phaser.Scene {
     this.bars = this.add.graphics().setDepth(DEPTH.bars);
     this.hs = new HitStop();
     this.kegAt = -999;
+    this.hooks = [];
     this.pt = new Particles(this, this.r, LOW_MEMORY ? 90 : 140);
     setWeather(weatherOf(this.s.level));
     this.env = new EnvAnim(this, this.r, this.pt);
@@ -368,6 +373,17 @@ export class TdScene extends Phaser.Scene {
     app.api.snipeLive = () => this.snipe.live;
     app.api.snipeAt = () => this.snipe.mid;
     app.api.tdFx = (what) => {
+      if (what === 'hook') {
+        // 取证：走玩家同一条路（act → 下一拍送进核心）钩英雄够得着的、离英雄最远的那个敌人；返回敌人和英雄的画面位置，录像对准两人中间
+        const h = s.hero;
+        const r2 = TD2_HERO_SKILL.hook.range ** 2;
+        const e = s.enemies.filter((q) => hookable(s, q) && (q.x - h.x) ** 2 + (q.y - h.y) ** 2 <= r2).sort((a, b) => (b.x - h.x) ** 2 + (b.y - h.y) ** 2 - ((a.x - h.x) ** 2 + (a.y - h.y) ** 2))[0];
+        if (!e || h.hookReady === undefined || s.tick < h.hookReady) return null;
+        act(this, { type: 'hook', id: e.id });
+        const w = W(e.x, e.y);
+        const hw = W(h.x, h.y);
+        return { x: w.x, y: w.y, lx: hw.x, ly: hw.y };
+      }
       if (what === 'ship' || what === 'sink') {
         // 取证：第一条在场的船画在海里的位置（停泊偏移后的）；sink 让它当场沉掉（标成死了、演沉没），录沉船用
         const b = s.enemies.find((q) => q.mode === 'in' && SHIP_FOES.has(q.kind));
@@ -524,9 +540,12 @@ export async function prepareTd(levelId: string, tm: Phaser.Textures.TextureMana
   // 护航实盘：开局已由档位表算好（不看解锁），只负责烘焙素材、开场景
   if (pre) st = { ok: true as const, value: pre.setup };
   else if (escort) st = escortUnlocked(p, levelId) ? { ok: true as const, value: escortSetup(levelId, seed) } : { ok: false as const, error: 'locked' };
-  else if (home) st = tdHomeSetup(p, seed);
+  // 加难开关是这次打开游戏的界面状态：换了账号、主寨不够时不带上（tdHomeSetup 会拒绝开局）
+  else if (home) st = tdHomeSetup(p, seed, app.homeHard && tdHomeHardOpen(hqLevel(p)));
   else {
-    const picks = app.tdPicksFor === levelId ? app.tdPicks : tdAutoPicks(p, levelId);
+    // 没在驻守台面板选过（测试入口、旧链接直接开打）：按这一关的敌人推荐，和面板默认选中的一样
+    const lv = TD2_LEVEL_BY_ID.get(levelId);
+    const picks = app.tdPicksFor === levelId ? app.tdPicks : lv ? garrisonRecPicks(p, lv) : [];
     st = startTd2(p, levelId, seed, picks);
   }
   if (!st.ok) return { ok: false, error: st.error };

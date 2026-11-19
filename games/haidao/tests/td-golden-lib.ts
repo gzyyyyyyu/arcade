@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { RULES_SINCE, RULES_VERSION, TIDE_MAPS, runTdBot, tdCampaign, tdFingerprint, tdGrowthSetup, tideSetup } from '../src/core/index.ts';
+import { RULES_SINCE, RULES_VERSION, TIDE_MAPS, runTdBot, tdCampaign, tdFingerprint, tdGrowthProfile, tdGrowthSetup, tdHomeSetup, tideSetup } from '../src/core/index.ts';
 import type { IsoWeek, TdBotKind, TdSetup } from '../src/core/index.ts';
 import { LIVE_TIER_IDS, tdLiveSetup } from '../src/core/tdlive.ts';
 import { tidePick } from '../src/core/tdtide.ts';
@@ -20,13 +20,17 @@ import { tidePick } from '../src/core/tdtide.ts';
  * - 16（章末机制，只改战役 td05 / td06 / td11 / td12 / td17 / td18），除这六关外 v16- 和 v15- 逐个相同（tests/td-mech.test.ts 另锁几关）；
  * - 17（大副，只改 td16），除 td16 外 v17- 和 v16- 逐个相同；
  * - 18（第四章 td19 起）：第四章的关只在 v18 起算，前 18 关的 v18- 和 v17- 逐个相同；
- * - 19（友军巡航船、海盗王，td23、td24）：这两关只在 v19 起算，别的关的 v19- 和 v18- 逐个相同。
+ * - 19（友军巡航船、海盗王，td23、td24）：这两关只在 v19 起算，别的关的 v19- 和 v18- 逐个相同；
+ * - 20（英雄锚钩、海盗来袭加难档）：英雄够 8 级的战役局（机器人会钩）才和 v19- 不同，悬赏守岛、大潮的 v20- 和 v19- 逐个相同（tests/td-hook.test.ts 锁住）；
+ *   海盗来袭（主寨 6、8 级，普通档和加难档）从 v20 起才进指纹锁，`v20-home-*`。
  * v10 中档 0.29.1 前未开放（线上没有 v10 中档的对局），指纹随 0.29.1 的配平（hpPct 180 → 190）更新，只动了 v10-live-mid-* 9 个键。
  */
 export const GOLDEN_FILE = new URL('./td-golden.json', import.meta.url);
 /** 分片数：GitHub 的机器 4 核，8 片让慢片和别的测试文件错开 */
 export const GOLDEN_SHARDS = 8;
-const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19];
+const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20];
+/** 海盗来袭进指纹锁的主寨等级：6 是加难档开放的那一级，8 是满级 */
+const HOME_HQ = [6, 8];
 const SEEDS = [1, 2, 3];
 const BOTS: readonly TdBotKind[] = ['novice', 'normal', 'greedy'];
 
@@ -72,6 +76,13 @@ export function goldenJobs(): GoldenJob[] {
     weeks.forEach((week, i) => {
       for (const seed of SEEDS) for (const bot of BOTS) one(`tide${i}-${bot}-${seed}`, { ...tideSetup(week, rules), seed }, bot);
     });
+    if (rules >= RULES_SINCE.tdHook) {
+      for (const hq of HOME_HQ) for (const hard of [false, true]) for (const seed of SEEDS) {
+        const r = tdHomeSetup(tdGrowthProfile({ hq }, 'suggest'), seed, hard);
+        if (!r.ok) throw new Error(`home hq${hq}: ${r.error}`);
+        for (const bot of BOTS) one(`home-${hard ? 'hard' : 'normal'}-hq${hq}-${bot}-${seed}`, r.value, bot);
+      }
+    }
   }
   return out;
 }

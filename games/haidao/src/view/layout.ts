@@ -175,6 +175,11 @@ ${W} .hd-key { display:none; }
   ${W} .hd-td-call small { display:none; }
   /* 带章末机制钮（水闸）的关同一行多一个 44 宽的钮：间距收到 4，右边让出的金币牌 + 撤退收到 128（金币牌去掉锤子图标的左边距） */
   ${W} .hd-td-hasmech .hd-td-bottom { gap:4px; padding-right:128px; }
+  /* 360 宽：五颗 44 的钮加 4 的间距比让出金币牌后的地方宽 5 像素（援船和金币牌叠了 6 像素），间距和左边距收到 2 */
+  @media (max-width:370px) { ${W} .hd-td-hasmech .hd-td-bottom { gap:2px; padding-left:2px; } }
+  /* 锚钩（英雄 8 级起，不够级时锁着也摆）：这一行再挤一颗，相邻钮间距就不到 8；浮到行尾那颗钮（叫波或机制钮）正上方，隔 8 */
+  ${W} .hd-td-hashook .hd-td-hookbtn { position:absolute; right:144px; bottom:calc(100% + 8px); }
+  ${W} .hd-td-hasmech.hd-td-hashook .hd-td-hookbtn { right:128px; }
   @media (max-height:700px) { ${W} .hd-tdsel.hd-tdsel-main { padding-top:4px; padding-bottom:4px; } }
   ${W} .hd-td-plan, ${W} .hd-td-banner { top:calc(env(safe-area-inset-top, 0px) + 58px); }
   /* 第二行搬走后顶栏下面是空的：「全景」「回到船」钮上提到预告卡右边的那一列（卡展开时已给它们让出 74 像素，见 td-ui.ts）；
@@ -185,6 +190,8 @@ ${W} .hd-key { display:none; }
   ${W} .hd-td-store { top:calc(env(safe-area-inset-top, 0px) + 70px); }
   ${W} .hd-td .hd-hint { bottom:calc(64px + env(safe-area-inset-bottom,0px)); }
   ${W} .hd-esc .hd-hint { bottom:calc(126px + env(safe-area-inset-bottom,0px)); }
+  /* 锚钩浮在行尾上方时，提示条再往上让一颗钮的高度，不被它压住 */
+  ${W} .hd-td-hashook .hd-hint { bottom:calc(116px + env(safe-area-inset-bottom,0px)); }
 }
 
 @media (min-width:560px) {

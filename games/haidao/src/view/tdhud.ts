@@ -1,7 +1,7 @@
 import type { TdScene } from './TdScene.ts';
 import { TD_TREASURE } from '../content/index.ts';
-import { TD2_BATTERY, TD2_ENEMIES, TD2_FLEET } from '../content/td2units.ts';
-import { tdPreview, tdRoutes, tdCallBonus, tdNextTide, tdSluiceCan, type WavePreview } from '../core/index.ts';
+import { TD2_BATTERY, TD2_ENEMIES, TD2_FLEET, TD2_HERO_SKILL } from '../content/td2units.ts';
+import { hookEnabled, tdPreview, tdRoutes, tdCallBonus, tdNextTide, tdSluiceCan, type WavePreview } from '../core/index.ts';
 import { TICKS_PER_SEC } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { iconA, tdE, tdP } from './art.ts';
@@ -12,7 +12,7 @@ import { laneName, planCard, callBonusText, fitSuggest, waveEnemies } from './td
 import { injectTdCss } from './tdcss.ts';
 import { FOE_KEY, MECH_HINT, MECH_KEY, foeText, mechsOf, newFoes } from './tdhint.ts';
 import { hintCard, takeNew } from './hintcard.ts';
-import { screen, hallButton, el, img, button, confirmBox } from './ui.ts';
+import { screen, hallButton, el, img, button, confirmBox, toast } from './ui.ts';
 import { EscortView } from './escortview.ts';
 import { injectEscortCss } from './escortcss.ts';
 import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFleet } from './tdinput.ts';
@@ -95,7 +95,7 @@ export function buildUi(bs: TdScene): void {
   el('b', '', '英雄', heroBtn);
   el('kbd', 'hd-key', 'H', heroBtn);
   heroBtn.title = '指挥英雄：选中后点地面让他过去，再点一次或 Esc 取消（H）；也可以直接右键地面';
-  const mkSkill = (label: string, icon: 'barrage' | 'shield', tip: string, f: () => void, n: number): HTMLButtonElement => {
+  const mkSkill = (label: string, icon: 'barrage' | 'shield' | 'hook', tip: string, f: () => void, n: number): HTMLButtonElement => {
     const b = button('', 'hd-td-skill hd-btn-wood', f, bottom);
     el('span', 'hd-cd', undefined, b);
     b.appendChild(img(iconA(icon), 28));
@@ -135,9 +135,24 @@ export function buildUi(bs: TdScene): void {
     keyBadge(mech, 4);
     mech.title = '友军巡航船：叫一艘船沿着岸边开半圈，朝身边的敌人开炮，海上的炮艇也打得到；60 秒一次（4）';
   }
+  // 锚钩（规则版本 20，英雄 8 级起、只在战役和海盗来袭，core/tdhook.ts）：排在最后，快捷键按 DOM 顺序（有机制钮是 5，没有是 4）；
+  // 横屏右下角板里和章末机制钮一样排在炸药桶旁边；手机竖屏那一行没地方了，浮在行尾正上方（layout.ts 的 .hd-td-hashook）
+  // 英雄不够级时（战役、海盗来袭里）钮照样摆出来但锁着，写明几级解锁，玩家知道有这个东西可盼
+  let hook: HTMLButtonElement | null = null;
+  const hookLocked = bs.s.hero.hookReady === undefined;
+  if (!hookLocked || hookEnabled(bs.d.setup, TD2_HERO_SKILL.hook.level)) {
+    const tip = hookLocked ? `锚钩：英雄 ${TD2_HERO_SKILL.hook.level} 级解锁（军械所升英雄）` : '锚钩：把黄圈里一个敌人钩回来、定住一会儿，正往船上跑的也能钩回来；首领和船钩不动';
+    hook = mkSkill('锚钩', 'hook', tip, () => (hookLocked ? toast(tip) : pickSkill(bs, 'hook')), mech ? 5 : 4);
+    hook.classList.add('hd-td-mech', 'hd-td-hookbtn');
+    if (hookLocked) {
+      hook.classList.add('off', 'hd-td-hooklock');
+      hook.querySelector('b')!.textContent = `${TD2_HERO_SKILL.hook.level}级`;
+    }
+  }
   if (mech) bs.ui.classList.add('hd-td-hasmech');
+  if (hook) bs.ui.classList.add('hd-td-hashook');
   bs.esc?.buildCtl();
-  bs.hud = { treasure, tpill: tp, wave, count, gold, speed, call, keg, bar: barBtn, hero: heroBtn, mech, hint, flash: flashEl, plan, paused };
+  bs.hud = { treasure, tpill: tp, wave, count, gold, speed, call, keg, bar: barBtn, hero: heroBtn, mech, hook, hint, flash: flashEl, plan, paused };
   updateHud(bs, true);
 }
 
@@ -278,6 +293,7 @@ export function updateHud(bs: TdScene, force = false): void {
   const cb = canCallNow ? tdCallBonus(s) : { gold: 0, cdCut: 0 };
   const kegCd = Math.max(0, h.kegReady - s.tick);
   const barCd = Math.max(0, (h.barricadeReady ?? 0) - s.tick);
+  const hookCd = h.hookReady === undefined ? 0 : Math.max(0, h.hookReady - s.tick);
   // 英雄倒下时两个技能钮写复活倒数（只有一闪而过的横幅的话，锁着的钮看不出为什么、要等多久）
   const downS = h.respawn >= 0 ? Math.max(0, Math.ceil((h.respawn - s.tick) / TICKS_PER_SEC)) : -1;
   const nextTide = tdNextTide(s);
@@ -286,7 +302,7 @@ export function updateHud(bs: TdScene, force = false): void {
   const batCd = s.battery ? Math.max(0, s.battery.ready - s.tick) : 0;
   const fleetCd = s.fleet ? Math.max(0, s.fleet.ready - s.tick) : 0;
   const fleetOut = !!s.fleet?.sail;
-  const sig = `${nextTide}|${nowTide}|${sluice}|${s.sluice?.left}|${batCd >> 2}|${fleetCd >> 2}|${fleetOut}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
+  const sig = `${nextTide}|${nowTide}|${sluice}|${s.sluice?.left}|${batCd >> 2}|${fleetCd >> 2}|${fleetOut}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}|${hookCd >> 2}|${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (!force && sig === bs.hudSig) return;
   bs.hudSig = sig;
   const H = bs.hud;
@@ -362,6 +378,10 @@ export function updateHud(bs: TdScene, force = false): void {
   H.hero.classList.toggle('off', downS >= 0);
   H.keg.classList.toggle('sel', bs.mode === 'keg');
   H.bar.classList.toggle('sel', bs.mode === 'barricade');
+  if (H.hook && h.hookReady !== undefined) {
+    ring(H.hook, hookCd, SKILL.hook.cd, '锚钩');
+    H.hook.classList.toggle('sel', bs.mode === 'hook');
+  }
   if (H.mech && s.sluice) {
     // 已经关上下一波：钮亮起写「已关闸」（再点打开）；这一波按了没用（不落潮、用完了）就灰掉
     H.mech.classList.toggle('sel', shut);

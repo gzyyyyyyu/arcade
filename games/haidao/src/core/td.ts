@@ -23,11 +23,12 @@ import type { EscortState } from './escorttypes.ts';
 import { escortBite, escortHullPct, escortRate, escortResult, escortShip } from './escort.ts';
 import type { TdBarricade, TdTier, TdTowerKind } from './td2types.ts';
 import type { TdAction, TdBlock, TdEnemy, TdEnemyDef, TdEnemyKind, TdEvent, TdGroup, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
-import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower } from './tdstate.ts';
+import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower, barricadeAt } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
 import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, stepFleet, toggleSluice } from './tdmech.ts';
 import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus } from './tdquery.ts';
 import { placeHero, stepHero, offSlot } from './tdhero.ts';
+import { castHook, hookEnabled, stepHooked } from './tdhook.ts';
 
 /** 敌人在格子里按 id 散开的步长（单位）：同一条路上的敌人错开成几列，不叠成一个点 */
 export const TD_LANE_SPREAD = 18;
@@ -193,6 +194,7 @@ export function createTd(setup: TdSetup): TdState {
     barricadeReady: 0,
     aim: -1,
   };
+  if (hookEnabled(setup, heroLv)) hero.hookReady = 0;
   const internal: Internal = {
     rng: new Rng(setup.seed, 'td-spawn'),
     nextId: maxId + 1,
@@ -593,6 +595,7 @@ function startWave(s: TdState, ev: TdEvent[], early: boolean): void {
       const h = s.hero;
       h.kegReady = Math.max(s.tick, h.kegReady - cdCut);
       h.barricadeReady = Math.max(s.tick, (h.barricadeReady ?? 0) - cdCut);
+      if (h.hookReady !== undefined) h.hookReady = Math.max(s.tick, h.hookReady - cdCut);
     }
   }
   for (const g of wave.groups) {
@@ -788,6 +791,9 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     case 'fleet':
       callFleet(s, ev);
       return;
+    case 'hook':
+      castHook(s, ev, a.id);
+      return;
     case 'rally':
       // 规则版本 7 起号令是被动（英雄身边的塔攻速加成，见 stepTowers），这条旧命令不做事
       return;
@@ -840,6 +846,11 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
     if (s.tick % 10 === 0) {
       e.trail.push(e.x, e.y);
       if (e.trail.length > 12) e.trail.splice(0, 2);
+    }
+    // 锚钩（规则版本 20）拉着的：这几拍由钩子拖着走，自己不走不打（旧局没有 hook 字段）
+    if (e.hook) {
+      stepHooked(s, e);
+      continue;
     }
     // 炮艇不上岸：到点开走，其余时间隔一阵打哑一座塔（震晕也照样数着开走的时间）
     if (def.shell) {
@@ -1087,15 +1098,6 @@ function grab(s: TdState, ev: TdEvent[], e: TdEnemy): void {
   e.carry = n;
   e.mode = 'out';
   ev.push({ type: 'grab', id: e.id, n });
-}
-
-/** 格子 n 在拒马挡住的 3×3 范围里 */
-function barricadeAt(s: TdState, n: number): TdBarricade | undefined {
-  if (s.barricades.length === 0) return undefined;
-  const x = cellX(n);
-  const y = cellY(n);
-  for (const b of s.barricades) if (Math.abs(x - (b.x * UNIT + 50)) <= UNIT && Math.abs(y - (b.y * UNIT + 50)) <= UNIT) return b;
-  return undefined;
 }
 
 /** 沿流场走一步；前面是墙就砸（工兵炸），前面是拒马就砸拒马；已经在终点格就直走到 (fx, fy)（NaN = 不用走） */
@@ -1517,6 +1519,8 @@ export function tdFingerprint(s: TdState): number {
   for (const tr of I.traps) parts.push(tr.fired ? 1 : 0, tr.rearm);
   const h = s.hero;
   parts.push(h.x, h.y, h.hp, h.respawn, h.cd, h.kegReady, h.barricadeReady ?? 0);
+  // 锚钩（规则版本 20）只在有锚钩的局里进指纹，旧版本和没有锚钩的模式指纹不变
+  if (h.hookReady !== undefined) parts.push(h.hookReady);
   for (const [id, until] of [...I.jam].sort((a, b) => a[0] - b[0])) parts.push(id, until);
   parts.push(I.skilled.size);
   // 章末机制（规则版本 16）只在有的局里进指纹，旧版本、没有机制的关的指纹不变

@@ -183,11 +183,6 @@ export function placeTdLevel(level: TdLevel | TdPlacedLevel, layout: readonly Pl
 
 // ---------------------------------------------------------------- 出海与结算
 
-/** 旧的出海入口（界面还没接驻守台选塔时用）：等于 startTd2 加上每个驻守台的推荐选择 tdAutoPicks。守岛不花木材，所以不改存档 */
-export function startTd(p: Profile, levelId: string, seed: number): Result<TdSetup> {
-  return startTd2(p, levelId, seed, tdAutoPicks(p, levelId));
-}
-
 export interface TdReward {
   /** 这一局实际给的（已按每日上限截过，不含首次星奖励） */
   gold: number;
@@ -321,7 +316,10 @@ export function startTd2(p: Profile, levelId: string, seed: number, picks: reado
   });
 }
 
-/** 每个驻守台的推荐选择（界面的默认选中、旧入口、模拟器用）：阶最高的，同阶按基地等级高的，再按 TD_TOWER_KINDS 的顺序；基地里一座塔都没有就不挑 */
+/**
+ * 每个驻守台按阶挑（只给配平模拟、指纹锁的养成开局 tdGrowthSetup 和单测用，改了旧指纹全变）：阶最高的，同阶按基地等级高的，再按 TD_TOWER_KINDS 的顺序；
+ * 基地里一座塔都没有就不挑。界面上的推荐看敌人，在画面层 view/garrisonrec.ts
+ */
 export function tdAutoPicks(p: Profile, levelId: string): TdGarrisonPick[] {
   const lv = TD2_LEVEL_BY_ID.get(levelId);
   if (!lv) return [];

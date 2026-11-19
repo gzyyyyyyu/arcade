@@ -1,4 +1,5 @@
 import { DmgClusters } from './tddmg.ts';
+import { startHook } from './tdhookfx.ts';
 import type { TdScene } from './TdScene.ts';
 import { type TdEvent, TD2_ENEMIES, TD2_HERO_SKILL, TD2_HERO } from '../core/index.ts';
 import { TD2_BATTERY } from '../content/td2units.ts';
@@ -181,6 +182,9 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       }
       break;
     }
+    case 'hook':
+      startHook(bs, e);
+      break;
     case 'lob': {
       // 掷弹兵的手雷：从手里抛出去（高抛物线、落地前地上有影子和范围圈、落地爆点）
       sfx(projectileFire('grenade'));
@@ -418,10 +422,13 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
         bs.kegAim = null;
       } else if (e.what === 'barricade' || e.what === 'rally') {
         // 拒马的画面在 Td2Event 'barricade' 里；号令在规则版本 7 里是被动的，不再有这个事件
+      } else if (e.what === 'hook') {
+        // 锚钩甩出去的画面和声音在 Td2Event 'hook' 里（tdhookfx.ts），这里只给一下振动
+        vibrate('skill');
       } else if (e.what === 'down') {
         sfx('die');
         banner(bs, '英雄倒下了', `${Math.round(TD2_HERO.respawnTicks / TICKS_PER_SEC)} 秒后在宝藏箱旁复活`, true);
-      } else {
+      } else if (e.what === 'up') {
         sfx('heal');
         bs.pt.ringBurst(bs.hero.x, bs.hero.y, 1.5);
       }

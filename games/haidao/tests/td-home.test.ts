@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  TD2_ENEMY_POINTS, TD2_HOME, TD2_LOSE_AT, createTd, hqLevel, newProfile, runTd, runTdBot, settleTdHome, tdDailyCap, tdFingerprint, tdGrowthProfile,
-  tdHomeGen, tdHomeRawReward, tdHomeSetup, tdHomeSnapshot, tdHomeWave, tdRunReward, tdUnlockedTowers, waveBudget,
+  RULES_SINCE, TD2_ENEMY_POINTS, TD2_HOME, TD2_LOSE_AT, createTd, hqLevel, newProfile, runTd, runTdBot, settleTdHome, tdDailyCap, tdFingerprint, tdGrowthProfile,
+  tdHomeGen, tdHomeHardOpen, tdHomeRawReward, tdHomeSetup, tdHomeSnapshot, tdHomeWave, tdRunReward, tdUnlockedTowers, waveBudget,
 } from '../src/core/index.ts';
 import type { Profile, TdResult, TdWave } from '../src/core/index.ts';
 
@@ -85,7 +85,7 @@ describe('海盗来袭：结算', () => {
     const r = settleTdHome(p, res(6), 3);
     if (!r.ok) throw new Error(r.error);
     const raw = tdHomeRawReward(3, 6);
-    expect(r.value.reward).toEqual({ waves: 6, gold: raw.gold, wood: raw.wood, capped: false, full: false });
+    expect(r.value.reward).toEqual({ waves: 6, hard: false, gold: raw.gold, wood: raw.wood, capped: false, full: false });
     expect(r.value.profile.res).toEqual({ gold: p.res.gold + raw.gold, wood: p.res.wood + raw.wood });
     expect(r.value.profile.td).toEqual({ stars: { td01: 2 }, day: 3, gotGold: raw.gold, gotWood: raw.wood });
     expect(p.td!.gotGold).toBe(0); // 不改入参
@@ -93,7 +93,7 @@ describe('海盗来袭：结算', () => {
     const near: Profile = { ...p, td: { ...p.td!, gotGold: cap.gold - 10, gotWood: cap.wood } };
     const c = settleTdHome(near, res(6), 3);
     if (!c.ok) throw new Error(c.error);
-    expect(c.value.reward).toEqual({ waves: 6, gold: 10, wood: 0, capped: true, full: false });
+    expect(c.value.reward).toEqual({ waves: 6, hard: false, gold: 10, wood: 0, capped: true, full: false });
     // 换天清零
     const d = settleTdHome(near, res(6), 4);
     if (!d.ok) throw new Error(d.error);
@@ -106,5 +106,62 @@ describe('海盗来袭：结算', () => {
     expect(r.ok && r.value.profile.td).toMatchObject({ stars: {}, day: 0 });
     expect(settleTdHome(p, res(2, false), 0)).toEqual({ ok: false, error: 'not_over' });
     expect(settleTdHome(p, res(2), -1)).toEqual({ ok: false, error: 'bad_day' });
+  });
+});
+
+describe('海盗来袭：加难档（规则版本 20）', () => {
+  it('主寨 6 级起才能开；不选时生成参数里没有 hard 字段，波次和普通档逐位一样', () => {
+    expect(tdHomeHardOpen(TD2_HOME.hard.hq - 1)).toBe(false);
+    expect(tdHomeHardOpen(TD2_HOME.hard.hq)).toBe(true);
+    expect(tdHomeSetup(player(TD2_HOME.hard.hq - 1), 2, true)).toEqual({ ok: false, error: 'hard_locked' });
+    const st = tdHomeSetup(player(6), 2);
+    if (!st.ok) throw new Error(st.error);
+    expect('hard' in st.value.home!).toBe(false);
+    const snap = tdHomeSnapshot(player(6));
+    for (let w = 0; w < TD2_HOME.maxWaves; w++) expect(tdHomeWave(tdHomeGen(snap, 4, false), w)).toEqual(tdHomeWave(tdHomeGen(snap, 4), w));
+  });
+
+  it('加难：等效关 +levelPlus、记进 home.hard；精英按 hard.elite 的波数进来，普通档一个精英都没有', () => {
+    const st = tdHomeSetup(player(8), 2, true);
+    if (!st.ok) throw new Error(st.error);
+    expect(st.value.home).toMatchObject({ hard: true, levelIndex: TD2_HOME.levelByHq[7]! + TD2_HOME.hard.levelPlus });
+    expect(st.value.rules).toBeGreaterThanOrEqual(RULES_SINCE.tdHook);
+    const snap = tdHomeSnapshot(player(8));
+    const elites = new Set(['bosun', 'macaw', 'mate']);
+    const firstAt = new Map<string, number>();
+    let normalElite = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      for (let w = 0; w < TD2_HOME.maxWaves; w++) {
+        for (const g of tdHomeWave(tdHomeGen(snap, seed, true), w).groups) if (elites.has(g.enemy) && !firstAt.has(g.enemy)) firstAt.set(g.enemy, w);
+        for (const g of tdHomeWave(tdHomeGen(snap, seed), w).groups) if (elites.has(g.enemy)) normalElite++;
+      }
+    }
+    expect(normalElite).toBe(0);
+    for (const [k, from] of TD2_HOME.hard.elite) {
+      expect(firstAt.has(k)).toBe(true);
+      expect(firstAt.get(k)!).toBeGreaterThanOrEqual(from);
+    }
+  });
+
+  it('同种子同操作逐位可复现', () => {
+    const st = tdHomeSetup(player(7), 5, true);
+    if (!st.ok) throw new Error(st.error);
+    const a = runTdBot(st.value, 'normal');
+    const b = runTdBot(st.value, 'normal');
+    expect(tdFingerprint(a.state)).toBe(tdFingerprint(b.state));
+  });
+
+  it('奖励按 hard.perWavePct 给，结果写明加难；照样受每日上限截', () => {
+    const p = player(6);
+    const full = tdRunReward({ hq: 6 }, 3);
+    expect(tdHomeRawReward(6, 5, true)).toEqual({ gold: Math.floor((full.gold * TD2_HOME.hard.perWavePct * 5) / 100), wood: Math.floor((full.wood * TD2_HOME.hard.perWavePct * 5) / 100) });
+    const r = settleTdHome(p, res(5), 3, { hard: true });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.value.reward).toMatchObject({ hard: true, ...tdHomeRawReward(6, 5, true) });
+    const cap = tdDailyCap(p);
+    const near: Profile = { ...p, td: { ...p.td!, gotGold: cap.gold - 10, gotWood: cap.wood } };
+    const c = settleTdHome(near, res(20), 3, { hard: true });
+    if (!c.ok) throw new Error(c.error);
+    expect(c.value.reward).toEqual({ waves: 20, hard: true, gold: 10, wood: 0, capped: true, full: false });
   });
 });

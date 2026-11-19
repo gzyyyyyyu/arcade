@@ -1,4 +1,5 @@
 import type { TdScene } from './TdScene.ts';
+import { hookHeld } from './tdhookfx.ts';
 import type Phaser from 'phaser';
 import { TD_HERO_LIGHT } from '../content/index.ts';
 import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
@@ -175,7 +176,9 @@ export function sync(bs: TdScene, dt: number): void {
     sp.lx = iw.x;
     sp.ly = iw.y;
     // 攻击：站住不动在砍（墙、英雄、宝藏），出手按规则的出手拍 e.cd 对齐
+    // 被锚钩拖着的那几拍规则里也算震晕，但画面上转星和晃动留到拖完定住时（tdhookfx.ts）
     const stun = stunned(e, s.tick);
+    const held = stun && hookHeld(bs, e.id);
     const attacking = sp.still > 150 && !stun;
     let atk = -1;
     const rk = RIG_OF[e.kind];
@@ -212,8 +215,8 @@ export function sync(bs: TdScene, dt: number): void {
       sq = rc * 0.05;
       rx -= rc * 7;
     }
-    sp.rig.update({ x: rx, y: iw.y, depth: edep, face: sp.face, mode: stun ? 'idle' : attacking ? 'attack' : 'walk', dist: sp.dist, atk, oy, sq, alpha: a, lod, full: every === 1 || (bs.frameN + e.id) % every === 0, wob: stun ? wobbleAt(now, e.id) : 0, gx: e.gx, gy: e.gy, gdown: stun }, now);
-    if (stun && lod !== 2) bs.stunMarks.mark(iw.x, sp.rig.topY - 4, now, edep, ((e.stunUntil ?? 0) - tk) * STEP_MS);
+    sp.rig.update({ x: rx, y: iw.y, depth: edep, face: sp.face, mode: stun ? 'idle' : attacking ? 'attack' : 'walk', dist: sp.dist, atk, oy, sq, alpha: a, lod, full: every === 1 || (bs.frameN + e.id) % every === 0, wob: stun && !held ? wobbleAt(now, e.id) : 0, gx: e.gx, gy: e.gy, gdown: stun }, now);
+    if (stun && !held && lod !== 2) bs.stunMarks.mark(iw.x, sp.rig.topY - 4, now, edep, ((e.stunUntil ?? 0) - tk) * STEP_MS);
     if (lod === 0 && !flying && a === 1) bs.occ.check(sp.rig, sp.rig.c.depth, now);
     const slowed = s.tick < e.slowUntil;
     sp.rig.setSlow(slowed);

@@ -42,7 +42,7 @@ export interface Api {
   /** 测试辅助：炮台开火次数、开火时还差角度一次补完的次数和最大补了多少（弧度） */
   turretStats?(): { shots: number; snaps: number; maxSnap: number };
   /** 取证钩子：在第一个敌人身上演一次震晕 / 手雷（只改画面状态，冒烟和截图用） */
-  tdFx?(what: 'stun' | 'lob' | 'shield' | 'ship' | 'sink'): { x: number; y: number; lx: number; ly: number } | null;
+  tdFx?(what: 'stun' | 'lob' | 'shield' | 'ship' | 'sink' | 'hook'): { x: number; y: number; lx: number; ly: number } | null;
   /** 守岛取证：稳机器人接着打（截后期波次用） */
   tdAuto?(): void;
   /** 取证钩子：狙击预警线现在有几条在画（连拍等到预警出现再开拍） */
@@ -111,6 +111,8 @@ export const app = {
   /** 守岛 2.0：选关页的驻守台面板挑好的塔（开局时 prepareTd 交给 startTd2；"再守一次"沿用），tdPicksFor 是挑给哪一关的 */
   tdPicks: [] as TdGarrisonPick[],
   tdPicksFor: '',
+  /** 海盗来袭选了加难档（选关页的开关，这次打开游戏内记住，"再守一次"沿用；不存档，打开游戏默认关） */
+  homeHard: false,
   /** 大潮无尽：开本周这一局（图和波次所有人一样） */
   startTdTide: (): void => undefined,
   startBattle: (_levelId: string, _auto: boolean, _setup?: BattleSetup, _opts?: { bounty?: boolean }): void => undefined,
