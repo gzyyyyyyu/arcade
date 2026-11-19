@@ -42,6 +42,8 @@ ${W} .hd-fitbtn.on { display:inline-flex; }
 ${W} .hd-base:has(> .hd-sheet) .hd-fitbtn.on { display:none; }
 /* 守岛 / 护航的造塔面板开着时整局暂停，「全景」会压住面板右上角的 ×，一起让开 */
 ${W} .hd-td:has(.hd-td-sheet) .hd-fitbtn.on { display:none; }
+/* 竖屏基地常驻「全景」，选关页、海图、侦察这些整屏页（z 20）盖在基地上时它（z 30）会浮在页上压住按钮，一起收起 */
+${W}:has(> .hd-tdsel:not(.away), > .hd-map, > .hd-scout, > .hd-seacards) .hd-base .hd-fitbtn.on { display:none; }
 ${W} .hd-fitbtn span { font-size:12px; font-weight:900; }
 
 /* 个人面板钮：顶栏第二行最右 */

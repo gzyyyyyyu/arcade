@@ -1,3 +1,6 @@
+import { RigCap } from './rigcap.ts';
+import { FrameFx } from './framefx.ts';
+import { HitSquash } from './fx.ts';
 import Phaser from 'phaser';
 import { BUILDINGS, CAMPAIGN } from '../content/index.ts';
 import { botActions, canLand, createBattle, rankOf, stepBattle } from '../core/index.ts';
@@ -8,7 +11,7 @@ import { app } from './app.ts';
 import { shipA, troopF } from './art.ts';
 import { bakeSome } from './textures.ts';
 import { CamCtl } from './camctl.ts';
-import { type Content, cellsBox, FitCam, islandBox } from './camfit.ts';
+import { BATTLE_Z_CAP, type Content, cellsBox, FitCam, islandBox } from './camfit.ts';
 import { bindKeys, pressNth } from './inputs.ts';
 import { DyingList } from './anim.ts';
 import { BarTracker } from './bars.ts';
@@ -134,6 +137,12 @@ export class BattleScene extends Phaser.Scene {
   pool!: RigPool;
   /** 上一帧画完整骨架的个数：多了就隔帧算部件 */
   fullRigs = 0;
+  /** 同屏完整骨架的名额（rigcap.ts） */
+  readonly rigCap = new RigCap();
+  /** 序列帧特效的对象池（framefx.ts） */
+  frames!: FrameFx;
+  /** 建筑挨打的压扁回弹（fx.ts） */
+  readonly squash = new HitSquash();
   bt = new BarTracker();
   fireG!: Phaser.GameObjects.Graphics;
   rallied = new Set<number>();
@@ -239,6 +248,7 @@ export class BattleScene extends Phaser.Scene {
       if (sp && isTurret(b.kind)) this.tur.set(b.id, new Turret(this, this.r, this.pt, b.kind, b.level, b.id, sp.img, sp.baseX, sp.baseY));
     }
     this.shots = new Shots(this, this.r, this.pt, DEPTH.shotShadowBattle);
+    this.frames = new FrameFx(this, this.r);
     this.stunMarks = new StunMarks(this, this.r);
     this.snipe = new SnipeLines(this);
     this.heroMarks = new StunMarks(this, this.r);
@@ -303,7 +313,8 @@ export class BattleScene extends Phaser.Scene {
     const rs = this.st.buildings.map((b) => [Math.max(lo, b.x - BEACH), Math.max(lo, b.y - BEACH), Math.min(hi, b.x + b.size - 1 + BEACH), Math.min(hi, b.y + b.size - 1 + BEACH)] as const);
     // 主寨（外扩 1 格）必须在屏内：竖屏放大档、全景都按它保证，进场不再只露岛的左缘
     const hq = this.st.buildings.find((b) => b.kind === 'hq');
-    return { box: cellsBox(rs, 0), whole: true, ...(hq ? { must: cellsBox([[hq.x, hq.y, hq.x + hq.size - 1, hq.y + hq.size - 1]], 1) } : {}) };
+    // 横屏和电脑也贴着内容盒（tight）：以前按含沙滩的整岛适配、缩放封顶 1.5，1280 上岛只占三成、兵二十来像素；缩出去照样看全岛
+    return { box: cellsBox(rs, 0), tight: true, zCap: BATTLE_Z_CAP, ...(hq ? { must: cellsBox([[hq.x, hq.y, hq.x + hq.size - 1, hq.y + hq.size - 1]], 1) } : {}) };
   }
 
   /** 竖屏开场推镜的落点（世界 x）：发光沙滩（能登陆的格）在屏幕左右哪半边多就推到那一边的最外沿；一样多推左边（引导先指左边） */
@@ -442,6 +453,8 @@ export class BattleScene extends Phaser.Scene {
   override update(time: number, delta: number): void {
     const s = this.st;
     this.nowT = time;
+    this.frames.update(time);
+    this.squash.update(time);
     const frozen = this.hs.active;
     this.tweens.timeScale = frozen ? 0.05 : 1;
     this.pt.timeScale = this.dn.timeScale = frozen ? 0 : 1;

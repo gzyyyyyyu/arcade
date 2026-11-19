@@ -365,7 +365,7 @@ export function contentBox(bs: TdScene): Content {
     }
   }
   if (bs.esc) rs.push(...bs.esc.routeRects());
-  return { box: cellsBox(rs, 1), whole: true };
+  return { box: cellsBox(rs, 1) };
 }
 
 /** 看下一波时，落点沿路线往岛里走几格 */

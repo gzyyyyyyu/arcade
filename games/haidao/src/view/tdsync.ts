@@ -7,7 +7,9 @@ import { stunned } from '../core/combat.ts';
 import { wobbleAt } from './stunfx.ts';
 import { UNIT, BEACH, ISLAND } from '../core/types.ts';
 import { tdE, bTex, fxA, tdP } from './art.ts';
-import { interpPos, turnStep, EASE } from './motion.ts';
+import { artTop } from './textures.ts';
+import { interpPos, turnStep, riseScale, EASE } from './motion.ts';
+import { REDUCED } from './feel.ts';
 import { poseEvery, STYLE, atkPhase, SKEL, LOD_MARGIN } from './rig.ts';
 import { tarGroundOf } from './tarfx.ts';
 import { RIG_TEX, lodOf } from './rigsprite.ts';
@@ -90,6 +92,31 @@ function crowdEnemies(bs: TdScene, dt: number): void {
   }
 }
 
+/** 新塔升起用多久（毫秒）：比基地建造短，守岛里节奏快 */
+const TOWER_RISE_MS = 420;
+
+function riseTower(bs: TdScene, im: Phaser.GameObjects.Image, x: number, y: number): void {
+  // 尘只扬一小团（大了会是一片灰圆斑盖住刚长出来的塔），木屑多飞几片
+  bs.pt.dust(x, y, 0.7);
+  bs.pt.splinters(x, y - 6, 8);
+  if (REDUCED) return;
+  const [gy0, gx0, a0] = riseScale(0);
+  im.setScale(gx0 / bs.r, gy0 / bs.r).setAlpha(a0);
+  // 补间挂在塔图上：造好马上就升级时，升级那边的 killTweensOf 会把它一起停掉，不两边抢缩放
+  bs.tweens.add({
+    targets: im,
+    alpha: 1,
+    duration: TOWER_RISE_MS,
+    onUpdate: (tw) => {
+      const [gy, gx, a] = riseScale(tw.progress);
+      im.setScale(gx / bs.r, gy / bs.r).setAlpha(a);
+    },
+    onComplete: () => {
+      im.setScale(1 / bs.r).setAlpha(1);
+    },
+  });
+}
+
 /** 把规则状态画出来：敌人、塔、英雄、地上的宝藏、火药桶、障碍、血条、弹道 */
 export function sync(bs: TdScene, dt: number): void {
   const s = bs.s;
@@ -104,6 +131,10 @@ export function sync(bs: TdScene, dt: number): void {
   let full = 0;
   bs.frameN++;
   crowdEnemies(bs, dt);
+  bs.rigCap.begin();
+  const vc = cam.worldView;
+  const ccx = vc.centerX;
+  const ccy = vc.centerY;
   const tk = s.tick + bs.acc / STEP_MS;
   bs.occ.begin();
   bs.stunMarks.begin();
@@ -156,7 +187,9 @@ export function sync(bs: TdScene, dt: number): void {
     sp.face = turnStep(sp.face, e.face < 0 ? -1 : 1, dt);
     const flying = TD_ENEMY_ARMOR[e.kind] === 'air';
     const hgt = rk ? -SKEL[rk].top * SKEL[rk].s : 60;
-    const lod = lodOf(cam, bs.r, iw.x, iw.y, hgt, LOD_MARGIN);
+    let lod = lodOf(cam, bs.r, iw.x, iw.y, hgt, LOD_MARGIN);
+    // 屏内完整骨架太多时，远的、小的换整张图（rigcap.ts）
+    if (lod === 0 && rk && !bs.rigCap.want(e.id, ((iw.x - ccx) ** 2 + (iw.y - ccy) ** 2) * cam.zoom * cam.zoom, (hgt * cam.zoom) / bs.r)) lod = 1;
     if (lod === 0 && rk) full++;
     let a = 1;
     if ((e.kind === 'fog' || inFog(bs, e.x, e.y)) && !lit(bs, e)) a = 0.3;
@@ -181,6 +214,7 @@ export function sync(bs: TdScene, dt: number): void {
     }
   }
   bs.fullRigs = full;
+  bs.rigCap.end();
   tg.end(now);
   bs.stunMarks.end();
   bs.occ.end();
@@ -206,6 +240,8 @@ export function sync(bs: TdScene, dt: number): void {
       bs.occ.add(t.id, im);
       bs.pt.ringBurst(w.x, w.y + 2, 2);
       padState(bs, t.slot, true);
+      // 开局后造的塔从木台上升起来（和基地建造同一条 riseScale 曲线），脚下扬尘、飞木屑；炮台按底座的缩放跟着长；开局就在的驻守塔不演
+      if (bs.frameN > 1) riseTower(bs, im, w.x, w.y);
     } else if (sp.key !== p.key || sp.br !== t.branch.join(',')) {
       // 升级 / 选路线：换图的同时白闪、放大后回弹（back 曲线 260ms）、脚下一圈光
       sp.key = p.key;
@@ -255,7 +291,8 @@ export function sync(bs: TdScene, dt: number): void {
     const cost = t && tier < 3 ? tdUpCost(t.kind, tier - 1) : -1;
     const on = !!im && cost >= 0 && s.gold >= cost && !s.over;
     pad.up.setVisible(on);
-    if (on) pad.up.setPosition(im.x, im.y - im.displayHeight * im.originY - 2 + bob);
+    // 贴着塔图不透明部分的顶（图上方有透明留白，按外框顶会浮在塔后面的墙上）
+    if (on) pad.up.setPosition(im.x, artTop(im) - 2 + bob);
   }
   bs.plan.update(dt, s.enemies.some((e) => e.mode === 'in'));
   bs.plan.barricades(s.barricades ?? [], s.tick);

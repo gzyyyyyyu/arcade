@@ -24,8 +24,10 @@ import { TdPlan } from './tdplan.ts';
 import { ensureArt } from './textures.ts';
 import { type Muzzle, Turret, turretStats, ensureTurrets } from './turret.ts';
 import { Shots } from './shots.ts';
+import { RigCap } from './rigcap.ts';
+import { FrameFx } from './framefx.ts';
 import { Occluder } from './occlude.ts';
-import { NO_OCC } from './fxlayout.ts';
+import { NO_OCC, type Recent } from './fxlayout.ts';
 import { isTurret } from './aim.ts';
 import { setAmbience } from './audio/sfx.ts';
 import { LOW_MEMORY } from './viewport.ts';
@@ -70,7 +72,8 @@ export class TdScene extends Phaser.Scene {
   /** 建筑精灵在粒子池和环境动画建好之前就贴了，先记下来，建好后统一挂环境动画 */
   envQ: Array<{ im: Phaser.GameObjects.Image; kind: BuildingKind; level: number; id: number }> = [];
   dn!: DamageNumbers;
-  ftMerge = new Map<string, { t: number; x: number; y: number; n: number; txt: Phaser.GameObjects.Text }>();
+  /** 最近飘的「+N」字（tdhud.ts 的 ftx 往里并，fxlayout.ts 的 pickMerge） */
+  ftRecent: Array<Recent & { n: number; txt: Phaser.GameObjects.Text }> = [];
   bars!: Phaser.GameObjects.Graphics;
   fxG!: Phaser.GameObjects.Graphics;
   /** 屏边箭头：界面根相对父级的缩进缓存，和上次量的时刻 */
@@ -94,6 +97,10 @@ export class TdScene extends Phaser.Scene {
   heroDownAt = -1;
   pool!: RigPool;
   fullRigs = 0;
+  /** 同屏完整骨架的名额（rigcap.ts） */
+  readonly rigCap = new RigCap();
+  /** 序列帧特效的对象池（framefx.ts） */
+  frames!: FrameFx;
   frameN = 0;
   heroPx = 0;
   heroFrom = { x: 0, y: 0 };
@@ -233,7 +240,7 @@ export class TdScene extends Phaser.Scene {
     this.sheet = null;
     this.hudSig = '';
     this.hudTick = -1;
-    this.ftMerge.clear();
+    this.ftRecent.length = 0;
     this.esc = null;
     app.inBattle = true;
     app.api.ready = true;
@@ -264,6 +271,7 @@ export class TdScene extends Phaser.Scene {
       if (sp && isTurret(t.kind)) sp.tu = new Turret(this, this.r, this.pt, t.kind, t.level, t.id, sp.img, sp.baseX, sp.baseY);
     }
     this.shots = new Shots(this, this.r, this.pt, DEPTH.shotShadowTd);
+    this.frames = new FrameFx(this, this.r);
     this.stunMarks = new StunMarks(this, this.r);
     this.snipe = new SnipeLines(this);
     this.shots.follow = (id, out) => {
@@ -398,8 +406,9 @@ export class TdScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- 推进
 
-  override update(_t: number, dt: number): void {
+  override update(t: number, dt: number): void {
     const s = this.s;
+    this.frames.update(t);
     // 建塔 / 升级 / 卖塔 / 清障面板、敌人图鉴开着时画面层不往前推：只把已经点下的操作送进核心推一拍（核心只认 stepTd，不依赖墙钟）
     const paused = (this.openSlot >= 0 || this.bestOpen || this.userPaused) && !this.ended;
     this.hud.paused.classList.toggle('on', paused);

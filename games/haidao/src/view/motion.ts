@@ -172,6 +172,18 @@ export function riseScale(k: number): [number, number, number] {
   return [y, x, Math.min(1, t * 4)];
 }
 
+/**
+ * 建筑挨打的纵向压扁回弹，k = 经过时间 / HIT_SQUASH_MS：挨打那一下立刻压到 1 - HIT_SQUASH，再衰减着回弹（略过 1），k = 1 时正好回到 1。
+ * 横向跟着胖 / 瘦一半（体积感）。返回 [横向缩放, 纵向缩放]
+ */
+export const HIT_SQUASH = 0.06;
+export const HIT_SQUASH_MS = 140;
+export function hitSquash(k: number): [number, number] {
+  const t = clamp01(k);
+  const y = t >= 1 ? 1 : 1 - HIT_SQUASH * Math.exp(-3 * t) * Math.cos(2.5 * Math.PI * t);
+  return [1 + (1 - y) * 0.5, y];
+}
+
 /** 倒塌的下沉：压扁 + 下沉 + 发暗，k = 0..1（easeIn，越塌越快） */
 export function collapseScale(k: number): { sx: number; sy: number; dy: number } {
   const e = easeInQuad(k);

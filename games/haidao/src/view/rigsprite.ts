@@ -265,7 +265,9 @@ export class Rig {
   update(o: RigIn, now: number): void {
     const flatOnly = !this.kind;
     const lod = flatOnly ? (o.lod === 2 ? 2 : 1) : o.lod;
-    if (lod !== this.lod) {
+    // 刚换回完整档：这一帧一定重算姿势（隔帧算的那一帧也算），不露出藏起来以前的旧姿势
+    const swapped = lod !== this.lod;
+    if (swapped) {
       this.lod = lod;
       this.c.setVisible(lod === 0);
       this.flat.setVisible(lod === 1);
@@ -291,7 +293,7 @@ export class Rig {
     this.c.setPosition(o.x, o.y + o.oy).setDepth(o.depth).setAlpha(o.alpha);
     this.drawTar(now);
     if (o.wob !== undefined) this.c.setRotation(o.wob);
-    if (!o.full && this.mode === o.mode) {
+    if (!o.full && !swapped && this.mode === o.mode) {
       this.c.setScale(o.face * this.turnSign() * (1 + this.pose.sq / 2), 1 - this.pose.sq);
       if (this.hasShield) this.shieldTick(o, now);
       return;

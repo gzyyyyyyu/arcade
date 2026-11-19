@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEATH_MS, EASE, STAGE_LOOK, TURN_MS, attackFrame, collapseScale, damageStage, deathPose, easeInOutSine, easeOutBack, easeOutCubic, interpPos, riseScale, strideFrame, turnStep } from '../src/view/motion.ts';
+import { DEATH_MS, EASE, HIT_SQUASH, hitSquash, STAGE_LOOK, TURN_MS, attackFrame, collapseScale, damageStage, deathPose, easeInOutSine, easeOutBack, easeOutCubic, interpPos, riseScale, strideFrame, turnStep } from '../src/view/motion.ts';
 
 describe('拍间插值', () => {
   it('按比例插，端点精确', () => {
@@ -111,5 +111,26 @@ describe('建筑', () => {
     expect(collapseScale(0).sy).toBe(1);
     expect(collapseScale(1).sy).toBeLessThan(0.8);
     expect(collapseScale(0.5).dy).toBeLessThan(collapseScale(1).dy / 2);
+  });
+});
+
+describe('建筑挨打压扁回弹', () => {
+  it('挨打那一下压到最扁，横向胖一半', () => {
+    const [sx, sy] = hitSquash(0);
+    expect(sy).toBeCloseTo(1 - HIT_SQUASH, 6);
+    expect(sx).toBeCloseTo(1 + HIT_SQUASH / 2, 6);
+  });
+  it('中途回弹略过 1，过冲不到压扁量的一半', () => {
+    let top = 0;
+    for (let k = 0; k <= 1; k += 0.01) top = Math.max(top, hitSquash(k)[1]);
+    expect(top).toBeGreaterThan(1);
+    expect(top - 1).toBeLessThan(HIT_SQUASH / 2);
+  });
+  it('结束时正好回到原样（不留一点点压扁）', () => {
+    expect(hitSquash(1)).toEqual([1, 1]);
+    expect(hitSquash(2)).toEqual([1, 1]);
+    const [sx, sy] = hitSquash(0.999);
+    expect(Math.abs(sy - 1)).toBeLessThan(0.002);
+    expect(Math.abs(sx - 1)).toBeLessThan(0.002);
   });
 });

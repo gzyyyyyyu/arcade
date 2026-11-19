@@ -2,7 +2,7 @@ import type { TdScene } from './TdScene.ts';
 import type Phaser from 'phaser';
 import { TD2_HERO_SKILL, tdTowerRange, tdBuildRange, TD_HERO_GUARD } from '../core/index.ts';
 import { UNIT } from '../core/types.ts';
-import { tdP, fxA } from './art.ts';
+import { tdP } from './art.ts';
 import { BAR_SIZE, crowdBars, stackBars } from './bars.ts';
 import { feelOn } from './feel.ts';
 import { isoRing, RANGE_RING, forEachEllipseDash, forEachDash, flashLook } from './tdfx.ts';
@@ -181,9 +181,8 @@ export function padState(bs: TdScene, slot: number, built: boolean): void {
 
 // ---------------------------------------------------------------- 事件
 
+/** 爆炸：6 帧序列帧（和登陆战同一套对象池，framefx.ts）加火星粒子 */
 export function boom(bs: TdScene, x: number, y: number, size: number): void {
-  const p = fxA('boom');
-  const im = bs.add.image(x, y - 6, p.key).setScale((0.6 * Math.max(0.8, size)) / bs.r).setDepth(DEPTH.hitFx);
-  bs.tweens.add({ targets: im, scale: im.scale * 1.7, alpha: 0, duration: 380, ease: 'Cubic.easeOut', onComplete: () => im.destroy() });
+  bs.frames.play('boom', x, y - 6, Math.max(0.8, size), bs.time.now, DEPTH.hitFx);
   bs.pt.explosion(x, y, size);
 }

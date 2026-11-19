@@ -22,6 +22,8 @@ export interface Fit { z: number; cx: number; cy: number; minZ: number; maxZ: nu
 const TALL = 64;
 /** 适配时的最大缩放（电脑大屏上不把岛放得过大） */
 const Z_CAP = 1.5;
+/** 登陆战横屏和电脑的缩放上限（Content.zCap）：只对登陆战放宽，基地、守岛不变 */
+export const BATTLE_Z_CAP = 2.2;
 /** 最大放大倍数：相对适配缩放 */
 const ZOOM_MAX = 3;
 
@@ -51,13 +53,9 @@ export function cellsBox(rects: ReadonlyArray<readonly [number, number, number, 
 
 /** 竖屏时内容盒的高最多占可见区高的这个比例（放大的封顶） */
 const PORTRAIT_FILL = 0.92;
-/** 竖屏的登陆战、守岛：内容盒的高放大到约占屏高的这个比例，左右可以裁（裁掉的由边缘箭头、拖动补上） */
+/** 竖屏（基地、登陆战、守岛）：内容盒的高放大到约占屏高的这个比例（docs/ui.md 要求岛占屏高 ≥ 60%），左右可以裁（裁掉的由拖动、边缘箭头补上）；
+ * 另给一个全景（pano），开场先停在全景再推过来 */
 export const PORTRAIT_LIVE = 0.6;
-/** 基地竖屏：内容盒（全部建筑连同高出的屋顶）放到约占屏高的这个比例就够了（docs/ui.md 要求岛占屏高 ≥ 60%），
- * 再放大只会把两侧建筑拦腰切掉；矮竖屏（360×640）原来放到 73%，左右只看得到一半 */
-export const PORTRAIT_BASE_H = 0.6;
-/** 基地竖屏放大时，可见区至少要看到内容盒宽度的这个比例（能拖，不是实时操作，可以裁左右的空沙角） */
-const PORTRAIT_MIN_W = 0.4;
 /** 竖屏全景（pano）：有 must（主寨）时可以裁掉内容盒左右的空沙角，可见区至少看到内容盒宽的这个比例；没有 must 就整个内容盒都装进来 */
 const PANO_MIN_W = 0.8;
 /** 竖屏放大时主寨离可见区边的最小留空（CSS 像素） */
@@ -68,11 +66,19 @@ export const SHIP_H = 64;
 const PORTRAIT_RATIO = 1.2;
 
 /**
- * 竖屏适配用的内容：box 是有内容的区域；whole 为真（登陆战、守岛：实时操作）时 box 的高放大到约占屏高 PORTRAIT_LIVE，
- * 上下完整在可见区里、左右可以裁（开场先给整岛全景再推过去，见 FitCam）；
- * 为假（基地：能拖）时可以裁掉左右空沙角，但 must（主寨）必须在屏内。
+ * 竖屏适配用的内容：box 是有内容的区域，它的高放大到约占屏高 PORTRAIT_LIVE，上下完整在可见区里、左右可以裁，must（主寨）挪进屏内；
+ * 另给一个全景（内容盒装进屏，有主寨时可裁左右空沙角），开场先停在全景再推过去（见 FitCam）。
  */
-export interface Content { box: Box; whole?: boolean; must?: Box; /** 横屏和电脑也按内容盒适配（基地：不改岛大小，只让建筑别缩得太小），缩出去仍能看全岛 */ tight?: boolean }
+export interface Content {
+  box: Box;
+  must?: Box;
+  /** 竖屏开场先停在全景、再推到放大档（默认演）；基地只在这次打开游戏第一次进来时演 */
+  intro?: boolean;
+  /** 横屏和电脑也按内容盒适配（基地：不改岛大小，只让建筑别缩得太小；登陆战：贴着敌岛的建筑和登陆滩），缩出去仍能看全岛 */
+  tight?: boolean;
+  /** 横屏和电脑按内容盒适配时的缩放上限（不给按 Z_CAP）：登陆战放宽，小岛上兵别只有二十来像素 */
+  zCap?: number;
+}
 
 /**
  * 镜头中心横向挪最少的距离，让 m 整个落在可见区里（左右各留 pad）。放得下就一定放进来，
@@ -105,7 +111,7 @@ export function fitView(w: number, h: number, inset: Inset, full: Box, content?:
   const aw = Math.max(40, w - inset.left - inset.right - 2 * pad);
   const ah = Math.max(40, h - inset.top - inset.bottom - 2 * pad);
   if (content?.tight && ah <= aw * PORTRAIT_RATIO) {
-    const t = fitBox(w, h, inset, content.box, pad);
+    const t = fitBox(w, h, inset, content.box, pad, content.zCap);
     return { ...t, minZ: Math.min(whole.z, t.z), maxZ: Math.max(t.z, whole.z) * ZOOM_MAX };
   }
   if (!content || ah <= aw * PORTRAIT_RATIO) return whole;
@@ -114,44 +120,33 @@ export function fitView(w: number, h: number, inset: Inset, full: Box, content?:
   const bw = Math.max(1, c.r - c.l);
   const bh = Math.max(1, c.b - c.t);
   const cap = (ah * PORTRAIT_FILL) / bh;
-  let z: number;
-  if (content.whole) z = Math.min(Z_CAP, cap, Math.max(fitAll.z, (h * PORTRAIT_LIVE) / bh));
-  else {
-    z = Math.min(Z_CAP, Math.max(fitAll.z, Math.min(cap, aw / (bw * PORTRAIT_MIN_W))));
-    z = Math.min(z, Math.max(fitAll.z, (h * PORTRAIT_BASE_H) / bh));
-    if (content.must) z = Math.min(z, aw / Math.max(1, content.must.r - content.must.l));
-  }
+  const z = Math.min(Z_CAP, cap, Math.max(fitAll.z, (h * PORTRAIT_LIVE) / bh));
   const midX = inset.left + (w - inset.left - inset.right) / 2;
   const midY = inset.top + (h - inset.top - inset.bottom) / 2;
   const m = content.must;
   let cx = (c.l + c.r) / 2 - (midX - w / 2) / z;
   const cy = (c.t + c.b) / 2 - (midY - h / 2) / z;
   if (m) cx = nudgeInto(cx, z, w, inset.left, inset.right, m, pad);
-  const out: Fit = { z, cx, cy, minZ: Math.min(whole.z, z), maxZ: Math.max(z, whole.z) * ZOOM_MAX };
-  if (content.whole) {
-    // 全景不再按整座岛含沙滩的大盒子适配（竖屏里菱形又宽又扁，岛只占屏高三成多）：按内容盒装，
-    // 有主寨时再裁掉左右空沙角放大，主寨保证在屏内
-    let pz = fitAll.z;
-    if (m) pz = Math.max(pz, Math.min(cap, aw / (bw * PANO_MIN_W)));
-    pz = Math.min(pz, z);
-    let pcx = (c.l + c.r) / 2 - (midX - w / 2) / pz;
-    if (m) pcx = nudgeInto(pcx, pz, w, inset.left, inset.right, m, pad);
-    out.pano = { z: pz, cx: pcx, cy: (c.t + c.b) / 2 - (midY - h / 2) / pz };
-    out.minZ = Math.min(whole.z, pz);
-  }
-  return out;
+  // 全景不按整座岛含沙滩的大盒子适配（竖屏里菱形又宽又扁，岛只占屏高三成多）：按内容盒装，
+  // 有主寨时再裁掉左右空沙角放大，主寨保证在屏内
+  let pz = fitAll.z;
+  if (m) pz = Math.max(pz, Math.min(cap, aw / (bw * PANO_MIN_W)));
+  pz = Math.min(pz, z);
+  let pcx = (c.l + c.r) / 2 - (midX - w / 2) / pz;
+  if (m) pcx = nudgeInto(pcx, pz, w, inset.left, inset.right, m, pad);
+  return { z, cx, cy, minZ: Math.min(whole.z, pz), maxZ: Math.max(z, whole.z) * ZOOM_MAX, pano: { z: pz, cx: pcx, cy: (c.t + c.b) / 2 - (midY - h / 2) / pz } };
 }
 
 /**
  * 把 box 装进"屏幕 w×h 扣掉 inset"的可见区，居中。返回开场的缩放和镜头中心，以及放大范围：
  * 最小就是适配缩放（再缩小只会多露海），最大是适配的 ZOOM_MAX 倍。pad 是四边留的空（CSS 像素）。
  */
-export function fitBox(w: number, h: number, inset: Inset, box: Box, pad = 8): Fit {
+export function fitBox(w: number, h: number, inset: Inset, box: Box, pad = 8, cap = Z_CAP): Fit {
   const aw = Math.max(40, w - inset.left - inset.right - 2 * pad);
   const ah = Math.max(40, h - inset.top - inset.bottom - 2 * pad);
   const bw = Math.max(1, box.r - box.l);
   const bh = Math.max(1, box.b - box.t);
-  const z = Math.min(aw / bw, ah / bh, Z_CAP);
+  const z = Math.min(aw / bw, ah / bh, cap);
   const midX = inset.left + (w - inset.left - inset.right) / 2;
   const midY = inset.top + (h - inset.top - inset.bottom) / 2;
   return { z, cx: (box.l + box.r) / 2 - (midX - w / 2) / z, cy: (box.t + box.b) / 2 - (midY - h / 2) / z, minZ: z, maxZ: z * ZOOM_MAX };
@@ -398,7 +393,7 @@ export class FitCam {
     }
     this.anim = null;
     if (keepView) this.cc.apply();
-    else if (this.live && !this.introDone && !REDUCED) {
+    else if (this.live && !this.introDone && !REDUCED && this.contentOf?.().intro !== false) {
       // 开场：先停在整岛全景，再推到要守 / 要登陆的那一侧
       this.cc.setView(this.pano.cx, this.pano.cy, this.pano.z);
       this.anim = { from: this.pano, to: this.home, t0: -1, hold: INTRO_HOLD, push: INTRO_PUSH };

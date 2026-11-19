@@ -25,7 +25,7 @@ import type { Node, Place } from './basecommon.ts';
 import { type Cycle, newCycle } from './basepick.ts';
 import { tap, hover, press, fadeFrame, lineBegin, syncPlaceUi, dragTo, placeAt, confirmPlace, placeFrame, wallMask } from './baseplace.ts';
 import { right, escapeKey, modal, keyAct, closeCtx, drawSel, closeRing, plateFrame } from './basemenu.ts';
-import { occupied, fitContent, centerOf, focusFrame, measureSafe, topOf } from './basegeom.ts';
+import { occupied, fitContent, firstBaseEntry, centerOf, focusFrame, measureSafe, topOf } from './basegeom.ts';
 import { buildUi, retexture, syncBubble, updateHud } from './basehud.ts';
 import { reloadFromSave } from './basepanel.ts';
 import { showNewHint } from './baseupgrade.ts';
@@ -38,6 +38,8 @@ export class BaseScene extends Phaser.Scene {
   ui!: HTMLElement;
   hud!: Record<'gold' | 'wood' | 'hq' | 'me', HTMLElement>;
   fit!: FitCam;
+  /** 竖屏开场推镜演不演：这次打开游戏后第一次进基地才演（basegeom.ts 的 firstBaseEntry） */
+  introOnce = false;
   ring!: RingMenu;
   /** 可见区（扣掉顶栏和操作区），操作环按它内收 */
   safe = { l: 0, r: 0, t: 0, b: 0 };
@@ -175,6 +177,7 @@ export class BaseScene extends Phaser.Scene {
     this.deco = scatterDeco(this, this.r, (gx, gy) => occupied(this, gx, gy));
     buildUi(this);
     // 镜头按岛适配：整座岛含沙滩在顶栏和操作区之间的可见区里，进场不用拖；放大是可选的（双指 / 滚轮），回到全景有按钮
+    this.introOnce = firstBaseEntry();
     this.fit = new FitCam(this, this.cc, this.ui, () => islandBox([], 1), this.r, () => fitContent(this));
     app.api.fitInfo = () => this.fit.info();
     this.ring = new RingMenu(this.ui, () => this.safe);
