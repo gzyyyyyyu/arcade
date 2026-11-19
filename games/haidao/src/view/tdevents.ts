@@ -1,7 +1,7 @@
 import { DmgClusters } from './tddmg.ts';
 import { startHook } from './tdhookfx.ts';
 import type { TdScene } from './TdScene.ts';
-import { type TdEvent, TD2_ENEMIES, TD2_HERO_SKILL, TD2_HERO } from '../core/index.ts';
+import { type TdEvent, TD2_ENEMIES, TD2_HERO_SKILL, TD2_HERO, TIDE_MODS, eventAt, killGold, tideMod } from '../core/index.ts';
 import { TD2_BATTERY } from '../content/td2units.ts';
 import { isoRing } from './tdfx.ts';
 import { stunned } from '../core/combat.ts';
@@ -48,7 +48,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       sfx('land');
       sfx('shout');
       const early = e.early ? callBonusText(e.bonus, e.cdCut ?? 0) : '';
-      banner(bs, w?.boss ? '首领来袭！' : `第 ${e.wave + 1} 波`, early ? `提前开打 ${early}` : (w?.note ?? ''), w?.boss === true);
+      banner(bs, w?.boss ? '首领来袭！' : `第 ${e.wave + 1} 波`, early && !(e.wave === 0 && bs.d.tide && tideMod(bs.d.tide.week, s.rules)) ? `提前开打 ${early}` : waveSub(bs, e.wave), w?.boss === true);
       if (w?.boss) bigEvent(bs, bs.hs, 'bossEnter');
       if (e.early && e.bonus > 0) bs.hud.gold.parentElement?.classList.add('bump');
       break;
@@ -219,13 +219,16 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       if (sp) {
         bs.esp.delete(e.id);
         sp.carry?.destroy();
+        sp.flag?.destroy();
         // 倒下：被打飞或跪倒（按最后一下的伤害），帽子飞出去，淡出后放回对象池
         const dead = s.enemies.find((q) => q.id === e.id);
         const style = deathStyleFor(trackOf(bs).take(e.id), sp.lastDmg, TD2_ENEMIES[e.kind].hp, e.kind === 'sapper', !!dead && stunned(dead, s.tick));
         const ship = SHIP_FOES.has(e.kind);
         bs.dying.addRig(sp.rig, sp.face, ship ? 'sink' : style, (r) => bs.pool.put(r), bs.pt);
         if (ship) sinkFx(bs, sp.rig.x, sp.rig.y, e.kind === 'king' ? 1.6 : 1);
-        ftx(bs, sp.rig.x, sp.rig.y - 34, `+${TD2_ENEMIES[e.kind].gold}`, '#ffe885', 14);
+        // 飘的金币按规则实际给的（接了战书翻倍、富港周打折，规则版本 22）
+        const g = dead ? killGold(s, dead, TD2_ENEMIES[e.kind].gold) : TD2_ENEMIES[e.kind].gold;
+        ftx(bs, sp.rig.x, sp.rig.y - 34, `+${g}`, '#ffe885', 14);
         if (e.kind === 'captain' || e.kind === 'king') bigEvent(bs, bs.hs, 'bossDown');
         // 大副倒下：原地一圈尘土，散出来的水手从这里冲出去（spawn 事件照常建人）；字飘得比伤害数字高，不被盖住
         if (e.kind === 'mate') {
@@ -278,6 +281,20 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       } else removeCrate(bs, e.id, false);
       break;
     }
+    case 'bounty': {
+      // 赏金船（规则版本 22）：上岸飘一句；打倒时金币从它身上飘出来、金币牌跳一下；跑掉了飘一句
+      const w = W(e.x, e.y);
+      if (e.what === 'come') ftx(bs, w.x, w.y - 60, '赏金船上岸了', '#ffe885', 16);
+      else if (e.what === 'paid') {
+        sfx('coin');
+        ftx(bs, w.x, w.y - 40, `赏金 +${e.gold}`, '#ffe885', 22);
+        bs.hud.gold.parentElement?.classList.add('bump');
+      } else ftx(bs, w.x, w.y - 50, '赏金船跑了', '#d9dde6', 16);
+      break;
+    }
+    case 'dare':
+      sfx(e.on ? 'coin' : 'tap');
+      break;
     case 'battery': {
       // 老炮：炮口一团火光和烟、震一下，炮弹沿高弧线飞到落点，落点先画一圈红色预警（爆炸本身是 1 秒后的 explode 事件）
       sfx('cannon');
@@ -499,4 +516,18 @@ export function chestNear(bs: TdScene, ux: number, uy: number): { x: number; y: 
   }
   const w = best ? iso(best.x + 0.5, best.y + 0.5) : { x: 0, y: 0 };
   return w;
+}
+
+/**
+ * 开波横幅的副标题：关内事件（规则版本 22）先说，大潮第 1 波说本周海况（按「开打」提前开的也说，叫波奖励那句让给它），其余用关卡写的说明
+ */
+function waveSub(bs: TdScene, w: number): string {
+  const s = bs.s;
+  const ev = eventAt(s, w);
+  if (ev === 'rain') return '暴雨：火弱两成，地上的火不烧';
+  if (ev === 'bounty') return '赏金船要上岸了，打倒多给金币';
+  if (ev === 'dare' && s.happen?.dare.includes(w)) return '接了战书：这一波金币翻倍';
+  const mod = w === 0 && bs.d.tide ? tideMod(bs.d.tide.week, s.rules) : null;
+  if (mod) return `本周海况：${TIDE_MODS[mod].name}，${TIDE_MODS[mod].desc}`;
+  return s.level.waves[w]?.note ?? '';
 }

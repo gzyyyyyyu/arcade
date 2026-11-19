@@ -11,6 +11,7 @@ import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO_SKILL, TD_SEA_RA
 import { Rng } from './rng.ts';
 import { createTd, stepTd, tdResult, tdUpCost } from './td.ts';
 import { tdSluiceCan } from './tdmech.ts';
+import { tdDareCan } from './tdevent.ts';
 import { hookTarget } from './tdhook.ts';
 import { tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund } from './tdquery.ts';
 import { isqrt } from './fmath.ts';
@@ -171,6 +172,14 @@ export function crateSafe(s: TdState, box: { x: number; y: number }): boolean {
 }
 
 /**
+ * 战书（规则版本 22）值不值得接：这一局还没丢过宝藏、木台全都造上了塔（没有空着的）。贪机器人不看，一律接。
+ * 赏金船机器人不去追：追要反复改英雄的守点，追完回不到原来自己守的样子，误差比赏金本身大；塔打得到就拿
+ */
+export function dareWorth(s: TdState): boolean {
+  return s.lost === 0 && s.slots.every((sl) => sl.tower >= 0 || sl.wreck !== undefined);
+}
+
+/**
  * 老炮往哪打：地面敌人里炸得到最多人的那一点（同样多取离宝藏近的，也就是走得最靠前的），够 min 个或圈里有船长才打；不值得为 null。
  * 飞的炸不到不算
  */
@@ -295,6 +304,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
   // 章末机制（规则版本 16）的随机另开一条流：没有机制的关，机器人的每一个决定和以前逐位一样
   const mrng = new Rng(seed, `td-bot-mech-${kind}`);
   let sluiceAsked = -1;
+  let dareAsked = -1;
   const crateAsked = new Set<number>();
   const want = new Map<number, TdTowerKind>();
   let lastMove = -100;
@@ -313,6 +323,11 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
       if (sluiceAsked !== s.wave && tdSluiceCan(s) === 'shut' && s.next - t < 100) {
         sluiceAsked = s.wave;
         if (mrng.int(2) === 0 && sluiceWorth(s, tdPreview(s, 1))) out.push({ t, type: 'sluice' });
+      }
+      // 小白一半的时候想得起接战书（每波只想一次），想起来了和普通一样判断
+      if (dareAsked !== s.wave && tdDareCan(s) === 'take' && s.next - t < 100) {
+        dareAsked = s.wave;
+        if (mrng.int(2) === 0 && dareWorth(s)) out.push({ t, type: 'dare' });
       }
       // 小白看见漂来的补给箱、宝藏箱边上又安全时，一半的时候叫英雄去捡（每个箱子只想一次）
       for (const c of s.drift?.crates ?? []) {
@@ -372,6 +387,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
     const live = s.enemies.filter((e) => e.mode === 'in' || e.mode === 'out');
     // 开打前 5 秒再定：这时塔基本造好了，按塔的覆盖判断才准
     if (s.next - t < 100 && t % 10 === 0 && tdSluiceCan(s) === 'shut' && sluiceWorth(s, pv)) out.push({ t, type: 'sluice' });
+    if (s.next - t < 100 && t % 10 === 0 && tdDareCan(s) === 'take' && (kind === 'greedy' || dareWorth(s))) out.push({ t, type: 'dare' });
     if (t % 10 === 0) {
       const sc = slotScores(s, pv);
       const order = s.slots.map((_, i) => i).sort((a, b) => (sc[b] ?? 0) - (sc[a] ?? 0) || a - b);

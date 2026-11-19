@@ -11,6 +11,7 @@ import type { TdArmor, TdRouteLine, WaveLanePreview, WavePreview } from './td2ty
 import type { TdLevel } from './tdtypes.ts';
 import { inner, isAir, ensureWaves, ensureGrid, treasureFlow, enemyHp, gapBefore, waveGold, slotTower } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
+import { dareCount, eventAt } from './tdevent.ts';
 
 /** 第 w 波（0 起）开打时落潮路是不是开着：写了 `tideOpen` 按名单，没写就是 `tide.wave` 起一直开着 */
 export function tideOpenAt(lv: TdLevel, w: number): boolean {
@@ -154,12 +155,13 @@ export function tdPreview(s: TdState, n = 2): WavePreview[] {
       const armor = TD_ENEMY_ARMOR[g.enemy];
       if (armor !== 'air') lp.fly = false;
       const fog = !!def.fog || (armor !== 'air' && routeFoggy(s, lane, w));
+      const n = dareCount(s, w, g.n);
       const same = lp.enemies.find((e) => e.kind === g.enemy && e.fog === fog);
-      if (same) same.n += g.n;
-      else lp.enemies.push({ kind: g.enemy, armor, n: g.n, fog });
+      if (same) same.n += n;
+      else lp.enemies.push({ kind: g.enemy, armor, n, fog });
       let one = enemyHp(lv, g.enemy, w);
       if (def.split) one += enemyHp(lv, def.split.kind, w) * def.split.n;
-      hp[armor] += one * g.n;
+      hp[armor] += one * n;
     }
     const total = hp.cloth + hp.heavy + hp.wood + hp.air;
     const share: Record<TdArmor, number> = { cloth: 0, heavy: 0, wood: 0, air: 0 };
@@ -179,6 +181,11 @@ export function tdPreview(s: TdState, n = 2): WavePreview[] {
       suggest: top === null ? null : bestDamageVs(top),
     };
     if (wave.note) p.note = wave.note;
+    const happen = eventAt(s, w);
+    if (happen) {
+      p.event = happen;
+      if (happen === 'dare') p.dare = !!s.happen?.dare.includes(w);
+    }
     if (s.escort) {
       // 先头敌人和船最早相遇在航线哪一格（各组取最靠前的；追不上 -1）
       let meet = -1;

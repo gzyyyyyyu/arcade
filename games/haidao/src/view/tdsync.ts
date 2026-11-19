@@ -7,7 +7,7 @@ import { TD2_ENEMIES, TD_ENEMY_ARMOR, tdHeroStats, tdJammed, tdUpCost, type TdEn
 import { stunned } from '../core/combat.ts';
 import { wobbleAt } from './stunfx.ts';
 import { UNIT, BEACH, ISLAND } from '../core/types.ts';
-import { tdE, bTex, fxA, tdP } from './art.ts';
+import { tdE, bTex, fxA, iconA, tdP } from './art.ts';
 import { artTop } from './textures.ts';
 import { interpPos, turnStep, towerRise, TOWER_RISE_MS, EASE, shipBob, shipRecoil, SHIP_RECOIL_MS } from './motion.ts';
 import { REDUCED } from './feel.ts';
@@ -231,6 +231,11 @@ export function sync(bs: TdScene, dt: number): void {
       sp.carry.destroy();
       sp.carry = null;
     }
+    // 赏金船：头顶挂一张悬赏令（轻轻上下浮），一眼看出是哪个
+    if (e.bounty) {
+      sp.flag ??= put(bs, bs.r, iconA('bounty'), iw.x, iw.y).setDepth(DEPTH.slowMark).setScale(0.8 / bs.r);
+      sp.flag.setPosition(iw.x, sp.rig.topY - 18 + (REDUCED ? 0 : Math.sin(now / 220) * 2)).setAlpha(a);
+    }
   }
   bs.fullRigs = full;
   bs.rigCap.end();
@@ -240,6 +245,7 @@ export function sync(bs: TdScene, dt: number): void {
   for (const [id, sp] of bs.esp) {
     if (!alive.has(id)) {
       sp.carry?.destroy();
+      sp.flag?.destroy();
       bs.pool.put(sp.rig);
       bs.esp.delete(id);
     }

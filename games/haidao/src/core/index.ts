@@ -39,6 +39,7 @@ export { createTd, levelForRules, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFin
 export { TD_TIER_LEVEL, tdBuildRange, tdHeroStats, tdJammed, tdTowerRange } from './tdstate.ts';
 export { tdBuildBlock, tdCallBonus, tdClearCost, tdIncomingWave, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSellRefund, tdWaveLanes, tideOpenAt } from './tdquery.ts';
 export { tdSluiceCan } from './tdmech.ts';
+export { eventAt, heroCd, killGold, raining, tdDareCan } from './tdevent.ts';
 export { TD_HERO_GUARD } from './tdhero.ts';
 export { hookEnabled, hookable } from './tdhook.ts';
 export type { TdState } from './tdstate.ts';
@@ -63,10 +64,10 @@ export { tdBotActions, runTdBot } from './tdbot.ts';
 export type { TdBotKind, TdBotOpts } from './tdbot.ts';
 export { nextTdUnlock, placeTdLevel, settleTd, tdDailyCap, tdLevelUnlocked, tdRunReward } from './tdrun.ts';
 export type { TdNextUnlock, TdReward } from './tdrun.ts';
-export { TIDE_HERO_AUTO_FROM, TIDE_KILLS_CAP, TIDE_MAX_TICKS, beijingIsoWeek, tideBoardId, tideDecode, tideLine, tideMap, tidePick, tideRules, tideScore, tideSeed, tideSetup, weekLabel } from './tdtide.ts';
+export { TIDE_HERO_AUTO_FROM, TIDE_KILLS_CAP, TIDE_MAX_TICKS, TIDE_MODS_FROM, beijingIsoWeek, tideBoardId, tideDecode, tideLine, tideMap, tideMod, tidePick, tideRules, tideScore, tideSeed, tideSetup, weekLabel } from './tdtide.ts';
 export type { IsoWeek } from './tdtide.ts';
-export { TIDE_MAPS } from '../content/tdtide.ts';
-export type { TideMap } from '../content/tdtide.ts';
+export { TIDE_MAPS, TIDE_MODS } from '../content/tdtide.ts';
+export type { TideMap, TideModId } from '../content/tdtide.ts';
 export * from './maptypes.ts';
 export {
   MAP_ENERGY_REGEN,

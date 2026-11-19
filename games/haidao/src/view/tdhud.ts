@@ -1,7 +1,8 @@
 import type { TdScene } from './TdScene.ts';
 import { TD_TREASURE } from '../content/index.ts';
 import { TD2_BATTERY, TD2_ENEMIES, TD2_FLEET, TD2_HERO_SKILL } from '../content/td2units.ts';
-import { hookEnabled, tdPreview, tdRoutes, tdCallBonus, tdNextTide, tdSluiceCan, type WavePreview } from '../core/index.ts';
+import { heroCd, hookEnabled, tdPreview, tdRoutes, tdCallBonus, tdDareCan, tdNextTide, tdSluiceCan, type WavePreview } from '../core/index.ts';
+import { TD2_EVENT } from '../content/td2units.ts';
 import { TICKS_PER_SEC } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { iconA, tdE, tdP } from './art.ts';
@@ -15,7 +16,7 @@ import { hintCard, takeNew } from './hintcard.ts';
 import { screen, hallButton, el, img, button, confirmBox, toast } from './ui.ts';
 import { EscortView } from './escortview.ts';
 import { injectEscortCss } from './escortcss.ts';
-import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFleet } from './tdinput.ts';
+import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFleet, pressDare } from './tdinput.ts';
 import { closeSheet, showBest } from './tdsheet.ts';
 import { SKILL } from './tdcommon.ts';
 import { finish } from './tdresult.ts';
@@ -87,6 +88,17 @@ export function buildUi(bs: TdScene): void {
     else showBest(bs);
   });
   const paused = el('div', 'hd-td-paused', '已暂停 · 关掉面板继续', bs.ui);
+  // 战书（规则版本 22）：下一波有战书时，倒数里浮出一张小卷轴，「接」「不接」两颗钮（默认不接），开打就收起
+  let dare: HTMLElement | null = null;
+  if (bs.s.happen?.at.some((a) => a.kind === 'dare')) {
+    dare = el('div', 'hd-td-dare', undefined, bs.ui);
+    dare.appendChild(img(iconA('dare'), 28));
+    const tx = el('span', 'hd-td-dare-tx', undefined, dare);
+    el('b', '', '战书', tx);
+    el('small', '', `敌人多 ${TD2_EVENT.dare.morePct}% · 金币×${TD2_EVENT.dare.goldMul}`, tx);
+    button('接', 'hd-btn-gold hd-td-dare-yes', () => pressDare(bs, true), dare);
+    button('不接', 'hd-btn-wood hd-td-dare-no', () => pressDare(bs, false), dare);
+  }
   const flashEl = el('div', 'hd-td-flash', undefined, bs.ui);
   const bottom = el('div', 'hd-td-bottom', undefined, bs.ui);
   // 英雄钮：先选中英雄，再点地面才走过去（点空地不再直接叫他走，免得到处乱跑）；右键、拖英雄是捷径（tdinput.ts）；快捷键 H，不占数字键
@@ -152,7 +164,7 @@ export function buildUi(bs: TdScene): void {
   if (mech) bs.ui.classList.add('hd-td-hasmech');
   if (hook) bs.ui.classList.add('hd-td-hashook');
   bs.esc?.buildCtl();
-  bs.hud = { treasure, tpill: tp, wave, count, gold, speed, call, keg, bar: barBtn, hero: heroBtn, mech, hook, hint, flash: flashEl, plan, paused };
+  bs.hud = { treasure, tpill: tp, wave, count, gold, speed, call, keg, bar: barBtn, hero: heroBtn, mech, hook, hint, flash: flashEl, plan, paused, dare };
   updateHud(bs, true);
 }
 
@@ -210,7 +222,8 @@ export function refreshPlan(bs: TdScene, force = false): void {
   const s = bs.s;
   const walls = s.walls.reduce((n, w, i) => (w.destroyed ? n + (i + 1) * 7 : n), 0);
   // 水闸关上 / 打开下一波会改路线和预告（规则版本 16）
-  const sig = `${s.wave}|${walls}|${s.over}|${s.sluice?.shut.length ?? ''}`;
+  // 接 / 退战书（规则版本 22）改下一波的敌人个数
+  const sig = `${s.wave}|${walls}|${s.over}|${s.sluice?.shut.length ?? ''}|${s.happen?.dare.length ?? ''}`;
   if (!force && sig === bs.planSig) return;
   const newWave = !bs.planSig.startsWith(`${s.wave}|`);
   const fresh = bs.planSig !== '' && newWave;
@@ -299,10 +312,11 @@ export function updateHud(bs: TdScene, force = false): void {
   const nextTide = tdNextTide(s);
   const nowTide = s.level.tideOpen ? bs.tideOn : null;
   const sluice = s.sluice ? tdSluiceCan(s) : null;
+  const dare = s.happen ? tdDareCan(s) : null;
   const batCd = s.battery ? Math.max(0, s.battery.ready - s.tick) : 0;
   const fleetCd = s.fleet ? Math.max(0, s.fleet.ready - s.tick) : 0;
   const fleetOut = !!s.fleet?.sail;
-  const sig = `${nextTide}|${nowTide}|${sluice}|${s.sluice?.left}|${batCd >> 2}|${fleetCd >> 2}|${fleetOut}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}|${hookCd >> 2}|${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
+  const sig = `${nextTide}|${nowTide}|${sluice}|${dare}|${s.sluice?.left}|${batCd >> 2}|${fleetCd >> 2}|${fleetOut}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}|${hookCd >> 2}|${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (!force && sig === bs.hudSig) return;
   bs.hudSig = sig;
   const H = bs.hud;
@@ -372,15 +386,20 @@ export function updateHud(bs: TdScene, force = false): void {
     b.classList.toggle('off', downS >= 0);
     t.textContent = downS >= 0 ? `复活 ${downS}秒` : cd > 0 ? `${Math.ceil(cd / TICKS_PER_SEC)}秒` : label;
   };
-  ring(H.bar, barCd, SKILL.barricade.cd, '拒马');
-  ring(H.keg, kegCd, SKILL.bomb.cd, '炸药桶');
+  // 冷却扫光的总长按这一局的冷却算（大潮英雄周减半，规则版本 22）
+  ring(H.bar, barCd, heroCd(s, SKILL.barricade.cd), '拒马');
+  ring(H.keg, kegCd, heroCd(s, SKILL.bomb.cd), '炸药桶');
   H.hero.classList.toggle('sel', bs.heroSel);
   H.hero.classList.toggle('off', downS >= 0);
   H.keg.classList.toggle('sel', bs.mode === 'keg');
   H.bar.classList.toggle('sel', bs.mode === 'barricade');
   if (H.hook && h.hookReady !== undefined) {
-    ring(H.hook, hookCd, SKILL.hook.cd, '锚钩');
+    ring(H.hook, hookCd, heroCd(s, SKILL.hook.cd), '锚钩');
     H.hook.classList.toggle('sel', bs.mode === 'hook');
+  }
+  if (H.dare) {
+    H.dare.classList.toggle('on', dare !== null && s.next >= 0);
+    H.dare.classList.toggle('taken', dare === 'drop');
   }
   if (H.mech && s.sluice) {
     // 已经关上下一波：钮亮起写「已关闸」（再点打开）；这一波按了没用（不落潮、用完了）就灰掉

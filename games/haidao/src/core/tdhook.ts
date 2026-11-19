@@ -10,6 +10,7 @@ import { RULES_SINCE, UNIT } from './types.ts';
 import type { TdEnemy, TdEvent, TdSetup } from './tdtypes.ts';
 import { HIT_HERO, barricadeAt, d2, ensureGrid, inner, isAir, targetable } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
+import { heroCd } from './tdevent.ts';
 
 const HOOK = TD2_HERO_SKILL.hook;
 
@@ -76,7 +77,7 @@ export function castHook(s: TdState, ev: TdEvent[], id: number): void {
   if (cells.length > 0) e.hook = { cells, at };
   // 拉过之后旧的足迹不作数（鱼叉的拖拽按足迹往回拉，不能把它又拽回钩之前的地方）
   e.trail.length = 0;
-  h.hookReady = s.tick + HOOK.cd;
+  h.hookReady = s.tick + heroCd(s, HOOK.cd);
   ev.push({
     type: 'hook', id: e.id, x0: h.x, y0: h.y, x1: e.x, y1: e.y, t1: at,
     path: cells.flatMap((c) => [cellX(c), cellY(c)]), until, ready: h.hookReady,

@@ -69,6 +69,8 @@ export interface ESpr {
   py: number;
   still: number;
   carry: Phaser.GameObjects.Text | null;
+  /** 赏金船（规则版本 22）头顶的悬赏令：跟着人走，倒下或跑掉时收掉 */
+  flag?: Phaser.GameObjects.Image;
   phase: number;
   /** 最近一次挨打的伤害：倒下时按它选被打飞还是跪倒 */
   lastDmg: number;

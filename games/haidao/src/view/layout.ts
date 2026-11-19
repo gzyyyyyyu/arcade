@@ -192,6 +192,8 @@ ${W} .hd-key { display:none; }
   ${W} .hd-esc .hd-hint { bottom:calc(126px + env(safe-area-inset-bottom,0px)); }
   /* 锚钩浮在行尾上方时，提示条再往上让一颗钮的高度，不被它压住 */
   ${W} .hd-td-hashook .hd-hint { bottom:calc(116px + env(safe-area-inset-bottom,0px)); }
+  /* 战书：底栏上方左边，高过浮着的锚钩和提示条，不压顶上的预告卡 */
+  ${W} .hd-td-dare { top:auto; right:auto; left:6px; bottom:calc(150px + env(safe-area-inset-bottom,0px)); }
 }
 
 @media (min-width:560px) {
@@ -295,6 +297,8 @@ ${LAND} {
   /* 守岛：技能和叫波挪到右下角一块板 */
   ${W} .hd-td-bottom { left:auto; right:6px; bottom:6px; width:170px; flex-wrap:wrap; justify-content:center; padding:8px 6px 8px; border:3px solid ${ink}; border-radius:14px; }
   ${W} .hd-td-call { flex:1 1 100%; max-width:none; min-height:56px; }
+  /* 战书（规则版本 22）：右上角那一列是技能板，挪到左下角 */
+  ${W} .hd-td-dare { top:auto; right:auto; left:6px; bottom:calc(6px + env(safe-area-inset-bottom,0px)); }
   /* 章末机制钮（水闸）排在炸药桶旁边（第二行），叫波照旧独占最后一行；快捷键仍按 DOM 顺序（叫波 3、机制 4） */
   ${W} .hd-td-hasmech .hd-td-mech { order:1; }
   ${W} .hd-td-hasmech .hd-td-call { order:2; }

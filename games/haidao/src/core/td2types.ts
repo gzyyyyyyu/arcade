@@ -9,7 +9,7 @@
  */
 import { TD2_BUDGET } from '../content/td2units.ts';
 import type { BuildingKind, Placed } from './types.ts';
-import type { TdEnemyKind, TdLevel } from './tdtypes.ts';
+import type { TdEnemyKind, TdEventKind, TdLevel } from './tdtypes.ts';
 
 // ---------------------------------------------------------------- 克制表
 
@@ -307,6 +307,9 @@ export interface WavePreview {
   note?: string;
   /** 护航：这一波先头敌人和商船按当前船速推算在航线哪一格相遇（航线下标，追不上 -1）；只读提示，规则不用 */
   meet?: number;
+  /** 关内事件（规则版本 22）：这一波发生什么；战书波另写接没接（dare，接了的敌人个数已经按多出来的算） */
+  event?: TdEventKind;
+  dare?: boolean;
 }
 
 /** 一条登陆路到宝藏箱的路线（格子下标序列，grid.ts 的 cellIdx），墙被打破、修好时重算 */
@@ -344,7 +347,9 @@ export type Td2Action =
   /** 友军巡航船（规则版本 19）：叫船（冷却好了、不在海上时才有用） */
   | { t: number; type: 'fleet' }
   /** 锚钩（规则版本 20）：钩住编号 id 的敌人往英雄这边拉 */
-  | { t: number; type: 'hook'; id: number };
+  | { t: number; type: 'hook'; id: number }
+  /** 战书（规则版本 22）：接下 / 退掉还没开打的下一波（s.wave）的战书 */
+  | { t: number; type: 'dare' };
 
 /** 守岛 2.0 新增的事件（并进 TdEvent） */
 export type Td2Event =
@@ -374,7 +379,11 @@ export type Td2Event =
    * 锚钩（规则版本 20）：英雄从 (x0, y0) 把钩子甩到敌人 id 的 (x1, y1)，t1 拍钩上；之后每 perCell 拍拖一格，path 是一格格的落点（单位，格中心），
    * 拖到最后一格后定到 until 拍；path 为空 = 钩上了但第一格就被挡住，只定住。ready 是下次能放的拍
    */
-  | { type: 'hook'; id: number; x0: number; y0: number; x1: number; y1: number; t1: number; path: number[]; until: number; ready: number };
+  | { type: 'hook'; id: number; x0: number; y0: number; x1: number; y1: number; t1: number; path: number[]; until: number; ready: number }
+  /** 赏金船（规则版本 22）：上岸（come）、被打倒给了 gold 局内金（paid）、跑掉了（gone）；x、y 是它此刻的位置（单位） */
+  | { type: 'bounty'; what: 'come' | 'paid' | 'gone'; id: number; x: number; y: number; gold: number }
+  /** 战书（规则版本 22）：第 wave 波的战书接下（on）或退掉 */
+  | { type: 'dare'; wave: number; on: boolean };
 
 /** 场上的拒马（x、y 是格子坐标，事件 barricade 里的也是）：挡住周围 3×3 格的地面敌人，血掉光或到时间就没了 */
 export interface TdBarricade {

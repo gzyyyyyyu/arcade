@@ -1,6 +1,6 @@
 import type { TdScene } from './TdScene.ts';
 import { TD_TREASURE } from '../content/index.ts';
-import { tdResult, settleTd, tdCampaign, settleTdHome, type IsoWeek, weekLabel, tideScore, tideLine, tideBoardId } from '../core/index.ts';
+import { tdResult, settleTd, tdCampaign, settleTdHome, type IsoWeek, weekLabel, tideScore, tideLine, tideBoardId, tideMod, TIDE_MODS } from '../core/index.ts';
 import { recordTide, submitTide } from '../net/tide.ts';
 import { showTdLiveResult } from './live.ts';
 import { showEscortLiveResult } from './livemore.ts';
@@ -288,7 +288,8 @@ export function finishTide(bs: TdScene, res: ReturnType<typeof tdResult>, week: 
   if (bs.s.wave > res.waves) el('p', 'hd-sub hd-td-line', `打到第 ${bs.s.wave} 波时结束，守住了前 ${res.waves} 波`, box);
   el('p', 'hd-td-kept', `击退 ${res.kills ?? 0} 个敌人`, box);
   reasonLines(bs, box, res);
-  el('p', 'hd-sub hd-td-line', `本周最好：${tideLine(rec.best)}`, box);
+  const mod = tideMod(week, bs.s.rules);
+  el('p', 'hd-sub hd-td-line', `本周最好：${tideLine(rec.best)}${mod ? ` · 本周海况：${TIDE_MODS[mod].name}` : ''}`, box);
   const note = el('p', 'hd-sub hd-td-line hd-tide-note', '', box);
   note.dataset.state = 'pending';
   void submitTide(tideBoardId(week), score).then((r) => {

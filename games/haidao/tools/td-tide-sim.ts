@@ -1,15 +1,21 @@
 /**
- * 大潮无尽配平模拟：node tools/td-tide-sim.ts [--n 20] [--map 0..3] [--weeks 2026-44,…] [--json]
+ * 大潮无尽配平模拟：node tools/td-tide-sim.ts [--n 20] [--map 0..3] [--mod fog|rich|hero|none]
+ * --mod 指定每周海况（规则版本 22，DESIGN 10.6e），不写是没有海况；每条海况要单独跑、和 none 比。
  * 每张图（模板 × 镜像两种）、每种机器人打 n 局（周种子 + 局序号当 setup 种子，结果只看机器人的局内决策），
  * 打印撑过的波数（平均、最少、中位、最多）、击退数、时长（游戏内秒）。DESIGN 10.6e 的实测表用它量，本机用 nice 跑。
  */
 import { RULES_VERSION, TIDE_MAPS, runTdBot, tideSetup } from '../src/core/index.ts';
 import type { IsoWeek, TdSetup } from '../src/core/index.ts';
 import { tideMap, tidePick } from '../src/core/tdtide.ts';
-import { flag, num } from './args.ts';
+import { TIDE_MODS } from '../src/content/tdtide.ts';
+import type { TideModId } from '../src/content/tdtide.ts';
+import { flag, num, opt } from './args.ts';
 
 const n = Math.max(1, num('--n', 20));
 const only = flag('--map') ? num('--map', 0) : -1;
+const modArg = opt('--mod') ?? 'none';
+if (modArg !== 'none' && !(modArg in TIDE_MODS)) throw new Error(`没有这条海况：${modArg}`);
+const mod = modArg === 'none' ? null : (modArg as TideModId);
 
 // 找一周对应某张图、某个镜像：扫周号直到凑齐（图和镜像都由周标签的哈希定）
 const picks: Array<{ week: IsoWeek; map: number; mirror: boolean }> = [];
@@ -21,7 +27,7 @@ for (let wk = 1; picks.length < TIDE_MAPS.length * 2 && wk < 400; wk++) {
 picks.sort((a, b) => a.map - b.map || Number(a.mirror) - Number(b.mirror));
 
 const fmt = (v: number): string => v.toFixed(1);
-console.log(`每种每格 ${n} 局；时长为游戏内秒`);
+console.log(`每种每格 ${n} 局；海况 ${mod ? TIDE_MODS[mod].name : '无'}；时长为游戏内秒`);
 const all: Record<string, number[]> = { novice: [], normal: [] };
 for (const p of picks) {
   if (only >= 0 && p.map !== only) continue;
@@ -30,8 +36,7 @@ for (const p of picks) {
     let kills = 0;
     let ticks = 0;
     for (let i = 1; i <= n; i++) {
-      const base = tideSetup(p.week);
-      const setup: TdSetup = { ...base, seed: i, rules: RULES_VERSION };
+      const setup: TdSetup = { ...tideSetup(p.week, RULES_VERSION, mod), seed: i };
       const { result } = runTdBot(setup, kind);
       waves.push(result.waves);
       kills += result.kills ?? 0;

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { garrisonRecPicks } from './garrisonrec.ts';
 import type { HookFx } from './tdhookfx.ts';
 import { BUILDINGS } from '../content/index.ts';
-import { type TdState, type TdAction, type BuildingKind, type TdTowerKind, type WavePreview, createTd, tdJammed, stepTd, tdBotActions, beijingIsoWeek, tideSetup, type Result, type TdSetup, tdHomeSetup, startTd2, TD_TIER_LEVEL, TD2_LEVEL_BY_ID, TD2_HERO_SKILL, hookable, hqLevel, tdHomeHardOpen } from '../core/index.ts';
+import { type TdState, type TdAction, type BuildingKind, type TdTowerKind, type WavePreview, createTd, raining, tdJammed, stepTd, tdBotActions, beijingIsoWeek, tideSetup, type Result, type TdSetup, tdHomeSetup, startTd2, TD_TIER_LEVEL, TD2_LEVEL_BY_ID, TD2_HERO_SKILL, hookable, hqLevel, tdHomeHardOpen } from '../core/index.ts';
 import { StunMarks } from './stunmarks.ts';
 import { SnipeLines } from './snipefx.ts';
 import { UNIT, ISLAND } from '../core/types.ts';
@@ -39,6 +39,7 @@ import { isEscortId, escortUnlocked, escortSetup } from './escortapi.ts';
 import type { EscortView } from './escortview.ts';
 import { escortShipArt } from './art/escort.ts';
 import { DEPTH } from './depth.ts';
+import { syncRain } from './tdrain.ts';
 import { type TdData, type ESpr, type TSpr, W, EDGE_MS, SHIP_FOES, TEMP_KINDS } from './tdcommon.ts';
 import { drawLayout, drawProps, drawWater, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector, syncFleet } from './tdworld.ts';
 import { act, tap, hover, press, cancelAll, callWave, toggleHero, rightClick, heroDrag, stepSkillQ } from './tdinput.ts';
@@ -85,6 +86,8 @@ export class TdScene extends Phaser.Scene {
   tideG!: Phaser.GameObjects.Graphics;
   laneG!: Phaser.GameObjects.Graphics;
   esp = new Map<number, ESpr>();
+  /** 暴雨的画面（tdrain.ts），第一次下雨才建；每局开头清掉 */
+  rain: HTMLElement | null = null;
   tsp = new Map<number, TSpr>();
   walls = new Map<number, { img: Phaser.GameObjects.Image; level: number; x: number; y: number }>();
   wallLevel = new Map<number, number>();
@@ -172,7 +175,7 @@ export class TdScene extends Phaser.Scene {
   planKey = '';
   /** 顶栏下面的首领粗血条（tdhud.ts 的 syncBossBar）；id = 正在跟的首领，pct = 上次写进样式的百分比 */
   bossUi: { root: HTMLElement; name: HTMLElement; fill: HTMLElement; id: number; pct: number } | null = null;
-  hud!: { treasure: HTMLElement; tpill: HTMLElement; wave: HTMLElement; count: HTMLElement; gold: HTMLElement; speed: HTMLButtonElement; call: HTMLButtonElement; keg: HTMLButtonElement; bar: HTMLButtonElement; hero: HTMLButtonElement; mech: HTMLButtonElement | null; hook: HTMLButtonElement | null; hint: HTMLElement; flash: HTMLElement; plan: HTMLElement; paused: HTMLElement };
+  hud!: { treasure: HTMLElement; tpill: HTMLElement; wave: HTMLElement; count: HTMLElement; gold: HTMLElement; speed: HTMLButtonElement; call: HTMLButtonElement; keg: HTMLButtonElement; bar: HTMLButtonElement; hero: HTMLButtonElement; mech: HTMLButtonElement | null; hook: HTMLButtonElement | null; hint: HTMLElement; flash: HTMLElement; plan: HTMLElement; paused: HTMLElement; dare: HTMLElement | null };
   hudTick = -1;
   hudMode = '';
   hudSig = '';
@@ -208,6 +211,7 @@ export class TdScene extends Phaser.Scene {
     this.speed = this.d.speed;
     this.pending = [];
     this.esp = new Map();
+    this.rain = null;
     this.followT = null;
     this.pool = new RigPool(this, this.r);
     this.heroDownAt = -1;
@@ -349,8 +353,8 @@ export class TdScene extends Phaser.Scene {
       }
       return pagePoint(this.cc.toScreen(w.x, w.y));
     };
-    app.api.tdInfo = () => ({ tick: s.tick, wave: s.wave, vault: s.vault, lost: s.lost, gold: s.gold, over: s.over, slots: s.slots.map((q) => ({ x: q.x + 1, y: q.y + 1, tower: q.tower, wreck: wreckOf(this, q) !== null, garrison: q.garrison !== undefined })), flags: this.plan.flagCount, routes: this.plan.routeCount, barricades: s.barricades?.length ?? 0, hero: { x: s.hero.x / UNIT, y: s.hero.y / UNIT, goal: s.hero.goal ? { x: s.hero.goal.x / UNIT, y: s.hero.goal.y / UNIT } : null }, jammed: s.towers.filter((t) => tdJammed(s, t.id)).length, skilled: (s.internal as { skilled: Set<number> }).skilled.size, objects: countObjects(this) });
-    app.api.units = () => s.enemies.filter((e) => e.mode === 'in' || e.mode === 'out').map((e) => ({ id: e.id, kind: e.kind, mode: e.mode, hp: e.hp, maxHp: e.maxHp, x: e.x / UNIT, y: e.y / UNIT, gx: e.gx, gy: e.gy }));
+    app.api.tdInfo = () => ({ tick: s.tick, wave: s.wave, vault: s.vault, lost: s.lost, gold: s.gold, over: s.over, slots: s.slots.map((q) => ({ x: q.x + 1, y: q.y + 1, tower: q.tower, wreck: wreckOf(this, q) !== null, garrison: q.garrison !== undefined })), flags: this.plan.flagCount, routes: this.plan.routeCount, barricades: s.barricades?.length ?? 0, hero: { x: s.hero.x / UNIT, y: s.hero.y / UNIT, goal: s.hero.goal ? { x: s.hero.goal.x / UNIT, y: s.hero.goal.y / UNIT } : null }, jammed: s.towers.filter((t) => tdJammed(s, t.id)).length, skilled: (s.internal as { skilled: Set<number> }).skilled.size, objects: countObjects(this), events: s.happen?.at ?? [], dare: s.happen?.dare ?? [], raining: raining(s) });
+    app.api.units = () => s.enemies.filter((e) => e.mode === 'in' || e.mode === 'out').map((e) => ({ id: e.id, kind: e.kind, mode: e.mode, hp: e.hp, maxHp: e.maxHp, x: e.x / UNIT, y: e.y / UNIT, gx: e.gx, gy: e.gy, bounty: !!e.bounty }));
     app.api.follow = (id, z = 3) => {
       this.followT = id === null ? null : { id, z, x: 0, y: 0 };
     };
@@ -424,8 +428,8 @@ export class TdScene extends Phaser.Scene {
     };
     app.api.occluded = () => this.occ?.frames ?? 0;
     // 取证：让规则核心的稳机器人接着打（截后期波次的画面用，例如第四章最后一波的海盗王），手动点的操作照常一起送
-    app.api.tdAuto = () => {
-      this.autoBot = tdBotActions('normal', this.d.setup.seed);
+    app.api.tdAuto = (on = true) => {
+      this.autoBot = on ? tdBotActions('normal', this.d.setup.seed) : null;
     };
   }
 
@@ -460,6 +464,7 @@ export class TdScene extends Phaser.Scene {
     this.dying.timeScale = ts;
     this.dying.step(dt);
     sync(this, dt);
+    syncRain(this);
     if (this.s.fleet) syncFleet(this, this.acc / STEP_MS);
     this.esc?.frame(this.acc / STEP_MS, this.time.now);
     updateHud(this);

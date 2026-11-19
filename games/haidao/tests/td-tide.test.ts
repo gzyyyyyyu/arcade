@@ -303,7 +303,7 @@ describe('大潮按周定规则版本', () => {
     expect(tideRules({ year: 2026, week: 45 })).toBe(13);
     expect(tideSetup({ year: 2026, week: 45 }).rules).toBe(13);
     expect(tideRules({ year: 2025, week: 52 })).toBe(13);
-    expect(tideRules({ year: 2026, week: 46 })).toBe(RULES_VERSION);
+    expect(tideRules({ year: 2026, week: 46 })).toBe(Math.min(RULES_VERSION, 21));
     expect(tideSetup({ year: 2027, week: 1 }).rules).toBe(RULES_VERSION);
   });
 });
