@@ -1,7 +1,7 @@
 /** 海岛的美术：全部程序生成的 SVG（不引外部图片和字体）。画面层开局用 allArt() 一次烘焙成纹理。 */
 import type { BuildingKind, TroopKind } from '../../core/types.ts';
 import { PALETTE } from './palette.ts';
-import { BUILDING_SIZE, CHIMNEY_AT, HQ_FLAG_AT, buildingArt, hqFlagFrames, hqNoFlagArt, palmSwayFrames } from './buildings.ts';
+import { BUILDING_SIZE, CHIMNEY_AT, DECO_FRAMES, HQ_FLAG_AT, buildingArt, decoFrames, hqFlagFrames, hqNoFlagArt, isDecoAnim, palmSwayFrames } from './buildings.ts';
 import { coastArt } from './coast.ts';
 import { decoArt } from './deco.ts';
 import { krakenArt, wallArt } from './buildings.ts';
@@ -14,12 +14,14 @@ import { shipArt } from './ships.ts';
 import { tileArt } from './tiles.ts';
 import { troopArt, troopFrames } from './troops.ts';
 import type { ArtPiece } from './kit.ts';
+import { isDecoKind } from '../../content/buildings.ts';
 
 export { scaffoldArt, scaffoldPieces };
-export { CHIMNEY_AT, HQ_FLAG_AT, hqFlagFrames, hqNoFlagArt, palmSwayFrames, krakenArt, wallArt, fxFrames, troopFrames, badgeArt, lootChestArt, coastArt, decoArt, mapDecoArt, mapIslandArt, PALETTE, BUILDING_SIZE, buildingArt, fxArt, iconArt, shipArt, tileArt, troopArt };
+export type { DecoAnimKind } from './buildings.ts';
+export { CHIMNEY_AT, DECO_FRAMES, decoFrames, isDecoAnim, HQ_FLAG_AT, hqFlagFrames, hqNoFlagArt, palmSwayFrames, krakenArt, wallArt, fxFrames, troopFrames, badgeArt, lootChestArt, coastArt, decoArt, mapDecoArt, mapIslandArt, PALETTE, BUILDING_SIZE, buildingArt, fxArt, iconArt, shipArt, tileArt, troopArt };
 export type { ArtPiece };
 
-export const BUILDING_KINDS: BuildingKind[] = ['hq', 'goldmine', 'sawmill', 'vault', 'woodyard', 'dock', 'armory', 'cannon', 'gunTower', 'mortar', 'mine', 'flame', 'harpoon', 'tar', 'rocket', 'fogTower', 'shock', 'sniper', 'kraken', 'wall', 'statue', 'flagpole', 'chest', 'wheel', 'palm', 'rock'];
+export const BUILDING_KINDS: BuildingKind[] = ['hq', 'goldmine', 'sawmill', 'vault', 'woodyard', 'dock', 'armory', 'cannon', 'gunTower', 'mortar', 'mine', 'flame', 'harpoon', 'tar', 'rocket', 'fogTower', 'shock', 'sniper', 'kraken', 'wall', 'statue', 'flagpole', 'chest', 'wheel', 'windmill', 'lighthouse', 'bonfire', 'palm', 'rock'];
 export const TROOP_KINDS: TroopKind[] = ['sailor', 'gunner', 'brute', 'bomber', 'captain', 'medic', 'cannoneer', 'harpooner', 'grenadier', 'shield'];
 export const POSES = ['idle', 'walk1', 'walk2', 'attack'] as const;
 export const TILE_KINDS = ['grass', 'grass2', 'sand', 'shallow', 'sea'] as const;
@@ -34,13 +36,12 @@ export const ICON_KINDS = ['gold', 'wood', 'star', 'starEmpty', 'energy', 'hamme
 /** 建筑外观的最大等级（更高的等级沿用这一级的样子） */
 export const ART_MAX_LEVEL = 8;
 
-const SINGLE = new Set<BuildingKind>(['palm', 'rock', 'statue', 'flagpole', 'chest', 'wheel']);
 
 /** 某一级的全部建筑外观（含这一级的城墙各邻接、海怪拍打姿态）：主寨升到这一级、或第一次出现时按需烘焙（默认开局只带 1 级的城墙和海怪拍打） */
 export function levelArt(level: number): ArtPiece[] {
   const out: ArtPiece[] = [];
   for (const k of BUILDING_KINDS) {
-    if (SINGLE.has(k)) continue;
+    if (isDecoKind(k)) continue;
     if (k === 'wall') for (let m = 0; m < 16; m++) out.push(wallArt(level, m));
     else out.push(buildingArt(k, level));
   }
@@ -57,7 +58,7 @@ export function allArt(opts: { maxLevel?: number; legacyTroops?: boolean } = {})
   const maxLevel = Math.max(1, Math.min(ART_MAX_LEVEL, opts.maxLevel ?? 2));
   const out: ArtPiece[] = [];
   for (const k of BUILDING_KINDS) {
-    if (SINGLE.has(k)) out.push(buildingArt(k, 1));
+    if (isDecoKind(k)) out.push(buildingArt(k, 1));
     else for (let lv = 1; lv <= maxLevel; lv++) { if (k === 'wall') { if (lv === 1) for (let m = 0; m < 16; m++) out.push(wallArt(lv, m)); } else if (k !== 'kraken' || lv === 1) out.push(buildingArt(k, lv)); }
   }
   out.push(krakenArt('slam', 1));

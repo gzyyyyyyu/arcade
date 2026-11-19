@@ -6,7 +6,7 @@ import { HQ, hook, layoutProblems, type ShotCtx } from './shot-lib.ts';
 
 /** --flow：新存档的真人主流程 */
 export async function flow(c: ShotCtx): Promise<boolean> {
-  const { page, v, ROOT, problems, shot, tap, sceneIs, step, click, where, beach, ready } = c;
+  const { page, v, ROOT, problems, shot, tap, sceneIs, step, click, where, tapBuilding, beach, ready } = c;
   await page.goto(HQ ? `${ROOT}?${HQ}` : ROOT, { timeout: 60_000 });
   await ready();
   await page.waitForTimeout(800);
@@ -62,16 +62,16 @@ export async function flow(c: ShotCtx): Promise<boolean> {
       if ((await page.locator('.hd-place').count()) > 0) throw new Error('放置没有完成');
     })) &&
     (await step('看主寨', async () => {
-      const h = await where('hq');
-      if (!h) throw new Error('找不到主寨');
       if (v.hasTouch) {
-        await tap(h.x, h.y);
+        await tapBuilding('hq');
         await page.waitForTimeout(500);
         await shot('hq-ring');
         if ((await page.locator('.hd-rmenu [data-ring=info]').count()) === 0) throw new Error('点主寨没有弹出操作环');
         await click('.hd-rmenu [data-ring=info]');
       } else {
         // 电脑：右键弹菜单（贴着鼠标，带快捷键），Esc 收起；左键单击直接开信息面板
+        const h = await where('hq');
+        if (!h) throw new Error('找不到主寨');
         await page.mouse.move(h.x, h.y);
         await page.waitForTimeout(400);
         await shot('hq-hover');

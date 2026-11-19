@@ -2,7 +2,7 @@
  * 登陆战：固定步长、整数坐标（1 格 = 100 单位）、确定性。
  * 同一个 setup 加同一串操作必得同一结果；这里不用随机、时间和平台数学函数，开方用整数牛顿法。
  */
-import { BUILDINGS, DEFENSE_KINDS, SHIELD, SKILLS, TROOPS } from '../content/index.ts';
+import { BUILDINGS, DEFENSE_KINDS, SHIELD, SKILLS, TROOPS, isDecoKind } from '../content/index.ts';
 import { BRANCH_BY_ID, RAID_BRANCH_PCT, RAID_LINE_MAX } from '../content/branches.ts';
 import { RAID_HERO, RAID_HERO_AGGRO, RAID_HERO_CLUSTER, RAID_HERO_GUARD, RAID_HERO_LEASH, TD_KEG_THROW, TD_RALLY_PCT, TD_RALLY_R } from '../content/tdunits.ts';
 import { SNIPE_WARN, applyStun, flightTicks, inRing, laneOffset, leadPoint, rankTargets, shieldFaces, stunned } from './combat.ts';
@@ -158,7 +158,7 @@ function isCounted(b: BBuilding): boolean {
 }
 
 function isDeco(b: BBuilding): boolean {
-  return b.kind === 'palm' || b.kind === 'rock' || b.kind === 'statue' || b.kind === 'flagpole' || b.kind === 'chest' || b.kind === 'wheel';
+  return isDecoKind(b.kind);
 }
 
 function bldById(s: BattleState, id: number): BBuilding | undefined {

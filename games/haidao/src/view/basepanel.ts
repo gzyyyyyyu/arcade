@@ -1,6 +1,6 @@
 import type { BaseScene } from './BaseScene.ts';
 import { BUILDINGS } from '../content/index.ts';
-import { hqLevel, rankOf, tdOceanCleared, totalStars, upgradeCost, hasBranches, chooseBranch, upgrade, presetLayout } from '../core/index.ts';
+import { TD_TROPHIES, hqLevel, rankOf, tdChapterCleared, totalStars, upgradeCost, hasBranches, chooseBranch, upgrade, presetLayout } from '../core/index.ts';
 import type { Res, TroopKind, BuildingKind } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { hasAchievements, achievementList } from './meta.ts';
@@ -40,7 +40,7 @@ export function openProfile(bs: BaseScene): void {
   if (hasAchievements()) chip(iconA('trophy'), `成就 ${p.achievements.length}/${achievementList().length}`);
   if (p.title) el('p', 'hd-desc', `当前称号：「${p.title}」`, body);
   if (rankOf(p) > 0) el('p', 'hd-desc hd-rank-title', rankTitle(rankOf(p)), body);
-  if (tdOceanCleared(p.td?.stars ?? {})) el('p', 'hd-desc', '远洋通关：守岛第四章全部过关', body);
+  if (tdChapterCleared(p.td?.stars ?? {}, 4)) el('p', 'hd-desc', '远洋通关：守岛第四章全部过关', body);
   if (hasAchievements()) {
     const row = el('div', 'hd-row', undefined, body);
     button('成就和称号', 'hd-btn-gold', () => openAchievements(bs, 'ach'), row);
@@ -262,7 +262,7 @@ export function collection(bs: BaseScene, body: HTMLElement): void {
   const own = p.cosmetics ?? [];
   const skins = own.filter((c) => c.startsWith('skin:'));
   const decos = own.filter((c) => c.startsWith('deco:'));
-  el('p', 'hd-desc', '打赢关卡有几率掉落皮肤和装饰；首领岛首次三星必掉一件。', body);
+  el('p', 'hd-desc', '打赢关卡有几率掉落皮肤和装饰；首领岛首次三星必掉一件。守岛每一章全部过关，送一件会动的装饰。', body);
   const first = body.children.length;
   el('b', '', `兵种皮肤 ${skins.length}`, body);
   if (!skins.length) el('p', 'hd-sub', '还没有皮肤。', body);
@@ -286,7 +286,6 @@ export function collection(bs: BaseScene, body: HTMLElement): void {
     }, row);
   }
   el('b', '', `岛上装饰 ${decos.length}`, body);
-  if (!decos.length) el('p', 'hd-sub', '还没有装饰。', body);
   for (const id of decos) {
     const kind = id.split(':')[1] as BuildingKind;
     const row = el('div', 'hd-ach', undefined, body);
@@ -299,6 +298,16 @@ export function collection(bs: BaseScene, body: HTMLElement): void {
     el('b', '', rewardName(id), t);
     const placed = p.base.buildings.some((q) => q.kind === kind);
     button(placed ? '再摆一个' : '摆到岛上', 'hd-btn-gold', () => startPlace(bs, kind), row);
+  }
+  // 还没拿到的章节纪念：灰着排在后面，写清怎么拿
+  for (const [ch, id] of Object.entries(TD_TROPHIES)) {
+    if (own.includes(id)) continue;
+    const kind = id.split(':')[1] as BuildingKind;
+    const row = el('div', 'hd-ach off', undefined, body);
+    row.appendChild(img(bArt(kind, 1), 46));
+    const t = el('div', 'hd-at', undefined, row);
+    el('b', '', rewardName(id), t);
+    el('small', '', `守岛第 ${ch} 章全部过关得到（每关至少 1 星）`, t);
   }
   const items = [...body.children].slice(first) as HTMLElement[];
   if (items.length && bs.sheet) paginate(bs.sheet, items, items[items.length - 1]!);

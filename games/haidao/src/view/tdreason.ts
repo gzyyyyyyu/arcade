@@ -3,7 +3,7 @@
  * 局内由 tdevents.ts 把宝藏丢失记进 ReasonLog，结算时 tdReason 读它和规则核心给的结果，不重算规则。
  * 文字大白话：line 目标 ≤ 26 字，key ≤ 30 字（不截断），数字用阿拉伯数字。
  */
-import { TD2_ENEMIES, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, counterPct, isTdTowerKind, type TdArmor, type TdEnemyKind } from '../core/index.ts';
+import { BUILDINGS, TD_TROPHIES, TD2_ENEMIES, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, counterPct, isTdTowerKind, type BuildingKind, type TdArmor, type TdEnemyKind } from '../core/index.ts';
 
 export const LINE_MAX = 26;
 export const KEY_MAX = 30;
@@ -166,6 +166,15 @@ export function lostAtText(wave: number): string {
   return `打到第 ${wave} 波时失守`;
 }
 
+const CHAPTER_DONE = ['', '第一章通关', '第二章通关', '第三章通关', '远洋通关'];
+
+/** 这一局送的章节纪念装饰（settleTd 的 trophies，按章号排）：「第一章通关、第二章通关！得到装饰「小风车」「小灯塔」，在收藏里摆到岛上」 */
+export function trophyText(ids: readonly string[]): string {
+  const chs = ids.map((id) => Number(Object.keys(TD_TROPHIES).find((c) => TD_TROPHIES[Number(c)] === id)));
+  const names = ids.map((id) => `「${BUILDINGS[id.slice('deco:'.length) as BuildingKind].name}」`).join('');
+  return `${chs.map((c) => CHAPTER_DONE[c]).join('、')}！得到装饰${names}，在收藏里摆到岛上`;
+}
+
 /** 输了（0 星）时宝藏那一行：写丢了几枚，和「宝藏被抢光了」对得上 */
 export function lostTreasureText(lost: number): string {
   return `丢了 ${lost} 枚宝藏`;
@@ -179,7 +188,8 @@ export function escortMoment(bites: readonly BiteRec[], hull: number): string | 
   if (bites.length === 0 || hull <= 0) return null;
   const wave = Number(top(groupBy(bites, (b) => String(b.wave), (b) => b.dmg))?.[0]);
   const inWave = bites.filter((b) => b.wave === wave);
-  const pct = Math.floor((inWave.reduce((a, b) => a + b.dmg, 0) * 100) / hull);
+  // 咬沉那一口按整口记、不按剩的血截，修过船的一波也会咬掉超过一船的血：写出来封顶 100%
+  const pct = Math.min(100, Math.floor((inWave.reduce((a, b) => a + b.dmg, 0) * 100) / hull));
   if (pct < 1) return null;
   const kind = top(groupBy(inWave, (b) => b.kind, (b) => b.dmg))?.[0] as TdEnemyKind;
   const count = new Set(inWave.filter((b) => b.kind === kind).map((b) => b.id)).size;

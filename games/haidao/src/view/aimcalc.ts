@@ -4,12 +4,13 @@
  * 规则在 core/battle.ts 的 doAction：这里照它的判法算，只用来画预览和提前拦下“放了也没用”的点按，不改规则。
  */
 import { UNIT, type BBuilding } from '../core/types.ts';
+import { BUILDING_KINDS, isDecoKind } from '../content/buildings.ts';
 
 /** 登陆时兵在落点周围散开的半宽（格；规则里是 ±60 单位） */
 export const LAND_SPREAD = 0.6;
 
 /** 不会被信号弹标记的东西：装饰、地雷、焦油（规则的 isDeco 加 mine / tar） */
-const NOT_FLARE = new Set(['palm', 'rock', 'statue', 'flagpole', 'chest', 'wheel', 'mine', 'tar']);
+const NOT_FLARE = new Set<string>(['mine', 'tar', ...BUILDING_KINDS.filter(isDecoKind)]);
 
 /** 点 (x, y)（单位）到建筑占地矩形的距离平方 */
 function d2Rect(x: number, y: number, b: BBuilding): number {

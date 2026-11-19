@@ -188,12 +188,22 @@ export async function bakeAtlas(tm: Phaser.Textures.TextureManager, key: string,
   baked.add(key);
 }
 
-/** 按需烘焙一批素材（皮肤帧不进 allArt，装备时才烘焙） */
-export async function bakeSome(tm: Phaser.Textures.TextureManager, pieces: ArtPiece[], r: number): Promise<void> {
-  await Promise.all(pieces.map((p) => bake(tm, p, r)));
+const pending = new Map<string, Promise<void>>();
+/** 同一张图并发只烘一次（两条路同时要同一张，比如基地补烘和环境动画，各烘一遍会撞 key） */
+function bakeOnce(tm: Phaser.Textures.TextureManager, p: ArtPiece, r: number): Promise<void> {
+  let pr = pending.get(p.key);
+  if (!pr) {
+    pr = bake(tm, p, r).finally(() => pending.delete(p.key));
+    pending.set(p.key, pr);
+  }
+  return pr;
 }
 
-const pending = new Map<string, Promise<void>>();
+/** 按需烘焙一批素材（皮肤帧不进 allArt，装备时才烘焙），不弹「装船中」 */
+export async function bakeSome(tm: Phaser.Textures.TextureManager, pieces: ArtPiece[], r: number): Promise<void> {
+  await Promise.all(pieces.map((p) => bakeOnce(tm, p, r)));
+}
+
 /** 按 key 去重的按需烘焙：没烘过的才烘，同一张并发只烘一次；烘的时候在 tip 里显示“装船中…” */
 export async function ensureArt(tm: Phaser.Textures.TextureManager, pieces: ArtPiece[], r: number): Promise<void> {
   const todo = pieces.filter((p) => !baked.has(p.key) && !tm.exists(p.key));
@@ -205,14 +215,7 @@ export async function ensureArt(tm: Phaser.Textures.TextureManager, pieces: ArtP
   document.body.appendChild(el);
   try {
     const seen = new Set<string>();
-    await Promise.all(todo.filter((p) => !seen.has(p.key) && seen.add(p.key)).map((p) => {
-      let pr = pending.get(p.key);
-      if (!pr) {
-        pr = bake(tm, p, r).catch(() => undefined).finally(() => pending.delete(p.key));
-        pending.set(p.key, pr);
-      }
-      return pr;
-    }));
+    await Promise.all(todo.filter((p) => !seen.has(p.key) && seen.add(p.key)).map((p) => bakeOnce(tm, p, r).catch(() => undefined)));
   } finally {
     el.remove();
   }

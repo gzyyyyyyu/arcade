@@ -1,5 +1,5 @@
 export * from './defs.ts';
-export { BUILDINGS, BUILDING_KINDS, DEFENSE_KINDS } from './buildings.ts';
+export { BUILDINGS, BUILDING_KINDS, DEFENSE_KINDS, isDecoKind } from './buildings.ts';
 export { TROOPS, SKILLS, SHIELD, TROOP_KINDS, SKILL_KINDS } from './troops.ts';
 export { HQ_LEVELS } from './hq.ts';
 export { RANKS, RANK_HQ, type PirateRank } from './rank.ts';

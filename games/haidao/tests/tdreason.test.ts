@@ -88,6 +88,7 @@ describe('tdReason', () => {
     expect(escortMoment(bites, 1200)!.length).toBeLessThanOrEqual(KEY_MAX);
     expect(escortMoment([], 1200)).toBeNull();
     expect(escortMoment([b(1, 'sailor', 1, 5)], 1200)).toBeNull(); // 不到 1% 不写
+    expect(escortMoment([b(1, 'sailor', 1, 700), b(2, 'sailor', 1, 520)], 1200)).toBe('第 1 波：2 个水手咬住船，掉了 100% 血'); // 最后一口超出剩的血，不写 101%
     expect(escortReason({ arrived: false, sunk: true, hullPct: 0, stars: 0 }, bites, 1200).key).toBe('第 3 波：2 个铁甲咬住船，掉了 26% 血');
     expect(escortReason({ arrived: true, sunk: false, hullPct: 100, stars: 3 }, bites, 1200).key).toBeNull();
   });

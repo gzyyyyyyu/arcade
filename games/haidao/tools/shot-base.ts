@@ -7,7 +7,7 @@ import { HQ, LEVEL, QUERY, TD_CHAPTER, TD_HQ, TD_LEVEL, TD_SPEED, hook, layoutPr
 
 /** --views：各界面逐个截图 */
 export async function views(c: ShotCtx): Promise<boolean> {
-  const { page, v, ROOT, problems, shot, tap, sceneIs, step, click, where, ready } = c;
+  const { page, v, ROOT, problems, shot, sceneIs, step, click, tapBuilding, ready } = c;
   const ok =
     (await step('基地', async () => {
       await page.goto(`${ROOT}?dev`, { timeout: 60_000 });
@@ -74,9 +74,7 @@ export async function views(c: ShotCtx): Promise<boolean> {
     (await step('主寨面板和升级庆祝', async () => {
       await page.evaluate(() => (window as unknown as { __haidao: Hook }).__haidao.dev?.give(9000, 9000, 30));
       await page.waitForTimeout(400);
-      const h = await where('hq');
-      if (!h) throw new Error('找不到主寨');
-      await tap(h.x, h.y);
+      await tapBuilding('hq');
       await page.waitForTimeout(500);
       // 手机点建筑弹操作环再点「信息」；电脑左键单击直接开右侧信息面板
       if (v.hasTouch) {

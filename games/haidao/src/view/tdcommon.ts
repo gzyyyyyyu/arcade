@@ -85,12 +85,17 @@ export interface ESpr {
   /** 画面上的挤开偏移（逻辑单位，crowd.ts 算目标、按时间追过去）：只影响显示，规则位置不动 */
   ox: number;
   oy: number;
+  /** 飞的敌人在暴雨里压低了多少（屏幕像素，按时间追 RAIN_DIP / 0，开始下和雨停都不跳） */
+  dip: number;
   /** 朝向过渡（-1..1）、走过的屏幕距离、上一帧屏幕位置 */
   face: number;
   dist: number;
   lx: number;
   ly: number;
 }
+
+/** 暴雨那一波（规则 raining）飞的敌人压低飞多少像素：和规则里的减速对上，一眼看得出鸟被雨打低了 */
+export const RAIN_DIP = 18;
 
 /** 英雄攻击没有出手拍可对齐，按这个周期循环（毫秒） */
 export const ATK_MS = 640;

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TD2_ENEMIES, TD2_FLEET, TD_SEA_RANGE } from '../src/content/td2units.ts';
 import { TD2_LEVEL_BY_ID } from '../src/content/tdmaps.ts';
-import { RULES_SINCE, RULES_VERSION, TD_WHEEL, build, canPlace, createTd, settleTd, stepTd, tdBotActions, tdCampaign, tdGrowthProfile, tdGrowthSetup, tdOceanCleared } from '../src/core/index.ts';
-import type { TdResult } from '../src/core/index.ts';
+import { RULES_SINCE, RULES_VERSION, createTd, stepTd, tdBotActions, tdGrowthSetup } from '../src/core/index.ts';
 import { GRID, cellIdx } from '../src/core/grid.ts';
 import { fleetAt } from '../src/core/tdmech.ts';
 import { HIT_HERO, targetable, tdTowerRange } from '../src/core/tdstate.ts';
@@ -276,58 +275,4 @@ describe('海盗王（规则版本 19）', () => {
     });
     expect(called).toBe(true);
   }, 60_000);
-});
-
-describe('远洋通关（第四章全部至少 1 星）', () => {
-  const res = (stars: number): TdResult => ({ over: true, stars, lost: 0, waves: 10, total: 10, ticks: 4000, goldEarned: 0 });
-  const almost = () => {
-    const p = tdGrowthProfile(TD2_LEVEL_BY_ID.get('td24')!, 'suggest');
-    const stars: Record<string, number> = {};
-    for (const l of tdCampaign()) if (l.id !== 'td24') stars[l.id] = 1;
-    return { ...p, cosmetics: [], td: { stars, day: 5, gotGold: 0, gotWood: 0 } };
-  };
-  it('拿下最后一关的第一颗星时送「海盗王的舵轮」，只送一次；船长档案的判断同一个函数', () => {
-    const p = almost();
-    expect(tdOceanCleared(p.td.stars)).toBe(false);
-    const a = settleTd(p, 'td24', res(1), 5);
-    if (!a.ok) throw new Error(a.error);
-    expect(a.value.reward.wheel).toBe(true);
-    expect(a.value.profile.cosmetics).toEqual([TD_WHEEL]);
-    expect(tdOceanCleared(a.value.profile.td!.stars)).toBe(true);
-    const b = settleTd(a.value.profile, 'td24', res(3), 5);
-    if (!b.ok) throw new Error(b.error);
-    expect(b.value.reward.wheel).toBe(false);
-    expect(b.value.profile.cosmetics).toEqual([TD_WHEEL]);
-  });
-  it('第四章还有一关 0 星时不送；0 星这一局也不送', () => {
-    const p = almost();
-    const miss = { ...p, td: { ...p.td, stars: { ...p.td.stars, td19: 0 } } };
-    const a = settleTd(miss, 'td24', res(2), 5);
-    if (!a.ok) throw new Error(a.error);
-    expect(a.value.reward.wheel).toBe(false);
-    const z = settleTd(p, 'td24', res(0), 5);
-    if (!z.ok) throw new Error(z.error);
-    expect(z.value.reward.wheel).toBe(false);
-  });
-  it('第四章早已全有星、还没领到舵轮：输掉的一局不发（结算框不该写「远洋通关」），下一次拿星才发', () => {
-    const p = almost();
-    const all = { ...p, td: { ...p.td, stars: { ...p.td.stars, td24: 1 } } };
-    const lose = settleTd(all, 'td20', res(0), 5);
-    if (!lose.ok) throw new Error(lose.error);
-    expect(lose.value.reward.wheel).toBe(false);
-    expect(lose.value.profile.cosmetics).toEqual([]);
-    const win = settleTd(lose.value.profile, 'td20', res(1), 5);
-    if (!win.ok) throw new Error(win.error);
-    expect(win.value.reward.wheel).toBe(true);
-  });
-  it('没拿到舵轮不能摆', () => {
-    const p = almost();
-    let at: [number, number] | null = null;
-    for (let y = 0; y < 22 && !at; y++) for (let x = 0; x < 22 && !at; x++) if (canPlace(p, 'wheel', x, y)) at = [x, y];
-    expect(at).not.toBeNull();
-    const [x, y] = at!;
-    const r = build(p, 'wheel', x, y);
-    expect(r.ok ? 'ok' : r.error).toBe('locked');
-    expect(build({ ...p, cosmetics: [TD_WHEEL] }, 'wheel', x, y).ok).toBe(true);
-  });
 });

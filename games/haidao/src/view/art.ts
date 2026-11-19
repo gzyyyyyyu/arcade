@@ -1,6 +1,6 @@
 import type { BuildingKind, SkillKind, TroopKind } from '../core/types.ts';
 import { isBaked } from './textures.ts';
-import { buildingArt, fxArt, fxFrames, hqFlagFrames, hqNoFlagArt, iconArt, palmSwayFrames, shipArt, troopArt, troopFrames, wallArt, type ArtPiece } from './art/index.ts';
+import { buildingArt, decoFrames, fxArt, fxFrames, hqFlagFrames, hqNoFlagArt, iconArt, isDecoAnim, palmSwayFrames, shipArt, troopArt, troopFrames, wallArt, type ArtPiece } from './art/index.ts';
 
 /** 美术函数每次现画 SVG 字符串，按参数记下来 */
 const memo = new Map<string, ArtPiece>();
@@ -80,9 +80,10 @@ export function piecesFor(list: Array<{ kind: BuildingKind; level: number }>): A
     if (b.kind === 'wall') for (let m = 0; m < 16; m++) out.push(wArt(b.level, m));
     else {
       out.push(bArt(b.kind, b.level));
-      // 环境动画的素材：棕榈 5 帧（整岛共用）、主寨无旗版 + 旗布 3 帧
+      // 环境动画的素材：棕榈 5 帧（整岛共用）、主寨无旗版 + 旗布 3 帧、章节纪念装饰的帧（摆了才烘）
       if (b.kind === 'palm') out.push(...palmFrames());
       else if (b.kind === 'hq') out.push(hqNf(b.level), ...hqFlagF(b.level));
+      else if (isDecoAnim(b.kind)) out.push(...decoFrames(b.kind));
     }
   }
   return out;

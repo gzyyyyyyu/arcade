@@ -276,6 +276,33 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     desc: '守岛第四章全部过关的纪念，只占格。',
     levels: [{ cost: { gold: 0, wood: 0 }, hp: 0 }],
   },
+  windmill: {
+    name: '小风车',
+    size: 1,
+    category: 'deco',
+    unlockHq: 1,
+    maxLevel: 1,
+    desc: '守岛第一章全部过关的纪念，只占格。',
+    levels: [{ cost: { gold: 0, wood: 0 }, hp: 0 }],
+  },
+  lighthouse: {
+    name: '小灯塔',
+    size: 1,
+    category: 'deco',
+    unlockHq: 1,
+    maxLevel: 1,
+    desc: '守岛第二章全部过关的纪念，只占格。',
+    levels: [{ cost: { gold: 0, wood: 0 }, hp: 0 }],
+  },
+  bonfire: {
+    name: '篝火',
+    size: 1,
+    category: 'deco',
+    unlockHq: 1,
+    maxLevel: 1,
+    desc: '守岛第三章全部过关的纪念，只占格。',
+    levels: [{ cost: { gold: 0, wood: 0 }, hp: 0 }],
+  },
   treasure: {
     name: '宝藏箱',
     size: 1,
@@ -308,4 +335,6 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
 };
 
 export const BUILDING_KINDS = Object.keys(BUILDINGS) as BuildingKind[];
+/** 装饰（棕榈、岩石、掉宝装饰、章节纪念）：只占格，不挡路、不挨打、不算摧毁率 */
+export const isDecoKind = (k: BuildingKind): boolean => BUILDINGS[k].category === 'deco';
 export const DEFENSE_KINDS: ReadonlySet<BuildingKind> = new Set<BuildingKind>(['cannon', 'gunTower', 'mortar', 'flame', 'harpoon', 'rocket', 'kraken', 'shock', 'sniper']);

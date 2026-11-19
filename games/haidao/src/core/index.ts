@@ -32,7 +32,7 @@ export { presetLayout } from './preset.ts';
 export type { PresetStyle } from './preset.ts';
 export { nextUnlock, unlocksAt } from './unlock.ts';
 export type { UnlockItem } from './unlock.ts';
-export { CONSOLATION_PCT, COSMETICS, RARE_POOL, TD_WHEEL, STAR_BONUS_GOLD, STREAK_MAX_PCT, STREAK_STEP_PCT, equipSkin, rollDrops, settleCampaign, startCampaign } from './run.ts';
+export { CONSOLATION_PCT, COSMETICS, RARE_POOL, TD_TROPHIES, STAR_BONUS_GOLD, STREAK_MAX_PCT, STREAK_STEP_PCT, equipSkin, rollDrops, settleCampaign, startCampaign } from './run.ts';
 export type { Drop } from './run.ts';
 export * from './tdtypes.ts';
 export { createTd, levelForRules, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
@@ -53,7 +53,7 @@ export { SNIPE_WARN, STUN_IMMUNE_MUL, applyStun, shieldFaces, stunned } from './
 export type { Stunnable } from './combat.ts';
 export { LEAD_MAX, flightTicks, inRing, keepLock, laneOffset, leadPoint, rankTargets } from './combat.ts';
 export type { Mover } from './combat.ts';
-export { startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdOceanCleared, tdGarrisonOptions, tdGrowthProfile, tdGrowthSetup, tdUnlockedTowers } from './tdrun.ts';
+export { startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdChapterCleared, tdGarrisonOptions, tdGrowthProfile, tdGrowthSetup, tdUnlockedTowers } from './tdrun.ts';
 export type { TdGrowth, TdPlacedLevel } from './tdrun.ts';
 export { TD_BRANCH_DESC, TD_BRANCH_MOD } from '../content/tdbranches.ts';
 export type { TdBranchMod } from '../content/tdbranches.ts';
