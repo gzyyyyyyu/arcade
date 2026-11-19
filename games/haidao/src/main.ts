@@ -255,6 +255,10 @@ function main(): void {
         app.save.profile = { ...app.profile, base: branch ? withBranches(g.base) : g.base, res: { gold: 5000, wood: 5000 }, tutorial: 99, stats: { ...app.profile.stats, attacks: 1 }, research: { ...app.profile.research, hero: hero ?? g.research.hero ?? 1 }, td: { ...g.td!, day: dayIndex(), gotGold: 0, gotWood: 0 } };
         app.reload();
       },
+      load: (p) => {
+        app.save.profile = p;
+        app.reload();
+      },
       give: (gold, wood, stars) => {
         const star: Record<string, number> = {};
         let left = stars;

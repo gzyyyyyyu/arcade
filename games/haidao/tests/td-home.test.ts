@@ -3,7 +3,11 @@ import {
   RULES_SINCE, TD2_ENEMY_POINTS, TD2_HOME, TD2_LOSE_AT, createTd, hqLevel, newProfile, runTd, runTdBot, settleTdHome, tdDailyCap, tdFingerprint, tdGrowthProfile,
   tdHomeGen, tdHomeHardOpen, tdHomeRawReward, tdHomeSetup, tdHomeSnapshot, tdHomeWave, tdRunReward, tdUnlockedTowers, waveBudget,
 } from '../src/core/index.ts';
-import type { Profile, TdResult, TdWave } from '../src/core/index.ts';
+import type { Profile, TdResult, TdSetup, TdWave } from '../src/core/index.ts';
+import { cellIdx } from '../src/core/grid.ts';
+import { treasureFlow } from '../src/core/tdstate.ts';
+import { TD_WALL_COST } from '../src/content/tdunits.ts';
+import { fullBase } from '../tools/sample.ts';
 
 /** 海盗来袭（src/core/tdhome.ts）：自己的岛、按预算现生成的波次、打到丢 TD2_LOSE_AT 枚或打满、按撑住的波数给奖励、和战役共用每日上限、不记星 */
 
@@ -163,5 +167,49 @@ describe('海盗来袭：加难档（规则版本 20）', () => {
     const c = settleTdHome(near, res(20), 3, { hard: true });
     if (!c.ok) throw new Error(c.error);
     expect(c.value.reward).toEqual({ waves: 20, hard: true, gold: 10, wood: 0, capped: true, full: false });
+  });
+});
+
+describe('海盗来袭：登陆点按布局挑（规则版本 21）', () => {
+  /** 登陆点到最近宝藏箱的路程（和 homeLanes 同一个量法） */
+  const dist = (st: TdSetup, p: { x: number; y: number }): number => {
+    const s = createTd(st);
+    return Math.min(...s.treasures.map((_, i) => treasureFlow(s, i, TD_WALL_COST)[cellIdx(p.x, p.y)] as number));
+  };
+  const open = (p: Profile, rules?: number): TdSetup => {
+    const r = tdHomeSetup(p, 3, false, rules);
+    if (!r.ok) throw new Error(r.error);
+    return r.value;
+  };
+
+  it('箱子贴着登陆点：那条路挪到同一条海滩上够远的地方，别的路不动；规则 20 照旧用写死的点', () => {
+    // 主寨 8 级推荐布局 spread：岛边 (10,1) 有一个宝藏箱，正对北路 (10,-2)
+    const p = fullBase(8, 'spread', true);
+    const old = open(p, RULES_SINCE.tdHomeLanes - 1);
+    expect(old.level.lanes).toEqual(TD2_HOME.lanes);
+    expect(dist(old, TD2_HOME.lanes[0]!)).toBeLessThan(TD2_HOME.laneMinPath);
+    const now = open(p);
+    const north = now.level.lanes[0]!;
+    expect(north).not.toEqual(TD2_HOME.lanes[0]);
+    expect(north.y).toBe(TD2_HOME.lanes[0]!.y);
+    expect(dist(now, north)).toBeGreaterThanOrEqual(TD2_HOME.laneMinPath);
+    // 够远的路原样不动
+    now.level.lanes.forEach((l, i) => {
+      if (i > 0 && dist(old, TD2_HOME.lanes[i]!) >= TD2_HOME.laneMinPath) expect(l).toEqual(TD2_HOME.lanes[i]);
+    });
+  });
+
+  it('所有路都够远的岛：规则 21 和 20 开出来的局一样（登陆点、落潮路都不动）', () => {
+    const p = fullBase(7, 'spread', true);
+    const a = open(p);
+    const b = open(p, RULES_SINCE.tdHomeLanes - 1);
+    expect(a.level.lanes).toEqual(b.level.lanes);
+    expect(a.level.tide).toEqual(b.level.tide);
+  });
+
+  it('同种子开局逐位一样，整局重放指纹一样', () => {
+    const p = fullBase(8, 'turtle', true);
+    expect(open(p)).toEqual(open(p));
+    expect(tdFingerprint(runTdBot(open(p), 'normal').state)).toBe(tdFingerprint(runTdBot(open(p), 'normal').state));
   });
 });

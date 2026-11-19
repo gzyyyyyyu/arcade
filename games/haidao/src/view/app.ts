@@ -63,7 +63,7 @@ export interface Api {
   sfxStats?(): { counts: Record<string, { req: number; played: number; gap: number; cap: number; silent: number }>; recent: Array<{ name: string; at: number; ok: boolean }> };
   sfxStatsReset?(): void;
   /** 只在 ?dev 时有：直接给资源和星数（内存里改，不写存档） */
-  dev?: { give(gold: number, wood: number, stars: number): void; /** 主寨升到 hq 级，摆一座带塔、墙、宝藏箱的守岛示范岛（守岛战役各关各给 1 星，全部解锁）；branch：塔选上分叉（一档、两档交替）；hero：英雄等级（不给跟主寨，看英雄等级外观用） */ td(hq: number, branch?: boolean, hero?: number): void };
+  dev?: { give(gold: number, wood: number, stars: number): void; /** 主寨升到 hq 级，摆一座带塔、墙、宝藏箱的守岛示范岛（守岛战役各关各给 1 星，全部解锁）；branch：塔选上分叉（一档、两档交替）；hero：英雄等级（不给跟主寨，看英雄等级外观用） */ td(hq: number, branch?: boolean, hero?: number): void; /** 换成给定的整份存档（工具在 node 里造好传进来，例如 tools/sample.ts 的满配岛） */ load(p: Profile): void };
 }
 
 /** 存档和游戏实例在 main.ts 启动时才有；之前读会抛清楚的错，而不是拿到 null 当对象用 */

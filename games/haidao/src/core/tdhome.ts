@@ -13,7 +13,11 @@ import { heroLevel } from './tdbase.ts';
 import { placeTdLevel, tdBaseBonus, tdGrant, tdRunReward, tdUnlockedTowers } from './tdrun.ts';
 import type { TdPlacedLevel } from './tdrun.ts';
 import type { TdEnemyKind, TdGroup, TdResult, TdSetup, TdWave } from './tdtypes.ts';
-import { RULES_VERSION } from './types.ts';
+import { ISLAND, RULES_SINCE, RULES_VERSION } from './types.ts';
+import { TD_WALL_COST } from '../content/tdunits.ts';
+import { cellIdx, inGrid } from './grid.ts';
+import { createTd } from './td.ts';
+import { treasureFlow } from './tdstate.ts';
 import type { Profile, Res, Result } from './types.ts';
 
 const ok = <T>(value: T): Result<T> => ({ ok: true, value });
@@ -54,11 +58,11 @@ export function tdHomeHardOpen(hq: number): boolean {
   return hq >= TD2_HOME.hard.hq;
 }
 
-/** 波次生成参数：等效关按主寨等级查 TD2_HOME.levelByHq（加难档再加 hard.levelPlus），种子由界面给（和战役一样） */
-export function tdHomeGen(snap: TdHomeSnapshot, seed: number, hard = false): TdHomeGen {
+/** 波次生成参数：等效关按主寨等级查 TD2_HOME.levelByHq（加难档再加 hard.levelPlus），种子由界面给（和战役一样）；rules 只在按旧版本重放、录指纹时传 */
+export function tdHomeGen(snap: TdHomeSnapshot, seed: number, hard = false, rules = RULES_VERSION): TdHomeGen {
   const t = TD2_HOME.levelByHq;
   const i = Math.max(0, Math.min(t.length - 1, Math.floor(snap.hq) - 1));
-  const gen: TdHomeGen = { levelIndex: (t[i] ?? 0) + (hard ? TD2_HOME.hard.levelPlus : 0), seed, gold: TD2_HOME.gold, first: TD2_HOME.first, waveTicks: TD2_HOME.waveTicks, rules: RULES_VERSION };
+  const gen: TdHomeGen = { levelIndex: (t[i] ?? 0) + (hard ? TD2_HOME.hard.levelPlus : 0), seed, gold: TD2_HOME.gold, first: TD2_HOME.first, waveTicks: TD2_HOME.waveTicks, rules };
   if (hard) gen.hard = true;
   return gen;
 }
@@ -101,12 +105,15 @@ export function tdHomeWave(gen: TdHomeGen, w: number): TdWave {
   return wave;
 }
 
-/** 开一局海盗来袭：TdSetup.mode = 'home'，level 由 TD2_HOME 的候选位置（按玩家布局挑空的摆）和 tdHomeWave 拼出，一共 maxWaves 波；hard 要主寨够级 */
-export function tdHomeSetup(p: Profile, seed: number, hard = false): Result<TdSetup> {
+/**
+ * 开一局海盗来袭：TdSetup.mode = 'home'，level 由 TD2_HOME 的候选位置（按玩家布局挑空的摆）和 tdHomeWave 拼出，一共 maxWaves 波；hard 要主寨够级。
+ * 规则版本 21 起登陆点也按布局挑（homeLanes）。rules 只在按旧版本重放、录指纹时传，旧版本开出来的局和当时逐位一样
+ */
+export function tdHomeSetup(p: Profile, seed: number, hard = false, rules = RULES_VERSION): Result<TdSetup> {
   if (!Number.isInteger(seed)) return err('bad_seed');
   const snap = tdHomeSnapshot(p);
   if (hard && !tdHomeHardOpen(snap.hq)) return err('hard_locked');
-  const gen = tdHomeGen(snap, seed, hard);
+  const gen = tdHomeGen(snap, seed, hard, rules);
   const raw: TdPlacedLevel = {
     id: 'home',
     name: '海盗来袭',
@@ -123,7 +130,7 @@ export function tdHomeSetup(p: Profile, seed: number, hard = false): Result<TdSe
     slots: TD2_HOME.slots.map((s) => ({ ...s })),
     place: { slots: TD2_HOME.slots.length, kegs: TD2_HOME.kegs.length, wrecks: 0, barrels: 0 },
   };
-  return ok({
+  const setup: TdSetup = {
     layout: snap.layout,
     level: placeTdLevel(raw, snap.layout),
     hero: snap.hero,
@@ -133,7 +140,41 @@ export function tdHomeSetup(p: Profile, seed: number, hard = false): Result<TdSe
     bonus: tdBaseBonus(p),
     unlocked: tdUnlockedTowers(p),
     home: gen,
-  });
+  };
+  return ok((gen.rules ?? 9) >= RULES_SINCE.tdHomeLanes ? { ...setup, level: { ...setup.level, ...homeLanes(setup) } } : setup);
+}
+
+type Pt = { x: number; y: number };
+
+/**
+ * 规则版本 21：登陆点按玩家的布局挑。TD2_HOME 的登陆路和落潮路是写死的坐标，不看岛怎么摆；等级越高建筑越多，宝藏箱越容易被挤到岛边，
+ * 正好摆在某个登陆点门口时敌人一上岸就抢到（主寨 8 级推荐布局 spread 北路只有 2 格，普通机器人平均只撑 4.8 波，6、7 级是 8 格）。
+ * 每条登陆路（含落潮路）先看原位置：到最近宝藏箱的路程（敌人寻路的流场，砸墙按墙代价）≥ TD2_HOME.laneMinPath 就不动；
+ * 不够就在同一条海滩上挑离原位置最近、够远、没被别的路占的格（同距离取坐标小的）；都不够挑最远的。
+ */
+function homeLanes(setup: TdSetup): { lanes: Pt[]; tide?: NonNullable<TdSetup['level']['tide']> } {
+  const s = createTd(setup);
+  const flows = s.treasures.map((_, i) => treasureFlow(s, i, TD_WALL_COST));
+  const dist = (p: Pt): number => (inGrid(p.x, p.y) ? Math.min(...flows.map((f) => f[cellIdx(p.x, p.y)] as number)) : -1);
+  const taken: Pt[] = [];
+  const pick = (p: Pt): Pt => {
+    let out = p;
+    if (dist(p) < TD2_HOME.laneMinPath) {
+      // 同一条海滩：上下两边的沿 x 走，左右两边的沿 y 走
+      const alongX = p.y < 0 || p.y > ISLAND - 1;
+      const cand: Pt[] = [];
+      for (let k = 0; k < ISLAND; k++) cand.push(alongX ? { x: k, y: p.y } : { x: p.x, y: k });
+      const free = cand.filter((q) => !taken.some((t) => t.x === q.x && t.y === q.y));
+      const gap = (q: Pt): number => Math.abs(q.x - p.x) + Math.abs(q.y - p.y);
+      free.sort((a, b) => gap(a) - gap(b) || a.x - b.x || a.y - b.y);
+      out = free.find((q) => dist(q) >= TD2_HOME.laneMinPath) ?? free.reduce((a, b) => (dist(b) > dist(a) ? b : a), p);
+    }
+    taken.push(out);
+    return out;
+  };
+  const lanes = setup.level.lanes.map(pick);
+  const tide = setup.level.tide;
+  return tide ? { lanes, tide: { ...tide, lane: pick(tide.lane) } } : { lanes };
 }
 
 /** 撑住 waves 波的原始奖励（还没按每日上限截）：tdRunReward(主寨, 3★) × 每波比例% × min(waves, maxWaves)；加难档按 hard.perWavePct */

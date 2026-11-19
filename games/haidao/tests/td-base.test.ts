@@ -109,7 +109,7 @@ describe('攻防快照', () => {
     const fp = (layout: Placed[], hero?: number) => battleFingerprint(runBattle({ layout, army: sampleArmy(3), seed: 2, rules: 5, ...(hero ? { hero } : {}) }, []).state);
     expect(fp(withBuildings([{ id: 101, kind: 'cannon', level: 3, x: 0, y: 0, branch: ['cannon.pierce'] }], 3).base.buildings, 3)).toBe(fp(plain.base.buildings));
     expect(createBattle({ layout: plain.base.buildings, army: sampleArmy(3), seed: 1, rules: 5, hero: 3 }).hero).toBeUndefined();
-    expect(RULES_VERSION).toBe(20);
+    expect(RULES_VERSION).toBe(21);
   });
 });
 
