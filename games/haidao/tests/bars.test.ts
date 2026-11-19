@@ -74,7 +74,7 @@ describe('血条错开', () => {
 });
 
 describe('扎堆少画', () => {
-  const bar = (x: number, f: number, big = false): BarItem => ({ x, y: 10, w: 20, f, col: 0, a: 1, big });
+  const bar = (x: number, f: number, big = false): BarItem => ({ x, y: 10, w: 20, f, col: 0, a: 1, big, mark: 0 });
   it('同一格的小条最多留 max 条，血最少的先留；大条全留', () => {
     const items = [bar(1, 0.9), bar(2, 0.2), bar(3, 0.5), bar(4, 0.7), bar(5, 0.8, true), bar(6, 0.6, true)];
     crowdBars(items, 48, 2);

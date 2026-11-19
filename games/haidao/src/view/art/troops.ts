@@ -200,7 +200,9 @@ export const DECO: Record<TroopKind, TroopDeco> = {
       // 宽阔的肩：皮质护肩 + 斜挎的胸带
       const sh: Pt = [x + 8.5, -24 + b];
       const bsh: Pt = [x - 8.5, -24 + b];
-      s += path(`M${f(x - 11)},${f(-27 + b)} L${f(x + 10)},${f(-12 + b)}`, 'none', { stroke: '#3a2418', sw: 3.4 });
+      // 胸带用浅皮色加深色描边：壮汉棕皮肤配棕衣，贴着棕红屋瓦时这一道亮斜线让人一眼认出（以前是深棕，和衣服糊在一起）
+      s += path(`M${f(x - 11)},${f(-27 + b)} L${f(x + 10)},${f(-12 + b)}`, 'none', { stroke: '#2a1a12', sw: 5.2 });
+      s += path(`M${f(x - 11)},${f(-27 + b)} L${f(x + 10)},${f(-12 + b)}`, 'none', { stroke: '#f2dca8', sw: 3 });
       s += ell(bsh[0] - 1, bsh[1] + 0.5, 7.4, 5.4, '#5a3a22', { sw: 1.8 }) + ell(sh[0] + 1, sh[1] + 0.5, 8.2, 5.8, '#6a4528', { sw: 1.8 });
       for (const q of [sh, bsh]) s += ell(q[0], q[1] - 1, 1.2, 1.2, C.gold!, { sw: 0 });
       return s;
@@ -408,6 +410,17 @@ export function musket(hd: Pt, flash: boolean): string {
   return o;
 }
 
+/** 船长的燧发手枪（hd 是握把上的手心，枪口朝 +x）：短木柄斜向后下，铁枪管带一道金箍；flash = 枪口火 */
+export function pistol(hd: Pt, flash: boolean): string {
+  let o = line([hd[0] + 0.5, hd[1] - 0.5], [hd[0] - 4.5, hd[1] + 6], C.woodDD!, 5.4) + line([hd[0] + 0.5, hd[1] - 0.5], [hd[0] - 4.5, hd[1] + 6], C.woodL!, 2.6);
+  // 枪管短而粗（比火枪短一半多），一眼看出是手枪不是剑
+  o += line([hd[0] - 1, hd[1] - 1.2], [hd[0] + 10, hd[1] - 1.8], OUT, 5.4) + line([hd[0] - 1, hd[1] - 1.2], [hd[0] + 10, hd[1] - 1.8], C.ironL!, 2.8);
+  o += ell(hd[0] + 10.2, hd[1] - 1.8, 1.6, 2, C.ironD!, { sw: 1 });
+  o += line([hd[0] + 4.5, hd[1] - 4], [hd[0] + 4.5, hd[1] + 0.4], C.gold!, 1.8);
+  if (flash) o += poly([[hd[0] + 11, hd[1] - 1.8], [hd[0] + 14, hd[1] - 6], [hd[0] + 16, hd[1] - 2.4], [hd[0] + 20, hd[1] - 2.2], [hd[0] + 16, hd[1] - 0.2], [hd[0] + 17, hd[1] + 3.8], [hd[0] + 13, hd[1] + 0.2]], C.fireL!, { sw: 1.2 });
+  return o;
+}
+
 function gunner(pose: Pose, pd?: PoseData): string {
   const p = pd ?? POSES[pose];
   const L = LOOKS.gunner;
@@ -439,8 +452,9 @@ function gunner(pose: Pose, pd?: PoseData): string {
 export function hammer(hd: Pt, tip: Pt): string {
   let o = line(hd, tip, OUT, 6) + line(hd, tip, C.woodL!, 3);
   const hdW = 15;
-  o += poly([[tip[0] - hdW / 2, tip[1] - 4], [tip[0] + hdW / 2 + 1, tip[1] - 8], [tip[0] + hdW / 2 + 1, tip[1] + 6], [tip[0] - hdW / 2, tip[1] + 9]], C.ironD!, { sw: 2 });
-  o += line([tip[0] - 5, tip[1] - 3], [tip[0] + 5, tip[1] - 6], C.ironL!, 1.6);
+  // 锤头用亮钢色加白高光（深铁色在棕红屋瓦前看不出锤子）
+  o += poly([[tip[0] - hdW / 2, tip[1] - 4], [tip[0] + hdW / 2 + 1, tip[1] - 8], [tip[0] + hdW / 2 + 1, tip[1] + 6], [tip[0] - hdW / 2, tip[1] + 9]], '#c3ced8', { sw: 2 });
+  o += line([tip[0] - 5, tip[1] - 3], [tip[0] + 5, tip[1] - 6], '#ffffff', 1.8);
   for (const dy of [-4, 2]) o += poly([[tip[0] + hdW / 2 + 1, tip[1] + dy - 2], [tip[0] + hdW / 2 + 6, tip[1] + dy], [tip[0] + hdW / 2 + 1, tip[1] + dy + 2.5]], C.ironL!, { sw: 1.2 });
   return o;
 }
@@ -555,12 +569,12 @@ function captain(pose: Pose, pd?: PoseData): string {
   const bh: Pt = [bsh[0] + p.bh[0], bsh[1] + p.bh[1]];
   o += arm(bsh, bh, C.red!, L.skin);
   o += d.front;
-  // 剑
+  // 手枪（英雄在登陆战和守岛里都是开枪打远处）：开火时平端朝前，待机、走路时枪口朝上举着指挥
   const hd: Pt = [sh[0] + p.fh[0], sh[1] + p.fh[1]];
   o += limb(sh, hd, 4.6, C.red!);
-  o += blade(hd, atk ? [hd[0] + 20, hd[1] - 6] : pose === 'idle' ? [hd[0] + 8, hd[1] - 19] : [hd[0] + 10, hd[1] - 16], 2.6, true);
+  const tilt = atk ? -6 : pose === 'idle' ? -68 : -52;
+  o += `<g transform="rotate(${tilt} ${f(hd[0])} ${f(hd[1])})">${pistol(hd, false)}</g>`;
   o += ell(hd[0], hd[1], 3, 3, L.skin, { sw: 1.5 });
-  if (atk) o += path(`M${f(hd[0] + 8)},${f(hd[1] - 16)} q14,2 17,14`, 'none', { stroke: '#fff7c8', sw: 2.4, op: 0.85 });
   return o;
 }
 

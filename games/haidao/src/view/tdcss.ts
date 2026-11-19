@@ -18,6 +18,12 @@ function tdCss(): string {
   const c = P;
   const ink = c.ink!, cream = c.cream!, creamD = c.creamD!, gold = c.gold!, red = c.red!, redD = c.redD!;
   return `
+.hd-ui .hd-tdgar-rec { position:absolute; left:-3px; top:-3px; z-index:1; pointer-events:none; width:22px; height:22px; border-radius:50%; background:${gold}; color:${ink}; border:2px solid ${ink}; box-shadow:0 2px 0 ${ink}; font-size:12px; font-weight:900; line-height:18px; text-align:center; }
+.hd-ui .hd-td-boss { display:none; position:absolute; left:50%; top:calc(60px + env(safe-area-inset-top,0px)); transform:translateX(-50%); width:min(300px,56vw); z-index:12; pointer-events:none; flex-direction:column; align-items:center; gap:2px; }
+.hd-ui .hd-td-boss.on { display:flex; }
+.hd-ui .hd-td-boss b { font-size:14px; line-height:1.1; color:#fff; text-shadow:0 0 3px ${ink}, 0 2px 0 ${ink}; }
+.hd-ui .hd-td-boss-bar { display:block; width:100%; height:12px; background:${ink}; border:2px solid ${ink}; border-radius:7px; box-shadow:0 2px 0 rgba(0,0,0,.25); overflow:hidden; }
+.hd-ui .hd-td-boss-bar i { display:block; height:100%; width:100%; border-radius:5px; background:linear-gradient(#ff6a5a,${red} 55%,${redD}); transition:width .25s ease-out; }
 .hd-ui .hd-tdsel { position:absolute; inset:0; z-index:20; pointer-events:auto; background:linear-gradient(${c.seaLight},${c.sea} 40%,${c.seaDeep}); overflow-y:auto; padding:56px 10px 24px; }
 .hd-ui .hd-tdsel-head { display:flex; align-items:center; justify-content:center; margin:0 auto; width:min(100%,520px); padding-left:84px; padding-right:60px; min-height:44px; }
 .hd-ui .hd-tdsel-head h2 { margin:0; font-size:20px; flex:1; text-align:center; text-shadow:0 2px 0 rgba(255,255,255,.5); }
@@ -70,10 +76,11 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-title b { font-size:16px; font-weight:900; }
 .hd-ui .hd-tdgar-title small { font-size:14px; }
 .hd-ui .hd-tdgar-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
-.hd-ui .hd-tdgar-card { display:flex; flex-direction:column; align-items:center; gap:2px; min-height:118px; padding:5px 4px; border:3px solid ${ink}; border-radius:12px; background:#fff8e6; font:inherit; color:inherit; cursor:pointer; transition:transform .12s, box-shadow .12s; box-shadow:0 3px 0 ${ink}; }
+.hd-ui .hd-tdgar-card { position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; min-height:118px; padding:5px 4px; border:3px solid ${ink}; border-radius:12px; background:#fff8e6; font:inherit; color:inherit; cursor:pointer; transition:transform .12s, box-shadow .12s; box-shadow:0 3px 0 ${ink}; }
 .hd-ui .hd-tdgar-card b { font-size:14px; }
 .hd-ui .hd-tdgar-card small { font-size:12px; }
-.hd-ui .hd-tdgar-card.on { background:linear-gradient(${c.goldL},${gold}); transform:translateY(-3px); box-shadow:0 5px 0 ${ink}, 0 0 0 3px #fff3b0; }
+/* 选中不上浮：金底和外发光已经够醒目，上浮 3 像素会让它和上一行的卡只隔 5 像素（点按目标要隔 8） */
+.hd-ui .hd-tdgar-card.on { background:linear-gradient(${c.goldL},${gold}); box-shadow:0 5px 0 ${ink}, 0 0 0 3px #fff3b0; }
 .hd-ui .hd-tdgar-card:active { transform:translateY(2px); box-shadow:0 1px 0 ${ink}; }
 .hd-ui .hd-tdgar-card:disabled { opacity:.5; filter:grayscale(.7); cursor:default; }
 @media (hover:hover) and (pointer:fine) { .hd-ui .hd-tdgar-card:hover:not(:disabled) { filter:brightness(1.08); } }

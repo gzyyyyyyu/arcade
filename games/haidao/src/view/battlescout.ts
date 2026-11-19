@@ -29,7 +29,7 @@ export function holdScout(c: ScoutCtx): boolean {
 export const SCOUT_LABEL = '侦察中';
 
 /** 开场俯瞰的提示合成这一条：红圈是什么、点哪里继续、什么时候开始计时；"先点船卡再点沙滩"留给俯瞰收起后的提示条，不同时出现 */
-export const SCOUT_TIP = '红圈是防御的射程 · 点任意处开始侦察，出第一船才开始计时';
+export const SCOUT_TIP = '红圈是射程、斜线暗圈是打不到的盲区 · 点任意处开始侦察，出第一船才开始计时';
 
 /** 每拍最多算一次兵团血量：全部登陆过的兵的当前血 / 满血 */
 export function troopHpPct(units: ReadonlyArray<Pick<BUnit, 'hp' | 'maxHp'>>): number {

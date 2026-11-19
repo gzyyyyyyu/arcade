@@ -173,12 +173,16 @@ ${U} .hd-route-mid { z-index:46; }
 ${U} .hd-route-midbox { width:min(100%,400px); text-align:center; padding:10px 14px 14px; animation:hd-resin .5s cubic-bezier(.2,1.3,.4,1) both; }
 ${U} .hd-route-midbox h2 { margin:0 0 2px; font-size:20px; }
 ${U} .hd-route-midbox .hd-stars { justify-content:center; }
-${U} .hd-route-gain { font-size:40px; font-weight:900; color:#a86400; text-shadow:0 2px 0 rgba(255,240,200,.8); line-height:1.1; margin:2px 0; }
-${U} .hd-route-total { font-size:14px; font-weight:800; margin-bottom:8px; }
+${U} .hd-route-gain { display:flex; align-items:baseline; justify-content:center; gap:6px; color:#a86400; text-shadow:0 2px 0 rgba(255,240,200,.8); line-height:1.1; margin:2px 0; }
+${U} .hd-route-gain b { font-size:40px; font-weight:900; font-variant-numeric:tabular-nums; }
+${U} .hd-route-gain small { font-size:16px; font-weight:900; }
+${U} .hd-route-total { font-size:14px; font-weight:800; margin-bottom:6px; }
+${U} .hd-route-losscap { font-size:12px; font-weight:800; opacity:.75; margin:2px 0 4px; }
 ${U} .hd-route-loss { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:0 0 10px; }
-${U} .hd-route-loss span { display:inline-flex; align-items:center; gap:3px; padding:1px 8px 1px 3px; border-radius:12px; background:rgba(150,100,40,.18); font-size:14px; font-weight:800; }
-${U} .hd-route-loss em { font-style:normal; color:#c0392b; }
-${U} .hd-route-loss em.up { color:#2e7d32; }
+${U} .hd-route-loss span { position:relative; display:inline-flex; flex-direction:column; align-items:center; min-width:52px; padding:4px 6px 3px; border-radius:10px; border:2px solid rgba(90,58,34,.35); background:rgba(255,248,225,.7); font-size:14px; font-weight:800; }
+${U} .hd-route-loss span.gone { filter:grayscale(1); opacity:.6; }
+${U} .hd-route-loss em { position:absolute; top:-6px; right:-6px; font-style:normal; font-size:12px; line-height:18px; min-width:18px; padding:0 4px; border-radius:9px; background:#c0392b; color:#fff; border:2px solid #2b1a15; }
+${U} .hd-route-loss em.up { background:#2e7d32; }
 ${U} .hd-route-midbox .hd-row { opacity:0; transition:opacity .35s; }
 ${U} .hd-route-midbox .hd-row.on { opacity:1; }
 ${U} .hd-route-midbox .hd-row .hd-btn { min-height:50px; }

@@ -45,8 +45,9 @@ export class DyingList {
   }
 
   /** 分件骨架倒下：被打飞或跪倒（rig.ts 的 deathStyle 选）、帽子飞出去、淡出；演完调 done（放回对象池） */
-  addRig(rig: Rig, face: number, style: DeathStyle, done: (rig: Rig) => void, pt?: Particles): void {
-    rig.die(style, face);
+  addRig(rig: Rig, face: number, style: DeathStyle | 'sink', done: (rig: Rig) => void, pt?: Particles): void {
+    if (style === 'sink') rig.sink(face);
+    else rig.die(style, face);
     // 倒下的压到同格活人下面（深度按格子排，半档就够），扎堆时活人不被倒地的盖住
     rig.c.setDepth(rig.c.depth - DYING_DEPTH_DROP);
     this.rigs.push({ rig, t0: this.clock, ms: rig.deathMs, done, pt, k0: 0, n: 0 });

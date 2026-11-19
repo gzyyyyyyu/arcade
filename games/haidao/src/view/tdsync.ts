@@ -2,13 +2,13 @@ import type { TdScene } from './TdScene.ts';
 import type Phaser from 'phaser';
 import { TD_HERO_LIGHT } from '../content/index.ts';
 import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
-import { TD2_ENEMIES, TD_ENEMY_ARMOR, tdJammed, tdUpCost, type TdEnemy } from '../core/index.ts';
+import { TD2_ENEMIES, TD_ENEMY_ARMOR, tdHeroStats, tdJammed, tdUpCost, type TdEnemy } from '../core/index.ts';
 import { stunned } from '../core/combat.ts';
 import { wobbleAt } from './stunfx.ts';
 import { UNIT, BEACH, ISLAND } from '../core/types.ts';
 import { tdE, bTex, fxA, tdP } from './art.ts';
 import { artTop } from './textures.ts';
-import { interpPos, turnStep, riseScale, EASE } from './motion.ts';
+import { interpPos, turnStep, towerRise, TOWER_RISE_MS, EASE, shipBob, shipRecoil, SHIP_RECOIL_MS } from './motion.ts';
 import { REDUCED } from './feel.ts';
 import { poseEvery, STYLE, atkPhase, SKEL, LOD_MARGIN } from './rig.ts';
 import { tarGroundOf } from './tarfx.ts';
@@ -21,7 +21,7 @@ import { isTurret, type LandMat } from './aim.ts';
 import { sfx } from './audio/sfx.ts';
 import { DEPTH } from './depth.ts';
 import { stepFog, inFog } from './tdworld.ts';
-import { W, RIG_OF, ATK_MS, buildCost } from './tdcommon.ts';
+import { W, RIG_OF, ATK_MS, SHIP_FOES, buildCost } from './tdcommon.ts';
 import { padState, boom, drawBars } from './tdoverlay.ts';
 import { wreckOf } from './tdsheet.ts';
 import { ftx } from './tdhud.ts';
@@ -93,14 +93,17 @@ function crowdEnemies(bs: TdScene, dt: number): void {
 }
 
 /** 新塔升起用多久（毫秒）：比基地建造短，守岛里节奏快 */
-const TOWER_RISE_MS = 420;
+/** 守岛英雄比骨架原大（1.7）再放大到 2.0，比敌人水手（1.5）高出一头 */
+const HERO_SIZE = 2.0 / 1.7;
+/** 英雄周围这么远（世界像素，竖向按 0.6 压扁）的地面敌人算「贴身」：英雄画在它们上面 */
+const HERO_LIFT_R = 56;
 
 function riseTower(bs: TdScene, im: Phaser.GameObjects.Image, x: number, y: number): void {
-  // 尘只扬一小团（大了会是一片灰圆斑盖住刚长出来的塔），木屑多飞几片
+  // 烟尘贴地往外冲开（fx.ts 的 dust，有明暗的烟团），不往上盖住刚长出来的塔；木屑多飞几片
   bs.pt.dust(x, y, 0.7);
   bs.pt.splinters(x, y - 6, 8);
   if (REDUCED) return;
-  const [gy0, gx0, a0] = riseScale(0);
+  const [gy0, gx0, a0] = towerRise(0);
   im.setScale(gx0 / bs.r, gy0 / bs.r).setAlpha(a0);
   // 补间挂在塔图上：造好马上就升级时，升级那边的 killTweensOf 会把它一起停掉，不两边抢缩放
   bs.tweens.add({
@@ -108,7 +111,7 @@ function riseTower(bs: TdScene, im: Phaser.GameObjects.Image, x: number, y: numb
     alpha: 1,
     duration: TOWER_RISE_MS,
     onUpdate: (tw) => {
-      const [gy, gx, a] = riseScale(tw.progress);
+      const [gy, gx, a] = towerRise(tw.progress);
       im.setScale(gx / bs.r, gy / bs.r).setAlpha(a);
     },
     onComplete: () => {
@@ -129,6 +132,8 @@ export function sync(bs: TdScene, dt: number): void {
   const cam = bs.cameras.main;
   const every = poseEvery(bs.fullRigs);
   let full = 0;
+  // 英雄附近（上一帧的位置）最靠前的地面敌人的层级：英雄压在这一团上面画，混战里不被黑帽子埋掉
+  let nearTop = Number.NEGATIVE_INFINITY;
   bs.frameN++;
   crowdEnemies(bs, dt);
   bs.rigCap.begin();
@@ -150,7 +155,7 @@ export function sync(bs: TdScene, dt: number): void {
       const kind = e.kind;
       const rig = bs.pool.get(rk, RIG_TEX, (an) => tdE(kind, an === 'attack' ? 'attack' : 'walk'), now);
       rig.c.setPosition(w.x, w.y);
-      sp = { rig, kind: e.kind, px: e.x, py: e.y, still: 0, carry: null, phase: e.id * 37, lastDmg: 0, fx: e.x, fy: e.y, tx: e.x, ty: e.y, tick: s.tick, ox: 0, oy: 0, face: e.face < 0 ? -1 : 1, dist: e.id * 7, lx: w.x, ly: w.y };
+      sp = { rig, kind: e.kind, px: e.x, py: e.y, still: 0, carry: null, phase: e.id * 37, lastDmg: 0, fired: -1e9, fx: e.x, fy: e.y, tx: e.x, ty: e.y, tick: s.tick, ox: 0, oy: 0, face: e.face < 0 ? -1 : 1, dist: e.id * 7, lx: w.x, ly: w.y };
       bs.esp.set(e.id, sp);
     }
     // 位置：上一拍到这一拍之间按帧内比例插（20 拍 / 秒的逻辑拍不再一格一跳）；一拍跳 > 4 格（传送）直接到位
@@ -196,7 +201,18 @@ export function sync(bs: TdScene, dt: number): void {
     // 前后遮挡按挤开后的显示位置排，推开的两人不会前后颠倒
     const edep = depthOf((ip.x + sp.ox) / UNIT, (ip.y + sp.oy) / UNIT) + 0.2 + (flying ? 100 : 0);
     // 被震晕：站住不动（待机姿势）、整个人晃，头顶转星
-    sp.rig.update({ x: iw.x, y: iw.y, depth: edep, face: sp.face, mode: stun ? 'idle' : attacking ? 'attack' : 'walk', dist: sp.dist, atk, oy: 0, sq: 0, alpha: a, lod, full: every === 1 || (bs.frameN + e.id) % every === 0, wob: stun ? wobbleAt(now, e.id) : 0, gx: e.gx, gy: e.gy, gdown: stun }, now);
+    if (!flying && Math.abs(iw.x - bs.heroPx) < HERO_LIFT_R && Math.abs(iw.y - bs.heroPy) < HERO_LIFT_R * 0.6) nearTop = Math.max(nearTop, edep);
+    // 船：水里上下起伏，开炮那一下船身往炮口反方向一坐、压扁一点再回位（减少动效时不晃）
+    let oy = 0;
+    let sq = 0;
+    let rx = iw.x;
+    if (SHIP_FOES.has(e.kind) && !REDUCED) {
+      const rc = shipRecoil((now - sp.fired) / SHIP_RECOIL_MS);
+      oy = shipBob(now, e.id) + rc * 2;
+      sq = rc * 0.05;
+      rx -= rc * 7;
+    }
+    sp.rig.update({ x: rx, y: iw.y, depth: edep, face: sp.face, mode: stun ? 'idle' : attacking ? 'attack' : 'walk', dist: sp.dist, atk, oy, sq, alpha: a, lod, full: every === 1 || (bs.frameN + e.id) % every === 0, wob: stun ? wobbleAt(now, e.id) : 0, gx: e.gx, gy: e.gy, gdown: stun }, now);
     if (stun && lod !== 2) bs.stunMarks.mark(iw.x, sp.rig.topY - 4, now, edep, ((e.stunUntil ?? 0) - tk) * STEP_MS);
     if (lod === 0 && !flying && a === 1) bs.occ.check(sp.rig, sp.rig.c.depth, now);
     const slowed = s.tick < e.slowUntil;
@@ -240,7 +256,7 @@ export function sync(bs: TdScene, dt: number): void {
       bs.occ.add(t.id, im);
       bs.pt.ringBurst(w.x, w.y + 2, 2);
       padState(bs, t.slot, true);
-      // 开局后造的塔从木台上升起来（和基地建造同一条 riseScale 曲线），脚下扬尘、飞木屑；炮台按底座的缩放跟着长；开局就在的驻守塔不演
+      // 开局后造的塔从木台上升起来（motion.ts 的 towerRise：300 毫秒长高、略过头再落回），脚下扬尘、飞木屑；炮台按底座的缩放跟着长；开局就在的驻守塔不演
       if (bs.frameN > 1) riseTower(bs, im, w.x, w.y);
     } else if (sp.key !== p.key || sp.br !== t.branch.join(',')) {
       // 升级 / 选路线：换图的同时白闪、放大后回弹（back 曲线 260ms）、脚下一圈光
@@ -315,9 +331,17 @@ export function sync(bs: TdScene, dt: number): void {
   const hdx = hw.x - bs.heroPx;
   const moving = Math.abs(hdx) + Math.abs(hw.y - bs.heroPy) > 0.15;
   bs.heroDist += Math.abs(hdx) + Math.abs(hw.y - bs.heroPy);
+  // 开枪对齐规则的出手拍（和敌人一样用 atkPhase）：h.cd 是下次能开火的拍，枪口火正好落在子弹飞出那一拍；
+  // 边走边开的那一枪按开火事件的时刻补演后半段
+  const clip = STYLE['t.captain'].attack;
+  const hit = clip.hit ?? 0.42;
+  const reload = tdHeroStats(h.level).reload * STEP_MS;
+  const ams = Math.min(clip.ms ?? ATK_MS, reload * 0.95);
   const sinceShot = bs.time.now - bs.heroShotAt;
-  const atk = (!moving && heroAttacking(bs)) || sinceShot < ATK_MS;
-  const atkPh = sinceShot < ATK_MS ? sinceShot / ATK_MS : (bs.time.now % ATK_MS) / ATK_MS;
+  const standing = !moving && heroAttacking(bs);
+  let atkPh = standing ? atkPhase((h.cd - tk) * STEP_MS, reload - (h.cd - tk) * STEP_MS, ams, hit) : -1;
+  if (atkPh < 0 && sinceShot < (1 - hit) * ams) atkPh = hit + sinceShot / ams;
+  const atk = standing || atkPh >= 0;
   // 转向过渡：有目标就朝目标转身，否则朝走的方向
   const hes = h.respawn < 0 && h.aim >= 0 ? bs.esp.get(h.aim) : undefined;
   if (hes && Math.abs(hes.rig.x - hw.x) > 4) bs.heroWant = hes.rig.x < hw.x ? -1 : 1;
@@ -325,7 +349,7 @@ export function sync(bs: TdScene, dt: number): void {
   bs.heroTurn = turnStep(bs.heroTurn, bs.heroWant, dt);
   bs.heroPx = hw.x;
   bs.heroPy = hw.y;
-  const hd = depthOf(hp.x / UNIT, hp.y / UNIT) + 0.3;
+  const hd = Math.max(depthOf(hp.x / UNIT, hp.y / UNIT) + 0.3, nearTop + 0.05);
   if (h.respawn >= 0) {
     // 倒地等复活：跪倒后停在地上半透明
     if (bs.heroDownAt < 0) bs.heroDownAt = now;
@@ -336,7 +360,7 @@ export function sync(bs: TdScene, dt: number): void {
       bs.heroDownAt = -1;
       bs.hero.revive();
     }
-    bs.hero.update({ x: hw.x, y: hw.y, depth: hd, face: bs.heroTurn * 1.1, mode: atk ? 'attack' : moving ? 'walk' : 'idle', dist: bs.heroDist, atk: atk ? atkPh : -1, oy: 0, sq: 0, alpha: 1, lod: 0, full: true }, now);
+    bs.hero.update({ x: hw.x, y: hw.y, depth: hd, face: bs.heroTurn, mode: atk ? 'attack' : moving ? 'walk' : 'idle', dist: bs.heroDist, atk: atkPh, oy: 0, sq: 0, size: HERO_SIZE, alpha: 1, lod: 0, full: true }, now);
   }
   bs.heroRing.setPosition(hw.x, hw.y + 1).setDepth(depthOf(hp.x / UNIT, hp.y / UNIT) + 0.25).setVisible(h.respawn < 0);
   // 火药桶、障碍

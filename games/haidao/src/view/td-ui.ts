@@ -7,9 +7,10 @@ import { levelForRules, tdBuildRange } from '../core/index.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
   TD_TOWER_DAMAGE, TD_TOWER_KINDS,
-  beijingIsoWeek, branchError, garrisonTier, hqLevel, tdAutoPicks, nextTdUnlock, tdDailyCap, tdGarrisonOptions, tdLevelUnlocked, tideLine, tideMap, weekLabel,
+  beijingIsoWeek, branchError, garrisonTier, hqLevel, nextTdUnlock, tdDailyCap, tdGarrisonOptions, tdLevelUnlocked, tideLine, tideMap, weekLabel,
 } from '../core/index.ts';
 import { tideBest } from '../net/tide.ts';
+import { garrisonRec } from './garrisonrec.ts';
 import type { TdArmor, TdDamage, TdGarrisonOption, TdGarrisonPick, TdGarrisonSpot, TdIslandLevel, TdTowerKind, WavePreview } from '../core/index.ts';
 import type { BuildingKind, TdEnemyKind } from '../core/index.ts';
 import { app, fmt } from './app.ts';
@@ -645,14 +646,18 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
   // 上次给这一关挑过的（再守一次时）优先，否则按规则核心的推荐（tdAutoPicks）
   const prev = app.tdPicksFor === lv.id ? app.tdPicks : null;
   const picks = new Map<number, TdTowerKind>();
-  for (const pk of prev ?? tdAutoPicks(p, lv.id)) picks.set(pk.spot, pk.kind);
+  // 按这一关的敌人推荐（garrisonrec.ts：克制、够不够得着海上的船、几座台不重样），卡上挂「这关推荐」，默认就挑它；
+  // 再守一次沿用上次的挑法，推荐照样标出来
+  const rec = garrisonRec(lv.waves, lv.garrison.map((sp) => optsOf(sp.cap)));
+  if (prev) for (const pk of prev) picks.set(pk.spot, pk.kind);
+  else for (const [spot, kind] of rec) picks.set(spot, kind);
   const wrap = el('div', 'hd-tdsel hd-tdgar hd-tdgar-main hd-tdpage', undefined, uiRoot());
   const head = el('div', 'hd-tdsel-head', undefined, wrap);
   el('h2', '', `${lv.name} · 驻守台`, head);
   // 小地图和说明并排（竖屏手机上小地图占满面板上方的空当，选塔面板沉到底下，见 tdcss）
   const top = el('div', 'hd-tdgar-top', undefined, wrap);
   const markSpot = garrisonMap(lv, top, (k) => showSpot(k));
-  el('p', 'hd-tdgar-note', '从自己的基地带塔上岛：阶数按基地里同种塔的最高等级折算（1–3 级 1 阶、4–6 级 2 阶、7–8 级 3 阶），不超过台子的上限。带上岛的塔照样能升级、能卖。', top);
+  el('p', 'hd-tdgar-note', '从自己的基地带塔上岛：阶数按基地里同种塔的最高等级折算（1–3 级 1 阶、4–6 级 2 阶、7–8 级 3 阶），不超过台子的上限。带上岛的塔照样能升级、能卖。金色「荐」是按这关的敌人推荐的。', top);
   // 多座台：电脑上并排摆成几列；手机和矮屏放不下，改成顶上几个台子页签（页签上写这座台现在挑了什么），一次摆一座台的选项
   const mqTab = matchMedia('(max-width:700px), (max-height:700px)');
   const tabbed = lv.garrison.length > 1 && mqTab.matches;
@@ -709,6 +714,11 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
         if (o.tier < garrisonTier(o.baseLevel, 3)) el('small', 'hd-tdgar-cap', '台子封顶', meta);
         for (const b of o.branch) el('small', 'hd-chip', branchName(b), meta);
         c.title = `${towerName(o.kind)}：基地最高 ${o.baseLevel} 级 → ${o.tier} 阶`;
+        // 「荐」：压在卡片左上角的金色圆章（绝对定位、不占卡里的高度——写成一行字会把卡撑高，电脑上整页多出一截要滚；左上角是卡里唯一空着的地方）
+        if (rec.get(si) === o.kind) {
+          el('small', 'hd-tdgar-rec', '荐', c).title = '这关推荐';
+          c.setAttribute('aria-description', '这关推荐');
+        }
       } else {
         el('b', '', '空着', c);
         el('small', '', '开局当木台用', c);

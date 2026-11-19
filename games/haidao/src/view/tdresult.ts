@@ -32,23 +32,25 @@ function reasonLines(bs: TdScene, box: HTMLElement, res: ReturnType<typeof tdRes
 
 // ---------------------------------------------------------------- 结算
 
-/** 收尾演出的时长（游戏时钟）；只给普通战役关，护航、悬赏、大潮、海盗来袭直接弹窗 */
+/** 收尾演出的时长（游戏时钟）：战役关、护航、悬赏、大潮、海盗来袭都先演收尾再弹窗（以前后四种直接弹，输的那一下和结算框同一帧） */
 const END_FX_MS = 850;
 /** 按每局的规则状态记（不按场景）：Phaser 的场景实例「再守一次」、换关时复用，按场景记的话第二局起结算框永远不出 */
 const fxStarted = new WeakSet<object>();
 
 /** 结束后要先演多久收尾：TdScene 把原来结束后的等待减掉这段，弹窗总时间和以前一样 */
-export function endFxLead(bs: TdScene): number {
-  return !bs.d.escort && !bs.d.live && !bs.d.tide && !bs.d.home && feelOn() ? END_FX_MS : 0;
+export function endFxLead(): number {
+  return feelOn() ? END_FX_MS : 0;
 }
 
 export function finish(bs: TdScene): void {
   if (bs.ui.querySelector('.hd-td-result') || fxStarted.has(bs.s)) return;
   bs.ended = true;
   closeSheet(bs);
-  if (endFxLead(bs) > 0) {
+  if (endFxLead() > 0) {
     fxStarted.add(bs.s);
-    if (tdEnd(bs, tdResult(bs.s).stars > 0, END_FX_MS, () => settle(bs))) return;
+    // 赢 = 礼花，输 = 镜头推到海盗定格；护航按商船到没到港算
+    const win = bs.d.escort ? escortResultOf(bs.s).arrived : tdResult(bs.s).stars > 0;
+    if (tdEnd(bs, win, END_FX_MS, () => settle(bs))) return;
   }
   settle(bs);
 }

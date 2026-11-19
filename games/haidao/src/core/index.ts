@@ -22,7 +22,7 @@ export {
   upgrade,
   upgradeCost,
 } from './base.ts';
-export { battleFingerprint, battleResult, canLand, canRecall, createBattle, publicLayout, runBattle, slowUntil, stepBattle } from './battle.ts';
+export { battleFingerprint, battleResult, canLand, canRecall, createBattle, flareTarget, publicLayout, runBattle, slowUntil, stepBattle } from './battle.ts';
 export { botActions } from './bot.ts';
 export { allyPlan, placeChests, reachableCells } from './fun.ts';
 export { FUN } from '../content/fun.ts';

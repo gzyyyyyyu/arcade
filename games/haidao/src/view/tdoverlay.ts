@@ -10,6 +10,7 @@ import { iso } from './iso.ts';
 import type { Turret } from './turret.ts';
 import { DEPTH } from './depth.ts';
 import { tdBarList, W, SKILL, HATCH } from './tdcommon.ts';
+import { foeTier, type FoeTier } from './tdboss.ts';
 
 export function drawBars(bs: TdScene): void {
   const g = bs.bars;
@@ -23,17 +24,20 @@ export function drawBars(bs: TdScene): void {
   // 满血不显示，掉血后显示约 3 秒再淡出；挨得近的上下错开（bars.ts）。条的大小在屏幕上恒定：兵小而细，墙稍大
   const list = tdBarList;
   list.begin();
-  const add = (key: number, x: number, y: number, hp: number, maxHp: number, col: number, big: boolean): void => {
-    const a = bt.alpha(key, hp, maxHp, now);
+  const add = (key: number, x: number, y: number, hp: number, maxHp: number, col: number, big: boolean, tier: FoeTier = 0): void => {
+    // 首领、精英的条一直显示（满血也显示，看得出它是谁），不进扎堆裁剪
+    const a = tier > 0 ? 1 : bt.alpha(key, hp, maxHp, now);
     if (a <= 0) return;
-    list.push(x, y, (big ? BAR_SIZE.building[0] : BAR_SIZE.unit[0]) / z, hp / maxHp, col, a, big);
+    const w = tier === 2 ? BAR_SIZE.boss[0] : tier === 1 ? BAR_SIZE.elite[0] : big ? BAR_SIZE.building[0] : BAR_SIZE.unit[0];
+    list.push(x, y, w / z, hp / maxHp, col, a, big || tier > 0, tier);
   };
   // 键是数字：敌人用自己的编号，英雄 -1，墙 -(编号 + 2)，拒马 -(编号 + 1e6)，免得每帧给每个对象拼字符串
   for (const e of bs.s.enemies) {
     if (e.mode !== 'in' && e.mode !== 'out') continue;
     const sp = bs.esp.get(e.id);
     if (!sp) continue;
-    add(e.id, sp.rig.x, sp.rig.topY - 4, e.hp, e.maxHp, 0xd93b32, false);
+    const tier = foeTier(e.kind);
+    add(e.id, sp.rig.x, sp.rig.topY - (tier ? 8 : 4), e.hp, e.maxHp, 0xd93b32, false, tier);
   }
   const h = bs.s.hero;
   if (h.respawn < 0) add(-1, bs.hero.x, bs.hero.topY - 4, h.hp, h.maxHp, 0x3fae52, false);
@@ -53,12 +57,13 @@ export function drawBars(bs: TdScene): void {
   crowdBars(items, 48 / z, 2);
   stackBars(items, (BAR_SIZE.building[1] + 2) / z);
   for (const it of items) {
-    const sz = it.big ? BAR_SIZE.building : BAR_SIZE.unit;
-    const bw = sz[0] / z;
+    const sz = it.mark === 2 ? BAR_SIZE.boss : it.mark === 1 ? BAR_SIZE.elite : it.big ? BAR_SIZE.building : BAR_SIZE.unit;
+    const bw = it.w;
     const bh = sz[1] / z;
     const o = (it.big ? 1.2 : 0.8) / z;
     g.fillStyle(0x2b1a15, it.a).fillRect(it.x - bw / 2 - o, it.y - o, bw + 2 * o, bh + 2 * o);
     g.fillStyle(it.col, it.a).fillRect(it.x - bw / 2, it.y, bw * Math.max(0, Math.min(1, it.f)), bh);
+    if (it.mark) barMark(g, it.x - bw / 2 - 1 / z, it.y + bh / 2, it.mark, it.a, z);
   }
   // 号令（被动）：英雄身边一圈淡金色的光，圈里的塔脚下也亮一圈（它们打得更快）
   if (h.respawn < 0) {
@@ -82,6 +87,26 @@ export function drawBars(bs: TdScene): void {
     const R = isoRing((bs.mode === 'keg' ? SKILL.bomb.range : SKILL.barricade.range) / UNIT);
     f.lineStyle(3, 0xffe885, 0.85).strokeEllipse(w.x, w.y, R.w, R.h);
     f.fillStyle(0xffe885, 0.12).fillEllipse(w.x, w.y, R.w, R.h);
+  }
+}
+
+/** 血条左端的徽记（屏幕上恒定大小）：精英一颗金菱形，首领一顶三尖金王冠，都带深褐描边 */
+function barMark(g: Phaser.GameObjects.Graphics, x: number, y: number, mark: number, a: number, z: number): void {
+  const u = 1 / z;
+  g.lineStyle(1.6 * u, 0x2b1a15, a);
+  if (mark === 1) {
+    const r = 5 * u;
+    g.fillStyle(0xf8c630, a).fillTriangle(x - r, y, x, y - r, x + r * 0.9, y).fillTriangle(x - r, y, x, y + r, x + r * 0.9, y);
+    g.strokeTriangle(x - r, y, x, y - r, x + r * 0.9, y).strokeTriangle(x - r, y, x, y + r, x + r * 0.9, y);
+    return;
+  }
+  // 王冠：一条底座加三个尖（三角形画，不每帧建点数组）
+  const w = 7 * u;
+  const b = y + 4 * u;
+  const m = y - 0.5 * u;
+  g.fillStyle(0xf8c630, a).fillRect(x - w, m, 1.5 * w, b - m).strokeRect(x - w, m, 1.5 * w, b - m);
+  for (const [l, r, t] of [[x - w, x - w / 2, y - 4.5 * u], [x - w / 2, x, y - 6.5 * u], [x, x + w / 2, y - 4.5 * u]] as const) {
+    g.fillTriangle(l, m, r, m, (l + r) / 2, t).strokeTriangle(l, m, r, m, (l + r) / 2, t);
   }
 }
 

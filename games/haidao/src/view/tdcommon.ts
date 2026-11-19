@@ -71,6 +71,8 @@ export interface ESpr {
   phase: number;
   /** 最近一次挨打的伤害：倒下时按它选被打飞还是跪倒 */
   lastDmg: number;
+  /** 船（炮艇、海盗王）上次开炮的画面时刻：船身后坐用（motion.ts 的 shipRecoil） */
+  fired: number;
   /** 上一拍和这一拍的世界位置（画面按帧在两者之间插值）、记到的拍数 */
   fx: number;
   fy: number;
@@ -89,6 +91,8 @@ export interface ESpr {
 
 /** 英雄攻击没有出手拍可对齐，按这个周期循环（毫秒） */
 export const ATK_MS = 640;
+/** 守岛里的船（整张图，停在海上）：画面上起伏、开炮后坐、沉没（不是倒下） */
+export const SHIP_FOES: ReadonlySet<TdEnemyKind> = new Set<TdEnemyKind>(['gunboat', 'king']);
 
 /** 骨架的种类：鹦鹉群不是人形，用整帧图 */
 export const RIG_OF: Record<TdEnemyKind, RigKind | null> = { sailor: 'e.sailor', ironclad: 'e.ironclad', fog: 'e.fog', skiff: 'e.skiff', skiffling: 'e.skiffling', sapper: 'e.sapper', grenadier: 'e.grenadier', parrot: null, captain: 'e.captain', shield: 'e.shield', bosun: 'e.bosun', macaw: null, mate: 'e.mate', medic: 'e.medic', gunboat: null, king: null };

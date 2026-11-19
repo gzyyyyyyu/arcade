@@ -2,10 +2,11 @@ import { RigCap } from './rigcap.ts';
 import { FrameFx } from './framefx.ts';
 import { HitSquash } from './fx.ts';
 import Phaser from 'phaser';
-import { BUILDINGS, CAMPAIGN } from '../content/index.ts';
+import { CAMPAIGN } from '../content/index.ts';
 import { botActions, canLand, createBattle, rankOf, stepBattle } from '../core/index.ts';
 import { MAP_LAYERS, MAP_STOP_TICKS } from '../core/maptypes.ts';
 import { SCOUT_TIP, holdScout } from './battlescout.ts';
+import { scoutRings } from './battleranges.ts';
 import { BEACH, ISLAND, TICKS_PER_SEC, UNIT, type BattleAction, type BattleState, type BBuilding, type BUnit, type Placed, type TroopKind } from '../core/types.ts';
 import { app } from './app.ts';
 import { shipA, troopF } from './art.ts';
@@ -31,7 +32,7 @@ import { EnvAnim } from './envfx.ts';
 import { setWeather } from './post.ts';
 import { drawGround, SEA_BG, worldBounds } from './ground.ts';
 import { LOW_MEMORY } from './viewport.ts';
-import { footCenter, iso } from './iso.ts';
+import { iso } from './iso.ts';
 import { sfx, setAmbience } from './audio/sfx.ts';
 import { BEACH_PTS } from './battleadvice.ts';
 import { takeActions } from './battleflow.ts';
@@ -92,6 +93,9 @@ export class BattleScene extends Phaser.Scene {
   projSeen = -1;
   shotFrom = new Map<number, { m: Muzzle; t: Turret | null; kind: string }>();
   bars!: Phaser.GameObjects.Graphics;
+  /** 侦察期的全岛射程圈（battleranges.ts）：出第一船后淡掉；点一座防御时它自己的圈 */
+  scoutG: Phaser.GameObjects.Graphics | null = null;
+  pickG: Phaser.GameObjects.Graphics | null = null;
   beachG!: Phaser.GameObjects.Graphics;
   /** 沙滩外缘的脉动光带（beachfx.ts），悬停的格由 hover() 写进去 */
   beachGlow!: BeachGlow;
@@ -401,15 +405,9 @@ export class BattleScene extends Phaser.Scene {
   bossIntro(): void {
     const lv = CAMPAIGN.find((l) => l.id === this.d.levelId);
     this.paused = true;
-    const g = this.add.graphics().setDepth(DEPTH.hudFx).setAlpha(0);
-    for (const b of this.st.buildings) {
-      if (b.destroyed || !b.revealed || b.kind === 'mine' || b.kind === 'tar' || b.kind === 'wall') continue;
-      const lvl = BUILDINGS[b.kind]?.levels[b.level - 1] as { range?: number; dmg?: number } | undefined;
-      if (!lvl?.range || !lvl.dmg) continue;
-      const f = footCenter(b.x, b.y, b.size);
-      const w = iso(f.gx, f.gy);
-      g.lineStyle(3, 0xff5a4a, 0.9).fillStyle(0xff5a4a, 0.1).fillEllipse(w.x, w.y, lvl.range * 90, lvl.range * 45).strokeEllipse(w.x, w.y, lvl.range * 90, lvl.range * 45);
-    }
+    // 射程圈（含臼炮的盲区）：俯瞰收起后不马上淡掉，侦察期（出第一船之前）一直留着，update 里拍数离开 0 再淡
+    const g = scoutRings(this).setAlpha(0);
+    this.scoutG = g;
     this.tweens.add({ targets: g, alpha: 1, duration: 500 });
     const cover = el('div', 'hd-overview', undefined, this.ui);
     cover.style.cssText = 'position:absolute;inset:0;z-index:44;touch-action:none';
@@ -438,7 +436,6 @@ export class BattleScene extends Phaser.Scene {
       clearTimeout(timer);
       cover.remove();
       if (!this.scene.isActive()) return;
-      this.tweens.add({ targets: g, alpha: 0, duration: 400, onComplete: () => g.destroy() });
       this.paused = false;
       afterSelect(this);
     };
@@ -456,6 +453,11 @@ export class BattleScene extends Phaser.Scene {
     this.frames.update(time);
     this.squash.update(time);
     const frozen = this.hs.active;
+    const sg = this.scoutG;
+    if (sg && s.tick > 0 && !this.paused) {
+      this.scoutG = null;
+      this.tweens.add({ targets: sg, alpha: 0, duration: 400, onComplete: () => sg.destroy() });
+    }
     this.tweens.timeScale = frozen ? 0.05 : 1;
     this.pt.timeScale = this.dn.timeScale = frozen ? 0 : 1;
     if (!s.over && !this.paused && !frozen) {

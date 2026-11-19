@@ -140,7 +140,7 @@ export function bigEvent(scene: Phaser.Scene, hs: HitStop, ev: BigEvent): void {
   hs.trigger(e.stop);
 }
 
-const PTEX = ['drop', 'splinter', 'chip', 'puff', 'ember', 'ring', 'dust', 'confetti', 'coin'] as const;
+const PTEX = ['drop', 'splinter', 'chip', 'puff', 'smoke', 'ember', 'ring', 'dust', 'confetti', 'coin'] as const;
 type PKey = (typeof PTEX)[number];
 const INK = 0x2b1a15;
 const TAU = Math.PI * 2;
@@ -174,6 +174,14 @@ function ensureParticleTextures(scene: Phaser.Scene, r: number): void {
     g.fillStyle(0xaab1b8, 1).lineStyle(1.6, INK, 1).fillPoints(p, true).strokePoints(p, true);
   });
   mk('puff', 24, 24, (g) => g.fillStyle(0xc3c5cc, 1).lineStyle(2, 0x3c3d48, 1).fillCircle(12, 12, 9).strokeCircle(12, 12, 9));
+  // 烟团：三团叠起来的软边云，底下暗、左上亮（贴图是浅灰，发射时按沙色 / 烟色染），不描硬边——平涂加黑边的 puff 散开时像塑料片
+  mk('smoke', 32, 32, (g) => {
+    const lobes: [number, number, number][] = [[12, 18, 8], [20, 17, 8.5], [16, 12, 8.5]];
+    for (const [x, y, rr] of lobes) g.fillStyle(0x8e8e98, 0.35).fillCircle(x + 0.5, y + 1, rr + 1.4);
+    for (const [x, y, rr] of lobes) g.fillStyle(0xa9a9b2, 1).fillCircle(x + 0.6, y + 0.9, rr);
+    for (const [x, y, rr] of lobes) g.fillStyle(0xcfcfd6, 1).fillCircle(x - 0.6, y - 0.8, rr * 0.82);
+    for (const [x, y, rr] of lobes) g.fillStyle(0xf1f1f4, 1).fillCircle(x - 1.8, y - 2.2, rr * 0.45);
+  });
   mk('ember', 10, 10, (g) => g.fillStyle(0xffffff, 1).lineStyle(1.4, INK, 1).fillCircle(5, 5, 3.2).strokeCircle(5, 5, 3.2));
   mk('ring', 64, 32, (g) => g.lineStyle(3, 0xeffcf7, 1).strokeEllipse(32, 16, 58, 28));
   mk('dust', 10, 10, (g) => g.fillStyle(0xfff6c8, 1).fillCircle(5, 5, 3));
@@ -194,6 +202,8 @@ interface Part {
   s1: number;
   a0: number;
   vr: number;
+  drag: number;
+  fade: number;
 }
 
 export interface Emit {
@@ -205,6 +215,10 @@ export interface Emit {
   s1?: number;
   a0?: number;
   vr?: number;
+  /** 速度每秒按 e^(-drag) 衰减（烟团先冲开再停住） */
+  drag?: number;
+  /** 透明度 = a0 × (1 - t^fade)：默认 2（前半段几乎不淡、最后才消失）；烟用 1，一边散开一边变淡 */
+  fade?: number;
   tint?: number;
   rot?: number;
   depth?: number;
@@ -249,7 +263,7 @@ export class Particles {
     if (!p) {
       if (this.pool.length >= this.max) return;
       const im = this.scene.add.image(0, 0, this.tag + k).setVisible(false);
-      p = { im, on: false, vx: 0, vy: 0, g: 0, life: 1, age: 0, s0: 1, s1: 1, a0: 1, vr: 0 };
+      p = { im, on: false, vx: 0, vy: 0, g: 0, life: 1, age: 0, s0: 1, s1: 1, a0: 1, vr: 0, drag: 0, fade: 2 };
       this.pool.push(p);
     }
     p.on = true;
@@ -262,6 +276,8 @@ export class Particles {
     p.s1 = o.s1 ?? p.s0;
     p.a0 = o.a0 ?? 1;
     p.vr = o.vr ?? 0;
+    p.drag = o.drag ?? 0;
+    p.fade = o.fade ?? 2;
     const im = p.im;
     im.setTexture(this.tag + k).setPosition(x, y).setDepth(o.depth ?? DEPTH.particle).setScale(p.s0 / this.r).setAlpha(p.a0).setRotation(o.rot ?? 0).setVisible(true);
     if (o.tint !== undefined) im.setTint(o.tint);
@@ -282,13 +298,18 @@ export class Particles {
         continue;
       }
       const t = p.age / p.life;
+      if (p.drag > 0) {
+        const k = Math.exp(-p.drag * s);
+        p.vx *= k;
+        p.vy *= k;
+      }
       p.vy += p.g * s;
       const im = p.im;
       im.x += p.vx * s;
       im.y += p.vy * s;
       im.rotation += p.vr * s;
       im.setScale((p.s0 + (p.s1 - p.s0) * t) / this.r);
-      im.setAlpha(p.a0 * (1 - t * t));
+      im.setAlpha(p.a0 * (1 - (p.fade === 2 ? t * t : t ** p.fade)));
     }
   }
 
@@ -338,13 +359,46 @@ export class Particles {
     this.emit('ring', x, y, { life: 560, s0: 0.3, s1: 0.9 + size * 0.3, a0: 0.9, depth: DEPTH.groundRing });
   }
 
-  /** 建筑倒塌的烟尘：沙色的团往四周滚开、慢慢散 */
+  /** 建筑倒塌、造塔的烟尘：有明暗的沙色烟团贴着地往四周冲开、减速、一边胀大一边变淡 */
   dust(x: number, y: number, size: number): void {
     const n = Math.min(9, 4 + Math.round(size * 2));
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 + i * 0.5;
-      this.emit('puff', x + Math.cos(a) * 8, y - 2 + Math.sin(a) * 4, { vx: Math.cos(a) * 40, vy: Math.sin(a) * 16 - 14, life: 650 + (i % 3) * 90, s0: 0.5, s1: 1.2 + size * 0.2, a0: 0.8, tint: i % 2 ? 0xd9c49a : 0xe9ddc0, depth: DEPTH.puffHigh });
+      const v = 70 + (i % 3) * 18 + size * 10;
+      this.emit('smoke', x + Math.cos(a) * 8, y - 2 + Math.sin(a) * 4, {
+        vx: Math.cos(a) * v,
+        vy: Math.sin(a) * v * 0.4 - 10,
+        drag: 3.2,
+        fade: 1,
+        life: 760 + (i % 3) * 110,
+        s0: 0.32,
+        s1: 0.85 + size * 0.2,
+        a0: 0.85,
+        vr: (i % 2 ? 1 : -1) * 0.6,
+        rot: i * 1.1,
+        tint: i % 2 ? 0xd8c8a4 : 0xeee3c8,
+        depth: DEPTH.puffHigh,
+      });
     }
+  }
+
+  /** 炮口的烟：几团有明暗的灰烟往上、往外飘开变淡（船开炮、沉船） */
+  cannonSmoke(x: number, y: number, size = 1): void {
+    const n = Math.min(6, 3 + Math.round(size * 1.5));
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.7;
+      this.emit('smoke', x + Math.cos(a) * 4, y + Math.sin(a) * 2, { vx: Math.cos(a) * 34 + 10, vy: Math.sin(a) * 26 - 12, drag: 2.4, fade: 1, life: 700 + (i % 3) * 120, s0: 0.25 * size, s1: 0.75 * size, a0: 0.8, vr: (i % 2 ? 1 : -1) * 0.5, rot: i, tint: i % 2 ? 0x9c9ca6 : 0xc9c9d0, depth: DEPTH.fxHigh });
+    }
+  }
+
+  /** 沉船冒的气泡：一串小水珠从水面往上冒、破掉 */
+  bubbles(x: number, y: number, size = 1): void {
+    const n = Math.min(8, 4 + Math.round(size * 2));
+    for (let i = 0; i < n; i++) {
+      const dx = (i - (n - 1) / 2) * 7 * size;
+      this.emit('drop', x + dx, y - 2, { vx: dx * 0.6, vy: -40 - (i % 3) * 18, g: 60, life: 420 + (i % 3) * 90, s0: 0.6, s1: 1, a0: 0.9, depth: DEPTH.dropChip });
+    }
+    this.emit('ring', x, y, { life: 520, s0: 0.4, s1: 1 + size * 0.3, a0: 0.8, depth: DEPTH.groundRing });
   }
 
   /** 人倒在地上扬起的一小团土（比建筑倒塌的 dust 小得多，3 团） */

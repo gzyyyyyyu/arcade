@@ -21,6 +21,7 @@ import { SKILL } from './tdcommon.ts';
 import { finish } from './tdresult.ts';
 import { syncPadGuide } from './tdpadguide.ts';
 import { syncSluice } from './tdworld.ts';
+import { bossOf } from './tdboss.ts';
 
 // ---------------------------------------------------------------- 界面
 
@@ -72,6 +73,12 @@ export function buildUi(bs: TdScene): void {
   hint.style.display = 'none';
   // 预告卡：倒数里显示下两波（点开是敌人图鉴和克制表，图鉴开着时暂停）
   bs.edges = el('div', 'hd-td-edges', undefined, bs.ui);
+  // 首领粗血条：顶栏下面居中，首领在场才出现（名字 + 粗条；tdboss.ts 挑跟谁）
+  const boss = el('div', 'hd-td-boss', undefined, bs.ui);
+  boss.setAttribute('aria-hidden', 'true');
+  const bossName = el('b', '', '', boss);
+  const bossFill = el('i', '', undefined, el('span', 'hd-td-boss-bar', undefined, boss));
+  bs.bossUi = { root: boss, name: bossName, fill: bossFill, id: -1, pct: -1 };
   const plan = el('div', 'hd-td-plan', undefined, bs.ui);
   plan.title = '下两波的预告：点开看每一路的敌人和克制表（C）';
   plan.addEventListener('click', () => {
@@ -229,6 +236,29 @@ export function hintText(bs: TdScene, t: string): void {
   bs.hud.hint.style.display = t ? '' : 'none';
 }
 
+/** 首领粗血条每拍跟一次：换了首领换名字，血量按整数百分比才改样式 */
+function syncBossBar(bs: TdScene): void {
+  const B = bs.bossUi;
+  if (!B) return;
+  const e = bossOf(bs.s.enemies);
+  if (!e) {
+    if (B.id !== -1) B.root.classList.remove('on');
+    B.id = -1;
+    return;
+  }
+  if (e.id !== B.id) {
+    B.id = e.id;
+    B.pct = -1;
+    B.name.textContent = TD2_ENEMIES[e.kind].name;
+    B.root.classList.add('on');
+  }
+  const pct = Math.max(0, Math.ceil((e.hp / e.maxHp) * 100));
+  if (pct !== B.pct) {
+    B.pct = pct;
+    B.fill.style.width = `${pct}%`;
+  }
+}
+
 export function updateHud(bs: TdScene, force = false): void {
   const s = bs.s;
   // HUD 的内容都由规则状态算出来，状态每拍（50 毫秒）才变一次；一拍里的多个画面帧不用重算签名
@@ -236,6 +266,7 @@ export function updateHud(bs: TdScene, force = false): void {
   bs.hudTick = s.tick;
   bs.hudMode = bs.mode;
   const h = s.hero;
+  syncBossBar(bs);
   refreshPlan(bs);
   syncPadGuide(bs);
   bs.esc?.refresh(bs.pv);

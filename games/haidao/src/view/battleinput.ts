@@ -8,7 +8,7 @@ import { iconA, tArt } from './art.ts';
 import { keyBadge } from './inputs.ts';
 import { clampCenter } from './fxlayout.ts';
 import { floatText } from './fx.ts';
-import { vibrate } from './feel.ts';
+import { REDUCED, vibrate } from './feel.ts';
 import { iso, unIso } from './iso.ts';
 import { sfx } from './audio/sfx.ts';
 import { Tutorial, rectOf, tutStep } from './tutorial.ts';
@@ -20,6 +20,7 @@ import { finish } from './battleresult.ts';
 import { skillCanCast, skillHint } from './aimcalc.ts';
 import { snapLanding } from './beachfx.ts';
 import { funHud } from './funui.ts';
+import { pickReach } from './battleranges.ts';
 import { SCOUT_LABEL } from './battlescout.ts';
 
 /** 海滩一圈的登陆区高亮：进场就亮（呼吸），选了船更亮；沙滩外缘一圈金边，一眼看出点哪里能派兵 */
@@ -198,7 +199,12 @@ export function tap(bs: BattleScene, wx: number, wy: number): void {
   if (bs.selBoat < 0 && bs.selSkill < 0) {
     // 什么都没选就点了沙滩：替玩家选上第一组还有船的卡、提示再点一下，这一下不出船（免得误放）
     const gi = bs.groups.findIndex((q) => q.idx.some((i) => s.landed[i] !== true));
-    if (!snap || gi < 0) return;
+    // 点在一座敌方防御上：画它的射程和盲区（battleranges.ts）
+    if (!snap) {
+      pickReach(bs, g0.gx, g0.gy);
+      return;
+    }
+    if (gi < 0) return;
     bs.selBoat = gi;
     afterSelect(bs);
     tapNote(bs, wx, wy, `选上了${TROOPS[bs.groups[gi]!.troop].name}，再点沙滩出船`, '#ffe885', 18);
@@ -333,6 +339,52 @@ export function mapStripTick(bs: BattleScene, m: MapStopHooks, r: BattleResult):
   me.pts.classList.add('pop');
 }
 
+/** 星星飞进顶栏的时长（毫秒） */
+const STAR_FLY_MS = 760;
+
+/**
+ * 拿到一颗星：屏幕中间先冒出一颗大金星（放大一下），再弧线飞进顶栏第 i 个星槽，槽里那颗点亮、弹一下。
+ * 以前只弹一行「拿到第 N 颗星」的字，和别的提示混在一起；减少动效时直接点亮
+ */
+function flyStar(bs: BattleScene, slot: HTMLImageElement, i: number): void {
+  const lit = (): void => {
+    slot.src = img(iconA('star'), 1).src;
+    slot.classList.remove('pop');
+    void slot.offsetWidth;
+    slot.classList.add('pop');
+  };
+  const root = bs.ui.getBoundingClientRect();
+  const to = slot.getBoundingClientRect();
+  if (REDUCED || to.width === 0) return lit();
+  const size = 64;
+  const star = img(iconA('star'), size, 'hd-img hd-starfly');
+  bs.ui.appendChild(star);
+  const x0 = root.width / 2 - size / 2;
+  const y0 = root.height * 0.36 - size / 2;
+  star.style.cssText += `position:absolute;left:${x0}px;top:${y0}px;z-index:40;pointer-events:none;filter:drop-shadow(0 3px 0 #2b1a15)`;
+  const dx = to.left - root.left + to.width / 2 - (x0 + size / 2);
+  const dy = to.top - root.top + to.height / 2 - (y0 + size / 2);
+  const k = to.height / size;
+  star.setAttribute('aria-label', `拿到第 ${i + 1} 颗星`);
+  const anim = star.animate(
+    [
+      { transform: 'translate(0,0) scale(.3) rotate(-30deg)', opacity: 0 },
+      { transform: 'translate(0,0) scale(1.25) rotate(0deg)', opacity: 1, offset: 0.25 },
+      { transform: 'translate(0,0) scale(1) rotate(0deg)', opacity: 1, offset: 0.4 },
+      { transform: `translate(${dx * 0.55}px,${dy * 0.3 - 40}px) scale(${(1 + k) / 2}) rotate(160deg)`, opacity: 1, offset: 0.72 },
+      { transform: `translate(${dx}px,${dy}px) scale(${k}) rotate(360deg)`, opacity: 1 },
+    ],
+    { duration: STAR_FLY_MS, easing: 'ease-in-out' },
+  );
+  void anim.finished.then(
+    () => {
+      star.remove();
+      lit();
+    },
+    () => star.remove(),
+  );
+}
+
 export function updateHud(bs: BattleScene): void {
   const s = bs.st;
   const left = Math.max(0, (bs.d.map ? MAP_STOP_TICKS : BATTLE_TICKS) - s.tick) / TICKS_PER_SEC;
@@ -344,11 +396,7 @@ export function updateHud(bs: BattleScene): void {
   if (bs.d.map && bs.mapEl) mapStripTick(bs, bs.d.map, r);
   for (let i = bs.lastStars; i < r.stars; i++) {
     const im = bs.starsEl[i];
-    if (im) {
-      im.src = img(iconA('star'), 1).src;
-      im.classList.add('pop');
-    }
-    toast(`拿到第 ${i + 1} 颗星！`);
+    if (im) flyStar(bs, im, i);
     sfx('star');
   }
   bs.lastStars = Math.max(bs.lastStars, r.stars);

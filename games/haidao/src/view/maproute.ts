@@ -660,15 +660,21 @@ function showMid(prev: MapState, next: MapState, node: number, res: BattleResult
   for (let i = 0; i < 3; i++) sr.appendChild(img(iconA(i < res.stars ? 'star' : 'starEmpty'), 26));
   const lost = next.log[next.log.length - 1]?.lost ?? 0;
   el('div', '', `摧毁 ${res.destroyedPct}%${lost > 0 ? ` · 折损 ${lost} 人` : ' · 一个没少'}`, box).style.fontWeight = '800';
-  const g = el('div', 'hd-route-gain hd-pos hd-n', '+0', box);
-  const tot = el('div', 'hd-route-total', `宝分 ${fmt(prev.pts)}`, box);
+  // 这一站拿的宝分居中大字（带单位），累计只在不是第一站时另起一行（第一站累计和这站一样，写两遍是重复）
+  const gl = el('div', 'hd-route-gain', undefined, box);
+  const g = el('b', 'hd-pos', '+0', gl);
+  el('small', '', '宝分', gl);
+  const tot = el('div', 'hd-route-total', `累计 ${fmt(prev.pts)}`, box);
+  if (prev.pts === 0) tot.style.display = 'none';
+  // 船队：每种兵一格（图 + 剩几个 / 满编 + 这站折损），比一排小胶囊看得清
+  el('div', 'hd-route-losscap', '船队还剩', box);
   const loss = el('div', 'hd-route-loss', undefined, box);
   next.fleet.forEach((b, i) => {
     const d = b.alive - (prev.fleet[i]?.alive ?? b.alive);
-    const sp = el('span', '', undefined, loss);
-    sp.appendChild(img(tArt(b.troop, 'idle'), 22));
-    sp.append(`${b.alive}/${b.cap}`);
-    if (d !== 0) el('em', d > 0 ? 'up' : '', d > 0 ? ` +${d}` : ` ${d}`, sp);
+    const sp = el('span', b.alive === 0 ? 'gone' : '', undefined, loss);
+    sp.appendChild(img(tArt(b.troop, 'idle'), 30));
+    el('b', 'hd-n', `${b.alive}/${b.cap}`, sp);
+    if (d !== 0) el('em', d > 0 ? 'up' : '', d > 0 ? `+${d}` : `${d}`, sp);
   });
   const row = el('div', 'hd-row', undefined, box);
   vibrate(res.stars > 0 ? 'win' : 'land');
@@ -714,7 +720,7 @@ function showMid(prev: MapState, next: MapState, node: number, res: BattleResult
     await wait(350, alive);
     if (gain > 0) sfx('coin');
     await rollNum(g, 0, gain, 900, (n) => `+${fmt(n)}`, alive);
-    await rollNum(tot, prev.pts, next.pts, 500, (n) => `宝分 ${fmt(n)}`, alive);
+    if (prev.pts > 0) await rollNum(tot, prev.pts, next.pts, 500, (n) => `累计 ${fmt(n)}`, alive);
     await wait(250, alive);
     row.classList.add('on');
     if (next.over) {

@@ -37,7 +37,7 @@ import { isEscortId, escortUnlocked, escortSetup } from './escortapi.ts';
 import type { EscortView } from './escortview.ts';
 import { escortShipArt } from './art/escort.ts';
 import { DEPTH } from './depth.ts';
-import { type TdData, type ESpr, type TSpr, W, EDGE_MS, TEMP_KINDS } from './tdcommon.ts';
+import { type TdData, type ESpr, type TSpr, W, EDGE_MS, SHIP_FOES, TEMP_KINDS } from './tdcommon.ts';
 import { drawLayout, drawProps, drawWater, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector, syncFleet } from './tdworld.ts';
 import { tap, hover, press, cancelAll, callWave, toggleHero, rightClick, heroDrag, stepSkillQ } from './tdinput.ts';
 import { newCycle } from './tdpick.ts';
@@ -166,6 +166,8 @@ export class TdScene extends Phaser.Scene {
   pv: WavePreview[] = [];
   planSig = '';
   planKey = '';
+  /** 顶栏下面的首领粗血条（tdhud.ts 的 syncBossBar）；id = 正在跟的首领，pct = 上次写进样式的百分比 */
+  bossUi: { root: HTMLElement; name: HTMLElement; fill: HTMLElement; id: number; pct: number } | null = null;
   hud!: { treasure: HTMLElement; tpill: HTMLElement; wave: HTMLElement; count: HTMLElement; gold: HTMLElement; speed: HTMLButtonElement; call: HTMLButtonElement; keg: HTMLButtonElement; bar: HTMLButtonElement; hero: HTMLButtonElement; mech: HTMLButtonElement | null; hint: HTMLElement; flash: HTMLElement; plan: HTMLElement; paused: HTMLElement };
   hudTick = -1;
   hudMode = '';
@@ -366,6 +368,18 @@ export class TdScene extends Phaser.Scene {
     app.api.snipeLive = () => this.snipe.live;
     app.api.snipeAt = () => this.snipe.mid;
     app.api.tdFx = (what) => {
+      if (what === 'ship' || what === 'sink') {
+        // 取证：第一条在场的船画在海里的位置（停泊偏移后的）；sink 让它当场沉掉（标成死了、演沉没），录沉船用
+        const b = s.enemies.find((q) => q.mode === 'in' && SHIP_FOES.has(q.kind));
+        const sp = b ? this.esp.get(b.id) : undefined;
+        if (!b || !sp) return null;
+        const at = { x: sp.rig.x, y: sp.rig.y, lx: sp.rig.x, ly: sp.rig.y };
+        if (what === 'sink') {
+          b.mode = 'dead';
+          onEvent(this, { type: 'die', id: b.id, kind: b.kind });
+        }
+        return at;
+      }
       const e = s.enemies.find((q) => q.mode === 'in' && q.kind !== 'parrot');
       if (!e) return null;
       if (what === 'shield') {
@@ -478,7 +492,7 @@ export class TdScene extends Phaser.Scene {
     for (const e of ev) onEvent(this, e);
     if (this.s.over && !this.ended) {
       this.ended = true;
-      setTimeout(() => finish(this), 1100 - endFxLead(this));
+      setTimeout(() => finish(this), 1100 - endFxLead());
     }
   }
 
