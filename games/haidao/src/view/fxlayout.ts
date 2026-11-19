@@ -34,6 +34,71 @@ export function pickSlot(active: readonly Spot[], x: number, y: number, w = 28, 
   return { dx: best[0], dy: best[1] };
 }
 
+/** 正在飘的一个数字（屏幕像素）：y 是没推开之前的位置，born 是出现了多久（越大越早） */
+export interface Floating {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  born: number;
+}
+
+/**
+ * 飘字竖向防撞：大字升得比小字快（34 / 22 像素），后出的大字会追上先出的小字叠在一起。
+ * 每帧在上升之后跑一遍：两个数字的框横竖都重叠时，把早出的那个（同时出的按下标）再往上推开重叠的量。
+ * push[i] 是第 i 个已经被推上去多少（屏幕像素），只增不减（数字不往下掉）；n 很小（池子 8 个），两两比几遍就够。
+ */
+export function pushApart(items: readonly Floating[], push: Float64Array, rounds = 3): void {
+  const n = items.length;
+  for (let r = 0; r < rounds; r++) {
+    let moved = false;
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        const a = items[i]!;
+        const b = items[j]!;
+        // a 是早出的那个：只推它，b 不动
+        if (i === j || a.born < b.born || (a.born === b.born && i > j)) continue;
+        if (Math.abs(a.x - b.x) >= (a.w + b.w) / 2) continue;
+        const ay = a.y - push[i]!;
+        const by = b.y - push[j]!;
+        const need = (a.h + b.h) / 2 - (by - ay);
+        if (need > 0.01 && ay <= by + 0.01) {
+          push[i] = push[i]! + need;
+          moved = true;
+        }
+      }
+    }
+    if (!moved) return;
+  }
+}
+
+/** 最近飘过的一个「+N」字：同类（key）同一片地方的新字并进它，数字往上加 */
+export interface Recent {
+  key: string;
+  t: number;
+  x: number;
+  y: number;
+}
+/** 并字的时间窗（毫秒）和半径（屏幕像素）：敌人在宝藏边成片倒下时，一片只留一个「+N」往上加 */
+export const MERGE_MS = 900;
+export const MERGE_PX = 110;
+
+/** 新字并进哪一个最近的同类字：时间窗内、屏幕距离 MERGE_PX 内最近的那个，没有返回 -1。z 是世界到屏幕的缩放 */
+export function pickMerge(recent: readonly Recent[], key: string, x: number, y: number, now: number, z: number): number {
+  let best = -1;
+  let bd = MERGE_PX;
+  for (let i = 0; i < recent.length; i++) {
+    const o = recent[i]!;
+    if (o.key !== key || now - o.t >= MERGE_MS) continue;
+    const d = Math.hypot(o.x - x, o.y - y) * z;
+    if (d < bd) {
+      bd = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
 /** 把一段居中的内容（宽 w）夹进 [margin, width - margin]；屏幕不够宽时居中 */
 export function clampCenter(x: number, w: number, width: number, margin: number): number {
   const lo = margin + w / 2;

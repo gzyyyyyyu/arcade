@@ -11,7 +11,7 @@ import { sfx } from './audio/sfx.ts';
 import { BAR_GAP } from './battlecommon.ts';
 import type { BSpr } from './battlecommon.ts';
 import type { BattleScene } from './BattleScene.ts';
-import { artTop, playFrames } from './battleevents.ts';
+import { artTop } from './textures.ts';
 import { nearUnit } from './battleunits.ts';
 import { DEPTH } from './depth.ts';
 import { STEP_MS } from './motion.ts';
@@ -46,7 +46,7 @@ export function slam(bs: BattleScene, w: { x: number; y: number }): void {
 
 /** 建筑倒塌：碎片四溅，金币弹出来 */
 export function collapse(bs: BattleScene, x: number, y: number, size: number): void {
-  playFrames(bs, 'collapse', x, y, 0.8 + size * 0.3, 8350);
+  bs.frames.play('collapse', x, y, 0.8 + size * 0.3, bs.nowT, DEPTH.muzzle);
   const sp = fxA('spark');
   burst(bs, bs.r, sp.key, sp.w, sp.h, x, y - 10, 10 + size * 4, 40 + size * 12);
   const c = fxA('coins');
@@ -113,7 +113,7 @@ export function fogOf(bs: BattleScene, b: BBuilding, sp: BSpr): void {
     bs.tweens.killTweensOf(f);
     // 散雾和淡入跟着战斗速度走：它由规则的「暴露」拍触发，4 倍速时兵已经走过去了，雾还按真实时间慢慢散就和逻辑错开。
     // 命中停顿不用在这里管：场景每帧把 bs.tweens 的总时钟压到 0.05（BattleScene.update），Tween 自己的 timeScale 会和它相乘。
-    // 1 倍速时 timeScale = 1，终点和时长都不变。雾的左右飘（上面那条）是环境动画，不绑速度；其余特效补间（倒塌金币、烟）也按真实时间，和 playFrames、粒子一致
+    // 1 倍速时 timeScale = 1，终点和时长都不变。雾的左右飘（上面那条）是环境动画，不绑速度；其余特效补间（倒塌金币、烟）也按真实时间，和序列帧（framefx.ts）、粒子一致
     const clearFog = bs.tweens.add({ targets: f, alpha: 0, scale: f.scale * 1.7, duration: 800, onComplete: () => f.destroy() });
     clearFog.timeScale = bs.speed;
     sp.img.setVisible(true).setAlpha(0);

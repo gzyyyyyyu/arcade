@@ -713,8 +713,9 @@ export function arcLook(kind: RigKind): { len: number; alpha: number; tint: numb
 
 /** 身高（屏幕 CSS 像素）低于这个就退化成单张烘焙帧：小到看不清部件，没必要算 8 个部件 */
 export const LOD_PX = 20;
-/** 离屏外多少像素也算在屏里（走进屏幕前就摆好姿势） */
-export const LOD_MARGIN = 60;
+/** 离屏外多少像素也算在屏里：略大于一步的位移就够（切回完整档那一帧会重算姿势，见 rigsprite.ts）；
+ * 以前是 60，竖屏放大的守岛里屏外一圈二十来个骨架照样逐个画，占屏内部件的三成 */
+export const LOD_MARGIN = 24;
 /** 0 = 完整骨架，1 = 单张烘焙帧，2 = 不在屏里（隐藏，不算姿势） */
 export function rigLod(screenH: number, onScreen: boolean): 0 | 1 | 2 {
   if (!onScreen) return 2;

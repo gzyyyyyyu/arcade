@@ -116,6 +116,8 @@ export function renderUnits(bs: BattleScene, frac: number, time: number, dt: num
   const cam = bs.cameras.main;
   const every = poseEvery(bs.fullRigs);
   let full = 0;
+  bs.rigCap.begin();
+  const vc = cam.worldView;
   const tk = bs.st.tick + frac;
   const occ = bs.occ;
   occ.begin();
@@ -184,7 +186,9 @@ export function renderUnits(bs: BattleScene, frac: number, time: number, dt: num
     // 转向：朝向连续变（经过 0 时压扁），不瞬切
     sp.face = turnStep(sp.face, u.face, dt);
     const sk = SKEL[rigKey(u.kind)];
-    const lod = lodOf(cam, bs.r, w.x, w.y, -sk.top * sk.s, LOD_MARGIN);
+    let lod = lodOf(cam, bs.r, w.x, w.y, -sk.top * sk.s, LOD_MARGIN);
+    // 屏内完整骨架太多时，远的、小的换整张图（rigcap.ts）
+    if (lod === 0 && !bs.rigCap.want(u.id, ((w.x - vc.centerX) ** 2 + (w.y - vc.centerY) ** 2) * cam.zoom * cam.zoom, (-sk.top * sk.s * cam.zoom) / bs.r)) lod = 1;
     if (lod === 0) full++;
     // 被震晕：站住不动、整个人晃、头顶转星（规则版本 ≥ 10）
     const stun = stunned(u, bs.st.tick);
@@ -201,6 +205,7 @@ export function renderUnits(bs: BattleScene, frac: number, time: number, dt: num
     }
   }
   bs.fullRigs = full;
+  bs.rigCap.end();
   tg.end(time);
   renderHero(bs, frac, time, dt);
   bs.stunMarks.end();

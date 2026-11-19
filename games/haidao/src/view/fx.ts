@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { BIG_EVENT, SHAKE, ShakeGate, StopGate, feelOn, type BigEvent, type ShakeLevel } from './feel.ts';
-import { dmgFontPx, pickSlot } from './fxlayout.ts';
+import { BIG_EVENT, REDUCED, SHAKE, ShakeGate, StopGate, feelOn, type BigEvent, type ShakeLevel } from './feel.ts';
+import { HIT_SQUASH_MS, hitSquash } from './motion.ts';
+import { dmgFontPx, pickSlot, pushApart, type Floating } from './fxlayout.ts';
 import { Bloom } from './post.ts';
 import { DEPTH } from './depth.ts';
 
@@ -32,6 +33,39 @@ export function flash(scene: Phaser.Scene, img: Phaser.GameObjects.Image): void 
     img.clearTint();
     img.setTintMode(Phaser.TintModes.MULTIPLY);
   });
+}
+
+/**
+ * 建筑挨打的压扁回弹（motion.ts 的 hitSquash）：场景每帧调 update，连续挨打时重新从最扁开始，不为每一下新建补间。
+ * base 给这座建筑「不挨打时」的缩放（受损阶段会改它，所以每帧现问，不在挨打时记死）；倒塌前调 forget 让出缩放。
+ */
+export class HitSquash {
+  private readonly live = new Map<Phaser.GameObjects.Image, { t0: number; base: () => readonly [number, number] }>();
+
+  hit(img: Phaser.GameObjects.Image, now: number, base: () => readonly [number, number]): void {
+    if (REDUCED) return;
+    const cur = this.live.get(img);
+    if (cur) cur.t0 = now;
+    else this.live.set(img, { t0: now, base });
+  }
+
+  forget(img: Phaser.GameObjects.Image): void {
+    this.live.delete(img);
+  }
+
+  update(now: number): void {
+    for (const [img, e] of this.live) {
+      const [bx, by] = e.base();
+      const k = (now - e.t0) / HIT_SQUASH_MS;
+      if (!img.active || k >= 1) {
+        if (img.active) img.setScale(bx, by);
+        this.live.delete(img);
+        continue;
+      }
+      const [sx, sy] = hitSquash(k);
+      img.setScale(bx * sx, by * sy);
+    }
+  }
 }
 
 /** 升级完成的白闪：先亮得多再退（比命中闪更亮，但仍是加色，不会变成一团白） */
@@ -515,6 +549,8 @@ interface DNum {
   bump: number;
   /** 文字现在是什么样式（大小 / 颜色 / 描边）；样式没变只换字，不重设样式（每次设样式 Phaser 都重画一遍文字贴图） */
   look: string;
+  /** 被后出的数字顶上去多少（屏幕像素，fxlayout.ts 的 pushApart） */
+  push: number;
 }
 
 /** 淡出从 FADE_AT 开始、到 life 结束；合并时 age 拉回到 HOLD_AT */
@@ -576,7 +612,7 @@ export class DamageNumbers {
     if (!p) {
       if (this.pool.length < this.max) {
         const t = this.scene.add.text(0, 0, '', { fontFamily: 'system-ui,"PingFang SC","Microsoft YaHei",sans-serif', fontStyle: '900', fontSize: `${16 * this.r}px`, color: '#fff', stroke: '#2b1a15', strokeThickness: 3.5 * this.r }).setOrigin(0.5).setDepth(DEPTH.fogMist).setVisible(false);
-        p = { t, on: false, key: '', age: 0, born: 0, x0: 0, y0: 0, cy: 0, big: false, unit: false, sum: 0, shown: 0, bump: 0, look: '' };
+        p = { t, on: false, key: '', age: 0, born: 0, x0: 0, y0: 0, cy: 0, big: false, unit: false, sum: 0, shown: 0, bump: 0, look: '', push: 0 };
         this.pool.push(p);
       } else {
         // 满了：只有更大的才能顶掉屏上最小的那个，小数字直接并掉（它的伤害不重要）
@@ -606,6 +642,7 @@ export class DamageNumbers {
     p.sum = dmg;
     p.shown = dmg;
     p.bump = 1;
+    p.push = 0;
     // 第一帧就按镜头定好大小（update 要到下一帧，录像逐帧推时第一张会按原始大小画出来）
     const sz0 = p.big ? 19 : 12;
     p.t.setPosition(p.x0, p.y0).setVisible(true).setAlpha(1).setScale(dmgFontPx(sz0, this.unitH * z) / sz0 / (this.r * z));
@@ -647,10 +684,48 @@ export class DamageNumbers {
       // 出现和合并时 back 式弹一下：1 + 0.35 * bump
       const pop = 1 + (p.big ? 0.35 : 0.25) * p.bump;
       const fade = p.age < FADE_AT ? 1 : 1 - (p.age - FADE_AT) / (life - FADE_AT);
-      p.cy = p.y0 - rise;
-      p.t.setScale(sc * pop).setY(p.cy).setAlpha(fade);
+      p.cy = p.y0 - rise - p.push / z;
+      p.t.setScale(sc * pop).setAlpha(fade);
+    }
+    this.separate(z, uh);
+  }
+
+  /** 竖向防撞：上升之后把被追上的早出数字往上推开（fxlayout.ts 的 pushApart），再定 y */
+  private separate(z: number, uh: number): void {
+    const fl = this.fl;
+    const on = this.onBuf;
+    const live = this.liveBuf;
+    on.length = 0;
+    live.length = 0;
+    for (const p of this.pool) {
+      if (!p.on) continue;
+      const sz = p.big ? 19 : 12;
+      const px = dmgFontPx(sz, uh);
+      const i = on.push(p) - 1;
+      // 框对象复用（每帧不新建）；y 是没推开之前的位置
+      const f = fl[i] ?? (fl[i] = { x: 0, y: 0, w: 0, h: 0, born: 0 });
+      f.x = p.x0 * z;
+      f.y = p.cy * z + p.push;
+      f.w = (String(p.shown).length + 1) * px * 0.62;
+      f.h = px * 1.15;
+      f.born = p.born;
+      live.push(f);
+      this.pushBuf[i] = p.push;
+    }
+    pushApart(live, this.pushBuf);
+    for (let i = 0; i < on.length; i++) {
+      const p = on[i]!;
+      p.push = this.pushBuf[i]!;
+      p.cy = live[i]!.y / z - p.push / z;
+      p.t.setY(p.cy);
     }
   }
+
+  private readonly fl: Floating[] = [];
+  private readonly onBuf: DNum[] = [];
+  private readonly liveBuf: Floating[] = [];
+  /** 池子最多 max 个（默认 8），按上限开 */
+  private readonly pushBuf = new Float64Array(64);
 }
 
 /** 图标沿弧线飞向 DOM 目标（顶栏计数）；from 是屏幕坐标，落点用 to 的中心，飞完 onLand 一次 */

@@ -1,17 +1,16 @@
 /** 特效事件分发：规则核心每拍给出的事件（登陆、开火、命中、爆炸、倒塌、阵亡、技能、英雄……）到音效、粒子、震屏、顿帧的映射，按事件数组的顺序处理 */
-import type Phaser from 'phaser';
 import { SKILLS } from '../content/index.ts';
 import { BEACH, UNIT, type BattleEvent } from '../core/types.ts';
-import { fxA, fxF } from './art.ts';
+import { fxA } from './art.ts';
 import { BAR_SIZE } from './bars.ts';
-import { EASE, collapseScale } from './motion.ts';
-import { bigEvent, burst, flash, shake } from './fx.ts';
+import { EASE, STAGE_LOOK, collapseScale } from './motion.ts';
+import { bigEvent, flash, shake } from './fx.ts';
 import { buildingDownEvent, isBigBlast, isKeyHit, vibrate, HEAVY_HIT } from './feel.ts';
 import { put, ringOf } from './ground.ts';
 import { isHeavyDmg, trackOf } from './dmgkind.ts';
 import { sfx } from './audio/sfx.ts';
 import { crumbleSound, hitSound, isBigBuilding, projectileFire, towerFire } from './audio/pick.ts';
-import { artBox } from './textures.ts';
+import { artTop } from './textures.ts';
 
 import type { BattleScene } from './BattleScene.ts';
 import { collapse, slam } from './battlebuildings.ts';
@@ -58,10 +57,7 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
           // 炮口火光和一缕烟走对象池（塔开火很密，不新建图像）
           bs.pt.muzzle(w.x, w.y - 16);
           bs.pt.emit('puff', w.x, w.y - 18, { vx: 6, vy: -22, life: 620, s0: 0.35, s1: 0.95, a0: 0.55, tint: 0xb9bcc4, depth: DEPTH.smokePuff });
-        } else if (!playFrames(bs, 'muzzle', w.x, w.y - 14, 1)) {
-          const p = fxA('spark');
-          burst(bs, bs.r, p.key, p.w, p.h, w.x, w.y - 14, 2, 10);
-        }
+        } else bs.frames.play('muzzle', w.x, w.y - 14, 1, bs.nowT);
       }
       break;
     }
@@ -75,8 +71,9 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
       }
       const w = bs.W(e.x, e.y);
       const heavy = e.dmg >= HEAVY_HIT;
-      // 序列帧的命中火花每次新建一张图 + 定时器：只给重击用，普通命中走对象池里的小火花
-      if (!heavy || !playFrames(bs, 'hit', w.x, w.y - 10, 1)) bs.pt.sparks(w.x, w.y - 10, heavy ? 3 : 2);
+      // 序列帧的命中火花只给重击（分量够才配得上），普通命中走粒子池里的小火花
+      if (heavy) bs.frames.play('hit', w.x, w.y - 10, 1, bs.nowT);
+      else bs.pt.sparks(w.x, w.y - 10, 2);
       if (isWater(e.x, e.y)) bs.pt.splash(w.x, w.y, 0.8);
       if (e.target === 'building') {
         const b = bs.bsp.get(e.id);
@@ -84,6 +81,8 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
         if (b && !b.down) {
           flash(bs, b.img);
           shake(bs, b.img, b.baseX);
+          // 压扁回弹按当前受损阶段的缩放回去（半塌的建筑本来就矮一截）
+          bs.squash.hit(b.img, bs.nowT, () => [1 / bs.r, STAGE_LOOK[b.stage].sy / bs.r]);
           if (bb) {
             // 数字从血条上面起飘（原来按占地估高度，落在血条上被条压住看不清）
             const z = bs.followT ? bs.followT.z : bs.cc.z;
@@ -176,6 +175,7 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
           bs.tur.delete(e.id);
         }
         const im = sp.img;
+        bs.squash.forget(im);
         bs.env.undress(im);
         bs.tweens.killTweensOf(im);
         im.clearTint();
@@ -288,11 +288,7 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
 }
 
 export function boom(bs: BattleScene, x: number, y: number, size: number): void {
-  if (playFrames(bs, 'boom', x, y - 6, Math.max(0.8, size), 8200)) return;
-  const p = fxA('boom');
-  const im = bs.add.image(x, y - 6, p.key).setScale((0.6 * Math.max(0.8, size)) / bs.r).setDepth(DEPTH.hitFx);
-  bs.tweens.add({ targets: im, scale: im.scale * 1.7, alpha: 0, duration: 380, ease: 'Cubic.easeOut', onComplete: () => im.destroy() });
-  bs.pt.explosion(x, y, size);
+  bs.frames.play('boom', x, y - 6, Math.max(0.8, size), bs.nowT, DEPTH.hitFx);
 }
 
 /** 画面上的位置是否在海里（超出沙滩），只用来决定要不要溅水花 */
@@ -301,43 +297,10 @@ export function isWater(x: number, y: number): boolean {
 }
 
 /** 木屑 / 石屑：木头的（低级和伐木类）飞木屑，石头的飞石屑 */
-/** 图的不透明部分的顶（世界坐标）：血条和伤害数字都贴着它，不飘在透明空白上 */
-export function artTop(im: Phaser.GameObjects.Image): number {
-  return im.y - im.originY * im.displayHeight + (artBox(im.texture.key)?.t ?? 0) * Math.abs(im.scaleY);
-}
 
 export function debris(bs: BattleScene, x: number, y: number, kind: string, level: number, n: number): void {
   if (kind === 'palm' || kind === 'rock') return;
   const wood = level <= 2 || kind === 'sawmill' || kind === 'woodyard' || kind === 'barrel';
   if (wood) bs.pt.splinters(x, y, n);
   else bs.pt.chips(x, y, n);
-}
-
-/** 播一组序列帧特效（命中火花、爆炸、倒塌烟尘、枪口火光）；没有素材返回 false */
-export function playFrames(bs: BattleScene, kind: 'hit' | 'boom' | 'collapse' | 'slash' | 'muzzle', x: number, y: number, size = 1, depth = DEPTH.impactFx): boolean {
-  let frames: ReturnType<typeof fxF>;
-  try {
-    frames = fxF(kind);
-  } catch {
-    return false;
-  }
-  if (!frames.length || !bs.textures.exists(frames[0]!.key)) return false;
-  const f0 = frames[0]!;
-  const im = put(bs, bs.r, f0, x, y).setDepth(depth).setScale((size * 1) / bs.r);
-  let i = 0;
-  bs.time.addEvent({
-    delay: 70,
-    repeat: frames.length - 1,
-    callback: () => {
-      i++;
-      const f = frames[i];
-      if (!f || !im.active) {
-        im.destroy();
-        return;
-      }
-      im.setTexture(f.key).setOrigin(f.ax / f.w, f.ay / f.h);
-    },
-  });
-  bs.time.delayedCall(70 * (frames.length + 1), () => im.active && im.destroy());
-  return true;
 }

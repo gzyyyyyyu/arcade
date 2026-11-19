@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampCenter, pickSlot, topBlame } from '../src/view/fxlayout.ts';
+import { MERGE_MS, MERGE_PX, clampCenter, pickMerge, pickSlot, pushApart, topBlame } from '../src/view/fxlayout.ts';
 
 describe('pickSlot：伤害数字错开', () => {
   it('没有别的数字时原位', () => {
@@ -41,5 +41,50 @@ describe('topBlame：谁造成了大部分伤亡', () => {
   it('太分散或太少不点名', () => {
     expect(topBlame(new Map([['mortar', 2], ['cannon', 2], ['musket', 2]]))).toBeNull();
     expect(topBlame(new Map([['mortar', 2]]))).toBeNull();
+  });
+});
+
+describe('pushApart：飘字竖向防撞', () => {
+  const f = (x: number, y: number, born: number, w = 30, h = 14) => ({ x, y, w, h, born });
+  it('后出的数字追上先出的：把先出的往上推开，后出的不动', () => {
+    const items = [f(0, 100, 300), f(0, 106, 100)];
+    const push = new Float64Array(2);
+    pushApart(items, push);
+    expect(push[1]).toBe(0);
+    const top = items[0]!.y - push[0]!;
+    expect(items[1]!.y - top).toBeGreaterThanOrEqual(14 - 1e-9);
+  });
+  it('横向错开、竖向本来就分开的不推', () => {
+    const push = new Float64Array(3);
+    pushApart([f(0, 100, 300), f(60, 100, 100), f(0, 140, 50)], push);
+    expect([...push]).toEqual([0, 0, 0]);
+  });
+  it('三个叠在一起：一路往上推开，互不重叠', () => {
+    const items = [f(0, 100, 500), f(0, 104, 300), f(0, 108, 100)];
+    const push = new Float64Array(3);
+    pushApart(items, push);
+    const ys = items.map((it, i) => it.y - push[i]!).sort((a, b) => a - b);
+    for (let i = 1; i < ys.length; i++) expect(ys[i]! - ys[i - 1]!).toBeGreaterThanOrEqual(14 - 1e-6);
+  });
+  it('推上去的不回落：已经推开的量只增不减', () => {
+    const push = new Float64Array([20, 0]);
+    pushApart([f(0, 100, 300), f(0, 200, 100)], push);
+    expect(push[0]).toBe(20);
+  });
+});
+
+describe('pickMerge：同一片的「+N」并成一个', () => {
+  const r = (key: string, t: number, x: number, y: number) => ({ key, t, x, y });
+  it('同类、时间窗内、半径内最近的那个', () => {
+    const rec = [r('+|y', 0, 0, 0), r('+|y', 100, 50, 0), r('+|g', 100, 10, 0)];
+    expect(pickMerge(rec, '+|y', 40, 0, 200, 1)).toBe(1);
+  });
+  it('超时、超半径、不同类的不并', () => {
+    expect(pickMerge([r('+|y', 0, 0, 0)], '+|y', 0, 0, MERGE_MS, 1)).toBe(-1);
+    expect(pickMerge([r('+|y', 0, 0, 0)], '+|y', MERGE_PX + 1, 0, 10, 1)).toBe(-1);
+    expect(pickMerge([r('+|g', 0, 0, 0)], '+|y', 0, 0, 10, 1)).toBe(-1);
+  });
+  it('半径按屏幕像素算：镜头拉远（z 小）时世界里离得远的也并', () => {
+    expect(pickMerge([r('+|y', 0, 0, 0)], '+|y', 200, 0, 10, 0.5)).toBe(0);
   });
 });

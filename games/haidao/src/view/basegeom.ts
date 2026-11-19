@@ -50,13 +50,20 @@ export function measureSafe(bs: BaseScene, time = performance.now()): void {
 const TALL_EXTRA = 64;
 
 /** 适配的内容：全部建筑占地外扩 1 格；竖屏时主寨必须在屏内（基地能拖，左右空沙角可以裁），横屏和电脑按这个盒装进可见区 */
-export function fitContent(_bs: BaseScene): Content {
+/** 这次打开游戏后进过几次基地：竖屏开场「先看全岛再推近」只演第一次（每打完一仗回来都推一遍太烦） */
+let baseEntries = 0;
+/** BaseScene.create 时调一次：是不是这次打开游戏后第一次进基地 */
+export function firstBaseEntry(): boolean {
+  return baseEntries++ === 0;
+}
+
+export function fitContent(scene: BaseScene): Content {
   const foot = (b: Placed): readonly [number, number, number, number] => [b.x, b.y, b.x + BUILDINGS[b.kind].size - 1, b.y + BUILDINGS[b.kind].size - 1];
   const bs = app.profile.base.buildings;
   const hq = bs.find((b) => b.kind === 'hq');
   // 边上的高建筑（箭塔、主寨的旗）比通用的 TALL 还高，再让出一截，免得顶被顶栏压住
   const box = cellsBox(bs.map(foot), 1);
-  return { box: { ...box, t: box.t - TALL_EXTRA }, tight: true, must: hq ? cellsBox([foot(hq)], 0) : undefined };
+  return { box: { ...box, t: box.t - TALL_EXTRA }, tight: true, intro: scene.introOnce, must: hq ? cellsBox([foot(hq)], 0) : undefined };
 }
 
 export function camNow(bs: BaseScene): CamView {

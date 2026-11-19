@@ -14,6 +14,10 @@ const boxes = new Map<string, Box>();
 const baked = new Set<string>();
 export const isBaked = (key: string): boolean => baked.has(key);
 export const artBox = (key: string): Box | undefined => boxes.get(key);
+/** 图的不透明部分的顶（世界坐标）：血条、伤害数字、守岛塔上的升级箭头都贴着它，不飘在透明空白上 */
+export function artTop(im: Phaser.GameObjects.Image): number {
+  return im.y - im.originY * im.displayHeight + (artBox(im.texture.key)?.t ?? 0) * Math.abs(im.scaleY);
+}
 
 function scanBox(c: HTMLCanvasElement): Box {
   const w = c.width;

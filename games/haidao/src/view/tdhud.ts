@@ -7,6 +7,7 @@ import { app, fmt } from './app.ts';
 import { iconA, tdE, tdP } from './art.ts';
 import { keyBadge } from './inputs.ts';
 import { floatText } from './fx.ts';
+import { MERGE_MS, pickMerge } from './fxlayout.ts';
 import { laneName, planCard, callBonusText, fitSuggest, waveEnemies } from './td-ui.ts';
 import { injectTdCss } from './tdcss.ts';
 import { FOE_KEY, MECH_HINT, MECH_KEY, foeText, mechsOf, newFoes } from './tdhint.ts';
@@ -381,10 +382,14 @@ export function ftx(bs: TdScene, wx: number, wy: number, str: string, color = '#
   const y = wy + (sy - sp.y) / z;
   const m = /^(.*?)(-?\d+)$/.exec(str);
   const now = performance.now();
+  const rec = bs.ftRecent;
+  // 过期的、字已经飘完的先清掉（最多十几个，线性扫）
+  for (let i = rec.length - 1; i >= 0; i--) if (now - rec[i]!.t >= MERGE_MS || !rec[i]!.txt.active) rec.splice(i, 1);
+  const key = m ? m[1] + '|' + color : '';
   if (m) {
-    const key = m[1] + '|' + color;
-    const old = bs.ftMerge.get(key);
-    if (old && now - old.t < 700 && Math.hypot(old.x - x, old.y - y) * z < 60 && old.txt.active) {
+    const i = pickMerge(rec, key, x, y, now, z);
+    if (i >= 0) {
+      const old = rec[i]!;
       old.n += Number(m[2]);
       old.txt.setText(`${m[1]}${old.n}`);
       old.t = now;
@@ -393,10 +398,10 @@ export function ftx(bs: TdScene, wx: number, wy: number, str: string, color = '#
   }
   // 不同类的字在同处：按已有数量往上错开
   let near = 0;
-  for (const o of bs.ftMerge.values()) if (now - o.t < 900 && Math.hypot(o.x - x, o.y - y) * z < 40) near++;
+  for (const o of rec) if (Math.hypot(o.x - x, o.y - y) * z < 40) near++;
   const yy = y - near * 16 / z;
   const t = floatText(bs, bs.r, z, x, yy, str, color, size);
-  if (m) bs.ftMerge.set(m[1] + '|' + color, { t: now, x, y: yy, n: Number(m[2]), txt: t });
+  if (m) rec.push({ key, t: now, x, y: yy, n: Number(m[2]), txt: t });
 }
 
 export function banner(bs: TdScene, title: string, sub = '', boss = false): void {

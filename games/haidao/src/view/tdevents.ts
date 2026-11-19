@@ -284,17 +284,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       const R = isoRing(TD2_BATTERY.r / UNIT);
       const warn = bs.add.ellipse(to.x, to.y, R.w, R.h, 0xff4a3a, 0.14).setStrokeStyle(4, 0xff4a3a, 0.95).setDepth(DEPTH.marker);
       bs.tweens.add({ targets: warn, alpha: 0.4, duration: dur / 3, yoyo: true, repeat: 1, onComplete: () => warn.destroy() });
-      const ball = bs.add.circle(muzzle.x, muzzle.y, 7, 0x2f3140).setStrokeStyle(2, 0x111111).setDepth(DEPTH.fxHigh);
-      const prog = { u: 0 };
-      const peak = Math.min(220, 80 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.35);
-      bs.tweens.add({
-        targets: prog,
-        u: 1,
-        duration: dur,
-        ease: 'Linear',
-        onUpdate: () => ball.setPosition(muzzle.x + (to.x - muzzle.x) * prog.u, muzzle.y + (to.y - muzzle.y) * prog.u - Math.sin(prog.u * Math.PI) * peak),
-        onComplete: () => ball.destroy(),
-      });
+      shipShot(bs, muzzle, from, to, s.tick, e.t1, Math.min(220, 80 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.35), 0, 'none');
       break;
     }
     case 'shell': {
@@ -306,20 +296,8 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       const muzzle = { x: from.x + 30, y: from.y - 34 };
       const to = W(e.x1, e.y1);
       bs.pt.ringBurst(muzzle.x, muzzle.y, 0.7);
-      const ball = bs.add.circle(muzzle.x, muzzle.y, 5, 0x2f3140).setStrokeStyle(2, 0x111111).setDepth(DEPTH.fxHigh);
-      const prog = { u: 0 };
-      const peak = Math.min(140, 50 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.25);
-      bs.tweens.add({
-        targets: prog,
-        u: 1,
-        duration: Math.max(160, 420 / bs.speed),
-        ease: 'Linear',
-        onUpdate: () => ball.setPosition(muzzle.x + (to.x - muzzle.x) * prog.u, muzzle.y + (to.y - muzzle.y) * prog.u - Math.sin(prog.u * Math.PI) * peak),
-        onComplete: () => {
-          ball.destroy();
-          bs.pt.ringBurst(to.x, to.y - 20, 0.8);
-        },
-      });
+      // 规则里同一拍就炸哑了塔（jam 事件），炮弹只是表演：按 SHELL_FLY 拍飞过去，砸在塔身上
+      shipShot(bs, muzzle, from, to, s.tick, s.tick + SHELL_FLY, Math.min(140, 50 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.25), 20, 'shell');
       break;
     }
     case 'fleet': {
@@ -333,18 +311,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
         const muzzle = { x: at.x, y: at.y - 40 };
         const to = W(e.x1, e.y1);
         bs.pt.ringBurst(muzzle.x, muzzle.y, 0.7);
-        const dur = Math.max(140, ((e.t1 - s.tick) * STEP_MS) / bs.speed);
-        const ball = bs.add.circle(muzzle.x, muzzle.y, 6, 0x2f3140).setStrokeStyle(2, 0x111111).setDepth(DEPTH.fxHigh);
-        const prog = { u: 0 };
-        const peak = Math.min(120, 40 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.25);
-        bs.tweens.add({
-          targets: prog,
-          u: 1,
-          duration: dur,
-          ease: 'Linear',
-          onUpdate: () => ball.setPosition(muzzle.x + (to.x - muzzle.x) * prog.u, muzzle.y + (to.y - muzzle.y) * prog.u - Math.sin(prog.u * Math.PI) * peak),
-          onComplete: () => ball.destroy(),
-        });
+        shipShot(bs, muzzle, at, to, s.tick, e.t1, Math.min(120, 40 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.25), 0, 'none');
       } else ftx(bs, at.x, at.y - 90, '友军船回航', '#d8f1ff', 15);
       break;
     }
@@ -468,6 +435,20 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
 }
 
 /** 结算的「原因」要用的局内记录：敌人信息趁它还在时缓存，宝藏真丢了（escape）才记一笔，护航每口咬船记一笔，英雄倒下记次数 */
+/** 炮艇的炮弹飞几拍（规则里没有飞行时间，同一拍就炸哑了塔；0.4 秒，和以前的表演一样长） */
+const SHELL_FLY = 8;
+
+/**
+ * 船和岸防老炮的炮弹：走弹道对象池（shots.ts，不在开火时新建对象），按规则拍插值（暂停、加速都跟着），带地面阴影。
+ * ground 是炮口正下方的地面点，e1 是命中时离地多高（砸在塔身上 ≈ 20），land 是落地效果（爆炸另有 explode 事件的就不画）
+ */
+function shipShot(bs: TdScene, muzzle: { x: number; y: number }, ground: { x: number; y: number }, to: { x: number; y: number }, t0: number, t1: number, arc: number, e1: number, land: LandKind): void {
+  bs.shots.start({
+    fx: 'ball', sx: muzzle.x, sy: muzzle.y, gx: ground.x, gy: ground.y, tx: to.x, ty: to.y, e1, t0, t1: Math.max(t0 + 1, t1),
+    arc, aimed: false, land, mat: 'stone',
+  });
+}
+
 function recordReason(bs: TdScene, e: TdEvent): void {
   const log = bs.reasonLog;
   if (e.type === 'bite') {
