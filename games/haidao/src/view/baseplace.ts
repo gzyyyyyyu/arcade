@@ -3,7 +3,7 @@ import { BUILDINGS, HQ_LEVELS } from '../content/index.ts';
 import { hqLevel, buildLimit, canPlace, build, move } from '../core/index.ts';
 import { type BuildingKind, ISLAND, type Placed } from '../core/types.ts';
 import { app, fmt } from './app.ts';
-import { artBox } from './textures.ts';
+import { alphaAt, artBox } from './textures.ts';
 import { bArt, bTex } from './art.ts';
 import { upgradable } from './dots.ts';
 import { fullText, nextSlotHq, lackText, startSpot, edgePan, hoverBob, clampPlace, placeCheck, placeReason } from './basefeel.ts';
@@ -36,7 +36,7 @@ function pickItems(bs: BaseScene): PickItem[] {
 
 /**
  * (wx, wy) 在建筑 id 的贴图不透明像素上吗：先按外框快速排除，再读那一个像素的 alpha
- * （textures.getPixelAlpha 只读 1×1，不读整张图）。
+ * （alphaAt 只读 1×1，不读整张图）。
  */
 export function hitPixel(bs: BaseScene, id: number, wx: number, wy: number): boolean {
   const n = bs.nodes.get(id);
@@ -49,7 +49,7 @@ export function hitPixel(bs: BaseScene, id: number, wx: number, wy: number): boo
   const ty = (wy - oy) / im.scaleY;
   if (tx < bx.l || tx > bx.r || ty < bx.t || ty > bx.b) return false;
   if (!bs.textures.exists(n.key)) return true;
-  return (bs.textures.getPixelAlpha(Math.floor(tx), Math.floor(ty), n.key) ?? 0) > ALPHA_MIN;
+  return alphaAt(bs.textures, n.key, Math.floor(tx), Math.floor(ty)) > ALPHA_MIN;
 }
 
 /**

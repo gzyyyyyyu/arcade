@@ -10,6 +10,12 @@ export interface Box {
   b: number;
 }
 const boxes = new Map<string, Box>();
+/**
+ * 建筑图裁掉的透明边：画布四周给阴影、旗、烟留的透明边很大，透明像素照样要逐个混合（手机上岛中间满屏建筑时，
+ * 帧时间主要花在这里）。烘的时候把画布裁到「有一点颜色」（alpha > 0）的外框，帧设成 trim（Phaser 按原尺寸算锚点、
+ * 按偏移画），所以位置、锚点、外观都不变，只是不再画全透明的那一圈；这里记偏移，按原画布坐标读像素时要减掉。
+ */
+const trims = new Map<string, { x: number; y: number; w: number; h: number }>();
 /** 已经烘成纹理的 key：高等级外观没烘到时，场景用低一级顶替 */
 const baked = new Set<string>();
 export const isBaked = (key: string): boolean => baked.has(key);
@@ -19,14 +25,22 @@ export function artTop(im: Phaser.GameObjects.Image): number {
   return im.y - im.originY * im.displayHeight + (artBox(im.texture.key)?.t ?? 0) * Math.abs(im.scaleY);
 }
 
-function scanBox(c: HTMLCanvasElement): Box {
+/** 一趟扫两个外框：box 是不透明部分（alpha > 24，给血条、点选、遮挡用），clip 是有一点颜色的部分（alpha > 0，裁画布用，裁掉的全是全透明） */
+function scanBox(c: HTMLCanvasElement): { box: Box; clip: Box } {
   const w = c.width;
   const h = c.height;
   const d = c.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, w, h).data;
   let l = w, t = h, r = 0, b = 0;
+  let cl = w, ct = h, cr = 0, cb = 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (d[(y * w + x) * 4 + 3]! > 24) {
+      const a = d[(y * w + x) * 4 + 3]!;
+      if (a === 0) continue;
+      if (x < cl) cl = x;
+      if (x > cr) cr = x;
+      if (y < ct) ct = y;
+      if (y > cb) cb = y;
+      if (a > 24) {
         if (x < l) l = x;
         if (x > r) r = x;
         if (y < t) t = y;
@@ -34,7 +48,17 @@ function scanBox(c: HTMLCanvasElement): Box {
       }
     }
   }
-  return r >= l ? { l, t, r, b } : { l: 0, t: 0, r: w, b: h };
+  const full = { l: 0, t: 0, r: w, b: h };
+  return { box: r >= l ? { l, t, r, b } : full, clip: cr >= cl ? { l: cl, t: ct, r: cr, b: cb } : full };
+}
+
+/** 按原画布坐标读一个像素的 alpha（裁过透明边的建筑图先减偏移，落在裁掉的边里就是 0） */
+export function alphaAt(tm: Phaser.Textures.TextureManager, key: string, x: number, y: number): number {
+  const o = trims.get(key);
+  const tx = x - (o?.x ?? 0);
+  const ty = y - (o?.y ?? 0);
+  if (o && (tx < 0 || ty < 0 || tx >= o.w || ty >= o.h)) return 0;
+  return tm.getPixelAlpha(tx, ty, key) ?? 0;
 }
 
 /** 颗粒小图（按渲染倍数各一张）：深浅两色的细碎斑点，烘建筑时盖一层，去掉矢量的塑料感 */
@@ -108,8 +132,20 @@ async function bake(tm: Phaser.Textures.TextureManager, p: ArtPiece, r: number):
     // willReadFrequently：紧接着要 getImageData 读不透明外框，不加的话浏览器每次读回都警告（一局 359 条）
     c.getContext('2d', { willReadFrequently: true })!.drawImage(im, 0, 0, c.width, c.height);
     finish(c, p.key, r);
-    boxes.set(p.key, scanBox(c));
-    tm.addCanvas(p.key, c);
+    const { box, clip } = scanBox(c);
+    boxes.set(p.key, box);
+    const cw = clip.r - clip.l + 1;
+    const ch = clip.b - clip.t + 1;
+    // 只裁建筑图（b.*：场上同时最多、面积最大），省得少于一成的不裁
+    if (p.key.startsWith('b.') && cw * ch < c.width * c.height * 0.9) {
+      const t = document.createElement('canvas');
+      t.width = cw;
+      t.height = ch;
+      t.getContext('2d')!.drawImage(c, clip.l, clip.t, cw, ch, 0, 0, cw, ch);
+      const tex = tm.addCanvas(p.key, t);
+      tex?.get().setTrim(c.width, c.height, clip.l, clip.t, cw, ch);
+      trims.set(p.key, { x: clip.l, y: clip.t, w: cw, h: ch });
+    } else tm.addCanvas(p.key, c);
     baked.add(p.key);
   } finally {
     URL.revokeObjectURL(url);
