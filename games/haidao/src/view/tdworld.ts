@@ -9,7 +9,9 @@ import { sTex, bTex, wTex, fxA, tdP, troopF, iconA, shipA } from './art.ts';
 import { type Box, islandBox, type Content, cellsBox, type Director } from './camfit.ts';
 import { type EdgeItem, type EdgeKind, type FPt, edgeMarks, frameFocus, groupAround } from './camguide.ts';
 import { EASE } from './motion.ts';
-import { RIG_TEX } from './rigsprite.ts';
+import { RIG_TEX, rigTex } from './rigsprite.ts';
+import { heroRank, rigPieces } from './art/rigparts.ts';
+import { bakeAtlas } from './textures.ts';
 import { isoRing } from './tdfx.ts';
 import { jitter, put, ringOf } from './ground.ts';
 import { footCenter, iso, depthOf } from './iso.ts';
@@ -183,8 +185,20 @@ export function drawProps(bs: TdScene): void {
 
 export function makeHero(bs: TdScene): void {
   const w = W(bs.s.hero.x, bs.s.hero.y);
-  bs.heroRing = bs.add.ellipse(w.x, w.y, 30, 15).setStrokeStyle(3, 0xffe885, 1).setDepth(DEPTH.heroRing);
-  bs.hero = bs.pool.get('t.captain', RIG_TEX, (an) => troopF('captain', an), bs.time.now);
+  // 脚下暖金底盘（半透明的金色实心椭圆加亮边）：人堆里先看到这块金，再找到人
+  bs.heroRing = bs.add.ellipse(w.x, w.y, 40, 20, 0xffc94a, 0.42).setStrokeStyle(3, 0xffe885, 1).setDepth(DEPTH.heroRing);
+  const frames = (an: 'idle' | 'walk' | 'attack') => troopF('captain', an);
+  bs.hero = bs.pool.get('t.captain', RIG_TEX, frames, bs.time.now);
+  // 英雄 4 / 8 / 12 级换外观（白色长羽、金肩章、双枪）：那一级的部件图集按需烘（第一次进要等几十毫秒，先用普通图集顶着），烘好换上
+  const rank = heroRank(bs.s.hero.level);
+  if (rank) {
+    const key = rigTex('t.captain', rank);
+    const wear = (): void => {
+      if (bs.sys.isActive()) bs.hero.setup('t.captain', key, frames, bs.time.now);
+    };
+    if (bs.textures.exists(key)) wear();
+    else void bakeAtlas(bs.textures, key, rigPieces('t.captain', rank), bs.r).then(wear);
+  }
   bs.hero.c.setPosition(w.x, w.y);
   bs.heroPx = w.x;
   bs.heroPy = w.y;

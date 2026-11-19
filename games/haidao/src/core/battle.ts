@@ -142,6 +142,12 @@ function inner(s: BattleState): Internal {
   return s.internal as Internal;
 }
 
+/** 信号弹正标着的建筑 id（没标或已过期返回 -1）；只读，给画面画持续的准星，不改状态、不进指纹 */
+export function flareTarget(s: BattleState): number {
+  const I = inner(s);
+  return s.tick < I.flareUntil ? I.flareId : -1;
+}
+
 /** 兵 id 被减速到哪一拍（焦油、冰冻类命中写的内部表）；只读，给画面画焦油黑点用，不改状态、不进指纹 */
 export function slowUntil(s: BattleState, id: number): number {
   return inner(s).slow[id] ?? 0;

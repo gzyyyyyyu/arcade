@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEATH_MS, EASE, HIT_SQUASH, hitSquash, STAGE_LOOK, TURN_MS, attackFrame, collapseScale, damageStage, deathPose, easeInOutSine, easeOutBack, easeOutCubic, interpPos, riseScale, strideFrame, turnStep } from '../src/view/motion.ts';
+import { DEATH_MS, EASE, HIT_SQUASH, hitSquash, STAGE_LOOK, TURN_MS, attackFrame, collapseScale, damageStage, deathPose, easeInOutSine, easeOutBack, easeOutCubic, interpPos, riseScale, shipBob, shipRecoil, sinkPose, strideFrame, TOWER_RISE_MS, towerRise, turnStep } from '../src/view/motion.ts';
 
 describe('拍间插值', () => {
   it('按比例插，端点精确', () => {
@@ -132,5 +132,41 @@ describe('建筑挨打压扁回弹', () => {
     const [sx, sy] = hitSquash(0.999);
     expect(Math.abs(sy - 1)).toBeLessThan(0.002);
     expect(Math.abs(sx - 1)).toBeLessThan(0.002);
+  });
+});
+
+describe('towerRise（守岛造塔升起）', () => {
+  it('前 300 毫秒一直在长、不提前到原大，到顶略过头再落回 1', () => {
+    const at = (ms: number): number => towerRise(ms / TOWER_RISE_MS)[0];
+    expect(at(0)).toBeLessThan(0.1);
+    // 12 帧联系表一格约 83 毫秒：第 2、3 格还明显矮
+    expect(at(83)).toBeLessThan(0.3);
+    expect(at(166)).toBeLessThan(0.8);
+    for (let ms = 10; ms <= 300; ms += 10) expect(at(ms)).toBeGreaterThan(at(ms - 10));
+    expect(at(300)).toBeGreaterThan(1.05);
+    expect(at(300)).toBeLessThan(1.1);
+    expect(towerRise(1)).toEqual([1, 1, 1]);
+  });
+});
+
+describe('船的起伏、后坐、沉没', () => {
+  it('起伏在 ±2.4 像素内，不同的船错开', () => {
+    for (let t = 0; t < 8000; t += 97) expect(Math.abs(shipBob(t, 3))).toBeLessThanOrEqual(2.4);
+    expect(shipBob(1000, 1)).not.toBeCloseTo(shipBob(1000, 2), 3);
+  });
+  it('后坐开炮那一下最大，之后单调回到 0', () => {
+    expect(shipRecoil(0)).toBe(1);
+    expect(shipRecoil(-0.1)).toBe(0);
+    expect(shipRecoil(1)).toBe(0);
+    for (let k = 0.1; k < 1; k += 0.1) expect(shipRecoil(k)).toBeLessThan(shipRecoil(k - 0.1));
+  });
+  it('沉没：船身越缩越矮、越沉越深，前六成不透明，最后消失', () => {
+    expect(sinkPose(0)).toEqual({ rot: 0, sy: 1, dy: 0, alpha: 1 });
+    expect(sinkPose(0.5).alpha).toBe(1);
+    expect(sinkPose(1).alpha).toBeCloseTo(0, 6);
+    for (let k = 0.1; k <= 1; k += 0.1) {
+      expect(sinkPose(k).sy).toBeLessThan(sinkPose(k - 0.1).sy);
+      expect(sinkPose(k).dy).toBeGreaterThan(sinkPose(k - 0.1).dy);
+    }
   });
 });

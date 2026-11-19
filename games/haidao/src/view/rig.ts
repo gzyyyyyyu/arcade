@@ -363,6 +363,28 @@ export const SHOOT: Clip = {
   ],
 };
 
+/**
+ * 手枪（船长）：单手把枪从举着放平、瞄住 → 开火（出手点）→ 后坐（枪口上跳、手往上弹、身子一仰）→ 枪口朝上收回。
+ * 姿态的角度照搬火枪的瞄准和后坐（枪件都是枪口朝 +x），去掉通条装填；时长由场景按英雄的装填拍缩放（atkPhase 对齐出手拍）
+ */
+export const PISTOL: Clip = {
+  loop: false,
+  smooth: false,
+  ms: 600,
+  hit: 0.32,
+  keys: [
+    K(0, 'recover', {}),
+    K(0.08, 'recover', { armF: 30, wep: 8, armB: 10, lean: -1, head: 1 }),
+    K(0.18, 'recover', { armF: 50, wep: -33, armB: 18, lean: -2, head: 3 }),
+    K(0.32, 'recover', { armF: 50, wep: -33, armB: 18, lean: -3, head: 3 }),
+    K(0.38, 'recoil', { armF: 70, wep: -6, armB: 24, lean: -9, head: -3, x: -1.8, sq: 0.03 }),
+    K(0.46, 'recover', { armF: 60, wep: -16, armB: 21, lean: -6, head: -1, x: -1 }),
+    K(0.55, 'recover', { armF: 52, wep: -28, armB: 18, lean: -4, head: 1, x: -0.4 }),
+    K(0.8, 'recover', { armF: 34, wep: 20, armB: 8, lean: -2 }),
+    K(1, 'recover', {}),
+  ],
+};
+
 /** 推着的小炮开火：两脚分开、压低 → 点火（出手点）→ 炮口上扬、人被顶着往后滑 → 再把炮推回原位 */
 export const CANNON: Clip = {
   loop: false,
@@ -923,8 +945,8 @@ export const STYLE: Record<RigKind, RigStyle> = {
   't.brute': { rest: rest({ ...STD_REST, armF: 30, armB: -20, wep: 92, legF: 12, legB: -10 }), walk: WALKS.brute, idle: scaleClip(IDLE, { y: 1.5, sq: 1.3 }), attack: scaleClip(SMASH, {}, { ms: 1200 }), extras: [LOOK], legScale: GAIT.brute.leg, hitScale: 0.55 },
   // 炸药兵：背着桶小跑，蹦得高
   't.bomber': { rest: rest({ ...STD_REST, armF: 45 }), walk: WALKS.bomber, idle: IDLE, attack: scaleClip(THROW, { wep: 0.2 }, { ms: 520 }), extras: [LOOK], legScale: GAIT.bomber.leg, hitScale: 1.1 },
-  // 船长：挺胸、步子稳，砍得大开大合，待机时举剑指挥
-  't.captain': { rest: rest({ ...STD_REST, armF: 30, wep: 67, lean: -2 }), walk: WALKS.captain, idle: IDLE, attack: scaleClip(SLASH, { armF: 1.1, wep: 1.1, lean: 1.2 }, { ms: 760 }), extras: [COMMAND, LOOK], legScale: GAIT.captain.leg, hitScale: 0.7 },
+  // 船长：挺胸、步子稳，单手开枪（登陆战、守岛里英雄都是打远处），待机时举枪指挥
+  't.captain': { rest: rest({ ...STD_REST, armF: 30, wep: 67, lean: -2 }), walk: WALKS.captain, idle: IDLE, attack: PISTOL, extras: [COMMAND, LOOK], legScale: GAIT.captain.leg, hitScale: 0.7 },
   // 船医：提着药箱走，举箱子放绿光
   't.medic': { rest: rest({ ...STD_REST, armF: 20 }), walk: WALKS.medic, idle: IDLE, attack: HEAL, extras: [LOOK], legScale: GAIT.medic.leg, hitScale: 1 },
   // 火炮兵：双手推着小炮，身子前倾，开火被顶得往后滑

@@ -9,8 +9,9 @@
 import type { TroopKind } from '../../core/types.ts';
 import { RIG_KINDS, SKEL, type RigKind, type Skel } from '../rig.ts';
 import type { ArtPiece } from './kit.ts';
-import { ell, f, path, piece, pieceRaw, shadow } from './kit.ts';
-import { DECO, LOOKS, SKIN_GLOW, blade, woodShield, torsoShape, cart, grenadeBall, hammer, harpoon, head, keg, limb, medkit, musket, skinDeco, skinify, type PoseData, type TroopSkin } from './troops.ts';
+import { ell, f, line, path, piece, pieceRaw, shadow } from './kit.ts';
+import { PALETTE as C } from './palette.ts';
+import { DECO, LOOKS, SKIN_GLOW, blade, woodShield, torsoShape, cart, grenadeBall, hammer, harpoon, head, keg, limb, medkit, musket, pistol, skinDeco, skinify, type PoseData, type TroopSkin } from './troops.ts';
 import { tdEnemyDef, tdMan, type TdManSpec } from './tdart.ts';
 
 export const RIG_FRAMES = ['shadow', 'legB', 'legF', 'armB', 'torso', 'head', 'headBlink', 'headAtk', 'hat', 'armF', 'wep', 'trail', 'shield'] as const;
@@ -74,7 +75,7 @@ const TROOP_RIG: Record<TroopKind, TroopRig> = {
   gunner: { sleeve: '#3a8f48', armW: 4.2, handR: 2.9, wep: { svg: musket([0, 0], false), box: [-13, -8, 36, 6] }, trail: 0 },
   brute: { sleeve: LOOKS.brute.skin, armW: 8.4, handR: 5, wep: { svg: rotHammer(), box: [-6, -14, 38, 14] }, trail: 34 },
   bomber: { sleeve: '#ff8a1f', armW: 4.2, handR: 2.9, wep: { svg: keg([1, -6]), box: [-9, -26, 16, 4] }, trail: 0 },
-  captain: { sleeve: '#ff3a2e', armW: 4.6, handR: 3, wep: { svg: blade([0, 0], [22, 0], 2.6, true), box: [-5, -9, 26, 9] }, trail: 30 },
+  captain: { sleeve: '#ff3a2e', armW: 4.6, handR: 3, wep: { svg: pistol([0, 0], false), box: [-9, -7, 18, 10] }, trail: 0 },
   medic: { sleeve: '#4a8fd0', armW: 4.2, handR: 2.9, wep: { svg: medkit(1, 3), box: [-9, -9, 11, 11] }, trail: 0 },
   cannoneer: { sleeve: '#3a5aa0', armW: 5.6, handR: 4, wep: { svg: cart([8, 6], 0), box: [-6, -9, 28, 20] }, trail: 0 },
   grenadier: { sleeve: '#5a7a4a', armW: 4.2, handR: 2.9, wep: { svg: grenadeBall([1, -6]), box: [-9, -18, 16, 4] }, trail: 0 },
@@ -87,7 +88,33 @@ function rotHammer(): string {
   return `<g transform="rotate(90)">${hammer([0, 0], [0, -24])}</g>`;
 }
 
-function troopParts(kind: TroopKind, skin?: TroopSkin): Partial<Record<RigFrame, Part>> {
+/** 守岛英雄按等级换的外观（部件图集另烘一张，key 见 rigsprite.ts 的 rigTex） */
+export type HeroRank = 'rank1' | 'rank2' | 'rank3';
+/** 英雄到这几级换外观：4 级帽子插白色长羽，8 级加金肩章，12 级腰带上再插一把手枪（双枪） */
+export const HERO_RANK_LEVELS = [4, 8, 12] as const;
+export function heroRank(level: number): HeroRank | undefined {
+  const n = HERO_RANK_LEVELS.filter((l) => level >= l).length;
+  return n === 0 ? undefined : (`rank${n}` as HeroRank);
+}
+
+/** 英雄等级外观的小件（坐标同 DECO.captain：hy 是头心的 y） */
+const RANK_DECO = {
+  plume: (cx: number, cy: number): string =>
+    path(`M${f(cx - 8)},${f(cy - 13)} Q${f(cx - 22)},${f(cy - 20)} ${f(cx - 15)},${f(cy - 35)} Q${f(cx - 12)},${f(cy - 24)} ${f(cx - 3)},${f(cy - 17)} Z`, '#fbfbf6', { sw: 1.6 }) +
+    path(`M${f(cx - 7)},${f(cy - 15)} Q${f(cx - 15)},${f(cy - 22)} ${f(cx - 14)},${f(cy - 31)}`, 'none', { stroke: '#c9d6e6', sw: 1.2 }),
+  // 12 级：腰带上斜插第二把手枪（背手在身后看不见，插在正面才认得出双枪）
+  beltPistol: (): string => `<g transform="rotate(-20 -6 -9)">${pistol([-6, -9], false)}</g>`,
+  epaulettes: (): string => {
+    let s = '';
+    for (const x of [-7.4, 7.4]) {
+      s += ell(x, -23, 4.2, 2.2, C.gold!, { sw: 1.4 });
+      for (const dx of [-2.4, 0, 2.4]) s += line([x + dx, -21.4], [x + dx * 1.2, -18.2], C.goldD!, 1.2);
+    }
+    return s;
+  },
+};
+
+function troopParts(kind: TroopKind, skin?: TroopSkin, rank = 0): Partial<Record<RigFrame, Part>> {
   const L = LOOKS[kind];
   const D = DECO[kind];
   const sk = SKEL[`t.${kind}`];
@@ -102,14 +129,14 @@ function troopParts(kind: TroopKind, skin?: TroopSkin): Partial<Record<RigFrame,
     return { svg: limb([0, 0], [0, 9.5], 5, pants) + ell(front ? 1.6 : 1.2, 10.1, front ? 5 : 4.6, front ? 3 : 2.8, L.boot, { sw: 1.6 }), box: [-6, -3, 9, 14] };
   };
   const torso: Part = {
-    svg: `<g transform="translate(0 11)">${D.back ? D.back(0, 0, -2) : ''}${torsoOnly(kind)}${D.coat ? D.coat(0, 0, 1) : ''}</g>`,
+    svg: `<g transform="translate(0 11)">${D.back ? D.back(0, 0, -2) : ''}${torsoOnly(kind)}${D.coat ? D.coat(0, 0, 1) : ''}${rank >= 2 ? RANK_DECO.epaulettes() : ''}${rank >= 3 ? RANK_DECO.beltPistol() : ''}</g>`,
     box: [-24, top + 11 - 9 - (kind === 'medic' ? 4 : 0), 22, 14],
   };
   const headPart = (mouth: boolean, blink: boolean): Part => ({
     svg: toNeck(head(L, P0, hy, mouth, '', blink) + (D.face ? D.face(1, hy) : '')),
     box: [-15, rel - 17, 17, rel + 18],
   });
-  const hatSvg = (D.hat ? D.hat(1, hy) : '') + (skin ? skinDeco(kind, skin, 0) : '');
+  const hatSvg = (rank >= 1 ? RANK_DECO.plume(1, hy) : '') + (D.hat ? D.hat(1, hy) : '') + (skin ? skinDeco(kind, skin, 0) : '');
   const arm = (front: boolean): Part => {
     const c = front ? R.sleeve : R.sleeveB ?? R.sleeve;
     const hand = front ? '' : ell(0, sk.arm, R.handR, R.handR, L.skin, { sw: 1.6 });
@@ -188,13 +215,15 @@ function tdParts(kind: TdRigKind): Partial<Record<RigFrame, Part>> {
 // ---------------------------------------------------------------- 汇总
 
 
-function partsOf(kind: RigKind, skin?: TroopSkin): Partial<Record<RigFrame, Part>> {
-  return kind.startsWith('t.') ? troopParts(kind.slice(2) as TroopKind, skin) : tdParts(kind.slice(2) as TdRigKind);
+function partsOf(kind: RigKind, skin?: TroopSkin | HeroRank): Partial<Record<RigFrame, Part>> {
+  if (!kind.startsWith('t.')) return tdParts(kind.slice(2) as TdRigKind);
+  const rank = skin?.startsWith('rank') ? Number(skin.slice(4)) : 0;
+  return troopParts(kind.slice(2) as TroopKind, rank ? undefined : (skin as TroopSkin | undefined), rank);
 }
 
 const cache = new Map<string, ArtPiece[]>();
 /** 一个种类（可带皮肤）的全部部件素材；帧名见 rigFrame */
-export function rigPieces(kind: RigKind, skin?: TroopSkin): ArtPiece[] {
+export function rigPieces(kind: RigKind, skin?: TroopSkin | HeroRank): ArtPiece[] {
   const ck = `${kind}~${skin ?? ''}`;
   let r = cache.get(ck);
   if (r) return r;

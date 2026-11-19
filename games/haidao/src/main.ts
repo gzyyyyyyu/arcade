@@ -249,10 +249,10 @@ function main(): void {
     // 测试辅助：给资源和星数，不写存档（volatile）
     app.volatile = true;
     app.api.dev = {
-      td: (hq, branch = false) => {
+      td: (hq, branch = false, hero) => {
         // 建议养成的存档：每种能造的塔各一座、英雄等级跟主寨，战役全部 1★；资源给够
         const g = tdGrowthProfile({ hq }, 'suggest');
-        app.save.profile = { ...app.profile, base: branch ? withBranches(g.base) : g.base, res: { gold: 5000, wood: 5000 }, tutorial: 99, stats: { ...app.profile.stats, attacks: 1 }, research: { ...app.profile.research, hero: g.research.hero ?? 1 }, td: { ...g.td!, day: dayIndex(), gotGold: 0, gotWood: 0 } };
+        app.save.profile = { ...app.profile, base: branch ? withBranches(g.base) : g.base, res: { gold: 5000, wood: 5000 }, tutorial: 99, stats: { ...app.profile.stats, attacks: 1 }, research: { ...app.profile.research, hero: hero ?? g.research.hero ?? 1 }, td: { ...g.td!, day: dayIndex(), gotGold: 0, gotWood: 0 } };
         app.reload();
       },
       give: (gold, wood, stars) => {

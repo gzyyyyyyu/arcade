@@ -12,6 +12,10 @@ export const BAR_FADE_MS = 500;
 /** 条的尺寸（CSS 像素，屏幕上恒定）：[宽, 高] */
 export const BAR_SIZE = {
   unit: [20, 3],
+  /** 守岛的精英：比小兵宽、和墙一样粗，左边挂金菱形 */
+  elite: [30, 5],
+  /** 守岛的首领：最宽，左边挂王冠（顶栏另有粗血条） */
+  boss: [40, 6],
   building: [34, 5],
 } as const;
 
@@ -133,6 +137,8 @@ export interface BarItem extends BarSlot {
   col: number;
   a: number;
   big: boolean;
+  /** 0 = 普通，1 = 精英（金菱形），2 = 首领（王冠）；只有守岛用 */
+  mark: number;
 }
 
 /** 每帧要画的血条清单：对象和数组都复用，只在条数变多时才新建对象（登陆战和守岛共用） */
@@ -144,11 +150,11 @@ export class BarList {
     this.items.length = 0;
   }
 
-  push(x: number, y: number, w: number, f: number, col: number, a: number, big: boolean): void {
+  push(x: number, y: number, w: number, f: number, col: number, a: number, big: boolean, mark = 0): void {
     const n = this.items.length;
     let it = this.pool[n];
     if (!it) {
-      it = { x, y, w, f, col, a, big };
+      it = { x, y, w, f, col, a, big, mark };
       this.pool[n] = it;
     } else {
       it.x = x;
@@ -158,6 +164,7 @@ export class BarList {
       it.col = col;
       it.a = a;
       it.big = big;
+      it.mark = mark;
     }
     this.items.push(it);
   }

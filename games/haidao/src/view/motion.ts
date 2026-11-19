@@ -172,6 +172,47 @@ export function riseScale(k: number): [number, number, number] {
   return [y, x, Math.min(1, t * 4)];
 }
 
+/** 守岛造塔升起的总时长（毫秒）和到顶的时刻（占比）：前 300 毫秒从木台上慢进慢出地长高、略高过头，后 100 毫秒落回原大 */
+export const TOWER_RISE_MS = 400;
+const TOWER_PEAK = 0.75;
+const TOWER_OVER = 0.07;
+
+/**
+ * 守岛造塔的升起：基地的 riseScale 是 easeOutBack，前三成时间就到原大，放在守岛 12 帧联系表里第 3 格已经长完、看不出升起；
+ * 这里改成整段慢进慢出地长到 1 + TOWER_OVER，再落回 1。返回 [纵向缩放, 横向缩放, 透明度]
+ */
+export function towerRise(k: number): [number, number, number] {
+  const t = clamp01(k);
+  const y = t < TOWER_PEAK ? 0.05 + (1 + TOWER_OVER - 0.05) * easeInOutSine(t / TOWER_PEAK) : 1 + TOWER_OVER * (1 - easeInOutSine((t - TOWER_PEAK) / (1 - TOWER_PEAK)));
+  return [y, 1 + (1 - Math.min(1, y)) * 0.12 - Math.max(0, y - 1) * 0.5, Math.min(1, t * 6)];
+}
+
+/** 船沉下去的总时长（毫秒）：比人倒下（DEATH_MS）长，看得清船身没进水里 */
+export const SINK_MS = 1200;
+
+/**
+ * 船沉没的姿态，k = 0..1：船身按吃水线往下缩（图的锚点在船底，纵向缩放 = 没进水里）、船尾翘起一点、略往下沉，后四成淡出。
+ * 返回 { rot（弧度，乘倒向）, sy（纵向缩放）, dy（下沉像素）, alpha }
+ */
+export function sinkPose(k: number): { rot: number; sy: number; dy: number; alpha: number } {
+  const t = clamp01(k);
+  const e = t * t;
+  return { rot: 0.2 * easeOutQuad(t), sy: 1 - 0.7 * e, dy: 8 * e, alpha: t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4 };
+}
+
+/**
+ * 船在水里的起伏，now 毫秒、seed 让每条船错开：上下约 ±2.4 像素、周期约 3.9 秒。返回竖向偏移
+ */
+export function shipBob(now: number, seed: number): number {
+  return Math.sin(now / 620 + seed * 1.7) * 2.4;
+}
+
+/** 船开炮的后坐，k = 开炮后经过的时间 / SHIP_RECOIL_MS：一下坐到底再慢慢回位，返回 0..1 的后坐量 */
+export const SHIP_RECOIL_MS = 320;
+export function shipRecoil(k: number): number {
+  return k < 0 || k >= 1 ? 0 : (1 - k) * (1 - k);
+}
+
 /**
  * 建筑挨打的纵向压扁回弹，k = 经过时间 / HIT_SQUASH_MS：挨打那一下立刻压到 1 - HIT_SQUASH，再衰减着回弹（略过 1），k = 1 时正好回到 1。
  * 横向跟着胖 / 瘦一半（体积感）。返回 [横向缩放, 纵向缩放]

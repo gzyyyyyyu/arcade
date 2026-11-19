@@ -18,8 +18,8 @@ export interface CrowdItem {
 export const CROWD_D = 56;
 /** 单个兵最多被推开多远：不能离目标太远，免得看着像没在打 */
 export const CROWD_MAX = 80;
-/** 守岛的敌人最多被推开多远：比登陆战小，炮弹、伤害数字按规则位置落，推远了像没打中 */
-export const CROWD_MAX_TD = 40;
+/** 守岛的敌人最多被推开多远：比登陆战小，炮弹、伤害数字按规则位置落，推远了像没打中；40 时一挤就叠成一团黑帽子、英雄埋在里面，放到 60 折中 */
+export const CROWD_MAX_TD = 60;
 
 /**
  * 算每个兵的目标偏移（写进 ox/oy，下标和 items 对齐）。

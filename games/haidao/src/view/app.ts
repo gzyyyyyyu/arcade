@@ -42,7 +42,7 @@ export interface Api {
   /** 测试辅助：炮台开火次数、开火时还差角度一次补完的次数和最大补了多少（弧度） */
   turretStats?(): { shots: number; snaps: number; maxSnap: number };
   /** 取证钩子：在第一个敌人身上演一次震晕 / 手雷（只改画面状态，冒烟和截图用） */
-  tdFx?(what: 'stun' | 'lob' | 'shield'): { x: number; y: number; lx: number; ly: number } | null;
+  tdFx?(what: 'stun' | 'lob' | 'shield' | 'ship' | 'sink'): { x: number; y: number; lx: number; ly: number } | null;
   /** 守岛取证：稳机器人接着打（截后期波次用） */
   tdAuto?(): void;
   /** 取证钩子：狙击预警线现在有几条在画（连拍等到预警出现再开拍） */
@@ -63,7 +63,7 @@ export interface Api {
   sfxStats?(): { counts: Record<string, { req: number; played: number; gap: number; cap: number; silent: number }>; recent: Array<{ name: string; at: number; ok: boolean }> };
   sfxStatsReset?(): void;
   /** 只在 ?dev 时有：直接给资源和星数（内存里改，不写存档） */
-  dev?: { give(gold: number, wood: number, stars: number): void; /** 主寨升到 hq 级，摆一座带塔、墙、宝藏箱的守岛示范岛（守岛战役各关各给 1 星，全部解锁）；branch：塔选上分叉（一档、两档交替） */ td(hq: number, branch?: boolean): void };
+  dev?: { give(gold: number, wood: number, stars: number): void; /** 主寨升到 hq 级，摆一座带塔、墙、宝藏箱的守岛示范岛（守岛战役各关各给 1 星，全部解锁）；branch：塔选上分叉（一档、两档交替）；hero：英雄等级（不给跟主寨，看英雄等级外观用） */ td(hq: number, branch?: boolean, hero?: number): void };
 }
 
 /** 存档和游戏实例在 main.ts 启动时才有；之前读会抛清楚的错，而不是拿到 null 当对象用 */

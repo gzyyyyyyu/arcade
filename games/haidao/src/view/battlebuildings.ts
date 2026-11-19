@@ -14,6 +14,7 @@ import type { BattleScene } from './BattleScene.ts';
 import { artTop } from './textures.ts';
 import { nearUnit } from './battleunits.ts';
 import { DEPTH } from './depth.ts';
+import { drawFlare } from './battleranges.ts';
 import { STEP_MS } from './motion.ts';
 
 /** 城墙按四邻选图（和基地一致） */
@@ -202,6 +203,7 @@ export function renderBars(bs: BattleScene): void {
   const now = bs.nowT;
   const bt = bs.bt;
   bt.begin();
+  drawFlare(bs, g, now, z);
   const topY = (im: Phaser.GameObjects.Image): number => artTop(im);
   // 满血不显示，掉血后显示约 3 秒再淡出；挨得近的上下错开（bars.ts）。条的大小在屏幕上恒定
   const list = barList;

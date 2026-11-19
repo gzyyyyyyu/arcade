@@ -6,11 +6,11 @@ import { isoRing } from './tdfx.ts';
 import { stunned } from '../core/combat.ts';
 import { UNIT, TICKS_PER_SEC } from '../core/types.ts';
 import { fxA } from './art.ts';
-import { EASE } from './motion.ts';
+import { EASE, SINK_MS } from './motion.ts';
 import { deathStyleFor } from './rig.ts';
 import { trackOf, isHeavyDmg } from './dmgkind.ts';
 import { bigEvent } from './fx.ts';
-import { vibrate, isBigBlast, HEAVY_HIT } from './feel.ts';
+import { vibrate, isBigBlast, HEAVY_HIT, REDUCED } from './feel.ts';
 import { shotTracks } from './tdfx.ts';
 import { put } from './ground.ts';
 import { footCenter, iso } from './iso.ts';
@@ -22,7 +22,7 @@ import { towerFire, projectileFire, hitSound } from './audio/pick.ts';
 import { DEPTH } from './depth.ts';
 import { banner, ftx, stolenNote } from './tdhud.ts';
 import { closeSheet, renderSheet } from './tdsheet.ts';
-import { W, PROJ, SHOCK_RING } from './tdcommon.ts';
+import { W, PROJ, SHOCK_RING, SHIP_FOES } from './tdcommon.ts';
 import { matAt } from './tdsync.ts';
 import { boom } from './tdoverlay.ts';
 import { addCrate, refreshWalls, removeCrate } from './tdworld.ts';
@@ -218,7 +218,9 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
         // 倒下：被打飞或跪倒（按最后一下的伤害），帽子飞出去，淡出后放回对象池
         const dead = s.enemies.find((q) => q.id === e.id);
         const style = deathStyleFor(trackOf(bs).take(e.id), sp.lastDmg, TD2_ENEMIES[e.kind].hp, e.kind === 'sapper', !!dead && stunned(dead, s.tick));
-        bs.dying.addRig(sp.rig, sp.face, style, (r) => bs.pool.put(r), bs.pt);
+        const ship = SHIP_FOES.has(e.kind);
+        bs.dying.addRig(sp.rig, sp.face, ship ? 'sink' : style, (r) => bs.pool.put(r), bs.pt);
+        if (ship) sinkFx(bs, sp.rig.x, sp.rig.y, e.kind === 'king' ? 1.6 : 1);
         ftx(bs, sp.rig.x, sp.rig.y - 34, `+${TD2_ENEMIES[e.kind].gold}`, '#ffe885', 14);
         if (e.kind === 'captain' || e.kind === 'king') bigEvent(bs, bs.hs, 'bossDown');
         // 大副倒下：原地一圈尘土，散出来的水手从这里冲出去（spawn 事件照常建人）；字飘得比伤害数字高，不被盖住
@@ -296,6 +298,9 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       const muzzle = { x: from.x + 30, y: from.y - 34 };
       const to = W(e.x1, e.y1);
       bs.pt.ringBurst(muzzle.x, muzzle.y, 0.7);
+      // 船身后坐（tdsync 按 fired 往回坐一下），炮口冒一团烟
+      if (boat) boat.fired = bs.time.now;
+      bs.pt.cannonSmoke(muzzle.x, muzzle.y);
       // 规则里同一拍就炸哑了塔（jam 事件），炮弹只是表演：按 SHELL_FLY 拍飞过去，砸在塔身上
       shipShot(bs, muzzle, from, to, s.tick, s.tick + SHELL_FLY, Math.min(140, 50 + Math.hypot(to.x - muzzle.x, to.y - muzzle.y) * 0.25), 20, 'shell');
       break;
@@ -442,6 +447,15 @@ const SHELL_FLY = 8;
  * 船和岸防老炮的炮弹：走弹道对象池（shots.ts，不在开火时新建对象），按规则拍插值（暂停、加速都跟着），带地面阴影。
  * ground 是炮口正下方的地面点，e1 是命中时离地多高（砸在塔身上 ≈ 20），land 是落地效果（爆炸另有 explode 事件的就不画）
  */
+/** 沉船：一圈水花、木片四散、一团烟，船身没下去的半路再冒一串气泡（size：海盗王 1.6，炮艇 1） */
+function sinkFx(bs: TdScene, x: number, y: number, size: number): void {
+  bs.pt.splash(x, y, 1.2 * size);
+  bs.pt.splinters(x, y - 16, Math.round(8 * size));
+  bs.pt.cannonSmoke(x, y - 30, size);
+  if (REDUCED) return;
+  bs.time.delayedCall(SINK_MS * 0.45, () => bs.pt.bubbles(x, y, size));
+}
+
 function shipShot(bs: TdScene, muzzle: { x: number; y: number }, ground: { x: number; y: number }, to: { x: number; y: number }, t0: number, t1: number, arc: number, e1: number, land: LandKind): void {
   bs.shots.start({
     fx: 'ball', sx: muzzle.x, sy: muzzle.y, gx: ground.x, gy: ground.y, tx: to.x, ty: to.y, e1, t0, t1: Math.max(t0 + 1, t1),

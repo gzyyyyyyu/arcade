@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { ArtPiece } from './art/index.ts';
 import { rigFrame, type RigFrame } from './art/rigparts.ts';
 import { guardKick, lerpPlace, shieldPlace, type ShieldPlace } from './shieldlook.ts';
-import { DEATH_MS as FALL_MS, attackFrame, deathPose, easeInOutSine, strideFrame, type DeathPose } from './motion.ts';
+import { DEATH_MS as FALL_MS, SINK_MS, attackFrame, deathPose, easeInOutSine, sinkPose, strideFrame, type DeathPose } from './motion.ts';
 import {
   DEATH_CLIP, DEATH_MS, HIT, HIT_HEAVY, HIT_HEAVY_MS, HIT_MS, IDLE_MS, RIG_PARTS, SKEL, STYLE,
   addPose, arcLook, charLevel, stopK, copyPose, deathAlpha, hatDrop, mixPose, newXf, onRest, rigLod, sampleClip, solveRig, strideOf, zeroPose,
@@ -21,7 +21,7 @@ import { REDUCED } from './feel.ts';
 export const RIG_TEX = 'rig';
 /** 带皮肤的图集 key；tm 给了就先查烘好没有，没烘好退回默认图集 */
 export function rigTex(kind: RigKind, skin?: string, tm?: Phaser.Textures.TextureManager): string {
-  if (skin !== 'gold' && skin !== 'shadow' && skin !== 'royal') return RIG_TEX;
+  if (skin !== 'gold' && skin !== 'shadow' && skin !== 'royal' && skin !== 'rank1' && skin !== 'rank2' && skin !== 'rank3') return RIG_TEX;
   const k = `${RIG_TEX}~${kind}~${skin}`;
   return !tm || tm.exists(k) ? k : RIG_TEX;
 }
@@ -45,6 +45,8 @@ export interface RigIn {
   /** 场景附加的上下偏移（跳下船的小弹跳）和压扁 */
   oy: number;
   sq: number;
+  /** 整个人的放大倍数（不传 = 1）：守岛英雄比骨架原大再大一圈，混战里好找 */
+  size?: number;
   alpha: number;
   /** 0 = 完整骨架，1 = 整帧图，2 = 屏外（不画） */
   lod: 0 | 1 | 2;
@@ -145,6 +147,8 @@ export class Rig {
   private flatKey = '';
   /** 倒下：样式、倒向、帽子飞出去的起点 */
   private death: DeathStyle | null = null;
+  /** 沉船（炮艇、海盗王这些整张图的船）：倒下改成没进水里，见 sinkPose */
+  private sinking = false;
   private hat0 = { x: 0, y: 0, r: 0 };
   private readonly hatO = { x: 0, y: 0, r: 0 };
   private readonly fallPose: DeathPose = { angle: 0, dy: 0, sy: 1, alpha: 1 };
@@ -230,6 +234,7 @@ export class Rig {
     this.charQ = 0;
     this.clearTint();
     this.death = null;
+    this.sinking = false;
     this.lod = kind ? 0 : 1;
     this.flatKey = '';
     this.c.setVisible(!!kind).setAlpha(1).setScale(1).setRotation(0);
@@ -237,11 +242,13 @@ export class Rig {
     return this;
   }
 
+  // 画面上的位置：整张图（lod 1：船、鹦鹉群、被 RigCap 降档的远处敌人）只挪 flat、不挪骨架容器，读容器会拿到旧位置——
+  // 血条、伤害数字、炮口火光、沉船水花都按这里放
   get x(): number {
-    return this.c.x;
+    return this.lod === 1 ? this.flat.x : this.c.x;
   }
   get y(): number {
-    return this.c.y;
+    return this.lod === 1 ? this.flat.y : this.c.y;
   }
   get active(): boolean {
     return this.c.active;
@@ -275,7 +282,7 @@ export class Rig {
       this.tinted = -1;
     }
     // 只用整帧图的（鹦鹉群、炮艇、海盗王）没有自己的骨架，this.sk 是池子里上一个单位留下的：按整帧图的锚点算头顶
-    this.topY = flatOnly ? o.y - (this.flat.originY * this.flat.height) / this.r : o.y + this.sk.top * this.sk.s;
+    this.topY = o.y - ((flatOnly ? (this.flat.originY * this.flat.height) / this.r : -this.sk.top * this.sk.s) * (o.size ?? 1));
     this.gMode = o.mode;
     this.gDist = o.dist;
     this.gAtk = o.atk;
@@ -294,13 +301,13 @@ export class Rig {
     this.drawTar(now);
     if (o.wob !== undefined) this.c.setRotation(o.wob);
     if (!o.full && !swapped && this.mode === o.mode) {
-      this.c.setScale(o.face * this.turnSign() * (1 + this.pose.sq / 2), 1 - this.pose.sq);
+      this.c.setScale(o.face * this.turnSign() * (1 + this.pose.sq / 2) * (o.size ?? 1), (1 - this.pose.sq) * (o.size ?? 1));
       if (this.hasShield) this.shieldTick(o, now);
       return;
     }
     this.solve(o, now);
     const sq = this.pose.sq + o.sq;
-    this.c.setScale(o.face * this.turnSign() * (1 + sq / 2), 1 - sq);
+    this.c.setScale(o.face * this.turnSign() * (1 + sq / 2) * (o.size ?? 1), (1 - sq) * (o.size ?? 1));
     this.place(true);
     if (this.hasShield) this.shieldTick(o, now);
   }
@@ -488,7 +495,7 @@ export class Rig {
         this.flat.setTexture(f.key).setOrigin(f.ax / f.w, f.ay / f.h);
       }
     }
-    const s = 1 / this.r;
+    const s = (o.size ?? 1) / this.r;
     this.flat.setPosition(o.x, o.y + o.oy).setDepth(o.depth).setAlpha(o.alpha).setScale(s * o.face * (1 + o.sq), s * (1 - o.sq));
   }
 
@@ -537,13 +544,24 @@ export class Rig {
     this.c.setScale(this.dFace, 1);
   }
 
-  /** 整个倒下演完要多久（骨架的动作更长，整帧图沿用原来的倒下） */
+  /** 船沉下去（整张图的船才有）：和 die 一样进入倒下，只是姿态换成 sinkPose、时长 SINK_MS */
+  sink(face: number): void {
+    this.die('soft', face);
+    this.sinking = true;
+  }
+
+  /** 整个倒下演完要多久（骨架的动作更长，整帧图沿用原来的倒下，沉船更长） */
   get deathMs(): number {
-    return this.lod === 0 && this.kind ? DEATH_MS : FALL_MS;
+    return this.sinking ? SINK_MS : this.lod === 0 && this.kind ? DEATH_MS : FALL_MS;
   }
 
   /** k = 倒下进度 0..1 */
   stepDeath(k: number): void {
+    if (this.sinking) {
+      const p = sinkPose(k);
+      this.flat.setRotation(p.rot * this.fallDir).setY(this.flatY + p.dy).setAlpha(p.alpha).setScale(this.flatSx, Math.abs(this.flatSx) * p.sy);
+      return;
+    }
     if (this.lod !== 0 || !this.kind) {
       deathPose(this.fallPose, k);
       this.flat.setRotation(this.fallPose.angle * this.fallDir).setY(this.flatY + this.fallPose.dy).setAlpha(this.fallPose.alpha).setScale(this.flatSx, Math.abs(this.flatSx) * this.fallPose.sy);
