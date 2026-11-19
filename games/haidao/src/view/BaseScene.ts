@@ -255,7 +255,9 @@ export class BaseScene extends Phaser.Scene {
       return out;
     };
     app.api.focusOn = (kind, k) => {
-      const b = app.profile.base.buildings.find((x) => x.kind === kind);
+      // 'goldmine#1' = 第二座金矿（和 where 一样）
+      const [kk, ii] = kind.split('#');
+      const b = app.profile.base.buildings.filter((x) => x.kind === kk)[Number(ii ?? 0)];
       const n = b && this.nodes.get(b.id);
       if (!n) return false;
       const c = centerOf(this, n);
@@ -264,6 +266,8 @@ export class BaseScene extends Phaser.Scene {
       drawSel(this);
       return true;
     };
+    // 测帧率的镜头（perf.ts 的基地场景）：世界坐标，放大倍数相对开场全岛
+    app.api.lookAt = (x, y, z) => this.cc.setView(x, y, this.fit.home.z * z);
     app.api.beach = () => null;
     app.api.ready = true;
   }

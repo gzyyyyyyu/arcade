@@ -6,7 +6,7 @@
 import type { TdScene } from './TdScene.ts';
 import Phaser from 'phaser';
 import { depthOf, footCenter, iso } from './iso.ts';
-import { artBox } from './textures.ts';
+import { alphaAt, artBox } from './textures.ts';
 import { newCycle, pick, type Cycle, type PickItem } from './basepick.ts';
 
 /** 像素透明度高于它才算"点在塔上"（0–255），和基地一致 */
@@ -31,7 +31,7 @@ function opaqueAt(bs: TdScene, key: string, im: Phaser.GameObjects.Image, wx: nu
   const ty = (wy - (im.y - im.originY * im.displayHeight)) / im.scaleY;
   if (tx < bx.l || tx > bx.r || ty < bx.t || ty > bx.b) return false;
   if (!bs.textures.exists(key)) return true;
-  return (bs.textures.getPixelAlpha(Math.floor(tx), Math.floor(ty), key) ?? 0) > ALPHA_MIN;
+  return alphaAt(bs.textures, key, Math.floor(tx), Math.floor(ty)) > ALPHA_MIN;
 }
 
 /** (wx, wy) 在第 slot 块木台上那座塔的不透明像素上（或附近）吗：九个取样点，先按外框快速排除 */
