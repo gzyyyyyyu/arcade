@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { type TdSetup, type IsoWeek, type TdAction, type TdTowerKind, TD2_COST, TD2_HERO_SKILL, type BuildingKind, type TdEnemyKind } from '../core/index.ts';
+import { type TdSetup, type IsoWeek, type TdAction, type TdTowerKind, TD2_COST, TD2_HERO_SKILL, TD2_NAV_SKILL, type BuildingKind, type TdEnemyKind } from '../core/index.ts';
 import type { LiveTier } from '../core/live.ts';
 import { UNIT } from '../core/types.ts';
 import { BarList } from './bars.ts';
@@ -40,11 +40,13 @@ export function buildCost(k: TdTowerKind): number {
 
 export const HATCH = hatchSegments(9);
 
-/** 英雄技能的范围（单位）和冷却（拍）：1 拒马、2 炸药桶、锚钩（8 级起） */
+/** 英雄技能的范围（单位）和冷却（拍）：船长 1 拒马、2 炸药桶、锚钩（8 级起）；航海士 1 急射旗、2 重赏 */
 export const SKILL = {
   barricade: { range: TD2_HERO_SKILL.barricade.range, cd: TD2_HERO_SKILL.barricade.cd },
   bomb: { range: TD2_HERO_SKILL.bomb.range, cd: TD2_HERO_SKILL.bomb.cd },
   hook: { range: TD2_HERO_SKILL.hook.range, cd: TD2_HERO_SKILL.hook.cd },
+  flag: { range: TD2_NAV_SKILL.flag.range, cd: TD2_NAV_SKILL.flag.cd },
+  reward: { range: TD2_NAV_SKILL.reward.range, cd: TD2_NAV_SKILL.reward.cd },
 } as const;
 
 /** 弹道：[素材, 弧度, 要不要朝飞行方向转] */

@@ -8,7 +8,7 @@ import { TD2_HOME } from '../content/td2units.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
   TD_TOWER_DAMAGE, TD_TOWER_KINDS,
-  TIDE_MODS, beijingIsoWeek, branchError, garrisonTier, hqLevel, nextTdUnlock, tdDailyCap, tdGarrisonOptions, tdLevelUnlocked, tideLine, tideMap, tideMod, weekLabel,
+  TIDE_MODS, beijingIsoWeek, branchError, garrisonTier, hqLevel, navUnlocked, nextTdUnlock, tdDailyCap, tdGarrisonOptions, tdLevelUnlocked, tideLine, tideMap, tideMod, weekLabel,
 } from '../core/index.ts';
 import { tideBest } from '../net/tide.ts';
 import { garrisonRec } from './garrisonrec.ts';
@@ -750,6 +750,7 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
     onGo(out);
   };
   button('返回', 'hd-btn-plain', back, btns).title = '返回选关（Esc）';
+  heroSwitch(btns);
   const go = button('开打', 'hd-btn-gold hd-tdgar-go', start, btns);
   go.title = '开打（空格）';
   const key = (e: KeyboardEvent): void => {
@@ -768,6 +769,28 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
   return stop;
 }
 
+/**
+ * 带哪个英雄（规则版本 23）：第一章通关后，战役的驻守台面板和海盗来袭卡片上各一个切换钮，点一下在船长、航海士之间换，
+ * 存进存档（heroPick），下次默认上次选的。没解锁不出钮。悬赏守岛、大潮、护航不出（第一版只有船长）
+ */
+export function heroSwitch(parent: HTMLElement): HTMLButtonElement | null {
+  if (!navUnlocked(app.profile)) return null;
+  const say = (): void => {
+    const nav = app.profile.heroPick === 'nav';
+    b.textContent = nav ? '带：航海士' : '带：船长';
+    b.classList.toggle('on', nav);
+    b.setAttribute('aria-pressed', String(nav));
+    b.title = nav ? '航海士：急射旗让旗边的塔打得快一倍，重赏圈里倒下的海盗金币翻倍，提前叫波多拿一半金币；打得远、跑得快。点一下换回船长' : '船长：拒马挡路、炸药桶炸一群、身边的塔打得快一点。点一下换成航海士';
+  };
+  const b = button('', 'hd-btn-plain hd-tdhero', () => {
+    const { heroPick: _, ...rest } = app.profile;
+    app.commit(app.profile.heroPick === 'nav' ? rest : { ...rest, heroPick: 'nav' });
+    say();
+  }, parent);
+  say();
+  return b;
+}
+
 /** 选关页上的"海盗来袭"入口：守自己的岛，撑得越久奖励越多，不算星 */
 /** 加难档的奖励比普通档多几成（四舍五入，8% 比 6% 是 3 成；结算页同一个说法） */
 export function hardMore(): number {
@@ -778,6 +801,8 @@ function homeCard(parent: HTMLElement, stars: number, hardOpen: boolean, onHome:
   const locked = stars < 1;
   const c = el('div', `hd-tidecard hd-homecard${locked ? ' lock' : ''}`, undefined, parent);
   const mid = el('div', 'hd-tdmid', undefined, c);
+  // 三个钮一组：窄屏放不下时整组换到第二行
+  const acts = el('div', 'hd-home-acts', undefined, c);
   el('b', 'hd-tdname', locked ? '海盗来袭 · 未解锁' : '海盗来袭', mid);
   if (locked) el('small', 'hd-tdlock', `先守下「${TD2_LEVELS.find((l) => l.id === HOME_UNLOCK)?.name ?? '第 1 关'}」（≥1 星）`, mid);
   else {
@@ -794,12 +819,13 @@ function homeCard(parent: HTMLElement, stars: number, hardOpen: boolean, onHome:
         hard.classList.toggle('on', app.homeHard);
         hard.setAttribute('aria-pressed', String(app.homeHard));
         say();
-      }, c);
+      }, acts);
       hard.setAttribute('aria-pressed', String(app.homeHard));
       hard.title = `海盗多约两成、第 6 波起有精英；每撑住一波的奖励从 ${TD2_HOME.perWavePct}% 提到 ${TD2_HOME.hard.perWavePct}%（一局三星的百分比）`;
     } else app.homeHard = false;
+    heroSwitch(acts);
   }
-  const go = button(locked ? '未解锁' : '出发', locked ? 'hd-btn-plain' : 'hd-btn-gold', onHome, c);
+  const go = button(locked ? '未解锁' : '出发', locked ? 'hd-btn-plain' : 'hd-btn-gold', onHome, acts);
   go.disabled = locked;
   go.dataset.home = '1';
 }

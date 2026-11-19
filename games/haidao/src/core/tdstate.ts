@@ -4,7 +4,7 @@
 import { BUILDINGS } from '../content/index.ts';
 import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
 import { TD_HERO_LIGHT } from '../content/tdunits.ts';
-import { TD2_BOSS_EXTRA_TICKS, TD2_ENEMIES, TD2_HERO, TD2_SHOCK_STUN, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
+import { TD2_BOSS_EXTRA_TICKS, TD2_ENEMIES, TD2_HERO, TD2_NAV, TD2_SHOCK_STUN, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
 import type { Rng } from './rng.ts';
 import { cellIdx, cellX, cellY, flowField } from './grid.ts';
@@ -288,10 +288,11 @@ export function tdBuildRange(kind: TdTowerKind, tier: TdTier = 1): { range: numb
   return { range: st.range, minRange: st.minRange };
 }
 
-/** 英雄某一级的数值：TD2_HERO 每级 +growPct%（登陆战的驻岛英雄另有一张表，不读这里） */
-export function tdHeroStats(level: number): { hp: number; dmg: number; reload: number; range: number; speed: number } {
+/** 英雄某一级的数值：船长 TD2_HERO、航海士 TD2_NAV，每级 +growPct%（登陆战的驻岛英雄另有一张表，不读这里） */
+export function tdHeroStats(level: number, kind?: 'nav'): { hp: number; dmg: number; reload: number; range: number; speed: number } {
+  const b = kind === 'nav' ? TD2_NAV : TD2_HERO;
   const k = 100 + TD2_HERO.growPct * (Math.max(1, level) - 1);
-  return { hp: Math.floor((TD2_HERO.hp * k) / 100), dmg: Math.floor((TD2_HERO.dmg * k) / 100), reload: TD2_HERO.reload, range: TD2_HERO.range, speed: TD2_HERO.speed };
+  return { hp: Math.floor((b.hp * k) / 100), dmg: Math.floor((b.dmg * k) / 100), reload: b.reload, range: b.range, speed: b.speed };
 }
 
 export function tcx(t: { x: number; size: number }): number {

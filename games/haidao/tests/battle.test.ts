@@ -209,7 +209,7 @@ describe('隐藏信息与金标准', () => {
   });
 
   it('金标准：固定 setup 加机器人操作的整场指纹（规则改了要有意更新并升 RULES_VERSION；版本 6 不改战役，指纹和版本 5 一样；版本 7、8 只改守岛；不带前缀的键锁版本 8，v9- 的锁版本 9）', () => {
-    expect(RULES_VERSION).toBe(22);
+    expect(RULES_VERSION).toBe(23);
     const got: Record<string, string> = {};
     for (const rules of [8, 9]) {
       for (const [i, style] of [[0, 'normal'], [4, 'normal'], [7, 'novice'], [11, 'normal']] as const) {

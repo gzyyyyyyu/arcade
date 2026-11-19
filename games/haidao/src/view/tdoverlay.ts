@@ -12,6 +12,7 @@ import { DEPTH } from './depth.ts';
 import { tdBarList, W, SKILL, HATCH } from './tdcommon.ts';
 import { foeTier, type FoeTier } from './tdboss.ts';
 import { drawHookAim, drawHooks } from './tdhookfx.ts';
+import { drawNav, drawNavAim } from './tdnavfx.ts';
 
 export function drawBars(bs: TdScene): void {
   const g = bs.bars;
@@ -66,8 +67,9 @@ export function drawBars(bs: TdScene): void {
     g.fillStyle(it.col, it.a).fillRect(it.x - bw / 2, it.y, bw * Math.max(0, Math.min(1, it.f)), bh);
     if (it.mark) barMark(g, it.x - bw / 2 - 1 / z, it.y + bh / 2, it.mark, it.a, z);
   }
-  // 号令（被动）：英雄身边一圈淡金色的光，圈里的塔脚下也亮一圈（它们打得更快）
-  if (h.respawn < 0) {
+  // 号令（船长的被动）：英雄身边一圈淡金色的光，圈里的塔脚下也亮一圈（它们打得更快）；航海士没有号令，画急射旗和重赏圈
+  drawNav(bs, f, now, z);
+  if (h.respawn < 0 && !h.kind) {
     const hw = { x: bs.hero.x, y: bs.hero.y };
     const rr = TD2_HERO_SKILL.rally.r;
     const R = isoRing(rr / UNIT);
@@ -84,6 +86,7 @@ export function drawBars(bs: TdScene): void {
   drawAim(bs, f, now, z);
   drawHooks(bs, f, z);
   if (bs.mode === 'hook') drawHookAim(bs, f, now);
+  if (bs.mode === 'flag' || bs.mode === 'reward') drawNavAim(bs, f, now);
   // 技能瞄准：英雄身边能放的范围（拒马、炸药桶）；老炮全岛都够得着，不画
   if (bs.mode === 'keg' || bs.mode === 'barricade') {
     const w = W(h.x, h.y);

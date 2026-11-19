@@ -11,7 +11,7 @@ import { floatText } from './fx.ts';
 import { MERGE_MS, pickMerge } from './fxlayout.ts';
 import { laneName, planCard, callBonusText, fitSuggest, waveEnemies } from './td-ui.ts';
 import { injectTdCss } from './tdcss.ts';
-import { FOE_KEY, MECH_HINT, MECH_KEY, foeText, mechsOf, newFoes } from './tdhint.ts';
+import { FOE_KEY, MECH_HINT, MECH_KEY, foeText, mechsOf, navSecs, newFoes } from './tdhint.ts';
 import { hintCard, takeNew } from './hintcard.ts';
 import { screen, hallButton, el, img, button, confirmBox, toast } from './ui.ts';
 import { EscortView } from './escortview.ts';
@@ -107,7 +107,7 @@ export function buildUi(bs: TdScene): void {
   el('b', '', '英雄', heroBtn);
   el('kbd', 'hd-key', 'H', heroBtn);
   heroBtn.title = '指挥英雄：选中后点地面让他过去，再点一次或 Esc 取消（H）；也可以直接右键地面';
-  const mkSkill = (label: string, icon: 'barrage' | 'shield' | 'hook', tip: string, f: () => void, n: number): HTMLButtonElement => {
+  const mkSkill = (label: string, icon: 'barrage' | 'shield' | 'hook' | 'rushFlag' | 'reward', tip: string, f: () => void, n: number): HTMLButtonElement => {
     const b = button('', 'hd-td-skill hd-btn-wood', f, bottom);
     el('span', 'hd-cd', undefined, b);
     b.appendChild(img(iconA(icon), 28));
@@ -116,8 +116,14 @@ export function buildUi(bs: TdScene): void {
     b.title = `${tip}（${n}）`;
     return b;
   };
-  const barBtn = mkSkill('拒马', 'shield', '拒马：在英雄身边的路上放一道栅栏，挡住地面敌人几秒', () => pickSkill(bs, 'barricade'), 1);
-  const keg = mkSkill('炸药桶', 'barrage', '炸药桶：扔到英雄身边，炸一小群', () => pickSkill(bs, 'keg'), 2);
+  // 航海士（规则版本 23）占同样两个位置、同样的快捷键 1、2，冷却也是同两个字段（core/tdnav.ts）
+  const nav = !!bs.s.hero.kind;
+  const barBtn = nav
+    ? mkSkill('急射旗', 'rushFlag', `急射旗：在英雄身边插一面旗，${navSecs('flag')} 秒里旗边的塔打得快一倍`, () => pickSkill(bs, 'flag'), 1)
+    : mkSkill('拒马', 'shield', '拒马：在英雄身边的路上放一道栅栏，挡住地面敌人几秒', () => pickSkill(bs, 'barricade'), 1);
+  const keg = nav
+    ? mkSkill('重赏', 'reward', `重赏：在英雄身边画一个圈，${navSecs('reward')} 秒里倒在圈里的海盗金币翻倍`, () => pickSkill(bs, 'reward'), 2)
+    : mkSkill('炸药桶', 'barrage', '炸药桶：扔到英雄身边，炸一小群', () => pickSkill(bs, 'keg'), 2);
   const call = button('', 'hd-btn-gold hd-td-call', () => callWave(bs), bottom);
   call.title = '叫下一波：提前开打，拿金币、技能冷却变短（空格 / 3）';
   keyBadge(call, 3);
@@ -152,7 +158,8 @@ export function buildUi(bs: TdScene): void {
   // 英雄不够级时（战役、海盗来袭里）钮照样摆出来但锁着，写明几级解锁，玩家知道有这个东西可盼
   let hook: HTMLButtonElement | null = null;
   const hookLocked = bs.s.hero.hookReady === undefined;
-  if (!hookLocked || hookEnabled(bs.d.setup, TD2_HERO_SKILL.hook.level)) {
+  // 航海士没有锚钩，也不显示「8 级解锁」的灰钮
+  if (!nav && (!hookLocked || hookEnabled(bs.d.setup, TD2_HERO_SKILL.hook.level))) {
     const tip = hookLocked ? `锚钩：英雄 ${TD2_HERO_SKILL.hook.level} 级解锁（军械所升英雄）` : '锚钩：把黄圈里一个敌人钩回来、定住一会儿，正往船上跑的也能钩回来；首领和船钩不动';
     hook = mkSkill('锚钩', 'hook', tip, () => (hookLocked ? toast(tip) : pickSkill(bs, 'hook')), mech ? 5 : 4);
     hook.classList.add('hd-td-mech', 'hd-td-hookbtn');
@@ -250,7 +257,7 @@ function foeHint(bs: TdScene, p: WavePreview, start: boolean): void {
   const mechs = start ? takeNew(MECH_KEY, (seen) => mechsOf(bs.s).filter((k) => !seen.has(k))) : [];
   const fresh = takeNew(FOE_KEY, (seen) => newFoes(waveEnemies(p).map((e) => e.kind), seen));
   const rows = [
-    ...mechs.map((k) => ({ icon: img(k === 'crate' ? tdP('crate') : k === 'fleet' ? iconA('ship') : iconA(k), 40), ...MECH_HINT[k] })),
+    ...mechs.map((k) => ({ icon: img(k === 'crate' ? tdP('crate') : k === 'fleet' ? iconA('ship') : k === 'nav' ? iconA('rushFlag') : iconA(k), 40), ...MECH_HINT[k] })),
     ...fresh.flatMap((k) => {
       const f = tdE(k, 'walk')[0];
       return f ? [{ icon: img(f, 40), name: TD2_ENEMIES[k].name, text: foeText(k, bs.s.unlocked) }] : [];
@@ -387,12 +394,17 @@ export function updateHud(bs: TdScene, force = false): void {
     t.textContent = downS >= 0 ? `复活 ${downS}秒` : cd > 0 ? `${Math.ceil(cd / TICKS_PER_SEC)}秒` : label;
   };
   // 冷却扫光的总长按这一局的冷却算（大潮英雄周减半，规则版本 22）
-  ring(H.bar, barCd, heroCd(s, SKILL.barricade.cd), '拒马');
-  ring(H.keg, kegCd, heroCd(s, SKILL.bomb.cd), '炸药桶');
+  if (h.kind) {
+    ring(H.bar, barCd, heroCd(s, SKILL.flag.cd), '急射旗');
+    ring(H.keg, kegCd, heroCd(s, SKILL.reward.cd), '重赏');
+  } else {
+    ring(H.bar, barCd, heroCd(s, SKILL.barricade.cd), '拒马');
+    ring(H.keg, kegCd, heroCd(s, SKILL.bomb.cd), '炸药桶');
+  }
   H.hero.classList.toggle('sel', bs.heroSel);
   H.hero.classList.toggle('off', downS >= 0);
-  H.keg.classList.toggle('sel', bs.mode === 'keg');
-  H.bar.classList.toggle('sel', bs.mode === 'barricade');
+  H.keg.classList.toggle('sel', bs.mode === 'keg' || bs.mode === 'reward');
+  H.bar.classList.toggle('sel', bs.mode === 'barricade' || bs.mode === 'flag');
   if (H.hook && h.hookReady !== undefined) {
     ring(H.hook, hookCd, heroCd(s, SKILL.hook.cd), '锚钩');
     H.hook.classList.toggle('sel', bs.mode === 'hook');

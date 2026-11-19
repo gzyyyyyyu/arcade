@@ -183,21 +183,28 @@ export function drawProps(bs: TdScene): void {
   }
 }
 
+/** 守岛英雄画哪套骨架：航海士（规则版本 23）还是船长 */
+export function heroRig(h: { kind?: 'nav' }): 'h.nav' | 't.captain' {
+  return h.kind ? 'h.nav' : 't.captain';
+}
+
 export function makeHero(bs: TdScene): void {
   const w = W(bs.s.hero.x, bs.s.hero.y);
   // 脚下暖金底盘（半透明的金色实心椭圆加亮边）：人堆里先看到这块金，再找到人
   bs.heroRing = bs.add.ellipse(w.x, w.y, 40, 20, 0xffc94a, 0.42).setStrokeStyle(3, 0xffe885, 1).setDepth(DEPTH.heroRing);
+  // 整帧图只在离得远换低细节时用；英雄一直画完整骨架（tdsync 传 lod 0），航海士也拿船长的整帧当兜底
   const frames = (an: 'idle' | 'walk' | 'attack') => troopF('captain', an);
-  bs.hero = bs.pool.get('t.captain', RIG_TEX, frames, bs.time.now);
-  // 英雄 4 / 8 / 12 级换外观（白色长羽、金肩章、双枪）：那一级的部件图集按需烘（第一次进要等几十毫秒，先用普通图集顶着），烘好换上
+  const kind = heroRig(bs.s.hero);
+  bs.hero = bs.pool.get(kind, RIG_TEX, frames, bs.time.now);
+  // 英雄 4 / 8 / 12 级换外观（船长：白色长羽、金肩章、双枪；航海士：辫子金扣、金肩章、金边望远镜）：那一级的部件图集按需烘（第一次进要等几十毫秒，先用普通图集顶着），烘好换上
   const rank = heroRank(bs.s.hero.level);
   if (rank) {
-    const key = rigTex('t.captain', rank);
+    const key = rigTex(kind, rank);
     const wear = (): void => {
-      if (bs.sys.isActive()) bs.hero.setup('t.captain', key, frames, bs.time.now);
+      if (bs.sys.isActive()) bs.hero.setup(kind, key, frames, bs.time.now);
     };
     if (bs.textures.exists(key)) wear();
-    else void bakeAtlas(bs.textures, key, rigPieces('t.captain', rank), bs.r).then(wear);
+    else void bakeAtlas(bs.textures, key, rigPieces(kind, rank), bs.r).then(wear);
   }
   bs.hero.c.setPosition(w.x, w.y);
   bs.heroPx = w.x;

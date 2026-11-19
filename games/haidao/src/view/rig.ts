@@ -854,9 +854,11 @@ export interface RigStyle {
 
 export type RigKind =
   | 't.sailor' | 't.gunner' | 't.brute' | 't.bomber' | 't.captain' | 't.medic' | 't.cannoneer' | 't.harpooner' | 't.grenadier' | 't.shield'
-  | 'e.sailor' | 'e.ironclad' | 'e.fog' | 'e.skiff' | 'e.skiffling' | 'e.sapper' | 'e.grenadier' | 'e.captain' | 'e.shield' | 'e.bosun' | 'e.mate' | 'e.medic';
+  | 'e.sailor' | 'e.ironclad' | 'e.fog' | 'e.skiff' | 'e.skiffling' | 'e.sapper' | 'e.grenadier' | 'e.captain' | 'e.shield' | 'e.bosun' | 'e.mate' | 'e.medic'
+  /** 守岛第二个英雄航海士（规则版本 23） */
+  | 'h.nav';
 
-export const RIG_KINDS: RigKind[] = ['t.sailor', 't.gunner', 't.brute', 't.bomber', 't.captain', 't.medic', 't.cannoneer', 't.harpooner', 't.grenadier', 't.shield', 'e.sailor', 'e.ironclad', 'e.fog', 'e.skiff', 'e.skiffling', 'e.sapper', 'e.grenadier', 'e.captain', 'e.shield', 'e.bosun', 'e.mate', 'e.medic'];
+export const RIG_KINDS: RigKind[] = ['t.sailor', 't.gunner', 't.brute', 't.bomber', 't.captain', 't.medic', 't.cannoneer', 't.harpooner', 't.grenadier', 't.shield', 'e.sailor', 'e.ironclad', 'e.fog', 'e.skiff', 'e.skiffling', 'e.sapper', 'e.grenadier', 'e.captain', 'e.shield', 'e.bosun', 'e.mate', 'e.medic', 'h.nav'];
 
 /** 人形骨架的默认数：髋 -11、腿 10.4、肩在身体顶下 3～4 */
 function man(s: number, top: number, sh: [number, number], arm: number, headTop: number): Skel {
@@ -874,6 +876,8 @@ export const SKEL: Record<RigKind, Skel> = {
   't.harpooner': man(1.56, -24, [4.6, -21], 10, -49),
   't.grenadier': man(1.5, -24, [4.6, -21], 10, -49),
   't.shield': man(1.6, -24, [4.8, -21], 10, -50),
+  // 航海士：比船长瘦小一圈（船长 1.7），头顶是扎巾不是三角帽，所以头顶低
+  'h.nav': man(1.56, -24, [4.6, -21], 10, -50),
   'e.sailor': man(1.5, -24, [4.6, -20], 9.5, -47),
   'e.medic': man(1.5, -24, [4.6, -20], 9.5, -47),
   'e.ironclad': man(1.75, -25, [6.7, -21], 9.5, -48),
@@ -947,6 +951,8 @@ export const STYLE: Record<RigKind, RigStyle> = {
   't.bomber': { rest: rest({ ...STD_REST, armF: 45 }), walk: WALKS.bomber, idle: IDLE, attack: scaleClip(THROW, { wep: 0.2 }, { ms: 520 }), extras: [LOOK], legScale: GAIT.bomber.leg, hitScale: 1.1 },
   // 船长：挺胸、步子稳，单手开枪（登陆战、守岛里英雄都是打远处），待机时举枪指挥
   't.captain': { rest: rest({ ...STD_REST, armF: 30, wep: 67, lean: -2 }), walk: WALKS.captain, idle: IDLE, attack: PISTOL, extras: [COMMAND, LOOK], legScale: GAIT.captain.leg, hitScale: 0.7 },
+  // 航海士：端长枪走（步态同火枪手），开火同火枪手（举枪瞄准、后坐、装填）；待机时举手打旗语（同船长的指挥）、四下看
+  'h.nav': { rest: rest({ ...STD_REST, wep: 31 }), walk: WALKS.gunner, idle: IDLE, attack: SHOOT, extras: [COMMAND, LOOK], legScale: GAIT.gunner.leg, hitScale: 0.8 },
   // 船医：提着药箱走，举箱子放绿光
   't.medic': { rest: rest({ ...STD_REST, armF: 20 }), walk: WALKS.medic, idle: IDLE, attack: HEAL, extras: [LOOK], legScale: GAIT.medic.leg, hitScale: 1 },
   // 火炮兵：双手推着小炮，身子前倾，开火被顶得往后滑

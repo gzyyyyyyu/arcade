@@ -1,7 +1,7 @@
 import type { BaseScene } from './BaseScene.ts';
 import { TD2_HERO_SKILL } from '../content/td2units.ts';
 import { BUILDINGS, TROOPS, SKILLS, HQ_LEVELS } from '../content/index.ts';
-import { heroCap, heroLevel, heroResearchCost, hqLevel, researchLevel, research, researchCost, researchHero, totalStars, upgrade, upgradeCost, collect } from '../core/index.ts';
+import { heroCap, heroLevel, navUnlocked, heroResearchCost, hqLevel, researchLevel, research, researchCost, researchHero, totalStars, upgrade, upgradeCost, collect } from '../core/index.ts';
 import type { TroopKind, SkillKind, Placed } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { runAchievements } from './meta.ts';
@@ -192,6 +192,10 @@ function heroRow(bs: BaseScene, body: HTMLElement, armoryId: number): HTMLElemen
     nx.style.display = 'block';
     nx.style.fontSize = '12px';
   }
+  // 第二个英雄（规则版本 23）：在守岛开局前的面板上选，这里只说怎么解锁；等级两个英雄共用
+  const nv = el('small', 'hd-hero-next', navUnlocked(p) ? '航海士已解锁：守岛开局前选带谁，等级共用' : '守岛第一章通关解锁第二个英雄「航海士」', nm);
+  nv.style.display = 'block';
+  nv.style.fontSize = '12px';
   const cost = heroResearchCost(cur);
   const r = researchHero(p);
   const b = button('', 'hd-btn-gold', () => {

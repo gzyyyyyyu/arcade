@@ -7,7 +7,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Browser, BrowserContext, Page } from 'playwright-core';
 import { CAMPAIGN, TD2_LEVEL_BY_ID } from '../src/core/index.ts';
-import { opt } from './args.ts';
+import { flag, opt } from './args.ts';
 
 export const QUERY = opt('--query') ?? '';
 /** 驻岛英雄截图：给战役局加一个宝藏箱和英雄（等级 1-8），见 main.ts 的 devhero */
@@ -19,6 +19,8 @@ export const TD_LEVEL = opt('--level') ?? 'td01';
 export const TD_LV = TD2_LEVEL_BY_ID.get(TD_LEVEL);
 export const TD_CHAPTER = TD_LV?.chapter ?? 1;
 export const TD_HQ = Number(opt('--hq') ?? Math.max(3, TD_LV?.hq ?? 3));
+/** --td --nav：在驻守台面板上换成航海士（要第一章通关，dev.td 给了），技能那一步改放急射旗和重赏 */
+export const TD_NAV = flag('--nav');
 export const TD_MECHANIC = !!(TD_LV && (TD_LV.sapperJam || TD_LV.bossSkill));
 // 守岛类的加速钮：电脑和横屏在底栏，手机竖屏挪到顶栏（.hd-td-speedtop，layout.ts）；竖屏护航在展开的速度排里（.hd-esc-speed，escortview.ts）
 export const TD_SPEED = '.hd-td-bar2 button:has-text("×"):visible, .hd-td-speedtop:visible, .hd-esc-speed:visible';
@@ -32,7 +34,7 @@ export const VIEWS = [
 ];
 export type View = (typeof VIEWS)[number];
 
-export type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { tick: number; wave: number; vault: number; lost: number; gold: number; over: boolean; slots: Array<{ x: number; y: number; tower: number; wreck: boolean; garrison: boolean }>; flags: number; routes: number; barricades: number; hero: { x: number; y: number; goal: { x: number; y: number } | null }; jammed: number; skilled: number }; ready?: boolean; level?: string; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void }; where?(k: string): { x: number; y: number } | null; beach?(i: number): { x: number; y: number } | null };
+export type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { tick: number; wave: number; vault: number; lost: number; gold: number; over: boolean; slots: Array<{ x: number; y: number; tower: number; wreck: boolean; garrison: boolean }>; flags: number; routes: number; barricades: number; hero: { x: number; y: number; goal: { x: number; y: number } | null; kind?: 'nav'; flag: boolean; reward: boolean }; jammed: number; skilled: number }; ready?: boolean; level?: string; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void }; where?(k: string): { x: number; y: number } | null; beach?(i: number): { x: number; y: number } | null };
 export const hook = (page: Page): Promise<Hook> => page.evaluate(() => ((window as unknown as { __haidao?: Hook }).__haidao ?? {}) as Hook);
 
 // ---------------------------------------------------------------- 音效触发统计（--sfx-out <文件> 写 json，控制台总是打印）

@@ -9,7 +9,7 @@
 import { BUILDINGS, DEFENSE_KINDS } from '../content/index.ts';
 import { SHIELD } from '../content/troops.ts';
 import { HERO_RESEARCH_MAX, TD_KEG, TD_MAX_TICKS, TD_PICK_R, TD_SAPPER_WALL_COST, TD_TREASURE, TD_WALL_COST } from '../content/tdunits.ts';
-import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_EVENT, TD2_FLEET, TD2_HERO, TD2_HERO_SKILL, TD2_MINE_REARM_TICKS, TD2_TREASURE_ROLL_TICKS, TD2_UP_PCT } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_EVENT, TD2_FLEET, TD2_HERO, TD2_HERO_SKILL, TD2_MINE_REARM_TICKS, TD2_NAV_SKILL, TD2_TREASURE_ROLL_TICKS, TD2_UP_PCT } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
 import { SNIPE_WARN, applyStun, flightTicks, inRing, keepLock, laneOffset, leadPoint, rankTargets, shieldFaces, stunned } from './combat.ts';
 import { Rng, hash32 } from './rng.ts';
@@ -29,6 +29,7 @@ import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech,
 import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus } from './tdquery.ts';
 import { placeHero, stepHero, offSlot } from './tdhero.ts';
 import { castHook, hookEnabled, stepHooked } from './tdhook.ts';
+import { castFlag, castReward, flagOn, navEnabled } from './tdnav.ts';
 import { dareCount, heroCd, initHappen, killGold, payBounty, queueBounty, raining, toggleDare } from './tdevent.ts';
 
 /** 敌人在格子里按 id 散开的步长（单位）：同一条路上的敌人错开成几列，不叠成一个点 */
@@ -178,7 +179,8 @@ export function createTd(setup: TdSetup): TdState {
     sl.spent = costToTier(g.kind, tier);
   }
   const heroLv = Math.max(1, Math.min(HERO_MAX, Math.floor(setup.hero) || 1));
-  const hs = tdHeroStats(heroLv);
+  const nav = navEnabled(setup);
+  const hs = tdHeroStats(heroLv, nav ? 'nav' : undefined);
   const t0 = (treasures[0] ?? level.escort?.route[0] ?? { x: 10, y: 10 }) as { x: number; y: number };
   const hero: TdHero = {
     level: heroLv,
@@ -195,7 +197,9 @@ export function createTd(setup: TdSetup): TdState {
     barricadeReady: 0,
     aim: -1,
   };
-  if (hookEnabled(setup, heroLv)) hero.hookReady = 0;
+  // 航海士没有锚钩（第三技能只有船长有）
+  if (nav) hero.kind = 'nav';
+  else if (hookEnabled(setup, heroLv)) hero.hookReady = 0;
   const internal: Internal = {
     rng: new Rng(setup.seed, 'td-spawn'),
     nextId: maxId + 1,
@@ -747,7 +751,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     case 'keg': {
       // 炸药桶：伤害按这一关每波平均单个敌人血量的相对值，按爆破算（打不到飞的），炸障碍、点火药桶，不炸自己人
       const sk = TD2_HERO_SKILL.bomb;
-      if (h.respawn >= 0 || s.tick < h.kegReady || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
+      if (h.kind || h.respawn >= 0 || s.tick < h.kegReady || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
       if (d2(h.x, h.y, a.x, a.y) > sk.range * sk.range) return;
       h.kegReady = s.tick + heroCd(s, sk.cd);
       I.pend.push({ t: s.tick + 10, kind: 'heroKeg', id: -1, dmg: tdBombDmg(s), x: Math.round(a.x), y: Math.round(a.y), r: sk.r, hit: HIT_KEG, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0 });
@@ -756,7 +760,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     }
     case 'barricade': {
       const sk = TD2_HERO_SKILL.barricade;
-      if (h.respawn >= 0 || s.tick < (h.barricadeReady ?? 0) || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
+      if (h.kind || h.respawn >= 0 || s.tick < (h.barricadeReady ?? 0) || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
       const c = barricadeCell(s, a.x, a.y);
       if (!c || d2(h.x, h.y, c.cx * UNIT + 50, c.cy * UNIT + 50) > sk.range * sk.range) return;
       h.barricadeReady = s.tick + heroCd(s, sk.cd);
@@ -803,6 +807,12 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       return;
     case 'dare':
       toggleDare(s, ev);
+      return;
+    case 'flag':
+      castFlag(s, ev, a.x, a.y);
+      return;
+    case 'reward':
+      castReward(s, ev, a.x, a.y);
       return;
     case 'rally':
       // 规则版本 7 起号令是被动（英雄身边的塔攻速加成，见 stepTowers），这条旧命令不做事
@@ -1249,6 +1259,7 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
   const I = inner(s);
   const h = s.hero;
   const rally = TD2_HERO_SKILL.rally;
+  const flagPct = TD2_NAV_SKILL.flag.pct;
   const memo = new Map<number, number>();
   // 已经在路上的直射伤害：够打死的敌人算"必死"，别的塔不再往它身上浪费炮弹（不然五座塔盯一个，落地时八成已经死了）
   const due = new Map<number, number>();
@@ -1329,8 +1340,10 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
     t.aim = best.id;
     if (s.tick < t.cd) continue;
     let reload = st.reload;
-    // 号令（被动）：英雄身边的塔攻速加成
-    if (h.respawn < 0 && d2(cx, cy, h.x, h.y) <= rally.r * rally.r) reload = Math.floor((reload * 100) / (100 + rally.pct));
+    // 号令（船长的被动）：英雄身边的塔攻速加成；航海士没有号令，换成急射旗插着的那一座
+    if (h.kind) {
+      if (flagOn(s, t)) reload = Math.floor((reload * 100) / (100 + flagPct));
+    } else if (h.respawn < 0 && d2(cx, cy, h.x, h.y) <= rally.r * rally.r) reload = Math.floor((reload * 100) / (100 + rally.pct));
     // 狙击塔的锁定预警算在装填里：一发的总间隔仍是 reload
     t.cd = s.tick + (sniper ? Math.max(1, reload - SNIPE_WARN) : reload);
     // 多发（火箭）：按顺序一人一发，人不够就从头再轮（单挑首领时三发都打它，不白丢三分之二的伤害）
@@ -1543,6 +1556,8 @@ export function tdFingerprint(s: TdState): number {
   parts.push(h.x, h.y, h.hp, h.respawn, h.cd, h.kegReady, h.barricadeReady ?? 0);
   // 锚钩（规则版本 20）只在有锚钩的局里进指纹，旧版本和没有锚钩的模式指纹不变
   if (h.hookReady !== undefined) parts.push(h.hookReady);
+  // 航海士（规则版本 23）只在带了航海士的局里进指纹，船长局指纹不变
+  if (h.kind) parts.push(-23, h.flag?.x ?? -1, h.flag?.y ?? -1, h.flag?.until ?? 0, h.reward?.x ?? -1, h.reward?.y ?? -1, h.reward?.until ?? 0);
   for (const [id, until] of [...I.jam].sort((a, b) => a[0] - b[0])) parts.push(id, until);
   parts.push(I.skilled.size);
   // 章末机制（规则版本 16）只在有的局里进指纹，旧版本、没有机制的关的指纹不变

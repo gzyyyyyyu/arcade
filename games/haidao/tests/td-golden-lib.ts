@@ -27,12 +27,14 @@ import { tidePick } from '../src/core/tdtide.ts';
  * - 21（海盗来袭的登陆点按布局挑）：只改 `v21-home-*` 里登陆点离宝藏箱不够远的局，别的键 v21- 和 v20- 逐个相同（tests/td-home.test.ts 锁住）。
  * - 22（关内事件、大潮每周海况）：只改写了 events 的 12 关，别的键 v22- 和 v21- 逐个相同（tests/td-event.test.ts 锁住）；
  *   大潮每周海况从 v22 起进指纹锁，每条海况挑它轮到的第一周，`v22-tidemod-<海况>-*`。
+ * - 23（第二个英雄航海士）：选船长的局一律不变，v23- 和 v22- 逐个相同（tests/td-nav.test.ts 锁住）；带航海士的局从 v23 起另录
+ *   `v23-nav-<关>-*`（战役各关，建议养成）和 `v23-nav-home-*`（海盗来袭，主寨 6、8 级，普通档和加难档）。
  * v10 中档 0.29.1 前未开放（线上没有 v10 中档的对局），指纹随 0.29.1 的配平（hpPct 180 → 190）更新，只动了 v10-live-mid-* 9 个键。
  */
 export const GOLDEN_FILE = new URL('./td-golden.json', import.meta.url);
 /** 分片数：GitHub 的机器 4 核，8 片让慢片和别的测试文件错开 */
 export const GOLDEN_SHARDS = 8;
-const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 /** 海盗来袭进指纹锁的主寨等级：6 是加难档开放的那一级，8 是满级 */
 const HOME_HQ = [6, 8];
 const SEEDS = [1, 2, 3];
@@ -101,6 +103,20 @@ export function goldenJobs(): GoldenJob[] {
         const r = tdHomeSetup(tdGrowthProfile({ hq }, 'suggest'), seed, hard, rules);
         if (!r.ok) throw new Error(`home hq${hq}: ${r.error}`);
         for (const bot of BOTS) one(`home-${hard ? 'hard' : 'normal'}-hq${hq}-${bot}-${seed}`, r.value, bot);
+      }
+    }
+    if (rules >= RULES_SINCE.tdNav) {
+      for (const lv of tdCampaign()) {
+        for (const seed of SEEDS) {
+          const r = tdGrowthSetup(lv.id, 'suggest', seed, 'nav');
+          if (!r.ok) throw new Error(`${lv.id}: ${r.error}`);
+          for (const bot of BOTS) one(`nav-${lv.id}-${bot}-${seed}`, r.value, bot);
+        }
+      }
+      for (const hq of HOME_HQ) for (const hard of [false, true]) for (const seed of SEEDS) {
+        const r = tdHomeSetup(tdGrowthProfile({ hq }, 'suggest', 'nav'), seed, hard, rules);
+        if (!r.ok) throw new Error(`nav home hq${hq}: ${r.error}`);
+        for (const bot of BOTS) one(`nav-home-${hard ? 'hard' : 'normal'}-hq${hq}-${bot}-${seed}`, r.value, bot);
       }
     }
   }

@@ -4,7 +4,7 @@
  */
 import type { Route } from 'playwright-core';
 import { FakePvp } from './shot-fake.ts';
-import { TD_CHAPTER, TD_HQ, TD_LEVEL, TD_LV, TD_MECHANIC, TD_SPEED, layoutProblems, type Hook, type ShotCtx } from './shot-lib.ts';
+import { TD_CHAPTER, TD_HQ, TD_LEVEL, TD_LV, TD_MECHANIC, TD_NAV, TD_SPEED, layoutProblems, type Hook, type ShotCtx } from './shot-lib.ts';
 
 /** --td：守岛一关 */
 export async function td(c: ShotCtx): Promise<boolean> {
@@ -15,6 +15,34 @@ export async function td(c: ShotCtx): Promise<boolean> {
   const info = (): Promise<NonNullable<ReturnType<NonNullable<Hook['tdInfo']>>>> => call('tdInfo');
   const check = async (what: string): Promise<void> => {
     for (const p of await layoutProblems(page)) problems.push(`${v.name} ${what} ${p}`);
+  };
+  // 航海士：1 急射旗点离英雄最近的一座塔，2 重赏画在英雄身前；两样都要在场上生效
+  const navSkills = async (): Promise<void> => {
+    const inf = await info();
+    if (inf.hero.kind !== 'nav') throw new Error('开局带的不是航海士');
+    const towers = inf.slots.filter((q) => q.tower >= 0);
+    const near = towers.sort((a, b) => (a.x - inf.hero.x) ** 2 + (a.y - inf.hero.y) ** 2 - ((b.x - inf.hero.x) ** 2 + (b.y - inf.hero.y) ** 2))[0];
+    if (!near) throw new Error('场上没有塔，插不了急射旗');
+    await page.locator('.hd-td-skill:not(.hd-td-herobtn)').nth(0).click({ timeout: 5000 });
+    await page.waitForTimeout(300);
+    await shot('flag-aim');
+    // 急射旗插在一点上：从英雄往最近那座塔的方向走，最多 3 格（射程 5 格内，马上就插，不用英雄先走过去）
+    const dx = near.x - inf.hero.x;
+    const dy = near.y - inf.hero.y;
+    const k = Math.min(1, 3 / Math.max(0.01, Math.hypot(dx, dy)));
+    const fp = await pt(inf.hero.x + dx * k, inf.hero.y + dy * k);
+    await tap(fp.x, fp.y);
+    await page.waitForTimeout(500);
+    if (!(await info()).hero.flag) throw new Error(`急射旗没插上：${(await page.locator('.hd-hint').textContent()) ?? ''}`);
+    await page.locator('.hd-td-skill:not(.hd-td-herobtn)').nth(1).click({ timeout: 5000 });
+    await page.waitForTimeout(300);
+    await shot('reward-aim');
+    const rp = await pt(inf.hero.x + 1, inf.hero.y - 1);
+    await tap(rp.x, rp.y);
+    await page.waitForTimeout(700);
+    if (!(await info()).hero.reward) throw new Error('重赏圈没画上');
+    await shot('skills-used');
+    await check('技能');
   };
   const ok =
     (await step('进基地', async () => {
@@ -48,6 +76,10 @@ export async function td(c: ShotCtx): Promise<boolean> {
         const cards = page.locator('.hd-tdgar-spot').first().locator('.hd-tdgar-card');
         if ((await cards.count()) > 2) await cards.nth(1).click();
         await page.waitForTimeout(250);
+        if (TD_NAV) {
+          if (!((await page.locator('.hd-tdgar .hd-tdhero').textContent()) ?? '').includes('航海士')) await click('.hd-tdgar .hd-tdhero');
+          if (!((await page.locator('.hd-tdgar .hd-tdhero').textContent()) ?? '').includes('航海士')) throw new Error('驻守台面板上换不成航海士');
+        }
         await shot('garrison-picked');
         if (v.hasTouch) await click('.hd-tdgar-go');
         else await page.keyboard.press('Space');
@@ -188,6 +220,7 @@ export async function td(c: ShotCtx): Promise<boolean> {
       if (!moved) throw new Error(`选中英雄再点地面，他没朝那走：${tried.join('；') || '没有空地可点'}`);
       await page.waitForTimeout(600);
       await shot('hero-move');
+      if (TD_NAV) return navSkills();
       await page.locator('.hd-td-skill:not(.hd-td-herobtn)').nth(0).click({ timeout: 5000 });
       await page.waitForTimeout(300);
       await shot('barricade-aim');

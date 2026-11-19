@@ -349,7 +349,11 @@ export type Td2Action =
   /** 锚钩（规则版本 20）：钩住编号 id 的敌人往英雄这边拉 */
   | { t: number; type: 'hook'; id: number }
   /** 战书（规则版本 22）：接下 / 退掉还没开打的下一波（s.wave）的战书 */
-  | { t: number; type: 'dare' };
+  | { t: number; type: 'dare' }
+  /** 航海士（规则版本 23）的急射旗：插在 (x, y)（单位），圈里的塔（木台塔、驻守台都算）打得快 */
+  | { t: number; type: 'flag'; x: number; y: number }
+  /** 航海士的重赏：圈的中心 (x, y)（单位） */
+  | { t: number; type: 'reward'; x: number; y: number };
 
 /** 守岛 2.0 新增的事件（并进 TdEvent） */
 export type Td2Event =
@@ -383,7 +387,10 @@ export type Td2Event =
   /** 赏金船（规则版本 22）：上岸（come）、被打倒给了 gold 局内金（paid）、跑掉了（gone）；x、y 是它此刻的位置（单位） */
   | { type: 'bounty'; what: 'come' | 'paid' | 'gone'; id: number; x: number; y: number; gold: number }
   /** 战书（规则版本 22）：第 wave 波的战书接下（on）或退掉 */
-  | { type: 'dare'; wave: number; on: boolean };
+  | { type: 'dare'; wave: number; on: boolean }
+  /** 航海士（规则版本 23）：急射旗插在 (x, y)、重赏圈中心 (x, y)，半径 r（单位），都到 until 拍；ready 是这个技能下次能放的拍 */
+  | { type: 'flag'; x: number; y: number; r: number; until: number; ready: number }
+  | { type: 'reward'; x: number; y: number; r: number; until: number; ready: number };
 
 /** 场上的拒马（x、y 是格子坐标，事件 barricade 里的也是）：挡住周围 3×3 格的地面敌人，血掉光或到时间就没了 */
 export interface TdBarricade {
