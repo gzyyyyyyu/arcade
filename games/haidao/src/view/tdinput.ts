@@ -2,14 +2,12 @@ import type { TdScene } from './TdScene.ts';
 import { type TdAction, TD2_ECON, tdSluiceCan } from '../core/index.ts';
 import { UNIT } from '../core/types.ts';
 import { tdP } from './art.ts';
-import { EASE } from './motion.ts';
-import { isoRing } from './tdfx.ts';
 import { put } from './ground.ts';
 import { unIso } from './iso.ts';
 import { sfx } from './audio/sfx.ts';
 import { toast } from './ui.ts';
 import { DEPTH } from './depth.ts';
-import { type Act, SKILL, W } from './tdcommon.ts';
+import { type Act, SKILL } from './tdcommon.ts';
 import { hintText, updateHud, ftx } from './tdhud.ts';
 import { closeSheet, showSlot } from './tdsheet.ts';
 import { drawSlotDiamond, slotAt } from './tdpick.ts';
@@ -21,9 +19,15 @@ export function act(bs: TdScene, a: Act): void {
   bs.pending.push({ ...a, t: bs.s.tick } as TdAction);
 }
 
-/** 取消：技能瞄准、英雄选中、关面板 */
+/** 触屏（手指）：提示里不提 Esc、右键，改说按住拖 */
+function touchUi(): boolean {
+  return !!window.matchMedia?.('(pointer: coarse)').matches;
+}
+
+/** 取消：技能瞄准、英雄选中、走过去再放的技能、关面板 */
 export function cancelAll(bs: TdScene): void {
   if (bs.s.over) return;
+  bs.skillQ = null;
   if (bs.heroSel) setHeroSel(bs, false);
   if (bs.mode !== 'none') {
     bs.mode = 'none';
@@ -99,8 +103,9 @@ export function pickSkill(bs: TdScene, m: 'keg' | 'barricade'): void {
   const ready = m === 'keg' ? h.kegReady : (h.barricadeReady ?? 0);
   if (bs.s.tick < ready) return sfx('error');
   bs.mode = bs.mode === m ? 'none' : m;
+  bs.skillQ = null;
   closeSheet(bs);
-  const tip = m === 'keg' ? '点地面扔炸药桶（黄圈里够得着）' : '点英雄身边的路放拒马（黄圈里），地面敌人要砸开才能过';
+  const tip = m === 'keg' ? '点地面扔炸药桶（黄圈外的话英雄先走过去）' : '点路面放拒马（黄圈外的话英雄先走过去），地面敌人要砸开才能过';
   hintText(bs, bs.mode === m ? tip : '');
   bs.hud.hint.classList.remove('bad');
   // 提示只挂 2.5 秒：之后靠地上的黄圈提示范围，不一直占着屏幕
@@ -118,6 +123,7 @@ export function toggleHero(bs: TdScene): void {
     bs.hud.hint.classList.remove('bad');
   }
   closeSheet(bs);
+  bs.skillQ = null;
   sfx('tap');
   setHeroSel(bs, !bs.heroSel);
 }
@@ -125,7 +131,8 @@ export function toggleHero(bs: TdScene): void {
 function setHeroSel(bs: TdScene, on: boolean): void {
   bs.heroSel = on;
   bs.hintTimer?.remove();
-  hintText(bs, on ? '点地面让英雄过去，再点英雄或 Esc 取消' : '');
+  const tip = touchUi() ? '点地面让英雄过去，再点英雄取消；也能按住英雄直接拖过去' : '点地面让英雄过去，Esc 取消；不选中时右键地面也能直接指挥';
+  hintText(bs, on ? tip : '');
   bs.hintTimer = on ? bs.time.delayedCall(2500, () => bs.heroSel && hintText(bs, '')) : null;
   updateHud(bs, true);
 }
@@ -144,21 +151,21 @@ export function tap(bs: TdScene, wx: number, wy: number): void {
     return;
   }
   if (bs.mode !== 'none') {
-    const h = s.hero;
-    const range = bs.mode === 'keg' ? SKILL.bomb.range : SKILL.barricade.range;
-    if (Math.hypot(h.x - ux, h.y - uy) > range) {
-      sfx('error');
-      kegTooFar(bs, wx, wy, range);
-      return;
-    }
-    if (bs.mode === 'keg') {
-      act(bs, { type: 'keg', x: ux, y: uy });
-      bs.kegAim = { x: wx, y: wy };
-    } else act(bs, { type: 'barricade', x: ux, y: uy });
+    const m = bs.mode;
     bs.mode = 'none';
     bs.hintTimer?.remove();
     hintText(bs, '');
     bs.hud.hint.classList.remove('bad');
+    // 瞄着技能点到了木台：当成想造塔，退出瞄准、开面板（以前会被当成落点吞掉；敌人走路面，不会站在木台的占地格上）
+    const pad = slotFoot(bs, ux, uy);
+    if (pad >= 0) {
+      updateHud(bs, true);
+      return showSlot(bs, pad);
+    }
+    const h = s.hero;
+    const range = m === 'keg' ? SKILL.bomb.range : SKILL.barricade.range;
+    if (Math.hypot(h.x - ux, h.y - uy) <= range) return castSkill(bs, m, ux, uy, wx, wy);
+    queueSkill(bs, m, ux, uy, wx, wy, range);
     return;
   }
   // 补给箱：点它就叫英雄去捡（不用先选中英雄），捡完英雄自己回守点
@@ -169,9 +176,9 @@ export function tap(bs: TdScene, wx: number, wy: number): void {
     return moveMark(bs, wx, wy);
   }
   bs.hoverSlot = -2;
-  const foot = s.slots.findIndex((q) => ux >= q.x * UNIT && ux < (q.x + 2) * UNIT && uy >= q.y * UNIT && uy < (q.y + 2) * UNIT);
-  // 点英雄：选中 / 取消（地上画他的守点迎敌范围；英雄站在木台上时木台优先，否则这块台永远点不开）
-  if (foot < 0 && s.hero.respawn < 0 && Math.abs(wx - bs.hero.x) < 30 && wy > bs.hero.y - 74 && wy < bs.hero.y + 14) return toggleHero(bs);
+  // 点英雄：选中 / 取消（地上画他的守点迎敌范围）。点在上半身算英雄；点在脚边而脚下是木台时木台优先，否则这块台永远点不开
+  const hh = heroHit(bs, wx, wy);
+  if (hh === 'body' || (hh === 'feet' && slotFoot(bs, ux, uy) < 0)) return toggleHero(bs);
   const sel = bs.heroSel;
   if (sel) setHeroSel(bs, false);
   // 木台：占地格 → 塔身像素 → 同点连点循环（高塔盖住后面的台时，再点一次选到被压住的）
@@ -191,32 +198,126 @@ export function tap(bs: TdScene, wx: number, wy: number): void {
   }
   // 没选中英雄时点空地什么都不做：以前点哪英雄就往哪跑，所有者嫌乱
   if (!sel) return;
-  // 沉船、木桶：英雄去打掉
+  heroGo(bs, ux, uy, wx, wy);
+}
+
+/** 叫英雄去 (ux, uy)：落点是沉船、木桶就去打掉，否则走过去（点选、拖英雄、右键共用） */
+function heroGo(bs: TdScene, ux: number, uy: number, wx: number, wy: number): void {
+  const s = bs.s;
+  if (s.over || s.hero.respawn >= 0) return;
+  bs.skillQ = null;
   const bk = s.blocks.find((q) => !q.destroyed && ux >= q.x * UNIT && ux < (q.x + q.size) * UNIT && uy >= q.y * UNIT && uy < (q.y + q.size) * UNIT);
-  if (bk) {
-    act(bs, { type: 'clear', id: bk.id });
-    return moveMark(bs, wx, wy);
-  }
-  act(bs, { type: 'move', x: ux, y: uy });
+  if (bk) act(bs, { type: 'clear', id: bk.id });
+  else act(bs, { type: 'move', x: ux, y: uy });
   moveMark(bs, wx, wy);
 }
 
-/** 技能点太远：点击处闪红叉，英雄脚下的范围圈闪红，底部提示条变红并写清怎么办（1.8 秒） */
-export function kegTooFar(bs: TdScene, wx: number, wy: number, range: number): void {
-  const x = bs.add.text(wx, wy, '✕', { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${30 * bs.r}px`, color: '#ff4a3a', stroke: '#2b1a15', strokeThickness: 5 * bs.r }).setOrigin(0.5).setScale(0.5 / bs.r).setDepth(DEPTH.cross);
-  bs.tweens.add({ targets: x, scale: 1 / bs.r, duration: 160, ease: EASE.land });
-  bs.tweens.add({ targets: x, alpha: 0, delay: 500, duration: 300, ease: EASE.fade, onComplete: () => x.destroy() });
-  const hw = W(bs.s.hero.x, bs.s.hero.y);
-  const R = isoRing(range / UNIT);
-  const ring = bs.add.ellipse(hw.x, hw.y, R.w, R.h, 0xff4a3a, 0.18).setStrokeStyle(5, 0xff4a3a, 1).setDepth(DEPTH.marker);
-  bs.tweens.add({ targets: ring, alpha: 0, duration: 400, ease: EASE.recoil, onComplete: () => ring.destroy() });
-  hintText(bs, '太远了：英雄够不着黄圈外，先点英雄再点地面让他走近');
-  bs.hud.hint.classList.add('bad');
+/** (ux, uy) 落在哪块木台的 2×2 占地格上，没有为 -1 */
+function slotFoot(bs: TdScene, ux: number, uy: number): number {
+  return bs.s.slots.findIndex((q) => ux >= q.x * UNIT && ux < (q.x + 2) * UNIT && uy >= q.y * UNIT && uy < (q.y + 2) * UNIT);
+}
+
+/** 点在英雄身上吗：上半身（帽子到腰）算 body，腰以下到脚边算 feet；英雄倒下时都不算 */
+function heroHit(bs: TdScene, wx: number, wy: number): 'body' | 'feet' | null {
+  if (bs.s.hero.respawn >= 0 || Math.abs(wx - bs.hero.x) >= 30) return null;
+  if (wy > bs.hero.y - 74 && wy <= bs.hero.y - 24) return 'body';
+  if (wy > bs.hero.y - 24 && wy < bs.hero.y + 14) return 'feet';
+  return null;
+}
+
+/** 在够得着的地方放技能 */
+function castSkill(bs: TdScene, m: 'keg' | 'barricade', ux: number, uy: number, wx: number, wy: number): void {
+  if (m === 'keg') {
+    act(bs, { type: 'keg', x: ux, y: uy });
+    bs.kegAim = { x: wx, y: wy };
+  } else act(bs, { type: 'barricade', x: ux, y: uy });
+  updateHud(bs, true);
+}
+
+/** 走过去再放最多等这么多拍（10 秒）：路被挡、英雄绕不过去时别一直挂着 */
+const SKILL_WALK_TICKS = 200;
+
+/**
+ * 落点在黄圈外：英雄先朝落点走到够得着的地方，到了自动放（像《王国保卫战》）。
+ * 走和放都是普通操作（move、keg / barricade），按拍记进操作序列，回放照样一致；规则核心不用改。
+ */
+function queueSkill(bs: TdScene, m: 'keg' | 'barricade', ux: number, uy: number, wx: number, wy: number, range: number): void {
+  const h = bs.s.hero;
+  if (h.respawn >= 0) return;
+  const d = Math.hypot(ux - h.x, uy - h.y);
+  const k = (d - range * 0.8) / d;
+  act(bs, { type: 'move', x: Math.round(h.x + (ux - h.x) * k), y: Math.round(h.y + (uy - h.y) * k) });
+  bs.skillQ = { m, ux, uy, wx, wy, range, until: bs.s.tick + SKILL_WALK_TICKS };
+  moveMark(bs, wx, wy);
+  hintText(bs, m === 'keg' ? '英雄走过去再扔' : '英雄走过去再放拒马');
   bs.hintTimer?.remove();
-  bs.hintTimer = bs.time.delayedCall(1800, () => {
-    bs.hud.hint.classList.remove('bad');
-    hintText(bs, '');
-  });
+  bs.hintTimer = bs.time.delayedCall(1800, () => hintText(bs, ''));
+  updateHud(bs, true);
+}
+
+/** 每拍推进前调：走过去再放的技能，英雄够得着了就放；倒下、超时或技能还在冷却就作罢 */
+export function stepSkillQ(bs: TdScene): void {
+  const q = bs.skillQ;
+  if (!q) return;
+  const s = bs.s;
+  const h = s.hero;
+  if (s.over || h.respawn >= 0 || s.tick > q.until) {
+    bs.skillQ = null;
+    return;
+  }
+  if (Math.hypot(h.x - q.ux, h.y - q.uy) > q.range - 10) return;
+  bs.skillQ = null;
+  castSkill(bs, q.m, q.ux, q.uy, q.wx, q.wy);
+}
+
+/** 右键：有东西可取消（技能瞄准、选中的英雄、面板）就取消；什么都没有时右键地面直接让英雄过去 */
+export function rightClick(bs: TdScene, wx: number, wy: number): void {
+  if (bs.s.over) return;
+  if (bs.mode !== 'none' || bs.sheet || bs.heroSel || bs.skillQ) return cancelAll(bs);
+  const g = unIso(wx, wy);
+  heroGo(bs, Math.round(g.gx * UNIT), Math.round(g.gy * UNIT), wx, wy);
+}
+
+/**
+ * 按住英雄拖出落点（手指和鼠标都行），松手英雄走过去；没拖开就当点了一下英雄（选中 / 取消）。
+ * 接在 CamCtl 的 drag 上：按下点在英雄身上才接管，否则照常拖镜头。
+ */
+export function heroDrag(bs: TdScene): { start(wx: number, wy: number): boolean; move(wx: number, wy: number): void; end(): void } {
+  let d: { x: number; y: number; moved: boolean } | null = null;
+  const g = bs.add.graphics().setDepth(DEPTH.marker);
+  const draw = (): void => {
+    g.clear();
+    if (!d?.moved) return;
+    g.lineStyle(4, 0xffe885, 0.9).lineBetween(bs.hero.x, bs.hero.y, d.x, d.y);
+    g.lineStyle(3, 0xffe885, 1).strokeEllipse(d.x, d.y, 34, 17);
+  };
+  return {
+    start: (wx, wy) => {
+      if (bs.s.over || bs.mode !== 'none') return false;
+      const hh = heroHit(bs, wx, wy);
+      const g0 = unIso(wx, wy);
+      if (!hh || (hh === 'feet' && slotFoot(bs, Math.round(g0.gx * UNIT), Math.round(g0.gy * UNIT)) >= 0)) return false;
+      d = { x: wx, y: wy, moved: false };
+      return true;
+    },
+    move: (wx, wy) => {
+      if (!d) return;
+      if (!d.moved && Math.hypot(wx - bs.hero.x, wy - (bs.hero.y - 30)) > 40) d.moved = true;
+      d.x = wx;
+      d.y = wy;
+      draw();
+    },
+    end: () => {
+      const e = d;
+      d = null;
+      g.clear();
+      if (!e) return;
+      if (!e.moved) return toggleHero(bs);
+      if (bs.heroSel) setHeroSel(bs, false);
+      const p = unIso(e.x, e.y);
+      heroGo(bs, Math.round(p.gx * UNIT), Math.round(p.gy * UNIT), e.x, e.y);
+    },
+  };
 }
 
 /** 火药桶从英雄手里飞向落点：抛物线 + 旋转（约 0.3 秒，跟核心的引信同长），落点一圈震波 */

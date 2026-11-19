@@ -57,9 +57,15 @@ export function buildUi(bs: TdScene): void {
     bs.speed = bs.speed >= 4 ? 1 : bs.speed * 2;
     speed.textContent = speedTop.textContent = `${bs.speed}×`;
   };
+  // 暂停（P）：守岛压力大时停下来想一想；实盘也能停（服务端只收浏览器报的倍数、不按墙钟卡时限，见 docs/backend-haidao.md）
+  const pause = button('暂停', 'hd-btn-wood hd-td-pause', () => togglePause(bs), bar2);
+  pause.title = '暂停 / 继续（P）';
   const speed = button(`${bs.speed}×`, 'hd-btn-wood', flip, bar2);
   // 矮竖屏（360×640 一类）底栏一行装不下三个技能钮 + 叫波 + 金币牌 + 加速 + 撤退，加速挪到顶栏的空位（layout.ts），别的尺寸这个钮不显示
   const speedTop = button(`${bs.speed}×`, 'hd-btn-wood hd-td-speedtop', flip, bar);
+  // 手机竖屏第二行的木钮都收起（layout.ts），暂停同加速一样在顶栏留一个
+  const pauseTop = button('暂停', 'hd-btn-wood hd-td-pausetop', () => togglePause(bs), bar);
+  pauseTop.title = '暂停 / 继续（P）';
   button('撤退', 'hd-btn-red', () => askEnd(bs), bar2);
   const hint = el('div', 'hd-hint', '', bs.ui);
   hint.style.display = 'none';
@@ -75,12 +81,12 @@ export function buildUi(bs: TdScene): void {
   const paused = el('div', 'hd-td-paused', '已暂停 · 关掉面板继续', bs.ui);
   const flashEl = el('div', 'hd-td-flash', undefined, bs.ui);
   const bottom = el('div', 'hd-td-bottom', undefined, bs.ui);
-  // 英雄钮：先选中英雄，再点地面才走过去（点空地不再直接叫他走，免得到处乱跑）；快捷键 H，不占数字键
+  // 英雄钮：先选中英雄，再点地面才走过去（点空地不再直接叫他走，免得到处乱跑）；右键、拖英雄是捷径（tdinput.ts）；快捷键 H，不占数字键
   const heroBtn = button('', 'hd-td-skill hd-btn-wood hd-td-herobtn', () => toggleHero(bs), bottom);
   heroBtn.appendChild(img(iconA('sword'), 28));
   el('b', '', '英雄', heroBtn);
   el('kbd', 'hd-key', 'H', heroBtn);
-  heroBtn.title = '指挥英雄：选中后点地面让他过去，再点一次或 Esc 取消（H）';
+  heroBtn.title = '指挥英雄：选中后点地面让他过去，再点一次或 Esc 取消（H）；也可以直接右键地面';
   const mkSkill = (label: string, icon: 'barrage' | 'shield', tip: string, f: () => void, n: number): HTMLButtonElement => {
     const b = button('', 'hd-td-skill hd-btn-wood', f, bottom);
     el('span', 'hd-cd', undefined, b);
@@ -125,6 +131,16 @@ export function buildUi(bs: TdScene): void {
   bs.esc?.buildCtl();
   bs.hud = { treasure, tpill: tp, wave, count, gold, speed, call, keg, bar: barBtn, hero: heroBtn, mech, hint, flash: flashEl, plan, paused };
   updateHud(bs, true);
+}
+
+/** 暂停 / 继续：只改画面层要不要往前推（TdScene.update），按钮字跟着换 */
+export function togglePause(bs: TdScene): void {
+  if (bs.s.over || bs.ended) return;
+  bs.userPaused = !bs.userPaused;
+  for (const b of bs.ui.querySelectorAll<HTMLElement>('.hd-td-pause, .hd-td-pausetop')) {
+    b.textContent = bs.userPaused ? '继续' : '暂停';
+    b.classList.toggle('on', bs.userPaused);
+  }
 }
 
 /** 预告卡的展开 / 收起（只有矮竖屏用得上，状态只在界面层）：展开后点预告卡、点别处（包括点岛）、叫波都会收起 */

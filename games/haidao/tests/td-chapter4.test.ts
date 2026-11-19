@@ -309,6 +309,17 @@ describe('远洋通关（第四章全部至少 1 星）', () => {
     if (!z.ok) throw new Error(z.error);
     expect(z.value.reward.wheel).toBe(false);
   });
+  it('第四章早已全有星、还没领到舵轮：输掉的一局不发（结算框不该写「远洋通关」），下一次拿星才发', () => {
+    const p = almost();
+    const all = { ...p, td: { ...p.td, stars: { ...p.td.stars, td24: 1 } } };
+    const lose = settleTd(all, 'td20', res(0), 5);
+    if (!lose.ok) throw new Error(lose.error);
+    expect(lose.value.reward.wheel).toBe(false);
+    expect(lose.value.profile.cosmetics).toEqual([]);
+    const win = settleTd(lose.value.profile, 'td20', res(1), 5);
+    if (!win.ok) throw new Error(win.error);
+    expect(win.value.reward.wheel).toBe(true);
+  });
   it('没拿到舵轮不能摆', () => {
     const p = almost();
     let at: [number, number] | null = null;

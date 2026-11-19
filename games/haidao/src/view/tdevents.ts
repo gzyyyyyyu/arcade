@@ -300,7 +300,9 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
     case 'shell': {
       // 炮艇开炮：船头一团火光，炮弹沿低弧线飞到那座塔（塔哑火的画面是同一拍的 jam 事件）
       sfx('cannon');
-      const from = W(e.x0, e.y0);
+      // 起点按船的显示位置（停泊的船画在海上，见 crowd.ts 的 moorOffsets）
+      const boat = bs.esp.get(e.id);
+      const from = boat ? { x: boat.rig.x, y: boat.rig.y } : W(e.x0, e.y0);
       const muzzle = { x: from.x + 30, y: from.y - 34 };
       const to = W(e.x1, e.y1);
       bs.pt.ringBurst(muzzle.x, muzzle.y, 0.7);

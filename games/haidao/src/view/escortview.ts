@@ -253,7 +253,10 @@ export class EscortView {
   private liftSheet: HTMLElement | null = null;
   private liftBottom: HTMLElement | null = null;
 
-  /** 造塔面板弹出来时，速度钮跟着抬到它上面一排（竖屏、电脑）；手机横屏钮在左下角，面板开着就收起 */
+  /**
+   * 造塔面板从底边弹出来时（手机竖屏），速度钮跟着抬到它上面一排；手机横屏钮在左下角，面板开着就收起。
+   * 电脑上面板停在右侧、不占底边，速度钮不动：以前按面板高度抬，整排跳到屏幕上半截压住商船
+   */
   private lift(): void {
     if (!this.ctl) return;
     // 面板和底栏是界面根的直接子节点：只在子节点增减时重新找一次，不再每 100 毫秒查 DOM；媒体查询对象也只建一次
@@ -282,7 +285,8 @@ export class EscortView {
     this.ctl.style.visibility = '';
     const bottom = this.liftBottom;
     const base = bottom && bottom.offsetParent !== null ? bottom.offsetHeight : 84;
-    const px = Math.round(Math.max(base, sheet ? sheet.offsetHeight : 0) + 8);
+    const bottomSheet = !!sheet && sheet.offsetWidth > this.h.ui.clientWidth * 0.6;
+    const px = Math.round(Math.max(base, bottomSheet ? sheet.offsetHeight : 0) + 8);
     const sig = String(px);
     if (sig === this.liftSig) return;
     this.liftSig = sig;

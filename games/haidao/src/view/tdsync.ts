@@ -1,10 +1,11 @@
 import type { TdScene } from './TdScene.ts';
+import type Phaser from 'phaser';
 import { TD_HERO_LIGHT } from '../content/index.ts';
 import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
-import { TD2_ENEMIES, TD_ENEMY_ARMOR, tdJammed, type TdEnemy } from '../core/index.ts';
+import { TD2_ENEMIES, TD_ENEMY_ARMOR, tdJammed, tdUpCost, type TdEnemy } from '../core/index.ts';
 import { stunned } from '../core/combat.ts';
 import { wobbleAt } from './stunfx.ts';
-import { UNIT, BEACH } from '../core/types.ts';
+import { UNIT, BEACH, ISLAND } from '../core/types.ts';
 import { tdE, bTex, fxA, tdP } from './art.ts';
 import { interpPos, turnStep, EASE } from './motion.ts';
 import { poseEvery, STYLE, atkPhase, SKEL, LOD_MARGIN } from './rig.ts';
@@ -23,7 +24,7 @@ import { padState, boom, drawBars } from './tdoverlay.ts';
 import { wreckOf } from './tdsheet.ts';
 import { ftx } from './tdhud.ts';
 import { STEP_MS } from './motion.ts';
-import { approach, crowdOffsets, CROWD_D, CROWD_MAX_TD, type CrowdItem } from './crowd.ts';
+import { approach, crowdOffsets, moorOffsets, CROWD_D, CROWD_MAX_TD, type CrowdItem } from './crowd.ts';
 
 /**
  * 守岛的挤开：一波几十个同样的水手走同一条路，规则里站得几乎重合，画面上叠成一坨、看不清谁挨打。
@@ -31,6 +32,11 @@ import { approach, crowdOffsets, CROWD_D, CROWD_MAX_TD, type CrowdItem } from '.
  */
 const tdCrowdItems: CrowdItem[] = [];
 const tdCrowdIds: number[] = [];
+const tdMoorItems: CrowdItem[] = [];
+/** 每帧复用：木台序号 → 台上那座塔的贴图（金箭头跟着塔顶） */
+const padTops = new Map<number, Phaser.GameObjects.Image>();
+let tdMx = new Float64Array(16);
+let tdMy = new Float64Array(16);
 let tdOx = new Float64Array(64);
 let tdOy = new Float64Array(64);
 const tdBlockedCells = new Set<number>();
@@ -41,11 +47,17 @@ function crowdEnemies(bs: TdScene, dt: number): void {
   const s = bs.s;
   tdCrowdItems.length = 0;
   tdCrowdIds.length = 0;
+  tdMoorItems.length = 0;
   for (const e of s.enemies) {
     if (e.mode !== 'in' && e.mode !== 'out') continue;
     if (TD_ENEMY_ARMOR[e.kind] === 'air') continue;
     const sp = bs.esp.get(e.id);
     if (!sp) continue;
+    // 停泊的船（炮艇、海盗王）不挤，单独画到海上排开（moorOffsets）
+    if (TD2_ENEMIES[e.kind].shell) {
+      tdMoorItems.push({ id: e.id, x: e.x, y: e.y });
+      continue;
+    }
     const ip = interpPos(bs.ipt, sp.fx, sp.fy, sp.tx, sp.ty, bs.acc / STEP_MS, 4 * UNIT);
     tdCrowdItems.push({ id: e.id, x: ip.x, y: ip.y });
     tdCrowdIds.push(e.id);
@@ -62,6 +74,19 @@ function crowdEnemies(bs: TdScene, dt: number): void {
     const sp = bs.esp.get(tdCrowdIds[i]!)!;
     sp.ox = approach(sp.ox, tdOx[i]!, dt);
     sp.oy = approach(sp.oy, tdOy[i]!, dt);
+  }
+  if (tdMoorItems.length === 0) return;
+  if (tdMx.length < tdMoorItems.length) {
+    tdMx = new Float64Array(tdMoorItems.length * 2);
+    tdMy = new Float64Array(tdMoorItems.length * 2);
+  }
+  moorOffsets(tdMoorItems, tdMx, tdMy, ISLAND, BEACH, UNIT);
+  for (let i = 0; i < tdMoorItems.length; i++) {
+    const sp = bs.esp.get(tdMoorItems[i]!.id)!;
+    // 刚出现的船直接到位（不从沙滩滑进海里）；之后有船开走、别的船补位时平滑挪
+    const fresh = sp.ox === 0 && sp.oy === 0;
+    sp.ox = fresh ? tdMx[i]! : approach(sp.ox, tdMx[i]!, dt, 400);
+    sp.oy = fresh ? tdMy[i]! : approach(sp.oy, tdMy[i]!, dt, 400);
   }
 }
 
@@ -214,9 +239,23 @@ export function sync(bs: TdScene, dt: number): void {
   // 空木台上的"+"：够钱造最便宜的那种才亮；压着沉船的不显示
   let cheapest = Infinity;
   for (const k of s.unlocked) cheapest = Math.min(cheapest, buildCost(k));
+  const topOf = padTops;
+  topOf.clear();
+  for (const sp of bs.tsp.values()) if (sp.slot >= 0) topOf.set(sp.slot, sp.img);
+  const bob = Math.sin(bs.time.now / 220) * 3;
   for (let i = 0; i < bs.pads.length; i++) {
     const sl = s.slots[i];
-    if (sl) bs.pads[i]!.plus.setAlpha(sl.tower < 0 && !wreckOf(bs, sl) ? (s.gold >= cheapest ? 1 : 0.55) : 0);
+    const pad = bs.pads[i]!;
+    if (!sl) continue;
+    pad.plus.setAlpha(sl.tower < 0 && !wreckOf(bs, sl) ? (s.gold >= cheapest ? 1 : 0.55) : 0);
+    // 塔上的金箭头：这座塔还能升、局内金币够下一阶，提醒玩家有钱该花了（以前只有点开面板才知道）
+    const t = sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
+    const im = topOf.get(i);
+    const tier = t ? (t.tier ?? Math.min(3, sl.ups + 1)) : 3;
+    const cost = t && tier < 3 ? tdUpCost(t.kind, tier - 1) : -1;
+    const on = !!im && cost >= 0 && s.gold >= cost && !s.over;
+    pad.up.setVisible(on);
+    if (on) pad.up.setPosition(im.x, im.y - im.displayHeight * im.originY - 2 + bob);
   }
   bs.plan.update(dt, s.enemies.some((e) => e.mode === 'in'));
   bs.plan.barricades(s.barricades ?? [], s.tick);

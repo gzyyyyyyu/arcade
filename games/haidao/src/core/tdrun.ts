@@ -234,7 +234,8 @@ export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex
     res: g.res,
     td: { stars: { ...(p.td?.stars ?? {}), [levelId]: Math.max(prev, stars) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
   };
-  const wheel = tdOceanCleared(profile.td!.stars) && !(p.cosmetics ?? []).includes(TD_WHEEL);
+  // 只在拿到星的这一局发：没守住的结算框里不该冒出「远洋通关」（老存档第四章早已全有星、还没领到舵轮时，下一次赢了再发）
+  const wheel = stars >= 1 && tdOceanCleared(profile.td!.stars) && !(p.cosmetics ?? []).includes(TD_WHEEL);
   if (wheel) profile.cosmetics = [...(p.cosmetics ?? []), TD_WHEEL];
   const next = nextTdUnlock(profile);
   const unlocked = unlockedBefore && unlockedBefore.after === levelId && stars >= 1 && prev === 0 ? unlockedBefore.id : null;

@@ -36,6 +36,9 @@ export async function td(c: ShotCtx): Promise<boolean> {
       await click(`.hd-tdtab[data-chapter="${TD_CHAPTER}"]`);
       await page.waitForTimeout(300);
       if (TD_LEVEL !== 'td01') await shot('level-select-ch');
+      // 一章的关卡分页（竖屏一页 3 关）：不在这一页就往后翻
+      const lvBtn = page.locator(`.hd-tdcard button[data-level="${TD_LEVEL}"]`);
+      for (let i = 0; i < 4 && !(await lvBtn.isVisible()); i++) await click('.hd-tdpg-next');
       await click(`.hd-tdcard button[data-level="${TD_LEVEL}"]`);
       await page.waitForTimeout(600);
       // 带驻守台的关先弹选塔面板：截一张，换挑第二种塔（有的话）再开打
@@ -66,7 +69,8 @@ export async function td(c: ShotCtx): Promise<boolean> {
       // 手机竖屏预告卡收在顶栏的波次小钮里（layout.ts），先点开
       if (await page.locator('.hd-plan-tog').isVisible()) await click('.hd-plan-tog');
       await shot('preview');
-      await click('.hd-td-plan');
+      // 点卡的标题（左上角）：卡正中可能正好是「建议」徽记，点徽记弹的是伤害说明，不开图鉴
+      await page.locator('.hd-td-plan').click({ position: { x: 14, y: 12 }, timeout: 8000 });
       await page.waitForTimeout(400);
       if (!(await page.locator('.hd-td-best .hd-ctr-tb').isVisible())) throw new Error('敌人图鉴里没有展开的克制表');
       await shot('bestiary-counter');
@@ -146,19 +150,42 @@ export async function td(c: ShotCtx): Promise<boolean> {
     })) &&
     (await step('英雄和技能', async () => {
       // 没选中英雄时点地面英雄不动（所有者嫌点哪去哪太乱）；先点底栏英雄钮再点地面才走过去
-      const hp = await pt(10, 7);
+      // 落点挑一块不在木台上、离英雄有点距离的地（各关木台位置不同：td24 的 (10,7) 上就有驻守塔，点了会开塔面板）
+      const i0 = await info();
+      const free = (c: readonly [number, number]): boolean =>
+        i0.slots.every((q) => Math.max(Math.abs(q.x - c[0]), Math.abs(q.y - c[1])) > 1.6) && Math.hypot(i0.hero.x - c[0], i0.hero.y - c[1]) > 2;
+      // 高阶塔的贴图往上探好几格，点在塔身后面的地会点中塔、开塔面板；水里（td24 岛中间的池子）英雄走不过去：都换下一块
+      const spots = ([[10, 7], [7, 10], [9, 9], [12, 12], [11, 5], [5, 11], [14, 9], [9, 14]] as const).filter(free);
       // 英雄会自己守点、挑站位（td.ts 的 heroGuard / autoPost），位置变不说明什么；看他的目标是不是点的那一格
-      const toTap = (g: { x: number; y: number } | null): number => (g ? Math.hypot(g.x - 10, g.y - 7) : Number.POSITIVE_INFINITY);
-      await tap(hp.x, hp.y);
-      await page.waitForTimeout(700);
-      const g1 = (await info()).hero.goal;
-      if (toTap(g1) < 1) throw new Error(`没选中英雄点地面他也朝那走了：目标 (${g1!.x.toFixed(1)},${g1!.y.toFixed(1)})`);
-      await click('.hd-td-herobtn');
-      await page.waitForTimeout(200);
-      await tap(hp.x, hp.y);
-      await page.waitForTimeout(300);
-      const g2 = (await info()).hero.goal;
-      if (toTap(g2) >= 1) throw new Error(`选中英雄再点地面，他没朝那走：目标 ${g2 ? `(${g2.x.toFixed(1)},${g2.y.toFixed(1)})` : '无'}`);
+      const near = (g: { x: number; y: number } | null, x: number, y: number): boolean => !!g && Math.hypot(g.x - x, g.y - y) < 1;
+      const tried: string[] = [];
+      let moved = false;
+      for (const [gx, gy] of spots) {
+        const hp = await pt(gx, gy);
+        await tap(hp.x, hp.y);
+        await page.waitForTimeout(700);
+        if (await page.locator('.hd-td-sheet').isVisible()) {
+          tried.push(`(${gx},${gy}) 点中了塔`);
+          await click('.hd-td-sheet .hd-x');
+          await page.waitForTimeout(250);
+          continue;
+        }
+        const g1 = (await info()).hero.goal;
+        if (near(g1, gx, gy)) throw new Error(`没选中英雄点地面他也朝那走了：目标 (${g1!.x.toFixed(1)},${g1!.y.toFixed(1)})`);
+        await click('.hd-td-herobtn');
+        await page.waitForTimeout(200);
+        await tap(hp.x, hp.y);
+        await page.waitForTimeout(300);
+        if (near((await info()).hero.goal, gx, gy)) {
+          moved = true;
+          break;
+        }
+        tried.push(`(${gx},${gy}) 走不过去`);
+        // 还选着（选中提示还在）就再点一次英雄钮取消，换下一块
+        if ((await page.locator('.hd-hint').textContent())?.includes('让英雄过去')) await click('.hd-td-herobtn');
+        await page.waitForTimeout(200);
+      }
+      if (!moved) throw new Error(`选中英雄再点地面，他没朝那走：${tried.join('；') || '没有空地可点'}`);
       await page.waitForTimeout(600);
       await shot('hero-move');
       await page.locator('.hd-td-skill:not(.hd-td-herobtn)').nth(0).click({ timeout: 5000 });

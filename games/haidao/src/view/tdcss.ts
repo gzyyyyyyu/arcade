@@ -61,6 +61,8 @@ function tdCss(): string {
 .hd-ui .hd-homecard { background:linear-gradient(#fff1d6,${cream}); }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdcard.next { border-color:${gold}; box-shadow:0 3px 0 ${ink}, 0 0 0 3px ${gold}, 0 0 14px ${gold}; }
 .hd-ui .hd-tdrule { font-weight:700; }
+/* 窄屏上星级规则、选关页标题折行时两行匀开，不剩一个字孤零零挂在第二行（「…算输」「…驻守台」） */
+.hd-ui .hd-tdrule, .hd-ui .hd-tdsel h2, .hd-ui .hd-tdgar h2 { text-wrap:balance; }
 .hd-ui .hd-tdgar { z-index:22; }
 .hd-ui .hd-tdgar-note { width:min(100%,560px); margin:0 auto 10px; padding:2px 10px; border-radius:8px; background:rgba(11,74,110,.88); font-size:14px; color:#fff; }
 .hd-ui .hd-tdgar-spot { width:min(100%,560px); margin:0 auto 10px; background:${cream}; border:3px solid ${ink}; border-radius:14px; padding:8px 10px; box-shadow:0 3px 0 ${ink}; }
@@ -123,7 +125,10 @@ function tdCss(): string {
   .hd-ui.hd-skin .hd-tdsel-main { position:absolute; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-head h2 { display:none; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-live { position:absolute; top:6px; left:calc(50% - 70px); width:116px; padding:0 2px; font-size:12px; z-index:1; }
-  .hd-ui.hd-skin .hd-tdsel-main .hd-td-income { flex-wrap:nowrap; padding:3px 8px; gap:2px 8px; }
+  /* 一行放不下「今日守岛收入还剩」+ 两个「已用 / 上限」：以前硬塞一行，标题和「/ 304,800」各自折成两行；标题自己占一行，两个数各自不折 */
+  .hd-ui.hd-skin .hd-tdsel-main .hd-td-income { flex-wrap:wrap; padding:3px 8px; gap:0 12px; }
+  .hd-ui.hd-skin .hd-tdsel-main .hd-td-income > small:first-child { flex-basis:100%; }
+  .hd-ui.hd-skin .hd-tdsel-main .hd-td-inc { white-space:nowrap; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-td-income b { font-size:14px; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-td-income small { font-size:12px; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-td-income .hd-td-capnote { flex-basis:auto; }
@@ -226,7 +231,8 @@ function tdCss(): string {
 /* 局内 */
 .hd-ui .hd-td-bar { position:absolute; top:6px; left:92px; right:58px; display:flex; flex-wrap:nowrap; gap:6px; pointer-events:none !important; }
 .hd-ui .hd-td-bar .hd-pill { min-width:0; }
-.hd-ui .hd-td-speedtop { display:none; flex:none; min-width:44px; min-height:44px; padding:0 4px; }
+.hd-ui .hd-td-speedtop, .hd-ui .hd-td-pausetop { display:none; flex:none; min-width:44px; min-height:44px; padding:0 4px; }
+.hd-ui .hd-td-pause.on, .hd-ui .hd-td-pausetop.on { background:#ffe885; }
 .hd-ui .hd-plan-tog { display:none; position:relative; flex:none; min-width:44px; min-height:44px; padding:0 2px; font-size:12px; font-weight:900; white-space:nowrap; }
 /* 驻守台选塔页盖在选关页上面时，底下那页不再参与排版和点按 */
 .hd-ui .hd-tdsel:not(.hd-tdgar):has(~ .hd-tdgar) { visibility:hidden; }
@@ -433,6 +439,8 @@ function tdCss(): string {
 .hd-ui .hd-td-towers { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 .hd-ui .hd-td-tower { display:grid; grid-template-columns:44px minmax(0,1fr) auto; column-gap:6px; align-content:center; justify-items:start; text-align:left; min-height:0; padding:2px 6px 2px 8px; }
 .hd-ui .hd-td-tower > img { grid-column:1; grid-row:1 / span 4; align-self:center; }
+/* 图标的行内宽高是按原图比例算的（img()），加农炮、臼炮这类扁的图比列宽还宽，会压到右边的字上：一律按列宽等比缩 */
+.hd-ui .hd-td-tower > img { width:100% !important; height:auto !important; max-height:44px; object-fit:contain; }
 .hd-ui .hd-td-tower > b { grid-column:2; grid-row:1; }
 .hd-ui .hd-td-tower > .hd-td-price { grid-column:3; grid-row:1; justify-self:end; }
 .hd-ui .hd-td-tower > small { grid-column:2 / -1; text-align:left; }
@@ -447,7 +455,7 @@ function tdCss(): string {
   .hd-ui .hd-td-tower small { line-height:1.1; }
   .hd-ui .hd-td-towers { gap:8px; }
   .hd-ui .hd-td-tower { grid-template-columns:32px minmax(0,1fr) auto; padding:1px 5px 1px 6px; }
-  .hd-ui .hd-td-tower > img { grid-row:1 / span 2; width:32px; height:32px; }
+  .hd-ui .hd-td-tower > img { grid-row:1 / span 2; max-height:32px; }
   .hd-ui .hd-td-tower > b { white-space:nowrap; }
   .hd-ui .hd-td-tower > small { grid-column:1 / -1; }
   .hd-ui .hd-td-tower > small:first-of-type { grid-column:2 / -1; }

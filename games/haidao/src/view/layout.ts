@@ -148,7 +148,12 @@ ${W} .hd-key { display:none; }
   /* 一行装不下英雄 + 两个技能 + 叫波 + 金币牌 + 加速 + 撤退（360 宽要 400 多）：加速挪到顶栏预告钮右边的空位（tdhud.ts 的 .hd-td-speedtop），
      右边只让出金币牌（4 位数）+ 撤退；撤退收到 48 宽 */
   ${W} .hd-td:not(.hd-esc) .hd-td-bar2 > .hd-btn-wood { display:none; }
-  ${W} .hd-td:not(.hd-esc) .hd-td-speedtop { display:flex; align-items:center; justify-content:center; }
+  ${W} .hd-td:not(.hd-esc) .hd-td-speedtop, ${W} .hd-td .hd-td-pausetop { display:flex; align-items:center; justify-content:center; }
+  /* 顶栏多了暂停钮（加速、暂停、波次小钮各 44）：「大厅」只留小房子图标（点区仍 44×44，aria-label 写着大厅，同登陆战窄屏），
+     顶栏从 92 让到 58（大厅钮右沿 50，隔 8），360 宽上宝藏牌的「20/20」才不出框，护航的暂停钮也和右上的声音钮隔得开 */
+  ${W} .hd-td .hd-hall { width:44px; min-width:44px; padding:0; justify-content:center; }
+  ${W} .hd-td .hd-hall span { display:none; }
+  ${W} .hd-td .hd-td-bar { left:58px; }
   ${W} .hd-td-bottom { gap:8px; padding:4px 144px calc(4px + env(safe-area-inset-bottom,0px)) 6px; }
   ${W} .hd-td:not(.hd-esc) .hd-td-bar2 > .hd-btn { min-width:48px; width:48px; padding:0 2px; }
   ${W} .hd-td-skill { width:44px; min-height:48px; }
@@ -241,6 +246,12 @@ ${LAND} {
   ${W} .hd-base > .hd-sheet .hd-btn.hd-upbtn { min-height:46px; font-size:16px; }
   ${W} .hd-base > .hd-sheet .hd-upgo { min-height:44px !important; margin-top:4px !important; }
   ${W} .hd-celebrate .hd-newlist { max-height:34vh; margin-bottom:8px; }
+  /* 守岛顶栏横屏也挤：加了暂停钮后右边一组会压住左边的波数牌。暂停只画图标（44 宽；字还在、读屏照念，只是透明），
+     「宝藏」两个字和竖屏手机一样收起（只留宝箱图标和 20/20），两组之间才留得出空 */
+  ${W} .hd-td .hd-td-bar .hd-tw { display:none; }
+  ${W} .hd-td .hd-td-pause { position:relative; flex:none; width:44px; min-width:44px; padding:0; overflow:hidden; color:transparent !important; text-shadow:none !important; white-space:nowrap; }
+  ${W} .hd-td .hd-td-pause::before { content:'❚❚'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:${ink}; font-size:16px; letter-spacing:-2px; }
+  ${W} .hd-td .hd-td-pause.on::before { content:'▶'; letter-spacing:0; }
   /* 手机横屏：基地的底栏挪到右侧竖着排 */
   ${W} .hd-bottom { left:auto; right:6px; top:62px; bottom:auto; width:88px; flex-direction:column; justify-content:flex-start; gap:8px; padding:8px 6px 10px; border:3px solid ${ink}; border-radius:14px; }
   ${W} .hd-bottom .hd-btn { flex:none; width:100%; max-width:none; min-height:60px; }
