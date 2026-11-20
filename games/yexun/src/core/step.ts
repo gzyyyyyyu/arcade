@@ -50,7 +50,7 @@ import { inRects, MAPS, pushOut, TERRAIN, type Block } from '../content/maps.ts'
 import { BlockIndex, type RaidBlock } from './blocks.ts';
 import { raidHooks, type RaidPort } from './raid-port.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, vigilRegion, EMERGE_KINDS, regionKind, regionTotal, type Region } from '../content/regions.ts';
-import { BALANCE_57, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, EVENTS_57, FIRST_RUN_GUARD, lampShare, LIVE_EASE, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
+import { BALANCE_57, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, EVENTS_57, FIRST_RUN_GUARD, lampShare, LIVE_EASE, lootMul, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
 import { ASSIST, CHAR_FX, charBase, CURSE_FX, PERK_FX, REVIVE, type CurseId, type PerkId } from '../content/meta.ts';
 import { WEEKLY_FX } from '../content/weekly.ts';
 import { PICKS, PICKS_60, PICKS_65, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
@@ -200,7 +200,7 @@ function schedule(w: World): WaveEvent[] {
   // 规则 57 补的精英排在原有事件之后，同一拍时先出原有的（旧局一拍不变）
   const out = [...EVENTS, ...own, ...(w.new57 ? EVENTS_57 : [])].map((e): WaveEvent => {
     // 1:45 那只（small）不跟危险档多来：开局两只白狐会把新手在第 2 分钟就打倒
-    if (e.kind === 'elite') return { ...e, at: e.at + d.eliteLate, count: e.count + (e.small ? 0 : extra) };
+    if (e.kind === 'elite') return { ...e, at: e.at + d.eliteLate, count: e.count + (e.small ? 0 : extra), bare: e.small ? 0 : d.eliteExtra };
     // 中期首领按图换（竹林、河滩、鬼市是画皮）
     if (e.kind === 'boss' && e.enemy === 'lord') return { ...e, enemy: midBossOf(w.setup.map, w.legacyFoes) };
     return e;
@@ -609,6 +609,10 @@ function spawnEnemy(w: World, kind: EnemyKind, x: number, y: number): number {
     const k = w.smallElites.indexOf(i);
     if (k >= 0) w.smallElites.splice(k, 1);
   }
+  if (w.bareElites.length > 0) {
+    const k = w.bareElites.indexOf(i);
+    if (k >= 0) w.bareElites.splice(k, 1);
+  }
   const def = ENEMY_BY_KIND[kind];
   const diff = dangerDef(w.setup.mode, w.setup.danger);
   const min = minuteOf(w);
@@ -797,6 +801,8 @@ function spawnWaves(w: World): void {
       for (let k = 0; k < e.count; k++) {
         const [x, y] = ringPoint(w, w.rSpawn.int(DIR_N), 0.85);
         const i = spawnEnemy(w, e.enemy, x, y);
+        // 危险档多来的精英排在这一波最后，倒下不掉宝箱
+        if (i >= 0 && e.kind === 'elite' && k >= e.count - (e.bare ?? 0)) w.bareElites.push(i);
         if (i >= 0 && e.kind === 'elite' && e.small) {
           w.smallElites.push(i);
           // 开局那只：不吃 eliteHp，血和伤害再打折
@@ -1974,7 +1980,9 @@ function killEnemy(w: World, i: number): void {
     // 纸扎老爷召来的纸轿（eV = 1）不掉宝箱
     const small = w.smallElites.indexOf(i);
     if (small >= 0) w.smallElites.splice(small, 1);
-    if (!(def.kind === 'palanquin' && w.eV[i] === 1)) addDrop(w, Drop.Chest, x, y, w.raid || small >= 0 ? 1 : chestSize(w, 1));
+    const bare = w.bareElites.indexOf(i);
+    if (bare >= 0) w.bareElites.splice(bare, 1);
+    if (bare < 0 && !(def.kind === 'palanquin' && w.eV[i] === 1)) addDrop(w, Drop.Chest, x, y, w.raid || small >= 0 ? 1 : chestSize(w, 1));
     for (let k = 0; k < 6; k++) addDrop(w, Drop.Soul, x + (w.rDrop.next() - 0.5) * 60, y + (w.rDrop.next() - 0.5) * 40, def.xp / 6);
     // 精英周：多给铜钱（直接入账，单列一行）和一份魂珠；不开时一拍都不多走
     if (w.setup.weekly === 'elite' && !w.raid) {
@@ -2011,8 +2019,10 @@ function killEnemy(w: World, i: number): void {
   }
   // 黄鼠狼：叼走的铜钱双倍还回来
   if (def.kind === 'weasel' && w.eS[i] === 1) addDrop(w, Drop.Coin, x, y, w.eV[i]! * WEASEL.payback);
-  addDrop(w, Drop.Soul, x, y, def.xp);
-  const r = w.rDrop.next();
+  // 刷怪多的档按 lootMul 打折：魂珠少给，掉率整体缩（r 放大等于每项概率乘 loot）
+  const loot = lootMul(dangerDef(w.setup.mode, w.setup.danger));
+  addDrop(w, Drop.Soul, x, y, def.xp * loot);
+  const r = w.rDrop.next() / loot;
   const more = (w.tick < w.calmUntil ? CALM.dropMul : 1) * (w.setup.weekly === 'lantern' ? WEEKLY_FX.lanternDrop : 1);
   // 受伤补偿：血低时肉包多掉，补出来的那部分有冷却
   // 噩梦档（危险 7 起）补给减半：只乘肉包，别的掉落不变

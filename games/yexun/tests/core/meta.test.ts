@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { ENEMY_BY_KIND } from '../../src/content/enemies.ts';
 import { ASSIST, CHAR_FX, CHARACTERS, CHARACTER_IDS, PERK_FX } from '../../src/content/meta.ts';
 import { PICKS } from '../../src/content/picks.ts';
-import { DANGERS, EVENTS, EVENTS_57, TWIN_BOSS_HP } from '../../src/content/waves.ts';
+import { DANGER_IDS, DANGERS, EVENTS, EVENTS_57, LOOT_CAP, lootMul, TWIN_BOSS_HP } from '../../src/content/waves.ts';
+import { Drop } from '../../src/core/state.ts';
 import { createWorld, Ev, normalizeSetup, step, type Setup, type World } from '../../src/core/index.ts';
-import { spawnNow } from '../../src/core/debug.ts';
+import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
 
 // 第 5 步：危险 0–5、咒印、角色、永久加成、无尽、降低伤害（DESIGN.md 3.7、3.8、13.2）
 const make = (o: Partial<Setup> = {}): World => createWorld({ seed: 7, mode: 'vigil', danger: 2, ...o });
@@ -49,6 +50,42 @@ describe('危险档', () => {
     const bosses: number[] = [];
     for (let i = 0; i < w.eAlive.length; i++) if (w.eAlive[i] && w.eKind[i] === ENEMY_BY_KIND.boss.code) bosses.push(i);
     expect(w.eHpMax[bosses[0]!]).toBeCloseTo(ENEMY_BY_KIND.boss.hp * DANGERS[5].hpMul * TWIN_BOSS_HP);
+  });
+  it('危险 1 起血和伤害逐档涨；资源不跟怪数走：刷怪量 × 掉落倍率封顶 LOOT_CAP，掉落倍率逐档不升（规则 68）', () => {
+    for (const d of DANGER_IDS.slice(2)) {
+      const a = DANGERS[(d - 1) as 1], b = DANGERS[d];
+      expect(b.hpMul, `危险 ${d}`).toBeGreaterThan(a.hpMul);
+      expect(b.dmgMul, `危险 ${d}`).toBeGreaterThan(a.dmgMul);
+      expect(lootMul(b)).toBeLessThanOrEqual(lootMul(a));
+    }
+    for (const d of DANGER_IDS) expect(DANGERS[d].countMul * lootMul(DANGERS[d])).toBeLessThanOrEqual(LOOT_CAP + 1e-9);
+    expect(lootMul(DANGERS[2])).toBe(1);
+  });
+  it('危险档多来的精英倒下不掉宝箱，同一波其余精英照掉（规则 68）', () => {
+    const w = make({ danger: 4 });
+    w.nextEvent = w.schedule.findIndex((e) => e.kind === 'elite' && !e.small);
+    const ev = w.schedule[w.nextEvent] as { at: number; count: number; bare?: number };
+    expect(ev.bare).toBe(1);
+    w.tick = ev.at - 1;
+    step(w, 0, -1);
+    expect(w.bareElites.length).toBe(1);
+    const elites: number[] = [];
+    for (let i = 0; i < w.eAlive.length; i++) if (w.eAlive[i] && ENEMY_BY_KIND[w.schedule[w.nextEvent - 1]!.enemy as 'fox'].code === w.eKind[i]) elites.push(i);
+    expect(elites.length).toBe(ev.count);
+    grantWeapon(w, 'bell', 8);
+    for (const i of elites) {
+      w.eX[i] = w.x + 110;
+      w.eY[i] = w.y;
+      w.eHp[i] = 1;
+    }
+    for (let t = 0; t < 120 && elites.some((i) => w.eAlive[i]); t++) {
+      w.hp = w.stats.hpMax;
+      step(w, 0, -1);
+    }
+    expect(elites.every((i) => !w.eAlive[i])).toBe(true);
+    let chest = 0;
+    for (let d = 0; d < w.dAlive.length; d++) if (w.dAlive[d] && w.dKind[d] === Drop.Chest) chest++;
+    expect(chest).toBe(ev.count - 1);
   });
   it('开局设置整理：危险档截到 0–8（守夜）、咒印去重截到 3 条、加成截到最高级、角色不认识就是小道士', () => {
     const s = normalizeSetup({ seed: 1, mode: 'vigil', danger: 9 as never, curses: ['dark', 'dark', 'fast', 'more', 'elites'], perks: { liliang: 99 }, character: 'nobody' as never });

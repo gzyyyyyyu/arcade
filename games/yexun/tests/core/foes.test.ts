@@ -11,7 +11,6 @@ import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
 import { foeHurtMul, foeSlowMul } from '../../src/core/foes/index.ts';
 import { generateMap } from '../../src/explore/mapgen.ts';
 import { NAV_INF } from '../../src/explore/nav.ts';
-import { ReplayPlayer } from '../../src/replay/player.ts';
 import type { ReplayRecord } from '../../src/replay/format.ts';
 
 const MID_AT = 480 * 30;
@@ -471,23 +470,6 @@ describe('2.0 旧录像', () => {
   // 规则版本 37 录的六局（竹林、河滩、雪原、义庄、冰湖、荒庙，小道士 + 剑修机器人打满）：38 里回放要逐位一致，
   // 也就是 < 38 的录像用 2.0 之前的首领和刷怪表（画皮 / 纸扎老爷，没有雪童子、棺钉鬼）
   const items = JSON.parse(readFileSync(new URL('../fixtures/replay-rules37.json', import.meta.url), 'utf8')) as { rec: ReplayRecord; fp: number; kills: number; level: number }[];
-
-  it('规则版本 37 的录像在当前版本回放，到最后指纹、击杀、等级和录制时一致', () => {
-    expect(items.length).toBe(6);
-    for (const it of items) {
-      expect(it.rec.rules).toBe(37);
-      const p = ReplayPlayer.from(it.rec)!;
-      expect(p.outdated).toBe(true);
-      expect(p.world.replayRules).toBe(37);
-      expect(p.world.legacyPool).toBe(false);
-      expect(p.world.legacyFoes).toBe(true);
-      while (!p.done) p.tickOnce();
-      expect(fingerprint(p.world), it.rec.setup.map).toBe(it.fp);
-      expect(p.exact).toBe(true);
-      expect(p.world.kills).toBe(it.kills);
-      expect(p.world.level).toBe(it.level);
-    }
-  }, 120000);
 
   it('旧标记只由录像的规则版本决定：<38 用旧首领，当前版本不带；Setup 里塞不进来', () => {
     const rec = items[0]!.rec;

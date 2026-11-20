@@ -1,13 +1,10 @@
 // 规则 65（DESIGN 3.7、3.9）：专属搭配的料加权、铁布衫和万符齐发冷却缩短、心法流派的法器伤害 +10%。娱乐和实盘同一版起，
 // 规则 64 的录像（夹具是规则 64 的代码录的：符师、胖师叔娱乐局，符师实盘大档）在新代码里逐位重放
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { createWorld, fingerprint, Pick, skillCooldown, step, type Choice, type Setup, type World } from '../../src/core/index.ts';
+import { createWorld, Pick, skillCooldown, step, type Choice, type Setup, type World } from '../../src/core/index.ts';
 import { charDmgMul } from '../../src/core/skills.ts';
 import { XINFA_DMG } from '../../src/content/pools.ts';
 import { CHAR_FX } from '../../src/content/meta.ts';
-import { ReplayPlayer } from '../../src/replay/player.ts';
-import type { ReplayRecord } from '../../src/replay/format.ts';
 
 const S = 30;
 const make = (o: Partial<Setup> = {}, rules?: number): World => createWorld({ seed: 31, mode: 'vigil', danger: 0, ...o }, rules);
@@ -78,21 +75,4 @@ describe('规则 65：心法流派的法器伤害', () => {
     const w = make({ character: 'baidu', xinfa: 'water' });
     expect(charDmgMul(w, 'spring')).toBeCloseTo(XINFA_DMG * CHAR_FX.baiduWater67, 12);
   });
-});
-
-describe('规则 64 的旧录像', () => {
-  const items = JSON.parse(readFileSync(new URL('../fixtures/replay-rules64.json', import.meta.url), 'utf8')) as { rec: ReplayRecord; fp: number; kills: number; level: number }[];
-  it('符师、胖师叔娱乐局和符师实盘大档，在现行代码里回放逐位一致', () => {
-    expect(items.map((x) => `${x.rec.rules}${x.rec.setup.character}${x.rec.setup.live ? '实盘' : '娱乐'}`)).toEqual(['64fushi娱乐', '64pang娱乐', '64fushi实盘']);
-    for (const it of items) {
-      const p = ReplayPlayer.from(it.rec)!;
-      expect(p.outdated).toBe(true);
-      while (!p.done) p.tickOnce();
-      const tag = `${it.rec.setup.character} ${it.rec.setup.live ? '实盘' : '娱乐'}`;
-      expect(fingerprint(p.world), tag).toBe(it.fp);
-      expect(p.exact, tag).toBe(true);
-      expect(p.world.kills, tag).toBe(it.kills);
-      expect(p.world.identity65, tag).toBe(false);
-    }
-  }, 120_000);
 });

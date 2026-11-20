@@ -37,8 +37,8 @@ describe('确定性', () => {
     const w = play(20261016, 30 * 180);
     expect({ tick: w.tick, kills: w.kills, level: w.level, fp: fingerprint(w) }).toMatchInlineSnapshot(`
       {
-        "fp": 460038045,
-        "kills": 656,
+        "fp": 3052747986,
+        "kills": 662,
         "level": 5,
         "tick": 5396,
       }

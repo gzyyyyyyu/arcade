@@ -35,7 +35,7 @@ export type WaveEvent =
   | { at: number; kind: 'front'; enemy: EnemyKind; count: number }
   | { at: number; kind: 'ring'; enemy: EnemyKind; count: number; radius: number }
   | { at: number; kind: 'line'; enemy: EnemyKind; count: number }
-  | { at: number; kind: 'elite'; enemy: EnemyKind; count: number; small?: boolean }
+  | { at: number; kind: 'elite'; enemy: EnemyKind; count: number; small?: boolean; bare?: number }
   | { at: number; kind: 'boss'; enemy: 'boss' | MidBoss };
 
 /** 中期首领（8:00）：纸扎老爷是雪原、义庄的，其余每张特色图一个自己的（DESIGN.md 3.5） */
@@ -187,15 +187,15 @@ export const FIRST_RUN_GUARD = 180 * S;
  */
 export const DANGERS: Record<Danger, DangerDef> = {
   0: { id: 0, name: '危险 0', stars: 1, hpMul: 0.72, dmgMul: 0.6, countMul: 0.85, openSlow: 0.5, magnetMul: 2.4, earlyDmg: 0.8, armsFirst: 4, mixShift: -1, eliteLate: 30 * S, eliteExtra: 0, twinBoss: false, eliteNoWard: false, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 1, blurb: '第一次玩选这个' },
-  1: { id: 1, name: '危险 1', stars: 1, hpMul: 1.0, dmgMul: 1.0, countMul: 1.0, openSlow: 1, magnetMul: 1.4, earlyDmg: 0.8, armsFirst: 0, mixShift: 0, eliteLate: 30 * S, eliteExtra: 0, twinBoss: false, eliteNoWard: false, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 1, blurb: '怪种按时出' },
-  2: { id: 2, name: '危险 2', stars: 2, hpMul: 1.2, dmgMul: 1.2, countMul: 1.1, openSlow: 1, magnetMul: 1, earlyDmg: 0.8, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 0, twinBoss: false, eliteNoWard: false, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 1, blurb: '会躲会选就能撑到天亮' },
-  3: { id: 3, name: '危险 3', stars: 3, hpMul: 1.38, dmgMul: 1.36, countMul: 1.16, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: -20 * S, eliteExtra: 0, twinBoss: false, eliteNoWard: false, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 1, blurb: '怪更硬、下手更重' },
-  4: { id: 4, name: '危险 4', stars: 3, hpMul: 1.56, dmgMul: 1.5, countMul: 1.22, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: false, eliteNoWard: true, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 1, blurb: '精英成群，带两件镇类时不吃减速' },
-  5: { id: 5, name: '危险 5', stars: 4, hpMul: 1.75, dmgMul: 1.65, countMul: 1.28, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: true, eliteNoWard: true, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 0, blurb: '两只尸王，怪不再怕克制' },
+  1: { id: 1, name: '危险 1', stars: 1, hpMul: 1.08, dmgMul: 1.06, countMul: 1.0, openSlow: 1, magnetMul: 1.4, earlyDmg: 0.8, armsFirst: 0, mixShift: 0, eliteLate: 30 * S, eliteExtra: 0, twinBoss: false, eliteNoWard: false, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 1, blurb: '怪种按时出' },
+  2: { id: 2, name: '危险 2', stars: 2, hpMul: 1.28, dmgMul: 1.26, countMul: 1.1, openSlow: 1, magnetMul: 1, earlyDmg: 0.8, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 0, twinBoss: false, eliteNoWard: false, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 1, blurb: '会躲会选就能撑到天亮' },
+  3: { id: 3, name: '危险 3', stars: 3, hpMul: 1.55, dmgMul: 1.5, countMul: 1.16, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: -20 * S, eliteExtra: 0, twinBoss: false, eliteNoWard: false, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 1, blurb: '怪更硬、下手更重' },
+  4: { id: 4, name: '危险 4', stars: 3, hpMul: 1.62, dmgMul: 1.55, countMul: 1.22, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: false, eliteNoWard: true, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 1, blurb: '精英成群，带两件镇类时不吃减速' },
+  5: { id: 5, name: '危险 5', stars: 4, hpMul: 1.78, dmgMul: 1.68, countMul: 1.28, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: true, eliteNoWard: true, eliteRage: false, night: 0, supply: 1, bloodMoon: false, weakKeep: 0, blurb: '两只尸王，怪不再怕克制' },
   // 噩梦档：数值每档再加一截，机制逐档叠：6 精英发狂 → 7 夜色压视野、肉包减半 → 8 血月
-  6: { id: 6, name: '噩梦 1', stars: 5, hpMul: 1.7, dmgMul: 1.62, countMul: 1.3, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: true, eliteNoWard: true, eliteRage: true, night: 0, supply: 1, bloodMoon: false, weakKeep: 0, blurb: '精英半血发狂' },
-  7: { id: 7, name: '噩梦 2', stars: 5, hpMul: 1.8, dmgMul: 1.7, countMul: 1.32, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: true, eliteNoWard: true, eliteRage: true, night: 380, supply: 0.5, bloodMoon: false, weakKeep: 0, blurb: '夜色压眼，肉包减半' },
-  8: { id: 8, name: '噩梦 3', stars: 5, hpMul: 1.9, dmgMul: 1.78, countMul: 1.4, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: true, eliteNoWard: true, eliteRage: true, night: 380, supply: 0.5, bloodMoon: true, weakKeep: 0, blurb: '血月当空，怪一阵阵发疯' },
+  6: { id: 6, name: '噩梦 1', stars: 5, hpMul: 1.86, dmgMul: 1.74, countMul: 1.3, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: true, eliteNoWard: true, eliteRage: true, night: 0, supply: 1, bloodMoon: false, weakKeep: 0, blurb: '精英半血发狂' },
+  7: { id: 7, name: '噩梦 2', stars: 5, hpMul: 1.98, dmgMul: 1.84, countMul: 1.32, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: true, eliteNoWard: true, eliteRage: true, night: 380, supply: 0.5, bloodMoon: false, weakKeep: 0, blurb: '夜色压眼，肉包减半' },
+  8: { id: 8, name: '噩梦 3', stars: 5, hpMul: 2.06, dmgMul: 1.92, countMul: 1.4, openSlow: 1, magnetMul: 1, earlyDmg: 1, armsFirst: 0, mixShift: 0, eliteLate: 0, eliteExtra: 1, twinBoss: true, eliteNoWard: true, eliteRage: true, night: 380, supply: 0.5, bloodMoon: true, weakKeep: 0, blurb: '血月当空，怪一阵阵发疯' },
 };
 /**
  * 夜探的危险档（DESIGN.md 4.2）：夜探没有天亮可撑、还有巡夜将，同一档比守夜难得多（第 3 轮：普通玩家危险 0 撤出 80%，危险 1 只剩 45%），
@@ -238,6 +238,16 @@ export const BLOOD_MOON = { first: 180 * S, every: 180 * S, dur: 30 * S, warn: 3
 /** 这一局用的危险档参数：夜探走 RAID_DANGERS */
 export function dangerDef(mode: 'vigil' | 'raid', d: Danger): DangerDef {
   return mode === 'raid' ? RAID_DANGERS[d] : DANGERS[d];
+}
+
+/**
+ * 击杀掉落跟怪数脱钩（规则 68，所有者 11-20「难度越高怪越多，资源反而更多，更好过关」）：
+ * 每只怪的魂珠经验和掉率是固定的，刷怪量却乘 countMul，怪多一成，升级、肉包、铜钱就多一成。
+ * 刷怪量超过 LOOT_CAP 的档，普通怪的魂珠和掉率按 LOOT_CAP / countMul 打折，每分钟的资源停在危险 2 的水平；危险 0、1 不变。
+ */
+export const LOOT_CAP = 1.1;
+export function lootMul(d: DangerDef): number {
+  return d.countMul > LOOT_CAP ? LOOT_CAP / d.countMul : 1;
 }
 
 /** 两只尸王时每只的血 */

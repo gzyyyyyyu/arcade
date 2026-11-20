@@ -30,13 +30,11 @@ describe('噩梦档（危险 6–8）', () => {
   });
 
   it('逐档只加不减：机制叠上去，噩梦档之间数值不降', () => {
-    // 噩梦 1 的血和伤害倍数比危险 5 低一点（危险 5 起取消了克制加成，0.6.0 按模拟重调，DESIGN 危险档表、8.1）；危险 5 的机制噩梦档都有
+    // 规则 68 起噩梦 1 的血和伤害也比危险 5 高（胜率逐档降）；危险 5 的机制噩梦档都有
     for (let d = NIGHTMARE_FROM; d <= 8; d++) {
       const a = DANGERS[(d - 1) as 5], b = DANGERS[d as 6];
-      if (d > NIGHTMARE_FROM) {
-        expect(b.hpMul).toBeGreaterThan(a.hpMul);
-        expect(b.dmgMul).toBeGreaterThan(a.dmgMul);
-      }
+      expect(b.hpMul).toBeGreaterThan(a.hpMul);
+      expect(b.dmgMul).toBeGreaterThan(a.dmgMul);
       expect(b.countMul).toBeGreaterThanOrEqual(a.countMul);
       expect(b.weakKeep).toBeLessThanOrEqual(a.weakKeep);
       expect(b.eliteNoWard && b.twinBoss).toBe(true);

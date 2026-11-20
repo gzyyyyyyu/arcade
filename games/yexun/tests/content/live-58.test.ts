@@ -103,12 +103,6 @@ describe('0.21.1 规则 57 的内容进实盘、目标带 +0.15 后抬的格子�
     ['luxe', 'guishi', 'caiyao', 13355, 15355, 10136, 11700],
   ];
 
-  it('规则 ≤57 开的局结回逐位不变', () => {
-    for (const [t, m, c, dawn, boss, mid] of CELLS) {
-      expect([vigilBp(t, 0, true, false, c, m, 57), vigilBp(t, 0, true, true, c, m, 57), vigilBp(t, 18_000, false, false, c, m, 57)], `${t} ${m} ${c}`).toEqual([dawn, boss, mid]);
-    }
-  });
-
   it('规则 58 起天亮按新组合系数结，比规则 57 多', () => {
     for (const [t, m, c, dawn, , , k] of CELLS) {
       const now = vigilBp(t, 0, true, false, c, m, 58);

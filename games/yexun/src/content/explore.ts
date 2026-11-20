@@ -370,7 +370,8 @@ export const RAID_LIVE = {
     small: { guzhen: 250, dukou: 182, shansi: 220, xilou: 176, liangcang: 246 },
     medium: { guzhen: 211, dukou: 241, shansi: 153, xilou: 184, liangcang: 224 },
     large: { guzhen: 175, dukou: 153, shansi: 98, xilou: 135, liangcang: 210 },
-    luxe: { guzhen: 139, dukou: 121, shansi: 45, xilou: 79, liangcang: 164 },
+    // 规则 68 危险档变难后按古镇小道士同种子各 2,000 局重拟，五镇同比例 ÷1.26（原 139 / 121 / 45 / 79 / 164）
+    luxe: { guzhen: 111, dukou: 96, shansi: 36, xilou: 63, liangcang: 130 },
   } as Record<RaidLiveTier, Record<RaidLiveTemplate, number>>,
   danger: { small: 0, medium: 1, large: 2, luxe: 3 } as Record<RaidLiveTier, number>,
   /**

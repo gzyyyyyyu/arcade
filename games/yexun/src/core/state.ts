@@ -22,7 +22,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 67;
+export const RULES_VERSION = 68;
 /** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
 export const RULES_57_LIVE = 58;
 /** 规则 60–63 的内容（先只在娱乐局）进实盘的版本：实盘统一重拟那一版（DESIGN 4.2a）；之前开的实盘局照旧 */
@@ -442,6 +442,8 @@ export class World {
   mergeHalf: MergeDef['id'][] = [];
   /** 规则 57：只掉单件宝箱的精英（1:45 那只）的格子号；格子被别的怪占用时清掉 */
   smallElites: number[] = [];
+  /** 规则 68：危险档多出来的那只精英（eliteExtra）的格子号，倒下不掉宝箱（不然高档精英多、宝箱多，反而好过）；格子被别的怪占用时清掉 */
+  bareElites: number[] = [];
   /** 2.0 法器第一批（阵旗、勾魂锁、竹篙、长明灯）的阵、灯、水痕和按怪记的状态，逻辑在 core/arms/ */
   readonly arms = new ArmsState(MAX_ENEMIES);
   /** 往生铃：光环半径（这一拍），光环里的怪死了回血；下次能回血的拍 */

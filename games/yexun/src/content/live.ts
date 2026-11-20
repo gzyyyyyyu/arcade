@@ -145,7 +145,8 @@ export const LIVE_CHAR_BP: LiveCoef<CharacterId> = {
  * 0.17.10 起四档 × 七图全开：这里没写的角色、地图按不带技能那套（LIVE_CHAR_BP、LIVE_MAP_BP）补，再没有按 1 倍。
  */
 export const LIVE_SKILL_BP: { dawn: Partial<Record<LiveTier, number>>; char: LiveCoef<CharacterId>; map: LiveCoef<MapId> } = {
-  dawn: { small: 11_800, medium: 13_900, large: 13_800, luxe: 12_300 },
+  // 规则 68 危险档变难后，中、大、豪华档按小道士雪原同种子各 2,000 局重拟，普通线期望回到改前（13,900 / 13,800 / 12,300 → 下面的值）
+  dawn: { small: 11_800, medium: 14_100, large: 14_600, luxe: 13_800 },
   char: {
     fushi: { small: 10_500, medium: 10_000 },
     jianxia: { small: 9_900, medium: 9_500, large: 9_100, luxe: 8_400 },

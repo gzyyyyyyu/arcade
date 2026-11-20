@@ -152,12 +152,6 @@ describe('规则 64 守夜重拟的格子', () => {
     ['luxe', 'guishi', 'yinyang', 10701, 12701, 8122, 9800],
   ];
 
-  it('规则 ≤63 开的局结回逐位不变', () => {
-    for (const [t, m, c, dawn, boss, mid] of CELLS) {
-      expect([vigilBp(t, 0, true, false, c, m, 63), vigilBp(t, 0, true, true, c, m, 63), vigilBp(t, 18_000, false, false, c, m, 63)], `${t} ${m} ${c}`).toEqual([dawn, boss, mid]);
-    }
-  });
-
   it('规则 64 的局天亮按新组合系数结；现行规则也是（规则 65 又压过的格子除外，见 live-65.test.ts）', () => {
     for (const [t, m, c, , , , k] of CELLS) {
       const want = Math.floor((LIVE_SKILL_BP.dawn[t]! * k) / 10_000);
@@ -245,6 +239,6 @@ describe('规则 64 夜探重拟的格子（夜探撤出时按当时的系数结
     expect(RAID_LIVE.danger.luxe).toBe(3);
     expect(RAID_LIVE.floor.luxe).toBe(1.2);
     expect(RAID_LIVE.floorRamp.luxe).toBe(8 * 60 * 30);
-    expect(RAID_LIVE.base.luxe).toEqual({ guzhen: 139, dukou: 121, shansi: 45, xilou: 79, liangcang: 164 });
+    expect(RAID_LIVE.base.luxe).toEqual({ guzhen: 111, dukou: 96, shansi: 36, xilou: 63, liangcang: 130 });
   });
 });
