@@ -2,11 +2,12 @@
 import type { Route } from '../core/route';
 import { adminCodes, codeIdParams, createCode, getInviteRules, listMyCodes, revokeCode } from './invite-codes';
 import { changePassword, changeRecoveryCode, deleteAccount, logoutOthers } from './account';
-import { getMe, login, logout, patchMe, recover, register } from './auth';
+import { getMe, login, logout, patchMe, putGamePrefs, recover, register } from './auth';
 
 export const ACCOUNT_ROUTES: Route[] = [
   { method: 'GET', path: '/api/me', cat: 'social', auth: 'optional', handler: getMe },
   { method: 'PATCH', path: '/api/me', cat: 'social', auth: 'user', handler: patchMe },
+  { method: 'PUT', path: '/api/me/games', cat: 'social', auth: 'user', handler: putGamePrefs },
   { method: 'POST', path: '/api/auth/register', cat: 'reg', auth: 'none', growth: true, handler: register },
   { method: 'POST', path: '/api/auth/login', cat: 'auth', auth: 'none', handler: login },
   { method: 'POST', path: '/api/auth/recover', cat: 'auth', auth: 'none', handler: recover },

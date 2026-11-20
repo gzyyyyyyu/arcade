@@ -94,11 +94,17 @@ export async function listFeed(c: Ctx): Promise<Response> {
         ),
       )
     : [];
+  // 按条归好一次（原来每条都把所有赞扫一遍）
+  const byItem = new Map<string, { counts: Record<string, number>; mine?: string }>();
+  for (const x of reactions) {
+    const g = byItem.get(x.item_id) ?? { counts: {} };
+    g.counts[x.kind] = (g.counts[x.kind] ?? 0) + 1;
+    if (x.user_id === me) g.mine = x.kind;
+    byItem.set(x.item_id, g);
+  }
   return json(200, {
     items: rows.map((r) => {
-      const mine = reactions.find((x) => x.item_id === r.id && x.user_id === me)?.kind;
-      const counts: Record<string, number> = {};
-      for (const x of reactions) if (x.item_id === r.id) counts[x.kind] = (counts[x.kind] ?? 0) + 1;
+      const { counts, mine } = byItem.get(r.id) ?? { counts: {} };
       return {
         id: r.id,
         user: { userId: r.user_id, displayName: r.display_name, avatar: avatarOf(r.avatar_json) },

@@ -7,7 +7,10 @@
  * - 四个数（普通用户额度、管理员额度、有效期、每天上限）存在 settings 的 invite_rules，管理员能改、不用发版（同钱包规则）；
  *   单个人的额度在 users.invite_quota，空就按角色用默认。
  * - 码存明文，用掉、撤回、过期以后接口只给末 4 位。
+ * - 两种码，类型显式存在 max_uses（迁移 0014）：普通码 1 次（谁都能生成，按额度）；长期码多次（只有管理员在后台建，不占额度、默认不过期、默认 100 次）。
+ *   每次使用在 invite_code_uses 记一行；占名额是注册 batch 第一条的条件更新 `uses < max_uses`，并发只放过名额那么多人。
  */
+import { count } from '../lib/body';
 import { type Ctx, DAY } from '../core/context';
 import { formatInviteCode, newInviteCode, newTimeId } from '../lib/crypto';
 import type { Db } from '../lib/db';
@@ -94,20 +97,30 @@ interface CodeRow {
   expires_at: number;
   used_at: number | null;
   revoked_at: number | null;
+  uses: number;
+  max_uses: number;
 }
 
 type Status = 'unused' | 'used' | 'expired' | 'revoked';
 
+/** used：名额用完了（普通码用过一次就是） */
 function statusOf(r: CodeRow, now: number): Status {
-  if (r.used_at !== null) return 'used';
+  if (r.uses >= r.max_uses) return 'used';
   if (r.revoked_at !== null) return 'revoked';
   return r.expires_at <= now ? 'expired' : 'unused';
 }
 
-/** 算进额度的：已用的，或者没撤回、没过期的。?1 是本人，?2 是现在 */
-const TAKEN = `(SELECT COUNT(*) FROM invite_codes WHERE owner_id = ?1 AND (used_at IS NOT NULL OR (revoked_at IS NULL AND expires_at > ?2)))`;
-/** 24 小时内生成的。?1 是本人，?3 是 24 小时前 */
-const RECENT = `(SELECT COUNT(*) FROM invite_codes WHERE owner_id = ?1 AND created_at > ?3)`;
+/** 长期码"不过期"存成这个时间（列是 NOT NULL，条件照常写 expires_at > 现在）；接口里给 null */
+export const NEVER_EXPIRES = 8_640_000_000_000_000;
+const expiresJson = (t: number) => (t >= NEVER_EXPIRES ? null : t);
+
+/** 还能用：名额没满、没撤回、没过期。?2 是现在 */
+const USABLE = 'uses < max_uses AND revoked_at IS NULL AND expires_at > ?2';
+
+/** 算进额度的普通码：已用的，或者没撤回、没过期的。?1 是本人，?2 是现在 */
+const TAKEN = `(SELECT COUNT(*) FROM invite_codes WHERE owner_id = ?1 AND max_uses = 1 AND (uses > 0 OR (revoked_at IS NULL AND expires_at > ?2)))`;
+/** 24 小时内生成的普通码。?1 是本人，?3 是 24 小时前 */
+const RECENT = `(SELECT COUNT(*) FROM invite_codes WHERE owner_id = ?1 AND max_uses = 1 AND created_at > ?3)`;
 
 async function quotaState(c: Ctx, rules: InviteRules) {
   const me = c.session!.user;
@@ -129,15 +142,15 @@ export function codeIdParams(segments: string[]): Record<string, string> {
 const LIST_MAX = 50;
 const hint = (code: string) => `…${code.slice(-4)}`;
 
-/** GET /api/invite-codes：额度、最近 50 个码。只读，0 行 */
+/** GET /api/invite-codes：额度、最近 50 个普通码（长期码在管理页看）。只读，0 行 */
 export async function listMyCodes(c: Ctx): Promise<Response> {
   const rules = await inviteRules(c.db, c.now);
   const q = await quotaState(c, rules);
   const rows = await c.db.all<CodeRow & { used_by: string | null; display_name: string | null; avatar_json: string | null }>(
     c.db.stmt(
-      `SELECT i.id, i.code, i.created_at, i.expires_at, i.used_at, i.revoked_at, i.used_by, u.display_name, u.avatar_json
-       FROM invite_codes i LEFT JOIN users u ON u.id = i.used_by
-       WHERE i.owner_id = ?1 ORDER BY i.created_at DESC LIMIT ?2`,
+      `SELECT i.id, i.code, i.created_at, i.expires_at, i.used_at, i.revoked_at, i.uses, i.max_uses, cu.user_id AS used_by, u.display_name, u.avatar_json
+       FROM invite_codes i LEFT JOIN invite_code_uses cu ON cu.code_id = i.id LEFT JOIN users u ON u.id = cu.user_id
+       WHERE i.owner_id = ?1 AND i.max_uses = 1 ORDER BY i.created_at DESC LIMIT ?2`,
       c.session!.user.id, LIST_MAX,
     ),
   );
@@ -153,7 +166,7 @@ export async function listMyCodes(c: Ctx): Promise<Response> {
       ...(r.used_at !== null
         ? {
             usedAt: r.used_at,
-            // 用的人注销了：used_by 已清空，显示"账号已注销"
+            // 用的人注销了：使用记录已删，显示"账号已注销"
             usedBy: r.used_by && r.display_name !== null ? { userId: r.used_by, displayName: r.display_name, avatar: avatarOf(r.avatar_json) } : null,
           }
         : {}),
@@ -198,10 +211,7 @@ export async function createCode(c: Ctx): Promise<Response> {
 /** POST /api/invite-codes/<id>/revoke：撤回自己没用的码，额度还回来。1 行；不是自己的、已用、已撤回、已过期 404、0 行 */
 export async function revokeCode(c: Ctx): Promise<Response> {
   const meta = await c.db.run(
-    c.db.stmt(
-      'UPDATE invite_codes SET revoked_at = ?1 WHERE id = ?2 AND owner_id = ?3 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?1',
-      c.now, c.params.id!, c.session!.user.id,
-    ),
+    c.db.stmt(`UPDATE invite_codes SET revoked_at = ?2 WHERE id = ?1 AND owner_id = ?3 AND ${USABLE}`, c.params.id!, c.now, c.session!.user.id),
   );
   if (!meta.changes) throw new ApiError(404, 'not_found');
   return noContent();
@@ -209,18 +219,30 @@ export async function revokeCode(c: Ctx): Promise<Response> {
 
 // ---------- 注册时用 ----------
 
-/** 能用的码：没用、没撤回、没过期。只读 */
-export async function findUsableCode(db: Db, code: string, now: number): Promise<{ id: string; owner_id: string } | null> {
-  return db.first<{ id: string; owner_id: string }>(
-    db.stmt('SELECT id, owner_id FROM invite_codes WHERE code = ?1 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?2', code, now),
-  );
+export interface UsableCode {
+  id: string;
+  owner_id: string;
+  max_uses: number;
 }
 
-/** 占码（注册 batch 的第一条）：条件更新，并发里只有一个人改得成。1 行 */
+/** 能用的码：名额没满、没撤回、没过期。只读 */
+export async function findUsableCode(db: Db, code: string, now: number): Promise<UsableCode | null> {
+  return db.first<UsableCode>(db.stmt(`SELECT id, owner_id, max_uses FROM invite_codes WHERE code = ?1 AND ${USABLE}`, code, now));
+}
+
+/**
+ * 占名额（注册 batch 的第一条）：条件更新 `uses < max_uses`，并发里只有名额那么多人改得成，调用方看影响行数。1 行。
+ * used_by 记"刚占到的人"：batch 里后面的语句（使用记录、建号）以它等于新 id 为条件，没占到就一行都不写
+ */
 export function claimStatement(db: Db, id: string, userId: string, now: number): D1PreparedStatement {
+  return db.stmt(`UPDATE invite_codes SET uses = uses + 1, used_by = ?3, used_at = ?2 WHERE id = ?1 AND ${USABLE}`, id, now, userId);
+}
+
+/** 使用记录（batch 第二条）：占到了才写。表 + user 索引 2 行 */
+export function recordUseStatement(db: Db, id: string, userId: string, now: number): D1PreparedStatement {
   return db.stmt(
-    'UPDATE invite_codes SET used_by = ?1, used_at = ?2 WHERE id = ?3 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?2',
-    userId, now, id,
+    'INSERT INTO invite_code_uses (code_id, user_id, used_at) SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM invite_codes WHERE id = ?1 AND used_by = ?2)',
+    id, userId, now,
   );
 }
 
@@ -279,21 +301,28 @@ export { rulesState as inviteRulesState };
 /** 管理页的全站列表：最近 100 个，看得到用户名（管理员本来就看得到） */
 export async function adminCodes(c: Ctx): Promise<Response> {
   const status = new URL(c.request.url).searchParams.get('status') ?? 'all';
-  if (!['all', 'unused', 'used'].includes(status)) throw new ApiError(400, 'bad_request');
-  const where = status === 'used' ? 'WHERE i.used_at IS NOT NULL' : status === 'unused' ? 'WHERE i.used_at IS NULL AND i.revoked_at IS NULL AND i.expires_at > ?1' : '';
-  const rows = await c.db.all<CodeRow & { owner_name: string | null; owner_display: string | null; used_name: string | null; used_display: string | null }>(
+  if (!['all', 'unused', 'used', 'multi'].includes(status)) throw new ApiError(400, 'bad_request');
+  const where = {
+    all: '',
+    used: 'WHERE i.uses > 0',
+    unused: 'WHERE i.uses < i.max_uses AND i.revoked_at IS NULL AND i.expires_at > ?1',
+    multi: 'WHERE i.max_uses > 1',
+  }[status];
+  const rows = await c.db.all<CodeRow & { owner_name: string | null; owner_display: string | null }>(
     c.db.stmt(
-      `SELECT i.id, i.code, i.created_at, i.expires_at, i.used_at, i.revoked_at,
-              o.username AS owner_name, o.display_name AS owner_display, u.username AS used_name, u.display_name AS used_display
-       FROM invite_codes i LEFT JOIN users o ON o.id = i.owner_id LEFT JOIN users u ON u.id = i.used_by
+      `SELECT i.id, i.code, i.created_at, i.expires_at, i.used_at, i.revoked_at, i.uses, i.max_uses,
+              o.username AS owner_name, o.display_name AS owner_display
+       FROM invite_codes i LEFT JOIN users o ON o.id = i.owner_id
        ${where} ORDER BY i.created_at DESC LIMIT 100`,
       // 只有"没用的"要比现在的时间；别的不带参数（多给 D1 会报绑定个数不对）
       ...(status === 'unused' ? [c.now] : []),
     ),
   );
+  const people = await usesOf(c.db, rows.filter((r) => r.uses > 0).map((r) => r.id));
   return json(200, {
     codes: rows.map((r) => {
       const st = statusOf(r, c.now);
+      const users = people.get(r.id) ?? [];
       return {
         id: r.id,
         hint: hint(r.code),
@@ -302,16 +331,65 @@ export async function adminCodes(c: Ctx): Promise<Response> {
         status: st,
         owner: r.owner_name ? { username: r.owner_name, displayName: r.owner_display } : null,
         createdAt: r.created_at,
-        expiresAt: r.expires_at,
-        ...(r.used_at !== null ? { usedAt: r.used_at, usedBy: r.used_name ? { username: r.used_name, displayName: r.used_display } : null } : {}),
+        expiresAt: expiresJson(r.expires_at),
+        uses: r.uses,
+        maxUses: r.max_uses,
+        // 普通码：用的人（注销了是 null）；长期码：用它注册的人（注销了的不列）
+        ...(r.max_uses === 1 && r.used_at !== null ? { usedAt: r.used_at, usedBy: users[0] ?? null } : {}),
+        ...(r.max_uses > 1 ? { users } : {}),
       };
     }),
   });
 }
 
-/** 管理员撤回：没用的码才能撤（1 行），调用方加每日计数 */
+/** 这些码的使用记录（新的在前）；码 id 最多 100 个，按主键前缀查 */
+async function usesOf(db: Db, ids: string[]) {
+  const map = new Map<string, { username: string; displayName: string; usedAt: number }[]>();
+  if (!ids.length) return map;
+  const rows = await db.all<{ code_id: string; username: string; display_name: string; used_at: number }>(
+    db.stmt(
+      `SELECT cu.code_id, u.username, u.display_name, cu.used_at FROM invite_code_uses cu JOIN users u ON u.id = cu.user_id
+       WHERE cu.code_id IN (SELECT value FROM json_each(?1)) ORDER BY cu.used_at DESC`,
+      JSON.stringify(ids),
+    ),
+  );
+  for (const r of rows) {
+    const list = map.get(r.code_id) ?? [];
+    list.push({ username: r.username, displayName: r.display_name, usedAt: r.used_at });
+    map.set(r.code_id, list);
+  }
+  return map;
+}
+
+/** 长期码能设的范围；默认 100 次、不过期 */
+export const MULTI_CODE = { usesDefault: 100, usesMax: 1000, daysMax: 365 } as const;
+
+/**
+ * POST /api/admin/invite-codes {maxUses?: 2–1000（默认 100）, days?: 1–365（不给或 null 不过期）}：建一个长期码，只有管理员会话能建
+ * （码要记在一个人名下；Bearer 令牌 403 session_required）。不占邀请额度，不算 24 小时上限。
+ * 返回要写的语句（表 + 两个索引 3 行），调用方和每日计数一起 batch
+ */
+export function planMultiCode(c: Ctx): { stmt: D1PreparedStatement; code: { id: string; code: string; link: string; maxUses: number; expiresAt: number | null } } {
+  if (!c.session) throw new ApiError(403, 'session_required');
+  const maxUses = c.body.maxUses === undefined ? MULTI_CODE.usesDefault : count(c.body.maxUses);
+  const days = c.body.days === undefined || c.body.days === null ? null : count(c.body.days);
+  if (maxUses < 2 || maxUses > MULTI_CODE.usesMax) throw new ApiError(400, 'bad_request', { field: 'maxUses', range: [2, MULTI_CODE.usesMax] });
+  if (days !== null && (days < 1 || days > MULTI_CODE.daysMax)) throw new ApiError(400, 'bad_request', { field: 'days', range: [1, MULTI_CODE.daysMax] });
+  const expiresAt = days === null ? NEVER_EXPIRES : c.now + days * DAY;
+  const id = newTimeId(c.now);
+  const code = newInviteCode();
+  return {
+    stmt: c.db.stmt(
+      'INSERT INTO invite_codes (id, code, owner_id, created_at, expires_at, max_uses) VALUES (?1, ?2, ?3, ?4, ?5, ?6)',
+      id, code, c.session.user.id, c.now, expiresAt, maxUses,
+    ),
+    code: { id, code: formatInviteCode(code), link: `/i/${code}`, maxUses, expiresAt: expiresJson(expiresAt) },
+  };
+}
+
+/** 管理员撤回：名额没满、没撤回的码才能撤（1 行），调用方加每日计数。长期码撤回后已经注册的人不受影响 */
 export function adminRevokeStatement(db: Db, id: string, now: number): D1PreparedStatement {
-  return db.stmt('UPDATE invite_codes SET revoked_at = ?1 WHERE id = ?2 AND used_at IS NULL AND revoked_at IS NULL', now, id);
+  return db.stmt('UPDATE invite_codes SET revoked_at = ?2 WHERE id = ?1 AND uses < max_uses AND revoked_at IS NULL', id, now);
 }
 
 /** 单个人的额度：整数 0–USER_QUOTA_MAX，或 null 恢复默认 */
@@ -323,12 +401,12 @@ export function parseUserQuota(v: unknown): number | null {
 
 // ---------- 清理 ----------
 
-/** Cron：没用的码过期或撤回满 30 天就删（已用的留着，额度要算）。表小，按条件扫 */
+/** Cron：一次没用过的码过期或撤回满 30 天就删（用过的留着，额度和使用记录要算）。表小，按条件扫 */
 export const INVITE_KEEP_MS = 30 * DAY;
 export function cleanupStatement(db: Db, now: number, limit: number): D1PreparedStatement {
   return db.stmt(
     `DELETE FROM invite_codes WHERE id IN (SELECT id FROM invite_codes
-       WHERE used_at IS NULL AND (expires_at < ?1 OR revoked_at < ?1) LIMIT ?2)`,
+       WHERE uses = 0 AND (expires_at < ?1 OR revoked_at < ?1) LIMIT ?2)`,
     now - INVITE_KEEP_MS, limit,
   );
 }

@@ -15,7 +15,7 @@ import { hit } from '../core/ratelimit';
 import { beijingDayNumber } from '../core/time';
 import { avatarOf } from '../account/session';
 import { presenceOf } from './presence';
-import { deletePairStatement, togetherAll } from './mates';
+import { deletePairStatement, type Together, togetherAll } from './mates';
 
 interface ProfileRow {
   id: string;
@@ -85,20 +85,22 @@ async function counts(c: Ctx, userId: string): Promise<{ friends: number; outgoi
 /** GET /api/friends：好友、收到的请求、发出的请求。只读，0 行。 */
 export async function listFriends(c: Ctx): Promise<Response> {
   const me = c.session!.user.id;
-  const rows = await c.db.all<
-    ProfileRow & RelationRow & { last_seen_at: number; blocked: number; presence_json: string | null; presence_at: number; show_where: number; show_mates: number }
-  >(
-    c.db.stmt(
-      `SELECT u.id, u.display_name, u.avatar_json, u.last_seen_at, u.presence_json, u.presence_at, u.show_where, u.show_mates, f.status, f.requested_by,
-              EXISTS (SELECT 1 FROM blocks b WHERE b.blocker = ?1 AND b.blocked = u.id) AS blocked
-       FROM friendships f JOIN users u ON u.id = CASE WHEN f.user_a = ?1 THEN f.user_b ELSE f.user_a END
-       WHERE f.user_a = ?1 OR f.user_b = ?1
-       ORDER BY f.created_at DESC`,
-      me,
+  // 搭子战绩和名单一起查（不等名单回来再查，省一个来回）；我关了开关就谁的都不给、不查
+  const [rows, mates] = await Promise.all([
+    c.db.all<
+      ProfileRow & RelationRow & { last_seen_at: number; blocked: number; presence_json: string | null; presence_at: number; show_where: number; show_mates: number }
+    >(
+      c.db.stmt(
+        `SELECT u.id, u.display_name, u.avatar_json, u.last_seen_at, u.presence_json, u.presence_at, u.show_where, u.show_mates, f.status, f.requested_by,
+                EXISTS (SELECT 1 FROM blocks b WHERE b.blocker = ?1 AND b.blocked = u.id) AS blocked
+         FROM friendships f JOIN users u ON u.id = CASE WHEN f.user_a = ?1 THEN f.user_b ELSE f.user_a END
+         WHERE f.user_a = ?1 OR f.user_b = ?1
+         ORDER BY f.created_at DESC`,
+        me,
+      ),
     ),
-  );
-  // 搭子战绩：我关了开关就谁的都不给，省掉这次查询；没有好友也不查
-  const mates = c.session!.user.show_mates !== 0 && rows.some((r) => r.status === 'accepted') ? await togetherAll(c.db, me) : new Map();
+    c.session!.user.show_mates !== 0 ? togetherAll(c.db, me) : new Map<string, Together>(),
+  ]);
   const friends = [];
   const incoming = [];
   const outgoing = [];

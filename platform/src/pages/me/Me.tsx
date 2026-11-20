@@ -1,6 +1,6 @@
 /**
  * /me：我的账号，一屏放下不滚（docs/ui.md 第 9、11 节）。内容按主题分页签：
- * 资料（昵称、好友码、改昵称、退出）、隐私（好友能看到什么）、云存档、邀请码、安全（改密码、换恢复码、退出其他设备、注销）。
+ * 资料（昵称、好友码、改昵称、退出）、隐私（好友能看到什么）、偏好（大厅显示哪些游戏）、云存档、邀请码、安全（改密码、换恢复码、退出其他设备、注销）。
  * 宽屏（≥960×600）资料和隐私并成一个页签、左右两块等高；云存档、邀请码是左边说明、右边翻页列表；安全是左边选操作、右边表单。
  * 云存档在页面一打开就读（不等切到那个页签），别的页签各读各的。
  */
@@ -10,6 +10,7 @@ import { Link } from '../../router.tsx';
 import { useSession } from '../../session.tsx';
 import { Panel, Skeleton } from '../../ui.tsx';
 import { useInvites } from './me-invites.tsx';
+import { PrefsCard } from './MePrefs.tsx';
 import { PrivacyCard, ProfileCard } from './MeProfile.tsx';
 import { SafeTab } from './MeSafe.tsx';
 import { SavesList, SavesNote, useSaves } from './MeSaves.tsx';
@@ -19,6 +20,7 @@ const WIDE = '(min-width: 960px) and (min-height: 600px)';
 const TABS = {
   wide: [
     { id: 'profile', name: '资料' },
+    { id: 'prefs', name: '偏好' },
     { id: 'saves', name: '云存档' },
     { id: 'invite', name: '邀请码' },
     { id: 'safe', name: '安全' },
@@ -26,8 +28,10 @@ const TABS = {
   narrow: [
     { id: 'profile', name: '资料' },
     { id: 'privacy', name: '隐私' },
-    { id: 'saves', name: '云存档' },
-    { id: 'invite', name: '邀请码' },
+    { id: 'prefs', name: '偏好' },
+    // 窄屏六个页签：两字一个，360 宽也放得下
+    { id: 'saves', name: '存档' },
+    { id: 'invite', name: '邀请' },
     { id: 'safe', name: '安全' },
   ],
 } as const;
@@ -82,6 +86,11 @@ function MeBody({ readonly }: { readonly: boolean }) {
           </div>
         )}
         {cur === 'privacy' && <PrivacyCard />}
+        {cur === 'prefs' && (
+          <div className="me-one">
+            <PrefsCard />
+          </div>
+        )}
         {cur === 'saves' && (
           <div className={wide ? 'me-cols' : 'me-one'}>
             <div className="me-card me-card--note">

@@ -1,9 +1,11 @@
-/** 管理页：全站设置，大厅公告、开放注册、钱包规则。 */
+/** 管理页：全站设置，大厅公告、开放注册、默认隐藏的游戏、钱包规则。 */
 import { useEffect, useState } from 'react';
 import { api, errorText, type NoticeState, type RegistrationState, type WalletRules, type WalletRulesState } from '../../api.ts';
 import { Field, FormError, Panel, Skeleton, SubmitButton, useSubmit, useWritable } from '../../ui.tsx';
 import { Paged } from '../../features/fit/Fit.tsx';
 import { num, timeText } from './common.ts';
+import { GAMES } from '../../../shared/games.ts';
+import { useSession } from '../../session.tsx';
 
 /** 大厅公告：发了以后登录的人在大厅顶上看到，别的服务器最多晚 30 秒 */
 export function NoticePanel() {
@@ -65,6 +67,72 @@ export function NoticePanel() {
               撤下公告
             </button>
           )}
+        </form>
+      )}
+    </Panel>
+  );
+}
+
+/**
+ * 默认隐藏的游戏（docs/platform-backend.md 15.21）：勾上的游戏默认不在大厅、排行、动态里出现，每个人还能在 我的账号 → 偏好 里改。
+ * 改了别的服务器最多晚 30 秒
+ */
+export function HiddenGamesPanel() {
+  const { setHiddenDefault } = useSession();
+  const [saved, setSaved] = useState<string[] | null>(null);
+  const [draft, setDraft] = useState<ReadonlySet<string>>(new Set());
+  const [loadError, setLoadError] = useState('');
+  const [done, setDone] = useState(false);
+  const writable = useWritable();
+  useEffect(() => {
+    let alive = true;
+    api.admin.hiddenGames().then(
+      (r) => {
+        if (!alive) return;
+        setSaved(r.hidden);
+        setDraft(new Set(r.hidden));
+      },
+      (e: unknown) => alive && setLoadError(errorText(e)),
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const changed = saved !== null && (saved.length !== draft.size || saved.some((id) => !draft.has(id)));
+  const { busy, error, onSubmit } = useSubmit(async () => {
+    const r = await api.admin.setHiddenGames([...draft]);
+    setSaved(r.hidden);
+    setDraft(new Set(r.hidden));
+    setHiddenDefault(r.hidden);
+    setDone(true);
+  });
+  const toggle = (id: string, on: boolean) => {
+    const next = new Set(draft);
+    if (on) next.add(id);
+    else next.delete(id);
+    setDraft(next);
+    setDone(false);
+  };
+  return (
+    <Panel icon="shield" title="默认隐藏的游戏" className="apanel">
+      {loadError && <FormError text={loadError} />}
+      {!saved && !loadError && <Skeleton rows={2} />}
+      {saved && (
+        <form className="form" onSubmit={onSubmit} data-testid="hidden-games-admin">
+          <div className="hidden-games">
+            {GAMES.map((g) => (
+              <label key={g.id} className="check">
+                <input type="checkbox" checked={draft.has(g.id)} onChange={(e) => toggle(g.id, e.target.checked)} />
+                {g.name}
+              </label>
+            ))}
+          </div>
+          <p className="note">勾上的默认不在大厅、排行、动态里出现，每个人能在偏好里自己打开；游戏地址照常能玩。</p>
+          <FormError text={error} />
+          {done && !changed && <p className="ok">改好了</p>}
+          <SubmitButton busy={busy} disabled={!changed || !writable}>
+            保存
+          </SubmitButton>
         </form>
       )}
     </Panel>

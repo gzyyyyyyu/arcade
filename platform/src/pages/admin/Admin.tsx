@@ -18,7 +18,7 @@ import type { Credentials } from './common.ts';
 import { InvitesSection } from './Invites.tsx';
 import { Overview } from './Overview.tsx';
 import { AdminTabs, useAdminWide } from './AdminLayout.tsx';
-import { NoticePanel, RegistrationSwitch, WalletRulesPanel } from './Settings.tsx';
+import { HiddenGamesPanel, NoticePanel, RegistrationSwitch, WalletRulesPanel } from './Settings.tsx';
 import { UserList } from './Users.tsx';
 import { PlayTally } from './PlayTally.tsx';
 import { WalletStats } from './WalletStats.tsx';
@@ -94,7 +94,7 @@ export function AdminPage() {
   );
 }
 
-/** 宽屏：左边公告和开放注册上下排，右边钱包规则；窄屏三个页签 */
+/** 宽屏：左边公告和开放注册上下排，中间默认隐藏的游戏，右边钱包规则；窄屏四个页签 */
 function SettingsSection() {
   const wide = useAdminWide();
   const tabs = wide
@@ -109,11 +109,13 @@ function SettingsSection() {
             </>
           ),
         },
+        { id: 'games', name: '隐藏游戏', body: <HiddenGamesPanel /> },
         { id: 'wallet', name: '钱包规则', body: <WalletRulesPanel /> },
       ]
     : [
         { id: 'notice', name: '公告', body: <NoticePanel /> },
         { id: 'registration', name: '开放注册', body: <RegistrationSwitch /> },
+        { id: 'games', name: '隐藏游戏', body: <HiddenGamesPanel /> },
         { id: 'wallet', name: '钱包规则', body: <WalletRulesPanel /> },
       ];
   return <AdminTabs tabs={tabs} label="设置分页" />;

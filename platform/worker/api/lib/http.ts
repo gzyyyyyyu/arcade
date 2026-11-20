@@ -34,6 +34,7 @@ export const MESSAGES: Record<string, string> = {
   invite_used: '这个邀请码刚被别人用掉了，找朋友要个新的',
   quota_full: '邀请名额用完了：没用的码过期或撤回后会还回来',
   not_admin: '只有管理员能用',
+  session_required: '这个操作要在管理页里登录后做，命令行令牌不行',
   admin_protected: '管理员账号只能用管理命令行工具来建、改密码和删除',
   cannot_delete_self: '不能删自己的账号，要注销请去"我的账号"',
   last_admin: '这是最后一个管理员，不能删',

@@ -16,6 +16,7 @@ import { Paged, useMedia } from '../fit/Fit.tsx';
 import { FeedIcon } from '../../icons.tsx';
 import { Modal } from '../modal/Modal.tsx';
 import { Link, useLocation } from '../../router.tsx';
+import { useVisible } from '../../session.tsx';
 import { Empty, LoadError, Skeleton } from '../../ui.tsx';
 import { loadTitles, type TitleCatalog } from '../../lib/titles.ts';
 import './feed.css';
@@ -113,6 +114,9 @@ function loadFeed(fresh: boolean): Promise<Shown[]> {
   return p;
 }
 
+const NONE: Shown[] = [];
+const gameOfItem = (i: Shown) => i.game;
+
 function useFeed(): { items: Shown[] | null; error: string; reload: () => void } {
   const [items, setItems] = useState<Shown[] | null>(null);
   const [error, setError] = useState('');
@@ -135,7 +139,9 @@ function useFeed(): { items: Shown[] | null; error: string; reload: () => void }
       alive = false;
     };
   }, [tick]);
-  return { items, error, reload: () => setTick((t) => t + 1) };
+  // 隐藏了的游戏的动态不出现（session.tsx）
+  const shown = useVisible(items ?? NONE, gameOfItem);
+  return { items: items && shown, error, reload: () => setTick((t) => t + 1) };
 }
 
 /** "看过"到哪条（本机）：顶栏红点、好友页入口、动态页共用，一处看过别处跟着变 */
@@ -182,14 +188,18 @@ function Row({ item, me, onReacted }: { item: Shown; me: string; onReacted?: () 
     if (el) setLong(el.scrollHeight > el.clientHeight + 1);
   }, [item.note]);
   const [picking, setPicking] = useState(false);
+  // 点了先显示"你赞了"，不等整份动态重新读回来；失败就撤掉
+  const [sent, setSent] = useState<string | null>(null);
   const send = async (kind: string) => {
     setBusy(true);
     setPicking(false);
+    setSent(kind);
     try {
       await api.react(item.id, kind);
       onReacted?.();
     } catch {
       // 过期了、对方删了好友：刷新一下列表就好，不另外提示
+      setSent(null);
       onReacted?.();
     } finally {
       setBusy(false);
@@ -239,8 +249,8 @@ function Row({ item, me, onReacted }: { item: Shown; me: string; onReacted?: () 
           {counts && <span className="feed__meta">{counts}</span>}
           {onReacted && !mine && (
             <span className="row feed__actions">
-              {item.mine ? (
-                <span className="note">你{item.mine === 'like' ? '赞了' : `扔了${REACTION_NAME.get(item.mine) ?? ''}`}</span>
+              {(item.mine ?? sent) ? (
+                <span className="note">你{(item.mine ?? sent) === 'like' ? '赞了' : `扔了${REACTION_NAME.get((item.mine ?? sent)!) ?? ''}`}</span>
               ) : (
                 <>
                   <button className="btn btn--small" type="button" disabled={busy} onClick={() => void send('like')}>

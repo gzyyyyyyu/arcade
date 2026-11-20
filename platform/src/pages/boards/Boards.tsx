@@ -4,14 +4,14 @@
  * 游戏页签 = 这个游戏的本周净赢 + 最多一个代表性每日榜，宽屏两块并排等高，窄屏用页签切。
  * 右上"全部 / 只看好友"一键切换；点名字进那个人的战绩页。数据最多晚 5 分钟（服务端每个 isolate 的缓存）。
  */
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { api, errorText, type LeaderboardResponse, type ScoreBoard } from '../../api.ts';
 import { PageTabs, useMedia } from '../../features/fit/Fit.tsx';
 import { loadDailyFormat, type ScoreFormat } from '../../lib/scores.ts';
 import { signed, tone } from '../../lib/format.ts';
 import { GAMES } from '../../../shared/games.ts';
 import { Link } from '../../router.tsx';
-import { useSession } from '../../session.tsx';
+import { useSession, useVisible } from '../../session.tsx';
 import { LoadError, Panel, Skeleton } from '../../ui.tsx';
 import { type BoardTab, boardTabs } from './boards-logic.ts';
 import { type CardData, type Row, RankCard } from './BoardsCard.tsx';
@@ -19,7 +19,6 @@ import './boards.css';
 
 type Scope = 'all' | 'friends';
 
-const TABS = boardTabs(GAMES);
 /** 矮屏（手机横屏、小窗口）放不下领奖台，直接排成列表 */
 const COMPACT = '(max-height: 600px), (max-width: 480px) and (max-height: 700px)';
 
@@ -100,6 +99,9 @@ function DailyCard({ tab, board, scope, compact }: { tab: BoardTab; board: strin
 
 export function BoardsPage() {
   const { loading, user } = useSession();
+  // 隐藏了的游戏不给页签（总榜是全站本周净赢的合计，不拆游戏）
+  const visible = useVisible(GAMES);
+  const tabs = useMemo(() => boardTabs(visible), [visible]);
   const [scope, setScope] = useState<Scope>('all');
   const [tabId, setTabId] = useState('total');
   const [data, setData] = useState<LeaderboardResponse | null>(null);
@@ -142,7 +144,7 @@ export function BoardsPage() {
       ))}
     </div>
   );
-  const tab = TABS.find((t) => t.id === tabId) ?? TABS[0]!;
+  const tab = tabs.find((t) => t.id === tabId) ?? tabs[0]!;
   const weekly = tab.weekly ? <WeeklyCard tab={tab} data={error ? null : data} scope={scope} compact={compact} /> : null;
   const daily = tab.daily ? <DailyCard tab={tab} board={data?.daily[tab.daily.key] ?? null} scope={scope} compact={compact} /> : null;
 
@@ -165,7 +167,7 @@ export function BoardsPage() {
   return (
     <Panel icon="trophy" title="排行榜" className="boards-page" action={toggle}>
       <div className="boards-tabs" role="tablist" aria-label="哪个榜">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={t.id === tab.id} className={t.id === tab.id ? 'tabs__on' : ''} onClick={() => setTabId(t.id)} data-testid={`btab-${t.id}`}>
             {t.name}
           </button>

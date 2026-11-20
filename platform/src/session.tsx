@@ -1,6 +1,7 @@
 /** 登录状态：有登录提示 cookie 才去问 /api/me，没登录的访客不发任何请求。 */
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, ApiFail, isNetworkFail, type Notice, setUnauthorizedHandler, type User } from './api.ts';
+import { hiddenGameIds, NO_PREFS, visibleOf } from '../shared/game-prefs.ts';
 
 /** 登录后服务端设的提示 cookie（不是 HttpOnly）：有它才调接口，没登录的人一个请求都不发。 */
 function hasLoginHint(): boolean {
@@ -24,7 +25,11 @@ interface SessionState {
   savesPaused: boolean;
   /** 大厅公告，管理员在管理页发、撤 */
   notice: Notice | null;
+  /** 我看不到的游戏（管理员的默认 + 我的偏好，shared/game-prefs.ts）；没登录是空的 */
+  hidden: ReadonlySet<string>;
+  hiddenDefault: readonly string[];
   setUser: (u: User | null) => void;
+  setHiddenDefault: (ids: string[]) => void;
   /** 重新问一次 /api/me（"重试"按钮、在别的设备改过昵称）。 */
   refresh: () => Promise<void>;
 }
@@ -38,6 +43,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [savesPaused, setSavesPaused] = useState(false);
   const [slow, setSlow] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [hiddenDefault, setHiddenDefault] = useState<string[]>([]);
+  /** 公告、默认隐藏是哪个账号的 /api/me 读来的：刚登录、注册（回应里没有这两样）时补读一次 */
+  const [metaFor, setMetaFor] = useState<string | null>(null);
 
   // 超时（8 秒，api.ts）或网络出错时再试 2 次，隔 1、2 秒；三次都不行才算"连不上"
   const refresh = useCallback(async () => {
@@ -49,6 +57,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setService(me.service);
         setSavesPaused(me.saves === 'paused');
         setNotice(me.notice ?? null);
+        setHiddenDefault(me.hiddenDefault ?? []);
+        setMetaFor(me.user?.id ?? null);
         setSlow(false);
         break;
       } catch (e) {
@@ -70,6 +80,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (hasLoginHint()) void refresh();
   }, [refresh]);
 
+  const userId = user?.id ?? null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在换了账号时看一次；读完 metaFor 跟上就不再读
+  useEffect(() => {
+    // 退出、掉线：清掉上个账号读来的公告和默认，同号重登时会补读 /api/me
+    if (!userId) {
+      setMetaFor(null);
+      setNotice(null);
+      setHiddenDefault([]);
+      return;
+    }
+    if (metaFor !== userId && !loading) void refresh();
+  }, [userId]);
+
   // 任何请求回 401 unauthorized：会话在别处失效了（改了密码、退出其他设备、过期），这里也当成没登录
   useEffect(() => {
     setUnauthorizedHandler(() => setUser(null));
@@ -78,11 +101,28 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // loading 只表示"第一次还没读到人"：已经登录时后台再读一次（改完昵称、登录后补读）不该把页面换成骨架，
   // 不然页面整个卸掉重画，我的账号、管理页选中的页签回到第一个，安全页签里没存好的恢复码也跟着丢
-  return <Ctx.Provider value={{ loading: loading && !user, slow, user, service, savesPaused, notice, setUser, refresh }}>{children}</Ctx.Provider>;
+  const prefs = user?.gamePrefs ?? NO_PREFS;
+  // 登录、注册的回应里没有默认（只有 /api/me 给）：刚登录时先按偏好算，补读完 /api/me 再算一遍
+  const hidden = useMemo(() => (user ? hiddenGameIds(hiddenDefault, prefs) : new Set<string>()), [user, hiddenDefault, prefs]);
+  return (
+    <Ctx.Provider value={{ loading: loading && !user, slow, user, service, savesPaused, notice, hidden, hiddenDefault, setUser, setHiddenDefault, refresh }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export function useSession(): SessionState {
   const s = useContext(Ctx);
   if (!s) throw new Error('useSession 要在 SessionProvider 里用');
   return s;
+}
+
+const idOf = (g: { id: string }) => g.id;
+
+/** 按隐藏偏好过滤：游戏表（大厅、继续玩、排行页签）按 id；别的东西（动态）给 gameOf */
+export function useVisible<T extends { id: string }>(games: readonly T[]): T[];
+export function useVisible<T>(items: readonly T[], gameOf: (x: T) => string): T[];
+export function useVisible<T>(items: readonly T[], gameOf: (x: T) => string = idOf as unknown as (x: T) => string): T[] {
+  const { hidden } = useSession();
+  return useMemo(() => visibleOf(items, hidden, gameOf), [items, hidden, gameOf]);
 }

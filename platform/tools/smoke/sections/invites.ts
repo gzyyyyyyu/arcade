@@ -14,7 +14,10 @@ export async function adminInvites(browser: Browser): Promise<void> {
     { id: 'c3', hint: '…3J1F', status: 'used', owner: p('qatest01', 'QA测试一'), createdAt: at(19, 38), expiresAt: 0, usedAt: at(19, 40), usedBy: null },
     { id: 'c4', hint: '…9PQR', status: 'expired', owner: null, createdAt: at(9, 5), expiresAt: at(9, 6) },
     { id: 'c5', hint: '…HHMM', status: 'revoked', owner: p('xiaoming_2026', '小明'), createdAt: at(8, 1), expiresAt: at(8, 1) + 86_400_000 },
-  ];
+    // 长期码：已用/上限、用它注册的人列前 3 个
+    { id: 'c6', hint: '…7MUL', code: 'ABCD-EFGH-7MUL', status: 'unused', owner: p('owner', '阿国'), createdAt: at(7), expiresAt: null, maxUses: 100, uses: 4,
+      users: [{ ...p('u1', '一号'), usedAt: at(8) }, { ...p('u2', '二号'), usedAt: at(8) }, { ...p('u3', '三号'), usedAt: at(8) }, { ...p('u4', '四号'), usedAt: at(8) }] },
+  ].map((c) => ({ uses: c.status === 'used' ? 1 : 0, maxUses: 1, ...c }));
   const range = { userQuota: [0, 100], adminQuota: [0, 1_000], ttlDays: [1, 90], perDay: [1, 100] };
   const rules = { userQuota: 3, adminQuota: 50, ttlDays: 7, perDay: 5 };
   const screens = [
@@ -27,9 +30,14 @@ export async function adminInvites(browser: Browser): Promise<void> {
     const { ctx, page } = await newPage(browser, `邀请码 ${name}`, screen, { ...extra, permissions: ['clipboard-read', 'clipboard-write'] });
     await mockAdmin(page);
     await page.route('**/api/admin/settings/invites', (r) => r.fulfill(json({ rules, defaults: rules, range })));
-    await page.route('**/api/admin/invite-codes?*', (r) => r.fulfill(json({ codes })));
+    await page.route('**/api/admin/invite-codes?*', (r) => r.fulfill(json({ codes: r.request().url().includes('status=multi') ? codes.filter((c) => c.maxUses > 1) : codes })));
+    let made: unknown = null;
+    await page.route('**/api/admin/invite-codes', (r) => {
+      made = r.request().postDataJSON();
+      return r.fulfill(json({ id: 'c7', code: 'WXYZ-2345-6789', link: '/i/WXYZ23456789', maxUses: 100, expiresAt: null }, 201));
+    });
     await page.goto(`${BASE}/admin?s=invites`);
-    // 窄屏三个页签：额度、单独改额度、邀请码；宽屏左边两个表单、右边码表
+    // 窄屏四个页签：额度、长期码、单独改额度、邀请码；宽屏左边三个表单、右边码表
     await page.waitForLoadState('networkidle');
     const codesTab = page.getByTestId('ptab-codes');
     if (await codesTab.count()) await codesTab.click();
@@ -47,18 +55,31 @@ export async function adminInvites(browser: Browser): Promise<void> {
     check((await page.getByTestId('invite-quota').locator('select.field__input').count()) === 1, '"谁"的下拉框该和输入框一个样式');
     // 码表按高度翻页（竖屏一页放不下 5 个）：逐页数，数完翻回第一页
     let dead = await table.getByText('已注销').count();
+    let multi = await table.getByText('能用 4/100').count();
     const next = table.getByRole('button', { name: '下一页' });
     let flips = 0;
     for (; flips < 10 && (await next.count()) > 0 && (await next.isEnabled()); flips++) {
       await next.click();
       dead += await table.getByText('已注销').count();
+      multi += await table.getByText('能用 4/100').count();
     }
     for (let i = 0; i < flips; i++) await table.getByRole('button', { name: '上一页' }).click();
     check(dead === 2, `注销了的发码人和用码人都该写"已注销"（数到 ${dead} 个）`);
+    check(multi === 1, `长期码该显示一次 已用/上限（数到 ${multi} 个）`);
     await table.locator('.invite-code', { hasText: 'K7QM' }).getByRole('button', { name: '复制' }).click();
     await table.getByRole('button', { name: '已复制' }).waitFor();
     check((await page.evaluate(() => navigator.clipboard.readText())) === 'K7QM-2RTP-XCWJ', '复制的该是完整的码');
     await shot(page, `admin-invites-${name}`);
+    // 筛到"长期码"：表上面出来建长期码的表单，默认 100 次、不过期
+    await panel.getByRole('button', { name: '长期码' }).click();
+    const form = page.getByTestId('multi-code');
+    const posted = page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/admin/invite-codes');
+    await form.getByRole('button', { name: '建一个长期码' }).click();
+    await posted;
+    check(JSON.stringify(made) === JSON.stringify({ maxUses: 100, days: null }), `建长期码发的不对：${JSON.stringify(made)}`);
+    const over2 = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+    check(over2 <= 1, `长期码筛选下一屏放下（${name}）：竖 ${over2}px`);
+    await shot(page, `admin-invites-multi-${name}`);
     await ctx.close();
   }
 }
