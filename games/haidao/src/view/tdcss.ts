@@ -321,6 +321,9 @@ function tdCss(): string {
 .hd-ui .hd-plan-sug { display:inline-flex; align-items:center; gap:3px; padding:0 6px 0 2px; border-radius:9px; background:#fff1c4; border:2px solid ${ink}; }
 .hd-ui .hd-plan-left { margin-left:auto; font-variant-numeric:tabular-nums; }
 .hd-ui .hd-plan-note { font-size:12px; margin-top:2px; opacity:.9; }
+/* 这一波的关内事件、潮水变化：单独一行、带图标、浅蓝底，和「从哪来」那行分开，一眼看得到 */
+.hd-ui .hd-plan-ev { display:flex; flex-wrap:wrap; gap:4px 8px; margin-top:3px; }
+.hd-ui .hd-plan-ev span { display:inline-flex; align-items:center; gap:3px; padding:0 6px 0 2px; border-radius:9px; background:#d6f1f4; border:2px solid ${ink}; font-size:12px; font-weight:900; }
 .hd-ui .hd-plan-next { display:inline-flex; align-items:center; gap:3px; margin-left:8px; opacity:.85; white-space:nowrap; }
 .hd-ui .hd-plan-next .hd-arm { width:16px; height:16px; font-size:12px; border-width:1.5px; }
 @keyframes hd-tdplanin { 0% { transform:translateY(-10px) scale(.92); opacity:0; } 60% { transform:scale(1.04); opacity:1; } 100% { transform:none; } }
@@ -341,8 +344,6 @@ function tdCss(): string {
 .hd-ui .hd-td-bottom { position:absolute; left:0; right:0; bottom:0; padding:6px 8px 8px; display:flex; gap:8px; justify-content:center; align-items:flex-end; pointer-events:none !important; }
 .hd-ui .hd-td-bottom > * { pointer-events:auto; }
 .hd-ui .hd-hint { position:absolute; left:50%; bottom:92px; transform:translateX(-50%); white-space:nowrap; pointer-events:none !important; }
-.hd-ui .hd-td .hd-padhint { bottom:calc(150px + env(safe-area-inset-bottom,0px)); font-size:16px; font-weight:900; background:#ffe885; color:#2b1a15; box-shadow:0 3px 0 #2b1a15; z-index:7; }
-.hd-ui .hd-td:has(.hd-td-sheet) .hd-padhint { display:none; }
 .hd-ui .hd-td-skill { position:relative; width:68px; min-height:68px; padding:0; flex-direction:column; gap:0; font-size:12px; overflow:hidden; }
 .hd-ui .hd-td-skill.sel { background:linear-gradient(${c.goldL},${gold}); transform:translateY(-4px); }
 .hd-ui .hd-td-skill .hd-cd { position:absolute; inset:0; background:conic-gradient(rgba(20,35,58,.62) var(--cd,0deg), transparent 0); pointer-events:none; }

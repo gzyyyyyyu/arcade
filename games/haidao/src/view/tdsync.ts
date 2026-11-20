@@ -3,12 +3,11 @@ import { hookHeld } from './tdhookfx.ts';
 import type Phaser from 'phaser';
 import { TD_HERO_LIGHT } from '../content/index.ts';
 import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
-import { TD2_ENEMIES, TD_ENEMY_ARMOR, raining, tdHeroStats, tdJammed, tdUpCost, type TdEnemy } from '../core/index.ts';
+import { TD2_ENEMIES, TD_ENEMY_ARMOR, raining, tdHeroStats, tdJammed, type TdEnemy } from '../core/index.ts';
 import { stunned } from '../core/combat.ts';
 import { wobbleAt } from './stunfx.ts';
 import { UNIT, BEACH, ISLAND } from '../core/types.ts';
 import { tdE, bTex, fxA, iconA, tdP } from './art.ts';
-import { artTop } from './textures.ts';
 import { interpPos, turnStep, towerRise, TOWER_RISE_MS, EASE, shipBob, shipRecoil, SHIP_RECOIL_MS } from './motion.ts';
 import { REDUCED } from './feel.ts';
 import { poseEvery, STYLE, atkPhase, SKEL, LOD_MARGIN } from './rig.ts';
@@ -36,8 +35,6 @@ import { approach, crowdOffsets, moorOffsets, CROWD_D, CROWD_MAX_TD, type CrowdI
 const tdCrowdItems: CrowdItem[] = [];
 const tdCrowdIds: number[] = [];
 const tdMoorItems: CrowdItem[] = [];
-/** 每帧复用：木台序号 → 台上那座塔的贴图（金箭头跟着塔顶） */
-const padTops = new Map<number, Phaser.GameObjects.Image>();
 let tdMx = new Float64Array(16);
 let tdMy = new Float64Array(16);
 let tdOx = new Float64Array(64);
@@ -305,24 +302,12 @@ export function sync(bs: TdScene, dt: number): void {
   // 空木台上的"+"：够钱造最便宜的那种才亮；压着沉船的不显示
   let cheapest = Infinity;
   for (const k of s.unlocked) cheapest = Math.min(cheapest, buildCost(k));
-  const topOf = padTops;
-  topOf.clear();
-  for (const sp of bs.tsp.values()) if (sp.slot >= 0) topOf.set(sp.slot, sp.img);
-  const bob = Math.sin(bs.time.now / 220) * 3;
+  // 能升的塔不各挂一个提示：「该升哪座」只由预告卡指的那座的金圈说（tdpadguide.ts syncGoalMark），钱多时不会满屏箭头；
+  // 别的塔能不能升，点开面板看
   for (let i = 0; i < bs.pads.length; i++) {
     const sl = s.slots[i];
-    const pad = bs.pads[i]!;
     if (!sl) continue;
-    pad.plus.setAlpha(sl.tower < 0 && !wreckOf(bs, sl) ? (s.gold >= cheapest ? 1 : 0.55) : 0);
-    // 塔上的金箭头：这座塔还能升、局内金币够下一阶，提醒玩家有钱该花了（以前只有点开面板才知道）
-    const t = sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
-    const im = topOf.get(i);
-    const tier = t ? (t.tier ?? Math.min(3, sl.ups + 1)) : 3;
-    const cost = t && tier < 3 ? tdUpCost(t.kind, tier - 1) : -1;
-    const on = !!im && cost >= 0 && s.gold >= cost && !s.over;
-    pad.up.setVisible(on);
-    // 贴着塔图不透明部分的顶（图上方有透明留白，按外框顶会浮在塔后面的墙上）
-    if (on) pad.up.setPosition(im.x, artTop(im) - 2 + bob);
+    bs.pads[i]!.plus.setAlpha(sl.tower < 0 && !wreckOf(bs, sl) ? (s.gold >= cheapest ? 1 : 0.55) : 0);
   }
   bs.plan.update(dt, s.enemies.some((e) => e.mode === 'in'));
   bs.plan.barricades(s.barricades ?? [], s.tick);

@@ -11,8 +11,8 @@ import { floatText } from './fx.ts';
 import { MERGE_MS, pickMerge } from './fxlayout.ts';
 import { laneName, planCard, callBonusText, nextStep, openerLeft, stepKey, stepLine, waveEnemies } from './td-ui.ts';
 import { injectTdCss } from './tdcss.ts';
-import { FOE_KEY, MECH_HINT, MECH_KEY, foeText, mechsOf, navSecs, newFoes } from './tdhint.ts';
-import { hintCard, takeNew } from './hintcard.ts';
+import { FOE_KEY, MECH_HINT, MECH_KEY, foeText, isEventMech, mechsOf, navSecs, newFoes, pickHint, type HintItem } from './tdhint.ts';
+import { hintCard, readSeen, takeNew } from './hintcard.ts';
 import { screen, hallButton, el, img, button, confirmBox, toast } from './ui.ts';
 import { EscortView } from './escortview.ts';
 import { injectEscortCss } from './escortcss.ts';
@@ -238,7 +238,7 @@ export function refreshPlan(bs: TdScene, force = false): void {
   bs.planSig = sig;
   bs.pv = s.over ? [] : tdPreview(s, 2);
   bs.next = nextStep(bs.next, s, bs.pv);
-  if (newWave && bs.pv[0]) foeHint(bs, bs.pv[0], !fresh);
+  if (newWave) foeHint(bs, !fresh);
   bs.plan.set(s, bs.pv, s.over ? [] : tdRoutes(s));
   bs.hudSig = '';
   // 新的一波预告：卡片弹一下，提示"现在该看下一波了"
@@ -252,20 +252,33 @@ export function refreshPlan(bs: TdScene, force = false): void {
 }
 
 /**
- * 预告里的下一波有第一次见到的敌人：弹一张不挡操作的小卡（头像、会干什么、什么伤害打它多一半），每种只提示一次。
- * 开局那一次（start）还带上这一关第一次见到的章末机制（水闸怎么用），和新敌人挤一张卡，不叠两张
+ * 第一次见到的东西弹一张不挡操作的小卡（头像、会干什么、怎么打），每样只讲一次，一次只讲一条（pickHint 排队）：
+ * 关内事件提前一波讲（预告里「再下一波」有它时），开局讲这一关的章末机制和航海士，再是这一波第一次来的敌人。
+ * 战书那一波倒数里浮着卷轴，卡让开，排到下一波
  */
-function foeHint(bs: TdScene, p: WavePreview, start: boolean): void {
-  const mechs = start ? takeNew(MECH_KEY, (seen) => mechsOf(bs.s).filter((k) => !seen.has(k))) : [];
-  const fresh = takeNew(FOE_KEY, (seen) => newFoes(waveEnemies(p).map((e) => e.kind), seen));
-  const rows = [
-    ...mechs.map((k) => ({ icon: img(k === 'crate' ? tdP('crate') : k === 'fleet' ? iconA('ship') : k === 'nav' ? iconA('rushFlag') : iconA(k), 40), ...MECH_HINT[k] })),
-    ...fresh.flatMap((k) => {
-      const f = tdE(k, 'walk')[0];
-      return f ? [{ icon: img(f, 40), name: TD2_ENEMIES[k].name, text: foeText(k, bs.s.unlocked) }] : [];
-    }),
+function foeHint(bs: TdScene, start: boolean): void {
+  const s = bs.s;
+  const [p, q] = bs.pv;
+  if (!p) return;
+  const events = [q?.event, p.event].filter((k): k is NonNullable<WavePreview['event']> => !!k);
+  const want: HintItem[] = [
+    ...events.map((k) => ({ t: 'm' as const, k })),
+    ...(start ? mechsOf(s).filter((k) => !isEventMech(k)) : []).map((k) => ({ t: 'm' as const, k })),
+    ...newFoes(waveEnemies(p).map((e) => e.kind), new Set()).map((k) => ({ t: 'f' as const, k })),
   ];
-  hintCard(bs, bs.ui, rows, mechs.length ? '新玩法' : fresh.length ? '新敌人' : undefined);
+  const r = pickHint(want, bs.hintQ, { m: readSeen(MECH_KEY), f: readSeen(FOE_KEY) }, !!s.happen && tdDareCan(s) !== null);
+  bs.hintQ = r.queue;
+  const it = r.show;
+  if (!it) return;
+  takeNew(it.t === 'm' ? MECH_KEY : FOE_KEY, () => [it.k]);
+  if (it.t === 'm') {
+    const k = it.k;
+    const icon = img(k === 'crate' ? tdP('crate') : k === 'fleet' ? iconA('ship') : k === 'nav' ? iconA('rushFlag') : iconA(k), 40);
+    hintCard(bs, bs.ui, [{ icon, ...MECH_HINT[k] }], '新玩法');
+    return;
+  }
+  const f = tdE(it.k, 'walk')[0];
+  if (f) hintCard(bs, bs.ui, [{ icon: img(f, 40), name: TD2_ENEMIES[it.k].name, text: foeText(it.k, s.unlocked) }], '新敌人');
 }
 
 export function hintText(bs: TdScene, t: string): void {
@@ -517,12 +530,16 @@ export function askEnd(bs: TdScene): void {
       : bs.d.home
         ? '现在撤退？这局到此为止，按撑住的波数给奖励。'
         : '现在撤退？这局算宝藏被抢光，不拿奖励。';
+  bs.askingEnd = true;
   confirmBox(msg, '撤退', () => {
+    bs.askingEnd = false;
     bs.retreated = true;
     bs.s.lost = TD_TREASURE;
     bs.s.over = true;
     finish(bs);
-  }, '继续守');
+  }, '继续守', () => {
+    bs.askingEnd = false;
+  });
 }
 
 /**

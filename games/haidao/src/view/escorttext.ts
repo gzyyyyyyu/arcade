@@ -5,7 +5,7 @@ export const PACE_ORDER: readonly EscortPace[] = ['hold', 'sail', 'rush'];
 export const PACE_INFO: Readonly<Record<EscortPace, { label: string; key: string; tip: string }>> = {
   hold: { label: '停', key: 'Q', tip: '停船：船不动，等塔把海盗打光再走' },
   sail: { label: '巡航', key: 'W', tip: '巡航：慢慢往前开' },
-  rush: { label: '冲', key: 'E', tip: '冲：开得快一倍，海盗来不及追，但塔也少打几轮' },
+  rush: { label: '冲', key: 'E', tip: '冲：开得快一半，海盗来不及追，但塔也少打几轮' },
 };
 
 /** 键盘 Q/W/E → 船速；别的键 null（守岛的 1/2/3 另有用处） */

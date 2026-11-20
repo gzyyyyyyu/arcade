@@ -12,14 +12,18 @@ export interface HintRow {
   text: string;
 }
 
+/** 已见过的（存储不可用时当没见过，本局提示一次） */
+export function readSeen(key: string): Set<string> {
+  try {
+    return parseSeen(localStorage.getItem(key));
+  } catch {
+    return new Set<string>();
+  }
+}
+
 /** 挑出这次要提示的（pick 拿到已见集合），并把它们记成已见；存储不可用时当没见过、也不记 */
 export function takeNew<T extends string>(key: string, pick: (seen: ReadonlySet<string>) => T[]): T[] {
-  let seen = new Set<string>();
-  try {
-    seen = parseSeen(localStorage.getItem(key));
-  } catch {
-    // 存储不可用：当没见过，本局提示一次
-  }
+  const seen = readSeen(key);
   const fresh = pick(seen);
   if (fresh.length === 0) return fresh;
   try {

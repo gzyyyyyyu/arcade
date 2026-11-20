@@ -23,6 +23,8 @@ import { SEA_BG, drawGround, worldBounds } from './ground.ts';
 import { iso } from './iso.ts';
 import { HOME_ID } from './td-ui.ts';
 import type { HeldStep } from './td-ui.ts';
+import type { HintItem } from './tdhint.ts';
+import { fitMarks } from './tdpadguide.ts';
 import { TdPlan } from './tdplan.ts';
 import { ensureArt } from './textures.ts';
 import { type Muzzle, Turret, turretStats, ensureTurrets } from './turret.ts';
@@ -94,8 +96,8 @@ export class TdScene extends Phaser.Scene {
   wallLevel = new Map<number, number>();
   blocks = new Map<number, Phaser.GameObjects.Image>();
   kegs = new Map<number, Phaser.GameObjects.Image>();
-  /** 木台：底图、空台上的「+」、塔够钱升级时塔顶的小金箭头 */
-  pads: Array<{ img: Phaser.GameObjects.Image; plus: Phaser.GameObjects.Text; up: Phaser.GameObjects.Text }> = [];
+  /** 木台：底图、空台上的「+」 */
+  pads: Array<{ img: Phaser.GameObjects.Image; plus: Phaser.GameObjects.Text }> = [];
   chests: Phaser.GameObjects.Image[] = [];
   pileSig = '';
   pileObjs: Phaser.GameObjects.GameObject[] = [];
@@ -164,6 +166,10 @@ export class TdScene extends Phaser.Scene {
   readonly mz = { x: 0, y: 0, gx: 0, gy: 0, z: 0 };
   /** 敌人图鉴（点预告卡打开）开着 */
   bestOpen = false;
+  /** 首次提示一次只弹一条，没弹的排在这里，下一波接着弹（tdhud.ts foeHint） */
+  hintQ: HintItem[] = [];
+  /** 「现在撤退？」确认框开着：和面板一样停住，免得想的工夫宝藏被抢 */
+  askingEnd = false;
   sheet: HTMLElement | null = null;
   sheetSig = '';
   /** 卖塔要点两下：第一下按钮变红"再点一下确认"，2 秒内第二下才卖 */
@@ -246,6 +252,8 @@ export class TdScene extends Phaser.Scene {
     this.heroSel = false;
     this.reopen = null;
     this.bestOpen = false;
+    this.askingEnd = false;
+    this.hintQ = [];
     this.sellArmed = -1;
     this.pv = [];
     this.planSig = '';
@@ -449,8 +457,8 @@ export class TdScene extends Phaser.Scene {
   override update(t: number, dt: number): void {
     const s = this.s;
     this.frames.update(t);
-    // 建塔 / 升级 / 卖塔 / 清障面板、敌人图鉴开着时画面层不往前推：只把已经点下的操作送进核心推一拍（核心只认 stepTd，不依赖墙钟）
-    const paused = (this.openSlot >= 0 || this.bestOpen || this.userPaused) && !this.ended;
+    // 建塔 / 升级 / 卖塔 / 清障面板、敌人图鉴、撤退确认框开着时画面层不往前推：只把已经点下的操作送进核心推一拍（核心只认 stepTd，不依赖墙钟）
+    const paused = (this.openSlot >= 0 || this.bestOpen || this.askingEnd || this.userPaused) && !this.ended;
     this.hud.paused.classList.toggle('on', paused);
     const pt = this.userPaused ? '已暂停 · 点「继续」接着打' : '已暂停 · 关掉面板继续';
     if (paused && this.hud.paused.textContent !== pt) this.hud.paused.textContent = pt;
@@ -478,6 +486,7 @@ export class TdScene extends Phaser.Scene {
     if (this.s.fleet) syncFleet(this, this.acc / STEP_MS);
     this.esc?.frame(this.acc / STEP_MS, this.time.now);
     updateHud(this);
+    fitMarks(this);
     if (this.openSlot >= 0 && slotSig(this) !== this.sheetSig) renderSheet(this);
     reopenWatch(this);
     if (this.followT) this.followCam(this.followT);
