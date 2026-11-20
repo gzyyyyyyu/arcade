@@ -34,7 +34,7 @@ const FOE_TRAIT: Readonly<Record<TdEnemyKind, string>> = {
 };
 
 /**
- * 一句话：会干什么 + 护甲 + 什么伤害打它多一半（和克制表、图鉴同一个说法）。挑哪种伤害和预告卡的建议同一口径（td-ui.ts 的 fitSuggest）：只从这局能造的塔里挑，
+ * 一句话：会干什么 + 护甲 + 什么伤害打它多一半（和克制表、图鉴同一个说法）。挑哪种伤害只从这局能造的塔里挑，
  * 只有一种伤害可选或并列时不写（前几关只有加农炮和火枪塔，写「火打它多一半」等于让玩家找一座造不了的塔）；unlocked 为空（没限制）按克制表挑。
  */
 export function foeText(k: TdEnemyKind, unlocked?: readonly TdTowerKind[]): string {

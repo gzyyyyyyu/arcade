@@ -95,7 +95,7 @@ export async function td(c: ShotCtx): Promise<boolean> {
       if (inf.flags < 1 || inf.routes < 1) throw new Error(`地图上没有预告旗 / 路线：旗 ${inf.flags}，路线 ${inf.routes}`);
       const txt = (await page.locator('.hd-td-plan').textContent()) ?? '';
       if (!/第 1\/\d+ 波/.test(txt)) throw new Error(`预告卡没写第几波：${txt}`);
-      // 只有一种能造的伤害（或并列）时不给建议（td-ui.ts 的 fitSuggest），这里只查：本波敌人有头像、护甲写了全名
+      // 「下一座造」在木台造满时换成「钱够就升级」（td-ui.ts 的 nextStep），这里只查：本波敌人有头像、护甲写了全名
       if (!(await page.locator('.hd-td-plan .hd-plan-foes .hd-tden').count())) throw new Error(`预告卡没画本波敌人：${txt}`);
       if (!/布衣|重甲|木船|飞禽/.test(txt)) throw new Error(`预告卡没写护甲名：${txt}`);
       // 手机竖屏预告卡收在顶栏的波次小钮里（layout.ts），先点开

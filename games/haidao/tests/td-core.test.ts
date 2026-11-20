@@ -586,14 +586,13 @@ describe('守岛：英雄技能', () => {
 });
 
 describe('守岛：预告和路线', () => {
-  it('预告下两波：每路的敌人和数量、护甲占比、建议的伤害类型；落潮路涨潮时换算成 0 号路', () => {
+  it('预告下两波：每路的敌人和数量、护甲占比；落潮路涨潮时换算成 0 号路', () => {
     const level = TD2_LEVEL_BY_ID.get('td2-sample')!;
     const s = createTd(sample(1));
     const pv = tdPreview(s, 2);
     expect(pv.map((p) => p.wave)).toEqual([0, 1]);
     expect(pv[0]!.lanes).toEqual([{ lane: 0, fly: false, enemies: [{ kind: 'sailor', armor: 'cloth', n: 8, fog: false }] }]);
     expect(pv[0]!.armorShare.cloth).toBe(100);
-    expect(pv[0]!.suggest).toBe('fire');
     expect(pv[0]!.at).toBe(level.first);
     // 落潮路（下标 = lanes.length）在开潮前改走 0 号路；全是飞的路标 fly
     const tide = lvl({
@@ -608,10 +607,8 @@ describe('守岛：预告和路线', () => {
     expect(q[0]!.lanes).toEqual([{ lane: 0, fly: false, enemies: [{ kind: 'ironclad', armor: 'heavy', n: 2, fog: false }, { kind: 'parrot', armor: 'air', n: 3, fog: false }] }]);
     expect(q[0]!.tide).toBe(false);
     expect(q[1]!.lanes.map((l) => l.lane)).toEqual([1]);
-    expect(q[1]!.suggest).toBe('shell');
     const fly = tdPreview(createTd(setup(base(), lvl({ lanes: [{ x: 10, y: -2 }, { x: -2, y: 11 }], waves: [{ groups: [{ enemy: 'parrot', n: 3, lane: 1, every: 10 }] }] }))), 1);
     expect(fly[0]!.lanes[0]).toMatchObject({ lane: 1, fly: true });
-    expect(fly[0]!.suggest).toBe('shot');
   });
 
   it('机器人只读预告：两关前几波一样、后面不一样，预告看不到的时候两边下的操作逐拍相同', () => {

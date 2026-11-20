@@ -5,7 +5,7 @@ import { TD_WALL_COST } from '../content/tdunits.ts';
 import { TD2_ECON, TD2_ENEMIES, TD2_NAV_SKILL } from '../content/td2units.ts';
 import { INF, cellOf, cellX, cellY, nextCell } from './grid.ts';
 import { UNIT } from './types.ts';
-import { TD_ARMORS, TD_ENEMY_ARMOR, bestDamageVs } from './td2types.ts';
+import { TD_ARMORS, TD_ENEMY_ARMOR } from './td2types.ts';
 import { escortMeet } from './escort.ts';
 import type { TdArmor, TdRouteLine, WaveLanePreview, WavePreview } from './td2types.ts';
 import type { TdLevel } from './tdtypes.ts';
@@ -132,7 +132,7 @@ function routeFoggy(s: TdState, lane: number, w: number): boolean {
 }
 
 /**
- * 下 n 波（从还没开打的第 s.wave 波起）的预告：每路什么敌人几个、护甲占比、建议的伤害类型。
+ * 下 n 波（从还没开打的第 s.wave 波起）的预告：每路什么敌人几个、护甲占比（卡上「下一座造」由画面拿它去问 counterKind）。
  * 界面和机器人都只读它。等效血量 = 统一敌人表 × 关卡 hpPct × 波次 hpPct（分裂小艇算上分出来的）。
  */
 export function tdPreview(s: TdState, n = 2): WavePreview[] {
@@ -178,7 +178,6 @@ export function tdPreview(s: TdState, n = 2): WavePreview[] {
       tide: lv.tide ? tdTideOpen(s, w) : null,
       lanes: [...byLane.values()].sort((a, b) => a.lane - b.lane),
       armorShare: share,
-      suggest: top === null ? null : bestDamageVs(top),
     };
     if (wave.note) p.note = wave.note;
     const happen = eventAt(s, w);

@@ -66,7 +66,7 @@ describe('掷弹兵的画面', () => {
     expect(tdEnemyFrames('grenadier', 'attack').length).toBeGreaterThanOrEqual(3);
   });
   it('预告提醒：先用火（规则已写同一句就不重复）', () => {
-    const pv = (note: string | undefined): WavePreview => ({ wave: 1, boss: false, lanes: [{ lane: 0, fly: false, enemies: [{ kind: 'grenadier', n: 2, fog: false }] }], armorShare: { cloth: 100, heavy: 0, wood: 0, air: 0 }, suggest: 'fire', note } as unknown as WavePreview);
+    const pv = (note: string | undefined): WavePreview => ({ wave: 1, boss: false, lanes: [{ lane: 0, fly: false, enemies: [{ kind: 'grenadier', n: 2, fog: false }] }], armorShare: { cloth: 100, heavy: 0, wood: 0, air: 0 }, note } as unknown as WavePreview);
     expect(ENEMY_HINT.grenadier).toBe('掷弹兵：先用火');
     expect(enemyHints(pv(undefined))).toEqual(['掷弹兵：先用火']);
     expect(enemyHints(pv('掷弹兵：先用火'))).toEqual([]);

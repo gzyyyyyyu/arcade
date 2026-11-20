@@ -9,7 +9,7 @@ import { iconA, tdE, tdP } from './art.ts';
 import { keyBadge } from './inputs.ts';
 import { floatText } from './fx.ts';
 import { MERGE_MS, pickMerge } from './fxlayout.ts';
-import { laneName, planCard, callBonusText, fitSuggest, waveEnemies } from './td-ui.ts';
+import { laneName, planCard, callBonusText, nextStep, openerLeft, shortText, stepKey, waveEnemies } from './td-ui.ts';
 import { injectTdCss } from './tdcss.ts';
 import { FOE_KEY, MECH_HINT, MECH_KEY, foeText, mechsOf, navSecs, newFoes } from './tdhint.ts';
 import { hintCard, takeNew } from './hintcard.ts';
@@ -230,12 +230,14 @@ export function refreshPlan(bs: TdScene, force = false): void {
   const walls = s.walls.reduce((n, w, i) => (w.destroyed ? n + (i + 1) * 7 : n), 0);
   // 水闸关上 / 打开下一波会改路线和预告（规则版本 16）
   // 接 / 退战书（规则版本 22）改下一波的敌人个数
-  const sig = `${s.wave}|${walls}|${s.over}|${s.sluice?.shut.length ?? ''}|${s.happen?.dare.length ?? ''}`;
+  // 造、卖、升了塔，卡上的下一步要重挑（木台上的塔进签名；翻波不重挑，见 nextStep）
+  const sig = `${s.wave}|${walls}|${s.over}|${s.sluice?.shut.length ?? ''}|${s.happen?.dare.length ?? ''}|${stepKey(s)}`;
   if (!force && sig === bs.planSig) return;
   const newWave = !bs.planSig.startsWith(`${s.wave}|`);
   const fresh = bs.planSig !== '' && newWave;
   bs.planSig = sig;
-  bs.pv = s.over ? [] : fitSuggest(tdPreview(s, 2), s.unlocked);
+  bs.pv = s.over ? [] : tdPreview(s, 2);
+  bs.next = nextStep(bs.next, s, bs.pv);
   if (newWave && bs.pv[0]) foeHint(bs, bs.pv[0], !fresh);
   bs.plan.set(s, bs.pv, s.over ? [] : tdRoutes(s));
   bs.hudSig = '';
@@ -337,8 +339,14 @@ export function updateHud(bs: TdScene, force = false): void {
   const planKey = `${bs.planSig}|${canCallNow ? left : -1}|${tide}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (force || planKey !== bs.planKey) {
     bs.planKey = planKey;
-    planCard(H.plan, bs.pv, { title: (w) => waveTitle(bs, w), left: canCallNow ? left : -1, tide, laneTitle: (l) => laneTitle(bs, l), opener: s.wave === 0 ? s.level.opener : undefined });
+    planCard(H.plan, bs.pv, { title: (w) => waveTitle(bs, w), left: canCallNow ? left : -1, tide, laneTitle: (l) => laneTitle(bs, l), opener: openerLeft(s), next: bs.next?.step, gold: s.gold });
     bs.esc?.decoratePlan(H.plan, bs.pv);
+  }
+  // 「还差 N 金」跟着钱每拍变：只改这一小格的字，不重排整张卡
+  const short = bs.next?.step && H.plan.querySelector('.hd-plan-short');
+  if (short) {
+    const tx = shortText(bs.next!.step!, s.gold);
+    if (short.textContent !== tx) short.textContent = tx;
   }
   // 收起状态的小钮写下一波的波次号；叫波后（波数变了）自动收起
   const tog = bs.ui.querySelector('.hd-plan-tog');
