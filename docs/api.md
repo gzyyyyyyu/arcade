@@ -3,7 +3,7 @@
 > 给平台和游戏的开发者参考。接口**只增不改**（`platform/AGENTS.md`）：已上线的字段不改含义、不删除，新能力加新字段或新路径，所以路径里不带版本号。不存在的路径返回 404 `not_found`。
 > 括号里的版本号是该接口所在的平台版本。数字（限流、预算）以 `platform/worker/api/lib/config.ts` 为准，本文和代码不一致时改本文；限流见 15.6，写入行数的来历见 [data.md](data.md) 7.2。
 > 设计和理由：账号和防刷见 [accounts.md](accounts.md)，云存档、钱包、战绩见 [platform-backend.md](platform-backend.md) 第 5 节，写入预算见 [cost-guard.md](cost-guard.md)。
-> 从 platform-backend.md 拆出来，**节号沿用原来的第 15 节（15.1–15.20）**，别处写的「platform-backend.md 15.x」就是这里的 15.x；文中不带文件名的其他节号按 platform-backend.md 开头的对照去找。
+> 从 platform-backend.md 拆出来，**节号沿用原来的第 15 节（15.1–15.21）**，别处写的「platform-backend.md 15.x」就是这里的 15.x；文中不带文件名的其他节号按 platform-backend.md 开头的对照去找。
 
 ## 15. 接口约定（`/api/*`）
 
@@ -66,19 +66,20 @@
 
 | 接口 | 谁能调 | 请求 | 成功 | 主要错误 | 写入 |
 |---|---|---|---|---|---|
-| `GET /api/me` | 任何人；游戏页可调 | — | 200 `{"user": user 或 null, "service": "ok" \| "readonly", "saves": "ok" \| "paused", "registration": "open" \| "closed", "notice": {"text", "at"} 或 null}` | 503 `busy`（停服档） | 0；顺带的 `last_seen_at` 每小时 ≤ 1、续期每 30 天 1 |
-| `POST /api/auth/register` | 未登录 | `{"username", "password", "displayName", "inviteCode"?}` | 201 `{"user", "recoveryCode"}`，设两个 cookie；带码注册的人和邀请人自动成为好友 | 403 `registration_closed`；400 `invite_invalid`；409 `username_taken` / `invite_used`；422 同 5.1；429 | 9（带码 13；关闭时 0） |
+| `GET /api/me` | 任何人；游戏页可调 | — | 200 `{"user": user 或 null, "service": "ok" \| "readonly", "saves": "ok" \| "paused", "registration": "open" \| "closed", "notice": {"text", "at"} 或 null, "hiddenDefault"?: [游戏 id]}`；`user` 里有 `gamePrefs: {"show", "hide"}`（15.21） | 503 `busy`（停服档） | 0；顺带的 `last_seen_at` 每小时 ≤ 1、续期每 30 天 1 |
+| `POST /api/auth/register` | 未登录 | `{"username", "password", "displayName", "inviteCode"?}` | 201 `{"user", "recoveryCode"}`，设两个 cookie；带普通码注册的人和邀请人自动成为好友 | 403 `registration_closed`；400 `invite_invalid`；409 `username_taken` / `invite_used`；422 同 5.1；429 | 9（带普通码 15、长期码 13；关闭时 0） |
 | `POST /api/auth/login` | 任何人 | `{"username", "password"}` | 200 `{"user"}`，设两个 cookie | 401 `bad_credentials`；429（含用户名被暂时锁住） | 成功 6（+1 重新哈希）；失败 1–2；超限 0 |
 | `POST /api/auth/logout` | 任何人（没登录也 204，幂等） | `{}` | 204，清两个 cookie | — | 1（没有会话时 0） |
 | `POST /api/auth/recover` | 任何人 | `{"username", "recoveryCode", "newPassword"}` | 200 `{"user", "recoveryCode": 新码}`，其他会话全部失效，给当前设备设新 cookie | 401 `bad_credentials`；422 `weak_password`；429 | 6 + 原有会话数 |
 | `PATCH /api/me` | 登录；平台页 | `{"displayName"?, "showWhere"?, "showFeed"?, "showMates"?}`，至少一样 | 200 `{"user"}` | 422 `invalid_display_name` / `reserved_display_name`；429（共用每天 10 次） | 2 |
+| `PUT /api/me/games` | 登录；平台页 | `{"hidden": [游戏 id]}`：我要隐藏的（15.21） | 200 `{"user", "hiddenDefault"}` | 400（不是数组、没登记的 id）；429（每天 60 次） | 2 |
 | `POST /api/account/password` | 登录；平台页 | `{"currentPassword", "newPassword"}` | 204；其他会话失效，当前设备换新令牌 | 401 `bad_credentials`；422；429；503 `busy` | 4 + 会话数 |
 | `POST /api/account/recovery-code` | 登录；平台页 | `{"currentPassword"}` | 200 `{"recoveryCode"}`，旧码作废 | 401；429；503 | 2 |
 | `POST /api/account/logout-others` | 登录；平台页 | `{"currentPassword"}` | 204 | 401；429；503 | 1 + 其他会话数 |
 | `POST /api/account/delete` | 登录；平台页 | `{"currentPassword"}` 或 `{"recoveryCode"}` | 204，清两个 cookie，数据按 7.3 删除 | 401；429 | 见 7.2 |
 
 - `GET /api/me` 没带 `__Host-sid` 时直接返回 `user: null`（档位取内存里的），不碰 D1；带了但会话无效同样返回 `null` 并清 cookie。`saves` 为 `paused` 表示存档预算用完或停增长档，游戏暂停云同步。
-  `registration` 在任何情况下都返回（关闭是默认值），取自 D1 开关并缓存 30 秒（5.8）；游戏登录闸门就是调这个接口（15.8）。`notice` 是管理员发的大厅公告，只在登录时有值，每个 isolate 缓存 30 秒，管理员撤下后最多 30 秒消失。
+  `registration` 在任何情况下都返回（关闭是默认值），取自 D1 开关并缓存 30 秒（5.8）；游戏登录闸门就是调这个接口（15.8）。`notice` 是管理员发的大厅公告、`hiddenDefault` 是管理员设的默认隐藏的游戏，都只在登录时有；注册开关、公告、默认隐藏一条查询一起读、每个 isolate 缓存 30 秒，管理员改了最多 30 秒生效。
 - 登录先查用户名有没有被暂时锁住，再算 PBKDF2，被锁时不花 CPU；找回不按用户名锁（5.1）。再验证接口的密码错误记在 `reauth:fail:<userId>`，连续 5 次后同样要等，不和登录失败共用（5.2）。
 - 注销用 POST 而不是 DELETE：有些客户端和代理会丢掉 DELETE 的请求体。恢复码格式 `XXXXX-XXXXX-XXXXX-XXXXX`（Crockford base32）。
 
@@ -156,6 +157,7 @@
 | `reauth:fail:<userId>` | 24 小时 | 再验证的密码错误，规则同 `login:fail` | 429 | 失败 1（锁着时 0）；成功清零 1 |
 | `acct:<userId>` | 天 | 改密码、换恢复码、退出其他设备合计 10 次（成功的才算） | 429 | 1 |
 | `profile:<userId>` | 天 | 10 次改昵称或开关 | 429 | 1 |
+| `prefs:<userId>` | 天 | 60 次改隐藏游戏的偏好（15.21） | 429 | 1 |
 | `save:<userId>` | 天 | 500 次 PUT（含冲突、`too_soon`、`quota_exceeded` 和停增长档覆盖变大的 503） | 429 | 1 |
 | 同一个存档槽 | 10 秒 | 1 次 | 429 `too_soon` | 0（看行里的 `updated_at`） |
 | `freq:<userId>` | 天 | 发 30 个好友请求（撤回、被拒都不退还；重复发、已是好友不计） | 429 | 1 |
@@ -189,7 +191,9 @@
 | `GET` / `POST /api/admin/settings/wallet` | 要改的几条，如 `{"reliefTo": 3000}` | 200 `{"rules", "defaults", "range", "log", "updatedAt"}`：`rules` 是 `{"reliefTo", "winUnits", "newBalance", "adminAdjustMax"}`，`log` 是最近 20 次改动；改了即时生效（本 isolate 马上，别的最多晚 30 秒）；没有真的变化不写 | 400（不是整数、超出 `range`，整个拒，带 `field` 和 `range`） | GET 0；POST 2；没变化 0 |
 | `GET` / `POST /api/admin/settings/invites` | `{"userQuota"?, "adminQuota"?, "ttlDays"?, "perDay"?}` | 200 同钱包规则的形状（15.20） | 400（超出范围） | GET 0；POST 有变化 2 |
 | `POST /api/admin/users/<id>/invite-quota` | `{"quota": 整数 0–1000 \| null}`（null 恢复默认） | 200 `{"quota", "custom"}` | 404 | 2 |
-| `GET /api/admin/invite-codes?status=unused\|used\|all` / `POST /api/admin/invite-codes/<id>/revoke` | — / `{}` | 全站最近 100 条（没用的才给 `code`）/ 204；已用、已撤回的 404 | 401；403 | 0 / 2 |
+| `GET /api/admin/invite-codes?status=unused\|used\|multi\|all` / `POST /api/admin/invite-codes/<id>/revoke` | — / `{}` | 全站最近 100 条（还能用的才给 `code`；每条有 `uses`、`maxUses`，长期码的 `expiresAt` 不过期时是 null、`users` 是用它注册的人）/ 204；名额用完、已撤回的 404 | 401；403 | 0 / 2 |
+| `POST /api/admin/invite-codes` | `{"maxUses"?: 2–1000（默认 100）, "days"?: 1–365 \| null（默认不过期）}` | 201 `{"id", "code", "link", "maxUses", "expiresAt"}`：建一个长期码（15.20），记在当前管理员名下 | 400；403 `session_required`（令牌不能建） | 4 |
+| `GET` / `POST /api/admin/settings/games` | `{"hidden": [游戏 id]}` | 200 `{"hidden"}`：默认隐藏的游戏（15.21），本 isolate 马上变，别的最多晚 30 秒 | 400（没登记的 id） | GET 0；POST 2 |
 | `GET /api/admin/play-tally?days=N` | — | 200 `{"from", "to", "rows": [{"game", "variant", "mode", "tier", "n", "dur": {桶: 局数}, "outcome": {桶: 局数}}]}`，北京时间最近 N 天（1–90，默认 30，含今天）按游戏、玩法、mode、档位汇总（5.11），局数多的在前 | 400；401；403 | 0 |
 | 钱包相关 `GET /api/admin/wallet-stats`、`wallet/<用户名>`、`POST wallet/adjust`、`GET wallet-adjustments`、`GET overview` | 见 15.9 | | | |
 
@@ -406,7 +410,10 @@ const res = await env.ARCADE.fetch('https://<站点>/api/me', {   // 主机名�
 
 测好后关掉公开注册，之后**新人只能凭老用户给的邀请码注册**。管理员开关（5.8 的 `registration`）不变：开着时码可填可不填，关着时必须带有效的码。
 
-- **码**：12 位 Crockford base32（60 bit），显示成 `ABCD-EFGH-JKMN`；不分大小写，输入时去掉空格和横线，`I`/`L` 当 `1`、`O` 当 `0`。一码一用。
+- **码**：12 位 Crockford base32（60 bit），显示成 `ABCD-EFGH-JKMN`；不分大小写，输入时去掉空格和横线，`I`/`L` 当 `1`、`O` 当 `0`。
+- **两种码**，类型显式存在 `max_uses`：**普通码**（`max_uses` = 1）谁都能生成，按下面的额度，一码一人，注册后两人自动成为好友；
+  **长期码**（`max_uses` 2–1000，默认 100）只有管理员在管理页建（`POST /api/admin/invite-codes`，令牌不行），默认不过期（`expires_at` 存成远未来，接口给 `null`），不占额度、不算每天上限，注册后不加好友，能撤回（撤回不影响已经注册的人）。
+  用户侧的生成接口传什么都只建普通码。注册的 `reg:ip`、`reg:all` 上限对两种码一样算。
   **存明文**：码本身是唯一索引，注册时直接按码查；很多人先生成、过几天才发，"我的"里没用的码要能再复制、再分享，只存哈希就只能撤回重生成。码只能拿来注册、7 天过期，泄露的代价很小，和"密码、恢复码、令牌只存哈希"不冲突。
   用掉、撤回、过期以后接口里只给末 4 位。链接 `/i/<码>` 打开注册页并预填好码（注册关着时也露出"注册"页签）。
 - **额度**（管理员可调，存在 `settings` 的 `invite_rules`，即时生效）：`userQuota` 普通用户每人几个（默认 3，范围 0–100）、`adminQuota` 管理员每人几个（50，0–1000）、`ttlDays` 码的有效期（7 天，1–90）、`perDay` 每人每 24 小时最多生成几个（5，1–100）。
@@ -417,13 +424,22 @@ const res = await env.ARCADE.fetch('https://<站点>/api/me', {   // 主机名�
 | `GET /api/invite-codes` | 登录 | — | 200 `{"quota", "taken", "left", "todayLeft", "ttlDays", "codes": [{"id", "hint", "code"?, "createdAt", "expiresAt", "status": "unused" \| "used" \| "expired" \| "revoked", "usedAt"?, "usedBy"?: 公开资料 \| null}]}`，新的在前，最多 50 条；`code` 只有没用的才给；`usedBy` 为 `null` 表示用的人已注销 | 401 | 0 |
 | `POST /api/invite-codes` | 登录；要 CSRF | `{}` | 201 `{"id", "code", "link": "/i/<码>", "expiresAt", "left"}` | 409 `quota_full`（带 `quota`）；429（24 小时满 `perDay`）；403；503（停增长档） | 3；被拒 0 |
 | `POST /api/invite-codes/<id>/revoke` | 登录；要 CSRF | `{}` | 204 | 404（不是自己的、不存在、已用、已撤回） | 1；被拒 0 |
-| `POST /api/auth/register` | 匿名 | 多一个可选 `inviteCode` | 同 15.2 | 403 `registration_closed`；400 `invite_invalid`；409 `invite_used`；429 | 带码 13；码不对 1 |
+| `POST /api/auth/register` | 匿名 | 多一个可选 `inviteCode` | 同 15.2 | 403 `registration_closed`；400 `invite_invalid`；409 `invite_used`；429 | 普通码 15、长期码 13；码不对 1 |
 
 - **生成**：额度和每天的上限都写在插入语句的条件里（`INSERT … SELECT … WHERE (用掉的额度) < 额度 AND (24 小时内生成的) < perDay`），并发冲不破，被拒 0 行；不另开计数行。
 - **注册时的顺序**：令牌桶 → 读开关（关着又没带码 403）→ 校验请求体（422）→ **试码**：`inv:ip:<ip>` 每 IP 每小时 10 次（成败都算，超了 429、0 行）→ 按码查（不对 400）→ `reg:ip`、`reg:all` → 用户名查重 → 一个 batch：
-  ① `UPDATE invite_codes SET used_by = 新 id, used_at = now WHERE id = ? AND used_at IS NULL AND revoked_at IS NULL AND expires_at > now`；② users 那条改成 `INSERT … SELECT … WHERE EXISTS (SELECT 1 FROM invite_codes WHERE id = ? AND used_by = 新 id)`，
-  credentials、sessions 以"users 里有这个新 id"为条件，第 ① 条没改成（并发里被别人先用了）后面一行都不写，回 409 `invite_used`；③ 与邀请人的好友关系一行（`accepted`），邀请人好友满了 200 就只是不加好友，号照建。D1 的 batch 是一个事务、按顺序执行。
+  ① 占名额 `UPDATE invite_codes SET uses = uses + 1, used_by = 新 id, used_at = now WHERE id = ? AND uses < max_uses AND revoked_at IS NULL AND expires_at > now`；② 使用记录 `INSERT INTO invite_code_uses … WHERE EXISTS (… used_by = 新 id)`；
+  ③ users 那条改成 `INSERT … SELECT … WHERE EXISTS (SELECT 1 FROM invite_codes WHERE id = ? AND used_by = 新 id)`，credentials、sessions 以"users 里有这个新 id"为条件。第 ① 条没改成（最后一个名额被别人先占了）后面一行都不写，回 409 `invite_used`；
+  所以最后一个名额两人同时用，恰好一人成功。④ 普通码再加与邀请人的好友关系一行（`accepted`），邀请人好友满了 200 就只是不加好友，号照建。D1 的 batch 是一个事务、按顺序执行。
 - **试码的防撞库**：码 60 bit，每 IP 每小时 10 次。**不设全站每小时上限**：全站计数只要算了乱试的，就能被几个 IP 段耗光，挡住所有拿着真码的人；真码注册成功以后照旧受 `reg:ip`、`reg:all` 管。
-- **删干净**：注销、一年清理删本人生成的所有码；本人用过的那个码 `used_by` 清成空（`used_at` 留着，邀请人那边还算已用）。Cron：没用的码过期或撤回满 30 天就删。隐私说明写明谁邀请了谁（邀请人能在"我的"里看到用了自己码的人的昵称）。
-- **界面**：`/me` 的"邀请朋友"栏（还能邀请几个、生成、列表、复制链接、系统分享、撤回）；注册页的"邀请码"输入框（注册关着时必填）；管理后台一页：四个数、给某人改额度、全站的码和撤回。
-- 管理接口见 15.7。存储：`invite_codes` 表（避开好友房邀请的 `invites`）和 `users.invite_quota`。
+- **删干净**：注销、一年清理删本人生成的所有码；本人用过的码 `used_by` 清成空、`invite_code_uses` 里本人那行删掉（`uses`、`used_at` 留着，邀请人那边还算已用，长期码名额不还）。Cron：一次没用过的码过期或撤回满 30 天就删。隐私说明写明谁邀请了谁（邀请人能在"我的"里看到用了自己码的人的昵称）。
+- **界面**：`/me` 的"邀请朋友"栏（还能邀请几个、生成、列表、复制链接、系统分享、撤回；只列普通码）；注册页的"邀请码"输入框（注册关着时必填）；管理后台一页：四个数、建长期码、给某人改额度、全站的码（可筛长期码，显示 已用/上限 和用它注册的人）和撤回。
+- 管理接口见 15.7。存储：`invite_codes` 表（避开好友房邀请的 `invites`）、`invite_code_uses` 和 `users.invite_quota`。
+
+### 15.21 隐藏游戏
+
+管理员设默认隐藏哪些游戏，每个人在 我的账号 → 偏好 里逐个改。这是**显示偏好，不是权限**：被隐藏的游戏不出现在大厅（含"继续玩"）、排行页的游戏页签、好友动态里，直接打开游戏地址照常能玩；总榜（全站本周净赢合计）不拆游戏、不受影响。
+
+- **存储**：默认在 `settings` 的 `hidden_games`（游戏 id 的 JSON 数组）；个人在 `users.game_prefs`，只存和默认不一样的 `{"show": [默认隐藏、我要看的], "hide": [默认显示、我不看的]}`，和默认一样时存空。管理员以后改默认，个人没动过的那部分跟着变。下架了的游戏 id 读的时候去掉。
+- **算法只有一处**：`platform/shared/game-prefs.ts`（`hiddenGameIds`、`prefsFor`、`visibleOf`），接口和界面共用；界面只经 `session.tsx` 的 `useVisible` 过滤。
+- **接口**：`GET /api/me` 给 `hiddenDefault` 和 `user.gamePrefs`（15.2）；`PUT /api/me/games {"hidden"}` 改个人（`prefs:<userId>` 每天 60 次，2 行；差量按现读的默认算，不用 30 秒缓存，读不到就报错不写）；`GET` / `POST /api/admin/settings/games` 改默认（15.7，2 行）。
