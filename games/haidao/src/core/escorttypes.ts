@@ -2,13 +2,11 @@
  * 护航（守岛的新玩法，DESIGN 第 12 节）的类型和常量：商船沿写死的航线从起点开到终点，海盗上岸追着船咬；
  * 玩家在航线边的木台造塔、英雄贴身守、随时定船速（停 / 巡航 / 冲）、花金币修船。到终点时船剩多少血定星。
  *
- * 只在关卡带 `escort` 字段时生效（TdLevel.escort），守岛现有玩法逐位不变（tests/td-golden.json 不重新生成）；
- * 护航自己的规则版本是 ESCORT_RULES，不动 RULES_VERSION。
+ * 只在关卡带 `escort` 字段时生效（TdLevel.escort），守岛现有玩法逐位不变；护航和守岛共用 RULES_VERSION，
+ * 护航改规则时守岛指纹不重录，护航自己的指纹锁在 tests/escort-golden.json。
  */
 import type { TdLevel } from './tdtypes.ts';
 
-/** 护航自己的规则版本：护航规则改了就加一（指纹键名带它），不动 RULES_VERSION */
-export const ESCORT_RULES = 1;
 /** 航线上 1 格 = 600 个位置单位（船的 pos 用它，整数） */
 export const ESCORT_CELL = 600;
 /** 每拍前进多少位置单位：停 0 / 巡航 6（100 拍一格）/ 冲 9（约 67 拍一格）。配平只改这里 */
@@ -54,6 +52,8 @@ export interface EscortState {
   sunk: boolean;
   /** 修了几次 */
   mends: number;
+  /** 娱乐护航（规则 25）：玩家还没碰过船速，第一波开打时船自己开始巡航；实盘没有这个字段 */
+  autoSail?: boolean;
 }
 
 export type EscortAction =
@@ -62,7 +62,7 @@ export type EscortAction =
   | { t: number; type: 'follow'; on: boolean };
 
 export type EscortEvent =
-  | { type: 'pace'; pace: EscortPace }
+  | { type: 'pace'; pace: EscortPace; auto?: true }
   | { type: 'bite'; id: number; dmg: number; hull: number }
   | { type: 'mend'; hull: number }
   | { type: 'gate'; index: number }

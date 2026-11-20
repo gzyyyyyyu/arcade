@@ -31,6 +31,7 @@ import { tidePick } from '../src/core/tdtide.ts';
  *   `v23-nav-<关>-*`（战役各关，建议养成）和 `v23-nav-home-*`（海盗来袭，主寨 6、8 级，普通档和加难档）。
  * - 24（战役几关前几波放宽，关卡的 ease）：只改写了 ease 的关，别的键 v24- 和 v23- 逐个相同（tests/td-ease.test.ts 锁住）；
  *   照建议的新手（guided）从 v24 起只录战役关，`v24-<关>-guided-*`。
+ * - 25（护航新手档放宽、娱乐护航开局跟随）只改护航，守岛各玩法和 24 一样，不另录；护航的锁在 tests/escort-golden.test.ts。
  * v10 中档 0.29.1 前未开放（线上没有 v10 中档的对局），指纹随 0.29.1 的配平（hpPct 180 → 190）更新，只动了 v10-live-mid-* 9 个键。
  */
 export const GOLDEN_FILE = new URL('./td-golden.json', import.meta.url);

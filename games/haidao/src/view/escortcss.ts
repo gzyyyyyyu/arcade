@@ -34,17 +34,19 @@ ${U} .hd-esc-ctl .hd-esc-pbtn svg { width:28px; height:28px; display:block; }
 ${U} .hd-esc-ctl .hd-esc-pbtn.on { background:linear-gradient(#ffe58a,#e0a824); color:${INK}; opacity:1; filter:none; transform:translateY(-6px); box-shadow:0 0 0 3px #fff3b0, 0 0 16px 4px rgba(255,214,90,.85), 0 3px 0 ${INK}; }
 ${U} .hd-esc-ctl .hd-esc-pbtn:active { transform:translateY(-2px); }
 ${U} .hd-esc-ctl .hd-esc-pbtn .hd-key { left:3px; top:1px; right:auto; }
-${U} .hd-esc-ctl .hd-esc-mend { position:relative; min-width:64px; min-height:56px; padding:2px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; overflow:hidden; font-size:14px; font-weight:900; line-height:1.1; white-space:nowrap; }
-${U} .hd-esc-ctl .hd-esc-mend svg { width:24px; height:24px; display:block; position:relative; }
-${U} .hd-esc-ctl .hd-esc-mend small { position:relative; font-size:12px; font-weight:800; }
-${U} .hd-esc-ctl .hd-esc-mend b { position:relative; font-size:14px; }
-${U} .hd-esc-ctl .hd-esc-mend .cd { position:absolute; inset:0; background:conic-gradient(rgba(20,35,58,.62) var(--cd,0deg), transparent 0); pointer-events:none; }
-${U} .hd-esc-ctl .hd-esc-mend.poor, ${U} .hd-esc-ctl .hd-esc-mend.full { background:linear-gradient(#8f8a84,#5f5a55); color:#e6e1da; filter:grayscale(1); opacity:.6; }
-${U} .hd-esc-ctl .hd-esc-follow { min-width:56px; min-height:56px; padding:2px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:14px; font-weight:900; line-height:1.1; }
-${U} .hd-esc-ctl .hd-esc-follow i { width:20px; height:12px; border:2px solid ${INK}; border-radius:7px; background:#8a7f72; position:relative; }
-${U} .hd-esc-ctl .hd-esc-follow i::after { content:''; position:absolute; left:1px; top:1px; width:6px; height:6px; border-radius:50%; background:#fff; transition:transform .15s; }
-${U} .hd-esc-ctl .hd-esc-follow.on i { background:#46b23f; }
-${U} .hd-esc-ctl .hd-esc-follow.on i::after { transform:translateX(8px); }
+/* 准备倒数最后 10 秒还停着：「巡航」钮（竖屏是船速小钮）金圈一明一暗，提醒点它出发（escortview 的 sailNudge） */
+${U} .hd-esc-ctl .hd-esc-pbtn.nudge, ${U} .hd-esc-sum.nudge { animation:hd-esc-nudge 1s ease-in-out infinite; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-mend { position:relative; min-width:64px; min-height:56px; padding:2px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; overflow:hidden; font-size:14px; font-weight:900; line-height:1.1; white-space:nowrap; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-mend svg { width:24px; height:24px; display:block; position:relative; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-mend small { position:relative; font-size:12px; font-weight:800; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-mend b { position:relative; font-size:14px; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-mend .cd { position:absolute; inset:0; background:conic-gradient(rgba(20,35,58,.62) var(--cd,0deg), transparent 0); pointer-events:none; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-mend.poor, ${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-mend.full { background:linear-gradient(#8f8a84,#5f5a55); color:#e6e1da; filter:grayscale(1); opacity:.6; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-follow { min-width:56px; min-height:56px; padding:2px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:14px; font-weight:900; line-height:1.1; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-follow i { width:20px; height:12px; border:2px solid ${INK}; border-radius:7px; background:#8a7f72; position:relative; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-follow i::after { content:''; position:absolute; left:1px; top:1px; width:6px; height:6px; border-radius:50%; background:#fff; transition:transform .15s; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-follow.on i { background:#46b23f; }
+${U} :is(.hd-esc-ctl, .hd-esc-quick) .hd-esc-follow.on i::after { transform:translateX(8px); }
 ${U} .hd-esc .hd-hint { bottom:164px; }
 ${U} .hd-esc .hd-td-sheet { z-index:36; }
 
@@ -54,7 +56,7 @@ ${U} .hd-esc .hd-td-sheet { z-index:36; }
 }
 /* 手机竖屏（360×640、390×844 同）：速度排收成底栏同一行里的小钮（显示当前船速，点一下换档），长按小钮或点血条展开速度排（三档、修船、跟随），血条同时是展开的入口所以拉到 44 高。
    844 高也收：摆开的速度排 56 高再叠在底栏上，顶底栏合计会到 25% 以上（质量线 22%） */
-${U} .hd-esc-sum, ${U} .hd-esc-ctl .hd-esc-speed { display:none; }
+${U} .hd-esc-sum, ${U} .hd-esc-ctl .hd-esc-speed, ${U} .hd-esc-quick { display:none; }
 @media (max-width:559px) and (orientation:portrait) {
   ${U} .hd-esc-sum { display:flex; flex:none; flex-direction:column; align-items:center; justify-content:center; gap:0; min-width:44px; min-height:48px; padding:0 2px; font-size:12px; font-weight:900; line-height:1.05; }
   ${U} .hd-esc-sum svg { width:20px; height:20px; display:block; }
@@ -62,6 +64,12 @@ ${U} .hd-esc-sum, ${U} .hd-esc-ctl .hd-esc-speed { display:none; }
   ${U} .hd-esc-ctl { display:none; }
   ${U} .hd-esc-ctl.open { display:flex; }
   ${U} .hd-esc-ctl .hd-esc-speed { display:flex; min-width:56px; min-height:56px; padding:2px 6px; align-items:center; justify-content:center; font-size:16px; font-weight:900; }
+  /* 修船、跟随常驻：竖在右下角船速小钮上面（小钮在底栏上沿 +8、48 高，layout.ts 的 .hd-esc-sum；escortview 的 PORTRAIT_PHONE 把两颗钮搬进来）；
+     造塔面板开着、速度排展开时收起 */
+  ${U} .hd-esc-quick { display:flex; flex-direction:column; gap:8px; position:absolute; right:6px; bottom:calc(116px + env(safe-area-inset-bottom,0px)); z-index:37; }
+  ${U} .hd-esc:has(.hd-td-sheet) .hd-esc-quick, ${U} .hd-esc:has(.hd-esc-ctl.open) .hd-esc-quick { display:none; }
+  ${U} .hd-esc-quick .hd-esc-mend { min-width:56px; padding:2px 4px; }
+  ${U} .hd-esc-quick .hd-esc-mend small { display:none; }
 }
 /* ---------- 竖屏镜头的"回到船"钮 ---------- */
 ${U} .hd-esc-back { position:absolute; top:224px; right:6px; z-index:30; display:none; min-width:56px; min-height:56px; padding:0 4px; flex-direction:column; align-items:center; justify-content:center; font-size:12px; font-weight:900; line-height:1.05; }
@@ -145,9 +153,11 @@ ${U} .hd-esc-view .hd-esc-isle svg { flex:1 1 0; min-height:0; height:100%; }
   ${U} .hd-esc-ctl .hd-esc-pbtn { min-width:64px; min-height:64px; }
 }
 @keyframes hd-esc-shake { 0%,100% { transform:none; } 20% { transform:translateX(-4px); } 45% { transform:translateX(4px); } 70% { transform:translateX(-2px); } }
+@keyframes hd-esc-nudge { 0%,100% { box-shadow:0 0 0 3px #fff3b0, 0 0 6px 2px rgba(255,214,90,.5), 0 3px 0 ${INK}; } 50% { box-shadow:0 0 0 4px #ffe14d, 0 0 20px 8px rgba(255,214,90,.95), 0 3px 0 ${INK}; } }
 @keyframes hd-esc-float { 0% { transform:translate(-50%,0); opacity:1; } 100% { transform:translate(-50%,22px); opacity:0; } }
 @media (prefers-reduced-motion:reduce) {
   ${U} .hd-esc-hullw.bite, ${U} .hd-esc-loss { animation:none; }
+  ${U} .hd-esc-ctl .hd-esc-pbtn.nudge, ${U} .hd-esc-sum.nudge { animation:none; box-shadow:0 0 0 4px #ffe14d, 0 0 16px 6px rgba(255,214,90,.9), 0 3px 0 ${INK}; }
   ${U} .hd-esc-loss { opacity:.95; }
   ${U} .hd-esc-hull .fill, ${U} .hd-esc-ctl .hd-esc-pbtn, ${U} .hd-esc-follow i::after { transition:none; }
 }

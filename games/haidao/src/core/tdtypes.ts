@@ -246,6 +246,11 @@ export interface TdSetup {
   home?: TdHomeGen;
   /** 带哪个英雄（规则版本 23）：'nav' 航海士；没写 = 船长。只在战役和海盗来袭起作用（tdnav.ts 的 navEnabled） */
   heroKind?: 'nav';
+  /**
+   * 娱乐护航的新手照顾（规则版本 25）：开局英雄就跟随船；第一波开打时玩家还没碰过船速，船自己开始巡航。
+   * 只由 escortSetup 给娱乐局设；实盘不设，局面和规则 24 逐位一样
+   */
+  escortAssist?: boolean;
 }
 
 export type TdAction =

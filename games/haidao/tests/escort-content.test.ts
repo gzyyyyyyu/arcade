@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ESCORT_LEVELS, ESCORT_LEVEL_BY_ID, ESCORT_MAPS } from '../src/content/index.ts';
 import { ESCORT_DIFFS } from '../src/core/escorttypes.ts';
-import { BEACH, ISLAND } from '../src/core/types.ts';
+import { BEACH, ISLAND, RULES_VERSION } from '../src/core/types.ts';
+import { levelForRules } from '../src/core/td.ts';
 import { BUILDINGS } from '../src/content/index.ts';
 
 const LO = -BEACH;
@@ -113,10 +114,19 @@ describe('护航内容：9 关', () => {
       expect(e!.escort.hull).toBeGreaterThan(n!.escort.hull);
       expect(n!.escort.hull).toBeGreaterThan(h!.escort.hull);
       // 预算只比新手档和普通档：高手档靠船血、开局金、木台数和波间倒数变难（见 escortlevels.ts 的 KNOBS / TUNE）
-      const total = (l: typeof e): number => l!.waves.reduce((a, w) => a + w.groups.reduce((b, g) => b + g.n, 0), 0);
+      // 新手档新旧两套组并排（规则 25 放宽），按当前规则版本挑出来再数
+      const total = (l: typeof e): number => levelForRules(l!, RULES_VERSION).waves.reduce((a, w) => a + w.groups.reduce((b, g) => b + g.n, 0), 0);
       expect(total(e)).toBeLessThan(total(n));
       expect(h!.waveTicks).toBeLessThan(n!.waveTicks);
       expect(h!.slots.length).toBeLessThan(n!.slots.length);
+    }
+  });
+  it('规则 25 新手档放宽：旧局的组和放宽前一样多，新局少约一成半；普通、高手档没有分版本的组', () => {
+    const n = (l: Parameters<typeof levelForRules>[0], r: number): number => levelForRules(l, r).waves.reduce((a, w) => a + w.groups.reduce((b, g) => b + g.n, 0), 0);
+    for (const lv of ESCORT_LEVELS) {
+      const split = lv.waves.some((w) => w.groups.some((g) => g.since !== undefined || g.until !== undefined));
+      expect(split, lv.id).toBe(lv.diff === 'easy');
+      if (lv.diff === 'easy') expect(n(lv, 25)).toBeLessThan(n(lv, 24));
     }
   });
 });

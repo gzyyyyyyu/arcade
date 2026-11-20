@@ -254,9 +254,13 @@ export function createTd(setup: TdSetup): TdState {
   };
   if (level.escort) {
     // 护航：船停在起点（要玩家定速度），没有宝藏箱
+    // 规则 25 起娱乐护航照顾新手：开局英雄就跟着船（不跟随时普通机器人新手档三张图全沉，新手又找不到这个开关）；
+    // 第一波开打时还没碰过船速就替他点「巡航」（试玩里造塔造过了头，船停在港口被第一波钉死）
+    const assist = !!setup.escortAssist && setup.rules >= RULES_SINCE.escortEase;
     s.escort = {
-      def: level.escort, pos: 0, pace: 'hold', hull: level.escort.hull, biters: 0, mendReady: 0, follow: false,
+      def: level.escort, pos: 0, pace: 'hold', hull: level.escort.hull, biters: 0, mendReady: 0, follow: assist,
       gatesPassed: 0, arrived: false, sunk: false, mends: 0,
+      ...(assist ? { autoSail: true } : {}),
     };
   }
   // 英雄出生点要能站：宝藏箱下面被占就挪到四周第一个空格
@@ -620,6 +624,12 @@ function startWave(s: TdState, ev: TdEvent[], early: boolean): void {
   }
   driftCrates(s, ev, w);
   queueBounty(s, w);
+  const es = s.escort;
+  if (w === 0 && es?.autoSail) {
+    es.autoSail = false;
+    es.pace = 'sail';
+    ev.push({ type: 'pace', pace: 'sail', auto: true });
+  }
   s.wave++;
   // 大潮无尽：波次补到 w+ENDLESS_AHEAD，下一波永远有
   if (s.wave < lv.waves.length) {
@@ -774,6 +784,8 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       return;
     }
     case 'pace':
+      // 玩家自己定过船速（哪怕是点「停」留在原地）就不再替他开船
+      if (s.escort?.autoSail) s.escort.autoSail = false;
       if (s.escort && (a.pace === 'hold' || a.pace === 'sail' || a.pace === 'rush') && s.escort.pace !== a.pace) {
         s.escort.pace = a.pace;
         ev.push({ type: 'pace', pace: a.pace });

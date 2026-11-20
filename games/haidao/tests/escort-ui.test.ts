@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ESCORT_CELL } from '../src/core/escorttypes.ts';
 import { AHEAD_CELLS, aheadPoint, dashes, interpPos, meetPoint, nextGate, pathFrom, pathTo, shipPoint, showBackToShip } from '../src/view/escortcam.ts';
 import { ESCORT_CSS } from '../src/view/escortcss.ts';
-import { PACE_INFO, PACE_ORDER, bestText, hullPercent, hullTone, lockText, mapTitle, meetText, mendView, paceOfKey, resultBig, resultLine, resultTitle, starRuleText } from '../src/view/escorttext.ts';
+import { PACE_INFO, PACE_ORDER, bestText, hullPercent, hullTone, lockText, mapTitle, meetText, mendView, paceOfKey, resultBig, resultLine, resultTitle, sailNudge, SAIL_NUDGE_SEC, starRuleText } from '../src/view/escorttext.ts';
 
 const C = ESCORT_CELL;
 const route = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 2 }];
@@ -111,9 +111,14 @@ describe('escorttext：文案', () => {
     expect(starRuleText([50, 80])).toBe('到港时船剩 50% 以上 2 星，80% 以上 3 星');
     expect(lockText('溪口商道')).toContain('溪口商道');
     expect(lockText(null)).toBe('还没解锁');
-    expect(meetText(undefined, 20)).toBe('');
-    expect(meetText(-1, 20)).toBe('这一波追不上船');
-    expect(meetText(4, 20)).toBe('这一波在第 5/20 格追上船');
+    expect(meetText(undefined, 20, 0)).toBe('');
+    expect(meetText(-1, 20, 0)).toBe('这一波追不上船');
+    // 船停在港口：相遇点就是船脚下，不写「第 1/20 格」（新手读成第 1 格有埋伏）
+    expect(meetText(0, 20, 0)).toBe('这一波一到就咬上船');
+    expect(meetText(4, 20, 0)).toBe('这一波在航线前段追上船');
+    expect(meetText(9, 20, 3)).toBe('这一波在航线中段追上船');
+    expect(meetText(14, 20, 3)).toBe('这一波在航线后段追上船');
+    expect(meetText(18, 20, 3)).toBe('这一波快到港时追上船');
   });
 });
 
@@ -158,5 +163,19 @@ describe('escortcss：尺寸和字号规则', () => {
   });
   it('减少动效时不抖不飘', () => {
     expect(ESCORT_CSS).toMatch(/prefers-reduced-motion:reduce[\s\S]*hd-esc-hullw\.bite[\s\S]*animation:none/);
+  });
+});
+
+describe('准备倒数最后几秒「巡航」钮发光', () => {
+  const at = (left: number, o: { autoSail?: boolean; wave?: number } = {}) =>
+    sailNudge({ autoSail: 'autoSail' in o ? o.autoSail : true, wave: o.wave ?? 0, next: 1000, tick: 1000 - left, tps: 20 });
+  it('只在最后 10 秒、第一波还没开打、玩家还没碰过船速时发光', () => {
+    expect(SAIL_NUDGE_SEC).toBe(10);
+    expect(at(201)).toBe(false);
+    expect(at(200)).toBe(true);
+    expect(at(1)).toBe(true);
+    expect(at(100, { autoSail: false })).toBe(false);
+    expect(at(100, { autoSail: undefined })).toBe(false);
+    expect(at(100, { wave: 1 })).toBe(false);
   });
 });
