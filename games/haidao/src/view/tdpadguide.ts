@@ -7,8 +7,12 @@ import { EASE } from './motion.ts';
 import { feelOn } from './feel.ts';
 import { el } from './ui.ts';
 import { recommendPads, guideVisible } from './padguide.ts';
+import { openerText, towerName } from './td-ui.ts';
 
-/** 海盗来袭开局的木台高亮：只在倒数里、只对挑出来的几块空木台；造了就收起那块，第一波开打后全收 */
+/**
+ * 开局的木台高亮：只在倒数里、只对挑出来的几块空木台；造了就收起那块，第一波开打后全收。
+ * 海盗来袭按路线挑（recommendPads）；战役写了开局造法（TdLevel.opener）的关圈那几块，头上写造什么塔
+ */
 interface PadMark {
   slot: number;
   ring: Phaser.GameObjects.Ellipse;
@@ -34,8 +38,9 @@ function clear(bs: TdScene, st: GuideState): void {
 }
 
 export function syncPadGuide(bs: TdScene): void {
-  if (!bs.d.home) return;
   const s = bs.s;
+  const op = s.level.opener;
+  if (!bs.d.home && !op?.length) return;
   let st = states.get(bs);
   // 重开一局（状态对象换了）：旧的画面对象随场景已经没了，别再碰
   if (st && st.s !== s) {
@@ -56,7 +61,9 @@ export function syncPadGuide(bs: TdScene): void {
     // 只看第一波真走的地面路（预告给的）：别的路这时没有敌人，推荐了也白造；预告里没有地面路就看全部
     const used = new Set((tdPreview(s, 1)[0]?.lanes ?? []).filter((l) => !l.fly).map((l) => l.lane));
     const all = tdRoutes(s);
-    const picks = recommendPads(s.slots, used.size > 0 ? all.map((r) => ({ ...r, open: r.open && used.has(r.lane) })) : all, 3);
+    const picks = op?.length
+      ? op.map((o) => o.slot).filter((i) => (s.slots[i]?.tower ?? 0) < 0)
+      : recommendPads(s.slots, used.size > 0 ? all.map((r) => ({ ...r, open: r.open && used.has(r.lane) })) : all, 3);
     if (picks.length === 0) {
       st.done = true;
       return;
@@ -69,15 +76,21 @@ export function syncPadGuide(bs: TdScene): void {
       const d = depthOf(f.gx, f.gy);
       const rg = isoRing(1.5);
       const ring = bs.add.ellipse(p.x, p.y + 2, rg.w, rg.h, 0xffe885, 0.22).setStrokeStyle(4, 0xffe885, 0.95).setDepth(d - 0.4);
-      const arrow = bs.add.text(p.x, p.y - 44, '▼', { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${28 * bs.r}px`, color: '#ffe885', stroke: '#2b1a15', strokeThickness: 5 * bs.r }).setOrigin(0.5).setScale(1 / bs.r).setDepth(d + 0.2);
+      const kind = op?.find((o) => o.slot === slot)?.kind;
+      // 开局造法的木台头上写造什么塔（小一号、两行，箭头的底边和海盗来袭的 ▼ 对齐）
+      const arrow = bs.add
+        .text(p.x, kind ? p.y - 30 : p.y - 44, kind ? `${towerName(kind)}\n▼` : '▼', { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${(kind ? 20 : 28) * bs.r}px`, align: 'center', color: '#ffe885', stroke: '#2b1a15', strokeThickness: 5 * bs.r })
+        .setOrigin(0.5, kind ? 1 : 0.5)
+        .setScale(1 / bs.r)
+        .setDepth(d + 0.2);
       if (!still) {
         // 脉动：圈放大淡出再回来，箭头上下点；一轮 1 秒、60 帧里都是连续的
         bs.tweens.add({ targets: ring, scale: 1.18, alpha: 0.55, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
-        bs.tweens.add({ targets: arrow, y: p.y - 56, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
+        bs.tweens.add({ targets: arrow, y: arrow.y - 12, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
       }
       st.marks.push({ slot, ring, arrow });
     }
-    st.hint = el('div', 'hd-hint hd-padhint', '在路边的木台造塔', bs.ui);
+    st.hint = el('div', 'hd-hint hd-padhint', op?.length ? `金圈的木台${openerText(op)}` : '在路边的木台造塔', bs.ui);
   }
   // 造了的收起；倒数结束 / 第一波开打 / 全造完整个收起
   const keep = st.marks.filter((m) => s.slots[m.slot]!.tower < 0);

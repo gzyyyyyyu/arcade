@@ -156,6 +156,11 @@ export interface TdLevel {
   gold: number;
   /** 从规则版本 since 起开局金改成 gold（关卡给新手放宽时用；旧版本的局照旧用上面的 gold，levelForRules 换） */
   goldSince?: { since: number; gold: number };
+  /**
+   * 开局造法：第一张预告卡写「先造」哪几座塔、木台上标金圈（战役关卡给新手的提示，只给画面读；规则和机器人不读、不进指纹）。
+   * 按顺序：先造哪块木台（slot 是木台下标）、造什么塔
+   */
+  opener?: ReadonlyArray<{ slot: number; kind: TdTowerKind }>;
   /** 开局到第一波的倒数（拍） */
   first: number;
   /** 一波开始到下一波开始的倒数（拍） */

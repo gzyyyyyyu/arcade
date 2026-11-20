@@ -13,7 +13,7 @@ import {
 import { tideBest } from '../net/tide.ts';
 import { garrisonRec } from './garrisonrec.ts';
 import type { TdArmor, TdDamage, TdGarrisonOption, TdGarrisonPick, TdGarrisonSpot, TdIslandLevel, TdTowerKind, WavePreview } from '../core/index.ts';
-import type { BuildingKind, TdEnemyKind } from '../core/index.ts';
+import type { BuildingKind, TdEnemyKind, TdLevel } from '../core/index.ts';
 import { app, fmt } from './app.ts';
 import { bArt, iconA, tdE } from './art.ts';
 import { dayIndex } from './meta.ts';
@@ -259,6 +259,20 @@ export function enemyHints(p: WavePreview): string[] {
     if (h && !(p.note ?? '').includes(h) && !out.includes(h)) out.push(h);
   }
   return out;
+}
+
+/** 开局造法按塔合并（「火枪塔」三座写一次 ×3），保持第一次出现的顺序 */
+export function openerKinds(op: ReadonlyArray<{ kind: TdTowerKind }>): Array<[TdTowerKind, number]> {
+  const m = new Map<TdTowerKind, number>();
+  for (const o of op) m.set(o.kind, (m.get(o.kind) ?? 0) + 1);
+  return [...m];
+}
+
+/** 开局造法的一句话：「先造：火枪塔 ×2、臼炮」 */
+export function openerText(op: ReadonlyArray<{ kind: TdTowerKind }>): string {
+  return `先造：${openerKinds(op)
+    .map(([k, n]) => `${towerName(k)}${n > 1 ? ` ×${n}` : ''}`)
+    .join('、')}`;
 }
 
 /** 预告条的"建议"：建议哪种伤害（tdPreview 已经按护甲占比挑好），没有敌人为空串 */
@@ -884,7 +898,12 @@ export function eventNote(p: WavePreview): string {
   return '';
 }
 
-export function planCard(box: HTMLElement, pv: readonly WavePreview[], o: { title: (w: number) => string; left: number; tide: string; laneTitle: (lane: number) => string }): void {
+/** opener：这一关的开局造法（只在第一波开打前给），有就替换第一张卡的「建议」 */
+export function planCard(
+  box: HTMLElement,
+  pv: readonly WavePreview[],
+  o: { title: (w: number) => string; left: number; tide: string; laneTitle: (lane: number) => string; opener?: TdLevel['opener'] },
+): void {
   box.textContent = '';
   const p = pv[0];
   box.classList.toggle('boss', !!p?.boss);
@@ -907,7 +926,14 @@ export function planCard(box: HTMLElement, pv: readonly WavePreview[], o: { titl
     armorBadge(a, sp);
     sp.append(kinds.length === 1 ? `全是${ARMOR_NAME[a]}` : `${ARMOR_NAME[a]} ${p.armorShare[a]}%`);
   }
-  if (p.suggest) {
+  // 第一波全是布衣时「建议」只会是「火」，可喷火射程短、后几波打不了重甲和飞的：写了开局造法的关换成先造哪几座（木台上有金圈）
+  const op = p.wave === 0 ? o.opener : undefined;
+  if (op?.length) {
+    const sg = el('span', 'hd-plan-sug hd-plan-open', '先造', arm);
+    for (const [k, n] of openerKinds(op)) {
+      sg.append(towerIcon(k, 1, 18), `${towerName(k)}${n > 1 ? `×${n}` : ''}`);
+    }
+  } else if (p.suggest) {
     const sg = el('span', 'hd-plan-sug', undefined, arm);
     dmgBadge(p.suggest, sg);
     sg.append(suggestText(p));
@@ -928,7 +954,7 @@ export function planCard(box: HTMLElement, pv: readonly WavePreview[], o: { titl
 }
 
 /** 敌人图鉴（点预告卡打开）：下两波每一路什么敌人几个、每种敌人怎么打，再加一张展开的克制表 */
-export function bestiary(box: HTMLElement, pv: readonly WavePreview[], title: (w: number) => string, laneTitle: (lane: number) => string): void {
+export function bestiary(box: HTMLElement, pv: readonly WavePreview[], title: (w: number) => string, laneTitle: (lane: number) => string, opener?: TdLevel['opener']): void {
   injectTdCss();
   const waves = el('div', 'hd-best-waves', undefined, box);
   // 竖屏手机放不下两波，一次看一波、翻页看另一波；别的尺寸两波一起摆
@@ -937,7 +963,8 @@ export function bestiary(box: HTMLElement, pv: readonly WavePreview[], title: (w
     waves.textContent = '';
     pv.forEach((p, k) => {
       if (paged && k !== pg) return;
-      el('p', `hd-td-sub${p.boss ? ' boss' : ''}`, `${p.boss ? '首领波 · ' : ''}${title(p.wave)}${p.suggest ? ` · ${suggestText(p)}` : ''}`, waves);
+      const sug = p.wave === 0 && opener?.length ? openerText(opener) : suggestText(p);
+      el('p', `hd-td-sub${p.boss ? ' boss' : ''}`, `${p.boss ? '首领波 · ' : ''}${title(p.wave)}${sug ? ` · ${sug}` : ''}`, waves);
       for (const l of p.lanes) {
         const row = el('div', 'hd-best-row', undefined, waves);
         el('small', 'hd-best-lane', `${laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`, row);

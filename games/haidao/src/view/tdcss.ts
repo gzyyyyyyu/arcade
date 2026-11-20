@@ -384,6 +384,8 @@ function tdCss(): string {
 .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-cloth { background:#b98f55; } .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-heavy { background:#66737f; } .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-wood { background:#86562b; } .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-air { background:#3d9ad1; }
 .hd-ui .hd-td-tower .hd-key { left:4px; top:3px; }
 .hd-ui .hd-td-tower { position:relative; }
+.hd-ui .hd-td-tower.rec { box-shadow:0 0 0 3px #ffe885, 0 0 12px rgba(255,232,133,.8); }
+.hd-ui .hd-plan-sug.hd-plan-open img { margin-left:3px; }
 .hd-ui .hd-td-tower:active:not(:disabled) { transform:translateY(2px); }
 .hd-ui .hd-td-acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
 .hd-ui .hd-td-acts .hd-btn { flex:1 1 140px; min-height:48px; }
