@@ -7,7 +7,7 @@ import { EASE } from './motion.ts';
 import { feelOn } from './feel.ts';
 import { el } from './ui.ts';
 import { recommendPads, guideVisible } from './padguide.ts';
-import { openerText, towerName } from './td-ui.ts';
+import { openerLeft, openerText, towerName } from './td-ui.ts';
 import type { HeldStep } from './td-ui.ts';
 
 /**
@@ -110,17 +110,36 @@ export function syncPadGuide(bs: TdScene): void {
 }
 
 /**
- * 预告卡写「钱够就升级 火枪塔」时，场上那座塔描金圈、头上写「升级」：同种塔有好几座时卡上只写塔名分不清是哪座。
- * 跟着卡上定住的下一步走（HeldStep 换了才重画），卡上不是升级就收起
+ * 预告卡这一格指的木台：第一波开打前还有没造的开局造法，指第一块；否则指卡上定住的下一步（造在哪块 / 升哪座）；都没有为 undefined。
+ * 点卡上这一格镜头平移过去（panToGoal），竖屏放大时它在画面外，可见区边上指箭头（tdworld 的 drawEdges）
  */
-const upMarks = new WeakMap<TdScene, { s: unknown; step: HeldStep['step']; mark: PadMark | null }>();
-export function syncUpMark(bs: TdScene, held: HeldStep | undefined): void {
+export function goalSlot(bs: TdScene): number | undefined {
+  if (bs.s.over) return undefined;
+  return openerLeft(bs.s)?.[0]?.slot ?? bs.next?.step?.slot;
+}
+
+/** 镜头平移到卡上指的那块木台（缩放不变）；记一笔玩家动了镜头，停手后自动跟拍照常接回 */
+export function panToGoal(bs: TdScene): void {
+  const slot = goalSlot(bs);
+  if (slot === undefined) return;
+  const sl = bs.s.slots[slot]!;
+  const w = iso(sl.x + 1, sl.y + 1);
+  bs.fit.markUser();
+  bs.fit.panTo(w.x, w.y);
+}
+
+/**
+ * 卡上定住的下一步在场上描金圈：要造的木台头上写塔名、要升的那座塔头上写「升级」（同种塔有好几座时卡上只写塔名分不清是哪座）。
+ * 开局造法还没造完时不画（开局造法自己的金圈在），HeldStep 换了才重画
+ */
+const goalMarks = new WeakMap<TdScene, { s: unknown; step: HeldStep['step']; mark: PadMark | null }>();
+export function syncGoalMark(bs: TdScene): void {
   const s = bs.s;
-  const step = s.over ? null : (held?.step ?? null);
-  const cur = upMarks.get(bs);
+  const step = s.over || openerLeft(s) ? null : (bs.next?.step ?? null);
+  const cur = goalMarks.get(bs);
   if (cur?.s === s && cur.step === step) return;
   // 重开一局时旧的圈随场景已经没了，别再碰
   if (cur?.s === s && cur.mark) dropMark(bs, cur.mark);
-  // 塔比木台高，字抬到塔顶上面
-  upMarks.set(bs, { s, step, mark: step && step.slot >= 0 ? addMark(bs, step.slot, '升级', 72) : null });
+  // 塔比木台高，「升级」抬到塔顶上面
+  goalMarks.set(bs, { s, step, mark: step ? (step.up ? addMark(bs, step.slot, '升级', 72) : addMark(bs, step.slot, towerName(step.kind), 0)) : null });
 }

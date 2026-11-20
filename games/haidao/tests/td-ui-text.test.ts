@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COUNTER, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_TOWER_DAMAGE, TD_TOWER_KINDS, counterKind, createTd, stepTd, tdGrowthSetup, tdPreview, tdUpCost } from '../src/core/index.ts';
+import { COUNTER, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_TOWER_DAMAGE, TD_TOWER_KINDS, counterKind, createTd, freeSlotPick, stepTd, tdGrowthSetup, tdPreview, tdUpCost } from '../src/core/index.ts';
 import {
   ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, campaignChapters, cardLine, chapterLines, laneName, levelIntro, pctText, pctTier, spotSide, starRule, nextStep, nextStepText, stepLine, openerLeft, tdVerdict, towerCounter,
 } from '../src/view/td-ui.ts';
@@ -62,15 +62,15 @@ describe('克制表的显示（只读 COUNTER，不另算）', () => {
     const st = createTd(td11());
     const pv = tdPreview(st, 2);
     const h = nextStep(undefined, st, pv);
-    expect(h.step).toEqual({ kind: counterKind(st, pv), slot: -1, cost: TD2_COST[counterKind(st, pv)] });
+    expect(h.step).toEqual({ kind: counterKind(st, pv), up: false, slot: freeSlotPick(st, pv), cost: TD2_COST[counterKind(st, pv)] });
     // td11 第一波全是布衣：以前卡上写「火」，现在挑的不是喷火塔
     expect(h.step!.kind).not.toBe('flame');
-    expect(nextStepText({ kind: 'mortar', slot: -1, cost: 120 })).toBe('下一座造：臼炮');
-    expect(stepLine({ kind: 'mortar', slot: -1, cost: 120 }, 80)).toEqual({ lead: '下一座造', short: '差 40' });
-    expect(stepLine({ kind: 'mortar', slot: -1, cost: 120 }, 120)).toEqual({ lead: '下一座造', short: '' });
+    expect(nextStepText({ kind: 'mortar', up: false, slot: 0, cost: 120 })).toBe('下一座造：臼炮');
+    expect(stepLine({ kind: 'mortar', up: false, slot: 0, cost: 120 }, 80)).toEqual({ lead: '下一座造', short: '差 40' });
+    expect(stepLine({ kind: 'mortar', up: false, slot: 0, cost: 120 }, 120)).toEqual({ lead: '下一座造', short: '' });
     // 升级钱不够时开头缩成「升级」，卡上这一格不至于挤成单独一行
-    expect(stepLine({ kind: 'gunTower', slot: 3, cost: 72 }, 7)).toEqual({ lead: '升级', short: '差 65' });
-    expect(stepLine({ kind: 'gunTower', slot: 3, cost: 72 }, 72)).toEqual({ lead: '钱够就升级', short: '' });
+    expect(stepLine({ kind: 'gunTower', up: true, slot: 3, cost: 72 }, 7)).toEqual({ lead: '升级', short: '差 65' });
+    expect(stepLine({ kind: 'gunTower', up: true, slot: 3, cost: 72 }, 72)).toEqual({ lead: '钱够就升级', short: '' });
     expect(armorOrder({ cloth: 30, heavy: 60, wood: 0, air: 10 })).toEqual(['heavy', 'cloth', 'air']);
   });
   it('下一步定住：翻波、换了预告也不换；造了塔才重挑', () => {
@@ -93,11 +93,11 @@ describe('克制表的显示（只读 COUNTER，不另算）', () => {
     const pv = tdPreview(st, 2);
     // 火枪塔升阶比臼炮便宜：挑序号最小的那座火枪塔
     const h = nextStep(undefined, st, pv);
-    expect(h.step).toEqual({ kind: 'gunTower', slot: free[0], cost: tdUpCost('gunTower', 0) });
+    expect(h.step).toEqual({ kind: 'gunTower', up: true, slot: free[0], cost: tdUpCost('gunTower', 0) });
     expect(nextStepText(h.step!)).toBe('钱够就升级：火枪塔');
     // 火枪塔都升到 3 阶了：轮到臼炮
     for (const tw of st.towers) if (tw.kind === 'gunTower') tw.tier = 3;
-    expect(nextStep(h, st, pv).step).toEqual({ kind: 'mortar', slot: free[1], cost: tdUpCost('mortar', 0) });
+    expect(nextStep(h, st, pv).step).toEqual({ kind: 'mortar', up: true, slot: free[1], cost: tdUpCost('mortar', 0) });
     for (const tw of st.towers) tw.tier = 3;
     expect(nextStep(undefined, st, pv).step).toBeNull();
   });

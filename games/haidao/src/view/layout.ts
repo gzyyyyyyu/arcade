@@ -300,6 +300,8 @@ ${LAND} {
   ${W} .hd-td-hasmech .hd-td-mech { order:1; }
   ${W} .hd-td-hasmech .hd-td-call { order:2; }
   ${W} .hd-td .hd-hint { left:calc((100% - 182px) / 2); bottom:10px; }
+  /* 「全景」钮在右边那列操作区的左边（170 宽 + 6 边距 + 8 间距），别压住技能钮；往下让开暂停时的「已暂停」横幅（顶 62、高约 30）。镜头一离开开场视角它就出来（拖动、点预告卡那一格平移都会） */
+  ${W} .hd-td .hd-fitbtn { right:184px; top:calc(env(safe-area-inset-top, 0px) + 100px); }
   /* 造塔 / 升级面板开着时游戏暂停，底下一半被面板盖住：右下角那块板（拒马钮 68×68）和面板的关闭钮只隔 3 像素，一起收起 */
   ${W} .hd-td:has(> .hd-td-sheet) .hd-td-bottom { visibility:hidden; }
   /* 登陆战结算框：成就、掉落、解锁提示都有时竖排有 476 高，390 高的横屏上下各切掉一截（横幅和「回家」都看不到）。
