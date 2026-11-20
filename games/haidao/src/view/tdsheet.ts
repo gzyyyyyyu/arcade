@@ -5,7 +5,7 @@ import { type TdState, tdBuildBlock, tdClearCost, TD2_ECON, type TdTowerKind, is
 import { TICKS_PER_SEC, UNIT } from '../core/types.ts';
 import { iconA } from './art.ts';
 import { keyBadge } from './inputs.ts';
-import { bestiary, towerIcon, TOWER_INFO, rangeText, towerCounter, dmgBadge, counterCard, ARMOR_NAME, DAMAGE_NAME, branchName, pendingTier, branchCards, branchDamageHint } from './td-ui.ts';
+import { bestiary, openerLeft, towerIcon, TOWER_INFO, rangeText, towerCounter, dmgBadge, counterCard, ARMOR_NAME, DAMAGE_NAME, branchName, pendingTier, branchCards, branchDamageHint } from './td-ui.ts';
 import { sfx } from './audio/sfx.ts';
 import { buildSound, upgradeSound } from './audio/pick.ts';
 import { el, button, img } from './ui.ts';
@@ -43,7 +43,7 @@ export function showBest(bs: TdScene): void {
   const head = el('div', 'hd-head', undefined, box);
   el('h2', '', '下两波和克制表', head);
   button('×', 'hd-x', () => closeSheet(bs), head).title = '关掉（Esc / C）';
-  bestiary(box, bs.pv, (w) => waveTitle(bs, w), (l) => laneTitle(bs, l), bs.s.wave === 0 ? bs.s.level.opener : undefined);
+  bestiary(box, bs.pv, (w) => waveTitle(bs, w), (l) => laneTitle(bs, l), openerLeft(bs.s), bs.next?.step);
 }
 
 /** 压着这块木台、还没清掉的沉船；没有为 null */

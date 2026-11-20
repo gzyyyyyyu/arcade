@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { COUNTER, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_TOWER_DAMAGE, TD_TOWER_KINDS } from '../src/core/index.ts';
+import { COUNTER, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_TOWER_DAMAGE, TD_TOWER_KINDS, counterKind, createTd, stepTd, tdGrowthSetup, tdPreview, tdUpCost, upgradePick } from '../src/core/index.ts';
 import {
-  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, campaignChapters, cardLine, chapterLines, fitSuggest, laneName, levelIntro, pctText, pctTier, spotSide, starRule, suggestText, tdVerdict, towerCounter,
+  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, campaignChapters, cardLine, chapterLines, laneName, levelIntro, pctText, pctTier, spotSide, starRule, nextStep, nextStepText, shortText, openerLeft, tdVerdict, towerCounter,
 } from '../src/view/td-ui.ts';
+import { TD2_COST } from '../src/content/td2units.ts';
+
+const td11 = () => {
+  const r = tdGrowthSetup('td11', 'suggest', 1);
+  if (!r.ok) throw new Error(r.error);
+  return r.value;
+};
 
 describe('守岛结算文案和路名', () => {
   it('按星数分档，1 星写丢了几枚', () => {
@@ -51,23 +58,54 @@ describe('克制表的显示（只读 COUNTER，不另算）', () => {
     expect(branchDamageHint('cannon.pierce')).toBeUndefined();
     expect(branchDamageHint('harpoon.drag')).toBeUndefined();
   });
-  it('预告条：建议的伤害、护甲按占比从多到少', () => {
-    expect(suggestText({ suggest: 'shell' })).toBe(`建议：${DAMAGE_NAME.shell}`);
-    expect(suggestText({ suggest: null })).toBe('');
-  });
-  it('建议只从这局能造的塔里挑', () => {
-    const share = Object.fromEntries(TD_ARMORS.map((a) => [a, 0])) as Record<(typeof TD_ARMORS)[number], number>;
-    const pv = [{ wave: 0, lanes: [], armorShare: { ...share, cloth: 100 }, suggest: 'fire' as const, boss: false }] as unknown as Parameters<typeof fitSuggest>[0];
-    // 只有加农炮和火枪塔：火不在可选里；全是布甲时炮、枪一样好，不建议
-    expect(fitSuggest(pv, ['cannon', 'gunTower'])[0]!.suggest).toBeNull();
-    // 铁甲多：炮克铁甲
-    const hv = [{ ...pv[0]!, armorShare: { ...share, cloth: 30, heavy: 70 } }];
-    expect(fitSuggest(hv, ['cannon', 'gunTower'])[0]!.suggest).toBe('shell');
-    // 只有一种伤害可选：没得选就不建议
-    expect(fitSuggest(pv, ['cannon', 'mortar'])[0]!.suggest).toBeNull();
-    // 没有限制：原样
-    expect(fitSuggest(pv, undefined)[0]!.suggest).toBe('fire');
+  it('预告卡的下一步：有空木台写照建议的新手挑的那座（counterKind），钱不够写还差多少；护甲按占比从多到少', () => {
+    const st = createTd(td11());
+    const pv = tdPreview(st, 2);
+    const h = nextStep(undefined, st, pv);
+    expect(h.step).toEqual({ kind: counterKind(st, pv), slot: -1, cost: TD2_COST[counterKind(st, pv)] });
+    // td11 第一波全是布衣：以前卡上写「火」，现在挑的不是喷火塔
+    expect(h.step!.kind).not.toBe('flame');
+    expect(nextStepText({ kind: 'mortar', slot: -1, cost: 120 })).toBe('下一座造：臼炮');
+    expect(shortText({ kind: 'mortar', slot: -1, cost: 120 }, 80)).toBe('还差 40 金');
+    expect(shortText({ kind: 'mortar', slot: -1, cost: 120 }, 120)).toBe('');
     expect(armorOrder({ cloth: 30, heavy: 60, wood: 0, air: 10 })).toEqual(['heavy', 'cloth', 'air']);
+  });
+  it('下一步定住：翻波、换了预告也不换；造了塔才重挑', () => {
+    const st = createTd(td11());
+    const h = nextStep(undefined, st, tdPreview(st, 2));
+    // 预告换成后面几波（护甲、飞的都不一样）：木台上的塔没变，卡上照旧
+    const later = { ...st, wave: 6 };
+    expect(nextStep(h, later, tdPreview(later, 2))).toBe(h);
+    st.gold = 9999;
+    stepTd(st, [{ t: st.tick, type: 'build', slot: 0, kind: h.step!.kind }]);
+    const h2 = nextStep(h, st, tdPreview(st, 2));
+    expect(h2).not.toBe(h);
+    expect(h2.key).not.toBe(h.key);
+  });
+  it('木台造满：写「钱够就升级」稳机器人挑的那座；升满了不写', () => {
+    const st = createTd(td11());
+    st.gold = 99999;
+    const free = st.slots.flatMap((sl, i) => (sl.tower < 0 && sl.wreck === undefined ? [i] : []));
+    stepTd(st, free.map((slot) => ({ t: st.tick, type: 'build' as const, slot, kind: 'gunTower' as const })));
+    const pv = tdPreview(st, 2);
+    const h = nextStep(undefined, st, pv);
+    const j = upgradePick(st, pv);
+    expect(j).toBeGreaterThanOrEqual(0);
+    expect(h.step).toEqual({ kind: 'gunTower', slot: j, cost: tdUpCost('gunTower', 0) });
+    expect(nextStepText(h.step!)).toBe('钱够就升级：火枪塔');
+    for (const tw of st.towers) tw.tier = 3;
+    expect(nextStep(h, st, pv).step).toBeNull();
+  });
+  it('开局造法只剩没造的那几座，造完或开打后不再给（卡上换成下一座）', () => {
+    const r = tdGrowthSetup('td11', 'suggest', 1);
+    if (!r.ok) throw new Error(r.error);
+    const st = createTd(r.value);
+    const op = st.level.opener!;
+    expect(openerLeft(st)).toEqual(op);
+    const built = (n: number) => ({ ...st, slots: st.slots.map((sl, i) => (op.slice(0, n).some((o) => o.slot === i) ? { ...sl, tower: 1 } : sl)) });
+    expect(openerLeft(built(1))).toEqual(op.slice(1));
+    expect(openerLeft(built(op.length))).toBeUndefined();
+    expect(openerLeft({ ...st, wave: 1 })).toBeUndefined();
   });
 });
 

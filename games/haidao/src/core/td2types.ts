@@ -99,7 +99,7 @@ export function counterPct(dmg: TdDamage, armor: TdArmor, branch: readonly strin
   return COUNTER[dmg][armor];
 }
 
-/** 对某种护甲最克的伤害（预告"建议：X"用）：倍率最高的，平手按 TD_DAMAGES 的顺序，爆破不算（玩家造不出来） */
+/** 对某种护甲最克的伤害（敌人首次提示「X 打它多一半」用，tdhint.ts）：倍率最高的，平手按 TD_DAMAGES 的顺序，爆破不算（玩家造不出来） */
 export function bestDamageVs(armor: TdArmor): TdDamage {
   let best: TdDamage = 'shot';
   for (const d of TD_DAMAGES) if (d !== 'blast' && COUNTER[d][armor] > COUNTER[best][armor]) best = d;
@@ -301,8 +301,6 @@ export interface WavePreview {
   lanes: WaveLanePreview[];
   /** 各护甲的等效血量占比（百分比，四项加起来约 100） */
   armorShare: Record<TdArmor, number>;
-  /** 建议的伤害类型：占比最高的护甲最克它的那种；全是空的为 null */
-  suggest: TdDamage | null;
   /** 关卡写的补充（写不进图标的事），没有为 undefined */
   note?: string;
   /** 护航：这一波先头敌人和商船按当前船速推算在航线哪一格相遇（航线下标，追不上 -1）；只读提示，规则不用 */

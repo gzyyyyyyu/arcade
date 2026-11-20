@@ -22,6 +22,7 @@ import { setWeather, weatherOf } from './post.ts';
 import { SEA_BG, drawGround, worldBounds } from './ground.ts';
 import { iso } from './iso.ts';
 import { HOME_ID } from './td-ui.ts';
+import type { HeldStep } from './td-ui.ts';
 import { TdPlan } from './tdplan.ts';
 import { ensureArt } from './textures.ts';
 import { type Muzzle, Turret, turretStats, ensureTurrets } from './turret.ts';
@@ -172,6 +173,8 @@ export class TdScene extends Phaser.Scene {
   plan!: TdPlan;
   pv: WavePreview[] = [];
   planSig = '';
+  /** 预告卡上定住的下一步（造哪种 / 升哪座），木台上的塔变了才重挑 */
+  next: HeldStep | undefined;
   planKey = '';
   /** 顶栏下面的首领粗血条（tdhud.ts 的 syncBossBar）；id = 正在跟的首领，pct = 上次写进样式的百分比 */
   bossUi: { root: HTMLElement; name: HTMLElement; fill: HTMLElement; id: number; pct: number } | null = null;
@@ -244,6 +247,7 @@ export class TdScene extends Phaser.Scene {
     this.sellArmed = -1;
     this.pv = [];
     this.planSig = '';
+    this.next = undefined;
     this.edgeEls = [];
     this.edgeT = 0;
     this.planKey = '';

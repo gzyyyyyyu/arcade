@@ -3,8 +3,8 @@ import { TD2_ENEMIES } from '../content/td2units.ts';
 import { TD2_CHAPTERS } from '../content/tdmaps.ts';
 import type { Td2ChapterInfo } from '../content/tdmaps.ts';
 import { ISLAND, RULES_VERSION, UNIT } from '../core/types.ts';
-import { levelForRules, tdBuildRange, tdHomeHardOpen } from '../core/index.ts';
-import { TD2_HOME } from '../content/td2units.ts';
+import { counterKind, isTdTowerKind, levelForRules, tdBuildRange, tdHomeHardOpen, tdUpCost, upgradePick } from '../core/index.ts';
+import { TD2_COST, TD2_HOME } from '../content/td2units.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
   TD_TOWER_DAMAGE, TD_TOWER_KINDS,
@@ -13,7 +13,7 @@ import {
 import { tideBest } from '../net/tide.ts';
 import { garrisonRec } from './garrisonrec.ts';
 import type { TdArmor, TdDamage, TdGarrisonOption, TdGarrisonPick, TdGarrisonSpot, TdIslandLevel, TdTowerKind, WavePreview } from '../core/index.ts';
-import type { BuildingKind, TdEnemyKind, TdLevel } from '../core/index.ts';
+import type { BuildingKind, TdEnemyKind, TdLevel, TdState } from '../core/index.ts';
 import { app, fmt } from './app.ts';
 import { bArt, iconA, tdE } from './art.ts';
 import { dayIndex } from './meta.ts';
@@ -268,6 +268,15 @@ export function openerKinds(op: ReadonlyArray<{ kind: TdTowerKind }>): Array<[Td
   return [...m];
 }
 
+/**
+ * 还没造的开局造法：只在第一波开打前给；照它造完了就返回 undefined，卡上换成「下一座造」——
+ * 以前造完了卡上还写「先造：火枪塔、臼炮」，手里剩的钱不知道该造什么
+ */
+export function openerLeft(s: TdState): TdLevel['opener'] {
+  const left = s.wave === 0 ? s.level.opener?.filter((o) => s.slots[o.slot]!.tower < 0) : undefined;
+  return left?.length ? left : undefined;
+}
+
 /** 开局造法的一句话：「先造：火枪塔 ×2、臼炮」 */
 export function openerText(op: ReadonlyArray<{ kind: TdTowerKind }>): string {
   return `先造：${openerKinds(op)
@@ -275,34 +284,53 @@ export function openerText(op: ReadonlyArray<{ kind: TdTowerKind }>): string {
     .join('、')}`;
 }
 
-/** 预告条的"建议"：建议哪种伤害（tdPreview 已经按护甲占比挑好），没有敌人为空串 */
-export function suggestText(p: Pick<WavePreview, 'suggest'>): string {
-  return p.suggest ? `建议：${DAMAGE_NAME[p.suggest]}` : '';
+/**
+ * 预告卡的下一步：有空木台写「下一座造」哪种塔，造满了写「钱够就升级」哪座。
+ * 造哪种：照建议的新手机器人挑的那座（核心的 counterKind：按下两波的护甲和每金输出挑，同种塔越多越打折，有飞的先备打飞的、
+ * 有雾先备火枪）；以前只按这一波的护甲挑一种伤害，第一波几乎都是布衣，卡上永远是「火」，新手照着全造喷火就守不住
+ * （docs/balance-haidao.md 第 5 节）。升哪座：稳机器人的升级挑法（核心的 upgradePick：离路最近、还没升满）。
+ * 定住：只在木台上的塔变了（造、卖、升）之后才重挑，翻波、倒数里不换——跟着预告每波重算时卡会自己变，攒钱造 A 的新手看到它变成 B
+ */
+export interface NextStep {
+  kind: TdTowerKind;
+  /** 升级的那座塔在哪块木台；造新塔是 -1 */
+  slot: number;
+  cost: number;
+}
+export interface HeldStep {
+  key: string;
+  step: NextStep | null;
 }
 
-/**
- * 「建议」只从这局能造的塔里挑：tdPreview 按占比最多的护甲挑理论最好的伤害，可前几关只有加农炮和火枪塔，
- * 建议「火」等于让玩家去找一座造不了的塔。按这波的护甲占比给每种能造的伤害打分（占比 × 克制倍率），取最高的；
- * 只有一种伤害可选、或最高分并列时不给建议（没得选、选哪个都一样）。unlocked 为空（没限制）时原样返回。
- */
-export function fitSuggest(pv: readonly WavePreview[], unlocked: readonly TdTowerKind[] | undefined): WavePreview[] {
-  if (!unlocked?.length) return [...pv];
-  const dmgs = [...new Set(unlocked.map((k) => TD_TOWER_DAMAGE[k]))];
-  return pv.map((p) => {
-    if (!p.suggest) return p;
-    if (dmgs.length < 2) return { ...p, suggest: null };
-    let best = dmgs[0]!;
-    let top = -1;
-    let tie = false;
-    for (const d of dmgs) {
-      let v = 0;
-      for (const a of TD_ARMORS) v += p.armorShare[a] * COUNTER[d][a];
-      if (v > top) [best, top, tie] = [d, v, false];
-      else if (v === top) tie = true;
-    }
-    return { ...p, suggest: tie ? null : best };
-  });
+/** 木台上的塔（哪座、几阶）和沉船：变了才重挑下一步 */
+export function stepKey(s: TdState): string {
+  return s.slots
+    .map((sl) => {
+      const tw = sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
+      return tw ? `${tw.id}.${tw.tier ?? 0}` : sl.wreck !== undefined ? 'w' : '-';
+    })
+    .join(',');
 }
+
+export function nextStep(prev: HeldStep | undefined, s: TdState, pv: WavePreview[]): HeldStep {
+  const key = stepKey(s);
+  if (prev?.key === key) return prev;
+  if (!s.unlocked.length) return { key, step: null };
+  if (s.slots.some((sl) => sl.tower < 0 && sl.wreck === undefined)) {
+    const kind = counterKind(s, pv);
+    return { key, step: { kind, slot: -1, cost: TD2_COST[kind] } };
+  }
+  const j = upgradePick(s, pv);
+  const tw = j < 0 ? undefined : s.towers.find((q) => q.id === s.slots[j]!.tower);
+  if (!tw || !isTdTowerKind(tw.kind)) return { key, step: null };
+  return { key, step: { kind: tw.kind, slot: j, cost: tdUpCost(tw.kind, tw.tier! - 1) } };
+}
+
+/** 卡上那一格的开头：「下一座造」或「钱够就升级」 */
+export const nextStepLead = (st: NextStep): string => (st.slot < 0 ? '下一座造' : '钱够就升级');
+export const nextStepText = (st: NextStep): string => `${nextStepLead(st)}：${towerName(st.kind)}`;
+/** 钱不够时跟在塔名后面（局内的钱叫「金」，和结算「还有 N 金没花」一个说法）；够了是空串 */
+export const shortText = (st: NextStep, gold: number): string => (st.cost > gold ? `还差 ${st.cost - gold} 金` : '');
 
 /** 护甲占比从多到少（只列有的），预告条按这个顺序摆徽记 */
 export function armorOrder(share: Record<TdArmor, number>): TdArmor[] {
@@ -898,11 +926,11 @@ export function eventNote(p: WavePreview): string {
   return '';
 }
 
-/** opener：这一关的开局造法（只在第一波开打前给），有就替换第一张卡的「建议」 */
+/** opener：这一关还没造的开局造法（只在第一波开打前给），有就显示它；否则显示 next（nextStep 定住的下一步，还差多少由 syncShort 每拍补） */
 export function planCard(
   box: HTMLElement,
   pv: readonly WavePreview[],
-  o: { title: (w: number) => string; left: number; tide: string; laneTitle: (lane: number) => string; opener?: TdLevel['opener'] },
+  o: { title: (w: number) => string; left: number; tide: string; laneTitle: (lane: number) => string; opener?: TdLevel['opener']; next?: NextStep | null; gold: number },
 ): void {
   box.textContent = '';
   const p = pv[0];
@@ -926,17 +954,17 @@ export function planCard(
     armorBadge(a, sp);
     sp.append(kinds.length === 1 ? `全是${ARMOR_NAME[a]}` : `${ARMOR_NAME[a]} ${p.armorShare[a]}%`);
   }
-  // 第一波全是布衣时「建议」只会是「火」，可喷火射程短、后几波打不了重甲和飞的：写了开局造法的关换成先造哪几座（木台上有金圈）
+  // 写了开局造法的关，开打前先写还没造的那几座（木台上有金圈），造完了再换成「下一座造」
   const op = p.wave === 0 ? o.opener : undefined;
   if (op?.length) {
     const sg = el('span', 'hd-plan-sug hd-plan-open', '先造', arm);
     for (const [k, n] of openerKinds(op)) {
       sg.append(towerIcon(k, 1, 18), `${towerName(k)}${n > 1 ? `×${n}` : ''}`);
     }
-  } else if (p.suggest) {
-    const sg = el('span', 'hd-plan-sug', undefined, arm);
-    dmgBadge(p.suggest, sg);
-    sg.append(suggestText(p));
+  } else if (o.next) {
+    const sg = el('span', 'hd-plan-sug hd-plan-open', nextStepLead(o.next), arm);
+    sg.append(towerIcon(o.next.kind, 1, 18), towerName(o.next.kind));
+    el('small', 'hd-plan-short', shortText(o.next, o.gold), sg);
   }
   const lanes = p.lanes.map((l) => `${o.laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`);
   // 关卡说明和敌人打法只在图鉴里写全（点卡打开）：以前全塞进第三行，后几波长到五六行，盖住出生点和海上的炮艇
@@ -954,7 +982,14 @@ export function planCard(
 }
 
 /** 敌人图鉴（点预告卡打开）：下两波每一路什么敌人几个、每种敌人怎么打，再加一张展开的克制表 */
-export function bestiary(box: HTMLElement, pv: readonly WavePreview[], title: (w: number) => string, laneTitle: (lane: number) => string, opener?: TdLevel['opener']): void {
+export function bestiary(
+  box: HTMLElement,
+  pv: readonly WavePreview[],
+  title: (w: number) => string,
+  laneTitle: (lane: number) => string,
+  opener?: TdLevel['opener'],
+  next?: NextStep | null,
+): void {
   injectTdCss();
   const waves = el('div', 'hd-best-waves', undefined, box);
   // 竖屏手机放不下两波，一次看一波、翻页看另一波；别的尺寸两波一起摆
@@ -963,7 +998,8 @@ export function bestiary(box: HTMLElement, pv: readonly WavePreview[], title: (w
     waves.textContent = '';
     pv.forEach((p, k) => {
       if (paged && k !== pg) return;
-      const sug = p.wave === 0 && opener?.length ? openerText(opener) : suggestText(p);
+      // 建议只写在头一波（第一波开打前写开局造法，之后写下一座）：第二波的建议要等这一波打完、造完塔才知道
+      const sug = k > 0 ? '' : opener?.length ? openerText(opener) : next ? nextStepText(next) : '';
       el('p', `hd-td-sub${p.boss ? ' boss' : ''}`, `${p.boss ? '首领波 · ' : ''}${title(p.wave)}${sug ? ` · ${sug}` : ''}`, waves);
       for (const l of p.lanes) {
         const row = el('div', 'hd-best-row', undefined, waves);

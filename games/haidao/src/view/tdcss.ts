@@ -386,6 +386,8 @@ function tdCss(): string {
 .hd-ui .hd-td-tower { position:relative; }
 .hd-ui .hd-td-tower.rec { box-shadow:0 0 0 3px #ffe885, 0 0 12px rgba(255,232,133,.8); }
 .hd-ui .hd-plan-sug.hd-plan-open img { margin-left:3px; }
+.hd-ui .hd-plan-sug .hd-plan-short { margin-left:4px; color:${red}; font-size:12px; font-weight:800; }
+.hd-ui .hd-plan-sug .hd-plan-short:empty { display:none; }
 .hd-ui .hd-td-tower:active:not(:disabled) { transform:translateY(2px); }
 .hd-ui .hd-td-acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
 .hd-ui .hd-td-acts .hd-btn { flex:1 1 140px; min-height:48px; }
