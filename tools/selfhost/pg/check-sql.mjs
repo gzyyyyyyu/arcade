@@ -115,7 +115,8 @@ function topLevel(e, ch, from = 0) {
 
 /**
  * 拼进 SQL 的表达式可能取哪些值。看得懂的：字符串、常量名、a ? '…' : '…'（可以连着写）、
- * xs.map((_, i) => `?${i + N}`).join(', ')（占位符列表，取 1 个和 3 个两种）。看不懂的返回 null，报出来让人加规则。
+ * xs.map((_, i) => `?${i + N}`).join(', ')（占位符列表，取 1 个和 3 个两种）、{ a: '…', b: '…' }[key]（按键取片段，每个值都是一个变体）。
+ * 看不懂的返回 null，报出来让人加规则。
  */
 function variants(e, seen = new Set()) {
   e = e.trim();
@@ -144,6 +145,20 @@ function variants(e, seen = new Set()) {
   if (marks) {
     const n = Number(marks[1]);
     return [`?${n}`, `?${n}, ?${n + 1}, ?${n + 2}`];
+  }
+  const pick = /^\{([\s\S]*)\}\[[\w$.]+\]$/.exec(e);
+  if (pick) {
+    const out = [];
+    for (let body = pick[1].trim(); body; ) {
+      const comma = topLevel(body, ',');
+      const prop = comma < 0 ? body : body.slice(0, comma);
+      const colon = topLevel(prop, ':');
+      const v = colon > 0 && variants(prop.slice(colon + 1), seen);
+      if (!v) return null;
+      out.push(...v);
+      body = comma < 0 ? '' : body.slice(comma + 1).trim();
+    }
+    return out.length ? out : null;
   }
   if (/^[A-Za-z_$][\w$]*$/.test(e) && consts.get(e) && !seen.has(e)) return variants(consts.get(e), new Set([...seen, e]));
   return null;

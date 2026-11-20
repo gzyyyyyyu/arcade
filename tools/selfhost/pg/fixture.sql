@@ -21,3 +21,4 @@ INSERT INTO boards (user_id, game_id, board_id, score, updated_at) VALUES
 INSERT INTO saves (user_id, game_id, slot, rev, data, size, updated_at) VALUES ('Ua', 'kaipan', 'main', 2, 'xx', 2, 100), ('Ua', 'texas', 'main', 1, 'yyyy', 4, 100);
 INSERT INTO rate_counters (key, window_start, count, blocked_until) VALUES ('ip:1', 1000, 3, 0), ('ip:2', 1000, 9, 0), ('fail:a', 1000, 4, 0), ('fail:b', 1000, 1, 0);
 INSERT INTO mates (lo, hi, game, n, lo_wins, hi_wins, team_n, team_wins, last_op, last_at) VALUES ('Ua', 'ub', 'guandan', 2, 1, 1, 1, 0, 'op1', 50);
+INSERT INTO invite_code_uses (code_id, user_id, used_at) VALUES ('K1', 'Ua', 300), ('K1', 'ub', 500), ('k2', '_c', 400), ('K1', 'Zd', 100), ('K3', 'Ua', 200);
