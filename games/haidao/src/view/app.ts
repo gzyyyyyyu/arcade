@@ -103,6 +103,8 @@ export const app = {
   /** 云存档合并了新数据后，基地重读重画 */
   reload: (): void => undefined,
   goBase: (): void => undefined,
+  /** 下次进基地先打开建造面板（结算里「仓库满了」的「去扩仓库」） */
+  buildOnBase: false,
   /** 守岛：开一局（读自己的岛，烘焙素材后进 td 场景） */
   startTdLevel: (_levelId: string): void => undefined,
   /** 悬赏守岛（实盘）：用固定的悬赏岛开一局，不读自己的岛、不发本岛守岛奖励 */

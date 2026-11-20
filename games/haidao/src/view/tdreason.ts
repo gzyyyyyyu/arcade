@@ -146,7 +146,7 @@ export function tdReason(log: ReasonLog, res: ReasonRes, extra: ReasonExtra): Re
   const laneTop = top(lanes);
   const kindTop = top(groupBy(losses, (l) => l.kind, (l) => l.n));
   if (armor && extra.towers.length > 0 && !hasCounter(armor, extra.towers) && canCounter(armor, extra.unlocked)) {
-    line = `${ARMOR_TEXT[armor]}的敌人没有克它的塔`;
+    line = `漏的多是${ARMOR_TEXT[armor]}，没造克它的塔`;
   } else if (extra.towers.length === 0) {
     line = '一座塔都没造，宝藏被搬空了';
   } else if (laneTop && laneTop[0] !== '' && laneTop[1] * 100 >= lostN * 60 && lanes.size > 0) {

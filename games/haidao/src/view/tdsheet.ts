@@ -10,6 +10,7 @@ import { sfx } from './audio/sfx.ts';
 import { buildSound, upgradeSound } from './audio/pick.ts';
 import { el, button, img } from './ui.ts';
 import { waveTitle, laneTitle } from './tdhud.ts';
+import { twoSteps } from './tdpadguide.ts';
 import { act, moveMark } from './tdinput.ts';
 import { W, TEMP_KINDS, buildCost } from './tdcommon.ts';
 
@@ -31,7 +32,33 @@ export function showSlot(bs: TdScene, i: number): void {
   closeSheet(bs);
   bs.openSlot = i;
   renderSheet(bs);
+  slotAboveSheet(bs, i);
 }
+
+/**
+ * 竖屏的造塔 / 升级面板占屏幕下面一大半，点的木台常被盖住，看不到自己在造哪块：
+ * 台子落在面板里时镜头把它挪到面板上方那块的中间（和点预告卡平移同一套；玩家挪过镜头，自动构图让位）
+ */
+function slotAboveSheet(bs: TdScene, i: number): void {
+  const box = bs.sheet;
+  const sl = bs.s.slots[i];
+  const par = box?.offsetParent;
+  if (!box || !par || !sl) return;
+  const cv = bs.game.canvas.getBoundingClientRect();
+  // 面板是滑进来的（正在播位移动画），按布局位置（offset*，不含变换）量，不然量到的上沿偏低、以为上面空着一大块
+  const o = par.getBoundingClientRect();
+  const r = { top: o.top + box.offsetTop, left: o.left + box.offsetLeft, right: o.left + box.offsetLeft + box.offsetWidth };
+  const top = r.top - cv.top;
+  const w = W((sl.x + 1) * UNIT, (sl.y + 1) * UNIT);
+  const p = bs.cc.toScreen(w.x, w.y);
+  // 只在竖屏挪：横屏和电脑的面板上面只剩约 1/3 屏的一条（或面板在侧边），挪进去也看不清，还把镜头带走
+  if (cv.height <= cv.width || p.y < top - PAD_ABOVE || p.x < r.left - cv.left || p.x > r.right - cv.left) return;
+  bs.fit.markUser();
+  bs.fit.panTo(w.x, w.y, undefined, top);
+}
+
+/** 台子中心离面板上沿至少这么远才算看得见（台子本身约 40 高，再留点边） */
+const PAD_ABOVE = 36;
 
 /** 敌人图鉴：下两波每一路的敌人和一张展开的克制表；开着时和木台面板一样暂停 */
 export function showBest(bs: TdScene): void {
@@ -124,7 +151,9 @@ export function renderSheet(bs: TdScene): void {
     const kinds = TEMP_KINDS.filter((k) => can.has(k));
     // 该造的塔描金边，和地上的金圈、预告卡说的是同一座：开局造法没造完时按这块台写的，之后按卡上「下一座造」
     // （以前只有开局造法的台有金边，手机上面板盖住整屏，玩家得记着金圈上那两个小字）
-    const step = bs.next?.step;
+    // 钱够两步、打开的正是第二步那块台时按第二步的塔描
+    const after = twoSteps(bs);
+    const step = after && !after.up && after.slot === bs.openSlot ? after : bs.next?.step;
     const rec = openerLeft(s) ? s.level.opener?.find((o) => o.slot === bs.openSlot)?.kind : step && !step.up ? step.kind : undefined;
     kinds.forEach((k, i) => {
       const cost = buildCost(k);
@@ -195,6 +224,8 @@ export function renderSheet(bs: TdScene): void {
   // 局内塔 3 阶才选分叉（先 3 级那档再 6 级那档），说明换成守岛的（TD_BRANCH_DESC）
   const pend = tier >= 3 ? pendingTier(t.kind, t.level, t.branch) : null;
   if (pend) branchCards(box, t.kind, t.level, t.branch, (id) => act(bs, { type: 'branch', slot: bs.openSlot, branch: id }), branchDamageHint, (id) => TD_BRANCH_DESC.get(id));
+  // 电脑上和造塔面板一样标键位：分叉按数字键选，升级 U、卖 S（以前只有悬停提示里写，看不到）
+  box.querySelectorAll<HTMLElement>('.hd-td-branch').forEach((c, i) => keyBadge(c, i + 1));
   const acts = el('div', 'hd-td-acts', undefined, box);
   const cost = tdUpCost(t.kind, tier - 1);
   if (cost < 0 || tier >= 3) el('span', 'hd-chip', '已到 3 阶', acts);
@@ -206,6 +237,7 @@ export function renderSheet(bs: TdScene): void {
       if (tier + 1 < 3) closeSheet(bs);
     }, acts);
     up.title = '升级（U）';
+    keyBadge(up, 'U');
     up.append(`升到 ${tier + 1} 阶  `);
     price(bs, up, cost);
     up.disabled = s.gold < cost;
@@ -215,6 +247,7 @@ export function renderSheet(bs: TdScene): void {
     const armed = bs.sellArmed === bs.openSlot;
     const sell = button('', `hd-btn-wood hd-td-sell${armed ? ' arm' : ''}`, () => sellAt(bs, bs.openSlot), acts, armed ? 'confirm' : 'tap');
     sell.title = `卖掉，退回花掉的 ${TD2_ECON.sellPct}%（S，要按两下）`;
+    keyBadge(sell, 'S');
     sell.append(armed ? '再点一下确认 ' : '卖掉 ');
     const pr = el('span', 'hd-td-price', undefined, sell);
     pr.appendChild(img(iconA('hammer'), 16));

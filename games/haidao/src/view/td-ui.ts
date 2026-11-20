@@ -13,7 +13,7 @@ import {
 import { tideBest } from '../net/tide.ts';
 import { garrisonRec } from './garrisonrec.ts';
 import type { TdArmor, TdDamage, TdGarrisonOption, TdGarrisonPick, TdGarrisonSpot, TdIslandLevel, TdTowerKind, WavePreview } from '../core/index.ts';
-import type { BuildingKind, TdEnemyKind, TdLevel, TdState } from '../core/index.ts';
+import type { BuildingKind, TdEnemyKind, TdLevel, TdState, TdTower } from '../core/index.ts';
 import { app, fmt } from './app.ts';
 import { bArt, iconA, tdE } from './art.ts';
 import { dayIndex } from './meta.ts';
@@ -303,6 +303,8 @@ export interface NextStep {
 export interface HeldStep {
   key: string;
   step: NextStep | null;
+  /** 做完 step 以后的那一步：钱够两步时卡上一起写（td19 照卡打到结算还剩 1,235 金，一次只推一步跟不上进账），最多两步，免得卡撑高 */
+  after: NextStep | null;
 }
 
 /** 木台上的塔（哪座、几阶）和沉船：变了才重挑下一步 */
@@ -318,19 +320,33 @@ export function stepKey(s: TdState): string {
 export function nextStep(prev: HeldStep | undefined, s: TdState, pv: WavePreview[]): HeldStep {
   const key = stepKey(s);
   if (prev?.key === key) return prev;
-  if (!s.unlocked.length) return { key, step: null };
-  if (s.slots.some((sl) => sl.tower < 0 && sl.wreck === undefined)) {
-    const kind = counterKind(s, pv);
-    return { key, step: { kind, up: false, slot: freeSlotPick(s, pv)!, cost: TD2_COST[kind] } };
+  const step = pickStep(s, pv);
+  return { key, step, after: step && pickStep(s, pv, step) };
+}
+
+/** 下一步；done 给了就当它已经做完，挑再下一步（造了的那块算有塔、能接着升；升了的那座不再挑） */
+function pickStep(s: TdState, pv: WavePreview[], done?: NextStep): NextStep | null {
+  if (!s.unlocked.length) return null;
+  const built = done && !done.up ? done : undefined;
+  const free = s.slots.flatMap((sl, i) => (sl.tower < 0 && sl.wreck === undefined && i !== built?.slot ? [i] : []));
+  if (free.length) {
+    // 只给挑种类用：counterKind 只看塔的种类、木台、分叉（同种塔越多越打折），假的那座不进状态
+    const s2 = built ? { ...s, towers: [...s.towers, { id: -1, kind: built.kind, slot: built.slot, branch: [], tier: 1 } as unknown as TdTower] } : s;
+    const kind = counterKind(s2, pv);
+    return { kind, up: false, slot: freeSlotPick(s2, pv, free)!, cost: TD2_COST[kind] };
   }
   let best: NextStep | null = null;
   s.slots.forEach((sl, slot) => {
     const tw = sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
-    if (!tw || tw.tier === undefined || tw.tier >= 3 || !isTdTowerKind(tw.kind)) return;
-    const cost = tdUpCost(tw.kind, tw.tier - 1);
-    if (cost >= 0 && (!best || cost < best.cost)) best = { kind: tw.kind, up: true, slot, cost };
+    const kind = slot === built?.slot ? built.kind : tw?.kind;
+    const tier = slot === built?.slot ? 1 : tw?.tier;
+    if (!kind || tier === undefined || tier >= 3 || !isTdTowerKind(kind)) return;
+    // 第二步换一座：同一座连升两阶时卡上写成「升 A ＋ A」看不懂
+    if (done?.up && done.slot === slot) return;
+    const cost = tdUpCost(kind, tier - 1);
+    if (cost >= 0 && (!best || cost < best.cost)) best = { kind, up: true, slot, cost };
   });
-  return { key, step: best };
+  return best;
 }
 
 /** 图鉴标题里的一句（不看钱）：「下一座造：臼炮」「钱够就升级：火枪塔」 */
@@ -708,7 +724,11 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
   else for (const [spot, kind] of rec) picks.set(spot, kind);
   const wrap = el('div', 'hd-tdsel hd-tdgar hd-tdgar-main hd-tdpage', undefined, uiRoot());
   const head = el('div', 'hd-tdsel-head', undefined, wrap);
-  el('h2', '', `${lv.name} · 驻守台`, head);
+  // 关名和「· 驻守台」各自不拆：竖屏放不下时整段折到第二行，别把关名劈成「绕后的鹦 / 鹉」
+  const h = el('h2', '', undefined, head);
+  el('span', '', lv.name, h);
+  h.append(' ');
+  el('span', '', '· 驻守台', h);
   // 小地图和说明并排（竖屏手机上小地图占满面板上方的空当，选塔面板沉到底下，见 tdcss）
   const top = el('div', 'hd-tdgar-top', undefined, wrap);
   const markSpot = garrisonMap(lv, top, (k) => showSpot(k));
@@ -938,11 +958,14 @@ export function eventNote(p: WavePreview): string {
   return '';
 }
 
+/** 雾波的提醒：雾里的敌人塔打不中，要灯塔（火枪塔 3 阶的分叉）照亮 */
+export const FOG_NOTE = '雾里要灯塔照亮：火枪塔 3 阶';
+
 /** opener：这一关还没造的开局造法（只在第一波开打前给），有就显示它；否则显示 next（nextStep 定住的下一步，开头和差多少由 HUD 每拍按 stepLine 补） */
 export function planCard(
   box: HTMLElement,
   pv: readonly WavePreview[],
-  o: { title: (w: number) => string; left: number; tide: string; laneTitle: (lane: number) => string; opener?: TdLevel['opener']; next?: NextStep | null; gold: number; onGoal?: () => void },
+  o: { title: (w: number) => string; left: number; tide: string; laneTitle: (lane: number) => string; opener?: TdLevel['opener']; next?: NextStep | null; after?: NextStep | null; gold: number; lit?: boolean; onGoal?: () => void },
 ): void {
   box.textContent = '';
   const p = pv[0];
@@ -980,6 +1003,9 @@ export function planCard(
     el('span', 'hd-plan-lead', ln.lead, sg);
     sg.append(towerIcon(o.next.kind, 1, 18), towerName(o.next.kind));
     el('small', 'hd-plan-short', ln.short, sg);
+    // 钱够两步：同一格里接着写第二座（造的只写塔名，升的写「升」），不另起一行
+    const th = o.after;
+    if (th) el('span', 'hd-plan-after', `＋${th.up && !o.next.up ? '升' : ''}`, sg).append(towerIcon(th.kind, 1, 18), towerName(th.kind));
   }
   // 点这一格镜头移到它说的那块木台 / 那座塔（竖屏放大时常在画面外）；卡的别处照旧打开敌人图鉴
   const go = o.onGoal;
@@ -992,13 +1018,15 @@ export function planCard(
     });
   }
   // 这一波的关内事件和潮水变化单独一行、带图标（以前挤在「从哪来」那一行末尾，赏金船、落潮常被漏看）；没有就不占这一行
-  const evs: Array<[ReturnType<typeof iconA>, string]> = [];
+  const evs: Array<[HTMLElement, string]> = [];
   // 战书不写在这里：那一波倒数里浮着「接 / 不接」的卷轴，同一件事只在一处说
-  if (p.event && p.event !== 'dare') evs.push([iconA(p.event), eventNote(p)]);
-  if (o.tide) evs.push([iconA('sluice'), o.tide]);
+  if (p.event && p.event !== 'dare') evs.push([img(iconA(p.event), 18), eventNote(p)]);
+  if (o.tide) evs.push([img(iconA('sluice'), 18), o.tide]);
+  // 这波有雾里的敌人、场上还没灯塔：说清为什么（卡片会推火枪塔，但不说的话新手不知道雾船打不中，雾关常一波漏六个）
+  if (o.lit === false && waveEnemies(p).some((e) => e.fog)) evs.push([towerIcon('gunTower', 1, 18), FOG_NOTE]);
   if (evs.length) {
     const ev = el('div', 'hd-plan-ev', undefined, box);
-    for (const [ic, t] of evs) el('span', '', undefined, ev).append(img(ic, 18), t);
+    for (const [ic, t] of evs) el('span', '', undefined, ev).append(ic, t);
   }
   const lanes = p.lanes.map((l) => `${o.laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`);
   // 关卡说明和敌人打法只在图鉴里写全（点卡打开）：以前全塞进第三行，后几波长到五六行，盖住出生点和海上的炮艇

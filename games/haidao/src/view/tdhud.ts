@@ -20,7 +20,7 @@ import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFl
 import { closeSheet, showBest } from './tdsheet.ts';
 import { SKILL } from './tdcommon.ts';
 import { finish } from './tdresult.ts';
-import { panToGoal, syncGoalMark, syncPadGuide } from './tdpadguide.ts';
+import { panToGoal, syncGoalMark, syncPadGuide, twoSteps } from './tdpadguide.ts';
 import { syncSluice } from './tdworld.ts';
 import { bossOf } from './tdboss.ts';
 
@@ -275,10 +275,46 @@ function foeHint(bs: TdScene, start: boolean): void {
     const k = it.k;
     const icon = img(k === 'crate' ? tdP('crate') : k === 'fleet' ? iconA('ship') : k === 'nav' ? iconA('rushFlag') : iconA(k), 40);
     hintCard(bs, bs.ui, [{ icon, ...MECH_HINT[k] }], '新玩法');
-    return;
+  } else {
+    const f = tdE(it.k, 'walk')[0];
+    if (f) hintCard(bs, bs.ui, [{ icon: img(f, 40), name: TD2_ENEMIES[it.k].name, text: foeText(it.k, s.unlocked) }], '新敌人');
   }
-  const f = tdE(it.k, 'walk')[0];
-  if (f) hintCard(bs, bs.ui, [{ icon: img(f, 40), name: TD2_ENEMIES[it.k].name, text: foeText(it.k, s.unlocked) }], '新敌人');
+  placeHint(bs);
+}
+
+/** 右边至少空出这么宽才往右挪（再窄就得折成好几行，不如放到卡下面） */
+const HINT_MIN_W = 240;
+
+/**
+ * 首次提示卡（顶部居中）躲开预告卡：手机横屏卡片写「差 N」时变宽，提示卡压住它的右端。
+ * 卡右边到右侧那一列钮（横屏技能栏、「全景」）之间放得下就挪到右边（不压岛的中间），放不下就挪到卡下面。
+ * 提示卡弹出时在播缩放动画（从 0.2 倍起），按布局尺寸（offset*，不含变换）量；预告卡「差 N」变了再量一次
+ */
+function placeHint(bs: TdScene): void {
+  const c = bs.ui.querySelector<HTMLElement>(':scope > .hd-defhint');
+  const plan = bs.hud.plan;
+  if (!c) return;
+  c.style.left = c.style.top = c.style.maxWidth = c.style.transform = '';
+  const box = c.offsetParent;
+  if (!box || !plan.offsetParent) return;
+  const ui = bs.ui.getBoundingClientRect();
+  const o = box.getBoundingClientRect();
+  // 样式里是 left:50% + translateX(-50%)
+  const l = o.left + c.offsetLeft - c.offsetWidth / 2;
+  const r = { left: l, right: l + c.offsetWidth, top: o.top + c.offsetTop, bottom: o.top + c.offsetTop + c.offsetHeight };
+  const q = plan.getBoundingClientRect();
+  if (!(q.left < r.right && q.right > r.left && q.top < r.bottom && q.bottom > r.top)) return;
+  let end = ui.right - 8;
+  for (const e of [bs.ui.querySelector<HTMLElement>('.hd-fitbtn'), bs.ui.querySelector<HTMLElement>('.hd-td-bottom')]) {
+    const b = e?.offsetParent ? e.getBoundingClientRect() : null;
+    if (b && b.left > q.right && b.top < r.bottom && b.bottom > r.top) end = Math.min(end, b.left - 8);
+  }
+  const w = end - (q.right + 8);
+  if (w >= HINT_MIN_W) {
+    c.style.left = `${Math.round(q.right + 8 - o.left)}px`;
+    c.style.maxWidth = `${Math.floor(w)}px`;
+    c.style.transform = 'none';
+  } else c.style.top = `${Math.round(q.bottom + 6 - o.top)}px`;
 }
 
 export function hintText(bs: TdScene, t: string): void {
@@ -350,11 +386,14 @@ export function updateHud(bs: TdScene, force = false): void {
     ? `水闸关了：${ln}的敌人改走${laneName(s.level.lanes[0] ?? s.level.tide!.lane)}`
     : nextTide !== null && nowTide !== null ? (nextTide === nowTide ? '' : nextTide ? `落潮：${ln}开通` : `涨潮：${ln}关上`) : '';
   // 预告卡只在预告、倒数秒数、潮水变了时重排（金币、冷却这些每拍在变的不牵动它）
-  const planKey = `${bs.planSig}|${canCallNow ? left : -1}|${tide}|${bs.esc?.planSig(bs.pv) ?? ''}`;
+  const after = twoSteps(bs);
+  const lit = s.towers.some((t) => t.branch.includes('gunTower.lighthouse'));
+  const planKey = `${bs.planSig}|${canCallNow ? left : -1}|${tide}|${after ? 2 : 1}|${lit}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (force || planKey !== bs.planKey) {
     bs.planKey = planKey;
-    planCard(H.plan, bs.pv, { title: (w) => waveTitle(bs, w), left: canCallNow ? left : -1, tide, laneTitle: (l) => laneTitle(bs, l), opener: openerLeft(s), next: bs.next?.step, gold: s.gold, onGoal: () => panToGoal(bs) });
+    planCard(H.plan, bs.pv, { title: (w) => waveTitle(bs, w), left: canCallNow ? left : -1, tide, laneTitle: (l) => laneTitle(bs, l), opener: openerLeft(s), next: bs.next?.step, after, gold: s.gold, lit, onGoal: () => panToGoal(bs) });
     bs.esc?.decoratePlan(H.plan, bs.pv);
+    placeHint(bs);
   }
   // 「差 N」和开头跟着钱每拍变：只改这一格的字，不重排整张卡
   const lead = bs.next?.step && H.plan.querySelector('.hd-plan-lead');
@@ -362,7 +401,10 @@ export function updateHud(bs: TdScene, force = false): void {
     const ln = stepLine(bs.next!.step!, s.gold);
     const short = H.plan.querySelector('.hd-plan-short')!;
     if (lead.textContent !== ln.lead) lead.textContent = ln.lead;
-    if (short.textContent !== ln.short) short.textContent = ln.short;
+    if (short.textContent !== ln.short) {
+      short.textContent = ln.short;
+      placeHint(bs);
+    }
   }
   // 收起状态的小钮写下一波的波次号；叫波后（波数变了）自动收起
   const tog = bs.ui.querySelector('.hd-plan-tog');

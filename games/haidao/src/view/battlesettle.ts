@@ -1,15 +1,16 @@
 import { settleCampaign, type BattleResult, type Profile, type Res } from '../core/index.ts';
 import { runAchievements, settleBounty, type Ach } from './meta.ts';
 
-/** 战役结算框里的附加信息：连胜、掠夺加成、安慰奖、掉落 */
+/** 战役结算框里的附加信息：连胜、掠夺加成、安慰奖、掉落、仓库满了截掉的 */
 export interface Extra {
   streak: number;
   bonusPct: number;
   consolation: boolean;
+  cut: Res;
   drops: Array<{ kind: 'gold' | 'wood'; amount: number } | { kind: 'cosmetic'; id: string }>;
 }
 
-export const NO_EXTRA: Extra = { streak: 0, bonusPct: 0, consolation: false, drops: [] };
+export const NO_EXTRA: Extra = { streak: 0, bonusPct: 0, consolation: false, cut: { gold: 0, wood: 0 }, drops: [] };
 
 /** 本页面存活期内每关连输的次数（刷新就清零，不进存档）；失败建议里"连输 N 次"用它 */
 const lossStreak = new Map<string, number>();
@@ -43,6 +44,7 @@ export function settleOutcome(profile: Profile, levelId: string, res: BattleResu
     prof = ar.profile;
     fresh = ar.fresh;
     loot = sb.loot;
+    extra.cut = sb.cut;
     if (sb.done) bonus = sb.loot;
   } else if (opts.settle) {
     lossStreak.set(levelId, res.stars === 0 ? lossStreakOf(levelId) + 1 : 0);
@@ -52,7 +54,7 @@ export function settleOutcome(profile: Profile, levelId: string, res: BattleResu
     fresh = ar.fresh;
     loot = out.loot;
     newStars = out.newStars;
-    extra = { streak: out.streak ?? 0, bonusPct: out.streakBonusPct ?? 0, consolation: out.consolation === true, drops: out.drops ?? [] };
+    extra = { streak: out.streak ?? 0, bonusPct: out.streakBonusPct ?? 0, consolation: out.consolation === true, cut: out.cut, drops: out.drops ?? [] };
   }
   return { profile: prof, loot, newStars, bonus, fresh, extra };
 }

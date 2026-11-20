@@ -400,6 +400,12 @@ function qFails(q: Q, touch: boolean): string[] {
 
 /** 在页面里量：文档本身、.hd-ui 下会出滚动条的、被截断的面板类元素；质量线四项（qline）同处调用 */
 async function measure(page: Page, touch: boolean, screen: string): Promise<Omit<Rec, 'screen' | 'view' | 'shot'>> {
+  // 等正在播的入场动画走完再量（最多 1 秒）：异步弹出的弹窗（加载页上「你不在时被打了」等 /api 回话才弹）常在截图和量之间冒出来，
+  // 缩放中的弹窗按 0.99 倍量，44 高的钮记成 43.9、8 的间距记成 7.9
+  await page.evaluate(() => Promise.race([
+    Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))),
+    new Promise((r) => setTimeout(r, 1000)),
+  ])).catch(() => {});
   const q = await page.evaluate(qline, { touch, canvas: CANVAS_SCREEN.test(screen) });
   const r = await page.evaluate((touch) => {
     const out: Array<{ sel: string; kind: 'doc' | 'scroll' | 'clip'; sh: number; ch: number }> = [];

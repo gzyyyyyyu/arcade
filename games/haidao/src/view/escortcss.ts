@@ -123,6 +123,10 @@ ${U} .hd-esc-view .hd-esc-isle svg { flex:1 1 0; min-height:0; height:100%; }
   ${U} .hd-esc-ctl .hd-esc-follow { min-width:52px; min-height:52px; }
   ${U} .hd-esc .hd-hint { bottom:92px; }
   ${U} .hd-esc .hd-td-sheet { width:min(60%,520px); }
+  /* 顶栏两段各自按内容定宽、互不知道对方：左段（波数 + 船血条）右端约 350，右段（金币到撤退）贴着 right:112 往左长，
+     844 宽时左缘约 337，血条和金币牌叠一截。血条收窄、右段挪到设置钮旁边（这里没有手感钮占 58–112） */
+  ${U} .hd-esc-hullw { flex:0 1 112px; width:112px; min-width:64px; }
+  ${U}.hd-skin .hd-td.hd-esc .hd-td-bar2 { right:calc(58px + env(safe-area-inset-right,0px)); }
   ${U} .hd-esc-back { top:126px; }
 }
 /* 选图页手机横屏：左边三张图，右边难度、说明、出发，一屏放下不滚 */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CAMPAIGN, RULES_VERSION, TROOPS, armyFor, battleFingerprint, botActions, canLand, createBattle, newProfile, runBattle,
-  publicLayout, settleCampaign, startCampaign, stepBattle, trimArmy,
+  capacity, publicLayout, settleCampaign, startCampaign, stepBattle, trimArmy,
 } from '../src/core/index.ts';
 import type { BattleAction, BattleSetup } from '../src/core/index.ts';
 import { sampleArmy } from '../tools/sample.ts';
@@ -154,6 +154,19 @@ describe('战役', () => {
     // 三成掠夺 + 连胜 10% + 可能的掉落箱：不少于三成加成
     expect(again.streakBonusPct).toBe(10);
     expect(again.loot.gold).toBeGreaterThanOrEqual(Math.floor(CAMPAIGN[0]!.loot.gold * 0.3 * 1.1));
+  });
+  it('仓库满了：进仓库的按上限截，截掉的放在 cut 里（结算框写「少拿多少」）', () => {
+    const st = startCampaign(newProfile(), 'c01', 7);
+    if (!st.ok) throw new Error(st.error);
+    const { setup } = st.value;
+    const { result } = runBattle(setup, botActions(setup, 'normal'));
+    const free = settleCampaign({ ...st.value.profile, res: { gold: 0, wood: 0 } }, 'c01', result, 1);
+    expect(free.cut).toEqual({ gold: 0, wood: 0 });
+    const cap = capacity(st.value.profile);
+    const full = settleCampaign({ ...st.value.profile, res: { gold: cap.gold - 10, wood: cap.wood } }, 'c01', result, 1);
+    expect(full.loot).toEqual({ gold: 10, wood: 0 });
+    expect(full.cut).toEqual({ gold: free.loot.gold - 10, wood: free.loot.wood });
+    expect(full.profile.res).toEqual(cap);
   });
   it('未解锁的关和木材不够', () => {
     const p = newProfile();

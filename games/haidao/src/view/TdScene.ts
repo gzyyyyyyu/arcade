@@ -314,7 +314,7 @@ export class TdScene extends Phaser.Scene {
     this.cc = new CamCtl(this, this.r, worldBounds());
     this.cc.onTap = (x, y) => tap(this, x, y);
     // 电脑：悬停高亮木台、右键取消（没什么可取消时右键地面直接指挥英雄）、Esc 取消；按住英雄拖出落点（手指也一样）；P 暂停；空格 = 开打（叫下一波，倒数里才有用，否则回全景）；
-    // 数字键：建塔菜单开着时选第 n 种塔，否则 1 拒马、2 炸药桶、3 叫下一波；S 卖塔、U 升级（木台面板开着时）、C 敌人图鉴和克制表、H 选中英雄（再点地面指挥他走）
+    // 数字键：建塔菜单开着时选第 n 种塔（升级面板里选第 n 条分叉），否则 1 拒马、2 炸药桶、3 叫下一波；S 卖塔、U 升级（木台面板开着时）、C 敌人图鉴和克制表、H 选中英雄（再点地面指挥他走）
     this.hoverG = this.add.graphics().setDepth(DEPTH.tdHover);
     this.hoverSlot = -2;
     this.cc.onHover = (x, y) => hover(this, x, y);
@@ -325,7 +325,7 @@ export class TdScene extends Phaser.Scene {
       esc: () => cancelAll(this),
       space: () => (canCall(this) && !this.sheet ? callWave(this) : this.fit.back()),
       digit: (n) => {
-        const cards = this.sheet?.querySelectorAll('.hd-td-tower');
+        const cards = this.sheet?.querySelectorAll('.hd-td-tower, .hd-td-branch');
         if (cards && cards.length > 0) pressNth(cards, n - 1);
         else if (!this.sheet) pressNth(this.ui.querySelectorAll('.hd-td-bottom .hd-btn:not(.hd-td-herobtn)'), n - 1);
       },

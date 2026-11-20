@@ -26,6 +26,14 @@ describe('驻守台的「这关推荐」', () => {
     const air = garrisonRec([{ groups: [{ enemy: 'parrot', n: 20, lane: 0, every: 10 }] }], [opts(2)]);
     expect(['gunTower', 'harpoon', 'sniper']).toContain(air.get(0));
   });
+  it('几座台不都推同一种：td19 三座、td11 两座全是布衣为主，以前全推喷火塔', () => {
+    for (const id of ['td19', 'td11']) {
+      const lv = TD2_LEVEL_BY_ID.get(id)!;
+      const rec = garrisonRec(lv.waves, lv.garrison.map(() => opts(2)));
+      expect(rec.size, id).toBe(lv.garrison.length);
+      expect(new Set(rec.values()).size, id).toBe(lv.garrison.length);
+    }
+  });
   it('一种都带不了的台不推荐', () => {
     expect(garrisonRec(TD2_LEVEL_BY_ID.get('td21')!.waves, [[]]).size).toBe(0);
   });
