@@ -1,9 +1,5 @@
 /* 血流成河：一家胡了好几次时，第二次起的每一条另起一行 */
 .summary .row .win-extra { display: block; }
-.lobby .flow-opt.off { opacity: 0.55; }
-.lobby .flow-opt .flow-note { margin-left: 8px; opacity: 0.8; font-size: var(--fs-sm); }
-/* 血流成河、三人两房两行后面带一句说明，独占一行 */
-.rules-opts > .flow-opt:has(.flow-note:not(:empty)) { grid-column: 1 / -1; }
 
 /* 三人两房：对家（上方）的位置空着，不画头像、手牌和牌河 */
 .table.three .badge.r2,

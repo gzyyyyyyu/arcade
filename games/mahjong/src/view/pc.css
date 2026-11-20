@@ -1,7 +1,7 @@
 /* 电脑版补充：主按钮的悬停 / 按下 / 禁用手感。全部限定在已有的根节点下 */
 
 /* 选桌页：内容一项也不许被压扁（竖屏一列时），只有茶馆画按剩下的高度缩 */
-.screen.lobby :is(.lobby-l, .lobby-r) > * {
+.screen.lobby .lobby-panel > * {
   flex-shrink: 0;
 }
 

@@ -17,7 +17,7 @@ import type { DailyVariant } from '../../game/daily.ts';
 import type { FeedMoment } from '../../game/feed.ts';
 import type { LadderMode } from '../../game/ladder.ts';
 import type { DexVariant } from '../../game/dex.ts';
-import type { StakesId } from '../../game/stakes.ts';
+import type { RuleSpec } from '../../game/rule-spec.ts';
 import type { SoloAction, SoloState } from '../../solo.ts';
 import type { OptsOf, ViewOf } from '../../core/variants/index.ts';
 import type { Groups, Tab } from '../guide-kit.ts';
@@ -50,16 +50,6 @@ export interface HomeChoice {
   pitch: string;
   /** 茶馆擂台里这种打法的号和一桌的规则（娱乐短局，默认规则，大家一样） */
   ladder?: { mode: LadderMode; opts: () => AnyOpts };
-}
-
-/** 选桌页里这个玩法的规则设置（每次画选桌页新建一份，改动只在这一页里有效，开打时才交出去） */
-export interface LobbyRules {
-  /** 开桌、开房、排队用的规则（实盘一局一结由开打的地方套 realOpts） */
-  opts(stakes: StakesId): AnyOpts;
-  /** 一场约几分钟（选档卡上写） */
-  minutes(): number;
-  /** 画"规则设置"折叠框里的各行；repaint 重画档位卡（局数、长度变了，"约几分钟"跟着变） */
-  render(box: HTMLElement, repaint: () => void): void;
 }
 
 /** 新手引导和规则小册子的内容（外壳在 view/guide.ts） */
@@ -119,9 +109,8 @@ export interface VariantPage {
   readonly lobbyChip: string;
   /** 快速匹配对话框里档位前面的玩法标记（"立直 · "），没有就空串 */
   readonly matchTag: string;
-  newLobbyRules(store: RulesStore): LobbyRules;
-  /** 好友房规则的一行字里，玩法名后面（档位之后）的各项 */
-  ruleParts(rules: unknown): string[];
+  /** 选桌页的规则表（game/rule-spec.ts）：「改规则」面板、摘要、好友房等人页的规则行都按它 */
+  readonly rules: RuleSpec<AnyOpts>;
   /** 一场多长："8 局"、"半庄"（分享卡标题、颁奖标题） */
   lengthText(opts: AnyOpts): string;
   /** 存档打到哪了（主页"继续上局"底下那行），daily 是每日挑战的日期 */

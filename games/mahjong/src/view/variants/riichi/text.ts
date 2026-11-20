@@ -1,13 +1,14 @@
 /**
  * 立直麻将给人看的字（AGENTS.md 第 4 节：中文、大白话）。役的名字在规则核心（score.ts 的 YAKU_NAME），这里不重复。
  */
-import type { HandScore, RcEnd } from '../../../core/variants/riichi/index.ts';
+import type { HandScore, RcEnd, RcOpts } from '../../../core/variants/riichi/index.ts';
+import { RC_LENGTH_NAME } from '../../../game/riichi/rules.ts';
 
 export const RC_WIND = ['东', '南', '西', '北'] as const;
 const NUM = ['一', '二', '三', '四'] as const;
 
 /** 立直一场的长度名（半庄、东风战、一局） */
-export const lengthName = (length: 'hanchan' | 'tonpuu' | 'ikkyoku'): string => (length === 'hanchan' ? '半庄' : length === 'tonpuu' ? '东风战' : '一局');
+export const lengthName = (length: RcOpts['length']): string => RC_LENGTH_NAME[length];
 
 /** 局名：东一局、南三局 */
 export const roundName = (wind: number, hand: number): string => `${RC_WIND[wind] ?? '东'}${NUM[hand] ?? '一'}局`;

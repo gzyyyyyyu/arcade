@@ -11,10 +11,10 @@
   电脑只拿视图（`src/ai/` 不出现状态类型）。`test/arch.test.ts` 检查这些。
 - 隐藏信息：`view` 只放这个座位能看到的；别人的手牌、牌墙、密钥、换三张的牌、声明窗口里别人的选择一律不下发。
   声明窗口的名单是所有没胡的别家，真人的回答走 kit 的 `free`（DESIGN.md 第 6 节），改这块要保住"从外面看不出谁能碰杠胡"。
-- 改了电脑或底分，先跑 `node scripts/balance.ts 2000 <场地>`（小白、普通两个模拟玩家对 [`docs/balance.md`](docs/balance.md) 的目标，每个场地开一个进程），再跑 `npm run sim 2000`（性格强弱再跑 `scripts/strength.ts`，好友房实盘桌再跑 `scripts/stake-room.ts`；场地表在 `src/ai/venues.ts`），结果写进 `docs/balance-results.md`（DESIGN.md 4.1 只留做法和结论）。
-- 改了立直的电脑或换筹码的 `SHARE_POINTS`，跑 `node scripts/sim-riichi.ts 300 hanchan` 和 `… tonpuu`，再跑配平 `node scripts/balance-riichi.ts <场数> <场地> <hanchan|tonpuu>`（小白、普通对 `docs/balance.md`；每格 2,000 场的大表推一次性分支 `sim/mahjong-*` 到 CI 上分片跑），结果写进 `docs/riichi.md` 第 7 节和 `docs/balance-results.md`。
+- 改了电脑或底分，跑 `node scripts/balance.ts <局数> <场地>`（娱乐每格 200 局、实盘每格 2,000 局，离群超过 20 个点才追；小白、普通两个模拟玩家对 [`docs/balance.md`](docs/balance.md) 的目标，每个场地开一个进程），再跑 `npm run sim`（性格强弱再跑 `scripts/strength.ts`，好友房实盘桌再跑 `scripts/stake-room.ts`；场地表在 `src/ai/venues.ts`），结果写进 `docs/balance-results.md`（DESIGN.md 4.1 只留做法和结论）。
+- 改了立直的电脑或换筹码的 `SHARE_POINTS`，跑 `node scripts/sim-riichi.ts 300 hanchan` 和 `… tonpuu`，再跑配平 `node scripts/balance-riichi.ts <场数> <场地> <hanchan|tonpuu>`（小白、普通对 `docs/balance.md`；娱乐每格 200 场、实盘每格 2,000 场，本机跑），结果写进 `docs/riichi.md` 第 7 节和 `docs/balance-results.md`。
 - 只搬代码、不该改行为的重构（拆文件、改名、挪函数）动了 `src/core/` 或 `src/ai/`：前后各跑 `node scripts/fingerprint.ts 40`，每一行都要逐位相同。
-- 改了牌桌布局，跑 `node scripts/capture.ts se-port|se-land|port|land 40` 看截图和"压住了"的报告（DESIGN.md 第 7 节）。
+- 改了牌桌布局，跑 `node scripts/capture.ts land|port 40` 看截图和"压住了"的报告（DESIGN.md 第 7 节）。测试够用就停：日常只跑改到的单测，交审前整套单测、lint、build 一次，冒烟只跑受影响的流程、电脑 1280 和手机竖屏两个尺寸。
 - 筹码：钱包是平台的（服务绑定 `WALLET`，`props.game = "mahjong"`）；不能买、不能兑换、不能转让，界面写明"无任何现金价值"。
   显示钱包、平台的错误一律按 `docs/platform-backend.md` 15.10 的对照表说人话（`src/view/text.ts`）。
 - `wrangler.jsonc` 是能单独部署的独立配置：不写平台绑定（`ARCADE`、`WALLET`）和 `GATE`，本站部署时由仓库的部署工具补上（README 的部署两节）。

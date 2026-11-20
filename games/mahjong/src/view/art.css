@@ -189,21 +189,6 @@ html:has(.screen.room) body {
     var(--art-wall-full, linear-gradient(#4a2414, #3a1a0c)) 0 0 / 112px 360px repeat;
   background-attachment: local;
 }
-/* 横屏：茶碗摆在左栏标题的左边，跟着标题走（11-01 分两栏以后不再按整页居中算位置） */
-[data-orient='land'] .screen.lobby .lobby-head {
-  position: relative;
-}
-[data-orient='land'] .screen.lobby .lobby-head::before {
-  content: '';
-  position: absolute;
-  right: 100%;
-  bottom: 0;
-  width: 80px;
-  height: 75px;
-  margin-right: var(--sp-2);
-  background: var(--art-cup, none) center / contain no-repeat;
-}
-/* 横屏选桌页分两栏（css/lobby.css）：茶碗、暖光放在左栏店名这一边，右栏的档位卡上面不压摆设；左上角是"‹ 主页"，0.17.0 起不挂灯笼（灯笼在主页的画里） */
 /* 标题在板壁上：金字压一道深色投影，像刻出来描金 */
 .screen.lobby .lobby-head h1 {
   text-shadow:
@@ -458,10 +443,6 @@ html:has(.screen.room) body {
 .stage .mode small {
   opacity: 1;
   color: #5a4434;
-}
-.stage .rules-opts {
-  border: 2px solid var(--c-ink);
-  box-shadow: var(--c-hi), 0 4px 10px #0000004d;
 }
 .stage .chip {
   border: 2px solid #f6efdc99;

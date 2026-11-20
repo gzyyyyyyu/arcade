@@ -1,9 +1,13 @@
 /**
  * 选桌页（docs/economy.md 第 1 节，各游戏一个样子）：从主页的模式卡进来（0.17.2 起只摆这个模式的东西，docs/art.md）——
  * 娱乐：三个难度 + 单机开打；实盘：四档 + 单机开打；好友房：娱乐三个难度和实盘四档都能选（房间按这个开）+ 开房间、输房间号进房。
- * 娱乐、实盘的单机开打旁边是快速匹配（0.21.0，和陌生人按这一档排）。规则设置全部平铺、不折叠（docs/ui.md 第 9 节）；开打的按钮贴在底部。钱包连不上时实盘不可选。单独部署（没有平台）时只有娱乐，好友房上面多一个昵称框。
+ * 娱乐、实盘的单机开打旁边是快速匹配（0.21.0，和陌生人按这一档排）。钱包连不上时实盘不可选。单独部署（没有平台）时只有娱乐，好友房上面多一个昵称框。
+ * 版面（0.41.0）：和主页一样左边茶馆的画、右边一块木框面板（竖屏画在上、面板在下）；面板里玩法、档位卡是主角，开打贴底。
+ * 规则细节默认收起，只露一行摘要和「改规则」（所有者 11-20：选项看不懂、默认选好就行），点开是一个弹窗，照玩法的规则表画（game/rule-spec.ts）；
+ * 档位、难度、玩法这些主选项照旧一屏摆开。
  */
 import { LEVELS, type Level } from '../ai/venues.ts';
+import { summary } from '../game/rule-spec.ts';
 import { STAKES, type StakesId, type TierId } from '../game/stakes.ts';
 import type { WalletView } from '../net/wallet.ts';
 import { homeScene, stakeIcon } from './art.ts';
@@ -11,7 +15,9 @@ import { dailyEntry } from './daily.ts';
 import type { DailyVariant } from '../game/daily.ts';
 import type { AnyOpts, RulesStore } from './variants/page.ts';
 import { allPages, pageOf } from './variants/pages.ts';
+import { closeDialog, dialog } from './dialog.ts';
 import { busy, button, el } from './dom.ts';
+import { renderRules } from './rule-row.ts';
 import { GAME_NAME, LEVEL_FOR, LEVEL_NAME, num, STAKES_NAME, STARS, wan } from './text.ts';
 
 export interface LobbyProps {
@@ -21,7 +27,7 @@ export interface LobbyProps {
   stakes: StakesId;
   /** 娱乐的难度（第一次玩是新手） */
   level: Level;
-  /** 偏好里存着的各玩法的规则设置（选桌页上改的只在这一页有效，开打时才交出去） */
+  /** 偏好里存着的各玩法的规则设置（「改规则」里改的只在这一页有效，开打时才交出去） */
   rules: RulesStore;
   /** "玩法"选项（立直入口开着时才有，单机和好友房都有）：current 是选着的玩法 */
   variants?: { current: string; onPick(id: string): void };
@@ -53,22 +59,24 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   box.replaceChildren();
   let stakes = p.stakes;
   let level = p.level;
-  // 选着的玩法管自己的规则设置（局数、封顶、长度……）和开桌用的规则，选桌页只负责摆
+  // 选着的玩法给规则表（game/rule-spec.ts），这一页改的是一份拷贝，开打时才交出去
   const page = pageOf(p.variants?.current);
-  const rules = page.newLobbyRules(p.rules);
+  let opts = { ...page.rulesOf(p.rules) } as AnyOpts;
+  // 单机实盘一局一结（app/solo-flow.ts 套 realOpts），局数、长度不给选；好友房实盘照开房时选的打
+  const real = p.mode === 'real';
   if (p.onBack) button('pill back', box, '‹ 主页', p.onBack);
-  // 竖屏选档页上面那块空白放主页同一张茶馆的画（只占剩下的高度，规则设置展开后自己缩没）；横屏没空，CSS 藏掉
+  // 主视觉：主页同一张茶馆的画（横屏左栏、竖屏顶上一条，放不下时自己藏掉）
   el('div', 'lobby-art', box).innerHTML = homeScene();
   el('div', 'ver', box, `v${__MAHJONG_VERSION__}`);
-  // 一屏放下（docs/ui.md 第 9、11 节）：横屏左右两栏等高，左边标题、玩法、档位，右边规则设置和开打；竖屏两栏 display: contents，照旧一列
-  const left = el('div', 'lobby-l', box);
-  const right = el('div', 'lobby-r', box);
-  const head = el('div', 'lobby-head', left);
+  // 一屏放下（docs/ui.md 第 11 节）：面板从上往下是标题和玩法、档位卡、钱包说明、规则摘要、开打
+  // 好友房七张档位卡，面板要排紧一点（lobby.css 的 .lobby-panel.room）
+  const panel = el('div', `lobby-panel ${p.mode}`, box);
+  const head = el('div', 'lobby-head', panel);
   el('h1', '', head, MODE_TITLE[p.mode]);
-  el('div', 'variant', head, `${GAME_NAME} ${page.name()}`);
-  // 玩法：血战到底 / 立直（记住上次选的）。放在最上面，选了以后整页重画，档位卡和规则设置跟着换
+  el('div', 'variant', head, `${GAME_NAME} ${page.name(opts as { flow?: boolean; three?: boolean })}`);
+  // 玩法：血战到底 / 立直（记住上次选的）。选了以后整页重画，档位卡和规则摘要跟着换
   if (p.variants) {
-    const row = el('div', 'lobby-variants', left);
+    const row = el('div', 'lobby-variants', panel);
     el('span', 'label', row, '玩法');
     for (const pg of allPages()) {
       const on = pg.id === p.variants.current;
@@ -76,16 +84,16 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
       b.setAttribute('aria-pressed', String(on));
     }
   }
-  if (p.canResume && p.mode !== 'room') button('act go big resume', left, '接着打上一场', p.onResume);
+  if (p.canResume && p.mode !== 'room') button('act go big resume', panel, '接着打上一场', p.onResume);
 
   if (p.mode === 'fun' && p.onDaily) {
     const onDaily = p.onDaily;
     const v: DailyVariant = page.daily.variant;
-    dailyEntry(left, v, () => onDaily(v));
+    dailyEntry(panel, v, () => onDaily(v));
   }
 
   // 每档一张卡（docs/balance.md 第 5 节，四个游戏一样）：电脑多强（星）、一场约多久、一场最多赢 / 最多输。娱乐三个难度一排，实盘四档一排
-  const pick = el('div', 'stakes-box', left);
+  const pick = el('div', 'stakes-box', panel);
   const card = (row: HTMLElement, on: boolean, off: boolean, icon: StakesId, name: string, stars: number, lines: string[], choose: () => void): void => {
     const b = button(`stake${on ? ' on' : ''}${off ? ' off' : ''}`, row, '', () => {
       if (off) return;
@@ -100,10 +108,11 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   };
   const paint = (): void => {
     pick.replaceChildren();
-    // 一场多久每张卡都一样，写在每排的小标题上，卡上不重复（0.17.2）；只打一局的约 3 分钟，不按 5 分钟凑整（各玩法自己估，在 page.newLobbyRules）
-    const mins = `一场约 ${rules.minutes()} 分钟`;
+    // 一场多久每张卡都一样，写在每排的小标题上，卡上不重复（0.17.2）；只打一局的约 3 分钟，不按 5 分钟凑整（各玩法的规则表自己估）
+    const mins = `一场约 ${page.rules.minutes(opts)} 分钟`;
     // 实盘一局一结（2026-10-30）：不管下面规则设置选了几局，实盘都只打一局，开打时由 app/solo-flow.ts 改（startSolo）
-    const realMins = '一局一结 · 约 3 分钟';
+    // 好友房实盘照开房时选的局数打，只有单机实盘一局一结
+    const realMins = p.mode === 'room' ? mins : '一局一结 · 约 3 分钟';
     if (p.mode !== 'real') {
       el('div', 'stakes-label', pick, `娱乐 · 不算筹码 · ${mins}`);
       const fun = el('div', 'stakes', pick);
@@ -124,29 +133,53 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
     }
   };
   paint();
-  const note = el('div', 'wallet-note', left);
+  const note = el('div', 'wallet-note', panel);
   if (p.mode === 'fun') note.remove();
-  else if (p.wallet) note.textContent = `钱包 ${num(p.wallet.balance)} 筹码（无任何现金价值）。实盘最多输掉带进去的，一场最多赢 3 份。`;
+  else if (p.wallet) note.textContent = `钱包 ${num(p.wallet.balance)} 筹码（无任何现金价值）· 最多输掉带进去的一份，最多赢 3 份`;
   // 钱包读不到：原因只写头一句，加上"实盘先不能选"，一行放下（docs/ui.md 第 11 节）
   else if (p.walletNote) note.textContent = `${p.walletNote.split(/[，。]/)[0]}，实盘先不能选`;
   else if (p.standalone) note.textContent = '这是单独部署的雀馆：没有账号和钱包，单机、好友房都按娱乐打。';
 
-  // 规则设置不折叠（docs/ui.md 第 11 节：开局选项一屏直接看得到、点得到）
-  const more = el('div', 'rules-opts', right);
-  const title = el('div', 'rules-title', more);
-  el('span', '', title, '规则设置');
-  // "规则和番型表"放在规则设置的标题行右边，不单占一行
-  button('link', title, page.rulesLink, p.onRules);
-  rules.render(more, paint);
+  // 规则细节收成一行摘要（「4 局 · 4 番封顶 · 自摸加底 · 换三张」）+「改规则」；改完摘要和档位卡上的「约几分钟」跟着变
+  const line = el('div', 'rules-line', panel);
+  const sum = el('span', 'rules-sum', line);
+  const paintSum = (): void => {
+    // 每一项一个不断行的小段，分隔点贴在前一项后面：折行时行首不会落单个「·」
+    sum.replaceChildren();
+    const parts = summary(page.rules, opts, real);
+    parts.forEach((t, i) => {
+      el('span', 'part', sum, i < parts.length - 1 ? `${t} ·` : t);
+      if (i < parts.length - 1) sum.append(' ');
+    });
+  };
+  paintSum();
+  button('act soft edit-rules', line, '改规则', () =>
+    dialog(
+      box.parentElement ?? box,
+      'rules-sheet',
+      (d) => {
+        el('h2', '', d, '规则设置');
+        // 每改一项马上重画摘要和档位卡：在面板里点「规则和番型表」会直接换成那个弹窗，不走关闭回调
+        renderRules(el('div', 'rules-opts', d), page.rules, real, () => opts, (o) => {
+          opts = o;
+          paintSum();
+          paint();
+        });
+        const foot = el('div', 'rules-foot', d);
+        button('link', foot, page.rulesLink, p.onRules);
+        button('act go', foot, '好了', closeDialog);
+      },
+    ),
+  );
 
-  const go = el('div', 'go-row', right);
+  const go = el('div', 'go-row', panel);
   if (p.mode !== 'room') {
-    const solo = button('act go big', go, '单机开打', () => void busy(solo, () => p.onSolo(stakes, rules.opts(stakes), level, page.id)));
+    const solo = button('act go big', go, '单机开打', () => void busy(solo, () => p.onSolo(stakes, opts, level, page.id)));
     // 快速匹配排的是这一档，开桌用默认规则（上面的规则设置只管单机）；排不到人就转这一档的单机。立直也排自己的实盘档（rc-<档位>）
-    if (p.onMatch) button('act soft big match', go, '快速匹配', () => p.onMatch!(stakes, rules.opts(stakes), level, page.id));
+    if (p.onMatch) button('act soft big match', go, '快速匹配', () => p.onMatch!(stakes, opts, level, page.id));
     return;
   }
-  const room = p.onRoom ? button('act go big', go, '开房间叫朋友', () => void busy(room!, () => p.onRoom!(stakes, rules.opts(stakes), page.id))) : null;
+  const room = p.onRoom ? button('act go big', go, '开房间叫朋友', () => void busy(room!, () => p.onRoom!(stakes, opts, page.id))) : null;
   if (p.standalone) {
     const row = el('label', 'nick', go);
     el('span', '', row, '好友房里的昵称');
