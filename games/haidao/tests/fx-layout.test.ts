@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MERGE_MS, MERGE_PX, clampCenter, pickMerge, pickSlot, pushApart, topBlame } from '../src/view/fxlayout.ts';
+import { DMG_GAP, MERGE_MS, MERGE_PX, clampCenter, pickMerge, pickSlot, pushApart, topBlame } from '../src/view/fxlayout.ts';
 
 describe('pickSlot：伤害数字错开', () => {
   it('没有别的数字时原位', () => {
@@ -17,6 +17,18 @@ describe('pickSlot：伤害数字错开', () => {
       const p = { x: 50 + s.dx, y: 50 + s.dy };
       for (const a of act) expect(Math.abs(a.x - p.x) >= 28 || Math.abs(a.y - p.y) >= 15).toBe(true);
       act.push(p);
+    }
+  });
+});
+
+describe('pickSlot：大数字和小数字之间留空', () => {
+  it('一个大数字（60×22）在原位时，新来的大数字挪开后两框之间至少隔 DMG_GAP', () => {
+    const big = { x: 100, y: 100, w: 60, h: 22 };
+    for (const [w, h] of [[60, 22], [30, 14]] as const) {
+      const s = pickSlot([big], 100, 100, w, h);
+      const gx = Math.abs(s.dx) - (big.w + w) / 2;
+      const gy = Math.abs(s.dy) - (big.h + h) / 2;
+      expect(Math.max(gx, gy), `${w}×${h}`).toBeGreaterThanOrEqual(DMG_GAP);
     }
   });
 });
@@ -52,7 +64,7 @@ describe('pushApart：飘字竖向防撞', () => {
     pushApart(items, push);
     expect(push[1]).toBe(0);
     const top = items[0]!.y - push[0]!;
-    expect(items[1]!.y - top).toBeGreaterThanOrEqual(14 - 1e-9);
+    expect(items[1]!.y - top).toBeGreaterThanOrEqual(14 + DMG_GAP - 1e-9);
   });
   it('横向错开、竖向本来就分开的不推', () => {
     const push = new Float64Array(3);
@@ -64,7 +76,7 @@ describe('pushApart：飘字竖向防撞', () => {
     const push = new Float64Array(3);
     pushApart(items, push);
     const ys = items.map((it, i) => it.y - push[i]!).sort((a, b) => a - b);
-    for (let i = 1; i < ys.length; i++) expect(ys[i]! - ys[i - 1]!).toBeGreaterThanOrEqual(14 - 1e-6);
+    for (let i = 1; i < ys.length; i++) expect(ys[i]! - ys[i - 1]!).toBeGreaterThanOrEqual(14 + DMG_GAP - 1e-6);
   });
   it('推上去的不回落：已经推开的量只增不减', () => {
     const push = new Float64Array([20, 0]);

@@ -48,6 +48,13 @@ describe('出船落点吸附', () => {
     expect(snapLanding(SNAP_IN + 0.1, 10)).toBeNull();
     expect(snapLanding(ISLAND / 2, ISLAND / 2)).toBeNull();
   });
+  it('选着船（deep）时岛里面多深都吸到最近那条边外，海里照旧不吸', () => {
+    expect(snapLanding(3, 10, BEACH, ISLAND, true)).toEqual({ x: -0.05, y: 10 });
+    expect(snapLanding(10, ISLAND - 3, BEACH, ISLAND, true)).toEqual({ x: 10, y: ISLAND + 0.05 });
+    expect(legal(snapLanding(ISLAND / 2, ISLAND / 2, BEACH, ISLAND, true))).toBe(true);
+    expect(snapLanding(-BEACH - SNAP_OUT - 0.1, 10, BEACH, ISLAND, true)).toBeNull();
+    for (let x = 0.1; x < ISLAND; x += 0.53) for (let y = 0.1; y < ISLAND; y += 0.71) expect(legal(snapLanding(x, y, BEACH, ISLAND, true)), `${x},${y}`).toBe(true);
+  });
   it('吸过的点取整后一定是规则认的登陆格', () => {
     for (let x = -BEACH - 1; x <= ISLAND + BEACH + 1; x += 0.37) {
       for (const y of [-BEACH - 0.5, -1, 0.2, 7, ISLAND - 0.2, ISLAND + 1, ISLAND + BEACH + 0.5]) {

@@ -9,30 +9,36 @@ export interface Spot {
   h?: number;
 }
 
-/** 候选偏移（屏幕像素）：先原位，再左右上方错开，最后往上叠 */
+/** 候选偏移（以小数字 28×14 为一格的倍数）：先原位，再左右上方错开，最后往上叠；按新数字的大小放大，大字错得开 */
 const OFFSETS: ReadonlyArray<readonly [number, number]> = [
   [0, 0], [26, -10], [-26, -10], [0, -22], [46, 0], [-46, 0], [26, -34], [-26, -34], [0, -46], [48, -22], [-48, -22], [0, -62],
 ];
+/** 两个数字之间至少留的空（屏幕像素）：以前只要不重叠就算错开，「-117-463」贴在一起读成一个数 */
+export const DMG_GAP = 4;
 
 /**
- * 新数字（宽 w、高 h）该往哪儿偏：从候选里挑第一个不压在别的数字上的位置（active 是正在飘的数字的屏幕坐标和大小）；
+ * 新数字（宽 w、高 h）该往哪儿偏：从候选里挑第一个不压在别的数字上（含 DMG_GAP 的空）的位置（active 是正在飘的数字的屏幕坐标和大小）；
  * 全都有冲突就取冲突最少的。返回屏幕像素偏移。
  */
 export function pickSlot(active: readonly Spot[], x: number, y: number, w = 28, h = 14): { dx: number; dy: number } {
-  let best = OFFSETS[0]!;
+  const sx = Math.max(1, (w + DMG_GAP) / 28);
+  const sy = Math.max(1, (h + DMG_GAP) / 14);
+  let best = { dx: 0, dy: 0 };
   let bestN = Infinity;
   for (const o of OFFSETS) {
+    const dx = o[0] * sx;
+    const dy = o[1] * sy;
     let n = 0;
     for (const a of active) {
-      if (Math.abs(a.x - (x + o[0])) < ((a.w ?? 28) + w) / 2 && Math.abs(a.y - (y + o[1])) < ((a.h ?? 14) + h) / 2) n++;
+      if (Math.abs(a.x - (x + dx)) < ((a.w ?? 28) + w) / 2 + DMG_GAP && Math.abs(a.y - (y + dy)) < ((a.h ?? 14) + h) / 2 + DMG_GAP) n++;
     }
     if (n < bestN) {
-      best = o;
+      best = { dx, dy };
       bestN = n;
       if (n === 0) break;
     }
   }
-  return { dx: best[0], dy: best[1] };
+  return best;
 }
 
 /** 正在飘的一个数字（屏幕像素）：y 是没推开之前的位置，born 是出现了多久（越大越早） */
@@ -59,10 +65,10 @@ export function pushApart(items: readonly Floating[], push: Float64Array, rounds
         const b = items[j]!;
         // a 是早出的那个：只推它，b 不动
         if (i === j || a.born < b.born || (a.born === b.born && i > j)) continue;
-        if (Math.abs(a.x - b.x) >= (a.w + b.w) / 2) continue;
+        if (Math.abs(a.x - b.x) >= (a.w + b.w) / 2 + DMG_GAP) continue;
         const ay = a.y - push[i]!;
         const by = b.y - push[j]!;
-        const need = (a.h + b.h) / 2 - (by - ay);
+        const need = (a.h + b.h) / 2 + DMG_GAP - (by - ay);
         if (need > 0.01 && ay <= by + 0.01) {
           push[i] = push[i]! + need;
           moved = true;

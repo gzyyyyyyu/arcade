@@ -56,6 +56,8 @@ const PORTRAIT_FILL = 0.92;
 /** 竖屏（基地、登陆战、守岛）：内容盒的高放大到约占屏高的这个比例（docs/ui.md 要求岛占屏高 ≥ 60%），左右可以裁（裁掉的由拖动、边缘箭头补上）；
  * 另给一个全景（pano），开场先停在全景再推过来 */
 export const PORTRAIT_LIVE = 0.6;
+/** 寻宝航线一站的竖屏放大档最多是全景的 1.3 倍（Content.nearCap）：岛左右两角略出屏，四面的沙滩都还看得到 */
+export const MAP_NEAR = 1.3;
 /** 竖屏全景（pano）：有 must（主寨）时可以裁掉内容盒左右的空沙角，可见区至少看到内容盒宽的这个比例；没有 must 就整个内容盒都装进来 */
 const PANO_MIN_W = 0.8;
 /** 竖屏放大时主寨离可见区边的最小留空（CSS 像素） */
@@ -78,6 +80,11 @@ export interface Content {
   tight?: boolean;
   /** 横屏和电脑按内容盒适配时的缩放上限（不给按 Z_CAP）：登陆战放宽，小岛上兵别只有二十来像素 */
   zCap?: number;
+  /**
+   * 竖屏放大档最多是全景的几倍（不给就按 PORTRAIT_LIVE 推）：寻宝航线一站只有 50 秒，要一眼看到四面的沙滩；
+   * 按常规推近，竖屏只剩上下两条沙子，试玩里点在草地上一直出不了船
+   */
+  nearCap?: number;
 }
 
 /**
@@ -120,18 +127,24 @@ export function fitView(w: number, h: number, inset: Inset, full: Box, content?:
   const bw = Math.max(1, c.r - c.l);
   const bh = Math.max(1, c.b - c.t);
   const cap = (ah * PORTRAIT_FILL) / bh;
-  const z = Math.min(Z_CAP, cap, Math.max(fitAll.z, (h * PORTRAIT_LIVE) / bh));
+  let z = Math.min(Z_CAP, cap, Math.max(fitAll.z, (h * PORTRAIT_LIVE) / bh));
   const midX = inset.left + (w - inset.left - inset.right) / 2;
   const midY = inset.top + (h - inset.top - inset.bottom) / 2;
   const m = content.must;
   let cx = (c.l + c.r) / 2 - (midX - w / 2) / z;
-  const cy = (c.t + c.b) / 2 - (midY - h / 2) / z;
+  let cy = (c.t + c.b) / 2 - (midY - h / 2) / z;
   if (m) cx = nudgeInto(cx, z, w, inset.left, inset.right, m, pad);
   // 全景不按整座岛含沙滩的大盒子适配（竖屏里菱形又宽又扁，岛只占屏高三成多）：按内容盒装，
   // 有主寨时再裁掉左右空沙角放大，主寨保证在屏内
   let pz = fitAll.z;
   if (m) pz = Math.max(pz, Math.min(cap, aw / (bw * PANO_MIN_W)));
   pz = Math.min(pz, z);
+  if (content.nearCap) {
+    z = Math.max(pz, Math.min(z, pz * content.nearCap));
+    cx = (c.l + c.r) / 2 - (midX - w / 2) / z;
+    cy = (c.t + c.b) / 2 - (midY - h / 2) / z;
+    if (m) cx = nudgeInto(cx, z, w, inset.left, inset.right, m, pad);
+  }
   let pcx = (c.l + c.r) / 2 - (midX - w / 2) / pz;
   if (m) pcx = nudgeInto(pcx, pz, w, inset.left, inset.right, m, pad);
   return { z, cx, cy, minZ: Math.min(whole.z, pz), maxZ: Math.max(z, whole.z) * ZOOM_MAX, pano: { z: pz, cx: pcx, cy: (c.t + c.b) / 2 - (midY - h / 2) / pz } };
@@ -377,7 +390,8 @@ export class FitCam {
     this.cc.minZ = f.minZ * 0.98;
     this.cc.maxZ = f.maxZ;
     let cx = f.cx;
-    const fx = this.live && content ? this.focusOf?.() : null;
+    // 推得浅（nearCap）时整座岛差不多都在屏里，居中比偏向一侧好：两边的沙滩都看得到
+    const fx = this.live && content && !content.nearCap ? this.focusOf?.() : null;
     if (fx !== null && fx !== undefined && content) cx = focusCx(fx, content.box, f.z, w, this.inset.left, this.inset.right);
     // 放大档以主寨为底：落点想看的那一侧再偏，也要让主寨整个在屏内（只在竖屏放大模式里有 must）
     if (this.live && content?.must) cx = nudgeInto(cx, f.z, w, this.inset.left, this.inset.right, content.must);

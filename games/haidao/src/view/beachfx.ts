@@ -44,9 +44,10 @@ const SNAP_EPS = 0.05;
 
 /**
  * 出船时的落点吸附（格坐标）：方环（BEACH 宽）里的点原样返回；环外 SNAP_OUT、岛内 SNAP_IN 以内的点挪到环上最近处；
- * 再远就是 null（点的是海或岛里面）。只在画面层用，规则照旧只认方环，发出去的坐标始终合法
+ * 再远就是 null（点的是海或岛里面）。deep（已经选着船）时岛里面多深都挪到最近那条边的沙滩上：竖屏放大时一屏大半是草地，
+ * 试玩里点了 4 下只出去 1 船。只在画面层用，规则照旧只认方环，发出去的坐标始终合法
  */
-export function snapLanding(gx: number, gy: number, e = BEACH, n = ISLAND): P | null {
+export function snapLanding(gx: number, gy: number, e = BEACH, n = ISLAND, deep = false): P | null {
   const lo = -e + SNAP_EPS;
   const hi = n + e - SNAP_EPS;
   const cx = Math.min(hi, Math.max(lo, gx));
@@ -56,7 +57,7 @@ export function snapLanding(gx: number, gy: number, e = BEACH, n = ISLAND): P | 
   const inX = Math.min(cx, n - cx);
   const inY = Math.min(cy, n - cy);
   if (cx > 0 && cx < n && cy > 0 && cy < n) {
-    if (Math.min(inX, inY) > SNAP_IN) return null;
+    if (!deep && Math.min(inX, inY) > SNAP_IN) return null;
     if (inX <= inY) return { x: cx < n / 2 ? -SNAP_EPS : n + SNAP_EPS, y: cy };
     return { x: cx, y: cy < n / 2 ? -SNAP_EPS : n + SNAP_EPS };
   }
