@@ -524,3 +524,22 @@ export function askEnd(bs: TdScene): void {
     finish(bs);
   }, '继续守');
 }
+
+/**
+ * 「已暂停」横幅躲开预告卡和「全景」钮：和谁叠着就挪到它下面（手机竖屏「全景」钮在右上，横幅原来的位置正压住它的下半截；
+ * 预告卡行数跟着敌人和护甲变，写死的位置总有压住的时候）。只在暂停时、每 300 毫秒量一次
+ */
+export function placePaused(bs: TdScene): void {
+  const p = bs.hud.paused;
+  p.style.top = '';
+  const ui = bs.ui.getBoundingClientRect();
+  const r = p.getBoundingClientRect();
+  let top = r.top;
+  const blocks = [bs.hud.plan, bs.ui.querySelector<HTMLElement>('.hd-fitbtn')].filter((e): e is HTMLElement => !!e?.offsetParent).map((e) => e.getBoundingClientRect());
+  // 挪到一个下面后可能又碰上另一个：最多再查一轮
+  for (let k = 0; k < 2; k++) {
+    for (const q of blocks) if (q.left < r.right && q.right > r.left && q.top < top + r.height && q.bottom > top) top = q.bottom + 6;
+  }
+  if (top !== r.top) p.style.top = `${Math.round(top - ui.top)}px`;
+}
+

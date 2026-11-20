@@ -45,7 +45,7 @@ import { type TdData, type ESpr, type TSpr, W, EDGE_MS, SHIP_FOES, TEMP_KINDS } 
 import { drawLayout, drawProps, drawWater, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector, syncFleet } from './tdworld.ts';
 import { act, tap, hover, press, cancelAll, callWave, toggleHero, rightClick, heroDrag, stepSkillQ } from './tdinput.ts';
 import { newCycle } from './tdpick.ts';
-import { canCall, buildUi, updateHud, togglePause } from './tdhud.ts';
+import { canCall, buildUi, updateHud, togglePause, placePaused } from './tdhud.ts';
 import { closeSheet, showBest, wreckOf, slotSig, renderSheet, reopenWatch } from './tdsheet.ts';
 import { onEvent } from './tdevents.ts';
 import { type ReasonLog, newReasonLog } from './tdreason.ts';
@@ -173,6 +173,8 @@ export class TdScene extends Phaser.Scene {
   plan!: TdPlan;
   pv: WavePreview[] = [];
   planSig = '';
+  /** 上次量「已暂停」横幅位置的场景时间（placePaused 只在暂停时隔 300 毫秒量一次） */
+  pausedAt = Number.NEGATIVE_INFINITY;
   /** 预告卡上定住的下一步（造哪种 / 升哪座），木台上的塔变了才重挑 */
   next: HeldStep | undefined;
   planKey = '';
@@ -452,6 +454,10 @@ export class TdScene extends Phaser.Scene {
     this.hud.paused.classList.toggle('on', paused);
     const pt = this.userPaused ? '已暂停 · 点「继续」接着打' : '已暂停 · 关掉面板继续';
     if (paused && this.hud.paused.textContent !== pt) this.hud.paused.textContent = pt;
+    if (paused && (t - this.pausedAt > 300 || t < this.pausedAt)) {
+      this.pausedAt = t;
+      placePaused(this);
+    }
     if (paused) {
       if (this.pending.length > 0 && !s.over) this.stepOnce();
     } else if (!this.ended && !this.hs.active) {
