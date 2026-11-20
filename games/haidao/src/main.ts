@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { reportErrors } from 'arcade-kit/report';
-import { BRANCH_LEVEL, CAMPAIGN, branchOptions } from './content/index.ts';
-import { TD_TOWER_KINDS, produce, tdGrowthProfile, type TdTowerKind } from './core/index.ts';
+import { BRANCH_LEVEL, BUILDINGS, CAMPAIGN, branchOptions } from './content/index.ts';
+import { TD_TOWER_KINDS, canPlace, produce, tdGrowthProfile, type TdTowerKind } from './core/index.ts';
 import { dayIndex } from './view/meta.ts';
-import type { BattleSetup, Profile } from './core/types.ts';
+import { ISLAND, type BattleSetup, type Profile } from './core/types.ts';
 import { escortLive, live, tdLive } from './net/live.ts';
 import { startSnapshotSync } from './net/pvp.ts';
 import { startCloud } from './platform/cloud.ts';
@@ -245,6 +245,27 @@ function main(): void {
       return { ...b, branch: o2 ? [o1.id, o2.id] : [o1.id] };
     }),
   });
+  /**
+   * 开发档：tdGrowthProfile 的塔坐标只是占位（模拟只看每种塔的最高等级，全挤在第 0 行），验收截图里塔排成一排压在岛边。
+   * 在离主寨约 RING 格的一圈上、隔 4 格的点里找空地摆开：高等级塔的画比占地高大，挨着主寨摆会叠成一团
+   */
+  const spreadTowers = (base: Profile['base']): Profile['base'] => {
+    const isTower = (k: string): boolean => (TD_TOWER_KINDS as readonly string[]).includes(k);
+    const hq = base.buildings.find((b) => b.kind === 'hq');
+    const c = hq ? hq.x + BUILDINGS.hq.size / 2 : ISLAND / 2;
+    const cy = hq ? hq.y + BUILDINGS.hq.size / 2 : ISLAND / 2;
+    const spots: Array<[number, number]> = [];
+    const RING = 6.5;
+    for (let x = 1; x < ISLAND - 2; x += 4) for (let y = 1; y < ISLAND - 2; y += 4) spots.push([x, y]);
+    const off = (q: [number, number]): number => Math.abs(Math.hypot(q[0] + 1 - c, q[1] + 1 - cy) - RING);
+    spots.sort((a, b) => off(a) - off(b));
+    const p: Profile = { ...app.profile, base: { ...base, buildings: base.buildings.filter((b) => !isTower(b.kind)) } };
+    for (const t of base.buildings.filter((b) => isTower(b.kind))) {
+      const at = spots.find(([x, y]) => canPlace(p, t.kind, x, y));
+      p.base.buildings.push(at ? { ...t, x: at[0], y: at[1] } : t);
+    }
+    return p.base;
+  };
   if (q.has('dev')) {
     // 测试辅助：给资源和星数，不写存档（volatile）
     app.volatile = true;
@@ -252,7 +273,8 @@ function main(): void {
       td: (hq, branch = false, hero) => {
         // 建议养成的存档：每种能造的塔各一座、英雄等级跟主寨，战役全部 1★；资源给够
         const g = tdGrowthProfile({ hq }, 'suggest');
-        app.save.profile = { ...app.profile, base: branch ? withBranches(g.base) : g.base, res: { gold: 5000, wood: 5000 }, tutorial: 99, stats: { ...app.profile.stats, attacks: 1 }, research: { ...app.profile.research, hero: hero ?? g.research.hero ?? 1 }, td: { ...g.td!, day: dayIndex(), gotGold: 0, gotWood: 0 } };
+        const base = spreadTowers(g.base);
+        app.save.profile = { ...app.profile, base: branch ? withBranches(base) : base, res: { gold: 5000, wood: 5000 }, tutorial: 99, stats: { ...app.profile.stats, attacks: 1 }, research: { ...app.profile.research, hero: hero ?? g.research.hero ?? 1 }, td: { ...g.td!, day: dayIndex(), gotGold: 0, gotWood: 0 } };
         app.reload();
       },
       load: (p) => {

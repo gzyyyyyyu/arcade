@@ -203,8 +203,8 @@ export function tap(bs: BattleScene, wx: number, wy: number): void {
   const s = bs.st;
   if (s.over || bs.paused) return;
   const g0 = unIso(wx, wy);
-  // 出船（或什么都没选）时，点在沙滩外沿、草边的点吸到登陆圈上；放技能照点的位置
-  const snap = bs.selSkill < 0 ? snapLanding(g0.gx, g0.gy) : null;
+  // 出船（或什么都没选）时，点在沙滩外沿、草边的点吸到登陆圈上；选着船时点在岛里面也吸到最近的沙滩；放技能照点的位置
+  const snap = bs.selSkill < 0 ? snapLanding(g0.gx, g0.gy, BEACH, ISLAND, bs.selBoat >= 0) : null;
   const g = snap ? { gx: snap.x, gy: snap.y } : g0;
   const ux = Math.round(g.gx * UNIT);
   const uy = Math.round(g.gy * UNIT);
@@ -288,7 +288,7 @@ export function clearSel(bs: BattleScene): void {
 export function hover(bs: BattleScene, wx: number, wy: number): void {
   const g = unIso(wx, wy);
   // 选着船时按点下去会吸到的那一格画，悬停和真正落点一致
-  const snap = bs.selBoat >= 0 ? snapLanding(g.gx, g.gy) : null;
+  const snap = bs.selBoat >= 0 ? snapLanding(g.gx, g.gy, BEACH, ISLAND, true) : null;
   const cx = Math.floor(snap ? snap.x : g.gx);
   const cy = Math.floor(snap ? snap.y : g.gy);
   const on = !Number.isNaN(wx) && !bs.st.over && (bs.selBoat >= 0 || bs.selSkill >= 0) && (bs.selSkill >= 0 || (!!snap && canLand(bs.st, cx * UNIT + 50, cy * UNIT + 50)));

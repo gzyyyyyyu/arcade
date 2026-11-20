@@ -39,6 +39,20 @@ function dmgKeyOf(bs: object): DmgClusters {
   return c;
 }
 
+/** 上次整屏红闪的场景时间：几个口子同时漏，只闪一下 */
+const flashedAt = new WeakMap<TdScene, number>();
+const FLASH_GAP = 1500;
+
+/** 宝藏真被带走：整屏红闪一下（FLASH_GAP 内不重复） */
+function lossFlash(bs: TdScene): void {
+  const now = bs.time.now;
+  if (now - (flashedAt.get(bs) ?? Number.NEGATIVE_INFINITY) < FLASH_GAP) return;
+  flashedAt.set(bs, now);
+  bs.hud.flash.classList.remove('on');
+  void bs.hud.flash.offsetWidth;
+  bs.hud.flash.classList.add('on');
+}
+
 export function onEvent(bs: TdScene, e: TdEvent): void {
   const s = bs.s;
   recordReason(bs, e);
@@ -371,14 +385,12 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       break;
     }
     case 'grab': {
-      // 摸到宝藏箱抢走：红闪、箱子抖、飘"-N"
+      // 摸到宝藏箱抢走：箱子抖、飘"-N"、宝藏牌变红。整屏红闪只留给真被带走（escape）：抢走还能追回，
+      // 以前抢一下就闪一下，第 3 波以后屏幕几乎一直是红的，和红色的屏外敌人角标、伤害字混成一片
       sfx('error');
       const sp = bs.esp.get(e.id);
       const src = chestNear(bs, sp ? sp.px : 0, sp ? sp.py : 0);
       ftx(bs, src.x, src.y - 28, `-${e.n}`, '#ff5a4a', 26);
-      bs.hud.flash.classList.remove('on');
-      void bs.hud.flash.offsetWidth;
-      bs.hud.flash.classList.add('on');
       bs.hud.tpill.classList.remove('hurt');
       void bs.hud.tpill.offsetWidth;
       bs.hud.tpill.classList.add('hurt');
@@ -413,9 +425,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       // 被带走的不在战场上飘（多个口子同时发生会叠成一团、贴边被切），合并成一条挂在顶栏下面正中
       void sp;
       stolenNote(bs, e.n);
-      bs.hud.flash.classList.remove('on');
-      void bs.hud.flash.offsetWidth;
-      bs.hud.flash.classList.add('on');
+      lossFlash(bs);
       bs.hud.tpill.classList.remove('hurt');
       void bs.hud.tpill.offsetWidth;
       bs.hud.tpill.classList.add('hurt');
