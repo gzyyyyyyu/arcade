@@ -14,9 +14,9 @@
 
 ```
 users(id PK, username UNIQUE, display_name, friend_code UNIQUE, avatar_json, catchphrase_id, created_at, last_seen_at, role,
-      presence_json, presence_at, show_where, show_feed, show_mates, invite_quota)        WITHOUT ROWID
+      presence_json, presence_at, show_where, show_feed, show_mates, invite_quota, game_prefs)   WITHOUT ROWID
       -- id：128 位随机数（base64url 22 位），不用自增，免得暴露注册顺序和人数；username：归一化后的小写用户名
-      -- role：'user' | 'admin'；presence_*、show_*（默认 1）：在线位置和三个"让好友看到"的开关；invite_quota：可空，按角色用默认
+      -- role：'user' | 'admin'；presence_*、show_*（默认 1）：在线位置和三个"让好友看到"的开关；invite_quota：可空，按角色用默认；game_prefs：隐藏游戏里和默认不一样的那部分（15.21），可空
 sessions(token_hash PK, user_id, created_at, renewed_at, expires_at)                    WITHOUT ROWID，索引 (user_id)
 credentials(user_id, type, secret, created_at, PRIMARY KEY (user_id, type))             WITHOUT ROWID    -- type：'password' | 'recovery'
 friendships(user_a, user_b, status, requested_by, created_at, PRIMARY KEY (user_a, user_b), CHECK (user_a < user_b))
@@ -27,7 +27,7 @@ rate_counters(key PK, window_start, count, blocked_until)                       
 meter_hourly(hour PK, requests, rows_read, rows_reg, rows_auth, rows_save, rows_social, rows_acct, rows_sys, rows_board, rows_wallet, rows_live, rows_mon,
              login_attempts, recover_attempts, db_size, updated_at)                     WITHOUT ROWID    -- hour：UTC 小时；6.6 的计量
 boards(user_id, game_id, board_id, score, updated_at, PRIMARY KEY (user_id, game_id, board_id))   WITHOUT ROWID，索引 boards_rank (game_id, board_id, score DESC, updated_at)
-settings(key PK, value, updated_at)                                                     WITHOUT ROWID    -- registration、wallet_rules、invite_rules、notice
+settings(key PK, value, updated_at)                                                     WITHOUT ROWID    -- registration、wallet_rules、invite_rules、notice、hidden_games
 wallets(user_id PK, rev, state, updated_at)                                             WITHOUT ROWID    -- 5.9
 wallet_stats(day PK, data, created_at)                                                  WITHOUT ROWID    -- 每天的全站筹码统计，只有合计
 invites(id PK, from_id, to_id, game, room, created_at, until, dismissed)               WITHOUT ROWID，索引 (to_id, until)、(from_id, created_at)   -- 好友房邀请（15.15）
@@ -36,12 +36,13 @@ feed_reactions(item_id, user_id, kind, created_at, PRIMARY KEY (item_id, user_id
 challenges(id PK, game, owner_id, payload, created_at, until)                           WITHOUT ROWID，索引 (owner_id, created_at)   -- 异步挑战（15.18）
 challenge_results(challenge_id, user_id, score, stats, created_at, PRIMARY KEY (challenge_id, user_id))   WITHOUT ROWID
 mates(lo, hi, game, n, lo_wins, hi_wins, team_n, team_wins, last_op, last_at, PRIMARY KEY (lo, hi, game))   WITHOUT ROWID，索引 mates_hi (hi)   -- 搭子战绩（15.19）
-invite_codes(id PK, code, owner_id, created_at, expires_at, used_by, used_at, revoked_at)   WITHOUT ROWID，唯一索引 (code)、索引 (owner_id, created_at)   -- 邀请码（15.20）
+invite_codes(id PK, code, owner_id, created_at, expires_at, used_by, used_at, revoked_at, max_uses, uses)   WITHOUT ROWID，唯一索引 (code)、索引 (owner_id, created_at)   -- 邀请码（15.20）；max_uses 1 是普通码
+invite_code_uses(code_id, user_id, used_at, PRIMARY KEY (code_id, user_id))   WITHOUT ROWID，索引 (user_id)   -- 每次用码注册一行
 play_tally(day, game, variant, mode, tier, dur, outcome, n, PRIMARY KEY (day, game, variant, mode, tier, dur, outcome))   WITHOUT ROWID   -- 真人对局统计，只存汇总（5.11）
 monitor_counts(day, game, kind, sig, n, first_ver, ver, last_at, PRIMARY KEY (day, game, kind, sig))   WITHOUT ROWID   -- 浏览器报错计数（第 16 节）；巡检状态放 settings 的 monitor 一行
 ```
 
-迁移：0001 账号、0002 `users.role`、0003 排行榜、0004 设置、0005 钱包、0006 在线位置、0007 邀请、0008 动态、0009 挑战、0010 搭子、0011 邀请码、0012 监控（`monitor_counts`、`meter_hourly.rows_mon`）、0013 真人对局统计（`play_tally`）。设计取舍（都为少写行数）：
+迁移：0001 账号、0002 `users.role`、0003 排行榜、0004 设置、0005 钱包、0006 在线位置、0007 邀请、0008 动态、0009 挑战、0010 搭子、0011 邀请码、0012 监控（`monitor_counts`、`meter_hourly.rows_mon`）、0013 真人对局统计（`play_tally`）、0014 长期邀请码（`max_uses`、`uses`、`invite_code_uses`）和 `users.game_prefs`。设计取舍（都为少写行数）：
 - **全部用 `WITHOUT ROWID`**：主键是 TEXT 或多列的普通表，SQLite 会另建一个自动唯一索引、每次插入多算 1 行；`WITHOUT ROWID` 表的主键就是表本身。
 - **`credentials` 主键是 `(user_id, type)`，没有 identifier 列和额外索引**：密码和恢复码都是先按用户名找到用户再比对，注册因此从约 13 行降到约 9 行。代价是每种类型只能有一条；以后多个 passkey、第三方登录**另建表**，不改这张表。
 - **注销是直接删除**，没有 `deleted_at`，也没有游客。
@@ -57,7 +58,7 @@ D1 按写入行数计费：插入时表本身一行，每个索引再各算一�
 | 操作 | 写入行数 | 怎么来的 | 类别 |
 |---|---|---|---|
 | 注册 | 9（关闭时 0） | users 3（表 + `username`、`friend_code` 两个唯一索引）+ credentials 2 + sessions 2 + 限流 2（`reg:ip`、`reg:all`）。关闭时过完内存令牌桶、读 1 行开关就回 403 | 注册 |
-| 带邀请码注册 | 13；码不对 1 | 注册的 9 + `inv:ip` 1 + 占码 1 + 和邀请人的好友关系 2；邀请人好友满了少 2 行 | 注册 |
+| 带邀请码注册 | 普通码 15、长期码 13；码不对 1 | 注册的 9 + `inv:ip` 1 + 占名额 1 + 使用记录 2（表 + `user_id` 索引）+ 和邀请人的好友关系 2（只有普通码；邀请人好友满了也少这 2 行） | 注册 |
 | 登录成功 | 6（需重新哈希 +1） | sessions 2 + `login:ip` 1 + `last_seen_at` 1 + 占一次尝试 1 + 清零 1 | 登录找回 |
 | 登录失败 | 1–2 | `login:ip` 1；用户名存在时再加失败计数 1 | 登录找回 |
 | 任何超限被拒（429） | 0 | 带条件的 UPSERT 不成立（5.4） | — |
@@ -95,7 +96,9 @@ D1 按写入行数计费：插入时表本身一行，每个索引再各算一�
 | 搭子战绩 `together()` | 每对好友：新的 2，已有的 1；重复 op、不是好友 0 | mates 1（+ `hi` 索引 1，只在新插入时） | 排行榜 |
 | 同桌的屏蔽关系 `ARCADE.blockedAmong()` | 0 | 只读，一条查询，最多读 81 行；不同步计量 | 好友与资料（只记读） |
 | 生成 / 撤回邀请码 | 3；额度满、每日满 0 / 1；不是自己的等 0 | invite_codes 1 + 两个索引 2；额度和每天上限写在插入条件里，不另开计数行 / 改 `revoked_at` | 好友与资料 |
-| 改邀请额度、单人额度、管理员撤回码 | 2；没变化 0 | settings / users / invite_codes 1 + `admin` 每日计数 1 | 账号安全 |
+| 改邀请额度、单人额度、管理员撤回码、改默认隐藏的游戏 | 2；没变化 0 | settings / users / invite_codes 1 + `admin` 每日计数 1 | 账号安全 |
+| 管理员建长期码 | 4 | invite_codes 1 + 两个索引 2 + `admin` 每日计数 1 | 账号安全 |
+| 改隐藏游戏的偏好 | 2；超限 0 | `users.game_prefs` 1 + `prefs` 计数 1 | 好友与资料 |
 | 注销 | 约 1 + 2 + 会话数 + 存档数 + 成绩数 + 好友关系数 + 屏蔽数 + 限流行数 + 钱包 0–1 + 其他表 | 一次 batch | 账号安全 |
 | 管理员建号 / 重设密码 / 删号 | 6 / 1 + 会话数 + 失败计数 0–2 + 1（换恢复码 +1） / 同注销 + 1 | users 3 + 密码 1 + 恢复码 1 + 每日计数 1；不建会话 | 账号安全 |
 | 管理员改注册开关、公告、钱包规则 | 2；没变化 0 | settings 1 + 每日计数 1；用令牌调时另有认证的 4 行 | 账号安全 |
@@ -110,14 +113,14 @@ D1 按写入行数计费：插入时表本身一行，每个索引再各算一�
 ### 7.3 注销与清理
 
 - **注销**：再验证后一次 `db.batch`（D1 里是一个事务），删掉这个人在 users、sessions、credentials、saves、boards、friendships（两个方向）、blocks（两个方向）、wallets、invites（发出的、收到的）、feed（本人发的）、feed_reactions（本人赞的；别人给本人动态的赞 7 天后跟着 Cron 删）、
-  challenges 和 challenge_results（本人发起的连同所有结果、本人交的结果）、mates（本人在 `lo`、`hi` 两边的）、invite_codes（本人生成的全删；本人注册时用过的那个只清 `used_by`、留 `used_at`，邀请人的额度不还，不然"邀请 → 让对方注销 → 再邀请"能绕过额度）、
+  challenges 和 challenge_results（本人发起的连同所有结果、本人交的结果）、mates（本人在 `lo`、`hi` 两边的）、invite_codes（本人生成的连同别人用它的 `invite_code_uses` 一起删；本人注册时用过的码只清 `used_by`、删 `invite_code_uses` 里本人那行（走 `user_id` 索引），`uses`、`used_at` 留着，邀请人的额度、长期码的名额不还，不然"邀请 → 让对方注销 → 再邀请"能绕过额度）、
   rate_counters（键里带他的用户 id 或用户名的）里的所有行。计数键清单在 `deleteUserStatements`（`worker/api/account/session.ts`）：`login:fail`、`reauth:fail`、`profile`、`acct`、`save`、`freq`、`fcode`、`fcnew`、`block`、`score`、`admin`、`react`、`chal`。
   管理员删号、一年清理用同一套语句。`blocks` 按被屏蔽方删除没有索引、要扫全表，注销很少，接受。**以后加的表和新的计数键都要加进这个 batch，并有"注销后删干净"的测试。**
 - **1 年未登录**：每天的 Cron 找出 `last_seen_at` 早于 365 天前、`role = 'user'` 的用户（没有索引，只花读行数），每次最多 200 个，按注销同样的语句删。**管理员不清**。注意存档接口不更新 `last_seen_at`（5.5）。
 - **每天的 Cron 先记筹码统计**（5.9），先于一年清理；出错只记日志，不影响后面的清理。
 - **每天的 Cron 还清理**：过期的会话、窗口已过的 `rate_counters`、**60 天前的每日榜**（`dailyBoardKeepDays`，北京时间，带不带 `-v<n>` 都算；固定榜不动；沿排名索引按 `board_id` 范围删，这也是榜单 ID 把日期放在版本号前面的原因，9.2）、
   **60 天前那周以前的每周榜**（同一个 `dailyBoardKeepDays`，只扫登记了 `weekly` 的游戏，`week-YYYY-Www` 补了零，按范围删同样走索引）、
-  7 天前的 `meter_hourly` 和 `monitor_counts`、180 天前的 `play_tally`（`tallyKeepDays`）、2 天前的邀请、7 天前的动态和赞、30 天前的挑战和结果、过期或撤回满 30 天的没用邀请码。清理的写入算进"系统"类，每次最多删 3,000 行（`cleanupMaxRows`），删不完的留到第二天。
+  7 天前的 `meter_hourly` 和 `monitor_counts`、180 天前的 `play_tally`（`tallyKeepDays`）、2 天前的邀请、7 天前的动态和赞、30 天前的挑战和结果、过期或撤回满 30 天、一次没用过的邀请码。清理的写入算进"系统"类，每次最多删 3,000 行（`cleanupMaxRows`），删不完的留到第二天。
   每一段单独兜住：一段出错只记段名和错误类型，接着清下一段。
 - 隐私说明里写明：备份（Time Travel）会在 30 天内自然过期。
 
