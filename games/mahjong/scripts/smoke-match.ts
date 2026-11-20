@@ -120,7 +120,9 @@ async function queue(page: Page, base: string, mode: 'fun' | 'real', rc = false,
   if (rc) await page.click('.lobby-variants .chip:has-text("立直")');
   if (x3) {
     await page.click('.lobby-variants .chip:has-text("血战到底")');
-    await page.click('.rules-opts .opt:has(.label:text-is("三人两房")) .chip:text-is("开")');
+    await page.click('.edit-rules');
+    await page.click('.rules-sheet .opt[data-key="three"] .chip:text-is("开")');
+    await page.click('.rules-sheet .rules-foot .act.go');
   }
   await page.click('.go-row .match');
   await page.waitForSelector('.mask.match .match-wait');

@@ -129,7 +129,10 @@ async function openRoom(page: Page, base: string, stake: '娱乐' | '小档'): P
   await page.waitForSelector('.lobby-variants');
   await page.click('.lobby-variants .chip:has-text("立直")');
   await page.click(`.stakes .stake:has-text("${stake === '娱乐' ? '新手' : stake}")`);
-  await page.click('.rules-opts .chip:has-text("东风战")');
+  // 规则收在「改规则」弹窗里（0.41.0）
+  await page.click('.edit-rules');
+  await page.click('.rules-sheet .opt[data-key="length"] .chip:text-is("东风战")');
+  await page.click('.rules-sheet .rules-foot .act.go');
   await page.click('text=开房间叫朋友');
   await page.waitForSelector('.room-code');
   const code = ((await page.textContent('.room-code')) ?? '').trim();

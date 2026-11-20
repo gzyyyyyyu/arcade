@@ -3,6 +3,7 @@
  * 开打后牌桌顶上一条：等筹码到账、带入被拒（再带一次）、电脑先替你打；没入座的是"旁观中"（docs/social.md 1.4）。
  */
 import type { RoomInfo, You } from 'arcade-kit/protocol';
+import { summary } from '../game/rule-spec.ts';
 import { stakesOf } from '../game/stakes.ts';
 import { MIN_HUMANS, type RoomOpts, type RoomView } from '../room/rules.ts';
 import { avatarSvg } from './avatar.ts';
@@ -41,7 +42,8 @@ function rulesParts(o: RoomOpts | null): string[] {
   const st = stakesOf(o.stakes);
   const stake = st?.wallet ? `实盘${STAKES_NAME[o.stakes]}档（一份 ${num(st.share)}）` : '娱乐';
   const page = pageOf(o.variant);
-  return [page.name(), stake, ...page.ruleParts(o.rules)];
+  // 好友房实盘不改局数（不像单机实盘一局一结），规则照开房时选的全写
+  return [page.name(), stake, ...summary(page.rules, o.rules, false)];
 }
 
 export function renderWaiting(box: HTMLElement, p: WaitingProps): void {

@@ -171,9 +171,13 @@ async function openRoom(page: Page, base: string, stake: '娱乐' | '小档', fl
   await page.waitForSelector('.lobby-head');
   // 娱乐分三个难度（0.10.0），好友房用哪个都一样（房间按自己的场地表挑电脑），点"新手"那张
   await page.click(`.stakes .stake:has-text("${stake === '娱乐' ? '新手' : stake}")`);
-  await page.click('.rules-opts .chip:has-text("4 局")');
-  if (flow === 'three') await page.click('.rules-opts .flow-opt:has(.label:text-is("三人两房")) .chip:text-is("开")');
-  else if (flow) await page.click('.rules-opts .flow-opt:has(.label:text-is("血流成河")) .chip:text-is("开")');
+  // 规则收在「改规则」弹窗里（0.41.0），改完点「好了」，摘要跟着变
+  await page.click('.edit-rules');
+  await page.click('.rules-sheet .opt[data-key="rounds"] .chip:text-is("4 局")');
+  if (flow === 'three') await page.click('.rules-sheet .opt[data-key="three"] .chip:text-is("开")');
+  else if (flow) await page.click('.rules-sheet .opt[data-key="flow"] .chip:text-is("开")');
+  await page.click('.rules-sheet .rules-foot .act.go');
+  if (flow) check(((await page.textContent('.rules-sum')) ?? '').includes(flow === 'three' ? '三人两房' : '血流成河'), '改规则后摘要跟着变');
   await page.click('text=开房间叫朋友');
   await page.waitForSelector('.room-code');
   const code = ((await page.textContent('.room-code')) ?? '').trim();

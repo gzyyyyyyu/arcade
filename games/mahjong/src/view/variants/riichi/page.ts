@@ -5,12 +5,12 @@
 import type { RcAction, RcOpts, RcView } from '../../../core/variants/riichi/index.ts';
 import { DEFAULT_OPTS } from '../../../core/variants/riichi/index.ts';
 import { DAILY_RC_LENGTH } from '../../../game/daily.ts';
+import type { RuleSpec } from '../../../game/rule-spec.ts';
+import { RC_FIRST_OPTS, RC_LENGTH_NAME, RC_RULES } from '../../../game/riichi/rules.ts';
 import { rcFeedMomentsOf, rcFunMoments, rcHighlightsOf, rcKansOf, rcTally, rcWinsOf } from '../../../game/riichi/fun.ts';
 import type { SoloState } from '../../../solo.ts';
-import { el } from '../../dom.ts';
-import { ruleRow } from '../../rule-row.ts';
 import { TableUi, type CommonAct } from '../../table.ts';
-import type { LobbyRules, VariantPage } from '../page.ts';
+import type { AnyOpts, VariantPage } from '../page.ts';
 import { RC_PAGES, dexPage, rulesPage } from './guide.ts';
 import { riichiOpen } from './gate.ts';
 import { cardOf, matchSummary, roundSummary } from './summary.ts';
@@ -19,24 +19,6 @@ import { resetRiichiUi, riichiUi, toRcAction } from './ui.ts';
 import { tableView } from './view.ts';
 
 const ID = 'riichi';
-
-/** 选桌页的规则设置：半庄 / 东风战 / 一局（实盘固定一局，这里只管娱乐）；赤宝牌固定 3 张，不给选 */
-function lobbyRules(store: { rc: RcOpts }): LobbyRules {
-  const rcOpts: RcOpts = { length: store.rc.length ?? 'hanchan' };
-  return {
-    opts: () => rcOpts,
-    // 立直一场按半庄 30 分钟、东风战一半估（docs/riichi.md 第 2 节）；只打一局的约 3 分钟
-    minutes: () => (rcOpts.length === 'ikkyoku' ? 3 : rcOpts.length === 'hanchan' ? 30 : 15),
-    render(more, repaint) {
-      ruleRow(more, '长度', [
-        ['半庄', () => rcOpts.length === 'hanchan', () => { rcOpts.length = 'hanchan'; repaint(); }],
-        ['东风战', () => rcOpts.length === 'tonpuu', () => { rcOpts.length = 'tonpuu'; repaint(); }],
-        ['一局', () => rcOpts.length === 'ikkyoku', () => { rcOpts.length = 'ikkyoku'; repaint(); }],
-      ]);
-      el('p', 'rc-note', more, '赤宝牌固定 3 张：5 万、5 筒、5 条各一张。');
-    },
-  };
-}
 
 /** 刚打完的这一局有人和了：和牌亮牌（役一条条弹出来）要多摆一会儿 */
 const hasWins = (v: RcView): boolean => !!v.history.at(-1)?.wins.length;
@@ -48,7 +30,8 @@ export const riichiPage: VariantPage = {
   open: () => riichiOpen(),
 
   loadRules(raw) {
-    const length = raw.rc?.length === 'tonpuu' || raw.rc?.length === 'ikkyoku' ? raw.rc.length : 'hanchan';
+    // 没存过的（第一次来）按新手的默认：东风战（game/riichi/rules.ts）；存着怪值的也回到它
+    const length = raw.rc?.length && Object.hasOwn(RC_LENGTH_NAME, raw.rc.length) ? raw.rc.length : RC_FIRST_OPTS.length;
     return { rc: { ...DEFAULT_OPTS, length } };
   },
   rulesOf: (store) => store.rc,
@@ -68,8 +51,7 @@ export const riichiPage: VariantPage = {
   rulesLink: '规则和役种表',
   lobbyChip: '立直',
   matchTag: '立直 · ',
-  newLobbyRules: lobbyRules,
-  ruleParts: (rules) => [lengthName((rules as RcOpts).length), '赤宝牌 3 张'],
+  rules: RC_RULES as RuleSpec<AnyOpts>,
   lengthText: (opts) => lengthName((opts as RcOpts).length),
   progress(state: SoloState) {
     const s = state as Extract<SoloState, { variant: 'riichi' }>;

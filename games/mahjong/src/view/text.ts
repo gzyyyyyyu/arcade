@@ -141,11 +141,6 @@ export function cheerLine(lost: number): string | null {
   if (lost < CHEER_FROM) return null;
   return lost >= 4 ? `连着 ${lost} 场手气都不顺，麻将本来就看牌运，歇口气再来` : `连着输了 ${lost} 场，牌运有起有落，下一场说不定就来了`;
 }
-/**
- * 一局大约几分钟（真人速度）：模拟器按自己每个决定 3 秒、电脑 1.2 秒、每局另加 20 秒估，8 局 p50 约 18 分钟（DESIGN.md 4.1）；
- * 卡片上按选的局数乘出来
- */
-export const MINUTES_PER_ROUND = 2.25;
 
 /** 换三张的方向 */
 export const SWAP_DIR = ['换给下家', '换给对家', '换给上家'] as const;

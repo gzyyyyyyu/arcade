@@ -8,21 +8,95 @@
   opacity: 0.45;
 }
 .screen.lobby {
-  --lobby-pad: var(--sp-5);
+  --lobby-pad: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--lobby-pad) var(--sp-3);
+  /* 一屏放下（docs/ui.md 第 11 节）：不滚动，只有茶馆的画按剩下的地方缩 */
+  overflow: hidden;
+}
+/* 横屏（0.41.0）：和主页一样左边茶馆的画、右边木框面板，两栏都顶满 */
+[data-orient='land'] .screen.lobby {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 1.05fr);
+  column-gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+}
+/* 面板：深木色底、一圈描边加内框金线，像牌馆的选档面板；里面从上往下排，开打贴底 */
+.screen.lobby .lobby-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sp-4);
-  padding: var(--sp-5) var(--lobby-pad) 0;
-  /* 一屏放下（docs/ui.md 第 11 节）：不滚动，放不下就缩间距、横屏分两栏 */
-  overflow: hidden;
+  gap: var(--sp-3);
+  min-height: 0;
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: 18px;
+  background: linear-gradient(#4a2414f2, #2a1208f2);
+  border: 3px solid var(--c-ink, #2b1d14);
+  box-shadow:
+    inset 0 0 0 3px #6a3a1c,
+    inset 0 0 0 4px #f3c86b66,
+    0 10px 28px #000a;
 }
-/* 档位卡一档一格：娱乐三格、实盘四格各一排，不折行 */
+/* 茶馆的画（主页同一张）：竖屏是面板上面一条，占掉剩下的高度；横屏是左栏，顶满 */
+.screen.lobby > .lobby-art {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  /* 上沿让开顶栏按钮向下撑出的点按区（--tap 比顶栏高出的那截），灯笼不被它盖住 */
+  margin-top: max(0px, var(--tap, 0px) - 40px);
+  container-type: size;
+}
+[data-orient='land'] .screen.lobby > .lobby-art {
+  grid-column: 1;
+  grid-row: 1;
+  margin-top: 0;
+}
+.screen.lobby > .lobby-art .scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* 剩下的高度太矮（好友房七张档位卡的竖屏手机）：画只剩半截窗户不好看，整块不画 */
+@container (max-height: 120px) {
+  .screen.lobby > .lobby-art .scene {
+    display: none;
+  }
+}
+/* 面板里每一项都不许被压扁：放不下由画让位 */
+.screen.lobby .lobby-panel > * {
+  flex-shrink: 0;
+}
+[data-orient='land'] .screen.lobby .lobby-panel {
+  grid-column: 2;
+  grid-row: 1;
+}
+/* 横屏：「雀馆 · 玩法」顶栏上写着，面板里不重复 */
+[data-orient='land'] .screen.lobby .lobby-head .variant {
+  display: none;
+}
+/* 好友房七张档位卡（娱乐三档 + 实盘四档）：横屏排紧、卡上不画小图标，开打留在屏内（1280×720） */
+[data-orient='land'] .screen.lobby .lobby-panel.room {
+  gap: var(--sp-2);
+  padding-block: var(--sp-3);
+}
+[data-orient='land'] .screen.lobby .lobby-panel.room .stake :is(.art-icon, svg) {
+  display: none;
+}
+/* 档位卡一档一格：娱乐三格、实盘四格各一排，不折行，撑满面板宽 */
 .screen.lobby .stakes {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   flex-wrap: nowrap;
+  align-self: stretch;
+}
+.screen.lobby .stakes-box {
+  align-self: stretch;
 }
 .screen.lobby .stake {
   min-width: 0;
@@ -36,32 +110,13 @@
 .stage:not([data-fit='desk']) .screen.lobby .stake > svg {
   display: none;
 }
-.stage:not([data-fit='desk']) .screen.lobby .go-row {
-  padding-block: var(--sp-2);
-}
-/* 手机上规则设置两项一行挤：标签不留固定宽、小按钮内边距收一点 */
-.stage:not([data-fit='desk']) .rules-opts .opt {
-  gap: var(--sp-1);
-}
-.stage:not([data-fit='desk']) .rules-opts .opt .label {
-  min-width: 0;
-  margin-right: var(--sp-1);
-}
-.stage:not([data-fit='desk']) .rules-opts .chip {
-  padding: 0 var(--sp-2);
-}
-/* 标题让开顶上的帘子 */
-.stage:not([data-fit='desk']) .screen.lobby .lobby-head {
-  margin-top: var(--sp-2);
+.stage:not([data-fit='desk']) .screen.lobby .lobby-panel {
+  gap: var(--sp-2);
+  padding: var(--sp-3);
 }
 .stage:not([data-fit='desk']) .screen.lobby .lobby-head h1 {
   font-size: 36px;
   letter-spacing: 6px;
-}
-/* 竖屏两栏不分开，照旧一列从上往下 */
-.lobby-l,
-.lobby-r {
-  display: contents;
 }
 .lobby-head {
   text-align: center;
@@ -133,35 +188,69 @@
   text-align: center;
   max-width: 640px;
 }
-/* 规则设置不折叠：两项一行，四个以上选项的（局数）独占一行。
-   每列至少放得下自己那项（标签 + 三个按钮）：等分的话"封顶 3/4/5 番"比半格宽，"5 番"压在右边"换三张"的标签上（11-02 试玩，1280×800） */
-.rules-opts {
+/* 规则摘要一行：左边一句「4 局 · 4 番封顶 · …」（虚线框，像贴在桌边的小规矩牌），右边「改规则」 */
+.screen.lobby .rules-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  align-self: stretch;
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+  border: 1.5px dashed #f3c86b80;
+  border-radius: var(--r-md);
+  background: #0000002e;
+}
+.screen.lobby .rules-sum {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: #fbe9c4;
+}
+.screen.lobby .rules-sum .part {
+  white-space: nowrap;
+}
+.screen.lobby .edit-rules {
+  flex-shrink: 0;
+}
+/* 「改规则」弹窗：两项一行；四个以上选项的（局数）、带说明的、只有一项的（立直的长度）独占一行 */
+.rules-sheet .rules-opts {
   display: grid;
   grid-template-columns: minmax(max-content, 1fr) minmax(max-content, 1fr);
   column-gap: var(--sp-4);
-  width: min(620px, 100%);
-  background: var(--surface);
-  border: 1px solid #ffffff14;
-  border-radius: var(--r-md);
-  padding: var(--sp-1) var(--sp-3) var(--sp-2);
 }
-.rules-opts > :not(.opt),
-.rules-opts > .opt:has(> button:nth-of-type(4)) {
+.rules-sheet .rules-opts > :not(.opt),
+.rules-sheet .rules-opts > .opt:has(> button:nth-of-type(4)),
+.rules-sheet .rules-opts > .opt:has(> .hint),
+.rules-sheet .rules-opts > .opt:only-of-type {
   grid-column: 1 / -1;
 }
-/* 只有一项的行（手机上的"长度"）独占一整行：不然它被关在半格里，标签被按钮压成一个字 */
-.rules-opts > .opt:nth-of-type(2):last-of-type {
-  grid-column: 1 / -1;
+.rules-sheet .opt .hint {
+  margin-left: var(--sp-1);
+  font-size: var(--fs-sm);
+  opacity: 0.8;
 }
-.rules-opts .rules-title {
+.rules-sheet .fixed {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  opacity: 0.8;
+}
+.rules-sheet .rules-foot {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--sp-1) 0 0;
-  font-size: var(--fs-sm);
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
 }
-.rules-opts .rules-title > span {
-  opacity: 0.75;
+/* 手机上规则两项一行挤：标签不留固定宽、小按钮内边距收一点 */
+.stage:not([data-fit='desk']) .rules-sheet .opt {
+  gap: var(--sp-1);
+}
+.stage:not([data-fit='desk']) .rules-sheet .opt .label {
+  min-width: 0;
+  margin-right: var(--sp-1);
+}
+.stage:not([data-fit='desk']) .rules-sheet .chip {
+  padding: 0 var(--sp-2);
 }
 .opt {
   display: flex;
@@ -200,6 +289,11 @@
   margin: auto calc(-1 * var(--lobby-pad)) 0;
   align-self: stretch;
   padding: var(--sp-3) var(--lobby-pad) var(--sp-4);
+}
+/* 选桌页的开打在面板里贴底 */
+.screen.lobby .lobby-panel .go-row {
+  margin: auto 0 0;
+  padding: var(--sp-2) 0 0;
 }
 .join {
   display: flex;

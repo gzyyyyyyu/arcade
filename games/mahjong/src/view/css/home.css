@@ -249,77 +249,10 @@
   display: none;
 }
 
-/* 选桌页横屏（11-01 一屏放下）：左右两栏等高，左边标题、玩法、档位，右边规则设置、番型表、开打 */
-[data-orient='land'] .screen.lobby {
-  --lobby-pad: var(--sp-6);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  /* 行高只取内容那么高：两栏从同一条线起、最高的那栏撑出行高，右栏的"开打"贴着这一行的底，和左栏最后一项底边对齐 */
-  align-content: start;
-  /* 基础的 .screen.lobby 是 flex 居中用的 align-items: center，到了网格里会把两栏各自竖着居中、顶部对不齐 */
-  align-items: stretch;
-  column-gap: var(--sp-5);
-  padding: var(--sp-6) var(--lobby-pad) 0;
-}
-[data-orient='land'] .lobby-l,
-[data-orient='land'] .lobby-r {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* 从顶上排：娱乐 / 实盘 / 好友房三页标题在同一位置，左右两栏顶部同一条线（原先各自居中，内容多少不同就上下跳）。
-   * 大屏多垫一截（720 高为 0，1080 高约 90），不让整块贴着顶栏 */
-  justify-content: flex-start;
-  padding-top: clamp(0px, 25vh - 180px, 90px);
-  gap: var(--sp-3);
-  min-height: 0;
-}
-[data-orient='land'] .lobby-r .rules-opts {
-  width: 100%;
-}
-[data-orient='land'] .lobby-r .go-row {
-  margin: auto calc(-1 * var(--sp-5)) 0;
-  padding-bottom: 0;
-}
-/* 钱包说明比一排档位卡窄一点：折成两行居中，和卡组同一条中线（原先一行比卡组宽，居中参照不一致） */
-[data-orient='land'] .screen.lobby .lobby-l .wallet-note {
-  max-width: 30em;
-}
-/* 横屏只有 560 高：店名和玩法顶栏上已经写着，选桌页不重复，档位和规则设置往上挪一行（0.18.0 手机专项） */
-[data-orient='land'] .screen.lobby .lobby-head .variant {
-  display: none;
-}
-/* 竖屏高：档位、规则下面空一大块（0.18.0 前），上面垫一块主页同款的茶馆画，占掉剩下的高度，开打按钮还是贴底（0.18.1） */
-.screen.lobby > .lobby-art {
-  position: relative;
-  flex: 1 1 0;
-  min-height: 0;
-  align-self: stretch;
-  /* 上沿让开顶栏按钮向下撑出的点按区（--tap 比顶栏高出的那截），灯笼不再被它盖住 */
-  margin: calc(-1 * var(--sp-5) + max(0px, var(--tap, 0px) - 40px)) calc(-1 * var(--lobby-pad)) calc(-1 * var(--sp-4));
-  container-type: size;
-}
-/* 剩下的高度不够（实盘、好友房档位多，规则设置展开）：画只剩半截窗户不好看，整块不画 */
-@container (max-height: 260px) {
-  .screen.lobby > .lobby-art .scene {
-    display: none;
-  }
-}
-.screen.lobby > .lobby-art .scene {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  -webkit-mask-image: linear-gradient(#000 70%, transparent);
-  mask-image: linear-gradient(#000 70%, transparent);
-}
-[data-orient='land'] .screen.lobby > .lobby-art {
-  display: none;
-}
 /* 选桌页的标题是模式名（娱乐 / 实盘 / 好友房），比主页的店名小一号 */
 .screen.lobby .lobby-head h1 {
   font-size: 44px;
 }
-[data-orient='land'] .stake { min-width: 128px; }
 /* 横屏牌桌还是 1000 宽的几何，舞台变宽时居中，两边露出茶馆的板壁（art.css，0.17.1）；竖屏同理，560 宽（iPad 竖着拿，0.18.0） */
 [data-orient='port'] .table {
   inset: 0 auto 0 calc(50% - 280px);

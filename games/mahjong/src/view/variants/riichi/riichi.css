@@ -374,12 +374,6 @@
 .lobby-variants .label {
   opacity: 0.8;
 }
-.rules-opts .rc-note {
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: var(--fs-xs);
-  opacity: 0.8;
-}
 
 /* 安全牌提示：别家立直后，轮到我打时手牌底边一个小标。绿底"安"＝现物；黄框"较"＝筋牌、见得多的字牌。
  * 靠字和实心/空心区分，色弱也能看；不挡牌面（贴在牌的下沿，不接鼠标） */
