@@ -39,7 +39,8 @@ describe('哪几关、从第几波', () => {
     for (const raw of TD2_LEVELS) {
       const now = levelForRules(raw, RULES_VERSION);
       if (!ELITE_LEVELS.includes(raw.id)) {
-        expect(now, raw.id).toBe(raw);
+        // 规则 24 放宽的关（ease）也是新旧两套组并排，按版本挑过不再是同一个对象；它们不带精英，tests/td-ease.test.ts 另锁
+        if (!TD2_LEVEL_DEFS.find((d) => d.id === raw.id)?.ease) expect(now, raw.id).toBe(raw);
         continue;
       }
       const from = TD2_LEVEL_DEFS.find((d) => d.id === raw.id)!.elite!.from ?? TD_ELITE.from;

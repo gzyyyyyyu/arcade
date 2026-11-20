@@ -379,8 +379,9 @@ function tdCss(): string {
 .hd-ui .hd-td-tower .hd-td-price { display:inline-flex; align-items:center; gap:2px; font-weight:900; }
 .hd-ui .hd-td-tower .hd-td-price.short { color:${red}; }
 .hd-ui .hd-td-tower .hd-td-ctr { display:flex; align-items:center; gap:3px; flex-wrap:wrap; justify-content:center; font-weight:800; }
-.hd-ui .hd-td-tower .hd-td-ctr .hd-arm { width:16px; height:16px; font-size:12px; border-width:1.5px; }
-.hd-ui .hd-td-tower .hd-td-ctr .ng { opacity:.55; text-decoration:line-through; }
+.hd-ui .hd-td-tower .hd-td-ctr .hd-armn { font:800 12px/16px system-ui,sans-serif; font-style:normal; color:#fff; padding:0 4px; margin-left:3px; border-radius:8px; text-shadow:0 1px 0 rgba(0,0,0,.45); }
+.hd-ui .hd-td-tower .hd-td-ctr .hd-armn.ng { text-decoration:line-through 2px #3b1d10; opacity:.8; }
+.hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-cloth { background:#b98f55; } .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-heavy { background:#66737f; } .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-wood { background:#86562b; } .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-air { background:#3d9ad1; }
 .hd-ui .hd-td-tower .hd-key { left:4px; top:3px; }
 .hd-ui .hd-td-tower { position:relative; }
 .hd-ui .hd-td-tower:active:not(:disabled) { transform:translateY(2px); }

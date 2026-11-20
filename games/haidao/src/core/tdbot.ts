@@ -23,7 +23,12 @@ import type { TdArmor, TdTowerKind, WavePreview } from './td2types.ts';
 import { UNIT } from './types.ts';
 import type { TdAction, TdEnemy, TdResult, TdSetup, TdTower } from './tdtypes.ts';
 
-export type TdBotKind = 'novice' | 'normal' | 'greedy';
+/**
+ * novice 小白：塔随机挑、木台按顺序造、够钱就升最便宜的一档、不放技能、不指挥英雄（悬赏守岛档位表的量尺，别改它的打法）；
+ * guided 照建议的新手：和小白一样，只是塔照预告卡的「建议」挑、先造离路近的木台（战役配平的新手线按它量，DESIGN 10.4 的验收目标）；
+ * normal 稳、greedy 贪
+ */
+export type TdBotKind = 'novice' | 'guided' | 'normal' | 'greedy';
 
 function d2(ax: number, ay: number, bx: number, by: number): number {
   return (ax - bx) * (ax - bx) + (ay - by) * (ay - by);
@@ -377,7 +382,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
     if (s.over) return out;
     let gold = s.gold;
     const free = s.slots.map((sl, i) => (sl.tower < 0 && sl.wreck === undefined ? i : -1)).filter((i) => i >= 0);
-    if (kind === 'novice') {
+    if (kind === 'novice' || kind === 'guided') {
       // 小白一半的时候想得起看一眼水闸（每波只想一次），想起来了和普通一样判断
       if (sluiceAsked !== s.wave && tdSluiceCan(s) === 'shut' && s.next - t < 100) {
         sluiceAsked = s.wave;
@@ -402,11 +407,17 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
       // 小白看见海上有船（炮艇、海盗王）也会想起友军船，一半的时候
       if (fleetWorth(s, 1) && t % 20 === 0 && mrng.int(2) === 0) out.push({ t, type: 'fleet' });
       if (s.unlocked.length === 0) return out;
-      const i = free[0];
+      let i = free[0];
+      // 照建议的新手：先造离路近的木台（和稳机器人同一套打分），塔照预告卡的建议挑
+      const pv = kind === 'guided' ? tdPreview(s, 2) : null;
+      if (pv && free.length > 0) {
+        const sc = slotScores(s, pv);
+        for (const j of free) if ((sc[j] ?? 0) > (sc[i!] ?? 0)) i = j;
+      }
       if (i !== undefined) {
         let k = want.get(i);
         if (!k) {
-          k = s.unlocked[rng.int(s.unlocked.length)] as TdTowerKind;
+          k = pv ? pickKind(s, pv) : (s.unlocked[rng.int(s.unlocked.length)] as TdTowerKind);
           want.set(i, k);
         }
         if (gold >= TD2_COST[k]) {

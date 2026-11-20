@@ -58,13 +58,15 @@ function costToTier(kind: TdTowerKind, tier: TdTier): number {
 }
 
 /**
- * 按局的规则版本挑波次里的组（TdGroup.since / until）：关卡换配方时新旧两套并排写，旧版本的局只看旧的那套。
+ * 按局的规则版本挑波次里的组（TdGroup.since / until）和开局金（TdLevel.goldSince）：关卡换配方时新旧两套并排写，旧版本的局只看旧的那套。
  * 没有分版本的组就原样返回（不复制，大潮这类按需往后生成波次的关卡照旧）
  */
 export function levelForRules<L extends TdLevel>(lv: L, rules: number): L {
   const keep = (g: TdGroup): boolean => (g.since === undefined || rules >= g.since) && (g.until === undefined || rules < g.until);
-  if (lv.waves.every((w) => w.groups.every((g) => g.since === undefined && g.until === undefined))) return lv;
-  return { ...lv, waves: lv.waves.map((w) => ({ ...w, groups: w.groups.filter(keep) })) };
+  const gs = lv.goldSince;
+  const out = gs && rules >= gs.since ? { ...lv, gold: gs.gold } : lv;
+  if (lv.waves.every((w) => w.groups.every((g) => g.since === undefined && g.until === undefined))) return out;
+  return { ...out, waves: lv.waves.map((w) => ({ ...w, groups: w.groups.filter(keep) })) };
 }
 
 export function createTd(setup: TdSetup): TdState {
