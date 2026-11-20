@@ -1,18 +1,17 @@
 import type Phaser from 'phaser';
 import type { TdScene } from './TdScene.ts';
-import { tdPreview, tdRoutes } from '../core/index.ts';
 import { footCenter, iso, depthOf } from './iso.ts';
 import { isoRing } from './tdfx.ts';
 import { EASE } from './motion.ts';
 import { feelOn } from './feel.ts';
-import { el } from './ui.ts';
-import { recommendPads, guideVisible } from './padguide.ts';
-import { openerLeft, openerText, towerName } from './td-ui.ts';
+import { DEPTH } from './depth.ts';
+import { MARK_FONT, guideVisible, markScale } from './padguide.ts';
+import { openerLeft, towerName } from './td-ui.ts';
 import type { HeldStep } from './td-ui.ts';
 
 /**
- * 开局的木台高亮：只在倒数里、只对挑出来的几块空木台；造了就收起那块，第一波开打后全收。
- * 海盗来袭按路线挑（recommendPads）；战役写了开局造法（TdLevel.opener）的关圈那几块，头上写造什么塔
+ * 开局的木台高亮：只在倒数里、只圈战役写了开局造法（TdLevel.opener）的那几块，头上写造什么塔；造了就收起那块，第一波开打后全收。
+ * 别的关和海盗来袭开局不另圈：预告卡「下一座造」那一块的金圈（syncGoalMark）就是开局该造的地方，两套圈指不同的台子会打架
  */
 interface PadMark {
   slot: number;
@@ -20,7 +19,10 @@ interface PadMark {
   arrow: Phaser.GameObjects.Text;
 }
 
-/** 金圈加头上的字，开局造法的木台和「钱够就升级」的那座塔同一个样子；label 为空只画 ▼ */
+/** 每个场景现在画着的金圈（开局造法和卡片目标两套共用），fitMarks 每帧按镜头缩放调字 */
+const live = new WeakMap<TdScene, Set<PadMark>>();
+
+/** 金圈加头上的字，开局造法的木台和卡片指的那块木台 / 那座塔同一个样子 */
 function addMark(bs: TdScene, slot: number, label: string, lift: number): PadMark {
   const sl = bs.s.slots[slot]!;
   const f = footCenter(sl.x, sl.y, 2);
@@ -28,29 +30,45 @@ function addMark(bs: TdScene, slot: number, label: string, lift: number): PadMar
   const d = depthOf(f.gx, f.gy);
   const rg = isoRing(1.5);
   const ring = bs.add.ellipse(p.x, p.y + 2, rg.w, rg.h, 0xffe885, 0.22).setStrokeStyle(4, 0xffe885, 0.95).setDepth(d - 0.4);
-  // 有字的小一号、两行，箭头的底边和海盗来袭的 ▼ 对齐
+  // 字压在建筑、英雄、敌人上面（以前跟着木台的深度，被主寨、站在台边的英雄、登陆的人堆挡住）；圈还贴着地
   const arrow = bs.add
-    .text(p.x, label ? p.y - 30 - lift : p.y - 44, label ? `${label}\n▼` : '▼', { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${(label ? 20 : 28) * bs.r}px`, align: 'center', color: '#ffe885', stroke: '#2b1a15', strokeThickness: 5 * bs.r })
-    .setOrigin(0.5, label ? 1 : 0.5)
-    .setScale(1 / bs.r)
-    .setDepth(d + 0.2);
+    .text(p.x, p.y - 30 - lift, `${label}\n▼`, { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${MARK_FONT * bs.r}px`, align: 'center', color: '#ffe885', stroke: '#2b1a15', strokeThickness: 5 * bs.r })
+    .setOrigin(0.5, 1)
+    .setScale(markScale(bs.cameras.main.zoom) / bs.r)
+    .setDepth(DEPTH.markerTop);
   if (feelOn()) {
     // 脉动：圈放大淡出再回来，箭头上下点；一轮 1 秒、60 帧里都是连续的
     bs.tweens.add({ targets: ring, scale: 1.18, alpha: 0.55, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
     bs.tweens.add({ targets: arrow, y: arrow.y - 12, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
   }
-  return { slot, ring, arrow };
+  const m = { slot, ring, arrow };
+  let set = live.get(bs);
+  if (!set) live.set(bs, (set = new Set()));
+  set.add(m);
+  return m;
 }
 
 function dropMark(bs: TdScene, m: PadMark): void {
+  live.get(bs)?.delete(m);
   bs.tweens.killTweensOf([m.ring, m.arrow]);
   m.ring.destroy();
   m.arrow.destroy();
 }
+
+/** 每帧：镜头缩放变了（双指、全景、跟拍）就把金圈的字调回屏幕上看得清的大小 */
+export function fitMarks(bs: TdScene): void {
+  const set = live.get(bs);
+  if (!set?.size) return;
+  const k = markScale(bs.cameras.main.zoom) / bs.r;
+  for (const m of set) {
+    // 重开一局时旧对象随场景已经没了
+    if (!m.arrow.active) set.delete(m);
+    else if (m.arrow.scaleX !== k) m.arrow.setScale(k);
+  }
+}
 interface GuideState {
   s: unknown;
   marks: PadMark[];
-  hint: HTMLElement | null;
   done: boolean;
 }
 const states = new WeakMap<TdScene, GuideState>();
@@ -58,14 +76,12 @@ const states = new WeakMap<TdScene, GuideState>();
 function clear(bs: TdScene, st: GuideState): void {
   for (const m of st.marks) dropMark(bs, m);
   st.marks = [];
-  st.hint?.remove();
-  st.hint = null;
 }
 
 export function syncPadGuide(bs: TdScene): void {
   const s = bs.s;
   const op = s.level.opener;
-  if (!bs.d.home && !op?.length) return;
+  if (!op?.length) return;
   let st = states.get(bs);
   // 重开一局（状态对象换了）：旧的画面对象随场景已经没了，别再碰
   if (st && st.s !== s) {
@@ -73,7 +89,7 @@ export function syncPadGuide(bs: TdScene): void {
     st = undefined;
   }
   if (!st) {
-    st = { s, marks: [], hint: null, done: false };
+    st = { s, marks: [], done: false };
     states.set(bs, st);
   }
   if (st.done) return;
@@ -82,22 +98,13 @@ export function syncPadGuide(bs: TdScene): void {
       if (s.wave > 0 || s.over) st.done = true;
       return;
     }
-    // 开局只挑一次，造塔后不再换新的推荐（只收起造了的那块）
-    // 只看第一波真走的地面路（预告给的）：别的路这时没有敌人，推荐了也白造；预告里没有地面路就看全部
-    const used = new Set((tdPreview(s, 1)[0]?.lanes ?? []).filter((l) => !l.fly).map((l) => l.lane));
-    const all = tdRoutes(s);
-    const picks = op?.length
-      ? op.map((o) => o.slot).filter((i) => (s.slots[i]?.tower ?? 0) < 0)
-      : recommendPads(s.slots, used.size > 0 ? all.map((r) => ({ ...r, open: r.open && used.has(r.lane) })) : all, 3);
+    // 开局只圈一次，造了的那块收起；造什么由预告卡「先造」那一格说，这里不再另出一条同样的提示条
+    const picks = op.map((o) => o.slot).filter((i) => (s.slots[i]?.tower ?? 0) < 0);
     if (picks.length === 0) {
       st.done = true;
       return;
     }
-    for (const slot of picks) {
-      const kind = op?.find((o) => o.slot === slot)?.kind;
-      st.marks.push(addMark(bs, slot, kind ? towerName(kind) : '', 0));
-    }
-    st.hint = el('div', 'hd-hint hd-padhint', op?.length ? `金圈的木台${openerText(op)}` : '在路边的木台造塔', bs.ui);
+    for (const slot of picks) st.marks.push(addMark(bs, slot, towerName(op.find((o) => o.slot === slot)!.kind), 0));
   }
   // 造了的收起；倒数结束 / 第一波开打 / 全造完整个收起
   const keep = st.marks.filter((m) => s.slots[m.slot]!.tower < 0);

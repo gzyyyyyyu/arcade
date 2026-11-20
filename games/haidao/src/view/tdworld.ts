@@ -164,9 +164,7 @@ export function drawProps(bs: TdScene): void {
     const im = put(bs, bs.r, tdP('pad'), p.x, p.y).setDepth(depthOf(f.gx, f.gy) - 0.5);
     const plus = bs.add.text(p.x, p.y - 6, '+', { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${30 * bs.r}px`, color: '#fff3b0', stroke: '#2b1a15', strokeThickness: 5 * bs.r }).setOrigin(0.5).setScale(1 / bs.r).setDepth(depthOf(f.gx, f.gy) + 0.1);
     bs.tweens.add({ targets: plus, y: p.y - 12, duration: 700, yoyo: true, repeat: -1, ease: EASE.recover });
-    // 够钱升级时塔顶的金箭头：位置每帧跟塔顶（tdsync.ts），上下浮由那里按时间算，不另开补间
-    const up = bs.add.text(p.x, p.y, '▲', { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${20 * bs.r}px`, color: '#ffd23a', stroke: '#2b1a15', strokeThickness: 5 * bs.r }).setOrigin(0.5, 1).setScale(1 / bs.r).setDepth(DEPTH.marker).setVisible(false);
-    bs.pads.push({ img: im, plus, up });
+    bs.pads.push({ img: im, plus });
     // 驻守台：台子外圈一道金边，和普通木台分得开（上面的塔开局就带着）
     if (sl.garrison !== undefined) {
       const rg = isoRing(1.25);

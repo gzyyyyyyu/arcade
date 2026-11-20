@@ -6,12 +6,10 @@
 import { COUNTER, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, bestDamageVs, type TdArmor, type TdDamage, type TdEnemyKind, type TdTowerKind } from '../core/index.ts';
 import type { TdEventKind } from '../core/tdtypes.ts';
 import { ARMOR_NAME, DAMAGE_NAME } from './td-ui.ts';
-import { TD2_ENEMIES, TD2_NAV_SKILL } from '../content/td2units.ts';
+import { TD2_ENEMIES, TD2_EVENT, TD2_NAV_SKILL } from '../content/td2units.ts';
 import { TICKS_PER_SEC } from '../core/types.ts';
 
 export const FOE_KEY = 'haidao.hint.foe';
-/** 一次最多提示几种，避免一张卡太长 */
-export const FOE_MAX = 2;
 
 /** 它会干什么（≤ 16 字；怎么打由 foeText 按克制表补上） */
 const FOE_TRAIT: Readonly<Record<TdEnemyKind, string>> = {
@@ -53,10 +51,10 @@ function bestOf(a: TdArmor, dmgs: TdDamage[] | null): TdDamage | null {
   return tops.length === 1 ? tops[0]! : null;
 }
 
-/** 这一波里第一次见到的敌人：按出场顺序、最多 max 种；已见过的不出 */
-export function newFoes(kinds: Iterable<TdEnemyKind>, seen: ReadonlySet<string>, max = FOE_MAX): TdEnemyKind[] {
+/** 这一波里第一次见到的敌人：按出场顺序、去重；已见过的不出 */
+export function newFoes(kinds: Iterable<TdEnemyKind>, seen: ReadonlySet<string>): TdEnemyKind[] {
   const out: TdEnemyKind[] = [];
-  for (const k of kinds) if (!seen.has(k) && !out.includes(k) && out.length < max) out.push(k);
+  for (const k of kinds) if (!seen.has(k) && !out.includes(k)) out.push(k);
   return out;
 }
 
@@ -76,7 +74,7 @@ export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }
   fleet: { name: '友军巡航船', text: '点「援船」叫船沿岸边开半圈，海上的炮艇也打得到' },
   bounty: { name: '赏金船', text: '挂金旗的海盗不抢宝藏、横穿上岛就跑；打倒它多给一笔金币' },
   rain: { name: '暴雨', text: '下雨的那一波火弱两成、地上的火不烧，飞的也慢一点' },
-  dare: { name: '战书', text: '开打前可以接：这一波敌人多 1/4，打倒的金币翻倍' },
+  dare: { name: '战书', text: `开打前可以接：这一波敌人多 ${TD2_EVENT.dare.morePct}%，打倒的金币翻倍` },
   nav: { name: '航海士', text: `急射旗：旗边的塔 ${navSecs('flag')} 秒打得快一倍；重赏：倒在圈里的海盗金币翻倍；提前叫波多拿一半金币` },
 };
 
@@ -96,3 +94,31 @@ export function mechsOf(s: {
   for (const a of s.happen?.at ?? []) if (!out.includes(a.kind)) out.push(a.kind);
   return out;
 }
+
+// ---------------------------------------------------------------- 一次一条
+
+/** 一条首次提示：章末机制、关内事件、航海士（m）或第一次见到的敌人（f） */
+export type HintItem = { t: 'm'; k: MechKind } | { t: 'f'; k: TdEnemyKind };
+
+/**
+ * 这一波弹哪一条：一次只弹一条（以前开局一张卡塞三条，盖住半屏），没弹的排队，下一波接着弹。
+ * want 由调用方按急不急排好（关内事件 → 开局的机制 → 这一波的新敌人），排着的接在后面；见过的跳过、重复的只留一条。
+ * hold：这一波的倒数里已经浮着战书卷轴，不再叠一张卡，全排到下一波
+ */
+export function pickHint(
+  want: readonly HintItem[],
+  queue: readonly HintItem[],
+  seen: { m: ReadonlySet<string>; f: ReadonlySet<string> },
+  hold: boolean,
+): { show: HintItem | null; queue: HintItem[] } {
+  const list: HintItem[] = [];
+  for (const it of [...want, ...queue]) {
+    if (seen[it.t].has(it.k) || list.some((x) => x.t === it.t && x.k === it.k)) continue;
+    list.push(it);
+  }
+  if (hold) return { show: null, queue: list };
+  return { show: list[0] ?? null, queue: list.slice(1) };
+}
+
+/** 关内事件（mechsOf 里的 bounty / rain / dare）和开局就讲的机制分开：事件等预告到了那一波再讲 */
+export const isEventMech = (k: MechKind): k is TdEventKind => k === 'bounty' || k === 'rain' || k === 'dare';

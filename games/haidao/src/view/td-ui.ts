@@ -875,7 +875,7 @@ function homeCard(parent: HTMLElement, stars: number, hardOpen: boolean, onHome:
         say();
       }, acts);
       hard.setAttribute('aria-pressed', String(app.homeHard));
-      hard.title = `海盗多约两成、第 6 波起有精英；每撑住一波的奖励从 ${TD2_HOME.perWavePct}% 提到 ${TD2_HOME.hard.perWavePct}%（一局三星的百分比）`;
+      hard.title = `海盗多约一成、第 ${Math.min(...TD2_HOME.hard.elite.map((e) => e[1])) + 1} 波起有精英；每撑住一波的奖励从 ${TD2_HOME.perWavePct}% 提到 ${TD2_HOME.hard.perWavePct}%（一局三星的百分比）`;
     } else app.homeHard = false;
     heroSwitch(acts);
   }
@@ -929,7 +929,7 @@ export function waveEnemies(p: WavePreview): Array<{ kind: TdEnemyKind; n: numbe
  * 第二行写潮水和关卡的补充（note），首领波整块变红；第三行"再下一波"只列护甲徽记。点它打开敌人图鉴。
  * tide：涨落的潮这一波开不开（不是涨落的关传 null），laneTitle：登陆路下标 → 北路 / 西路…
  */
-/** 关内事件（规则版本 22）在预告卡第三行、图鉴里的短说法；名字给「再下一波」那一小格 */
+/** 关内事件（规则版本 22）在预告卡事件那一行、图鉴里的短说法；名字给「再下一波」那一小格 */
 export const EVENT_NAME: Readonly<Record<NonNullable<WavePreview['event']>, string>> = { bounty: '赏金船', rain: '暴雨', dare: '战书' };
 export function eventNote(p: WavePreview): string {
   if (p.event === 'bounty') return '赏金船上岸，打倒多给金币';
@@ -991,10 +991,19 @@ export function planCard(
       go();
     });
   }
+  // 这一波的关内事件和潮水变化单独一行、带图标（以前挤在「从哪来」那一行末尾，赏金船、落潮常被漏看）；没有就不占这一行
+  const evs: Array<[ReturnType<typeof iconA>, string]> = [];
+  // 战书不写在这里：那一波倒数里浮着「接 / 不接」的卷轴，同一件事只在一处说
+  if (p.event && p.event !== 'dare') evs.push([iconA(p.event), eventNote(p)]);
+  if (o.tide) evs.push([iconA('sluice'), o.tide]);
+  if (evs.length) {
+    const ev = el('div', 'hd-plan-ev', undefined, box);
+    for (const [ic, t] of evs) el('span', '', undefined, ev).append(img(ic, 18), t);
+  }
   const lanes = p.lanes.map((l) => `${o.laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`);
   // 关卡说明和敌人打法只在图鉴里写全（点卡打开）：以前全塞进第三行，后几波长到五六行，盖住出生点和海上的炮艇
   const tips = !!p.note || enemyHints(p).length > 0;
-  const note = [lanes.length ? `${lanes.join('、')}来` : '', o.tide, eventNote(p), tips ? '点开看打法' : ''].filter(Boolean).join(' · ');
+  const note = [lanes.length ? `${lanes.join('、')}来` : '', tips ? '点开看打法' : ''].filter(Boolean).join(' · ');
   const q = pv[1];
   if (note || q) {
     const r3 = el('div', 'hd-plan-note', note, box);

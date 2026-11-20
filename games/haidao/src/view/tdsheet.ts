@@ -122,8 +122,10 @@ export function renderSheet(bs: TdScene): void {
     const grid = el('div', 'hd-td-towers', undefined, box);
     const can = new Set<TdTowerKind>(s.unlocked);
     const kinds = TEMP_KINDS.filter((k) => can.has(k));
-    // 开局造法圈出来的木台：第一波开打前，打开它时这块台该造的塔描金边
-    const rec = s.wave === 0 ? s.level.opener?.find((o) => o.slot === bs.openSlot)?.kind : undefined;
+    // 该造的塔描金边，和地上的金圈、预告卡说的是同一座：开局造法没造完时按这块台写的，之后按卡上「下一座造」
+    // （以前只有开局造法的台有金边，手机上面板盖住整屏，玩家得记着金圈上那两个小字）
+    const step = bs.next?.step;
+    const rec = openerLeft(s) ? s.level.opener?.find((o) => o.slot === bs.openSlot)?.kind : step && !step.up ? step.kind : undefined;
     kinds.forEach((k, i) => {
       const cost = buildCost(k);
       const c = el('button', 'hd-td-tower', undefined, grid);
