@@ -502,5 +502,24 @@
     "samples": [
       []
     ]
+  },
+  {
+    "why": "管理页邀请码的使用记录：码 id 是 JSON 数组参数（先当 text 收：参数类型推成 json 的话 postgres.js 会把字符串再 JSON 编码一次）",
+    "sqlite": "SELECT cu.code_id, u.username, u.display_name, cu.used_at FROM invite_code_uses cu JOIN users u ON u.id = cu.user_id WHERE cu.code_id IN (SELECT value FROM json_each(?1)) ORDER BY cu.used_at DESC",
+    "pg": [
+      "SELECT cu.code_id, u.username, u.display_name, cu.used_at FROM invite_code_uses cu JOIN users u ON u.id = cu.user_id",
+      "WHERE cu.code_id IN (SELECT json_array_elements_text($1::text::json)) ORDER BY cu.used_at DESC"
+    ],
+    "samples": [
+      [
+        "[\"K1\",\"k2\",\"zz\"]"
+      ],
+      [
+        "[\"K3\"]"
+      ],
+      [
+        "[]"
+      ]
+    ]
   }
 ]
