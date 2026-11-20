@@ -1,5 +1,5 @@
 /**
- * 守岛（塔防，DESIGN 10.1–10.3；规则版本 7 = 守岛 2.0）：固定步长 20 拍/秒、整数坐标（1 格 = 100 单位）、确定性。
+ * 守岛（塔防，DESIGN 10.1–10.3）：固定步长 20 拍/秒、整数坐标（1 格 = 100 单位）、确定性。
  * 同一个 setup 加同一串操作必得同一结果；不用随机、时间和平台数学函数，开方用整数牛顿法，随机用按用途分流的 sfc32。
  * 地图由 setup 给：战役是写死的关卡岛（木台、驻守台），海盗来袭是玩家自己的岛（常驻塔照常开火）。墙能砸能修，宝藏箱是敌人的目标。
  * 伤害一律按 td2types.ts 的克制表算（伤害类型 × 护甲），倍率 0 的打不到；局内塔按阶读 td2units.ts，常驻塔按基地等级表。
@@ -14,15 +14,15 @@ import { isqrt } from './fmath.ts';
 import { SNIPE_WARN, applyStun, flightTicks, inRing, keepLock, laneOffset, leadPoint, rankTargets, shieldFaces, stunned } from './combat.ts';
 import { Rng, hash32 } from './rng.ts';
 import { branchError, sanitizeBranch } from './tdbase.ts';
-import { GRID, INF, cellIdx, cellOf, cellX, cellY, inGrid, nextCell } from './grid.ts';
-import { ISLAND, UNIT, RULES_SINCE } from './types.ts';
+import { GRID, INF, cellIdx, cellOf, cellX, cellY, inGrid, inIsle, nextCell } from './grid.ts';
+import { ISLAND, UNIT } from './types.ts';
 import type { BuildingKind } from './types.ts';
 import { TD2_LOSE_AT, TD2_STAR_LOST, TD_ENEMY_ARMOR, TD_TOWER_KINDS, isTdTowerKind } from './td2types.ts';
 import { ESCORT_CELL, ESCORT_MEND, ESCORT_SHIP_R } from './escorttypes.ts';
 import type { EscortState } from './escorttypes.ts';
 import { escortBite, escortHullPct, escortRate, escortResult, escortShip } from './escort.ts';
 import type { TdBarricade, TdTier, TdTowerKind } from './td2types.ts';
-import type { TdAction, TdBlock, TdEnemy, TdEnemyDef, TdEnemyKind, TdEvent, TdGroup, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
+import type { TdAction, TdBlock, TdEnemy, TdEnemyDef, TdEnemyKind, TdEvent, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
 import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower, barricadeAt, cliffOn, onHigh, tdBuildCost } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
 import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, stepFleet, toggleSluice } from './tdmech.ts';
@@ -34,7 +34,7 @@ import { dareCount, heroCd, initHappen, killGold, payBounty, queueBounty, rainin
 
 /** 敌人在格子里按 id 散开的步长（单位）：同一条路上的敌人错开成几列，不叠成一个点 */
 export const TD_LANE_SPREAD = 18;
-/** 英雄等级上限：和基地的英雄研究一样（8 级后能研究到 12）；9 级以上的 setup 以前不存在，旧回放不受影响 */
+/** 英雄等级上限：和基地的英雄研究一样（8 级后能研究到 12） */
 const HERO_MAX = HERO_RESEARCH_MAX;
 
 // ------------------------------------------------------------ 开局
@@ -57,22 +57,9 @@ function costToTier(kind: TdTowerKind, tier: TdTier): number {
   return c;
 }
 
-/**
- * 按局的规则版本挑波次里的组（TdGroup.since / until）和开局金（TdLevel.goldSince）：关卡换配方时新旧两套并排写，旧版本的局只看旧的那套。
- * 没有分版本的组就原样返回（不复制，大潮这类按需往后生成波次的关卡照旧）
- */
-export function levelForRules<L extends TdLevel>(lv: L, rules: number): L {
-  const keep = (g: TdGroup): boolean => (g.since === undefined || rules >= g.since) && (g.until === undefined || rules < g.until);
-  const gs = lv.goldSince;
-  const out = gs && rules >= gs.since ? { ...lv, gold: gs.gold } : lv;
-  if (lv.waves.every((w) => w.groups.every((g) => g.since === undefined && g.until === undefined))) return out;
-  return { ...out, waves: lv.waves.map((w) => ({ ...w, groups: w.groups.filter(keep) })) };
-}
-
 export function createTd(setup: TdSetup): TdState {
-  const level = levelForRules(setup.level, setup.rules);
-  // 规则版本 10 以前没有震荡炮、11 以前没有狙击塔：岛上的、驻守台的、能造的都去掉（旧版本的局里本来就没有，回放逐位不变）
-  const missing = (k: string): boolean => (setup.rules < RULES_SINCE.shockGrenadier && k === 'shock') || (setup.rules < RULES_SINCE.sniperShield && k === 'sniper');
+  const level = setup.level;
+  const ext = setup.ext ?? 0;
   ensureWaves(level, ENDLESS_AHEAD);
   const fixed = new Uint8Array(GRID * GRID);
   const towers: TdTower[] = [];
@@ -82,7 +69,7 @@ export function createTd(setup: TdSetup): TdState {
   let maxId = 0;
   for (const p of setup.layout) {
     const def = BUILDINGS[p.kind];
-    if (!def || missing(p.kind)) continue;
+    if (!def) continue;
     maxId = Math.max(maxId, p.id);
     const lv = Math.max(1, Math.min(def.maxLevel, p.level));
     if (def.category === 'deco') continue; // 装饰不挡路（和登陆战一样）
@@ -102,11 +89,11 @@ export function createTd(setup: TdSetup): TdState {
       towers.push({ id: p.id, kind: p.kind, level: lv, x: p.x, y: p.y, size: def.size, branch: sanitizeBranch(p.kind, lv, p.branch) ?? [], cd: 0, aim: -1, lock: -1, slot: -1 });
     }
   }
-  // 第四章的水面（规则版本 18，只有写了 water 的关才有）：和建筑一样整格挡死，谁都走不过去
-  if (setup.rules >= RULES_SINCE.tdChapter4) for (const c of level.water ?? []) if (inGrid(c.x, c.y)) fixed[cellIdx(c.x, c.y)] = 2;
-  // 第五章的断崖（规则版本 26）：和水面一样挡死；崖上的高台不在断崖格里（content 里扣掉了），照常是木台
-  const cliffs = cliffOn({ rules: setup.rules, level });
-  if (cliffs) for (const c of level.cliffs ?? []) if (inGrid(c.x, c.y)) fixed[cellIdx(c.x, c.y)] = 2;
+  // 第四章的水面（只有写了 water 的关才有）：和建筑一样整格挡死，谁都走不过去
+  for (const c of level.water ?? []) if (inGrid(ext, c.x, c.y)) fixed[cellIdx(c.x, c.y)] = 2;
+  // 第五章的断崖：和水面一样挡死；崖上的高台不在断崖格里（content 里扣掉了），照常是木台
+  const cliffs = cliffOn({ level });
+  if (cliffs) for (const c of level.cliffs ?? []) if (inGrid(ext, c.x, c.y)) fixed[cellIdx(c.x, c.y)] = 2;
   // 没摆宝藏箱的岛（老档、测试）：放在主寨旁边第一个空格，保证有目标
   if (treasures.length === 0 && !level.escort) {
     const hq = setup.layout.find((b) => b.kind === 'hq');
@@ -117,7 +104,7 @@ export function createTd(setup: TdSetup): TdState {
         for (let dy = -r; dy <= r && treasures.length === 0; dy++) {
           const x = cx + dx;
           const y = cy + dy;
-          if (x < 0 || y < 0 || x >= ISLAND || y >= ISLAND || fixed[cellIdx(x, y)] !== 0) continue;
+          if (!inIsle(ext, x, y) || fixed[cellIdx(x, y)] !== 0) continue;
           if (walls.some((w) => w.x === x && w.y === y)) continue;
           fixed[cellIdx(x, y)] = 2;
           treasures.push({ id: ++maxId, x, y });
@@ -128,7 +115,7 @@ export function createTd(setup: TdSetup): TdState {
   const taken = (x: number, y: number, size: number): boolean => {
     for (let ox = 0; ox < size; ox++) {
       for (let oy = 0; oy < size; oy++) {
-        if (!inGrid(x + ox, y + oy) || fixed[cellIdx(x + ox, y + oy)] !== 0) return true;
+        if (!inGrid(ext, x + ox, y + oy) || fixed[cellIdx(x + ox, y + oy)] !== 0) return true;
         if (walls.some((w) => w.x === x + ox && w.y === y + oy)) return true;
       }
     }
@@ -172,7 +159,7 @@ export function createTd(setup: TdSetup): TdState {
   // 驻守台上的塔：阶、分叉由 tdrun 按存档算好；分叉只校验 id 和先后（基地上已按那座塔的等级校验过）
   for (const g of setup.garrison ?? []) {
     const sl = slots.find((q) => q.garrison === g.spot);
-    if (!sl || sl.tower >= 0 || !isTdTowerKind(g.kind) || missing(g.kind)) continue;
+    if (!sl || sl.tower >= 0 || !isTdTowerKind(g.kind)) continue;
     const tier: TdTier = g.tier === 3 ? 3 : g.tier === 2 ? 2 : 1;
     const t: TdTower = {
       id: ++maxId, kind: g.kind, level: TD_TIER_LEVEL[tier], x: sl.x, y: sl.y, size: 2, branch: sanitizeBranch(g.kind, TD_TIER_LEVEL[3], g.branch) ?? [],
@@ -230,10 +217,11 @@ export function createTd(setup: TdSetup): TdState {
   };
   const s: TdState = {
     rules: setup.rules,
+    ext,
     tick: 0,
     level,
     mode: setup.mode ?? (level.escort ? 'escort' : 'campaign'),
-    unlocked: TD_TOWER_KINDS.filter((k) => (!setup.unlocked || setup.unlocked.includes(k)) && !missing(k)),
+    unlocked: TD_TOWER_KINDS.filter((k) => !setup.unlocked || setup.unlocked.includes(k)),
     enemies: [],
     towers,
     walls,
@@ -257,9 +245,9 @@ export function createTd(setup: TdSetup): TdState {
   };
   if (level.escort) {
     // 护航：船停在起点（要玩家定速度），没有宝藏箱
-    // 规则 25 起娱乐护航照顾新手：开局英雄就跟着船（不跟随时普通机器人新手档三张图全沉，新手又找不到这个开关）；
+    // 娱乐护航照顾新手：开局英雄就跟着船（不跟随时普通机器人新手档三张图全沉，新手又找不到这个开关）；
     // 第一波开打时还没碰过船速就替他点「巡航」（试玩里造塔造过了头，船停在港口被第一波钉死）
-    const assist = !!setup.escortAssist && setup.rules >= RULES_SINCE.escortEase;
+    const assist = !!setup.escortAssist;
     s.escort = {
       def: level.escort, pos: 0, pace: 'hold', hull: level.escort.hull, biters: 0, mendReady: 0, follow: assist,
       gatesPassed: 0, arrived: false, sunk: false, mends: 0,
@@ -276,10 +264,10 @@ export function createTd(setup: TdSetup): TdState {
 
 // ------------------------------------------------------------ 伤害
 
-/** 分裂、召唤的落点在水面上（第四章）就落在原地 (fx, fy)：没有水面的关原样返回，旧关逐位不变 */
+/** 分裂、召唤的落点在水面上（第四章）就落在原地 (fx, fy)：没有水面的关原样返回 */
 function offWater(s: TdState, x: number, y: number, fx: number, fy: number): { x: number; y: number } {
   const w = s.level.water;
-  if (!w || s.rules < RULES_SINCE.tdChapter4) return { x, y };
+  if (!w) return { x, y };
   const cx = Math.floor(x / UNIT);
   const cy = Math.floor(y / UNIT);
   return w.some((c) => c.x === cx && c.y === cy) ? { x: fx, y: fy } : { x, y };
@@ -316,7 +304,7 @@ function faceShield(e: TdEnemy, dx: number, dy: number): void {
 }
 
 /**
- * 直射命中盾兵（规则版本 11）：盾朝着来弹、没被震晕，枪弹和炮弹的单体伤害只吃 SHIELD.frontPct%，推 guard 事件；
+ * 直射命中盾兵：盾朝着来弹、没被震晕，枪弹和炮弹的单体伤害只吃 SHIELD.frontPct%，推 guard 事件；
  * 火、爆和溅射不走这里（p.sx 只有直射才写：塔都写，英雄的枪只在断崖关写，见 tdhero.ts）。
  * 盾挡不挡只判这一处：从崖上高台往下打的（p.above）挡不住；被锚钩钩住的在拖动和定住期间算震晕，盾放下，挡不住。
  */
@@ -333,7 +321,7 @@ function damageEnemy(s: TdState, ev: TdEvent[], e: TdEnemy, dmg: number, h: Hit)
   const m = mult(h, TD_ENEMY_ARMOR[e.kind]);
   if (m <= 0) return;
   const def = TD2_ENEMIES[e.kind];
-  // 暴雨（规则版本 22）：火的伤害打折
+  // 暴雨：火的伤害打折
   const wet = h.dt === 'fire' && raining(s) ? TD2_EVENT.rain.firePct : 100;
   const d = Math.floor((Math.floor((dmg * wet) / 100) * m) / 100);
   e.hp -= d;
@@ -403,7 +391,7 @@ interface Blast {
   blocks: boolean;
   slowPct: number;
   slowTicks: number;
-  /** 震荡炮：炸到的敌人震晕几拍（规则版本 10） */
+  /** 震荡炮：炸到的敌人震晕几拍 */
   stun?: number;
 }
 
@@ -466,7 +454,7 @@ function resolvePend(s: TdState, ev: TdEvent[]): void {
   }
 }
 
-/** 手雷落地（规则版本 10）：英雄挨全额，墙按 wallPct% 算，拒马挨全额；不炸敌人自己 */
+/** 手雷落地：英雄挨全额，墙按 wallPct% 算，拒马挨全额；不炸敌人自己 */
 function lobBlast(s: TdState, ev: TdEvent[], p: Pend): void {
   const r2 = p.r * p.r;
   ev.push({ type: 'explode', x: p.x, y: p.y, r: p.r });
@@ -508,7 +496,7 @@ function lobAhead(s: TdState, e: TdEnemy, f: Int32Array, range: number): { x: nu
   let x = e.x;
   let y = e.y;
   for (let k = 0; k < 4; k++) {
-    const n = nextCell(I.occ, f, x, y);
+    const n = nextCell(I.occ, s.ext, f, x, y);
     if (n < 0) return null;
     const cx = cellX(n);
     const cy = cellY(n);
@@ -648,7 +636,7 @@ function barricadeCell(s: TdState, x: number, y: number): { cx: number; cy: numb
   ensureGrid(s);
   const cx = Math.floor(x / UNIT);
   const cy = Math.floor(y / UNIT);
-  if (!inGrid(cx, cy) || (inner(s).occ[cellIdx(cx, cy)] ?? 0) !== 0) return null;
+  if (!inGrid(s.ext, cx, cy) || (inner(s).occ[cellIdx(cx, cy)] ?? 0) !== 0) return null;
   if (s.barricades.some((b) => b.x === cx && b.y === cy)) return null;
   return { cx, cy };
 }
@@ -731,12 +719,9 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     }
     case 'move':
       if (h.respawn >= 0 || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
-      h.goal = { x: Math.round(a.x), y: Math.round(a.y) };
-      if (s.rules >= RULES_SINCE.tdHeroAuto) {
-        // 指到木台上就挪到台边：英雄站在台上会挡住造塔
-        h.goal = offSlot(s, h.goal.x, h.goal.y);
-        inner(s).heroCmd = true;
-      }
+      // 指到木台上就挪到台边：英雄站在台上会挡住造塔
+      h.goal = offSlot(s, Math.round(a.x), Math.round(a.y));
+      inner(s).heroCmd = true;
       h.post = { ...h.goal };
       inner(s).heroAuto = false;
       h.clear = -1;
@@ -833,7 +818,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       castReward(s, ev, a.x, a.y);
       return;
     case 'rally':
-      // 规则版本 7 起号令是被动（英雄身边的塔攻速加成，见 stepTowers），这条旧命令不做事
+      // 号令是被动的（英雄身边的塔攻速加成，见 stepTowers），这条命令不做事
       return;
   }
 }
@@ -851,7 +836,7 @@ function stepSpawns(s: TdState, ev: TdEvent[]): void {
     }
     const e = spawnEnemy(s, ev, sp.kind, sp.x + I.rng.int(81) - 40, sp.y + I.rng.int(81) - 40, sp.x, sp.y, sp.wave);
     if (sp.exit) {
-      // 赏金船（规则版本 22）：血量翻几倍，一上岸就当"回船"往另一条登陆路跑（不抢宝藏、跑掉不算丢）
+      // 赏金船：血量翻几倍，一上岸就当"回船"往另一条登陆路跑（不抢宝藏、跑掉不算丢）
       e.bounty = true;
       e.hp = e.maxHp = e.maxHp * TD2_EVENT.bounty.hpMul;
       e.mode = 'out';
@@ -894,7 +879,7 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
       e.trail.push(e.x, e.y);
       if (e.trail.length > 12) e.trail.splice(0, 2);
     }
-    // 锚钩（规则版本 20）拉着的：这几拍由钩子拖着走，自己不走不打（旧局没有 hook 字段）
+    // 锚钩拉着的：这几拍由钩子拖着走，自己不走不打
     if (e.hook) {
       stepHooked(s, e);
       continue;
@@ -904,7 +889,7 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
       stepGunboat(s, ev, e, def.shell);
       continue;
     }
-    // 规则版本 10：震晕中不走不打（stunUntil 只有震荡炮会写）
+    // 震晕中不走不打（stunUntil 只有震荡炮会写）
     if (stunned(e, s.tick)) continue;
     let spd = def.speed * 100;
     for (const c of captains) {
@@ -1032,7 +1017,7 @@ function stepGunboat(s: TdState, ev: TdEvent[], e: TdEnemy, sh: NonNullable<TdEn
 }
 
 /**
- * 海盗王（规则版本 19）：停泊期间每 drop.every 拍在身边放下一船人（震晕时照放，船上的人不归它管）；血掉到一半时叫来护航（一局一次），
+ * 海盗王：停泊期间每 drop.every 拍在身边放下一船人（震晕时照放，船上的人不归它管）；血掉到一半时叫来护航（一局一次），
  * 护航沿着它所在的那条岸边一左一右各摆一艘，停泊时间照自己的算
  */
 function stepKing(s: TdState, ev: TdEvent[], e: TdEnemy, sh: NonNullable<TdEnemyDef['shell']>, def: TdEnemyDef): void {
@@ -1048,7 +1033,7 @@ function stepKing(s: TdState, ev: TdEvent[], e: TdEnemy, sh: NonNullable<TdEnemy
   if (def.escort && e.hp * 2 <= e.maxHp && !I.skilled.has(e.id)) {
     I.skilled.add(e.id);
     ev.push({ type: 'king', what: 'escort', id: e.id, x: e.x, y: e.y });
-    const mid = (GRID * UNIT) / 2;
+    const mid = (ISLAND * UNIT) / 2;
     const alongY = Math.abs(e.x - mid) > Math.abs(e.y - mid);
     for (let i = 0; i < def.escort.n; i++) {
       const off = (i % 2 === 0 ? 1 : -1) * 250 * (1 + (i >> 1));
@@ -1152,7 +1137,7 @@ function grab(s: TdState, ev: TdEvent[], e: TdEnemy): void {
 /** 沿流场走一步；前面是墙就砸（工兵炸），前面是拒马就砸拒马；已经在终点格就直走到 (fx, fy)（NaN = 不用走） */
 function walk(s: TdState, ev: TdEvent[], e: TdEnemy, f: Int32Array, spd: number, fx: number, fy: number): void {
   const I = inner(s);
-  const n = nextCell(I.occ, f, e.x, e.y);
+  const n = nextCell(I.occ, s.ext, f, e.x, e.y);
   if (n < 0) {
     if (Number.isFinite(fx)) moveToward(e, fx, fy, spd);
     return;
@@ -1375,7 +1360,8 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
       ev.push({ type: 'shoot', id: t.id, x0: cx, y0: cy, x1: at.x, y1: at.y, t1: s.tick + fl, target: e.id });
       const base = {
         hit: { dt: st.dt, branch: st.branch, heavy: st.heavy }, slowPct: st.slowPct, slowTicks: st.slowTicks, burnDps: 0, burnTicks: 0, pull: 0,
-        ...(s.rules >= RULES_SINCE.sniperShield ? { sx: cx, sy: cy } : {}),
+        sx: cx,
+        sy: cy,
         ...(high ? { above: true as const } : {}),
       };
       if (st.line) {
@@ -1447,7 +1433,7 @@ function stepTraps(s: TdState, ev: TdEvent[]): void {
 function stepFires(s: TdState, ev: TdEvent[]): void {
   if (s.fires.length === 0) return;
   s.fires = s.fires.filter((f) => f.until > s.tick);
-  // 暴雨（规则版本 22）：地上的火不烧（照样到时间灭）
+  // 暴雨：地上的火不烧（照样到时间灭）
   if (s.tick % 10 !== 0 || raining(s)) return;
   for (const f of s.fires) {
     for (const e of s.enemies) {
@@ -1577,17 +1563,17 @@ export function tdFingerprint(s: TdState): number {
   for (const tr of I.traps) parts.push(tr.fired ? 1 : 0, tr.rearm);
   const h = s.hero;
   parts.push(h.x, h.y, h.hp, h.respawn, h.cd, h.kegReady, h.barricadeReady ?? 0);
-  // 锚钩（规则版本 20）只在有锚钩的局里进指纹，旧版本和没有锚钩的模式指纹不变
+  // 锚钩只在有锚钩的局里进指纹
   if (h.hookReady !== undefined) parts.push(h.hookReady);
-  // 航海士（规则版本 23）只在带了航海士的局里进指纹，船长局指纹不变
+  // 航海士只在带了航海士的局里进指纹
   if (h.kind) parts.push(-23, h.flag?.x ?? -1, h.flag?.y ?? -1, h.flag?.until ?? 0, h.reward?.x ?? -1, h.reward?.y ?? -1, h.reward?.until ?? 0);
   for (const [id, until] of [...I.jam].sort((a, b) => a[0] - b[0])) parts.push(id, until);
   parts.push(I.skilled.size);
-  // 章末机制（规则版本 16）只在有的局里进指纹，旧版本、没有机制的关的指纹不变
+  // 章末机制只在有的局里进指纹
   if (s.sluice) parts.push(s.sluice.left, ...s.sluice.shut);
   if (s.battery) parts.push(s.battery.ready);
   if (s.fleet) parts.push(s.fleet.ready, ...(s.fleet.sail ? [s.fleet.sail.p0, s.fleet.sail.t0, s.fleet.sail.next] : [-1]));
-  // 关内事件（规则版本 22）只在有的局里进指纹
+  // 关内事件只在有的局里进指纹
   if (s.happen) {
     parts.push(-22, ...s.happen.dare);
     for (const a of s.happen.at) parts.push(a.wave, a.kind === 'bounty' ? 0 : a.kind === 'rain' ? 1 : 2);

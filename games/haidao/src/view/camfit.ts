@@ -27,9 +27,9 @@ export const BATTLE_Z_CAP = 2.2;
 /** 最大放大倍数：相对适配缩放 */
 const ZOOM_MAX = 3;
 
-/** 整座岛含沙滩（菱形）的包围盒：margin 是岛外沿的沙滩宽度（格，默认全部 3 格；基地用不上登陆，只留 1 格），extra 是还要装进来的格点（世界格坐标）；顶边留出建筑的高度 */
-export function islandBox(extra: ReadonlyArray<readonly [number, number]> = [], margin = BEACH): Box {
-  const e = margin;
+/** 整座岛含沙滩（菱形）的包围盒：ext 是岛按主寨扩了几圈，margin 是岛外沿的沙滩宽度（格，默认全部 3 格；基地用不上登陆，只留 1 格），extra 是还要装进来的格点（世界格坐标）；顶边留出建筑的高度 */
+export function islandBox(ext: number, extra: ReadonlyArray<readonly [number, number]> = [], margin = BEACH): Box {
+  const e = margin + ext;
   const pts: Array<readonly [number, number]> = [[-e, -e], [ISLAND + e, -e], [-e, ISLAND + e], [ISLAND + e, ISLAND + e], ...extra];
   let l = Infinity, r = -Infinity, t = Infinity, b = -Infinity;
   for (const [gx, gy] of pts) {

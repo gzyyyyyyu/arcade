@@ -11,6 +11,7 @@ export {
   capacity,
   collect,
   hqLevel,
+  islandExt,
   move,
   newProfile,
   produce,
@@ -32,10 +33,10 @@ export { presetLayout } from './preset.ts';
 export type { PresetStyle } from './preset.ts';
 export { nextUnlock, unlocksAt } from './unlock.ts';
 export type { UnlockItem } from './unlock.ts';
-export { CONSOLATION_PCT, COSMETICS, RARE_POOL, TD_TROPHIES, STAR_BONUS_GOLD, STREAK_MAX_PCT, STREAK_STEP_PCT, equipSkin, rollDrops, settleCampaign, startCampaign } from './run.ts';
+export { CONSOLATION_PCT, COSMETICS, RARE_POOL, TD_TROPHIES, STAR_BONUS_GOLD, STREAK_MAX_PCT, STREAK_STEP_PCT, campaignSetup, equipSkin, rollDrops, settleCampaign, startCampaign } from './run.ts';
 export type { Drop } from './run.ts';
 export * from './tdtypes.ts';
-export { createTd, levelForRules, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
+export { createTd, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
 export { TD_TIER_LEVEL, cliffOn, tdBuildCost, tdBuildRange, tdHeroStats, tdJammed, tdTowerRange } from './tdstate.ts';
 export { tdBuildBlock, tdCallBonus, tdClearCost, tdIncomingWave, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSellRefund, tdWaveLanes, tideOpenAt } from './tdquery.ts';
 export { tdSluiceCan } from './tdmech.ts';
@@ -65,7 +66,7 @@ export { counterKind, freeSlotPick, tdBotActions, runTdBot } from './tdbot.ts';
 export type { TdBotKind, TdBotOpts } from './tdbot.ts';
 export { nextTdUnlock, placeTdLevel, settleTd, tdDailyCap, tdLevelUnlocked, tdRunReward } from './tdrun.ts';
 export type { TdNextUnlock, TdReward } from './tdrun.ts';
-export { TIDE_HERO_AUTO_FROM, TIDE_KILLS_CAP, TIDE_MAX_TICKS, TIDE_MODS_FROM, beijingIsoWeek, tideBoardId, tideDecode, tideLine, tideMap, tideMod, tidePick, tideRules, tideScore, tideSeed, tideSetup, weekLabel } from './tdtide.ts';
+export { TIDE_KILLS_CAP, TIDE_MAX_TICKS, TIDE_MODS_FROM, beijingIsoWeek, tideBoardId, tideDecode, tideLine, tideMap, tideMod, tidePick, tideScore, tideSeed, tideSetup, weekLabel } from './tdtide.ts';
 export type { IsoWeek } from './tdtide.ts';
 export { TIDE_MAPS, TIDE_MODS } from '../content/tdtide.ts';
 export type { TideMap, TideModId } from '../content/tdtide.ts';

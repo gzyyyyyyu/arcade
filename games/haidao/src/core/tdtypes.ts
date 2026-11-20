@@ -8,7 +8,7 @@ import type {
   Td2Action, Td2Event, TdGarrisonSpot, TdGarrisonTower, TdHomeGen, TdMode, TdPadDef, TdTier, TdTowerKind,
 } from './td2types.ts';
 
-/** 守岛关内事件：赏金船、暴雨、战书（规则版本 22，core/tdevent.ts） */
+/** 守岛关内事件：赏金船、暴雨、战书（core/tdevent.ts） */
 export type TdEventKind = 'bounty' | 'rain' | 'dare';
 
 export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield' | 'bosun' | 'macaw' | 'mate' | 'medic' | 'gunboat' | 'king';
@@ -38,18 +38,18 @@ export interface TdEnemyDef {
   bomb?: { dmg: number; r: number };
   /** 首领：周围的敌人加速（半径单位、加速百分比） */
   aura?: { r: number; pct: number };
-  /** 掷弹兵（规则版本 10）：离挡路的墙、拒马、英雄 range 单位内就停下扔手雷，落点半径 r，炸墙按 wallPct% 算 */
+  /** 掷弹兵：离挡路的墙、拒马、英雄 range 单位内就停下扔手雷，落点半径 r，炸墙按 wallPct% 算 */
   lob?: { range: number; r: number; wallPct: number };
-  /** 军医（规则版本 18）：每秒给 r 单位内别的同伴（首领除外）回最大血量的 pct% */
+  /** 军医：每秒给 r 单位内别的同伴（首领除外）回最大血量的 pct% */
   heal?: { r: number; pct: number };
   /**
-   * 炮艇（规则版本 18）：停在登陆点外的海上不上岸，每 reload 拍炸哑 range 单位内最近的一座塔 jamTicks 拍，停 moor 拍后开走；
+   * 炮艇：停在登陆点外的海上不上岸，每 reload 拍炸哑 range 单位内最近的一座塔 jamTicks 拍，停 moor 拍后开走；
    * 海上的目标只有射程够远的塔打得到（TD_SEA_RANGE），英雄打不到
    */
   shell?: { range: number; reload: number; jamTicks: number; moor: number };
-  /** 海盗王（规则版本 19）：停在海上时每 every 拍在身边放下 n 个 kind（上岸去抢） */
+  /** 海盗王：停在海上时每 every 拍在身边放下 n 个 kind（上岸去抢） */
   drop?: { every: number; n: number; kind: TdEnemyKind };
-  /** 海盗王（规则版本 19）：血掉到一半时叫来 n 个 kind 护航（一局一次） */
+  /** 海盗王：血掉到一半时叫来 n 个 kind 护航（一局一次） */
   escort?: { n: number; kind: TdEnemyKind };
 }
 
@@ -80,7 +80,7 @@ export interface BranchMod {
   line?: boolean;
   /** 拖拽：把敌人拉回到多少拍之前的位置 */
   pull?: number;
-  /** 震荡炮：震晕时长改成多少拍（规则版本 10） */
+  /** 震荡炮：震晕时长改成多少拍 */
   stunTicks?: number;
 }
 
@@ -117,12 +117,6 @@ export interface TdGroup {
   every: number;
   /** 这一波开始后多少拍才开始上这一组 */
   delay?: number;
-  /**
-   * 只在这个规则版本区间 [since, until) 的局里出（没写 = 不限）。关卡换配方时新旧两套组并排写，
-   * createTd 按 setup.rules 挑，旧版本的局逐位不变（RULES_SINCE.tdElite）
-   */
-  since?: number;
-  until?: number;
 }
 
 export interface TdWave {
@@ -154,8 +148,6 @@ export interface TdLevel {
   hpPct: number;
   /** 开局局内金币 */
   gold: number;
-  /** 从规则版本 since 起开局金改成 gold（关卡给新手放宽时用；旧版本的局照旧用上面的 gold，levelForRules 换） */
-  goldSince?: { since: number; gold: number };
   /**
    * 开局造法：第一张预告卡写「先造」哪几座塔、木台上标金圈（战役关卡给新手的提示，只给画面读；规则和机器人不读、不进指纹）。
    * 按顺序：先造哪块木台（slot 是木台下标）、造什么塔
@@ -183,23 +175,23 @@ export interface TdLevel {
   flank?: boolean;
   /** 炸塔工兵（第三章起）：工兵走到离塔 1.5 格就引爆（自己没了），半径（格）内的塔哑火这么多拍 */
   sapperJam?: { r: number; ticks: number };
-  /** 水面格（规则版本 18，第四章的水道、火口湖）：谁都走不过去，塔、木台也不摆在上面；飞的照飞 */
+  /** 水面格（第四章的水道、火口湖）：谁都走不过去，塔、木台也不摆在上面；飞的照飞 */
   water?: Array<{ x: number; y: number }>;
   /**
-   * 断崖格（规则版本 26，第五章）：和水面一样谁都走不过去（飞的照飞），画成一块高出地面的红褐色崖；崖上的木台是高台（TdPadDef.high）。
+   * 断崖格（第五章）：和水面一样谁都走不过去（飞的照飞），画成一块高出地面的红褐色崖；崖上的木台是高台（TdPadDef.high）。
    * 关卡写了它才开断崖关的规则（tdstate.ts 的 cliffOn）：高台、盾兵也挡英雄的枪
    */
   cliffs?: Array<{ x: number; y: number }>;
   /**
-   * 潮汐水闸（规则版本 16，第二章最后两关）：落潮路口一道闸，下一波落潮路要开时玩家可以关上那一波（走落潮路的组改走 0 号路），
-   * 一局能关几次。要和 tide、tideOpen 一起写；规则版本低于 16 的局不起作用（tdmech.ts）
+   * 潮汐水闸（第二章最后两关）：落潮路口一道闸，下一波落潮路要开时玩家可以关上那一波（走落潮路的组改走 0 号路），
+   * 一局能关几次。要和 tide、tideOpen 一起写（tdmech.ts）
    */
   sluice?: number;
-  /** 漂流补给箱（规则版本 16，第一章最后两关）：第几波（0 起）开打时在哪一格（沙滩）漂来一个箱子 */
+  /** 漂流补给箱（第一章最后两关）：第几波（0 起）开打时在哪一格（沙滩）漂来一个箱子 */
   crates?: Array<{ wave: number; x: number; y: number }>;
-  /** 岸防老炮（规则版本 16，第三章最后两关）：炮台摆在哪一格（只是画面和炮弹的出膛点，不挡路）；全岛都打得到 */
+  /** 岸防老炮（第三章最后两关）：炮台摆在哪一格（只是画面和炮弹的出膛点，不挡路）；全岛都打得到 */
   battery?: { x: number; y: number };
-  /** 友军巡航船（规则版本 19，第四章最后两关）：写了就有；船沿岛外一圈开，不需要坐标 */
+  /** 友军巡航船（第四章最后两关）：写了就有；船沿岛外一圈开，不需要坐标 */
   fleet?: boolean;
   /**
    * 大潮无尽（DESIGN 10.6e）：写了它，波次按波数现生成（`waves` 只是已经生成的前缀，开局和每开一波都往后补几波），打不完，宝藏丢光才结束。
@@ -207,7 +199,7 @@ export interface TdLevel {
    */
   endless?: (w: number) => TdWave;
   /**
-   * 关内事件（规则版本 22，core/tdevent.ts）：每条在 [from, to] 波（0 起）里由这一局的种子挑一波发生；规则版本低于 22 的局不起作用
+   * 关内事件（core/tdevent.ts）：每条在 [from, to] 波（0 起）里由这一局的种子挑一波发生
    */
   events?: Array<{ kind: TdEventKind; from: number; to: number }>;
   /** 大潮每周海况：击杀金按这个百分比给（没写 100） */
@@ -249,13 +241,15 @@ export interface TdSetup {
   unlocked?: TdTowerKind[];
   /** 守岛 2.0 海盗来袭：波次生成参数 */
   home?: TdHomeGen;
-  /** 带哪个英雄（规则版本 23）：'nav' 航海士；没写 = 船长。只在战役和海盗来袭起作用（tdnav.ts 的 navEnabled） */
+  /** 带哪个英雄：'nav' 航海士；没写 = 船长。只在战役和海盗来袭起作用（tdnav.ts 的 navEnabled） */
   heroKind?: 'nav';
   /**
-   * 娱乐护航的新手照顾（规则版本 25）：开局英雄就跟随船；第一波开打时玩家还没碰过船速，船自己开始巡航。
-   * 只由 escortSetup 给娱乐局设；实盘不设，局面和规则 24 逐位一样
+   * 娱乐护航的新手照顾：开局英雄就跟随船；第一波开打时玩家还没碰过船速，船自己开始巡航。
+   * 只由 escortSetup 给娱乐局设；实盘不设
    */
   escortAssist?: boolean;
+  /** 自己的岛扩了几圈（海盗来袭按主寨等级，islandExt）；没写 = 不扩 */
+  ext?: number;
 }
 
 export type TdAction =
@@ -301,11 +295,11 @@ export interface TdEnemy {
   py?: number;
   /** 每 10 拍记一次位置（拖拽用），最多 6 个 */
   trail: number[];
-  /** 被锚钩拉着（规则版本 20）：从 at 拍起每 perCell 拍走完一格，按顺序走到 cells（格下标）的格中心；走完删掉 */
+  /** 被锚钩拉着：从 at 拍起每 perCell 拍走完一格，按顺序走到 cells（格下标）的格中心；走完删掉 */
   hook?: { cells: number[]; at: number };
   /** 炮艇：哪一拍开走（不带宝藏、不算丢） */
   until?: number;
-  /** 赏金船（规则版本 22）：不抢宝藏，一上岸就往 hx、hy（另一条登陆路）跑，打倒多给局内金 */
+  /** 赏金船：不抢宝藏，一上岸就往 hx、hy（另一条登陆路）跑，打倒多给局内金 */
   bounty?: true;
 }
 
@@ -368,9 +362,9 @@ export interface TdHero {
   aim: number;
   /** 技能一下次能放的拍：船长是拒马（守岛 2.0），航海士是急射旗 */
   barricadeReady?: number;
-  /** 锚钩（规则版本 20）下次能放的拍；这一局没有锚钩（版本、模式、英雄等级不够）为 undefined，旧局的指纹因此不变 */
+  /** 锚钩下次能放的拍；这一局没有锚钩（模式、英雄等级不够）为 undefined，这时不进指纹 */
   hookReady?: number;
-  /** 航海士（规则版本 23）；船长不写，旧局和船长局的指纹因此不变 */
+  /** 航海士；船长不写 */
   kind?: 'nav';
   /** 急射旗：插在 (x, y)（单位），圈里的塔 until 拍之前装填减半 */
   flag?: { x: number; y: number; until: number };
@@ -393,7 +387,7 @@ export interface TdSlot {
   wreck?: number;
   /** 守岛 2.0：这块上已经花了多少金（卖塔按它退） */
   spent?: number;
-  /** 规则版本 26：崖上的高台（TdPadDef.high，断崖关才有） */
+  /** 崖上的高台（TdPadDef.high，断崖关才有） */
   high?: true;
 }
 

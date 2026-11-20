@@ -6,9 +6,9 @@ import {
 import type { BattleAction, BattleSetup } from '../src/core/index.ts';
 import { sampleArmy } from '../tools/sample.ts';
 
-function setupFor(i: number, seed = 1, rules = RULES_VERSION): BattleSetup {
+function setupFor(i: number, seed = 1): BattleSetup {
   const lv = CAMPAIGN[i]!;
-  return { layout: lv.layout, army: sampleArmy(lv.hq), seed, rules };
+  return { layout: lv.layout, army: sampleArmy(lv.hq), seed, rules: RULES_VERSION };
 }
 
 describe('战斗', () => {
@@ -221,34 +221,20 @@ describe('隐藏信息与金标准', () => {
     expect(s.buildings.filter((b) => b.kind === 'mine' && !b.destroyed).every((b) => !b.revealed)).toBe(true);
   });
 
-  it('金标准：固定 setup 加机器人操作的整场指纹（规则改了要有意更新并升 RULES_VERSION；版本 6 不改战役，指纹和版本 5 一样；版本 7、8 只改守岛；不带前缀的键锁版本 8，v9- 的锁版本 9）', () => {
-    expect(RULES_VERSION).toBe(26);
+  it('金标准：固定 setup 加机器人操作的整场指纹（只锁当前规则版本，规则改了要有意更新并升 RULES_VERSION）', () => {
+    expect(RULES_VERSION).toBe(28);
     const got: Record<string, string> = {};
-    for (const rules of [8, 9]) {
-      for (const [i, style] of [[0, 'normal'], [4, 'normal'], [7, 'novice'], [11, 'normal']] as const) {
-        const setup = setupFor(i, 42, rules);
-        const r = runBattle(setup, botActions(setup, style));
-        got[`${rules === 8 ? '' : `v${rules}-`}${CAMPAIGN[i]!.id}-${style}`] = `${battleFingerprint(r.state)} t${r.state.tick} s${r.result.stars} p${r.result.destroyedPct} e${r.events}`;
-      }
-    }
-    // 规则版本 10 只加震荡炮、掷弹兵和震晕，11 只加狙击塔、盾兵：战役岛和典型部队里都没有，指纹和版本 9 逐位一样
-    for (const rules of [10, 11]) {
-      for (const [i, style] of [[0, 'normal'], [4, 'normal'], [7, 'novice'], [11, 'normal']] as const) {
-        const setup = setupFor(i, 42, rules);
-        const r = runBattle(setup, botActions(setup, style));
-        expect(`${battleFingerprint(r.state)} t${r.state.tick} s${r.result.stars} p${r.result.destroyedPct} e${r.events}`, `v${rules} ${CAMPAIGN[i]!.id}`).toBe(got[`v9-${CAMPAIGN[i]!.id}-${style}`]);
-      }
+    for (const [i, style] of [[0, 'normal'], [4, 'normal'], [7, 'novice'], [11, 'normal']] as const) {
+      const setup = setupFor(i, 42);
+      const r = runBattle(setup, botActions(setup, style));
+      got[`${CAMPAIGN[i]!.id}-${style}`] = `${battleFingerprint(r.state)} t${r.state.tick} s${r.result.stars} p${r.result.destroyedPct} e${r.events}`;
     }
     expect(got).toMatchInlineSnapshot(`
       {
-        "c01-normal": "1286599511 t2357 s3 p100 e1222",
-        "c05-normal": "3345519285 t3600 s2 p72 e1467",
-        "c08-novice": "1546703860 t3600 s1 p46 e1776",
-        "c12-normal": "2898823692 t3320 s0 p41 e1139",
-        "v9-c01-normal": "113238476 t2401 s3 p100 e1229",
-        "v9-c05-normal": "2686508635 t2026 s2 p63 e1439",
-        "v9-c08-novice": "1623798829 t3600 s1 p46 e1826",
-        "v9-c12-normal": "2315145875 t2253 s1 p47 e2274",
+        "c01-normal": "113238476 t2401 s3 p100 e1229",
+        "c05-normal": "2686508635 t2026 s2 p63 e1439",
+        "c08-novice": "1623798829 t3600 s1 p46 e1826",
+        "c12-normal": "2315145875 t2253 s1 p47 e2274",
       }
     `);
   }, 15_000); // 负载 28–32、maxWorkers=1 实测 3.3 秒，取 4 倍

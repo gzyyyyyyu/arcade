@@ -1,6 +1,6 @@
 /**
  * 守岛相关的基地函数（纯函数，不改入参）：塔的分叉、守岛英雄的研究、给攻防用的快照。
- * 规则版本 6 起宝藏箱、分叉、英雄研究都进攻防（DESIGN 10.6）：pvpSnapshot 只去掉攻防用不上的本机进度。
+ * 宝藏箱、分叉、英雄研究都进攻防（DESIGN 10.6）：pvpSnapshot 只去掉攻防用不上的本机进度。
  */
 import { BRANCH_BY_ID, BRANCH_LEVEL } from '../content/branches.ts';
 import { HERO_RESEARCH_MAX } from '../content/tdunits.ts';
@@ -70,7 +70,7 @@ export function researchHero(p: Profile): Result<Profile> {
 }
 
 /**
- * 给攻防用的快照：宝藏箱、分叉、英雄研究原样带上（规则版本 6，服务端 validateBase 校验），只去掉攻防用不上的本机进度
+ * 给攻防用的快照：宝藏箱、分叉、英雄研究原样带上（服务端 validateBase 校验），只去掉攻防用不上的本机进度
  * （守岛进度 td、每日悬赏 daily、成就和称号、王阶攒了一半的 rankFund），快照小一点（上限 16 KB）。王阶 rank 留着，只给对面看王旗。
  */
 export function pvpSnapshot(p: Profile): Profile {

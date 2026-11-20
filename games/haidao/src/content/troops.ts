@@ -15,7 +15,7 @@ function lv(base: Omit<TroopLevel, 'hp' | 'dmg'> & { hp: number; dmg: number }, 
 }
 
 /**
- * 盾兵的盾（规则版本 11，DESIGN 14）：正面 ±60° 来的直射只吃 frontPct%；身后 coverRadius 单位内、
+ * 盾兵的盾（DESIGN 14）：正面 ±60° 来的直射只吃 frontPct%；身后 coverRadius 单位内、
  * 同在盾正面覆盖里的友军，每发直射少吃 coverCutPct%（每发只算一层）。守岛里的盾兵只用 frontPct（挡枪和炮的单体伤害）。
  */
 export const SHIELD = { frontPct: 35, coverRadius: 150, coverCutPct: 30 } as const;
@@ -85,7 +85,7 @@ export const TROOPS: Record<TroopKind, TroopDef> = {
     housing: 3,
     unlockHq: 7,
     desc: '举着大盾走在前面，正面来的炮弹、子弹只吃三成半，身后的友军也能躲一点。盾挡不住溅射和抛射（臼炮、喷火、火箭、震荡炮），被震晕时盾也放下。',
-    // 血是同级壮汉的 80%，走得慢、伤害低；盾朝走的方向，打建筑时朝目标（规则版本 11，DESIGN 14）
+    // 血是同级壮汉的 80%，走得慢、伤害低；盾朝走的方向，打建筑时朝目标（DESIGN 14）
     levels: lv({ hp: 416, dmg: 18, range: 0.9, speed: 1.0, reload: 40, cost: 42 }, 14, 14),
     prefers: 'defense',
   },
@@ -94,7 +94,7 @@ export const TROOPS: Record<TroopKind, TroopDef> = {
     housing: 2,
     unlockHq: 6,
     desc: '隔着城墙往里扔手雷，一炸一小片；炸到城墙只算三成。血薄、走得慢，怕喷火和火箭。',
-    // 射程 4.5 格、2.5 秒一发、1.2 格溅射；血 = 火枪手的一倍半（规则版本 10，DESIGN 13）
+    // 射程 4.5 格、2.5 秒一发、1.2 格溅射；血 = 火枪手的一倍半（DESIGN 13）
     levels: lv({ hp: 82, dmg: 34, range: 4.5, speed: 1.3, reload: 50, cost: 26, splash: 1.2 }, 14, 16),
   },
 };

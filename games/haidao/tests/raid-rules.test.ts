@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BRANCHES, BUILDINGS, CAMPAIGN, RULES_VERSION, battleFingerprint, battleResult, botActions, createBattle, heroLevel, newProfile, runBattle, stepBattle } from '../src/core/index.ts';
+import { BRANCHES, BUILDINGS, CAMPAIGN, RULES_VERSION, battleFingerprint, campaignSetup, battleResult, botActions, createBattle, heroLevel, islandExt, newProfile, runBattle, stepBattle } from '../src/core/index.ts';
 import type { BattleEvent, BattleSetup, Placed } from '../src/core/index.ts';
 import { RAID_HERO, RAID_HERO_LEASH } from '../src/content/tdunits.ts';
 import { raidSetup, replayRaid } from '../src/core/pvp.ts';
@@ -7,155 +7,125 @@ import { validateBase } from '../src/core/validate.ts';
 import { fullBase, sampleArmy } from '../tools/sample.ts';
 
 /**
- * 规则版本 6（DESIGN 10.6）：宝藏箱、分叉、驻岛英雄进攻防。
- * 金标准是升版本前（规则版本 5 的代码）录下的 [指纹, 星数, 摧毁率]：旧版本的回放必须逐位不变。
- * 战役每关普通机器人种子 1、小白种子 2；hqN/布局/plain|td 是 fullBase 的满配岛（td = 带宝藏箱和分叉，版本 5 下分叉不起作用）、种子 7。
- * 难度曲线批：c13–c29 加了细档（gen.ts 的 TUNE：基础等级、升一级的塔数、狙击塔 / 震荡炮数量、摆位），这 17 关的键按新布局重录；c30 和前 12 关不变。
- * 0.31.18 战役曲线批：c06、c07、c11、c13、c14、c16、c18–c29 的布局变了，这几关按新布局重录（悬赏借用的 c07、c10、c16 已冻结成悬赏专用表，战役这份可以动）。
- * 0.31.23：c29 少一座火箭塔，c29 的两个键按新布局重录。
- * c11–c30（c16 除外）在 0.31.1 改了战役布局（后段加城墙、重新配平），这几关按新布局重录；c30 在 0.31.5 又改了一次布局（外圈缺口 1 格、防御 5 级），再重录；c08、c09 各挪了一门臼炮的位置（c08 挪到东南、c09 挪到南面）来配平，也按新布局重录；旧防守记录里存的是那一场 setup 的布局，回放不受影响。
+ * 攻防的金标准（只锁当前规则版本）：固定 setup 加机器人操作打完一场的 [指纹, 星数, 摧毁率]。
+ * 战役每关普通机器人种子 1、小白种子 2；hqN/布局/plain|td 是 fullBase 的满配岛（td = 带宝藏箱和分叉）、种子 7。
+ * 规则、战役布局、机器人改了就会变：有意改动后按新结果重录，并在提交说明里写清为什么；回放不保证跨版本，旧版本不另录。
  */
-const GOLDEN_R5: Record<string, [number, number, number]> = {
-  'c01/normal/1': [179559456, 3, 100],
-  'c01/novice/2': [1302726997, 3, 100],
-  'c02/normal/1': [3655416401, 3, 100],
-  'c02/novice/2': [4078578725, 3, 100],
-  'c03/normal/1': [2703610844, 3, 100],
-  'c03/novice/2': [208317703, 3, 100],
-  'c04/normal/1': [1702933610, 3, 100],
-  'c04/novice/2': [2891123879, 3, 100],
-  'c05/normal/1': [2919674657, 2, 90],
-  'c05/novice/2': [3539189479, 2, 72],
-  'c06/normal/1': [1049670336, 2, 50],
-  'c06/novice/2': [2428999782, 2, 50],
-  'c07/normal/1': [127821360, 2, 66],
-  'c07/novice/2': [1847336937, 0, 41],
-  'c08/normal/1': [3522649896, 2, 53],
-  'c08/novice/2': [3331143824, 1, 46],
-  'c09/normal/1': [1658411859, 2, 84],
-  'c09/novice/2': [1436958197, 0, 30],
-  'c10/normal/1': [4008941730, 2, 61],
-  'c10/novice/2': [1459892211, 1, 46],
-  'c11/normal/1': [2476205084, 1, 64],
-  'c11/novice/2': [3272753155, 2, 85],
-  'c12/normal/1': [4062649148, 0, 41],
-  'c12/novice/2': [279372744, 0, 29],
-  'c13/normal/1': [3596636415, 2, 80],
-  'c13/novice/2': [3534674592, 3, 100],
-  'c14/normal/1': [2074692559, 2, 70],
-  'c14/novice/2': [2366654380, 2, 70],
-  'c15/normal/1': [2238583, 3, 100],
-  'c15/novice/2': [1588229169, 3, 100],
-  'c16/normal/1': [1997757113, 3, 100],
-  'c16/novice/2': [4222610257, 0, 29],
-  'c17/normal/1': [1966038867, 3, 100],
-  'c17/novice/2': [2403349073, 1, 55],
-  'c18/normal/1': [2414291638, 0, 43],
-  'c18/novice/2': [3285412473, 3, 100],
-  'c19/normal/1': [1834626670, 3, 100],
-  'c19/novice/2': [3702587281, 0, 38],
-  'c20/normal/1': [1988344774, 2, 60],
-  'c20/novice/2': [1531059652, 0, 40],
-  'c21/normal/1': [196559393, 2, 71],
-  'c21/novice/2': [270025577, 1, 57],
-  'c22/normal/1': [3642989439, 2, 63],
-  'c22/novice/2': [3196813356, 1, 52],
-  'c23/normal/1': [1029537584, 2, 72],
-  'c23/novice/2': [2351926052, 2, 95],
-  'c24/normal/1': [862768610, 0, 43],
-  'c24/novice/2': [4208266561, 1, 78],
-  'c25/normal/1': [1339536818, 2, 80],
-  'c25/novice/2': [3756674837, 1, 60],
-  'c26/normal/1': [4285173621, 1, 55],
-  'c26/novice/2': [2243943812, 1, 66],
-  'c27/normal/1': [3616979200, 1, 50],
-  'c27/novice/2': [2582030394, 0, 42],
-  'c28/normal/1': [3504117265, 1, 53],
-  'c28/novice/2': [4145834881, 1, 70],
-  'c29/normal/1': [238986108, 2, 73],
-  'c29/novice/2': [1565967474, 0, 30],
-  'c30/normal/1': [2715823529, 2, 77],
-  'c30/novice/2': [3713176589, 1, 59],
-  'hq3/turtle/plain': [1318443749, 0, 25],
-  'hq3/turtle/td': [435251806, 0, 23],
-  'hq3/spread/plain': [1975371858, 2, 68],
-  'hq3/spread/td': [3545508376, 2, 70],
-  'hq3/trap/plain': [1269584035, 1, 56],
-  'hq3/trap/td': [3001861128, 1, 52],
-  'hq5/turtle/plain': [4200869357, 0, 16],
-  'hq5/turtle/td': [2701960950, 0, 14],
-  'hq5/spread/plain': [1059529819, 0, 48],
-  'hq5/spread/td': [3890861843, 1, 33],
-  'hq5/trap/plain': [4143970845, 0, 32],
-  'hq5/trap/td': [2862662293, 0, 29],
-  'hq7/turtle/plain': [2040526048, 0, 41],
-  'hq7/turtle/td': [661333238, 0, 40],
-  'hq7/spread/plain': [1950923455, 0, 29],
-  'hq7/spread/td': [372306943, 0, 29],
-  'hq7/trap/plain': [60081002, 0, 39],
-  'hq7/trap/td': [900761282, 0, 36],
+const GOLDEN: Record<string, [number, number, number]> = {
+  'c01/normal/1': [3948300874, 3, 100],
+  'c01/novice/2': [631265332, 3, 100],
+  'c02/normal/1': [3409974777, 3, 100],
+  'c02/novice/2': [2452518807, 3, 100],
+  'c03/normal/1': [1200473016, 3, 100],
+  'c03/novice/2': [1139127349, 3, 100],
+  'c04/normal/1': [214608332, 3, 100],
+  'c04/novice/2': [4116441673, 3, 100],
+  'c05/normal/1': [1243432695, 3, 100],
+  'c05/novice/2': [1034896399, 2, 63],
+  'c06/normal/1': [53808885, 3, 100],
+  'c06/novice/2': [289060119, 3, 100],
+  'c07/normal/1': [347365248, 3, 100],
+  'c07/novice/2': [267055209, 2, 75],
+  'c08/normal/1': [4102436288, 3, 100],
+  'c08/novice/2': [3525213145, 2, 76],
+  'c09/normal/1': [3525729690, 3, 100],
+  'c09/novice/2': [806513025, 2, 53],
+  'c10/normal/1': [715383414, 2, 84],
+  'c10/novice/2': [2771735960, 3, 100],
+  'c11/normal/1': [4213487801, 3, 100],
+  'c11/novice/2': [477055438, 3, 100],
+  'c12/normal/1': [2205141605, 2, 88],
+  'c12/novice/2': [917994887, 3, 100],
+  'c13/normal/1': [1961329852, 2, 73],
+  'c13/novice/2': [1620213354, 3, 100],
+  'c14/normal/1': [3997848256, 2, 82],
+  'c14/novice/2': [286886913, 3, 100],
+  'c15/normal/1': [2097588051, 1, 61],
+  'c15/novice/2': [3147211294, 3, 100],
+  'c16/normal/1': [4058800649, 3, 100],
+  'c16/novice/2': [3443361163, 0, 33],
+  'c17/normal/1': [2396330351, 3, 100],
+  'c17/novice/2': [390001220, 1, 57],
+  'c18/normal/1': [562349290, 1, 60],
+  'c18/novice/2': [1501187210, 1, 65],
+  'c19/normal/1': [2305074962, 2, 77],
+  'c19/novice/2': [93025755, 1, 55],
+  'c20/normal/1': [3035344539, 2, 84],
+  'c20/novice/2': [3504565328, 3, 100],
+  'c21/normal/1': [3969308567, 3, 100],
+  'c21/novice/2': [3389169573, 3, 100],
+  'c22/normal/1': [2344392545, 3, 100],
+  'c22/novice/2': [343479400, 1, 52],
+  'c23/normal/1': [78254991, 2, 60],
+  'c23/novice/2': [3274331296, 3, 100],
+  'c24/normal/1': [2386521914, 1, 62],
+  'c24/novice/2': [1930977347, 0, 18],
+  'c25/normal/1': [2872982333, 3, 100],
+  'c25/novice/2': [1775519898, 3, 100],
+  'c26/normal/1': [3978811478, 3, 100],
+  'c26/novice/2': [522750282, 0, 40],
+  'c27/normal/1': [591935472, 1, 65],
+  'c27/novice/2': [3129847198, 3, 100],
+  'c28/normal/1': [4137271458, 2, 90],
+  'c28/novice/2': [396337967, 2, 86],
+  'c29/normal/1': [1556322285, 1, 51],
+  'c29/novice/2': [834162185, 1, 81],
+  'c30/normal/1': [2341630317, 1, 55],
+  'c30/novice/2': [1371416701, 3, 100],
+  'hq3/turtle/plain': [1532886607, 0, 25],
+  'hq3/turtle/td': [1595322046, 0, 29],
+  'hq3/spread/plain': [2273621801, 2, 75],
+  'hq3/spread/td': [2149781173, 2, 58],
+  'hq3/trap/plain': [1166791585, 0, 31],
+  'hq3/trap/td': [2662192437, 0, 41],
+  'hq5/turtle/plain': [3496388543, 0, 16],
+  'hq5/turtle/td': [2659857611, 0, 14],
+  'hq5/spread/plain': [1219955235, 0, 44],
+  'hq5/spread/td': [1829651384, 0, 40],
+  'hq5/trap/plain': [2799957121, 0, 24],
+  'hq5/trap/td': [3122120971, 0, 18],
+  'hq7/turtle/plain': [1529970563, 0, 39],
+  'hq7/turtle/td': [2063565170, 0, 15],
+  'hq7/spread/plain': [3115399763, 0, 29],
+  'hq7/spread/td': [1002571705, 0, 31],
+  'hq7/trap/plain': [507138426, 0, 24],
+  'hq7/trap/td': [1152703929, 0, 13],
 };
 
-function goldenSetup(key: string, rules: number): BattleSetup {
+function goldenSetup(key: string): BattleSetup {
   const [a, b, c] = key.split('/') as [string, string, string];
   if (a.startsWith('hq')) {
     const hq = Number(a.slice(2));
-    return { layout: fullBase(hq, b as 'turtle', c === 'td').base.buildings, army: sampleArmy(hq), seed: 7, rules };
+    const layout = fullBase(hq, b as 'turtle', c === 'td').base.buildings;
+    return { layout, army: sampleArmy(hq), seed: 7, rules: RULES_VERSION, ext: islandExt(layout) };
   }
   const lv = CAMPAIGN.find((l) => l.id === a)!;
-  return { layout: lv.layout, army: sampleArmy(lv.hq), seed: Number(c), rules };
+  return campaignSetup(lv, sampleArmy(lv.hq), Number(c));
 }
 const styleOf = (key: string): 'normal' | 'novice' => (key.startsWith('hq') ? 'normal' : (key.split('/')[1] as 'normal' | 'novice'));
 
-describe('规则版本 5 的金标准', () => {
-  it('每一场的指纹、星数、摧毁率和升版本前逐位一样（旧防守记录照原样回放）', () => {
-    for (const key of Object.keys(GOLDEN_R5)) {
-      const setup = goldenSetup(key, 5);
+describe('攻防金标准', () => {
+  it('每一场的指纹、星数、摧毁率逐位不变', () => {
+    expect(RULES_VERSION).toBe(28);
+    for (const key of Object.keys(GOLDEN)) {
+      const setup = goldenSetup(key);
       const r = replayRaid(setup, botActions(setup, styleOf(key)));
-      expect([r.fingerprint, r.result.stars, r.result.destroyedPct], key).toEqual(GOLDEN_R5[key]);
+      expect([r.fingerprint, r.result.stars, r.result.destroyedPct], key).toEqual(GOLDEN[key]);
     }
   }, 120_000); // 负载 28–32、maxWorkers=1 实测 29.0 秒，取 4 倍
 
-  it('战役（和借战役关卡的流浪海盗岛、悬赏岛）没有宝藏箱和分叉：规则版本 6 的指纹和版本 5 一样', () => {
-    for (const key of Object.keys(GOLDEN_R5)) {
-      if (key.startsWith('hq')) continue;
-      const setup = goldenSetup(key, 6);
-      expect(replayRaid(setup, botActions(setup, styleOf(key))).fingerprint, key).toBe(GOLDEN_R5[key]![0]);
-    }
+  it('战役（和借战役关卡的流浪海盗岛、悬赏岛）没有宝藏箱和分叉；raidSetup 出当前规则版本', () => {
     for (const lv of CAMPAIGN) expect(lv.layout.some((b) => b.kind === 'treasure' || b.branch !== undefined), lv.id).toBe(false);
-  }, 60_000);
-
-  it('版本 5 的锁（升级时还没结的那场）按版本 5 结：raidSetup 现在出版本 6，存下来的旧 setup 照旧', () => {
-    expect(raidSetup([], sampleArmy(3), 1).rules).toBe(RULES_VERSION);
-    const old = goldenSetup('hq5/trap/td', 5);
-    const r = replayRaid({ ...old, hero: 5 }, botActions(old, 'normal'));
-    expect([r.fingerprint, r.result.stars, r.result.destroyedPct]).toEqual(GOLDEN_R5['hq5/trap/td']);
+    expect(raidSetup([], 0, sampleArmy(3), 1).rules).toBe(RULES_VERSION);
   });
-});
-
-describe('规则版本 7、8（守岛 2.0、守岛寻敌）不碰攻防（版本 9 才改进攻，见 raid-combat.test.ts）', () => {
-  it('同一场在版本 6、7、8 下逐位一样：战役、满配岛（宝藏箱、分叉）、带驻岛英雄的攻防', () => {
-    expect(RULES_VERSION).toBe(26);
-    const cases: Array<[string, BattleSetup, 'normal' | 'novice']> = Object.keys(GOLDEN_R5).map((key) => [key, goldenSetup(key, 6), styleOf(key)]);
-    for (const [hq, style, seed] of [[3, 'spread', 1], [5, 'trap', 2], [7, 'turtle', 3]] as const) cases.push([`hero ${hq}/${style}`, { ...heroSetup(hq, style, seed), rules: 6 }, 'normal']);
-    for (const [key, v6, style] of cases) {
-      const acts = botActions(v6, style);
-      const a = replayRaid(v6, acts);
-      for (const rules of [7, 8]) {
-        const b = replayRaid({ ...v6, rules }, acts);
-        expect([b.fingerprint, b.result.stars, b.result.destroyedPct], `${key} v${rules}`).toEqual([a.fingerprint, a.result.stars, a.result.destroyedPct]);
-        expect(botActions({ ...v6, rules }, style), `${key} v${rules}`).toEqual(acts);
-      }
-    }
-  }, 220_000); // 负载 28–32、maxWorkers=1 实测 54.7 秒，取 4 倍
 });
 
 function heroSetup(hq: number, style: 'turtle' | 'spread' | 'trap', seed: number): BattleSetup {
   const p = fullBase(hq, style, true);
-  return raidSetup(p.base.buildings, sampleArmy(Math.min(8, hq + 1)), seed, heroLevel(p));
+  return raidSetup(p.base.buildings, islandExt(p.base.buildings), sampleArmy(Math.min(8, hq + 1)), seed, heroLevel(p));
 }
 
-describe('驻岛英雄（规则版本 6）', () => {
+describe('驻岛英雄', () => {
   it('站在第一个宝藏箱旁一格；等级来自研究 hero，没有宝藏箱或没写等级就没有英雄', () => {
     const setup = heroSetup(5, 'spread', 1);
     const s = createBattle(setup);
@@ -209,13 +179,13 @@ describe('驻岛英雄（规则版本 6）', () => {
   });
 });
 
-describe('宝藏箱和分叉进登陆战（规则版本 6）', () => {
+describe('宝藏箱和分叉进登陆战', () => {
   it('宝藏箱是普通建筑：有血、算摧毁率，拆了它摧毁率涨', () => {
     const layout: Placed[] = [
       { id: 1, kind: 'hq', level: 1, x: 2, y: 2 },
       { id: 2, kind: 'treasure', level: 1, x: 17, y: 10 },
     ];
-    const setup: BattleSetup = { layout, army: sampleArmy(3), seed: 3, rules: 6 };
+    const setup: BattleSetup = { layout, army: sampleArmy(3), seed: 3, rules: RULES_VERSION };
     const s = createBattle(setup);
     expect(s.buildings.find((b) => b.kind === 'treasure')!.maxHp).toBeGreaterThan(0);
     // 全部船靠东边登陆，先拆宝藏箱
@@ -235,7 +205,7 @@ describe('宝藏箱和分叉进登陆战（规则版本 6）', () => {
       { id: 3, kind: 'cannon', level: 3, x: 14, y: 9, ...(branch ? { branch: ['cannon.chain'] } : {}) },
     ];
     const run = (layout: Placed[]) => {
-      const setup: BattleSetup = { layout, army: sampleArmy(3), seed: 5, rules: 6 };
+      const setup: BattleSetup = { layout, army: sampleArmy(3), seed: 5, rules: RULES_VERSION };
       return replayRaid(setup, botActions(setup, 'normal'));
     };
     const a = run(base());
@@ -243,7 +213,7 @@ describe('宝藏箱和分叉进登陆战（规则版本 6）', () => {
     expect(b.fingerprint).not.toBe(a.fingerprint);
     // 版本 6 下坏的分叉（等级不够）当没有
     const lowLv: Placed[] = [{ id: 1, kind: 'hq', level: 3, x: 9, y: 9 }, { id: 2, kind: 'cannon', level: 2, x: 4, y: 9, branch: ['cannon.pierce'] }];
-    expect(createBattle({ layout: lowLv, army: sampleArmy(3), seed: 1, rules: 6 }).buildings[1]!.branch).toBeUndefined();
+    expect(createBattle({ layout: lowLv, army: sampleArmy(3), seed: 1, rules: RULES_VERSION }).buildings[1]!.branch).toBeUndefined();
   });
 });
 
@@ -314,7 +284,7 @@ describe('重放预算', () => {
     let spot: [number, number] | undefined;
     for (let r = 0; r < 11 && !spot; r++) for (let y = 11 - r; y <= 11 + r && !spot; y++) for (let x = 11 - r; x <= 11 + r && !spot; x++) if (!used.has(`${x},${y}`)) spot = [x, y];
     layout.push({ id: 9999, kind: 'treasure', level: 1, x: spot![0], y: spot![1] });
-    const setup = raidSetup(layout, sampleArmy(8), 4242, 8);
+    const setup = raidSetup(layout, 0, sampleArmy(8), 4242, 8);
     const acts = botActions(setup, 'normal');
     expect(createBattle(setup).hero?.level).toBe(8);
     expect(layout.some((b) => b.branch)).toBe(true);

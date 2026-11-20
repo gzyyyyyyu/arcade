@@ -855,7 +855,7 @@ export interface RigStyle {
 export type RigKind =
   | 't.sailor' | 't.gunner' | 't.brute' | 't.bomber' | 't.captain' | 't.medic' | 't.cannoneer' | 't.harpooner' | 't.grenadier' | 't.shield'
   | 'e.sailor' | 'e.ironclad' | 'e.fog' | 'e.skiff' | 'e.skiffling' | 'e.sapper' | 'e.grenadier' | 'e.captain' | 'e.shield' | 'e.bosun' | 'e.mate' | 'e.medic'
-  /** 守岛第二个英雄航海士（规则版本 23） */
+  /** 守岛第二个英雄航海士 */
   | 'h.nav';
 
 export const RIG_KINDS: RigKind[] = ['t.sailor', 't.gunner', 't.brute', 't.bomber', 't.captain', 't.medic', 't.cannoneer', 't.harpooner', 't.grenadier', 't.shield', 'e.sailor', 'e.ironclad', 'e.fog', 'e.skiff', 'e.skiffling', 'e.sapper', 'e.grenadier', 'e.captain', 'e.shield', 'e.bosun', 'e.mate', 'e.medic', 'h.nav'];

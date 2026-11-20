@@ -200,7 +200,7 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     unlockHq: 5,
     maxLevel: 8,
     desc: '一炮震一小片，被震到的兵原地发晕一会儿。专克走得慢的壮汉和船长，怕人多的散兵。',
-    // 伤害按加农的七成，3 秒一发，1 格小溅射，震晕 1.2 秒（24 拍，规则版本 10，DESIGN 13）
+    // 伤害按加农的七成，3 秒一发，1 格小溅射，震晕 1.2 秒（24 拍，DESIGN 13）
     levels: six((l) => ({ hp: hpOf(470, 18, l, DEF_HP_PCT), dmg: grow(28, 18, l), range: 6, reload: 60, splash: 1, stun: 24 }), 1100, 200),
   },
   sniper: {
@@ -210,7 +210,7 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     unlockHq: 6,
     maxLevel: 8,
     desc: '射程全岛最远，一发重伤害，先打船长、船医、火炮兵这类躲在后排的。锁定后要 0.5 秒才开火，兵走出射程就白瞄。怕人多：一发只打一个。',
-    // 伤害是同级加农的 2.2 倍（grow(88) 对 grow(40)），4 秒一发，射程 11 格，不溅射（规则版本 11，DESIGN 14）
+    // 伤害是同级加农的 2.2 倍（grow(88) 对 grow(40)），4 秒一发，射程 11 格，不溅射（DESIGN 14）
     levels: six((l) => ({ hp: hpOf(380, 18, l, DEF_HP_PCT), dmg: grow(88, 18, l), range: 11, reload: 80 }), 2000, 350),
   },
   kraken: {

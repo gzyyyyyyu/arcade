@@ -90,6 +90,7 @@ export function markBlame(bs: BattleScene): void {
 export function lossAdvice(bs: BattleScene, res: BattleResult): string[] {
   return adviceLines(res, {
     buildings: bs.st.buildings,
+    ext: bs.st.ext,
     deathBy: bs.deathBy,
     landPts: bs.landPts,
     casts: bs.casts,

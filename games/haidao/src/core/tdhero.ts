@@ -1,11 +1,11 @@
 /**
- * 守岛的英雄：出生和复活的位置、每拍的走位和开火、守点迎敌、规则版本 ≥ 14 自己挑站位（威胁最大那条路的路口）、护航时跟船。
+ * 守岛的英雄：出生和复活的位置、每拍的走位和开火、守点迎敌、自己挑站位（威胁最大那条路的路口）、护航时跟船。
  */
 import { TD_PICK_R } from '../content/tdunits.ts';
 import { TD2_ENEMIES } from '../content/td2units.ts';
 import { inRing, rankTargets } from './combat.ts';
 import { INF, cellIdx, cellOf, cellX, cellY, inGrid, nextCell } from './grid.ts';
-import { UNIT, RULES_SINCE } from './types.ts';
+import { UNIT } from './types.ts';
 import type { EscortState } from './escorttypes.ts';
 import { escortShip } from './escort.ts';
 import type { TdEnemy, TdEvent } from './tdtypes.ts';
@@ -34,7 +34,7 @@ export function placeHero(s: TdState): void {
     const bx = Math.floor(sh.x / UNIT);
     const by = Math.floor(sh.y / UNIT);
     for (const [ox, oy] of [[0, 0], [0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]] as const) {
-      if (!inGrid(bx + ox, by + oy) || occ[cellIdx(bx + ox, by + oy)] !== 0) continue;
+      if (!inGrid(s.ext, bx + ox, by + oy) || occ[cellIdx(bx + ox, by + oy)] !== 0) continue;
       s.hero.x = (bx + ox) * UNIT + 50;
       s.hero.y = (by + oy) * UNIT + 50;
       return;
@@ -43,7 +43,7 @@ export function placeHero(s: TdState): void {
   }
   const t = s.treasures[0] as { x: number; y: number };
   for (const [ox, oy] of [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]] as const) {
-    if (!inGrid(t.x + ox, t.y + oy) || occ[cellIdx(t.x + ox, t.y + oy)] !== 0) continue;
+    if (!inGrid(s.ext, t.x + ox, t.y + oy) || occ[cellIdx(t.x + ox, t.y + oy)] !== 0) continue;
     s.hero.x = (t.x + ox) * UNIT + 50;
     s.hero.y = (t.y + oy) * UNIT + 50;
     return;
@@ -62,7 +62,7 @@ function followShip(s: TdState): void {
   const bx = Math.floor(ship.x / UNIT);
   const by = Math.floor(ship.y / UNIT);
   for (const [ox, oy] of [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1], [0, 0]] as const) {
-    if (!inGrid(bx + ox, by + oy) || occ[cellIdx(bx + ox, by + oy)] !== 0) continue;
+    if (!inGrid(s.ext, bx + ox, by + oy) || occ[cellIdx(bx + ox, by + oy)] !== 0) continue;
     const gx = (bx + ox) * UNIT + 50;
     const gy = (by + oy) * UNIT + 50;
     if (d2(gx, gy, h.x, h.y) > 60 * 60) h.goal = { x: gx, y: gy };
@@ -79,15 +79,13 @@ export function stepHero(s: TdState, ev: TdEvent[]): void {
     h.respawn = -1;
     h.hp = h.maxHp;
     placeHero(s);
-    if (s.rules >= RULES_SINCE.tdHeroAuto) {
-      I.heroCmd = false;
-      h.post = undefined;
-    }
+    I.heroCmd = false;
+    h.post = undefined;
     ev.push({ type: 'hero', what: 'up' });
     return;
   }
   if (s.escort) followShip(s);
-  if (s.rules >= RULES_SINCE.tdHeroAuto && !s.escort && !I.heroCmd && s.tick % TD_HERO_AUTO_EVERY === 0) {
+  if (!s.escort && !I.heroCmd && s.tick % TD_HERO_AUTO_EVERY === 0) {
     const p = autoPost(s);
     if (p) h.post = p;
   }
@@ -132,7 +130,7 @@ export function stepHero(s: TdState, ev: TdEvent[]): void {
       h.y = face.y;
       if (here >= INF || d2(h.x, h.y, h.goal.x, h.goal.y) <= 10 * 10 || (I.occ[goalCell] ?? 0) !== 0) h.goal = null;
     } else {
-      const n = nextCell(I.occ, f, h.x, h.y);
+      const n = nextCell(I.occ, s.ext, f, h.x, h.y);
       if (n >= 0) {
         const face = { x: h.x, y: h.y, face: 1 as 1 | -1 };
         moveToward(face, cellX(n), cellY(n), hl.speed);
@@ -150,7 +148,7 @@ export function stepHero(s: TdState, ev: TdEvent[]): void {
     h.cd = s.tick + hl.reload;
     // 英雄的开火事件 id 记 -1（没有这座塔），画面据此播英雄的枪口火光和弹道
     ev.push({ type: 'shoot', id: -1, x0: h.x, y0: h.y, x1: best.x, y1: best.y, t1: s.tick + 4, target: best.id });
-    // 断崖关（规则版本 26）：英雄的枪也写出膛点，盾兵正面照样挡（td.ts 的 guardedHit），英雄不是盾兵的万能解；别的关不写，回放逐位不变
+    // 断崖关：英雄的枪也写出膛点，盾兵正面照样挡（td.ts 的 guardedHit），英雄不是盾兵的万能解；别的关不写
     const from = cliffOn(s) ? { sx: h.x, sy: h.y } : {};
     I.pend.push({ t: s.tick + 4, kind: 'unit', id: best.id, dmg: hl.dmg, x: best.x, y: best.y, r: 0, hit: HIT_HERO, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0, ...from });
   }
@@ -178,8 +176,8 @@ export function heroGuard(s: TdState, range: number): void {
   }
   const stand = Math.floor((range * TD_HERO_STAND_PCT) / 100);
   if (best) {
-    // 规则版本 ≥ 14：站在木台上不停下，接着朝敌人走，走出木台再站住
-    if (bd > stand * stand || (s.rules >= RULES_SINCE.tdHeroAuto && onSlot(s, h.x, h.y) >= 0)) {
+    // 站在木台上不停下，接着朝敌人走，走出木台再站住
+    if (bd > stand * stand || onSlot(s, h.x, h.y) >= 0) {
       h.goal = { x: best.x, y: best.y };
       I.heroAuto = true;
     } else if (I.heroAuto) {

@@ -1,6 +1,6 @@
 /**
  * 塔的分叉（DESIGN 10.2）：每种防御塔 3 级选一次（tier 1）、6 级选一次（tier 2），各 2–3 条。
- * 守岛里全额生效（td.ts 读）；登陆战（攻防，规则版本 ≥ 6）按 RAID_BRANCH_PCT 打折（battle.ts 读）。数值是百分比或单位的整数，单位见 tdtypes.ts 的 BranchMod。
+ * 守岛里全额生效（td.ts 读）；登陆战（攻防）按 RAID_BRANCH_PCT 打折（battle.ts 读）。数值是百分比或单位的整数，单位见 tdtypes.ts 的 BranchMod。
  */
 import type { BuildingKind } from '../core/types.ts';
 import type { BranchDef } from '../core/tdtypes.ts';
@@ -58,13 +58,13 @@ export const BRANCHES: BranchDef[] = [
   { id: 'rocket.big', tower: 'rocket', tier: 2, name: '大弹头', desc: '溅射更大', mod: { splash: 40 } },
   { id: 'rocket.quick', tower: 'rocket', tier: 2, name: '快装', desc: '装填更快', mod: { reloadPct: -20 } },
 
-  // 震荡炮（规则版本 10，DESIGN 13）：3 级装填或射程；6 级（守岛 3 阶）分叉"连震"震一大片、"重锤"伤害高但震得短
+  // 震荡炮（DESIGN 13）：3 级装填或射程；6 级（守岛 3 阶）分叉"连震"震一大片、"重锤"伤害高但震得短
   { id: 'shock.quick', tower: 'shock', tier: 1, name: '快装', desc: '装填更快', mod: { reloadPct: -20 } },
   { id: 'shock.long', tower: 'shock', tier: 1, name: '远震', desc: '射程更远', mod: { rangePct: 20 } },
   { id: 'shock.chain', tower: 'shock', tier: 2, name: '连震', desc: '震晕范围更大', mod: { splash: 50 } },
   { id: 'shock.hammer', tower: 'shock', tier: 2, name: '重锤', desc: '伤害更高，震得短一点', mod: { dmgPct: 40, stunTicks: 16 } },
 
-  // 狙击塔（规则版本 11，DESIGN 14）：3 级装填或射程；6 级（守岛 3 阶）分叉"穿甲"打重甲不再减半、"连狙"一次两发打同一个目标
+  // 狙击塔（DESIGN 14）：3 级装填或射程；6 级（守岛 3 阶）分叉"穿甲"打重甲不再减半、"连狙"一次两发打同一个目标
   { id: 'sniper.quick', tower: 'sniper', tier: 1, name: '快装', desc: '装填更快', mod: { reloadPct: -20 } },
   { id: 'sniper.scope', tower: 'sniper', tier: 1, name: '瞄准镜', desc: '射程更远', mod: { rangePct: 20 } },
   { id: 'sniper.pierce', tower: 'sniper', tier: 2, name: '穿甲', desc: '打重甲不再减半', mod: { pierce: true, dmgPct: 10 } },
@@ -82,7 +82,7 @@ export const BRANCHES: BranchDef[] = [
 ];
 
 /**
- * 登陆战（攻防，规则版本 ≥ 6）里分叉的数值按表里的百分之几算：伤害、装填、射程、溅射、减速、留火、拖拽的加减都乘它，
+ * 登陆战（攻防）里分叉的数值按表里的百分之几算：伤害、装填、射程、溅射、减速、留火、拖拽的加减都乘它，
  * 布尔项（贯穿）和多打几个（shots）不变。守岛里敌人是一波波送上来的，登陆战的兵是玩家挑的、数量少，
  * 全额照搬会让满配分叉的岛把同级进攻打到拿不到星（DESIGN 10.6 的配平表），所以攻防打折。
  */

@@ -12,6 +12,7 @@ import { REDUCED } from './feel.ts';
  * 位置、节奏全由编号定（确定性）。手机少放一半；系统设了"减弱动态效果"就只放静止的浪舌。
  * 一共约 18 个对象（手机 11 个），帧率测量里的"显示对象"数要把它们算进去。
  * 空白海面（岛外一大片）另有远处漂的船、飘过的云影、飞过的海鸟，共 6 个对象（手机 3 个），同样只用补间和一个 onUpdate，不新建对象。
+ * ext 是岛按主寨扩了几圈：沿岸的东西跟着往外挪。返回的函数把这些对象和补间全收掉（基地里主寨跨档升级、岛变大时重开一遍）。
  */
 
 const EDGE = ['top', 'right', 'bottom', 'left'] as const;
@@ -23,7 +24,7 @@ const NORMAL = [
   { nx: -0.894, ny: -0.447, rot: -0.4636 },
 ] as const;
 
-/** 沿第 side 条边、离岛 e 格、沿边位置 t（0..1）的屏幕点 */
+/** 沿第 side 条边、离岛 e 格、沿边位置 t（0..1）的屏幕点；e 从不扩的岛边量起（岛扩了 ext 圈就传 e + ext） */
 function onEdge(side: number, e: number, t: number): { x: number; y: number } {
   const I = ISLAND;
   const a = -e + t * (I + 2 * e);
@@ -41,21 +42,33 @@ function onEdge(side: number, e: number, t: number): { x: number; y: number } {
 
 const frac = (n: number, k: number): number => (h32(n, k, 77) % 1000) / 1000;
 
-export function startAmbient(scene: Phaser.Scene, r: number): void {
+export function startAmbient(scene: Phaser.Scene, r: number, ext: number): () => void {
   const sc = 1 / r;
-  const img = (p: { key: string; ax: number; ay: number; w: number; h: number }, x: number, y: number, depth: number): Phaser.GameObjects.Image =>
-    scene.add.image(x, y, p.key).setOrigin(p.ax / p.w, p.ay / p.h).setScale(sc).setDepth(depth);
+  const objs: Phaser.GameObjects.Image[] = [];
+  const tws: Phaser.Tweens.Tween[] = [];
+  const stop = (): void => {
+    for (const t of tws) t.remove();
+    for (const o of objs) o.destroy();
+  };
+  const img = (p: { key: string; ax: number; ay: number; w: number; h: number }, x: number, y: number, depth: number): Phaser.GameObjects.Image => {
+    const im = scene.add.image(x, y, p.key).setOrigin(p.ax / p.w, p.ay / p.h).setScale(sc).setDepth(depth);
+    objs.push(im);
+    return im;
+  };
+  const tween = (cfg: Phaser.Types.Tweens.TweenBuilderConfig): void => {
+    tws.push(scene.tweens.add(cfg));
+  };
 
   // 浪舌：贴着沙滩外缘，慢慢推上来、停一下、退回去
   const swash = coastArt('swash');
   const nSwash = LOW_MEMORY ? 6 : 10;
   for (let i = 0; i < nSwash; i++) {
     const side = i % 4;
-    const base = onEdge(side, BEACH + 0.2, 0.12 + 0.76 * frac(i, 1));
+    const base = onEdge(side, BEACH + 0.2 + ext, 0.12 + 0.76 * frac(i, 1));
     const n = NORMAL[side]!;
     const im = img(swash, base.x - n.nx * 5, base.y - n.ny * 5, -99).setRotation(n.rot).setAlpha(REDUCED ? 0.5 : 0);
     if (REDUCED) continue;
-    scene.tweens.add({
+    tween({
       targets: im,
       x: base.x + n.nx * 9,
       y: base.y + n.ny * 9,
@@ -69,15 +82,15 @@ export function startAmbient(scene: Phaser.Scene, r: number): void {
       ease: 'Sine.easeInOut',
     });
   }
-  if (REDUCED) return;
+  if (REDUCED) return stop;
 
   // 波光：外海里的小亮点，一闪一闪
   const glint = coastArt('glint');
   const nGlint = LOW_MEMORY ? 3 : 6;
   for (let i = 0; i < nGlint; i++) {
-    const p = onEdge(i % 4, BEACH + 1.4 + 1.2 * frac(i, 3), 0.1 + 0.8 * frac(i, 4));
+    const p = onEdge(i % 4, BEACH + 1.4 + 1.2 * frac(i, 3) + ext, 0.1 + 0.8 * frac(i, 4));
     const im = img(glint, p.x, p.y, -98).setAlpha(0).setScale(sc * 0.5);
-    scene.tweens.add({
+    tween({
       targets: im,
       alpha: 0.95,
       scale: sc * 1.1,
@@ -97,10 +110,10 @@ export function startAmbient(scene: Phaser.Scene, r: number): void {
   const place = (t: number): void => {
     const side = (cycle * 3 + 1) % 4;
     const dir = cycle % 2 ? -1 : 1;
-    const p = onEdge(side, BEACH + 1.7 + (cycle % 3) * 0.5, 0.2 + 0.6 * (dir > 0 ? t : 1 - t));
+    const p = onEdge(side, BEACH + 1.7 + (cycle % 3) * 0.5 + ext, 0.2 + 0.6 * (dir > 0 ? t : 1 - t));
     fish.setPosition(p.x, p.y).setAlpha(Math.min(1, Math.sin(Math.PI * t) * 1.6)).setScale(dir * sc, sc);
   };
-  scene.tweens.add({
+  tween({
     targets: swim,
     k: 1,
     duration: 16000,
@@ -118,9 +131,9 @@ export function startAmbient(scene: Phaser.Scene, r: number): void {
   const gp = mapDecoArt('gull');
   const gull = img(gp, 0, 0, 9000).setAlpha(0);
   const fly = { k: 0 };
-  const a = iso(-6, 16);
-  const b = iso(ISLAND + 6, 2);
-  scene.tweens.add({
+  const a = iso(-6 - ext, 16);
+  const b = iso(ISLAND + 6 + ext, 2);
+  tween({
     targets: fly,
     k: 1,
     duration: 24000,
@@ -134,7 +147,8 @@ export function startAmbient(scene: Phaser.Scene, r: number): void {
   });
 
   // ?sea=0 关掉空白海面的船 / 云影 / 海鸟（帧率 A/B 用：perf.ts --query sea=0）
-  if (new URLSearchParams(window.location.search).get('sea') !== '0') openSea(scene, sc, img);
+  if (new URLSearchParams(window.location.search).get('sea') !== '0') openSea(scene, sc, img, tween);
+  return stop;
 }
 
 /** 岛外空白海面的区域（世界坐标）：竖屏时可见区比烘好的地面大得多，这几条带子刚好落在岛的上下两侧 */
@@ -145,7 +159,12 @@ const SEA_S = { y0: 1000, y1: 2000 } as const;
  * 空白海面：远处慢慢漂的船（沿等距方向走，淡入淡出）、云影（大块很淡的深蓝，从一侧飘到另一侧，盖在地面上、建筑下面）、海鸟（扇翅膀）。
  * 位置、速度由编号定；全部对象池式固定个数，手机各减半。
  */
-function openSea(scene: Phaser.Scene, sc: number, img: (p: { key: string; ax: number; ay: number; w: number; h: number }, x: number, y: number, depth: number) => Phaser.GameObjects.Image): void {
+function openSea(
+  scene: Phaser.Scene,
+  sc: number,
+  img: (p: { key: string; ax: number; ay: number; w: number; h: number }, x: number, y: number, depth: number) => Phaser.GameObjects.Image,
+  tween: (cfg: Phaser.Types.Tweens.TweenBuilderConfig) => void,
+): void {
   // 只在镜头里（含一圈余量）时才画：电脑横屏时上下两条海面大多在屏外，屏外的不进渲染、不打断合批（帧率 A/B：perf.ts --query sea=0）
   const cam = scene.cameras.main;
   const put = (im: Phaser.GameObjects.Image, x: number, y: number, a: number): void => {
@@ -167,7 +186,7 @@ function openSea(scene: Phaser.Scene, sc: number, img: (p: { key: string; ax: nu
     const len = 620;
     const im = img(ship, x0, y0, -97).setAlpha(0).setScale(dir * sc * 1.3, sc * 1.3);
     const t = { k: 0 };
-    scene.tweens.add({
+    tween({
       targets: t,
       k: 1,
       duration: 110000 + i * 30000,
@@ -188,7 +207,7 @@ function openSea(scene: Phaser.Scene, sc: number, img: (p: { key: string; ax: nu
     const big = 1.6 + 0.4 * frac(i, 13);
     const im = img(cloud, 0, y, -90).setAlpha(0).setScale(sc * big, sc * big * 0.9).setFlipX(i === 1);
     const t = { k: 0 };
-    scene.tweens.add({
+    tween({
       targets: t,
       k: 1,
       duration: 90000 + i * 25000,
@@ -207,7 +226,7 @@ function openSea(scene: Phaser.Scene, sc: number, img: (p: { key: string; ax: nu
     const ya = band.y0 + (band.y1 - band.y0) * (0.2 + 0.4 * frac(i, 14));
     const im = img(gull, 0, ya, 9000).setAlpha(0);
     const t = { k: 0 };
-    scene.tweens.add({
+    tween({
       targets: t,
       k: 1,
       duration: 26000 + i * 9000,

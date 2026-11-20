@@ -1,21 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { TD2_ENEMIES, TD2_FLEET, TD_SEA_RANGE } from '../src/content/td2units.ts';
 import { TD2_LEVEL_BY_ID } from '../src/content/tdmaps.ts';
-import { RULES_SINCE, RULES_VERSION, createTd, stepTd, tdBotActions, tdGrowthSetup } from '../src/core/index.ts';
-import { GRID, cellIdx } from '../src/core/grid.ts';
+import { createTd, stepTd, tdBotActions, tdGrowthSetup } from '../src/core/index.ts';
+import { cellIdx } from '../src/core/grid.ts';
+/** 不扩的岛的世界边长：岛 22 + 两边海滩各 3 */
+const WORLD = 28;
 import { fleetAt } from '../src/core/tdmech.ts';
 import { HIT_HERO, targetable, tdTowerRange } from '../src/core/tdstate.ts';
 import type { TdEvent, TdState } from '../src/core/index.ts';
 
 /**
- * 守岛第四章（规则版本 18，DESIGN 10.6e）：水面格谁都走不过去、军医给身边的同伴回血、炮艇停在海上炸哑塔到点开走、
+ * 守岛第四章（DESIGN 10.6e）：水面格谁都走不过去、军医给身边的同伴回血、炮艇停在海上炸哑塔到点开走、
  * 海上的目标只有射程够远的塔打得到。这些都只由关卡（water）和敌人种类打开，前 18 关不受影响（指纹锁在 td-golden）。
  */
 
-function setup(id: string, seed = 1, rules = RULES_VERSION) {
+function setup(id: string, seed = 1) {
   const r = tdGrowthSetup(id, 'suggest', seed);
   if (!r.ok) throw new Error(id);
-  return { ...r.value, rules };
+  return r.value;
 }
 
 /** 机器人打一局，每拍把局面和这拍的事件交给 look；look 返回 true 就停 */
@@ -55,15 +57,11 @@ describe('水面', () => {
     expect(crossed).toBeGreaterThan(0);
   });
 
-  it('规则版本 18 以前不建水面（第四章的关只在 18 起有，这里只锁住闸门）', () => {
+  it('水面格整格挡死', () => {
     const lv = TD2_LEVEL_BY_ID.get('td19')!;
     const c = lv.water![0]!;
-    const occ = (rules: number): number => {
-      const s = createTd(setup('td19', 1, rules));
-      return (s.internal as { occ: Uint8Array }).occ[cellIdx(c.x, c.y)] ?? -1;
-    };
-    expect(occ(RULES_SINCE.tdChapter4)).toBe(2);
-    expect(occ(RULES_SINCE.tdChapter4 - 1)).not.toBe(2);
+    const s = createTd(setup('td19'));
+    expect((s.internal as { occ: Uint8Array }).occ[cellIdx(c.x, c.y)]).toBe(2);
   });
 });
 
@@ -180,9 +178,8 @@ describe('狙击塔先打军医', () => {
   });
 });
 
-describe('友军巡航船（规则版本 19）', () => {
-  it('只有写了 fleet 的关、规则 19 起才有；开局就能叫，叫了沿格子外 1.5 格的海上开半圈、到点回航，冷却 60 秒', () => {
-    expect(createTd(setup('td23', 1, RULES_SINCE.tdFleet - 1)).fleet).toBeUndefined();
+describe('友军巡航船', () => {
+  it('只有写了 fleet 的关才有；开局就能叫，叫了沿格子外 1.5 格的海上开半圈、到点回航，冷却 60 秒', () => {
     expect(createTd(setup('td22')).fleet).toBeUndefined();
     const s = createTd(setup('td23'));
     expect(s.fleet).toEqual({ ready: 0, sail: null });
@@ -194,7 +191,7 @@ describe('友军巡航船（规则版本 19）', () => {
     // 船还在海上时再叫没用
     stepTd(s, [{ t: s.tick, type: 'fleet' }]);
     expect(s.fleet!.sail!.t0).toBe(sail.t0);
-    const edge = (p: { x: number; y: number }): boolean => p.x === -150 || p.y === -150 || p.x === (GRID + 1) * 100 + 50 || p.y === (GRID + 1) * 100 + 50;
+    const edge = (p: { x: number; y: number }): boolean => p.x === -150 || p.y === -150 || p.x === (WORLD + 1) * 100 + 50 || p.y === (WORLD + 1) * 100 + 50;
     let went = false;
     while (!went) {
       const at = fleetAt(sail, s.tick);
@@ -223,7 +220,7 @@ describe('友军巡航船（规则版本 19）', () => {
       const at = fleetAt(s.fleet!.sail!, s.fleet!.sail!.t0);
       // 进场点是一圈上离它最近的点：比四个角都近
       const d = (at.x - g.x) ** 2 + (at.y - g.y) ** 2;
-      const hi = (GRID + 1) * 100 + 50;
+      const hi = (WORLD + 1) * 100 + 50;
       for (const c of [[-150, -150], [hi, -150], [hi, hi], [-150, hi]]) expect(d).toBeLessThanOrEqual((c[0]! - g.x) ** 2 + (c[1]! - g.y) ** 2);
       checked = true;
       return true;

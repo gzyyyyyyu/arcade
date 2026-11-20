@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { BUILDINGS } from '../content/index.ts';
-import { produce, rankOf } from '../core/index.ts';
+import { islandExt, produce, rankOf } from '../core/index.ts';
 import type { BuildingKind, Res } from '../core/types.ts';
 import { app, pagePoint } from './app.ts';
 import { artBox, ensureArt } from './textures.ts';
@@ -10,6 +10,7 @@ import { Particles } from './fx.ts';
 import { LOW_MEMORY } from './viewport.ts';
 import { startAmbient } from './ambient.ts';
 import { EnvAnim } from './envfx.ts';
+import { BLD_NEAR_ZOOM, BldFx } from './basebldfx.ts';
 import { setWeather } from './post.ts';
 import { FitCam, islandBox } from './camfit.ts';
 import { bindKeys, pressNth } from './inputs.ts';
@@ -99,6 +100,10 @@ export class BaseScene extends Phaser.Scene {
   celebrating = false;
   /** 主寨升级解锁了新建筑、弹窗关掉后在岛上亮一下 */
   newHint = false;
+  /** 岛按主寨扩了几圈（islandExt）：地面、海岸点缀、镜头范围、摆放夹取都按它；跨档升级时 refresh 里 reland 重画 */
+  ext = 0;
+  ground!: Phaser.GameObjects.Image;
+  stopAmbient: () => void = () => {};
 
   constructor() {
     super('base');
@@ -113,14 +118,15 @@ export class BaseScene extends Phaser.Scene {
     this.place = null;
     this.placeBar = null;
     this.cameras.main.setBackgroundColor(SEA_BG);
-    drawGround(this, this.r);
-    startAmbient(this, this.r);
+    this.ext = islandExt(app.profile.base.buildings);
+    this.ground = drawGround(this, this.r, false, this.ext);
+    this.stopAmbient = startAmbient(this, this.r, this.ext);
     // 升级完成的彩带、金币、光点一次就是三四十粒，池子比战斗外的其他场景大一点
     this.pt = new Particles(this, this.r, LOW_MEMORY ? 80 : 140);
     setWeather('clear');
     this.env = new EnvAnim(this, this.r, this.pt, rankOf(app.profile));
     // refresh 在 create 之前可能已经建过精灵（nodes 在上面清空了，这里不会有）；之后的建好 / 换纹理都在 refresh 里挂
-    this.cc = new CamCtl(this, this.r, worldBounds());
+    this.cc = new CamCtl(this, this.r, worldBounds(this.ext));
     this.cc.onTap = (x, y, mouse) => tap(this, x, y, mouse);
     // 电脑：悬停高亮建筑和名牌、右键菜单；放建筑时鼠标移动就是预览
     this.hoverG = this.add.graphics().setDepth(DEPTH.baseHover);
@@ -174,13 +180,15 @@ export class BaseScene extends Phaser.Scene {
       },
     };
     this.upfx = new UpgradeFx(this, this.r, this.pt, () => this.cc.z);
-    this.deco = scatterDeco(this, this.r, (gx, gy) => occupied(this, gx, gy));
+    this.deco = scatterDeco(this, this.r, this.ext, (gx, gy) => occupied(this, gx, gy));
     buildUi(this);
     // 镜头按岛适配：整座岛含沙滩在顶栏和操作区之间的可见区里，进场不用拖；放大是可选的（双指 / 滚轮），回到全景有按钮
     this.introOnce = firstBaseEntry();
-    this.fit = new FitCam(this, this.cc, this.ui, () => islandBox([], 1), this.r, () => fitContent(this));
+    this.fit = new FitCam(this, this.cc, this.ui, () => islandBox(this.ext, [], 1), this.r, () => fitContent(this));
     app.api.fitInfo = () => this.fit.info();
     this.ring = new RingMenu(this.ui, () => this.safe);
+    // 炮台巡视只在放大到全景的 1.3 倍以上时拆分件（basebldfx.ts 的 near）
+    this.bfx = new BldFx(this, this.r, this.pt, (img) => this.upfx.busy(img), () => this.cc.z >= this.fit.home.z * BLD_NEAR_ZOOM);
     // 键盘：Esc 取消 / 关面板，空格回全景，数字键 1–4 = 底栏四个按钮，字母键见 basefeel.ts 的 BASE_KEYS（U 升级、I 信息、C 收集全部、M 移动、B 建造）
     bindKeys(this, {
       esc: () => escapeKey(this),
@@ -335,6 +343,8 @@ export class BaseScene extends Phaser.Scene {
   /** 按存档把岛上的建筑、气泡、资源条对齐 */
   refresh(): void {
     const p = app.profile;
+    const ext = islandExt(p.base.buildings);
+    if (ext !== this.ext && this.scene.isActive()) this.reland(ext);
     this.env?.setRank(rankOf(p));
     const seen = new Set<number>();
     // 贴的是逐级退到已烘好的图（wTex / sTex），要不要补烘得看这一级本该用的那张烘没烘
@@ -363,6 +373,8 @@ export class BaseScene extends Phaser.Scene {
         n.img.setPosition(s.x, s.y).setAlpha(this.place?.id === b.id ? 0.35 : (this.fade.get(b.id) ?? 1));
       }
       n.img.setDepth(depthOf(f.gx, f.gy));
+      // refresh 在 create 建好 bfx 之前也会被调（见 create 里的注释），那时还没有动作可挂
+      if (b.kind !== 'wall') this.bfx?.sync(b.id, n.img, b.kind, b.level, s.x, s.y, n.key);
       syncBubble(this, n, b);
     }
     // 存档里有还没烘过的外观（开局只烘 1–2 级；示范岛、云存档合并、按需物件如宝藏箱）：补烘完再同步一次，任何路径都不留缺图
@@ -375,12 +387,32 @@ export class BaseScene extends Phaser.Scene {
     }
     for (const [id, n] of this.nodes) {
       if (seen.has(id)) continue;
+      this.bfx?.drop(id);
       n.bubble?.destroy();
       n.img.destroy();
       this.nodes.delete(id);
     }
     toggleDeco(this.deco, (gx, gy) => occupied(this, gx, gy));
     updateHud(this);
+  }
+
+  /**
+   * 岛扩圈了（主寨升级跨档、云存档合并进来更高的主寨）：地面重烘、海岸点缀和装饰重摆、镜头范围和全景跟着换；
+   * 建筑都在原坐标不动。玩家放大着就不动镜头，在全景就回到新的全景。
+   */
+  private reland(ext: number): void {
+    this.ext = ext;
+    // 旧尺寸的地面图不会再用（岛只会变大），连贴图一起放掉，省显存
+    const old = this.ground.texture.key;
+    this.ground.destroy();
+    this.textures.remove(old);
+    this.ground = drawGround(this, this.r, false, ext);
+    this.stopAmbient();
+    this.stopAmbient = startAmbient(this, this.r, ext);
+    for (const d of this.deco) d.img.destroy();
+    this.deco = scatterDeco(this, this.r, ext, (gx, gy) => occupied(this, gx, gy));
+    this.cc.setBounds(worldBounds(ext));
+    this.fit.refit(this.fit.away());
   }
 
   /** 收取时数字先不动，等金币 / 木材飞到顶栏再从旧值滚到新值 */
@@ -390,6 +422,8 @@ export class BaseScene extends Phaser.Scene {
   shown: Partial<Record<'gold' | 'wood', number>> = {};
   pt!: Particles;
   env!: EnvAnim;
+  /** 建筑的标志动作（basebldfx.ts） */
+  bfx!: BldFx;
 
   /** 离开前的确认（有未放下的虚影时） */
   hasPending(): boolean {

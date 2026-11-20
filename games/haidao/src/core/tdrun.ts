@@ -93,12 +93,12 @@ export function tdChapterCleared(stars: Readonly<Record<string, number>>, chapte
   return cs.length > 0 && cs.every((l) => (stars[l.id] ?? 0) >= 1);
 }
 
-/** 航海士（规则版本 23）解锁了没有：守岛第一章的关都至少 1 星 */
+/** 航海士解锁了没有：守岛第一章的关都至少 1 星 */
 export function navUnlocked(p: Profile): boolean {
   return tdChapterCleared(p.td?.stars ?? {}, 1);
 }
 
-/** 开局写进 setup 的英雄：存档选了航海士、已经解锁才写（不信存档里的选择），否则不写（船长，setup 和规则 22 一样） */
+/** 开局写进 setup 的英雄：存档选了航海士、已经解锁才写（不信存档里的选择），否则不写（船长） */
 export function heroKindOf(p: Profile): { heroKind?: 'nav' } {
   return p.heroPick === 'nav' && navUnlocked(p) ? { heroKind: 'nav' } : {};
 }
@@ -138,7 +138,7 @@ export type TdPlacedLevel = TdLevel & { place: { slots: number; kegs: number; wr
  * 摆够 `place` 里的数量为止；候选不够就在离登陆点近的空地补（临时塔位和火药桶），还是没地方就少摆，绝不重叠。
  * 确定性：只看关卡和布局，不用随机。
  */
-export function placeTdLevel(level: TdLevel | TdPlacedLevel, layout: readonly Placed[]): TdLevel {
+export function placeTdLevel(level: TdLevel | TdPlacedLevel, layout: readonly Placed[], ext: number): TdLevel {
   if (!('place' in level)) return level;
   const { place, ...rest } = level;
   const used = new Set<number>();
@@ -147,7 +147,7 @@ export function placeTdLevel(level: TdLevel | TdPlacedLevel, layout: readonly Pl
     for (let dx = 0; dx < s; dx++) for (let dy = 0; dy < s; dy++) used.add(key(b.x + dx, b.y + dy));
   }
   const free = (x: number, y: number, size: number): boolean => {
-    if (x < 0 || y < 0 || x + size > ISLAND || y + size > ISLAND) return false;
+    if (x < -ext || y < -ext || x + size > ISLAND + ext || y + size > ISLAND + ext) return false;
     for (let dx = 0; dx < size; dx++) for (let dy = 0; dy < size; dy++) if (used.has(key(x + dx, y + dy))) return false;
     return true;
   };
@@ -157,7 +157,7 @@ export function placeTdLevel(level: TdLevel | TdPlacedLevel, layout: readonly Pl
   // 离最近登陆点（含落潮路）的远近排所有格子：候选用完后的补位
   const entries = [...level.lanes, ...(level.tide ? [level.tide.lane] : [])];
   const fallback: Array<{ x: number; y: number }> = [];
-  for (let y = 0; y < ISLAND; y++) for (let x = 0; x < ISLAND; x++) fallback.push({ x, y });
+  for (let y = -ext; y < ISLAND + ext; y++) for (let x = -ext; x < ISLAND + ext; x++) fallback.push({ x, y });
   const dist = (c: { x: number; y: number }): number => Math.min(...entries.map((e) => (e.x - c.x) * (e.x - c.x) + (e.y - c.y) * (e.y - c.y)));
   fallback.sort((a, b) => dist(a) - dist(b) || a.y - b.y || a.x - b.x);
 
@@ -174,7 +174,7 @@ export function placeTdLevel(level: TdLevel | TdPlacedLevel, layout: readonly Pl
       for (const c of fallback) {
         if (out.length >= n) break;
         // 补位的离岛边别太远：塔位至少离岛边 1 格，免得堵死海滩出口
-        if (size === 2 && (c.x < 1 || c.y < 1 || c.x + size > ISLAND - 1 || c.y + size > ISLAND - 1)) continue;
+        if (size === 2 && (c.x < 1 - ext || c.y < 1 - ext || c.x + size > ISLAND + ext - 1 || c.y + size > ISLAND + ext - 1)) continue;
         if (free(c.x, c.y, size)) {
           take(c.x, c.y, size);
           out.push({ ...c } as T);

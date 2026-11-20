@@ -273,8 +273,8 @@ export class TdScene extends Phaser.Scene {
     app.inBattle = true;
     app.api.ready = true;
     this.cameras.main.setBackgroundColor(SEA_BG);
-    drawGround(this, this.r, true);
-    startAmbient(this, this.r);
+    drawGround(this, this.r, true, this.s.ext);
+    startAmbient(this, this.r, this.s.ext);
     this.tideG = this.add.graphics().setDepth(DEPTH.tide);
     this.laneG = this.add.graphics().setDepth(DEPTH.lane);
     drawLayout(this);
@@ -300,7 +300,7 @@ export class TdScene extends Phaser.Scene {
       const sp = this.tsp.get(t.id);
       if (sp && isTurret(t.kind)) sp.tu = new Turret(this, this.r, this.pt, t.kind, t.level, t.id, sp.img, sp.baseX, sp.baseY);
     }
-    this.shots = new Shots(this, this.r, this.pt, DEPTH.shotShadowTd);
+    this.shots = new Shots(this, this.r, this.pt, DEPTH.shotShadowTd, this.s.ext);
     this.frames = new FrameFx(this, this.r);
     this.stunMarks = new StunMarks(this, this.r);
     this.snipe = new SnipeLines(this);
@@ -316,7 +316,7 @@ export class TdScene extends Phaser.Scene {
     drawTide(this, true);
     this.plan = new TdPlan(this, this.r);
 
-    this.cc = new CamCtl(this, this.r, worldBounds());
+    this.cc = new CamCtl(this, this.r, worldBounds(this.s.ext));
     this.cc.onTap = (x, y) => tap(this, x, y);
     // 电脑：悬停高亮木台、右键取消（没什么可取消时右键地面直接指挥英雄）、Esc 取消；按住英雄拖出落点（手指也一样）；P 暂停；空格 = 开打（叫下一波，倒数里才有用，否则回全景）；
     // 数字键：建塔菜单开着时选第 n 种塔（升级面板里选第 n 条分叉），否则 1 拒马、2 炸药桶、3 叫下一波；S 卖塔、U 升级（木台面板开着时）、C 敌人图鉴和克制表、H 选中英雄（再点地面指挥他走）

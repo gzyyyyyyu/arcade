@@ -15,7 +15,7 @@ const VIEWS = [
 describe('镜头按岛适配（fit）', () => {
   for (const v of VIEWS) {
     it(`${v.name}：整座岛含沙滩在可见区内`, () => {
-      const box = islandBox();
+      const box = islandBox(0);
       const f = fitBox(v.w, v.h, v.inset, box);
       const a = proj(f, v.w, v.h, box.l, box.t);
       const b = proj(f, v.w, v.h, box.r, box.b);
@@ -26,12 +26,12 @@ describe('镜头按岛适配（fit）', () => {
     });
   }
   it('缩放范围：最小就是适配缩放，最大是它的 3 倍', () => {
-    const f = fitBox(390, 844, VIEWS[0]!.inset, islandBox());
+    const f = fitBox(390, 844, VIEWS[0]!.inset, islandBox(0));
     expect(f.minZ).toBe(f.z);
     expect(f.maxZ).toBeCloseTo(f.z * 3);
   });
   it('额外点（登陆点、登陆口）也装进可见区', () => {
-    const box = islandBox([[-6, 11], [28, 11]]);
+    const box = islandBox(0, [[-6, 11], [28, 11]]);
     const f = fitBox(390, 844, VIEWS[0]!.inset, box);
     const a = proj(f, 390, 844, box.l, box.t);
     const b = proj(f, 390, 844, box.r, box.b);
@@ -39,8 +39,8 @@ describe('镜头按岛适配（fit）', () => {
     expect(b.x).toBeLessThanOrEqual(390.5);
   });
   it('横屏的缩放比竖屏大（可见区更宽）', () => {
-    const p = fitBox(390, 844, VIEWS[0]!.inset, islandBox());
-    const l = fitBox(844, 390, VIEWS[1]!.inset, islandBox());
+    const p = fitBox(390, 844, VIEWS[0]!.inset, islandBox(0));
+    const l = fitBox(844, 390, VIEWS[1]!.inset, islandBox(0));
     expect(Number.isFinite(l.z) && Number.isFinite(l.cx) && Number.isFinite(l.cy)).toBe(true);
     expect(l.z).toBeGreaterThan(0);
     expect(p.z).toBeGreaterThan(0);
@@ -59,7 +59,7 @@ describe('镜头按岛适配（fit）', () => {
       登陆战: { top: 50, bottom: 66, left: 0, right: 0 },
       守岛: { top: 102, bottom: 80, left: 0, right: 0 },
     };
-    const full = islandBox([], 1);
+    const full = islandBox(0, [], 1);
     const inView = (f: { z: number; cx: number; cy: number }, inset: Inset, c: { l: number; r: number; t: number; b: number }): boolean => {
       const a = proj(f, P.w, P.h, c.l, c.t);
       const b = proj(f, P.w, P.h, c.r, c.b);
@@ -146,7 +146,7 @@ describe('镜头按岛适配（fit）', () => {
   });
 
   describe('护航适配盒（withRoute）', () => {
-    const base = islandBox([], 1);
+    const base = islandBox(0, [], 1);
     it('航线在岛外（北岸）时盒子并进起点和终点，上沿比单纯外扩再多一个船身高度', () => {
       const rects = [[3, -4, 3, -4], [20, -4, 20, -4]] as const;
       const b = withRoute(base, rects);
@@ -175,8 +175,8 @@ describe('基地横屏和电脑按内容适配（tight）', () => {
   const content = { box: cellsBox([[6, 4, 12, 12]], 1), tight: true };
   for (const v of VIEWS.filter((q) => q.w > q.h)) {
     it(`${v.name}：内容盒装进可见区，比整岛大，仍能缩出去看全岛`, () => {
-      const whole = fitView(v.w, v.h, v.inset, islandBox());
-      const f = fitView(v.w, v.h, v.inset, islandBox(), content);
+      const whole = fitView(v.w, v.h, v.inset, islandBox(0));
+      const f = fitView(v.w, v.h, v.inset, islandBox(0), content);
       expect(f.z).toBeGreaterThan(whole.z);
       expect(f.minZ).toBeLessThanOrEqual(whole.z);
       const a = proj(f, v.w, v.h, content.box.l, content.box.t);
@@ -194,20 +194,20 @@ describe('登陆战横屏和电脑：内容盒适配的缩放上限只对登陆�
   const small = cellsBox([[8, 8, 12, 12]], 3);
   for (const v of VIEWS.filter((q) => q.w > q.h)) {
     it(`${v.name}：给 zCap 时顶到 1.5 的能再放大、不超过 zCap；不给时照旧封顶 1.5`, () => {
-      const base = fitView(v.w, v.h, v.inset, islandBox(), { box: small, tight: true });
-      const battle = fitView(v.w, v.h, v.inset, islandBox(), { box: small, tight: true, zCap: BATTLE_Z_CAP });
+      const base = fitView(v.w, v.h, v.inset, islandBox(0), { box: small, tight: true });
+      const battle = fitView(v.w, v.h, v.inset, islandBox(0), { box: small, tight: true, zCap: BATTLE_Z_CAP });
       expect(base.z).toBeLessThanOrEqual(1.5 + 1e-9);
       // 原来顶到 1.5 的放宽后更大；按高度就装不下、没顶到上限的（手机横屏矮）放宽前后一样
       if (base.z >= 1.5 - 1e-9) expect(battle.z).toBeGreaterThan(base.z);
       else expect(battle.z).toBeCloseTo(base.z, 9);
       expect(battle.z).toBeLessThanOrEqual(BATTLE_Z_CAP + 1e-9);
-      expect(battle.minZ).toBeLessThanOrEqual(fitView(v.w, v.h, v.inset, islandBox()).z);
+      expect(battle.minZ).toBeLessThanOrEqual(fitView(v.w, v.h, v.inset, islandBox(0)).z);
     });
   }
   it('竖屏不走 tight，zCap 不起作用', () => {
     const v = VIEWS[0]!;
-    const a = fitView(v.w, v.h, v.inset, islandBox(), { box: small, tight: true });
-    const b = fitView(v.w, v.h, v.inset, islandBox(), { box: small, tight: true, zCap: BATTLE_Z_CAP });
+    const a = fitView(v.w, v.h, v.inset, islandBox(0), { box: small, tight: true });
+    const b = fitView(v.w, v.h, v.inset, islandBox(0), { box: small, tight: true, zCap: BATTLE_Z_CAP });
     expect(b).toEqual(a);
   });
 });

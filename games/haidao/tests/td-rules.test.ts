@@ -210,8 +210,9 @@ describe('英雄', () => {
   });
 
   it('射程内先打拿着宝藏的；开枪有开火事件（id -1，画面播弹道）', () => {
-    // 规则 13：英雄守在宝藏边（版本 14 起他去路口拦，敌人摸不到宝藏，这个场景出不来）
-    const s = createTd({ ...setup(base(), lvl({ waves: sailors(4, 6) })), rules: 13 });
+    // 当作玩家指挥过：英雄守在出生的宝藏边（没指挥时他去路口拦，敌人摸不到宝藏，这个场景出不来）
+    const s = createTd(setup(base(), lvl({ waves: sailors(4, 6) })));
+    (s.internal as { heroCmd: boolean }).heroCmd = true;
     s.hero.hp = 1_000_000;
     let checked = 0;
     let shots = 0;

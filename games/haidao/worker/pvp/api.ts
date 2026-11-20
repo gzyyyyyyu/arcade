@@ -11,6 +11,7 @@ import { meUrlOf, whoIs } from 'arcade-kit/auth';
 import { isStandalone, json, readJson } from 'arcade-kit/worker';
 import { validateBase } from '../../src/core/validate.ts';
 import { raidGain, raidSetup, sanitizeActions, wandererIsland } from '../../src/core/pvp.ts';
+import { islandExt } from '../../src/core/base.ts';
 import { BATTLE_TICKS } from '../../src/core/types.ts';
 import type { BattleAction } from '../../src/core/types.ts';
 import { checkRules } from '../live.ts';
@@ -187,7 +188,7 @@ async function startRaid(ports: Ports, userId: string, now: number, target?: { i
     const b = await beginRaid(ports, userId, { raidId, defenderId: target.id, until: l.until, army: prep.army }, now, target.revengeOf);
     if (!b.ok) return b;
     // 复仇不给系统赏金：最多拿回对方掉的
-    return { ok: true, start: { raidId, wanderer: false, opponent: l.opponent, setup: raidSetup(l.layout, prep.army, seed, l.hero), until: l.until, maxGain: lossCap(l.stash) } };
+    return { ok: true, start: { raidId, wanderer: false, opponent: l.opponent, setup: raidSetup(l.layout, islandExt(l.layout), prep.army, seed, l.hero), until: l.until, maxGain: lossCap(l.stash) } };
   }
 
   const exclude = [...prep.attacked];
@@ -199,13 +200,13 @@ async function startRaid(ports: Ports, userId: string, now: number, target?: { i
     if (l.ok) {
       const b = await beginRaid(ports, userId, { raidId, defenderId: id, until: l.until, army: prep.army }, now);
       if (!b.ok) return b;
-      return { ok: true, start: { raidId, wanderer: false, opponent: l.opponent, setup: raidSetup(l.layout, prep.army, seed, l.hero), until: l.until, maxGain: raidGain(lossCap(l.stash)) } };
+      return { ok: true, start: { raidId, wanderer: false, opponent: l.opponent, setup: raidSetup(l.layout, islandExt(l.layout), prep.army, seed, l.hero), until: l.until, maxGain: raidGain(lossCap(l.stash)) } };
     }
     exclude.push(id);
   }
   // 没有合适的真人：流浪海盗岛（标明不是真人，掠夺来自系统）
   const w = wandererIsland(prep.trophies, prep.hq, seed);
-  const setup = raidSetup(w.layout, prep.army, seed);
+  const setup = raidSetup(w.layout, 0, prep.army, seed);
   const b = await beginRaid(ports, userId, { raidId, defenderId: null, until, army: prep.army, wander: { setup, loot: w.loot } }, now);
   if (!b.ok) return b;
   return { ok: true, start: { raidId, wanderer: true, opponent: { name: w.name, trophies: prep.trophies, hq: w.hq }, setup, until, maxGain: { gold: Math.floor(w.loot.gold / 2), wood: Math.floor(w.loot.wood / 2) } } };

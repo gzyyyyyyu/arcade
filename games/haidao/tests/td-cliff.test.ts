@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { RULES_SINCE, RULES_VERSION, SHIELD, TD2_CLIFF, TD2_COST, cliffOn, createTd, runTd, stepTd, tdBuildCost, tdBuildRange, tdCampaign, tdGrowthSetup, tdTowerRange } from '../src/core/index.ts';
+import { RULES_VERSION, SHIELD, TD2_CLIFF, TD2_COST, cliffOn, createTd, runTd, stepTd, tdBuildCost, tdBuildRange, tdCampaign, tdGrowthSetup, tdTowerRange } from '../src/core/index.ts';
 import type { Placed, TdAction, TdEnemyKind, TdEvent, TdLevel, TdMode, TdSetup, TdState } from '../src/core/index.ts';
 import { cellIdx } from '../src/core/grid.ts';
 import { inner } from '../src/core/tdstate.ts';
-import { readGolden } from './td-golden-lib.ts';
 
-/** 第五章「断崖海岸」（规则版本 26）：断崖格、崖上高台、盾兵在断崖关的判定；只由关卡的 cliffs 打开 */
+/** 第五章「断崖海岸」：断崖格、崖上高台、盾兵在断崖关的判定；只由关卡的 cliffs 打开 */
 
-const V = RULES_SINCE.tdCliffs;
 const LAYOUT: Placed[] = [{ id: 1, kind: 'hq', level: 1, x: 18, y: 0 }, { id: 2, kind: 'treasure', level: 1, x: 10, y: 19 }];
 
 /**
@@ -24,8 +22,8 @@ function arena(o: { cliffs?: boolean; enemy?: TdEnemyKind; n?: number; waves?: n
     ...(o.cliffs === false ? {} : { cliffs: [{ x: 13, y: 10 }, { x: 16, y: 10 }, { x: 13, y: 13 }, { x: 16, y: 13 }] }),
   };
 }
-const setup = (level: TdLevel, o: { rules?: number; mode?: TdMode; hero?: number } = {}): TdSetup => ({
-  layout: LAYOUT, level, hero: o.hero ?? 1, seed: 1, rules: o.rules ?? RULES_VERSION, mode: o.mode ?? 'campaign', unlocked: ['cannon', 'gunTower', 'mortar'],
+const setup = (level: TdLevel, o: { mode?: TdMode; hero?: number } = {}): TdSetup => ({
+  layout: LAYOUT, level, hero: o.hero ?? 1, seed: 1, rules: RULES_VERSION, mode: o.mode ?? 'campaign', unlocked: ['cannon', 'gunTower', 'mortar'],
 });
 /** 在这几块木台上造塔（第 0 拍造、立刻升 ups 次，默认升满阶） */
 const towers = (slots: number[], kind: 'cannon' | 'gunTower' | 'mortar' = 'cannon', ups = 2): TdAction[] =>
@@ -38,12 +36,11 @@ function benchHero(s: TdState): void {
 }
 
 describe('断崖关的开关', () => {
-  it('规则 26 起、关卡写了 cliffs 才开；旧版本或没写 cliffs 的关，高台标记不起作用、崖格能走', () => {
-    expect(cliffOn({ rules: V, level: arena() })).toBe(true);
-    expect(cliffOn({ rules: V - 1, level: arena() })).toBe(false);
-    expect(cliffOn({ rules: V, level: arena({ cliffs: false }) })).toBe(false);
+  it('关卡写了 cliffs 才开；没写 cliffs 的关，高台标记不起作用、崖格能走', () => {
+    expect(cliffOn({ level: arena() })).toBe(true);
+    expect(cliffOn({ level: arena({ cliffs: false }) })).toBe(false);
     const on = createTd(setup(arena()));
-    const old = createTd(setup(arena(), { rules: V - 1 }));
+    const old = createTd(setup(arena({ cliffs: false })));
     expect(on.slots[4]!.high).toBe(true);
     expect(old.slots[4]!.high).toBeUndefined();
     expect(inner(on).fixed[cellIdx(13, 10)]).toBe(2);
@@ -115,7 +112,7 @@ describe('崖上的高台', () => {
 
 describe('盾兵在断崖关', () => {
   /** 一局里推了几次 guard（盾挡住了） */
-  function guards(level: TdLevel, acts: TdAction[], o: { rules?: number; hero?: number; bench?: boolean } = {}): number {
+  function guards(level: TdLevel, acts: TdAction[], o: { hero?: number; bench?: boolean } = {}): number {
     const s = createTd(setup(level, o));
     if (o.bench !== false) benchHero(s);
     let n = 0;
@@ -135,14 +132,13 @@ describe('盾兵在断崖关', () => {
     expect(guards(arena({ cliffs: false }), towers([4]))).toBeGreaterThan(0);
   });
 
-  it('英雄的枪：断崖关里正面照样被盾挡；别的关（海盗来袭等）不挡，和规则 25 一样', () => {
-    const hero = (cliffs: boolean, rules = RULES_VERSION): number => {
+  it('英雄的枪：断崖关里正面照样被盾挡；别的关（海盗来袭等）不挡', () => {
+    const hero = (cliffs: boolean): number => {
       const level = arena({ cliffs, n: 4 });
-      return guards({ ...level, slots: [] }, [], { rules, hero: 8, bench: false });
+      return guards({ ...level, slots: [] }, [], { hero: 8, bench: false });
     };
     expect(hero(true)).toBeGreaterThan(0);
     expect(hero(false)).toBe(0);
-    expect(hero(true, V - 1)).toBe(0);
   });
 
   it('锚钩钩住的盾兵：拖动和定住期间盾放下，正面打过来也不挡', () => {
@@ -171,17 +167,4 @@ describe('盾兵在断崖关', () => {
     expect(front - side, `正面漏 ${front}、侧面漏 ${side}`).toBeGreaterThanOrEqual(3);
     expect(SHIELD.frontPct).toBeLessThan(100);
   }, 60_000);
-});
-
-describe('指纹锁：只有第五章不同', () => {
-  it('v26- 的键 = v24- 的键加上第五章的关；第五章以外的 v26- 和 v24- 逐个相同（各玩法、旧关、海盗来袭的盾兵都没变）', () => {
-    const g = readGolden();
-    const ch5 = new Set(tdCampaign().filter((l) => l.chapter === 5).map((l) => l.id));
-    const idOf = (rest: string): string | undefined => /(?:^|nav-)(td\d\d)-/.exec(rest)?.[1];
-    const v24 = Object.keys(g).filter((k) => k.startsWith('v24-')).map((k) => k.slice(4));
-    const v26 = Object.keys(g).filter((k) => k.startsWith('v26-')).map((k) => k.slice(4));
-    expect(v26.filter((r) => !ch5.has(idOf(r) ?? ''))).toEqual(v24);
-    expect(v26.filter((r) => ch5.has(idOf(r) ?? '')).length).toBe(ch5.size * 3 * (3 + 1 + 3));
-    for (const r of v24) expect(g[`v26-${r}`], r).toBe(g[`v24-${r}`]);
-  });
 });

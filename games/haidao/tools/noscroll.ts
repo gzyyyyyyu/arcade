@@ -24,7 +24,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, type Page, type Route } from 'playwright-core';
 import { createServer } from 'vite';
-import { CAMPAIGN, RULES_VERSION, TD2_LEVEL_BY_ID, botActions, newProfile, presetLayout } from '../src/core/index.ts';
+import { CAMPAIGN, RULES_VERSION, TD2_LEVEL_BY_ID, botActions, canPlace, newProfile, presetLayout } from '../src/core/index.ts';
 import type { Placed, Profile } from '../src/core/index.ts';
 import { validateBase } from '../src/core/validate.ts';
 import { handleLive, type LiveEnv } from '../worker/live.ts';
@@ -65,7 +65,7 @@ const VIEWS = [
 ];
 const ONLY = opt('--view')?.split(',') ?? VIEWS.map((v) => v.name);
 
-type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { slots: Array<{ x: number; y: number; tower: number; wreck: boolean }> }; ready?: boolean; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void }; where?(k: string): { x: number; y: number } | null };
+type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { slots: Array<{ x: number; y: number; tower: number; wreck: boolean }> }; ready?: boolean; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void }; where?(k: string): { x: number; y: number } | null; focusOn?(k: string, z: number): boolean };
 
 // ---------------------------------------------------------------- --pvp 的假平台
 
@@ -480,10 +480,24 @@ async function measure(page: Page, touch: boolean, screen: string): Promise<Omit
         return !!t && (t === e || e.contains(t));
       });
     };
+    // 滚动区（军械所研究网格在手机横屏的惯性滚动）里的钮只按看得见的那一截比，滚出去的部分盖不住区外的钮
+    const clip = (e: HTMLElement, r: DOMRect | null): DOMRect | null => {
+      if (!r) return null;
+      let { left, top, right, bottom } = r;
+      for (let p = e.parentElement; p && !p.classList.contains('hd-ui'); p = p.parentElement) {
+        if (!/(auto|scroll)/.test(getComputedStyle(p).overflowY)) continue;
+        const q = p.getBoundingClientRect();
+        left = Math.max(left, q.left);
+        top = Math.max(top, q.top);
+        right = Math.min(right, q.right);
+        bottom = Math.min(bottom, q.bottom);
+      }
+      return new DOMRect(left, top, Math.max(0, right - left), Math.max(0, bottom - top));
+    };
     const hits = [...layer.querySelectorAll<HTMLElement>('button, [role=button], a, input, select, .hd-pill')]
       .filter((e) => e.closest('.hd-ui') && !e.closest('.hd-map-in, .hd-scout-map, .hd-minimap'))
-      .map((e) => ({ e, r: vis(e) }))
-      .filter((x): x is { e: HTMLElement; r: DOMRect } => !!x.r && x.r.right > 0 && x.r.bottom > 0 && x.r.left < innerWidth && x.r.top < innerHeight)
+      .map((e) => ({ e, r: clip(e, vis(e)) }))
+      .filter((x): x is { e: HTMLElement; r: DOMRect } => !!x.r && x.r.width > 0 && x.r.height > 0 && x.r.right > 0 && x.r.bottom > 0 && x.r.left < innerWidth && x.r.top < innerHeight)
       .filter((x) => reach(x.e, x.r));
     for (let i = 0; i < hits.length && overlap.length < 12; i++) {
       for (let j = i + 1; j < hits.length; j++) {
@@ -545,6 +559,17 @@ const DOCK_BEHIND_SAVE = (() => {
   const stars = Object.fromEntries(CAMPAIGN.slice(0, 22).map((l) => [l.id, 3]));
   const buildings = p.base.buildings.map((b) => (b.kind === 'dock' ? { ...b, level: 7 } : b));
   return JSON.stringify({ profile: { ...p, base: { ...p.base, buildings }, stars, tutorial: 99, res: { gold: 9000, wood: 9000 } }, lastSeen: Date.now() });
+})();
+/** 主寨 6、军械所 5 级、研究有高有低、钱只够一部分：军械所面板的研究网格里升得起、缺钱、到顶、没解锁四种卡都有 */
+const ARMORY_SAVE = (() => {
+  const p = sampleProfile(6);
+  const buildings = [...p.base.buildings];
+  let at: [number, number] | null = null;
+  for (let y = 0; y < 20 && !at; y++) for (let x = 0; x < 20 && !at; x++) if (canPlace({ ...p, base: { ...p.base, buildings } }, 'armory', x, y)) at = [x, y];
+  if (!at) throw new Error('示范岛上放不下军械所');
+  buildings.push({ id: p.base.nextId, kind: 'armory', level: 5, x: at[0], y: at[1] });
+  const research = { ...p.research, sailor: 5, gunner: 3 };
+  return JSON.stringify({ profile: { ...p, base: { buildings, nextId: p.base.nextId + 1 }, research, tutorial: 99, res: { gold: 2600, wood: 1400 } }, lastSeen: Date.now() });
 })();
 const GARRISON_LEVEL = [...TD2_LEVEL_BY_ID.values()].find((l) => l.garrison.length > 2);
 
@@ -635,9 +660,37 @@ try {
 
     // ---- 基地、建造、船队、建筑信息、船长档案、设置
     await group('基地', async () => {
+      // 普通建筑的升级面板（两栏：立绘对比 + 数值花费）和军械所（升级 + 研究网格），都要一屏放下
+      const openInfoOf = async (kind: string): Promise<void> => {
+        // 竖屏初始视野常看不到要点的建筑：先把镜头对过去
+        await page.evaluate((k) => (window as unknown as { __haidao: Hook }).__haidao.focusOn?.(k, 1.4), kind);
+        await page.waitForTimeout(600);
+        const h = await where(kind);
+        if (!h) throw new Error(`找不到${kind}`);
+        await tap(h.x, h.y);
+        await page.waitForTimeout(500);
+        if (v.hasTouch) {
+          await click('.hd-rmenu [data-ring=info]');
+          await page.waitForTimeout(400);
+        }
+      };
       // dev.td(10) 的存档主寨 8 级、资源上限 18,000（五位数带逗号），资源牌放不放得下要在这种长数字下量
       await fresh(10);
       await attempt('基地主界面·满级', () => snap('基地主界面·满级'));
+      await attempt('建筑信息面板（主寨满级）', async () => {
+        await openInfoOf('hq');
+        await snap('建筑信息面板（主寨满级）');
+        await closeSheet();
+      });
+      await attempt('军械所面板', async () => {
+        await page.evaluate((sv) => localStorage.setItem('haidao.save', sv), ARMORY_SAVE);
+        await page.goto(`${ROOT}?fast`, { timeout: 60_000 });
+        await ready();
+        await page.waitForTimeout(800);
+        await openInfoOf('armory');
+        await snap('军械所面板');
+        await closeSheet();
+      });
       await fresh();
       await attempt('基地主界面', () => snap('基地主界面'));
       await attempt('建造列表', async () => {
@@ -665,19 +718,17 @@ try {
         await snap('收藏页');
         await closeSheet();
       });
+      await attempt('建筑信息面板（炮台）', async () => {
+        await openInfoOf('cannon');
+        await snap('建筑信息面板（炮台）');
+        await closeSheet();
+      });
       await attempt('建筑信息面板（主寨）', async () => {
         // 示范岛（dev.td）没有战役星，主寨升不了、点不到「升级庆祝」：先给够星和钱（give 会重载页面）
         await page.evaluate(() => (window as unknown as { __haidao: Hook }).__haidao.dev?.give(200_000, 60_000, 90));
         await ready();
         await page.waitForTimeout(900);
-        const h = await where('hq');
-        if (!h) throw new Error('找不到主寨');
-        await tap(h.x, h.y);
-        await page.waitForTimeout(500);
-        if (v.hasTouch) {
-          await click('.hd-rmenu [data-ring=info]');
-          await page.waitForTimeout(400);
-        }
+        await openInfoOf('hq');
         await snap('建筑信息面板（主寨）');
         if (await page.locator('.hd-sheet .hd-upbtn').count()) {
           await click('.hd-sheet .hd-upbtn');

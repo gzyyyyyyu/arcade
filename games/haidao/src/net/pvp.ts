@@ -192,7 +192,7 @@ export function startSnapshotSync(getSave: () => Save): { touch(): void; flush()
     clearTimeout(timer);
     timer = undefined;
     if (!dirty || pvpState.off) return;
-    // 宝藏箱、分叉、英雄研究都进攻防（规则版本 6），pvpSnapshot 只去掉本机进度
+    // 宝藏箱、分叉、英雄研究都进攻防，pvpSnapshot 只去掉本机进度
     const v = validateBase(pvpSnapshot(getSave().profile));
     if (!v.ok) return;
     dirty = false;

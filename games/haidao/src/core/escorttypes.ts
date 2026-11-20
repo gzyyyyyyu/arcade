@@ -52,7 +52,7 @@ export interface EscortState {
   sunk: boolean;
   /** 修了几次 */
   mends: number;
-  /** 娱乐护航（规则 25）：玩家还没碰过船速，第一波开打时船自己开始巡航；实盘没有这个字段 */
+  /** 娱乐护航：玩家还没碰过船速，第一波开打时船自己开始巡航；实盘没有这个字段 */
   autoSail?: boolean;
 }
 

@@ -4,7 +4,7 @@ import { bArt, wArt } from './art.ts';
 import { footCenter, iso } from './iso.ts';
 import { el, svgUrl } from './ui.ts';
 
-/** 岛布局的小地图（DOM）：侦察敌岛、推荐布局预览共用。可拖动、双指/滚轮缩放，点建筑触发 onPick。 */
+/** 岛布局的小地图（DOM）：侦察敌岛、推荐布局预览共用（ext 是岛扩了几圈）。可拖动、双指/滚轮缩放，点建筑触发 onPick。 */
 const CW = 1500;
 const CH = 1000;
 const OX = CW / 2;
@@ -18,7 +18,7 @@ export interface Mini {
   destroy(): void;
 }
 
-export function renderLayout(host: HTMLElement, layout: Placed[], opts: { interactive?: boolean; onPick?: (b: Placed | null) => void; /** 按建筑外框放大（侦察用）；不传就整座岛装进去（推荐布局要看全貌） */ zoomToBuildings?: boolean } = {}): Mini {
+export function renderLayout(host: HTMLElement, layout: Placed[], ext: number, opts: { interactive?: boolean; onPick?: (b: Placed | null) => void; /** 按建筑外框放大（侦察用）；不传就整座岛装进去（推荐布局要看全貌） */ zoomToBuildings?: boolean } = {}): Mini {
   host.textContent = '';
   host.style.overflow = 'hidden';
   host.style.position = 'relative';
@@ -38,9 +38,10 @@ export function renderLayout(host: HTMLElement, layout: Placed[], opts: { intera
     pg.setAttribute('stroke-width', '3');
     svg.appendChild(pg);
   };
-  diamond(-BEACH - 2, ISLAND + BEACH + 2, '#7fe3d0', '#58c9b8');
-  diamond(-BEACH, ISLAND + BEACH, '#f1d68c', '#dcb86a');
-  diamond(0, ISLAND, '#6ec24b', '#4ba53d');
+  // ext：岛按主寨扩了几圈（战役岛 0，自己的岛按主寨等级）
+  diamond(-ext - BEACH - 2, ISLAND + ext + BEACH + 2, '#7fe3d0', '#58c9b8');
+  diamond(-ext - BEACH, ISLAND + ext + BEACH, '#f1d68c', '#dcb86a');
+  diamond(-ext, ISLAND + ext, '#6ec24b', '#4ba53d');
   inner.appendChild(svg);
   const rangeSvg = document.createElementNS(NS, 'svg');
   rangeSvg.setAttribute('width', String(CW));

@@ -28,14 +28,19 @@ export function escortRunReward(level: Pick<EscortLevel, 'hq'>, stars: number): 
 }
 
 /**
- * 开一局护航：岛是图自带的（不读存档的基地），能造的塔全开，英雄用关卡建议主寨等级对应的等级（护航不看养成，公平）。
+ * 开一局娱乐护航：岛是图自带的（不读存档的基地），能造的塔全开，英雄用关卡建议主寨等级对应的等级（护航不看养成，公平）。
  * 没有这一关就抛错（关 id 来自界面的固定列表，错了是代码问题）。
- * live：护航实盘的开局（真筹码，不设开局跟随，规则 25 的局面和 24 逐位一样，档位表的期望不变）
  */
-export function escortSetup(levelId: string, seed: number, opts: { live?: boolean } = {}): TdSetup {
+export function escortSetup(levelId: string, seed: number): TdSetup {
   const level = ESCORT_LEVEL_BY_ID.get(levelId);
-  const map = level && ESCORT_MAP_BY_ID.get(level.map as never);
-  if (!level || !map) throw new Error(`没有这一关：${levelId}`);
+  if (!level) throw new Error(`没有这一关：${levelId}`);
+  return escortSetupOf(level, seed);
+}
+
+/** 按一关的完整定义开局（娱乐读 escortlevels.ts，实盘读冻结副本 escortlivelevels.ts）；live：实盘，不设开局跟随 */
+export function escortSetupOf(level: EscortLevel, seed: number, opts: { live?: boolean } = {}): TdSetup {
+  const map = ESCORT_MAP_BY_ID.get(level.map as never);
+  if (!map) throw new Error(`没有这张图：${level.map}`);
   return {
     layout: map.layout.map((b) => ({ ...b })),
     level,
@@ -45,7 +50,7 @@ export function escortSetup(levelId: string, seed: number, opts: { live?: boolea
     mode: 'escort',
     garrison: [],
     bonus: {},
-    // 震荡炮（规则版本 10）这一版先不进护航：护航有自己的规则版本和指纹，等单独配平
+    // 震荡炮这一版先不进护航：护航有自己的规则版本和指纹，等单独配平
     unlocked: TD_TOWER_KINDS.filter((k) => k !== 'shock' && k !== 'sniper'),
     ...(opts.live ? {} : { escortAssist: true }),
   };

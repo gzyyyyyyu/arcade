@@ -2,7 +2,7 @@ import type { BaseScene } from './BaseScene.ts';
 import { TD2_HERO_SKILL } from '../content/td2units.ts';
 import { BUILDINGS, TROOPS, SKILLS, HQ_LEVELS } from '../content/index.ts';
 import { heroCap, heroLevel, navUnlocked, heroResearchCost, hqLevel, researchLevel, research, researchCost, researchHero, totalStars, upgrade, upgradeCost, collect } from '../core/index.ts';
-import type { TroopKind, SkillKind, Placed } from '../core/types.ts';
+import type { TroopKind, SkillKind, Placed, Res } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { runAchievements } from './meta.ts';
 import { ensureArt } from './textures.ts';
@@ -16,6 +16,7 @@ import { isBigBuilding } from './audio/pick.ts';
 import { nextUnlock, itemArt, unlocksAt, itemDesc } from './unlock.ts';
 import { tutStep, tutSet, tutAdv } from './tutorial.ts';
 import { badgePopup, el, img, openModal, button, toast, costRow, paginate } from './ui.ts';
+import type { ArtPiece } from './art.ts';
 import { closeSheet, short, openInfo } from './basepanel.ts';
 import { openBuild } from './baseplace.ts';
 import { topOf, measureSafe } from './basegeom.ts';
@@ -131,88 +132,89 @@ export function showNewHint(bs: BaseScene): void {
   sfx('star');
 }
 
-/** 军械所：兵种和旗舰技能的等级（等级不能超过军械所等级） */
+/**
+ * 军械所研究：网格卡片分「兵种」「技能」「英雄」三组，一屏看完（不翻页）。整张卡是按钮：升得起点一下就升，
+ * 升不起灰着写原因（主寨几级解锁、先升级军械所、已满级），只缺资源时照样列花费、缺的数字标红。等级不能超过军械所等级。
+ */
 export function researchList(bs: BaseScene, body: HTMLElement, armoryId: number): void {
   const p = app.profile;
   const hq = hqLevel(p);
-  el('p', 'hd-desc', '花金币和木材给兵种、技能升级，等级不能超过军械所等级。守岛英雄只花木材。', body);
-  const keys: Array<TroopKind | SkillKind> = [...(Object.keys(TROOPS) as TroopKind[]), ...(Object.keys(SKILLS) as SkillKind[])];
-  const rows: HTMLElement[] = [heroRow(bs, body, armoryId)];
-  for (const k of keys) {
-    const isTroop = k in TROOPS;
-    const def = isTroop ? TROOPS[k as TroopKind] : SKILLS[k as SkillKind];
-    const row = el('div', 'hd-row', undefined, body);
-    rows.push(row);
-    row.style.justifyContent = 'flex-start';
-    row.style.margin = '0 0 6px';
-    row.appendChild(img(isTroop ? tArt(k as TroopKind, 'idle') : iconA(k as SkillKind), 36));
-    const nm = el('span', '', `${def.name}  ${researchLevel(p, k)} 级`, row);
-    nm.style.flex = '1';
-    if (def.unlockHq > hq) {
-      el('span', 'hd-chip', `主寨 ${def.unlockHq} 级解锁`, row);
-      continue;
-    }
-    const cur = researchLevel(p, k);
-    const r = research(p, k);
-    const cost = researchCost(k, cur);
-    const b = button('', 'hd-btn-gold', () => {
-      const rr = research(app.profile, k);
-      if (!rr.ok) return toast(short(bs, rr.error, cost));
-      app.commit(rr.value);
-      sfx('upgrade');
-      bs.refresh();
-      openInfo(bs, armoryId);
-    }, row);
-    b.style.flex = 'none';
-    if (r.ok) b.append('升级 ', costRow(cost, p.res));
-    else {
-      b.disabled = true;
-      b.textContent = r.error === 'max' ? '已满级' : r.error === 'need_armory' ? '先升级军械所' : short(bs, r.error, cost);
-    }
-  }
-  // 兵种加技能十几行，一页放不下：翻页（军械所的信息面板，抽屉里放不下的行进下一页）
-  if (rows.length && bs.sheet) paginate(bs.sheet, rows, rows[rows.length - 1]!);
-}
-
-/** 守岛英雄：只花木材，主寨 8 级前封顶主寨等级、8 级后能到 heroCap（12）；9 级以上只加守岛和海盗来袭，别人打我的岛时驻岛英雄按 8 级算 */
-function heroRow(bs: BaseScene, body: HTMLElement, armoryId: number): HTMLElement {
-  const p = app.profile;
-  const cur = heroLevel(p);
-  const cap = heroCap(hqLevel(p));
-  const row = el('div', 'hd-row', undefined, body);
-  row.style.justifyContent = 'flex-start';
-  row.style.margin = '0 0 6px';
-  row.appendChild(img(tArt('captain', 'idle'), 36));
-  const nm = el('span', '', `守岛英雄  ${cur} 级`, row);
-  nm.style.flex = '1';
-  nm.title = cap > 8 ? '9 级起只加守岛和海盗来袭，别人来打你的岛时按 8 级算' : `最高到主寨等级（${cap} 级）；主寨 8 级后能升到 12 级`;
-  // 8 级的新技能写在名字下面（守岛和海盗来袭里多一个锚钩），升级前就看得到盼头
-  if (cur < TD2_HERO_SKILL.hook.level) {
-    const nx = el('small', 'hd-hero-next', `${TD2_HERO_SKILL.hook.level} 级解锁新技能「锚钩」`, nm);
-    nx.style.display = 'block';
-    nx.style.fontSize = '12px';
-  }
-  // 第二个英雄（规则版本 23）：在守岛开局前的面板上选，这里只说怎么解锁；等级两个英雄共用
-  const nv = el('small', 'hd-hero-next', navUnlocked(p) ? '航海士已解锁：守岛开局前选带谁，等级共用' : '守岛第一章通关解锁第二个英雄「航海士」', nm);
-  nv.style.display = 'block';
-  nv.style.fontSize = '12px';
-  const cost = heroResearchCost(cur);
-  const r = researchHero(p);
-  const b = button('', 'hd-btn-gold', () => {
-    const rr = researchHero(app.profile);
-    if (!rr.ok) return toast(short(bs, rr.error, cost));
-    app.commit(rr.value);
+  // 说明不另起一段：军械所的描述已经写了"研究等级不能超过军械所等级"，英雄只花木材看它卡上的花费
+  const box = el('div', 'hd-rs', undefined, body);
+  const reopen = (): void => {
     sfx('upgrade');
     bs.refresh();
     openInfo(bs, armoryId);
-  }, row);
-  b.style.flex = 'none';
-  if (r.ok) b.append('升级 ', costRow(cost, p.res));
-  else {
-    b.disabled = true;
-    b.textContent = r.error === 'max' ? (cap > 8 ? '已满级' : `主寨 ${cur + 1} 级可升`) : r.error === 'need_armory' ? '先造军械所' : short(bs, r.error, cost);
+  };
+  const group = (title: string, cls: string): HTMLElement => {
+    const g = el('div', `hd-rs-g ${cls}`, undefined, box);
+    el('b', 'hd-rs-t', title, g);
+    return el('div', 'hd-rs-grid', undefined, g);
+  };
+  const troops = group('兵种', 'troops');
+  const skills = group('技能', 'skills');
+  const keys: Array<TroopKind | SkillKind> = [...(Object.keys(TROOPS) as TroopKind[]), ...(Object.keys(SKILLS) as SkillKind[])];
+  for (const k of keys) {
+    const isTroop = k in TROOPS;
+    const def = isTroop ? TROOPS[k as TroopKind] : SKILLS[k as SkillKind];
+    const cur = researchLevel(p, k);
+    const cost = researchCost(k, cur);
+    const r = research(p, k);
+    const status = def.unlockHq > hq ? `主寨 ${def.unlockHq} 级解锁` : r.ok ? null : cardWhy(bs, r.error, cost, '已满级', '先升级军械所');
+    researchCard(isTroop ? troops : skills, isTroop ? tArt(k as TroopKind, 'idle') : iconA(k as SkillKind), def.name, cur, cost, r.ok, status, () => {
+      const rr = research(app.profile, k);
+      if (!rr.ok) return toast(short(bs, rr.error, cost));
+      app.commit(rr.value);
+      reopen();
+    }).title = r.ok ? `升到 ${cur + 1} 级` : short(bs, r.error, cost);
   }
-  return row;
+  heroCard(bs, group('英雄', 'hero'), reopen);
+}
+
+/** 卡上灰着的原因；只缺资源时返回 null（卡上照样列花费，缺的数字标红） */
+function cardWhy(bs: BaseScene, error: string, cost: Res, max: string, needArmory: string): string | null {
+  if (error === 'no_gold' || error === 'no_wood') return null;
+  if (error === 'max') return max;
+  if (error === 'need_armory') return needArmory;
+  return short(bs, error, cost);
+}
+
+/** 一张研究卡：图标、名字、等级，下面一行是下一级花费（缺的标红）或灰着的原因 */
+function researchCard(parent: HTMLElement, icon: ArtPiece, name: string, lv: number, cost: Res, ok: boolean, status: string | null, run: () => void): HTMLButtonElement {
+  const c = button('', `hd-rs-card${ok ? ' ok' : ''}`, run, parent, null);
+  c.disabled = !ok;
+  // 图标和等级小牌并排一行，名字、花费各一行，卡才矮得下来
+  const top = el('span', 'hd-rs-top', undefined, c);
+  top.appendChild(img(icon, 32));
+  el('span', 'hd-rs-lv hd-n', `${lv} 级`, top);
+  const t = el('span', 'hd-rs-tx', undefined, c);
+  el('b', 'hd-rs-nm', name, t);
+  if (status) el('small', 'hd-rs-why', status, t);
+  else t.appendChild(costRow(cost, app.profile.res));
+  return c;
+}
+
+/** 守岛英雄：只花木材，主寨 8 级前封顶主寨等级、8 级后能到 heroCap（12）；9 级以上只加守岛和海盗来袭，别人打我的岛时驻岛英雄按 8 级算 */
+function heroCard(bs: BaseScene, parent: HTMLElement, reopen: () => void): void {
+  const p = app.profile;
+  const cur = heroLevel(p);
+  const cap = heroCap(hqLevel(p));
+  const cost = heroResearchCost(cur);
+  const r = researchHero(p);
+  const status = r.ok ? null : cardWhy(bs, r.error, cost, cap > 8 ? '已满级' : `主寨 ${cur + 1} 级可升`, '先造军械所');
+  const c = researchCard(parent, tArt('captain', 'idle'), '守岛英雄', cur, cost, r.ok, status, () => {
+    const rr = researchHero(app.profile);
+    if (!rr.ok) return toast(short(bs, rr.error, cost));
+    app.commit(rr.value);
+    reopen();
+  });
+  c.classList.add('hd-rs-herocard');
+  c.title = cap > 8 ? '9 级起只加守岛和海盗来袭，别人来打你的岛时按 8 级算' : `最高到主寨等级（${cap} 级）；主寨 8 级后能升到 12 级`;
+  // 8 级的新技能和第二个英雄写在卡上，升级前就看得到盼头；等级两个英雄共用，带谁在守岛开局前选
+  const t = c.querySelector<HTMLElement>('.hd-rs-tx')!;
+  if (cur < TD2_HERO_SKILL.hook.level) el('small', 'hd-rs-note', `${TD2_HERO_SKILL.hook.level} 级新技能「锚钩」`, t);
+  el('small', 'hd-rs-note', navUnlocked(p) ? '航海士已解锁，等级共用' : '守岛第一章通关解锁「航海士」', t);
+  if (navUnlocked(p)) c.title += '；守岛开局前选带船长还是航海士';
 }
 
 export function starText(_bs: BaseScene, b: Placed): string {

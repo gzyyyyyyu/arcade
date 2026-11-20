@@ -5,6 +5,7 @@
  * 纯函数、无随机：同样的输入得到同样的目标偏移；每个兵的当前偏移再按时间平滑追过去（approach），
  * 所以兵靠拢、散开、被打死时都是连续变化，不跳。tests/crowd.test.ts 锁住。
  */
+import { BEACH, ISLAND } from '../core/types.ts';
 
 export interface CrowdItem {
   id: number;
@@ -155,17 +156,19 @@ export const MOOR_GAP = 190;
 /**
  * 守岛的炮艇、海盗王（规则里停在海滩圈里，离岸 1–3 格）画在海上：沿离岛最近的那条边往外推到沙滩外沿以外，
  * 同一条边上的船按沿岸方向排开、间距不小于 gap，整排的中点不变。只影响显示（开炮起点跟着显示位置走），规则位置、射程都不动。
- * side（0..3：x 小、x 大、y 小、y 大）取超出岛的那一维里超得多的一边；岛内的（不该有）不推。
+ * side（0..3：x 小、x 大、y 小、y 大）取超出岛的那一维里超得多的一边；岛内的（不该有）不推。ext 是岛扩了几圈（岛是 [-ext, ISLAND+ext) 格）。
  */
-export function moorOffsets(items: readonly CrowdItem[], ox: Float64Array, oy: Float64Array, island: number, beach: number, unit: number, gap = MOOR_GAP): void {
-  const lo = -beach * unit - MOOR_OUT;
-  const hi = (island + beach) * unit + MOOR_OUT;
+export function moorOffsets(items: readonly CrowdItem[], ox: Float64Array, oy: Float64Array, ext: number, unit: number, gap = MOOR_GAP): void {
+  const lo = -(BEACH + ext) * unit - MOOR_OUT;
+  const hi = (ISLAND + ext + BEACH) * unit + MOOR_OUT;
+  const isleLo = -ext * unit;
+  const isleHi = (ISLAND + ext) * unit;
   const sides: number[][] = [[], [], [], []];
   for (let i = 0; i < items.length; i++) {
     const { x, y } = items[i]!;
     ox[i] = 0;
     oy[i] = 0;
-    const out = [-x, x - island * unit, -y, y - island * unit];
+    const out = [isleLo - x, x - isleHi, isleLo - y, y - isleHi];
     let side = -1;
     for (let k = 0; k < 4; k++) if (out[k]! > 0 && (side < 0 || out[k]! > out[side]!)) side = k;
     if (side < 0) continue;

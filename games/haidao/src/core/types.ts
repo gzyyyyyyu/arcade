@@ -9,6 +9,8 @@
 
 /** 岛的边长（格） */
 export const ISLAND = 22;
+/** 玩家的岛按主寨等级最多向四周扩几圈（HQ_LEVELS.ext）；战役、悬赏、航线、护航的岛不扩 */
+export const EXT_MAX = 2;
 /** 岛外登陆海滩的宽度（格） */
 export const BEACH = 3;
 /** 战斗坐标里一格多少单位 */
@@ -17,75 +19,8 @@ export const UNIT = 100;
 export const TICKS_PER_SEC = 20;
 /** 一场进攻最长多少拍（3 分钟） */
 export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
-/**
- * 规则版本：规则一改就加一，旧回放标"旧版本"。7 = 守岛 2.0（只改守岛；登陆战只认 ≥ 6，版本 7 下攻防逐位不变）；
- * 8 = 守岛寻敌（combat.ts，只改守岛）；9 = 进攻也接入 combat.ts（塔锁定、炸的瞄提前量、兵按小道错开）；
- * 10 = 震荡炮（震晕 + 免控）和掷弹兵（手雷越墙、炸墙三成），进攻、守岛都有（DESIGN 13）；11 = 狙击塔和盾兵（DESIGN 14）；
- * 12 = 进攻兵寻敌：掷弹兵挑溅射得分最高的建筑、远程兵等盾兵、船医就近挑血比最低的伤员站其背后（DESIGN 10.2b）；
- * 13 = 登陆战误放撤回（recall）、漂流宝箱和中途援军（setup.fun 开关，DESIGN 15）；
- * 14 = 守岛英雄没被指挥时自己守（站到威胁最大那条路的路口、不站木台上，只改守岛）；
- * 15 = 守岛精英敌人水手长、鹦鹉王，td10 / td14 第 4 波起、td07 第 6 波起水手、鹦鹉六成换成精英（只改守岛战役这三关）；
- * 16 = 守岛每章最后两关的新机制：漂流补给箱（td05、td06）、潮汐水闸（td11、td12）、岸防老炮（td17、td18），只改守岛战役这六关
- * 17 = 守岛新精英大副（倒下散成水手），只上 td16
- * 18 = 守岛第四章：水面地形、军医、炮艇，狙击先打军医；只有第四章的关用得到
- * 19 = 守岛第四章后两关：友军巡航船（章末机制）、终局首领海盗王；只有 td23、td24 用得到
- * 20 = 守岛英雄第三个技能锚钩（英雄 8 级、只在战役和海盗来袭）、海盗来袭的加难档（主寨 6 级起、开局选）；悬赏守岛、大潮、护航不变
- * 21 = 海盗来袭的登陆点按玩家的布局挑：写死的登陆点离宝藏箱太近就在同一边挪到够远的地方；只改海盗来袭
- * 22 = 守岛关内事件（赏金船、暴雨、战书，12 关写了 events）和大潮每周海况（第 48 周起）；别的关、实盘、海盗来袭、护航不变
- * 23 = 守岛第二个英雄航海士（开局选，只在战役和海盗来袭）；选船长的局、悬赏守岛、大潮、护航不变
- * 24 = 守岛战役给新手放宽：七关人数变少或开局多给金（关卡的 ease，按「照建议的新手」量）；悬赏守岛、海盗来袭、大潮、护航不变
- * 25 = 护航新手档放宽：三张图新手档敌人预算降到 0.85 倍，娱乐护航开局英雄默认跟随船、第一波开打时没碰过船速就自动巡航；护航实盘（普通、高手档，不设这些照顾）、守岛各玩法不变
- * 26 = 守岛第五章「断崖海岸」：断崖格挡路、崖上高台（射程远、崖下打不到、造价高）、盾兵进战役；只由关卡的 cliffs 打开，别的关和各玩法不变
- */
-export const RULES_VERSION = 26;
-
-/**
- * 每条规则从哪个版本起生效（上面版本说明的名字版）。核心里一律写 `s.rules >= RULES_SINCE.combat`，不写裸数字，
- * 一眼看得出这是哪次改动、旧分支给谁用：低于这些版本的分支**只给旧防守回放**（服务端每人留最近 10 条、不设期限，
- * 回放按录制时的版本重放才逐位一致）。删旧分支要先让旧回放显示过期，算删现有功能（2026-11-15 主线定：不删）。
- */
-export const RULES_SINCE = {
-  /** 6：英雄驻岛参与异步防守、防御塔和地雷的新结算（旧的是 stepDefensesLegacy / stepMinesLegacy） */
-  raidHero: 6,
-  /** 9：进攻接入 combat.ts（塔锁定、炸的瞄提前量、兵按小道错开） */
-  combat: 9,
-  /** 10：震荡炮和掷弹兵 */
-  shockGrenadier: 10,
-  /** 11：狙击塔和盾兵 */
-  sniperShield: 11,
-  /** 12：进攻兵寻敌（掷弹兵挑溅射目标、远程兵等盾兵、船医挑伤员） */
-  raidAi: 12,
-  /** 13：误放撤回、漂流宝箱、中途援军 */
-  fun: 13,
-  /** 14：守岛英雄没被指挥时自己守 */
-  tdHeroAuto: 14,
-  /** 15：守岛精英敌人（波次里按 since / until 分版本的组，createTd 按局的规则版本挑） */
-  tdElite: 15,
-  /** 16：守岛章末机制——漂流补给箱、潮汐水闸、岸防老炮（关卡字段打开，tdmech.ts） */
-  tdChapterMech: 16,
-  /** 17：守岛精英大副（倒下散成水手，td16 的水手精英换成它；LevelDef.elite.kind） */
-  tdMate: 17,
-  /** 18：守岛第四章（水面格、军医回血、炮艇炸哑塔、海上目标要射程够远）；这些都只由关卡和敌人种类打开 */
-  tdChapter4: 18,
-  /** 19：守岛第四章后两关——友军巡航船（关卡写了 fleet 才建，tdmech.ts）、海盗王（敌人种类打开） */
-  tdFleet: 19,
-  /** 20：守岛英雄锚钩（setup 是战役或海盗来袭、英雄 ≥ 8 级才有）、海盗来袭加难档（TdHomeGen.hard） */
-  tdHook: 20,
-  /** 21：海盗来袭的登陆点按布局挑（TdHomeGen.rules ≥ 21 才挑，tdhome.ts 的 homeLanes） */
-  tdHomeLanes: 21,
-  /** 22：守岛关内事件（赏金船、暴雨、战书，关卡写了 events 才有）和大潮每周海况（tdevent.ts、tdtide.ts） */
-  tdEvents: 22,
-  /** 23：守岛英雄航海士（setup.heroKind = 'nav'，只在战役和海盗来袭，tdnav.ts） */
-  tdNav: 23,
-  /** 24：守岛战役几关人数变少或开局多给金（td2levels.ts 的 ease：组带 since / until，开局金走 TdLevel.goldSince） */
-  tdEase: 24,
-  /** 25：护航新手档放宽（escortlevels.ts 的 EASE：组带 since / until）、娱乐护航开局英雄跟随、第一波开打时没碰过船速就自动巡航（TdSetup.escortAssist，实盘不设） */
-  escortEase: 25,
-  /** 26：守岛第五章（断崖格、崖上高台、断崖关里盾兵挡英雄的枪；关卡写了 cliffs 才有，tdstate.ts 的 cliffOn） */
-  tdCliffs: 26,
-} as const;
-// 不包成 since(s, 'combat') 这样的小函数：一个函数里读各种形状对象（登陆战开局、局面、守岛局面）的 rules，
-// V8 把那一处读取标成多态，内联了也慢；2026-11-15 背靠背量过，登陆战步进慢约 2–6%。调用处直接比，各处只见一种形状。
+/** 规则版本：规则一改就加一（服务端据此要求旧页面刷新、回放标「旧版本」）；录像和回放不保证跨版本 */
+export const RULES_VERSION = 28;
 
 export type BuildingKind =
   | 'hq' // 主寨
@@ -116,9 +51,9 @@ export type BuildingKind =
   | 'lighthouse' // 小灯塔（守岛第二章全部过关的纪念装饰）
   | 'bonfire' // 篝火（守岛第三章全部过关的纪念装饰）
   | 'lookout' // 瞭望台（守岛第五章全部过关的纪念装饰）
-  | 'treasure' // 宝藏箱（守岛里敌人来抢的目标；攻防里是普通建筑，驻岛英雄守在旁边，规则版本 6）
-  | 'shock' // 震荡炮：小溅射、命中的兵震晕（DESIGN 13，规则版本 10）
-  | 'sniper'; // 狙击塔：射程最远、单发重伤害，先打船长、船医这类后排（DESIGN 14，规则版本 11）
+  | 'treasure' // 宝藏箱（守岛里敌人来抢的目标；攻防里是普通建筑，驻岛英雄守在旁边）
+  | 'shock' // 震荡炮：小溅射、命中的兵震晕（DESIGN 13）
+  | 'sniper'; // 狙击塔：射程最远、单发重伤害，先打船长、船医这类后排（DESIGN 14）
 
 export type TroopKind = 'sailor' | 'gunner' | 'brute' | 'bomber' | 'captain' | 'medic' | 'cannoneer' | 'harpooner' | 'grenadier' | 'shield';
 export type SkillKind = 'barrage' | 'flare' | 'medkit';
@@ -138,7 +73,7 @@ export interface Placed {
   y: number;
   /** 产出建筑里攒着、还没收的资源（只有金矿、伐木场有） */
   stored?: number;
-  /** 防御塔选过的分叉（src/content/branches.ts 的 id）：下标 0 是 3 级那次，1 是 6 级那次。守岛全额生效，攻防（规则版本 6）打折生效 */
+  /** 防御塔选过的分叉（src/content/branches.ts 的 id）：下标 0 是 3 级那次，1 是 6 级那次。守岛全额生效，攻防打折生效 */
   branch?: string[];
 }
 
@@ -215,17 +150,21 @@ export interface BattleSetup {
   army: ArmySetup;
   seed: number;
   rules: number;
-  /** 防守方的驻岛英雄等级（军械所研究 hero）：规则版本 ≥ 6 且岛上有宝藏箱才出场；没写 = 没有英雄（战役、流浪海盗岛、悬赏岛） */
+  /** 防守方的驻岛英雄等级（军械所研究 hero）：岛上有宝藏箱才出场；没写 = 没有英雄（战役、流浪海盗岛、悬赏岛） */
   hero?: number;
-  /** 规则版本 ≥ 13 的"每局不一样"开关（DESIGN 15）：没写 = 全关，整局和没有这个字段时逐位一致。只有战役娱乐局由界面打开，服务端重放、悬赏、航线永不带 */
+  /** "每局不一样"开关（DESIGN 15）：没写 = 全关，整局和没有这个字段时逐位一致。只有战役娱乐局由界面打开，服务端重放、悬赏、航线永不带 */
   fun?: { chest?: boolean; ally?: boolean };
+  /** 防守方的岛扩了几圈（玩家的岛按主寨等级，islandExt）；没写 = 不扩（电脑海盗的岛） */
+  ext?: number;
+  /** 防御塔血量和塔、陷阱伤害的百分比（战役关的难度旋钮 LevelDef.defPct，campaignSetup 带进来）；没写 = 100，异步攻防、悬赏、航线永不带 */
+  defPct?: number;
 }
 
 /** 玩家在某一拍的操作：登陆一条船、或放一个旗舰技能。坐标是战斗单位 */
 export type BattleAction =
   | { t: number; type: 'land'; boat: number; x: number; y: number }
   | { t: number; type: 'skill'; skill: SkillKind; x: number; y: number }
-  /** 规则版本 ≥ 13：落地 10 拍内、这批兵还没出手、没掉血，兵回船、船可以再放（canRecall） */
+  /** 落地 10 拍内、这批兵还没出手、没掉血，兵回船、船可以再放（canRecall） */
   | { t: number; type: 'recall'; boat: number };
 
 export type ChestReward = 'energy' | 'heal' | 'shield';
@@ -239,10 +178,10 @@ export interface BChest {
 
 export interface BUnit {
   id: number;
-  /** 规则版本 ≥ 10：震晕到哪一拍（不走不打）、免控到哪一拍（见 combat.ts applyStun） */
+  /** 震晕到哪一拍（不走不打）、免控到哪一拍（见 combat.ts applyStun） */
   stunUntil?: number;
   immuneUntil?: number;
-  /** 规则版本 ≥ 11，盾兵：盾朝的方向（单位向量 × 100，整数），按走的方向 / 打的目标更新；正面 ±60° 来的直射算挡住（combat.ts shieldFaces） */
+  /** 盾兵：盾朝的方向（单位向量 × 100，整数），按走的方向 / 打的目标更新；正面 ±60° 来的直射算挡住（combat.ts shieldFaces） */
   gx?: number;
   gy?: number;
   kind: TroopKind;
@@ -258,7 +197,7 @@ export interface BUnit {
   face: 1 | -1;
   /** 下一次能出手的拍 */
   cd: number;
-  /** 上一拍的位置（规则版本 ≥ 9，塔瞄提前量用）；刚登陆还没走过就没有 */
+  /** 上一拍的位置（塔瞄提前量用）；刚登陆还没走过就没有 */
   px?: number;
   py?: number;
 }
@@ -279,13 +218,13 @@ export interface BBuilding {
   /** 防御建筑当前瞄准的兵 id，-1 没有 */
   aim: number;
   cd: number;
-  /** 分叉（规则版本 ≥ 6 才带进战斗；画面挂小徽章用） */
+  /** 分叉（带进战斗；画面挂小徽章用） */
   branch?: string[];
-  /** 锁定的兵 id（规则版本 ≥ 9，见 combat.ts rankTargets）；没有或 -1 = 没锁 */
+  /** 锁定的兵 id（见 combat.ts rankTargets）；没有或 -1 = 没锁 */
   lock?: number;
 }
 
-/** 驻岛英雄（规则版本 ≥ 6，电脑操控，DESIGN 10.6）：守在宝藏箱旁，倒下这一场不再起来 */
+/** 驻岛英雄（电脑操控，DESIGN 10.6）：守在宝藏箱旁，倒下这一场不再起来 */
 export interface BHero {
   level: number;
   x: number;
@@ -329,16 +268,16 @@ export type BattleEvent =
   | { type: 'shoot'; from: 'building' | 'unit' | 'hero'; id: number; projectile: number }
   | { type: 'hit'; x: number; y: number; dmg: number; target: 'building' | 'unit' | 'hero'; id: number }
   | { type: 'explode'; x: number; y: number; r: number }
-  /** 规则版本 ≥ 10：震荡炮震晕了一个兵或驻岛英雄，until 拍之前不走不打 */
+  /** 震荡炮震晕了一个兵或驻岛英雄，until 拍之前不走不打 */
   | { type: 'stun'; target: 'unit' | 'hero'; id: number; until: number }
-  /** 规则版本 ≥ 11：狙击塔锁定一个目标，fireAt 拍开火（画面从现在到 fireAt 画瞄准线 / 准星预警） */
+  /** 狙击塔锁定一个目标，fireAt 拍开火（画面从现在到 fireAt 画瞄准线 / 准星预警） */
   | { type: 'aim'; id: number; target: 'unit' | 'hero'; tid: number; fireAt: number }
-  /** 规则版本 ≥ 11：盾兵用盾挡下一发直射（id 是盾兵；x、y 是挡住的点，画火花；cover 为真表示挡的是身后友军的） */
+  /** 盾兵用盾挡下一发直射（id 是盾兵；x、y 是挡住的点，画火花；cover 为真表示挡的是身后友军的） */
   | { type: 'guard'; id: number; x: number; y: number; cover: boolean }
   | { type: 'destroy'; id: number; kind: BuildingKind }
   | { type: 'die'; id: number; kind: TroopKind }
   | { type: 'skill'; skill: SkillKind; x: number; y: number }
-  /** 规则版本 ≥ 13：误放撤回，units 是回船的兵 */
+  /** 误放撤回，units 是回船的兵 */
   | { type: 'recall'; boat: number; units: number[] }
   /** 漂流宝箱被捡走（reward 三选一，amount：能量点数 / 治疗百分比 / 护盾拍数） */
   | { type: 'chest'; id: number; x: number; y: number; reward: ChestReward; amount: number }
@@ -351,6 +290,8 @@ export type BattleEvent =
 
 export interface BattleState {
   rules: number;
+  /** 岛扩了几圈（BattleSetup.ext） */
+  ext: number;
   tick: number;
   units: BUnit[];
   buildings: BBuilding[];
@@ -359,11 +300,11 @@ export interface BattleState {
   landed: boolean[];
   energy: number;
   over: boolean;
-  /** 驻岛英雄（规则版本 ≥ 6 且有宝藏箱才有），画面照着画 */
+  /** 驻岛英雄（有宝藏箱才有），画面照着画 */
   hero?: BHero;
   /** 漂流宝箱（setup.fun.chest 开着才有）：坐标、奖励、是否已被捡，画面照着画 */
   chests?: BChest[];
-  /** 地上的火（规则版本 ≥ 6，燃烧弹、火油这类分叉留下的）：中心、半径（单位）、烧到哪一拍 */
+  /** 地上的火（燃烧弹、火油这类分叉留下的）：中心、半径（单位）、烧到哪一拍 */
   fires?: Array<{ x: number; y: number; r: number; until: number }>;
   /** 内部用：RNG 状态、id 计数、信号弹目标等，画面不读 */
   internal: unknown;

@@ -1,13 +1,12 @@
 import { readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  BRANCHES, BUILDINGS, HQ_LEVELS, battleFingerprint, runBattle, RULES_VERSION, branchOptions, buildLimit, chooseBranch, createBattle, heroLevel, newProfile,
+  BRANCHES, BUILDINGS, HQ_LEVELS, branchOptions, buildLimit, chooseBranch, heroLevel, newProfile,
   pvpSnapshot, researchHero, runTdBot, tdGrowthSetup,
 } from '../src/core/index.ts';
 import type { Placed, Profile } from '../src/core/index.ts';
 import { validateBase } from '../src/core/validate.ts';
 import { reviveSave } from '../src/platform/sync.ts';
-import { sampleArmy } from '../tools/sample.ts';
 
 /** 守岛的基地部分（src/core/tdbase.ts、内容表）、存档、攻防快照、机器人 */
 
@@ -102,14 +101,6 @@ describe('攻防快照', () => {
     expect(JSON.stringify(p)).toBe(before);
     const v = validateBase(snap);
     expect(v.ok ? 'ok' : v.error).toBe('ok');
-  });
-
-  it('规则版本 5 的登陆战不看分叉和英雄：带不带都是同一个指纹（旧回放不变）', () => {
-    const plain = withBuildings([{ id: 101, kind: 'cannon', level: 3, x: 0, y: 0 }], 3);
-    const fp = (layout: Placed[], hero?: number) => battleFingerprint(runBattle({ layout, army: sampleArmy(3), seed: 2, rules: 5, ...(hero ? { hero } : {}) }, []).state);
-    expect(fp(withBuildings([{ id: 101, kind: 'cannon', level: 3, x: 0, y: 0, branch: ['cannon.pierce'] }], 3).base.buildings, 3)).toBe(fp(plain.base.buildings));
-    expect(createBattle({ layout: plain.base.buildings, army: sampleArmy(3), seed: 1, rules: 5, hero: 3 }).hero).toBeUndefined();
-    expect(RULES_VERSION).toBe(26);
   });
 });
 

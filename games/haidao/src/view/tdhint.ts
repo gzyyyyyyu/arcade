@@ -58,12 +58,12 @@ export function newFoes(kinds: Iterable<TdEnemyKind>, seen: ReadonlySet<string>)
   return out;
 }
 
-// ---------------------------------------------------------------- 章末机制（规则版本 16）
+// ---------------------------------------------------------------- 章末机制
 
 export const MECH_KEY = 'haidao.hint.mech';
 /** 航海士技能持续几秒（提示、技能钮的悬停说明共用，跟着 TD2_NAV_SKILL 走） */
 export const navSecs = (k: 'flag' | 'reward'): number => Math.round(TD2_NAV_SKILL[k].ticks / TICKS_PER_SEC);
-/** 章末机制、关内事件（规则版本 22）、第一次带航海士（规则版本 23）和第一次见到崖上的高台（规则版本 26）共用这一套首次提示 */
+/** 章末机制、关内事件、第一次带航海士和第一次见到崖上的高台共用这一套首次提示 */
 export type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet' | TdEventKind | 'nav' | 'cliff';
 
 /** 每种章末机制一句怎么用（每章倒数第二关第一次见到时弹，和新敌人共用一张卡） */
@@ -79,7 +79,7 @@ export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }
   cliff: { name: '崖上的高台', text: `塔射程远 ${TD2_CLIFF.rangeAdd / UNIT} 格，往下打盾挡不住；崖脚下 ${TD2_CLIFF.minRange / UNIT} 格内打不到，造价贵一点` },
 };
 
-/** 这一局有哪些章末机制（只看规则核心建好的状态：旧版本的局、没有机制的关为空） */
+/** 这一局有哪些章末机制（只看规则核心建好的状态：没有机制的关为空） */
 export function mechsOf(s: {
   drift?: unknown; sluice?: unknown; battery?: unknown; fleet?: unknown;
   happen?: { at: ReadonlyArray<{ kind: TdEventKind }> };
@@ -93,7 +93,7 @@ export function mechsOf(s: {
   if (s.sluice) out.push('sluice');
   if (s.battery) out.push('battery');
   if (s.fleet) out.push('fleet');
-  // 关内事件（规则版本 22）：这一局会发生的
+  // 关内事件：这一局会发生的
   for (const a of s.happen?.at ?? []) if (!out.includes(a.kind)) out.push(a.kind);
   return out;
 }

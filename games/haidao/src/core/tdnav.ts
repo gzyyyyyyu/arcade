@@ -1,21 +1,20 @@
 /**
- * 守岛第二个英雄航海士（规则版本 23，DESIGN 10.1）：不挡、不炸，靠放大塔和多挣钱。
+ * 守岛第二个英雄航海士（DESIGN 10.1）：不挡、不炸，靠放大塔和多挣钱。
  * - 急射旗：插在一点，圈里的塔一段时间攻速翻倍（stepTowers 读 flagOn）；
  * - 重赏：画一个圈，圈里倒下的敌人击杀金翻倍（tdevent.ts 的 killGold 读 hero.reward）；
  * - 精打细算（被动）：提前叫波的金币多一半（tdquery.ts 的 tdCallBonus）。
  * 两个技能的冷却复用船长的 barricadeReady（技能一）和 kegReady（技能二），叫波抵冷却、补给箱刷新照旧。
- * 只在战役和海盗来袭、setup 写了 heroKind 时有（navEnabled）：悬赏守岛、大潮、护航和选船长的局与规则 22 逐局一样。
+ * 只在战役和海盗来袭、setup 写了 heroKind 时有（navEnabled）。
  */
 import { TD2_NAV_SKILL } from '../content/td2units.ts';
 import { heroCd } from './tdevent.ts';
 import { d2, tcx, tcy } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
 import type { TdEvent, TdSetup, TdTower } from './tdtypes.ts';
-import { RULES_SINCE } from './types.ts';
 
 /** 这一局带的是航海士 */
-export function navEnabled(setup: Pick<TdSetup, 'rules' | 'mode' | 'heroKind'>): boolean {
-  return setup.heroKind === 'nav' && setup.rules >= RULES_SINCE.tdNav && (setup.mode === 'campaign' || setup.mode === 'home');
+export function navEnabled(setup: Pick<TdSetup, 'mode' | 'heroKind'>): boolean {
+  return setup.heroKind === 'nav' && (setup.mode === 'campaign' || setup.mode === 'home');
 }
 
 /** 这座塔现在在急射旗的圈里（按塔中心算） */

@@ -3,7 +3,7 @@
  * 存储两行：`s`（状态，几 KB）和 `d`（最近 10 条防守记录，含回放要的布局、部队、种子、操作）。每个方法最多写这两行。
  * 内存里的 state 只是缓存，对象被回收后从存储重建。时间由调用方传进来（Worker 的时钟），方便测试。
  */
-import { armyFor, heroLevel, hqLevel, rankOf } from '../../src/core/index.ts';
+import { armyFor, heroLevel, hqLevel, islandExt, rankOf } from '../../src/core/index.ts';
 import { raidGain, raidLoss, raidSetup, replayRaid, shieldMs, trophyDelta, wandererGain } from '../../src/core/pvp.ts';
 import type { ArmySetup, BattleAction, BattleSetup, Placed, Profile, Res } from '../../src/core/types.ts';
 import type { Kv } from './kv.ts';
@@ -516,7 +516,7 @@ export class BaseCore {
       d = structuredClone(await this.defenses());
       this.settleLock(s, d, [], 0, now, true);
     }
-    // 分叉、驻岛英雄等级跟着布局进这一场（规则版本 6）；锁里存的 setup 带着 rules，回放按那一场的版本放
+    // 分叉、驻岛英雄等级跟着布局进这一场；锁里存的 setup 带着 rules，回放按那一场的版本放
     const layout = s.snap!.base.buildings.map((b) => ({ id: b.id, kind: b.kind, level: b.level, x: b.x, y: b.y, ...(b.branch ? { branch: [...b.branch] } : {}) }));
     const hero = heroLevel(s.snap!);
     const stash = this.stash(s);
@@ -527,7 +527,7 @@ export class BaseCore {
       attackerName: req.attackerName,
       attackerTrophies: req.attackerTrophies,
       until,
-      setup: raidSetup(layout, req.army, req.seed, hero),
+      setup: raidSetup(layout, islandExt(layout), req.army, req.seed, hero),
       stash,
       ...(req.revenge ? { revenge: true } : {}),
     };

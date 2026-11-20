@@ -14,19 +14,21 @@ import { REDUCED } from './feel.ts';
 
 type P = { x: number; y: number };
 
-/** 外缘一圈的四个角（格坐标，顺时针） */
-export function ringCorners(e = BEACH, n = ISLAND): P[] {
+/** 外缘一圈的四个角（格坐标，顺时针）：岛是 [-ext, ISLAND+ext)，外面一圈 BEACH 宽的沙滩 */
+export function ringCorners(ext: number): P[] {
+  const lo = -ext - BEACH;
+  const hi = ISLAND + ext + BEACH;
   return [
-    { x: -e, y: -e },
-    { x: n + e, y: -e },
-    { x: n + e, y: n + e },
-    { x: -e, y: n + e },
+    { x: lo, y: lo },
+    { x: hi, y: lo },
+    { x: hi, y: hi },
+    { x: lo, y: hi },
   ];
 }
 
 /** 绕圈的位置：t 在 [0,1) 循环，返回格坐标（四条边等长） */
-export function ringPoint(t: number, e = BEACH, n = ISLAND): P {
-  const c = ringCorners(e, n);
+export function ringPoint(t: number, ext: number): P {
+  const c = ringCorners(ext);
   const u = (((t % 1) + 1) % 1) * 4;
   const i = Math.min(3, Math.floor(u));
   const f = u - i;
@@ -43,30 +45,33 @@ export const SNAP_IN = 0.4;
 const SNAP_EPS = 0.05;
 
 /**
- * 出船时的落点吸附（格坐标）：方环（BEACH 宽）里的点原样返回；环外 SNAP_OUT、岛内 SNAP_IN 以内的点挪到环上最近处；
+ * 出船时的落点吸附（格坐标；岛是 [-ext, ISLAND+ext)）：方环（BEACH 宽）里的点原样返回；环外 SNAP_OUT、岛内 SNAP_IN 以内的点挪到环上最近处；
  * 再远就是 null（点的是海或岛里面）。deep（已经选着船）时岛里面多深都挪到最近那条边的沙滩上：竖屏放大时一屏大半是草地，
  * 试玩里点了 4 下只出去 1 船。只在画面层用，规则照旧只认方环，发出去的坐标始终合法
  */
-export function snapLanding(gx: number, gy: number, e = BEACH, n = ISLAND, deep = false): P | null {
-  const lo = -e + SNAP_EPS;
-  const hi = n + e - SNAP_EPS;
+export function snapLanding(gx: number, gy: number, ext: number, deep = false): P | null {
+  const a = -ext;
+  const b = ISLAND + ext;
+  const lo = a - BEACH + SNAP_EPS;
+  const hi = b + BEACH - SNAP_EPS;
   const cx = Math.min(hi, Math.max(lo, gx));
   const cy = Math.min(hi, Math.max(lo, gy));
   if (Math.hypot(gx - cx, gy - cy) > SNAP_OUT) return null;
   // 岛内：离四条边最近的那条有多远
-  const inX = Math.min(cx, n - cx);
-  const inY = Math.min(cy, n - cy);
-  if (cx > 0 && cx < n && cy > 0 && cy < n) {
+  const inX = Math.min(cx - a, b - cx);
+  const inY = Math.min(cy - a, b - cy);
+  if (cx > a && cx < b && cy > a && cy < b) {
     if (!deep && Math.min(inX, inY) > SNAP_IN) return null;
-    if (inX <= inY) return { x: cx < n / 2 ? -SNAP_EPS : n + SNAP_EPS, y: cy };
-    return { x: cx, y: cy < n / 2 ? -SNAP_EPS : n + SNAP_EPS };
+    const mid = ISLAND / 2;
+    if (inX <= inY) return { x: cx < mid ? a - SNAP_EPS : b + SNAP_EPS, y: cy };
+    return { x: cx, y: cy < mid ? a - SNAP_EPS : b + SNAP_EPS };
   }
   return { x: cx, y: cy };
 }
 
 /** 离某个格坐标最近的圈上位置 t */
-export function ringNearest(gx: number, gy: number, e = BEACH, n = ISLAND): number {
-  const c = ringCorners(e, n);
+export function ringNearest(gx: number, gy: number, ext: number): number {
+  const c = ringCorners(ext);
   let best = 0;
   let bd = Infinity;
   for (let i = 0; i < 4; i++) {
@@ -95,7 +100,11 @@ export class BeachGlow {
   private sk = 0;
   private lastT = -1;
 
-  constructor(scene: Phaser.Scene) {
+  /** 岛扩了几圈（这一局的 state.ext） */
+  private readonly ext: number;
+
+  constructor(scene: Phaser.Scene, ext: number) {
+    this.ext = ext;
     this.g = scene.add.graphics().setDepth(DEPTH.floorOverlay + 0.5).setVisible(false);
   }
 
@@ -115,13 +124,13 @@ export class BeachGlow {
     this.lastT = time;
     const k = 1 - Math.exp(-dt / 120);
     this.sk += ((selected ? 1 : 0) - this.sk) * k;
-    if (this.hover) this.ht = ringNearest(this.hover.x, this.hover.y);
+    if (this.hover) this.ht = ringNearest(this.hover.x, this.hover.y, this.ext);
     this.hk += ((this.hover && selected ? 1 : 0) - this.hk) * k;
     g.setVisible(true).clear();
     const w = Math.max(1, Math.min(2.4, 1 / Math.max(0.01, zoom)));
     const breath = REDUCED ? 0.5 : 0.5 + 0.5 * Math.sin((time / (selected ? 650 : 1000)) * Math.PI * 2);
     const ring = (width: number, color: number, alpha: number): void => {
-      const c = ringCorners();
+      const c = ringCorners(this.ext);
       g.lineStyle(width * w, color, alpha);
       g.beginPath();
       const p0 = iso(c[0]!.x, c[0]!.y);
@@ -134,14 +143,16 @@ export class BeachGlow {
     };
     const s = this.sk;
     // 可登陆的沙滩整体铺一层浅金色，随呼吸起伏；选了兵种明显更亮（出兵区高亮）。减少动效时是静态的一层
-    const e = BEACH;
-    const n = ISLAND;
+    const a = -this.ext;
+    const b = ISLAND + this.ext;
+    const lo = a - BEACH;
+    const hi = b + BEACH;
     g.fillStyle(0xffe27a, (0.07 + 0.07 * breath) * (1 + 1.6 * s));
     for (const q of [
-      [-e, -e, n + e, 0],
-      [-e, n, n + e, n + e],
-      [-e, 0, 0, n],
-      [n, 0, n + e, n],
+      [lo, lo, hi, a],
+      [lo, b, hi, hi],
+      [lo, a, a, b],
+      [b, a, hi, b],
     ] as const) {
       const pts = [iso(q[0], q[1]), iso(q[2], q[1]), iso(q[2], q[3]), iso(q[0], q[3])];
       g.fillPoints(pts as unknown as Phaser.Math.Vector2[], true);
@@ -177,8 +188,8 @@ export class BeachGlow {
       const b = (i + 1) / N;
       // 拖尾：越靠头越亮；center 模式两头都渐隐
       const f = center ? Math.sin(((a + b) / 2) * Math.PI) : (a + b) / 2;
-      const p = ringPoint(head - len * (1 - a));
-      const q = ringPoint(head - len * (1 - b));
+      const p = ringPoint(head - len * (1 - a), this.ext);
+      const q = ringPoint(head - len * (1 - b), this.ext);
       const A = iso(p.x, p.y);
       const B = iso(q.x, q.y);
       g.lineStyle((center ? 14 : 5 + 5 * f) * w, color, alpha * f);

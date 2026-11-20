@@ -28,9 +28,9 @@ interface Spec {
   gy?: number;
   stun?: boolean;
 }
-function arena(rows: Array<[Placed['kind'], number, number, number]>, troops: TroopKind[], rules = RULES_VERSION) {
+function arena(rows: Array<[Placed['kind'], number, number, number]>, troops: TroopKind[]) {
   const army: BattleSetup['army'] = { boats: troops.map((troop) => ({ troop, count: 1, level: 1 })), skills: [], energy: 0 };
-  const s = createBattle({ layout: lay(rows), army, seed: 1, rules });
+  const s = createBattle({ layout: lay(rows), army, seed: 1, rules: RULES_VERSION });
   stepBattle(s, troops.map((_, i): BattleAction => ({ t: 0, type: 'land', boat: i, x: -150, y: 1000 })));
   for (const u of s.units) {
     u.hp = u.maxHp = u.hp * 10_000;
@@ -192,7 +192,7 @@ describe('盾兵：盾的正面、侧后和不挡的东西', () => {
 
   it('盾朝走的方向 / 打的目标：登陆后朝岛心，之后跟着目标走', () => {
     const army: BattleSetup['army'] = { boats: [{ troop: 'shield', count: 1, level: 1 }], skills: [], energy: 0 };
-    const s = createBattle({ layout: lay([['hq', 1, 9, 9], ['cannon', 1, 14, 3]]), army, seed: 1, rules: 11 });
+    const s = createBattle({ layout: lay([['hq', 1, 9, 9], ['cannon', 1, 14, 3]]), army, seed: 1, rules: RULES_VERSION });
     stepBattle(s, [{ t: 0, type: 'land', boat: 0, x: -150, y: 1000 }]);
     const u = s.units[0] as BUnit;
     expect(u.gx).toBeGreaterThan(0);
@@ -204,42 +204,22 @@ describe('盾兵：盾的正面、侧后和不挡的东西', () => {
   });
 });
 
-describe('旧版本不出现', () => {
-  it('进攻：规则版本 10 的局里狙击塔不摆、盾兵上不了岛，不影响别的建筑', () => {
-    const rows: Array<[Placed['kind'], number, number, number]> = [['hq', 1, 9, 9], ['sniper', 1, 2, 9]];
-    expect(createBattle({ layout: lay(rows), army: { boats: [], skills: [], energy: 0 }, seed: 1, rules: 10 }).buildings.map((b) => b.kind)).toEqual(['hq']);
-    expect(createBattle({ layout: lay(rows), army: { boats: [], skills: [], energy: 0 }, seed: 1, rules: 11 }).buildings.map((b) => b.kind)).toEqual(['hq', 'sniper']);
-    const old = arena([['hq', 1, 9, 9]], ['shield'], 10);
-    expect(old.s.units.length).toBe(0);
-    expect(arena([['hq', 1, 9, 9]], ['shield'], 11).s.units.length).toBe(1);
-  });
-
-  it('守岛：规则版本 10 的局里狙击塔不能造、岛上的和驻守台上的也不摆；11 才能造', () => {
-    const r = tdGrowthSetup('td10', 'suggest', 1);
-    if (!r.ok) throw new Error(r.error);
-    expect(createTd({ ...r.value, rules: 10, unlocked: ['cannon', 'sniper'] }).unlocked).toEqual(['cannon']);
-    expect(createTd({ ...r.value, rules: 11, unlocked: ['cannon', 'sniper'] }).unlocked).toEqual(['cannon', 'sniper']);
-    const home = createTd({ ...r.value, rules: 10, layout: [...r.value.layout, { id: 900, kind: 'sniper', level: 3, x: 2, y: 2 }] });
-    expect(home.towers.some((t) => t.kind === 'sniper')).toBe(false);
-  });
-
-  it('海盗来袭：盾兵第 9 波起、只在规则版本 11 出现；大潮的波次里没有盾兵；护航、大潮不能造狙击塔', () => {
+describe('盾兵和狙击塔在各玩法里', () => {
+  it('海盗来袭：盾兵第 9 波起出现；大潮的波次里没有盾兵；护航、大潮不能造狙击塔', () => {
     const snap = tdHomeSnapshot({ ...newProfile(), ...sampleProfile(7) });
-    const kindsOf = (rules: number, from: number): Set<string> => {
-      const gen = { ...tdHomeGen(snap, 5), rules };
+    const kindsOf = (from: number): Set<string> => {
+      const gen = tdHomeGen(snap, 5);
       const out = new Set<string>();
       for (let w = from; w < 20; w++) for (const g of tdHomeWave(gen, w).groups) out.add(g.enemy);
       return out;
     };
-    expect(kindsOf(10, 0).has('shield')).toBe(false);
-    expect(kindsOf(11, 0).has('shield')).toBe(true);
-    expect(kindsOf(11, 8).has('shield')).toBe(true);
+    expect(kindsOf(8).has('shield')).toBe(true);
     // 第 9 波之前（下标 0–7）没有
-    expect(kindsOf(11, 0).size).toBeGreaterThan(0);
     const early = new Set<string>();
-    for (let seed = 1; seed <= 6; seed++) for (let w = 0; w < 8; w++) for (const g of tdHomeWave({ ...tdHomeGen(snap, seed), rules: 11 }, w).groups) early.add(g.enemy);
+    for (let seed = 1; seed <= 6; seed++) for (let w = 0; w < 8; w++) for (const g of tdHomeWave(tdHomeGen(snap, seed), w).groups) early.add(g.enemy);
+    expect(early.size).toBeGreaterThan(0);
     expect(early.has('shield')).toBe(false);
-    for (let w = 0; w < 60; w++) for (const rules of [10, 11]) for (const g of tideWave(w, 3, 2, true, rules).groups) expect(g.enemy).not.toBe('shield');
+    for (let w = 0; w < 60; w++) for (const g of tideWave(w, 3, 2, true).groups) expect(g.enemy).not.toBe('shield');
     expect(tideSetup({ year: 2026, week: 44 }).unlocked).not.toContain('sniper');
     expect(escortSetup('strait-easy', 1).unlocked).not.toContain('sniper');
     // 战役 18 关：主寨 6 级开放
@@ -255,7 +235,7 @@ describe('守岛：狙击塔和盾兵', () => {
   it('狙击塔：aim 预警 SNIPE_WARN 拍后开火；开火的每一发都有对应的 aim', () => {
     const r = tdGrowthSetup('td10', 'suggest', 1);
     if (!r.ok) throw new Error(r.error);
-    const s = createTd({ ...r.value, rules: 11, garrison: [], unlocked: ['sniper'], level: { ...r.value.level, waves: waveOf('sailor', 4) } });
+    const s = createTd({ ...r.value, rules: RULES_VERSION, garrison: [], unlocked: ['sniper'], level: { ...r.value.level, waves: waveOf('sailor', 4) } });
     const bot = tdBotActions('normal', r.value.seed, { only: 'sniper' });
     const aimAt = new Map<number, number>();
     let aims = 0;
@@ -283,7 +263,7 @@ describe('守岛：狙击塔和盾兵', () => {
     const r = tdGrowthSetup('td10', 'suggest', 1);
     if (!r.ok) throw new Error(r.error);
     const count = (unlocked: TdSetup['unlocked']): { guards: number; facing: boolean } => {
-      const s = createTd({ ...r.value, rules: 11, garrison: [], unlocked, level: { ...r.value.level, waves: waveOf('shield', 3, 2) } });
+      const s = createTd({ ...r.value, rules: RULES_VERSION, garrison: [], unlocked, level: { ...r.value.level, waves: waveOf('shield', 3, 2) } });
       const bot = tdBotActions('normal', r.value.seed, { only: unlocked![0]! });
       let guards = 0;
       let facing = false;
@@ -311,7 +291,7 @@ describe('克制', () => {
       let b = 0, bt = 0, f = 0, ft = 0;
       for (let seed = 1; seed <= 4; seed++) {
         const boats = [front, front, 'medic', 'captain'].map((troop, i) => ({ troop: troop as TroopKind, count: troop === front ? n : troop === 'medic' ? 2 : 1, level: 5, i }));
-        const s = createBattle({ layout: isle(third), army: { boats: boats.map(({ troop, count, level }) => ({ troop, count, level })), skills: [], energy: 0 }, seed, rules: 11 });
+        const s = createBattle({ layout: isle(third), army: { boats: boats.map(({ troop, count, level }) => ({ troop, count, level })), skills: [], energy: 0 }, seed, rules: RULES_VERSION });
         const acts: BattleAction[] = boats.map((_, i) => ({ t: i * 15, type: 'land', boat: i, x: -150, y: 1100 }));
         let k = 0;
         while (!s.over) {
@@ -347,7 +327,7 @@ describe('克制', () => {
     let gun = 0;
     let splash = 0;
     for (const seed of [1, 2, 3]) {
-      const setup: TdSetup = { ...r.value, seed, rules: 11, level: { ...r.value.level, waves } };
+      const setup: TdSetup = { ...r.value, seed, rules: RULES_VERSION, level: { ...r.value.level, waves } };
       gun += runTdBot({ ...setup, unlocked: ['gunTower'] }, 'normal').result.lost;
       splash += runTdBot({ ...setup, unlocked: ['gunTower', 'mortar'] }, 'normal').result.lost;
     }
@@ -363,7 +343,7 @@ describe('克制', () => {
         for (const seed of [1, 2, 3]) {
           const layout = fullBase(hq, style, true, true, true).base.buildings;
           for (const [troop, n] of [['shield', 4], ['brute', 3]] as const) {
-            const setup: BattleSetup = { layout, army: army(troop, n, hq), seed, rules: 11 };
+            const setup: BattleSetup = { layout, army: army(troop, n, hq), seed, rules: RULES_VERSION };
             const pct = replayRaid(setup, botActions(setup, 'normal')).result.destroyedPct;
             if (troop === 'shield') shield += pct;
             else brute += pct;

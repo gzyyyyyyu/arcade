@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BUILDINGS, STUN_IMMUNE_MUL, TD2_ENEMIES, TD2_SHOCK_STUN, TROOPS, applyStun, botActions, createBattle, createTd, runTdBot, stepBattle, stepTd, stunned, tdGrowthSetup,
+  BUILDINGS, RULES_VERSION, STUN_IMMUNE_MUL, TD2_ENEMIES, TD2_SHOCK_STUN, TROOPS, applyStun, botActions, createBattle, createTd, runTdBot, stepBattle, stepTd, stunned, tdGrowthSetup,
 } from '../src/core/index.ts';
 import type { BattleEvent, BattleSetup, BUnit, Placed, TdEvent, TdSetup, TdWave } from '../src/core/index.ts';
 import { GRENADE_WALL_PCT } from '../src/core/battle.ts';
@@ -9,8 +9,7 @@ import { tdBotActions } from '../src/core/tdbot.ts';
 import { fullBase, sampleArmy } from '../tools/sample.ts';
 
 /**
- * 新内容第一片（DESIGN 13，规则版本 10）：震荡炮 + 掷弹兵。每条规则一条测试；
- * 版本 9 的回放逐位不变由 raid-rules / battle（攻防）和 td-golden（守岛，v9- 的键）锁着。
+ * 新内容第一片（DESIGN 13）：震荡炮 + 掷弹兵。每条规则一条测试。
  */
 
 const lay = (rows: Array<[Placed['kind'], number, number, number]>): Placed[] => rows.map(([kind, level, x, y], i) => ({ id: i + 1, kind, level, x, y }));
@@ -55,10 +54,10 @@ describe('震晕（combat.ts applyStun）', () => {
     expect(cap.immuneUntil).toBe(STUN / 2 + STUN);
   });
 
-  it('进攻：震荡炮打中的壮汉不走不打，船长只震一半；版本 9 下震荡炮不摆', () => {
+  it('进攻：震荡炮打中的壮汉不走不打，船长只震一半', () => {
     const army = (troop: 'brute' | 'captain'): BattleSetup['army'] => ({ boats: [{ troop, count: 1, level: 1 }], skills: [], energy: 0 });
     for (const troop of ['brute', 'captain'] as const) {
-      const s = createBattle({ layout: lay([['hq', 1, 9, 9], ['shock', 1, 2, 9]]), army: army(troop), seed: 1, rules: 10 });
+      const s = createBattle({ layout: lay([['hq', 1, 9, 9], ['shock', 1, 2, 9]]), army: army(troop), seed: 1, rules: RULES_VERSION });
       let ev: BattleEvent[] = stepBattle(s, [{ t: 0, type: 'land', boat: 0, x: -150, y: 1000 }]);
       let st: Extract<BattleEvent, { type: 'stun' }> | undefined;
       for (let i = 0; i < 400 && !st; i++) {
@@ -74,8 +73,6 @@ describe('震晕（combat.ts applyStun）', () => {
       expect([u.x, u.y]).toEqual(at);
       expect(s.buildings.map((b) => b.hp)).toEqual(hp);
     }
-    const old = createBattle({ layout: lay([['hq', 1, 9, 9], ['shock', 1, 2, 9]]), army: army('brute'), seed: 1, rules: 9 });
-    expect(old.buildings.map((b) => b.kind)).toEqual(['hq']);
   });
 
   it('整局模拟：满配岛（带震荡炮）打 8 级部队，没有一个兵连续被定住超过 24 拍', () => {
@@ -83,7 +80,7 @@ describe('震晕（combat.ts applyStun）', () => {
     for (const style of ['turtle', 'spread', 'trap'] as const) {
       for (const seed of [1, 2]) {
         const p = fullBase(7, style, true, true);
-        const r = raid({ layout: p.base.buildings, army: sampleArmy(8), seed, rules: 10 });
+        const r = raid({ layout: p.base.buildings, army: sampleArmy(8), seed, rules: RULES_VERSION });
         expect(r.longest).toBeLessThanOrEqual(STUN);
         stuns += r.stuns;
       }
@@ -123,8 +120,8 @@ describe('掷弹兵的手雷', () => {
   };
   const gren = (n: number): BattleSetup['army'] => ({ boats: [{ troop: 'grenadier', count: n, level: 1 }], skills: [], energy: 0 });
 
-  it('越墙：墙还立着，墙里的金库已经挨炸；炸到墙只算三成；版本 9 下掷弹兵上不了岛', () => {
-    const s = createBattle({ layout: walled(), army: gren(4), seed: 1, rules: 10 });
+  it('越墙：墙还立着，墙里的金库已经挨炸；炸到墙只算三成', () => {
+    const s = createBattle({ layout: walled(), army: gren(4), seed: 1, rules: RULES_VERSION });
     stepBattle(s, [{ t: 0, type: 'land', boat: 0, x: -150, y: 1050 }]);
     const dmg = TROOPS.grenadier.levels[0]!.dmg;
     const wallHits = new Set<number>();
@@ -142,36 +139,7 @@ describe('掷弹兵的手雷', () => {
     expect(grenades).toBeGreaterThan(0);
     expect(overWall).toBe(true);
     expect([...wallHits]).toEqual([Math.floor((dmg * GRENADE_WALL_PCT) / 100)]);
-    const old = createBattle({ layout: walled(), army: gren(2), seed: 1, rules: 9 });
-    stepBattle(old, [{ t: 0, type: 'land', boat: 0, x: -150, y: 1050 }]);
-    expect(old.units.length).toBe(0);
   });
-
-  it('有墙的布局比同一布局去掉墙摧毁率明显低：墙圈离核心够远（手雷够不着墙里），掷弹兵就得先拆墙，炸墙只算三成', () => {
-    // 墙圈离主寨 6 格（掷弹兵射程 4.5）：墙外扔不到核心。推荐布局的墙圈只离主寨 3 格，那种墙挡不住掷弹兵（DESIGN 13 的实测）
-    const deep = (wall: boolean): Placed[] => {
-      const rows: Array<[Placed['kind'], number, number, number]> = [
-        ['hq', 5, 9, 9], ['cannon', 5, 9, 7], ['cannon', 5, 9, 13], ['gunTower', 5, 7, 9], ['gunTower', 5, 13, 9], ['vault', 5, 13, 13], ['vault', 5, 6, 6],
-      ];
-      if (wall) {
-        for (let y = 3; y <= 18; y++) rows.push(['wall', 5, 3, y], ['wall', 5, 18, y]);
-        for (let x = 4; x < 18; x++) rows.push(['wall', 5, x, 3], ['wall', 5, x, 18]);
-      }
-      return lay(rows);
-    };
-    const army: BattleSetup['army'] = { boats: [{ troop: 'grenadier', count: 6, level: 6 }, { troop: 'grenadier', count: 6, level: 6 }], skills: [], energy: 0 };
-    let withW = 0;
-    let noW = 0;
-    for (const seed of [1, 2, 3, 4]) {
-      for (const [w, layout] of [[true, deep(true)], [false, deep(false)]] as const) {
-        const setup: BattleSetup = { layout, army, seed, rules: 10 };
-        const pct = replayRaid(setup, botActions(setup, 'normal')).result.destroyedPct;
-        if (w) withW += pct;
-        else noW += pct;
-      }
-    }
-    expect(noW - withW).toBeGreaterThanOrEqual(4 * 5);
-  }, 120_000);
 });
 
 describe('克制', () => {
@@ -185,7 +153,7 @@ describe('克制', () => {
     let swap = 0;
     for (let seed = 1; seed <= 6; seed++) {
       for (const k of ['shock', 'cannon'] as const) {
-        const setup: BattleSetup = { layout: base(k), army, seed, rules: 10 };
+        const setup: BattleSetup = { layout: base(k), army, seed, rules: RULES_VERSION };
         const pct = replayRaid(setup, botActions(setup, 'normal')).result.destroyedPct;
         if (k === 'shock') shock += pct;
         else swap += pct;

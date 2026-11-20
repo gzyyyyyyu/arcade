@@ -1,12 +1,12 @@
 /**
- * 守岛英雄的第三个技能：锚钩（规则版本 20，DESIGN 10.1）。钩住英雄射程外一圈内的一个敌人，按整数格朝英雄拉回最多几格，再定住一会儿；
+ * 守岛英雄的第三个技能：锚钩（DESIGN 10.1）。钩住英雄射程外一圈内的一个敌人，按整数格朝英雄拉回最多几格，再定住一会儿；
  * 正往船上跑的也能钩回来，宝藏还在它身上。拉的路线和落点全是整数格运算（直线按 Bresenham 走格，斜走时两侧有一边挡住就算挡住，
  * 和流场 grid.ts 的规矩一样），同种子同操作逐位可复现。
- * 只在战役和海盗来袭、英雄 ≥ 8 级时有（hookEnabled）：悬赏守岛（实盘）、大潮（周榜）、护航都没有，那几种模式和规则 19 逐局一样。
+ * 只在战役和海盗来袭、英雄 ≥ 8 级时有（hookEnabled）：悬赏守岛（实盘）、大潮（周榜）、护航都没有。
  */
 import { TD2_ENEMIES, TD2_HERO_SKILL } from '../content/td2units.ts';
 import { cellIdx, cellX, cellY, inGrid } from './grid.ts';
-import { RULES_SINCE, UNIT } from './types.ts';
+import { UNIT } from './types.ts';
 import type { TdEnemy, TdEvent, TdSetup } from './tdtypes.ts';
 import { HIT_HERO, barricadeAt, d2, ensureGrid, inner, isAir, targetable } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
@@ -15,8 +15,8 @@ import { heroCd } from './tdevent.ts';
 const HOOK = TD2_HERO_SKILL.hook;
 
 /** 这一局有没有锚钩 */
-export function hookEnabled(setup: Pick<TdSetup, 'rules' | 'mode'>, heroLevel: number): boolean {
-  return setup.rules >= RULES_SINCE.tdHook && (setup.mode === 'campaign' || setup.mode === 'home') && heroLevel >= HOOK.level;
+export function hookEnabled(setup: Pick<TdSetup, 'mode'>, heroLevel: number): boolean {
+  return (setup.mode === 'campaign' || setup.mode === 'home') && heroLevel >= HOOK.level;
 }
 
 /** 钩得动吗：英雄的枪打得到（活着、看得见、不是 0 倍），不是首领（船长带光环、海盗王在海上），不是海上的船，没有正被钩着 */
@@ -41,7 +41,7 @@ export function hookPath(s: TdState, e: TdEnemy, tx: number, ty: number): number
   const sy = Math.sign(ty - cy);
   let err = dx - dy;
   const out: number[] = [];
-  const blocked = (x: number, y: number): boolean => !inGrid(x, y) || (!fly && ((occ[cellIdx(x, y)] ?? 1) > 0 || !!barricadeAt(s, cellIdx(x, y))));
+  const blocked = (x: number, y: number): boolean => !inGrid(s.ext, x, y) || (!fly && ((occ[cellIdx(x, y)] ?? 1) > 0 || !!barricadeAt(s, cellIdx(x, y))));
   while (out.length < HOOK.cells && (cx !== tx || cy !== ty)) {
     const e2 = 2 * err;
     let nx = cx;

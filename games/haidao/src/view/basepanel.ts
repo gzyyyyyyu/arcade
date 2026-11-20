@@ -1,7 +1,7 @@
 import type { BaseScene } from './BaseScene.ts';
 import { BUILDINGS } from '../content/index.ts';
-import { TD_TROPHIES, hqLevel, rankOf, tdChapterCleared, totalStars, upgradeCost, hasBranches, chooseBranch, upgrade, presetLayout } from '../core/index.ts';
-import type { Res, TroopKind, BuildingKind } from '../core/types.ts';
+import { TD_TROPHIES, hqLevel, rankOf, tdChapterCleared, totalStars, upgradeCost, hasBranches, chooseBranch, upgrade, presetLayout, islandExt } from '../core/index.ts';
+import type { Res, TroopKind, BuildingKind, Placed } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { hasAchievements, achievementList } from './meta.ts';
 import { type ArtPiece, iconA, bArt, troopF } from './art.ts';
@@ -88,7 +88,7 @@ export function short(_bs: BaseScene, code: string, need?: Res): string {
   return SHORT[code] ?? '现在做不了';
 }
 
-// ---- 建筑信息：现在和下一级的样子、每项数值"当前 → 下一级"、花费差多少、一个大升级钮
+// ---- 建筑信息 / 升级：左栏大立绘和"这一级 → 下一级"对比，右栏数值"当前 → 下一级 +差值"、花费、大升级钮；竖屏两栏变上下
 export function openInfo(bs: BaseScene, id: number): void {
   const p = app.profile;
   const b = p.base.buildings.find((q) => q.id === id);
@@ -102,39 +102,20 @@ export function openInfo(bs: BaseScene, id: number): void {
   bs.sel = id;
   drawSel(bs);
   if (b.kind === 'hq') tutAdv(2);
-  el('p', 'hd-desc', def.desc, body);
   const cost = upgradeCost(b.kind, b.level);
-  const rows = statDiff(b.kind, b.level);
-  if (cost) {
-    // 外观：这一级 → 下一级（下一级的图带金光，一眼看出变成什么样）
-    const hero = el('div', 'hd-uphero', undefined, body);
-    const look = (lv: number, cls: string): void => {
-      const c = el('div', `hd-uplook ${cls}`, undefined, hero);
-      el('div', 'hd-uppic', undefined, c).appendChild(img(bArt(b.kind, lv), 72));
-      el('span', '', `${lv} 级`, c);
-    };
-    look(b.level, 'cur');
-    el('span', 'hd-uparrow', '➜', hero);
-    look(b.level + 1, 'next');
-  }
-  if (rows.length) {
-    const tbl = el('div', 'hd-stats', undefined, body);
-    for (const r of rows) {
-      const row = el('div', 'hd-stat', undefined, tbl);
-      el('span', 'hd-stat-k', r.label, row);
-      el('b', 'hd-stat-v', `${fmt(r.cur)}${r.unit}`, row);
-      if (r.next !== null) {
-        el('span', 'hd-stat-a', '→', row);
-        el('b', 'hd-stat-n', `${fmt(r.next)}${r.unit}`, row);
-        el('span', `hd-stat-d${r.delta > 0 ? '' : ' zero'}`, r.delta > 0 ? `+${fmt(r.delta)}` : '', row);
-      }
-    }
-  }
-  const chips = el('div', 'hd-chips', undefined, body);
-  if (!cost && def.maxLevel > 1) el('span', 'hd-chip', '已满级', chips);
+  const up = el('div', `hd-up${cost ? '' : ' max'}`, undefined, body);
+  upArt(up, b.kind, b.level, !!cost);
+  const side = el('div', 'hd-up-side', undefined, up);
+  el('p', 'hd-desc', def.desc, side);
+  const chips = el('div', 'hd-chips', undefined, side);
+  if (!cost && def.maxLevel > 1) el('span', 'hd-chip hd-up-max', '已满级', chips);
+  statTable(side, b.kind, b.level);
+  if (cost) upBox(bs, side, b, cost);
+  // 其余内容（主寨的解锁预告和王阶、塔的分叉、军械所的研究）收在一块：电脑在两栏下面（军械所在右边），手机横屏在右边一栏
+  const more = el('div', 'hd-up-more', undefined, body);
   if (b.kind === 'hq') {
-    unlockBlock(bs, body);
-    rankBlock(bs, body, () => openInfo(bs, id));
+    unlockBlock(bs, more);
+    rankBlock(bs, more, () => openInfo(bs, id));
   }
   if (hasBranches(b.kind)) {
     injectTdCss();
@@ -142,7 +123,7 @@ export function openInfo(bs: BaseScene, id: number): void {
     const cur = b.branch ?? [];
     for (const bid of cur) el('span', 'hd-chip', `路线：${branchName(bid)}`, chips);
     if (pendingTier(b.kind, b.level, cur)) {
-      branchCards(body, b.kind, b.level, cur, (bid) => {
+      branchCards(more, b.kind, b.level, cur, (bid) => {
         const r = chooseBranch(app.profile, id, bid);
         if (!r.ok) return toast('现在不能选这条路线');
         app.commit(r.value);
@@ -150,78 +131,108 @@ export function openInfo(bs: BaseScene, id: number): void {
         openInfo(bs, id);
       });
     }
-    el('p', 'hd-td-note', '守岛全额生效；别人来打你时效果打折，防空、穿甲、灯塔不起作用', body);
+    el('p', 'hd-td-note', '守岛全额生效；别人来打你时效果打折，防空、穿甲、灯塔不起作用', more);
   }
-  if (b.kind === 'armory') researchList(bs, body, b.id);
-  if (cost) {
-    // 花费：每项写够不够，不够的标红写差多少；按钮大而醒目，升不起时写原因
-    const box = el('div', 'hd-upbox', undefined, body);
-    const costs = el('div', 'hd-upcost', undefined, box);
-    el('span', 'hd-upcost-k', '升级花费', costs);
-    for (const c of costGap(cost, p.res)) {
-      const it = el('span', `hd-upcost-i${c.short > 0 ? ' short' : ''}`, undefined, costs);
-      it.appendChild(img(iconA(c.k), 22));
-      el('b', '', fmt(c.need), it);
-      if (c.short > 0) el('small', '', `差 ${fmt(c.short)}`, it);
-    }
-    const r = upgrade(p, id);
-    const up = button('', 'hd-btn-gold hd-upbtn', () => act(bs, 'upgrade', id, () => openInfo(bs, id)), box, 'confirm');
-    up.title = withKey('升级', 'upgrade');
-    if (r.ok) {
-      up.appendChild(img(iconA('hammer'), 26));
-      el('span', '', `升到 ${b.level + 1} 级`, up);
-    } else {
-      up.disabled = true;
-      el('span', '', whyNot(bs, b, r.error, cost), up);
-      // 缺星或缺资源：直接给去拿的入口。矿里攒着的够补上差额才叫先收，否则金币和星都在出海拿；木材只能靠伐木场收
-      const stored = (kind: 'goldmine' | 'sawmill'): number => p.base.buildings.filter((q) => q.kind === kind).reduce((a, q) => a + Math.floor(q.stored ?? 0), 0);
-      const lackG = cost.gold > p.res.gold;
-      const lackW = cost.wood > p.res.wood;
-      let label = '';
-      let run: (() => void) | null = null;
-      if (r.error === 'need_stars') {
-        label = '去出海打关拿星';
-        run = () => openMap(bs);
-      } else if (lackG && stored('goldmine') >= cost.gold - p.res.gold) {
-        label = `先收金矿里攒的 ${fmt(stored('goldmine'))}`;
-        run = () => {
-          collectAll(bs);
-          openInfo(bs, id);
-        };
-      } else if (lackG) {
-        label = '去出海抢金币';
-        run = () => openMap(bs);
-      } else if (lackW && stored('sawmill') >= cost.wood - p.res.wood) {
-        label = `先收伐木场里攒的 ${fmt(stored('sawmill'))}`;
-        run = () => {
-          collectAll(bs);
-          openInfo(bs, id);
-        };
-      }
-      if (run) {
-        const go = button(label, 'hd-btn-wood hd-upgo', run, box);
-        go.style.cssText += ';width:100%;margin-top:8px;min-height:44px';
-      }
-    }
+  if (b.kind === 'armory') researchList(bs, more, b.id);
+  if (!more.childElementCount) more.remove();
+  footRow(bs, box, body, b);
+}
+
+/** 左栏：当前等级的大立绘；能升级时下面一排"N 级 → N+1 级"两张小图（下一级带金光） */
+function upArt(parent: HTMLElement, kind: BuildingKind, level: number, canUp: boolean): void {
+  const art = el('div', 'hd-up-art', undefined, parent);
+  el('div', 'hd-up-big', undefined, art).appendChild(img(bArt(kind, level), 150));
+  if (!canUp) return;
+  const hero = el('div', 'hd-uphero', undefined, art);
+  const look = (lv: number, cls: string): void => {
+    const c = el('div', `hd-uplook ${cls}`, undefined, hero);
+    el('div', 'hd-uppic', undefined, c).appendChild(img(bArt(kind, lv), 56));
+    el('span', '', `${lv} 级`, c);
+  };
+  look(level, 'cur');
+  el('span', 'hd-uparrow', '➜', hero);
+  look(level + 1, 'next');
+}
+
+/** 数值表：名称 | 当前 | → | 下一级 | +差值（满级只有名称和当前） */
+function statTable(parent: HTMLElement, kind: BuildingKind, level: number): void {
+  const rows = statDiff(kind, level);
+  if (!rows.length) return;
+  const tbl = el('div', 'hd-stats', undefined, parent);
+  for (const r of rows) {
+    const row = el('div', 'hd-stat', undefined, tbl);
+    el('span', 'hd-stat-k', r.label, row);
+    el('b', 'hd-stat-v hd-n', `${fmt(r.cur)}${r.unit}`, row);
+    if (r.next === null) continue;
+    el('span', 'hd-stat-a', '→', row);
+    el('b', 'hd-stat-n hd-n', `${fmt(r.next)}${r.unit}`, row);
+    el('span', `hd-stat-d hd-n hd-pos${r.delta > 0 ? '' : ' zero'}`, r.delta > 0 ? `+${fmt(r.delta)}` : '', row);
   }
-  const row = el('div', 'hd-row', undefined, body);
+}
+
+/** 花费和大升级钮：每项写够不够，不够的标红写还差多少；升不起时按钮灰着写原因，缺星或缺资源给去拿的入口 */
+function upBox(bs: BaseScene, parent: HTMLElement, b: Placed, cost: Res): void {
+  const p = app.profile;
+  const id = b.id;
+  const box = el('div', 'hd-upbox', undefined, parent);
+  const costs = el('div', 'hd-upcost', undefined, box);
+  el('span', 'hd-upcost-k', '升级花费', costs);
+  for (const c of costGap(cost, p.res)) {
+    const it = el('span', `hd-upcost-i${c.short > 0 ? ' short' : ''}`, undefined, costs);
+    it.appendChild(img(iconA(c.k), 22));
+    el('b', 'hd-n', fmt(c.need), it);
+    if (c.short > 0) el('small', '', `还差 ${fmt(c.short)}`, it);
+  }
+  const r = upgrade(p, id);
+  const up = button('', 'hd-btn-gold hd-upbtn', () => act(bs, 'upgrade', id, () => openInfo(bs, id)), box, 'confirm');
+  up.title = withKey('升级', 'upgrade');
+  if (r.ok) {
+    up.appendChild(img(iconA('hammer'), 26));
+    el('span', '', `升到 ${b.level + 1} 级`, up);
+    return;
+  }
+  up.disabled = true;
+  el('span', '', whyNot(bs, b, r.error, cost), up);
+  // 矿里攒着的够补上差额才叫先收，否则金币和星都在出海拿；木材只能靠伐木场收
+  const stored = (kind: 'goldmine' | 'sawmill'): number => p.base.buildings.filter((q) => q.kind === kind).reduce((a, q) => a + Math.floor(q.stored ?? 0), 0);
+  const lackG = cost.gold > p.res.gold;
+  const lackW = cost.wood > p.res.wood;
+  const collectThen = (): void => {
+    collectAll(bs);
+    openInfo(bs, id);
+  };
+  let go: [string, () => void] | null = null;
+  if (r.error === 'need_stars') go = ['去出海打关拿星', () => openMap(bs)];
+  else if (lackG && stored('goldmine') >= cost.gold - p.res.gold) go = [`先收金矿里攒的 ${fmt(stored('goldmine'))}`, collectThen];
+  else if (lackG) go = ['去出海抢金币', () => openMap(bs)];
+  else if (lackW && stored('sawmill') >= cost.wood - p.res.wood) go = [`先收伐木场里攒的 ${fmt(stored('sawmill'))}`, collectThen];
+  if (go) button(go[0], 'hd-btn-wood hd-upgo', go[1], box);
+}
+
+/**
+ * 收取、移动挂在标题栏（关闭钮左边），面板底只剩"接着升"：还有别的现在升得起的，直接换过去，不用退回建造列表再找。
+ * 标题栏本来就有一行高，放进去不占内容的高度，手机上整块面板才一屏放得下
+ */
+function footRow(bs: BaseScene, box: HTMLElement, body: HTMLElement, b: Placed): void {
+  const p = app.profile;
+  const id = b.id;
+  const head = box.querySelector<HTMLElement>('.hd-head')!;
+  const x = head.querySelector('.hd-x');
+  const acts = el('div', 'hd-up-acts');
+  head.insertBefore(acts, x);
   const stored = Math.floor(b.stored ?? 0);
   if ((b.kind === 'goldmine' || b.kind === 'sawmill') && stored >= 1) {
     button(`收取 ${fmt(stored)}`, 'hd-btn-gold', () => {
       doCollect(bs, id);
       openInfo(bs, id);
-    }, row).title = '收取（C 一次收全部）';
+    }, acts).title = '收取（C 一次收全部）';
   }
-  button('移动', 'hd-btn-wood', () => startPlace(bs, b.kind, id), row).title = withKey('移动', 'move');
-  // 接着升：还有别的现在升得起的，直接在这里换过去，不用退回建造列表再找一遍
+  button('移动', 'hd-btn-wood', () => startPlace(bs, b.kind, id), acts).title = withKey('移动', 'move');
   const next = upgradable(p).map((q) => p.base.buildings.find((x) => x.id === q)!).filter((x) => x.id !== id && x.kind !== 'wall').slice(0, 3);
-  if (next.length > 0) {
-    el('p', 'hd-sub hd-nextup-k', '接着升：', body);
-    const chips = el('div', 'hd-chips hd-nextup', undefined, body);
-    for (const q of next) {
-      button(`${BUILDINGS[q.kind].name} ${q.level}→${q.level + 1}`, 'hd-btn-gold hd-upchip', () => openInfo(bs, q.id), chips).style.minHeight = '44px';
-    }
-  }
+  if (!next.length) return;
+  const chips = el('div', 'hd-chips hd-nextup hd-up-foot', undefined, body);
+  el('span', 'hd-nextup-k', '接着升', chips);
+  for (const q of next) button(`${BUILDINGS[q.kind].name} ${q.level}→${q.level + 1}`, 'hd-btn-gold hd-upchip', () => openInfo(bs, q.id), chips);
 }
 
 /** 成就面板：列表、已得/未得、挑一个称号显示在顶栏 */
@@ -334,8 +345,8 @@ export function openPresets(bs: BaseScene): void {
     } catch {
       layout = [];
     }
-    renderLayout(host, layout, { interactive: false });
-    requestAnimationFrame(() => host.isConnected && renderLayout(host, layout, { interactive: false }));
+    renderLayout(host, layout, islandExt(p.base.buildings), { interactive: false });
+    requestAnimationFrame(() => host.isConnected && renderLayout(host, layout, islandExt(p.base.buildings), { interactive: false }));
     button('用这套', 'hd-btn-gold', () => {
       confirmBox(`换成「${name}」？建筑会重新摆位置，随时可以再换。`, '换', () => {
         app.commit({ ...app.profile, base: { ...app.profile.base, buildings: layout } });

@@ -1,23 +1,22 @@
 /**
- * 守岛章末机制（规则版本 16，DESIGN 10.6d）：每章最后两关给玩家多一件工具，不用就和没有一样——
- * 漂流补给箱（第一章）、潮汐水闸（第二章）、岸防老炮（第三章）、友军巡航船（第四章，规则版本 19）。只由关卡字段打开，规则版本低于对应版本的局一律不建、遇到操作忽略，旧回放逐位不变。
+ * 守岛章末机制（DESIGN 10.6d）：每章最后两关给玩家多一件工具，不用就和没有一样——
+ * 漂流补给箱（第一章）、潮汐水闸（第二章）、岸防老炮（第三章）、友军巡航船（第四章）。只由关卡字段打开，没写的关一律不建、遇到操作忽略。
  */
 import { TD2_BATTERY, TD2_CRATE, TD2_ENEMIES, TD2_FLEET } from '../content/td2units.ts';
-import { GRID, inGrid } from './grid.ts';
+import { inGrid } from './grid.ts';
 import { tideOpenAt } from './tdquery.ts';
 import { HIT_KEG, addGold, d2, inner, isAir, waveGold } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
-import { RULES_SINCE, UNIT } from './types.ts';
+import { BEACH, ISLAND, UNIT } from './types.ts';
 import type { TdEnemy, TdEvent } from './tdtypes.ts';
 
 /** 开局时按关卡字段建好章末机制的状态（createTd 最后调） */
 export function initMech(s: TdState): void {
-  if (s.rules < RULES_SINCE.tdChapterMech) return;
   const lv = s.level;
   if (lv.sluice && lv.tide && lv.tideOpen) s.sluice = { left: lv.sluice, shut: [] };
   if (lv.battery) s.battery = { x: lv.battery.x, y: lv.battery.y, ready: 0 };
   if (lv.crates?.length) s.drift = { crates: [], chase: -1 };
-  if (lv.fleet && s.rules >= RULES_SINCE.tdFleet) s.fleet = { ready: 0, sail: null };
+  if (lv.fleet) s.fleet = { ready: 0, sail: null };
 }
 
 /** 第 w 波开打：这一波写了补给箱就在沙滩上漂来一个（startWave 调） */
@@ -88,7 +87,7 @@ export function fireBattery(s: TdState, ev: TdEvent[], x: number, y: number, dmg
   if (!b || s.tick < b.ready || !Number.isFinite(x) || !Number.isFinite(y)) return;
   const tx = Math.round(x);
   const ty = Math.round(y);
-  if (!inGrid(Math.floor(tx / UNIT), Math.floor(ty / UNIT))) return;
+  if (!inGrid(s.ext, Math.floor(tx / UNIT), Math.floor(ty / UNIT))) return;
   const t1 = s.tick + TD2_BATTERY.delay;
   b.ready = s.tick + TD2_BATTERY.cd;
   inner(s).pend.push({ t: t1, kind: 'heroKeg', id: -1, dmg, x: tx, y: ty, r: TD2_BATTERY.r, hit: HIT_KEG, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0 });
@@ -120,14 +119,14 @@ export function toggleSluice(s: TdState, ev: TdEvent[]): void {
   ev.push({ type: 'sluice', wave: s.wave, shut: can === 'shut', left: sl.left });
 }
 
-// ------------------------------------------------------------ 友军巡航船（规则版本 19）
+// ------------------------------------------------------------ 友军巡航船
 
 /**
  * 船走的一圈：格子外 1.5 格的海上连成的方框（单位），左上角起顺时针，一边长 RING_SIDE。
  * 登陆点（炮艇、海盗王停的地方）在沙滩第 1 排，离这圈 3 格，船的射程（TD2_FLEET.r）够得着；岛里面够不着
  */
 const RING_LO = -150;
-const RING_SIDE = (GRID + 3) * UNIT;
+const RING_SIDE = (ISLAND + 2 * BEACH + 3) * UNIT;
 const RING = 4 * RING_SIDE;
 
 /** 一圈上的位置 p（0 ≤ p < RING）对应的点 */

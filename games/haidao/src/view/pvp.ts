@@ -4,7 +4,7 @@
  * 结果一律以服务端重放为准，浏览器算的只在等回话时不显示；掠夺、被扣的资源经待扣 / 待领同步进本地存档。
  */
 import { rankTitle } from './ranktext.ts';
-import { RULES_VERSION, armyCost, armyFor, heroLevel, hqLevel, rankOf } from '../core/index.ts';
+import { RULES_VERSION, armyCost, armyFor, heroLevel, hqLevel, islandExt, rankOf } from '../core/index.ts';
 import { raidSetup, replayRaid } from '../core/pvp.ts';
 import type { BattleAction, Res } from '../core/types.ts';
 import { applyPending, pvpApi, pvpReady, pvpState, readLocal, rulesTooNew, writeLocal, type DefenseBrief, type Me, type RaidStart } from '../net/pvp.ts';
@@ -312,7 +312,7 @@ export function openPvp(onClose: () => void): void {
  */
 export function trySelf(onClose: () => void = () => app.goBase()): void {
   const p = app.profile;
-  const setup = raidSetup(p.base.buildings, armyFor(p), (Date.now() & 0x3fffffff) | 1, heroLevel(p));
+  const setup = raidSetup(p.base.buildings, islandExt(p.base.buildings), armyFor(p), (Date.now() & 0x3fffffff) | 1, heroLevel(p));
   app.startPvp(setup, {
     rank: rankOf(p),
     onFinish: (log, end) => {
@@ -440,8 +440,8 @@ function submit(s: RaidStart, log: BattleAction[], end: number): void {
 async function watch(raidId: string, rules: number): Promise<void> {
   const r = await pvpApi.defense(raidId);
   if (!r.ok) return toast(errText(r.error));
-  // 规则核心按记录里的版本放（版本 5 起逐位保留），更早的才可能放不对
-  if (rules < 5 || rules > RULES_VERSION) toast('这是旧版本规则下的回放，可能放得不对');
+  // 回放只按现在的规则放，不保证跨版本
+  if (rules !== RULES_VERSION) toast('这是旧版本的回放，可能放得不对');
   // 回放时画面上挂一条"回放"，免得以为是自己在打
   style();
   const tag = el('div', 'hd-pvp-replaytag', `回放 · ${r.data.attacker} 的进攻`, uiRoot());

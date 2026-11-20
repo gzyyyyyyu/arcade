@@ -7,7 +7,6 @@
 import type { TdEnemyKind, TdEventKind, TdGroup, TdWave } from '../core/tdtypes.ts';
 import type { TdChapterId, TdGarrisonSpot, TdIslandLevel, TdMapId, TdPadDef, TdTier, TdTowerKind } from '../core/td2types.ts';
 import { waveBudget } from '../core/td2types.ts';
-import { RULES_SINCE } from '../core/types.ts';
 import { TD2_ECON, TD2_ENEMY_POINTS } from './td2units.ts';
 import { TD2_MAPS, TD2_MAP_SPECS, mapLayout } from './td2maps.ts';
 
@@ -52,28 +51,26 @@ interface LevelDef {
   bossSkill?: boolean;
   sapperJam?: boolean;
   flank?: boolean;
-  /** 潮汐水闸（规则版本 16，第二章最后两关）：一局能关几次落潮路（TdLevel.sluice） */
+  /** 潮汐水闸（第二章最后两关）：一局能关几次落潮路（TdLevel.sluice） */
   sluice?: number;
-  /** 漂流补给箱（规则版本 16，第一章最后两关）：第几波（0 起）在哪一格沙滩漂来箱子（TdLevel.crates） */
+  /** 漂流补给箱（第一章最后两关）：第几波（0 起）在哪一格沙滩漂来箱子（TdLevel.crates） */
   crates?: Array<{ wave: number; x: number; y: number }>;
-  /** 岸防老炮（规则版本 16，第三章最后两关）：炮台摆在哪一格（TdLevel.battery） */
+  /** 岸防老炮（第三章最后两关）：炮台摆在哪一格（TdLevel.battery） */
   battery?: { x: number; y: number };
-  /** 友军巡航船（规则版本 19，第四章最后两关；TdLevel.fleet） */
+  /** 友军巡航船（第四章最后两关；TdLevel.fleet） */
   fleet?: boolean;
-  /** 关内事件（规则版本 22，TdLevel.events）：哪种事件、在哪个波段（0 起）里由这一局的种子挑一波 */
+  /** 关内事件（TdLevel.events）：哪种事件、在哪个波段（0 起）里由这一局的种子挑一波 */
   events?: TdEventKind;
   /** 首领波前多给的倒数（拍），不写用 TD2_BOSS_EXTRA_TICKS */
   bossExtraTicks?: number;
   /**
-   * 规则版本 15 起的精英配方（少而精）：第 ELITE.from 波起，水手、鹦鹉每组的份额 ELITE.pct% 换成水手长、鹦鹉王，
-   * 整关预算改乘这里的 scale（按 td-sim 拟合到规则 14 下实测的三星率，保持现在的难度）；from 换精英从第几波（0 起）出。
-   * 旧版本的局照旧用上面的 scale 和原配方（组带 until，回放逐位不变）。
-   * kind：水手的份额换成哪种精英，不写是水手长；写 'mate' 换成大副（倒下散成水手），这套组从规则版本 RULES_SINCE.tdMate 起才出
+   * 精英配方（少而精，写了就有）：第 from 波（0 起，不写是 TD_ELITE.from）起，水手、鹦鹉每组的份额 TD_ELITE.pct% 换成水手长、鹦鹉王。
+   * kind：水手的份额换成哪种精英，不写是水手长；写 'mate' 换成大副（倒下散成水手）
    */
-  elite?: { scale: number; from?: number; kind?: 'mate' };
+  elite?: { from?: number; kind?: 'mate' };
   /**
-   * 规则版本 24 起给新手放宽（按「照建议的新手」机器人量，DESIGN 10.4 的验收目标）：前 waves 波（不写是整关）的预算再乘 pct%，
-   * 开局金多给 gold。只动人数和开局金、不动塔；旧版本的局照旧（组带 until、开局金走 goldSince，回放逐位不变）。悬赏守岛、海盗来袭不读这张关卡表，不受影响
+   * 给新手放宽（按「照建议的新手」机器人量，DESIGN 10.4 的验收目标）：前 waves 波（不写是整关）的预算再乘 pct%，
+   * 开局金多给 gold。只动人数和开局金、不动塔。悬赏守岛、海盗来袭不读这张关卡表，不受影响
    */
   ease?: { pct?: number; waves?: number; gold?: number };
   /**
@@ -208,7 +205,7 @@ const DEFS: readonly LevelDef[] = [
   },
   // ---------------------------------------------------------------- 第二章：潮水涨落、成片的雾
   {
-    id: 'td07', name: '潮起潮落', index: 6, map: 'D', chapter: 2, hq: 6, gold: 550, waveTicks: 340, scale: 280, elite: { scale: 280, from: 5 }, opener: [[6, 'mortar'], [1, 'mortar'], [0, 'gunTower']], pads: 7, garrison: [2, 2], tide: [1, 2, 5, 6, 9, 10],
+    id: 'td07', name: '潮起潮落', index: 6, map: 'D', chapter: 2, hq: 6, gold: 550, waveTicks: 340, scale: 280, elite: { from: 5 }, opener: [[6, 'mortar'], [1, 'mortar'], [0, 'gunTower']], pads: 7, garrison: [2, 2], tide: [1, 2, 5, 6, 9, 10],
     waves: [
       w([S, 100, 0]),
       note('南边的落潮路开着：预告条会提前一波告诉你', w([S, 60, 2], [I, 40, 1])),
@@ -225,7 +222,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td08', name: '薄雾渐起', index: 7, map: 'E', chapter: 2, hq: 6, gold: 450, waveTicks: 340, scale: 105, ease: { pct: 60 }, pads: 7, wrecks: [5, 6], garrison: [2, 2], fog: [0], events: 'rain',
+    id: 'td08', name: '薄雾渐起', index: 7, map: 'E', chapter: 2, hq: 6, gold: 450, waveTicks: 340, scale: 94, ease: { pct: 60 }, pads: 7, wrecks: [5, 6], garrison: [2, 2], fog: [0], events: 'rain',
     waves: [
       w([S, 100, 0]),
       note('北路罩在雾里：雾里的敌人要灯塔或英雄照亮才打得中', w([S, 60, 0], [I, 40, 1])),
@@ -257,7 +254,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td10', name: '浓雾锁港', index: 9, map: 'F', chapter: 2, hq: 7, gold: 300, waveTicks: 340, scale: 166, elite: { scale: 149 }, pads: 8, garrison: [2, 2], fog: [0, 1], events: 'rain',
+    id: 'td10', name: '浓雾锁港', index: 9, map: 'F', chapter: 2, hq: 7, gold: 300, waveTicks: 340, scale: 149, elite: {}, pads: 8, garrison: [2, 2], fog: [0, 1], events: 'rain',
     waves: [
       w([S, 100, 0]),
       w([S, 70, 0], [S, 30, 0, 80]),
@@ -323,7 +320,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td14', name: '绕后的鹦鹉', index: 13, map: 'H', chapter: 3, hq: 8, gold: 780, waveTicks: 320, scale: 175, elite: { scale: 175 }, opener: [[5, 'gunTower'], [1, 'gunTower'], [6, 'gunTower']], pads: 8, garrison: [2, 2], flank: true, events: 'bounty',
+    id: 'td14', name: '绕后的鹦鹉', index: 13, map: 'H', chapter: 3, hq: 8, gold: 780, waveTicks: 320, scale: 175, elite: {}, opener: [[5, 'gunTower'], [1, 'gunTower'], [6, 'gunTower']], pads: 8, garrison: [2, 2], flank: true, events: 'bounty',
     waves: [
       w([S, 100, 0]),
       w([P, 20, 2], [S, 80, 1]),
@@ -354,7 +351,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td16', name: '船长的怒火', index: 15, map: 'G', chapter: 3, hq: 8, gold: 360, waveTicks: 320, scale: 185, elite: { scale: 185, kind: 'mate' }, pads: 9, garrison: [3, 3, 3], bossSkill: true, events: 'dare',
+    id: 'td16', name: '船长的怒火', index: 15, map: 'G', chapter: 3, hq: 8, gold: 360, waveTicks: 320, scale: 185, elite: { kind: 'mate' }, pads: 9, garrison: [3, 3, 3], bossSkill: true, events: 'dare',
     waves: [
       w([S, 100, 0]),
       w([I, 40, 1], [S, 60, 0]),
@@ -406,7 +403,7 @@ const DEFS: readonly LevelDef[] = [
       note('最后一个首领：黑胡子', boss([C, 0, 0], [S, 24, 0, 20], [I, 24, 1, 20], [K, 12, 0, 40], [P, 20, 2, 60])),
     ],
   },
-  // ---------------------------------------------------------------- 第四章「远洋」（规则版本 18）：主寨已经到顶，难度走平台期（DESIGN 10.6e）
+  // ---------------------------------------------------------------- 第四章「远洋」：主寨已经到顶，难度走平台期（DESIGN 10.6e）
   {
     id: 'td19', name: '双子初登', index: 18, map: 'J', chapter: 4, hq: 8, gold: 520, waveTicks: 320, scale: 165, opener: [[0, 'mortar'], [1, 'rocket'], [3, 'harpoon']], pads: 9, garrison: [3, 3, 3], events: 'dare',
     waves: [
@@ -423,7 +420,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td20', name: '断桥', index: 19, map: 'J', chapter: 4, hq: 8, gold: 560, waveTicks: 320, scale: 198, elite: { scale: 198, kind: 'mate' }, pads: 10, garrison: [3, 3, 3], events: 'bounty',
+    id: 'td20', name: '断桥', index: 19, map: 'J', chapter: 4, hq: 8, gold: 560, waveTicks: 320, scale: 198, elite: { kind: 'mate' }, pads: 10, garrison: [3, 3, 3], events: 'bounty',
     waves: [
       w([S, 100, 0]),
       w([S, 50, 2], [I, 50, 0]),
@@ -455,7 +452,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td22', name: '四面楚歌', index: 21, map: 'K', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 200, elite: { scale: 200, kind: 'mate' }, pads: 10, garrison: [3, 3, 3], events: 'dare',
+    id: 'td22', name: '四面楚歌', index: 21, map: 'K', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 200, elite: { kind: 'mate' }, pads: 10, garrison: [3, 3, 3], events: 'dare',
     waves: [
       w([S, 100, 0]),
       w([S, 50, 1], [I, 50, 2]),
@@ -473,7 +470,7 @@ const DEFS: readonly LevelDef[] = [
   {
     // 友军巡航船第一次出现：炮艇比前两关多，叫船去清海面；后岛那一路照旧。
     // 炮艇从第 4 波才来：第 3 波就来时，机器人看到预告提前改造远程塔，第 2 波北边的水手漏过去（三星 24–32%，对预算不敏感）
-    id: 'td23', name: '远洋舰队', index: 22, map: 'J', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 160, elite: { scale: 160, kind: 'mate' }, pads: 10, garrison: [3, 3, 3],
+    id: 'td23', name: '远洋舰队', index: 22, map: 'J', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 160, elite: { kind: 'mate' }, pads: 10, garrison: [3, 3, 3],
     fleet: true,
     waves: [
       w([S, 100, 0]),
@@ -493,7 +490,7 @@ const DEFS: readonly LevelDef[] = [
     // 终局：海盗王停在北边海上，只有远程塔和友军船够得着；它放下的人和护航炮艇是这关的压力。
     // 前四波是铺垫波（份额 50% / 60% / 80% / 80%）：整关预算要撑住最后的海盗王，前几波照满份额会在开局一分钟里压上五六十个水手；
     // 只放轻前两波时，三星率随预算乱跳（147 / 149 / 150% 是 69 / 84 / 49%，丢宝全在第 3、4 波，看机器人先造了哪种塔），四波都放轻后考验落在后半段
-    id: 'td24', name: '海盗王', index: 23, map: 'K', chapter: 4, hq: 8, gold: 680, waveTicks: 320, scale: 161, elite: { scale: 161, kind: 'mate' }, opener: [[4, 'mortar'], [2, 'rocket'], [0, 'harpoon']], pads: 10, garrison: [3, 3, 3],
+    id: 'td24', name: '海盗王', index: 23, map: 'K', chapter: 4, hq: 8, gold: 680, waveTicks: 320, scale: 161, elite: { kind: 'mate' }, opener: [[4, 'mortar'], [2, 'rocket'], [0, 'harpoon']], pads: 10, garrison: [3, 3, 3],
     fleet: true,
     waves: [
       w([S, 50, 0]),
@@ -508,7 +505,7 @@ const DEFS: readonly LevelDef[] = [
       note('海盗王：旗舰停在北边海上，过一阵放下一船人，血过半叫两艘炮艇护航', boss([G, 0, 0], [S, 40, 1, 40], [I, 30, 2, 60], [M, 30, 0, 80])),
     ],
   },
-  // ---------------------------------------------------------------- 第五章「断崖海岸」（规则版本 26）：崖上高台（打得远、崖脚下打不到）、盾兵（正面挡枪炮）。
+  // ---------------------------------------------------------------- 第五章「断崖海岸」：崖上高台（打得远、崖脚下打不到）、盾兵（正面挡枪炮）。
   // 按宁简勿难，起点放回第四章中段的难度（DESIGN 10.6h），逐关小台阶
   {
     id: 'td25', name: '断崖初登', index: 24, map: 'L', chapter: 5, hq: 8, gold: 450, waveTicks: 320, scale: 130, pads: 7, garrison: [3],
@@ -573,7 +570,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td29', name: '崖下夜袭', index: 28, map: 'L', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 85, elite: { scale: 85, kind: 'mate' }, pads: 9, garrison: [3, 3],
+    id: 'td29', name: '崖下夜袭', index: 28, map: 'L', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 85, elite: { kind: 'mate' }, pads: 9, garrison: [3, 3],
     waves: [
       w([S, 100, 0]),
       w([S, 50, 1], [I, 50, 0]),
@@ -590,7 +587,7 @@ const DEFS: readonly LevelDef[] = [
   },
   {
     // 第五章终局：船长发怒（召一批水手、炸哑身边的塔），盾兵和大副成批来
-    id: 'td30', name: '断崖船长', index: 29, map: 'M', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 85, elite: { scale: 85, kind: 'mate' }, pads: 10, garrison: [3, 3], bossSkill: true,
+    id: 'td30', name: '断崖船长', index: 29, map: 'M', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 85, elite: { kind: 'mate' }, pads: 10, garrison: [3, 3], bossSkill: true,
     waves: [
       w([S, 60, 0]),
       w([S, 55, 1], [D, 30, 2], [S, 15, 3]),
@@ -672,31 +669,21 @@ function expand(r: WaveRecipe, budget: number, elite: Partial<Record<TdEnemyKind
   return out;
 }
 
-/**
- * 一关的波次（预算按 budgetPct 缩放）。带精英配方的关，每一波是新旧两套组并排：旧的带 until、新的带 since（RULES_SINCE.tdElite，换大副的是 tdMate），
- * 引擎按局的规则版本挑一套（createTd）
- */
+/** 一关的波次（预算按 budgetPct 缩放）；写了 ease 的关，前几波的预算再乘 ease.pct% */
 export function levelWaves(def: LevelDef, budgetPct = 100): TdWave[] {
   return def.waves.map((r, i) => {
-    const wave = recipeWave(def, r, i, budgetPct);
     const e = def.ease;
-    if (!e?.pct || i >= (e.waves ?? def.waves.length)) return wave;
-    // 放宽的一套只换当前生效的组（没有 until 的）：更早版本的组本来就带着 until，原样留着
-    const since = RULES_SINCE.tdEase;
-    const eased = recipeWave(def, r, i, (budgetPct * e.pct) / 100).groups.filter((g) => g.until === undefined);
-    return { ...wave, groups: [...wave.groups.map((g) => (g.until === undefined ? { ...g, until: since } : g)), ...eased.map((g) => ({ ...g, since }))] };
+    if (!e?.pct || i >= (e.waves ?? def.waves.length)) return recipeWave(def, r, i, budgetPct);
+    return recipeWave(def, r, i, (budgetPct * e.pct) / 100);
   });
 }
 
-/** 一波的组：带精英配方的关是新旧两套并排（旧的带 until、新的带 since） */
+/** 一波的组：带精英配方的关从 elite.from 波起把水手、鹦鹉的份额换一部分成精英 */
 function recipeWave(def: LevelDef, r: WaveRecipe, i: number, budgetPct: number): TdWave {
-  const budget = (scale: number): number => Math.floor((waveBudget(def.index, i) * scale * budgetPct) / 10_000);
-  const old = expand(r, budget(def.scale ?? 100));
-  if (!def.elite) return old;
+  const budget = Math.floor((waveBudget(def.index, i) * (def.scale ?? 100) * budgetPct) / 10_000);
+  if (!def.elite) return expand(r, budget);
   const kinds = def.elite.kind ? { ...ELITE_OF, sailor: def.elite.kind } : ELITE_OF;
-  const now = expand(r, budget(def.elite.scale), i >= (def.elite.from ?? TD_ELITE.from) ? kinds : null);
-  const since = def.elite.kind ? RULES_SINCE.tdMate : RULES_SINCE.tdElite;
-  return { ...old, groups: [...old.groups.map((g) => ({ ...g, until: since })), ...now.groups.map((g) => ({ ...g, since }))] };
+  return expand(r, budget, i >= (def.elite.from ?? TD_ELITE.from) ? kinds : null);
 }
 
 /** 断崖格扣掉这一关用到的高台占的格（高台照常是木台）；没用到的高台还是崖 */
@@ -725,8 +712,7 @@ export function buildLevel(def: LevelDef, budgetPct = 100): TdIslandLevel {
     chapter: def.chapter,
     hq: def.hq,
     hpPct: 100,
-    gold: def.gold,
-    ...(def.ease?.gold ? { goldSince: { since: RULES_SINCE.tdEase, gold: def.gold + def.ease.gold } } : {}),
+    gold: def.gold + (def.ease?.gold ?? 0),
     ...(def.opener ? { opener: def.opener.map(([slot, kind]) => ({ slot, kind })) } : {}),
     first: 400,
     waveTicks: def.waveTicks,

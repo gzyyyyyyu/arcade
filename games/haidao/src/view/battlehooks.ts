@@ -7,7 +7,7 @@ import { countObjects } from './rigsprite.ts';
 import { turretStats } from './turret.ts';
 import { iso } from './iso.ts';
 import { artBox } from './textures.ts';
-import { BEACH_PTS } from './battleadvice.ts';
+import { beachPts } from './battleadvice.ts';
 import type { BattleScene } from './BattleScene.ts';
 
 export function installHooks(bs: BattleScene): void {
@@ -73,7 +73,7 @@ export function installHooks(bs: BattleScene): void {
   };
   // 第 0 个在左边沙滩、第 1 个在下边沙滩（避开顶部的引导横幅），其余轮流
   app.api.beach = (i) => {
-    const [gx, gy] = BEACH_PTS[((i % 4) + 4) % 4]!;
+    const [gx, gy] = beachPts(bs.st.ext)[((i % 4) + 4) % 4]!;
     const w = iso(gx, gy);
     // 竖屏下左右的沙滩可能在屏外：先平移过去（和玩家单指拖到那一侧一样），再给坐标
     const sc = bs.cc.toScreen(w.x, w.y);

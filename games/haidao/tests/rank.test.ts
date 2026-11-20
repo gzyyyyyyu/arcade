@@ -34,8 +34,8 @@ describe('海盗王阶不加战力', () => {
     expect(vk.value).not.toHaveProperty('rankFund');
     expect(heroLevel(vk.value)).toBe(12);
     for (const seed of [1, 2, 3]) {
-      const a = raidSetup(vp.value.base.buildings, sampleArmy(8), seed, heroLevel(vp.value));
-      const b = raidSetup(vk.value.base.buildings, sampleArmy(8), seed, heroLevel(vk.value));
+      const a = raidSetup(vp.value.base.buildings, 0, sampleArmy(8), seed, heroLevel(vp.value));
+      const b = raidSetup(vk.value.base.buildings, 0, sampleArmy(8), seed, heroLevel(vk.value));
       expect(b).toEqual(a);
       const acts = botActions(a, 'normal');
       const ra = replayRaid(a, acts);

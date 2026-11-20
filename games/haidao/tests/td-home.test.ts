@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  RULES_SINCE, TD2_ENEMY_POINTS, TD2_HOME, TD2_LOSE_AT, createTd, hqLevel, newProfile, runTd, runTdBot, settleTdHome, tdDailyCap, tdFingerprint, tdGrowthProfile,
+  TD2_ENEMY_POINTS, TD2_HOME, TD2_LOSE_AT, createTd, hqLevel, newProfile, runTd, runTdBot, settleTdHome, tdDailyCap, tdFingerprint, tdGrowthProfile,
   tdHomeGen, tdHomeHardOpen, tdHomeRawReward, tdHomeSetup, tdHomeSnapshot, tdHomeWave, tdRunReward, tdUnlockedTowers, waveBudget,
 } from '../src/core/index.ts';
-import type { Profile, TdResult, TdSetup, TdWave } from '../src/core/index.ts';
+import type { Placed, Profile, TdResult, TdSetup, TdWave } from '../src/core/index.ts';
 import { cellIdx } from '../src/core/grid.ts';
 import { treasureFlow } from '../src/core/tdstate.ts';
 import { TD_WALL_COST } from '../src/content/tdunits.ts';
+import { BUILDINGS } from '../src/content/buildings.ts';
 import { fullBase } from '../tools/sample.ts';
 
 /** 海盗来袭（src/core/tdhome.ts）：自己的岛、按预算现生成的波次、打到丢 TD2_LOSE_AT 枚或打满、按撑住的波数给奖励、和战役共用每日上限、不记星 */
@@ -129,7 +130,6 @@ describe('海盗来袭：加难档（规则版本 20）', () => {
     const st = tdHomeSetup(player(8), 2, true);
     if (!st.ok) throw new Error(st.error);
     expect(st.value.home).toMatchObject({ hard: true, levelIndex: TD2_HOME.levelByHq[7]! + TD2_HOME.hard.levelPlus });
-    expect(st.value.rules).toBeGreaterThanOrEqual(RULES_SINCE.tdHook);
     const snap = tdHomeSnapshot(player(8));
     const elites = new Set(['bosun', 'macaw', 'mate']);
     const firstAt = new Map<string, number>();
@@ -170,25 +170,32 @@ describe('海盗来袭：加难档（规则版本 20）', () => {
   });
 });
 
-describe('海盗来袭：登陆点按布局挑（规则版本 21）', () => {
+describe('海盗来袭：登陆点按布局挑', () => {
   /** 登陆点到最近宝藏箱的路程（和 homeLanes 同一个量法） */
   const dist = (st: TdSetup, p: { x: number; y: number }): number => {
     const s = createTd(st);
     return Math.min(...s.treasures.map((_, i) => treasureFlow(s, i, TD_WALL_COST)[cellIdx(p.x, p.y)] as number));
   };
-  const open = (p: Profile, rules?: number): TdSetup => {
-    const r = tdHomeSetup(p, 3, false, rules);
+  const open = (p: Profile): TdSetup => {
+    const r = tdHomeSetup(p, 3, false);
     if (!r.ok) throw new Error(r.error);
     return r.value;
   };
 
-  it('箱子贴着登陆点：那条路挪到同一条海滩上够远的地方，别的路不动；规则 20 照旧用写死的点', () => {
-    // 主寨 8 级推荐布局 spread：岛边 (10,1) 有一个宝藏箱，正对北路 (10,-2)
-    const p = fullBase(8, 'spread', true);
-    const old = open(p, RULES_SINCE.tdHomeLanes - 1);
-    expect(old.level.lanes).toEqual(TD2_HOME.lanes);
+  /** 主寨 5 级（岛不扩）推荐布局，把第一个宝藏箱挪到 (x, y)，压着的建筑拿掉 */
+  const chestAt = (x: number, y: number): Profile => {
+    const p = fullBase(5, 'spread', true);
+    const t = p.base.buildings.find((b) => b.kind === 'treasure')!;
+    const covers = (b: Placed): boolean => b !== t && x >= b.x && x < b.x + BUILDINGS[b.kind].size && y >= b.y && y < b.y + BUILDINGS[b.kind].size;
+    const buildings = p.base.buildings.filter((b) => !covers(b)).map((b) => (b === t ? { ...b, x, y } : b));
+    return { ...p, base: { ...p.base, buildings } };
+  };
+
+  it('箱子贴着登陆点：那条路挪到同一条海滩上够远的地方，别的路不动', () => {
+    // 宝藏箱在岛边 (10,1)，正对北路 (10,-2)
+    const now = open(chestAt(10, 1));
+    const old: TdSetup = { ...now, level: { ...now.level, lanes: TD2_HOME.lanes.map((l) => ({ ...l })) } };
     expect(dist(old, TD2_HOME.lanes[0]!)).toBeLessThan(TD2_HOME.laneMinPath);
-    const now = open(p);
     const north = now.level.lanes[0]!;
     expect(north).not.toEqual(TD2_HOME.lanes[0]);
     expect(north.y).toBe(TD2_HOME.lanes[0]!.y);
@@ -199,17 +206,23 @@ describe('海盗来袭：登陆点按布局挑（规则版本 21）', () => {
     });
   });
 
-  it('所有路都够远的岛：规则 21 和 20 开出来的局一样（登陆点、落潮路都不动）', () => {
-    const p = fullBase(7, 'spread', true);
-    const a = open(p);
-    const b = open(p, RULES_SINCE.tdHomeLanes - 1);
-    expect(a.level.lanes).toEqual(b.level.lanes);
-    expect(a.level.tide).toEqual(b.level.tide);
+  it('所有路都够远的岛：登陆点、落潮路都不动', () => {
+    const a = open(fullBase(5, 'spread', true));
+    expect(a.level.lanes).toEqual(TD2_HOME.lanes);
+    expect(a.level.tide?.lane).toEqual(TD2_HOME.tide);
   });
+
+  it('岛扩了：登陆点、落潮路、贴边的火药桶跟着往外挪，岛里的不动', () => {
+    const a = open(fullBase(8, 'spread', true));
+    expect(a.ext).toBe(2);
+    expect(a.level.lanes).toEqual([{ x: 10, y: -4 }, { x: -4, y: 11 }, { x: 25, y: 10 }]);
+    expect(a.level.tide?.lane).toEqual({ x: 11, y: 25 });
+    expect(runTdBot(a, 'normal').result.waves).toBeGreaterThan(10);
+  }, 30_000);
 
   it('同种子开局逐位一样，整局重放指纹一样', () => {
     const p = fullBase(8, 'turtle', true);
     expect(open(p)).toEqual(open(p));
     expect(tdFingerprint(runTdBot(open(p), 'normal').state)).toBe(tdFingerprint(runTdBot(open(p), 'normal').state));
-  });
+  }, 60_000); // 两局整局，满配 8 级岛能撑到第 20 波
 });

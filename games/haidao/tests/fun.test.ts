@@ -2,15 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { CAMPAIGN, FUN, RULES_VERSION, armyFor, battleFingerprint, battleResult, botActions, canRecall, createBattle, newProfile, placeChests, reachableCells, runBattle, stepBattle } from '../src/core/index.ts';
 import type { BattleAction, BattleEvent, BattleSetup } from '../src/core/index.ts';
 import { Rng } from '../src/core/rng.ts';
+import { cellIdx } from '../src/core/grid.ts';
 import { sanitizeActions, replayRaid } from '../src/core/pvp.ts';
 
-/** 每局不一样（DESIGN 15）和误放撤回（规则版本 13）：关着时逐位不变，开着时确定、公平 */
+/** 每局不一样（DESIGN 15）和误放撤回：关着时逐位不变，开着时确定、公平 */
 const LEVELS = [0, 3, 7, 11, 17, 24];
 
-function setupOf(i: number, seed: number, rules = RULES_VERSION, fun?: BattleSetup['fun']): BattleSetup {
+function setupOf(i: number, seed: number, fun?: BattleSetup['fun']): BattleSetup {
   const lv = CAMPAIGN[i]!;
   const p = newProfile();
-  return { layout: lv.layout, army: armyFor({ ...p }), seed, rules, ...(fun ? { fun } : {}) };
+  return { layout: lv.layout, army: armyFor({ ...p }), seed, rules: RULES_VERSION, ...(fun ? { fun } : {}) };
 }
 
 function bigArmy(setup: BattleSetup): BattleSetup {
@@ -18,23 +19,18 @@ function bigArmy(setup: BattleSetup): BattleSetup {
 }
 
 describe('开关关着：整局和没有这个功能时逐位一致', () => {
-  it('规则版本 13 不带 fun = 规则版本 11；fun 全 false 也一样', () => {
+  it('fun 全 false 和不带 fun 逐位一样', () => {
     for (const i of LEVELS) {
       for (const seed of [1, 2, 77]) {
-        const base = bigArmy(setupOf(i, seed, 11));
+        const base = bigArmy(setupOf(i, seed));
         const acts = botActions(base, 'normal');
         const a = runBattle(base, acts);
-        const b = runBattle({ ...base, rules: 13 }, acts);
-        const c = runBattle({ ...base, rules: 13, fun: { chest: false, ally: false } }, acts);
-        const d = runBattle({ ...base, rules: 12, fun: { chest: true, ally: true } }, acts);
-        const fp = battleFingerprint(a.state);
-        expect(battleFingerprint(b.state), `c${i + 1}/${seed}`).toBe(fp);
-        expect(battleFingerprint(c.state)).toBe(fp);
-        expect(battleFingerprint(d.state), '规则版本 12 里 fun 不生效').toBe(fp);
-        expect(b.result).toEqual(a.result);
+        const c = runBattle({ ...base, fun: { chest: false, ally: false } }, acts);
+        expect(battleFingerprint(c.state), `c${i + 1}/${seed}`).toBe(battleFingerprint(a.state));
+        expect(c.result).toEqual(a.result);
       }
     }
-    // 6 关 × 3 种子 × 4 局整场对打；0.31.1 后段关加了城墙，整套并行跑时会超过默认 5 秒（单跑约 3 秒）
+    // 6 关 × 3 种子 × 2 局整场对打；整套并行跑时会超过默认 5 秒
   }, 60_000);
   it('开着宝箱不改登陆落点的随机（独立流）：第一批兵开局位置和关着时一样', () => {
     const base = bigArmy(setupOf(3, 5));
@@ -63,11 +59,11 @@ describe('漂流宝箱', () => {
     for (const i of LEVELS) {
       for (const seed of [1, 2, 3, 4]) {
         const s = createBattle({ ...bigArmy(setupOf(i, seed)), fun: { chest: true } });
-        const ok = reachableCells(s.buildings);
+        const ok = reachableCells(s.buildings, 0);
         for (const c of s.chests!) {
           const cx = Math.floor(c.x / 100);
           const cy = Math.floor(c.y / 100);
-          expect(ok[(cy + 3) * 28 + cx + 3], `c${i + 1} seed ${seed} 箱子 ${cx},${cy}`).toBe(true);
+          expect(ok[cellIdx(cx, cy)], `c${i + 1} seed ${seed} 箱子 ${cx},${cy}`).toBe(true);
           expect(s.buildings.some((b) => cx >= b.x && cx < b.x + b.size && cy >= b.y && cy < b.y + b.size)).toBe(false);
         }
       }
@@ -77,11 +73,11 @@ describe('漂流宝箱', () => {
     let id = 1;
     for (let k = 8; k <= 12; k++) for (const [x, y] of [[k, 8], [k, 12], [8, k], [12, k]] as const) wall.push({ id: id++, kind: 'wall' as const, level: 1, x, y });
     const s = createBattle({ ...bigArmy(setupOf(0, 1)), layout: wall });
-    const ok = reachableCells(s.buildings);
-    expect(ok[(10 + 3) * 28 + 10 + 3]).toBe(false);
-    expect(ok[(2 + 3) * 28 + 2 + 3]).toBe(true);
+    const ok = reachableCells(s.buildings, 0);
+    expect(ok[cellIdx(10, 10)]).toBe(false);
+    expect(ok[cellIdx(2, 2)]).toBe(true);
     for (let sd = 1; sd < 30; sd++) {
-      const cs = placeChests(s.buildings, new Rng(sd, 'fun.chest'));
+      const cs = placeChests(s.buildings, 0, new Rng(sd, 'fun.chest'));
       for (const c of cs) expect(Math.floor(c.x / 100) > 8 && Math.floor(c.x / 100) < 12 && Math.floor(c.y / 100) > 8 && Math.floor(c.y / 100) < 12).toBe(false);
     }
   });
@@ -156,7 +152,7 @@ describe('中途援军', () => {
 
 describe('误放撤回', () => {
   const land: BattleAction = { t: 0, type: 'land', boat: 0, x: -150, y: 1100 };
-  const fresh = (rules = 13): ReturnType<typeof createBattle> => createBattle(bigArmy({ ...setupOf(3, 5), rules }));
+  const fresh = (): ReturnType<typeof createBattle> => createBattle(bigArmy(setupOf(3, 5)));
   it('落地 5 拍内撤回：兵清空、船可再放', () => {
     const s = fresh();
     stepBattle(s, [land]);
@@ -170,7 +166,7 @@ describe('误放撤回', () => {
     stepBattle(s, [{ ...land, t: 6, x: 2350, y: 1100 }]);
     expect(s.landed[0]).toBe(true);
   });
-  it('超过 10 拍、已掉血、规则版本 12 都不行', () => {
+  it('超过 10 拍、已掉血都不行', () => {
     const s = fresh();
     stepBattle(s, [land]);
     for (let k = 0; k < 11; k++) stepBattle(s, []);
@@ -179,11 +175,6 @@ describe('误放撤回', () => {
     stepBattle(hurt, [land]);
     hurt.units[0]!.hp -= 1;
     expect(canRecall(hurt, 0)).toBe(false);
-    const old = fresh(12);
-    stepBattle(old, [land]);
-    expect(canRecall(old, 0)).toBe(false);
-    stepBattle(old, [{ t: 1, type: 'recall', boat: 0 }]);
-    expect(old.units.length).toBeGreaterThan(0);
   });
   it('带撤回的操作序列：sanitizeActions 往返、重放指纹一致', () => {
     const st = bigArmy(setupOf(3, 5));

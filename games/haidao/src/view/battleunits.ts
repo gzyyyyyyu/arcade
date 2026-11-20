@@ -95,8 +95,9 @@ function crowdRadius(k: TroopKind): number {
 
 /** 偏移后的位置在建筑占地里（没倒的）或出了登陆区外缘（海里）就算挡住 */
 function crowdBlocked(bs: BattleScene, x: number, y: number): boolean {
-  const lim = (ISLAND + BEACH) * UNIT - 20;
-  if (x < -BEACH * UNIT + 20 || y < -BEACH * UNIT + 20 || x > lim || y > lim) return true;
+  const e = BEACH + bs.st.ext;
+  const lim = (ISLAND + e) * UNIT - 20;
+  if (x < -e * UNIT + 20 || y < -e * UNIT + 20 || x > lim || y > lim) return true;
   for (const b of bs.st.buildings) {
     if (b.destroyed || b.kind === 'mine' || b.kind === 'tar') continue;
     if (x > b.x * UNIT + 10 && x < (b.x + b.size) * UNIT - 10 && y > b.y * UNIT + 10 && y < (b.y + b.size) * UNIT - 10) return true;
@@ -190,7 +191,7 @@ export function renderUnits(bs: BattleScene, frac: number, time: number, dt: num
     // 屏内完整骨架太多时，远的、小的换整张图（rigcap.ts）
     if (lod === 0 && !bs.rigCap.want(u.id, ((w.x - vc.centerX) ** 2 + (w.y - vc.centerY) ** 2) * cam.zoom * cam.zoom, (-sk.top * sk.s * cam.zoom) / bs.r)) lod = 1;
     if (lod === 0) full++;
-    // 被震晕：站住不动、整个人晃、头顶转星（规则版本 ≥ 10）
+    // 被震晕：站住不动、整个人晃、头顶转星
     const stun = stunned(u, bs.st.tick);
     const udep = depthOf(o.x / UNIT, o.y / UNIT) + 0.4;
     sp.rig.update({ x: w.x, y: w.y, depth: udep, face: sp.face, mode: stun ? 'idle' : u.mode === 'attack' ? 'attack' : u.mode === 'move' ? 'walk' : 'idle', dist: sp.dist, atk: stun ? -1 : atk, oy, sq: squash, alpha: 1, lod, full: every === 1 || (bs.frameN + id) % every === 0, wob: stun ? wobbleAt(time, id) : 0, gx: bs.devDir ? bs.devDir.gx : u.gx, gy: bs.devDir ? bs.devDir.gy : u.gy, gdown: stun }, time);
@@ -349,7 +350,7 @@ export function nearUnit(bs: BattleScene, b: BBuilding): BUnit | undefined {
 
 /** 落点的材质：海里出水花，砸在木头建筑 / 墙上出木屑，石头的出石屑，其余是地面尘土 */
 export function matAt(bs: BattleScene, x: number, y: number): LandMat {
-  if (isWater(x, y)) return 'water';
+  if (isWater(bs.st.ext, x, y)) return 'water';
   const gx = Math.floor(x / UNIT);
   const gy = Math.floor(y / UNIT);
   for (const b of bs.st.buildings) {

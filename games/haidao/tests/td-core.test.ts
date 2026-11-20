@@ -7,7 +7,7 @@ import {
 import type { Placed, TdAction, TdEvent, TdLevel, TdSetup, TdState } from '../src/core/index.ts';
 import { UNIT } from '../src/core/types.ts';
 
-/** 守岛规则核心（src/core/td.ts，规则版本 7）：找路、敌人、炸药桶、宝藏、星数、叫波、木台和驻守台、卖塔清障、拒马、确定性 */
+/** 守岛规则核心（src/core/td.ts）：找路、敌人、炸药桶、宝藏、星数、叫波、木台和驻守台、卖塔清障、拒马、确定性 */
 
 function lvl(p: Partial<TdLevel> = {}): TdLevel {
   return { id: 't', name: 't', hq: 1, hpPct: 100, gold: 0, first: 0, waveTicks: 4000, lanes: [{ x: 10, y: -2 }], waves: [], kegs: [], obstacles: [], slots: [], ...p };
@@ -287,8 +287,12 @@ describe('守岛：宝藏', () => {
 
   it('没有塔守，丢到 TD2_LOSE_AT 枚当场结束：0★，撑过的波数少于总波数', () => {
     const waves = Array.from({ length: 4 }, () => ({ groups: [{ enemy: 'parrot' as const, n: 8, lane: 0, every: 5 }] }));
-    // 规则 13：英雄不自己守（版本 14 起他会去路口打鹦鹉，这里只测没塔）
-    const { result } = runTd(setup(base(), lvl({ waves, waveTicks: 200 }), 1, { rules: 13 }), []);
+    // 英雄请下场（他会自己去路口打鹦鹉，这里只测没塔）
+    const s = createTd(setup(base(), lvl({ waves, waveTicks: 200 })));
+    s.hero.respawn = 1_000_000;
+    s.hero.hp = 0;
+    while (!s.over) stepTd(s, []);
+    const result = tdResult(s);
     expect(result.over).toBe(true);
     expect(result.stars).toBe(0);
     expect(result.lost).toBeGreaterThanOrEqual(TD2_LOSE_AT);
@@ -379,16 +383,9 @@ describe('守岛：木台、驻守台、卖塔、清障', () => {
     expect(s.towers).toHaveLength(1);
   });
 
-  it('规则版本 14：没指挥时英雄自己站到威胁最大那条路的路口（不站木台）；指挥过就听玩家的，复活后重新自己守；版本 13 原地不动', () => {
-    const level = (rules: number): TdState => {
-      const lv = lvl({ lanes: [{ x: 2, y: -2 }, { x: 19, y: -2 }], slots: [{ x: 15, y: 6 }, { x: 16, y: 9 }], first: 100000, waves: [{ groups: [{ enemy: 'sailor', n: 8, lane: 1, every: 20 }] }] });
-      return createTd(setup(base(), lv, 1, { rules }));
-    };
-    const old = level(13);
-    const h13 = { x: old.hero.x, y: old.hero.y };
-    for (let i = 0; i < 200; i++) stepTd(old, []);
-    expect({ x: old.hero.x, y: old.hero.y }).toEqual(h13);
-    const s = level(14);
+  it('没指挥时英雄自己站到威胁最大那条路的路口（不站木台）；指挥过就听玩家的，复活后重新自己守', () => {
+    const lv = lvl({ lanes: [{ x: 2, y: -2 }, { x: 19, y: -2 }], slots: [{ x: 15, y: 6 }, { x: 16, y: 9 }], first: 100000, waves: [{ groups: [{ enemy: 'sailor', n: 8, lane: 1, every: 20 }] }] });
+    const s = createTd(setup(base(), lv));
     const onSlot = (x: number, y: number): boolean => s.slots.some((q) => Math.abs(x - (q.x * UNIT + 100)) < 100 && Math.abs(y - (q.y * UNIT + 100)) < 100);
     for (let i = 0; i < 300; i++) stepTd(s, []);
     const post = s.hero.post!;
@@ -511,8 +508,9 @@ describe('守岛：木台、驻守台、卖塔、清障', () => {
 describe('守岛：英雄技能', () => {
   it('拒马：英雄够得着的空地才放得下；地面敌人过不去只能砸；冷却 cd', () => {
     const waves = [{ groups: [{ enemy: 'sailor' as const, n: 3, lane: 0, every: 10 }] }, { groups: [{ enemy: 'sailor' as const, n: 3, lane: 0, every: 10 }] }];
-    // 规则 13：守点就是手摆的位置（版本 14 起没指挥时英雄自己挑路口，会把守点改掉）
-    const s = createTd(setup(base(), lvl({ waves, first: 0, waveTicks: 4000 }), 1, { rules: 13 }));
+    const s = createTd(setup(base(), lvl({ waves, first: 0, waveTicks: 4000 })));
+    // 当作玩家指挥过：守点就是手摆的位置（没指挥时英雄自己挑路口，会把守点改掉）
+    (s.internal as { heroCmd: boolean }).heroCmd = true;
     // 路绕开主寨走 x = 8 这一列；英雄站在路边（10, 6），不还手，只看拒马挡不挡
     const idle = (st: TdState): TdAction[] => {
       st.hero.cd = st.tick + 100;

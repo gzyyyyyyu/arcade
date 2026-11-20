@@ -19,6 +19,12 @@ export function hqLevel(p: Profile): number {
   return hqOf(p)?.level ?? 1;
 }
 
+/** 玩家的岛扩了几圈：按布局里主寨的等级查 HQ_LEVELS.ext（基地、攻防快照、海盗来袭共用） */
+export function islandExt(layout: readonly Placed[]): number {
+  const hq = layout.find((b) => b.kind === 'hq')?.level ?? 1;
+  return HQ_LEVELS[hq - 1]?.ext ?? 0;
+}
+
 export function totalStars(p: Profile): number {
   let n = 0;
   for (const k of Object.keys(p.stars)) n += p.stars[k] ?? 0;
@@ -52,7 +58,8 @@ export function buildLimit(p: Profile, kind: BuildingKind): { have: number; max:
 export function canPlace(p: Profile, kind: BuildingKind, x: number, y: number, ignoreId?: number): boolean {
   const size = BUILDINGS[kind].size;
   if (!Number.isInteger(x) || !Number.isInteger(y)) return false;
-  if (x < 0 || y < 0 || x + size > ISLAND || y + size > ISLAND) return false;
+  const ext = islandExt(p.base.buildings);
+  if (x < -ext || y < -ext || x + size > ISLAND + ext || y + size > ISLAND + ext) return false;
   for (const b of p.base.buildings) {
     if (b.id === ignoreId) continue;
     const s = BUILDINGS[b.kind].size;

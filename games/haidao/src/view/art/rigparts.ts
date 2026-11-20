@@ -146,7 +146,7 @@ function troopParts(kind: TroopKind, skin?: TroopSkin, rank = 0): Partial<Record
   return out;
 }
 
-/** 航海士（规则版本 23，外观在 art/navigator.ts）：手臂是深青袖子，端长管火枪；等级外观 4 级辫子金扣、8 级金肩章、12 级金边望远镜 */
+/** 航海士（外观在 art/navigator.ts）：手臂是深青袖子，端长管火枪；等级外观 4 级辫子金扣、8 级金肩章、12 级金边望远镜 */
 const NAV_RIG: TroopRig = { sleeve: NAV_LOOK.shirt, armW: 4.2, handR: 2.9, wep: { svg: musket([0, 0], false), box: [-13, -8, 36, 6] }, trail: 0 };
 function navParts(rank: number): Partial<Record<RigFrame, Part>> {
   return manParts({

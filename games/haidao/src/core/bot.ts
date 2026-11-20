@@ -5,25 +5,25 @@ import { BATTLE_TICKS, ISLAND, UNIT } from './types.ts';
 import type { BBuilding, BattleAction, BattleSetup, BattleState, TroopKind } from './types.ts';
 
 /** 四面海滩的登陆点（战斗单位）：西、东、北、南 */
-function sidePoint(side: number): { x: number; y: number; ax: number; ay: number } {
+function sidePoint(side: number, ext: number): { x: number; y: number; ax: number; ay: number } {
   const mid = (ISLAND * UNIT) / 2;
-  const out = -150;
-  const far = ISLAND * UNIT + 150;
+  const out = -150 - ext * UNIT;
+  const far = (ISLAND + ext) * UNIT + 150;
   if (side === 0) return { x: out, y: mid, ax: 0, ay: 1 };
   if (side === 1) return { x: far, y: mid, ax: 0, ay: 1 };
   if (side === 2) return { x: mid, y: out, ax: 1, ay: 0 };
   return { x: mid, y: far, ax: 1, ay: 0 };
 }
 
-function landAt(side: number, i: number, n: number, t: number): BattleAction {
-  const p = sidePoint(side);
+function landAt(side: number, ext: number, i: number, n: number, t: number): BattleAction {
+  const p = sidePoint(side, ext);
   const off = (i - (n - 1) / 2) * 150;
   return { t, type: 'land', boat: i, x: Math.round(p.x + p.ax * off), y: Math.round(p.y + p.ay * off) };
 }
 
 /** 这一面海滩被多少防御盯着（按每秒伤害加权） */
 function sideDanger(setup: BattleSetup, side: number): number {
-  const p = sidePoint(side);
+  const p = sidePoint(side, setup.ext ?? 0);
   let score = 0;
   for (const b of setup.layout) {
     const def = BUILDINGS[b.kind];
@@ -45,10 +45,11 @@ const ORDER: Record<TroopKind, number> = { brute: 0, shield: 0, sailor: 1, capta
 
 export function botActions(setup: BattleSetup, style: 'novice' | 'normal'): BattleAction[] {
   const n = setup.army.boats.length;
+  const ext = setup.ext ?? 0;
   if (style === 'novice') {
     const side = (setup.seed >>> 0) % 4;
     const out: BattleAction[] = [];
-    for (let i = 0; i < n; i++) out.push(landAt(side, i, n, 0));
+    for (let i = 0; i < n; i++) out.push(landAt(side, ext, i, n, 0));
     return out;
   }
   let side = 0;
@@ -79,7 +80,7 @@ export function botActions(setup: BattleSetup, style: 'novice' | 'normal'): Batt
   const lastLand: number[] = [];
   order.forEach((boat, k) => {
     const t = k * 30 + ((ORDER[setup.army.boats[boat]?.troop ?? 'sailor'] ?? 0) >= 3 ? 60 : 0);
-    const a = landAt(side2 >= 0 && k % 2 === 1 ? side2 : side, boat, n, t);
+    const a = landAt(side2 >= 0 && k % 2 === 1 ? side2 : side, ext, boat, n, t);
     out.push(a);
     lastLand.push(t);
   });

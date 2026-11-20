@@ -72,7 +72,7 @@ async function start(w: World, att: string, def: string, now: number): Promise<S
   const l = await w.core(def).lock({ raidId, attackerId: att, attackerName: '进攻', attackerTrophies: prep.trophies, army: prep.army, seed: seedN }, now);
   if (!l.ok) throw new Error(l.error);
   await w.core(att).begin({ raidId, defenderId: def, until: l.until, army: prep.army }, now);
-  const setup = raidSetup(l.layout, prep.army, seedN);
+  const setup = raidSetup(l.layout, 0, prep.army, seedN);
   return { raidId, setup, actions: botActions(setup, 'normal'), until: l.until };
 }
 
@@ -326,7 +326,7 @@ describe('每步写入行数 ≤ 2', () => {
     }));
     if (!lk || !(lk as { ok: boolean }).ok) throw new Error('lock failed');
     note('begin', await rows(w.kv('a'), () => w.core('a').begin({ raidId: 'writes001', defenderId: 'd', until: LATER + LOCK_MS, army: prep.army }, LATER)));
-    const setup = raidSetup((lk as unknown as { layout: never }).layout, prep.army, 5);
+    const setup = raidSetup((lk as unknown as { layout: never }).layout, 0, prep.army, 5);
     const acts = botActions(setup, 'normal');
     let out: Awaited<ReturnType<BaseCore['settle']>> | null = null;
     note('settle', await rows(w.kv('d'), async () => {
@@ -347,7 +347,7 @@ describe('每步写入行数 ≤ 2', () => {
     expect(w.state('d').lock!.raidId).toBe('writes004');
     // 流浪海盗岛
     const wi = wandererIsland(0, 1, 7);
-    const wsetup = raidSetup(wi.layout, prep.army, 7);
+    const wsetup = raidSetup(wi.layout, 0, prep.army, 7);
     await w.core('b').begin({ raidId: 'writes005', defenderId: null, until: t3 + LOCK_MS, army: prepB.army, wander: { setup: wsetup, loot: wi.loot } }, t3);
     note('finishWanderer', await rows(w.kv('b'), () => w.core('b').finishWanderer('writes005', botActions(wsetup, 'normal'), 3600, t3 + 1000)));
     for (const [k, n] of Object.entries(worst)) expect(n, k).toBeLessThanOrEqual(2);

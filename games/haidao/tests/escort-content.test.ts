@@ -1,8 +1,11 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import { ESCORT_LIVE_LEVELS } from '../src/content/escortlivelevels.ts';
+import { ESCORT_LIVE_TIERS, escortLiveSetup } from '../src/core/escortlive.ts';
+import { LIVE_TIER_IDS } from '../src/core/live.ts';
 import { ESCORT_LEVELS, ESCORT_LEVEL_BY_ID, ESCORT_MAPS } from '../src/content/index.ts';
 import { ESCORT_DIFFS } from '../src/core/escorttypes.ts';
-import { BEACH, ISLAND, RULES_VERSION } from '../src/core/types.ts';
-import { levelForRules } from '../src/core/td.ts';
+import { BEACH, ISLAND } from '../src/core/types.ts';
 import { BUILDINGS } from '../src/content/index.ts';
 
 const LO = -BEACH;
@@ -114,19 +117,30 @@ describe('护航内容：9 关', () => {
       expect(e!.escort.hull).toBeGreaterThan(n!.escort.hull);
       expect(n!.escort.hull).toBeGreaterThan(h!.escort.hull);
       // 预算只比新手档和普通档：高手档靠船血、开局金、木台数和波间倒数变难（见 escortlevels.ts 的 KNOBS / TUNE）
-      // 新手档新旧两套组并排（规则 25 放宽），按当前规则版本挑出来再数
-      const total = (l: typeof e): number => levelForRules(l!, RULES_VERSION).waves.reduce((a, w) => a + w.groups.reduce((b, g) => b + g.n, 0), 0);
+      const total = (l: typeof e): number => l!.waves.reduce((a, w) => a + w.groups.reduce((b, g) => b + g.n, 0), 0);
       expect(total(e)).toBeLessThan(total(n));
       expect(h!.waveTicks).toBeLessThan(n!.waveTicks);
       expect(h!.slots.length).toBeLessThan(n!.slots.length);
     }
   });
-  it('规则 25 新手档放宽：旧局的组和放宽前一样多，新局少约一成半；普通、高手档没有分版本的组', () => {
-    const n = (l: Parameters<typeof levelForRules>[0], r: number): number => levelForRules(l, r).waves.reduce((a, w) => a + w.groups.reduce((b, g) => b + g.n, 0), 0);
-    for (const lv of ESCORT_LEVELS) {
-      const split = lv.waves.some((w) => w.groups.some((g) => g.since !== undefined || g.until !== undefined));
-      expect(split, lv.id).toBe(lv.diff === 'easy');
-      if (lv.diff === 'easy') expect(n(lv, 25)).toBeLessThan(n(lv, 24));
+});
+
+/**
+ * 护航实盘的三关从娱乐拆出来冻结（2026-11-20，0.55.0）：哈希是拆分前 escortlevels.ts 生成的 strait-normal、bays-normal、strait-hard 完整定义（JSON）的 sha256。
+ * 这条挂了说明实盘数值变了——是有意改的就重跑 escort-live-sim 四档（--n 2000）、更新 DESIGN 12.1，再改这里的哈希。
+ */
+const ESCORT_LIVE_SHA256 = '8c7a45212139b5beed5fcb62bd7c42d5fbf6b421acb3ff4ba571080f3d301d32';
+
+describe('护航实盘的关', () => {
+  it('冻结副本和拆分前逐字一样', () => {
+    expect(createHash('sha256').update(JSON.stringify(ESCORT_LIVE_LEVELS)).digest('hex')).toBe(ESCORT_LIVE_SHA256);
+  });
+
+  it('每档都从冻结副本开局，不读娱乐的关', () => {
+    for (const t of LIVE_TIER_IDS) {
+      const lv = ESCORT_LIVE_LEVELS.find((l) => l.id === ESCORT_LIVE_TIERS[t].level);
+      expect(lv, t).toBeDefined();
+      expect(escortLiveSetup(t, 3).level).toBe(lv);
     }
   });
 });
