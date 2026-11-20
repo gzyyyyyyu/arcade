@@ -43,7 +43,7 @@ export function showBest(bs: TdScene): void {
   const head = el('div', 'hd-head', undefined, box);
   el('h2', '', '下两波和克制表', head);
   button('×', 'hd-x', () => closeSheet(bs), head).title = '关掉（Esc / C）';
-  bestiary(box, bs.pv, (w) => waveTitle(bs, w), (l) => laneTitle(bs, l));
+  bestiary(box, bs.pv, (w) => waveTitle(bs, w), (l) => laneTitle(bs, l), bs.s.wave === 0 ? bs.s.level.opener : undefined);
 }
 
 /** 压着这块木台、还没清掉的沉船；没有为 null */
@@ -122,11 +122,14 @@ export function renderSheet(bs: TdScene): void {
     const grid = el('div', 'hd-td-towers', undefined, box);
     const can = new Set<TdTowerKind>(s.unlocked);
     const kinds = TEMP_KINDS.filter((k) => can.has(k));
+    // 开局造法圈出来的木台：第一波开打前，打开它时这块台该造的塔描金边
+    const rec = s.wave === 0 ? s.level.opener?.find((o) => o.slot === bs.openSlot)?.kind : undefined;
     kinds.forEach((k, i) => {
       const cost = buildCost(k);
       const c = el('button', 'hd-td-tower', undefined, grid);
       c.type = 'button';
       c.dataset.kind = k;
+      if (k === rec) c.classList.add('rec');
       c.title = `${BUILDINGS[k].name}（${i + 1}）`;
       keyBadge(c, i + 1);
       c.appendChild(towerIcon(k, 2, 44));

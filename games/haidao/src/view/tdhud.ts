@@ -337,7 +337,7 @@ export function updateHud(bs: TdScene, force = false): void {
   const planKey = `${bs.planSig}|${canCallNow ? left : -1}|${tide}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (force || planKey !== bs.planKey) {
     bs.planKey = planKey;
-    planCard(H.plan, bs.pv, { title: (w) => waveTitle(bs, w), left: canCallNow ? left : -1, tide, laneTitle: (l) => laneTitle(bs, l) });
+    planCard(H.plan, bs.pv, { title: (w) => waveTitle(bs, w), left: canCallNow ? left : -1, tide, laneTitle: (l) => laneTitle(bs, l), opener: s.wave === 0 ? s.level.opener : undefined });
     bs.esc?.decoratePlan(H.plan, bs.pv);
   }
   // 收起状态的小钮写下一波的波次号；叫波后（波数变了）自动收起
