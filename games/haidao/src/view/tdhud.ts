@@ -20,7 +20,7 @@ import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFl
 import { closeSheet, showBest } from './tdsheet.ts';
 import { SKILL } from './tdcommon.ts';
 import { finish } from './tdresult.ts';
-import { syncPadGuide, syncUpMark } from './tdpadguide.ts';
+import { panToGoal, syncGoalMark, syncPadGuide } from './tdpadguide.ts';
 import { syncSluice } from './tdworld.ts';
 import { bossOf } from './tdboss.ts';
 
@@ -306,7 +306,7 @@ export function updateHud(bs: TdScene, force = false): void {
   syncBossBar(bs);
   refreshPlan(bs);
   syncPadGuide(bs);
-  syncUpMark(bs, bs.next);
+  syncGoalMark(bs);
   bs.esc?.refresh(bs.pv);
   const total = s.level.waves.length;
   const endless = !!s.level.endless;
@@ -340,7 +340,7 @@ export function updateHud(bs: TdScene, force = false): void {
   const planKey = `${bs.planSig}|${canCallNow ? left : -1}|${tide}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (force || planKey !== bs.planKey) {
     bs.planKey = planKey;
-    planCard(H.plan, bs.pv, { title: (w) => waveTitle(bs, w), left: canCallNow ? left : -1, tide, laneTitle: (l) => laneTitle(bs, l), opener: openerLeft(s), next: bs.next?.step, gold: s.gold });
+    planCard(H.plan, bs.pv, { title: (w) => waveTitle(bs, w), left: canCallNow ? left : -1, tide, laneTitle: (l) => laneTitle(bs, l), opener: openerLeft(s), next: bs.next?.step, gold: s.gold, onGoal: () => panToGoal(bs) });
     bs.esc?.decoratePlan(H.plan, bs.pv);
   }
   // 「差 N」和开头跟着钱每拍变：只改这一格的字，不重排整张卡

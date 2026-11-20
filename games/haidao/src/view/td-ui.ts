@@ -3,7 +3,7 @@ import { TD2_ENEMIES } from '../content/td2units.ts';
 import { TD2_CHAPTERS } from '../content/tdmaps.ts';
 import type { Td2ChapterInfo } from '../content/tdmaps.ts';
 import { ISLAND, RULES_VERSION, UNIT } from '../core/types.ts';
-import { counterKind, isTdTowerKind, levelForRules, tdBuildRange, tdHomeHardOpen, tdUpCost } from '../core/index.ts';
+import { counterKind, freeSlotPick, isTdTowerKind, levelForRules, tdBuildRange, tdHomeHardOpen, tdUpCost } from '../core/index.ts';
 import { TD2_COST, TD2_HOME } from '../content/td2units.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
@@ -294,7 +294,9 @@ export function openerText(op: ReadonlyArray<{ kind: TdTowerKind }>): string {
  */
 export interface NextStep {
   kind: TdTowerKind;
-  /** 升级的那座塔在哪块木台；造新塔是 -1 */
+  /** true = 升级那座塔，false = 造新塔 */
+  up: boolean;
+  /** 造在哪块木台（照建议的新手先造的那块，核心的 freeSlotPick）/ 升的那座塔在哪块木台：点卡上这一格镜头移过去、屏外时边上指箭头 */
   slot: number;
   cost: number;
 }
@@ -319,27 +321,27 @@ export function nextStep(prev: HeldStep | undefined, s: TdState, pv: WavePreview
   if (!s.unlocked.length) return { key, step: null };
   if (s.slots.some((sl) => sl.tower < 0 && sl.wreck === undefined)) {
     const kind = counterKind(s, pv);
-    return { key, step: { kind, slot: -1, cost: TD2_COST[kind] } };
+    return { key, step: { kind, up: false, slot: freeSlotPick(s, pv)!, cost: TD2_COST[kind] } };
   }
   let best: NextStep | null = null;
   s.slots.forEach((sl, slot) => {
     const tw = sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
     if (!tw || tw.tier === undefined || tw.tier >= 3 || !isTdTowerKind(tw.kind)) return;
     const cost = tdUpCost(tw.kind, tw.tier - 1);
-    if (cost >= 0 && (!best || cost < best.cost)) best = { kind: tw.kind, slot, cost };
+    if (cost >= 0 && (!best || cost < best.cost)) best = { kind: tw.kind, up: true, slot, cost };
   });
   return { key, step: best };
 }
 
 /** 图鉴标题里的一句（不看钱）：「下一座造：臼炮」「钱够就升级：火枪塔」 */
-export const nextStepText = (st: NextStep): string => `${st.slot < 0 ? '下一座造' : '钱够就升级'}：${towerName(st.kind)}`;
+export const nextStepText = (st: NextStep): string => `${st.up ? '钱够就升级' : '下一座造'}：${towerName(st.kind)}`;
 /**
  * 预告卡上那一格随钱变的两段：开头和「· 差 N」。卡宽 360，「钱够就升级 火枪塔 还差 65 金」挤得这一格单独占一行、卡变四行，
  * 所以钱不够时升级只写「升级」（差多少已经说明了要攒钱），差额写短的「差 65」
  */
 export function stepLine(st: NextStep, gold: number): { lead: string; short: string } {
   const short = st.cost > gold ? `差 ${st.cost - gold}` : '';
-  return { lead: st.slot < 0 ? '下一座造' : short ? '升级' : '钱够就升级', short };
+  return { lead: !st.up ? '下一座造' : short ? '升级' : '钱够就升级', short };
 }
 
 /** 护甲占比从多到少（只列有的），预告条按这个顺序摆徽记 */
@@ -940,7 +942,7 @@ export function eventNote(p: WavePreview): string {
 export function planCard(
   box: HTMLElement,
   pv: readonly WavePreview[],
-  o: { title: (w: number) => string; left: number; tide: string; laneTitle: (lane: number) => string; opener?: TdLevel['opener']; next?: NextStep | null; gold: number },
+  o: { title: (w: number) => string; left: number; tide: string; laneTitle: (lane: number) => string; opener?: TdLevel['opener']; next?: NextStep | null; gold: number; onGoal?: () => void },
 ): void {
   box.textContent = '';
   const p = pv[0];
@@ -966,17 +968,28 @@ export function planCard(
   }
   // 写了开局造法的关，开打前先写还没造的那几座（木台上有金圈），造完了再换成「下一座造」
   const op = p.wave === 0 ? o.opener : undefined;
+  let sg: HTMLElement | null = null;
   if (op?.length) {
-    const sg = el('span', 'hd-plan-sug hd-plan-open', '先造', arm);
+    sg = el('span', 'hd-plan-sug hd-plan-open', '先造', arm);
     for (const [k, n] of openerKinds(op)) {
       sg.append(towerIcon(k, 1, 18), `${towerName(k)}${n > 1 ? `×${n}` : ''}`);
     }
   } else if (o.next) {
     const ln = stepLine(o.next, o.gold);
-    const sg = el('span', 'hd-plan-sug hd-plan-open', undefined, arm);
+    sg = el('span', 'hd-plan-sug hd-plan-open', undefined, arm);
     el('span', 'hd-plan-lead', ln.lead, sg);
     sg.append(towerIcon(o.next.kind, 1, 18), towerName(o.next.kind));
     el('small', 'hd-plan-short', ln.short, sg);
+  }
+  // 点这一格镜头移到它说的那块木台 / 那座塔（竖屏放大时常在画面外）；卡的别处照旧打开敌人图鉴
+  const go = o.onGoal;
+  if (sg && go) {
+    sg.classList.add('hd-plan-go');
+    sg.title = '点一下看在哪';
+    sg.addEventListener('click', (e) => {
+      e.stopPropagation();
+      go();
+    });
   }
   const lanes = p.lanes.map((l) => `${o.laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`);
   // 关卡说明和敌人打法只在图鉴里写全（点卡打开）：以前全塞进第三行，后几波长到五六行，盖住出生点和海上的炮艇

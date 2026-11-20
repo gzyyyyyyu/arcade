@@ -115,8 +115,8 @@ export function focusCx(focusX: number, content: { l: number; r: number }, z: nu
   return vc - (mid - w / 2) / z;
 }
 
-/** enemy = 屏外的敌人；slot = 屏外能造塔的空木台；gate = 屏外的路口 / 关口旗（护航的敌人入口和下一个关口） */
-export type EdgeKind = 'enemy' | 'slot' | 'gate' | 'crate';
+/** enemy = 屏外的敌人；slot = 屏外能造塔的空木台；gate = 屏外的路口 / 关口旗（护航的敌人入口和下一个关口）；goal = 预告卡「先造 / 下一座造 / 升级」指的那块木台 */
+export type EdgeKind = 'enemy' | 'slot' | 'gate' | 'crate' | 'goal';
 /** 一个可能在屏外的东西：屏幕坐标 sx、sy（CSS 像素，相对画布左上），世界坐标 wx、wy（点了箭头镜头往这里移） */
 export interface EdgeItem { kind: EdgeKind; sx: number; sy: number; wx: number; wy: number }
 export type Side = 'l' | 'r' | 't' | 'b';
@@ -129,7 +129,7 @@ export const EDGE_PAD = 26;
 export const EDGE_STEP = 52;
 
 const ORDER: Record<Side, number> = { t: 0, r: 1, b: 2, l: 3 };
-const KIND_ORDER: Record<EdgeKind, number> = { enemy: 0, slot: 1, gate: 2, crate: 3 };
+const KIND_ORDER: Record<EdgeKind, number> = { enemy: 0, slot: 1, gate: 2, crate: 3, goal: 4 };
 
 /**
  * 屏外东西的边缘指示：在可见区 view 里的不管；屏外的沿"可见区中心 → 它"的射线和边缘轨道（view 往里缩 pad）求交，
@@ -174,4 +174,21 @@ export function edgeMarks(items: readonly EdgeItem[], view: Rect, pad = EDGE_PAD
       const y = a.side === 't' ? T : a.side === 'b' ? B : a.at;
       return { kind: a.kind, side: a.side, x, y, n: a.n, wx: a.wx / a.n, wy: a.wy / a.n, dx: a.dx / a.n, dy: a.dy / a.n };
     });
+}
+
+/**
+ * 预告卡的金箭头别和别的指示叠在一起：同一段上的空木台小标让给它（指的多半就是那块），和敌人箭头靠得太近（< 一段）就顺着边往里挪一段
+ */
+export function goalClear(marks: EdgeMark[], view: Rect): EdgeMark[] {
+  const g = marks.find((m) => m.kind === 'goal');
+  if (!g) return marks;
+  const near = (m: EdgeMark): boolean => m !== g && Math.abs(m.x - g.x) < EDGE_STEP && Math.abs(m.y - g.y) < EDGE_STEP;
+  const out = marks.filter((m) => !(m.kind === 'slot' && near(m)));
+  if (out.some(near)) {
+    // 顺着它所在的边往可见区中线那边挪一段
+    const along = g.side === 'l' || g.side === 'r' ? 'y' : 'x';
+    const c = along === 'y' ? (view.t + view.b) / 2 : (view.l + view.r) / 2;
+    g[along] += g[along] < c ? EDGE_STEP : -EDGE_STEP;
+  }
+  return out;
 }

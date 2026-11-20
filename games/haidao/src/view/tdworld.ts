@@ -7,7 +7,8 @@ import { cellX, cellY } from '../core/grid.ts';
 import { UNIT, BEACH } from '../core/types.ts';
 import { sTex, bTex, wTex, fxA, tdP, troopF, iconA, shipA } from './art.ts';
 import { type Box, islandBox, type Content, cellsBox, type Director } from './camfit.ts';
-import { type EdgeItem, type EdgeKind, type FPt, edgeMarks, frameFocus, groupAround } from './camguide.ts';
+import { type EdgeItem, type EdgeKind, type FPt, edgeMarks, frameFocus, goalClear, groupAround } from './camguide.ts';
+import { goalSlot } from './tdpadguide.ts';
 import { EASE } from './motion.ts';
 import { RIG_TEX, rigTex } from './rigsprite.ts';
 import { heroRank, rigPieces } from './art/rigparts.ts';
@@ -488,6 +489,14 @@ export function drawEdges(bs: TdScene): void {
       items.push({ kind: 'slot', sx: p.x, sy: p.y, wx: w.x, wy: w.y });
     }
   }
+  // 预告卡指的那块木台（开局造法 / 下一座造 / 升级）在屏外：边上指一个金色箭头，点了镜头移过去（和点卡上那一格一样）
+  const goal = bs.fit.live && !bs.ended ? goalSlot(bs) : undefined;
+  if (goal !== undefined) {
+    const q = s.slots[goal]!;
+    const w = iso(q.x + 1, q.y + 1);
+    const p = bs.cc.toScreen(w.x, w.y);
+    items.push({ kind: 'goal', sx: p.x, sy: p.y, wx: w.x, wy: w.y });
+  }
   // 补给箱漂到屏外时也标出来：竖屏镜头跟着敌人走，宝藏边的箱子常在画面外，不标就等于没漂来
   if (bs.fit.live && !bs.ended) {
     for (const c of s.drift?.crates ?? []) {
@@ -502,7 +511,8 @@ export function drawEdges(bs: TdScene): void {
       items.push({ kind: 'gate', sx: p.x, sy: p.y, wx: w.x, wy: w.y });
     }
   }
-  const marks = items.length ? edgeMarks(items, bs.fit.visible()) : [];
+  const view = bs.fit.visible();
+  const marks = items.length ? goalClear(edgeMarks(items, view), view) : [];
   // 界面根可能为刘海缩进：画布坐标换成界面根里的坐标
   // 两次量框会触发布局：缩进几乎不变，1 秒量一次（转屏 / 缩放时间到了自然更新）
   const tNow = bs.time.now;
@@ -516,25 +526,29 @@ export function drawEdges(bs: TdScene): void {
   const ox = bs.edgeOx;
   const oy = bs.edgeOy;
   // 敌人和补给箱是按钮（点了镜头移过去），空木台和路口旗是不能点的小标：每种一个池子，同一个下标一直对着同一个元素
-  const pools: Record<EdgeKind, typeof bs.edgeEls> = { enemy: [], slot: [], gate: [], crate: [] };
+  const pools: Record<EdgeKind, typeof bs.edgeEls> = { enemy: [], slot: [], gate: [], crate: [], goal: [] };
   for (const it of bs.edgeEls) pools[(it.el.dataset.k as EdgeKind | undefined) ?? 'slot'].push(it);
-  const used = { enemy: 0, slot: 0, gate: 0, crate: 0 };
+  const used = { enemy: 0, slot: 0, gate: 0, crate: 0, goal: 0 };
   for (const m of marks) {
     const pool = pools[m.kind];
     let it = pool[used[m.kind]++];
     if (!it) {
       const box: HTMLElement =
-        m.kind === 'enemy' || m.kind === 'crate'
+        m.kind === 'enemy' || m.kind === 'crate' || m.kind === 'goal'
           ? button('', 'hd-td-edge', () => {
               if (!box.dataset.wx) return;
               bs.fit.markUser();
               bs.fit.panTo(Number(box.dataset.wx), Number(box.dataset.wy));
             }, bs.edges)
           : el('span', 'hd-td-edge', undefined, bs.edges);
-      // 皮肤的木板底不要：箭头自己一套样式（敌人 = 红圈 + 剑 + 个数；补给箱 = 金圈 + 箱子；木台 = 木牌 + 加号；路口 = 黄旗）
+      // 皮肤的木板底不要：箭头自己一套样式（敌人 = 红圈 + 剑 + 个数；补给箱 = 金圈 + 箱子；木台 = 木牌 + 加号；路口 = 黄旗；预告卡指的木台 = 金圈 + 锤子）
       box.className = m.kind === 'enemy' ? 'hd-td-edge' : `hd-td-edge ${m.kind}`;
       box.dataset.k = m.kind;
       if (m.kind === 'enemy') box.appendChild(img(iconA('sword'), 16));
+      if (m.kind === 'goal') {
+        box.appendChild(img(iconA('hammer'), 22));
+        box.setAttribute('aria-label', '预告卡说的那块木台在那边，点一下看过去');
+      }
       if (m.kind === 'crate') {
         box.appendChild(img(tdP('crate'), 30));
         box.setAttribute('aria-label', '那边漂来了补给箱，点一下看过去');
@@ -566,7 +580,7 @@ export function drawEdges(bs: TdScene): void {
       it.el.setAttribute('aria-label', `那边有 ${m.n} 个空木台可以造塔`);
     }
   }
-  for (const k of ['enemy', 'slot', 'gate', 'crate'] as const) {
+  for (const k of ['enemy', 'slot', 'gate', 'crate', 'goal'] as const) {
     for (const it of pools[k].slice(used[k])) {
       if (it.sig === '') continue;
       it.sig = '';

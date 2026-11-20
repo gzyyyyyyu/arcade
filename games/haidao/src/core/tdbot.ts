@@ -255,6 +255,18 @@ function slotScores(s: TdState, pv: WavePreview[]): number[] {
   });
 }
 
+/**
+ * 照建议的新手先造哪块空木台：离路最近（slotScores 最高），并列取序号小的；没有空木台（沉船压着的不算）返回 undefined。
+ * 预告卡「下一座造」指的木台也读它（画面层的 nextStep）
+ */
+export function freeSlotPick(s: TdState, pv: WavePreview[], free = s.slots.flatMap((sl, i) => (sl.tower < 0 && sl.wreck === undefined ? [i] : []))): number | undefined {
+  let i = free[0];
+  if (i === undefined) return undefined;
+  const sc = slotScores(s, pv);
+  for (const j of free) if ((sc[j] ?? 0) > (sc[i] ?? 0)) i = j;
+  return i;
+}
+
 export const towerOn = (s: TdState, slot: number): TdTower | undefined => {
   const sl = s.slots[slot];
   return sl && sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
@@ -407,13 +419,9 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
       // 小白看见海上有船（炮艇、海盗王）也会想起友军船，一半的时候
       if (fleetWorth(s, 1) && t % 20 === 0 && mrng.int(2) === 0) out.push({ t, type: 'fleet' });
       if (s.unlocked.length === 0) return out;
-      let i = free[0];
       // 照建议的新手：先造离路近的木台（和稳机器人同一套打分），塔照预告卡的建议挑
       const pv = kind === 'guided' ? tdPreview(s, 2) : null;
-      if (pv && free.length > 0) {
-        const sc = slotScores(s, pv);
-        for (const j of free) if ((sc[j] ?? 0) > (sc[i!] ?? 0)) i = j;
-      }
+      const i = pv ? freeSlotPick(s, pv, free) : free[0];
       if (i !== undefined) {
         let k = want.get(i);
         if (!k) {

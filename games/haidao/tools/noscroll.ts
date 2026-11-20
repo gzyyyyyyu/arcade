@@ -825,7 +825,8 @@ try {
       await attempt('敌人图鉴和克制表', async () => {
         // 矮竖屏预告卡默认收起，先点顶栏里的小钮展开
         if (await page.locator('.hd-plan-tog').isVisible()) await click('.hd-plan-tog');
-        await click('.hd-td-plan');
+        // 点第一行（卡中间那一格「下一座造 / 升级」点了是平移镜头，不开图鉴）
+        await click('.hd-td-plan .hd-plan-r1');
         await page.locator('.hd-td-best').first().waitFor({ timeout: 5000 });
         await snap('敌人图鉴和克制表', 400);
         await click('.hd-td-best .hd-x');

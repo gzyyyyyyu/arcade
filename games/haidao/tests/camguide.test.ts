@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AUTO_DEAD, AUTO_SETTLE, EDGE_PAD, EDGE_STEP, GROUP_R, INTRO_HOLD, INTRO_PUSH, autoStep, biggestCluster, camAt, centerFor, edgeMarks, focusCx, frameFocus, groupAround, type EdgeItem } from '../src/view/camguide.ts';
+import { AUTO_DEAD, AUTO_SETTLE, EDGE_PAD, EDGE_STEP, GROUP_R, INTRO_HOLD, INTRO_PUSH, autoStep, biggestCluster, camAt, centerFor, edgeMarks, focusCx, goalClear, frameFocus, groupAround, type EdgeItem } from '../src/view/camguide.ts';
 
 const view = { l: 0, t: 100, r: 390, b: 760 };
 const item = (kind: EdgeItem['kind'], sx: number, sy: number): EdgeItem => ({ kind, sx, sy, wx: sx * 2, wy: sy * 2 });
@@ -84,6 +84,18 @@ describe('屏外指示', () => {
     expect(ms.length).toBeGreaterThan(3);
     for (let i = 1; i < ms.length; i++) expect(ms[i]!.y - ms[i - 1]!.y).toBeGreaterThanOrEqual(EDGE_STEP - 1e-9);
     expect(ms.reduce((n, m) => n + m.n, 0)).toBeLessThanOrEqual(40);
+  });
+  it('预告卡的金箭头：同一段的空木台小标让给它；和敌人箭头叠着就顺着边往中线那边挪一段', () => {
+    const ms = goalClear(edgeMarks([item('goal', -50, 400), item('slot', -55, 405), item('enemy', -50, 400)], view), view);
+    expect(ms.map((m) => m.kind)).toEqual(['enemy', 'goal']);
+    const [en, go] = [ms[0]!, ms[1]!];
+    expect(go.x).toBe(en.x);
+    expect(Math.abs(go.y - en.y)).toBe(EDGE_STEP);
+    // 往中线那边挪（不会挪出边角）
+    expect(go.y).toBeGreaterThan(en.y);
+    // 没有金箭头时原样返回
+    const plain = edgeMarks([item('enemy', -50, 400), item('slot', -50, 400)], view);
+    expect(goalClear(plain, view)).toEqual(plain);
   });
   it('结果确定（顺序不随输入顺序变）', () => {
     const a = [item('slot', 500, 200), item('enemy', -10, 300), item('enemy', 200, 1000)];
