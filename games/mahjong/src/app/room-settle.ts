@@ -20,7 +20,7 @@ import { prefs } from './prefs.ts';
 import { enterRoom, FOLLOW_MS, seatMetas } from './room-flow.ts';
 import { lobby } from './routes.ts';
 import { inMatch, roomBack, session } from './session.ts';
-import { awardsButton, cardButton, settle, showMine } from './settle.ts';
+import { awardsButton, cardButton, matchBody, settle, showMine } from './settle.ts';
 import { stage, toast } from './shell.ts';
 import { refreshWallet } from './wallet.ts';
 
@@ -45,6 +45,7 @@ function matchEndDialog(s: OnlineState, rv: RoomView, g: AnyView, names: string[
   // 颁奖（docs/social.md 第 2 节）：只按结算里公开的净输赢和胡、杠、自摸数评，放在最上面；立直的小计没有杠数，不评杠王（game/riichi/fun.ts）
   const prizes = g.result ? awardsOf(g.result.seats.map((x) => x.net), page.tally(g)) : [];
   const prizeUnit = wallet ? ' 筹码' : ' 分';
+  let single = false;
   dialog(stage, 'end', (box) => {
     // 为什么结束、钱怎么走的放在翻页区上面：结算长了要翻页，放在里面会跟着"翻到我那一行"被翻走，第一眼看不到（11-02 冒烟）
     if (rv.cut) el('div', 'settle-note', box, '只剩一个人在下注，实盘这一场提前结束（实盘至少要两个人）');
@@ -53,9 +54,8 @@ function matchEndDialog(s: OnlineState, rv: RoomView, g: AnyView, names: string[
     // 内容放进翻页区，按钮行在它下面、一直看得见（view/pager.ts）
     const body = el('div', 'end-body', box);
     if (prizes.length) body.appendChild(awardsSummary(prizes, names, prizeUnit));
-    // 一场的名次在前，这一局的明细在后（单机一样，app/solo-flow.ts）
-    body.appendChild(page.matchSummary(g, names, unit));
-    settle(body, page.roundSummary(g, names, unit));
+    // 名次和这一局明细的先后和单机一样（app/settle.ts 的 matchBody）
+    single = matchBody(body, g.history.length, page.matchSummary(g, names, unit), page.roundSummary(g, names, unit));
     if (session.fame.length) body.appendChild(fameSummary(session.fame, names));
     const row = el('div', 'row end-acts', box);
     const match = inMatch();
@@ -77,7 +77,7 @@ function matchEndDialog(s: OnlineState, rv: RoomView, g: AnyView, names: string[
     }
     paginate(body, 0, END_SPLIT);
   }, false);
-  showMine();
+  if (!single) showMine();
   if (g.me) play((g.result?.seats[g.me.seat]?.net ?? 0) >= 0 ? 'win' : 'lose');
   void refreshWallet();
 }

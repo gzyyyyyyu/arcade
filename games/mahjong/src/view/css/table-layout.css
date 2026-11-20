@@ -94,6 +94,9 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 }
 [data-orient='port'] .badge.r0 { left: 8px; bottom: 84px; max-width: 190px; }
 [data-orient='port'] .badge.r1 { right: 8px; bottom: 84px; flex-direction: row-reverse; padding: 4px 4px 4px 10px; }
+/* 下面两家的庄标放到头像右上角：右下角紧挨着手牌一排，摸进来的那张抬起时头上的"荐"会被它盖住（11-20 试玩） */
+[data-orient='port'] .badge.r0 .dealer,
+[data-orient='port'] .badge.r1 .dealer { top: -4px; bottom: auto; }
 [data-orient='port'] .badge.r2 { right: 8px; top: 8px; flex-direction: row-reverse; padding: 4px 4px 4px 10px; }
 [data-orient='port'] .badge.r3 { left: 8px; top: 8px; }
 /* 下面两家的章在名牌上方居中（宽章「自摸」不再从中线往右伸、压到名字），再抬高一点：章高 34，转 12 度后角会探进名牌 */
@@ -109,8 +112,9 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 }
 [data-orient='port'] .badge .name,
 [data-orient='port'] .badge .chips { line-height: 1.15; }
-/* 手牌一排左右只留 8：手机竖屏每张牌尽量大（37 宽，摸的那张隔 10） */
-[data-orient='port'] .side.r0 { left: 50%; bottom: 12px; transform: translateX(-50%); gap: 6px; }
+/* 手牌一排左右只留 8：手机竖屏每张牌尽量大（37 宽，摸的那张隔 10）。
+ * 摸的那张在下家名牌正下方，抬起时头上的"荐""听"签会探到名牌下沿：手牌一排叠在名牌上面，签不被盖住（11-20 试玩） */
+[data-orient='port'] .side.r0 { left: 50%; bottom: 12px; transform: translateX(-50%); gap: 6px; z-index: 1; }
 [data-orient='port'] .my-hand .tile.drawn { margin-left: 10px; }
 [data-orient='port'] .side.r2 { left: 50%; top: 72px; transform: translateX(-50%); }
 [data-orient='port'] .side.r1 { right: 10px; top: var(--c); transform: translateY(-50%); }
@@ -140,6 +144,8 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 [data-orient='port'] .bar { left: 50%; bottom: 172px; height: max(64px, var(--tap, 0px)); transform: translateX(-50%); justify-content: center; }
 /* 竖屏一行放不下提示加三个按钮（字号放大以后，0.17.6）：提示挪到按钮上面一行，不缩字 */
 [data-orient='port'] .bar .hint { position: absolute; left: 50%; bottom: calc(100% + var(--sp-2)); transform: translateX(-50%); }
+/* 操作条上只有提示、没有按钮（"再点一下打出"）：提示落到操作条自己的高度里，不再浮在上面压住我牌河的最后几排（11-20 试玩） */
+[data-orient='port'] .bar:not(:has(> :not(.hint))) .hint { bottom: var(--sp-2); }
 @media (max-width: 600px) {
   [data-orient='port'] .topbar > .title .var { display: none; }
 }
