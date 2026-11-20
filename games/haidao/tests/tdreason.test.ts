@@ -34,7 +34,7 @@ describe('tdReason', () => {
   it('护甲不克：重甲的敌人只有枪塔', () => {
     const log = logOf([loss(4, 'ironclad', '南路', 3), loss(4, 'shield', '东路', 2)]);
     const r = tdReason(log, res(5, 1), { gold: 0, towers: guns, wave: 5 });
-    expect(r.line).toBe('重甲的敌人没有克它的塔');
+    expect(r.line).toBe('漏的多是重甲，没造克它的塔');
     withinLimits(r);
   });
 
@@ -49,14 +49,14 @@ describe('tdReason', () => {
   });
 
   it('克它的塔这局造不了，就不拿护甲当原因', () => {
-    // 第 1 关只有加农炮、火枪塔，布衣要火才克：这时该说哪条路漏了，而不是「没有克它的塔」
+    // 第 1 关只有加农炮、火枪塔，布衣要火才克：这时该说哪条路漏了，而不是「没造克它的塔」
     const log = logOf([loss(2, 'sailor', '北路', 3), loss(3, 'sailor', '北路', 3)]);
     const r = tdReason(log, res(6, 0), { gold: 0, towers: cannons, wave: 3, unlocked: ['cannon', 'gunTower'] });
-    expect(r.line).not.toContain('没有克它的塔');
+    expect(r.line).not.toContain('没造克它的塔');
     expect(r.line).toBe('北路守不住，6 枚全从这漏');
     // 能造喷火塔却没造：照样点出来
     const r2 = tdReason(log, res(6, 0), { gold: 0, towers: cannons, wave: 3, unlocked: ['cannon', 'gunTower', 'flame'] });
-    expect(r2.line).toBe('布衣的敌人没有克它的塔');
+    expect(r2.line).toBe('漏的多是布衣，没造克它的塔');
   });
 
   it('海盗来袭和大潮：同样给原因和关键时刻', () => {
@@ -68,7 +68,7 @@ describe('tdReason', () => {
     // 大潮：飞禽，场上只有炮塔
     const tide = logOf([loss(12, 'parrot', '', 4)]);
     const t = tdReason(tide, res(4, 0), { gold: 0, towers: cannons, wave: 12 });
-    expect(t.line).toBe('飞禽的敌人没有克它的塔');
+    expect(t.line).toBe('漏的多是飞禽，没造克它的塔');
     expect(t.key).toBe('第 12 波：1 个鹦鹉群冲过去，丢了 4 枚');
     withinLimits(t);
   });

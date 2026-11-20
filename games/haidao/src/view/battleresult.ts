@@ -135,6 +135,12 @@ export function finish(bs: BattleScene, delay: number): void {
   if (!battleEnd(bs, res.stars > 0, delay, show)) setTimeout(show, delay);
 }
 
+/** 仓库满了截掉的写成「120 金、40 木」；没截返回 null */
+export function cutText(c: Res): string | null {
+  const parts = [c.gold > 0 ? `${fmt(c.gold)} 金` : '', c.wood > 0 ? `${fmt(c.wood)} 木` : ''].filter(Boolean);
+  return parts.length ? parts.join('、') : null;
+}
+
 export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newStars: number, bonus: Res | null = null, fresh: Ach[] = [], extra: Extra = NO_EXTRA): void {
   app.api.scene = 'result';
   if (tutStep() === 5) tutSet(6);
@@ -187,9 +193,21 @@ export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newSta
     const st = el('p', 'hd-streak', `连胜 ×${extra.streak}${extra.bonusPct > 0 ? `  掠夺 +${extra.bonusPct}%` : ''}`, box);
     st.style.cssText = 'text-align:center;margin:0 0 8px;font-weight:900';
   }
-  if (extra.consolation) {
+  // 仓库满了一分没进时不说「安慰奖已经放进仓库」（金木 +0 +0 和这句对不上），改由下面满仓那行说
+  if (extra.consolation && loot.gold + loot.wood > 0) {
     const cp = el('p', 'hd-consol', '安慰奖已经放进仓库，别灰心，下一场会更好', box);
     cp.style.cssText = 'text-align:center;margin:0 0 8px;font-weight:800';
+  }
+  // 仓库满了截掉的（以前悄悄截掉、结算不说，同一关 3 星这次少拿几百也看不出来）：写少拿多少，给一个回家就打开建造面板的入口
+  const cut = cutText(extra.cut);
+  if (cut && bs.d.settle) {
+    const cr = el('div', 'hd-cutline', undefined, box);
+    el('span', '', `仓库满了，少拿 ${cut}`, cr);
+    button('去扩仓库', 'hd-btn-plain', () => {
+      leave();
+      app.buildOnBase = true;
+      app.goBase();
+    }, cr);
   }
   const gifts = extra.drops.filter((d) => d.kind !== 'cosmetic') as Array<{ kind: 'gold' | 'wood'; amount: number }>;
   if (gifts.length) {

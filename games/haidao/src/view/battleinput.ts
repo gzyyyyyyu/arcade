@@ -170,6 +170,17 @@ export function sig(bs: BattleScene): string {
   return `${bs.st.energy}|${bs.st.landed.join('')}|${bs.selBoat}|${bs.selSkill}|${bs.st.over}`;
 }
 
+/**
+ * 船都出完、兵（医疗兵不算）都倒了、还没结束：规则核心要能量也不够放技能才自动结束（battle.ts 的 spent），
+ * 剩着能量时计时照走、画面上什么都不动，玩家不知道在等什么。提示条和发光的「结束」钮告诉玩家下一步
+ */
+export function allDown(bs: BattleScene): boolean {
+  const s = bs.st;
+  return !s.over && !bs.d.pvp?.replay && s.landed.every(Boolean) && !s.units.some((u) => u.mode !== 'dead' && u.kind !== 'medic');
+}
+
+const downText = (bs: BattleScene): string => `兵都倒了：还剩 ${bs.st.energy} 能量，放完技能点「结束」`;
+
 export function afterSelect(bs: BattleScene): void {
   bs.hoverCell = '';
   bs.beachGlow.hover = null;
@@ -182,6 +193,7 @@ export function afterSelect(bs: BattleScene): void {
   else if (bs.selBoat >= 0) hint(bs, '点沙滩，把船开上去');
   else if (bs.selSkill >= 0) hint(bs, skillHint(army.skills[bs.selSkill]!.kind, SKILLS[army.skills[bs.selSkill]!.kind].name));
   else if (beachOn(bs) && !bs.st.landed.some(Boolean) && !bs.d.pvp?.replay) hint(bs, '先点船卡，再点发光的沙滩');
+  else if (allDown(bs)) hint(bs, downText(bs));
   else hint(bs, '');
   renderCards(bs);
   tutRefresh(bs);
@@ -401,6 +413,14 @@ export function updateHud(bs: BattleScene): void {
   }
   bs.lastStars = Math.max(bs.lastStars, r.stars);
   bs.endBtn.textContent = s.landed.some(Boolean) ? '结束' : '撤退';
+  // 兵倒光那一刻不改 sig（不走 afterSelect），这里每拍看：变了才动提示条（瞄技能时让给瞄准提示）
+  const down = allDown(bs);
+  const was = bs.endBtn.classList.contains('hd-endglow');
+  bs.endBtn.classList.toggle('hd-endglow', down);
+  if (bs.selSkill < 0 && (down || was)) {
+    const t = down ? downText(bs) : '';
+    if (bs.hintEl.textContent !== t) hint(bs, t);
+  }
   funHud(bs);
   tutRefresh(bs);
 }

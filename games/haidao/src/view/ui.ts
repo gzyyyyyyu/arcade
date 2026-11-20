@@ -374,6 +374,10 @@ function css(): string {
 .hd-ui .hd-btn-gold { background:linear-gradient(${c.goldL},${gold}); }
 .hd-ui .hd-btn-wood { background:linear-gradient(${woodL},${wood}); color:#fff8e6; text-shadow:0 1px 0 ${c.woodDD}; }
 .hd-ui .hd-btn-red { background:linear-gradient(${c.redL},${red}); color:#fff; }
+/* 登陆战兵倒光、还剩能量：「结束」钮一明一暗地亮，告诉玩家下一步点它 */
+.hd-ui .hd-btn.hd-endglow { animation:hd-endglow 1.2s ease-in-out infinite; }
+@keyframes hd-endglow { 50% { box-shadow:0 0 0 4px #ffd75e, 0 0 16px 6px rgba(255,215,94,.8); } }
+@media (prefers-reduced-motion: reduce) { .hd-ui .hd-btn.hd-endglow { animation:none; box-shadow:0 0 0 4px #ffd75e; } }
 .hd-ui .hd-btn-plain { background:${cream}; }
 .hd-ui .hd-hall { position:absolute; top:6px; left:6px; z-index:30; padding:0 10px 0 6px; }
 .hd-ui .hd-mute { position:absolute; top:6px; right:6px; z-index:30; padding:0; }
@@ -539,6 +543,8 @@ function css(): string {
 .hd-ui .hd-stars .hd-img.pop { animation:hd-pop .6s cubic-bezier(.2,1.8,.4,1); }
 .hd-ui .hd-result { max-width:360px; text-align:center; }
 .hd-ui .hd-result h2 { font-size:24px; margin:0 0 6px; }
+.hd-ui .hd-result .hd-cutline { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px 8px; margin:0 0 8px; font-size:14px; font-weight:800; color:#c0392b; }
+.hd-ui .hd-result .hd-cutline .hd-btn { min-height:44px; padding:0 12px; font-size:14px; }
 .hd-ui .hd-big { font-size:34px; font-weight:900; }
 .hd-ui .hd-loot { display:flex; justify-content:center; gap:16px; margin:10px 0 14px; font-size:20px; }
 .hd-ui .hd-map { position:absolute; inset:0; pointer-events:auto; background:linear-gradient(${c.seaLight},${c.sea} 40%,${c.seaDeep}); overflow-y:auto; touch-action:pan-y; z-index:20; }

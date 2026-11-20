@@ -228,6 +228,7 @@ function tdCss(): string {
    伤害类型、加成、台子封顶、分叉牌依次排开（以前分叉牌在第 2 列、加成在第 3 列，分叉牌溢进第 3 列压住加成） */
 .hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) { grid-template-columns:32px minmax(0,1fr) auto; min-height:44px; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card > b { white-space:nowrap; }
+.hd-ui .hd-tdgar-main h2 > span { display:inline-block; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card > img { width:32px !important; height:32px !important; object-fit:contain; grid-column:1; grid-row:1 / span 2; align-self:center; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) > b { grid-column:2; grid-row:1; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) > .hd-tdgar-tier { grid-column:3; grid-row:1; justify-self:end; white-space:nowrap; }
@@ -393,10 +394,13 @@ function tdCss(): string {
 .hd-ui .hd-plan-sug .hd-plan-short::before { content:'· '; color:${ink}; }
 .hd-ui .hd-plan-sug .hd-plan-short:empty { display:none; }
 .hd-ui .hd-plan-sug.hd-plan-go { cursor:pointer; }
+.hd-ui .hd-plan-sug .hd-plan-after { display:inline-flex; align-items:center; gap:3px; margin-left:2px; }
 @media (hover:hover) and (pointer:fine) { .hd-ui .hd-plan-sug.hd-plan-go:hover { background:#ffe885; } }
 .hd-ui .hd-td-tower:active:not(:disabled) { transform:translateY(2px); }
 .hd-ui .hd-td-acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-.hd-ui .hd-td-acts .hd-btn { flex:1 1 140px; min-height:48px; }
+.hd-ui .hd-td-acts .hd-btn { flex:1 1 140px; min-height:48px; position:relative; }
+.hd-ui .hd-td-sheet .hd-td-branch { position:relative; }
+.hd-ui .hd-td-sheet .hd-td-branch .hd-key { left:auto; right:4px; }
 .hd-ui .hd-td-sell.arm { background:linear-gradient(#ffb7a8,#e0402f) !important; color:#fff; }
 .hd-ui .hd-td-tierchip { font-weight:900; }
 .hd-ui .hd-td-sub { margin:8px 0 4px; font-size:14px; font-weight:800; }

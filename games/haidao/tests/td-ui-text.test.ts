@@ -85,6 +85,15 @@ describe('克制表的显示（只读 COUNTER，不另算）', () => {
     expect(h2).not.toBe(h);
     expect(h2.key).not.toBe(h.key);
   });
+  it('钱够两步：第二步就是照第一步造完以后卡上会给的那一步', () => {
+    const st = createTd(td11());
+    const h = nextStep(undefined, st, tdPreview(st, 2));
+    expect(h.after?.up).toBe(false);
+    expect(h.after?.slot).not.toBe(h.step!.slot);
+    st.gold = 9999;
+    stepTd(st, [{ t: st.tick, type: 'build', slot: h.step!.slot, kind: h.step!.kind }]);
+    expect(nextStep(h, st, tdPreview(st, 2)).step).toEqual(h.after);
+  });
   it('木台造满：写「钱够就升级」升阶最便宜的那座（并列取序号小的）；升满了不写', () => {
     const st = createTd(td11());
     st.gold = 99999;
@@ -95,6 +104,8 @@ describe('克制表的显示（只读 COUNTER，不另算）', () => {
     const h = nextStep(undefined, st, pv);
     expect(h.step).toEqual({ kind: 'gunTower', up: true, slot: free[0], cost: tdUpCost('gunTower', 0) });
     expect(nextStepText(h.step!)).toBe('钱够就升级：火枪塔');
+    // 第二步换一座（同一座连升两阶卡上看不懂）：下一座最便宜的火枪塔
+    expect(h.after).toEqual({ kind: 'gunTower', up: true, slot: free[2], cost: tdUpCost('gunTower', 0) });
     // 火枪塔都升到 3 阶了：轮到臼炮
     for (const tw of st.towers) if (tw.kind === 'gunTower') tw.tier = 3;
     expect(nextStep(h, st, pv).step).toEqual({ kind: 'mortar', up: true, slot: free[1], cost: tdUpCost('mortar', 0) });

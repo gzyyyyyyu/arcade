@@ -497,7 +497,16 @@ class RoutePage {
     const def = R.island(n.island);
     el('h2', '', `第 ${s.layer + 1} 站 · ${def?.name ?? ''}`, head);
     button('×', 'hd-x', () => this.unpick(), head);
-    if (def) el('p', '', `满分 ${fmt(def.pts)} 宝分 · ${STYLE_LOOK[def.style].tag}${def.hint.length ? ` · ${def.hint.join(' ')}` : ''} · 50 秒一站`, d);
+    if (def) {
+      // 每一段整段换行（竖屏放不下时别在段中间断，剩一个「站」字挂在第二行）
+      const p = el('p', 'hd-route-facts', undefined, d);
+      const parts = [`满分 ${fmt(def.pts)} 宝分`, STYLE_LOOK[def.style].tag, ...(def.hint.length ? [def.hint.join(' ')] : []), '50 秒一站'];
+      // 分隔点挂在上一段末尾：折行时第二行不以「·」开头
+      parts.forEach((t, i) => {
+        if (i) p.append(' ');
+        el('span', '', i < parts.length - 1 ? `${t} ·` : t, p);
+      });
+    }
     el('p', '', '选一条船休整（这站不上岛，回一半缺员），不选就全队出战：', d);
     const box = el('div', 'hd-route-rest', undefined, d);
     const sailing = (): number => s.fleet.filter((b, i) => i !== this.rest && b.alive > 0).length;

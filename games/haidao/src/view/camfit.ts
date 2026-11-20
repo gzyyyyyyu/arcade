@@ -409,13 +409,13 @@ export class FitCam {
     return { l: this.inset.left, t: this.inset.top, r: w - this.inset.right, b: h - this.inset.bottom };
   }
 
-  /** 镜头平移到让世界点 (wx, wy) 落在可见区中间（缩放不变），ms 为 0 时直接到 */
-  panTo(wx: number, wy: number, ms = PAN_MS): void {
+  /** 镜头平移到让世界点 (wx, wy) 落在可见区中间（缩放不变），ms 为 0 时直接到；bottom 给了就只算可见区里这条线以上的部分（底下被面板盖住） */
+  panTo(wx: number, wy: number, ms = PAN_MS, bottom = Infinity): void {
     const v = this.visible();
     const w = this.scene.scale.width / this.r;
     const h = this.scene.scale.height / this.r;
     const z = this.cc.z;
-    const to = this.clamped({ cx: wx - ((v.l + v.r) / 2 - w / 2) / z, cy: wy - ((v.t + v.b) / 2 - h / 2) / z, z });
+    const to = this.clamped({ cx: wx - ((v.l + v.r) / 2 - w / 2) / z, cy: wy - ((v.t + Math.min(v.b, bottom)) / 2 - h / 2) / z, z });
     this.moveTo(to, ms);
   }
 

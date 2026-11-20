@@ -23,7 +23,7 @@ import { type Tutorial, tutStep } from './tutorial.ts';
 import { DEPTH } from './depth.ts';
 import type { Node, Place } from './basecommon.ts';
 import { type Cycle, newCycle } from './basepick.ts';
-import { tap, hover, press, fadeFrame, lineBegin, syncPlaceUi, dragTo, placeAt, confirmPlace, placeFrame, wallMask } from './baseplace.ts';
+import { tap, hover, press, fadeFrame, lineBegin, syncPlaceUi, dragTo, placeAt, confirmPlace, placeFrame, wallMask, openBuild } from './baseplace.ts';
 import { right, escapeKey, modal, keyAct, closeCtx, drawSel, closeRing, plateFrame } from './basemenu.ts';
 import { occupied, fitContent, firstBaseEntry, centerOf, focusFrame, measureSafe, topOf } from './basegeom.ts';
 import { buildUi, retexture, syncBubble, updateHud } from './basehud.ts';
@@ -270,6 +270,10 @@ export class BaseScene extends Phaser.Scene {
     app.api.lookAt = (x, y, z) => this.cc.setView(x, y, this.fit.home.z * z);
     app.api.beach = () => null;
     app.api.ready = true;
+    if (app.buildOnBase) {
+      app.buildOnBase = false;
+      openBuild(this);
+    }
   }
 
   override update(time: number, delta: number): void {

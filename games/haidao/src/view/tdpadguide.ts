@@ -7,7 +7,7 @@ import { feelOn } from './feel.ts';
 import { DEPTH } from './depth.ts';
 import { MARK_FONT, guideVisible, markScale } from './padguide.ts';
 import { openerLeft, towerName } from './td-ui.ts';
-import type { HeldStep } from './td-ui.ts';
+import type { NextStep } from './td-ui.ts';
 
 /**
  * 开局的木台高亮：只在倒数里、只圈战役写了开局造法（TdLevel.opener）的那几块，头上写造什么塔；造了就收起那块，第一波开打后全收。
@@ -135,18 +135,27 @@ export function panToGoal(bs: TdScene): void {
   bs.fit.panTo(w.x, w.y);
 }
 
+/** 钱够两步时卡上、地上一起给的第二步；不够（或没有第二步、开局造法还没造完）为 null */
+export function twoSteps(bs: TdScene): NextStep | null {
+  const n = bs.next;
+  if (!n?.step || !n.after || openerLeft(bs.s)) return null;
+  return bs.s.gold >= n.step.cost + n.after.cost ? n.after : null;
+}
+
 /**
- * 卡上定住的下一步在场上描金圈：要造的木台头上写塔名、要升的那座塔头上写「升级」（同种塔有好几座时卡上只写塔名分不清是哪座）。
- * 开局造法还没造完时不画（开局造法自己的金圈在），HeldStep 换了才重画
+ * 卡上定住的下一步在场上描金圈：要造的木台头上写塔名、要升的那座塔头上写「升级」（同种塔有好几座时卡上只写塔名分不清是哪座）；
+ * 钱够两步时第二步也圈上，和卡上写的两座对上。开局造法还没造完时不画（开局造法自己的金圈在），下一步换了、钱跨过两步的线才重画
  */
-const goalMarks = new WeakMap<TdScene, { s: unknown; step: HeldStep['step']; mark: PadMark | null }>();
+const goalMarks = new WeakMap<TdScene, { s: unknown; step: NextStep | null; after: NextStep | null; marks: PadMark[] }>();
 export function syncGoalMark(bs: TdScene): void {
   const s = bs.s;
   const step = s.over || openerLeft(s) ? null : (bs.next?.step ?? null);
+  const after = step ? twoSteps(bs) : null;
   const cur = goalMarks.get(bs);
-  if (cur?.s === s && cur.step === step) return;
+  if (cur?.s === s && cur.step === step && cur.after === after) return;
   // 重开一局时旧的圈随场景已经没了，别再碰
-  if (cur?.s === s && cur.mark) dropMark(bs, cur.mark);
+  if (cur?.s === s) for (const m of cur.marks) dropMark(bs, m);
   // 塔比木台高，「升级」抬到塔顶上面
-  goalMarks.set(bs, { s, step, mark: step ? (step.up ? addMark(bs, step.slot, '升级', 72) : addMark(bs, step.slot, towerName(step.kind), 0)) : null });
+  const mark = (st: NextStep): PadMark => (st.up ? addMark(bs, st.slot, '升级', 72) : addMark(bs, st.slot, towerName(st.kind), 0));
+  goalMarks.set(bs, { s, step, after, marks: [step, after].filter((x): x is NextStep => !!x).map(mark) });
 }

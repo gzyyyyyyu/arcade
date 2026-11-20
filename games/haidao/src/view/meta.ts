@@ -54,17 +54,18 @@ export function startBounty(p: Profile): { ok: true; profile: Profile; setup: Ba
   return { ok: true, profile, setup, levelId: d.levelId };
 }
 
-/** 悬赏结算：摧毁率 × dailyBounty.loot 进仓库（按仓库上限截断）；至少 1 星才算完成，不动战役星数和连胜 */
-export function settleBounty(p: Profile, res: { stars: number; destroyedPct: number }): { profile: Profile; loot: Res; done: boolean } {
+/** 悬赏结算：摧毁率 × dailyBounty.loot 进仓库（按仓库上限截断，cut 是截掉的）；至少 1 星才算完成，不动战役星数和连胜 */
+export function settleBounty(p: Profile, res: { stars: number; destroyedPct: number }): { profile: Profile; loot: Res; cut: Res; done: boolean } {
   const d = Core.dailyBounty(dayIndex(), p);
-  if (res.stars < 1) return { profile: p, loot: { gold: 0, wood: 0 }, done: false };
+  if (res.stars < 1) return { profile: p, loot: { gold: 0, wood: 0 }, cut: { gold: 0, wood: 0 }, done: false };
   const cap = Core.capacity(p);
+  const raw = { gold: Math.floor((d.loot.gold * res.destroyedPct) / 100), wood: Math.floor((d.loot.wood * res.destroyedPct) / 100) };
   const loot = {
-    gold: Math.max(0, Math.min(Math.floor((d.loot.gold * res.destroyedPct) / 100), cap.gold - p.res.gold)),
-    wood: Math.max(0, Math.min(Math.floor((d.loot.wood * res.destroyedPct) / 100), cap.wood - p.res.wood)),
+    gold: Math.max(0, Math.min(raw.gold, cap.gold - p.res.gold)),
+    wood: Math.max(0, Math.min(raw.wood, cap.wood - p.res.wood)),
   };
   const paid: Profile = { ...p, res: { gold: p.res.gold + loot.gold, wood: p.res.wood + loot.wood } };
-  return { profile: markBountyDone(paid), loot, done: true };
+  return { profile: markBountyDone(paid), loot, cut: { gold: raw.gold - loot.gold, wood: raw.wood - loot.wood }, done: true };
 }
 
 export interface Ach {

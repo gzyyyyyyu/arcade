@@ -117,6 +117,11 @@ ${W} .hd-key { display:none; }
   ${W} .hd-cards .hd-skill .hd-sk-n { display:none; }
   ${W} .hd-cards .hd-boat small { display:none; }
   ${W} .hd-cards .hd-boat .hd-img { height:26px !important; width:auto !important; }
+  /* 四种兵以上：「图标 + 火枪手 ×24」一张约 130 宽，第 4 张挤出屏外、也没有能横滑的样子。改成平分一排、图标在上字在下（12 号），
+     390 宽四张各约 88、360 宽五张各约 62，都放得下；再多才横滑 */
+  ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat { flex:1 1 0; min-width:58px; max-width:110px; flex-direction:column; gap:0; padding:0 2px; }
+  ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat .hd-img { height:20px !important; }
+  ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat .hd-nm { font-size:12px; line-height:1.1; }
   /* 出完的兵种卡只有 44 高，原来 20 的锁压在左上角正好盖住小兵；照技能钮缩到 12、挪到右上角 */
   ${W} .hd-cards .hd-hint { position:absolute; left:50%; bottom:calc(100% + 4px); transform:translateX(-50%); white-space:nowrap; }
 }
@@ -310,6 +315,15 @@ ${LAND} {
   ${W} .hd-result > * { grid-column:2; margin-top:2px; margin-bottom:2px; }
   ${W} .hd-result > h2 { grid-column:1 / -1; }
   ${W} .hd-result > .hd-stars, ${W} .hd-result > .hd-big, ${W} .hd-result > .hd-loot { grid-column:1; justify-self:center; }
+  /* 拿了什么的几行（连胜、安慰奖、满仓少拿、掉落、悬赏）也放左栏：以前只有三项在左边，右栏堆五六项（失败原因框约 130 高）超过 358，
+     居中后标题顶出屏外、「回家」被切 */
+  ${W} .hd-result > :is(.hd-streak, .hd-consol, .hd-cutline, .hd-chips, .hd-bountyline) { grid-column:1; justify-self:stretch; }
+  ${W} .hd-result .hd-advice { margin:2px 0; padding:6px 10px; }
+  ${W} .hd-result .hd-advice p { margin:2px 0 0; }
+  /* 各行的外边距写在行内样式里（竖排时要空一点），两栏时收紧；摧毁率的大字收到 28 */
+  ${W} .hd-result > p, ${W} .hd-result > .hd-row { margin-top:2px !important; margin-bottom:2px !important; }
+  ${W} .hd-result > .hd-big { font-size:28px; }
+  ${W} .hd-result > .hd-stars .hd-img { width:44px !important; height:44px !important; }
 }
 `;
 }

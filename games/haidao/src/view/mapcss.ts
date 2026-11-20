@@ -115,6 +115,7 @@ ${U} .hd-route-prep { position:absolute; left:0; right:0; bottom:100%; margin:0 
 @keyframes hd-route-up { 0% { transform:translateY(40px); opacity:0; } 100% { transform:none; opacity:1; } }
 ${U} .hd-route-prep h2 { margin:0; font-size:20px; flex:1; }
 ${U} .hd-route-prep p { margin:4px 0 6px; font-size:14px; }
+${U} .hd-route-prep .hd-route-facts > span { display:inline-block; }
 ${U} .hd-route-rest { display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 6px; }
 ${U} .hd-route-restbtn { min-width:66px; min-height:58px; padding:2px 8px; flex-direction:column; gap:0; line-height:1.1; font-size:14px; }
 ${U} .hd-route-restbtn small { font-size:12px; font-weight:800; color:#2e7d32; }
@@ -267,7 +268,7 @@ ${U} .hd-map .hd-node.next span.hd-lb { position:relative; z-index:1; }
 /* 电脑和横屏：入口卡只留图标、标题和一行状态，不再一闪一闪地抢下一关的风头 */
 ${U} .hd-seacards .hd-mapcard { animation:none; min-height:52px; }
 /* 手机竖屏：今日悬赏、今日航线、护航收成顶上一条单行小卡（只留图标 + 标题，细节点进去再看），原来三张叠起来占 31% 屏高盖住航线；
-   回岛、回到下一关挪到这一条的下面 */
+   回岛放到顶行大厅和设置之间的空当，回到下一关沉到右下角「悬赏出海（实盘）」的上面（左下是罗盘）：以前两颗钮叠在小卡下面，右边一列 8 个控件，切掉岛名牌 */
 @media (max-width:559px) and (orientation:portrait) {
   ${U} .hd-bounty { top:58px; width:114px; max-width:none; min-height:44px; padding:2px 6px; gap:4px; }
   ${U} .hd-bounty .hd-img { height:24px !important; width:24px !important; }
@@ -281,8 +282,9 @@ ${U} .hd-seacards .hd-mapcard { animation:none; min-height:52px; }
   ${U} .hd-seacards .hd-mapcard small, ${U} .hd-seacards .hd-mapcard .hd-mc-go { display:none; }
   ${U} .hd-seacards .hd-mapcard b { font-size:14px; white-space:nowrap; }
   ${U} .hd-seacards .hd-mapchip { min-width:44px; min-height:44px; padding:2px 4px; }
-  ${U} .hd-map-close { top:114px; }
-  ${U} button.hd-map-home { top:166px; }
+  ${U} .hd-map-close { top:calc(6px + env(safe-area-inset-top,0px)); right:calc(58px + env(safe-area-inset-right,0px)); min-height:44px; }
+  /* 右下角最底下是登录后的「悬赏出海（实盘）」（底边 14、高 44），回到下一关叠在它上面隔 8 */
+  ${U} button.hd-map-home { top:auto; bottom:calc(66px + env(safe-area-inset-bottom,0px)); }
 }
 /* 360 宽登录后航线卡旁边多一个「实盘」小钮，图标 + 字放不下：两张卡只留字 */
 @media (max-width:379px) and (orientation:portrait) {

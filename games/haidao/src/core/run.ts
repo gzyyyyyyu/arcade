@@ -89,7 +89,7 @@ export function equipSkin(p: Profile, troop: TroopKind, skin: string | null): Re
 }
 
 /**
- * loot 是实际进了仓库的数量（含连胜加成、首次星级奖励、掉落的金币木材箱，都已乘收入倍率 INCOME_PCT，再按仓库上限截断）。
+ * loot 是实际进了仓库的数量（含连胜加成、首次星级奖励、掉落的金币木材箱，都已乘收入倍率 INCOME_PCT，再按仓库上限截断），cut 是仓库满了截掉的。
  * 连胜：连续 ≥1 星的场数；0 星清零并给安慰奖。seed 用来掉宝（不传就按战绩算一个）。
  */
 export function settleCampaign(
@@ -97,7 +97,7 @@ export function settleCampaign(
   levelId: string,
   result: BattleResult,
   seed?: number,
-): { profile: Profile; loot: Res; newStars: number; streak: number; streakBonusPct: number; consolation: boolean; drops: Drop[] } {
+): { profile: Profile; loot: Res; cut: Res; newStars: number; streak: number; streakBonusPct: number; consolation: boolean; drops: Drop[] } {
   const lv = CAMPAIGN.find((l) => l.id === levelId);
   const prev = p.stars[levelId] ?? 0;
   const stars = Math.max(prev, result.stars);
@@ -152,5 +152,5 @@ export function settleCampaign(
       streak,
     },
   };
-  return { profile, loot: { gold: gotGold, wood: gotWood }, newStars, streak, streakBonusPct: bonusPct, consolation: !win, drops };
+  return { profile, loot: { gold: gotGold, wood: gotWood }, cut: { gold: gold - gotGold, wood: wood - gotWood }, newStars, streak, streakBonusPct: bonusPct, consolation: !win, drops };
 }
