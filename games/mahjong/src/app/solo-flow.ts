@@ -36,6 +36,7 @@ import { homePage, ladderPage, lobby } from './routes.ts';
 import { session } from './session.ts';
 import { cardButton, settle, showMine } from './settle.ts';
 import { paintTop, screen, stage, title, toast } from './shell.ts';
+import { TIMING } from './timing.ts';
 import { buyinFailed, checkFunds, refreshWallet, showError } from './wallet.ts';
 
 /** 冒烟用：?turbo 让电脑几乎不停顿（npm run smoke） */
@@ -170,6 +171,9 @@ function startAgain(stakes: StakesId, variant: string, level: Level = prefs.leve
 
 /** 单机牌桌的画面回调：每一步重画、一局打完弹结算、实盘结回后提示 */
 export const soloUi = {
+  think(seat: number, ms: number): void {
+    session.table?.think(seat, ms);
+  },
   frame(v: SoloView, names: string[]): void {
     if (!session.table) return;
     const solo = session.solo;
@@ -360,7 +364,7 @@ function paintSoloTitle(s: Solo): void {
 
 export function playSolo(s: Solo): void {
   session.solo = s;
-  s.speed = TURBO ? 0.01 : prefs.fast ? 0.5 : 1;
+  s.speed = TURBO ? 0.01 : prefs.fast ? TIMING.fastScale : 1;
   paintTop();
   closeDialog();
   screen.className = 'screen game';

@@ -154,15 +154,32 @@ function tenpaiOdds(s: XzView['seats'][number], reads: number): number {
 const VALUE_PLAIN = 500;
 
 /**
- * 这一家像不像在做清一色：明的副露全是一门（至少两组），弃牌里这一门很少。是就返回那一门，不是 -1。
- * 只看公开的副露和弃牌
+ * 听牌以后的防守权重（再乘 defense，除以一百万）：只够在几张都能听的牌里挑安全的，不会为了安全拆听（拆听的分差是 1 万）。
+ * 有效牌一张值 10 分；最危险的牌（加权危险度约 800）× 防守 500 × 75 ≈ 30 分，等于「少听三张换不点炮」
  */
-function flushSuit(s: XzView['seats'][number]): number {
-  if (s.melds.length < 2) return -1;
-  const suit = suitOf(kindOf(s.melds[0]!.tiles.find((t) => t !== HIDDEN) ?? 0));
-  if (s.melds.some((m) => m.tiles.some((t) => t !== HIDDEN && suitOf(kindOf(t)) !== suit))) return -1;
-  const same = s.river.filter((r) => suitOf(kindOf(r.tile)) === suit).length;
-  return same * 4 <= s.river.length ? suit : -1;
+const TENPAI_CARE = 75;
+
+/**
+ * 这一家像不像在做清一色，是就返回那一门，不是 -1。只看公开的副露和弃牌：
+ * - 明的副露全是一门（至少两组），弃牌里这一门很少；
+ * - 没碰几组也看弃牌（11-20 加，读听）：缺门以外的两门，打了 8 张以上、其中一门几乎没打过（不到八分之一），他在攒那一门
+ */
+export function flushSuit(s: XzView['seats'][number]): number {
+  if (s.melds.length >= 2) {
+    const suit = suitOf(kindOf(s.melds[0]!.tiles.find((t) => t !== HIDDEN) ?? 0));
+    if (s.melds.some((m) => m.tiles.some((t) => t !== HIDDEN && suitOf(kindOf(t)) !== suit))) return -1;
+    const same = s.river.filter((r) => suitOf(kindOf(r.tile)) === suit).length;
+    return same * 4 <= s.river.length ? suit : -1;
+  }
+  const kept = s.river.filter((r) => suitOf(kindOf(r.tile)) !== s.que);
+  if (s.que < 0 || kept.length < 8) return -1;
+  for (const suit of [0, 1, 2] as Suit[]) {
+    if (suit === s.que) continue;
+    const n = kept.filter((r) => suitOf(kindOf(r.tile)) === suit).length;
+    const meldOk = s.melds.every((m) => m.tiles.every((t) => t === HIDDEN || suitOf(kindOf(t)) === suit));
+    if (n * 8 < kept.length && meldOk) return suit;
+  }
+  return -1;
 }
 
 /** 血流里已胡的人亮着锁住的手牌，他听哪些牌是算得出来的：打这些就是点炮（没胡的、血战里胡了下桌的人是 null） */
@@ -298,6 +315,14 @@ function evalDiscards(v: XzView, p: Style): Eval[] {
     // 血流：已胡的人听什么看得清清楚楚，打他听的牌就是送钱；别的牌不受他影响
     if (sh >= 1 && locked.some((w) => w?.has(k)) && visible[k]! + mine[k]! < 4) {
       score -= p.defense * (sh >= 2 ? 30 : p.defense >= 600 ? 16 : 6); // 同上面的 危险度 1000 × 权重
+    }
+    // 已经听了、桌上有人像听：几张都能保住听牌时挑更安全的那张（11-20 加：以前听了就闭眼打，防守型的也是）
+    if (sh === 0 && maxThreat > 700 - p.defense / 3) {
+      let d = 0;
+      threat.forEach((th, i) => {
+        if (th > 0) d += (danger(v, k, i, visible, mine, p.reads, p.skill) * th) / 1000;
+      });
+      score -= (d * p.defense * TENPAI_CARE) / 1_000_000;
     }
     out.push({ tile: t, shanten: sh, ukeire: u, score });
   }

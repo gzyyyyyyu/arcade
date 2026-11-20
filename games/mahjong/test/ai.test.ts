@@ -8,7 +8,7 @@ import { describe, expect, test } from 'vitest';
 import { PERSONAS, STRONGEST } from '../src/ai/personas.ts';
 import { moodStyle, styleOf } from '../src/ai/style.ts';
 import { LEVELS, seatPlan, venueOf, VENUES } from '../src/ai/venues.ts';
-import { decide } from '../src/ai/xuezhan.ts';
+import { decide, flushSuit } from '../src/ai/xuezhan.ts';
 import { sichuanXuezhan as XZ, view, type XzState, type XzView } from '../src/core/variants/sichuan-xuezhan/index.ts';
 import { NEUTRAL_TUNE } from '../src/core/variants/types.ts';
 import { AIS } from '../src/ai/index.ts';
@@ -170,5 +170,22 @@ describe('出手', () => {
     }
     ms.sort((a, b) => a - b);
     expect(ms[Math.floor(ms.length * 0.99)]!).toBeLessThan(20);
+  });
+});
+
+describe('读清一色（只看公开的副露和弃牌）', () => {
+  // 万 0–8、筒 9–17、条 18–26（kind）；牌 = kind × 4
+  const seat = (que: number, river: number[], melds: number[][] = []) =>
+    ({ que, river: river.map((k) => ({ tile: k * 4 })), melds: melds.map((m) => ({ tiles: m.map((k) => k * 4) })) }) as unknown as Parameters<typeof flushSuit>[0];
+  test('碰了两组同一门、那门几乎不打：在做那一门', () => {
+    expect(flushSuit(seat(0, [1, 2, 20, 21], [[10, 10, 10], [12, 12, 12]]))).toBe(1);
+  });
+  test('没碰牌：缺门以外打了 8 张以上、其中一门几乎没打过，就是在攒那一门', () => {
+    // 缺万；打了 8 张条、0 张筒 → 攒筒
+    expect(flushSuit(seat(0, [0, 1, 18, 19, 20, 21, 22, 23, 24, 25]))).toBe(1);
+    // 两门都打 → 不像
+    expect(flushSuit(seat(0, [18, 19, 20, 21, 9, 10, 11, 22]))).toBe(-1);
+    // 打得还少 → 不下结论
+    expect(flushSuit(seat(0, [18, 19, 20, 21, 22]))).toBe(-1);
   });
 });

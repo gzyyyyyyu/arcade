@@ -143,7 +143,8 @@ const DRAG_START = 8;
  */
 /** 开局发牌过场的总长（4 批 × 200 毫秒错开 + 每张 300 毫秒），不超过 1 秒（再长开局就拖） */
 const DEAL_MS = 900;
-export const FLY_MS = { me: 120, other: 200 } as const;
+// 11-20 放慢（所有者：一闪而过没有分量）：自己的 120 → 220、别人的 200 → 320，落桌前先压一下再弹
+export const FLY_MS = { me: 220, other: 320 } as const;
 /** 落到桌上的那一刻（飞行动画 72% 处）：玩法在这时补一声落桌 */
 export const landAt = (mine: boolean): number => Math.round((mine ? FLY_MS.me : FLY_MS.other) * 0.72);
 /** 提示小图标：圆里一个叹号（程序自己写的内联 SVG） */
@@ -274,6 +275,18 @@ export class TableUi<V extends TableView, A> {
 
   rel(seat: number): number {
     return relOf(seat, this.me, this.seatCount);
+  }
+
+  /**
+   * 电脑在想这一手（单机的思考时间，solo.ts 的 thinkMs）：名牌上冒「想」的小泡、他的手牌里两张轻轻抬起又落下（手在牌上犹豫）。
+   * 抬哪两张固定（按位置，不按牌），和他要打哪张无关，不泄露手牌；下一帧重画名牌时自己消失。短于 400 毫秒的不画，免得一闪
+   */
+  think(seat: number, ms: number): void {
+    if (ms < 400) return;
+    const r = this.rel(seat);
+    if (r === 0) return;
+    this.badges[r]!.classList.add('thinking');
+    this.hands[r]!.classList.add('thinking');
   }
 
   /** 头像在屏幕上的位置（扔道具、表情包的起点终点） */
@@ -463,6 +476,8 @@ export class TableUi<V extends TableView, A> {
     const b = this.badges[r]!;
     clear(b);
     b.classList.toggle('turn', v.turn === seat && (v.phase === 'turn' || v.phase === 'claim'));
+    b.classList.remove('thinking');
+    this.hands[r]!.classList.remove('thinking');
     b.classList.toggle('won', !!s.won && !v.opts.flow);
     b.classList.toggle('empty', !!meta.empty);
     // 点头像互动由 kit 的 table-fun 在头像上盖一块透明热区接（view/fun.ts），这里只画
@@ -600,12 +615,13 @@ export class TableUi<V extends TableView, A> {
     const dx = from.left + from.width / 2 - (to.left + to.width / 2);
     const dy = from.top + from.height / 2 - (to.top + to.height / 2);
     const k = r === 0 ? from.width / to.width : 1.2;
-    // 落到桌上轻轻弹一下（落桌声由玩法在同一时刻放）
+    // 拿起来（略放大）甩到桌上，落桌那一下压扁一点再弹回（落桌声由玩法在 72% 处放）
     e.animate(
       [
-        { transform: `translate(${dx}px, ${dy}px) scale(${k})`, easing: 'cubic-bezier(.2,.75,.3,1)' },
-        { transform: 'translateY(0) scale(1)', offset: 0.72, easing: 'ease-out' },
-        { transform: 'translateY(-3px) scale(1.04)', offset: 0.86, easing: 'ease-in' },
+        { transform: `translate(${dx}px, ${dy}px) scale(${k})`, easing: 'cubic-bezier(.3,.6,.4,1)' },
+        { transform: `translate(${dx * 0.45}px, ${dy * 0.45 - 10}px) scale(${Math.max(k, 1) * 1.12})`, offset: 0.4, easing: 'cubic-bezier(.6,0,.9,.6)' },
+        { transform: 'translateY(0) scale(1.06, 0.92)', offset: 0.72, easing: 'ease-out' },
+        { transform: 'translateY(-4px) scale(1.03)', offset: 0.86, easing: 'ease-in' },
         { transform: 'none' },
       ],
       { duration: r === 0 ? FLY_MS.me : FLY_MS.other },

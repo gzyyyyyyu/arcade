@@ -17,9 +17,9 @@ import {
 } from '../src/view/cutin-spec.ts';
 
 describe('过场条', () => {
-  test('时长：碰吃 500、杠立直 650、胡自摸 800；快速档减半；减少动态效果统一短', () => {
-    expect(CUTIN_KINDS.map((k) => cutinMs(k, false))).toEqual([500, 500, 650, 800, 800, 650]);
-    expect(CUTIN_KINDS.map((k) => cutinMs(k, true))).toEqual([250, 250, 325, 400, 400, 325]);
+  test('时长：碰吃 650、杠立直 850、胡自摸 1050；快速档减半；减少动态效果统一短', () => {
+    expect(CUTIN_KINDS.map((k) => cutinMs(k, false))).toEqual([650, 650, 850, 1_050, 1_050, 850]);
+    expect(CUTIN_KINDS.map((k) => cutinMs(k, true))).toEqual([325, 325, 425, 525, 525, 425]);
     expect(cutinMs('hu', false, true)).toBe(600);
     expect(cutinMs('hu', true, true)).toBe(300);
   });
@@ -54,7 +54,7 @@ describe('过场条', () => {
     expect([1, 2, 3, 4, 7].map(streakTier)).toEqual([0, 1, 2, 3, 3]);
     expect([1, 2, 3, 4, 6].map(streakWord)).toEqual([null, '连胡', '三连胡', '血流成河×4', '血流成河×6']);
     const ms = [1, 2, 3, 4].map((n) => cutinMs('hu', false, false, n));
-    expect(ms).toEqual([800, 1000, 1150, 1300]);
+    expect(ms).toEqual([1_050, 1_250, 1_400, 1_550]);
     // 减少动态效果只淡入淡出，不因连胡拖长
     expect(cutinMs('hu', false, true, 4)).toBe(600);
     const hs = [1, 2, 3, 4].map((n) => cutinStreakHeight(500, n));
