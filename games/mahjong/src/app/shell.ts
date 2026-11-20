@@ -43,7 +43,7 @@ const speedBtn = button('icon', topbar, '', () => {
   prefs.fast = !prefs.fast;
   savePrefs();
   paintTop();
-  if (session.solo) session.solo.speed = prefs.fast ? 0.5 : 1;
+  if (session.solo) session.solo.speed = prefs.fast ? TIMING.fastScale : 1;
 });
 // 声音：点"声"打开一个小面板（音量滑块 + 静音），再点或点别处收起
 const soundBtn = button('icon', topbar, '', () => {

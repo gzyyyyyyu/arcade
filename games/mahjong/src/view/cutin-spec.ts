@@ -10,8 +10,8 @@ export type CutinTier = 'gold' | 'redgold' | 'jade' | 'blue';
 
 export const CUTIN_KINDS: readonly CutinKind[] = ['pon', 'chi', 'kan', 'hu', 'zimo', 'riichi'];
 
-/** 常速下一条从滑进到滑出的总时长（毫秒） */
-const BASE_MS: Record<CutinKind, number> = { pon: 500, chi: 500, kan: 650, riichi: 650, hu: 800, zimo: 800 };
+/** 常速下一条从滑进到滑出的总时长（毫秒）；11-20 各加约三成（所有者：一闪而过没有分量），不挡操作 */
+const BASE_MS: Record<CutinKind, number> = { pon: 650, chi: 650, kan: 850, riichi: 850, hu: 1_050, zimo: 1_050 };
 
 /** 系统"减少动态效果"时只淡入淡出一个字，不用留太久 */
 const REDUCED_MS = 600;

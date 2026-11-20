@@ -14,12 +14,21 @@ export const TIMING = {
   momentPerHuMs: 2_400,
   /** 好友房离座后，等房间收到离座消息再断开的时间 */
   leaveSeatGraceMs: 300,
-  /** 单机：电脑和了牌（胡、和）之后停多久（再乘性格快慢和速度） */
-  soloAfterWinMs: 1_000,
-  /** 单机：电脑碰、吃、杠、立直之后停多久 */
-  soloAfterMeldMs: 700,
-  /** 单机：电脑打牌之后停多久 */
-  soloAfterDiscardMs: 450,
-  /** 单机：其余步骤之后停多久 */
-  soloAfterOtherMs: 250,
+  /** 设置里「快速」：电脑的停顿乘这个（默认常速 ×1；快速差不多是 11-20 之前的节奏） */
+  fastScale: 0.45,
+  // 单机电脑「想」多久（solo.ts 的 thinkMs，再乘性格快慢和速度；所有者 11-20 嫌太快，从 450/700/1000 放慢）
+  /** 摸了就打（摸切） */
+  thinkTsumogiriMs: 650,
+  /** 从手里挑一张打 */
+  thinkDiscardMs: 1_000,
+  /** 别家立直或已经胡了：再加 */
+  thinkTenseMs: 600,
+  /** 牌墙后半段：再加 */
+  thinkLateMs: 300,
+  /** 碰、吃、杠、立直 */
+  thinkMeldMs: 1_300,
+  /** 胡、和 */
+  thinkWinMs: 1_200,
+  /** 换三张、定缺这些 */
+  thinkOtherMs: 800,
 } as const;

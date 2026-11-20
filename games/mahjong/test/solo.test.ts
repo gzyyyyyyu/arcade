@@ -5,7 +5,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { riichi as RC, type RcState } from '../src/core/variants/riichi/index.ts';
 import { DEFAULT_OPTS } from '../src/core/variants/sichuan-xuezhan/index.ts';
-import { delayOf, loadSolo, newSolo, Solo, SOLO_KEY, unsettled, type SoloSave } from '../src/solo.ts';
+import { TIMING } from '../src/app/timing.ts';
+import { thinkMs, loadSolo, newSolo, Solo, SOLO_KEY, unsettled, type SoloSave } from '../src/solo.ts';
 
 const store = new Map<string, string>();
 type Reply = { status: number; body: unknown } | 'lost';
@@ -190,14 +191,27 @@ describe('立直单机', () => {
   }
 });
 
-describe('电脑出手的停顿（2026-10-30 压短）', () => {
-  const st = (events: string[]): { events: { e: string }[]; phase: string } => ({ events: events.map((e) => ({ e })), phase: 'turn' });
-  const d = (events: string[]): number => delayOf(st([]) as never, st(events) as never);
-  test('弃牌 450、碰吃杠立直 700、胡 1000，其余 250', () => {
-    expect(d(['discard'])).toBe(450);
-    for (const e of ['pon', 'chi', 'kan', 'riichi']) expect(d([e])).toBe(700);
-    for (const e of ['hu', 'win']) expect(d([e])).toBe(1_000);
-    expect(d(['draw'])).toBe(250);
+describe('电脑想多久（11-20 放慢，只看公开的）', () => {
+  // 只放 thinkMs 看的几样：这一步的事件、上一步摸到的牌、各家立直和胡了没、牌墙剩多少、阶段
+  const st = (o: { events?: { e: string; tile?: number }[]; drawn?: number | null; players?: object[]; left?: number; phase?: string }) =>
+    ({ events: o.events ?? [], drawn: o.drawn ?? null, players: o.players ?? [{}, {}, {}, {}], wall: { head: 0, tail: (o.left ?? 60) - 1 }, phase: o.phase ?? 'turn' }) as never;
+  const think = (prev: Parameters<typeof st>[0], next: Parameters<typeof st>[0], seat = 1): number => thinkMs(st(prev), st(next), seat);
+  test('摸了就打快，从手里挑的慢', () => {
+    expect(think({ drawn: 5 }, { events: [{ e: 'discard', tile: 5 }] })).toBe(TIMING.thinkTsumogiriMs);
+    expect(think({ drawn: 5 }, { events: [{ e: 'discard', tile: 9 }] })).toBe(TIMING.thinkDiscardMs);
+  });
+  test('别家立直或胡了、牌墙后半段：再多想一会儿；自己立直不算', () => {
+    const d = { events: [{ e: 'discard', tile: 9 }] };
+    expect(think({ drawn: 5, players: [{ riichi: 1 }, {}, {}, {}] }, d)).toBe(TIMING.thinkDiscardMs + TIMING.thinkTenseMs);
+    expect(think({ drawn: 5, players: [{}, { riichi: 1 }, {}, {}] }, d)).toBe(TIMING.thinkDiscardMs);
+    expect(think({ drawn: 5, players: [{}, {}, { won: {} }, {}] }, d)).toBe(TIMING.thinkDiscardMs + TIMING.thinkTenseMs);
+    expect(think({ drawn: 5, left: 12 }, d)).toBe(TIMING.thinkDiscardMs + TIMING.thinkLateMs);
+  });
+  test('碰杠立直、胡各有各的；声明窗口里过不停', () => {
+    for (const e of ['pon', 'chi', 'kan', 'riichi']) expect(think({}, { events: [{ e }] })).toBe(TIMING.thinkMeldMs);
+    for (const e of ['hu', 'win']) expect(think({}, { events: [{ e }] })).toBe(TIMING.thinkWinMs);
+    expect(think({ phase: 'claim' }, { phase: 'claim' })).toBe(0);
+    expect(think({ phase: 'swap' }, { phase: 'swap' })).toBe(TIMING.thinkOtherMs);
   });
 });
 

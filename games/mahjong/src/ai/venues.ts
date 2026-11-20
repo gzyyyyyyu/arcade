@@ -30,8 +30,8 @@ export interface Venue {
 export const VENUES: Readonly<Record<string, Venue>> = {
   // 娱乐的三个难度（docs/balance.md 第 3 节）：新手 / 普通 / 高手
   'solo:fun:easy': { weights: [3, 2, 1, 3, 0, 6], soft: 1_400 },
-  'solo:fun:normal': { weights: [3, 3, 1, 3, 0, 5], soft: 300 },
-  'solo:fun:hard': { weights: [0, 2, 0, 1, 9, 0], soft: 0, sharp: 450 },
+  'solo:fun:normal': { weights: [3, 3, 1, 3, 0, 5], soft: 200 },
+  'solo:fun:hard': { weights: [0, 2, 0, 1, 9, 0], soft: 0, sharp: 650 },
   // 实盘四档（第 2 节）
   'solo:small': { weights: [3, 2, 1, 3, 0, 6], soft: 650 },
   'solo:mid': { weights: [3, 3, 1, 3, 0, 5], soft: 300 },

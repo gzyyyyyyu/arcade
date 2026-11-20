@@ -14,6 +14,7 @@ import { AIS } from './ai/index.ts';
 import { PERSONAS } from './ai/personas.ts';
 import { seatPlan, venueOf, type Level } from './ai/venues.ts';
 import type { SettleStats } from './core/match/index.ts';
+import { wallLeft } from './core/table/index.ts';
 import { DEFAULT_VARIANT, variantOf, type ActionOf, type AnyAi, type AnyVariant, type OptsOf, type StateOf, type ViewOf } from './core/variants/index.ts';
 import type { SeatKind } from './core/variants/types.ts';
 import { dailyKey } from './game/daily.ts';
@@ -66,6 +67,8 @@ export interface SoloUi {
   roundEnd(v: SoloView, names: string[]): void;
   /** 结回的结果（实盘） */
   settled(r: WalletReply): void;
+  /** 电脑开始想这一手（单机的思考时间，ms 已乘快慢和速度）：牌桌上画想的样子，下一帧自己消失 */
+  think?(seat: number, ms: number): void;
 }
 
 export function loadSolo(): SoloSave | null {
@@ -118,15 +121,31 @@ function paceOf(s: SoloState, seat: number): number {
   return (tempo * wobble) / 1_000_000;
 }
 
-/** 电脑每一步之后停多久（毫秒，再乘性格的快慢和速度） */
-export function delayOf(prev: SoloState, next: SoloState): number {
+/** 别家有人立直（立直）或已经胡了（血战、血流）：桌上紧张，打牌要多想 */
+const tense = (s: SoloState, seat: number): boolean =>
+  (s.players as { riichi?: number; won?: unknown }[]).some((p, i) => i !== seat && (!!p.riichi || !!p.won));
+
+/**
+ * 电脑这一步「想」多久（毫秒，再乘性格快慢和速度；所有者 11-20：打得太快没有博弈感）。
+ * 只按公开看得到的定：这一手是不是摸了就打（摸切快）、桌上有没有人立直或胡了、牌墙还剩多少，不看电脑自己算了什么，停顿不泄露他的手牌。
+ * 声明窗口里「过」不停：停了就等于告诉人家他能碰。
+ */
+export function thinkMs(prev: SoloState, next: SoloState, seat: number): number {
   const seen = new Set((next.events as { e: string }[]).map((e) => e.e));
-  if (seen.has('hu') || seen.has('win')) return TIMING.soloAfterWinMs;
-  if (seen.has('pon') || seen.has('chi') || seen.has('kan') || seen.has('riichi')) return TIMING.soloAfterMeldMs;
-  if (seen.has('discard')) return TIMING.soloAfterDiscardMs;
+  if (seen.has('hu') || seen.has('win')) return TIMING.thinkWinMs;
+  if (seen.has('pon') || seen.has('chi') || seen.has('kan') || seen.has('riichi')) return TIMING.thinkMeldMs;
+  const d = (next.events as { e: string; tile?: number }[]).find((e) => e.e === 'discard');
+  if (d) {
+    let ms = prev.drawn !== null && d.tile === prev.drawn ? TIMING.thinkTsumogiriMs : TIMING.thinkDiscardMs;
+    if (tense(prev, seat)) ms += TIMING.thinkTenseMs;
+    if (wallLeft(prev.wall) <= LATE_WALL) ms += TIMING.thinkLateMs;
+    return ms;
+  }
   if (prev.phase === 'claim' && next.phase === 'claim') return 0;
-  return TIMING.soloAfterOtherMs;
+  return TIMING.thinkOtherMs;
 }
+/** 牌墙剩这么多张以内算后半段：大家都快听了，打牌要多看两眼 */
+const LATE_WALL = 20;
 
 export class Solo {
   private s: SoloSave;
@@ -240,8 +259,11 @@ export class Solo {
         if (seat === undefined) return;
         const next = V.apply(s, seat, V.auto(s, seat, ai)) as SoloState | { error: string };
         if ('error' in next) throw new Error(`ai move rejected: ${next.error}`);
-        const wait = delayOf(s, next) * paceOf(s, seat) * this.speed;
-        if (wait > 0) await sleep(wait);
+        const wait = thinkMs(s, next, seat) * paceOf(s, seat) * this.speed;
+        if (wait > 0) {
+          this.ui.think?.(seat, wait);
+          await sleep(wait);
+        }
         if (this.stopped) return;
         this.step(next);
       }
