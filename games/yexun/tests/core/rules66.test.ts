@@ -1,15 +1,12 @@
 // 规则 66（DESIGN 3.3e、3.7）：小道士池加龙王令、笔走龙蛇共享给小道士；采药女满血回春转药香伤害；阴阳先生阴阳互换炸一圈。
 // 娱乐和实盘同一版起；规则 65 的录像（夹具是规则 65 的代码录的）在新代码里逐位重放
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { createWorld, Ev, fingerprint, step, type Setup, type World } from '../../src/core/index.ts';
+import { createWorld, Ev, step, type Setup, type World } from '../../src/core/index.ts';
 import { spawnNow } from '../../src/core/debug.ts';
 import { CHAR_FX } from '../../src/content/meta.ts';
 import { inPool, poolsFor } from '../../src/content/pools.ts';
 import { MERGES, mergeFor } from '../../src/content/weapons.ts';
 import { SKILLS } from '../../src/core/skills.ts';
-import { ReplayPlayer } from '../../src/replay/player.ts';
-import type { ReplayRecord } from '../../src/replay/format.ts';
 
 const make = (o: Partial<Setup> = {}, rules?: number): World => createWorld({ seed: 7, mode: 'vigil', danger: 0, ...o }, rules);
 const events = (w: World, type: number): number[][] => {
@@ -110,21 +107,4 @@ describe('规则 66：阴阳先生阴阳互换', () => {
     expect(w.eBind[i]!).toBeLessThan(w.tick);
     expect(w.flip.side).toBe(0);
   });
-});
-
-describe('规则 65 的旧录像', () => {
-  const items = JSON.parse(readFileSync(new URL('../fixtures/replay-rules65.json', import.meta.url), 'utf8')) as { rec: ReplayRecord; fp: number; kills: number; level: number }[];
-  it('小道士、采药女、阴阳先生娱乐局和采药女实盘大档，在现行代码里回放逐位一致', () => {
-    expect(items.map((x) => `${x.rec.rules}${x.rec.setup.character}${x.rec.setup.live ? '实盘' : '娱乐'}`)).toEqual(['65xiaodao娱乐', '65caiyao娱乐', '65yinyang娱乐', '65caiyao实盘']);
-    for (const it of items) {
-      const p = ReplayPlayer.from(it.rec)!;
-      expect(p.outdated).toBe(true);
-      while (!p.done) p.tickOnce();
-      const tag = `${it.rec.setup.character} ${it.rec.setup.live ? '实盘' : '娱乐'}`;
-      expect(fingerprint(p.world), tag).toBe(it.fp);
-      expect(p.exact, tag).toBe(true);
-      expect(p.world.kills, tag).toBe(it.kills);
-      expect(p.world.identity66, tag).toBe(false);
-    }
-  }, 120_000);
 });

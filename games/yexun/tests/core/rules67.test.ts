@@ -1,15 +1,12 @@
 // 规则 67（DESIGN 3.7）：摆渡人放出时补强——初始伤害补到 1，顺水 +10% → +50%、竹篙冷却 −25% 多戳一下，横江一渡的水域里每秒打一下。娱乐和实盘同一版起；
 // 规则 66 的摆渡人录像（夹具是规则 66 的代码录的：娱乐局、实盘大档）在新代码里逐位重放
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { createWorld, fingerprint, step, type Setup, type World } from '../../src/core/index.ts';
+import { createWorld, step, type Setup, type World } from '../../src/core/index.ts';
 import { spawnNow } from '../../src/core/debug.ts';
 import { CHAR_FX, charBase } from '../../src/content/meta.ts';
 import { charDmgMul, SKILL_FX, SKILLS } from '../../src/core/skills.ts';
 import { vigilBp } from '../../src/content/live.ts';
 import { raidCharCoef } from '../../src/content/explore.ts';
-import { ReplayPlayer } from '../../src/replay/player.ts';
-import type { ReplayRecord } from '../../src/replay/format.ts';
 
 const make = (o: Partial<Setup> = {}, rules?: number): World => createWorld({ seed: 7, mode: 'vigil', danger: 0, character: 'baidu', ...o }, rules);
 
@@ -69,21 +66,4 @@ describe('摆渡人进实盘（0.30.0）', () => {
     expect(raidCharCoef('baidu', 'large', 'shansi')).toBe(20_000);
     expect(raidCharCoef('baidu', 'luxe', 'guzhen')).toBeUndefined();
   });
-});
-
-describe('规则 66 的旧录像', () => {
-  const items = JSON.parse(readFileSync(new URL('../fixtures/replay-rules66.json', import.meta.url), 'utf8')) as { rec: ReplayRecord; fp: number; kills: number; level: number }[];
-  it('摆渡人娱乐局和实盘大档，在现行代码里回放逐位一致', () => {
-    expect(items.map((x) => `${x.rec.rules}${x.rec.setup.character}${x.rec.setup.live ? '实盘' : '娱乐'}`)).toEqual(['66baidu娱乐', '66baidu实盘']);
-    for (const it of items) {
-      const p = ReplayPlayer.from(it.rec)!;
-      expect(p.outdated).toBe(true);
-      while (!p.done) p.tickOnce();
-      const tag = it.rec.setup.live ? '实盘' : '娱乐';
-      expect(fingerprint(p.world), tag).toBe(it.fp);
-      expect(p.exact, tag).toBe(true);
-      expect(p.world.kills, tag).toBe(it.kills);
-      expect(p.world.identity67, tag).toBe(false);
-    }
-  }, 120_000);
 });

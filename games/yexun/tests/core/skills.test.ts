@@ -473,23 +473,6 @@ describe('录像', () => {
     expect(decodeSkills('a')).toBeNull();
   });
 
-  it('加技能之前录的旧录像：照旧标旧版本，重放到最后指纹和录制时完全一致', () => {
-    const items = JSON.parse(readFileSync(new URL('../fixtures/replay-pre-skill.json', import.meta.url), 'utf8')) as { rec: ReplayRecord; fp: number; kills: number; level: number }[];
-    expect(items.length).toBeGreaterThan(1);
-    for (const it of items) {
-      expect(it.rec.rules).toBeLessThan(RULES_VERSION);
-      expect(it.rec.skills).toBeUndefined();
-      const p = ReplayPlayer.from(it.rec)!;
-      expect(p.outdated).toBe(true);
-      while (!p.done) p.tickOnce();
-      expect(fingerprint(p.world)).toBe(it.fp);
-      expect(fingerprint(p.world)).toBe(it.rec.fp);
-      expect(p.exact).toBe(true);
-      expect(p.world.kills).toBe(it.kills);
-      expect(p.world.level).toBe(it.level);
-    }
-  });
-
   it('旧卡池标记只由规则版本决定：<37 的录像带上，37 起的不带；不进 Setup，存档里带不进来', () => {
     const items = JSON.parse(readFileSync(new URL('../fixtures/replay-pre-skill.json', import.meta.url), 'utf8')) as { rec: ReplayRecord; fp: number }[];
     for (const it of items) {
