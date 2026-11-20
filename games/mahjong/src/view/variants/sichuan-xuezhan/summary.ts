@@ -14,7 +14,8 @@ export function roundSummary(v: XzView, names: string[], unit: string): HTMLElem
   const box = el('div', 'summary');
   const h = v.history.at(-1);
   if (!h) return box;
-  el('h2', '', box, `第 ${h.round + 1} 局${h.end === 'wall' ? '：牌摸完了' : ''}`);
+  // 一场只打一局（快速一局、实盘一局一结）不写"第 1 局"
+  el('h2', '', box, `${v.opts.rounds === 1 ? '这一局' : `第 ${h.round + 1} 局`}${h.end === 'wall' ? '：牌摸完了' : ''}`);
   // 电脑不看牌对玩家是看不见的（DESIGN.md 5.4），一局打完把所有人的牌摆出来，自己对得上
   // 这句每局都一样：一场的第一局讲一次就够
   if (v.history.length <= 1) el('p', 'fair', box, '一局打完所有人的牌都亮在这里。电脑和你一样，看不到别人手里的牌和牌墙。');

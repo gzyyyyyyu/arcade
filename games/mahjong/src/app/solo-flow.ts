@@ -34,7 +34,7 @@ import { bumpRecord, recordStreak } from './record.ts';
 import { userIdOf } from './identity.ts';
 import { homePage, ladderPage, lobby } from './routes.ts';
 import { session } from './session.ts';
-import { cardButton, settle, showMine } from './settle.ts';
+import { cardButton, matchBody, settle, showMine } from './settle.ts';
 import { paintTop, screen, stage, title, toast } from './shell.ts';
 import { TIMING } from './timing.ts';
 import { buyinFailed, checkFunds, refreshWallet, showError } from './wallet.ts';
@@ -230,18 +230,19 @@ function roundEndDialog(v: SoloView, names: string[], unit: string): void {
 function matchEndDialog(mine: Solo, v: SoloView, names: string[], unit: string): void {
   const page = pageOf(v.variant);
   const net = v.result?.seats[v.me!.seat]?.net ?? 0;
+  let single = false;
   dialog(stage, 'end', (box) => {
     // 内容放进翻页区，按钮行在它下面、一直看得见（view/pager.ts）
     // 钱包结回的那句放在翻页区上面，哪一页都看得见；等钱包回话才有准话，先占一行，不然字来了把翻页区挤矮
     if (stakesOf(mine.stakes)?.wallet) el('div', 'settle-note', box, SETTLED.get(mine) ?? '正在结回钱包……');
     const body = el('div', 'end-body', box);
-    // 一场的名次在前（打开就看到输赢），这一局的明细在后，放不下时翻到下一页
-    body.appendChild(page.matchSummary(v, names, unit));
-    // 每日成绩、擂台这一桌的结果放在名次下面、明细前面：结算长了要翻页，放末尾会被翻到后面几页（11-02 冒烟）
-    if (mine.save.daily && isDailyVariant(v.variant)) body.appendChild(dailyLine(v.variant, mine.save.daily, net, mine.save.id ?? '', userIdOf(session.platformInfo)));
     const lad = mine.save.ladder;
-    const ladder = lad ? ladderEnd(body, mine.save.id ?? '', lad.mode, lad.table, net) : null;
-    settle(body, page.roundSummary(v, names, unit));
+    let ladder = null as ReturnType<typeof ladderEnd> | null;
+    // 每日成绩、擂台这一桌的结果夹在名次和明细中间：结算长了要翻页，放末尾会被翻到后面几页（11-02 冒烟）
+    single = matchBody(body, v.history.length, page.matchSummary(v, names, unit), page.roundSummary(v, names, unit), () => {
+      if (mine.save.daily && isDailyVariant(v.variant)) body.appendChild(dailyLine(v.variant, mine.save.daily, net, mine.save.id ?? '', userIdOf(session.platformInfo)));
+      if (lad) ladder = ladderEnd(body, mine.save.id ?? '', lad.mode, lad.table, net);
+    });
     if (session.fame.length) body.appendChild(fameSummary(session.fame, names));
     cheer(body, mine, net);
     const row = el('div', 'row end-acts', box);
@@ -268,7 +269,7 @@ function matchEndDialog(mine: Solo, v: SoloView, names: string[], unit: string):
     } else againButton(box, row, mine);
     paginate(body, 0, END_SPLIT);
   }, false);
-  showMine();
+  if (!single) showMine();
   play(net >= 0 ? 'win' : 'lose');
 }
 
