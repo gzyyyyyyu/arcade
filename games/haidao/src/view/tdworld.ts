@@ -262,11 +262,17 @@ export function inFog(bs: TdScene, x: number, y: number): boolean {
 
 /** 落潮：登陆路旁那片沙滩平时被水盖着，落潮后露出湿沙；登陆口插小旗 */
 /** 每个场景沙滩上的补给箱：箱子图 + 脚下一圈呼吸的金光（规则版本 16 的章末机制，tdevents.ts 的 crate 事件增删） */
-const CRATES = new WeakMap<object, Map<number, Phaser.GameObjects.GameObject[]>>();
+const CRATES = new WeakMap<object, { s: object; m: Map<number, Phaser.GameObjects.GameObject[]> }>();
+
+/** 这一局的箱子表：「再守一次」是同一个场景对象重开（状态对象换了），旧局的图已随场景销毁，换一张新表 */
+function cratesOf(bs: TdScene): Map<number, Phaser.GameObjects.GameObject[]> {
+  let c = CRATES.get(bs);
+  if (c?.s !== bs.s) CRATES.set(bs, (c = { s: bs.s, m: new Map() }));
+  return c.m;
+}
 
 export function addCrate(bs: TdScene, id: number, ux: number, uy: number): void {
-  let m = CRATES.get(bs);
-  if (!m) CRATES.set(bs, (m = new Map()));
+  const m = cratesOf(bs);
   const p = W(ux, uy);
   const R = isoRing(1.2);
   const ring = bs.add.ellipse(p.x, p.y + 4, R.w, R.h, 0xffe885, 0.18).setStrokeStyle(3, 0xffe885, 0.9).setDepth(depthOf(ux / UNIT, uy / UNIT) - 0.1);
@@ -279,9 +285,10 @@ export function addCrate(bs: TdScene, id: number, ux: number, uy: number): void 
 
 /** 捡到（往上一跳再消失）或漂走（往海里滑、淡出） */
 export function removeCrate(bs: TdScene, id: number, picked: boolean): void {
-  const objs = CRATES.get(bs)?.get(id);
+  const m = cratesOf(bs);
+  const objs = m.get(id);
   if (!objs) return;
-  CRATES.get(bs)!.delete(id);
+  m.delete(id);
   for (const o of objs) {
     bs.tweens.killTweensOf(o);
     bs.tweens.add({ targets: o, alpha: 0, y: (o as Phaser.GameObjects.Image).y + (picked ? -30 : 16), duration: picked ? 260 : 600, onComplete: () => o.destroy() });
@@ -294,18 +301,19 @@ export function crateAt(bs: TdScene, ux: number, uy: number): number {
   return -1;
 }
 
-/** 每个场景一张水闸图（不往 TdScene 里加字段），按"下一波关没关"换提起 / 放下 */
-const SLUICE = new WeakMap<object, { im: Phaser.GameObjects.Image; down: boolean }>();
+/** 每局一张水闸图（不往 TdScene 里加字段，按场景存、按状态对象认局），按"下一波关没关"换提起 / 放下 */
+const SLUICE = new WeakMap<object, { s: object; im: Phaser.GameObjects.Image; down: boolean }>();
 
 /** 落潮路口的水闸（规则版本 16 的章末机制）：开局摆上，玩家关上下一波就放下闸板（updateHud 里每次状态变了调） */
 export function syncSluice(bs: TdScene, down: boolean): void {
   const lv = bs.s.level;
   if (!bs.s.sluice || !lv.tide) return;
   let g = SLUICE.get(bs);
-  if (!g) {
+  // 「再守一次」是同一个场景对象重开：旧局的闸板图已销毁，再 setTexture 会抛错、整个场景起不来，所以按局（状态对象）重摆
+  if (g?.s !== bs.s) {
     const { x, y } = lv.tide.lane;
     const q = iso(x + 0.5, y + 0.5);
-    g = { im: put(bs, bs.r, tdP(down ? 'sluiceDown' : 'sluiceUp'), q.x, q.y - 4).setDepth(depthOf(x + 0.5, y + 0.5)), down };
+    g = { s: bs.s, im: put(bs, bs.r, tdP(down ? 'sluiceDown' : 'sluiceUp'), q.x, q.y - 4).setDepth(depthOf(x + 0.5, y + 0.5)), down };
     SLUICE.set(bs, g);
     return;
   }

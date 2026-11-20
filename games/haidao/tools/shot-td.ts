@@ -137,6 +137,10 @@ export async function td(c: ShotCtx): Promise<boolean> {
       await click('.hd-td-up');
       await page.waitForTimeout(600);
       await shot('tower-up');
+      // 升到 2 阶面板自动关、游戏接着走（3 阶才留着选分叉）；再点这座塔开回面板去卖
+      if (await page.locator('.hd-td-sheet:visible').count()) throw new Error('升到 2 阶后面板没关');
+      await tap(p.x, p.y);
+      await page.waitForTimeout(500);
       // 卖塔：按两下（第一下变红确认）
       const gold0 = (await info()).gold;
       await click('.hd-td-sell');

@@ -1,7 +1,7 @@
 /**
  * 守岛 2.0 配平模拟：node tools/td-sim.ts [--level td07] [--n 200] [--parts main,anti,hero,care,budget,layouts] [--json] [--from 1] [--rules 13] [--hero nav]
  * 18 关（关卡岛 + 驻守台，建议养成的存档）各打 n 局（种子 from..from+n-1），按验收表（DESIGN 10.7）出数：
- *   main    小白、稳（普通）、贪三种机器人的星数分布，稳 / 贪的三星率差，局末没花掉的金币占比；
+ *   main    小白、照建议的新手、稳（普通）、贪四种机器人的星数分布，稳 / 贪的三星率差，局末没花掉的金币占比（新手线按「新手 ≥1★」量，DESIGN 10.7）；
  *   anti    反压制：把稳机器人造的塔全换成一种（喷火 / 火枪 / 加农各量一次，取最高的）；
  *   hero    英雄拆开看：稳机器人不放技能、不走位；
  *   care    养成三档：零养成（只有主寨）、建议养成、满养成（主寨 8 级满配）；
@@ -132,6 +132,7 @@ function simLevel(id: string): LevelRaw {
   const cells: Record<string, Cell> = {};
   if (parts.has('main')) {
     cells.novice = run(id, 'novice', 'suggest');
+    cells.guided = run(id, 'guided', 'suggest');
     cells.normal = run(id, 'normal', 'suggest');
     cells.greedy = run(id, 'greedy', 'suggest');
   }
@@ -200,8 +201,8 @@ function merge(a: LevelRaw[]): LevelRaw[] {
 
 function table(levels: LevelRaw[]): string {
   const rows: string[] = [];
-  rows.push('| 关 | 稳 3★ (±2SE) | 目标 | 稳 0★ | 小白 ≥1★ | 贪 3★ | 稳-贪 | 反压制 3★（塔） | 差 | 不放技能 | 不走位 | 零养成 | 满养成 | 预算 98 / 102 | 余金 稳 / 贪 | 升满阶 稳 / 贪 |');
-  rows.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  rows.push('| 关 | 稳 3★ (±2SE) | 目标 | 稳 0★ | 新手 ≥1★ | 小白 ≥1★ | 贪 3★ | 稳-贪 | 反压制 3★（塔） | 差 | 不放技能 | 不走位 | 零养成 | 满养成 | 预算 98 / 102 | 余金 稳 / 贪 | 升满阶 稳 / 贪 |');
+  rows.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   const prev: number[] = [];
   for (const l of levels) {
     const i = TD2_LEVEL_DEFS.findIndex((d) => d.id === l.id);
@@ -220,7 +221,7 @@ function table(levels: LevelRaw[]): string {
     const left = `${leftPct(c.normal)} / ${leftPct(c.greedy)}`;
     const full = `${fullAt(c.normal)} / ${fullAt(c.greedy)}`;
     rows.push(
-      `| ${l.id} | ${f0(norm)}% ± ${f0(se2(c.normal))} | ${target(i)}% | ${f0(c.normal ? (100 * c.normal.dist[0]) / c.normal.n : NaN)}% | ${f0(pct(c.novice, 1))}% | ${f0(pct(c.greedy, 3))}% | ${f0(Math.abs(norm - pct(c.greedy, 3)))} | ${anti} | ${antiDiff} | ` +
+      `| ${l.id} | ${f0(norm)}% ± ${f0(se2(c.normal))} | ${target(i)}% | ${f0(c.normal ? (100 * c.normal.dist[0]) / c.normal.n : NaN)}% | ${f0(pct(c.guided, 1))}% | ${f0(pct(c.novice, 1))}% | ${f0(pct(c.greedy, 3))}% | ${f0(Math.abs(norm - pct(c.greedy, 3)))} | ${anti} | ${antiDiff} | ` +
         `${f0(pct(c['hero.noskill'], 3))}% | ${f0(pct(c['hero.nomove'], 3))}% | ${f0(pct(c['care.none'], 3))}% | ${f0(pct(c['care.full'], 3))}% | ${bud} | ${left} | ${full} |`,
     );
   }

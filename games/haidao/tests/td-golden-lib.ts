@@ -29,12 +29,14 @@ import { tidePick } from '../src/core/tdtide.ts';
  *   大潮每周海况从 v22 起进指纹锁，每条海况挑它轮到的第一周，`v22-tidemod-<海况>-*`。
  * - 23（第二个英雄航海士）：选船长的局一律不变，v23- 和 v22- 逐个相同（tests/td-nav.test.ts 锁住）；带航海士的局从 v23 起另录
  *   `v23-nav-<关>-*`（战役各关，建议养成）和 `v23-nav-home-*`（海盗来袭，主寨 6、8 级，普通档和加难档）。
+ * - 24（战役几关前几波放宽，关卡的 ease）：只改写了 ease 的关，别的键 v24- 和 v23- 逐个相同（tests/td-ease.test.ts 锁住）；
+ *   照建议的新手（guided）从 v24 起只录战役关，`v24-<关>-guided-*`。
  * v10 中档 0.29.1 前未开放（线上没有 v10 中档的对局），指纹随 0.29.1 的配平（hpPct 180 → 190）更新，只动了 v10-live-mid-* 9 个键。
  */
 export const GOLDEN_FILE = new URL('./td-golden.json', import.meta.url);
 /** 分片数：GitHub 的机器 4 核，8 片让慢片和别的测试文件错开 */
 export const GOLDEN_SHARDS = 8;
-const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
+const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
 /** 海盗来袭进指纹锁的主寨等级：6 是加难档开放的那一级，8 是满级 */
 const HOME_HQ = [6, 8];
 const SEEDS = [1, 2, 3];
@@ -88,6 +90,8 @@ export function goldenJobs(): GoldenJob[] {
         const r = tdGrowthSetup(lv.id, 'suggest', seed);
         if (!r.ok) throw new Error(`${lv.id}: ${r.error}`);
         for (const bot of BOTS) one(`${lv.id}-${bot}-${seed}`, r.value, bot);
+        // 照建议的新手是规则 24 给战役配平加的量尺，只在战役关、v24 起录（旧键不动）
+        if (rules >= RULES_SINCE.tdEase) one(`${lv.id}-guided-${seed}`, r.value, 'guided');
       }
     }
     for (const tier of LIVE_TIER_IDS) for (const seed of SEEDS) for (const bot of BOTS) one(`live-${tier}-${bot}-${seed}`, tdLiveSetup(tier, seed), bot);

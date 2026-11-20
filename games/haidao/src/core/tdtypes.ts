@@ -154,6 +154,8 @@ export interface TdLevel {
   hpPct: number;
   /** 开局局内金币 */
   gold: number;
+  /** 从规则版本 since 起开局金改成 gold（关卡给新手放宽时用；旧版本的局照旧用上面的 gold，levelForRules 换） */
+  goldSince?: { since: number; gold: number };
   /** 开局到第一波的倒数（拍） */
   first: number;
   /** 一波开始到下一波开始的倒数（拍） */

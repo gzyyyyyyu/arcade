@@ -780,7 +780,7 @@ export function heroSwitch(parent: HTMLElement): HTMLButtonElement | null {
     b.textContent = nav ? '带：航海士' : '带：船长';
     b.classList.toggle('on', nav);
     b.setAttribute('aria-pressed', String(nav));
-    b.title = nav ? '航海士：急射旗让旗边的塔打得快一倍，重赏圈里倒下的海盗金币翻倍，提前叫波多拿一半金币；打得远、跑得快。点一下换回船长' : '船长：拒马挡路、炸药桶炸一群、身边的塔打得快一点。点一下换成航海士';
+    b.title = nav ? '航海士：急射旗让旗边的塔打得快一倍，重赏圈里倒下的海盗金币翻倍，提前叫波多拿一半金币；打得远、跑得快。塔铺得散、登陆口离宝藏近的岛，带船长更稳。点一下换回船长' : '船长：拒马挡路、炸药桶炸一群、身边的塔打得快一点。塔铺得散、登陆口离宝藏近的岛，带船长更稳。点一下换成航海士';
   };
   const b = button('', 'hd-btn-plain hd-tdhero', () => {
     const { heroPick: _, ...rest } = app.profile;

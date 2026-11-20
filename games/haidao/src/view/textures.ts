@@ -13,9 +13,8 @@ const boxes = new Map<string, Box>();
 /**
  * 建筑图裁掉的透明边：画布四周给阴影、旗、烟留的透明边很大，透明像素照样要逐个混合（手机上岛中间满屏建筑时，
  * 帧时间主要花在这里）。烘的时候把画布裁到「有一点颜色」（alpha > 0）的外框，帧设成 trim（Phaser 按原尺寸算锚点、
- * 按偏移画），所以位置、锚点、外观都不变，只是不再画全透明的那一圈；这里记偏移，按原画布坐标读像素时要减掉。
+ * 按偏移画），所以位置、锚点、外观都不变，只是不再画全透明的那一圈。读像素照旧按原画布坐标（alphaAt）。
  */
-const trims = new Map<string, { x: number; y: number; w: number; h: number }>();
 /** 已经烘成纹理的 key：高等级外观没烘到时，场景用低一级顶替 */
 const baked = new Set<string>();
 export const isBaked = (key: string): boolean => baked.has(key);
@@ -52,13 +51,12 @@ function scanBox(c: HTMLCanvasElement): { box: Box; clip: Box } {
   return { box: r >= l ? { l, t, r, b } : full, clip: cr >= cl ? { l: cl, t: ct, r: cr, b: cb } : full };
 }
 
-/** 按原画布坐标读一个像素的 alpha（裁过透明边的建筑图先减偏移，落在裁掉的边里就是 0） */
+/**
+ * 按原画布坐标读一个像素的 alpha。裁过透明边的建筑图不用自己换算：Phaser 的 getPixelAlpha 会按帧的 trim 偏移减掉，
+ * 落在裁掉的边里回 null（这里当 0）。0.49.0 曾在这里再减一次偏移，塔身、建筑的像素全读成透明，只有占地格点得中
+ */
 export function alphaAt(tm: Phaser.Textures.TextureManager, key: string, x: number, y: number): number {
-  const o = trims.get(key);
-  const tx = x - (o?.x ?? 0);
-  const ty = y - (o?.y ?? 0);
-  if (o && (tx < 0 || ty < 0 || tx >= o.w || ty >= o.h)) return 0;
-  return tm.getPixelAlpha(tx, ty, key) ?? 0;
+  return tm.getPixelAlpha(x, y, key) ?? 0;
 }
 
 /** 颗粒小图（按渲染倍数各一张）：深浅两色的细碎斑点，烘建筑时盖一层，去掉矢量的塑料感 */
@@ -144,7 +142,6 @@ async function bake(tm: Phaser.Textures.TextureManager, p: ArtPiece, r: number):
       t.getContext('2d')!.drawImage(c, clip.l, clip.t, cw, ch, 0, 0, cw, ch);
       const tex = tm.addCanvas(p.key, t);
       tex?.get().setTrim(c.width, c.height, clip.l, clip.t, cw, ch);
-      trims.set(p.key, { x: clip.l, y: clip.t, w: cw, h: ch });
     } else tm.addCanvas(p.key, c);
     baked.add(p.key);
   } finally {

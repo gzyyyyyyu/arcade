@@ -71,6 +71,11 @@ interface LevelDef {
    * kind：水手的份额换成哪种精英，不写是水手长；写 'mate' 换成大副（倒下散成水手），这套组从规则版本 RULES_SINCE.tdMate 起才出
    */
   elite?: { scale: number; from?: number; kind?: 'mate' };
+  /**
+   * 规则版本 24 起给新手放宽（按「照建议的新手」机器人量，DESIGN 10.4 的验收目标）：前 waves 波（不写是整关）的预算再乘 pct%，
+   * 开局金多给 gold。只动人数和开局金、不动塔；旧版本的局照旧（组带 until、开局金走 goldSince，回放逐位不变）。悬赏守岛、海盗来袭不读这张关卡表，不受影响
+   */
+  ease?: { pct?: number; waves?: number; gold?: number };
   waves: WaveRecipe[];
 }
 
@@ -106,7 +111,7 @@ const G = 'king';
 const DEFS: readonly LevelDef[] = [
   // ---------------------------------------------------------------- 第一章：登陆、铁甲、雾船、鹦鹉、首领
   {
-    id: 'td01', name: '初上岛滩', index: 0, map: 'A', chapter: 1, hq: 2, gold: 380, waveTicks: 360, scale: 180, pads: 4, garrison: [1],
+    id: 'td01', name: '初上岛滩', index: 0, map: 'A', chapter: 1, hq: 2, gold: 380, waveTicks: 360, scale: 180, ease: { pct: 70, waves: 3 }, pads: 4, garrison: [1],
     waves: [
       w([S, 100, 0]),
       w([S, 100, 0]),
@@ -133,7 +138,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td03', name: '双滩汇流', index: 2, map: 'B', chapter: 1, hq: 4, gold: 355, waveTicks: 360, scale: 125, pads: 5, garrison: [2],
+    id: 'td03', name: '双滩汇流', index: 2, map: 'B', chapter: 1, hq: 4, gold: 355, waveTicks: 360, scale: 125, ease: { pct: 75, waves: 5 }, pads: 5, garrison: [2],
     waves: [
       w([S, 100, 0]),
       w([S, 60, 0], [S, 40, 1, 40]),
@@ -214,7 +219,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td08', name: '薄雾渐起', index: 7, map: 'E', chapter: 2, hq: 6, gold: 450, waveTicks: 340, scale: 105, pads: 7, wrecks: [5, 6], garrison: [2, 2], fog: [0], events: 'rain',
+    id: 'td08', name: '薄雾渐起', index: 7, map: 'E', chapter: 2, hq: 6, gold: 450, waveTicks: 340, scale: 105, ease: { pct: 60 }, pads: 7, wrecks: [5, 6], garrison: [2, 2], fog: [0], events: 'rain',
     waves: [
       w([S, 100, 0]),
       note('北路罩在雾里：雾里的敌人要灯塔或英雄照亮才打得中', w([S, 60, 0], [I, 40, 1])),
@@ -230,7 +235,7 @@ const DEFS: readonly LevelDef[] = [
   },
   {
     // 开局金不能多：钱太多时"少造升满"的守法第一波就把塔造完、种类按头两波定死，后面守不住（850 守住 100%，920 只剩 3%）
-    id: 'td09', name: '雾锁浅滩', index: 8, map: 'E', chapter: 2, hq: 7, gold: 850, waveTicks: 340, scale: 100, pads: 7, wrecks: [5, 6], garrison: [2, 2], fog: [0, 1], tide: [1, 2, 4, 5, 7, 8, 10], events: 'bounty',
+    id: 'td09', name: '雾锁浅滩', index: 8, map: 'E', chapter: 2, hq: 7, gold: 850, waveTicks: 340, scale: 100, ease: { pct: 60 }, pads: 7, wrecks: [5, 6], garrison: [2, 2], fog: [0, 1], tide: [1, 2, 4, 5, 7, 8, 10], events: 'bounty',
     waves: [
       w([S, 100, 0]),
       w([S, 60, 2], [I, 40, 1]),
@@ -262,7 +267,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td11', name: '潮雾夹击', index: 10, map: 'F', chapter: 2, hq: 7, gold: 275, waveTicks: 340, scale: 133, pads: 8, garrison: [2, 2], fog: [0], tide: [1, 3, 4, 6, 8, 9, 11], sluice: TD_SLUICE_USES,
+    id: 'td11', name: '潮雾夹击', index: 10, map: 'F', chapter: 2, hq: 7, gold: 275, waveTicks: 340, scale: 133, ease: { pct: 50 }, pads: 8, garrison: [2, 2], fog: [0], tide: [1, 3, 4, 6, 8, 9, 11], sluice: TD_SLUICE_USES,
     waves: [
       w([S, 100, 0]),
       w([S, 60, 0], [X, 40, 1]),
@@ -279,7 +284,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td12', name: '暴潮之夜', index: 11, map: 'D', chapter: 2, hq: 7, gold: 600, waveTicks: 330, scale: 120, pads: 8, garrison: [2, 2], tide: [1, 2, 4, 5, 7, 8, 10, 11], sluice: TD_SLUICE_USES,
+    id: 'td12', name: '暴潮之夜', index: 11, map: 'D', chapter: 2, hq: 7, gold: 600, waveTicks: 330, scale: 120, ease: { pct: 80 }, pads: 8, garrison: [2, 2], tide: [1, 2, 4, 5, 7, 8, 10, 11], sluice: TD_SLUICE_USES,
     waves: [
       w([S, 100, 0]),
       w([S, 60, 2], [I, 40, 1]),
@@ -297,7 +302,7 @@ const DEFS: readonly LevelDef[] = [
   },
   // ---------------------------------------------------------------- 第三章：炸塔工兵、绕后鹦鹉、首领发怒
   {
-    id: 'td13', name: '工兵营', index: 12, map: 'G', chapter: 3, hq: 7, gold: 300, waveTicks: 320, scale: 140, pads: 8, garrison: [2, 2], sapperJam: true, events: 'dare',
+    id: 'td13', name: '工兵营', index: 12, map: 'G', chapter: 3, hq: 7, gold: 300, waveTicks: 320, scale: 140, ease: { gold: 300 }, pads: 8, garrison: [2, 2], sapperJam: true, events: 'dare',
     waves: [
       w([S, 100, 0]),
       note('工兵会炸哑 3 格内的塔：先打工兵，塔别扎堆', w([X, 35, 0], [S, 65, 1])),
@@ -570,15 +575,26 @@ function expand(r: WaveRecipe, budget: number, elite: Partial<Record<TdEnemyKind
  * 引擎按局的规则版本挑一套（createTd）
  */
 export function levelWaves(def: LevelDef, budgetPct = 100): TdWave[] {
-  const budget = (i: number, scale: number): number => Math.floor((waveBudget(def.index, i) * scale * budgetPct) / 10_000);
   return def.waves.map((r, i) => {
-    const old = expand(r, budget(i, def.scale ?? 100));
-    if (!def.elite) return old;
-    const kinds = def.elite.kind ? { ...ELITE_OF, sailor: def.elite.kind } : ELITE_OF;
-    const now = expand(r, budget(i, def.elite.scale), i >= (def.elite.from ?? TD_ELITE.from) ? kinds : null);
-    const since = def.elite.kind ? RULES_SINCE.tdMate : RULES_SINCE.tdElite;
-    return { ...old, groups: [...old.groups.map((g) => ({ ...g, until: since })), ...now.groups.map((g) => ({ ...g, since }))] };
+    const wave = recipeWave(def, r, i, budgetPct);
+    const e = def.ease;
+    if (!e?.pct || i >= (e.waves ?? def.waves.length)) return wave;
+    // 放宽的一套只换当前生效的组（没有 until 的）：更早版本的组本来就带着 until，原样留着
+    const since = RULES_SINCE.tdEase;
+    const eased = recipeWave(def, r, i, (budgetPct * e.pct) / 100).groups.filter((g) => g.until === undefined);
+    return { ...wave, groups: [...wave.groups.map((g) => (g.until === undefined ? { ...g, until: since } : g)), ...eased.map((g) => ({ ...g, since }))] };
   });
+}
+
+/** 一波的组：带精英配方的关是新旧两套并排（旧的带 until、新的带 since） */
+function recipeWave(def: LevelDef, r: WaveRecipe, i: number, budgetPct: number): TdWave {
+  const budget = (scale: number): number => Math.floor((waveBudget(def.index, i) * scale * budgetPct) / 10_000);
+  const old = expand(r, budget(def.scale ?? 100));
+  if (!def.elite) return old;
+  const kinds = def.elite.kind ? { ...ELITE_OF, sailor: def.elite.kind } : ELITE_OF;
+  const now = expand(r, budget(def.elite.scale), i >= (def.elite.from ?? TD_ELITE.from) ? kinds : null);
+  const since = def.elite.kind ? RULES_SINCE.tdMate : RULES_SINCE.tdElite;
+  return { ...old, groups: [...old.groups.map((g) => ({ ...g, until: since })), ...now.groups.map((g) => ({ ...g, since }))] };
 }
 
 /**
@@ -602,6 +618,7 @@ export function buildLevel(def: LevelDef, budgetPct = 100): TdIslandLevel {
     hq: def.hq,
     hpPct: 100,
     gold: def.gold,
+    ...(def.ease?.gold ? { goldSince: { since: RULES_SINCE.tdEase, gold: def.gold + def.ease.gold } } : {}),
     first: 400,
     waveTicks: def.waveTicks,
     layout: mapLayout(spec, def.hq),

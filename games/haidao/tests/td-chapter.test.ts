@@ -96,7 +96,9 @@ describe('波次 = 预算公式', () => {
       levelForRules(l, RULES_VERSION).waves.forEach((w, i) => {
         // 份额加起来不到 100 的波是有意放轻的铺垫波（td02 / td04 / td05 的前几波），预算按份额之和折算
         const shares = def.waves[i]!.groups.reduce((s, g) => s + (g[0] === 'captain' ? 0 : g[1]), 0);
-        const budget = (waveBudget(l.index, i) * (def.elite?.scale ?? def.scale ?? 100) * Math.min(100, shares || 100)) / 10_000;
+        // 规则 24 给新手放宽的波（ease）再乘它的百分比
+        const ease = def.ease?.pct && i < (def.ease.waves ?? def.waves.length) ? def.ease.pct : 100;
+        const budget = (waveBudget(l.index, i) * (def.elite?.scale ?? def.scale ?? 100) * Math.min(100, shares || 100) * ease) / 1_000_000;
         let pts = 0;
         for (const g of w.groups) pts += g.n * TD2_ENEMY_POINTS[g.enemy];
         // 个数四舍五入、至少 1 个：小波次会偏，预算大的波偏差小

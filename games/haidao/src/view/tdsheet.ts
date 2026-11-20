@@ -5,7 +5,7 @@ import { type TdState, tdBuildBlock, tdClearCost, TD2_ECON, type TdTowerKind, is
 import { TICKS_PER_SEC, UNIT } from '../core/types.ts';
 import { iconA } from './art.ts';
 import { keyBadge } from './inputs.ts';
-import { bestiary, towerIcon, TOWER_INFO, rangeText, towerCounter, dmgBadge, armorBadge, counterCard, ARMOR_NAME, DAMAGE_NAME, branchName, pendingTier, branchCards, branchDamageHint } from './td-ui.ts';
+import { bestiary, towerIcon, TOWER_INFO, rangeText, towerCounter, dmgBadge, counterCard, ARMOR_NAME, DAMAGE_NAME, branchName, pendingTier, branchCards, branchDamageHint } from './td-ui.ts';
 import { sfx } from './audio/sfx.ts';
 import { buildSound, upgradeSound } from './audio/pick.ts';
 import { el, button, img } from './ui.ts';
@@ -138,13 +138,12 @@ export function renderSheet(bs: TdScene): void {
       // 伤害类型和克谁：从克制表现算，删掉了旧的"克首领""打不到鹦鹉"这类说法
       const cc = towerCounter(k);
       const ctr = el('small', 'hd-td-ctr', undefined, c);
+      // 伤害只留方章（「炮」「枪」），护甲写全名的带色小条：一个字的小圆章太小，「飞」「布」很容易看错；
+      // 打不到的划掉（不写「打不到」三个字，免得卡片折成两行、手机上面板放不下）
       dmgBadge(cc.dmg, ctr);
-      ctr.append(DAMAGE_NAME[cc.dmg]);
-      if (cc.good.length) {
-        ctr.append(' · 克');
-        for (const a of cc.good) armorBadge(a, ctr);
-      }
-      for (const a of cc.none) armorBadge(a, ctr).classList.add('ng');
+      if (cc.good.length) ctr.append(' 克');
+      for (const a of cc.good) el('i', `hd-armn a-${a}`, ARMOR_NAME[a], ctr);
+      for (const a of cc.none) el('i', `hd-armn ng a-${a}`, ARMOR_NAME[a], ctr).title = `打不到${ARMOR_NAME[a]}`;
       c.disabled = s.gold < cost || block !== null;
       // 压着 / 悬停这张卡：地上画这座塔 1 阶的射程圈；移开或松手就收（重画面板时鼠标还在上面就接着画）
       const on = (): void => {
@@ -198,6 +197,8 @@ export function renderSheet(bs: TdScene): void {
     const up = button('', 'hd-btn-gold hd-td-up', () => {
       sfx(upgradeSound(tier >= 2));
       act(bs, { type: 'up', slot: bs.openSlot });
+      // 升到 2 阶就关面板、游戏接着走（和造塔一样，面板开着时整局停着）；升到 3 阶留着，接下来要在这里选分叉
+      if (tier + 1 < 3) closeSheet(bs);
     }, acts);
     up.title = '升级（U）';
     up.append(`升到 ${tier + 1} 阶  `);
