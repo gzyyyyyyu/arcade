@@ -25,8 +25,8 @@ const lastOf = (ch: number): string => tdCampaign().filter((l) => l.chapter === 
 const ids = Object.values(TD_TROPHIES);
 
 describe('章节纪念装饰：发放', () => {
-  it('四章各一件、都是装饰、都在存档白名单里，都会动（有帧）', () => {
-    expect(Object.keys(TD_TROPHIES).map(Number)).toEqual([1, 2, 3, 4]);
+  it('五章各一件、都是装饰、都在存档白名单里，都会动（有帧）', () => {
+    expect(Object.keys(TD_TROPHIES).map(Number)).toEqual([1, 2, 3, 4, 5]);
     for (const id of ids) {
       const kind = id.slice('deco:'.length) as BuildingKind;
       expect(isDecoKind(kind), id).toBe(true);
@@ -36,7 +36,7 @@ describe('章节纪念装饰：发放', () => {
   });
 
   it('拿下一章最后一关的第一颗星时送这一章的，只送一次', () => {
-    for (const ch of [1, 2, 3, 4]) {
+    for (const ch of [1, 2, 3, 4, 5]) {
       const others = ids.filter((id) => id !== TD_TROPHIES[ch]);
       const p = almost(lastOf(ch), others);
       expect(tdChapterCleared(p.td!.stars, ch)).toBe(false);
@@ -50,7 +50,7 @@ describe('章节纪念装饰：发放', () => {
   });
 
   it('一章还有一关 0 星时不送；0 星这一局也不送', () => {
-    const p = almost('td24', ids.slice(0, 3));
+    const p = almost('td24', ids.filter((id) => id !== TD_TROPHIES[4]));
     const miss = { ...p, td: { ...p.td!, stars: { ...p.td!.stars, td19: 0 } } };
     expect(settle(miss, 'td24', 2).reward.trophies).toEqual([]);
     expect(settle(p, 'td24', 0).reward.trophies).toEqual([]);
@@ -70,6 +70,7 @@ describe('章节纪念装饰：发放', () => {
   it('结算框那一行：一件写章名和装饰名，几件并成一行；第四章叫远洋通关', () => {
     expect(trophyText(['deco:windmill'])).toBe('第一章通关！得到装饰「小风车」，在收藏里摆到岛上');
     expect(trophyText(['deco:lighthouse', 'deco:wheel'])).toBe('第二章通关、远洋通关！得到装饰「小灯塔」「海盗王的舵轮」，在收藏里摆到岛上');
+    expect(trophyText(['deco:lookout'])).toBe('第五章通关！得到装饰「瞭望台」，在收藏里摆到岛上');
   });
 });
 

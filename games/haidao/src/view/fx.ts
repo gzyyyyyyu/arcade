@@ -605,6 +605,8 @@ interface DNum {
   look: string;
   /** 被后出的数字顶上去多少（屏幕像素，fxlayout.ts 的 pushApart） */
   push: number;
+  /** 打在盾正面被挡掉大半的伤害：灰字 */
+  muted: boolean;
 }
 
 /** 淡出从 FADE_AT 开始、到 life 结束；合并时 age 拉回到 HOLD_AT */
@@ -646,15 +648,16 @@ export class DamageNumbers {
     return this.pool.filter((q) => q.on).length;
   }
 
-  /** big：这一下本身就很重（炮击、暴击）；累加到够大也算大数字 */
-  add(key: string, dmg: number, x: number, y: number, unit: boolean, big: boolean): void {
+  /** big：这一下本身就很重（炮击、暴击）；累加到够大也算大数字。muted：打在盾正面被挡掉的，灰字、不和别的数字合并 */
+  add(key: string, dmg: number, x: number, y: number, unit: boolean, big: boolean, muted = false): void {
     if (dmg <= 0) return;
+    if (muted) key = `${key}:g`;
     const e = this.pool.find((q) => q.on && q.key === key);
     // 合并太久的放手：清掉 key，让它照常往上飘、淡出
     if (e && e.born > MERGE_MAX) e.key = '';
     else if (e) {
       e.sum += dmg;
-      e.big = e.big || big || e.sum >= 120;
+      e.big = !e.muted && (e.big || big || e.sum >= 120);
       e.age = Math.min(e.age, HOLD_AT);
       e.bump = 1;
       // 直接显示新的总数、只重画一次文字；原来逐帧往上滚，每帧都重画一张文字贴图（perf：传贴图次数）
@@ -666,7 +669,7 @@ export class DamageNumbers {
     if (!p) {
       if (this.pool.length < this.max) {
         const t = this.scene.add.text(0, 0, '', { fontFamily: 'system-ui,"PingFang SC","Microsoft YaHei",sans-serif', fontStyle: '900', fontSize: `${16 * this.r}px`, color: '#fff', stroke: '#2b1a15', strokeThickness: 3.5 * this.r }).setOrigin(0.5).setDepth(DEPTH.fogMist).setVisible(false);
-        p = { t, on: false, key: '', age: 0, born: 0, x0: 0, y0: 0, cy: 0, big: false, unit: false, sum: 0, shown: 0, bump: 0, look: '', push: 0 };
+        p = { t, on: false, key: '', age: 0, born: 0, x0: 0, y0: 0, cy: 0, big: false, unit: false, sum: 0, shown: 0, bump: 0, look: '', push: 0, muted: false };
         this.pool.push(p);
       } else {
         // 满了：只有更大的才能顶掉屏上最小的那个，小数字直接并掉（它的伤害不重要）
@@ -691,8 +694,9 @@ export class DamageNumbers {
     p.x0 = x + o.dx / z;
     p.y0 = y + o.dy / z;
     p.cy = p.y0;
-    p.big = big || dmg >= 120;
+    p.big = !muted && (big || dmg >= 120);
     p.unit = unit;
+    p.muted = muted;
     p.sum = dmg;
     p.shown = dmg;
     p.bump = 1;
@@ -705,10 +709,10 @@ export class DamageNumbers {
 
   private paint(p: DNum): void {
     const sz = p.big ? 19 : 12;
-    const look = `${sz}|${p.big ? 'g' : p.unit ? 'u' : 'w'}`;
+    const look = `${sz}|${p.muted ? 'm' : p.big ? 'g' : p.unit ? 'u' : 'w'}`;
     if (p.look !== look) {
       p.look = look;
-      p.t.setStyle({ fontSize: `${sz * this.r}px`, color: p.big ? '#ffd23f' : p.unit ? '#ff9a8a' : '#ffffff', stroke: '#2b1a15', strokeThickness: (p.big ? 4.5 : 3.5) * this.r });
+      p.t.setStyle({ fontSize: `${sz * this.r}px`, color: p.muted ? '#bdb6a8' : p.big ? '#ffd23f' : p.unit ? '#ff9a8a' : '#ffffff', stroke: '#2b1a15', strokeThickness: (p.big ? 4.5 : 3.5) * this.r });
     }
     p.t.setText(`-${p.shown}`);
   }

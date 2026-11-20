@@ -186,6 +186,11 @@ export interface TdLevel {
   /** 水面格（规则版本 18，第四章的水道、火口湖）：谁都走不过去，塔、木台也不摆在上面；飞的照飞 */
   water?: Array<{ x: number; y: number }>;
   /**
+   * 断崖格（规则版本 26，第五章）：和水面一样谁都走不过去（飞的照飞），画成一块高出地面的红褐色崖；崖上的木台是高台（TdPadDef.high）。
+   * 关卡写了它才开断崖关的规则（tdstate.ts 的 cliffOn）：高台、盾兵也挡英雄的枪
+   */
+  cliffs?: Array<{ x: number; y: number }>;
+  /**
    * 潮汐水闸（规则版本 16，第二章最后两关）：落潮路口一道闸，下一波落潮路要开时玩家可以关上那一波（走落潮路的组改走 0 号路），
    * 一局能关几次。要和 tide、tideOpen 一起写；规则版本低于 16 的局不起作用（tdmech.ts）
    */
@@ -388,6 +393,8 @@ export interface TdSlot {
   wreck?: number;
   /** 守岛 2.0：这块上已经花了多少金（卖塔按它退） */
   spent?: number;
+  /** 规则版本 26：崖上的高台（TdPadDef.high，断崖关才有） */
+  high?: true;
 }
 
 export type TdEvent =

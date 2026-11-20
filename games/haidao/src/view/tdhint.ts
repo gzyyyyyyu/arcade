@@ -6,8 +6,8 @@
 import { COUNTER, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, bestDamageVs, type TdArmor, type TdDamage, type TdEnemyKind, type TdTowerKind } from '../core/index.ts';
 import type { TdEventKind } from '../core/tdtypes.ts';
 import { ARMOR_NAME, DAMAGE_NAME } from './td-ui.ts';
-import { TD2_ENEMIES, TD2_EVENT, TD2_NAV_SKILL } from '../content/td2units.ts';
-import { TICKS_PER_SEC } from '../core/types.ts';
+import { TD2_CLIFF, TD2_ENEMIES, TD2_EVENT, TD2_NAV_SKILL } from '../content/td2units.ts';
+import { TICKS_PER_SEC, UNIT } from '../core/types.ts';
 
 export const FOE_KEY = 'haidao.hint.foe';
 
@@ -21,7 +21,7 @@ const FOE_TRAIT: Readonly<Record<TdEnemyKind, string>> = {
   sapper: '冲到墙前自爆，把墙炸开',
   parrot: '会飞，墙和拒马拦不住',
   captain: '首领：身边的海盗走得更快',
-  shield: '正面挡枪和炮，火和爆照吃',
+  shield: '正面挡枪和炮，侧面、背后打不挡；火和爆照吃',
   grenadier: '隔着墙扔手雷，炸墙',
   bosun: '一个顶四个，狙击、臼炮打它最划算',
   macaw: '一只顶一群，会飞，要多留火枪塔',
@@ -63,8 +63,8 @@ export function newFoes(kinds: Iterable<TdEnemyKind>, seen: ReadonlySet<string>)
 export const MECH_KEY = 'haidao.hint.mech';
 /** 航海士技能持续几秒（提示、技能钮的悬停说明共用，跟着 TD2_NAV_SKILL 走） */
 export const navSecs = (k: 'flag' | 'reward'): number => Math.round(TD2_NAV_SKILL[k].ticks / TICKS_PER_SEC);
-/** 章末机制、关内事件（规则版本 22）和第一次带航海士（规则版本 23）共用这一套首次提示 */
-export type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet' | TdEventKind | 'nav';
+/** 章末机制、关内事件（规则版本 22）、第一次带航海士（规则版本 23）和第一次见到崖上的高台（规则版本 26）共用这一套首次提示 */
+export type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet' | TdEventKind | 'nav' | 'cliff';
 
 /** 每种章末机制一句怎么用（每章倒数第二关第一次见到时弹，和新敌人共用一张卡） */
 export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }>> = {
@@ -76,6 +76,7 @@ export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }
   rain: { name: '暴雨', text: '下雨的那一波火弱两成、地上的火不烧，飞的也慢一点' },
   dare: { name: '战书', text: `开打前可以接：这一波敌人多 ${TD2_EVENT.dare.morePct}%，打倒的金币翻倍` },
   nav: { name: '航海士', text: `急射旗：旗边的塔 ${navSecs('flag')} 秒打得快一倍；重赏：倒在圈里的海盗金币翻倍；提前叫波多拿一半金币` },
+  cliff: { name: '崖上的高台', text: `塔射程远 ${TD2_CLIFF.rangeAdd / UNIT} 格，往下打盾挡不住；崖脚下 ${TD2_CLIFF.minRange / UNIT} 格内打不到，造价贵一点` },
 };
 
 /** 这一局有哪些章末机制（只看规则核心建好的状态：旧版本的局、没有机制的关为空） */
@@ -83,9 +84,11 @@ export function mechsOf(s: {
   drift?: unknown; sluice?: unknown; battery?: unknown; fleet?: unknown;
   happen?: { at: ReadonlyArray<{ kind: TdEventKind }> };
   hero?: { kind?: 'nav' };
+  slots?: ReadonlyArray<{ high?: true }>;
 }): MechKind[] {
   const out: MechKind[] = [];
   if (s.hero?.kind) out.push('nav');
+  if (s.slots?.some((q) => q.high)) out.push('cliff');
   if (s.drift) out.push('crate');
   if (s.sluice) out.push('sluice');
   if (s.battery) out.push('battery');

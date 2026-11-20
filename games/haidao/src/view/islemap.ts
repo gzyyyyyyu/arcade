@@ -20,7 +20,7 @@ function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string,
 
 /** 小地图要画的东西：关卡（木台、登陆点）、岛上的墙 / 宝藏 / 主寨，护航关再加航线和隘口 */
 export interface IsleSpec {
-  lv: Pick<TdLevel, 'name' | 'slots' | 'lanes' | 'tide' | 'water'>;
+  lv: Pick<TdLevel, 'name' | 'slots' | 'lanes' | 'tide' | 'water' | 'cliffs'>;
   layout: readonly Placed[];
   escort?: Pick<EscortDef, 'route' | 'gates'>;
 }
@@ -39,11 +39,14 @@ export function islandMap(spec: IsleSpec, parent: HTMLElement, cls: string): { b
   svg('polygon', { points: diamond(0, 0, ISLAND), class: 'land' }, root);
   // 第四章的水面（水道、火口湖）：和海一个颜色，一眼看出哪里过不去
   for (const c of lv.water ?? []) svg('polygon', { points: diamond(c.x, c.y, 1), class: 'water' }, root);
+  // 第五章的断崖：红褐色，崖上的高台另描一圈（和岛上的颜色一样）
+  for (const c of lv.cliffs ?? []) svg('polygon', { points: diamond(c.x, c.y, 1), class: 'cliff' }, root);
+  for (const s of lv.slots) if (s.high) svg('polygon', { points: diamond(s.x, s.y, 2), class: 'cliff' }, root);
   for (const b of layout) {
     if (b.kind !== 'wall' && b.kind !== 'treasure' && b.kind !== 'hq') continue;
     svg('polygon', { points: diamond(b.x, b.y, BUILDINGS[b.kind].size), class: b.kind }, root);
   }
-  for (const s of lv.slots) svg('polygon', { points: diamond(s.x, s.y, 1), class: 'pad' }, root);
+  for (const s of lv.slots) svg('polygon', { points: diamond(s.x, s.y, 1), class: s.high ? 'pad high' : 'pad' }, root);
   if (escort && escort.route.length > 1) {
     svg('polyline', { points: escort.route.map((p) => mid(p).join(',')).join(' '), class: 'route' }, root);
     for (const g of escort.gates) {

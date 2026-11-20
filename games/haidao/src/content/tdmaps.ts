@@ -60,7 +60,7 @@ export const TD2_SAMPLE_LEVEL: TdIslandLevel = {
   ],
 };
 
-/** 全部关：战役 24 关（td01–td24，按解锁顺序）加样板关；战役关表用 tdCampaign()，它按 id 滤掉样板关 */
+/** 全部关：战役 30 关（td01–td30，按解锁顺序）加样板关；战役关表用 tdCampaign()，它按 id 滤掉样板关 */
 export const TD2_LEVELS: readonly TdIslandLevel[] = [...REAL_LEVELS, TD2_SAMPLE_LEVEL];
 /** 按 id 查关 */
 export const TD2_LEVEL_BY_ID: ReadonlyMap<string, TdIslandLevel> = new Map(TD2_LEVELS.map((l) => [l.id, l]));

@@ -21,7 +21,7 @@ export type { DecoAnimKind } from './buildings.ts';
 export { CHIMNEY_AT, DECO_FRAMES, decoFrames, isDecoAnim, HQ_FLAG_AT, hqFlagFrames, hqNoFlagArt, palmSwayFrames, krakenArt, wallArt, fxFrames, troopFrames, badgeArt, lootChestArt, coastArt, decoArt, mapDecoArt, mapIslandArt, PALETTE, BUILDING_SIZE, buildingArt, fxArt, iconArt, shipArt, tileArt, troopArt };
 export type { ArtPiece };
 
-export const BUILDING_KINDS: BuildingKind[] = ['hq', 'goldmine', 'sawmill', 'vault', 'woodyard', 'dock', 'armory', 'cannon', 'gunTower', 'mortar', 'mine', 'flame', 'harpoon', 'tar', 'rocket', 'fogTower', 'shock', 'sniper', 'kraken', 'wall', 'statue', 'flagpole', 'chest', 'wheel', 'windmill', 'lighthouse', 'bonfire', 'palm', 'rock'];
+export const BUILDING_KINDS: BuildingKind[] = ['hq', 'goldmine', 'sawmill', 'vault', 'woodyard', 'dock', 'armory', 'cannon', 'gunTower', 'mortar', 'mine', 'flame', 'harpoon', 'tar', 'rocket', 'fogTower', 'shock', 'sniper', 'kraken', 'wall', 'statue', 'flagpole', 'chest', 'wheel', 'windmill', 'lighthouse', 'bonfire', 'lookout', 'palm', 'rock'];
 export const TROOP_KINDS: TroopKind[] = ['sailor', 'gunner', 'brute', 'bomber', 'captain', 'medic', 'cannoneer', 'harpooner', 'grenadier', 'shield'];
 export const POSES = ['idle', 'walk1', 'walk2', 'attack'] as const;
 export const TILE_KINDS = ['grass', 'grass2', 'sand', 'shallow', 'sea'] as const;

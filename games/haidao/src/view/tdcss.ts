@@ -180,10 +180,12 @@ function tdCss(): string {
 .hd-ui .hd-minimap .sand { fill:#f1d89a; }
 .hd-ui .hd-minimap .land { fill:#8cc56a; }
 .hd-ui .hd-minimap .water { fill:#3fa0c4; }
+.hd-ui .hd-minimap .cliff { fill:#a86a45; }
 .hd-ui .hd-minimap .wall { fill:#6d5b4b; }
 .hd-ui .hd-minimap .hq { fill:#a0603a; }
 .hd-ui .hd-minimap .treasure { fill:${gold}; stroke:${ink}; stroke-width:.3; }
 .hd-ui .hd-minimap .pad { fill:#c9a36b; }
+.hd-ui .hd-minimap .pad.high { fill:#f3d19a; stroke:#5e321e; stroke-width:.25; }
 .hd-ui .hd-minimap .lane { fill:${red}; stroke:#fff; stroke-width:.4; }
 .hd-ui .hd-minimap .route { fill:none; stroke:#fff8e6; stroke-width:.9; stroke-dasharray:1.6 1; stroke-linecap:round; stroke-linejoin:round; }
 .hd-ui .hd-minimap .gate { fill:${redD}; stroke:#fff; stroke-width:.4; }

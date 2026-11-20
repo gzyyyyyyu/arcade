@@ -4,11 +4,11 @@
 import { BUILDINGS } from '../content/index.ts';
 import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
 import { TD_HERO_LIGHT } from '../content/tdunits.ts';
-import { TD2_BOSS_EXTRA_TICKS, TD2_ENEMIES, TD2_HERO, TD2_NAV, TD2_SHOCK_STUN, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
+import { TD2_BOSS_EXTRA_TICKS, TD2_CLIFF, TD2_COST, TD2_ENEMIES, TD2_HERO, TD2_NAV, TD2_SHOCK_STUN, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
 import type { Rng } from './rng.ts';
 import { cellIdx, cellX, cellY, flowField } from './grid.ts';
-import { UNIT } from './types.ts';
+import { RULES_SINCE, UNIT } from './types.ts';
 import type { BuildingKind } from './types.ts';
 import { TD_BURN_DAMAGE, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
 import type { EscortState } from './escorttypes.ts';
@@ -65,6 +65,8 @@ export interface Pend {
   /** 规则版本 ≥ 11：直射的出膛点（盾兵按它判正面）；溅射不写 */
   sx?: number;
   sy?: number;
+  /** 规则版本 26：从崖上的高台往下打（盾挡不住） */
+  above?: true;
 }
 
 export interface Trap {
@@ -271,9 +273,34 @@ export function towerStats(s: TdState, t: TdTower): TowerStats {
   let st = I.stats.get(t.id);
   if (!st) {
     st = statsOf(t.kind, t.level, t.tier, t.branch, isTdTowerKind(t.kind) ? (I.bonus[t.kind] ?? 0) : 0);
+    if (onHigh(s, t)) highReach(st);
     I.stats.set(t.id, st);
   }
   return st;
+}
+
+/**
+ * 断崖关的规则开着吗（规则版本 26、关卡写了 cliffs）：断崖格挡路、高台、断崖关里盾兵挡英雄的枪都看这一处。
+ * 海盗来袭也有盾兵，但它的岛没有 cliffs，盾兵照规则 11 的老样子（英雄的枪不挡），回放逐位不变
+ */
+export function cliffOn(s: { rules: number; level: TdLevel }): boolean {
+  return s.rules >= RULES_SINCE.tdCliffs && !!s.level.cliffs;
+}
+
+/** 塔在崖上的高台上（slot 的 high 只在断崖关的规则开着时才写，createTd） */
+export function onHigh(s: TdState, t: TdTower): boolean {
+  return t.slot >= 0 && s.slots[t.slot]?.high === true;
+}
+
+/** 高台：射程多 rangeAdd；崖下 minRange 内打不到，和塔自己的近身死区（臼炮）取大的，出手判定照旧走 inRing */
+function highReach(st: { range: number; minRange: number }): void {
+  st.range += TD2_CLIFF.rangeAdd;
+  st.minRange = Math.max(st.minRange, TD2_CLIFF.minRange);
+}
+
+/** 在这块木台上造这种塔要多少局内金：高台按 TD2_CLIFF.costPct 算，别的木台就是 TD2_COST（机器人、界面、规则都读这一处） */
+export function tdBuildCost(s: Pick<TdState, 'slots'>, slot: number, kind: TdTowerKind): number {
+  return s.slots[slot]?.high ? Math.floor((TD2_COST[kind] * TD2_CLIFF.costPct) / 100) : TD2_COST[kind];
 }
 
 /** 塔真实的射程（单位）：界面画射程圈、造塔预览都读它，和出手判定是同一个数 */
@@ -282,10 +309,12 @@ export function tdTowerRange(s: TdState, t: TdTower): { range: number; minRange:
   return { range: st.range, minRange: st.minRange };
 }
 
-/** 还没造的塔（造塔预览）：这种塔这一阶、不带分叉时的射程 */
-export function tdBuildRange(kind: TdTowerKind, tier: TdTier = 1): { range: number; minRange: number } {
+/** 还没造的塔（造塔预览）：这种塔这一阶、不带分叉时的射程；high = 造在高台上 */
+export function tdBuildRange(kind: TdTowerKind, tier: TdTier = 1, high = false): { range: number; minRange: number } {
   const st = statsOf(kind, TD_TIER_LEVEL[tier], tier, [], 0);
-  return { range: st.range, minRange: st.minRange };
+  const r = { range: st.range, minRange: st.minRange };
+  if (high) highReach(r);
+  return r;
 }
 
 /** 英雄某一级的数值：船长 TD2_HERO、航海士 TD2_NAV，每级 +growPct%（登陆战的驻岛英雄另有一张表，不读这里） */

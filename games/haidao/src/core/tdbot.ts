@@ -15,7 +15,9 @@ import { tdDareCan } from './tdevent.ts';
 import { hookTarget } from './tdhook.ts';
 import { tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund } from './tdquery.ts';
 import { isqrt } from './fmath.ts';
-import { tcx, tcy, tdHeroStats, tdTowerRange } from './tdstate.ts';
+import { cliffOn, tcx, tcy, tdBuildCost, tdBuildRange, tdHeroStats, tdTowerRange } from './tdstate.ts';
+import { inRing } from './combat.ts';
+import { SHIELD } from '../content/troops.ts';
 import type { TdState } from './tdstate.ts';
 import { cellX, cellY } from './grid.ts';
 import { TD_ARMORS, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
@@ -89,9 +91,10 @@ export function counterKind(s: TdState, pv: WavePreview[]): TdTowerKind {
   const pool = gunboatAhead(pv) && s.towers.filter((t) => t.slot >= 0 && sea(t.kind as TdTowerKind)).length < 2 && s.unlocked.some(sea) ? s.unlocked.filter(sea) : s.unlocked;
   let best: TdTowerKind = pool[0] ?? 'gunTower';
   let bestV = -1;
+  const guard = cliffOn(s) ? shieldPct(pv) : 0;
   for (const k of pool) {
     let v = 0;
-    for (const a of TD_ARMORS) v += o.share[a] * counterPct(TD_TOWER_DAMAGE[k], a);
+    for (const a of TD_ARMORS) v += (a === 'heavy' && guard > 0 && direct(k) ? Math.floor((o.share[a] * (100 - Math.floor((guard * (100 - SHIELD.frontPct)) / 200))) / 100) : o.share[a]) * counterPct(TD_TOWER_DAMAGE[k], a);
     const same = s.towers.filter((t) => t.kind === k && t.slot >= 0).length;
     v = Math.floor((v * towerValue(k)) / (2 + same));
     if (v > bestV) {
@@ -100,6 +103,27 @@ export function counterKind(s: TdState, pv: WavePreview[]): TdTowerKind {
     }
   }
   return best;
+}
+
+/** 单体直射的塔（枪弹、炮弹、不溅射）：正面打盾兵会被挡 */
+function direct(k: TdTowerKind): boolean {
+  const dt = TD_TOWER_DAMAGE[k];
+  return (dt === 'shot' || dt === 'shell') && td2TierStats(k, 1).splash === 0;
+}
+
+/**
+ * 预告里重甲里盾兵占几成（按个数，百分比）：断崖关挑塔时，单体直射打重甲的那份按「一半时间打在盾正面」打折（counterKind）。
+ * 只在断崖关算：海盗来袭也有盾兵，它的机器人照旧，回放逐位不变
+ */
+function shieldPct(pv: readonly WavePreview[]): number {
+  let heavy = 0;
+  let shield = 0;
+  for (const w of pv) for (const l of w.lanes) for (const e of l.enemies) {
+    if (e.armor !== 'heavy') continue;
+    heavy += e.n;
+    if (e.kind === 'shield') shield += e.n;
+  }
+  return heavy > 0 ? Math.floor((shield * 100) / heavy) : 0;
 }
 
 /** 预告的这两波里有没有停在海上的船（炮艇、海盗王） */
@@ -246,11 +270,14 @@ function slotScores(s: TdState, pv: WavePreview[]): number[] {
       for (let k = 1; k <= 24; k++) pts.push([x0 + Math.floor(((tr.x * UNIT + 50 - x0) * k) / 24), y0 + Math.floor(((tr.y * UNIT + 50 - y0) * k) / 24)]);
     }
   }
+  // 崖上的高台（断崖关）：打得远、崖下打不到，按高台的射程圈数路（只有断崖关的木台带 high，别的关逐位不变）
+  const hi = tdBuildRange('gunTower', 1, true);
   return s.slots.map((sl) => {
     const cx = sl.x * UNIT + 100;
     const cy = sl.y * UNIT + 100;
     let n = 0;
-    for (const [px, py] of pts) if (d2(px, py, cx, cy) <= 600 * 600) n++;
+    if (sl.high) for (const [px, py] of pts) n += inRing(d2(px, py, cx, cy), hi.range, hi.minRange) ? 1 : 0;
+    else for (const [px, py] of pts) if (d2(px, py, cx, cy) <= 600 * 600) n++;
     return n;
   });
 }
@@ -287,6 +314,20 @@ export interface TdBotOpts {
    * focus 塔全堆在主路（这一关来得最多的那条路）两边，别的路靠英雄和拒马；tall 少造、先升满阶再造下一座（最多一半木台）
    */
   layout?: 'mix' | 'focus' | 'tall';
+  /**
+   * 断崖关的守法（只给配平模拟用）：high 只造崖上的高台；low 只造崖下离路最近的同样几块（块数和高台一样多，
+   * 比的是摆在哪，不是造几座——少造几座、钱全拿去升阶本身就更稳）；不写两种都造
+   */
+  pads?: 'high' | 'low';
+}
+
+/** opts.pads 用的木台：高台全部；或者崖下的木台里离路最近（slotScores 最高）的同样几块 */
+function padsFor(s: TdState, pv: WavePreview[], pick: 'high' | 'low'): Set<number> {
+  const all = s.slots.map((_, i) => i).filter((i) => s.slots[i]!.garrison === undefined);
+  const high = all.filter((i) => s.slots[i]!.high);
+  if (pick === 'high') return new Set(high);
+  const sc = slotScores(s, pv);
+  return new Set(all.filter((i) => !s.slots[i]!.high).sort((a, b) => (sc[b] ?? 0) - (sc[a] ?? 0) || a - b).slice(0, high.length));
 }
 
 /** focus 用的主路：这一关所有波次里来得最多（个数）的那条路（下标同 tdRoutes 的 lane）；没有波次表（无尽）取 0 号 */
@@ -388,6 +429,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
   let seenWave = 0;
   let waveAt = 0;
   let focus: Set<number> | null = null;
+  let padSet: Set<number> | null = null;
   return (s: TdState): TdAction[] => {
     const t = s.tick;
     const out: TdAction[] = [];
@@ -428,9 +470,9 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
           k = pv ? pickKind(s, pv) : (s.unlocked[rng.int(s.unlocked.length)] as TdTowerKind);
           want.set(i, k);
         }
-        if (gold >= TD2_COST[k]) {
+        if (gold >= tdBuildCost(s, i, k)) {
           out.push({ t, type: 'build', slot: i, kind: k });
-          gold -= TD2_COST[k];
+          gold -= tdBuildCost(s, i, k);
         }
       } else {
         for (let j = 0; j < s.slots.length; j++) {
@@ -487,11 +529,13 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
         }
       }
       // 布局思路：focus 只在主路两边造；tall 已造的没升满就先升，最多造一半木台
-      let buildable = free;
+      if (opts.pads && !padSet) padSet = padsFor(s, pv, opts.pads);
+      const ps = padSet;
+      let buildable = ps ? free.filter((i) => ps.has(i)) : free;
       if (opts.layout === 'focus') {
         focus ??= focusSlots(s);
         const f = focus;
-        buildable = free.filter((i) => f.has(i));
+        buildable = buildable.filter((i) => f.has(i));
       } else if (opts.layout === 'tall') {
         const built = s.slots.filter((sl) => sl.tower >= 0).length;
         const short = s.towers.some((tw) => tw.slot >= 0 && tw.tier !== undefined && tw.tier < 3);
@@ -501,9 +545,9 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
         let bi = buildable[0] as number;
         for (const i of buildable) if ((sc[i] ?? 0) > (sc[bi] ?? 0)) bi = i;
         const k = pickKind(s, pv);
-        if (gold >= TD2_COST[k]) {
+        if (gold >= tdBuildCost(s, bi, k)) {
           out.push({ t, type: 'build', slot: bi, kind: k });
-          gold -= TD2_COST[k];
+          gold -= tdBuildCost(s, bi, k);
         }
         spent = true;
       }
@@ -539,7 +583,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
             const tw = towerOn(s, j);
             return !!tw && !tw.garrison && tw.tier === 1 && hits(tw, top) <= 50;
           });
-          if (bad !== undefined && gold + tdSellRefund(s, bad) >= TD2_COST[want2]) {
+          if (bad !== undefined && gold + tdSellRefund(s, bad) >= tdBuildCost(s, bad, want2)) {
             out.push({ t, type: 'sell', slot: bad });
             soldWave = s.wave;
           }

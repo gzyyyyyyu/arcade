@@ -273,7 +273,7 @@ function foeHint(bs: TdScene, start: boolean): void {
   takeNew(it.t === 'm' ? MECH_KEY : FOE_KEY, () => [it.k]);
   if (it.t === 'm') {
     const k = it.k;
-    const icon = img(k === 'crate' ? tdP('crate') : k === 'fleet' ? iconA('ship') : k === 'nav' ? iconA('rushFlag') : iconA(k), 40);
+    const icon = img(k === 'crate' ? tdP('crate') : k === 'cliff' ? tdP('pad') : k === 'fleet' ? iconA('ship') : k === 'nav' ? iconA('rushFlag') : iconA(k), 40);
     hintCard(bs, bs.ui, [{ icon, ...MECH_HINT[k] }], '新玩法');
   } else {
     const f = tdE(it.k, 'walk')[0];

@@ -32,12 +32,14 @@ import { tidePick } from '../src/core/tdtide.ts';
  * - 24（战役几关前几波放宽，关卡的 ease）：只改写了 ease 的关，别的键 v24- 和 v23- 逐个相同（tests/td-ease.test.ts 锁住）；
  *   照建议的新手（guided）从 v24 起只录战役关，`v24-<关>-guided-*`。
  * - 25（护航新手档放宽、娱乐护航开局跟随）只改护航，守岛各玩法和 24 一样，不另录；护航的锁在 tests/escort-golden.test.ts。
+ * - 26（第五章「断崖海岸」td25–td30：断崖格、崖上高台、盾兵进战役）：第五章的关只在 v26 起算，别的键 v26- 和 v24- 逐个相同
+ *   （tests/td-cliff.test.ts 锁住）；断崖关以外的盾兵（海盗来袭）照旧。
  * v10 中档 0.29.1 前未开放（线上没有 v10 中档的对局），指纹随 0.29.1 的配平（hpPct 180 → 190）更新，只动了 v10-live-mid-* 9 个键。
  */
 export const GOLDEN_FILE = new URL('./td-golden.json', import.meta.url);
 /** 分片数：GitHub 的机器 4 核，8 片让慢片和别的测试文件错开 */
 export const GOLDEN_SHARDS = 8;
-const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+const VERSIONS = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26];
 /** 海盗来袭进指纹锁的主寨等级：6 是加难档开放的那一级，8 是满级 */
 const HOME_HQ = [6, 8];
 const SEEDS = [1, 2, 3];
@@ -87,6 +89,8 @@ export function goldenJobs(): GoldenJob[] {
       if (lv.chapter === 4 && rules < RULES_SINCE.tdChapter4) continue;
       // 带友军船的关（td23、td24）是规则版本 19 才有的
       if (lv.fleet && rules < RULES_SINCE.tdFleet) continue;
+      // 第五章（断崖关）是规则版本 26 才有的
+      if (lv.chapter === 5 && rules < RULES_SINCE.tdCliffs) continue;
       for (const seed of SEEDS) {
         const r = tdGrowthSetup(lv.id, 'suggest', seed);
         if (!r.ok) throw new Error(`${lv.id}: ${r.error}`);
@@ -112,6 +116,7 @@ export function goldenJobs(): GoldenJob[] {
     }
     if (rules >= RULES_SINCE.tdNav) {
       for (const lv of tdCampaign()) {
+        if (lv.chapter === 5 && rules < RULES_SINCE.tdCliffs) continue;
         for (const seed of SEEDS) {
           const r = tdGrowthSetup(lv.id, 'suggest', seed, 'nav');
           if (!r.ok) throw new Error(`${lv.id}: ${r.error}`);

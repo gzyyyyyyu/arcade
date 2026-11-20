@@ -1,5 +1,5 @@
 /**
- * 守岛 2.0 的 24 关（td01–td24）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
+ * 守岛 2.0 的 30 关（td01–td30）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
  * 波次不写死个数，写"这一波的预算分给哪几组敌人"：个数 = 预算份额 ÷ 敌人点数（TD2_ENEMY_POINTS），预算见 waveBudget。
  * 这样改 TD2_BUDGET 或敌人点数，各关的强度跟着连续变；td-sim 还能用 buildLevel 的 budgetPct 量"预算 ±2% 时的三星率"。
  * 难度只来自预算、敌人种类和路数、地图，没有每关单独的血量百分比（hpPct 一律 100）。
@@ -112,6 +112,7 @@ const C = 'captain';
 const M = 'medic';
 const B = 'gunboat';
 const G = 'king';
+const D = 'shield';
 
 const DEFS: readonly LevelDef[] = [
   // ---------------------------------------------------------------- 第一章：登陆、铁甲、雾船、鹦鹉、首领
@@ -507,6 +508,102 @@ const DEFS: readonly LevelDef[] = [
       note('海盗王：旗舰停在北边海上，过一阵放下一船人，血过半叫两艘炮艇护航', boss([G, 0, 0], [S, 40, 1, 40], [I, 30, 2, 60], [M, 30, 0, 80])),
     ],
   },
+  // ---------------------------------------------------------------- 第五章「断崖海岸」（规则版本 26）：崖上高台（打得远、崖脚下打不到）、盾兵（正面挡枪炮）。
+  // 按宁简勿难，起点放回第四章中段的难度（DESIGN 10.6h），逐关小台阶
+  {
+    id: 'td25', name: '断崖初登', index: 24, map: 'L', chapter: 5, hq: 8, gold: 450, waveTicks: 320, scale: 130, pads: 7, garrison: [3],
+    waves: [
+      w([S, 100, 0]),
+      w([S, 60, 1], [I, 40, 0]),
+      note('盾兵来了：正面挡枪炮。从侧面打、用溅射，或者让崖上的高台往下打', w([S, 50, 0], [D, 30, 0], [S, 20, 1])),
+      w([I, 30, 1], [S, 40, 0], [D, 30, 1]),
+      w([K, 25, 0], [S, 45, 1], [D, 30, 0]),
+      w([K, 30, 1], [S, 40, 0], [D, 30, 0]),
+      w([I, 30, 0], [S, 40, 1], [D, 30, 1]),
+      note('首领：船长带着盾兵', boss([C, 0, 0], [S, 40, 0, 30], [D, 30, 1, 20], [I, 30, 0, 40])),
+      w([K, 25, 1], [S, 40, 0], [D, 35, 1]),
+      w([S, 40, 0], [I, 25, 1], [D, 35, 0]),
+    ],
+  },
+  {
+    id: 'td26', name: '盾墙', index: 25, map: 'L', chapter: 5, hq: 8, gold: 450, waveTicks: 320, scale: 80, pads: 7, garrison: [3], events: 'dare',
+    waves: [
+      w([S, 100, 1]),
+      w([S, 50, 0], [D, 50, 1]),
+      w([S, 50, 1], [D, 30, 0], [K, 20, 1]),
+      note('盾墙：成排的盾兵挡在前面，后面跟着一大群水手', w([D, 40, 1], [S, 60, 1, 40])),
+      w([K, 30, 0], [S, 40, 1], [D, 30, 1]),
+      w([S, 45, 1], [D, 35, 0], [P, 20, 1]),
+      w([I, 30, 0], [D, 35, 1], [S, 35, 1]),
+      note('首领：船长躲在盾墙后面', boss([C, 0, 1], [D, 40, 1, 20], [S, 40, 0, 40], [I, 20, 1])),
+      w([S, 45, 1], [D, 35, 1], [K, 20, 0]),
+      w([K, 30, 1], [D, 35, 0], [S, 35, 1]),
+      note('最后一波：两路一起压上来', w([D, 35, 1], [S, 35, 1], [I, 30, 0])),
+    ],
+  },
+  {
+    id: 'td27', name: '双崖口', index: 26, map: 'M', chapter: 5, hq: 8, gold: 480, waveTicks: 320, scale: 95, pads: 8, garrison: [3, 3], events: 'bounty',
+    waves: [
+      w([S, 100, 0]),
+      w([S, 50, 1], [S, 50, 2]),
+      note('三路都挤进峡谷：两边崖上的高台互相补脚下', w([S, 40, 0], [D, 30, 1], [I, 30, 2])),
+      w([D, 30, 0], [S, 20, 1], [S, 35, 2], [S, 15, 3]),
+      w([K, 25, 2], [S, 25, 0], [D, 35, 1], [S, 15, 3]),
+      w([I, 30, 1], [D, 30, 2], [S, 25, 0], [S, 15, 3]),
+      w([K, 30, 0], [S, 20, 2], [D, 35, 1], [S, 15, 3]),
+      note('首领：三路一起进峡谷', boss([C, 0, 0], [D, 35, 0, 20], [S, 35, 1, 30], [I, 30, 2, 40])),
+      w([K, 25, 0], [S, 25, 1], [D, 35, 2], [S, 15, 3]),
+      w([S, 25, 2], [D, 30, 0], [I, 30, 1], [S, 15, 3]),
+    ],
+  },
+  {
+    id: 'td28', name: '峡谷军医', index: 27, map: 'M', chapter: 5, hq: 8, gold: 480, waveTicks: 320, scale: 105, pads: 9, garrison: [3, 3],
+    waves: [
+      w([S, 100, 0]),
+      w([S, 35, 2], [D, 50, 1], [S, 15, 3]),
+      note('军医跟着盾兵：盾挡在前面、军医在后面回血，先打掉军医', w([D, 40, 0], [M, 20, 0, 40], [S, 40, 1])),
+      w([S, 25, 2], [D, 30, 1], [M, 15, 1, 40], [I, 15, 0], [S, 15, 3]),
+      w([K, 25, 0], [S, 25, 2], [D, 35, 1], [S, 15, 3]),
+      w([K, 30, 1], [D, 20, 0], [M, 15, 0, 40], [S, 20, 2], [S, 15, 3]),
+      w([I, 30, 2], [S, 20, 0], [D, 35, 1], [S, 15, 3]),
+      note('首领：船长带着军医和盾兵', boss([C, 0, 0], [D, 35, 0, 20], [M, 20, 0, 40], [S, 25, 1, 30], [I, 20, 2])),
+      w([S, 25, 1], [D, 30, 2], [M, 15, 2, 40], [K, 15, 0], [S, 15, 3]),
+      w([D, 20, 0], [S, 35, 1], [I, 30, 2], [S, 15, 3]),
+      note('最后一波：三路的盾一起来', w([D, 40, 0], [D, 30, 1], [M, 15, 2, 40], [S, 15, 2])),
+    ],
+  },
+  {
+    id: 'td29', name: '崖下夜袭', index: 28, map: 'L', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 85, elite: { scale: 85, kind: 'mate' }, pads: 9, garrison: [3, 3],
+    waves: [
+      w([S, 100, 0]),
+      w([S, 50, 1], [I, 50, 0]),
+      w([S, 50, 0], [D, 30, 1], [M, 20, 0, 40]),
+      note('大副成批来：倒下散成水手，溅射收拾', w([S, 50, 1], [D, 30, 0], [K, 20, 1])),
+      w([S, 45, 0], [D, 35, 0], [P, 20, 1]),
+      w([I, 30, 1], [S, 40, 0], [D, 30, 1]),
+      w([S, 40, 1], [D, 30, 0], [M, 15, 0, 40], [K, 15, 1]),
+      note('首领：船长带着大副和盾兵', boss([C, 0, 0], [S, 40, 0, 30], [D, 35, 1, 20], [I, 25, 0])),
+      w([P, 25, 0], [S, 40, 1], [D, 35, 0]),
+      w([S, 40, 0], [D, 35, 1], [I, 25, 0]),
+      note('最后一波：崖下挤满人', w([S, 40, 0], [S, 25, 1], [D, 35, 0])),
+    ],
+  },
+  {
+    // 第五章终局：船长发怒（召一批水手、炸哑身边的塔），盾兵和大副成批来
+    id: 'td30', name: '断崖船长', index: 29, map: 'M', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 85, elite: { scale: 85, kind: 'mate' }, pads: 10, garrison: [3, 3], bossSkill: true,
+    waves: [
+      w([S, 60, 0]),
+      w([S, 55, 1], [D, 30, 2], [S, 15, 3]),
+      w([S, 25, 0], [D, 30, 1], [I, 30, 2], [S, 15, 3]),
+      w([D, 35, 2], [S, 25, 0], [M, 25, 1, 40], [S, 15, 3]),
+      w([K, 25, 1], [S, 25, 2], [D, 35, 0], [S, 15, 3]),
+      w([K, 30, 0], [D, 20, 1], [S, 35, 2], [S, 15, 3]),
+      w([I, 30, 2], [S, 20, 1], [D, 35, 0], [S, 15, 3]),
+      w([S, 25, 0], [D, 30, 2], [M, 15, 1, 40], [K, 15, 1], [S, 15, 3]),
+      w([D, 25, 1], [S, 35, 0], [I, 25, 2], [S, 15, 3]),
+      note('断崖船长：血过半发怒，召一批水手、炸哑身边的塔', boss([C, 0, 0], [D, 35, 0, 20], [S, 35, 1, 30], [I, 15, 2, 40], [M, 15, 0, 60])),
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------- 展开成引擎吃的关卡
@@ -602,6 +699,12 @@ function recipeWave(def: LevelDef, r: WaveRecipe, i: number, budgetPct: number):
   return { ...old, groups: [...old.groups.map((g) => ({ ...g, until: since })), ...now.groups.map((g) => ({ ...g, since }))] };
 }
 
+/** 断崖格扣掉这一关用到的高台占的格（高台照常是木台）；没用到的高台还是崖 */
+function cliffsFor(cliffs: ReadonlyArray<{ x: number; y: number }>, pads: readonly TdPadDef[]): Array<{ x: number; y: number }> {
+  const high = (c: { x: number; y: number }): boolean => pads.some((p) => p.high && c.x >= p.x && c.x <= p.x + 1 && c.y >= p.y && c.y <= p.y + 1);
+  return cliffs.filter((c) => !high(c)).map((c) => ({ ...c }));
+}
+
 /**
  * 造一关。budgetPct：波次预算再乘多少百分比，配平和 td-sim 的"预算 ±2%"用，正式关卡是 100。
  * 木台取地图的前 pads 个，wrecks 里的下标压着沉船；驻守台取前 garrison.length 个，封顶阶按关卡写。
@@ -643,6 +746,7 @@ export function buildLevel(def: LevelDef, budgetPct = 100): TdIslandLevel {
     ...(def.events ? { events: [{ kind: def.events, ...EVENT_SPAN }] } : {}),
     ...(map.water ? { water: map.water.map((p) => ({ ...p })) } : {}),
     ...(map.bridges ? { bridges: map.bridges.map((p) => ({ ...p })) } : {}),
+    ...(map.cliffs ? { cliffs: cliffsFor(map.cliffs, pads) } : {}),
     slots: pads,
     garrison,
     kegs: map.kegs.map((p) => ({ ...p })),
@@ -669,4 +773,5 @@ export const TD2_CHAPTERS: readonly Td2ChapterInfo[] = [
   { id: 2, name: '第二章', theme: '潮水涨落 · 成片的雾', levels: TD2_LEVELS.filter((l) => l.chapter === 2) },
   { id: 3, name: '第三章', theme: '炸塔工兵 · 绕后鹦鹉 · 首领发怒', levels: TD2_LEVELS.filter((l) => l.chapter === 3) },
   { id: 4, name: '第四章', theme: '远洋 · 军医回血 · 海上炮艇 · 友军船 · 海盗王', levels: TD2_LEVELS.filter((l) => l.chapter === 4) },
+  { id: 5, name: '第五章', theme: '断崖海岸 · 崖上高台 · 盾兵', levels: TD2_LEVELS.filter((l) => l.chapter === 5) },
 ];

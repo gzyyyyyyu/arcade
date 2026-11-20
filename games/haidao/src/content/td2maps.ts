@@ -1,5 +1,5 @@
 /**
- * 守岛 2.0 的 9 张关卡岛（A–I）：地形、路线、木台、驻守台、火药桶都写死，两关共用一张图。
+ * 守岛 2.0 的 13 张关卡岛（A–M）：地形、路线、木台、驻守台、火药桶都写死，两关共用一张图。
  * 用矩形和坐标写（格子，岛 22×22），再由 mapLayout 展开成 Placed：墙一律 3 级、2 格厚
  * （敌人穿墙的代价是绕路的 7 倍，薄墙挡不住长绕路；厚墙才能把路逼成 S 形）。
  * 木台、驻守台按"先放的先用"排好：关卡取前 n 个，所以每张图的木台数是两关里较多的那个。
@@ -36,6 +36,8 @@ interface MapSpec {
   water?: Rect[];
   /** 桥：水面上留的能走的口子，只画木板 */
   bridges?: Pt[];
+  /** 断崖（第五章）：矩形，挡路；整块落在崖里的木台是崖上的高台（TdPadDef.high），关卡用到的高台那几格从断崖里扣掉（td2levels.ts 的 buildLevel） */
+  cliffs?: Rect[];
 }
 
 const SPECS: readonly MapSpec[] = [
@@ -215,6 +217,41 @@ const SPECS: readonly MapSpec[] = [
     garrison: [[5, 11], [15, 11], [10, 4]],
     kegs: [[10, 0], [11, 0], [0, 9], [21, 10]],
   },
+  {
+    // L 断崖湾（第五章）：北路被一道厚墙和中间的断崖夹成一格宽的崖下小道；崖上的高台打得远，可脚下那两格打不到；
+    // 西路沿南边直奔箱子，西南的小崖上另有一块高台
+    id: 'L',
+    name: '断崖湾',
+    blurb: '崖上高台打得远，崖脚下打不到',
+    hq: [18, 0],
+    treasures: [[15, 16]],
+    walls: [[0, 8, 8, 9]],
+    cliffs: [[10, 5, 14, 9], [2, 12, 5, 14]],
+    rocks: [[20, 9], [19, 20], [1, 1], [8, 20]],
+    palms: [[16, 5], [20, 14], [1, 6]],
+    lanes: [[5, -2], [-2, 17]],
+    pads: [[10, 6], [6, 4], [3, 12], [12, 12], [7, 14], [17, 12], [13, 2], [10, 18], [2, 4], [17, 7]],
+    garrison: [[12, 14], [5, 10]],
+    kegs: [[5, 0], [6, 0], [0, 17], [0, 16]],
+  },
+  {
+    // M 双崖口（第五章）：东西两座崖夹着一道峡谷，北、西、东三路都要从峡谷里过；两边崖上各有高台，
+    // 贴着西崖走的打不到西边高台、却正好在东边高台的射程里（两座高台互相补脚下）。
+    // 东南沙滩还有一处后路（第 4 条路），少量人不过峡谷直奔箱子：只守峡谷口太好守，要分兵顾后面（同双子岛）
+    id: 'M',
+    name: '双崖口',
+    blurb: '三路挤进峡谷，两边崖上互相照应',
+    hq: [0, 18],
+    treasures: [[10, 18]],
+    walls: [[0, 13, 8, 14], [13, 13, 21, 14]],
+    cliffs: [[4, 8, 8, 12], [13, 8, 17, 12]],
+    rocks: [[20, 1], [1, 1], [20, 20], [6, 21]],
+    palms: [[3, 5], [18, 4], [16, 18]],
+    lanes: [[10, -2], [-2, 5], [23, 5], [23, 19]],
+    pads: [[7, 9], [13, 9], [7, 3], [13, 3], [6, 16], [13, 16], [2, 9], [18, 9], [15, 11], [3, 2]],
+    garrison: [[5, 18], [15, 19], [10, 5]],
+    kegs: [[10, 0], [11, 0], [0, 5], [21, 5], [21, 19]],
+  },
 ];
 
 const WALL_LEVEL = 3;
@@ -242,6 +279,11 @@ function rectCells([x0, y0, x1, y1]: Rect): Pt[] {
   return out;
 }
 
+/** 木台整块（2×2）落在某个断崖矩形里：崖上的高台 */
+function onCliff(m: MapSpec, [x, y]: Pt): boolean {
+  return (m.cliffs ?? []).some(([x0, y0, x1, y1]) => x >= x0 && y >= y0 && x + 1 <= x1 && y + 1 <= y1);
+}
+
 function defOf(m: MapSpec): TdMapDef {
   return {
     id: m.id,
@@ -250,11 +292,12 @@ function defOf(m: MapSpec): TdMapDef {
     lanes: m.lanes.map(([x, y]) => ({ x, y })),
     ...(m.tide ? { tide: { x: m.tide[0], y: m.tide[1] } } : {}),
     ...(m.fog ? { fogZones: m.fog.map((z) => ({ ...z })) } : {}),
-    pads: m.pads.map(([x, y]): TdPadDef => ({ x, y })),
+    pads: m.pads.map(([x, y]): TdPadDef => ({ x, y, ...(onCliff(m, [x, y]) ? { high: true as const } : {}) })),
     garrison: m.garrison.map(([x, y]): TdGarrisonSpot => ({ x, y, cap: 3 })),
     kegs: m.kegs.map(([x, y]) => ({ x, y })),
     ...(m.water ? { water: m.water.flatMap(rectCells).map(([x, y]) => ({ x, y })) } : {}),
     ...(m.bridges ? { bridges: m.bridges.map(([x, y]) => ({ x, y })) } : {}),
+    ...(m.cliffs ? { cliffs: m.cliffs.flatMap(rectCells).map(([x, y]) => ({ x, y })) } : {}),
   };
 }
 

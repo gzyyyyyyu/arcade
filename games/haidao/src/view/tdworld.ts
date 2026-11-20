@@ -19,7 +19,8 @@ import { footCenter, iso, depthOf } from './iso.ts';
 import { laneName } from './td-ui.ts';
 import { button, el, img } from './ui.ts';
 import { DEPTH } from './depth.ts';
-import { W, buildCost } from './tdcommon.ts';
+import { W, cheapestAt } from './tdcommon.ts';
+import { slotLift } from './tdcliff.ts';
 import { litAt } from './tdsync.ts';
 import { banner } from './tdhud.ts';
 import { wreckOf } from './tdsheet.ts';
@@ -158,9 +159,11 @@ export function drawProps(bs: TdScene): void {
     const q = iso(s.battery.x + 0.5, s.battery.y + 0.5);
     put(bs, bs.r, tdP('battery'), q.x, q.y).setDepth(depthOf(s.battery.x + 0.5, s.battery.y + 0.5));
   }
-  for (const sl of s.slots) {
+  s.slots.forEach((sl, i) => {
     const f = footCenter(sl.x, sl.y, 2);
-    const p = iso(f.gx, f.gy);
+    const g = iso(f.gx, f.gy);
+    // 崖上的高台抬到崖顶（tdcliff.ts）
+    const p = { x: g.x, y: g.y - slotLift(s, i) };
     const im = put(bs, bs.r, tdP('pad'), p.x, p.y).setDepth(depthOf(f.gx, f.gy) - 0.5);
     const plus = bs.add.text(p.x, p.y - 6, '+', { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${30 * bs.r}px`, color: '#fff3b0', stroke: '#2b1a15', strokeThickness: 5 * bs.r }).setOrigin(0.5).setScale(1 / bs.r).setDepth(depthOf(f.gx, f.gy) + 0.1);
     bs.tweens.add({ targets: plus, y: p.y - 12, duration: 700, yoyo: true, repeat: -1, ease: EASE.recover });
@@ -170,7 +173,7 @@ export function drawProps(bs: TdScene): void {
       const rg = isoRing(1.25);
       bs.add.ellipse(p.x, p.y + 2, rg.w, rg.h, 0xf8c630, 0.16).setStrokeStyle(4, 0xf8c630, 0.95).setDepth(depthOf(f.gx, f.gy) - 0.45);
     }
-  }
+  });
   for (const k of s.kegs) {
     const w = W(k.x, k.y);
     bs.kegs.set(k.id, put(bs, bs.r, tdP('keg'), w.x, w.y).setDepth(depthOf(k.x / UNIT, k.y / UNIT)));
@@ -477,15 +480,12 @@ export function drawEdges(bs: TdScene): void {
       items.push({ kind: 'enemy', sx: p.x, sy: p.y, wx: w.x, wy: w.y });
     }
     // 屏外的空木台只在够钱造最便宜的塔时才标（没钱造的标了也没用，反而让人猜那是什么）
-    let cheapest = Infinity;
-    for (const k of s.unlocked) cheapest = Math.min(cheapest, buildCost(k));
-    for (const q of s.slots) {
-      if (s.gold < cheapest) break;
-      if (q.tower >= 0 || wreckOf(bs, q)) continue;
+    s.slots.forEach((q, i) => {
+      if (q.tower >= 0 || wreckOf(bs, q) || s.gold < cheapestAt(s, i)) return;
       const w = iso(q.x + 1, q.y + 1);
       const p = bs.cc.toScreen(w.x, w.y);
       items.push({ kind: 'slot', sx: p.x, sy: p.y, wx: w.x, wy: w.y });
-    }
+    });
   }
   // 预告卡指的那块木台（开局造法 / 下一座造 / 升级）在屏外：边上指一个金色箭头，点了镜头移过去（和点卡上那一格一样）
   const goal = bs.fit.live && !bs.ended ? goalSlot(bs) : undefined;

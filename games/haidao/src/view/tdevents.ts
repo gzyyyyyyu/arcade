@@ -30,6 +30,7 @@ import { boom } from './tdoverlay.ts';
 import { addCrate, refreshWalls, removeCrate } from './tdworld.ts';
 import { throwKeg } from './tdinput.ts';
 import { STEP_MS } from './motion.ts';
+import { towerLift } from './tdcliff.ts';
 
 /** 每个场景一份扎堆合并记录（不往 TdScene 里加字段） */
 const CLUSTERS = new WeakMap<object, DmgClusters>();
@@ -140,7 +141,9 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       sfx(towerFire(t.kind));
       trackOf(bs).noteShoot(pj[0], e.x1, e.y1, e.t1);
       const sp = bs.tsp.get(t.id);
-      const ma = W(e.x0, e.y0);
+      // 崖上高台的塔画得高（tdcliff.ts）：出膛点跟着抬
+      const ma0 = W(e.x0, e.y0);
+      const ma = { x: ma0.x, y: ma0.y - towerLift(s, t.id) };
       const mb = W(e.x1, e.y1);
       const dl = Math.hypot(mb.x - ma.x, mb.y - ma.y) || 1;
       let m = { x: ma.x + ((mb.x - ma.x) / dl) * 14, y: ma.y - 16 + ((mb.y - ma.y) / dl) * 7, gx: ma.x, gy: ma.y, z: 16 };
@@ -180,6 +183,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
     case 'guard': {
       // 盾兵用盾挡下一发直射：盾晃一下、盾上火星、一声“当”；溅射打到不会推这个事件
       const sp = bs.esp.get(e.id);
+      bs.guardTick.set(e.id, s.tick);
       if (sp) {
         sp.rig.guard(bs.time.now);
         bs.pt.guardSparks(sp.rig.shX, sp.rig.shY, sp.rig.c.depth);
@@ -228,12 +232,15 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       if (rh) bs.pt.sparks(sp.rig.x, sp.rig.y - 24, 5);
       sp.lastDmg = e.dmg;
       const heavy = e.dmg >= HEAVY_HIT;
-      bs.dn.add(dmgKeyOf(bs).keyFor(e.id, sp.rig.x, sp.rig.y, bs.time.now), e.dmg, sp.rig.x, sp.rig.y - 40, true, heavy);
+      // 同一拍刚被盾挡下（guard 先于 hit 推出）：灰字，一眼看出打在盾上了
+      const muted = bs.guardTick.get(e.id) === s.tick;
+      bs.dn.add(dmgKeyOf(bs).keyFor(e.id, sp.rig.x, sp.rig.y, bs.time.now), e.dmg, sp.rig.x, sp.rig.y - 40, true, heavy && !muted, muted);
       bs.pt.sparks(sp.rig.x, sp.rig.y - 20, heavy ? 3 : 2);
       break;
     }
     case 'die': {
       sfx('die');
+      bs.guardTick.delete(e.id);
       const sp = bs.esp.get(e.id);
       if (sp) {
         bs.esp.delete(e.id);
@@ -261,7 +268,8 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       const t = s.towers.find((q) => q.id === e.id);
       if (!t) break;
       const f = footCenter(t.x, t.y, 2);
-      const w = iso(f.gx, f.gy);
+      const g = iso(f.gx, f.gy);
+      const w = { x: g.x, y: g.y - towerLift(s, t.id) };
       bs.pt.sparks(w.x, w.y - 20, 3);
       ftx(bs, w.x, w.y - 60, '哑火！', '#ffd0c8', 15);
       break;

@@ -23,7 +23,7 @@ import type { EscortState } from './escorttypes.ts';
 import { escortBite, escortHullPct, escortRate, escortResult, escortShip } from './escort.ts';
 import type { TdBarricade, TdTier, TdTowerKind } from './td2types.ts';
 import type { TdAction, TdBlock, TdEnemy, TdEnemyDef, TdEnemyKind, TdEvent, TdGroup, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
-import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower, barricadeAt } from './tdstate.ts';
+import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower, barricadeAt, cliffOn, onHigh, tdBuildCost } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
 import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, stepFleet, toggleSluice } from './tdmech.ts';
 import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus } from './tdquery.ts';
@@ -104,6 +104,9 @@ export function createTd(setup: TdSetup): TdState {
   }
   // 第四章的水面（规则版本 18，只有写了 water 的关才有）：和建筑一样整格挡死，谁都走不过去
   if (setup.rules >= RULES_SINCE.tdChapter4) for (const c of level.water ?? []) if (inGrid(c.x, c.y)) fixed[cellIdx(c.x, c.y)] = 2;
+  // 第五章的断崖（规则版本 26）：和水面一样挡死；崖上的高台不在断崖格里（content 里扣掉了），照常是木台
+  const cliffs = cliffOn({ rules: setup.rules, level });
+  if (cliffs) for (const c of level.cliffs ?? []) if (inGrid(c.x, c.y)) fixed[cellIdx(c.x, c.y)] = 2;
   // 没摆宝藏箱的岛（老档、测试）：放在主寨旁边第一个空格，保证有目标
   if (treasures.length === 0 && !level.escort) {
     const hq = setup.layout.find((b) => b.kind === 'hq');
@@ -145,7 +148,7 @@ export function createTd(setup: TdSetup): TdState {
   const slots: TdSlot[] = [];
   for (const sl of level.slots) {
     if (taken(sl.x, sl.y, 2)) continue;
-    const slot: TdSlot = { x: sl.x, y: sl.y, tower: -1, ups: 0, spent: 0 };
+    const slot: TdSlot = { x: sl.x, y: sl.y, tower: -1, ups: 0, spent: 0, ...(cliffs && sl.high ? { high: true as const } : {}) };
     if (sl.wreck) {
       const b: TdBlock = { id: ++maxId, kind: 'wreck', x: sl.x, y: sl.y, size: 2, hp: sl.wreck.hp > 0 ? sl.wreck.hp : TD2_ECON.wreckHp, gold: TD2_ECON.heroClearGold, destroyed: false };
       blocks.push(b);
@@ -314,10 +317,11 @@ function faceShield(e: TdEnemy, dx: number, dy: number): void {
 
 /**
  * 直射命中盾兵（规则版本 11）：盾朝着来弹、没被震晕，枪弹和炮弹的单体伤害只吃 SHIELD.frontPct%，推 guard 事件；
- * 火、爆和溅射不走这里（p.sx 只有塔的直射才写）。
+ * 火、爆和溅射不走这里（p.sx 只有直射才写：塔都写，英雄的枪只在断崖关写，见 tdhero.ts）。
+ * 盾挡不挡只判这一处：从崖上高台往下打的（p.above）挡不住；被锚钩钩住的在拖动和定住期间算震晕，盾放下，挡不住。
  */
 function guardedHit(s: TdState, ev: TdEvent[], e: TdEnemy, p: Pend): number {
-  if (e.kind !== 'shield' || p.sx === undefined || p.sy === undefined || stunned(e, s.tick)) return p.dmg;
+  if (e.kind !== 'shield' || p.sx === undefined || p.sy === undefined || p.above || stunned(e, s.tick)) return p.dmg;
   if (p.hit.dt !== 'shot' && p.hit.dt !== 'shell') return p.dmg;
   if (!shieldFaces(e.gx ?? 0, e.gy ?? 0, e.x, e.y, p.sx, p.sy)) return p.dmg;
   ev.push({ type: 'guard', id: e.id, x: e.x + Math.round(((e.gx ?? 0) * 40) / 100), y: e.y + Math.round(((e.gy ?? 0) * 40) / 100) });
@@ -659,7 +663,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     case 'build': {
       const sl = s.slots[a.slot];
       if (!sl || sl.tower >= 0 || sl.wreck !== undefined || !isTdTowerKind(a.kind) || !s.unlocked.includes(a.kind)) return;
-      const cost = TD2_COST[a.kind];
+      const cost = tdBuildCost(s, a.slot, a.kind);
       if (s.gold < cost) return;
       if (tdBuildBlock(s, a.slot)) return;
       s.gold -= cost;
@@ -1293,6 +1297,7 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
     }
     const cx = tcx(t);
     const cy = tcy(t);
+    const high = onHigh(s, t);
     const cand: TdEnemy[] = [];
     // 先判射程再判看不看得见：targetable 里雾中的敌人要把全岛的塔挨个查照明，射程外的不用算
     for (const e of s.enemies) if (inRing(d2(e.x, e.y, cx, cy), st.range, st.minRange) && targetable(s, e, st, st.range)) cand.push(e);
@@ -1368,7 +1373,11 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
       // 瞄提前量：落点 = 敌人 fl 拍后的位置（直射的伤害跟着目标走，炸的按落点炸，所以炸的更要瞄准）
       const at = leadPoint(e, fl);
       ev.push({ type: 'shoot', id: t.id, x0: cx, y0: cy, x1: at.x, y1: at.y, t1: s.tick + fl, target: e.id });
-      const base = { hit: { dt: st.dt, branch: st.branch, heavy: st.heavy }, slowPct: st.slowPct, slowTicks: st.slowTicks, burnDps: 0, burnTicks: 0, pull: 0, ...(s.rules >= RULES_SINCE.sniperShield ? { sx: cx, sy: cy } : {}) };
+      const base = {
+        hit: { dt: st.dt, branch: st.branch, heavy: st.heavy }, slowPct: st.slowPct, slowTicks: st.slowTicks, burnDps: 0, burnTicks: 0, pull: 0,
+        ...(s.rules >= RULES_SINCE.sniperShield ? { sx: cx, sy: cy } : {}),
+        ...(high ? { above: true as const } : {}),
+      };
       if (st.line) {
         // 贯穿：从塔到射程尽头这条线上 0.5 格内的都中
         const dx = at.x - cx;

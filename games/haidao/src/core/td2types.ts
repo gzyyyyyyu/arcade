@@ -160,12 +160,14 @@ export interface TdPadDef {
   x: number;
   y: number;
   wreck?: { hp: number };
+  /** 崖上的高台（规则版本 26，第五章）：射程远 TD2_CLIFF.rangeAdd、崖下 TD2_CLIFF.minRange 内打不到、造价按 costPct 算；从上往下打，盾兵的盾挡不住 */
+  high?: true;
 }
 
-/** 9 张关卡岛（A–I，见 content/td2maps.ts） */
-export type TdMapId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K';
+/** 13 张关卡岛（A–M，见 content/td2maps.ts） */
+export type TdMapId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M';
 /** 战役第几章 */
-export type TdChapterId = 1 | 2 | 3 | 4;
+export type TdChapterId = 1 | 2 | 3 | 4 | 5;
 
 /**
  * 一张关卡岛：地形和路线固定，两关共用一张图（关卡在上面换波次、开局金、驻守台上限）。
@@ -186,6 +188,8 @@ export interface TdMapDef {
   water?: Array<{ x: number; y: number }>;
   /** 桥（只画，能走）：水道上留的口子铺木板 */
   bridges?: Array<{ x: number; y: number }>;
+  /** 断崖格（第五章，TdLevel.cliffs） */
+  cliffs?: Array<{ x: number; y: number }>;
 }
 
 /**

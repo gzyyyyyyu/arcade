@@ -131,7 +131,9 @@ export async function td(c: ShotCtx): Promise<boolean> {
       else await page.keyboard.press(String((await page.locator('.hd-td-tower').evaluateAll((els) => els.findIndex((e) => (e as HTMLElement).dataset.kind === 'cannon'))) + 1));
       await page.waitForTimeout(600);
       if ((await info()).slots[si]!.tower < 0) throw new Error('没造出塔');
-      await tap(p.x, p.y);
+      // 造完塔可能开打、竖屏镜头跟拍挪了位置：重新取这块台的屏幕坐标
+      const q = await pt(sl.x, sl.y);
+      await tap(q.x, q.y);
       await page.waitForTimeout(500);
       await shot('tower-panel');
       await click('.hd-td-up');
@@ -139,7 +141,8 @@ export async function td(c: ShotCtx): Promise<boolean> {
       await shot('tower-up');
       // 升到 2 阶面板自动关、游戏接着走（3 阶才留着选分叉）；再点这座塔开回面板去卖
       if (await page.locator('.hd-td-sheet:visible').count()) throw new Error('升到 2 阶后面板没关');
-      await tap(p.x, p.y);
+      const q2 = await pt(sl.x, sl.y);
+      await tap(q2.x, q2.y);
       await page.waitForTimeout(500);
       // 卖塔：按两下（第一下变红确认）
       const gold0 = (await info()).gold;
@@ -163,7 +166,8 @@ export async function td(c: ShotCtx): Promise<boolean> {
       if (after.gold <= gold0) throw new Error(`卖塔没退钱：${gold0} → ${after.gold}`);
       await shot('sold');
       // 再造回一座，好守
-      await tap(p.x, p.y);
+      const q3 = await pt(sl.x, sl.y);
+      await tap(q3.x, q3.y);
       await page.waitForTimeout(400);
       await click('.hd-td-tower[data-kind="cannon"]');
       await page.waitForTimeout(400);
