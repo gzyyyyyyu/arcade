@@ -260,25 +260,6 @@ export const towerOn = (s: TdState, slot: number): TdTower | undefined => {
   return sl && sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
 };
 
-/** 木台按离路远近排（并列按序号），稳机器人造塔、升级都按这个顺序 */
-const slotOrder = (sc: readonly number[]): number[] => sc.map((_, i) => i).sort((a, b) => (sc[b] ?? 0) - (sc[a] ?? 0) || a - b);
-
-/** 按 order 找第一座还没升满的塔（稳机器人只盯这一座攒钱升），没有返回 -1 */
-function firstShort(s: TdState, order: readonly number[]): number {
-  for (const j of order) {
-    const tw = towerOn(s, j);
-    if (tw && tw.tier !== undefined && tw.tier < 3) return j;
-  }
-  return -1;
-}
-
-/** 最该升的那座：和稳机器人同一个挑法（离路最近、还没升满），预告卡的「钱够就升级」读它；没有能升的返回 -1 */
-export function upgradePick(s: TdState, pv: WavePreview[]): number {
-  const j = firstShort(s, slotOrder(slotScores(s, pv)));
-  const tw = j < 0 ? undefined : towerOn(s, j)!;
-  return tw && tdUpCost(tw.kind, tw.tier! - 1) >= 0 ? j : -1;
-}
-
 export type TdBot = (s: TdState) => TdAction[];
 
 /**
@@ -479,7 +460,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
     if (s.next - t < 100 && t % 10 === 0 && tdDareCan(s) === 'take' && (kind === 'greedy' || dareWorth(s))) out.push({ t, type: 'dare' });
     if (t % 10 === 0) {
       const sc = slotScores(s, pv);
-      const order = slotOrder(sc);
+      const order = s.slots.map((_, i) => i).sort((a, b) => (sc[b] ?? 0) - (sc[a] ?? 0) || a - b);
       // 预告里有要照亮的敌人而还没有灯塔：先把一座火枪塔升到 3 阶（才能选灯塔分叉），不然雾船怎么都漏
       let spent = false;
       if (outlook(s, pv).fog && needLight(s)) {
@@ -518,13 +499,16 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
         }
         spent = true;
       }
-      const uj = spent ? -1 : firstShort(s, order);
-      if (uj >= 0) {
-        const tw = towerOn(s, uj)!;
-        const c = tdUpCost(tw.kind, tw.tier! - 1);
-        if (c >= 0 && gold >= c) {
-          out.push({ t, type: 'up', slot: uj });
-          gold -= c;
+      if (!spent) {
+        for (const j of order) {
+          const tw = towerOn(s, j);
+          if (!tw || tw.tier === undefined || tw.tier >= 3) continue;
+          const c = tdUpCost(tw.kind, tw.tier - 1);
+          if (c >= 0 && gold >= c) {
+            out.push({ t, type: 'up', slot: j });
+            gold -= c;
+          }
+          break;
         }
       }
       // 没空木台了：钱够就清一块沉船（多一个塔位）
