@@ -9,7 +9,7 @@ import { iconA, tdE, tdP } from './art.ts';
 import { keyBadge } from './inputs.ts';
 import { floatText } from './fx.ts';
 import { MERGE_MS, pickMerge } from './fxlayout.ts';
-import { laneName, planCard, callBonusText, nextStep, openerLeft, shortText, stepKey, waveEnemies } from './td-ui.ts';
+import { laneName, planCard, callBonusText, nextStep, openerLeft, stepKey, stepLine, waveEnemies } from './td-ui.ts';
 import { injectTdCss } from './tdcss.ts';
 import { FOE_KEY, MECH_HINT, MECH_KEY, foeText, mechsOf, navSecs, newFoes } from './tdhint.ts';
 import { hintCard, takeNew } from './hintcard.ts';
@@ -20,7 +20,7 @@ import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFl
 import { closeSheet, showBest } from './tdsheet.ts';
 import { SKILL } from './tdcommon.ts';
 import { finish } from './tdresult.ts';
-import { syncPadGuide } from './tdpadguide.ts';
+import { syncPadGuide, syncUpMark } from './tdpadguide.ts';
 import { syncSluice } from './tdworld.ts';
 import { bossOf } from './tdboss.ts';
 
@@ -306,6 +306,7 @@ export function updateHud(bs: TdScene, force = false): void {
   syncBossBar(bs);
   refreshPlan(bs);
   syncPadGuide(bs);
+  syncUpMark(bs, bs.next);
   bs.esc?.refresh(bs.pv);
   const total = s.level.waves.length;
   const endless = !!s.level.endless;
@@ -342,11 +343,13 @@ export function updateHud(bs: TdScene, force = false): void {
     planCard(H.plan, bs.pv, { title: (w) => waveTitle(bs, w), left: canCallNow ? left : -1, tide, laneTitle: (l) => laneTitle(bs, l), opener: openerLeft(s), next: bs.next?.step, gold: s.gold });
     bs.esc?.decoratePlan(H.plan, bs.pv);
   }
-  // 「还差 N 金」跟着钱每拍变：只改这一小格的字，不重排整张卡
-  const short = bs.next?.step && H.plan.querySelector('.hd-plan-short');
-  if (short) {
-    const tx = shortText(bs.next!.step!, s.gold);
-    if (short.textContent !== tx) short.textContent = tx;
+  // 「差 N」和开头跟着钱每拍变：只改这一格的字，不重排整张卡
+  const lead = bs.next?.step && H.plan.querySelector('.hd-plan-lead');
+  if (lead) {
+    const ln = stepLine(bs.next!.step!, s.gold);
+    const short = H.plan.querySelector('.hd-plan-short')!;
+    if (lead.textContent !== ln.lead) lead.textContent = ln.lead;
+    if (short.textContent !== ln.short) short.textContent = ln.short;
   }
   // 收起状态的小钮写下一波的波次号；叫波后（波数变了）自动收起
   const tog = bs.ui.querySelector('.hd-plan-tog');

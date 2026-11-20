@@ -61,7 +61,7 @@ export type { TdBranchMod } from '../content/tdbranches.ts';
 export { settleTdHome, tdHomeGen, tdHomeHardOpen, tdHomeRawReward, tdHomeSetup, tdHomeSnapshot, tdHomeWave } from './tdhome.ts';
 export { TD2_LEVELS, TD2_LEVEL_BY_ID, TD2_MAPS } from '../content/tdmaps.ts';
 export * from '../content/td2units.ts';
-export { counterKind, upgradePick, tdBotActions, runTdBot } from './tdbot.ts';
+export { counterKind, tdBotActions, runTdBot } from './tdbot.ts';
 export type { TdBotKind, TdBotOpts } from './tdbot.ts';
 export { nextTdUnlock, placeTdLevel, settleTd, tdDailyCap, tdLevelUnlocked, tdRunReward } from './tdrun.ts';
 export type { TdNextUnlock, TdReward } from './tdrun.ts';

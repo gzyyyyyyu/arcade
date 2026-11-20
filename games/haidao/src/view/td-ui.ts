@@ -3,7 +3,7 @@ import { TD2_ENEMIES } from '../content/td2units.ts';
 import { TD2_CHAPTERS } from '../content/tdmaps.ts';
 import type { Td2ChapterInfo } from '../content/tdmaps.ts';
 import { ISLAND, RULES_VERSION, UNIT } from '../core/types.ts';
-import { counterKind, isTdTowerKind, levelForRules, tdBuildRange, tdHomeHardOpen, tdUpCost, upgradePick } from '../core/index.ts';
+import { counterKind, isTdTowerKind, levelForRules, tdBuildRange, tdHomeHardOpen, tdUpCost } from '../core/index.ts';
 import { TD2_COST, TD2_HOME } from '../content/td2units.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
@@ -288,7 +288,8 @@ export function openerText(op: ReadonlyArray<{ kind: TdTowerKind }>): string {
  * 预告卡的下一步：有空木台写「下一座造」哪种塔，造满了写「钱够就升级」哪座。
  * 造哪种：照建议的新手机器人挑的那座（核心的 counterKind：按下两波的护甲和每金输出挑，同种塔越多越打折，有飞的先备打飞的、
  * 有雾先备火枪）；以前只按这一波的护甲挑一种伤害，第一波几乎都是布衣，卡上永远是「火」，新手照着全造喷火就守不住
- * （docs/balance-haidao.md 第 5 节）。升哪座：稳机器人的升级挑法（核心的 upgradePick：离路最近、还没升满）。
+ * （docs/balance-haidao.md 第 5 节）。升哪座：升阶最便宜的那座（并列取木台序号小的），等于先把各座都升到 2 阶再往上；
+ * 试过稳机器人的挑法（离路最近的一座攒钱升满），照卡升的新手在 td18 至少一星 70 → 58，最便宜的是 78、其余关和照建议的新手差 ≤ 4。
  * 定住：只在木台上的塔变了（造、卖、升）之后才重挑，翻波、倒数里不换——跟着预告每波重算时卡会自己变，攒钱造 A 的新手看到它变成 B
  */
 export interface NextStep {
@@ -320,17 +321,26 @@ export function nextStep(prev: HeldStep | undefined, s: TdState, pv: WavePreview
     const kind = counterKind(s, pv);
     return { key, step: { kind, slot: -1, cost: TD2_COST[kind] } };
   }
-  const j = upgradePick(s, pv);
-  const tw = j < 0 ? undefined : s.towers.find((q) => q.id === s.slots[j]!.tower);
-  if (!tw || !isTdTowerKind(tw.kind)) return { key, step: null };
-  return { key, step: { kind: tw.kind, slot: j, cost: tdUpCost(tw.kind, tw.tier! - 1) } };
+  let best: NextStep | null = null;
+  s.slots.forEach((sl, slot) => {
+    const tw = sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
+    if (!tw || tw.tier === undefined || tw.tier >= 3 || !isTdTowerKind(tw.kind)) return;
+    const cost = tdUpCost(tw.kind, tw.tier - 1);
+    if (cost >= 0 && (!best || cost < best.cost)) best = { kind: tw.kind, slot, cost };
+  });
+  return { key, step: best };
 }
 
-/** 卡上那一格的开头：「下一座造」或「钱够就升级」 */
-export const nextStepLead = (st: NextStep): string => (st.slot < 0 ? '下一座造' : '钱够就升级');
-export const nextStepText = (st: NextStep): string => `${nextStepLead(st)}：${towerName(st.kind)}`;
-/** 钱不够时跟在塔名后面（局内的钱叫「金」，和结算「还有 N 金没花」一个说法）；够了是空串 */
-export const shortText = (st: NextStep, gold: number): string => (st.cost > gold ? `还差 ${st.cost - gold} 金` : '');
+/** 图鉴标题里的一句（不看钱）：「下一座造：臼炮」「钱够就升级：火枪塔」 */
+export const nextStepText = (st: NextStep): string => `${st.slot < 0 ? '下一座造' : '钱够就升级'}：${towerName(st.kind)}`;
+/**
+ * 预告卡上那一格随钱变的两段：开头和「· 差 N」。卡宽 360，「钱够就升级 火枪塔 还差 65 金」挤得这一格单独占一行、卡变四行，
+ * 所以钱不够时升级只写「升级」（差多少已经说明了要攒钱），差额写短的「差 65」
+ */
+export function stepLine(st: NextStep, gold: number): { lead: string; short: string } {
+  const short = st.cost > gold ? `差 ${st.cost - gold}` : '';
+  return { lead: st.slot < 0 ? '下一座造' : short ? '升级' : '钱够就升级', short };
+}
 
 /** 护甲占比从多到少（只列有的），预告条按这个顺序摆徽记 */
 export function armorOrder(share: Record<TdArmor, number>): TdArmor[] {
@@ -926,7 +936,7 @@ export function eventNote(p: WavePreview): string {
   return '';
 }
 
-/** opener：这一关还没造的开局造法（只在第一波开打前给），有就显示它；否则显示 next（nextStep 定住的下一步，还差多少由 syncShort 每拍补） */
+/** opener：这一关还没造的开局造法（只在第一波开打前给），有就显示它；否则显示 next（nextStep 定住的下一步，开头和差多少由 HUD 每拍按 stepLine 补） */
 export function planCard(
   box: HTMLElement,
   pv: readonly WavePreview[],
@@ -962,9 +972,11 @@ export function planCard(
       sg.append(towerIcon(k, 1, 18), `${towerName(k)}${n > 1 ? `×${n}` : ''}`);
     }
   } else if (o.next) {
-    const sg = el('span', 'hd-plan-sug hd-plan-open', nextStepLead(o.next), arm);
+    const ln = stepLine(o.next, o.gold);
+    const sg = el('span', 'hd-plan-sug hd-plan-open', undefined, arm);
+    el('span', 'hd-plan-lead', ln.lead, sg);
     sg.append(towerIcon(o.next.kind, 1, 18), towerName(o.next.kind));
-    el('small', 'hd-plan-short', shortText(o.next, o.gold), sg);
+    el('small', 'hd-plan-short', ln.short, sg);
   }
   const lanes = p.lanes.map((l) => `${o.laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`);
   // 关卡说明和敌人打法只在图鉴里写全（点卡打开）：以前全塞进第三行，后几波长到五六行，盖住出生点和海上的炮艇

@@ -317,7 +317,7 @@ function tdCss(): string {
 .hd-ui .hd-plan-foes .hd-tden .hd-arm { display:none; } /* 护甲在下一行写了全名，头像上的小圆章只会盖住脸 */
 .hd-ui .hd-plan-foes .hd-tden b { font-size:12px; }
 .hd-ui .hd-plan-arm { display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; margin-top:2px; font-size:12px; font-weight:800; }
-.hd-ui .hd-plan-arm span { display:inline-flex; align-items:center; gap:3px; }
+.hd-ui .hd-plan-arm span { display:inline-flex; align-items:center; gap:3px; white-space:nowrap; }
 .hd-ui .hd-plan-sug { display:inline-flex; align-items:center; gap:3px; padding:0 6px 0 2px; border-radius:9px; background:#fff1c4; border:2px solid ${ink}; }
 .hd-ui .hd-plan-left { margin-left:auto; font-variant-numeric:tabular-nums; }
 .hd-ui .hd-plan-note { font-size:12px; margin-top:2px; opacity:.9; }
@@ -386,7 +386,8 @@ function tdCss(): string {
 .hd-ui .hd-td-tower { position:relative; }
 .hd-ui .hd-td-tower.rec { box-shadow:0 0 0 3px #ffe885, 0 0 12px rgba(255,232,133,.8); }
 .hd-ui .hd-plan-sug.hd-plan-open img { margin-left:3px; }
-.hd-ui .hd-plan-sug .hd-plan-short { margin-left:4px; color:${red}; font-size:12px; font-weight:800; }
+.hd-ui .hd-plan-sug .hd-plan-short { color:${red}; font-size:12px; font-weight:800; }
+.hd-ui .hd-plan-sug .hd-plan-short::before { content:'· '; color:${ink}; }
 .hd-ui .hd-plan-sug .hd-plan-short:empty { display:none; }
 .hd-ui .hd-td-tower:active:not(:disabled) { transform:translateY(2px); }
 .hd-ui .hd-td-acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
