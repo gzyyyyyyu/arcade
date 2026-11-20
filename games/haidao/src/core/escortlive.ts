@@ -38,7 +38,7 @@ export const ESCORT_LIVE_TIERS: Record<LiveTier, EscortLiveTierDef> = {
 
 /** 实盘这一档的开局：就是那一关的护航开局 */
 export function escortLiveSetup(tier: LiveTier, seed: number): TdSetup {
-  return escortSetup(ESCORT_LIVE_TIERS[tier].level, seed);
+  return escortSetup(ESCORT_LIVE_TIERS[tier].level, seed, { live: true });
 }
 
 /**

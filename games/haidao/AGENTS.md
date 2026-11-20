@@ -74,4 +74,4 @@ tests/         vitest
 | `node tools/perf.ts --out <目录>` | 帧率和卡顿测量（手机降速、桌面两种视口），只看前后对比 |
 | `node tools/cover.ts [输出]` | 生成大厅封面 `public/cover.webp`（800×450，无头浏览器） |
 
-`tests/td-golden.json` 锁守岛的指纹（两千多局，按序号分 8 片在 `tests/td-golden-<片>.test.ts` 里并行比，`td-golden.test.ts` 锁键的集合和顺序，说明在 `tests/td-golden-lib.ts`），改守岛数值后要重生成：`node tools/td-golden.ts`（工作线程并行，约 1 分钟）；生成后 `git diff tests/td-golden.json` 只许出现预期的键变化，其余键变了就是改坏了。
+`tests/td-golden.json` 锁守岛的指纹（两千多局，按序号分 8 片在 `tests/td-golden-<片>.test.ts` 里并行比，`td-golden.test.ts` 锁键的集合和顺序，说明在 `tests/td-golden-lib.ts`），改守岛数值后要重生成：`node tools/td-golden.ts`（工作线程并行，约 1 分钟）；生成后 `git diff tests/td-golden.json` 只许出现预期的键变化，其余键变了就是改坏了。护航的指纹另锁在 `tests/escort-golden.json`（`node tools/escort-golden.ts` 重生成，约 4 秒，说明在 `tests/escort-golden-lib.ts`），改护航的关或规则后同样只许预期的键变化。

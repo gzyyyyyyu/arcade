@@ -4,6 +4,7 @@
  * 不加规则、不改敌人表。数值是初稿，核心合并后用 tools/escort-sim.ts 配平（目标见 design：新手小白胜率 ≥ 60%、普通 40–50%、高手 ≤ 30%）。
  */
 import { waveBudget } from '../core/td2types.ts';
+import { RULES_SINCE } from '../core/types.ts';
 import { ESCORT_DIFFS, type EscortDiff, type EscortLevel } from '../core/escorttypes.ts';
 import type { TdEnemyKind, TdGroup, TdWave } from '../core/tdtypes.ts';
 import { TD2_ENEMY_POINTS } from './td2units.ts';
@@ -133,7 +134,25 @@ const TUNE: Readonly<Record<EscortMapId, Readonly<Record<EscortDiff, Partial<Kno
   cape: { easy: { scale: 64 }, normal: { scale: 75, hull: 1000 }, hard: { scale: 125 } },
 };
 
+/**
+ * 新手档放宽（规则版本 25）：敌人预算倍率换成这个。真人照提示打三局全沉，小白机器人 83% 只代表「第 0 拍巡航 + 跟随」一种打法，
+ * 换个开局（停船造塔、晚开跟随、自己加喷火）就从 100% 翻到 0%；降到 0.85 倍后各种说得过去的打法三张图都 ≥ 85%（.local 取证）。
+ * 旧局（规则 < 25）照旧用 TUNE 的倍率：两套组并排写，带 since / until，levelForRules 按局的规则版本挑
+ */
+const EASE: Readonly<Record<EscortMapId, number>> = { strait: 58, bays: 34, cape: 54 };
+
 export const ESCORT_MAX_TICKS = 6000;
+
+/** 一张图一档的 10 波：放宽了的档新旧两套组并排（旧的 until、新的 since），没放宽的照旧一套 */
+function levelWaves(rc: (typeof RECIPES)[EscortMapId], scale: number, ease: number | undefined): TdWave[] {
+  return rc.waves.map((r, i) => {
+    const cur = expand(r, Math.floor((waveBudget(rc.index, i) * scale) / 100));
+    if (ease === undefined) return cur;
+    const next = expand(r, Math.floor((waveBudget(rc.index, i) * ease) / 100));
+    const since = RULES_SINCE.escortEase;
+    return { ...cur, groups: [...cur.groups.map((g) => ({ ...g, until: since })), ...next.groups.map((g) => ({ ...g, since }))] };
+  });
+}
 
 function buildLevel(m: EscortMapDef, diff: EscortDiff): EscortLevel {
   const rc = RECIPES[m.id];
@@ -151,7 +170,7 @@ function buildLevel(m: EscortMapDef, diff: EscortDiff): EscortLevel {
     ...(m.fogZones ? { fogZones: m.fogZones.map((z) => ({ ...z })) } : {}),
     ...(m.flank ? { flank: true } : {}),
     maxTicks: ESCORT_MAX_TICKS,
-    waves: rc.waves.map((r, i) => expand(r, Math.floor((waveBudget(rc.index, i) * k.scale) / 100))),
+    waves: levelWaves(rc, k.scale, diff === 'easy' ? EASE[m.id] : undefined),
     kegs: m.kegs.map((p) => ({ ...p })),
     obstacles: [],
     slots: m.pads.slice(0, m.pads.length - k.fewer).map((p) => ({ ...p })),

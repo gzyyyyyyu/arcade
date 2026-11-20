@@ -3,7 +3,7 @@ import { ESCORT_DIFF_NAME, ESCORT_MEND, type EscortDiff, type EscortPace } from 
 
 export const PACE_ORDER: readonly EscortPace[] = ['hold', 'sail', 'rush'];
 export const PACE_INFO: Readonly<Record<EscortPace, { label: string; key: string; tip: string }>> = {
-  hold: { label: '停', key: 'Q', tip: '停船：船不动，等塔把海盗打光再走' },
+  hold: { label: '停', key: 'Q', tip: '停船：船不动，海盗会围上来咬；潮水照走，停久了赶不上潮' },
   sail: { label: '巡航', key: 'W', tip: '巡航：慢慢往前开' },
   rush: { label: '冲', key: 'E', tip: '冲：开得快一半，海盗来不及追，但塔也少打几轮' },
 };
@@ -78,9 +78,29 @@ export function lockText(prevMap: string | null): string {
   return prevMap ? `先在「${prevMap}」护到港，再来这里` : '还没解锁';
 }
 
-/** 预告里的相遇点说明：meet 是航线下标，total 是航线格数 */
-export function meetText(meet: number | undefined, total: number): string {
+/**
+ * 预告里的相遇点说明：meet 是航线下标，total 是航线格数，at 是船现在在第几格。
+ * 不写「第 1/28 格」：试玩里新手读成「第 1 格有埋伏」；其实是船停在港口、海盗一到就追上。改说船现在会怎样、在航线哪一段
+ */
+export function meetText(meet: number | undefined, total: number, at: number): string {
   if (meet === undefined) return '';
   if (meet < 0) return '这一波追不上船';
-  return `这一波在第 ${meet + 1}/${total} 格追上船`;
+  if (meet <= at + 1) return '这一波一到就咬上船';
+  const f = (meet + 1) / total;
+  if (f >= 0.9) return '这一波快到港时追上船';
+  return `这一波在航线${f > 0.65 ? '后段' : f > 0.35 ? '中段' : '前段'}追上船`;
 }
+
+/** 第一次点「停」时的提醒（一局一次）：停着潮水照走，试玩里有人一见海盗就停，最后误了潮 */
+/** 准备倒数还剩几秒起「巡航」钮发光提醒（只在会自动开船的娱乐局、玩家还没碰过船速时） */
+export const SAIL_NUDGE_SEC = 10;
+
+/** 「巡航」钮该不该发光：第一波还没开打、倒数进了最后 SAIL_NUDGE_SEC 秒、船会自己开（autoSail，说明玩家还没定过船速） */
+export function sailNudge(o: { autoSail?: boolean; wave: number; next: number; tick: number; tps: number }): boolean {
+  return !!o.autoSail && o.wave === 0 && o.next >= 0 && o.next - o.tick <= SAIL_NUDGE_SEC * o.tps;
+}
+
+/** 第一波开打时船自己开了（娱乐护航，规则 25） */
+export const AUTO_SAIL_NOTE = '第一波来了，船自己开了';
+
+export const HOLD_NOTE = '停着时潮水照走，海盗也会围上来咬船；打完这一拨就开船';

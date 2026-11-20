@@ -4,7 +4,7 @@
  * 预告里的相遇点说明、竖屏跟船镜头和"回到船"钮。规则状态只读（TdState.escort），操作走 host.act。
  */
 import Phaser from 'phaser';
-import { ESCORT_MEND, type EscortAction, type EscortPace } from '../core/escorttypes.ts';
+import { ESCORT_CELL, ESCORT_MEND, type EscortAction, type EscortPace } from '../core/escorttypes.ts';
 import type { TdEvent, TdState, WavePreview } from '../core/index.ts';
 import { TICKS_PER_SEC } from '../core/types.ts';
 import { sfx } from './audio/sfx.ts';
@@ -13,7 +13,7 @@ import type { CamCtl } from './camctl.ts';
 import type { FitCam } from './camfit.ts';
 import { aheadPoint, dashes, interpPos, meetPoint, nextGate, pathFrom, pathTo, shipPoint, showBackToShip, type Pt } from './escortcam.ts';
 import { injectEscortCss } from './escortcss.ts';
-import { PACE_INFO, PACE_ORDER, hullPercent, hullTone, meetText, mendView, paceOfKey } from './escorttext.ts';
+import { AUTO_SAIL_NOTE, HOLD_NOTE, PACE_INFO, PACE_ORDER, hullPercent, hullTone, meetText, mendView, paceOfKey, sailNudge } from './escorttext.ts';
 import { put } from './ground.ts';
 import { iso } from './iso.ts';
 import { button, el, toast } from './ui.ts';
@@ -37,6 +37,8 @@ export interface EscortHost {
 }
 
 const LAND_PHONE = '(orientation:landscape) and (max-height:500px)';
+/** 手机竖屏：速度排收成底栏小钮的那种排布（和 escortcss 的媒体查询同一条） */
+const PORTRAIT_PHONE = '(max-width:559px) and (orientation:portrait)';
 
 export class EscortView {
   private readonly h: EscortHost;
@@ -68,6 +70,8 @@ export class EscortView {
   private paceBtns = new Map<EscortPace, HTMLButtonElement>();
   private mend: HTMLButtonElement | null = null;
   private follow: HTMLButtonElement | null = null;
+  /** 这一局提醒过「停着潮水照走」没有 */
+  private holdNoted = false;
   private back: HTMLButtonElement | null = null;
   private liftSig = '';
   private backOn = false;
@@ -132,7 +136,8 @@ export class EscortView {
   /** 底部：速度三联钮、修船、跟随；还有竖屏的"回到船" */
   buildCtl(): void {
     // 开局船停着等造塔，试玩时有人一直不知道要点「巡航」才出发
-    if (this.st().escort!.pace === 'hold') toast('船先停着：造好塔，点「巡航」出发');
+    const e0 = this.st().escort!;
+    if (e0.pace === 'hold') toast(e0.autoSail ? '船先停着：造好塔，点「巡航」出发；不点的话第一波来时船自己开' : '船先停着：造好塔，点「巡航」出发');
     const ctl = (this.ctl = el('div', 'hd-esc-ctl', undefined, this.h.ui));
     const pace = el('div', 'hd-esc-pace', undefined, ctl);
     for (const p of PACE_ORDER) {
@@ -156,6 +161,17 @@ export class EscortView {
     el('b', '', '跟随', f);
     el('i', '', undefined, f);
     f.title = '英雄跟着船走，贴身保护';
+    // 手机竖屏：速度排收成小钮时修船和跟随也跟着藏进长按里，试玩一局一次没修上、一次没开跟随。
+    // 竖屏时把这两颗钮搬到船速小钮上面的一列常驻（浮在画面右边，不占底栏的高度），别的尺寸搬回速度排
+    const quick = el('div', 'hd-esc-quick', undefined, this.h.ui);
+    const mq = matchMedia(PORTRAIT_PHONE);
+    const place = (): void => {
+      if (mq.matches) quick.append(m, f);
+      else right.prepend(m, f);
+    };
+    place();
+    mq.addEventListener('change', place);
+    this.h.scene.events.once('shutdown', () => mq.removeEventListener('change', place));
     // 矮竖屏：速度排收成底栏同一行里的一个小钮（别的尺寸 CSS 把它藏起来）
     const bar2 = this.h.ui.querySelector('.hd-td-bar2');
     if (bar2) {
@@ -195,7 +211,7 @@ export class EscortView {
     this.setPace(PACE_ORDER[(PACE_ORDER.indexOf(cur) + 1) % PACE_ORDER.length]!);
   }
 
-  /** 矮竖屏：展开 / 收起速度排（三档、修船、跟随）；别的尺寸速度排一直摆着，这个类不起作用 */
+  /** 手机竖屏：展开 / 收起速度排（三档和加速；修船、跟随常驻在 .hd-esc-quick）；别的尺寸速度排一直摆着，这个类不起作用 */
   private toggleTray(): void {
     this.ctl?.classList.toggle('open');
   }
@@ -203,6 +219,10 @@ export class EscortView {
   private setPace(p: EscortPace): void {
     if (this.st().over) return;
     this.h.act({ type: 'pace', pace: p });
+    if (p === 'hold' && !this.holdNoted) {
+      this.holdNoted = true;
+      toast(HOLD_NOTE);
+    }
     if (this.sum) this.showSum(p);
     for (const [k, b] of this.paceBtns) b.classList.toggle('on', k === p);
     sfx('tap');
@@ -227,6 +247,13 @@ export class EscortView {
       b.classList.toggle('on', k === e.pace);
       b.setAttribute('aria-pressed', String(k === e.pace));
     }
+    // 准备倒数最后几秒还停着：「巡航」钮（竖屏是船速小钮，点一下就换到巡航）发光提醒
+    const nudge = sailNudge({ autoSail: e.autoSail, wave: s.wave, next: s.next, tick: s.tick, tps: TICKS_PER_SEC });
+    if (nudge !== this.nudged) {
+      this.nudged = nudge;
+      this.paceBtns.get('sail')?.classList.toggle('nudge', nudge);
+      this.sum?.classList.toggle('nudge', nudge);
+    }
     if (this.mend) {
       const v = mendView({ hull: e.hull, max: e.def.hull, gold: s.gold, tick: s.tick, ready: e.mendReady, tps: TICKS_PER_SEC });
       this.mend.disabled = v.disabled || s.over;
@@ -240,6 +267,8 @@ export class EscortView {
       this.follow.setAttribute('aria-pressed', String(e.follow));
     }
   }
+
+  private nudged = false;
 
   private showSum(p: EscortPace): void {
     this.sumPace = p;
@@ -293,18 +322,20 @@ export class EscortView {
     this.ctl.style.bottom = `${px}px`;
   }
 
-  /** 预告卡里每波加一行相遇点说明；船速一变就重画（planSig 变） */
+  /** 预告卡里每波加一行相遇点说明；船速一变、船走了一格就重画（planSig 变） */
   planSig(pv: readonly WavePreview[]): string {
-    return `${this.st().escort!.pace}:${pv.map((p) => p.meet ?? 'x').join(',')}`;
+    const e = this.st().escort!;
+    return `${e.pace}:${Math.floor(e.pos / ESCORT_CELL)}:${pv.map((p) => p.meet ?? 'x').join(',')}`;
   }
 
   decoratePlan(box: HTMLElement, pv: readonly WavePreview[]): void {
     const total = this.route.length;
+    const at = Math.floor(this.st().escort!.pos / ESCORT_CELL);
     for (const p of pv) {
       if (p.meet === undefined) continue;
       const row = el('div', `hd-esc-meet${p.meet < 0 ? ' miss' : ''}`, undefined, box);
       el('i', '', undefined, row);
-      el('span', '', `第 ${p.wave + 1} 波 · ${meetText(p.meet, total)}`, row);
+      el('span', '', `第 ${p.wave + 1} 波 · ${meetText(p.meet, total, at)}`, row);
     }
   }
 
@@ -499,6 +530,9 @@ export class EscortView {
       case 'mend':
         this.h.float(w.x, w.y - 70, `+${ESCORT_MEND.pct}%`, '#8be07a', 16);
         sfx('heal');
+        break;
+      case 'pace':
+        if (e.auto) toast(AUTO_SAIL_NOTE);
         break;
       case 'gate':
         this.h.float(w.x, w.y - 80, '过隘口', '#ffe885', 16);
