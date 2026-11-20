@@ -44,6 +44,7 @@ import { escortShipArt } from './art/escort.ts';
 import { DEPTH } from './depth.ts';
 import { syncRain } from './tdrain.ts';
 import { type TdData, type ESpr, type TSpr, W, EDGE_MS, SHIP_FOES, TEMP_KINDS } from './tdcommon.ts';
+import { drawCliffs } from './tdcliff.ts';
 import { drawLayout, drawProps, drawWater, drawFog, makeHero, drawTide, fitBox, contentBox, introFocus, drawEdges, tdDirector, syncFleet } from './tdworld.ts';
 import { act, tap, hover, press, cancelAll, callWave, toggleHero, rightClick, heroDrag, stepSkillQ } from './tdinput.ts';
 import { newCycle } from './tdpick.ts';
@@ -168,6 +169,8 @@ export class TdScene extends Phaser.Scene {
   bestOpen = false;
   /** 首次提示一次只弹一条，没弹的排在这里，下一波接着弹（tdhud.ts foeHint） */
   hintQ: HintItem[] = [];
+  /** 敌人最近一次被盾挡下是哪一拍（伤害数字发灰用，tdevents.ts） */
+  guardTick = new Map<number, number>();
   /** 「现在撤退？」确认框开着：和面板一样停住，免得想的工夫宝藏被抢 */
   askingEnd = false;
   sheet: HTMLElement | null = null;
@@ -254,6 +257,7 @@ export class TdScene extends Phaser.Scene {
     this.bestOpen = false;
     this.askingEnd = false;
     this.hintQ = [];
+    this.guardTick.clear();
     this.sellArmed = -1;
     this.pv = [];
     this.planSig = '';
@@ -275,6 +279,7 @@ export class TdScene extends Phaser.Scene {
     this.laneG = this.add.graphics().setDepth(DEPTH.lane);
     drawLayout(this);
     drawWater(this);
+    drawCliffs(this);
     drawProps(this);
     drawFog(this);
     this.fxG = this.add.graphics().setDepth(DEPTH.hudFx);

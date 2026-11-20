@@ -71,6 +71,16 @@ describe('选中判定', () => {
     const both = () => true;
     expect(candidates(all, 5000, 5000, both)).toEqual([11, 10]);
   });
+
+  it('占地画高了（守岛崖上的高台），占地判定跟着抬：点画出来的菱形中中，点原地的下沿不中', () => {
+    const up: PickItem[] = [{ id: 9, x: 4, y: 4, size: 2, depth: 0, lift: 28 }];
+    const c = iso(5, 5);
+    const none = (): boolean => false;
+    expect(candidates(up, c.x, c.y - 28, none)).toEqual([9]);
+    expect(candidates(up, c.x, c.y - 28 - 24, none)).toEqual([9]);
+    const bottom = iso(5.9, 5.9);
+    expect(candidates(up, bottom.x, bottom.y, none)).toEqual([]);
+  });
 });
 
 describe('遮挡', () => {

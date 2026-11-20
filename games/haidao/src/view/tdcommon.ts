@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { type TdSetup, type IsoWeek, type TdAction, type TdTowerKind, TD2_COST, TD2_HERO_SKILL, TD2_NAV_SKILL, type BuildingKind, type TdEnemyKind } from '../core/index.ts';
+import { type TdSetup, type IsoWeek, type TdAction, type TdTowerKind, tdBuildCost, TD2_HERO_SKILL, TD2_NAV_SKILL, type BuildingKind, type TdEnemyKind, type TdState } from '../core/index.ts';
 import type { LiveTier } from '../core/live.ts';
 import { UNIT } from '../core/types.ts';
 import { BarList } from './bars.ts';
@@ -33,9 +33,16 @@ export const tdBarList = new BarList();
 
 export const TEMP_KINDS: TdTowerKind[] = ['cannon', 'gunTower', 'mortar', 'flame', 'harpoon', 'rocket', 'shock', 'sniper'];
 
-/** 木台上造一座塔的价格（和规则核心 build 读同一张表） */
-export function buildCost(k: TdTowerKind): number {
-  return TD2_COST[k];
+/** 这块木台上造一座塔的价格（和规则核心 build 读同一处 tdBuildCost：高台贵一成半） */
+export function buildCost(s: TdState, slot: number, k: TdTowerKind): number {
+  return tdBuildCost(s, slot, k);
+}
+
+/** 这块木台上最便宜的塔多少钱（空木台的「+」、屏外箭头按它判够不够钱） */
+export function cheapestAt(s: TdState, slot: number): number {
+  let c = Infinity;
+  for (const k of s.unlocked) c = Math.min(c, tdBuildCost(s, slot, k));
+  return c;
 }
 
 export const HATCH = hatchSegments(9);

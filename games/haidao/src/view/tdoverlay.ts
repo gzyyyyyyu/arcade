@@ -172,7 +172,7 @@ export function drawAim(bs: TdScene, f: Phaser.GameObjects.Graphics, now: number
       }
     } else if (bs.previewKind) {
       const c = W((sl.x + 1) * UNIT, (sl.y + 1) * UNIT);
-      const rg = tdBuildRange(bs.previewKind, 1);
+      const rg = tdBuildRange(bs.previewKind, 1, !!sl.high);
       rangeRing(bs, f, c.x, c.y, rg.range, rg.minRange, 1, u, now, calm);
     }
   }

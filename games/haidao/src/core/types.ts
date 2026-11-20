@@ -35,8 +35,9 @@ export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
  * 23 = 守岛第二个英雄航海士（开局选，只在战役和海盗来袭）；选船长的局、悬赏守岛、大潮、护航不变
  * 24 = 守岛战役给新手放宽：七关人数变少或开局多给金（关卡的 ease，按「照建议的新手」量）；悬赏守岛、海盗来袭、大潮、护航不变
  * 25 = 护航新手档放宽：三张图新手档敌人预算降到 0.85 倍，娱乐护航开局英雄默认跟随船、第一波开打时没碰过船速就自动巡航；护航实盘（普通、高手档，不设这些照顾）、守岛各玩法不变
+ * 26 = 守岛第五章「断崖海岸」：断崖格挡路、崖上高台（射程远、崖下打不到、造价高）、盾兵进战役；只由关卡的 cliffs 打开，别的关和各玩法不变
  */
-export const RULES_VERSION = 25;
+export const RULES_VERSION = 26;
 
 /**
  * 每条规则从哪个版本起生效（上面版本说明的名字版）。核心里一律写 `s.rules >= RULES_SINCE.combat`，不写裸数字，
@@ -80,6 +81,8 @@ export const RULES_SINCE = {
   tdEase: 24,
   /** 25：护航新手档放宽（escortlevels.ts 的 EASE：组带 since / until）、娱乐护航开局英雄跟随、第一波开打时没碰过船速就自动巡航（TdSetup.escortAssist，实盘不设） */
   escortEase: 25,
+  /** 26：守岛第五章（断崖格、崖上高台、断崖关里盾兵挡英雄的枪；关卡写了 cliffs 才有，tdstate.ts 的 cliffOn） */
+  tdCliffs: 26,
 } as const;
 // 不包成 since(s, 'combat') 这样的小函数：一个函数里读各种形状对象（登陆战开局、局面、守岛局面）的 rules，
 // V8 把那一处读取标成多态，内联了也慢；2026-11-15 背靠背量过，登陆战步进慢约 2–6%。调用处直接比，各处只见一种形状。
@@ -112,6 +115,7 @@ export type BuildingKind =
   | 'windmill' // 小风车（守岛第一章全部过关的纪念装饰）
   | 'lighthouse' // 小灯塔（守岛第二章全部过关的纪念装饰）
   | 'bonfire' // 篝火（守岛第三章全部过关的纪念装饰）
+  | 'lookout' // 瞭望台（守岛第五章全部过关的纪念装饰）
   | 'treasure' // 宝藏箱（守岛里敌人来抢的目标；攻防里是普通建筑，驻岛英雄守在旁边，规则版本 6）
   | 'shock' // 震荡炮：小溅射、命中的兵震晕（DESIGN 13，规则版本 10）
   | 'sniper'; // 狙击塔：射程最远、单发重伤害，先打船长、船医这类后排（DESIGN 14，规则版本 11）
@@ -169,7 +173,7 @@ export interface Profile {
     /** 当前连胜（连续 ≥1 星的场数） */
     streak?: number;
   };
-  /** 收藏：掉宝得到的 `skin:<兵>:<gold|shadow|royal>`、`deco:<statue|flagpole|chest>`，守岛每章全部过关送的 `deco:<windmill|lighthouse|bonfire|wheel>`（TD_TROPHIES） */
+  /** 收藏：掉宝得到的 `skin:<兵>:<gold|shadow|royal>`、`deco:<statue|flagpole|chest>`，守岛每章全部过关送的 `deco:<windmill|lighthouse|bonfire|wheel|lookout>`（TD_TROPHIES） */
   cosmetics: string[];
   /** 装备的皮肤：兵种 → 皮肤名 */
   skins: Partial<Record<TroopKind, string>>;

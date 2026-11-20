@@ -12,20 +12,20 @@ export const BUILDING_SIZE: Record<BuildingKind, number> = {
   hq: 4, goldmine: 3, sawmill: 3, vault: 3, woodyard: 3, dock: 3, armory: 3,
   cannon: 2, gunTower: 2, mortar: 2, shock: 2, sniper: 2, mine: 1, flame: 2, palm: 1, rock: 1,
   harpoon: 2, tar: 2, rocket: 2, kraken: 3, fogTower: 2,
-  wall: 1, statue: 1, flagpole: 1, chest: 1, wheel: 1, windmill: 1, lighthouse: 1, bonfire: 1, treasure: 1,
+  wall: 1, statue: 1, flagpole: 1, chest: 1, wheel: 1, windmill: 1, lighthouse: 1, bonfire: 1, lookout: 1, treasure: 1,
 };
 
 const UP: Record<BuildingKind, number> = {
   hq: 300, goldmine: 135, sawmill: 120, vault: 130, woodyard: 100, dock: 125, armory: 150,
   cannon: 110, gunTower: 250, mortar: 110, shock: 110, sniper: 230, mine: 50, flame: 150, palm: 118, rock: 40,
   harpoon: 120, tar: 52, rocket: 150, kraken: 130, fogTower: 190,
-  wall: 70, statue: 110, flagpole: 170, chest: 80, wheel: 120, windmill: 150, lighthouse: 170, bonfire: 70, treasure: 80,
+  wall: 70, statue: 110, flagpole: 170, chest: 80, wheel: 120, windmill: 150, lighthouse: 170, bonfire: 70, lookout: 120, treasure: 80,
 };
 /** 小建筑的整体放大倍数：它们的占地菱形比画出来的大，放大后才不显得空 */
 const SCALE: Partial<Record<BuildingKind, number>> = { bonfire: 1.3, cannon: 1.4, gunTower: 1.12, hq: 1.15, mortar: 1.35, shock: 1.4, sniper: 1.05, mine: 1.4, flame: 1.2, palm: 0.85, harpoon: 1.3, tar: 1.0, rocket: 1.15, fogTower: 1.1 };
 /** 画布底下多留几像素（脚下伸出去的原木、矿车、金币堆）：不改锚点，只加高画布 */
 const DOWN: Partial<Record<BuildingKind, number>> = { goldmine: 12, sawmill: 30, vault: 18, woodyard: 16 };
-const PADX: Partial<Record<BuildingKind, number>> = { lighthouse: 46, windmill: 12, bonfire: 14, woodyard: 14, palm: 44, hq: 40, harpoon: 10, rocket: 30, rock: 16, mine: 10, cannon: 24, mortar: 24, shock: 10, sniper: 14, flame: 14 };
+const PADX: Partial<Record<BuildingKind, number>> = { lookout: 30, lighthouse: 46, windmill: 12, bonfire: 14, woodyard: 14, palm: 44, hq: 40, harpoon: 10, rocket: 30, rock: 16, mine: 10, cannon: 24, mortar: 24, shock: 10, sniper: 14, flame: 14 };
 
 /** 画炮台底座（不带会转的炮管 / 喷嘴 / 发射架 / 火枪手和屋顶）时置真：turretBaseArt 用，转的部分在 art/turrets.ts */
 let NOGUN = false;
@@ -1609,6 +1609,34 @@ function lighthouse(frame = 0): string {
   return o;
 }
 
+/**
+ * 瞭望台（守岛第五章「断崖海岸」全部过关的纪念）：一块和断崖同色的红褐岩墩，上面木三脚架架着一支黄铜望远镜，
+ * 旁边插一面小三角旗。frame 是望远镜的朝向（DECO_FRAMES.lookout 档，envfx 来回扫），镜头朝着人的那几帧闪一下光
+ */
+function lookout(frame = 0): string {
+  const a = ((frame - 2) * 16 * Math.PI) / 180;
+  let o = box(-0.36, -0.36, 0.36, 0.36, 0, 22, mat('#a86a45', 'stone'), 'brick');
+  o += line(P(-0.36, 0.36, 11), P(0.36, 0.36, 11), '#6e3b23', 1.4) + line(P(0.36, 0.36, 9), P(0.36, -0.36, 9), '#542b19', 1.4);
+  const top = P(0, 0, 22);
+  const piv: Pt = [top[0] - 4, top[1] - 40];
+  // 三脚架：两条腿在前、一条在后
+  o += line([top[0] - 2, top[1] - 4], piv, C.ink!, 5) + line([top[0] - 2, top[1] - 4], piv, C.woodD!, 3);
+  for (const dx of [-14, 14]) o += line([top[0] + dx, top[1] + 4], piv, C.ink!, 5) + line([top[0] + dx, top[1] + 4], piv, C.wood!, 3);
+  // 望远镜：朝 a 方向（等距里纵向压一半），目镜一头粗、物镜一头细加金箍
+  const ux = Math.cos(a);
+  const uy = Math.sin(a) * 0.5 - 0.18;
+  const back: Pt = [piv[0] - ux * 20, piv[1] - uy * 20];
+  const front: Pt = [piv[0] + ux * 38, piv[1] + uy * 38];
+  o += tube(back, front, 8, 12, '#c9963a', '#f1cf7a');
+  o += line([piv[0] + ux * 8, piv[1] + uy * 8 - 5], [piv[0] + ux * 8, piv[1] + uy * 8 + 5], C.goldD!, 2.4);
+  o += ell(front[0], front[1], 4, 6.4, '#2f3542', { sw: 1.4 });
+  o += ell(piv[0], piv[1], 3, 3, C.woodDD!, { sw: 1.2 });
+  // 镜头朝着人时一点闪光
+  const glint = Math.max(0, Math.cos(a) - 0.9) * 10;
+  if (glint > 0) o += ell(front[0] + 1, front[1] - 1, 4 * glint + 1, 4 * glint + 1, '#fffbe0', { sw: 0, op: 0.85 });
+  return flag(0.3, -0.3, 22, 30, 14, 9, C.red!) + o;
+}
+
 const FIRE_H = [[1, 0.8, 0.9], [0.85, 1, 0.75], [0.95, 0.75, 1], [0.8, 0.95, 0.85]] as const;
 const FIRE_SWAY = [0, 2, -1.5, 1] as const;
 /**
@@ -1759,7 +1787,7 @@ function rock(): string {
 // ================================================================= 对外
 
 const DRAW: Record<BuildingKind, (lv: number) => string> = {
-  hq, goldmine, sawmill, vault, woodyard, dock, armory, cannon, gunTower, mortar, shock, sniper, mine, flame: flameTower, harpoon, tar, rocket, fogTower, kraken: () => '', wall: () => '', statue: () => statue(), flagpole: () => flagpole(), chest: () => chest(), wheel: () => wheel(), windmill: () => windmill(), lighthouse: () => lighthouse(), bonfire: () => bonfire(),
+  hq, goldmine, sawmill, vault, woodyard, dock, armory, cannon, gunTower, mortar, shock, sniper, mine, flame: flameTower, harpoon, tar, rocket, fogTower, kraken: () => '', wall: () => '', statue: () => statue(), flagpole: () => flagpole(), chest: () => chest(), wheel: () => wheel(), windmill: () => windmill(), lighthouse: () => lighthouse(), bonfire: () => bonfire(), lookout: () => lookout(2),
   treasure: () => treasure(),
   palm: () => palm(), rock: () => rock(),
 };
@@ -1859,12 +1887,12 @@ export function palmSwayFrames(): ArtPiece[] {
   return swayCache;
 }
 
-/** 会动的章节纪念装饰：每种烘几帧（envfx 按 DECO_LOOP 轮换）。风车四片叶 90° 一循环；舵轮来回摆 5 档 */
-export const DECO_FRAMES = { windmill: 6, lighthouse: 8, bonfire: 4, wheel: 5 } as const;
+/** 会动的章节纪念装饰：每种烘几帧（envfx 按 DECO_LOOP 轮换）。风车四片叶 90° 一循环；舵轮、瞭望台的望远镜来回摆 5 档 */
+export const DECO_FRAMES = { windmill: 6, lighthouse: 8, bonfire: 4, wheel: 5, lookout: 5 } as const;
 export type DecoAnimKind = keyof typeof DECO_FRAMES;
 export const isDecoAnim = (k: BuildingKind): k is DecoAnimKind => k in DECO_FRAMES;
 const decoCache = new Map<DecoAnimKind, ArtPiece[]>();
-/** 帧和静态图（buildingArt(kind, 1)）同一个画布、同一个锚点，换纹理不跳；舵轮的第 2 帧就是静态图的样子 */
+/** 帧和静态图（buildingArt(kind, 1)）同一个画布、同一个锚点，换纹理不跳；舵轮、瞭望台的第 2 帧就是静态图的样子 */
 export function decoFrames(kind: DecoAnimKind): ArtPiece[] {
   let r = decoCache.get(kind);
   if (r) return r;
@@ -1872,7 +1900,8 @@ export function decoFrames(kind: DecoAnimKind): ArtPiece[] {
     kind === 'windmill' ? windmill((i / DECO_FRAMES.windmill) * (Math.PI / 2))
       : kind === 'lighthouse' ? lighthouse(i)
         : kind === 'bonfire' ? bonfire(i)
-          : wheel(((i - 2) * 8 * Math.PI) / 180);
+          : kind === 'lookout' ? lookout(i)
+            : wheel(((i - 2) * 8 * Math.PI) / 180);
   r = Array.from({ length: DECO_FRAMES[kind] }, (_, i) => ({ ...shell(kind, draw(i), 1), key: `b.${kind}.f${i}` }));
   decoCache.set(kind, r);
   return r;

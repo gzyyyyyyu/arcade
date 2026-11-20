@@ -21,12 +21,13 @@ import { isTurret, type LandMat } from './aim.ts';
 import { sfx } from './audio/sfx.ts';
 import { DEPTH } from './depth.ts';
 import { heroRig, stepFog, inFog } from './tdworld.ts';
-import { W, RIG_OF, ATK_MS, SHIP_FOES, RAIN_DIP, buildCost } from './tdcommon.ts';
+import { W, RIG_OF, ATK_MS, SHIP_FOES, RAIN_DIP, cheapestAt } from './tdcommon.ts';
 import { padState, boom, drawBars } from './tdoverlay.ts';
 import { wreckOf } from './tdsheet.ts';
 import { ftx } from './tdhud.ts';
 import { STEP_MS } from './motion.ts';
 import { approach, crowdOffsets, moorOffsets, CROWD_D, CROWD_MAX_TD, type CrowdItem } from './crowd.ts';
+import { slotLift } from './tdcliff.ts';
 
 /**
  * 守岛的挤开：一波几十个同样的水手走同一条路，规则里站得几乎重合，画面上叠成一坨、看不清谁挨打。
@@ -258,7 +259,8 @@ export function sync(bs: TdScene, dt: number): void {
     const p = bTex(t.kind, t.level);
     let sp = bs.tsp.get(t.id);
     const f = footCenter(t.x, t.y, 2);
-    const w = iso(f.gx, f.gy);
+    const g = iso(f.gx, f.gy);
+    const w = { x: g.x, y: g.y - slotLift(s, t.slot) };
     if (!sp) {
       const im = put(bs, bs.r, p, w.x, w.y).setDepth(depthOf(f.gx, f.gy));
       sp = { img: im, key: p.key, baseX: w.x, baseY: w.y, br: t.branch.join(','), slot: t.slot };
@@ -300,14 +302,12 @@ export function sync(bs: TdScene, dt: number): void {
     }
   }
   // 空木台上的"+"：够钱造最便宜的那种才亮；压着沉船的不显示
-  let cheapest = Infinity;
-  for (const k of s.unlocked) cheapest = Math.min(cheapest, buildCost(k));
   // 能升的塔不各挂一个提示：「该升哪座」只由预告卡指的那座的金圈说（tdpadguide.ts syncGoalMark），钱多时不会满屏箭头；
   // 别的塔能不能升，点开面板看
   for (let i = 0; i < bs.pads.length; i++) {
     const sl = s.slots[i];
     if (!sl) continue;
-    bs.pads[i]!.plus.setAlpha(sl.tower < 0 && !wreckOf(bs, sl) ? (s.gold >= cheapest ? 1 : 0.55) : 0);
+    bs.pads[i]!.plus.setAlpha(sl.tower < 0 && !wreckOf(bs, sl) ? (s.gold >= cheapestAt(s, i) ? 1 : 0.55) : 0);
   }
   bs.plan.update(dt, s.enemies.some((e) => e.mode === 'in'));
   bs.plan.barricades(s.barricades ?? [], s.tick);
@@ -481,7 +481,7 @@ export function syncJam(bs: TdScene): void {
       if (!fx) {
         const f = footCenter(t.x, t.y, 2);
         const w = iso(f.gx, f.gy);
-        const im = put(bs, bs.r, tdP('jam'), w.x, w.y - 40).setDepth(DEPTH.jam);
+        const im = put(bs, bs.r, tdP('jam'), w.x, w.y - 40 - slotLift(s, t.slot)).setDepth(DEPTH.jam);
         bs.jamFx.set(id, im);
         bs.tweens.add({ targets: im, y: im.y - 8, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }

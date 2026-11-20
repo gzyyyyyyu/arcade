@@ -8,6 +8,7 @@ import { DEPTH } from './depth.ts';
 import { MARK_FONT, guideVisible, markScale } from './padguide.ts';
 import { openerLeft, towerName } from './td-ui.ts';
 import type { NextStep } from './td-ui.ts';
+import { slotLift } from './tdcliff.ts';
 
 /**
  * 开局的木台高亮：只在倒数里、只圈战役写了开局造法（TdLevel.opener）的那几块，头上写造什么塔；造了就收起那块，第一波开打后全收。
@@ -26,7 +27,8 @@ const live = new WeakMap<TdScene, Set<PadMark>>();
 function addMark(bs: TdScene, slot: number, label: string, lift: number): PadMark {
   const sl = bs.s.slots[slot]!;
   const f = footCenter(sl.x, sl.y, 2);
-  const p = iso(f.gx, f.gy);
+  const g = iso(f.gx, f.gy);
+  const p = { x: g.x, y: g.y - slotLift(bs.s, slot) };
   const d = depthOf(f.gx, f.gy);
   const rg = isoRing(1.5);
   const ring = bs.add.ellipse(p.x, p.y + 2, rg.w, rg.h, 0xffe885, 0.22).setStrokeStyle(4, 0xffe885, 0.95).setDepth(d - 0.4);

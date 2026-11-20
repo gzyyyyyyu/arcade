@@ -130,7 +130,7 @@ export function renderSheet(bs: TdScene): void {
     return;
   }
   if (!t) {
-    el('h2', '', gar ? '驻守台（空着）：当木台用' : '木台：造一座塔', head);
+    el('h2', '', gar ? '驻守台（空着）：当木台用' : sl.high ? '崖上高台：造一座塔' : '木台：造一座塔', head);
     button('×', 'hd-x', () => closeSheet(bs), head).title = '关掉（Esc）';
     el('p', 'hd-desc', '从 1 阶起，能升到 3 阶；打完这局就拆。造价用局内金币。', box);
     // 被挡时核心的 build 会不声不响地拒掉，这里先说清楚为什么点不了（和 build 用同一个 tdBuildBlock）
@@ -156,7 +156,7 @@ export function renderSheet(bs: TdScene): void {
     const step = after && !after.up && after.slot === bs.openSlot ? after : bs.next?.step;
     const rec = openerLeft(s) ? s.level.opener?.find((o) => o.slot === bs.openSlot)?.kind : step && !step.up ? step.kind : undefined;
     kinds.forEach((k, i) => {
-      const cost = buildCost(k);
+      const cost = buildCost(s, bs.openSlot, k);
       const c = el('button', 'hd-td-tower', undefined, grid);
       c.type = 'button';
       c.dataset.kind = k;
@@ -168,7 +168,7 @@ export function renderSheet(bs: TdScene): void {
       price(bs, c, cost);
       const info = TOWER_INFO[k];
       if (info) el('small', '', info.line, c);
-      el('small', 'hd-td-rng', rangeText(k), c);
+      el('small', 'hd-td-rng', rangeText(k, !!sl.high), c);
       // 伤害类型和克谁：从克制表现算，删掉了旧的"克首领""打不到鹦鹉"这类说法
       const cc = towerCounter(k);
       const ctr = el('small', 'hd-td-ctr', undefined, c);

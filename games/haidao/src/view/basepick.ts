@@ -15,6 +15,8 @@ export interface PickItem {
   size: number;
   /** 画的先后（等距深度，越大越靠前） */
   depth: number;
+  /** 占地画的时候往上抬了多少（世界像素；守岛崖上的高台），占地判定跟着抬 */
+  lift?: number;
 }
 
 /** 世界坐标 (wx, wy) 在建筑 id 的贴图不透明像素上吗（画面层实现：先看外框再读 alpha） */
@@ -31,8 +33,11 @@ export const newCycle = (): Cycle => ({ wx: NaN, wy: NaN, id: null });
 
 /** 点 (wx, wy) 下所有命中的建筑：占地命中的在最前，然后是不透明像素命中的、前面的先 */
 export function candidates(items: readonly PickItem[], wx: number, wy: number, hit: HitFn): number[] {
-  const g = unIso(wx, wy);
-  const foot = items.find((b) => g.gx >= b.x && g.gx < b.x + b.size && g.gy >= b.y && g.gy < b.y + b.size);
+  const inFoot = (b: PickItem): boolean => {
+    const g = unIso(wx, wy + (b.lift ?? 0));
+    return g.gx >= b.x && g.gx < b.x + b.size && g.gy >= b.y && g.gy < b.y + b.size;
+  };
+  const foot = items.find(inFoot);
   const out: number[] = foot ? [foot.id] : [];
   const px = items.filter((b) => b !== foot && hit(b.id, wx, wy)).sort((a, b) => b.depth - a.depth || b.id - a.id);
   for (const b of px) out.push(b.id);

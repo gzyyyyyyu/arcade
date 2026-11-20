@@ -134,6 +134,12 @@ export const TD2_ENEMY_POINTS: Readonly<Record<TdEnemyKind, number>> = {
 /** 首领波前多给的倒数（拍）：10 秒，预告条变红 */
 export const TD2_BOSS_EXTRA_TICKS = 200;
 
+/**
+ * 崖上的高台（规则版本 26，第五章）：射程多 2 格；崖下 2 格内打不到（和臼炮的近身死区同一个 minRange，取两者大的）；
+ * 在高台上造塔贵一成半（只算造的那一下，升阶照常）
+ */
+export const TD2_CLIFF = { rangeAdd: 200, minRange: 200, costPct: 115 } as const;
+
 /** 局内经济 */
 export const TD2_ECON = {
   /** 卖塔退已花金币的百分之几 */

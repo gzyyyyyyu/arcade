@@ -113,8 +113,8 @@ describe('盾兵的画面', () => {
       expect(has).toBe(k === 't.shield' || k === 'e.shield');
     }
   });
-  it('预告卡写“先用火、爆”', () => {
-    expect(ENEMY_HINT.shield).toBe('盾兵：先用火、爆');
+  it('预告卡写“从侧面打或用溅射”', () => {
+    expect(ENEMY_HINT.shield).toBe('盾兵：从侧面打或用溅射');
   });
 });
 

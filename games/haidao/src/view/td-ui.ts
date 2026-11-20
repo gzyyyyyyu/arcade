@@ -3,8 +3,8 @@ import { TD2_ENEMIES } from '../content/td2units.ts';
 import { TD2_CHAPTERS } from '../content/tdmaps.ts';
 import type { Td2ChapterInfo } from '../content/tdmaps.ts';
 import { ISLAND, RULES_VERSION, UNIT } from '../core/types.ts';
-import { counterKind, freeSlotPick, isTdTowerKind, levelForRules, tdBuildRange, tdHomeHardOpen, tdUpCost } from '../core/index.ts';
-import { TD2_COST, TD2_HOME } from '../content/td2units.ts';
+import { counterKind, freeSlotPick, isTdTowerKind, levelForRules, tdBuildCost, tdBuildRange, tdHomeHardOpen, tdUpCost } from '../core/index.ts';
+import { TD2_HOME } from '../content/td2units.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
   TD_TOWER_DAMAGE, TD_TOWER_KINDS,
@@ -35,9 +35,9 @@ export const TOWER_INFO: Partial<Record<BuildingKind, { line: string }>> = {
   sniper: { line: '射程最远，先点船长、船医，一发很重' },
 };
 
-/** 塔卡上的射程字：直接读核心 1 阶的射程（和地上的射程圈同一个数），1 格 = 100 单位 */
-export function rangeText(kind: TdTowerKind): string {
-  const r = tdBuildRange(kind, 1);
+/** 塔卡上的射程字：直接读核心 1 阶的射程（和地上的射程圈同一个数），1 格 = 100 单位；high = 崖上的高台（射程远、崖下打不到） */
+export function rangeText(kind: TdTowerKind, high = false): string {
+  const r = tdBuildRange(kind, 1, high);
   const cells = (n: number): string => String(Math.round((n / UNIT) * 10) / 10);
   return r.minRange > 0 ? `射程 ${cells(r.range)} 格（近 ${cells(r.minRange)} 格内打不到）` : `射程 ${cells(r.range)} 格`;
 }
@@ -243,7 +243,7 @@ export function counterCard(parent: HTMLElement, open = false): HTMLElement {
 /** 有的敌人要专门提醒怎么对付（图鉴和预告卡的补充行用；规则那边已经写过同一句就不重复） */
 export const ENEMY_HINT: Partial<Record<TdEnemyKind, string>> = {
   grenadier: '掷弹兵：先用火',
-  shield: '盾兵：先用火、爆',
+  shield: '盾兵：从侧面打或用溅射',
   bosun: '水手长：狙击、臼炮打它最划算',
   macaw: '鹦鹉王：要多留火枪塔',
   mate: '大副：狙击打本体、臼炮收散开的水手',
@@ -333,7 +333,8 @@ function pickStep(s: TdState, pv: WavePreview[], done?: NextStep): NextStep | nu
     // 只给挑种类用：counterKind 只看塔的种类、木台、分叉（同种塔越多越打折），假的那座不进状态
     const s2 = built ? { ...s, towers: [...s.towers, { id: -1, kind: built.kind, slot: built.slot, branch: [], tier: 1 } as unknown as TdTower] } : s;
     const kind = counterKind(s2, pv);
-    return { kind, up: false, slot: freeSlotPick(s2, pv, free)!, cost: TD2_COST[kind] };
+    const slot = freeSlotPick(s2, pv, free)!;
+    return { kind, up: false, slot, cost: tdBuildCost(s, slot, kind) };
   }
   let best: NextStep | null = null;
   s.slots.forEach((sl, slot) => {

@@ -25,12 +25,13 @@ const RANK_FLAG_SCALE = 1.5;
 
 const SEQ = [2, 3, 4, 3, 2, 1, 0, 1];
 const ring = (n: number): number[] => Array.from({ length: n }, (_, i) => i);
-/** 章节纪念装饰的换帧节奏：帧序（下标进 decoFrames）和每帧毫秒。风车一圈 6 帧 × 4 = 2.6 秒，灯塔一圈 1.4 秒，舵轮和棕榈同一种来回摆 */
+/** 章节纪念装饰的换帧节奏：帧序（下标进 decoFrames）和每帧毫秒。风车一圈 6 帧 × 4 = 2.6 秒，灯塔一圈 1.4 秒，舵轮、瞭望台和棕榈同一种来回摆 */
 const DECO_LOOP: Record<DecoAnimKind, { seq: readonly number[]; ms: number }> = {
   windmill: { seq: ring(6), ms: 110 },
   lighthouse: { seq: ring(8), ms: 170 },
   bonfire: { seq: [0, 1, 2, 3, 1, 2], ms: 120 },
   wheel: { seq: SEQ, ms: 320 },
+  lookout: { seq: SEQ, ms: 420 },
 };
 
 /** 整张图换帧的循环（棕榈、章节纪念装饰） */

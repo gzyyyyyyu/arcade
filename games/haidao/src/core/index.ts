@@ -36,7 +36,7 @@ export { CONSOLATION_PCT, COSMETICS, RARE_POOL, TD_TROPHIES, STAR_BONUS_GOLD, ST
 export type { Drop } from './run.ts';
 export * from './tdtypes.ts';
 export { createTd, levelForRules, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
-export { TD_TIER_LEVEL, tdBuildRange, tdHeroStats, tdJammed, tdTowerRange } from './tdstate.ts';
+export { TD_TIER_LEVEL, cliffOn, tdBuildCost, tdBuildRange, tdHeroStats, tdJammed, tdTowerRange } from './tdstate.ts';
 export { tdBuildBlock, tdCallBonus, tdClearCost, tdIncomingWave, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSellRefund, tdWaveLanes, tideOpenAt } from './tdquery.ts';
 export { tdSluiceCan } from './tdmech.ts';
 export { eventAt, heroCd, killGold, raining, tdDareCan } from './tdevent.ts';

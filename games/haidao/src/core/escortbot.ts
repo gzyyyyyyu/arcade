@@ -6,7 +6,7 @@
  * 造塔的挑种类 / 分叉复用 tdbot.ts（counterKind、counterBranch）。
  */
 import { BRANCH_LEVEL, branchOptions } from '../content/branches.ts';
-import { TD2_COST, TD2_HERO_SKILL } from '../content/td2units.ts';
+import { TD2_HERO_SKILL } from '../content/td2units.ts';
 import { escortHullPct, escortResultOf, escortShip } from './escort.ts';
 import { ESCORT_MEND, ESCORT_PIN_AT } from './escorttypes.ts';
 import type { EscortResult } from './escorttypes.ts';
@@ -14,6 +14,7 @@ import { Rng } from './rng.ts';
 import { createTd, stepTd, tdResult, tdUpCost } from './td.ts';
 import { tdPreview, tdSellRefund } from './tdquery.ts';
 import type { TdState } from './tdstate.ts';
+import { tdBuildCost } from './tdstate.ts';
 import { counterBranch, counterKind, towerOn } from './tdbot.ts';
 import { TD_ENEMY_ARMOR } from './td2types.ts';
 import type { TdTowerKind } from './td2types.ts';
@@ -87,7 +88,7 @@ export function escortBotActions(kind: EscortBotKind, seed: number): EscortBot {
           k = s.unlocked[rng.int(s.unlocked.length)] as TdTowerKind;
           want.set(i, k);
         }
-        if (gold >= TD2_COST[k]) out.push({ t, type: 'build', slot: i, kind: k });
+        if (gold >= tdBuildCost(s, i, k)) out.push({ t, type: 'build', slot: i, kind: k });
       } else {
         for (let j = 0; j < s.slots.length; j++) {
           const tw = towerOn(s, j);
@@ -141,9 +142,10 @@ export function escortBotActions(kind: EscortBotKind, seed: number): EscortBot {
       let spent = false;
       if (free.length > 0) {
         const k = counterKind(s, pv);
-        if (gold >= TD2_COST[k]) {
+        const c = tdBuildCost(s, free[0]!.i, k);
+        if (gold >= c) {
           out.push({ t, type: 'build', slot: free[0]!.i, kind: k });
-          gold -= TD2_COST[k];
+          gold -= c;
         }
         spent = true;
       }

@@ -1,11 +1,12 @@
 /**
- * 守岛 2.0 配平模拟：node tools/td-sim.ts [--level td07] [--n 200] [--parts main,anti,hero,care,budget,layouts] [--json] [--from 1] [--rules 13] [--hero nav]
+ * 守岛 2.0 配平模拟：node tools/td-sim.ts [--level td07] [--n 200] [--parts main,anti,hero,care,budget,layouts,pads] [--json] [--from 1] [--rules 13] [--hero nav]
  * 18 关（关卡岛 + 驻守台，建议养成的存档）各打 n 局（种子 from..from+n-1），按验收表（DESIGN 10.7）出数：
  *   main    小白、照建议的新手、稳（普通）、贪四种机器人的星数分布，稳 / 贪的三星率差，局末没花掉的金币占比（新手线按「新手 ≥1★」量，DESIGN 10.7）；
  *   anti    反压制：把稳机器人造的塔全换成一种（喷火 / 火枪 / 加农各量一次，取最高的）；
  *   hero    英雄拆开看：稳机器人不放技能、不走位；
  *   care    养成三档：零养成（只有主寨）、建议养成、满养成（主寨 8 级满配）；
  *   budget  预算 ±2% 时稳机器人的三星率（> 15 点说明这关太悬崖，改地图不改数）；
+ *   pads    断崖关（第五章）：稳机器人只造崖上的高台 / 只造崖下离路最近的同样几块，两种守法的三星率差 ≤ 15 点才算高台不一家独大（DESIGN 10.6h）；
  *   curve   稳机器人的三星率随预算百分比怎么变（--pcts 70,85,100,115,130），配平时找"预算差多少才对上目标"用。
  * --hero nav 带航海士（规则版本 23）；每格另记经济：局末没花掉的金币占收入的比例（余金）、第几波开打时木台全都是三阶塔（升满阶，没升满的局不算，另给升满的局占比）。
  * 默认只跑 main；全部：--parts main,anti,hero,care,budget。大批量拆成每关一片在 CI 上跑（--json 出可合并的汇总），
@@ -158,6 +159,10 @@ function simLevel(id: string): LevelRaw {
     if (!cells.normal) cells.normal = run(id, 'normal', 'suggest');
   }
   if (parts.has('curve')) for (const p of pcts) cells[`curve.${p}`] = run(id, 'normal', 'suggest', {}, p);
+  if (parts.has('pads') && buildLevel(TD2_LEVEL_DEFS.find((d) => d.id === id)!).cliffs) {
+    cells['pads.high'] = run(id, 'normal', 'suggest', { pads: 'high' });
+    cells['pads.low'] = run(id, 'normal', 'suggest', { pads: 'low' });
+  }
   return { id, cells };
 }
 
@@ -232,7 +237,17 @@ function table(levels: LevelRaw[]): string {
       return cs.length ? `${l.id}（目标 ${target(TD2_LEVEL_DEFS.findIndex((d) => d.id === l.id))}%）：${cs.map(([k, c]) => `${k.slice(6)}%→${f0(pct(c, 3))}`).join(' ')}` : '';
     })
     .filter(Boolean);
-  return `${rows.join('\n')}\n\n相邻关三星率变化（后 − 前）：${steps.join(' ')}${curves.length ? `\n\n预算百分比 → 稳三星率：\n${curves.join('\n')}` : ''}`;
+  const pads = levels
+    .filter((l) => l.cells['pads.high'])
+    .map((l) => {
+      const hi = pct(l.cells['pads.high'], 3);
+      const lo = pct(l.cells['pads.low'], 3);
+      return `${l.id}：只造高台 ${f0(hi)}% / 崖下同样块数 ${f0(lo)}%（差 ${f0(Math.abs(hi - lo))}）`;
+    });
+  return (
+    `${rows.join('\n')}\n\n相邻关三星率变化（后 − 前）：${steps.join(' ')}${curves.length ? `\n\n预算百分比 → 稳三星率：\n${curves.join('\n')}` : ''}` +
+    (pads.length ? `\n\n断崖关两种守法的稳三星率：\n${pads.join('\n')}` : '')
+  );
 }
 
 // ---------------------------------------------------------------- 入口
