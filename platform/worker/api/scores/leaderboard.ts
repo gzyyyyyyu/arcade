@@ -1,6 +1,7 @@
 /**
  * 排行榜页的接口（docs/platform-backend.md 15.12）：本周净赢（总榜 + 每个游戏）、称号收集，都从钱包行里的 career 汇总（5.10）。
  * 不新增写入；读走每个 isolate 5 分钟的缓存，和大厅的"今天 N 人玩过"一样，来看榜的人再多，一个 isolate 5 分钟也只扫一遍钱包。
+ * 各榜在拍快照时就排好序（rankedBoards），每个请求只按顺序数名次、不再排序；只看好友时从排好的里挑出好友，顺序不变。
  * 每日挑战榜是现有的分数榜（15.5）：games.ts 里登记了 daily 的游戏，这里只告诉页面它今天那个榜叫什么，页面用 GET /api/boards 去读。
  */
 import type { Ctx } from '../core/context';
@@ -28,7 +29,8 @@ interface Snapshot {
   week: string;
   day: string;
   at: number;
-  players: Player[];
+  /** 各榜（total、每个游戏、titles）从大到小排好的 */
+  boards: Record<string, Ranked>;
   /** 每个每日挑战标签（游戏 id，或"游戏 id:子榜 id"）今天的榜 id（规则版本 -v<n> 最大的那个）；还没人交分时是 null */
   daily: Record<string, string | null>;
 }
@@ -85,8 +87,25 @@ async function snapshot(db: Db, now: number): Promise<Snapshot> {
     const cur = today[key];
     if (!cur || d.v > parseDaily(cur)!.v) today[key] = board_id;
   }
-  cache = { week, day, at: now, players: [...byUser.values()], daily: today };
+  cache = { week, day, at: now, boards: rankedBoards([...byUser.values()]), daily: today };
   return cache;
+}
+
+type Ranked = { p: Player; value: number }[];
+
+const collator = new Intl.Collator();
+const byValue = (a: { p: Player; value: number }, b: { p: Player; value: number }) => b.value - a.value || collator.compare(a.p.displayName, b.p.displayName);
+
+/** 拍快照时排一次：净赢榜只排赢了的（净赢 > 0；输了、打平的不上榜，也不给"我"的名次），称号榜只排有称号的 */
+function rankedBoards(players: Player[]): Record<string, Ranked> {
+  const played = players.filter((p) => Object.keys(p.week).length > 0);
+  const sorted = (list: Ranked) => list.filter((x) => x.value > 0).sort(byValue);
+  const boards: Record<string, Ranked> = {
+    total: sorted(played.map((p) => ({ p, value: Object.values(p.week).reduce((t, x) => t + x, 0) }))),
+  };
+  for (const game of GAME_IDS) boards[game] = sorted(played.filter((p) => Object.hasOwn(p.week, game)).map((p) => ({ p, value: p.week[game]! })));
+  boards.titles = sorted(players.map((p) => ({ p, value: p.titles })));
+  return boards;
 }
 
 export interface BoardEntry {
@@ -98,9 +117,8 @@ export interface BoardEntry {
   isMe: boolean;
 }
 
-/** 从大到小排，同分同名次（1, 2, 2, 4）；只给前 50，外加我的名次 */
-function rank(list: { p: Player; value: number }[], me: string): { entries: BoardEntry[]; me: { rank: number; value: number } | null } {
-  list.sort((a, b) => b.value - a.value || a.p.displayName.localeCompare(b.p.displayName));
+/** 排好的榜按顺序数名次，同分同名次（1, 2, 2, 4）；只给前 50，外加我的名次 */
+function rank(list: Ranked, me: string): { entries: BoardEntry[]; me: { rank: number; value: number } | null } {
   let mine: { rank: number; value: number } | null = null;
   let prev = { value: NaN, rank: 0 };
   const entries: BoardEntry[] = [];
@@ -122,7 +140,7 @@ export async function getLeaderboard(c: Ctx): Promise<Response> {
   const scope = new URL(c.request.url).searchParams.get('scope') ?? 'all';
   if (scope !== 'all' && scope !== 'friends') throw new ApiError(400, 'bad_request');
   const snap = await snapshot(c.db, c.now);
-  let players = snap.players;
+  let pick = (list: Ranked) => list;
   if (scope === 'friends') {
     const rows = await c.db.all<{ id: string }>(
       c.db.stmt(
@@ -132,20 +150,8 @@ export async function getLeaderboard(c: Ctx): Promise<Response> {
       ),
     );
     const ids = new Set([me, ...rows.map((r) => r.id)]);
-    players = players.filter((p) => ids.has(p.userId));
+    pick = (list) => list.filter((x) => ids.has(x.p.userId));
   }
-  const played = players.filter((p) => Object.keys(p.week).length > 0);
-  // 净赢榜只排赢了的（净赢 > 0）：输了、打平的不上榜，也不给"我"的名次（原来唯一上榜的是 -2,000，站在第一名台子上）
-  const winners = (list: { p: Player; value: number }[]) => list.filter((x) => x.value > 0);
-  const boards: Record<string, ReturnType<typeof rank>> = {
-    total: rank(winners(played.map((p) => ({ p, value: Object.values(p.week).reduce((t, x) => t + x, 0) }))), me),
-  };
-  for (const game of GAME_IDS) {
-    boards[game] = rank(winners(played.filter((p) => Object.hasOwn(p.week, game)).map((p) => ({ p, value: p.week[game]! }))), me);
-  }
-  boards.titles = rank(
-    players.filter((p) => p.titles > 0).map((p) => ({ p, value: p.titles })),
-    me,
-  );
+  const boards = Object.fromEntries(Object.entries(snap.boards).map(([k, list]) => [k, rank(pick(list), me)]));
   return json(200, { week: snap.week, scope, boards, daily: snap.daily });
 }

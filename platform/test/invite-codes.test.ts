@@ -1,6 +1,7 @@
 /**
  * 邀请码（docs/platform-backend.md 15.20）：生成（额度、24 小时上限、并发）、撤回和过期还额度、带码注册（13 行、自动加好友、
- * 一码一用、并发只建成一个号、填错计数和每 IP 上限）、注册关着时必须带码、管理（四个数、单人额度、全站列表、撤回）、注销和 Cron 清理。
+ * 一码一用、并发只建成一个号、填错计数和每 IP 上限）、注册关着时必须带码、管理（四个数、单人额度、全站列表、撤回）、
+ * 长期码（只有管理员会话能建、多次、并发抢最后一个名额、撤回、过期、不占额度、不加好友、防刷照样生效）、注销和 Cron 清理。
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { insertUser } from '../worker/api/account/auth';
@@ -8,7 +9,7 @@ import { limitsOf } from '../worker/api/lib/config';
 import type { Ctx } from '../worker/api/core/context';
 import { runCleanup } from '../worker/api/ops/cron';
 import { Db, newStats } from '../worker/api/lib/db';
-import { claimStatement, resetInviteRulesCacheForTests } from '../worker/api/account/invite-codes';
+import { claimStatement, resetInviteRulesCacheForTests, recordUseStatement } from '../worker/api/account/invite-codes';
 import { newSession } from '../worker/api/account/session';
 import { advance, call, count, env, errorOf, registerUser, resetAll, rowsWritten, sidOf, uniqueName } from './helpers';
 
@@ -118,8 +119,8 @@ describe('带码注册', () => {
     expect(await errorOf(await registerWith(undefined))).toBe('registration_closed');
     const res = await registerWith(c.code.toLowerCase());
     expect(res.status).toBe(201);
-    // 原来的 9 行 + 试码计数 1 + 占码 1 + 好友 2
-    expect(rowsWritten()).toBe(13);
+    // 原来的 9 行 + 试码计数 1 + 占码 1 + 使用记录 2 + 好友 2
+    expect(rowsWritten()).toBe(15);
     const newId = ((await res.json()) as { user: { id: string } }).user.id;
     const friends = ((await (await call('/api/friends', { cookie: a.cookie })).json()) as { friends: { userId: string }[] }).friends;
     expect(friends.map((f) => f.userId)).toEqual([newId]);
@@ -176,7 +177,7 @@ describe('带码注册', () => {
     const a = await newUser();
     const c = await createCode(a);
     // 别人先占了
-    await env.DB.prepare('UPDATE invite_codes SET used_at = 1, used_by = ?1 WHERE id = ?2').bind('someone', c.id).run();
+    await env.DB.prepare('UPDATE invite_codes SET uses = 1, used_at = 1, used_by = ?1 WHERE id = ?2').bind('someone', c.id).run();
     const db = new Db(env.DB, newStats(), 'reg');
     const now = Date.now();
     const limits = limitsOf(env);
@@ -186,10 +187,10 @@ describe('带码注册', () => {
     await expect(
       insertUser(ctx, { userId, username: 'late_comer', displayName: '晚到', password: 'Correct-Horse-9', role: 'user' }, [session.stmt], {
         id: c.id,
-        claim: claimStatement(db, c.id, userId, now),
+        claim: [claimStatement(db, c.id, userId, now), recordUseStatement(db, c.id, userId, now)],
       }),
     ).rejects.toMatchObject({ status: 409, code: 'invite_used' });
-    for (const t of ['users WHERE id = ?1', 'credentials WHERE user_id = ?1', 'sessions WHERE user_id = ?1']) {
+    for (const t of ['users WHERE id = ?1', 'credentials WHERE user_id = ?1', 'sessions WHERE user_id = ?1', 'invite_code_uses WHERE user_id = ?1']) {
       expect(await count(`SELECT COUNT(*) AS n FROM ${t}`, userId), t).toBe(0);
     }
   });
@@ -245,6 +246,124 @@ describe('管理', () => {
     expect((await call(`/api/admin/invite-codes/${x.id}/revoke`, { body: {}, cookie: admin.cookie })).status).toBe(204);
     expect(rowsWritten()).toBe(2);
     expect((await call(`/api/admin/invite-codes/${y.id}/revoke`, { body: {}, cookie: admin.cookie })).status).toBe(404);
+  });
+});
+
+describe('长期码（多次）', () => {
+  interface Multi {
+    id: string;
+    code: string;
+    maxUses: number;
+    expiresAt: number | null;
+  }
+  const createMulti = (u: U, body: Record<string, unknown> = {}) => call('/api/admin/invite-codes', { body, cookie: u.cookie });
+  const multi = async (u: U, body: Record<string, unknown> = {}) => {
+    const res = await createMulti(u, body);
+    expect(res.status).toBe(201);
+    return (await res.json()) as Multi;
+  };
+  const adminUser = async () => {
+    const u = await newUser();
+    await makeAdmin(u);
+    return u;
+  };
+
+  it('只有管理员会话能建：默认 100 次、不过期，4 行（码 3 + 每日计数 1）；普通用户 403，令牌 403 session_required；范围不对 400', async () => {
+    const [admin, a] = [await adminUser(), await newUser()];
+    expect((await createMulti(a)).status).toBe(403);
+    const m = await multi(admin);
+    expect(rowsWritten()).toBe(4);
+    expect(m).toMatchObject({ maxUses: 100, expiresAt: null });
+    const token = await call('/api/admin/invite-codes', { body: {}, csrf: false, authorization: `Bearer ${env.ADMIN_TOKEN}` });
+    expect([token.status, await errorOf(token)]).toEqual([403, 'session_required']);
+    for (const body of [{ maxUses: 1 }, { maxUses: 1001 }, { maxUses: '5' }, { days: 0 }, { days: 366 }]) {
+      expect((await createMulti(admin, body)).status, JSON.stringify(body)).toBe(400);
+    }
+    // 用户侧的生成接口传什么都只建普通码
+    await call('/api/invite-codes', { body: { maxUses: 100 }, cookie: a.cookie });
+    expect(await count('SELECT COUNT(*) AS n FROM invite_codes WHERE owner_id = ?1 AND max_uses = 1', a.user.id)).toBe(1);
+  });
+
+  it('多人能用：每次 13 行（不加好友），记下每个人；不占管理员的额度、不进本人列表；管理页看得到 已用/上限 和用它注册的人', async () => {
+    const admin = await adminUser();
+    const m = await multi(admin, { maxUses: 3 });
+    await closeRegistration();
+    expect((await registerWith(m.code, { username: 'multi_one' })).status).toBe(201);
+    // 9 + 试码 1 + 占名额 1 + 使用记录 2
+    expect(rowsWritten()).toBe(13);
+    expect((await registerWith(m.code, { username: 'multi_two' })).status).toBe(201);
+    expect(await count('SELECT COUNT(*) AS n FROM friendships')).toBe(0);
+    expect(await mine(admin)).toMatchObject({ taken: 0, left: 50, codes: [] });
+    const list = (await (await call('/api/admin/invite-codes?status=multi', { cookie: admin.cookie })).json()) as {
+      codes: { id: string; status: string; code?: string; uses: number; maxUses: number; users: { username: string }[] }[];
+    };
+    expect(list.codes).toHaveLength(1);
+    expect(list.codes[0]).toMatchObject({ id: m.id, status: 'unused', code: m.code, uses: 2, maxUses: 3 });
+    expect(list.codes[0]!.users.map((u) => u.username).sort()).toEqual(['multi_one', 'multi_two']);
+  });
+
+  it('并发抢最后一个名额：恰好一人成功，没有半截的号；用完了 400 invite_invalid', async () => {
+    const admin = await adminUser();
+    const m = await multi(admin, { maxUses: 2 });
+    await closeRegistration();
+    expect((await registerWith(m.code)).status).toBe(201);
+    const res = await Promise.all(Array.from({ length: 4 }, () => registerWith(m.code)));
+    expect(res.filter((r) => r.status === 201)).toHaveLength(1);
+    for (const r of res.filter((x) => x.status !== 201)) expect(['invite_used', 'invite_invalid']).toContain(await errorOf(r));
+    expect(await count('SELECT COUNT(*) AS n FROM users')).toBe(3);
+    expect(await count('SELECT COUNT(*) AS n FROM credentials')).toBe(6);
+    expect(await count('SELECT COUNT(*) AS n FROM invite_code_uses WHERE code_id = ?1', m.id)).toBe(2);
+    expect(await count('SELECT uses AS n FROM invite_codes WHERE id = ?1', m.id)).toBe(2);
+    expect(await errorOf(await registerWith(m.code))).toBe('invite_invalid');
+  });
+
+  it('撤回后不能再用（已注册的人不受影响），用完的不能撤；设了天数的到期后不能用', async () => {
+    const admin = await adminUser();
+    const [m, d] = [await multi(admin), await multi(admin, { days: 2 })];
+    expect(d.expiresAt).toBe(Date.now() + 2 * DAY);
+    await closeRegistration();
+    expect((await registerWith(m.code)).status).toBe(201);
+    expect((await call(`/api/admin/invite-codes/${m.id}/revoke`, { body: {}, cookie: admin.cookie })).status).toBe(204);
+    expect(await errorOf(await registerWith(m.code))).toBe('invite_invalid');
+    expect(await count('SELECT COUNT(*) AS n FROM users')).toBe(2);
+    advance(2 * DAY + 1);
+    expect(await errorOf(await registerWith(d.code))).toBe('invite_invalid');
+    // 不过期的那个过了很久照样能用（另建一个，m 已经撤回）
+    const forever = await multi(admin);
+    advance(400 * DAY);
+    expect((await registerWith(forever.code)).status).toBe(201);
+  });
+
+  it('注册防刷照样生效：同一 IP 一天的注册上限到了 429、0 行', async () => {
+    const admin = await adminUser();
+    const m = await multi(admin);
+    await closeRegistration();
+    const ip = '192.0.2.77';
+    let last = 0;
+    for (let i = 0; i < 20 && last !== 429; i++) last = (await registerWith(m.code, { ip })).status;
+    expect(last).toBe(429);
+    expect(rowsWritten()).toBe(0);
+  });
+
+  it('用它注册的人注销：使用记录删掉、名额不还', async () => {
+    const admin = await adminUser();
+    const m = await multi(admin, { maxUses: 5 });
+    const res = await registerWith(m.code);
+    expect((await call('/api/account/delete', { body: { currentPassword: 'Correct-Horse-9' }, cookie: sidOf(res)! })).status).toBe(204);
+    expect(await count('SELECT COUNT(*) AS n FROM invite_code_uses')).toBe(0);
+    expect(await count('SELECT uses AS n FROM invite_codes WHERE id = ?1', m.id)).toBe(1);
+    expect(await count('SELECT COUNT(*) AS n FROM invite_codes WHERE used_by IS NOT NULL')).toBe(0);
+  });
+
+  it('发码的管理员注销：长期码连同别人用它的使用记录一起删，用码的人账号不动', async () => {
+    const admin = await adminUser();
+    const m = await multi(admin, { maxUses: 5 });
+    expect((await registerWith(m.code)).status).toBe(201);
+    expect((await registerWith(m.code, { username: 'second_one' })).status).toBe(201);
+    expect((await call('/api/account/delete', { body: { currentPassword: admin.password }, cookie: admin.cookie })).status).toBe(204);
+    expect(await count('SELECT COUNT(*) AS n FROM invite_codes WHERE id = ?1', m.id)).toBe(0);
+    expect(await count('SELECT COUNT(*) AS n FROM invite_code_uses')).toBe(0);
+    expect(await count("SELECT COUNT(*) AS n FROM users WHERE username = 'second_one'")).toBe(1);
   });
 });
 

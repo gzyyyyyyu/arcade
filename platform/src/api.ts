@@ -1,4 +1,5 @@
 /** 平台接口的浏览器端封装（接口约定见 docs/platform-backend.md 第 15 节）。 */
+import type { GamePrefs } from '../shared/game-prefs.ts';
 
 export interface User {
   id: string;
@@ -12,6 +13,8 @@ export interface User {
   showFeed?: boolean;
   /** 搭子战绩开关；没有就是开着 */
   showMates?: boolean;
+  /** 隐藏游戏里和默认不一样的那部分（shared/game-prefs.ts）；旧的接口回应里没有，按全跟默认 */
+  gamePrefs?: GamePrefs;
   /** 只有管理员有，值总是 true。 */
   isAdmin?: true;
 }
@@ -24,6 +27,8 @@ export interface MeResponse {
   registration: 'open' | 'closed';
   /** 大厅公告：只给登录了的人，没有是 null */
   notice?: Notice | null;
+  /** 管理员设的默认隐藏的游戏：只给登录了的人 */
+  hiddenDefault?: string[];
 }
 
 export interface Notice {
@@ -119,9 +124,25 @@ export interface AdminInviteCode {
   status: 'unused' | 'used' | 'expired' | 'revoked';
   owner: { username: string; displayName: string } | null;
   createdAt: number;
-  expiresAt: number;
+  /** null：长期码，不过期 */
+  expiresAt: number | null;
+  /** 用了几次、能用几次：普通码 maxUses 是 1，管理员建的长期码大于 1 */
+  uses: number;
+  maxUses: number;
   usedAt?: number;
+  /** 普通码用的人；null：用的人已经注销 */
   usedBy?: { username: string; displayName: string } | null;
+  /** 长期码：用它注册的人（新的在前，注销了的不列） */
+  users?: { username: string; displayName: string; usedAt: number }[];
+}
+
+/** 管理员建长期码的结果 */
+export interface MultiInviteCode {
+  id: string;
+  code: string;
+  link: string;
+  maxUses: number;
+  expiresAt: number | null;
 }
 
 export interface FriendLists {
@@ -431,6 +452,7 @@ export const api = {
   react: (id: string, kind: string) => request<void>('POST', `/api/feed/${encodeURIComponent(id)}/react`, { kind }),
   setShowFeed: (showFeed: boolean) => request<{ user: User }>('PATCH', '/api/me', { showFeed }),
   setShowMates: (showMates: boolean) => request<{ user: User }>('PATCH', '/api/me', { showMates }),
+  setHiddenGames: (hidden: string[]) => request<{ user: User; hiddenDefault: string[] }>('PUT', '/api/me/games', { hidden }),
   dismissInvite: (id: string) => request<void>('POST', `/api/invites/${encodeURIComponent(id)}/dismiss`),
   changePassword: (currentPassword: string, newPassword: string) =>
     request<void>('POST', '/api/account/password', { currentPassword, newPassword }),
@@ -490,8 +512,11 @@ export const api = {
     setInviteRules: (rules: Partial<InviteRules>) => request<InviteRulesState>('POST', '/api/admin/settings/invites', rules),
     setInviteQuota: (userId: string, quota: number | null) =>
       request<{ quota: number | null; custom: boolean }>('POST', `/api/admin/users/${userId}/invite-quota`, { quota }),
-    inviteCodes: (status: 'all' | 'unused' | 'used') => request<{ codes: AdminInviteCode[] }>('GET', `/api/admin/invite-codes?status=${status}`),
+    inviteCodes: (status: 'all' | 'unused' | 'used' | 'multi') => request<{ codes: AdminInviteCode[] }>('GET', `/api/admin/invite-codes?status=${status}`),
+    createMultiCode: (maxUses: number, days: number | null) => request<MultiInviteCode>('POST', '/api/admin/invite-codes', { maxUses, days }),
     revokeInviteCode: (id: string) => request<void>('POST', `/api/admin/invite-codes/${id}/revoke`, {}),
+    hiddenGames: () => request<{ hidden: string[] }>('GET', '/api/admin/settings/games'),
+    setHiddenGames: (hidden: string[]) => request<{ hidden: string[] }>('POST', '/api/admin/settings/games', { hidden }),
   },
 };
 

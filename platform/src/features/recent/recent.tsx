@@ -5,6 +5,7 @@
  */
 import { useEffect, useMemo } from 'react';
 import { type GameEntry, GAMES } from '../../../shared/games.ts';
+import { useVisible } from '../../session.tsx';
 import { useWallet } from '../wallet/Wallet.tsx';
 import { gameOfHref, LOCAL_MAX, mergeRecent, parseLocal, pushLocal, RECENT_KEY } from './recent-logic.ts';
 
@@ -39,14 +40,15 @@ function useRecordEntries(userId: string): void {
   }, [userId]);
 }
 
-/** 大厅里游戏的顺序和"上次玩"的那一个；没登录、没玩过的人按目录顺序，last 是 null */
+/** 大厅里游戏的顺序和"上次玩"的那一个；没登录、没玩过的人按目录顺序，last 是 null。隐藏了的游戏（session.tsx 的 useVisible）都不出现 */
 export function useRecentGames(userId: string): { games: GameEntry[]; last: { id: string; at: number } | null } {
   const { wallet, ledger } = useWallet();
   // 跟着用户 id 读：刚打开页面时还不知道是谁（会话还在问），等知道了再读这个人的记录
   const local = useMemo(() => (userId ? readLocal(userId) : []), [userId]);
   useRecordEntries(userId);
-  const items = userId ? mergeRecent(GAMES, ledger, wallet?.stakes ?? [], local, Math.max(LOCAL_MAX, GAMES.length)) : [];
+  const shown = useVisible(GAMES);
+  const items = userId ? mergeRecent(shown, ledger, wallet?.stakes ?? [], local, Math.max(LOCAL_MAX, shown.length)) : [];
   const seen = new Set(items.map((r) => r.id));
-  const games = [...items.flatMap((r) => GAMES.filter((g) => g.id === r.id)), ...GAMES.filter((g) => !seen.has(g.id))];
+  const games = [...items.flatMap((r) => shown.filter((g) => g.id === r.id)), ...shown.filter((g) => !seen.has(g.id))];
   return { games, last: items[0] ? { id: items[0].id, at: items[0].at } : null };
 }

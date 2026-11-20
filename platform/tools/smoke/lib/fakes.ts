@@ -119,6 +119,7 @@ export async function mockAdmin(page: Page, registration: object = { open: true,
   await page.route('**/api/admin/settings/wallet', (r) => r.fulfill(json(FAKE_RULES)));
   await page.route('**/api/admin/overview', (r) => r.fulfill(json(FAKE_OVERVIEW)));
   await page.route('**/api/admin/settings/notice', (r) => r.fulfill(json({ notice: null, max: 120 })));
+  await page.route('**/api/admin/settings/games', (r) => r.fulfill(json({ hidden: [] })));
   // 点开一个人就读他的钱包：默认给个没用过钱包的空摘要，要看具体内容的段落再单独挂（后挂的先匹配）
   await page.route('**/api/admin/wallet/*', (r) => r.fulfill(json({ ...FAKE_WALLET, log: [] })));
 }

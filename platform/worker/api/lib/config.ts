@@ -49,6 +49,8 @@ export const DEFAULT_LIMITS = {
   failMaxMs: 3_600_000,
   failWindowMs: 86_400_000,
   profilePerDay: 10,
+  /** 设置 → 偏好里改隐藏哪些游戏（15.21）：每人每天，点一下存一次 */
+  prefsPerDay: 60,
   acctPerDay: 10,
   /** 好友（5.6、15.6）：每天发请求、查好友码、换好友码、屏蔽的次数；待处理的请求（发出、收到各算）、好友数上限。 */
   friendRequestsPerDay: 30,

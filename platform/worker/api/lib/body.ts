@@ -119,6 +119,11 @@ export function oneOf<T extends string>(v: unknown, allowed: ReadonlySet<T>): T 
   return typeof v === 'string' && allowed.has(v as T) ? (v as T) : bad();
 }
 
+/** 数组：最多 max 个，每个用 read 读 */
+export function listOf<T>(v: unknown, max: number, read: (x: unknown) => T): T[] {
+  return Array.isArray(v) && v.length <= max ? v.map(read) : bad();
+}
+
 /** 平台登记过的游戏 id（shared/games.ts） */
 export function gameId(v: unknown): string {
   return oneOf(v, GAME_IDS);

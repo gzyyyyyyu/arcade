@@ -1,7 +1,7 @@
 /** 注册、登录、退出、找回、本人资料（docs/platform-backend.md 5.1、15.2）。 */
-import { check, optBool, str } from '../lib/body';
+import { check, gameId, listOf, optBool, str } from '../lib/body';
 import { type Ctx, DAY, HOUR } from '../core/context';
-import { claimStatement, findUsableCode, inviteFriendStatement } from './invite-codes';
+import { claimStatement, findUsableCode, inviteFriendStatement, type UsableCode, recordUseStatement } from './invite-codes';
 import {
   burnPasswordHash,
   normalizeInviteCode,
@@ -19,7 +19,8 @@ import { ApiError, clearCookies, json, noContent, rateLimited, withCookies } fro
 import { meter } from '../lib/meter';
 import { checkCached, checkFailLock, clearStatement, hit, reserveAttempt, takeAnonToken } from '../core/ratelimit';
 import { newSession, touchSession, USER_COLUMNS, type UserRow, userJson } from './session';
-import { noticeCached, registrationOpenCached, registrationOpenFresh } from '../core/settings';
+import { hiddenDefaultCached, noticeCached, readHiddenDefault, registrationOpenCached, registrationOpenFresh, rememberHiddenDefault } from '../core/settings';
+import { prefsFor } from '../../../shared/game-prefs';
 import {
   checkDisplayName,
   checkPassword,
@@ -48,8 +49,29 @@ export async function getMe(c: Ctx): Promise<Response> {
   if (!c.sidCookie) return json(200, { user: null, ...base, notice: null });
   if (!c.session) return withCookies(json(200, { user: null, ...base, notice: null }), clearCookies());
   const cookies = await touch(c);
-  // 大厅公告只给登录了的人，30 秒缓存（settings.ts）
-  return withCookies(json(200, { user: userJson(c.session.user), ...base, notice: await noticeCached(c) }), cookies);
+  // 大厅公告、默认隐藏的游戏只给登录了的人，30 秒缓存（settings.ts）
+  return withCookies(
+    json(200, { user: userJson(c.session.user), ...base, notice: await noticeCached(c), hiddenDefault: await hiddenDefaultCached(c) }),
+    cookies,
+  );
+}
+
+/**
+ * PUT /api/me/games {hidden: [游戏 id…]}：设置 → 偏好里我要隐藏哪些游戏（15.21）。存成和现在的默认不一样的那部分，
+ * 管理员以后改默认，我没动过的跟着变。每人每天 prefsPerDay 次；读 1 行（现读默认），写 2 行（users 1 + 计数 1）。回新的 user 和现在的默认
+ */
+export async function putGamePrefs(c: Ctx): Promise<Response> {
+  const user = c.session!.user;
+  const hidden = new Set(listOf(c.body.hidden, 100, gameId));
+  // 差量要按库里现在的默认算：缓存可能是别的 isolate 改之前的、或读库失败的兜底，算错会把没动过的游戏写进个人偏好。读不到就报错不写
+  const defaults = await readHiddenDefault(c.db);
+  rememberHiddenDefault(defaults);
+  const prefs = prefsFor(defaults, hidden);
+  const value = prefs.show.length || prefs.hide.length ? JSON.stringify(prefs) : null;
+  await hit(c.db, `prefs:${user.id}`, c.limits.prefsPerDay, DAY, c.now);
+  await c.db.run(c.db.stmt('UPDATE users SET game_prefs = ?1 WHERE id = ?2', value, user.id));
+  user.game_prefs = value;
+  return json(200, { user: userJson(user), hiddenDefault: defaults });
 }
 
 /** 顺带的写入只在正常、停增长档，而且"好友与资料"类预算没用完时做。 */
@@ -116,7 +138,7 @@ export async function register(c: Ctx): Promise<Response> {
 
   // 试码：每 IP 每小时 invitePerIpHour 次，成败都算（带条件的 UPSERT，超了 429、0 行）。不设全站上限：
   // 全站计数只要算了乱试的，几个 IP 段就能耗光、挡住所有拿着真码的人（吃过亏）；码 60 bit，按 IP 限住就猜不中
-  let invite: { id: string; owner_id: string } | null = null;
+  let invite: UsableCode | null = null;
   if (withCode) {
     checkCached([`inv:ip:${ip}`], now);
     await hit(db, `inv:ip:${ip}`, limits.invitePerIpHour, HOUR, now);
@@ -132,12 +154,13 @@ export async function register(c: Ctx): Promise<Response> {
 
   const userId = newUserId();
   const session = await newSession(env, db, userId, limits, now, !!invite);
-  const extra = invite ? [session.stmt, inviteFriendStatement(db, invite.owner_id, userId, now, limits.friendsMax)] : [session.stmt];
+  // 普通码注册成功两人自动成为好友；长期码（管理员建、一码多人）不加，免得管理员的好友被挤满
+  const extra = invite?.max_uses === 1 ? [session.stmt, inviteFriendStatement(db, invite.owner_id, userId, now, limits.friendsMax)] : [session.stmt];
   const { user, recoveryCode } = await insertUser(
     c,
     { userId, username, displayName, password, role: 'user' },
     extra,
-    invite ? { id: invite.id, claim: claimStatement(db, invite.id, userId, now) } : undefined,
+    invite ? { id: invite.id, claim: [claimStatement(db, invite.id, userId, now), recordUseStatement(db, invite.id, userId, now)] } : undefined,
   );
   return withCookies(json(201, { user: userJson(user), recoveryCode }), session.cookies);
 }
@@ -152,15 +175,15 @@ export async function checkUsernameFree(c: Ctx, username: string): Promise<void>
  * 建号：users 1 行、密码和恢复码各 1 行，再加上调用方的语句（注册的新会话、管理员的每日计数），一个 batch。
  * 注册和管理员建号共用，校验已经在调用方做完。返回新用户和只给看这一次的恢复码。
  *
- * invite（15.20）：带邀请码注册。batch 第一条是占码（claim，条件更新），users 那条以"码的 used_by 是这个新 id"为条件，
+ * invite（15.20）：带邀请码注册。batch 开头是占名额（claim[0]，条件更新 uses < max_uses）和使用记录，users 那条以"码的 used_by 是这个新 id"为条件，
  * 密码、恢复码和 extra 里的语句（调用方要让它们以"users 里有这个新 id"为条件）跟着 users 走。D1 的 batch 是一个事务、按顺序执行：
- * 同一个码两个人同时用，后到的那个占码改了 0 行，后面一行都不写，这里抛 409 invite_used。
+ * 最后一个名额两个人同时用，后到的那个占名额改了 0 行，后面一行都不写，这里抛 409 invite_used。
  */
 export async function insertUser(
   c: Ctx,
   u: { userId: string; username: string; displayName: string; password: string; role: UserRow['role'] },
   extra: D1PreparedStatement[],
-  invite?: { id: string; claim: D1PreparedStatement },
+  invite?: { id: string; claim: D1PreparedStatement[] },
 ): Promise<{ user: UserRow; recoveryCode: string }> {
   const { db, env, limits, now } = c;
   const recoveryCode = newRecoveryCode();
@@ -184,7 +207,7 @@ export async function insertUser(
       // 带码时：users 没插进去（码被别人先占了），这两行也不插
       const ifUser = invite ? ' WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)' : '';
       const rs = await db.batch([
-        ...(invite ? [invite.claim] : []),
+        ...(invite?.claim ?? []),
         userInsert,
         db.stmt(`INSERT INTO credentials (user_id, type, secret, created_at) SELECT ?1, 'password', ?2, ?3${ifUser}`, u.userId, pwHash, now),
         db.stmt(`INSERT INTO credentials (user_id, type, secret, created_at) SELECT ?1, 'recovery', ?2, ?3${ifUser}`, u.userId, rcHash, now),
@@ -193,7 +216,7 @@ export async function insertUser(
       if (invite && !rs[0]!.meta.changes) throw new ApiError(409, 'invite_used');
       const user: UserRow = {
         id: u.userId, username: u.username, display_name: u.displayName, friend_code: friendCode, avatar_json: null,
-        catchphrase_id: null, created_at: now, last_seen_at: now, role: u.role, presence_at: 0, show_where: 1, show_feed: 1, show_mates: 1,
+        catchphrase_id: null, created_at: now, last_seen_at: now, role: u.role, presence_at: 0, show_where: 1, show_feed: 1, show_mates: 1, game_prefs: null,
       };
       return { user, recoveryCode };
     } catch (e) {

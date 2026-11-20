@@ -7,21 +7,34 @@
  * - 平台页 /admin：当前会话是管理员，写请求照常要 X-Arcade 和 Origin。只能动普通账号：
  *   偷到管理员 cookie 的人改不了管理员的密码，也删不掉管理员。
  *   例外：邀请额度两种调用方都能给管理员改，额度只是能邀请几个人，碰不到账号本身。
+ *   反过来：建长期邀请码（POST /api/admin/invite-codes）只认管理员会话，令牌回 403 session_required。
  * - 只读的 GET /api/admin/play-tally（wallet/api.ts）：真人对局统计汇总，两种调用方都能看，0 行写入。
  *
  * 写入都记在"账号安全"类；每个管理员（令牌算一个）每天最多 adminPerDay 次写操作，只算成功的。
  */
-import { bool, check, optBool, str } from '../lib/body';
+import { bool, check, gameId, listOf, optBool, str } from '../lib/body';
 import { checkUsernameFree, insertUser } from '../account/auth';
 import { type Ctx, DAY, HOUR } from '../core/context';
 import { hashPassword, hashRecoveryCode, newRecoveryCode, newUserId, normalizeRecoveryCode } from '../lib/crypto';
 import { ApiError, json, noContent, rateLimited } from '../lib/http';
-import { adminRevokeStatement, inviteRulesState, parseUserQuota, planInviteRulesChange, rememberInviteRules } from '../account/invite-codes';
+import { adminRevokeStatement, inviteRulesState, parseUserQuota, planInviteRulesChange, planMultiCode, rememberInviteRules } from '../account/invite-codes';
 import { isNumberRecord, parseJsonColumnOr } from '../lib/json-column';
 import { meter } from '../lib/meter';
 import { checkCached, clearStatement, dailyCapStatement, hit, peek, remember, takeAnonToken } from '../core/ratelimit';
 import { deleteUserStatements, type UserRow } from '../account/session';
-import { NOTICE_MAX, readNotice, readRegistrationSwitch, registrationForcedOff, rememberNotice, rememberRegistration, setNoticeStatement, setRegistrationStatement } from '../core/settings';
+import {
+  NOTICE_MAX,
+  readHiddenDefault,
+  readNotice,
+  readRegistrationSwitch,
+  registrationForcedOff,
+  rememberHiddenDefault,
+  rememberNotice,
+  rememberRegistration,
+  setHiddenDefaultStatement,
+  setNoticeStatement,
+  setRegistrationStatement,
+} from '../core/settings';
 import { DEFAULT_RULES } from '../wallet/state';
 import { planRulesChange, readRulesRow, rememberRules, RULE_RANGE } from '../wallet/store';
 import {
@@ -258,7 +271,7 @@ export async function setRegistration(c: Ctx): Promise<Response> {
   const open = bool(c.body.open);
   const cap = await checkAdminCap(c);
   await c.db.batch([setRegistrationStatement(c.db, open, c.now), cap]);
-  rememberRegistration(open, c.now);
+  rememberRegistration(open);
   return json(200, await registrationState(c));
 }
 
@@ -277,8 +290,22 @@ export async function setNotice(c: Ctx): Promise<Response> {
   const by = c.session?.user.username ?? '令牌';
   const cap = await checkAdminCap(c);
   await c.db.batch([setNoticeStatement(c.db, text || null, by, c.now), cap]);
-  rememberNotice(text ? { text, at: c.now } : null, c.now);
+  rememberNotice(text ? { text, at: c.now } : null);
   return json(200, { notice: await readNotice(c.db), max: NOTICE_MAX });
+}
+
+/** GET /api/admin/settings/games：默认隐藏的游戏（15.21）。读 1 行 */
+export async function getHiddenGames(c: Ctx): Promise<Response> {
+  return json(200, { hidden: await readHiddenDefault(c.db) });
+}
+
+/** POST /api/admin/settings/games {hidden: [游戏 id…]}：改默认隐藏的游戏。2 行（settings 1 + 每日计数 1）；没登记的 id 400 */
+export async function setHiddenGames(c: Ctx): Promise<Response> {
+  const hidden = [...new Set(listOf(c.body.hidden, 100, gameId))].sort();
+  const cap = await checkAdminCap(c);
+  await c.db.batch([setHiddenDefaultStatement(c.db, hidden, c.now), cap]);
+  rememberHiddenDefault(hidden);
+  return json(200, { hidden });
 }
 
 /** 钱包规则：现在的值、默认值、能调的范围、最近 20 次改动。 */
@@ -332,9 +359,17 @@ export async function setUserInviteQuota(c: Ctx): Promise<Response> {
   return json(200, { quota, custom: quota !== null });
 }
 
-/** POST /api/admin/invite-codes/<id>/revoke：撤回一个没用的码。2 行（码 1 + 每日计数 1）；已用、已撤回、不存在 404、0 行 */
+/** POST /api/admin/invite-codes：建一个长期码（多次、默认不过期，invite-codes.ts 的 planMultiCode）。4 行（码 3 + 每日计数 1） */
+export async function createMultiCode(c: Ctx): Promise<Response> {
+  const plan = planMultiCode(c);
+  const cap = await checkAdminCap(c);
+  await c.db.batch([plan.stmt, cap]);
+  return json(201, plan.code);
+}
+
+/** POST /api/admin/invite-codes/<id>/revoke：撤回一个名额没满的码。2 行（码 1 + 每日计数 1）；用完了、已撤回、不存在 404、0 行 */
 export async function adminRevokeCode(c: Ctx): Promise<Response> {
-  const row = await c.db.first(c.db.stmt('SELECT 1 FROM invite_codes WHERE id = ?1 AND used_at IS NULL AND revoked_at IS NULL', c.params.id));
+  const row = await c.db.first(c.db.stmt('SELECT 1 FROM invite_codes WHERE id = ?1 AND uses < max_uses AND revoked_at IS NULL', c.params.id));
   if (!row) throw new ApiError(404, 'not_found');
   const cap = await checkAdminCap(c);
   await c.db.batch([adminRevokeStatement(c.db, c.params.id!, c.now), cap]);

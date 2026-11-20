@@ -369,11 +369,13 @@ export const isWalletState = (v: unknown): v is WalletState =>
 
 /**
  * 碰一下钱包：过了北京时间 0 点，当天计数挪到 prev、从 0 算；到期的那一份原样退回、记下 ref。
- * 返回新状态（不改入参）和有没有到期退回（有就要写库）。
+ * 返回新状态和有没有到期退回（有就要写库）。不改入参：没有要改的时候返回的就是入参本身，调用方要改得自己复制（apply）。
  */
 export function normalize(s0: WalletState, now: number): { s: WalletState; expired: boolean } {
-  const s: WalletState = structuredClone(s0);
   const day = beijingDate(now);
+  // 不动 s0：没换日、没有到期的（看钱包绝大多数是这样）原样返回、不复制，要改时才整份复制
+  if (s0.today.day === day && Object.values(s0.stakes).every((st) => now < st.until)) return { s: s0, expired: false };
+  const s: WalletState = structuredClone(s0);
   if (s.today.day !== day) {
     if (s.today.writes || s.today.grant || s.today.admin) s.prev = s.today;
     s.today = emptyDay(day);
@@ -457,7 +459,8 @@ export function apply(
       if (st?.ops?.includes(cmd.op)) return st.tier === cmd.tier && st.mode === cmd.mode ? { dup: {} } : { error: 'op_conflict' };
     }
   }
-  const { s } = normalize(s0, now);
+  // 下面要改它：normalize 没改时给的是 s0 本身，复制一份，s0 留给调用方回原样
+  const s = structuredClone(normalize(s0, now).s);
   // 结回、放弃不受每天的次数管：桌上的筹码总要能回来（次数由带入那头管住）
   if ((cmd.t === 'buyin' || cmd.t === 'relief') && s.today.writes >= DAILY_WRITES) return { error: 'limit' };
   const before = s.balance;

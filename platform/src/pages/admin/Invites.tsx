@@ -1,12 +1,12 @@
 /**
  * 管理后台的"邀请码"分区（docs/platform-backend.md 15.20）：四个数（普通用户额度、管理员额度、有效期、每天最多生成几个）、
- * 单独给某人改额度、全站最近 100 个码和撤回。改了即时生效，不用发版。
+ * 单独给某人改额度、建长期码（一码多人、默认 100 次、不过期）、全站最近 100 个码和撤回。改了即时生效，不用发版。
  */
 import { useEffect, useState } from 'react';
 import { api, errorText, type AdminInviteCode, type AdminUser, type InviteRules, type InviteRulesState } from '../../api.ts';
 import { Empty, Field, FormError, Panel, Skeleton, SubmitButton, useSubmit, useWritable } from '../../ui.tsx';
 import { Paged } from '../../features/fit/Fit.tsx';
-import { num, timeText } from './common.ts';
+import { dateText, num, timeText } from './common.ts';
 import { AdminTabs, useAdminWide } from './AdminLayout.tsx';
 
 const KEYS = ['userQuota', 'adminQuota', 'ttlDays', 'perDay'] as const;
@@ -135,7 +135,60 @@ function UserQuotaPanel() {
   );
 }
 
+/**
+ * 建长期码：码表筛到"长期码"时在表上面一行，次数（默认 100）和有效天数（空 = 不过期）；建好重新拉码表，新码排第一个、带复制。
+ * 放在码表面板里而不是另起一个面板：两个面板叠在一栏里，码表翻页量高度会和面板互相撑来撑去
+ */
+function MultiCodeForm({ onCreated }: { onCreated: () => void }) {
+  const [uses, setUses] = useState('100');
+  const [days, setDays] = useState('');
+  const writable = useWritable();
+  const { busy, error, onSubmit } = useSubmit(async () => {
+    await api.admin.createMultiCode(Number(uses), days.trim() === '' ? null : Number(days));
+    onCreated();
+  });
+  return (
+    <form className="form multi-code" onSubmit={(e) => void onSubmit(e)} data-testid="multi-code">
+      <div className="fields fields--2">
+        <Field label="能用几次" hint="2–1000" name="maxUses" type="number" inputMode="numeric" min={2} max={1000} required value={uses} onChange={(e) => setUses(e.target.value)} />
+        <Field label="有效天数" hint="留空不过期" name="days" type="number" inputMode="numeric" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)} />
+      </div>
+      <p className="note">一码多人，不占额度，不自动加好友；注册的每 IP、每天上限照算。</p>
+      <FormError text={error} />
+      <SubmitButton busy={busy} disabled={!writable}>
+        建一个长期码
+      </SubmitButton>
+    </form>
+  );
+}
+
 const STATUS_TEXT: Record<AdminInviteCode['status'], string> = { unused: '没用', used: '已用', expired: '过期', revoked: '撤回' };
+const MULTI_STATUS_TEXT: Record<AdminInviteCode['status'], string> = { unused: '能用', used: '用完', expired: '过期', revoked: '撤回' };
+type CodeFilter = 'all' | 'unused' | 'used' | 'multi';
+const FILTER_TEXT: Record<CodeFilter, string> = { all: '全部', unused: '没用的', used: '已用的', multi: '长期码' };
+const EMPTY_TEXT: Record<CodeFilter, string> = {
+  all: '还没有人生成过邀请码。',
+  unused: '没有没用的码。',
+  used: '还没有被用掉的码。',
+  multi: '还没建过长期码。',
+};
+
+/** 长期码用它注册的人：列前 3 个，多的写"等 N 人" */
+function Joiners({ users }: { users: NonNullable<AdminInviteCode['users']> }) {
+  if (!users.length) return <span className="muted">还没人用</span>;
+  const shown = users.slice(0, 3);
+  return (
+    <>
+      {shown.map((u, i) => (
+        <span key={u.username}>
+          {i > 0 && '、'}
+          <Who who={u} />
+        </span>
+      ))}
+      {users.length > shown.length && ` 等 ${users.length} 人`}
+    </>
+  );
+}
 
 type Person = { username: string; displayName: string } | null | undefined;
 
@@ -166,7 +219,7 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function CodesPanel() {
-  const [status, setStatus] = useState<'all' | 'unused' | 'used'>('all');
+  const [status, setStatus] = useState<CodeFilter>('all');
   const [codes, setCodes] = useState<AdminInviteCode[] | null>(null);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
@@ -185,15 +238,16 @@ function CodesPanel() {
   const filter = (
     // biome-ignore lint/a11y/useSemanticElements: 保持现有布局，语义靠 role 给读屏器（fieldset 自带边框和内边距）
     <div className="seg" role="group" aria-label="看哪些">
-      {(['all', 'unused', 'used'] as const).map((s) => (
+      {(['all', 'unused', 'used', 'multi'] as const).map((s) => (
         <button key={s} type="button" className={status === s ? 'seg__on' : ''} aria-pressed={status === s} onClick={() => setStatus(s)}>
-          {s === 'all' ? '全部' : s === 'unused' ? '没用的' : '已用的'}
+          {FILTER_TEXT[s]}
         </button>
       ))}
     </div>
   );
   return (
-    <Panel icon="people" title="邀请码（最近 100 个）" className="apanel" action={filter}>
+    <Panel icon="people" title="邀请码" className="apanel" action={filter}>
+      {status === 'multi' && <MultiCodeForm onCreated={() => setVersion((v) => v + 1)} />}
       {error && <FormError text={error} />}
       {!codes && !error && <Skeleton rows={3} />}
       {codes && codes.length === 0 && (
@@ -206,7 +260,7 @@ function CodesPanel() {
             )
           }
         >
-          {status === 'all' ? '还没有人生成过邀请码。' : status === 'unused' ? '没有没用的码。' : '还没有被用掉的码。'}
+          {EMPTY_TEXT[status]}
         </Empty>
       )}
       {codes && codes.length > 0 && (
@@ -221,12 +275,20 @@ function CodesPanel() {
             <div className={`invite-code${c.status === 'unused' ? '' : ' invite-code--spent'}`}>
               <div className="invite-code__main">
                 <span className="mono invite-code__code">{c.code ?? c.hint}</span>
-                <span className={`code-status code-status--${c.status}`}>{STATUS_TEXT[c.status]}</span>
+                {/* 长期码的 已用/上限 放进状态块里，一行放得下 */}
+                <span className={`code-status code-status--${c.status} tnum`} title={c.maxUses > 1 ? (c.expiresAt === null ? '不过期' : `${dateText(c.expiresAt)} 到期`) : undefined}>
+                  {c.maxUses > 1 ? `${MULTI_STATUS_TEXT[c.status]} ${c.uses}/${c.maxUses}` : STATUS_TEXT[c.status]}
+                </span>
                 <span className="tnum muted invite-code__when">{timeText(c.createdAt)}</span>
               </div>
               <div className="invite-code__who muted">
                 发：<Who who={c.owner} />
-                {c.status === 'used' && (
+                {c.users && (
+                  <>
+                    {' · '}用：<Joiners users={c.users} />
+                  </>
+                )}
+                {c.maxUses === 1 && c.status === 'used' && (
                   <>
                     {' · '}用：<Who who={c.usedBy} />
                   </>
@@ -261,7 +323,7 @@ function RevokeButton({ id, onDone }: { id: string; onDone: () => void }) {
   );
 }
 
-/** 宽屏：左边两个表单上下排，右边码表；窄屏三个页签 */
+/** 宽屏：左边两个表单上下排，右边码表（筛"长期码"时上面是建长期码）；窄屏三个页签 */
 export function InvitesSection() {
   const wide = useAdminWide();
   const tabs = wide

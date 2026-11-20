@@ -204,6 +204,7 @@
 .invite-code__who small { font-size: inherit; }
 .invite-code__acts { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: var(--s-1); }
 .invite-code--spent .mono { color: var(--muted); }
+.console .apanel > form.multi-code { flex: none; padding-bottom: var(--s-2); border-bottom: 1px solid var(--divider); }
 .code-status { display: inline-block; padding: 0 var(--s-2); border: var(--bw-thin) solid transparent; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 700; line-height: 20px; }
 .code-status--unused { background: #e3f4e8; border-color: #4fae6f; color: #24663b; }
 .code-status--used { background: var(--highlight-warm); border-color: var(--accent); color: #9a4416; }
@@ -297,3 +298,4 @@
   .invite-code__code { font-size: var(--fs-sm); }
   .invite-code__acts .btn { padding-inline: var(--s-2); }
 }
+.console .hidden-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 0 var(--s-3); }

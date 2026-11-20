@@ -7,16 +7,14 @@
 - 游戏目录在 `shared/games.ts`，封面放在 `public/covers/<id>.webp`（16:9），来源写进 `ASSETS.md`。平台只负责展示和跳转，不引用任何游戏的代码。
 - 正式环境只有这一个平台 Worker：不开 workers.dev（它绕过网关限速）、不建测试 Worker。测试全在本地：`npm test`（vitest 跑在本地 workerd 里）、
   `npm run dev:api`（wrangler dev + 本地 D1）。
-- 测试期是邀请制：注册默认关着，管理员可在 `/admin` 随时开关（D1 `settings`；`vars.REGISTRATION` 是紧急总闸，见 `worker/api/core/settings.ts`），账号由管理员在 `/admin` 或用
-  `npm run admin` 建；老用户也能生成邀请码，注册关着时凭码注册（`worker/api/account/invite-codes.ts`，15.20）。没登录的访客在首页一个 `/api` 请求都不发，只有打开登录页时问一次 `/api/me`。
+- 邀请制：注册开关在 D1 `settings`（`vars.REGISTRATION` 是总闸，`core/settings.ts`），注册关着时凭码（普通码、管理员的长期码，`account/invite-codes.ts`，15.20）。没登录的访客在首页不发 `/api` 请求，只有登录页问一次 `/api/me`。
+- 隐藏游戏（15.21）只经 `shared/game-prefs.ts` 算、前端只经 `session.tsx` 的 `useVisible` 过滤，别处不自己判断。
 - 管理接口 `/api/admin/*` 的两种认证（Bearer 令牌、管理员会话）和各自能做什么写在 `worker/api/ops/admin.ts` 开头；改权限时同步改那里和测试。
 - 改界面后跑相关的那段冒烟（`npm run smoke -- --only=<段>`，分段见 `docs/smoke.md`；改布局跑 `devices`），控制台零报错、没有意料外的 4xx/5xx，并亲自看截图。
   新 CSS 限定在所属页面的根节点下；颜色只用 `src/styles.css` 的变量（`docs/style.md`）。
 - 冒烟和 `npm run dev:api` 固定用 5181，冒烟启动前查端口，被占就失败。
-- 每次改动同步更新相关文档：`README.md`（功能一节每条一两句）、`docs/pages.md`（页面怎么排的细节）、`docs/style.md`、仓库根 `docs/platform-backend.md`（接口、写入行数）、`CHANGELOG.md`（带日期的版本段，条目分"新增 / 改动 / 修复 / 整理"四类，没有的类不写）。
-  文档写现状，过程和历史只进 CHANGELOG。
-- 命令：`npm run dev`（界面，5180）、`npm run dev:api`（接口，5181）、`npm test`、`npm run lint`、`npm run smoke`、`npm run build`、`npm run preview`（4180）、
-  `npm run deploy`（单独部署平台用，比如 Deploy to Cloudflare 按钮；本仓库的正式站怎么发版见根目录 `CONTRIBUTING.md`）。
+- 改动同步真受影响的文档：`README.md`、`docs/pages.md`、`docs/style.md`、根 `docs/platform-backend.md`（接口、写入行数）、`CHANGELOG.md`（带日期，分"新增 / 改动 / 修复 / 整理"）。写现状。
+- 命令：`dev`（5180）、`dev:api`（5181）、`test`、`lint`、`smoke`、`build`、`preview`（4180）；`deploy` 只给单独部署用（正式站发版见根 `CONTRIBUTING.md`）。
 - 测试夹具里的站点用保留的示例域名（`game.example.com`、`game.test`），不写正式域名。
 - 平台接口只增不改。游戏依赖平台，平台不依赖任何游戏，所以带接口变更的发布顺序是先迁移、再平台、后游戏。
 

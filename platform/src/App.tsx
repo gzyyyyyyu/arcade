@@ -7,7 +7,7 @@ import { Link, navigate, useLocation } from './router.tsx';
 import { HotkeyHelp, useHotkeys } from './features/hotkeys/Hotkeys.tsx';
 import { SideNav } from './features/side-nav/SideNav.tsx';
 import { api, type Overtake } from './api.ts';
-import { useSession } from './session.tsx';
+import { useSession, useVisible } from './session.tsx';
 import { FeedButton } from './features/feed/Feed.tsx';
 import { InviteBar, useHasInvites, useInvitePolling } from './features/invites/Invites.tsx';
 import { useLobbyPresence } from './lib/presence.ts';
@@ -262,19 +262,22 @@ function LobbyNudge() {
   );
 }
 
+const overtakeGame = (o: Overtake) => o.gameId;
+
 /**
- * 好友超过了我这周的每日挑战纪录（docs/social.md 1.5）：打开大厅时问一次，读的时候比、不存；有好几个游戏只提第一个。
+ * 好友超过了我这周的每日挑战纪录（docs/social.md 1.5）：打开大厅时问一次，读的时候比、不存；有好几个游戏只提第一个没被隐藏的。
  * 问失败就不提，不打扰。
  */
 function OvertakeNudge() {
-  const [o, setO] = useState<Overtake | null>(null);
+  const [all, setAll] = useState<Overtake[]>([]);
   useEffect(() => {
     let alive = true;
-    api.overtakes().then((r) => alive && setO(r.overtakes[0] ?? null), () => {});
+    api.overtakes().then((r) => alive && setAll(r.overtakes), () => {});
     return () => {
       alive = false;
     };
   }, []);
+  const o = useVisible(all, overtakeGame)[0];
   const g = o && GAMES.find((x) => x.id === o.gameId);
   if (!o || !g) return null;
   // 一天几个每日榜的游戏说是哪个子榜："夜巡·守夜"
