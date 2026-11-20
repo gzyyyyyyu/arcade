@@ -1,142 +1,82 @@
 # 工程质量标准
 
-> 所有 PR 都按这份标准写、按这份标准审。硬约束（模块独立、规则核心纯函数、iOS 规矩、房间规范）的正本在 [AGENTS.md](../AGENTS.md)，
-> PR 的流程和权限在 [CONTRIBUTING.md](../CONTRIBUTING.md) 和 [review-policy.md](review-policy.md)。本文件管其余的部分：代码写成什么样、PR 交成什么样。
-> 英文概要见 CONTRIBUTING.md 的 *Quality standard* 一节。
+> 所有 PR 按这份标准写、按这份标准审。硬约束（模块独立、规则核心、房间、测试档位、Git）的正本在 [AGENTS.md](../AGENTS.md)，审阅规则在 [review-policy.md](review-policy.md)；本文件只管代码和 PR 写成什么样。
 
 ## 1. 目录约定
 
-游戏模块按这个结构放，没有的部分可以省，但同一种东西不另起名字：
-
 ```
 games/<id>/
-├─ src/
-│  ├─ core/        规则核心：纯函数，状态 + 操作 → 新状态 + 事件（AGENTS.md 第 4 节）
-│  ├─ ai/          电脑玩家，只读核心给它看的那部分状态
-│  ├─ view/        画面层（Phaser 场景或 DOM），只读核心的状态和事件
-│  ├─ net/         联机：RoomClient、和房间的协议
-│  └─ platform/    和平台打交道：/api、云存档、钱包
-├─ worker/         Worker 入口和房间（继承 arcade-kit 的 GameRoom）
-├─ test/           vitest 单测和架构约束测试（arch.test.ts）
-├─ tools/          冒烟、截图、模拟器、素材烘焙等开发工具（不进产物）
-├─ docs/           这个模块的设计细节（可选）
-├─ public/         运行时要用的静态资源；构建中间产物和原始数据不放这里
-├─ README.md  AGENTS.md  CLAUDE.md  CHANGELOG.md  DESIGN.md（可选）
-└─ package.json  package-lock.json  .nvmrc  tsconfig*.json  vite.config.ts  wrangler.jsonc  .gitignore
+├─ src/core/ 规则核心   src/ai/ 电脑玩家（只读核心给它看的状态）   src/view/ 画面   src/net/ 联机   src/platform/ 调平台
+├─ worker/   Worker 入口和房间        test/  单测和 arch.test.ts       tools/  冒烟、截图、模拟器等开发工具（不进产物）
+├─ docs/     模块设计细节（可选）     public/ 运行时静态资源（不放中间产物和原始数据）
+└─ README.md AGENTS.md CLAUDE.md CHANGELOG.md DESIGN.md（可选）和 AGENTS.md 第 1 节要求的配置文件
 ```
 
-新模块照这个结构建。已有模块里 `tests/` 和 `test/`、`scripts/` 和 `tools/`、`arch.test.ts` 和 `architecture.test.ts` 两种叫法都有，不为改名单开 PR，等大的重构时顺手统一。
-
-- 一个玩法有多个变体（牌馆、雀馆）时，变体放 `src/variants/<名>/`，共用的部分放 `src/common/` 或原来的 `core/`、`view/`；
-  变体之间互不 import，`arch.test.ts` 要覆盖到所有层，不只是 `core/`。
-- 文件名按内容取（`sprites-monsters.ts`），不按批次或版本编号（`sprites7.ts`、`stepMines6`）。规则有版本分支的，写清每个版本为什么还要留着、什么时候能删。
+- 新模块照这个建；老模块里 `tests/`、`scripts/`、`architecture.test.ts` 这类别名不单开 PR 改，大重构时顺手统一。
+- 多个玩法变体放 `src/variants/<名>/`，共用的放 `src/common/` 或 `core/`、`view/`；变体之间互不 import，`arch.test.ts` 覆盖所有层。
+- 文件名按内容取（`sprites-monsters.ts`），不按批次或版本编号（`sprites7.ts`）。
 
 ## 2. 代码
 
-- **类型**：`tsconfig` 开 `strict`；不新增 `any`、`@ts-ignore`、`as unknown as`，确实需要的在同一行写为什么。
-- **文件大小**：源码单个文件超过 800 行、或单个函数超过 150 行，PR 说明里要写为什么不拆；新代码不往已经超过 1,500 行的文件里堆，先拆再加。
-  入口文件（`main.ts`）只做组装：建对象、接线、启动，不放业务逻辑和模块级可变状态。
-- **不重复**：两个模块各写一份同样的东西（云存档同步、存储封装这类），第二份出现时就提议收进 `packages/arcade-kit`；kit 里已有的（`arcade-kit/viewport` 的可见区和 WebGL 恢复、`arcade-kit/prng`）直接用，不再各写一份；
-  模块内部两处平行实现（两个场景、两个模拟器的同名方法）抽成共用的类或函数。
-- **错误处理**：不写空 `catch`；吞掉错误的地方写明为什么可以吞。用户能遇到的出错路径（断网、401、`busy`、超时）给出看得懂的提示。
-- **常量**：配平参数、时长、阈值集中放在有名字的常量或配置表里，旁边写单位和依据，不在逻辑里散落裸数字。
-- **不留残余**：不留 `console.log`、注释掉的代码块、没人引用的导出、`TODO` 没有对应 issue 的。
-- **注释**：中文，写"为什么"，不写代码已经说清的"做什么"；不写过程（"10-18 改的"、"第三批"）和内部称呼（"主线"、"某某代理"），这些留给提交信息。
-- **格式**：遵守仓库根的 `.editorconfig`（UTF-8、LF、两格缩进、文件末尾换行）。格式化工具还没开，按所在文件的已有风格写。
-- **lint**：统一用 [Biome](https://biomejs.dev/)，模板是 `packages/arcade-host/biome.jsonc`。规则用推荐集，只关三条，每条都写了理由：`noNonNullAssertion`、`noAssignInExpressions`、`useTemplate`。测试里放行 `any`。
-  模块接入的做法：
-  1. 复制这份模板，`@biomejs/biome` 用精确版本装成 devDependency（`--ignore-scripts`）；
-  2. `package.json` 加脚本 `"lint": "biome lint ."`，模块的 CI 在测试前跑它；
-  3. 第一次接入时，只修推荐集报出来的问题，行为不变，版本照常升一次。
-  要放行某一处，在那一行上面写 `// biome-ignore <规则>: <理由>`；不在模块里改全局规则，确实要改的先改模板。
+- **类型**：`strict`；不新增 `any`、`@ts-ignore`、`as unknown as`，确实要用的同一行写为什么。
+- **大小**：单个文件超 800 行或函数超 150 行，PR 说明写为什么不拆；不往超过 1,500 行的文件里堆，先拆再加。入口文件只做组装，不放业务逻辑和模块级可变状态。
+- **不重复**：两个模块要同一样东西，第二份出现时提议收进 `arcade-kit`；kit 已有的（`arcade-kit/viewport`、`arcade-kit/prng`）直接用；模块内两处平行实现抽成共用的。
+- **规则版本**：改规则直接改，不按规则版本留分叉、不为老录像留开关；碰到现有的按版本分叉代码就删（理由见 AGENTS.md 第 4 节"确定性"）。
+- **错误处理**：不写空 `catch`，吞掉错误的地方写明为什么；用户能遇到的出错（断网、401、`busy`、超时）给看得懂的提示。
+- **常量**：配平参数、时长、阈值放有名字的常量或配置表，写单位和依据，不散落裸数字。
+- **不留残余**：没有 `console.log`、注释掉的代码、没人引用的导出、没对应 issue 的 `TODO`。
+- **注释**：中文，写"为什么"；不写过程（"10-18 改的"）和内部称呼，这些留给提交信息。
+- **格式**：遵守根 `.editorconfig`（UTF-8、LF、两格缩进、末尾换行），按所在文件已有风格写。
+- **lint**：用 [Biome](https://biomejs.dev/)，模板 `packages/arcade-host/biome.jsonc`（推荐集，只关 `noNonNullAssertion`、`noAssignInExpressions`、`useTemplate`，测试里放行 `any`）。
+  接入：复制模板，`@biomejs/biome` 精确版本装成 devDependency（`--ignore-scripts`），加脚本 `"lint": "biome lint ."` 并在 CI 测试前跑；第一次接入只修报出的问题、行为不变、照常升版本。
+  单处放行写 `// biome-ignore <规则>: <理由>`；不在模块里改全局规则，要改先改模板。
 
 ## 3. 测试
 
-- 规则核心、电脑策略、结算、钱包和存档的读写都要有 vitest 单测；修 bug 先写一个会失败的测试。
-- 每个游戏有 `arch.test.ts`，把核心不准用 `Math.random` / `Date` / DOM / 网络、层之间不准反向依赖写成测试。
-- 有房间的模块有房间测试（`npm run test:worker`），而且在 `npm test` 里，或者在模块 CI 里单独跑。
-- 每个游戏有一个无头浏览器冒烟（`npm run smoke`），跑一遍主流程，检查控制台零报错；冒烟脚本按流程拆文件，不写成一个几千行的文件。
-- 改数值、改电脑的，附模拟器的结果（局数、指标、和 [balance.md](balance.md) 目标的对照）。
+测什么和跑多少（日常 / 交审前两档）见 AGENTS.md 第 4 节，这里补具体要求：
+
+- 规则核心、电脑策略、结算、钱包和存档读写有 vitest 单测；修 bug 先写一个会失败的测试。
+- 每个游戏有 `arch.test.ts`：核心不准用 `Math.random` / `Date` / DOM / 网络，层之间不准反向依赖。
+- 有房间的模块有房间测试（`npm run test:worker`），在 `npm test` 里或模块 CI 里跑。
+- 冒烟 `npm run smoke` 按流程拆文件，不写成一个几千行的文件。
+- golden 只当当前版本的回归基准：规则改了就重新生成，PR 里说明为什么变；不加"逐局不变"的跨版本 golden。
+- 改数值、改电脑的附模拟结果（局数、指标、和 [balance.md](balance.md) 目标的对照）；改到实盘期望的，附改前改后的实盘模拟数。
 
 ## 4. 统一的脚本名
 
-| 脚本 | 做什么 |
-|---|---|
-| `dev` | 本地开发服务器（端口见 AGENTS.md 第 3 节） |
-| `build` | 生产构建 |
-| `build:cf` | 构建并用 `wrangler deploy --dry-run` 打包（CI 用） |
-| `typecheck` | `tsc --noEmit`，所有 tsconfig 都过 |
-| `test` | 全部单测；不需要浏览器、不需要 Cloudflare 账号 |
-| `test:worker` | 房间和 Worker 的测试（没并进 `test` 时） |
-| `lint` | `biome lint .`（第 2 节） |
-| `smoke` | 无头浏览器冒烟（现有的 `shot`、`shots` 逐步改名，过渡期保留为别名） |
+`dev`（端口见 AGENTS.md 第 3 节）、`build`、`build:cf`（构建并 `wrangler deploy --dry-run` 打包，CI 用）、`typecheck`（`tsc --noEmit`，所有 tsconfig 都过）、
+`test`（全部单测，不要浏览器和 Cloudflare 账号）、`test:worker`（房间和 Worker 测试，没并进 `test` 时）、`lint`、`smoke`（无头冒烟；老的 `shot`、`shots` 过渡期留作别名）。
 
 ## 5. 文档
 
-- **只写现状**：README、AGENTS.md、DESIGN、docs/ 描述代码现在是什么样、为什么这样；不写逐日过程、版本流水、实验记录，这些留给 CHANGELOG 和 git。
-  一段内容过时了就改掉或删掉，不在后面追加"更正"。
-- **README**（每个模块）：这是什么、怎么跑（`npm ci`、`dev`、`test`、`smoke`，命令和 `package.json` 一致）、目录结构、怎么单独部署、去哪看设计。新人照着能跑通。
-- **AGENTS.md**（每个模块）：只写这个模块特有的规矩，控制在 120 行以内；调参记录、待办、性能对比不放这里（待办开 issue）。
-- **DESIGN.md**：玩法和系统的设计及理由；配平数据只留结论和目标，过程放模拟器输出。
-- **不写**：正式站域名（示例用 `game.example.com`）、本机路径、个人信息、凭证；Markdown 里不写会被 GitHub 自动链接的 `#数字`。
-- 改了行为的 PR 同步改受影响的文档；文档没跟上不合并。
+- **只写现状**：描述代码现在什么样、为什么；过程、版本流水、实验记录留给 CHANGELOG 和 git。过时的段落直接改或删，不追加"更正"。
+- **只改真受影响的那一份**：一个 PR 写一段 CHANGELOG，再改行为变了的那份文档；同一件事只在一处写，别处一句话加链接。
+- 需求清楚的直接做，不写方案文件；大改动或动实盘的，方案最多半页。
+- 不写正式站域名（示例用 `game.example.com`）、本机路径、个人信息、凭证；Markdown 里不写会被自动链接的 `#数字`。
+- 各类文档的上限和内容：
 
-### 5.1 文档瘦身
+| 文档 | 上限 | 写什么（超出的挪去哪） |
+|---|---|---|
+| README.md | 约 200 行 | 是什么、怎么跑和测（命令与 `package.json` 一致）、目录、单独部署、去哪看设计 |
+| AGENTS.md | 120 行 | 模块特有的硬规矩和理由；调参、性能对比挪 DESIGN 或 `docs/`，待办开 issue |
+| DESIGN.md | 单个约 600 行 | 规则、系统、配平目标和结论；写长了按玩法拆成 `docs/<主题>.md` |
+| CHANGELOG.md | 不限 | 只留结果，不写过程（第 6 节） |
 
-各模块的文档按下面的上限和去处整理；超了上限的，下一个 PR 里顺手瘦身，或者单开一个只改文档的 PR。
-
-| 文档 | 上限 | 留下什么 | 挪到哪里 |
-|---|---|---|---|
-| README.md | 约 200 行 | 是什么、怎么跑、怎么测、目录、怎么单独部署、去哪看设计、许可证 | 设计细节 → DESIGN.md 或 `docs/`；数值表 → DESIGN 或模拟器输出 |
-| AGENTS.md | 120 行 | 这个模块特有的硬规矩和"为什么" | 画面调参、性能对比 → DESIGN 或 `docs/`；待办 → issue；命令表 → README |
-| DESIGN.md | 一个主题一个文件，单个约 600 行 | 规则、系统、配平目标和结论、取舍的理由 | 一个玩法或系统写长了拆成 `docs/<主题>.md`；过时的方案稿删掉（git 里有） |
-| CHANGELOG.md | 不限 | 每个版本几条，按第 6 节的格式 | 过程叙述、调参来回删掉，只留结果 |
-| 根 `docs/` | 一个主题一个文件 | 跨模块的设计和约定 | 接口参考、房间规范这类按查的内容单独成文（[api.md](api.md)、[rooms.md](rooms.md)） |
-
-瘦身时逐段问三件事：
-
-1. 这段写的还是现在的样子吗？不是就改成现状，或者删掉。
-2. 读者需要它来理解、使用或修改代码吗？只是"当时怎么想到的、试过什么"的，删掉，提交信息里有。
-3. 别处已经写过了吗？写过的只留一句加链接，正本只有一处。
-
-下面这些一律删掉：日期流水（"10-18 改的"）、版本来历（"0.5.9 起"，CHANGELOG 里有）、内部称呼（"主线""策划""某某代理"）、
-贡献者拿不到的东西（"仓库外的样张"）、已经完成的待办、"更正""补充"这类追加段。
-
-被别的文档按节号引用的（比如 `platform-backend.md 15.x`），拆分时节号不变，原位置留一句指向新文件，别处的引用不用跟着改。
+拆分被别处按节号引用的文档时节号不变，原位置留一句指向新文件。
 
 ## 6. 版本和更新日志
 
-- 每个要上线的 PR 升一次版本（[语义化版本](https://semver.org/lang/zh-CN/)；0.x 阶段新功能升次版本，修复升修订号），`package.json` 和 lockfile 一起改。
-- `CHANGELOG.md` 最新的在最上面，格式统一：
-
-  ```
-  ## 0.21.0 — 2026-10-30
-
-  ### 新增
-  - 炮台会转向开火，炮弹有弹道。
-  ### 修复
-  - 电脑上守岛的帧率回退。
-  ```
-
-  分类用「新增 / 改动 / 修复 / 移除」，只写有的；每条一句，写给玩家或接入的开发者看，不写实现过程。破坏兼容的改动（存档格式、协议、kit 的公开接口）在条目前标 **不兼容**。
-- 旧条目不回头改格式。
+- 每个要上线的 PR 升一次版本（[语义化版本](https://semver.org/lang/zh-CN/)；0.x 新功能升次版本、修复升修订号），`package.json` 和 lockfile 一起改。
+- `CHANGELOG.md` 最新在上，`## 0.21.0 — 2026-10-30` 下按「新增 / 改动 / 修复 / 移除」分类，只写有的；每条一句，写给玩家或接入的开发者看。
+  破坏兼容的（存档格式、协议、kit 公开接口）标 **不兼容**。旧条目不回头改格式。
 
 ## 7. PR
 
-- **粒度**：一个 PR 是一个完整的、可以单独回退的改动，并且只改一个模块。零碎的修补攒进同一个 PR；一个模块同一时间最多一个在审的 PR（热修例外）。
-  不拆成一串零碎的小 PR，也不在一个 PR 里夹着几件互不相关的事。
-- **CI 并发**：同一时间尽量只有一个在跑 CI 的 PR，PR 上新推送会取消旧的检查。Actions 只跑测试、构建、部署；配平模拟、压测在自己机器上跑。
-- **标题**：`<模块>: <一件事>`，例如 `haidao: 0.21.0 炮台转向开火和弹道`。一个 PR 里有几件事的，说明它们为什么属于同一个改动，标题写总名字，细节列在描述里。
-  Squash 合并后标题就是 `main` 上的提交信息。
-- **描述**：按 [PR 模板](../.github/pull_request_template.md) 写：改了什么、为什么、怎么验证的（命令和结果）、审阅人要特别看哪里。
-- **截图**：只有改了界面的 PR 放图（看哪几个尺寸见 [ui.md](ui.md) 第 0 节），最多 3 张，转成 webp、每张不超过 300 KB。截图不提交进 git 分支，
-  直接拖进 PR 描述（GitHub 自己托管）；维护者走专放截图的预发布，做法见 [deployment.md](deployment.md#pull-request-screenshots)。
-- **依赖**：新增依赖写明用途和为什么不用已有的；共用包 `arcade-kit` 落后最新版不超过两个次版本。
+- **粒度和并发**见 AGENTS.md 第 5 节。一个 PR 里有几件事的，说明为什么属于同一个改动，标题写总名字（`haidao: 0.21.0 炮台转向开火和弹道`），细节列在描述里。
+- **描述**按 [PR 模板](../.github/pull_request_template.md)：改了什么、为什么、怎么验证的（命令和结果）、审阅人要特别看哪里。
+- **截图**：只有改界面的放（看哪些尺寸见 [ui.md](ui.md) 第 0 节），最多 3 张 webp、每张 ≤ 300 KB，拖进 PR 描述，不提交进分支；维护者的做法见 [deployment.md](deployment.md#pull-request-screenshots)。
+- **依赖**：新增依赖写明用途和为什么不用已有的；`arcade-kit` 落后最新版不超过两个次版本。
 
-## 8. 审阅时按这个顺序看
+## 8. 审阅顺序
 
-1. 红线和安全（[review-policy.md](review-policy.md) 第 3 节）；
-2. 正确性：边界和出错路径、同种子同结果、只下发能看的信息；
-3. 本文件第 1–3 节：结构、重复、文件大小、测试；
-4. 文档、版本、更新日志；
-5. 简洁：没有死代码、没有和 PR 目的无关的改动。
+审阅清单和顺序见 [review-policy.md](review-policy.md) 第 4 节。
