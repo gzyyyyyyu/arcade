@@ -1,26 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import {
-  RULES_SINCE, RULES_VERSION, TD2_ENEMIES, TIDE_MODS_FROM, createTd, eventAt, raining, runTd, runTdBot, stepTd, tdDareCan, tdFingerprint, tdGrowthSetup, tdPreview,
-  tideMod, tideRules, tideSetup,
+  RULES_VERSION, TD2_ENEMIES, TIDE_MODS_FROM, createTd, eventAt, raining, runTd, runTdBot, stepTd, tdDareCan, tdFingerprint, tdGrowthSetup, tdPreview,
+  tideMod, tideSetup,
 } from '../src/core/index.ts';
-import type { IsoWeek, Placed, TdAction, TdLevel, TdSetup, TdState } from '../src/core/index.ts';
+import type { IsoWeek, Placed, TdLevel, TdSetup, TdState } from '../src/core/index.ts';
 import { TD2_EVENT } from '../src/content/td2units.ts';
 import { TD2_LEVEL_DEFS } from '../src/content/td2levels.ts';
 import { TIDE_MOD_NUM, TIDE_MOD_ORDER } from '../src/content/tdtide.ts';
 import { heroCd, killGold } from '../src/core/tdevent.ts';
 
-/** 守岛关内事件和大潮每周海况（规则版本 22，tdevent.ts、tdtide.ts）：旧版本不起作用、同种子逐位可重放、各自的效果 */
+/** 守岛关内事件和大潮每周海况（tdevent.ts、tdtide.ts）：同种子逐位可重放、各自的效果 */
 
-const V = RULES_SINCE.tdEvents;
 function lvl(p: Partial<TdLevel> = {}): TdLevel {
   return { id: 't', name: 't', hq: 1, hpPct: 100, gold: 0, first: 1, waveTicks: 200, lanes: [{ x: 10, y: -2 }, { x: -2, y: 11 }], waves: [], kegs: [], obstacles: [], slots: [], ...p };
 }
 const base: Placed[] = [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }, { id: 2, kind: 'treasure', level: 1, x: 10, y: 13 }];
-const setup = (level: TdLevel, rules = RULES_VERSION, seed = 1): TdSetup => ({ layout: base, level, hero: 1, seed, rules });
-const campaign = (id: string, rules: number, seed = 1): TdSetup => {
+const setup = (level: TdLevel, seed = 1): TdSetup => ({ layout: base, level, hero: 1, seed, rules: RULES_VERSION });
+const campaign = (id: string, seed = 1): TdSetup => {
   const r = tdGrowthSetup(id, 'suggest', seed);
   if (!r.ok) throw new Error(r.error);
-  return { ...r.value, rules };
+  return r.value;
 };
 function benchHero(s: TdState): void {
   s.hero.respawn = 1_000_000;
@@ -39,23 +38,14 @@ describe('关内事件：开关和挑波', () => {
     expect(by('bounty')).toEqual(['td04', 'td09', 'td14', 'td20', 'td27']);
     expect(by('rain')).toEqual(['td08', 'td10', 'td15', 'td21']);
     expect(by('dare')).toEqual(['td13', 'td16', 'td19', 'td22', 'td26']);
-    for (const id of by('bounty')) expect(createTd(campaign(id, RULES_VERSION)).level.lanes.length, id).toBeGreaterThanOrEqual(2);
+    for (const id of by('bounty')) expect(createTd(campaign(id)).level.lanes.length, id).toBeGreaterThanOrEqual(2);
   });
 
-  it('规则版本低于 22：不建事件状态，整局指纹和没有 events 字段时一样', () => {
-    for (const d of EVENT_LEVELS) {
-      const old = campaign(d.id, V - 1);
-      expect(createTd(old).happen, d.id).toBeUndefined();
-      const bare = { ...old, level: { ...old.level, events: undefined } };
-      expect(tdFingerprint(runTdBot(old, 'normal').state), d.id).toBe(tdFingerprint(runTdBot(bare, 'normal').state));
-    }
-  }, 120_000);
-
-  it('规则 22：每关挑一波，落在第 3–7 波、不挑首领波；同种子挑同一波，种子不同会挑到不同的波', () => {
+  it('每关挑一波，落在第 3–7 波、不挑首领波；同种子挑同一波，种子不同会挑到不同的波', () => {
     for (const d of EVENT_LEVELS) {
       const waves = new Set<number>();
       for (let seed = 1; seed <= 12; seed++) {
-        const s = createTd(campaign(d.id, RULES_VERSION, seed));
+        const s = createTd(campaign(d.id, seed));
         const at = s.happen?.at ?? [];
         expect(at.length, d.id).toBe(1);
         const a = at[0]!;
@@ -63,7 +53,7 @@ describe('关内事件：开关和挑波', () => {
         expect(a.wave).toBeGreaterThanOrEqual(2);
         expect(a.wave).toBeLessThanOrEqual(6);
         expect(s.level.waves[a.wave]?.boss ?? false, `${d.id} 第 ${a.wave} 波`).toBe(false);
-        expect(createTd(campaign(d.id, RULES_VERSION, seed)).happen?.at).toEqual(at);
+        expect(createTd(campaign(d.id, seed)).happen?.at).toEqual(at);
         waves.add(a.wave);
       }
       expect(waves.size, d.id).toBeGreaterThan(1);
@@ -73,8 +63,8 @@ describe('关内事件：开关和挑波', () => {
   it('同一个种子加同一串操作逐位一样（三种事件各一关，三种机器人）', { timeout: 120_000 }, () => {
     for (const id of ['td04', 'td08', 'td13']) {
       for (const bot of ['novice', 'normal', 'greedy'] as const) {
-        const a = runTdBot(campaign(id, RULES_VERSION, 3), bot);
-        const b = runTd(campaign(id, RULES_VERSION, 3), a.actions);
+        const a = runTdBot(campaign(id, 3), bot);
+        const b = runTd(campaign(id, 3), a.actions);
         expect(tdFingerprint(b.state), `${id} ${bot}`).toBe(tdFingerprint(a.state));
       }
     }
@@ -197,25 +187,14 @@ describe('战书', () => {
     stepTd(s, [{ t: 0, type: 'dare' }]);
     expect(tdPreview(s, 1)[0]?.lanes[0]?.enemies[0]?.n).toBe(1);
   });
-
-  it('旧版本里的战书命令什么都不做', () => {
-    const old = setup(level, V - 1);
-    const press: TdAction[] = [0, 50, 250].map((t) => ({ t, type: 'dare' }));
-    expect(tdFingerprint(runTd(old, press).state)).toBe(tdFingerprint(runTd(old, []).state));
-  });
 });
 
 describe('大潮每周海况', () => {
   const wk = (week: number, year = 2026): IsoWeek => ({ year, week });
 
-  it('第 48 周（11 月 23 日周一）起才有海况、用规则 22；第 46、47 周钉在 21，45 周及以前钉在 13', () => {
+  it('第 48 周（11 月 23 日周一）起才有海况', () => {
     expect(TIDE_MODS_FROM).toEqual(wk(48));
-    expect(tideRules(wk(45))).toBe(13);
-    expect(tideRules(wk(46))).toBe(Math.min(RULES_VERSION, V - 1));
-    expect(tideRules(wk(47))).toBe(Math.min(RULES_VERSION, V - 1));
-    expect(tideRules(wk(48))).toBe(RULES_VERSION);
     expect(tideMod(wk(47))).toBeNull();
-    expect(tideMod(wk(48), V - 1)).toBeNull();
     expect(tideMod(wk(48))).not.toBeNull();
   });
 
@@ -235,7 +214,7 @@ describe('大潮每周海况', () => {
       const b = tideSetup(w);
       const bot = runTdBot(a, 'normal');
       expect(tdFingerprint(runTd(b, bot.actions).state)).toBe(tdFingerprint(bot.state));
-      const plain = tideSetup(w, RULES_VERSION, null);
+      const plain = tideSetup(w, null);
       const s = createTd(a);
       if (mod === 'fog') expect([a.level.fogFrom, plain.level.fogFrom === 0]).toEqual([0, false]);
       if (mod === 'rich') {
@@ -246,12 +225,8 @@ describe('大潮每周海况', () => {
     }, 60_000);
   }
 
-  it('没有海况的周：大潮的局不建事件状态，规则 22 和规则 21 逐位一样', () => {
+  it('没有海况的周：大潮的局不建事件状态', () => {
     expect(createTd(tideSetup(wk(47))).happen).toBeUndefined();
-    const s21 = tideSetup(wk(48), V - 1);
-    const s22 = tideSetup(wk(48), RULES_VERSION, null);
-    expect(createTd(s22).happen).toBeUndefined();
-    const bot = runTdBot(s21, 'normal');
-    expect(tdFingerprint(runTd(s22, bot.actions).state)).toBe(tdFingerprint(bot.state));
-  }, 60_000);
+    expect(createTd(tideSetup(wk(48), null)).happen).toBeUndefined();
+  });
 });

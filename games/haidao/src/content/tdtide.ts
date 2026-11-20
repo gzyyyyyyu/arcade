@@ -169,7 +169,7 @@ export const TIDE_BOSS_EVERY = 8;
 export const TIDE_FOG_FROM = 8;
 
 /**
- * 大潮每周海况（规则版本 22，DESIGN 10.6e）：一周一条，按 TIDE_MOD_ORDER 轮换（相邻两周一定不同）。
+ * 大潮每周海况（DESIGN 10.6e）：一周一条，按 TIDE_MOD_ORDER 轮换（相邻两周一定不同）。
  * 每条都用 td-tide-sim 单独验过（普通机器人 15–25 波、小白不超过普通的 65%）；暴雨、赏金、铁甲三条没过（小白是普通的 70%–78%），按"不硬调"拿掉了。
  */
 export type TideModId = 'fog' | 'rich' | 'hero';
@@ -197,10 +197,9 @@ export function tideBudget(w: number): number {
  * 做法：先算这一波的预算，主打一种解锁了的敌人（占一半）、再配一种（占三成），剩下补水手；每隔 TIDE_BOSS_EVERY 波是首领波，
  * 首领加护卫（三成预算）。登陆路按哈希挑：前三波只走北口 / 西路，落潮路（下标 = 路数）第 4 波起才会被挑到。
  */
-export function tideWave(w: number, seed: number, lanes: number, tide: boolean, rules = 10): TdWave {
+export function tideWave(w: number, seed: number, lanes: number, tide: boolean): TdWave {
   const h = (k: number): number => hash32(`tide-${w}-${k}`, seed);
   // 掷弹兵这版不进大潮：一进来回廊岛一张图普通机器人少撑 13 波，周榜中途变难不公平；下周换榜时再放开（DESIGN 13）
-  void rules;
   const unlocked = (Object.keys(UNLOCK) as Array<keyof typeof UNLOCK>).filter((k) => UNLOCK[k] <= w && k !== 'grenadier');
   const boss = w % TIDE_BOSS_EVERY === TIDE_BOSS_EVERY - 1;
   let budget = tideBudget(w);

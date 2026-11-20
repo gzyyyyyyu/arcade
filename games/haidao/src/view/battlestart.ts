@@ -4,7 +4,7 @@
  */
 import { BUILDINGS, CAMPAIGN, TROOPS } from '../content/index.ts';
 import { CAMPAIGN_FUN } from '../content/fun.ts';
-import { RULES_VERSION, armyFor } from '../core/index.ts';
+import { armyFor, campaignSetup } from '../core/index.ts';
 import { ISLAND, type BattleSetup, type TroopKind } from '../core/types.ts';
 import { app } from './app.ts';
 import type { BattleData } from './BattleScene.ts';
@@ -14,7 +14,7 @@ export function battleData(levelId: string, auto: boolean, setup: BattleSetup | 
   const lv = CAMPAIGN.find((l) => l.id === levelId);
   if (!lv && !setup) return null;
   // 每局不一样（DESIGN 15）：只有战役娱乐局（不是今日悬赏、不是别人给的 setup）打开宝箱和援军，种子每局现取，宝箱和援军才不一样（开发参数 funseed=<数> 固定种子，截图用）
-  let s: BattleSetup = setup ?? { layout: lv!.layout, army: armyFor(app.profile), seed: opts?.bounty ? 20261027 : Number(q.get('funseed')) || (Date.now() & 0x3fffffff) | 1, rules: RULES_VERSION, ...(opts?.bounty ? {} : { fun: { ...CAMPAIGN_FUN } }) };
+  let s: BattleSetup = setup ?? { ...campaignSetup(lv!, armyFor(app.profile), opts?.bounty ? 20261027 : Number(q.get('funseed')) || (Date.now() & 0x3fffffff) | 1), ...(opts?.bounty ? {} : { fun: { ...CAMPAIGN_FUN } }) };
   // 开发参数 devarmy=sailor,brute:2,…：战役局换成这几种兵各一船（冒号后是每船几个，默认 4，船长 1 个），录各兵种的动作用
   const da = q.get('devarmy');
   if (lv && !setup && da) {

@@ -61,6 +61,8 @@ export const DEPTH = {
   muzzleLow: 8349,
   muzzle: 8350,
   smokePuff: 8360,
+  /** 基地建筑标志动作的粒子（basebldfx.ts）：全放在同一层、压在所有建筑上面，才能合成一批画；插在建筑之间每颗都会打断合批，手机放大时掉一档帧率 */
+  bldFx: 8380,
   fxHigh: 8400,
   puffHigh: 8405,
   dropChip: 8410,

@@ -65,7 +65,7 @@ export function openScout(lv: LevelDef): void {
     tip.appendChild(img(tArt(icon, 'idle'), 26));
     el('span', '', `建议：${advice(layout)}`, tip);
   };
-  const mini = renderLayout(host, layout, {
+  const mini = renderLayout(host, layout, 0, {
     zoomToBuildings: true,
     interactive: true,
     onPick: (b) => {

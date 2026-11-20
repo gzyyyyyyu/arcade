@@ -37,8 +37,8 @@ export function sampleArmy(hq: number): ArmySetup {
 /**
  * 典型满配的岛（DESIGN 10.6 配平口径）：这个主寨等级每种建筑按名额摆满、等级拉到 min(主寨, 上限)，装饰不摆，
  * 再用推荐布局 style 重摆。td = true 时带上宝藏箱（名额摆满）、确定性的分叉（同种塔按顺序轮流选）和英雄研究（等于主寨，没有军械所就是 1 级）；
- * td = false 是规则版本 5 时的样子（没有宝藏箱、分叉、英雄）。
- * shock = true 才摆震荡炮（规则版本 10 的新建筑）、sniper = true 才摆狙击塔（规则版本 11 的新建筑）：默认不摆，老的金标准、配平口径的布局逐格不变。
+ * td = false 不带宝藏箱、分叉、英雄。
+ * shock = true 才摆震荡炮、sniper = true 才摆狙击塔：默认不摆，金标准、配平口径的布局逐格不变。
  */
 export function fullBase(hq: number, style: PresetStyle, td: boolean, shock = false, sniper = false): Profile {
   const p = sampleProfile(hq);

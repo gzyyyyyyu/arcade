@@ -2,14 +2,18 @@ import { BUILDINGS } from '../content/index.ts';
 import { ISLAND, UNIT, type BBuilding, type BattleResult } from '../core/index.ts';
 import { topBlame } from './fxlayout.ts';
 
-/** 四面沙滩的登陆参考点（格坐标）：按左、下、右、上的顺序，和 SIDE_NAME 一一对应 */
-export const BEACH_PTS: ReadonlyArray<readonly [number, number]> = [[-1.5, 11], [11, ISLAND + 0.5], [ISLAND + 0.5, 11], [11, -1.5]];
+/** 四面沙滩的登陆参考点（格坐标）：按左、下、右、上的顺序，和 SIDE_NAME 一一对应；ext 是岛扩了几圈，沙滩跟着往外挪 */
+export function beachPts(ext: number): ReadonlyArray<readonly [number, number]> {
+  return [[-1.5 - ext, 11], [11, ISLAND + ext + 0.5], [ISLAND + ext + 0.5, 11], [11, -1.5 - ext]];
+}
 export const SIDE_NAME = ['左边', '下边', '右边', '上边'];
 const ARTILLERY = new Set(['cannon', 'mortar', 'rocket', 'harpoon', 'shock']);
 
 /** 失败建议要用到的这一场的统计（都是纯数据，不依赖 Phaser 和 DOM） */
 export interface AdviceInput {
   buildings: ReadonlyArray<BBuilding>;
+  /** 岛扩了几圈（这一局的 state.ext） */
+  ext: number;
   deathBy: ReadonlyMap<string, number>;
   landPts: ReadonlyArray<{ x: number; y: number }>;
   casts: number;
@@ -44,7 +48,7 @@ export function adviceLines(res: Pick<BattleResult, 'destroyedPct'>, a: AdviceIn
   const near = (px: number, py: number): number => lay.filter((b) => Math.hypot(b.x + b.size / 2 - px, b.y + b.size / 2 - py) <= 8).length;
   const tb = topBlame(a.deathBy);
   // 防御最少的一面沙滩（换一侧登陆的建议）
-  const sideN = BEACH_PTS.map(([x, y]) => near(x, y));
+  const sideN = beachPts(a.ext).map(([x, y]) => near(x, y));
   const bestSide = sideN.indexOf(Math.min(...sideN));
   if (tb) {
     const nm = BUILDINGS[tb.kind as keyof typeof BUILDINGS].name;

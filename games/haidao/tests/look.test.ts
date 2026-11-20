@@ -160,8 +160,8 @@ describe('场景动画用的素材', () => {
     expect(HQ_FLAG_AT(8).dy).toBeLessThan(HQ_FLAG_AT(1).dy);
     expect(stripIds(hqNoFlagArt(3).svg)).toBe(stripIds(hqNoFlagArt(3).svg));
   });
-  it('烟囱口：主寨、锯木厂、伐木场、军械所有，其余没有；位置在精灵范围内且确定', () => {
-    for (const k of ['hq', 'sawmill', 'woodyard', 'armory'] as const) {
+  it('烟囱口：主寨、伐木场、军械所有，其余没有（木料场是露天原木场）；位置在精灵范围内且确定', () => {
+    for (const k of ['hq', 'sawmill', 'armory'] as const) {
       for (const lv of [1, 5, 8]) {
         const c = CHIMNEY_AT(k, lv);
         const p = buildingArt(k, lv);
@@ -173,7 +173,7 @@ describe('场景动画用的素材', () => {
         expect(c!.dy).toBeLessThan(0);
       }
     }
-    for (const k of ['cannon', 'dock', 'palm', 'vault', 'wall'] as const) expect(CHIMNEY_AT(k, 3)).toBeNull();
+    for (const k of ['cannon', 'dock', 'palm', 'vault', 'wall', 'woodyard'] as const) expect(CHIMNEY_AT(k, 3)).toBeNull();
   });
 });
 
@@ -235,7 +235,7 @@ describe('资源和生产建筑每两级换一次轮廓（spec 6.1）', () => {
     }
   });
   it('有烟囱的越高级烟囱口越高（烟的位置和画读同一份几何）', () => {
-    for (const k of ['sawmill', 'woodyard', 'armory'] as const) {
+    for (const k of ['sawmill', 'armory'] as const) {
       const dy = [1, 3, 5, 7].map((l) => CHIMNEY_AT(k, l)!.dy);
       for (let i = 1; i < dy.length; i++) expect(dy[i]!, `${k} 档 ${i}`).toBeLessThan(dy[i - 1]!);
     }

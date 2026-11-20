@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BUILDINGS, CAMPAIGN, INCOME_PCT, ISLAND, REPLAY_PCT, TD2_HOME, TD2_LEVEL_BY_ID, TD2_LEVELS, TD_BONUS_PER_STAR, TD_BASE_BONUS, TD_CAP_RUNS, TD_RUN_RAIDS,
+  BUILDINGS, CAMPAIGN, INCOME_PCT, ISLAND, REPLAY_PCT, RULES_VERSION, TD2_HOME, TD2_LEVEL_BY_ID, TD2_LEVELS, TD_BONUS_PER_STAR, TD_BASE_BONUS, TD_CAP_RUNS, TD_RUN_RAIDS,
   TD_RUN_REWARD, TD_STAR_PCT, TD_TOWER_KINDS, baseBonusPct, capacity, createTd, garrisonTier, newProfile, nextTdUnlock, placeTdLevel, settleTd, startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdDailyCap,
   tdGarrisonOptions, tdGrowthProfile, tdGrowthSetup, tdLevelUnlocked, tdRunReward, tdUnlockedTowers,
 } from '../src/core/index.ts';
@@ -295,15 +295,15 @@ describe('候选位置摆放（海盗来袭用）：避开建筑、不重叠、�
   ];
   for (const [name, layout] of layouts) {
     it(`${name}：木台、火药桶不压建筑也不互压，数量不超过要的，引擎一个不丢`, () => {
-      const placed = placeTdLevel(level, layout);
+      const placed = placeTdLevel(level, layout, 0);
       const own = layout.flatMap((b) => cells([b], BUILDINGS[b.kind].size));
       const mine = [...cells(placed.slots, 2), ...cells(placed.kegs, 1)];
       expect(new Set(mine).size).toBe(mine.length);
       for (const c of mine) expect(own).not.toContain(c);
       for (const c of [...placed.slots, ...placed.kegs]) expect(c.x >= 0 && c.y >= 0 && c.x < ISLAND && c.y < ISLAND).toBe(true);
       expect(placed.slots.length).toBe(level.place.slots);
-      expect(placeTdLevel(level, layout)).toEqual(placed);
-      const s = createTd({ layout, level: placed, hero: 1, seed: 1, rules: 7 });
+      expect(placeTdLevel(level, layout, 0)).toEqual(placed);
+      const s = createTd({ layout, level: placed, hero: 1, seed: 1, rules: RULES_VERSION });
       expect(s.slots).toHaveLength(placed.slots.length);
       expect(s.kegs).toHaveLength(placed.kegs.length);
     });
@@ -311,13 +311,13 @@ describe('候选位置摆放（海盗来袭用）：避开建筑、不重叠、�
   it('岛上没地方：少摆、不重叠、不抛错', () => {
     const full: Placed[] = [];
     for (let x = 0; x < ISLAND; x += 3) for (let y = 0; y < ISLAND; y += 3) full.push({ id: full.length + 1, kind: 'goldmine', level: 1, x: Math.min(x, ISLAND - 3), y: Math.min(y, ISLAND - 3) });
-    const placed = placeTdLevel(level, full);
+    const placed = placeTdLevel(level, full, 0);
     expect(placed.slots.length).toBe(0);
     const own = new Set(full.flatMap((b) => cells([b], 3)));
     for (const c of cells(placed.kegs, 1)) expect(own.has(c)).toBe(false);
   });
   it('没写 place 的关原样返回（战役关卡岛不挪）', () => {
-    expect(placeTdLevel(sampleLv, newProfile().base.buildings)).toBe(sampleLv);
+    expect(placeTdLevel(sampleLv, newProfile().base.buildings, 0)).toBe(sampleLv);
   });
 });
 

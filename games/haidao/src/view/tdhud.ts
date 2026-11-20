@@ -88,7 +88,7 @@ export function buildUi(bs: TdScene): void {
     else showBest(bs);
   });
   const paused = el('div', 'hd-td-paused', '已暂停 · 关掉面板继续', bs.ui);
-  // 战书（规则版本 22）：下一波有战书时，倒数里浮出一张小卷轴，「接」「不接」两颗钮（默认不接），开打就收起
+  // 战书：下一波有战书时，倒数里浮出一张小卷轴，「接」「不接」两颗钮（默认不接），开打就收起
   let dare: HTMLElement | null = null;
   if (bs.s.happen?.at.some((a) => a.kind === 'dare')) {
     dare = el('div', 'hd-td-dare', undefined, bs.ui);
@@ -116,7 +116,7 @@ export function buildUi(bs: TdScene): void {
     b.title = `${tip}（${n}）`;
     return b;
   };
-  // 航海士（规则版本 23）占同样两个位置、同样的快捷键 1、2，冷却也是同两个字段（core/tdnav.ts）
+  // 航海士占同样两个位置、同样的快捷键 1、2，冷却也是同两个字段（core/tdnav.ts）
   const nav = !!bs.s.hero.kind;
   const barBtn = nav
     ? mkSkill('急射旗', 'rushFlag', `急射旗：在英雄身边插一面旗，${navSecs('flag')} 秒里旗边的塔打得快一倍`, () => pickSkill(bs, 'flag'), 1)
@@ -127,7 +127,7 @@ export function buildUi(bs: TdScene): void {
   const call = button('', 'hd-btn-gold hd-td-call', () => callWave(bs), bottom);
   call.title = '叫下一波：提前开打，拿金币、技能冷却变短（空格 / 3）';
   keyBadge(call, 3);
-  // 章末机制的钮（规则版本 16，tdmech.ts）：排在叫波后面、快捷键 4，1–3 的老习惯不变；手机竖屏挤进同一行（layout.ts 的 .hd-td-hasmech）
+  // 章末机制的钮（tdmech.ts）：排在叫波后面、快捷键 4，1–3 的老习惯不变；手机竖屏挤进同一行（layout.ts 的 .hd-td-hasmech）
   let mech: HTMLButtonElement | null = null;
   if (bs.s.sluice) {
     mech = button('', 'hd-td-skill hd-btn-wood hd-td-mech', () => pressSluice(bs), bottom);
@@ -153,7 +153,7 @@ export function buildUi(bs: TdScene): void {
     keyBadge(mech, 4);
     mech.title = '友军巡航船：叫一艘船沿着岸边开半圈，朝身边的敌人开炮，海上的炮艇也打得到；60 秒一次（4）';
   }
-  // 锚钩（规则版本 20，英雄 8 级起、只在战役和海盗来袭，core/tdhook.ts）：排在最后，快捷键按 DOM 顺序（有机制钮是 5，没有是 4）；
+  // 锚钩（英雄 8 级起、只在战役和海盗来袭，core/tdhook.ts）：排在最后，快捷键按 DOM 顺序（有机制钮是 5，没有是 4）；
   // 横屏右下角板里和章末机制钮一样排在炸药桶旁边；手机竖屏那一行没地方了，浮在行尾正上方（layout.ts 的 .hd-td-hashook）
   // 英雄不够级时（战役、海盗来袭里）钮照样摆出来但锁着，写明几级解锁，玩家知道有这个东西可盼
   let hook: HTMLButtonElement | null = null;
@@ -228,8 +228,8 @@ export function waveTitle(bs: TdScene, w: number): string {
 export function refreshPlan(bs: TdScene, force = false): void {
   const s = bs.s;
   const walls = s.walls.reduce((n, w, i) => (w.destroyed ? n + (i + 1) * 7 : n), 0);
-  // 水闸关上 / 打开下一波会改路线和预告（规则版本 16）
-  // 接 / 退战书（规则版本 22）改下一波的敌人个数
+  // 水闸关上 / 打开下一波会改路线和预告
+  // 接 / 退战书改下一波的敌人个数
   // 造、卖、升了塔，卡上的下一步要重挑（木台上的塔进签名；翻波不重挑，见 nextStep）
   const sig = `${s.wave}|${walls}|${s.over}|${s.sluice?.shut.length ?? ''}|${s.happen?.dare.length ?? ''}|${stepKey(s)}`;
   if (!force && sig === bs.planSig) return;
@@ -459,7 +459,7 @@ export function updateHud(bs: TdScene, force = false): void {
     b.classList.toggle('off', downS >= 0);
     t.textContent = downS >= 0 ? `复活 ${downS}秒` : cd > 0 ? `${Math.ceil(cd / TICKS_PER_SEC)}秒` : label;
   };
-  // 冷却扫光的总长按这一局的冷却算（大潮英雄周减半，规则版本 22）
+  // 冷却扫光的总长按这一局的冷却算（大潮英雄周减半）
   if (h.kind) {
     ring(H.bar, barCd, heroCd(s, SKILL.flag.cd), '急射旗');
     ring(H.keg, kegCd, heroCd(s, SKILL.reward.cd), '重赏');

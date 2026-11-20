@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  RULES_VERSION, TD2_ENEMIES, TD2_LOSE_AT, TIDE_MAPS, beijingIsoWeek, createTd, runTdBot, stepTd, tdFingerprint, tideBoardId, tideDecode, tideLine, tideMap, tidePick, tideScore, tideSeed, tideRules, tideSetup, weekLabel,
+  RULES_VERSION, TD2_ENEMIES, TD2_LOSE_AT, TIDE_MAPS, beijingIsoWeek, createTd, runTdBot, stepTd, tdFingerprint, tideBoardId, tideDecode, tideLine, tideMap, tidePick, tideScore, tideSeed, tideSetup, weekLabel,
 } from '../src/core/index.ts';
 import type { IsoWeek, TdEnemyKind, TdSetup, TdWave } from '../src/core/index.ts';
 import { TIDE_BOSS_EVERY, tideBudget, tideHpPct, tideWave } from '../src/content/tdtide.ts';
@@ -95,7 +95,7 @@ describe('周种子和图', () => {
   it('常驻塔、英雄等级固定，不随玩家变', () => {
     const s = tideSetup({ year: 2026, week: 44 });
     expect(s.hero).toBe(5);
-    expect(s.rules).toBe(tideRules({ year: 2026, week: 44 }));
+    expect(s.rules).toBe(RULES_VERSION);
     expect(s.level.endless).toBeTypeOf('function');
   });
 });
@@ -295,15 +295,5 @@ describe('交分和本机记录', () => {
     expect(readTide()).toEqual({ week: '2026-W45', best: 5 });
     store.set('haidao.tide', '坏的');
     expect(readTide()).toBeNull();
-  });
-});
-
-describe('大潮按周定规则版本', () => {
-  it('英雄自己守（规则 14）从 2026 年第 46 周换榜才进大潮，之前的周钉在 13，周中不换', () => {
-    expect(tideRules({ year: 2026, week: 45 })).toBe(13);
-    expect(tideSetup({ year: 2026, week: 45 }).rules).toBe(13);
-    expect(tideRules({ year: 2025, week: 52 })).toBe(13);
-    expect(tideRules({ year: 2026, week: 46 })).toBe(Math.min(RULES_VERSION, 21));
-    expect(tideSetup({ year: 2027, week: 1 }).rules).toBe(RULES_VERSION);
   });
 });

@@ -50,7 +50,7 @@ export function startBounty(p: Profile): { ok: true; profile: Profile; setup: Ba
   const cost = Core.armyCost(p);
   if (p.res.wood < cost.wood) return { ok: false, error: 'no_wood' };
   const profile: Profile = { ...p, res: { gold: p.res.gold - cost.gold, wood: p.res.wood - cost.wood } };
-  const setup: BattleSetup = { layout: d.layout.map((x) => ({ ...x })), army: Core.armyFor(p), seed: d.seed, rules: Core.RULES_VERSION };
+  const setup: BattleSetup = Core.campaignSetup(d, Core.armyFor(p), d.seed);
   return { ok: true, profile, setup, levelId: d.levelId };
 }
 

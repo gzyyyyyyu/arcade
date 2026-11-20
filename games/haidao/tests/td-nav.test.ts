@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BUILDINGS, RULES_SINCE, RULES_VERSION, TD2_ENEMIES, TD2_EVENT, TD2_NAV, TD2_NAV_SKILL, createTd, flagOn, heroKindOf, navEnabled, runTd, startTd2, stepTd,
+  BUILDINGS, RULES_VERSION, TD2_ENEMIES, TD2_EVENT, TD2_NAV, TD2_NAV_SKILL, createTd, flagOn, heroKindOf, navEnabled, runTd, startTd2, stepTd,
   runTdBot, tdCallBonus, tdCampaign, tdFingerprint, tdGrowthProfile, tdGrowthSetup, tdHeroStats, tdHomeSetup,
 } from '../src/core/index.ts';
 import type { Placed, TdAction, TdEvent, TdLevel, TdMode, TdSetup, TdState } from '../src/core/index.ts';
@@ -11,7 +11,6 @@ import { fresh, reviveSave } from '../src/platform/sync.ts';
 
 /** 航海士（规则版本 23，tdnav.ts）：哪些局有、急射旗、重赏、精打细算、冷却刷新、和船长的技能互不串 */
 
-const V = RULES_SINCE.tdNav;
 const TOWER = 50;
 /** 火枪塔（11,3，2×2）的中心：急射旗插在这里，圈住它 */
 const FX = 1200;
@@ -23,8 +22,8 @@ function lvl(p: Partial<TdLevel> = {}): TdLevel {
   };
 }
 const layout: Placed[] = [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }, { id: 2, kind: 'treasure', level: 1, x: 10, y: 13 }, { id: TOWER, kind: 'gunTower', level: 1, x: 11, y: 3 }];
-function setup(o: { rules?: number; mode?: TdMode; nav?: boolean; level?: TdLevel } = {}): TdSetup {
-  return { layout, level: o.level ?? lvl(), hero: 1, seed: 1, rules: o.rules ?? RULES_VERSION, mode: o.mode ?? 'campaign', ...(o.nav === false ? {} : { heroKind: 'nav' as const }) };
+function setup(o: { mode?: TdMode; nav?: boolean; level?: TdLevel } = {}): TdSetup {
+  return { layout, level: o.level ?? lvl(), hero: 1, seed: 1, rules: RULES_VERSION, mode: o.mode ?? 'campaign', ...(o.nav === false ? {} : { heroKind: 'nav' as const }) };
 }
 /** 英雄摆到塔边（格 12,5），血加满不会倒，自己不开枪 */
 function park(s: TdState): void {
@@ -45,10 +44,10 @@ function run(s: TdState, until: (s: TdState, ev: TdEvent[]) => boolean, maxTicks
 }
 
 describe('航海士：哪些局有', () => {
-  it('规则 23、战役或海盗来袭、setup 写了 heroKind 才是航海士；旧版本、悬赏守岛、大潮、护航、没写都是船长', () => {
+  it('战役或海盗来袭、setup 写了 heroKind 才是航海士；悬赏守岛、大潮、护航、没写都是船长', () => {
     expect(createTd(setup()).hero.kind).toBe('nav');
     expect(createTd(setup({ mode: 'home' })).hero.kind).toBe('nav');
-    for (const st of [setup({ rules: V - 1 }), setup({ mode: 'live' }), setup({ mode: 'tide' }), setup({ mode: 'escort' }), setup({ nav: false })]) {
+    for (const st of [setup({ mode: 'live' }), setup({ mode: 'tide' }), setup({ mode: 'escort' }), setup({ nav: false })]) {
       expect(navEnabled(st)).toBe(false);
       expect(createTd(st).hero.kind).toBeUndefined();
     }
@@ -61,7 +60,7 @@ describe('航海士：哪些局有', () => {
     expect(s.hero.hookReady).toBeUndefined();
   });
 
-  it('存档选了航海士、第一章通关才写进开局；没通关、没选都不写；悬赏守岛永远不写；海盗来袭按旧版本开不写', () => {
+  it('存档选了航海士、第一章通关才写进开局；没通关、没选都不写；悬赏守岛永远不写', () => {
     const lv = tdCampaign()[0]!;
     const p = tdGrowthProfile(lv, 'suggest', 'nav');
     expect(heroKindOf(p)).toEqual({ heroKind: 'nav' });
@@ -71,10 +70,8 @@ describe('航海士：哪些局有', () => {
     expect(heroKindOf(fresh)).toEqual({});
     expect(heroKindOf({ ...p, heroPick: undefined })).toEqual({});
     expect(tdLiveSetup('small', 1).heroKind).toBeUndefined();
-    const home = tdHomeSetup(tdGrowthProfile({ hq: 6 }, 'suggest', 'nav'), 1, false, V - 1);
-    expect(home.ok && home.value.heroKind).toBeUndefined();
-    const home23 = tdHomeSetup(tdGrowthProfile({ hq: 6 }, 'suggest', 'nav'), 1);
-    expect(home23.ok && home23.value.heroKind).toBe('nav');
+    const home = tdHomeSetup(tdGrowthProfile({ hq: 6 }, 'suggest', 'nav'), 1);
+    expect(home.ok && home.value.heroKind).toBe('nav');
   });
 
   it('船长的技能航海士按了不起作用，航海士的技能船长按了也不起作用：整局指纹和不按一样', () => {

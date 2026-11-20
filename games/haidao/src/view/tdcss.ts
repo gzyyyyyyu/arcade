@@ -433,14 +433,14 @@ function tdCss(): string {
 .hd-ui .hd-td-starrow { display:flex; justify-content:center; margin:4px 0; }
 .hd-ui .hd-td-paused { position:absolute; top:calc(env(safe-area-inset-top, 0px) + 110px); right:6px; z-index:31; padding:2px 10px; border:2px solid ${ink}; border-radius:12px; background:#ffe885; font-size:14px; font-weight:900; box-shadow:0 2px 0 ${ink}; pointer-events:none !important; display:none; }
 .hd-ui .hd-td-paused.on { display:block; animation:hd-tdpause .25s ease-out; }
-/* 暴雨（规则版本 22，tdrain.ts）：画布上面、界面下面一层，图比屏幕大一格、往左下挪一格再循环（只动 transform，走合成器） */
+/* 暴雨（tdrain.ts）：画布上面、界面下面一层，图比屏幕大一格、往左下挪一格再循环（只动 transform，走合成器） */
 .hd-ui .hd-td-rain { position:absolute; inset:0; overflow:hidden; pointer-events:none !important; opacity:0; transition:opacity .6s linear; z-index:0; }
 .hd-ui .hd-td-rain.on { opacity:1; }
 .hd-ui .hd-td-rain i { position:absolute; left:0; top:-1024px; right:-256px; bottom:0; background-repeat:repeat; background-size:256px 256px; will-change:transform; animation:hd-tdrain 2.2s linear infinite; }
 /* 雨丝斜率正好 1/4：往左 1 格图、往下 4 格图，首尾都对齐平铺，循环时不跳 */
 @keyframes hd-tdrain { from { transform:translate(0,0); } to { transform:translate(-256px,1024px); } }
 @media (prefers-reduced-motion:reduce) { .hd-ui .hd-td-rain i { animation:none; } }
-/* 战书（规则版本 22）：倒数里浮在右上（手机竖屏在底栏上方，见 layout.ts），「接」「不接」两颗 ≥ 44 的钮；接了「接」亮着 */
+/* 战书：倒数里浮在右上（手机竖屏在底栏上方，见 layout.ts），「接」「不接」两颗 ≥ 44 的钮；接了「接」亮着 */
 .hd-ui .hd-td-dare { position:absolute; top:calc(env(safe-area-inset-top, 0px) + 150px); right:6px; z-index:30; display:none; align-items:center; gap:8px; padding:4px 6px 4px 8px; border:2px solid ${ink}; border-radius:12px; background:${cream}; box-shadow:0 2px 0 ${ink}; pointer-events:auto; }
 .hd-ui .hd-td-dare.on { display:flex; animation:hd-tdpause .25s ease-out; }
 .hd-ui .hd-td-dare-tx { display:flex; flex-direction:column; line-height:1.15; }

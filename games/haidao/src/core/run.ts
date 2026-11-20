@@ -1,27 +1,28 @@
 /** 战役：出海扣木材、结算掠夺和星数 */
 import { CAMPAIGN, REPLAY_PCT, income } from '../content/index.ts';
+import { CAMPAIGN_FUN } from '../content/fun.ts';
 import { armyFor, capacity, totalStars, trimArmy } from './base.ts';
 import { Rng, hash32 } from './rng.ts';
 import { RULES_VERSION } from './types.ts';
-import type { BattleResult, BattleSetup, Profile, Res, Result, TroopKind } from './types.ts';
+import type { LevelDef } from '../content/defs.ts';
+import type { ArmySetup, BattleResult, BattleSetup, Profile, Res, Result, TroopKind } from './types.ts';
 
 /** 首次拿到一颗星奖多少金币 */
 export const STAR_BONUS_GOLD = 50;
 
-/** 出海：木材不够整支船队就自动少带兵（trimArmy，trimmed 是少带了几个），一个兵都带不起才回 no_wood */
+/** 出海：木材不够整支船队就自动少带兵（trimArmy，trimmed 是少带了几个），一个兵都带不起才回 no_wood。战役是娱乐局，开宝箱和援军（DESIGN 15.2） */
 export function startCampaign(p: Profile, levelId: string, seed: number): Result<{ profile: Profile; setup: BattleSetup; trimmed: number }> {
   const lv = CAMPAIGN.find((l) => l.id === levelId);
   if (!lv || totalStars(p) < lv.reqStars) return { ok: false, error: 'locked' };
   const t = trimArmy(armyFor(p), p.res.wood);
   if (!t) return { ok: false, error: 'no_wood' };
   const profile: Profile = { ...p, res: { gold: p.res.gold, wood: p.res.wood - t.wood } };
-  const setup: BattleSetup = {
-    layout: lv.layout.map((b) => ({ ...b })),
-    army: t.army,
-    seed,
-    rules: RULES_VERSION,
-  };
-  return { ok: true, value: { profile, setup, trimmed: t.trimmed } };
+  return { ok: true, value: { profile, setup: { ...campaignSetup(lv, t.army, seed), fun: { ...CAMPAIGN_FUN } }, trimmed: t.trimmed } };
+}
+
+/** 打一座战役关（或拿它当模板的今日悬赏）的 setup：布局、关卡难度旋钮 defPct 都从关卡来；出海、演示局、模拟器、金标准共用这一处 */
+export function campaignSetup(lv: Pick<LevelDef, 'layout' | 'defPct'>, army: ArmySetup, seed: number): BattleSetup {
+  return { layout: lv.layout.map((b) => ({ ...b })), army, seed, rules: RULES_VERSION, ...(lv.defPct !== undefined ? { defPct: lv.defPct } : {}) };
 }
 
 /** 连胜加成：每场 +10%，封顶 +50% */

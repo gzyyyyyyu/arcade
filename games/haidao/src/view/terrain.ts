@@ -114,14 +114,17 @@ function blob(cx: CanvasRenderingContext2D, x: number, y: number, r: number, col
   cx.restore();
 }
 
-/** 岛上随机一格里的一点（屏幕坐标） */
-function onIsland(R: () => number, margin = 0): Pt {
-  return iso(margin + R() * (ISLAND - margin * 2), margin + R() * (ISLAND - margin * 2));
+/** 岛上随机一格里的一点（屏幕坐标）；岛是 [-ext, ISLAND+ext) */
+function onIsland(R: () => number, ext: number, margin = 0): Pt {
+  const n = ISLAND + 2 * ext - margin * 2;
+  return iso(-ext + margin + R() * n, -ext + margin + R() * n);
 }
 
 export interface TerrainOpts {
   /** 战斗和守岛：细节收一收（格子线更淡、花草少一点），免得和兵、塔抢眼 */
   soft: boolean;
+  /** 岛按主寨扩了几圈（只有玩家自己的岛扩）：岛边、海滩、海整体往外挪 ext 格，岛心不动 */
+  ext: number;
   /** 画布左上角在世界里的位置（像素）和渲染倍数 */
   x0: number;
   y0: number;
@@ -134,6 +137,13 @@ export interface TerrainOpts {
 export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void {
   const T = TERRAIN;
   const soft = o.soft;
+  const ext = o.ext;
+  // 离岛 e 格的海岸线：岛扩了就整圈往外挪（不扩时和原来逐点一样）
+  const shore = (e: number, amp: number, seed: number, outwardOnly = false): Pt[] => shoreline(e + ext, amp, seed, outwardOnly);
+  // 岛上点缀的数量按面积放大，扩出来的那圈不显得稀（不扩时是 1，抽签次数和原来一样）
+  const af = ((ISLAND + 2 * ext) / ISLAND) ** 2;
+  const lo = -ext;
+  const hi = ISLAND + ext;
   // ---- 海：远海底色上一层压扁成岛形的径向渐变（近岸浅青 → 远海深蓝，平滑过渡），叠 6 层环礁浅带和大片深浅斑（洋流）。
   // 这一层全是没有细节的柔和底色，整层画在 1/4 分辨率的小画布上再一次拉伸贴回：全尺寸的渐变填充、羽化、几十个大斑各要几十毫秒，
   // 小画布上只要几毫秒，贴回一次十来毫秒，整层比改前 30 圈硬色阶还省。细的短波纹、亮点还在全尺寸上画
@@ -146,7 +156,7 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   sx.fillStyle = T.seaFar;
   sx.fillRect(o.x0 - 4, o.y0 - 4, o.w + 8, o.h + 8);
   const mid = iso(ISLAND / 2, ISLAND / 2);
-  const far = iso(ISLAND / 2, -SEA_EXT).y - mid.y;
+  const far = iso(ISLAND / 2, -SEA_EXT - ext).y - mid.y;
   sx.save();
   sx.translate(mid.x, mid.y);
   sx.scale(2, 1);
@@ -168,7 +178,7 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   sx.fillStyle = '#000';
   for (let i = 0; i < 6; i++) {
     const e = BEACH + 0.2 + i * 0.4;
-    trace(sx, shoreline(e, 10, 90 + i).map((p) => ({ x: p.x + off, y: p.y })));
+    trace(sx, shore(e, 10, 90 + i).map((p) => ({ x: p.x + off, y: p.y })));
     sx.shadowColor = rgba(i < 3 ? g(C.shallowL!) : g(C.seaLight!), 0.2);
     sx.fill();
   }
@@ -180,7 +190,7 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     for (let k = 0; k < 40; k++) {
       const p = { x: o.x0 + Rw() * o.w, y: o.y0 + Rw() * o.h };
       const u = unIso(p.x, p.y);
-      if (Math.max(-u.gx, u.gx - ISLAND, -u.gy, u.gy - ISLAND) < SEA_EXT - 1) return p;
+      if (Math.max(lo - u.gx, u.gx - hi, lo - u.gy, u.gy - hi) < SEA_EXT - 1) return p;
     }
     return iso(ISLAND / 2, ISLAND / 2);
   };
@@ -204,7 +214,7 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     cx.stroke();
   }
   // ---- 沙滩：湿沙在最外（深一档），向里渐渐干
-  const sandOuter = shoreline(BEACH, 9, 7);
+  const sandOuter = shore(BEACH, 9, 7);
   trace(cx, sandOuter);
   cx.fillStyle = T.sandWet;
   cx.fill();
@@ -213,13 +223,13 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     cx.save();
     cx.shadowColor = col;
     cx.shadowBlur = 7 * o.s;
-    trace(cx, shoreline(e, 7, sd));
+    trace(cx, shore(e, 7, sd));
     cx.fillStyle = col;
     cx.fill();
     cx.restore();
   }
   // 岛内沙下面铺满（防止草地边缘露底）
-  trace(cx, shoreline(0, 4, 3, true));
+  trace(cx, shore(0, 4, 3, true));
   cx.fillStyle = T.sand;
   cx.fill();
   // 沙面：浅深沙粒、细波纹、贝壳、脚印（只画在沙滩轮廓里；草地之后盖住）
@@ -232,7 +242,7 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     cx.fillStyle = rgba(col, a);
     cx.beginPath();
     for (let i = 0; i < n; i++) {
-      const p = iso(-BEACH + Rs() * (ISLAND + BEACH * 2), -BEACH + Rs() * (ISLAND + BEACH * 2));
+      const p = iso(lo - BEACH + Rs() * (hi - lo + BEACH * 2), lo - BEACH + Rs() * (hi - lo + BEACH * 2));
       const w = 1 + Rs() * 1.6;
       cx.rect(p.x, p.y, w, w * 0.6);
     }
@@ -242,7 +252,7 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   cx.lineWidth = 2;
   const rip: Array<[number, number, number]> = [];
   for (let i = 0; i < 60; i++) {
-    const p = iso(-BEACH + Rs() * (ISLAND + BEACH * 2), -BEACH + Rs() * (ISLAND + BEACH * 2));
+    const p = iso(lo - BEACH + Rs() * (hi - lo + BEACH * 2), lo - BEACH + Rs() * (hi - lo + BEACH * 2));
     rip.push([p.x, p.y, 14 + Rs() * 10]);
   }
   for (const [col, dy] of [[T.sandL, 0], [T.sandD, 2.2]] as const) {
@@ -259,8 +269,10 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   for (let i = 0; i < 46; i++) {
     const side = Rs();
     // 只放在沙滩带里：从四边各取外圈
-    const gx = side < 0.5 ? -BEACH + 0.4 + Rs() * (ISLAND + BEACH * 2 - 0.8) : Rs() < 0.5 ? -BEACH + 0.4 + Rs() * 2.2 : ISLAND + BEACH - 2.6 + Rs() * 2.2;
-    const gy = side < 0.5 ? (Rs() < 0.5 ? -BEACH + 0.4 + Rs() * 2.2 : ISLAND + BEACH - 2.6 + Rs() * 2.2) : -BEACH + 0.4 + Rs() * (ISLAND + BEACH * 2 - 0.8);
+    const sl = lo - BEACH;
+    const sh = hi + BEACH;
+    const gx = side < 0.5 ? sl + 0.4 + Rs() * (sh - sl - 0.8) : Rs() < 0.5 ? sl + 0.4 + Rs() * 2.2 : sh - 2.6 + Rs() * 2.2;
+    const gy = side < 0.5 ? (Rs() < 0.5 ? sl + 0.4 + Rs() * 2.2 : sh - 2.6 + Rs() * 2.2) : sl + 0.4 + Rs() * (sh - sl - 0.8);
     const p = iso(gx, gy);
     cx.fillStyle = rgba(T.sandD, 0.5);
     cx.beginPath();
@@ -279,7 +291,7 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   }
   // 脚印：沿南面沙滩走一串，左右脚交替，朝同一个方向
   if (!soft) {
-    const start = iso(6, ISLAND + 0.9);
+    const start = iso(6, hi + 0.9);
     for (let i = 0; i < 14; i++) {
       const p = { x: start.x + i * 13, y: start.y - i * 6.5 + (i % 2 ? 3 : -3) };
       cx.fillStyle = rgba(T.sandWet, 0.55);
@@ -296,7 +308,7 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   // 潮间带：湿沙内缘一条水渍线
   cx.strokeStyle = rgba(g(C.sandWetD!), 0.45);
   cx.lineWidth = 1.5;
-  trace(cx, shoreline(BEACH - 0.4, 7, 7));
+  trace(cx, shore(BEACH - 0.4, 7, 7));
   cx.stroke();
   // 浪花线：贴着水陆交界一条主浪（4 像素）+ 外面一圈淡的；再往外一道断续的副浪
   trace(cx, sandOuter);
@@ -309,12 +321,12 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   cx.setLineDash([32, 15]);
   cx.strokeStyle = rgba(T.foam, 0.55);
   cx.lineWidth = 2;
-  trace(cx, shoreline(BEACH + 0.4, 12, 41));
+  trace(cx, shore(BEACH + 0.4, 12, 41));
   cx.stroke();
   cx.setLineDash([]);
 
   // ---- 草地：草皮比沙滩高一截。先在右下落一片沙上的影子，再垫一圈草根土唇（右下露出来），最后草坪
-  const grassEdge = shoreline(0, 13, 3, true);
+  const grassEdge = shore(0, 13, 3, true);
   cx.save();
   cx.translate(5, 7);
   trace(cx, grassEdge);
@@ -337,8 +349,8 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   trace(cx, grassEdge);
   cx.clip();
   // 底色：从左上亮暖到右下略暗冷
-  const a = iso(0, 0);
-  const b = iso(ISLAND, ISLAND);
+  const a = iso(lo, lo);
+  const b = iso(hi, hi);
   const lg = cx.createLinearGradient(a.x, a.y, b.x, b.y);
   lg.addColorStop(0, mix(T.grass, '#ffe9a8', 0.08));
   lg.addColorStop(1, mix(T.grass, '#1d3a6a', 0.07));
@@ -346,17 +358,17 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   cx.fillRect(o.x0, o.y0, o.w, o.h);
   const Rg = rng(h32(21, 8, 2));
   // 大片深浅草丛
-  for (let i = 0; i < 64; i++) {
-    const p = onIsland(Rg);
+  for (let i = 0; i < Math.round(64 * af); i++) {
+    const p = onIsland(Rg, ext);
     blob(cx, p.x, p.y, 60 + Rg() * 90, Rg() < 0.55 ? T.grassD : T.grassL, 0.34 + Rg() * 0.2);
   }
-  for (let i = 0; i < 200; i++) {
-    const p = onIsland(Rg);
+  for (let i = 0; i < Math.round(200 * af); i++) {
+    const p = onIsland(Rg, ext);
     blob(cx, p.x, p.y, 16 + Rg() * 30, Rg() < 0.5 ? T.grassDD : T.grassL, 0.2 + Rg() * 0.16);
   }
   // 几处裸土
-  for (let i = 0; i < 12; i++) {
-    const p = onIsland(Rg, 1);
+  for (let i = 0; i < Math.round(12 * af); i++) {
+    const p = onIsland(Rg, ext, 1);
     blob(cx, p.x, p.y, 14 + Rg() * 18, T.soil, 0.2);
   }
   // 草叶：一把一把的小短线，深浅两色
@@ -364,8 +376,8 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     cx.strokeStyle = rgba(col, a2);
     cx.lineWidth = 1.1;
     cx.beginPath();
-    for (let i = 0; i < n * (soft ? 0.7 : 1); i++) {
-      const p = onIsland(Rg);
+    for (let i = 0; i < n * (soft ? 0.7 : 1) * af; i++) {
+      const p = onIsland(Rg, ext);
       const hh = 3 + Rg() * 3.5;
       const lean = (Rg() - 0.5) * 3;
       cx.moveTo(p.x, p.y);
@@ -376,8 +388,8 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     cx.stroke();
   }
   // 三叶小草丛：6–10 像素的一簇，1× 下认得出（比满地的碎草叶清楚）
-  for (let i = 0; i < 45; i++) {
-    const p = onIsland(Rg, 0.5);
+  for (let i = 0; i < Math.round(45 * af); i++) {
+    const p = onIsland(Rg, ext, 0.5);
     const k = 6 + Rg() * 4;
     for (const [col, dx] of [[T.grassD, 0], [T.grassL, -1]] as const) {
       cx.fillStyle = rgba(col, 0.35 + (dx ? 0.1 : 0));
@@ -390,8 +402,8 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   }
   // 小花：白、黄、淡粉，稀疏
   const flowers = [g('#fffdf4'), g('#ffe27a'), g('#f7b8c4'), g('#cbb2f0')];
-  for (let i = 0; i < (soft ? 70 : 130); i++) {
-    const p = onIsland(Rg, 0.3);
+  for (let i = 0; i < Math.round((soft ? 70 : 130) * af); i++) {
+    const p = onIsland(Rg, ext, 0.3);
     cx.fillStyle = flowers[i % 4]!;
     cx.beginPath();
     cx.arc(p.x, p.y, 1.1 + Rg() * 0.5, 0, Math.PI * 2);
@@ -400,8 +412,8 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
     cx.fillRect(p.x - 0.3, p.y - 0.3, 0.6, 0.6);
   }
   // 小石头：灰椭圆 + 亮面 + 脚下一点暗
-  for (let i = 0; i < (soft ? 28 : 46); i++) {
-    const p = onIsland(Rg, 0.4);
+  for (let i = 0; i < Math.round((soft ? 28 : 46) * af); i++) {
+    const p = onIsland(Rg, ext, 0.4);
     const r = 1.8 + Rg() * 2.2;
     cx.fillStyle = rgba('#1c2a18', 0.3);
     cx.beginPath();
@@ -420,11 +432,11 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   cx.strokeStyle = rgba(T.grassDD, soft ? 0.08 : 0.15);
   cx.lineWidth = 1;
   cx.beginPath();
-  for (let i = 0; i <= ISLAND; i++) {
-    const a1 = iso(i, 0);
-    const a2 = iso(i, ISLAND);
-    const b1 = iso(0, i);
-    const b2 = iso(ISLAND, i);
+  for (let i = lo; i <= hi; i++) {
+    const a1 = iso(i, lo);
+    const a2 = iso(i, hi);
+    const b1 = iso(lo, i);
+    const b2 = iso(hi, i);
     cx.moveTo(a1.x, a1.y);
     cx.lineTo(a2.x, a2.y);
     cx.moveTo(b1.x, b1.y);
@@ -433,8 +445,8 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   cx.stroke();
   cx.restore();
   // 受光草眉：草边朝左上的那一半描一条亮绿（背光的右下只露土唇和落影，不画亮边）
-  const l1e = iso(0, ISLAND);
-  const l3e = iso(ISLAND, 0);
+  const l1e = iso(lo, hi);
+  const l3e = iso(hi, lo);
   cx.save();
   cx.beginPath();
   cx.moveTo(l1e.x - 400, l1e.y + 40);
@@ -481,9 +493,9 @@ export function paintTerrain(cx: CanvasRenderingContext2D, o: TerrainOpts): void
   cx.save();
   cx.strokeStyle = rgba('#fff4c0', 0.22);
   cx.lineWidth = 1.6;
-  const l1 = iso(0, ISLAND);
-  const l2 = iso(0, 0);
-  const l3 = iso(ISLAND, 0);
+  const l1 = iso(lo, hi);
+  const l2 = iso(lo, lo);
+  const l3 = iso(hi, lo);
   cx.beginPath();
   cx.moveTo(l1.x, l1.y - 0.5);
   cx.lineTo(l2.x, l2.y - 0.5);

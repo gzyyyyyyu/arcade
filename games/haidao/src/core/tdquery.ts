@@ -19,7 +19,7 @@ export function tideOpenAt(lv: TdLevel, w: number): boolean {
   return lv.tideOpen ? lv.tideOpen.includes(w) : w >= lv.tide.wave;
 }
 
-/** 这一局第 w 波落潮路开不开：关卡的潮 + 玩家关了水闸的波（规则版本 16 的章末机制，tdmech.ts；没有水闸的局和 tideOpenAt 一样） */
+/** 这一局第 w 波落潮路开不开：关卡的潮 + 玩家关了水闸的波（章末机制，tdmech.ts；没有水闸的局和 tideOpenAt 一样） */
 export function tdTideOpen(s: TdState, w: number): boolean {
   return tideOpenAt(s.level, w) && !(s.sluice?.shut.includes(w) ?? false);
 }
@@ -63,7 +63,7 @@ export function tdRoute(s: TdState, cx: number, cy: number): number[] {
   let x = x0;
   let y = y0;
   for (let k = 0; k < 200; k++) {
-    const n = nextCell(I.occ, best, x, y);
+    const n = nextCell(I.occ, s.ext, best, x, y);
     if (n < 0) break;
     out.push(n);
     x = cellX(n);

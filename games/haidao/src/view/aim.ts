@@ -303,9 +303,9 @@ export function flightK(now: number, t0: number, t1: number): number {
 
 /** 落点按材质出的效果 */
 export type LandMat = 'water' | 'wood' | 'stone' | 'ground';
-/** 落点（屏幕坐标）在岛外的沙滩上吗：岛内 0..ISLAND-1 格是草地，外面一圈是沙（和 ground.ts 的 ringOf 同一个判法） */
-export function onSand(sx: number, sy: number): boolean {
+/** 落点（屏幕坐标）在岛外的沙滩上吗：岛内 [-ext, ISLAND+ext) 格是草地，外面一圈是沙（和 ground.ts 的 ringOf 同一个判法） */
+export function onSand(ext: number, sx: number, sy: number): boolean {
   const { gx, gy } = unIso(sx, sy);
-  return gx < 0 || gy < 0 || gx >= ISLAND || gy >= ISLAND;
+  return gx < -ext || gy < -ext || gx >= ISLAND + ext || gy >= ISLAND + ext;
 }
 void easeOutQuad;

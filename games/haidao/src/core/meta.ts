@@ -9,7 +9,7 @@ import type { Placed, Profile, Res } from './types.ts';
  * 每日悬赏：按天数确定性生成一座岛。取玩家当前进度附近的关卡当模板（已通关最远一关上下浮动），
  * 左右 / 上下随机翻转，掠夺翻倍（再乘收入倍率 INCOME_PCT）。同一天同一进度结果相同。
  */
-export function dailyBounty(dayIndex: number, p: Profile): { levelId: string; layout: Placed[]; loot: Res; seed: number } {
+export function dailyBounty(dayIndex: number, p: Profile): { levelId: string; layout: Placed[]; loot: Res; seed: number; defPct?: number } {
   let far = -1;
   CAMPAIGN.forEach((l, i) => {
     if ((p.stars[l.id] ?? 0) > 0) far = i;
@@ -30,6 +30,7 @@ export function dailyBounty(dayIndex: number, p: Profile): { levelId: string; la
     layout,
     loot: income({ gold: tpl.loot.gold * 2, wood: tpl.loot.wood * 2 }),
     seed: hash32('daily-seed', dayIndex),
+    ...(tpl.defPct !== undefined ? { defPct: tpl.defPct } : {}),
   };
 }
 

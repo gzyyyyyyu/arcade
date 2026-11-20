@@ -154,7 +154,7 @@ export function drawWater(bs: TdScene): void {
 
 export function drawProps(bs: TdScene): void {
   const s = bs.s;
-  // 岸防老炮（规则版本 16）：沙滩上的炮台，炮弹从炮口飞出去（tdevents.ts 的 battery）
+  // 岸防老炮：沙滩上的炮台，炮弹从炮口飞出去（tdevents.ts 的 battery）
   if (s.battery) {
     const q = iso(s.battery.x + 0.5, s.battery.y + 0.5);
     put(bs, bs.r, tdP('battery'), q.x, q.y).setDepth(depthOf(s.battery.x + 0.5, s.battery.y + 0.5));
@@ -185,7 +185,7 @@ export function drawProps(bs: TdScene): void {
   }
 }
 
-/** 守岛英雄画哪套骨架：航海士（规则版本 23）还是船长 */
+/** 守岛英雄画哪套骨架：航海士还是船长 */
 export function heroRig(h: { kind?: 'nav' }): 'h.nav' | 't.captain' {
   return h.kind ? 'h.nav' : 't.captain';
 }
@@ -263,7 +263,7 @@ export function inFog(bs: TdScene, x: number, y: number): boolean {
 }
 
 /** 落潮：登陆路旁那片沙滩平时被水盖着，落潮后露出湿沙；登陆口插小旗 */
-/** 每个场景沙滩上的补给箱：箱子图 + 脚下一圈呼吸的金光（规则版本 16 的章末机制，tdevents.ts 的 crate 事件增删） */
+/** 每个场景沙滩上的补给箱：箱子图 + 脚下一圈呼吸的金光（章末机制，tdevents.ts 的 crate 事件增删） */
 const CRATES = new WeakMap<object, { s: object; m: Map<number, Phaser.GameObjects.GameObject[]> }>();
 
 /** 这一局的箱子表：「再守一次」是同一个场景对象重开（状态对象换了），旧局的图已随场景销毁，换一张新表 */
@@ -306,7 +306,7 @@ export function crateAt(bs: TdScene, ux: number, uy: number): number {
 /** 每局一张水闸图（不往 TdScene 里加字段，按场景存、按状态对象认局），按"下一波关没关"换提起 / 放下 */
 const SLUICE = new WeakMap<object, { s: object; im: Phaser.GameObjects.Image; down: boolean }>();
 
-/** 落潮路口的水闸（规则版本 16 的章末机制）：开局摆上，玩家关上下一波就放下闸板（updateHud 里每次状态变了调） */
+/** 落潮路口的水闸（章末机制）：开局摆上，玩家关上下一波就放下闸板（updateHud 里每次状态变了调） */
 export function syncSluice(bs: TdScene, down: boolean): void {
   const lv = bs.s.level;
   if (!bs.s.sluice || !lv.tide) return;
@@ -338,7 +338,10 @@ export function drawTide(bs: TdScene, first: boolean): void {
   if (lv.tide) {
     const { x, y } = lv.tide.lane;
     const cells: Array<[number, number]> = [];
-    for (let cx = x - 2; cx <= x + 2; cx++) for (let cy = y - 2; cy <= y + 2; cy++) if (ringOf(cx, cy) >= 1 && ringOf(cx, cy) <= BEACH) cells.push([cx, cy]);
+    for (let cx = x - 2; cx <= x + 2; cx++) for (let cy = y - 2; cy <= y + 2; cy++) {
+      const d = ringOf(bs.s.ext, cx, cy);
+      if (d >= 1 && d <= BEACH) cells.push([cx, cy]);
+    }
     for (const [cx, cy] of cells) {
       const pts = [iso(cx, cy), iso(cx + 1, cy), iso(cx + 1, cy + 1), iso(cx, cy + 1)].map((q) => new Phaser.Math.Vector2(q.x, q.y));
       if (!on) g.fillStyle(0x7fe3d0, 0.9).fillPoints(pts, true).lineStyle(2, 0xeffcf7, 0.7).strokePoints(pts, true);
@@ -379,7 +382,7 @@ export function fitBox(bs: TdScene): Box {
   for (const q of bs.s.slots) pts.push([q.x - 1, q.y - 1], [q.x + 2, q.y + 2]);
   const lv = bs.s.level;
   for (const q of [...lv.lanes, ...(lv.tide ? [lv.tide.lane] : [])]) pts.push([q.x - 1, q.y - 1], [q.x + 2, q.y + 2]);
-  return islandBox(pts, 1);
+  return islandBox(bs.s.ext, pts, 1);
 }
 
 /** 竖屏适配的内容：塔位、临时塔位、其他建筑、宝藏箱、登陆口和登陆口到宝藏箱的真实路线格，外扩 1 格；必须完整在可见区里（实时操作） */
@@ -588,7 +591,7 @@ export function drawEdges(bs: TdScene): void {
 }
 
 /**
- * 友军巡航船（规则版本 19）：船在海上时每帧按规则的航线摆（两拍之间按帧插值），朝开的方向翻转；不在海上就藏起来。
+ * 友军巡航船：船在海上时每帧按规则的航线摆（两拍之间按帧插值），朝开的方向翻转；不在海上就藏起来。
  * 船就是玩家旗舰那张图缩小，第一次出海时才建
  */
 export function syncFleet(bs: TdScene, frac: number): void {

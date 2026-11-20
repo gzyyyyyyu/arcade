@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CAMPAIGN, RULES_VERSION, battleFingerprint, botActions, newProfile, runBattle } from '../src/core/index.ts';
 import type { BBuilding, BattleAction, BattleResult, BattleSetup } from '../src/core/index.ts';
-import { adviceLines, BEACH_PTS, dockGain, SIDE_NAME } from '../src/view/battleadvice.ts';
+import { adviceLines, beachPts, dockGain, SIDE_NAME } from '../src/view/battleadvice.ts';
 import { driveBattle, takeActions } from '../src/view/battleflow.ts';
 import { lossStreakOf, NO_EXTRA, settleOutcome } from '../src/view/battlesettle.ts';
 import { sampleArmy } from '../tools/sample.ts';
@@ -92,11 +92,13 @@ describe('回放驱动 driveBattle', () => {
 
 describe('失败建议 adviceLines', () => {
   const lay = (kind: string, x: number, y: number): BBuilding => ({ kind, x, y, size: 2, id: x * 100 + y, destroyed: false, level: 1 }) as unknown as BBuilding;
-  const base = { buildings: [] as BBuilding[], deathBy: new Map<string, number>(), landPts: [], casts: 1, hasBrute: true, streak: 0 };
+  const base = { buildings: [] as BBuilding[], ext: 0, deathBy: new Map<string, number>(), landPts: [], casts: 1, hasBrute: true, streak: 0 };
   const res: Pick<BattleResult, 'destroyedPct'> = { destroyedPct: 40 };
 
   it('常量：四面沙滩和名字一一对应', () => {
-    expect(BEACH_PTS).toHaveLength(4);
+    expect(beachPts(0)).toHaveLength(4);
+    // 岛扩了两圈：参考点跟着沙滩往外挪
+    expect(beachPts(2)[0]).toEqual([-3.5, 11]);
     expect(SIDE_NAME).toEqual(['左边', '下边', '右边', '上边']);
   });
   it('什么都没发生：给兜底的一句；没伤害换另一句', () => {

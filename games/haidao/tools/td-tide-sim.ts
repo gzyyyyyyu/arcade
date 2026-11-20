@@ -1,10 +1,10 @@
 /**
  * 大潮无尽配平模拟：node tools/td-tide-sim.ts [--n 20] [--map 0..3] [--mod fog|rich|hero|none]
- * --mod 指定每周海况（规则版本 22，DESIGN 10.6e），不写是没有海况；每条海况要单独跑、和 none 比。
+ * --mod 指定每周海况（DESIGN 10.6e），不写是没有海况；每条海况要单独跑、和 none 比。
  * 每张图（模板 × 镜像两种）、每种机器人打 n 局（周种子 + 局序号当 setup 种子，结果只看机器人的局内决策），
  * 打印撑过的波数（平均、最少、中位、最多）、击退数、时长（游戏内秒）。DESIGN 10.6e 的实测表用它量，本机用 nice 跑。
  */
-import { RULES_VERSION, TIDE_MAPS, runTdBot, tideSetup } from '../src/core/index.ts';
+import { TIDE_MAPS, runTdBot, tideSetup } from '../src/core/index.ts';
 import type { IsoWeek, TdSetup } from '../src/core/index.ts';
 import { tideMap, tidePick } from '../src/core/tdtide.ts';
 import { TIDE_MODS } from '../src/content/tdtide.ts';
@@ -36,7 +36,7 @@ for (const p of picks) {
     let kills = 0;
     let ticks = 0;
     for (let i = 1; i <= n; i++) {
-      const setup: TdSetup = { ...tideSetup(p.week, RULES_VERSION, mod), seed: i };
+      const setup: TdSetup = { ...tideSetup(p.week, mod), seed: i };
       const { result } = runTdBot(setup, kind);
       waves.push(result.waves);
       kills += result.kills ?? 0;

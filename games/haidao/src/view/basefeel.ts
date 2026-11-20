@@ -4,7 +4,7 @@
  * 拖到屏幕边缘时镜头平移的速度、升级演出和落地演出的时间线。画面层（BaseScene、upfx.ts）只按这里算出的结果画。
  */
 import { BUILDINGS } from '../content/index.ts';
-import type { BuildingKind, Res } from '../core/types.ts';
+import { ISLAND, type BuildingKind, type Res } from '../core/types.ts';
 import { clamp01, riseScale, easeInQuad, easeOutBack, easeOutCubic, easeOutQuad, easeInOutSine } from './motion.ts';
 
 // ---------------------------------------------------------------- 升级面板
@@ -124,9 +124,9 @@ export interface PlaceCheck {
 
 /**
  * 摆放检查：占地的每一格是出界、压到建筑还是空地。和规则核心的 canPlace 判定一致（tests 对拍），
- * 多出来的是逐格的状态和原因，画面按格子涂绿 / 红并写原因。island = 岛的边长（格）。
+ * 多出来的是逐格的状态和原因，画面按格子涂绿 / 红并写原因。ext = 岛按主寨扩了几圈（岛是 [-ext, ISLAND+ext)）。
  */
-export function placeCheck(list: Foot[], kind: BuildingKind, x: number, y: number, island: number, ignoreId?: number): PlaceCheck {
+export function placeCheck(list: Foot[], kind: BuildingKind, x: number, y: number, ext: number, ignoreId?: number): PlaceCheck {
   const size = BUILDINGS[kind].size;
   const cells: PlaceCheck['cells'] = [];
   let out = false;
@@ -136,7 +136,7 @@ export function placeCheck(list: Foot[], kind: BuildingKind, x: number, y: numbe
       const cx = x + dx;
       const cy = y + dy;
       let s: CellState = 'ok';
-      if (cx < 0 || cy < 0 || cx >= island || cy >= island) s = 'out';
+      if (cx < -ext || cy < -ext || cx >= ISLAND + ext || cy >= ISLAND + ext) s = 'out';
       else {
         const b = list.find((q) => q.id !== ignoreId && cx >= q.x && cx < q.x + BUILDINGS[q.kind].size && cy >= q.y && cy < q.y + BUILDINGS[q.kind].size);
         if (b) {
@@ -156,7 +156,7 @@ export function placeCheck(list: Foot[], kind: BuildingKind, x: number, y: numbe
  * 新建造时虚影从哪一格起步：从画面中心那一格往外一圈圈找，先找四周留一格、前方（x、y 变大的一侧，画面上靠下，高的建筑会挡住它）
  * 再多留一格的空地，找不到再放宽到四周留一格、最后只要能放。ok 是规则核心的 canPlace（这里只管"挑哪一块"，能不能放以它为准）。
  */
-export function startSpot(list: Foot[], kind: BuildingKind, cx: number, cy: number, island: number, ok: (x: number, y: number) => boolean): { x: number; y: number } | null {
+export function startSpot(list: Foot[], kind: BuildingKind, cx: number, cy: number, ext: number, ok: (x: number, y: number) => boolean): { x: number; y: number } | null {
   const size = BUILDINGS[kind].size;
   const clear = (x: number, y: number, pad: number, front: number): boolean =>
     !list.some((q) => {
@@ -164,13 +164,13 @@ export function startSpot(list: Foot[], kind: BuildingKind, cx: number, cy: numb
       return q.x < x + size + pad + front && q.x + qs > x - pad && q.y < y + size + pad + front && q.y + qs > y - pad;
     });
   for (const [pad, front] of [[1, 1], [1, 0], [0, 0]] as const) {
-    for (let d = 0; d < island; d++) {
+    for (let d = 0; d < ISLAND + 2 * ext; d++) {
       for (let dy = -d; dy <= d; dy++) {
         for (let dx = -d; dx <= d; dx++) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
           const x = cx + dx;
           const y = cy + dy;
-          if (x < 0 || y < 0 || x > island - size || y > island - size) continue;
+          if (x < -ext || y < -ext || x > ISLAND + ext - size || y > ISLAND + ext - size) continue;
           if (clear(x, y, pad, front) && ok(x, y)) return { x, y };
         }
       }
@@ -189,9 +189,9 @@ export function placeReason(c: PlaceCheck): string {
 /**
  * 摆放时左上角能落在哪：允许虚影探出岛外 size-1 格（这样拖到边上能看到红格和"出界"），但至少留一格在岛上，不会整个丢到海里。
  */
-export function clampPlace(x: number, y: number, size: number, island: number): { x: number; y: number } {
-  const lo = -(size - 1);
-  const hi = island - 1;
+export function clampPlace(x: number, y: number, size: number, ext: number): { x: number; y: number } {
+  const lo = -ext - (size - 1);
+  const hi = ISLAND + ext - 1;
   return { x: Math.min(hi, Math.max(lo, x)), y: Math.min(hi, Math.max(lo, y)) };
 }
 

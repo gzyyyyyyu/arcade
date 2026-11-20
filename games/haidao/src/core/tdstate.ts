@@ -8,7 +8,7 @@ import { TD2_BOSS_EXTRA_TICKS, TD2_CLIFF, TD2_COST, TD2_ENEMIES, TD2_HERO, TD2_N
 import { isqrt } from './fmath.ts';
 import type { Rng } from './rng.ts';
 import { cellIdx, cellX, cellY, flowField } from './grid.ts';
-import { RULES_SINCE, UNIT } from './types.ts';
+import { UNIT } from './types.ts';
 import type { BuildingKind } from './types.ts';
 import { TD_BURN_DAMAGE, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
 import type { EscortState } from './escorttypes.ts';
@@ -38,14 +38,14 @@ interface TowerStats extends Hit {
   shots: number;
   line: boolean;
   pull: number;
-  /** 震荡炮：命中震晕几拍（规则版本 10）；别的塔 0 */
+  /** 震荡炮：命中震晕几拍；别的塔 0 */
   stun: number;
 }
 
 /** 延迟结算的命中：弹丸飞到了才算 */
 export interface Pend {
   t: number;
-  /** lob = 掷弹兵的手雷（规则版本 10）：炸英雄、墙（按 wallPct 打折）、拒马，不炸敌人 */
+  /** lob = 掷弹兵的手雷：炸英雄、墙（按 wallPct 打折）、拒马，不炸敌人 */
   kind: 'unit' | 'splash' | 'keg' | 'heroKeg' | 'lob';
   id: number;
   dmg: number;
@@ -58,14 +58,14 @@ export interface Pend {
   burnDps: number;
   burnTicks: number;
   pull: number;
-  /** 震荡炮的落点溅射：命中的敌人震晕几拍（规则版本 10） */
+  /** 震荡炮的落点溅射：命中的敌人震晕几拍 */
   stun?: number;
   /** 手雷炸墙按百分之几 */
   wallPct?: number;
-  /** 规则版本 ≥ 11：直射的出膛点（盾兵按它判正面）；溅射不写 */
+  /** 直射的出膛点（盾兵按它判正面）；溅射不写 */
   sx?: number;
   sy?: number;
-  /** 规则版本 26：从崖上的高台往下打（盾挡不住） */
+  /** 从崖上的高台往下打（盾挡不住） */
   above?: true;
 }
 
@@ -84,7 +84,7 @@ export interface Internal {
   rng: Rng;
   nextId: number;
   pend: Pend[];
-  /** exit：赏金船（规则版本 22）要跑去的另一条登陆路（单位）；带它的上岸就往那里跑，不抢宝藏 */
+  /** exit：赏金船要跑去的另一条登陆路（单位）；带它的上岸就往那里跑，不抢宝藏 */
   spawns: Array<{ t: number; kind: TdEnemyKind; x: number; y: number; wave: number; exit?: { x: number; y: number } }>;
   /** 每一波还没处理完（没死、没回船、还没登陆）的敌人数 */
   waveLeft: number[];
@@ -114,13 +114,15 @@ export interface Internal {
   avg: { wave: number; unit: number } | null;
   /** 英雄现在的 goal 是守点逻辑自己定的（迎敌、回守点），不是玩家点的 */
   heroAuto?: boolean;
-  /** 规则版本 ≥ 14：玩家这条命里指挥过英雄（之后听玩家的守点，倒下复活后清掉，重新自己守） */
+  /** 玩家这条命里指挥过英雄（之后听玩家的守点，倒下复活后清掉，重新自己守） */
   heroCmd?: boolean;
-  /** 规则版本 ≥ 11：狙击塔 id → 正在瞄的敌人和开火拍 */
+  /** 狙击塔 id → 正在瞄的敌人和开火拍 */
   snipe: Map<number, { target: number; fireAt: number }>;
 }
 
 export interface TdState {
+  /** 岛扩了几圈（TdSetup.ext，海盗来袭按主寨等级）；判格子边界一律带它 */
+  ext: number;
   rules: number;
   tick: number;
   level: TdLevel;
@@ -150,25 +152,25 @@ export interface TdState {
   /** 下一波开始的拍；没有下一波为 -1 */
   next: number;
   fires: Array<{ x: number; y: number; r: number; dps: number; until: number }>;
-  /** 旧版的主动号令（规则版本 7 起号令是被动，这里永远是空的；字段留给画面层兼容） */
+  /** 主动号令（号令现在是被动，这里永远是空的；字段留给画面层兼容） */
   rally: { until: number; ids: number[] };
   /** 场上的拒马（格子坐标） */
   barricades: TdBarricade[];
   over: boolean;
   /** 护航的商船（关卡带 escort 时才有） */
   escort?: EscortState;
-  /** 潮汐水闸（规则版本 16 且关卡写了 sluice 才有，tdmech.ts）：还能关几次、关了哪几波（0 起） */
+  /** 潮汐水闸（关卡写了 sluice 才有，tdmech.ts）：还能关几次、关了哪几波（0 起） */
   sluice?: { left: number; shut: number[] };
-  /** 漂流补给箱（规则版本 16 且关卡写了 crates 才有）：沙滩上还在的箱子（单位坐标），英雄正被叫去捡哪一个（-1 没有） */
+  /** 漂流补给箱（关卡写了 crates 才有）：沙滩上还在的箱子（单位坐标），英雄正被叫去捡哪一个（-1 没有） */
   drift?: { crates: Array<{ id: number; x: number; y: number; until: number; wave: number }>; chase: number };
-  /** 岸防老炮（规则版本 16 且关卡写了 battery 才有）：炮台在哪一格、下一发能打的拍 */
+  /** 岸防老炮（关卡写了 battery 才有）：炮台在哪一格、下一发能打的拍 */
   battery?: { x: number; y: number; ready: number };
   /**
-   * 友军巡航船（规则版本 19 且关卡写了 fleet 才有）：下一次能叫的拍；船在海上时 sail 是这一趟（从一圈上的 p0 出发、t0 拍叫来、until 拍开走、下一炮 next 拍）
+   * 友军巡航船（关卡写了 fleet 才有）：下一次能叫的拍；船在海上时 sail 是这一趟（从一圈上的 p0 出发、t0 拍叫来、until 拍开走、下一炮 next 拍）
    */
   fleet?: { ready: number; sail: { p0: number; t0: number; until: number; next: number } | null };
   /**
-   * 关内事件和大潮海况（规则版本 22 且关卡写了 events / eventEvery / killGoldPct / heroCdPct 才有，tdevent.ts）：
+   * 关内事件和大潮海况（关卡写了 events / eventEvery / killGoldPct / heroCdPct 才有，tdevent.ts）：
    * at 是开局挑好的哪一波发生什么（战役），dare 是接了战书的波（0 起）
    */
   happen?: { at: Array<{ wave: number; kind: TdEventKind }>; dare: number[] };
@@ -280,11 +282,11 @@ export function towerStats(s: TdState, t: TdTower): TowerStats {
 }
 
 /**
- * 断崖关的规则开着吗（规则版本 26、关卡写了 cliffs）：断崖格挡路、高台、断崖关里盾兵挡英雄的枪都看这一处。
- * 海盗来袭也有盾兵，但它的岛没有 cliffs，盾兵照规则 11 的老样子（英雄的枪不挡），回放逐位不变
+ * 断崖关的规则开着吗（关卡写了 cliffs）：断崖格挡路、高台、断崖关里盾兵挡英雄的枪都看这一处。
+ * 海盗来袭也有盾兵，但它的岛没有 cliffs，盾兵挡不住英雄的枪
  */
-export function cliffOn(s: { rules: number; level: TdLevel }): boolean {
-  return s.rules >= RULES_SINCE.tdCliffs && !!s.level.cliffs;
+export function cliffOn(s: { level: TdLevel }): boolean {
+  return !!s.level.cliffs;
 }
 
 /** 塔在崖上的高台上（slot 的 high 只在断崖关的规则开着时才写，createTd） */
@@ -373,7 +375,7 @@ function flowTo(s: TdState, key: string, goals: () => number[], wallCost: number
   const k = `${wallCost}|${key}`;
   let f = I.flow.get(k);
   if (!f) {
-    f = flowField(I.occ, goals(), wallCost);
+    f = flowField(I.occ, s.ext, goals(), wallCost);
     I.flow.set(k, f);
   }
   return f;
@@ -419,7 +421,7 @@ export function seen(s: TdState, e: TdEnemy): boolean {
 
 /** 塔、英雄能不能瞄准它：活着、克制倍率不是 0（飞的只给枪弹和高射火箭打）、雾里的要被照亮 */
 /**
- * 这一发打得到这个敌人吗：活着、这种伤害对它不是 0 倍、看得见；海上的炮艇（规则版本 18）还要射程 range 不小于 TD_SEA_RANGE
+ * 这一发打得到这个敌人吗：活着、这种伤害对它不是 0 倍、看得见；海上的炮艇还要射程 range 不小于 TD_SEA_RANGE
  * （英雄不给 range，打不到海上的）
  */
 export function targetable(s: TdState, e: TdEnemy, h: Hit, range = 0): boolean {

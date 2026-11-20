@@ -2,8 +2,8 @@ import { BRANCH_BY_ID, BRANCH_LEVEL, BUILDINGS, branchOptions } from '../content
 import { TD2_ENEMIES } from '../content/td2units.ts';
 import { TD2_CHAPTERS } from '../content/tdmaps.ts';
 import type { Td2ChapterInfo } from '../content/tdmaps.ts';
-import { ISLAND, RULES_VERSION, UNIT } from '../core/types.ts';
-import { counterKind, freeSlotPick, isTdTowerKind, levelForRules, tdBuildCost, tdBuildRange, tdHomeHardOpen, tdUpCost } from '../core/index.ts';
+import { ISLAND, UNIT } from '../core/types.ts';
+import { counterKind, freeSlotPick, isTdTowerKind, tdBuildCost, tdBuildRange, tdHomeHardOpen, tdUpCost } from '../core/index.ts';
 import { TD2_HOME } from '../content/td2units.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
@@ -464,10 +464,10 @@ function mechanics(lv: TdIslandLevel): string[] {
   return out;
 }
 
-/** 这一关新出现什么：对比同一张关表里前面的关（第一关写基础玩法）。i 是 levels 里的序号；波次按现在的规则版本挑（levelForRules） */
+/** 这一关新出现什么：对比同一张关表里前面的关（第一关写基础玩法）。i 是 levels 里的序号 */
 export function levelIntro(levels: readonly TdIslandLevel[], i: number): string {
   if (!levels[i]) return '';
-  const lv = levelForRules(levels[i]!, RULES_VERSION);
+  const lv = levels[i]!;
   if (i === 0) return '新：建塔、驻守台、英雄、叫下一波';
   const seen = new Set<TdEnemyKind>();
   const seenMech = new Set<string>();
@@ -475,7 +475,7 @@ export function levelIntro(levels: readonly TdIslandLevel[], i: number): string 
   for (let k = 0; k < i; k++) {
     const q = levels[k]!;
     for (const m of mechanics(q)) seenMech.add(m);
-    for (const w of levelForRules(q, RULES_VERSION).waves) {
+    for (const w of q.waves) {
       if (w.boss) boss = true;
       for (const g of w.groups) seen.add(g.enemy);
     }
@@ -845,7 +845,7 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
 }
 
 /**
- * 带哪个英雄（规则版本 23）：第一章通关后，战役的驻守台面板和海盗来袭卡片上各一个切换钮，点一下在船长、航海士之间换，
+ * 带哪个英雄：第一章通关后，战役的驻守台面板和海盗来袭卡片上各一个切换钮，点一下在船长、航海士之间换，
  * 存进存档（heroPick），下次默认上次选的。没解锁不出钮。悬赏守岛、大潮、护航不出（第一版只有船长）
  */
 export function heroSwitch(parent: HTMLElement): HTMLButtonElement | null {
@@ -915,7 +915,7 @@ function tideCard(parent: HTMLElement, stars: number, onTide: () => void): void 
   const locked = stars < 1;
   const c = el('div', `hd-tidecard${locked ? ' lock' : ''}`, undefined, parent);
   const mid = el('div', 'hd-tdmid', undefined, c);
-  // 每周海况（规则版本 22）：名字挂在标题后面，怎么回事写在悬停提示里
+  // 每周海况：名字挂在标题后面，怎么回事写在悬停提示里
   const mod = tideMod(week);
   el('b', 'hd-tdname', locked ? '大潮无尽 · 未解锁' : `大潮无尽 · 第 ${week.week} 周${mod ? ` · ${TIDE_MODS[mod].name}` : ''}`, mid);
   if (locked) {
@@ -950,7 +950,7 @@ export function waveEnemies(p: WavePreview): Array<{ kind: TdEnemyKind; n: numbe
  * 第二行写潮水和关卡的补充（note），首领波整块变红；第三行"再下一波"只列护甲徽记。点它打开敌人图鉴。
  * tide：涨落的潮这一波开不开（不是涨落的关传 null），laneTitle：登陆路下标 → 北路 / 西路…
  */
-/** 关内事件（规则版本 22）在预告卡事件那一行、图鉴里的短说法；名字给「再下一波」那一小格 */
+/** 关内事件在预告卡事件那一行、图鉴里的短说法；名字给「再下一波」那一小格 */
 export const EVENT_NAME: Readonly<Record<NonNullable<WavePreview['event']>, string>> = { bounty: '赏金船', rain: '暴雨', dare: '战书' };
 export function eventNote(p: WavePreview): string {
   if (p.event === 'bounty') return '赏金船上岸，打倒多给金币';

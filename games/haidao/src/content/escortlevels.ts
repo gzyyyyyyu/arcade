@@ -1,10 +1,10 @@
 /**
  * 护航的 9 关 = 3 张图 × 3 档难度（新手 / 普通 / 高手），关 id 是 `<图id>-<难度>`。
  * 同一张图三档的敌人配方一样，难度只靠旋钮：船血 hull、预算倍率 scale、开局金、木台数、波间倒数 waveTicks。
- * 不加规则、不改敌人表。数值是初稿，核心合并后用 tools/escort-sim.ts 配平（目标见 design：新手小白胜率 ≥ 60%、普通 40–50%、高手 ≤ 30%）。
+ * 不加规则、不改敌人表。用 tools/escort-sim.ts 按共用难度线（src/content/difficulty.ts，进度按难度档）配平。
+ * 护航实盘读冻结副本 escortlivelevels.ts，这里的关随便调不影响实盘。
  */
 import { waveBudget } from '../core/td2types.ts';
-import { RULES_SINCE } from '../core/types.ts';
 import { ESCORT_DIFFS, type EscortDiff, type EscortLevel } from '../core/escorttypes.ts';
 import type { TdEnemyKind, TdGroup, TdWave } from '../core/tdtypes.ts';
 import { TD2_ENEMY_POINTS } from './td2units.ts';
@@ -127,31 +127,23 @@ const KNOBS: Readonly<Record<EscortDiff, { hull: number; scale: number; gold: nu
 };
 
 type Knobs = { hull: number; scale: number; gold: number; fewer: number; waveTicks: number; first: number };
-/** 每张图每档对基础旋钮的修正（配平结果）：后面的图预算本来就大、航线长，所以倍率和船血要单独调 */
-const TUNE: Readonly<Record<EscortMapId, Readonly<Record<EscortDiff, Partial<Knobs>>>>> = {
-  strait: { easy: { scale: 68 }, normal: { scale: 88, hull: 1150, gold: 620 }, hard: { scale: 63 } },
-  bays: { easy: { scale: 40 }, normal: { scale: 68, hull: 1150, gold: 700, first: 900 }, hard: { scale: 67, hull: 650 } },
-  cape: { easy: { scale: 64 }, normal: { scale: 75, hull: 1000 }, hard: { scale: 125 } },
-};
-
 /**
- * 新手档放宽（规则版本 25）：敌人预算倍率换成这个。真人照提示打三局全沉，小白机器人 83% 只代表「第 0 拍巡航 + 跟随」一种打法，
- * 换个开局（停船造塔、晚开跟随、自己加喷火）就从 100% 翻到 0%；降到 0.85 倍后各种说得过去的打法三张图都 ≥ 85%（.local 取证）。
- * 旧局（规则 < 25）照旧用 TUNE 的倍率：两套组并排写，带 since / until，levelForRules 按局的规则版本挑
+ * 每张图每档对基础旋钮的修正（配平结果）：后面的图预算本来就大、航线长，所以倍率和船血要单独调；同一张图船血新手 > 普通 > 高手（单测锁住）。
+ * 新手档的倍率是放宽过的：真人照提示打三局全沉，小白机器人 83% 只代表「第 0 拍巡航 + 跟随」一种打法，
+ * 换个开局（停船造塔、晚开跟随、自己加喷火）就从 100% 翻到 0%；放宽后各种说得过去的打法三张图都 ≥ 85%（.local 取证）。
+ * 0.55.0 按共用难度线重配：直波海峡新手 / 普通档三星原来只有 2–3%（普通机器人几乎全 2★），高手档小白胜率 0–14%，都放宽到线上（docs/balance-haidao.md 难度曲线总表）
  */
-const EASE: Readonly<Record<EscortMapId, number>> = { strait: 58, bays: 34, cape: 54 };
+const TUNE: Readonly<Record<EscortMapId, Readonly<Record<EscortDiff, Partial<Knobs>>>>> = {
+  strait: { easy: { scale: 25, hull: 1400 }, normal: { scale: 60, hull: 1300, gold: 620 }, hard: { scale: 50, hull: 900 } },
+  bays: { easy: { scale: 34, hull: 1500 }, normal: { scale: 58, hull: 1400, gold: 700, first: 900 }, hard: { scale: 35, hull: 1150 } },
+  cape: { easy: { scale: 54 }, normal: { scale: 73, hull: 1100 }, hard: { scale: 50, hull: 1050 } },
+};
 
 export const ESCORT_MAX_TICKS = 6000;
 
-/** 一张图一档的 10 波：放宽了的档新旧两套组并排（旧的 until、新的 since），没放宽的照旧一套 */
-function levelWaves(rc: (typeof RECIPES)[EscortMapId], scale: number, ease: number | undefined): TdWave[] {
-  return rc.waves.map((r, i) => {
-    const cur = expand(r, Math.floor((waveBudget(rc.index, i) * scale) / 100));
-    if (ease === undefined) return cur;
-    const next = expand(r, Math.floor((waveBudget(rc.index, i) * ease) / 100));
-    const since = RULES_SINCE.escortEase;
-    return { ...cur, groups: [...cur.groups.map((g) => ({ ...g, until: since })), ...next.groups.map((g) => ({ ...g, since }))] };
-  });
+/** 一张图一档的 10 波 */
+function levelWaves(rc: (typeof RECIPES)[EscortMapId], scale: number): TdWave[] {
+  return rc.waves.map((r, i) => expand(r, Math.floor((waveBudget(rc.index, i) * scale) / 100)));
 }
 
 function buildLevel(m: EscortMapDef, diff: EscortDiff): EscortLevel {
@@ -170,7 +162,7 @@ function buildLevel(m: EscortMapDef, diff: EscortDiff): EscortLevel {
     ...(m.fogZones ? { fogZones: m.fogZones.map((z) => ({ ...z })) } : {}),
     ...(m.flank ? { flank: true } : {}),
     maxTicks: ESCORT_MAX_TICKS,
-    waves: levelWaves(rc, k.scale, diff === 'easy' ? EASE[m.id] : undefined),
+    waves: levelWaves(rc, k.scale),
     kegs: m.kegs.map((p) => ({ ...p })),
     obstacles: [],
     slots: m.pads.slice(0, m.pads.length - k.fewer).map((p) => ({ ...p })),

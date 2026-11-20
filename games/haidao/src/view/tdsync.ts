@@ -6,7 +6,7 @@ import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
 import { TD2_ENEMIES, TD_ENEMY_ARMOR, raining, tdHeroStats, tdJammed, type TdEnemy } from '../core/index.ts';
 import { stunned } from '../core/combat.ts';
 import { wobbleAt } from './stunfx.ts';
-import { UNIT, BEACH, ISLAND } from '../core/types.ts';
+import { UNIT, BEACH } from '../core/types.ts';
 import { tdE, bTex, fxA, iconA, tdP } from './art.ts';
 import { interpPos, turnStep, towerRise, TOWER_RISE_MS, EASE, shipBob, shipRecoil, SHIP_RECOIL_MS } from './motion.ts';
 import { REDUCED } from './feel.ts';
@@ -81,7 +81,7 @@ function crowdEnemies(bs: TdScene, dt: number): void {
     tdMx = new Float64Array(tdMoorItems.length * 2);
     tdMy = new Float64Array(tdMoorItems.length * 2);
   }
-  moorOffsets(tdMoorItems, tdMx, tdMy, ISLAND, BEACH, UNIT);
+  moorOffsets(tdMoorItems, tdMx, tdMy, bs.s.ext, UNIT);
   for (let i = 0; i < tdMoorItems.length; i++) {
     const sp = bs.esp.get(tdMoorItems[i]!.id)!;
     // 刚出现的船直接到位（不从沙滩滑进海里）；之后有船开走、别的船补位时平滑挪
@@ -461,7 +461,7 @@ export function syncTurrets(bs: TdScene, now: number, dt: number): void {
 export function matAt(bs: TdScene, x: number, y: number): LandMat {
   const gx = Math.floor(x / UNIT);
   const gy = Math.floor(y / UNIT);
-  if (ringOf(gx, gy) > BEACH) return 'water';
+  if (ringOf(bs.s.ext, gx, gy) > BEACH) return 'water';
   for (const w of bs.s.walls) if (!w.destroyed && w.x === gx && w.y === gy) return (bs.wallLevel.get(w.id) ?? 1) <= 2 ? 'wood' : 'stone';
   return 'ground';
 }

@@ -288,7 +288,7 @@ export function finishTide(bs: TdScene, res: ReturnType<typeof tdResult>, week: 
   if (bs.s.wave > res.waves) el('p', 'hd-sub hd-td-line', `打到第 ${bs.s.wave} 波时结束，守住了前 ${res.waves} 波`, box);
   el('p', 'hd-td-kept', `击退 ${res.kills ?? 0} 个敌人`, box);
   reasonLines(bs, box, res);
-  const mod = tideMod(week, bs.s.rules);
+  const mod = tideMod(week);
   el('p', 'hd-sub hd-td-line', `本周最好：${tideLine(rec.best)}${mod ? ` · 本周海况：${TIDE_MODS[mod].name}` : ''}`, box);
   const note = el('p', 'hd-sub hd-td-line hd-tide-note', '', box);
   note.dataset.state = 'pending';

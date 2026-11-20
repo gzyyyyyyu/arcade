@@ -19,8 +19,8 @@ It is one module of the Arcade monorepo, but deploys on its own too. Docs below 
 
 ## 文档
 
-- [DESIGN.md](DESIGN.md)：设计正本（循环、成长、防腻、经济、公平、画面、配平、分期）；模拟实测数据见 [docs/balance-haidao.md](docs/balance-haidao.md)
-- [AGENTS.md](AGENTS.md)：给开发者和代理的模块约定（目录、命令、存储 key）
+- [DESIGN.md](DESIGN.md)：设计总纲和目录，各玩法在 `docs/design-*.md`（循环、成长、防腻、经济、公平、画面、配平、分期）；模拟实测数据见 [docs/balance-haidao.md](docs/balance-haidao.md)
+- [AGENTS.md](AGENTS.md)：给开发者和代理的模块约定（规矩、坑和文档地图）；目录、命令和工具参数在 [docs/tools-haidao.md](docs/tools-haidao.md)，浏览器存储 key 清单在 [docs/ui-haidao.md](docs/ui-haidao.md)
 - [ASSETS.md](ASSETS.md)：素材来源和许可
 - [CHANGELOG.md](CHANGELOG.md)：版本记录；0.31.0 以前的见 [docs/changelog-archive.md](docs/changelog-archive.md)
 
@@ -43,10 +43,10 @@ It is one module of the Arcade monorepo, but deploys on its own too. Docs below 
 
 上手就是 `npm ci`、`npm run dev`（打开 http://localhost:5170/，没有平台也能玩：游客身份，存档在浏览器本地）、改完提交前 `npm test`，命令见上表。
 
-- 代码分两层：`src/core/` 是规则核心（纯函数、固定步长、带种子的 RNG，不碰 DOM 和 Phaser，同一种子同一串操作结果逐位相同），`src/view/` 是画面（Phaser 场景和 DOM 界面，只读核心给的状态和事件）。目录和约定见 [AGENTS.md](AGENTS.md)。
-- 改了守岛数值，`tests/td-golden-<片>.test.ts` 会失败：确认是有意的改动后，用 `node tools/td-golden.ts` 重生成指纹（命令细节见 AGENTS.md）。
+- 代码分两层：`src/core/` 是规则核心（纯函数、固定步长、带种子的 RNG，不碰 DOM 和 Phaser，同一种子同一串操作结果逐位相同），`src/view/` 是画面（Phaser 场景和 DOM 界面，只读核心给的状态和事件）。约定见 [AGENTS.md](AGENTS.md)，目录分工见 [docs/tools-haidao.md](docs/tools-haidao.md)。
+- 改了守岛数值，`tests/td-golden-<片>.test.ts` 会失败：确认是有意的改动后，用 `node tools/td-golden.ts` 重生成指纹（命令细节见 docs/tools-haidao.md）。
 - 冒烟：`npm run shot -- --out <目录>` 起临时端口、开无头浏览器把主流程走一遍并存截图，控制台有报错会失败。需要先装浏览器：`npx playwright-core install chromium`。
-- 看素材不用浏览器：`npm run art -- <目录>` 把图鉴渲成 PNG。机器人跑配平：`npm run sim -- --n 50`；其余脚本在 `tools/`，用法见 AGENTS.md 的命令表。
+- 看素材不用浏览器：`npm run art -- <目录>` 把图鉴渲成 PNG。机器人跑配平：`npm run sim -- --n 50`；其余脚本在 `tools/`，用法见 docs/tools-haidao.md 的命令表。
 - 服务端（异步攻防的匹配、重放结算、实盘钱包接口）在 `worker/`：`worker/pvp/` 是 Base、Harbor 的逻辑类（测试用内存假存储），`worker/do.ts` 是 Durable Object 外壳。
 
 ## 单独部署

@@ -7,12 +7,12 @@ import { BRANCH_BY_ID, RAID_BRANCH_PCT, RAID_LINE_MAX } from '../content/branche
 import { RAID_HERO, RAID_HERO_AGGRO, RAID_HERO_CLUSTER, RAID_HERO_GUARD, RAID_HERO_LEASH, TD_KEG_THROW, TD_RALLY_PCT, TD_RALLY_R } from '../content/tdunits.ts';
 import { SNIPE_WARN, applyStun, flightTicks, inRing, laneOffset, leadPoint, rankTargets, shieldFaces, stunned } from './combat.ts';
 import { isqrt } from './fmath.ts';
-import { GRID, INF, cellIdx, cellOf, flowFrom, inGrid, nextCell as gridNextCell } from './grid.ts';
+import { GRID, INF, cellIdx, cellOf, cellX, cellY, flowFrom, inGrid, inIsle, nextCell as gridNextCell } from './grid.ts';
 import { sanitizeBranch } from './tdbase.ts';
 import { FUN } from '../content/fun.ts';
 import { type FunState, allyPending, funCut, funFingerprint, makeFun, stepFun } from './fun.ts';
 import { Rng, hash32 } from './rng.ts';
-import { BATTLE_TICKS, BEACH, ISLAND, RULES_VERSION, UNIT, RULES_SINCE } from './types.ts';
+import { BATTLE_TICKS, ISLAND, RULES_VERSION, UNIT } from './types.ts';
 import type {
   ArmySetup,
   BBuilding,
@@ -37,16 +37,16 @@ interface Pend {
   x: number;
   y: number;
   r: number;
-  /** 规则版本 ≥ 6 的分叉效果（命中时减速、落点留火、拖拽）；旧版本没有这一项 */
+  /** 分叉效果（命中时减速、落点留火、拖拽） */
   fx?: HitFx;
-  /** 规则版本 ≥ 10：震荡炮的落点溅射，命中的兵震晕几拍 */
+  /** 震荡炮的落点溅射，命中的兵震晕几拍 */
   stun?: number;
-  /** 规则版本 ≥ 11：直射的出膛点（盾兵按它判正面）；溅射、抛射不写，盾挡不住 */
+  /** 直射的出膛点（盾兵按它判正面）；溅射、抛射不写，盾挡不住 */
   sx?: number;
   sy?: number;
 }
 
-/** 分叉带来的命中效果（规则版本 ≥ 6） */
+/** 分叉带来的命中效果 */
 interface HitFx {
   slowPct: number;
   slowTicks: number;
@@ -57,7 +57,7 @@ interface HitFx {
   pull: number;
 }
 
-/** 防御塔、陷阱按等级和分叉算出来的数值（规则版本 ≥ 6，单位已换好） */
+/** 防御塔、陷阱按等级和分叉算出来的数值（单位已换好） */
 interface BStats {
   dmg: number;
   range: number;
@@ -67,7 +67,7 @@ interface BStats {
   shots: number;
   line: boolean;
   fx: HitFx | undefined;
-  /** 震荡炮：命中的兵震晕几拍（规则版本 10）；别的塔 0 */
+  /** 震荡炮：命中的兵震晕几拍；别的塔 0 */
   stun: number;
 }
 
@@ -88,6 +88,8 @@ interface Internal {
   flareUntil: number;
   meds: Array<{ x: number; y: number; r: number; heal: number; until: number }>;
   army: ArmySetup;
+  /** BattleSetup.defPct：防御塔血量（建岛时已乘）和塔、陷阱伤害（buildingStats）的百分比 */
+  defPct: number;
   counted: number;
   destroyedCounted: number;
   hqDown: boolean;
@@ -101,25 +103,25 @@ interface Internal {
   occ: Int16Array;
   /** 目标建筑 id → 到它的代价流场 */
   flow: Map<number, Int32Array>;
-  /** 以下只在规则版本 ≥ 6 用：塔的数值缓存、减速百分比、地上的火 */
+  /** 塔的数值缓存、减速百分比、地上的火 */
   stats: Map<number, BStats>;
   slowPct: number[];
   fires: Fire[];
-  /** 规则版本 ≥ 9：兵 id → 到哪一拍之前不理驻岛英雄（追不过去时记下，免得每拍在"追英雄"和"拆房子"之间来回切） */
+  /** 兵 id → 到哪一拍之前不理驻岛英雄（追不过去时记下，免得每拍在"追英雄"和"拆房子"之间来回切） */
   ignoreHero: number[];
-  /** 规则版本 ≥ 12：远程兵为等盾兵已连续等了几拍（到 ESCORT_HOLD_MAX 就放行，打到敌人才清零） */
+  /** 远程兵为等盾兵已连续等了几拍（到 ESCORT_HOLD_MAX 就放行，打到敌人才清零） */
   hold: number[];
-  /** 规则版本 ≥ 11：狙击塔 id → 正在瞄的目标和开火拍（锁定后 SNIPE_WARN 拍才开火） */
+  /** 狙击塔 id → 正在瞄的目标和开火拍（锁定后 SNIPE_WARN 拍才开火） */
   snipe: Map<number, { target: number; fireAt: number }>;
-  /** 规则版本 ≥ 13：每条船落地的拍和放下的兵 id（撤回用） */
+  /** 每条船落地的拍和放下的兵 id（撤回用） */
   landAt: number[];
   landIds: number[][];
-  /** 规则版本 ≥ 13 且 setup.fun 开着：宝箱、援军的状态（core/fun.ts）；没开 = undefined，一项都不碰 */
+  /** setup.fun 开着时：宝箱、援军的状态（core/fun.ts）；没开 = undefined，一项都不碰 */
   fun?: FunState;
 }
 
 const ENERGY_CAP = 20;
-/** 规则版本 ≥ 12（DESIGN 10.2b）：掷弹兵找目标比射程多看几格；船医只就近挑伤员的范围；远程兵等盾的距离差和最长等待 */
+/** DESIGN 10.2b：掷弹兵找目标比射程多看几格；船医只就近挑伤员的范围；远程兵等盾的距离差和最长等待 */
 const GRENADE_LOOK = 300;
 const MEDIC_REACH = 600;
 const ESCORT_GAP = 150;
@@ -129,7 +131,7 @@ const RANGED_KINDS: ReadonlySet<string> = new Set(['gunner', 'harpooner', 'canno
 const WALL_COST = 7;
 /** 炸药兵炸墙的伤害倍数 */
 const WALL_BOMB_MUL = 3;
-/** 掷弹兵的手雷炸到城墙只算百分之几（规则版本 10，DESIGN 13：墙挡不住雷，但拆墙仍然慢） */
+/** 掷弹兵的手雷炸到城墙只算百分之几（DESIGN 13：墙挡不住雷，但拆墙仍然慢） */
 export const GRENADE_WALL_PCT = 30;
 /** 手雷每拍飞多远（单位）、最少飞几拍（抛物线，近处也要看得见） */
 const GRENADE_SPEED = 18;
@@ -167,11 +169,12 @@ function bldById(s: BattleState, id: number): BBuilding | undefined {
 }
 
 export function createBattle(setup: BattleSetup): BattleState {
-  // 规则版本 10 以前没有震荡炮、11 以前没有狙击塔：万一布局里带了也不摆（旧版本的岛不会有，回放逐位不变）
-  const layout = setup.layout.filter((p) => !(p.kind === 'shock' && setup.rules < RULES_SINCE.shockGrenadier) && !(p.kind === 'sniper' && setup.rules < RULES_SINCE.sniperShield));
+  const layout = setup.layout;
+  const defPct = setup.defPct ?? 100;
   const buildings: BBuilding[] = layout.map((p) => {
     const def = BUILDINGS[p.kind];
-    const hp = def.levels[p.level - 1]?.hp ?? 0;
+    const base = def.levels[p.level - 1]?.hp ?? 0;
+    const hp = DEFENSE_KINDS.has(p.kind) ? Math.max(1, Math.floor((base * defPct) / 100)) : base;
     return {
       id: p.id,
       kind: p.kind,
@@ -201,6 +204,7 @@ export function createBattle(setup: BattleSetup): BattleState {
     flareUntil: 0,
     meds: [],
     army: setup.army,
+    defPct,
     counted: buildings.filter(isCounted).length,
     destroyedCounted: 0,
     hqDown: false,
@@ -219,13 +223,11 @@ export function createBattle(setup: BattleSetup): BattleState {
     landAt: [],
     landIds: [],
   };
-  // 规则版本 6：分叉带进登陆战（只认合法的前缀，和守岛一样）
-  if (setup.rules >= RULES_SINCE.raidHero) {
-    layout.forEach((p, i) => {
-      const br = sanitizeBranch(p.kind, p.level, p.branch);
-      if (br) (buildings[i] as BBuilding).branch = br;
-    });
-  }
+  // 分叉带进登陆战（只认合法的前缀，和守岛一样）
+  layout.forEach((p, i) => {
+    const br = sanitizeBranch(p.kind, p.level, p.branch);
+    if (br) (buildings[i] as BBuilding).branch = br;
+  });
   // 雾塔：半径内的建筑先看不见
   for (const t of buildings) {
     if (t.kind !== 'fogTower') continue;
@@ -233,6 +235,7 @@ export function createBattle(setup: BattleSetup): BattleState {
   }
   const s: BattleState = {
     rules: setup.rules,
+    ext: setup.ext ?? 0,
     tick: 0,
     units: [],
     buildings,
@@ -247,11 +250,9 @@ export function createBattle(setup: BattleSetup): BattleState {
     internal.fun = mf.fun;
     if (mf.chests) s.chests = mf.chests;
   }
-  if (setup.rules >= RULES_SINCE.raidHero) {
-    s.fires = internal.fires;
-    const hero = makeHero(s, setup.hero);
-    if (hero) s.hero = hero;
-  }
+  s.fires = internal.fires;
+  const hero = makeHero(s, setup.hero);
+  if (hero) s.hero = hero;
   return s;
 }
 
@@ -269,12 +270,11 @@ function fogCovers(t: BBuilding, b: BBuilding): boolean {
   return dx * dx + dy * dy <= r * r;
 }
 
-export function canLand(_state: BattleState, x: number, y: number): boolean {
+export function canLand(s: BattleState, x: number, y: number): boolean {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
   const cx = Math.floor(x / UNIT);
   const cy = Math.floor(y / UNIT);
-  if (cx < -BEACH || cy < -BEACH || cx >= ISLAND + BEACH || cy >= ISLAND + BEACH) return false;
-  return !(cx >= 0 && cy >= 0 && cx < ISLAND && cy < ISLAND);
+  return inGrid(s.ext, cx, cy) && !inIsle(s.ext, cx, cy);
 }
 
 export function battleResult(s: BattleState): BattleResult {
@@ -290,19 +290,16 @@ export function battleFingerprint(s: BattleState): number {
   const parts: number[] = [s.tick, s.energy, s.over ? 1 : 0, I.pend.length, I.nextUnit, I.flareId, I.flareUntil, ...I.rng.snapshot()];
   for (const u of s.units) parts.push(u.id, u.x, u.y, u.hp, u.target, u.cd, u.mode === 'dead' ? 2 : u.mode === 'attack' ? 1 : 0);
   for (const b of s.buildings) parts.push(b.id, b.hp, b.destroyed ? 1 : 0, b.revealed ? 1 : 0, b.aim, b.cd);
-  if (s.rules >= RULES_SINCE.raidHero) {
-    const h = s.hero;
-    // 没有英雄、地上没火时一项不加：战役岛（没有宝藏箱和分叉）在版本 5、6 下指纹相同，测试据此锁住"规则 6 不改战役结果"
-    if (h) parts.push(h.x, h.y, h.hp, h.target, h.cd, h.kegReady, h.rallyReady, h.rallyUntil, h.returning ? 1 : 0);
-    for (const f of I.fires) parts.push(f.x, f.y, f.until);
-  }
+  const h = s.hero;
+  if (h) parts.push(h.x, h.y, h.hp, h.target, h.cd, h.kegReady, h.rallyReady, h.rallyUntil, h.returning ? 1 : 0);
+  for (const f of I.fires) parts.push(f.x, f.y, f.until);
   if (I.fun) parts.push(...funFingerprint(I.fun, s.chests));
   return hash32(parts.join(','), 7);
 }
 
-/** 这条船现在能不能撤回（规则版本 ≥ 13）：落地 recallTicks 拍内，这批兵都活着、满血、还没出过手（cd 还是落地那拍）；画面的撤回钮也问它 */
+/** 这条船现在能不能撤回：落地 recallTicks 拍内，这批兵都活着、满血、还没出过手（cd 还是落地那拍）；画面的撤回钮也问它 */
 export function canRecall(s: BattleState, boat: number): boolean {
-  if (s.rules < RULES_SINCE.fun || s.over || !s.landed[boat]) return false;
+  if (s.over || !s.landed[boat]) return false;
   const I = inner(s);
   const at = I.landAt[boat];
   const ids = I.landIds[boat];
@@ -373,7 +370,7 @@ function setShield(u: BUnit, dx: number, dy: number): void {
 }
 
 /**
- * 直射命中前过一遍盾（规则版本 11）：自己是盾兵且盾朝着来弹、没被震晕，只吃 SHIELD.frontPct%；
+ * 直射命中前过一遍盾：自己是盾兵且盾朝着来弹、没被震晕，只吃 SHIELD.frontPct%；
  * 否则看身后 SHIELD.coverRadius 内有没有盾兵替他挡（盾对着来弹、他在盾后 ±60° 里），有就少吃 coverCutPct%。每发只算一层。
  */
 function guardedDamage(s: BattleState, ev: BattleEvent[], u: BUnit, dmg: number, sx: number, sy: number): number {
@@ -451,7 +448,7 @@ function pickTarget(s: BattleState, u: BUnit): number {
     }
     if (best >= 0) return best;
   }
-  if (u.kind === 'grenadier' && s.rules >= RULES_SINCE.raidAi) {
+  if (u.kind === 'grenadier') {
     const id = pickGrenadeTarget(s, u);
     if (id >= 0) return id;
   }
@@ -461,7 +458,7 @@ function pickTarget(s: BattleState, u: BUnit): number {
 }
 
 /**
- * 规则版本 ≥ 12：掷弹兵挑"一颗雷炸得最多"的建筑：射程 + GRENADE_LOOK 内，每座按落点半径内的非墙建筑打分（防御 3、其余 1），
+ * 掷弹兵挑"一颗雷炸得最多"的建筑：射程 + GRENADE_LOOK 内，每座按落点半径内的非墙建筑打分（防御 3、其余 1），
  * 分高的先，同分离得近的先，再按 id；一座都没有返回 -1（退回最近的建筑）。
  */
 function pickGrenadeTarget(s: BattleState, u: BUnit): number {
@@ -487,7 +484,7 @@ function pickGrenadeTarget(s: BattleState, u: BUnit): number {
   return best;
 }
 
-/** 规则版本 ≥ 12：远程兵要往前挪时，比最近的活盾兵更靠前 ESCORT_GAP 以上就原地等，最多等 ESCORT_HOLD_MAX 拍 */
+/** 远程兵要往前挪时，比最近的活盾兵更靠前 ESCORT_GAP 以上就原地等，最多等 ESCORT_HOLD_MAX 拍 */
 function escortHolds(s: BattleState, u: BUnit, tgt: BBuilding, dist: number): boolean {
   const I = inner(s);
   if ((I.hold[u.id] ?? 0) >= ESCORT_HOLD_MAX) return false;
@@ -521,10 +518,6 @@ function doAction(s: BattleState, ev: BattleEvent[], a: BattleAction): void {
   if (a.type === 'land') {
     const boat = I.army.boats[a.boat];
     if (!boat || s.landed[a.boat] || !canLand(s, a.x, a.y)) return;
-    // 掷弹兵规则版本 10 才有
-    if (boat.troop === 'grenadier' && s.rules < RULES_SINCE.shockGrenadier) return;
-    // 盾兵规则版本 11 才有
-    if (boat.troop === 'shield' && s.rules < RULES_SINCE.sniperShield) return;
     s.landed[a.boat] = true;
     const lvl = TROOPS[boat.troop].levels[boat.level - 1];
     if (!lvl) return;
@@ -618,7 +611,7 @@ function resolvePend(s: BattleState, ev: BattleEvent[]): void {
           damageUnit(s, ev, u, p.dmg);
           if (p.fx) applyFx(s, u, p.fx);
           if (p.stun && u.hp > 0) {
-            // 震晕（规则版本 10）：船长只震一半；免控中的不再震
+            // 震晕：船长只震一半；免控中的不再震
             const until = applyStun(u, s.tick, p.stun, u.kind === 'captain');
             if (until >= 0) ev.push({ type: 'stun', target: 'unit', id: u.id, until });
           }
@@ -634,7 +627,7 @@ function resolvePend(s: BattleState, ev: BattleEvent[]): void {
         if (!b.revealed && b.kind !== 'mine' && b.kind !== 'tar') continue; // 炮击打不中看不见的
         if (d2Rect(p.x, p.y, b) <= p.r * p.r) damageBuilding(s, ev, b, p.dmg, p.x, p.y);
       }
-      // 规则版本 6：炮击也炸得到驻岛英雄
+      // 炮击也炸得到驻岛英雄
       const h = s.hero;
       if (h && h.mode !== 'dead' && (h.x - p.x) * (h.x - p.x) + (h.y - p.y) * (h.y - p.y) <= p.r * p.r) damageHero(s, ev, p.dmg);
     }
@@ -643,7 +636,7 @@ function resolvePend(s: BattleState, ev: BattleEvent[]): void {
 }
 
 /**
- * 手雷落地（规则版本 10）：半径内的建筑都挨炸（城墙只算 GRENADE_WALL_PCT%），驻岛英雄也炸；
+ * 手雷落地：半径内的建筑都挨炸（城墙只算 GRENADE_WALL_PCT%），驻岛英雄也炸；
  * 埋着的地雷、焦油不炸（看不见），装饰不算。手雷是抛的，所以墙后的建筑照样炸得到。
  */
 function grenadeBlast(s: BattleState, ev: BattleEvent[], p: Pend): void {
@@ -691,12 +684,13 @@ function nextCell(s: BattleState, u: BUnit, tgt: BBuilding): number {
     };
     f = flowFrom(
       I.occ,
+      s.ext,
       (seed) => {
         // 终点：目标占地外一圈（含斜角）里能站的格
         for (let cy = tgt.y - 1; cy <= tgt.y + tgt.size; cy++) {
           for (let cx = tgt.x - 1; cx <= tgt.x + tgt.size; cx++) {
             if (cx >= tgt.x && cx < tgt.x + tgt.size && cy >= tgt.y && cy < tgt.y + tgt.size) continue;
-            if (!inGrid(cx, cy)) continue;
+            if (!inGrid(s.ext, cx, cy)) continue;
             seed(cellIdx(cx, cy));
           }
         }
@@ -708,7 +702,7 @@ function nextCell(s: BattleState, u: BUnit, tgt: BBuilding): number {
   }
   // 脚下就是够不着的格（INF）时不找路；grid.nextCell 只认 0
   if ((f[cellOf(u.x, u.y)] as number) >= INF) return -1;
-  return gridNextCell(I.occ, f, u.x, u.y);
+  return gridNextCell(I.occ, s.ext, f, u.x, u.y);
 }
 
 /** 下一步的格子上是墙就返回那段墙 */
@@ -721,19 +715,19 @@ function nextWall(s: BattleState, u: BUnit, tgt: BBuilding): BBuilding | undefin
 }
 
 /**
- * 兵在格子里的小道偏移（规则版本 ≥ 9）：横竖各 -2..2 档 × 12，最多偏 24。
+ * 兵在格子里的小道偏移：横竖各 -2..2 档 × 12，最多偏 24。
  * 为什么是 12：格子半宽 50，偏 24 还留 26 的余量，兵始终站在流场选的那一格里、不会蹭进旁边建筑的占格；
  * 相邻 id 至少差 12，画面上脚底不再重成一个点。再大就开始贴着建筑边走，近战兵的接敌距离也会变得忽长忽短。
  */
 const RAID_LANE_SPREAD = 12;
 
-/** 沿流场走一步（没有路就直线走，和旧行为一致）；返回位移。规则版本 ≥ 9 走向格子中心加上自己的小道偏移 */
+/** 沿流场走一步（没有路就直线走）；返回位移。走向格子中心加上自己的小道偏移 */
 function flowStep(s: BattleState, u: BUnit, tgt: BBuilding, dx: number, dy: number, dist: number, step: number): [number, number] {
   const n = nextCell(s, u, tgt);
   if (n < 0) return [Math.round((dx * step) / dist), Math.round((dy * step) / dist)];
-  const o = s.rules >= RULES_SINCE.combat ? laneOffset(u.id, RAID_LANE_SPREAD) : { x: 0, y: 0 };
-  const tx = ((n % GRID) - BEACH) * UNIT + UNIT / 2 + o.x - u.x;
-  const ty = (Math.floor(n / GRID) - BEACH) * UNIT + UNIT / 2 + o.y - u.y;
+  const o = laneOffset(u.id, RAID_LANE_SPREAD);
+  const tx = cellX(n) + o.x - u.x;
+  const ty = cellY(n) + o.y - u.y;
   const d = isqrt(tx * tx + ty * ty);
   if (d === 0) return [0, 0];
   const st = Math.min(step, d);
@@ -745,13 +739,11 @@ function stepUnits(s: BattleState, ev: BattleEvent[]): void {
   const I = inner(s);
   for (const u of s.units) {
     if (u.mode === 'dead') continue;
-    // 规则版本 ≥ 9：记下这一拍走之前的位置，塔按"这一拍走了多少"估提前量
-    if (s.rules >= RULES_SINCE.combat) {
-      u.px = u.x;
-      u.py = u.y;
-    }
-    // 规则版本 10：震晕中不走不打（stunUntil 只有震荡炮会写）
-    if (s.rules >= RULES_SINCE.shockGrenadier && stunned(u, s.tick)) continue;
+    // 记下这一拍走之前的位置，塔按"这一拍走了多少"估提前量
+    u.px = u.x;
+    u.py = u.y;
+    // 震晕中不走不打（stunUntil 只有震荡炮会写）
+    if (stunned(u, s.tick)) continue;
     const def = TROOPS[u.kind];
     const lvl = def.levels[u.level - 1];
     if (!lvl) continue;
@@ -783,7 +775,7 @@ function stepUnits(s: BattleState, ev: BattleEvent[]): void {
     const dist = isqrt(d2);
     if (dist <= range) {
       u.mode = 'attack';
-      if (s.rules >= RULES_SINCE.raidAi) inner(s).hold[u.id] = 0;
+      inner(s).hold[u.id] = 0;
       if (s.tick < u.cd) continue;
       u.cd = s.tick + lvl.reload;
       if (u.kind === 'bomber') {
@@ -810,7 +802,7 @@ function stepUnits(s: BattleState, ev: BattleEvent[]): void {
       }
     } else {
       u.mode = 'move';
-      if (s.rules >= RULES_SINCE.raidAi && RANGED_KINDS.has(u.kind) && escortHolds(s, u, tgt, dist)) continue;
+      if (RANGED_KINDS.has(u.kind) && escortHolds(s, u, tgt, dist)) continue;
       const spd = unitSpeed(s, u, lvl.speed);
       const wall = nextWall(s, u, tgt);
       if (wall) {
@@ -832,7 +824,7 @@ function stepUnits(s: BattleState, ev: BattleEvent[]): void {
   }
 }
 
-/** 规则版本 ≥ 12：船医的跟随对象。MEDIC_REACH 内血量比最低的伤员 → 全队最近的伤员 → 最近的友军 */
+/** 船医的跟随对象。MEDIC_REACH 内血量比最低的伤员 → 全队最近的伤员 → 最近的友军 */
 function medicPick(s: BattleState, u: BUnit): BUnit | undefined {
   let near: BUnit | undefined;
   let nearD = Number.POSITIVE_INFINITY;
@@ -865,7 +857,7 @@ function medicPick(s: BattleState, u: BUnit): BUnit | undefined {
   return low ?? near ?? any;
 }
 
-/** 规则版本 ≥ 12：船医该站的点——伤员背后 hold 处（背后 = 离伤员最近的防御的反方向；没有防御就是现在的方向） */
+/** 船医该站的点——伤员背后 hold 处（背后 = 离伤员最近的防御的反方向；没有防御就是现在的方向） */
 function behindPoint(s: BattleState, a: BUnit, hold: number): [number, number] {
   let best: BBuilding | undefined;
   let bestD = Number.POSITIVE_INFINITY;
@@ -885,7 +877,7 @@ function behindPoint(s: BattleState, a: BUnit, hold: number): [number, number] {
   return [a.x + Math.round((vx * hold) / vd), a.y + Math.round((vy * hold) / vd)];
 }
 
-/** 规则版本 ≥ 12：回血顺序——血量比低的先，同比按 id */
+/** 回血顺序——血量比低的先，同比按 id */
 function healOrder(s: BattleState): BUnit[] {
   return s.units
     .filter((a) => a.mode !== 'dead' && a.kind !== 'medic' && a.hp < a.maxHp)
@@ -895,18 +887,7 @@ function healOrder(s: BattleState): BUnit[] {
 /** 船医：跟着受伤最重的友军走，每个周期给附近的兵回血 */
 function stepMedic(s: BattleState, ev: BattleEvent[], u: BUnit, lvl: { range: number; speed: number; reload: number; dmg: number }): void {
   const range = Math.round(lvl.range * UNIT);
-  let pick: BUnit | undefined;
-  let pickScore = Number.POSITIVE_INFINITY;
-  if (s.rules >= RULES_SINCE.raidAi) pick = medicPick(s, u);
-  else
-    for (const a of s.units) {
-      if (a.mode === 'dead' || a.kind === 'medic') continue;
-      const score = Math.floor((a.hp * 1000) / a.maxHp);
-      if (score < pickScore) {
-        pickScore = score;
-        pick = a;
-      }
-    }
+  const pick = medicPick(s, u);
   if (!pick) {
     u.mode = 'move';
     return;
@@ -919,28 +900,21 @@ function stepMedic(s: BattleState, ev: BattleEvent[], u: BUnit, lvl: { range: nu
   if (dist > hold) {
     u.mode = 'move';
     const spd = unitSpeed(s, u, lvl.speed);
-    if (s.rules >= RULES_SINCE.raidAi) {
-      // 站到伤员背后（离他最近的防御的反方向），不抢到伤员前面去
-      const [bx, by] = behindPoint(s, pick, hold);
-      const ex = bx - u.x;
-      const ey = by - u.y;
-      const ed = isqrt(ex * ex + ey * ey);
-      if (ed > 0) {
-        const st = Math.min(spd, ed);
-        u.x += Math.round((ex * st) / ed);
-        u.y += Math.round((ey * st) / ed);
-      }
-    } else {
-      const step = Math.min(spd, dist - hold);
-      u.x += Math.round((dx * step) / dist);
-      u.y += Math.round((dy * step) / dist);
+    // 站到伤员背后（离他最近的防御的反方向），不抢到伤员前面去
+    const [bx, by] = behindPoint(s, pick, hold);
+    const ex = bx - u.x;
+    const ey = by - u.y;
+    const ed = isqrt(ex * ex + ey * ey);
+    if (ed > 0) {
+      const st = Math.min(spd, ed);
+      u.x += Math.round((ex * st) / ed);
+      u.y += Math.round((ey * st) / ed);
     }
   } else u.mode = 'attack';
   if (s.tick < u.cd) return;
   u.cd = s.tick + lvl.reload;
   let n = 0;
-  const pool = s.rules >= RULES_SINCE.raidAi ? healOrder(s) : s.units;
-  for (const a of pool) {
+  for (const a of healOrder(s)) {
     if (n >= 4) break;
     if (a.mode === 'dead' || a.kind === 'medic' || a.hp >= a.maxHp) continue;
     const ax = a.x - u.x;
@@ -950,124 +924,6 @@ function stepMedic(s: BattleState, ev: BattleEvent[], u: BUnit, lvl: { range: nu
     a.hp += amount;
     n++;
     ev.push({ type: 'heal', id: a.id, amount });
-  }
-}
-
-/** 规则版本 < 6 的塔（旧回放专用） */
-function stepDefensesLegacy(s: BattleState, ev: BattleEvent[]): void {
-  const I = inner(s);
-  for (const b of s.buildings) {
-    if (b.destroyed || !DEFENSE_KINDS.has(b.kind)) continue;
-    const lv = BUILDINGS[b.kind].levels[b.level - 1];
-    if (!lv) continue;
-    const range = Math.round((lv.range ?? 0) * UNIT);
-    const minR = Math.round((lv.minRange ?? 0) * UNIT);
-    const cx = cxOf(b);
-    const cy = cyOf(b);
-    let best: BUnit | undefined;
-    let bestD = range * range + 1;
-    for (const u of s.units) {
-      if (u.mode === 'dead') continue;
-      const dx = u.x - cx;
-      const dy = u.y - cy;
-      const d = dx * dx + dy * dy;
-      if (d < bestD && d >= minR * minR) {
-        bestD = d;
-        best = u;
-      }
-    }
-    b.aim = best ? best.id : -1;
-    if (!best || s.tick < b.cd) continue;
-    b.cd = s.tick + (lv.reload ?? 20);
-    const dmg = lv.dmg ?? 0;
-    if (b.kind === 'kraken') {
-      I.pend.push({ t: s.tick + 8, kind: 'splashU', id: -1, dmg, x: best.x, y: best.y, r: Math.round((lv.splash ?? 1.8) * UNIT) });
-    } else if (b.kind === 'harpoon') {
-      const fl = flightTicks(cx, cy, best.x, best.y, 40);
-      const pr = addProjectile(s, 'bullet', cx, cy, best.x, best.y, fl);
-      I.pend.push({ t: s.tick + fl, kind: 'unit', id: best.id, dmg, x: best.x, y: best.y, r: 0 });
-      ev.push({ type: 'shoot', from: 'building', id: b.id, projectile: pr.id });
-    } else if (b.kind === 'rocket') {
-      // 一次打三个不同的兵
-      const picked: BUnit[] = [best];
-      for (let k = 1; k < 3; k++) {
-        let nx: BUnit | undefined;
-        let nd = range * range + 1;
-        for (const u of s.units) {
-          if (u.mode === 'dead' || picked.includes(u)) continue;
-          const dx = u.x - cx;
-          const dy = u.y - cy;
-          const d = dx * dx + dy * dy;
-          if (d < nd && d >= minR * minR) {
-            nd = d;
-            nx = u;
-          }
-        }
-        if (!nx) break;
-        picked.push(nx);
-      }
-      for (const t of picked) {
-        const fl = flightTicks(cx, cy, t.x, t.y, 30);
-        const pr = addProjectile(s, 'shell', cx, cy, t.x, t.y, fl);
-        I.pend.push({ t: s.tick + fl, kind: 'splashU', id: -1, dmg, x: t.x, y: t.y, r: Math.round((lv.splash ?? 0.8) * UNIT) });
-        ev.push({ type: 'shoot', from: 'building', id: b.id, projectile: pr.id });
-      }
-    } else if (b.kind === 'cannon') {
-      const fl = flightTicks(cx, cy, best.x, best.y, PROJ_SPEED.ball);
-      const pr = addProjectile(s, 'ball', cx, cy, best.x, best.y, fl);
-      I.pend.push({ t: s.tick + fl, kind: 'unit', id: best.id, dmg, x: best.x, y: best.y, r: 0 });
-      ev.push({ type: 'shoot', from: 'building', id: b.id, projectile: pr.id });
-    } else if (b.kind === 'gunTower') {
-      const fl = flightTicks(cx, cy, best.x, best.y, PROJ_SPEED.bullet);
-      const pr = addProjectile(s, 'bullet', cx, cy, best.x, best.y, fl);
-      I.pend.push({ t: s.tick + fl, kind: 'unit', id: best.id, dmg, x: best.x, y: best.y, r: 0 });
-      ev.push({ type: 'shoot', from: 'building', id: b.id, projectile: pr.id });
-    } else if (b.kind === 'mortar') {
-      const fl = flightTicks(cx, cy, best.x, best.y, PROJ_SPEED.shell);
-      const pr = addProjectile(s, 'shell', cx, cy, best.x, best.y, fl);
-      I.pend.push({ t: s.tick + fl, kind: 'splashU', id: -1, dmg, x: best.x, y: best.y, r: Math.round((lv.splash ?? 1) * UNIT) });
-      ev.push({ type: 'shoot', from: 'building', id: b.id, projectile: pr.id });
-    } else {
-      const fl = flightTicks(cx, cy, best.x, best.y, PROJ_SPEED.flame);
-      const pr = addProjectile(s, 'flame', cx, cy, best.x, best.y, fl);
-      I.pend.push({ t: s.tick + fl, kind: 'splashU', id: -1, dmg, x: best.x, y: best.y, r: Math.round((lv.splash ?? 1) * UNIT) });
-      ev.push({ type: 'shoot', from: 'building', id: b.id, projectile: pr.id });
-    }
-  }
-}
-
-/** 规则版本 < 6 的地雷和焦油（旧回放专用） */
-function stepMinesLegacy(s: BattleState, ev: BattleEvent[]): void {
-  for (const b of s.buildings) {
-    if ((b.kind !== 'mine' && b.kind !== 'tar') || b.destroyed) continue;
-    const lv = BUILDINGS[b.kind].levels[b.level - 1];
-    if (!lv) continue;
-    const cx = cxOf(b);
-    const cy = cyOf(b);
-    const trig = Math.round((lv.range ?? 1) * UNIT);
-    let hit = false;
-    for (const u of s.units) {
-      if (u.mode === 'dead') continue;
-      const dx = u.x - cx;
-      const dy = u.y - cy;
-      if (dx * dx + dy * dy <= trig * trig) {
-        hit = true;
-        break;
-      }
-    }
-    if (!hit) continue;
-    const r = Math.round((lv.splash ?? 1) * UNIT);
-    b.revealed = true;
-    ev.push({ type: 'explode', x: cx, y: cy, r });
-    for (const u of s.units) {
-      if (u.mode === 'dead') continue;
-      const dx = u.x - cx;
-      const dy = u.y - cy;
-      if (dx * dx + dy * dy > r * r) continue;
-      if (b.kind === 'tar') inner(s).slow[u.id] = s.tick + (lv.reload ?? 80);
-      else damageUnit(s, ev, u, lv.dmg ?? 0);
-    }
-    destroyBuilding(s, ev, b);
   }
 }
 
@@ -1112,17 +968,16 @@ function stepFog(s: BattleState): void {
   }
 }
 
-// ------------------------------------------------------------ 规则版本 6：分叉、驻岛英雄、地上的火（DESIGN 10.6）
-// 下面的函数只在 s.rules >= RULES_SINCE.raidHero 时调用；旧版本走上面原来的 stepDefensesLegacy / stepMinesLegacy，回放逐位不变。
+// ------------------------------------------------------------ 分叉、驻岛英雄、地上的火（DESIGN 10.6）
 
 function unitSpeed(s: BattleState, u: BUnit, speed: number): number {
   const I = inner(s);
   let spd = Math.round((speed * UNIT) / 20);
-  if (s.tick < (I.slow[u.id] ?? 0)) spd = s.rules >= RULES_SINCE.raidHero ? Math.floor((spd * (100 - (I.slowPct[u.id] ?? 50))) / 100) : Math.floor(spd / 2);
+  if (s.tick < (I.slow[u.id] ?? 0)) spd = Math.floor((spd * (100 - (I.slowPct[u.id] ?? 50))) / 100);
   return spd;
 }
 
-/** 等级表 + 分叉 → 数值（规则版本 6）。和守岛 td.ts 的 statsOf 同一套算法，加减按 RAID_BRANCH_PCT 打折；登陆战没有飞的、没有铁甲和雾船，防空、穿甲、灯塔在这里不起作用 */
+/** 等级表 + 分叉 → 数值。和守岛 td.ts 的 statsOf 同一套算法，加减按 RAID_BRANCH_PCT 打折；登陆战没有飞的、没有铁甲和雾船，防空、穿甲、灯塔在这里不起作用 */
 function buildingStats(s: BattleState, b: BBuilding): BStats {
   const I = inner(s);
   const hit = I.stats.get(b.id);
@@ -1166,7 +1021,7 @@ function buildingStats(s: BattleState, b: BBuilding): BStats {
   }
   fx.burnR = Math.max(100, splash);
   const st: BStats = {
-    dmg: Math.floor(((lv?.dmg ?? 0) * dmgPct) / 100),
+    dmg: Math.floor(((lv?.dmg ?? 0) * dmgPct * I.defPct) / 10_000),
     range: Math.floor((Math.round((lv?.range ?? 0) * UNIT) * rangePct) / 100),
     minRange: Math.round((lv?.minRange ?? 0) * UNIT),
     reload: Math.max(4, Math.floor(((lv?.reload ?? 20) * reloadPct) / 100)),
@@ -1202,7 +1057,7 @@ function applyFx(s: BattleState, u: BUnit, fx: HitFx): void {
     ensureGrid(s);
     const cx = Math.floor(nx / UNIT);
     const cy = Math.floor(ny / UNIT);
-    if (cx < -BEACH || cy < -BEACH || cx >= ISLAND + BEACH || cy >= ISLAND + BEACH || (I.occ[cellIdx(cx, cy)] ?? 0) > 0) return;
+    if (!inGrid(s.ext, cx, cy) || (I.occ[cellIdx(cx, cy)] ?? 0) > 0) return;
     u.x = nx;
     u.y = ny;
   }
@@ -1244,65 +1099,6 @@ function nearestUnit(s: BattleState, x: number, y: number, r: number, minR: numb
   return best;
 }
 
-/** 规则版本 6–8 的塔：带分叉 */
-function stepDefensesBranches(s: BattleState, ev: BattleEvent[]): void {
-  const I = inner(s);
-  const h = s.hero;
-  for (const b of s.buildings) {
-    if (b.destroyed || !DEFENSE_KINDS.has(b.kind)) continue;
-    const st = buildingStats(s, b);
-    const cx = cxOf(b);
-    const cy = cyOf(b);
-    const best = nearestUnit(s, cx, cy, st.range, st.minRange);
-    b.aim = best ? best.id : -1;
-    if (!best || s.tick < b.cd) continue;
-    let reload = st.reload;
-    // 号令：罩住的塔攻速 +30%
-    if (h && s.tick < h.rallyUntil && h.rallyIds.includes(b.id)) reload = Math.floor((reload * 100) / (100 + TD_RALLY_PCT));
-    b.cd = s.tick + reload;
-    const dmg = st.dmg;
-    const fx = st.fx;
-    if (b.kind === 'kraken') {
-      I.pend.push({ t: s.tick + 8, kind: 'splashU', id: -1, dmg, x: best.x, y: best.y, r: st.splash });
-      continue;
-    }
-    // 一次打几个不同的兵（火箭 3 个，双发、齐射再加）
-    const picked: BUnit[] = [best];
-    while (picked.length < st.shots) {
-      const nx = nearestUnit(s, cx, cy, st.range, st.minRange, picked);
-      if (!nx) break;
-      picked.push(nx);
-    }
-    const kind: BProjectile['kind'] = b.kind === 'cannon' ? 'ball' : b.kind === 'mortar' || b.kind === 'rocket' ? 'shell' : b.kind === 'flame' ? 'flame' : 'bullet';
-    const speed = b.kind === 'harpoon' ? 40 : b.kind === 'rocket' ? 30 : PROJ_SPEED[kind as keyof typeof PROJ_SPEED];
-    for (const t of picked) {
-      const fl = flightTicks(cx, cy, t.x, t.y, speed);
-      const pr = addProjectile(s, kind, cx, cy, t.x, t.y, fl);
-      ev.push({ type: 'shoot', from: 'building', id: b.id, projectile: pr.id });
-      if (st.line) {
-        // 贯穿：从塔到射程尽头这条线上 0.5 格内的兵挨一下，登陆战里最多穿 RAID_LINE_MAX 个（按兵的顺序）
-        const dx = t.x - cx;
-        const dy = t.y - cy;
-        const len = isqrt(dx * dx + dy * dy);
-        if (len === 0) continue;
-        let hits = 0;
-        for (const u of s.units) {
-          if (u.mode === 'dead' || hits >= RAID_LINE_MAX) continue;
-          const ux = u.x - cx;
-          const uy = u.y - cy;
-          const along = Math.floor((ux * dx + uy * dy) / len);
-          if (along < 0 || along > st.range) continue;
-          const cross = Math.floor(Math.abs(ux * dy - uy * dx) / len);
-          if (cross > 50) continue;
-          hits++;
-          I.pend.push({ t: s.tick + fl, kind: 'unit', id: u.id, dmg, x: u.x, y: u.y, r: 0, ...(fx ? { fx } : {}) });
-        }
-      } else if (st.splash > 0) I.pend.push({ t: s.tick + fl, kind: 'splashU', id: -1, dmg, x: t.x, y: t.y, r: st.splash, ...(fx ? { fx } : {}) });
-      else I.pend.push({ t: s.tick + fl, kind: 'unit', id: t.id, dmg, x: t.x, y: t.y, r: 0, ...(fx ? { fx } : {}) });
-    }
-  }
-}
-
 /** 狙击塔挑目标的优先级类：船长 > 船医 > 掷弹兵 / 火炮兵 > 其余（DESIGN 14）；必死的排到最后 */
 function snipeClass(u: BUnit): number {
   return u.kind === 'captain' ? 0 : u.kind === 'medic' ? 1 : u.kind === 'grenadier' || u.kind === 'cannoneer' ? 2 : 3;
@@ -1340,7 +1136,7 @@ function snipeAim(s: BattleState, ev: BattleEvent[], b: BBuilding, cand: readonl
 }
 
 /**
- * 规则版本 9：进攻里的塔接入共用战斗规则（combat.ts，和守岛同一套）。和 stepDefensesBranches 的差别：
+ * 进攻里的塔用共用战斗规则（combat.ts，和守岛同一套）：
  * 寻敌按 rankTargets 排（rank = [必死 ? 4 : 0, 到塔中心的距离平方]，锁定上一个目标不来回换，多发按同一顺序往下挑、人不够从头轮）；
  * 炸的（加农的弹丸、臼炮和火箭的炮弹、海怪）瞄提前量，落点 = 兵 fl 拍后的位置，弹道终点也画到落点；
  * 直射（子弹、鱼叉、火焰）照旧追着兵走；在途直射伤害够打死的兵算必死、排到后面。
@@ -1399,8 +1195,8 @@ function stepDefensesCombat(s: BattleState, ev: BattleEvent[]): void {
     // 多发（火箭）：按顺序一人一发，人不够就从头再轮（只剩一个兵时几发都打它，不白丢）
     const picked: BUnit[] = [];
     for (let k = 0; k < Math.max(1, st.shots); k++) picked.push(ranked[k % ranked.length] as BUnit);
-    // 震荡炮（规则版本 10）：炮弹按加农的速度飞、瞄提前量，落点小溅射 + 震晕
-    const src = s.rules >= RULES_SINCE.sniperShield ? { sx: cx, sy: cy } : {};
+    // 震荡炮：炮弹按加农的速度飞、瞄提前量，落点小溅射 + 震晕
+    const src = { sx: cx, sy: cy };
     const kind: BProjectile['kind'] = b.kind === 'cannon' ? 'ball' : b.kind === 'shock' ? 'shock' : b.kind === 'mortar' || b.kind === 'rocket' ? 'shell' : b.kind === 'flame' ? 'flame' : 'bullet';
     const speed = b.kind === 'sniper' ? 60 : b.kind === 'harpoon' ? 40 : b.kind === 'rocket' ? 30 : b.kind === 'shock' ? PROJ_SPEED.ball : PROJ_SPEED[kind as keyof typeof PROJ_SPEED];
     const lead = kind === 'ball' || kind === 'shell' || kind === 'shock';
@@ -1436,7 +1232,7 @@ function stepDefensesCombat(s: BattleState, ev: BattleEvent[]): void {
   }
 }
 
-/** 规则版本 ≥ 6 的地雷和焦油 */
+/** 地雷和焦油 */
 function stepMines(s: BattleState, ev: BattleEvent[]): void {
   for (const b of s.buildings) {
     if ((b.kind !== 'mine' && b.kind !== 'tar') || b.destroyed) continue;
@@ -1473,7 +1269,7 @@ function makeHero(s: BattleState, level: number | undefined): BHero | undefined 
   for (const [ox, oy] of [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]] as const) {
     const cx = t.x + ox;
     const cy = t.y + oy;
-    if (cx < -BEACH || cy < -BEACH || cx >= ISLAND + BEACH || cy >= ISLAND + BEACH || (occ[cellIdx(cx, cy)] ?? 0) > 0) continue;
+    if (!inGrid(s.ext, cx, cy) || (occ[cellIdx(cx, cy)] ?? 0) > 0) continue;
     const lv = Math.min(RAID_HERO.length, level);
     const hp = (RAID_HERO[lv - 1] as (typeof RAID_HERO)[number]).hp;
     const x = cx * UNIT + 50;
@@ -1501,12 +1297,10 @@ function damageHero(s: BattleState, ev: BattleEvent[], dmg: number): void {
 function fightHero(s: BattleState, ev: BattleEvent[], u: BUnit, lvl: { range: number; speed: number; reload: number; dmg: number }): boolean {
   const h = s.hero;
   if (!h || h.mode === 'dead') return false;
-  if (s.rules >= RULES_SINCE.combat) {
-    const I = inner(s);
-    // 信号弹生效期间所有兵先去打标记的建筑（技能说明这么写），不被英雄引走
-    if (s.tick < I.flareUntil) return false;
-    if (s.tick < (I.ignoreHero[u.id] ?? 0)) return false;
-  }
+  const I = inner(s);
+  // 信号弹生效期间所有兵先去打标记的建筑（技能说明这么写），不被英雄引走
+  if (s.tick < I.flareUntil) return false;
+  if (s.tick < (I.ignoreHero[u.id] ?? 0)) return false;
   const range = Math.round(lvl.range * UNIT) + 30;
   const dx = h.x - u.x;
   const dy = h.y - u.y;
@@ -1524,8 +1318,8 @@ function fightHero(s: BattleState, ev: BattleEvent[], u: BUnit, lvl: { range: nu
     ensureGrid(s);
     // 不往建筑里钻：前面是建筑就不追（照常去拆自己的目标）
     if ((inner(s).occ[cellIdx(Math.floor(nx / UNIT), Math.floor(ny / UNIT))] ?? 0) > 0) {
-      // 规则版本 ≥ 9：追不过去就 1 秒内不再理英雄，老老实实拆自己的目标
-      if (s.rules >= RULES_SINCE.combat) inner(s).ignoreHero[u.id] = s.tick + 20;
+      // 追不过去就 1 秒内不再理英雄，老老实实拆自己的目标
+      I.ignoreHero[u.id] = s.tick + 20;
       return false;
     }
     u.x = nx;
@@ -1558,7 +1352,7 @@ function heroStep(s: BattleState, h: BHero, tx: number, ty: number, speed: numbe
   const free = (x: number, y: number): boolean => {
     const cx = Math.floor(x / UNIT);
     const cy = Math.floor(y / UNIT);
-    return cx >= -BEACH && cy >= -BEACH && cx < ISLAND + BEACH && cy < ISLAND + BEACH && (occ[cellIdx(cx, cy)] ?? 0) === 0;
+    return inGrid(s.ext, cx, cy) && (occ[cellIdx(cx, cy)] ?? 0) === 0;
   };
   const mx = Math.round((dx * st) / d);
   const my = Math.round((dy * st) / d);
@@ -1662,16 +1456,10 @@ export function stepBattle(s: BattleState, actions: BattleAction[]): BattleEvent
   resolvePend(s, ev);
   if (I.fun) I.nextUnit = stepFun(s, ev, I.fun, I.nextUnit);
   stepUnits(s, ev);
-  if (s.rules >= RULES_SINCE.raidHero) {
-    stepHero(s, ev);
-    if (s.rules >= RULES_SINCE.combat) stepDefensesCombat(s, ev);
-    else stepDefensesBranches(s, ev);
-    stepMines(s, ev);
-    stepFires(s, ev);
-  } else {
-    stepDefensesLegacy(s, ev);
-    stepMinesLegacy(s, ev);
-  }
+  stepHero(s, ev);
+  stepDefensesCombat(s, ev);
+  stepMines(s, ev);
+  stepFires(s, ev);
   stepMeds(s, ev);
   stepFog(s);
   s.projectiles = s.projectiles.filter((p) => p.t1 > s.tick);

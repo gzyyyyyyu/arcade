@@ -113,7 +113,11 @@ export class Shots {
   follow: ((id: number, out: { x: number; y: number }) => boolean) | null = null;
   private readonly fp = { x: 0, y: 0 };
 
-  constructor(scene: Phaser.Scene, r: number, pt: Particles, shadowDepth: number) {
+  /** 这一局的岛扩了几圈（落点是沙还是草按它判） */
+  private readonly ext: number;
+
+  constructor(scene: Phaser.Scene, r: number, pt: Particles, shadowDepth: number, ext: number) {
+    this.ext = ext;
     this.scene = scene;
     this.r = r;
     this.pt = pt;
@@ -374,7 +378,7 @@ export class Shots {
         pt.impactStone(x, gy, tier, k);
         return;
       default:
-        if (onSand(x, gy)) pt.impactSand(x, gy, tier, k);
+        if (onSand(this.ext, x, gy)) pt.impactSand(x, gy, tier, k);
         else pt.impactGrass(x, gy, tier, k);
         // 臼炮再压出一圈冲击环
         if (heavy) pt.emit('ring', x, gy, { life: 420, s0: 0.3, s1: 1.4, a0: 0.75, tint: 0xf3e3b8, depth: DEPTH.groundRing });

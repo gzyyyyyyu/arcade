@@ -1,10 +1,11 @@
 /**
  * 护航实盘（DESIGN.md 12.1）：带一份筹码护一趟商船，按到港时的星数结回；没到港按船走了多远折算。
- * 每档固定用一关现成的护航关（escortlevels.ts，娱乐也玩这几关），开局只由"关 + 种子"决定（escortSetup 本来就不读存档），
- * 期望只和局内决策有关，模拟器量出来的就是所有人的期望。不另调关卡：改了娱乐的关，实盘就要重跑 tools/escort-live-sim.ts。
+ * 每档固定用一关护航关，读实盘专用的冻结副本（content/escortlivelevels.ts，拆分时和娱乐同名关逐字一样；娱乐的关以后随便调，不影响实盘），
+ * 开局只由"关 + 种子"决定（不读存档），期望只和局内决策有关，模拟器量出来的就是所有人的期望。改冻结副本就要重跑 tools/escort-live-sim.ts。
  * Worker 只从这里取档位表；金额换算复用 live.ts 的 liveReturn。
  */
-import { escortSetup } from './escortrun.ts';
+import { ESCORT_LIVE_LEVELS } from '../content/escortlivelevels.ts';
+import { escortSetupOf } from './escortrun.ts';
 import type { EscortResult } from './escorttypes.ts';
 import { LIVE_MAX_BP, LIVE_TIERS, type LiveTier } from './live.ts';
 import type { TdSetup } from './tdtypes.ts';
@@ -14,7 +15,7 @@ export interface EscortLiveTierDef {
   name: string;
   /** 一份多少筹码：和悬赏出海是同一份钱包金额 */
   stake: number;
-  /** 用哪一关护航关（`<图>-<难度>`） */
+  /** 用哪一关护航关（`<图>-<难度>`，从冻结副本 ESCORT_LIVE_LEVELS 取） */
   level: string;
   /** 选档页的"电脑多强"：按用的那一关算，小、中两档是同一关所以一样 */
   power: number;
@@ -36,9 +37,12 @@ export const ESCORT_LIVE_TIERS: Record<LiveTier, EscortLiveTierDef> = {
   lux: { id: 'lux', name: '豪华', stake: LIVE_TIERS.lux.stake, level: 'strait-hard', power: 4, bp: [7_700, 18_800, 23_800, 24_300] },
 };
 
-/** 实盘这一档的开局：就是那一关的护航开局 */
+/** 实盘这一档的开局：冻结副本里那一关的护航开局；名单里没有就抛错（档位表和副本对不上是代码问题，单测锁住） */
 export function escortLiveSetup(tier: LiveTier, seed: number): TdSetup {
-  return escortSetup(ESCORT_LIVE_TIERS[tier].level, seed, { live: true });
+  const id = ESCORT_LIVE_TIERS[tier].level;
+  const level = ESCORT_LIVE_LEVELS.find((l) => l.id === id);
+  if (!level) throw new Error(`护航实盘没有这一关：${id}`);
+  return escortSetupOf(level, seed, { live: true });
 }
 
 /**

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   BUILDINGS, CAMPAIGN, HQ_LEVELS, armyCost, armyFor, boatSlots, build, buildLimit, canPlace, capacity, collect,
-  hqLevel, move, newProfile, produce, research, researchCost, setBoat, totalStars, upgrade, upgradeCost,
+  RULES_VERSION, canLand, createBattle, hqLevel, islandExt, move, newProfile, produce, research, researchCost, setBoat, totalStars, upgrade, upgradeCost,
 } from '../src/core/index.ts';
 import type { BuildingKind, Profile } from '../src/core/index.ts';
 import { TD_RUN_REWARD } from '../src/content/tdreward.ts';
-import { maxCapacity } from '../src/core/validate.ts';
+import { maxCapacity, validateBase } from '../src/core/validate.ts';
 
 function rich(p: Profile): Profile {
   return { ...p, res: { gold: 999999, wood: 999999 } };
@@ -244,5 +244,42 @@ describe('仓库上限：每个主寨等级建满后装得下这一级要花的�
       });
     }
     expect(maxCapacity(6).gold).toBe(9000 + 3 * 40400);
+  });
+});
+
+describe('岛按主寨等级扩圈（HQ_LEVELS.ext）', () => {
+  const withHq = (lv: number): Profile => {
+    const p = rich(newProfile());
+    return { ...p, base: { ...p.base, buildings: p.base.buildings.map((b) => (b.kind === 'hq' ? { ...b, level: lv } : b)) } };
+  };
+  it('主寨 8 级满名额折成占地不超过岛的七成，扩圈只往外加、中心不动', () => {
+    for (const h of HQ_LEVELS) {
+      const side = 22 + 2 * h.ext;
+      let area = 0;
+      for (const [k, n] of Object.entries(h.limits)) area += BUILDINGS[k as BuildingKind].size ** 2 * (n ?? 0);
+      expect(area / (side * side), `主寨 ${h.level} 级`).toBeLessThanOrEqual(0.7);
+    }
+    expect(HQ_LEVELS.map((h) => h.ext)).toEqual([...HQ_LEVELS.map((h) => h.ext)].sort((a, b) => a - b));
+  });
+  it('扩出来的圈：够级才能摆，攻防快照校验同样按主寨等级放行', () => {
+    expect(canPlace(withHq(5), 'cannon', -1, 5)).toBe(false);
+    expect(canPlace(withHq(6), 'cannon', -1, 5)).toBe(true);
+    expect(canPlace(withHq(6), 'cannon', -2, 5)).toBe(false);
+    expect(canPlace(withHq(8), 'cannon', -2, 5)).toBe(true);
+    expect(canPlace(withHq(8), 'cannon', 22, 5)).toBe(true);
+    const snap = (lv: number, x: number): unknown => {
+      const p = withHq(lv);
+      return { ...p, res: newProfile().res, base: { ...p.base, buildings: [...p.base.buildings, { id: 999, kind: 'cannon', level: 1, x, y: 5 }] } };
+    };
+    expect(validateBase(snap(8, -2)).ok).toBe(true);
+    expect(validateBase(snap(5, -1))).toEqual({ ok: false, error: 'building' });
+  });
+  it('登陆战的海滩跟着岛往外挪：扩出来的圈是岛，不能登陆；再往外 3 格是海滩', () => {
+    const p = withHq(8);
+    const s = createBattle({ layout: p.base.buildings, army: armyFor(p), seed: 1, rules: RULES_VERSION, ext: islandExt(p.base.buildings) });
+    expect(s.ext).toBe(2);
+    expect(canLand(s, -150, 1000)).toBe(false);
+    expect(canLand(s, -350, 1000)).toBe(true);
+    expect(canLand(s, -550, 1000)).toBe(false);
   });
 });

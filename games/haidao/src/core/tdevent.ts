@@ -1,21 +1,20 @@
 /**
- * 守岛关内事件和大潮每周海况（规则版本 22，DESIGN 10.6g）：
+ * 守岛关内事件和大潮每周海况（DESIGN 10.6g）：
  * - 战役：关卡写了 events，开局用这一局的种子（独立的一条流 'td.event'）在每条的波段里挑一波发生，提前一波写进预告；
  * - 大潮：tideSetup 按周写 killGoldPct / heroCdPct（和开局金、雾区），同一周所有人一样。
- * 只在规则版本 ≥ 22、关卡写了这些字段时建状态（s.happen），没有的局逐位不变。
+ * 只在关卡写了这些字段时建状态（s.happen）。
  */
 import { TD2_EVENT, TD2_NAV_SKILL } from '../content/td2units.ts';
 import { Rng } from './rng.ts';
 import { tdWaveLanes } from './tdquery.ts';
 import { addGold, d2, inner, waveGold } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
-import { RULES_SINCE, UNIT } from './types.ts';
+import { UNIT } from './types.ts';
 import type { TdEnemy, TdEvent, TdEventKind } from './tdtypes.ts';
 
-/** 开局（createTd 最后调）：规则版本够、关卡写了事件或海况才建 s.happen */
+/** 开局（createTd 最后调）：关卡写了事件或海况才建 s.happen */
 export function initHappen(s: TdState, seed: number): void {
   const lv = s.level;
-  if (s.rules < RULES_SINCE.tdEvents) return;
   if (!lv.events?.length && lv.killGoldPct === undefined && lv.heroCdPct === undefined) return;
   const rng = new Rng(seed, 'td.event');
   const at: Array<{ wave: number; kind: TdEventKind }> = [];
@@ -53,7 +52,7 @@ export function killGold(s: TdState, e: TdEnemy, base: number): number {
     if (s.level.killGoldPct !== undefined) g = Math.floor((base * s.level.killGoldPct) / 100);
     if (h.dare.includes(e.wave)) g *= TD2_EVENT.dare.goldMul;
   }
-  // 重赏（规则版本 23）：只有航海士的局才有 hero.reward，船长局、旧局走不到这里
+  // 重赏：只有航海士的局才有 hero.reward，船长局走不到这里
   const rw = s.hero.reward;
   if (rw && s.tick < rw.until && d2(e.x, e.y, rw.x, rw.y) <= TD2_NAV_SKILL.reward.r * TD2_NAV_SKILL.reward.r) g *= TD2_NAV_SKILL.reward.mul;
   return g;

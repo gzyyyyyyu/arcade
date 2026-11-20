@@ -34,7 +34,7 @@ import { drawGround, SEA_BG, worldBounds } from './ground.ts';
 import { LOW_MEMORY } from './viewport.ts';
 import { iso } from './iso.ts';
 import { sfx, setAmbience } from './audio/sfx.ts';
-import { BEACH_PTS } from './battleadvice.ts';
+import { beachPts } from './battleadvice.ts';
 import { takeActions } from './battleflow.ts';
 import type { Tutorial } from './tutorial.ts';
 import { el } from './ui.ts';
@@ -124,7 +124,7 @@ export class BattleScene extends Phaser.Scene {
   landPts: Array<{ x: number; y: number }> = [];
   casts = 0;
   fogSpr = new Map<number, Phaser.GameObjects.Image>();
-  /** 驻岛英雄（规则版本 ≥ 6、有宝藏箱才有）：脚下黄圈 + 队长帧；地火；号令中被罩的塔 */
+  /** 驻岛英雄（有宝藏箱才有）：脚下黄圈 + 队长帧；地火；号令中被罩的塔 */
   heroImg: Rig | null = null;
   heroDownAt = -1;
   heroRing: Phaser.GameObjects.Ellipse | null = null;
@@ -224,13 +224,13 @@ export class BattleScene extends Phaser.Scene {
     app.inBattle = true;
     app.api.ready = true;
     this.cameras.main.setBackgroundColor(SEA_BG);
-    drawGround(this, this.r, true);
-    startAmbient(this, this.r);
+    drawGround(this, this.r, true, this.st.ext);
+    startAmbient(this, this.r, this.st.ext);
     drawBuildings(this);
     this.beachG = this.add.graphics().setDepth(DEPTH.floorOverlay).setVisible(false);
     drawBeach(this);
     beachPulse(this);
-    this.beachGlow = new BeachGlow(this);
+    this.beachGlow = new BeachGlow(this, this.st.ext);
     this.events.once('shutdown', () => this.beachGlow.destroy());
     this.bars = this.add.graphics().setDepth(DEPTH.bars);
     this.fireG = this.add.graphics().setDepth(DEPTH.fire);
@@ -251,7 +251,7 @@ export class BattleScene extends Phaser.Scene {
       if (sp && b.kind !== 'wall') this.env.dress(sp.img, b.kind, b.level, b.id);
       if (sp && isTurret(b.kind)) this.tur.set(b.id, new Turret(this, this.r, this.pt, b.kind, b.level, b.id, sp.img, sp.baseX, sp.baseY));
     }
-    this.shots = new Shots(this, this.r, this.pt, DEPTH.shotShadowBattle);
+    this.shots = new Shots(this, this.r, this.pt, DEPTH.shotShadowBattle, this.st.ext);
     this.frames = new FrameFx(this, this.r);
     this.stunMarks = new StunMarks(this, this.r);
     this.snipe = new SnipeLines(this);
@@ -260,7 +260,7 @@ export class BattleScene extends Phaser.Scene {
     for (const b of this.st.buildings) if (!NO_OCC.has(b.kind)) { const sp = this.bsp.get(b.id); if (sp) this.occ.add(b.id, sp.img); }
     this.dn = new DamageNumbers(this, this.r, () => this.cameras.main.zoom / this.r);
 
-    this.cc = new CamCtl(this, this.r, worldBounds());
+    this.cc = new CamCtl(this, this.r, worldBounds(this.st.ext));
     this.cc.onTap = (x, y) => tap(this, x, y);
     // 电脑：悬停高亮能登陆的沙滩格、右键取消选择、Esc 取消、空格回全景、数字键 1–9 选兵种、字母键 Q W E… 选技能
     this.hoverG = this.add.graphics().setDepth(DEPTH.floorHover);
@@ -283,7 +283,7 @@ export class BattleScene extends Phaser.Scene {
 
     buildUi(this);
     // 镜头按岛适配：整座岛含四面沙滩（登陆区）都在顶栏和操作区之间的可见区里，不用拖就能点到任何登陆点
-    this.fit = new FitCam(this, this.cc, this.ui, () => islandBox(BEACH_PTS), this.r, () => this.fitContent(), () => this.introFocus());
+    this.fit = new FitCam(this, this.cc, this.ui, () => islandBox(this.st.ext, beachPts(this.st.ext)), this.r, () => this.fitContent(), () => this.introFocus());
     this.fit.setDirector(battleDirector(this));
     app.api.fitInfo = () => this.fit.info();
     // 沙滩从进场就亮着（呼吸），不用先选船才知道往哪点
@@ -312,8 +312,8 @@ export class BattleScene extends Phaser.Scene {
 
   /** 竖屏适配的内容：建筑占地外扩一圈沙滩宽（3 格，夹进登陆区），必须完整在可见区里：塔、登陆沙滩都要一进场看得见 */
   fitContent(): Content {
-    const lo = -BEACH;
-    const hi = ISLAND + BEACH - 1;
+    const lo = -BEACH - this.st.ext;
+    const hi = ISLAND + this.st.ext + BEACH - 1;
     const rs = this.st.buildings.map((b) => [Math.max(lo, b.x - BEACH), Math.max(lo, b.y - BEACH), Math.min(hi, b.x + b.size - 1 + BEACH), Math.min(hi, b.y + b.size - 1 + BEACH)] as const);
     // 主寨（外扩 1 格）必须在屏内：竖屏放大档、全景都按它保证，进场不再只露岛的左缘
     const hq = this.st.buildings.find((b) => b.kind === 'hq');
@@ -329,8 +329,9 @@ export class BattleScene extends Phaser.Scene {
     let rn = 0;
     let lx = Infinity;
     let rx = -Infinity;
-    for (let y = -BEACH; y < ISLAND + BEACH; y++) {
-      for (let x = -BEACH; x < ISLAND + BEACH; x++) {
+    const e = BEACH + this.st.ext;
+    for (let y = -e; y < ISLAND + e; y++) {
+      for (let x = -e; x < ISLAND + e; x++) {
         if (!canLand(this.st, x * UNIT + 50, y * UNIT + 50)) continue;
         const px = iso(x + 0.5, y + 0.5).x;
         if (px < mid) {

@@ -14,20 +14,10 @@ describe('护航指纹锁', () => {
   it('每一局逐位不变', () => {
     for (const j of jobs) expect(runEscortJob(j), j.key).toBe(golden[j.key]);
   }, 300_000);
-  it('规则 25 只改三张图的新手档：别的关和实盘 4 档 v25- 和 v24- 逐个相同', () => {
-    const easy = /^v25-(strait|bays|cape)-easy-/;
-    for (const k of Object.keys(golden)) {
-      if (!k.startsWith('v25-')) continue;
-      const old = golden[`v24-${k.slice(4)}`];
-      if (easy.test(k)) expect(golden[k], k).not.toBe(old);
-      else expect(golden[k], k).toBe(old);
-    }
-  });
-  it('新手照顾只给娱乐护航：实盘的开局不带，规则 24 的旧局也不跟', () => {
+  it('新手照顾只给娱乐护航：实盘的开局不带', () => {
     expect(escortLiveSetup('small', 1).escortAssist).toBeUndefined();
     expect(createTd(escortLiveSetup('lux', 1)).escort!.follow).toBe(false);
     expect(createTd(escortSetup('strait-easy', 1)).escort!.follow).toBe(true);
-    expect(createTd({ ...escortSetup('strait-easy', 1), rules: 24 }).escort!.follow).toBe(false);
   });
   /** 一直不碰船速，打到第一波开打（倒数走完），返回那时的船速和有没有自动开船的事件 */
   const toWave1 = (setup: TdSetup, first: 'hold' | null = null) => {
@@ -45,9 +35,8 @@ describe('护航指纹锁', () => {
     expect(toWave1(escortSetup('cape-easy', 1))).toEqual({ pace: 'sail', auto: true });
     expect(toWave1(escortSetup('strait-hard', 2))).toEqual({ pace: 'sail', auto: true });
   });
-  it('玩家先点了「停」就尊重他；实盘和规则 24 的旧局照旧停着', () => {
+  it('玩家先点了「停」就尊重他；实盘照旧停着', () => {
     expect(toWave1(escortSetup('cape-easy', 1), 'hold')).toEqual({ pace: 'hold', auto: false });
     expect(toWave1(escortLiveSetup('small', 1))).toEqual({ pace: 'hold', auto: false });
-    expect(toWave1({ ...escortSetup('cape-easy', 1), rules: 24 })).toEqual({ pace: 'hold', auto: false });
   });
 });

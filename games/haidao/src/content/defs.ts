@@ -17,7 +17,7 @@ export interface BuildingLevel {
   reload?: number;
   /** 溅射半径（格） */
   splash?: number;
-  /** 震荡炮：命中的兵震晕几拍（规则版本 10） */
+  /** 震荡炮：命中的兵震晕几拍 */
   stun?: number;
   boats?: number;
   boatCap?: number;
@@ -75,6 +75,8 @@ export interface HqLevel {
   cost: Res;
   limits: Partial<Record<BuildingKind, number>>;
   energy: number;
+  /** 岛向四周扩几圈（可建范围 [-ext, ISLAND+ext)）：名额涨到 22×22 摆不下时扩地，中心不动，老坐标照旧有效 */
+  ext: number;
 }
 
 export interface LevelDef {
@@ -93,6 +95,8 @@ export interface LevelDef {
   mechanic?: string;
   /** 首领岛的解法提示（一句话） */
   counter?: string;
+  /** 难度旋钮：防御塔血量和塔、陷阱伤害的百分比，没写 = 100；按 src/content/difficulty.ts 的目标线逐关拟合（docs/balance-haidao.md 难度曲线总表） */
+  defPct?: number;
 }
 
 export type { BuildingKind, TroopKind, SkillKind };

@@ -1,5 +1,5 @@
 /**
- * 守岛 2.0（规则版本 7）的契约：规则核心、关卡数据和配平、界面三方共读。
+ * 守岛 2.0 的契约：规则核心、关卡数据和配平、界面三方共读。
  * 这里只放三类东西：
  * 1. 定死的规则表：伤害类型 × 护甲的克制倍率、塔和敌人的类型归属、驻守台折阶、基地加成、星数区间、难度公式的形状；
  * 2. 新结构：关卡岛、驻守台、木台（可被沉船压着）、波次预告、路线、"海盗来袭"的局面、新命令和新事件；
@@ -160,7 +160,7 @@ export interface TdPadDef {
   x: number;
   y: number;
   wreck?: { hp: number };
-  /** 崖上的高台（规则版本 26，第五章）：射程远 TD2_CLIFF.rangeAdd、崖下 TD2_CLIFF.minRange 内打不到、造价按 costPct 算；从上往下打，盾兵的盾挡不住 */
+  /** 崖上的高台（第五章）：射程远 TD2_CLIFF.rangeAdd、崖下 TD2_CLIFF.minRange 内打不到、造价按 costPct 算；从上往下打，盾兵的盾挡不住 */
   high?: true;
 }
 
@@ -254,9 +254,7 @@ export interface TdHomeGen {
   gold: number;
   first: number;
   waveTicks: number;
-  /** 按哪一版规则出波次（规则版本 10 起掷弹兵进波次池）；没写按 9（旧回放） */
-  rules?: number;
-  /** 加难档（规则版本 20，开局选）：没写 = 普通档，旧回放和普通档的生成参数逐位不变 */
+  /** 加难档（开局选）：没写 = 普通档 */
   hard?: true;
 }
 
@@ -309,7 +307,7 @@ export interface WavePreview {
   note?: string;
   /** 护航：这一波先头敌人和商船按当前船速推算在航线哪一格相遇（航线下标，追不上 -1）；只读提示，规则不用 */
   meet?: number;
-  /** 关内事件（规则版本 22）：这一波发生什么；战书波另写接没接（dare，接了的敌人个数已经按多出来的算） */
+  /** 关内事件：这一波发生什么；战书波另写接没接（dare，接了的敌人个数已经按多出来的算） */
   event?: TdEventKind;
   dare?: boolean;
 }
@@ -334,25 +332,25 @@ export interface TdRouteLine {
  * - clearNow：花 TD2_ECON.clearGold 金立刻清掉压木台的沉船（英雄去打仍用旧的 clear，打完给 TD2_ECON.heroClearGold）；
  * - barricade：英雄技能 1"拒马"，x、y 是单位（和 move、keg 一样），落在那一格（格子中心离英雄 TD2_HERO_SKILL.barricade.range 内、能走的空地）；
  *   挡住以它为中心的 3×3 格，地面敌人要走进来就停下砸；
- * 英雄技能 2"炸药桶"沿用旧命令 keg（伤害改成相对值、按爆破算）；号令改成被动，旧命令 rally 在规则版本 7 里不做事。
+ * 英雄技能 2"炸药桶"沿用旧命令 keg（伤害改成相对值、按爆破算）；号令改成被动，旧命令 rally 不做事。
  */
 export type Td2Action =
   | { t: number; type: 'sell'; slot: number }
   | { t: number; type: 'clearNow'; id: number }
   | { t: number; type: 'barricade'; x: number; y: number }
-  /** 潮汐水闸（规则版本 16）：关上 / 重新打开还没开打的下一波（s.wave）的落潮路 */
+  /** 潮汐水闸：关上 / 重新打开还没开打的下一波（s.wave）的落潮路 */
   | { t: number; type: 'sluice' }
-  /** 漂流补给箱（规则版本 16）：叫英雄去捡这个箱子，捡到后回原来的守点 */
+  /** 漂流补给箱：叫英雄去捡这个箱子，捡到后回原来的守点 */
   | { t: number; type: 'pickup'; id: number }
-  /** 岸防老炮（规则版本 16）：往 (x, y)（单位）打一发 */
+  /** 岸防老炮：往 (x, y)（单位）打一发 */
   | { t: number; type: 'battery'; x: number; y: number }
-  /** 友军巡航船（规则版本 19）：叫船（冷却好了、不在海上时才有用） */
+  /** 友军巡航船：叫船（冷却好了、不在海上时才有用） */
   | { t: number; type: 'fleet' }
-  /** 锚钩（规则版本 20）：钩住编号 id 的敌人往英雄这边拉 */
+  /** 锚钩：钩住编号 id 的敌人往英雄这边拉 */
   | { t: number; type: 'hook'; id: number }
-  /** 战书（规则版本 22）：接下 / 退掉还没开打的下一波（s.wave）的战书 */
+  /** 战书：接下 / 退掉还没开打的下一波（s.wave）的战书 */
   | { t: number; type: 'dare' }
-  /** 航海士（规则版本 23）的急射旗：插在 (x, y)（单位），圈里的塔（木台塔、驻守台都算）打得快 */
+  /** 航海士的急射旗：插在 (x, y)（单位），圈里的塔（木台塔、驻守台都算）打得快 */
   | { t: number; type: 'flag'; x: number; y: number }
   /** 航海士的重赏：圈的中心 (x, y)（单位） */
   | { t: number; type: 'reward'; x: number; y: number };
@@ -373,24 +371,24 @@ export type Td2Event =
   | { type: 'crate'; what: 'drift' | 'pick' | 'gone'; id: number; x: number; y: number; until: number; gold: number }
   /** 老炮开了一炮：从炮台 (x0, y0) 打向 (x1, y1)，t1 拍落地（落地另有 explode 事件），冷却到 ready 拍 */
   | { type: 'battery'; x0: number; y0: number; x1: number; y1: number; t1: number; ready: number }
-  /** 第四章（规则版本 18）：炮艇往一座塔打了一炮（塔同时有 jam 事件）、炮艇开走了、军医回了一次血 */
+  /** 第四章：炮艇往一座塔打了一炮（塔同时有 jam 事件）、炮艇开走了、军医回了一次血 */
   | { type: 'shell'; id: number; tower: number; x0: number; y0: number; x1: number; y1: number }
   | { type: 'sail'; id: number }
   | { type: 'heal'; id: number }
-  /** 规则版本 19：友军船来了（come，冷却到 ready 拍）、开了一炮（shot，从船打向 (x1, y1)，t1 拍落地）、开走了（go）；x、y 是船此刻的位置（单位） */
+  /** 友军船来了（come，冷却到 ready 拍）、开了一炮（shot，从船打向 (x1, y1)，t1 拍落地）、开走了（go）；x、y 是船此刻的位置（单位） */
   | { type: 'fleet'; what: 'come' | 'shot' | 'go'; x: number; y: number; x1: number; y1: number; t1: number; ready: number }
   /** 海盗王放下一船人（drop）、叫来护航（escort）；x、y 是它的位置 */
   | { type: 'king'; what: 'drop' | 'escort'; id: number; x: number; y: number }
   /**
-   * 锚钩（规则版本 20）：英雄从 (x0, y0) 把钩子甩到敌人 id 的 (x1, y1)，t1 拍钩上；之后每 perCell 拍拖一格，path 是一格格的落点（单位，格中心），
+   * 锚钩：英雄从 (x0, y0) 把钩子甩到敌人 id 的 (x1, y1)，t1 拍钩上；之后每 perCell 拍拖一格，path 是一格格的落点（单位，格中心），
    * 拖到最后一格后定到 until 拍；path 为空 = 钩上了但第一格就被挡住，只定住。ready 是下次能放的拍
    */
   | { type: 'hook'; id: number; x0: number; y0: number; x1: number; y1: number; t1: number; path: number[]; until: number; ready: number }
-  /** 赏金船（规则版本 22）：上岸（come）、被打倒给了 gold 局内金（paid）、跑掉了（gone）；x、y 是它此刻的位置（单位） */
+  /** 赏金船：上岸（come）、被打倒给了 gold 局内金（paid）、跑掉了（gone）；x、y 是它此刻的位置（单位） */
   | { type: 'bounty'; what: 'come' | 'paid' | 'gone'; id: number; x: number; y: number; gold: number }
-  /** 战书（规则版本 22）：第 wave 波的战书接下（on）或退掉 */
+  /** 战书：第 wave 波的战书接下（on）或退掉 */
   | { type: 'dare'; wave: number; on: boolean }
-  /** 航海士（规则版本 23）：急射旗插在 (x, y)、重赏圈中心 (x, y)，半径 r（单位），都到 until 拍；ready 是这个技能下次能放的拍 */
+  /** 航海士：急射旗插在 (x, y)、重赏圈中心 (x, y)，半径 r（单位），都到 until 拍；ready 是这个技能下次能放的拍 */
   | { type: 'flag'; x: number; y: number; r: number; until: number; ready: number }
   | { type: 'reward'; x: number; y: number; r: number; until: number; ready: number };
 

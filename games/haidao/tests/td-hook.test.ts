@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { RULES_SINCE, RULES_VERSION, TD2_HERO_SKILL, createTd, runTd, runTdBot, stepTd, tdFingerprint, tdGrowthSetup } from '../src/core/index.ts';
+import { RULES_VERSION, TD2_HERO_SKILL, createTd, runTd, runTdBot, stepTd, tdFingerprint, tdGrowthSetup } from '../src/core/index.ts';
 import type { Placed, TdAction, TdEnemy, TdEnemyKind, TdLevel, TdMode, TdSetup, TdState } from '../src/core/index.ts';
 import { cellIdx, cellX, cellY } from '../src/core/grid.ts';
-import { hookEnabled, hookPath } from '../src/core/tdhook.ts';
-import { goldenJobs, readGolden } from './td-golden-lib.ts';
+import { hookPath } from '../src/core/tdhook.ts';
 import { inner } from '../src/core/tdstate.ts';
 
-/** 锚钩（规则版本 20，tdhook.ts）：开放条件、整数格路线和挡住的边界、拖着走、冷却、逐位可复现 */
+/** 锚钩（tdhook.ts）：开放条件、整数格路线和挡住的边界、拖着走、冷却、逐位可复现 */
 
 const HOOK = TD2_HERO_SKILL.hook;
-const V = RULES_SINCE.tdHook;
 const base: Placed[] = [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }, { id: 2, kind: 'treasure', level: 1, x: 10, y: 13 }];
 function lvl(enemy: TdEnemyKind = 'sailor'): TdLevel {
   return {
@@ -17,8 +15,8 @@ function lvl(enemy: TdEnemyKind = 'sailor'): TdLevel {
     waves: [{ groups: [{ enemy, n: 1, lane: 0, every: 1 }] }], kegs: [], obstacles: [], slots: [],
   };
 }
-const setup = (o: { rules?: number; mode?: TdMode; hero?: number; enemy?: TdEnemyKind } = {}): TdSetup => ({
-  layout: base, level: lvl(o.enemy), hero: o.hero ?? HOOK.level, seed: 1, rules: o.rules ?? RULES_VERSION, mode: o.mode ?? 'campaign',
+const setup = (o: { mode?: TdMode; hero?: number; enemy?: TdEnemyKind } = {}): TdSetup => ({
+  layout: base, level: lvl(o.enemy), hero: o.hero ?? HOOK.level, seed: 1, rules: RULES_VERSION, mode: o.mode ?? 'campaign',
 });
 
 /** 开局、等第一个敌人出来，把英雄和它摆到指定格中心（英雄不动、敌人先不走：都交给测试控制） */
@@ -41,16 +39,16 @@ function block(s: TdState, x: number, y: number): void {
 const cells = (pts: Array<[number, number]>): number[] => pts.map(([x, y]) => cellIdx(x, y));
 
 describe('锚钩：哪些局有', () => {
-  it('规则 20、战役或海盗来袭、英雄 8 级起才有；悬赏守岛、大潮、护航、旧版本、7 级都没有', () => {
+  it('战役或海盗来袭、英雄 8 级起才有；悬赏守岛、大潮、护航、7 级都没有', () => {
     expect(createTd(setup()).hero.hookReady).toBe(0);
     expect(createTd(setup({ mode: 'home' })).hero.hookReady).toBe(0);
-    for (const s of [setup({ rules: V - 1 }), setup({ hero: HOOK.level - 1 }), setup({ mode: 'live' }), setup({ mode: 'tide' }), setup({ mode: 'escort' })]) {
+    for (const s of [setup({ hero: HOOK.level - 1 }), setup({ mode: 'live' }), setup({ mode: 'tide' }), setup({ mode: 'escort' })]) {
       expect(createTd(s).hero.hookReady).toBeUndefined();
     }
   });
 
   it('没有锚钩的局里按了也不起作用，整局指纹和不按一样', () => {
-    for (const o of [{ rules: V - 1 }, { mode: 'live' as const }, { hero: 7 }]) {
+    for (const o of [{ mode: 'live' as const }, { hero: 7 }]) {
       const st = setup(o);
       const press: TdAction[] = [10, 30, 60].map((t) => ({ t, type: 'hook', id: 1 }));
       expect(tdFingerprint(runTd(st, press).state)).toBe(tdFingerprint(runTd(st, []).state));
@@ -144,20 +142,5 @@ describe('锚钩：逐位可复现', () => {
     const b = runTdBot(r.value, 'normal');
     expect(a.actions.some((x) => x.type === 'hook')).toBe(true);
     expect(tdFingerprint(a.state)).toBe(tdFingerprint(b.state));
-  });
-});
-
-describe('锚钩：指纹锁里规则 20 只改了有锚钩的局', () => {
-  it('悬赏守岛、大潮和英雄不够 8 级的战役局，v20- 和 v19- 逐个相同；够 8 级的战役局才不同', () => {
-    const gold = readGolden();
-    let same = 0;
-    for (const j of goldenJobs()) {
-      if (!j.key.startsWith('v20-') || j.key.startsWith('v20-home-')) continue;
-      const old = gold[`v19-${j.key.slice(4)}`];
-      if (hookEnabled(j.setup, j.setup.hero)) continue;
-      expect(gold[j.key], j.key).toBe(old);
-      same++;
-    }
-    expect(same).toBeGreaterThan(100);
   });
 });

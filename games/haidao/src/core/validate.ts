@@ -6,11 +6,11 @@
  * 加了新建筑、新主寨等级不用改这里。只回一个短原因码，不回原数据。
  */
 import { BUILDINGS, HQ_LEVELS, SKILLS, TROOPS } from '../content/index.ts';
-import { capacityOfBuildings } from './base.ts';
+import { capacityOfBuildings, islandExt } from './base.ts';
 import { COSMETICS } from './run.ts';
 import { branchError, heroCap } from './tdbase.ts';
 import { RANK_HQ, RANKS } from '../content/rank.ts';
-import { ISLAND } from './types.ts';
+import { EXT_MAX, ISLAND } from './types.ts';
 import type { BuildingKind, Placed, Profile, SkillKind, TroopKind } from './types.ts';
 
 export type Validated = { ok: true; value: Profile } | { ok: false; error: string };
@@ -44,7 +44,7 @@ export function maxCapacity(hq: number): { gold: number; wood: number } {
 /**
  * 不可信的 Profile → 规整过的 Profile；有一处不合格就整份拒收（和 reviveSave 不同：那边是"救本机的坏档"，这里是"拒收上传"）。
  * 原因码：shape / building / overlap / dup_id / no_hq / locked / limit / level / research / boat / res / deco / branch。
- * 宝藏箱按主寨名额收（和别的建筑一样）；分叉要过 tdbase.ts 的 branchError（塔对得上、等级够、先 3 级那次）；英雄研究 hero 要有军械所、不超过主寨（规则版本 6 起都进攻防）。
+ * 宝藏箱按主寨名额收（和别的建筑一样）；分叉要过 tdbase.ts 的 branchError（塔对得上、等级够、先 3 级那次）；英雄研究 hero 要有军械所、不超过主寨（都进攻防）。
  * 掉宝装饰（雕像、旗杆、宝箱）：快照带了收藏（cosmetics）时必须已拥有才许摆（和 reviveSave、build 一致）；没带收藏的旧快照直接放行——
  * 装饰不挡路、不算摧毁率（battle.ts 的 isDeco），放行也不影响结算。
  */
@@ -54,17 +54,20 @@ export function validateBase(raw: unknown): Validated {
   if (list.length === 0 || list.length > MAX_BUILDINGS) return fail('shape');
   const kept: Placed[] = [];
   const ids = new Set<number>();
-  const occupied = new Uint8Array(ISLAND * ISLAND);
+  // 先按扩得最大的岛收，主寨等级定下来后再按这一级的范围查（islandExt）
+  const W = ISLAND + 2 * EXT_MAX;
+  const occupied = new Uint8Array(W * W);
   for (const b of list) {
     if (!isObj(b) || !own(BUILDINGS, b.kind)) return fail('building');
     const def = BUILDINGS[b.kind];
     if (!isInt(b.id, 1, Number.MAX_SAFE_INTEGER) || !isInt(b.level, 1, def.maxLevel)) return fail('building');
     if (ids.has(b.id)) return fail('dup_id');
-    if (!isInt(b.x, 0, ISLAND - def.size) || !isInt(b.y, 0, ISLAND - def.size)) return fail('building');
-    for (let y = b.y; y < b.y + def.size; y++) {
-      for (let x = b.x; x < b.x + def.size; x++) {
-        if (occupied[y * ISLAND + x]) return fail('overlap');
-        occupied[y * ISLAND + x] = 1;
+    if (!isInt(b.x, -EXT_MAX, ISLAND + EXT_MAX - def.size) || !isInt(b.y, -EXT_MAX, ISLAND + EXT_MAX - def.size)) return fail('building');
+    for (let y: number = b.y; y < b.y + def.size; y++) {
+      for (let x: number = b.x; x < b.x + def.size; x++) {
+        const at: number = (y + EXT_MAX) * W + x + EXT_MAX;
+        if (occupied[at]) return fail('overlap');
+        occupied[at] = 1;
       }
     }
     const p: Placed = { id: b.id, kind: b.kind, level: b.level, x: b.x, y: b.y };
@@ -87,6 +90,11 @@ export function validateBase(raw: unknown): Validated {
   const hqs = kept.filter((b) => b.kind === 'hq');
   if (hqs.length !== 1) return fail('no_hq');
   const hq = hqs[0]!.level;
+  const ext = islandExt(kept);
+  for (const b of kept) {
+    const size = BUILDINGS[b.kind].size;
+    if (b.x < -ext || b.y < -ext || b.x + size > ISLAND + ext || b.y + size > ISLAND + ext) return fail('building');
+  }
   const limits = HQ_LEVELS[hq - 1]?.limits;
   if (!limits) return fail('level');
   const count = new Map<BuildingKind, number>();

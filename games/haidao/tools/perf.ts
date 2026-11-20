@@ -1,13 +1,13 @@
 /**
  * 画面帧率 / 长帧测量：node tools/perf.ts --out <目录> [--secs 25] [--runs 2] [--views phone4,desktop] [--scenes battle,td] [--only fps|diag|shot|sheet] [--query rs=1.5]
- *   [--battle c07] [--army <主寨等级>] [--td td03] [--calls 2]
+ *   [--battle c07] [--army <主寨等级>] [--td td03] [--calls 2] [--hq 7] [--focus goldmine] [--zoom 1.1]
  *
  * - 自己起 vite 开发服务（端口由系统分配）+ playwright-core 无头 Chromium（WebGL 走 SwiftShader，启动参数同 shot.ts）。
  *   所以绝对帧率偏低，只用来前后对比；对比要在相近的机器负载下跑（结果里记了 /proc/loadavg）；
  * - 两个视口：phone4 = 手机竖屏 390×844 @2x，CDP 把 CPU 降 4 倍（就绪之后才降）；desktop = 1280×800 不降速；
  * - 三个场景，都用固定存档（新档 / dev.td / 满配岛）加固定操作序列，操作全是真人点击（不开 auto），按「规则的拍数」对齐，不按墙钟：
  *   battle = 战役 c07（新档的小队能撑过 25 秒；c10 海怪关 9 秒就全灭），按拍数放全部兵，再放一次炮击；td = 守岛 td03，造三座炮塔、英雄走位、放号令、叫两次波；
- *   base = 基地（tools/sample.ts 的 7 级满配岛，推荐布局 spread），不点任何东西，镜头用 focusOn 对着 --focus 那种建筑、放大 --zoom 倍（默认金矿 1.1，岛中间）；
+ *   base = 基地（tools/sample.ts 的满配岛，主寨等级 --hq 默认 7，推荐布局 spread），不点任何东西，镜头用 focusOn 对着 --focus 那种建筑、放大 --zoom 倍（默认金矿 1.1，岛中间）；
  *   --focus edge 对着岛边（离岛心最远的那座资源建筑）、--focus <格x>,<格y> 对着岛上任意一格（可以在岛外，海上是负数或大于 ISLAND）、--focus home 是开场的全岛远景；
  *   大场面：--army 8 用这一级主寨的满编船队（tools/sample.ts 的 sampleProfile）打登陆战；--td td14 --calls 6 换关、每 60 拍叫一次波，把几波敌人叠在岛上；
  * - 三种跑法（--only 只跑一种）：
@@ -46,9 +46,11 @@ const ARMY_HQ = opt('--army') ? Number(opt('--army')) : 0;
 /** 基地场景的镜头：对着哪种建筑（edge = 离岛心最远的资源建筑，home = 全岛远景）、放大几倍 */
 const BASE_FOCUS = opt('--focus') ?? 'goldmine';
 const BASE_ZOOM = Number(opt('--zoom') ?? 1.1);
+/** 基地场景的满配岛用几级主寨（tools/sample.ts 的 fullBase） */
+const BASE_HQ = Number(opt('--hq') ?? 7);
 /** 岛边：满配岛上离岛心最远的那座资源建筑（focusOn 的 种类#序号） */
 const EDGE_KIND = ((): string => {
-  const bs = fullBase(7, 'spread', true).base.buildings;
+  const bs = fullBase(BASE_HQ, 'spread', true).base.buildings;
   const c = ISLAND / 2;
   let best = { d: -1, key: 'goldmine' };
   for (const b of bs) {
@@ -395,7 +397,7 @@ async function runScene(view: View, scene: string, mode: Run['mode']): Promise<R
     if (scene === 'base') {
       await page.goto(`${ROOT}?dev${EXTRA}`, { timeout: 60_000 });
       await ready();
-      await page.evaluate((pr) => (window as unknown as { __haidao: { dev: { load(x: unknown): void } } }).__haidao.dev.load(pr), { ...fullBase(7, 'spread', true), res: { gold: 5000, wood: 5000 }, tutorial: 99 });
+      await page.evaluate((pr) => (window as unknown as { __haidao: { dev: { load(x: unknown): void } } }).__haidao.dev.load(pr), { ...fullBase(BASE_HQ, 'spread', true), res: { gold: 5000, wood: 5000 }, tutorial: 99 });
       await sleep(1500);
       await ready();
       if (BASE_FOCUS !== 'home') {
@@ -627,7 +629,7 @@ try {
 }
 
 // 表格
-const name: Record<string, string> = { base: `基地 7 级满配（镜头 ${BASE_FOCUS} ×${BASE_ZOOM}）`, battle: `登陆战 ${BATTLE_LEVEL}${ARMY_HQ ? `（主寨 ${ARMY_HQ} 满编）` : ''}`, td: `守岛 ${TD_LEVEL}${TD_CALLS !== 2 ? `（叫 ${TD_CALLS} 次波）` : ''}`, phone4: '手机竖屏 CPU×4', desktop: '桌面 1280×800' };
+const name: Record<string, string> = { base: `基地 ${BASE_HQ} 级满配（镜头 ${BASE_FOCUS} ×${BASE_ZOOM}）`, battle: `登陆战 ${BATTLE_LEVEL}${ARMY_HQ ? `（主寨 ${ARMY_HQ} 满编）` : ''}`, td: `守岛 ${TD_LEVEL}${TD_CALLS !== 2 ? `（叫 ${TD_CALLS} 次波）` : ''}`, phone4: '手机竖屏 CPU×4', desktop: '桌面 1280×800' };
 lines.push(`# 帧率测量（${new Date().toISOString().slice(0, 16)}，每格 ${SECS} 秒，${RUNS} 次取 p95 最好的一次）`, '');
 lines.push('| 视口 | 场景 | 平均帧率 | 中位 ms | p95 ms | p95/中位 | p99 ms | >33ms | >50ms | JS 每帧 平均 / p95 ms | 非脚本（光栅化）ms | 显示对象 / 兵和敌人 | longtask 个数 / 总 ms | 负载（跑前 -> 跑后） |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
 for (const [vn, cells] of Object.entries(result)) {

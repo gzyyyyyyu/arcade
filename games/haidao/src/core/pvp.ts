@@ -4,7 +4,7 @@
  */
 import { BUILDINGS, CAMPAIGN, RAID_HERO, SKILLS } from '../content/index.ts';
 import { battleFingerprint, battleResult, createBattle, stepBattle } from './battle.ts';
-import { BATTLE_TICKS, BEACH, ISLAND, RULES_VERSION, UNIT } from './types.ts';
+import { BATTLE_TICKS, BEACH, EXT_MAX, ISLAND, RULES_VERSION, UNIT } from './types.ts';
 import type { ArmySetup, BattleAction, BattleResult, BattleSetup, Placed, Res, SkillKind } from './types.ts';
 import { isObj } from './validate.ts';
 
@@ -34,8 +34,9 @@ export function replayRaid(setup: BattleSetup, actions: BattleAction[], endTick 
 }
 
 const isInt = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
-const CMIN = -BEACH * UNIT;
-const CMAX = (ISLAND + BEACH) * UNIT;
+// 坐标先按扩得最大的岛放宽，落在不在这一局的海滩上由 canLand 判
+const CMIN = -(BEACH + EXT_MAX) * UNIT;
+const CMAX = (ISLAND + BEACH + EXT_MAX) * UNIT;
 
 /** 浏览器交上来的操作 → 只留认得的字段；有一条不合格就整串作废（null）。别的字段（星数、摧毁率、掠夺）一律不看 */
 export function sanitizeActions(raw: unknown, army: ArmySetup): BattleAction[] | null {
@@ -43,7 +44,7 @@ export function sanitizeActions(raw: unknown, army: ArmySetup): BattleAction[] |
   const out: BattleAction[] = [];
   for (const a of raw) {
     if (isObj(a) && a.type === 'recall') {
-      // 规则版本 ≥ 13 的撤回：只有拍和船，没有坐标
+      // 撤回：只有拍和船，没有坐标
       if (!isInt(a.t, 0, BATTLE_TICKS) || !isInt(a.boat, 0, army.boats.length - 1)) return null;
       out.push({ t: a.t, type: 'recall', boat: a.boat });
       continue;
@@ -115,10 +116,17 @@ export function wandererGain(loot: Res, destroyedPct: number): Res {
 }
 
 /**
- * 一场进攻的 setup。hero = 防守方的驻岛英雄等级（tdbase.ts heroLevel）；流浪海盗岛不传，没有英雄。
+ * 一场进攻的 setup。ext = 岛扩了几圈（玩家的岛 islandExt，流浪海盗岛 0）；hero = 防守方的驻岛英雄等级（tdbase.ts heroLevel）；流浪海盗岛不传，没有英雄。
  * 驻岛英雄只有 8 级（RAID_HERO）：主寨 8 级后英雄研究到 9–12 级只加守岛，这里封顶 8，攻防和以前逐位一样（tests/rank.test.ts）。
  */
-export function raidSetup(layout: Placed[], army: ArmySetup, seed: number, hero?: number): BattleSetup {
+export function raidSetup(layout: Placed[], ext: number, army: ArmySetup, seed: number, hero?: number): BattleSetup {
   const h = hero !== undefined ? Math.max(1, Math.min(RAID_HERO.length, hero)) : undefined;
-  return { layout: layout.map((b) => ({ ...b, ...(b.branch ? { branch: [...b.branch] } : {}) })), army, seed, rules: RULES_VERSION, ...(h !== undefined ? { hero: h } : {}) };
+  return {
+    layout: layout.map((b) => ({ ...b, ...(b.branch ? { branch: [...b.branch] } : {}) })),
+    army,
+    seed,
+    rules: RULES_VERSION,
+    ...(ext > 0 ? { ext } : {}),
+    ...(h !== undefined ? { hero: h } : {}),
+  };
 }

@@ -61,7 +61,7 @@ export function callWave(bs: TdScene): void {
   act(bs, { type: 'call' });
 }
 
-/** 战书（规则版本 22）：take 接、否则不接；和现在的状态一样就不发命令（规则核心 tdDareCan 判） */
+/** 战书：take 接、否则不接；和现在的状态一样就不发命令（规则核心 tdDareCan 判） */
 export function pressDare(bs: TdScene, take: boolean): void {
   const can = tdDareCan(bs.s);
   if (bs.s.over || !can || (can === 'take') !== take) return;

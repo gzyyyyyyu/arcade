@@ -1,6 +1,6 @@
 /**
- * 守岛 2.0 配平模拟：node tools/td-sim.ts [--level td07] [--n 200] [--parts main,anti,hero,care,budget,layouts,pads] [--json] [--from 1] [--rules 13] [--hero nav]
- * 18 关（关卡岛 + 驻守台，建议养成的存档）各打 n 局（种子 from..from+n-1），按验收表（DESIGN 10.7）出数：
+ * 守岛 2.0 配平模拟：node tools/td-sim.ts [--level td07] [--n 200] [--parts main,anti,hero,care,budget,layouts,pads] [--json] [--from 1] [--hero nav]
+ * 30 关（关卡岛 + 驻守台，建议养成的存档）各打 n 局（种子 from..from+n-1），按验收表（DESIGN 10.7）出数：
  *   main    小白、照建议的新手、稳（普通）、贪四种机器人的星数分布，稳 / 贪的三星率差，局末没花掉的金币占比（新手线按「新手 ≥1★」量，DESIGN 10.7）；
  *   anti    反压制：把稳机器人造的塔全换成一种（喷火 / 火枪 / 加农各量一次，取最高的）；
  *   hero    英雄拆开看：稳机器人不放技能、不走位；
@@ -8,7 +8,8 @@
  *   budget  预算 ±2% 时稳机器人的三星率（> 15 点说明这关太悬崖，改地图不改数）；
  *   pads    断崖关（第五章）：稳机器人只造崖上的高台 / 只造崖下离路最近的同样几块，两种守法的三星率差 ≤ 15 点才算高台不一家独大（DESIGN 10.6h）；
  *   curve   稳机器人的三星率随预算百分比怎么变（--pcts 70,85,100,115,130），配平时找"预算差多少才对上目标"用。
- * --hero nav 带航海士（规则版本 23）；每格另记经济：局末没花掉的金币占收入的比例（余金）、第几波开打时木台全都是三阶塔（升满阶，没升满的局不算，另给升满的局占比）。
+ * --drop keg,hook 机器人不放这几种操作（英雄技能的操作名：barricade 拒马、keg 炸药桶、hook 锚钩、flag 急射旗、reward 重赏），法术「放 / 不放」对照用。
+ * --hero nav 带航海士；每格另记经济：局末没花掉的金币占收入的比例（余金）、第几波开打时木台全都是三阶塔（升满阶，没升满的局不算，另给升满的局占比）。
  * 默认只跑 main；全部：--parts main,anti,hero,care,budget。大批量拆成每关一片在 CI 上跑（--json 出可合并的汇总），
  * 再 `node tools/td-sim.ts --merge 片1.json 片2.json …` 合并成表（本机只跑小样本，用 nice）。
  */
@@ -16,6 +17,7 @@ import { readFileSync } from 'node:fs';
 import { RULES_VERSION, TD_ENEMY_ARMOR, createTd, stepTd, tdBotActions, tdGrowthSetup, tdResult } from '../src/core/index.ts';
 import type { TdState } from '../src/core/index.ts';
 import type { TdArmor, TdBotKind, TdBotOpts, TdGrowth, TdSetup } from '../src/core/index.ts';
+import { diffTarget, offMark, progressOf } from '../src/content/difficulty.ts';
 import { buildLevel, TD2_LEVEL_DEFS } from '../src/content/td2levels.ts';
 import { argv, flag, num, opt } from './args.ts';
 
@@ -26,10 +28,9 @@ const from = num('--from', 1);
 const only = opt('--level');
 const json = flag('--json');
 const parts = new Set((opt('--parts') ?? 'main').split(','));
-// --rules 13：按旧规则版本打（比规则改动前后，同一份代码两次跑）
-const rulesOpt = opt('--rules') ? Number(opt('--rules')) : undefined;
 const pcts = (opt('--pcts') ?? '70,85,100,115,130').split(',').map(Number);
 const hero = opt('--hero') === 'nav' ? ('nav' as const) : undefined;
+const drop = new Set((opt('--drop') ?? '').split(',').filter(Boolean));
 
 // ---------------------------------------------------------------- 一局
 
@@ -63,7 +64,8 @@ function play(setup: TdSetup, kind: TdBotKind, o: TdBotOpts): Played {
   const bot = tdBotActions(kind, setup.seed, o);
   let full = -1;
   while (!s.over) {
-    stepTd(s, bot(s));
+    const acts = bot(s);
+    stepTd(s, drop.size ? acts.filter((a) => !drop.has(a.type)) : acts);
     if (full < 0 && allMaxed(s)) full = s.wave;
   }
   const r = tdResult(s);
@@ -74,10 +76,9 @@ function play(setup: TdSetup, kind: TdBotKind, o: TdBotOpts): Played {
 function setupOf(id: string, seed: number, growth: TdGrowth, budgetPct = 100): TdSetup {
   const r = tdGrowthSetup(id, growth, seed, hero);
   if (!r.ok) throw new Error(`${id}: ${r.error}`);
-  const v = rulesOpt === undefined ? r.value : { ...r.value, rules: rulesOpt };
-  if (budgetPct === 100) return v;
+  if (budgetPct === 100) return r.value;
   const def = TD2_LEVEL_DEFS.find((d) => d.id === id)!;
-  return { ...v, level: buildLevel(def, budgetPct) };
+  return { ...r.value, level: buildLevel(def, budgetPct) };
 }
 
 // ---------------------------------------------------------------- 汇总
@@ -179,8 +180,8 @@ const se2 = (c: Cell | undefined): number => {
 const leftPct = (c: Cell | undefined): string => (c && c.income > 0 ? `${f0((100 * c.left) / c.income)}%` : '-');
 /** 升满阶：平均第几波（1 起）、升满的局占比 */
 const fullAt = (c: Cell | undefined): string => (c && c.fullN > 0 ? `${(c.fullW / c.fullN).toFixed(1)}（${f0((100 * c.fullN) / c.n)}%）` : '-');
-/** 验收目标：第 i 关（0 起）普通三星率 85 − 3i */
-const target = (i: number): number => 85 - 3 * i;
+/** 共用难度线（src/content/difficulty.ts）：第 i 关（0 起）的稳三星率、新手（guided）≥1★ 目标 */
+const target = (i: number) => diffTarget(progressOf(i, TD2_LEVEL_DEFS.length));
 
 function merge(a: LevelRaw[]): LevelRaw[] {
   const out = new Map<string, LevelRaw>();
@@ -206,8 +207,8 @@ function merge(a: LevelRaw[]): LevelRaw[] {
 
 function table(levels: LevelRaw[]): string {
   const rows: string[] = [];
-  rows.push('| 关 | 稳 3★ (±2SE) | 目标 | 稳 0★ | 新手 ≥1★ | 小白 ≥1★ | 贪 3★ | 稳-贪 | 反压制 3★（塔） | 差 | 不放技能 | 不走位 | 零养成 | 满养成 | 预算 98 / 102 | 余金 稳 / 贪 | 升满阶 稳 / 贪 |');
-  rows.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  rows.push('| 关 | 稳 3★ (±2SE) | 目标 | 稳 0★ | 新手 ≥1★ | 目标 | 小白 ≥1★ | 贪 3★ | 稳-贪 | 反压制 3★（塔） | 差 | 不放技能 | 不走位 | 零养成 | 满养成 | 预算 98 / 102 | 余金 稳 / 贪 | 升满阶 稳 / 贪 |');
+  rows.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   const prev: number[] = [];
   for (const l of levels) {
     const i = TD2_LEVEL_DEFS.findIndex((d) => d.id === l.id);
@@ -225,8 +226,10 @@ function table(levels: LevelRaw[]): string {
     const bud = c['budget.98'] && c['budget.102'] ? `${f0(pct(c['budget.98'], 3))} / ${f0(pct(c['budget.102'], 3))}` : '-';
     const left = `${leftPct(c.normal)} / ${leftPct(c.greedy)}`;
     const full = `${fullAt(c.normal)} / ${fullAt(c.greedy)}`;
+    const t = target(i);
+    const guided = pct(c.guided, 1);
     rows.push(
-      `| ${l.id} | ${f0(norm)}% ± ${f0(se2(c.normal))} | ${target(i)}% | ${f0(c.normal ? (100 * c.normal.dist[0]) / c.normal.n : NaN)}% | ${f0(pct(c.guided, 1))}% | ${f0(pct(c.novice, 1))}% | ${f0(pct(c.greedy, 3))}% | ${f0(Math.abs(norm - pct(c.greedy, 3)))} | ${anti} | ${antiDiff} | ` +
+      `| ${l.id} | ${f0(norm)}% ± ${f0(se2(c.normal))}${offMark(norm, t.steady3)} | ${f0(t.steady3)}% | ${f0(c.normal ? (100 * c.normal.dist[0]) / c.normal.n : NaN)}% | ${f0(guided)}%${offMark(guided, t.novice1)} | ${f0(t.novice1)}% | ${f0(pct(c.novice, 1))}% | ${f0(pct(c.greedy, 3))}% | ${f0(Math.abs(norm - pct(c.greedy, 3)))} | ${anti} | ${antiDiff} | ` +
         `${f0(pct(c['hero.noskill'], 3))}% | ${f0(pct(c['hero.nomove'], 3))}% | ${f0(pct(c['care.none'], 3))}% | ${f0(pct(c['care.full'], 3))}% | ${bud} | ${left} | ${full} |`,
     );
   }
@@ -234,7 +237,7 @@ function table(levels: LevelRaw[]): string {
   const curves = levels
     .map((l) => {
       const cs = Object.entries(l.cells).filter(([k]) => k.startsWith('curve.'));
-      return cs.length ? `${l.id}（目标 ${target(TD2_LEVEL_DEFS.findIndex((d) => d.id === l.id))}%）：${cs.map(([k, c]) => `${k.slice(6)}%→${f0(pct(c, 3))}`).join(' ')}` : '';
+      return cs.length ? `${l.id}（目标 ${f0(target(TD2_LEVEL_DEFS.findIndex((d) => d.id === l.id)).steady3)}%）：${cs.map(([k, c]) => `${k.slice(6)}%→${f0(pct(c, 3))}`).join(' ')}` : '';
     })
     .filter(Boolean);
   const pads = levels
@@ -270,5 +273,5 @@ if (flag('--merge')) {
     if (!json) console.error(`${id} 完成 ${Math.round((Date.now() - t0) / 1000)} 秒`);
   }
   if (json) console.log(JSON.stringify(raws));
-  else console.log(`每格 ${n} 局（种子 ${from}–${from + n - 1}），建议养成的存档，英雄${hero ? '航海士' : '船长'}；目标列 = 验收表的稳三星率\n\n${table(raws)}`);
+  else console.log(`每格 ${n} 局（种子 ${from}–${from + n - 1}），建议养成的存档，英雄${hero ? '航海士' : '船长'}；目标列 = 共用难度线（稳三星、新手 ≥1★），偏出 ±20 点标 ↑ 太易 / ↓ 太难\n\n${table(raws)}`);
 }

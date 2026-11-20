@@ -68,7 +68,7 @@ describe('满墙的岛：服务端重放', () => {
     const v = validateBase(json(p));
     expect(v.ok ? 'ok' : v.error).toBe('ok');
     const layout = v.ok ? v.value.base.buildings : [];
-    const setup = raidSetup(layout, sampleArmy(6), 4242);
+    const setup = raidSetup(layout, 0, sampleArmy(6), 4242);
     const acts = botActions(setup, 'normal');
     const t0 = performance.now();
     const a = replayRaid(setup, acts);

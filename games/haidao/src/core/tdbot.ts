@@ -113,7 +113,7 @@ function direct(k: TdTowerKind): boolean {
 
 /**
  * 预告里重甲里盾兵占几成（按个数，百分比）：断崖关挑塔时，单体直射打重甲的那份按「一半时间打在盾正面」打折（counterKind）。
- * 只在断崖关算：海盗来袭也有盾兵，它的机器人照旧，回放逐位不变
+ * 只在断崖关算：海盗来袭也有盾兵，但英雄的枪不挨挡，它的机器人不算这一项
  */
 function shieldPct(pv: readonly WavePreview[]): number {
   let heavy = 0;
@@ -201,7 +201,7 @@ export function crateSafe(s: TdState, box: { x: number; y: number }): boolean {
 }
 
 /**
- * 战书（规则版本 22）值不值得接：这一局还没丢过宝藏、木台全都造上了塔（没有空着的）。贪机器人不看，一律接。
+ * 战书值不值得接：这一局还没丢过宝藏、木台全都造上了塔（没有空着的）。贪机器人不看，一律接。
  * 赏金船机器人不去追：追要反复改英雄的守点，追完回不到原来自己守的样子，误差比赏金本身大；塔打得到就拿
  */
 export function dareWorth(s: TdState): boolean {
@@ -270,7 +270,7 @@ function slotScores(s: TdState, pv: WavePreview[]): number[] {
       for (let k = 1; k <= 24; k++) pts.push([x0 + Math.floor(((tr.x * UNIT + 50 - x0) * k) / 24), y0 + Math.floor(((tr.y * UNIT + 50 - y0) * k) / 24)]);
     }
   }
-  // 崖上的高台（断崖关）：打得远、崖下打不到，按高台的射程圈数路（只有断崖关的木台带 high，别的关逐位不变）
+  // 崖上的高台（断崖关）：打得远、崖下打不到，按高台的射程圈数路（只有断崖关的木台带 high）
   const hi = tdBuildRange('gunTower', 1, true);
   return s.slots.map((sl) => {
     const cx = sl.x * UNIT + 100;
@@ -418,7 +418,7 @@ export function rewardSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y
 export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}): TdBot {
   const pickKind = (s: TdState, pv: WavePreview[]): TdTowerKind => (opts.only && s.unlocked.includes(opts.only) ? opts.only : counterKind(s, pv));
   const rng = new Rng(seed, `td-bot-${kind}`);
-  // 章末机制（规则版本 16）的随机另开一条流：没有机制的关，机器人的每一个决定和以前逐位一样
+  // 章末机制的随机另开一条流：没有机制的关，机器人的别的决定不受它影响
   const mrng = new Rng(seed, `td-bot-mech-${kind}`);
   let sluiceAsked = -1;
   let dareAsked = -1;
@@ -646,7 +646,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
           if (ahead !== undefined && d2(cellX(ahead), cellY(ahead), h.x, h.y) <= bar.range * bar.range) out.push({ t, type: 'barricade', x: cellX(ahead), y: cellY(ahead) });
         }
       }
-      // 锚钩（规则版本 20，有锚钩的局才有 hookReady）：先钩带着宝藏、离船最近的，没有就钩快摸到宝藏箱的
+      // 锚钩（有锚钩的局才有 hookReady）：先钩带着宝藏、离船最近的，没有就钩快摸到宝藏箱的
       if (skills && h.hookReady !== undefined && t >= h.hookReady) {
         const e = hookTarget(s);
         if (e) out.push({ t, type: 'hook', id: e.id });

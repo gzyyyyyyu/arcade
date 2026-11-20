@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUILDINGS, HQ_LEVELS } from '../src/content/index.ts';
-import { canPlace, newProfile } from '../src/core/index.ts';
+import { canPlace, islandExt, newProfile } from '../src/core/index.ts';
 import { ISLAND, type BuildingKind } from '../src/core/types.ts';
 import { DROP_MS, WALL_RISE_MS, buildFrame, buildPlan, buildingMenu, celebrateGo, clampPlace, costGap, fullText, nextSlotHq, dropPose, edgePan, keyAction, menuPos, placeCheck, placeReason, startSpot, statDiff, panelFocus, camLerp, upFrame, upPlan, withKey } from '../src/view/basefeel.ts';
 
@@ -43,33 +43,43 @@ describe('摆放：每一格能不能放和原因', () => {
       const size = BUILDINGS[kind].size;
       for (let y = -(size - 1); y < ISLAND; y++) {
         for (let x = -(size - 1); x < ISLAND; x++) {
-          const c = placeCheck(list, kind, x, y, ISLAND);
+          const c = placeCheck(list, kind, x, y, 0);
           expect(c.ok, `${kind} ${x},${y}`).toBe(canPlace(p, kind, x, y));
           expect(c.cells).toHaveLength(size * size);
         }
       }
     }
   });
+  it('主寨 8 级扩两圈：扩出来的圈能放，和 canPlace 对拍；夹取也按扩后的岛', () => {
+    const p8 = { ...p, base: { ...p.base, buildings: list.map((b) => (b.kind === 'hq' ? { ...b, level: 8 } : b)) } };
+    const ext = islandExt(p8.base.buildings);
+    expect(ext).toBe(2);
+    for (let y = -ext - 2; y < ISLAND + ext; y++) {
+      for (let x = -ext - 2; x < ISLAND + ext; x++) expect(placeCheck(p8.base.buildings, 'cannon', x, y, ext).ok, `${x},${y}`).toBe(canPlace(p8, 'cannon', x, y));
+    }
+    expect(placeCheck(p8.base.buildings, 'cannon', -2, -2, ext).ok).toBe(true);
+    expect(clampPlace(-9, 40, 3, ext)).toEqual({ x: -4, y: ISLAND + 1 });
+  });
   it('压到建筑：原因是 hit，说出压到了哪座；探出岛外：原因是 out', () => {
     const hq = list.find((b) => b.kind === 'hq')!;
-    const c = placeCheck(list, 'cannon', hq.x, hq.y, ISLAND);
+    const c = placeCheck(list, 'cannon', hq.x, hq.y, 0);
     expect(c.reason).toBe('hit');
     expect(c.hit).toBe('hq');
     expect(placeReason(c)).toBe('压到主寨了');
     expect(c.cells.some((q) => q.s === 'hit')).toBe(true);
-    const o = placeCheck([], 'cannon', -1, 3, ISLAND);
+    const o = placeCheck([], 'cannon', -1, 3, 0);
     expect(o.reason).toBe('out');
     expect(placeReason(o)).toContain('边界');
     expect(o.cells.filter((q) => q.s === 'out')).toHaveLength(2);
   });
   it('移动时不算自己：原地放下是合法的', () => {
     const gm = list.find((b) => b.kind === 'goldmine')!;
-    expect(placeCheck(list, 'goldmine', gm.x, gm.y, ISLAND).ok).toBe(false);
-    expect(placeCheck(list, 'goldmine', gm.x, gm.y, ISLAND, gm.id).ok).toBe(true);
+    expect(placeCheck(list, 'goldmine', gm.x, gm.y, 0).ok).toBe(false);
+    expect(placeCheck(list, 'goldmine', gm.x, gm.y, 0, gm.id).ok).toBe(true);
   });
   it('虚影最多探出 size-1 格，至少一格留在岛上', () => {
-    expect(clampPlace(-9, 40, 3, ISLAND)).toEqual({ x: -2, y: ISLAND - 1 });
-    expect(clampPlace(5, 6, 3, ISLAND)).toEqual({ x: 5, y: 6 });
+    expect(clampPlace(-9, 40, 3, 0)).toEqual({ x: -2, y: ISLAND - 1 });
+    expect(clampPlace(5, 6, 3, 0)).toEqual({ x: 5, y: 6 });
   });
 });
 
@@ -182,7 +192,7 @@ describe('摆放起点：画面中心附近最近的一块空地', () => {
     const list = p.base.buildings;
     const hq = list.find((b) => b.kind === 'hq')!;
     // 从主寨的位置起步：不能落在主寨上，也不能贴在它身后被挡住
-    const at = startSpot(list, 'gunTower', hq.x, hq.y, ISLAND, (x, y) => canPlace(p, 'gunTower', x, y))!;
+    const at = startSpot(list, 'gunTower', hq.x, hq.y, 0, (x, y) => canPlace(p, 'gunTower', x, y))!;
     expect(at).not.toBeNull();
     expect(canPlace(p, 'gunTower', at.x, at.y)).toBe(true);
     const size = BUILDINGS.gunTower.size;
@@ -193,8 +203,8 @@ describe('摆放起点：画面中心附近最近的一块空地', () => {
     }
   });
   it('空岛上中心那一格就是起点；放不下时返回 null', () => {
-    expect(startSpot([], 'gunTower', 10, 10, ISLAND, () => true)).toEqual({ x: 10, y: 10 });
-    expect(startSpot([], 'gunTower', 10, 10, ISLAND, () => false)).toBeNull();
+    expect(startSpot([], 'gunTower', 10, 10, 0, () => true)).toEqual({ x: 10, y: 10 });
+    expect(startSpot([], 'gunTower', 10, 10, 0, () => false)).toBeNull();
   });
 });
 

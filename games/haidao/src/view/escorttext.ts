@@ -100,7 +100,7 @@ export function sailNudge(o: { autoSail?: boolean; wave: number; next: number; t
   return !!o.autoSail && o.wave === 0 && o.next >= 0 && o.next - o.tick <= SAIL_NUDGE_SEC * o.tps;
 }
 
-/** 第一波开打时船自己开了（娱乐护航，规则 25） */
+/** 第一波开打时船自己开了（娱乐护航） */
 export const AUTO_SAIL_NOTE = '第一波来了，船自己开了';
 
 export const HOLD_NOTE = '停着时潮水照走，海盗也会围上来咬船；打完这一拨就开船';

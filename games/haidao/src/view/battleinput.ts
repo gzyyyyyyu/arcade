@@ -27,16 +27,20 @@ import { SCOUT_LABEL } from './battlescout.ts';
 export function drawBeach(bs: BattleScene): void {
   const g = bs.beachG;
   g.fillStyle(0x3fe06a, 0.32).lineStyle(1, 0x2f8a40, 0.5);
-  for (let y = -BEACH; y < ISLAND + BEACH; y++) {
-    for (let x = -BEACH; x < ISLAND + BEACH; x++) {
+  // 岛扩了 ext 圈（自己的岛按主寨）：岛边 [-ext, ISLAND+ext)，沙滩再往外 BEACH 格
+  const a = -bs.st.ext;
+  const b = ISLAND + bs.st.ext;
+  for (let y = a - BEACH; y < b + BEACH; y++) {
+    for (let x = a - BEACH; x < b + BEACH; x++) {
       if (!canLand(bs.st, x * UNIT + 50, y * UNIT + 50)) continue;
       const pts = [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)];
       g.fillPoints(pts.map(v2), true).strokePoints(pts.map(v2), true);
     }
   }
-  const e = BEACH;
-  const ring = [iso(-e, -e), iso(ISLAND + e, -e), iso(ISLAND + e, ISLAND + e), iso(-e, ISLAND + e)];
-  const inner = [iso(0, 0), iso(ISLAND, 0), iso(ISLAND, ISLAND), iso(0, ISLAND)];
+  const lo = a - BEACH;
+  const hi = b + BEACH;
+  const ring = [iso(lo, lo), iso(hi, lo), iso(hi, hi), iso(lo, hi)];
+  const inner = [iso(a, a), iso(b, a), iso(b, b), iso(a, b)];
   g.lineStyle(4, 0xffe885, 0.95).strokePoints(ring.map(v2), true);
   g.lineStyle(2, 0xffe885, 0.6).strokePoints(inner.map(v2), true);
 }
@@ -204,7 +208,7 @@ export function tap(bs: BattleScene, wx: number, wy: number): void {
   if (s.over || bs.paused) return;
   const g0 = unIso(wx, wy);
   // 出船（或什么都没选）时，点在沙滩外沿、草边的点吸到登陆圈上；选着船时点在岛里面也吸到最近的沙滩；放技能照点的位置
-  const snap = bs.selSkill < 0 ? snapLanding(g0.gx, g0.gy, BEACH, ISLAND, bs.selBoat >= 0) : null;
+  const snap = bs.selSkill < 0 ? snapLanding(g0.gx, g0.gy, s.ext, bs.selBoat >= 0) : null;
   const g = snap ? { gx: snap.x, gy: snap.y } : g0;
   const ux = Math.round(g.gx * UNIT);
   const uy = Math.round(g.gy * UNIT);
@@ -288,7 +292,7 @@ export function clearSel(bs: BattleScene): void {
 export function hover(bs: BattleScene, wx: number, wy: number): void {
   const g = unIso(wx, wy);
   // 选着船时按点下去会吸到的那一格画，悬停和真正落点一致
-  const snap = bs.selBoat >= 0 ? snapLanding(g.gx, g.gy, BEACH, ISLAND, true) : null;
+  const snap = bs.selBoat >= 0 ? snapLanding(g.gx, g.gy, bs.st.ext, true) : null;
   const cx = Math.floor(snap ? snap.x : g.gx);
   const cy = Math.floor(snap ? snap.y : g.gy);
   const on = !Number.isNaN(wx) && !bs.st.over && (bs.selBoat >= 0 || bs.selSkill >= 0) && (bs.selSkill >= 0 || (!!snap && canLand(bs.st, cx * UNIT + 50, cy * UNIT + 50)));

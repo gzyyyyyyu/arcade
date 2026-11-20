@@ -27,7 +27,7 @@ export interface Api {
   /** 测试辅助（连拍）：取一个单位 / 建筑在页面上的位置（unit 不给 id 时挑一个正在走或打的，之后用返回的 id 跟着它），没有为 null */
   probe?(what: 'unit' | 'enemy' | 'building', idOrKind?: number | string): { id: number; x: number; y: number } | null;
   /** 测试辅助（录屏）：场上的兵 / 守岛敌人（登陆战是兵，守岛是敌人） */
-  units?(): Array<{ id: number; kind: string; mode: string; hp: number; maxHp: number; front?: boolean; /** 盾兵的盾朝向（世界坐标 ×100） */ gx?: number; gy?: number; /** 这一拍在减速里（踩了焦油等） */ slow?: boolean; /** 赏金船（规则版本 22） */ bounty?: boolean }>;
+  units?(): Array<{ id: number; kind: string; mode: string; hp: number; maxHp: number; front?: boolean; /** 盾兵的盾朝向（世界坐标 ×100） */ gx?: number; gy?: number; /** 这一拍在减速里（踩了焦油等） */ slow?: boolean; /** 赏金船 */ bounty?: boolean }>;
   /** 测试辅助（录屏）：镜头跟住一个兵 / 敌人（倒下的也跟到消失），zoom 是镜头缩放；传 null 停止跟随 */
   follow?(id: number | null, zoom?: number): void;
   /** 测试辅助（60 帧录屏）：停掉浏览器的帧循环，按固定的 ms 手动推 n 帧（画面、补间、规则都按这个时间走）；frameEnd 恢复 */
@@ -59,7 +59,7 @@ export interface Api {
   poke?(kind: string, frac: number): void;
   /** 测试辅助（守岛）：格子坐标 → 页面坐标；局面摘要 */
   tdPt?(gx: number, gy: number): { x: number; y: number };
-  tdInfo?(): { tick: number; wave: number; vault: number; lost: number; gold: number; over: boolean; slots: Array<{ x: number; y: number; tower: number; wreck: boolean; garrison: boolean }>; /** 地图上插着的预告旗、画着的路线条数 */ flags: number; routes: number; barricades: number; /** goal：英雄正往哪走（没有为 null）；截图脚本据此分清「玩家点的」和守点 AI 自己走的 */ hero: { x: number; y: number; goal: { x: number; y: number } | null; /** 航海士（规则版本 23）：带的是不是她、急射旗和重赏圈现在在不在 */ kind?: 'nav'; flag: boolean; reward: boolean }; /** 现在哑火的塔数、发过技能的首领数（第三章的新机制，截图脚本等它出现） */ jammed: number; skilled: number; objects: number; /** 关内事件（规则版本 22）：挑好的波、接了战书的波、现在下不下雨 */ events: Array<{ wave: number; kind: string }>; dare: number[]; raining: boolean };
+  tdInfo?(): { tick: number; wave: number; vault: number; lost: number; gold: number; over: boolean; slots: Array<{ x: number; y: number; tower: number; wreck: boolean; garrison: boolean }>; /** 地图上插着的预告旗、画着的路线条数 */ flags: number; routes: number; barricades: number; /** goal：英雄正往哪走（没有为 null）；截图脚本据此分清「玩家点的」和守点 AI 自己走的 */ hero: { x: number; y: number; goal: { x: number; y: number } | null; /** 航海士：带的是不是她、急射旗和重赏圈现在在不在 */ kind?: 'nav'; flag: boolean; reward: boolean }; /** 现在哑火的塔数、发过技能的首领数（第三章的新机制，截图脚本等它出现） */ jammed: number; skilled: number; objects: number; /** 关内事件：挑好的波、接了战书的波、现在下不下雨 */ events: Array<{ wave: number; kind: string }>; dare: number[]; raining: boolean };
   /** 测试辅助：音效触发统计和最近触发的声音（名字、时刻、是否放出） */
   sfxStats?(): { counts: Record<string, { req: number; played: number; gap: number; cap: number; silent: number }>; recent: Array<{ name: string; at: number; ok: boolean }> };
   sfxStatsReset?(): void;

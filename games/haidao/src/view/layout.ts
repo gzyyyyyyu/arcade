@@ -250,14 +250,7 @@ ${W} .hd-key { display:none; }
 ${LAND} {
   /* 手机横屏：基地的面板（建造、升级、信息）靠右竖着站满顶栏下面的高度，不再是占 60% 屏高的底部抽屉（那样 390 高的屏幕只剩一条缝）；面板开着时底栏收起，面板可以贴边 */
   ${W} .hd-base > .hd-sheet { left:auto; right:calc(6px + env(safe-area-inset-right,0px)); top:56px; bottom:6px; margin:0; width:min(360px,48%); max-height:none; border-bottom-width:3px; border-radius:10px; }
-  /* 横屏矮屏：升级面板的外观对比和花费条收紧，把空间让给中间的数值；庆祝框的列表矮一点，两个按钮才放得下 */
-  ${W} .hd-base > .hd-sheet .hd-uphero { margin:0 0 6px; gap:6px; }
-  ${W} .hd-base > .hd-sheet .hd-uppic { width:84px; height:52px; }
-  ${W} .hd-base > .hd-sheet .hd-uppic .hd-img { max-width:76px; max-height:48px; }
-  ${W} .hd-base > .hd-sheet .hd-upbox { margin-bottom:6px; padding:6px 12px 8px; }
-  ${W} .hd-base > .hd-sheet .hd-upcost { margin-bottom:4px; }
-  ${W} .hd-base > .hd-sheet .hd-btn.hd-upbtn { min-height:46px; font-size:16px; }
-  ${W} .hd-base > .hd-sheet .hd-upgo { min-height:44px !important; margin-top:4px !important; }
+  /* 横屏矮屏：庆祝框的列表矮一点，两个按钮才放得下 */
   ${W} .hd-celebrate .hd-newlist { max-height:34vh; margin-bottom:8px; }
   /* 守岛顶栏横屏也挤：加了暂停钮后右边一组会压住左边的波数牌。暂停只画图标（44 宽；字还在、读屏照念，只是透明），
      「宝藏」两个字和竖屏手机一样收起（只留宝箱图标和 20/20），两组之间才留得出空 */
@@ -299,7 +292,7 @@ ${LAND} {
   /* 守岛：技能和叫波挪到右下角一块板 */
   ${W} .hd-td-bottom { left:auto; right:6px; bottom:6px; width:170px; flex-wrap:wrap; justify-content:center; padding:8px 6px 8px; border:3px solid ${ink}; border-radius:14px; }
   ${W} .hd-td-call { flex:1 1 100%; max-width:none; min-height:56px; }
-  /* 战书（规则版本 22）：右上角那一列是技能板，挪到左下角 */
+  /* 战书：右上角那一列是技能板，挪到左下角 */
   ${W} .hd-td-dare { top:auto; right:auto; left:6px; bottom:calc(6px + env(safe-area-inset-bottom,0px)); }
   /* 章末机制钮（水闸）排在炸药桶旁边（第二行），叫波照旧独占最后一行；快捷键仍按 DOM 顺序（叫波 3、机制 4） */
   ${W} .hd-td-hasmech .hd-td-mech { order:1; }

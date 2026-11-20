@@ -253,7 +253,7 @@ export function startPlace(bs: BaseScene, kind: BuildingKind, id?: number): void
   let sy = cur?.y ?? 0;
   if (!cur) {
     const g = unIso(bs.cc.cx, bs.cc.cy);
-    const at = startSpot(p.base.buildings, kind, Math.round(g.gx - size / 2), Math.round(g.gy - size / 2), ISLAND, (x, y) => canPlace(p, kind, x, y));
+    const at = startSpot(p.base.buildings, kind, Math.round(g.gx - size / 2), Math.round(g.gy - size / 2), bs.ext, (x, y) => canPlace(p, kind, x, y));
     if (at) {
       sx = at.x;
       sy = at.y;
@@ -334,13 +334,20 @@ export function placeFrame(bs: BaseScene, time: number, dt: number): void {
   }
 }
 
+/** 格坐标夹到岛上的一格（岛按主寨扩了 bs.ext 圈：[-ext, ISLAND+ext)），拉城墙的起点、终点用 */
+function isleCell(bs: BaseScene, gx: number, gy: number): { x: number; y: number } {
+  const lo = -bs.ext;
+  const hi = ISLAND + bs.ext - 1;
+  return { x: Math.min(hi, Math.max(lo, Math.floor(gx))), y: Math.min(hi, Math.max(lo, Math.floor(gy))) };
+}
+
 /** 鼠标 / 手指点按的世界坐标 → 虚影落在哪（不像拖动那样往上让手指） */
 export function placeAt(bs: BaseScene, wx: number, wy: number, mouse: boolean): void {
   const pl = bs.place;
   if (!pl) return;
   const g = unIso(wx, wy);
   if (pl.kind === 'wall' && pl.id === undefined) {
-    const c = { x: Math.min(ISLAND - 1, Math.max(0, Math.floor(g.gx))), y: Math.min(ISLAND - 1, Math.max(0, Math.floor(g.gy))) };
+    const c = isleCell(bs, g.gx, g.gy);
     // 鼠标按着是在拖一排；没按着就是一格跟着鼠标走
     if (!(mouse && pl.mouseLine)) pl.lineFrom = c;
     setLine(bs, c.x, c.y);
@@ -370,7 +377,7 @@ export function wallMask(_bs: BaseScene, w: Placed): number {
 export function lineBegin(bs: BaseScene, wx: number, wy: number, mouse = false): void {
   const pl = bs.place!;
   const g = unIso(wx, wy - (mouse ? 0 : 36 / bs.cc.z));
-  pl.lineFrom = { x: Math.min(ISLAND - 1, Math.max(0, Math.floor(g.gx))), y: Math.min(ISLAND - 1, Math.max(0, Math.floor(g.gy))) };
+  pl.lineFrom = isleCell(bs, g.gx, g.gy);
   setLine(bs, pl.lineFrom.x, pl.lineFrom.y);
 }
 
@@ -384,7 +391,9 @@ export function setLine(bs: BaseScene, cx: number, cy: number): void {
   const horiz = Math.abs(dx) >= Math.abs(dy);
   const n = Math.min(14, (horiz ? Math.abs(dx) : Math.abs(dy)) + 1);
   for (let i = 0; i < n; i++) cells.push(horiz ? { x: f.x + Math.sign(dx || 1) * i, y: f.y } : { x: f.x, y: f.y + Math.sign(dy || 1) * i });
-  const marked = cells.filter((c) => c.x >= 0 && c.y >= 0 && c.x < ISLAND && c.y < ISLAND).map((c) => ({ ...c, ok: canPlace(app.profile, 'wall', c.x, c.y) }));
+  const lo = -bs.ext;
+  const hi = ISLAND + bs.ext;
+  const marked = cells.filter((c) => c.x >= lo && c.y >= lo && c.x < hi && c.y < hi).map((c) => ({ ...c, ok: canPlace(app.profile, 'wall', c.x, c.y) }));
   pl.lineCells = marked;
   pl.line = marked.filter((c) => c.ok);
   pl.ghost.setVisible(false);
@@ -410,7 +419,8 @@ export function dragTo(bs: BaseScene, wx: number, wy: number): void {
   pl.moved = true;
   const g = unIso(wx, wy - (pl.mouseLine ? 0 : 36 / bs.cc.z));
   if (pl.kind === 'wall' && pl.id === undefined) {
-    setLine(bs, Math.min(ISLAND - 1, Math.max(0, Math.floor(g.gx))), Math.min(ISLAND - 1, Math.max(0, Math.floor(g.gy))));
+    const c = isleCell(bs, g.gx, g.gy);
+    setLine(bs, c.x, c.y);
     return;
   }
   setPlace(bs, Math.round(g.gx - pl.size / 2), Math.round(g.gy - pl.size / 2));
@@ -419,11 +429,11 @@ export function dragTo(bs: BaseScene, wx: number, wy: number): void {
 /** 虚影挪到 (x0, y0)：每一格按能放 / 出界 / 压到建筑涂色，底栏写原因（位置没变就不重画） */
 export function setPlace(bs: BaseScene, x0: number, y0: number): void {
   const pl = bs.place!;
-  const { x, y } = clampPlace(x0, y0, pl.size, ISLAND);
+  const { x, y } = clampPlace(x0, y0, pl.size, bs.ext);
   if (pl.check && x === pl.x && y === pl.y) return;
   pl.x = x;
   pl.y = y;
-  const c = (pl.check = placeCheck(app.profile.base.buildings, pl.kind, x, y, ISLAND, pl.id));
+  const c = (pl.check = placeCheck(app.profile.base.buildings, pl.kind, x, y, bs.ext, pl.id));
   pl.valid = canPlace(app.profile, pl.kind, x, y, pl.id);
   const f = footCenter(x, y, pl.size);
   const s = iso(f.gx, f.gy);

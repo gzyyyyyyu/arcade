@@ -119,7 +119,7 @@ describe('moorOffsets：停泊的船画到海上并排开', () => {
   const run = (items: { id: number; x: number; y: number }[]) => {
     const ox = new Float64Array(items.length);
     const oy = new Float64Array(items.length);
-    moorOffsets(items, ox, oy, 22, 3, 100);
+    moorOffsets(items, ox, oy, 0, 100);
     return items.map((it, i) => ({ x: it.x + ox[i]!, y: it.y + oy[i]! }));
   };
   it('停在 x 大那条边沙滩上的炮艇推到沙滩外沿以外，沿岸方向不动', () => {

@@ -364,4 +364,14 @@ const EARLY_CAMPAIGN: LevelDef[] = [
   },
 ];
 
-export const CAMPAIGN: LevelDef[] = [...EARLY_CAMPAIGN, ...LATE_CAMPAIGN];
+/**
+ * 各关的难度旋钮 defPct（防御塔血量和塔、陷阱伤害的百分比，LevelDef.defPct；没列的 = 100）：布局定玩法，这一列把三星率和新手过关率拉到
+ * 共用难度线上（src/content/difficulty.ts）。按 `node tools/sim.ts --fun --n 200 [--level cNN --def N]` 逐关拟合，实测表在 docs/balance-haidao.md 难度曲线总表。
+ * 悬赏出海用冻结副本 bountylevels.ts，流浪海盗岛（pvp.ts）只借布局、不带 defPct，都不受这张表影响。
+ */
+const DEF_PCT: Readonly<Record<string, number>> = {
+  c04: 65, c05: 75, c06: 72, c07: 75, c08: 66, c09: 80, c10: 45, c11: 92, c12: 72, c14: 70, c15: 70, c16: 105,
+  c17: 88, c18: 82, c19: 92, c20: 42, c21: 80, c22: 65, c23: 76, c24: 84, c25: 88, c26: 86, c27: 86, c28: 62, c29: 76, c30: 62,
+};
+
+export const CAMPAIGN: LevelDef[] = [...EARLY_CAMPAIGN, ...LATE_CAMPAIGN].map((l) => (DEF_PCT[l.id] !== undefined ? { ...l, defPct: DEF_PCT[l.id] } : l));

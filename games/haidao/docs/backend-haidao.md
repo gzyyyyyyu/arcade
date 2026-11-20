@@ -1,6 +1,6 @@
 # 海岛后端（异步攻防与实盘）实现笔记
 
-> 从 AGENTS.md 搬来。Durable Object 的通用规矩（只用 `ctx.acceptWebSocket`、一个闹钟、每步最多写 2 行存储）见 AGENTS.md 和仓库根规范。
+> Durable Object 的通用规矩（只用 `ctx.acceptWebSocket`、一个闹钟、每步最多写 2 行存储）见 AGENTS.md 和仓库根规范。
 
 - DO：`BASE` → `Base`（每人一个）、`HARBOR` → `Harbor`（全站一个）、`METER` → kit 的 `RoomMeter`，都是 SQLite 后端（`wrangler.jsonc` 的 migrations `v1`）。上线后新加类另加 `v2`，不改 `v1`。
 - 匹配分档：`Harbor.pick` 先找主寨同级和低一级，没有才给高一级（`hqLo` / `hqHi` 收窄 `eligible` 和 SQL 的主寨区间，DESIGN.md 5.9）。

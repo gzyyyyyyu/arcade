@@ -64,7 +64,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       sfx('land');
       sfx('shout');
       const early = e.early ? callBonusText(e.bonus, e.cdCut ?? 0) : '';
-      banner(bs, w?.boss ? '首领来袭！' : `第 ${e.wave + 1} 波`, early && !(e.wave === 0 && bs.d.tide && tideMod(bs.d.tide.week, s.rules)) ? `提前开打 ${early}` : waveSub(bs, e.wave), w?.boss === true);
+      banner(bs, w?.boss ? '首领来袭！' : `第 ${e.wave + 1} 波`, early && !(e.wave === 0 && bs.d.tide && tideMod(bs.d.tide.week)) ? `提前开打 ${early}` : waveSub(bs, e.wave), w?.boss === true);
       if (w?.boss) bigEvent(bs, bs.hs, 'bossEnter');
       if (e.early && e.bonus > 0) bs.hud.gold.parentElement?.classList.add('bump');
       break;
@@ -252,7 +252,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
         const ship = SHIP_FOES.has(e.kind);
         bs.dying.addRig(sp.rig, sp.face, ship ? 'sink' : style, (r) => bs.pool.put(r), bs.pt);
         if (ship) sinkFx(bs, sp.rig.x, sp.rig.y, e.kind === 'king' ? 1.6 : 1);
-        // 飘的金币按规则实际给的（接了战书翻倍、富港周打折，规则版本 22）
+        // 飘的金币按规则实际给的（接了战书翻倍、富港周打折）
         const g = dead ? killGold(s, dead, TD2_ENEMIES[e.kind].gold) : TD2_ENEMIES[e.kind].gold;
         ftx(bs, sp.rig.x, sp.rig.y - 34, `+${g}`, '#ffe885', 14);
         if (e.kind === 'captain' || e.kind === 'king') bigEvent(bs, bs.hs, 'bossDown');
@@ -309,7 +309,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
       break;
     }
     case 'bounty': {
-      // 赏金船（规则版本 22）：上岸飘一句；打倒时金币从它身上飘出来、金币牌跳一下；跑掉了飘一句
+      // 赏金船：上岸飘一句；打倒时金币从它身上飘出来、金币牌跳一下；跑掉了飘一句
       const w = W(e.x, e.y);
       if (e.what === 'come') ftx(bs, w.x, w.y - 60, '赏金船上岸了', '#ffe885', 16);
       else if (e.what === 'paid') {
@@ -461,7 +461,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
         if (bs.kegAim) throwKeg(bs, bs.kegAim);
         bs.kegAim = null;
       } else if (e.what === 'barricade' || e.what === 'rally') {
-        // 拒马的画面在 Td2Event 'barricade' 里；号令在规则版本 7 里是被动的，不再有这个事件
+        // 拒马的画面在 Td2Event 'barricade' 里；号令是被动的，没有这个事件
       } else if (e.what === 'hook' || e.what === 'flag' || e.what === 'reward') {
         // 锚钩、急射旗、重赏的画面和声音在各自的 Td2Event 里（tdhookfx.ts、tdnavfx.ts），这里只给一下振动
         vibrate('skill');
@@ -542,7 +542,7 @@ export function chestNear(bs: TdScene, ux: number, uy: number): { x: number; y: 
 }
 
 /**
- * 开波横幅的副标题：关内事件（规则版本 22）先说，大潮第 1 波说本周海况（按「开打」提前开的也说，叫波奖励那句让给它），其余用关卡写的说明
+ * 开波横幅的副标题：关内事件先说，大潮第 1 波说本周海况（按「开打」提前开的也说，叫波奖励那句让给它），其余用关卡写的说明
  */
 function waveSub(bs: TdScene, w: number): string {
   const s = bs.s;
@@ -550,7 +550,7 @@ function waveSub(bs: TdScene, w: number): string {
   if (ev === 'rain') return '暴雨：火弱两成，地上的火不烧';
   if (ev === 'bounty') return '赏金船要上岸了，打倒多给金币';
   if (ev === 'dare' && s.happen?.dare.includes(w)) return '接了战书：这一波金币翻倍';
-  const mod = w === 0 && bs.d.tide ? tideMod(bs.d.tide.week, s.rules) : null;
+  const mod = w === 0 && bs.d.tide ? tideMod(bs.d.tide.week) : null;
   if (mod) return `本周海况：${TIDE_MODS[mod].name}，${TIDE_MODS[mod].desc}`;
   return s.level.waves[w]?.note ?? '';
 }

@@ -74,7 +74,7 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
       // 序列帧的命中火花只给重击（分量够才配得上），普通命中走粒子池里的小火花
       if (heavy) bs.frames.play('hit', w.x, w.y - 10, 1, bs.nowT);
       else bs.pt.sparks(w.x, w.y - 10, 2);
-      if (isWater(e.x, e.y)) bs.pt.splash(w.x, w.y, 0.8);
+      if (isWater(bs.st.ext, e.x, e.y)) bs.pt.splash(w.x, w.y, 0.8);
       if (e.target === 'building') {
         const b = bs.bsp.get(e.id);
         const bb = bs.st.buildings.find((q) => q.id === e.id);
@@ -148,7 +148,7 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
       }
       sfx('boom');
       boom(bs, w.x, w.y, Math.max(0.5, cells * 0.9));
-      if (isWater(e.x, e.y)) bs.pt.splash(w.x, w.y, Math.max(1, cells * 0.7));
+      if (isWater(bs.st.ext, e.x, e.y)) bs.pt.splash(w.x, w.y, Math.max(1, cells * 0.7));
       if (isBigBlast(cells)) bigEvent(bs, bs.hs, 'bigBlast');
       break;
     }
@@ -291,9 +291,9 @@ export function boom(bs: BattleScene, x: number, y: number, size: number): void 
   bs.frames.play('boom', x, y - 6, Math.max(0.8, size), bs.nowT, DEPTH.hitFx);
 }
 
-/** 画面上的位置是否在海里（超出沙滩），只用来决定要不要溅水花 */
-export function isWater(x: number, y: number): boolean {
-  return ringOf(Math.floor(x / UNIT), Math.floor(y / UNIT)) > BEACH;
+/** 画面上的位置是否在海里（超出沙滩），只用来决定要不要溅水花；ext 是这一局的岛扩了几圈 */
+export function isWater(ext: number, x: number, y: number): boolean {
+  return ringOf(ext, Math.floor(x / UNIT), Math.floor(y / UNIT)) > BEACH;
 }
 
 /** 木屑 / 石屑：木头的（低级和伐木类）飞木屑，石头的飞石屑 */
