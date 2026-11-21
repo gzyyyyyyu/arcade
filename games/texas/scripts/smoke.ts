@@ -23,6 +23,7 @@
  * 今日谜题（--only puzzle）：每天 5 道连着答、每道揭晓、答到一半刷新接着答、答完交一次每日榜、总结卡、晒一下、键盘 1/2/3 和 Esc；电脑 1280×800 和手机竖屏 390×844 各一遍（见 puzzleFlow）。
  * 顶栏和设置面板（--only settings）：见 settingsFlow 的注释。
  * 新手指引（--only guide）：见 guideFlow 的注释。
+ * 每人同时 1 个房间（--only quota）：房主先走再开房、匹配先走再排都回原房间并提示，朋友离桌后开出新房，见 quota.ts。
  * 好友房长跑（--only roomsoak）、后台切回和弱网（--only roomweak）：见各自函数的注释，不在默认冒烟里。
  * 端口一律由系统分配（不占 5175 / 4175）。截图放在 --shots（默认系统临时目录下的 texas-shots）。
  */
@@ -38,6 +39,7 @@ import { pushFoldFlow, dailyTourFlow } from './smoke/quick.ts';
 import { devicesFlow, scenesFlow, bigMomentsFlow } from './smoke/devices.ts';
 import { roomSoak, roomWeak } from './smoke/room-soak.ts';
 import { noScrollFlow } from './smoke/noscroll.ts';
+import { quotaFlow } from './smoke/quota.ts';
 
 async function main(): Promise<void> {
   // 有的沙箱环境里 zygote 拉不起 GPU 子进程，浏览器会直接退出；不用 zygote 就好（CI 上加不加都一样）
@@ -70,6 +72,7 @@ async function main(): Promise<void> {
         if (only === 'bigmoments') await bigMomentsFlow(browser, base);
         if (only === 'roomsoak') await roomSoak(browser, base);
         if (only === 'roomweak') await roomWeak(browser, base);
+        if (only === 'quota') await quotaFlow(browser, base);
       });
     if (!only || only === 'standalone') await withWorker(STANDALONE_CONFIG, (base) => standalone(browser, base));
   } catch (e) {
