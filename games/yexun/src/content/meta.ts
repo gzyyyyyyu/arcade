@@ -195,3 +195,36 @@ export const REVIVE = { hp: 0.5, invuln: 90, area: 260, knock: 90 };
 
 /** 连死几局后问"要不要降低伤害"；开着时挨打 × dmg，成绩不进总榜（13.2） */
 export const ASSIST = { deaths: 3, dmg: 0.7 };
+
+// ───────────────────────── 铜钱的用途：换筹码、锦囊、外观（0.35.0，DESIGN 3.8a） ─────────────────────────
+
+/**
+ * 铜钱换筹码：rate 枚换 1 个筹码；每天能换多少由平台钱包定（默认 2,000，管理页可调），dailyCap 只是拿不到额度时界面上写的数。
+ * 换满一天要 6,000 枚，约 3～4 局普通守夜；同样的时间打小档实盘期望高 2.5 倍以上，不挤掉实盘（所有者 11-21 定）。
+ */
+export const COIN_EXCHANGE = { rate: 3, dailyCap: 2_000, steps: [100, 500, 1_000] as const };
+
+/** 局前锦囊：开局前选上，开局时扣铜钱，只管这一局；娱乐守夜、夜探能带，实盘、每日挑战、连战、本周夜事不带（core normalizeSetup 也挡） */
+export type KitId = 'reroll' | 'start2' | 'passive';
+export const KIT_IDS: readonly KitId[] = ['reroll', 'start2', 'passive'];
+export const KITS: Record<KitId, { name: string; text: string; cost: number }> = {
+  reroll: { name: '刷新符', text: '起步多 2 次刷新、1 次封禁', cost: 150 },
+  start2: { name: '开门红', text: '起手法器直接 2 级', cost: 250 },
+  passive: { name: '随身宝', text: '开局多一件随机被动（1 级，从这个角色的池里抽）', cost: 400 },
+};
+export const KIT_FX = { rerolls: 2, bans: 1 };
+
+/** 外观：全角色通用，只改画面；头像框（HUD、结算页）和脚下光圈各几款，买下永久有 */
+export type LookId = 'frame_jade' | 'frame_gold' | 'frame_ink' | 'frame_cinnabar' | 'aura_moon' | 'aura_lotus' | 'aura_ember' | 'aura_frost';
+export type LookSlot = 'frame' | 'aura';
+export const LOOK_IDS: readonly LookId[] = ['frame_jade', 'frame_gold', 'frame_ink', 'frame_cinnabar', 'aura_moon', 'aura_lotus', 'aura_ember', 'aura_frost'];
+export const LOOKS: Record<LookId, { slot: LookSlot; name: string; cost: number; color: string; edge: string }> = {
+  frame_jade: { slot: 'frame', name: '青玉框', cost: 2_000, color: '#5fb39a', edge: '#2f6f5e' },
+  frame_gold: { slot: 'frame', name: '鎏金框', cost: 2_000, color: '#f2c94c', edge: '#a8741a' },
+  frame_ink: { slot: 'frame', name: '墨竹框', cost: 2_000, color: '#3a3f4c', edge: '#17131c' },
+  frame_cinnabar: { slot: 'frame', name: '朱砂框', cost: 2_000, color: '#d0453a', edge: '#7e1f1a' },
+  aura_moon: { slot: 'aura', name: '月华', cost: 2_000, color: '#cfe3ff', edge: '#6f8fc8' },
+  aura_lotus: { slot: 'aura', name: '莲台', cost: 2_000, color: '#f3a9c4', edge: '#b8527a' },
+  aura_ember: { slot: 'aura', name: '炭火', cost: 2_000, color: '#ff9a3c', edge: '#b8401a' },
+  aura_frost: { slot: 'aura', name: '霜花', cost: 2_000, color: '#bff1ff', edge: '#4aa8c8' },
+};

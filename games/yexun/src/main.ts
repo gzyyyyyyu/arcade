@@ -5,11 +5,13 @@
  */
 import Phaser from 'phaser';
 import { DAWN_TICK, type Danger } from './content/waves.ts';
-import { CURSE_IDS, MAX_CURSES } from './content/meta.ts';
+import { COIN_EXCHANGE, CURSE_IDS, LOOKS, MAX_CURSES } from './content/meta.ts';
 import { createWorld, type Setup, type World } from './core/index.ts';
 import { openEliteChestNow } from './core/debug.ts';
 import { autoSkillSetting } from './view/game/autoskill.ts';
-import { buyChar, buyPerk, dangerOpen, loadoutSetup, loadSave, mapOpen, refundPerks, saveHooks, setLoadout, settings, writeSave } from './platform/save.ts';
+import { buyChar, buyLook, buyPerk, dangerOpen, loadoutSetup, loadSave, mapOpen, payKits, refundPerks, saveHooks, setLoadout, settings, wearLook, writeSave } from './platform/save.ts';
+import { ExchangeClient } from './platform/exchange.ts';
+import type { ExchangeView } from './view/ui/prepShop.ts';
 import { SCHOOLS } from './content/guide.ts';
 import { hasLoginHint, startCloud } from './platform/cloud.ts';
 import { createLive, liveSetup } from './platform/live.ts';
@@ -128,6 +130,16 @@ async function boot(): Promise<void> {
   const live = createLive();
   void live.resume();
   addEventListener('online', () => void live.resume());
+  // 铜钱换筹码（DESIGN 3.8a）：没结的（铜钱先扣着）开页、联网、回到前台时用同一个 op 重发
+  const xc = new ExchangeClient({ save, fetch: (u, i) => fetch(u, i) });
+  const xcView: ExchangeView = { unavailable: false, quota: null, pending: save.xc.length, busy: false, msg: '' };
+  const xcResume = (): void => {
+    if (!save.xc.length) return;
+    void xc.resume().then((n) => {
+      xcView.pending = save.xc.length;
+      if (n > 0) refreshPrep();
+    });
+  };
   const sess: Session = { liveRun: null, rec: null, dailyDate: null, weeklyDate: null, lastLive: null, liveTier: 'small', ended: false, records: loadRecords(), tally: new RunTally() };
   /** 菜单上开了"无尽"（再来一局沿用上一局的） */
   let wantEndless = false;
@@ -168,7 +180,7 @@ async function boot(): Promise<void> {
   };
   /** 流水 id 的随机后缀：两台设备同时买同一样东西也不会撞成一条（画面层，不进规则核心） */
   const nonce = (): string => Math.random().toString(36).slice(2, 10);
-  const { prepState, menuState } = createMenuViews(save, live, icon);
+  const { prepState, menuState } = createMenuViews(save, live, icon, () => xcView);
   const refreshPrep = (): void => {
     writeSave(save);
     prep.update(prepState());
@@ -189,6 +201,45 @@ async function boot(): Promise<void> {
     if (buyPerk(save, id, nonce())) sfx.play('click');
     refreshPrep();
   };
+  prep.onToggleKit = (k) => {
+    save.kits = save.kits.includes(k) ? save.kits.filter((x) => x !== k) : [...save.kits, k];
+    refreshPrep();
+  };
+  prep.onBuyLook = (id) => {
+    if (buyLook(save, id, nonce())) sfx.play('click');
+    refreshPrep();
+  };
+  prep.onWearLook = (id) => {
+    wearLook(save, LOOKS[id].slot, save.wear[LOOKS[id].slot] === id ? null : id);
+    refreshPrep();
+  };
+  prep.onOpenExchange = () => {
+    void xc.quota().then((q) => {
+      xcView.quota = q;
+      xcView.unavailable = xc.unavailable;
+      refreshPrep();
+    });
+  };
+  prep.onExchange = (amount) => {
+    xcView.busy = true;
+    xcView.msg = '';
+    refreshPrep();
+    void xc.exchange(amount).then((r) => {
+      xcView.busy = false;
+      xcView.pending = save.xc.length;
+      xcView.unavailable = xc.unavailable;
+      if (r.kind === 'ok' || r.kind === 'reject') {
+        if (r.left !== null && xcView.quota) xcView.quota = { ...xcView.quota, left: r.left };
+      }
+      xcView.msg = xcMsg(r);
+      if (r.kind === 'ok' && r.credited > 0) sfx.play('click');
+      refreshPrep();
+    });
+  };
+  // 回调里要用 refreshPrep，等它定义好再开始重发
+  xcResume();
+  addEventListener('online', xcResume);
+  document.addEventListener('visibilitychange', () => !document.hidden && xcResume());
   prep.onRefund = () => {
     refundPerks(save, nonce());
     refreshPrep();
@@ -357,7 +408,9 @@ async function boot(): Promise<void> {
     const ms = menuState();
     // 竖屏开的局刷怪圈转 90°（Setup.tall），录进录像；实盘、每日挑战的固定配置也按这台设备补上
     const tall = css().h > css().w ? { tall: true } : {};
-    const w = createWorld({ ...(fixed ?? { seed, mode: 'vigil', danger, map, firstRun: save.runs === 0, character: ms.character, ...loadoutSetup(save, ms.character), curses: ms.curses, perks: save.perks, assist: save.assist, ...(wantEndless ? { endless: true } : {}) }), ...tall });
+    // 局前锦囊：只有菜单开的娱乐守夜、夜探带（实盘、每日、本周夜事、连战、教学镇不带），开局这一下扣铜钱
+    const kits = kind === null && !debug && fixed?.raid?.template !== 'teach' && save.kits.length ? payKits(save, fixed?.seed ?? seed, nonce()) : [];
+    const w = createWorld({ ...(fixed ?? { seed, mode: 'vigil', danger, map, firstRun: save.runs === 0, character: ms.character, ...loadoutSetup(save, ms.character), curses: ms.curses, perks: save.perks, assist: save.assist, ...(wantEndless ? { endless: true } : {}) }), ...(kits.length ? { kits } : {}), ...tall });
     world = w;
     autopilot = undefined;
     social.setWhere(w.raid ? 'raid' : 'vigil');
@@ -367,7 +420,12 @@ async function boot(): Promise<void> {
     const firstRun = save.runs === 0;
     showPlay(true);
     setPaused(false);
+    // 外观（DESIGN 3.8a）：头像框在 HUD，脚下光圈在场景；实盘也照穿（只改画面）
+    const frame = save.wear.frame ? LOOKS[save.wear.frame] : null;
+    hud.setFrame(frame ? { color: frame.color, edge: frame.edge } : null);
+    const aura = save.wear.aura ? LOOKS[save.wear.aura] : null;
     game.scene.add('game', GameScene, true, {
+      ...(aura ? { aura: { color: aura.color, edge: aura.edge } } : {}),
       world: w,
       atlas,
       mobAtlas,
@@ -604,3 +662,14 @@ async function boot(): Promise<void> {
 }
 
 void boot();
+
+/** 换筹码的结果，一句话（换筹码页底下那行） */
+function xcMsg(r: Awaited<ReturnType<ExchangeClient['exchange']>>): string {
+  const rate = COIN_EXCHANGE.rate;
+  if (r.kind === 'ok') return r.credited > 0 ? `换到 ${r.credited.toLocaleString('zh-CN')} 筹码，花了 ${(r.credited * rate).toLocaleString('zh-CN')} 铜钱` : '今天换满了，铜钱都退回来了';
+  if (r.kind === 'pending') return r.why === 'login' ? '要先登录；铜钱先扣着，登录后自动补上' : '网不好，铜钱先扣着，过会儿自动重发';
+  if (r.kind === 'skip') return r.why === 'coins' ? '铜钱不够' : '';
+  if (r.error === 'exchange_cap') return '今天换满了，铜钱都退回来了';
+  if (r.error === 'limit') return '今天操作次数到顶了，铜钱都退回来了';
+  return '没换成，铜钱都退回来了';
+}

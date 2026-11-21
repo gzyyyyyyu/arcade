@@ -6,7 +6,7 @@
 import { ACHIEVEMENTS, rewardCoins } from '../../content/achievements.ts';
 import { ENEMIES, type EnemyKind } from '../../content/enemies.ts';
 import { SHELVED_KINDS } from '../../content/foes.ts';
-import { PASSIVES, WEAPONS, type WeaponId } from '../../content/weapons.ts';
+import { PASSIVES, WEAPONS, spanNums, type WeaponId } from '../../content/weapons.ts';
 import { collection, type Records } from '../../meta/records.ts';
 import { beijingDate } from '../../online/daily.ts';
 import { combosClick, combosFor, mergeHow, newCombosState, renderCombos, whoText } from './codexCombos.ts';
@@ -176,7 +176,7 @@ export class Codex {
         const evoName = w.evolve ? (evo ? w.evolve.name : '？？？') : '';
         return (
           `<div class="yx-ccard${evo ? ' done' : ''}"><img alt="" src="${this.icons(evo && w.evolve ? w.evolve.icon : w.icon)}"><b>${esc(w.name)}</b><span>${w.el}·${w.type}</span>` +
-          `<p>${esc(w.desc)}</p>${evoName ? `<p class="evo">进化：${esc(evoName)}${evo || !w.evolve ? '' : `（满级 + ${esc(PASSIVES[w.evolve.with].name)}）`}</p>` : ''}` +
+          `<p>${esc(w.desc)}</p><p class="num">1→8 级 ${spanNums(id).map((n) => `${n.name} ${n.from}→${n.to}${n.unit}`).join(' · ')}</p>${evoName ? `<p class="evo">进化：${esc(evoName)}${evo || !w.evolve ? '' : `（满级 + ${esc(PASSIVES[w.evolve.with].name)}）`}</p>` : ''}` +
           `<div class="yx-badges">${badge(true, '用过')}${badge(rec.weaponsMaxed.includes(id), '满级')}${badge(evo, '进化')}</div></div>`
         );
       })

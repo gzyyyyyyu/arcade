@@ -72,7 +72,7 @@ export const SKILLS: Record<CharacterId, SkillDef> = {
   caiyao: { name: '回春', text: '立刻回 35% 血，再 6 秒每秒回 3%，期间身边的怪走得慢一半；满血时回不进去的血变成药香圈的伤害', cd: 40 * S, dur: 6 * S, code: 5, icon: 'sk_spring' },
   zhijiang: { name: '剪纸成军', text: '身边立刻剪出 4 个纸兵，8 秒后散，可超过纸兵的上限', cd: 22 * S, dur: 0, code: 6, icon: 'sk_paper' },
   baidu: { name: '横江一渡', text: '脚下展开一片水域 5 秒：里面你快三成，怪慢四成、每秒挨一下，跟着你走', cd: 20 * S, dur: 5 * S, code: 7, icon: 'sk_ferry' },
-  huolang: { name: '招财进宝', text: '全屏魂珠和铜钱飞到身上，10 秒里打倒的怪多掉一枚铜钱', cd: 30 * S, dur: 10 * S, code: 8, icon: 'sk_fortune' },
+  huolang: { name: '招财进宝', text: '全屏魂珠和铜钱飞到身上，10 秒里打倒的怪多掉一枚铜钱（只在这局里用，不带出局）', cd: 30 * S, dur: 10 * S, code: 8, icon: 'sk_fortune' },
   yinyang: { name: '定阵', text: '脚下布一座阵 6 秒：阵里的怪先定住 1.5 秒，再慢四成', cd: 20 * S, dur: 6 * S, code: 9, icon: 'sk_array' },
 };
 

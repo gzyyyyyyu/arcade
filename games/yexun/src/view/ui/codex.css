@@ -20,6 +20,7 @@
 .yx-ccard > span { font-size: var(--fs-sm, 13px); color: #fbf5e4; background: #6a5a48; border-radius: 8px; padding: 1px 8px; }
 .yx-ccard p { margin: 2px 0 0; font-size: var(--fs-sm, 13px); font-weight: 600; color: #4a3d30; }
 .yx-ccard p.evo { color: var(--red); }
+.yx-ccard p.num { color: #1f6a8a; }
 .yx-ccard em { font-style: normal; font-size: var(--fs-sm, 13px); color: #5a4a3a; }
 .yx-ccard.lock { background: #e2d8bd; }
 .yx-ccard.dual { border-color: var(--mc); box-shadow: 0 0 0 2px var(--mc); }

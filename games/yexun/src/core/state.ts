@@ -4,7 +4,7 @@
  */
 import { ENEMIES } from '../content/enemies.ts';
 import { LIVE_EASE, RAID_MAX_DANGER, type Danger, type WaveEvent } from '../content/waves.ts';
-import { CHAR_FX, CHARACTERS, CURSE_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type PerkId } from '../content/meta.ts';
+import { CHAR_FX, CHARACTERS, CURSE_IDS, KIT_FX, KIT_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type KitId, type PerkId } from '../content/meta.ts';
 import { isWeeklyId, type WeeklyId } from '../content/weekly.ts';
 import { MAPS, type Block, type MapId, type Rect } from '../content/maps.ts';
 import { PICKS } from '../content/picks.ts';
@@ -21,7 +21,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 70;
+export const RULES_VERSION = 71;
 export const TICKS_PER_SECOND = 30;
 
 export const MAX_ENEMIES = 300;
@@ -192,6 +192,8 @@ export interface Setup {
    * 这个流派单子上的法器卡和被动卡在升级三选一里权重 ×XINFA_MUL。不在主修里的值 normalizeSetup 会删掉
    */
   xinfa?: SchoolId;
+  /** 局前锦囊（content/meta.ts KITS）：娱乐局才有，实盘、连战、本周夜事丢掉 */
+  kits?: readonly KitId[];
 }
 
 /** 整理开局设置：咒印去重、截到上限，加成等级截到表里的最高级（录像和存档里来的数据不一定干净） */
@@ -213,6 +215,10 @@ export function normalizeSetup(s: Setup): Setup {
   if (out.startAlt !== true || out.rush) delete out.startAlt;
   const pc = (POOL_CHARACTER_IDS as readonly string[]).includes(character) ? (character as PoolCharacterId) : undefined;
   if (out.xinfa !== undefined && (out.rush || !pc || !mainSchools(pc).includes(out.xinfa))) delete out.xinfa;
+  // 锦囊：只认表里的、不重复；实盘、连战、本周夜事要人人一样，不带
+  const kits = KIT_IDS.filter((k) => s.kits?.includes(k));
+  if (kits.length && !out.live && !out.rush && out.weekly === undefined) out.kits = kits;
+  else delete out.kits;
   return out;
 }
 
@@ -269,6 +275,12 @@ export class World {
   coins = 0;
   /** 铜钱从哪来的（结算页列来源用，只记不影响规则）：地上捡的、铜钱袋、摆设、宝箱 */
   readonly coinBy = { drop: 0, purse: 0, prop: 0, chest: 0, weekly: 0 };
+  /**
+   * 带出局外的铜钱要扣掉的部分（只记不影响规则，platform/save.ts carryCoins）：招财进宝多掉的那枚铜钱捡到了几枚（货郎一局上万枚，
+   * 只在局里用：夜市、讨价、补刷新），局里花掉了几枚（夜市、鬼市，先算花的是招财进宝的钱）
+   */
+  coinFortune = 0;
+  coinSpent = 0;
   /** 货郎（规则 61）：捡到的铜钱攒到这个数补一次刷新，补完往后加 CHAR_FX.huolangRerollEvery */
   rerollAt = CHAR_FX.huolangRerollEvery;
   /** 开过几个宝箱、一共升了几件；碰碎几个摆设（结算页用） */
@@ -470,6 +482,8 @@ export class World {
   readonly dPX = new Float64Array(MAX_DROPS);
   readonly dPY = new Float64Array(MAX_DROPS);
   readonly dVal = new Float64Array(MAX_DROPS);
+  /** 铜钱：1 = 招财进宝多掉的那枚（只记账，见 coinFortune） */
+  readonly dLuck = new Uint8Array(MAX_DROPS);
   /** 被吸着走：速度 */
   readonly dPull = new Float64Array(MAX_DROPS);
   dCount = 0;
@@ -533,6 +547,11 @@ export class World {
     const own = (id: CharacterId): number => ((setup.character ?? 'xiaodao') === id ? 1 : 0);
     this.rerolls = setup.curses?.includes('noreroll') ? 0 : PICKS.rerolls + perk('shuaxin') * PERK_FX.shuaxin + own('xiaodao');
     this.bans = PICKS.bans + own('fushi');
+    if (setup.kits?.includes('reroll')) {
+      // 「定」咒印（不能刷新）照样不能刷新，只多封禁
+      if (!setup.curses?.includes('noreroll')) this.rerolls += KIT_FX.rerolls;
+      this.bans += KIT_FX.bans;
+    }
     this.revives = perk('fuhuo') * PERK_FX.fuhuo;
     this.cardCount = 3 + perk('kapian') * PERK_FX.kapian;
     this.rush = setup.rush && setup.mode === 'vigil' ? rushPlan(setup.seed, setup.map ?? 'snow') : null;

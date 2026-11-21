@@ -147,6 +147,17 @@ export class Hud {
     if (this.faceImg) this.faceImg.src = src;
   }
 
+  private avatar!: HTMLElement;
+
+  /** 外观「头像框」（content/meta.ts LOOKS）：换头像的边框颜色；null 是原样 */
+  setFrame(look: { color: string; edge: string } | null): void {
+    this.avatar.classList.toggle('yx-look', !!look);
+    if (look) {
+      this.avatar.style.setProperty('--lf', look.color);
+      this.avatar.style.setProperty('--lfe', look.edge);
+    }
+  }
+
   constructor(parent: HTMLElement, icons: (key: string) => string, face: string) {
     this.icons = icons;
     const root = el('div', 'yx-hud', parent);
@@ -166,6 +177,7 @@ export class Hud {
     const av = el('div', 'yx-avatar', card);
     const img = el('img', '', av);
     this.faceImg = img;
+    this.avatar = av;
     img.src = face;
     img.alt = '';
     this.lv = el('span', 'yx-lv', av, '1');

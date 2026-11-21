@@ -474,6 +474,7 @@ export class Raid {
     }
     if (s < 0 || ++this.buyTicks < L.hold) return;
     h.coins -= this.stallPrice[s]!;
+    h.coinSpent += this.stallPrice[s]!;
     this.stallSold[s] = 1;
     this.bag.push(this.stallItem[s]!);
     this.buyStall = -1;
