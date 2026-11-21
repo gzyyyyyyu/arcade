@@ -171,6 +171,16 @@ export interface RoomGame<S, A, V, O = unknown, E extends RoomEffect = RoomEffec
   chat?: boolean;
   /** 聊天打码时在 kit 的词表（chat-words.ts）之外再加的词；只能加，删不了 kit 的 */
   chatWords?: readonly string[];
+
+  // ---------- 0.27.0 ----------
+
+  /**
+   * 牌局没结束、但已经不算"在打"（0.27.0，可选）：比如好友房一整场打完、停着等"再来一场"（再来一场开新房间）。从不是变成是的那一步，
+   * 房间就把开房名额还给计量（匹配桌是排进来的每个人的），房间照常开着、照常收操作（点再来一场、离座、聊天）；之后 over 变真时再还一次也没事（计量认重复还）。
+   * 单向：进了 idle 只能留在 idle 或者 over，不能回到在打（名额已经还了，回去就是不占名额接着打）。游戏真回去了，房间记日志、按打完收尾。
+   * 计量说满了（stopWrites）时 idle 也算收场点。不写就和以前一样，over 才还
+   */
+  idle?(state: S): boolean;
 }
 
 /**

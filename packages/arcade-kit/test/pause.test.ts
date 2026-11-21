@@ -7,9 +7,9 @@ import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { snapshotBytes } from '../src/game.ts';
 import { roomStub } from '../src/internal.ts';
-import type { StateMsg, WelcomeMsg } from '../src/protocol.ts';
+import { CLOSE, CLOSE_REASON, type StateMsg, type WelcomeMsg } from '../src/protocol.ts';
 import { DEFAULT_LIMITS } from '../src/room.ts';
-import { advance, type Conn, freezeClock, join, openRoom, resetMeter, roomRow } from './helpers.ts';
+import { advance, type Conn, createRoom, freezeClock, join, meter, openRoom, PG, resetMeter, roomRow } from './helpers.ts';
 import { type NoResumeRoom, PAUSE_ACT, type PauseRoom, type PauseState, type PauseView, pauseGame, REST_MS } from './pause.ts';
 
 const P = '/pause';
@@ -338,5 +338,84 @@ describe('别人看不出来的不轮流操作（0.7.1）', () => {
     const { host, first } = await started();
     const m = await toRest(host, first);
     expect(m.seq).toBeGreaterThan(first.seq);
+  });
+});
+
+describe('只等再来一场（idle，0.27.0）', () => {
+  /** 房间还名额是广播之后的事（afterStep）：稍等一下再看 */
+  async function opens(userId: string): Promise<number> {
+    let status = 0;
+    for (let i = 0; i < 40 && status !== 201; i++) {
+      status = (await createRoom(userId, P)).status;
+      if (status !== 201) await new Promise((ok) => setTimeout(ok, 10));
+    }
+    return status;
+  }
+
+  it('进入 idle 的那一步还开房名额：房间照常开着、照常收操作，开房的人能再开新房', async () => {
+    const { code, host } = await started();
+    expect((await createRoom('u1', P)).status).toBe(409);
+    host.act('i', { card: PAUSE_ACT.idle });
+    await acked(host, 'i');
+    expect(await opens('u1')).toBe(201);
+    expect((await inspect(code)).persist!.status).toBe('playing');
+    host.act('w', { card: PAUSE_ACT.wave });
+    expect(view(await acked(host, 'w')).waves).toBe(1);
+    await writesOk(code);
+  });
+
+  it('没进 idle 的房间照旧占着名额', async () => {
+    const { host } = await started();
+    host.act('w', { card: PAUSE_ACT.wave });
+    await acked(host, 'w');
+    expect((await createRoom('u1', P)).status).toBe(409);
+  });
+
+  it('idle 是单向的：游戏从 idle 回到在打，房间记日志、按打完收尾', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { code, host } = await started();
+    host.act('i', { card: PAUSE_ACT.idle });
+    await acked(host, 'i');
+    host.act('k', { card: PAUSE_ACT.wake });
+    expect((await acked(host, 'k')).room.status).toBe('over');
+    expect((await inspect(code)).persist!.status).toBe('over');
+    expect(err).toHaveBeenCalledWith('game left idle without being over, ending room', code);
+  });
+
+  it('计量退避期内进 idle：和还没还上的那批（匹配桌没来的人，退次数）合并，过了退避一起还，谁也不丢', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { code, host } = await started();
+    // 没来的人 gone 在这个房间占着名额；房间刚还他没还上（计量断过），正在退避
+    expect(await meter().kitReserve('gone', code, Date.now() + DEFAULT_LIMITS.maxLifeMs)).toEqual({ ok: true });
+    type Pending = { release: { code: string; users: string[]; refund: string[] } | null; meterRetryAt: number };
+    await runInDurableObject(pauseStub(code), (r: Room) => {
+      const p = r as unknown as Pending;
+      p.release = { code, users: ['gone'], refund: ['gone'] };
+      p.meterRetryAt = Date.now() + 60_000;
+    });
+    host.act('i', { card: PAUSE_ACT.idle });
+    await acked(host, 'i');
+    const pending = await runInDurableObject(pauseStub(code), (r: Room) => (r as unknown as Pending).release);
+    expect(pending).toEqual({ code, users: ['gone', 'u1'], refund: ['gone'] });
+    expect((await createRoom('u1', P)).status).toBe(409);
+    // 过了退避，下一步一起还：u1 只还名额，gone 连当天次数一起退
+    advance(60_000);
+    host.act('w', { card: PAUSE_ACT.wave });
+    await acked(host, 'w');
+    expect(await opens('u1')).toBe(201);
+    expect(await meter().kitPeek('gone')).toMatchObject({ room: null });
+    // 当天次数也退了：名额、次数都没了，这一行删掉（PG 那一遍行在假 PG 里，只看上面的名额）
+    if (!PG) expect(await runInDurableObject(meter(), (_m, state) => state.storage.sql.exec('SELECT v FROM kit_user WHERE id = ?', 'gone').toArray())).toEqual([]);
+  });
+
+  it('计量说满了（stopWrites）：进入 idle 就算收场点，以 4000 + quota 关房', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { code, host } = await started();
+    await runInDurableObject(pauseStub(code), (r: Room) => {
+      (r as unknown as { winding: boolean }).winding = true;
+    });
+    host.act('i', { card: PAUSE_ACT.idle });
+    expect(await host.closedWith()).toBe(CLOSE.roomClosed);
+    expect(host.closed!.reason).toBe(CLOSE_REASON.quota);
   });
 });
