@@ -75,7 +75,7 @@ describe('局外成长（第 5 步）', () => {
     expect(finishRun(s, end({ id: 'd3' })).askAssist).toBe(true);
     expect(finishRun(s, end({ id: 'd4' })).askAssist).toBe(false);
   });
-  it('角色解锁：前三个加纸匠、阴阳先生一开始就有，其余按铜钱 / 守夜 8 分钟 / 夜探撤出 / 摆渡人 / 货郎', async () => {
+  it('角色解锁：只有前三个一开始就有，其余按铜钱 / 守夜 8 分钟 / 夜探撤出 / 摆渡人 / 货郎', async () => {
     const { fresh, charOpen, buyChar, finishRun } = await import('../../src/platform/save.ts');
     const s = fresh();
     for (const c of ['xiaodao', 'fushi', 'jianxia'] as const) expect(charOpen(s, c)).toBe(true);
@@ -89,7 +89,32 @@ describe('局外成长（第 5 步）', () => {
     expect(charOpen(s, 'pang')).toBe(true);
     s.extracts = 1;
     expect(charOpen(s, 'caiyao')).toBe(true);
-    for (const c of ['zhijiang', 'yinyang'] as const) expect(charOpen(fresh(), c)).toBe(true);
+    for (const c of ['zhijiang', 'yinyang'] as const) expect(charOpen(fresh(), c)).toBe(false);
+  });
+  it('纸匠守夜撑过 4 分钟、阴阳先生守夜撑到天亮 1 次（实盘的天亮也算）', async () => {
+    const { fresh, charOpen, finishRun, recordLiveVigil, ZHIJIANG_SECONDS } = await import('../../src/platform/save.ts');
+    const s = fresh();
+    finishRun(s, end({ id: 'a', ticks: (ZHIJIANG_SECONDS - 1) * 30 }));
+    expect(charOpen(s, 'zhijiang')).toBe(false);
+    finishRun(s, end({ id: 'b', ticks: ZHIJIANG_SECONDS * 30 }));
+    expect(charOpen(s, 'zhijiang')).toBe(true);
+    expect(charOpen(s, 'yinyang')).toBe(false);
+    finishRun(s, end({ id: 'c', won: true }));
+    expect(charOpen(s, 'yinyang')).toBe(true);
+    const t = fresh();
+    recordLiveVigil(t, { danger: 0, won: true, ticks: 900 * 30 });
+    expect(charOpen(t, 'yinyang')).toBe(true);
+  });
+  it('纸匠、阴阳先生：0.34.0 前打过局的老存档照留，新存档写回读出不当成老存档，云合并取并集', async () => {
+    const { fresh, charOpen, reviveSave, mergeSave } = await import('../../src/platform/save.ts');
+    const { legacy: _l, ...oldPlayed } = { ...fresh(), runs: 3 };
+    const kept = reviveSave(JSON.parse(JSON.stringify(oldPlayed)))!;
+    for (const c of ['zhijiang', 'yinyang'] as const) expect(charOpen(kept, c)).toBe(true);
+    const { legacy: _m, ...oldIdle } = fresh();
+    expect(reviveSave(JSON.parse(JSON.stringify(oldIdle)))!.legacy).toEqual([]);
+    const now = reviveSave(JSON.parse(JSON.stringify({ ...fresh(), runs: 3 })))!;
+    expect(charOpen(now, 'zhijiang')).toBe(false);
+    expect(mergeSave(now, kept).legacy).toEqual(['zhijiang', 'yinyang']);
   });
   it('摆渡人：夜探撤出 1 次之后守夜撑过 6 分钟；货郎：夜市累计买过 3 次（局结束时计入，不依赖铜钱）', async () => {
     const { fresh, charOpen, finishRun, mergeSave } = await import('../../src/platform/save.ts');

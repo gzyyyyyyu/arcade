@@ -93,6 +93,8 @@ export interface Save {
   perks: Partial<Record<PerkId, number>>;
   /** 花铜钱买下的角色（别的角色按成绩解锁，见 charOpen） */
   bought: CharacterId[];
+  /** 0.34.0 改成要解锁之前就能选的角色里、老存档照留的（见 reviveSave；新存档是空的） */
+  legacy: CharacterId[];
   /** 铜钱流水，太长时最旧的并进 coinBase */
   ledger: Entry[];
   coinBase: number;
@@ -146,6 +148,7 @@ export const fresh = (): Save => ({
   cleared: -1,
   perks: {},
   bought: [],
+  legacy: [],
   ledger: [],
   coinBase: 0,
   maxSeconds: 0,
@@ -210,6 +213,8 @@ export function reviveSave(o: unknown): Save | null {
     }
   }
   s.bought = CHARACTER_IDS.filter((c) => strs(r.bought).includes(c));
+  // 纸匠、阴阳先生 0.34.0 前一开始就有。没有这个字段的是老存档：打过局的两人都留（存档没按角色记过局数，分不出谁玩过谁，宁可多给不收回）
+  s.legacy = Array.isArray(r.legacy) ? LEGACY_CHARS.filter((c) => strs(r.legacy).includes(c)) : s.runs > 0 ? [...LEGACY_CHARS] : [];
   if (Array.isArray(r.ledger)) {
     const seen = new Set<string>();
     for (const e of r.ledger) {
@@ -415,6 +420,10 @@ export function mapOpen(s: Save, id: MapId): boolean {
   return !u || s.maxSeconds >= u.seconds;
 }
 
+/** 纸匠：守夜一局撑过这么久（秒） */
+export const ZHIJIANG_SECONDS = 4 * 60;
+/** 0.34.0 起要解锁、老存档照留的角色 */
+const LEGACY_CHARS: readonly CharacterId[] = ['zhijiang', 'yinyang'];
 /** 更夫：守夜一局撑过这么久（秒） */
 export const GENGFU_SECONDS = 8 * 60;
 /** 摆渡人：夜探撤出过之后，守夜一局撑过这么久（秒） */
@@ -425,9 +434,9 @@ export const HUOLANG_BUYS = 3;
 export const PANG_PRICE = 300;
 
 /**
- * 角色解锁（3.7）：小道士、符师、剑侠、纸匠、阴阳先生一开始就有；胖师叔花铜钱；更夫守夜撑过 8 分钟；采药女夜探撤出 1 次；
- * 摆渡人夜探撤出 1 次后守夜撑过 6 分钟；货郎夜市买过 3 次东西。
- * 老条件（危险 2 通关、藏宝阁 20 件）照认：老存档已经解锁的不会被收回。
+ * 角色解锁（3.7）：小道士、符师、剑侠一开始就有；纸匠守夜撑过 4 分钟；胖师叔花铜钱；更夫守夜撑过 8 分钟；采药女夜探撤出 1 次；
+ * 摆渡人夜探撤出 1 次后守夜撑过 6 分钟；货郎夜市买过 3 次东西；阴阳先生守夜撑到天亮 1 次。
+ * 老条件（危险 2 通关、藏宝阁 20 件、0.34.0 前打过局的纸匠和阴阳先生）照认：老存档已经解锁的不会被收回。
  */
 export function charOpen(s: Save, c: CharacterId): boolean {
   switch (c) {
@@ -442,8 +451,9 @@ export function charOpen(s: Save, c: CharacterId): boolean {
     case 'caiyao':
       return s.extracts >= 1 || herbalistUnlocked(s.vault);
     case 'zhijiang':
+      return s.maxSeconds >= ZHIJIANG_SECONDS || s.legacy.includes('zhijiang');
     case 'yinyang':
-      return true;
+      return s.cleared >= 0 || s.legacy.includes('yinyang');
     case 'baidu':
       return s.extracts >= 1 && s.maxSeconds >= BAIDU_SECONDS;
     case 'huolang':
@@ -461,6 +471,8 @@ export function charProgress(s: Save, c: CharacterId): string {
   switch (c) {
     case 'pang':
       return `攒够 ${PANG_PRICE} 铜钱就能请他`;
+    case 'zhijiang':
+      return `守夜撑过 4 分钟（最好 ${mmss(s.maxSeconds)}）`;
     case 'gengfu':
       return `守夜撑过 8 分钟（最好 ${mmss(s.maxSeconds)}）`;
     case 'caiyao':
@@ -469,6 +481,8 @@ export function charProgress(s: Save, c: CharacterId): string {
       return `夜探撤出 1 次（已 ${s.extracts} 次），再守夜撑过 6 分钟（最好 ${mmss(s.maxSeconds)}）`;
     case 'huolang':
       return `夜市买过 ${HUOLANG_BUYS} 次东西（已 ${s.marketBuys} 次）`;
+    case 'yinyang':
+      return '守夜撑到天亮 1 次';
     default:
       return '';
   }
@@ -567,6 +581,7 @@ export function mergeSave(local: Save, cloud: Save): Save {
     if (lv) m.perks[id] = lv;
   }
   m.bought = CHARACTER_IDS.filter((c) => local.bought.includes(c) || cloud.bought.includes(c));
+  m.legacy = LEGACY_CHARS.filter((c) => local.legacy.includes(c) || cloud.legacy.includes(c));
   const seen = new Set(local.ledger.map(([id]) => id));
   m.ledger = [...local.ledger, ...cloud.ledger.filter(([id]) => !seen.has(id))];
   m.coinBase = Math.max(local.coinBase, cloud.coinBase);
