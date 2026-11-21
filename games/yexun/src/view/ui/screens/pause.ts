@@ -53,9 +53,9 @@ export class Pause {
   }
 
   /** sets：凑成的套装说明（"剑 2 件 · 暴击 +8%"） */
-  show(build: BuildRow[], left: number, sets: string[] = [], rules: TonightRules | null = null, hero: CharacterId | null = null, noSkill = false, xinfa?: string): void {
+  show(build: BuildRow[], left: number, sets: string[] = [], rules: TonightRules | null = null, hero: CharacterId | null = null, xinfa?: string): void {
     this.rows = build;
-    this.hero = hero ? this.heroDetail(hero, noSkill, xinfa) : '';
+    this.hero = hero ? this.heroDetail(hero, xinfa) : '';
     const cell = (r: BuildRow, i: number): string =>
       `<button type="button" class="yx-cell${r.level > 8 ? ' evo' : r.level === 8 ? ' max' : ''}${r.half ? ' half' : ''}" data-i="${i}" aria-label="${esc(r.name)}"><img alt="" src="${this.icons(r.icon)}">${r.half ? '<i>初</i>' : ''}<em>${r.level > 8 ? '进' : r.level === 8 ? '满' : r.level}</em></button>`;
     const weapons = build.map((r, i) => (r.dmg >= 0 ? cell(r, i) : '')).join('');
@@ -86,9 +86,9 @@ export class Pause {
 
   /** 「角色」说明：技能（效果数值、冷却、怎么放）、被动、适合的流派，和角色页详情写的一样（skillInfo.ts）。
    *  默认就显示在下面的说明行里；点过法器再点标题旁的技能图标换回来。不另占一块：手机上暂停页本来就快放不下了 */
-  private heroDetail(id: CharacterId, noSkill: boolean, xinfa?: string): string {
+  private heroDetail(id: CharacterId, xinfa?: string): string {
     const k = skillInfo(id);
-    const how = noSkill ? '这局不能放' : `${k.cd} 秒一次 · ${TOUCH ? '右下角技能钮' : '空格 / Q'}`;
+    const how = `${k.cd} 秒一次 · ${TOUCH ? '右下角技能钮' : '空格 / Q'}`;
     return (
       `<b>${esc(CHARACTERS[id].name)} · ${esc(k.name)}</b> ${how}${xinfa ? ` <em class="yx-xftag">心法·${esc(xinfa)}</em>` : ''}<br><span>${esc(k.detail)}</span>` +
       `<br><i>被动「${esc(k.perkName)}」${esc(k.perk)}</i><br><span class="yx-phfit">适合 ${esc(k.fit)}</span>`

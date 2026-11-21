@@ -1,14 +1,13 @@
-// 规则 60 的选卡（DESIGN 3.9）：心法保底、主修进化多补刷新、缘分、夜市求签和「法器 +1 级」升最近的那件。实盘从规则 64 起有（RULES_63_LIVE）；之前开的实盘局和规则 59 逐位一致
+// 选卡（DESIGN 3.9）：心法保底、主修进化多补刷新、缘分、夜市求签和「法器 +1 级」升最近的那件
 import { describe, expect, it } from 'vitest';
-import { createWorld, fingerprint, Pick, step, type Choice, type Setup, type World } from '../../src/core/index.ts';
+import { createWorld, Pick, step, type Choice, type Setup, type World } from '../../src/core/index.ts';
 import { grantWeapon, openChestNow } from '../../src/core/debug.ts';
 import { SCHOOLS } from '../../src/content/guide.ts';
 import { MARKET_GOODS, NIGHT_MARKET } from '../../src/content/market.ts';
 import { MAX_WEAPON_LEVEL, MERGES, WEAPONS, type PassiveId, type WeaponId } from '../../src/content/weapons.ts';
 import { PICKS } from '../../src/content/picks.ts';
-import { liveSetup } from '../../src/platform/live.ts';
 
-const make = (o: Partial<Setup> = {}, rules?: number): World => createWorld({ seed: 31, mode: 'vigil', danger: 0, ...o }, rules);
+const make = (o: Partial<Setup> = {}): World => createWorld({ seed: 31, mode: 'vigil', danger: 0, ...o });
 
 /** 走到第一次升级的选卡上（主角无敌） */
 function toChoose(w: World): void {
@@ -35,48 +34,30 @@ const inSchool = (school: keyof typeof SCHOOLS) => (c: Choice): boolean => {
   return c.kind === 'weapon' ? s.weapons.includes(c.id as WeaponId) : c.kind === 'passive' && s.passives.includes(c.id as PassiveId);
 };
 
-describe('规则 60：选卡', () => {
-  it('规则 63 以前开的实盘局（带心法）和规则 59 逐位一致；现行实盘局有新选卡', () => {
-    for (const c of ['xiaodao', 'fushi', 'zhijiang'] as const) {
-      const s = liveSetup('medium', 5, undefined, c, 'snow', { xinfa: c === 'fushi' ? 'fire' : c === 'zhijiang' ? 'ghost' : 'sword' });
-      const run = (rules?: number): number => {
-        const w = createWorld(s, rules);
-        // 撑过两次夜市（主角无敌），夜市的货和「法器 +1 级」也一起比
-        for (let t = 0; t < 11 * 60 * 30 && w.phase !== 'over'; t++) {
-          w.invuln = 1e9;
-          step(w, Math.floor(t / 45) % 8, w.phase === 'choose' ? 0 : -1);
-        }
-        expect(w.mkIndex).toBe(2);
-        return fingerprint(w);
-      };
-      expect(run(63), c).toBe(run(59));
-      expect(run(), c).not.toBe(run(59));
-    }
-  }, 120_000);
-
-  it('心法保底：每一手三选一里至少一张主修流派的卡；规则 59 没有这个保底', () => {
+describe('选卡', () => {
+  it('心法保底：每一手三选一里至少一张主修流派的卡', () => {
     const now = make({ character: 'fushi', xinfa: 'fire' });
     toChoose(now);
     expect(draws(now, 200).every((h) => h.some(inSchool('fire')))).toBe(true);
-    const old = make({ character: 'fushi', xinfa: 'fire' }, 59);
-    toChoose(old);
-    expect(draws(old, 200).some((h) => !h.some(inSchool('fire')))).toBe(true);
   });
 
   it('缘分：手上有搭配的一件料，另一件料更常出', () => {
-    const count = (rules?: number): number => {
-      const w = make({ character: 'xiaodao' }, rules);
+    // 小道士起手桃木剑：诛邪剑阵的另一件是飞剑；对照把手上的法器拿空
+    const count = (hold: boolean): number => {
+      const w = make({ character: 'xiaodao' });
       toChoose(w);
-      // 小道士起手桃木剑：诛邪剑阵的另一件是飞剑
+      if (!hold) {
+        w.weapons.length = 0;
+        w.wstats.length = 0;
+      }
       return draws(w, 400).filter((h) => h.some((c) => c.id === 'flysword')).length;
     };
-    // 钉在规则 60：之后小道士池里加了龙王令（66）、专属搭配的料加了权（65），会把飞剑冲稀，这里只量缘分本身
-    expect(count(60)).toBeGreaterThan(count(59) * 1.3);
+    expect(count(true)).toBeGreaterThan(count(false));
   });
 
   it('主修单子上的法器进化多补一次刷新，别的法器进化照旧补一次', () => {
-    const evolve = (xinfa: Setup['xinfa'] | undefined, rules?: number): number => {
-      const w = make({ character: 'xiaodao', ...(xinfa ? { xinfa } : {}) }, rules);
+    const evolve = (xinfa: Setup['xinfa'] | undefined): number => {
+      const w = make({ character: 'xiaodao', ...(xinfa ? { xinfa } : {}) });
       w.rerolls = 0;
       grantWeapon(w, 'sword', MAX_WEAPON_LEVEL);
       w.passives[WEAPONS.sword.evolve!.with] = 1;
@@ -86,7 +67,6 @@ describe('规则 60：选卡', () => {
     };
     expect(evolve('sword')).toBe(2);
     expect(evolve(undefined)).toBe(1);
-    expect(evolve('sword', 59)).toBe(1);
   });
 
   it('求签：下一次升级必有指的搭配缺的料，用过就清', () => {
@@ -102,7 +82,7 @@ describe('规则 60：选卡', () => {
   });
 });
 
-describe('规则 60：夜市', () => {
+describe('夜市：求签、法器 +1 级', () => {
   const M = NIGHT_MARKET;
   /** 跳到开市，把第一摊换成 good、价格 0，站上去买 */
   function buy(w: World, good: (typeof MARKET_GOODS)[number]): void {

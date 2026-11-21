@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { COMBO55, MERGES, mergeFor, type WeaponId } from '../../src/content/weapons.ts';
 import { armsHitMul, ArmEv, ArmFx } from '../../src/core/arms/index.ts';
 import { grantWeapon, openChestNow, spawnNow } from '../../src/core/debug.ts';
-import { createWorld, Ev, RULES_VERSION, step, type World } from '../../src/core/index.ts';
+import { createWorld, Ev, step, type World } from '../../src/core/index.ts';
 
-// 规则 55 的新搭配和招魂幡自己招魂：55 才有，54（旧录像）不出、不发生
+// 第三批搭配和招魂幡自己招魂
 const NEW = ['fuhuo', 'linfu', 'lingyan', 'zhonggu'] as const;
 
-function quiet(character: string, rules?: number): World {
-  const w = createWorld({ seed: 5, mode: 'vigil', danger: 2, character: character as never }, rules);
+function quiet(character: string): World {
+  const w = createWorld({ seed: 5, mode: 'vigil', danger: 2, character: character as never });
   w.weapons.length = 0;
   w.wstats.length = 0;
   w.nextEvent = 1 << 30;
@@ -42,30 +42,23 @@ function run(w: World, n: number): Map<string, number> {
 }
 const count = (seen: Map<string, number>, type: number, a: number): number => seen.get(`${type}:${a}`) ?? 0;
 
-describe('规则 55 的搭配', () => {
-  it('新搭配都标了 since 55，规则 54 的世界里不能合、55 能合', () => {
-    expect(RULES_VERSION).toBeGreaterThanOrEqual(55);
+describe('第三批搭配', () => {
+  it('两件都进化，宝箱里能合', () => {
     for (const id of NEW) {
       const m = MERGES.find((x) => x.id === id)!;
-      expect(m.since, id).toBe(55);
       const who = m.only?.split(',')[0] ?? 'xiaodao';
-      const old = createWorld({ seed: 1, mode: 'vigil', danger: 0, character: who as never }, 54);
       const now = createWorld({ seed: 1, mode: 'vigil', danger: 0, character: who as never });
-      expect(mergeFor(m, who, (v) => old.rulesFrom(v)), `${id} 54`).toBe(false);
-      expect(mergeFor(m, who, (v) => now.rulesFrom(v)), `${id} 55`).toBe(true);
-      for (const w of [old, now]) {
-        w.weapons.length = 0;
-        w.wstats.length = 0;
-        hold(w, [m.a, m.b], true);
-        openChestNow(w);
-      }
-      expect(old.merges, `${id} 54 宝箱`).not.toContain(id);
-      expect(now.merges, `${id} 55 宝箱`).toContain(id);
+      expect(mergeFor(m, who), id).toBe(true);
+      now.weapons.length = 0;
+      now.wstats.length = 0;
+      hold(now, [m.a, m.b], true);
+      openChestNow(now);
+      expect(now.merges, `${id} 宝箱`).toContain(id);
     }
   });
 
   it('专属：钟鼓齐鸣只给纸匠和阴阳先生，符火燎原、铃符、铃焰人人能合', () => {
-    const ok = (id: string, ch: string): boolean => mergeFor(MERGES.find((m) => m.id === id)!, ch, () => true);
+    const ok = (id: string, ch: string): boolean => mergeFor(MERGES.find((m) => m.id === id)!, ch);
     expect(['zhijiang', 'yinyang', 'xiaodao'].map((c) => ok('zhonggu', c))).toEqual([true, true, false]);
     for (const id of ['fuhuo', 'linfu', 'lingyan']) expect(['zhijiang', 'yinyang', 'xiaodao', 'gengfu'].every((c) => ok(id, c)), id).toBe(true);
   });
@@ -110,9 +103,9 @@ describe('规则 55 的搭配', () => {
   });
 });
 
-describe('招魂幡自己招魂（规则 55）', () => {
-  const ghosts = (rules?: number, withBell = false): number => {
-    const w = quiet('zhijiang', rules);
+describe('招魂幡自己招魂', () => {
+  const ghosts = (withBell = false): number => {
+    const w = quiet('zhijiang');
     hold(w, ['banner']);
     if (withBell) hold(w, ['bell']);
     w.weapons.find((o) => o.id === 'bell')?.timer && (w.weapons.find((o) => o.id === 'bell')!.timer = 1e9);
@@ -125,11 +118,10 @@ describe('招魂幡自己招魂（规则 55）', () => {
     }
     return spawned;
   };
-  it('没有击杀也隔几秒招一个冤魂；规则 54 不发生', () => {
+  it('没有击杀也隔几秒招一个冤魂', () => {
     expect(ghosts()).toBeGreaterThan(0);
-    expect(ghosts(54)).toBe(0);
   });
   it('带着镇魂铃时招得很稀', () => {
-    expect(ghosts(undefined, true)).toBeLessThan(ghosts());
+    expect(ghosts(true)).toBeLessThan(ghosts());
   });
 });

@@ -36,12 +36,12 @@ import {
   SNAKE,
   SNOW,
   SPROUT,
-  WATER,
+  JUEMU, WATER,
   WEASEL,
   WHITEFOX,
   type EnemyKind,
 } from '../content/enemies.ts';
-import { BOMB, CHEST, CHEST_57, DROPS, MERCY, PICKUP, PLAYER, PROPS, PURSE, xpNeed } from '../content/player.ts';
+import { BOMB, CHEST, DROPS, MERCY, PICKUP, PLAYER, PROPS, PURSE, xpNeed } from '../content/player.ts';
 import { RUSH } from '../content/rush.ts';
 import { MID_BOSS_KINDS, SHUIHOU } from '../content/foes.ts';
 import { bindFoeApi, foeAct, foeGhost, foeHitMul, foeHurtMul, foeInit, foeOnHit, foeOnKill, foePack, foeSlowMul, foeTick, foeUntargetable, isProp, noDrop, type FoeMv } from './foes/index.ts';
@@ -50,11 +50,11 @@ import { inRects, MAPS, pushOut, TERRAIN, type Block } from '../content/maps.ts'
 import { BlockIndex, type RaidBlock } from './blocks.ts';
 import { raidHooks, type RaidPort } from './raid-port.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, vigilRegion, EMERGE_KINDS, regionKind, regionTotal, type Region } from '../content/regions.ts';
-import { BALANCE_57, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, EVENTS_57, FIRST_RUN_GUARD, lampShare, LIVE_EASE, lootMul, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
-import { ASSIST, CHAR_FX, charBase, CURSE_FX, PERK_FX, REVIVE, type CurseId, type PerkId } from '../content/meta.ts';
+import { BALANCE_57, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, FIRST_RUN_GUARD, lampShare, LIVE_EASE, lootMul, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
+import { ASSIST, CHAR_FX, CHARACTERS, CURSE_FX, PERK_FX, REVIVE, type CurseId, type PerkId } from '../content/meta.ts';
 import { WEEKLY_FX } from '../content/weekly.ts';
 import { PICKS, PICKS_60, PICKS_65, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
-import { BELL_STUN, PARADE, MAP_EVENT_AT, MAP_EVENT_KINDS, MAP_EVENT_WARN, MAP_EVENTS, TIDE_SLOW, WIND_PUSH, type MapEventKind } from '../content/mapEvents.ts';
+import { BELL_STUN, PARADE, MAP_EVENT_AT, MAP_EVENT_KINDS, MAP_EVENT_WARN, MAP_EVENTS, mapEventRound, TIDE_SLOW, WIND_PUSH, type MapEventKind } from '../content/mapEvents.ts';
 import { MARKET_GOODS, MARKET_PRICE, NIGHT_MARKET, type MarketGood } from '../content/market.ts';
 import {
   MAX_PASSIVES,
@@ -76,8 +76,6 @@ import {
   WARD_SET_HIT,
   GOURD_BURN_FIRES,
   ELITE_NO_WARD_PIECES,
-  liveAllows,
-  LIVE_OWN_ARMS,
   type Element,
   type MergeDef,
   type PassiveId,
@@ -92,6 +90,7 @@ import { armsStalls, armsBindBonus, armsFire, armsHitMul, armsRecompute, armsSlo
 import { DIR_N } from './dirs.ts';
 import { clamp, dcos, dirIndex, dsin, fsqrt, INPUT_DIRS, inputCos, inputSin, SLOW_WALK } from './fmath.ts';
 import { Grid } from './grid.ts';
+import { fireTick, type FireApi } from './fire.ts';
 import { borrowStats, charDmgMul, moveSkillFu, paperLifeMul, paperRefund, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, yinyangFlip, type SkillOps } from './skills.ts';
 import { baseStats, Drop, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, WEAPON_SLOTS, World, type Choice, type Setup } from './state.ts';
 
@@ -125,8 +124,8 @@ const SKILL_OPS: SkillOps = {
 /** 双修：到点要炸的符 */
 const sealDue = new Int32Array(MAX_ENEMIES);
 
-export function createWorld(setup: Setup, replayRules?: number): World {
-  const w = new World(setup, replayRules);
+export function createWorld(setup: Setup): World {
+  const w = new World(setup);
   if (w.rush) {
     startRush(w, w.rush);
     w.hp = w.stats.hpMax;
@@ -196,13 +195,12 @@ function schedule(w: World): WaveEvent[] {
   const extra = d.eliteExtra + (w.setup.curses?.includes('elites') ? 1 : 0) + (w.setup.weekly === 'elite' ? WEEKLY_FX.eliteExtra : 0);
   // 图专属精英（content/regions.ts）按时间插进定点事件；没登记的图什么都不加
   const region = VIGIL_REGIONS[w.setup.map ?? 'snow'];
-  const own = [...(region?.elites ?? []), ...(w.new57 ? (region?.elites57 ?? []) : [])].map((e): WaveEvent => ({ at: e.at, kind: 'elite', enemy: e.enemy, count: e.count }));
-  // 规则 57 补的精英排在原有事件之后，同一拍时先出原有的（旧局一拍不变）
-  const out = [...EVENTS, ...own, ...(w.new57 ? EVENTS_57 : [])].map((e): WaveEvent => {
+  const own = (region?.elites ?? []).map((e): WaveEvent => ({ at: e.at, kind: 'elite', enemy: e.enemy, count: e.count }));
+  const out = [...EVENTS, ...own].map((e): WaveEvent => {
     // 1:45 那只（small）不跟危险档多来：开局两只白狐会把新手在第 2 分钟就打倒
     if (e.kind === 'elite') return { ...e, at: e.at + d.eliteLate, count: e.count + (e.small ? 0 : extra), bare: e.small ? 0 : d.eliteExtra };
     // 中期首领按图换（竹林、河滩、鬼市是画皮）
-    if (e.kind === 'boss' && e.enemy === 'lord') return { ...e, enemy: midBossOf(w.setup.map, w.legacyFoes) };
+    if (e.kind === 'boss' && e.enemy === 'lord') return { ...e, enemy: midBossOf(w.setup.map) };
     return e;
   });
   // 稳定排序：同一拍的事件保持原来的先后
@@ -271,11 +269,12 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
   if (w.blocks.length) blockEnemies(w);
   // 角色技能（core/skills.ts）：冷却在走、持续中、或这拍按了键才进去
   if (skill !== 0 || w.skill.cd > 0 || w.skill.active > 0) skillStep(w, g, skill !== 0, SKILL_OPS);
-  if (w.setup.character === 'yinyang' && w.identity66) yinyangFlip(w, g);
+  if (w.setup.character === 'yinyang') yinyangFlip(w, g);
   fireWeapons(w, g);
   moveShots(w, g);
   dualTick(w, g);
   armsTick(w, g, ARM_API);
+  fireTick(w, FIRE_API);
   touchPlayer(w, g);
   if (w.quake) quake(w, g, w.x, w.y, CHAR_FX.pangArea, CHAR_FX.pangKnock);
   if (w.setup.character === 'gengfu' && w.tick > 0 && w.tick % CHAR_FX.gongEvery === 0) gong(w, g);
@@ -289,10 +288,7 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
     // 夜探：撤出算赢，倒下、天亮还在镇里算输（DESIGN.md 2.3）
     const raid = w.raid;
     raid.tick(w);
-    while (raid.takeUpgrade()) {
-      if (w.new57) openChest57(w, 1);
-      else openChest(w);
-    }
+    while (raid.takeUpgrade()) openChest(w, 1);
     if (w.hp <= 0 && w.revives > 0) revive(w, g);
     if (w.hp <= 0) {
       raid.die(w.tick);
@@ -405,11 +401,7 @@ function movePlayer(w: World, input: number): void {
 
 /** 这张图的事件正在进行就回第几次（从 1 起），没有回 0；守夜（含实盘）才有，连战没有（mapEvents.ts） */
 function mapEventOn(w: World, kind: MapEventKind): number {
-  if (w.setup.mode !== 'vigil' || w.rush) return 0;
-  const ev = MAP_EVENTS[w.setup.map ?? 'snow'];
-  if (ev.kind !== kind) return 0;
-  for (let k = 0; k < MAP_EVENT_AT.length; k++) if (w.tick >= MAP_EVENT_AT[k]! && w.tick < MAP_EVENT_AT[k]! + ev.dur) return k + 1;
-  return 0;
+  return mapEventRound(w.tick, w.setup, kind);
 }
 
 function mapEvents(w: World): void {
@@ -441,7 +433,7 @@ function mapEvents(w: World): void {
       // 钻地的和冰凌落在主角附近，跳尸照常从外圈（义庄是门洞）进来
       const near = EMERGE_KINDS.has(ev.mob.kind) || ev.mob.kind === 'icicle';
       for (let j = 0; j < n; j++) {
-        const [x, y] = near ? nearPoint(w) : ringPoint(w, w.rSpawn.int(DIR_N));
+        const [x, y] = near ? nearPoint(w, ev.mob.kind) : ringPoint(w, w.rSpawn.int(DIR_N));
         spawnEnemy(w, ev.mob.kind, x, y);
       }
     }
@@ -524,12 +516,12 @@ function heal(w: World, n: number): void {
 
 /** by：谁打的（怪的编号；远程弹 = SHOT_BY + 弹种），只记给模拟器的死因统计，不进指纹、不影响结算 */
 /**
- * 纸匠·纸人替身（规则 61）：身边 zhijiangStandInR 以内有纸兵，这一下由最近的那个替你挨，主角不掉血、照常短暂无敌。
+ * 纸匠·纸人替身：身边 zhijiangStandInR 以内有纸兵，这一下由最近的那个替你挨，主角不掉血、照常短暂无敌。
  * 纸兵寿命改成 1，下一拍走正常的倒下（paperFall：进化爆开、阴兵借道、巧手都照常）；当场 killShot 的话，挨打在 armsTick 之后，搭配看不到这次倒下
  * 起因（11-15 根因）：小白常被一群怪贴身，纸兵各缠一只、挡不住一圈；纸兵起手小白 9 分钟前就倒下一大半。替身直接管「被围着挨打」
  */
 function paperStandIn(w: World): boolean {
-  if (!w.skillHooks || w.setup.character !== 'zhijiang') return false;
+  if (w.setup.character !== 'zhijiang') return false;
   const r2 = CHAR_FX.zhijiangStandInR * CHAR_FX.zhijiangStandInR;
   let best = -1;
   let bd = r2;
@@ -563,8 +555,8 @@ function hurt(w: World, dmg: number, by = -1): void {
   const diff = dangerDef(w.setup.mode, w.setup.danger);
   const d = Math.max(1, Math.round(dmg * diff.dmgMul * (w.liveEase ? LIVE_EASE.dmgScale : 1) * (w.tick < EARLY_TICKS ? diff.earlyDmg : 1) * (w.setup.assist ? ASSIST.dmg : 1) * skillHurtMul(w) * foeHurtMul(w) - w.stats.armor));
   w.hp -= d;
-  // 胖师叔·铁布衫（规则 61）：挡下的那部分攒起来，结束时震出去（skills.ts tickSkill）。上面的乘法顺序别动，旧局要逐位一致
-  if (w.skillHooks && skillHurtMul(w) < 1) w.skill.store += dmg * diff.dmgMul * (1 - skillHurtMul(w));
+  // 胖师叔·铁布衫：挡下的那部分攒起来，结束时震出去（skills.ts tickSkill）
+  if (skillHurtMul(w) < 1) w.skill.store += dmg * diff.dmgMul * (1 - skillHurtMul(w));
   // 胖师叔：挨打时震开身边（下一拍有格子时结算）
   if (w.setup.character === 'pang') w.quake = true;
   // 第一局 3 分钟前不会死：血最少留 1
@@ -623,7 +615,7 @@ function spawnEnemy(w: World, kind: EnemyKind, x: number, y: number): number {
   const zone = w.raid ? raidHooks().zoneMul(w.raid, x, y) : null;
   const zHp = zone ? zone.hp : 1;
   const zDmg = zone ? zone.dmg : 1;
-  const v57 = w.new57 && !w.raid;
+  const v57 = !w.raid;
   const perMin = v57 ? BALANCE_57.hpPerMin : SCALE.hpPerMin;
   const hp = (def.boss ? def.hp * diff.hpMul * twin : def.hp * (1 + perMin * min) * diff.hpMul * (v57 && def.elite ? BALANCE_57.eliteHp : 1)) * zHp;
   w.eAlive[i] = 1;
@@ -657,7 +649,9 @@ function spawnEnemy(w: World, kind: EnemyKind, x: number, y: number): number {
   w.arms.freezeAt[i] = 0;
   w.arms.resetEnemy(i);
   w.eV[i] = 0;
+  // 水鬼、掘墓鬼：冒出来的那几拍不动、不伤人
   if (kind === 'water') w.eT[i] = WATER.emerge;
+  else if (kind === 'juemu') w.eT[i] = JUEMU.emerge;
   else if (kind === 'weasel') w.eAX[i] = -1;
   else if (kind === 'bamsprout') {
     // 竹精：先在地上冒一个圈，SPROUT.warn 拍后出土
@@ -724,10 +718,11 @@ function regionPick(w: World, region: Region | undefined, minute: number): Enemy
   return r < t ? regionKind(region, minute, r) : null;
 }
 
-/** 刷在主角附近的钻地怪（水鬼、竹精、溺鬼）的落点 */
-function nearPoint(w: World): [number, number] {
+/** 刷在主角附近的钻地怪（水鬼、竹精、溺鬼；掘墓鬼更近）的落点 */
+function nearPoint(w: World, kind: EnemyKind): [number, number] {
   const a = w.rSpawn.int(DIR_N);
-  const d = WATER.near + w.rSpawn.next() * (WATER.far - WATER.near);
+  const r = kind === 'juemu' ? JUEMU : WATER;
+  const d = r.near + w.rSpawn.next() * (r.far - r.near);
   return [w.x + dcos(a) * d, w.y + dsin(a) * d * 0.8];
 }
 
@@ -750,7 +745,7 @@ function spawnRaid(w: World, raid: RaidPort): void {
   while (w.spawnAcc >= 1) {
     w.spawnAcc -= 1;
     const kind = regionPick(w, RAID_REGIONS[raid.setup.template], Math.floor(w.tick / 1800)) ?? pickKind(w, m.mix);
-    const [x, y] = EMERGE_KINDS.has(kind) ? nearPoint(w) : ringPoint(w, w.rSpawn.int(DIR_N));
+    const [x, y] = EMERGE_KINDS.has(kind) ? nearPoint(w, kind) : ringPoint(w, w.rSpawn.int(DIR_N));
     spawnP.x = x;
     spawnP.y = y;
     // 刷在墙里的这只就不刷了（推三次还压着墙）
@@ -840,10 +835,10 @@ function spawnWaves(w: World): void {
   w.spawnAcc += ((w.eCount < keep / 2 ? 2 : 1) * m.rate * diff.countMul * curse * calm * (w.inIncense ? TERRAIN.incenseRate : 1)) / 30;
   while (w.spawnAcc >= 1) {
     w.spawnAcc -= 1;
-    const kind = regionPick(w, vigilRegion(w.setup.map ?? 'snow', w.legacyFoes, w.new55), Math.max(0, mi + diff.mixShift)) ?? pickKind(w, mix);
+    const kind = regionPick(w, vigilRegion(w.setup.map ?? 'snow'), Math.max(0, mi + diff.mixShift)) ?? pickKind(w, mix);
     if (EMERGE_KINDS.has(kind)) {
       // 水鬼、竹精、溺鬼从主角附近的地里冒出来
-      const [x, y] = nearPoint(w);
+      const [x, y] = nearPoint(w, kind);
       spawnEnemy(w, kind, x, y);
     } else {
       const [x, y] = ringPoint(w, w.rSpawn.int(DIR_N));
@@ -870,7 +865,7 @@ function markSlow(w: World, g: Grid): void {
     const o = w.weapons[k]!;
     if (o.id !== 'bell') continue;
     const area = w.wstats[k]!.area * w.stats.areaMul;
-    // 阴阳镇魂：光环里减速一半（记 2）；规则 63 的初成隔一拍才记 2（减速档是离散的，乘不了，按时间打对折）；往生铃：光环里的怪死了回血（记下半径）
+    // 阴阳镇魂：光环里减速一半（记 2）；初成隔一拍才记 2（减速档是离散的，乘不了，按时间打对折）；往生铃：光环里的怪死了回血（记下半径）
     const mark = w.merges.includes('yinyang') && (w.mergePower('yinyang') === 1 || (w.tick & 1) === 0) ? 2 : 1;
     if (o.evolved) w.bellArea = area;
     if (!built) {
@@ -1070,6 +1065,7 @@ function moveEnemies(w: World): void {
         vy = w.eAY[i]!;
         break;
       case 'water':
+      case 'juemu':
         if (w.eT[i]! > 0) {
           w.eT[i]!--;
           sp = 0;
@@ -2039,13 +2035,7 @@ function killEnemy(w: World, i: number): void {
 /** 精英宝箱升几件：1 / 3 / 5（至少 min） */
 export function chestSize(w: World, min: number): number {
   const r = w.rChest.next();
-  const chest = w.new57
-    ? w.setup.weekly === 'chest'
-      ? { five: WEEKLY_FX.chestFive57, three: WEEKLY_FX.chestThree57 }
-      : CHEST_57
-    : w.setup.weekly === 'chest'
-      ? { five: WEEKLY_FX.chestFive, three: WEEKLY_FX.chestThree }
-      : CHEST;
+  const chest = w.setup.weekly === 'chest' ? { five: WEEKLY_FX.chestFive, three: WEEKLY_FX.chestThree } : CHEST;
   const n = r < chest.five ? 5 : r < chest.five + chest.three ? 3 : 1;
   return Math.max(n, min);
 }
@@ -2075,6 +2065,7 @@ function nearest(w: World, g: Grid, x: number, y: number, r: number, skip = -1):
 
 /** 2.0 法器（core/arms/）要用的内部函数 */
 const ARM_API: ArmApi = { hitEnemy, nearest, eff, heal, burn };
+const FIRE_API: FireApi = { hitEnemy, hurt };
 
 /** 在 (x, y) 留一摊火（算在 slot 号法器头上），符火燎原用 */
 function burn(w: World, x: number, y: number, life: number, dmg: number, r: number, slot: number): void {
@@ -3213,7 +3204,7 @@ function moveShots(w: World, g: Grid): void {
       continue;
     }
     const k = w.sSlot[i]!;
-    // 纸匠技能剪的纸兵，手上没有纸兵法器（规则 59，skills.ts paperArmy）：数值借白板纸兵，不挂槽位
+    // 纸匠技能剪的纸兵，手上没有纸兵法器（skills.ts paperArmy）：数值借白板纸兵，不挂槽位
     if (kind === Shot.Paper && k < 0) {
       if (w.blockHp.length) chop(w, w.sX[i]!, w.sY[i]!, w.sR[i]! + 4, w.sDmg[i]!);
       movePaper(w, g, i, -1, borrowStats(w, 'zhibing'));
@@ -3238,6 +3229,7 @@ export const SHOT_BY = 1000;
 const WATER_CODE = ENEMY_BY_KIND.water.code;
 const SPROUT_CODE = ENEMY_BY_KIND.bamsprout.code;
 const DROWN_CODE = ENEMY_BY_KIND.drown.code;
+const JUEMU_CODE = ENEMY_BY_KIND.juemu.code;
 function touchPlayer(w: World, g: Grid): void {
   if (w.invuln > 0) return;
   const n = g.query(w, w.x, w.y, PLAYER.r);
@@ -3250,7 +3242,7 @@ function touchPlayer(w: World, g: Grid): void {
       // 还在冒的水鬼不伤人；冒出来了抓住主角拖慢
       if (w.eT[i]! > 0) continue;
       w.slowUntil = w.tick + WATER.grabTicks;
-    } else if ((w.eKind[i] === SPROUT_CODE || w.eKind[i] === DROWN_CODE) && w.eT[i]! > 0) continue; // 还没钻出来的不伤人
+    } else if ((w.eKind[i] === SPROUT_CODE || w.eKind[i] === DROWN_CODE || w.eKind[i] === JUEMU_CODE) && w.eT[i]! > 0) continue; // 还没钻出来的不伤人
     if (w.eDmg[i]! > worst) {
       worst = w.eDmg[i]!;
       by = w.eKind[i]!;
@@ -3335,9 +3327,8 @@ function movePickups(w: World): void {
     if (w.dPull[i] === 0) {
       // 宝箱、肉包、符纸卷要走过去才捡（魂珠和铜钱会被吸）
       const kind = w.dKind[i];
-      // 规则 51 起接触半径 36 → 56：边躲边走时擦过箱子、肉包也能捡到
-      const r = w.rulesFrom(51) ? PICKUP.walkReach : PICKUP.grab * 2;
-      const reach = kind === Drop.Soul || kind === Drop.Coin ? m2 : r * r;
+      // 接触半径 walkReach：边躲边走时擦过箱子、肉包也能捡到
+      const reach = kind === Drop.Soul || kind === Drop.Coin ? m2 : PICKUP.walkReach * PICKUP.walkReach;
       if (d2 > reach) continue;
       w.dPull[i] = PICKUP.pull;
     }
@@ -3393,8 +3384,7 @@ function collect(w: World, i: number): void {
       const n = Math.max(1, val);
       w.chests++;
       w.ev.push(Ev.ChestBig, w.x, w.y, n);
-      if (w.new57) openChest57(w, n);
-      else for (let k = 0; k < n; k++) openChest(w);
+      openChest(w, n);
       break;
     }
   }
@@ -3532,7 +3522,7 @@ function recompute(w: World): void {
   s.bindDouble = w.weapons.some((o) => o.id === 'rope' && o.evolved);
   // 角色初始数值（所有者 10-20，content/meta.ts 的 base）：血量只乘底子的 100，仙桃、加成的血照加
   const ch = w.setup.character ?? 'xiaodao';
-  const b = charBase(ch, w.identity67);
+  const b = CHARACTERS[ch].base;
   s.hpMax += PLAYER.hp * (b.hp - 1);
   s.speed *= b.speed;
   s.might *= b.might;
@@ -3601,8 +3591,8 @@ function recompute(w: World): void {
     ws.dmg *= (elMul[d.el] ?? 1) * (d.type === '灵' && t('灵') >= 3 ? 1.25 : 1);
     if (d.type === '符' && t('符') >= 3) ws.amount += 1;
     if (d.type === '符' && ch === 'fushi') ws.cd *= CHAR_FX.fushiCd;
-    // 规则 67：摆渡人的竹篙出手快、多戳一下（起手竹篙清怪慢是他放出前偏弱的大头，DESIGN 3.7）
-    if (o.id === 'pole' && ch === 'baidu' && w.identity67) {
+    // 摆渡人的竹篙出手快、多戳一下（起手竹篙清怪慢是他放出前偏弱的大头，DESIGN 3.7）
+    if (o.id === 'pole' && ch === 'baidu') {
       ws.cd *= CHAR_FX.baiduPoleCd;
       ws.amount += 1;
     }
@@ -3699,7 +3689,7 @@ function shieldFire(w: World): void {
 function homePetal(w: World, g: Grid, i: number): void {
   const P = DUAL_FX.petal;
   if (w.sR[i]! < 34 + P.bonusR) w.sR[i] = 34 + P.bonusR;
-  // 规则 63 的初成：追得近一半（追踪本身是开关，只能缩范围）
+  // 初成：追得近一半（追踪本身是开关，只能缩范围）
   const t = nearest(w, g, w.sX[i]!, w.sY[i]!, P.reach * w.mergePower('linghua'));
   if (t < 0) return;
   const dx = w.eX[t]! - w.sX[i]!;
@@ -3729,16 +3719,15 @@ export function spawnNow(w: World, kind: EnemyKind, x: number, y: number): numbe
   return spawnEnemy(w, kind, x, y);
 }
 
-/** 测试和调试用：当场开一个宝箱 */
+/** 测试和调试用：当场开一个宝箱（升一件） */
 export function openChestNow(w: World): void {
-  openChest(w);
+  openChest(w, 1);
 }
 
-/** 测试和调试用：当场开一个 n 件的精英宝箱（走捡到宝箱的那条路，规则 57 起一箱结完） */
+/** 测试和调试用：当场开一个 n 件的精英宝箱（走捡到宝箱的那条路） */
 export function openEliteChestNow(w: World, n: number): void {
   w.ev.push(Ev.ChestBig, w.x, w.y, n);
-  if (w.new57) openChest57(w, n);
-  else for (let k = 0; k < n; k++) openChest(w);
+  openChest(w, n);
 }
 
 function addWeapon(w: World, id: WeaponId): void {
@@ -3758,14 +3747,10 @@ function upgradePassive(w: World, id: PassiveId): void {
   recompute(w);
 }
 
-/**
- * 这张卡这局能不能出：老卡池（规则 51 之前的实盘局、旧录像）不放 2.0 的新内容；其余局只出当前角色法器池里的（content/pools.ts）。
- * 手上已经有的（测试里直接发的）不受限
- */
+/** 这张卡这局能不能出：只出当前角色法器池里的（content/pools.ts）。手上已经有的（测试里直接发的）不受限 */
 function cardAllowed(w: World, id: WeaponId | PassiveId): boolean {
-  if (w.oldPool) return liveAllows(true, id) || (w.liveOwnArms && !!LIVE_OWN_ARMS[w.setup.character ?? 'xiaodao']?.includes(id));
   if (w.weapons.some((o) => o.id === id) || (w.passives as Record<string, number>)[id] !== undefined) return true;
-  return inPool(w.setup.pool ?? w.setup.character, id, w.poolRules);
+  return inPool(w.setup.pool ?? w.setup.character, id);
 }
 
 /** 三选一的候选：手上没满级的法器、还能拿的新法器、被动同理 */
@@ -3798,34 +3783,31 @@ function choicePool(w: World): { c: Choice; weight: number }[] {
     const { weapons, passives } = SCHOOLS[xf];
     for (const p of pool) if (p.c.kind === 'weapon' ? weapons.includes(p.c.id as WeaponId) : p.c.kind === 'passive' && passives.includes(p.c.id as PassiveId)) p.weight *= XINFA_MUL;
   }
-  // 缘分（规则 60）：手上有某个搭配的一件料，另一件料和它的进化被动权重 ×fateMul；
-  // 规则 65 起本角色专属的搭配更重：都没拿时两件 ×ownMul，拿了一件时另一件和它的进化被动 ×ownHeldMul。几个搭配指向同一张只取最大的那个倍数
-  if (w.newPicks) {
-    const mul = new Map<string, number>();
-    const bump = (id: string, m: number): void => {
-      if ((mul.get(id) ?? 1) < m) mul.set(id, m);
-    };
-    const own = w.identity65;
-    for (const def of MERGES) {
-      if (!mergeOpen(w, def)) continue;
-      const mine = own && !!def.only;
-      const hasA = w.weapons.some((o) => o.id === def.a);
-      const hasB = w.weapons.some((o) => o.id === def.b);
-      if (hasA === hasB) {
-        if (mine && !hasA) {
-          bump(def.a, PICKS_65.ownMul);
-          bump(def.b, PICKS_65.ownMul);
-        }
-        continue;
+  // 缘分：手上有某个搭配的一件料，另一件料和它的进化被动权重 ×fateMul；
+  // 本角色专属的搭配更重：都没拿时两件 ×ownMul，拿了一件时另一件和它的进化被动 ×ownHeldMul。几个搭配指向同一张只取最大的那个倍数
+  const mul = new Map<string, number>();
+  const bump = (id: string, m: number): void => {
+    if ((mul.get(id) ?? 1) < m) mul.set(id, m);
+  };
+  for (const def of MERGES) {
+    if (!mergeOpen(w, def)) continue;
+    const mine = !!def.only;
+    const hasA = w.weapons.some((o) => o.id === def.a);
+    const hasB = w.weapons.some((o) => o.id === def.b);
+    if (hasA === hasB) {
+      if (mine && !hasA) {
+        bump(def.a, PICKS_65.ownMul);
+        bump(def.b, PICKS_65.ownMul);
       }
-      const other = hasA ? def.b : def.a;
-      const m = mine ? PICKS_65.ownHeldMul : PICKS_60.fateMul;
-      bump(other, m);
-      const evo = WEAPONS[other].evolve;
-      if (evo) bump(evo.with, m);
+      continue;
     }
-    for (const p of pool) p.weight *= mul.get(p.c.id) ?? 1;
+    const other = hasA ? def.b : def.a;
+    const m = mine ? PICKS_65.ownHeldMul : PICKS_60.fateMul;
+    bump(other, m);
+    const evo = WEAPONS[other].evolve;
+    if (evo) bump(evo.with, m);
   }
+  for (const p of pool) p.weight *= mul.get(p.c.id) ?? 1;
   return pool;
 }
 
@@ -3851,14 +3833,14 @@ function openChoices(w: World): void {
     weights.push(pool[k]!.weight);
     pool.splice(k, 1);
   }
-  if (w.newPicks) guarantee(w, pool, picks, weights);
+  guarantee(w, pool, picks, weights);
   if (picks.length === 0) picks.push({ kind: 'coins', id: 'coins' });
   w.choices = picks;
   w.phase = 'choose';
 }
 
 /**
- * 规则 60 的保底：求签买下后这一次必有它指的搭配缺的料；带心法的，每次至少一张主修流派的卡。
+ * 保底：求签买下后这一次必有它指的搭配缺的料；带心法的，每次至少一张主修流派的卡。
  * 抽出来的里已经有就不动；没有就从剩下的卡池里按权重抽一张同类的，换掉抽出来的里权重最低、没被保底占住的那张（不加卡）
  */
 function guarantee(w: World, pool: { c: Choice; weight: number }[], picks: Choice[], weights: number[]): void {
@@ -4011,7 +3993,7 @@ function stallsUp(w: World): void {
   const py = dcos(a);
   const buff: MarketGood = (['might', 'speed', 'vacuum'] as const)[w.rMarket.int(3)]!;
   const canUp = w.weapons.some((o) => !o.evolved && o.level < MAX_WEAPON_LEVEL);
-  const kinds: MarketGood[] = ['heal', 'reroll', 'ban', buff, ...(canUp ? (['upgrade'] as const) : []), ...(w.newPicks && omenTarget(w) >= 0 ? (['omen'] as const) : [])];
+  const kinds: MarketGood[] = ['heal', 'reroll', 'ban', buff, ...(canUp ? (['upgrade'] as const) : []), ...(omenTarget(w) >= 0 ? (['omen'] as const) : [])];
   const goods: MarketGood[] = [];
   while (goods.length < M.stalls + armsStalls(w) && kinds.length > 0) goods.push(kinds.splice(w.rMarket.int(kinds.length), 1)[0]!);
   const price = (w.mkIndex > 0 ? M.later : 1) * (w.setup.character === 'caiyao' ? CHAR_FX.caiyaoMarket : w.setup.character === 'huolang' ? CHAR_FX.huolangMarket : 1);
@@ -4050,21 +4032,20 @@ function marketGive(w: World, g: MarketGood): void {
   } else {
     const pool = w.weapons.filter((o) => !o.evolved && o.level < MAX_WEAPON_LEVEL);
     if (!pool.length) return;
-    // 规则 60 起升离满级最近的那件（同样近按拿到的先后）：想凑进化、搭配的人不再看运气；之前随机挑一件
-    if (w.newPicks) upgradeWeapon(w, pool.reduce((a, b) => (b.level > a.level ? b : a)).id);
-    else upgradeWeapon(w, pool[w.rMarket.int(pool.length)]!.id);
+    // 升离满级最近的那件（同样近按拿到的先后）：想凑进化、搭配的人不看运气
+    upgradeWeapon(w, pool.reduce((a, b) => (b.level > a.level ? b : a)).id);
   }
 }
 
-/** 进化补一次刷新；规则 60 起主修（心法）单子上的法器进化再多补一次：专心修一路换来找卡的手段，不加伤害 */
+/** 进化补一次刷新；主修（心法）单子上的法器进化再多补一次：专心修一路换来找卡的手段，不加伤害 */
 function evolveReroll(w: World, id: WeaponId): void {
   addReroll(w, 0);
-  if (w.newPicks && w.xinfa && SCHOOLS[w.xinfa].weapons.includes(id)) addReroll(w, 0);
+  if (w.xinfa && SCHOOLS[w.xinfa].weapons.includes(id)) addReroll(w, 0);
 }
 
-/** 货郎·讨价（规则 61）：捡到的铜钱每攒满 huolangRerollEvery 枚补一次刷新（经济换选择权） */
+/** 货郎·讨价：捡到的铜钱每攒满 huolangRerollEvery 枚补一次刷新（经济换选择权） */
 function coinReroll(w: World): void {
-  if (!w.skillHooks || w.setup.character !== 'huolang') return;
+  if (w.setup.character !== 'huolang') return;
   while (w.coinBy.drop + w.coinBy.purse >= w.rerollAt) {
     w.rerollAt += CHAR_FX.huolangRerollEvery;
     addReroll(w, 2);
@@ -4079,19 +4060,17 @@ function addReroll(w: World, why: number): void {
 }
 
 /**
- * 这个合成现在凑齐了没有。老的三个合成要两件都进化；双修（1.1）门槛低一点：一件进化、另一件满级就行（机器人每 20 局只合成 1–2 次，玩家更难见到）。
- * 规则 55、56 的四个新搭配（early）两件各升到 early 级就合；规则 57 起所有者要求统一，和别的双修一样（World.new57）
+ * 这个合成现在凑齐了没有（大成的条件）。合成要两件都进化；双修（1.1）门槛低一点：一件进化、另一件满级就行（机器人每 20 局只合成 1–2 次，玩家更难见到）
  */
 export function mergeReady(w: World, def: MergeDef): boolean {
   const a = w.weapons.find((o) => o.id === def.a);
   const b = w.weapons.find((o) => o.id === def.b);
   if (!a || !b) return false;
-  if (def.early && !w.new57) return (a.evolved || a.level >= def.early) && (b.evolved || b.level >= def.early);
   if (def.dual) return (a.evolved && (b.evolved || b.level >= MAX_WEAPON_LEVEL)) || (b.evolved && a.level >= MAX_WEAPON_LEVEL);
   return a.evolved && b.evolved;
 }
 
-/** 规则 63 的初成：两件料都到 MERGE_STAGE.halfLevel 级（进化了也算） */
+/** 初成：两件料都到 MERGE_STAGE.halfLevel 级（进化了也算） */
 function mergeHalfReady(w: World, def: MergeDef): boolean {
   const a = w.weapons.find((o) => o.id === def.a);
   const b = w.weapons.find((o) => o.id === def.b);
@@ -4100,17 +4079,17 @@ function mergeHalfReady(w: World, def: MergeDef): boolean {
 
 /**
  * 宝箱里能结的合成（没合过、这一局放、这个角色合得出、凑齐了），按 MERGES 的顺序；没有回 -1。
- * 规则 63（mergeStages）：到了原条件直接大成；只到初成的条件先合初成（记进 mergeHalf）
+ * 到了原条件直接大成；只到初成的条件先合初成（记进 mergeHalf）
  */
 function readyMerge(w: World): number {
   for (let m = 0; m < MERGES.length; m++) {
     const def = MERGES[m]!;
-    if (mergeOpen(w, def) && (mergeReady(w, def) || (w.mergeStages && mergeHalfReady(w, def)))) return m;
+    if (mergeOpen(w, def) && (mergeReady(w, def) || mergeHalfReady(w, def))) return m;
   }
   return -1;
 }
 
-/** 规则 63：能升大成的初成搭配（到了原条件），按 MERGES 的顺序；没有回 -1 */
+/** 能升大成的初成搭配（到了原条件），按 MERGES 的顺序；没有回 -1 */
 function readyUpgrade(w: World): number {
   for (const id of w.mergeHalf) {
     const m = MERGES.findIndex((x) => x.id === id);
@@ -4119,13 +4098,13 @@ function readyUpgrade(w: World): number {
   return -1;
 }
 
-/** 这个搭配这一局还能合：没合过、这一局放（双修没被关、实盘老卡池放）、这个角色合得出 */
+/** 这个搭配这一局还能合：没合过、这一局放（双修没被关）、这个角色合得出 */
 function mergeOpen(w: World, def: MergeDef): boolean {
   if (w.merges.includes(def.id) || (def.dual && w.setup.noDual)) return false;
-  return liveAllows(w.oldPool, def.id) && mergeFor(def, w.setup.character, (v) => w.contentFrom(v));
+  return mergeFor(def, w.setup.character);
 }
 
-/** 能把搭配往前推一步的卡（这一局卡池里有的）：没拿的料、拿了没满级的料、料缺的进化被动；规则 60 的缘分、求签用 */
+/** 能把搭配往前推一步的卡（这一局卡池里有的）：没拿的料、拿了没满级的料、料缺的进化被动；缘分、求签用 */
 function mergeWants(w: World, def: MergeDef): (WeaponId | PassiveId)[] {
   const out: (WeaponId | PassiveId)[] = [];
   for (const id of [def.a, def.b]) {
@@ -4175,7 +4154,7 @@ function settleChest(w: World): void {
       w.ev.push(Ev.Chest, w.x, w.y, WEAPON_CODE[o.id]);
       continue;
     }
-    // 规则 63：先把初成升大成（升完空出法器格），再结新的；Merge 事件的 b：0 大成（一步到位或规则 62 以前）、1 初成、2 初成升大成
+    // 先把初成升大成（升完空出法器格），再结新的；Merge 事件的 b：0 一步到位大成、1 初成、2 初成升大成
     const up = w.mergeHalf.length > 0 ? readyUpgrade(w) : -1;
     if (up >= 0) {
       w.mergeHalf.splice(w.mergeHalf.indexOf(MERGES[up]!.id), 1);
@@ -4186,7 +4165,7 @@ function settleChest(w: World): void {
     }
     const m = readyMerge(w);
     if (m < 0) return;
-    const half = w.mergeStages && !mergeReady(w, MERGES[m]!);
+    const half = !mergeReady(w, MERGES[m]!);
     w.merges.push(MERGES[m]!.id);
     if (half) w.mergeHalf.push(MERGES[m]!.id);
     recompute(w);
@@ -4196,10 +4175,10 @@ function settleChest(w: World): void {
 }
 
 /**
- * 规则 57 的宝箱（World.new57）：先把满足条件的进化、合成一次结完（不占件数），再照常升 n 件（黄历照旧每件可能多升一件），
+ * 宝箱：先把满足条件的进化、合成一次结完（不占件数），再照常升 n 件（黄历照旧每件可能多升一件），
  * 升完又凑齐的当场再结；结出来的全部进同一个 Chest 事件序列，画面一次列全
  */
-function openChest57(w: World, n: number): void {
+function openChest(w: World, n: number): void {
   settleChest(w);
   for (let k = 0; k < n; k++) {
     w.chestUps++;
@@ -4213,43 +4192,6 @@ function openChest57(w: World, n: number): void {
     if (w.stats.luck > 0 && w.rChest.next() < w.stats.luck) chestUpgrade(w);
   }
   settleChest(w);
-}
-
-/** 宝箱：能合成先合成，能进化就进化；不然随机升一件手上的东西（黄历：有概率再升一件）；都满了给铜钱和回血 */
-function openChest(w: World): void {
-  for (let m = 0; m < MERGES.length; m++) {
-    const def = MERGES[m]!;
-    if (w.merges.includes(def.id) || (def.dual && w.setup.noDual)) continue;
-    if (!liveAllows(w.oldPool, def.id)) continue;
-    if (!mergeFor(def, w.setup.character, (v) => w.contentFrom(v))) continue;
-    if (mergeReady(w, def)) {
-      w.merges.push(def.id);
-      recompute(w);
-      w.ev.push(Ev.Merge, w.x, w.y, m);
-      w.ev.push(Ev.Chest, w.x, w.y, MERGE_CODE + m);
-      return;
-    }
-  }
-  for (const o of w.weapons) {
-    const evo = WEAPONS[o.id].evolve;
-    if (!o.evolved && evo && o.level >= MAX_WEAPON_LEVEL && (w.passives[evo.with] ?? 0) > 0) {
-      o.evolved = true;
-      recompute(w);
-      evolveReroll(w, o.id);
-      w.ev.push(Ev.Evolve, w.x, w.y, WEAPON_CODE[o.id]);
-      w.ev.push(Ev.Chest, w.x, w.y, WEAPON_CODE[o.id]);
-      return;
-    }
-  }
-  w.chestUps++;
-  if (!chestUpgrade(w)) {
-    w.coins += 40;
-    w.coinBy.chest += 40;
-    heal(w, 30);
-    w.ev.push(Ev.Chest, w.x, w.y, -1);
-    return;
-  }
-  if (w.stats.luck > 0 && w.rChest.next() < w.stats.luck) chestUpgrade(w);
 }
 
 /** 宝箱里随机升一件手上没满的；没有可升的返回 false */

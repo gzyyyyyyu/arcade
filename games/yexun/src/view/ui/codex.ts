@@ -59,6 +59,8 @@ export const MONSTER_INFO: Record<EnemyKind, { name: string; tag: string; blurb:
   marketboss: { name: '鬼市主', tag: '精英', blurb: '鬼市的东家，朝你撒一扇铜钱，血少了还叫皮影鬼围上来；怕符怕铃' },
   crossbow: { name: '纸弩手', tag: '河滩·荒庙', blurb: '糊纸的小人端着弩，远远站在你够不着的地方放箭，你一靠近它就后退；怕火、怕木，镇守的铃和镜够不着它，追上去用远处的法器' },
   hurrier: { name: '催命鬼', tag: '河滩·荒庙', blurb: '你站在原地不动超过两秒，它就通身变红、跑得飞快扑过来；一动起来它就慢下来；怕火怕符' },
+  juemu: { name: '掘墓鬼', tag: '乱葬岗', blurb: '从你脚边的土里钻出来；很怕火，引进烧着的磷火里一下就没了' },
+  taoyong: { name: '陶俑', tag: '窑镇', blurb: '烧过的泥胎，又硬又慢，刀剑砍不动；怕水' },
   lampghost: { name: '提灯鬼', tag: '常规', blurb: '提着灯笼不怕火，危险 3 以后半夜出来；怕符、怕铃' },
   boss: { name: '尸王', tag: 'Boss', blurb: '跳砸、召唤、尸气，血越少越凶；14 分钟现身' },
   zhumu: { name: '千年竹母', tag: 'Boss', blurb: '竹林约 8 分钟现身：地里排出一行竹笋（先冒红圈）、召一圈竹精；血少一半后整片竹林摇晃，四个方向轮流扫来竹浪，躲进空隙；怕火' },

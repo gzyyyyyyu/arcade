@@ -7,9 +7,10 @@
 import { ENEMIES } from '../src/content/enemies.ts';
 import { ARENA } from '../src/content/player.ts';
 import { MARKET_GOODS, NIGHT_MARKET, type MarketGood } from '../src/content/market.ts';
-import { liveAllows, MAX_WEAPON_LEVEL, MERGES, mergeFor, WEAPONS, type PassiveId, type WeaponId } from '../src/content/weapons.ts';
+import { MAX_WEAPON_LEVEL, MERGES, mergeFor, WEAPONS, type PassiveId, type WeaponId } from '../src/content/weapons.ts';
 import { inputCos, inputSin } from '../src/core/fmath.ts';
 import { skillReady } from '../src/core/skills.ts';
+import { FIRE_IDLE, FIRE_WARN, fireAll, fireStage } from '../src/core/fire.ts';
 import { Drop, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, type Choice, type World } from '../src/core/index.ts';
 import { Rng } from '../src/core/rng.ts';
 import { mergeHint } from '../src/view/ui/mergeHint.ts';
@@ -377,6 +378,33 @@ export class Bot {
       vx += (dx / d) * (70 - d) / 50;
       vy += (dy / d) * (70 - d) / 50;
     }
+    // 火区（乱葬岗、窑镇）：普通躲预告和烧着的，小白只躲烧着的（看见火才跑）；在里面就朝最近的边外跑
+    const allFire = fireAll(w);
+    for (let k = 0; k < w.fire.length; k++) {
+      const st = fireStage(w.tick, k, w.fire.length, allFire);
+      if (st === FIRE_IDLE || (!normal && st === FIRE_WARN)) continue;
+      const r = w.fire[k]!;
+      const nx = Math.max(r.x, Math.min(w.x, r.x + r.w));
+      const ny = Math.max(r.y, Math.min(w.y, r.y + r.h));
+      const dx = w.x - nx;
+      const dy = w.y - ny;
+      const d = Math.hypot(dx, dy);
+      if (d > 60) continue;
+      if (d < 1e-6) {
+        const l = w.x - r.x;
+        const rr = r.x + r.w - w.x;
+        const t = w.y - r.y;
+        const b = r.y + r.h - w.y;
+        const m = Math.min(l, rr, t, b);
+        if (m === l) vx -= 1.6;
+        else if (m === rr) vx += 1.6;
+        else if (m === t) vy -= 1.6;
+        else vy += 1.6;
+        continue;
+      }
+      vx += ((dx / d) * (60 - d)) / 40;
+      vy += ((dy / d) * (60 - d)) / 40;
+    }
     // 没什么事：绕着场地中心慢慢兜圈（站着不动会被围死）
     if (Math.hypot(vx, vy) < 0.2 && this.goal === 0) {
       const cx = AW / 2 - w.x;
@@ -443,8 +471,8 @@ export class Bot {
     if (!this.dual || c.kind !== 'weapon') return 0;
     for (const m of MERGES) {
       if (!m.dual || w.merges.includes(m.id)) continue;
-      // 这个角色合不出的（别人的专属、实盘暂不放的）不去凑
-      if (!mergeFor(m, w.setup.character, (v) => w.contentFrom(v)) || !liveAllows(w.oldPool, m.id)) continue;
+      // 这个角色合不出的（别人的专属）不去凑
+      if (!mergeFor(m, w.setup.character)) continue;
       const other = c.id === m.a ? m.b : c.id === m.b ? m.a : null;
       if (other && w.weapons.some((o) => o.id === other)) return 35;
     }

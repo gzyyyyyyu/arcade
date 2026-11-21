@@ -1,11 +1,8 @@
-import type { CharacterId } from '../../src/content/meta.ts';
-import type { MapId } from '../../src/content/maps.ts';
 import { afterEach, describe, expect, it } from 'vitest';
-import { LIVE_CHAR_BP, LIVE_COMBO_BP, LIVE_SKILL_COMBO_BP, LIVE_MAP_BP, LIVE_MAX_BP, LIVE_SKILL_BP, LIVE_SKILL_OPEN, LIVE_SKILL_SHAPE, liveSkillOpen, shapeBp, VIGIL_SHAPE, LIVE_TIER_IDS, LIVE_TIERS, VIGIL_BOSS_ADD_BP, vigilBp } from '../../src/content/live.ts';
+import { LIVE_CHAR_BP, LIVE_COMBO_BP, LIVE_MAP_BP, LIVE_MAX_BP, shapeBp, LIVE_TIER_IDS, LIVE_TIERS, vigilBp } from '../../src/content/live.ts';
 import { RAID_LIVE } from '../../src/content/explore.ts';
 import { liveBp } from '../../src/explore/settle.ts';
 import { World } from '../../src/core/state.ts';
-import { CHARACTER_IDS } from '../../src/content/meta.ts';
 import { MAP_IDS } from '../../src/content/maps.ts';
 import { LIVE_KEY, LiveClient, liveSetup, reviveLive } from '../../src/platform/live.ts';
 
@@ -31,16 +28,10 @@ const clearAll = (): void => {
 };
 
 describe('实盘选角色、地图：vigilBp', () => {
-  it('不传角色、地图 = 小道士、雪原；小道士、雪原不在系数表里，别的没登记的角色、地图结果和它们一致', () => {
+  it('不传角色、地图 = 小道士、雪原；小道士、雪原是基准，不在角色、地图系数表里', () => {
     expect(LIVE_CHAR_BP.xiaodao).toBeUndefined();
     expect(LIVE_MAP_BP.snow).toBeUndefined();
-    for (const t of LIVE_TIER_IDS)
-      for (const [ticks, won, boss] of SAMPLES) {
-        const base = vigilBp(t, ticks, won, boss, 'xiaodao', 'snow', 53); // 规则 54 起小道士雪原大档进了组合表，这里钉在规则 53
-        expect(vigilBp(t, ticks, won, boss, 'xiaodao', 'snow', 53)).toBe(base);
-        for (const c of CHARACTER_IDS) if (liveSkillOpen(t, 'snow', undefined, c) === liveSkillOpen(t, 'snow') && (liveSkillOpen(t, 'snow') ? (LIVE_SKILL_BP.char[c]?.[t] ?? LIVE_CHAR_BP[c]?.[t]) : LIVE_CHAR_BP[c]?.[t]) === undefined) expect(vigilBp(t, ticks, won, boss, c, 'snow', 53)).toBe(base);
-        for (const m of MAP_IDS) if (LIVE_MAP_BP[m]?.[t] === undefined && LIVE_SKILL_BP.map[m]?.[t] === undefined && liveSkillOpen(t, m) === liveSkillOpen(t, 'snow')) expect(vigilBp(t, ticks, won, boss, 'xiaodao', m, 53)).toBe(base);
-      }
+    for (const t of LIVE_TIER_IDS) for (const [ticks, won, boss] of SAMPLES) expect(vigilBp(t, ticks, won, boss)).toBe(vigilBp(t, ticks, won, boss, 'xiaodao', 'snow'));
   });
   it('系数都在合理范围（0.5–2.5 倍），按档写', () => {
     for (const tbl of [LIVE_CHAR_BP, LIVE_MAP_BP])
@@ -51,36 +42,36 @@ describe('实盘选角色、地图：vigilBp', () => {
           expect(c).toBeLessThanOrEqual(25_000);
         }
   });
-  it('（规则 44 及以前开的局，不放技能的格子）系数乘在这一档的天亮倍数上，中途倒下按同一比例，尸王的加成不缩放，结果始终封顶', () => {
+  it('系数乘在这一档的天亮倍数上，中途倒下按同一比例，尸王的加成不缩放，结果始终封顶', () => {
     clearAll();
     LIVE_CHAR_BP.pang = { medium: 9_000 };
     LIVE_MAP_BP.riverbank = { medium: 11_000 };
-    const dawn = LIVE_TIERS.medium.dawnBp;
-    expect(vigilBp('medium', 27_000, true, false, 'pang', 'icelake', 44)).toBe(Math.floor((dawn * 9_000) / 10_000));
-    expect(vigilBp('medium', 27_000, true, false, 'xiaodao', 'riverbank', 44)).toBe(Math.floor((dawn * 11_000) / 10_000));
-    expect(vigilBp('medium', 27_000, true, true, 'pang', 'icelake', 44)).toBe(Math.floor((dawn * 9_000) / 10_000) + VIGIL_BOSS_ADD_BP);
-    expect(vigilBp('medium', 9_000, false, false, 'pang', 'icelake', 44)).toBeLessThan(vigilBp('medium', 9_000, false, false, 'xiaodao', 'icelake', 44));
-    // 别的档不受影响（大档鬼市：处处不开技能，走不带技能那套）
-    expect(vigilBp('large', 27_000, true, false, 'pang', 'guishi', 44)).toBe(vigilBp('large', 27_000, true, false, 'xiaodao', 'guishi', 44));
+    const { dawnBp: dawn, bossAdd } = LIVE_TIERS.medium;
+    expect(vigilBp('medium', 27_000, true, false, 'pang', 'icelake')).toBe(Math.floor((dawn * 9_000) / 10_000));
+    expect(vigilBp('medium', 27_000, true, false, 'xiaodao', 'riverbank')).toBe(Math.floor((dawn * 11_000) / 10_000));
+    expect(vigilBp('medium', 27_000, true, true, 'pang', 'icelake')).toBe(Math.floor((dawn * 9_000) / 10_000) + bossAdd);
+    expect(vigilBp('medium', 18_000, false, false, 'pang', 'icelake')).toBeLessThan(vigilBp('medium', 18_000, false, false, 'xiaodao', 'icelake'));
+    // 别的档不受影响
+    expect(vigilBp('large', 27_000, true, false, 'pang', 'guishi')).toBe(vigilBp('large', 27_000, true, false, 'xiaodao', 'guishi'));
     // 系数大到超过上限：天亮、尸王、中途都封顶
     LIVE_MAP_BP.riverbank = { medium: 25_000 };
     LIVE_CHAR_BP.pang = { medium: 25_000 };
-    for (const [ticks, won, boss] of SAMPLES) expect(vigilBp('medium', ticks, won, boss, 'pang', 'riverbank', 44)).toBeLessThanOrEqual(LIVE_MAX_BP);
-    expect(vigilBp('medium', 27_000, true, false, 'pang', 'riverbank', 44)).toBe(LIVE_MAX_BP);
+    for (const [ticks, won, boss] of SAMPLES) expect(vigilBp('medium', ticks, won, boss, 'pang', 'riverbank')).toBeLessThanOrEqual(LIVE_MAX_BP);
+    expect(vigilBp('medium', 27_000, true, false, 'pang', 'riverbank')).toBe(LIVE_MAX_BP);
   });
-  it('（规则 44 及以前开的局）组合系数替换角色 × 地图的乘积，只管写了的那一档；系数在合理范围', () => {
+  it('组合系数替换角色 × 地图的乘积，只管写了的那一档；系数在合理范围', () => {
     clearAll();
     LIVE_CHAR_BP.pang = { medium: 9_000 };
     LIVE_MAP_BP.riverbank = { medium: 14_000 };
-    const dawn = LIVE_TIERS.medium.dawnBp;
-    expect(vigilBp('medium', 27_000, true, false, 'pang', 'riverbank', 44)).toBe(Math.floor((Math.floor((dawn * 9_000) / 10_000) * 14_000) / 10_000));
+    const { dawnBp: dawn, bossAdd } = LIVE_TIERS.medium;
+    expect(vigilBp('medium', 27_000, true, false, 'pang', 'riverbank')).toBe(Math.floor((Math.floor((dawn * 9_000) / 10_000) * 14_000) / 10_000));
     LIVE_COMBO_BP.pang = { riverbank: { medium: 10_000 } };
-    expect(vigilBp('medium', 27_000, true, false, 'pang', 'riverbank', 44)).toBe(dawn);
-    // 尸王加成不缩放，别的档、别的地图、别的角色仍按乘积（中档冰湖、河滩不开技能）
-    expect(vigilBp('medium', 27_000, true, true, 'pang', 'riverbank', 44)).toBe(dawn + VIGIL_BOSS_ADD_BP);
-    expect(vigilBp('large', 27_000, true, false, 'pang', 'guishi', 44)).toBe(vigilBp('large', 27_000, true, false, 'xiaodao', 'guishi', 44));
-    expect(vigilBp('medium', 27_000, true, false, 'pang', 'icelake', 44)).toBe(Math.floor((dawn * 9_000) / 10_000));
-    expect(vigilBp('medium', 27_000, true, false, 'xiaodao', 'riverbank', 44)).toBe(Math.floor((dawn * 14_000) / 10_000));
+    expect(vigilBp('medium', 27_000, true, false, 'pang', 'riverbank')).toBe(dawn);
+    // 尸王加成不缩放，别的档、别的地图、别的角色仍按乘积
+    expect(vigilBp('medium', 27_000, true, true, 'pang', 'riverbank')).toBe(dawn + bossAdd);
+    expect(vigilBp('large', 27_000, true, false, 'pang', 'guishi')).toBe(vigilBp('large', 27_000, true, false, 'xiaodao', 'guishi'));
+    expect(vigilBp('medium', 27_000, true, false, 'pang', 'icelake')).toBe(Math.floor((dawn * 9_000) / 10_000));
+    expect(vigilBp('medium', 27_000, true, false, 'xiaodao', 'riverbank')).toBe(Math.floor((dawn * 14_000) / 10_000));
     for (const per of Object.values(saved.combo))
       for (const maps of Object.values(per!))
         for (const [t, c] of Object.entries(maps!)) {
@@ -88,25 +79,6 @@ describe('实盘选角色、地图：vigilBp', () => {
           expect(c).toBeGreaterThanOrEqual(5_000);
           expect(c).toBeLessThanOrEqual(25_000);
         }
-  });
-  it('组合系数：规则 40 及以前的局不折算，和 0.17.2 逐位一致；41 起按小道士新旧地图系数同比折算', () => {
-    // 义庄小档的地图系数：39 时 10,500、40 时 11,000、现行 10,200；组合系数是在 40 的系数上拟的
-    LIVE_COMBO_BP.pang = { ...LIVE_COMBO_BP.pang, yizhuang: { ...LIVE_COMBO_BP.pang?.yizhuang, small: 12_000 } };
-    const dawn = LIVE_TIERS.small.dawnBp;
-    for (const [ticks, won, boss] of SAMPLES) {
-      const at = (rules?: number) => vigilBp('small', ticks, won, boss, 'pang', 'yizhuang', rules);
-      // 0.17.2：组合系数直接替换乘积
-      const old = (() => {
-        const d = Math.floor((dawn * 12_000) / 10_000);
-        return boss ? Math.min(LIVE_MAX_BP, d + VIGIL_BOSS_ADD_BP) : won ? Math.min(LIVE_MAX_BP, d) : shapeBp(VIGIL_SHAPE, ticks, d);
-      })();
-      expect(at(39)).toBe(old);
-      expect(at(40)).toBe(old);
-      const d41 = Math.floor((dawn * Math.floor((12_000 * 10_200) / 11_000)) / 10_000);
-      const now = boss ? Math.min(LIVE_MAX_BP, d41 + VIGIL_BOSS_ADD_BP) : won ? Math.min(LIVE_MAX_BP, d41) : shapeBp(VIGIL_SHAPE, ticks, d41);
-      expect(at(41)).toBe(now);
-      expect(at(42)).toBe(now);
-    }
   });
 
   it('夜探角色系数乘在算好的倍数上：至少 1 份、封顶照旧、没登记的角色和档位不变', () => {
@@ -142,92 +114,7 @@ describe('实盘选角色、地图：vigilBp', () => {
   });
 });
 
-describe('实盘技能开放的格子单独一套倍数（0.16.0）', () => {
-  const dawn = (t: 'small' | 'medium', c: CharacterId, m: MapId): number => vigilBp(t, 0, true, false, c, m, 57); // 规则 58 起抬过的格子另锁在 live-58，这里看规则 57 的局
-  const dawn44 = (t: 'small' | 'medium', c: CharacterId, m: MapId): number => vigilBp(t, 0, true, false, c, m, 44);
-  it('小档 × 雪原：各角色天亮结算倍数（万分比），改前 → 改后', () => {
-    // 改前：dawnBp 13,500 × 旧角色系数（小档）；改后：技能格子单独的 dawnBp 11,800 × 新角色系数
-    const before = { xiaodao: 13_500, fushi: 13_500, jianxia: 13_365, pang: 13_365, gengfu: 13_635, caiyao: 13_365 } as const;
-    const after = { xiaodao: 11_800, fushi: 12_390, jianxia: 11_682, pang: 11_092, gengfu: 11_564, caiyao: 11_210, zhijiang: 12_390, huolang: 12_036, yinyang: 12_036 } as const;
-    // 规则 49（0.17.14）起胖师叔、采药女小档雪原另有组合系数（见下面 0.17.14 一节），这里按规则 48 看乘积
-    for (const [c, v] of Object.entries(after)) expect(vigilBp('small', 0, true, false, c as CharacterId, 'snow', 48), c).toBe(v);
-    for (const [c, v] of Object.entries(before)) expect(dawn('small', c as CharacterId, 'snow'), c).toBeLessThan(v);
-  });
-  it('规则 44 及以前开的局，当时不放技能的格子（小档冰湖、中档以上的鬼市）不用技能那套倍数', () => {
-    expect(LIVE_TIERS.small.dawnBp).toBe(13_500);
-    // 小档冰湖 0.17.5 按现在的机器人重拟：9,900 → 8,400
-    expect(dawn44('small', 'xiaodao', 'icelake')).toBe(11_340);
-    expect(dawn44('small', 'pang', 'icelake')).toBe(11_226);
-    expect(dawn44('small', 'gengfu', 'icelake')).toBe(11_453);
-    // 鬼市 0.17.7 开实盘，中档地图系数 9,600
-    expect(dawn44('medium', 'xiaodao', 'guishi')).toBe(16_224);
-    expect(dawn44('medium', 'pang', 'guishi')).toBe(13_628);
-    // 小档的河滩、义庄、荒庙、鬼市 0.17.8（规则 43）开技能，用带技能那套：dawnBp 11,800 × 技能角色系数 × LIVE_SKILL_BP.map
-    for (const m of ['riverbank', 'yizhuang', 'temple', 'guishi'] as const) expect(LIVE_SKILL_OPEN.small, m).toContain(m);
-    expect(dawn('small', 'xiaodao', 'riverbank')).toBe(13_806);
-    expect(dawn('small', 'xiaodao', 'yizhuang')).toBe(13_806);
-    expect(dawn('small', 'xiaodao', 'temple')).toBe(13_452);
-    expect(dawn('small', 'xiaodao', 'guishi')).toBe(13_688);
-    // 剑侠河滩 0.17.9 起按组合 10,500（规则 43 开的局按乘积 13,667）
-    expect(dawn('small', 'jianxia', 'riverbank')).toBe(12_390);
-    expect(vigilBp('small', 0, true, false, 'jianxia', 'riverbank', 43)).toBe(13_667);
-    // 0.17.9（规则 44）：符师技能系数 1.05 乘上这几张图的地图系数普通线超上限，改用 LIVE_SKILL_COMBO_BP 替换乘积；规则 43 开的局按乘积结
-    for (const m of Object.keys(LIVE_SKILL_COMBO_BP.fushi!) as MapId[]) {
-      const combo = LIVE_SKILL_COMBO_BP.fushi![m]!.small!;
-      expect(dawn('small', 'fushi', m), m).toBe(Math.floor((11_800 * combo) / 10_000));
-      expect(vigilBp('small', 0, true, false, 'fushi', m, 43), m).toBe(Math.floor((Math.floor((11_800 * 10_500) / 10_000) * LIVE_SKILL_BP.map[m]!.small!) / 10_000));
-    }
-    expect(vigilBp('small', 0, true, false, 'fushi', 'riverbank', 43)).toBe(14_496);
-    // 规则 42 及以前开的局仍按不放技能那套结（和 0.17.7 线上逐位一致）
-    const old = (c: CharacterId, m: MapId): number => vigilBp('small', 0, true, false, c, m, 42);
-    for (const m of ['riverbank', 'yizhuang', 'temple', 'guishi'] as const) expect(liveSkillOpen('small', m, 42), m).toBe(false);
-    expect(old('xiaodao', 'riverbank')).toBe(13_770);
-    expect(old('xiaodao', 'yizhuang')).toBe(13_770);
-    expect(old('xiaodao', 'temple')).toBe(13_500);
-    expect(old('xiaodao', 'guishi')).toBe(13_770);
-    expect(old('jianxia', 'riverbank')).toBe(13_632);
-  });
-});
-
-describe('实盘技能的形状表 LIVE_SKILL_SHAPE（0.17.0 起中档以上开技能的格子用）', () => {
-  // 中档以上没开技能的格子（鬼市）：倍数和加表之前逐位一致（期望数取自加表前的 vigilBp，原是雪原，鬼市没有地图系数所以相同）
-  const BEFORE: [string, number, boolean, boolean, string, string, number][] = [
-  ['medium', 0, false, false, 'xiaodao', 'guishi', 0],
-  ['medium', 6000, false, false, 'xiaodao', 'guishi', 157],
-  ['medium', 9000, false, false, 'xiaodao', 'guishi', 946],
-  ['medium', 12000, false, false, 'xiaodao', 'guishi', 1869],
-  ['medium', 18000, false, false, 'xiaodao', 'guishi', 3718],
-  ['medium', 25000, false, false, 'xiaodao', 'guishi', 4835],
-  ['medium', 27000, true, false, 'xiaodao', 'guishi', 16900],
-  ['medium', 27000, true, true, 'xiaodao', 'guishi', 18900],
-  ['medium', 20000, false, true, 'xiaodao', 'guishi', 18900],
-  ['large', 0, false, false, 'xiaodao', 'guishi', 0],
-  ['large', 6000, false, false, 'xiaodao', 'guishi', 163],
-  ['large', 9000, false, false, 'xiaodao', 'guishi', 985],
-  ['large', 12000, false, false, 'xiaodao', 'guishi', 1946],
-  ['large', 18000, false, false, 'xiaodao', 'guishi', 3872],
-  ['large', 25000, false, false, 'xiaodao', 'guishi', 5035],
-  ['large', 27000, true, false, 'xiaodao', 'guishi', 17600],
-  ['large', 27000, true, true, 'xiaodao', 'guishi', 19600],
-  ['large', 20000, false, true, 'xiaodao', 'guishi', 19600],
-  ['luxe', 0, false, false, 'xiaodao', 'guishi', 0],
-  ['luxe', 6000, false, false, 'xiaodao', 'guishi', 178],
-  ['luxe', 9000, false, false, 'xiaodao', 'guishi', 1075],
-  ['luxe', 12000, false, false, 'xiaodao', 'guishi', 2123],
-  ['luxe', 18000, false, false, 'xiaodao', 'guishi', 4224],
-  ['luxe', 25000, false, false, 'xiaodao', 'guishi', 5493],
-  ['luxe', 27000, true, false, 'xiaodao', 'guishi', 19200],
-  ['luxe', 27000, true, true, 'xiaodao', 'guishi', 21200],
-  ['luxe', 20000, false, true, 'xiaodao', 'guishi', 21200],
-  ];
-  it('规则 44 及以前开的局，当时不放技能的格子的 vigilBp 和改前逐位一致', () => {
-    // 锁的是不开技能那套曲线和 dawnBp：鬼市 0.17.7 才有地图系数，这里拿掉按 1 倍比（afterEach 还原）
-    delete LIVE_MAP_BP.guishi;
-    for (const [t, k, w, b, c, m, v] of BEFORE) {
-      expect(liveSkillOpen(t as 'medium', m as MapId, 44), `${t}/${m}`).toBe(false);
-      expect(vigilBp(t as 'medium', k, w, b, c as CharacterId, m as MapId, 44), `${t} ${k} ${w} ${b} ${c} ${m}`).toBe(v);
-    }
-  });
+describe('守夜中途倒下的形状', () => {
   it('shapeBp：拍点插值、封顶', () => {
     const shape = [[300, 0], [420, 1_400], [600, 5_500], [840, 7_200], [900, 10_000]] as const;
     const at = (sec: number, dawn = 20_000): number => shapeBp(shape, sec * 30, dawn);
@@ -245,56 +132,26 @@ describe('实盘技能的形状表 LIVE_SKILL_SHAPE（0.17.0 起中档以上开�
     expect(shapeBp(shape, 600 * 30, 40_000)).toBe(22_000);
     expect(shapeBp(shape, 899 * 30, 100_000)).toBe(LIVE_MAX_BP);
   });
-  it('开了技能的格子不用组合系数（那是不带技能时拟的），按技能那套的角色 × 地图系数相乘', () => {
-    expect(LIVE_COMBO_BP.gengfu?.snow?.medium).toBeDefined(); // 不带技能时拟的更夫 × 雪原中档组合
-    expect(liveSkillOpen('medium', 'snow', undefined, 'gengfu')).toBe(true);
-    const base = LIVE_SKILL_BP.dawn.medium!;
-    const c = LIVE_SKILL_BP.char.gengfu?.medium ?? 10_000;
-    // 钉在规则 63：规则 64 起这一格有重拟的组合系数（live-64.test.ts）
-    expect(vigilBp('medium', 0, true, false, 'gengfu', 'snow', 63)).toBe(Math.floor((base * c) / 10_000));
-  });
-  it('规则 40–44 开的局：当时关技能的角色照那时结（不放技能、不带技能那套倍数，含组合系数），和 0.16.0 逐位一致；0.17.10 起都放技能', () => {
-    // 0.16.0 的值：大档 dawn 17,600 × 更夫雪原大档组合 11,400；豪华档 19,200 × 组合 11,800；中档胖师叔 16,900 × 8,400
-    expect(liveSkillOpen('large', 'snow', 44, 'gengfu')).toBe(false);
-    expect(vigilBp('large', 0, true, false, 'gengfu', 'snow', 44)).toBe(20_064);
-    expect(vigilBp('luxe', 0, true, false, 'gengfu', 'snow', 44)).toBe(22_656);
-    expect(vigilBp('medium', 0, true, false, 'pang', 'snow', 44)).toBe(14_196);
-    expect(vigilBp('medium', 600 * 30, false, false, 'pang', 'snow', 44)).toBe(shapeBp(VIGIL_SHAPE, 600 * 30, 14_196));
-    for (const c of ['gengfu', 'pang', 'zhijiang', 'yinyang', 'fushi', 'caiyao'] as const)
-      for (const t of LIVE_TIER_IDS) for (const m of MAP_IDS) expect(liveSkillOpen(t, m, undefined, c), `${t} ${m} ${c}`).toBe(true);
-    // 没单独写带技能系数的按不带技能那套补：更夫大档 = 技能 dawn × 不带技能的系数
-    expect(vigilBp('large', 0, true, false, 'gengfu', 'snow')).toBe(Math.floor((LIVE_SKILL_BP.dawn.large! * (LIVE_SKILL_BP.char.gengfu?.large ?? LIVE_CHAR_BP.gengfu!.large!)) / 10_000));
-  });
-  it('开了技能的中档以上格子用表里的 shape 和 bossAdd', () => {
-    for (const t of ['medium', 'large', 'luxe'] as const) {
-      expect(liveSkillOpen(t, 'snow'), t).toBe(true);
-      const e = LIVE_SKILL_SHAPE[t]!;
-      const d = vigilBp(t, 0, true, false, 'xiaodao', 'snow', 53);
-      expect(d, t).toBe(LIVE_SKILL_BP.dawn[t]);
-      expect(vigilBp(t, 0, true, true, 'xiaodao', 'snow', 53), t).toBe(Math.min(LIVE_MAX_BP, d + e.bossAdd));
-      expect(vigilBp(t, e.shape[0]![0] * 30, false, false, 'xiaodao', 'snow', 53), t).toBe(0);
-      expect(vigilBp(t, 600 * 30, false, false, 'xiaodao', 'snow', 53), t).toBe(shapeBp(e.shape, 600 * 30, d));
-      // 和不带技能那条曲线确实不同
-      expect(vigilBp(t, 600 * 30, false, false, 'xiaodao', 'snow', 53), t).not.toBe(shapeBp(VIGIL_SHAPE, 600 * 30, d));
+  it('每档用自己的 shape 和 bossAdd', () => {
+    for (const t of LIVE_TIER_IDS) {
+      const { shape, bossAdd } = LIVE_TIERS[t];
+      const d = vigilBp(t, 0, true, false);
+      expect(vigilBp(t, 0, true, true), t).toBe(Math.min(LIVE_MAX_BP, d + bossAdd));
+      expect(vigilBp(t, shape[0]![0] * 30, false, false), t).toBe(0);
+      expect(vigilBp(t, 600 * 30, false, false), t).toBe(shapeBp(shape, 600 * 30, d));
     }
   });
-  it('小档不加条目，用原来的 VIGIL_SHAPE 和 VIGIL_BOSS_ADD_BP', () => {
-    expect(LIVE_SKILL_SHAPE.small).toBeUndefined();
-    const d = vigilBp('small', 0, true, false);
-    expect(vigilBp('small', 0, true, true)).toBe(d + VIGIL_BOSS_ADD_BP);
-    expect(vigilBp('small', 600 * 30, false, false)).toBe(shapeBp(VIGIL_SHAPE, 600 * 30, d));
-  });
-  it('形状表合法：首点倍数 0、秒数递增、末点 [900,10000]、倍数单调不减', () => {
-    const all = [VIGIL_SHAPE, ...Object.values(LIVE_SKILL_SHAPE).map((e) => e.shape)];
-    for (const sh of all) {
+  it('形状表合法：首点倍数 0、秒数递增、末点 [900,10000]、倍数单调不减；尸王加成不为负', () => {
+    for (const t of LIVE_TIER_IDS) {
+      const sh = LIVE_TIERS[t].shape;
       expect(sh[0]![1]).toBe(0);
       expect(sh[sh.length - 1]).toEqual([900, 10_000]);
       for (let i = 1; i < sh.length; i++) {
         expect(sh[i]![0]).toBeGreaterThan(sh[i - 1]![0]);
         expect(sh[i]![1]).toBeGreaterThanOrEqual(sh[i - 1]![1]);
       }
+      expect(LIVE_TIERS[t].bossAdd).toBeGreaterThanOrEqual(0);
     }
-    for (const e of Object.values(LIVE_SKILL_SHAPE)) expect(e.bossAdd).toBeGreaterThanOrEqual(0);
   });
 });
 

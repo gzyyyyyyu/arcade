@@ -41,12 +41,10 @@ function evOf(w: World, type: number, a = -1): number {
 
 // ───────────────────────── 套件和被动 ─────────────────────────
 
-/** recompute 里（w.stats 换上之前）：幽冥、聚财套件档，钱袋、白幡、朱笔，套件标签。老卡池（规则 51 之前的实盘局）全部不生效（DESIGN 4.3） */
+/** recompute 里（w.stats 换上之前）：幽冥、聚财套件档，钱袋、白幡、朱笔，套件标签 */
 export function armsSchool(w: World, s: { coinBonus: number; magnet: number; critDmg: number }): void {
   const A = w.arms;
-  const live = w.oldPool;
   const tierOf = (ids: readonly WeaponId[]): number => {
-    if (live) return 0;
     let n = 0;
     for (const o of w.weapons) if (ids.includes(o.id)) n++;
     return n >= 4 ? 4 : n >= 3 ? 3 : n >= 2 ? 2 : 0;
@@ -60,7 +58,6 @@ export function armsSchool(w: World, s: { coinBonus: number; magnet: number; cri
   for (const [tier, name] of [[A.tier, SCHOOLS.array.name], [A.ghostTier, SCHOOLS.ghost.name], [A.wealthTier, SCHOOLS.wealth.name]] as const) {
     if (tier > 0) w.sets.push(`${name}·${tier}`);
   }
-  if (live) return;
   const p = (id: 'qiandai' | 'baifan' | 'zhubi'): number => w.passives[id] ?? 0;
   s.coinBonus += ARM_FX2.dart.qiandaiCoin * p('qiandai') + (A.wealthTier >= 2 ? ARM_FX2.school.wealth.two : 0);
   s.magnet *= 1 + ARM_FX2.banner.baifanMagnet * p('baifan');
@@ -76,7 +73,7 @@ export function armsStalls(w: World): number {
 export function secondHitMul(w: World, i: number): number {
   let m = 1;
   const zb = w.passives.zhubi ?? 0;
-  if (zb > 0 && !w.oldPool && (isElite(w, i) || isBoss(w, i))) m *= 1 + ARM_FX2.brush.zhubiElite * zb;
+  if (zb > 0 && (isElite(w, i) || isBoss(w, i))) m *= 1 + ARM_FX2.brush.zhubiElite * zb;
   if (w.arms.wealthTier >= 3) {
     const W = ARM_FX2.school.wealth;
     const bonus = Math.floor(w.coins / W.per) * W.three;
@@ -290,13 +287,12 @@ function castBanner(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStat
 
 function bannersTick(w: World, api: ArmApi): void {
   const A = w.arms;
-  // 规则 55：幡下自己招魂——没有击杀时幡也隔几秒招一个冤魂，让幽冥不靠镇魂铃起手也能打；
+  // 幡下自己招魂：没有击杀时幡也隔几秒招一个冤魂，让幽冥不靠镇魂铃起手也能打；
   // 带了镇魂铃（本来就强的那条）隔得很久，不再加。按幡的剩余寿命对齐拍数，不另记状态
-  const self = w.new55 && !w.oldPool;
   const every = slotOf(w, 'bell') >= 0 ? COMBO55.banner.bellEvery : COMBO55.banner.every;
   for (let q = A.banners.length - 1; q >= 0; q--) {
     const b = A.banners[q]!;
-    if (self && b.life % every === 0) spawnGhost(w, api, b.x, b.y, b.slot, b.evo, b.x, b.y);
+    if (b.life % every === 0) spawnGhost(w, api, b.x, b.y, b.slot, b.evo, b.x, b.y);
     if (--b.life <= 0) A.banners.splice(q, 1);
   }
 }

@@ -9,6 +9,11 @@ import { SPRITES14 } from '../../src/view/art/sprites-water.ts';
 import { SPRITES_GUISHI } from '../../src/view/art/sprites-guishi.ts';
 import { SPRITES_HUAPI } from '../../src/view/art/sprites-huapi.ts';
 import { SPRITES_FOES } from '../../src/view/art/sprites-foes.ts';
+import { SPRITES_LUANZANG } from '../../src/view/art/sprites-luanzang.ts';
+import { SPRITES_YAOZHEN, SPRITES_YAOZHEN_MOB } from '../../src/view/art/sprites-yaozhen.ts';
+import { SPRITES8 } from '../../src/view/art/sprites-raid.ts';
+import { SPRITES9 } from '../../src/view/art/sprites-decor.ts';
+import { SPRITES10 } from '../../src/view/art/sprites-buildings.ts';
 import { ACHIEVEMENTS } from '../../src/content/achievements.ts';
 import { createWorld, fingerprint, MAX_SHOTS, Shot, step, type World } from '../../src/core/index.ts';
 import { grantWeapon, openChestNow, spawnNow } from '../../src/core/debug.ts';
@@ -489,7 +494,12 @@ describe('2.0 第二批：登记', () => {
   });
 
   it('图集高度：特色怪图集在渲染倍数 3 下不超过 2048', () => {
-    const defs = [...SPRITES12, ...SPRITES13, ...SPRITES14, ...SPRITES_ARMS, ...SPRITES_ARMS2, ...SPRITES_GUISHI, ...SPRITES_HUAPI, ...SPRITES_FOES];
+    const defs = [...SPRITES12, ...SPRITES13, ...SPRITES14, ...SPRITES_ARMS, ...SPRITES_ARMS2, ...SPRITES_GUISHI, ...SPRITES_HUAPI, ...SPRITES_FOES, ...SPRITES_LUANZANG, ...SPRITES_YAOZHEN_MOB];
+    for (const res of [1, 2, 3]) expect(layout(defs, res).height).toBeLessThanOrEqual(2048);
+  });
+
+  it('图集高度：夜探图集（含窑镇的窑）在渲染倍数 3 下不超过 2048', () => {
+    const defs = [...SPRITES8, ...SPRITES9, ...SPRITES10, ...SPRITES_YAOZHEN];
     for (const res of [1, 2, 3]) expect(layout(defs, res).height).toBeLessThanOrEqual(2048);
   });
 
@@ -821,95 +831,8 @@ describe('第二批搭配', () => {
   });
 });
 
-describe('规则 51 之前的实盘局不放 2.0 的新内容（录像按规则 50 重放）', () => {
-  it('实盘的卡池、宝箱里永远抽不到新法器、新被动、新套件、新搭配', () => {
-    const newW = new Set<string>(['flag', 'chain', 'pole', 'lamp', 'dart', 'abacus', 'banner', 'brush', 'cracker']);
-    const newP = new Set<string>(['qizhi', 'tielian', 'dengyou', 'qiandai', 'baifan', 'zhubi', 'liuhuang']);
-    for (let seed = 1; seed <= 12; seed++) {
-      const w = createWorld({ seed, mode: 'vigil', danger: 2, live: true }, 50);
-      for (let t = 0; t < 30 * 100 && w.phase !== 'over'; t++) {
-        step(w, (t >> 5) % 8 === 0 ? 1 : 5, -1);
-        if (w.phase === 'choose') {
-          for (const c of w.choices) expect(newW.has(c.id) || newP.has(c.id)).toBe(false);
-          step(w, 0, 0);
-          openChestNow(w);
-        }
-      }
-      for (const o of w.weapons) expect(newW.has(o.id)).toBe(false);
-      for (const id of Object.keys(w.passives)) expect(newP.has(id)).toBe(false);
-      expect(w.arms.live()).toBe(false);
-      expect(w.sets.every((s) => !s.includes('·'))).toBe(true);
-    }
-    // 12 局各跑到 100 秒：空载单线程约 1.9 秒（冷启动，进程 CPU 时间，2026-11-02 量；热了约 0.9 秒），取 4 倍；
-    // 默认 5 秒在机器负载 28–33 时会超时（不是断言失败）
-  }, 8_000);
-
-  it('实盘里货郎、阴阳先生自己的起手法器和进化被动能升级进化，其余新内容仍不出；规则版本 38 的实盘录像不放', () => {
-    const newW = new Set<string>(['flag', 'chain', 'pole', 'lamp', 'dart', 'abacus', 'banner', 'brush', 'cracker']);
-    const newP = new Set<string>(['qizhi', 'tielian', 'dengyou', 'qiandai', 'baifan', 'zhubi', 'liuhuang']);
-    const own: Record<string, string[]> = { huolang: ['dart', 'qiandai'], yinyang: ['flag', 'qizhi'] };
-    // 直接塞升级次数，把每次三选一里出现过的牌都记下来（三选一不吃局面，只吃种子）
-    const seenIds = (character: 'huolang' | 'yinyang' | 'zhijiang', rules?: number): Set<string> => {
-      const seen = new Set<string>();
-      for (let seed = 1; seed <= 6; seed++) {
-        const w = createWorld({ seed, mode: 'vigil', danger: 0, character, live: true } as never, rules);
-        for (let n = 0; n < 40 && w.phase !== 'over'; n++) {
-          w.hp = w.stats.hpMax;
-          w.pendingLevels = 1;
-          step(w, 0, -1);
-          if (w.phase === 'choose') {
-            for (const c of w.choices) seen.add(c.id);
-            step(w, 0, 0);
-          }
-        }
-      }
-      return seen;
-    };
-    for (const c of ['huolang', 'yinyang'] as const) {
-      const seen = seenIds(c, 50);
-      for (const id of own[c]!) expect(seen.has(id), `${c} ${id}`).toBe(true);
-      for (const id of [...newW, ...newP]) if (!own[c]!.includes(id)) expect(seen.has(id), `${c} ${id}`).toBe(false);
-      const old = seenIds(c, 38);
-      for (const id of [...newW, ...newP]) expect(old.has(id), `旧录像 ${c} ${id}`).toBe(false);
-    }
-    const zj = seenIds('zhijiang', 50);
-    expect(zj.has('zhibing')).toBe(true);
-    for (const id of [...newW, ...newP]) expect(zj.has(id), `zhijiang ${id}`).toBe(false);
-  });
-
-  it('实盘里即使凑出阵法单子的老法器，也没有套件（实盘配置照旧）', () => {
-    const w = createWorld({ seed: 1, mode: 'vigil', danger: 2, live: true }, 50);
-    armed(w, ['mirror', 'rope', 'shield'], false, 1);
-    expect(w.arms.tier).toBe(0);
-    expect(w.sets.some((s) => s.includes('·'))).toBe(false);
-  });
-
-  it('实盘宝箱不合 2.0 的搭配（老搭配照合）', () => {
-    const w = createWorld({ seed: 1, mode: 'vigil', danger: 0, live: true }, 50);
-    w.weapons.length = 0;
-    w.wstats.length = 0;
-    grantWeapon(w, 'crane', 8, true);
-    grantWeapon(w, 'shield', 8, true);
-    openChestNow(w);
-    expect(w.merges.includes('hejin')).toBe(false);
-    const v = createWorld({ seed: 1, mode: 'vigil', danger: 0, live: true }, 50);
-    v.weapons.length = 0;
-    v.wstats.length = 0;
-    grantWeapon(v, 'sword', 8, true);
-    grantWeapon(v, 'flysword', 8, true);
-    openChestNow(v);
-    expect(v.merges.includes('zhuxie')).toBe(true);
-  });
-});
-
-describe('规则 51 起实盘和娱乐一样按角色法器池抽', () => {
+describe('实盘和娱乐一样按角色法器池抽', () => {
   it('实盘局抽卡、宝箱合成、套件和娱乐同一个池', () => {
-    for (const c of ['huolang', 'yinyang', 'zhijiang', 'pang'] as const) {
-      const live = createWorld({ seed: 3, mode: 'vigil', danger: 2, character: c, live: true } as never);
-      const ent = createWorld({ seed: 3, mode: 'vigil', danger: 2, character: c } as never);
-      expect(live.oldPool, c).toBe(false);
-      expect(ent.oldPool, c).toBe(false);
-    }
     const w = createWorld({ seed: 1, mode: 'vigil', danger: 2, live: true });
     armed(w, ['mirror', 'rope', 'shield'], false, 1);
     expect(w.arms.tier).toBe(3);
@@ -920,8 +843,6 @@ describe('规则 51 起实盘和娱乐一样按角色法器池抽', () => {
     grantWeapon(m, 'shield', 8, true);
     openChestNow(m);
     expect(m.merges.includes('hejin')).toBe(true);
-    // 规则 50 的实盘录像照旧走老卡池
-    expect(createWorld({ seed: 1, mode: 'vigil', danger: 2, live: true }, 50).oldPool).toBe(true);
   });
 
   it('实盘货郎的三选一能抽到池里的 2.0 法器（和娱乐一样）', () => {

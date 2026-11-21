@@ -267,7 +267,7 @@ async function boot(): Promise<void> {
     if (!world || sess.ended || pause.open || confirm.open) return;
     setPaused(true);
     tips.hide();
-    pause.show(buildRows(world), Math.max(0, ((world.rush ? RUSH.limit : DAWN_TICK) - world.tick) / 30), setLines(world), tonightRules(world.setup), world.setup.character ?? 'xiaodao', world.liveNoSkill, world.xinfa ? SCHOOLS[world.xinfa].name : undefined);
+    pause.show(buildRows(world), Math.max(0, ((world.rush ? RUSH.limit : DAWN_TICK) - world.tick) / 30), setLines(world), tonightRules(world.setup), world.setup.character ?? 'xiaodao', world.xinfa ? SCHOOLS[world.xinfa].name : undefined);
   };
   pause.onResume = () => {
     pause.hide();

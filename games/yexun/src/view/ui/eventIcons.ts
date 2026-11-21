@@ -1,7 +1,7 @@
 import { Ev } from '../../core/events.ts';
 
 /** 事件预告的小图标字（横幅和图鉴夜事页共用；颜色在 banner.css / codex.css 里按 ev-<kind> 配） */
-export const EVENT_ICON: Record<string, string> = { wind: '风', sprouts: '竹', icefall: '冰', tide: '潮', risen: '尸', bell: '钟', parade: '鬼', blood: '月' };
+export const EVENT_ICON: Record<string, string> = { wind: '风', sprouts: '竹', icefall: '冰', tide: '潮', risen: '尸', bell: '钟', parade: '鬼', allfire: '火', blood: '月' };
 
 /** 本局经历的夜事计数：地图事件按种类，血月升起，精英发狂（结算页「今晚」一行用） */
 export interface NightLog {

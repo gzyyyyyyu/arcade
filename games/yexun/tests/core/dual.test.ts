@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MERGES, WEAPONS, type WeaponId } from '../../src/content/weapons.ts';
-import { createWorld, Ev, fingerprint, Shot, step, type World } from '../../src/core/index.ts';
+import { createWorld, Ev, fingerprint, mergeReady, Shot, step, type World } from '../../src/core/index.ts';
 import { grantWeapon, openChestNow, spawnNow } from '../../src/core/debug.ts';
 
 /** 干净的一局：只有给定的两件法器，没有怪，刷怪也推到很远以后（测的是双修，不是波次） */
@@ -23,17 +23,17 @@ function evSeen(w: World, t: number, a = -1): boolean {
 }
 
 describe('双修：符剑合璧（飞剑 + 符咒）', () => {
-  it('一件进化、另一件满级就在宝箱合成（1.1）；另一件没满级不合成', () => {
+  it('一件进化、另一件满级就够合成（1.1，大成的条件）；另一件没满级不够', () => {
     const w = arena('flysword', 'talisman');
     expect(w.merges).toContain('fujian');
+    const def = MERGES.find((m) => m.id === 'fujian')!;
     for (const [lv, want] of [[8, true], [7, false]] as const) {
       const v = createWorld({ seed: 7, mode: 'vigil', danger: 0 });
       v.weapons.length = 0;
       v.wstats.length = 0;
       grantWeapon(v, 'flysword', 8, true);
       grantWeapon(v, 'talisman', lv, false);
-      openChestNow(v);
-      expect(v.merges.includes('fujian')).toBe(want);
+      expect(mergeReady(v, def), `${lv} 级`).toBe(want);
     }
   });
 

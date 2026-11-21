@@ -43,7 +43,7 @@ export function rushResult(w: World): RushResult | null {
   return { down: w.rushDown, total: w.rush.total, cleared, ticks: cleared ? w.rushEnd : Math.min(w.tick, RUSH.limit), progress: max > 0 ? 1 - hp / max : 0 };
 }
 
-export function rushPlan(seed: number, map: MapId, legacy = false): RushPlan {
+export function rushPlan(seed: number, map: MapId): RushPlan {
   const rng = new Rng(seed, 'rush');
   const school = SCHOOL_IDS[rng.int(SCHOOL_IDS.length)]!;
   const sc = SCHOOLS[school];
@@ -77,7 +77,7 @@ export function rushPlan(seed: number, map: MapId, legacy = false): RushPlan {
   let firstSpecial = true;
   const stages = RUSH_STAGES.map((st) =>
     st.map((k): EnemyKind => {
-      if (k === 'lord') return midBossOf(map, legacy);
+      if (k === 'lord') return midBossOf(map);
       if (k === 'boss') return k;
       if (k === 's') {
         const e = special(firstSpecial);

@@ -56,7 +56,7 @@ describe('特色怪的登记', () => {
     }
   });
 
-  it('三张新图各 2 种特色怪 + 1 种精英，夜探五个镇各 1 种，雪原义庄各 1 种（无精英）', () => {
+  it('三张新图各 2 种特色怪 + 1 种精英，夜探五个镇各 1 种，雪原义庄各 1 种（6:30、11:00 补普通精英）', () => {
     for (const id of ['bamboo', 'riverbank', 'icelake'] as const) {
       expect(VIGIL_REGIONS[id]!.mobs.length).toBe(2);
       expect(new Set(VIGIL_REGIONS[id]!.elites!.map((e) => e.enemy)).size).toBe(1);
@@ -68,7 +68,7 @@ describe('特色怪的登记', () => {
     }
     for (const id of ['snow', 'yizhuang'] as const) {
       expect(VIGIL_REGIONS[id]!.mobs.length).toBe(1);
-      expect(VIGIL_REGIONS[id]!.elites).toBeUndefined();
+      expect(VIGIL_REGIONS[id]!.elites!.map((e) => e.at / 30)).toEqual([390, 660]);
     }
   });
 

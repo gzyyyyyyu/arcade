@@ -42,9 +42,8 @@ export class ReplayPlayer {
     this.picks = picks;
     this.skills = skills;
     this.outdated = record.rules !== RULES_VERSION;
-    // 设置快照里多出来的字段（danger、curses 等）核心认了就用，不认就被忽略
-    // 把录像的规则版本交给核心：37 起每个角色按自己的法器池抽卡，38 起有 2.0 的新首领、特色怪和小镇；更早录的要用旧的才重放得一致
-    this.world = createWorld(record.setup, record.rules);
+    // 设置快照里多出来的字段（danger、curses 等）核心认了就用，不认就被忽略；一律按现行规则重放（不保证跨版本）
+    this.world = createWorld(record.setup);
   }
 
   /** 录像坏了（方向串解不开）返回 null */

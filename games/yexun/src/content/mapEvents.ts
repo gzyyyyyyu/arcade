@@ -7,9 +7,9 @@ import type { MapId } from './maps.ts';
 
 const S = 30;
 
-export type MapEventKind = 'wind' | 'sprouts' | 'icefall' | 'tide' | 'risen' | 'bell' | 'parade';
+export type MapEventKind = 'wind' | 'sprouts' | 'icefall' | 'tide' | 'risen' | 'bell' | 'parade' | 'allfire';
 /** 事件编号（Ev.MapEvent 的 b，画面层按它查名字） */
-export const MAP_EVENT_KINDS: readonly MapEventKind[] = ['wind', 'sprouts', 'icefall', 'tide', 'risen', 'bell', 'parade'];
+export const MAP_EVENT_KINDS: readonly MapEventKind[] = ['wind', 'sprouts', 'icefall', 'tide', 'risen', 'bell', 'parade', 'allfire'];
 
 export interface MapEventDef {
   kind: MapEventKind;
@@ -45,8 +45,18 @@ export const MAP_EVENTS: Record<MapId, MapEventDef> = {
   riverbank: { kind: 'tide', name: '涨潮', blurb: '水里更难走，溺鬼跟着上岸', dur: 30 * S, mob: { kind: 'drown', count: 6 } },
   yizhuang: { kind: 'risen', name: '起尸', blurb: '一群跳尸从门洞涌进来', dur: 3 * S, mob: { kind: 'jiangshi', count: 14 } },
   temple: { kind: 'bell', name: '晨钟', blurb: '钟声一响，身边的怪定住一会儿', dur: 3 * S },
+  luanzang: { kind: 'allfire', name: '鬼火齐燃', blurb: '所有磷火一起烧，掘墓鬼钻出一圈', dur: 6 * S, mob: { kind: 'juemu', count: 10 } },
   guishi: { kind: 'parade', name: '百鬼夜行', blurb: '一排皮影鬼横扫过来，躲开或从缝里钻过去', dur: 3 * S, mob: { kind: 'puppet', count: 12 } },
 };
+
+/** 这一拍 kind 这种地图事件正在进行就回第几次（1 起），没有回 0；只有守夜（不含连战）有地图事件 */
+export function mapEventRound(tick: number, setup: { mode: string; rush?: boolean; map?: MapId }, kind: MapEventKind): number {
+  if (setup.mode !== 'vigil' || setup.rush) return 0;
+  const ev = MAP_EVENTS[setup.map ?? 'snow'];
+  if (ev.kind !== kind) return 0;
+  for (let k = 0; k < MAP_EVENT_AT.length; k++) if (tick >= MAP_EVENT_AT[k]! && tick < MAP_EVENT_AT[k]! + ev.dur) return k + 1;
+  return 0;
+}
 
 /** HUD 倒计时小牌开始出现的提前量（拍） */
 export const MAP_EVENT_HUD_LEAD = 60 * S;

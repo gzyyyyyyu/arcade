@@ -4,8 +4,8 @@
  * 推法和 `maps.ts` 的 pushOut 逐位一样（tests/explore/explore-map.test.ts 对拍锁住）：候选块按下标从小到大处理，和扫全表的顺序一致。
  */
 
-/** 画面层按 look 画：院墙、正房、摊子、河、台阶墙 */
-export type RaidLook = 'wall_h' | 'wall_v' | 'hall' | 'house' | 'stall' | 'river' | 'terrace' | 'stage' | 'granary';
+/** 画面层按 look 画：院墙、正房、摊子、河、台阶墙、窑（窑镇） */
+export type RaidLook = 'wall_h' | 'wall_v' | 'hall' | 'house' | 'stall' | 'river' | 'terrace' | 'stage' | 'granary' | 'kiln';
 
 export interface RaidBlock {
   x: number;

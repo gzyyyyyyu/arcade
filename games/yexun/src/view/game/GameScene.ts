@@ -11,7 +11,7 @@
  * 它们和 hold / freeze / now / 事件处理纠缠在一起，拆出去要传一大把状态，反而更难读。
  */
 import Phaser from 'phaser';
-import { DROWN, ENEMIES, HOP_AIR, HOP_PERIOD, HUAPI, SPROUT, WATER } from '../../content/enemies.ts';
+import { DROWN, ENEMIES, HOP_AIR, HOP_PERIOD, HUAPI, JUEMU, SPROUT, WATER } from '../../content/enemies.ts';
 import { CHAR_FX, CHARACTERS } from '../../content/meta.ts';
 import { ARENA, DROPS, xpNeed } from '../../content/player.ts';
 import { MAPS } from '../../content/maps.ts';
@@ -58,6 +58,7 @@ import { FoeView } from './foes.ts';
 import { isFoeBoss } from '../../core/foes/index.ts';
 import { weaponLook } from './look.ts';
 import { Town } from './town.ts';
+import { FireView } from './fire.ts';
 import { RushShow } from './rush.ts';
 import { Bump, drawArenaWall } from './wall.ts';
 import type { Input } from './input.ts';
@@ -106,6 +107,8 @@ const MOB_TINT = [
   0x79b9a2, 0xf6cfc4,
   // 2.0：竹母、水猴王、冰魄娘娘、无面佛；雪童子、棺钉鬼、鼠妖、戏班鬼影；红衣戏子、假身、硕鼠将军；米山、空棺
   0x7fc45a, 0x7c9488, 0xbfe6fa, 0xd9b84a, 0xf4f1ea, 0x6a7a74, 0x8a7a68, 0xa890d0, 0xe0384a, 0xe0384a, 0x8a7a68, 0xf0e4bc, 0x4a3a2a,
+  // 规则 55：纸弩手、催命鬼（糊纸的米白）；乱葬岗的掘墓鬼（沾土寿衣的灰褐）、窑镇的陶俑（赭红泥胎）
+  0xefe4c8, 0xefe4c8, 0x5e5848, 0xb8643a,
 ];
 /** 精英出场的横幅：名字 + 一句怎么打 */
 const ELITE_BANNER: Partial<Record<string, [string, string]>> = {
@@ -121,6 +124,7 @@ const ELITE_BANNER: Partial<Record<string, [string, string]>> = {
 const WATER_CODE = ENEMIES.findIndex((e) => e.kind === 'water');
 const SPROUT_CODE = ENEMIES.findIndex((e) => e.kind === 'bamsprout');
 const DROWN_CODE = ENEMIES.findIndex((e) => e.kind === 'drown');
+const JUEMU_CODE = ENEMIES.findIndex((e) => e.kind === 'juemu');
 const SNAKE_CODE = ENEMIES.findIndex((e) => e.kind === 'snakespirit');
 const PUPPET_CODE = ENEMIES.findIndex((e) => e.kind === 'puppet');
 const HUAPI_CODE = ENEMIES.findIndex((e) => e.kind === 'huapi');
@@ -275,6 +279,9 @@ export class GameScene extends Phaser.Scene {
   private arenaW = ARENA.w;
   private bump = new Bump();
   /** 香火区：这局提示过没有、上次冒金点的时间 */
+  /** 火区的画面（只有乱葬岗、窑镇有） */
+  private fireView: FireView | null = null;
+  private fireTold = false;
   private incenseTold = false;
   private incenseFx = 0;
   private arenaH = ARENA.h;
@@ -423,6 +430,8 @@ export class GameScene extends Phaser.Scene {
     }
     this.groundPainter.scatterDecor();
     this.drawBlocks();
+    // 火区（乱葬岗的磷火地、窑镇的窑口）：没有火区的局不建
+    if (this.w.fire.length) this.fireView = new FireView({ scene: this, frame: (k) => this.frame(k), lowMem: LOW_MEMORY }, this.w, this.raid ? 'kiln' : 'ghost');
 
     this.ground = new Fx(this, this.d.atlas, LOW_MEMORY ? 60 : 140);
     this.fx = new Fx(this, this.d.atlas, LOW_MEMORY ? 180 : 420);
@@ -565,6 +574,11 @@ export class GameScene extends Phaser.Scene {
       } else if (b.look === 'coffin') this.img('coffin', b.x + b.w / 2, b.y + b.h + 4).setDepth(b.y + b.h);
       else if (b.look === 'stall') this.img('stall', b.x + b.w / 2, b.y + b.h + 4).setDepth(b.y + b.h);
       else if (b.look === 'gstall') this.img('gstall', b.x + b.w / 2, b.y + b.h + 6).setDepth(b.y + b.h);
+      // 乱葬岗的坟包：两种（插木牌、立石碑）按位置轮换，一半左右翻
+      else if (b.look === 'grave') {
+        const v = (b.x * 7 + b.y * 13) | 0;
+        this.img(v % 3 === 0 ? 'grave2' : 'grave', b.x + b.w / 2, b.y + b.h + 4).setDepth(b.y + b.h).setFlipX(v % 2 === 0);
+      }
       else if (b.look === 'terrace') {
         const n = Math.max(1, Math.round(b.w / 80));
         const step = b.w / n;
@@ -1173,13 +1187,12 @@ export class GameScene extends Phaser.Scene {
     if (code >= MERGE_CODE) {
       const m = MERGES[code - MERGE_CODE]!;
       const kind = m.dual ? '双修' : '合成';
-      // 规则 63 的两段式：初成写打折和升大成还差什么；大成（一步到位或初成升上来）才空法器格
+      // 两段式：初成写打折和升大成还差什么；大成（一步到位或初成升上来）才空法器格
       if (w.mergeHalf.includes(m.id)) {
         const left = upgradeNeed(w, m);
         return { icon: m.icon, title: `${m.name}·初成`, sub: `${kind}初成！${m.desc}（效果减半）。${left.length ? `还差 ${left.join('、')} 升大成` : '下个宝箱升大成'}`, kind: 'merge', tint: m.color };
       }
-      if (w.mergeStages) return { icon: m.icon, title: `${m.name}·大成`, sub: `${kind}大成！${m.desc}。空出一个法器格`, kind: 'merge', tint: m.color };
-      return { icon: m.icon, title: m.name, sub: `${kind}！${m.desc}。空出一个法器格`, kind: 'merge', tint: m.color };
+      return { icon: m.icon, title: `${m.name}·大成`, sub: `${kind}大成！${m.desc}。空出一个法器格`, kind: 'merge', tint: m.color };
     }
     if (code >= 100) {
       const p = PASSIVES[PASSIVE_IDS[code - 100]!];
@@ -1697,6 +1710,8 @@ export class GameScene extends Phaser.Scene {
     if (a === 1) {
       this.shake(300, 0.006);
       sfx.play(kind === 'wind' ? 'windGust' : kind === 'bell' ? 'morningBell' : 'alert');
+      // 鬼火齐燃：所有磷火一起腾起来，补一声呼的火响
+      if (kind === 'allfire') sfx.play('fire', { volume: 0.7, pitch: 0.7 });
     }
     // 白毛风第 1、3 次往右吹，第 2 次往左（c 从 0 数，偶数往右）
     if (kind === 'wind') this.d.banners.setWind(a === 1 ? (c % 2 === 0 ? 1 : -1) : 0);
@@ -1931,6 +1946,16 @@ export class GameScene extends Phaser.Scene {
     this.shotsView.petalMarks.length = 0;
     this.bambooView.fadeOverHero(hx, hy, dt);
     this.drawMobs(inter, dt);
+    if (this.fireView) {
+      const vw = cam.width / cam.zoom;
+      const vh = cam.height / cam.zoom;
+      const lit = this.fireView.update({ x: hx - vw / 2, y: hy - 20 - vh / 2, right: hx + vw / 2, bottom: hy - 20 + vh / 2 }, this.now);
+      // 第一次看见火区要烧：说一句打法（和香火区一样只说一次）
+      if (lit && !this.fireTold) {
+        this.fireTold = true;
+        this.d.banners.say(this.raid ? '窑口喷火' : '磷火', 'warn', 2400, '地上一闪就要烧起来：把怪引进去，自己别站');
+      }
+    }
     this.foeView.draw(w, this.now, inter);
     this.shotsView.draw(w, this.now, inter);
     this.dropsView.draw(w, this.now, inter);
@@ -2109,8 +2134,8 @@ export class GameScene extends Phaser.Scene {
       else if (code === HUAPISKIN_CODE) lift = 12 + Math.sin(this.now * 0.006 + i * 1.9) * 5;
       else if (def.kind === 'boss' && w.eS[i] === 1) lift = Math.sin((1 - w.eT[i]! / 30) * Math.PI) * 120;
       // 水鬼从地里冒出来：先沉在地下，慢慢升上来
-      // 竹精、溺鬼同理（竹精出土前还在地下）
-      const sink = w.eT[i]! > 0 ? (code === WATER_CODE ? w.eT[i]! / WATER.emerge : code === SPROUT_CODE ? w.eT[i]! / SPROUT.warn : code === DROWN_CODE ? w.eT[i]! / DROWN.emerge : 0) : 0;
+      // 竹精、溺鬼、掘墓鬼同理（竹精出土前还在地下）
+      const sink = w.eT[i]! > 0 ? (code === WATER_CODE ? w.eT[i]! / WATER.emerge : code === SPROUT_CODE ? w.eT[i]! / SPROUT.warn : code === DROWN_CODE ? w.eT[i]! / DROWN.emerge : code === JUEMU_CODE ? w.eT[i]! / JUEMU.emerge : 0) : 0;
       if (sink > 0) lift = -sink * 34;
       const size = w.eSize[i]! * (disguised ? HUAPI.disguiseScale : 1);
       const flip = this.renderX < x ? -1 : 1;
@@ -2512,7 +2537,7 @@ export class GameScene extends Phaser.Scene {
     const def = skillOf(w);
     const replay = !!this.d.drive;
     const locked = this.skillLocked();
-    if (!replay && !locked && !this.skillTold && !w.liveNoSkill) {
+    if (!replay && !locked && !this.skillTold) {
       this.skillTold = true;
       this.d.onSkillShown?.(w);
     }
@@ -2521,7 +2546,7 @@ export class GameScene extends Phaser.Scene {
     if (ready && !this.skillWasReady && !replay && w.skill.uses > 0) sfx.play('skillReady', { volume: 0.7 });
     this.skillWasReady = ready;
     this.d.hud.setSkill({
-      show: !replay && !locked && !w.liveNoSkill,
+      show: !replay && !locked,
       icon: def.icon,
       name: def.name,
       cd: w.skill.cd <= 0 ? 1 : Math.max(0, 1 - w.skill.cd / total),

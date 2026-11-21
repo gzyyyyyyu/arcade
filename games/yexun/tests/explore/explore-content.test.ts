@@ -26,7 +26,7 @@ describe('夜探内容表', () => {
   });
 
   it('三个模板 + 教学镇（3.6）；教学镇是小地图、没有石兽', () => {
-    expect(Object.keys(RAID_TEMPLATES).sort()).toEqual(['dukou', 'guzhen', 'liangcang', 'shansi', 'teach', 'xilou']);
+    expect(Object.keys(RAID_TEMPLATES).sort()).toEqual(['dukou', 'guzhen', 'liangcang', 'shansi', 'teach', 'xilou', 'yaozhen']);
     expect(RAID_TEMPLATES.teach.size).toBeLessThan(RAID_TEMPLATES.guzhen.size / 2);
     expect(RAID_TEMPLATES.teach.vault).toBeNull();
     for (const id of ['guzhen', 'dukou', 'shansi'] as const) {

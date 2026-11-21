@@ -21,7 +21,7 @@ src/online/    排行榜、每日挑战、每周夜事、分享卡、社交部�
 src/replay/    浏览器本地录像：格式、录制、回放、存储
 worker/        Worker：登录闸门、单独部署的根路径、实盘带入结回、巡检用的 health（自己一份 tsconfig）
 tools/         截图和冒烟、机器人模拟、起手回归、核心耗时、手感、封面、字体子集、方向表
-tests/         vitest，按被测的层分 core/ content/ explore/ view/ platform/ arch/；fixtures/ 放旧版录像
+tests/         vitest，按被测的层分 core/ content/ explore/ view/ platform/ arch/
 ```
 
 每个文件的分工写在它自己的文件头。

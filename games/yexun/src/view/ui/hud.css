@@ -396,6 +396,7 @@
 .yx-hud .yx-evtag.ev-risen { --evc: #b07ae0; }
 .yx-hud .yx-evtag.ev-bell { --evc: #f2c744; }
 .yx-hud .yx-evtag.ev-parade { --evc: #f08a4a; }
+.yx-hud .yx-evtag.ev-allfire { --evc: #4ad8a0; }
 .yx-hud .yx-evtag.urgent { background: rgba(150, 28, 24, 0.94); border-color: #ff5a4a; animation: yx-evpulse 0.8s ease-in-out infinite; }
 .yx-hud .yx-evtag.urgent b { color: #fff; }
 @keyframes yx-evpulse { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.06); } }

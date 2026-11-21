@@ -27,11 +27,10 @@ export interface Region {
   mobs: readonly RegionMob[];
   /** 图专属精英（夜探没有） */
   elites?: readonly RegionElite[];
-  /** 规则 57 起补的精英（World.new57）：没有图专属精英的图补到和别的图同一节奏 */
-  elites57?: readonly RegionElite[];
 }
 
-const PLAIN_ELITES_57: readonly RegionElite[] = [
+/** 没有图专属精英的图（雪原、义庄）在 6:30、11:00 补的精英，和别的图同一节奏 */
+const PLAIN_ELITES: readonly RegionElite[] = [
   { at: 390 * S, enemy: 'shishi', count: 1 },
   { at: 660 * S, enemy: 'whitefox', count: 1 },
 ];
@@ -39,10 +38,9 @@ const PLAIN_ELITES_57: readonly RegionElite[] = [
 /** 守夜：三张新图 */
 export const VIGIL_REGIONS: Partial<Record<MapId, Region>> = {
   // 雪原：雪童子（白毛风里隐在雪中，近了才现身冲刺）；义庄：棺钉鬼（躺在棺旁，走近坐起钉三枚棺钉，远程所以占比压低）。
-  // 以前没登记的两张图一次额外的随机数都不抽（见文件头），加了以后刷怪序列变了，这两张图的金标准指纹跟着变
-  // 规则 57 起这两张图在 6:30、11:00 也来精英（别的图这两个时间是图专属精英），5:00→7:30、10:00→12:00 不再空着
-  snow: { mobs: [{ kind: 'xuetong', share: [[2, 0.08], [7, 0.1]] }], elites57: PLAIN_ELITES_57 },
-  yizhuang: { mobs: [{ kind: 'guandingui', share: [[2, 0.015], [7, 0.02]] }], elites57: PLAIN_ELITES_57 },
+  // 这两张图在 6:30、11:00 也来精英（别的图这两个时间是图专属精英），5:00→7:30、10:00→12:00 不再空着
+  snow: { mobs: [{ kind: 'xuetong', share: [[2, 0.08], [7, 0.1]] }], elites: PLAIN_ELITES },
+  yizhuang: { mobs: [{ kind: 'guandingui', share: [[2, 0.015], [7, 0.02]] }], elites: PLAIN_ELITES },
   // 竹林：竹精从地里钻出来（先冒圈）、蛇精藏着窜出来；竹王 6:30 和 11:00 各一次
   bamboo: {
     mobs: [
@@ -98,6 +96,14 @@ export const VIGIL_REGIONS: Partial<Record<MapId, Region>> = {
       { at: 660 * S, enemy: 'marketboss', count: 1 },
     ],
   },
+  // 乱葬岗：掘墓鬼从脚边土里钻出来（怕火，往火区里引）；尸将 6:30 和 11:00 各一次
+  luanzang: {
+    mobs: [{ kind: 'juemu', share: [[1, 0.14], [5, 0.22]] }],
+    elites: [
+      { at: 390 * S, enemy: 'general', count: 1 },
+      { at: 660 * S, enemy: 'general', count: 1 },
+    ],
+  },
 };
 
 /** 夜探：每个镇一种特色怪（教学镇没有） */
@@ -108,11 +114,12 @@ export const RAID_REGIONS: Partial<Record<RaidTemplateId, Region>> = {
   guzhen: { mobs: [{ kind: 'nightwatch', share: [[2, 0.1], [6, 0.15]] }] },
   dukou: { mobs: [{ kind: 'drown', share: [[2, 0.12], [6, 0.18]] }] },
   shansi: { mobs: [{ kind: 'stonemonk', share: [[3, 0.12], [7, 0.18]] }] },
+  // 窑镇：陶俑（扛刀剑、怕水），窑口是火区
+  yaozhen: { mobs: [{ kind: 'taoyong', share: [[2, 0.12], [6, 0.18]] }] },
 };
 
 /**
- * 规则 55 起河滩、荒庙多两种特色怪（DESIGN 3.5）：克制站桩近身控场的镇守流派。放在 VIGIL_REGIONS 的原表后面，
- * 规则 54 及以前的局（录像）不加，刷怪序列和改前逐位相同；实盘、娱乐一样。
+ * 河滩、荒庙另加的两种特色怪（DESIGN 3.5）：克制站桩近身控场的镇守流派。刷怪时接在 VIGIL_REGIONS 的原表后面（选图页只列原表的）
  */
 export const VIGIL_REGIONS_55: Partial<Record<MapId, readonly RegionMob[]>> = {
   riverbank: [
@@ -128,13 +135,9 @@ const MERGED_55: Partial<Record<MapId, Region>> = Object.fromEntries(
   Object.entries(VIGIL_REGIONS_55).map(([id, extra]) => [id, { ...VIGIL_REGIONS[id as MapId]!, mobs: [...VIGIL_REGIONS[id as MapId]!.mobs, ...extra!] }]),
 );
 
-/**
- * 这一局这张图的特色怪表。legacy（World.legacyFoes：规则 52 之前的实盘局、规则 38 之前的录像）不刷 2.0 新加的雪原雪童子、义庄棺钉鬼（DESIGN 4.3），
- * 刷怪序列和改前逐位相同。
- */
-export function vigilRegion(map: MapId, live: boolean | undefined, rules55 = false): Region | undefined {
-  if (live && (map === 'snow' || map === 'yizhuang')) return undefined;
-  return (rules55 ? MERGED_55[map] : undefined) ?? VIGIL_REGIONS[map];
+/** 这一局这张图刷怪用的特色怪表（原表加 VIGIL_REGIONS_55） */
+export function vigilRegion(map: MapId): Region | undefined {
+  return MERGED_55[map] ?? VIGIL_REGIONS[map];
 }
 
 function shareOf(m: RegionMob, minute: number): number {
@@ -164,4 +167,4 @@ export function regionKind(r: Region, minute: number, x: number): EnemyKind {
 }
 
 /** 钻地出场的怪：刷在主角附近（不是屏幕外的一圈），自己带出场的预警 */
-export const EMERGE_KINDS: ReadonlySet<EnemyKind> = new Set<EnemyKind>(['water', 'bamsprout', 'drown']);
+export const EMERGE_KINDS: ReadonlySet<EnemyKind> = new Set<EnemyKind>(['water', 'bamsprout', 'drown', 'juemu']);

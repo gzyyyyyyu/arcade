@@ -8,7 +8,6 @@ import { CHAR_FX, CHARACTERS, CURSE_IDS, MAX_CURSES, PERK_FX, PERKS, type Charac
 import { isWeeklyId, type WeeklyId } from '../content/weekly.ts';
 import { MAPS, type Block, type MapId, type Rect } from '../content/maps.ts';
 import { PICKS } from '../content/picks.ts';
-import { liveSkillOpen, tierOfDanger } from '../content/live.ts';
 import { MAX_WEAPONS, MERGE_STAGE, MERGES, type MergeDef, type PassiveId, type WeaponId, type WeaponStats } from '../content/weapons.ts';
 import { ARENA, PLAYER } from '../content/player.ts';
 import { Events } from './events.ts';
@@ -17,16 +16,12 @@ import { raidHooks, type RaidPort } from './raid-port.ts';
 import type { RaidSetup } from './raid-host.ts';
 import { BlockIndex, type RaidBlock } from './blocks.ts';
 import { rushPlan, type RushPlan } from './rush.ts';
-import { altStart, mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId, type PoolRules } from '../content/pools.ts';
+import { altStart, mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId } from '../content/pools.ts';
 import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 68;
-/** 规则 57 的内容进实盘的规则版本（量完实盘系数的那一版） */
-export const RULES_57_LIVE = 58;
-/** 规则 60–63 的内容（先只在娱乐局）进实盘的版本：实盘统一重拟那一版（DESIGN 4.2a）；之前开的实盘局照旧 */
-export const RULES_63_LIVE = 64;
+export const RULES_VERSION = 69;
 export const TICKS_PER_SECOND = 30;
 
 export const MAX_ENEMIES = 300;
@@ -164,8 +159,7 @@ export interface Setup {
    */
   noDual?: boolean;
   /**
-   * 实盘局（platform/live.ts liveSetup 写）：10-20 起加的新内容（纸兵、剪刀）不进卡池，卡池和 0.4.0 一模一样，
-   * 实盘倍数按老内容配的系数照样成立；新内容的系数配好以后去掉（DESIGN 8.1）
+   * 实盘局（platform/live.ts liveSetup 写）：卡池和娱乐局一样按角色法器池；实盘守夜中档以上降难度（World.liveEase），不开本周夜事
    */
   live?: boolean;
   /**
@@ -189,12 +183,12 @@ export interface Setup {
    */
   rush?: boolean;
   /**
-   * 开局配置 A（规则 52 起生效）：起手法器换成「另一主修流派的核心件」（content/pools.ts altStart），而不是角色自己的起手件。
+   * 开局配置 A：起手法器换成「另一主修流派的核心件」（content/pools.ts altStart），而不是角色自己的起手件。
    * 只有 true 有意义；首领连战不开（排行榜局人人一样），normalizeSetup 会把别的值和不该有的去掉
    */
   startAlt?: boolean;
   /**
-   * 开局配置 B（规则 52 起生效）：心法 = 选一个本角色的主修流派（content/pools.ts mainSchools），
+   * 开局配置 B：心法 = 选一个本角色的主修流派（content/pools.ts mainSchools），
    * 这个流派单子上的法器卡和被动卡在升级三选一里权重 ×XINFA_MUL。不在主修里的值 normalizeSetup 会删掉
    */
   xinfa?: SchoolId;
@@ -230,60 +224,16 @@ export class World {
   readonly arenaW: number;
   readonly arenaH: number;
   tick = 0;
-  /**
-   * 重放旧录像时的录像规则版本（createWorld / World 的第二个参数，由 replay/player.ts 传入，不进 Setup，玩家从存档 / URL 带不进来）；
-   * 实打的局没有。< 37 用旧卡池，< 38 用 2.0 之前的首领、刷怪表和夜探小镇，其余规则照当前的来
-   */
-  readonly replayRules?: number;
-  /** 起手法器：开局配置 A（startAlt）开了且规则 ≥ 52 就是另一主修的核心件，否则是角色自己的起手件（旧录像不受影响） */
+  /** 起手法器：开局配置 A（startAlt）开了就是另一主修的核心件，否则是角色自己的起手件 */
   get startWeapon(): WeaponId {
     const id = this.setup.character ?? 'xiaodao';
-    return this.rulesFrom(52) && this.setup.startAlt ? altStart(id, this.replayRules) : CHARACTERS[id].start;
+    return this.setup.startAlt ? altStart(id) : CHARACTERS[id].start;
   }
-  /** 心法（开局配置 B）：规则 ≥ 52 才生效，旧录像忽略 */
+  /** 心法（开局配置 B） */
   get xinfa(): SchoolId | undefined {
-    return this.rulesFrom(52) ? this.setup.xinfa : undefined;
+    return this.setup.xinfa;
   }
-  /** 规则 60 的选卡（DESIGN 3.9）：心法保底一张主修卡、主修法器进化多补一次刷新、缘分（手上有搭配的一件料，另一件和它的进化被动更常出）、夜市求签 */
-  get newPicks(): boolean {
-    return this.contentFrom(60);
-  }
-  /** 规则 61 的角色技能钩子（DESIGN 3.7，core/skills.ts SKILL_FX.hooks）：技能和角色的流派扣在一起、看得见，让「这个角色玩起来哪里不一样」说得清 */
-  get skillHooks(): boolean {
-    return this.contentFrom(61);
-  }
-  /** 规则 62 的法器池和搭配（DESIGN 3.3e）：池里换掉对这个角色没用的件、五个新搭配、阴阳先生阴时定身更久 */
-  get armsCombos(): boolean {
-    return this.contentFrom(62);
-  }
-  /**
-   * 规则 63 的两段式合成（DESIGN 3.3f）：两件料都到 MERGE_STAGE.halfLevel 级先合「初成」（效果打折、不空法器格），
-   * 到原来的条件（双修一件进化另一件满级、合成两件都进化）再开宝箱升「大成」
-   */
-  get mergeStages(): boolean {
-    return this.contentFrom(63);
-  }
-  /**
-   * 规则 65 的「角色特点」三件事，娱乐和实盘同一版起：
-   * 本角色专属搭配的料在三选一里加权（step.ts choicePool，DESIGN 3.9）；铁布衫、万符齐发冷却缩短（skills.ts skillCooldown，3.7）；
-   * 心法流派单子上的法器伤害 ×XINFA_DMG（skills.ts charDmgMul，升级卡上的小标 view/ui/cards.ts，3.7 开局配置 B）
-   */
-  get identity65(): boolean {
-    return this.contentFrom(65);
-  }
-  /** 规则 66（DESIGN 3.3e、3.7）：小道士池加龙王令、笔走龙蛇共享给小道士；采药女满血回春转药香伤害、阴阳先生阴阳互换时炸一圈；娱乐和实盘同一版起 */
-  get identity66(): boolean {
-    return this.contentFrom(66);
-  }
-  /** 规则 67（DESIGN 3.7）：摆渡人放出时补强——初始伤害不再低一档（meta.ts charBase），顺水的水类伤害 +10% → +50%、竹篙冷却 −25% 多戳一下（step.ts），横江一渡的水域里每秒打一下；娱乐和实盘同一版起 */
-  get identity67(): boolean {
-    return this.contentFrom(67);
-  }
-  /** 这一局用哪份角色法器池（content/pools.ts poolsFor）：规则 66 起最新的，62–65 规则 62 的，再早的老池 */
-  get poolRules(): PoolRules {
-    return this.identity66 ? 66 : this.armsCombos ? 62 : 61;
-  }
-  /** 这个搭配效果的强度：初成按 MERGE_STAGE.halfPower，大成（和规则 62 以前的所有搭配）1。每个搭配效果里的数都乘它 */
+  /** 这个搭配效果的强度：初成按 MERGE_STAGE.halfPower，大成 1。每个搭配效果里的数都乘它 */
   mergePower(id: MergeDef['id']): number {
     return this.mergeHalf.length > 0 && this.mergeHalf.includes(id) ? MERGE_STAGE.halfPower : 1;
   }
@@ -291,66 +241,9 @@ export class World {
   get fullMerges(): number {
     return this.merges.length - this.mergeHalf.length;
   }
-  /** 旧卡池：抽卡和宝箱合成走实盘那条老路径（不看角色池、不放 2.0 新法器）；录像规则版本 < 37 */
-  get legacyPool(): boolean {
-    return this.replayRules !== undefined && this.replayRules < 37;
-  }
-  /** 现行规则，或录像规则版本 ≥ v（按版本分叉的规则用它判断旧录像走哪条路） */
-  rulesFrom(v: number): boolean {
-    return this.replayRules === undefined || this.replayRules >= v;
-  }
-  /**
-   * 规则 55 的新内容（河滩、荒庙的纸弩手和催命鬼，符火燎原、铃符、铃焰、钟鼓齐鸣四个搭配，幡下自己招魂）：娱乐局从规则 55 起有；
-   * 实盘局从规则 56 起有（0.20.0 先只在娱乐，量完实盘系数后 0.20.1 开）；规则 55 的实盘录像照规则 54 原样（按局的真实规则版本判）
-   */
-  get new55(): boolean {
-    return this.rulesFrom(55) && (!this.setup.live || (this.replayRules ?? RULES_VERSION) >= 56);
-  }
-  /**
-   * 规则 57（四个新搭配改回和其他双修一样的条件、守夜补精英、宝箱更大且一箱结完所有能进化 / 合成的）：娱乐局从规则 57 起有；
-   * 实盘局等量完实盘系数再开（RULES_57_LIVE），之前的实盘局照规则 56 原样
-   */
-  get new57(): boolean {
-    return this.rulesFrom(57) && (!this.setup.live || (this.replayRules ?? RULES_VERSION) >= RULES_57_LIVE);
-  }
-  /**
-   * 按版本分叉的内容闸，旧录像逐位重放靠它：规则 55、57 的新内容走 new55 / new57（实盘晚一版）；
-   * 规则 60–63 的内容（选卡、角色钩子、换池和新搭配、两段式合成）娱乐局从各自的版本起有，实盘局从 RULES_63_LIVE 起才有（之前开的实盘局照旧）；其余同 rulesFrom
-   */
-  contentFrom(v: number): boolean {
-    if (v === 55) return this.new55;
-    if (v === 57) return this.new57;
-    if (v >= 60 && v <= 63) return this.rulesFrom(v) && (!this.setup.live || this.rulesFrom(RULES_63_LIVE));
-    return this.rulesFrom(v);
-  }
-  /**
-   * 老卡池：抽卡、宝箱合成只出 2.0 之前的老内容（加本角色自己的起手件），2.0 的套件和被动效果不生效。
-   * 旧卡池录像（< 37），或规则版本 < 51 的实盘局；规则 51 起实盘和娱乐一样按角色法器池抽
-   */
-  get oldPool(): boolean {
-    return this.legacyPool || (!!this.setup.live && !this.rulesFrom(51));
-  }
-  /** 2.0 之前的首领、刷怪表和小镇（新首领、雪童子、棺钉鬼、新镇都不出）：录像规则版本 < 38，或规则版本 < 52 的实盘局（52 起实盘和娱乐同一套怪） */
-  get legacyFoes(): boolean {
-    return !this.rulesFrom(38) || (!!this.setup.live && !this.rulesFrom(52));
-  }
-  /** 实盘里本角色自己的起手法器和进化被动能出（货郎飞镖+钱袋、阴阳先生阵旗+旗帜）：实盘局，且不是规则版本 < 39 的旧录像 */
-  get liveOwnArms(): boolean {
-    return !!this.setup.live && (this.replayRules === undefined || this.replayRules >= 39);
-  }
-  /** 实盘降难度（LIVE_EASE）：实盘守夜中档以上，且不是规则版本 < 50 的旧录像 */
+  /** 实盘降难度（LIVE_EASE）：实盘守夜中档以上 */
   get liveEase(): boolean {
-    return !!this.setup.live && this.setup.mode === 'vigil' && this.setup.danger >= LIVE_EASE.fromDanger && (this.replayRules === undefined || this.replayRules >= 50);
-  }
-  /**
-   * 实盘局不能放技能：规则版本 < 39 的旧录像，守夜这一格不在 LIVE_SKILL_OPEN 里（规则版本 39 的录像按 0.16.0 的表），或规则版本 < 51 的夜探实盘。
-   * 不在表里的实盘局和线上原样一致（技能键无效、HUD 不出技能钮）
-   */
-  get liveNoSkill(): boolean {
-    if (!this.setup.live) return false;
-    if (!this.rulesFrom(39)) return true;
-    if (this.setup.mode !== 'vigil') return !this.rulesFrom(51);
-    return !liveSkillOpen(tierOfDanger(this.setup.danger), this.setup.map, this.replayRules, this.setup.character);
+    return !!this.setup.live && this.setup.mode === 'vigil' && this.setup.danger >= LIVE_EASE.fromDanger;
   }
   /** play：在打；choose：等升级三选一；over：结束 */
   phase: 'play' | 'choose' | 'over' = 'play';
@@ -438,7 +331,7 @@ export class World {
   banned: (WeaponId | PassiveId)[] = [];
   /** 合成了哪几个（MergeDef.id） */
   merges: MergeDef['id'][] = [];
-  /** 规则 63 的两段式合成（World.mergeStages）：merges 里还在「初成」的那些（效果按 MERGE_STAGE.halfPower 打折、不空法器格），升了大成就移出去 */
+  /** 两段式合成：merges 里还在「初成」的那些（效果按 MERGE_STAGE.halfPower 打折、不空法器格），升了大成就移出去 */
   mergeHalf: MergeDef['id'][] = [];
   /** 规则 57：只掉单件宝箱的精英（1:45 那只）的格子号；格子被别的怪占用时清掉 */
   smallElites: number[] = [];
@@ -462,6 +355,8 @@ export class World {
   readonly ice: readonly Rect[];
   /** 香火区（荒庙） */
   readonly incense: readonly Rect[];
+  /** 火区（乱葬岗的磷火地、窑镇的窑口；core/fire.ts） */
+  readonly fire: readonly Rect[];
   /** 主角这一拍在不在香火区里（每拍开头按位置算，画面层拿来亮光圈） */
   inIncense = false;
   /** 主角在冰上的速度（冰上才用；离开冰面就按输入直接走） */
@@ -613,8 +508,7 @@ export class World {
   /** 哪些怪是连战的关底（召出来的小怪、纸轿不算） */
   readonly eRush = new Uint8Array(MAX_ENEMIES);
 
-  constructor(raw: Setup, replayRules?: number) {
-    if (replayRules !== undefined) this.replayRules = replayRules;
+  constructor(raw: Setup) {
     const setup = normalizeSetup(raw);
     this.setup = setup;
     const perk = (id: PerkId): number => setup.perks?.[id] ?? 0;
@@ -624,13 +518,12 @@ export class World {
     this.bans = PICKS.bans + own('fushi');
     this.revives = perk('fuhuo') * PERK_FX.fuhuo;
     this.cardCount = 3 + perk('kapian') * PERK_FX.kapian;
-    this.rush = setup.rush && setup.mode === 'vigil' ? rushPlan(setup.seed, setup.map ?? 'snow', this.legacyFoes) : null;
+    this.rush = setup.rush && setup.mode === 'vigil' ? rushPlan(setup.seed, setup.map ?? 'snow') : null;
     this.raid = setup.mode === 'raid' && setup.raid ? raidHooks().create({ ...setup.raid, seed: setup.seed, danger: setup.danger, character: setup.character }) : null;
     this.arenaW = this.raid ? this.raid.map.size : ARENA.w;
     this.arenaH = this.raid ? this.raid.map.size : ARENA.h;
     const def = MAPS[setup.map ?? 'snow'];
-    // 义庄、荒庙的院墙 0.17.3（规则 41）改过：旧录像用当时的墙
-    const mapBlocks = replayRules !== undefined && replayRules < 41 && def.blocksV40 ? def.blocksV40 : def.blocks;
+    const mapBlocks = def.blocks;
     this.blocks = this.raid ? this.raid.map.blocks : mapBlocks;
     this.allBlocks = this.raid ? [] : mapBlocks;
     const dyn = !this.raid && mapBlocks.some((b) => b.hp !== undefined);
@@ -641,6 +534,7 @@ export class World {
     this.water = this.raid ? [] : def.water ?? [];
     this.ice = this.raid ? [] : def.ice ?? [];
     this.incense = this.raid ? [] : def.incense ?? [];
+    this.fire = this.raid ? this.raid.map.fire : def.fire ?? [];
     if (this.raid) {
       this.x = this.px = this.raid.map.spawn.x;
       this.y = this.py = this.raid.map.spawn.y;

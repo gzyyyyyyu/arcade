@@ -16,11 +16,12 @@ export const GROUND_TINT: Record<NonNullable<MapDef['tone']>, number> = {
   ice: 0xd2e4f6,
   temple: 0xd8d4dc,
   market: 0xcfc4d4,
+  grave: 0xc4c6b8,
 };
 
 /** 这张图要不要画地形叠层 */
 export function hasTerrainLayer(def: MapDef): boolean {
-  return def.tone === 'bamboo' || def.tone === 'river' || def.tone === 'ice' || def.tone === 'temple' || def.tone === 'market';
+  return def.tone === 'bamboo' || def.tone === 'river' || def.tone === 'ice' || def.tone === 'temple' || def.tone === 'market' || def.tone === 'grave';
 }
 
 function canvas(w: number, h: number): [HTMLCanvasElement, Ctx] {
@@ -46,8 +47,60 @@ export function paintTerrain(def: MapDef, seed: number, scale: number): HTMLCanv
   else if (def.tone === 'ice') paintIce(c, def, r);
   else if (def.tone === 'temple') paintTemple(c, def, r);
   else if (def.tone === 'market') paintMarket(c, def, r);
+  else if (def.tone === 'grave') paintGrave(c, def, r);
   else paintBambooFloor(c, r);
   return cv;
+}
+
+/**
+ * 乱葬岗：雪被踩成一块块灰褐的泥地，坟包四周一圈翻过的土，零星撒着纸钱、枯草；磷火地本身由 view/game/fire.ts 画（守夜、夜探共用）。
+ * 泥地偏暗、带深边，亮雪地上分得出来（AGENTS.md 第 4 节）。
+ */
+function paintGrave(c: Ctx, def: MapDef, r: () => number): void {
+  // 大块的泥地斑
+  for (let i = 0; i < 70; i++) {
+    const x = r() * ARENA.w;
+    const y = r() * ARENA.h;
+    const rx = 90 + r() * 160;
+    c.fillStyle = `rgba(108,96,78,${0.16 + r() * 0.12})`;
+    c.beginPath();
+    c.ellipse(x, y, rx, rx * (0.45 + r() * 0.3), r() * 3, 0, 7);
+    c.fill();
+  }
+  // 坟包四周翻过的土
+  c.fillStyle = 'rgba(90,76,60,0.32)';
+  for (const b of def.blocks) {
+    c.beginPath();
+    c.ellipse(b.x + b.w / 2, b.y + b.h * 0.7, b.w * 0.75, b.h * 0.8, 0, 0, 7);
+    c.fill();
+  }
+  // 纸钱：白色小方片带灰边
+  c.strokeStyle = 'rgba(80,72,60,0.6)';
+  c.lineWidth = 1.5;
+  for (let i = 0; i < 260; i++) {
+    const x = r() * ARENA.w;
+    const y = r() * ARENA.h;
+    c.save();
+    c.translate(x, y);
+    c.rotate(r() * 3);
+    c.fillStyle = r() < 0.8 ? '#f2ecdc' : '#e8c860';
+    c.fillRect(-6, -4, 12, 8);
+    c.strokeRect(-6, -4, 12, 8);
+    c.restore();
+  }
+  // 枯草茬
+  c.strokeStyle = 'rgba(92,84,52,0.7)';
+  c.lineWidth = 2.4;
+  for (let i = 0; i < 320; i++) {
+    const x = r() * ARENA.w;
+    const y = r() * ARENA.h;
+    c.beginPath();
+    for (let k = -1; k <= 1; k++) {
+      c.moveTo(x + k * 4, y);
+      c.lineTo(x + k * 7, y - 10 - r() * 6);
+    }
+    c.stroke();
+  }
 }
 
 /**
@@ -527,10 +580,11 @@ const BLOCK_FILL: Record<Block['look'], string> = {
   rock: '#5d6678',
   censer: '#c08a28',
   gstall: '#e0583e',
+  grave: '#4a3e30',
 };
 
 /** 每张图自己的底色（缩略图专用，要一眼看出是哪张图） */
-const THUMB_BASE: Record<NonNullable<MapDef['tone']>, string> = { snow: '#c6d6f0', yard: '#b9b3c4', bamboo: '#9fd08a', river: '#e2d2a0', ice: '#cfe4f4', temple: '#c4bccb', market: '#5a4a62' };
+const THUMB_BASE: Record<NonNullable<MapDef['tone']>, string> = { snow: '#c6d6f0', yard: '#b9b3c4', bamboo: '#9fd08a', river: '#e2d2a0', ice: '#cfe4f4', temple: '#c4bccb', market: '#5a4a62', grave: '#8e8a74' };
 
 /** 把地图的示意画在 cv 上（cv 的宽高自己定，画成正方形铺满）：底色、水、冰、桥、块，一眼看出这张图什么样 */
 export function drawMapThumb(cv: HTMLCanvasElement, def: MapDef): void {
@@ -571,6 +625,14 @@ export function drawMapThumb(cv: HTMLCanvasElement, def: MapDef): void {
     c.beginPath();
     c.arc(ARENA.w / 2, ARENA.h / 2, 380, 0, 7);
     c.fill();
+  }
+  // 乱葬岗：磷火地画成青绿的方块，深边
+  c.fillStyle = '#2fc08a';
+  c.strokeStyle = '#0e3a2e';
+  c.lineWidth = 50;
+  for (const z of def.fire ?? []) {
+    c.fillRect(z.x, z.y, z.w, z.h);
+    c.strokeRect(z.x, z.y, z.w, z.h);
   }
   // 荒庙：香火区画成暖黄的方块
   c.fillStyle = '#f2c460';

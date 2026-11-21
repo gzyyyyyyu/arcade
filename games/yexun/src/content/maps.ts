@@ -1,12 +1,12 @@
 /**
  * 守夜的地图（DESIGN.md 3.6）。雪原开阔；义庄是一圈院墙围着正堂和棺材，四面各留一个门洞、四角各有缺口，怪从门洞挤进来，尸类怪多；
- * 鬼市是一排排摊子隔出来的横巷。
+ * 鬼市是一排排摊子隔出来的横巷；乱葬岗坟包挡路，几块磷火地轮流起火（火区，夜探窑镇的窑口同一套规则，core/fire.ts）。
  * 挡路的东西是轴对齐的矩形（脚底占的地，不是整张图的大小），主角和怪都推不进去；子弹、掉落物不管它。
  */
 import type { EnemyKind } from './enemies.ts';
 import { ARENA } from './player.ts';
 
-export type MapId = 'snow' | 'yizhuang' | 'bamboo' | 'riverbank' | 'icelake' | 'temple' | 'guishi';
+export type MapId = 'snow' | 'yizhuang' | 'bamboo' | 'riverbank' | 'icelake' | 'temple' | 'guishi' | 'luanzang';
 
 /** 一块挡路的东西：x, y 是左上角；look 告诉画面层画什么 */
 export interface Block {
@@ -14,7 +14,7 @@ export interface Block {
   y: number;
   w: number;
   h: number;
-  look: 'wall_h' | 'wall_v' | 'coffin' | 'hall' | 'bamboo' | 'rock' | 'censer' | 'gstall';
+  look: 'wall_h' | 'wall_v' | 'coffin' | 'hall' | 'bamboo' | 'rock' | 'censer' | 'gstall' | 'grave';
   /** 竹丛的血：被法器打到 0 就倒，倒了的块不再挡路也不再长回来（只有 bamboo 有） */
   hp?: number;
 }
@@ -40,12 +40,12 @@ export interface MapDef {
   bridges?: readonly Rect[];
   /** 香火区（荒庙）：主角站在里面慢慢回血，但怪来得更多（TERRAIN.incense*） */
   incense?: readonly Rect[];
+  /** 火区（乱葬岗的磷火地）：按 FIRE 的节奏轮流起火，火里的怪掉血、主角挨烫 */
+  fire?: readonly Rect[];
   /** 画面层的色调提示（地面染色） */
-  tone?: 'snow' | 'yard' | 'bamboo' | 'river' | 'ice' | 'temple' | 'market';
+  tone?: 'snow' | 'yard' | 'bamboo' | 'river' | 'ice' | 'temple' | 'market' | 'grave';
   /** 选模式屏的地图卡上标"难"（按普通机器人的胜率，明显比雪原低一截的图） */
   hard?: boolean;
-  /** 规则 40 及以前的挡路块（义庄、荒庙 0.17.3 改了院墙）：旧录像按开局时的规则版本回放，要用当时的墙 */
-  blocksV40?: readonly Block[];
   /** 刷怪比例的倍数（义庄：跳尸、枯骨多） */
   mix?: Partial<Record<EnemyKind, number>>;
 }
@@ -54,7 +54,6 @@ const C = ARENA.w / 2;
 /** 院墙：半边长、门洞半宽、墙厚 */
 const YARD = 520;
 const GATE = 200;
-const GATE_V40 = 110;
 /** 院墙四角的缺口 */
 const CORNER = 150;
 const T = 26;
@@ -79,27 +78,8 @@ function yard(): Block[] {
   ];
 }
 
-/** 规则 40 及以前的院墙：四角封死、门洞半宽 110（旧录像回放用） */
-function yardV40(): Block[] {
-  const a = C - YARD;
-  const b = C + YARD;
-  const run = YARD - GATE_V40;
-  return [
-    // 上下两道横墙，各在中间断开一个门洞
-    { x: a, y: a, w: run, h: T, look: 'wall_h' },
-    { x: C + GATE_V40, y: a, w: run, h: T, look: 'wall_h' },
-    { x: a, y: b, w: run, h: T, look: 'wall_h' },
-    { x: C + GATE_V40, y: b, w: run + T, h: T, look: 'wall_h' },
-    // 左右两道竖墙
-    { x: a, y: a + T, w: T, h: run - T, look: 'wall_v' },
-    { x: a, y: C + GATE_V40, w: T, h: run, look: 'wall_v' },
-    { x: b, y: a, w: T, h: run, look: 'wall_v' },
-    { x: b, y: C + GATE_V40, w: T, h: run, look: 'wall_v' },
-  ];
-}
-
-/** 地图卡的顺序 */
-export const MAP_IDS: readonly MapId[] = ['snow', 'bamboo', 'icelake', 'riverbank', 'yizhuang', 'temple', 'guishi'];
+/** 地图卡的顺序：雪原打头（第一张），其余按小白危险 2 胜率从高到低（DESIGN 3.6 的表） */
+export const MAP_IDS: readonly MapId[] = ['snow', 'bamboo', 'icelake', 'luanzang', 'guishi', 'yizhuang', 'riverbank', 'temple'];
 
 /** 解锁条件：守夜最长撑过多少秒（null = 一开始就开）；text 是卡上写的一句话 */
 export const MAP_UNLOCK: Record<MapId, { seconds: number; text: string } | null> = {
@@ -111,6 +91,7 @@ export const MAP_UNLOCK: Record<MapId, { seconds: number; text: string } | null>
   riverbank: { seconds: 480, text: '守夜撑过 8 分钟' },
   temple: { seconds: 600, text: '守夜撑过 10 分钟' },
   guishi: { seconds: 720, text: '守夜撑过 12 分钟' },
+  luanzang: { seconds: 720, text: '守夜撑过 12 分钟' },
 };
 
 /** 地形手感（核心用，改数值只改这里） */
@@ -130,6 +111,15 @@ export const TERRAIN = {
   incenseKeep: 1.3,
   incenseRate: 1.7,
 } as const;
+
+/**
+ * 火区（乱葬岗的磷火地、窑镇的窑口；core/fire.ts）：第 from 拍起，每块按 period 一轮，先预告 warn 拍、再烧 burn 拍，
+ * 第 k 块错开 k × period / 块数，轮流起火。烧着时每 tickEvery 拍结一次：火里的普通怪掉最大血的 mob、精英 elite（首领不吃），
+ * 怕火的怪（FIRE_FEAR）再乘 fear；主角在火里每次挨 player 点（照常吃危险档伤害倍数和无敌帧）。
+ */
+/** 怕火的怪：火区里掉血再乘 FIRE.fear */
+export const FIRE_FEAR: readonly EnemyKind[] = ['juemu'];
+export const FIRE = { from: 20 * 30, period: 300, warn: 45, burn: 60, tickEvery: 15, mob: 0.1, elite: 0.025, fear: 3, player: 6 } as const;
 
 /** 整数 LCG：地图布局用，不依赖核心的 Rng，固定种子，布局永远一样 */
 function lcg(seed: number): () => number {
@@ -225,23 +215,23 @@ function icelake(): { ice: Rect[]; blocks: Block[] } {
  * 荒庙：正中一座破庙，院墙塌了好几处（缺口能走），北边大殿；院里一尊大香炉，庙外还有三尊。
  * 香炉四周一块是香火区：站进去慢慢回血，可香火也把怪引过来，待久了被围（DESIGN.md 3.6 荒庙）。
  */
-function temple(v40 = false): { blocks: Block[]; incense: Rect[] } {
+function temple(): { blocks: Block[]; incense: Rect[] } {
   const a = C - 560;
   const b = C + 560;
   const T2 = 26;
   const blocks: Block[] = [
-    // 北墙：三段，中间和东边塌了；0.17.3 起西北角也塌了（同义庄：小白贴墙跑进死角出不来）
-    v40 ? { x: a, y: a, w: 300, h: T2, look: 'wall_h' } : { x: a + 140, y: a, w: 200, h: T2, look: 'wall_h' },
+    // 北墙：三段，中间和东边塌了，西北角也塌了（同义庄：小白贴墙跑进死角出不来）
+    { x: a + 140, y: a, w: 200, h: T2, look: 'wall_h' },
     { x: C - 120, y: a, w: 200, h: T2, look: 'wall_h' },
     { x: b - 180, y: a, w: 180 + T2, h: T2, look: 'wall_h' },
     // 南墙：两段，正中山门和西南角塌了
     { x: a + 160, y: b, w: 300, h: T2, look: 'wall_h' },
-    v40 ? { x: C + 130, y: b, w: 430 + T2, h: T2, look: 'wall_h' } : { x: C + 130, y: b, w: 280, h: T2, look: 'wall_h' },
+    { x: C + 130, y: b, w: 280, h: T2, look: 'wall_h' },
     // 西墙、东墙：各断两处
-    v40 ? { x: a, y: a + T2, w: T2, h: 280, look: 'wall_v' } : { x: a, y: a + 150, w: T2, h: 160, look: 'wall_v' },
+    { x: a, y: a + 150, w: T2, h: 160, look: 'wall_v' },
     { x: a, y: C + 40, w: T2, h: 300, look: 'wall_v' },
     { x: b, y: a + 180, w: T2, h: 300, look: 'wall_v' },
-    v40 ? { x: b, y: C + 200, w: T2, h: 360, look: 'wall_v' } : { x: b, y: C + 200, w: T2, h: 200, look: 'wall_v' },
+    { x: b, y: C + 200, w: T2, h: 200, look: 'wall_v' },
     // 大殿和院里的香炉
     { x: C - 140, y: a + 70, w: 280, h: 70, look: 'hall' },
     { x: C - 24, y: C - 230, w: 48, h: 30, look: 'censer' },
@@ -281,10 +271,10 @@ function guishi(): Block[] {
   return out;
 }
 
-/** 义庄：院墙 + 正堂、棺材和院外的残墙（院墙按规则版本给） */
-function yizhuang(walls: Block[]): Block[] {
+/** 义庄：院墙 + 正堂、棺材和院外的残墙 */
+function yizhuang(): Block[] {
   return [
-    ...walls,
+    ...yard(),
     // 正堂在院子北边，门前留出空地
     { x: C - 110, y: C - 330, w: 220, h: 60, look: 'hall' },
     // 院里两排棺材
@@ -306,8 +296,42 @@ function yizhuang(walls: Block[]): Block[] {
   ];
 }
 
+/**
+ * 乱葬岗：满地坟包（挡路，矮，不挡视线），八块磷火地两圈错开摆，出生点四周留空。
+ * 磷火地轮流起火（FIRE）：把怪引进火里烧是这张图的打法，自己别站进去（DESIGN.md 3.6 乱葬岗）。
+ */
+function luanzang(): { blocks: Block[]; fire: Rect[] } {
+  const zone = (x: number, y: number): Rect => ({ x: x - 120, y: y - 100, w: 240, h: 200 });
+  const fire: Rect[] = [];
+  // 内圈正东南西北 620 远，外圈斜角 1,000 远（各轴 707.1），内外交替排：相邻编号的两块离得远，轮流起火时不扎堆
+  const inner: readonly (readonly [number, number])[] = [[620, 0], [0, 620], [-620, 0], [0, -620]];
+  const outer: readonly (readonly [number, number])[] = [[707.1, 707.1], [-707.1, 707.1], [-707.1, -707.1], [707.1, -707.1]];
+  for (let k = 0; k < 4; k++) {
+    fire.push(zone(C + inner[k]![0], C + inner[k]![1]));
+    fire.push(zone(C + outer[k]![0], C + outer[k]![1]));
+  }
+  const r = lcg(20261120);
+  const blocks: Block[] = [];
+  const gw = 76;
+  const gh = 40;
+  const clear = (x: number, y: number): boolean => {
+    const dx = x - C;
+    const dy = y - C;
+    if (dx * dx + dy * dy < 320 * 320) return false;
+    for (const z of fire) if (x + gw / 2 > z.x - 50 && x - gw / 2 < z.x + z.w + 50 && y + gh / 2 > z.y - 50 && y - gh / 2 < z.y + z.h + 50) return false;
+    for (const b of blocks) if (x + gw / 2 > b.x - 46 && x - gw / 2 < b.x + b.w + 46 && y + gh / 2 > b.y - 40 && y - gh / 2 < b.y + b.h + 40) return false;
+    return true;
+  };
+  for (let n = 0; n < 1200 && blocks.length < 150; n++) {
+    const x = 160 + Math.floor(r() * (ARENA.w - 320));
+    const y = 160 + Math.floor(r() * (ARENA.h - 320));
+    if (clear(x, y)) blocks.push({ x: x - gw / 2, y: y - gh / 2, w: gw, h: gh, look: 'grave' });
+  }
+  return { blocks, fire };
+}
+
 const TP = temple();
-const TP_V40 = temple(true);
+const LZ = luanzang();
 const RB = riverbank();
 const IL = icelake();
 
@@ -319,14 +343,14 @@ export const MAPS: Record<MapId, MapDef> = {
   bamboo: { id: 'bamboo', name: '竹林', blurb: '竹子挡路，打几下就倒', blocks: grove(), tone: 'bamboo' },
   riverbank: { id: 'riverbank', name: '河滩', blurb: '两条河把地分开，桥是要道，水里走不快', blocks: RB.blocks, water: RB.water, bridges: RB.bridges, tone: 'river' },
   icelake: { id: 'icelake', name: '冰湖', blurb: '冰面打滑，停不住脚', blocks: IL.blocks, ice: IL.ice, tone: 'ice' },
-  temple: { id: 'temple', name: '荒庙', blurb: '香炉边能回血，可香火会引来更多怪', blocks: TP.blocks, blocksV40: TP_V40.blocks, incense: TP.incense, tone: 'temple', hard: true },
+  temple: { id: 'temple', name: '荒庙', blurb: '香炉边能回血，可香火会引来更多怪', blocks: TP.blocks, incense: TP.incense, tone: 'temple', hard: true },
+  luanzang: { id: 'luanzang', name: '乱葬岗', blurb: '坟包挡路，磷火轮流烧起来，把怪引进火里', blocks: LZ.blocks, fire: LZ.fire, tone: 'grave' },
   guishi: { id: 'guishi', name: '鬼市', blurb: '摊子一排排，横着好跑，竖着要钻缝', blocks: guishi(), tone: 'market' },
   yizhuang: {
     id: 'yizhuang',
     name: '义庄',
     blurb: '院墙围着，怪从门洞挤进来；尸类多',
-    blocks: yizhuang(yard()),
-    blocksV40: yizhuang(yardV40()),
+    blocks: yizhuang(),
     tone: 'yard',
     hard: true,
     mix: { jiangshi: 1.5, bone: 1.3, general: 1 },
