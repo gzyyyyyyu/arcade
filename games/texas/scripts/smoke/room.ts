@@ -282,6 +282,19 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   if (code2 === code || !/^\d{6}$/.test(code2)) throw new Error(`open again: expected a new room, got ${code2}`);
   if (allowed409['room-host']) throw new Error('open again: no 409 expected');
   log('open again: new room', code2);
+  // 每人同时 1 个房间：这间还开着时，同一个账号在另一页再点"开房间"，kit 回 409 has_room 带码，页面直接回到这一间
+  const hp2 = await host.newPage();
+  pages.push([hp2, 'host-again']);
+  watch(hp2, 'room-host-again', true);
+  await hp2.goto(`${base}/games/texas/`);
+  await enter(hp2, '好友房');
+  await hp2.locator('.friends .pill', { hasText: '开房间' }).click();
+  await hp2.locator('.room-wait').waitFor({ timeout: 20_000 });
+  const code3 = ((await hp2.locator('.rw-code').textContent()) ?? '').replace(/\D/g, '');
+  if (code3 !== code2) throw new Error(`has_room: expected back in ${code2}, got ${code3}`);
+  if (allowed409['room-host-again'] !== 1) throw new Error('has_room: expected exactly one 409');
+  await hp2.locator('.toast.on', { hasText: '你已经开着一个房间' }).waitFor({ timeout: 5_000 });
+  log('has_room: back to', code3);
   await Promise.all([host.close(), a.close(), b.close(), d.close()]);
 }
 

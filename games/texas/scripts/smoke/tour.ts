@@ -329,6 +329,14 @@ export async function tourRoomFlow(browser: Browser, base: string): Promise<void
     if (delta[0]! + delta[1]! !== 0) throw new Error(`wallet changes should sum to 0, got ${delta.join()} (prizes ${prizes.join()})`);
     if (delta[0] !== prizes[0]! - 2_000 || delta[1] !== prizes[1]! - 2_000) throw new Error(`wallet deltas ${delta.join()} do not match prizes ${prizes.join()} - fee 2,000`);
     log('tour room wallets', delta.join(), 'sum 0');
+    // 每人同时 1 个房间（0.39.0）：比赛打完 kit 就还了房主的名额，回大厅马上能开新房，不被 has_room 送回这一间
+    await enter(hp, '好友房');
+    await hp.locator('.friends.open .kind', { hasText: '现金桌' }).click();
+    await hp.locator('.friends .pill', { hasText: '开房间' }).click();
+    await hp.locator('.room-wait').waitFor({ timeout: 20_000 });
+    const again = ((await hp.locator('.rw-code').textContent()) ?? '').replace(/\D/g, '');
+    if (again === code || !/^\d{6}$/.test(again)) throw new Error(`after the tournament: expected a new room, got ${again}`);
+    log('after the tournament: new room', again);
   } catch (e) {
     await shot(hp, 'debug-tourroom-host').catch(() => {});
     await shot(gp, 'debug-tourroom-guest').catch(() => {});

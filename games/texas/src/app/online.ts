@@ -66,12 +66,13 @@ export function createOnline(c: App) {
 
   async function openRoom(stakes: StakesId, size: number, tour?: { fun: boolean; fill: boolean }): Promise<void> {
     if (c.busy) return;
-    // 一律开新的（同时能开 5 个，没真人的房间马上结束、还名额），不再把人送回旧房间
+    // 每人同时只能开 1 个（没真人的房间马上结束、还名额）：还开着的话 kit 回 has_room 带那个房间的码，直接送回去，不停在报错上
     c.busy = true;
     f.drawLobby();
     const r = await createRoom(tour ? { stakes, size, tour: true, fill: tour.fill, ...(tour.fun ? { fun: true as const } : {}) } : { stakes, size }, f.nickname());
     c.busy = false;
     if ('code' in r && !('error' in r)) enterRoom({ code: r.code, userId: c.cloud.userId(), host: true, at: Date.now(), ...(tour?.fun ? { fun: true as const } : {}) });
+    else if (r.error === 'has_room' && r.code && isRoomCode(r.code)) backToOpen(r.code);
     else {
       c.walletNote = createError('error' in r ? r.error : 'unavailable');
       f.drawLobby();
@@ -132,7 +133,7 @@ export function createOnline(c: App) {
         stop();
         entered = true;
         closeDialog();
-        joinRoom(code);
+        backToOpen(code);
       },
       onSolo: (why) => {
         stop();
@@ -172,6 +173,12 @@ export function createOnline(c: App) {
     if (!isRoomCode(code)) return;
     const old = savedRoom();
     enterRoom(old?.code === code ? old : { code, userId: c.cloud.userId(), host: false, at: Date.now() });
+  }
+
+  /** 每人同时 1 个房间：还占着一间（自己开的没散、匹配桌还在打）时开房、排队都送回那一间，说一声为什么 */
+  function backToOpen(code: string): void {
+    joinRoom(code);
+    f.toast('你已经开着一个房间，先回到这一桌');
   }
 
   function backToRoom(): void {
