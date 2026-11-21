@@ -169,7 +169,7 @@
 | 邀请（`invites` 表本身） | 24 小时 | 每人 50 条、叫同一个好友至少隔 1 分钟（写在插入条件里） | 429 | 0 |
 | `admin:fail:<ip>` / `admin:fail:all` | 1 小时 | 管理接口令牌的失败名额 10 次 / 全站 30 次；比对前先占，比对成功还回去 | 429（不比对） | 占 1；成功还 1 |
 | `admin:<userId>` / `admin:token` | 天 | 每个管理员（令牌单独一份）300 次成功的写操作；列表和看设置不算 | 429 | 1 |
-| 钱包写入（记在钱包行里） | 北京时间天 | 每人 1,000 次，各游戏合计；带入、领补给到了上限就停（5.9） | 带入回 `limit`；领补给 429 | 0 |
+| 钱包写入（记在钱包行里） | 北京时间天 | 每人 1,000 次，各游戏合计；带入、兑换、领补给到了上限就停（5.9） | 带入、兑换回 `limit`；领补给 429 | 0 |
 | 网关规则 | 10 秒 | 每个 IP + 机房 60 次，`/api/*` 和各游戏的开房、进房、`/api/` 请求（5.4） | Cloudflare 直接拦 10 秒，不进 Worker | 0 |
 | 游戏房间进房（kit，游戏 Worker 里） | — | 每次进房调一次 `/api/me`（算平台的调用）；房间自己的额度见 4.6 | — | 0 |
 | 写入分类预算（6.6） | 天 | 注册 2,700 / 登录找回 9,000 / 存档 4,300 / 好友与资料 5,000 / 账号安全 2,000（超额封顶 3,000）/ 排行榜 2,500 / 钱包 6,000 / 在线 4,000 / 监控 1,000 / 系统 3,500 行（合计 4 万） | 只停这一类，503 `busy`；账号安全类的例外见 6.6 | — |
@@ -188,7 +188,7 @@
 | `POST /api/admin/users/<id>/delete` | `{}` | 204；和本人注销删得一样干净（7.3） | 403 `admin_protected`；404；409 `cannot_delete_self` / `last_admin` | 同注销 + 1 |
 | `GET` / `POST /api/admin/settings/registration` | `{"open": boolean}` | 200 `{"open", "switchOpen", "forcedOff", "updatedAt"}`：`open` 是实际开没开，`switchOpen` 是 D1 开关上记的值，`forcedOff` 表示总闸关着；POST 总闸关着时照样记下 | 400；401；403；429；503 | GET 0；POST 2 |
 | `GET` / `POST /api/admin/settings/notice` | `{"text"}`，空字符串是撤下 | 200 `{"notice": {"text", "at", "by"} 或 null, "max": 120}`；换行和连续空白并成一个空格；本 isolate 的 `/api/me` 马上变，别的最多晚 30 秒 | 400（超过 120 字，带 `max`） | GET 0；POST 2 |
-| `GET` / `POST /api/admin/settings/wallet` | 要改的几条，如 `{"reliefTo": 3000}` | 200 `{"rules", "defaults", "range", "log", "updatedAt"}`：`rules` 是 `{"reliefTo", "winUnits", "newBalance", "adminAdjustMax"}`，`log` 是最近 20 次改动；改了即时生效（本 isolate 马上，别的最多晚 30 秒）；没有真的变化不写 | 400（不是整数、超出 `range`，整个拒，带 `field` 和 `range`） | GET 0；POST 2；没变化 0 |
+| `GET` / `POST /api/admin/settings/wallet` | 要改的几条，如 `{"reliefTo": 3000}` | 200 `{"rules", "defaults", "range", "log", "updatedAt"}`：`rules` 是 `{"reliefTo", "winUnits", "newBalance", "adminAdjustMax", "exchangeCap"}`，`log` 是最近 20 次改动；改了即时生效（本 isolate 马上，别的最多晚 30 秒）；没有真的变化不写 | 400（不是整数、超出 `range`，整个拒，带 `field` 和 `range`） | GET 0；POST 2；没变化 0 |
 | `GET` / `POST /api/admin/settings/invites` | `{"userQuota"?, "adminQuota"?, "ttlDays"?, "perDay"?}` | 200 同钱包规则的形状（15.20） | 400（超出范围） | GET 0；POST 有变化 2 |
 | `POST /api/admin/users/<id>/invite-quota` | `{"quota": 整数 0–1000 \| null}`（null 恢复默认） | 200 `{"quota", "custom"}` | 404 | 2 |
 | `GET /api/admin/invite-codes?status=unused\|used\|multi\|all` / `POST /api/admin/invite-codes/<id>/revoke` | — / `{}` | 全站最近 100 条（还能用的才给 `code`；每条有 `uses`、`maxUses`，长期码的 `expiresAt` 不过期时是 null、`users` 是用它注册的人）/ 204；名额用完、已撤回的 404 | 401；403 | 0 / 2 |
@@ -224,13 +224,13 @@ const res = await env.ARCADE.fetch('https://<站点>/api/me', {   // 主机名�
 
 ### 15.9 钱包
 
-浏览器只有下面两个接口加管理页的接口；带入、结回、放弃只有游戏的服务端经 RPC 能调（5.9），`/api` 里没有这几条路（404）。前两个记"钱包"类预算，管理接口记"账号安全"类。
+浏览器只有下面两个接口加管理页的接口；带入、结回、放弃、兑换只有游戏的服务端经 RPC 能调（5.9），`/api` 里没有这几条路（404）。前两个记"钱包"类预算，管理接口记"账号安全"类。
 
 | 接口 | 请求 | 成功 | 主要错误 | 写入 |
 |---|---|---|---|---|
 | `GET /api/wallet` | 要登录 | 200 `{"wallet", "tiers", "reliefTo", "winUnits", "playing", "ledger", "week"}`。`wallet` 是 `{"balance", "stakes": [{"game", "ref", "tier", "amount", "mode", "at", "until"}], "canRelief", "writesLeft", "caps": {"<game>": {"net", "cap"}}, "fresh"}`（`fresh: true` 是还没有钱包，看到的是新号的 10,000）；`tiers` 是各档一份多少；`ledger` 是自己最近 30 笔进出；`week` 是本周各游戏的净赢；`playing` 是北京时间今天各游戏带筹码上过桌的人数（只有人数，每个 isolate 缓存 10 分钟） | 401；503 | 0；有到期退回时 1（只读档不写） |
 | `POST /api/wallet/relief` | `{}`，要 `X-Arcade` 和 `Origin` | 200 `{"wallet"}`，把余额加桌上的补到补给额 | 403；409 `relief_not_needed` / `relief_used`（带 `wallet`）；429（今天写满 1,000 次）；503 `busy` | 1；被拒 0 |
-| `GET /api/admin/wallet-stats` | 管理员（5.8 两种认证） | 200 `{"days": [{"day", "total", "wallets", "grant", "relief", "games": {"<game>": {"in", "out", "back", "capped", "players"}}, "active", "reliefCount"}]}`，最近 30 天，新的在前 | 401；403 | 0 |
+| `GET /api/admin/wallet-stats` | 管理员（5.8 两种认证） | 200 `{"days": [{"day", "total", "wallets", "grant", "relief", "games": {"<game>": {"in", "out", "back", "capped", "ex", "players"}}, "active", "reliefCount", "admin", "exchange"}]}`（`ex`、`exchange` 是兑换进来的，早期记录里没有），最近 30 天，新的在前 | 401；403 | 0 |
 | `GET /api/admin/wallet/<用户名>` | 管理员会话（令牌 403） | 200 `{"user", "wallet", "log", "career", "ledger"}` | 400；401；403；404 | 0 |
 | `POST /api/admin/wallet/adjust` | 管理员会话，`{"username", "amount", "note"?}`，`note` 最多 40 字 | 200 `{"wallet", "credited"}`，`credited` 是实际加减的数；没有钱包的先按新号建 | 400 `bad_amount`（带 `max`）；403；404；409 `no_change`；503 | 1；被拒 0 |
 | `GET /api/admin/wallet-adjustments` | 管理员会话 | 200 `{"recent": [{"username", "displayName", "at", "amount", "note", "by"}]}`，全站最近 10 次 | 401；403 | 0 |
@@ -251,6 +251,7 @@ const res = await env.ARCADE.fetch('https://<站点>/api/me', {   // 主机名�
 | `no_stake` | 结回、放弃时那一份不在（多半已经结过） | 这一份已经结过了 | 刷新钱包显示 |
 | `busy` | 档位或钱包预算停了带入、并发冲突 | 服务器今天有点忙，先不能带筹码开局；娱乐局照常玩，明早恢复 | 结回、放弃收到 `busy` 时隔几秒静默重试（只有停服档会拒结回） |
 | `bad_request` / `bad_amount` / `bad_until` / `bad_mode` / `bad_game` / `unknown_game` / `no_user` / `op_conflict` | 参数不对（程序写错；`op_conflict` 是同一个 `op` 用来做了两件事） | 出了点问题，这一份筹码没动，刷新一下再试 | 记日志，不重试 |
+| `exchange_cap` | 今天这个游戏的兑换额度用完（带 `left: 0`） | 今天换满了，明早 0 点再换 | 货币留着不扣，不重试 |
 | `internal` | 平台出错 | 出了点问题，筹码没动，过一会儿再试 | 结回隔几秒用**同一个 `op`** 重试一次 |
 | 成功但带 `capped` | 单机实盘今天这个游戏净赢到顶 | 今天单机实盘赢够了，多出的 N 没进钱包；好友房不限 | 照常显示结果，把 N 写出来 |
 | 成功但带 `statsIgnored` | 战绩小结不合格（5.10） | 不给玩家看 | 测试里修 |
