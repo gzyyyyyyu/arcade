@@ -1,8 +1,8 @@
 import { CAMPAIGN } from '../content/index.ts';
-import { armyCost, armyFor, hqLevel, totalStars, trimArmy } from '../core/index.ts';
+import { armyCost, armyFor, capacity, hqLevel, totalStars, trimArmy } from '../core/index.ts';
 import { mapDecoArt, mapIslandArt } from './art/index.ts';
 import { app } from './app.ts';
-import { lackText } from './basefeel.ts';
+import { lackText, roomText } from './basefeel.ts';
 import { dockGain } from './battleadvice.ts';
 import { iconA } from './art.ts';
 import { button, costRow, el, img, lockIcon, toast, uiRoot } from './ui.ts';
@@ -100,6 +100,8 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
     const dockWant = Math.min(l.hq, hqLevel(p));
     const gain = locked ? null : dockGain(dockLv, dockWant);
     if (gain) el('p', 'hd-bountyline hd-dockhint', `建议船坞 ${dockWant} 级（你 ${dockLv} 级，升上去${gain}）`, d);
+    const room = locked ? '' : roomText(l.loot, p.res, capacity(p));
+    if (room) el('p', 'hd-bountyline', room, d);
     const row = el('div', 'hd-chips', undefined, d);
     const c = el('span', 'hd-chip', '预计掠夺 ', row);
     c.appendChild(costRow(l.loot));

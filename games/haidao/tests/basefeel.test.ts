@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BUILDINGS, HQ_LEVELS } from '../src/content/index.ts';
 import { canPlace, islandExt, newProfile } from '../src/core/index.ts';
 import { ISLAND, type BuildingKind } from '../src/core/types.ts';
-import { DROP_MS, WALL_RISE_MS, buildFrame, buildPlan, buildingMenu, celebrateGo, clampPlace, costGap, fullText, nextSlotHq, dropPose, edgePan, keyAction, menuPos, placeCheck, placeReason, startSpot, statDiff, panelFocus, camLerp, upFrame, upPlan, withKey } from '../src/view/basefeel.ts';
+import { DROP_MS, WALL_RISE_MS, buildFrame, buildPlan, buildingMenu, celebrateGo, clampPlace, costGap, fullText, nextSlotHq, dropPose, edgePan, keyAction, menuPos, placeCheck, placeReason, roomText, startSpot, statDiff, panelFocus, camLerp, upFrame, upPlan, withKey } from '../src/view/basefeel.ts';
 
 describe('升级面板：当前 → 下一级', () => {
   it('金矿列出血量、产量、存量，增量 = 下一级 - 当前，都来自内容表', () => {
@@ -301,5 +301,14 @@ describe('新建筑的施工时间线', () => {
   });
   it('城墙短版 < 0.5 秒', () => {
     expect(WALL_RISE_MS).toBeLessThan(500);
+  });
+});
+
+describe('出海前的仓库提醒', () => {
+  it('预计掠夺比仓库剩下的位置多才提醒，写装得下多少', () => {
+    // 新号第三座岛：金币 2,963 / 4,000，预计掠夺 1,200 金、700 木
+    expect(roomText({ gold: 1200, wood: 700 }, { gold: 2963, wood: 1393 }, { gold: 4000, wood: 2200 })).toBe('仓库只装得下 1,037 金币，先回家花掉');
+    expect(roomText({ gold: 1200, wood: 700 }, { gold: 100, wood: 100 }, { gold: 4000, wood: 2200 })).toBe('');
+    expect(roomText({ gold: 900, wood: 900 }, { gold: 4000, wood: 2200 }, { gold: 4000, wood: 2200 })).toBe('仓库只装得下 0 金币、0 木材，先回家花掉');
   });
 });

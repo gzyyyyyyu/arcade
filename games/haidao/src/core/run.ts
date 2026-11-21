@@ -1,7 +1,7 @@
 /** 战役：出海扣木材、结算掠夺和星数 */
-import { CAMPAIGN, REPLAY_PCT, income } from '../content/index.ts';
+import { CAMPAIGN, REPLAY_PCT, TROOPS, income } from '../content/index.ts';
 import { CAMPAIGN_FUN } from '../content/fun.ts';
-import { armyFor, capacity, totalStars, trimArmy } from './base.ts';
+import { armyFor, capacity, hqLevel, totalStars, trimArmy } from './base.ts';
 import { Rng, hash32 } from './rng.ts';
 import { RULES_VERSION } from './types.ts';
 import type { LevelDef } from '../content/defs.ts';
@@ -52,9 +52,10 @@ export const COSMETICS: readonly string[] = [...RARE_POOL, ...Object.values(TD_T
 
 /**
  * 掉宝：带种子、确定性。1 星以上给 1 个普通掉落（金币或木材箱，量随星数和关卡掠夺涨）；
- * 稀有掉落按星数 3% / 6% / 10%；firstThree（首领岛首次三星）必掉一件稀有。owned 里已有的不重复掉。
+ * 稀有掉落按星数 3% / 6% / 10%；firstThree（首领岛首次三星）必掉一件稀有。owned 里已有的不重复掉；
+ * 主寨 hq 级还没开放的兵种的皮肤不掉（新号第二座岛掉一件壮汉皮肤，可壮汉要主寨 3 级才有，看不懂）。
  */
-export function rollDrops(seed: number, result: BattleResult, levelId: string, owned: string[] = [], firstThree = false): Drop[] {
+export function rollDrops(seed: number, result: BattleResult, levelId: string, owned: string[] = [], firstThree = false, hq = Number.POSITIVE_INFINITY): Drop[] {
   const out: Drop[] = [];
   if (result.stars < 1) return out;
   const lv = CAMPAIGN.find((l) => l.id === levelId);
@@ -69,13 +70,19 @@ export function rollDrops(seed: number, result: BattleResult, levelId: string, o
     const start = rng.int(RARE_POOL.length);
     for (let i = 0; i < RARE_POOL.length; i++) {
       const id = RARE_POOL[(start + i) % RARE_POOL.length] as string;
-      if (!owned.includes(id) && !out.some((d) => d.kind === 'cosmetic' && d.id === id)) {
+      if (!owned.includes(id) && !out.some((d) => d.kind === 'cosmetic' && d.id === id) && skinOpen(id, hq)) {
         out.push({ kind: 'cosmetic', id, rare: true });
         break;
       }
     }
   }
   return out;
+}
+
+/** 皮肤只在兵种已开放时掉；装饰不限 */
+function skinOpen(id: string, hq: number): boolean {
+  const [type, troop] = id.split(':');
+  return type !== 'skin' || TROOPS[troop as TroopKind].unlockHq <= hq;
 }
 
 /** 装备 / 卸下皮肤（要先有） */
@@ -125,7 +132,7 @@ export function settleCampaign(
   }
   const owned = p.cosmetics ?? [];
   const firstThree = lv?.boss === true && prev < 3 && result.stars >= 3;
-  const drops = rollDrops(seed ?? hash32(`${levelId}:${p.stats.attacks}`, p.stats.wins), result, levelId, owned, firstThree);
+  const drops = rollDrops(seed ?? hash32(`${levelId}:${p.stats.attacks}`, p.stats.wins), result, levelId, owned, firstThree, hqLevel(p));
   const gain: string[] = [];
   for (const d of drops) {
     if (d.kind === 'gold') gold += d.amount;

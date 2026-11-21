@@ -6,7 +6,7 @@ import { BUILDINGS, TROOPS, SKILLS, HQ_LEVELS } from '../content/index.ts';
 import { heroCap, heroLevel, navUnlocked, heroResearchCost, hqLevel, researchLevel, research, researchCost, researchHero, totalStars, upgrade, upgradeCost, collect, collectAll } from '../core/index.ts';
 import { claimIngot } from '../core/ingot.ts';
 import { claimTrain } from '../core/training.ts';
-import type { TroopKind, SkillKind, Placed, Res } from '../core/types.ts';
+import type { BuildingKind, TroopKind, SkillKind, Placed, Res } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { runAchievements } from './meta.ts';
 import { ensureArt } from './textures.ts';
@@ -100,7 +100,8 @@ export function celebrate(bs: BaseScene, level: number): void {
   button(go ? '去建造看看' : '好的', 'hd-btn-gold', () => {
     mask.remove();
     bs.newHint = false;
-    if (go) openBuild(bs);
+    // 开在第一种新建筑那一页：列表按类别排，新开放的常在后几页，开在第 1 页新手找不到
+    if (go) openBuild(bs, items.find((it) => it.type === 'building')?.kind as BuildingKind | undefined);
   }, box).style.width = '100%';
   if (go) {
     const later = button('先不了', 'hd-btn-plain', () => mask.remove(), box);
