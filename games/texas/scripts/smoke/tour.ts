@@ -29,7 +29,7 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
   await skipTips(page);
   await page.locator('.stage.at-table').waitFor();
   const where =(await page.locator('.topbar .where').textContent()) ?? '';
-  if (!/锦标赛 · 第 \d+ 级 · 盲注 [\d,]+\/[\d,]+ · /.test(where)) throw new Error(`tour top bar: ${where}`);
+  if (!/^锦标赛 · 第 \d+ 级 · 盲注 [\d,]+\/[\d,]+$/.test(where)) throw new Error(`tour top bar: ${where}`);
   if (await page.locator('.next-hand:visible').count()) throw new Error('tournament should not have a next-hand button');
   let shotTable = false;
   let resShot = false;
@@ -96,7 +96,7 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
   await page.locator('.d-btn.danger').click();
   await page.locator('.tour-sum').waitFor({ timeout: 60_000 });
   const realPlace = Number(((await page.locator('.tour-place').textContent()) ?? '').replace(/\D/g, ''));
-  const realPrize = [3, 1.8, 1.2].map((k) => Math.round(fee * k))[realPlace - 1] ?? 0;
+  const realPrize = [3, 1.2, 1, 0.9].map((k) => Math.round(fee * k))[realPlace - 1] ?? 0;
   log('real tour place', realPlace, (await page.locator('.tour-prize').textContent()) ?? '');
   await page.locator('.d-btn.primary').click();
   await page.locator('.lobby').waitFor();
@@ -108,7 +108,8 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
 
 /**
  * 单机锦标赛的赛制（--only tour 的第二段，0.29.0）：选赛制的一行在手机竖屏 390×844、横屏 667×375、电脑上都在屏内，选择记在设置里；
- * 电脑上开 9 人赛（9 个座位、顶栏写赛制）刷新后接着打、截图，离开后结束页名次 1–9，再开一场极速赛（6 个座位、顶栏写赛制）离开。
+ * 电脑上开 9 人赛（9 个座位、顶栏写赛制）刷新后接着打、截图，离开后结束页名次 1–9，再开一场极速赛（6 个座位、顶栏写赛制）离开；
+ * 实盘里极速赛、9 人赛能报（竖屏、电脑各截一张），报一场 9 人赛实盘离开，钱包按 9 人赛奖金表对上。
  */
 export async function tourFormatFlow(browser: Browser, base: string): Promise<void> {
   for (const [tag, width, height] of [['phone-portrait', 390, 844], ['phone-landscape', 667, 375]] as const) {
@@ -124,6 +125,14 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
     await row.scrollIntoViewIfNeeded();
     await page.locator('.lobby .tfmt', { hasText: '极速赛' }).tap();
     await shot(page, `tour-fmt-${tag}`);
+    if (tag === 'phone-portrait') {
+      // 实盘也有三种赛制（0.40.0）：竖屏选 9 人赛，按钮能点
+      await enter(page, '实盘', true);
+      await page.locator('.lobby .tfmt', { hasText: '9 人赛' }).tap();
+      await row.scrollIntoViewIfNeeded();
+      if (await page.locator('.lobby .tour-btn').isDisabled()) throw new Error(`${tag}: 实盘 9 人赛按钮灰着`);
+      await shot(page, `tour-fmt-real-${tag}`);
+    }
     const b = await row.boundingBox();
     if (!b || b.x < 0 || b.x + b.width > width + 1) throw new Error(`${tag}: 赛制一行超出屏宽 ${JSON.stringify(b)}`);
     for (const t of await page.locator('.lobby .tfmt').all()) {
@@ -197,23 +206,32 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
   const p6 = await leave();
   if (!(p6 >= 1 && p6 <= 6)) throw new Error(`turbo place out of range: ${p6}`);
   log('turbo place', p6);
-  // 9 人赛只开娱乐（0.29.0）：实盘选了 9 人赛，锦标赛按钮灰着、说明写为什么；换回极速赛就能报
+  // 实盘三种赛制都能报（0.40.0）：选 9 人赛，说明写奖金；报名扣一份，开打就离开（托管跑完），钱包 = 报名前 - 报名费 + 9 人赛奖金
   await page.locator('.d-btn.primary').click();
   await page.locator('.lobby').waitFor();
   await enter(page, '实盘');
   await openMore(page);
-  await page.locator('.lobby .tfmt', { hasText: '9 人赛' }).click();
-  if (!(await page.locator('.lobby .tour-btn').isDisabled())) {
-    await shot(page, 'tour-nine-real-fail');
-    throw new Error(`nine should be fun-only in 实盘: ${await page.locator('.lobby .tour-btn').textContent()} / ${await page.locator('.lobby .tour-note').textContent()} / ${await page.locator('.lobby .mode.sel, .lobby .mode.on').allTextContents()}`);
+  for (const f of ['极速赛', '9 人赛']) {
+    await page.locator('.lobby .tfmt', { hasText: f }).click();
+    if (await page.locator('.lobby .tour-btn').isDisabled()) throw new Error(`${f} should be open in 实盘: ${await page.locator('.lobby .tour-note').textContent()}`);
   }
   const note = (await page.locator('.lobby .tour-note').textContent()) ?? '';
-  if (!note.includes('只有娱乐')) throw new Error(`nine real note: ${note}`);
-  await shot(page, 'tour-nine-real-off');
-  await page.locator('.lobby .tfmt', { hasText: '极速赛' }).click();
-  if (!(await page.locator('.lobby .tour-btn').isDisabled())) throw new Error('turbo should be fun-only in 实盘');
-  await page.locator('.lobby .tfmt', { hasText: '经典' }).click();
-  if (await page.locator('.lobby .tour-btn').isDisabled()) throw new Error('classic should be open in 实盘');
+  if (!note.includes('4 / 1.4 / 1.3 / 1.2')) throw new Error(`nine real note: ${note}`);
+  await shot(page, 'tour-fmt-real-desktop');
+  const before = await balance(page);
+  const fee = Number(((await page.locator('.lobby .tour-btn').textContent()) ?? '').replace(/\D/g, ''));
+  await page.locator('.lobby .tour-btn').click();
+  await skipTips(page);
+  await page.locator('.stage.at-table').waitFor();
+  if ((await page.locator('.seat:not(.empty)').count()) !== 9) throw new Error('real nine should seat 9');
+  const pr = await leave();
+  const prize = [4, 1.4, 1.3, 1.2].map((k) => Math.round(fee * k))[pr - 1] ?? 0;
+  log('real nine place', pr, (await page.locator('.tour-prize').textContent()) ?? '');
+  await page.locator('.d-btn.primary').click();
+  await page.locator('.lobby').waitFor();
+  await page.waitForFunction((want) => Number((document.querySelector('.w-balance')?.textContent ?? '').replace(/,/g, '')) === want, before - fee + prize, { timeout: 10_000 }).catch(async () => {
+    throw new Error(`real nine wallet ${before} -> ${await balance(page)}, want ${before - fee + prize} (fee ${fee}, place ${pr})`);
+  });
   await ctx.close();
 }
 

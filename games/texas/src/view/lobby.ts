@@ -11,7 +11,7 @@ import { DIFFICULTIES, DIFFICULTY_NAME, difficultyOf, FUN_LEVEL, FUN_STAKES, PF_
 import { MAX_SEATS } from '../core/table.ts';
 import type { Stake, WalletView } from '../net/wallet.ts';
 import { patchSettings, readSettings } from '../store.ts';
-import { DEFAULT_FORMAT, FORMATS, formatInfo, type TourFormat } from '../tour/rules.ts';
+import { DEFAULT_FORMAT, FORMATS, type TourFormat } from '../tour/rules.ts';
 import { makeCard, setCard } from './art.ts';
 import { el, setText, toggle } from './dom.ts';
 import { focusKind, lobbyKey, stepPick } from './lobbykeys.ts';
@@ -638,22 +638,17 @@ export class Lobby {
     this.setNote(this.matchBtn, ok ? null : `要 ${chips(st.min)} 筹码`);
     // 锦标赛：实盘钱包要够一整份报名费（不像现金桌能少带）；单独部署只有娱乐
     const tourOk = fun || (!this.alone && !!wallet && (bal ?? 0) >= st.max);
-    // 只开娱乐的赛制（极速赛、9 人赛，docs/tournament.md 14.4）：实盘时按钮灰着、说明写清楚
-    const funOnly = !fun && !!formatInfo(this.tourFmt).funOnly;
     setText(this.tourBtn, fun ? '锦标赛 · 免费' : `锦标赛 · ${chips(st.max)}`);
-    this.tourBtn.disabled = busy || !!resume || !tourOk || funOnly;
+    this.tourBtn.disabled = busy || !!resume || !tourOk;
     // 灰着的按钮在自己下面写原因（按上面 disabled 的条件，一条一条对）
-    this.setNote(this.tourBtn, resume ? RESUME_FIRST : funOnly ? '只有娱乐' : tourOk ? null : this.alone ? '只有娱乐' : !wallet ? '钱包连不上' : `要 ${chips(st.max)} 筹码`);
+    this.setNote(this.tourBtn, resume ? RESUME_FIRST : tourOk ? null : this.alone ? '只有娱乐' : !wallet ? '钱包连不上' : `要 ${chips(st.max)} 筹码`);
     this.tourBtn.title = tourOk ? `报名费 ${chips(st.max)}（这一档的一份）：${TOUR_FULL[this.tourFmt]}` : `报名要一整份 ${chips(st.max)}`;
     // 灰着的按钮要说为什么（0.25.1 实打：钱包不够一整份时只灰、没说要多少）
     setText(
       this.tourNote,
-      funOnly ? `${FORMAT_LABEL[this.tourFmt]}只有娱乐，实盘选经典` : !fun && !this.alone && wallet && !tourOk ? `钱包要有 ${chips(st.max)} 才能报名这一档的锦标赛` : tourRule(this.tourFmt),
+      !fun && !this.alone && wallet && !tourOk ? `钱包要有 ${chips(st.max)} 才能报名这一档的锦标赛` : tourRule(this.tourFmt),
     );
-    for (const [f, b] of this.fmtBtns) {
-      toggle(b, 'sel', f === this.tourFmt);
-      toggle(b, 'fun-only', !fun && !!formatInfo(f).funOnly);
-    }
+    for (const [f, b] of this.fmtBtns) toggle(b, 'sel', f === this.tourFmt);
     toggle(this.fmtRow, 'hidden', room);
     toggle(must(this.pfBtn.parentElement, 'this.pfBtn.parentElement'), 'hidden', !fun);
     this.pfBtn.disabled = busy || !!resume;
@@ -699,14 +694,14 @@ const FORMAT_LABEL: Record<TourFormat, string> = { sng: '经典', turbo: '极速
 /** 一行说明（挤在赛制按钮后面）；完整规则在锦标赛按钮的 title 里 */
 const TOUR_RULES: Record<TourFormat, string> = {
   sng: '6 人 · 前四名拿 3 / 1.2 / 1 / 0.9 份报名费',
-  turbo: '6 人 · 涨盲快一倍 · 只有娱乐',
-  nine: '9 人 · 只有娱乐',
+  turbo: '6 人 · 涨盲快一倍 · 前四名拿 3.3 / 1 / 0.9 / 0.9 份',
+  nine: '9 人 · 前四名拿 4 / 1.4 / 1.3 / 1.2 份',
 };
 /** 完整规则（按钮提示用）：每人 1,500 比赛筹码、打到剩一人 */
 const TOUR_FULL: Record<TourFormat, string> = {
   sng: '6 人、每人 1,500 比赛筹码、打到剩一人，前四名拿奖 3 / 1.2 / 1 / 0.9 份报名费（一份 = 这一档的报名费）',
-  turbo: '极速赛：6 人、每人 1,500 比赛筹码、每 3 手涨一次盲注（经典是 6 手），约一半时间打完；只有娱乐（不走钱包）',
-  nine: '9 人赛：9 人、每人 1,500 比赛筹码、打到剩一人，约经典赛的 1.3 倍时间；只有娱乐（不走钱包）',
+  turbo: '极速赛：6 人、每人 1,500 比赛筹码、每 3 手涨一次盲注（经典是 6 手），约一半时间打完，前四名拿奖 3.3 / 1 / 0.9 / 0.9 份报名费',
+  nine: '9 人赛：9 人、每人 1,500 比赛筹码、打到剩一人，约经典赛的 1.3 倍时间，前四名拿奖 4 / 1.4 / 1.3 / 1.2 份报名费',
 };
 const tourRule = (f: TourFormat): string => TOUR_RULES[f];
 /** 单机有一桌没打完时，别的单机玩法都灰着 */

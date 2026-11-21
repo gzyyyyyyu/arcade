@@ -2,7 +2,7 @@
  * 单机锦标赛配平（docs/balance.md 第 2 节，docs/tournament.md 14.4）：小白（novice）、普通（simple）坐 0 号，对一桌电脑（强弱档 = 实盘各档的 SOLO_LEVEL）打完一场，
  * 只记"我"拿第几名。奖金只看名次，所以每格记下名次分布，奖金表怎么调都能直接算期望，不用重跑。
  *
- * node scripts/tour-balance.ts [每格场数，默认 2000] [--format=sng,turbo,nine] [--levels=1,2,3,4] [--from=种子起点] [--pay=a,b,c]
+ * node scripts/tour-balance.ts [每格场数，默认 2000] [--format=sng,turbo,nine] [--levels=1,2,3,4] [--from=种子起点] [--pay=a,b,c] [--threads=n]
  * 输出每格一行：名次分布、进前三的概率、平均手数，和按 --pay（份，默认按 payouts）算的每场期望 ± 2 倍标准误。
  * 大表放 CI 上跑（一次性 sim/texas-* 分支），本机只拿小场数试。
  */
@@ -47,7 +47,9 @@ if (!isMainThread) {
   parentPort!.postMessage(rows);
 }
 
-const THREADS = Math.max(1, availableParallelism() - (process.env.CI ? 0 : 2));
+const arg = (k: string): string | undefined => process.argv.find((x) => x.startsWith(`--${k}=`))?.slice(k.length + 3);
+
+const THREADS = Number(arg('threads') ?? Math.max(1, availableParallelism() - (process.env.CI ? 0 : 2)));
 
 function fanout(n: number, from0: number, job: (from: number, to: number) => Job): Promise<Row[]> {
   const chunk = Math.ceil(n / THREADS);
@@ -62,8 +64,6 @@ function fanout(n: number, from0: number, job: (from: number, to: number) => Job
     );
   return Promise.all(jobs).then((x) => x.flat());
 }
-
-const arg = (k: string): string | undefined => process.argv.find((x) => x.startsWith(`--${k}=`))?.slice(k.length + 3);
 
 async function main(): Promise<void> {
   const n = Number(process.argv.slice(2).find((a) => /^\d+$/.test(a)) ?? 2000);

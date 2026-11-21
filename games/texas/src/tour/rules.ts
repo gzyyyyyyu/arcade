@@ -36,7 +36,7 @@ export const BLINDS: Blinds = [
 ];
 
 /**
- * 单机的赛制（docs/tournament.md 14.4）：经典 6 人（默认）、极速赛（同样 6 人，涨盲快一倍、盲注表起点更高，只开娱乐）、9 人赛（只开娱乐）。
+ * 单机的赛制（docs/tournament.md 14.4）：经典 6 人（默认）、极速赛（同样 6 人，涨盲快一倍、盲注表起点更高）、9 人赛；三种都有娱乐和实盘。
  * 好友房只用经典。存档里的 state 记着 format，旧存档没有这个字段就按经典算。
  */
 export type TourFormat = 'sng' | 'turbo' | 'nine';
@@ -81,16 +81,14 @@ export interface FormatInfo {
   pay: readonly number[];
   /** 实盘各档的电脑强弱档；不写按现金桌的 SOLO_LEVEL */
   levels?: Readonly<Record<StakesId, number>>;
-  /** 只开娱乐、不走钱包（配不平的赛制，14.4） */
-  funOnly?: true;
 }
 const INFO: Record<TourFormat, FormatInfo> = {
   // 经典按 CI 配平（docs/tournament.md 14.4）：比现金桌的电脑弱一档；给前四名（只给前三时小档小白赢得太多、豪华普通输得太多）
   sng: { name: '经典 6 人', seats: TOUR_SEATS, every: HANDS_PER_LEVEL, blinds: BLINDS, pay: [30, 12, 10, 9], levels: { small: 0, mid: 1, big: 2, lux: 3 } },
-  // 极速赛：一场只有经典的一半时间，每场期望进区间时每小时就翻倍；压到每小时的区间里，各档又分不开强弱，只开娱乐（14.4）
-  turbo: { name: '极速赛', seats: TOUR_SEATS, every: 3, blinds: TURBO_BLINDS, pay: [38, 19, 3], funOnly: true },
-  // 9 人赛：小白和普通玩家拉得太开，奖金表和电脑强弱怎么调实盘都进不了区间，只开娱乐；奖金表照样守"净赢不超过 3 份"
-  nine: { name: '9 人赛', seats: 9, every: HANDS_PER_LEVEL, blinds: NINE_BLINDS, pay: [40, 29, 21], funOnly: true },
+  // 极速赛：一场约 5.6 分钟，按每小时对齐（小档普通每小时约 +1.1 份，和经典一样）；第 1 名压到 3.3 份（14.4）
+  turbo: { name: '极速赛', seats: TOUR_SEATS, every: 3, blinds: TURBO_BLINDS, pay: [33, 10, 9, 9], levels: { small: 0, mid: 1, big: 2, lux: 3 } },
+  // 9 人赛：普通玩家四档都进区间；中、大档小白比区间低（新手吃亏、刷不了，所有者 11-21 接受，14.4）
+  nine: { name: '9 人赛', seats: 9, every: HANDS_PER_LEVEL, blinds: NINE_BLINDS, pay: [40, 14, 13, 12], levels: { small: 0, mid: 1, big: 2, lux: 3 } },
 };
 export const formatInfo = (f: TourFormat | undefined): FormatInfo => INFO[f ?? DEFAULT_FORMAT] ?? INFO.sng;
 /** 实盘这一档、这个赛制的电脑强弱档 */
