@@ -60,6 +60,11 @@ export const xuezhanUi: VariantUi<XzView, XzAction> = {
 
   // 血流里胡过的手牌锁着、只能打摸的那张，不用推荐
   suggest: (v) => (v.me && v.prompt?.discard && !(v.opts.flow && v.seats[v.me.seat]!.won) ? discardOf(decideAs(v, COACH_STYLE)) : null),
+  suggestClaim: (v) => {
+    if (!v.me || !v.prompt?.claim) return null;
+    const a = decideAs(v, COACH_STYLE);
+    return a.t === 'claim' ? a.c : null;
+  },
 
   bar(v, bar, ctx) {
     const me = v.me;

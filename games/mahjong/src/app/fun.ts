@@ -10,6 +10,7 @@ import type { AnyTable, AnyView } from '../view/variants/page.ts';
 import { pageOf } from '../view/variants/pages.ts';
 import { toReport } from '../game/feed.ts';
 import type { ChatResultLike, FunSeat, FunTemper, TableFun } from 'arcade-kit/table-fun';
+import { readRecord } from './record.ts';
 import { GAME_ID } from './report.ts';
 import { session } from './session.ts';
 import { topbar } from './shell.ts';
@@ -117,6 +118,8 @@ export function newFun(
       const v = t.view();
       const m = me();
       if (!v || m === null || v.phase !== 'turn' || v.turn === m || v.prompt) return null;
+      // 单机的头一场只学打牌：道具的提示等打完一场再冒（11-21 新手试玩：第一次轮到打牌就冒，和"点两下打出"抢眼）
+      if (session.solo && !readRecord()) return null;
       const n = v.seats.length;
       for (const s of n === 3 ? [(m + 2) % 3, (m + 1) % 3] : [(m + 2) % 4, (m + 3) % 4]) {
         const meta = t.seatMeta(s);

@@ -14,7 +14,7 @@ import { TableUi, type CommonAct } from '../../table.ts';
 import type { AnyOpts, VariantPage } from '../page.ts';
 import { cardOf } from './card.ts';
 import { dexPage, PAGES, rulesPage } from './guide.ts';
-import { matchSummary, roundSummary } from './summary.ts';
+import { matchSummary, roundSummary, verdictWhy } from './summary.ts';
 import { xuezhanUi } from './ui.ts';
 
 const ID = 'sichuan-xuezhan';
@@ -64,16 +64,19 @@ export const xuezhanPage: VariantPage = {
 
   roundSummary: (v, names, unit) => roundSummary(v as XzView, names, unit),
   matchSummary: (v, names, unit) => matchSummary(v as XzView, names, unit),
+  verdictWhy: (v, seat, names) => verdictWhy(v as XzView, seat, names),
   soloEndMs: () => 1_000,
   roomEndMs: () => 0,
   tally: (v) => (v as XzView).seats.map((x) => x.stats),
   shareCard: (v, o) => cardOf(v as XzView, o),
   moments(v) {
     const x = v as XzView;
+    // 这一步胡完顺带结了这一局（三家胡了）时局号已经加过 1，名场面记在刚打完的那一局
+    const round = x.round - (x.events.some((e) => e.e === 'end') ? 1 : 0);
     return {
       hus: x.events.filter((e) => e.e === 'hu').length,
-      found: highlightsOf(x.events, x.round, x.opts.cap),
-      fun: () => funMoments(momentsOf(x.events), x.seats.map((s) => !s.won), x.round),
+      found: highlightsOf(x.events, round, x.opts.cap),
+      fun: () => funMoments(momentsOf(x.events), x.seats.map((s) => !s.won), round),
     };
   },
   feedMoments: (v, me) => feedMomentsOf((v as XzView).events, me),

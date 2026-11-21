@@ -644,6 +644,27 @@ html .atc-dock .atc-head b { flex: none; white-space: nowrap; }
   min-height: max(48px, var(--tap, 0px));
   font-size: var(--fs-lg);
 }
+/* 推荐点的那个（开了推荐时）：描金，角上一个"荐"，样子同手牌的推荐 */
+.bar .act.rec {
+  position: relative;
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+.bar .act .rec-badge {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 6px;
+  border-radius: 6px;
+  background: #2f9e58;
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-style: normal;
+  line-height: 18px;
+  font-weight: 700;
+  pointer-events: none;
+}
 /* 听牌提示：打了能听的牌头上一个小"听"，操作条上摆听哪些、各剩几张 */
 .my-hand .tile.ting::before {
   content: '听';
