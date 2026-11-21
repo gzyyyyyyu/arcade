@@ -8,6 +8,7 @@ import { MAP_EVENTS, MAP_EVENT_AT, type MapEventKind } from '../../content/mapEv
 import { BLOOD_MOON, DANGERS, ELITE_RAGE, type Danger, type DangerDef } from '../../content/waves.ts';
 import { WEEKLIES, WEEKLY_ORDER, weeklyLine, type WeeklyId } from '../../content/weekly.ts';
 import { weeklyFor } from '../../online/weekly.ts';
+import { affixTexts, goalText, TRIALS, type TrialId } from '../../content/trials.ts';
 import { EVENT_ICON } from './eventIcons.ts';
 
 const S = 30;
@@ -70,10 +71,12 @@ export interface TonightRules {
   event: { icon: string; name: string; when: string } | null;
   /** 这局开的本周夜事，「铜钱周 · 这局铜钱多 50%」 */
   weekly: string | null;
+  /** 试炼：「名 · 目标；新词缀」 */
+  trial: string | null;
 }
 
 /** 暂停页「今晚的规矩」：只读开局设置，都没有时返回 null。条件同 nextMapEvent / step.ts 的地图事件 */
-export function tonightRules(setup: { mode: string; live?: boolean; map?: MapId; danger: Danger; curses?: readonly string[]; weekly?: WeeklyId; rush?: boolean }): TonightRules | null {
+export function tonightRules(setup: { mode: string; live?: boolean; map?: MapId; danger: Danger; curses?: readonly string[]; weekly?: WeeklyId; rush?: boolean; trial?: TrialId }): TonightRules | null {
   const curses = CURSE_IDS.filter((c) => setup.curses?.includes(c)).map((c) => ({ name: CURSES[c].name, text: CURSES[c].text }));
   const d = DANGERS[setup.danger];
   const nightmare = newThings(d, undefined);
@@ -84,5 +87,7 @@ export function tonightRules(setup: { mode: string; live?: boolean; map?: MapId;
     event = { icon: EVENT_ICON[e.kind]!, name: e.name, when: `第 ${MAP_EVENT_AT.map((t) => t / S / 60).join('、')} 分钟` };
   }
   const weekly = setup.weekly && setup.mode === 'vigil' ? weeklyLine(WEEKLIES[setup.weekly]) : null;
-  return curses.length || nightmare.length || event || weekly ? { curses, nightmare, event, weekly } : null;
+  const t = setup.trial ? TRIALS[setup.trial] : null;
+  const trial = t ? [`${t.name} · ${goalText(t.goal)}`, ...affixTexts(t)].join('；') : null;
+  return curses.length || nightmare.length || event || weekly || trial ? { curses, nightmare, event, weekly, trial } : null;
 }

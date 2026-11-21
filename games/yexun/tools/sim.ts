@@ -1,5 +1,6 @@
 /**
  * 机器人模拟（DESIGN.md 第 8 节）：node tools/sim.ts [--n 局数] [--danger 0,2,4 | --diff easy,normal,hard] [--skill novice,normal] [--build sword,talisman,ward,wood,fire | 流派:路线，见 bots.ts ROUTES] [--map snow|yizhuang] [--char xiaodao|fushi|jianxia|pang|gengfu|caiyao] [--live 按实盘局开] [--noskill 机器人不放技能] [--pool 角色id|all 法器池] [--start alt 第二件起手=另一主修的核心件，规则 52] [--xinfa 流派|auto 心法，auto = --build 的流派，不是本角色主修就不带] [--threads N] [--json 文件] [--from 偏移]
+ * --trial chuye,dumu | all：试炼（content/trials.ts），每关跑 --n 局（种子 from+1..），报通关率 ± 2SE 和平均完成度；单进程，并行就分几个进程各跑几关。
  * --json：把每局的结局（赢没赢、打没打倒尸王、撑了几拍）按格存下来，第 7 步离线调实盘倍数曲线用（曲线不影响对局，改曲线不用重跑）。
  *
  * --from：种子从 from+1 起（默认 0），把一格拆成几片分到不同机器上跑，再用 tools/sim-merge.ts 拼表。
@@ -14,7 +15,8 @@
  */
 import { availableParallelism } from 'node:os';
 import { Worker, isMainThread, parentPort } from 'node:worker_threads';
-import { createWorld, rushResult, step, Ev, type Setup } from '../src/core/index.ts';
+import { createWorld, rushResult, step, trialResult, Ev, type Setup } from '../src/core/index.ts';
+import { isTrialId, TRIAL_IDS, TRIAL_TIERS, TRIALS, type TrialId } from '../src/content/trials.ts';
 import { rushDaily } from '../src/online/rush.ts';
 import { shiftDate } from '../src/online/daily.ts';
 import { writeFileSync } from 'node:fs';
@@ -110,6 +112,31 @@ export function runRush(date: string, skill: Skill): { down: number; total: numb
   return { down: r.down, total: r.total, cleared: r.cleared, ticks: r.ticks, dead: w.hp <= 0 };
 }
 
+/**
+ * 试炼一局：配置按表展开（Setup.trial），机器人按白名单流派、没有就按角色第一主修流派选卡；夜探按普通玩家搜到 10 分钟再走。
+ * 返回通关没有、完成度、撑了几秒
+ */
+export function runTrial(seed: number, id: TrialId, skill: Skill): { won: boolean; progress: number; seconds: number } {
+  const t = TRIALS[id];
+  const w = createWorld({ seed, mode: t.mode, danger: t.danger, trial: id });
+  const build = (t.only ?? mainSchools(t.character as PoolCharacterId)[0]!) as Build;
+  const bot = new Bot(skill, build, seed);
+  const guide = w.raid ? new RaidBot(w.raid, RAID_LEAVE.normal!) : null;
+  let guard = 0;
+  while (w.phase !== 'over' && guard++ < 200_000) {
+    if (guide && w.phase !== 'choose') {
+      const d = guide.dir(w.x, w.y, w.tick, w.coins);
+      bot.goal = d === 0 ? -1 : d;
+      bot.detour = !(w.raid!.gateMask !== 0 && w.tick >= RAID_LEAVE.normal!);
+    }
+    const a = bot.act(w);
+    step(w, a.dir, a.choice, a.skill);
+  }
+  const value = w.raid && w.raid.outcome === 'escaped' ? settleRaid(w.raid, 0).value : 0;
+  const r = trialResult(w, value)!;
+  return { won: r.won, progress: r.progress, seconds: w.tick / 30 };
+}
+
 export function runOne(seed: number, danger: Danger, skill: Skill, build: Build, map: MapId = 'snow', character: CharacterId = 'xiaodao', noDual = false, tall = false, live = false, pool: PoolCharacterId | 'all' | '' = '', skills = true, startAlt = false, xinfa = ''): RunResult {
   const w = createWorld({ seed, mode: 'vigil', danger, map, character, ...(startAlt ? { startAlt } : {}), ...(xinfa ? { xinfa: xinfa as SchoolId } : {}), ...(noDual ? { noDual } : {}), ...(tall ? { tall } : {}), ...(live ? { live } : {}), ...(pool ? { pool } : {}) });
   const bot = new Bot(skill, build, seed, { skills });
@@ -185,6 +212,21 @@ if (!isMainThread) {
   };
   const n = Number(arg('--n', '200'));
   const seedFrom = Number(arg('--from', '0'));
+  if (process.argv.includes('--trial')) {
+    const want = arg('--trial', 'all');
+    const ids = want === 'all' ? TRIAL_IDS : want.split(',').filter(isTrialId);
+    const skill = arg('--skill', 'normal') as Skill;
+    for (const id of ids) {
+      const t0 = Date.now();
+      const rs = Array.from({ length: n }, (_, i) => runTrial(seedFrom + i + 1, id, skill));
+      const p = rs.filter((r) => r.won).length / n;
+      const se = Math.sqrt((p * (1 - p)) / n);
+      const avg = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
+      const t = TRIALS[id];
+      console.log(`${id} ${t.name}（${TRIAL_TIERS[t.tier]!.name}）· ${skill} · ${n} 局：通关 ${(p * 100).toFixed(0)}% ±${(2 * se * 100).toFixed(0)} · 平均完成度 ${avg(rs.map((r) => r.progress)).toFixed(0)} · 平均撑 ${avg(rs.map((r) => r.seconds)).toFixed(0)} 秒 · ${((Date.now() - t0) / 1000).toFixed(0)} 秒`);
+    }
+    process.exit(0);
+  }
   if (arg('--mode', 'vigil') === 'rush') {
     // 首领连战：从 --day（默认 2026-11-01）起连着 n 天，每天一局（构筑和首领按那天的种子），单线程（一局最多 5 分钟、怪少，很快）
     const day0 = arg('--day', '2026-11-01');

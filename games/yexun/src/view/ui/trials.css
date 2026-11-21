@@ -1,0 +1,41 @@
+/* 试炼页（view/ui/trials.ts）：卡片网格电脑 3 列、手机竖屏 2 列，放不下由 Pager 翻页；不滚动 */
+.yx-trials { width: min(980px, 100%); height: 100%; overflow: hidden; gap: 8px; }
+.yx-trials .yx-panel-head .yx-brush { font-size: 34px; }
+.yx-trials .yx-tr-week { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 6px; flex: none; }
+.yx-trials .yx-tr-week li { display: flex; flex-direction: column; justify-content: center; padding: 4px 8px; border: 2px solid var(--ink); border-radius: 10px; background: #fbf5e4; font-size: var(--fs-sm, 13px); min-width: 0; }
+.yx-trials .yx-tr-week li em { font-style: normal; font-weight: 400; color: #5a4a3a; }
+.yx-trials .yx-tr-week li.hd { background: transparent; border-color: transparent; padding-left: 0; }
+.yx-trials .yx-tr-week li.done { background: #e6efcf; }
+.yx-trials .yx-tr-grid { flex: 1; min-height: 0; overflow: hidden; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: min-content; gap: 8px; align-content: start; }
+.yx-trials .yx-tr-card {
+  display: flex; flex-direction: column; align-items: stretch; gap: 0; min-height: 44px; padding: 4px 10px; text-align: left;
+  border: 2.5px solid var(--ink); border-radius: 12px; background: #fbf5e4; color: var(--ink); font: inherit; font-size: var(--fs-sm, 13px); cursor: pointer;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.yx-trials .yx-tr-card:active:not([disabled]) { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.yx-trials .yx-tr-card[disabled] { opacity: 0.55; cursor: default; }
+.yx-trials .yx-tr-card .h { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.yx-trials .yx-tr-card .h b { font-size: var(--fs-xl, 18px); flex: none; }
+.yx-trials .yx-tr-card .h .g { flex: 1; min-width: 0; }
+.yx-trials .yx-tr-card .h i { flex: none; font-style: normal; font-size: var(--fs-xs, 12px); padding: 0 6px; border-radius: 6px; color: #fbf5e4; background: #4f7a3a; }
+.yx-trials .yx-tr-card.t1 .h i { background: #b07a12; }
+.yx-trials .yx-tr-card.t2 .h i { background: var(--red); }
+.yx-trials .yx-tr-card .g { color: var(--red); font-size: var(--fs-md, 14px); }
+.yx-trials .yx-tr-card small { font-weight: 400; color: #5a4a3a; font-size: var(--fs-xs, 12px); }
+.yx-trials .yx-tr-card .s { font-size: var(--fs-xs, 12px); }
+.yx-trials .yx-tr-card.done .s { color: #3e6b2a; }
+.yx-trials .yx-tr-card .f { font-size: var(--fs-xs, 12px); font-weight: 400; color: #8a6a00; min-height: 1.3em; }
+@media (orientation: portrait) and (max-width: 700px) {
+  .yx-trials .yx-tr-week { grid-template-columns: 1fr; gap: 4px; }
+  .yx-trials .yx-tr-week li { flex-direction: row; justify-content: space-between; gap: 6px; padding: 3px 8px; }
+  .yx-trials .yx-tr-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .yx-trials .yx-tr-card { padding: 5px 8px; }
+  /* 竖屏卡窄：目标单独一行 */
+  .yx-trials .yx-tr-card .h { flex-wrap: wrap; }
+  .yx-trials .yx-tr-card .h .g { order: 3; flex-basis: 100%; }
+}
+@media (max-height: 500px) {
+  .yx-trials { padding: 8px 12px 10px; gap: 6px; }
+  .yx-trials .yx-tr-week li { padding: 2px 8px; }
+  .yx-trials .yx-tr-card { padding: 3px 8px; }
+}

@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS, rewardCoins, rewardTitles } from '../../src/content/achievements.ts';
 import { ENEMIES } from '../../src/content/enemies.ts';
 import { MAX_WEAPON_LEVEL, MERGES, PASSIVES, WEAPONS, type PassiveId, type WeaponId } from '../../src/content/weapons.ts';
-import { RECORDS_KEY, applyRun, collection, emptyRecords, loadRecords, saveRecords, type Records, type RunSummary } from '../../src/meta/records.ts';
+import { RECORDS_KEY, applyRun, collection, emptyRecords, loadRecords, recordTrial, saveRecords, type Records, type RunSummary } from '../../src/meta/records.ts';
+import { TRIAL_IDS } from '../../src/content/trials.ts';
 
 const WEAPON_IDS = Object.keys(WEAPONS) as WeaponId[];
 const allPassives = (): Partial<Record<PassiveId, number>> => Object.fromEntries((Object.keys(PASSIVES) as PassiveId[]).map((id) => [id, PASSIVES[id].max]));
@@ -39,21 +40,22 @@ function godRuns(): RunSummary[] {
 function unlockAll(): Records {
   let rec = emptyRecords();
   for (let i = 0; i < 30; i++) for (const run of godRuns()) rec = applyRun(rec, run).records;
+  for (const id of TRIAL_IDS) rec = recordTrial(rec, id).records;
   return rec;
 }
 
 describe('成就数据', () => {
-  it('正好 70 个，id 和名字都不重复', () => {
-    expect(ACHIEVEMENTS.length).toBe(70);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(70);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.name)).size).toBe(70);
+  it('正好 73 个，id 和名字都不重复', () => {
+    expect(ACHIEVEMENTS.length).toBe(73);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(73);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.name)).size).toBe(73);
     for (const a of ACHIEVEMENTS) {
       expect(a.coins).toBeGreaterThan(0);
       expect(a.desc.length).toBeGreaterThan(0);
     }
   });
 
-  it('每个成就都能解锁（极致的局合起来能拿满 64 个）', () => {
+  it('每个成就都能解锁（极致的局加上试炼全通能拿满）', () => {
     const rec = unlockAll();
     const missing = ACHIEVEMENTS.filter((a) => !rec.achievements.includes(a.id)).map((a) => a.id);
     expect(missing).toEqual([]);

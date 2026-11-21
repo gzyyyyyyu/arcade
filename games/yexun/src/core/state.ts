@@ -6,6 +6,7 @@ import { ENEMIES } from '../content/enemies.ts';
 import { LIVE_EASE, RAID_MAX_DANGER, type Danger, type WaveEvent } from '../content/waves.ts';
 import { CHAR_FX, CHARACTERS, CURSE_IDS, KIT_FX, KIT_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type KitId, type PerkId } from '../content/meta.ts';
 import { isWeeklyId, type WeeklyId } from '../content/weekly.ts';
+import { isTrialId, TRIALS, type TrialDef, type TrialId } from '../content/trials.ts';
 import { MAPS, type Block, type MapId, type Rect } from '../content/maps.ts';
 import { PICKS } from '../content/picks.ts';
 import { MAX_WEAPONS, MERGE_STAGE, MERGES, type MergeDef, type PassiveId, type WeaponId, type WeaponStats } from '../content/weapons.ts';
@@ -21,7 +22,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 71;
+export const RULES_VERSION = 72;
 export const TICKS_PER_SECOND = 30;
 
 export const MAX_ENEMIES = 300;
@@ -194,10 +195,32 @@ export interface Setup {
   xinfa?: SchoolId;
   /** 局前锦囊（content/meta.ts KITS）：娱乐局才有，实盘、连战、本周夜事丢掉 */
   kits?: readonly KitId[];
+  /**
+   * 试炼（content/trials.ts，docs/design-play.md 2.6）：人人一样的固定关。normalizeSetup 按表展开模式、地图、角色、危险、咒印、夜事，
+   * 玩家自己的加成、锦囊、开局配置、降低伤害都去掉；种子照常每局随机
+   */
+  trial?: TrialId;
+}
+
+/** 试炼展开：表里定的盖掉传进来的，玩家自己的东西都不带（实盘、连战不开试炼） */
+function expandTrial(s: Setup): Setup {
+  if (s.trial === undefined) return s;
+  if (!isTrialId(s.trial) || s.live || s.rush) {
+    const rest = { ...s };
+    delete rest.trial;
+    return rest;
+  }
+  const t = TRIALS[s.trial];
+  const out: Setup = { seed: s.seed, mode: t.mode, danger: t.danger, map: t.map, character: t.character, curses: t.curses ?? [], perks: {}, trial: t.id };
+  if (t.raid) out.raid = { template: t.raid };
+  if (t.weekly) out.weekly = t.weekly;
+  if (s.tall) out.tall = true;
+  return out;
 }
 
 /** 整理开局设置：咒印去重、截到上限，加成等级截到表里的最高级（录像和存档里来的数据不一定干净） */
-export function normalizeSetup(s: Setup): Setup {
+export function normalizeSetup(raw: Setup): Setup {
+  const s = expandTrial(raw);
   const curses = CURSE_IDS.filter((c) => s.curses?.includes(c)).slice(0, MAX_CURSES);
   const perks: Partial<Record<PerkId, number>> = {};
   for (const [id, lv] of Object.entries(s.perks ?? {}) as [PerkId, number][]) {
@@ -240,6 +263,8 @@ export class XinfaState {
 
 export class World {
   readonly setup: Setup;
+  /** 试炼的关（Setup.trial 展开后）；不是试炼为 null */
+  readonly trial: TrialDef | null;
   /** 夜探的状态（宝箱、门、背包、守卫）；守夜为 null */
   readonly raid: RaidPort | null;
   /** 场地大小：守夜 ARENA，夜探按镇子 */
@@ -271,6 +296,8 @@ export class World {
   phase: 'play' | 'choose' | 'over' = 'play';
   won = false;
   bossKilled = false;
+  /** 这张图的中期首领倒了（试炼「限时打倒首领」看它） */
+  midKilled = false;
   kills = 0;
   coins = 0;
   /** 铜钱从哪来的（结算页列来源用，只记不影响规则）：地上捡的、铜钱袋、摆设、宝箱 */
@@ -542,6 +569,7 @@ export class World {
   constructor(raw: Setup) {
     const setup = normalizeSetup(raw);
     this.setup = setup;
+    this.trial = setup.trial ? TRIALS[setup.trial] : null;
     const perk = (id: PerkId): number => setup.perks?.[id] ?? 0;
     // 小道士起步多 1 次刷新、符师多 1 次封禁（角色小特权）
     const own = (id: CharacterId): number => ((setup.character ?? 'xiaodao') === id ? 1 : 0);

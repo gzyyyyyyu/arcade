@@ -8,7 +8,7 @@
 
 | 节 | 内容 | 文件 |
 |---|---|---|
-| 0、1、2 | 一句话、质量验收、两个模式、新手保护、首领连战 | [docs/design-play.md](docs/design-play.md) |
+| 0、1、2 | 一句话、质量验收、两个模式、新手保护、首领连战、试炼和周目标 | [docs/design-play.md](docs/design-play.md) |
 | 3（开头）、3.1–3.3 | 内容表总则、法器、被动、进化和合成（含 3.3b–3.3f） | [docs/design-content-1.md](docs/design-content-1.md) |
 | 3.4–3.6 | 套装和流派、怪物和 Boss、地图 | [docs/design-content-2.md](docs/design-content-2.md) |
 | 3.7–3.10 | 角色、局外成长、选卡三件套、守夜夜市 | [docs/design-content-3.md](docs/design-content-3.md) |

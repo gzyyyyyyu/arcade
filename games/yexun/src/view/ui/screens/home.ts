@@ -48,6 +48,7 @@ export class Home {
       daily: () => this.m.onDaily(),
       weekly: () => this.m.onWeekly(),
       rush: () => this.m.onRush(),
+      trials: () => this.m.onTrials(),
       home: () => {
         location.href = '/';
       },
@@ -88,6 +89,7 @@ export class Home {
       '<div class="yx-more">' +
       dailyButton() +
       '<button type="button" class="yx-btn" data-a="rush">连战</button>' +
+      '<button type="button" class="yx-btn" data-a="trials">试炼</button>' +
       '<button type="button" class="yx-btn" data-a="boards">排行</button>' +
       '<button type="button" class="yx-btn" data-a="replays">回放</button>' +
       '<button type="button" class="yx-btn" data-a="codex">图鉴</button>' +

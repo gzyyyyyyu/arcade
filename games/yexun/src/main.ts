@@ -9,7 +9,7 @@ import { COIN_EXCHANGE, CURSE_IDS, LOOKS, MAX_CURSES } from './content/meta.ts';
 import { createWorld, type Setup, type World } from './core/index.ts';
 import { openEliteChestNow } from './core/debug.ts';
 import { autoSkillSetting } from './view/game/autoskill.ts';
-import { buyChar, buyLook, buyPerk, dangerOpen, loadoutSetup, loadSave, mapOpen, payKits, refundPerks, saveHooks, setLoadout, settings, wearLook, writeSave } from './platform/save.ts';
+import { buyChar, buyLook, buyPerk, dangerOpen, loadoutSetup, loadSave, mapOpen, payKits, refundPerks, saveHooks, setLoadout, settings, trialTierOpen, wearLook, weekGoalView, writeSave } from './platform/save.ts';
 import { ExchangeClient } from './platform/exchange.ts';
 import type { ExchangeView } from './view/ui/prepShop.ts';
 import { SCHOOLS } from './content/guide.ts';
@@ -30,6 +30,10 @@ import { createSocial } from './online/social.ts';
 import { mountSocial } from 'arcade-kit/social';
 import { createSubmitter } from './online/submit.ts';
 import { beijingDate, dailyPlan } from './online/daily.ts';
+import { weekDaysLeft, weekIndex } from './online/weekly.ts';
+import { FriendBests } from './online/trials.ts';
+import { TrialsPanel } from './view/ui/trials.ts';
+import { goalText, isTrialId, TRIALS, type TrialId } from './content/trials.ts';
 import { weeklyPlan } from './online/weekly.ts';
 import { rushDaily } from './online/rush.ts';
 import { RUSH } from './content/rush.ts';
@@ -406,7 +410,7 @@ async function boot(): Promise<void> {
   const { finish } = createFinisher({ sess, save, live, submitter, social, result, confirm, tips, banners, toast, scene: () => scene, setPaused, showPlay, nonce });
 
   /** fixed：实盘、每日挑战用固定配置（kind 说是哪一种）；别的按菜单选的来 */
-  const startRun = async (picked: Danger, map: MapId = save.map, debug = false, fixed?: Setup, kind: 'live' | 'daily' | 'weekly' | 'rush' | null = null): Promise<void> => {
+  const startRun = async (picked: Danger, map: MapId = save.map, debug = false, fixed?: Setup, kind: 'live' | 'daily' | 'weekly' | 'rush' | 'trial' | null = null): Promise<void> => {
     const e = await ready();
     if (!e) return;
     const { game: g, GameScene } = e;
@@ -531,6 +535,23 @@ async function boot(): Promise<void> {
     return startRun(plan.setup.danger, plan.setup.map ?? 'snow', true, plan.setup, 'rush');
   };
   menu.onRush = () => void startRush();
+  // 试炼（docs/design-play.md 2.6）：配置按表展开（核心 normalizeSetup），种子每局随机；好友最好每次打开页读一次
+  const startTrial = (id: TrialId): Promise<void> => {
+    const t = TRIALS[id];
+    const seed = (Math.random() * 0x100000000) >>> 0;
+    return startRun(t.danger, t.map, true, { seed, mode: t.mode, danger: t.danger, trial: id }, 'trial').then(() => {
+      if (world?.trial?.id === id) tips.show(`<b>试炼「${t.name}」</b>${goalText(t.goal)}`, 5000);
+    });
+  };
+  const trials = new TrialsPanel(stage, { onStart: (id) => void startTrial(id), onClose: () => menu.show(menuState()) });
+  menu.onTrials = () => {
+    menu.hide();
+    const today = beijingDate(Date.now());
+    trials.show(
+      { best: save.trials, open: ([0, 1, 2] as const).map((t) => trialTierOpen(save, t)), week: weekGoalView(save, weekIndex(today)), daysLeft: weekDaysLeft(today) },
+      new FriendBests({ fetch: (u, i) => fetch(u, i) }),
+    );
+  };
   const boards = new BoardsPanel(stage, { deps: { fetch: (u, i) => fetch(u, i) }, today: () => beijingDate(Date.now()), onClose: () => menu.show(menuState()) });
   menu.onBoards = () => {
     menu.hide();
@@ -659,6 +680,7 @@ async function boot(): Promise<void> {
   };
   result.onAgain = () => {
     if (sess.lastLive) return void startLive(sess.lastLive.tier, sess.lastLive.raid, sess.lastLive.map);
+    if (world?.setup.trial) return void startTrial(world.setup.trial);
     if (world?.setup.mode === 'raid') return menu.onRaid(world.setup.raid?.template ?? 'guzhen', world.setup.danger);
     if (world?.setup.rush) return void startRush();
     if (sess.dailyDate) return void startDaily();
@@ -671,6 +693,8 @@ async function boot(): Promise<void> {
     // 回主页：对局画面被菜单盖住，帧循环睡着（下次开局再叫醒）
     game?.loop.sleep();
     result.hide();
+    // 试炼打完回试炼页（接着挑下一关）
+    if (world?.setup.trial) return menu.onTrials();
     menu.show(menuState(), 'home');
   };
 
@@ -685,6 +709,9 @@ async function boot(): Promise<void> {
   const qr = q.get('raid');
   // ?rush 直接开今天的首领连战（冒烟截图用；可带 &auto）
   if (q.has('rush')) void startRush();
+  // ?trial=<id> 直接开这关试炼；?trials 打开试炼页（冒烟截图用）
+  else if (isTrialId(q.get('trial'))) void startTrial(q.get('trial') as TrialId);
+  else if (q.has('trials')) menu.onTrials();
   else if (raidOpen(qr, import.meta.env.DEV)) menu.onRaid(qr, qd ?? 2);
   else if (import.meta.env.DEV && q.has('prep')) prep.show('char', prepState());
   else if (q.has('auto') || q.has('warp') || q.has('play') || q.has('give')) void startRun(qd ?? 2, qm ?? 'snow', true);

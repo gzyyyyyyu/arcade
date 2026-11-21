@@ -8,3 +8,4 @@ export { Ev, Events } from './events.ts';
 export { fingerprint } from './fingerprint.ts';
 export { INPUT_DIRS } from './fmath.ts';
 export { rushPlan, rushResult, type RushPlan, type RushResult } from './rush.ts';
+export { trialResult, type TrialResult } from './trial.ts';

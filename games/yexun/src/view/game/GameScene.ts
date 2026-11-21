@@ -816,7 +816,8 @@ export class GameScene extends Phaser.Scene {
           this.fx.spawn({ frame: 'ring', x, y: y - 10, life: 420, s0: (ev.b[i]! * 2) / 128 * 0.6, s1: (ev.b[i]! * 2) / 128, a0: 0.75, a1: 0, tint: 0xe2b54a, depth: 50 });
           break;
         case Ev.Burst:
-          this.burst(x, y, 0xf5b52e, ev.b[i]! / 34);
+          // a = 2：试炼「怪死爆裂」，红色
+          this.burst(x, y, ev.a[i] === 2 ? 0xd6452e : 0xf5b52e, ev.b[i]! / 34);
           break;
         case Ev.Wave:
           if (ev.a[i] === 0) this.ground.spawn({ frame: 'bagua', x, y, life: 600, s0: 0.6, s1: 1.5, a0: 0.9, a1: 0, rot: 0, spin: 2, ground: true });

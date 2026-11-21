@@ -8,19 +8,22 @@ import { SCHOOLS } from '../content/guide.ts';
 import { TREASURES } from '../content/treasures.ts';
 import { WEEKLIES } from '../content/weekly.ts';
 import { rewardCoins } from '../content/achievements.ts';
-import { rushResult, type World } from '../core/index.ts';
+import { rushResult, trialResult, type World } from '../core/index.ts';
+import { goalText } from '../content/trials.ts';
+import type { WeekRun } from '../content/weekGoals.ts';
 import { WEAPONS } from '../content/weapons.ts';
 import { settleRaid } from '../explore/settle.ts';
 import { recordRaid } from '../explore/vault.ts';
-import { applyRun, type RunTally, saveRecords, summarize } from '../meta/records.ts';
+import { applyRun, recordTrial, type RunTally, saveRecords, summarize } from '../meta/records.ts';
 import { beijingDate, isNightmareSunday } from '../online/daily.ts';
+import { weekIndex } from '../online/weekly.ts';
 import { buildShareCard } from '../online/share.ts';
 import { scoresOfRun } from '../online/score.ts';
 import { outcomeText, type createSubmitter } from '../online/submit.ts';
 import type { createSocial } from '../online/social.ts';
 import type { RunSummary } from '../online/types.ts';
 import type { createLive } from '../platform/live.ts';
-import { carryCoins, coins, finishRun, grantCoins, recordLiveVigil, type loadSave, writeSave } from '../platform/save.ts';
+import { applyWeekRun, carryCoins, type CoinSource, coins, finishRun, finishTrial, grantCoins, recordLiveVigil, type loadSave, writeSave } from '../platform/save.ts';
 import type { Recorder } from '../replay/recorder.ts';
 import { storeReplay } from '../replay/store.ts';
 import { music } from '../view/audio/music.ts';
@@ -78,8 +81,48 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
 
   /** 撑到了天亮：无尽局过了天亮再倒下也算（解锁、战绩按这个） */
   const dawned = (w: World): boolean => w.won || (!!w.setup.endless && w.tick >= DAWN_TICK);
+  /** 夜探撤出带出的宝物价值；没撤出、守夜是 0 */
+  const lootOf = (w: World): number => (w.raid && w.raid.outcome === 'escaped' ? settleRaid(w.raid, w.coins).value : 0);
+  /**
+   * 试炼：局末成绩记进存档（认输的不记），第一次通关发铜钱、记进成就统计（各档全通给称号）。
+   * 交分前算好：只有刷新了最好成绩才交 trial-<id> 榜
+   */
+  const trialEnd = (w: World, quit: boolean): { score: number; best: boolean; won: boolean; extra: CoinSource[] } | null => {
+    const t = w.trial;
+    const r = t ? trialResult(w, lootOf(w)) : null;
+    if (!t || !r) return null;
+    if (quit) return { score: r.score, best: false, won: false, extra: [] };
+    const got = finishTrial(save, t.id, r.score);
+    const extra: CoinSource[] = got.first > 0 ? [{ label: `试炼「${t.name}」第一次通关`, coins: got.first }] : [];
+    if (r.won) {
+      const rr = recordTrial(sess.records, t.id);
+      sess.records = rr.records;
+      saveRecords(sess.records);
+      toast.show(rr.unlocked);
+    }
+    return { score: r.score, best: got.best, won: r.won, extra };
+  };
+  /** 周目标：守夜、夜探、实盘、试炼的局都算（连战、回放不进 finish 的这条路），新完成的发铜钱 */
+  const weekEnd = (w: World): CoinSource[] => {
+    const escaped = !!w.raid && w.raid.outcome === 'escaped';
+    const run: WeekRun = {
+      mode: w.raid ? 'raid' : 'vigil',
+      won: w.raid ? escaped : dawned(w),
+      danger: w.setup.danger,
+      kills: w.kills,
+      elites: sess.tally.elites,
+      boss: w.bossKilled,
+      evolves: sess.tally.evolves,
+      treasures: escaped ? settleRaid(w.raid!, w.coins).kept.length : 0,
+    };
+    return applyWeekRun(save, weekIndex(beijingDate(Date.now())), run);
+  };
+  /** 结算页的来源行之外再拿到的铜钱（夜探、实盘的结算页没有来源表）：提示一句 */
+  const tellExtra = (extra: readonly CoinSource[]): void => {
+    if (extra.length) tips.show(extra.map((x) => `${x.label} <b>+${x.coins.toLocaleString('zh-CN')}</b> 铜钱`).join('<br>'), 7000);
+  };
   /** 一局的小结：交分、录像、分享卡都从它来 */
-  const runSummary = (w: World, quit: boolean): RunSummary => ({
+  const runSummary = (w: World, quit: boolean, trial: { score: number; best: boolean } | null): RunSummary => ({
     runId: `${w.setup.seed.toString(36)}-${sess.rec?.at.toString(36) ?? '0'}`,
     setup: w.setup,
     won: w.raid ? w.raid.outcome === 'escaped' : w.rush ? w.won : dawned(w),
@@ -91,16 +134,17 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     level: w.level,
     coins: w.coins,
     // 夜探：撤出带出的宝物价值（夜探榜按它排）；没撤出是 0
-    loot: w.raid && w.raid.outcome === 'escaped' ? settleRaid(w.raid, w.coins).value : 0,
+    loot: lootOf(w),
     live: sess.liveRun !== null,
     reducedDamage: !!w.setup.assist,
     daily: sess.dailyDate,
     weekly: sess.weeklyDate,
     build: w.weapons.map((o) => WEAPONS[o.id].name),
+    ...(trial ? { trial: { score: trial.score, best: trial.best } } : {}),
   });
   /** 结束时：存录像、交分（实盘、降低伤害、认输的不交总榜，规则在 online/score.ts） */
-  const archive = (w: World, quit: boolean): RunSummary => {
-    const run = runSummary(w, quit);
+  const archive = (w: World, quit: boolean, trial: { score: number; best: boolean } | null): RunSummary => {
+    const run = runSummary(w, quit, trial);
     if (sess.rec) {
       const today = beijingDate(Date.now());
       storeReplay(sess.rec.finish(w, { won: run.won, quit, seconds: run.seconds, kills: run.kills, level: run.level, bossKilled: run.bossKilled, loot: run.loot, daily: run.daily }, scoresOfRun(run, today)));
@@ -125,7 +169,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
   };
 
   /** 夜探结算：撤出全带走、换铜钱；倒下 / 迷失丢包，铜钱剩一半（教学镇不丢）；宝物记进藏宝阁 */
-  const finishRaid = (w: World, quit: boolean, seconds: number, liveSeed: number | null = null): void => {
+  const finishRaid = (w: World, quit: boolean, seconds: number, liveSeed: number | null = null, extra: readonly CoinSource[] = [], trialName = ''): void => {
     const raid = w.raid!;
     const st = settleRaid(raid, carryCoins(w));
     const rr = recordRaid(save.vault, st);
@@ -151,12 +195,13 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       level: w.level,
       coins: st.coins,
       coinsTotal: coins(save),
-      label: liveSeed === null ? `夜探 · ${RAID_TEMPLATES[tpl].name}${raid.teach ? '' : ` · ${DANGERS[w.setup.danger].name}`}` : `实盘 · 夜探 · ${RAID_TEMPLATES[tpl].name} · ${LIVE_TIERS[sess.liveTier].name}档`,
+      label: trialName ? `试炼 · ${trialName}` : liveSeed === null ? `夜探 · ${RAID_TEMPLATES[tpl].name}${raid.teach ? '' : ` · ${DANGERS[w.setup.danger].name}`}` : `实盘 · 夜探 · ${RAID_TEMPLATES[tpl].name} · ${LIVE_TIERS[sess.liveTier].name}档`,
       ...(liveSeed === null ? {} : { live: '正在结回…' }),
       record: false,
       build: buildRows(w),
       raid: { outcome: st.outcome === 'escaped' || st.outcome === 'lost' ? st.outcome : 'dead', teach: raid.teach, kept: st.kept.map(view), lost: st.lost.map(view), value: st.value },
     });
+    tellExtra(extra);
     if (liveSeed !== null) void live.finishRaid(liveSeed, st.bp).then(showLiveResult);
   };
   /** 实盘结回完：结算页写结果，结完的记录清掉 */
@@ -176,14 +221,17 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     tips.hide();
     banners.clear();
     const seconds = (w.setup.endless ? w.tick : Math.min(w.tick, DAWN_TICK)) / 30;
-    const run = archive(w, quit);
+    const trial = trialEnd(w, quit);
+    const run = archive(w, quit, trial);
+    // 周目标（连战不算）；试炼首通的铜钱一起报
+    const extra = w.rush ? [] : [...(trial?.extra ?? []), ...weekEnd(w)];
     social.setWhere('menu');
     offerShare(sess.liveRun ? null : run);
     if (sess.liveRun && w.raid) {
       // 夜探实盘：撤出才有钱（按带出的价值），倒下、迷失、认输都是 0
       const seed = sess.liveRun.seed;
       sess.liveRun = null;
-      return finishRaid(w, quit, seconds, seed);
+      return finishRaid(w, quit, seconds, seed, extra);
     }
     if (sess.liveRun) {
       // 实盘：不记纪录（固定配置，和娱乐分开），按撑到的时间结回；认输按当时撑到的算。
@@ -195,10 +243,11 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       recordLiveVigil(save, { danger: w.setup.danger, won: dawned(w), ticks: Math.min(w.tick, DAWN_TICK), market: w.mkBuys });
       showPlay(false);
       result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: carryCoins(w), coinsTotal: coins(save), night: scene()?.nightLog, label: `实盘 · ${LIVE_TIERS[sess.liveTier].name}档`, live: '正在结回…', record: false, build: buildRows(w) });
+      tellExtra(extra);
       void live.finish(seed, { ticks: w.won ? DAWN_TICK : w.tick, won: w.won, bossKilled: w.bossKilled }).then(showLiveResult);
       return;
     }
-    if (w.raid) return finishRaid(w, quit, seconds);
+    if (w.raid) return finishRaid(w, quit, seconds, null, extra, w.trial ? `${w.trial.name} · ${goalText(w.trial.goal)}` : '');
     if (w.rush && run.rush) {
       // 首领连战：只交每日连战榜（archive 里交过了），不记守夜的纪录、解锁和成就（构筑是给好的，和守夜不可比），不发铜钱
       showPlay(false);
@@ -214,11 +263,12 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     saveRecords(sess.records);
     for (const id of ach.unlocked) grantCoins(save, `ach:${id}`, rewardCoins([id]));
     const achCoins = rewardCoins(ach.unlocked);
-    const sources = achCoins > 0 ? [...got.sources, { label: `成就 ${ach.unlocked.length} 个`, coins: achCoins }] : got.sources;
+    const sources = [...got.sources, ...(achCoins > 0 ? [{ label: `成就 ${ach.unlocked.length} 个`, coins: achCoins }] : []), ...extra];
+    const extraCoins = extra.reduce((a, x) => a + x.coins, 0);
     toast.show(ach.unlocked);
     showPlay(false);
-    const label = `${sess.dailyDate ? '每日挑战 · ' : ''}${sess.weeklyDate && w.setup.weekly ? `本周夜事 · ${WEEKLIES[w.setup.weekly].name} · ` : ''}${w.setup.endless ? '无尽 · ' : ''}${DANGERS[w.setup.danger].name}${sess.dailyDate && isNightmareSunday(sess.dailyDate, w.setup.mode) ? ' · 周日噩梦日' : ''}${w.setup.curses?.length ? ` · 咒印 ${w.setup.curses.length}` : ''}${w.setup.assist ? ' · 降低伤害' : ''}`;
-    result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: got.coins + achCoins, coinsTotal: coins(save), night: scene()?.nightLog, sources, label, fixed: !!sess.dailyDate || !!(sess.weeklyDate && w.setup.weekly), record: got.record, build: buildRows(w) });
+    const label = w.trial ? `试炼 · ${w.trial.name} · ${goalText(w.trial.goal)}` : `${sess.dailyDate ? '每日挑战 · ' : ''}${sess.weeklyDate && w.setup.weekly ? `本周夜事 · ${WEEKLIES[w.setup.weekly].name} · ` : ''}${w.setup.endless ? '无尽 · ' : ''}${DANGERS[w.setup.danger].name}${sess.dailyDate && isNightmareSunday(sess.dailyDate, w.setup.mode) ? ' · 周日噩梦日' : ''}${w.setup.curses?.length ? ` · 咒印 ${w.setup.curses.length}` : ''}${w.setup.assist ? ' · 降低伤害' : ''}`;
+    result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: got.coins + achCoins + extraCoins, coinsTotal: coins(save), night: scene()?.nightLog, sources, label, fixed: !!sess.dailyDate || !!(sess.weeklyDate && w.setup.weekly) || !!w.trial, record: got.record && !w.trial, build: buildRows(w) });
     if (got.askAssist)
       confirm.ask('连着倒下好几局了。要不要把挨打的伤害降低 30%？开着时成绩不进总榜，设置里随时能关。', '降低伤害', '不用', (ok) => {
         save.assist = ok;
