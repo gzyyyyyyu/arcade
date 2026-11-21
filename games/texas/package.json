@@ -2,7 +2,7 @@
   "name": "texas",
   "private": true,
   "license": "MIT",
-  "version": "0.40.0",
+  "version": "0.40.1",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "build:cf": "tsc --noEmit && vite build --outDir dist-cf/games/texas --emptyOutDir",
+    "build:cf": "tsc --noEmit && vite build --outDir dist-cf/games/texas --emptyOutDir && cp _headers dist-cf/_headers",
     "preview": "vite preview",
     "deploy": "npm run build:cf && wrangler deploy",
     "typecheck": "tsc --noEmit && tsc --noEmit -p test/worker && tsc --noEmit -p test/standalone",

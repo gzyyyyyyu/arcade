@@ -4,7 +4,7 @@ import { parseCards } from '../../src/core/cards.ts';
 import { HIGH_CARD, PAIR } from '../../src/core/eval.ts';
 import type { LogEntry } from '../../src/core/table.ts';
 import { bluffer } from '../../src/core/fame.ts';
-import { madeHand } from '../../src/view/text.ts';
+import { chips, madeHand } from '../../src/view/text.ts';
 
 describe('我现在凑成的牌', () => {
   it.each([
@@ -36,5 +36,13 @@ describe('认诈唬（0.2.3）', () => {
   });
   it('翻牌前的加注不算', () => {
     expect(bluffer([e(1, 'raise', 60), e(2, 'call', 40), e(-1, 'flop'), e(2, 'check'), e(1, 'check')], 1, HIGH_CARD)).toBe(false);
+  });
+});
+
+describe('筹码数字', () => {
+  it('和原来的 toLocaleString 写法一样：千分位，一百万起写万', () => {
+    for (const n of [0, 7, 999, 1_000, 12_345, 999_999]) expect(chips(n)).toBe(n.toLocaleString('en-US'));
+    expect(chips(1_000_000)).toBe('100万');
+    expect(chips(1_234_567)).toBe('123.4万');
   });
 });

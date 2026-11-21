@@ -161,3 +161,12 @@ describe('页面入口（src/main.ts 和 src/app/）', () => {
     expect(src).toMatch(/mount\(must\(document\.getElementById\('app'\)/);
   });
 });
+
+describe('静态资源缓存（_headers）', () => {
+  it('只给带哈希的 assets/ 设长缓存，构建时拷到 dist-cf 根目录', () => {
+    const rules = readFileSync(join(ROOT, '_headers'), 'utf8').split('\n').filter((l) => l.trim() && !l.startsWith('#'));
+    expect(rules).toEqual(['/games/texas/assets/*', '  Cache-Control: public, max-age=31536000, immutable']);
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { scripts: Record<string, string> };
+    expect(pkg.scripts['build:cf']).toMatch(/&& cp _headers dist-cf\/_headers$/);
+  });
+});

@@ -137,6 +137,13 @@ export class TableScene {
    * 摆座位时、顶栏的字变了时（setMark 跟着 drawTop 来）各挑一次
    */
   placeCroupier(): void {
+    // 牌桌藏着（标题页、选桌页）量不出来，量一下反倒逼浏览器把整页提前排一遍（手机主页打开约多一个长任务）：先按第一个点摆着，进桌时 setup、drawTop 会再挑
+    if (!this.c.root.closest('.stage')?.classList.contains('at-table')) {
+      const [p] = dealerSpots(this.c.g, this.c.seats.length);
+      this.c.croupierAt = p ?? null;
+      this.c.croupier.place(p ?? null);
+      return;
+    }
     const bar = [...(this.c.root.closest('.stage')?.querySelectorAll('.topbar > :not(.spacer)') ?? [])]
       .map((e) => e.getBoundingClientRect())
       .filter((b) => b.width > 0);
@@ -144,7 +151,6 @@ export class TableScene {
     for (const p of dealerSpots(this.c.g, this.c.seats.length)) {
       this.c.croupier.place(p);
       const r = this.c.croupier.root.getBoundingClientRect();
-      // 没显示（标题页时牌桌是藏着的）量不出来：先按第一个点摆着，进桌后顶栏一变会再挑
       if (r.width === 0 || bar.every((b) => b.right <= r.left || b.left >= r.right || b.bottom <= r.top || b.top >= r.bottom)) {
         this.c.croupierAt = p;
         return;

@@ -61,7 +61,7 @@ games/texas/
 
 ### 10.3 游戏页的安全响应头
 
-游戏页（首页三个路径，都过登录闸门）的响应由 Worker 加 `Content-Security-Policy`（`worker/main.ts` 的 `secure`），别的静态资源不是文档，不带。
+游戏页（首页三个路径，都过登录闸门）的响应由 Worker 加 `Content-Security-Policy`（`worker/main.ts` 的 `secure`），别的静态资源不是文档，不带。带哈希的 `assets/*` 由模块根的 `_headers` 设长缓存（`public, max-age=31536000, immutable`），`npm run build:cf` 把它拷到 `dist-cf/_headers`（资源根目录）。
 没有放在静态资源的 `_headers` 里，是因为 WebSocket 那一条要写明本站的 `wss://<host>`：Safari 的 `'self'` 不认 ws/wss，仓库公开又不写正式域名，只能按请求的 host 拼（单独部署也对）。
 
 | 指令 | 值 | 为什么 |

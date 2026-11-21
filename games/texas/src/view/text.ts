@@ -55,9 +55,12 @@ export const personaStyle = (p: number): string => PERSONAS[p]?.style ?? '';
  */
 export const signed = (n: number): string => (n > 0 ? `+${chips(n)}` : n < 0 ? `−${chips(-n)}` : '±0');
 
+/** toLocaleString 每次都要现查一遍区域设置，很慢（手机降速 4 倍时主页打开光它就占几十毫秒）：建一个反复用 */
+const NUM = new Intl.NumberFormat('en-US');
+
 /** 12,345；一百万以上写成 123.4万，免得座位上的数字太长 */
 export function chips(n: number): string {
   if (n >= 1_000_000) return `${Math.floor(n / 1_000) / 10}万`;
-  return n.toLocaleString('en-US');
+  return NUM.format(n);
 }
 
