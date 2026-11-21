@@ -25,7 +25,7 @@ interface Node {
   turn: number;
 }
 
-export interface Solution {
+interface Solution {
   win: boolean;
   /** 轮到地主且能赢时，地主该出的那一手（最少步数的必胜着法） */
   line?: DdzAction;
@@ -121,7 +121,7 @@ interface Bound {
 }
 const memo = new Map<string, Bound>();
 const MEMO_MAX = 600000;
-export const UNBOUNDED = 99;
+const UNBOUNDED = 99;
 
 /** 设计关卡时用：搜索节点超过预算就放弃（候选牌太难算，不适合做关卡）；平时不设上限 */
 class BudgetExceeded extends Error {}

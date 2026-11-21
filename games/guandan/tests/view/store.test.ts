@@ -17,12 +17,12 @@ beforeEach(() => {
   vi.resetModules();
 });
 const fresh = () => import('../../src/view/store.ts');
-import { DEFAULT_SETTINGS, migrateSound } from '../../src/view/store.ts';
+import { DEFAULT_SETTINGS } from '../../src/view/store.ts';
 
 describe('难度兼容旧值', () => {
   it('现在的三档照用；0.12.0 以前的四档换过来：简单→新手、普通照旧、较强→普通、困难→高手', async () => {
     for (const [old, now] of [['novice', 'novice'], ['normal', 'normal'], ['pro', 'pro'], ['easy', 'novice'], ['good', 'normal'], ['hard', 'pro']]) {
-      mem.set('guandan.settings', JSON.stringify({ v: 1, volume: 0.5, difficulty: old }));
+      mem.set('guandan.settings', JSON.stringify({ v: 1, sfx: 2, difficulty: old }));
       vi.resetModules();
       const s = (await fresh()).getSettings();
       expect(s.difficulty).toBe(now);
@@ -31,7 +31,7 @@ describe('难度兼容旧值', () => {
   });
 
   it('第一次玩、认不得的难度（以后的版本存的、手改坏的）都按默认"新手"，别的设置不丢', async () => {
-    mem.set('guandan.settings', JSON.stringify({ v: 1, volume: 0.3, difficulty: 'insane' }));
+    mem.set('guandan.settings', JSON.stringify({ v: 1, sfx: 1, difficulty: 'insane' }));
     const s = (await fresh()).getSettings();
     expect(s.difficulty).toBe('novice');
     expect(s.sfx).toBe(1);
@@ -54,30 +54,10 @@ describe('难度兼容旧值', () => {
 });
 
 describe('声音设置：音乐、音效各一档', () => {
-  it('迁移是纯函数：老 volume 落到最近一档给音效，背景音关着音乐就是关，开着跟音效；muted 保留；坏数据用默认', () => {
-    expect(migrateSound({ volume: 0.35, music: true })).toEqual({ sfx: 1, musicVol: 1, muted: false });
-    expect(migrateSound({ volume: 0.65, music: false })).toEqual({ sfx: 2, musicVol: 0, muted: false });
-    expect(migrateSound({ volume: 1, music: true, muted: true })).toEqual({ sfx: 3, musicVol: 3, muted: true });
-    expect(migrateSound({ volume: 0 })).toMatchObject({ sfx: 0, musicVol: 0 });
-    expect(migrateSound({})).toEqual({ sfx: DEFAULT_SETTINGS.sfx, musicVol: DEFAULT_SETTINGS.musicVol, muted: false });
-    expect(migrateSound({ volume: '大声', music: 3, muted: 1 })).toEqual({ sfx: DEFAULT_SETTINGS.sfx, musicVol: DEFAULT_SETTINGS.musicVol, muted: false });
-    expect(migrateSound({ volume: NaN, sfx: 9, musicVol: -1 })).toMatchObject({ sfx: DEFAULT_SETTINGS.sfx, musicVol: DEFAULT_SETTINGS.musicVol });
-    // 新字段合法就以新字段为准，不被老字段盖掉
-    expect(migrateSound({ sfx: 1, musicVol: 2, volume: 1, music: false })).toEqual({ sfx: 1, musicVol: 2, muted: false });
-  });
-
-  it('读老存档：volume / music 换成两档并丢掉老字段；音乐和音效分别改、刷新后各自保留', async () => {
-    mem.set('guandan.settings', JSON.stringify({ v: 1, volume: 0.65, music: false, muted: true }));
+  it('音乐和音效分别改、刷新后各自保留', async () => {
     const store = await fresh();
-    const s = store.getSettings() as unknown as Record<string, unknown>;
-    expect(s.sfx).toBe(2);
-    expect(s.musicVol).toBe(0);
-    expect(s.muted).toBe(true);
-    expect(s.volume).toBeUndefined();
-    expect(s.music).toBeUndefined();
     store.updateSettings({ musicVol: 1, sfx: 3, muted: false });
     expect(JSON.parse(mem.get('guandan.settings')!)).toMatchObject({ sfx: 3, musicVol: 1, muted: false });
-    expect(JSON.parse(mem.get('guandan.settings')!).volume).toBeUndefined();
     vi.resetModules();
     const again = (await fresh()).getSettings();
     expect([again.sfx, again.musicVol, again.muted]).toEqual([3, 1, false]);

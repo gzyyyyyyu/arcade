@@ -1,6 +1,6 @@
 # 牌馆画面层约定
 
-> 本文件是模块 `AGENTS.md` 第 3 节的展开：画面层的实现约定。联机、实盘、云存档、部署见 `docs/net.md`。美术现状见 `docs/art.md`，牌馆分层见 `docs/doudizhu.md`。
+> 画面层的实现约定（模块 `AGENTS.md` 第 2 节只列必守的几条）。联机、实盘、云存档、部署见 `docs/net.md`。美术现状见 `docs/art.md`，牌馆分层见 `docs/doudizhu.md`。
 
 ## 1. 推进状态的路
 
@@ -8,11 +8,12 @@
   （电脑"想一会儿"再出、等玩家、弹结算）。画面不自己判断牌型和大小：能否出牌用 `interpret` + `beats`，提示用 `hintList`（首条 null = 建议不要）；点了提示、没改选牌就出，按提示给的那一手出（`hintedPlay`），不弹"当作哪一手"，自己挑的牌有几种解释照旧弹；
   第一次玩、新手引导看完后的第一副，前 3 次轮到我时「提示」跳两下、状态行说"不会出？点「提示」，再点「出牌」"（`guandan/table-ui.ts` 的 `startHintGuide`，只加不拦），
 - 一副结束时的"下副谁进贡"用 `dispatch(state, nextDeal)` 推演（纯函数，不改当前状态）。
+- 轮到我进贡、还贡时先替我选好一张（规则核心的 `timeoutAction`：进贡最大、还贡最小），每一步只选一次（`TableScene.tributeStep`），点掉了不再塞回；状态行写"已挑好…，点「进贡」给 X"。
 
 ## 2. 世界坐标和字号
 
 - 横屏世界坐标高 720，宽 1280..1720 随窗口宽高比变（`worldWidthFor`）。手机竖屏（高大于宽、宽 ≤ 1024）的主页和主页上的弹窗换竖的世界：宽 720，高按宽高比在 1080..1600 之间（`theme.ts` 的 `worldSizeFor`）；
-  牌桌永远是横屏世界（`main.ts` 的 `wantSize`，进牌桌前 `app.toTableWorld` 先换好），所以牌桌和只在牌桌用的部件直接用 `GAME_HEIGHT`，主页、弹窗、引导这类两边都会出现的按 `ui/kit.ts` 的 `worldW` / `worldH` 取当前世界的宽高。
+  牌桌永远是横屏世界（`main.ts` 的 `wantSize`，进牌桌前 `app.toTableWorld` 先换好；回主页时主页场景 START 按当前方向换回，缺背景先烘再重开），所以牌桌和只在牌桌用的部件直接用 `GAME_HEIGHT`，主页、弹窗、引导这类两边都会出现的按 `ui/kit.ts` 的 `worldW` / `worldH` 取当前世界的宽高。
   弹窗按 `worldW < 1100` 分宽窄两套排版（规则、战绩、选难度、选档位、残局闯关），横屏的位置不变。`minHit()` / `typeFloor` 按 CSS 像素每世界单位算，竖屏和手机横屏一样托底。
   画布按 `RENDER_SCALE`（1..3）倍像素绘制，相机同倍 zoom，
 - Text 的 resolution 同倍，SVG 按目标像素栅格化（`textures.ts`）。新加文字一律走 `ui/kit.ts` 的 `text()`，最小字号 18；手机横屏 `text()` 按 `theme.ts` 的 `typeFloor` 托底到字 12、纯数字 14 CSS 像素，
@@ -75,7 +76,7 @@
 - 每日挑战（`doudizhu/daily.ts`）：种子只看北京时间的日期、两个普通难度电脑、6 副累计分交到平台 `daily-<日期>-ddz-v1`，不存档、不记战绩。冒烟 `npm run shot -- --only ddz`。
 - 残局闯关（`doudizhu/puzzle.ts`，规则核心在 `src/variants/doudizhu/puzzles/`，现状见 `docs/doudizhu.md` 第 6 节）：主页斗地主面板战绩条右边的"残局"（控件 `puzzles`，选关格子 `puzzle:<id>`），`PuzzleSession` 继承 `DdzSession`、农民走 `bestReply`、不存档不计战绩，进度在 `guandan.ddz.puzzles`；牌桌里农民的牌摊开，不开牌桌互动。
 - 每日残局（`puzzles/daily.ts` 生成，只看日期，求解器验过必胜；`DailyPuzzleSession` 继承 `PuzzleSession`，计时从第一手到出完，分数 `max(10, 600 − 秒 − 30×重来 − 60×提示)`，榜 `daily-<日期>-ddzpz`，入口是选关弹窗顶上的今日大卡 `puzzle:daily`；主页切到斗地主、牌桌素材烘完后先把今天的题算好）：详见 `docs/doudizhu.md` 第 6 节，记录在 `guandan.ddz.dailyPuzzle`。
-- 单机实盘（`doudizhu/stake.ts`，数字见 `docs/stake.md` 第 10 节）：`DdzStakeSession` 是 `DdzSession` 加一场的账，一场 3 副（老存档按它存档里的版本打完），带入、结回、放弃走掼蛋同一套接口（请求体多 `variant: 'ddz'`），选档页是同一个（`ui/stake.ts` 的 `openTierPicker` 传 `DDZ_FLOW`），选档页里有"和电脑 / 快速匹配"（匹配排不到转同档单机）；
+- 单机实盘（`doudizhu/stake.ts`，数字见 `docs/stake-ddz.md`）：`DdzStakeSession` 是 `DdzSession` 加一场的账，一场 3 副（老存档按它存档里的版本打完），带入、结回、放弃走掼蛋同一套接口（请求体多 `variant: 'ddz'`），选档页是同一个（`ui/stake.ts` 的 `openTierPicker` 传 `DDZ_FLOW`），选档页里有"和电脑 / 快速匹配"（匹配排不到转同档单机）；
   ref `solo-ddz-…` 和掼蛋的互不匹配，"别的设备上开的那一份"各认各的（`strayStake` / `strayDdzStake`）。冒烟 `npm run stake-smoke -- --ddz-only`。
 - 掼蛋每日挑战（`guandan/daily.ts`，主页战绩条右边的"每日挑战"，控件 `daily`，单独部署不摆）：`DailySession`（继承 `Session`，不存档、不计战绩）用只看北京时间日期的种子、三个普通难度电脑、默认地方规则，
 - 打满 8 副或有一队先过 A 就结束，分数是我方每副 `dealPoints` 的累计（不封顶），交到平台 `daily-<日期>-gd`；牌桌顶上写"每日 · 第 n/8 副"，结算页写这一场的分和交分结果，"再打一次"同一个种子重开。

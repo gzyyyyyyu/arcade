@@ -5,7 +5,7 @@
 import type { Card } from '../../variants/guandan/core/index.ts';
 
 /** 按下以后要做的事 */
-export type DownAct =
+type DownAct =
   | { kind: 'none' }
   /** 取消全部选中（右键点空白处） */
   | { kind: 'clear' }

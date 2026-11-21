@@ -1,5 +1,5 @@
 /**
- * 斗地主单机实盘（docs/stake.md 第 10 节）的页面会话，不画界面：存档 guandan.ddz.stake（读写在 store.ts）、
+ * 斗地主单机实盘（docs/stake-ddz.md）的页面会话，不画界面：存档 guandan.ddz.stake（读写在 store.ts）、
  * 经掼蛋 Worker 的三个接口（请求体带 variant: 'ddz'）带入 / 结回 / 放弃、实盘的牌局会话。
  * 流程和掼蛋的 stake.ts 一样：一场打完先把要结的数记进存档再结回，钱包忙（busy、internal、连不上）用同一个 op 重试，
  * no_stake / expired 算办完；结回、重试、响应的处理直接用 common/stake-api.ts 里玩法无关的那一半（settleWith、refundWith）。
@@ -82,7 +82,7 @@ export function strayDdzStake(w: WalletView, local: DdzStakeSave | null): { ref:
 }
 
 /** 退回不在这台设备上的那一份斗地主单机实盘 */
-export async function refundDdzStray(ref: string, deps: Deps = {}): Promise<StakeReply> {
+async function refundDdzStray(ref: string, deps: Deps = {}): Promise<StakeReply> {
   return withRetry(() => postStake('refund', { ...VARIANT, ref }, deps.fetcher), deps.sleep ?? realSleep);
 }
 
@@ -171,7 +171,7 @@ export class DdzStakeSession extends DdzSession {
 export const DDZ_FLOW: TierFlow<DdzStakeSession> = {
   soloDeals: SOLO_DEALS,
   roomDeals: ROOM_DEALS,
-  // 发牌和娱乐共用一个设置（ddzDeal）：上次选了不洗牌，进实盘选档页也停在不洗牌。时间按 tools/ddz-stake-sim.ts --time（docs/stake.md 10.2、10.5）
+  // 发牌和娱乐共用一个设置（ddzDeal）：上次选了不洗牌，进实盘选档页也停在不洗牌。时间按 tools/ddz-stake-sim.ts --time（docs/stake-ddz.md 第 2 节、10.5）
   modes: [
     { value: 'classic', label: '经典洗牌', time: '约 5 分钟' },
     { value: 'clump', label: '不洗牌 · 炸弹多', time: '约 4 分钟' },

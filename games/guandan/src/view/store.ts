@@ -112,32 +112,23 @@ export function setNick(name: string): void {
 
 // ───────────── 设置 ─────────────
 
-export type SpeedSetting = 'slow' | 'normal' | 'fast';
+type SpeedSetting = 'slow' | 'normal' | 'fast';
 /** 音乐、音效各一档：0 关、1 小、2 中、3 大（设置里分别调，分别记住） */
 export type SoundLevel = 0 | 1 | 2 | 3;
 /** 每档对应的音量（0..1） */
 export const SOUND_GAIN: readonly number[] = [0, 0.35, 0.65, 1];
 
-export function isSoundLevel(v: unknown): v is SoundLevel {
+function isSoundLevel(v: unknown): v is SoundLevel {
   return v === 0 || v === 1 || v === 2 || v === 3;
 }
 
-/** 0..1 的音量落到最近的一档（0.4 以下小、0.7 以下中，和旧版"音量"四档的分界一致）；不是数字返回 null */
-export function levelOfVolume(v: unknown): SoundLevel | null {
-  if (typeof v !== 'number' || !Number.isFinite(v)) return null;
-  return v <= 0 ? 0 : v <= 0.4 ? 1 : v <= 0.7 ? 2 : 3;
-}
-
-/**
- * 声音设置的迁移（纯函数）：新字段 sfx、musicVol 合法就照用；
- * 老存档只有 volume（总音量）和 music（背景音开关）：音效取原音量那一档，音乐是原音量那一档或（原来关着背景音就）关；
- * 老的 muted 原样保留成"全部静音"。坏数据用默认值。
- */
-export function migrateSound(raw: { sfx?: unknown; musicVol?: unknown; volume?: unknown; music?: unknown; muted?: unknown }): { sfx: SoundLevel; musicVol: SoundLevel; muted: boolean } {
-  const legacy = levelOfVolume(raw.volume);
-  const sfx = isSoundLevel(raw.sfx) ? raw.sfx : legacy ?? DEFAULT_SETTINGS.sfx;
-  const musicVol = isSoundLevel(raw.musicVol) ? raw.musicVol : raw.music === false ? 0 : legacy ?? DEFAULT_SETTINGS.musicVol;
-  return { sfx, musicVol, muted: raw.muted === true };
+/** 声音设置：两档合法就照用，坏数据用默认值 */
+function soundOf(raw: { sfx?: unknown; musicVol?: unknown; muted?: unknown }): { sfx: SoundLevel; musicVol: SoundLevel; muted: boolean } {
+  return {
+    sfx: isSoundLevel(raw.sfx) ? raw.sfx : DEFAULT_SETTINGS.sfx,
+    musicVol: isSoundLevel(raw.musicVol) ? raw.musicVol : DEFAULT_SETTINGS.musicVol,
+    muted: raw.muted === true,
+  };
 }
 
 export interface Settings {
@@ -202,10 +193,7 @@ export function getSettings(): Settings {
   settingsCache.difficulty = soloLevelOf(settingsCache.difficulty) ?? DEFAULT_SETTINGS.difficulty;
   if (settingsCache.length !== 'short' && settingsCache.length !== 'full') settingsCache.length = DEFAULT_SETTINGS.length;
   if (settingsCache.ddzDeal !== 'classic' && settingsCache.ddzDeal !== 'clump') settingsCache.ddzDeal = DEFAULT_SETTINGS.ddzDeal;
-  // 声音：老存档的 volume / music 换成两档，换完把老字段丢掉（下次写盘就不再带）
-  Object.assign(settingsCache, migrateSound((s && s.v === 1 ? s : {}) as Parameters<typeof migrateSound>[0]));
-  delete (settingsCache as unknown as Record<string, unknown>).volume;
-  delete (settingsCache as unknown as Record<string, unknown>).music;
+  Object.assign(settingsCache, soundOf(settingsCache));
   return settingsCache;
 }
 
@@ -224,7 +212,7 @@ export function updateSettings(patch: Partial<Settings>): Settings {
 
 // ───────────── 存档 ─────────────
 
-export interface SaveData {
+interface SaveData {
   v: 1;
   state: GameState;
   difficulty: SoloLevel;
@@ -315,7 +303,7 @@ export function setVariant(v: VariantId): void {
   write(KEYS.variant, v);
 }
 
-export interface DdzSaveData {
+interface DdzSaveData {
   v: 1;
   state: DdzState;
   level: SoloLevel;
@@ -339,7 +327,7 @@ export function clearDdzSave(): void {
   rawStore.remove(KEYS.ddzSave);
 }
 
-export interface DdzStats {
+interface DdzStats {
   v: 1;
   games: number;
   wins: number;
@@ -351,7 +339,7 @@ export interface DdzStats {
   springs: number;
 }
 
-export const EMPTY_DDZ_STATS: DdzStats = { v: 1, games: 0, wins: 0, deals: 0, dealWins: 0, landlord: 0, landlordWins: 0, springs: 0 };
+const EMPTY_DDZ_STATS: DdzStats = { v: 1, games: 0, wins: 0, deals: 0, dealWins: 0, landlord: 0, landlordWins: 0, springs: 0 };
 
 export function getDdzStats(): DdzStats {
   const s = read<DdzStats>(KEYS.ddzStats);

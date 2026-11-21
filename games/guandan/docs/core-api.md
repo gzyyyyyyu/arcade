@@ -3,6 +3,19 @@
 > 代码在 `src/variants/guandan/core/`（规则）和 `src/variants/guandan/ai/`（电脑）；牌的编码、随机数、座位环、牌型框架在通用层 `src/core/`，规则核心再导出。
 > 画面层只从 `src/variants/guandan/core/index.ts`、`src/variants/guandan/ai/index.ts` import，只读状态和事件，不自己算规则。所有数据都是普通 JSON，可直接存档。
 
+## 0. 规则核心的约束
+
+- `src/core`、`src/variants/*/core`、`src/variants/*/ai`、`src/variants/*/stake` 不依赖 DOM、Phaser、网络；禁止 `Math.random`、`Date`、`Math.exp/log/pow/sin` 等；随机一律 `rngFor(seed, 用途, …)`。
+  `tsconfig.core.json` 只给 ES 库，误用浏览器全局会编译失败。
+- 状态是纯 JSON（牌是 0..107 的整数），`dispatch` 不修改传入的状态。同一种子 + 同一串动作必须逐位相同（`tests/core/game.test.ts` 回放测试）。
+- 电脑只能读 `viewFor(state, seat)`，不能碰 `GameState`；`viewFor` 不得包含别人的手牌（防泄漏测试）。联机时下发的也是它。
+  给电脑的随机种子、"这一场"的种子一律按用途派生（单机 `guandan/session.ts` 的 `soloSeeds`，房间 `rules.ts` 的 `aiSeed`、`formSeed`），不给牌局种子或密钥本身——
+  拿着它就能重算发牌。守着的测试：`tests/core/ai.test.ts` 的反事实测试（单机和房间两条路径 0 不一致，外加阳性对照）、
+  `tests/architecture.test.ts`（`src/variants/guandan/ai` 不引用 `GameState`、不出现 `'deal'`/`'firstLead'`）。README"电脑不看牌"一节是给外人看的版本。
+- 联机用的核心接口（`timeoutAction`、`previewNext`、规则版本、`SeatAction`/`TableAction`）见 `docs/core-api.md` 5.1，测试在 `tests/net/online.test.ts`。
+  `RULES_VERSION` 只区分两种发牌（单机按种子、联机按密钥），`dispatch` 拒绝认不得的版本；改规则直接改，不为旧版本的牌局、录像留分叉（仓库 process：回放不跨版本）。
+- 规则有出入的点先查 `docs/rules.md`；改规则要同步改该文档、`docs/core-api.md` 和测试，地方差异做成 `options.ts` 开关。
+
 ## 1. 牌
 
 - 一张牌是整数 `0..107`：`rankOf(c)` 点数（2..14，A=14；小王 16、大王 17），`suitOf(c)` 花色（0♠ 1♥ 2♣ 3♦，王为 -1）。
@@ -123,7 +136,7 @@ if (r.error) 显示 r.error（大白话中文），state 不变
 
 ## 7. 存档
 
-`state` 是纯 JSON，随整局存档存进 `localStorage['guandan.save']`（字段见 `AGENTS.md` 第 5 节；key 必须带 `guandan.` 前缀、只在 `src/view/store.ts` 里读写），读回来接着 `dispatch`。
+`state` 是纯 JSON，随整局存档存进 `localStorage['guandan.save']`（字段见 `docs/storage.md`；key 必须带 `guandan.` 前缀、只在 `src/view/store.ts` 里读写），读回来接着 `dispatch`。
 `state.v` 是存档格式版本（现在为 1）；`state.rules` 是规则版本（见 5.1），两者分开：一个管存储格式，一个管玩法。
 
 ## 8. 配置项 `options`

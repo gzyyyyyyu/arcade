@@ -9,10 +9,10 @@ import { TIER_IDS, isTier, type TierId } from '../stake/index.ts';
 export const MATCH_DDZ = 'ddz-fun';
 export const MATCH_DDZ_TABLE = 3;
 
-export type DdzMatchTier = typeof MATCH_DDZ | `ddz-real-${TierId}` | `ddz-clump-${TierId}`;
+type DdzMatchTier = typeof MATCH_DDZ | `ddz-real-${TierId}` | `ddz-clump-${TierId}`;
 
 /** 实盘的档位：每个实盘档位经典、不洗牌各一个 */
-export const MATCH_DDZ_REAL: readonly DdzMatchTier[] = [
+const MATCH_DDZ_REAL: readonly DdzMatchTier[] = [
   ...TIER_IDS.map((t): DdzMatchTier => `ddz-real-${t}`),
   ...TIER_IDS.map((t): DdzMatchTier => `ddz-clump-${t}`),
 ];

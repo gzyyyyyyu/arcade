@@ -31,7 +31,7 @@ import { DDZ_SEATS } from '../variants/doudizhu/index.ts';
 import { EMOTE_COUNT } from './emotes.ts';
 
 /** 斗地主房间的开房选项：stake 为 null 是娱乐，是档位就是实盘；noShuffle 是不洗牌玩法（娱乐 0.33.0、实盘 0.39.0；没开就没有这个字段） */
-export interface DdzOpts {
+interface DdzOpts {
   variant: 'ddz';
   stake: TierId | null;
   noShuffle?: true;
@@ -43,8 +43,7 @@ export type HallAction = NetAction | DdzNetAction;
 export type HallView = NetView | DdzNetView;
 
 export const isDdz = (s: HallState): s is DdzNet => 'variant' in s && s.variant === 'ddz';
-export const isDdzOpts = (o: HallOpts | undefined): o is DdzOpts => !!o && 'variant' in o && o.variant === 'ddz';
-export const isDdzView = (v: HallView): v is DdzNetView => 'variant' in v && v.variant === 'ddz';
+const isDdzOpts = (o: HallOpts | undefined): o is DdzOpts => !!o && 'variant' in o && o.variant === 'ddz';
 
 /**
  * 开房 / 排队开桌带的选项：variant 只认 'ddz'（别的值拒绝）；斗地主的 stake 要是认得的档位或没带；

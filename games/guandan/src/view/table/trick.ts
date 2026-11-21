@@ -8,11 +8,11 @@ import { text } from '../ui/kit.ts';
 import { CardView } from './card.ts';
 import type { SeatAnchor } from './layout.ts';
 
-export const PLAYED_W = 60;
+const PLAYED_W = 60;
 const STEP = 26;
 
 /** 出牌区上一手的字和要不要按炸弹的样子画（牌馆 0.28.0：由玩法给，掼蛋的是 guandan/labels.ts 的 describePlay） */
-export type DescribePlay<P extends PlayBase> = (p: P) => { label: string; bomb: boolean };
+type DescribePlay<P extends PlayBase> = (p: P) => { label: string; bomb: boolean };
 
 export class TrickView<P extends PlayBase> {
   private scene: Phaser.Scene;

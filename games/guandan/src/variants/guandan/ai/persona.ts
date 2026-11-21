@@ -59,7 +59,7 @@ export type PersonaId = 'laozhang' | 'xiaomei' | 'aqiang';
 export const PERSONA_IDS: readonly PersonaId[] = ['laozhang', 'xiaomei', 'aqiang'];
 
 /** 性格：在强弱预设上加减（slip 是乘），再按状态、局面浮动 */
-export interface Persona {
+interface Persona {
   /** 爱炸 */
   bombLove: number;
   /** 抢出牌权 */
@@ -91,7 +91,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
  * 越强的电脑性格露得越少（性格、状态、上头的幅度都乘这个数）：高手也有自己的路数，但不会为了路数白送；
  * 新手场的电脑性格最鲜明，输赢也最不讲究
  */
-export const STYLE_SCALE: Record<Difficulty, number> = { novice: 1, easy: 1, normal: 1, good: 0.5, hard: 0.35 };
+const STYLE_SCALE: Record<Difficulty, number> = { novice: 1, easy: 1, normal: 1, good: 0.5, hard: 0.35 };
 
 /**
  * 联机房间里每个真实座位坐的电脑是谁（单机我坐 0，1、2、3 就是老张、小美、阿强）。

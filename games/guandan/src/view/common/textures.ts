@@ -328,7 +328,7 @@ function tableW(): number {
 }
 
 /** 牌桌要用的纹理是否都已就绪（含牌桌宽度的背景） */
-export function texturesReady(scene: Phaser.Scene): boolean {
+function texturesReady(scene: Phaser.Scene): boolean {
   return tablePart !== null && tableDone >= readyNeed() && scene.textures.exists(`table:${tableW()}`);
 }
 

@@ -27,7 +27,7 @@ export interface CloudMeta {
   rev: Partial<Record<SyncSlot, number>>;
   dirty: SyncSlot[];
 }
-export interface CloudDeps {
+interface CloudDeps {
   fetch: (url: string, init?: RequestInit) => Promise<Response>;
   hasLoginHint: () => boolean;
   /** 本地槽数据（已带默认值）、写回本地、空存档 */

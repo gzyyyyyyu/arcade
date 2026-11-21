@@ -2,7 +2,7 @@
 import { PERSONAS, type AvatarId } from '../art/index.ts';
 
 /** 掼蛋三个电脑的人物（同 variants/guandan/ai 的 PersonaId，这里不引用玩法目录） */
-export type GdPersonaId = 'laozhang' | 'xiaomei' | 'aqiang';
+type GdPersonaId = 'laozhang' | 'xiaomei' | 'aqiang';
 
 export const PLACE_NAMES = ['头游', '二游', '三游', '末游'];
 

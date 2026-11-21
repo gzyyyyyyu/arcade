@@ -45,7 +45,7 @@ export const teamOf = (s: Seat): Team => s % 2;
 export const partnerOf = (s: Seat): Seat => (s + 2) % 4;
 export const nextSeat = (s: Seat): Seat => nextOf(s, 4);
 
-export interface Trick {
+interface Trick {
   /** 本轮领出的人 */
   leader: Seat;
   /** 本轮目前最大的一手；null 表示还没人出（轮到的人必须领出） */
@@ -54,7 +54,7 @@ export interface Trick {
   passed: boolean[];
 }
 
-export interface TributeEntry {
+interface TributeEntry {
   from: Seat;
   /** 受贡的人；双下时两张贡牌都交上来之后才确定，之前为 -1 */
   to: Seat;
@@ -143,7 +143,7 @@ export type SeatAction =
  * 牌桌自己推进的动作：开下一副。不属于任何座位——联机时只由房间在全员"准备"或倒计时结束后发出，
  * 玩家发来的一律不收；单机时由本地会话代替房间发出（玩家点"下一副"）。
  */
-export type TableAction = { type: 'nextDeal' };
+type TableAction = { type: 'nextDeal' };
 
 export type Action = SeatAction | TableAction;
 
@@ -169,7 +169,7 @@ export type GameEvent =
   | { type: 'gameOver'; winner: Team; levels: [number, number] }
   | { type: 'turn'; seat: Seat };
 
-export interface DispatchResult {
+interface DispatchResult {
   state: GameState;
   events: GameEvent[];
   /** 非法动作时给出原因，state 原样返回、events 为空 */
@@ -271,14 +271,14 @@ function beginPlay(s: GameState, ev: GameEvent[], leader: Seat): void {
 }
 
 /** 进贡时允许交的牌：手里最大的牌（红桃级牌除外），同样大的任选一张。 */
-export function tributeChoices(hand: readonly Card[], level: number): Card[] {
+function tributeChoices(hand: readonly Card[], level: number): Card[] {
   let best = -1;
   for (const c of hand) if (!isWild(c, level)) best = Math.max(best, cardValue(c, level));
   return hand.filter((c) => !isWild(c, level) && cardValue(c, level) === best);
 }
 
 /** 还贡时允许还的牌：本位点数不超过 returnMaxRank 且不是级牌；手里没有时可还任意一张非王、非级牌，再没有就任意一张。 */
-export function returnChoices(hand: readonly Card[], level: number, opts: Options): Card[] {
+function returnChoices(hand: readonly Card[], level: number, opts: Options): Card[] {
   const ok = hand.filter((c) => !isJoker(c) && rankOf(c) !== level && rankOf(c) <= opts.returnMaxRank);
   if (ok.length) return ok;
   const loose = hand.filter((c) => !isJoker(c) && rankOf(c) !== level);
@@ -535,7 +535,7 @@ function endDeal(s: GameState, ev: GameEvent[]): void {
 
 // ───────────────────────── 玩家视角 ─────────────────────────
 
-export interface TributeView {
+interface TributeView {
   kind: 'single' | 'double';
   entries: TributeEntry[];
   leader: Seat;

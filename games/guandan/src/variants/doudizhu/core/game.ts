@@ -18,7 +18,7 @@ export const next3 = (s: number): number => nextOf(s, DDZ_SEATS);
 
 /** 叫分阶段、出牌阶段每步给的时间（毫秒） */
 export const DDZ_BID_MS = 15000;
-export const DDZ_PLAY_MS = 30000;
+const DDZ_PLAY_MS = 30000;
 
 export interface DdzOptions {
   /** 一场几副 */
@@ -40,7 +40,7 @@ export const DDZ_FUN: DdzOptions = { deals: 6, dealCap: 0, cap: 0 };
 /** 不洗牌玩法叠在娱乐规则上的部分：成团发牌，每副封顶 dealCap 分（炸弹多、倍数大，ddz-stake-sim --fun --noshuffle 量过，docs/doudizhu.md 第 4 节） */
 export const DDZ_NOSHUFFLE: Partial<DdzOptions> = { noShuffle: true, dealCap: 48 };
 
-export type DdzPhase = 'bid' | 'show' | 'play' | 'dealEnd' | 'gameOver';
+type DdzPhase = 'bid' | 'show' | 'play' | 'dealEnd' | 'gameOver';
 
 export interface DdzResult {
   landlord: number;
@@ -60,7 +60,7 @@ export interface DdzResult {
   delta: number[];
 }
 
-export interface DdzTrickPlay {
+interface DdzTrickPlay {
   seat: number;
   play: DdzPlay | null;
 }
@@ -118,7 +118,7 @@ export type DdzEvent =
   | { type: 'dealEnd'; result: DdzResult }
   | { type: 'gameOver'; scores: number[] };
 
-export interface DdzDispatch {
+interface DdzDispatch {
   state: DdzState;
   events: DdzEvent[];
   error: string | null;
@@ -475,16 +475,6 @@ export function timeoutDdz(v: DdzView): DdzAction | null {
   if (v.phase === 'show') return { type: 'show', seat: v.seat, open: false };
   if (v.phase !== 'play') return null;
   return v.target ? { type: 'pass', seat: v.seat } : { type: 'play', seat: v.seat, cards: [sortDdz(v.hand)[0]!] };
-}
-
-/** 每个座位这一副的分（和为 0；实盘、战绩、结算页都从它来） */
-export function dealScoreDdz(r: DdzResult): number[] {
-  return [...r.delta];
-}
-
-/** 一场打完没有 */
-export function matchOverDdz(s: Pick<DdzState, 'phase'>): boolean {
-  return s.phase === 'gameOver';
 }
 
 /** 回放：同一个种子、同一串动作得到同一个状态 */

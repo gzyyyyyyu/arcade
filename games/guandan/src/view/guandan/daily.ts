@@ -11,7 +11,7 @@ import { dailyBoard, submitDaily, type DailySubmit } from '../common/daily.ts';
 import { Session } from './session.ts';
 
 /** 规则版本：发牌、计分大改时加一，榜名带 -v<n>；0 = 不带 */
-export const GD_DAILY_RULES = 0;
+const GD_DAILY_RULES = 0;
 /** 三个电脑的难度：大家打同样的对手 */
 export const GD_DAILY_LEVEL = 'normal';
 /** 一场的副数：8 副（和单机实盘不再绑在一起，实盘改成了 3 副） */
@@ -31,7 +31,7 @@ export function submitGdDaily(date: string, score: number, fetcher: typeof fetch
 }
 
 /** 每副我方的分（按副的先后），不封顶 */
-export interface DailyMatch {
+interface DailyMatch {
   deals: number[];
 }
 

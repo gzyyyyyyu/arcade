@@ -20,7 +20,7 @@ import { GUEST_ID, lobbyName, standalone, withNick } from './platform.ts';
 export { QUOTA_TEXT };
 
 export type NetEvent = 'room' | 'frames' | 'reset' | 'error' | 'status' | 'emote';
-export type NetListener = (kind: NetEvent, detail?: string) => void;
+type NetListener = (kind: NetEvent, detail?: string) => void;
 
 /** 本机记着的房间（刷新后回得去） */
 export interface SavedRoom {

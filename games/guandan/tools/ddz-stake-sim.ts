@@ -1,5 +1,5 @@
 /**
- * 斗地主单机实盘的模拟（docs/stake.md 第 10 节的数字从这里来）：量每档、每种电脑搭配下，"普通玩家"和"小白"每场的期望（单位：份）。
+ * 斗地主单机实盘的模拟（docs/stake-ddz.md的数字从这里来）：量每档、每种电脑搭配下，"普通玩家"和"小白"每场的期望（单位：份）。
  *
  *   node tools/ddz-stake-sim.ts                          默认：每格 2000 场，6 种电脑搭配 × 2 种玩家，并行跑
  *   node tools/ddz-stake-sim.ts --matches 500 --me normal --bots normal,pro
@@ -11,7 +11,7 @@
  *   node tools/ddz-stake-sim.ts --fun --bots novice,novice   娱乐单机的一局（DDZ_FUN：6 副、不封顶），看"赢"那一栏（净分 > 0 = 这局赢了，和战绩一样算）
  *
  * 玩家模型：我坐 0 号，"普通玩家" = 电脑的 normal 档代打（--me normal），"小白" = 本文件里单独写的 newbieDecide（--me newbie，
- * 不用电脑的任何一档，调电脑时不会跟着变，定义见 docs/stake.md 10.2）。电脑坐 1、2 号，按给定的两档。
+ * 不用电脑的任何一档，调电脑时不会跟着变，定义见 docs/stake-ddz.md 第 2 节）。电脑坐 1、2 号，按给定的两档。
  * 一场用实盘选项（现行 3 副；--pps / --cap / --deals 可覆盖，--pps 40 --cap 24 --deals 8 就是老规则），每场用不同的种子；输出每场净分换成份数
  * （分 ÷ pps）的均值、标准误、2 倍标准误上界、赢的比例（净分 > 0）、平均副数、一场碰到 ±40 封顶的比例。
  * 并行：每格拆成几段，每段一个子进程（--worker，结果从标准输出回传），合起来。
@@ -28,7 +28,7 @@ function arg(name: string, def: string): string {
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1]! : def;
 }
 const flag = (name: string): boolean => process.argv.includes(`--${name}`);
-/** --fun：按娱乐单机的规则打一局（docs/stake.md 10.2 娱乐新手档那一行） */
+/** --fun：按娱乐单机的规则打一局（docs/stake-ddz.md 第 2 节 娱乐新手档那一行） */
 const FUN = flag('fun');
 const TIME = flag('time');
 /** 扫参数用：--pps 每分一份的 1/P（也是一场结束的分数线）、--cap 每副 s 的封顶、--deals 一场几副；不给就是现行规则（stake/index.ts 的 CURRENT_RULES） */
@@ -52,7 +52,7 @@ type Me = DdzLevel | 'newbie';
 const ME_NAME = (m: Me): string => (m === 'newbie' ? '小白' : NAME[m]);
 
 /**
- * 小白玩家模型（docs/stake.md 10.2）：照 docs/balance.md 对掼蛋小白的描述类推，不读隐藏信息、不记牌，只看自己的手牌和桌面：
+ * 小白玩家模型（docs/stake-ddz.md 第 2 节）：照 docs/balance.md 对掼蛋小白的描述类推，不读隐藏信息、不记牌，只看自己的手牌和桌面：
  * 叫分凭感觉（王、2 的张数加一点随机）；领出就出最小的一手（同点数先出长的）；跟牌能压就压最小的，不分对手还是队友；
  * 炸弹乱用（压不过时 2/3 会炸，能正常压时也有 1/4 手痒去炸）。故意不用电脑的任何一档，免得调电脑时两边一起变。
  */

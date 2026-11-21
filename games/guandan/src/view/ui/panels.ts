@@ -17,7 +17,7 @@ export function applyAudio(s: Settings = getSettings()): void {
 }
 
 /** 设置、规则、战绩三个弹窗的宽度（art-v3）：世界宽减两边留白，封顶 1120——两边多露出一点遮罩，点外面关得到 */
-export function panelW(scene: Phaser.Scene): number {
+function panelW(scene: Phaser.Scene): number {
   return Math.min(worldW(scene) - SPACE.xxl * 2, 1120);
 }
 

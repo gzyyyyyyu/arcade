@@ -122,7 +122,7 @@ export function openLevelPicker(
  * 给了 onMatch 右上角多一个"和电脑 / 快速匹配"（0.26.0）：切到匹配时每档的按钮变"匹配"、时间那行换成好友房实盘的副数，点了交给 onMatch（带入由房间开打时办）
  */
 /** 实盘的一种玩法（斗地主：经典洗牌 / 不洗牌）；time 是单机一场大概多久（按各自的时长模拟，docs/stake.md） */
-export interface TierMode {
+interface TierMode {
   value: string;
   label: string;
   time: string;
@@ -146,7 +146,7 @@ export interface TierFlow<S> {
   refundStray(ref: string): Promise<StakeReply>;
 }
 
-export const GUANDAN_FLOW: TierFlow<StakeSession> = {
+const GUANDAN_FLOW: TierFlow<StakeSession> = {
   soloDeals: SOLO_DEALS,
   roomDeals: ROOM_DEALS,
   modes: [{ value: 'classic', label: '', time: TIER_CARD.time }],

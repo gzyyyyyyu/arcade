@@ -10,7 +10,7 @@ export const AWARD_NAME = {
   unlucky: '最惨的人',
   bomb_king: '炸弹王',
 } as const;
-export type AwardId = keyof typeof AWARD_NAME;
+type AwardId = keyof typeof AWARD_NAME;
 
 export interface Award {
   id: AwardId;
@@ -20,7 +20,7 @@ export interface Award {
 }
 
 /** 炸弹王至少要炸几次（和整局称号"炸弹狂魔"的 3 次分开：颁奖每场都有，门槛低一点） */
-export const BOMB_KING_MIN = 2;
+const BOMB_KING_MIN = 2;
 
 /**
  * 这一场的奖。winner 是赢下整局的队（实盘提前结束、没人过 A 时按赢的副数多的队，打平是 -1）。

@@ -103,7 +103,7 @@ npm run typecheck     # 全量 tsc
 npm run typecheck:core # 只查规则核心和电脑（不带 DOM 库）
 
 # 模拟
-npm run sim           # 机器人对打 5000 副：电脑 vs 随机；更多模式见 tools/sim.ts 顶部（和旧版电脑对比用 --baseline，见 AGENTS.md 第 2 节）
+npm run sim           # 机器人对打 5000 副：电脑 vs 随机；更多模式见 tools/sim.ts 顶部（和旧版电脑对比用 --baseline，见 docs/ai.md 第 7 节）
 npm run ai-sim -- solo # 各场地电脑的强弱（还有 room / style / time，见 docs/ai.md）
 npm run room-sim      # 联机房间规则层批量对打
 
@@ -118,7 +118,7 @@ node tools/mem.ts     # 内存估算（模拟 iPhone 8 / 8 Plus 横屏，各渲�
 node tools/perf.ts    # 性能量测（先 npm run build）：主页、选档页、牌桌代打各段的脚本时间、长任务、帧间隔，首屏可交互，包体积；--dist 指旧产物做背靠背
 npm run art           # 美术预览图 → shots/art/
 npm run cover         # 重新生成 public/cover.png
-npm run build:cf      # 部署产物 dist-cf/games/guandan/（线上 Worker：worker/，登录闸门 GATE=off|login、好友房开关 ONLINE=on|off，见 AGENTS.md）
+npm run build:cf      # 部署产物 dist-cf/games/guandan/（线上 Worker：worker/，登录闸门 GATE=off|login、好友房开关 ONLINE=on|off，见 docs/net.md）
 npm run deploy        # build:cf + wrangler deploy（单独部署，见下面）
 ```
 
@@ -199,7 +199,7 @@ tools/       模拟器、冒烟和截图、本地联机栈、部署构建、美�
 docs/        设计、规则核实、核心接口、实盘设计
 ```
 
-更细的约定（规则核心的约束、画面层、联机、实盘、存储 key）见 `AGENTS.md`。
+模块的规矩见 `AGENTS.md`，细节按主题在 `docs/`（目录和命令 `docs/structure.md`、存储 key `docs/storage.md`、规则核心 `docs/core-api.md`、画面 `docs/view.md`、联机和实盘 `docs/net.md`）。
 
 ## 素材
 
@@ -217,7 +217,7 @@ SIL Open Font License 1.1，可商用；版权声明和许可原文在 `src/view
 - `docs/stake.md` 实盘设计；`docs/stake-sim.md` 实盘模拟的命令和展开的表（数字由 `node tools/stake-sim.ts` 量出）
 - `docs/view.md` 画面层的约定；`docs/net.md` 联机和实盘的约定
 - `docs/art.md` 主页和牌桌的美术现状、字体子集的生成；`docs/doudizhu.md` 牌馆（掼蛋 + 斗地主）的分层、掼蛋金样和斗地主各模式的现状
-- `CHANGELOG.md` 更新日志；`docs/changelog-archive.md` 0.30.0 之前的归档
+- `CHANGELOG.md` 更新日志；`docs/changelog-archive*.md` 0.30.0 之前的归档（三份）
 
 ## 许可证
 

@@ -10,7 +10,7 @@ import type { HandView } from '../table/hand.ts';
 import { hasLayer, keyboardInDom, ringActive } from './focus.ts';
 import type { Button } from './kit.ts';
 
-export interface ShortcutTargets {
+interface ShortcutTargets {
   play: Button;
   pass: Button;
   hint: Button;
@@ -23,7 +23,7 @@ export interface ShortcutTargets {
 }
 
 /** 按键 → 动作（纯函数，单测直接测）；不认的键返回 null */
-export type ShortcutAction = 'play' | 'pass' | 'hint' | 'sort' | 'clear';
+type ShortcutAction = 'play' | 'pass' | 'hint' | 'sort' | 'clear';
 
 export function actionOf(key: string): ShortcutAction | null {
   switch (key) {

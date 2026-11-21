@@ -5,7 +5,7 @@
 import { BIG_JOKER, SMALL_JOKER, rankOf, type Card } from '../../variants/guandan/core/cards.ts';
 import type { PlayRecord } from '../../variants/guandan/core/index.ts';
 
-export interface CounterCell {
+interface CounterCell {
   /** 点数：2..14，小王 16，大王 17 */
   rank: number;
   /** 还没露面的张数 */

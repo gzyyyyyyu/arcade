@@ -1,5 +1,5 @@
 /**
- * 斗地主实盘的规则（docs/stake.md 第 10 节）：每分多少、每副和一场的封顶、一场几副、结回额、钱包 ref 的拼法、单机每档的电脑。
+ * 斗地主实盘的规则（docs/stake-ddz.md）：每分多少、每副和一场的封顶、一场几副、结回额、钱包 ref 的拼法、单机每档的电脑。
  * 档位表、钱包 id 格式、op 的拼法是通用的，在 src/core/stake.ts。和 src/core 一样是纯函数：不碰 DOM、网络、时间、随机数
  * （ref 里的随机数由调用方给）。
  * 一场的截断（每副 s 封顶、任何一家累计到 ±一份（pps 分）就结束、最后那副截 s 仍然零和）由规则核心做（DdzOptions.dealCap / cap），
@@ -14,7 +14,7 @@ export { SOLO_HOURS, TIERS, TIER_IDS, WALLET_ID, isTier, seatOp, setPaid, soloOp
 
 /**
  * 一场的规则，按版本记（存档、好友房的桌里带 `rules` 字段，没有就是版本 1）：
- * 版本 1 是最早的 8 副 / 6 副、每分一份的 1/40；版本 2 把一场缩成 3 副（实盘一场要 3–6 分钟、能利用碎片时间，docs/stake.md 10.1），每分按比例放大。
+ * 版本 1 是最早的 8 副 / 6 副、每分一份的 1/40；版本 2 把一场缩成 3 副（实盘一场要 3–6 分钟、能利用碎片时间，docs/stake-ddz.md 第 1 节），每分按比例放大。
  * 老的一场按老数打完：打到一半的存档、房间不换规则，结回额也按它自己的每分算。
  */
 export interface StakeRules {
@@ -29,12 +29,12 @@ export interface StakeRules {
   noShuffle?: true;
 }
 export const RULES_V1: StakeRules = { v: 1, pps: 40, dealCap: 24, soloDeals: 8, roomDeals: 6 };
-/** 现行规则。pps 要整除四档的一份（2,000 起，只有 10 / 16 / 20 / 25 这类数能整除），15 不行。50 / 24 是 CI 上 `tools/ddz-stake-sim.ts --pps P --cap C` 的模拟定的，理由：每小时期望和别的游戏对齐（docs/stake.md 10.2） */
+/** 现行规则。pps 要整除四档的一份（2,000 起，只有 10 / 16 / 20 / 25 这类数能整除），15 不行。50 / 24 是 CI 上 `tools/ddz-stake-sim.ts --pps P --cap C` 的模拟定的，理由：每小时期望和别的游戏对齐（docs/stake-ddz.md 第 2 节） */
 export const RULES_V2: StakeRules = { v: 2, pps: 50, dealCap: 24, soloDeals: 3, roomDeals: 3 };
 export const CURRENT_RULES = RULES_V2;
 /**
  * 不洗牌实盘（0.39.0，和版本 2 并列，开一场时选发牌）：成团发牌炸弹多，照经典的每分 1/50、每副封顶 24 会有 13–23% 的场碰到一份封顶、
- * 小档普通玩家每场 +0.27 份。每副封顶放到 48（和娱乐的不洗牌一样）、每分 1/200（10 / 50 / 250 / 1,000），每小时期望和经典差不多（docs/stake.md 10.5）
+ * 小档普通玩家每场 +0.27 份。每副封顶放到 48（和娱乐的不洗牌一样）、每分 1/200（10 / 50 / 250 / 1,000），每小时期望和经典差不多（docs/stake-ddz.md 第 5 节）
  */
 export const RULES_CLUMP: StakeRules = { v: 3, pps: 200, dealCap: 48, soloDeals: 3, roomDeals: 3, noShuffle: true };
 
@@ -51,7 +51,6 @@ export function newRules(noShuffle: boolean): StakeRules {
 
 /** 现行规则的数（新开的一场用；老的一场用 rulesOf 取它自己的） */
 export const POINTS_PER_SHARE = CURRENT_RULES.pps;
-export const DEAL_CAP = CURRENT_RULES.dealCap;
 /** 一场打几副：单机、好友房现在都是 3 副 */
 export const SOLO_DEALS = CURRENT_RULES.soloDeals;
 export const ROOM_DEALS = CURRENT_RULES.roomDeals;
@@ -122,7 +121,7 @@ export function validSoloResult(points: unknown, deals: unknown, rules: StakeRul
 }
 
 /**
- * 单机实盘每档的电脑（座位 1、2；docs/stake.md 10.3，数字由 tools/ddz-stake-sim.ts 量）：越往上越难。
+ * 单机实盘每档的电脑（座位 1、2；docs/stake-ddz.md 第 3 节，数字由 tools/ddz-stake-sim.ts 量）：越往上越难。
  * 我不是地主时，坐我这边的电脑农民是我的队友，所以两个座位强弱不一定要一样：大档"新手 + 高手"（一强一弱）比豪华档"普通 + 普通"好打。
  * 普通玩家每场（份）：小档 +0.29（小白 +0.14）、中档 +0.20、大档 +0.03、豪华 0.00，落在 docs/balance.md 第 2 节普通那一列。
  * 两个高手（−0.12）、普通 + 高手（−0.08）对普通玩家都太难，不用。数字见 10.3，以最近一次模拟为准
@@ -159,7 +158,7 @@ export function roomRef(hex: string): string {
   return ref;
 }
 
-export const DDZ_ROOM_SEATS = 3;
+const DDZ_ROOM_SEATS = 3;
 
 export function newRoomBook(tier: TierId): RoomBook {
   return { tier, seats: Array.from({ length: DDZ_ROOM_SEATS }, () => ({ paid: 'no' as Paid, points: 0 })), deals: 0, house: 0 };

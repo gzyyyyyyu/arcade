@@ -6,7 +6,7 @@
 import { TIER_IDS, type TierId } from '../stake/index.ts';
 import { ROOM_PATH } from '../../../net/version.ts';
 
-export type MatchTier = 'fun' | `real-${TierId}`;
+type MatchTier = 'fun' | `real-${TierId}`;
 
 export const MATCH_FUN: MatchTier = 'fun';
 

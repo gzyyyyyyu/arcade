@@ -4,7 +4,7 @@
  */
 import { beats, isBomb, type DealResult, type Play, type PlayRecord } from '../../variants/guandan/core/index.ts';
 
-export interface Recap {
+interface Recap {
   /** 两队各炸了几次（画面队伍：0 我方、1 对方） */
   bombs: [number, number];
   /** 最大的一炸（没人炸为 null） */

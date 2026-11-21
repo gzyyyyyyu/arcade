@@ -42,7 +42,7 @@ export function worldH(scene: Phaser.Scene): number {
   return Math.round(scene.scale.gameSize.height / RENDER_SCALE);
 }
 
-export interface TextOpts {
+interface TextOpts {
   size?: number;
   color?: number;
   bold?: boolean;

@@ -8,7 +8,7 @@
 import type { DealResult, GameEvent, NextPreview, PlayerView } from '../core/index.ts';
 import type { NetView } from './rules.ts';
 
-export interface Rot {
+interface Rot {
   /** 真实座位 → 画面座位 */
   seat(s: number): number;
   /** 真实队伍 → 画面队伍 */

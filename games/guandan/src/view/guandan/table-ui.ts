@@ -1,6 +1,6 @@
 /** 牌桌上的按钮、互动、顶栏和记牌器（从 TableScene.ts 拆出，只搬家；函数接收场景实例）。 */
 import type Phaser from 'phaser';
-import { canPass, type PlayerView } from '../../variants/guandan/core/index.ts';
+import { canPass, timeoutAction, type PlayerView } from '../../variants/guandan/core/index.ts';
 import { audio } from '../common/audio.ts';
 import { dur } from '../common/anim.ts';
 import { seatIdentity, seatName } from '../common/labels.ts';
@@ -439,9 +439,18 @@ export function refreshButtons(sc: TableScene): void {
     sc.btnPass.setVisible(false);
     sc.btnHint.setVisible(false);
     const verb = t.kind === 'tribute' ? '进贡' : '还贡';
+    // 先替新手挑好一张（和超时代出同一张：进贡挑最大的、还贡挑最小的），点一下就行，想换再点别的；
+    // 每一步只挑一次，玩家点掉了不再塞回去。新手不知道级牌比 A 大，以前就卡在这里不会点
+    const pick = sc.tributeStep !== v.step && sel.length === 0 ? timeoutAction(v) : null;
+    sc.tributeStep = v.step;
+    if (pick && (pick.type === 'tribute' || pick.type === 'return')) {
+      sc.hand.setSelected([pick.card]);
+      sel.push(pick.card);
+    }
     sc.btnPlay.setText(verb).setEnabled(sel.length === 1);
-    const to = t.to >= 0 ? seatName(t.to) : '头游';
-    sc.setStatus(t.kind === 'tribute' ? `选最大的一张 ${verb}给 ${to}` : `选一张 ${verb}给 ${to}（10 以下）`);
+    const to = t.to >= 0 ? seatName(t.to) : '头游（上副第一个出完的）';
+    const what = t.kind === 'tribute' ? '最大的一张' : '一张 10 以下的';
+    sc.setStatus(sel.length === 1 ? `已挑好${what}，点「${verb}」给 ${to}` : `选${what} ${verb}给 ${to}`);
     return;
   }
   sc.hand.setAllowed(null);
