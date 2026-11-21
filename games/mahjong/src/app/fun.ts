@@ -15,6 +15,19 @@ import { session } from './session.ts';
 import { topbar } from './shell.ts';
 import { TIMING } from './timing.ts';
 
+/**
+ * 牌桌重画以后让互动组件重新摆头像热区和按钮：攒到下一帧再摆，一帧最多一次。
+ * 它要量头像的位置，紧跟在写 DOM 后面量会逼浏览器当场重算样式、排版（以前每一步都这样，对局里主线程最大的一块）
+ */
+let refreshing = 0;
+export function refreshFun(): void {
+  if (refreshing) return;
+  refreshing = requestAnimationFrame(() => {
+    refreshing = 0;
+    session.fun?.refresh();
+  });
+}
+
 /** 轮到我（出现了要我做的事）：提示音、振动，页面在后台时标题闪 */
 export function alertTurn(v: { prompt: unknown; phase: string }): void {
   const now = !!v.prompt && v.phase !== 'swap' && v.phase !== 'que';

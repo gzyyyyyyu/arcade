@@ -28,7 +28,7 @@ import type { SeatMeta } from '../view/table.ts';
 import { cheerLine, easierLevel, LEVEL_NAME, num, STAKES_NAME, walletError } from '../view/text.ts';
 import type { AnyOpts } from '../view/variants/page.ts';
 import { ladderChoiceOf, pageOf } from '../view/variants/pages.ts';
-import { alertTurn, dropFun, feed, newFun, publicMoments } from './fun.ts';
+import { alertTurn, dropFun, feed, newFun, publicMoments, refreshFun } from './fun.ts';
 import { prefs, savePrefs } from './prefs.ts';
 import { bumpRecord, recordStreak } from './record.ts';
 import { userIdOf } from './identity.ts';
@@ -178,7 +178,7 @@ export const soloUi = {
     if (!session.table) return;
     const solo = session.solo;
     session.table.render({ v: pageOf(v.variant).tableView(v), seats: names.map((name, i): SeatMeta => ({ name, bot: i !== 0 })) });
-    session.fun?.refresh();
+    refreshFun();
     recordDex(v.events, 0, dexKey(solo?.save.id ?? 'solo', v, v.events, 0));
     recordAch(v, 0, solo?.save.id ?? 'solo');
     publicMoments(v, names, true);

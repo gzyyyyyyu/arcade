@@ -13,7 +13,7 @@ import { avatarSvg } from './avatar.ts';
 import { celebrate, type CelebrateKind } from './fx.ts';
 import { cutinKindOfBanner, devCutin, showCutin } from './cutin.ts';
 import { streakParticles } from './cutin-spec.ts';
-import { button, clear, el } from './dom.ts';
+import { button, clear, el, sync } from './dom.ts';
 import { play } from './sound.ts';
 import { num } from './text.ts';
 import { backUrl, tileName, tileUrl } from './tiles.ts';
@@ -185,6 +185,8 @@ export class TableUi<V extends TableView, A> {
   private lastDiscard = -1;
   /** 自己打的那张从手里哪儿飞出去（下一帧落到河里时用）；只是画面，不影响计时和规则 */
   private flyFrom: { tile: Tile; rect: DOMRect } | null = null;
+  /** 这一帧新落进河里的牌：整桌写完 DOM 再一起量位置、起飞（量位置会逼浏览器排版，夹在写 DOM 中间每量一次排一次） */
+  private landing: { e: HTMLElement; r: number; tile: Tile; fly: boolean }[] = [];
   /** 上一帧摸到的牌：新摸的那张落下来一下 */
   private lastDrawn: Tile | null = null;
   private tick = 0;
@@ -410,10 +412,11 @@ export class TableUi<V extends TableView, A> {
       this.drawRiver(s, r);
       if (r > 0) this.drawOpp(s, r);
     }
-    this.flyFrom = null;
     this.drawCenter();
     this.drawHand();
     this.drawBar();
+    this.land();
+    this.flyFrom = null;
     this.dealAnimate();
     this.ui.effects(v, this.fx, frame.seats.map((x) => x.name));
     this.startTimer();
@@ -474,17 +477,20 @@ export class TableUi<V extends TableView, A> {
     const meta = f.seats[seat]!;
     const s = v.seats[seat]!;
     const b = this.badges[r]!;
-    clear(b);
+    // 先画进一个空壳，再和名牌现在的样子比（dom.ts 的 sync），没变的节点不动
+    const next = document.createElement('div');
     b.classList.toggle('turn', v.turn === seat && (v.phase === 'turn' || v.phase === 'claim'));
     b.classList.remove('thinking');
     this.hands[r]!.classList.remove('thinking');
     b.classList.toggle('won', !!s.won && !v.opts.flow);
     b.classList.toggle('empty', !!meta.empty);
-    // 点头像互动由 kit 的 table-fun 在头像上盖一块透明热区接（view/fun.ts），这里只画
-    const av = el('div', 'avatar', b);
-    av.appendChild(this.avatarArt(seat, meta.name, meta.bot));
+    // 点头像互动由 kit 的 table-fun 在头像上盖一块透明热区接（view/fun.ts），这里只画。
+    // 头像的画（缓存的同一个节点）不放进空壳：比较时只认 data-art，换了人头像框整个换掉，最后把画放回现在的头像框
+    const art = this.avatarKey(seat, meta.name, meta.bot);
+    const av = el('div', 'avatar', next);
+    av.dataset.art = art;
     if (v.dealer === seat) el('span', 'dealer', av, '庄');
-    const info = el('div', 'info', b);
+    const info = el('div', 'info', next);
     el('div', 'name', info, meta.empty ? '空位' : meta.name);
     el('div', 'chips', info, this.ui.score?.(v, seat) ?? num(s.chips));
     const tags = el('div', 'tags', info);
@@ -494,10 +500,14 @@ export class TableUi<V extends TableView, A> {
     if (s.won) {
       const text = this.ui.stamp?.(v, seat) ?? (s.won.from === null ? '自摸' : '胡');
       // 字多的章（"胡×2"）画成胶囊，圆章装不下
-      el('div', `stamp${text.length > 2 ? ' wide' : ''}`, b, text);
+      el('div', `stamp${text.length > 2 ? ' wide' : ''}`, next, text);
     }
-    el('div', 'clock', b);
-    this.ui.badge?.(v, seat, b);
+    el('div', 'clock', next);
+    this.ui.badge?.(v, seat, next);
+    sync(b, next);
+    const live = b.querySelector('.avatar')!;
+    const pic = this.avatarArt(art, meta.name, meta.bot);
+    if (live.firstElementChild !== pic) live.prepend(pic);
   }
 
   /**
@@ -505,8 +515,8 @@ export class TableUi<V extends TableView, A> {
    * 缓存的是节点本身，重画时挪进新的头像框；同一个节点只能在一处，所以按座位 + 名字缓存（几个空位同名也不抢）
    */
   private avatars = new Map<string, Element>();
-  private avatarArt(seat: number, name: string, bot: boolean): Element {
-    const key = `${seat}${bot ? 1 : 0}${name}`;
+  private avatarKey = (seat: number, name: string, bot: boolean): string => `${seat}${bot ? 1 : 0}${name}`;
+  private avatarArt(key: string, name: string, bot: boolean): Element {
     let art = this.avatars.get(key);
     if (!art) {
       const box = document.createElement('div');
@@ -532,34 +542,40 @@ export class TableUi<V extends TableView, A> {
   }
 
   private drawMelds(seat: number, r: number): void {
-    const box = this.melds[r]!;
-    clear(box);
+    const next = document.createElement('div');
     for (const m of this.frame!.v.seats[seat]!.melds) {
-      const g = el('div', `meld ${m.kind}`, box);
+      const g = el('div', `meld ${m.kind}`, next);
       m.tiles.forEach((t, i) => {
         // 暗杠：自己看得到的也扣两张，桌上一眼看出是暗杠
         const hide = m.kan === 'concealed' && (i === 0 || i === 3);
         this.tile(hide ? -1 : t, r === 0 ? 'md' : 'sm', g);
       });
     }
+    sync(this.melds[r]!, next);
   }
 
   private drawRiver(seat: number, r: number): void {
     const v = this.frame!.v;
-    const box = this.rivers[r]!;
     const river = v.seats[seat]!.river;
-    clear(box);
-    // 只多了一张（正常打牌）：从出牌的地方飞过来；一下多好几张（刚进来、断线回来）就原地落下
+    const next = document.createElement('div');
+    // 只多了一张（正常打牌）：从出牌的地方飞过来；一下多好几张（刚进来、断线回来）就原地落下。起飞、落下在整桌画完后（land）
     const one = river.length === this.riverLen[seat]! + 1;
     river.forEach((x, i) => {
-      const e = this.tile(x.tile, 'sm', box);
+      const e = this.tile(x.tile, 'sm', next);
       if (x.taken) e.classList.add('taken');
       this.ui.river?.(v, seat, i, e);
-      if (i >= this.riverLen[seat]! && !(one && this.fly(e, r, x.tile))) e.classList.add('fresh');
+      if (i >= this.riverLen[seat]!) this.landing.push({ e, r, tile: x.tile, fly: one });
       if (v.claim && v.claim.from === seat && v.claim.tile === x.tile) e.classList.add('hot');
       else if (seat === this.lastDiscard && i === river.length - 1 && !x.taken) e.classList.add('last');
     });
+    sync(this.rivers[r]!, next);
     this.riverLen[seat] = river.length;
+  }
+
+  /** 这一帧新进河的牌：飞得起来就飞，不然原地落下（.fresh）。在整桌写完 DOM 之后调，量位置只排一次版 */
+  private land(): void {
+    for (const x of this.landing) if (!(x.fly && this.fly(x.e, x.r, x.tile))) x.e.classList.add('fresh');
+    this.landing = [];
   }
 
   /** 打出的牌飞进河里：自己的从手里那张的位置，别人的从他的手牌那边 */
@@ -601,10 +617,12 @@ export class TableUi<V extends TableView, A> {
         fill: 'backwards',
       });
     });
+    // 别家的牌背重画时没变就留着原来的节点（dom.ts 的 sync），已经在放的不再叠一遍
     for (let r = 1; r < 4; r++)
-      [...this.hands[r]!.children].forEach((e, i) =>
-        (e as HTMLElement).animate([{ opacity: 0 }, { opacity: 1 }], { id: 'deal', duration: 200, delay: batch(i) + 100, fill: 'backwards' }),
-      );
+      [...this.hands[r]!.children].forEach((e, i) => {
+        if (e.getAnimations().some((a) => a.id === 'deal')) return;
+        (e as HTMLElement).animate([{ opacity: 0 }, { opacity: 1 }], { id: 'deal', duration: 200, delay: batch(i) + 100, fill: 'backwards' });
+      });
   }
 
   private fly(e: HTMLElement, r: number, t: Tile): boolean {
@@ -632,19 +650,15 @@ export class TableUi<V extends TableView, A> {
   private drawOpp(seat: number, r: number): void {
     const v = this.frame!.v;
     const s = v.seats[seat]!;
-    const box = this.hands[r]!;
-    clear(box);
-    if (s.hand) {
-      for (const t of s.hand) this.tile(t, 'xs', box);
-      return;
-    }
-    for (let i = 0; i < s.count; i++) el('div', 'back', box);
+    const next = document.createElement('div');
+    if (s.hand) for (const t of s.hand) this.tile(t, 'xs', next);
+    else for (let i = 0; i < s.count; i++) el('div', 'back', next);
+    sync(this.hands[r]!, next);
   }
 
   private drawCenter(): void {
     const v = this.frame!.v;
-    const c = this.center;
-    clear(c);
+    const c = document.createElement('div');
     for (let s = 0; s < v.seats.length; s++) {
       const d = el('div', `dir r${this.rel(s)}`, c);
       // 轮到谁、或者大家在等谁回碰杠胡：那一边的灯亮、箭头指过去
@@ -652,10 +666,13 @@ export class TableUi<V extends TableView, A> {
       d.classList.toggle('done', !!v.seats[s]!.won && !v.opts.flow);
     }
     const mid = el('div', 'mid', c);
-    if (this.ui.center) return this.ui.center(v, mid, this.paint);
-    el('div', 'wall', mid, `${v.wall}`);
-    el('div', 'wall-label', mid, '剩余');
-    el('div', 'round', mid, `第 ${Math.min(v.round + 1, v.opts.rounds)}/${v.opts.rounds} 局`);
+    if (this.ui.center) this.ui.center(v, mid, this.paint);
+    else {
+      el('div', 'wall', mid, `${v.wall}`);
+      el('div', 'wall-label', mid, '剩余');
+      el('div', 'round', mid, `第 ${Math.min(v.round + 1, v.opts.rounds)}/${v.opts.rounds} 局`);
+    }
+    sync(this.center, c);
   }
 
   private drawHand(): void {
