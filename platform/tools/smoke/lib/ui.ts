@@ -257,6 +257,24 @@ export async function phoneIssues(page: Page, minTap = 44, minNum = 14): Promise
       const need = [...bar.querySelectorAll('.account')].reduce((w, e) => w + e.getBoundingClientRect().width, 0);
       out.push(`顶栏折成了 ${new Set(tops).size} 行（按钮共 ${Math.round(need)}，这一行宽 ${Math.round(bar.getBoundingClientRect().width)}）`);
     }
+    // 手机竖屏顶栏不挤（0.41.1）：相邻按钮之间至少空 4px；排行、动态、好友的小字离按钮内沿左右各至少 4px（以前圆按钮里字贴着边）
+    if (vw <= 560) {
+      const items = [...document.querySelectorAll('.top__home, .topbar > *')].filter(visible).map((e) => [e, e.getBoundingClientRect()] as const).sort((a, b) => a[1].left - b[1].left);
+      for (let i = 1; i < items.length; i++) {
+        const gap = items[i]![1].left - items[i - 1]![1].right;
+        if (gap < 3.5) out.push(`顶栏挤：${name(items[i - 1]![0])} 和 ${name(items[i]![0])} 只隔 ${gap.toFixed(1)}px（${vw} 宽，各项 ${items.map(([, r]) => Math.round(r.width)).join('/')}）`);
+      }
+      for (const el of document.querySelectorAll('.topbar .account--nav, .topbar .feedpop__btn')) {
+        const label = el.querySelector('.account__label, .feedpop__label');
+        if (!label || !visible(el)) continue;
+        const r = el.getBoundingClientRect();
+        const l = label.getBoundingClientRect();
+        const bw = parseFloat(getComputedStyle(el).borderLeftWidth);
+        const room = Math.min(l.left - r.left - bw, r.right - bw - l.right);
+        if (parseFloat(getComputedStyle(el).borderTopLeftRadius) >= r.height / 2 - 1) out.push(`顶栏 ${name(el)} 是圆的，字会贴着弧边：手机上用圆角方块`);
+        if (room < 3.5) out.push(`顶栏字贴边：${name(el)} 字离按钮内沿只有 ${room.toFixed(1)}px（按钮 ${Math.round(r.width)}，字 ${Math.round(l.width)}）`);
+      }
+    }
     // 关键元素互不相交：顶栏按钮之间、顶栏按钮和左上角标题
     const heads = [...document.querySelectorAll('.top__home, .topbar .account')].filter(visible).map((e) => [e, e.getBoundingClientRect()] as const);
     for (let i = 0; i < heads.length; i++)

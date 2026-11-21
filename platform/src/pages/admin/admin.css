@@ -196,14 +196,14 @@
 .apanel > form > .form__bar { margin-top: auto; }
 
 /* 邀请码：一个码占两行（码、状态、时间；发的人、用的人），右边是复制和撤回 */
-.invite-codes { flex: 1; min-height: 0; }
-.invite-codes .paged__list { gap: 0; }
-.invite-code { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--s-3); align-items: center; padding: 6px var(--s-2); border-bottom: 1px solid var(--divider); }
-.invite-code__main { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--s-3); min-width: 0; }
-.invite-code__who { grid-column: 1; font-size: var(--fs-xs); min-width: 0; overflow-wrap: anywhere; }
-.invite-code__who small { font-size: inherit; }
-.invite-code__acts { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: var(--s-1); }
-.invite-code--spent .mono { color: var(--muted); }
+.console .invite-codes { flex: 1; min-height: 0; }
+.console .invite-codes .paged__list { gap: 0; }
+.console .invite-code { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--s-3); align-items: center; padding: 6px var(--s-2); border-bottom: 1px solid var(--divider); }
+.console .invite-code__main { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--s-3); min-width: 0; }
+.console .invite-code__who { grid-column: 1; font-size: var(--fs-xs); min-width: 0; overflow-wrap: anywhere; }
+.console .invite-code__who small { font-size: inherit; }
+.console .invite-code__acts { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: var(--s-1); }
+.console .invite-code--spent .mono { color: var(--muted); }
 .console .apanel > form.multi-code { flex: none; padding-bottom: var(--s-2); border-bottom: 1px solid var(--divider); }
 .console .apanel > form.multi-code .multi-code__acts { display: flex; gap: var(--s-2); }
 /* 码表顶上：新建长期码的入口，建好后换成新码和复制按钮 */
@@ -294,13 +294,13 @@
 @media (pointer: coarse) { .users__meta { font-size: var(--fs-sm); } }
 
 /* 邀请码一行：窄屏上码、状态和两个按钮挤不下一行，生成时间挪到"发：… 用：…"那行末尾，一个码保持两行高 */
-.invite-code__when--low { display: none; }
+.console .invite-code__when--low { display: none; }
 @media (max-width: 560px) {
-  .invite-code__main > .invite-code__when { display: none; }
-  .invite-code__who > .invite-code__when--low { display: inline; }
-  .invite-code__main { flex-wrap: nowrap; }
-  .invite-code__code, .invite-code .code-status { white-space: nowrap; }
-  .invite-code__code { font-size: var(--fs-sm); }
-  .invite-code__acts .btn { padding-inline: var(--s-2); }
+  .console .invite-code__main > .invite-code__when { display: none; }
+  .console .invite-code__who > .invite-code__when--low { display: inline; }
+  .console .invite-code__main { flex-wrap: nowrap; }
+  .console .invite-code__code, .console .invite-code .code-status { white-space: nowrap; }
+  .console .invite-code__code { font-size: var(--fs-sm); }
+  .console .invite-code__acts .btn { padding-inline: var(--s-2); }
 }
 .console .hidden-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 0 var(--s-3); }
