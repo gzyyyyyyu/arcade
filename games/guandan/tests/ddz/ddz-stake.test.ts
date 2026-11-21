@@ -7,7 +7,7 @@ import { WALLET_ID } from '../../src/core/stake.ts';
 import { createDdz, decideDdz, viewDdz } from '../../src/variants/doudizhu/index.ts';
 import * as gd from '../../src/variants/guandan/stake/index.ts';
 import {
-  DDZ_SOLO_BOTS, DDZ_SOLO_OPTS, POINTS_PER_SHARE, RULES_V1, RULES_V2, SOLO_DEALS, rulesOf, stakeOptions, TIER_IDS, TIERS, isSoloRef, payout, pointValue, soloOp, soloRef, soloRefTier, validSoloResult,
+  DDZ_SOLO_BOTS, DDZ_SOLO_BOTS_CLUMP, DDZ_SOLO_OPTS, POINTS_PER_SHARE, RULES_CLUMP, RULES_V1, RULES_V2, SOLO_DEALS, newRules, soloBots, rulesOf, stakeOptions, TIER_IDS, TIERS, isSoloRef, payout, pointValue, soloOp, soloRef, soloRefTier, validSoloResult,
 } from '../../src/variants/doudizhu/stake/index.ts';
 import {
   DdzStakeSession, buyinDdzStake, ddzStakeRules, clearDdzStakeSave, ddzStakeLeft, loadDdzStakeSave, refundDdzStake, settleDdzStake, strayDdzStake, type DdzStakeSave,
@@ -109,6 +109,23 @@ describe('规则里的数', () => {
     for (const t of TIER_IDS) expect(DDZ_SOLO_BOTS[t]).toHaveLength(2);
   });
 
+  it('不洗牌实盘（版本 3）：每分 1/200、每副封顶 48、3 副；豪华换普通 + 高手，别的档和经典一样', () => {
+    expect(newRules(false)).toBe(RULES_V2);
+    expect(newRules(true)).toBe(RULES_CLUMP);
+    expect(stakeOptions(3, RULES_CLUMP)).toEqual({ deals: 3, dealCap: 48, cap: 200, noShuffle: true });
+    expect(stakeOptions(3, RULES_V2)).toEqual(DDZ_SOLO_OPTS);
+    expect(TIER_IDS.map((t) => pointValue(t, RULES_CLUMP))).toEqual([10, 50, 250, 1000]);
+    for (const t of TIER_IDS) expect(Number.isInteger(TIERS[t] / RULES_CLUMP.pps)).toBe(true);
+    expect(payout('small', 200, RULES_CLUMP)).toBe(4_000);
+    expect(payout('small', -200, RULES_CLUMP)).toBe(0);
+    expect(validSoloResult(200, 3, RULES_CLUMP)).toBe(true);
+    expect(validSoloResult(97, 1, RULES_CLUMP)).toBe(false);
+    expect(validSoloResult(201, 3, RULES_CLUMP)).toBe(false);
+    expect(soloBots('lux', RULES_CLUMP)).toEqual(['normal', 'pro']);
+    expect(soloBots('lux')).toEqual(DDZ_SOLO_BOTS.lux);
+    for (const t of ['small', 'mid', 'big'] as const) expect(DDZ_SOLO_BOTS_CLUMP[t]).toEqual(DDZ_SOLO_BOTS[t]);
+  });
+
   it('掼蛋从通用层再导出，导出名和值不变', () => {
     expect(gd.TIERS).toBe(TIERS);
     expect(gd.WALLET_ID).toBe(WALLET_ID);
@@ -169,11 +186,12 @@ describe('老存档（没有 rules 字段）按老数打完', () => {
     return save;
   }
 
-  it('规则版本：没有字段是 1，新开的是 2，不认识的版本不当规则', () => {
+  it('规则版本：没有字段是 1，新开的经典是 2、不洗牌是 3，不认识的版本不当规则', () => {
     expect(rulesOf(undefined)).toBe(RULES_V1);
     expect(rulesOf(1)).toBe(RULES_V1);
     expect(rulesOf(2)).toBe(RULES_V2);
-    expect(rulesOf(3)).toBeNull();
+    expect(rulesOf(3)).toBe(RULES_CLUMP);
+    expect(rulesOf(4)).toBeNull();
     expect(started().stake.rules).toBe(2);
     expect(loadDdzStakeSave()!.rules).toBe(2);
     expect(ddzStakeRules(legacySave())).toBe(RULES_V1);
@@ -286,6 +304,22 @@ describe('结回、放弃', () => {
 });
 
 describe('进场', () => {
+  it('不洗牌实盘：开局按版本 3 的选项（成团发牌、每副封顶 48、±200），存档和结回请求都带 rules: 3', async () => {
+    const ref = `solo-ddz-lux-${'cd'.repeat(16)}`;
+    const f = fakeFetch([{ body: { user: { id: 'u9' } } }, { body: { ok: true, ref, tier: 'lux', share: 200_000, until: Date.now() + 1000, wallet: { balance: 8000, stakes: [] } } }]);
+    const r = await buyinDdzStake('lux', f, true);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(f.calls[1]!.body).toEqual({ variant: 'ddz', tier: 'lux' });
+    expect(r.ses.state.opts).toEqual(stakeOptions(3, RULES_CLUMP));
+    expect(r.ses.rules).toBe(RULES_CLUMP);
+    expect(loadDdzStakeSave()!.rules).toBe(3);
+    r.ses.finish();
+    const g = fakeFetch([{ body: { ok: true, credited: 1, wallet: { balance: 1, stakes: [] } } }]);
+    await settleDdzStake(loadDdzStakeSave()!, { fetcher: g, sleep: noSleep });
+    expect(g.calls[0]!.body).toEqual({ variant: 'ddz', ref, tier: 'lux', points: 0, deals: 0, rules: 3 });
+  });
+
   it('先问是谁，再带入（variant ddz）；成功开一场并存档', async () => {
     const ref = `solo-ddz-small-${'ab'.repeat(16)}`;
     const f = fakeFetch([{ body: { user: { id: 'u9' } } }, { body: { ok: true, ref, tier: 'small', share: 2000, until: Date.now() + 1000, wallet: { balance: 8000, stakes: [] } } }]);

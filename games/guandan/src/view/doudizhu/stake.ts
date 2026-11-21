@@ -8,9 +8,10 @@
  */
 import { createDdz, decideDdz, type DdzAction, type DdzEvent, type DdzLevel } from '../../variants/doudizhu/index.ts';
 import {
-  CURRENT_RULES, DDZ_SOLO_BOTS, DDZ_SOLO_OPTS, ROOM_DEALS, SOLO_DEALS, TIERS, isSoloRef, pointValue, rulesOf, soloPoints, type StakeRules, type TierId,
+  CURRENT_RULES, ROOM_DEALS, SOLO_DEALS, TIERS, isSoloRef, newRules, pointValue, rulesOf, soloBots, soloPoints, stakeOptions, type StakeRules, type TierId,
 } from '../../variants/doudizhu/stake/index.ts';
 import type { TierFlow } from '../ui/stake.ts';
+import { getSettings, updateSettings, type DdzDeal } from '../store.ts';
 import { DDZ_ME, DdzSession, ddzSeeds } from './session.ts';
 import { currentUserId } from '../common/room-link.ts';
 import { clearDdzStake, loadDdzStake, writeDdzStake, type DdzStakeSaveData } from '../store.ts';
@@ -60,14 +61,14 @@ export async function refundDdzStake(s: DdzStakeSave, deps: Deps = {}): Promise<
   return refundWith({ ...VARIANT, ref: s.ref }, () => clearDdzStakeSave(s.ref), deps);
 }
 
-/** 进场：认人、带入一份，成功就开一场。带入不重试：ref 由 Worker 生成，重发是另一份 */
-export async function buyinDdzStake(tier: TierId, fetcher: typeof fetch = fetch): Promise<{ ok: true; ses: DdzStakeSession } | { ok: false; error: string; wallet?: WalletView }> {
+/** 进场：认人、带入一份，成功就开一场（noShuffle：不洗牌那套数，0.39.0）。带入不重试：ref 由 Worker 生成，重发是另一份 */
+export async function buyinDdzStake(tier: TierId, fetcher: typeof fetch = fetch, noShuffle = false): Promise<{ ok: true; ses: DdzStakeSession } | { ok: false; error: string; wallet?: WalletView }> {
   const userId = await currentUserId(fetcher);
   if (!userId) return { ok: false, error: 'login' };
   const r = await postStake('buyin', { ...VARIANT, tier }, fetcher);
   if (!r.ok) return r;
   if (typeof r.ref !== 'string' || !isSoloRef(r.ref) || typeof r.until !== 'number') return { ok: false, error: 'other' };
-  return { ok: true, ses: DdzStakeSession.start({ userId, ref: r.ref, tier, until: r.until }) };
+  return { ok: true, ses: DdzStakeSession.start({ userId, ref: r.ref, tier, until: r.until }, stakeSeed(), newRules(noShuffle)) };
 }
 
 /**
@@ -88,7 +89,7 @@ export async function refundDdzStray(ref: string, deps: Deps = {}): Promise<Stak
 // ───────────── 实盘的牌局会话 ─────────────
 
 /**
- * 单机实盘的一局：规则是实盘选项（现行 3 副、每副 s 封顶、一家累计到一份就结束，核心自己截；老存档的选项在 state.opts 里，按老数），1、2 号电脑按档位（DDZ_SOLO_BOTS），
+ * 单机实盘的一局：规则是实盘选项（现行 3 副、每副 s 封顶、一家累计到一份就结束，核心自己截；老存档的选项在 state.opts 里，按老数），1、2 号电脑按档位和这一场的规则（soloBots），
  * 每次推进都存档。一场结束（打满、封顶）就记下要结的数，画面去结回。
  */
 export class DdzStakeSession extends DdzSession {
@@ -101,10 +102,10 @@ export class DdzStakeSession extends DdzSession {
     this.persist = false;
   }
 
-  /** 带入成功后开一场 */
-  static start(info: { userId: string; ref: string; tier: TierId; until: number }, seed = stakeSeed()): DdzStakeSession {
-    const { state, events } = createDdz(seed, DDZ_SOLO_OPTS);
-    const save: DdzStakeSave = { v: 1, ...info, share: TIERS[info.tier], rules: CURRENT_RULES.v, state, settle: null };
+  /** 带入成功后开一场（rules：经典是现行版本，不洗牌是版本 3） */
+  static start(info: { userId: string; ref: string; tier: TierId; until: number }, seed = stakeSeed(), rules: StakeRules = CURRENT_RULES): DdzStakeSession {
+    const { state, events } = createDdz(seed, stakeOptions(rules.soloDeals, rules));
+    const save: DdzStakeSave = { v: 1, ...info, share: TIERS[info.tier], rules: rules.v, state, settle: null };
     const ses = new DdzStakeSession(save, events);
     ses.save();
     return ses;
@@ -154,7 +155,7 @@ export class DdzStakeSession extends DdzSession {
   /** 电脑按档位：1、2 号各一档；我自己（调试代打）走基类 */
   override botAction(seat: number): DdzAction | null {
     if (seat === DDZ_ME) return super.botAction(seat);
-    const level: DdzLevel = DDZ_SOLO_BOTS[this.tier][seat - 1]!;
+    const level: DdzLevel = soloBots(this.tier, this.rules)[seat - 1]!;
     return decideDdz(this.view(seat), level, `${ddzSeeds(this.state.seed).ai}|${seat}|${this.state.step}`);
   }
 
@@ -170,10 +171,15 @@ export class DdzStakeSession extends DdzSession {
 export const DDZ_FLOW: TierFlow<DdzStakeSession> = {
   soloDeals: SOLO_DEALS,
   roomDeals: ROOM_DEALS,
-  // tools/ddz-stake-sim.ts --time：3 副（docs/stake.md 10.2）
-  time: '约 5 分钟',
-  pointValue: (tier) => pointValue(tier),
-  buyin: (tier) => buyinDdzStake(tier),
+  // 发牌和娱乐共用一个设置（ddzDeal）：上次选了不洗牌，进实盘选档页也停在不洗牌。时间按 tools/ddz-stake-sim.ts --time（docs/stake.md 10.2、10.5）
+  modes: [
+    { value: 'classic', label: '经典洗牌', time: '约 5 分钟' },
+    { value: 'clump', label: '不洗牌 · 炸弹多', time: '约 4 分钟' },
+  ],
+  mode: () => getSettings().ddzDeal,
+  setMode: (v) => updateSettings({ ddzDeal: v as DdzDeal }),
+  pointValue: (tier, mode) => pointValue(tier, newRules(mode === 'clump')),
+  buyin: (tier, mode) => buyinDdzStake(tier, fetch, mode === 'clump'),
   stray: (w) => strayDdzStake(w, loadDdzStakeSave()),
   refundStray: (ref) => refundDdzStray(ref),
 };

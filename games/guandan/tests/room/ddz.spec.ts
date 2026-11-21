@@ -196,7 +196,7 @@ describe('斗地主房间（真的 Durable Object）', () => {
     expect(r.deals).toBe(DDZ_FUN.deals);
   });
 
-  it('不洗牌房间（0.33.0）：1 真人 + 2 电脑打完整场，按不洗牌发、视图带标记；经典房间不带；和档位一起开被拒', { timeout: 120_000 }, async () => {
+  it('不洗牌房间（0.33.0）：1 真人 + 2 电脑打完整场，按不洗牌发、视图带标记；经典房间不带；noShuffle 不是 true 被拒（和档位一起开的不洗牌实盘见 ddz-stake.spec）', { timeout: 120_000 }, async () => {
     const r = await play('ddz-clump', 1, false, false, { variant: 'ddz', noShuffle: true });
     expect(r.problems).toEqual([]);
     expect(r.maxWrites).toBeLessThanOrEqual(2);
@@ -206,7 +206,7 @@ describe('斗地主房间（真的 Durable Object）', () => {
     const plain = await play('ddz-plain', 1, false);
     expect(plain.noShuffle).toBe(false);
     expect(plain.viewNoShuffle).toBe(false);
-    expect((await openDdz('ddz-clump-bad', { variant: 'ddz', stake: 'small', noShuffle: true })).status).toBe(400);
+    expect((await openDdz('ddz-clump-bad', { variant: 'ddz', stake: 'small', noShuffle: false })).status).toBe(400);
     expect((await openDdz('ddz-clump-bad', { variant: 'ddz', noShuffle: 1 })).status).toBe(400);
   });
 

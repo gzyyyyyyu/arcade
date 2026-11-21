@@ -17,12 +17,12 @@ import { MATCH_DDZ_TABLE, ddzMatchTierOf } from '../variants/doudizhu/net/match.
 import { MATCH_PATH, matchTierOf } from '../variants/guandan/net/match.ts';
 import { parseRoomOpts } from '../variants/guandan/net/stake.ts';
 import { ROOM_DEALS, TIERS, TIER_IDS, pointValue, type TierId } from '../variants/guandan/stake/index.ts';
-import { ROOM_DEALS as DDZ_ROOM_DEALS, pointValue as ddzPointValue } from '../variants/doudizhu/stake/index.ts';
+import { ROOM_DEALS as DDZ_ROOM_DEALS, newRules as ddzRules, pointValue as ddzPointValue } from '../variants/doudizhu/stake/index.ts';
 import { NET_DOWN, RETRY_LABEL, ROOM_STAKE_TEXT, STAKE_TEXT, TIER_NAME, fmtChips } from './common/stake-text.ts';
 import { fetchWallet } from './common/stake-api.ts';
 import { standalone, withNick } from './common/platform.ts';
 import { openInvitePanel, presenceNow } from './common/social.ts';
-import { getNick, setNick } from './store.ts';
+import { getNick, getSettings, setNick, updateSettings } from './store.ts';
 import { loginUrl } from './ui/cloud.ts';
 import { mountThemeCss } from './common/theme.ts';
 import { startWhenReady } from './common/textures.ts';
@@ -156,7 +156,7 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
   }
   const make = el('div', { class: 'ol-row' });
   make.appendChild(button('开个房间', () => void create(null), '', 'ol-create'));
-  // 斗地主不洗牌（0.33.0）：只开娱乐房间，实盘按经典发牌配平过
+  // 斗地主不洗牌（娱乐 0.33.0）；不洗牌的实盘房间在"开实盘房间"里选（0.39.0）
   if (panelVariant === 'ddz') make.appendChild(button('开不洗牌房间', () => void create(null, true), 'gd-2', 'ol-create-clump'));
   // 实盘房间（0.5.0，docs/stake.md 第 3 节）：开房时选档位，之后不能改。单独部署没有钱包，不摆
   if (!standalone()) make.appendChild(button('开实盘房间', () => pickTier(tiers), 'gd-2', 'ol-create-stake'));
@@ -197,8 +197,23 @@ function setNetDown(retry: () => void): void {
 /** 实盘房间：每档一个按钮，钱包不够一份的灰掉（钱包连不上时不拦，开局时带入被拒就是这个人不计输赢） */
 function pickTier(box: HTMLElement): void {
   box.replaceChildren(el('div', { class: 'ol-tip' }, `选档位：打 ${panelVariant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副，输赢最多一份；${ROOM_STAKE_TEXT.bots}。${STAKE_TEXT.noCash}`));
+  // 斗地主多选一样发牌（0.39.0）：经典 / 不洗牌，和单机、选档页共用 ddzDeal 这个设置；选中的那个是主色，另一个是次要色
+  let clump = panelVariant === 'ddz' && getSettings().ddzDeal === 'clump';
+  if (panelVariant === 'ddz') {
+    const pick = (v: boolean): void => {
+      clump = v;
+      updateSettings({ ddzDeal: v ? 'clump' : 'classic' });
+      classic.className = v ? 'gd-btn gd-2' : 'gd-btn';
+      noShuf.className = v ? 'gd-btn' : 'gd-btn gd-2';
+    };
+    const classic = button('经典洗牌', () => pick(false), '', 'ol-deal-classic');
+    const noShuf = button('不洗牌 · 炸弹多', () => pick(true), '', 'ol-deal-clump');
+    box.appendChild(classic);
+    box.appendChild(noShuf);
+    pick(clump);
+  }
   const btns = TIER_IDS.map((t) => {
-    const b = button(`${TIER_NAME[t]} ${fmtChips(TIERS[t])}`, () => void create(t), '', `ol-tier-${t}`);
+    const b = button(`${TIER_NAME[t]} ${fmtChips(TIERS[t])}`, () => void create(t, clump), '', `ol-tier-${t}`);
     box.appendChild(b);
     return [t, b] as const;
   });
@@ -337,11 +352,13 @@ function renderRoom(): void {
   }
   // 实盘房间：开房时定的档位，进房的人都看得到
   const stake = parseRoomOpts(s.room?.opts)?.stake ?? null;
+  const clumpRoom = isNoShuffleRoom(s.room);
   if (stake) {
+    const pv = s.variant === 'ddz' ? ddzPointValue(stake, ddzRules(clumpRoom)) : pointValue(stake);
     c.appendChild(
-      el('div', { class: 'ol-stake', id: 'ol-stake' }, `实盘 · ${TIER_NAME[stake]}（一份 ${fmtChips(TIERS[stake])}，每分 ${fmtChips(s.variant === 'ddz' ? ddzPointValue(stake) : pointValue(stake))}）· 打 ${s.variant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副 · ${ROOM_STAKE_TEXT.bots}`),
+      el('div', { class: 'ol-stake', id: 'ol-stake' }, `实盘${clumpRoom ? ' · 不洗牌' : ''} · ${TIER_NAME[stake]}（一份 ${fmtChips(TIERS[stake])}，每分 ${fmtChips(pv)}）· 打 ${s.variant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副 · ${ROOM_STAKE_TEXT.bots}`),
     );
-  } else if (isNoShuffleRoom(s.room)) {
+  } else if (clumpRoom) {
     c.appendChild(el('div', { class: 'ol-stake', id: 'ol-clump' }, `不洗牌 · 炸弹多，每副最多 ${DDZ_NOSHUFFLE.dealCap} 分`));
   }
   if (s.status !== 'open' || !s.room) {
@@ -434,13 +451,13 @@ function stopMatch(): void {
  * 排队连接只建一条、不轮询；人数变了服务端推一次（带剩余毫秒数），倒计时页面自己数。15 秒只剩自己、联机忙、今天局数用完都转单机；
  * 排到了用好友房同一套进房（match = true）
  */
-export function openMatch(stake: TierId | null, solo: () => void, variant: RoomVariant = 'guandan'): void {
+export function openMatch(stake: TierId | null, solo: () => void, variant: RoomVariant = 'guandan', noShuffle = false): void {
   stopMatch();
   const ddz = variant === 'ddz';
   const c = card();
   c.appendChild(el('h2', {}, '快速匹配'));
   c.appendChild(
-    el('div', { class: 'ol-stake', id: 'ol-match-tier' }, ddz ? (stake ? `斗地主实盘 · ${TIER_NAME[stake]}（一份 ${fmtChips(TIERS[stake])}）· 打 ${DDZ_ROOM_DEALS} 副` : '斗地主 · 娱乐 · 不计战绩') : stake ? `实盘 · ${TIER_NAME[stake]}（一份 ${fmtChips(TIERS[stake])}）· 打 ${ROOM_DEALS} 副` : '娱乐 · 打过 A · 不计战绩'),
+    el('div', { class: 'ol-stake', id: 'ol-match-tier' }, ddz ? (stake ? `斗地主实盘${noShuffle ? ' · 不洗牌' : ''} · ${TIER_NAME[stake]}（一份 ${fmtChips(TIERS[stake])}）· 打 ${DDZ_ROOM_DEALS} 副` : '斗地主 · 娱乐 · 不计战绩') : stake ? `实盘 · ${TIER_NAME[stake]}（一份 ${fmtChips(TIERS[stake])}）· 打 ${ROOM_DEALS} 副` : '娱乐 · 打过 A · 不计战绩'),
   );
   const wait = el('div', { class: 'ol-wait', id: 'ol-match-wait' }, '正在找人…');
   c.appendChild(wait);
@@ -476,7 +493,7 @@ export function openMatch(stake: TierId | null, solo: () => void, variant: RoomV
   };
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const m = new MatchClient({
-    url: withNick(`${proto}//${window.location.host}${MATCH_PATH}/${ddz ? ddzMatchTierOf(stake) : matchTierOf(stake)}`),
+    url: withNick(`${proto}//${window.location.host}${MATCH_PATH}/${ddz ? ddzMatchTierOf(stake, noShuffle) : matchTierOf(stake)}`),
     onWaiting: (count, size, leftMs) => {
       [n, seats, until] = [count, size, Date.now() + leftMs];
       paint();

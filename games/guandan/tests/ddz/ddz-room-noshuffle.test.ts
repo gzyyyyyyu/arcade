@@ -1,5 +1,5 @@
 /**
- * 斗地主好友房的「不洗牌」娱乐房：开房选项怎么校验、联机开局（按密钥成团发牌）的牌和选项、视图里的标记。
+ * 斗地主好友房的「不洗牌」房（娱乐 0.33.0、实盘 0.39.0）：开房选项怎么校验、联机开局（按密钥成团发牌）的牌和选项、视图里的标记。
  * 规则核心的成团发牌本身在 ddz-noshuffle.test.ts，这里只管房间这一层。
  */
 import { describe, expect, it } from 'vitest';
@@ -7,6 +7,8 @@ import { rankOf } from '../../src/core/cards.ts';
 import { parseHallOpts } from '../../src/net/hall.ts';
 import { ddzBegin, ddzView } from '../../src/variants/doudizhu/net/rules.ts';
 import { testKey } from '../../src/variants/guandan/net/rules.ts';
+import { tableRules } from '../../src/variants/doudizhu/net/stake.ts';
+import { DDZ_ROOM_OPTS, ROOM_DEALS, RULES_CLUMP, RULES_V2, stakeOptions } from '../../src/variants/doudizhu/stake/index.ts';
 
 const SEATS = ['human', 'human', 'human'] as const;
 const OPEN = { seats: [...SEATS], opts: { stake: null, noShuffle: true as const } };
@@ -24,8 +26,9 @@ describe('parseHallOpts（不洗牌的开房选项）', () => {
     expect(parseHallOpts({ variant: 'ddz', noShuffle: true })).toEqual({ variant: 'ddz', stake: null, noShuffle: true });
   });
 
-  it('带档位的实盘不许不洗牌（实盘按经典发牌配平过）', () => {
-    expect(parseHallOpts({ variant: 'ddz', stake: 'small', noShuffle: true })).toBeNull();
+  it('带档位的不洗牌实盘也认下来（0.39.0，用不洗牌那套数）', () => {
+    expect(parseHallOpts({ variant: 'ddz', stake: 'small', noShuffle: true })).toEqual({ variant: 'ddz', stake: 'small', noShuffle: true });
+    expect(parseHallOpts({ variant: 'ddz', stake: 'small', noShuffle: false })).toBeNull();
   });
 
   it('noShuffle 只认 true：false、1、字符串都拒绝', () => {
@@ -55,9 +58,15 @@ describe('ddzBegin（不洗牌房间开局）', () => {
     expect('noShuffle' in off.view).toBe(false);
   });
 
-  it('带档位时 ddzBegin 不叠不洗牌（实盘走 DDZ_ROOM_OPTS；拒绝在 parseHallOpts 那一层）', () => {
+  it('带档位的不洗牌：牌局用版本 3 的实盘选项（不明牌），桌记版本 3、每分按 1/200 结回；经典实盘照旧版本 2', () => {
     const s = ddzBegin(testKey(3), { seats: [...SEATS], opts: { stake: 'small', noShuffle: true } });
-    expect(s.g.opts.noShuffle).toBeFalsy();
+    expect(s.g.opts).toEqual(stakeOptions(ROOM_DEALS, RULES_CLUMP));
+    expect(s.g.opts.mingpai).toBeFalsy();
+    expect(s.stake!.rules).toBe(3);
+    expect(tableRules(s.stake!)).toBe(RULES_CLUMP);
+    const c = ddzBegin(testKey(3), { seats: [...SEATS], opts: { stake: 'small' } });
+    expect(c.g.opts).toEqual(DDZ_ROOM_OPTS);
+    expect(c.stake!.rules).toBe(RULES_V2.v);
   });
 
   it('同一份熵两次开局手牌一样；三家手牌加底牌是 54 张的一个排列', () => {

@@ -9,6 +9,7 @@
  *                                                压牌率、每副炸弹、开局就炸的比例、每场之间压牌率的起伏、手热和手冷两种状态的差别
  *   node tools/ai-sim.ts stake-time [--matches 200]  一场实盘多长：每档 × 普通 / 小白，按画面节奏估，给副数均值、分钟中位 / p90
  *   --pps N --deals N 对 solo / room / stake-time / grid 都有效：每分 = 一份的 1/N（也是封顶分）、一场 N 副，默认是代码里现在的数，扫数用
+ *   --end N 对 solo / room / stake-time 有效：一场打到某队升到 N 级（实盘短局 10），配 --deals 99 就是只看级数不看副数
  *   node tools/ai-sim.ts time  [--matches 100]   单次决策耗时（各强弱、各性格）：p50 / p99 / 最大
  *   node tools/ai-sim.ts length [--matches 400]  一局多长（0.25.0）：娱乐三档 × 短局（打到 10）/ 完整（过 A），打到整局结束，
  *                                                给副数和估的分钟数（中位数、p90）。分钟数 = 电脑每手按 personas.ts 的 thinkTime（取中间值）+ 出牌动画，
@@ -43,6 +44,8 @@ const SHARE = Number(arg('pps', String(POINTS_PER_SHARE)));
 /** 单机一场几副、好友房几副；--deals 覆盖（两种场地同时改） */
 const SOLO_N = Number(arg('deals', String(SOLO_DEALS)));
 const ROOM_N = Number(arg('deals', String(ROOM_DEALS)));
+/** --end N：一场打到某队升到 N 级为止（实盘短局是 10），配 --deals 给个够大的副数上限；不给就是打到 A */
+const END = process.argv.includes('--end') ? Number(arg('end', '14')) : undefined;
 const BOMB_TYPES: readonly string[] = ['bomb', 'straightFlush', 'jokerBomb'];
 
 /** 一个座位怎么出：没性格的"真人"代理（普通电脑或小白 rookie），或者带性格的电脑 */
@@ -268,7 +271,7 @@ function soloJobs(venue: Venue, me: SeatSpec['difficulty'], matches: number, pre
   return Array.from({ length: matches }, (_, i) => {
     const seats: SeatSpec[] = [{ difficulty: me }];
     for (let s = 1; s < 4; s++) seats.push(botFor(venue, s));
-    return { id: `${prefix}-${i}`, seats, deals: SOLO_N, watch: -1 };
+    return { id: `${prefix}-${i}`, seats, deals: SOLO_N, watch: -1, endLevel: END };
   });
 }
 
@@ -296,7 +299,7 @@ async function main(): Promise<void> {
     for (const d of levels) {
       const bot = (s: number): SeatSpec => ({ difficulty: d, persona: botFor({ kind: 'roomStake', tier: 'small' }, s).persona });
       const human: SeatSpec = { difficulty: 'normal' };
-      const run = (seats: SeatSpec[]) => runAll(Array.from({ length: matches }, (_, i) => ({ id: `${prefix}-room-${i}`, seats, deals: ROOM_N, watch: -1 })));
+      const run = (seats: SeatSpec[]) => runAll(Array.from({ length: matches }, (_, i) => ({ id: `${prefix}-room-${i}`, seats, deals: ROOM_N, watch: -1, endLevel: END })));
       // 真人搭档坐 0、2（对手是老张、阿强）
       const a = await run([human, bot(1), human, bot(3)]);
       // 真人搭档坐 1、3（对手是 0 号借的老张、小美）
@@ -357,15 +360,17 @@ async function main(): Promise<void> {
     // 一场实盘要坐多久：每档 × 普通 / 小白，按画面节奏（paceOf）估，打满 --deals 副（或封顶 / 过 A 提前结束）
     const matches = Number(arg('matches', '200'));
     console.log(`一场实盘多长（每格 ${matches} 场 × ${SOLO_N} 副，每分 1/${SHARE} 份；我每手 4 秒，电脑按 thinkTime，收牌、结算页按 TableScene 的停顿，不含选档、带入、发牌动画）：`);
-    console.log('| 档 | 玩家 | 副数 均值 | 分钟 中位 / p90 | 每副分钟 | 期望（份）± 2SE，胜率 |');
-    console.log('|---|---|---|---|---|---|');
+    console.log('| 档 | 玩家 | 副数 均值 | 分钟 中位 / p90 | 每副分钟 | 期望（份）± 2SE，胜率 | 输赢幅度：|分| 均值 / p90，标准差（份） | 每小时期望（份） |');
+    console.log('|---|---|---|---|---|---|---|---|');
     for (const t of TIER_IDS) {
       for (const me of ['normal', 'rookie'] as const) {
         const jobs = soloJobs({ kind: 'soloStake', tier: t }, me, matches, `${prefix}-stime-${t}-${me}`).map((j) => ({ ...j, paced: true }));
         const rs = await runAll(jobs);
         const ms = rs.map((r) => r.seconds / 60);
         const ds = rs.map((r) => r.deals);
-        console.log(`| ${t} | ${me === 'normal' ? '普通' : '小白'} | ${mean(ds).toFixed(2)} | ${pct(ms, 0.5).toFixed(1)} / ${pct(ms, 0.9).toFixed(1)} | ${(mean(ms) / mean(ds)).toFixed(2)} | ${summary2(rs)} |`);
+        const abs = rs.map((r) => Math.abs(r.points));
+        const sd = se(rs.map((r) => r.points / SHARE)) * Math.sqrt(rs.length);
+        console.log(`| ${t} | ${me === 'normal' ? '普通' : '小白'} | ${mean(ds).toFixed(2)} | ${pct(ms, 0.5).toFixed(1)} / ${pct(ms, 0.9).toFixed(1)} | ${(mean(ms) / mean(ds)).toFixed(2)} | ${summary2(rs)} | ${mean(abs).toFixed(1)} / ${pct(abs, 0.9)}，${sd.toFixed(3)} | ${f3((mean(rs.map((r) => r.points)) / SHARE) * (60 / mean(ms)))} |`);
       }
     }
   } else if (mode === 'grid') {

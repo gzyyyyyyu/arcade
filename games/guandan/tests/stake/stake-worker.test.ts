@@ -298,10 +298,22 @@ describe('斗地主（variant: ddz）', () => {
     expect(w.calls[1]!.req).toMatchObject({ amount: 20_000 });
     await handle(post('settle', { variant: 'ddz', ref: DDZ_REF, points: 8, deals: 8, rules: 1 }), env(w));
     expect(w.calls[2]!.req).toMatchObject({ amount: 12_000 });
-    for (const b of [{ points: 51, deals: 3, rules: 2 }, { points: 1, deals: 4, rules: 2 }, { points: 1, deals: 1, rules: 3 }, { points: 1, deals: 1, rules: '2' }]) {
+    for (const b of [{ points: 51, deals: 3, rules: 2 }, { points: 1, deals: 4, rules: 2 }, { points: 1, deals: 1, rules: 4 }, { points: 1, deals: 1, rules: '2' }]) {
       expect((await handle(post('settle', { variant: 'ddz', ref: DDZ_REF, ...b }), env(w))).status, JSON.stringify(b)).toBe(400);
     }
     expect(w.calls).toHaveLength(3);
+  });
+
+  it('结回带 rules: 3（不洗牌实盘，0.39.0）：每分是一份的 1/200、±200 封顶；掼蛋不认 3', async () => {
+    const w = wallet(() => ({ ok: true, wallet: W }));
+    // 中档一份 10,000、每分 50：10,000 + 60 × 50
+    await handle(post('settle', { variant: 'ddz', ref: DDZ_REF, points: 60, deals: 3, rules: 3 }), env(w));
+    expect(w.calls[0]!.req).toMatchObject({ amount: 13_000 });
+    await handle(post('settle', { variant: 'ddz', ref: DDZ_REF, points: -200, deals: 3, rules: 3 }), env(w));
+    expect(w.calls[1]!.req).toMatchObject({ amount: 0 });
+    expect((await handle(post('settle', { variant: 'ddz', ref: DDZ_REF, points: 201, deals: 3, rules: 3 }), env(w))).status).toBe(400);
+    expect((await handle(post('settle', { ref: REF, tier: 'mid', points: 1, deals: 1, rules: 3 }), env(w))).status).toBe(400);
+    expect(w.calls).toHaveLength(2);
   });
 
   it('结回的数不在规则范围里（|分| > 40、副数 > 8、一副最多动 48 分；这是不带 rules 的老存档）：400', async () => {

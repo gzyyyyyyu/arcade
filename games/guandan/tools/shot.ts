@@ -1190,7 +1190,9 @@ async function gallerySize(browser: Browser, z: GallerySize): Promise<void> {
   const base = { w: z.w, h: z.h, dpr: z.dpr, touch };
   const ck = (c: Ctx, k: string): Promise<void> => click(c, k, touch);
   // 主流程：标题 → 娱乐卡 → 难度 → 牌桌 → 出牌 → 结算 → 设置 / 规则 / 战绩
-  const ctx = await open(browser, `图集${p}`, 'debug=1', { ...base, api: fakeApi() });
+  // --ddz：主页停在斗地主（主页上次选的玩法 guandan.variant），--tiers-only 时截的是斗地主的选档页；再加 --clump 发牌设置停在不洗牌（选档页停在不洗牌那一格）
+  const ddzStorage = { 'guandan.variant': JSON.stringify('ddz'), ...(process.argv.includes('--clump') ? { 'guandan.settings': JSON.stringify({ v: 1, ddzDeal: 'clump' }) } : {}) };
+  const ctx = await open(browser, `图集${p}`, 'debug=1', { ...base, api: fakeApi(), ...(process.argv.includes('--ddz') ? { storage: ddzStorage } : {}) });
   const { page } = ctx;
   await until(ctx, '标题页', "g.scene === 'title'");
   await page.waitForTimeout(1200);

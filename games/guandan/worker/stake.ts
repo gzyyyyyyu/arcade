@@ -26,23 +26,22 @@ interface Rules {
   isSoloRef(x: unknown): x is string;
   soloRef(tier: TierId, hex: string): string;
   soloRefTier(ref: string): TierId | null;
-  /** rules：请求体里这一场的规则版本（没带 = 版本 1，按老数结回）；调用前已由 knownRules 挡掉不认识的 */
+  /** 认得这个规则版本吗：不认识的当请求不合格，免得被当成老数结回（掼蛋 1、2；斗地主 1、2 和不洗牌的 3） */
+  known(rules: unknown): boolean;
+  /** rules：请求体里这一场的规则版本（没带 = 版本 1，按老数结回）；调用前已由 known 挡掉不认识的 */
   payout(tier: TierId, points: number, rules?: unknown): number;
   validSoloResult(points: unknown, deals: unknown, rules?: unknown): boolean;
 }
 const RULES: Record<'guandan' | 'ddz', Rules> = {
-  guandan: { isSoloRef, soloRef, soloRefTier, payout: (tier, points, v) => payout(tier, points, rulesOf(v)), validSoloResult },
+  guandan: { isSoloRef, soloRef, soloRefTier, known: (v) => v === undefined || v === 1 || v === 2, payout: (tier, points, v) => payout(tier, points, rulesOf(v)), validSoloResult },
   ddz: {
     isSoloRef: ddz.isSoloRef, soloRef: ddz.soloRef, soloRefTier: ddz.soloRefTier,
+    known: (v) => ddz.rulesOf(v) !== null,
     payout: (tier, points, v) => ddz.payout(tier, points, ddz.rulesOf(v)!),
     validSoloResult: (points, deals, v) => ddz.validSoloResult(points, deals, ddz.rulesOf(v)!),
   },
 };
 
-/** 两种玩法现有的规则版本：不认识的当请求不合格，免得被当成老数结回 */
-function knownRules(v: unknown): boolean {
-  return v === undefined || v === 1 || v === 2;
-}
 
 /** 钱包的回话（平台 5.9）。只列掼蛋用到的字段 */
 export type WalletReply =
@@ -126,7 +125,7 @@ async function handleStake(request: Request, env: StakeEnv, action: string): Pro
       // rules：这一场用哪一套数（3 副之前开的没有，按旧的算）
       const { points, deals, stats, rules: ver } = body;
       const tier = rules.soloRefTier(ref) ?? body.tier;
-      if (!isTier(tier) || !knownRules(ver) || !rules.validSoloResult(points, deals, ver)) return reply({ ok: false, error: 'bad_request' }, 400);
+      if (!isTier(tier) || !rules.known(ver) || !rules.validSoloResult(points, deals, ver)) return reply({ ok: false, error: 'bad_request' }, 400);
       const amount = rules.payout(tier, points as number, ver);
       // 页面报的战绩小结原样转给平台（5.10：游戏的接口不改、不补，平台校验）；没带就不带
       call = (userId, w) => w.settle({ userId, game: GAME, ref, amount, mode: 'client', op: soloOp(ref, 'out'), ...(stats !== undefined ? { stats } : {}) });

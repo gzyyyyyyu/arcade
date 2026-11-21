@@ -20,7 +20,7 @@ export function seatCountOf(room: RoomInfo): number {
 export function isStakeRoom(room: RoomInfo): boolean {
   return !!parseRoomOpts(room.opts)?.stake;
 }
-/** 斗地主不洗牌房间（0.33.0）：开房选项里带 noShuffle: true（只有娱乐房间开得出来，hall.ts 校验） */
+/** 斗地主不洗牌房间（娱乐 0.33.0、实盘 0.39.0）：开房选项里带 noShuffle: true（hall.ts 校验） */
 export function isNoShuffleRoom(room: RoomInfo | null): boolean {
   return roomVariant(room) === 'ddz' && (room?.opts as { noShuffle?: unknown } | undefined)?.noShuffle === true;
 }

@@ -10,8 +10,11 @@
 ```bash
 node tools/stake-sim.ts --matches 2000 --deals 3 --pps 25 --opp normal,hard   # 扫数时换 --pps
 node tools/ai-sim.ts solo --matches 2000 --deals 3 --pps 25                   # 每档 × 普通 / 小白
-node tools/ai-sim.ts stake-time --matches 200                                  # 一场多长
+node tools/ai-sim.ts stake-time --matches 200                                  # 一场多长、输赢幅度、每小时期望
+node tools/ai-sim.ts stake-time --matches 2000 --end 10 --deals 99            # 一场打到 10 级（量过实盘短局，没采用，stake.md 1.1）
 ```
+
+模拟多个代理同时跑时一律 `nice -n 10`，线程用 `--threads 4`（`ddz-stake-sim` 是 `--jobs 4`）。
 
 `stake-sim` 其它常用选项：
 
