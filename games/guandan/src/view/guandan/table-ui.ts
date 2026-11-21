@@ -11,7 +11,7 @@ import { countLeft } from './counter.ts';
 import { getSettings, updateSettings } from '../store.ts';
 import { LOW_MEMORY } from '../common/device.ts';
 import { COLOR, TYPE, minDrawH, minHit, phoneType, GAME_HEIGHT } from '../common/theme.ts';
-import { Button, iconButton, setHit, setTopHit, signedLine, text, worldW } from '../ui/kit.ts';
+import { Button, bakeInto, iconButton, setHit, setTopHit, signedLine, text, worldW } from '../ui/kit.ts';
 import { stakeLabelParts } from './overlays.ts';
 import { ACTION_ROW, BUTTON_Y, COUNTER, FUN_UI, ME_AVATAR, PULSE, STAKE_STRIP, TOPBAR, TOPBAR_H } from '../table/layout.ts';
 import { Nudges } from '../table/nudge.ts';
@@ -225,9 +225,12 @@ export function buildTopBar(sc: TableScene, W: number): void {
   // 三组（art-v3）：左"大厅"（好友房加邀请）；中 我方的级 · 本副打几 · 第几副 · 对方的级；右 图标。名次不另摆，头像上盖着印章
   const phone = phoneType();
   const team = (x: number, label: string, lv: number, color: number, active: boolean, fails: number): void => {
-    const tg = sc.add.graphics();
-    tg.fillStyle(color, active ? 1 : 0.55).fillRoundedRect(x, TOPBAR.teamY, TOPBAR.teamW, TOPBAR.teamH, TOPBAR.teamR);
-    if (active) tg.lineStyle(TOPBAR.teamLine, COLOR.goldLight, 1).strokeRoundedRect(x, TOPBAR.teamY, TOPBAR.teamW, TOPBAR.teamH, TOPBAR.teamR);
+    const tg = sc.add.image(0, 0, '__DEFAULT');
+    const pad = TOPBAR.teamLine;
+    bakeInto(tg, `gdTeam:${x}:${color}:${active ? 1 : 0}`, { x: x - pad, y: TOPBAR.teamY - pad, w: TOPBAR.teamW + 2 * pad, h: TOPBAR.teamH + 2 * pad }, (g) => {
+      g.fillStyle(color, active ? 1 : 0.55).fillRoundedRect(x, TOPBAR.teamY, TOPBAR.teamW, TOPBAR.teamH, TOPBAR.teamR);
+      if (active) g.lineStyle(TOPBAR.teamLine, COLOR.goldLight, 1).strokeRoundedRect(x, TOPBAR.teamY, TOPBAR.teamW, TOPBAR.teamH, TOPBAR.teamR);
+    });
     c.add(tg);
     c.add(text(sc, x + TOPBAR.teamLabelDx, TOPBAR.midY, label, { size: TYPE.label, color: 0xffffff, bold: true, ox: 0 }));
     c.add(text(sc, x + TOPBAR.teamLevelDx, TOPBAR.midY, levelName(lv), { size: TYPE.title, color: COLOR.goldLight, bold: true, font: 'num', stroke: 0x2b1d14, strokeWidth: 3 }));
@@ -256,9 +259,12 @@ export function buildTopBar(sc: TableScene, W: number): void {
   team(mx + TOPBAR.themDx, sc.side(1), v.levels[1], COLOR.teamThem, v.declarer === 1, v.aFails[1]);
   // 手机上两队的胶囊和级牌之间只剩 70 多，放不下"本副打"和"第 N 副"两段：删掉"本副打"（级牌本身就是），"第N副"挪到左边
   if (!phone) c.add(text(sc, mx - TOPBAR.playLabelDx, TOPBAR.midY, '本副打', { size: TYPE.label, color: 0xf0dfc0, ox: 1 }));
-  const badge = sc.add.graphics();
-  badge.fillStyle(COLOR.ivory, 1).fillRoundedRect(mx - TOPBAR.badgeX, TOPBAR.badgeY, TOPBAR.badgeW, TOPBAR.badgeH, TOPBAR.badgeR);
-  badge.lineStyle(TOPBAR.badgeLine, COLOR.gold, 1).strokeRoundedRect(mx - TOPBAR.badgeX, TOPBAR.badgeY, TOPBAR.badgeW, TOPBAR.badgeH, TOPBAR.badgeR);
+  const badge = sc.add.image(0, 0, '__DEFAULT');
+  const bp = TOPBAR.badgeLine;
+  bakeInto(badge, `gdBadge:${mx}`, { x: mx - TOPBAR.badgeX - bp, y: TOPBAR.badgeY - bp, w: TOPBAR.badgeW + 2 * bp, h: TOPBAR.badgeH + 2 * bp }, (g) => {
+    g.fillStyle(COLOR.ivory, 1).fillRoundedRect(mx - TOPBAR.badgeX, TOPBAR.badgeY, TOPBAR.badgeW, TOPBAR.badgeH, TOPBAR.badgeR);
+    g.lineStyle(TOPBAR.badgeLine, COLOR.gold, 1).strokeRoundedRect(mx - TOPBAR.badgeX, TOPBAR.badgeY, TOPBAR.badgeW, TOPBAR.badgeH, TOPBAR.badgeR);
+  });
   c.add(badge);
   c.add(text(sc, mx, TOPBAR.badgeTextY, levelName(v.level), { size: TYPE.big - 4, color: COLOR.red, bold: true, font: 'num' }));
   if (phone) c.add(text(sc, mx - TOPBAR.dealNoPhoneDx, TOPBAR.midY, `第${v.dealNo}副`, { size: TYPE.small, color: 0xd8c6a6, ox: 1 }));
@@ -370,16 +376,23 @@ export function buildCounter(sc: TableScene, c: Phaser.GameObjects.Container, W:
     return;
   }
   const w = cells.length * cw + COUNTER.padW;
-  const g = sc.add.graphics();
-  // 纸签（art-v3）：米黄纸、深褐字，压在绒布上带一点投影
-  g.fillStyle(0x000000, 0.3).fillRoundedRect(x0 + COUNTER.shadowDx, y0 + COUNTER.shadowDy, w, h, COUNTER.r);
-  g.fillStyle(PAPER, 0.96).fillRoundedRect(x0, y0, w, h, COUNTER.r);
-  g.lineStyle(1.5, COLOR.goldDark, 0.8).strokeRoundedRect(x0, y0, w, h, COUNTER.r);
-  c.add(g);
+  // 纸签（art-v3）：米黄纸、深褐字，压在绒布上带一点投影；级牌那一格衬一层淡红。每出一手都重画，纸签本身烘成图（同样的位置、级牌格共用）
+  const lvAt = cells.findIndex((cell) => cell.rank === v.level);
+  const paper = sc.add.image(0, 0, '__DEFAULT');
+  const sd = Math.max(COUNTER.shadowDx, COUNTER.shadowDy, 0) + 2;
+  bakeInto(paper, `gdCounter:${x0}:${y0}:${w}:${h}:${cw}:${lvAt}`, { x: x0 - 2, y: y0 - 2, w: w + sd + 2, h: h + sd + 2 }, (g) => {
+    g.fillStyle(0x000000, 0.3).fillRoundedRect(x0 + COUNTER.shadowDx, y0 + COUNTER.shadowDy, w, h, COUNTER.r);
+    g.fillStyle(PAPER, 0.96).fillRoundedRect(x0, y0, w, h, COUNTER.r);
+    g.lineStyle(1.5, COLOR.goldDark, 0.8).strokeRoundedRect(x0, y0, w, h, COUNTER.r);
+    if (lvAt >= 0) {
+      const x = x0 + COUNTER.padL + cw * lvAt;
+      g.fillStyle(COLOR.red, 0.16).fillRoundedRect(x + COUNTER.hiliteInset, y0 + COUNTER.hiliteTop, cw - 2 * COUNTER.hiliteInset, h - 2 * COUNTER.hiliteTop, COUNTER.hiliteR);
+    }
+  });
+  c.add(paper);
   cells.forEach((cell, i) => {
     const x = x0 + COUNTER.padL + cw * i + cw / 2;
     const lv = cell.rank === v.level;
-    if (lv) g.fillStyle(COLOR.red, 0.16).fillRoundedRect(x - cw / 2 + COUNTER.hiliteInset, y0 + COUNTER.hiliteTop, cw - 2 * COUNTER.hiliteInset, h - 2 * COUNTER.hiliteTop, COUNTER.hiliteR);
     const name = cell.rank === 17 ? '大' : cell.rank === 16 ? '小' : levelName(cell.rank);
     const a = cell.left === 0 ? 0.3 : 1;
     // 点数 16、张数 19：iPad 横屏（缩到 ×0.92）都到 14 CSS 像素；手机上更小的由手机字号档管

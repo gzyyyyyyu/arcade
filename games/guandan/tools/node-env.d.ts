@@ -28,3 +28,11 @@ declare module 'node:fs' {
 declare module 'node:crypto' {
   export function createHash(alg: 'sha256'): { update(s: string): unknown; digest(enc: 'hex'): string };
 }
+// 性能量测（tools/perf.ts）量 dist 体积用
+declare module 'node:fs' {
+  export function readFileSync(path: string): Uint8Array;
+  export function statSync(path: string): { isDirectory(): boolean };
+}
+declare module 'node:zlib' {
+  export function gzipSync(data: Uint8Array): Uint8Array;
+}

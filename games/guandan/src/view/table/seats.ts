@@ -5,7 +5,7 @@ import { dur, tweenP } from '../common/anim.ts';
 import { audio } from '../common/audio.ts';
 import { PLACE_NAMES, isWatching, seatIdentity, seatName, seatPerson } from '../common/labels.ts';
 import { COLOR, TYPE } from '../common/theme.ts';
-import { bubble, text, type BubbleTone } from '../ui/kit.ts';
+import { bakeInto, bubble, text, type BubbleTone } from '../ui/kit.ts';
 import { burst, shockwave } from './fx.ts';
 import type { SeatAnchor } from './layout.ts';
 import { texOr } from '../common/textures.ts';
@@ -22,14 +22,14 @@ export class SeatView {
   private ringTween: Phaser.Tweens.Tween | null = null;
   private countBox: Phaser.GameObjects.Container | null = null;
   private countText: Phaser.GameObjects.Text | null = null;
-  private countBg: Phaser.GameObjects.Graphics | null = null;
+  private countBg: Phaser.GameObjects.Image | null = null;
   private countPulse: Phaser.Tweens.Tween | null = null;
   private stamp: Phaser.GameObjects.Container | null = null;
   private talk: Phaser.GameObjects.Container | null = null;
   private moodTimer: Phaser.Time.TimerEvent | null = null;
   private thinking: Phaser.GameObjects.Container | null = null;
   private lastCount = -1;
-  private plate: Phaser.GameObjects.Graphics;
+  private plate: Phaser.GameObjects.Image;
   private nameText: Phaser.GameObjects.Text;
   /** 联机：电脑头像左下角的小芯片角标（形状区分，不只靠颜色；右下角是剩余张数） */
   private badge: Phaser.GameObjects.Container;
@@ -56,7 +56,7 @@ export class SeatView {
     // 名牌：队伍色底 + 名字（我自己不放名牌，免得压到手牌）
     const ny = r + 14;
     this.nameText = text(scene, 0, ny, '', { size: TYPE.label, color: 0xfffaf0, bold: true });
-    this.plate = scene.add.graphics();
+    this.plate = scene.add.image(0, 0, '__DEFAULT');
     this.root.add([this.plate, this.nameText]);
     if (this.self) {
       this.plate.setVisible(false);
@@ -79,7 +79,7 @@ export class SeatView {
       // 剩余张数：三家一个样，头像右下角压一张小牌背 + 数字（art-v3）；≤10 张变红并跳动
       const box = scene.add.container(r * 0.8, r * 0.62);
       const back = scene.add.image(-4, -6, 'back:0').setDisplaySize(30, 42).setAngle(10);
-      this.countBg = scene.add.graphics();
+      this.countBg = scene.add.image(0, 0, '__DEFAULT');
       this.countText = text(scene, 0, 2, '27', { size: TYPE.body, color: 0xffffff, bold: true, font: 'num', stroke: 0x2b1d14, strokeWidth: 4 });
       box.add([back, this.countBg, this.countText]);
       this.root.add(box);
@@ -101,15 +101,16 @@ export class SeatView {
     this.nameText.setText(seatName(seat));
     const ny = this.a.size / 2 + 14;
     const nw = Math.max(64, this.nameText.width + 26);
-    const g = this.plate.clear();
-    // 卡通名牌（0.27.0；0.27.1 补质感）：柔和投影、深墨下沿、上半提亮一点、顶边高光、深墨描边；队色留在左边的小圆点上
+    // 卡通名牌（0.27.0；0.27.1 补质感）：柔和投影、深墨下沿、上半提亮一点、顶边高光、深墨描边；队色留在左边的小圆点上。烘成图（kit 的 bakeInto）
     const pc = id === 'me' ? team : PERSONAS[id].color;
-    g.fillStyle(0x000000, 0.2).fillRoundedRect(-nw / 2 - 2, ny - 14 + 6, nw + 4, 28, 15);
-    g.fillStyle(0x2b1d14, 1).fillRoundedRect(-nw / 2, ny - 14 + 3, nw, 28, 14);
-    g.fillStyle(pc, 1).fillRoundedRect(-nw / 2, ny - 14, nw, 28, 14);
-    g.fillStyle(0xffffff, 0.14).fillRoundedRect(-nw / 2 + 2, ny - 13, nw - 4, 11, { tl: 12, tr: 12, bl: 2, br: 2 });
-    g.lineStyle(2.5, 0x2b1d14, 1).strokeRoundedRect(-nw / 2, ny - 14, nw, 28, 14);
-    g.fillStyle(team, 1).fillCircle(-nw / 2 + 2, ny, 6);
+    bakeInto(this.plate, `seatPlate:${nw}:${ny}:${pc}:${team}`, { x: -nw / 2 - 10, y: ny - 16, w: nw + 14, h: 38 }, (g) => {
+      g.fillStyle(0x000000, 0.2).fillRoundedRect(-nw / 2 - 2, ny - 14 + 6, nw + 4, 28, 15);
+      g.fillStyle(0x2b1d14, 1).fillRoundedRect(-nw / 2, ny - 14 + 3, nw, 28, 14);
+      g.fillStyle(pc, 1).fillRoundedRect(-nw / 2, ny - 14, nw, 28, 14);
+      g.fillStyle(0xffffff, 0.14).fillRoundedRect(-nw / 2 + 2, ny - 13, nw - 4, 11, { tl: 12, tr: 12, bl: 2, br: 2 });
+      g.lineStyle(2.5, 0x2b1d14, 1).strokeRoundedRect(-nw / 2, ny - 14, nw, 28, 14);
+      g.fillStyle(team, 1).fillCircle(-nw / 2 + 2, ny, 6);
+    });
     // 角标只在联机时出现：电脑座位一直带着，真人托管、走开时也带上（电脑在替他打）
     this.badge.setVisible(!!who && (!who.human || who.auto || !!who.afk));
     this.avatar.setAlpha(who?.away && !who.auto ? 0.45 : 1);
@@ -154,10 +155,11 @@ export class SeatView {
     this.lastCount = n;
     this.countText.setText(String(n));
     const warn = n <= 10;
-    this.countBg.clear();
     const w = Math.max(34, this.countText.width + 14);
-    this.countBg.fillStyle(warn ? 0xd8262f : 0x2b1d14, warn ? 1 : 0.72).fillRoundedRect(-w / 2, -15, w, 32, 10);
-    if (warn) this.countBg.lineStyle(2, 0xffe08a, 1).strokeRoundedRect(-w / 2, -15, w, 32, 10);
+    bakeInto(this.countBg, `seatCount:${w}:${warn ? 1 : 0}`, { x: -w / 2 - 2, y: -17, w: w + 4, h: 36 }, (g) => {
+      g.fillStyle(warn ? 0xd8262f : 0x2b1d14, warn ? 1 : 0.72).fillRoundedRect(-w / 2, -15, w, 32, 10);
+      if (warn) g.lineStyle(2, 0xffe08a, 1).strokeRoundedRect(-w / 2, -15, w, 32, 10);
+    });
     if (warn && !this.countPulse) {
       this.countPulse = this.scene.tweens.add({ targets: this.countBox, scale: 1.15, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     } else if (!warn && this.countPulse) {

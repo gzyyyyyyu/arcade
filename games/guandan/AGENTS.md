@@ -44,7 +44,7 @@ tests/      vitest，按层分目录：
             architecture.test.ts 检查通用层和各玩法 core/ai/stake 的纯度，以及 variants、画面层（view/guandan、view/doudizhu、view/common、scenes/shared、两个牌桌场景）玩法之间互不引用；
             golden.test.ts 掼蛋金样（tests/golden/ 只放哈希，场景在 golden-scenarios.ts）；
             tests/room/ 是在 workerd 里跑真房间的测试（`npm run test:room`，单独的配置）
-tools/      sim.ts 机器人对打；probe.ts 跟牌积极度（两者可用 `--baseline` 对旧版电脑）；replay-log.ts 试玩日志复盘；shot.ts 无头冒烟与截图；no-scroll.ts 一屏放下、控件不压、字不裁的检查；mem.ts 内存估算；build-cf.ts 部署构建；art-preview.ts / cover.ts 美术预览与封面；
+tools/      sim.ts 机器人对打；probe.ts 跟牌积极度（两者可用 `--baseline` 对旧版电脑）；replay-log.ts 试玩日志复盘；shot.ts 无头冒烟与截图；no-scroll.ts 一屏放下、控件不压、字不裁的检查；mem.ts 内存估算；perf.ts 性能量测（各段脚本时间、长任务、帧、首屏、包体积，`--dist` 背靠背）；build-cf.ts 部署构建；art-preview.ts / cover.ts 美术预览与封面；
             online-dev.ts 本地联机栈（wrangler dev + fake-platform/ 假平台，含假钱包 RPC；standalone 时原样用 wrangler.jsonc）；standalone-smoke.ts 单独部署冒烟；online-smoke.ts 四客户端联机冒烟（`--ddz` 三客户端斗地主，`--clump` 不洗牌房间）；room-sim.ts 房间规则层批量对打；
             ddz-sim.ts 斗地主机器人对打（`--mingpai 500` 量明牌）；ddz-stake-sim.ts 斗地主实盘模拟（`--fun` 量娱乐单机的一局）；stake-sim.ts 实盘计分模拟（docs/stake.md 的数字）；ai-sim.ts 场地、性格、耗时模拟（docs/ai.md 的数字）；
             quota-smoke.ts 额度提示冒烟；match-smoke.ts 快速匹配冒烟；stake-smoke.ts 单机和好友房实盘冒烟
