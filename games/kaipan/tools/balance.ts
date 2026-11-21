@@ -44,11 +44,11 @@ export const LIVE_TARGET: Record<LiveTier, Record<'xiaobai' | 'putong', [number,
   lux: { xiaobai: [-Infinity, 0.8], putong: [0.95, 1.05] },
 };
 
-/** 第 3 节：娱乐三档（难度 1–3）达成最终目标的比例 */
+/** 第 3 节：娱乐三档（难度 1–3）达成最终目标的比例（0.34.0 各档降一级左右，docs/design-balance.md 第 3 节） */
 export const ENT_TARGET: Record<number, { name: string } & Record<'xiaobai' | 'putong', [number, number]>> = {
-  1: { name: '新手', xiaobai: [0.6, Infinity], putong: [0.75, Infinity] },
-  2: { name: '普通', xiaobai: [0.4, 0.5], putong: [0.55, 0.65] },
-  3: { name: '高手', xiaobai: [-Infinity, 0.3], putong: [0.4, 0.5] },
+  1: { name: '新手', xiaobai: [0.85, Infinity], putong: [0.9, Infinity] },
+  2: { name: '普通', xiaobai: [0.55, 0.8], putong: [0.7, 0.9] },
+  3: { name: '高手', xiaobai: [0.3, 0.5], putong: [0.5, 0.7] },
 };
 
 const MODELS = ['xiaobai', 'putong'] as const;

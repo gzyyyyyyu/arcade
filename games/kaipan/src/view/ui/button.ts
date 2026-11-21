@@ -5,7 +5,7 @@ import type { UiSound } from '../audio/index.ts';
 import { COLOR, FS, LOW_MEMORY, PHONE, PHONE_SCALE, RADIUS } from '../theme.ts';
 import type { Glyph } from '../assets.ts';
 import { addGlyph, addSlice, type Box } from './art.ts';
-import { MIN_TEXT_SIZE, addText, setColor, setWrap } from './text.ts';
+import { MIN_TEXT_SIZE, addText, setColor, setStroke, setWrap } from './text.ts';
 import { LONG_PRESS_MS, clickSuppressed, pressCancelled, samePress, usesHitPad, type PressSpot } from './clickGuard.ts';
 import { registerFocusable, unregisterFocusable, type Focusable } from './focus.ts';
 import { bindTooltip, type TipContent } from './tooltip.ts';
@@ -477,8 +477,8 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
     this.lip?.setAlpha(this.enabled ? 0.85 : 0.3);
     setColor(this.label, this.labelColor());
     this.label.setAlpha(this.loading ? 0.75 : 1);
-    if (base.slice && this.enabled) this.label.setStroke('#3a2634', 3);
-    else this.label.setStroke('#000000', 0);
+    if (base.slice && this.enabled) setStroke(this.label, '#3a2634', 3);
+    else setStroke(this.label, '#000000', 0);
     // 停用时小字用停用色里最深的那档（银行「N月开」以前是浅灰字落在灰底上，看不清）
     if (this.sub) setColor(this.sub, base.slice && this.enabled ? 0xffffff : this.enabled ? COLOR.muted : DISABLED.text);
     if (this.hit.input) this.hit.input.cursor = this.loading ? 'progress' : this.clickable() ? 'pointer' : 'default';

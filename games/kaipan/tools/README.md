@@ -24,6 +24,7 @@
 | `intel-check.ts` | 群友消息说中率、推荐股票后续涨跌 | `node tools/intel-check.ts` |
 | `realness.ts` | 游戏里个股、大盘逐日涨跌与真实行情的相似度 | `node tools/realness.ts` |
 | `tempo-check.ts` | 节奏：主题是否重复、每月高光、平淡日比例、月度目标完成率 | `node tools/tempo-check.ts` |
+| `perf.ts` | 性能：正式构建上量开机、开局、交易日的长任务、帧时间、纹理上传和量字次数、包体积（电脑 1280 / 竖屏 CPU 4 倍降速）；`--who` 找纹理上传来自哪段代码，`--cpuprofile` 存 CPU 采样 | `npm run build -- --outDir <目录>` 后 `node tools/perf.ts --dist <目录>`（浏览器排队） |
 
 ## 被别的脚本引用，不单独跑
 

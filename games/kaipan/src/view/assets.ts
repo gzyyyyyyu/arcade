@@ -596,17 +596,20 @@ export function ensureAtlas(textures: Phaser.Textures.TextureManager, g: AtlasGr
           pre.addEventListener('error', fresh);
         }),
     ),
-  ).then((imgs) => {
-    if (imgs.some((x) => x === null) || st.pages !== pages) {
-      console.warn(`图集 ${g} 加载失败，改用单独的 SVG`);
-      dropGroup(g, 'failed');
-      return false;
-    }
-    if (!textures.exists(g)) textures.addAtlasJSONArray(g, imgs as HTMLImageElement[], pages.map((p) => ({ frames: p.frames })) as never);
-    st.ready = textures.exists(g);
-    if (!st.ready) dropGroup(g, 'failed');
-    return st.ready;
-  });
+  )
+    // 先在后台解码完再交给 Phaser：不然 texImage2D 上传时才在主线程同步解码 2048² 的 webp，手机上每页卡几十到上百毫秒
+    .then((imgs) => Promise.all(imgs.map((img) => (img ? img.decode().then(() => img, () => img) : null))))
+    .then((imgs) => {
+      if (imgs.some((x) => x === null) || st.pages !== pages) {
+        console.warn(`图集 ${g} 加载失败，改用单独的 SVG`);
+        dropGroup(g, 'failed');
+        return false;
+      }
+      if (!textures.exists(g)) textures.addAtlasJSONArray(g, imgs as HTMLImageElement[], pages.map((p) => ({ frames: p.frames })) as never);
+      st.ready = textures.exists(g);
+      if (!st.ready) dropGroup(g, 'failed');
+      return st.ready;
+    });
   return st.loading;
 }
 

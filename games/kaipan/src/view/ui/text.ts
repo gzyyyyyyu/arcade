@@ -21,24 +21,50 @@ interface TextOpts {
 }
 
 
+/** 每个「原子」在某个字体下的宽度（键 = 字体 + 原子）。量字是断行里最贵的一步，同一个字在同一字体下宽度不变 */
+const atomWidths = new Map<string, number>();
+/** 按原子宽度相加估的行宽和真实行宽（原子之间的字距）差不过这么多：3 像素或行宽的 3%，取大的；离换行宽度比这还近才整行真量 */
+const wrapSlack = (width: number): number => Math.max(3, width * 0.03);
+
+function atomWidth(ctx: CanvasRenderingContext2D, atom: string): number {
+  const k = `${ctx.font}\u0000${atom}`;
+  let w = atomWidths.get(k);
+  if (w === undefined) {
+    if (atomWidths.size > 20_000) atomWidths.clear();
+    w = ctx.measureText(atom).width;
+    atomWidths.set(k, w);
+  }
+  return w;
+}
+
 /**
  * 按字符断行：中文没有空格，Phaser 自带的按单词换行不适用。
  * 英文/数字连续片段尽量不拆开，行首避开标点。
+ * 0.34.0 性能：行宽先按原子宽度相加估，离换行宽度很近（wrapSlack 以内）才整行真量，断行结果和逐个整行量一样。
  */
 function cjkWrap(text: string, obj: Phaser.GameObjects.Text, width: number): string[] {
   const ctx = obj.context;
+  const sum = (atoms: readonly string[]): number => atoms.reduce((a, x) => a + atomWidth(ctx, x), 0);
+  const slack = wrapSlack(width);
+  const tooWide = (line: readonly string[], lineW: number, atom: string): boolean => {
+    const est = lineW + atomWidth(ctx, atom);
+    if (est > width + slack) return true;
+    if (est < width - slack) return false;
+    return ctx.measureText(line.join('') + atom).width > width;
+  };
   const out: string[] = [];
   for (const para of text.split('\n')) {
     const start = out.length;
     // 切成「原子」：连续的 ASCII 字母数字作为一个整体，其余逐字符
     const atoms = para.match(/[A-Za-z0-9.¥+\-×%]+|./gu) ?? [];
     let line: string[] = [];
+    let lineW = 0;
     // 内容里的英文双引号 " 成对出现：段落里第偶数个是右引号，和中文右引号一样不能放在行首
     let quotes = 0;
     for (const atom of atoms) {
       const closing = atom === '"' && quotes % 2 === 1;
       if (atom === '"') quotes++;
-      if (line.length > 0 && ctx.measureText(line.join('') + atom).width > width) {
+      if (line.length > 0 && tooWide(line, lineW, atom)) {
         if ((NO_LINE_START.has(atom) || closing) && line.length > 1) {
           // 把前面的片段带到下一行，避免标点开头（连续标点一起带走）
           const carry = [atom];
@@ -53,8 +79,10 @@ function cjkWrap(text: string, obj: Phaser.GameObjects.Text, width: number): str
           out.push(line.join('').trimEnd());
           line = atom.trim() === '' ? carry : [...carry, atom];
         }
+        lineW = sum(line);
       } else {
         line.push(atom);
+        lineW += atomWidth(ctx, atom);
       }
     }
     out.push(line.join(''));
@@ -148,6 +176,14 @@ export function clauseWrap(t: Phaser.GameObjects.Text, width: number): Phaser.Ga
   return t;
 }
 
+/** 改描边：和 setColor 一样，Phaser 不管变没变都重画，没变就不动 */
+export function setStroke(t: Phaser.GameObjects.Text, color: string, thickness: number): Phaser.GameObjects.Text {
+  const same = t.style.strokeThickness === thickness && (thickness === 0 || t.style.stroke === color);
+  return same ? t : t.setStroke(color, thickness);
+}
+
+/** 改文字颜色。Phaser 的 setColor 不管颜色变没变都整张重画、再传一遍纹理，交易页每天都给几百个文字设颜色，大多没变：没变就不动 */
 export function setColor(t: Phaser.GameObjects.Text, color: number): Phaser.GameObjects.Text {
-  return t.setColor(css(color));
+  const c = css(color);
+  return t.style.color === c ? t : t.setColor(c);
 }

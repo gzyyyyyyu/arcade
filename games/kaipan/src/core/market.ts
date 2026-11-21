@@ -1,7 +1,7 @@
 /**
  * 行情：题材生命周期、大盘、个股涨跌（纯函数，只依赖传入的状态和按用途分流的随机数）。
  */
-import { BALANCE } from './balance.ts';
+import { BALANCE, easeFor } from './balance.ts';
 import { isMonthThemeId, monthThemeById } from './content/monthThemes.ts';
 import { DIFFICULTIES, ITEMS, calendarOf, clampDifficulty, isItemId, isPersonaId, itemById, personaById, stocksOf } from './content/index.ts';
 import type { MarketRules, Rules } from './hooks.ts';
@@ -9,7 +9,7 @@ import { applyWeeklyRules, weeklyRuleOf } from './weekly.ts';
 import { isTrack, realMarketPct, realSectorPct, realStockPct } from './real.ts';
 import { rngFor, type Rng } from './rng.ts';
 import type { RealMarket, Regime } from './segment.ts';
-import type { Dir, Feel, GameState, Mood, PersonaId, RunSetup, Stage, StockMove, StockState, ThemeId, ThemeState } from './types.ts';
+import type { Dir, Feel, GameState, Mood, PersonaId, Stage, StockMove, StockState, ThemeId, ThemeState } from './types.ts';
 
 export const STAGES: readonly Stage[] = ['cold', 'sprout', 'ferment', 'rally', 'climax', 'ebb'];
 export const MOODS: readonly Mood[] = ['bull', 'flat', 'bear'];
@@ -110,9 +110,10 @@ export function rulesFor(
   return r;
 }
 
-/** 这一局的账单整体打几折：实盘、娱乐短局按开局设置，完整一年不打折。 */
-export function runBillMult(setup: Readonly<RunSetup> | null): number {
-  return setup?.live?.billMult ?? setup?.short?.billMult ?? 1;
+/** 这一局的账单整体打几折：实盘按开局设置；真实行情的娱乐局按难度放宽（BALANCE.ease），短局再乘开局设置里的折扣。 */
+export function runBillMult(s: Readonly<Pick<GameState, 'setup' | 'difficulty' | 'real'>>): number {
+  if (s.setup?.live) return s.setup.live.billMult;
+  return (s.real?.track ? easeFor('bill', s.difficulty) : 1) * (s.setup?.short?.billMult ?? 1);
 }
 
 export function rulesOf(s: Readonly<GameState>): Rules {
@@ -128,7 +129,7 @@ export function rulesWithoutTheme(s: Readonly<GameState>): Rules {
 function runRules(s: Readonly<GameState>, mod: Parameters<typeof rulesFor>[4]): Rules {
   const r = rulesFor(s.items, s.difficulty, s.persona, s.real?.track ? s.real.regime : false, mod, !!s.setup?.short);
   // 0.6.0 实盘、0.10.0 娱乐短局：常规月供整体打折（突发账单在 surprisePlan 里打同样的折）
-  r.billMult *= runBillMult(s.setup);
+  r.billMult *= runBillMult(s);
   // 本周市场：这一周的限定规则最后叠加（不进别的模式）
   const wr = weeklyRuleOf(s.setup);
   if (wr) applyWeeklyRules(r, wr);

@@ -200,6 +200,16 @@ export interface Balance {
   tempo: TempoParams;
   /** 0.6.0 实盘模式（docs/design-live.md）：开局时写进这局的设置（RunSetup.live），之后改这里不影响已经开了的局 */
   live: LiveParams;
+  /**
+   * 0.34.0 娱乐放宽（docs/design-balance.md 第 3 节）：真实行情里不是实盘的局按难度 1..8（缺的按最后一个）再打一层折。
+   * 实盘也走难度 1..3，所以娱乐变简单只能改这里，不能动难度本身和 track。
+   */
+  ease: {
+    /** 常规月供和突发账单的倍数 */
+    bill: readonly number[];
+    /** 群友（消息和推荐）说中的概率加多少 */
+    cred: readonly number[];
+  };
   /** 0.10.0 娱乐短局（docs/design-balance.md）：开局时写进这局的设置（RunSetup.short） */
   short: {
     months: number;
@@ -709,7 +719,9 @@ export const BALANCE: Balance = {
     bigAcc: 3,
   },
   // 娱乐短局：5 个月、月供打折，最后交一笔首付（开局资产的几成，按难度）；0.10.0，实测见 docs/design-balance.md
-  short: { months: 5, billMult: 0.25, goal: [0.95, 1.05, 1.1] },
+  // 娱乐放宽（0.34.0）：各档降一级左右，新手档群里的话更准，前几局好赚；实测见 docs/design-balance.md
+  ease: { bill: [0.85, 0.85, 0.9], cred: [0.12, 0.05, 0.03] },
+  short: { months: 5, billMult: 0.25, goal: [0.9, 1, 1.05] },
   // 闪电盘：2 个月 × 5 天 = 10 个交易日，没有月供；第 4、8 个交易日收盘后各来一个事件
   flash: { months: 2, eventAfter: [4, 8] },
   // 本周市场：五条周规则的强度；配平见 docs/design.md 第 17 节
@@ -738,6 +750,12 @@ export const BALANCE: Balance = {
     warnGap: 0.3,
   },
 };
+
+/** 娱乐放宽表（BALANCE.ease）里这一级的数，缺的按最后一个；实盘不用。 */
+export function easeFor(key: keyof Balance['ease'], difficulty: number): number {
+  const t = BALANCE.ease[key];
+  return t[Math.min(Math.max(1, difficulty), t.length) - 1] as number;
+}
 
 /** 某个内容的效果数值（缺省 0）。 */
 export function fx(id: string, key: string): number {

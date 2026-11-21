@@ -43,7 +43,7 @@ export function startMonth(s: GameState, month: number, em: Emitter): void {
   const rules = rulesOf(s);
   const base = billFor(month, rules, s.nextBillMult);
   s.nextBillMult = 1;
-  const extras = surprisePlan(s.seed, s.difficulty, s.persona, runBillMult(s.setup))
+  const extras = surprisePlan(s.seed, s.difficulty, s.persona, runBillMult(s))
     .filter((x) => x.month === month)
     .map((x) => ({ ...x.extra }));
   // 第 6 级股灾那个月：爆仓的亲戚找你借钱救急（按常规月供的比例，和传闻一起在月初公布）
