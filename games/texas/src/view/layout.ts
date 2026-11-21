@@ -3,7 +3,7 @@ import { must } from '../must.ts';
  * 舞台和座位的位置（docs/screens.md 8.2）。舞台高固定 540 个设计单位，宽随屏幕在 860–1170 之间变（4:3 平板到 19.5:9 手机都铺满），
  * 再整体缩放到看得见的区域。座位按"离我第几个"排在椭圆桌边，我永远在正下方。
  */
-export const STAGE_H = 540;
+const STAGE_H = 540;
 export const STAGE_MIN_W = 860;
 export const STAGE_MAX_W = 1170;
 
@@ -16,9 +16,9 @@ export interface Pt {
  * 竖屏：手机竖着拿时舞台宽 540、高随屏幕在 810–1170 之间变。桌子是竖的椭圆，别人沿桌边一圈，
  * 我和操作区在下半屏（拇指够得着）；顶上两行是顶栏和"第几手、歇一手、嘲讽"。
  */
-export const TALL_W = 540;
-export const TALL_MIN_H = 810;
-export const TALL_MAX_H = 1170;
+const TALL_W = 540;
+const TALL_MIN_H = 810;
+const TALL_MAX_H = 1170;
 /**
  * 竖屏顶上只留顶栏的高度，桌子从这里往下：原来 150，因为顶栏下面还有一行"第几手、互动、聊天、补码、歇一手"，
  * 现在这一行搬到我的名牌和操作区之间（style.css 的 .stage.tall .hud），桌子往上多长 58，390×844 上桌面占屏高 55% 以上

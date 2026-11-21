@@ -46,7 +46,7 @@ export function frameOf(v: View): Frame {
 }
 
 /** 每个座位这一轮最后做的事（log 里最后一次发公共牌之后的） */
-export function tagsOf(v: View): string[] {
+function tagsOf(v: View): string[] {
   const out: string[] = [];
   let start = 0;
   v.log.forEach((e, k) => {

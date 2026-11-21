@@ -722,25 +722,12 @@ describe('实盘至少两个真人（0.4.0）、电脑按好友房的强弱档�
     expect(G.view(s, seat).needTwo).toBe(false);
   });
 
-  it('电脑按档位用好友房的强弱档（0.5.0，ROOM_LEVEL）；0.4.0 开的房间（strong）照旧最强；更早开的下一步补上', () => {
+  it('电脑按档位用好友房的强弱档（0.5.0，ROOM_LEVEL）', () => {
     for (const st of STAKES) {
       const s = settleAll(begin(['human', 'human', 'ai', 'ai'], 4, st.id));
       expect(s.t, st.id).toMatchObject({ minHumans: 2, level: ROOM_LEVEL[st.id] });
       expect(G.view(s, 0).level, st.id).toBe(ROOM_LEVEL[st.id]);
     }
-    // 0.4.0 开的房间：没有 level、有 strong，按最强档（5）
-    const v040 = begin(['human', 'human', 'ai']);
-    delete v040.t.level;
-    v040.t.strong = true;
-    expect(G.view(settleAll(v040), 0).level).toBe(5);
-
-    // 老房间：牌桌上没有 minHumans、level（0.4.0 以前开的），一个人带电脑；下一步按新规矩，不发牌
-    const old = begin(['human', 'ai', 'ai']);
-    delete old.t.minHumans;
-    delete old.t.level;
-    const s = settleAll(old);
-    expect(s.t).toMatchObject({ minHumans: 2, level: ROOM_LEVEL.small, phase: 'idle', handNo: 0 });
-    expect(G.view(s, 0).needTwo).toBe(true);
   });
 });
 

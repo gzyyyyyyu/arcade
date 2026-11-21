@@ -15,8 +15,6 @@ export const KEYS = {
   tour: 'texas.tour',
   /** 互动的总开关（"互动：不看"）。按人屏蔽、首次提示是 kit 的 TableFun 按 storageKey 存的：texas.fun.blocked（sessionStorage）、texas.hint.fun */
   fun: 'texas.fun',
-  /** 0.12.0 及以前自己记的按人屏蔽（sessionStorage），0.13.0 起换成 kit 的 texas.fun.blocked，只用来清掉 */
-  funMuted: 'texas.fun.muted',
   /** kit 0.19 的聊天设置（TableFun 的 prefsKey 默认值，kit 自己读写：弹幕开关 danmaku、电脑版聊天框收起 folded、记录展开 long） */
   chat: 'texas.chat',
   /** 成就（src/achievements.ts）：已拿到的和计数，只在本机，不进云存档 */
@@ -33,8 +31,6 @@ export const KEYS = {
   meta: 'texas.cloud',
   preSync: 'texas.stats.pre-sync',
   preSwitch: (userId: string): string => `texas.stats.pre-switch.${userId}`,
-  /** 0.2.2 及以前"我开的房间"的记录，现在只用来清掉 */
-  hosted: 'texas.hosted',
 } as const;
 
 /** 读一个 JSON 值：没有、坏了、读不了都给 null */

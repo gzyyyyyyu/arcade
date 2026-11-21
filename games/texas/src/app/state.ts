@@ -119,7 +119,7 @@ export function createState(): State {
     skipAnim: false,
     ffSkip: -1,
     pfMode: false,
-    funOff: loadFunOff(localStorage, sessionStorage),
+    funOff: loadFunOff(localStorage),
     chatOff: raw.chatOff === true,
     strangerChat: raw.strangerChat !== false,
     takeProfit: parseTakeProfit(raw.takeProfit),

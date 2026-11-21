@@ -5,7 +5,7 @@ import { must } from '../must.ts';
  * 焦点在别的按钮上时回车留给那个按钮（Tab 过去按"锦标赛"就是开锦标赛），只有选档位、模式、人数这类"选一个"的按钮上回车才算开打。
  */
 
-export type LobbyKey = 'prev' | 'next' | 'start';
+type LobbyKey = 'prev' | 'next' | 'start';
 
 export interface KeyCtx {
   /** 现在看着的是选桌页（不是主页、不在牌桌上） */

@@ -72,7 +72,7 @@ export const NINE_BLINDS: Blinds = [
   [2_500, 5_000],
 ];
 
-export interface FormatInfo {
+interface FormatInfo {
   name: string;
   seats: number;
   every: number;
@@ -103,7 +103,7 @@ export const BOT_ACT_SEC = 1.0;
 export const HUMAN_ACT_SEC = 4;
 export const HAND_GAP_SEC = 3;
 
-export interface TourOpts {
+interface TourOpts {
   /** 赛制，默认经典；座位数以 humans 的长度为准（调用方按 formatInfo(format).seats 摆） */
   format?: TourFormat;
   /** 每个座位是不是真人（长度 = 座位数，2–9，一般 6；真人 0 到全部） */
@@ -289,8 +289,6 @@ export function playOut(s0: TourState): TourState {
   }
   return tourRun(s);
 }
-
-export const isOver = (s: TourState): boolean => s.over;
 
 /**
  * 名次顺序：座位号，冠军在前。结束以后是最终名次；没结束时还在场的按现在的筹码排在前面，已出局的按名次接在后面

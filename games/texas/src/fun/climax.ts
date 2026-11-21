@@ -1,5 +1,5 @@
 /**
- * 大场面（docs/screens.md 8.10）：全下以后补发公共牌时每家的实时胜率、大牌庆祝的档次、被逆转、池子大小对应的筹码声。
+ * 大场面（docs/scenes.md 8.10）：全下以后补发公共牌时每家的实时胜率、大牌庆祝的档次、被逆转、池子大小对应的筹码声。
  * 纯函数，只吃摊牌时真的亮出来的牌（HandResult.shown 和公共牌），没亮的牌一概不碰；画面（view/table.ts、fx.ts、sound.ts）读它的结果。
  * 算法全用整数：同样的牌总是同样的数，不依赖平台的数学函数；抽样用 arcade-kit/rng 的流（用途 RNG.runout，密钥由亮出来的牌算），不用 Math.random。
  */
@@ -67,7 +67,7 @@ export function runoutEquity(holes: readonly (readonly Card[])[], board: readonl
 }
 
 /** 庆祝的档次：1 = 葫芦、同花顺以下的大牌里的葫芦（葫芦及以上、四条以下），2 = 四条、同花顺、皇家同花顺 */
-export interface Celebration {
+interface Celebration {
   seat: number;
   tier: 1 | 2;
   /** 横幅上的字 */
@@ -97,7 +97,7 @@ export function celebration(r: HandResult): Celebration | null {
 /** 转牌时领先到这个胜率（千分数）还输了，才算被逆转 */
 export const BAD_BEAT = 800;
 
-export interface BadBeat {
+interface BadBeat {
   winner: number;
   loser: number;
   /** 输家在转牌时的胜率（千分数） */

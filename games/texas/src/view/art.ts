@@ -16,9 +16,9 @@ const SUIT_SVG = [
   '<path d="M50 3 C62 22 96 40 96 63 C96 77 85 85 73 85 C64 85 57 81 53 74 C54 84 59 91 68 97 H32 C41 91 46 84 47 74 C43 81 36 85 27 85 C15 85 4 77 4 63 C4 40 38 22 50 3 Z"/>',
 ];
 
-export const isRed = (c: Card): boolean => suitOf(c) === 1 || suitOf(c) === 2;
+const isRed = (c: Card): boolean => suitOf(c) === 1 || suitOf(c) === 2;
 
-export function suitSvg(suit: number, cls = 'suit'): string {
+function suitSvg(suit: number, cls = 'suit'): string {
   return `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true">${SUIT_SVG[suit]}</svg>`;
 }
 
@@ -28,13 +28,13 @@ const SUIT_NAMES = ['梅花', '方块', '红心', '黑桃'];
  * 牌面：左上角点数和花色；人头牌右下是半身像的画框，数字牌和 A 是中心花色（pips.ts）。
  * 小牌（别人亮的牌、看对手卡）地方小，只看角标和右下一个大花色（.c-big，style.css 按尺寸切换）
  */
-export function cardFace(c: Card): string {
+function cardFace(c: Card): string {
   const r = rankOf(c);
   const s = suitOf(c);
   return `<span class="c-corner"><b>${rankText(r)}</b>${suitSvg(s, 'c-pip')}</span>${suitSvg(s, 'c-big')}${r >= 9 && r <= 11 ? courtArt(r, s) : pipFace(r, s)}`;
 }
 
-export const cardLabel = (c: Card): string => `${SUIT_NAMES[suitOf(c)]}${rankText(rankOf(c))}`;
+const cardLabel = (c: Card): string => `${SUIT_NAMES[suitOf(c)]}${rankText(rankOf(c))}`;
 
 /** 一张牌的节点：正反两面，翻牌用 rotateY。face 为 null 是只有牌背（别人的牌） */
 export function makeCard(cls = ''): HTMLDivElement {
@@ -236,7 +236,7 @@ function bust(rank: number, suit: number, red: boolean): string {
 }
 
 /** 人头牌右下角的画框（36 × 50，上下镜像） */
-export function courtArt(rank: number, suit: number): string {
+function courtArt(rank: number, suit: number): string {
   const red = suit === 1 || suit === 2;
   const frame = '#b8892e';
   const half = bust(rank, suit, red);

@@ -24,15 +24,15 @@ export interface Stats {
 }
 
 /** 未登录 / 已同步 / 同步中 / 待上传 / 已合并 / 本次打开暂停 */
-export type CloudState = 'anon' | 'synced' | 'syncing' | 'pending' | 'merged' | 'paused';
+type CloudState = 'anon' | 'synced' | 'syncing' | 'pending' | 'merged' | 'paused';
 
-export interface KV {
+interface KV {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
 }
 
-export interface CloudDeps {
+interface CloudDeps {
   fetch: typeof fetch;
   storage: KV;
   now: () => number;

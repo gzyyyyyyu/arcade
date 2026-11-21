@@ -9,7 +9,7 @@ import type { Card } from './core/cards.ts';
 import { invested } from './core/fame.ts';
 import { PERSONA_COUNT, type HandResult, type LogEntry } from './core/table.ts';
 
-export type Tier = 'bronze' | 'silver' | 'gold';
+type Tier = 'bronze' | 'silver' | 'gold';
 /** 图标上的图案（view/ach.ts 画） */
 export type Glyph = 'star' | 'cards' | 'flame' | 'crown' | 'trophy' | 'bolt' | 'mask' | 'rise' | 'face';
 
@@ -106,7 +106,7 @@ export interface HandFacts {
 }
 
 /** 我这一手拿到的钱（所有池子加起来） */
-export const wonBy = (r: HandResult, seat: number): number => r.pots.reduce((a, p) => a + (p.winners.find((w) => w.seat === seat)?.won ?? 0), 0);
+const wonBy = (r: HandResult, seat: number): number => r.pots.reduce((a, p) => a + (p.winners.find((w) => w.seat === seat)?.won ?? 0), 0);
 
 /** 河牌上我下过注或加注，对手全弃了，而我自己的牌没靠底牌（高牌，或者一对在公共牌上） */
 export function riverBluffWin(f: HandFacts): boolean {

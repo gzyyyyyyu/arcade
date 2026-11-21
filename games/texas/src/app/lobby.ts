@@ -12,7 +12,7 @@ import { getWallet, relief as reliefApi, texasStakes, walletError } from '../net
 import { isRoomCode } from '../online.ts';
 import { site, twoText } from '../site.ts';
 import { ME, SESSION_KEY, Solo } from '../solo.ts';
-import { KEYS, remove } from '../store.ts';
+import { remove } from '../store.ts';
 import { TOUR_KEY, TourSolo } from '../tour/solo.ts';
 import { notMyTurn } from '../view/alert.ts';
 import { closeCoach } from '../view/coach.ts';
@@ -93,8 +93,6 @@ export function createLobby(c: App) {
     const code = q.get('room');
     const wantOnline = q.get('online') === '1';
     if (q.has('room') || q.has('online')) history.replaceState(null, '', location.pathname);
-    // 很早以前"我开的房间"的记录：现在开房一律去开新的，旧记录清掉
-    remove(KEYS.hosted);
     if (code && isRoomCode(code)) f.joinRoom(code);
     else if (wantOnline) lobby.showFriends();
     drawLobby();

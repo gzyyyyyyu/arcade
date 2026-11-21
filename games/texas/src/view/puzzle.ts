@@ -37,14 +37,14 @@ function infoLine(p: Puzzle): string {
 }
 
 /** 晒一下要的数 */
-export interface DaySummary {
+interface DaySummary {
   total: number;
   oks: boolean[];
   streak: number;
   day: string;
 }
 
-export interface PuzzleView {
+interface PuzzleView {
   /** 当前存档（答一道存一次） */
   save: PuzzleSave;
   onSave(s: PuzzleSave): void;

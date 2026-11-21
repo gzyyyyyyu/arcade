@@ -7,7 +7,7 @@
 import type { Prefs } from '../store.ts';
 import { el } from './dom.ts';
 
-export type ChatShown = 'on' | 'friends' | 'off';
+type ChatShown = 'on' | 'friends' | 'off';
 
 /** 每次重画现取的状态（面板自己不存） */
 export interface SettingsView {
@@ -24,7 +24,7 @@ export interface SettingsView {
   wallet: string | null;
 }
 
-export interface SettingsHooks {
+interface SettingsHooks {
   view(): SettingsView;
   /** 改音效、音量、动画快慢 */
   prefs(patch: Partial<Prefs>): void;
@@ -39,7 +39,7 @@ const CHAT_TEXT: Record<ChatShown, string> = { on: '开', friends: '不和陌生
 
 let current: { root: HTMLElement; close: () => void } | null = null;
 
-export function closeSettings(): void {
+function closeSettings(): void {
   current?.close();
 }
 

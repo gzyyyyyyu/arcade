@@ -13,7 +13,7 @@ export const FULL = 100;
 /** 一天的总分：0 到 DAY_SIZE × FULL */
 export const dayTotal = (scores: readonly number[]): number => scores.reduce((a, b) => a + Math.max(0, Math.min(FULL, Math.round(b))), 0);
 
-export interface DayRun {
+interface DayRun {
   /** 已答的每道选了什么 */
   picks: string[];
   /** 每道得几分（和 picks 一一对应） */

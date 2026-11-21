@@ -45,7 +45,7 @@ export interface Session {
   daily?: { date: string; scored: boolean };
 }
 
-export interface SessionStats {
+interface SessionStats {
   /** 一共带上桌的（坐下 + 补码） */
   buyin: number;
   /** 发到牌的手数、赢到钱的手数 */
@@ -72,8 +72,8 @@ export interface Step {
 }
 
 /** 快进（单机桌上我已经不在这一手里）：电脑思考乘这个系数，但不低于下限；只改等待，不碰规则和随机 */
-export const FF_THINK = 0.2;
-export const FF_MIN_MS = 150;
+const FF_THINK = 0.2;
+const FF_MIN_MS = 150;
 
 /**
  * 要不要快进这一手：我坐在单机桌上、这一手里我弃牌了或根本没发到牌，并且没点过"看完这手"（skipped 是点过的手数）。

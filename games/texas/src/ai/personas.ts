@@ -66,7 +66,7 @@ export interface Persona {
  * overcall 差一点就弃的牌被下注时偶尔舍不得（跟注站）；scared 够跟但是下注很大时偶尔怕了弃掉（胆小）；
  * spew 没牌的局面里偶尔手痒多打一枪（凶的人）；trap 河牌大牌装得太久，忘了收钱（爱慢打）
  */
-export type Flaw = 'overcall' | 'scared' | 'spew' | 'trap';
+type Flaw = 'overcall' | 'scared' | 'spew' | 'trap';
 
 export const PERSONAS: readonly Persona[] = [
   { name: '稳哥', style: '好牌才进，进了就打', call: 1400, raise: 1320, bluff: 120, slack: 0, slow: 50, size: 750, loose: 60, wild: 0, raiser: 100, threebet: 40, barrel: 250, shove: 0, river: 300, trust: 1150, posX: 1300, steal: 20, openX: 900, spread: 450, mild: 850, reads: 700, flaw: 'scared', leak: 40 },

@@ -133,6 +133,6 @@
   - 总开关"互动：不看"放在设置面板（8.14），记在 `texas.fun`（kit 的面板没有这一项）；
   - 电脑想太久时不来催（规范里没有，kit 也没有）；真人之间的催促炸弹（好友房）有，走 kit 的同一条发送路；
   - 没有名场面时不做"赢了大池子点名一下"：规范只要名场面，每手主动互动最多 2 次由 kit 管；
-  - 按人屏蔽是 kit 记的（`texas.fun.blocked`，sessionStorage，按名字），旧的 `texas.fun.muted` 读设置时顺手清掉。
+  - 按人屏蔽是 kit 记的（`texas.fun.blocked`，sessionStorage，按名字）。
 - **测试**：`test/core/moments.test.ts`（互动性格的表、名场面怎么认、交给 kit 后输的电脑会冲赢家）；kit 的冷却、护盾、连击、回应概率 kit 自己测。
   房间测试覆盖名场面全下摊牌、番茄按 kit 的编号；冒烟点 kit 的热区和菜单（`.atf-hot`、`[data-key="fun:prop0"]` 等），再点名牌看对手。

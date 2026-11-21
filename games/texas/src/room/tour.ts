@@ -42,9 +42,9 @@ import {
 } from './rules.ts';
 
 /** 一手打完停多久再发下一手（kit 的 pause）：比现金桌短，锦标赛一场手数多 */
-export const TOUR_PAUSE_MS = 5_000;
+const TOUR_PAUSE_MS = 5_000;
 /** 占了名的真人座位（后来坐下的）轮到时，等多久由房间代出电脑的一步 */
-export const SPARE_MS = 1_500;
+const SPARE_MS = 1_500;
 
 export interface TourRoomState {
   tour: true;

@@ -19,7 +19,7 @@ import { ROOM_NAME } from './rooms.ts';
 import { chips } from './text.ts';
 import { must } from '../must.ts';
 
-export interface LobbyState {
+interface LobbyState {
   wallet: WalletView | null;
   /** 钱包连不上、只读时的说明 */
   note: string | null;
@@ -34,7 +34,7 @@ export interface LobbyState {
   stats: { hands: number; won: number; biggestPot: number; best: number };
 }
 
-export interface LobbyHandlers {
+interface LobbyHandlers {
   /** level：娱乐按难度给电脑的强弱档；实盘不给 */
   start(stakes: StakesId, size: number, amount: number, practice: boolean, level?: number): void;
   resume(): void;

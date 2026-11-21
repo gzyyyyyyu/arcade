@@ -43,7 +43,7 @@ export function resultLines(r: HandResult, name: (seat: number) => string, me: n
   });
 }
 
-export const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => must(({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c], '( &: &amp;, <: &lt;, >: &gt;, : &quot; )'));
+const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => must(({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c], '( &: &amp;, <: &lt;, >: &gt;, : &quot; )'));
 
 /** 这一手结果里各个池子的数（收池动画收完以后应该是这些） */
 export const potsOf = (r: HandResult): number[] => r.pots.map((p) => p.amount);

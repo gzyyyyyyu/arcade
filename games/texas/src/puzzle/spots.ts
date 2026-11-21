@@ -8,7 +8,7 @@ import { rankOf, suitOf, type Card } from '../core/cards.ts';
 import { categoryOf, evalCards, HIGH_CARD, PAIR, STRAIGHT, TRIPS, TWO_PAIR } from '../core/eval.ts';
 import { combosWithout, type Combo } from './equity.ts';
 
-export type Sizing = 'normal' | 'allin' | 'push' | 'shove';
+type Sizing = 'normal' | 'allin' | 'push' | 'shove';
 export type Stage = 'pre' | 'flop' | 'turn' | 'river';
 
 export interface Setup {
@@ -204,7 +204,7 @@ const PRED = {
   },
   twoPair: (h, b, v) => categoryOf(v) === TWO_PAIR && !pocketPair(h) && holeIn(h, b) === 2,
   set: (h, b, v) => categoryOf(v) === TRIPS && pocketPair(h) && holeIn(h, b) === 2,
-  strong: (h, b, v) => categoryOf(v) >= STRAIGHT && v > evalCards(b),
+  strong: (_h, b, v) => categoryOf(v) >= STRAIGHT && v > evalCards(b),
   air: (h, _b, v) => categoryOf(v) === HIGH_CARD && Math.max(...h.map(rankOf)) >= 11,
   anyPair: (h, b, v) => categoryOf(v) === PAIR && (pocketPair(h) || holeIn(h, b) >= 1),
 } satisfies Record<string, HeroPred>;

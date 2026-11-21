@@ -2,7 +2,7 @@
 
 No-limit Texas Hold'em for 2–9 players: solo against computer players, Sit & Go tournaments and friend rooms, one game of the Arcade mini-game site on Cloudflare Workers.
 To run it: `npm ci && npm run dev` (page on :5175), `npm test` for type check, unit and workerd tests, `npm run smoke` for the headless browser test (after `npm run build:cf`); all commands are listed under "本地开发" below.
-Design lives in [DESIGN.md](DESIGN.md) (overview) and [docs/](docs/) (rules, AI, online, screens, economy, tournament, testing, deploy, art); module conventions in [AGENTS.md](AGENTS.md).
+Design lives in [DESIGN.md](DESIGN.md) (overview) and [docs/](docs/) (rules, AI, online, screens, scenes, economy, tournament, testing, deploy, art); module conventions in [AGENTS.md](AGENTS.md).
 
 - **Solo play** against 1–5 computer players, entirely in the browser: ten personalities, three fun difficulties (beginner / normal / expert) and four real-chip tables tuned against simulated players.
 - **Sit & Go tournaments** (solo: classic 6-player, turbo 6-player with blinds rising twice as fast, or 9-player with top-3 payouts; friend rooms: classic 6-player) and **quick match** (queue for a table of real players).
@@ -42,7 +42,7 @@ The rest of this README, the design document (`DESIGN.md`) and the code comments
 - **互动**：短语、表情、道具、聊天，单机里电脑会回，用 kit 的 `table-fun`（13.7）。
 - **登录闸门**：首页要先在平台登录（`GATE=login`）；单独部署时没有闸门，认游客（10.1）。
 - **画面**：牌桌是 DOM + CSS，没有画布和 WebGL；横屏、竖屏牌桌都有，按仓库 AGENTS.md 第 4 节处理 iOS 的高度、双指放大和 safe-area（docs/screens.md 8.1–8.3）。
-- **大场面**：全下后底牌一起翻开、每家标实时胜率，转牌河牌前心跳停顿、慢翻；葫芦以上赢有庆祝和筹码雨，转牌领先八成却输了的冒"被逆转"；筹码声按池子大小分四档（docs/screens.md 8.10）。好友房只放不占时间的轻效果。
+- **大场面**：全下后底牌一起翻开、每家标实时胜率，转牌河牌前心跳停顿、慢翻；葫芦以上赢有庆祝和筹码雨，转牌领先八成却输了的冒"被逆转"；筹码声按池子大小分四档（docs/scenes.md 8.10）。好友房只放不占时间的轻效果。
 - **素材**：全部由本模块的代码生成，没有图片、音频、字体文件。
 - **地址参数**：`?room=123456` 直接进这个房间，`?online=1` 直接到好友房选桌、输码那一行亮一下（6.2）。
 

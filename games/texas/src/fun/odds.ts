@@ -10,7 +10,7 @@ import { evalMasks } from '../core/eval.ts';
 import { RNG } from '../core/table.ts';
 
 /** 抽样次数：赢面的标准误约 1.6 个百分点，给人看的数取整到个位够用；每次轮到我只算一次，一家 2 ms、八家约 4.5 ms（负载高的机器上，test/core/odds.test.ts 量） */
-export const HINT_SAMPLES = 1000;
+const HINT_SAMPLES = 1000;
 
 const bit = (c: Card): number => 1 << (c >> 2);
 

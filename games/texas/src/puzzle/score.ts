@@ -14,7 +14,7 @@ import { DAY_SIZE, FULL, dayTotal } from './progress.ts';
 export { dayTotal, FULL };
 export const DAY_FULL = FULL * DAY_SIZE;
 /** 被加注后还跟注的对手牌，比整体范围强多少个点 */
-export const CALLER_EDGE = 0.22;
+const CALLER_EDGE = 0.22;
 
 /** 每个选项的 EV（最终底池为单位） */
 export function evs(p: Pick<Puzzle, 'equity' | 'need' | 'choices'>): Partial<Record<ChoiceId, number>> {
