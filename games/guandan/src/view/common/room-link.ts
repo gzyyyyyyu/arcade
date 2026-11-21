@@ -177,15 +177,14 @@ function wsUrl(code: string): string {
 
 /**
  * 开房：成功给房间码，失败给一句话。额度（arcade-kit 0.2.0）不够时 kit 回 JSON { error, code? }：
- * 同时开着的房间到上限（409 has_room）、今天开房次数用完（429）、今天联机的人太多（503 busy）。
- * 0.6.0 起"开房间"永远开新房：has_room 只说清楚，不再把人送回旧房间（不给玩家设没必要的限制）
+ * 已经有一个开着的房间（409 has_room，带那个房间的码，每人同时 1 个）、今天开房次数用完（429）、今天联机的人太多（503 busy）。
  */
 export async function createRoom(
   fetcher: typeof fetch = fetch,
   stake: TierId | null = null,
   variant: 'ddz' | null = null,
   noShuffle = false,
-): Promise<{ code: string } | { error: string; login?: boolean; quota?: CreateError }> {
+): Promise<{ code: string } | { error: string; login?: boolean; quota?: CreateError; room?: string }> {
   let res: Response;
   try {
     // 实盘房间（0.5.0）：开房时就定档位（arcade-kit 0.4.0 的开房选项），之后不能改
@@ -207,7 +206,7 @@ export async function createRoom(
   if (res.status === 403) return { error: `请从游戏${lobbyName()}打开牌馆再开房` };
   if (res.status === 404) return { error: '好友房暂时关了，单机照常玩' };
   const body = (await res.json().catch(() => null)) as { error?: unknown; code?: unknown } | null;
-  if (body?.error === 'has_room') return { error: QUOTA_TEXT.has_room, quota: 'has_room' };
+  if (body?.error === 'has_room') return { error: QUOTA_TEXT.has_room, quota: 'has_room', ...(typeof body.code === 'string' && /^\d{6}$/.test(body.code) ? { room: body.code } : {}) };
   if (body?.error === 'daily_limit') return { error: QUOTA_TEXT.daily_limit, quota: 'daily_limit' };
   if (body?.error === 'busy') return { error: QUOTA_TEXT.busy, quota: 'busy' };
   if (body?.error === 'bad_options') return { error: '这个档位开不了，换一个试试' };

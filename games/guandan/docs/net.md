@@ -6,7 +6,7 @@
 
 - 联机好友房（底座是 `packages/arcade-kit`，房间规范见仓库 `docs/platform-backend.md` 第 4 节）：
   - 每天的额度（kit 的计量）：`wrangler.jsonc` 绑 `METER`（`RoomMeter`，入口 `worker/main.ts` 导出），门槛在 `vars.KIT_QUOTA`（掼蛋 4.5 万停开新房、5.5 万收场；
-    10 万行全账户共用，各游戏怎么分见仓库 `docs/platform-backend.md` 4.7）；每人同时 5 个房间、每天 100 个。没绑 `METER` 时 kit 不限额，`tests/config.test.ts` 守着绑定和门槛。
+    10 万行全账户共用，各游戏怎么分见仓库 `docs/platform-backend.md` 4.7）；每人同时 1 个房间（已经有一个的，开房、快速匹配都直接回到那个房间）、每天 100 个。没绑 `METER` 时 kit 不限额，`tests/config.test.ts` 守着绑定和门槛。
     收场点 `breakPoint` 是结算页（一副打完）。页面上的几句话在 `src/view/common/quota-text.ts`，`npm run quota-smoke` 逐条核对。
   - 发牌（安全）：联机开局走 kit 的 `begin`（256 位熵），核心 `createKeyedGame` 把它存成 `GameState.key`，每一副从 `stream(key, 'deal', 第几副)` 发，`seed` 是空串；
     `key` 只在服务端，`viewFor` 不带。规则版本 2 = 按密钥发牌，1 = 按种子（单机，和更早开的旧联机局）。不要再让联机牌局用种子发牌，也不要给 `rngFor` 喂密钥（它会压成 32 位）。
