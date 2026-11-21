@@ -26,7 +26,7 @@ export const RC_YAKUMAN_DEX: readonly string[] = ['kokushi', 'daisangen', 'suuan
 /** 河底捞鱼（houtei）和海底摸月合在一行（规则表里写在一起），记到 haitei */
 const RC_ALIAS: Record<string, string> = { haku: 'yakuhai', hatsu: 'yakuhai', chun: 'yakuhai', yakuhai_round: 'yakuhai', yakuhai_seat: 'yakuhai', houtei: 'haitei' };
 
-export const dexIds = (variant: DexVariant): readonly string[] => (variant === 'xz' ? XZ_DEX : [...RC_YAKU_DEX, ...RC_YAKUMAN_DEX]);
+const dexIds = (variant: DexVariant): readonly string[] => (variant === 'xz' ? XZ_DEX : [...RC_YAKU_DEX, ...RC_YAKUMAN_DEX]);
 
 export const emptyDex = (): DexRecord => ({ xz: {}, rc: {} });
 

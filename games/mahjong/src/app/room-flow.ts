@@ -168,7 +168,7 @@ function drawWaiting(s: OnlineState): void {
 }
 
 /** 这一桌用到的座位：kit 的座位列表按玩法上限（4）给，三人两房后面那个座位一直空着、谁也坐不进去，页面不摆 */
-export function tableSeats(s: OnlineState): RoomInfo['seats'] {
+function tableSeats(s: OnlineState): RoomInfo['seats'] {
   const rules = s.opts?.rules;
   const n = rules && typeof rules === 'object' ? seatsOf(rules as { three?: boolean }) : s.room!.seats.length;
   return s.room!.seats.slice(0, n);

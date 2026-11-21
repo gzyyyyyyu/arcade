@@ -10,10 +10,10 @@
  *
  * 所有改动都在 applyMut 里原地做；对外的 apply 先复制一份再改（index.ts）。
  */
-// 拆分后的出口：外面一律从 ./rules.ts 引，名字和拆分前一致。
-export { VARIANT, RULES_VERSION, SEATS, TILESET, START_POINTS, RETURN_POINTS, UMA, DEAD_WALL, SHARE_POINTS, type RcOpts, DEFAULT_OPTS, type Phase, type RcEnd, type RcRiverTile, type RcPlayer, type RcWin, type RoundSummary, type SeatStats, type Claim, type RcEvent, type Final, type RcState, type RcAction, TABLE } from './state.ts';
-export { seatWind, doraIndicators, uraIndicators, tenpaiKinds, furiten } from './helpers.ts';
+// 对外的出口：外面一律从 ./rules.ts 引。
+export { VARIANT, RULES_VERSION, SEATS, TILESET, START_POINTS, RETURN_POINTS, UMA, SHARE_POINTS, type RcOpts, DEFAULT_OPTS, type Phase, type RcEnd, type RcRiverTile, type RcWin, type RoundSummary, type SeatStats, type RcEvent, type Final, type RcState, type RcAction } from './state.ts';
+export { seatWind, doraIndicators, tenpaiKinds, furiten } from './helpers.ts';
 export { begin } from './deal.ts';
 export { chiOptions } from './claims.ts';
-export { ranking, allLast, standings, finishMatch } from './settle.ts';
+export { finishMatch } from './settle.ts';
 export { riichiOptions, discardOptions, kanOptions, canTsumo, canKyuushu, applyMut, resumeMut, actorsOf, restakeMut, seatedMut } from './actions.ts';

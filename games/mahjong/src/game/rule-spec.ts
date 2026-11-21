@@ -4,7 +4,7 @@
  * 这里只有数据和纯函数，不碰 DOM（面板画在 view/rule-row.ts）。默认值是偏好里没存过时的取值，在各玩法的 loadRules 里。
  */
 
-export interface RuleChoice {
+interface RuleChoice {
   text: string;
   value: string | number | boolean;
 }

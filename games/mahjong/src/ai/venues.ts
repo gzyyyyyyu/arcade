@@ -12,7 +12,7 @@ import type { Tune } from '../core/variants/types.ts';
 import type { StakesId } from '../game/stakes.ts';
 import { pickPersonas } from './personas.ts';
 
-export type Place = 'solo' | 'room';
+type Place = 'solo' | 'room';
 /** 单机娱乐的难度（docs/balance.md 第 3 节）：新手、普通、高手；第一次玩默认新手 */
 export type Level = 'easy' | 'normal' | 'hard';
 export const LEVELS: readonly Level[] = ['easy', 'normal', 'hard'];

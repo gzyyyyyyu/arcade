@@ -8,7 +8,7 @@ import type { Meld } from '../../core/table/index.ts';
 import { doraOf, scoreWin, waitsOf, type WinContext } from '../../core/variants/riichi/index.ts';
 
 /** tsumo：门清，别人打的和不了，自摸有门前清自摸和；none：副露了，自摸也没有役 */
-export type NoYaku = 'tsumo' | 'none';
+type NoYaku = 'tsumo' | 'none';
 
 export interface NoYakuIn {
   /** 打出去之后的 13 张 */

@@ -30,7 +30,7 @@ import { button, el } from './dom.ts';
 import { todayCN } from './daily.ts';
 import './hekiri.css';
 
-export function readHekiri(): HekiriData {
+function readHekiri(): HekiriData {
   return parseHekiri(readText(HEKIRI_KEY));
 }
 
@@ -79,7 +79,7 @@ function tile(cls: string, kind: number, parent: HTMLElement, tag: 'button' | 's
   return t;
 }
 
-export interface HekiriOpts {
+interface HekiriOpts {
   /** 回主页 */
   onExit(): void;
   /** 分享卡上的游戏地址 */

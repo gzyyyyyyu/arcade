@@ -7,7 +7,7 @@ import { AIS } from '../ai/index.ts';
 import type { AnyVariant, StateOf } from '../core/variants/index.ts';
 import type { SeatKind } from '../core/variants/types.ts';
 
-export interface Step<S> {
+interface Step<S> {
   seat: number;
   state: S;
 }

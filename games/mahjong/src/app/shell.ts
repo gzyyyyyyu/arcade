@@ -28,7 +28,7 @@ export const idleTitle = (real = false): string => {
 };
 
 /** 规则小册子讲哪个玩法：好友房看这一桌的，单机里看正在打的，别处看选着的 */
-export const rulesVariant = (): string => (session.online ? (session.online.state.opts?.variant ?? DEFAULT_VARIANT) : (session.solo?.save.state.variant ?? activeVariant()));
+const rulesVariant = (): string => (session.online ? (session.online.state.opts?.variant ?? DEFAULT_VARIANT) : (session.solo?.save.state.variant ?? activeVariant()));
 
 export const app = document.getElementById('app')!;
 export const stage = el('div', 'stage', app);

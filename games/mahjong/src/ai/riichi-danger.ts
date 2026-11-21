@@ -6,7 +6,7 @@ import { countsOf, HONOR0, kindOf, rankOf } from '../core/tiles/index.ts';
 import { doraOf, type RcView } from '../core/variants/riichi/index.ts';
 
 /** 算危险度要的局面：看得见的张数、宝牌、各家的现物 */
-export interface DangerCtx {
+interface DangerCtx {
   v: RcView;
   /** 看得见的每种牌的张数，不含自己手里的 */
   visible: number[];
@@ -86,7 +86,7 @@ export function dangerOf(c: DangerCtx, reads: number, o: number, k: number, mine
 // ---------- 给真人的安全牌提示 ----------
 
 /** 较安全的线：危险度不超过这个数（筋、壁、字牌见得多的这一档；读牌按全准算，提示是帮人看，不是模仿某个电脑的水平） */
-export const SAFE_LINE = 230;
+const SAFE_LINE = 230;
 
 export type Safety = 'safe' | 'fair';
 

@@ -13,6 +13,8 @@
     "erasableSyntaxOnly": true,
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "skipLibCheck": true,
     "resolveJsonModule": true
   },

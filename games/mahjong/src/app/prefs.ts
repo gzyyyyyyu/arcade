@@ -11,7 +11,7 @@ import { allPages, findPage } from '../view/variants/pages.ts';
 
 const PREFS_KEY = 'mahjong.prefs';
 
-export interface Prefs extends RulesStore {
+interface Prefs extends RulesStore {
   sound: boolean;
   /** 总音量 0–1（静音另算：sound 关着时一点声音都不出） */
   volume: number;
@@ -72,8 +72,7 @@ export function resetSoundPrefs(p: Prefs = prefs): Prefs {
   return p;
 }
 
-/** 现在选的玩法：入口收起来的玩法（立直的 gate.ts）一律川麻，存着的选择留着不动 */
+/** 现在选的玩法；认不得的按川麻 */
 export function activeVariant(): string {
-  const page = findPage(prefs.variant);
-  return page?.open() ? page.id : DEFAULT_VARIANT;
+  return findPage(prefs.variant)?.id ?? DEFAULT_VARIANT;
 }

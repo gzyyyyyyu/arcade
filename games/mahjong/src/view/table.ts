@@ -55,7 +55,7 @@ export interface SeatMeta {
   empty?: boolean;
 }
 
-export interface Frame<V extends TableView> {
+interface Frame<V extends TableView> {
   v: V;
   seats: SeatMeta[];
   /** 这一手的倒计时（好友房）：哪些座位、到什么时候 */
@@ -144,7 +144,7 @@ const DRAG_START = 8;
 /** 开局发牌过场的总长（4 批 × 200 毫秒错开 + 每张 300 毫秒），不超过 1 秒（再长开局就拖） */
 const DEAL_MS = 900;
 // 11-20 放慢（所有者：一闪而过没有分量）：自己的 120 → 220、别人的 200 → 320，落桌前先压一下再弹
-export const FLY_MS = { me: 220, other: 320 } as const;
+const FLY_MS = { me: 220, other: 320 } as const;
 /** 落到桌上的那一刻（飞行动画 72% 处）：玩法在这时补一声落桌 */
 export const landAt = (mine: boolean): number => Math.round((mine ? FLY_MS.me : FLY_MS.other) * 0.72);
 /** 提示小图标：圆里一个叹号（程序自己写的内联 SVG） */

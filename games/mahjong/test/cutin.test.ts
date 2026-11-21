@@ -63,7 +63,7 @@ describe('过场条', () => {
     const ps = [1, 2, 3, 4].map(streakParticles);
     expect(ps.every((p, i) => i === 0 || p > ps[i - 1]!)).toBe(true);
     // 字号：不超过带子高，窄屏上长字不出界
-    expect(cutinStreakFont(140, 6, 4, 360)).toBeLessThanOrEqual(Math.floor((360 * 0.62) / 6));
-    expect(cutinStreakFont(100, 2, 2, 1000)).toBeGreaterThan(cutinStreakFont(100, 3, 3, 1000));
+    expect(cutinStreakFont(140, 6, 360)).toBeLessThanOrEqual(Math.floor((360 * 0.62) / 6));
+    expect(cutinStreakFont(100, 2, 1000)).toBeGreaterThan(cutinStreakFont(100, 3, 1000));
   });
 });

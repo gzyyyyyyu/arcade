@@ -9,7 +9,7 @@
 import { DEFAULT_VARIANT, VARIANTS } from '../core/variants/index.ts';
 import { REAL_ROUNDS, STAKES, type StakesId, type TierId } from './stakes.ts';
 
-export type MatchTier = 'fun' | 'rc-fun' | `real-${TierId}` | `rc-${TierId}` | 'x3-fun' | `x3-${TierId}` | 'xl-fun' | `xl-${TierId}`;
+type MatchTier = 'fun' | 'rc-fun' | `real-${TierId}` | `rc-${TierId}` | 'x3-fun' | `x3-${TierId}` | 'xl-fun' | `xl-${TierId}`;
 
 export const MATCH_FUN: MatchTier = 'fun';
 /** 立直的娱乐档 */

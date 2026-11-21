@@ -25,7 +25,7 @@ interface Unit {
 const rnd = (a: number, b: number): number => a + Math.random() * (b - a);
 const GOLDS = ['#ffd35a', '#fff1b0', '#ffb02e', '#ffffff', '#ff8a3d'];
 
-export function fxEnv(fast: boolean): FxEnv {
+function fxEnv(fast: boolean): FxEnv {
   return {
     turbo: new URLSearchParams(location.search).has('turbo'),
     fast,

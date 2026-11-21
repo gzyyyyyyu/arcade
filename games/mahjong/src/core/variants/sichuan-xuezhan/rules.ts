@@ -12,9 +12,9 @@
  *
  * 所有改动都在 applyMut 里原地做（模拟器直接用它，省掉每步复制）；对外的 apply 先复制一份再改。
  */
-export { RULES_VERSION, SEATS, SHAPE, SUITED_KINDS, TILESET, TILESET_THREE, VARIANT, DEFAULT_OPTS, KAN_PAY, seatsOf } from './types.ts';
-export type { Claim, Phase, RoundSummary, SeatStats, Win, XzAction, XzEvent, XzOpts, XzPlayer, XzState } from './types.ts';
+export { RULES_VERSION, SEATS, SHAPE, SUITED_KINDS, TILESET, VARIANT, DEFAULT_OPTS, seatsOf } from './types.ts';
+export type { Phase, RoundSummary, SeatStats, Win, XzAction, XzEvent, XzOpts, XzPlayer, XzState } from './types.ts';
 export { hasQue, isFlow, tenpaiKinds, winsOf } from './util.ts';
 export { begin, resumeMut } from './round.ts';
-export { applyMut, canZimo, discardChoices, discardOptions, kanOptions } from './actions.ts';
+export { applyMut, canZimo, discardChoices, kanOptions } from './actions.ts';
 export { actorsOf, restakeMut, seatedMut } from './seats.ts';

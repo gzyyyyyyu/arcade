@@ -12,7 +12,7 @@ import type { RoomAction, RoomOpts, RoomView } from './room/rules.ts';
 import { ROOM_TEXTS } from './view/text.ts';
 
 /** 页面的协议版本（房间的 minClientVersion 高于它就让刷新） */
-export const CLIENT_VERSION = 1;
+const CLIENT_VERSION = 1;
 /** 积压超过这么多帧就不播了，直接摆最新的 */
 const MAX_BACKLOG = 8;
 
@@ -26,7 +26,7 @@ export interface OnlineState {
   view: RoomView | null;
 }
 
-export interface OnlineUi {
+interface OnlineUi {
   /** 状态变了（进房、换座、开打、连接断开……）：重画等人页或牌桌 */
   draw(s: OnlineState, fresh: boolean): void;
   /** 一句提示（被拒的操作） */
@@ -87,8 +87,9 @@ export class Online {
   }
   /** 玩法的动作，带上这一桌的玩法 id：房间的 parse 拿不到房间状态，不同玩法的动作形状会撞（立直的出牌长得和川麻一样） */
   play(a: unknown): void {
+    // 进房（拿到 room.opts）之前没有牌桌，不会有出牌
     const v = this.s.opts?.variant;
-    this.client.act({ t: 'play', a, ...(v ? { v } : {}) } as RoomAction);
+    if (v) this.client.act({ t: 'play', v, a } as RoomAction);
   }
   /** 再来一场：我开好的新房间号告诉这一桌 */
   next(code: string): void {
@@ -192,7 +193,7 @@ export function matchUrl(tier: string): string {
 export const createError = (e: string): string => createText(e, ROOM_TEXTS);
 
 /** 房间拒了一个操作：大多是"牌局已经变了"这类，按最新状态重来就行（空串不提示） */
-export function errorText(code: string): string {
+function errorText(code: string): string {
   switch (code) {
     case 'seat_taken':
     case 'seat_reserved':

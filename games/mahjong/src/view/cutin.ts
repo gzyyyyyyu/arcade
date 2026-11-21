@@ -46,7 +46,7 @@ export function setCutinFast(on: boolean): void {
 const reduced = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const touch = (): boolean => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
-export interface CutinOpts {
+interface CutinOpts {
   kind: CutinKind;
   /** 要写的字；不给就用这个种类的默认字。感叹号会去掉 */
   text?: string;
@@ -116,7 +116,7 @@ export function showCutin(layer: HTMLElement, o: CutinOpts): number {
   else av.innerHTML = avatarSvg(o.name ?? '', o.bot ?? true);
 
   const w = el('div', `cutin-word k-${o.kind}`, inner, word);
-  w.style.fontSize = `${tier ? cutinStreakFont(h, word.length, streak, layer.clientWidth || 800) : Math.round(h * (word.length > 2 ? 0.5 : 0.66))}px`;
+  w.style.fontSize = `${tier ? cutinStreakFont(h, word.length, layer.clientWidth || 800) : Math.round(h * (word.length > 2 ? 0.5 : 0.66))}px`;
   let stick: HTMLElement | null = null;
   if (o.kind === 'riichi') {
     stick = el('div', 'cutin-stick', inner);

@@ -62,16 +62,16 @@ describe('开房选项', () => {
     expect(g(s, 0).variant).toBe('riichi');
   });
 
-  test('页面带玩法 id 发动作：按它解析（立直的出牌和川麻长得一样，不带就会被认成川麻）；不认得的玩法 id 被拒；不带的旧页面按川麻', () => {
+  test('页面带玩法 id 发动作：按它解析（立直的出牌和川麻长得一样，不带就会被认成川麻）；不认得的、不带玩法 id 的都被拒', () => {
     const discard = { t: 'discard', tile: 5 };
     expect(G.parse({ t: 'play', v: 'riichi', a: discard })).toEqual({ t: 'play', v: 'riichi', a: discard });
     expect(G.parse({ t: 'play', v: 'riichi', a: { t: 'discard', tile: 130, riichi: true } })).toEqual({ t: 'play', v: 'riichi', a: { t: 'discard', tile: 130, riichi: true } });
     expect(G.parse({ t: 'play', v: 'nope', a: discard })).toBeNull();
     expect(G.parse({ t: 'play', v: 'riichi', a: { t: 'swap', tiles: [1, 2, 3] } })).toBeNull();
-    expect(G.parse({ t: 'play', a: discard })).toEqual({ t: 'play', v: 'sichuan-xuezhan', a: discard });
-    // 认成了别的玩法的动作，这一桌不收
+    expect(G.parse({ t: 'play', a: discard })).toBeNull();
+    // 别的玩法的动作，这一桌不收
     const s = begin(['human', 'human', 'ai', 'ai'], 'fun');
-    expect(G.apply(s, s.g ? (s.g as RcState).turn : 0, G.parse({ t: 'play', a: discard })!)).toMatchObject({ error: expect.any(String) });
+    expect(G.apply(s, s.g ? (s.g as RcState).turn : 0, G.parse({ t: 'play', v: 'sichuan-xuezhan', a: discard })!)).toMatchObject({ error: expect.any(String) });
   });
 });
 

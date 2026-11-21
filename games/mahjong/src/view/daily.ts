@@ -24,7 +24,7 @@ function readAll(): DailyAll {
   return parseAll(readText(DAILY_KEY));
 }
 
-export function readDaily(v: DailyVariant): DailyData {
+function readDaily(v: DailyVariant): DailyData {
   return readAll()[v] ?? emptyDaily();
 }
 

@@ -12,7 +12,7 @@ export const LADDER_KEY = 'mahjong.ladder';
 /** 擂台的三种打法：血战到底、血流成河（川麻 flow）、立直（一局） */
 export const LADDER_MODES = ['xz', 'xl', 'x3', 'rc'] as const;
 export type LadderMode = (typeof LADDER_MODES)[number];
-export const isLadderMode = (m: unknown): m is LadderMode => (LADDER_MODES as readonly unknown[]).includes(m);
+const isLadderMode = (m: unknown): m is LadderMode => (LADDER_MODES as readonly unknown[]).includes(m);
 
 /** 三桌的难度，按桌号 */
 export const LADDER_LEVELS: readonly Level[] = ['easy', 'normal', 'hard'];

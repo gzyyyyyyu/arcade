@@ -14,9 +14,9 @@
  *   16:10、16:9 铺满、不留上下黑边；多出来的高度和宽度给牌河放大、中控盘、牌桌宽到 1200（css/table-layout.css 的电脑版一节）。手机横屏（高不到 600）还是 560 高。
  * 牌桌是 DOM + SVG，没有画布和 WebGL，"渲染倍数封顶 2""WebGL 上下文丢失"那两条不适用。
  */
-export type Orient = 'land' | 'port';
+type Orient = 'land' | 'port';
 
-export const STAGE: Record<Orient, { w: number; h: number }> = { land: { w: 1000, h: 560 }, port: { w: 560, h: 1120 } };
+const STAGE: Record<Orient, { w: number; h: number }> = { land: { w: 1000, h: 560 }, port: { w: 560, h: 1120 } };
 /** 竖屏舞台最矮多少：对家贴顶、自己贴底，中间最多让出 200（再矮牌河就碰到对家的副露、自己的头像） */
 const PORT_MIN_H = 920;
 /** 竖屏舞台最高多少：再高上下牌河离中控盘太远 */

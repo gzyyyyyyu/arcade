@@ -27,13 +27,13 @@ export const SOLO_KEY = 'mahjong.solo';
 const KINDS: SeatKind[] = ['human', 'ai', 'ai', 'ai'];
 /** 三人两房只有 3 个座位 */
 const kindsOf = (n: number): SeatKind[] => KINDS.slice(0, n);
-export const ME = 0;
+const ME = 0;
 
 /** 单机打的玩法：状态、视图、动作、规则选项都是登记表里各玩法的联合（按 variant 字段分） */
 export type SoloState = StateOf;
 export type SoloView = ViewOf;
 export type SoloAction = ActionOf;
-export type SoloOpts = OptsOf;
+type SoloOpts = OptsOf;
 
 /** 存档里的玩法；认不得的（以后删了的玩法）当没有存档 */
 const variantIn = (s: { variant: string }): AnyVariant | null => variantOf(s.variant);
@@ -60,7 +60,7 @@ export interface SoloSave {
   done: boolean;
 }
 
-export interface SoloUi {
+interface SoloUi {
   /** 画一帧（每一步之后） */
   frame(v: SoloView, names: string[]): void;
   /** 一局打完（停在结算）或一场打完 */

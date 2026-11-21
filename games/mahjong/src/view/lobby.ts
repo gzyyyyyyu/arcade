@@ -21,7 +21,7 @@ import { busy, button, el } from './dom.ts';
 import { renderRules } from './rule-row.ts';
 import { GAME_NAME, LEVEL_FOR, LEVEL_NAME, num, STAKES_NAME, STARS, wan } from './text.ts';
 
-export interface LobbyProps {
+interface LobbyProps {
   wallet: WalletView | null;
   /** 钱包连不上的原因（显示一句话） */
   walletNote: string | null;

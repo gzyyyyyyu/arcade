@@ -424,7 +424,7 @@ const LIMITS = [
   { han: 6, base: 3000, limit: 'haneman' },
 ] as const;
 
-export interface Pts {
+interface Pts {
   base: number;
   limit: HandScore['limit'];
 }

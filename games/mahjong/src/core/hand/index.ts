@@ -121,7 +121,7 @@ const dpB = new Int8Array(10);
  * 一般型向听（不管缺门）：8 - 2×组 - 搭子 - 将，组 + 搭子最多 4（副露算组）。
  * 13 张（3n+1）时 0 是听牌；14 张（3n+2）时 -1 是和了。
  */
-export function shantenGeneral(counts: Counts, melds: number): number {
+function shantenGeneral(counts: Counts, melds: number): number {
   let cur = dpA;
   let nxt = dpB;
   cur.fill(-1);
@@ -158,7 +158,7 @@ export function shantenGeneral(counts: Counts, melds: number): number {
 }
 
 /** 七对向听：6 - 对子数（最多 7）；不许四张算两对时，种类不够 7 种还要多换 */
-export function shantenSeven(counts: Counts, quads: boolean): number {
+function shantenSeven(counts: Counts, quads: boolean): number {
   let pairs = 0;
   let kinds = 0;
   for (const x of counts) {
@@ -172,7 +172,7 @@ export function shantenSeven(counts: Counts, quads: boolean): number {
 const YAOCHU = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
 
 /** 国士无双向听（日麻用）：13 - 幺九种类 - 有没有幺九对子 */
-export function shantenKokushi(counts: Counts): number {
+function shantenKokushi(counts: Counts): number {
   let kinds = 0;
   let pair = 0;
   for (const k of YAOCHU) {

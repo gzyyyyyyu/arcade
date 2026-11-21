@@ -27,7 +27,7 @@ interface Seen {
 }
 
 /** 电脑这一下发什么：座位、emote 编号、冲着谁 */
-export interface BotEmote {
+interface BotEmote {
   seat: number;
   id: number;
   to?: number;

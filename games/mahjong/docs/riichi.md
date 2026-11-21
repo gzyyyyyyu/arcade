@@ -161,7 +161,6 @@
 - 界面和单机：牌面（字牌、赤五）在 `src/view/tiles.ts`；立直牌桌、操作条、听牌振听提示、役种结算在 `src/view/variants/riichi/`；单机 `src/solo.ts` 按玩法 id 走；选桌页玩法选项在 `src/view/lobby.ts`（记在 `mahjong.prefs`）；新手引导和规则小册子的立直几页、役种表在 `src/view/variants/riichi/guide.ts`（外壳是 `src/view/guide.ts`）；称号中文名在 `public/titles.json`。
   单测 `test/riichi-view.test.ts`、`test/solo.test.ts` 的立直几条；冒烟 `scripts/smoke.ts` 有一场立直单机（横竖屏各一遍），`scripts/smoke-match.ts` 有立直快速匹配。
 - 好友房和实盘：开房选玩法、页面发动作带玩法 id、没打完收场只算点数差、中途接管（`entry`）；单测 `test/room-riichi.test.ts`，双浏览器冒烟 `scripts/smoke-room-riichi.ts`。
-- 入口开关：`src/view/variants/riichi/gate.ts` 的 `RIICHI_GATED`（现在 `false`，入口常开；改成 `true` 就只有地址带 `?rc=1` 才显示）。
 
 ## 7. 模拟结果（2026-10-20）
 

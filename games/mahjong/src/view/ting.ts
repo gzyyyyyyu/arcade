@@ -19,7 +19,7 @@ import './ting.css';
 /** 答完一题亮出答案停多久（点一下可以跳过） */
 const REVEAL_MS = 1100;
 
-export function readTing(): TingData {
+function readTing(): TingData {
   return parseTing(readText(TING_KEY));
 }
 
@@ -95,7 +95,7 @@ function tile(cls: string, kind: number, parent: HTMLElement): HTMLElement {
   return t;
 }
 
-export interface TingOpts {
+interface TingOpts {
   /** 回主页 */
   onExit(): void;
   /** 分享卡上的游戏地址 */

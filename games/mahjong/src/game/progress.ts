@@ -6,7 +6,7 @@ import { ACHIEVEMENTS, type AchRecord } from './achieve.ts';
 import { DAILY_VARIANTS, streakOf, type DailyAll } from './daily.ts';
 import { dexProgress, type DexRecord } from './dex.ts';
 
-export interface Progress {
+interface Progress {
   daily: { doneToday: boolean; streak: number };
   ach: { got: number; total: number };
   dex: { got: number; total: number };

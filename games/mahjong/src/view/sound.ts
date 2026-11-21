@@ -391,7 +391,7 @@ const PLAYERS: Record<Sfx, (e: Env, t: number) => void> = {
     tone(e, t + 0.6, 0.6, 0.24, 'triangle', note(60));
     tone(e, t + 0.6, 0.6, 0.09, 'sine', note(67));
   },
-  // 旧的"点一下"（报错、兼容旧调用）：一下轻轻的牌碰牌
+  // 点一下（报错、练习页的提示）：一下轻轻的牌碰牌
   click: (e, t) => clack(e, t, 0.5, 1.2),
   // 按钮：比 click 更轻更短，频繁点也不烦
   button: (e, t) => {
