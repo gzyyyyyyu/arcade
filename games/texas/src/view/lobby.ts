@@ -57,7 +57,8 @@ export interface LobbyHandlers {
   /** 怎么玩：把新手指引重置，坐下一张娱乐新手桌从头走一遍（有没打完的单机就回到那一桌） */
   howTo(): void;
   /** 好友房：用现在选的档位和人数开一个；输码进房；回到上次的房间 */
-  openRoom(stakes: StakesId, size: number, tour?: { fun: boolean; fill: boolean }): void;
+  /** fun：娱乐房间（不碰钱包、一个真人也能开打，空位电脑补）；tour：锦标赛（6 人） */
+  openRoom(stakes: StakesId, size: number, fun: boolean, tour?: { fill: boolean }): void;
   joinRoom(code: string): void;
   backToRoom(): void;
   /** 选桌上选中的那一间（主题房）：背景先换成它，让人看到"往上走"；主页、娱乐是 null（小桌那一间） */
@@ -309,7 +310,7 @@ export class Lobby {
     // 开房的玩法：现金桌不变；锦标赛 6 人固定，档位里多一张娱乐，再选空位要不要电脑补
     for (const [i, name] of ['现金桌', '锦标赛'].entries()) this.kindBtns.push(button(open, 'size kind', name, () => this.pickKind(i === 1)));
     this.fillBtn = button(open, 'size kind fill', '', () => this.pickFill());
-    this.openBtn = button(open, 'pill go', '开房间', () => this.wait(this.openBtn, () => (this.roomTour ? h.openRoom(this.roomFun ? FUN_STAKES : this.stakes, 6, { fun: this.roomFun, fill: this.fill }) : h.openRoom(this.stakes, this.size))));
+    this.openBtn = button(open, 'pill go', '开房间', () => this.wait(this.openBtn, () => h.openRoom(this.roomFun ? FUN_STAKES : this.stakes, this.roomTour ? 6 : this.size, this.roomFun, this.roomTour ? { fill: this.fill } : undefined)));
 
     // 设置坏了就用默认的（readSettings 坏了给空）
     const saved = readSettings() as { stakes?: StakesId; size?: number; mode?: Mode; diff?: Difficulty; tourFmt?: TourFormat };
@@ -595,12 +596,13 @@ export class Lobby {
     toggle(this.fillBtn, 'sel', this.fill);
     setText(this.fillBtn, this.fill ? '空位电脑补：开' : '空位电脑补：关');
     toggle(this.sizeRow, 'hidden', rt);
-    toggle(this.funTile, 'hidden', !rt);
-    toggle(this.funTile, 'sel', rt && this.roomFun);
+    // 娱乐卡：好友房的现金桌和锦标赛都有（朋友之间练手，不碰钱包，人不够电脑补）
+    toggle(this.funTile, 'hidden', !room);
+    toggle(this.funTile, 'sel', room && this.roomFun);
     // 实盘新开一份只要钱包够这次带入（平台 0.10.2）：够这一档的最少买入就能开，不够一整份就少带一点
     for (const st of STAKES) {
       const t = must(this.tiles.get(st.id), 'this.tiles.get(st.id)');
-      toggle(t, 'sel', st.id === this.stakes && !(rt && this.roomFun));
+      toggle(t, 'sel', st.id === this.stakes && !(room && this.roomFun));
       const locked = !fun && !this.alone && bal !== null && bal < st.min;
       toggle(t, 'locked', locked);
       // 灰着的档位在卡上写要多少（原来的"最多输"那一行换成它，选中后钱包够了再换回来）
@@ -667,13 +669,13 @@ export class Lobby {
     // 单独部署没有钱包：好友房的筹码不记账，不看钱包
     // 锦标赛报名要一整份（娱乐不碰钱包）
     const need = rt ? st.max : st.min;
-    const free = this.alone || (rt && this.roomFun);
+    const free = this.alone || (room && this.roomFun);
     setText(this.openBtn, rt ? '开锦标赛房间' : '开房间');
     this.openBtn.disabled = busy || (!free && (!wallet || (bal ?? 0) < need));
     this.openBtn.title = free ? '' : !wallet ? '钱包连不上，稍后再试' : (bal ?? 0) < need ? (rt ? `报名要一整份 ${chips(st.max)}：去大厅领补给，或者换小一档` : `这一档最少带 ${chips(st.min)}：去大厅领补给，或者换小一档`) : '';
     this.joinBtn.disabled = busy || this.codeIn.value.length !== 6;
     // 选桌上选实盘、好友房的档位时，背景跟着换成那一间
-    this.h.preview(pick && !fun && !(rt && this.roomFun) ? this.stakes : null);
+    this.h.preview(pick && !fun && !(room && this.roomFun) ? this.stakes : null);
     for (const b of [this.quickBtn, this.howBtn, this.startBtn, this.pfBtn, this.dailyBtn, this.dailyTourBtn, this.openBtn, this.joinBtn, this.reliefBtn]) toggle(b, 'loading', busy && b === this.pending);
     toggle(this.roomBox, 'hidden', !back);
     if (back) {

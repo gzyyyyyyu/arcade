@@ -1,7 +1,7 @@
 /**
  * 新手指引的状态和摆放（docs/features.md 13.8）。纯函数，不碰 DOM 和存储：画面在 view/coach.ts，读写经 store.ts。
  * 两层：
- * - 走一遍（stepsFor）：第一次轮到我出手时，一步一步指着桌上真的东西讲（手机 3 步）；走完或跳过都记下来，不再自动出；
+ * - 走一遍（stepsFor）：第一次轮到我出手时，一步一步指着桌上真的东西讲（3 步）；走完或跳过都记下来，不再自动出；
  * - 情境提示（HINTS）：前几手里第一次遇到某件事时冒一条，每条只出一次。
  */
 
@@ -85,7 +85,7 @@ export const KEYS_TABLE: [string, string, string][] = [
 ];
 
 /**
- * 走一遍的步骤：手机 3 步，有鼠标的设备多一页快捷键。底池、谁赢、加注怎么选都改成到了那个场合再弹的情境提示（HINT_TEXT），
+ * 走一遍的步骤：3 步；有鼠标的设备从"?"打开时多一页快捷键。底池、谁赢、加注怎么选都改成到了那个场合再弹的情境提示（HINT_TEXT），
  * 不放在开局前
  */
 export const STEPS: readonly Step[] = [
@@ -125,8 +125,11 @@ export const STEPS: readonly Step[] = [
 /** 快捷键那一页：只给有鼠标键盘的设备 */
 export const KEYS_STEP: Step = { id: 'keys', target: null, title: '电脑快捷键', lines: [], wide: true, items: KEYS_TABLE };
 
-/** 这台设备走哪几步：触屏没有键盘，不出快捷键那一页 */
-export const stepsFor = (touch: boolean): readonly Step[] => (touch ? STEPS : [...STEPS, KEYS_STEP]);
+/**
+ * 这台设备走哪几步：触屏没有键盘，不出快捷键那一页；第一次自动弹（first）也不出——新手还没出过一手，先学会打，
+ * 快捷键等他点牌桌上的"?"再看（2026-11-21 新账号走查：开局连弹 4 页，最后一页是整张快捷键表）
+ */
+export const stepsFor = (touch: boolean, first = false): readonly Step[] => (touch || first ? STEPS : [...STEPS, KEYS_STEP]);
 
 /** 情境提示的文字；showdown 的 {who} {kind} 由调用方填 */
 export const HINT_TEXT: Record<HintId, string> = {

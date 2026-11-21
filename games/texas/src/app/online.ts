@@ -64,14 +64,14 @@ export function createOnline(c: App) {
     else remove(KEYS.room);
   }
 
-  async function openRoom(stakes: StakesId, size: number, tour?: { fun: boolean; fill: boolean }): Promise<void> {
+  async function openRoom(stakes: StakesId, size: number, fun: boolean, tour?: { fill: boolean }): Promise<void> {
     if (c.busy) return;
     // 每人同时只能开 1 个（没真人的房间马上结束、还名额）：还开着的话 kit 回 has_room 带那个房间的码，直接送回去，不停在报错上
     c.busy = true;
     f.drawLobby();
-    const r = await createRoom(tour ? { stakes, size, tour: true, fill: tour.fill, ...(tour.fun ? { fun: true as const } : {}) } : { stakes, size }, f.nickname());
+    const r = await createRoom({ stakes, size, ...(tour ? { tour: true as const, fill: tour.fill } : {}), ...(fun ? { fun: true as const } : {}) }, f.nickname());
     c.busy = false;
-    if ('code' in r && !('error' in r)) enterRoom({ code: r.code, userId: c.cloud.userId(), host: true, at: Date.now(), ...(tour?.fun ? { fun: true as const } : {}) });
+    if ('code' in r && !('error' in r)) enterRoom({ code: r.code, userId: c.cloud.userId(), host: true, at: Date.now(), ...(fun ? { fun: true as const } : {}) });
     else if (r.error === 'has_room' && r.code && isRoomCode(r.code)) backToOpen(r.code);
     else {
       c.walletNote = createError('error' in r ? r.error : 'unavailable');

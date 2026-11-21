@@ -35,11 +35,11 @@ export function createGuide(c: App) {
     return t ? tableView.guideRect(t) : null;
   }
 
-  /** 走一遍：第一次轮到我出手时自动出，或点牌桌上的"?"、大厅的"怎么玩" */
-  async function walkthrough(): Promise<void> {
+  /** 走一遍：第一次轮到我出手时自动出（first），或点牌桌上的"?"、大厅的"怎么玩" */
+  async function walkthrough(first = false): Promise<void> {
     if (walking || !stage.classList.contains('at-table')) return;
     walking = true;
-    const r = await walk(stepsFor(matchMedia('(hover: none), (pointer: coarse)').matches), guideRect);
+    const r = await walk(stepsFor(matchMedia('(hover: none), (pointer: coarse)').matches, first), guideRect);
     walking = false;
     if (r === 'done') setGuide(finishWalk(guideNow()));
     else if (r === 'skip') setGuide(skipAll());
@@ -51,7 +51,7 @@ export function createGuide(c: App) {
   function guideTurn(v: View): void {
     if (walking || c.asking || c.animating > 0 || v.toAct !== ME || !v.legal) return;
     if (guideNow().done) return potHint(v);
-    void walkthrough();
+    void walkthrough(true);
   }
 
   /** 走完之后第一次翻出公共牌轮到我：指一下底池（原来在走一遍里，现在到了场合再讲） */
