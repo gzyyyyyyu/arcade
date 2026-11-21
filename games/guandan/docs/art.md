@@ -13,7 +13,7 @@
 ## 2. 字体与网格
 
 - 字号只用 `theme.ts` 的 `TYPE` 几级（huge 68、big 40、title 28、body 23、label 20、small 18，世界坐标）；一个画面最多三级。标题和大字用内嵌的思源宋体子集，大数字用粗黑体。
-- 手机横屏画布缩到约 0.52–0.54 倍，由 `typeFloor` 托底到字 12、数字 14 CSS 像素，放不下的地方按 `phoneType()` 删字、不缩字（`AGENTS.md` 第 3 节）。
+- 手机横屏画布缩到约 0.52–0.54 倍，由 `typeFloor` 托底到字 12、数字 14 CSS 像素，放不下的地方按 `phoneType()` 删字、不缩字（`docs/view.md` 第 2 节）。
 - 间距、圆角、投影、按钮配色只从 `theme.ts` 取（`SPACE`、`RADIUS`、`SHADOW`、`BUTTON`），点按区域至少 44 CSS 像素（`minHit()`）。
 
 ### 字体子集怎么重新生成

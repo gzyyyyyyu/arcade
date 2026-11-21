@@ -27,13 +27,13 @@ import { iconButton, setTopHit, toast, worldW, type Button, type Modal } from '.
 import { releaseExtraBake } from '../../common/textures.ts';
 
 /** 弹层的种类（两个玩法的并集；null = 没有弹层） */
-export type Overlay = 'settle' | 'gameOver' | 'stake' | 'choose' | 'menu' | 'tutorial' | null;
+type Overlay = 'settle' | 'gameOver' | 'stake' | 'choose' | 'menu' | 'tutorial' | null;
 
 /** 画面座位 0 永远是"我"（旁观时是真实 0 号座位上的人，但不算我自己） */
-export const MY_SEAT = 0;
+const MY_SEAT = 0;
 
 /** 世界坐标换成屏幕（CSS 像素）后的矩形 */
-export interface ScreenRect {
+interface ScreenRect {
   left: number;
   top: number;
   width: number;
@@ -41,24 +41,24 @@ export interface ScreenRect {
 }
 
 /** 调试桥的控件表：名字 → 世界坐标 */
-export type ControlMap = Record<string, { x: number; y: number; enabled?: boolean; visible?: boolean }>;
+type ControlMap = Record<string, { x: number; y: number; enabled?: boolean; visible?: boolean }>;
 
 /** 联机帧里画面共用的那几项：这一步的编号、要播的事件、实盘房间每个座位的账 */
-export interface SceneFrame<E> {
+interface SceneFrame<E> {
   view: { step: number };
   events: E[];
   stake?: { seats: readonly { paid: string; out?: boolean }[]; why?: string | null } | null;
 }
 
 /** 联机会话里画面用到的部分（掼蛋、斗地主的会话都继承 RoomLink） */
-export type SceneNet<V> = Pick<RoomLink<never, never, V>, 'queue' | 'shown' | 'take' | 'on' | 'leave' | 'turnInfo' | 'watching'> & {
+type SceneNet<V> = Pick<RoomLink<never, never, V>, 'queue' | 'shown' | 'take' | 'on' | 'leave' | 'turnInfo' | 'watching'> & {
   begin(): void;
   canReady(): boolean;
   readyWait(): { waiting: number[]; deadline: number | null } | null;
 };
 
 /** 单机和联机会话共有的部分 */
-export interface SceneSession<A, E> {
+interface SceneSession<A, E> {
   autoplay: boolean;
   lastEvents: E[];
   /** 单机马上返回事件；联机只是发出去（sent），结果随房间的下一帧到 */

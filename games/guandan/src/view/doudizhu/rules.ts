@@ -4,7 +4,7 @@
  * 不碰 Phaser，单测直接读。
  */
 
-export interface DdzRuleTab {
+interface DdzRuleTab {
   tab: string;
   lines: string[];
 }

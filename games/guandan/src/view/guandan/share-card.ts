@@ -30,7 +30,7 @@ function lineOf(k: ShareKind, log: MatchLog, title: Title | null): string {
 }
 
 /** 好友房一场的颁奖（0.14.0）：奖（画面座位）和按座位取名字 */
-export interface ShareAwards {
+interface ShareAwards {
   awards: readonly Award[];
   name: (seat: number) => string;
 }

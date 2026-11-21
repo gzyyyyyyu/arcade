@@ -2,7 +2,7 @@
 import { ERROR_TEXT } from '../variants/guandan/net/rules.ts';
 
 /** 斗地主房间自己的短码（其余和掼蛋共用 ERROR_TEXT：not_your_turn、wrong_phase、not_seated……） */
-export const DDZ_ERROR_TEXT: Record<string, string> = {
+const DDZ_ERROR_TEXT: Record<string, string> = {
   bad_bid: '叫分要比前面的高，或者不叫',
   not_bidding: '现在不是叫分的时候',
   too_small: '压不过上家',

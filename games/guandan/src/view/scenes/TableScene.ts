@@ -79,6 +79,8 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
   hints: (Play | null)[] = [];
   hintIdx = 0;
   hintStep = -1;
+  /** 进贡 / 还贡替新手挑过牌的那一步（table-ui.ts），一步只挑一次 */
+  tributeStep = -1;
   /** 上一次"提示"选出的那一手：选中的还是这几张就按它出，带逢人配的牌不再问"当作哪一手" */
   hinted: Play | null = null;
   /** 第一次玩、引导看完后还要指几次「提示」，at 是上次指的那一步（同一步只指一回） */
@@ -659,6 +661,8 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
     this.cancelBot();
     this.overlay = 'tutorial';
     this.refreshButtons();
+    // 状态行（"等 X 出牌"）会和引导第 3 步按钮上方的说明叠在一起；引导完 pump 会重新写
+    this.setStatus('');
     await runTutorial(this, { play: this.btnPlay, hint: this.btnHint, pass: this.btnPass, sort: this.btnSort }, this.ses.view().level);
     this.overlay = null;
     if (!this.busy) this.pump();

@@ -13,7 +13,7 @@ export const FEED_MAX = 2;
 const MINE: Partial<Record<Highlight['kind'], string>> = { jokerBomb: 'joker_bomb', bombOnBomb: 'bomb_on_bomb', bombs3: 'bombs', quick: 'quick' };
 const OURS: Partial<Record<Highlight['kind'], string>> = { comeback: 'comeback', doubleDown: 'double_down' };
 
-export interface FeedMoment {
+interface FeedMoment {
   moment: string;
   n?: number;
 }

@@ -21,7 +21,7 @@ export interface TableEffect<S = never> extends RoomEffect {
 }
 
 /** 桌的公共部分；各玩法的桌多出的字段原样保留（泛型都是 T 的展开） */
-export interface TableBase<S = never, Y = never> {
+interface TableBase<S = never, Y = never> {
   tier: TierId;
   ref: string;
   book: RoomBook;
@@ -51,7 +51,7 @@ export interface TableView {
   why: string | null;
 }
 
-export interface TableCfg<S, Y> {
+interface TableCfg<S, Y> {
   /** 座位数 */
   seats: number;
   /** 这个档位、这么多分，结回多少筹码 */

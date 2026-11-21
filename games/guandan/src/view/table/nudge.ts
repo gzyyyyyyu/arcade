@@ -18,7 +18,7 @@ import type { SeatView } from './seats.ts';
 /** 顺手提示留多久 */
 const SUGGEST_MS = 6000;
 
-export interface NudgeHost {
+interface NudgeHost {
   scene: Phaser.Scene;
   seats: SeatView[];
   /** 能不能发（好友房坐下了、没有弹窗） */

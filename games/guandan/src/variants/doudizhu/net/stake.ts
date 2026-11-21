@@ -18,7 +18,7 @@ export function parseStake(raw: unknown): TierId | null | undefined {
   return isTier(raw) ? raw : undefined;
 }
 
-export type DdzStakeEffect = TableEffect;
+type DdzStakeEffect = TableEffect;
 
 export interface DdzStakeTable {
   tier: TierId;

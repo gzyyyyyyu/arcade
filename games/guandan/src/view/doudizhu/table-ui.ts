@@ -2,7 +2,7 @@
 import type Phaser from 'phaser';
 import { TableFun, funItem, type FunSeat } from 'arcade-kit/table-fun';
 import { localChat } from 'arcade-kit/chat';
-import { currentMult, sortDdz } from '../../variants/doudizhu/index.ts';
+import { currentMult, decideDdz, sortDdz } from '../../variants/doudizhu/index.ts';
 import { MOOD_LINES, PHRASES } from '../../net/fun-text.ts';
 import { taunt } from '../../net/emotes.ts';
 import { audio } from '../common/audio.ts';
@@ -423,7 +423,11 @@ export function refreshButtons(sc: DdzScene): void {
     return;
   }
   if (bidding) {
-    sc.setStatus(top > 0 ? `现在 ${top} 分：叫更高的抢地主，或者不叫` : '叫分抢地主：分越高，输赢越大');
+    // 新手不知道这手牌该叫几分：照电脑「普通」档的叫法给一句建议（和出牌的「提示」一样只是建议，按钮照常都能点）
+    const adv = decideDdz(v, 'normal', 0);
+    const want = adv?.type === 'bid' ? adv.bid : 0;
+    const say = want === 0 ? '不叫' : `叫 ${want} 分`;
+    sc.setStatus(top > 0 ? `现在 ${top} 分 · 这手牌建议${say}` : `这手牌建议${say}（分越高，输赢越大）`);
     return;
   }
   if (showing) {

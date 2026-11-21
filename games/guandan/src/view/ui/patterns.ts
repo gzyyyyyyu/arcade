@@ -24,7 +24,7 @@ const C = (spec: string): Card[] => {
   });
 };
 
-export interface PatternDemo {
+interface PatternDemo {
   name: string;
   note: string;
   cards: Card[];

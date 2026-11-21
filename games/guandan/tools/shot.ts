@@ -545,10 +545,17 @@ async function smokeTribute(browser: Browser): Promise<void> {
     const { page } = ctx;
     await until(ctx, `轮到我${kind === 'tribute' ? '进贡' : '还贡'}`, `g.idle && g.overlay === null && g.view().myTribute && g.view().myTribute.kind === '${kind}'`);
     await page.waitForTimeout(400);
+    // 0.40.0 起轮到进贡 / 还贡先替你挑好一张，直接能点；能换的话换成另一张，验证换牌照常
+    const pre = await page.evaluate(() => window.__game!.selected());
+    assert(pre.length === 1, '轮到进贡 / 还贡先挑好一张');
     const allowed = await page.evaluate(() => window.__game!.view()!.myTribute!.allowed);
-    const pt = await page.evaluate((c) => window.__game!.cardPoint(c), allowed[0]!);
-    await page.mouse.click(pt!.x, pt!.y);
-    await page.waitForTimeout(250);
+    const other = allowed.find((c) => c !== pre[0]);
+    if (other !== undefined) {
+      const pt = await page.evaluate((c) => window.__game!.cardPoint(c), other);
+      await page.mouse.click(pt!.x, pt!.y);
+      await page.waitForTimeout(250);
+      assert((await page.evaluate(() => window.__game!.selected()))[0] === other, '点另一张换成那张');
+    }
     await shot(ctx, kind === 'tribute' ? '14-tribute' : '15-return');
     const c = (await controls(ctx)).play!;
     assert(c.enabled, '选了贡牌按钮可点');
@@ -1220,7 +1227,9 @@ async function gallerySize(browser: Browser, z: GallerySize): Promise<void> {
     await shot(ctx, `${p}-03-level`);
     await ck(ctx, 'level:normal');
   });
-  await step('牌桌', async () => {
+  // --ddz 进的是斗地主牌桌：下面两步只认掼蛋（g.view()/g.state()），斗地主的牌桌和结算在 20–23 那几张
+  const gd = !process.argv.includes('--ddz');
+  if (gd) await step('牌桌', async () => {
     await until(ctx, '轮到我', 'g.scene === \'table\' && g.idle && g.view().toAct.includes(0) && g.overlay === null', 120_000);
     await page.waitForTimeout(500);
     await shot(ctx, `${p}-04-table-myturn`);
@@ -1239,7 +1248,7 @@ async function gallerySize(browser: Browser, z: GallerySize): Promise<void> {
     await page.waitForTimeout(600);
     await shot(ctx, `${p}-05-table-played`);
   });
-  await step('一副结算', async () => {
+  if (gd) await step('一副结算', async () => {
     await page.evaluate(() => {
       window.__game!.setInstant(true);
       window.__game!.setAutoplay(true);

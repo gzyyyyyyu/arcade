@@ -8,7 +8,7 @@
  */
 import { ddzValue, type DdzView } from '../../variants/doudizhu/index.ts';
 
-export interface DdzCounterCell {
+interface DdzCounterCell {
   /** 比大小用的点数（ddzValue）：3..13，A 14，2 是 15，小王 16，大王 17 */
   rank: number;
   /** 还没露面的张数 */

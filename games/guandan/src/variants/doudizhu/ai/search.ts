@@ -68,7 +68,7 @@ function solve(n: Node, c: Ctx): number {
   return best;
 }
 
-export interface EndgameOptions {
+interface EndgameOptions {
   samples: number;
   nodeCap: number;
 }

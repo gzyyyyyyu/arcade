@@ -99,7 +99,7 @@ export function dailyPuzzleBoard(date: string): string {
   return dailyBoard(date, 'ddzpz');
 }
 
-export function submitDailyPuzzle(date: string, score: number, fetcher: typeof fetch = fetch): Promise<DailySubmit> {
+function submitDailyPuzzle(date: string, score: number, fetcher: typeof fetch = fetch): Promise<DailySubmit> {
   return submitDaily(dailyPuzzleBoard(date), score, fetcher);
 }
 

@@ -9,7 +9,7 @@ import { Button, worldH, worldW } from '../ui/kit.ts';
 export const tutorialState = { step: -1, buttons: {} as Record<string, { x: number; y: number }> };
 
 /** 引导的外壳（掼蛋、斗地主共用）：遮罩、点阵、跳过 / 下一步；每一步画什么由 draw 决定。看完或跳过时调 onDone */
-export interface TutorialUi {
+interface TutorialUi {
   W: number;
   page: Phaser.GameObjects.Container;
   /** 整屏压暗 */

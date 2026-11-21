@@ -33,7 +33,7 @@ export const PROP_COUNT = 8;
 /** 房间的 RoomGame.emotes */
 export const EMOTE_COUNT = PROP_BASE + PROP_COUNT;
 
-export type Emote = { kind: 'phrase' | 'taunt'; text: string } | { kind: 'sticker'; index: number } | { kind: 'prop'; index: number };
+type Emote = { kind: 'phrase' | 'taunt'; text: string } | { kind: 'sticker'; index: number } | { kind: 'prop'; index: number };
 
 export function emoteOf(id: number): Emote | null {
   if (!Number.isInteger(id) || id < 0 || id >= EMOTE_COUNT) return null;

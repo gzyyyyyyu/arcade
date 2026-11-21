@@ -69,7 +69,7 @@ export function isPortrait(w: number, h: number): boolean {
 }
 
 /** 竖屏世界：宽 720（和横屏手机缩到同一个比例，字号、点按区的托底照旧），高按屏幕比例，夹在 1080..1600 */
-export const PORTRAIT_WIDTH = 720;
+const PORTRAIT_WIDTH = 720;
 const PORTRAIT_MIN_H = 1080;
 const PORTRAIT_MAX_H = 1600;
 
@@ -96,7 +96,7 @@ export const RENDER_SCALE = pickRenderScale();
 export const TYPE = { huge: 68, big: 40, title: 28, body: 23, label: 20, small: 18 } as const;
 
 /** 手机档的下限（CSS 像素）：字 12、数字 14（再小手机上看不清） */
-export const TYPE_FLOOR_PX = { text: 12, num: 14 } as const;
+const TYPE_FLOOR_PX = { text: 12, num: 14 } as const;
 
 /**
  * 字号下限（世界坐标）：按当前缩放，正文 12、数字 14 CSS 像素合多少。电脑 1:1、iPad 横屏 ×0.92 时比 TYPE 最小的 18 还小，等于不起作用；
@@ -126,8 +126,6 @@ export function floorFor(w: number, h: number, num: boolean): number {
 export const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 /** 圆角刻度：小件（标签、小按钮）、按钮、面板内框、面板外框；胶囊形写高度的一半 */
 export const RADIUS = { sm: 8, md: 12, lg: 14, xl: 22 } as const;
-/** 投影：一律往下偏、同一个浓度，光从正上方来 */
-export const SHADOW = { dy: 4, alpha: 0.35 } as const;
 /**
  * 卡通描边（0.27.0，仓库统一的卡通风格，配色表在 docs/art.md 第 9 节）：按钮、面板、名牌一律深墨色描边、实色下沿，下沿按下时下沉。
  * 0.27.1（卡通第二版）：表面补回上亮下暗的轻渐变和顶边高光，下面再垫一层柔和的环境投影，不再是平涂贴纸

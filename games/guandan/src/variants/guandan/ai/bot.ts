@@ -35,7 +35,7 @@ import { TUNING, tuningFor, type Difficulty, type PersonaId, type Tuning } from 
 
 export type { Difficulty, PersonaId, Tuning };
 
-export interface BotConfig {
+interface BotConfig {
   seed: string | number;
   difficulty?: Difficulty;
   /** 性格（persona.ts）：不给就是难度预设本身 */

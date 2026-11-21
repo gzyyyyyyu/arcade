@@ -5,7 +5,7 @@
  */
 import type { AvatarId, Mood } from '../art/index.ts';
 
-export interface HomeLayout {
+interface HomeLayout {
   W: number;
   H: number;
   /** 竖屏：主视觉在上、面板在下 */

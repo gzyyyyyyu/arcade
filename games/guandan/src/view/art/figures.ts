@@ -6,7 +6,7 @@
 import { C, shade } from './common.ts';
 
 /** 人物配色（随花色） */
-export interface FigPalette {
+interface FigPalette {
   main: string;
   dark: string;
   light: string;

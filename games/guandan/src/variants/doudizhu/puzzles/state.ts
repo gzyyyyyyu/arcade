@@ -7,7 +7,7 @@ import { sortDdz } from '../core/patterns.ts';
 import type { DdzPuzzle } from './puzzles.ts';
 
 /** 地主的座位：闯关里玩家永远是 0 号 */
-export const PUZZLE_LANDLORD = 0;
+const PUZZLE_LANDLORD = 0;
 
 export function puzzleState(p: DdzPuzzle): DdzState {
   return {

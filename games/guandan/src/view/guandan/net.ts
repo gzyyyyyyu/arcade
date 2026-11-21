@@ -13,12 +13,7 @@ import { seatIdentity, setSeatIdentities, setWatching, type SeatIdentity } from 
 import { RoomLink, type LinkDeps } from '../common/room-link.ts';
 import type { BotStyle, TableSession } from './session.ts';
 
-export interface NetFrame {
-  nv: NetView;
-  delay: number;
-}
-
-export type NetSessionDeps = LinkDeps<NetAction, NetView>;
+type NetSessionDeps = LinkDeps<NetAction, NetView>;
 
 export class NetSession extends RoomLink<NetAction, NetView, NetView> implements TableSession {
   lastEvents: GameEvent[] = [];

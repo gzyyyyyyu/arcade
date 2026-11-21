@@ -153,7 +153,7 @@ const TEMPO: Record<PersonaId, { base: number; bomb: number }> = {
   aqiang: { base: 0.75, bomb: 0.8 },
 };
 
-export interface Think {
+interface Think {
   kind: 'pass' | 'play' | 'bomb';
   /** 这一手是领出 */
   lead: boolean;
@@ -187,5 +187,5 @@ export function thinkTime(t: Think, rand: () => number = Math.random): number {
 }
 
 /** 思考时间的上下限（毫秒） */
-export const THINK_MIN = 150;
-export const THINK_MAX = 1600;
+const THINK_MIN = 150;
+const THINK_MAX = 1600;

@@ -63,7 +63,7 @@ export const ROOM_FUN_BOT: Difficulty = 'normal';
 /** 好友房实盘的电脑（docs/stake.md 3.1）：一律最强，各档一样 */
 export const ROOM_STAKE_BOT: Difficulty = 'hard';
 
-export interface BotProfile {
+interface BotProfile {
   difficulty: Difficulty;
   persona: PersonaId;
 }

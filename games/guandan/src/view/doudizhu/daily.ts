@@ -9,7 +9,7 @@ export { beijingDate, dailySubmitText, type DailySubmit } from '../common/daily.
 
 /** 每日挑战的规则版本：发牌、计分大改时加一，榜名带 -v<n>，改前改后不在一个榜上比；0 = 不带 */
 // 1：0.30.7 起娱乐普通档的电脑带出牌失误（DDZ_FUN_BLUNDER），对手变弱，分数和之前不在一个榜上比
-export const DDZ_DAILY_RULES = 1;
+const DDZ_DAILY_RULES = 1;
 /** 两家电脑的难度：大家打同样的对手 */
 export const DDZ_DAILY_LEVEL = 'normal';
 

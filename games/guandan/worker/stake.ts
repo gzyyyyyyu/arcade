@@ -57,7 +57,7 @@ export interface WalletRpc {
   refund(req: { userId: string; game: string; ref: string; mode: 'client' | 'server'; op: string }): Promise<WalletReply>;
 }
 
-export interface StakeEnv {
+interface StakeEnv {
   ARCADE?: Fetcher;
   WALLET?: WalletRpc;
   SITE_ORIGIN?: string;

@@ -8,10 +8,7 @@
 
 export type Card = number;
 
-export const SPADE = 0;
 export const HEART = 1;
-export const CLUB = 2;
-export const DIAMOND = 3;
 
 /** 小王、大王的"点数"。15 留给级牌在单张类牌型里的位置。 */
 export const SMALL_JOKER = 16;

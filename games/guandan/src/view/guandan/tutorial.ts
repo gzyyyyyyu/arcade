@@ -12,7 +12,7 @@ import { panel, text } from '../ui/kit.ts';
 import { PATTERNS, miniCards, patternTile } from '../ui/patterns.ts';
 import type { Button as Btn } from '../ui/kit.ts';
 
-export interface TutorialTargets {
+interface TutorialTargets {
   play: Btn;
   hint: Btn;
   pass: Btn;
@@ -63,6 +63,8 @@ export function runTutorial(scene: Phaser.Scene, t: TutorialTargets, level: numb
       tip(t.pass.x, top - 74, '压不过就 不要 ↓');
       tip(t.sort.x, top - 34, '换个理牌方式 ↓');
       tip(W / 2, top + 150, '↓ 点牌选中，按住滑动能一次选好几张 ↓', 0xffffff);
+      // 标题垫一块深色底：记牌器在压暗层上面，不垫的话标题和记牌器的数字叠在一起
+      page.add(scene.add.rectangle(W / 2, 130, 340, 64, 0x1a0e07, 0.94).setStrokeStyle(2, COLOR.goldLight, 0.6));
       page.add(text(scene, W / 2, 130, '出牌和提示', { size: TYPE.big, bold: true, color: COLOR.goldLight, font: 'title', stroke: COLOR.redDark, strokeWidth: 6 }));
       nav(250, false);
     } else {

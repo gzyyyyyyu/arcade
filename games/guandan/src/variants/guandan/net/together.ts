@@ -7,7 +7,7 @@
  */
 import type { NetState } from './rules.ts';
 
-export interface MatchSeat {
+interface MatchSeat {
   seat: number;
   team: number;
   win: boolean;

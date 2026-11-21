@@ -29,8 +29,8 @@ const FARMER_MIN = 5;
 const FARMER_SPAN = 1;
 const DAILY_RANKS = 5;
 /** 每个候选的搜索节点预算（超了就换下一个；调大反而更慢：每个候选都多算，而难算的题本来就不要）和最多换几次 */
-export const DAILY_BUDGET = 4000;
-export const DAILY_MAX_ATTEMPTS = 400;
+const DAILY_BUDGET = 4000;
+const DAILY_MAX_ATTEMPTS = 400;
 /** 难度约束：必胜首出占比上限、最少手数 */
 export const DAILY_MAX_WIN_SHARE = 0.5;
 export const DAILY_MIN_PLAYS = 3;

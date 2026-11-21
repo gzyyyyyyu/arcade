@@ -29,7 +29,7 @@ import { Session } from './view/guandan/session.ts';
 import { randomSeed } from './view/common/seed.ts';
 import { EMPTY_STATS, KEYS, backupKey, SYNC_SLOTS, getSettings, getStats, loadDdzSave, loadSave, onSyncedChange, rawStore, tutorialDone, type SyncSlot } from './view/store.ts';
 import { GAME_HEIGHT, RENDER_SCALE, worldSizeFor, worldWidthFor } from './view/common/theme.ts';
-import { dropBackdrops, ensureBackdrops } from './view/common/textures.ts';
+import { dropBackdrops, ensureBackdrops, titleBackdrop } from './view/common/textures.ts';
 import { applyAudio } from './view/ui/panels.ts';
 
 installErrorHandler();
@@ -227,6 +227,19 @@ app.toTableWorld = () => {
   const want = wantSize(appBox(), 'table');
   if (want.w !== app.width || want.h !== app.height) setWorld(want);
 };
+// 反过来：竖着拿时从牌桌回主页（盖着"请横过来"时一局被结束、好友房散了），主页换回竖屏世界，不然整页缩在横屏世界里、字只剩几像素。
+// START 在 create 之前，主页按新尺寸排；这个尺寸的背景没烘过（横着打开、竖着回来）就烘好再重开一次
+game.events.once(Phaser.Core.Events.READY, () => {
+  const title = game.scene.getScene('title');
+  title.events.on(Phaser.Scenes.Events.START, () => {
+    const b = appBox();
+    const want = wantSize(b, 'title');
+    if (want.w === app.width && want.h === app.height) return;
+    laidLandscape = b.w >= b.h;
+    setWorld(want);
+    if (!title.textures.exists(titleBackdrop(title, want.w, want.h))) void ensureBackdrops(title, want.w, want.h).then(() => title.scene.restart());
+  });
+});
 
 // 跟着可见区走（kit 的 watchViewport）：每次转屏、地址栏收放、窗口变化当下把 #app 贴回可见区（扣安全区），真变了才让 Phaser 重新缩放；
 // 250 毫秒后再量一次、看要不要换世界宽度。阈值都是牌馆原来的：只认放大（> 1.01）、不 scrollTo、不写 --app-h、也听 visualViewport 的 scroll

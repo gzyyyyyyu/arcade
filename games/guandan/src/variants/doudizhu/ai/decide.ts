@@ -31,13 +31,13 @@ const COST = { vw: 1, cb: 2 };
 const TOP = { penalty: 25 };
 /** 地主明牌后，他压不住的那手牌的加分（评分里减掉） */
 const KNOWN_FREE = 30;
-/** 新手的失误：出牌时有这么大的概率不按评分而是随便挑一手（领出挑一个非炸弹，跟牌随机压或不要）。由模拟定（docs/stake.md 10.2）：
+/** 新手的失误：出牌时有这么大的概率不按评分而是随便挑一手（领出挑一个非炸弹，跟牌随机压或不要）。由模拟定（docs/stake-ddz.md 第 2 节）：
  * 娱乐新手档小白胜率 ≥ 60% 要它不低于约 0.30，实盘小档小白 ≤ +0.15、中档普通 ≤ +0.20 要它不高于约 0.32 */
 const NOVICE_BLUNDER = 0.32;
 
 /**
  * 娱乐单机里电脑每档的出牌失误率：普通档的电脑和"普通玩家"打法一样强，不带失误时普通玩家只赢 45%，调不进 docs/balance.md 第 3 节的区间，
- * 所以娱乐单机的电脑按这张表带一点失误（docs/stake.md 10.2）。实盘单机靠换电脑搭配调（10.3），好友房、匹配、提示、代打我都用 decideDdz 的默认
+ * 所以娱乐单机的电脑按这张表带一点失误（docs/stake-ddz.md 第 2 节）。实盘单机靠换电脑搭配调（10.3），好友房、匹配、提示、代打我都用 decideDdz 的默认
  */
 export const DDZ_FUN_BLUNDER: Readonly<Record<DdzLevel, number>> = { novice: NOVICE_BLUNDER, normal: 0.25, pro: 0.15 };
 const ENDGAME = { total: 24, samples: 6, nodeCap: 1500 };

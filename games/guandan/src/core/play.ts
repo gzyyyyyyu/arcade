@@ -28,8 +28,3 @@ export interface PatternSet<P extends PlayBase, C> {
   enumerate(hand: readonly Card[], ctx: C): P[];
 }
 
-/** 手里能压住 target 的（首出时 target 为 null，就是全部） */
-export function playsBeatingWith<P extends PlayBase, C>(set: PatternSet<P, C>, hand: readonly Card[], target: P | null, ctx: C): P[] {
-  const all = set.enumerate(hand, ctx);
-  return target ? all.filter((p) => set.beats(p, target)) : all;
-}

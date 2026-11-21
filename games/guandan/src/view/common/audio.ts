@@ -3,14 +3,14 @@
 
 import { playFunSound, type FunPhase, type PropId } from 'arcade-kit/fun';
 
-export type Sfx =
+type Sfx =
   | 'click' | 'select' | 'deselect' | 'deal' | 'play' | 'playBig' | 'pass' | 'bomb' | 'jokerBomb'
   | 'tribute' | 'stamp' | 'levelUp' | 'win' | 'lose' | 'turn' | 'error' | 'jiefeng'
   | 'collect' | 'call' | 'gong' | 'first' | 'spring'
   | 'tick' | 'taunt' | 'sticker';
 
 /** 音效、音乐各一条音量（0..1，设置里一档对应一个值）；muted 是全部静音 */
-export interface AudioSettings { sfx: number; music: number; muted: boolean }
+interface AudioSettings { sfx: number; music: number; muted: boolean }
 export type Mood = 'title' | 'table' | 'tense' | 'off';
 
 /** 一次音效播放的上下文：t 为起始时间，k 为音高倍率，v 为相对音量 */
@@ -253,7 +253,7 @@ const MUSIC_LEVEL = 0.25;
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
 const MOOD_LEVEL: Record<Exclude<Mood, 'off'>, number> = { title: 1, table: 0.7, tense: 0.85 };
 
-export class GameAudio {
+class GameAudio {
   readonly log: { t: number; name: Sfx }[] = [];
   private ctx: AudioContext | null = null;
   private failed = false;

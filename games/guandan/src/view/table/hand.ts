@@ -30,7 +30,7 @@ export interface HandOrder {
   flat?: boolean;
 }
 
-export const GUANDAN_ORDER: HandOrder = { sort: sortHand, columns: columnsFor };
+const GUANDAN_ORDER: HandOrder = { sort: sortHand, columns: columnsFor };
 
 const BOTTOM_PAD = 8;
 /** 手牌区最高能叠到多高（含一张整牌） */

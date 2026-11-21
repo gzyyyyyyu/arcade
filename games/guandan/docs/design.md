@@ -59,7 +59,7 @@
 - `src/variants/guandan/stake/`、`net/`：实盘规则、联机规则（房间和页面共用）。
 - `src/view/`：Phaser 画面，只播放核心层的事件。
 - `worker/`：线上 Worker（登录闸门、开房进房、联机房间、快速匹配、单机实盘接口）。
-- `tools/`：`sim.ts` 机器人对打几千局，检查不死锁、规则无冲突、AI 强度分层；`shot.ts` 无头浏览器冒烟，走完一副牌，控制台零报错；其余见 `AGENTS.md` 第 1 节。
+- `tools/`：`sim.ts` 机器人对打几千局，检查不死锁、规则无冲突、AI 强度分层；`shot.ts` 无头浏览器冒烟，走完一副牌，控制台零报错；其余见 `docs/structure.md`。
 - 存储 key 一律用 `guandan.` 前缀（本地存档、设置）。
 
 ## 4. 画面
