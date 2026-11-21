@@ -30,7 +30,9 @@ export type EnemyKind =
   | 'xuetong' | 'guandingui' | 'coffin'
   | 'ratdemon' | 'troupe' | 'hongyi' | 'hongyiclone' | 'shuoshu' | 'ricepile'
   // 规则 55：克制站桩近身控场（镇守流派）的两种怪——放风筝的纸弩手、盯着不动的人就加速的催命鬼；只在河滩、荒庙刷
-  | 'crossbow' | 'hurrier';
+  | 'crossbow' | 'hurrier'
+  // 乱葬岗：掘墓鬼（脚边土里钻出来，怕火）；夜探窑镇：陶俑（烧过的泥胎，扛刀剑，怕水）
+  | 'juemu' | 'taoyong';
 
 export interface EnemyDef {
   kind: EnemyKind;
@@ -129,6 +131,10 @@ export const ENEMIES: readonly EnemyDef[] = [
   // 规则 55：纸弩手保持在镇守法器够不着的远处放箭，怕火、怕木（纸扎的），镇类够不着它（×0.8）；催命鬼脆，怕火怕符
   { kind: 'crossbow', code: 52, hp: 20, speed: 1.6, dmg: 5, r: 14, xp: 3, steady: 0.2, vs: { 火: 1.3, 木: 1.2, 镇: 0.8 } },
   { kind: 'hurrier', code: 53, hp: 22, speed: 1.2, dmg: 7, r: 14, xp: 3, steady: 0.1, vs: { 火: 1.25, 符: 1.2 } },
+  // 掘墓鬼：照水鬼的规矩在主角附近冒出来（冒的时候不动不伤人），之后直扑；怕火（火类法器 ×1.5，火区里再乘 FIRE.fear）
+  { kind: 'juemu', code: 54, hp: 28, speed: 1.7, dmg: 10, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.5, 镇: 1.2 } },
+  // 陶俑：硬，慢，刀剑砍上去 ×0.6，水泡软了 ×1.6
+  { kind: 'taoyong', code: 55, hp: 42, speed: 0.95, dmg: 10, r: 17, xp: 3, steady: 0.6, vs: { 剑: 0.6, 水: 1.6, 镇: 1.15, 火: 0.8 } },
 ];
 
 export const ENEMY_BY_KIND: Record<EnemyKind, EnemyDef> = Object.fromEntries(ENEMIES.map((e) => [e.kind, e])) as Record<EnemyKind, EnemyDef>;
@@ -150,6 +156,8 @@ export const SNOW = { range: 300, every: 180, speed: 3.6, dmg: 4, life: 150, r: 
 export const PLAYER_SLOW = 0.62;
 /** 水鬼：在主角附近冒出来，冒的那几拍不动也不伤人；抓住主角拖慢 grabTicks 拍 */
 export const WATER = { emerge: 40, near: 200, far: 280, grabTicks: 50 };
+/** 掘墓鬼：钻在主角脚边 near–far 远处，冒 emerge 拍（这几拍不动不伤人），站着不动就被它扑个正着 */
+export const JUEMU = { emerge: 30, near: 80, far: 150 };
 /** 枯骨：打散成两只小的（个头 size、血是原来的 hp 倍），小的不再散 */
 export const BONE = { split: 2, size: 0.62, hp: 0.4 };
 /** 蝙蝠精：每隔几拍换一个侧向的晃动 */

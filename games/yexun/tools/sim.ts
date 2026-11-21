@@ -19,22 +19,19 @@ import { rushDaily } from '../src/online/rush.ts';
 import { shiftDate } from '../src/online/daily.ts';
 import { writeFileSync } from 'node:fs';
 import { DIFFICULTIES, type Danger } from '../src/content/waves.ts';
-import { LIVE_SKILL_OPEN, LIVE_TIER_IDS, tierOfDanger, vigilBp } from '../src/content/live.ts';
-import { MAP_IDS } from '../src/content/maps.ts';
-import type { MapId } from '../src/content/maps.ts';
+import { tierOfDanger, vigilBp } from '../src/content/live.ts';
+import { MAPS, type MapId } from '../src/content/maps.ts';
 import type { CharacterId } from '../src/content/meta.ts';
 import { Bot, routeDone, type Build, type Skill } from './bots.ts';
 import { RaidBot } from '../src/explore/bot.ts';
 import { settleRaid } from '../src/explore/settle.ts';
 import '../src/explore/register.ts';
-import { RAID_LIVE, RAID_LIVE_TIERS, type RaidLiveTier, type RaidTemplateId } from '../src/content/explore.ts';
+import { RAID_LIVE, RAID_TEMPLATES, RAID_LIVE_TIERS, type RaidLiveTier, type RaidTemplateId } from '../src/content/explore.ts';
 import { MERGES } from '../src/content/weapons.ts';
 import { mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId } from '../src/content/pools.ts';
 import type { SchoolId } from '../src/content/guide.ts';
 import { STOP_DEFAULTS, stopWhy, tierOf, type StopWhy } from './early-stop.ts';
 
-// --skillall：量表外的格子时，让机器人在所有档位 × 地图都放技能（表里的格子本来就放；表只管线上，不管模拟）
-if (process.argv.includes('--skillall')) for (const k of LIVE_TIER_IDS) (LIVE_SKILL_OPEN as Record<string, readonly string[]>)[k] = MAP_IDS;
 
 export interface RunResult {
   won: boolean;
@@ -304,7 +301,7 @@ if (!isMainThread) {
     return `${m >= 0 ? '+' : ''}${m.toFixed(2)} ±${((2 * Math.sqrt(mean(xs.map((x) => (x - m) * (x - m))))) / Math.sqrt(Math.max(1, xs.length))).toFixed(2)}`;
   };
   const se2 = (p: number, m: number): number => 2 * Math.sqrt((p * (1 - p)) / Math.max(1, m));
-  console.log(`${raid ? '夜探' : map === 'snow' ? '雪原' : '义庄'}，每格 ${stop ? `${minN}–${n} 局（提前停，每批 ${batch}）` : `${n} 局`}（种子 ${seedFrom + 1} 起）${tall ? '，竖屏局' : ''}，${threads} 线程`);
+  console.log(`${raid ? `夜探${RAID_TEMPLATES[map as RaidTemplateId].name}` : MAPS[map as MapId].name}，每格 ${stop ? `${minN}–${n} 局（提前停，每批 ${batch}）` : `${n} 局`}（种子 ${seedFrom + 1} 起）${tall ? '，竖屏局' : ''}，${threads} 线程`);
   console.log(
     raid
       ? '镇子 | 危险 | 玩家 | 流派 | 撤出 ±2SE | 带出价值（撤出的局） | 平均待了 | 击杀 | 实盘期望 ±2SE（份，--live）'

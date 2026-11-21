@@ -19,6 +19,8 @@ import { SPRITES13 } from './sprites-paper.ts';
 import { SPRITES14 } from './sprites-water.ts';
 import { SPRITES_GUISHI } from './sprites-guishi.ts';
 import { SPRITES_HUAPI } from './sprites-huapi.ts';
+import { SPRITES_LUANZANG } from './sprites-luanzang.ts';
+import { SPRITES_YAOZHEN, SPRITES_YAOZHEN_MOB } from './sprites-yaozhen.ts';
 import { SPRITES_ARMS } from './sprites-arms.ts';
 import { SPRITES_ARMS2 } from './sprites-arms2.ts';
 import { SPRITES_FOES } from './sprites-foes.ts';
@@ -89,6 +91,7 @@ export function buildAtlas(res: number): Atlas {
  * 2.0 第一批法器、被动、搭配的图标（sprites-arms，21 个）也在这张：加上后 res 3 约 814 / 2,048；第二批（sprites-arms2，19 个）再加后见 tests/content/arms.test.ts 的图集高度检查（≤ 2,048）。
  * 鬼市的怪和摊子（sprites-guishi）、画皮（sprites-huapi）也在这张，都放进来离 2,048 还远。
  * 新首领、特色怪和夜探怪（sprites-foes）也在这张；res 3 的装箱高度见交付时的测算，不得超过 2,048。
+ * 乱葬岗的坟包、掘墓鬼、火苗（sprites-luanzang）和窑镇的陶俑（sprites-yaozhen）也在这张：加上后 res 3 是 2,034 / 2,048，几乎满了，再加图先挪走别的。
  */
 export const MOB_TEX = 'atlas9';
 
@@ -97,7 +100,7 @@ let mobCache: { res: number; atlas: Atlas } | null = null;
 /** 特色怪的图集；同一个 res 只画一次 */
 export function buildMobAtlas(res: number): Atlas {
   if (mobCache?.res === res) return mobCache.atlas;
-  mobCache = { res, atlas: pack([...SPRITES12, ...SPRITES13, ...SPRITES14, ...SPRITES_ARMS, ...SPRITES_ARMS2, ...SPRITES_GUISHI, ...SPRITES_HUAPI, ...SPRITES_FOES], res, MOB_TEX) };
+  mobCache = { res, atlas: pack([...SPRITES12, ...SPRITES13, ...SPRITES14, ...SPRITES_ARMS, ...SPRITES_ARMS2, ...SPRITES_GUISHI, ...SPRITES_HUAPI, ...SPRITES_FOES, ...SPRITES_LUANZANG, ...SPRITES_YAOZHEN_MOB], res, MOB_TEX) };
   return mobCache.atlas;
 }
 
@@ -120,10 +123,10 @@ export function peekHeroAtlas(): Atlas | null {
 
 let raidCache: { res: number; atlas: Atlas } | null = null;
 
-/** 夜探的第二张图集（巡夜将、石兽、房子、宝箱、门、宝物图标）；同一个 res 只画一次 */
+/** 夜探的第二张图集（巡夜将、石兽、房子、宝箱、门、宝物图标、窑镇的窑）；同一个 res 只画一次。窑按 0.75 倍细度画，加上后 res 3 是 2,018 / 2,048 */
 export function buildRaidAtlas(res: number): Atlas {
   if (raidCache?.res === res) return raidCache.atlas;
-  raidCache = { res, atlas: pack([...SPRITES8, ...SPRITES9, ...SPRITES10], res, RAID_TEX) };
+  raidCache = { res, atlas: pack([...SPRITES8, ...SPRITES9, ...SPRITES10, ...SPRITES_YAOZHEN], res, RAID_TEX) };
   return raidCache.atlas;
 }
 

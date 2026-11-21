@@ -122,7 +122,7 @@ export interface Save {
 
 export type LastMode = 'vigil' | 'raid';
 /** 夜探能选的镇（教学镇是第一次固定进的，不记） */
-export type RaidPick = 'guzhen' | 'dukou' | 'shansi' | 'xilou' | 'liangcang';
+export type RaidPick = 'guzhen' | 'dukou' | 'shansi' | 'xilou' | 'liangcang' | 'yaozhen';
 /** 菜单能选的镇子：content/explore.ts 的 RAID_OPEN 去掉教学镇（粮仓镇为什么收起见那里） */
 export const RAID_PICKS: readonly RaidPick[] = RAID_OPEN.filter((t): t is RaidPick => t !== 'teach');
 

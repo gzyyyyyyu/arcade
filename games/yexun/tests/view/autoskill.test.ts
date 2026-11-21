@@ -38,8 +38,5 @@ describe('自动放技能', () => {
     expect(wantAutoSkill(w, false)).toBe(false); // 开关关
     w.skill.cd = 100;
     expect(wantAutoSkill(w, true)).toBe(false); // 冷却中
-    w.skill.cd = 0;
-    Object.defineProperty(w, 'liveNoSkill', { value: true });
-    expect(wantAutoSkill(w, true)).toBe(false); // 实盘不能放
   });
 });

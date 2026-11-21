@@ -1,17 +1,15 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { RAID_TEMPLATES } from '../../src/content/explore.ts';
 import { ENEMY_BY_KIND, type EnemyKind } from '../../src/content/enemies.ts';
 import { BINGHUN, WUMIAN } from '../../src/content/foes.ts';
 import { MAP_IDS, type MapId } from '../../src/content/maps.ts';
-import { RAID_REGIONS, VIGIL_REGIONS, vigilRegion } from '../../src/content/regions.ts';
+import { RAID_REGIONS, VIGIL_REGIONS } from '../../src/content/regions.ts';
 import { MID_BOSS, midBossOf } from '../../src/content/waves.ts';
 import { createWorld, Drop, Ev, fingerprint, rushPlan, step, type World } from '../../src/core/index.ts';
 import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
 import { foeHurtMul, foeSlowMul } from '../../src/core/foes/index.ts';
 import { generateMap } from '../../src/explore/mapgen.ts';
 import { NAV_INF } from '../../src/explore/nav.ts';
-import type { ReplayRecord } from '../../src/replay/format.ts';
 
 const MID_AT = 480 * 30;
 const BOSS_MAPS: [MapId, EnemyKind][] = [['bamboo', 'zhumu'], ['riverbank', 'shuihou'], ['icelake', 'binghun'], ['temple', 'wumian']];
@@ -435,55 +433,13 @@ describe('2.0 确定性', () => {
   });
 });
 
-describe('2.0 实盘不被带偏', () => {
-  it('规则 52 之前的实盘局各图的中期首领、特色怪表和 2.0 之前一致（画皮三图，其余纸扎老爷；雪原义庄不刷新怪）', () => {
-    const before: Record<string, string> = { bamboo: 'huapi', riverbank: 'huapi', guishi: 'huapi' };
-    for (const map of MAP_IDS) {
-      const w = createWorld({ seed: 7, mode: 'vigil', danger: 2, map, live: true }, 51);
-      const ev = w.schedule.find((e) => e.kind === 'boss' && e.enemy !== 'boss')!;
-      expect(ev.kind === 'boss' && ev.enemy, map).toBe(before[map] ?? 'lord');
-      expect(vigilRegion(map, true), map).toBe(map === 'snow' || map === 'yizhuang' ? undefined : VIGIL_REGIONS[map]);
-    }
-    // 实盘雪原 / 义庄 3 分钟里一只新怪都没有
-    for (const map of ['snow', 'yizhuang'] as const) {
-      const w = createWorld({ seed: 3, mode: 'vigil', danger: 2, map, live: true }, 51);
-      for (let t = 0; t < 5400; t++) {
-        w.hp = w.stats.hpMax;
-        step(w, 0, -1);
-        if (t % 60 === 0) for (let i = 0; i < w.eAlive.length; i++) if (w.eAlive[i]) expect([code('xuetong'), code('guandingui')]).not.toContain(w.eKind[i]);
-      }
-    }
-  }, 60000);
-
-  it('规则 52 起实盘局和娱乐局同一套中期首领和特色怪', () => {
+describe('实盘和娱乐同一套怪', () => {
+  it('实盘局和娱乐局同一套中期首领和特色怪', () => {
     for (const map of MAP_IDS) {
       const live = createWorld({ seed: 7, mode: 'vigil', danger: 2, map, live: true });
       const fun = createWorld({ seed: 7, mode: 'vigil', danger: 2, map });
-      expect(live.legacyFoes, map).toBe(false);
       const boss = (w: typeof live) => w.schedule.find((e) => e.kind === 'boss' && e.enemy !== 'boss');
       expect(boss(live), map).toEqual(boss(fun));
     }
-  });
-});
-
-describe('2.0 旧录像', () => {
-  // 规则版本 37 录的六局（竹林、河滩、雪原、义庄、冰湖、荒庙，小道士 + 剑修机器人打满）：38 里回放要逐位一致，
-  // 也就是 < 38 的录像用 2.0 之前的首领和刷怪表（画皮 / 纸扎老爷，没有雪童子、棺钉鬼）
-  const items = JSON.parse(readFileSync(new URL('../fixtures/replay-rules37.json', import.meta.url), 'utf8')) as { rec: ReplayRecord; fp: number; kills: number; level: number }[];
-
-  it('旧标记只由录像的规则版本决定：<38 用旧首领，当前版本不带；Setup 里塞不进来', () => {
-    const rec = items[0]!.rec;
-    const old = createWorld(rec.setup, 37);
-    expect(old.schedule.find((e) => e.kind === 'boss' && e.enemy !== 'boss')).toMatchObject({ enemy: 'huapi' });
-    const cur = createWorld(rec.setup);
-    expect(cur.replayRules).toBeUndefined();
-    expect(cur.legacyFoes).toBe(false);
-    expect(cur.schedule.find((e) => e.kind === 'boss' && e.enemy !== 'boss')).toMatchObject({ enemy: 'zhumu' });
-    expect(createWorld({ ...rec.setup, replayRules: 30 } as never).legacyFoes).toBe(false);
-    expect(createWorld(rec.setup, 38).legacyFoes).toBe(false);
-    // 首领连战的第五关同样按旧表
-    const rush = { ...rec.setup, rush: true } as never;
-    expect(createWorld(rush, 37).rush!.stages[4]).toEqual(['huapi']);
-    expect(createWorld(rush).rush!.stages[4]).toEqual(['zhumu']);
   });
 });

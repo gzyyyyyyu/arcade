@@ -103,8 +103,8 @@ describe('一局节奏（13.3）', () => {
 
 describe('时间线（13.3）', () => {
   const at = (pred: (e: (typeof EVENTS)[number]) => boolean): number[] => EVENTS.filter(pred).map((e) => e.at / S);
-  it('精英 5 次：3:00、5:00、7:30、10:00、12:00，精英都掉宝箱', () => {
-    expect([...new Set(at((e) => e.kind === 'elite').map((t) => Math.floor(t / 30) * 30))]).toEqual([180, 300, 450, 600, 720]);
+  it('精英：1:45、3:00、5:00、7:30、10:00、12:00、13:00，精英都掉宝箱', () => {
+    expect([...new Set(at((e) => e.kind === 'elite').map((t) => Math.floor(t / 15) * 15))]).toEqual([105, 180, 300, 450, 600, 720, 780]);
     for (const e of EVENTS) if (e.kind === 'elite') expect(ENEMIES.find((d) => d.kind === e.enemy)?.elite).toBe(true);
   });
   it('中期 Boss 8:00，尸王 14:00', () => {

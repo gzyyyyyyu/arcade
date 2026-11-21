@@ -1,15 +1,12 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CHAR_FX, CHARACTER_IDS, type CharacterId } from '../../src/content/meta.ts';
 import { weaponStats } from '../../src/content/weapons.ts';
-import { Drop, Ev, MAX_DROPS, MAX_ENEMIES, MAX_SHOTS, RULES_VERSION, Shot, createWorld, fingerprint, skillCooldown, skillReady, step, type World } from '../../src/core/index.ts';
+import { Drop, Ev, MAX_DROPS, MAX_ENEMIES, MAX_SHOTS, Shot, createWorld, fingerprint, skillCooldown, skillReady, step, type World } from '../../src/core/index.ts';
 import { spawnNow } from '../../src/core/debug.ts';
 import { ENEMIES } from '../../src/content/enemies.ts';
 import { SKILLS, SKILL_FX, SKILL_IDS, charDmgMul, paperRefund } from '../../src/core/skills.ts';
-import { LIVE_SKILL_OPEN } from '../../src/content/live.ts';
-import { MAP_IDS } from '../../src/content/maps.ts';
 import { SK } from '../../src/view/art/skills.ts';
-import { decodeSkills, encodeSkills, type ReplayRecord } from '../../src/replay/format.ts';
+import { decodeSkills, encodeSkills } from '../../src/replay/format.ts';
 import { ReplayPlayer } from '../../src/replay/player.ts';
 import { Recorder } from '../../src/replay/recorder.ts';
 
@@ -228,8 +225,8 @@ describe('每个技能的效果', () => {
     idle(w, SKILLS.baidu.dur);
     expect(w.skill.active).toBe(0);
     expect(count(w, Ev.SkillEnd)).toBeLessThanOrEqual(1);
-    // 水类法器 +50%（规则 67 起，之前 +10%），别的不变（记功的法器是水的才加）
-    expect(charDmgMul(w, 'tide')).toBe(CHAR_FX.baiduWater67);
+    // 水类法器 +50%，别的不变（记功的法器是水的才加）
+    expect(charDmgMul(w, 'tide')).toBe(CHAR_FX.baiduWater);
     expect(charDmgMul(w, 'sword')).toBe(1);
   });
 
@@ -328,74 +325,19 @@ describe('每个技能的效果', () => {
 
 });
 
-describe('实盘技能只在开放的「档位 × 地图」里放（规则版本 39 起）', () => {
-  // danger 0 = 小档，2 = 中档；地图缺省雪原
-  const mk = (extra: Record<string, unknown>, rules?: number): World => createWorld({ seed: 99, mode: 'vigil', danger: 0, character: 'xiaodao', live: true, ...extra } as never, rules);
-  const run = (extra: Record<string, unknown>, press: boolean, rules?: number): { uses: number; fp: number } => {
-    const w = mk(extra, rules);
+describe('实盘技能', () => {
+  const run = (extra: Record<string, unknown>, press: boolean): { uses: number; fp: number } => {
+    const w = createWorld({ seed: 99, mode: 'vigil', danger: 0, character: 'xiaodao', live: true, ...extra } as never);
+    expect(skillReady(w)).toBe(true);
     for (let t = 0; t < 200; t++) step(w, (t >> 4) % 33, w.phase === 'choose' ? 0 : -1, press && t % 10 === 3 ? 1 : 0);
     return { uses: w.skill.uses, fp: fingerprint(w) };
   };
 
-  it('表里的格子（小档 × 雪原）能放技能，HUD 的"好了"也认', () => {
-    expect(LIVE_SKILL_OPEN.small).toContain('snow');
-    const w = mk({});
-    expect(w.liveNoSkill).toBe(false);
-    expect(skillReady(w)).toBe(true);
-    expect(run({}, true).uses).toBeGreaterThan(0);
-    expect(run({}, true).fp).not.toBe(run({}, false).fp);
-  });
-
-  it('规则 44 及以前开的局：当时表外的格子（和夜探实盘）按技能键不生效，指纹和不按完全相同，和线上原样一致', () => {
-    const outside: Record<string, unknown>[] = [{ danger: 2, map: 'guishi' }, { danger: 4, map: 'guishi' }, { mode: 'raid', raid: { template: 'guzhen', live: 'small' } }];
-    for (const map of MAP_IDS) if (!LIVE_SKILL_OPEN.small.includes(map)) outside.push({ map });
-    for (const o of outside) {
-      const w = mk(o, 44);
-      expect(w.liveNoSkill, JSON.stringify(o)).toBe(true);
-      expect(skillReady(w), JSON.stringify(o)).toBe(false);
-      const a = run(o, true, 44), b = run(o, false, 44);
-      expect(a.uses, JSON.stringify(o)).toBe(0);
-      expect(a.fp, JSON.stringify(o)).toBe(b.fp);
+  it('实盘守夜各档、各图和夜探实盘都能放技能', () => {
+    for (const o of [{}, { danger: 2, map: 'guishi' }, { danger: 4, map: 'temple' }, { mode: 'raid', raid: { template: 'guzhen', live: 'small' } }] as Record<string, unknown>[]) {
+      expect(run(o, true).uses, JSON.stringify(o)).toBeGreaterThan(0);
+      expect(run(o, true).fp, JSON.stringify(o)).not.toBe(run(o, false).fp);
     }
-  });
-
-  it('0.17.0（规则版本 40）起中档以上雪原能放技能；规则版本 39 的同一格录像回放时仍按 0.16.0 的表，按技能键不生效', () => {
-    for (const danger of [2, 3, 4]) {
-      const now = mk({ danger });
-      expect(now.liveNoSkill, `危险 ${danger}`).toBe(false);
-      expect(run({ danger }, true).uses, `危险 ${danger}`).toBeGreaterThan(0);
-      const old = mk({ danger }, 39);
-      expect(old.liveNoSkill, `危险 ${danger} 旧录像`).toBe(true);
-      expect(run({ danger }, true, 39).uses).toBe(0);
-      expect(run({ danger }, true, 39).fp).toBe(run({ danger }, false, 39).fp);
-    }
-    // 没过的角色在开了的档里照旧不放技能（更夫大档）
-    const g = mk({ danger: 3, character: 'gengfu' }, 44);
-    expect(g.liveNoSkill).toBe(true);
-    expect(run({ danger: 3, character: 'gengfu' }, true, 44).fp).toBe(run({ danger: 3, character: 'gengfu' }, false, 44).fp);
-    // 0.17.10（规则 45）起都放技能
-    expect(mk({ danger: 3, character: 'gengfu' }).liveNoSkill).toBe(false);
-    // 小档雪原在 39 和 40 都开
-    expect(mk({}, 39).liveNoSkill).toBe(false);
-  });
-
-  it('0.17.8（规则版本 43）起小档河滩、义庄、荒庙、鬼市能放技能；规则版本 42 的同一格录像按技能键不生效', () => {
-    for (const map of ['riverbank', 'yizhuang', 'temple', 'guishi']) {
-      expect(mk({ map }).liveNoSkill, map).toBe(false);
-      expect(run({ map }, true).uses, map).toBeGreaterThan(0);
-      expect(mk({ map }, 42).liveNoSkill, `${map} 旧录像`).toBe(true);
-      expect(run({ map }, true, 42).fp, map).toBe(run({ map }, false, 42).fp);
-    }
-  });
-
-  it('规则版本 38 的实盘录像（哪怕是表里的格子）回放时按技能键不生效，指纹和不按完全相同', () => {
-    const w = mk({}, 38);
-    expect(w.liveNoSkill).toBe(true);
-    expect(skillReady(w)).toBe(false);
-    expect(run({}, true, 38).uses).toBe(0);
-    expect(run({}, true, 38).fp).toBe(run({}, false, 38).fp);
-    // 非实盘的旧录像不受影响
-    expect(createWorld({ seed: 99, mode: 'vigil', danger: 0 } as never, 38).liveNoSkill).toBe(false);
   });
 });
 
@@ -471,21 +413,6 @@ describe('录像', () => {
     expect(decodeSkills('5,5')).toBeNull();
     expect(decodeSkills('9,3')).toBeNull();
     expect(decodeSkills('a')).toBeNull();
-  });
-
-  it('旧卡池标记只由规则版本决定：<37 的录像带上，37 起的不带；不进 Setup，存档里带不进来', () => {
-    const items = JSON.parse(readFileSync(new URL('../fixtures/replay-pre-skill.json', import.meta.url), 'utf8')) as { rec: ReplayRecord; fp: number }[];
-    for (const it of items) {
-      expect(ReplayPlayer.from(it.rec)!.world.legacyPool).toBe(true);
-      expect(ReplayPlayer.from({ ...it.rec, rules: RULES_VERSION })!.world.legacyPool).toBe(false);
-      // 玩家在存档 / URL 里塞 legacyPool 没用：整理开局设置时不认
-      const smuggled = createWorld({ ...it.rec.setup, legacyPool: true } as never);
-      expect(smuggled.legacyPool).toBe(false);
-      // 新局不带标记，同一份设置按当前卡池走，指纹不会和旧录像的一样
-      const fresh = ReplayPlayer.from({ ...it.rec, rules: RULES_VERSION })!;
-      while (!fresh.done) fresh.tickOnce();
-      expect(fingerprint(fresh.world)).not.toBe(it.fp);
-    }
   });
 
   it('带技能的录像：录下真放出去的拍号（冷却中的空按不记），重放逐位一致', () => {

@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { ENEMY_BY_KIND, type EnemyKind } from '../../src/content/enemies.ts';
 import { CROSSBOW, HURRIER } from '../../src/content/foes.ts';
 import { vigilRegion, VIGIL_REGIONS } from '../../src/content/regions.ts';
-import { createWorld, RULES_VERSION, step, type World } from '../../src/core/index.ts';
+import { createWorld, step, type World } from '../../src/core/index.ts';
 import { spawnNow } from '../../src/core/debug.ts';
 
 const code = (k: EnemyKind): number => ENEMY_BY_KIND[k].code;
 const NEW = [code('crossbow'), code('hurrier')];
 
 /** 走 n 拍（左右来回走，血补满），返回场上出现过新怪的次数 */
-function run(map: 'riverbank' | 'temple', rules: number | undefined, n: number, live = false): { w: World; seen: number } {
-  const w = createWorld({ seed: 11, mode: 'vigil', danger: 2, map, ...(live ? { live } : {}) }, rules);
+function run(map: 'riverbank' | 'temple', n: number, live = false): { w: World; seen: number } {
+  const w = createWorld({ seed: 11, mode: 'vigil', danger: 2, map, ...(live ? { live } : {}) });
   let seen = 0;
   for (let t = 0; t < n; t++) {
     w.hp = w.stats.hpMax;
@@ -20,27 +20,14 @@ function run(map: 'riverbank' | 'temple', rules: number | undefined, n: number, 
   return { w, seen };
 }
 
-describe('规则 55：克制镇守的两种怪（纸弩手、催命鬼）', () => {
-  it('规则版本是 55 起', () => {
-    expect(RULES_VERSION).toBeGreaterThanOrEqual(55);
-  });
-
-  it('规则 54 的局不刷新怪（河滩 / 荒庙 3000 拍）', () => {
-    const a = run('riverbank', 54, 3000);
-    const b = run('temple', 54, 3000);
-    expect(a.seen + b.seen).toBe(0);
-  }, 60000);
-
-  it('规则 55 起娱乐局的河滩、荒庙刷新怪，别的图不刷；实盘规则 56 起刷（规则 55 的实盘录像不刷）', () => {
+describe('克制镇守的两种怪（纸弩手、催命鬼）', () => {
+  it('河滩、荒庙刷新怪（娱乐、实盘都是），别的图不刷', () => {
     for (const map of ['riverbank', 'temple'] as const) {
-      expect(run(map, undefined, 9000).seen, map).toBeGreaterThan(0);
-      expect(run(map, 55, 9000, true).seen, `${map} 规则 55 实盘`).toBe(0);
-      expect(run(map, undefined, 9000, true).seen, `${map} 实盘`).toBeGreaterThan(0);
-      expect(vigilRegion(map, false, true)!.mobs.map((m) => m.kind)).toEqual([...VIGIL_REGIONS[map]!.mobs.map((m) => m.kind), 'crossbow', 'hurrier']);
-      expect(vigilRegion(map, true, true)!.mobs.map((m) => m.kind)).toContain('crossbow');
-      expect(vigilRegion(map, false, false)).toBe(VIGIL_REGIONS[map]);
+      expect(run(map, 9000).seen, map).toBeGreaterThan(0);
+      expect(run(map, 9000, true).seen, `${map} 实盘`).toBeGreaterThan(0);
+      expect(vigilRegion(map)!.mobs.map((m) => m.kind)).toEqual([...VIGIL_REGIONS[map]!.mobs.map((m) => m.kind), 'crossbow', 'hurrier']);
     }
-    for (const map of ['snow', 'bamboo', 'icelake', 'yizhuang', 'guishi'] as const) expect(vigilRegion(map, false, true)).toBe(VIGIL_REGIONS[map]);
+    for (const map of ['snow', 'bamboo', 'icelake', 'yizhuang', 'guishi'] as const) expect(vigilRegion(map)).toBe(VIGIL_REGIONS[map]);
   }, 60000);
 
   function quiet(): World {

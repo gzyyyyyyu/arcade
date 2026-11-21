@@ -79,7 +79,7 @@ describe('义庄', () => {
 
 });
 
-describe('义庄、荒庙的院墙按规则版本（0.17.3，规则 41）', () => {
+describe('义庄、荒庙的院墙', () => {
   // 这次开口的院墙角上有没有墙：看贴着角的一个点是否被某块盖住（荒庙的东北、西南角本来就塌着）
   const CORNERS = { yizhuang: [[-1, -1], [1, -1], [-1, 1], [1, 1]], temple: [[-1, -1], [1, 1]] } as const;
   const cornerWalls = (blocks: readonly { x: number; y: number; w: number; h: number }[], map: keyof typeof CORNERS): number => {
@@ -94,19 +94,11 @@ describe('义庄、荒庙的院墙按规则版本（0.17.3，规则 41）', () =
     return n;
   };
 
-  it('新开的局四角开了缺口；规则 40 的旧录像回放用当时封死的四角', () => {
+  it('院墙四角开了缺口', () => {
     for (const map of ['yizhuang', 'temple'] as const) {
       const now = createWorld({ seed: 1, mode: 'vigil', danger: 0, map });
-      const old = createWorld({ seed: 1, mode: 'vigil', danger: 0, map }, 40);
       expect(now.blocks).toBe(MAPS[map].blocks);
-      expect(old.blocks).toBe(MAPS[map].blocksV40);
       expect(cornerWalls(now.blocks, map)).toBe(0);
-      expect(cornerWalls(old.blocks, map)).toBe(CORNERS[map].length);
     }
-  });
-
-  it('别的图没有旧版墙，回放旧录像照用现在的', () => {
-    const old = createWorld({ seed: 1, mode: 'vigil', danger: 0, map: 'bamboo' }, 40);
-    expect(old.allBlocks).toBe(MAPS.bamboo.blocks);
   });
 });

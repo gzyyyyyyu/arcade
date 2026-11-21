@@ -1,7 +1,7 @@
 /**
- * 规则 55 的搭配（DESIGN 3.3c）：符火燎原、铃符、铃焰、钟鼓齐鸣。
+ * 第三批搭配（DESIGN 3.3c）：符火燎原、铃符、铃焰、钟鼓齐鸣。
  * 目的是把被镇魂铃起手那条挤出线的流派（烈火、符箓、镇守、阵法）抬回来，所以都是「往上补」：只给这些搭配的持有者加输出。
- * 能不能合由 MERGES 的 since: 55 把关（宝箱、合成提示都按规则版本判），所以这里只看 w.merges。
+ * 能不能合由宝箱（core/step.ts mergeOpen）把关，所以这里只看 w.merges。
  * 和第二批一样只用四则运算，随机不用。
  */
 import { COMBO55, WEAPON_IDS, type WeaponId } from '../../content/weapons.ts';

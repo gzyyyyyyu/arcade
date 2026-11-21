@@ -48,20 +48,20 @@ export const MID_BOSS: Partial<Record<'bamboo' | 'riverbank' | 'icelake' | 'temp
   temple: 'wumian',
   guishi: 'huapi',
 };
-/** 实盘局的中期首领仍用 2.0 之前的表（画皮三图、其余纸扎老爷）：2.0 配平段之后再放进实盘（DESIGN 4.3） */
-const LIVE_MID_BOSS: Record<string, MidBoss> = { bamboo: 'huapi', riverbank: 'huapi', guishi: 'huapi' };
-export function midBossOf(map: string | undefined, live?: boolean): MidBoss {
-  return (map ? (live ? LIVE_MID_BOSS : (MID_BOSS as Record<string, MidBoss | undefined>))[map] : undefined) ?? 'lord';
+export function midBossOf(map: string | undefined): MidBoss {
+  return (map ? (MID_BOSS as Record<string, MidBoss | undefined>)[map] : undefined) ?? 'lord';
 }
 
 const S = 30;
 /**
- * 定点事件，at 是拍数。精英 5 次（3:00、5:00、7:30、10:00、12:00）；"小爆点"在 2:30（纸人围圈）、7:30（小鬼火群冲）、12:30（纸人海），
+ * 定点事件，at 是拍数。精英在 1:45（只掉单件箱）、3:00、5:00、7:30、10:00、12:00、13:00；"小爆点"在 2:30（纸人围圈）、7:30（小鬼火群冲）、12:30（纸人海），
  * 纸马群冲在 4:00、9:00 垫一下（DESIGN.md 2.2、13.3）。
  */
 export const EVENTS: readonly WaveEvent[] = [
   // 开场 2 秒：正面近处来一小群纸人，保证 10 秒内第一次升级（验收 ①）
   { at: 2 * S, kind: 'front', enemy: 'paper', count: 12 },
+  // 1:45 一只只掉单件箱（small）的纸轿：开局别一下子给太多；用走得慢的纸轿（白狐太快，危险 4 的新手 420 局里有 49 局在第 4 分钟前被它追死），血和伤害打 BALANCE_57.small 折
+  { at: 105 * S, kind: 'elite', enemy: 'palanquin', count: 1, small: true },
   { at: 150 * S, kind: 'ring', enemy: 'paper', count: 56, radius: 400 },
   { at: 180 * S, kind: 'elite', enemy: 'shishi', count: 1 },
   { at: 240 * S, kind: 'line', enemy: 'horse', count: 14 },
@@ -74,21 +74,13 @@ export const EVENTS: readonly WaveEvent[] = [
   { at: 720 * S, kind: 'elite', enemy: 'shishi', count: 1 },
   { at: 721 * S, kind: 'elite', enemy: 'whitefox', count: 1 },
   { at: 750 * S, kind: 'ring', enemy: 'paper', count: 90, radius: 430 },
+  // 13:00 补首领前的空档
+  { at: 780 * S, kind: 'elite', enemy: 'whitefox', count: 1 },
   { at: 840 * S, kind: 'boss', enemy: 'boss' },
 ];
 
 /**
- * 规则 57 补的精英（World.new57：娱乐先开，实盘量完系数再开）：所有者实测 2、3 分钟没有精英没有宝箱，首领前也空 2 分钟。
- * 1:45 那只只掉单件的箱（small），开局别一下子给太多；13:00 补首领前的空档。没有图专属精英的两张图另补 VIGIL_REGIONS 的 elites57
- */
-export const EVENTS_57: readonly WaveEvent[] = [
-  // 1:45 用走得慢的纸轿（白狐太快，危险 4 的新手 420 局里有 49 局在第 4 分钟前被它追死），血和伤害打 BALANCE_57.small 折
-  { at: 105 * S, kind: 'elite', enemy: 'palanquin', count: 1, small: true },
-  { at: 780 * S, kind: 'elite', enemy: 'whitefox', count: 1 },
-];
-
-/**
- * 规则 57 的守夜配平（World.new57，夜探不受影响）：精英多了、宝箱更大且一箱结完，按娱乐 sim 前后对照压回来——
+ * 守夜配平（夜探不受影响）：精英多了、宝箱更大且一箱结完，按娱乐 sim 前后对照压回来——
  * 精英血量 ×eliteHp（试过 1.3–1.6 会伤新手，留 1），怪每分钟变硬 hpPerMin（替 SCALE.hpPerMin）；1:45 那只开局精英血 ×small.hp、伤害 ×small.dmg、不吃 eliteHp。不砍 3 件、5 件的概率（所有者要宝箱有好东西）
  */
 export const BALANCE_57 = { eliteHp: 1, hpPerMin: 0.35, small: { hp: 0.5, dmg: 0.6 } };
@@ -228,7 +220,7 @@ export const RAID_DANGERS: Record<Danger, DangerDef> = {
  * 实盘稍微降一点难度（所有者 11-04，规则版本 50 起，只管守夜危险 ≥ fromDanger，即中档以上）：
  * 全覆盖测量里中档以上难图小白的头号死因是敌人远程弹（灯笼鬼火球、尸王尸气、雪魅冰锥、纸扎老爷纸钱，占小白死亡的 35～50%），
  * 普通会躲、小白不会，所以远程弹的伤害倍数封顶 shotDmgCap；只压远程弹时小白换个死法、总死亡率几乎不变（试跑荒庙大档 84% → 79%），
- * 再把所有受到的伤害乘 dmgScale。娱乐局、夜探不受影响；规则版本 < 50 的录像照旧
+ * 再把所有受到的伤害乘 dmgScale。娱乐局、夜探不受影响
  */
 export const LIVE_EASE = { fromDanger: 2, shotDmgCap: 1.0, dmgScale: 0.9 };
 /** 精英发狂（噩梦档）：血掉到 at 以下，走路和撞人的倍数 */

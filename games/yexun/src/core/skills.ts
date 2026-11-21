@@ -49,10 +49,10 @@ export const SKILL_FX = {
   /** 剪纸成军：剪几个、从主角身边什么距离冒出来（纸兵的伤害、寿命随纸兵法器；寿命 8 秒 = 纸兵法器的"持续"以外另算，见 life） */
   paper: { n: 4, life: 8 * S, ring: 46 },
   /** 横江一渡：水域半径、里面主角的速度倍数（怪慢 40%：记 1 档减速，实际 ×0.62） */
-  // dmg、perLevel：规则 67 起水域里的怪每秒挨一下 dmg + perLevel × 等级（采药女药香圈的两倍）
+  // dmg、perLevel：水域里的怪每秒挨一下 dmg + perLevel × 等级（采药女药香圈的两倍）
   ferry: { r: 190, speed: 1.3, dmg: 16, perLevel: 4 },
   /**
-   * 规则 61 的角色技能钩子（World.skillHooks）：小道士手上剑类 ≥ 2 件时身后补一刀；符师每多一件符类多飞几张、封顶；
+   * 角色技能钩子：小道士手上剑类 ≥ 2 件时身后补一刀；符师每多一件符类多飞几张、封顶；
    * 剑侠冲刺打倒精英当场转好；胖师叔挡下的伤害 × storeMul 在结束时震出去；采药女回春每秒伤药香圈里的怪（底 + 每级 × 等级）
    */
   hooks: { backSlashAt: 2, fuPer: 3, fuMax: 21, storeMul: 2, herbDmg: 8, herbPerLevel: 2 },
@@ -106,23 +106,16 @@ export function yinyangSide(w: World): 'yang' | 'yin' | null {
   return w.hp * 2 >= w.stats.hpMax ? 'yang' : 'yin';
 }
 
-/**
- * 规则 65 缩短的冷却（DESIGN 3.7）：关技能对照里铁布衫、万符齐发值的胜率最少（−1～+2 个点），铁布衫机器人放得也最少；
- * 这里是改之前的拍数，只给规则 65 以前的录像逐位重放用
- */
-const SKILL_CD_BEFORE_65: Partial<Record<CharacterId, number>> = { fushi: 18 * S, pang: 22 * S };
-
 export function skillCooldown(w: World): number {
   // 阴阳先生·阴阳互济：血不足一半时冷却再 −8%（和香炉一样只算一半，按放的那一刻的血算）
   const yy = yinyangSide(w) === 'yin' ? CHAR_FX.yinyangCd : 0;
   const bonus = 0.08 * (w.passives.xianglu ?? 0) + PERK_FX.lingqi * (w.setup.perks?.lingqi ?? 0) + yy;
-  const base = (w.identity65 ? undefined : SKILL_CD_BEFORE_65[w.setup.character ?? 'xiaodao']) ?? skillOf(w).cd;
-  return Math.max(S, Math.round(base * (1 - bonus / 2)));
+  return Math.max(S, Math.round(skillOf(w).cd * (1 - bonus / 2)));
 }
 
-/** 能不能放：冷却完了、没在持续中、在打、不是实盘（实盘先不开技能，等带技能配平之后再放，DESIGN 4.3；HUD 的"好了"也看它） */
+/** 能不能放：冷却完了、没在持续中、在打（HUD 的"好了"也看它） */
 export function skillReady(w: World): boolean {
-  return w.phase === 'play' && !w.liveNoSkill && w.skill.cd <= 0 && w.skill.active <= 0;
+  return w.phase === 'play' && w.skill.cd <= 0 && w.skill.active <= 0;
 }
 
 /** 铁布衫期间挨打乘的倍数（hurt 用；平时恒为 1） */
@@ -167,19 +160,19 @@ export function skillFortune(w: World): boolean {
 
 /**
  * 乘在每一下伤害上的角色和开局配置那部分（hitEnemy 用）：
- * 摆渡人的水类法器 +10%；货郎每 100 枚铜钱 +1%（最多 +10%）；阴阳先生血过半 +8%；规则 65 起心法流派单子上的法器 ×XINFA_DMG。
+ * 摆渡人的水类法器 +50%；货郎每 100 枚铜钱 +1%（最多 +10%）；阴阳先生血过半 +8%；心法流派单子上的法器 ×XINFA_DMG。
  * owner = 记功的法器（技能打的没有）
  */
 export function charDmgMul(w: World, owner: WeaponId | undefined): number {
   const xf = w.xinfa;
-  const school = xf && owner !== undefined && w.identity65 && SCHOOLS[xf].weapons.includes(owner) ? XINFA_DMG : 1;
+  const school = xf && owner !== undefined && SCHOOLS[xf].weapons.includes(owner) ? XINFA_DMG : 1;
   return school * charPerkMul(w, owner);
 }
 
 function charPerkMul(w: World, owner: WeaponId | undefined): number {
   switch (w.setup.character) {
     case 'baidu':
-      return owner !== undefined && WEAPONS[owner].el === '水' ? (w.identity67 ? CHAR_FX.baiduWater67 : CHAR_FX.baiduWater) : 1;
+      return owner !== undefined && WEAPONS[owner].el === '水' ? CHAR_FX.baiduWater : 1;
     case 'huolang':
       return 1 + Math.min(CHAR_FX.huolangMax, CHAR_FX.huolangStep * Math.floor(w.coins / CHAR_FX.huolangPer));
     case 'yinyang':
@@ -209,11 +202,9 @@ function typeCount(w: World, type: string): number {
 }
 
 /**
- * 技能借的那件法器没拿在手上时按几级算：规则 59 起 = 手上最高的法器等级（封顶那件法器的满级），
- * 第二起手的技能跟着成长走，不再一直是 1 级；规则 58 以前的录像照旧按 1 级
+ * 技能借的那件法器没拿在手上时按几级算：手上最高的法器等级（封顶那件法器的满级），第二起手的技能跟着成长走
  */
 function borrowLevel(w: World, id: WeaponId): number {
-  if (!w.rulesFrom(59)) return 1;
   let lv = 1;
   for (const o of w.weapons) if (o.level > lv) lv = o.level;
   return Math.min(lv, WEAPONS[id].ups.length + 1);
@@ -269,8 +260,8 @@ export function useSkill(w: World, g: Grid, ops: SkillOps): void {
       break;
     case 'caiyao': {
       const burst = w.stats.hpMax * SKILL_FX.spring.burst;
-      // 规则 66：满血时回不进去的血变成药香圈的伤害——回不进去的占立刻回的那一下的几成，药香每一下就多几成（store 记千分比，满血 = 翻倍）
-      k.store = w.identity66 ? Math.round((1000 * Math.max(0, burst - (w.stats.hpMax - w.hp))) / burst) : 0;
+      // 满血时回不进去的血变成药香圈的伤害——回不进去的占立刻回的那一下的几成，药香每一下就多几成（store 记千分比，满血 = 翻倍）
+      k.store = Math.round((1000 * Math.max(0, burst - (w.stats.hpMax - w.hp))) / burst);
       w.ev.push(Ev.SkillUse, w.x, w.y, def.code, def.dur, SKILL_FX.spring.slowR);
       heal(w, burst);
       break;
@@ -302,11 +293,11 @@ export function tickSkill(w: World, g: Grid, ops: SkillOps): void {
     const n = w.stats.hpMax * SKILL_FX.spring.perSec;
     heal(w, n);
     w.ev.push(Ev.SkillBeat, w.x, w.y, def.code, SKILL_FX.spring.slowR, n);
-    // 规则 61：药香圈里的怪每秒受一次伤（回春从「只回血」变成也能清身边）
-    if (w.skillHooks) hitAround(w, g, ops, SKILL_FX.spring.slowR, ((SKILL_FX.hooks.herbDmg + SKILL_FX.hooks.herbPerLevel * w.level) * (1000 + k.store)) / 1000, 0);
+    // 药香圈里的怪每秒受一次伤（回春从「只回血」变成也能清身边）
+    hitAround(w, g, ops, SKILL_FX.spring.slowR, ((SKILL_FX.hooks.herbDmg + SKILL_FX.hooks.herbPerLevel * w.level) * (1000 + k.store)) / 1000, 0);
   }
-  // 规则 67：摆渡人的水域每秒打一下（放出时补强，横江一渡从只减速变成也能清身边）
-  else if (id === 'baidu' && w.identity67 && elapsed % S === 0) {
+  // 摆渡人的水域每秒打一下（横江一渡从只减速变成也能清身边）
+  else if (id === 'baidu' && elapsed % S === 0) {
     const r = SKILL_FX.ferry.r * w.stats.areaMul;
     hitAround(w, g, ops, r, SKILL_FX.ferry.dmg + SKILL_FX.ferry.perLevel * w.level, 0);
     w.ev.push(Ev.SkillBeat, w.x, w.y, def.code, 0, r);
@@ -315,7 +306,7 @@ export function tickSkill(w: World, g: Grid, ops: SkillOps): void {
   if (id === 'caiyao') k.store = 0;
   if (id === 'pang') {
     knockAround(w, g, w.x, w.y, SKILL_FX.iron.r, SKILL_FX.iron.knock);
-    // 规则 61：铁布衫挡下的伤害 × storeMul 震出去（先挨打、再反打）
+    // 铁布衫挡下的伤害 × storeMul 震出去（先挨打、再反打）
     if (k.store > 0) {
       hitAround(w, g, ops, SKILL_FX.iron.r * w.stats.areaMul, k.store * SKILL_FX.hooks.storeMul, SKILL_FX.iron.knock);
       k.store = 0;
@@ -325,7 +316,7 @@ export function tickSkill(w: World, g: Grid, ops: SkillOps): void {
 }
 
 /**
- * 阴阳先生·阴阳互换（规则 66）：血量越过一半那一拍（阳 → 阴、阴 → 阳都算），脚下定阵那么大的一圈里的怪定住 yinyangFlipBind 拍（首领除外），
+ * 阴阳先生·阴阳互换：血量越过一半那一拍（阳 → 阴、阴 → 阳都算），脚下定阵那么大的一圈里的怪定住 yinyangFlipBind 拍（首领除外），
  * 两个方向共用 yinyangFlipCd 的冷却。发 skillBeat（画面复用定阵的特效，头像上的阴阳字闪一下）。每拍由 step 调用
  */
 export function yinyangFlip(w: World, g: Grid): void {
@@ -379,8 +370,8 @@ function knockAround(w: World, g: Grid, x: number, y: number, r: number, knock: 
 
 function sweep(w: World, g: Grid, ops: SkillOps): void {
   slashAt(w, g, ops, w.face);
-  // 规则 61：剑修成长——手上剑类法器够数，身后同样斩一刀
-  if (w.skillHooks && typeCount(w, '剑') >= SKILL_FX.hooks.backSlashAt) slashAt(w, g, ops, w.face + 128);
+  // 剑修成长：手上剑类法器够数，身后同样斩一刀
+  if (typeCount(w, '剑') >= SKILL_FX.hooks.backSlashAt) slashAt(w, g, ops, w.face + 128);
 }
 
 /** 朝 face 方向斩一道扇形（方向表 256 个方向，+128 = 正后方） */
@@ -411,8 +402,8 @@ function volley(w: World, g: Grid, ops: SkillOps): void {
   const f = SKILL_FX.volley;
   const h = SKILL_FX.hooks;
   const dmg = baseDmg(w, 'talisman');
-  // 规则 61：手上每多一件符类法器多飞 fuPer 张（封顶 fuMax）
-  const count = w.skillHooks ? Math.min(h.fuMax, f.n + h.fuPer * Math.max(0, typeCount(w, '符') - 1)) : f.n;
+  // 手上每多一件符类法器多飞 fuPer 张（封顶 fuMax）
+  const count = Math.min(h.fuMax, f.n + h.fuPer * Math.max(0, typeCount(w, '符') - 1));
   w.ev.push(Ev.SkillUse, w.x, w.y, SKILLS.fushi.code, w.face, count);
   const n = g.query(w, w.x, w.y, f.find);
   for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
@@ -502,8 +493,8 @@ function dash(w: World, g: Grid, ops: SkillOps): void {
       ops.hit(w, i, dmg, ux, uy, 20);
     }
   }
-  // 规则 61：冲刺打倒了精英，冷却当场转好（点杀精英、接着冲）
-  if (w.skillHooks && hitList.some((i) => !w.eAlive[i] && ENEMIES[w.eKind[i]!]!.elite)) w.skill.cd = 0;
+  // 冲刺打倒了精英，冷却当场转好（点杀精英、接着冲）
+  if (hitList.some((i) => !w.eAlive[i] && ENEMIES[w.eKind[i]!]!.elite)) w.skill.cd = 0;
   // 冲的这段不挨打；冰上冲完不带着滑
   w.invuln = Math.max(w.invuln, f.invuln);
   w.pvx = 0;
@@ -516,8 +507,8 @@ function dash(w: World, g: Grid, ops: SkillOps): void {
 
 function clap(w: World, g: Grid, ops: SkillOps): void {
   const f = SKILL_FX.clapper;
-  // 规则 61：梆子护身——每一梆补一层护身（没带金钟罩也有一层），挨一下挡掉
-  if (w.skillHooks && w.shield < Math.max(1, w.shieldMax)) w.shield++;
+  // 梆子护身：每一梆补一层护身（没带金钟罩也有一层），挨一下挡掉
+  if (w.shield < Math.max(1, w.shieldMax)) w.shield++;
   const r = f.r * w.stats.areaMul;
   const dmg = f.dmg + f.perLevel * w.level;
   w.ev.push(Ev.SkillBeat, w.x, w.y, SKILLS.gengfu.code, r, 0);
@@ -533,14 +524,12 @@ function clap(w: World, g: Grid, ops: SkillOps): void {
 
 /**
  * 在主角身边围一圈剪出纸兵，不看上限；寿命吃巧手。手上有纸兵法器就挂在它的槽位上（吃它的等级、伤害、合成）；
- * 没有（第二起手、纸兵还没抽到）规则 59 起挂在槽位 -1 上，数值按 borrowStats（step 的 movePaper 认 -1）；规则 58 以前没有就剪不出
+ * 没有（第二起手、纸兵还没抽到）挂在槽位 -1 上，数值按 borrowStats（step 的 movePaper 认 -1）
  */
 function paperArmy(w: World, ops: SkillOps): void {
   const f = SKILL_FX.paper;
   const k = w.weapons.findIndex((o) => o.id === 'zhibing');
-  const can = k >= 0 || w.rulesFrom(59);
-  w.ev.push(Ev.SkillUse, w.x, w.y, SKILLS.zhijiang.code, can ? f.n : 0, f.ring);
-  if (!can) return;
+  w.ev.push(Ev.SkillUse, w.x, w.y, SKILLS.zhijiang.code, f.n, f.ring);
   const life = Math.round(f.life * w.stats.durMul * paperLifeMul(w) * (1 + 0.2 * (w.passives.jiandao ?? 0)));
   const dmg = baseDmg(w, 'zhibing');
   for (let j = 0; j < f.n; j++) {

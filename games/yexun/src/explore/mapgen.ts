@@ -9,6 +9,7 @@
  */
 import { CHEST_SPACING, RAID_TEMPLATES, RAID_WALL, SPAWN_INSET, type ChestTier, type RaidEnemyKind, type RaidTemplate, type RaidTemplateId } from '../content/explore.ts';
 import type { EnemyKind } from '../content/enemies.ts';
+import type { Rect } from '../content/maps.ts';
 import { dist } from '../core/fmath.ts';
 import { Rng } from '../core/rng.ts';
 import { BlockIndex, type RaidBlock } from './blocks.ts';
@@ -63,6 +64,8 @@ export interface RaidMap {
   template: RaidTemplateId;
   /** 戏楼镇的戏台位置 */
   stage?: { x: number; y: number };
+  /** 窑镇的窑口：火区（core/fire.ts），其余镇子是空表 */
+  fire: Rect[];
   size: number;
   center: number;
   blocks: RaidBlock[];
@@ -98,6 +101,7 @@ export function generateMap(template: RaidTemplateId, seed: number): RaidMap {
 
   const blocks: RaidBlock[] = [];
   const yards: Yard[] = [];
+  const fire: Rect[] = [];
   let stage: { x: number; y: number } | undefined;
 
   if (tpl.river) river(tpl, ranges, rng, blocks);
@@ -129,7 +133,11 @@ export function generateMap(template: RaidTemplateId, seed: number): RaidMap {
         stage = { x: yard.x + yard.w / 2, y: yard.y + yard.h / 2 };
         stageYard(yard, blocks);
       } else if (kind === 'plaza') plaza(yard, rng, blocks);
-      else walledYard(yard, rng, blocks, tpl.terraces?.rows.includes(ranges[by]![0] - 1) ? [0] : [], tpl.houseLook);
+      else {
+        // 窑场只在普通院子里抽（只有窑镇抽这一次随机数，别的镇子的布局不变）
+        const kiln = kind === 'yard' && tpl.kilnChance !== undefined && rng.next() < tpl.kilnChance;
+        walledYard(yard, rng, blocks, tpl.terraces?.rows.includes(ranges[by]![0] - 1) ? [0] : [], kiln ? 'kiln' : tpl.houseLook, kiln ? fire : null);
+      }
 
       if (kind === 'vault') pending.push({ yard, chest: 'gold', guard: tpl.vaultGuard ? 'gate' : 'beast', guardKind: tpl.vaultGuard ?? 'beast', extra: 1 });
       else if (kind === 'temple') pending.push({ yard, chest: 'gold', guard: tpl.templeGuard ? 'patrol' : null, guardKind: tpl.templeGuard ? 'patrol' : null, extra: 0 });
@@ -247,7 +255,7 @@ export function generateMap(template: RaidTemplateId, seed: number): RaidMap {
     }
   }
 
-  return { template, stage, size, center, blocks, index, nav, yards, chests, guards, gates, spawn, nodes, links };
+  return { template, stage, fire, size, center, blocks, index, nav, yards, chests, guards, gates, spawn, nodes, links };
 }
 
 /** 渡口的河：这一行块整行（含两边的环街）是水，只在挑中的竖街上留桥 */
@@ -290,7 +298,7 @@ function terraces(tpl: RaidTemplate, rng: Rng, blocks: RaidBlock[]): void {
 }
 
 /** 有墙的院子：四面墙、门（院和庙 2 个、石兽院 1 个、破院最多 3 个且更宽；只开一个门的院子走出来绕得太远，天亮前赶不到门），正房靠着第一个门对面的墙；noDoor 那几面不开门 */
-function walledYard(yard: Yard, rng: Rng, blocks: RaidBlock[], noDoor: readonly number[], houseLook?: 'granary'): void {
+function walledYard(yard: Yard, rng: Rng, blocks: RaidBlock[], noDoor: readonly number[], houseLook: 'granary' | 'kiln' | undefined, fire: Rect[] | null): void {
   const T = RAID_WALL.thick;
   const ruin = yard.kind === 'ruin';
   const doorW = ruin ? RAID_WALL.door + 80 : RAID_WALL.door;
@@ -343,7 +351,18 @@ function walledYard(yard: Yard, rng: Rng, blocks: RaidBlock[], noDoor: readonly 
   else if (back === 2) blocks.push({ x: cx - hw / 2, y: iy1 - D, w: hw, h: D, look });
   else if (back === 3) blocks.push({ x: ix0, y: cy - hw / 2, w: D, h: hw, look });
   else blocks.push({ x: ix1 - D, y: cy - hw / 2, w: D, h: hw, look });
+  if (!fire) return;
+  // 窑口朝院子里：窑前一块 KILN_FIRE 深、和窑一样宽的六成的火区
+  const fw = hw * 0.6;
+  const F = KILN_FIRE;
+  if (back === 0) fire.push({ x: cx - fw / 2, y: iy0 + D, w: fw, h: F });
+  else if (back === 2) fire.push({ x: cx - fw / 2, y: iy1 - D - F, w: fw, h: F });
+  else if (back === 3) fire.push({ x: ix0 + D, y: cy - fw / 2, w: F, h: fw });
+  else fire.push({ x: ix1 - D - F, y: cy - fw / 2, w: F, h: fw });
 }
+
+/** 窑口火区往院里伸多深 */
+const KILN_FIRE = 170;
 
 /** 戏楼镇的空场：正中一座大戏台（碰撞只算台基，靠后的一半），台前留空，四个角各一个摊子 */
 function stageYard(yard: Yard, blocks: RaidBlock[]): void {

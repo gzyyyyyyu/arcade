@@ -36,8 +36,7 @@ const moneyShots = (w: World): number => {
 };
 
 describe('鬼市', () => {
-  it('登记：排在最后、12 分钟解锁、特色怪和精英、地图事件、图鉴、成就；实盘先不开', () => {
-    expect(MAP_IDS[MAP_IDS.length - 1]).toBe('guishi');
+  it('登记：12 分钟解锁、特色怪和精英、地图事件、图鉴、成就；实盘先不开', () => {
     expect(MAP_UNLOCK.guishi?.seconds).toBe(720);
     // 卡上的"难"字从表里来：义庄、荒庙
     expect(MAP_IDS.filter((m) => MAPS[m].hard)).toEqual(['yizhuang', 'temple']);
@@ -175,7 +174,6 @@ describe('新地图不改动已开打的挑战', () => {
     const six = ['snow', 'bamboo', 'icelake', 'riverbank', 'yizhuang', 'temple'];
     expect(RUSH_MAPS).toEqual(six);
     expect(WEEKLY_MAPS).toEqual(six);
-    expect(MAP_IDS.slice(0, 6)).toEqual(six);
     // 这两天在鬼市加进来之前就已经有人打过榜
     expect(six).toContain(rushDaily('2026-10-31').setup.map);
     expect(six).toContain(weeklyPlan('2026-10-31').setup.map);

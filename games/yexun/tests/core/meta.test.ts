@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENEMY_BY_KIND } from '../../src/content/enemies.ts';
 import { ASSIST, CHAR_FX, CHARACTERS, CHARACTER_IDS, PERK_FX } from '../../src/content/meta.ts';
 import { PICKS } from '../../src/content/picks.ts';
-import { DANGER_IDS, DANGERS, EVENTS, EVENTS_57, LOOT_CAP, lootMul, TWIN_BOSS_HP } from '../../src/content/waves.ts';
+import { DANGER_IDS, DANGERS, EVENTS, LOOT_CAP, lootMul, TWIN_BOSS_HP } from '../../src/content/waves.ts';
 import { Drop } from '../../src/core/state.ts';
 import { createWorld, Ev, normalizeSetup, step, type Setup, type World } from '../../src/core/index.ts';
 import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
@@ -24,8 +24,8 @@ function count(w: World, kind: keyof typeof ENEMY_BY_KIND): number {
 describe('危险档', () => {
   it('危险 0、1 精英晚 30 秒；危险 2 起按时间线；危险 4 起每次多一只', () => {
     const at = (d: Setup['danger']): number => make({ danger: d }).schedule.find((e) => e.kind === 'elite')!.at;
-    // 规则 57 起最早的精英是 EVENTS_57 里 1:45 那只
-    const first = Math.min(...[...EVENTS, ...EVENTS_57].filter((e) => e.kind === 'elite').map((e) => e.at));
+    // 最早的精英是 1:45 那只
+    const first = Math.min(...EVENTS.filter((e) => e.kind === 'elite').map((e) => e.at));
     expect(at(0)).toBe(first + DANGERS[0].eliteLate);
     expect(at(1)).toBe(first + DANGERS[1].eliteLate);
     expect(at(2)).toBe(first);

@@ -8,7 +8,7 @@ import type { World } from '../../core/state.ts';
 import { inputCos, inputSin } from '../../core/fmath.ts';
 import type { MapDef } from '../../content/maps.ts';
 
-/** 柱子、横杆的颜色：雪原冰湖木栅栏，竹林竹篱，河滩石堤，义庄院墙，鬼市挂红布的木栏 */
+/** 柱子、横杆的颜色：雪原冰湖木栅栏，竹林竹篱，河滩石堤，义庄院墙，鬼市挂红布的木栏，乱葬岗朽黑的木桩 */
 const LOOK: Record<string, { post: number; rail: number; postW: number; gap: number; solid?: boolean }> = {
   snow: { post: 0x5a3a22, rail: 0x8a5a32, postW: 12, gap: 70 },
   ice: { post: 0x4a3a32, rail: 0x7a6250, postW: 12, gap: 70 },
@@ -17,6 +17,7 @@ const LOOK: Record<string, { post: number; rail: number; postW: number; gap: num
   yard: { post: 0x3a3238, rail: 0x8a8088, postW: 30, gap: 60, solid: true },
   temple: { post: 0x6a3a2a, rail: 0xa0503a, postW: 24, gap: 64, solid: true },
   market: { post: 0x3a2a34, rail: 0x9a3a36, postW: 14, gap: 56 },
+  grave: { post: 0x3a3630, rail: 0x6a6052, postW: 10, gap: 44 },
 };
 const INK = 0x17131c;
 /** 栅栏外那圈雾的颜色（夜蓝） */

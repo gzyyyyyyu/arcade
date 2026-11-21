@@ -24,6 +24,7 @@
 .yx-banners .yx-banner.ev-risen { --evc: #b07ae0; }
 .yx-banners .yx-banner.ev-bell { --evc: #f2c744; }
 .yx-banners .yx-banner.ev-parade { --evc: #f08a4a; }
+.yx-banners .yx-banner.ev-allfire { --evc: #4ad8a0; }
 .yx-banners .yx-banner.ev-blood { --evc: #e0303a; }
 /* 盖章大字（画皮现形）：深红字 + 墨边，雪地和夜色下都醒目 */
 .yx-banners .yx-stamp {

@@ -1,47 +1,26 @@
-import { describe, expect, it, onTestFinished, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { LIVE_KEY, LiveClient, classify, liveSetup, reviveLive } from '../../src/platform/live.ts';
-import { LIVE_MAP_BP, LIVE_MAX_BP, LIVE_SKILL_BP, LIVE_TIER_IDS, LIVE_TIERS, shapeBp, VIGIL_BOSS_ADD_BP, VIGIL_SHAPE, vigilBp } from '../../src/content/live.ts';
-import { normalizeSetup, RULES_VERSION } from '../../src/core/state.ts';
+import { LIVE_MAX_BP, LIVE_TIER_IDS, LIVE_TIERS, vigilBp } from '../../src/content/live.ts';
+import { normalizeSetup } from '../../src/core/state.ts';
 import { RAID_LIVE } from '../../src/content/explore.ts';
 
 const res = (status: number, body: unknown): Response => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const OK = { ok: true, wallet: { balance: 1 }, credited: 0, capped: 0, user: 'u1' };
 
 describe('守夜结回倍数', () => {
-  it('天亮倍数随档位不降：越大的档不会更难还给得更少（主线 #211）', () => {
-    for (let i = 1; i < LIVE_TIER_IDS.length; i++) {
-      expect(LIVE_TIERS[LIVE_TIER_IDS[i]!].dawnBp).toBeGreaterThanOrEqual(LIVE_TIERS[LIVE_TIER_IDS[i - 1]!].dawnBp);
-    }
-  });
-  it('每档（不开技能的格子，以鬼市代表）：3:00 前为 0、随撑的时间不减、天亮 = dawnBp、尸王再加且封顶', () => {
-    // 锁的是曲线：鬼市的地图系数（0.17.7）先拿掉按 1 倍算，测完还原；小档鬼市 0.17.8 起开技能，按规则 42 开的局算（那时各档都不开）
-    const gs = LIVE_MAP_BP.guishi;
-    delete LIVE_MAP_BP.guishi;
-    onTestFinished(() => {
-      LIVE_MAP_BP.guishi = gs;
-    });
+  it('每档：形状第一个点之前为 0、随撑的时间不减、天亮最多、尸王再加且封顶', () => {
     for (const t of LIVE_TIER_IDS) {
-      const dawn = LIVE_TIERS[t].dawnBp;
-      expect(vigilBp(t, 180 * 30, false, false, 'xiaodao', 'guishi', 42)).toBe(0);
+      const { shape, bossAdd } = LIVE_TIERS[t];
+      const dawn = vigilBp(t, 27_000, true, false);
+      expect(vigilBp(t, shape[0]![0] * 30, false, false)).toBe(0);
       let prev = 0;
       for (let tick = 0; tick < 900 * 30; tick += 97) {
-        const b = vigilBp(t, tick, false, false, 'xiaodao', 'guishi', 42);
+        const b = vigilBp(t, tick, false, false);
         expect(Number.isInteger(b) && b >= prev && b <= dawn).toBe(true);
         prev = b;
       }
-      expect(vigilBp(t, 27_000, true, false, 'xiaodao', 'guishi', 42)).toBe(dawn);
-      expect(vigilBp(t, 27_000, true, true, 'xiaodao', 'guishi', 42)).toBe(Math.min(LIVE_MAX_BP, dawn + VIGIL_BOSS_ADD_BP));
+      expect(vigilBp(t, 27_000, true, true)).toBe(Math.min(LIVE_MAX_BP, dawn + bossAdd));
     }
-  });
-  it('开了技能的格子单独的 dawnBp 不高于同档不开技能的', () => {
-    for (const t of LIVE_TIER_IDS) {
-      const k = LIVE_SKILL_BP.dawn[t];
-      if (k !== undefined) expect(k).toBeLessThanOrEqual(LIVE_TIERS[t].dawnBp);
-    }
-    // 技能格子里 3:00 前为 0、天亮 = 它自己的 dawnBp（小道士 × 雪原）
-    expect(vigilBp('small', 180 * 30, false, false)).toBe(0);
-    // 规则 58 起小道士小档雪原另抬过（LIVE_SKILL_COMBO_BP_58），这里看规则 57 的局
-    expect(vigilBp('small', 27_000, true, false, 'xiaodao', 'snow', 57)).toBe(LIVE_SKILL_BP.dawn.small);
   });
 });
 
@@ -266,46 +245,6 @@ describe('重开页面', () => {
     expect(b.calls[0]!.url).toBe('api/live/settle');
     expect(b.calls[0]!.body.bp).toBe(vigilBp('small', 6000, false, false));
     expect(saved(store).step).toBe('done');
-  });
-
-  it('0.16.0 开的局（记录里没有 rules）在 0.17.0 上线后才结回：按开局时（规则版本 39）的倍数算，不换新表', async () => {
-    const store = mem();
-    const a = rig(undefined, store);
-    await a.c.buyin('medium', 5);
-    a.c.progress(5, 18_000);
-    expect(saved(store).rules).toBe(RULES_VERSION);
-    // 改成 0.16.0 存下的样子：没有 rules 字段
-    const old = { ...saved(store) };
-    delete old.rules;
-    store.m.set(LIVE_KEY, JSON.stringify(old));
-    const b = rig(undefined, store);
-    await b.c.resume();
-    // 0.16.0：中档雪原不放技能，dawn 16,900、原来的曲线
-    expect(b.calls[0]!.body.bp).toBe(shapeBp(VIGIL_SHAPE, 18_000, 16_900));
-    expect(b.calls[0]!.body.bp).not.toBe(vigilBp('medium', 18_000, false, false));
-    // 小档河滩：0.16.0 的系数 9,900
-    expect(vigilBp('small', 0, true, false, 'xiaodao', 'riverbank', 39)).toBe(13_365);
-    expect(vigilBp('small', 0, true, false, 'xiaodao', 'riverbank', 42)).toBe(13_770);
-    // 小档义庄、荒庙：39 / 40（0.17.0–0.17.2）/ 41（0.17.3 院墙打通后重拟）各按各的系数
-    const dawn = LIVE_TIERS.small.dawnBp;
-    for (const [map, v39, v40, v41] of [['yizhuang', 10_500, 11_000, 10_200], ['temple', 10_300, 10_900, 10_000]] as const) {
-      expect(vigilBp('small', 0, true, false, 'xiaodao', map, 39)).toBe(Math.floor((dawn * v39) / 10_000));
-      expect(vigilBp('small', 0, true, false, 'xiaodao', map, 40)).toBe(Math.floor((dawn * v40) / 10_000));
-      expect(vigilBp('small', 0, true, false, 'xiaodao', map, 41)).toBe(Math.floor((dawn * v41) / 10_000));
-      expect(vigilBp('small', 0, true, false, 'xiaodao', map, 42)).toBe(Math.floor((dawn * v41) / 10_000));
-    }
-    // 中档义庄：小道士 13,000 → 9,300；符师的组合系数 13,600 是旧墙上拟的，规则 41 起同比折算
-    const mid = LIVE_TIERS.medium.dawnBp;
-    expect(vigilBp('medium', 0, true, false, 'xiaodao', 'yizhuang', 40)).toBe(Math.floor((mid * 13_000) / 10_000));
-    expect(vigilBp('medium', 0, true, false, 'xiaodao', 'yizhuang', 44)).toBe(Math.floor((mid * 9_300) / 10_000));
-    expect(vigilBp('medium', 0, true, false, 'fushi', 'yizhuang', 40)).toBe(Math.floor((mid * 13_600) / 10_000));
-    // 规则 39 的局：39 那张表没写中档义庄，往后找到 40 的 13,000，不落到现行系数
-    expect(vigilBp('medium', 0, true, false, 'xiaodao', 'yizhuang', 39)).toBe(Math.floor((mid * 13_000) / 10_000));
-    // 小档冰湖：规则 41 以前 9,900，42（0.17.5）起 8,400
-    expect(vigilBp('small', 0, true, false, 'xiaodao', 'icelake', 41)).toBe(Math.floor((dawn * 9_900) / 10_000));
-    expect(vigilBp('small', 0, true, false, 'xiaodao', 'icelake', 39)).toBe(Math.floor((dawn * 9_900) / 10_000));
-    expect(vigilBp('small', 0, true, false, 'xiaodao', 'icelake', 44)).toBe(Math.floor((dawn * 8_400) / 10_000));
-    expect(vigilBp('medium', 0, true, false, 'fushi', 'yizhuang', 44)).toBe(Math.floor((mid * Math.floor((13_600 * 9_300) / 13_000)) / 10_000));
   });
 
   it('打到一半关页面且没记过拍数：bp 为 0（输掉这一份）', async () => {

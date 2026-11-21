@@ -55,7 +55,7 @@ export interface WeaponDef {
 }
 
 export const MAX_WEAPON_LEVEL = 8;
-/** 规则 63 的两段式合成（World.mergeStages）：两件料各到 halfLevel 级（进化了也算）合初成，初成的效果按 halfPower 打折 */
+/** 两段式合成：两件料各到 halfLevel 级（进化了也算）合初成，初成的效果按 halfPower 打折 */
 export const MERGE_STAGE = { halfLevel: 5, halfPower: 0.5 } as const;
 export const MAX_WEAPONS = 6;
 export const MAX_PASSIVES = 6;
@@ -764,7 +764,7 @@ export const PASSIVES: Record<PassiveId, PassiveDef> = {
 };
 
 /**
- * 合成（DESIGN.md 3.3、3.3b）：两件都进化了，宝箱里合成一件，空出一个法器格（规则 63 的娱乐局先合初成、大成才空格，3.3f）；a 留在原来的格子里，b 也照常出手。
+ * 合成（DESIGN.md 3.3、3.3b）：两件都进化了，宝箱里合成一件，空出一个法器格（料到一半先合初成、大成才空格，3.3f）；a 留在原来的格子里，b 也照常出手。
  * dual = 双修：两件不同流派（类型或五行）的法器合成，效果把两边的打法接在一起。
  * color：这个合成自己的颜色（图标底牌、合成演出、图鉴边）。
  */
@@ -779,19 +779,10 @@ export interface MergeDef {
   dual?: boolean;
   /** 角色专属：只有这个角色的宝箱里出现（CharacterId；2.0 的新角色 id 由角色那一路定，没有这个角色时合不出来）；几个角色共有的用逗号隔开 */
   only?: string;
-  /** 专属扩过人：规则 v 以前只有 who（旧录像逐位重放用）；only 写的是现在的 */
-  onlyBefore?: { v: number; who: string };
-  /** 早合：两件法器各升到这个级别（进化了也算）就能合，不用等进化。规则 55 的新搭配用，让它们在中盘就起作用 */
-  early?: number;
-  /** 规则版本：这个搭配从哪一版规则起才有（旧录像按旧规则重放时不出）；不写 = 一直有 */
-  since?: number;
 }
 
-/** 这个角色的宝箱里能不能出这个搭配（专属的只认自己的角色；规则版本没到的不出） */
-export const mergeFor = (m: MergeDef, character: string | undefined, rulesFrom: (v: number) => boolean): boolean => {
-  const who = m.onlyBefore && !rulesFrom(m.onlyBefore.v) ? m.onlyBefore.who : m.only;
-  return (!who || who.split(',').includes(character ?? 'xiaodao')) && (!m.since || rulesFrom(m.since));
-};
+/** 这个角色的宝箱里能不能出这个搭配（专属的只认自己的角色） */
+export const mergeFor = (m: MergeDef, character: string | undefined): boolean => !m.only || m.only.split(',').includes(character ?? 'xiaodao');
 
 export const MERGES: readonly MergeDef[] = [
   { id: 'zhuxie', name: '诛邪剑阵', icon: 'm_sword', desc: '每次挥剑，待命的飞剑一起射出去', a: 'sword', b: 'flysword', color: '#b58cff' },
@@ -822,37 +813,19 @@ export const MERGES: readonly MergeDef[] = [
   { id: 'yinbing', name: '阴兵借道', icon: 'm_yinbing', desc: '纸兵倒下时变成一个冤魂', a: 'zhibing', b: 'banner', color: '#6a8aa8', dual: true, only: 'zhijiang' },
   { id: 'baozhu', name: '爆竹驱年', icon: 'm_baozhu', desc: '护盾破时连放一串爆竹，震开全屏', a: 'shield', b: 'cracker', color: '#e8503a', dual: true, only: 'gengfu' },
   { id: 'caiyuan', name: '财源滚滚', icon: 'm_caiyuan', desc: '算盘每结算一次，从怪身上弹出一枚铜钱镖', a: 'dart', b: 'abacus', color: '#c8a020', dual: true, only: 'huolang' },
-  // 规则 55 的搭配（DESIGN 3.3c）：把被镇魂铃起手挤出线的烈火、符箓、镇守、阵法抬回来
-  { id: 'fuhuo', name: '符火燎原', icon: 'm_fuhuo', desc: '每放一次符，最近的怪脚下烧起一摊火', a: 'talisman', b: 'gourd', color: '#ff6a3a', dual: true, early: 5, since: 55 },
+  // DESIGN 3.3c：把被镇魂铃起手挤出线的烈火、符箓、镇守、阵法抬回来
+  { id: 'fuhuo', name: '符火燎原', icon: 'm_fuhuo', desc: '每放一次符，最近的怪脚下烧起一摊火', a: 'talisman', b: 'gourd', color: '#ff6a3a', dual: true },
   // 镇魂铃一响就有的搭配：这几张图上带铃的路线明显占优，没带铃的流派把铃接进来才追得上（DESIGN 3.3c）
-  { id: 'linfu', name: '铃符', icon: 'm_linfu', desc: '每响一次铃，光环里血最多的怪挨一道符', a: 'talisman', b: 'bell', color: '#e8b04a', dual: true, early: 5, since: 55 },
-  { id: 'lingyan', name: '铃焰', icon: 'm_lingyan', desc: '铃响三次，最近的怪脚下烧起一摊火', a: 'gourd', b: 'bell', color: '#ff8a4a', dual: true, early: 5, since: 55 },
-  { id: 'zhonggu', name: '钟鼓齐鸣', icon: 'm_zhonggu', desc: '你站在阵旗方阵里时，每响一次铃，光环里的怪挨打 +40%', a: 'flag', b: 'bell', color: '#d89a50', dual: true, only: 'zhijiang,yinyang', early: 5, since: 55 },
-  // 规则 62（World.armsCombos）：给搭配少的剑侠、阴阳先生、胖师叔补跨流派搭配，料用他们池里原来没人拿的件（DESIGN 3.3e）。
-  // 必须接在末尾：指纹按「老槽位在前」截掉没有它们的局的尾巴
-  { id: 'jianzou', name: '剑走偏锋', icon: 'm_jianzou', desc: '每飞出一把剑，就朝最近的怪甩出一枚铜钱镖', a: 'flysword', b: 'dart', color: '#d8b04a', dual: true, since: 62 },
-  { id: 'longshe', name: '笔走龙蛇', icon: 'm_longshe', desc: '每推一道浪，浪前血最多的那只挨判官笔一笔', a: 'tide', b: 'brush', color: '#4a8ad8', dual: true, only: 'jianxia,xiaodao', onlyBefore: { v: 66, who: 'jianxia' }, since: 62 },
-  { id: 'panzhen', name: '判阵', icon: 'm_panzhen', desc: '方阵里血最多的怪隔一会儿被判官笔点名：挨一笔，之后挨打更疼', a: 'flag', b: 'brush', color: '#8a5ad8', dual: true, since: 62 },
-  { id: 'suohun', name: '锁魂幡', icon: 'm_suohun', desc: '被勾魂锁拉过的怪死了必定变成冤魂', a: 'chain', b: 'banner', color: '#5a6a9a', dual: true, since: 62 },
-  { id: 'hanzhong', name: '寒钟', icon: 'm_hanzhong', desc: '铃一响，泉里的怪冻住一下', a: 'bell', b: 'spring', color: '#6ac8e8', dual: true, since: 62 },
+  { id: 'linfu', name: '铃符', icon: 'm_linfu', desc: '每响一次铃，光环里血最多的怪挨一道符', a: 'talisman', b: 'bell', color: '#e8b04a', dual: true },
+  { id: 'lingyan', name: '铃焰', icon: 'm_lingyan', desc: '铃响三次，最近的怪脚下烧起一摊火', a: 'gourd', b: 'bell', color: '#ff8a4a', dual: true },
+  { id: 'zhonggu', name: '钟鼓齐鸣', icon: 'm_zhonggu', desc: '你站在阵旗方阵里时，每响一次铃，光环里的怪挨打 +40%', a: 'flag', b: 'bell', color: '#d89a50', dual: true, only: 'zhijiang,yinyang' },
+  // 给搭配少的剑侠、阴阳先生、胖师叔补的跨流派搭配，料用他们池里原来没人拿的件（DESIGN 3.3e）
+  { id: 'jianzou', name: '剑走偏锋', icon: 'm_jianzou', desc: '每飞出一把剑，就朝最近的怪甩出一枚铜钱镖', a: 'flysword', b: 'dart', color: '#d8b04a', dual: true },
+  { id: 'longshe', name: '笔走龙蛇', icon: 'm_longshe', desc: '每推一道浪，浪前血最多的那只挨判官笔一笔', a: 'tide', b: 'brush', color: '#4a8ad8', dual: true, only: 'jianxia,xiaodao' },
+  { id: 'panzhen', name: '判阵', icon: 'm_panzhen', desc: '方阵里血最多的怪隔一会儿被判官笔点名：挨一笔，之后挨打更疼', a: 'flag', b: 'brush', color: '#8a5ad8', dual: true },
+  { id: 'suohun', name: '锁魂幡', icon: 'm_suohun', desc: '被勾魂锁拉过的怪死了必定变成冤魂', a: 'chain', b: 'banner', color: '#5a6a9a', dual: true },
+  { id: 'hanzhong', name: '寒钟', icon: 'm_hanzhong', desc: '铃一响，泉里的怪冻住一下', a: 'bell', b: 'spring', color: '#6ac8e8', dual: true },
 ];
-
-/** 老卡池（规则 51 之前的实盘局、旧录像，World.oldPool）不放的 2.0 内容（DESIGN 4.3）。包括全部新法器、新被动、新套件、新搭配 */
-export const ARMS_NEW_WEAPONS: readonly WeaponId[] = ['flag', 'chain', 'pole', 'lamp', 'dart', 'abacus', 'banner', 'brush', 'cracker'];
-export const ARMS_NEW_PASSIVES: readonly PassiveId[] = ['qizhi', 'tielian', 'dengyou', 'qiandai', 'baifan', 'zhubi', 'liuhuang'];
-export const ARMS_NEW_MERGES: readonly MergeDef['id'][] = ['leijie', 'hejin', 'qiankun', 'qianjian', 'heling', 'yiwei', 'chenzhong', 'huadeng', 'dudeng', 'liangyi', 'yinlv', 'maibu', 'yinbing', 'baozhu', 'caiyuan', 'fuhuo', 'linfu', 'lingyan', 'zhonggu', 'jianzou', 'longshe', 'panzhen', 'suohun', 'hanzhong'];
-/** 这张卡 / 这个搭配在老卡池（live 传 World.oldPool）里能不能出 */
-export const liveAllows = (live: boolean | undefined, id: string): boolean =>
-  !live || !(ARMS_NEW_WEAPONS as readonly string[]).includes(id) && !(ARMS_NEW_PASSIVES as readonly string[]).includes(id) && !(ARMS_NEW_MERGES as readonly string[]).includes(id);
-
-/**
- * 实盘里例外放行的 2.0 新内容（规则版本 39）：新角色自己的起手法器和它进化要的被动，不然他们在实盘卡池里升不了级、进不了化。
- * 其余 2.0 新法器、被动、套件和搭配老卡池里不出。
- */
-export const LIVE_OWN_ARMS: Partial<Record<string, readonly string[]>> = {
-  huolang: ['dart', 'qiandai'],
-  yinyang: ['flag', 'qizhi'],
-};
 
 /** 双修的数值（拍、单位）。强度参照现有合成：只给一点额外输出，不翻倍 */
 export const DUAL_FX = {

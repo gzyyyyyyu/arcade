@@ -1,6 +1,6 @@
 /**
  * 夜探镇子的缩略图（选模式页的镇子卡左边）：按镇子模板用固定种子生成一张样板地图，画成俯视小地图——
- * 石板街打底，院子按种类上色（大院、寺、空场、废院），房、墙、河、台阶、戏台、摊子、粮仓按块画，四角的门画红点，出生点画小红点。
+ * 石板街打底，院子按种类上色（大院、寺、空场、废院），房、墙、河、台阶、戏台、摊子、粮仓、窑按块画，窑口的火区画橙红小块，四角的门画红点，出生点画小红点。
  * 每局的镇子按种子变，这张只是"这个镇子大概长这样"；画法和尺寸同守夜的地图缩略图（terrain.ts 的 drawMapThumb），画布边长由调用方按 k × dpr 定。
  */
 import type { RaidTemplateId } from '../../content/explore.ts';
@@ -29,6 +29,7 @@ const LOOK_FILL: Record<RaidLook, string> = {
   terrace: '#6e5638',
   stage: '#b8322a',
   granary: '#a8803a',
+  kiln: '#6a5e56',
 };
 
 function sample(t: RaidTemplateId): RaidMap {
@@ -60,6 +61,14 @@ export function drawTownThumb(cv: HTMLCanvasElement, t: RaidTemplateId): void {
     const h = Math.max(b.h * k, min);
     c.fillStyle = LOOK_FILL[b.look];
     c.fillRect(b.x * k + (b.w * k - w) / 2, b.y * k + (b.h * k - h) / 2, w, h);
+  }
+  // 窑镇的窑口火区：橙红小块，深边
+  c.fillStyle = '#ff7a2a';
+  c.strokeStyle = '#4a1a10';
+  c.lineWidth = Math.max(1, S / 120);
+  for (const z of m.fire) {
+    c.fillRect(z.x * k, z.y * k, Math.max(z.w * k, min * 2), Math.max(z.h * k, min * 2));
+    c.strokeRect(z.x * k, z.y * k, Math.max(z.w * k, min * 2), Math.max(z.h * k, min * 2));
   }
   // 撤离的门：红色小方块
   const g = Math.max(3, S / 22);

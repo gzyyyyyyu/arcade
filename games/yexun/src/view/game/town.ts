@@ -11,6 +11,7 @@ import type { Raid } from '../../explore/raid.ts';
 import type { RaidBlock } from '../../explore/blocks.ts';
 import type { Yard } from '../../explore/mapgen.ts';
 import { artRng } from '../art/draw.ts';
+import { KILN_DETAIL } from '../art/sprites-yaozhen.ts';
 import { HOUSE_Z, WALL_H_PERIOD, WALL_OV, WALL_RIDGE, WALL_V_PERIOD, WALL_Z } from '../art/townLayout.ts';
 import { gatehouse, houseH, houseHLights, houseV, houseVLights, wallHBody, wallHEnd, wallKnot, wallVBody, wallVNorth, wallVSouth, type Piece, type Style } from '../art/sprites-buildings.ts';
 
@@ -198,13 +199,16 @@ export class Town {
       else if (b.look === 'granary') {
         const n = Math.max(1, Math.round(b.w / 140));
         for (let k = 0; k < n; k++) this.d.img('granary', b.x + (b.w / n) * (k + 0.5), foot + 6).setDepth(foot);
-      } else if (b.look === 'terrace') {
+      } else if (b.look === 'kiln') this.drawKiln(b);
+      else if (b.look === 'terrace') {
         const n = Math.max(1, Math.round(b.w / 80));
         const step = b.w / n;
         const r = this.d.res('terrace_h');
         for (let k = 0; k < n; k++) this.d.img('terrace_h', b.x + step * (k + 0.5), foot).setScale(step / 80 / r, 1 / r).setDepth(foot);
       }
     }
+    // 窑镇的窑口火区：暗幕上挖一块暖光，火区和窑口在夜里也看得见（火苗本身由 fire.ts 画）
+    for (const z of this.raid.map.fire) this.light(z.x + z.w / 2, z.y + z.h / 2, Math.max(z.w, z.h) * 0.85, 0.8, 0.32);
     for (const y of this.raid.map.yards) {
       if (y.kind === 'plaza') continue;
       const st = this.styleOf({ x: y.x + 2, y: y.y + 2, w: 1, h: 1 });
@@ -226,6 +230,25 @@ export class Town {
         }
       }
     }
+  }
+
+  /**
+   * 窑镇的窑（规则里是正房的位置，look = 'kiln'）：横的一排馒头窑，靠北墙的窑口朝南冲着院子（火区就在窑口前），靠南墙的画背面；
+   * 竖的是一条长龙窑一节节往北排，窑口朝院子那边（侧面图窑口在右，靠东墙的翻过来）。
+   */
+  private drawKiln(b: RaidBlock): void {
+    const yard = this.raid.map.yards.find((y) => b.x >= y.x && b.x + b.w <= y.x + y.w && b.y >= y.y && b.y + b.h <= y.y + y.h);
+    const T = RAID_WALL.thick;
+    if (b.w >= b.h) {
+      const key = !yard || b.y <= yard.y + T + 1 ? 'kiln' : 'kilnback';
+      const n = Math.max(1, Math.round(b.w / 150));
+      for (let k = 0; k < n; k++) this.d.img(key, b.x + (b.w / n) * (k + 0.5), b.y + b.h + 8, 1 / KILN_DETAIL).setDepth(b.y + b.h);
+      return;
+    }
+    const east = !!yard && b.x + b.w >= yard.x + yard.w - T - 1;
+    const n = Math.max(1, Math.round(b.h / 130));
+    const step = b.h / n;
+    for (let k = 0; k < n; k++) this.d.img('kilnside', b.x + b.w / 2, b.y + step * (k + 1), 1 / KILN_DETAIL).setDepth(b.y + step * (k + 1)).setFlipX(east);
   }
 
   /** 正房：横的一座一张图（靠北墙的正面朝南、有门；靠南墙的朝南是背面），竖的一张图（院子那边屋檐下挂灯笼） */
@@ -266,6 +289,8 @@ export class Town {
     for (const c of m.chests) if (Math.abs(c.x - x) < 80 && Math.abs(c.y - y) < 80) return false;
     for (const g of m.guards) if (Math.abs(g.x - x) < 70 && Math.abs(g.y - y) < 70) return false;
     for (const g of m.gates) if (Math.abs(g.x - x) < 170 && Math.abs(g.y - y) < 170) return false;
+    // 窑口的火区里不摆树、井、灯杆（火苗会和它们叠在一起）
+    for (const z of m.fire) if (x > z.x - r - 20 && x < z.x + z.w + r + 20 && y > z.y - 20 && y < z.y + z.h + r + 40) return false;
     return !(Math.abs(m.spawn.x - x) < 170 && Math.abs(m.spawn.y - y) < 170);
   }
 

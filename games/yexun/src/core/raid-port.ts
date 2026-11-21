@@ -6,6 +6,7 @@
  */
 import type { RaidEnemyKind } from '../content/explore.ts';
 import type { EnemyKind } from '../content/enemies.ts';
+import type { Rect } from '../content/maps.ts';
 import type { Minute } from '../content/waves.ts';
 import type { BlockIndex, RaidBlock } from './blocks.ts';
 import type { GuardFx, GuardHost, RaidPlayerView, RaidSetup } from './raid-host.ts';
@@ -18,6 +19,8 @@ export interface RaidMapPort {
   spawn: { x: number; y: number };
   /** 戏楼镇的戏台位置 */
   stage?: { x: number; y: number };
+  /** 窑镇的窑口（火区，core/fire.ts） */
+  fire: Rect[];
 }
 
 /** World.raid 的类型：核心用到的成员（explore 的 Raid 都有；其余成员只有夜探、画面层、机器人读，类型上由 explore/raid.ts 补进来） */

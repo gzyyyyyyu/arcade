@@ -89,12 +89,6 @@ export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   yinyang: { id: 'yinyang', name: '阴阳先生', start: 'flag', perkName: '阴阳互济', perk: '血过半是阳：伤害 +8%；不足一半是阴：技能冷却 −8%，捆、定住的怪多定半秒；血量越过一半那一下（阳变阴、阴变阳都算）脚下炸一圈，身边的怪定住 1 秒，两个方向共用 20 秒冷却', unlock: '一开始就有', look: '黑袍方巾，腰间挂着罗盘和八卦牌', line: '阴阳有序，今晚的账我来算。', base: { ...EVEN, hp: 0.95, speed: 0.95, might: 1.05, cd: 1.05, area: 1.1 } },
 };
 
-/** 规则 67 之前的初始数值（摆渡人放出时把伤害 0.9 补成 1，出手 −5% 留着当短板，所有者 10-20 每人都有吃亏的一项；DESIGN 3.7）；旧录像按这份重放。顺水的倍数见 CHAR_FX.baiduWater67 */
-const BASE_BEFORE_67: Partial<Record<CharacterId, CharBase>> = {
-  baidu: { ...EVEN, hp: 1.05, speed: 1.1, might: 0.9, cd: 1.05, area: 1.05 },
-};
-/** 这一局角色的初始数值：v67 = World.identity67 */
-export const charBase = (id: CharacterId, v67: boolean): CharBase => (v67 ? undefined : BASE_BEFORE_67[id]) ?? CHARACTERS[id].base;
 
 /** 角色被动的数值 */
 export const CHAR_FX = {
@@ -127,10 +121,9 @@ export const CHAR_FX = {
   /** 纸匠·巧手：纸兵寿命倍数；纸兵倒下时还冷却的概率（由拍号和槽位算出的固定散列决定，不占随机流） */
   zhijiangLife: 1.3,
   zhijiangRefund: 0.2,
-  /** 摆渡人·顺水：水类法器（五行为水）的伤害倍数；规则 67 起 baiduWater67（放出时补强，起手竹篙也是水类），之前 baiduWater */
-  baiduWater: 1.1,
-  baiduWater67: 1.5,
-  /** 规则 67 起摆渡人的竹篙冷却倍数（另外多戳一下，core/step.ts） */
+  /** 摆渡人·顺水：水类法器（五行为水）的伤害倍数（起手竹篙也是水类） */
+  baiduWater: 1.5,
+  /** 摆渡人的竹篙冷却倍数（另外多戳一下，core/step.ts） */
   baiduPoleCd: 0.75,
   /** 货郎·讨价：夜市价格倍数、局内铜钱额外概率、每满多少枚铜钱伤害 +1%（最多 +10%） */
   huolangMarket: 0.9,
@@ -141,13 +134,13 @@ export const CHAR_FX = {
   /** 阴阳先生·阴阳互济：血过半（含半）时的伤害倍数；不足一半时技能冷却的减幅 */
   yinyangHigh: 1.08,
   yinyangCd: 0.08,
-  /** 规则 62（World.armsCombos）：阴时缚妖索、阵旗定身多几拍——阳靠打，阴靠控 */
+  /** 阴时缚妖索、阵旗定身多几拍——阳靠打，阴靠控 */
   yinyangBind: 15,
-  /** 规则 66（World.identity66）：血量越过一半（阴变阳或阳变阴）那一下，定阵那么大的一圈里的怪定住几拍；两个方向共用一个冷却（拍） */
+  /** 血量越过一半（阴变阳或阳变阴）那一下，定阵那么大的一圈里的怪定住几拍；两个方向共用一个冷却（拍） */
   yinyangFlipBind: 30,
   yinyangFlipCd: 20 * 30,
   /**
-   * 规则 61 的角色钩子（World.skillHooks）：纸匠身边 zhijiangStandInR 以内的纸兵替他挨一下（纸兵下一拍倒下）；
+   * 角色钩子：纸匠身边 zhijiangStandInR 以内的纸兵替他挨一下（纸兵下一拍倒下）；
    * 货郎每捡 huolangRerollEvery 枚铜钱补一次刷新（一局常捡五百到一千多枚，约补 5～13 次；刷新存满时不补）
    */
   zhijiangStandInR: 90,

@@ -28,12 +28,9 @@ export const WEEKLY_FX = {
   eliteXp: 0.5,
   /** 月蚀周：全程只看得见主角身边这么大的一圈（世界单位；噩梦 2 是 380，这里松得多） */
   moonRadius: 620,
-  /** 宝箱周：5 件、3 件大箱的概率（平时 0.06 / 0.24） */
-  chestFive: 0.1,
-  chestThree: 0.32,
-  /** 规则 57 起平时就是 0.12 / 0.33（CHEST_57），宝箱周跟着往上提，仍比平时好 */
-  chestFive57: 0.18,
-  chestThree57: 0.36,
+  /** 宝箱周：5 件、3 件大箱的概率（平时是 player.ts CHEST 的 0.12 / 0.33） */
+  chestFive: 0.18,
+  chestThree: 0.36,
 };
 
 export const WEEKLIES: Record<WeeklyId, WeeklyDef> = {

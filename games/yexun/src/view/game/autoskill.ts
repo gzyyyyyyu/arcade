@@ -19,7 +19,7 @@ export const autoSkillSetting = {
   },
 };
 
-/** 开关开着、技能就绪（实盘不能放的局本来就不就绪）、范围内至少 1 只活怪，才算按了技能键 */
+/** 开关开着、技能就绪、范围内至少 1 只活怪，才算按了技能键 */
 export function wantAutoSkill(w: World, on: boolean, range = AUTO_SKILL_RANGE): boolean {
   if (!on || !skillReady(w)) return false;
   const r2 = range * range;

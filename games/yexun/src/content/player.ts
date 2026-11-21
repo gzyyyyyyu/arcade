@@ -49,9 +49,7 @@ export const DROPS = { coin: 0.04, bun: 0.006, scroll: 0.0025, bomb: 0.0012, pur
  * 宝箱（精英、纸扎老爷掉）：一次升 1 / 3 / 5 件，开箱有演出（对标 VS 的 1/3/5 箱）。
  * 老爷的箱子至少 3 件：中期 Boss 打下来要有大奖励。
  */
-export const CHEST = { five: 0.06, three: 0.24, lordMin: 3 };
-/** 规则 57 起（World.new57）宝箱更大：所有者要「宝箱有好东西」，3 件、5 件更常见 */
-export const CHEST_57 = { five: 0.12, three: 0.33 };
+export const CHEST = { five: 0.12, three: 0.33, lordMin: 3 };
 
 /** 符咒炸弹：半径内的小怪全倒（照常掉魂珠），精英和 Boss 掉最大血量的 eliteFrac */
 export const BOMB = { r: 520, eliteFrac: 0.08 };
@@ -81,5 +79,5 @@ export const PROPS = {
  */
 export const MERCY = { hp: 0.4, bun: 3, gap: 20 * 30 };
 
-/** 魂珠：靠近被吸以后的速度（每拍，越吸越快）；地上最多 soulCap 颗（多的并成大珠）；磁吸半径每级加 magnetPerLevel；宝箱、肉包、符纸卷走到 walkReach 内才捡（规则 51 之前是 grab × 2） */
+/** 魂珠：靠近被吸以后的速度（每拍，越吸越快）；地上最多 soulCap 颗（多的并成大珠）；磁吸半径每级加 magnetPerLevel；宝箱、肉包、符纸卷走到 walkReach 内才捡 */
 export const PICKUP = { pull: 5, pullAccel: 0.5, grab: 18, walkReach: 56, soulCap: 80, magnetPerLevel: 0.015 };

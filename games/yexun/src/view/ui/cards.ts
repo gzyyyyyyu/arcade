@@ -46,7 +46,7 @@ function describeBase(w: World, c: Choice): CardView {
     const tags = `${def.el}·${def.type}`;
     // 心法流派的法器（规则 65 起伤害 +10%，core/skills.ts charDmgMul）：名字旁边标一个小标，让心法在局里看得见（手机上五行·类型那行是藏着的）
     const xf = w.xinfa;
-    const xinfa = xf && w.identity65 && SCHOOLS[xf].weapons.includes(def.id) ? `心法+${Math.round((XINFA_DMG - 1) * 100)}%` : undefined;
+    const xinfa = xf && SCHOOLS[xf].weapons.includes(def.id) ? `心法+${Math.round((XINFA_DMG - 1) * 100)}%` : undefined;
     const counter = counterLine(def.type, def.el, (k) => MONSTER_INFO[k].name) ?? undefined;
     if (!o) {
       // 新法器：拿了以后能凑成哪个套装

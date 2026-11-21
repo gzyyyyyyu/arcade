@@ -84,6 +84,7 @@ export class GroundPainter {
     const water = mdef.water ?? [];
     const ice = mdef.ice ?? [];
     const bridges = mdef.bridges ?? [];
+    const fire = this.w.fire;
     const spawnX = this.raid ? this.w.x : this.arenaW / 2;
     const spawnY = this.raid ? this.w.y : this.arenaH / 2;
     const put = (key: string, n: number, ground: boolean): void => {
@@ -101,6 +102,8 @@ export class GroundPainter {
         if (water.length && (inRects(water, x, y) || bridges.some((r) => x > r.x - 30 && x < r.x + r.w + 30 && y > r.y - 30 && y < r.y + r.h + 30)) && key !== 'rock') continue;
         if (water.length && ground && water.some((r) => x > r.x - 40 && x < r.x + r.w + 40 && y > r.y - 40 && y < r.y + r.h + 40)) continue;
         if (ice.length && inRects(ice, x, y) && key !== 'puddle' && key !== 'drift') continue;
+        // 火区（乱葬岗磷火地、窑口）里不撒立着的东西，地上的小点缀也让开（焦土上只有火）
+        if (fire.some((z) => x > z.x - pad && x < z.x + z.w + pad && y > z.y - pad && y < z.y + z.h + pad * 2)) continue;
         if (blocks.some((b) => x > b.x - pad && x < b.x + b.w + pad && y > b.y - pad && y < b.y + b.h + pad * 2)) continue;
         const o = this.h.img(key, x, y, 0.85 + r() * 0.35);
         if (r() < 0.5) o.setFlipX(true);

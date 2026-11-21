@@ -9,7 +9,7 @@ import type { Minute } from './waves.ts';
 const S = 30;
 const M = 60 * S;
 
-export type RaidTemplateId = 'guzhen' | 'dukou' | 'shansi' | 'teach' | 'xilou' | 'liangcang';
+export type RaidTemplateId = 'guzhen' | 'dukou' | 'shansi' | 'teach' | 'xilou' | 'liangcang' | 'yaozhen';
 
 /** 块坐标（街道之间的第几块，从左上 0 起） */
 export type BlockXY = readonly [number, number];
@@ -53,6 +53,8 @@ export interface RaidTemplate {
   stage?: BlockXY;
   /** 2.0：正房的样子（粮仓镇画成粮仓，不写是普通房） */
   houseLook?: 'granary';
+  /** 窑镇：普通院子有这个概率是窑场——正房换成一座窑，窑口前一块是火区（maps.ts FIRE，和乱葬岗同一套规则） */
+  kilnChance?: number;
   /** 四座镇门（北东南西），按场地边长的比例给位置 */
   gates: readonly { name: string; fx: number; fy: number }[];
   /** 夜里游荡的巡夜将：第几拍从离主角远的路口出来 */
@@ -183,6 +185,28 @@ export const RAID_TEMPLATES: Record<RaidTemplateId, RaidTemplate> = {
     gates: FOUR_GATES,
     roamers: [4 * M, 8 * M, 11 * M],
   },
+  // 窑镇：几座院子是窑场，窑口按节奏喷火（火区）；陶俑扛刀剑、怕水；镇心大院照旧石兽守
+  yaozhen: {
+    id: 'yaozhen',
+    name: '窑镇',
+    blurb: '窑场一座连一座，窑口隔一阵喷火；陶俑又硬又慢',
+    size: 6400,
+    cell: 400,
+    streets: [0, 3, 6, 9, 12, 15],
+    streetPad: 90,
+    wood: 18,
+    copperChance: 0.5,
+    copperGuardChance: 0.3,
+    copperGuards: ['shishi', 'general'],
+    plazaChance: 0.1,
+    ruinChance: 0.1,
+    temples: [[1, 3], [3, 1]],
+    templeGuard: true,
+    vault: [2, 2],
+    kilnChance: 0.45,
+    gates: FOUR_GATES,
+    roamers: [6 * M, 11 * M],
+  },
   teach: {
     id: 'teach',
     name: '教学镇',
@@ -206,7 +230,7 @@ export const RAID_TEMPLATES: Record<RaidTemplateId, RaidTemplate> = {
 };
 
 /** 玩家能进的镇子：菜单能选的五个，加第一次固定进的教学镇。用白名单，以后加的镇子先只在开发服务器里能进（?raid=<id>），配平过了再加进来 */
-export const RAID_OPEN: readonly RaidTemplateId[] = ['teach', 'guzhen', 'dukou', 'shansi', 'xilou', 'liangcang'];
+export const RAID_OPEN: readonly RaidTemplateId[] = ['teach', 'guzhen', 'dukou', 'shansi', 'xilou', 'liangcang', 'yaozhen'];
 /** 这个模板现在能不能开一局：线上只认 RAID_OPEN；dev（import.meta.env.DEV）时全部模板都行。链接参数、菜单、再来一局、交榜都过这里 */
 export function raidOpen(t: string | null | undefined, dev: boolean): t is RaidTemplateId {
   // 用 hasOwnProperty 不用 in：?raid=toString 之类原型上的名字不能当成镇子
@@ -366,12 +390,13 @@ export const RAID_LIVE = {
   floor: { small: 1.6, medium: 1.6, large: 1.25, luxe: 1.2 } as Record<RaidLiveTier, number>,
   floorRamp: { small: 5 * 60 * 30, medium: 10 * 60 * 30, large: 8 * 60 * 30, luxe: 8 * 60 * 30 } as Record<RaidLiveTier, number>,
   // 戏楼镇、粮仓镇（0.17.6）：小道士每格 300 局，普通锚区间中点，两条线期望 + 2SE 不超上限（DESIGN.md 4.2）
+  // 窑镇（0.32.0）：小道士每格 2,000 局，普通锚古镇同档普通；豪华档锚到古镇要基准 40，小白撤出就顶封顶、和普通一样高，取 70（DESIGN 4.2a）
   base: {
-    small: { guzhen: 250, dukou: 182, shansi: 220, xilou: 176, liangcang: 246 },
-    medium: { guzhen: 211, dukou: 241, shansi: 153, xilou: 184, liangcang: 224 },
-    large: { guzhen: 175, dukou: 153, shansi: 98, xilou: 135, liangcang: 210 },
+    small: { guzhen: 250, dukou: 182, shansi: 220, xilou: 176, liangcang: 246, yaozhen: 219 },
+    medium: { guzhen: 211, dukou: 241, shansi: 153, xilou: 184, liangcang: 224, yaozhen: 170 },
+    large: { guzhen: 175, dukou: 153, shansi: 98, xilou: 135, liangcang: 210, yaozhen: 123 },
     // 规则 68 危险档变难后按古镇小道士同种子各 2,000 局重拟，五镇同比例 ÷1.26（原 139 / 121 / 45 / 79 / 164）
-    luxe: { guzhen: 111, dukou: 96, shansi: 36, xilou: 63, liangcang: 130 },
+    luxe: { guzhen: 111, dukou: 96, shansi: 36, xilou: 63, liangcang: 130, yaozhen: 70 },
   } as Record<RaidLiveTier, Record<RaidLiveTemplate, number>>,
   danger: { small: 0, medium: 1, large: 2, luxe: 3 } as Record<RaidLiveTier, number>,
   /**
@@ -382,17 +407,18 @@ export const RAID_LIVE = {
     // 0.27.0（规则 64 的内容进实盘）：45 个「角色 × 镇子」小、中、大三档 sim --stop 重量（最多 2,000 局），豪华档每格 2,000 局。
     // 口径「宁简勿难」：只压超过多发线（带上限 + 0.15）的，压到普通回到带上限、小白不超多发线；普通低于带下限的抬到带上限（最多 2 倍）；其余照旧。
     // 豪华档的基准把小道士普通锚到 +0.40（主线 11-17：往多给提，但不到大档带上限 +0.45），角色系数按同一个锚压。逐格的拟出值和之前的历史见 docs/balance-yexun.md 第 1 节
-    xiaodao: { medium: { guzhen: 10_000, dukou: 11_400, shansi: 10_000, xilou: 10_000, liangcang: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 9_200, xilou: 10_000, liangcang: 10_000 } },
-    fushi: { small: { guzhen: 8_800, dukou: 9_400, shansi: 9_600, xilou: 9_200, liangcang: 8_900 }, medium: { guzhen: 8_400, dukou: 10_000, shansi: 8_300, xilou: 10_100, liangcang: 8_400 }, large: { guzhen: 8_100, dukou: 8_600, shansi: 7_300, xilou: 8_700, liangcang: 8_500 }, luxe: { guzhen: 8_200, dukou: 8_300, shansi: 7_000, xilou: 8_300, liangcang: 7_900 } },
-    jianxia: { small: { guzhen: 8_300, dukou: 8_200, shansi: 9_400, xilou: 8_200, liangcang: 8_200 }, medium: { guzhen: 7_900, dukou: 9_100, shansi: 7_700, xilou: 8_400, liangcang: 7_900 }, large: { guzhen: 6_700, dukou: 8_100, shansi: 6_800, xilou: 7_900, liangcang: 7_100 }, luxe: { guzhen: 7_200, dukou: 7_900, shansi: 7_100, xilou: 7_300, liangcang: 6_400 } },
-    pang: { small: { guzhen: 9_000, dukou: 8_900, shansi: 9_000, xilou: 8_900, liangcang: 9_900 }, medium: { guzhen: 8_200, dukou: 10_200, shansi: 8_100, xilou: 9_200, liangcang: 8_100 }, large: { guzhen: 7_200, dukou: 8_800, shansi: 8_200, xilou: 8_700, liangcang: 9_000 }, luxe: { guzhen: 7_100, dukou: 7_900, shansi: 6_200, xilou: 7_100, liangcang: 7_100 } },
-    gengfu: { small: { guzhen: 10_000, dukou: 10_000, shansi: 10_000, xilou: 8_900, liangcang: 11_500 }, medium: { guzhen: 8_800, dukou: 10_000, shansi: 8_400, xilou: 10_000, liangcang: 10_000 }, large: { guzhen: 8_700, dukou: 10_000, shansi: 6_800, xilou: 9_500, liangcang: 10_300 }, luxe: { guzhen: 8_500, dukou: 9_600, shansi: 7_500, xilou: 8_400, liangcang: 10_000 } },
-    caiyao: { small: { guzhen: 10_000, dukou: 8_700, shansi: 8_400, xilou: 8_400, liangcang: 9_600 }, medium: { guzhen: 8_000, dukou: 10_000, shansi: 7_600, xilou: 9_900, liangcang: 9_000 }, large: { guzhen: 7_800, dukou: 8_600, shansi: 7_100, xilou: 9_100, liangcang: 9_600 }, luxe: { guzhen: 7_300, dukou: 8_500, shansi: 6_800, xilou: 8_200, liangcang: 8_900 } },
-    zhijiang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 10_000, xilou: 9_100, liangcang: 10_300 }, medium: { guzhen: 8_900, dukou: 10_600, shansi: 7_900, xilou: 9_700, liangcang: 9_100 }, large: { guzhen: 8_900, dukou: 9_300, shansi: 7_900, xilou: 9_200, liangcang: 10_000 }, luxe: { guzhen: 8_300, dukou: 9_000, shansi: 8_400, xilou: 9_000, liangcang: 9_400 } },
-    huolang: { small: { guzhen: 11_300, dukou: 11_700, shansi: 10_600, xilou: 11_000, liangcang: 11_000 }, medium: { guzhen: 10_400, dukou: 10_500, shansi: 9_900, xilou: 10_400, liangcang: 10_400 }, large: { guzhen: 10_200, dukou: 11_400, shansi: 9_200, xilou: 9_600, liangcang: 11_300 }, luxe: { guzhen: 10_000, dukou: 10_000, shansi: 6_800, xilou: 7_800, liangcang: 9_500 } },
-    yinyang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 11_000, xilou: 12_200, liangcang: 11_300 }, medium: { guzhen: 10_000, dukou: 10_000, shansi: 11_300, xilou: 12_100, liangcang: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 10_700, xilou: 10_000, liangcang: 11_800 }, luxe: { guzhen: 9_300, dukou: 10_000, shansi: 9_500, xilou: 9_300, liangcang: 10_000 } },
+    xiaodao: { medium: { guzhen: 10_000, dukou: 11_400, shansi: 10_000, xilou: 10_000, liangcang: 10_000, yaozhen: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 9_200, xilou: 10_000, liangcang: 10_000, yaozhen: 10_000 } },
+    fushi: { small: { guzhen: 8_800, dukou: 9_400, shansi: 9_600, xilou: 9_200, liangcang: 8_900, yaozhen: 8_800 }, medium: { guzhen: 8_400, dukou: 10_000, shansi: 8_300, xilou: 10_100, liangcang: 8_400, yaozhen: 8_400 }, large: { guzhen: 8_100, dukou: 8_600, shansi: 7_300, xilou: 8_700, liangcang: 8_500, yaozhen: 8_100 }, luxe: { guzhen: 8_200, dukou: 8_300, shansi: 7_000, xilou: 8_300, liangcang: 7_900, yaozhen: 8_200 } },
+    jianxia: { small: { guzhen: 8_300, dukou: 8_200, shansi: 9_400, xilou: 8_200, liangcang: 8_200, yaozhen: 8_300 }, medium: { guzhen: 7_900, dukou: 9_100, shansi: 7_700, xilou: 8_400, liangcang: 7_900, yaozhen: 7_900 }, large: { guzhen: 6_700, dukou: 8_100, shansi: 6_800, xilou: 7_900, liangcang: 7_100, yaozhen: 6_700 }, luxe: { guzhen: 7_200, dukou: 7_900, shansi: 7_100, xilou: 7_300, liangcang: 6_400, yaozhen: 7_200 } },
+    pang: { small: { guzhen: 9_000, dukou: 8_900, shansi: 9_000, xilou: 8_900, liangcang: 9_900, yaozhen: 9_000 }, medium: { guzhen: 8_200, dukou: 10_200, shansi: 8_100, xilou: 9_200, liangcang: 8_100, yaozhen: 8_200 }, large: { guzhen: 7_200, dukou: 8_800, shansi: 8_200, xilou: 8_700, liangcang: 9_000, yaozhen: 7_200 }, luxe: { guzhen: 7_100, dukou: 7_900, shansi: 6_200, xilou: 7_100, liangcang: 7_100, yaozhen: 6_100 } },
+    gengfu: { small: { guzhen: 10_000, dukou: 10_000, shansi: 10_000, xilou: 8_900, liangcang: 11_500, yaozhen: 10_000 }, medium: { guzhen: 8_800, dukou: 10_000, shansi: 8_400, xilou: 10_000, liangcang: 10_000, yaozhen: 8_800 }, large: { guzhen: 8_700, dukou: 10_000, shansi: 6_800, xilou: 9_500, liangcang: 10_300, yaozhen: 8_700 }, luxe: { guzhen: 8_500, dukou: 9_600, shansi: 7_500, xilou: 8_400, liangcang: 10_000, yaozhen: 8_500 } },
+    caiyao: { small: { guzhen: 10_000, dukou: 8_700, shansi: 8_400, xilou: 8_400, liangcang: 9_600, yaozhen: 10_000 }, medium: { guzhen: 8_000, dukou: 10_000, shansi: 7_600, xilou: 9_900, liangcang: 9_000, yaozhen: 8_000 }, large: { guzhen: 7_800, dukou: 8_600, shansi: 7_100, xilou: 9_100, liangcang: 9_600, yaozhen: 7_800 }, luxe: { guzhen: 7_300, dukou: 8_500, shansi: 6_800, xilou: 8_200, liangcang: 8_900, yaozhen: 7_300 } },
+    zhijiang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 10_000, xilou: 9_100, liangcang: 10_300, yaozhen: 10_000 }, medium: { guzhen: 8_900, dukou: 10_600, shansi: 7_900, xilou: 9_700, liangcang: 9_100, yaozhen: 8_900 }, large: { guzhen: 8_900, dukou: 9_300, shansi: 7_900, xilou: 9_200, liangcang: 10_000, yaozhen: 8_900 }, luxe: { guzhen: 8_300, dukou: 9_000, shansi: 8_400, xilou: 9_000, liangcang: 9_400, yaozhen: 8_300 } },
+    huolang: { small: { guzhen: 11_300, dukou: 11_700, shansi: 10_600, xilou: 11_000, liangcang: 11_000, yaozhen: 11_300 }, medium: { guzhen: 10_400, dukou: 10_500, shansi: 9_900, xilou: 10_400, liangcang: 10_400, yaozhen: 10_400 }, large: { guzhen: 10_200, dukou: 11_400, shansi: 9_200, xilou: 9_600, liangcang: 11_300, yaozhen: 10_200 }, luxe: { guzhen: 10_000, dukou: 10_000, shansi: 6_800, xilou: 7_800, liangcang: 9_500, yaozhen: 8_300 } },
+    yinyang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 11_000, xilou: 12_200, liangcang: 11_300, yaozhen: 10_000 }, medium: { guzhen: 10_000, dukou: 10_000, shansi: 11_300, xilou: 12_100, liangcang: 10_000, yaozhen: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 10_700, xilou: 10_000, liangcang: 11_800, yaozhen: 10_000 }, luxe: { guzhen: 9_300, dukou: 10_000, shansi: 9_500, xilou: 9_300, liangcang: 10_000, yaozhen: 8_000 } },
+    // 窑镇（0.32.0）：各角色照古镇系数，四档两线各 150–450 局筛查，两线 ±2SE 明确多发的只有豪华档胖师叔、货郎、阴阳先生，压到普通 +0.40（DESIGN 4.2a）
     // 摆渡人 0.30.0 放出才进实盘（之前的局里没有他）：五个镇子小、中、大三档默认线各 150 局，普通低于带下限的抬到带上限（最多 2 倍；山寺中档按配对的小白不超多发线收一点）；古镇小档普通和小道士配对正好贴多发线，压 1%；豪华档照默认
-    baidu: { small: { guzhen: 9_900, dukou: 10_000, shansi: 11_700, xilou: 10_000, liangcang: 10_000 }, medium: { guzhen: 10_000, dukou: 12_000, shansi: 14_200, xilou: 10_000, liangcang: 10_000 }, large: { guzhen: 10_000, dukou: 13_200, shansi: 20_000, xilou: 14_300, liangcang: 12_900 } },
+    baidu: { small: { guzhen: 9_900, dukou: 10_000, shansi: 11_700, xilou: 10_000, liangcang: 10_000, yaozhen: 9_900 }, medium: { guzhen: 10_000, dukou: 12_000, shansi: 14_200, xilou: 10_000, liangcang: 10_000, yaozhen: 10_000 }, large: { guzhen: 10_000, dukou: 13_200, shansi: 20_000, xilou: 14_300, liangcang: 12_900, yaozhen: 10_000 } },
   } as Partial<Record<CharacterId, Partial<Record<RaidLiveTier, RaidCharCoef>>>>,
 };
 
@@ -406,7 +432,7 @@ export function raidCharCoef(character: CharacterId, tier: RaidLiveTier, templat
 export type RaidLiveTier = 'small' | 'medium' | 'large' | 'luxe';
 /** 能开实盘的镇子（教学镇不能）；菜单、实盘记录、结回都按这一份 */
 export type RaidLiveTemplate = Exclude<RaidTemplateId, 'teach'>;
-export const RAID_LIVE_TEMPLATES: readonly RaidLiveTemplate[] = ['guzhen', 'dukou', 'shansi', 'xilou', 'liangcang'];
+export const RAID_LIVE_TEMPLATES: readonly RaidLiveTemplate[] = ['guzhen', 'dukou', 'shansi', 'xilou', 'liangcang', 'yaozhen'];
 export const RAID_LIVE_TIERS: readonly RaidLiveTier[] = ['small', 'medium', 'large', 'luxe'];
 
 /** 娱乐：撤出时背包按价值换铜钱（1 价值 = 1 铜钱）；死了或迷失拿这局捡到的铜钱的一半 */

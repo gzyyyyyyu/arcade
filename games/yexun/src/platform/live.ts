@@ -14,7 +14,7 @@
  * 不依赖 DOM：fetch、时钟、存储从外面传进来。
  */
 import { LIVE_CHAR_IDS, liveCharOk, LIVE_MAX_BP, LIVE_TIERS, isLiveTier, liveReturn, vigilBp, type LiveTier } from '../content/live.ts';
-import { RULES_VERSION, type Setup } from '../core/state.ts';
+import type { Setup } from '../core/state.ts';
 import { RAID_LIVE, RAID_LIVE_TEMPLATES, type RaidLiveTemplate } from '../content/explore.ts';
 import type { CharacterId } from '../content/meta.ts';
 import { MAP_IDS } from '../content/maps.ts';
@@ -72,8 +72,6 @@ export interface LiveRecord {
   user?: string;
   /** 夜探的一份：哪个镇子（没有 = 守夜） */
   raid?: RaidLiveTemplate;
-  /** 开局时的规则版本（0.17.0 起记；没有 = 更早的记录，按 39 算）：结回按它算倍数，新版本上线前开的局不换一套倍数 */
-  rules?: number;
   /** 带的角色、地图（没有 = 小道士、雪原：0.3.6 以前的记录） */
   character?: CharacterId;
   map?: MapId;
@@ -115,7 +113,6 @@ export function reviveLive(raw: unknown): LiveRecord | null {
   const r: LiveRecord = { ref, tier, stake, seed, at, until, step: step as LiveStep };
   if (raw.kind === 'settle' || raw.kind === 'refund') r.kind = raw.kind;
   if (isNum(raw.ticks)) r.ticks = raw.ticks;
-  if (isNum(raw.rules)) r.rules = raw.rules;
   if (isNum(raw.bp)) r.bp = raw.bp;
   if (raw.stats !== undefined && raw.stats !== null) r.stats = raw.stats;
   if (isNum(raw.credited)) r.credited = raw.credited;
@@ -205,7 +202,7 @@ export class LiveClient {
     if (this.off) return { ok: false, outcome: { kind: 'unavailable' } };
     if (this.inflight || this.busy) return { ok: false, outcome: { kind: 'reject', error: 'pending' } };
     const now = this.d.now();
-    const rec: LiveRecord = { ref: newRef(), tier, stake: LIVE_TIERS[tier].stake, seed, at: now, until: now + LIVE_TTL_MS, step: 'buying', rules: RULES_VERSION, ...(raid ? { raid } : {}), ...(character && character !== 'xiaodao' ? { character } : {}), ...(!raid && map && map !== 'snow' ? { map } : {}) };
+    const rec: LiveRecord = { ref: newRef(), tier, stake: LIVE_TIERS[tier].stake, seed, at: now, until: now + LIVE_TTL_MS, step: 'buying', ...(raid ? { raid } : {}), ...(character && character !== 'xiaodao' ? { character } : {}), ...(!raid && map && map !== 'snow' ? { map } : {}) };
     if (!this.save(rec, rec.ref)) return { ok: false, outcome: { kind: 'reject', error: 'pending' } };
     let o!: Outcome;
     let user: string | null = null;
@@ -243,7 +240,7 @@ export class LiveClient {
   finish(seed: number, res: { ticks: number; won: boolean; bossKilled: boolean }, stats?: unknown): Promise<void> {
     const r = this.refresh();
     if (!r || r.raid) return this.inflight ?? Promise.resolve();
-    return this.finishBp(seed, vigilBp(r.tier, res.ticks, res.won, res.bossKilled, r.character, r.map, r.rules ?? 39), stats);
+    return this.finishBp(seed, vigilBp(r.tier, res.ticks, res.won, res.bossKilled, r.character, r.map), stats);
   }
 
   /** 夜探打完了（撤出、倒下、迷失）：倍数由 settleRaid 算好传进来（撤出才有，其余是 0） */
@@ -280,7 +277,7 @@ export class LiveClient {
     if (!r) return;
     if (r.step === 'playing' && !this.inflight) {
       if (this.d.now() > r.until) this.save({ ...r, step: 'void', error: 'expired' }, r.ref);
-      else this.save({ ...r, step: 'settling', kind: 'settle', bp: r.raid ? 0 : vigilBp(r.tier, r.ticks ?? 0, false, false, r.character, r.map, r.rules ?? 39) }, r.ref);
+      else this.save({ ...r, step: 'settling', kind: 'settle', bp: r.raid ? 0 : vigilBp(r.tier, r.ticks ?? 0, false, false, r.character, r.map) }, r.ref);
     }
     await this.retry();
   }

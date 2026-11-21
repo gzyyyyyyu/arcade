@@ -293,6 +293,7 @@
 .yx-result .yx-rnight .ev-risen { --evc: #b07ae0; }
 .yx-result .yx-rnight .ev-bell { --evc: #f2c744; }
 .yx-result .yx-rnight .ev-parade { --evc: #f08a4a; }
+.yx-result .yx-rnight .ev-allfire { --evc: #4ad8a0; }
 .yx-result .yx-rnight .ev-blood { --evc: #e0303a; }
 .yx-result .yx-rnight .ev-rage { --evc: #ff7a5a; }
 .yx-result-panel .yx-row3 .yx-big { min-height: 60px; font-size: 20px; flex: 1; }
@@ -764,7 +765,8 @@
 .yx-menu.yx-selscreen { overflow: hidden; }
 .yx-sel .yx-opts .yx-dangers { flex-wrap: nowrap; }
 @media (min-width: 701px) and (min-height: 501px) {
-  .yx-sel .yx-pickgrid.yx-maps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* 两行一样高：实盘里灰着的图（乱葬岗）只有一行字，不让它那一行变矮、配置面板跟着上下跳（娱乐、实盘同高） */
+  .yx-sel .yx-pickgrid.yx-maps { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 1fr; }
   /* 娱乐和实盘一个排法：左边危险档 / 档位撑满，右边角色按钮 + 起手心法 */
   .yx-sel .yx-opts { grid-template-columns: minmax(0, 1fr) auto; }
   .yx-sel .yx-opts > .yx-preps { grid-column: 1 / -1; flex-wrap: nowrap; }

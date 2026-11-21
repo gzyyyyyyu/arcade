@@ -1,17 +1,16 @@
-// 规则 63 的两段式合成（DESIGN 3.3f）：两件料都到 5 级先合初成（效果按 mergePower 打折、不空法器格），到原条件开宝箱升大成。只娱乐局
+// 两段式合成（DESIGN 3.3f）：两件料都到 5 级先合初成（效果按 mergePower 打折、不空法器格），到原条件开宝箱升大成。娱乐、实盘一样
 import { describe, expect, it } from 'vitest';
 import { mergeWho } from '../../src/content/combos.ts';
 import { CHARACTER_POOLS, type PoolCharacterId } from '../../src/content/pools.ts';
 import { MAX_WEAPONS, MERGE_STAGE, MERGES, WEAPONS, type MergeDef, type WeaponId } from '../../src/content/weapons.ts';
 import { grantWeapon, openChestNow, openEliteChestNow, spawnNow } from '../../src/core/debug.ts';
-import { createWorld, Ev, fingerprint, MAX_SHOTS, Pick, Shot, step, type Setup, type World } from '../../src/core/index.ts';
-import { liveSetup } from '../../src/platform/live.ts';
+import { createWorld, Ev, MAX_SHOTS, Pick, Shot, step, type Setup, type World } from '../../src/core/index.ts';
 
 const zhuxie = MERGES.find((m) => m.id === 'zhuxie')!;
 
 /** 干净的一局：不刷怪 */
-function bare(s: Partial<Setup> = {}, rules?: number): World {
-  const w = createWorld({ seed: 7, mode: 'vigil', danger: 0, character: 'xiaodao', ...s } as Setup, rules);
+function bare(s: Partial<Setup> = {}): World {
+  const w = createWorld({ seed: 7, mode: 'vigil', danger: 0, character: 'xiaodao', ...s } as Setup);
   w.weapons.length = 0;
   w.wstats.length = 0;
   w.nextEvent = 1e9;
@@ -57,18 +56,12 @@ describe('规则 63：两段式合成的流程', () => {
     expect(mergeEvents(w)).toContain(0);
   });
 
-  it('4 级合不上；规则 62 和规则 63 开的实盘局两件 5 级也合不上，现行实盘局合初成', () => {
+  it('4 级合不上；实盘局两件 5 级合初成', () => {
     const four = bare();
     grantWeapon(four, 'sword', MERGE_STAGE.halfLevel - 1);
     grantWeapon(four, 'flysword', 8);
     settle(four);
     expect(four.merges).toEqual([]);
-    for (const w of [bare({}, 62), bare({ live: true } as Partial<Setup>, 63)]) {
-      grantWeapon(w, 'sword', MERGE_STAGE.halfLevel);
-      grantWeapon(w, 'flysword', MERGE_STAGE.halfLevel);
-      settle(w);
-      expect(w.merges).toEqual([]);
-    }
     const live = bare({ live: true } as Partial<Setup>);
     grantWeapon(live, 'sword', MERGE_STAGE.halfLevel);
     grantWeapon(live, 'flysword', MERGE_STAGE.halfLevel);
@@ -100,17 +93,6 @@ describe('规则 63：两段式合成的流程', () => {
       step(w, 0, Pick.Reroll);
     }
   });
-
-  it('规则 63 开的实盘局（全部能带的角色）一直按技能跑 4 分钟，和规则 62 逐位一致', () => {
-    for (const c of ['xiaodao', 'fushi', 'jianxia', 'pang', 'gengfu', 'caiyao', 'zhijiang', 'huolang', 'yinyang'] as const) {
-      const run = (rules?: number): number => {
-        const w = createWorld(liveSetup('medium', 7, undefined, c), rules);
-        for (let t = 0; t < 7200 && w.phase !== 'over'; t++) step(w, Math.floor(t / 45) % 8, w.phase === 'choose' ? t % 3 : -1, 1);
-        return fingerprint(w);
-      };
-      expect(run(63), c).toBe(run(62));
-    }
-  }, 120_000);
 });
 
 // ───────────────────────── 每个搭配：初成 > 0 且 < 大成 ─────────────────────────

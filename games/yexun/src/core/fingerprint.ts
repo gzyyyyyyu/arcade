@@ -3,9 +3,9 @@
  * 浮点按 IEEE 754 的位来哈希（Float64Array 的底层字节），差最后一位也看得出来。
  */
 import { raidHooks } from './raid-port.ts';
-import { ARMS_NEW_MERGES, MERGES } from '../content/weapons.ts';
+import { MERGES } from '../content/weapons.ts';
 import { CHAR_FX } from '../content/meta.ts';
-import { MAX_ENEMIES, WEAPON_SLOTS, type World } from './state.ts';
+import type { World } from './state.ts';
 
 function mix(h: number, v: number): number {
   h ^= v;
@@ -27,28 +27,12 @@ function num(h: number, v: number): number {
   return arr(h, f64);
 }
 
-/**
- * 旧录像（旧卡池）的 eHitAt：2.0 加了 15 个搭配，每只怪的槽位变多、数组变长；旧录像录的指纹是按老长度哈的。
- * 旧卡池下新搭配出不来，多出来的槽位永远是 0，按老步长取前面那截，就和老指纹对得上
- */
-/** 规则 55 新增的搭配数：规则 54 的录像按没有它们的长度哈（它们在 54 里出不来，槽位永远是 0），指纹和 55 之前一样 */
-const RULES55_MERGES = MERGES.filter((m) => m.since === 55).length;
-/** 规则 62 的搭配接在最末尾：关着它们的局（实盘、规则 61 以前）按没有它们的长度哈 */
-const RULES62_MERGES = MERGES.filter((m) => m.since === 62).length;
-
-function legacyHitAt(w: World, cut = ARMS_NEW_MERGES.length): Int32Array {
-  const old = WEAPON_SLOTS - cut;
-  const out = new Int32Array(MAX_ENEMIES * old);
-  for (let i = 0; i < MAX_ENEMIES; i++) out.set(w.eHitAt.subarray(i * WEAPON_SLOTS, i * WEAPON_SLOTS + old), i * old);
-  return out;
-}
-
 export function fingerprint(w: World): number {
   let h = 0x811c9dc5;
   for (const v of [w.tick, w.x, w.y, w.hp, w.face, w.invuln, w.level, w.xp, w.pendingLevels, w.kills, w.coins, w.spawnAcc, w.nextEvent, w.regenAcc, w.slowUntil, w.calmUntil, w.mercyAt, w.revives, w.rerolls, w.bans, w.bonusCard, w.mkIndex, w.mkPhase, w.mkStall, w.mkHold, w.mightUntil, w.speedUntil, ...w.mkSold]) h = num(h, v);
-  // 规则 60 的求签：没买过时不进指纹，旧局的指纹不变
+  // 夜市求签：没买过时不进指纹
   if (w.omen >= 0) h = num(h, w.omen);
-  // 规则 63 的初成：没有初成的搭配时不进指纹，旧局的指纹不变
+  // 初成的搭配：没有时不进指纹
   for (const id of w.mergeHalf) h = num(h, MERGES.findIndex((m) => m.id === id));
   h = mix(h, w.phase === 'play' ? 1 : w.phase === 'choose' ? 2 : 3);
   for (const o of w.weapons) for (const v of [o.level, o.evolved ? 1 : 0, o.timer, o.phase, o.angle]) h = num(h, v);
@@ -69,11 +53,11 @@ export function fingerprint(w: World): number {
   }
   // 技能的冷却和持续：放过才进指纹（没按过技能键的局，指纹和有技能之前一样）
   if (w.skill.uses > 0) for (const v of [w.skill.cd, w.skill.active, w.skill.uses]) h = num(h, v);
-  // 规则 61 胖师叔攒的伤害：攒过才进指纹
+  // 胖师叔攒的伤害：攒过才进指纹
   if (w.skill.store > 0) h = num(h, w.skill.store);
-  // 规则 66 阴阳先生的阴阳互换：看过才进指纹（别的局不变）
+  // 阴阳先生的阴阳互换：看过才进指纹（别的局不变）
   if (w.flip.side !== 0) h = num(num(h, w.flip.side), w.flip.next);
-  // 货郎攒铜钱补刷新（规则 61）：补过才进指纹
+  // 货郎攒铜钱补刷新：补过才进指纹
   if (w.rerollAt !== CHAR_FX.huolangRerollEvery) h = num(h, w.rerollAt);
   // 2.0 的首领和特色怪留在地上的东西：只在用过的局进指纹
   if (w.foe.used) {
@@ -87,6 +71,6 @@ export function fingerprint(w: World): number {
     h = num(num(h, w.pvx), w.pvy);
     h = arr(arr(h, w.eVX), w.eVY);
   }
-  for (const a of [w.eAlive, w.eKind, w.eX, w.eY, w.eKX, w.eKY, w.eHp, w.eT, w.eS, w.ePhase, w.legacyPool ? legacyHitAt(w) : !w.new55 ? legacyHitAt(w, RULES55_MERGES + RULES62_MERGES) : w.armsCombos ? w.eHitAt : legacyHitAt(w, RULES62_MERGES), w.eMark, w.sAlive, w.sKind, w.sX, w.sY, w.sVX, w.sVY, w.sLife, w.sState, w.dAlive, w.dKind, w.dX, w.dY, w.dVal, w.dPull, w.pAlive, w.pX, w.pY]) h = arr(h, a);
+  for (const a of [w.eAlive, w.eKind, w.eX, w.eY, w.eKX, w.eKY, w.eHp, w.eT, w.eS, w.ePhase, w.eHitAt, w.eMark, w.sAlive, w.sKind, w.sX, w.sY, w.sVX, w.sVY, w.sLife, w.sState, w.dAlive, w.dKind, w.dX, w.dY, w.dVal, w.dPull, w.pAlive, w.pX, w.pY]) h = arr(h, a);
   return h >>> 0;
 }

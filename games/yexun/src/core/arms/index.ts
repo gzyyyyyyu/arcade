@@ -73,9 +73,9 @@ export function armsRecompute(w: World, s: { coinBonus: number; magnet: number; 
   if (A.tier >= 4 && was < 4) A.autoAt = w.tick + ARM_FX.flag.autoEvery;
 }
 
-/** 绳、阵里定住的拍数再加多少：阵法 2 件 + 令旗 + 阴阳先生在阴（规则 62：阳打得狠，阴定得久） */
+/** 绳、阵里定住的拍数再加多少：阵法 2 件 + 令旗 + 阴阳先生在阴（阳打得狠，阴定得久） */
 export function armsBindBonus(w: World): number {
-  const yin = w.armsCombos && yinyangSide(w) === 'yin' ? CHAR_FX.yinyangBind : 0;
+  const yin = yinyangSide(w) === 'yin' ? CHAR_FX.yinyangBind : 0;
   return (w.arms.tier >= 2 ? ARM_FX.set.two : 0) + ARM_FX.flag.qizhiTicks * (w.passives.qizhi ?? 0) + yin;
 }
 
