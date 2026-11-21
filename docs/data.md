@@ -31,6 +31,7 @@ settings(key PK, value, updated_at)                                             
 wallets(user_id PK, rev, state, updated_at)                                             WITHOUT ROWID    -- 5.9
 wallet_stats(day PK, data, created_at)                                                  WITHOUT ROWID    -- 每天的全站筹码统计，只有合计
 invites(id PK, from_id, to_id, game, room, created_at, until, dismissed)               WITHOUT ROWID，索引 (to_id, until)、(from_id, created_at)   -- 好友房邀请（15.15）
+meetups(host_id PK, game, at, day, made)   WITHOUT ROWID   -- 约局（15.22）：一人一行，at = 0 是取消了；day/made 是这天（北京时间）约了几次
 feed(id PK, user_id, game, kind, data, created_at)                                      WITHOUT ROWID，索引 (user_id, created_at)   -- 好友动态（15.17）
 feed_reactions(item_id, user_id, kind, created_at, PRIMARY KEY (item_id, user_id))      WITHOUT ROWID
 challenges(id PK, game, owner_id, payload, created_at, until)                           WITHOUT ROWID，索引 (owner_id, created_at)   -- 异步挑战（15.18）
@@ -91,6 +92,7 @@ D1 按写入行数计费：插入时表本身一行，每个索引再各算一�
 | 每 5 分钟的巡检（Cron） | 结果没变 0；变了或满 15 分钟 1 | settings 的 monitor 一行 | 监控 |
 | 报位置 `POST /api/presence` | 位置没变每人每 2 分钟 ≤ 1；位置变了马上 1，但每人每 10 秒 ≤ 1；节流内 0 | users 1（`presence_*`、`last_seen_at` 同一行） | 在线 |
 | 发邀请 / "不了" | 3 / 1 | invites 表 1 + 两个索引 2；只改 `dismissed` | 在线 |
+| 约局 / 取消约局 | 1 / 1（没有约局时 0） | meetups 表一人一行，没有索引 | 在线 |
 | 好友动态 `POST /api/feed`、结回生成 / 赞、扔道具 | 2；满 10 条、关了开关、预算用完 0 / 2；再点 0 | feed 1 + 索引 1 / 赞计数 1 + feed_reactions 1 | 在线 |
 | 发起挑战 / 交挑战成绩 | 4 / 1；交过、满了、过期 0 | `chal` 计数 1 + challenges 2 + 发起人的结果 1 / challenge_results 1 | 排行榜 |
 | 搭子战绩 `together()` | 每对好友：新的 2，已有的 1；重复 op、不是好友 0 | mates 1（+ `hi` 索引 1，只在新插入时） | 排行榜 |
@@ -112,7 +114,7 @@ D1 按写入行数计费：插入时表本身一行，每个索引再各算一�
 
 ### 7.3 注销与清理
 
-- **注销**：再验证后一次 `db.batch`（D1 里是一个事务），删掉这个人在 users、sessions、credentials、saves、boards、friendships（两个方向）、blocks（两个方向）、wallets、invites（发出的、收到的）、feed（本人发的）、feed_reactions（本人赞的；别人给本人动态的赞 7 天后跟着 Cron 删）、
+- **注销**：再验证后一次 `db.batch`（D1 里是一个事务），删掉这个人在 users、sessions、credentials、saves、boards、friendships（两个方向）、blocks（两个方向）、wallets、invites（发出的、收到的）、meetups、feed（本人发的）、feed_reactions（本人赞的；别人给本人动态的赞 7 天后跟着 Cron 删）、
   challenges 和 challenge_results（本人发起的连同所有结果、本人交的结果）、mates（本人在 `lo`、`hi` 两边的）、invite_codes（本人生成的连同别人用它的 `invite_code_uses` 一起删；本人注册时用过的码只清 `used_by`、删 `invite_code_uses` 里本人那行（走 `user_id` 索引），`uses`、`used_at` 留着，邀请人的额度、长期码的名额不还，不然"邀请 → 让对方注销 → 再邀请"能绕过额度）、
   rate_counters（键里带他的用户 id 或用户名的）里的所有行。计数键清单在 `deleteUserStatements`（`worker/api/account/session.ts`）：`login:fail`、`reauth:fail`、`profile`、`acct`、`save`、`freq`、`fcode`、`fcnew`、`block`、`score`、`admin`、`react`、`chal`。
   管理员删号、一年清理用同一套语句。`blocks` 按被屏蔽方删除没有索引、要扫全表，注销很少，接受。**以后加的表和新的计数键都要加进这个 batch，并有"注销后删干净"的测试。**
@@ -120,7 +122,7 @@ D1 按写入行数计费：插入时表本身一行，每个索引再各算一�
 - **每天的 Cron 先记筹码统计**（5.9），先于一年清理；出错只记日志，不影响后面的清理。
 - **每天的 Cron 还清理**：过期的会话、窗口已过的 `rate_counters`、**60 天前的每日榜**（`dailyBoardKeepDays`，北京时间，带不带 `-v<n>` 都算；固定榜不动；沿排名索引按 `board_id` 范围删，这也是榜单 ID 把日期放在版本号前面的原因，9.2）、
   **60 天前那周以前的每周榜**（同一个 `dailyBoardKeepDays`，只扫登记了 `weekly` 的游戏，`week-YYYY-Www` 补了零，按范围删同样走索引）、
-  7 天前的 `meter_hourly` 和 `monitor_counts`、180 天前的 `play_tally`（`tallyKeepDays`）、2 天前的邀请、7 天前的动态和赞、30 天前的挑战和结果、过期或撤回满 30 天、一次没用过的邀请码。清理的写入算进"系统"类，每次最多删 3,000 行（`cleanupMaxRows`），删不完的留到第二天。
+  7 天前的 `meter_hourly` 和 `monitor_counts`、180 天前的 `play_tally`（`tallyKeepDays`）、2 天前的邀请、开局过了 1 天的约局（含取消了的）、7 天前的动态和赞、30 天前的挑战和结果、过期或撤回满 30 天、一次没用过的邀请码。清理的写入算进"系统"类，每次最多删 3,000 行（`cleanupMaxRows`），删不完的留到第二天。
   每一段单独兜住：一段出错只记段名和错误类型，接着清下一段。
 - 隐私说明里写明：备份（Time Travel）会在 30 天内自然过期。
 
