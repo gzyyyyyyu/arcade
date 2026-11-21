@@ -1,3 +1,4 @@
+import type { ExchangeView } from '../view/ui/prepShop.ts';
 import { CHARACTERS, PICK_CHAR_IDS, type CharacterId } from '../content/meta.ts';
 import { LIVE_OPEN } from '../content/live.ts';
 import { MAP_IDS, type MapId } from '../content/maps.ts';
@@ -6,14 +7,14 @@ import { altStart, mainSchools } from '../content/pools.ts';
 import { WEAPONS } from '../content/weapons.ts';
 import { TREASURES } from '../content/treasures.ts';
 import { vaultProgress } from '../explore/vault.ts';
-import { CHAR_PRICE, charOpen, charProgress, coins, dangerOpen, mapOpen, type loadSave } from '../platform/save.ts';
+import { CHAR_PRICE, charOpen, charProgress, coins, dangerOpen, exchangeLog, mapOpen, type loadSave } from '../platform/save.ts';
 import { hasLoginHint } from '../platform/cloud.ts';
 import type { createLive } from '../platform/live.ts';
 import { heroKey } from '../view/art/heroes.ts';
 import type { PrepState } from '../view/ui/prep.ts';
 
 /** 角色页和主页要的状态：都是存档（和实盘能不能开）算出来的快照，每次打开现算 */
-export function createMenuViews(save: ReturnType<typeof loadSave>, live: ReturnType<typeof createLive>, icon: (key: string, px?: number) => string) {
+export function createMenuViews(save: ReturnType<typeof loadSave>, live: ReturnType<typeof createLive>, icon: (key: string, px?: number) => string, xc: () => ExchangeView) {
   const prepState = (): PrepState => ({
     coins: coins(save),
     character: save.character,
@@ -21,6 +22,7 @@ export function createMenuViews(save: ReturnType<typeof loadSave>, live: ReturnT
     curses: save.curses,
     cursesOpen: save.cleared >= 0,
     perks: save.perks,
+    shop: { coins: coins(save), kits: save.kits, looks: save.looks, wear: save.wear, xc: xc(), xcLog: exchangeLog(save, 4) },
   });
   /** 当前角色能选的起手和心法（起手：原起手 / 第二件；心法：不带 / 两个主修流派） */
   const loadoutView = (c: CharacterId) => {

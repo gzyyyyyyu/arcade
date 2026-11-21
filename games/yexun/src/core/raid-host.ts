@@ -36,6 +36,8 @@ export interface RaidPlayerView {
   readonly ev: EvSink;
   /** 身上的铜钱（鬼市花） */
   coins: number;
+  /** 局内花掉的铜钱（只记不影响规则，结算带出用） */
+  coinSpent: number;
 }
 
 /** 守卫移动要读写的怪数组（World 结构上满足；下标 i 是怪的槽位） */

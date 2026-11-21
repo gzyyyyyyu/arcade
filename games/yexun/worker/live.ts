@@ -13,7 +13,7 @@
  */
 import { LIVE_MAX_BP, LIVE_OPEN, LIVE_TIERS, isLiveTier, liveReturn, type WalletTier } from '../src/content/live.ts';
 
-type WalletReply = { ok: true; wallet: unknown; credited?: number; capped?: number; dup?: boolean } | { ok: false; error: string; wallet?: unknown };
+export type WalletReply = { ok: true; wallet: unknown; credited?: number; capped?: number; dup?: boolean; left?: number; exchangeLeft?: number; exchangeCap?: number } | { ok: false; error: string; wallet?: unknown; left?: number };
 
 export interface WalletRpc {
   view(userId: string): Promise<WalletReply>;
@@ -21,6 +21,8 @@ export interface WalletRpc {
   /** stats：战绩小结（平台 5.10），浏览器报什么原样转发，形状由平台校验 */
   settle(req: { userId: string; game: 'yexun'; ref: string; amount: number; mode: 'client'; op: string; stats?: unknown }): Promise<WalletReply>;
   refund(req: { userId: string; game: 'yexun'; ref: string; mode: 'client'; op: string }): Promise<WalletReply>;
+  /** 铜钱换筹码（平台 0.41.0）：amount 是要换进的筹码数，超出今天剩余额度只入一部分（credited） */
+  exchange(req: { userId: string; game: 'yexun'; op: string; amount: number }): Promise<WalletReply>;
 }
 
 export interface LiveEnv {
@@ -41,18 +43,18 @@ const ACTIONS = ['buyin', 'settle', 'refund'] as const;
 /** 只转发这两个头：Cookie 用来认人，cf-connecting-ip 给平台限流 */
 const FORWARD = ['cookie', 'cf-connecting-ip'];
 
-function reply(status: number, body: unknown, cookies: string[] = []): Response {
+export function reply(status: number, body: unknown, cookies: string[] = []): Response {
   const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, no-store' });
   for (const c of cookies) headers.append('Set-Cookie', c);
   return new Response(JSON.stringify(body), { status, headers });
 }
-const fail = (status: number, error: string, cookies: string[] = []): Response => reply(status, { ok: false, error }, cookies);
+export const fail = (status: number, error: string, cookies: string[] = []): Response => reply(status, { ok: false, error }, cookies);
 
 /** 单独部署（没有平台）：没有 ARCADE 绑定，GATE 也不是 login（GATE=login 却没有 ARCADE 算漏了绑定，按平台不可用处理） */
-const standalone = (env: LiveEnv): boolean => !env.ARCADE && env.GATE !== 'login';
+export const standalone = (env: LiveEnv): boolean => !env.ARCADE && env.GATE !== 'login';
 
 /** 读 JSON 对象体：必须带 Content-Length 且 0 < n ≤ 2 KB，否则不读；读出来的再按字节判一次（Content-Length 可能撒谎） */
-async function readBody(req: Request): Promise<Record<string, unknown> | null> {
+export async function readBody(req: Request): Promise<Record<string, unknown> | null> {
   const raw = req.headers.get('content-length');
   const len = raw !== null && /^\d+$/.test(raw) ? Number(raw) : NaN;
   if (!(len > 0 && len <= BODY_MAX)) return null;
@@ -157,13 +159,21 @@ export async function handleLive(req: Request, env: LiveEnv, timeoutMs = WALLET_
     }
   }
 
+  return walletCall(req, env, timeoutMs, expect, action, call);
+}
+
+/**
+ * 认人，再限时调钱包（实盘、兑换共用）：没登录 401，平台或钱包连不上 503，换了账号 409；钱包的业务拒绝原样 200 转给浏览器，回话里带上是谁。
+ * expect：浏览器记着的账号（undefined 是不核对）；method：要用到的钱包方法，绑定里没有就当连不上。
+ */
+export async function walletCall(req: Request, env: LiveEnv, timeoutMs: number, expect: string | undefined, method: keyof WalletRpc, call: (w: WalletRpc, userId: string) => Promise<WalletReply>): Promise<Response> {
   const { verdict, cookies, userId } = await whoIs(req, env, Math.min(timeoutMs, ME_TIMEOUT_MS));
   if (verdict === 'out') return fail(401, 'login', cookies);
   if (verdict === 'down' || userId === null) return fail(503, 'unavailable', cookies);
   if (expect !== undefined && expect !== userId) return fail(409, 'wrong_user', cookies);
 
   const wallet = env.WALLET;
-  if (!wallet || typeof wallet[action] !== 'function') return fail(503, 'unavailable', cookies);
+  if (!wallet || typeof wallet[method] !== 'function') return fail(503, 'unavailable', cookies);
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<'timeout'>((resolve) => {
     timer = setTimeout(() => resolve('timeout'), timeoutMs);

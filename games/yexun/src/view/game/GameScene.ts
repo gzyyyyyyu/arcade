@@ -32,6 +32,7 @@ import { Drop, Ev, MAX_ENEMIES, MERGE_CODE, skillCooldown, skillOf, skillReady, 
 import { COS, SIN } from '../../core/dirs.ts';
 import { HERO_TEX, MOB_TEX, RAID_TEX, makeIcons, peekHeroAtlas, type Atlas, type Frame } from '../art/atlas.ts';
 import { faceKey, heroKey } from '../art/heroes.ts';
+import { LookAura } from './lookAura.ts';
 import { playSkillFx, SK, type SkillFxCtx } from '../art/skills.ts';
 import { GROUND_TINT } from '../art/terrain.ts';
 import { treasureIconKey } from '../art/sprites-raid.ts';
@@ -190,6 +191,8 @@ export interface GameDeps {
   autopilot?: (w: World) => { dir: number; choice: number };
   /** 回放：时间、选卡都交给它推（录像驱动、可变速），每推一拍回调一次 each；场景自己不推 */
   drive?: (dtMs: number, each: () => void) => void;
+  /** 外观「脚下光圈」的颜色（content/meta.ts LOOKS）；没穿不传 */
+  aura?: { color: string; edge: string };
 }
 
 interface MobView {
@@ -246,6 +249,7 @@ export class GameScene extends Phaser.Scene {
   private bubble: Phaser.GameObjects.Text | null = null;
   private bubbleUntil = 0;
   private heroShadow!: Phaser.GameObjects.Image;
+  private lookAura: LookAura | null = null;
   private aura!: Phaser.GameObjects.Image;
   private mobs: (MobView | null)[] = [];
   private shotsView!: ShotsView;
@@ -495,6 +499,7 @@ export class GameScene extends Phaser.Scene {
 
     this.aura = this.img('aura', 0, 0, 1).setAlpha(0.9);
     this.heroShadow = this.img('shadow', 0, 0, 1.1).setAlpha(0.9);
+    this.lookAura = this.d.aura ? new LookAura(this, this.d.aura.color, this.d.aura.edge) : null;
     // 主角外面再描一圈：同一张图涂成墨色、放大一点垫在后面，轮廓更粗、在怪堆里一眼找得到
     this.heroBack = this.img(this.heroFrame).setTint(0x17131c).setTintMode(Phaser.TintModes.FILL);
     this.hero = this.img(this.heroFrame);
@@ -1953,6 +1958,7 @@ export class GameScene extends Phaser.Scene {
     this.hero.setPosition(hx, hy - bob * 0.8).setScale(sx, sy).setRotation(0).setDepth(hd).setAlpha(blink ? 0.7 : 1);
     this.heroBack.setPosition(hx, hy - bob * 0.8 + 1).setScale(sx * 1.07, sy * 1.05).setRotation(this.hero.rotation).setDepth(hd - 0.1).setAlpha(this.hero.alpha);
     this.heroShadow.setPosition(hx, hy).setDepth(-400);
+    this.lookAura?.update(hx, hy, walking && moving, this.now);
     if (this.bubble) {
       if (this.now > this.bubbleUntil) {
         this.bubble.destroy();

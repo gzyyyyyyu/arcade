@@ -5,12 +5,12 @@ import { GUARD_MOVE, guardStep } from '../../src/explore/guards.ts';
 import { RaidEv, type GuardHost } from '../../src/explore/host.ts';
 import { Raid, Role } from '../../src/explore/raid.ts';
 
-type Host = GuardHost & { tick: number; x: number; y: number; coins: number; evs: number[][] };
+type Host = GuardHost & { tick: number; x: number; y: number; coins: number; coinSpent: number; evs: number[][] };
 function fakeHost(): Host {
   const N = 300;
   const evs: number[][] = [];
   return {
-    tick: 0, x: 0, y: 0, coins: 0, evs,
+    tick: 0, x: 0, y: 0, coins: 0, coinSpent: 0, evs,
     ev: { push: (t: number, x: number, y: number, a = 0, b = 0, c = 0) => void evs.push([t, x, y, a, b, c]) },
     eAlive: new Uint8Array(N), eGen: new Uint32Array(N), eX: new Float64Array(N), eY: new Float64Array(N),
     eHp: new Float64Array(N), eHpMax: new Float64Array(N), eSpeed: new Float64Array(N), eT: new Int32Array(N),

@@ -84,7 +84,8 @@ import {
   type WeaponType,
 } from '../content/weapons.ts';
 import { Ev } from './events.ts';
-import { inPool, XINFA_MUL } from '../content/pools.ts';
+import { CHARACTER_POOLS, inPool, XINFA_MUL } from '../content/pools.ts';
+import { Rng } from './rng.ts';
 import { SCHOOLS } from '../content/guide.ts';
 import { armsStalls, armsBindBonus, armsFire, armsHitMul, armsRecompute, armsSlow, armsStats, armsTick, type ArmApi } from './arms/index.ts';
 import { DIR_N } from './dirs.ts';
@@ -134,9 +135,21 @@ export function createWorld(setup: Setup): World {
   }
   w.schedule = schedule(w);
   addWeapon(w, w.startWeapon);
+  applyKits(w);
   w.hp = w.stats.hpMax;
   if (!w.raid) scatterProps(w);
   return w;
+}
+
+/** 局前锦囊（content/meta.ts KITS）：开门红起手 2 级；随身宝从角色池的被动里抽一件（单独的随机流，不动别的流）。刷新符在 World 构造里加次数 */
+function applyKits(w: World): void {
+  const kits = w.setup.kits;
+  if (!kits) return;
+  if (kits.includes('start2')) upgradeWeapon(w, w.startWeapon);
+  if (kits.includes('passive')) {
+    const pool = CHARACTER_POOLS[(w.setup.pool && w.setup.pool !== 'all' ? w.setup.pool : w.setup.character) ?? 'xiaodao'].passives;
+    upgradePassive(w, pool[new Rng(w.setup.seed, 'kit').int(pool.length)]!);
+  }
 }
 
 /** 首领连战开局：没有时间线和摆设，直接给这一局的构筑和等级（DESIGN.md 2.5） */
@@ -1921,7 +1934,11 @@ function killEnemy(w: World, i: number): void {
   w.kills++;
   w.ev.push(Ev.Kill, x, y, def.code, def.elite ? 1 : 0, i);
   // 货郎·招财进宝期间，打倒的怪多掉一枚铜钱
-  if (skillFortune(w)) for (let k = 0; k < SKILL_FX.fortune.extra; k++) addDrop(w, Drop.Coin, x - 8, y, 1);
+  if (skillFortune(w))
+    for (let k = 0; k < SKILL_FX.fortune.extra; k++) {
+      const j = addDrop(w, Drop.Coin, x - 8, y, 1);
+      if (j >= 0) w.dLuck[j] = 1;
+    }
   if (def.code >= FOE_FIRST) foeOnKill(w, i, x, y);
   // 往生铃：光环里死的怪给主角回 1 点血，最多每 6 拍一次
   if (w.bellArea > 0 && w.tick >= w.bellHealAt) {
@@ -3279,13 +3296,14 @@ function farthestSoul(w: World): number {
   return far;
 }
 
-function addDrop(w: World, kind: Drop, x: number, y: number, val: number): void {
+/** 返回放进的槽位；并进别的魂珠或放不下时 -1 */
+function addDrop(w: World, kind: Drop, x: number, y: number, val: number): number {
   // 地上的魂珠超过上限：新掉的经验并进离主角最远的那颗（变成大珠），满地珠子不抢怪和特效的眼（主线 2b 意见，VS 的做法）
   if (kind === Drop.Soul && w.soulCount >= PICKUP.soulCap) {
     const far = farthestSoul(w);
     if (far >= 0) {
       w.dVal[far]! += val;
-      return;
+      return -1;
     }
   }
   let i = -1;
@@ -3298,10 +3316,10 @@ function addDrop(w: World, kind: Drop, x: number, y: number, val: number): void 
   if (i < 0) {
     // 满了：魂珠加到离主角最远的那颗魂珠上（不丢经验）；别的东西挤掉最远的魂珠
     const far = farthestSoul(w);
-    if (far < 0) return;
+    if (far < 0) return -1;
     if (kind === Drop.Soul) {
       w.dVal[far]! += val;
-      return;
+      return -1;
     }
     i = far;
     w.dCount--;
@@ -3319,9 +3337,11 @@ function addDrop(w: World, kind: Drop, x: number, y: number, val: number): void 
   w.dPX[i] = w.dX[i]!;
   w.dPY[i] = w.dY[i]!;
   w.dVal[i] = val;
+  w.dLuck[i] = 0;
   w.dPull[i] = 0;
   w.dCount++;
   if (kind === Drop.Soul) w.soulCount++;
+  return i;
 }
 
 function movePickups(w: World): void {
@@ -3369,6 +3389,7 @@ function collect(w: World, i: number): void {
         const c = val + (w.stats.coinBonus > 0 && w.rDrop.next() < w.stats.coinBonus ? 1 : 0);
         w.coins += c;
         w.coinBy.drop += c;
+        if (w.dLuck[i]) w.coinFortune += c;
         xinfaCoin(w, c);
         coinReroll(w);
       }
@@ -3984,6 +4005,7 @@ function nightMarket(w: World): void {
   }
   if (s < 0 || ++w.mkHold < M.hold) return;
   w.coins -= w.mkPrice[s]!;
+  w.coinSpent += w.mkPrice[s]!;
   w.mkSold[s] = 1;
   w.mkBuys++;
   w.mkStall = -1;

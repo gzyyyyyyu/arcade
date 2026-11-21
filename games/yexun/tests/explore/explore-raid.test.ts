@@ -17,7 +17,7 @@ import { emptyVault, herbalistUnlocked, normalizeVault, recordRaid, vaultProgres
 const M = 1800;
 
 /** 假的核心：主角位置、事件、怪数组（核心接好以后由 World 本身满足这些接口） */
-type FakeHost = GuardHost & { tick: number; x: number; y: number; coins: number; evs: number[][] };
+type FakeHost = GuardHost & { tick: number; x: number; y: number; coins: number; coinSpent: number; evs: number[][] };
 function fakeHost(x: number, y: number): FakeHost {
   const N = 300;
   const evs: number[][] = [];
@@ -26,6 +26,7 @@ function fakeHost(x: number, y: number): FakeHost {
     x,
     y,
     coins: 0,
+    coinSpent: 0,
     evs,
     ev: { push: (t: number, ex: number, ey: number, a = 0, b = 0, c = 0) => void evs.push([t, ex, ey, a, b, c]) },
     eAlive: new Uint8Array(N),

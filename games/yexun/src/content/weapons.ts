@@ -50,6 +50,8 @@ export interface WeaponDef {
   base: WeaponStats;
   /** 第 2–8 级的提升（下标 0 是升到 2 级） */
   ups: LevelUp[];
+  /** 卡片上各项数值叫什么（没写的用 STAT_NAME）：同一个字段在不同法器里意思不同，比如 amount 是「几道剑气」或「一次捆几只」 */
+  stat?: Partial<Record<keyof WeaponStats, string>>;
   /** 进化：满级 + 这件被动，开宝箱时进化 */
   evolve?: { with: PassiveId; name: string; icon: string; desc: string; stats: WeaponStats };
 }
@@ -68,6 +70,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '朝面前横扫一道大弧',
     el: '木',
     type: '剑',
+    stat: { amount: '剑气几道' },
     base: { dmg: 14, cd: 36, area: 118, amount: 2, speed: 0, duration: 0, knock: 10, rehit: 8 },
     ups: [
       { text: '多砍一道', delta: { amount: 1 } },
@@ -93,6 +96,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '黄符飞向最近的怪，命中爆开',
     el: '火',
     type: '符',
+    stat: { amount: '几张符', speed: '飞行速度', duration: '符飞多久' },
     base: { dmg: 18, cd: 30, area: 34, amount: 1, speed: 13, duration: 70, knock: 6, rehit: 10 },
     ups: [
       { text: '多发一张', delta: { amount: 1 } },
@@ -118,6 +122,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '铜钱绕身转，还能挡下飞来的火球和冰锥',
     el: '金',
     type: '剑',
+    stat: { amount: '几枚铜钱', area: '绕身半径', duration: '一轮转多久', speed: '转速' },
     base: { dmg: 13, cd: 150, area: 76, amount: 3, speed: 7, duration: 90, knock: 8, rehit: 12 },
     ups: [
       { text: '多一枚铜钱', delta: { amount: 1 } },
@@ -143,6 +148,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '飞剑绕身待命，看见怪就飞出去穿过一串',
     el: '金',
     type: '剑',
+    stat: { amount: '几把飞剑', duration: '飞多远', speed: '飞行速度' },
     base: { dmg: 16, cd: 54, area: 0, amount: 2, speed: 22, duration: 340, knock: 6, rehit: 14 },
     ups: [
       { text: '多一把飞剑', delta: { amount: 1 } },
@@ -168,6 +174,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '天雷劈向附近的怪，落点一圈都挨打',
     el: '木',
     type: '符',
+    stat: { amount: '几道雷', area: '落点半径' },
     base: { dmg: 28, cd: 62, area: 50, amount: 1, speed: 0, duration: 430, knock: 4, rehit: 1 },
     ups: [
       { text: '多劈一道', delta: { amount: 1 } },
@@ -193,6 +200,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '身边一圈光环，里面的怪持续挨打、走得慢',
     el: '金',
     type: '镇',
+    stat: { area: '光环多大' },
     // 1.1：镇流派中、大档最弱（前期清怪慢），1、2 级光环 66 → 73，3 级起和原来一样（第一次变大只 +5）
     base: { dmg: 12, cd: 15, area: 70, amount: 1, speed: 0, duration: 0, knock: 1, rehit: 1 },
     ups: [
@@ -219,6 +227,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '一圈光波往外推，推开并打伤一圈怪',
     el: '水',
     type: '镇',
+    stat: { area: '光波推多远', speed: '光波速度', amount: '连放几道' },
     // area：光波推到多远；speed：光波每拍扩多少；amount：一次连放几道（隔 8 拍）
     base: { dmg: 12, cd: 96, area: 150, amount: 1, speed: 9, duration: 0, knock: 26, rehit: 30 },
     ups: [
@@ -245,6 +254,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '朝最近的怪喷一道火，扇面里都挨烧；带两件火法器时飞来的弹也烧掉',
     el: '火',
     type: '灵',
+    stat: { area: '火舌多长', duration: '一次喷多久', amount: '扇面宽' },
     // area：火舌多长；duration：一次喷几拍；amount：扇面宽（每多 1 宽 6°，基础 ±22°）
     base: { dmg: 22, cd: 84, area: 190, amount: 1, speed: 0, duration: 36, knock: 2, rehit: 6 },
     ups: [
@@ -271,6 +281,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '甩出绳索捆住一串怪，捆住的走不动',
     el: '土',
     type: '镇',
+    stat: { amount: '一次捆几只', area: '找下一只的距离', duration: '捆多久' },
     // amount：一次捆几只；area：从第一只往外找下一只的距离；duration：捆几拍
     // 主要是控场：伤害低，捆住的怪不会马上死，拖住才有用
     base: { dmg: 10, cd: 120, area: 140, amount: 3, speed: 0, duration: 75, knock: 0, rehit: 1 },
@@ -298,6 +309,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '身边落桃花，砸中的怪挨打，主角回一点血',
     el: '木',
     type: '灵',
+    stat: { amount: '一次落几片', area: '落多大一圈', duration: '落地要多久' },
     // amount：一次落几片；area：落在身边多大一圈；duration：花瓣落地要几拍
     base: { dmg: 16, cd: 60, area: 150, amount: 4, speed: 0, duration: 14, knock: 3, rehit: 1 },
     ups: [
@@ -324,6 +336,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '护盾挡下一次伤害，碎的时候震开身边的怪',
     el: '土',
     type: '镇',
+    stat: { amount: '最多挡几下', cd: '回一层要多久', area: '碎时震多大', dmg: '碎时伤害' },
     // amount：最多挡几下；cd：回一层要几拍；area、dmg：碎的时候震多大、打多少
     base: { dmg: 50, cd: 360, area: 110, amount: 1, speed: 0, duration: 0, knock: 30, rehit: 1 },
     ups: [
@@ -350,6 +363,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '纸鹤在身边盘旋，俯冲去啄最近的怪',
     el: '水',
     type: '符',
+    stat: { amount: '几只纸鹤', area: '看多远', speed: '俯冲速度', cd: '俯冲间隔' },
     // amount：几只纸鹤；area：看多远的怪；speed：俯冲多快；cd：一轮俯冲的间隔（几只轮流）
     base: { dmg: 28, cd: 48, area: 300, amount: 1, speed: 15, duration: 0, knock: 6, rehit: 10 },
     ups: [
@@ -377,6 +391,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '剪出几个纸兵，走去顶住最近的怪，边挡边打；挨打会折寿',
     el: '土',
     type: '灵',
+    stat: { amount: '同时最多几个', cd: '补一个要多久', area: '找怪距离', speed: '走多快', duration: '活多久' },
     // amount：同时最多几个；cd：补一个要几拍；area：多远内找怪；speed：走多快；duration：活几拍；dmg、rehit：贴身每隔几拍打一下；knock：把怪顶回去多远
     base: { dmg: 11, cd: 120, area: 280, amount: 2, speed: 2.6, duration: 300, knock: 10, rehit: 15 },
     ups: [
@@ -405,6 +420,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     el: '水',
     // 灵（泉眼通灵）：试过算镇，危险 2 吃满怪"怕镇"的加成（尸王 ×1.65）太顺、危险 5 一下没了；算灵不沾克制，两档差得和别的流派一样
     type: '灵',
+    stat: { amount: '一次冒几眼', area: '泉多大', duration: '泉留多久' },
     // amount：一次冒几眼；area：泉多大；duration：泉留几拍（墨斗加长）；dmg、rehit：泉里每隔几拍冻一下
     // 估算：1 级泉里每只 22/秒、同时约 1.2 眼（半径 56）；8 级每只 48/秒、同时约 3.75 眼（半径 78）；
     // 镇魂铃 8 级是身边一圈每只 67/秒、一直在。泉离身、要怪走进去才打，单只低一截、铺得开；精英首领在泉里 ×2（WATER_FX）
@@ -434,6 +450,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     el: '水',
     // 灵（龙王显灵召浪）：不算符，免得和纸鹤、雷符凑成符 3 件、又吃满怪"怕符"的加成（危险 2 太顺、危险 5 一下没了）
     type: '灵',
+    stat: { amount: '几道浪', area: '浪头多宽', speed: '浪速', duration: '浪走多久', knock: '带怪力度' },
     // amount：一次几道浪（扇面）；area：浪头多宽（半径）；speed：浪每拍走多远；duration：浪走几拍；knock：浪里的怪被带着走浪速的几成（百分数）
     // 估算：1 级一道浪扫过 80×350 的一条，每只 24，2.3 秒一道；8 级三道（扇面）扫过 100×455，每只 42、1.8 秒一挥。
     // 同档雷符 8 级是 4 道雷各砸半径 64 一圈、每只 52、1.6 秒一阵：浪单只低、扫得宽，扫过的面积 × 伤害差不多；进化回程再打一遍
@@ -465,6 +482,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '脚下插四面小旗围成方阵，阵里的怪持续挨打，每隔一阵被定住一下',
     el: '土',
     type: '镇',
+    stat: { area: '阵多大', amount: '一次布几座', duration: '阵留多久' },
     // area：方阵半边长；amount：一次布几座；duration：阵留几拍；dmg、rehit：阵里每隔几拍打一下；阵里的怪每 ARM_FX.flag.freezeEvery 拍定住 ARM_FX.flag.freeze 拍
     base: { dmg: 6, cd: 150, area: 84, amount: 1, speed: 0, duration: 150, knock: 0, rehit: 15 },
     ups: [
@@ -491,6 +509,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '甩出黑白锁链，把一群怪拉到一处再勒一下',
     el: '金',
     type: '镇',
+    stat: { area: '抓多远', amount: '一次拉几只', knock: '往里拉几成' },
     // area：从最近的怪往外抓多远；amount：一次拉几只；knock：往中心拉掉距离的百分之几；duration：被拉的怪多挨打的拍数（进化才有）
     base: { dmg: 10, cd: 140, area: 130, amount: 3, speed: 0, duration: 0, knock: 55, rehit: 1 },
     ups: [
@@ -517,6 +536,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '朝最近的怪戳一道直线，把一路上的怪挑着往后送',
     el: '水',
     type: '剑',
+    stat: { area: '戳多长', amount: '一次戳几下', knock: '挑多远' },
     // area：戳多长；amount：一次戳几下（扇面）；knock：挑出去多远；duration：水痕留几拍（进化才有）
     base: { dmg: 22, cd: 54, area: 240, amount: 1, speed: 0, duration: 0, knock: 30, rehit: 20 },
     ups: [
@@ -543,6 +563,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '在脚下点一盏灯，灯照到的怪持续灼烧，你站在光里慢慢回血',
     el: '火',
     type: '灵',
+    stat: { area: '灯照多大', amount: '几盏灯', duration: '灯亮多久' },
     // area：灯照多大；amount：同时几盏（进化后是跟着走的小灯数）；duration：灯亮几拍；dmg、rehit：每隔几拍灼一下
     base: { dmg: 7, cd: 270, area: 78, amount: 1, speed: 0, duration: 270, knock: 0, rehit: 20 },
     ups: [
@@ -570,6 +591,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '掷出一枚回旋镖，来回两趟，每趟在怪之间弹跳',
     el: '金',
     type: '符',
+    stat: { area: '看多远', amount: '一次掷几枚', speed: '飞行速度' },
     // area：看多远的怪；amount：一次掷几枚；speed：飞多快（每拍）；每趟最多弹 ARM_FX2.dart.hops 只怪（进化 +evoHops）
     base: { dmg: 24, cd: 60, area: 300, amount: 1, speed: 14, duration: 0, knock: 4, rehit: 1 },
     ups: [
@@ -596,6 +618,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '范围里每只怪每隔一阵多记一层账，到点结算，层数越多这一下越疼',
     el: '金',
     type: '灵',
+    stat: { area: '记账范围', cd: '结算间隔', rehit: '记一层要多久', dmg: '每层底数' },
     // area：记账范围（也是结算范围）；cd：结算间隔；rehit：多久记一层；dmg：每层之前的底数，结算伤害 = dmg × (1 + perBead × 层数)
     base: { dmg: 13, cd: 110, area: 200, amount: 1, speed: 0, duration: 0, knock: 0, rehit: 22 },
     ups: [
@@ -622,6 +645,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '立一面幡，幡附近死的怪有几成变成冤魂，追着最近的怪撞一下',
     el: '土',
     type: '灵',
+    stat: { area: '幡多大', amount: '几面幡', duration: '幡立多久', dmg: '冤魂一撞', speed: '冤魂速度' },
     // area：幡多大（死在里面才变冤魂）；amount：同时几面幡；duration：幡立几拍；dmg：冤魂一撞；speed：冤魂每拍飞多快
     base: { dmg: 40, cd: 200, area: 190, amount: 1, speed: 7, duration: 420, knock: 6, rehit: 1 },
     ups: [
@@ -648,6 +672,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '点名血最多的怪，连点三下',
     el: '木',
     type: '剑',
+    stat: { area: '点多远', amount: '一次点几只' },
     // area：能点多远的怪；amount：一次点名几只；dmg：每一下
     base: { dmg: 58, cd: 78, area: 400, amount: 1, speed: 0, duration: 0, knock: 0, rehit: 1 },
     ups: [
@@ -674,6 +699,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     desc: '朝前抛一串爆竹，沿路噼啪连爆，吓退小怪',
     el: '火',
     type: '符',
+    stat: { area: '每响半径', amount: '一串几响', knock: '吓退多远', speed: '响间距' },
     // area：每一响的半径；amount：一串几响；knock：每一响把怪吓退多远；speed：响与响之间隔多远
     base: { dmg: 11, cd: 78, area: 40, amount: 6, speed: 38, duration: 0, knock: 18, rehit: 1 },
     ups: [
@@ -729,6 +755,57 @@ export function weaponStats(id: WeaponId, level: number, evolved: boolean): Weap
     for (const k of Object.keys(d) as (keyof WeaponStats)[]) s[k] += d[k]!;
   }
   return s;
+}
+
+/** 数值的默认叫法；按拍记的（STAT_TICKS）在卡片上换成秒 */
+export const STAT_NAME: Record<keyof WeaponStats, string> = { dmg: '伤害', cd: '冷却', area: '范围', amount: '数量', speed: '速度', duration: '持续', knock: '击退', rehit: '连打间隔' };
+const STAT_TICKS: ReadonlySet<keyof WeaponStats> = new Set(['cd', 'duration', 'rehit']);
+
+export interface StatChange {
+  name: string;
+  from: number;
+  to: number;
+  /** '秒' 或空 */
+  unit: string;
+}
+
+/**
+ * 升到 level + 1 级具体改了什么（升级卡用）：从 weaponStats 算前后两级的数，只列 ups 里这一级动到的字段。
+ * 拍换成秒（飞剑的 duration 是飞多远，不换）；数从规则表来，界面不另写。
+ */
+export function upChanges(id: WeaponId, level: number): StatChange[] {
+  const def = WEAPONS[id];
+  const up = def.ups[level - 1];
+  if (!up) return [];
+  const a = weaponStats(id, level, false);
+  const b = weaponStats(id, level + 1, false);
+  return (Object.keys(up.delta) as (keyof WeaponStats)[]).map((k) => {
+    const sec = STAT_TICKS.has(k) && !(id === 'flysword' && k === 'duration');
+    const f = (v: number): number => +(sec ? v / 30 : v).toFixed(2);
+    return { name: def.stat?.[k] ?? STAT_NAME[k], from: f(a[k]), to: f(b[k]), unit: sec ? '秒' : '' };
+  });
+}
+
+/** 图鉴：1 级 → 满级（没进化）的伤害、冷却 */
+export function spanNums(id: WeaponId): StatChange[] {
+  const a = weaponStats(id, 1, false);
+  const b = weaponStats(id, MAX_WEAPON_LEVEL, false);
+  return (['dmg', 'cd'] as const).map((k) => {
+    const sec = k === 'cd';
+    const f = (v: number): number => +(sec ? v / 30 : v).toFixed(2);
+    return { name: WEAPONS[id].stat?.[k] ?? STAT_NAME[k], from: f(a[k]), to: f(b[k]), unit: sec ? '秒' : '' };
+  });
+}
+
+/** 新法器卡的基础数：伤害、冷却、数量（数量写了专门叫法的才列，比如「几把飞剑」） */
+export function baseNums(id: WeaponId): StatChange[] {
+  const def = WEAPONS[id];
+  const keys: (keyof WeaponStats)[] = def.stat?.amount ? ['dmg', 'cd', 'amount'] : ['dmg', 'cd'];
+  return keys.map((k) => {
+    const sec = k === 'cd';
+    const v = +(sec ? def.base[k] / 30 : def.base[k]).toFixed(2);
+    return { name: def.stat?.[k] ?? STAT_NAME[k], from: v, to: v, unit: sec ? '秒' : '' };
+  });
 }
 
 export interface PassiveDef {

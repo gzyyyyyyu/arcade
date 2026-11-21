@@ -8,7 +8,7 @@
 import { DANGER_IDS, type Danger, type Difficulty } from '../content/waves.ts';
 import { MAP_UNLOCK, type MapId } from '../content/maps.ts';
 import { WEEKLY_FX, type WeeklyId } from '../content/weekly.ts';
-import { CHARACTER_IDS, PICK_CHAR_IDS, CURSE_COIN_BONUS, CURSE_IDS, FIRST_RUN_COINS, RUN_BONUS, MAX_CURSES, PERK_IDS, PERKS, ASSIST, type CharacterId, type CurseId, type PerkId } from '../content/meta.ts';
+import { CHARACTER_IDS, PICK_CHAR_IDS, CURSE_COIN_BONUS, CURSE_IDS, FIRST_RUN_COINS, RUN_BONUS, MAX_CURSES, PERK_IDS, PERKS, ASSIST, COIN_EXCHANGE, KIT_IDS, KITS, LOOK_IDS, LOOKS, type CharacterId, type CurseId, type KitId, type LookId, type LookSlot, type PerkId } from '../content/meta.ts';
 import { readFlag, writeFlag } from '../view/audio/sfx.ts';
 import { isLiveTier, type LiveTier } from '../content/live.ts';
 import { RAID_OPEN } from '../content/explore.ts';
@@ -120,6 +120,22 @@ export interface Save {
   /** 上次开的模式、夜探选的镇子（主页"开始"一步直达用；本机偏好，不上云） */
   lastMode: LastMode;
   raidTpl: RaidPick;
+  /** 下一局带的锦囊（本机，像咒印一样选着；开局时扣铜钱，见 payKits） */
+  kits: KitId[];
+  /** 买下的外观（上云取并集）；穿着哪款（本机） */
+  looks: LookId[];
+  wear: Partial<Record<LookSlot, LookId>>;
+  /** 换筹码发出去还没结的（上云：另一台设备也能用同一个 op 重发，钱包按 op 只算一次） */
+  xc: XcPending[];
+}
+
+/** 一笔还没结的兑换：发之前已经记了 `xc:<op>` = −coins，结的时候补 `xcr:<op>` = 退回没入账的部分 */
+export interface XcPending {
+  op: string;
+  /** 要换进的筹码 */
+  amount: number;
+  /** 先扣的铜钱 = amount × 汇率 */
+  coins: number;
 }
 
 export type LastMode = 'vigil' | 'raid';
@@ -164,6 +180,10 @@ export const fresh = (): Save => ({
   liveTier: 'small',
   lastMode: 'vigil',
   raidTpl: 'guzhen',
+  kits: [],
+  looks: [],
+  wear: {},
+  xc: [],
 });
 
 const num = (v: unknown, min = 0, max = 1e12): number | null => (typeof v === 'number' && Number.isFinite(v) ? Math.max(min, Math.min(max, Math.floor(v))) : null);
@@ -239,6 +259,14 @@ export function reviveSave(o: unknown): Save | null {
   if (isLiveTier(r.liveTier)) s.liveTier = r.liveTier;
   if (r.lastMode === 'vigil' || r.lastMode === 'raid') s.lastMode = r.lastMode;
   if ((RAID_PICKS as readonly unknown[]).includes(r.raidTpl)) s.raidTpl = r.raidTpl as RaidPick;
+  s.kits = KIT_IDS.filter((k) => strs(r.kits).includes(k));
+  s.looks = LOOK_IDS.filter((k) => strs(r.looks).includes(k));
+  if (r.wear && typeof r.wear === 'object') {
+    for (const [slot, id] of Object.entries(r.wear as Record<string, unknown>)) {
+      if (s.looks.includes(id as LookId) && LOOKS[id as LookId].slot === slot) s.wear[slot as LookSlot] = id as LookId;
+    }
+  }
+  s.xc = reviveXc(r.xc, s.ledger);
   return s;
 }
 
@@ -323,6 +351,15 @@ export interface RunReward {
   askAssist: boolean;
   /** 按来源分的明细（加起来 = coins，加上每日首胜那笔） */
   sources: CoinSource[];
+}
+
+/**
+ * 一局带出局外的铜钱：剩下的局内铜钱，扣掉招财进宝多掉、又没在局里花掉的那部分（局里花钱先算花的是它）。
+ * 货郎的招财进宝一局能多掉上万枚（0.34.0 量过：别的角色一局 1,200～2,500，货郎 7,500～13,000），只在局里用；
+ * 守夜、夜探、实盘都走这里。World 上的两个数只记账，不影响规则。
+ */
+export function carryCoins(w: { coins: number; coinFortune: number; coinSpent: number }): number {
+  return Math.max(0, w.coins - Math.max(0, w.coinFortune - w.coinSpent));
 }
 
 /** 一局的铜钱明细：局里捡的按来源，再加撑的时间、击杀、天亮、尸王（按危险档放大）、咒印加成 */
@@ -552,6 +589,102 @@ export function buyChar(s: Save, c: CharacterId, nonce: string): boolean {
   return true;
 }
 
+// ───────────────────────── 锦囊、外观 ─────────────────────────
+
+/** 开局时扣锦囊的铜钱，返回这局实际带上的（钱不够的那个不带，从选着的里去掉）；seed 让流水 id 一局一个 */
+export function payKits(s: Save, seed: number, nonce: string): KitId[] {
+  const got: KitId[] = [];
+  for (const k of s.kits) if (spend(s, `kit:${k}:${seed.toString(36)}:${nonce}`, KITS[k].cost)) got.push(k);
+  s.kits = got;
+  writeSave(s);
+  return got;
+}
+
+export function buyLook(s: Save, id: LookId, nonce: string): boolean {
+  if (s.looks.includes(id) || !spend(s, `look:${id}:${nonce}`, LOOKS[id].cost)) return false;
+  s.looks.push(id);
+  s.wear[LOOKS[id].slot] = id;
+  writeSave(s);
+  return true;
+}
+
+/** 穿上（买下了的）或者脱下这一栏 */
+export function wearLook(s: Save, slot: LookSlot, id: LookId | null): void {
+  if (id === null) delete s.wear[slot];
+  else if (s.looks.includes(id) && LOOKS[id].slot === slot) s.wear[slot] = id;
+  writeSave(s);
+}
+
+// ───────────────────────── 铜钱换筹码（流水只追加） ─────────────────────────
+
+const XC_OP = /^xc-[A-Za-z0-9_-]{5,61}$/;
+const settled = (ledger: Entry[], op: string): boolean => ledger.some(([id]) => id === `xcr:${op}`);
+
+function reviveXc(v: unknown, ledger: Entry[]): XcPending[] {
+  if (!Array.isArray(v)) return [];
+  const out: XcPending[] = [];
+  for (const x of v.slice(0, 20)) {
+    if (!x || typeof x !== 'object') continue;
+    const { op, amount, coins: c } = x as Record<string, unknown>;
+    const a = num(amount, 1, 1e7);
+    if (typeof op !== 'string' || !XC_OP.test(op) || a === null || num(c) !== a * COIN_EXCHANGE.rate || settled(ledger, op) || out.some((y) => y.op === op)) continue;
+    out.push({ op, amount: a, coins: a * COIN_EXCHANGE.rate });
+  }
+  return out;
+}
+
+/** 发兑换之前：先扣全额铜钱、记待办。钱不够返回 false，什么都不记 */
+export function startExchange(s: Save, op: string, amount: number): boolean {
+  const c = amount * COIN_EXCHANGE.rate;
+  if (!XC_OP.test(op) || amount < 1 || !spend(s, `xc:${op}`, c)) return false;
+  s.xc.push({ op, amount, coins: c });
+  writeSave(s);
+  return true;
+}
+
+/** 结一笔：credited 是钱包实际换进的筹码（被拒是 0），没入账的铜钱退回；退 0 也记一条，作为「这笔结过了」的记号 */
+export function endExchange(s: Save, op: string, credited: number): void {
+  const p = s.xc.find((x) => x.op === op);
+  s.xc = s.xc.filter((x) => x.op !== op);
+  if (p && !settled(s.ledger, op)) earn(s, `xcr:${op}`, p.coins - Math.max(0, Math.min(p.amount, Math.floor(credited))) * COIN_EXCHANGE.rate);
+  writeSave(s);
+}
+
+/** 换筹码页底下的本机流水：一笔兑换 = `xc:` 扣的铜钱 + `xcr:` 退的；时间从兑换号里读（老的号读不出是 null） */
+export interface XcLogRow {
+  at: number | null;
+  /** 换进的筹码（还没结的是要换的数） */
+  chips: number;
+  coins: number;
+  pending: boolean;
+}
+
+/** 最近 n 笔（新的在前）；被拒、全额退回的不算 */
+export function exchangeLog(s: Save, n: number): XcLogRow[] {
+  const refund = new Map<string, number>();
+  for (const [id, v] of s.ledger) if (id.startsWith('xcr:')) refund.set(id.slice(4), v);
+  const out: XcLogRow[] = [];
+  for (let i = s.ledger.length - 1; i >= 0 && out.length < n; i--) {
+    const [id, v] = s.ledger[i]!;
+    if (!id.startsWith('xc:')) continue;
+    const op = id.slice(3);
+    const pending = s.xc.some((x) => x.op === op);
+    const coinsOut = -v - (pending ? 0 : (refund.get(op) ?? 0));
+    if (coinsOut <= 0) continue;
+    out.push({ at: xcOpTime(op), chips: coinsOut / COIN_EXCHANGE.rate, coins: coinsOut, pending });
+  }
+  return out;
+}
+
+/** 兑换号 `xc-<毫秒的 36 进制>-<随机>` 里的时间 */
+export function newXcOp(nowMs: number, rand: string): string {
+  return `xc-${nowMs.toString(36)}-${rand}`;
+}
+function xcOpTime(op: string): number | null {
+  const m = /^xc-([0-9a-z]{8,9})-/.exec(op);
+  return m ? parseInt(m[1]!, 36) : null;
+}
+
 // ───────────────────────── 云存档合并 ─────────────────────────
 
 /**
@@ -594,6 +727,9 @@ export function mergeSave(local: Save, cloud: Save): Save {
   for (const [id, n] of Object.entries(local.vault.got)) got[id] = Math.max(n, got[id] ?? 0);
   m.vault = normalizeVault({ got, seen: [...local.vault.seen, ...cloud.vault.seen] });
   m.raidDone = local.raidDone || cloud.raidDone;
+  m.looks = LOOK_IDS.filter((k) => local.looks.includes(k) || cloud.looks.includes(k));
+  // 兑换待办：两边取并集，已经结过的（流水里有 xcr:）去掉
+  m.xc = reviveXc([...local.xc, ...cloud.xc], m.ledger);
   m.assistAsked = local.assistAsked || cloud.assistAsked;
   if (m.ledger.length > LEDGER_MAX) {
     const old = m.ledger.splice(0, m.ledger.length - LEDGER_MAX);
@@ -603,8 +739,8 @@ export function mergeSave(local: Save, cloud: Save): Save {
 }
 
 /** 上云的内容：去掉只在本机有意义的字段 */
-export function savePayload(s: Save): Omit<Save, 'difficulty' | 'map' | 'danger' | 'character' | 'loadout' | 'curses' | 'streak' | 'assist' | 'tipsOff' | 'liveOn' | 'liveTier' | 'lastMode' | 'raidTpl'> {
-  const { difficulty: _d, map: _m, danger: _g, character: _c, loadout: _lo, curses: _u, streak: _s, assist: _a, tipsOff: _t, liveOn: _l, liveTier: _lt, lastMode: _lm, raidTpl: _rt, ...rest } = s;
+export function savePayload(s: Save): Omit<Save, 'difficulty' | 'map' | 'danger' | 'character' | 'loadout' | 'curses' | 'streak' | 'assist' | 'tipsOff' | 'liveOn' | 'liveTier' | 'lastMode' | 'raidTpl' | 'kits' | 'wear'> {
+  const { difficulty: _d, map: _m, danger: _g, character: _c, loadout: _lo, curses: _u, streak: _s, assist: _a, tipsOff: _t, liveOn: _l, liveTier: _lt, lastMode: _lm, raidTpl: _rt, kits: _k, wear: _w, ...rest } = s;
   return rest;
 }
 

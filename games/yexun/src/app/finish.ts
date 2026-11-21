@@ -20,7 +20,7 @@ import { outcomeText, type createSubmitter } from '../online/submit.ts';
 import type { createSocial } from '../online/social.ts';
 import type { RunSummary } from '../online/types.ts';
 import type { createLive } from '../platform/live.ts';
-import { coins, finishRun, grantCoins, recordLiveVigil, type loadSave, writeSave } from '../platform/save.ts';
+import { carryCoins, coins, finishRun, grantCoins, recordLiveVigil, type loadSave, writeSave } from '../platform/save.ts';
 import type { Recorder } from '../replay/recorder.ts';
 import { storeReplay } from '../replay/store.ts';
 import { music } from '../view/audio/music.ts';
@@ -127,7 +127,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
   /** 夜探结算：撤出全带走、换铜钱；倒下 / 迷失丢包，铜钱剩一半（教学镇不丢）；宝物记进藏宝阁 */
   const finishRaid = (w: World, quit: boolean, seconds: number, liveSeed: number | null = null): void => {
     const raid = w.raid!;
-    const st = settleRaid(raid, w.coins);
+    const st = settleRaid(raid, carryCoins(w));
     const rr = recordRaid(save.vault, st);
     save.vault = rr.vault;
     if (raid.teach) save.raidDone = true;
@@ -190,11 +190,11 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       // 局内铜钱和娱乐一样存进账户（所有者 10-20），流水 id 用这一份的种子，结回重试也只记一次
       const seed = sess.liveRun.seed;
       sess.liveRun = null;
-      grantCoins(save, `live:${seed.toString(36)}`, w.coins);
+      grantCoins(save, `live:${seed.toString(36)}`, carryCoins(w));
       // 撑过的时间照样解锁地图、更夫，天亮了照样开下一危险档（以前实盘分支不记，撑到天亮竹林还锁着）
       recordLiveVigil(save, { danger: w.setup.danger, won: dawned(w), ticks: Math.min(w.tick, DAWN_TICK), market: w.mkBuys });
       showPlay(false);
-      result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: w.coins, coinsTotal: coins(save), night: scene()?.nightLog, label: `实盘 · ${LIVE_TIERS[sess.liveTier].name}档`, live: '正在结回…', record: false, build: buildRows(w) });
+      result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: carryCoins(w), coinsTotal: coins(save), night: scene()?.nightLog, label: `实盘 · ${LIVE_TIERS[sess.liveTier].name}档`, live: '正在结回…', record: false, build: buildRows(w) });
       void live.finish(seed, { ticks: w.won ? DAWN_TICK : w.tick, won: w.won, bossKilled: w.bossKilled }).then(showLiveResult);
       return;
     }
@@ -207,7 +207,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       return;
     }
     // 认输的局算一局、铜钱照拿，但不算纪录
-    const got = finishRun(save, { id: `${w.setup.seed.toString(36)}-${nonce()}`, danger: w.setup.danger, won: dawned(w), quit, ticks: Math.min(w.tick, DAWN_TICK), kills: w.kills, coins: w.coins, curses: w.setup.curses?.length ?? 0, ...(w.setup.weekly ? { weekly: w.setup.weekly } : {}), boss: w.bossKilled, market: w.mkBuys, coinBy: w.coinBy, day: beijingDate(Date.now()) });
+    const got = finishRun(save, { id: `${w.setup.seed.toString(36)}-${nonce()}`, danger: w.setup.danger, won: dawned(w), quit, ticks: Math.min(w.tick, DAWN_TICK), kills: w.kills, coins: carryCoins(w), curses: w.setup.curses?.length ?? 0, ...(w.setup.weekly ? { weekly: w.setup.weekly } : {}), boss: w.bossKilled, market: w.mkBuys, coinBy: w.coinBy, day: beijingDate(Date.now()) });
     // 成就：解锁的奖励铜钱另记一条流水（id 带成就 id，两台设备各解锁一次也只记一次）
     const ach = applyRun(sess.records, summarize(w, sess.tally, quit));
     sess.records = ach.records;

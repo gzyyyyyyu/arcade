@@ -45,13 +45,22 @@
   position: absolute; left: 8px; top: 6px; width: 22px; height: 22px; border-radius: 6px;
   background: #17131c; color: #f6efdc; font-size: var(--fs-sm, 13px); line-height: 22px;
 }
-.yx-pick-name { font-size: 19px; display: flex; align-items: center; gap: 6px; }
-.yx-pick-name em { font-style: normal; font-size: var(--fs-sm, 13px); padding: 1px 6px; border-radius: 6px; background: #17131c; color: #f6efdc; }
-.yx-pick-name em.new { background: #c8402f; }
+.yx-pick-name { font-size: 19px; line-height: 1.2; white-space: nowrap; }
+/* 名字下面一行：新 / Lv / 心法小标，永不折行（放不下时 fitBadges 缩到 12 像素）；没有小标也占一行高，三张卡对齐 */
+.yx-pick-badges { display: flex; justify-content: center; gap: 4px; min-height: 20px; white-space: nowrap; font-size: var(--fs-sm, 13px); }
+.yx-pick-badges em { font-style: normal; font-size: inherit; line-height: 18px; padding: 1px 6px; border-radius: 6px; background: #17131c; color: #f6efdc; }
+.yx-pick-badges em.new { background: #c8402f; }
+.yx-pick-body { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .yx-pick-text { font-size: var(--fs-md, 14px); font-weight: 600; text-align: center; color: #3a3140; }
+/* 升级改了的数：名字 前→后，数字加粗 */
+.yx-pick-nums { display: flex; flex-wrap: wrap; justify-content: center; column-gap: 8px; line-height: 1.3; font-size: var(--fs-sm, 13px); font-weight: 600; color: #3a3140; }
+.yx-pick-nums b { color: #1f6a8a; font-weight: 800; }
+.yx-pick-nums > span { white-space: nowrap; }
+/* 底部提示贴卡片下沿：内容少的卡中间留空，提示行和隔壁卡对齐 */
+.yx-pick-foot { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
 /* 只在"+""→"两边的空格处折行：手机横屏三张卡并排时，"满级 + 令牌 → 金钱阵"原来把"阵"单独折到下一行（正文说明是整句话，照常折行） */
-.yx-pick-hint { margin-top: auto; font-size: var(--fs-sm, 13px); font-weight: 600; color: #7a4a20; background: rgba(242, 201, 76, 0.35); border-radius: 6px; padding: 2px 6px; text-align: center; word-break: keep-all; }
-.yx-pick-tags { font-size: var(--fs-sm, 13px); font-weight: 700; color: #7a6a52; letter-spacing: 1px; margin-top: -4px; }
+.yx-pick-hint { font-size: var(--fs-sm, 13px); font-weight: 600; color: #7a4a20; background: rgba(242, 201, 76, 0.35); border-radius: 6px; padding: 2px 6px; text-align: center; word-break: keep-all; }
+.yx-pick-tags { font-size: var(--fs-sm, 13px); font-weight: 700; color: #7a6a52; letter-spacing: 1px; margin-top: -3px; min-height: 1.3em; }
 /* 怪名之间本来就隔着空格，同样只在空格处折行（原来"雪魅""提灯鬼"会被拆开） */
 .yx-pick-counter { font-size: var(--fs-sm, 13px); font-weight: 700; color: #6a3a3a; text-align: center; line-height: 1.25; word-break: keep-all; }
 .yx-pick-set { font-size: var(--fs-sm, 13px); font-weight: 700; color: #fbf5e4; background: #4a7a5a; border-radius: 6px; padding: 2px 6px; text-align: center; }
@@ -102,11 +111,16 @@
   /* 矮屏：图标挪到名字左边，不占单独一行；元素·类型小字略去，卡片压到约 150 高，主角露得出来 */
   .yx-picks .yx-pick { width: auto; min-height: 0; padding: 8px 8px 6px; gap: 3px; }
   .yx-picks .yx-pick img { position: absolute; left: 8px; top: 8px; width: 34px; height: 34px; }
-  .yx-pick-name { font-size: var(--fs-lg, 16px); flex-wrap: wrap; justify-content: center; min-height: 34px; padding-left: 38px; box-sizing: border-box; width: 100%; }
+  /* 名字、小标两行都让开左边的图标（图标 34 高 = 两行） */
+  .yx-pick-name, .yx-pick-badges { padding-left: 38px; box-sizing: border-box; width: 100%; text-align: center; }
+  .yx-pick-name { font-size: var(--fs-lg, 16px); }
   .yx-pick-tags { display: none; }
   .yx-pick-key { left: auto; right: 6px; }
   .yx-pick-text { font-size: var(--fs-sm, 13px); line-height: 1.25; }
   .yx-pick-hint, .yx-pick-set, .yx-pick-merge { padding-top: 1px; padding-bottom: 1px; }
+  .yx-pick-foot { gap: 3px; }
+  /* 矮屏：新法器卡的基础数不列（卡片再高就压住主角和「升到几级」），升级卡的前后数照常列 */
+  .yx-pick-nums.base { display: none; }
   /* 底栏贴着卡片下沿一行放完：只留名字和数字，说明小字去掉 */
   .yx-picks-bar { gap: 6px; }
   .yx-picks-bar button { min-width: 84px; min-height: 44px; font-size: var(--fs-md, 14px); }
@@ -127,8 +141,13 @@
   .yx-picks .yx-pick img { position: absolute; left: 10px; top: 8px; width: 40px; height: 40px; }
   .yx-pick-key { left: auto; right: 8px; top: 6px; }
   .yx-pick-name { font-size: var(--fs-lg, 16px); }
+  .yx-pick-badges { justify-content: flex-start; min-height: 0; }
+  .yx-pick-badges:empty { display: none; }
   .yx-pick-tags { display: none; }
+  .yx-pick-body, .yx-pick-foot { align-items: flex-start; }
+  .yx-pick-nums { justify-content: flex-start; column-gap: 10px; }
   .yx-pick-text { font-size: var(--fs-sm, 13px); text-align: left; line-height: 1.25; }
+  .yx-pick-foot { gap: 2px; }
   .yx-pick-hint, .yx-pick-counter, .yx-pick-set { margin-top: 0; text-align: left; }
   /* 底栏三个钮收成一行贴在卡片下沿（原来折成两行，「跳过」单独压在怪群上） */
   .yx-picks-bar { flex-wrap: nowrap; width: 100%; max-width: 380px; gap: 6px; }

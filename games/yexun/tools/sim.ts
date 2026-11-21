@@ -59,6 +59,12 @@ export interface RunResult {
   killer: number;
   /** 夜探实盘：结回倍数（万分比，没撤出 0）；其余 0 */
   bp?: number;
+  /** 局里捡到的铜钱和来源（量铜钱进账用，结算加成在 platform/save.ts runCoins） */
+  coins?: number;
+  coinBy?: { drop: number; purse: number; prop: number; chest: number; weekly: number };
+  /** 招财进宝多掉的、局里花掉的（platform/save.ts carryCoins 用） */
+  coinFortune?: number;
+  coinSpent?: number;
 }
 const dualsOf = (w: { merges: readonly string[] }): number => w.merges.filter((id) => MERGES.find((m) => m.id === id)?.dual).length;
 
@@ -84,7 +90,7 @@ export function runRaid(seed: number, danger: Danger, who: string, build: Build,
     step(w, a.dir, a.choice, a.skill);
   }
   const won = w.raid!.outcome === 'escaped';
-  return { won, boss: false, seconds: w.tick / 30, firstLevel: 0, levels3: 0, levels5: 0, levels: w.level - 1, late: 0, kills: w.kills, elites: 0, ticks: w.tick, value: won ? settleRaid(w.raid!, 0).value : 0, duals: dualsOf(w), routed: false, dualTick: -1, killer: won ? -1 : w.hurtBy, bp: won && liveTier ? settleRaid(w.raid!, 0).bp : 0 };
+  return { won, boss: false, seconds: w.tick / 30, firstLevel: 0, levels3: 0, levels5: 0, levels: w.level - 1, late: 0, kills: w.kills, elites: 0, ticks: w.tick, value: won ? settleRaid(w.raid!, 0).value : 0, duals: dualsOf(w), routed: false, dualTick: -1, killer: won ? -1 : w.hurtBy, bp: won && liveTier ? settleRaid(w.raid!, 0).bp : 0, coins: w.coins, coinBy: { ...w.coinBy }, coinFortune: w.coinFortune, coinSpent: w.coinSpent };
 }
 
 /**
@@ -129,7 +135,7 @@ export function runOne(seed: number, danger: Danger, skill: Skill, build: Build,
       else if (t === Ev.Merge && dualTick < 0 && MERGES[ev.a[i]!]?.dual) dualTick = w.tick;
     }
   }
-  return { won: w.won, boss: w.bossKilled, seconds: w.tick / 30, firstLevel, levels3, levels5, levels: w.level - 1, late: late / Math.max(1, (w.tick - 30 * 450) / 1800), kills: w.kills, elites, ticks: w.tick, value: 0, duals: dualsOf(w), routed: bot.route ? routeDone(w, bot.route) : false, dualTick, killer: w.won ? -1 : w.hurtBy };
+  return { won: w.won, boss: w.bossKilled, seconds: w.tick / 30, firstLevel, levels3, levels5, levels: w.level - 1, late: late / Math.max(1, (w.tick - 30 * 450) / 1800), kills: w.kills, elites, ticks: w.tick, value: 0, duals: dualsOf(w), routed: bot.route ? routeDone(w, bot.route) : false, dualTick, killer: w.won ? -1 : w.hurtBy, coins: w.coins, coinBy: { ...w.coinBy }, coinFortune: w.coinFortune, coinSpent: w.coinSpent };
 }
 
 /** 夜探实盘的危险 → 档（小 0、中 1、大 2） */

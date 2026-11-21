@@ -489,3 +489,6 @@
   .yx-hud .yx-side { right: max(14px, calc(env(safe-area-inset-right, 0px) + 8px)); }
   .yx-hud .yx-slots, .yx-hud .yx-passives { background: rgba(23, 19, 28, 0.55); }
 }
+
+/* 外观「头像框」：边框换成买下的颜色，外面再描一圈深色 */
+.yx-hud .yx-avatar.yx-look { border-width: 4px; border-color: var(--lf, #f2c94c); box-shadow: 0 0 0 2px var(--lfe, #17131c), 0 3px 0 var(--lfe, #17131c); }

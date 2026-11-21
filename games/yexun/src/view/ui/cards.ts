@@ -2,7 +2,7 @@
  * 升级三选一（DESIGN.md 2.1，手感清单第 5 条）：卡片弹入，点、按 1/2/3、方向键加回车都能选，1 秒内能选完。
  * 卡片排在屏幕中下部、左右手拇指都够得着（手感清单第 10 条）。
  */
-import { ELEMENT_SET, PASSIVES, TYPE_SETS, WEAPONS, MAX_WEAPON_LEVEL, type PassiveId, type WeaponId } from '../../content/weapons.ts';
+import { ELEMENT_SET, PASSIVES, TYPE_SETS, WEAPONS, MAX_WEAPON_LEVEL, upChanges, baseNums, type PassiveId, type StatChange, type WeaponId } from '../../content/weapons.ts';
 import { Pick, type Choice, type World } from '../../core/index.ts';
 import { SCHOOLS } from '../../content/guide.ts';
 import { XINFA_TEXT } from '../../content/xinfa.ts';
@@ -19,6 +19,8 @@ export interface CardView {
   /** 心法流派的法器："心法·特色名"（content/xinfa.ts），和 tag 一样的小标 */
   xinfa?: string;
   text: string;
+  /** 法器的数：升级卡是这一级改了的（前 → 后，upChanges），新法器卡是基础数（前后相同，baseNums） */
+  nums?: StatChange[];
   /** 进化提示："进化还差：朱砂" / "满级 + 朱砂 → 斩妖剑" */
   hint: string | null;
   /** 法器的五行·类型 */
@@ -55,9 +57,9 @@ function describeBase(w: World, c: Choice): CardView {
       let set: string | undefined;
       if (sameType === 2 || sameType === 3) set = `${def.type} ${sameType} 件：${TYPE_SETS[def.type][sameType - 2]}`;
       else if (sameEl === 2 || sameEl === 3) set = `${def.el} ${sameEl} 件：${ELEMENT_SET[sameEl - 2]}`;
-      return { icon: def.icon, name: def.name, tag: '新', xinfa, text: def.desc, hint, tags, set, counter };
+      return { icon: def.icon, name: def.name, tag: '新', xinfa, text: def.desc, nums: baseNums(def.id), hint, tags, set, counter };
     }
-    return { icon: def.icon, name: def.name, xinfa, tag: o.level + 1 >= MAX_WEAPON_LEVEL ? `Lv ${o.level} → 满` : `Lv ${o.level} → ${o.level + 1}`, text: def.ups[o.level - 1]?.text ?? '', hint, tags, counter };
+    return { icon: def.icon, name: def.name, xinfa, tag: o.level + 1 >= MAX_WEAPON_LEVEL ? `Lv ${o.level}→满` : `Lv ${o.level}→${o.level + 1}`, text: def.ups[o.level - 1]?.text ?? '', nums: upChanges(def.id, o.level), hint, tags, counter };
   }
   if (c.kind === 'passive') {
     const def = PASSIVES[c.id as PassiveId];
@@ -66,12 +68,17 @@ function describeBase(w: World, c: Choice): CardView {
     return {
       icon: def.icon,
       name: def.name,
-      tag: lv === 0 ? '新' : `Lv ${lv} → ${lv + 1}`,
+      tag: lv === 0 ? '新' : `Lv ${lv}→${lv + 1}`,
       text: def.text,
       hint: pairs.length ? `${pairs.map((p) => p.name).join('、')}进化要它` : null,
     };
   }
   return { icon: 'coin', name: '铜钱一袋', tag: '', text: '铜钱 +25，回 20 点血', hint: null };
+}
+
+/** 小标行放不下时缩到 12 像素（字号下限，AGENTS.md「画面」），不折行；要在显示之后量 */
+function fitBadges(root: HTMLElement): void {
+  for (const el of root.querySelectorAll<HTMLElement>('.yx-pick-badges')) if (el.scrollWidth > el.clientWidth) el.style.fontSize = '12px';
 }
 
 export class Cards {
@@ -138,16 +145,22 @@ export class Cards {
       b.type = 'button';
       b.className = 'yx-pick';
       b.style.animationDelay = `${i * 60}ms`;
-      b.innerHTML =
-        `<span class="yx-pick-key">${i + 1}</span>` +
-        `<img alt="" src="${this.icons(c.icon)}">` +
-        `<span class="yx-pick-name">${c.name}${c.tag ? `<em${c.tag === '新' ? ' class="new"' : ''}>${c.tag}</em>` : ''}${c.xinfa ? `<em>${c.xinfa}</em>` : ''}</span>` +
-        (c.tags ? `<span class="yx-pick-tags">${c.tags}</span>` : '') +
-        `<span class="yx-pick-text">${c.text}</span>` +
+      // 固定的几段：图标 → 名字（一行）→ 标签行（新 / Lv / 心法）→ 五行·类型 → 效果 → 底部提示；没内容的段也占位，三张卡同一套格子对齐
+      const badges = (c.tag ? `<em${c.tag === '新' ? ' class="new"' : ''}>${c.tag}</em>` : '') + (c.xinfa ? `<em>${c.xinfa}</em>` : '');
+      const nums = c.nums?.length ? `<span class="yx-pick-nums${c.tag === '新' ? ' base' : ''}">${c.nums.map((n) => `<span>${n.name} <b>${n.from === n.to ? n.from : `${n.from}→${n.to}`}</b>${n.unit}</span>`).join('')}</span>` : '';
+      const foot =
         (c.counter ? `<span class="yx-pick-counter">${c.counter}</span>` : '') +
         (c.set ? `<span class="yx-pick-set">${c.set}</span>` : '') +
         (c.merge ? `<span class="yx-pick-merge${c.merge.ready ? ' ready' : ''}" style="--mc:${c.merge.color}"><b>${c.merge.dual ? '双' : '合'}</b>${c.merge.text}</span>` : '') +
         (c.hint ? `<span class="yx-pick-hint">${c.hint}</span>` : '');
+      b.innerHTML =
+        `<span class="yx-pick-key">${i + 1}</span>` +
+        `<img alt="" src="${this.icons(c.icon)}">` +
+        `<span class="yx-pick-name">${c.name}</span>` +
+        `<span class="yx-pick-badges">${badges}</span>` +
+        `<span class="yx-pick-tags">${c.tags ?? ''}</span>` +
+        `<span class="yx-pick-body"><span class="yx-pick-text">${c.text}</span>${nums}</span>` +
+        `<span class="yx-pick-foot">${foot}</span>`;
       b.addEventListener('click', () => this.pick(i));
       row.appendChild(b);
       return b;
@@ -173,6 +186,7 @@ export class Cards {
     this.root.classList.add('open', 'locked');
     window.setTimeout(() => this.root.classList.remove('locked'), 150);
     this.root.style.display = '';
+    fitBadges(this.root);
     this.setFocus(0);
     this.onShow(firstTime);
   }

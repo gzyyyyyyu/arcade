@@ -187,13 +187,40 @@
   .yx-prep .yx-pbv { text-align: right; }
 }
 @media (max-width: 480px) {
-  .yx-prep-head { gap: 6px; }
-  .yx-ptabs { gap: 4px; }
-  .yx-ptab { min-width: 56px; padding: 0 6px; }
+  /* 六个标签（0.35.0 加了锦囊、外观、换筹码）一行放不下铜钱和关闭钮：标签单独占第二行、等分，字不折行 */
+  .yx-prep-head { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .yx-ptabs { order: 2; flex: 1 0 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 4px; }
+  .yx-ptab { min-width: 0; padding: 0 2px; font-size: var(--fs-md, 14px); white-space: nowrap; }
   .yx-pcoins { font-size: var(--fs-lg, 16px); gap: 4px; }
   .yx-pclose { flex: none; }
 }
 /* 电脑大屏上小字也不小于 14（放在最后压过上面几档的 12 / 13） */
 @media (min-width: 1600px) and (min-height: 900px) {
   .yx-prep .yx-plook, .yx-prep .yx-pcsk, .yx-prep .yx-pchar em { font-size: var(--fs-md, 14px); }
+}
+
+/* 锦囊、外观、换筹码（prepShop.ts） */
+.yx-prep .yx-pkits, .yx-prep .yx-pxcs { grid-template-columns: repeat(3, 1fr); }
+.yx-prep .yx-pskins { grid-template-columns: repeat(4, 1fr); }
+/* 外观小样：头像框是一圈方框，光圈是脚下的椭圆 */
+.yx-prep .yx-lk { display: block; width: 44px; height: 44px; margin: 2px auto; }
+.yx-prep .yx-lk-frame { border-radius: 10px; border: 5px solid var(--lc, #f2c94c); box-shadow: 0 0 0 2px var(--le, #17131c), inset 0 0 0 2px var(--le, #17131c); background: #f7dcc3; }
+.yx-prep .yx-lk-aura { height: 22px; margin: 13px auto; border-radius: 50%; background: radial-gradient(closest-side, transparent 55%, var(--lc, #cfe3ff) 70%, var(--le, #6f8fc8) 100%); }
+.yx-prep .yx-pxchead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-size: var(--fs-lg, 16px); }
+.yx-prep .yx-pxchead span { font-size: var(--fs-sm, 13px); color: #8a5a2a; }
+.yx-prep .yx-pxcall { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; }
+.yx-prep .yx-pxclog { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-sm, 13px); color: #5a4a3a; }
+.yx-prep .yx-pxclog ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.yx-prep .yx-pxclog li { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; padding: 3px 8px; border-radius: 6px; background: rgba(90, 74, 58, 0.08); }
+.yx-prep .yx-pxclog li > :last-child { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.yx-prep .yx-pxclog p { margin: 0; }
+.yx-prep .yx-pxcmsg { font-size: var(--fs-md, 14px); font-weight: 700; color: #2f6f5e; }
+/* 竖屏也一行 4 款（两行就放下 8 款，360×640 不滚动）：卡片收窄，小样缩小 */
+@media (max-width: 600px) and (orientation: portrait) {
+  .yx-prep .yx-pskin { padding: 6px 2px; gap: 2px; }
+  .yx-prep .yx-pskin .yx-lk-frame { width: 36px; height: 36px; }
+}
+/* 窄竖屏：兑换档位的「1,000 筹码」不折行 */
+@media (max-width: 400px) and (orientation: portrait) {
+  .yx-prep .yx-pxcs .yx-pxc:not(.yx-pxcall) b { font-size: var(--fs-md, 14px); white-space: nowrap; }
 }

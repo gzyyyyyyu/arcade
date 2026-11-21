@@ -9,6 +9,8 @@ import { CHARACTERS, PICK_CHAR_IDS, CURSE_COIN_BONUS, CURSE_IDS, CURSES, MAX_CUR
 import { WEAPONS } from '../../content/weapons.ts';
 import { heroKey } from '../art/heroes.ts';
 import { zoomed } from '../viewport.ts';
+import { exchangeHtml, kitsHtml, looksHtml, type ShopState } from './prepShop.ts';
+import type { KitId, LookId } from '../../content/meta.ts';
 import './prep.css';
 
 /** 电脑大屏上弹窗的设计尺寸（逻辑像素）和占屏上限：宽 70%、高 85%（和选关页的 --k 同一思路，按可视区算放大倍数） */
@@ -21,7 +23,7 @@ const K_MAX = 1.6;
 /** 锁：不用表情字符（有的设备、无头浏览器没有表情字体，显示成方框） */
 const LOCK_SVG = '<svg class="yx-lock" viewBox="0 0 12 12" aria-label="没解锁"><rect x="2" y="5.5" width="8" height="6" rx="1.2" fill="currentColor"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 
-export type PrepTab = 'char' | 'curse' | 'perk';
+export type PrepTab = 'char' | 'curse' | 'perk' | 'kit' | 'look' | 'xc';
 
 export interface PrepState {
   coins: number;
@@ -31,6 +33,8 @@ export interface PrepState {
   curses: CurseId[];
   cursesOpen: boolean;
   perks: Partial<Record<PerkId, number>>;
+  /** 锦囊、外观、换筹码三页（prepShop.ts） */
+  shop: ShopState;
 }
 
 const esc = (t: string): string => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -46,6 +50,12 @@ export class Prep {
   onToggleCurse: (id: CurseId) => void = () => undefined;
   onBuyPerk: (id: PerkId) => void = () => undefined;
   onRefund: () => void = () => undefined;
+  onToggleKit: (id: KitId) => void = () => undefined;
+  onBuyLook: (id: LookId) => void = () => undefined;
+  onWearLook: (id: LookId) => void = () => undefined;
+  /** 换多少筹码；切到换筹码页时 onOpenExchange 先查今天的额度 */
+  onExchange: (amount: number) => void = () => undefined;
+  onOpenExchange: () => void = () => undefined;
   onClose: () => void = () => undefined;
 
   private readonly icons: (k: string, px?: number) => string;
@@ -67,6 +77,19 @@ export class Prep {
         case 'tab':
           this.tab = el.dataset.t as PrepTab;
           this.render();
+          if (this.tab === 'xc') this.onOpenExchange();
+          break;
+        case 'kit':
+          this.onToggleKit(id as KitId);
+          break;
+        case 'look':
+          this.onBuyLook(id as LookId);
+          break;
+        case 'wear':
+          this.onWearLook(id as LookId);
+          break;
+        case 'xc':
+          this.onExchange(Number(id));
           break;
         case 'char':
           this.view = null;
@@ -125,6 +148,7 @@ export class Prep {
     this.view = null;
     this.render();
     this.root.style.display = '';
+    if (this.tab === 'xc') this.onOpenExchange();
   }
 
   /** 状态变了（买了、选了）：留在当前标签页重画 */
@@ -144,11 +168,14 @@ export class Prep {
         ['char', '角色'],
         ...(s.cursesOpen ? [['curse', '咒印']] : []),
         ['perk', '加成'],
+        ['kit', '锦囊'],
+        ['look', '外观'],
+        ['xc', '换筹码'],
       ] as [PrepTab, string][]
     )
       .map(([t, n]) => `<button type="button" class="yx-ptab${t === this.tab ? ' on' : ''}" data-a="tab" data-t="${t}">${n}</button>`)
       .join('');
-    const body = this.tab === 'char' ? this.chars(s) : this.tab === 'curse' ? this.cursesHtml(s) : this.perksHtml(s);
+    const body = this.tab === 'char' ? this.chars(s) : this.tab === 'curse' ? this.cursesHtml(s) : this.tab === 'perk' ? this.perksHtml(s) : this.tab === 'kit' ? kitsHtml(s.shop) : this.tab === 'look' ? looksHtml(s.shop) : exchangeHtml(s.shop);
     this.root.innerHTML =
       '<div class="yx-panel yx-prep">' +
       `<div class="yx-prep-head"><div class="yx-ptabs">${tabs}</div><span class="yx-pcoins"><span class="yx-coin"></span>${s.coins.toLocaleString('zh-CN')}</span>` +
