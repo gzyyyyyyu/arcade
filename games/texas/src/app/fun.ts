@@ -100,8 +100,8 @@ export function createFun(c: App) {
         const d = dockSize();
         return chatFolded() ? tableView.chatDock(120, 48, dockAvoid()) : tableView.chatDock(d.w, d.h, dockAvoid());
       },
-      // 玩家自己没点过收起、展开时：放不下就默认收着
-      chatFolded: () => c.crowded === true,
+      // 玩家自己没点过收起、展开时：放不下就默认收着；好友房还在等人页、量不出来（null）时也收着，不然展开的框压住房间码
+      chatFolded: () => chatFolded(),
       // 大屏上舞台放大到 1.5–2 倍，"互动""聊天"按钮的字（13 px）和图标（22 px）跟着放大，手机上不缩小
       buttonStyle: () => {
         const k = Math.max(1, getFit().scale);
@@ -133,12 +133,15 @@ export function createFun(c: App) {
     syncFun();
   }
 
-  /** kit 的电脑版聊天框多大：画出来了按实际的量；还没画时按 kit 的字号估（宽是字号的 17 倍，高约 12 倍）。写死的尺寸在大屏上会压住左下座位的"大盲" */
+  /**
+   * kit 的电脑版聊天框多大：画出来了按实际的量；收着、还没画时按 kit 的字号估（宽是字号的 17 倍，高约 15 倍：kit 0.20.2 起快捷短语占两行，
+   * 1280×720 实测 306×264、字号 18）。写死的尺寸在大屏上会压住左下座位的"大盲"；估矮了会判成放得下、展开后压住我的底牌
+   */
   function dockSize(): { w: number; h: number } {
     const dock = document.querySelector<HTMLElement>('[data-key="chat:dock"]');
     if (dock && dock.offsetHeight > 0) return { w: dock.offsetWidth, h: dock.offsetHeight };
     const font = chatFont({ width: window.innerWidth, height: window.innerHeight });
-    return { w: Math.round(font * 17), h: Math.round(font * 12) };
+    return { w: Math.round(font * 17), h: Math.round(font * 15) };
   }
 
   const dockFitsNow = (): boolean => {
@@ -172,7 +175,7 @@ export function createFun(c: App) {
   /** 电脑版聊天框现在是收着的（玩家自己点过的以 kit 记的设置 texas.chat 为准，没点过看 crowded）：收着时只给小按钮找位置 */
   function chatFolded(): boolean {
     const own = readJson<{ folded?: unknown }>(KEYS.chat)?.folded;
-    return typeof own === 'boolean' ? own : c.crowded === true;
+    return typeof own === 'boolean' ? own : c.crowded !== false;
   }
 
   const chatMode = (): ChatMode => (c.chatOff ? 'off' : c.strangerChat ? 'on' : 'friends');

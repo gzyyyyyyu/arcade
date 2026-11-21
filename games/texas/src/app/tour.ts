@@ -138,7 +138,8 @@ export function createTour(c: App) {
     t.view.places.forEach((p, i) => {
       if (p !== null && !c.outShown.has(i)) {
         c.outShown.add(i);
-        if (i !== ME) f.toast(`${personaName(t.table.seats[i]!.persona)} 出局，第 ${p} 名`);
+        // 打完了（含现在离开时一口气跑完）不再一个个弹，结束页上有名次；不然最后一条会挂到回大厅以后
+        if (i !== ME && !t.over) f.toast(`${personaName(t.table.seats[i]!.persona)} 出局，第 ${p} 名`);
       }
     });
     f.drawTop();

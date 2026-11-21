@@ -92,7 +92,7 @@ export class RoomPanel {
             (o.fill ? '；空位开赛时由电脑补' : '；空位不补，按坐下的人数开赛') +
             '。坐满 6 人或房主点开始就开赛，开赛后不能再坐下'
         : o && st
-        ? `${st.name} · 盲注 ${chips(st.sb)}/${chips(st.bb)} · ${o.size} 人。` +
+        ? `${o.fun ? '娱乐 · ' : ''}${st.name} · 盲注 ${chips(st.sb)}/${chips(st.bb)} · ${o.size} 人。` +
             (site.standalone || o.fun ? `开打时每个坐下的人带 ${chips(st.max)} 上桌（筹码不算数）；空位由电脑补` : `开打时每个坐下的人从钱包带 ${chips(st.max)} 上桌，离桌或房间关掉时结回去；空位由电脑补`)
         : '',
     );
@@ -121,13 +121,14 @@ export class RoomPanel {
     // 坐着的人都给"开打"：房间不下发谁是房主，房主换了设备、页面被顶掉后本机不知道自己是房主，按钮一藏房间就只能干等；
     // 不是房主的点了由 kit 回 not_host，提示一句。没坐下的看"等房主开打"
     const canStart = s.host || mine !== null;
-    // 实盘好友房至少两个真人：房间那边一个人开打也不发牌，按钮先灰掉，免得点了干坐着
+    // 实盘好友房至少两个真人：房间那边一个人开打也不发牌，按钮先灰掉，免得点了干坐着。
+    // 锦标赛不管实盘还是娱乐都至少两个真人（电脑补的不算）；娱乐现金桌一个人也能开打（规则的 FUN 是 minHumans 1，空位电脑补）
+    const need = !tour && o?.fun ? 1 : 2;
     const humans = must(s.room, 's.room').seats.filter((x, i) => i < size && x.kind === 'human').length;
     setText(this.twoNote, tour ? '锦标赛至少要两个人才开赛' : twoText());
-    toggle(this.twoNote, 'hidden', humans >= 2);
+    toggle(this.twoNote, 'hidden', humans >= need);
     toggle(this.startBtn, 'hidden', !canStart);
-    // 锦标赛不管实盘还是娱乐都至少两个真人（电脑补的不算）
-    this.startBtn.disabled = mine === null || s.status !== 'open' || humans < 2;
+    this.startBtn.disabled = mine === null || s.status !== 'open' || humans < need;
     toggle(this.waitNote, 'hidden', canStart);
   }
 }

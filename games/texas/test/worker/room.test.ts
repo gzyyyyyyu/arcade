@@ -42,7 +42,7 @@ function createRoom(sid: string, body: string | undefined): Promise<Response> {
   return exports.default.fetch(`${BASE}/rooms`, { method: 'POST', headers: { origin: SITE, cookie: `__Host-sid=${sid}` }, ...(body !== undefined ? { body } : {}) });
 }
 
-async function openRoom(sid: string, opts: { stakes: string; size: number }): Promise<string> {
+async function openRoom(sid: string, opts: { stakes: string; size: number; fun?: true }): Promise<string> {
   const res = await createRoom(sid, JSON.stringify({ opts }));
   expect(res.status).toBe(201);
   return ((await res.json()) as { code: string }).code;
@@ -217,6 +217,26 @@ describe('开房、买入、打牌', () => {
     for (const id of ids) expect(await walletOf(id)).toMatchObject({ balance: NEW_BALANCE - MAX, stakes: [{ game: 'texas', mode: 'server', tier: 'small', amount: MAX }] });
     await writesOk(code);
   });
+
+  it('娱乐好友房（0.41.0）：一个人也能开打，空座电脑补、照常发牌；打几手、离开，钱包一次都没调过', async () => {
+    const host = user();
+    const code = await openRoom(host, { stakes: 'big', size: 4, fun: true });
+    const c = await join(code, host);
+    c.send({ t: 'start' });
+    const v = await c.see((x) => x.handNo >= 1 && x.phase !== 'idle', 5_000);
+    expect(v.stakes).toBe(FUN_STAKES);
+    expect(v.needTwo).toBeFalsy();
+    expect(v.seats.map((s) => s.owner)).toEqual(['player', 'house', 'house', 'house']);
+    await playUntil([c], (x) => x.handNo >= 3);
+    c.send({ t: 'leave' });
+    await waitFor(async () => {
+      const g = (await inspect(code)).persist?.game;
+      return !!g && g.sealed.every(Boolean) && g.fx.length === 0;
+    });
+    expect(await usage(host)).toEqual({ calls: 0, writes: 0 });
+    expect(await walletOf(host)).toMatchObject({ balance: NEW_BALANCE, stakes: [] });
+    await writesOk(code);
+  }, 20_000);
 
   it('开房就定档位和人数（kit 0.4.0）：进房的人都看得到，坐不进用不到的座位；开打时 start 带的不看；不合格的开不了', async () => {
     const [host, guest] = [user(), user()];

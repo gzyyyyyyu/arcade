@@ -63,6 +63,8 @@ describe('新手指引的状态（只出一次）', () => {
     // 手机 3 步（4 步以内），电脑多一页快捷键
     expect(stepsFor(true).map((s) => s.id)).toEqual(['cards', 'buttons', 'rank']);
     expect(stepsFor(false).map((s) => s.id)).toEqual(['cards', 'buttons', 'rank', 'keys']);
+    // 第一次自动弹不出快捷键那一页（电脑也一样），从"?"打开才有
+    expect(stepsFor(false, true).map((s) => s.id)).toEqual(['cards', 'buttons', 'rank']);
     expect(new Set(stepsFor(false).map((s) => s.id)).size).toBe(4);
     for (const s of stepsFor(false)) {
       expect(s.title.length, s.id).toBeLessThanOrEqual(12);

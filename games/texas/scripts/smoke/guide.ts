@@ -143,7 +143,7 @@ async function assertCoachClear(page: Page, tag: string, what: string): Promise<
 }
 
 async function walkGuide(page: Page, tag: string, touch: boolean, opts: { shots: boolean; resize?: { w: number; h: number; at: string }; stopAfter?: number }): Promise<void> {
-  const STEPS = (await import('../../src/guide.ts')).stepsFor(touch);
+  const STEPS = (await import('../../src/guide.ts')).stepsFor(touch, true);
   const view = page.viewportSize()!;
   const press = (loc: ReturnType<Page['locator']>) => (touch ? loc.tap() : loc.click());
   for (const [i, st] of STEPS.entries()) {
@@ -236,7 +236,7 @@ export async function guideFlow(browser: Browser, base: string): Promise<void> {
     const done = await guideStored(page);
     if (!done?.done) throw new Error(`[guide ${tag}] finishing should store done: ${JSON.stringify(done)}`);
     if (!(await page.locator('.actions.on').isVisible())) throw new Error(`[guide ${tag}] after the last step it should still be my turn`);
-    log(`guide ${tag}: ${stepsFor(touch).length} steps ok`);
+    log(`guide ${tag}: ${stepsFor(touch, true).length} steps ok`);
     if (!full) {
       await ctx.close();
       continue;
