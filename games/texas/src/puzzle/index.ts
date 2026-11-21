@@ -75,7 +75,7 @@ const PRE_ITERS = 12_000;
 const ORDER_KEY: Entropy = [0x7465, 0x7861, 0x7370, 0x757a, 0x7a6c, 0x6573, 0x2d31, 0x3030];
 
 /** 日期和第几道（或别的用途标签）→ 8 个字的密钥 */
-export const keyOf = (date: string, slot: number | string = 0): Entropy => Array.from({ length: 8 }, (_, i) => purposeHash(`puzzle|${date}|${slot}|${i}`));
+const keyOf = (date: string, slot: number | string = 0): Entropy => Array.from({ length: 8 }, (_, i) => purposeHash(`puzzle|${date}|${slot}|${i}`));
 
 /**
  * 按赢面和要求定答案：null 是模糊的局面（调用方重发）。

@@ -11,7 +11,7 @@ const RANKS = '23456789TJQKA';
 const SUITS = 'cdhs';
 
 /** 测试用的写法，比如 'As'、'Td'、'2c' */
-export function parseCard(s: string): Card {
+function parseCard(s: string): Card {
   const r = RANKS.indexOf(s[0]!);
   const u = SUITS.indexOf(s[1]!);
   if (s.length !== 2 || r < 0 || u < 0) throw new Error(`bad card ${s}`);

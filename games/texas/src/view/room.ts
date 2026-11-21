@@ -12,7 +12,7 @@ import { ROOM_NAME } from './rooms.ts';
 import { chips } from './text.ts';
 import { must } from '../must.ts';
 
-export interface WaitHandlers {
+interface WaitHandlers {
   sit(seat: number): void;
   start(): void;
   invite(): void;

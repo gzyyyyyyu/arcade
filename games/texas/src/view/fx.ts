@@ -8,7 +8,7 @@ import type { Pt } from './layout.ts';
 import { FX_MS, MAX_MS } from './timing.ts';
 
 
-export const fxMs = (pace: number): number => Math.min(MAX_MS, Math.round(FX_MS * pace));
+const fxMs = (pace: number): number => Math.min(MAX_MS, Math.round(FX_MS * pace));
 
 const lowFx = (): boolean => document.documentElement.classList.contains('lowfx');
 
@@ -72,7 +72,7 @@ export function edgeGlow(layer: HTMLElement, pace: number): void {
 }
 
 /** 大牌庆祝的参数（view/table.ts 按 fun/climax.ts 的档次给） */
-export interface CelebrateOpt {
+interface CelebrateOpt {
   /** 赢家头像（光爆在这里） */
   at: Pt;
   /** 横幅落点（公共牌上方一点） */

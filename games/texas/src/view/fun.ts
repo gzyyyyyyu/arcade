@@ -28,12 +28,10 @@ export function suggest(r: HandResult, log: readonly LogEntry[], me: number): nu
 }
 
 /**
- * 互动"不看"（总开关，记在本机 texas.fun；电脑说话也一起收起）。按人屏蔽 0.13.0 起是 kit 的（texas.fun.blocked，这个标签页），
- * 0.12.0 及以前记在 texas.fun.muted 的旧名单读的时候顺手清掉
+ * 互动"不看"（总开关，记在本机 texas.fun；电脑说话也一起收起）。按人屏蔽是 kit 的（texas.fun.blocked，这个标签页）
  */
-export function loadFunOff(local: Storage, session: Storage): boolean {
+export function loadFunOff(local: Storage): boolean {
   try {
-    session.removeItem(KEYS.funMuted);
     return (JSON.parse(local.getItem(KEYS.fun) ?? 'null') as { off?: unknown } | null)?.off === true;
   } catch {
     return false;

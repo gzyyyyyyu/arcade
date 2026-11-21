@@ -14,7 +14,7 @@ export interface TourRow {
   me: boolean;
 }
 
-export interface TourEnd {
+interface TourEnd {
   /** 我的名次；旁观的人是 null */
   place: number | null;
   /** 我的奖金（实盘，我是选手）；娱乐、旁观是 null */

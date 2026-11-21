@@ -11,7 +11,7 @@ import { must } from '../must.ts';
 
 export type Moment = 'river' | 'quads' | 'allin';
 
-export interface Showcase {
+interface Showcase {
   kind: Moment;
   /** 主角的座位（逆转、大牌是赢的那个；全下对决是赢了主池的那个） */
   seat: number;

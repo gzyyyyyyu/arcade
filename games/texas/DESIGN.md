@@ -41,7 +41,7 @@
 | 5 筹码与钱包 | [docs/economy.md](docs/economy.md) | 5.1–5.6：钱包、带上桌与结回、数值、接口与写入、防刷额度、操作 id |
 | 6 好友房 | [docs/online.md](docs/online.md) | 6.1–6.11：玩法、页面、kit 能力、写入、实盘规矩、旁观、分享、颁奖、动态、搭子战绩、快速匹配 |
 | 7 和同站其他游戏怎么分额度 | [docs/economy.md](docs/economy.md) | DO 写入额度 |
-| 8 画面与手机 | [docs/screens.md](docs/screens.md) | 8.1–8.14：渲染、布局、iOS、回大厅与登录闸门、存储键、音效、性能、主页、主题房、关键时刻、结算、亮牌与聊天、止盈、顶栏设置键盘（性能实测见 [docs/perf.md](docs/perf.md)） |
+| 8 画面与手机 | [docs/screens.md](docs/screens.md)、[docs/scenes.md](docs/scenes.md) | screens 8.1–8.7、8.14：渲染、布局、iOS、回大厅与登录闸门、存储键、音效、性能、顶栏设置键盘（性能实测见 [docs/perf.md](docs/perf.md)）；scenes 8.8–8.13：主页、主题房、关键时刻、结算、亮牌与聊天、止盈 |
 | 9 测试 | [docs/testing.md](docs/testing.md) | 单测、冒烟、模拟 |
 | 10 目录和部署 | [docs/deploy.md](docs/deploy.md) | 10.1 单独部署、10.2 仓库级的事、10.3 安全响应头 |
 | 11 分阶段 | 本文件（下） | 已全部完成 |

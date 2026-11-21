@@ -6,13 +6,13 @@
 import { FUN_STAKES, STAKES, type StakesId } from '../core/stakes.ts';
 import type { RoomOpts } from './rules.ts';
 
-export type MatchTier = 'fun' | `real-${StakesId}`;
+type MatchTier = 'fun' | `real-${StakesId}`;
 
 /** 匹配桌几个座位（也是一桌最多几个真人） */
 export const MATCH_TABLE = 6;
 
 /** 实盘四档（要钱包） */
-export const REAL_TIERS: readonly MatchTier[] = STAKES.map((s) => `real-${s.id}` as const);
+const REAL_TIERS: readonly MatchTier[] = STAKES.map((s) => `real-${s.id}` as const);
 /** 全部档位：娱乐在前 */
 export const MATCH_TIERS: readonly MatchTier[] = ['fun', ...REAL_TIERS];
 

@@ -123,13 +123,13 @@ export interface RoomState {
   last?: LastAct;
   /**
    * 这一场每个座位的账（一场结束时给每个人看输赢）：inn 带入办成的总数，outs 结回排上的总数。
-   * 开打后座位和人一一对应（kit 的 owners），所以按座位记就是按人记。0.1.0 开的房间没有，当 0
+   * 开打后座位和人一一对应（kit 的 owners），所以按座位记就是按人记
    */
-  inn?: number[];
-  outs?: number[];
+  inn: number[];
+  outs: number[];
   /**
    * 每个座位这一份的战绩（结回时报给平台）：dealt 是最近一次发牌的手数、players 是那一手发牌时坐着的真人座位
-   * （接管电脑的人，电脑替他打完的那一手不算他的），noted 是记过的最后一手；inn 是这一份带入办成的。0.2.x 的房间没有，从现在起记
+   * （接管电脑的人，电脑替他打完的那一手不算他的），noted 是记过的最后一手；inn 是这一份带入办成的。没有就从现在起记（fameOf）
    */
   fame?: { dealt: number; noted: number; players: number[]; per: Fame[]; inn: number[] };
   /**
@@ -142,7 +142,7 @@ export interface RoomState {
 }
 
 /** 一场：同桌的真人座位和各自赢没赢（从坐下到这时净赢为正）；match 是房间里的场次，报平台时拼进 op 去重 */
-export interface Match {
+interface Match {
   match: number;
   players: { seat: number; win: boolean }[];
 }
@@ -212,7 +212,7 @@ const SIMPLE = new Set<string>(['fold', 'check', 'call', 'allin', 'away', 'back'
  * 好友房的牌桌（和掼蛋、麻将统一）：好友房都是实盘，不能一个人带电脑赢钱包——
  * 能打的真人至少两个才发牌（规则的 minHumans，一手打着时人走了照样打完，下一手不发）。
  * 一个人开打（旧页面、脚本绕过按钮）也一样：买入照常扣、牌不发，离桌原样结回，不计输赢。
- * 电脑用好友房的强弱档（stakes.ts 的 ROOM_LEVEL：四档都是最强，和 0.4.0 的 strong 一样）。期望见 docs/online.md 6.5
+ * 电脑用好友房的强弱档（stakes.ts 的 ROOM_LEVEL：四档都是最强）。期望见 docs/online.md 6.5
  */
 const FRIENDS = { holdHands: true, minHumans: 2 } as const;
 /** 娱乐房间不碰钱包，一个人带电脑打也赢不走什么：剩一个真人照样发牌；电脑按娱乐的"普通" */
@@ -360,11 +360,11 @@ export const texasRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wall
       last: s.last ?? null,
       needTwo: !s.fun && !s.closed && !s.opening && s.t.phase === 'idle' && !s.t.hold && humansReady(s) < 2,
       net: s.t.seats.map((c, i) => {
-        const inn = s.inn?.[i] ?? 0;
+        const inn = s.inn[i]!;
         if (!inn) return null;
         // 离开时已经结回的（封上了）：还留在池子里的那些算输掉的，不再算他的
         const now = (c.owner === 'player' && !s.sealed[i] ? c.stack + c.total : 0) + s.held[i]! + s.owed[i]!;
-        return (s.outs?.[i] ?? 0) + now - inn;
+        return s.outs[i]! + now - inn;
       }),
     };
   },
@@ -382,7 +382,7 @@ export const texasRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wall
     if (!isOk(result)) return sync({ ...next, refused: set(s.refused, e.seat, errorOf(result)) });
     const funded = set(s.funded, e.seat, true);
     // 这一场带入的账（0.1.1 输赢）
-    const inn = set(s.inn ?? new Array<number>(SEATS).fill(0), e.seat, (s.inn?.[e.seat] ?? 0) + e.amount);
+    const inn = set(s.inn, e.seat, s.inn[e.seat]! + e.amount);
     // 这一份带入的（0.3.0 战绩：结回时算这一份的净赢）
     const fm = fameOf(s);
     const fame = { ...fm, inn: set(fm.inn, e.seat, fm.inn[e.seat]! + e.amount) };
@@ -480,7 +480,7 @@ function collect(s0: RoomState): RoomState {
   const held = [...s0.held];
   const sealed = [...s0.sealed];
   const fx = [...s0.fx];
-  const outs = [...(s0.outs ?? new Array<number>(SEATS).fill(0))];
+  const outs = [...s0.outs];
   const fm = fameOf(s0);
   const fame = { ...fm, per: [...fm.per], inn: [...fm.inn] };
   let nextId = s0.nextId;
@@ -554,7 +554,7 @@ function sync(s0: RoomState): RoomState {
   return collect(noteFame(s));
 }
 
-/** 战绩：老房间没有就从现在起记 */
+/** 战绩：还没建就从现在起记 */
 function fameOf(s: RoomState): NonNullable<RoomState['fame']> {
   const n = s.t.seats.length;
   return s.fame ?? { dealt: s.t.handNo, noted: s.t.lastHand?.handNo ?? 0, players: [], per: new Array<Fame>(n).fill(NO_FAME), inn: new Array<number>(n).fill(0) };
@@ -585,8 +585,7 @@ const humansReady = (s: RoomState): number =>
   s.t.seats.filter((c, i) => s.kinds[i] === 'human' && ((c.owner === 'player' && c.stack > 0 && !c.away && !c.leaving) || buying(s, i))).length;
 
 function seatPass(s: RoomState): RoomState {
-  // 0.4.0 以前开的房间：牌桌上没有这两样，补上（发下一手起按新规矩）；0.4.0 开的（strong）照旧按最强，到房间关掉为止
-  let t = s.t.minHumans ? s.t : { ...s.t, ...FRIENDS, level: ROOM_LEVEL[s.t.stakes] };
+  let t = s.t;
   const held = [...s.held];
   const owed = [...s.owed];
   const max = stakesOf(t.stakes).max;

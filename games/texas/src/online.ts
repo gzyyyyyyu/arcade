@@ -10,7 +10,7 @@ import type { LastAct, RoomAction, RoomOpts, RoomView } from './room/rules.ts';
 import { site } from './site.ts';
 
 /** 页面的协议版本（房间的 minClientVersion 高于它就让刷新） */
-export const CLIENT_VERSION = 1;
+const CLIENT_VERSION = 1;
 /** 房间码是 6 位数字 */
 export const isRoomCode = (code: string): boolean => /^\d{6}$/.test(code);
 /** 积压超过这么多帧就不播了，直接摆最新的 */
@@ -256,7 +256,7 @@ export function matchUrl(tier: string): string {
 }
 
 /** 房间的 WebSocket 地址：页面在 /games/texas/ 下，相对路径就对 */
-export function roomUrl(code: string): string {
+function roomUrl(code: string): string {
   const u = new URL(`rooms/${code}/ws`, location.href);
   u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
   u.search = '';
@@ -285,10 +285,10 @@ const texts = (noWallet = false): RoomTexts => (site.standalone || noWallet ? ST
 
 export const createError = (e: string): string => createText(e, texts());
 /** fun：娱乐房间也不提结回钱包 */
-export const closeText = (code: number, reason?: string, fun = false): string => kitCloseText(code, reason, texts(fun));
+const closeText = (code: number, reason?: string, fun = false): string => kitCloseText(code, reason, texts(fun));
 
 /** 房间拒了一个操作：大多是"牌局已经变了"这类，按最新状态重来就行 */
-export function errorText(code: string): string {
+function errorText(code: string): string {
   switch (code) {
     case 'seat_taken':
     case 'not_your_seat':

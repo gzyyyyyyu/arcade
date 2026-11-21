@@ -104,8 +104,8 @@ export const TITLES = {
   quads: (f: Fame) => f.quads >= 1,
   call_station: (f: Fame) => f.calls >= 30,
   iron_man: (f: Fame) => f.hands >= 300,
-  big_winner: (f: Fame, net: number, max: number) => net >= max,
-  money_boy: (f: Fame, net: number, max: number) => net <= -max,
+  big_winner: (_f: Fame, net: number, max: number) => net >= max,
+  money_boy: (_f: Fame, net: number, max: number) => net <= -max,
 } as const satisfies Record<string, (f: Fame, net: number, max: number) => boolean>;
 
 export function settleStats(f: Fame, net: number, max: number): SettleStats {

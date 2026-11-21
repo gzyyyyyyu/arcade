@@ -34,7 +34,7 @@ export const SHORT_BB = 12;
 /** 有效筹码这么多个大盲以上：没人加注时多看便宜的翻牌（深筹码，投机牌值钱） */
 const DEEP_BB = 150;
 /** 对手发到牌这么多手以后才看他的打法（样本太少不准） */
-export const READ_HANDS = 15;
+const READ_HANDS = 15;
 
 export function decide(v: View, r: RandomStream): Action {
   const me = v.me;

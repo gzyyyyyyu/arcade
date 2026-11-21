@@ -9,7 +9,7 @@ import { el } from './dom.ts';
 import { must } from '../must.ts';
 
 /** 目标在屏幕上的矩形；量不到（还没发牌、操作区收着）返回 null，说明框就居中讲 */
-export type RectOf = (t: Target) => DOMRect | null;
+type RectOf = (t: Target) => DOMRect | null;
 
 let cur: (() => void) | null = null;
 

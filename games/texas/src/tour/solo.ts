@@ -19,9 +19,9 @@ import { DEFAULT_FORMAT, finishOrder, formatInfo, handOver, newTour, payouts, pl
 export const ME = 0;
 export const TOUR_KEY = KEYS.tour;
 
-export type TourPending = { t: 'buyin'; op: string; amount: number } | { t: 'cashout'; op: string; amount: number };
+type TourPending = { t: 'buyin'; op: string; amount: number } | { t: 'cashout'; op: string; amount: number };
 
-export interface TourSession {
+interface TourSession {
   v: 1;
   /** 场次 id（钱包里"桌上那一份"的 ref） */
   id: string;
@@ -53,7 +53,7 @@ export interface TourDeps {
   onStep: (s: Step) => Promise<void>;
 }
 
-export interface TourResult {
+interface TourResult {
   place: number;
   /** 奖金（娱乐是 0） */
   prize: number;

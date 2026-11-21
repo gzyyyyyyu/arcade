@@ -5,7 +5,7 @@
  * - 情境提示（HINTS）：前几手里第一次遇到某件事时冒一条，每条只出一次。
  */
 
-export type HintId = 'result' | 'showdown' | 'raise' | 'pot';
+type HintId = 'result' | 'showdown' | 'raise' | 'pot';
 export const HINTS: readonly HintId[] = ['result', 'showdown', 'raise', 'pot'];
 
 export interface GuideState {
@@ -68,7 +68,7 @@ export interface Step {
  * 键盘快捷键全表（docs/ui.md 第 9 节：帮助里要有一页）。键位以 view/actions.ts（牌桌、快速局）、view/puzzle.ts（谜题）、
  * view/lobbykeys.ts（选桌）为准，改了键位记得同步这里。手机没有键盘，这一页只有电脑上用得到
  */
-export const KEYS_TABLE: [string, string, string][] = [
+const KEYS_TABLE: [string, string, string][] = [
   ['F', '牌桌：弃牌', ''],
   ['C', '牌桌：过牌 / 跟注', ''],
   ['R', '牌桌：加注（展开加注面板）', ''],
@@ -123,7 +123,7 @@ export const STEPS: readonly Step[] = [
 ];
 
 /** 快捷键那一页：只给有鼠标键盘的设备 */
-export const KEYS_STEP: Step = { id: 'keys', target: null, title: '电脑快捷键', lines: [], wide: true, items: KEYS_TABLE };
+const KEYS_STEP: Step = { id: 'keys', target: null, title: '电脑快捷键', lines: [], wide: true, items: KEYS_TABLE };
 
 /**
  * 这台设备走哪几步：触屏没有键盘，不出快捷键那一页；第一次自动弹（first）也不出——新手还没出过一手，先学会打，

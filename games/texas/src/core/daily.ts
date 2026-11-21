@@ -6,7 +6,7 @@
 import { stream, type Entropy } from 'arcade-kit/rng';
 
 /** 日期 YYYY-MM-DD（北京时间） */
-export const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 /** 平台每日榜的榜名：`daily-<北京日期>-<子榜>`（platform-backend.md 9.2、15.5），子榜叫 pushfold */
 export const dailyBoardId = (date: string): string => `daily-${date}-pushfold`;
@@ -21,7 +21,7 @@ export function dailySeed(date: string): Entropy {
 }
 
 /** 本机存的快速局记录（texas.pushfold） */
-export interface PushFoldRecord {
+interface PushFoldRecord {
   /** 普通快速局的最好成绩（最后的筹码）和玩过几局 */
   best: number | null;
   plays: number;
@@ -81,7 +81,7 @@ export function tourScore(place: number, hands: number): number {
 }
 
 /** 本机存的今日赛记录（texas.dailytour）：一天一条，只留最近一次 */
-export interface TourDailyRecord {
+interface TourDailyRecord {
   date: string;
   /** 打完得的分；还没打完是 null */
   score: number | null;

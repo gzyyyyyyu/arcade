@@ -90,7 +90,7 @@ export interface LogEntry {
   auto?: true;
 }
 
-export interface Pot {
+interface Pot {
   amount: number;
   winners: { seat: number; won: number }[];
 }
@@ -113,7 +113,7 @@ export interface HandResult {
 }
 
 /** 离开牌桌、等结回钱包的筹码 */
-export interface Payout {
+interface Payout {
   id: string;
   seat: number;
   amount: number;
@@ -164,10 +164,8 @@ export interface Table {
   kept?: Card[][];
   /** 至少几个真人能打才发牌（好友房是 2：不能一个人带电脑赢实盘）；没填是 1（单机、模拟器、老存档） */
   minHumans?: number;
-  /** 电脑的强弱档（stakes.ts 的 LEVELS）：场地按档位定（SOLO_LEVEL、ROOM_LEVEL）；没填的看 strong，再没有按单机的 */
+  /** 电脑的强弱档（stakes.ts 的 LEVELS）：场地按档位定（SOLO_LEVEL、ROOM_LEVEL）；没填按单机的 */
   level?: number;
-  /** 0.4.0 的好友房：电脑一律最强，等于 level 5。只为读 0.4.0 开的房间留着 */
-  strong?: boolean;
   /**
    * 全下或弃牌的快速局（docs/features.md 13.10）：每个人翻牌前只能弃牌或全下、面对全下只能跟或弃，不能平跟、不能加注；
    * 翻牌前说完话就一次发完公共牌摊牌，没有翻牌后的下注。电脑坐下带 PF_STACK_BB 个大盲。没填就是普通牌桌
@@ -176,7 +174,7 @@ export interface Table {
 }
 
 /** 这一桌电脑的强弱档 */
-export const levelOf = (t: Pick<Table, 'level' | 'strong' | 'stakes'>): number => t.level ?? (t.strong ? 5 : SOLO_LEVEL[t.stakes]);
+export const levelOf = (t: Pick<Table, 'level' | 'stakes'>): number => t.level ?? SOLO_LEVEL[t.stakes];
 
 export type Action =
   | { t: 'fold' }

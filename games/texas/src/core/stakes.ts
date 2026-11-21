@@ -1,5 +1,5 @@
 /** 桌子的四档（docs/economy.md 5.3），单机和好友房用同一套 */
-export interface Stakes {
+interface Stakes {
   id: StakesId;
   name: string;
   sb: number;

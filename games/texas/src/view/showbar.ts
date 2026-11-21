@@ -1,7 +1,7 @@
 /**
  * 主动亮牌：一手打完、两手之间那一栏前面的一小块，摆着我刚才的两张牌，点哪张亮哪张，"都亮"两张一起。
  * 只给 5 秒（SHOW_MS）：单机从这一栏出来算，好友房从房间停顿开始算（停顿 7 秒，前 5 秒能亮）。
- * 服务端（好友房）允许整个停顿期间亮，5 秒只是页面给的节奏（docs/screens.md 8.12）。
+ * 服务端（好友房）允许整个停顿期间亮，5 秒只是页面给的节奏（docs/scenes.md 8.12）。
  */
 import type { Card } from '../core/cards.ts';
 import { makeCard, setCard } from './art.ts';

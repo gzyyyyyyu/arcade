@@ -42,10 +42,9 @@ describe('场地 → 强弱档', () => {
     }
   });
 
-  it('单机的牌桌不写 level，按档位取；写了就按写的；0.4.0 好友房的 strong 是最强档；视图带着它', () => {
+  it('单机的牌桌不写 level，按档位取；写了就按写的；视图带着它', () => {
     for (const st of STAKES) expect(levelOf(newTable(st.id, 6, SEED))).toBe(SOLO_LEVEL[st.id]);
     expect(levelOf(newTable('small', 6, SEED, { level: 3 }))).toBe(3);
-    expect(levelOf({ stakes: 'small', strong: true })).toBe(5);
     expect(view(newTable('big', 6, SEED, { level: 4 }), null).level).toBe(4);
   });
 

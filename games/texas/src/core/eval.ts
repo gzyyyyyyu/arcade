@@ -98,7 +98,7 @@ export function evalMasks(c: number, d: number, h: number, s: number): number {
 }
 
 /** 把牌加进四门花色的掩码（就地改 m）。蒙特卡洛里公共牌只加一次，每个对手只再加两张 */
-export function addCard(m: Int32Array | number[], c: Card): void {
+function addCard(m: Int32Array | number[], c: Card): void {
   m[c & 3]! |= 1 << (c >> 2);
 }
 
