@@ -1,4 +1,4 @@
-/* 立直牌桌和结算的样式（docs/riichi.md 第 4 节）。全部限定在 .table.rc、.rc-summary、.rc-guide、.lobby-variants 下：
+/* 立直牌桌和结算的样式（docs/riichi.md 第 4 节）。全部限定在 .table.rc、.rc-summary、.rc-guide 下：
  * 川麻和公共牌桌的样子一点不动。横屏、竖屏的位置沿用 css/table-layout.css 里的舞台坐标，这里只管里面的东西。 */
 
 /* ---------- 名牌：自风小签（放在川麻缺门签的位置）、立直棒 ---------- */
@@ -361,18 +361,6 @@
   margin-top: var(--sp-2);
   font-size: var(--fs-xs);
   opacity: 0.85;
-}
-
-/* ---------- 选桌页的玩法选项 ---------- */
-.lobby-variants {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  font-size: var(--fs-sm);
-}
-.lobby-variants .label {
-  opacity: 0.8;
 }
 
 /* 安全牌提示：别家立直后，轮到我打时手牌底边一个小标。绿底"安"＝现物；黄框"较"＝筋牌、见得多的字牌。

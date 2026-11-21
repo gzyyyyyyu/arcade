@@ -2,7 +2,6 @@
  * 页面路由：游戏主页、选桌页、每日何切、听牌速判、茶馆擂台。每个都先 teardown 放掉牌桌，再整页接管 screen。
  * 从牌桌、房间"回选桌"、离开都回到这里的函数。
  */
-import { DEFAULT_VARIANT } from '../core/variants/index.ts';
 import type { Level } from '../ai/venues.ts';
 import { stakesOf, type StakesId } from '../game/stakes.ts';
 import { loadSolo, type SoloSave } from '../solo.ts';
@@ -18,7 +17,7 @@ import { renderHome, type HomeMode } from '../view/home.ts';
 import { renderLobby } from '../view/lobby.ts';
 import { LEVEL_NAME, NET_FAIL, STAKES_NAME } from '../view/text.ts';
 import type { AnyOpts } from '../view/variants/page.ts';
-import { findPage, homeChoiceOf, openPages, pageOf } from '../view/variants/pages.ts';
+import { homeChoiceOf, openPages, pageOf } from '../view/variants/pages.ts';
 import { nick, setNick, userIdOf } from './identity.ts';
 import { teardown } from './lifecycle.ts';
 import { quickMatch } from './match-flow.ts';
@@ -42,7 +41,6 @@ export function homePage(): void {
     stakesOf(stakes)?.wallet ? `实盘 · ${STAKES_NAME[stakes]}档` : `娱乐 · ${LEVEL_NAME[level ?? 'easy']}`;
   const page = pageOf(activeVariant());
   const quickStakes = quickStakesOf();
-  const homeVariant = page.homeId(prefs);
   const { wallet, walletNote } = session;
   renderHome(screen, {
     quick: kind(quickStakes, prefs.level),
@@ -51,23 +49,30 @@ export function homePage(): void {
     realOff: wallet ? (wallet.balance <= 0 ? '钱包没有筹码了' : null) : (walletNote ?? NET_FAIL).split(/[，。]/)[0]!,
     standalone: session.standalone,
     record: readRecord(),
-    variant: homeVariant,
-    // 血战 / 血流 / 立直三选一（各玩法的切换项见 VariantPage.homeChoices；血流是川麻的 opts.flow，记在 mahjong.prefs 的规则里，没有新的存储键）
-    variants: {
-      ids: openPages().flatMap((pg) => pg.homeChoices.map((c) => c.id)),
-      current: homeVariant,
-      onPick: (id: string) => {
-        homeChoiceOf(id).page.homePick(prefs, id);
-        savePrefs();
-        homePage();
-      },
-    },
+    variant: page.homeId(prefs),
+    variants: variantChoices(homePage),
     onQuick: startQuick,
     onResume: () => void resumeSolo(),
     onMode: (m) => lobby(false, m),
     onRules: () => showRules(stage, undefined, activeVariant()),
     onProgress: (to) => (to === 'daily' ? lobby(false, 'fun') : to === 'hekiri' ? hekiriPage() : to === 'ting' ? tingPage() : to === 'ladder' ? ladderPage() : showRules(stage, to, activeVariant())),
   });
+}
+
+/**
+ * 玩法切换项（主页快速一局底下、选桌页的玩法行共用）：血战 / 血流 / 三人两房 / 立直，各玩法的 VariantPage.homeChoices。
+ * 血流、三人两房是川麻的 opts.flow / opts.three，记在 mahjong.prefs 的规则里，没有新的存储键；选了记下来再重画当前页（after）
+ */
+function variantChoices(after: () => void): { ids: string[]; current: string; onPick(id: string): void } {
+  return {
+    ids: openPages().flatMap((pg) => pg.homeChoices.map((c) => c.id)),
+    current: pageOf(activeVariant()).homeId(prefs),
+    onPick: (id) => {
+      homeChoiceOf(id).page.homePick(prefs, id);
+      savePrefs();
+      after();
+    },
+  };
 }
 
 /** 快速一局的档位：上次选的实盘档（还开着的话），不然娱乐 */
@@ -157,8 +162,7 @@ export function lobby(friends = false, mode: HomeMode | null = null): void {
     stakes,
     level: prefs.level,
     rules: prefs,
-    // 玩法选项只在有两个以上入口开着的玩法时摆（立直的入口开关见 gate.ts）
-    ...(openPages().length > 1 ? { variants: { current: activeVariant(), onPick: pickVariant } } : {}),
+    variants: variantChoices(() => lobby(false, session.lobbyMode)),
     canResume: loadSolo() !== null,
     onSolo: startSolo,
     onResume: () => void resumeSolo(),
@@ -166,18 +170,11 @@ export function lobby(friends = false, mode: HomeMode | null = null): void {
     onRules: () => showRules(stage, undefined, activeVariant()),
     onRoom: openRoom,
     onJoin: (code) => (/^\d{6}$/.test(code) ? enterRoom(code, false) : toast('房间号是 6 位数字')),
-    // 快速匹配：选了三人两房（opts.three）排三人两房的档位，转单机也是三人两房
+    // 快速匹配：选了三人两房（opts.three）、血流成河（opts.flow）排各自的档位，转单机也是这个玩法
     ...(m !== 'room' ? { onMatch: (st: StakesId, o: AnyOpts, l: Level, v: string) => void quickMatch(st, o, l, v) } : {}),
     friends,
     ...(standalone ? { standalone: { nick: nick(), onNick: setNick } } : {}),
     onBack: homePage,
     mode: m,
   });
-}
-
-/** 选桌页点了"玩法"：记住，重画这一页（档位卡的字、规则设置都跟着换） */
-function pickVariant(id: string): void {
-  prefs.variant = findPage(id)?.id ?? DEFAULT_VARIANT;
-  savePrefs();
-  lobby(false, session.lobbyMode);
 }

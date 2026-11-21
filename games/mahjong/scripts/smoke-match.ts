@@ -11,7 +11,8 @@
  * 3. 取消：排队卡点"取消"，留在选桌页、地址栏没有房间；
  * 4. 一个人排：15 秒后排队卡说"现在没人在排"，转娱乐单机；
  * 5. 立直：A、B 在娱乐选桌页选"立直"再点"快速匹配"，排到同一张立直匹配桌（.table.rc）；再在实盘选桌页（记住了立直）排小档 rc-small，排到同一张立直实盘桌、各从钱包带一份。
- * 6. 三人两房：A、B 在娱乐选桌页选回"血战到底"、规则里开"三人两房"再排，排队卡写"已有 1/3 人"，排到同一张三人桌（.table.three）；再在实盘页开三人两房排小档，同样同桌、各带一份。
+ * 6. 三人两房：A、B 在娱乐选桌页的玩法行选"三人两房"再排，排队卡写"已有 1/3 人"，排到同一张三人桌（.table.three）；再在实盘页开三人两房排小档，同样同桌、各带一份。
+ *    血流成河：A 在实盘页选"血流成河"点快速匹配，排队卡写"血流成河 · 实盘小档"（排的是 xl-small），取消。
  * 7. 打完再排：实盘小档血战排到一桌、一局一结打完，两人回选桌马上再排，排到新桌、不被"带你回去"旧桌（每人同时 1 个房间，打完 kit 就还名额）。
  * 排队卡说过的每句话记在 window.__said，失败时打出来。两边控制台零报错。端口由系统分配。截图放在 shots/（--shots 可改）。
  */
@@ -112,19 +113,14 @@ const roomOf = (page: Page): { room: string | null; match: string | null } => {
   return { room: u.searchParams.get('room'), match: u.searchParams.get('match') };
 };
 
-/** 从主页点模式卡进选桌页（rc：先选立直；x3：选回血战到底、开三人两房），点"快速匹配" */
+/** 从主页点模式卡进选桌页（rc：先选立直；x3：玩法行选三人两房），点"快速匹配" */
 async function queue(page: Page, base: string, mode: 'fun' | 'real', rc = false, x3 = false): Promise<void> {
   await page.goto(`${base}/games/mahjong/`);
   await page.waitForSelector('.home-main');
   await page.click(`.mode.${mode}`);
   await page.waitForSelector('.lobby-head');
   if (rc) await page.click('.lobby-variants .chip:has-text("立直")');
-  if (x3) {
-    await page.click('.lobby-variants .chip:has-text("血战到底")');
-    await page.click('.edit-rules');
-    await page.click('.rules-sheet .opt[data-key="three"] .chip:text-is("开")');
-    await page.click('.rules-sheet .rules-foot .act.go');
-  }
+  if (x3) await page.click('.lobby-variants .chip:text-is("三人两房")');
   await page.click('.go-row .match');
   await page.waitForSelector('.mask.match .match-wait');
 }
@@ -320,7 +316,6 @@ try {
   await leaveRoom(pb);
   t = Date.now();
   const x3Before = [held(await wallet(pa)), held(await wallet(pb))];
-  // 快速匹配不把选桌页上改的规则存进偏好（单机开打才存），实盘页再开一次
   await queue(pa, base, 'real', false, true);
   await queue(pb, base, 'real', false, true);
   const [ya, yb] = await Promise.all([matched(pa, 'A'), matched(pb, 'B')]);
@@ -335,6 +330,23 @@ try {
   await pb.screenshot({ path: join(SHOTS, 'match-x3-real-b.png') });
   await leaveRoom(pa);
   await leaveRoom(pb);
+  // 血流成河（0.45.0）：玩法行选了血流，快速匹配排血流自己的档位（xl-small），不排到血战桌；实盘选桌页两个尺寸各截一张（四种玩法一排）
+  for (const [pg, tag] of [[pa, '1280'], [pb, 'port']] as const) {
+    await pg.goto(`${base}/games/mahjong/`);
+    await pg.waitForSelector('.home-main');
+    await pg.click('.mode.real');
+    await pg.waitForSelector('.lobby-head');
+    await pg.click('.lobby-variants .chip:text-is("血流成河")');
+    await pg.waitForSelector('.lobby-variants .chip.on:text-is("血流成河")');
+    check((await pg.$$('.lobby-variants .chip')).length === 4, `实盘选桌页（${tag}）玩法行四种都在`);
+    await pg.screenshot({ path: join(SHOTS, `lobby-real-${tag}.png`) });
+  }
+  await pa.click('.go-row .match');
+  await pa.waitForSelector('.mask.match .match-wait:has-text("已有")');
+  const xlTier = (await pa.textContent('.mask.match .match-tier')) ?? '';
+  check(xlTier.startsWith('血流成河 · 实盘小档'), `血流成河实盘：排队卡写"${xlTier}"`);
+  await pa.click('.mask.match .match-cancel');
+  await sleep(500);
 
   // ---------- 7. 打完再排（每人同时 1 个房间，0.44.0）：实盘一局一结打完，停着等"再来一场"的那几分钟里回选桌再排，排到新桌，不被带回旧桌 ----------
   t = Date.now();

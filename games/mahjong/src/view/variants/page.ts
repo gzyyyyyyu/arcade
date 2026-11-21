@@ -97,7 +97,7 @@ export interface VariantPage {
   readonly daily: { variant: DailyVariant; opts(): AnyOpts; lengthText: string; cardName: string };
 
   // ---------- 主页、选桌页 ----------
-  /** 主页的玩法切换项（川麻两个：血战、血流） */
+  /** 主页快速一局底下、选桌页玩法行的切换项（川麻三个：血战、血流、三人两房） */
   readonly homeChoices: readonly HomeChoice[];
   /** 现在在主页选着哪一项 */
   homeId(store: RulesStore): string;
@@ -105,8 +105,6 @@ export interface VariantPage {
   homePick(store: RulesStore & { variant: string }, choiceId: string): void;
   /** "规则和番型表"这个链接上的字 */
   readonly rulesLink: string;
-  /** 选桌页"玩法"选项上的字 */
-  readonly lobbyChip: string;
   /** 快速匹配对话框里档位前面的玩法标记（"立直 · "），没有就空串 */
   readonly matchTag: string;
   /** 选桌页的规则表（game/rule-spec.ts）：「改规则」面板、摘要、好友房等人页的规则行都按它 */

@@ -42,10 +42,10 @@ interface WaitCard {
   done(text: string, then: (() => void) | null): void;
 }
 
-function openWaitCard(stakes: StakesId, variant: string, three: boolean, goSolo: () => void): WaitCard {
+function openWaitCard(stakes: StakesId, variant: string, mode: { three?: boolean; flow?: boolean }, goSolo: () => void): WaitCard {
   const st = stakesOf(stakes)!;
   let n = 1;
-  let seats = three ? 3 : 4;
+  let seats = mode.three ? 3 : 4;
   let until = 0;
   let line: HTMLElement | null = null;
   let acts: HTMLElement | null = null;
@@ -59,7 +59,7 @@ function openWaitCard(stakes: StakesId, variant: string, three: boolean, goSolo:
   };
   dialog(stage, 'match', (box) => {
     el('h2', '', box, '快速匹配');
-    el('div', 'match-tier', box, `${pageOf(variant).matchTag}${three ? '三人两房 · ' : ''}${st.wallet ? `实盘${STAKES_NAME[stakes]}档 · 一份 ${num(st.share)}` : '娱乐 · 不算筹码'}`);
+    el('div', 'match-tier', box, `${pageOf(variant).matchTag}${mode.three ? '三人两房 · ' : mode.flow ? '血流成河 · ' : ''}${st.wallet ? `实盘${STAKES_NAME[stakes]}档 · 一份 ${num(st.share)}` : '娱乐 · 不算筹码'}`);
     line = el('p', 'match-wait', box);
     el('p', 'room-hint', box, '凑够几个算几个，空位电脑补；只剩你一个就先和电脑打');
     acts = el('div', 'row', box);
@@ -104,10 +104,10 @@ export async function quickMatch(stakes: StakesId, opts: AnyOpts, level: Level, 
     closeDialog();
     void startSolo(stakes, opts, level, variant);
   };
-  const three = !!(opts as { three?: boolean }).three;
-  const card = openWaitCard(stakes, variant, three, goSolo);
+  const mode = opts as { three?: boolean; flow?: boolean };
+  const card = openWaitCard(stakes, variant, mode, goSolo);
   const m = new MatchClient({
-    url: withNick(matchUrl(matchTierOf(stakes, variant, three))),
+    url: withNick(matchUrl(matchTierOf(stakes, variant, mode))),
     onWaiting: card.waiting,
     onMatched: (code) => {
       card.say('凑好一桌了');
