@@ -26,7 +26,7 @@ import { play, setSound, setVolume } from '../view/sound.ts';
 import { TableView } from '../view/table.ts';
 import { chips } from '../view/text.ts';
 import { Tally } from '../view/titles.ts';
-import { watchViewport } from '../view/viewport.ts';
+import { watchViewport, type Fit } from '../view/viewport.ts';
 import { pace, type App, type Fns, type State } from './state.ts';
 import { must } from '../must.ts';
 
@@ -47,6 +47,11 @@ export type Ui = ReturnType<typeof buildShell>;
 /** 建整页的骨架。回调里用到的状态和函数都是点的那一下现取（fn 这时还没接上） */
 export function buildShell(app: HTMLElement, s: State, fn: Fns) {
   const stage = el('div', 'stage', app);
+  // 先量尺寸、定好舞台大小，再往里建标题页和牌桌：量的时候页面几乎是空的，逼出来的那次排版很便宜；
+  // 建完再量就得把整页排一遍，舞台大小一改又得再排一遍（手机降速 4 倍打开主页约多 160–300 毫秒的长任务）。
+  // 第一次量时牌桌还没建（onFit 还空着），建好后在下面按量好的尺寸摆一次
+  let onFit: ((f: Fit) => void) | null = null;
+  const getFit = watchViewport(app, stage, (f) => onFit?.(f));
   const scene = mountScene(app, stage);
   const top = el('div', 'topbar', stage);
   const home = el('a', 'home', top);
@@ -177,11 +182,10 @@ export function buildShell(app: HTMLElement, s: State, fn: Fns) {
     retry: () => s.online?.retry(),
   });
 
-  // 第一次量是在这里同步做的，那时还没进桌、没有互动组件（syncFun 本来也什么都不做），fn 也还没接上
-  const getFit = watchViewport(app, stage, (f) => {
+  onFit = (f) => {
     tableView.layout(f);
     if (s.tf) fn.syncFun();
-  });
+  };
   tableView.layout(getFit());
 
   return {

@@ -50,7 +50,7 @@ The rest of this README, the design document (`DESIGN.md`) and the code comments
 ```bash
 npm ci
 npm run dev           # 页面（vite，5175）；钱包连不上时娱乐照常，设 TEXAS_WORKER=<本地 Worker 端口> 把 api/、/api/wallet* 转给 Worker
-npm run build:cf      # 页面打包到 dist-cf/games/texas/（Worker 的静态资源）
+npm run build:cf      # 页面打包到 dist-cf/games/texas/（Worker 的静态资源），并把 _headers（assets 长缓存）拷到 dist-cf/
 npm run smoke         # 冒烟：先 build:cf；本地起 Worker + 无头 Chromium，跑单机（打满 30 手、补码、离桌结算、回大厅）、手机横屏、双指放大、竖屏、好友房、快速匹配，
                       # 再用原样的 wrangler.jsonc 起一个单独部署的 Worker 跑单机和游客好友房；
                       # --only desktop|mobile|portrait|room|match|standalone 只跑一段，tall|guide|tp|tour|tourfmt|tourroom|devices|scenes|noscroll|lobbyui|settings|dialogs|ach|puzzle|pushfold|dailytour|bigmoments|roomsoak|roomweak 只能单独指定（docs/testing.md 第 9 节；devices 是 27 个尺寸的多尺寸检查，加 --lobby 只查主页和选桌页；scenes 是牌桌各种局面的互压检查，8.2；roomsoak 好友房长跑量内存和连接、roomweak 后台和弱网后恢复，第 6 节）
