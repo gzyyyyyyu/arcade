@@ -240,11 +240,13 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .top { flex-direction: row; justify-content: space-between; align-items: center; gap: var(--s-2); margin-bottom: var(--s-4); }
   .top__sub { display: none; }
   .top__name, .account__avatar + .account__name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .topbar { flex-wrap: nowrap; gap: var(--s-1); }
+  /* 顶栏吃满标题右边剩下的宽，按钮均匀分开（原来全挤在右边、按钮间只隔 2–4px，左边 logo 旁空一截） */
+  .topbar { flex: 1; min-width: 0; flex-wrap: nowrap; justify-content: space-between; gap: var(--s-1); }
   .topbar .account { padding: 0 10px; font-size: var(--fs-sm); }
   .topbar .account:has(.account__avatar), .topbar .account:has(.account__label) { padding: 0 6px; min-width: var(--tap); }
   /* 排行、动态、好友：图标下面常驻 11px 小字（新玩家看不懂纯图标），整个按钮仍是 44 高 */
-  .topbar .account--nav, .topbar .feedpop__btn { flex-direction: column; gap: 2px; padding: 0 6px; min-width: var(--tap); }
+  /* 圆角方块而不是圆：圆的两侧往里收，字贴着弧边显得挤 */
+  .topbar .account--nav, .topbar .feedpop__btn { flex-direction: column; gap: 2px; padding: 0 6px; min-width: var(--tap); border-radius: var(--r-md); }
   .topbar .account--nav .icon, .topbar .feedpop__btn .icon { width: 18px; height: 18px; }
   .topbar .account--nav .account__label, .topbar .feedpop__btn .feedpop__label { font-size: var(--fs-xs); line-height: 1; }
   .top__logo { gap: var(--s-2); }
@@ -255,7 +257,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 /* 360 宽这一档（要写在上面 560 那段后面，不然内边距被它盖回去）：按钮收窄。普通用户五个按钮加五位数余额原来要 366 宽，
    超出的那点让手机浏览器把整页缩小，一屏放不下（11-02 排行页领奖台矩阵 360×640 量出来的） */
 @media (max-width: 379px) {
-  .topbar { gap: 2px; }
+  .top { gap: var(--s-1); }
+  .topbar { gap: 4px; }
   .topbar .account { padding: 0 5px; font-size: 14px; }
   .topbar .account--nav, .topbar .feedpop__btn { padding: 0 4px; }
 }
@@ -706,11 +709,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   /* 加载中的小圈不转，换成虚线圈，照样看得出在忙 */
   .btn[aria-busy='true']::before { border-style: dotted; }
 }
-/* 邀请码：登录页顶上"朋友邀请你来"一句；"我的"里的码列表 */
+/* 邀请码：登录页顶上"朋友邀请你来"一句（"我的"里的码列表在 me.css，管理页的码表在 admin.css，各自限定在页面根节点下） */
 .invited { margin: 0 0 var(--s-3); padding: var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--highlight-warm); font-weight: 700; }
-.invite-code { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-2) 0; border-top: 1px dashed var(--line, #ddd); }
-.invite-code--used, .invite-code--expired, .invite-code--revoked { opacity: 0.65; }
-.code-mid { font-size: 18px; font-weight: 700; letter-spacing: 2px; user-select: all; }
 /* 钱包页"这周的输赢"：合计一个大数，下面每个游戏一根横条，中线左边是输、右边是赢 */
 .week-sum { display: flex; flex-direction: column; gap: var(--s-3); }
 .week-sum__total { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); margin: 0; }
