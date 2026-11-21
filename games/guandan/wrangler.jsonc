@@ -46,6 +46,6 @@
     "ONLINE": "on",
     // 每天的额度门槛（arcade-kit 的计量）。10 万行写入是全账户共用的：掼蛋 4.5 万停开新房、5.5 万收场，各游戏怎么分见仓库根 docs/platform-backend.md 4.7。
     // 每人开房（0.6.0 起放宽，不给玩家设没必要的限制）：同时 5 个、每天 100 个；全站每天 300 个照 kit 默认（防账单的不放宽）
-    "KIT_QUOTA": { "busyWrites": 45000, "stopWrites": 55000, "roomsPerUser": 5, "dailyRoomsPerUser": 100 }
+    "KIT_QUOTA": { "busyWrites": 45000, "stopWrites": 55000, "roomsPerUser": 1, "dailyRoomsPerUser": 100 }
   }
 }

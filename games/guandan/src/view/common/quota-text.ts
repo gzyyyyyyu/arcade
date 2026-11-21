@@ -3,8 +3,8 @@
  * 页面（room-link.ts）和额度冒烟（tools/quota-smoke.ts，在 Node 里直接跑）共用，冒烟按这些字核对。
  */
 export const QUOTA_TEXT = {
-  /** 同时开着的房间到上限（每人 5 个，wrangler.jsonc 的 KIT_QUOTA）：0.6.0 起不再把人送回旧房间 */
-  has_room: '你同时开着的房间太多了，先离开几个再开',
+  /** 已经有一个开着的房间（每人同时 1 个，wrangler.jsonc 的 KIT_QUOTA）：大厅开房直接带回那个房间，只有"再来一场"开不出新房间时说这一句 */
+  has_room: '你还有一个开着的房间，先回去打完再开新的',
   daily_limit: '今天开房次数用完了，明天再来；单机照常玩',
   busy: '今天联机的人太多了，明天再来，单机照常玩',
   /** 4503：今天额度快满了，不进新人 */

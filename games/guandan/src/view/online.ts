@@ -209,7 +209,7 @@ function pickTier(box: HTMLElement): void {
   });
 }
 
-/** "开个房间"永远开新的（0.6.0）：不再因为有一个开着的就把人送回旧房间 */
+/** 开房：每人同时 1 个房间（0.38.0），已经有一个开着的（kit 回 has_room 带码）就带他回那个房间 */
 let creating = false;
 async function create(stake: TierId | null, noShuffle = false): Promise<void> {
   // 转圈只挡住点的那个按钮：等回话时再点另一个开房按钮（经典 / 不洗牌 / 实盘）也会开出第二个房间
@@ -241,6 +241,10 @@ async function createOnce(stake: TierId | null, noShuffle: boolean): Promise<voi
     return;
   }
   if (offline) return setNetDown(() => void create(stake, noShuffle));
+  if (r.room) {
+    note = '';
+    return rejoin(r.room, panelVariant, true);
+  }
   setNote(r.error);
   if (r.login) window.setTimeout(() => (window.location.href = loginUrl()), 1200);
 }
@@ -481,11 +485,10 @@ export function openMatch(stake: TierId | null, solo: () => void, variant: RoomV
       stopMatch();
       join(code, false, null, true, variant);
     },
-    // 已经有一个开着的房间（kit 入队前先问计量）：带他回去，是他开的好友房还当房主
+    // 已经有一个开着的房间（kit 入队前先问计量）：带他回去
     onHasRoom: (code) => {
       stopMatch();
-      const saved = savedRoom();
-      join(code, saved?.code === code && saved.host, null, false, saved?.code === code ? (saved.variant ?? 'guandan') : variant);
+      void rejoin(code, variant, true);
     },
     // 别的页面排上了：这里不排了，也不替他开单机
     onSolo: (why: MatchSoloWhy) => done(MATCH_TEXT[why], why === 'replaced' ? null : solo),
@@ -550,9 +553,18 @@ function mountNetBanner(s: Link): void {
 /** 启动时：URL 带 room=xxxxxx 就直接进那个房间 */
 export async function autoJoin(code: string | null): Promise<void> {
   if (!code || !/^\d{6}$/.test(code)) return;
-  // 房主标记只给记下它的那个账号（同一台设备换了账号，链接里的房间照进，但不是房主）
+  await rejoin(code);
+}
+
+/**
+ * 回到一个已有的房间（链接里的、开房或匹配时 kit 说"你已经有一个"的）。玩法认这个账号本机记下的，没记下的按 variant 先连，
+ * 玩法不对 join 会自己换。房主：本机记下的（同一台设备换了账号，房间照进，但不是房主）；kit 说"你已经有一个"（own）的就是他开的
+ * ——名额记在开房的人名下，"离开房间"会清本机记录；匹配桌没有房主，页面看房间信息藏开局，房间也按账号拒
+ */
+async function rejoin(code: string, variant?: RoomVariant, own = false): Promise<void> {
   const saved = await myRoom();
-  join(code, saved?.code === code ? saved.host : false, null, false, saved?.code === code ? saved.variant : undefined);
+  const mine = saved?.code === code ? saved : null;
+  join(code, own || (mine?.host ?? false), null, false, mine ? (mine.variant ?? 'guandan') : variant);
 }
 
 /** 大厅里（还没进牌桌）的联机会话，给调试桥看状态用 */

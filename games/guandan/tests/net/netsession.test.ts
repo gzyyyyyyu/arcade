@@ -260,10 +260,10 @@ describe('联机会话', () => {
     expect(closeText(CLOSE.roomClosed, 'room closed')).toBe(closeText(CLOSE.roomClosed));
   });
 
-  it('开房的额度错误（arcade-kit 0.2.0）都有一句话；同时开着的太多只说清楚，不送回旧房间（0.6.0）', async () => {
+  it('开房的额度错误（arcade-kit 0.2.0）都有一句话；已经有开着的房间带上那个房间的码（0.38.0 带人回去）', async () => {
     const res = (status: number, body: unknown) => (async () => Response.json(body, { status })) as unknown as typeof fetch;
     expect(await createRoom(res(201, { code: '123456' }))).toEqual({ code: '123456' });
-    expect(await createRoom(res(409, { error: 'has_room', code: '654321' }))).toEqual({ error: QUOTA_TEXT.has_room, quota: 'has_room' });
+    expect(await createRoom(res(409, { error: 'has_room', code: '654321' }))).toEqual({ error: QUOTA_TEXT.has_room, quota: 'has_room', room: '654321' });
     expect(await createRoom(res(429, { error: 'daily_limit' }))).toEqual({ error: QUOTA_TEXT.daily_limit, quota: 'daily_limit' });
     expect(await createRoom(res(503, { error: 'busy' }))).toEqual({ error: QUOTA_TEXT.busy, quota: 'busy' });
     expect(await createRoom(res(503, { error: 'unavailable' }))).toEqual({ error: '房间没开成（平台一时连不上），过一会儿再点"开个房间"' });

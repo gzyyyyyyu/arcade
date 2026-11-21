@@ -1,7 +1,7 @@
 /**
  * 额度冒烟（0.3.0）：本地联机栈（tools/online-dev.ts）把每天的额度调得极紧，几个无头浏览器各登一个号，看页面上每种额度提示都说得出人话：
  * - ?online=1 直接打开好友房面板；不带它时标题页也有"好友房"；
- * - 同时开着的房间到上限（409 has_room）：说清楚、不把人送回旧房间（0.6.0 起"开房间"永远开新的，正式环境每人同时 5 个）；
+ * - 已经有一个开着的房间（409 has_room，正式环境每人同时 1 个）：再点开房直接回到那个房间；
  * - 今天联机的人太多（503 busy）：别人开房被拒；
  * - 今天额度快满了不进新人（4503）：拿房间码进房被拒；
  * - 额度满了房间收场（4000 + quota）：房主那边说清楚是额度满了，不是"房间散了"；
@@ -83,18 +83,14 @@ async function main(): Promise<void> {
     const code = (await host.textContent('#ol-room-code'))!.trim();
     assert(/^\d{6}$/.test(code), `房间码不对：${code}`);
 
-    // ③ 房主离开再开：同时开着的到上限 → 说清楚，不把人送回旧房间
+    // ③ 房主离开再开：已经有一个开着的房间 → 直接回到那个房间，还是房主
     await host.click('#ol-leave');
     await host.waitForSelector('#ol-create');
     await host.click('#ol-create');
-    await noteIs(host, QUOTA_TEXT.has_room, '同时开着的房间到上限');
-    assert(!(await host.$('#ol-back-room')), '不该再给"回到房间"把人送回旧房间');
-    await shot(host, '20-has-room');
-    // 后面要看这个房间收场：自己拿房间码回去
-    await host.fill('#ol-code', code);
-    await host.click('#ol-join');
     await host.waitForFunction((c) => document.getElementById('ol-room-code')?.textContent?.trim() === c && window.__game?.net()?.status === 'open', code, { timeout: 30_000 });
-    notes.push(`同时开着的房间到上限：提示"${QUOTA_TEXT.has_room}"，不送回旧房间`);
+    assert(await host.$('#ol-start'), '回到自己的房间后不是房主了（没有"开局"按钮）');
+    await shot(host, '20-has-room');
+    notes.push('已经有一个开着的房间：再点开房直接回到那个房间（还是房主）');
 
     // ④ 别人开房：今天人太多
     const other = await openPage(browser, stack, 'q-other', '&online=1');
