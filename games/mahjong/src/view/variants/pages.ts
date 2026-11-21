@@ -18,10 +18,7 @@ export const findPage = (id: unknown): VariantPage | undefined => PAGES.find((p)
 /** 按玩法 id 取；认不得的（存档里以后删了的玩法）按默认玩法 */
 export const pageOf = (id: string | undefined): VariantPage => findPage(id) ?? defaultPage();
 
-export const defaultPage = (): VariantPage => findPage(DEFAULT_VARIANT)!;
-
-/** 入口开着的玩法（立直收起来时只剩川麻） */
-export const openPages = (): VariantPage[] => PAGES.filter((p) => p.open());
+const defaultPage = (): VariantPage => findPage(DEFAULT_VARIANT)!;
 
 /** 主页切换项 id（含川麻的"血流成河"）→ 它属于哪个玩法、长什么样；认不得的按默认玩法的第一项 */
 /** 茶馆擂台的一种打法对应哪个玩法、哪个主页切换项 */

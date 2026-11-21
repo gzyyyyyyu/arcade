@@ -52,7 +52,7 @@ export interface WinContext {
 
 export const NO_CONTEXT: WinContext = { zimo: false, gangKai: false, gangPao: false, rob: false, haidi: false, tian: false, di: false, zimoFan: false };
 
-export interface FanResult {
+interface FanResult {
   /** 封顶前的番 */
   raw: number;
   /** 封顶后的番 */

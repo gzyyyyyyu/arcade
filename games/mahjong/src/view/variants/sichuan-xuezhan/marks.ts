@@ -5,7 +5,7 @@ import { kindOf, suitOf, type Suit, type Tile } from '../../../core/tiles/index.
 import { SUIT_NAME } from '../../text.ts';
 
 /** 换进来的牌标记留几手：我打出第 3 张牌以后就不再标 */
-export const SWAP_MARK_DISCARDS = 3;
+const SWAP_MARK_DISCARDS = 3;
 
 /** 换进来的牌里现在还在我手里的；我已经打了 SWAP_MARK_DISCARDS 张以上就不再标 */
 export function swappedInHand(swapIn: readonly Tile[] | null, hand: readonly Tile[], myDiscards: number): Tile[] {

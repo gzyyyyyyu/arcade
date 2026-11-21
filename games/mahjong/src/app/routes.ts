@@ -17,7 +17,7 @@ import { renderHome, type HomeMode } from '../view/home.ts';
 import { renderLobby } from '../view/lobby.ts';
 import { LEVEL_NAME, NET_FAIL, STAKES_NAME } from '../view/text.ts';
 import type { AnyOpts } from '../view/variants/page.ts';
-import { homeChoiceOf, openPages, pageOf } from '../view/variants/pages.ts';
+import { allPages, homeChoiceOf, pageOf } from '../view/variants/pages.ts';
 import { nick, setNick, userIdOf } from './identity.ts';
 import { teardown } from './lifecycle.ts';
 import { quickMatch } from './match-flow.ts';
@@ -65,7 +65,7 @@ export function homePage(): void {
  */
 function variantChoices(after: () => void): { ids: string[]; current: string; onPick(id: string): void } {
   return {
-    ids: openPages().flatMap((pg) => pg.homeChoices.map((c) => c.id)),
+    ids: allPages().flatMap((pg) => pg.homeChoices.map((c) => c.id)),
     current: pageOf(activeVariant()).homeId(prefs),
     onPick: (id) => {
       homeChoiceOf(id).page.homePick(prefs, id);
@@ -85,14 +85,14 @@ export function startQuick(): Promise<void> {
 }
 
 /** 每日何切（DESIGN.md 7 节）：整页接管 screen，收尾函数在下一次 teardown 前由它自己的"回主页"调 */
-export function hekiriPage(): void {
+function hekiriPage(): void {
   teardown();
   screen.className = 'screen';
   const stop = showHekiri(screen, { onExit: () => { stop(); homePage(); }, shareUrl: `${location.origin}${location.pathname}`, userId: userIdOf(session.platformInfo) });
 }
 
 /** 听牌速判（DESIGN.md 7 节）：同何切，整页接管 screen；只是娱乐，不碰筹码 */
-export function tingPage(): void {
+function tingPage(): void {
   teardown();
   screen.className = 'screen';
   const stop = showTing(screen, { onExit: () => { stop(); homePage(); }, shareUrl: `${location.origin}${location.pathname}`, userId: userIdOf(session.platformInfo) });

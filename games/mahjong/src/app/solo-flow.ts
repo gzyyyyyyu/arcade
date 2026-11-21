@@ -170,7 +170,7 @@ function startAgain(stakes: StakesId, variant: string, level: Level = prefs.leve
 // ---------- 牌桌 ----------
 
 /** 单机牌桌的画面回调：每一步重画、一局打完弹结算、实盘结回后提示 */
-export const soloUi = {
+const soloUi = {
   think(seat: number, ms: number): void {
     session.table?.think(seat, ms);
   },
@@ -363,7 +363,7 @@ function paintSoloTitle(s: Solo): void {
   }
 }
 
-export function playSolo(s: Solo): void {
+function playSolo(s: Solo): void {
   session.solo = s;
   s.speed = TURBO ? 0.01 : prefs.fast ? TIMING.fastScale : 1;
   paintTop();

@@ -11,7 +11,7 @@ export const BASE = `${SITE}/games/mahjong`;
  * 假时间放在将来（同 kit 的测试）：设在过去的闹钟会被 workerd 马上真的跑掉。
  * 2030-01-15 12:00 UTC = 北京时间 20:00。
  */
-export const FIXED_NOW = Date.UTC(2030, 0, 15, 12, 0);
+const FIXED_NOW = Date.UTC(2030, 0, 15, 12, 0);
 
 export function freezeClock(at = FIXED_NOW): void {
   vi.useFakeTimers({ toFake: ['Date'], now: at });
@@ -46,9 +46,6 @@ export async function walletOf(userId: string) {
     return v;
   });
 }
-
-/** 假平台被调了几次、写了几次（数 RPC 和写入用） */
-export const usage = (userId: string) => runInDurableObject(bankOf(userId), (b: FakeBank) => ({ calls: b.calls, writes: b.writes }));
 
 let n = 0;
 /** 不重复的操作 id（平台要 8–64 位） */

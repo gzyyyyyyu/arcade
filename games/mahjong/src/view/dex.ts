@@ -11,7 +11,7 @@ import { el } from './dom.ts';
 import { BOOK, showToast } from './toast.ts';
 import { FAN_NAME } from './text.ts';
 
-export const DEX_KEY = 'mahjong.dex';
+const DEX_KEY = 'mahjong.dex';
 
 export function loadDex(): DexRecord {
   const raw = readJson<unknown>(DEX_KEY, null);

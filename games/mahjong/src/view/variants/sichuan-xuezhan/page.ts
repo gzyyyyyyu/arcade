@@ -26,7 +26,6 @@ const THREE = 'three';
 export const xuezhanPage: VariantPage = {
   id: ID,
   name: (opts) => (opts?.three ? '川麻·三人两房' : opts?.flow ? '川麻·血流成河' : '川麻·血战到底'),
-  open: () => true,
 
   // 没存过的（第一次来）按新手的默认：4 局（game/xuezhan-rules.ts）
   loadRules: (raw) => ({ opts: { ...XZ_FIRST_OPTS, ...(raw.opts ?? {}) } }),

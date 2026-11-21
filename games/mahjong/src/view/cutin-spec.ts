@@ -6,7 +6,7 @@
 export type CutinKind = 'pon' | 'chi' | 'kan' | 'hu' | 'zimo' | 'riichi';
 
 /** 配色档：自摸胡金、杠红金、碰吃翠、立直蓝 */
-export type CutinTier = 'gold' | 'redgold' | 'jade' | 'blue';
+type CutinTier = 'gold' | 'redgold' | 'jade' | 'blue';
 
 export const CUTIN_KINDS: readonly CutinKind[] = ['pon', 'chi', 'kan', 'hu', 'zimo', 'riichi'];
 
@@ -82,8 +82,8 @@ export function cutinStreakHeight(layerH: number, streak: number): number {
   return Math.min(Math.round(base * STREAK_HEIGHT[streakTier(streak)]), Math.round(layerH * 0.36));
 }
 
-/** 连胡大字的字号：字越少越大，档越高越大，再按画面宽度封顶（"血流成河×4"别超出带子） */
-export function cutinStreakFont(h: number, len: number, streak: number, layerW: number): number {
+/** 连胡大字的字号：字越少越大，再按画面宽度封顶（"血流成河×4"别超出带子） */
+export function cutinStreakFont(h: number, len: number, layerW: number): number {
   const ratio = len <= 2 ? 0.7 : len === 3 ? 0.6 : 0.5;
   // 一行里还有头像（0.78h）和间距（0.22h）：竖屏带子高，只按画面宽的 62% 封顶时"三连胡"加头像会两头出界
   const room = Math.max(layerW * 0.9 - h, layerW * 0.4);

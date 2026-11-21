@@ -10,7 +10,7 @@ import { GAME_NAME, HIGHLIGHT_NAME, signed, TITLE_NAME } from '../../text.ts';
 /** 卡的主题色：牌桌的墨绿呢子 */
 const ACCENT = '#0f5a41';
 
-export interface CardInput {
+interface CardInput {
   /** 这一张是什么："娱乐·新手 · 8 局"、"实盘小档 · 8 局"、"好友房 · 娱乐 · 8 局" */
   title: string;
   /** 实盘写"筹码"，娱乐写"分" */

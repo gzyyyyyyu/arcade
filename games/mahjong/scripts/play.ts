@@ -24,7 +24,7 @@ export const NOVICE: Persona = { ...base, name: '小白', style: '', defense: 0,
 
 const KINDS = ['ai', 'ai', 'ai', 'ai'] as const;
 
-export interface Played {
+interface Played {
   s: XzState;
   /** 每个座位：碰了几次、做了几次决定 */
   pons: number[];
@@ -59,9 +59,9 @@ export function playMatch(key: number[], share: number, personas: number[], tune
 
 /** 时长估算（真人速度）：自己每个决定 3 秒；电脑每步 BOT_SECS；每局另加换牌、定缺、结算 20 秒。
  *  BOT_SECS 取 0.8（原 1.2）：单机电脑的停顿正在压缩，按压缩后的速度估 */
-export const OWN_SECS = 3;
+const OWN_SECS = 3;
 export const BOT_SECS = 0.8;
-export const ROUND_SECS = 20;
+const ROUND_SECS = 20;
 export const minutesOf = (moves: number[], rounds: number): number => (moves[0]! * OWN_SECS + (moves[1]! + moves[2]! + moves[3]!) * BOT_SECS + rounds * ROUND_SECS) / 60;
 
 /** 命令行参数 --rounds N（1/4/8/16）；不给就用默认规则 */

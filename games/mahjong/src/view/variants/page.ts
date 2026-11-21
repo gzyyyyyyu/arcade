@@ -81,8 +81,6 @@ export interface VariantPage {
   readonly id: string;
   /** 玩法名（顶栏、选桌页）；川麻开了血流成河（opts.flow）写"川麻·血流成河" */
   name(opts?: { flow?: boolean; three?: boolean } | null): string;
-  /** 入口开着没（立直有入口开关 gate.ts，其余恒真）；收起来的玩法不进选择项，存着的选择留着 */
-  open(): boolean;
 
   // ---------- 偏好里的规则设置 ----------
   /** 从存着的偏好里读出自己那一份（缺的、坏的补默认），返回的字段并进 RulesStore */

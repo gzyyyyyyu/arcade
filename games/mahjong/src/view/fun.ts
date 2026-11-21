@@ -11,13 +11,13 @@ import { audioOut } from './sound.ts';
 import { MOOD_LINES, PHRASES } from './text.ts';
 
 /** 总开关"互动：开 / 不看"：关了别人的一律不播，单机电脑也不反应 */
-export const OFF_KEY = 'mahjong.comms';
+const OFF_KEY = 'mahjong.comms';
 /** 聊天的开关（0.19.0 两档，0.21.0 三档，见 chatMode） */
-export const CHAT_OFF_KEY = 'mahjong.chatOff';
+const CHAT_OFF_KEY = 'mahjong.chatOff';
 /** 头像菜单里的 3 句点名短语："又点炮了哇""快点嘛，花儿都谢了""好牌，服了" */
 const NAMED = [3, 7, 12] as const;
 
-export interface FunWiring {
+interface FunWiring {
   seats(): readonly (FunSeat | null)[];
   avoid(): readonly DOMRect[];
   button(): DOMRect | null;

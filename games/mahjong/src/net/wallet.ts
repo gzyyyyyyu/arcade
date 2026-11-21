@@ -39,10 +39,6 @@ export async function getWallet(): Promise<WalletReply> {
   return call('/api/wallet');
 }
 
-export async function relief(): Promise<WalletReply> {
-  return call('/api/wallet/relief', { method: 'POST', headers: { 'content-type': 'application/json', 'x-arcade': '1' }, body: '{}' });
-}
-
 const post = (kind: string, body: unknown): Promise<WalletReply> =>
   call(`api/stake/${kind}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-arcade': '1' }, body: JSON.stringify(body) });
 

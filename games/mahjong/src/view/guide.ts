@@ -102,7 +102,7 @@ export function showRules(parent: HTMLElement, tab?: Tab, variant: string = DEFA
 }
 
 /** 竖屏第一次进牌桌：提示一句"横过来玩更舒服"（竖屏手牌每张只有二十几像素），3 秒自己消失，只出一次 */
-export const ROTATE_KEY = 'mahjong.hint.rotate';
+const ROTATE_KEY = 'mahjong.hint.rotate';
 const ROTATE_MS = 3_000;
 
 export function rotateTip(stage: HTMLElement): void {

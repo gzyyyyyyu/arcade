@@ -42,7 +42,7 @@ export const VARIANTS: Readonly<VariantMap> = {
 
 export const DEFAULT_VARIANT: VariantId = 'sichuan-xuezhan';
 
-export function isVariantId(id: unknown): id is VariantId {
+function isVariantId(id: unknown): id is VariantId {
   return typeof id === 'string' && Object.hasOwn(VARIANTS, id);
 }
 

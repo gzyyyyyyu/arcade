@@ -19,8 +19,8 @@ export interface AchRecord {
 }
 
 /** 玩法：xz 只在川麻里能拿，rc 只在立直里能拿，all 两边都行 */
-export type AchScope = 'xz' | 'rc' | 'all';
-export interface AchDef {
+type AchScope = 'xz' | 'rc' | 'all';
+interface AchDef {
   id: string;
   name: string;
   /** 没解锁时灰着写的"怎么达成" */

@@ -42,7 +42,7 @@ export const OPENING_MS = 20_000;
 /** 好友房里电脑每出一手的播放时间（房间的 aiDelayMs）：页面按它放动画 */
 export const AI_DELAY_MS = 900;
 /** 规则版本：玩法自己的版本由玩法管，这里只管房间这一层 */
-export const ROOM_RULES = 1;
+const ROOM_RULES = 1;
 /** 整场打完等人点"再来一场"多久（房间停着，用 kit 的 pause，不另加定时器） */
 export const REMATCH_MS = 180_000;
 /** 实盘好友房至少几个真人 */
@@ -229,18 +229,10 @@ export const mahjongRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wa
       return typeof code === 'string' && ROOM_CODE_RE.test(code) ? { t: 'next', code } : null;
     }
     if (a.t !== 'play') return null;
-    // 页面带上这一桌的玩法 id（parse 拿不到房间状态，玩法之间的动作形状会撞），就按它解析；apply 再对一下是不是这一桌的玩法。
-    // 不带的是立直上线前的旧页面，那时只有川麻：按登记表的顺序取第一个认得的
-    if (a.v !== undefined) {
-      const v = variantOf(a.v);
-      const x = v ? v.parse(a.a) : null;
-      return v && x !== null ? { t: 'play', v: v.id, a: x } : null;
-    }
-    for (const v of Object.values(VARIANTS)) {
-      const x = v.parse(a.a);
-      if (x !== null) return { t: 'play', v: v.id, a: x };
-    }
-    return null;
+    // 页面带上这一桌的玩法 id（parse 拿不到房间状态，玩法之间的动作形状会撞），按它解析；apply 再对一下是不是这一桌的玩法
+    const v = variantOf(a.v);
+    const x = v ? v.parse(a.a) : null;
+    return v && x !== null ? { t: 'play', v: v.id, a: x } : null;
   },
   free: (a) => a.t === 'rebuy' || a.t === 'next' || (a.t === 'play' && vById(a.v).free(a.a)),
 

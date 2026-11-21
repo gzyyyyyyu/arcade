@@ -5,7 +5,7 @@
 export type TierId = 'small' | 'mid' | 'big' | 'lux';
 export type StakesId = 'fun' | TierId;
 
-export interface Stakes {
+interface Stakes {
   id: StakesId;
   /** 一份 */
   share: number;
@@ -13,7 +13,7 @@ export interface Stakes {
   wallet: boolean;
 }
 
-export const BASE_DIV = 25;
+const BASE_DIV = 25;
 
 export const STAKES: readonly Stakes[] = [
   { id: 'fun', share: 2_000, wallet: false },

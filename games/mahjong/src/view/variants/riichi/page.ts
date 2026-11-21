@@ -12,7 +12,6 @@ import type { SoloState } from '../../../solo.ts';
 import { TableUi, type CommonAct } from '../../table.ts';
 import type { AnyOpts, VariantPage } from '../page.ts';
 import { RC_PAGES, dexPage, rulesPage } from './guide.ts';
-import { riichiOpen } from './gate.ts';
 import { cardOf, matchSummary, roundSummary } from './summary.ts';
 import { lengthName, roundName } from './text.ts';
 import { resetRiichiUi, riichiUi, toRcAction } from './ui.ts';
@@ -26,8 +25,6 @@ const hasWins = (v: RcView): boolean => !!v.history.at(-1)?.wins.length;
 export const riichiPage: VariantPage = {
   id: ID,
   name: () => '立直麻将',
-  // 立直入口收起来时（gate.ts 的 RIICHI_GATED）一律不进选择项，存着的选择留着不动
-  open: () => riichiOpen(),
 
   loadRules(raw) {
     // 没存过的（第一次来）按新手的默认：东风战（game/riichi/rules.ts）；存着怪值的也回到它

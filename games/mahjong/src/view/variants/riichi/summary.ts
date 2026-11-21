@@ -13,7 +13,7 @@ import { term } from '../../terms.ts';
 import { windOf } from './view.ts';
 import { ABORT_WHY, END_NAME, LIMIT_NAME, PAY_NAME, RC_WIND, lengthName, roundName, scoreText, yakumanName } from './text.ts';
 
-export interface YakuLine {
+interface YakuLine {
   name: string;
   /** "1 番"、"役满" */
   han: string;

@@ -15,7 +15,7 @@ import type { Env } from './main.ts';
  * 限额：一场 8 局约 40 分钟，16 局加上等人能到两个小时，寿命给 4 小时；
  * 一局里每个人摸打、碰杠、声明窗口的回答都算入站，一场 16 局约 2,000 次，给到 4,000
  */
-export const ROOM_LIMITS: RoomLimits = { ...DEFAULT_LIMITS, aiDelayMs: AI_DELAY_MS, maxAiBatch: 60, maxLifeMs: 4 * 3_600_000, maxInbound: 4_000 };
+const ROOM_LIMITS: RoomLimits = { ...DEFAULT_LIMITS, aiDelayMs: AI_DELAY_MS, maxAiBatch: 60, maxLifeMs: 4 * 3_600_000, maxInbound: 4_000 };
 /** 钱包里"桌上那一份"的到期退回：晚于房间最长能活多久再多 1 小时，正常的房间一定先结算（平台最长 24 小时） */
 const HOLD_MS = ROOM_LIMITS.maxLifeMs + ROOM_LIMITS.closingMs + 3_600_000;
 /** 平台暂时办不了：结回要重办（抛错，房间按退避再来，同一个操作 id） */

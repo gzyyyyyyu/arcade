@@ -17,7 +17,7 @@ export const SUITS: readonly Suit[] = [0, 1, 2];
 /** 拆解用的计数数组长度：数牌 27 + 字牌 7 */
 export const KINDS = 34;
 export const HONOR0 = 27;
-export const FLOWER0 = 34;
+const FLOWER0 = 34;
 
 export const kindOf = (t: Tile): Kind => t >> 2;
 export const tileOf = (k: Kind, copy: number): Tile => k * 4 + copy;
@@ -26,7 +26,7 @@ export const tileOf = (k: Kind, copy: number): Tile => k * 4 + copy;
 export const suitOf = (k: Kind): Suit | -1 => (k < HONOR0 ? ((k / 9) | 0) as Suit : -1);
 /** 数牌的点数 1–9；字牌、花牌返回 0 */
 export const rankOf = (k: Kind): number => (k < HONOR0 ? (k % 9) + 1 : 0);
-export const kindAt = (suit: Suit, rank: number): Kind => suit * 9 + rank - 1;
+const kindAt = (suit: Suit, rank: number): Kind => suit * 9 + rank - 1;
 /** 一门的九种牌（缺门、清一色这类按门算的用） */
 export const suitKinds = (suit: Suit): Kind[] => Array.from({ length: 9 }, (_, r) => suit * 9 + r);
 

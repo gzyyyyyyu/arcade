@@ -100,10 +100,10 @@ describe('开局和带入', () => {
     // 客户端发不了 go（parse 不收）
     expect(G.parse({ t: 'go' })).toBeNull();
     // 也发不了收掉声明窗口的 expire、电脑的 bot 回答；合格的玩法动作带上玩法 id
-    expect(G.parse({ t: 'play', a: { t: 'expire', w: 1 } })).toBeNull();
-    expect(G.parse({ t: 'play', a: { t: 'claim', w: 1, c: 'pass', bot: true } })).toBeNull();
-    expect(G.parse({ t: 'play', a: { t: 'claim', w: 1, c: 'pass' } })).toEqual({ t: 'play', v: 'sichuan-xuezhan', a: { t: 'claim', w: 1, c: 'pass' } });
-    expect(G.free!(G.parse({ t: 'play', a: { t: 'claim', w: 1, c: 'pass' } })!)).toBe(true);
+    expect(G.parse({ t: 'play', v: 'sichuan-xuezhan', a: { t: 'expire', w: 1 } })).toBeNull();
+    expect(G.parse({ t: 'play', v: 'sichuan-xuezhan', a: { t: 'claim', w: 1, c: 'pass', bot: true } })).toBeNull();
+    expect(G.parse({ t: 'play', v: 'sichuan-xuezhan', a: { t: 'claim', w: 1, c: 'pass' } })).toEqual({ t: 'play', v: 'sichuan-xuezhan', a: { t: 'claim', w: 1, c: 'pass' } });
+    expect(G.free!(G.parse({ t: 'play', v: 'sichuan-xuezhan', a: { t: 'claim', w: 1, c: 'pass' } })!)).toBe(true);
     s = G.settled!(s, 'b0', OK);
     expect(s.own).toEqual([true, false, false, false]);
     expect(G.actors!(s)).toEqual({ seats: [1], group: 'opening' });
@@ -340,7 +340,7 @@ describe('好友房的公平和边角', () => {
   test('声明窗口里真人答了、窗口没结束：别人的视图一点不变、步数不加（kit 0.7.1 据此不广播）；答完结束窗口的照常加', () => {
     // 四个真人的娱乐房，局面换成"0 号打 5p，1、2 号都能胡"（test/xz-table.ts）
     let s: RoomState = { ...begin(['human', 'human', 'human', 'human'], 'fun'), g: RON() };
-    const play = (a: unknown) => G.parse({ t: 'play', a })!;
+    const play = (a: unknown) => G.parse({ t: 'play', v: 'sichuan-xuezhan', a })!;
     s = act(s, 0, play({ t: 'discard', tile: tileIn(s.g as XzState, 0, '5p') }));
     const w = g(s, 1).prompt!.claim!.w;
     expect(g(s, 2).prompt!.claim!.w).toBe(w);

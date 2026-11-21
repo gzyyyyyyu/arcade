@@ -13,6 +13,8 @@
     "erasableSyntaxOnly": true,
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "skipLibCheck": true
   },
   "include": ["src", "test", "scripts", "vite.config.ts", "vite-env.d.ts"],

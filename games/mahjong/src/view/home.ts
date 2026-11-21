@@ -19,7 +19,7 @@ import { homeChoiceOf } from './variants/pages.ts';
 
 export type HomeMode = 'fun' | 'real' | 'room';
 
-export interface HomeProps {
+interface HomeProps {
   /** 主页切换项的 id（玩法 id；川麻开了血流成河时是 flow，见 VariantPage.homeChoices） */
   variant: string;
   /** 快速一局按什么开（"娱乐·新手"之类，按上次选的档位和难度；规则固定一局一结） */

@@ -3,7 +3,6 @@ import { describe, expect, test } from 'vitest';
 import { kindOf, tileOf, type Tile } from '../src/core/tiles/index.ts';
 import { riichi as RC, scoreWin, view, type HandScore, type RcState, type WinContext } from '../src/core/variants/riichi/index.ts';
 import { hasRed, tileName, tileUrl } from '../src/view/tiles.ts';
-import { riichiOpen, RIICHI_GATED } from '../src/view/variants/riichi/gate.ts';
 import { handValue, scoreHead, yakuLines } from '../src/view/variants/riichi/summary.ts';
 import { roundName, scoreText, yakumanName } from '../src/view/variants/riichi/text.ts';
 import { tingOf } from '../src/view/variants/riichi/ting.ts';
@@ -144,13 +143,6 @@ describe('役种表', () => {
     expect(scoreText(52_300)).toBe('+52.3');
     expect(scoreText(-18_400)).toBe('−18.4');
     expect(scoreText(0)).toBe('0.0');
-  });
-});
-
-describe('入口的开关', () => {
-  test('已放开：不带参数也能选立直（旧链接带着 ?rc=1 照样开）', () => {
-    expect(RIICHI_GATED).toBe(false);
-    for (const q of ['', '?rc=0', '?room=123456', '?rc=1', '?turbo&rc=1']) expect(riichiOpen(q)).toBe(true);
   });
 });
 

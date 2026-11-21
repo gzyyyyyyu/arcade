@@ -26,7 +26,7 @@ export interface FxEnv {
   reduced: boolean;
 }
 
-export interface Pacing {
+interface Pacing {
   /** false：不放番型依次亮起，直接是最终状态 */
   reveal: boolean;
   /** 每条番型之间隔多久（毫秒）；0 = 同时出现，不做进场动画 */

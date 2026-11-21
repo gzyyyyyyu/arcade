@@ -11,7 +11,7 @@ import { button, el } from './dom.ts';
 import { pageOf } from './variants/pages.ts';
 import { num, STAKES_NAME, walletError } from './text.ts';
 
-export interface WaitingProps {
+interface WaitingProps {
   /** 快速匹配排到的桌（0.21.0）：人已经坐好，到齐（或等满 20 秒）自动开打；不摆房间号、叫朋友、选座、开打 */
   match?: boolean;
   code: string;

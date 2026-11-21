@@ -13,7 +13,7 @@ import type { ViewOf } from '../core/variants/index.ts';
 import { el } from './dom.ts';
 import { loadDex } from './dex.ts';
 
-export const ACH_KEY = 'mahjong.ach';
+const ACH_KEY = 'mahjong.ach';
 
 export function loadAch(): AchRecord {
   const raw = readJson<unknown>(ACH_KEY, null);

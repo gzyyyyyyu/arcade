@@ -28,14 +28,14 @@ const KEEPALIVE_MAX = 60_000;
 /** 云朵的样子：off 没有平台（不显示）；out 没登录；full 本机存储满了 */
 export type CloudState = 'off' | 'out' | 'ok' | 'syncing' | 'pending' | 'merged' | 'paused' | 'full';
 
-export interface CloudMeta {
+interface CloudMeta {
   userId: string | null;
   rev: number;
   dirty: boolean;
   at: number;
 }
 
-export interface CloudDeps {
+interface CloudDeps {
   fetch: typeof fetch;
   store: Storage;
   now(): number;
@@ -47,7 +47,7 @@ export interface CloudDeps {
 
 const emptyMeta = (): CloudMeta => ({ userId: null, rev: 0, dirty: false, at: 0 });
 
-export function parseMeta(raw: string | null): CloudMeta {
+function parseMeta(raw: string | null): CloudMeta {
   try {
     const o = JSON.parse(raw ?? '') as Partial<CloudMeta> | null;
     if (!o || typeof o !== 'object') return emptyMeta();

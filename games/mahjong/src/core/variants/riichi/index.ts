@@ -1,6 +1,5 @@
 /**
  * 立直麻将：把规则（rules.ts）包成统一的玩法接口（../types.ts），加上视图、选项和动作的校验、超时代出、一场的结果和称号。
- * 还没登记进 ../index.ts 的玩法表：界面和单机做完以前房间、单机都开不出立直（docs/riichi.md 第 6 节）。
  */
 import { MAX_TITLES, type Payment, type SettleStats } from '../../match/index.ts';
 import { wallLeft, type ClaimKind, type Meld } from '../../table/index.ts';

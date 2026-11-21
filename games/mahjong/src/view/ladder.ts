@@ -41,7 +41,7 @@ export function ladderLabel(): string {
 /** 牌桌顶栏：擂台第几桌 */
 export const ladderTitle = (table: number): string => `擂台第 ${table + 1} 桌`;
 
-export interface LadderPageOpts {
+interface LadderPageOpts {
   onExit(): void;
   /** 开一轮新的（有没打完的一轮先确认放弃，由调用的人管） */
   onStart(mode: LadderMode): void;
@@ -53,7 +53,7 @@ export interface LadderPageOpts {
 }
 
 /** 云朵上的字；带小红点的是同步停下了 */
-export const CLOUD_TEXT: Record<CloudState, string> = {
+const CLOUD_TEXT: Record<CloudState, string> = {
   off: '',
   out: '未登录',
   ok: '已同步',
@@ -124,7 +124,7 @@ export function showLadder(box: HTMLElement, o: LadderPageOpts): void {
   }
 }
 
-export interface LadderEnd {
+interface LadderEnd {
   outcome: TableOutcome;
   mode: LadderMode;
   /** 刚打完的是第几桌 */
