@@ -31,7 +31,7 @@
  *   node tools/shot.ts --vis --out shots/vis-after   0.5 去文字化：主要画面截图，并统计每个画面可见汉字数（counts.json）
  *   node tools/shot.ts --phone [--ext|--meta|…] --out shots/phone   0.5.5 手机横屏：同一套冒烟改在 844×390（layout=phone）上跑，
  *                                   控件在没打开的标签页里时先点那一页；裁切截图改成整屏
- *   node tools/shot.ts --playtest   动画开启、1 倍速、真实鼠标与键盘从开始菜单玩起：前两个月正常看动画，
+ *   node tools/shot.ts --playtest   动画开启、1 倍速、真实鼠标与键盘从开始菜单玩起（加 --snap 每天盘前、开盘后各截一张，做新手实录；加 --portrait 在手机竖屏 390×844 触屏上玩）：前两个月正常看动画，
  *                                   之后每天用空格跳过动画，直到本局结束；报告每天耗时与点击次数
  *                                   加 --until-month=N 打到第 N 月开头就停；等待超时会把状态、最近的 cue 和画面写进日志（截图目录用环境变量 SHOT_STUCK_DIR）
  *

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { buyError, type GameState, type RecView, canShortNow } from '../../core/index.ts';
+import { FEEL_LABEL, buyError, feelOf, type GameState, type RecView, canShortNow } from '../../core/index.ts';
 import { buyKey } from '../labels.ts';
 import { ROLE_TERM, ROLE_WORD, termTip } from '../glossary.ts';
 import { COLOR, FS, THEME_COLOR, signColor, textOn } from '../theme.ts';
@@ -63,11 +63,12 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
   band.fillStyle(tc, 1).fillRoundedRect(CX + 4, y + 4, CW - 8, bandH, { tl: 13, tr: 13, bl: 0, br: 0 });
   band.fillStyle(COLOR.ink, 1).fillRect(CX + 3, y + 3 + bandH, CW - 6, 2.4);
   const who = r.friend ? `${r.friend.name}推荐` : '行情软件推荐';
-  // 顶条：左「风口名 热度 NN」，右「★ 今日推荐」（0.5.1 找回）
+  // 顶条：左「风口名 热度 NN · 要火」，右「★ 今日推荐」（0.5.1 找回）。0.36.1：带上风口栏同款体感词，教程说「挑要火的风口」时不用再去左边对照
   const by = y + 4 + bandH / 2;
-  const heat = Math.round(s.themes[r.stock.theme]?.heat ?? 0);
+  const th = s.themes[r.stock.theme];
+  const heat = Math.round(th?.heat ?? 0);
   const head = addText(sc, CX + 14, by, r.stock.themeName, { size: FS.xs, bold: true, color: on, originY: 0.5 });
-  const heatT = addText(sc, head.x + head.width + 6, by, `热度${heat}`, { size: FS.xs, bold: true, num: true, color: on, originY: 0.5 });
+  const heatT = addText(sc, head.x + head.width + 6, by, `热度${heat} · ${FEEL_LABEL[feelOf(th?.history ?? [])]}`, { size: FS.xs, bold: true, num: true, color: on, originY: 0.5 });
   const today = addText(sc, CX + CW - 12, by, '今日推荐', { size: FS.xs, bold: true, color: on, originX: 1, originY: 0.5 });
   const star = addGlyph(sc, today.x - today.width - 8, by, 'star', 11);
   root.add([card, band, head, heatT, today, star]);
