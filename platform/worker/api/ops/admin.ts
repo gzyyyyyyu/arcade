@@ -320,7 +320,7 @@ export async function getWalletRules(c: Ctx): Promise<Response> {
 }
 
 /**
- * POST /api/admin/settings/wallet {reliefTo?, winUnits?, newBalance?, adminAdjustMax?}：改了即时生效（本 isolate 马上，别的最多 30 秒），不用发版。
+ * POST /api/admin/settings/wallet {reliefTo?, winUnits?, newBalance?, adminAdjustMax?, exchangeCap?}：改了即时生效（本 isolate 马上，别的最多 30 秒），不用发版。
  * 有变化时写 2 行（settings 1 + 管理员每日计数 1），没变化 0 行；记下谁、什么时候、从多少改成多少。
  */
 export async function setWalletRules(c: Ctx): Promise<Response> {

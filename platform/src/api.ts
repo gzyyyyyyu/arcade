@@ -216,6 +216,7 @@ export interface WalletRules {
   winUnits: number;
   newBalance: number;
   adminAdjustMax: number;
+  exchangeCap: number;
 }
 export interface WalletRulesState {
   rules: WalletRules;
@@ -254,7 +255,7 @@ export interface AdminUser {
 /** 钱包流水的一条：a 是余额变了多少，带入是负的 */
 export interface LedgerEntry {
   at: number;
-  t: 'grant' | 'buyin' | 'settle' | 'refund' | 'expire' | 'relief' | 'admin';
+  t: 'grant' | 'buyin' | 'settle' | 'refund' | 'expire' | 'relief' | 'admin' | 'exchange';
   g?: string;
   a: number;
   capped?: number;
@@ -381,8 +382,10 @@ export interface WalletDayStats {
   /** 那天碰过钱包的人数、领补给的人数（早期记录里没有） */
   active?: number;
   reliefCount?: number;
-  /** players：带筹码上过桌的人数（早期记录里没有） */
-  games: Record<string, { in: number; out: number; back: number; capped: number; players?: number }>;
+  /** 兑换进来的合计（早期记录里没有） */
+  exchange?: number;
+  /** players：带筹码上过桌的人数；ex：兑换进来的（早期记录里都没有） */
+  games: Record<string, { in: number; out: number; back: number; capped: number; ex?: number; players?: number }>;
 }
 
 /** 管理员调整筹码的一条记录 */

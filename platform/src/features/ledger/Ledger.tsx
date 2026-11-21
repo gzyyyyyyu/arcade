@@ -18,6 +18,7 @@ const KINDS: Record<LedgerEntry['t'], { text: string; icon: string }> = {
   expire: { text: '到期退回', icon: 'M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z' },
   relief: { text: '领补给', icon: 'M12 5v14M5 12h14' },
   admin: { text: '管理员调整', icon: 'M12 3l7 3v5c0 4.4-3 8.4-7 10-4-1.6-7-5.6-7-10V6z' },
+  exchange: { text: '兑换', icon: 'M4 8h13l-4-4M20 16H7l4 4' },
 };
 
 const clock = (ms: number) => new Date(ms).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });

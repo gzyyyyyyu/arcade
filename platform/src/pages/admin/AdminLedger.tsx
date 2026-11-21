@@ -16,6 +16,7 @@ const KIND_TEXT: Record<LedgerEntry['t'], string> = {
   expire: '到期退回',
   relief: '领补给',
   admin: '管理员调整',
+  exchange: '兑换',
 };
 
 export function AdminLedger({ entries }: { entries: LedgerEntry[] }) {

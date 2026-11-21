@@ -71,7 +71,7 @@ function MeBody({ readonly }: { readonly: boolean }) {
   return (
     <Panel icon="user" title="我的账号" className="me-page">
       {readonly && <p className="banner banner--inline">服务器有点忙，现在只能看、不能改，明天再来。</p>}
-      <div className="me-tabs" role="tablist" aria-label="账号的哪一块">
+      <div className="pills me-tabs" role="tablist" aria-label="账号的哪一块">
         {tabs.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={t.id === cur} className={t.id === cur ? 'tabs__on' : ''} onClick={() => setOn(t.id)} data-testid={`me-tab-${t.id}`}>
             {t.name}

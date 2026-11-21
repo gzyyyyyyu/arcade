@@ -194,6 +194,7 @@ const RULE_TEXT: Record<keyof WalletRules, { label: string; hint: string }> = {
   winUnits: { label: '单机实盘每天最多赢几份', hint: '每个游戏单算，份按当天带上桌最多的那一份（不超过档位的一份）；好友房不限' },
   newBalance: { label: '新号送多少', hint: '只管以后第一次用钱包的人，已有的钱包不变' },
   adminAdjustMax: { label: '管理员单次最多加减', hint: '防手滑多打几个 0' },
+  exchangeCap: { label: '兑换每天最多换进', hint: '游戏内货币换筹码，每人每个游戏每天单算；0 就是关掉兑换' },
 };
 const RULE_KEYS = Object.keys(RULE_TEXT) as (keyof WalletRules)[];
 

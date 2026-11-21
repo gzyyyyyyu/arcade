@@ -269,7 +269,7 @@ export function StatsPage() {
   return (
     <Panel icon="trophy" title={mine ? '我的战绩' : `${data.user.displayName} 的战绩`} className="stats-page">
       {tabs.length > 1 && (
-        <div className="stats-tabs" role="tablist" aria-label="哪个游戏">
+        <div className="pills stats-tabs" role="tablist" aria-label="哪个游戏">
           {tabs.map((t) => (
             <button key={t.id} type="button" role="tab" aria-selected={t.id === cur.id} className={t.id === cur.id ? 'tabs__on' : ''} onClick={() => setTab(t.id)} data-testid={`stab-${t.id}`}>
               {t.game ? gameName(t.game) : '总览'}

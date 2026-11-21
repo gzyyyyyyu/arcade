@@ -1,9 +1,9 @@
 /**
  * 管理后台的"邀请码"分区（docs/platform-backend.md 15.20）：四个数（普通用户额度、管理员额度、有效期、每天最多生成几个）、
- * 单独给某人改额度、建长期码（一码多人、默认 100 次、不过期）、全站最近 100 个码和撤回。改了即时生效，不用发版。
+ * 单独给某人改额度、建长期码（码表顶上的入口，一码多人、默认 100 次、不过期）、全站最近 100 个码和撤回。改了即时生效，不用发版。
  */
 import { useEffect, useState } from 'react';
-import { api, errorText, type AdminInviteCode, type AdminUser, type InviteRules, type InviteRulesState } from '../../api.ts';
+import { api, errorText, type AdminInviteCode, type AdminUser, type InviteRules, type InviteRulesState, type MultiInviteCode } from '../../api.ts';
 import { Empty, Field, FormError, Panel, Skeleton, SubmitButton, useSubmit, useWritable } from '../../ui.tsx';
 import { Paged } from '../../features/fit/Fit.tsx';
 import { dateText, num, timeText } from './common.ts';
@@ -136,16 +136,15 @@ function UserQuotaPanel() {
 }
 
 /**
- * 建长期码：码表筛到"长期码"时在表上面一行，次数（默认 100）和有效天数（空 = 不过期）；建好重新拉码表，新码排第一个、带复制。
+ * 建长期码：码表顶上点"新建长期邀请码"展开，次数（默认 100）和有效天数（空 = 不过期）；建好收起表单、顶上显示新码和"复制链接 / 复制码"。
  * 放在码表面板里而不是另起一个面板：两个面板叠在一栏里，码表翻页量高度会和面板互相撑来撑去
  */
-function MultiCodeForm({ onCreated }: { onCreated: () => void }) {
+function MultiCodeForm({ onCreated, onCancel }: { onCreated: (c: MultiInviteCode) => void; onCancel: () => void }) {
   const [uses, setUses] = useState('100');
   const [days, setDays] = useState('');
   const writable = useWritable();
   const { busy, error, onSubmit } = useSubmit(async () => {
-    await api.admin.createMultiCode(Number(uses), days.trim() === '' ? null : Number(days));
-    onCreated();
+    onCreated(await api.admin.createMultiCode(Number(uses), days.trim() === '' ? null : Number(days)));
   });
   return (
     <form className="form multi-code" onSubmit={(e) => void onSubmit(e)} data-testid="multi-code">
@@ -155,10 +154,35 @@ function MultiCodeForm({ onCreated }: { onCreated: () => void }) {
       </div>
       <p className="note">一码多人，不占额度，不自动加好友；注册的每 IP、每天上限照算。</p>
       <FormError text={error} />
-      <SubmitButton busy={busy} disabled={!writable}>
-        建一个长期码
-      </SubmitButton>
+      <div className="multi-code__acts">
+        <SubmitButton busy={busy} disabled={!writable}>
+          建好
+        </SubmitButton>
+        <button className="btn" type="button" onClick={onCancel}>
+          取消
+        </button>
+      </div>
     </form>
+  );
+}
+
+/** 刚建好的长期码：码、能用几次，一键复制完整链接或码 */
+function CreatedCode({ code, onClose }: { code: MultiInviteCode; onClose: () => void }) {
+  const link = new URL(code.link, window.location.origin).href;
+  return (
+    <div className="multi-created" data-testid="multi-created" role="status">
+      <p>
+        建好了：<b className="mono">{code.code}</b>
+        <span className="muted"> · 能用 {num(code.maxUses)} 次 · {code.expiresAt === null ? '不过期' : `${dateText(code.expiresAt)} 到期`}</span>
+      </p>
+      <div className="multi-created__acts">
+        <CopyButton text={link} label="复制链接" primary />
+        <CopyButton text={code.code} label="复制码" />
+        <button className="btn btn--small" type="button" onClick={onClose}>
+          收起
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -203,7 +227,7 @@ function Who({ who }: { who: Person }) {
   );
 }
 
-function CopyButton({ text }: { text: string }) {
+function CopyButton({ text, label = '复制', primary = false }: { text: string; label?: string; primary?: boolean }) {
   const [state, setState] = useState<'idle' | 'done' | 'failed'>('idle');
   const copy = () =>
     navigator.clipboard.writeText(text).then(
@@ -212,8 +236,8 @@ function CopyButton({ text }: { text: string }) {
       () => setState('failed'),
     );
   return (
-    <button className="btn btn--small" type="button" onClick={() => void copy()}>
-      {state === 'done' ? '已复制' : state === 'failed' ? '手动复制' : '复制'}
+    <button className={`btn btn--small${primary ? ' btn--primary' : ''}`} type="button" onClick={() => void copy()}>
+      {state === 'done' ? '已复制' : state === 'failed' ? '手动复制' : label}
     </button>
   );
 }
@@ -223,6 +247,9 @@ function CodesPanel() {
   const [codes, setCodes] = useState<AdminInviteCode[] | null>(null);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
+  const [creating, setCreating] = useState(false);
+  const [created, setCreated] = useState<MultiInviteCode | null>(null);
+  const writable = useWritable();
   // biome-ignore lint/correctness/useExhaustiveDependencies: version 是手动重载计数，变化时重新拉取邀请码
   useEffect(() => {
     let alive = true;
@@ -247,7 +274,26 @@ function CodesPanel() {
   );
   return (
     <Panel icon="people" title="邀请码" className="apanel" action={filter}>
-      {status === 'multi' && <MultiCodeForm onCreated={() => setVersion((v) => v + 1)} />}
+      {creating ? (
+        <MultiCodeForm
+          onCancel={() => setCreating(false)}
+          onCreated={(c) => {
+            setCreating(false);
+            setCreated(c);
+            setStatus('multi');
+            setVersion((v) => v + 1);
+          }}
+        />
+      ) : created ? (
+        <CreatedCode code={created} onClose={() => setCreated(null)} />
+      ) : (
+        <div className="multi-entry">
+          <button className="btn btn--primary btn--small" type="button" disabled={!writable} onClick={() => setCreating(true)} data-testid="multi-new">
+            ＋ 新建长期邀请码
+          </button>
+          <span className="muted">一码多人，默认 100 次、不过期</span>
+        </div>
+      )}
       {error && <FormError text={error} />}
       {!codes && !error && <Skeleton rows={3} />}
       {codes && codes.length === 0 && (
@@ -323,7 +369,7 @@ function RevokeButton({ id, onDone }: { id: string; onDone: () => void }) {
   );
 }
 
-/** 宽屏：左边两个表单上下排，右边码表（筛"长期码"时上面是建长期码）；窄屏三个页签 */
+/** 宽屏：左边两个表单上下排，右边码表（顶上是"新建长期邀请码"）；窄屏三个页签 */
 export function InvitesSection() {
   const wide = useAdminWide();
   const tabs = wide

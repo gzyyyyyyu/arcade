@@ -97,11 +97,11 @@ export const FAKE_STATS = [
 ];
 
 /** 用模拟的管理员登录状态打开管理界面（不占真实登录次数）。 */
-export const DEFAULT_RULES = { reliefTo: 2_000, winUnits: 10, newBalance: 10_000, adminAdjustMax: 1_000_000 };
+export const DEFAULT_RULES = { reliefTo: 2_000, winUnits: 10, newBalance: 10_000, adminAdjustMax: 1_000_000, exchangeCap: 2_000 };
 export const FAKE_RULES = {
   rules: DEFAULT_RULES,
   defaults: DEFAULT_RULES,
-  range: { reliefTo: [0, 1_000_000], winUnits: [1, 1_000], newBalance: [0, 10_000_000], adminAdjustMax: [1, 100_000_000] },
+  range: { reliefTo: [0, 1_000_000], winUnits: [1, 1_000], newBalance: [0, 10_000_000], adminAdjustMax: [1, 100_000_000], exchangeCap: [0, 1_000_000] },
   log: [],
   updatedAt: null,
 };

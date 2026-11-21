@@ -6,7 +6,7 @@ The lobby and `/api` of the Arcade mini-game site, running on Cloudflare Workers
 
 - **Lobby** with game cards (the last game you played comes first) and one notice at a time; **accounts** (username + password + recovery code, invite-only by default).
 - **Cloud saves, friends, leaderboards and match history** shared by every game through `/api/*`.
-- **Play-chip wallet** — one balance across games; game servers buy in and settle through a service-binding RPC (`WalletService`), browsers can only look and claim the daily relief. Chips are play money only.
+- **Play-chip wallet** — one balance across games; game servers buy in, settle and exchange in-game currency (capped per day) through a service-binding RPC (`WalletService`), browsers can only look and claim the daily relief. Chips are play money only.
 - **Admin console** at `/admin` and a command-line tool (`npm run admin`).
 - **Abuse limits and circuit breakers** — persistent rate limits, per-category write budgets, read-only and off tiers.
 
@@ -38,7 +38,7 @@ The rest of this README, the code comments and the API contract (`docs/platform-
 - **账号**：注册、登录、找回密码（恢复码）、改昵称和密码、换恢复码、退出其他设备、注销。
 - **邀请制**：不登录不能玩；注册默认关着，管理员在 `/admin` 或命令行工具随时开关（存在 D1），`vars.REGISTRATION` 是紧急总闸。注册关着时凭邀请码注册（`/i/<码>`）：普通码一码一人，用码注册的人和邀请人自动成为好友；管理员还能建长期码（一码多人，默认 100 次、不过期）。
 - **好友和动态**：好友码和链接、请求、屏蔽；在线状态和一键加入好友的房间；好友动态（赞、扔道具）；好友房打完记搭子战绩。
-- **钱包**（`/wallet`）：一个余额通用所有游戏，领补给、看桌上的筹码、这周输赢和最近进出。带入、结回、放弃只能由游戏的服务端经 `WalletService` RPC 调。
+- **钱包**（`/wallet`）：一个余额通用所有游戏，领补给、看桌上的筹码、这周输赢和最近进出。带入、结回、放弃和兑换（游戏内货币换筹码，每人每游戏每天有上限）只能由游戏的服务端经 `WalletService` RPC 调。
 - **战绩和排行榜**：战绩页有徽章墙和各游戏概览；排行榜总榜是本周净赢（只排赢了的）加各游戏的周榜和代表性每日榜；异步挑战链接；晒战绩出图。
 - **云存档**：`/api/saves/<游戏>/<槽>`，游戏白名单就是 `shared/games.ts`。
 - **隐藏游戏**：管理员设默认隐藏哪些游戏，每个人在 我的账号 → 偏好 里逐个改（存在服务端）；隐藏了的不出现在大厅、继续玩、排行页签、动态里，游戏地址照常能玩。
@@ -192,7 +192,7 @@ platform/
 │  ├─ session.tsx、api.ts  登录状态、接口封装
 │  ├─ ui.tsx、icons.tsx、styles.css  表单和恢复码卡片、手写 SVG 图标和小插画；全站样式（开头是主题变量，组件只用变量；配色表见 docs/style.md）
 │  ├─ features/         一个功能一个目录（组件、逻辑、样式放一起）：fit（一屏放下：按高度翻页、窄屏页签、一屏高的外框）、modal（弹窗：同时只开一个、Tab 循环）、
-│  │                    recent（大厅游戏的先后和"上次玩"）、lobby-tour（新人引导）、hotkeys（键盘快捷键和说明面板）、side-nav（宽屏子页面的侧栏导航）、
+│  │                    recent（大厅游戏的先后和"上次玩"）、lobby-tour（新人引导）、hotkeys（键盘快捷键和说明面板）、
 │  │                    wallet（钱包余额和本周走势）、ledger（流水列表）、feed（好友动态浮层）、invites（收邀请）、share（晒战绩卡及挑选）、
 │  │                    badges（战绩页徽章的计算和"已看过"记录）、coinfly（金币飞入钱包）
 │  ├─ lib/              不属于单个功能的纯函数和小工具：format、next（登录后跳回的地址）、play（进游戏的地址）、gamefile（读各游戏公开的 JSON）、

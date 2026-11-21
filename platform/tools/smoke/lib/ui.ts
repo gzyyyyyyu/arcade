@@ -159,14 +159,14 @@ export async function deskLayout(page: Page, name: string): Promise<void> {
     const m = await page.evaluate(() => {
       const shell = document.querySelector('.page')!;
       const cs = getComputedStyle(shell);
-      // 宽屏子页面左边有导航栏：主区按扣掉导航和间距后的宽度算
-      const nav = document.querySelector('.shell > .sidenav');
-      const navW = nav && nav.getBoundingClientRect().width > 0 ? nav.getBoundingClientRect().width + parseFloat(getComputedStyle(nav.parentElement!).columnGap) : 0;
       const mr = document.querySelector('main')!.getBoundingClientRect();
-      const inner = shell.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - navW;
-      return { main: mr.width, inner, scroll: document.documentElement.scrollWidth - window.innerWidth };
+      const inner = shell.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      // 左边不再有侧栏：主区从外框内沿开始，宽度还给内容区
+      const indent = mr.left - shell.getBoundingClientRect().left - parseFloat(cs.paddingLeft);
+      return { main: mr.width, inner, indent, scroll: document.documentElement.scrollWidth - window.innerWidth };
     });
     check(m.main >= m.inner * 0.85, `${name}（${width} 宽）主区还是窄列：${Math.round(m.main)} / ${Math.round(m.inner)}`);
+    check(Math.abs(m.indent) <= 2, `${name}（${width} 宽）主区左边空出 ${Math.round(m.indent)}px（不该有侧栏）`);
     check(m.scroll <= 0, `${name}（${width} 宽）整页能横着滑：多出 ${m.scroll}px`);
     if (name === 'home') await lobbyNoGap(page, `大厅 ${width} 宽`);
     await shot(page, `${name}-desk-${width}`);

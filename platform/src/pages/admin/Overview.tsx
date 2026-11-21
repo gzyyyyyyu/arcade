@@ -82,6 +82,7 @@ function OverviewBody({ data }: { data: AdminOverview }) {
                   </span>
                 </span>
                 {x.capped ? <small>到顶没进 {num(x.capped)}</small> : null}
+                {x.ex ? <small>兑换 {num(x.ex)}</small> : null}
               </div>
             )}
           />

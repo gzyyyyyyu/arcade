@@ -20,10 +20,12 @@ const isMode = (x: unknown): x is Mode => x === 'server' || x === 'client';
 const isTier = (x: unknown): x is TierId => typeof x === 'string' && Object.hasOwn(TIERS, x);
 
 /** 游戏传来的一条操作 → Cmd；形状不对返回错误码。game 是否认识也在这里查。 */
-export function parseCmd(t: 'buyin' | 'settle' | 'refund', raw: unknown): Cmd | WalletError {
+export function parseCmd(t: 'buyin' | 'settle' | 'refund' | 'exchange', raw: unknown): Cmd | WalletError {
   if (!isPlain(raw)) return 'bad_request';
   const b = raw;
   if (typeof b.game !== 'string' || !GAME_IDS.has(b.game)) return 'unknown_game';
+  // 兑换不上桌：没有 ref、mode。amount 是 0 的在 apply 里回 bad_amount
+  if (t === 'exchange') return isId(b.op) && isChips(b.amount) ? { t, game: b.game, op: b.op, amount: b.amount } : 'bad_request';
   if (!isId(b.ref) || !isId(b.op) || !isMode(b.mode)) return 'bad_request';
   const base = { game: b.game, ref: b.ref, op: b.op, mode: b.mode };
   switch (t) {

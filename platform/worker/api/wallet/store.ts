@@ -13,6 +13,7 @@ import {
   apply,
   type Cmd,
   DEFAULT_RULES,
+  exchangeLeft,
   freshState,
   isWalletState,
   type LedgerEntry,
@@ -65,8 +66,21 @@ async function writeRow(db: Db, userId: string, row: Row | null, s: WalletState,
 }
 
 export type WalletReply =
-  | { ok: true; wallet: WalletView; credited?: number; capped?: number; statsIgnored?: StatsError; dup?: true; ledger?: LedgerEntry[]; week?: Record<string, number> }
-  | { ok: false; error: WalletError; wallet?: WalletView };
+  | {
+      ok: true;
+      wallet: WalletView;
+      credited?: number;
+      capped?: number;
+      left?: number;
+      statsIgnored?: StatsError;
+      dup?: true;
+      ledger?: LedgerEntry[];
+      week?: Record<string, number>;
+      /** 游戏看钱包时：这个游戏今天还能兑换多少、今天的上限（0 = 兑换关了） */
+      exchangeLeft?: number;
+      exchangeCap?: number;
+    }
+  | { ok: false; error: WalletError; wallet?: WalletView; left?: number };
 
 /**
  * 读出、算、写回一条操作。opts.create：没有钱包时能不能建（停增长档不建）。
@@ -108,14 +122,21 @@ export async function runOp(
  * 看钱包。到期的那一份要退回时写 1 行（opts.write 为 false 时只在回话里退、不写，比如只读档）；其余 0 行。
  * 没有钱包的人看到的是新钱包（余额是规则里的新号筹码，fresh），不建行。
  * opts.mine：本人看自己的钱包时多回的——流水（新的在前）和本周各游戏的净赢（这周玩过的才有，大厅卡片上显示）。
- * 游戏的 RPC 不要，免得每次多传 2 KB。
+ * 游戏的 RPC 不要，免得每次多传 2 KB。opts.game：游戏看钱包时多回这个游戏今天的兑换额度（exchangeLeft、exchangeCap）。
  */
-export async function viewWallet(db: Db, userId: string, now: number, opts: { write: boolean; rules?: WalletRules; mine?: boolean }): Promise<WalletReply> {
+export async function viewWallet(
+  db: Db,
+  userId: string,
+  now: number,
+  opts: { write: boolean; rules?: WalletRules; mine?: boolean; game?: string },
+): Promise<WalletReply> {
   const rules = opts.rules ?? (await walletRules(db, now));
+  const exchangeOf = (s: WalletState) => (opts.game ? { exchangeLeft: exchangeLeft(s, opts.game, rules), exchangeCap: rules.exchangeCap } : {});
   const row = await readRow(db, userId);
   if (!row) {
     if (!(await userExists(db, userId))) return { ok: false, error: 'no_user' };
-    return { ok: true, wallet: viewOf(freshState(now, rules), true, rules), ...(opts.mine && { ledger: [], week: {} }) };
+    const fresh = freshState(now, rules);
+    return { ok: true, wallet: viewOf(fresh, true, rules), ...exchangeOf(fresh), ...(opts.mine && { ledger: [], week: {} }) };
   }
   const { s, expired } = normalize(parseJsonColumn(row.state, isWalletState, 'wallets.state'), now);
   if (expired && opts.write) {
@@ -123,7 +144,7 @@ export async function viewWallet(db: Db, userId: string, now: number, opts: { wr
     // 抢输了也没关系：别人已经写了更新的状态，下次碰时再退
     await writeRow(db, userId, row, s, now);
   }
-  if (!opts.mine) return { ok: true, wallet: viewOf(s, false, rules) };
+  if (!opts.mine) return { ok: true, wallet: viewOf(s, false, rules), ...exchangeOf(s) };
   const wk = beijingWeek(now);
   const week: Record<string, number> = {};
   for (const [g, c] of Object.entries(s.career ?? {})) if (c.wk === wk) week[g] = c.wnet;
@@ -144,6 +165,7 @@ export const RULE_RANGE: Record<keyof WalletRules, readonly [number, number]> = 
   winUnits: [1, 1_000],
   newBalance: [0, 10_000_000],
   adminAdjustMax: [1, 100_000_000],
+  exchangeCap: [0, 1_000_000],
 };
 
 /** 一次改动：谁、什么时候、哪几条从多少改成多少 */
@@ -275,8 +297,10 @@ export interface DayStats {
   /** 那天碰过钱包的人数、领了补给的人数（早期记录里没有） */
   active?: number;
   reliefCount?: number;
-  /** 各游戏当天：带入、结回进钱包的、放弃和到期退回的、超出每日上限没进钱包的；players 是带筹码上过桌的人数（早期记录里没有） */
-  games: Record<string, { in: number; out: number; back: number; capped: number; players?: number }>;
+  /** 兑换进来的合计（各游戏的 ex 加起来；早期记录里没有） */
+  exchange?: number;
+  /** 各游戏当天：带入、结回进钱包的、放弃和到期退回的、超出每日上限没进钱包的、兑换进来的；players 是带筹码上过桌的人数（早期记录里没有 players、ex） */
+  games: Record<string, { in: number; out: number; back: number; capped: number; ex?: number; players?: number }>;
 }
 
 /** 每日统计行的校验：服务端只原样转给管理页，只要求是对象、日期和总量对（早期记录缺的字段不拦） */
@@ -306,11 +330,12 @@ export async function summarizeDay(db: Db, day: string): Promise<DayStats> {
         day,
       ),
     ),
-    db.all<{ game: string; i: number; o: number; b: number; c: number; p: number }>(
+    db.all<{ game: string; i: number; o: number; b: number; c: number; e: number; p: number }>(
       db.stmt(
         `SELECT g.key AS game, SUM(json_extract(g.value, '$.in')) AS i, SUM(json_extract(g.value, '$.out')) AS o,
            SUM(CASE WHEN json_extract(g.value, '$.in') > 0 THEN 1 ELSE 0 END) AS p,
-           SUM(json_extract(g.value, '$.back')) AS b, SUM(json_extract(g.value, '$.capped')) AS c
+           SUM(json_extract(g.value, '$.back')) AS b, SUM(json_extract(g.value, '$.capped')) AS c,
+           COALESCE(SUM(json_extract(g.value, '$.ex')), 0) AS e
          FROM (SELECT ${DAY_OF} AS d FROM wallets) AS w, json_each(w.d, '$.games') AS g
          WHERE w.d IS NOT NULL GROUP BY g.key ORDER BY g.key`,
         day,
@@ -326,9 +351,10 @@ export async function summarizeDay(db: Db, day: string): Promise<DayStats> {
     admin: totals?.admin ?? 0,
     active: totals?.active ?? 0,
     reliefCount: totals?.relief_n ?? 0,
+    exchange: games.reduce((t, g) => t + g.e, 0),
     games: {},
   };
-  for (const g of games) out.games[g.game] = { in: g.i, out: g.o, back: g.b, capped: g.c, players: g.p };
+  for (const g of games) out.games[g.game] = { in: g.i, out: g.o, back: g.b, capped: g.c, ex: g.e, players: g.p };
   return out;
 }
 

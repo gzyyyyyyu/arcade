@@ -38,14 +38,15 @@ export function Paged<T>({
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [per, setPer] = useState(fixed ?? 8);
-  const [page, setPage] = useState(0);
+  // 记当前页第一条的下标而不是页号：每页条数会变（翻到一页高条目多的、转屏），按页号的话边界一挪，中间几条就翻不到了
+  const [first, setFirst] = useState(0);
   const cap = useRef({ key: '', max: Infinity });
   // 翻页条的高：没出现过时按触屏点按高度估（44），出现过就用量到的
   const barH = useRef(44);
-  const tall = useRef({ key: '', h: 0 });
+  const tall = useRef({ key: '', full: 0, h: 0 });
   const size = fixed ?? per;
   const pages = pageCount(items.length, size);
-  const at = Math.min(page, pages - 1);
+  const at = Number.isFinite(size) ? Math.min(Math.floor(first / size), pages - 1) : 0;
   // fixed = Infinity（一页放下全部）时 0 * Infinity 是 NaN，切不出东西，单独处理
   const shown = Number.isFinite(size) ? items.slice(at * size, at * size + size) : items;
 
@@ -71,9 +72,11 @@ export function Paged<T>({
       if (bar) barH.current = bar.offsetHeight;
       const full = room ? room(el) : el.clientHeight + (bar ? bar.offsetHeight + outerGap : 0);
       // 同一尺寸下记住见过的最高一条：每页的条目高矮不一，按当页最高算会在两种条数之间来回跳（iPad 大厅 6↔4，React #185）
-      // 键里带整块高度和条数：一页放得下时调用方可以把条目撑高填满（paged--one，排行总榜），换了条数或尺寸要重新量自然高度
-      const tallKey = `${el.clientWidth}x${full}x${items.length}`;
-      if (tall.current.key !== tallKey) tall.current = { key: tallKey, h: 0 };
+      // 键里带宽度和条数、再比整块高度：一页放得下时调用方可以把条目撑高填满（paged--one，排行总榜），换了条数或尺寸要重新量自然高度。
+      // 整块高度差 2px 以内算同一尺寸：有翻页条时按"列表 + 翻页条 + 间距"倒推，和没有时直接量的差 1px（亚像素取整），
+      // 按严格相等比的话记忆每次都清空，只在某一页里的高条目时多时少，6↔4 条来回跳（管理页邀请码 1280×800，React #185）
+      const tallKey = `${el.clientWidth}x${items.length}`;
+      if (tall.current.key !== tallKey || Math.abs(tall.current.full - full) > 2) tall.current = { key: tallKey, full, h: 0 };
       tall.current.h = Math.max(tall.current.h, tallest);
       tallest = tall.current.h;
       const step = grid ? Math.max(1, cols) : 1;
@@ -107,13 +110,13 @@ export function Paged<T>({
       </div>
       {pages > 1 && (
         <nav className="paged__bar" aria-label={label}>
-          <button className="btn btn--small" type="button" disabled={at === 0} onClick={() => setPage(at - 1)} aria-label="上一页">
+          <button className="btn btn--small" type="button" disabled={at === 0} onClick={() => setFirst((at - 1) * size)} aria-label="上一页">
             ‹
           </button>
           <span className="paged__at" data-testid={testId ? `${testId}-at` : undefined}>
             {at + 1} / {pages}
           </span>
-          <button className="btn btn--small" type="button" disabled={at >= pages - 1} onClick={() => setPage(at + 1)} aria-label="下一页">
+          <button className="btn btn--small" type="button" disabled={at >= pages - 1} onClick={() => setFirst((at + 1) * size)} aria-label="下一页">
             ›
           </button>
         </nav>
