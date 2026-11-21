@@ -107,7 +107,7 @@ export function createFun(c: App) {
         const k = Math.max(1, getFit().scale);
         return { fontSize: Math.round(13 * k), icon: Math.round(22 * k) };
       },
-      button: () => (funSlot.classList.contains('hidden') ? null : funSlot.getBoundingClientRect()),
+      button: () => slotRect(funSlot),
       send: (id, to) => {
         toggle(funHints, 'hidden', true);
         if (c.online) c.online.emote(id, to);
@@ -119,7 +119,7 @@ export function createFun(c: App) {
       // 只冒在我自己头上。电脑不读聊天（公平：说什么都不影响电脑怎么打、怎么起哄）
       chat: online ? (text: string) => must(c.online, '联机房间的状态（只在好友房里被调用）').chat(text) : localChat((text, masked) => c.tf?.chat(ME, text, masked)),
       chatEnabled: chatOn,
-      chatButton: () => (chatSlot.classList.contains('hidden') ? null : chatSlot.getBoundingClientRect()),
+      chatButton: () => slotRect(chatSlot),
       danmakuArea: () => tallDanmaku(),
       scope: () => scope,
       localBots: !online,
@@ -131,6 +131,16 @@ export function createFun(c: App) {
     c.tpFired = false;
     f.drawTakeProfit();
     syncFun();
+  }
+
+  /**
+   * "互动""聊天"占位块的屏幕矩形；藏着或没排出来（好友房等人页时底栏整个不显示，量出来是 0×0）就是 null，kit 不画按钮。
+   * 不然 kit 照 0×0 的矩形把按钮放到左上角，压住顶栏的"大厅"
+   */
+  function slotRect(slot: HTMLElement): DOMRect | null {
+    if (slot.classList.contains('hidden')) return null;
+    const r = slot.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 ? r : null;
   }
 
   /**

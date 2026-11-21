@@ -16,7 +16,6 @@ interface WaitHandlers {
   sit(seat: number): void;
   start(): void;
   invite(): void;
-  leave(): void;
   retry(): void;
 }
 
@@ -57,7 +56,6 @@ export class RoomPanel {
     this.twoNote = el('div', 'rw-two hidden', this.root);
     this.matchNote = el('div', 'rw-match hidden', this.root, '排到了！人到齐就开打，没来的座位电脑替他打');
     const go = el('div', 'rw-go', this.root);
-    button(go, 'pill', '离开房间', () => h.leave());
     this.startBtn = button(go, 'start', '开打', () => h.start());
     this.waitNote = el('div', 'rw-wait', go, '等房主开打');
 

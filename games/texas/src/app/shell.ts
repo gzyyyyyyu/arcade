@@ -178,7 +178,6 @@ export function buildShell(app: HTMLElement, s: State, fn: Fns) {
     sit: (i) => s.online?.sit(i),
     start: () => s.online?.start(),
     invite: () => fn.invite(),
-    leave: () => void fn.leaveRoom(false),
     retry: () => s.online?.retry(),
   });
 

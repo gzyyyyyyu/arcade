@@ -408,7 +408,7 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
       await look('room-invite');
       await go('[data-key="invite:close"]');
       await page.locator('#arcade-invite-panel').waitFor({ state: 'detached' });
-      await go('.room-wait .rw-go .pill');
+      await go('.pill.leave');
       await page.locator('.dialog').waitFor({ timeout: 5_000 });
       await look('room-leave');
       await go('.d-btn.danger');

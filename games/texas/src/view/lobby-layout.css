@@ -161,10 +161,12 @@
 .stage.tight:not(.tall) .lobby .opts > .sizes { flex: 1 1 0; }
 .stage.tight:not(.tall) .lobby .opts > .buyin { flex: 1.1 1 0; }
 .stage.tight:not(.tall) .lobby .opts .label { width: auto; }
-/* 两栏等高、一起填满内容区（电脑版和手机横屏）：左边标题居中，右边面板撑满、内容在面板里居中 */
+/* 两栏等高、一起填满内容区（电脑版和手机横屏）：左边标题居中，右边面板撑满；主页内容在面板里居中。
+   电脑版选桌面板各行上下撑开：顶上"返回 选桌"那行切换娱乐、实盘、好友房时不跳，内容少的好友房不在顶上空一截；放不下时从顶上排、能滚到 */
 .stage:not(.tall) .lobby { align-items: stretch; }
 .stage:not(.tall) .lobby .hero { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .stage:not(.tall) .lobby .side > :is(.panel, .front) { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+.stage:not(.tall):not(.tight) .lobby .side > .panel { justify-content: space-between; }
 .stage:not(.tall) .lobby .side > :is(.panel, .front) > * { flex: none; }
 /* 手机横屏（只有约 470 个设计单位高）：玩法按钮下多了一行说明，其余行收紧一点才一屏放下；档位卡去掉房间名那一行（和矮竖屏一样），按钮不压矮（可点高度不小于 32 个屏幕像素） */
 .stage.tight:not(.tall) .lobby :is(.modes, .stakes, .opts, .go-row, .plays, .tour-fmts) { margin-top: var(--s-1); }
