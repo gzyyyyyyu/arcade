@@ -60,7 +60,7 @@ export function flashScoreText(score: number): string {
 
 /**
  * 0.32.0 短局的最终目标常驻：到最后一个月月底还要交的钱（剩下的账单 + 首付，core 的 shortNeed）够不够、还差多少。
- * 以前首付只写在开局面板和账户的悬停里，手机上整局看不到，玩家直到最后一天才知道够不够；只比首付也不行（新手首付是开局资产的 0.95，一开局就「够了」）。
+ * 以前首付只写在开局面板和账户的悬停里，手机上整局看不到，玩家直到最后一天才知道够不够；只比首付也不行（新手首付是开局资产的 0.9，一开局就「够了」）。
  * 顶栏账户下面一行（电脑 / 手机）；以后几个月的账单是估的，全文和「约」在悬停里。
  */
 export function downPaymentLine(account: number, need: number, phone: boolean): { text: string; enough: boolean } {

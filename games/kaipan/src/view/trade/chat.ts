@@ -97,7 +97,7 @@ export class ChatView3 {
     this.frame = PHONE_MODE ? scene.add.container(0, 0, scene.children.list.slice(before)) : null;
     this.content = scene.add.container(0, 0);
     this.recLayer = scene.add.container(0, 0);
-    this.render(s);
+    // 不在这里先画一遍：场景建完马上整页 render（带上提示条），群聊是最贵的一块，开局时画两遍白费
   }
 
   /** 按状态重建当天的群聊（无动画）。 */
@@ -232,17 +232,30 @@ export class ChatView3 {
     return this.tight ? 6 : 12;
   }
 
+  /** 气泡文字的高度（键 = 字号 + 文字）：估高度要按好几档字号各试一遍，每试一次都新建一个文字对象（画一遍、传一张纹理），同一条消息只量一次 */
+  private textH = new Map<string, number>();
+
+  private bubbleTextH(text: string, size: number): number {
+    const line = bubbleLine(text, size);
+    const k = `${size}\u0000${line}`;
+    let h = this.textH.get(k);
+    if (h === undefined) {
+      if (this.textH.size > 400) this.textH.clear();
+      const t = addText(this.scene, 0, 0, line, { size, wrap: BUBBLE_W - 20, lineSpacing: 2 });
+      h = t.height;
+      t.destroy();
+      this.textH.set(k, h);
+    }
+    return h;
+  }
+
   private estimate(messages: readonly MessageView[], recs: number, size: number, recH: number, tight = false): number {
     const head = tight ? 15 : 18;
     const pad = tight ? 6 : 12;
     const gap = tight ? 2 : GAP;
     let h = 0;
-    for (const m of messages) {
-      const t = addText(this.scene, 0, 0, bubbleLine(m.text, size), { size, wrap: BUBBLE_W - 20, lineSpacing: 2 });
-      // 拐点消息的标签可能放进气泡第一行，按最坏情况多算 18
-      h += head + t.height + pad + gap + (m.turn ? 18 : 0);
-      t.destroy();
-    }
+    // 拐点消息的标签可能放进气泡第一行，按最坏情况多算 18
+    for (const m of messages) h += head + this.bubbleTextH(m.text, size) + pad + gap + (m.turn ? 18 : 0);
     return h + recs * (recH + GAP) + (recs > 0 ? 6 : 0);
   }
 

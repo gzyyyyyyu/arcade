@@ -104,11 +104,14 @@ export async function lobbyShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
   if (!PHONE) {
-    // 竖屏提示层：一局进行中，点「大厅」先在卡片里问；「留下」收起，「回大厅」才走
+    // 转屏提示层：竖屏版开局后横过来（0.33.0 起竖屏打开就是竖屏版，方向和版面不一致才提示）；
+    // 一局进行中，点「大厅」先在卡片里问；「留下」收起，「回大厅」才走
     const ctx = await openPage(browser, 'lobby-portrait', `seed=pre-1&anim=0&${setupQuery(BASIC_SETUP)}`, { touch: true, screen: { width: 390, height: 844, dpr: 2 } });
     await ctx.page.waitForTimeout(600);
+    await ctx.page.setViewportSize({ width: 844, height: 390 });
     const lobby = ctx.page.locator('#rotate-hint .rh-lobby');
-    expect(await lobby.isVisible(), '竖屏提示层左上角应有「大厅」');
+    await lobby.waitFor({ state: 'visible', timeout: 5000 }).catch(() => undefined);
+    expect(await lobby.isVisible(), '转屏提示层左上角应有「大厅」');
     await lobby.tap();
     expect(await ctx.page.locator('#rotate-hint .rh-ask').isVisible(), '一局进行中点「大厅」应先问一次');
     await shot(ctx, 'l4-portrait-lobby-ask');

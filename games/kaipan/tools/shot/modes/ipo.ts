@@ -104,7 +104,7 @@ interface FlowOpts {
   /** 动画开着（截摇号）；关掉时一切瞬间到位 */
   anim: boolean;
   touch: boolean;
-  /** 竖屏：先点「照样玩」 */
+  /** 竖屏（0.33.0 起直接是竖屏版；万一还有转屏提示就点「照样玩」） */
   portrait?: boolean;
   /** 要截的图：banner 横条、panel 申购面板、frozen 申购中的卡、draw 摇号、listed 新股持仓 */
   want: ('banner' | 'panel' | 'frozen' | 'draw' | 'listed')[];
@@ -115,7 +115,8 @@ async function mainFlow(browser: Browser, name: string, o: FlowOpts): Promise<vo
   const screen = o.portrait ? { width: 390, height: 844, dpr: 2 } : undefined;
   const ctx = await openPage(browser, name, o.anim ? 'speed=4' : 'anim=0', { touch: o.touch, ...(screen ? { screen } : {}) });
   if (o.portrait) {
-    await ctx.page.locator('#rotate-hint .rh-keep').tap();
+    const keep = ctx.page.locator('#rotate-hint .rh-keep');
+    if (await keep.isVisible()) await keep.tap();
     await ctx.page.waitForTimeout(500);
   }
   const { seed, state: st0, offer } = await findRun(ctx, `ipo-${o.tag}`, o.win);

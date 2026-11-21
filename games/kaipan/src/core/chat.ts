@@ -1,7 +1,7 @@
 /**
  * 群聊：每天的题材消息、推荐股票、收盘后的吐槽。
  */
-import { BALANCE, fx } from './balance.ts';
+import { BALANCE, easeFor, fx } from './balance.ts';
 import {
   BIG_LOSS_LINES,
   BIG_WIN_LINES,
@@ -110,10 +110,13 @@ function credOf(s: Readonly<GameState>, friendId: string, theme: ThemeId, rules:
   const { expertMsg, credMax, reliable } = BALANCE.chat;
   const tip = msg && isExpert && expert >= reliable && friendById(friendId).founding ? expertMsg : 0;
   // 所有加成之后封顶：只有道具（credOverride，如老王的小本本）能"必中"，否则 credibility 会泄露今天的真实方向
-  // 0.5（真实行情）：难度每高一级，所有人的准确率再低一点
-  const diff = isTrack(s.real) ? BALANCE.intel.diffStep * (Math.max(1, s.difficulty) - 1) : 0;
+  const base = isExpert ? expert : other;
+  // 0.5（真实行情）：难度每高一级，所有人的准确率再低一点；
+  // 0.34.0 娱乐局（不是实盘）按难度放宽（BALANCE.ease）：只让本来不反指的人更准，群主照样反着说
+  const ease = !s.setup?.live && base >= 0.5 ? easeFor('cred', s.difficulty) : 0;
+  const diff = isTrack(s.real) ? BALANCE.intel.diffStep * (Math.max(1, s.difficulty) - 1) - ease : 0;
   const form = friendForm(s, friendId).cred;
-  const c = clamp((isExpert ? expert : other) + form + tip + (msg ? rules.credDelta : 0) + (rules.credBonus[friendId] ?? 0) - diff, 0, credMax);
+  const c = clamp(base + form + tip + (msg ? rules.credDelta : 0) + (rules.credBonus[friendId] ?? 0) - diff, 0, credMax);
   // 消息失真：一部分消息是瞎传的（随机方向），可信度向 1/3 靠拢
   return msg && rules.msgNoise > 0 ? c * (1 - rules.msgNoise) + rules.msgNoise / 3 : c;
 }

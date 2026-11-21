@@ -17,6 +17,11 @@ declare module 'node:fs' {
   export function appendFileSync(path: string, data: string): void;
 }
 
+// tools/perf.ts 量包体积
+declare module 'node:zlib' {
+  export function gzipSync(data: Uint8Array): Uint8Array;
+}
+
 declare module 'node:os' {
   /** 系统临时目录（截图等临时产物的默认位置，不写死 /tmp） */
   export function tmpdir(): string;

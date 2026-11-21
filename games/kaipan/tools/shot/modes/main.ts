@@ -506,11 +506,15 @@ export async function run(browser: Browser): Promise<void> {
     await shot(ctx, '61-portrait'); // 竖屏提示层是 DOM，自动化下已停 CSS 动画
     await ctx.page.context().close();
   }
-  // 12b. 竖屏打开、再横过来（微信里点开链接最常见的进法）：不带 layout 参数，靠自动判定也要拿到手机布局（0.5.5 审阅）
+  // 12b. 竖屏打开、再横过来（微信里点开链接最常见的进法）：竖屏开局是竖屏版，横过来提示「换成横屏版」，点了重新载入，
+  // 不带 layout 参数靠自动判定也要拿到手机横屏布局（0.33.0 起的行为）
   {
     const ctx = await openPage(browser, 'rotate', `seed=pre-1&anim=0&${setupQuery(BASIC_SETUP)}`, { touch: true, screen: { width: 390, height: 844, dpr: 2 } });
     await ctx.page.setViewportSize({ width: 844, height: 390 });
-    await waitIdle(ctx, '横过来之后');
+    const relayout = ctx.page.locator('.rh-relayout');
+    await relayout.waitFor({ state: 'visible', timeout: 5000 });
+    await Promise.all([ctx.page.waitForEvent('load'), relayout.click()]);
+    await waitIdle(ctx, '换成横屏版之后');
     await ctx.page.waitForTimeout(600);
     // 0.19.0 手机世界高 404（宽按屏幕比例）：画布高是 404 的整数倍；电脑布局会是 720 的倍数
     const ch = await ctx.page.evaluate(() => document.querySelector('canvas')?.height ?? 0);
