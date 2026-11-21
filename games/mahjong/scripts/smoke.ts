@@ -407,7 +407,8 @@ async function ladderSmoke(): Promise<void> {
   const end = await page.waitForSelector('.mask.end .ladder-end');
   const won = await end.evaluate((e) => e.classList.contains('next'));
   await page.screenshot({ path: `${root}shots/smoke-ladder-end.png` });
-  await page.click(`.mask.end >> text=${won ? '下一桌' : '再开一轮'}`);
+  // 按按钮选：擂台结算顶上那句"……赢了！下一桌：普通"也含"下一桌"，按文字选会点到那行字上
+  await page.click(`.mask.end button:has-text("${won ? '下一桌' : '再开一轮'}")`);
   await page.waitForSelector('.my-hand .tile');
   const table = won ? 2 : 1;
   // 中途离开：打几手后点"离开"（确认的话是"下次接着打"），刷新后从主页进擂台页接着打，河里的牌一张不少（接着这一手，不是重开）

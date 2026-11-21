@@ -235,6 +235,7 @@ function matchEndDialog(mine: Solo, v: SoloView, names: string[], unit: string):
     // 内容放进翻页区，按钮行在它下面、一直看得见（view/pager.ts）
     // 钱包结回的那句放在翻页区上面，哪一页都看得见；等钱包回话才有准话，先占一行，不然字来了把翻页区挤矮
     if (stakesOf(mine.stakes)?.wallet) el('div', 'settle-note', box, SETTLED.get(mine) ?? '正在结回钱包……');
+    verdict(box, v, names, unit, net);
     const body = el('div', 'end-body', box);
     const lad = mine.save.ladder;
     let ladder = null as ReturnType<typeof ladderEnd> | null;
@@ -271,6 +272,22 @@ function matchEndDialog(mine: Solo, v: SoloView, names: string[], unit: string):
   }, false);
   if (!single) showMine();
   play(net >= 0 ? 'win' : 'lose');
+}
+
+/**
+ * 结算页最上面一行：第几名、赢了输了多少，一局定输赢时再用一句大白话说为什么（玩法的 verdictWhy）。
+ * 放在翻页区外面，哪一页都看得见；新手第一局最想知道的就是这两件事（11-21 新手试玩：输了只看到一屏流水）
+ */
+function verdict(box: HTMLElement, v: SoloView, names: string[], unit: string, net: number): void {
+  const seats = v.result?.seats;
+  const me = v.me?.seat;
+  if (!seats || me === undefined) return;
+  const rank = 1 + seats.filter((s) => s.net > net).length;
+  const top = el('div', `verdict ${net > 0 ? 'up' : net < 0 ? 'down' : ''}`, box);
+  el('b', 'rank', top, `第 ${rank} 名`);
+  el('b', 'net', top, net === 0 ? '打平' : `${net > 0 ? '赢' : '输'} ${num(Math.abs(net))}${unit}`);
+  const why = v.history.length <= 1 ? pageOf(v.variant).verdictWhy?.(v, me, names) : null;
+  if (why) el('p', 'why', top, why);
 }
 
 /** 擂台一桌打完的下一步：赢了下一桌、能重打就重打、输了再开一轮；打通了只留"回擂台" */

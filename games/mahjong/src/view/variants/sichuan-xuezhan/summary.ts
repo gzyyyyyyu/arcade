@@ -87,6 +87,45 @@ export function roundSummary(v: XzView, names: string[], unit: string): HTMLElem
   return box;
 }
 
+/**
+ * 结算页头一行底下那句（一局定输赢时）：赢了说胡了什么，输了说钱主要输在哪种上，用大白话，不写术语表里才有的词。
+ * 只看这一局公开的流水（v.ledger）和胡牌记录
+ */
+export function verdictWhy(v: XzView, seat: number, names: string[]): string | null {
+  const h = v.history.at(-1);
+  if (!h) return null;
+  const net = h.net[seat] ?? 0;
+  const mine = h.wins.filter((w) => w.seat === seat);
+  if (net > 0 && mine.length) {
+    const w = mine.reduce((a, x) => (x.fan > a.fan ? x : a));
+    const items = w.items.filter((x) => x.id !== 'ping' || w.items.length === 1).map((x) => FAN_NAME[x.id]);
+    return `${w.from === null ? '自摸' : '胡了'}${items.length ? `：${items.join('、')}` : ''}${w.fan > 0 ? `，${w.fan} 番` : ''}`;
+  }
+  if (net >= 0) return null;
+  // 输的钱按种类合计，挑最多的那种说
+  const out = new Map<string, { amount: number; to: Set<number> }>();
+  for (const p of v.ledger) {
+    if (p.from !== seat) continue;
+    const x = out.get(p.kind) ?? { amount: 0, to: new Set<number>() };
+    x.amount += p.amount;
+    x.to.add(p.to);
+    out.set(p.kind, x);
+  }
+  const top = [...out.entries()].sort((a, b) => b[1].amount - a[1].amount)[0];
+  if (!top) return null;
+  const who = [...top[1].to].map((s) => names[s]).join('、');
+  const say: Record<string, string> = {
+    hu: `你打的牌正好是 ${who} 要的，被胡了（点炮）。别人碰过牌、快胡的时候，少打桌上还没人打过的牌`,
+    zimo: `${who} 自摸了，没胡的每家都要付`,
+    kan: `${who} 杠了牌，杠钱没胡的人都要付`,
+    pig: '牌摸完时手里还留着缺的那门（花猪），要赔给别家',
+    cha: '牌摸完时还没听牌，要赔给听了牌的人',
+    move: '你杠了以后打的牌被人胡了，杠钱转给了他（呼叫转移）',
+    tax: '牌摸完时没听牌，杠来的钱要退回去（退税）',
+  };
+  return say[top[0]] ?? null;
+}
+
 /** 这一家最后的牌：碰杠在前，手牌按牌面排好，胡的那张单放在最后描金。视图在一局结束时本来就亮出所有人的手牌 */
 function handLine(v: XzView, seat: number, row: HTMLElement): void {
   const s = v.seats[seat]!;

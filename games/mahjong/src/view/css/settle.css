@@ -183,6 +183,36 @@
   margin: 0;
   opacity: 0.9;
 }
+/* 结算页最上面一行：名次、赢输多少，一局定输赢时底下一句为什么（solo-flow 的 verdict） */
+.end .dialog > .verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: var(--sp-4);
+  margin-bottom: var(--sp-3);
+  text-align: center;
+}
+.end .verdict .rank {
+  font-size: var(--fs-xl);
+}
+.end .verdict .net {
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+}
+.end .verdict.up .net {
+  color: var(--gold);
+  text-shadow: 0 2px 0 #0008;
+}
+.end .verdict.down .net {
+  color: #ff9a8a;
+}
+.end .verdict .why {
+  flex-basis: 100%;
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-md);
+  opacity: 0.92;
+}
 .settle-note {
   margin-top: var(--sp-3);
   font-size: var(--fs-sm);
