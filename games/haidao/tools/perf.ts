@@ -247,15 +247,16 @@ function summarize(p: CpuProfile): { buckets: Record<string, number>; top: Top[]
     else if (/arcade-kit/.test(url)) b = 'arcadeKit';
     else b = 'otherLib';
     buckets[b] = (buckets[b] ?? 0) + dt;
-    if (b === 'idle') continue;
+    // 「(program)」在没有 GPU 的机器上主要是进程内软件光栅化，占八成，不进函数表（总数在 buckets.program）
+    if (b === 'idle' || b === 'program') continue;
     const file = url.split('/').pop()?.split('?')[0] ?? '';
     const key = `${fn || '(anonymous)'} ${file}:${lineNumber + 1}`;
     self.set(key, (self.get(key) ?? 0) + dt);
   }
-  const busy = total - (buckets.idle ?? 0);
+  const busy = total - (buckets.idle ?? 0) - (buckets.program ?? 0);
   const top = [...self.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 22)
+    .slice(0, 30)
     .map(([where, ms]) => ({ where, ms: Math.round(ms), pct: r1((ms / Math.max(1, busy)) * 100) }));
   for (const k of Object.keys(buckets)) buckets[k] = Math.round(buckets[k]!);
   return { buckets, top, totalMs: Math.round(total) };
@@ -658,7 +659,7 @@ for (const [vn, cells] of Object.entries(result)) {
     if (!d?.cpu) continue;
     lines.push('', `## 采样：${name[vn]} / ${name[sn]}`, '');
     lines.push(`draw 调用 平均 ${d.fps?.drawsAvg} / 帧（p95 ${d.fps?.drawsP95}），传贴图 ${d.fps?.uploadsPerSec} 次/秒；自身耗时分布（ms）：${Object.entries(d.cpu.buckets).map(([k, x]) => `${k} ${x}`).join('，')}`, '');
-    lines.push('| 自身耗时 ms | 占忙时 % | 函数 |', '|---|---|---|');
+    lines.push('| 自身耗时 ms | 占脚本忙时 %（不含软件光栅化） | 函数 |', '|---|---|---|');
     for (const t of d.cpu.top.slice(0, 15)) lines.push(`| ${t.ms} | ${t.pct} | ${t.where} |`);
   }
 }

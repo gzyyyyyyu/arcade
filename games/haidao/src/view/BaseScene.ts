@@ -77,6 +77,8 @@ export class BaseScene extends Phaser.Scene {
   /** 船队面板当前看的是第几条船 */
   fleetBoat = 0;
   buildBtn!: HTMLElement;
+  /** 一键收取（basehud.ts 的 claimLabel 按矿里的存量显隐） */
+  claimBtn: HTMLButtonElement | null = null;
   fleetBtn!: HTMLElement;
   mapBtn!: HTMLElement;
   lastTut = 0;

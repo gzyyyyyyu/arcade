@@ -1,3 +1,4 @@
+import { clearInspect, inspectAt, inspectFrame, type Inspect } from './battleinspect.ts';
 import { RigCap } from './rigcap.ts';
 import { FrameFx } from './framefx.ts';
 import { HitSquash } from './fx.ts';
@@ -96,6 +97,8 @@ export class BattleScene extends Phaser.Scene {
   /** 侦察期的全岛射程圈（battleranges.ts）：出第一船后淡掉；点一座防御时它自己的圈 */
   scoutG: Phaser.GameObjects.Graphics | null = null;
   pickG: Phaser.GameObjects.Graphics | null = null;
+  /** 选中查看的兵或防御（battleinspect.ts） */
+  inspect: Inspect | null = null;
   beachG!: Phaser.GameObjects.Graphics;
   /** 沙滩外缘的脉动光带（beachfx.ts），悬停的格由 hover() 写进去 */
   beachGlow!: BeachGlow;
@@ -267,9 +270,15 @@ export class BattleScene extends Phaser.Scene {
     this.hoverCell = '';
     this.aim = new AimPreview(this);
     this.cc.onHover = (x, y) => hover(this, x, y);
-    this.cc.onRight = () => clearSel(this);
+    // 右键、长按：点中兵或防御就选中看它（射程圈、目标连线、小卡），别处右键照旧取消选择
+    this.cc.onRight = (x, y) => {
+      if (!inspectAt(this, x, y)) clearSel(this);
+    };
+    this.cc.onHold = (x, y) => inspectAt(this, x, y);
+    this.inspect = null;
+    this.events.once('shutdown', () => clearInspect(this));
     bindKeys(this, {
-      esc: () => clearSel(this),
+      esc: () => (this.inspect ? clearInspect(this) : clearSel(this)),
       space: () => this.fit.back(),
       // 兵种占数字键 1–9，技能用字母键 Q W E R…（编号不会超出键盘能按的范围）
       digit: (n) => pressNth(this.boatsEl.querySelectorAll('.hd-boat'), n - 1),
@@ -451,6 +460,7 @@ export class BattleScene extends Phaser.Scene {
   override update(time: number, delta: number): void {
     const s = this.st;
     this.nowT = time;
+    inspectFrame(this);
     this.frames.update(time);
     this.squash.update(time);
     const frozen = this.hs.active;

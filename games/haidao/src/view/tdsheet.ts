@@ -1,3 +1,6 @@
+import type { TdTier } from '../core/td2types.ts';
+import { attachIntel, intelButton } from './intelcard.ts';
+import { tdTowerCard } from './intel.ts';
 import type { TdScene } from './TdScene.ts';
 import { BUILDINGS } from '../content/index.ts';
 import { TD_BRANCH_DESC } from '../content/tdbranches.ts';
@@ -178,7 +181,11 @@ export function renderSheet(bs: TdScene): void {
       if (cc.good.length) ctr.append(' 克');
       for (const a of cc.good) el('i', `hd-armn a-${a}`, ARMOR_NAME[a], ctr);
       for (const a of cc.none) el('i', `hd-armn ng a-${a}`, ARMOR_NAME[a], ctr).title = `打不到${ARMOR_NAME[a]}`;
-      c.disabled = s.gold < cost || block !== null;
+      // 造不起也不设 disabled：禁用的按钮收不到长按、右键，看不了介绍卡片；点了不造（下面的 click 判 na）
+      const na = s.gold < cost || block !== null;
+      c.classList.toggle('na', na);
+      c.setAttribute('aria-disabled', String(na));
+      attachIntel(c, () => tdTowerCard(k, 1));
       // 压着 / 悬停这张卡：地上画这座塔 1 阶的射程圈；移开或松手就收（重画面板时鼠标还在上面就接着画）
       const on = (): void => {
         bs.previewKind = k;
@@ -195,7 +202,7 @@ export function renderSheet(bs: TdScene): void {
       if (c.matches(':hover')) bs.previewKind = k;
       c.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (c.disabled) return;
+        if (na) return;
         sfx(buildSound(false));
         act(bs, { type: 'build', slot: bs.openSlot, kind: k });
         // 造完就关面板、游戏接着走：留着面板（换成这座塔的升级页）每造一座都要多点一下关掉，开着又一直暂停；要升级再点这座塔
@@ -209,6 +216,11 @@ export function renderSheet(bs: TdScene): void {
   }
   const tier = t.tier ?? Math.min(3, sl.ups + 1);
   el('h2', '', `${BUILDINGS[t.kind].name}  ${tier} 阶`, head);
+  if (isTdTowerKind(t.kind)) {
+    // 介绍卡片：钮放在标题栏（放在内容里会把手机横屏的面板顶出一屏）
+    const kind = t.kind;
+    intelButton('i 介绍', () => tdTowerCard(kind, tier as TdTier), head);
+  }
   button('×', 'hd-x', () => closeSheet(bs), head).title = '关掉（Esc）';
   const chips = el('div', 'hd-chips', undefined, box);
   if (gar) el('span', 'hd-chip hd-td-tierchip', '从基地带来的驻守塔', chips);

@@ -1,3 +1,5 @@
+import { attachIntel } from './intelcard.ts';
+import { DEFENSE_CARD_KINDS, defenseCard } from './intel.ts';
 import type { BaseScene } from './BaseScene.ts';
 import { BUILDINGS, HQ_LEVELS } from '../content/index.ts';
 import { hqLevel, buildLimit, canPlace, build, move } from '../core/index.ts';
@@ -203,6 +205,7 @@ export function openBuild(bs: BaseScene): void {
     const card = el('button', `hd-card${locked || full ? ' off' : ''}${poor && !locked && !full ? ' poor' : ''}`, undefined, grid);
     card.type = 'button';
     bs.buildCards.set(k, card);
+    if (DEFENSE_CARD_KINDS.includes(k)) attachIntel(card, () => defenseCard(k, 1));
     card.appendChild(img(bArt(k, 1), 56));
     el('span', 'hd-nm', d.name, card);
     if (locked) {

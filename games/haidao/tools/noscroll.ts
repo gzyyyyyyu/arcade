@@ -65,7 +65,7 @@ const VIEWS = [
 ];
 const ONLY = opt('--view')?.split(',') ?? VIEWS.map((v) => v.name);
 
-type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { slots: Array<{ x: number; y: number; tower: number; wreck: boolean }> }; ready?: boolean; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void }; where?(k: string): { x: number; y: number } | null; focusOn?(k: string, z: number): boolean };
+type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { slots: Array<{ x: number; y: number; tower: number; wreck: boolean }> }; ready?: boolean; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void; load(p: Profile): void }; where?(k: string): { x: number; y: number } | null; focusOn?(k: string, z: number): boolean };
 
 // ---------------------------------------------------------------- --pvp 的假平台
 
@@ -698,6 +698,40 @@ try {
         await snap('建造列表');
         await closeSheet();
       });
+      // 一键收取（矿里攒着东西才浮出来）、汇总框、介绍卡片（手指长按 / 鼠标右键）
+      const MINES = { ...sampleProfile(7), tutorial: 99, base: { ...sampleProfile(7).base, buildings: sampleProfile(7).base.buildings.map((b) => (b.kind === 'goldmine' || b.kind === 'sawmill' ? { ...b, stored: 1500 } : b)) } };
+      await attempt('一键收取', async () => {
+        await page.evaluate((pr) => (window as unknown as { __haidao: Hook }).__haidao.dev?.load(pr as Profile), MINES);
+        await page.locator('.hd-claimfab.on').waitFor({ timeout: 8000 });
+        await snap('基地主界面·有得收');
+        await click('.hd-claimfab.on');
+        await snap('一键收取汇总');
+        await click('.hd-claim .hd-btn-gold');
+        await page.waitForTimeout(300);
+      });
+      await attempt('介绍卡片', async () => {
+        // 船队面板的兵种卡全在一页上（建造列表分页，第一张带介绍的卡可能在没翻到的页）
+        await click('.hd-bottom button:has-text("船队")');
+        await page.waitForTimeout(400);
+        const card = page.locator('.hd-fleetgrid .hd-intel-host:visible').first();
+        if (v.hasTouch) {
+          const b = (await card.boundingBox())!;
+          const cdp = await page.context().newCDPSession(page);
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }] });
+          await page.waitForTimeout(700);
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        } else await card.click({ button: 'right' });
+        try {
+          await page.locator('.hd-intel-dlg').waitFor({ timeout: 4000 });
+          await snap('介绍卡片');
+          await click('.hd-intel-x');
+          await page.waitForTimeout(300);
+        } finally {
+          await closeSheet();
+        }
+      });
+      // 后面的界面照旧用新档量（上面换成了主寨 7 级的岛）
+      await fresh();
       await attempt('船队面板', async () => {
         await click('.hd-bottom button:has-text("船队")');
         await snap('船队面板');

@@ -8,7 +8,7 @@ import { type RingItem, RING_ICON } from './ringmenu.ts';
 import { iso } from './iso.ts';
 import { sfx } from './audio/sfx.ts';
 import { toast, el, button, costRow, modalOpen } from './ui.ts';
-import { starText, doUpgrade, doCollect } from './baseupgrade.ts';
+import { starText, doUpgrade, doCollect, claimAll } from './baseupgrade.ts';
 import { short, openInfo, closeSheet } from './basepanel.ts';
 import { startPlace, cancelPlace, buildingAt, openBuild } from './baseplace.ts';
 import { measureSafe, centerOf, topOf } from './basegeom.ts';
@@ -182,7 +182,7 @@ export function keyAct(bs: BaseScene, a: BaseKeyAction): void {
     else openBuild(bs);
     return;
   }
-  if (a === 'collectAll') return collectAll(bs);
+  if (a === 'collectAll') return claimAll(bs);
   const id = focusId(bs);
   if (id === null) return toast('先点一座建筑');
   closeCtx(bs);
@@ -190,13 +190,6 @@ export function keyAct(bs: BaseScene, a: BaseKeyAction): void {
   if (a === 'upgrade') act(bs, 'upgrade', id, () => (infoOpen ? openInfo(bs, id) : bs.ring.owner === id ? openRing(bs, id) : undefined));
   else if (a === 'info') act(bs, 'info', id);
   else if (a === 'move') act(bs, 'move', id);
-}
-
-/** C：金矿、伐木场有存量的一次全收 */
-export function collectAll(bs: BaseScene): void {
-  const ids = app.profile.base.buildings.filter((b) => (b.kind === 'goldmine' || b.kind === 'sawmill') && Math.floor(b.stored ?? 0) >= 1).map((b) => b.id);
-  if (!ids.length) return toast('现在没有能收的');
-  for (const id of ids) doCollect(bs, id);
 }
 
 /** 选中的建筑：占地一圈细金边（和悬停的粗金边区分） */

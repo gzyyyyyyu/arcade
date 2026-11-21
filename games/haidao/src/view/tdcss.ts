@@ -379,7 +379,7 @@ function tdCss(): string {
 .hd-ui .hd-td-sheet h2 { margin:0; font-size:16px; font-weight:900; flex:1; }
 .hd-ui .hd-td-towers { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
 .hd-ui .hd-td-tower { display:flex; flex-direction:column; align-items:center; gap:1px; min-height:112px; padding:4px 3px; border:3px solid ${ink}; border-radius:12px; background:#fff8e6; font:inherit; color:inherit; cursor:pointer; }
-.hd-ui .hd-td-tower:disabled { opacity:.5; filter:grayscale(.6); cursor:default; }
+.hd-ui .hd-td-tower:disabled, .hd-ui .hd-td-tower.na { opacity:.5; filter:grayscale(.6); cursor:default; }
 .hd-ui .hd-td-tower b { font-size:14px; }
 .hd-ui .hd-td-tower small { font-size:12px; line-height:1.2; text-align:center; }
 .hd-ui .hd-td-tower .hd-td-price { display:inline-flex; align-items:center; gap:2px; font-weight:900; }

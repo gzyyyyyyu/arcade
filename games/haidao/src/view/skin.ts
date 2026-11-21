@@ -202,7 +202,7 @@ ${W} .hd-card, ${W} .hd-td-tower, ${W} .hd-td-branch, ${W} .hd-tdtab, ${W} .hd-b
   box-shadow:inset 0 1px 0 rgba(255,250,230,.5),inset 0 0 12px rgba(108,74,40,.22),0 2px 0 #4a3120; transition:transform .18s cubic-bezier(.3,2,.5,1),box-shadow .18s ease-out; }
 ${W} .hd-card:active, ${W} .hd-td-tower:active:not(:disabled), ${W} .hd-td-branch:active:not(:disabled), ${W} .hd-tdtab:active, ${W} .hd-boat:active { transform:translateY(3px); transition-duration:.04s; box-shadow:inset 0 0 14px rgba(120,72,22,.25),0 0 0 ${ink}; }
 ${W} .hd-boat.sel, ${W} .hd-tdtab.on { background:${selBg}; }
-${W} .hd-td-tower:disabled, ${W} .hd-td-branch:disabled { filter:grayscale(.5) brightness(.92); }
+${W} .hd-td-tower:disabled, ${W} .hd-td-tower.na, ${W} .hd-td-branch:disabled { filter:grayscale(.5) brightness(.92); }
 ${W} .hd-unlock, ${W} .hd-newitem, ${W} .hd-advice, ${W} .hd-badgerow, ${W} .hd-ach { background:rgba(255,250,232,.5); border:2px solid rgba(94,55,25,.7); }
 ${W} .hd-chip, ${W} .hd-item { background:rgba(150,100,40,.18); }
 ${W} .hd-node span.hd-lb { background:${walnut}; border:2px solid ${edge}; border-radius:8px; box-shadow:${lift},0 2px 0 ${ink}; }

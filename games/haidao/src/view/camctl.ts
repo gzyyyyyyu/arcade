@@ -1,6 +1,9 @@
 import type Phaser from 'phaser';
 import { centerAfterZoom, clampZoom, exceedsDrag, isTap } from './camgesture.ts';
 
+/** 长按多久算长按（毫秒，比点按的上限 TAP_MAX_MS 短） */
+const HOLD_MS = 450;
+
 export interface Bounds {
   x0: number;
   y0: number;
@@ -43,10 +46,14 @@ export class CamCtl {
   onPress?: (wx: number, wy: number) => void;
   /** 右键：世界坐标和画布上的 CSS 坐标（基地在建筑上弹右键菜单；别处取消选择），不触发点按 */
   onRight?: (wx: number, wy: number, sx: number, sy: number) => void;
+  /** 手指长按（HOLD_MS 没挪开）：世界坐标；返回 true 表示用掉了，松手时不再算点按 */
+  onHold?: (wx: number, wy: number) => boolean;
   /** 鼠标最后停在画布上的位置（CSS 像素，相对画布左上）；不在画布上或是手指时为 NaN。摆放时拖到边缘平移镜头用 */
   readonly mouse = { x: NaN, y: NaN };
   drag: DragHook | null = null;
   private ptrs = new Map<number, Ptr>();
+  private holdTimer: ReturnType<typeof setTimeout> | undefined;
+  private held = false;
   private multi = false;
   private moved = false;
   private dragging = false;
@@ -211,9 +218,21 @@ export class CamCtl {
       const w = this.toWorld(p.x, p.y);
       this.dragging = this.drag.start(w.x, w.y, !p.wasTouch);
     }
+    clearTimeout(this.holdTimer);
     if (this.ptrs.size === 1) {
       const w = this.toWorld(p.x, p.y);
       this.onPress?.(w.x, w.y);
+      this.held = false;
+      const hold = this.onHold;
+      if (hold && p.wasTouch && !this.dragging) {
+        this.holdTimer = setTimeout(() => {
+          if (this.ptrs.size !== 1 || this.moved || this.multi || this.dragging) return;
+          const q = this.ptrs.get(p.id);
+          if (!q) return;
+          const at = this.toWorld(q.x, q.y);
+          this.held = hold(at.x, at.y);
+        }, HOLD_MS);
+      }
     } else this.onPress?.(NaN, NaN);
   }
 
@@ -286,6 +305,7 @@ export class CamCtl {
     const q = this.ptrs.get(p.id);
     if (!q) return;
     this.ptrs.delete(p.id);
+    clearTimeout(this.holdTimer);
     this.onPress?.(NaN, NaN);
     // 双指剩一指时不重算捏合（只剩一个点），multi 保持到全部抬起，免得松手那一下被当成点击或拖动
     if (this.ptrs.size > 0) return;
@@ -294,6 +314,8 @@ export class CamCtl {
       this.drag?.end();
     } else if (this.moved && !this.multi && performance.now() - this.lastT > 90) {
       this.vx = this.vy = 0;
+    } else if (this.held) {
+      this.held = false;
     } else if (isTap({ moved: this.moved, multi: this.multi, dragging: false, heldMs: performance.now() - q.t0 })) {
       const w = this.toWorld(q.x, q.y);
       this.onTap?.(w.x, w.y, !p.wasTouch);
