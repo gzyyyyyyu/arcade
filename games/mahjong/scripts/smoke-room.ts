@@ -5,7 +5,7 @@
  *   npm run build:cf && npm run smoke:room [-- --rounds 2] [--shots 目录] [--only flow|three]
  *
  * 内容：
- * 1. 娱乐房：A 开房（局数 4）、B 凭 ?room= 进等人页坐下、A 开打，两边自动打满 N 局（换三张、定缺、能胡就胡、不然过、打最右边那张），
+ * 1. 娱乐房：A 开房（局数 4），回主页再开房被挡、点"回到你的房间"回到原房间；B 凭 ?room= 进等人页坐下、A 开打，两边自动打满 N 局（换三张、定缺、能胡就胡、不然过、打最右边那张），
  *    B 离开并确认，A 继续打、牌桌还在动；
  *    中途 C 凭链接进来旁观（看得到桌面、没有手牌、不能扔东西），点"坐下"接管电脑座位，离开再进来是"回到我的座位"；
  * 2. 实盘小档房：A 一个人时"开打"灰着、有"至少要两个人"的提示；A、B 进房开打，检查假钱包各扣 2,000、stakes 里各有 mahjong 的 server 模式一份；
@@ -93,6 +93,10 @@ async function newContext(browser: Browser, base: string, sid: string, viewport:
   return ctx;
 }
 
+/** 故意再开一个房间、等着被 409 has_room 挡下的那一步：这期间开房的 409 和它在控制台的那一行不算报错 */
+let hasRoomStep = false;
+const expected409 = (path: string, status: number): boolean => hasRoomStep && status === 409 && path === '/games/mahjong/rooms';
+
 function watch(page: Page, tag: string): void {
   // 本地假平台没有云存档接口，启动时拉存档会 404（页面按"没有存档"处理）：这一条不算报错
   let saves404 = 0;
@@ -102,11 +106,12 @@ function watch(page: Page, tag: string): void {
       saves404--;
       return;
     }
+    if (hasRoomStep && m.text().startsWith('Failed to load resource') && m.text().includes('409')) return;
     if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${tag}] console.${m.type()}: ${m.text()}`);
   });
   page.on('pageerror', (e) => errors.push(`[${tag}] pageerror: ${e.message}`));
   // 控制台只说"Failed to load resource: 500"，不说是哪个地址：服务端出错的请求单独记上地址
-  page.on('response', (r) => r.status() >= 404 && new URL(r.url()).pathname !== '/api/saves/mahjong' && errors.push(`[${tag}] ${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}`));
+  page.on('response', (r) => r.status() >= 404 && new URL(r.url()).pathname !== '/api/saves/mahjong' && !expected409(new URL(r.url()).pathname, r.status()) && errors.push(`[${tag}] ${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}`));
 }
 
 interface Wallet {
@@ -253,6 +258,17 @@ try {
     await pa.click('[data-key="invite:close"]');
     const sent = JSON.parse(invites[0] ?? '{}') as { to?: string; game?: string; room?: string };
     check(sent.to === 'friend-wang' && sent.game === 'mahjong' && sent.room === code, `A 在等人页点"叫朋友来"，叫了老王（${invites[0]}）`);
+    // 每人同时一个房间（KIT_QUOTA.roomsPerUser 1，0.44.0）：A 回主页再开房，弹"回到你的房间"，点了回到同一个房间
+    await pa.goto(`${base}/games/mahjong/`);
+    await pa.waitForSelector('.home-main');
+    await pa.click('.mode.room');
+    await pa.waitForSelector('.lobby-head');
+    hasRoomStep = true;
+    await pa.click('text=开房间叫朋友');
+    await pa.click('.mask button:text-is("回到你的房间")');
+    await pa.waitForSelector('.room-code');
+    hasRoomStep = false;
+    check(((await pa.textContent('.room-code')) ?? '').trim() === code, `A 已经开着房间 ${code} 再开房，弹"回到你的房间"，点了回到原房间`);
     // 等人页"离开房间"先离座（自审 C4）：B 坐下再离开，A 这边那个座位要空出来（只断开的话 kit 只记掉线、座位还占着）
     await pb.goto(`${base}/games/mahjong/?room=${code}`);
     await pb.waitForSelector('.room-code');
@@ -456,6 +472,11 @@ try {
     check(seatB === 1, `B 自动跟进新房间 ${code2}，坐回 1 号位（${seatB}）`);
     await pa.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length >= 2);
     await pa.screenshot({ path: join(SHOTS, 'room-rematch-a.png') });
+    // 每人同时 1 个房间：A 是新房间的房主，开打后两人都走（桌上没真人就算打完、还名额），后面几段 A 才开得了新房
+    await pa.click('button:text-is("开打")');
+    await Promise.all([pa.waitForSelector('.my-hand .tile', { timeout: 20_000 }), pb.waitForSelector('.my-hand .tile', { timeout: 20_000 })]);
+    await leaveRoom(pa, 'A');
+    await leaveRoom(pb, 'B');
   }
 
   // ---------- 血流成河娱乐房：服务端按 flow 走同一套核心，胡了不下桌、能胡第二次 ----------
@@ -487,6 +508,9 @@ try {
     else log('--   这一局两个真人都没胡，锁手牌没在浏览器里看到（单测覆盖）');
     await pa.screenshot({ path: join(SHOTS, 'room-flow-a.png') });
     await pb.screenshot({ path: join(SHOTS, 'room-flow-b.png') });
+    // 两人都走，房间还名额（每人同时 1 个），三人房那段 A 才开得了
+    await leaveRoom(pa, 'A');
+    await leaveRoom(pb, 'B');
   }
 
   // ---------- 三人两房娱乐房：房间按 3 个座位开，一个真人加两个电脑打完一局 ----------

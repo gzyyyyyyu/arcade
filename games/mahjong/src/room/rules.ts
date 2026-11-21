@@ -18,7 +18,7 @@
  * - 实盘桌的电脑是最强的两个（src/ai/venues.ts 的 room:<档>），几家电脑各不相同，每个座位的状态各自浮动。
  *
  * 再来一场：整场打完（结回已经排上）房间停 REMATCH_MS 等人点。谁点了，他的页面先开好新房间，把房间号发过来（next），
- * 这一间就算打完，所有人的页面跟过去；到点没人点也算打完。kit 打完就还开房名额。实盘的新房间不替谁扣：各人自己坐下、房主开打才带入。
+ * 这一间就算打完，所有人的页面跟过去；到点没人点也算打完。整场一打完（idle）kit 就还开房名额，不等这几分钟。实盘的新房间不替谁扣：各人自己坐下、房主开打才带入。
  * 钱包的事记在状态里（effects），房间去办、办完写回（settled）；同一笔可能办两次，钱包按操作 id 去重。
  * 平台钱包一份（ref）只结回一次，所以每个座位同一时间只办排第一的那笔（先扣后结），结过的那份封上，再坐下开新的一份。
  *
@@ -285,6 +285,8 @@ export const mahjongRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wa
   // 真人都走了（含这一局里离座、还没结回的）：kit 桌上没真人时不再推电脑，等这一局打完只会空等到关房，所以马上收场、按那一刻结回（closing）
   over: (s) => s.closed || !!s.ended || !!s.next || (!s.kinds.includes('human') && !s.fx.some((e) => e.kind === 'debit')),
   breakPoint: (s) => s.opening || s.done || vOf(s).breakPoint(s.g),
+  // 整场打完只等"再来一场"：kit 先还开房名额（每人同时 1 个房间，房主点再来一场、回选桌开新房、匹配再排都不被挡回这一桌）；done 只会从假变真
+  idle: (s) => s.done,
 
   ai: (s, seat) => (s.opening ? { t: 'go' } : { t: 'play', v: s.variant, a: vOf(s).auto(s.g, seat, aiOf(s)), srv: true }),
   timeout: (s, seat) => (s.opening ? { t: 'go' } : { t: 'play', v: s.variant, a: vOf(s).timeout(s.g, seat, aiOf(s)), srv: true }),

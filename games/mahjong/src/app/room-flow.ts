@@ -61,8 +61,20 @@ export async function openRoom(stakes: StakesId, opts: AnyOpts, variant: string)
   const st = stakesOf(stakes)!;
   if (st.wallet && !(await checkFunds(st.share))) return;
   const r = await createRoom(withNick('rooms'), { variant, stakes, rules: opts });
-  if ('error' in r) return showError(createError(r.error), r.error === 'login' ? 'refresh' : undefined);
+  if ('error' in r) {
+    if (r.error === 'has_room' && r.code) return backToRoom(r.code);
+    return showError(createError(r.error), r.error === 'login' ? 'refresh' : undefined);
+  }
   enterRoom(r.code, true);
+}
+
+/** 开房被挡在"已经开着一个房间"（每人同时 1 个，KIT_QUOTA.roomsPerUser）：不是死路，给一个回那个房间的按钮 */
+export function backToRoom(code: string): void {
+  dialog(stage, 'error', (box) => {
+    el('p', '', box, createError('has_room'));
+    button('act go', box, '回到你的房间', () => enterRoom(code, false));
+    button('act soft', box, '先不了', closeDialog);
+  });
 }
 
 export function enterRoom(code: string, host: boolean, from: { seat: number; sit: boolean } | null = null, match = false): void {

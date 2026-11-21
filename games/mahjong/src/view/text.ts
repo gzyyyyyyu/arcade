@@ -203,7 +203,7 @@ export function walletError(code: string, retryAfter?: number): { text: string; 
 /** 好友房开房失败、断开时的话：kit 的默认文案（ROOM_TEXT）里麻将说法不一样的几条 */
 export const ROOM_TEXTS: RoomTexts = {
   login: '先登录再来',
-  has_room: '你开的房间太多了，先回去打完一个',
+  has_room: '你已经开着一个房间了，先回去打完再开新的',
   daily_limit: '今天开房次数用完了，明天再来',
   bad_options: '房间设置不对，换一个再开',
   roomClosed: '房间关了，桌上的筹码已经结回钱包',
