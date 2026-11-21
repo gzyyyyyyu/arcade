@@ -4,6 +4,7 @@ import type { BaseScene } from './BaseScene.ts';
 import { TD2_HERO_SKILL } from '../content/td2units.ts';
 import { BUILDINGS, TROOPS, SKILLS, HQ_LEVELS } from '../content/index.ts';
 import { heroCap, heroLevel, navUnlocked, heroResearchCost, hqLevel, researchLevel, research, researchCost, researchHero, totalStars, upgrade, upgradeCost, collect, collectAll } from '../core/index.ts';
+import { claimIngot } from '../core/ingot.ts';
 import { claimTrain } from '../core/training.ts';
 import type { TroopKind, SkillKind, Placed, Res } from '../core/types.ts';
 import { app, fmt } from './app.ts';
@@ -306,14 +307,16 @@ export function claimAll(bs: BaseScene, summary = true): void {
   const t = claimTrain(r.profile);
   const tGot = t.got.gold + t.got.wood > 0;
   const ach = runAchievements(t.profile);
-  if (!r.ids.length && !tGot && !ach.fresh.length) {
+  // 金银锭最后领：刚达成的成就也算进去
+  const ing = claimIngot(ach.profile);
+  if (!r.ids.length && !tGot && !ach.fresh.length && !ing.got) {
     if (r.left.gold + r.left.wood + t.left.gold + t.left.wood > 0) {
       sfx('error');
       return toast('仓库满了，先花掉一些或升级金库、木料场');
     }
     return toast('现在没有能收的');
   }
-  app.commit(ach.profile);
+  app.commit(ing.profile);
   tutAdv(0);
   const flown = new Set<string>();
   for (const id of r.ids) {
@@ -333,11 +336,11 @@ export function claimAll(bs: BaseScene, summary = true): void {
   if (r.got.gold || t.got.gold) sfx('coin');
   else if (r.got.wood || t.got.wood) sfx('wood');
   bs.refresh();
-  if (summary) claimSummary(r.got, r.left, ach.fresh, t.got, t.left);
+  if (summary) claimSummary(r.got, r.left, ach.fresh, t.got, t.left, ing.got);
   else if (ach.fresh.length) badgePopup(ach.fresh);
 }
 
-function claimSummary(got: Res, left: Res, badges: Array<{ name: string; desc: string; tier: 'bronze' | 'silver' | 'gold' }>, train: Res, trainLeft: Res): void {
+function claimSummary(got: Res, left: Res, badges: Array<{ name: string; desc: string; tier: 'bronze' | 'silver' | 'gold' }>, train: Res, trainLeft: Res, ingots: number): void {
   const mask = openModal({ cls: 'hd-claim-mask', closable: true });
   const dlg = el('div', 'hd-dialog hd-claim', undefined, mask);
   el('h2', '', '全部收好了', dlg);
@@ -354,6 +357,7 @@ function claimSummary(got: Res, left: Res, badges: Array<{ name: string; desc: s
   if (train.gold) row(iconA('gold'), `+${fmt(train.gold)} 金币（训练营）`);
   if (train.wood) row(iconA('wood'), `+${fmt(train.wood)} 木材（训练营）`);
   if (trainLeft.gold + trainLeft.wood > 0) row(iconA('star'), `仓库满了，训练营奖励还留着 ${[trainLeft.gold ? `${fmt(trainLeft.gold)} 金` : '', trainLeft.wood ? `${fmt(trainLeft.wood)} 木` : ''].filter(Boolean).join('、')}`, 'left');
+  if (ingots) row(iconA('ingot'), `+${fmt(ingots)} 金银锭（「换」里换筹码）`);
   for (const b of badges) row(iconA('star'), `新徽章：${b.name}`, 'badge');
   button('好', 'hd-btn-gold', () => mask.remove(), dlg, 'confirm');
 }

@@ -26,6 +26,7 @@ import { unlockBlock, researchList, doCollect, claimAll } from './baseupgrade.ts
 import { openMap } from './basenav.ts';
 import { rankBlock } from './rankui.ts';
 import { rankTitle } from './ranktext.ts';
+import { shopSection } from './live.ts';
 
 /** 个人面板：星数、主寨、成就和称号（顶栏只留金币木材主寨，其余收在这里） */
 export function openProfile(bs: BaseScene): void {
@@ -327,6 +328,15 @@ export function collection(bs: BaseScene, body: HTMLElement): void {
     el('b', '', rewardName(id), t);
     el('small', '', `守岛第 ${ch} 章全部过关得到（每关至少 1 星）`, t);
   }
+  // 掉宝池里还没有的，可以用筹码买（登录、有钱包时才有）
+  shopSection(body, rewardName, (id) => {
+    const [kind, a, b] = id.split(':') as [string, string, string];
+    try {
+      return kind === 'skin' ? img(troopF(a as TroopKind, 'idle', b)[0]!, 46) : img(bArt(a as BuildingKind, 1), 46);
+    } catch {
+      return null;
+    }
+  }, () => openAchievements(bs, 'col'));
   const items = [...body.children].slice(first) as HTMLElement[];
   if (items.length && bs.sheet) paginate(bs.sheet, items, items[items.length - 1]!);
 }

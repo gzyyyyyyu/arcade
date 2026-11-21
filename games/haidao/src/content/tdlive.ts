@@ -1,10 +1,9 @@
 /**
  * 悬赏守岛（实盘，DESIGN.md 10.5）的四档岛：岛、常驻塔、分叉、临时塔位、波次、英雄等级都写死，只由档位决定。
  * 独立写、不借第一章和测试关：那些关会被调数值，实盘的配平表不能跟着变（教训见 DESIGN 4.3）。
- * 改这里的任何东西都要重跑 `node tools/td-live-sim.ts` 并更新 DESIGN 10.5 的实测表。
+ * 改这里的任何东西都要重跑 `node tools/live-sim.ts --kind td --n 2000`，改前改后的数报主线。
  * 坐标是格子（岛 22×22），默认朝向；左右镜像由 core/tdlive.ts 按种子最低位做。
  */
-import type { LiveTier } from '../core/live.ts';
 import type { BuildingKind, Placed } from '../core/types.ts';
 import type { TdEnemyKind, TdGroup, TdLevel, TdWave } from '../core/tdtypes.ts';
 
@@ -44,6 +43,11 @@ function island(towers: T[], treasures: Array<[number, number]>, hqLevel: number
   return out;
 }
 
+/** B 岛的波次：两条登陆路的兵对调（落潮的南路不动） */
+function swapLanes(waves: TdWave[]): TdWave[] {
+  return waves.map((w) => ({ ...w, groups: w.groups.map((g) => (g.lane < 2 ? { ...g, lane: 1 - g.lane } : g)) }));
+}
+
 const LANES = [{ x: 10, y: -2 }, { x: -2, y: 11 }];
 const TIDE = { x: 11, y: 23 };
 const KEGS = [{ x: 10, y: 0 }, { x: 11, y: 0 }, { x: 10, y: 1 }, { x: 0, y: 10 }, { x: 0, y: 11 }];
@@ -55,7 +59,7 @@ const OBST: TdLevel['obstacles'] = [
 /** 临时塔位（2×2 左上角）：守北口两侧、西路、东南、南边落潮路。豪华档少最后一个 */
 const SLOTS = [{ x: 5, y: 7 }, { x: 15, y: 7 }, { x: 2, y: 12 }, { x: 15, y: 15 }, { x: 11, y: 19 }];
 
-export const TD_LIVE_ISLANDS: Record<LiveTier, TdLiveIsland> = {
+export const TD_LIVE_ISLANDS: Readonly<Record<string, TdLiveIsland>> = {
   small: {
     // 小：一个宝藏箱，两条路（北、西），4 座 3 级塔，水手和铁甲
     hero: 3,
@@ -163,6 +167,117 @@ export const TD_LIVE_ISLANDS: Record<LiveTier, TdLiveIsland> = {
         wave(['fog', 7, 2, 20], ['sailor', 12, 0, 12], ['sapper', 4, 1, 40]),
         boss(['captain', 1, 0, 1], ['sailor', 10, 0, 15, 20], ['ironclad', 4, 1, 40], ['parrot', 6, 2, 15]),
       ],
+    },
+  },
+
+  // ---- B 岛：同一座岛，塔换了种类和位置、两条路的兵对调，敌人组成按档改了几波 ----
+  'small-b': {
+    // 小 B：臼炮守北口、火枪塔守西路，压的是成群的水手
+    hero: 3,
+    layout: island(
+      [['mortar', 3, 7, 6, ['mortar.fire']], ['gunTower', 3, 13, 6, ['gunTower.rapid']], ['gunTower', 3, 6, 13, ['gunTower.rapid']], ['cannon', 3, 13, 13, ['cannon.pierce']]],
+      [[10, 13]], 3, true, false,
+    ),
+    level: {
+      id: 'live-small-b', name: '小岛悬赏·西口', hq: 3, hpPct: 280, gold: 200, first: 240, waveTicks: 360,
+      lanes: LANES, kegs: KEGS, obstacles: OBST, slots: SLOTS.slice(0, 4),
+      waves: swapLanes([
+        wave(['sailor', 7, 0, 25]),
+        wave(['sailor', 6, 1, 25], ['sailor', 5, 0, 25, 60]),
+        wave(['sailor', 8, 1, 20], ['ironclad', 1, 0, 60]),
+        wave(['ironclad', 2, 0, 60], ['sailor', 8, 1, 20]),
+        wave(['sailor', 10, 0, 16], ['ironclad', 2, 1, 50, 40]),
+        wave(['ironclad', 3, 1, 50], ['sailor', 8, 0, 18]),
+        wave(['sailor', 10, 1, 16], ['ironclad', 3, 0, 45, 40]),
+        wave(['ironclad', 4, 1, 40], ['sailor', 10, 0, 15], ['sailor', 4, 1, 20, 80]),
+      ]),
+    },
+  },
+  'mid-b': {
+    // 中 B：火箭塔替掉一座火枪塔（防雾船），分裂小艇多、铁甲少
+    hero: 4,
+    layout: island(
+      [
+        ['cannon', 4, 7, 6, ['cannon.grape']], ['rocket', 4, 13, 6, ['rocket.flak']], ['gunTower', 4, 6, 13, ['gunTower.lighthouse']],
+        ['cannon', 4, 13, 13, ['cannon.pierce']], ['mortar', 4, 9, 16, ['mortar.fire']], ['gunTower', 4, 16, 9, ['gunTower.rapid']],
+      ],
+      [[10, 13]], 4, true, true,
+    ),
+    level: {
+      id: 'live-mid-b', name: '中岛悬赏·西口', hq: 4, hpPct: 190, gold: 220, first: 240, waveTicks: 360,
+      lanes: LANES, tide: { wave: 4, lane: TIDE }, kegs: KEGS, obstacles: OBST, slots: SLOTS,
+      waves: swapLanes([
+        wave(['sailor', 8, 0, 25]),
+        wave(['skiff', 2, 1, 50], ['sailor', 6, 0, 25]),
+        wave(['fog', 3, 0, 40], ['sailor', 6, 1, 25]),
+        wave(['skiff', 3, 1, 45], ['ironclad', 2, 0, 50, 40]),
+        wave(['fog', 4, 2, 35], ['sailor', 8, 0, 20]),
+        wave(['skiff', 4, 2, 40], ['ironclad', 2, 1, 50]),
+        wave(['fog', 4, 0, 30], ['sailor', 8, 1, 20], ['skiff', 3, 2, 40, 40]),
+        wave(['skiff', 5, 0, 35], ['fog', 4, 2, 30]),
+        wave(['ironclad', 3, 1, 45], ['skiff', 4, 0, 35], ['fog', 4, 2, 25]),
+        wave(['sailor', 10, 0, 15], ['skiff', 5, 2, 30], ['fog', 4, 1, 25], ['ironclad', 3, 1, 45, 60]),
+      ]),
+    },
+  },
+  'big-b': {
+    // 大 B：两座火箭塔管鹦鹉，工兵多，最后两波更密；敌人血厚（150%），两个宝藏箱一枚不丢不容易
+    hero: 5,
+    layout: island(
+      [
+        ['cannon', 5, 7, 6, ['cannon.pierce']], ['rocket', 5, 13, 6, ['rocket.flak']], ['gunTower', 5, 6, 13, ['gunTower.marksman']],
+        ['cannon', 5, 13, 13, ['cannon.grape']], ['mortar', 5, 9, 16, ['mortar.fire']], ['gunTower', 6, 16, 9, ['gunTower.rapid', 'gunTower.keen']],
+        ['rocket', 5, 19, 12, ['rocket.flak']], ['gunTower', 6, 4, 9, ['gunTower.lighthouse', 'gunTower.keen']],
+      ],
+      [[10, 13], [8, 8]], 5, true, true,
+    ),
+    level: {
+      id: 'live-big-b', name: '大岛悬赏·西口', hq: 5, hpPct: 150, gold: 260, first: 240, waveTicks: 360,
+      lanes: LANES, tide: { wave: 5, lane: TIDE }, kegs: KEGS, obstacles: OBST, slots: SLOTS,
+      waves: swapLanes([
+        wave(['sailor', 10, 0, 20]),
+        wave(['sapper', 2, 1, 60], ['sailor', 6, 0, 25]),
+        wave(['parrot', 4, 0, 20], ['sailor', 8, 1, 20, 40]),
+        wave(['ironclad', 3, 1, 50], ['skiff', 3, 0, 45]),
+        wave(['sapper', 3, 0, 45], ['fog', 4, 1, 35]),
+        wave(['parrot', 5, 2, 16], ['sailor', 8, 1, 20], ['ironclad', 2, 0, 50]),
+        wave(['skiff', 4, 0, 35], ['sapper', 3, 2, 45]),
+        wave(['fog', 5, 1, 28], ['parrot', 5, 0, 15], ['sailor', 8, 2, 18]),
+        wave(['ironclad', 5, 2, 40], ['skiff', 4, 1, 30], ['sapper', 3, 0, 45]),
+        wave(['parrot', 6, 1, 13], ['fog', 5, 0, 26], ['ironclad', 3, 2, 45]),
+        wave(['sapper', 5, 2, 35], ['sailor', 14, 0, 12], ['skiff', 5, 1, 28]),
+        wave(['ironclad', 6, 0, 35], ['parrot', 8, 1, 11], ['fog', 5, 2, 24], ['sapper', 4, 1, 40, 60]),
+      ]),
+    },
+  },
+  'lux-b': {
+    // 豪华 B：两个宝藏箱，中段敌人少一些、最后一波首领带的人多：守得住一半的人多了，一枚不丢更难
+    hero: 6,
+    layout: island(
+      [
+        ['cannon', 5, 7, 6, ['cannon.pierce']], ['rocket', 5, 13, 6, ['rocket.flak']], ['gunTower', 5, 6, 13, ['gunTower.marksman']],
+        ['cannon', 5, 13, 13, ['cannon.grape']], ['mortar', 5, 9, 16, ['mortar.fire']], ['gunTower', 6, 16, 9, ['gunTower.rapid', 'gunTower.keen']],
+        ['rocket', 5, 19, 12, ['rocket.flak']], ['cannon', 6, 4, 9, ['cannon.chain', 'cannon.heavy']],
+      ],
+      [[10, 13], [8, 8]], 6, true, true,
+    ),
+    level: {
+      id: 'live-lux-b', name: '豪华悬赏·西口', hq: 6, hpPct: 70, gold: 280, first: 240, waveTicks: 360,
+      lanes: LANES, tide: { wave: 5, lane: TIDE }, kegs: KEGS, obstacles: OBST, slots: SLOTS.slice(0, 4),
+      waves: swapLanes([
+        wave(['sailor', 10, 0, 20]),
+        wave(['ironclad', 2, 1, 50], ['sailor', 8, 0, 20]),
+        wave(['fog', 3, 0, 30], ['skiff', 3, 1, 40]),
+        wave(['parrot', 5, 1, 15], ['sapper', 2, 0, 50]),
+        wave(['ironclad', 4, 0, 40], ['fog', 3, 1, 30]),
+        wave(['skiff', 4, 2, 30], ['parrot', 5, 0, 15], ['sailor', 6, 1, 20]),
+        wave(['sapper', 3, 0, 40], ['ironclad', 3, 2, 50], ['fog', 4, 1, 25]),
+        wave(['parrot', 6, 2, 12], ['skiff', 4, 0, 30], ['sailor', 8, 1, 15]),
+        wave(['ironclad', 5, 1, 35], ['fog', 5, 0, 25], ['sapper', 3, 2, 50]),
+        wave(['parrot', 8, 0, 10], ['skiff', 5, 1, 30], ['ironclad', 4, 2, 40]),
+        wave(['fog', 6, 2, 20], ['sailor', 12, 0, 12], ['sapper', 4, 1, 40]),
+        boss(['captain', 1, 0, 1], ['ironclad', 6, 0, 30, 20], ['sailor', 14, 1, 12], ['parrot', 8, 2, 12], ['sapper', 4, 0, 40, 60]),
+      ]),
     },
   },
 };

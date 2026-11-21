@@ -4,7 +4,7 @@ import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
 import { ell, line, path, pieceRaw as piece, poly, rect, skull as skullPic, tube } from './kit.ts';
 
-type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | 'treasure' | 'sluice' | 'battery' | 'hook' | 'rain' | 'dare' | 'rushFlag' | 'reward' | SkillKind;
+type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | 'treasure' | 'ingot' | 'sluice' | 'battery' | 'hook' | 'rain' | 'dare' | 'rushFlag' | 'reward' | SkillKind;
 
 function starPts(r1: number, r2: number): Pt[] {
   const a: Pt[] = [];
@@ -56,6 +56,11 @@ function make(kind: IconKind): string {
       // 守岛的宝藏：敞口铁箍小箱、金币冒尖（和金币图标分开，顶栏里「20/20」不会被看成金币）
       return path('M-13,-2 L13,-2 L12,12 L-12,12 Z', C.wood!, { sw: 2.2 }) + rect(-13, 2, 26, 3, C.ironD!, { sw: 0 }) + rect(-2.5, -2, 5, 7, C.gold!, { sw: 1.4 }) +
         path('M-12,-2 Q-6,-12 0,-9 Q6,-13 12,-2 Z', C.gold!, { sw: 2 }) + ell(-5, -6, 3, 2, C.goldL!, { sw: 0 }) + ell(4, -8, 2.6, 1.8, C.goldL!, { sw: 0 }) + path('M8,-15 l1.2,3 l3,1.2 l-3,1.2 l-1.2,3 l-1.2,-3 l-3,-1.2 l3,-1.2z', '#fff6c0', { sw: 0 });
+    case 'ingot':
+      // 金银锭：后面一只银锭、前面一只金锭（两头翘的元宝，中间鼓一个包），和金币、宝藏箱分得开
+      return path('M-14,-4 Q-12,-10 -8,-6 L4,-6 Q8,-10 10,-4 Q8,2 -2,2 Q-12,2 -14,-4 Z', '#c9d0da', { sw: 2 }) + ell(-2, -7, 5, 3.4, '#e8edf3', { sw: 1.6 }) +
+        path('M-10,4 Q-8,-3 -3,1 L7,1 Q12,-3 14,4 Q12,12 2,12 Q-8,12 -10,4 Z', C.gold!, { sw: 2.2 }) + ell(2, 0, 6, 4.2, C.goldL!, { sw: 1.8 }) +
+        path('M-6,8 Q2,11 10,8', 'none', { stroke: C.goldD!, sw: 1.6 }) + path('M9,-15 l1,2.6 l2.6,1 l-2.6,1 l-1,2.6 l-1,-2.6 l-2.6,-1 l2.6,-1z', '#fff6c0', { sw: 0 });
     case 'sluice':
       // 潮汐水闸：两根木桩夹一扇放下的闸板，闸外是浪
       return path('M-15,10 q4,-4 8,0 t8,0 t8,0 t7,0', 'none', { stroke: '#2b7fa3', sw: 4 }) + path('M-15,10 q4,-4 8,0 t8,0 t8,0 t7,0', 'none', { stroke: '#e8f8f4', sw: 1.8 }) +

@@ -6,7 +6,7 @@ import { prepareShare, type PreparedShare, type ShareCard } from 'arcade-kit/sha
 import { rankOf } from '../core/index.ts';
 import { MAP_LAYERS, type MapFinal, type MapState } from '../core/maptypes.ts';
 import type { LiveTier } from '../core/live.ts';
-import { MAP_LIVE_TIERS } from '../core/maplive.ts';
+import { LIVE_STAKE } from '../content/livetable.ts';
 import { liveReturn } from '../core/live.ts';
 import { mapLive } from '../net/live.ts';
 import type { Sent } from '../net/live.ts';
@@ -355,7 +355,7 @@ function resultBox(o: FinalOpts, root: HTMLElement): void {
 
 /** 实盘结算：拿回带入的几成（马上写出）、结回后这局筹码 ±N；连不上写"记下了，连上网后自动结回" */
 function liveLines(l: NonNullable<FinalOpts['live']>, note: HTMLElement, box: HTMLElement): void {
-  const stake = MAP_LIVE_TIERS[l.tier].stake;
+  const stake = LIVE_STAKE[l.tier];
   note.textContent = returnPctText(l.bp);
   note.className = 'hd-sub hd-live-ret';
   const net = el('p', 'hd-live-net', '结算中…', box);

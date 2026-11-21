@@ -1,51 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import { BUILDINGS } from '../src/core/index.ts';
 import { createTd, runTdBot, tdFingerprint } from '../src/core/index.ts';
-import { LIVE_MAX_BP, LIVE_TIERS, LIVE_TIER_IDS } from '../src/core/live.ts';
-import { TD_LIVE_TIERS, TD_LIVE_ZERO_MAX_BP, tdLiveBp, tdLiveSetup } from '../src/core/tdlive.ts';
+import { LIVE_TABLE } from '../src/content/livetable.ts';
+import { LIVE_MAX_BP, LIVE_TIER_IDS, livePick } from '../src/core/live.ts';
+import { TD_LIVE_ZERO_MAX_BP, tdLiveBp, tdLiveSetup } from '../src/core/tdlive.ts';
 
 /** 悬赏守岛（实盘）的档位表、倍数和模板（src/core/tdlive.ts、src/content/tdlive.ts） */
 
 describe('悬赏守岛：倍数表', () => {
-  it('stake 和悬赏出海是同一份钱包金额', () => {
-    for (const t of LIVE_TIER_IDS) expect(TD_LIVE_TIERS[t].stake).toBe(LIVE_TIERS[t].stake);
-  });
-
-  it('同档星越多倍数越高，0 星最多 0.79 份，一场最多赢 3 份', () => {
-    for (const t of LIVE_TIER_IDS) {
-      const bp = TD_LIVE_TIERS[t].bp;
-      expect(bp[0]).toBeLessThanOrEqual(TD_LIVE_ZERO_MAX_BP);
-      expect(bp[0]).toBeLessThan(bp[1]);
-      expect(bp[1]).toBeLessThan(bp[2]);
-      expect(bp[2]).toBeLessThan(bp[3]);
-      expect(Math.max(...bp)).toBeLessThanOrEqual(LIVE_MAX_BP);
-    }
-  });
-
-  it('档越高 3 星倍数不降', () => {
-    for (let i = 1; i < LIVE_TIER_IDS.length; i++) {
-      expect(TD_LIVE_TIERS[LIVE_TIER_IDS[i]!].bp[3]).toBeGreaterThanOrEqual(TD_LIVE_TIERS[LIVE_TIER_IDS[i - 1]!].bp[3]);
-    }
-  });
-
   it('0 星按撑过的波数折算：0 波 0、撑满是 bp[0]，随波数单调往上，前几波的折算比线性多', () => {
     for (const t of LIVE_TIER_IDS) {
-      const full = TD_LIVE_TIERS[t].bp[0];
-      expect(tdLiveBp(t, { stars: 0, waves: 0, total: 10 })).toBe(0);
-      expect(tdLiveBp(t, { stars: 0, waves: 10, total: 10 })).toBe(full);
-      expect(tdLiveBp(t, { stars: 0, waves: 5, total: 10 })).toBeGreaterThan(Math.floor(full / 2));
-      for (let w = 1; w <= 10; w++) expect(tdLiveBp(t, { stars: 0, waves: w, total: 10 })).toBeGreaterThanOrEqual(tdLiveBp(t, { stars: 0, waves: w - 1, total: 10 }));
-      expect(tdLiveBp(t, { stars: 0, waves: 99, total: 10 })).toBeLessThanOrEqual(TD_LIVE_ZERO_MAX_BP);
-      expect(tdLiveBp(t, { stars: 0, waves: 3, total: 0 })).toBeLessThanOrEqual(TD_LIVE_ZERO_MAX_BP);
+      const full = livePick('td', t, 0).bp[0];
+      expect(tdLiveBp(t, 0, { stars: 0, waves: 0, total: 10 })).toBe(0);
+      expect(tdLiveBp(t, 0, { stars: 0, waves: 10, total: 10 })).toBe(full);
+      expect(tdLiveBp(t, 0, { stars: 0, waves: 5, total: 10 })).toBeGreaterThan(Math.floor(full / 2));
+      for (let w = 1; w <= 10; w++) expect(tdLiveBp(t, 0, { stars: 0, waves: w, total: 10 })).toBeGreaterThanOrEqual(tdLiveBp(t, 0, { stars: 0, waves: w - 1, total: 10 }));
+      expect(tdLiveBp(t, 0, { stars: 0, waves: 99, total: 10 })).toBeLessThanOrEqual(TD_LIVE_ZERO_MAX_BP);
+      expect(tdLiveBp(t, 0, { stars: 0, waves: 3, total: 0 })).toBeLessThanOrEqual(TD_LIVE_ZERO_MAX_BP);
     }
   });
 
   it('1–3 星查表，星数越界按边界算', () => {
     for (const t of LIVE_TIER_IDS) {
-      const bp = TD_LIVE_TIERS[t].bp;
-      for (const s of [1, 2, 3]) expect(tdLiveBp(t, { stars: s, waves: 1, total: 10 })).toBe(bp[s]);
-      expect(tdLiveBp(t, { stars: 9, waves: 1, total: 10 })).toBe(bp[3]);
-      expect(tdLiveBp(t, { stars: -1, waves: 5, total: 10 })).toBe(tdLiveBp(t, { stars: 0, waves: 5, total: 10 }));
+      const bp = livePick('td', t, 0).bp;
+      for (const s of [1, 2, 3]) expect(tdLiveBp(t, 0, { stars: s, waves: 1, total: 10 })).toBe(bp[s]);
+      expect(tdLiveBp(t, 0, { stars: 9, waves: 1, total: 10 })).toBe(bp[3]);
+      expect(tdLiveBp(t, 0, { stars: -1, waves: 5, total: 10 })).toBe(tdLiveBp(t, 0, { stars: 0, waves: 5, total: 10 }));
     }
   });
 });
@@ -62,14 +42,22 @@ describe('悬赏守岛：模板', () => {
     }
   });
 
-  it('岛的内容：宝藏箱 1/1/2/3、常驻塔 4/6/8/8、临时塔位 4/5/5/4，落潮从中档起，只有豪华档有首领波', () => {
-    const want = { small: [1, 4, 4], mid: [1, 6, 5], big: [2, 8, 5], lux: [3, 8, 4] } as const;
+  it('岛的内容（[宝藏箱, 常驻塔, 临时塔位]）按池里每座岛对，落潮从中档起，只有豪华档有首领波', () => {
+    const want: Record<string, readonly number[]> = {
+      small: [1, 4, 4], 'small-b': [1, 4, 4], mid: [1, 6, 5], 'mid-b': [1, 6, 5],
+      big: [2, 8, 5], 'big-b': [2, 8, 5], lux: [3, 8, 4], 'lux-b': [2, 8, 4],
+    };
     for (const t of LIVE_TIER_IDS) {
-      for (const seed of [1, 2]) {
-        const s = createTd(tdLiveSetup(t, seed));
-        expect([s.treasures.length, s.towers.length, s.slots.length]).toEqual(want[t]);
-        expect(!!s.level.tide).toBe(t !== 'small');
-        expect(s.level.waves.some((w) => w.boss)).toBe(t === 'lux');
+      for (const { level } of LIVE_TABLE.td[t].pool) {
+        // 正反镜像各挑一个抽到这座岛的种子
+        for (const mirror of [0, 1]) {
+          let seed = mirror;
+          while (livePick('td', t, seed).level !== level) seed += 2;
+          const s = createTd(tdLiveSetup(t, seed));
+          expect([s.treasures.length, s.towers.length, s.slots.length], level).toEqual(want[level]);
+          expect(!!s.level.tide, level).toBe(t !== 'small');
+          expect(s.level.waves.some((w) => w.boss), level).toBe(t === 'lux');
+        }
       }
     }
   });
@@ -85,7 +73,7 @@ describe('悬赏守岛：模板', () => {
           expect(a.result.stars).toBeLessThanOrEqual(3);
           expect(a.result).toEqual(b.result);
           expect(tdFingerprint(a.state)).toBe(tdFingerprint(b.state));
-          expect(tdLiveBp(t, a.result)).toBeLessThanOrEqual(LIVE_MAX_BP);
+          expect(tdLiveBp(t, seed, a.result)).toBeLessThanOrEqual(LIVE_MAX_BP);
         }
       }
     }
@@ -100,7 +88,7 @@ describe('悬赏守岛：模板', () => {
       };
       expect(avg('normal')).toBeGreaterThan(avg('novice'));
     }
-    // 4 档 × 2 种机器人 × 12 局 = 96 局整局模拟；空闲时单局 65–170 毫秒（td-live-sim 实测），整条 6–16 秒，
+    // 4 档 × 2 种机器人 × 12 局 = 96 局整局模拟；空闲时单局 65–170 毫秒（live-sim --kind td 实测），整条 6–16 秒，
     // 发布脚本跑整套时机器负载 30+、单局慢到 4–5 倍，60 秒会超时；留到 4 分钟
   }, 240_000);
 });

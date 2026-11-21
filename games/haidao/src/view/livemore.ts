@@ -3,10 +3,10 @@
  * 流程照悬赏守岛（live.ts 的 openTdLive / startTdLive / showTdLiveResult）；钱的一份在 net/live.ts，
  * 航线实盘怎么跑在 maproute.ts 的 openLiveRoute，结算框在 mapend.ts。
  */
-import { ESCORT_LIVE_TIERS, escortLiveBp, escortLiveSetup } from '../core/escortlive.ts';
+import { escortLiveBp, escortLiveSetup } from '../core/escortlive.ts';
+import { LIVE_STAKE, LIVE_TABLE, TIER_NAME } from '../content/livetable.ts';
 import type { EscortResult } from '../core/escorttypes.ts';
-import { LIVE_TIER_IDS, liveReturn, type LiveTier } from '../core/live.ts';
-import { MAP_LIVE_TIERS } from '../core/maplive.ts';
+import { LIVE_TIER_IDS, livePick, liveReturn, liveTopBp, type LiveTier } from '../core/live.ts';
 import { escortLive, escortToday, mapLive, mapToday, walletBalance } from '../net/live.ts';
 import { app, fmt } from './app.ts';
 import { dropStars } from './td-ui.ts';
@@ -58,14 +58,14 @@ export function openEscortLive(onClose: () => void): void {
     if (q.full) for (const b of goBtns) b.disabled = true;
   });
   for (const id of LIVE_TIER_IDS) {
-    const t = ESCORT_LIVE_TIERS[id];
+    const t = { name: TIER_NAME[id], stake: LIVE_STAKE[id], power: LIVE_TABLE.escort[id].power, top: liveTopBp('escort', id) };
     const c = el('div', 'hd-live-card', undefined, cards);
     const info = el('div', 'hd-live-info', undefined, c);
     el('b', '', `${t.name}档 · 一份 ${fmt(t.stake)}`, info);
     el('div', '', '', info).append('电脑 ', el('span', 'hd-live-star', '★'.repeat(t.power) + '☆'.repeat(4 - t.power)), ' · 约 3–5 分钟');
-    winLose(info, t.stake, t.bp[3]);
+    winLose(info, t.stake, t.top);
     const btn = button('开护', 'hd-btn-gold', () => {
-      confirmBox(`带入 ${fmt(t.stake)} 筹码护航。最多赢 ${fmt(liveReturn(t.stake, t.bp[3]) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。确定开护？`, '确定开护', () => {
+      confirmBox(`带入 ${fmt(t.stake)} 筹码护航。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。确定开护？`, '确定开护', () => {
         mask.remove();
         void startEscortLive(id, onClose);
       }, '再想想');
@@ -84,15 +84,15 @@ async function startEscortLive(tier: LiveTier, onClose: () => void): Promise<voi
     onClose();
     return;
   }
-  app.startEscortLive(ESCORT_LIVE_TIERS[tier].level, escortLiveSetup(tier, r.rec.seed), tier);
+  app.startEscortLive(livePick('escort', tier, r.rec.seed).level, escortLiveSetup(tier, r.rec.seed), tier);
 }
 
 /**
  * 一趟护航结束（到港、沉没、误了潮、撤退都走这里）：按 escortLiveBp 结回、弹结算框。
  * 不碰自己的存档：没有金币木材、不记护航星数。撤退按走过的格数折算，所以到这里的结果一定有 cells / total。
  */
-export async function showEscortLiveResult(tier: LiveTier, er: EscortResult & { retreated?: boolean }): Promise<void> {
-  const bp = escortLiveBp(tier, er);
+export async function showEscortLiveResult(tier: LiveTier, seed: number, er: EscortResult & { retreated?: boolean }): Promise<void> {
+  const bp = escortLiveBp(tier, seed, er);
   let main: HTMLButtonElement | undefined;
   const { mask, box } = dialog({ closable: false, onEsc: () => main?.click() });
   el('h2', '', '结算中…', box);
@@ -102,7 +102,7 @@ export async function showEscortLiveResult(tier: LiveTier, er: EscortResult & { 
   dropStars(box, er.stars, 40);
   el('p', 'hd-live-bal', escortLiveLine(er), box);
   el('p', 'hd-live-bal', returnPctText(bp), box);
-  const stake = ESCORT_LIVE_TIERS[tier].stake;
+  const stake = LIVE_STAKE[tier];
   if (r.ok) {
     const credited = escortLive.record?.credited ?? liveReturn(stake, bp);
     el('p', `hd-live-bal hd-live-net ${credited >= stake ? 'hd-pos' : 'hd-neg'}`, netText(credited, stake), box);
@@ -129,7 +129,7 @@ export function openMapLive(onClose: () => void): void {
   if (rec?.step === 'playing' && run?.state && run.day === beijingDay()) {
     // 上次没跑完：直接接着跑，不再带入
     quota.textContent = '有一趟实盘航线还没跑完';
-    button(`接着跑（${MAP_LIVE_TIERS[run.tier].name}档）`, 'hd-btn-gold hd-btn-wide', () => {
+    button(`接着跑（${TIER_NAME[run.tier]}档）`, 'hd-btn-gold hd-btn-wide', () => {
       mask.remove();
       onClose();
       openLiveRoute(run.tier, false);
@@ -143,14 +143,14 @@ export function openMapLive(onClose: () => void): void {
     });
   }
   for (const id of LIVE_TIER_IDS) {
-    const t = MAP_LIVE_TIERS[id];
+    const t = { name: TIER_NAME[id], stake: LIVE_STAKE[id], top: liveTopBp('map', id) };
     const c = el('div', 'hd-live-card', undefined, cards);
     const info = el('div', 'hd-live-info', undefined, c);
     el('b', '', `${t.name}档 · 一份 ${fmt(t.stake)}`, info);
     el('div', '', MAP_TIER_NOTE, info);
-    winLose(info, t.stake, t.bp[3]);
+    winLose(info, t.stake, t.top);
     const btn = button('出航', 'hd-btn-gold', () => {
-      confirmBox(`带入 ${fmt(t.stake)} 筹码出航。最多赢 ${fmt(liveReturn(t.stake, t.bp[3]) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。今天只有这一趟，确定出航？`, '确定出航', () => {
+      confirmBox(`带入 ${fmt(t.stake)} 筹码出航。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。今天只有这一趟，确定出航？`, '确定出航', () => {
         mask.remove();
         void startMapLive(id, onClose);
       }, '再想想');

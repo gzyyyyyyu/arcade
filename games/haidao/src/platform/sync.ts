@@ -5,6 +5,7 @@
  */
 import { ESCORT_LEVELS } from '../content/index.ts';
 import { TRAIN_BY_ID } from '../content/training.ts';
+import { ingotEarned } from '../core/ingot.ts';
 import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, COSMETICS, SKILLS, HERO_RESEARCH_MAX, RANKS, tdCampaign, TROOPS, canPlace, hqLevel, navUnlocked, newProfile, sanitizeBranch, tdDailyCap, totalStars } from '../core/index.ts';
 import type { Placed, Profile } from '../core/types.ts';
 import { isObj } from '../core/validate.ts';
@@ -135,6 +136,12 @@ export function reviveSave(raw: unknown): Save | null {
     }
   }
   profile.base.buildings = profile.base.buildings.filter((b) => BUILDINGS[b.kind].category !== 'deco' || !pool.has(`deco:${b.kind}`) || profile.cosmetics.includes(`deco:${b.kind}`));
+  // 金银锭：领的不超过挣的（挣的从上面校验过的存档算），换掉的不超过领的；都是 0 就不写
+  if (isObj(p.ingot)) {
+    const claimed = isNum(p.ingot.claimed) && p.ingot.claimed > 0 ? Math.min(ingotEarned(profile), Math.floor(p.ingot.claimed)) : 0;
+    const spent = isNum(p.ingot.spent) && p.ingot.spent > 0 ? Math.min(claimed, Math.floor(p.ingot.spent)) : 0;
+    if (claimed > 0) profile.ingot = { claimed, spent };
+  }
   return { profile, lastSeen: isNum(raw.lastSeen) && raw.lastSeen > 0 ? raw.lastSeen : 0 };
 }
 
@@ -143,7 +150,8 @@ function progress(s: Save): number[] {
   const levels = p.base.buildings.reduce((n, b) => n + b.level, 0);
   // 守岛的星数排在战役星数和主寨之后：只打守岛的人进度也算数，云同步不会被另一份盖掉
   const tdStars = Object.values(p.td?.stars ?? {}).reduce((n, v) => n + v, 0) + Object.values(p.escort?.stars ?? {}).reduce((n, v) => n + v, 0);
-  return [totalStars(p), hqLevel(p), tdStars, levels, p.stats.attacks, s.lastSeen];
+  // 换掉的金银锭排在攻击次数之后：别的都一样时留换得多的那份，免得旧档盖回来、同一批锭再换一次
+  return [totalStars(p), hqLevel(p), tdStars, levels, p.stats.attacks, p.ingot?.spent ?? 0, s.lastSeen];
 }
 
 export function mergeSave(local: Save, cloud: Save): Save {

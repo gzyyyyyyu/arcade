@@ -1,4 +1,5 @@
 import { claimAll } from './baseupgrade.ts';
+import { ingotOwed } from '../core/ingot.ts';
 import { openTraining, trainDot } from './training.ts';
 import type { BaseScene } from './BaseScene.ts';
 import { capacity, hqLevel, rankOf } from '../core/index.ts';
@@ -139,7 +140,7 @@ export function updateHud(bs: BaseScene): void {
   bs.trainBtn?.querySelector('.hd-dot')?.classList.toggle('on', trainDot());
 }
 
-/** 一键收取钮：写上矿里攒着的加训练营待领的有多少（金、木各一个数），没有能收的就藏起来；内容没变不重建 DOM */
+/** 一键收取钮：写上矿里攒着的加训练营待领的有多少（金、木各一个数），还有待领的金银锭，没有能收的就藏起来；内容没变不重建 DOM */
 function claimLabel(bs: BaseScene, on: boolean): void {
   const btn = bs.claimBtn;
   if (!btn) return;
@@ -153,7 +154,8 @@ function claimLabel(bs: BaseScene, on: boolean): void {
     st.gold += owed.gold;
     st.wood += owed.wood;
   }
-  const sig = on ? `${st.gold}:${st.wood}` : '';
+  const ing = ingotOwed(app.profile);
+  const sig = on ? `${st.gold}:${st.wood}:${ing}` : '';
   if (btn.dataset.sig === sig) return;
   btn.dataset.sig = sig;
   btn.classList.toggle('on', on);
@@ -164,6 +166,10 @@ function claimLabel(bs: BaseScene, on: boolean): void {
     if (st[k] < 1) continue;
     btn.appendChild(img(iconA(k), 20));
     el('b', 'hd-n', fmt(st[k]), btn);
+  }
+  if (ing > 0) {
+    btn.appendChild(img(iconA('ingot'), 20));
+    el('b', 'hd-n', fmt(ing), btn);
   }
 }
 
