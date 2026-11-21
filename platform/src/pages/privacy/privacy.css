@@ -1,6 +1,14 @@
 /* 隐私说明页（.privacy-page 是 Panel 本身）：顶上一排小节页签，下面按高度翻页的条目；正文字号照旧，不缩（docs/ui.md 第 11 节） */
 .privacy-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3) var(--s-4); }
 .privacy-page .panel__title { margin: 0; flex: none; }
+/* 八个小节页签：一行放不下就折行，都看得到（不横滑藏后面的） */
+.privacy-page .privacy-tabs { flex-wrap: wrap; overflow: visible; gap: var(--s-1) var(--s-2); }
+.privacy-page .privacy-tabs button { flex: 1 0 auto; padding: 0 var(--s-3); }
+/* 手机：四列两行，每列至少放下这一列最长的字（"设备和本站"），剩下的宽度均分 */
+@media (max-width: 560px) {
+  .privacy-page .privacy-tabs { display: grid; grid-template-columns: repeat(4, minmax(max-content, 1fr)); }
+  .privacy-page .privacy-tabs button { padding: 0 var(--s-2); }
+}
 
 
 .privacy-page .privacy-list { flex: 1; min-height: 0; }
@@ -10,8 +18,8 @@
 .privacy-page .privacy-block--promise { border-width: var(--bw); background: var(--highlight); font-weight: 700; }
 @media (max-width: 560px) { .privacy-page { padding: var(--s-2) var(--s-3); } }
 
-/* 矮屏（手机横屏）：标题和页签并一行 */
-@media (max-height: 600px) {
+/* 矮屏（手机横屏）：标题和页签并一行。限定横屏：320×568 竖屏也不到 600 高，并一行页签就挤没了 */
+@media (max-height: 600px) and (orientation: landscape) {
   .privacy-page { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: var(--s-3); row-gap: var(--s-1); padding-block: var(--s-2); }
   .privacy-page .privacy-tabs { align-self: center; }
   .privacy-page .privacy-list { grid-column: 1 / -1; }

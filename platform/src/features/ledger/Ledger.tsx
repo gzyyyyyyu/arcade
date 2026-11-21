@@ -1,14 +1,10 @@
 /**
- * 钱包流水（每人最近 30 笔）：管理页的用户详情、钱包页"最近进出"共用。
- * 按天分组（日期小标题滚动时吸顶），每行 时间 / 类型（彩色小标签加图标）/ 游戏 / 金额（加绿减红、右对齐）；
- * 先显示 PAGE 条，多的点"再看更多"。接口不给每笔之后的余额，所以没有余额这一列。
+ * 一笔钱包流水：管理页的用户详情、钱包页"最近进出"共用（列表和翻页在各自页面里）。
+ * 每行 时间 / 类型（彩色小标签加图标）/ 游戏 / 金额（加绿减红、右对齐）。接口不给每笔之后的余额，所以没有余额这一列。
  */
-import { useState } from 'react';
 import type { LedgerEntry } from '../../api.ts';
 import { gameName, num, signed, tone } from '../../lib/format.ts';
 import './ledger.css';
-
-const PAGE = 10;
 
 const KINDS: Record<LedgerEntry['t'], { text: string; icon: string }> = {
   grant: { text: '新号送的', icon: 'M12 8v13M4 8h16v4H4zM6 12h12v9H6zM12 8c-2-4-6-4-6-1s4 1 6 1c2 0 6 2 6-1s-4-3-6 1' },
@@ -22,16 +18,6 @@ const KINDS: Record<LedgerEntry['t'], { text: string; icon: string }> = {
 };
 
 const clock = (ms: number) => new Date(ms).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
-const dayKey = (ms: number) => new Date(ms).toDateString();
-function dayTitle(ms: number): string {
-  const today = new Date();
-  const yesterday = new Date(today.getTime() - 86_400_000);
-  const d = new Date(ms);
-  if (d.toDateString() === today.toDateString()) return '今天';
-  if (d.toDateString() === yesterday.toDateString()) return '昨天';
-  return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
-}
-
 const shortDay = (ms: number) => new Date(ms).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
 
 /** 一笔流水。day 为真时时间前面带日期（翻页列表没有按天的小标题） */
@@ -54,36 +40,5 @@ export function LedgerRow({ e, day = false, as: Tag = 'li' }: { e: LedgerEntry; 
       </span>
       <span className={`ledger__amount ${tone(e.a) ?? ''}`}>{signed(e.a)}</span>
     </Tag>
-  );
-}
-
-/** entries 新的在前 */
-export function LedgerList({ entries }: { entries: LedgerEntry[] }) {
-  const [shown, setShown] = useState(PAGE);
-  const groups: { key: string; title: string; rows: LedgerEntry[] }[] = [];
-  for (const e of entries.slice(0, shown)) {
-    const key = dayKey(e.at);
-    if (groups.at(-1)?.key !== key) groups.push({ key, title: dayTitle(e.at), rows: [] });
-    groups.at(-1)!.rows.push(e);
-  }
-  return (
-    <div className="ledger" data-testid="ledger">
-      {groups.map((g) => (
-        <section key={g.key} className="ledger__day">
-          <h4 className="ledger__date">{g.title}</h4>
-          <ul>
-            {g.rows.map((e, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: 同一毫秒可有多条流水，时间戳加下标才唯一；列表只增不重排
-              <LedgerRow key={`${e.at}-${i}`} e={e} />
-            ))}
-          </ul>
-        </section>
-      ))}
-      {entries.length > shown && (
-        <button className="btn btn--small ledger__more" type="button" onClick={() => setShown(shown + PAGE)}>
-          再看更多（还有 {entries.length - shown} 笔）
-        </button>
-      )}
-    </div>
   );
 }

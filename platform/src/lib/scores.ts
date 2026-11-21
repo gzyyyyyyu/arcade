@@ -80,4 +80,3 @@ export async function loadScoreFormat(game: string, file: 'daily.json' | 'weekly
 
 /** 每日榜的分数写法（游戏的 daily.json） */
 export const loadDailyFormat = (game: string, sub: string | null = null) => loadScoreFormat(game, 'daily.json', sub);
-export type DailyFormat = ScoreFormat;

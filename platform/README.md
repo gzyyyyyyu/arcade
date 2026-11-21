@@ -61,8 +61,6 @@ The rest of this README, the code comments and the API contract (`docs/platform-
 | `arcade.tour.<用户 id>` | localStorage | 新人引导看过没有（`arcade.tour.test` 只给冒烟用） |
 | `arcade.badgesSeen.<用户 id>` | localStorage | 徽章看到哪一档（新拿到、升档的只演一次；第一次打开只记不演） |
 
-不再用的 key 启动时清掉（`src/lib/retired-keys.ts`）：sessionStorage 的 `arcade.dailyStrip`、localStorage 的 `arcade.trip.*`。
-
 ## 本地开发
 
 需要 Node 22（见 `.nvmrc`）。
@@ -197,7 +195,7 @@ platform/
 │  │                    badges（战绩页徽章的计算和"已看过"记录）、coinfly（金币飞入钱包）
 │  ├─ lib/              不属于单个功能的纯函数和小工具：format、next（登录后跳回的地址）、play（进游戏的地址）、gamefile（读各游戏公开的 JSON）、
 │  │                    scores（榜上分数的显示写法）、titles（称号名）、mates（搭子战绩文字）、presence（报"我在大厅"）、countup（数字滚动）、
-│  │                    viewport（可见区高度）、enter-fx（进出游戏的封面过渡）、sound（提示音，WebAudio 合成，见 docs/style.md 声音一节）、retired-keys（清掉不再用的存储键）
+│  │                    viewport（可见区高度）、enter-fx（进出游戏的封面过渡）、sound（提示音，WebAudio 合成，见 docs/style.md 声音一节）
 │  └─ pages/            每个页面一个目录：auth（登录注册、找回密码）、me（我的账号）、friends、feed、wallet、stats（战绩）、boards（排行榜）、privacy（隐私说明）、admin（管理页）
 ├─ shared/              界面和 Worker 都要的纯数据、纯函数（只许引 shared 自己的文件；worker 不许引 src/，test/architecture.test.ts 守着）
 │  ├─ games.ts          游戏目录：登记即生效，钱包、云存档、分数榜、保留用户名都从它派生
