@@ -130,8 +130,6 @@ export class TourSolo {
     d: TourDeps,
     o: { userId: string | null; stakes: StakesId; practice: boolean; level: number; format?: TourFormat; entropy?: readonly number[]; daily?: { date: string; scored: boolean } },
   ): Promise<TourSolo | { error: string; pending?: TourSolo }> {
-    // 只开娱乐的赛制（9 人赛，docs/tournament.md 14.4）不收报名费：界面已经灰掉，这里再挡一道
-    if (!o.practice && formatInfo(o.format).funOnly) return { error: 'fun_only' };
     const id = d.newId();
     const buyIn = o.practice ? 0 : stakesOf(o.stakes).max;
     const state = newTour({ format: o.format ?? DEFAULT_FORMAT, humans: Array.from({ length: formatInfo(o.format).seats }, (_, i) => i === ME), level: o.level }, (o.entropy ?? d.entropy()) as unknown as Entropy);
