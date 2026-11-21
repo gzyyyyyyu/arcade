@@ -29,7 +29,7 @@ import { achievementsOf } from '../../src/core/index.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 import { loadSegment, segmentForSeed } from '../../tools/segments-disk.ts';
 
-/** 黑天鹅 Boss 日（docs/design.md 第 16 节）：哪些局有、预告时间、各类修正、对冲、确定性。 */
+/** 黑天鹅 Boss 日（docs/design-modes.md 第 16 节）：哪些局有、预告时间、各类修正、对冲、确定性。 */
 
 afterEach(() => {
   swanSwitch.enabled = true;

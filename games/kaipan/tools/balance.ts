@@ -187,7 +187,7 @@ export function flashStats(bot: string, runs: number, from = '2026-01-01'): Flas
   };
 }
 
-/** 闪电盘表（Markdown，贴进 docs/design.md 的配平一节）：小白、普通各 runs 局 */
+/** 闪电盘表（Markdown，贴进 docs/design-modes.md 第 15 节的配平）：小白、普通各 runs 局 */
 export function flashTable(runs: number, bots: readonly string[] = ['xiaobai', 'putong']): void {
   console.log(`闪电盘（每个模型 ${runs} 局，第 i 局 = 2026-01-01 起第 i 天；时长按 tools/live.ts 的 STEP_SECONDS 估）\n`);
   console.log('| 模型 | 平均资产 | 标准差 | 10% / 中位 / 90% 分位 | 赚的局 | 平均涨跌 | 估时（均值，最短–最长，分钟） |');

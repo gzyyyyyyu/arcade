@@ -100,6 +100,18 @@ describe('押跌', () => {
     }
   });
 
+  it('0.35.0 真实行情的娱乐局开局就能押跌（空军老周不跟着进群）；实盘和合成行情照旧要解锁，送体验卡的事件只在要解锁的局里出', () => {
+    const seg = JSON.parse(readFileSync('public/data/segments/' + JSON.parse(readFileSync('public/data/segments/index.json', 'utf8')).segments[0].file, 'utf8')) as Segment;
+    const ease = createRun('short-ease', null, { segment: seg, ext: true }).state;
+    expect(validate(ease, { type: 'buy', rec: 0, short: true })).toBeNull();
+    expect(ease.friends.some((f) => f.id === 'kongjun')).toBe(false);
+    const live = createRun('short-live', { live: { months: 5, billMult: 1 } }, { segment: seg, ext: true }).state;
+    expect(validate(live, { type: 'buy', rec: 0, short: true })).toBe('还没解锁押跌');
+    const bear = eventById('bear_live');
+    expect(bear.prepare?.({ state: ease, month: 2 } as never)).toBeNull();
+    expect(bear.prepare?.({ state: live, month: 2 } as never)).not.toBeNull();
+  });
+
   it('它跌你赚、它涨你亏，扣一点手续费；涨停被轧多亏一截', () => {
     let squeezes = 0;
     for (let k = 0; k < 6; k++) {

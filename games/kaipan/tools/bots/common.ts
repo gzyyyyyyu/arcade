@@ -70,7 +70,7 @@ export function swanBlocks(bot: string, s: GameState, a: Action): boolean {
 }
 
 /**
- * 打新（docs/design.md 第 18 节）：会申购的机器人在申购日盘前、手里有闲钱时先申购再做别的。
+ * 打新（docs/design-modes.md 第 18 节）：会申购的机器人在申购日盘前、手里有闲钱时先申购再做别的。
  * 普通（normal、putong）闲钱够 1 份就试一口；聪明（smart）闲钱够 2 份半仓、够 1 份试一口；小白和其余不申购。
  * 「只打新」（ipo-only）自己在 act 里处理：除了申购什么都不买，中签的新股上市第 2 天卖。
  */

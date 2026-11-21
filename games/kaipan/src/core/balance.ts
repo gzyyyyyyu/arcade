@@ -188,11 +188,11 @@ export interface Balance {
   };
   /** 道具、日历、事件、难度的效果数值，键为内容 id。描述文字从这里取数，改数值不用改文案 */
   fx: Record<string, Record<string, number>>;
-  /** 0.4 重做：真实行情驱动（state.real 不为 null 时生效），见 docs/core-api.md 第 7 节 */
+  /** 0.4 重做：真实行情驱动（state.real 不为 null 时生效），见 docs/core-api-market.md 第 7 节 */
   real: RealParams;
-  /** 0.4 C：仓位、押跌、抵押（state.ext 不为 null 时生效），见 docs/core-api.md 第 8 节 */
+  /** 0.4 C：仓位、押跌、抵押（state.ext 不为 null 时生效），见 docs/core-api-market.md 第 8 节 */
   ext: ExtParams;
-  /** 0.5：个股照搬真实走势（state.real.track 为 true 时生效），见 docs/core-api.md 第 7.2 节 */
+  /** 0.5：个股照搬真实走势（state.real.track 为 true 时生效），见 docs/core-api-market.md 第 7.2 节 */
   track: TrackParams;
   /** 0.5：情报从真实未来推算（真实行情 0.5 模式） */
   intel: IntelParams;
@@ -222,7 +222,7 @@ export interface Balance {
     months: number;
     eventAfter: readonly number[];
   };
-  /** 本周市场（docs/design.md 第 17 节）：五条周规则的数值 */
+  /** 本周市场（docs/design-modes.md 第 17 节）：五条周规则的数值 */
   weekly: {
     /** 涨跌停放宽：涨跌停宽度倍数（10% → 20%） */
     limitMult: number;
@@ -235,7 +235,7 @@ export interface Balance {
     /** 做空周：涨停被轧时亏损的倍数 */
     squeezeMult: number;
   };
-  /** 黑天鹅 Boss 日（docs/design.md 第 16 节）：最后一天额外叠加的涨跌（pp）、预告提前几个交易日 */
+  /** 黑天鹅 Boss 日（docs/design-modes.md 第 16 节）：最后一天额外叠加的涨跌（pp）、预告提前几个交易日 */
   swan: {
     /** 大停电：所有持仓额外跌这么多 */
     blackout: number;
@@ -248,7 +248,7 @@ export interface Balance {
     /** 预告从最后几个交易日开始（含最后一天当天） */
     warnDays: number;
   };
-  /** 打新（docs/design.md 第 18 节）：中签率、冻结天数、上市溢价（pp） */
+  /** 打新（docs/design-modes.md 第 18 节）：中签率、冻结天数、上市溢价（pp） */
   ipo: {
     /** 各档中签率 */
     odds: Record<BuySize, number>;
@@ -316,7 +316,7 @@ export interface IntelParams {
   /** 消息说几天（1、2、3）的权重 */
   days: readonly number[];
   /**
-   * 群友的准确率 [聊擅长的风口, 聊别的]（真实行情 0.5 用这张表，合成行情仍用 BALANCE.cred，replay-golden 不变）。
+   * 群友的准确率 [聊擅长的风口, 聊别的]（真实行情用这张表，合成行情用 BALANCE.cred）。
    * 消息再叠加 0.3 的加成和难度（开局靠谱群友聊擅长的 +expertMsg、拐点 +turnCred、消息失真、−diffStep × (难度 − 1)）。
    */
   cred: Record<string, readonly [number, number]>;
@@ -724,11 +724,11 @@ export const BALANCE: Balance = {
   short: { months: 5, billMult: 0.25, goal: [0.9, 1, 1.05] },
   // 闪电盘：2 个月 × 5 天 = 10 个交易日，没有月供；第 4、8 个交易日收盘后各来一个事件
   flash: { months: 2, eventAfter: [4, 8] },
-  // 本周市场：五条周规则的强度；配平见 docs/design.md 第 17 节
+  // 本周市场：五条周规则的强度；配平见 docs/design-modes.md 第 17 节
   weekly: { limitMult: 2, extraSlots: 2, rotateMult: 1.8, shortGain: 1.5, squeezeMult: 0.5 },
   // 黑天鹅：最后一天的额外涨跌（pp）；配平见 docs/design-balance.md 的黑天鹅一节
   swan: { blackout: 8, themeBust: 15, windfall: 12, flashCrash: 3, warnDays: 3 },
-  // 打新：配平见 docs/design.md 第 18 节（起始数值 pop 0.7、涨 15..45 时，普通机器人通关率比不打新高 4–8 个百分点，压到现在这组）
+  // 打新：配平见 docs/design-modes.md 第 18 节（起始数值 pop 0.7、涨 15..45 时，普通机器人通关率比不打新高 4–8 个百分点，压到现在这组）
   ipo: { odds: { taste: 0.1, half: 0.16, heavy: 0.22 }, freezeDays: 2, units: 1, pop: 0.62, up: [10, 30], down: [5, 20], carry: 0.3 },
   // 实盘：5 个月，各档的账单和涨跌倍数（0.10.0 配平，实测见 docs/design-live.md 第 3 节）
   live: {

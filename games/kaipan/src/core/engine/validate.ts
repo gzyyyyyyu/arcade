@@ -108,6 +108,8 @@ export function validate(s: Readonly<GameState>, a: Action): string | null {
     }
     case 'skipReward':
       return s.phase === 'reward' ? null : '现在不是领奖励的时候';
+    case 'star':
+      return s.stocks[a.stockId] ? null : '没有这只股票';
     case 'choose':
       if (s.phase !== 'event' || !s.event) return '现在没有事件';
       return a.option === 0 || a.option === 1 ? null : '只有两个选项';

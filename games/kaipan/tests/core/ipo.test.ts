@@ -33,7 +33,7 @@ import { reviveState } from '../../src/platform/storage.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 import { loadSegment, segmentForSeed } from '../../tools/segments-disk.ts';
 
-/** 打新（docs/design.md 第 18 节）：哪些局有、日程、冻结、抽签、上市溢价、不开的模式逐位不变。 */
+/** 打新（docs/design-modes.md 第 18 节）：哪些局有、日程、冻结、抽签、上市溢价、不开的模式逐位不变。 */
 
 afterEach(() => {
   ipoSwitch.enabled = true;

@@ -3,7 +3,7 @@ import type { EventDef } from '../hooks.ts';
 import type { EventState, GameState, Stage, ThemeId } from '../types.ts';
 import { formatMoney } from '../format.ts';
 import { BALANCE } from '../balance.ts';
-import { forwardRet } from '../real.ts';
+import { forwardRet, isEaseRun } from '../real.ts';
 import { COLLATERALS, collateralTerms } from './ext.ts';
 import { ITEMS } from './items.ts';
 import { PERSONAS } from './personas.ts';
@@ -435,7 +435,7 @@ export const EVENTS: readonly EventDef[] = [
     name: '空头大V直播',
     text: () => '一个戴墨镜的大V在直播间喊："只会买涨的都是韭菜！押跌也能赚钱！"他给你发了一张押跌体验卡。',
     options: () => [`收下（${fx('bear_live', 'months')} 个月内可以押跌，空军老周进群）`, '不要（我只会买涨，我骄傲）'],
-    prepare: ({ state, month }) => (state.ext && month < 12 && !state.items.includes('short_permit') && state.difficulty < BALANCE.ext.shortLevel ? {} : null),
+    prepare: ({ state, month }) => (state.ext && month < 12 && !isEaseRun(state) && !state.items.includes('short_permit') && state.difficulty < BALANCE.ext.shortLevel ? {} : null),
     resolve(c, option) {
       if (option !== 0) return '大V骂了一句"韭菜就是韭菜"，下播了。';
       c.gainItem('short_permit', c.event.month + fx('bear_live', 'months'));

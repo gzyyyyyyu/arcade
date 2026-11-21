@@ -77,7 +77,7 @@ export interface Holding {
   /** 0.4 C：押跌期间它连续涨停了几天（嘴硬王用） */
   squeezed?: number;
   /**
-   * 打新（docs/design.md 第 18 节）：
+   * 打新（docs/design-modes.md 第 18 节）：
    * frozen = 申购冻结中（stockId 是新股 id，但 s.stocks 里还没有它；收益 0，不能卖、减、加）；
    * listed = 中签后的新股持仓（units 固定 1，s.stocks[stockId] 存在）。
    */
@@ -148,7 +148,7 @@ export interface ExtLog {
   interest: number;
 }
 
-/** 0.4 C 新机制的状态；缺省（0.3 存档、replay-golden、合成行情回放）时新机制全部不出现。 */
+/** 0.4 C 新机制的状态；缺省（老存档、合成行情回放基准）时新机制全部不出现。 */
 export interface ExtState {
   loans: Loan[];
   /** 银行正在打电话（账户跌破警戒线） */

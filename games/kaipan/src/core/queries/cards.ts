@@ -65,6 +65,11 @@ export interface HoldingCard extends StockCard {
   todayRet: number | null;
   /** 持有收益（pp） */
   holdRet: number;
+  /**
+   * 0.35.0 持有收益折成钱（元，四舍五入）：这一格现在的钱（占账户的比例 × 账户）× (1 − 1 / 净值倍数)。
+   * 每天按份数重新占账户，所以是按「现在这么多钱、涨跌了这么多」折算，和账户的逐日变化不完全相等。
+   */
+  holdMoney: number;
   /** 今天能卖（T+1） */
   canSell: boolean;
   /** 买入时是冷门或降温（低吸大师） */
@@ -85,6 +90,7 @@ export function holdingCards(s: Readonly<GameState>): (HoldingCard | null)[] {
       slot,
       todayRet: h.todayRet,
       holdRet: Math.round((h.value - 1) * 10000) / 100,
+      holdMoney: Math.round(((h.units ?? 1) / holdingBase(s)) * s.account * (1 - 1 / h.value)),
       canSell: s.phase === 'premarket' && !isBusy(s) && canSell(s, slot),
       lowBuy: h.lowBuy,
       weight: (h.units ?? 1) / holdingBase(s),

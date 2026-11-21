@@ -81,7 +81,7 @@ function segOf(seed: string): Segment | null {
 useMarket(REAL ? segOf : null);
 // --no-swan：关掉黑天鹅 Boss 日，对照"改动前"的通关率（配平用，见 docs/design-balance.md）
 if (process.argv.includes('--no-swan')) swanSwitch.enabled = false;
-// --no-ipo：关掉打新，对照有无打新的通关率（配平用，见 docs/design.md 第 18 节）
+// --no-ipo：关掉打新，对照有无打新的通关率（配平用，见 docs/design-modes.md 第 18 节）
 if (process.argv.includes('--no-ipo')) ipoSwitch.enabled = false;
 
 const DEFAULT_BOTS = ['random', 'follower', 'chaser', 'normal', 'smart', 'oracle'];
@@ -681,7 +681,7 @@ function realTable(runs: number, prefix: string): void {
 }
 
 /**
- * 打新单次申购的收益分布（docs/design.md 第 18 节配平）：每个难度 × 机器人各跑 runs 局（行情段均匀覆盖，同 realTable），
+ * 打新单次申购的收益分布（docs/design-modes.md 第 18 节配平）：每个难度 × 机器人各跑 runs 局（行情段均匀覆盖，同 realTable），
  * 统计申购次数、中签率、破发率（上市首日溢价 < 0）、中签后新股的持有收益分布，
  * 以及"单次申购的期望收益"（每次申购带来的持有收益 pp，没中算 0）和同样天数的普通持仓的期望对比。
  */

@@ -19,7 +19,7 @@ import { Guide } from '../trade/guide.ts';
 import { HoldingsView } from '../trade/holdings.ts';
 import { MarketScreen } from '../trade/marketScreen.ts';
 import type { Dialog } from '../ui/dialog.ts';
-import { DETAIL_EVENT } from '../trade/detail.ts';
+import { DETAIL_EVENT, STAR_EVENT } from '../trade/detail.ts';
 import { recordTape } from '../trade/tape.ts';
 import { MONITOR, OPEN, TABS } from '../trade/layout.ts';
 import { PanelTabs, type PanelTab } from '../trade/tabs.ts';
@@ -149,6 +149,10 @@ export class TradeScene extends BaseScene {
     const onDetail = (d: Dialog): void => this.trackDialog(d);
     this.events.on(DETAIL_EVENT, onDetail);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(DETAIL_EVENT, onDetail));
+    // 0.35.0 详情卡上的「自选」
+    const onStar = (stockId: string): void => this.acts.act({ type: 'star', stockId });
+    this.events.on(STAR_EVENT, onStar);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(STAR_EVENT, onStar));
     // 0.18.0 开盘台：按钮下面垫一块木头（art-v3 的木材质）
     addWood(this, OPEN.x - 14, OPEN.y + OPEN.h - 20, OPEN.w + 28, PHONE_MODE ? 28 : 36);
     this.openBtn = new Button(this, OPEN.x, OPEN.y, {

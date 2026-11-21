@@ -1,15 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { writeFileSync } from 'node:fs';
+import { afterAll, describe, expect, it } from 'vitest';
 import { createRun, dispatch, type Action, type GameState, type RunSetup } from '../../src/core/index.ts';
 import { REPLAY_GOLDEN } from '../fixtures/replay-golden.ts';
 
 /**
- * 0.3.1 只改文案、加归因 / 新闻 / 台词：同种子、同操作序列下，局面和 0.3.0（git 20f199f）逐位相同。
- * 基准 tests/fixtures/replay-golden.ts（锁的是 0.3.0 的回放） 由 0.3.0 的代码和机器人生成（5 个人设 × 第 1、4、8 级 × normal / smart），
- * 记下了操作序列、每次开盘后的账户轨迹指纹和终局指纹。
- *
- * 0.4 重做：真实行情下涨跌来自行情段，不可能再和 0.3.0 逐位相同；这个测试只在"0.3 合成行情模式"下跑
- * （createRun 不给行情段，也是离线、数据加载失败时的兜底），保证兜底的合成行情还是原汁原味的 0.3。
+ * 合成行情（不给行情段：离线、数据加载失败时的兜底）的回放基准，只当当前版本的回归基准，不保证跨版本。
+ * 基准 tests/fixtures/replay-golden.ts：5 个人设 × 第 1、4、8 级 × normal / smart 的操作序列，加上按当前代码回放得到的
+ * 每次开盘后的账户轨迹指纹和终局指纹。规则真的改了才用 `UPDATE_REPLAY_GOLDEN=1 npx vitest run tests/core/replay-golden.test.ts`
+ * 重新生成，diff 里说明为什么变（操作序列不动；某个操作在新规则下不合法时换掉那一局）。
  */
+const UPDATE = process.env.UPDATE_REPLAY_GOLDEN === '1';
+const FIXTURE = 'tests/fixtures/replay-golden.ts';
 interface Run {
   seed: string;
   setup: RunSetup;
@@ -52,7 +53,7 @@ function fnv(text: string): string {
   return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-/** 和生成基准时同样的终局指纹（只取 0.3.0 就有的数值字段）。 */
+/** 终局指纹：只取合成行情下会动的数值字段。 */
 function snap(s: GameState): unknown {
   const st = s.stats;
   return {
@@ -72,7 +73,13 @@ function snap(s: GameState): unknown {
   };
 }
 
-describe('规则不变：和 0.3.0 逐位相同', () => {
+describe('合成行情回放基准（当前版本）', () => {
+  afterAll(() => {
+    if (!UPDATE) return;
+    const rows = fixture.runs.map((r) => `    ${JSON.stringify(r)},`).join('\n');
+    writeFileSync(FIXTURE, `/** 合成行情的回放基准（当前版本），见 tests/core/replay-golden.test.ts。不要手改：UPDATE_REPLAY_GOLDEN=1 重新生成。 */\nexport const REPLAY_GOLDEN = {\n  runs: [\n${rows}\n  ],\n};\n`);
+  });
+
   it('基准覆盖 5 个人设 × 第 1、4、8 级', () => {
     const keys = new Set(fixture.runs.map((r) => `${r.setup.persona}:${r.setup.difficulty}`));
     expect(keys.size).toBe(15);
@@ -91,10 +98,9 @@ describe('规则不变：和 0.3.0 逐位相同', () => {
         s = r.state;
         if (a.type === 'open') trail.push([s.account, s.dayIndex, s.month, s.phase]);
       }
-      expect(s.phase).toBe(run.phase);
-      expect(s.account).toBe(run.account);
-      expect(fnv(JSON.stringify(trail))).toBe(run.trail);
-      expect(fnv(JSON.stringify(snap(s)))).toBe(run.final);
+      const got = { phase: s.phase, account: s.account, trail: fnv(JSON.stringify(trail)), final: fnv(JSON.stringify(snap(s))) };
+      if (UPDATE) Object.assign(run, got);
+      expect(got).toEqual({ phase: run.phase, account: run.account, trail: run.trail, final: run.final });
     });
   }
 });

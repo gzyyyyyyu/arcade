@@ -27,7 +27,7 @@ import { TUTORIAL_LINE_MAX, eligibleSteps, freshTutorial, tutorialCard } from '.
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 import { loadSegment } from '../../tools/segments-disk.ts';
 
-/** 闪电盘：每日 10 天短局（docs/design.md「闪电盘」）。 */
+/** 闪电盘：每日 10 天短局（docs/design-modes.md「闪电盘」）。 */
 
 const DATE = '2026-10-30';
 

@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
-import { stockCard, themeBoard, type GameState, type Mood } from '../../core/index.ts';
-import type { Glyph } from '../assets.ts';
+import { stockById, stockCard, themeBoard, type GameState, type Mood, type ThemeId } from '../../core/index.ts';
+import { glyphKey, type Glyph } from '../assets.ts';
 import { pctArrow } from '../labels.ts';
 import { COLOR, FS, PHONE, signColor } from '../theme.ts';
 import { addGlyph, addImage } from '../ui/art.ts';
@@ -8,7 +8,7 @@ import { addSpark, type Spark } from '../ui/spark.ts';
 import { addText, setColor } from '../ui/text.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
 import { MONITOR } from './layout.ts';
-import { marketMoves, preCount, sumMoves, toLevels } from './tape.ts';
+import { SENTIMENT_WORDS, marketMoves, preCount, sectorMoves, sentimentOf, sumMoves, toLevels } from './tape.ts';
 
 /** 0.5.1 中央显示器「今日大盘屏」的位置（压在背景显示器上） */
 /** 手机横屏（0.5.5）：开盘键上面一块小屏，只写天气、大环境涨跌和一个大数字；走势、风口榜、跑马灯在「风口」页和详情里 */
@@ -17,9 +17,17 @@ const SCREEN = PHONE ? { x: MONITOR.x, y: MONITOR.y, w: MONITOR.w, h: MONITOR.h 
 const MOOD_GLYPH: Record<Mood, Glyph> = { bull: 'sun', flat: 'cloud', bear: 'storm' };
 const MOOD_NAME: Record<Mood, string> = { bull: '晴', flat: '阴', bear: '雷雨' };
 
+/** 情绪五档的颜色：冷 → 热跟着跌 → 涨的颜色走（设置里换成绿涨红跌也跟着换） */
+function sentimentColor(level: number): number {
+  return level === 2 ? 0xc7d6e6 : mixLight(signColor(level - 2), level === 1 || level === 3 ? 0.6 : 0.25);
+}
+
+const themeOfStock = (id: string): ThemeId => stockById(id).theme;
+
 /**
- * 今日大盘屏：左上天气 + 大盘昨天涨跌，右上昨天账户盈亏（大字），中间大盘近 20 天走势（画出来）+ 风口热度榜前三，
- * 下沿行情跑马灯（风口图标 + 箭头数字、连板个股），每 2 秒滑一格。
+ * 今日大盘屏：左上天气 + 大盘昨天涨跌，右上昨天账户盈亏（大字），中间大盘近 20 天走势（画出来），
+ * 右边三行：大盘情绪（五格）、昨天领涨的板块、领跌的板块（0.35.0，以前是风口热度榜前三，热度在左边风口栏里本来就有）；
+ * 下沿行情跑马灯（涨停跌停家数、风口热度变化、连板、跌停、炸板），每 2 秒滑一格。手机上只在天气后面写情绪一个词。
  */
 export class MarketScreen {
   private readonly scene: Phaser.Scene;
@@ -63,6 +71,11 @@ export class MarketScreen {
     if (PHONE) for (const n of this.spark.nodes()) n.setVisible(false);
     const wHit = scene.add.rectangle(x + 4, y + 4, 120, 24, 0xffffff, 0.001).setOrigin(0, 0).setInteractive();
     bindTooltip(wHit, () => ({ x: x + 4, y: y + 4, w: 120, h: 24 }), () => ({ title: '大环境', body: '天气图标是昨天的大环境：晴是好行情、阴是一般、雷雨是坏行情；后面是大环境昨天的涨跌。' }));
+    const bHit = scene.add.rectangle(x + 190, y + 32, w - 196, 54, 0xffffff, 0.001).setOrigin(0, 0).setInteractive().setVisible(!PHONE);
+    bindTooltip(bHit, () => ({ x: x + 190, y: y + 32, w: w - 196, h: 54 }), () => ({
+      title: '情绪和板块',
+      body: '情绪看大环境最近 5 天的涨跌，加上昨天涨停、跌停各有几家：恐慌、谨慎、平稳、火热、疯狂。下面两行是昨天涨得最多、跌得最多的风口（风口里股票的平均涨跌）。',
+    }));
     const hit = scene.add.rectangle(x + 8, y + 32, 176, 54, 0xffffff, 0.001).setOrigin(0, 0).setInteractive().setVisible(!PHONE);
     bindTooltip(hit, () => ({ x: x + 8, y: y + 32, w: 176, h: 54 }), () => ({ title: '大环境走势', body: '大环境最近几十个交易日的走势（只看已经收盘的日子）。窗外的天气跟着它变：晴是好行情、雷雨是坏行情。' }));
     this.board = scene.add.container(0, 0).setVisible(!PHONE);
@@ -89,7 +102,8 @@ export class MarketScreen {
       this.weather = addGlyph(this.scene, SCREEN.x + 18, SCREEN.y + 16, MOOD_GLYPH[mood], 24);
     }
     const mret = last ? last.market.ret : (moves[moves.length - 1] ?? 0);
-    this.mkt.setText(`${MOOD_NAME[mood]} ${moves.length ? pctArrow(mret) : ''}`);
+    const senti = sentimentOf(s);
+    this.mkt.setText(`${MOOD_NAME[mood]} ${moves.length ? pctArrow(mret) : ''}${PHONE && senti ? ` · ${SENTIMENT_WORDS[senti.level]}` : ''}`);
     setColor(this.mkt, moves.length ? mixLight(signColor(mret)) : COLOR.screenText);
     // 走势
     const levels = toLevels(moves);
@@ -98,25 +112,26 @@ export class MarketScreen {
     if (sig !== this.sig) this.spark.play(700, !this.idle);
     this.sparkLabel.setText(moves.length ? `近${moves.length}天 ${pctArrow(sumMoves(moves))}` : '还没开盘');
     this.sig = sig;
-    // 风口热度榜前三（按昨天热度变化）
+    // 右边三行：情绪、领涨、领跌（同一天重复 render 不重建）
     const cards = themeBoard(s);
-    const top = [...cards].sort((a, b) => b.lastDelta - a.lastDelta).slice(0, 3);
-    const bsig = top.map((c) => `${c.id}:${Math.round(c.lastDelta)}`).join('|');
-    const bx = SCREEN.x + 194;
-    if (bsig !== this.boardSig) this.board.removeAll(true);
-    (bsig === this.boardSig ? [] : top).forEach((c, i) => {
-      const yy = SCREEN.y + 40 + i * 17;
-      const medal = this.scene.add.circle(bx + 6, yy, 6, [0xffd23f, 0xd8dde6, 0xd99a5a][i] ?? 0xffffff).setStrokeStyle(1, 0x000000, 0.4);
-      const n = addText(this.scene, bx + 6, yy, `${i + 1}`, { size: FS.xs, bold: true, color: COLOR.ink, originX: 0.5, originY: 0.5 });
-      const ic = addImage(this.scene, bx + 24, yy, `theme:${c.id}`, 16);
-      const nm = addText(this.scene, bx + 36, yy, c.name, { size: 12, bold: true, color: 0xe8f1fb, originY: 0.5 });
-      const d = Math.round(c.lastDelta);
-      const dv = addText(this.scene, SCREEN.x + SCREEN.w - 10, yy, d === 0 ? '→0' : `${d > 0 ? '↑' : '↓'}${Math.abs(d)}`, { size: 13, bold: true, num: true, color: d === 0 ? 0x8fa6bd : mixLight(signColor(d)), originX: 1, originY: 0.5 });
-      this.board.add([medal, n, ic, nm, dv]);
-    });
+    const sectors = sectorMoves(s, themeOfStock);
+    const lead = sectors[0];
+    const lag = sectors.length > 1 ? sectors[sectors.length - 1] : undefined;
+    const bsig = `${senti?.level ?? -1}|${lead?.id}:${lead?.move.toFixed(1)}|${lag?.id}:${lag?.move.toFixed(1)}`;
+    if (bsig !== this.boardSig && !PHONE) {
+      this.board.removeAll(true);
+      this.drawBoard(senti?.level ?? null, lead, lag, new Map(cards.map((c) => [c.id, c.name] as const)));
+    }
     this.boardSig = bsig;
     // 跑马灯内容：风口热度变化、连板个股、大盘
     const q: { icon: string | null; text: string; color: number }[] = [];
+    // 0.35.0 自选股排最前：星 + 名字 + 昨天涨跌
+    for (const id of s.stars ?? []) {
+      if (!s.stocks[id]) continue;
+      const sc = stockCard(s, id);
+      q.push({ icon: glyphKey('star'), text: `${sc.name} ${sc.history.length ? pctArrow(sc.move) : '—'}`, color: sc.history.length ? mixLight(signColor(sc.move)) : 0xc7d6e6 });
+    }
+    if (senti && senti.ups + senti.downs > 0) q.push({ icon: null, text: `涨停 ${senti.ups} 家 · 跌停 ${senti.downs} 家`, color: 0xe8f1fb });
     for (const c of cards) {
       const d = Math.round(c.lastDelta);
       q.push({ icon: `theme:${c.id}`, text: `${c.name} ${Math.round(c.heat)}${d === 0 ? '' : d > 0 ? ` ↑${d}` : ` ↓${-d}`}`, color: d === 0 ? 0xc7d6e6 : mixLight(signColor(d)) });
@@ -127,6 +142,11 @@ export class MarketScreen {
       const sc = stockCard(s, id);
       q.push({ icon: `theme:${sc.theme}`, text: `${sc.name} 涨停${st.boards > 1 ? `×${st.boards}` : ''}`, color: mixLight(COLOR.up) });
     }
+    for (const m of s.lastDay?.stocks ?? []) {
+      if (!m.limitDown && !m.blown) continue;
+      const sc = stockCard(s, m.id);
+      q.push({ icon: `theme:${sc.theme}`, text: `${sc.name} ${m.limitDown ? '跌停' : '没封住'}`, color: mixLight(COLOR.down) });
+    }
     if (moves.length) q.push({ icon: null, text: `大环境 ${pctArrow(mret)}`, color: mixLight(signColor(mret)) });
     const qsig = q.map((x) => x.text).join('|');
     if (qsig !== this.tapeSig) {
@@ -135,6 +155,29 @@ export class MarketScreen {
       this.tapeNext = 0;
       this.fillTape();
     }
+  }
+
+  /** 右边三行：情绪五格 + 词；领涨、领跌的风口图标、名字、平均涨跌 */
+  private drawBoard(level: number | null, lead: { id: ThemeId; move: number } | undefined, lag: { id: ThemeId; move: number } | undefined, names: ReadonlyMap<ThemeId, string>): void {
+    const bx = SCREEN.x + 194;
+    const right = SCREEN.x + SCREEN.w - 10;
+    const y0 = SCREEN.y + 40;
+    const label = (yy: number, text: string): Phaser.GameObjects.Text => addText(this.scene, bx, yy, text, { size: FS.xs, bold: true, color: 0x8fa6bd, originY: 0.5 });
+    this.board.add(label(y0, '情绪'));
+    for (let i = 0; i < 5; i++) {
+      const on = level !== null && i <= level;
+      this.board.add(this.scene.add.rectangle(bx + 30 + i * 13, y0, 10, 10, on ? sentimentColor(i) : 0x3a4b60, 1).setRounded(2));
+    }
+    const word = level === null ? '—' : SENTIMENT_WORDS[level] ?? '';
+    this.board.add(addText(this.scene, right, y0, word, { size: 13, bold: true, color: level === null ? 0x8fa6bd : sentimentColor(level), originX: 1, originY: 0.5 }));
+    ([['领涨', lead], ['领跌', lag]] as const).forEach(([tag, x], i) => {
+      const yy = y0 + 17 * (i + 1);
+      this.board.add(label(yy, tag));
+      if (!x) return;
+      this.board.add(addImage(this.scene, bx + 38, yy, `theme:${x.id}`, 16));
+      this.board.add(addText(this.scene, bx + 50, yy, names.get(x.id) ?? '', { size: 12, bold: true, color: 0xe8f1fb, originY: 0.5 }));
+      this.board.add(addText(this.scene, right, yy, pctArrow(x.move), { size: 13, bold: true, num: true, color: mixLight(signColor(x.move)), originX: 1, originY: 0.5 }));
+    });
   }
 
   private tapeSig = '';
@@ -212,10 +255,10 @@ export class MarketScreen {
 }
 
 /** 屏幕是深色底：涨跌色提亮一点 */
-function mixLight(c: number): number {
+function mixLight(c: number, k = 0.35): number {
   const r = (c >> 16) & 0xff;
   const g = (c >> 8) & 0xff;
   const b = c & 0xff;
-  const m = (v: number): number => Math.round(v + (255 - v) * 0.35);
+  const m = (v: number): number => Math.round(v + (255 - v) * k);
   return (m(r) << 16) | (m(g) << 8) | m(b);
 }

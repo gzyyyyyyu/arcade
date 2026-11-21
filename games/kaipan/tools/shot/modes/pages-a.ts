@@ -72,20 +72,21 @@ export async function pagesAShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
   {
-    // 竖屏提示：说明 + 「照样玩」，点了收起，画面缩小居中；转回横屏恢复
+    // 0.33.0 起竖屏打开就是竖屏版、不提示；横过来版面和方向不一致才提示「换成横屏版？」，点「照样玩」收起，转回竖屏也不再提示
     const ctx = await openPage(browser, 'pa-portrait', `seed=pre-1&anim=0&${setupQuery(BASIC_SETUP)}`, { touch: true, screen: { width: 390, height: 844, dpr: 2 } });
-    await ctx.page.waitForTimeout(800);
+    await waitIdle(ctx, '竖屏首屏');
+    expect(!(await ctx.page.locator('#rotate-hint').isVisible()), '竖屏打开就是竖屏版，不应有转屏提示');
     await shot(ctx, 'pa8-portrait');
-    await ctx.page.locator('#rotate-hint .rh-keep').tap();
-    await ctx.page.waitForTimeout(1500);
-    expect(!(await ctx.page.locator('#rotate-hint').isVisible()), '点「照样玩」应收起提示层');
-    await shot(ctx, 'pa9-portrait-play');
     await ctx.page.setViewportSize({ width: 844, height: 390 });
-    await waitIdle(ctx, '横过来之后');
-    expect(!(await ctx.page.locator('#rotate-hint').isVisible()), '转回横屏提示层应不显示');
-    await ctx.page.setViewportSize({ width: 390, height: 844 });
     await ctx.page.waitForTimeout(500);
-    expect(await ctx.page.locator('#rotate-hint').isVisible(), '再竖过来应又提示');
+    expect(await ctx.page.locator('#rotate-hint').isVisible(), '竖屏版横过来应提示换版');
+    await shot(ctx, 'pa9-portrait-turned');
+    await ctx.page.locator('#rotate-hint .rh-keep').tap();
+    await ctx.page.waitForTimeout(500);
+    expect(!(await ctx.page.locator('#rotate-hint').isVisible()), '点「照样玩」应收起提示层');
+    await ctx.page.setViewportSize({ width: 390, height: 844 });
+    await waitIdle(ctx, '转回竖屏');
+    expect(!(await ctx.page.locator('#rotate-hint').isVisible()), '转回竖屏版面和方向一致，不应提示');
     await ctx.page.context().close();
   }
 }

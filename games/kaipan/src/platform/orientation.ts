@@ -79,6 +79,10 @@ const css = (): string => `
 #${ID}.asking .rh-play { display: none; }
 #${ID} .rh-lobby { top: calc(14px + env(safe-area-inset-top, 0px)); left: calc(14px + env(safe-area-inset-left, 0px)); }
 @media ${QUERY} { #${ID} { display: flex; } #${ID}.skip { display: none; } }
+/* 横着拿的手机只有 360–430 高：插画和底签收起，卡片照样放得下；再矮也能滚到，不会上下被裁 */
+#${ID} { overflow-y: auto; }
+#${ID} .rh-card { margin: auto; }
+@media (max-height: 480px) { #${ID} { padding: 12px; } #${ID} .rh-card { gap: 8px; padding: 16px 20px 18px; } #${ID} .rh-card > svg, #${ID} img.rh-art, #${ID} .rh-card > i { display: none; } }
 @media (prefers-reduced-motion: reduce) { #${ID} .rh-phone { animation: none; transform: rotate(90deg); } #${ID} img.rh-art { animation: none; } }
 ${navigator.webdriver === true ? `#${ID} .rh-phone, #${ID} img.rh-art { animation: none !important; }` : ''}
 `;

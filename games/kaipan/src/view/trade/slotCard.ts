@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { formatPoints, themeById, unitsWord, type GameState, type HoldingCard } from '../../core/index.ts';
+import { formatMoney, formatPoints, themeById, unitsWord, type GameState, type HoldingCard } from '../../core/index.ts';
 import { hasArt, roleKey, stockKey } from '../assets.ts';
 import { dayWord as ipoDayWord } from './ipo.ts';
 import { boardsText, holdText, sellKey, stText, todayText } from '../labels.ts';
@@ -457,7 +457,7 @@ export class SlotCard {
     const vsLine = vs ? `\n最近几天比大环境：${vs.sign > 0 ? '跑赢' : vs.sign < 0 ? '跑输' : '持平'}` : '';
     return {
       title: `${c.name}（${c.themeName} · ${ROLE_WORD[c.role]}）`,
-      body: `${ROLE_WORD[c.role]}。占账户的 ${Math.round(c.weight * 100)}%，买入以来 ${formatPoints(c.holdRet)}${c.boards > 1 ? `，已经连续涨停 ${c.boards} 天` : ''}\n最近 5 天：${hist || '—'}${vsLine}${c.lowBuy ? `\n${term('lowbuy').word}：${term('lowbuy').explain}` : ''}${extra ? `\n${extra}` : ''}\n点一下，看今天的涨跌是怎么来的`,
+      body: `${ROLE_WORD[c.role]}。占账户的 ${Math.round(c.weight * 100)}%，买入以来 ${formatPoints(c.holdRet)}（${formatMoney(c.holdMoney, { sign: true })}）${c.boards > 1 ? `，已经连续涨停 ${c.boards} 天` : ''}\n最近 5 天：${hist || '—'}${vsLine}${c.lowBuy ? `\n${term('lowbuy').word}：${term('lowbuy').explain}` : ''}${extra ? `\n${extra}` : ''}\n点一下，看今天的涨跌是怎么来的`,
     };
   }
 
@@ -471,10 +471,14 @@ export class SlotCard {
     // 开局就在手里、还没开过盘：和其他日子开盘前一样显示"昨天"的涨跌（开局前历史的最后一天），不写"未开盘"
     const pre = c.todayRet === null && !boughtToday && this.state ? (stockMoves(this.state, c.id, 1).at(-1) ?? null) : null;
     this.setToday(c.todayRet ?? pre, boughtToday && premarket);
-    // 窄卡上「累计 ↑16.4%」放不下就只写数字（「累计」在卡身的悬停说明里）
-    this.hold.setText(holdText(c.holdRet));
-    if (this.tiny || (PHONE && this.hold.width > this.rect.w - 20)) this.hold.setText(pctArrow(c.holdRet));
-    setColor(this.hold, signColor(c.holdRet));
+    // 0.35.0 累计写百分比和钱（「累计 ↑16.4% +¥1,230」）；放不下先去掉「累计」两个字，再去掉钱（都在卡身的悬停说明里）
+    const money = c.holdMoney === 0 ? '' : ` ${formatMoney(c.holdMoney, { sign: true })}`;
+    const hold = this.hold;
+    const fits = (): boolean => !this.tiny && hold.width <= this.rect.w - 20;
+    hold.setText(`${holdText(c.holdRet)}${money}`);
+    if (!fits()) hold.setText(`${pctArrow(c.holdRet)}${money}`);
+    if (!fits()) hold.setText(pctArrow(c.holdRet));
+    setColor(hold, signColor(c.holdRet));
     this.holdBg?.setFillStyle(Math.abs(c.holdRet) < 0.05 ? COLOR.muted : signColor(c.holdRet), 0.16);
     this.guy?.setFace(c.face);
     this.setPills(c.boards, stText(c), c.lowBuy);
