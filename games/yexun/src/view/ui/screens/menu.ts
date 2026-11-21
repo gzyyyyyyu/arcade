@@ -17,6 +17,8 @@ export class Menu {
   onWeekly: () => void = () => undefined;
   /** 每日首领连战 */
   onRush: () => void = () => undefined;
+  /** 打开试炼页 */
+  onTrials: () => void = () => undefined;
   /** 夜探开局：镇子（第一次是 'teach'）和危险档（教学镇固定 0；其余用选的档） */
   onRaid: (template: RaidTemplateId, danger: Danger) => void = () => undefined;
   /** 打开藏宝阁 */

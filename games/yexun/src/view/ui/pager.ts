@@ -18,6 +18,8 @@ export interface PagerOptions {
   leaves: string;
   /** 必须跟着后一块走的（小标题）：不会单独留在页底 */
   keep?: string;
+  /** 每次分好页、翻页之后调（试炼页按看得见的卡读好友成绩） */
+  onPage?: () => void;
 }
 
 export class Pager {
@@ -154,6 +156,7 @@ export class Pager {
 
   private paint(): void {
     const { ctl } = this.o;
+    this.o.onPage?.();
     ctl.hidden = this.pages <= 1;
     if (this.pages <= 1) return;
     ctl.innerHTML =

@@ -53,6 +53,8 @@ import { RAID_REGIONS, VIGIL_REGIONS, vigilRegion, EMERGE_KINDS, regionKind, reg
 import { BALANCE_57, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, FIRST_RUN_GUARD, lampShare, LIVE_EASE, lootMul, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
 import { ASSIST, CHAR_FX, CHARACTERS, CURSE_FX, PERK_FX, REVIVE, type CurseId, type PerkId } from '../content/meta.ts';
 import { WEEKLY_FX } from '../content/weekly.ts';
+import { TRIAL_FX } from '../content/trials.ts';
+import { trialVerdict } from './trial.ts';
 import { PICKS, PICKS_60, PICKS_65, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
 import { BELL_STUN, PARADE, MAP_EVENT_AT, MAP_EVENT_KINDS, MAP_EVENT_WARN, MAP_EVENTS, mapEventRound, TIDE_SLOW, WIND_PUSH, type MapEventKind } from '../content/mapEvents.ts';
 import { MARKET_GOODS, MARKET_PRICE, NIGHT_MARKET, type MarketGood } from '../content/market.ts';
@@ -317,6 +319,9 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
   }
   if (w.hp <= 0 && w.revives > 0) revive(w, g);
   if (w.hp <= 0) return end(w, false);
+  // 试炼的目标（core/trial.ts）：达成或过点就收工，在天亮之前判
+  const tv = w.trial ? trialVerdict(w) : 0;
+  if (tv !== 0) return end(w, tv > 0);
   if (w.rush) {
     // 连战：全清算赢，5 分钟到点还没打完算输（成绩按打倒几只算，score.ts）
     if (w.rushEnd >= 0) return end(w, true);
@@ -371,6 +376,17 @@ function revive(w: World, g: Grid): void {
 /** 推出挡路的块：夜探的块几百个，走分桶的索引（推法和 maps.ts 的 pushOut 逐位一样） */
 function push(w: World, p: { x: number; y: number }, r: number): boolean {
   return w.raid ? w.raid.map.index.pushOut(p, r) : w.index ? w.index.pushOut(p, r) : pushOut(w.blocks as readonly Block[], p, r);
+}
+
+/** 试炼「怪死爆裂」：普通怪倒下炸一圈，主角在圈里挨一下（挨打照常走无敌帧、护甲、危险档） */
+function trialBurst(w: World, x: number, y: number): void {
+  const dx = w.x - x;
+  const dy = w.y - y;
+  const r = TRIAL_FX.burstR;
+  const d2 = dx * dx + dy * dy;
+  // 只在主角附近放特效（满屏每只都炸画面吃不消）
+  if (d2 <= 9 * r * r) w.ev.push(Ev.Burst, x, y, 2, r);
+  if (d2 <= r * r) hurt(w, TRIAL_FX.burstDmg);
 }
 
 function end(w: World, won: boolean): void {
@@ -1933,6 +1949,7 @@ function killEnemy(w: World, i: number): void {
   }
   w.kills++;
   w.ev.push(Ev.Kill, x, y, def.code, def.elite ? 1 : 0, i);
+  if (w.trial?.burst && !def.elite && !def.boss) trialBurst(w, x, y);
   // 货郎·招财进宝期间，打倒的怪多掉一枚铜钱
   if (skillFortune(w))
     for (let k = 0; k < SKILL_FX.fortune.extra; k++) {
@@ -1983,6 +2000,7 @@ function killEnemy(w: World, i: number): void {
     return;
   }
   if (MID_BOSS_KINDS.includes(def.kind)) {
+    w.midKilled = true;
     if (def.kind === 'huapi') w.ev.push(Ev.Huapi, x, y, 4, i);
     // 中期 Boss：掉宝箱和一把魂珠，进收获期
     w.calmUntil = Math.max(w.calmUntil, w.tick + CALM.afterElite);
@@ -3298,6 +3316,8 @@ function farthestSoul(w: World): number {
 
 /** 返回放进的槽位；并进别的魂珠或放不下时 -1 */
 function addDrop(w: World, kind: Drop, x: number, y: number, val: number): number {
+  // 试炼「没有肉包」：哪儿都不掉
+  if (kind === Drop.Bun && w.trial?.goal.kind === 'nobun') return -1;
   // 地上的魂珠超过上限：新掉的经验并进离主角最远的那颗（变成大珠），满地珠子不抢怪和特效的眼（主线 2b 意见，VS 的做法）
   if (kind === Drop.Soul && w.soulCount >= PICKUP.soulCap) {
     const far = farthestSoul(w);
@@ -3781,6 +3801,12 @@ function upgradePassive(w: World, id: PassiveId): void {
 /** 这张卡这局能不能出：只出当前角色法器池里的（content/pools.ts）。手上已经有的（测试里直接发的）不受限 */
 function cardAllowed(w: World, id: WeaponId | PassiveId): boolean {
   if (w.weapons.some((o) => o.id === id) || (w.passives as Record<string, number>)[id] !== undefined) return true;
+  // 试炼：不给新法器 / 新法器只出某一派（不看角色法器池）；被动照常按池
+  const t = w.trial;
+  if (t && id in WEAPONS) {
+    if (t.noNew) return false;
+    if (t.only) return SCHOOLS[t.only].weapons.includes(id as WeaponId);
+  }
   return inPool(w.setup.pool ?? w.setup.character, id);
 }
 

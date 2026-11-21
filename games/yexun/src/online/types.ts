@@ -64,4 +64,6 @@ export interface RunSummary {
   build?: string[];
   /** 首领连战的战果（不是连战局没有） */
   rush?: RushResult;
+  /** 试炼：这一局的成绩、是不是刷新了这关的最好（只有刷新了才交榜） */
+  trial?: { score: number; best: boolean };
 }

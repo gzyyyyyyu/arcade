@@ -6,7 +6,7 @@
  * 自己起 vite（临时端口，不占 5178/4178），浏览器启动参数同 shot.ts；任一项失败就打印原因并退出码 1。
  * 机器上有别的模拟在占 CPU 时慢一点没关系，等待都放得比较宽。
  *
- * 共九段，各段做什么写在下面每段开头。`--only 5,6` 只跑其中几段；第 8 段（噩梦 3 × 每张守夜图）默认不跑，要点名：`--only 8 --out <目录>`。
+ * 共十段，各段做什么写在下面每段开头（第 10 段试炼排在第 7 段前面）。`--only 5,6` 只跑其中几段；第 8 段（噩梦 3 × 每张守夜图）默认不跑，要点名：`--only 8 --out <目录>`。
  * 第 9 段的实盘只量选模式页、不点开始：开发服务器没有钱包，带入会报 bad_reply。有意的裁剪登记在 `CLIP_WHITELIST` 并写理由。
  */
 import { mkdirSync } from 'node:fs';
@@ -33,6 +33,8 @@ const ORIGIN = `http://127.0.0.1:${addr.port}`;
 const ONLY_ARG = process.argv.indexOf('--only');
 const ONLY = ONLY_ARG >= 0 ? (process.argv[ONLY_ARG + 1] ?? '').split(',').map(Number) : null;
 const want = (n: number): boolean => !ONLY || ONLY.includes(n);
+/** --out <目录>：第 8、10 段截图放这里（不给不截） */
+const SHOT_DIR = process.argv.includes('--out') ? process.argv[process.argv.indexOf('--out') + 1]! : '';
 
 const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--no-proxy-server', '--no-zygote', '--in-process-gpu'] });
 
@@ -280,6 +282,47 @@ try {
     if (page.url() === `${ORIGIN}/`) ok('竖屏主页点回大厅：去了 /');
     report('竖屏菜单回大厅', errs);
     await page.context().close();
+  }
+  // 10) 试炼页 → 开第一关 → 认输 → 回试炼页：电脑 1280、手机竖屏各一遍；试炼页不滚动、卡片不伸出屏幕
+  if (want(10)) {
+    for (const vp of [{ width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+      const errs: string[] = [];
+      const name = `试炼 ${vp.width}×${vp.height}`;
+      // 从主页的「试炼」按钮进；开发服务器没有平台，好友成绩的读榜截下来给一行假的（顺带看卡上写出来了）
+      const page = await open('', errs, vp, () => localStorage.setItem('yexun.save', JSON.stringify({ v: 1, runs: 1 })));
+      await page.route('**/api/boards/yexun/trial-*', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: [{ rank: 1, displayName: '阿甲', score: 1e9 + 30, isMe: false }], me: null }) }));
+      await page.locator('.yx-homescreen [data-a="trials"]').click();
+      const card = page.locator('.yx-tr-card[data-id="chuye"]');
+      await card.waitFor({ state: 'visible' }).catch(() => fail(`${name} 没有出现试炼页`));
+      const bad = await page.evaluate(() => {
+        const r: string[] = [];
+        const root = document.querySelector<HTMLElement>('.yx-trials')!;
+        for (const el of [document.scrollingElement as HTMLElement, root, ...root.querySelectorAll<HTMLElement>('*')]) {
+          if (el.offsetParent === null && el !== document.scrollingElement) continue;
+          if (el.scrollHeight > el.clientHeight + 1 && ['auto', 'scroll'].includes(getComputedStyle(el).overflowY)) r.push(`${el.className || el.tagName} 要滚`);
+        }
+        for (const b of root.querySelectorAll<HTMLElement>('button')) {
+          if (b.offsetParent === null) continue;
+          const q = b.getBoundingClientRect();
+          if (q.bottom > innerHeight + 1 || q.right > innerWidth + 1) r.push(`「${b.textContent!.trim().slice(0, 6)}」伸出屏幕`);
+        }
+        return r;
+      });
+      for (const b of bad) fail(`${name} ${b}`);
+      await page.waitForFunction(() => !!document.querySelector('.yx-tr-card[data-id="chuye"] .f')?.textContent, null, { timeout: 10_000 }).catch(() => fail(`${name} 卡上没写好友最好`));
+      if (SHOT_DIR) await page.screenshot({ path: join(SHOT_DIR, `trials-${vp.width}.png`) });
+      await card.click();
+      await page.waitForFunction(() => (window as unknown as { __yx: { world: { trial: { id: string } | null } | null } }).__yx.world?.trial?.id === 'chuye');
+      await page.waitForTimeout(2500);
+      if (SHOT_DIR) await page.screenshot({ path: join(SHOT_DIR, `trial-run-${vp.width}.png`) });
+      await page.locator('.yx-hud .yx-pause').click();
+      await page.locator('.yx-pausescr [data-a="quit"]').click();
+      await page.locator('.yx-confirm [data-a="yes"]').click();
+      await page.locator('.yx-result [data-a="menu"]').click({ timeout: 20_000 }).catch(() => fail(`${name} 认输后没有结算页`));
+      await card.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => fail(`${name} 结算页返回没有回到试炼页`));
+      report(name, errs);
+      await page.context().close();
+    }
   }
   // 7) 对局 HUD 各块互不相交：手机竖屏、横屏 × 守夜、夜探；打开固定摇杆（和小地图都在左边）、不带 auto（新手提示条也在）
   if (want(7)) {

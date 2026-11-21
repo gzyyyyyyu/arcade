@@ -16,6 +16,8 @@ import { emptyVault, herbalistUnlocked, normalizeVault, type VaultSave } from '.
 import { mainSchools } from '../content/pools.ts';
 import type { SchoolId } from '../content/guide.ts';
 import type { Setup } from '../core/state.ts';
+import { TRIAL_IDS, TRIAL_OPEN_NEED, TRIAL_TIERS, TRIALS, type TrialId, type TrialTier } from '../content/trials.ts';
+import { WEEK_GOAL_ALL, WEEK_GOAL_COINS, weekGoals, type WeekRun } from '../content/weekGoals.ts';
 
 const SAVE_KEY = 'yexun.save';
 
@@ -127,6 +129,16 @@ export interface Save {
   wear: Partial<Record<LookSlot, LookId>>;
   /** 换筹码发出去还没结的（上云：另一台设备也能用同一个 op 重发，钱包按 op 只算一次） */
   xc: XcPending[];
+  /** 试炼每关的最好成绩（content/trials.ts trialScore：通关 × 1e9 + 完成度） */
+  trials: Partial<Record<TrialId, number>>;
+  /** 本周的周目标进度：第几周、三条各多少、完成了哪几条（位 0–2，位 3 = 三条全完成那份） */
+  weekGoal: WeekGoal;
+}
+
+export interface WeekGoal {
+  week: number;
+  prog: number[];
+  done: number;
 }
 
 /** 一笔还没结的兑换：发之前已经记了 `xc:<op>` = −coins，结的时候补 `xcr:<op>` = 退回没入账的部分 */
@@ -184,6 +196,8 @@ export const fresh = (): Save => ({
   looks: [],
   wear: {},
   xc: [],
+  trials: {},
+  weekGoal: { week: -1, prog: [0, 0, 0], done: 0 },
 });
 
 const num = (v: unknown, min = 0, max = 1e12): number | null => (typeof v === 'number' && Number.isFinite(v) ? Math.max(min, Math.min(max, Math.floor(v))) : null);
@@ -267,6 +281,17 @@ export function reviveSave(o: unknown): Save | null {
     }
   }
   s.xc = reviveXc(r.xc, s.ledger);
+  if (r.trials && typeof r.trials === 'object') {
+    for (const id of TRIAL_IDS) {
+      const v = num((r.trials as Record<string, unknown>)[id], 0, 2e9);
+      if (v !== null) s.trials[id] = v;
+    }
+  }
+  const wg = r.weekGoal as Partial<WeekGoal> | undefined;
+  if (wg && typeof wg === 'object') {
+    const week = num(wg.week, -1, 1e6);
+    if (week !== null) s.weekGoal = { week, prog: [0, 1, 2].map((n) => num(Array.isArray(wg.prog) ? wg.prog[n] : 0) ?? 0), done: num(wg.done, 0, 15) ?? 0 };
+  }
   return s;
 }
 
@@ -760,3 +785,73 @@ export const settings = {
     writeFlag('fixedStick', on);
   },
 };
+
+// ───────────────────────── 试炼、周目标（docs/design-play.md 2.6） ─────────────────────────
+
+/** 这一关通关过没有 */
+export const trialCleared = (s: Pick<Save, 'trials'>, id: TrialId): boolean => (s.trials[id] ?? 0) >= 1e9;
+
+/** 这一档开了没有：入门一直开；往后要前一档通过 TRIAL_OPEN_NEED 关 */
+export function trialTierOpen(s: Pick<Save, 'trials'>, tier: TrialTier): boolean {
+  if (tier === 0) return true;
+  return TRIAL_IDS.filter((id) => TRIALS[id].tier === tier - 1 && trialCleared(s, id)).length >= TRIAL_OPEN_NEED;
+}
+
+export interface TrialReward {
+  /** 刷新了这关的最好成绩（要交排行榜） */
+  best: boolean;
+  /** 第一次通关，给了多少铜钱（流水 trial:<id>，只记一次）；没有为 0 */
+  first: number;
+}
+
+/** 试炼一局结束：记最好成绩，第一次通关发铜钱。认输的照常记（成绩按当时算） */
+export function finishTrial(s: Save, id: TrialId, score: number): TrialReward {
+  const before = s.trials[id] ?? -1;
+  const best = score > before;
+  if (best) s.trials[id] = score;
+  let first = 0;
+  if (score >= 1e9 && before < 1e9 && !s.ledger.some(([x]) => x === `trial:${id}`)) {
+    first = TRIAL_TIERS[TRIALS[id].tier]!.coins;
+    earn(s, `trial:${id}`, first);
+  }
+  writeSave(s);
+  return { best, first };
+}
+
+/** 换周了就从零开始（周序号由画面层按北京时间算好传进来） */
+function weekGoalOf(s: Save, week: number): WeekGoal {
+  if (s.weekGoal.week !== week) s.weekGoal = { week, prog: [0, 0, 0], done: 0 };
+  return s.weekGoal;
+}
+
+/** 本周 3 条的进度（主页、试炼页显示用；不写存档） */
+export function weekGoalView(s: Save, week: number): { text: string; need: number; prog: number; done: boolean; coins: number }[] {
+  const g = s.weekGoal.week === week ? s.weekGoal : { prog: [0, 0, 0], done: 0 };
+  return weekGoals(week).map((d, n) => ({ text: d.text, need: d.need, prog: Math.min(d.need, g.prog[n] ?? 0), done: (g.done & (1 << n)) !== 0, coins: WEEK_GOAL_COINS[n]! }));
+}
+
+/** 一局算进本周进度；新完成的条目发铜钱（流水 weekgoal:<周>:<n>、weekgoal:<周>:all，各只记一次），返回结算页的来源行 */
+export function applyWeekRun(s: Save, week: number, run: WeekRun): CoinSource[] {
+  const g = weekGoalOf(s, week);
+  const out: CoinSource[] = [];
+  weekGoals(week).forEach((d, n) => {
+    if (g.done & (1 << n)) return;
+    g.prog[n] = Math.min(d.need, (g.prog[n] ?? 0) + d.gain(run));
+    if (g.prog[n]! < d.need) return;
+    g.done |= 1 << n;
+    const id = `weekgoal:${week}:${n}`;
+    if (s.ledger.some(([x]) => x === id)) return;
+    earn(s, id, WEEK_GOAL_COINS[n]!);
+    out.push({ label: `周目标：${d.text}`, coins: WEEK_GOAL_COINS[n]! });
+  });
+  if ((g.done & 7) === 7 && !(g.done & 8)) {
+    g.done |= 8;
+    const id = `weekgoal:${week}:all`;
+    if (!s.ledger.some(([x]) => x === id)) {
+      earn(s, id, WEEK_GOAL_ALL);
+      out.push({ label: '本周目标全完成', coins: WEEK_GOAL_ALL });
+    }
+  }
+  writeSave(s);
+  return out;
+}

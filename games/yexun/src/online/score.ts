@@ -76,6 +76,8 @@ export function formatScore(board: BoardKind, score: number): string {
       return score >= DAILY_WIN_BASE ? `天亮 · 斩${n(score - DAILY_WIN_BASE)}` : `撑了 ${mmss(score)}`;
     case 'daily-raid':
       return `${n(score)} 铜钱`;
+    case 'trial':
+      return score >= 1e9 ? '通关' : `${n(score)}`;
     case 'daily-rush': {
       const d = decodeRush(score);
       return d.cleared ? `全清 ${d.down}/${d.total} · 剩 ${mmss(d.tail)}` : `连战 ${d.down}/${d.total} · 下一关 ${d.tail}%`;
@@ -83,7 +85,7 @@ export function formatScore(board: BoardKind, score: number): string {
   }
 }
 
-export type BoardKind = 'vigil' | 'raid' | 'endless' | 'daily-vigil' | 'daily-raid' | 'daily-rush' | 'weekly-vigil';
+export type BoardKind = 'vigil' | 'raid' | 'endless' | 'daily-vigil' | 'daily-raid' | 'daily-rush' | 'weekly-vigil' | 'trial';
 
 export interface Submission {
   board: BoardKind;
@@ -96,6 +98,7 @@ export interface Submission {
  * - 实盘不交；认输的不交（没打完不算成绩；无尽本来就是打到不想打为止，认输照交）；
  * - 每日挑战只交当天的每日榜（不进总榜：咒印让它和普通局不可比）；日期过了平台收的范围（昨天到明天）也不交；
  * - 本周夜事挑战只交本周的周榜（不进总榜、不进每日榜）；隔周才结算的不交；没带挑战日期却带着本周事件的局（旧存档）什么都不交；
+ * - 试炼只交这关的固定榜，只在刷新本机最好成绩时交；
  * - 开了"降低伤害"的普通局不交总榜（每日挑战是对谁都一样的固定局，没有这个开关，开了也不交）；
  * - 守夜普通局：vigil；开了无尽的：endless；夜探：raid（没撤出的 loot 为 0，不交）。
  */
@@ -109,6 +112,8 @@ export function submissionsFor(r: RunSummary, today: string): Submission[] {
     if (!r.daily || !r.rush || !dailyDateOpen(r.daily, today) || !isRushSetup(r.daily, s)) return [];
     return [{ board: 'daily-rush', boardId: rushBoardId(r.daily), score: rushScore(r.rush) }];
   }
+  // 试炼：只交这关的固定榜 trial-<id>，而且只在刷新了本机最好成绩时交（每人每天交分次数有限）
+  if (s.trial) return r.trial?.best ? [{ board: 'trial', boardId: `trial-${s.trial}`, score: r.trial.score }] : [];
   if (r.weekly) {
     if (!weeklyDateOpen(r.weekly, today) || s.mode !== 'vigil' || !s.weekly) return [];
     return [{ board: 'weekly-vigil', boardId: weeklyBoardId(r.weekly), score: vigilScore({ danger: s.danger, seconds: r.seconds, kills: r.kills, bossKilled: r.bossKilled }) }];

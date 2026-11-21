@@ -98,6 +98,7 @@ export class Pause {
   /** 「今晚的规矩」：咒印、本档噩梦机制、本图地图事件；手机横屏里这块限高可滚动 */
   private rulesHtml(r: TonightRules): string {
     const lines = [
+      ...(r.trial ? [`<p><b>试炼</b>${esc(r.trial)}</p>`] : []),
       ...r.curses.map((c) => `<p><b class="yx-brush">${esc(c.name)}</b>${esc(c.text)}</p>`),
       ...r.nightmare.map((t) => `<p><b>噩梦</b>${esc(t)}</p>`),
       ...(r.weekly ? [`<p><b>本周</b>${esc(r.weekly)}</p>`] : []),

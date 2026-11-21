@@ -12,7 +12,8 @@ import type { Danger } from '../content/waves.ts';
 /** 危险档当键（JSON 里是字符串） */
 export type DangerKey = `${Danger}`;
 import { MAX_WEAPON_LEVEL, MERGES, PASSIVES, WEAPONS, type MergeDef, type PassiveId, type WeaponId } from '../content/weapons.ts';
-import { ACHIEVEMENTS } from '../content/achievements.ts';
+import { ACHIEVEMENTS, trialUnlocks } from '../content/achievements.ts';
+import { TRIAL_IDS, type TrialId } from '../content/trials.ts';
 import { Ev } from '../core/events.ts';
 import { TICKS_PER_SECOND, type World } from '../core/state.ts';
 
@@ -82,6 +83,8 @@ export interface Records {
   passivesMaxed: PassiveId[];
   /** 已解锁的成就 id */
   achievements: string[];
+  /** 通关过的试炼（content/trials.ts） */
+  trials: TrialId[];
 }
 
 const DANGER_KEYS: DangerKey[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
@@ -96,7 +99,7 @@ const MERGE_IDS = MERGES.map((m) => m.id);
 const COUNT_MERGES = SHOWN_MERGES.map((m) => m.id);
 
 export function emptyRecords(): Records {
-  return { v: 1, runs: 0, wins: 0, kills: 0, seconds: 0, winsByDanger: {}, winsByMap: {}, seen: [], killed: {}, weaponsUsed: [], weaponsMaxed: [], weaponsEvolved: [], merges: [], passivesMaxed: [], achievements: [] };
+  return { v: 1, runs: 0, wins: 0, kills: 0, seconds: 0, winsByDanger: {}, winsByMap: {}, seen: [], killed: {}, weaponsUsed: [], weaponsMaxed: [], weaponsEvolved: [], merges: [], passivesMaxed: [], achievements: [], trials: [] };
 }
 
 // ───────────────────────── 从对局里摘要 ─────────────────────────
@@ -111,6 +114,9 @@ export class RunTally {
   hurts = 0;
   chests = 0;
   blocks = 0;
+  /** 打倒几只精英、进化几次（周目标用） */
+  elites = 0;
+  evolves = 0;
 
   feed(w: World): void {
     const e = w.ev;
@@ -122,9 +128,11 @@ export class RunTally {
           this.killsByKind[kind] = (this.killsByKind[kind] ?? 0) + 1;
           this.seenSet.add(kind);
         }
+        if (e.b[i] === 1) this.elites++;
       } else if (t === Ev.Hurt) this.hurts++;
       else if (t === Ev.Chest) this.chests++;
       else if (t === Ev.Block) this.blocks++;
+      else if (t === Ev.Evolve) this.evolves++;
     }
     // 场上出现过就算见过；半秒扫一遍够了（怪最少活好几秒）
     if (w.tick % 15 === 0) {
@@ -205,6 +213,15 @@ export function applyRun(records: Records, run: RunSummary): { records: Records;
   return { records: r, unlocked };
 }
 
+/** 通关一关试炼：记下来，看各档全通的成就（守夜、夜探的试炼都走这里） */
+export function recordTrial(records: Records, id: TrialId): { records: Records; unlocked: string[] } {
+  if (records.trials.includes(id)) return { records, unlocked: [] };
+  const r: Records = { ...records, trials: [...records.trials, id] };
+  const unlocked = trialUnlocks(r).filter((a) => !r.achievements.includes(a));
+  r.achievements = [...r.achievements, ...unlocked];
+  return { records: r, unlocked };
+}
+
 /** 总收集度：怪见过 1 + 打倒过 1；法器用过、满级、进化各 1；合成 1；成就 1。返回已得 / 总数 / 百分比（整数） */
 export function collection(r: Records): { done: number; total: number; percent: number } {
   const total = COUNT_KINDS.length * 2 + WEAPON_IDS.length * 3 + COUNT_MERGES.length + ACHIEVEMENTS.length;
@@ -252,6 +269,7 @@ export function sanitize(raw: unknown): Records {
       o.achievements,
       ACHIEVEMENTS.map((a) => a.id),
     ),
+    trials: pick(o.trials, TRIAL_IDS),
   };
 }
 
