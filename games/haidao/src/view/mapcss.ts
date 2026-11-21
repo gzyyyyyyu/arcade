@@ -261,6 +261,8 @@ ${U} .hd-map .hd-nextflag { position:absolute; left:50%; top:-22px; translate:-5
 ${U} .hd-map button.hd-node-go { position:absolute; z-index:2; min-width:76px; min-height:48px; padding:0 14px; font-size:16px; animation:hd-nextbob 1.4s ease-in-out infinite; }
 ${U} .hd-map button.hd-node-go.r { translate:70px -50%; }
 ${U} .hd-map button.hd-node-go.l { translate:calc(-100% - 70px) -50%; }
+/* 岛面板开着时面板里已经有「出发」：岛旁那颗收起，同屏不出两颗出发 */
+${U} .hd-map:has(> .hd-sheet) button.hd-node-go { visibility:hidden; }
 /* 光圈的外发光会漫到名牌上把字洗白：名牌压在光圈上面 */
 ${U} .hd-map .hd-node.next span.hd-lb { position:relative; z-index:1; }
 @keyframes hd-nextbob { 0%,100% { margin-top:0; } 50% { margin-top:-5px; } }

@@ -175,6 +175,12 @@ describe('收获感', () => {
       const r = rollDrops(seed, win(3), 'c05', owned, true);
       expect(r.some((x) => x.kind === 'cosmetic' && x.id === 'deco:statue')).toBe(false);
     }
+    // 主寨 1 级只开放了水手、火枪手：稀有掉落里不出别的兵种的皮肤
+    for (let seed = 0; seed < 200; seed++) {
+      for (const x of rollDrops(seed, win(3), 'c05', [], true, 1)) {
+        if (x.kind === 'cosmetic' && x.id.startsWith('skin:')) expect(['sailor', 'gunner']).toContain(x.id.split(':')[1]);
+      }
+    }
     // 普通掉落：1 个金币或木材箱
     const common = rollDrops(5, win(1), 'c03').filter((x) => x.kind !== 'cosmetic');
     expect(common).toHaveLength(1);

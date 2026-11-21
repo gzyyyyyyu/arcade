@@ -86,6 +86,19 @@ export function lackText(cost: Res, have: Res): string {
   return parts.length ? `还差 ${parts.join('，')}` : '';
 }
 
+/**
+ * 出海前的仓库提醒：这座岛预计掠夺的（还没算三星奖励、连胜加成和掉落）已经比仓库剩下的位置多，
+ * 就提醒先回家花掉（不然赢了也白丢：新号第三座岛三星白丢过 1,666 金）。
+ */
+export function roomText(loot: Res, have: Res, cap: Res): string {
+  const f = (n: number): string => Math.floor(n).toLocaleString('en-US');
+  const room = { gold: Math.max(0, cap.gold - have.gold), wood: Math.max(0, cap.wood - have.wood) };
+  const parts: string[] = [];
+  if (loot.gold > room.gold) parts.push(`${f(room.gold)} 金币`);
+  if (loot.wood > room.wood) parts.push(`${f(room.wood)} 木材`);
+  return parts.length ? `仓库只装得下 ${parts.join('、')}，先回家花掉` : '';
+}
+
 /** 建造卡名额满了以后，主寨升到哪一级才有更多名额（limits 按主寨 1 级起逐级给这种建筑的名额）；到顶了返回 null */
 export function nextSlotHq(limits: number[], hq: number): number | null {
   const cur = limits[hq - 1] ?? 0;

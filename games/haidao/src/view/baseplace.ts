@@ -171,7 +171,7 @@ export function tap(bs: BaseScene, wx: number, wy: number, mouse = false): void 
 }
 
 // ---- 建造
-export function openBuild(bs: BaseScene): void {
+export function openBuild(bs: BaseScene, focus?: BuildingKind): void {
   const p = app.profile;
   const hq = hqLevel(p);
   const { box, body } = openSheet(bs, '建造', 'build');
@@ -229,8 +229,9 @@ export function openBuild(bs: BaseScene): void {
       startPlace(bs, k);
     });
   }
-  // 26 种建筑一页放不下：按抽屉高度翻页；新手引导要点的金库那页先开
-  paginate(box, [...grid.children] as HTMLElement[], grid, tutStep() === 1 ? bs.buildCards.get('vault') : null);
+  // 26 种建筑一页放不下：按抽屉高度翻页；新手引导要点的金库那页、主寨升级后新开放的那页先开
+  const show = tutStep() === 1 ? 'vault' : focus;
+  paginate(box, [...grid.children] as HTMLElement[], grid, show ? bs.buildCards.get(show) : null);
 }
 
 // ---- 摆放（建造新建筑、移动）：按格吸附，虚影下的每一格涂绿 / 红，底栏写能不能放和原因。
