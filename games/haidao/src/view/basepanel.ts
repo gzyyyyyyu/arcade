@@ -1,3 +1,5 @@
+import { intelButton } from './intelcard.ts';
+import { DEFENSE_CARD_KINDS, defenseCard } from './intel.ts';
 import type { BaseScene } from './BaseScene.ts';
 import { BUILDINGS } from '../content/index.ts';
 import { TD_TROPHIES, hqLevel, rankOf, tdChapterCleared, totalStars, upgradeCost, hasBranches, chooseBranch, upgrade, presetLayout, islandExt } from '../core/index.ts';
@@ -16,11 +18,11 @@ import { renderLayout } from './mini.ts';
 import { tutAdv } from './tutorial.ts';
 import { el, img, button, toast, paginate, confirmBox } from './ui.ts';
 import { dismiss, removeNow } from './transitions.ts';
-import { closeRing, closeCtx, drawSel, act, whyNot, collectAll } from './basemenu.ts';
+import { closeRing, closeCtx, drawSel, act, whyNot } from './basemenu.ts';
 import { cancelPlace, startPlace } from './baseplace.ts';
 import { SHORT } from './basecommon.ts';
 import { focusPanel } from './basegeom.ts';
-import { unlockBlock, researchList, doCollect } from './baseupgrade.ts';
+import { unlockBlock, researchList, doCollect, claimAll } from './baseupgrade.ts';
 import { openMap } from './basenav.ts';
 import { rankBlock } from './rankui.ts';
 import { rankTitle } from './ranktext.ts';
@@ -95,6 +97,11 @@ export function openInfo(bs: BaseScene, id: number): void {
   if (!b) return;
   const def = BUILDINGS[b.kind];
   const { box, body } = openSheet(bs, `${def.name}  ${b.level} 级`, `info:${id}`);
+  // 防御的介绍卡片：钮放在标题栏 × 左边（放在内容里会把手机横屏的面板顶出一屏）
+  if (DEFENSE_CARD_KINDS.includes(b.kind)) {
+    const head = box.querySelector<HTMLElement>('.hd-head')!;
+    head.insertBefore(intelButton('i 介绍', () => defenseCard(b.kind, b.level), head), head.querySelector('.hd-x'));
+  }
   // 面板内容在这个函数里填完，量高度要等它返回
   queueMicrotask(() => {
     if (bs.sheet === box) focusPanel(bs, id);
@@ -198,7 +205,7 @@ function upBox(bs: BaseScene, parent: HTMLElement, b: Placed, cost: Res): void {
   const lackG = cost.gold > p.res.gold;
   const lackW = cost.wood > p.res.wood;
   const collectThen = (): void => {
-    collectAll(bs);
+    claimAll(bs, false);
     openInfo(bs, id);
   };
   let go: [string, () => void] | null = null;

@@ -81,7 +81,7 @@ ${W} .hd-sheet .troops .hd-rs-grid { grid-template-columns:repeat(5,minmax(0,1fr
 ${W} .hd-sheet .skills .hd-rs-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
 ${W} .hd-sheet .hero .hd-rs-grid { grid-template-columns:minmax(0,1fr); }
 ${W} .hd-sheet .hd-btn.hd-rs-card { position:relative; min-height:44px; min-width:0; padding:4px; gap:2px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; font-size:12px; line-height:1.15; text-align:center; border-width:2px; }
-${W} .hd-sheet .hd-btn.hd-rs-card:disabled { filter:none; opacity:1; background:rgba(150,100,40,.16); box-shadow:none; }
+${W} .hd-sheet .hd-btn.hd-rs-card.na { filter:none; opacity:1; background:rgba(150,100,40,.16); box-shadow:none; }
 ${W} .hd-sheet .hd-btn.hd-rs-card.ok { background:var(--hd-wood),linear-gradient(#ffe58a,#e0a824); }
 ${W} .hd-sheet .hd-rs-top { display:flex; align-items:center; justify-content:center; gap:4px; }
 ${W} .hd-sheet .hd-rs-top > .hd-img { height:30px !important; width:auto !important; flex:none; }

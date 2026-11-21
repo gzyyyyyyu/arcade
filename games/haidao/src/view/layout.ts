@@ -318,5 +318,19 @@ ${LAND} {
   ${W} .hd-result > .hd-big { font-size:28px; }
   ${W} .hd-result > .hd-stars .hd-img { width:44px !important; height:44px !important; }
 }
+/* 一键收取：浮在底栏正上方居中（底栏收起时跟着收）；手机横屏底栏是右侧一竖列，它挂在竖列左边 */
+${W} .hd-base .hd-bottom > .hd-claimfab { position:absolute; left:50%; bottom:100%; transform:translateX(-50%); margin-bottom:8px; display:none; flex:none; flex-direction:row; width:auto; max-width:none; height:auto; align-items:center; gap:4px; min-height:44px; padding:0 14px; white-space:nowrap; font-size:14px; pointer-events:auto; }
+${W} .hd-base .hd-bottom > .hd-claimfab.on { display:inline-flex; }
+${W} .hd-base .hd-claimfab .hd-claim-t { font-weight:900; margin-right:4px; }
+${W} .hd-base .hd-claimfab b { margin-right:4px; }
+${LAND} {
+  ${W} .hd-base .hd-bottom > .hd-claimfab { left:auto; right:calc(100% + 8px); bottom:auto; top:0; transform:none; margin:0; }
+}
+${W} .hd-claim h2 { margin:0 0 10px; font-size:20px; }
+${W} .hd-claim-list { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+${W} .hd-claim-row { display:flex; align-items:center; gap:8px; font-size:16px; }
+${W} .hd-claim-row.left b { font-size:14px; font-weight:600; color:#8a4b1a; }
+${W} .hd-claim-row.badge b { color:#7a5a2e; }
+
 `;
 }

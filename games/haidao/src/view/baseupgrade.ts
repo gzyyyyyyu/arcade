@@ -1,7 +1,9 @@
+import { attachIntel } from './intelcard.ts';
+import { troopCard } from './intel.ts';
 import type { BaseScene } from './BaseScene.ts';
 import { TD2_HERO_SKILL } from '../content/td2units.ts';
 import { BUILDINGS, TROOPS, SKILLS, HQ_LEVELS } from '../content/index.ts';
-import { heroCap, heroLevel, navUnlocked, heroResearchCost, hqLevel, researchLevel, research, researchCost, researchHero, totalStars, upgrade, upgradeCost, collect } from '../core/index.ts';
+import { heroCap, heroLevel, navUnlocked, heroResearchCost, hqLevel, researchLevel, research, researchCost, researchHero, totalStars, upgrade, upgradeCost, collect, collectAll } from '../core/index.ts';
 import type { TroopKind, SkillKind, Placed, Res } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { runAchievements } from './meta.ts';
@@ -161,12 +163,14 @@ export function researchList(bs: BaseScene, body: HTMLElement, armoryId: number)
     const cost = researchCost(k, cur);
     const r = research(p, k);
     const status = def.unlockHq > hq ? `主寨 ${def.unlockHq} 级解锁` : r.ok ? null : cardWhy(bs, r.error, cost, '已满级', '先升级军械所');
-    researchCard(isTroop ? troops : skills, isTroop ? tArt(k as TroopKind, 'idle') : iconA(k as SkillKind), def.name, cur, cost, r.ok, status, () => {
+    const card = researchCard(isTroop ? troops : skills, isTroop ? tArt(k as TroopKind, 'idle') : iconA(k as SkillKind), def.name, cur, cost, r.ok, status, () => {
       const rr = research(app.profile, k);
       if (!rr.ok) return toast(short(bs, rr.error, cost));
       app.commit(rr.value);
       reopen();
-    }).title = r.ok ? `升到 ${cur + 1} 级` : short(bs, r.error, cost);
+    });
+    card.title = r.ok ? `升到 ${cur + 1} 级` : short(bs, r.error, cost);
+    if (isTroop) attachIntel(card, () => troopCard(k as TroopKind, researchLevel(app.profile, k)));
   }
   heroCard(bs, group('英雄', 'hero'), reopen);
 }
@@ -181,8 +185,9 @@ function cardWhy(bs: BaseScene, error: string, cost: Res, max: string, needArmor
 
 /** 一张研究卡：图标、名字、等级，下面一行是下一级花费（缺的标红）或灰着的原因 */
 function researchCard(parent: HTMLElement, icon: ArtPiece, name: string, lv: number, cost: Res, ok: boolean, status: string | null, run: () => void): HTMLButtonElement {
-  const c = button('', `hd-rs-card${ok ? ' ok' : ''}`, run, parent, null);
-  c.disabled = !ok;
+  // 升不了的卡不设 disabled（禁用的按钮收不到长按、右键，看不了介绍）：点了由 run 弹原因
+  const c = button('', `hd-rs-card${ok ? ' ok' : ' na'}`, run, parent, null);
+  c.setAttribute('aria-disabled', String(!ok));
   // 图标和等级小牌并排一行，名字、花费各一行，卡才矮得下来
   const top = el('span', 'hd-rs-top', undefined, c);
   top.appendChild(img(icon, 32));
@@ -289,3 +294,61 @@ export function doCollect(bs: BaseScene, id: number): void {
   }
   bs.refresh();
 }
+
+/**
+ * 一键收取（主寨顶栏的「收取」、键盘 C、升级面板里的「先收」）：金矿、伐木场全部收进仓库，顺带结算达成的成就；
+ * summary = true 时弹一个汇总框（收了多少、仓库满了留在矿里多少、新徽章），false 只飘字（升级面板里收完接着升级用）。
+ */
+export function claimAll(bs: BaseScene, summary = true): void {
+  const p0 = app.profile;
+  const r = collectAll(p0);
+  const ach = runAchievements(r.profile);
+  if (!r.ids.length && !ach.fresh.length) {
+    if (r.left.gold + r.left.wood > 0) {
+      sfx('error');
+      return toast('仓库满了，先花掉一些或升级金库、木料场');
+    }
+    return toast('现在没有能收的');
+  }
+  app.commit(ach.profile);
+  tutAdv(0);
+  const flown = new Set<string>();
+  for (const id of r.ids) {
+    const n = bs.nodes.get(id);
+    const b = p0.base.buildings.find((q) => q.id === id);
+    if (!n || !b) continue;
+    const k: 'gold' | 'wood' = b.kind === 'goldmine' ? 'gold' : 'wood';
+    const was = Math.floor(b.stored ?? 0);
+    const now = Math.floor(r.profile.base.buildings.find((q) => q.id === id)?.stored ?? 0);
+    floatText(bs, bs.r, bs.cc.z, n.img.x, topOf(bs, n), `+${fmt(was - now)}`, k === 'gold' ? '#ffe885' : '#f0b878', 22);
+    // 每种资源只飞一次（从收得最多的那座起飞），十几座一起飞眼花
+    if (!flown.has(k)) {
+      flown.add(k);
+      collectFly(bs, k, screenOf(bs, n.img.x, topOf(bs, n)), p0.res[k], r.profile.res[k]);
+    }
+  }
+  if (r.got.gold) sfx('coin');
+  else if (r.got.wood) sfx('wood');
+  bs.refresh();
+  if (summary) claimSummary(r.got, r.left, ach.fresh);
+  else if (ach.fresh.length) badgePopup(ach.fresh);
+}
+
+function claimSummary(got: Res, left: Res, badges: Array<{ name: string; desc: string; tier: 'bronze' | 'silver' | 'gold' }>): void {
+  const mask = openModal({ cls: 'hd-claim-mask', closable: true });
+  const dlg = el('div', 'hd-dialog hd-claim', undefined, mask);
+  el('h2', '', '全部收好了', dlg);
+  const list = el('div', 'hd-claim-list', undefined, dlg);
+  const row = (icon: ArtPiece, text: string, cls = ''): void => {
+    const r = el('div', `hd-claim-row ${cls}`, undefined, list);
+    r.appendChild(img(icon, 28));
+    el('b', 'hd-n', text, r);
+  };
+  if (got.gold) row(iconA('gold'), `+${fmt(got.gold)} 金币`);
+  if (got.wood) row(iconA('wood'), `+${fmt(got.wood)} 木材`);
+  if (left.gold) row(iconA('gold'), `金库满了，金矿里还留着 ${fmt(left.gold)}`, 'left');
+  if (left.wood) row(iconA('wood'), `木料场满了，伐木场里还留着 ${fmt(left.wood)}`, 'left');
+  for (const b of badges) row(iconA('star'), `新徽章：${b.name}`, 'badge');
+  button('好', 'hd-btn-gold', () => mask.remove(), dlg, 'confirm');
+}
+

@@ -10,6 +10,7 @@ export {
   canPlace,
   capacity,
   collect,
+  collectAll,
   hqLevel,
   islandExt,
   move,

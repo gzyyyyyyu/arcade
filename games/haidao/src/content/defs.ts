@@ -51,8 +51,11 @@ export interface TroopDef {
   unlockHq: number;
   desc: string;
   levels: TroopLevel[];
-  prefers?: 'defense' | 'any';
+  /** 挑目标的方式（core/battle.ts 的 pickTarget 按它走，介绍卡片也读它）：最近的建筑 / 先找防御塔 / 附近有墙先炸墙 / 挑一雷炸得最多的 / 不打建筑、跟着给伤员回血 */
+  aim: TroopAim;
 }
+
+export type TroopAim = 'nearest' | 'defense' | 'wallFirst' | 'cluster' | 'heal';
 
 export interface SkillLevel {
   energy: number;

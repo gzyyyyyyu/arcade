@@ -1,4 +1,7 @@
 /** 部署与输入：顶栏 / 船卡 / 技能钮、点沙滩登陆与放技能、悬停高亮、选择状态、航线一站的顶栏、教程提示 */
+import { inspectAt } from './battleinspect.ts';
+import { attachIntel } from './intelcard.ts';
+import { troopCard } from './intel.ts';
 import { SKILLS, TROOPS } from '../content/index.ts';
 import { battleResult, canLand } from '../core/index.ts';
 import { MAP_LAYERS, MAP_STOP_TICKS } from '../core/maptypes.ts';
@@ -129,6 +132,7 @@ export function renderCards(bs: BattleScene): void {
     c.appendChild(img(tArt(g.troop, 'idle'), tight ? 44 : 56));
     el('span', 'hd-nm', done ? TROOPS[g.troop].name : `${TROOPS[g.troop].name} ×${total}`, c);
     el('small', '', done ? `已出发 ${g.idx.reduce((n, i) => n + army.boats[i]!.count, 0)}` : `${left.length} 船待命`, c);
+    attachIntel(c, () => troopCard(g.troop, army.boats[g.idx[0]!]?.level ?? 1));
     c.addEventListener('click', () => {
       if (done || s.over) return;
       // 再点已选中的卡不取消：出完一船再点卡是常见手势，取消了之后点沙滩就没反应；取消用右键、Esc 或点技能
@@ -215,9 +219,9 @@ export function tap(bs: BattleScene, wx: number, wy: number): void {
   if (bs.selBoat < 0 && bs.selSkill < 0) {
     // 什么都没选就点了沙滩：替玩家选上第一组还有船的卡、提示再点一下，这一下不出船（免得误放）
     const gi = bs.groups.findIndex((q) => q.idx.some((i) => s.landed[i] !== true));
-    // 点在一座敌方防御上：画它的射程和盲区（battleranges.ts）
+    // 点在兵或敌方防御上：选中看它的射程圈、在打谁和介绍卡（battleinspect.ts）；别的防御照旧只闪一下射程
     if (!snap) {
-      pickReach(bs, g0.gx, g0.gy);
+      if (!inspectAt(bs, wx, wy)) pickReach(bs, g0.gx, g0.gy);
       return;
     }
     if (gi < 0) return;

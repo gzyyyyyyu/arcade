@@ -50,11 +50,12 @@ export function levelArt(level: number): ArtPiece[] {
 }
 
 /**
- * 开局一次性烘焙的素材。为了控制纹理内存（全部 2 倍烘焙 ≤ 60 MB），默认只带建筑 1–2 级（城墙只 1 级）和兵种动画帧；
- * 更高等级用 `levelArt(n)` 按需补烘焙，皮肤帧用 `troopFrames(kind, anim, skin)` 按需补烘焙。
- * opts.maxLevel：带到第几级（默认 2，最多 8）；opts.legacyTroops：带上旧的 troopArt 四个静态姿势（默认不带）。
+ * 烘成纹理的通用素材。为了控制纹理内存（全部 2 倍烘焙 ≤ 60 MB），默认只带建筑 1–2 级（城墙只 1 级）和兵种动画帧；
+ * 更高等级用 `levelArt(n)` 按需补烘焙，皮肤帧用 `troopFrames(kind, anim, skin)` 按需补烘焙。海图的岛、纪念章只进 DOM（ui.ts 的 img），不烘。
+ * opts.maxLevel：带到第几级（默认 2，最多 8）；opts.legacyTroops：带上旧的 troopArt 四个静态姿势（默认不带）；
+ * opts.troops = false：不带兵的动作帧（开局用，兵帧见 troopArt3）。
  */
-export function allArt(opts: { maxLevel?: number; legacyTroops?: boolean } = {}): ArtPiece[] {
+export function allArt(opts: { maxLevel?: number; legacyTroops?: boolean; troops?: boolean } = {}): ArtPiece[] {
   const maxLevel = Math.max(1, Math.min(ART_MAX_LEVEL, opts.maxLevel ?? 2));
   const out: ArtPiece[] = [];
   for (const k of BUILDING_KINDS) {
@@ -63,15 +64,19 @@ export function allArt(opts: { maxLevel?: number; legacyTroops?: boolean } = {})
   }
   out.push(krakenArt('slam', 1));
   if (opts.legacyTroops) for (const k of TROOP_KINDS) for (const p of POSES) out.push(troopArt(k, p));
-  for (const k of TROOP_KINDS) for (const an of ['idle', 'walk', 'attack'] as const) out.push(...troopFrames(k, an));
+  if (opts.troops !== false) out.push(...troopArt3());
   for (const k of COAST_KINDS) out.push(coastArt(k));
   for (const k of DECO_KINDS) out.push(decoArt(k));
   for (const k of FX_FRAME_KINDS) out.push(...fxFrames(k));
   for (const k of FX_KINDS) out.push(fxArt(k));
   for (const k of ICON_KINDS) out.push(iconArt(k));
-  for (let v = 0; v < 30; v++) out.push(mapIslandArt(v));
+  // 海图点缀里的海鸥、远处的船也飘在基地的海上（ambient.ts），要烘；海图的岛只进 DOM，不烘
   for (const k of MAP_DECO_KINDS) out.push(mapDecoArt(k));
-  for (const t of ['bronze', 'silver', 'gold'] as const) out.push(badgeArt(t));
   out.push(shipArt('raft'), shipArt('flagship'));
   return out;
+}
+
+/** 兵的三组动作帧（只有登陆战、守岛用）：开局不烘，基地就绪后在后台烘（main.ts 的 warmField） */
+export function troopArt3(): ArtPiece[] {
+  return TROOP_KINDS.flatMap((k) => (['idle', 'walk', 'attack'] as const).flatMap((an) => troopFrames(k, an)));
 }

@@ -15,7 +15,9 @@ import { battleData } from './view/battlestart.ts';
 import { TdScene, prepareTd, prepareTide } from './view/TdScene.ts';
 import { checkRaided } from './view/pvp.ts';
 import { piecesFor, tdPieces, troopF } from './view/art.ts';
-import { bakeAll, bakeAtlas, ensureArt } from './view/textures.ts';
+import { bakeAll, bakeAtlas, bakeIdle, ensureArt, withTip } from './view/textures.ts';
+import { pruneArt } from './view/artcache.ts';
+import { troopArt3 } from './view/art/index.ts';
 import { ensureTurrets } from './view/turret.ts';
 import { RIG_TEX } from './view/rigsprite.ts';
 import { rigAllPieces } from './view/art/rigparts.ts';
@@ -49,6 +51,29 @@ function loadWithOffline(): void {
   app.save = s;
 }
 
+let field: Promise<void> | null = null;
+let fieldDone = false;
+let hurry = false;
+/**
+ * 兵的动作帧和分件骨架图集（只有登陆战、守岛用）：开局不烘，基地就绪后在后台一张张烘；进登陆战、守岛前（urgent）等它烘完，
+ * 这时不再让出主线程、挂「装船中…」。烘完顺手清掉本机缓存里旧版本的图。失败了下次再从头来
+ */
+function warmField(urgent = true): Promise<void> {
+  const tm = app.game.textures;
+  if (urgent) hurry = true;
+  field ??= bakeIdle(tm, troopArt3(), app.r, () => hurry)
+    .then(() => bakeAtlas(tm, RIG_TEX, rigAllPieces(), app.r))
+    .then(() => {
+      fieldDone = true;
+      void pruneArt();
+    })
+    .catch((e: unknown) => {
+      field = null;
+      throw e;
+    });
+  return urgent && !fieldDone ? withTip(field) : field;
+}
+
 class BootScene extends Phaser.Scene {
   constructor() {
     super('boot');
@@ -68,9 +93,8 @@ class BootScene extends Phaser.Scene {
       if (fill) fill.style.width = `${pct}%`;
     };
     setProgress(0);
+    // 兵的帧和骨架图集不在这里烘（warmField）：打开海岛只等基地要用的图
     bakeAll(this.textures, app.r, (d, t) => setProgress(Math.round((d / t) * 100)))
-      // 兵和守岛敌人的分件骨架部件烘进一张图集（rigsprite.ts）
-      .then(() => bakeAtlas(this.textures, RIG_TEX, rigAllPieces(), app.r))
       .then(() => ensureArt(this.textures, piecesFor(app.profile.base.buildings), app.r))
       .then(() => {
         document.getElementById('boot')?.remove();
@@ -80,6 +104,7 @@ class BootScene extends Phaser.Scene {
           app.startBattle(id, q.has('auto'));
         } else {
           this.scene.start('base');
+          void warmField(false).catch(() => undefined);
           // 异步攻防：取回被打掉的 / 打来的资源，你不在时被打了就提示（冒烟的演示局不查）
           if (!app.volatile) {
             void checkRaided();
@@ -179,37 +204,39 @@ function main(): void {
     if (!data) return;
     const s = data.setup;
     // 敌岛里用到的（种类, 等级）没烘过的先烘，再开战；烘不出来也能开（用低等级顶替）
-    void Promise.all([ensureArt(game.textures, battlePieces(s), r), ensureTurrets(game.textures, s.layout, r)]).finally(() => toScene('battle', data));
+    void Promise.all([warmField(), ensureArt(game.textures, battlePieces(s), r), ensureTurrets(game.textures, s.layout, r)]).finally(() => toScene('battle', data));
   };
+  /** 守岛开局前等兵帧烘完；烘不出来也照开（和 ensureArt 一样，缺图用顶替） */
+  const field0 = (): Promise<void> => warmField().catch(() => undefined);
   app.startTdLevel = (levelId) => {
-    void prepareTd(levelId, game.textures, r).then((res) => {
+    void field0().then(() => prepareTd(levelId, game.textures, r)).then((res) => {
       if (res.ok) toScene('td', res.data);
       else toast(res.error === 'locked' ? '这一关还没解锁' : '开不了这一关');
     });
   };
   app.startEscortLive = (levelId, setup, tier) => {
-    void prepareTd(levelId, game.textures, r, { setup, tier }).then((res) => {
+    void field0().then(() => prepareTd(levelId, game.textures, r, { setup, tier })).then((res) => {
       if (res.ok) toScene('td', res.data);
       else toast('开不了这一局');
     });
   };
   app.startTdTide = () => {
-    void prepareTide(game.textures, r).then((data) => toScene('td', data));
+    void field0().then(() => prepareTide(game.textures, r)).then((data) => toScene('td', data));
   };
   app.startTdLive = (setup, tier) => {
     // 悬赏守岛：岛是固定模板，素材和战役守岛同一批
-    void Promise.all([ensureArt(game.textures, tdPieces(), r), ensureTurrets(game.textures, setup.layout, r)])
+    void Promise.all([warmField(), ensureArt(game.textures, tdPieces(), r), ensureTurrets(game.textures, setup.layout, r)])
       .catch(() => undefined)
       .finally(() => toScene('td', { levelId: 'tdlive', setup, speed: q.has('fast') ? 4 : 1, live: { tier } }));
   };
   app.startPvp = (setup, pvp) => {
     const data: BattleData = { levelId: 'pvp', setup, auto: false, settle: false, speed: q.has('fast') ? 4 : 1, pvp };
     // 对手岛上的（种类, 等级）没烘过的先烘，和 startBattle 一样
-    void Promise.all([ensureArt(game.textures, battlePieces(setup), r), ensureTurrets(game.textures, setup.layout, r)]).finally(() => toScene('battle', data));
+    void Promise.all([warmField(), ensureArt(game.textures, battlePieces(setup), r), ensureTurrets(game.textures, setup.layout, r)]).finally(() => toScene('battle', data));
   };
   app.startMapStop = (setup, map) => {
     const data: BattleData = { levelId: 'map', setup, auto: false, settle: false, speed: q.has('fast') ? 4 : 1, map };
-    void Promise.all([ensureArt(game.textures, battlePieces(setup), r), ensureTurrets(game.textures, setup.layout, r)]).finally(() => toScene('battle', data));
+    void Promise.all([warmField(), ensureArt(game.textures, battlePieces(setup), r), ensureTurrets(game.textures, setup.layout, r)]).finally(() => toScene('battle', data));
   };
   // 测试辅助：音效触发统计（每种请求 / 放出 / 被限频或并发上限丢掉几次）和最近 40 次；只读计数，不影响声音
   // 测试辅助：手动按固定帧长推帧（录 60 帧视频，不受没有 GPU 时实际帧率的影响）

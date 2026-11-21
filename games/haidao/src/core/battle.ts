@@ -26,6 +26,7 @@ import type {
   BattleSetup,
   BattleState,
   Placed,
+  TroopKind,
 } from './types.ts';
 
 /** 延迟结算的命中：炮弹飞行时间到了才算伤害 */
@@ -122,7 +123,9 @@ interface Internal {
 
 const ENERGY_CAP = 20;
 /** DESIGN 10.2b：掷弹兵找目标比射程多看几格；船医只就近挑伤员的范围；远程兵等盾的距离差和最长等待 */
-const GRENADE_LOOK = 300;
+export const GRENADE_LOOK = 300;
+/** 炸药兵先找墙的范围（单位）：这么近有墙就先炸墙 */
+export const BOMBER_WALL_LOOK = 600;
 const MEDIC_REACH = 600;
 const ESCORT_GAP = 150;
 const ESCORT_HOLD_MAX = 60;
@@ -130,7 +133,7 @@ const RANGED_KINDS: ReadonlySet<string> = new Set(['gunner', 'harpooner', 'canno
 /** 兵要砸一段墙的代价（相当于绕多远的路） */
 const WALL_COST = 7;
 /** 炸药兵炸墙的伤害倍数 */
-const WALL_BOMB_MUL = 3;
+export const WALL_BOMB_MUL = 3;
 /** 掷弹兵的手雷炸到城墙只算百分之几（DESIGN 13：墙挡不住雷，但拆墙仍然慢） */
 export const GRENADE_WALL_PCT = 30;
 /** 手雷每拍飞多远（单位）、最少飞几拍（抛物线，近处也要看得见） */
@@ -436,23 +439,23 @@ function pickTarget(s: BattleState, u: BUnit): number {
       }
     }
   };
-  if (u.kind === 'bomber') {
-    // 炸药兵优先炸墙：附近 6 格内有墙就先去炸最近的一段
+  if (def.aim === 'wallFirst') {
+    // 炸药兵优先炸墙：附近 BOMBER_WALL_LOOK 内有墙就先去炸最近的一段
     for (const b of s.buildings) {
       if (b.destroyed || b.kind !== 'wall') continue;
       const d = d2Rect(u.x, u.y, b);
-      if (d <= 600 * 600 && d < bestD) {
+      if (d <= BOMBER_WALL_LOOK * BOMBER_WALL_LOOK && d < bestD) {
         bestD = d;
         best = b.id;
       }
     }
     if (best >= 0) return best;
   }
-  if (u.kind === 'grenadier') {
+  if (def.aim === 'cluster') {
     const id = pickGrenadeTarget(s, u);
     if (id >= 0) return id;
   }
-  if (def.prefers === 'defense') scan(true);
+  if (def.aim === 'defense') scan(true);
   if (best < 0) scan(false);
   return best;
 }
@@ -978,21 +981,39 @@ function unitSpeed(s: BattleState, u: BUnit, speed: number): number {
 }
 
 /** 等级表 + 分叉 → 数值。和守岛 td.ts 的 statsOf 同一套算法，加减按 RAID_BRANCH_PCT 打折；登陆战没有飞的、没有铁甲和雾船，防空、穿甲、灯塔在这里不起作用 */
+/** 登陆战里一座防御的基础数值（没选分叉、难度 100%）：溅射半径、几发都在这里定。buildingStats 在它上面加分叉和难度，介绍卡片直接读它 */
+export function raidDefenseBase(kind: BuildingKind, level: number): { dmg: number; range: number; minRange: number; reload: number; splash: number; shots: number; stun: number; slowPct: number } {
+  const lv = BUILDINGS[kind].levels[level - 1];
+  const splashKind = kind === 'mortar' || kind === 'flame' || kind === 'rocket' || kind === 'kraken' || kind === 'mine' || kind === 'tar' || kind === 'shock';
+  return {
+    dmg: lv?.dmg ?? 0,
+    range: Math.round((lv?.range ?? 0) * UNIT),
+    minRange: Math.round((lv?.minRange ?? 0) * UNIT),
+    reload: Math.max(4, lv?.reload ?? 20),
+    splash: splashKind ? Math.round((lv?.splash ?? (kind === 'kraken' ? 1.8 : kind === 'rocket' ? 0.8 : 1)) * UNIT) : 0,
+    shots: kind === 'rocket' ? 3 : 1,
+    stun: lv?.stun ?? 0,
+    // 焦油本身就是减速一半
+    slowPct: kind === 'tar' ? 50 : 0,
+  };
+}
+
 function buildingStats(s: BattleState, b: BBuilding): BStats {
   const I = inner(s);
   const hit = I.stats.get(b.id);
   if (hit) return hit;
   const lv = BUILDINGS[b.kind].levels[b.level - 1];
   const kind: BuildingKind = b.kind;
-  const splashKind = kind === 'mortar' || kind === 'flame' || kind === 'rocket' || kind === 'kraken' || kind === 'mine' || kind === 'tar' || kind === 'shock';
+  const base = raidDefenseBase(kind, b.level);
+  const splashKind = base.splash > 0;
   let dmgPct = 100;
   let reloadPct = 100;
   let rangePct = 100;
-  let splash = splashKind ? Math.round((lv?.splash ?? (kind === 'kraken' ? 1.8 : kind === 'rocket' ? 0.8 : 1)) * UNIT) : 0;
-  let shots = kind === 'rocket' ? 3 : 1;
+  let splash = base.splash;
+  let shots = base.shots;
   let line = false;
   const fx: HitFx = { slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, burnR: 0, pull: 0 };
-  let stun = lv?.stun ?? 0;
+  let stun = base.stun;
   // 分叉的加减按 RAID_BRANCH_PCT 打折（向 0 取整）；持续时间不折
   const sc = (v: number | undefined): number => ((v ?? 0) * RAID_BRANCH_PCT / 100) | 0;
   for (const id of b.branch ?? []) {
@@ -1016,14 +1037,14 @@ function buildingStats(s: BattleState, b: BBuilding): BStats {
   if (fx.slowPct > 0 && fx.slowTicks === 0) fx.slowTicks = 40;
   // 焦油本身就是减速一半，分叉在这上面加
   if (kind === 'tar') {
-    fx.slowPct = Math.min(90, 50 + fx.slowPct);
+    fx.slowPct = Math.min(90, base.slowPct + fx.slowPct);
     fx.slowTicks += lv?.reload ?? 80;
   }
   fx.burnR = Math.max(100, splash);
   const st: BStats = {
-    dmg: Math.floor(((lv?.dmg ?? 0) * dmgPct * I.defPct) / 10_000),
-    range: Math.floor((Math.round((lv?.range ?? 0) * UNIT) * rangePct) / 100),
-    minRange: Math.round((lv?.minRange ?? 0) * UNIT),
+    dmg: Math.floor((base.dmg * dmgPct * I.defPct) / 10_000),
+    range: Math.floor((base.range * rangePct) / 100),
+    minRange: base.minRange,
     reload: Math.max(4, Math.floor(((lv?.reload ?? 20) * reloadPct) / 100)),
     splash,
     shots,
@@ -1099,9 +1120,11 @@ function nearestUnit(s: BattleState, x: number, y: number, r: number, minR: numb
   return best;
 }
 
-/** 狙击塔挑目标的优先级类：船长 > 船医 > 掷弹兵 / 火炮兵 > 其余（DESIGN 14）；必死的排到最后 */
+/** 狙击塔先打谁（DESIGN 14）：每组一档，靠前的先打，不在表里的排最后；必死的再往后排。介绍卡片也读这张表 */
+export const SNIPE_ORDER: readonly (readonly TroopKind[])[] = [['captain'], ['medic'], ['grenadier', 'cannoneer']];
 function snipeClass(u: BUnit): number {
-  return u.kind === 'captain' ? 0 : u.kind === 'medic' ? 1 : u.kind === 'grenadier' || u.kind === 'cannoneer' ? 2 : 3;
+  const i = SNIPE_ORDER.findIndex((g) => g.includes(u.kind));
+  return i < 0 ? SNIPE_ORDER.length : i;
 }
 
 /**

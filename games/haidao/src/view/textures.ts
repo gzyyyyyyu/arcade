@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { allArt, type ArtPiece } from './art/index.ts';
 import { h32, rng } from './art/grade.ts';
+import { type ArtMeta, artId, bitmapCanvas, loadArt, saveArt } from './artcache.ts';
 
 /** 每张纹理里不透明像素的外框（纹理像素）：血条贴着建筑真正的顶，引导高亮框框住真正的样子 */
 export interface Box {
@@ -115,10 +116,25 @@ function load(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** 把一张 SVG 按渲染倍数画进 canvas，注册成纹理（纹理尺寸 = w*r × h*r，贴出来时 setScale(1/r)） */
+/** 烘好的画布注册成纹理：建筑图按 clip 裁过透明边的，帧设成 trim（Phaser 按原尺寸算锚点、按偏移画） */
+function register(tm: Phaser.Textures.TextureManager, key: string, c: HTMLCanvasElement, meta: ArtMeta): void {
+  if (meta.box) boxes.set(key, meta.box);
+  const tex = tm.addCanvas(key, c);
+  if (meta.clip) tex?.get().setTrim(meta.w, meta.h, meta.clip.l, meta.clip.t, meta.clip.w, meta.clip.h);
+  baked.add(key);
+}
+
+/** 把一张 SVG 按渲染倍数画进 canvas，注册成纹理（纹理尺寸 = w*r × h*r，贴出来时 setScale(1/r)）；本机缓存里有就直接用（artcache.ts） */
 async function bake(tm: Phaser.Textures.TextureManager, p: ArtPiece, r: number): Promise<void> {
   if (tm.exists(p.key)) {
     baked.add(p.key);
+    return;
+  }
+  const id = artId(p.svg, r);
+  const hit = await loadArt(id);
+  if (hit) {
+    if (!tm.exists(p.key)) register(tm, p.key, bitmapCanvas(hit.bm), hit.meta);
+    else hit.bm.close();
     return;
   }
   const url = URL.createObjectURL(new Blob([p.svg], { type: 'image/svg+xml' }));
@@ -131,30 +147,55 @@ async function bake(tm: Phaser.Textures.TextureManager, p: ArtPiece, r: number):
     c.getContext('2d', { willReadFrequently: true })!.drawImage(im, 0, 0, c.width, c.height);
     finish(c, p.key, r);
     const { box, clip } = scanBox(c);
-    boxes.set(p.key, box);
     const cw = clip.r - clip.l + 1;
     const ch = clip.b - clip.t + 1;
+    const meta: ArtMeta = { w: c.width, h: c.height, box };
+    let out = c;
     // 只裁建筑图（b.*：场上同时最多、面积最大），省得少于一成的不裁
     if (p.key.startsWith('b.') && cw * ch < c.width * c.height * 0.9) {
-      const t = document.createElement('canvas');
-      t.width = cw;
-      t.height = ch;
-      t.getContext('2d')!.drawImage(c, clip.l, clip.t, cw, ch, 0, 0, cw, ch);
-      const tex = tm.addCanvas(p.key, t);
-      tex?.get().setTrim(c.width, c.height, clip.l, clip.t, cw, ch);
-    } else tm.addCanvas(p.key, c);
-    baked.add(p.key);
+      out = document.createElement('canvas');
+      out.width = cw;
+      out.height = ch;
+      out.getContext('2d')!.drawImage(c, clip.l, clip.t, cw, ch, 0, 0, cw, ch);
+      meta.clip = { l: clip.l, t: clip.t, w: cw, h: ch };
+    }
+    if (tm.exists(p.key)) return;
+    register(tm, p.key, out, meta);
+    saveArt(id, out, meta);
   } finally {
     URL.revokeObjectURL(url);
   }
 }
 
-/** 全部素材分批烘焙成纹理，全部完成才返回 */
+/** 开局素材（不含兵的动作帧）分批烘焙成纹理，全部完成才返回 */
 export async function bakeAll(tm: Phaser.Textures.TextureManager, r: number, onProgress?: (done: number, total: number) => void): Promise<void> {
-  const all = allArt();
+  const all = allArt({ troops: false });
   let done = 0;
   for (let i = 0; i < all.length; i += 24) {
     await Promise.all(all.slice(i, i + 24).map((p) => bake(tm, p, r).then(() => onProgress?.(++done, all.length))));
+  }
+}
+
+/** 后台烘焙：一张一张烘，每张之间让出主线程（等浏览器空闲，最多 100ms），基地照常流畅；hurry() 为真（有人等着进场）时不再让 */
+export async function bakeIdle(tm: Phaser.Textures.TextureManager, pieces: ArtPiece[], r: number, hurry: () => boolean): Promise<void> {
+  for (const p of pieces) {
+    if (baked.has(p.key) || tm.exists(p.key)) continue;
+    if (!hurry()) await new Promise<void>((res) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(() => res(), { timeout: 100 }) : setTimeout(res, 0)));
+    await bakeOnce(tm, p, r);
+  }
+}
+
+/** 等一件事时在屏幕上方挂「装船中…」，完了收起 */
+export async function withTip<T>(work: Promise<T>): Promise<T> {
+  const el = document.createElement('div');
+  el.className = 'hd-loading';
+  el.textContent = '装船中…';
+  el.style.cssText = 'position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:60;padding:6px 14px;border-radius:14px;background:rgba(10,30,50,.82);color:#fff;font:600 14px system-ui;pointer-events:none';
+  document.body.appendChild(el);
+  try {
+    return await work;
+  } finally {
+    el.remove();
   }
 }
 
@@ -165,18 +206,10 @@ export async function bakeAll(tm: Phaser.Textures.TextureManager, r: number, onP
  */
 export async function bakeAtlas(tm: Phaser.Textures.TextureManager, key: string, pieces: ArtPiece[], r: number): Promise<void> {
   if (tm.exists(key)) return;
-  const ims = await Promise.all(
-    pieces.map(async (p) => {
-      const url = URL.createObjectURL(new Blob([p.svg], { type: 'image/svg+xml' }));
-      try {
-        return { p, im: await load(url), w: Math.max(1, Math.round(p.w * r)), h: Math.max(1, Math.round(p.h * r)) };
-      } finally {
-        URL.revokeObjectURL(url);
-      }
-    }),
-  );
+  // 排版只看尺寸（不用等图）：缓存里的整张图集按同样的排版切帧
   const W = 2048;
   const PAD = 2;
+  const ims = pieces.map((p) => ({ p, w: Math.max(1, Math.round(p.w * r)), h: Math.max(1, Math.round(p.h * r)) }));
   const order = ims.map((_, i) => i).sort((a, b) => ims[b]!.h - ims[a]!.h);
   const at: Array<{ x: number; y: number }> = [];
   let x = PAD;
@@ -193,25 +226,43 @@ export async function bakeAtlas(tm: Phaser.Textures.TextureManager, key: string,
     x += it.w + PAD;
     rowH = Math.max(rowH, it.h);
   }
-  const c = document.createElement('canvas');
-  c.width = W;
-  c.height = y + rowH + PAD;
-  const cx = c.getContext('2d')!;
-  ims.forEach((it, i) => cx.drawImage(it.im, at[i]!.x, at[i]!.y, it.w, it.h));
-  // 炮塔会转的部分（炮管、喷嘴）补上和底座（finish）一样的左上暖、右下冷，不然炮头比底座平、比底座亮；不加颗粒
-  if (key.startsWith('tur.')) {
-    cx.globalCompositeOperation = 'source-atop';
-    ims.forEach((it, i) => {
-      const { x: ox, y: oy } = at[i]!;
-      const g = cx.createLinearGradient(ox, oy, ox + it.w, oy + it.h);
-      g.addColorStop(0, 'rgba(255,228,170,0.12)');
-      g.addColorStop(0.5, 'rgba(255,228,170,0)');
-      g.addColorStop(1, 'rgba(31,69,110,0.16)');
-      cx.fillStyle = g;
-      cx.fillRect(ox, oy, it.w, it.h);
-    });
-    cx.globalCompositeOperation = 'source-over';
+  const id = artId(`${key}|${pieces.map((p) => `${p.key}:${p.ax},${p.ay}:${p.svg}`).join('|')}`, r);
+  const hit = await loadArt(id);
+  let c: HTMLCanvasElement;
+  if (hit) c = bitmapCanvas(hit.bm);
+  else {
+    const loaded = await Promise.all(
+      pieces.map(async (p) => {
+        const url = URL.createObjectURL(new Blob([p.svg], { type: 'image/svg+xml' }));
+        try {
+          return await load(url);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      }),
+    );
+    c = document.createElement('canvas');
+    c.width = W;
+    c.height = y + rowH + PAD;
+    const cx = c.getContext('2d')!;
+    ims.forEach((it, i) => cx.drawImage(loaded[i]!, at[i]!.x, at[i]!.y, it.w, it.h));
+    // 炮塔会转的部分（炮管、喷嘴）补上和底座（finish）一样的左上暖、右下冷，不然炮头比底座平、比底座亮；不加颗粒
+    if (key.startsWith('tur.')) {
+      cx.globalCompositeOperation = 'source-atop';
+      ims.forEach((it, i) => {
+        const { x: ox, y: oy } = at[i]!;
+        const g = cx.createLinearGradient(ox, oy, ox + it.w, oy + it.h);
+        g.addColorStop(0, 'rgba(255,228,170,0.12)');
+        g.addColorStop(0.5, 'rgba(255,228,170,0)');
+        g.addColorStop(1, 'rgba(31,69,110,0.16)');
+        cx.fillStyle = g;
+        cx.fillRect(ox, oy, it.w, it.h);
+      });
+      cx.globalCompositeOperation = 'source-over';
+    }
+    saveArt(id, c, { w: c.width, h: c.height });
   }
+  if (tm.exists(key)) return;
   const tex = tm.addCanvas(key, c);
   if (!tex) return;
   ims.forEach((it, i) => {
@@ -241,15 +292,6 @@ export async function bakeSome(tm: Phaser.Textures.TextureManager, pieces: ArtPi
 export async function ensureArt(tm: Phaser.Textures.TextureManager, pieces: ArtPiece[], r: number): Promise<void> {
   const todo = pieces.filter((p) => !baked.has(p.key) && !tm.exists(p.key));
   if (!todo.length) return;
-  const el = document.createElement('div');
-  el.className = 'hd-loading';
-  el.textContent = '装船中…';
-  el.style.cssText = 'position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:60;padding:6px 14px;border-radius:14px;background:rgba(10,30,50,.82);color:#fff;font:600 14px system-ui;pointer-events:none';
-  document.body.appendChild(el);
-  try {
-    const seen = new Set<string>();
-    await Promise.all(todo.filter((p) => !seen.has(p.key) && seen.add(p.key)).map((p) => bakeOnce(tm, p, r).catch(() => undefined)));
-  } finally {
-    el.remove();
-  }
+  const seen = new Set<string>();
+  await withTip(Promise.all(todo.filter((p) => !seen.has(p.key) && seen.add(p.key)).map((p) => bakeOnce(tm, p, r).catch(() => undefined))));
 }

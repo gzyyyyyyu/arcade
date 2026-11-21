@@ -167,6 +167,32 @@ export function collect(p: Profile, id: number): Result<{ profile: Profile; got:
   return ok({ profile, got, kind });
 }
 
+/**
+ * 一键收：金矿、伐木场里攒的全部收进仓库（存量多的先收），仓库装满就停，剩下的留在矿里。
+ * got = 收进来多少，left = 因为仓库满了还留在矿里多少，ids = 收过的建筑（画面在这些建筑上飘字）。
+ */
+export function collectAll(p: Profile): { profile: Profile; got: Res; left: Res; ids: number[] } {
+  let cur = p;
+  const got: Res = { gold: 0, wood: 0 };
+  const ids: number[] = [];
+  const mines = p.base.buildings
+    .filter((b) => (b.kind === 'goldmine' || b.kind === 'sawmill') && Math.floor(b.stored ?? 0) >= 1)
+    .sort((a, b) => (b.stored ?? 0) - (a.stored ?? 0) || a.id - b.id);
+  for (const b of mines) {
+    const r = collect(cur, b.id);
+    if (!r.ok) continue;
+    cur = r.value.profile;
+    got[r.value.kind] += r.value.got;
+    ids.push(b.id);
+  }
+  const left: Res = { gold: 0, wood: 0 };
+  for (const b of cur.base.buildings) {
+    if (b.kind === 'goldmine') left.gold += Math.floor(b.stored ?? 0);
+    else if (b.kind === 'sawmill') left.wood += Math.floor(b.stored ?? 0);
+  }
+  return { profile: cur, got, left, ids };
+}
+
 export function boatSlots(p: Profile): { boats: number; cap: number } {
   const dock = p.base.buildings.find((b) => b.kind === 'dock');
   const lv = dock ? BUILDINGS.dock.levels[dock.level - 1] : undefined;

@@ -1,6 +1,8 @@
+import { attachIntel } from './intelcard.ts';
+import { troopCard } from './intel.ts';
 import type { BaseScene } from './BaseScene.ts';
 import { TROOPS } from '../content/index.ts';
-import { hqLevel, boatSlots, setBoat, armyFor, armyCost, startCampaign } from '../core/index.ts';
+import { hqLevel, boatSlots, setBoat, armyFor, armyCost, startCampaign, researchLevel } from '../core/index.ts';
 import type { TroopKind, BuildingKind } from '../core/types.ts';
 import { liveEntryReady, openTdLive } from './live.ts';
 import { app } from './app.ts';
@@ -56,6 +58,7 @@ export function openFleet(bs: BaseScene): void {
       el('span', 'hd-sub hd-n', `每个 ${t.levels[(app.profile.research[k] ?? 1) - 1]?.cost ?? t.levels[0]?.cost ?? 0} 木材`, c);
       el('span', spare > 0 ? 'hd-sub hd-short' : 'hd-sub', spare > 0 ? `剩 ${spare} 格空着` : '装满了', c);
     }
+    attachIntel(c, () => troopCard(k, researchLevel(app.profile, k)));
     c.addEventListener('click', () => {
       if (locked) return toast(`主寨 ${t.unlockHq} 级才能带${t.name}`);
       const r = setBoat(app.profile, i, k);

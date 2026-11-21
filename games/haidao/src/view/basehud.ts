@@ -1,3 +1,4 @@
+import { claimAll } from './baseupgrade.ts';
 import type { BaseScene } from './BaseScene.ts';
 import { capacity, hqLevel, rankOf } from '../core/index.ts';
 import type { Placed } from '../core/types.ts';
@@ -26,6 +27,21 @@ export function retexture(bs: BaseScene, n: Node, b: Placed): void {
   if (b.kind !== 'wall') bs.env.dress(n.img, b.kind, b.level, b.id);
 }
 
+/** 收取气泡的底（圆 + 小尖角）：按渲染倍数画一次成贴图。以前每个气泡是一个 Graphics，满配岛上十几个每帧都要重新三角化 */
+const BUBBLE_O = { x: 22, y: 22, w: 44, h: 52 };
+function bubbleTex(bs: BaseScene): string {
+  const key = `ui.bubble.${bs.r}`;
+  if (bs.textures.exists(key)) return key;
+  const g = bs.make.graphics({}, false);
+  g.setScale(bs.r);
+  const { x, y } = BUBBLE_O;
+  g.fillStyle(0xf9f0da, 1).fillCircle(x, y, 19).lineStyle(3, 0x2b1a15, 1).strokeCircle(x, y, 19);
+  g.fillStyle(0xf9f0da, 1).fillTriangle(x - 6, y + 16, x + 6, y + 16, x, y + 26).lineStyle(3, 0x2b1a15, 1).lineBetween(x - 6, y + 17, x, y + 26).lineBetween(x + 6, y + 17, x, y + 26);
+  g.generateTexture(key, Math.ceil(BUBBLE_O.w * bs.r), Math.ceil(BUBBLE_O.h * bs.r));
+  g.destroy();
+  return key;
+}
+
 export function syncBubble(bs: BaseScene, n: Node, b: Placed): void {
   const kind = b.kind === 'goldmine' ? 'gold' : b.kind === 'sawmill' ? 'wood' : null;
   const show = kind !== null && (b.stored ?? 0) >= 1 && !bs.place;
@@ -39,9 +55,7 @@ export function syncBubble(bs: BaseScene, n: Node, b: Placed): void {
     n.bubble = undefined;
   }
   if (!n.bubble) {
-    const g = bs.add.graphics();
-    g.fillStyle(0xf9f0da, 1).fillCircle(0, 0, 19).lineStyle(3, 0x2b1a15, 1).strokeCircle(0, 0, 19);
-    g.fillStyle(0xf9f0da, 1).fillTriangle(-6, 16, 6, 16, 0, 26).lineStyle(3, 0x2b1a15, 1).lineBetween(-6, 17, 0, 26).lineBetween(6, 17, 0, 26);
+    const g = bs.add.image(0, 0, bubbleTex(bs)).setOrigin(BUBBLE_O.x / BUBBLE_O.w, BUBBLE_O.y / BUBBLE_O.h).setScale(1 / bs.r);
     const p = iconA(kind);
     const ic = bs.add.image(0, 0, p.key).setScale(26 / p.h / bs.r);
     n.bubble = bs.add.container(n.img.x, n.img.y, [g, ic]).setDepth(DEPTH.baseBubble);
@@ -120,6 +134,30 @@ export function updateHud(bs: BaseScene): void {
   bs.dotEls.get('upgrade')?.classList.toggle('on', d.upgrade);
   bs.dotEls.get('collect')?.classList.toggle('on', d.collect);
   bs.dotEls.get('attacked')?.classList.toggle('on', d.attacked);
+  claimLabel(bs, d.collect);
+}
+
+/** 一键收取钮：写上矿里攒着多少（金、木各一个数），没有能收的就藏起来；内容没变不重建 DOM */
+function claimLabel(bs: BaseScene, on: boolean): void {
+  const btn = bs.claimBtn;
+  if (!btn) return;
+  const st = { gold: 0, wood: 0 };
+  for (const b of app.profile.base.buildings) {
+    if (b.kind === 'goldmine') st.gold += Math.floor(b.stored ?? 0);
+    else if (b.kind === 'sawmill') st.wood += Math.floor(b.stored ?? 0);
+  }
+  const sig = on ? `${st.gold}:${st.wood}` : '';
+  if (btn.dataset.sig === sig) return;
+  btn.dataset.sig = sig;
+  btn.classList.toggle('on', on);
+  btn.replaceChildren();
+  if (!on) return;
+  el('span', 'hd-claim-t', '一键收取', btn);
+  for (const k of ['gold', 'wood'] as const) {
+    if (st[k] < 1) continue;
+    btn.appendChild(img(iconA(k), 20));
+    el('b', 'hd-n', fmt(st[k]), btn);
+  }
 }
 
 export function buildUi(bs: BaseScene): void {
@@ -165,6 +203,9 @@ export function buildUi(bs: BaseScene): void {
   bs.mapBtn = mk('出海', 'map', 'hd-btn-gold', () => openMap(bs), ['attacked']);
   bs.fleetBtn = mk('船队', 'ship', 'hd-btn-wood', () => openFleet(bs));
   mk('守岛', 'shield', 'hd-btn-wood', () => openTd(bs)).classList.add('hd-tdbtn');
+  // 一键收取：矿里攒了东西才浮在底栏正上方（底栏收起时跟着收），点一下全收、弹汇总
+  bs.claimBtn = button('', 'hd-btn-gold hd-claimfab', () => claimAll(bs), bs.bottom, null);
+  bs.claimBtn.title = '一键收取（C）';
   // 第二行放在底栏后面：矮竖屏它和底栏挤在同一行，底栏收起（开面板 / 页面）时用兄弟选择器一起收起，不压住面板里的按钮
   bs.bottom.after(bar2);
   bs.plate = el('div', 'hd-nameplate', undefined, bs.ui);

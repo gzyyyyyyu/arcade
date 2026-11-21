@@ -23,6 +23,7 @@ export const SHIELD = { frontPct: 35, coverRadius: 150, coverCutPct: 30 } as con
 export const TROOPS: Record<TroopKind, TroopDef> = {
   sailor: {
     name: '水手',
+    aim: 'nearest',
     housing: 1,
     unlockHq: 1,
     desc: '近战，便宜，找最近的建筑砍。',
@@ -30,6 +31,7 @@ export const TROOPS: Record<TroopKind, TroopDef> = {
   },
   gunner: {
     name: '火枪手',
+    aim: 'nearest',
     housing: 1,
     unlockHq: 1,
     desc: '远程 4 格，血薄，躲在后面打。',
@@ -37,14 +39,15 @@ export const TROOPS: Record<TroopKind, TroopDef> = {
   },
   brute: {
     name: '壮汉',
+    aim: 'defense',
     housing: 4,
     unlockHq: 3,
     desc: '血厚，专找防御建筑打，给后面的兵挡炮。',
     levels: lv({ hp: 520, dmg: 28, range: 0.9, speed: 1.2, reload: 40, cost: 45 }, 14, 14),
-    prefers: 'defense',
   },
   bomber: {
     name: '炸药兵',
+    aim: 'wallFirst',
     housing: 2,
     unlockHq: 4,
     desc: '抱着炸药桶冲向建筑，大范围爆炸，炸完就没了。',
@@ -52,6 +55,7 @@ export const TROOPS: Record<TroopKind, TroopDef> = {
   },
   captain: {
     name: '船长',
+    aim: 'nearest',
     housing: 1,
     unlockHq: 5,
     desc: '英雄：血厚、伤害高，一场只带一个。',
@@ -59,6 +63,7 @@ export const TROOPS: Record<TroopKind, TroopDef> = {
   },
   medic: {
     name: '船医',
+    aim: 'heal',
     housing: 2,
     unlockHq: 8,
     desc: '不打建筑，跟在大队后面给附近的兵回血。',
@@ -66,31 +71,32 @@ export const TROOPS: Record<TroopKind, TroopDef> = {
   },
   cannoneer: {
     name: '火炮兵',
+    aim: 'defense',
     housing: 3,
     unlockHq: 8,
     desc: '只打建筑，专打防御塔，射程很远，开火慢，伤害高。',
     levels: lv({ hp: 80, dmg: 90, range: 8, speed: 1.2, reload: 70, cost: 45 }, 14, 16),
-    prefers: 'defense',
   },
   harpooner: {
     name: '鱼叉手',
+    aim: 'defense',
     housing: 1,
     unlockHq: 7,
     desc: '射得快，专找防御建筑打，血薄。',
     levels: lv({ hp: 45, dmg: 22, range: 5, speed: 1.6, reload: 14, cost: 18 }, 14, 16),
-    prefers: 'defense',
   },
   shield: {
     name: '盾兵',
+    aim: 'defense',
     housing: 3,
     unlockHq: 7,
     desc: '举着大盾走在前面，正面来的炮弹、子弹只吃三成半，身后的友军也能躲一点。盾挡不住溅射和抛射（臼炮、喷火、火箭、震荡炮），被震晕时盾也放下。',
     // 血是同级壮汉的 80%，走得慢、伤害低；盾朝走的方向，打建筑时朝目标（DESIGN 14）
     levels: lv({ hp: 416, dmg: 18, range: 0.9, speed: 1.0, reload: 40, cost: 42 }, 14, 14),
-    prefers: 'defense',
   },
   grenadier: {
     name: '掷弹兵',
+    aim: 'cluster',
     housing: 2,
     unlockHq: 6,
     desc: '隔着城墙往里扔手雷，一炸一小片；炸到城墙只算三成。血薄、走得慢，怕喷火和火箭。',

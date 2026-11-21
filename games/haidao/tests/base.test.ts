@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BUILDINGS, CAMPAIGN, HQ_LEVELS, armyCost, armyFor, boatSlots, build, buildLimit, canPlace, capacity, collect,
+  BUILDINGS, CAMPAIGN, HQ_LEVELS, armyCost, armyFor, boatSlots, build, buildLimit, canPlace, capacity, collect, collectAll,
   RULES_VERSION, canLand, createBattle, hqLevel, islandExt, move, newProfile, produce, research, researchCost, setBoat, totalStars, upgrade, upgradeCost,
 } from '../src/core/index.ts';
 import type { BuildingKind, Profile } from '../src/core/index.ts';
@@ -146,6 +146,25 @@ describe('基地', () => {
     expect(upgradeCost('cannon', 8)).toBeNull();
     expect(upgradeCost('cannon', 1)).toEqual(BUILDINGS.cannon.levels[1]!.cost);
     expect(upgrade({ ...q, res: { gold: 1, wood: 0 } }, 1)).toEqual({ ok: false, error: 'no_gold' });
+  });
+  it('一键收：所有矿一次收完，仓库满了剩下的留在矿里，收进来的和留下的加起来等于原来的存量', () => {
+    let p = { ...newProfile(), res: { gold: 0, wood: 0 } };
+    p = produce(p, 3600 * 3);
+    const stored = (q: Profile, k: string) => q.base.buildings.filter((b) => b.kind === k).reduce((a, b) => a + Math.floor(b.stored ?? 0), 0);
+    const g0 = stored(p, 'goldmine');
+    const w0 = stored(p, 'sawmill');
+    const r = collectAll(p);
+    expect(r.ids.length).toBeGreaterThan(0);
+    expect(r.got.gold + r.left.gold).toBe(g0);
+    expect(r.got.wood + r.left.wood).toBe(w0);
+    expect(r.profile.res.gold).toBe(Math.min(capacity(p).gold, g0));
+    // 再收一次：能收的都收了，没有新的
+    const again = collectAll(r.profile);
+    expect(again.got).toEqual({ gold: 0, wood: 0 });
+    // 仓库满了：一分不收，全留在矿里
+    const full = collectAll({ ...p, res: capacity(p) });
+    expect(full.ids).toEqual([]);
+    expect(full.left.gold).toBe(g0);
   });
   it('产出、收取与仓库上限', () => {
     let p = { ...newProfile(), res: { gold: 0, wood: 0 } };
