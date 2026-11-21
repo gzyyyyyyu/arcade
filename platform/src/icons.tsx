@@ -125,25 +125,6 @@ export function KeyIcon() {
   );
 }
 
-/** 小房子：回大厅 */
-export function HomeIcon() {
-  return (
-    <svg className="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-      <path d="M12 3.2l9 7.6h-2.6v9.4h-4.6v-6h-3.6v6H5.6v-9.4H3z" fill="currentColor" />
-    </svg>
-  );
-}
-
-/** 三根柱子：战绩 */
-export function ChartIcon() {
-  return (
-    <svg className="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-      <rect x="3.5" y="12" width="4.5" height="8.5" rx="1" fill="currentColor" opacity="0.6" />
-      <rect x="9.75" y="7" width="4.5" height="13.5" rx="1" fill="currentColor" />
-      <rect x="16" y="3.5" width="4.5" height="17" rx="1" fill="currentColor" opacity="0.8" />
-    </svg>
-  );
-}
 
 /** 一个人：账号 */
 export function UserIcon() {

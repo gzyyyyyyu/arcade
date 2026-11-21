@@ -26,7 +26,8 @@ export interface GameEntry {
   /**
    * 不按日期的固定排行榜（如 endless），名字只用小写字母、数字、短横线，不以 daily、week 开头。
    * 每日榜 daily-YYYY-MM-DD 不用登记；没登记的榜交分一律不收（防止随便开榜把库撑大）。
-   * 写成 {id, name} 的在排行页"各游戏总榜"里各有一个标签，名字就是 name；只写 id 的按"<游戏名>·<id>"兜底。
+   * 排行页不列固定榜（只有总榜、本周净赢和 featuredDaily，见 src/pages/boards/boards-logic.ts）：登记了就能交分、
+   * GET /api/boards/<游戏>/<榜> 照常读，游戏自己在游戏里展示。name 只是给人看的说明，只写 id 的按"<游戏名>·<id>"兜底。
    * 分数怎么显示读游戏的 /games/<id>/boards.json（格式同 daily.json，src/lib/scores.ts）。
    */
   boards?: readonly (string | FixedBoard)[];
@@ -251,16 +252,3 @@ export function dailyTabs(games: readonly GameEntry[] = GAMES): DailyTab[] {
         : g.daily.map((sub) => ({ key: `${g.id}:${sub.id}`, game: g, sub, label: `${g.name}每日·${sub.name}` })),
   );
 }
-
-/** 排行榜上的一个每周挑战标签：每个子榜一个，key 是"week:游戏 id:子榜 id" */
-export interface WeeklyTab {
-  key: string;
-  game: GameEntry;
-  sub: DailySub;
-  label: string;
-}
-
-export function weeklyTabs(games: readonly GameEntry[] = GAMES): WeeklyTab[] {
-  return games.flatMap((g) => (g.weekly ?? []).map((sub) => ({ key: `week:${g.id}:${sub.id}`, game: g, sub, label: `${g.name}每周·${sub.name}` })));
-}
-

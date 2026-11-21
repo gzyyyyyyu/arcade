@@ -86,12 +86,6 @@ export async function newPage(browser: Browser, label: string, screen: Screen = 
 
 export const fold = (page: Page, title: string) => page.locator('details', { has: page.locator(`summary:text-is("${title}")`) });
 
-export async function openFold(page: Page, title: string) {
-  const d = fold(page, title);
-  if (!(await d.evaluate((el) => (el as HTMLDetailsElement).open))) await d.locator('summary').click();
-  return d;
-}
-
 /** 下一个弹窗（confirm、beforeunload）点"取消"，返回它的类型；5 秒内没弹出来返回 'none'（让断言失败，而不是一直等）。 */
 export function dismissNextDialog(page: Page): Promise<string> {
   return new Promise((ok) => {

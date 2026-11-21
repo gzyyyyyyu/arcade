@@ -15,12 +15,13 @@
 .console__main > .atabs, .console__main > .users-split, .console__main > .apanel { flex: 1 1 0; }
 .console__single { flex: 1; min-height: 0; width: 100%; max-width: var(--narrow); margin: 0 auto; display: flex; flex-direction: column; }
 @media (max-width: 1023px) {
-  /* 手机和平板：分区标签一行横向滑，不折行、不占第二行 */
+  /* 手机和平板：分区标签横排，一行放不下就折成两行，六个分区都看得到（不横滑藏后面的） */
   .console { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: var(--s-2); }
-  .console__nav { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; padding: var(--s-1); box-shadow: var(--sh-sm); }
-  .console__nav::-webkit-scrollbar { display: none; }
-  .console__nav a { flex: 1 0 auto; scroll-snap-align: center; justify-content: center; padding: 0 var(--s-4); white-space: nowrap; }
+  .console__nav { flex-direction: row; flex-wrap: wrap; padding: var(--s-1); box-shadow: var(--sh-sm); }
+  .console__nav a { flex: 1 0 auto; justify-content: center; padding: 0 var(--s-3); white-space: nowrap; }
 }
+/* 手机：六个分区一行三个、两行等分，不出现最后一个拉满整行 */
+@media (max-width: 560px) { .console__nav a { flex-basis: 30%; padding: 0 var(--s-2); } }
 
 /* 面板：和排行页一样的紧凑内边距；标题一行；有 <Paged> 的面板可以被压矮，由翻页去适应 */
 .apanel { flex: 0 1 auto; min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3) var(--s-4); }
@@ -106,6 +107,8 @@
 .per-people { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0 var(--s-3); font-size: var(--fs-xs); color: var(--muted); }
 .per-people li { white-space: nowrap; }
 .per-people b { color: var(--ink); }
+/* 触屏平板上数字不小于 14（docs/ui.md 第 3 节） */
+@media (pointer: coarse) { .per-people { font-size: var(--fs-sm); } }
 
 /*
  * 表格（AdminLayout.tsx 的 AdminTable）：表头一行 + 按剩下的高度翻页的行，每行一个网格；数字右对齐。

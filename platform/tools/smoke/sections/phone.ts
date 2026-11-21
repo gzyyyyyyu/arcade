@@ -4,6 +4,21 @@ import { BASE, check, shot, newPage, json } from '../lib/core.ts';
 import { FAKE_ADMIN, FAKE_WALLET, mockAdmin, FAKE_FRIENDS, FAKE_FEED, fakeFeedFiles } from '../lib/fakes.ts';
 import { PHONES, phoneIssues, lobbyTopIssues, DEVICES } from '../lib/ui.ts';
 
+/** npm run smoke -- --only=ui：界面核对用，电脑 1280 和手机 390 每页各一张（同样跑手机清单的检查），再加没登录的登录页 */
+export async function uiPages(browser: Browser): Promise<void> {
+  await phoneAudit(browser, [['电脑1280', { width: 1280, height: 800 }], PHONES[1]]);
+  for (const screen of ['desktop', 'portrait'] as const) {
+    const { ctx, page } = await newPage(browser, `界面核对 登录 ${screen}`, screen);
+    await page.route('**/api/me', (r) => r.fulfill(json({ user: null, service: 'ok', saves: 'ok', registration: 'closed' })));
+    for (const path of ['/login', '/forgot']) {
+      await page.goto(`${BASE}${path}`);
+      await page.locator('main form').first().waitFor();
+      await shot(page, `ui-${screen}-${path.slice(1)}`);
+    }
+    await ctx.close();
+  }
+}
+
 /** npm run smoke -- --only=devices：同一个浏览器把矩阵每个尺寸、每页过一遍通用检查（第一屏、单手够得着这些只按原来四台手机量），有问题的那页才截图 */
 export async function deviceMatrix(browser: Browser): Promise<void> {
   await phoneAudit(browser, DEVICES, true);
@@ -31,9 +46,12 @@ export async function phoneAudit(browser: Browser, sizes: readonly (readonly [st
     ['me', '/me', '[data-testid="me-tab-profile"]'],
     ['stats', '/me/stats', '[data-testid="player-card"]'],
     ['admin', '/admin', '[data-testid="admin-overview"]'],
-    ['admin-users', '/admin?s=users', '[data-testid="user-xiaoming_2026"]'],
+    // 568×320 一页只放得下一个账号，小明在第 2 页：等第一行
+    ['admin-users', '/admin?s=users', '.users__item'],
     ['admin-invites', '/admin?s=invites', '[data-testid="invite-rules"]'],
     ['privacy', '/privacy', 'main h2'],
+    ['feed', '/feed', '[data-testid="feed-item"]'],
+    ['user', `/u/${u(0)}`, '[data-testid="player-card"]'],
   ] as const;
   // 第一屏要整个看得到的东西：大厅顶上的"回去接着打"和第一张游戏卡的标题、钱包的余额和补给、排行的自己
   const firstScreen: Record<string, string[]> = {
@@ -61,6 +79,7 @@ export async function phoneAudit(browser: Browser, sizes: readonly (readonly [st
     await page.route('**/api/friends', (r) => r.fulfill(json(FAKE_FRIENDS)));
     await page.route('**/api/blocks', (r) => r.fulfill(json({ blocks: [] })));
     await page.route('**/api/saves/*', (r) => r.fulfill(json({ saves: [] })));
+    await page.route(`**/api/stats/${u(0)}`, (r) => r.fulfill(json({ user: { userId: u(0), displayName: '玩家1', avatar: null }, relation: 'none', week: '2026-10-12', games })));
     await page.route('**/api/stats/me', (r) => r.fulfill(json({ user: { userId: FAKE_ADMIN.id, displayName: FAKE_ADMIN.displayName, avatar: null }, relation: 'self', week: '2026-10-12', games })));
     await page.route('**/api/leaderboard?scope=*', (r) => r.fulfill(json(leaderboard)));
     await page.route('**/games/*/titles.json', (r) => r.fulfill(json({})));

@@ -10,7 +10,7 @@
  * 只有管理员看得到入口；接口另有服务端检查（worker/api/ops/admin.ts），这里挡人只是不让普通用户看到空页面。
  * 管理员账号本身在这里动不了（接口也不许），要用管理命令行工具。
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, navigate, useLeaveGuard, useLocation } from '../../router.tsx';
 import { useSession } from '../../session.tsx';
 import { Panel, Skeleton } from '../../ui.tsx';
@@ -46,13 +46,6 @@ export function AdminPage() {
   const section: Section = SECTIONS.some(([id]) => id === asked) ? (asked as Section) : 'overview';
 
   // 手机上分区标签是一行横向滚动：当前项滚进可见范围（只动标签条自己，不带着整页滚）
-  const navRef = useRef<HTMLElement>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 分区、卡片、加载状态变化后标签条会重绘，要重新把当前项滚进可见范围，这几个只是触发条件
-  useEffect(() => {
-    const on = navRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
-    on?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
-  }, [section, card, loading, allowed]);
-
   useEffect(() => {
     // 停服、连不上时读不到账号，不算"不是管理员"，别把人赶走
     if (!loading && service !== 'off' && service !== 'unreachable' && !allowed) navigate('/', true);
@@ -72,7 +65,7 @@ export function AdminPage() {
   }
   return (
     <div className="console">
-      <nav className="console__nav" aria-label="管理分区" ref={navRef}>
+      <nav className="console__nav" aria-label="管理分区">
         {SECTIONS.map(([id, label]) => (
           <Link key={id} href={id === 'overview' ? '/admin' : `/admin?s=${id}`} className={section === id ? 'console__on' : ''} aria-current={section === id ? 'page' : undefined}>
             {label}
