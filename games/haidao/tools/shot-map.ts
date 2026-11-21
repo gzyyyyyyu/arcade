@@ -5,7 +5,7 @@
 import { join } from 'node:path';
 import type { Route } from 'playwright-core';
 import { newProfile } from '../src/core/index.ts';
-import { MAP_LIVE_TIERS } from '../src/core/maplive.ts';
+import { LIVE_STAKE } from '../src/content/livetable.ts';
 import { opt } from './args.ts';
 import { FakePvp } from './shot-fake.ts';
 import { recordFixed } from './record.ts';
@@ -206,7 +206,7 @@ export async function mapLive(c: ShotCtx): Promise<boolean> {
   const check = async (what: string): Promise<void> => {
     for (const p of await layoutProblems(page)) problems.push(`${v.name} ${what} ${p}`);
   };
-  const stake = MAP_LIVE_TIERS.small.stake;
+  const stake = LIVE_STAKE.small;
   const openTiers = async (): Promise<void> => {
     await click('.hd-bottom button:has-text("出海")');
     await page.locator('.hd-mapchip').waitFor({ timeout: 8000 });

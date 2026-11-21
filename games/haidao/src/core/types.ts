@@ -130,6 +130,8 @@ export interface Profile {
   escort?: { stars: Record<string, number> };
   /** 训练营（training.ts）：过了哪几关、还没领的奖励（没有待领就不写 owed） */
   train?: { done: string[]; owed?: Res };
+  /** 金银锭（ingot.ts）：领了多少、换掉多少；挣了多少从存档算，没写 = 都是 0 */
+  ingot?: { claimed: number; spent: number };
 }
 
 /** 规则函数的统一回话：成功给新值，失败给固定短码（界面按码出文案） */

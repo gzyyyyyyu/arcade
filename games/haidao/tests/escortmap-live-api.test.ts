@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { LIVE_TIERS, liveReturn } from '../src/core/live.ts';
+import { LIVE_STAKE } from '../src/content/livetable.ts';
+import { liveReturn } from '../src/core/live.ts';
 import { RULES_VERSION } from '../src/core/types.ts';
 import { Bank } from '../tools/fake-bank.ts';
 import { beijingDay, handleLive, kindDaily, liveKindOf, type LiveEnv } from '../worker/live.ts';
@@ -41,14 +42,14 @@ describe.each([
     const w = world();
     const r = await call(w, kind, 'buyin', { ref: REF, tier: 'mid' });
     expect(await r.json()).toMatchObject({ ok: true, user: 'u1', left: daily - 1, max: daily });
-    expect(w.bank.calls[0]!.a).toMatchObject({ ref: `${ns}${REF}`, amount: LIVE_TIERS.mid.stake, tier: 'mid', op: `${ns}${REF}-in` });
+    expect(w.bank.calls[0]!.a).toMatchObject({ ref: `${ns}${REF}`, amount: LIVE_STAKE.mid, tier: 'mid', op: `${ns}${REF}-in` });
     expect(await (await today(w, kind)).json()).toEqual({ ok: true, [kind]: { left: daily - 1, max: daily } });
   });
 
   it('settle 按钱包里那一份的金额 × 倍数，refund 原样退回', async () => {
     const w = world();
     await call(w, kind, 'buyin', { ref: REF, tier: 'small' });
-    expect(await (await call(w, kind, 'settle', { ref: REF, tier: 'lux', bp: 13_000 })).json()).toMatchObject({ ok: true, credited: liveReturn(LIVE_TIERS.small.stake, 13_000) });
+    expect(await (await call(w, kind, 'settle', { ref: REF, tier: 'lux', bp: 13_000 })).json()).toMatchObject({ ok: true, credited: liveReturn(LIVE_STAKE.small, 13_000) });
     const w2 = world();
     await call(w2, kind, 'buyin', { ref: REF, tier: 'small' });
     await call(w2, kind, 'refund', { ref: REF });

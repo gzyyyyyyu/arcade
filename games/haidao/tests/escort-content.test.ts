@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { ESCORT_LIVE_LEVELS } from '../src/content/escortlivelevels.ts';
-import { ESCORT_LIVE_TIERS, escortLiveSetup } from '../src/core/escortlive.ts';
-import { LIVE_TIER_IDS } from '../src/core/live.ts';
+import { escortLiveSetup } from '../src/core/escortlive.ts';
+import { LIVE_TIER_IDS, livePick } from '../src/core/live.ts';
 import { ESCORT_LEVELS, ESCORT_LEVEL_BY_ID, ESCORT_MAPS } from '../src/content/index.ts';
 import { ESCORT_DIFFS } from '../src/core/escorttypes.ts';
 import { BEACH, ISLAND } from '../src/core/types.ts';
@@ -127,18 +127,19 @@ describe('护航内容：9 关', () => {
 
 /**
  * 护航实盘的三关从娱乐拆出来冻结（2026-11-20，0.55.0）：哈希是拆分前 escortlevels.ts 生成的 strait-normal、bays-normal、strait-hard 完整定义（JSON）的 sha256。
- * 这条挂了说明实盘数值变了——是有意改的就重跑 escort-live-sim 四档（--n 2000）、更新 DESIGN 12.1，再改这里的哈希。
+ * 这条挂了说明实盘数值变了——是有意改的就重跑 live-sim --kind escort（--n 2000）、更新 DESIGN 12.1，再改这里的哈希。
+ * 0.58.0（2026-11-21）关卡池加冻结 bays-easy、bays-hard、cape-easy、cape-normal、cape-hard，原来三关逐字没动（只取那三关算出来仍是 8c7a4521…1d32）。
  */
-const ESCORT_LIVE_SHA256 = '8c7a45212139b5beed5fcb62bd7c42d5fbf6b421acb3ff4ba571080f3d301d32';
+const ESCORT_LIVE_SHA256 = '27618e9d3001f7bc7258914ac07613fdf519d83053d9b616e91f78fff5fc8a75';
 
 describe('护航实盘的关', () => {
-  it('冻结副本和拆分前逐字一样', () => {
+  it('冻结副本逐字不变', () => {
     expect(createHash('sha256').update(JSON.stringify(ESCORT_LIVE_LEVELS)).digest('hex')).toBe(ESCORT_LIVE_SHA256);
   });
 
   it('每档都从冻结副本开局，不读娱乐的关', () => {
     for (const t of LIVE_TIER_IDS) {
-      const lv = ESCORT_LIVE_LEVELS.find((l) => l.id === ESCORT_LIVE_TIERS[t].level);
+      const lv = ESCORT_LIVE_LEVELS.find((l) => l.id === livePick('escort', t, 3).level);
       expect(lv, t).toBeDefined();
       expect(escortLiveSetup(t, 3).level).toBe(lv);
     }

@@ -1,61 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { EXCHANGE_CHIPS, EXCHANGE_GOLD, EXCHANGE_PER_DAY, EXCHANGE_WOOD, LIVE_MAX_BP, LIVE_TIERS, LIVE_TIER_IDS, liveBp, liveReturn, liveSetup } from '../src/core/live.ts';
+import { CHIP_SHOP, INGOT_CHIPS } from '../src/content/livetable.ts';
+import { EXCHANGE_CHIPS, EXCHANGE_GOLD, EXCHANGE_PER_DAY, EXCHANGE_WOOD, LIVE_TIER_IDS, liveBp, livePick, liveReturn, liveSetup } from '../src/core/live.ts';
 import { RULES_VERSION } from '../src/core/types.ts';
 import { replayRaid } from '../src/core/pvp.ts';
 import { botActions, runBattle, battleFingerprint } from '../src/core/index.ts';
-import { handleLive, beijingDay, kindDaily, LIVE_DAILY_DEFAULT, type LiveEnv, type WalletRpc } from '../worker/live.ts';
+import { handleLive, beijingDay, kindDaily, LIVE_DAILY_DEFAULT, type LiveEnv } from '../worker/live.ts';
+import { Bank } from '../tools/fake-bank.ts';
 import { BaseCore } from '../worker/pvp/base.ts';
 import { HarborCore } from '../worker/pvp/harbor.ts';
 import { MemKv } from '../worker/pvp/kv.ts';
 import type { Ports } from '../worker/pvp/api.ts';
 
 /**
- * 悬赏出海（实盘）和单向兑换。
- * 假钱包：arcade-kit/testing 的 FakeBank / WalletService 依赖 cloudflare:workers，Node 里的 vitest 加载不了，
- * 这里照它的关键规则写一个最小的：按 op 去重、余额不够回 no_funds、结回清掉桌上那一份。
+ * 悬赏出海（实盘）、筹码换资源、金银锭换筹码。假钱包在 tools/fake-bank.ts。
  */
 const ORIGIN = 'https://game.example.com';
 const T0 = Date.UTC(2026, 9, 27, 4, 0, 0);
-
-class Bank implements WalletRpc {
-  balance = 10_000;
-  stakes = new Map<string, number>();
-  ops = new Map<string, unknown>();
-  calls: Array<{ m: string; a: Record<string, unknown> }> = [];
-  private once(op: string, f: () => unknown): Promise<never> {
-    if (!this.ops.has(op)) this.ops.set(op, f());
-    return Promise.resolve(this.ops.get(op) as never);
-  }
-  view = async () => ({ ok: true as const, wallet: { balance: this.balance, stakes: [...this.stakes].map(([ref, amount]) => ({ game: 'haidao', ref, amount })) } });
-  buyin = (a: Parameters<WalletRpc['buyin']>[0]) => {
-    this.calls.push({ m: 'buyin', a });
-    return this.once(a.op, () => {
-      if (this.balance < a.amount) return { ok: false, error: 'no_funds' };
-      this.balance -= a.amount;
-      this.stakes.set(a.ref, (this.stakes.get(a.ref) ?? 0) + a.amount);
-      return { ok: true, wallet: { balance: this.balance } };
-    });
-  };
-  settle = (a: Parameters<WalletRpc['settle']>[0]) => {
-    this.calls.push({ m: 'settle', a });
-    return this.once(a.op, () => {
-      if (!this.stakes.has(a.ref)) return { ok: false, error: 'no_stake' };
-      this.stakes.delete(a.ref);
-      this.balance += a.amount;
-      return { ok: true, wallet: { balance: this.balance }, credited: a.amount };
-    });
-  };
-  refund = (a: Parameters<WalletRpc['refund']>[0]) => {
-    this.calls.push({ m: 'refund', a });
-    return this.once(a.op, () => {
-      const v = this.stakes.get(a.ref);
-      if (v === undefined) return { ok: false, error: 'no_stake' };
-      this.stakes.delete(a.ref);
-      this.balance += v;
-      return { ok: true, wallet: { balance: this.balance } };
-    });
-  };
-}
 
 function world(): { env: LiveEnv; bank: Bank; ports: Ports; base: BaseCore } {
   const bank = new Bank();
@@ -78,18 +38,14 @@ function post(action: string, body: unknown, headers: Record<string, string> = {
 const REF = 'haidao-0123456789abcdef';
 
 describe('倍数表', () => {
-  it('同档星越多倍数越大，0 星按摧毁率线性且不超过 1 星；档越高三星不降；都不超过 3 份', () => {
-    let prev3 = 0;
+  it('0 星按摧毁率线性给，到这一关的 bp[0]；1–3 星查这一关的表', () => {
     for (const id of LIVE_TIER_IDS) {
-      const t = LIVE_TIERS[id];
-      expect(liveBp(id, { stars: 0, destroyedPct: 49 })).toBeLessThan(t.bp[1]);
-      expect(liveBp(id, { stars: 0, destroyedPct: 0 })).toBe(0);
-      expect(liveBp(id, { stars: 0, destroyedPct: 40 })).toBeGreaterThan(liveBp(id, { stars: 0, destroyedPct: 20 }));
-      expect(t.bp[1]).toBeLessThan(t.bp[2]);
-      expect(t.bp[2]).toBeLessThan(t.bp[3]);
-      expect(t.bp[3]).toBeLessThanOrEqual(LIVE_MAX_BP);
-      expect(t.bp[3]).toBeGreaterThanOrEqual(prev3);
-      prev3 = t.bp[3];
+      for (const seed of [0, 2, 4, 6]) {
+        const bp = livePick('live', id, seed).bp;
+        expect(liveBp(id, seed, { stars: 0, destroyedPct: 0 })).toBe(0);
+        expect(liveBp(id, seed, { stars: 0, destroyedPct: 40 })).toBe(Math.floor((bp[0] * 40) / 100));
+        for (const st of [1, 2, 3]) expect(liveBp(id, seed, { stars: st, destroyedPct: 60 })).toBe(bp[st]);
+      }
     }
   });
   it('liveReturn 按桌上的金额算、封顶 3 份', () => {
@@ -230,6 +186,66 @@ describe('单向兑换', () => {
     before = kv.writes;
     await b.exchangeDone('hdx-wwwwwwwwww', 'gold', { gold: 1, wood: 0 });
     expect(kv.writes - before).toBe(0);
+  });
+});
+
+describe('金银锭换筹码', () => {
+  it('按锭数 × 100 调钱包 exchange，op 是 hx-i-<ref>，回实际入账和剩下的额度；同一个 ref 重发只入一次', async () => {
+    const w = world();
+    const r1 = await handleLive(post('ingot', { ref: 'hdi-aaaaaaaaaaaa', n: 5 }), w.env, w.ports, T0);
+    expect(await r1.json()).toMatchObject({ ok: true, credited: 5 * INGOT_CHIPS, left: 2_000 - 5 * INGOT_CHIPS, user: 'u1' });
+    expect(w.bank.calls.at(-1)).toMatchObject({ m: 'exchange', a: { game: 'haidao', op: 'hx-i-hdi-aaaaaaaaaaaa', amount: 500 } });
+    await handleLive(post('ingot', { ref: 'hdi-aaaaaaaaaaaa', n: 5 }), w.env, w.ports, T0);
+    expect(w.bank.balance).toBe(10_000 + 500);
+  });
+  it('超出今天的额度只入剩下的；用完回 exchange_cap', async () => {
+    const w = world();
+    w.bank.exLeft = 250;
+    expect(await (await handleLive(post('ingot', { ref: 'hdi-bbbbbbbbbbbb', n: 5 }), w.env, w.ports, T0)).json()).toMatchObject({ ok: true, credited: 250, left: 0 });
+    expect(await (await handleLive(post('ingot', { ref: 'hdi-cccccccccccc', n: 1 }), w.env, w.ports, T0)).json()).toMatchObject({ ok: false, error: 'exchange_cap' });
+  });
+  it('锭数不是正整数 400；不写 Base（和筹码换资源的名额、待领互不相干）', async () => {
+    const w = world();
+    for (const n of [0, -1, 1.5, '3', 10_001]) expect((await handleLive(post('ingot', { ref: 'hdi-dddddddddddd', n }), w.env, w.ports, T0)).status).toBe(400);
+    await handleLive(post('ingot', { ref: 'hdi-eeeeeeeeeeee', n: 2 }), w.env, w.ports, T0);
+    expect(await w.base.exchangeLeft(beijingDay(T0), EXCHANGE_PER_DAY)).toBe(EXCHANGE_PER_DAY);
+  });
+  it('只有悬赏出海的路径有这个动作', async () => {
+    const w = world();
+    const req = new Request(`${ORIGIN}/games/haidao/api/td/ingot`, { method: 'POST', headers: { 'X-Arcade': '1', Origin: ORIGIN, 'content-length': '2' }, body: '{}' });
+    expect((await handleLive(req, w.env, w.ports, T0)).status).toBe(404);
+  });
+  it('GET today 带上金银锭今天还能换多少筹码', async () => {
+    const w = world();
+    w.bank.exLeft = 800;
+    const req = new Request(`${ORIGIN}/games/haidao/api/live/today`, { headers: { cookie: '__Host-sid=x' } });
+    expect(await (await handleLive(req, w.env, w.ports, T0)).json()).toMatchObject({ ok: true, ingot: { left: 800, cap: 2_000 } });
+  });
+});
+
+describe('筹码装饰', () => {
+  it('按价目表扣钱：带入价钱（装得下的最低一档）再结回 0，钱包 ref 用 hd- 前缀；同一个 ref 重发只扣一次', async () => {
+    const w = world();
+    const r = await handleLive(post('shop', { ref: 'hds-aaaaaaaaaaaa', item: 'deco:statue' }), w.env, w.ports, T0);
+    expect(await r.json()).toMatchObject({ ok: true, user: 'u1' });
+    expect(w.bank.calls.map((c) => c.m)).toEqual(['buyin', 'settle']);
+    expect(w.bank.calls[0]!.a).toMatchObject({ ref: 'hd-hds-aaaaaaaaaaaa', tier: 'mid', amount: CHIP_SHOP['deco:statue'], op: 'hd-hds-aaaaaaaaaaaa-in' });
+    expect(w.bank.calls[1]!.a).toMatchObject({ amount: 0, op: 'hd-hds-aaaaaaaaaaaa-out' });
+    await handleLive(post('shop', { ref: 'hds-aaaaaaaaaaaa', item: 'deco:statue' }), w.env, w.ports, T0);
+    expect(w.bank.balance).toBe(10_000 - CHIP_SHOP['deco:statue']!);
+    expect(w.bank.stakes.size).toBe(0);
+  });
+  it('不在价目表里 400；余额不够原样告诉浏览器、不结回', async () => {
+    const w = world();
+    expect((await handleLive(post('shop', { ref: 'hds-bbbbbbbbbbbb', item: 'deco:windmill' }), w.env, w.ports, T0)).status).toBe(400);
+    expect((await handleLive(post('shop', { ref: 'hds-bbbbbbbbbbbb', item: 'toString' }), w.env, w.ports, T0)).status).toBe(400);
+    w.bank.balance = 100;
+    expect(await (await handleLive(post('shop', { ref: 'hds-cccccccccccc', item: 'deco:chest' }), w.env, w.ports, T0)).json()).toMatchObject({ ok: false, error: 'no_funds' });
+    expect(w.bank.calls.filter((c) => c.m === 'settle')).toHaveLength(0);
+  });
+  it('浏览器的 ref 不许用 hd- 开头（借不到装饰那一份）', async () => {
+    const w = world();
+    expect((await handleLive(post('exchange', { ref: 'hd-aaaaaaaaaaaa', into: 'gold' }), w.env, w.ports, T0)).status).toBe(400);
   });
 });
 

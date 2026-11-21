@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LIVE_TIERS } from '../src/core/live.ts';
+import { LIVE_STAKE } from '../src/content/livetable.ts';
 import { liveReturn } from '../src/core/tdlive.ts';
 import { RULES_VERSION } from '../src/core/types.ts';
 import { Bank } from '../tools/fake-bank.ts';
@@ -39,7 +39,7 @@ describe('悬赏守岛接口', () => {
     const r = await td(w, 'buyin', { ref: REF, tier: 'small' });
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ ok: true, user: 'u1', left: 7, max: 8 });
-    expect(w.bank.calls[0]!.a).toMatchObject({ ref: `ht-${REF}`, amount: LIVE_TIERS.small.stake, tier: 'small', op: `ht-${REF}-in` });
+    expect(w.bank.calls[0]!.a).toMatchObject({ ref: `ht-${REF}`, amount: LIVE_STAKE.small, tier: 'small', op: `ht-${REF}-in` });
     expect([...w.bank.stakes.keys()]).toEqual([`ht-${REF}`]);
   });
   it('四档都能带入守岛：钱包里按各档的一份扣', async () => {
@@ -47,7 +47,7 @@ describe('悬赏守岛接口', () => {
       const w = world();
       const r = await td(w, 'buyin', { ref: REF, tier });
       expect(r.status).toBe(200);
-      expect(w.bank.calls[0]!.a).toMatchObject({ tier, amount: LIVE_TIERS[tier].stake });
+      expect(w.bank.calls[0]!.a).toMatchObject({ tier, amount: LIVE_STAKE[tier] });
     }
   });
 
@@ -55,8 +55,8 @@ describe('悬赏守岛接口', () => {
     const w = world();
     await td(w, 'buyin', { ref: REF, tier: 'small' });
     const r = await td(w, 'settle', { ref: REF, tier: 'lux', bp: 12_000 });
-    expect(await r.json()).toMatchObject({ ok: true, credited: liveReturn(LIVE_TIERS.small.stake, 12_000) });
-    expect(w.bank.balance).toBe(10_000 - LIVE_TIERS.small.stake + liveReturn(LIVE_TIERS.small.stake, 12_000));
+    expect(await r.json()).toMatchObject({ ok: true, credited: liveReturn(LIVE_STAKE.small, 12_000) });
+    expect(w.bank.balance).toBe(10_000 - LIVE_STAKE.small + liveReturn(LIVE_STAKE.small, 12_000));
     expect((await td(w, 'settle', { ref: REF, tier: 'small', bp: 30_001 })).status).toBe(400);
     const w2 = world();
     await td(w2, 'buyin', { ref: REF, tier: 'small' });

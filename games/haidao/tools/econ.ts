@@ -20,7 +20,7 @@ const fights = num('--fights', 3);
 // 0 是合法值（只出海），所以不走 num 的"0 当默认"
 const tdRuns = Number(opt('--td') ?? 0);
 const quiet = flag('--quiet');
-/** 守岛各关"稳"机器人的三星率（docs/balance-haidao.md 第 5 节，CI 每关 200 局） */
+/** 守岛各关"稳"机器人的三星率（docs/balance-haidao-td.md，CI 每关 200 局） */
 const TD_THREE: Record<string, number> = {
   td01: 100, td02: 96, td03: 80, td04: 100, td05: 80, td06: 100, td07: 66, td08: 59, td09: 58,
   td10: 51, td11: 55, td12: 57, td13: 53, td14: 42, td15: 40, td16: 46, td17: 35, td18: 45,

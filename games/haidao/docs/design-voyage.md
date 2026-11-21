@@ -57,10 +57,10 @@
 
 ### 12.1 护航实盘
 
-> 以 `src/core/escortlive.ts`、`tools/escort-live-sim.ts` 为准；每天 4 场（`HAIDAO_ESCORT_DAILY`），合计上限见 4.0。
+> 以 `src/core/escortlive.ts`、`src/content/livetable.ts`、`tools/live-sim.ts --kind escort` 为准；每天 4 场（`HAIDAO_ESCORT_DAILY`），合计上限见 4.0。
 
-- **每档固定用一关护航关，读实盘专用的冻结副本**（`src/content/escortlivelevels.ts`：0.55.0 拆分时 strait-normal、bays-normal、strait-hard 的完整定义，逐字照抄，`tests/escort-content.test.ts` 用哈希锁住）：娱乐的同名关以后随便调，实盘不变；改冻结副本就要重跑实盘 sim。拆分前后 `escort-live-sim --n 2000` 八格输出一字不差。
+- **每档一个关卡池，按种子抽一关，读实盘专用的冻结副本**（`src/content/escortlivelevels.ts`：strait-normal、bays-normal、strait-hard 是 0.55.0 拆分时的定义，bays-easy、bays-hard、cape-easy、cape-normal、cape-hard 是 0.58.0 扩池时的定义，`tests/escort-content.test.ts` 用哈希锁住）：娱乐的同名关以后随便调，实盘不变；改冻结副本就要重跑实盘 sim。
 - **结回**：到港按星数查表；没到港（沉船、误了潮）按走过的格数占比**线性**折算，最多回 0.79 份。不用守岛那条凹曲线：机器人沉船、误潮多半在快到港的时候（走完 0.6–0.9），凹曲线下 0 星几乎都拿满值，分不出好坏。
-- **档位和关**：档越高三星倍数不降（单测锁住），而普通机器人在双湾、鹦鹉岬普通关有四成三星，三星倍数又不能往下调，中档用那两关期望就压不到区间里；所以小、中两档用同一关（直波海峡·普通，普通机器人三星只有 3%，三星倍数几乎不影响期望），只换倍数；大档换双湾回廊·普通（三星 42%，2★ 回不到本，靠三星赚）；豪华换直波海峡·高手（普通机器人只有 28% 到港，所以到港就回得多）。四档三星倍数小、中、大一样（1.345），豪华 2.43。选档卡的"电脑多强"按用的关写：小、中 ★★，大 ★★★，豪华 ★★★★。
+- **档位和关**：池子见 `LIVE_TABLE.escort`（小档直波海峡·普通加两条新手关、中档三条普通关、大档普通 + 高手，豪华档只有直波海峡·高手：双湾、海角的高手关普通玩家在大档就几乎全过，放进豪华档配不进目标）；每关一张倍数表、逐关拟合，同档三星倍数一样、档越高不降（单测锁住）。娱乐的 strait-easy 两种机器人都是 100% 三星、拉不开，不进池。
 
-- 实测表（八格都在区间里）见 docs/balance-haidao.md 第 8 节。
+- 实测表（四档都在区间里）见 docs/balance-haidao.md 第 8 节。

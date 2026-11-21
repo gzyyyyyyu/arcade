@@ -1,6 +1,6 @@
 /**
  * 假钱包（实盘接口的测试和截图冒烟共用）：arcade-kit/testing 的 FakeBank 依赖 cloudflare:workers，Node 里加载不了，
- * 这里照它的关键规则写一个最小的：按 op 去重、余额不够回 no_funds、结回清掉桌上那一份。
+ * 这里照它的关键规则写一个最小的：按 op 去重、余额不够回 no_funds、结回清掉桌上那一份、兑换超出当天额度只入剩下的。
  */
 import type { WalletRpc } from '../worker/live.ts';
 
@@ -13,7 +13,19 @@ export class Bank implements WalletRpc {
     if (!this.ops.has(op)) this.ops.set(op, f());
     return Promise.resolve(this.ops.get(op) as never);
   }
-  view = async () => ({ ok: true as const, wallet: { balance: this.balance, stakes: [...this.stakes].map(([ref, amount]) => ({ game: 'haidao', ref, amount })) } });
+  /** 兑换：今天这个游戏还能换进多少（平台默认 2,000） */
+  exLeft = 2_000;
+  view = async () => ({ ok: true as const, wallet: { balance: this.balance, stakes: [...this.stakes].map(([ref, amount]) => ({ game: 'haidao', ref, amount })) }, exchangeLeft: this.exLeft, exchangeCap: 2_000 });
+  exchange = (a: Parameters<WalletRpc['exchange']>[0]) => {
+    this.calls.push({ m: 'exchange', a });
+    return this.once(a.op, () => {
+      if (this.exLeft <= 0) return { ok: false, error: 'exchange_cap', left: 0 };
+      const credited = Math.min(a.amount, this.exLeft);
+      this.exLeft -= credited;
+      this.balance += credited;
+      return { ok: true, wallet: { balance: this.balance }, credited, left: this.exLeft };
+    });
+  };
   buyin = (a: Parameters<WalletRpc['buyin']>[0]) => {
     this.calls.push({ m: 'buyin', a });
     return this.once(a.op, () => {

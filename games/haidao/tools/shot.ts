@@ -10,6 +10,7 @@
  * - --tdlive：悬赏守岛（实盘）的真人流程（守岛选关页 → 悬赏守岛选档 → 带入 → 造塔 / 英雄 / 叫波 → 结算 → 回家）。
  *   /api/td/*、/api/live/* 同样交给真的 worker/live.ts（内存假钱包 tools/fake-bank.ts）；--pvp 里还会让假服务端回一次 need_reload，截「游戏更新了」弹窗；
  * - --escortlive：护航实盘的真人流程（出海海图的护航卡 → 选图页的「实盘」→ 选档 → 带入 → 造塔、叫波 → 打完或撤退 → 结算 → 回家），钱包同样是假的；
+ * - --bounty：悬赏出海（实盘）这一批的真人流程（金银锭换筹码 → 连闯三座 → 收手结算 → 收藏页用筹码买装饰），钱包同样是假的，见 shot-live.ts；
  * - --maplive：航线实盘的真人流程（海图上「今日航线」旁的「实盘」→ 选档 → 带入 → 打一站 → 刷新页面 → 接着跑 → 收航 → 结算 → 回家），
  *   核对只写 haidao.maplive.run、不动 haidao.map、不交榜；
  * - --td：守岛一关的真人流程（--level，默认 td01）：选关页 → 驻守台选塔（电脑按空格开打）→ 预告卡和地图上的路线旗 → 敌人图鉴和克制表 →
@@ -36,6 +37,7 @@ import { flag, opt } from './args.ts';
 import { cam, home, smoke, views } from './shot-base.ts';
 import { escort, escortLive } from './shot-escort.ts';
 import { flow } from './shot-flow.ts';
+import { bounty } from './shot-live.ts';
 import { openView, printSfx, VIEWS, type ShotCtx } from './shot-lib.ts';
 import { map, mapLive } from './shot-map.ts';
 import { pvp } from './shot-pvp.ts';
@@ -63,6 +65,7 @@ const MODES: Array<[on: boolean, run: (c: ShotCtx) => Promise<boolean>, what: st
   [flag('--escortlive'), escortLive, '护航实盘'],
   [flag('--maplive'), mapLive, '航线实盘'],
   [flag('--tdlive'), tdLive, '悬赏守岛'],
+  [flag('--bounty'), bounty, '悬赏出海实盘'],
   [flag('--pvp'), pvp, '攻防'],
   [flag('--flow'), flow, '流程'],
 ];

@@ -1,8 +1,8 @@
 import { ESCORT_LEVELS, createTd, escortResultOf, escortSetup, stepTd, tdFingerprint } from '../src/core/index.ts';
 import { escortBotActions, type EscortBotKind } from '../src/core/escortbot.ts';
-import { ESCORT_LIVE_TIERS, escortLiveSetup } from '../src/core/escortlive.ts';
+import { escortLiveSetup } from '../src/core/escortlive.ts';
 import type { TdSetup } from '../src/core/index.ts';
-import type { LiveTier } from '../src/core/live.ts';
+import { LIVE_TIER_IDS } from '../src/core/live.ts';
 
 /**
  * 护航指纹锁（只锁当前规则版本）：9 关 + 实盘 4 档 × 3 个种子 × 两种机器人，打完一局的状态指纹、拍数、护航结果必须逐位不变。
@@ -24,7 +24,7 @@ export function escortJobs(): EscortJob[] {
     for (const seed of SEEDS) for (const bot of BOTS) out.push({ key: `${name}-${bot}-${seed}`, setup: mk(seed), bot });
   };
   for (const lv of ESCORT_LEVELS) add(lv.id, (seed) => escortSetup(lv.id, seed));
-  for (const t of Object.keys(ESCORT_LIVE_TIERS) as LiveTier[]) add(`live-${t}`, (seed) => escortLiveSetup(t, seed));
+  for (const t of LIVE_TIER_IDS) add(`live-${t}`, (seed) => escortLiveSetup(t, seed));
   return out;
 }
 

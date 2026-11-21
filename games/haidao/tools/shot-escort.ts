@@ -1,7 +1,7 @@
 /**
  * shot.ts 的护航两条：--escort（娱乐）和 --escortlive（实盘，钱包走假服务端）。局内界面同一套，放一起对照。
  */
-import { ESCORT_LIVE_TIERS } from '../src/core/escortlive.ts';
+import { LIVE_STAKE } from '../src/content/livetable.ts';
 import { FakePvp } from './shot-fake.ts';
 import { TD_SPEED, layoutProblems, type Hook, type ShotCtx } from './shot-lib.ts';
 
@@ -169,7 +169,7 @@ export async function escortLive(c: ShotCtx): Promise<boolean> {
   const check = async (what: string): Promise<void> => {
     for (const p of await layoutProblems(page)) problems.push(`${v.name} ${what} ${p}`);
   };
-  const stake = ESCORT_LIVE_TIERS.small.stake;
+  const stake = LIVE_STAKE.small;
   const ok =
     (await step('护航选图页的实盘钮', async () => {
       await page.goto(`${ROOT}?dev&fast`, { timeout: 60_000 });

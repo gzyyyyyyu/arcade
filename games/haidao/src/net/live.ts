@@ -31,6 +31,8 @@ export interface LiveRecord {
   step: LiveStep;
   kind?: 'settle' | 'refund';
   bp?: number;
+  /** 打到一半离开（关页面、断电）时按多少结：单场没有（按 0 结），悬赏连闯随进度更新 */
+  floor?: number;
   user?: string;
   credited?: number;
   capped?: number;
@@ -127,6 +129,12 @@ function makeLive(api: string, key: string, keepPlaying: (r: LiveRecord) => bool
       return this.flush();
     },
 
+    /** 打的过程中更新"现在离开按多少结"（悬赏连闯每过一座、每次选再闯时调） */
+    setFloor(bp: number): void {
+      const r = load(key);
+      if (r?.step === 'playing') save(key, { ...r, floor: bp });
+    },
+
     /** 没开打就放弃：原样退回 */
     async refund(): Promise<Sent> {
       const r = load(key);
@@ -156,7 +164,7 @@ function makeLive(api: string, key: string, keepPlaying: (r: LiveRecord) => bool
       if (r.step === 'buying') save(key, { ...r, step: 'settling', kind: 'refund' });
       else if (r.step === 'playing') {
         if (keepPlaying(r)) return;
-        save(key, { ...r, step: 'settling', kind: 'settle', bp: 0 });
+        save(key, { ...r, step: 'settling', kind: 'settle', bp: r.floor ?? 0 });
       }
       await this.flush();
     },
@@ -170,6 +178,56 @@ export const live = Object.assign(makeLive(API, LIVE_KEY), {
   exchange: (ref: string, into: 'gold' | 'wood'): Promise<Sent> => post(API, 'exchange', { ref, into }),
   newExchangeRef: (): string => `hdx-${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`,
 });
+
+/**
+ * 发出去还没确认的一笔（金银锭换筹码、筹码买装饰）：先记下 ref 再发，回话丢了下次打开用同一个 ref 重发，钱包按 op 只算一次。
+ * 存不上、清不掉都只会让这一笔少算或重发一次（重发回 dup），不会多扣。
+ */
+function pendingOp<R extends { ref: string }>(key: string, action: string, prefix: string, valid: (v: R) => boolean) {
+  return {
+    pending(): R | null {
+      try {
+        const v = JSON.parse(localStorage.getItem(key) ?? 'null') as R | null;
+        return v && typeof v.ref === 'string' && valid(v) ? v : null;
+      } catch {
+        return null;
+      }
+    },
+    begin(fields: Omit<R, 'ref'>): R {
+      const rec = { ...fields, ref: `${prefix}${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}` } as R;
+      try {
+        localStorage.setItem(key, JSON.stringify(rec));
+      } catch {
+        // 存不上：回话丢了这一笔就当没成
+      }
+      return rec;
+    },
+    send: (rec: R): Promise<Sent> => post(API, action, { ...rec }),
+    done(): void {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // 清不掉：下次打开重发，钱包回 dup
+      }
+    },
+  };
+}
+
+/** 金银锭换筹码（存档里的锭在发之前已经扣了） */
+export const INGOT_KEY = 'haidao.ingotx';
+export interface IngotRecord {
+  ref: string;
+  n: number;
+}
+export const ingotX = pendingOp<IngotRecord>(INGOT_KEY, 'ingot', 'hdi-', (v) => Number.isInteger(v.n) && v.n > 0);
+
+/** 筹码买装饰（扣成了才把收藏加进存档） */
+export const SHOP_KEY = 'haidao.shopx';
+export interface ShopRecord {
+  ref: string;
+  item: string;
+}
+export const shopX = pendingOp<ShopRecord>(SHOP_KEY, 'shop', 'hds-', (v) => typeof v.item === 'string');
 
 /** 悬赏守岛（实盘）：同一套流程，走 api/td/*，本机进度记在 haidao.tdlive */
 export const tdLive = makeLive(TD_API, TDLIVE_KEY);
@@ -200,16 +258,20 @@ export const tdToday = (): Promise<{ left: number; max: number } | null> => toda
 export const escortToday = (): Promise<{ left: number; max: number } | null> => todayOf('escort');
 export const mapToday = (): Promise<{ left: number; max: number } | null> => todayOf('map');
 
-/** 今天还能打几场实盘、还能换几次（GET api/live/today）；拿不到为 null */
-export async function liveToday(): Promise<{ live: { left: number; max: number }; exchange: { left: number; max: number } } | null> {
+/** 今天还能打几场实盘、还能换几次、金银锭还能换多少筹码（GET api/live/today）；拿不到为 null */
+export async function liveToday(): Promise<{ live: { left: number; max: number }; exchange: { left: number; max: number }; ingot: { left: number; cap: number } | null } | null> {
   if (liveState.off || !loggedIn()) return null;
   try {
     const r = await fetch(`${API}today`, { credentials: 'same-origin', cache: 'no-store' });
     if (r.status === 501) liveState.off = true;
     if (!r.ok) return null;
-    const v = (await r.json()) as { live?: { left?: unknown; max?: unknown }; exchange?: { left?: unknown; max?: unknown } };
+    const v = (await r.json()) as { live?: { left?: unknown; max?: unknown }; exchange?: { left?: unknown; max?: unknown }; ingot?: { left?: unknown; cap?: unknown } };
     const num = (x: unknown): number => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
-    return { live: { left: num(v.live?.left), max: num(v.live?.max) }, exchange: { left: num(v.exchange?.left), max: num(v.exchange?.max) } };
+    return {
+      live: { left: num(v.live?.left), max: num(v.live?.max) },
+      exchange: { left: num(v.exchange?.left), max: num(v.exchange?.max) },
+      ingot: v.ingot ? { left: num(v.ingot.left), cap: num(v.ingot.cap) } : null,
+    };
   } catch {
     return null;
   }

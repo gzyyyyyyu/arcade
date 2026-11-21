@@ -32,7 +32,7 @@ export const FX_FRAME_KINDS = ['hit', 'boom', 'collapse', 'slash', 'muzzle'] as 
 /** 皮肤帧不进 allArt（太占内存）：画面层按需 troopFrames(kind, anim, skin) 再烘焙 */
 export const TROOP_SKINS = ['gold', 'shadow', 'royal'] as const;
 export const FX_KINDS = ['ball', 'bullet', 'shell', 'flame', 'boom', 'smoke', 'spark', 'rubble', 'flare', 'heal', 'rocket', 'harpoon', 'tar', 'tentacle', 'fog', 'levelup', 'coins', 'grenade', 'stars', 'shock', 'snipe'] as const;
-export const ICON_KINDS = ['gold', 'wood', 'star', 'starEmpty', 'energy', 'hammer', 'sword', 'shield', 'ship', 'map', 'home', 'skull', 'barrage', 'flare', 'medkit', 'bounty', 'trophy', 'shieldOn', 'replay', 'revenge', 'treasure'] as const;
+export const ICON_KINDS = ['gold', 'wood', 'star', 'starEmpty', 'energy', 'hammer', 'sword', 'shield', 'ship', 'map', 'home', 'skull', 'barrage', 'flare', 'medkit', 'bounty', 'trophy', 'shieldOn', 'replay', 'revenge', 'treasure', 'ingot'] as const;
 /** 建筑外观的最大等级（更高的等级沿用这一级的样子） */
 export const ART_MAX_LEVEL = 8;
 

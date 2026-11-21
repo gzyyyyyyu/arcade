@@ -136,6 +136,13 @@ describe('实盘结回和放弃', () => {
     expect(rec(LIVE_KEY)?.step).toBe('done');
   });
 
+  it('悬赏连闯打到一半关了页面：按记下的 floor 结（setFloor 只在 playing 时记）', async () => {
+    put(LIVE_KEY, {});
+    live.setFloor(8_000);
+    await live.resume();
+    expect(sent[0]).toMatchObject({ url: 'api/live/settle', body: { bp: 8_000 } });
+  });
+
   it('没有记录、已经结完：resume 什么都不发', async () => {
     await live.resume();
     put(LIVE_KEY, { step: 'done' });

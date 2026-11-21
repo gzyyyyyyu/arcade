@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { CAMPAIGN } from '../src/core/index.ts';
 import { BOUNTY_PCT, LOOT_PCT, WANDER_LOOT_PCT, wandererGain, wandererIsland } from '../src/core/pvp.ts';
-import { EXCHANGE_CHIPS, EXCHANGE_GOLD, EXCHANGE_PER_DAY, EXCHANGE_WOOD, LIVE_MAX_BP, LIVE_TIERS } from '../src/core/live.ts';
-import { TD_LIVE_TIERS, TD_LIVE_ZERO_MAX_BP } from '../src/core/tdlive.ts';
-import { ESCORT_LIVE_TIERS, ESCORT_LIVE_ZERO_MAX_BP } from '../src/core/escortlive.ts';
-import { MAP_LIVE_TIERS, MAP_LIVE_ZERO_MAX_BP } from '../src/core/maplive.ts';
+import { BOUNTY_CREW, LIVE_STAKE, LIVE_TABLE } from '../src/content/livetable.ts';
+import { EXCHANGE_CHIPS, EXCHANGE_GOLD, EXCHANGE_PER_DAY, EXCHANGE_WOOD, LIVE_MAX_BP } from '../src/core/live.ts';
+import { TD_LIVE_ZERO_MAX_BP } from '../src/core/tdlive.ts';
+import { ESCORT_LIVE_ZERO_MAX_BP } from '../src/core/escortlive.ts';
+import { MAP_LIVE_ZERO_MAX_BP } from '../src/core/maplive.ts';
 import { hash32 } from '../src/core/rng.ts';
 
 /**
@@ -15,11 +16,11 @@ import { hash32 } from '../src/core/rng.ts';
 describe('收益上调不碰实盘和异步攻防', () => {
   it('实盘档位表、结回上限、兑换比例逐项不变', () => {
     const tables = {
-      LIVE_TIERS, LIVE_MAX_BP, EXCHANGE: [EXCHANGE_CHIPS, EXCHANGE_PER_DAY, EXCHANGE_GOLD, EXCHANGE_WOOD],
-      TD_LIVE_TIERS, TD_LIVE_ZERO_MAX_BP, ESCORT_LIVE_TIERS, ESCORT_LIVE_ZERO_MAX_BP, MAP_LIVE_TIERS, MAP_LIVE_ZERO_MAX_BP,
+      LIVE_TABLE, LIVE_STAKE, BOUNTY_CREW, LIVE_MAX_BP, EXCHANGE: [EXCHANGE_CHIPS, EXCHANGE_PER_DAY, EXCHANGE_GOLD, EXCHANGE_WOOD],
+      TD_LIVE_ZERO_MAX_BP, ESCORT_LIVE_ZERO_MAX_BP, MAP_LIVE_ZERO_MAX_BP,
     };
     expect([EXCHANGE_CHIPS, EXCHANGE_PER_DAY, EXCHANGE_GOLD, EXCHANGE_WOOD]).toEqual([2000, 2, 2000, 1200]);
-    expect(hash32(JSON.stringify(tables), 0)).toBe(1681540931);
+    expect(hash32(JSON.stringify(tables), 0)).toBe(757293904);
   });
   it('攻防掠夺比例不变；流浪海盗岛按关卡原始 loot 算，不乘收入倍率', () => {
     expect([LOOT_PCT, BOUNTY_PCT, WANDER_LOOT_PCT]).toEqual([20, 50, 50]);

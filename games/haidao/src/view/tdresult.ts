@@ -74,7 +74,7 @@ function settle(bs: TdScene): void {
     playBeats(resultBeats({ kind: 'td', stars: res.stars, win: res.stars > 0, roll: false }), () => bs.ui.isConnected);
     vibrate(res.stars > 0 ? 'win' : 'lose');
     app.api.scene = 'result';
-    void showTdLiveResult(bs.d.live.tier, res);
+    void showTdLiveResult(bs.d.live.tier, bs.d.setup.seed, res);
     return;
   }
   if (bs.d.tide) {
@@ -198,7 +198,7 @@ export function finishEscort(bs: TdScene, res: ReturnType<typeof tdResult>): voi
     playBeats(resultBeats({ kind: 'td', stars: er.stars, win, roll: false }), () => bs.ui.isConnected);
     vibrate(win ? 'win' : 'lose');
     app.api.scene = 'result';
-    void showEscortLiveResult(bs.d.escortLive.tier, er);
+    void showEscortLiveResult(bs.d.escortLive.tier, bs.d.setup.seed, er);
     return;
   }
   const r = settleEscort(app.profile, bs.d.levelId, res, dayIndex());

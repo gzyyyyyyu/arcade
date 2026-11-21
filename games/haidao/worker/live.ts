@@ -1,9 +1,10 @@
 /**
- * 悬赏出海（实盘）和筹码单向兑换的钱包接口（DESIGN.md 第 4 节，照夜巡 worker/live.ts）：POST /games/haidao/api/live/{buyin,settle,refund,exchange}。
+ * 悬赏出海（实盘）和兑换的钱包接口（DESIGN.md 第 4 节，照夜巡 worker/live.ts）：POST /games/haidao/api/live/{buyin,settle,refund,exchange,ingot}。
  *
  * 浏览器只给 ref / tier / bp（结回倍数，万分之几）；金额和到期时间都由 Worker 定：带入固定是这一档的一份，until = Worker 时钟 + 24 小时；
  * 结回前先看一眼钱包（view），按桌上那一份的金额算，不信浏览器报的档位。悬赏岛是电脑岛（src/core/live.ts），不涉及任何别的玩家。
  * 兑换：带入一份小档、立刻结回 0（筹码归庄家），换来的金币 / 木材记成这个人 Base 里的待领，浏览器同步时加进存档；每天的名额也记在 Base 那一行。
+ * 金银锭换筹码（4.5）：直接调钱包 exchange（op `hx-i-<ref>`，钱包按 op 去重、按天管额度），回实际入账 credited，浏览器只扣入账对应的锭。
  *
  * 悬赏守岛（10.5）、护航（12.1）、寻宝航线（11.1）共用这份代码：POST /games/haidao/api/{td,escort,map}/{buyin,settle,refund}、GET <玩法>/today。
  * 区别只有三处（LIVE_KINDS）：钱包 ref 由 Worker 加各自的前缀、每日场次各自记（各自的 vars）、只有悬赏出海有兑换。
@@ -12,19 +13,22 @@
  */
 import { whoIs } from 'arcade-kit/auth';
 import { isStandalone, json } from 'arcade-kit/worker';
-import { EXCHANGE_CHIPS, EXCHANGE_GOLD, EXCHANGE_PER_DAY, EXCHANGE_WOOD, LIVE_MAX_BP, LIVE_TIERS, isLiveTier, liveReturn } from '../src/core/live.ts';
+import { EXCHANGE_CHIPS, EXCHANGE_GOLD, EXCHANGE_PER_DAY, EXCHANGE_WOOD, LIVE_MAX_BP, LIVE_TIER_IDS, isLiveTier, liveReturn, type LiveTier } from '../src/core/live.ts';
 import { tdLiveOpen } from '../src/core/tdlive.ts';
 import { RULES_VERSION } from '../src/core/types.ts';
+import { CHIP_SHOP, INGOT_CHIPS, LIVE_STAKE } from '../src/content/livetable.ts';
 import type { Ports } from './pvp/api.ts';
 
 type WalletTier = 'small' | 'mid' | 'big' | 'lux';
-type WalletReply = { ok: true; wallet: unknown; credited?: number; capped?: number; dup?: boolean } | { ok: false; error: string; wallet?: unknown };
+type WalletReply = { ok: true; wallet: unknown; credited?: number; capped?: number; left?: number; dup?: boolean; exchangeLeft?: number; exchangeCap?: number } | { ok: false; error: string; wallet?: unknown; left?: number };
 
 export interface WalletRpc {
   view(userId: string): Promise<WalletReply>;
   buyin(req: { userId: string; game: 'haidao'; ref: string; tier: WalletTier; amount: number; until: number; mode: 'client'; op: string }): Promise<WalletReply>;
   settle(req: { userId: string; game: 'haidao'; ref: string; amount: number; mode: 'client'; op: string }): Promise<WalletReply>;
   refund(req: { userId: string; game: 'haidao'; ref: string; mode: 'client'; op: string }): Promise<WalletReply>;
+  /** 游戏内货币换的筹码直接进余额（金银锭）；超出今天的额度只入剩下的，回 credited、left */
+  exchange(req: { userId: string; game: 'haidao'; op: string; amount: number }): Promise<WalletReply>;
 }
 
 export interface LiveEnv {
@@ -96,8 +100,15 @@ const EX_REF_RE = /^[A-Za-z0-9_-]{8,40}$/;
 const EX_NS = 'hx-';
 const exWalletRef = (ref: string): string => `${EX_NS}${ref}`;
 /** 浏览器给的 ref 不许以任何一种命名空间开头 */
-const ALL_NS = [EX_NS, ...KIND_IDS.map((k) => LIVE_KINDS[k].ns).filter((ns) => ns !== '')];
-const ACTIONS = ['buyin', 'settle', 'refund', 'exchange', 'today'] as const;
+/**
+ * 筹码装饰（4.7）在钱包里也用自己的命名空间：和兑换一样是 buyin 后 settle 0，
+ * 共用 hx- 的话浏览器能拿 `d-<ref>` 走兑换、再拿 `<ref>` 走装饰，钱包按 op 回 dup，等于不扣钱拿到装饰。
+ */
+const SHOP_NS = 'hd-';
+const ALL_NS = [EX_NS, SHOP_NS, ...KIND_IDS.map((k) => LIVE_KINDS[k].ns).filter((ns) => ns !== '')];
+/** 一次最多换多少锭（钱包每天的额度另管，管理页最多可调到 100 万筹码 = 1 万锭） */
+const INGOT_MAX = 10_000;
+const ACTIONS = ['buyin', 'settle', 'refund', 'exchange', 'ingot', 'shop', 'today'] as const;
 
 const fail = (status: number, error: string, cookies: readonly string[] = []): Response => json({ ok: false, error }, status, cookies);
 
@@ -145,7 +156,7 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
   const kind = liveKindOf(url.pathname);
   const prefix = kind ? LIVE_KINDS[kind].prefix : '';
   const action = kind ? ACTIONS.find((a) => a === url.pathname.slice(prefix.length)) : undefined;
-  if (!kind || !action || (kind !== 'live' && action === 'exchange')) return fail(404, 'not_found');
+  if (!kind || !action || (kind !== 'live' && (action === 'exchange' || action === 'ingot' || action === 'shop'))) return fail(404, 'not_found');
   if (req.method !== (action === 'today' ? 'GET' : 'POST')) return fail(405, 'method');
   // 单独部署没有平台钱包：说清楚是"这里没有"（501），页面把实盘入口藏起来
   if (isStandalone(env)) return fail(501, 'no_wallet');
@@ -159,7 +170,11 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
     const max = kindDaily(env, kind);
     const slots = { left: await me.slotLeft(kind, day, max), max };
     if (kind !== 'live') return json({ ok: true, [kind]: slots }, 200, who.setCookie);
-    return json({ ok: true, live: slots, exchange: { left: await me.exchangeLeft(day, EXCHANGE_PER_DAY), max: EXCHANGE_PER_DAY } }, 200, who.setCookie);
+    const exchange = { left: await me.exchangeLeft(day, EXCHANGE_PER_DAY), max: EXCHANGE_PER_DAY };
+    // 金银锭今天还能换多少筹码（钱包管的额度）；看不了钱包就不带，页面写"额度暂时看不到"
+    const v = env.WALLET ? await withTimeout(env.WALLET.view(who.user.userId), timeoutMs).catch(() => 'timeout' as const) : 'timeout';
+    const ingot = v !== 'timeout' && okShape(v) && v.ok && Number.isSafeInteger(v.exchangeLeft) && Number.isSafeInteger(v.exchangeCap) ? { left: v.exchangeLeft, cap: v.exchangeCap } : undefined;
+    return json({ ok: true, live: slots, exchange, ...(ingot ? { ingot } : {}) }, 200, who.setCookie);
   }
   if (req.headers.get('X-Arcade') !== '1' || req.headers.get('Origin') !== url.origin) return fail(403, 'csrf');
 
@@ -181,7 +196,7 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
   }
   const ref = body.ref;
   const ns = LIVE_KINDS[kind].ns;
-  if (typeof ref !== 'string' || !(action === 'exchange' ? EX_REF_RE : ns ? NS_REF_RE : REF_RE).test(ref) || ALL_NS.some((p) => ref.startsWith(p))) return fail(400, 'bad_ref');
+  if (typeof ref !== 'string' || !(action === 'exchange' || action === 'ingot' || action === 'shop' ? EX_REF_RE : ns ? NS_REF_RE : REF_RE).test(ref) || ALL_NS.some((p) => ref.startsWith(p))) return fail(400, 'bad_ref');
   // 钱包里的 ref 加这种实盘的前缀，Base 里的场次记录仍按浏览器给的 ref
   const wref = `${ns}${ref}`;
   // 浏览器记着带入的账号：结回、放弃时带上，现在登录的不是他就不动钱包
@@ -189,7 +204,7 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
   if (expect !== undefined && (typeof expect !== 'string' || expect === '' || expect.length > 128)) return fail(400, 'bad_user');
 
   // 先校验完参数再认人：不合格的请求不去问平台
-  let tierId: keyof typeof LIVE_TIERS | null = null;
+  let tierId: LiveTier | null = null;
   let bp = 0;
   let into: 'gold' | 'wood' = 'gold';
   if (action === 'buyin' || action === 'settle') {
@@ -206,6 +221,18 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
     if (body.into !== 'gold' && body.into !== 'wood') return fail(400, 'bad_into');
     into = body.into;
   }
+  let price = 0;
+  if (action === 'shop') {
+    const item = body.item;
+    if (typeof item !== 'string' || !Object.hasOwn(CHIP_SHOP, item)) return fail(400, 'bad_item');
+    price = CHIP_SHOP[item]!;
+  }
+  let ingots = 0;
+  if (action === 'ingot') {
+    const n = body.n;
+    if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > INGOT_MAX) return fail(400, 'bad_amount');
+    ingots = n;
+  }
   // 兑换名额、实盘每日场次都记在 Base：没有 DO 绑定就当没有这个功能
   if ((action === 'exchange' || action === 'buyin') && !ports) return fail(501, 'no_wallet');
 
@@ -219,6 +246,13 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
 
   try {
     if (action === 'exchange') return await exchange(w, ports!, userId, ref, into, now, timeoutMs, ck);
+    if (action === 'shop') return await shop(w, userId, ref, price, now, timeoutMs, ck);
+    if (action === 'ingot') {
+      // 金银锭换筹码：钱包按 op 去重、按天管额度，Base 不记（和筹码换资源的 hx-<ref>-in / -out 用不同的 op，撞不上）
+      const res = await withTimeout(w.exchange({ userId, game: 'haidao', op: `${EX_NS}i-${ref}`, amount: ingots * INGOT_CHIPS }), timeoutMs);
+      if (res === 'timeout' || !okShape(res)) return fail(503, 'unavailable', ck);
+      return json({ ...res, user: userId }, 200, ck);
+    }
     let call: Promise<WalletReply>;
     if (action === 'buyin') {
       // 每天场次上限：先占一场（按 ref 幂等），满了 429、不碰钱包；钱包拒了再退回这一场
@@ -226,8 +260,7 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
       const me = ports!.base(userId);
       const slot = await me.slotBegin(kind, ref, beijingDay(now), max);
       if (!slot.ok) return json({ ok: false, error: 'live_daily', max }, 429, ck);
-      const t = LIVE_TIERS[tierId!];
-      const res = await withTimeout(w.buyin({ userId, game: 'haidao', ref: wref, tier: t.id, amount: t.stake, until: now + BUYIN_TTL_MS, mode: 'client', op: `${wref}-in` }), timeoutMs);
+      const res = await withTimeout(w.buyin({ userId, game: 'haidao', ref: wref, tier: tierId!, amount: LIVE_STAKE[tierId!], until: now + BUYIN_TTL_MS, mode: 'client', op: `${wref}-in` }), timeoutMs);
       if (res === 'timeout' || !okShape(res)) return fail(503, 'unavailable', ck);
       if (!res.ok) await me.slotUndo(kind, ref);
       return json({ ...res, left: res.ok ? slot.left : slot.left + 1, max, user: userId }, 200, ck);
@@ -238,7 +271,7 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
         const v = await w.view(userId);
         // 看不了钱包就当连不上（503，浏览器过会儿重发），不退回去按浏览器报的档位算
         if (!okShape(v) || !v.ok) throw new Error('view');
-        const base = stakeAmount(v.wallet, wref) ?? LIVE_TIERS[tierId!].stake;
+        const base = stakeAmount(v.wallet, wref) ?? LIVE_STAKE[tierId!];
         return w.settle({ userId, game: 'haidao', ref: wref, amount: liveReturn(base, bp), mode: 'client', op: `${wref}-out` });
       })();
     }
@@ -249,6 +282,21 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
   } catch {
     return fail(503, 'unavailable', ck);
   }
+}
+
+/**
+ * 筹码装饰：带入价钱（放进装得下的最低一档）→ 结回 0（筹码归庄家）。钱包按 op 去重，重发同一个 ref 只扣一次；
+ * 收藏由浏览器在扣成之后加进存档（纯外观，不防作弊）。
+ */
+async function shop(w: WalletRpc, userId: string, ref: string, price: number, now: number, timeoutMs: number, ck: readonly string[]): Promise<Response> {
+  const tier = LIVE_TIER_IDS.find((t) => LIVE_STAKE[t] >= price) ?? 'lux';
+  const wref = `${SHOP_NS}${ref}`;
+  const buy = await withTimeout(w.buyin({ userId, game: 'haidao', ref: wref, tier, amount: price, until: now + BUYIN_TTL_MS, mode: 'client', op: `${wref}-in` }), timeoutMs);
+  if (buy === 'timeout' || !okShape(buy)) return fail(503, 'unavailable', ck);
+  if (!buy.ok) return json({ ok: false, error: buy.error, user: userId }, 200, ck);
+  const out = await withTimeout(w.settle({ userId, game: 'haidao', ref: wref, amount: 0, mode: 'client', op: `${wref}-out` }), timeoutMs);
+  if (out === 'timeout' || !okShape(out)) return fail(503, 'unavailable', ck);
+  return json({ ...out, user: userId }, 200, ck);
 }
 
 /** 兑换：占名额 → 带入一份小档 → 结回 0 → 记待领。钱包按 op 去重，中途断了浏览器用同一个 ref 重发只扣一次 */
