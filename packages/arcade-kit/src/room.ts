@@ -312,10 +312,10 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   /** 写了还没报给计量的行数 */
   private unmetered = 0;
   /**
-   * 这一步做完以后要还的名额（打完、关房；房主一个人，匹配桌是排进来的每个人），entry 最后去找计量。
-   * refund：匹配桌开打时没来的人（0.20.0），连当天的开房次数一起退给他（全站开房数不退，桌子开成了）
+   * 还没还给计量的名额（打完、关房、进 idle；房主一个人，匹配桌是排进来的每个人），entry 最后去找计量；还不上留着下次接着还。
+   * 几次要还的按人取并集（queueRelease），谁也不挤掉谁。refund：匹配桌开打时没来的人（0.20.0），连当天的开房次数一起退给他（全站开房数不退，桌子开成了）
    */
-  private release: { users: string[]; code: string; refund?: true } | null = null;
+  private release: { code: string; users: string[]; refund: string[] } | null = null;
   /** 计量最近一次说的门槛（内存；被驱逐就重新问） */
   private level: { value: MeterLevel; at: number } | null = null;
   /** 计量连不上时，什么时候再试着报数 */
@@ -651,7 +651,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
       this.unmetered = 0;
       try {
         const level = release
-          ? await meter.kitReleaseMany(release.users, release.code, n, release.refund === true, false)
+          ? await this.flushRelease(meter, release, n)
           : await meter.kitReport(n);
         this.level = { value: level, at: Date.now() };
         this.meterRetryAt = 0;
@@ -660,7 +660,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
         // 房间还在的（打完了、还在给大家看结果），下次接着报、接着还；关掉了的就丢了，名额到点自动作废
         if (this.st) {
           this.unmetered += n;
-          this.release ??= release;
+          if (release) this.queueRelease(release.code, release.users, release.refund);
         }
         this.meterRetryAt = now + METER_RETRY_MS;
       }
@@ -672,11 +672,31 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     await this.runEffects();
   }
 
-  /** 计量说满了：没在打（等人、打完了）的、正停在收场点的、游戏没有收场点的，马上关；在打的等 step 走到收场点。 */
+  /** 记下要还的名额：和还没还上的按人合并（同一个房间码），refund 的人只多不少 */
+  private queueRelease(code: string, users: readonly string[], refund: readonly string[] = []): void {
+    const r = this.release ?? { code, users: [], refund: [] };
+    if (r.code !== code) console.error('release for another room ignored', r.code, code);
+    else this.release = { code, users: [...new Set([...r.users, ...users, ...refund])], refund: [...new Set([...r.refund, ...refund])] };
+  }
+
+  /** 还名额：退次数的（refund）和只还名额的分两次找计量（计量一次只认一种），写入数随第一次报。计量认重复还，重试不会多退 */
+  private async flushRelease(meter: DurableObjectStub<RoomMeter>, r: { code: string; users: string[]; refund: string[] }, writes: number): Promise<MeterLevel> {
+    const rest = r.users.filter((u) => !r.refund.includes(u));
+    if (r.refund.length === 0) return meter.kitReleaseMany(rest, r.code, writes, false, false);
+    const level = await meter.kitReleaseMany(r.refund, r.code, writes, true, false);
+    return rest.length ? meter.kitReleaseMany(rest, r.code, 0, false, false) : level;
+  }
+
+  /** 这一刻是不是收场点：游戏的 breakPoint，或者只等再来一场了（idle） */
+  private atBreak(state: S): boolean {
+    return this.game.breakPoint?.(state) === true || this.game.idle?.(state) === true;
+  }
+
+  /** 计量说满了：没在打（等人、打完了）的、正停在收场点（含 idle）的、游戏没有收场点的，马上关；在打的等 step 走到收场点。 */
   private windDown(): void {
     const st = this.load();
     if (!st || st.ending) return;
-    if (st.status !== 'playing' || !this.game.breakPoint || this.game.breakPoint(st.game as S)) {
+    if (st.status !== 'playing' || !this.game.breakPoint || this.atBreak(st.game as S)) {
       console.error('daily writes reached stop, closing room', st.code);
       this.closeRoom(CLOSE_REASON.quota);
     }
@@ -1038,7 +1058,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
       }
       // 没来的人（关了页面、网断了）：他的开房名额和当天次数退给他，不然白扣一个、还被 has_room 卡到这桌打完。
       // 他后来回来照样能接着打这个座位（座位还绑着他）
-      if (absent.length) this.release = { users: absent, code: st.code, refund: true };
+      if (absent.length) this.queueRelease(st.code, absent, absent);
     }
     st.owners = st.seats.map((s) => (s.kind === 'human' ? s.userId : null));
     st.rulesVersion = this.game.rulesVersion;
@@ -1295,15 +1315,22 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   private land(next: S, before: { seats: number[]; group: string | null }, mover: number | null, at: number): void {
     const st = this.st!;
     const wasPaused = st.game !== null && this.pauseOf(st.game) !== null;
+    const wasIdle = st.game !== null && this.game.idle?.(st.game as S) === true;
     st.game = next;
     st.gameSeq = st.seq + 1;
-    const over = this.game.over(next);
-    // 计量说满了：走到这一段的结尾（或者整场打完）就收场，电脑不再接着出
-    if (this.winding && (over || this.game.breakPoint?.(next))) this.closing = true;
+    const idle = this.game.idle?.(next) === true;
+    // idle 是单向的（RoomGame.idle）：名额已经还了，不能回到在打。游戏真这么做了按打完收尾，不让它不占名额接着打
+    const leftIdle = wasIdle && !idle && !this.game.over(next);
+    if (leftIdle) console.error('game left idle without being over, ending room', st.code);
+    const over = leftIdle || this.game.over(next);
+    // 只等"再来一场"了：先还名额，房间接着开（over 时再还一次，计量认重复）
+    if (!over && !wasIdle && idle) this.queueRelease(st.code, releaseOf(st).users);
+    // 计量说满了：走到这一段的结尾（含 idle）或者整场打完就收场，电脑不再接着出
+    if (this.winding && (over || this.atBreak(next))) this.closing = true;
     if (over) {
       st.status = 'over';
       st.turnSince = null;
-      this.release = releaseOf(st);
+      this.queueRelease(st.code, releaseOf(st).users);
       return;
     }
     const after = this.turnOf(next);
@@ -1350,7 +1377,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     console.error('game has nobody to act but is not over', st.code);
     st.status = 'over';
     st.turnSince = null;
-    this.release = releaseOf(st);
+    this.queueRelease(st.code, releaseOf(st).users);
     return true;
   }
 
@@ -1720,7 +1747,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
         st.ending = { reason, at: Date.now() };
         st.effectsAt = null;
         st.effectTries = 0;
-        this.release = releaseOf(st);
+        this.queueRelease(st.code, releaseOf(st).users);
         this.closing = false;
         this.planAlarm();
         this.save();
@@ -1736,7 +1763,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
       ws.serializeAttachment(null);
       this.closeWs(ws, CLOSE.roomClosed, reason);
     }
-    if (this.st) this.release = releaseOf(this.st);
+    if (this.st) this.queueRelease(this.st.code, releaseOf(this.st).users);
     this.st = null;
     this.alarmToSet = null;
     this.alarmAt = null;

@@ -1,7 +1,7 @@
 /**
  * 测 0.5.0 的"停一会儿再接着来"（RoomGame.pause / resume）用的小游戏"歇一下的比大小"：规则和 worker.ts 的比大小一样
  * （每人 3 张、轮流出一张），只是每出满一圈（4 张）停 3 秒给大家看清，到点由房间 resume 发下一圈，下一圈从下一家开始。
- * 负数的牌是不轮流的操作，用来在测试里拨动状态（规则仍是纯函数）。只在测试里用，不部署。
+ * 负数的牌是不轮流的操作，用来在测试里拨动状态（规则仍是纯函数）；PAUSE_ACT.idle 进入"只等再来一场"（RoomGame.idle）。只在测试里用，不部署。
  * 不从 worker.ts 引 toyGame：worker.ts 要转出这里的房间类，互相引用时模块求值顺序会出问题。
  */
 import type { RoomGame } from '../src/game.ts';
@@ -26,6 +26,10 @@ export const PAUSE_ACT = {
   restNow: -6,
   /** 偷看一眼：只改自己的视图，别人什么都看不出来（0.7.1 不广播） */
   peek: -7,
+  /** 进入"只等再来一场"（RoomGame.idle，0.27.0） */
+  idle: -8,
+  /** 从 idle 回到在打（违反 idle 单向的约定，测房间按打完收尾） */
+  wake: -9,
 } as const;
 
 export interface PauseState {
@@ -40,6 +44,8 @@ export interface PauseState {
   rules: number;
   /** 每个座位偷看了几次（只给本人看） */
   peeks?: number[];
+  /** 只等再来一场了（idle） */
+  idle?: boolean;
 }
 export type PauseAction = { card: number };
 export interface PauseView {
@@ -92,6 +98,10 @@ export const pauseGame: RoomGame<PauseState, PauseAction, PauseView, PauseOpts> 
         return { ...s, napping: true };
       case PAUSE_ACT.restNow:
         return { ...s, napping: false, rest: true };
+      case PAUSE_ACT.idle:
+        return { ...s, idle: true };
+      case PAUSE_ACT.wake:
+        return { ...s, idle: false };
       case PAUSE_ACT.peek:
         return { ...s, peeks: [0, 1, 2, 3].map((i) => (s.peeks?.[i] ?? 0) + (i === seat ? 1 : 0)) };
     }
@@ -107,6 +117,7 @@ export const pauseGame: RoomGame<PauseState, PauseAction, PauseView, PauseOpts> 
   turn: (s) => (s.rest || s.napping || done(s) ? null : s.turn),
   waiting: (s) => s.napping,
   pause: (s) => (s.rest ? REST_MS : null),
+  idle: (s) => s.idle === true,
   resume: (s) => {
     if (s.broken === 'throw') throw new Error('resume broken');
     if (s.broken === 'stay') return { ...s };
