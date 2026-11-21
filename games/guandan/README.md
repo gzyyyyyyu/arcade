@@ -115,6 +115,7 @@ npm run standalone-smoke # 单独部署的样子：原样用 wrangler.jsonc 起 
 
 # 工具与构建
 node tools/mem.ts     # 内存估算（模拟 iPhone 8 / 8 Plus 横屏，各渲染倍数的纹理和画布占用）
+node tools/perf.ts    # 性能量测（先 npm run build）：主页、选档页、牌桌代打各段的脚本时间、长任务、帧间隔，首屏可交互，包体积；--dist 指旧产物做背靠背
 npm run art           # 美术预览图 → shots/art/
 npm run cover         # 重新生成 public/cover.png
 npm run build:cf      # 部署产物 dist-cf/games/guandan/（线上 Worker：worker/，登录闸门 GATE=off|login、好友房开关 ONLINE=on|off，见 AGENTS.md）

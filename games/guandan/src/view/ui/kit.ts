@@ -194,12 +194,59 @@ function drawPlate(g: Phaser.GameObjects.Graphics, w: number, h: number, fill: n
   g.strokeRoundedRect(-w / 2, top, w, fh, r);
 }
 
+/** 本地坐标里的外框（世界单位） */
+export interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * 不变的 Graphics 画法烘成纹理贴到 img 上：按渲染倍数用 Canvas 2D 画（带抗锯齿），同一个 key 只画一次、大家共用。
+ * WebGL 下 Graphics 每帧都重新拆点、三角化（每段圆弧固定 100 个点），按钮底板、牌影这类不变的东西每帧白算；烘成图以后每帧只是贴一张图。
+ * box 要包住画出来的全部（含描边、投影），key 要包含所有影响画法的参数。
+ */
+export function bakeInto(img: Phaser.GameObjects.Image, key: string, box: Box, draw: (g: Phaser.GameObjects.Graphics) => void): void {
+  const x = Math.floor(box.x);
+  const y = Math.floor(box.y);
+  const w = Math.ceil(box.x + box.w) - x;
+  const h = Math.ceil(box.y + box.h) - y;
+  const scene = img.scene;
+  if (!scene.textures.exists(key)) {
+    const g = new Phaser.GameObjects.Graphics(scene);
+    draw(g);
+    // 画法里可能先 clear()，所以缩放、平移的命令等画完再插到最前面
+    const cmds = g.commandBuffer.slice();
+    g.clear().scaleCanvas(RENDER_SCALE, RENDER_SCALE).translateCanvas(-x, -y);
+    g.commandBuffer.push(...cmds);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(w * RENDER_SCALE);
+    canvas.height = Math.ceil(h * RENDER_SCALE);
+    g.generateTexture(canvas);
+    g.destroy();
+    scene.textures.addCanvas(key, canvas);
+  }
+  img.setTexture(key).setDisplaySize(w, h).setPosition(x + w / 2, y + h / 2);
+}
+
+/** drawPlate 画出来的外框：左右各出 4 像素投影，下面多出投影的下移，描边再各出一半 */
+function plateBox(w: number, h: number, tier: ButtonTier): Box {
+  const pad = 4 + OUTLINE.width;
+  return { x: -w / 2 - pad, y: -h / 2 - pad, w: w + 2 * pad, h: h + 2 * pad + TIER[tier].rise * 1.75 + 2 };
+}
+
+/** 按钮底板烘成的图（同样的尺寸、颜色、状态共用一张） */
+function bakePlate(img: Phaser.GameObjects.Image, w: number, h: number, fill: number, rim: number, r: number, pressed: boolean, tier: ButtonTier): void {
+  bakeInto(img, `plate:${w}x${h}:${fill}:${rim}:${r}:${pressed ? 1 : 0}:${tier}`, plateBox(w, h, tier), (g) => drawPlate(g, w, h, fill, rim, r, pressed, tier));
+}
+
 /**
  * 按钮：常态、悬停（亮一点、放大一点）、按下（下沉、缩一点）、禁用（灰）、键盘焦点（focus.ts 画框）、加载中（转圈，点了没反应）。
  * 点按区域至少 minHit() 见方（画出来的可以小），挨得近的调用方用 setHit 收窄；按下和抬起都在它上面才算点了一下。
  */
 export class Button extends Phaser.GameObjects.Container {
-  private bg: Phaser.GameObjects.Graphics;
+  private bg: Phaser.GameObjects.Image;
   label: Phaser.GameObjects.Text;
   private icon: Phaser.GameObjects.Image | null = null;
   private spinner: Phaser.GameObjects.Graphics | null = null;
@@ -218,7 +265,7 @@ export class Button extends Phaser.GameObjects.Container {
     this.bh = h;
     this.styleName = style;
     this.onClick = onClick;
-    this.bg = scene.add.graphics();
+    this.bg = scene.add.image(0, 0, '__DEFAULT');
     this.add(this.bg);
     const st = BUTTON[style];
     const size = h >= 56 ? TYPE.title : TYPE.body;
@@ -290,7 +337,7 @@ export class Button extends Phaser.GameObjects.Container {
     const pressed = on && this.down;
     const st = on ? BUTTON[this.styleName] : BUTTON.off;
     const fill = on && this.hover && !pressed ? shade(st.fill, 1.1) : st.fill;
-    drawPlate(this.bg, this.bw, this.bh, fill, st.rim, RADIUS.lg, pressed, on ? BUTTON_TIER[this.styleName] : 'off');
+    bakePlate(this.bg, this.bw, this.bh, fill, st.rim, RADIUS.lg, pressed, on ? BUTTON_TIER[this.styleName] : 'off');
     const dy = pressed ? 2 : 0;
     this.label.y = -2 + dy;
     if (this.icon) this.icon.y = -2 + dy;
@@ -361,7 +408,7 @@ export class Button extends Phaser.GameObjects.Container {
  * 点按区域就是卡本身（卡比 minHit 大）
  */
 export class ModeCard extends Phaser.GameObjects.Container {
-  private bg: Phaser.GameObjects.Graphics;
+  private bg: Phaser.GameObjects.Image;
   private hover = false;
   private down = false;
   readonly bw: number;
@@ -374,7 +421,7 @@ export class ModeCard extends Phaser.GameObjects.Container {
     this.bw = w;
     this.bh = h;
     const st = BUTTON[style];
-    this.bg = scene.add.graphics();
+    this.bg = scene.add.image(0, 0, '__DEFAULT');
     this.add(this.bg);
     const icon = scene.add.image(0, -h / 2 + 34, `icon:${iconKey}`).setDisplaySize(40, 40).setTint(st.text);
     const title = text(scene, 0, -h / 2 + 76, name, { size: TYPE.title, bold: true, color: st.text, stroke: shade(st.fill, 0.5), strokeWidth: 3 });
@@ -414,7 +461,7 @@ export class ModeCard extends Phaser.GameObjects.Container {
   private paint(): void {
     const st = BUTTON[this.getData('style') as ButtonStyle];
     const pressed = this.down;
-    drawPlate(this.bg, this.bw, this.bh, this.hover && !pressed ? shade(st.fill, 1.1) : st.fill, st.rim, RADIUS.xl, pressed);
+    bakePlate(this.bg, this.bw, this.bh, this.hover && !pressed ? shade(st.fill, 1.1) : st.fill, st.rim, RADIUS.xl, pressed, 'secondary');
     this.setScale(pressed ? 0.98 : this.hover ? 1.02 : 1);
   }
 }
@@ -425,19 +472,21 @@ export class ModeCard extends Phaser.GameObjects.Container {
  */
 export function iconButton(scene: Phaser.Scene, x: number, y: number, icon: string, onClick: () => void, size = 48, label?: string): Phaser.GameObjects.Container {
   const c = scene.add.container(x, y);
-  const g = scene.add.graphics();
+  const g = scene.add.image(0, 0, '__DEFAULT');
   const r = size / 2;
-  const paint = (lit: boolean): void => {
-    g.clear();
-    // 卡通圆钮（0.27.1）：柔和投影、深墨下沿、木色上亮下暗、内圈金线、深墨描边
-    g.fillStyle(0x000000, 0.18).fillCircle(0, 6, r);
-    g.fillStyle(OUTLINE.color, 1).fillCircle(0, 3, r - 1);
-    const base = lit ? 0x82502a : 0x6b3f20;
-    g.fillStyle(base, 1).fillCircle(0, -1, r - 2);
-    g.fillStyle(shade(base, 1.18), 1).fillEllipse(0, -1 - r * 0.32, (r - 4) * 1.6, (r - 4) * 0.9);
-    g.lineStyle(2, lit ? COLOR.goldLight : COLOR.gold, lit ? 1 : 0.85).strokeCircle(0, -1, r - 6);
-    g.lineStyle(OUTLINE.width, OUTLINE.color, 1).strokeCircle(0, -1, r - 2);
-  };
+  // 外框：投影往下偏 6，描边各出一半
+  const box = { x: -r - 2, y: -r - 4, w: 2 * r + 4, h: 2 * r + 12 };
+  const paint = (lit: boolean): void =>
+    bakeInto(g, `iconBtn:${size}:${lit ? 1 : 0}`, box, (gr) => {
+      // 卡通圆钮（0.27.1）：柔和投影、深墨下沿、木色上亮下暗、内圈金线、深墨描边
+      gr.fillStyle(0x000000, 0.18).fillCircle(0, 6, r);
+      gr.fillStyle(OUTLINE.color, 1).fillCircle(0, 3, r - 1);
+      const base = lit ? 0x82502a : 0x6b3f20;
+      gr.fillStyle(base, 1).fillCircle(0, -1, r - 2);
+      gr.fillStyle(shade(base, 1.18), 1).fillEllipse(0, -1 - r * 0.32, (r - 4) * 1.6, (r - 4) * 0.9);
+      gr.lineStyle(2, lit ? COLOR.goldLight : COLOR.gold, lit ? 1 : 0.85).strokeCircle(0, -1, r - 6);
+      gr.lineStyle(OUTLINE.width, OUTLINE.color, 1).strokeCircle(0, -1, r - 2);
+    });
   paint(false);
   c.add(g);
   const img = scene.add.image(0, -1, `icon:${icon}`).setDisplaySize(size * 0.56, size * 0.56).setTint(0xffe9c2);

@@ -68,6 +68,8 @@ interface GameBridge {
   stats(): { tweens: number; textures: number; objects: number };
   /** 内存估算（像素数）：纹理按 key 前缀分组、在场文字各自的画布、主画布；tools/mem.ts 用 */
   memory(): { textures: Record<string, number>; text: number; texts: number; canvas: number; webgl: boolean };
+  /** 看得见的 Graphics 按所在容器汇总：个数、绘制命令数（性能排查用） */
+  graphics(): Record<string, { n: number; cmds: number }>;
   /** 联机会话：房间码、我的真实座位、连接状态、房间状态、座位、最近的错误、排队的帧数 */
   net(): {
     code: string;
@@ -345,6 +347,24 @@ export function mountBridge(game: Phaser.Game): void {
       };
       for (const sc of game.scene.getScenes(true)) walk(sc.children.list);
       return { textures, text, texts, canvas: game.canvas.width * game.canvas.height, webgl: game.renderer.type === 2 };
+    },
+    graphics: () => {
+      // WebGL 下 Graphics 每帧都重新拆点、三角化（圆弧每段 100 个点），看得见的越多越费；按所在容器的类名汇总（普通 Container 记上一层的名字和自己的 name；不压缩的构建才看得懂类名）
+      const out: Record<string, { n: number; cmds: number }> = {};
+      const walk = (list: Phaser.GameObjects.GameObject[], owner: string, shown: boolean): void => {
+        for (const o of list) {
+          const vis = shown && (o as Partial<Phaser.GameObjects.Components.Visible>).visible !== false && (o as Partial<Phaser.GameObjects.Components.Alpha>).alpha !== 0;
+          if (o.type === 'Graphics' && vis) {
+            const e = (out[owner] ??= { n: 0, cmds: 0 });
+            e.n++;
+            e.cmds += (o as Phaser.GameObjects.Graphics).commandBuffer.length;
+          }
+          const sub = (o as Partial<Phaser.GameObjects.Container>).list;
+          if (Array.isArray(sub)) walk(sub, o.constructor.name === 'Container' ? `${owner}>${o.name || 'Container'}` : o.constructor.name, vis);
+        }
+      };
+      for (const sc of game.scene.getScenes(true)) walk(sc.children.list, sc.scene.key, true);
+      return out;
     },
   };
 }

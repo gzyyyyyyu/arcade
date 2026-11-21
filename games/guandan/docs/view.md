@@ -29,6 +29,7 @@
 
 - 闲着时降帧（`idle.ts`）：4 秒没有点按、按键，牌桌不忙（`isBusy`），也没有一次性补间在播，帧率上限降到 31；一秒看一次，不要改成每帧看（会拖住场景时钟）。
 - `repeat: -1` 的装饰循环按 31 帧播，别在里面做重活。要 await 的动画一律走 `anim.ts` 的 `tweenP`、`wait`，或者自己包一层 `settle`：最多等"时长 + 500 毫秒"就当播完，动画出岔子也不卡牌局。
+- 不变的形状不用常驻的 Graphics：WebGL 下 Graphics 每帧都重新拆点、三角化（每段圆弧固定 100 个点），0.39.0 时牌桌上一半多的脚本时间耗在这里。按钮底板、牌影、名牌、顶栏胶囊这类画好就不变的，用 `ui/kit.ts` 的 `bakeInto` 烘成纹理（Canvas 2D 按 RENDER_SCALE 画、同 key 共用，key 要包含所有影响画法的参数），每帧只贴一张图；只在动画里变形、或宽度随字变且种类多的才留 Graphics。调试桥 `__game.graphics()` 清点看得见的 Graphics，`tools/perf.ts --census` 每段打一次。
 - 动画时长一律经 `anim.ts` 的 `dur()`（设置里的速度、URL `anim=0` 瞬间完成）；冒烟靠 `anim=0` 和 `autoplay=1` 快速推进。
 
 ## 5. 内存
