@@ -245,6 +245,13 @@ describe('榜单 ID', () => {
     expect(isKnownBoard('kaipan', 'other', fixed)).toBe(false);
   });
 
+  it('夜巡试炼 12 关各有一个固定榜，按登记表收分（夜巡 0.36.0 靠它）', () => {
+    const ids = ['chuye', 'zhanzha', 'dumu', 'kuye', 'fencheng', 'yuehei', 'tanbao', 'wuyuan', 'fushi', 'xueyue', 'guiye', 'gujian'];
+    for (const id of ids) expect(acceptsScore('yexun', `trial-${id}`, FIXED_NOW), id).toBe(true);
+    expect(acceptsScore('yexun', 'trial-other', FIXED_NOW)).toBe(false);
+    expect(acceptsScore('kaipan', 'trial-chuye', FIXED_NOW)).toBe(false);
+  });
+
   it('games.ts 里登记的固定榜名字合规：不以 daily 开头（不和每日榜混、不被 Cron 当成每日榜删）', () => {
     for (const g of GAMES) for (const { id } of fixedBoards(g)) expect(FIXED_BOARD_RE.test(id), `${g.id}/${id}`).toBe(true);
     expect(FIXED_BOARD_RE.test('daily')).toBe(false);

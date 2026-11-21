@@ -251,6 +251,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .topbar .account--nav, .topbar .feedpop__btn { flex-direction: column; gap: 2px; padding: 0 6px; min-width: var(--tap); border-radius: var(--r-md); }
   .topbar .account--nav .icon, .topbar .feedpop__btn .icon { width: 18px; height: 18px; }
   .topbar .account--nav .account__label, .topbar .feedpop__btn .feedpop__label { font-size: var(--fs-xs); line-height: 1; }
+  /* 在线数在图标上面一行：图标从按钮内约 7px 起，角标高 18、往上提到 -12，底边不碰图标（原来 -7、高 20 压住图标一角） */
+  .topbar .account--nav .account__online { top: -12px; height: 18px; line-height: 14px; }
   .top__logo { gap: var(--s-2); }
   .logo-mark { width: 36px; height: 36px; }
   /* 只剩图标的回首页链接也要 44×44 好点 */
