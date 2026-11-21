@@ -21,7 +21,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 69;
+export const RULES_VERSION = 70;
 export const TICKS_PER_SECOND = 30;
 
 export const MAX_ENEMIES = 300;
@@ -216,6 +216,22 @@ export function normalizeSetup(s: Setup): Setup {
   return out;
 }
 
+/** 心法特色的每拍状态（core/xinfa.ts 读写） */
+export class XinfaState {
+  /** 连续站定 / 连续走动了几拍 */
+  still = 0;
+  move = 0;
+  /** 层数：符潮 = 身边怪数换算的层，雷动 = 走动攒的层，财运 = 捡铜钱攒的层 */
+  stack = 0;
+  /** 财运：上一次捡铜钱的拍 */
+  coinAt = 0;
+  /** 同袍：场上纸兵数；阵眼：这一拍站在自己的阵里 */
+  papers = 0;
+  inZone = false;
+  /** 燎原：这一拍要炸的火星（x, y, 伤害）三个一组，xinfaSplash 结算后清空 */
+  readonly splash: number[] = [];
+}
+
 export class World {
   readonly setup: Setup;
   /** 夜探的状态（宝箱、门、背包、守卫）；守夜为 null */
@@ -339,6 +355,7 @@ export class World {
   bareElites: number[] = [];
   /** 2.0 法器第一批（阵旗、勾魂锁、竹篙、长明灯）的阵、灯、水痕和按怪记的状态，逻辑在 core/arms/ */
   readonly arms = new ArmsState(MAX_ENEMIES);
+  readonly xf = new XinfaState();
   /** 往生铃：光环半径（这一拍），光环里的怪死了回血；下次能回血的拍 */
   bellArea = 0;
   /** 挡路的东西（地图上的墙、棺材） */

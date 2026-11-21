@@ -106,6 +106,9 @@ export const TERRAIN = {
   iceKnock: 0.9,
   /** 同一丛竹子两次受伤的最短间隔（拍）：持续伤害的法器不会一拍砍倒 */
   chopGap: 8,
+  /** 义庄的棺材：血量；打碎时坐起几只跳尸 */
+  coffinHp: 40,
+  coffinFoes: 2,
   /** 香火区里每秒多回几点血（咒印"不回血"照样减半）；怪的上限和刷怪速度乘多少（香火引怪） */
   incenseRegen: 1.6,
   incenseKeep: 1.3,
@@ -335,7 +338,8 @@ const LZ = luanzang();
 const RB = riverbank();
 const IL = icelake();
 
-const coffin = (x: number, y: number): Block => ({ x: x - 34, y: y - 12, w: 68, h: 24, look: 'coffin' });
+/** 义庄的棺材：挡路，打得碎，碎了坐起跳尸（TERRAIN.coffin*） */
+const coffin = (x: number, y: number): Block => ({ x: x - 34, y: y - 12, w: 68, h: 24, hp: TERRAIN.coffinHp, look: 'coffin' });
 
 export const MAPS: Record<MapId, MapDef> = {
   snow: { id: 'snow', name: '雪原', blurb: '开阔的雪地，往哪儿跑都行', blocks: [], tone: 'snow' },

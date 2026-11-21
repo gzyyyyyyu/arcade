@@ -91,6 +91,7 @@ import { DIR_N } from './dirs.ts';
 import { clamp, dcos, dirIndex, dsin, fsqrt, INPUT_DIRS, inputCos, inputSin, SLOW_WALK } from './fmath.ts';
 import { Grid } from './grid.ts';
 import { fireTick, type FireApi } from './fire.ts';
+import { type XinfaApi, xinfaCoin, xinfaHitMul, xinfaHurtMul, xinfaOnKill, xinfaSplash, xinfaTick } from './xinfa.ts';
 import { borrowStats, charDmgMul, moveSkillFu, paperLifeMul, paperRefund, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, yinyangFlip, type SkillOps } from './skills.ts';
 import { baseStats, Drop, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, WEAPON_SLOTS, World, type Choice, type Setup } from './state.ts';
 
@@ -267,6 +268,7 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
   g.build(w);
   separate(w, g);
   if (w.blocks.length) blockEnemies(w);
+  xinfaTick(w, g);
   // 角色技能（core/skills.ts）：冷却在走、持续中、或这拍按了键才进去
   if (skill !== 0 || w.skill.cd > 0 || w.skill.active > 0) skillStep(w, g, skill !== 0, SKILL_OPS);
   if (w.setup.character === 'yinyang') yinyangFlip(w, g);
@@ -274,6 +276,7 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
   moveShots(w, g);
   dualTick(w, g);
   armsTick(w, g, ARM_API);
+  xinfaSplash(w, g, XINFA_API);
   fireTick(w, FIRE_API);
   touchPlayer(w, g);
   if (w.quake) quake(w, g, w.x, w.y, CHAR_FX.pangArea, CHAR_FX.pangKnock);
@@ -553,7 +556,7 @@ function hurt(w: World, dmg: number, by = -1): void {
   }
   if (paperStandIn(w)) return;
   const diff = dangerDef(w.setup.mode, w.setup.danger);
-  const d = Math.max(1, Math.round(dmg * diff.dmgMul * (w.liveEase ? LIVE_EASE.dmgScale : 1) * (w.tick < EARLY_TICKS ? diff.earlyDmg : 1) * (w.setup.assist ? ASSIST.dmg : 1) * skillHurtMul(w) * foeHurtMul(w) - w.stats.armor));
+  const d = Math.max(1, Math.round(dmg * diff.dmgMul * (w.liveEase ? LIVE_EASE.dmgScale : 1) * (w.tick < EARLY_TICKS ? diff.earlyDmg : 1) * (w.setup.assist ? ASSIST.dmg : 1) * skillHurtMul(w) * foeHurtMul(w) * xinfaHurtMul(w) - w.stats.armor));
   w.hp -= d;
   // 胖师叔·铁布衫：挡下的那部分攒起来，结束时震出去（skills.ts tickSkill）
   if (skillHurtMul(w) < 1) w.skill.store += dmg * diff.dmgMul * (1 - skillHurtMul(w));
@@ -1539,7 +1542,11 @@ function chop(w: World, x: number, y: number, r: number, dmg: number): void {
     const left = h - Math.max(1, dmg * w.stats.might);
     hp[k] = Math.max(left, 0);
     w.ev.push(Ev.Chop, b.x + b.w / 2, b.y + b.h, k, left > 0 ? left / b.hp! : 0, left > 0 ? 0 : 1);
-    if (left <= 0) fell = true;
+    if (left <= 0) {
+      fell = true;
+      // 义庄的棺材碎了：里面的跳尸坐起来
+      if (b.look === 'coffin') for (let n = 0; n < TERRAIN.coffinFoes; n++) spawnEnemy(w, 'jiangshi', b.x + b.w * (n + 1) / (TERRAIN.coffinFoes + 1), b.y + b.h + 20);
+    }
   }
   if (fell) {
     w.blocks = all.filter((_b, k) => hp[k]! > 0);
@@ -1831,7 +1838,7 @@ function hitEnemy(w: World, i: number, dmg: number, slot: number, kx: number, ky
   let vs = owner ? VS[w.eKind[i]! * WEAPON_IDS.length + WEAPON_CODE[owner.id]]! : 1;
   // 危险 5 起怪没那么怕克制（weakKeep）：只收"怕"的那部分，抵抗不变
   if (vs > 1) vs = 1 + (vs - 1) * dangerDef(w.setup.mode, w.setup.danger).weakKeep;
-  const d = Math.max(1, Math.round(dmg * bound * pinned * armsHitMul(w, i) * vs * w.stats.might * charDmgMul(w, owner?.id) * (crit ? PLAYER.critMul + w.stats.critDmg : 1) * foeHitMul(w, i)));
+  const d = Math.max(1, Math.round(dmg * bound * pinned * armsHitMul(w, i) * vs * w.stats.might * charDmgMul(w, owner?.id) * xinfaHitMul(w, owner?.id, i) * (crit ? PLAYER.critMul + w.stats.critDmg : 1) * foeHitMul(w, i)));
   w.eHp[i]! -= d;
   // 结算页的"每件法器打了多少"：只记，不影响规则
   const owned = owner;
@@ -1864,6 +1871,7 @@ function hitEnemy(w: World, i: number, dmg: number, slot: number, kx: number, ky
     const x = w.eX[i]!;
     const y = w.eY[i]!;
     killEnemy(w, i);
+    xinfaOnKill(w, owned?.id, x, y, d);
     // 千鹤引魂：纸鹤啄死的怪变成一只小纸鹤（同时最多 12 只，飞 5 秒）
     if (owned && owned.id === 'crane' && owned.evolved) spawnMiniCrane(w, credit, x, y);
   }
@@ -2066,6 +2074,7 @@ function nearest(w: World, g: Grid, x: number, y: number, r: number, skip = -1):
 /** 2.0 法器（core/arms/）要用的内部函数 */
 const ARM_API: ArmApi = { hitEnemy, nearest, eff, heal, burn };
 const FIRE_API: FireApi = { hitEnemy, hurt };
+const XINFA_API: XinfaApi = { hitEnemy };
 
 /** 在 (x, y) 留一摊火（算在 slot 号法器头上），符火燎原用 */
 function burn(w: World, x: number, y: number, life: number, dmg: number, r: number, slot: number): void {
@@ -3360,6 +3369,7 @@ function collect(w: World, i: number): void {
         const c = val + (w.stats.coinBonus > 0 && w.rDrop.next() < w.stats.coinBonus ? 1 : 0);
         w.coins += c;
         w.coinBy.drop += c;
+        xinfaCoin(w, c);
         coinReroll(w);
       }
       break;

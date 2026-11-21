@@ -14,7 +14,8 @@ import { SKILLS } from '../../core/skills.ts';
 import { MAP_EVENT_AT, MAP_EVENTS } from '../../content/mapEvents.ts';
 import { MAP_IDS, MAP_UNLOCK, MAPS } from '../../content/maps.ts';
 import { CHARACTER_IDS, CHARACTERS, PICK_CHAR_IDS, CURSE_COIN_BONUS, MAX_CURSES, PERK_IDS, PERKS } from '../../content/meta.ts';
-import { altStart, mainSchools, XINFA_DMG, type PoolCharacterId } from '../../content/pools.ts';
+import { XINFA_TEXT } from '../../content/xinfa.ts';
+import { altStart, mainSchools, type PoolCharacterId } from '../../content/pools.ts';
 import { schoolIcon } from '../art/sprites-selicons.ts';
 import { heroKey } from '../art/heroes.ts';
 import { DANGER_IDS, DANGERS, DAWN_TICK, EVENTS, MID_BOSS } from '../../content/waves.ts';
@@ -30,8 +31,6 @@ import { mergeHow, poolCharName, schoolMerges, whoText } from './codexCombos.ts'
 import { mergeReach, mergeWho, SHOWN_MERGES } from '../../content/combos.ts';
 import './guide.css';
 
-/** 心法流派法器的伤害加成，百分数（content/pools.ts XINFA_DMG） */
-const XF = Math.round((XINFA_DMG - 1) * 100);
 
 const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
@@ -125,12 +124,12 @@ export class Guide {
       `<div class="yx-gbody">${body}</div>` +
       `<div class="yx-row3 yx-pgfoot">${PAGER_CTL}<button type="button" class="yx-big ghost" data-a="close">返回</button></div>` +
       '</div>';
-    // 电脑（宽屏）：页内分两栏，每页一整块、一屏放下，不翻页；手机单栏：标题、段落、列表项、配方行、快捷键表的一行各算一块，放不下的页再翻，标题跟着后面走
+    // 电脑（宽屏）：页内分两栏，每页一整块、一屏放下，不翻页（流派页每张卡多一行心法特色，放不下，按卡翻页）；手机单栏：标题、段落、列表项、配方行、快捷键表的一行各算一块，放不下的页再翻，标题跟着后面走
     this.pager = new Pager({
       body: this.root.querySelector<HTMLElement>('.yx-gbody')!,
       ctl: this.root.querySelector<HTMLElement>('.yx-pager')!,
       leaves: WIDE.matches
-        ? '.yx-gcols, .yx-gpage, .yx-gbody > .yx-gsec'
+        ? '.yx-gcols, .yx-gpage, .yx-gbody > .yx-gsec, .yx-gflow > .yx-gtop, .yx-gschool'
         : '.yx-gsec > h3, .yx-gsec > p, .yx-glist > li, .yx-gcards, .yx-grecipes > .yx-grecipe, .yx-gsec > .yx-grecipe, .yx-grole, .yx-gkeys tr, .yx-gschool, .yx-gmrow, .yx-gtop, .yx-gmhead',
       keep: 'h3',
     });
@@ -246,7 +245,7 @@ export class Guide {
       const k = SKILLS[id];
       return `<li>${this.img(heroKey(id), 'yx-gface', 64)}<b>${esc(c.name)}</b>技能「${esc(k.name)}」${Math.round(k.cd / 30)} 秒 · 被动「${esc(c.perkName)}」<small>${esc(c.unlock)}${c.privilege ? `；小特权：${esc(c.privilege)}` : ''}</small></li>`;
     }).join('');
-    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：这个流派的法器伤害 +${XF}%（升级卡名字旁标着「心法+${XF}%」），每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新。每个角色各记一份，实盘也能用；每日挑战、每周夜事、首领连战不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
+    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：这个流派多一条特色（剑修「剑意」近身更疼、镇守「不动如山」站定更硬……，流派页有全表；升级卡名字旁标着特色名），每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新。每个角色各记一份，实盘也能用；每日挑战、每周夜事、首领连战不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
   }
 
   // ── 地图：地图、各图的事件 ──
@@ -263,7 +262,7 @@ export class Guide {
   // ── 流派：十个流派一张卡 ──
   private schools(): string {
     return (
-      `<div class="yx-gpage"><p class="yx-gnote yx-gtop">每张卡右上先是核心法器，再是被动。选角页的「心法」就是挑一个流派，它的法器伤害 +${XF}%，每次升级保底一张它的卡；「起手」可换成另一个主修流派的法器。</p>` +
+      `<div class="yx-gflow"><p class="yx-gnote yx-gtop">每张卡右上先是核心法器，再是被动。选角页的「心法」就是挑一个流派，它多一条特色（见下表），每次升级保底一张它的卡；「起手」可换成另一个主修流派的法器。</p>` +
       `<div class="yx-gschools">${SCHOOL_IDS.map((id) => this.schoolCard(id)).join('')}</div></div>`
     );
   }
@@ -279,7 +278,8 @@ export class Guide {
     return (
       `<div class="yx-gschool"><div class="yx-gsh"><img class="yx-gi yx-gbadge" alt="" src="${schoolIcon(id)}"><b>${esc(s.name)}</b><span>${esc(s.brief)}</span>` +
       `<span class="yx-gsi">${s.weapons.slice(0, 4).map((w) => ic(this.icons(WEAPONS[w].icon), WEAPONS[w].name)).join('')}<u></u>${s.passives.slice(0, 3).map((p) => ic(this.icons(PASSIVES[p].icon), PASSIVES[p].name)).join('')}</span></div>` +
-      `<div class="yx-gsr"><i>主修</i><b>${chars.map((c) => esc(poolCharName(c))).join('　') || '暂无'}</b><i>心法</i><img class="yx-gi yx-gbadge" alt="" src="${schoolIcon(id)}"><i>起手</i>${starts.map((w) => this.w(w)).join('') || '<em>无</em>'}</div></div>`
+      `<div class="yx-gsr"><i>主修</i><b>${chars.map((c) => esc(poolCharName(c))).join('　') || '暂无'}</b><i>起手</i>${starts.map((w) => this.w(w)).join('') || '<em>无</em>'}</div>` +
+      `<div class="yx-gsr"><i>心法</i><b>${esc(XINFA_TEXT[id].name)}</b><small>${esc(XINFA_TEXT[id].text)}</small></div></div>`
     );
   }
 
