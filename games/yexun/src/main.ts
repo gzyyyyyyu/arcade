@@ -3,7 +3,7 @@
  * 画布按 CSS 尺寸 × 渲染倍数开，再用 CSS 缩回去：手机上不糊，省内存设备倍数封顶 2（viewport.ts）。
  * 调试参数：?seed=123 固定种子，?diff=easy|normal|hard，?play 跳过菜单直接开局，?auto 让机器人代打、?warp=9000 先快进到第 9000 拍、&choose 停在选卡、?give=mirror:8,gourd:8 开局换法器（这几个只在开发服务器里有，冒烟截图用），?sheet 看图集。
  */
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { DAWN_TICK, type Danger } from './content/waves.ts';
 import { COIN_EXCHANGE, CURSE_IDS, LOOKS, MAX_CURSES } from './content/meta.ts';
 import { createWorld, type Setup, type World } from './core/index.ts';
@@ -35,13 +35,14 @@ import { rushDaily } from './online/rush.ts';
 import { RUSH } from './content/rush.ts';
 import { Prep } from './view/ui/prep.ts';
 import type { MapId } from './content/maps.ts';
-import { buildAtlas, buildGround, buildHeroAtlas, buildMobAtlas, buildRaidAtlas } from './view/art/atlas.ts';
+import { buildAtlas, buildGround, buildHeroAtlas, buildMobAtlas, buildRaidAtlas, HERO_TEX, MOB_TEX } from './view/art/atlas.ts';
 import { Vault } from './view/ui/vault.ts';
 import { closeTopModal, modalOpen } from './view/ui/modal.ts';
 import { RAID_LIVE, raidOpen, type RaidLiveTemplate, type RaidTemplateId } from './content/explore.ts';
 import { music } from './view/audio/music.ts';
 import { sfx } from './view/audio/sfx.ts';
-import { GameScene } from './view/game/GameScene.ts';
+import type { GameScene } from './view/game/GameScene.ts';
+import type { Engine } from './app/engine.ts';
 import { Input } from './view/game/input.ts';
 import { Banners } from './view/ui/banner.ts';
 import { Cards } from './view/ui/cards.ts';
@@ -54,7 +55,6 @@ import { reportErrors } from 'arcade-kit/report';
 import './explore/register.ts';
 import { createFinisher, type Session } from './app/finish.ts';
 import { applyDebugStart } from './app/debugStart.ts';
-import { watchContextLoss } from './app/glitchTip.ts';
 import { buildRows, setLines } from './app/buildRows.ts';
 import { mountFpsMeter } from './app/fpsMeter.ts';
 import { iconMaker } from './app/icons.ts';
@@ -87,7 +87,7 @@ async function boot(): Promise<void> {
   await document.fonts?.load('40px YxBrush').catch(() => undefined);
   const atlas = buildAtlas(res);
   const mobAtlas = buildMobAtlas(res);
-  buildHeroAtlas(res);
+  const heroAtlas = buildHeroAtlas(res);
   const ground = buildGround(512);
   if (q.has('sheet')) {
     // ?sheet 看主图集，?sheet=mob 看特色怪的图集
@@ -270,19 +270,42 @@ async function boot(): Promise<void> {
   };
   menu.onClick = () => sfx.play('click');
 
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
-    parent: app,
-    width: size.w * r,
-    height: size.h * r,
-    backgroundColor: '#e4e8f0',
-    scale: { mode: Phaser.Scale.NONE, zoom: 1 / r },
-    render: { antialias: true, pixelArt: false, powerPreference: 'high-performance' },
-    banner: false,
-    audio: { noAudio: true },
-    fps: { smoothStep: false },
-  });
-  watchContextLoss(game);
+  /**
+   * 画面引擎（Phaser）等主页画出来再起：动态 import，下载、解析、开 WebGL 都不挡首屏；开局、回放先等它好
+   * （主页点得比引擎起得快时，菜单多停一会儿）。起好后趁空闲把三张常驻图集传上显卡
+   */
+  let game: Phaser.Game | null = null;
+  /**
+   * 一次开局或回放正在路上（实盘买入、等引擎）：先到先得，路上再点的「开始」一律忽略，
+   * 保证进了 startRun 的那次一定开出来（实盘先扣筹码再开局，不能被后来的点击顶掉）
+   */
+  let starting = false;
+  const engine: Promise<Engine> = new Promise<void>((done) => requestAnimationFrame(() => setTimeout(done, 0)))
+    .then(() => import('./app/engine.ts'))
+    .then((m) => {
+      const s0 = css();
+      return m.startEngine({ parent: app, width: s0.w * r, height: s0.h * r, r, ground, preload: [['atlas', atlas.canvas], [MOB_TEX, mobAtlas.canvas], [HERO_TEX, heroAtlas.canvas]] });
+    })
+    .then((e) => {
+      game = e.game;
+      exposeDebug(world);
+      return e;
+    });
+  // 动态 import 失败（断网、发了新版旧块没了）：控制台记一笔，点开始时提示刷新（ready 里）
+  engine.catch((e: unknown) => console.error('[yexun] 画面引擎没加载好', e));
+  /** 占住开局并等引擎；已经有一次在路上回 null。引擎起不来给一句可见的提示让刷新 */
+  const ready = async (): Promise<Engine | null> => {
+    if (starting) return null;
+    starting = true;
+    try {
+      return await engine;
+    } catch {
+      confirm.ask('画面没加载好，刷新一下再试', '刷新', '回菜单', (ok) => (ok ? location.reload() : menu.show(menuState())));
+      return null;
+    } finally {
+      starting = false;
+    }
+  };
 
   let scene: GameScene | null = null;
   /** 当前这局的刷怪圈是不是竖屏那圈（转屏重算缩放时用） */
@@ -384,6 +407,10 @@ async function boot(): Promise<void> {
 
   /** fixed：实盘、每日挑战用固定配置（kind 说是哪一种）；别的按菜单选的来 */
   const startRun = async (picked: Danger, map: MapId = save.map, debug = false, fixed?: Setup, kind: 'live' | 'daily' | 'weekly' | 'rush' | null = null): Promise<void> => {
+    const e = await ready();
+    if (!e) return;
+    const { game: g, GameScene } = e;
+    g.loop.wake();
     sess.liveRun = kind === 'live' && fixed ? { seed: fixed.seed } : null;
     if (kind !== 'live') sess.lastLive = null;
     // 每日连战也是"今天的"一局：日期跟着走，交每日连战榜
@@ -400,7 +427,7 @@ async function boot(): Promise<void> {
     result.hide();
     sess.ended = false;
     sess.tally = new RunTally();
-    if (scene) game.scene.remove('game');
+    if (scene) g.scene.remove('game');
     banners.clear();
     input.reset();
     const seed = fixed?.seed ?? (q.has('seed') ? Number(q.get('seed')) >>> 0 : (Math.random() * 0x100000000) >>> 0);
@@ -424,7 +451,7 @@ async function boot(): Promise<void> {
     const frame = save.wear.frame ? LOOKS[save.wear.frame] : null;
     hud.setFrame(frame ? { color: frame.color, edge: frame.edge } : null);
     const aura = save.wear.aura ? LOOKS[save.wear.aura] : null;
-    game.scene.add('game', GameScene, true, {
+    g.scene.add('game', GameScene, true, {
       ...(aura ? { aura: { color: aura.color, edge: aura.edge } } : {}),
       world: w,
       atlas,
@@ -461,7 +488,7 @@ async function boot(): Promise<void> {
         if (sess.liveRun && x.tick % 300 === 0) live.progress(sess.liveRun.seed, x.tick);
       },
     });
-    scene = game.scene.getScene('game') as unknown as GameScene;
+    scene = g.scene.getScene('game') as unknown as GameScene;
     // 引导第 1 条：开局"拖动走位"，一动就收起（0–10 秒）
     if (!tipDone('moved') && !autopilot) {
       input.moved = false;
@@ -509,13 +536,17 @@ async function boot(): Promise<void> {
     menu.hide();
     boards.show();
   };
-  const replays = new ReplayList(stage, { onPlay: (r0) => startReplay(r0), onClose: () => menu.show(menuState()) });
+  const replays = new ReplayList(stage, { onPlay: (r0) => void startReplay(r0), onClose: () => menu.show(menuState()) });
   menu.onReplays = () => {
     menu.hide();
     replays.show(loadReplays());
   };
   /** 回放：同一个对局场景，输入换成录像（不录、不交分、不发铜钱；ended 先置上，暂停面板和结算都不出） */
-  const startReplay = (record: ReplayRecord): void => {
+  const startReplay = async (record: ReplayRecord): Promise<void> => {
+    const e = await ready();
+    if (!e) return;
+    const { game: g, GameScene } = e;
+    g.loop.wake();
     const player = ReplayPlayer.from(record);
     if (!player) {
       confirm.ask('这段录像坏了，放不了', '知道了', '回菜单', () => menu.show(menuState()));
@@ -526,7 +557,7 @@ async function boot(): Promise<void> {
     sess.liveRun = null;
     sess.lastLive = null;
     sess.rec = null;
-    if (scene) game.scene.remove('game');
+    if (scene) g.scene.remove('game');
     banners.clear();
     input.reset();
     world = player.world;
@@ -535,15 +566,16 @@ async function boot(): Promise<void> {
     const bar = new ReplayBar(stage, player, {
       onExit: () => {
         bar.destroy();
-        game.scene.remove('game');
+        g.scene.remove('game');
         scene = null;
+        g.loop.sleep();
         world = null;
         showPlay(false);
         music.stop();
         menu.show(menuState());
       },
     });
-    game.scene.add('game', GameScene, true, {
+    g.scene.add('game', GameScene, true, {
       world: player.world,
       atlas,
       mobAtlas,
@@ -562,7 +594,7 @@ async function boot(): Promise<void> {
         bar.update();
       },
     });
-    scene = game.scene.getScene('game') as unknown as GameScene;
+    scene = g.scene.getScene('game') as unknown as GameScene;
   };
   menu.onLiveMode = (on, tier) => {
     save.liveOn = on;
@@ -575,7 +607,16 @@ async function boot(): Promise<void> {
     const map = !raid && pickMap && mapOpen(save, pickMap) && liveMapOk(pickMap) ? pickMap : 'snow';
     const character = liveCharOk(tier, picked, map, !!raid) ? picked : 'xiaodao';
     const seed = (Math.random() * 0x100000000) >>> 0;
-    const r = await live.buyin(tier, seed, raid, character, map);
+    // 先等引擎再买入：引擎起不来就不扣筹码；买入期间占着开局，别的「开始」点了不算。
+    // 买到了紧接着同步进 startRun（中间不让出线程），那里的 ready() 拿到已好的引擎，这局一定开出来
+    if (!(await ready())) return;
+    starting = true;
+    let r: Awaited<ReturnType<typeof live.buyin>>;
+    try {
+      r = await live.buyin(tier, seed, raid, character, map);
+    } finally {
+      starting = false;
+    }
     if (r.ok) {
       sess.liveTier = tier;
       sess.lastLive = raid ? { tier, raid } : { tier, map };
@@ -627,36 +668,35 @@ async function boot(): Promise<void> {
   };
   result.onBigTown = () => menu.onRaid('guzhen', save.danger);
   result.onMenu = () => {
+    // 回主页：对局画面被菜单盖住，帧循环睡着（下次开局再叫醒）
+    game?.loop.sleep();
     result.hide();
     menu.show(menuState(), 'home');
   };
 
-  game.events.once(Phaser.Core.Events.READY, () => {
-    game.textures.addCanvas('ground', ground);
-    document.getElementById('boot')?.remove();
-    mountFpsMeter(q, () => world);
-    // 冒烟、机器人代打不挂 social（它会去问平台）
-    if (hasLoginHint() && !q.has('auto')) void social.start();
-    exposeDebug(null);
-    const { danger: qd, map: qm } = readStartQuery(q, save);
-    // ?raid=guzhen|dukou|shansi|xilou|teach 直接开一局夜探（冒烟截图用；可带 &auto 机器人代打）。只开娱乐：实盘必须在菜单里选档位。
-    // 线上只认能进的镇子，收起的粮仓镇只在开发服务器里能进（raidOpen）
-    const qr = q.get('raid');
-    // ?rush 直接开今天的首领连战（冒烟截图用；可带 &auto）
-    if (q.has('rush')) void startRush();
-    else if (raidOpen(qr, import.meta.env.DEV)) menu.onRaid(qr, qd ?? 2);
-    else if (import.meta.env.DEV && q.has('prep')) prep.show('char', prepState());
-    else if (q.has('auto') || q.has('warp') || q.has('play') || q.has('give')) void startRun(qd ?? 2, qm ?? 'snow', true);
-    else {
-      if (qd !== null) save.danger = qd;
-      if (qm) save.map = qm;
-      menu.show(menuState());
-    }
-  });
+  // 主页先出来（引擎在后台起，见上面的 engine）
+  document.getElementById('boot')?.remove();
+  mountFpsMeter(q, () => world);
+  // 冒烟、机器人代打不挂 social（它会去问平台）
+  if (hasLoginHint() && !q.has('auto')) void social.start();
+  const { danger: qd, map: qm } = readStartQuery(q, save);
+  // ?raid=guzhen|dukou|shansi|xilou|teach 直接开一局夜探（冒烟截图用；可带 &auto 机器人代打）。只开娱乐：实盘必须在菜单里选档位。
+  // 线上只认能进的镇子，收起的粮仓镇只在开发服务器里能进（raidOpen）
+  const qr = q.get('raid');
+  // ?rush 直接开今天的首领连战（冒烟截图用；可带 &auto）
+  if (q.has('rush')) void startRush();
+  else if (raidOpen(qr, import.meta.env.DEV)) menu.onRaid(qr, qd ?? 2);
+  else if (import.meta.env.DEV && q.has('prep')) prep.show('char', prepState());
+  else if (q.has('auto') || q.has('warp') || q.has('play') || q.has('give')) void startRun(qd ?? 2, qm ?? 'snow', true);
+  else {
+    if (qd !== null) save.danger = qd;
+    if (qm) save.map = qm;
+    menu.show(menuState());
+  }
   fitViewport(() => {
     const s = css();
-    game.scale.resize(s.w * r, s.h * r);
-    game.scale.setZoom(1 / r);
+    game?.scale.resize(s.w * r, s.h * r);
+    game?.scale.setZoom(1 / r);
     scene?.cameras.main.setZoom(worldZoom(s.w, s.h, viewTall) * r);
   });
 }
