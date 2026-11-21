@@ -409,7 +409,7 @@ npx vitest run test/fairness.test.ts test/match.test.ts test/arch.test.ts
 - 好友房用 `packages/arcade-kit`：房间类继承 `GameRoom`，Worker 路由只接 `acceptCreate` / `acceptJoin`，浏览器用 `RoomClient`。遵守 `platform-backend.md` 第 4 节：
   只用 `ctx.acceptWebSocket`、一个闹钟、每步 ≤ 2 行写入、电脑批量出牌、绝不下发别人的手牌和牌墙、密钥只在状态里。
 - 开房就定选项：`{ variant, stakes: 'fun' | 档位, rules: { rounds, cap, swap, zimo, transfer } }`（`rules` 由玩法的 `options` 校验），进房的人都看得到。
-- `KIT_QUOTA`：`roomsPerUser: 5`、`dailyRoomsPerUser: 30`（正常一场 40 分钟起，一天开不满 30 个，卡的是脚本刷房）；`busyWrites` / `stopWrites` 要从全账户 10 万行里分（第 9 节）。"开房间"永远开新房。
+- `KIT_QUOTA`：`roomsPerUser: 1`（每人同时一个房间，再开新房给"回到你的房间"）、`dailyRoomsPerUser: 30`（正常一场 40 分钟起，一天开不满 30 个，卡的是脚本刷房）；`busyWrites` / `stopWrites` 要从全账户 10 万行里分（第 9 节）。"开房间"永远开新房。
 - 真人掉线由 kit 托管；离座交给电脑并结算（实盘一局中途走的，打完这一局再结）；中途可以接管没绑人的电脑座位（带入一份）；桌上没真人了房间就算打完（over）。
   实盘：开局真人不到两个不计输赢；开打后下注的真人不到两个，这一场当场结束（第 4 节）。
 - **旁观**（`docs/social.md` 1.4）：没入座的连接 kit 发 `view(状态, null)`（只有公开的），最多 4 条。座位满了、或者开打后才进来的人就是旁观：
@@ -419,8 +419,8 @@ npx vitest run test/fairness.test.ts test/match.test.ts test/arch.test.ts
   - 实盘房间旁观只看、不带入：页面不给没坐过的人"坐下"（主人回自己的座位照旧）。服务端规则不变：旧页面硬发坐下，照接管的规矩带入一份；
   - 等人页座位坐满了也写一句"旁观中"。
   - 测试：`test/fairness.test.ts` 在好友房每一步把所有暗牌、牌墙、密钥重洗，要求 `view(状态, null)` 一个字节不变（附漏一家手牌的阳性对照）；`smoke:room` 里第三个人中途凭链接进来旁观、坐下、离开再回来。
-- **再来一场**：整场打完时桌上的筹码照常马上结回（实盘），房间不算打完，停 3 分钟（`REMATCH_MS`，kit 的 `pause`，不另加定时器）等人点。
-  桌上的真人点"再来一场"：他的页面用同样的选项开个新房间，把房间号发回旧房间（`{ t: 'next', code }`，parse 只收 6 位数字，只认第一次），旧房间记下 `next` 就算打完、kit 还开房名额；
+- **再来一场**：整场打完时桌上的筹码照常马上结回（实盘），房间不算打完，停 3 分钟（`REMATCH_MS`，kit 的 `pause`，不另加定时器）等人点；这 3 分钟算 `idle`（kit 0.27），开房名额先还掉，房主点再来一场、回选桌开新房、匹配再排都不被挡回这一桌。
+  桌上的真人点"再来一场"：他的页面用同样的选项开个新房间，把房间号发回旧房间（`{ t: 'next', code }`，parse 只收 6 位数字，只认第一次），旧房间记下 `next` 就算打完；
   别人的结算上写"某某开了新房间"，5 秒后跟过去（可以马上点"现在过去"）。娱乐房自动坐回和上一场一样的相对位置（开房的人坐 0 号）；**实盘房不替谁坐**，只把那个座位亮一下，
   各人自己坐下、房主开打时才带入（不能跟过去就扣筹码）。3 分钟到了没人点：`resume` 记 `ended`，房间打完；之后再点就是自己先去新房间、再叫朋友。
   旧房间号是不是真的开着不在服务端查：码不对的话跟过去的人看到"没有这个房间"，回选桌就行。

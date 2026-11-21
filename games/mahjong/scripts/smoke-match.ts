@@ -12,6 +12,7 @@
  * 4. 一个人排：15 秒后排队卡说"现在没人在排"，转娱乐单机；
  * 5. 立直：A、B 在娱乐选桌页选"立直"再点"快速匹配"，排到同一张立直匹配桌（.table.rc）；再在实盘选桌页（记住了立直）排小档 rc-small，排到同一张立直实盘桌、各从钱包带一份。
  * 6. 三人两房：A、B 在娱乐选桌页选回"血战到底"、规则里开"三人两房"再排，排队卡写"已有 1/3 人"，排到同一张三人桌（.table.three）；再在实盘页开三人两房排小档，同样同桌、各带一份。
+ * 7. 打完再排：实盘小档血战排到一桌、一局一结打完，两人回选桌马上再排，排到新桌、不被"带你回去"旧桌（每人同时 1 个房间，打完 kit 就还名额）。
  * 排队卡说过的每句话记在 window.__said，失败时打出来。两边控制台零报错。端口由系统分配。截图放在 shots/（--shots 可改）。
  */
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -134,6 +135,26 @@ async function matched(page: Page, tag: string): Promise<string> {
     throw new Error(`${tag} 没排进匹配桌：${JSON.stringify(await said(page))} ${String(e)}`);
   });
   return roomOf(page).room ?? '';
+}
+
+/** 自动操作一步（和 smoke-room.ts 的 step 一样：换三张、定缺、能胡就胡、不然过、打最右边那张） */
+async function step(page: Page): Promise<void> {
+  const T = { timeout: 1_000 };
+  if (await page.$('text=和房间断开了')) throw new Error('页面显示"和房间断开了"');
+  if (await page.$('.mask')) return;
+  if (await page.$('text=帮我选')) {
+    await page.click('text=帮我选', T).catch(() => {});
+    await page.click('button:has-text("换出")', T).catch(() => {});
+  } else if (await page.$('.act.que.best')) await page.click('.act.que.best', T).catch(() => {});
+  else if (await page.$('.bar .act.ron')) await page.click('.bar .act.ron', T).catch(() => {});
+  else if (await page.$('.bar .act.pass')) await page.click('.bar .act.pass', T).catch(() => {});
+  else {
+    const t = (await page.$$('.my-hand .tile:not(.off)')).at(-1);
+    if (t) {
+      await t.click(T).catch(() => {});
+      await t.click(T).catch(() => {});
+    }
+  }
 }
 
 async function leaveRoom(page: Page): Promise<void> {
@@ -312,6 +333,40 @@ try {
   }
   check(ws.every((w, k) => held(w) > x3Before[k]!), `三人两房实盘开打时各从钱包带一份（小档带进的份 ${x3Before.join(' / ')} → ${ws.map(held).join(' / ')}）`);
   await pb.screenshot({ path: join(SHOTS, 'match-x3-real-b.png') });
+  await leaveRoom(pa);
+  await leaveRoom(pb);
+
+  // ---------- 7. 打完再排（每人同时 1 个房间，0.44.0）：实盘一局一结打完，停着等"再来一场"的那几分钟里回选桌再排，排到新桌，不被带回旧桌 ----------
+  t = Date.now();
+  const realXz = async (page: Page): Promise<void> => {
+    await page.goto(`${base}/games/mahjong/`);
+    await page.waitForSelector('.home-main');
+    await page.click('.mode.real');
+    await page.waitForSelector('.lobby-head');
+    await page.click('.lobby-variants .chip:has-text("血战到底")');
+    await page.click('.go-row .match');
+    await page.waitForSelector('.mask.match .match-wait');
+  };
+  await realXz(pa);
+  await realXz(pb);
+  const [fa, fb] = await Promise.all([matched(pa, 'A'), matched(pb, 'B')]);
+  check(fa === fb && fa !== '', `打完再排：A、B 排到同一张实盘桌 ${fa}`);
+  const ended = async (pg: Page): Promise<boolean> => !!(await pg.$('.mask.end button:text-is("回选桌")'));
+  for (let end = Date.now() + 5 * 60_000; !((await ended(pa)) && (await ended(pb))); ) {
+    if (Date.now() > end) throw new Error('实盘一局一结 5 分钟没打完');
+    await Promise.all([step(pa), step(pb)]);
+    await sleep(300);
+  }
+  check(true, `实盘一局一结打完，两边停在结算（${Math.round((Date.now() - t) / 1000)} 秒）`);
+  for (const pg of [pa, pb]) {
+    await pg.click('.mask.end button:text-is("回选桌")');
+    await pg.waitForSelector('.lobby-head', { timeout: 5_000 });
+  }
+  await realXz(pa);
+  await realXz(pb);
+  const [na, nb] = await Promise.all([matched(pa, 'A'), matched(pb, 'B')]);
+  const back = [...(await said(pa)), ...(await said(pb))].filter((x) => x.includes('带你回去'));
+  check(na === nb && na !== fa && back.length === 0, `打完马上再排：排到新桌 ${na}（旧桌 ${fa}），没被带回旧桌（${Math.round((Date.now() - t) / 1000)} 秒）`);
   await leaveRoom(pa);
   await leaveRoom(pb);
 

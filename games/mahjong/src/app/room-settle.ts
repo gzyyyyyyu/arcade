@@ -17,7 +17,7 @@ import type { AnyView } from '../view/variants/page.ts';
 import { pageOf } from '../view/variants/pages.ts';
 import { withNick } from './identity.ts';
 import { prefs } from './prefs.ts';
-import { enterRoom, FOLLOW_MS, seatMetas } from './room-flow.ts';
+import { backToRoom, enterRoom, FOLLOW_MS, seatMetas } from './room-flow.ts';
 import { lobby } from './routes.ts';
 import { inMatch, roomBack, session } from './session.ts';
 import { awardsButton, cardButton, matchBody, settle, showMine } from './settle.ts';
@@ -128,6 +128,8 @@ async function rematch(b: HTMLButtonElement): Promise<void> {
   const r = await createRoom(withNick('rooms'), opts);
   if ('error' in r) {
     b.disabled = false;
+    // 别处还开着一个房间（另一个页面开的）：带他回那里；是这一桌自己（打完到还上名额之间那一下）就让他稍等再点
+    if (r.error === 'has_room' && r.code) return r.code === online.state.code ? toast('这一场还在收尾，等一下再点') : backToRoom(r.code);
     return toast(createError(r.error));
   }
   // 先把房间号发给这一桌（关连接前发出去的会先送到），自己马上过去当房主坐 0 号

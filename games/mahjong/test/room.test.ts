@@ -427,6 +427,15 @@ describe('再来一场', () => {
     expect(G.pause!(s)).toBe(REMATCH_MS);
   });
 
+  test('打完等人点的这几分钟算 idle（kit 先还开房名额），在打时不算；到点收场、有人点了也还是 idle', () => {
+    const playing = settleAll(begin(['human', 'human', 'ai', 'ai']));
+    expect(G.idle!(playing)).toBe(false);
+    const s = done();
+    expect(G.idle!(s)).toBe(true);
+    expect(G.idle!(G.resume!(s))).toBe(true);
+    expect(G.idle!(act(s, 1, { t: 'next', code: '123456' }))).toBe(true);
+  });
+
   test('搭子战绩的输赢：这一场净赢为正算赢，平和输不算；按座位给', () => {
     const s = done();
     const nets = g(s, 0).result!.seats.map((x) => x.net);
