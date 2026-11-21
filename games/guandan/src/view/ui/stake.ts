@@ -121,16 +121,27 @@ export function openLevelPicker(
  * 选档位：每档一份多少、电脑多强、一场多久、最多赢 / 最多输；钱包不够的灰掉，钱包连不上整个灰掉。进场成功交给 onStarted。
  * 给了 onMatch 右上角多一个"和电脑 / 快速匹配"（0.26.0）：切到匹配时每档的按钮变"匹配"、时间那行换成好友房实盘的副数，点了交给 onMatch（带入由房间开打时办）
  */
+/** 实盘的一种玩法（斗地主：经典洗牌 / 不洗牌）；time 是单机一场大概多久（按各自的时长模拟，docs/stake.md） */
+export interface TierMode {
+  value: string;
+  label: string;
+  time: string;
+}
+
 /**
- * 选档位里随玩法变的部分（牌馆：掼蛋、斗地主同一个选档页）：一场几副、每分多少、怎么带入、哪一份算"别处开的单机"
+ * 选档位里随玩法变的部分（牌馆：掼蛋、斗地主同一个选档页）：一场几副、有哪几种玩法、每分多少、怎么带入、哪一份算"别处开的单机"。
+ * 玩法有两种以上才摆切换（每分、时间跟着换）；只有一种时在切换的位置写 note
  */
 export interface TierFlow<S> {
   soloDeals: number;
   roomDeals: number;
-  /** 单机一场大概多久（按各自的时长模拟：掼蛋约 8 分钟，斗地主约 5 分钟，docs/stake.md） */
-  time: string;
-  pointValue(tier: TierId): number;
-  buyin(tier: TierId): Promise<{ ok: true; ses: S } | { ok: false; error: string; wallet?: WalletView }>;
+  modes: readonly TierMode[];
+  /** 打开时停在哪种玩法；切换时 setMode 记下来 */
+  mode(): string;
+  setMode?(v: string): void;
+  note?: string;
+  pointValue(tier: TierId, mode: string): number;
+  buyin(tier: TierId, mode: string): Promise<{ ok: true; ses: S } | { ok: false; error: string; wallet?: WalletView }>;
   stray(w: WalletView): { ref: string; solo: boolean } | null;
   refundStray(ref: string): Promise<StakeReply>;
 }
@@ -138,8 +149,11 @@ export interface TierFlow<S> {
 export const GUANDAN_FLOW: TierFlow<StakeSession> = {
   soloDeals: SOLO_DEALS,
   roomDeals: ROOM_DEALS,
-  time: TIER_CARD.time,
-  pointValue,
+  modes: [{ value: 'classic', label: '', time: TIER_CARD.time }],
+  mode: () => 'classic',
+  // 娱乐的选难度页有"短局 / 完整"，这里没有：实盘固定 3 副，比娱乐短局（打到 10）还短，没有更短的可选（0.39.0 所有者定）
+  note: STAKE_TEXT.fixedDeals,
+  pointValue: (tier) => pointValue(tier),
   buyin: (tier) => buyinStake(tier),
   stray: (w) => strayStake(w, loadStake()),
   refundStray: (ref) => refundStray(ref),
@@ -148,30 +162,72 @@ export const GUANDAN_FLOW: TierFlow<StakeSession> = {
 export function openTierPicker<S = StakeSession>(
   scene: Phaser.Scene,
   onStarted: (ses: S) => void,
-  onMatch?: (tier: TierId) => void,
+  onMatch?: (tier: TierId, mode: string) => void,
   flow: TierFlow<S> = GUANDAN_FLOW as unknown as TierFlow<S>,
 ): Modal {
   // 四档的行距至少 minHit() + 2（手机横屏上"进场"的点按区要 44 CSS 像素），多出来的高度加在弹窗上；电脑上还是 78、600 高。
-  // 竖屏的主页（世界宽 720）：弹窗 680 宽，"和电脑 / 快速匹配"单独一行，每档一张三行的卡（名字和星、一份和每分、最多输赢和时间）
+  // 竖屏的主页（世界宽 720）：弹窗 680 宽，"和电脑 / 快速匹配"单独一行，玩法切换（或说明）再一行，每档一张三行的卡（名字和星、一份和每分、最多输赢和时间）。
+  // 横屏不加高（568×320 上弹窗已经快顶满）：有玩法切换时钱包挪到标题那一行左边，切换放在钱包原来的位置；只有说明时说明夹在钱包和右边切换之间
   const narrow = worldW(scene) < 1100;
+  const modes = flow.modes.length > 1;
   const P = narrow ? Math.max(132, minHit() + 2) : Math.max(78, minHit() + 2);
   const MW = narrow ? 680 : 940;
   const RW = MW - 80;
-  const head = narrow ? (onMatch ? 236 : 160) : 160 + (P - 78) / 2;
+  const MODE_ROW = 84;
+  const head = narrow ? (onMatch ? 236 : 160) + MODE_ROW : 160 + (P - 78) / 2;
   const H = narrow ? head + 4 * P + 150 : 600 + 3 * (P - 78);
   const T = -H / 2;
   const y0 = narrow ? T + head + P / 2 : T + head;
   const m = modal(scene, MW, H);
   const b = m.body;
   b.add(text(scene, 0, T + 50, '选档位', { size: TYPE.title, bold: true, color: COLOR.redDark }));
-  // 有匹配时钱包靠左、右边放切换（竖屏切换在下一行，钱包照样靠左）
-  const balance = text(scene, onMatch ? -RW / 2 + 30 : 0, T + 92, '正在看钱包…', { size: TYPE.body, bold: true, color: COLOR.ink, ...(onMatch ? { ox: 0 } : {}) });
+  // 有匹配时钱包靠左、右边放切换（竖屏切换在下一行，钱包照样靠左）；横屏有玩法切换时钱包上到标题那一行
+  const balanceY = modes && !narrow ? T + 50 : T + 92;
+  const balance = text(scene, onMatch || modes ? -RW / 2 + 30 : 0, balanceY, '正在看钱包…', { size: TYPE.body, bold: true, color: COLOR.ink, ...(onMatch || modes ? { ox: 0 } : {}) });
   b.add(balance);
   let matching = false;
+  let mode = flow.modes.some((x) => x.value === flow.mode()) ? flow.mode() : flow.modes[0]!.value;
   const times: Phaser.GameObjects.Text[] = [];
+  const lines: Phaser.GameObjects.Text[] = [];
   // 手机上 568 宽放不下"约 8 分钟"，写成"约 8 分"，免得被截成省略号
-  const soloTime = phoneType() ? flow.time.replace(/分钟$/, '分') : flow.time;
-  const timeOf = (): string => (matching ? `${flow.roomDeals} 副 · ${STAKE_TEXT.matchWho}` : `${flow.soloDeals} 副 · ${soloTime}`);
+  const soloTime = (): string => {
+    const t = flow.modes.find((x) => x.value === mode)!.time;
+    return phoneType() ? t.replace(/分钟$/, '分') : t;
+  };
+  const timeOf = (): string => (matching ? `${flow.roomDeals} 副 · ${STAKE_TEXT.matchWho}` : `${flow.soloDeals} 副 · ${soloTime()}`);
+  // 实盘的钱数不截断（截成"最多输 20…"正好把能输多少藏掉了）。
+  // 手机字托底到 12 像素后，豪华档"一份 200,000 · 每分 10,000"在 568×320 上会压到右边一列的"电脑"：手机上这一行整万写成"20万"（不丢精度），第二行照旧写全数
+  const line1Of = (tier: TierId): string => {
+    const pv = flow.pointValue(tier, mode);
+    return phoneType() ? `一份 ${fmtWan(TIERS[tier])} · 每分 ${fmtWan(pv)}` : `一份 ${fmtChips(TIERS[tier])} · 每分 ${fmtChips(pv)}`;
+  };
+  // 玩法那一行：竖屏在"和电脑 / 快速匹配"下面单独一行；横屏在钱包原来的位置（靠左）
+  const modeY = narrow ? T + head - MODE_ROW / 2 - 6 : T + 92;
+  if (modes) {
+    // segmented 的 x 是第一格的中心、宽是每一格的宽。横屏两格从弹窗左边起，右边止于 60，不碰"和电脑 / 快速匹配"（左边从 110 起）
+    const itemW = narrow ? 210 : 240;
+    const seg = segmented(
+      scene,
+      narrow ? -itemW / 2 : -RW / 2 + 10 + itemW / 2,
+      modeY,
+      flow.modes.map((x) => ({ label: x.label, value: x.value })),
+      mode,
+      (v) => {
+        mode = v;
+        flow.setMode?.(v);
+        TIER_IDS.forEach((t, i) => lines[i]!.setText(line1Of(t)));
+        times.forEach((t) => fitWidth(t.setText(timeOf()), t.getData('maxW') as number));
+      },
+      itemW,
+      Math.max(60, minHit()),
+    );
+    b.add(seg);
+    m.body.setData('seg:deal', seg);
+  } else if (flow.note) {
+    // 横屏夹在钱包（左）和"和电脑 / 快速匹配"（右，x 从 185 起）之间；竖屏单独一行居中
+    const nx = narrow ? 0 : -60;
+    b.add(fitWidth(text(scene, nx, modeY, flow.note, { size: TYPE.small, color: COLOR.muted }), narrow ? RW - 40 : 300));
+  }
   if (onMatch) {
     const seg = segmented(
       scene,
@@ -204,13 +260,11 @@ export function openTierPicker<S = StakeSession>(
     // 竖屏三行：名字和星；一份、每分；最多输赢、时间
     const row = (k: number): number => y - rowH / 2 + 28 + k * 36;
     b.add(text(scene, x0, narrow ? row(0) : y, TIER_NAME[tier], { size: TYPE.title, bold: true, color: COLOR.redDark, ox: 0 }));
-    // 实盘一场最多输一份、最多赢一份（结回 0 到两份，docs/stake.md 1.1）
+    // 实盘一场最多输一份、最多赢一份（结回 0 到两份，docs/stake.md 1.1），赢输都是一份，第二行合成"最多输赢"
     const share = fmtChips(TIERS[tier]);
-    // 实盘的钱数不截断（截成"最多输 20…"正好把能输多少藏掉了）。赢输都是一份，第二行合成"最多输赢"，
-    // 手机字托底到 12 像素后，豪华档"一份 200,000 · 每分 10,000"在 568×320 上会压到右边一列的"电脑"：手机上这一行整万写成"20万"（不丢精度），第二行照旧写全数
-    const pv = flow.pointValue(tier);
-    const line1 = phoneType() ? `一份 ${fmtWan(TIERS[tier])} · 每分 ${fmtWan(pv)}` : `一份 ${share} · 每分 ${fmtChips(pv)}`;
-    b.add(text(scene, narrow ? x0 : -270, narrow ? row(1) : y - 14, line1, { size: TYPE.label, color: COLOR.ink, ox: 0 }));
+    const line1 = text(scene, narrow ? x0 : -270, narrow ? row(1) : y - 14, line1Of(tier), { size: TYPE.label, color: COLOR.ink, ox: 0 });
+    lines.push(line1);
+    b.add(line1);
     const cap = text(scene, narrow ? x0 : -270, narrow ? row(2) : y + 16, `最多输赢 ${narrow ? fmtWan(TIERS[tier]) : share}`, { size: TYPE.small, color: COLOR.muted, ox: 0 });
     b.add(cap);
     b.add(text(scene, narrow ? x0 + 120 : 60, narrow ? row(0) : y - 14, `电脑 ${stars(TIER_CARD[tier].stars)}`, { size: TYPE.label, bold: true, color: COLOR.goldDark, ox: 0 }));
@@ -224,7 +278,7 @@ export function openTierPicker<S = StakeSession>(
     const btn = reg(m, `tier:${tier}`, new Button(scene, RW / 2 - 90, y, 150, 52, '进场', 'red', () => {
       if (matching && onMatch) {
         m.close();
-        onMatch(tier);
+        onMatch(tier, mode);
       } else void enter(tier);
     }));
     btn.setEnabled(false);
@@ -256,7 +310,9 @@ export function openTierPicker<S = StakeSession>(
       note.setText(msg || STAKE_TEXT.walletDown);
       for (const t of TIER_IDS) buttons[t]!.setEnabled(false);
       // 断网统一配"重试"，放在"钱包：连不上"右边（和右侧切换之间有空，底部红字不挤）；重试期间转圈、不能连点
-      retry = reg(m, 'tierRetry', new Button(scene, narrow ? RW / 2 - 90 : onMatch ? -100 : 140, T + 92, 120, 52, RETRY_LABEL, 'wood', () => void retryWallet()));
+      // 横屏有玩法切换时钱包在标题那一行，重试跟着上去，放在标题右边（右上角是关闭键）
+      const rx = narrow ? RW / 2 - 90 : modes ? 150 : onMatch ? -100 : 140;
+      retry = reg(m, 'tierRetry', new Button(scene, rx, modes && !narrow ? T + 50 : T + 92, 120, 52, RETRY_LABEL, 'wood', () => void retryWallet()));
       return;
     }
     balance.setText(`钱包 ${fmtChips(w.balance)}`);
@@ -275,7 +331,7 @@ export function openTierPicker<S = StakeSession>(
     busy = true;
     for (const t of TIER_IDS) buttons[t]!.setEnabled(false);
     note.setText('正在进场…');
-    const r = await flow.buyin(tier);
+    const r = await flow.buyin(tier, mode);
     busy = false;
     if (!m.root.scene) return;
     if (r.ok) {

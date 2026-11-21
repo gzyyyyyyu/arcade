@@ -70,7 +70,7 @@
 
 - 斗地主（牌馆，`docs/doudizhu.md`）：主页标题"牌馆"，下面是"掼蛋 / 斗地主"切换（控件 `variant:guandan` / `variant:ddz`），上次选的记在 `guandan.variant`，面板、主页"规则"跟着切。
 - 场景 `ddz`（`DdzScene`）复用掼蛋的手牌、出牌区、座位、按钮、弹窗、牌面、音效和 kit 的互动：手牌由玩法给"怎么理牌"（`HandOrder`，不给就是掼蛋原样），出牌区由玩法给"一手牌怎么写"（`DescribePlay`，必传）。
-  推进同样只走 `DdzSession.apply` → `dispatchDdz`；电脑只拿 `viewDdz`，随机数按 `ddzSeeds` 派生。URL 带 `?ddz=1&seed=…` 直接开一局（调试，已有存档时不写）。单机娱乐开局带 `ddzFunOpts(设置的 ddzDeal)`（明牌开着：地主拿底牌后选"不明牌 / 明牌 ×2"，控件 `show:0` / `show:1`；选了不洗牌再叠 `DDZ_NOSHUFFLE`：成团发牌、炸弹多、每副封顶 48，选难度页的控件 `deal:0` / `deal:1`），每日、实盘都不开；好友房的娱乐房间（含快速匹配的娱乐桌）一律开明牌（`ddzBegin`），还能开不洗牌（开房请求体带 `noShuffle: true`，面板按钮 `ol-create-clump`，`docs/doudizhu.md` 第 3、5 节）。
+  推进同样只走 `DdzSession.apply` → `dispatchDdz`；电脑只拿 `viewDdz`，随机数按 `ddzSeeds` 派生。URL 带 `?ddz=1&seed=…` 直接开一局（调试，已有存档时不写）。单机娱乐开局带 `ddzFunOpts(设置的 ddzDeal)`（明牌开着：地主拿底牌后选"不明牌 / 明牌 ×2"，控件 `show:0` / `show:1`；选了不洗牌再叠 `DDZ_NOSHUFFLE`：成团发牌、炸弹多、每副封顶 48，选难度页的控件 `deal:0` / `deal:1`），每日不开；实盘的选档页另有发牌切换（`seg:deal`，经典 / 不洗牌，和娱乐共用 `ddzDeal`），不洗牌按规则版本 3 开局；好友房的娱乐房间（含快速匹配的娱乐桌）一律开明牌（`ddzBegin`），还能开不洗牌（开房请求体带 `noShuffle: true`，面板按钮 `ol-create-clump`，`docs/doudizhu.md` 第 3、5 节）。
 - 每日挑战（`doudizhu/daily.ts`）：种子只看北京时间的日期、两个普通难度电脑、6 副累计分交到平台 `daily-<日期>-ddz-v1`，不存档、不记战绩。冒烟 `npm run shot -- --only ddz`。
 - 残局闯关（`doudizhu/puzzle.ts`，规则核心在 `src/variants/doudizhu/puzzles/`，现状见 `docs/doudizhu.md` 第 6 节）：主页斗地主面板战绩条右边的"残局"（控件 `puzzles`，选关格子 `puzzle:<id>`），`PuzzleSession` 继承 `DdzSession`、农民走 `bestReply`、不存档不计战绩，进度在 `guandan.ddz.puzzles`；牌桌里农民的牌摊开，不开牌桌互动。
 - 每日残局（`puzzles/daily.ts` 生成，只看日期，求解器验过必胜；`DailyPuzzleSession` 继承 `PuzzleSession`，计时从第一手到出完，分数 `max(10, 600 − 秒 − 30×重来 − 60×提示)`，榜 `daily-<日期>-ddzpz`，入口是选关弹窗顶上的今日大卡 `puzzle:daily`；主页切到斗地主、牌桌素材烘完后先把今天的题算好）：详见 `docs/doudizhu.md` 第 6 节，记录在 `guandan.ddz.dailyPuzzle`。

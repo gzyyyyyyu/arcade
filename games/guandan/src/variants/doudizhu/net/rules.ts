@@ -11,7 +11,7 @@
  * - 错误码：核心给的就是固定短码（not_your_turn、bad_bid、too_small……）。
  */
 import type { Entropy } from 'arcade-kit/rng';
-import { DDZ_ROOM_OPTS, type TierId } from '../stake/index.ts';
+import { ROOM_DEALS, newRules, stakeOptions, type TierId } from '../stake/index.ts';
 import { stream } from 'arcade-kit/rng';
 import type { FunBot, FunEvent, FunTemper } from 'arcade-kit/fun-logic';
 import {
@@ -118,14 +118,16 @@ export function parseDdzAction(raw: unknown): DdzNetAction | null {
 /** 联机开局：用房间给的熵发牌（不用种子，32 位种子能被反推全桌的牌） */
 export function ddzBegin(entropy: Entropy, setup?: { seats: ('empty' | 'human' | 'ai')[]; opts?: { stake?: TierId | null; noShuffle?: true } }): DdzNet {
   const tier = setup?.opts?.stake ?? null;
-  // 娱乐房间和单机娱乐一样开明牌（0.34.0）；不洗牌（0.33.0）也只开在娱乐房间。实盘按不明牌、经典发牌配平过，都不开
-  const fun = { ...DDZ_FUN, mingpai: true, ...(setup?.opts?.noShuffle ? DDZ_NOSHUFFLE : {}) };
-  const { state, events } = createDdzKeyed(entropy, tier ? DDZ_ROOM_OPTS : fun);
+  const noShuffle = setup?.opts?.noShuffle === true;
+  // 娱乐房间和单机娱乐一样开明牌（0.34.0），实盘按不明牌配平过、不开。不洗牌：娱乐叠 DDZ_NOSHUFFLE，实盘用它自己的一套数（版本 3，0.39.0）
+  const rules = newRules(noShuffle);
+  const fun = { ...DDZ_FUN, mingpai: true, ...(noShuffle ? DDZ_NOSHUFFLE : {}) };
+  const { state, events } = createDdzKeyed(entropy, tier ? stakeOptions(ROOM_DEALS, rules) : fun);
   const out: DdzNet = { variant: 'ddz', g: state, ev: events, ready: null };
   if (setup) {
     out.humans = setup.seats.slice(0, DDZ_SEATS).map((k) => k === 'human');
     out.idle = [0, 0, 0];
-    if (tier) out.stake = stakeBegin(entropy, tier, setup.seats.slice(0, DDZ_SEATS));
+    if (tier) out.stake = stakeBegin(entropy, tier, setup.seats.slice(0, DDZ_SEATS), rules);
   }
   return out;
 }

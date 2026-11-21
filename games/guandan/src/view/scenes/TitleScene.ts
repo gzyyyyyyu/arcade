@@ -393,14 +393,14 @@ export class TitleScene extends Phaser.Scene {
     });
   }
 
-  /** 斗地主实盘：选档位（和掼蛋同一个选档页，换成斗地主的规则和带入）；快速匹配排不到就转这一档的单机（照常带入一份） */
+  /** 斗地主实盘：选档位（和掼蛋同一个选档页，换成斗地主的规则和带入，多一个经典 / 不洗牌）；快速匹配排不到就转这一档、这种发牌的单机（照常带入一份） */
   pickDdzStake(): void {
-    this.overlay = openTierPicker(this, (ses) => this.startDdzStake(ses), (tier) => openMatch(tier, () => void this.soloDdzStake(tier), 'ddz'), DDZ_FLOW);
+    this.overlay = openTierPicker(this, (ses) => this.startDdzStake(ses), (tier, mode) => openMatch(tier, () => void this.soloDdzStake(tier, mode), 'ddz', mode === 'clump'), DDZ_FLOW);
   }
 
-  private async soloDdzStake(tier: TierId): Promise<void> {
+  private async soloDdzStake(tier: TierId, mode: string): Promise<void> {
     if (!this.scene.isActive()) return;
-    const r = await DDZ_FLOW.buyin(tier);
+    const r = await DDZ_FLOW.buyin(tier, mode);
     if (!this.scene.isActive()) return;
     if (r.ok) this.startDdzStake(r.ses);
     else toast(this, stakeError(r.error), worldW(this) / 2, worldH(this) - 60);

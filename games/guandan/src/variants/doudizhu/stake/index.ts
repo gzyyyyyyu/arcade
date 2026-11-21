@@ -25,16 +25,28 @@ export interface StakeRules {
   dealCap: number;
   soloDeals: number;
   roomDeals: number;
+  /** 不洗牌发牌（核心的 noShuffle）：炸弹多、一副的分大，所以每分、每副封顶、电脑单配一套（版本 3） */
+  noShuffle?: true;
 }
 export const RULES_V1: StakeRules = { v: 1, pps: 40, dealCap: 24, soloDeals: 8, roomDeals: 6 };
 /** 现行规则。pps 要整除四档的一份（2,000 起，只有 10 / 16 / 20 / 25 这类数能整除），15 不行。50 / 24 是 CI 上 `tools/ddz-stake-sim.ts --pps P --cap C` 的模拟定的，理由：每小时期望和别的游戏对齐（docs/stake.md 10.2） */
 export const RULES_V2: StakeRules = { v: 2, pps: 50, dealCap: 24, soloDeals: 3, roomDeals: 3 };
 export const CURRENT_RULES = RULES_V2;
+/**
+ * 不洗牌实盘（0.39.0，和版本 2 并列，开一场时选发牌）：成团发牌炸弹多，照经典的每分 1/50、每副封顶 24 会有 13–23% 的场碰到一份封顶、
+ * 小档普通玩家每场 +0.27 份。每副封顶放到 48（和娱乐的不洗牌一样）、每分 1/200（10 / 50 / 250 / 1,000），每小时期望和经典差不多（docs/stake.md 10.5）
+ */
+export const RULES_CLUMP: StakeRules = { v: 3, pps: 200, dealCap: 48, soloDeals: 3, roomDeals: 3, noShuffle: true };
 
 /** 存档、桌里的规则版本字段 → 规则；没有这个字段是版本 1（老数）；不认识的版本回 null */
 export function rulesOf(v: unknown): StakeRules | null {
   if (v === undefined || v === 1) return RULES_V1;
-  return v === 2 ? RULES_V2 : null;
+  return v === 2 ? RULES_V2 : v === 3 ? RULES_CLUMP : null;
+}
+
+/** 新开一场用哪套：经典发牌是现行版本，不洗牌是版本 3 */
+export function newRules(noShuffle: boolean): StakeRules {
+  return noShuffle ? RULES_CLUMP : CURRENT_RULES;
 }
 
 /** 现行规则的数（新开的一场用；老的一场用 rulesOf 取它自己的） */
@@ -51,7 +63,7 @@ export function pointValue(tier: TierId, rules: StakeRules = CURRENT_RULES): num
 
 /** 实盘用的规则核心选项：一场任何一家累计到 ±一份就结束 */
 export function stakeOptions(deals: number, rules: StakeRules = CURRENT_RULES): DdzOptions {
-  return { deals, dealCap: rules.dealCap, cap: rules.pps };
+  return { deals, dealCap: rules.dealCap, cap: rules.pps, ...(rules.noShuffle ? { noShuffle: true } : {}) };
 }
 export const DDZ_SOLO_OPTS: DdzOptions = stakeOptions(SOLO_DEALS);
 export const DDZ_ROOM_OPTS: DdzOptions = stakeOptions(ROOM_DEALS);
@@ -121,6 +133,20 @@ export const DDZ_SOLO_BOTS: Readonly<Record<TierId, readonly [DdzLevel, DdzLevel
   big: ['novice', 'pro'],
   lux: ['normal', 'normal'],
 };
+
+/**
+ * 不洗牌实盘每档的电脑（10.5）：小、中、大和经典一样；豪华的"普通 + 普通"在不洗牌下普通玩家 +0.043 份、比大档还好打，换"普通 + 高手"
+ * （"高手 + 高手"反而好打一点：+0.014，和经典同一个道理，两个高手抢着压）
+ */
+export const DDZ_SOLO_BOTS_CLUMP: Readonly<Record<TierId, readonly [DdzLevel, DdzLevel]>> = {
+  ...DDZ_SOLO_BOTS,
+  lux: ['normal', 'pro'],
+};
+
+/** 这一场每档的电脑（按规则取：不洗牌单配一套） */
+export function soloBots(tier: TierId, rules: StakeRules = CURRENT_RULES): readonly [DdzLevel, DdzLevel] {
+  return (rules.noShuffle ? DDZ_SOLO_BOTS_CLUMP : DDZ_SOLO_BOTS)[tier];
+}
 
 // ───────────── 好友房：每个座位一本账（docs/stake.md 3.2、10.4；3 个座位） ─────────────
 

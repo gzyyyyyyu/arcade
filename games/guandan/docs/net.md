@@ -51,7 +51,7 @@
 - 好友房和快速匹配（娱乐和实盘）：房间是同一个 `worker/room.ts`，规则走 `src/net/hall.ts`（开房选项 `variant: 'ddz'`，状态里带 `variant` 的转给斗地主，没有的就是掼蛋、形状一点没动）。
 - 页面的联机会话基类是 `common/room-link.ts` 的 `RoomLink`（连接、座位、帧队列、出手锁到 ack、聊天、互动），掼蛋 `NetSession`、斗地主 `doudizhu/net.ts` 的 `DdzNetSession` 各自继承；`DdzScene` 经 `DdzTableSession` 接口同时用单机和联机会话，会话放在 `app.ddzNet`。
 - 玩法由房间信息 `room.opts.variant` 说了算，不看 `guandan.variant`：开房、匹配、记着的房间（`guandan.room` 的 `variant`）知道玩法就直接按它连，输码和邀请链接先当掼蛋连，发现不对就换会话重连。
-- kit 的 `RoomInfo.seats` 按最大座位数给 4 个，斗地主只用前 3 个（`seatCountOf`）。匹配档位 `ddz-fun`、`ddz-real-<档位>`，一桌 3 人。冒烟 `npm run online-smoke -- --ddz`（三个浏览器，约 2 分钟）。
+- kit 的 `RoomInfo.seats` 按最大座位数给 4 个，斗地主只用前 3 个（`seatCountOf`）。匹配档位 `ddz-fun`、`ddz-real-<档位>`、不洗牌实盘 `ddz-clump-<档位>`，一桌 3 人。冒烟 `npm run online-smoke -- --ddz`（三个浏览器，约 2 分钟）。
 - 斗地主好友房实盘：开房请求体 `{ variant: 'ddz', stake: 档位 }`（`hall.ts` 的 `parseHallOpts`），桌在 `src/variants/doudizhu/net/stake.ts`（状态 `DdzNet.stake`、视图 `DdzNetView.stake`），3 副或任何一家到 ±一份（50 分），ref `ddz-<16 位十六进制>`；一场的数按规则版本记（`StakeRules`：存档 `rules`、桌 `DdzStakeTable.rules`、结回请求体 `rules`，没有字段 = 版本 1，老的 8 副 / 6 副、每分 1/40 按老数打完），
   带入、结回、离开、再带入的规矩和掼蛋好友房是同一份实现（`src/net/stake-table.ts`），房间的 `perform` 也是同一个；电脑暂用最强一档。房间测试 `tests/room/ddz-stake.spec.ts`，规则层 `tests/ddz/ddz-net-stake.test.ts`，冒烟 `npm run stake-smoke -- --ddz-room`。
 

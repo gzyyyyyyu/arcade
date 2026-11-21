@@ -188,8 +188,8 @@ export async function createRoom(
   let res: Response;
   try {
     // 实盘房间（0.5.0）：开房时就定档位（arcade-kit 0.4.0 的开房选项），之后不能改
-    // 斗地主房间（牌馆 ⑤⑥）：请求体带 variant: 'ddz'，实盘再带 stake；不洗牌（0.33.0）只有娱乐房间带 noShuffle
-    const body = variant ? (stake ? { variant, stake } : noShuffle ? { variant, noShuffle: true } : { variant }) : stake ? { stake } : null;
+    // 斗地主房间（牌馆 ⑤⑥）：请求体带 variant: 'ddz'，实盘再带 stake；不洗牌再带 noShuffle（娱乐 0.33.0、实盘 0.39.0）
+    const body = variant ? { variant, ...(stake ? { stake } : {}), ...(noShuffle ? { noShuffle: true } : {}) } : stake ? { stake } : null;
     const init: RequestInit = body
       ? { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
       : { method: 'POST', credentials: 'same-origin' };

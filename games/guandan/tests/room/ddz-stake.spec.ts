@@ -9,7 +9,7 @@ import { decideDdz } from '../../src/variants/doudizhu/ai/index.ts';
 import type { DdzNet, DdzNetAction, DdzNetView } from '../../src/variants/doudizhu/net/rules.ts';
 import { ROOMS, SITE, advance, cookie, fireDueAlarms, freezeClock, join, truth, type Conn } from './helpers.ts';
 import { bank } from './wallet.ts';
-import { CURRENT_RULES, DDZ_ROOM_OPTS, pointValue } from '../../src/variants/doudizhu/stake/index.ts';
+import { CURRENT_RULES, DDZ_ROOM_OPTS, ROOM_DEALS, RULES_CLUMP, pointValue, stakeOptions } from '../../src/variants/doudizhu/stake/index.ts';
 
 beforeEach(() => freezeClock());
 
@@ -61,10 +61,12 @@ class DdzTable {
   readonly tag: string;
   readonly humans: 1 | 2 | 3;
   readonly tier: string;
-  constructor(tag: string, humans: 1 | 2 | 3, tier = 'small') {
+  readonly noShuffle: boolean;
+  constructor(tag: string, humans: 1 | 2 | 3, tier = 'small', noShuffle = false) {
     this.tag = tag;
     this.humans = humans;
     this.tier = tier;
+    this.noShuffle = noShuffle;
   }
   user = (seat: number): string => `${this.tag}-s${seat}`;
 
@@ -72,7 +74,7 @@ class DdzTable {
     const res = await exports.default.fetch(ROOMS, {
       method: 'POST',
       headers: { origin: SITE, cookie: cookie(this.user(0)), 'content-type': 'application/json' },
-      body: JSON.stringify({ variant: 'ddz', stake: this.tier }),
+      body: JSON.stringify({ variant: 'ddz', stake: this.tier, ...(this.noShuffle ? { noShuffle: true } : {}) }),
     });
     expect(res.status).toBe(201);
     this.code = ((await res.json()) as { code: string }).code;
@@ -132,6 +134,20 @@ class DdzTable {
 }
 
 describe('斗地主好友房实盘', () => {
+  it('不洗牌实盘（0.39.0）：开房带 noShuffle，牌局用版本 3 的选项；打完零和，按每分 1/200 结回', { timeout: 120_000 }, async () => {
+    const t = new DdzTable('dstk-clump', 2, 'small', true);
+    await t.open();
+    const st = await waitStake(t.code, (s) => paid(s) === 'yes,yes,no', '两个真人到账');
+    expect((await rowOf(t.code)).game!.g.opts).toEqual(stakeOptions(ROOM_DEALS, RULES_CLUMP));
+    await t.playToEnd();
+    const end = await waitStake(t.code, (s) => s.over && s.out[0]! && s.out[1]!, '结回办完');
+    expect(end.book.house + end.book.seats.reduce((a, s) => a + s.points, 0)).toBe(0);
+    const b = await waitBank((s) => s.done[`${st.ref}-s1-out`] === 1, '结回');
+    const users = [t.user(0), t.user(1)];
+    expect(users.map((u) => b.balances[u])).toEqual([0, 1].map((seat) => START + end.book.seats[seat]!.points * pointValue('small', RULES_CLUMP)));
+    t.close();
+  });
+
   it('两个真人 + 一个电脑：开局各带入一份；打完零和结回，每个 op 只办一次；视图公开每家的分', { timeout: 120_000 }, async () => {
     const t = new DdzTable('dstk-a', 2);
     await t.open();

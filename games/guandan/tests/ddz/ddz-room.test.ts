@@ -78,11 +78,17 @@ describe('开房选项', () => {
     expect(matchConfigErrors(H, [MATCH_DDZ], () => 4, ddzMatchRoomOptions).length).toBeGreaterThan(0);
   });
 
-  it('快速匹配实盘档位 ddz-real-<档位> 的人数和选项合房间的规则，来回换得回来', () => {
+  it('快速匹配实盘档位 ddz-real-<档位>、不洗牌 ddz-clump-<档位> 的人数和选项合房间的规则，来回换得回来', () => {
     expect(matchConfigErrors(H, MATCH_DDZ_TIERS, () => MATCH_DDZ_TABLE, ddzMatchRoomOptions)).toEqual([]);
-    expect(MATCH_DDZ_TIERS).toEqual([MATCH_DDZ, ...TIER_IDS.map((t) => `ddz-real-${t}`)]);
-    expect(ddzStakeOfTier(ddzMatchTierOf(null))).toBeNull();
-    for (const t of TIER_IDS) expect(ddzStakeOfTier(ddzMatchTierOf(t))).toBe(t);
+    expect(MATCH_DDZ_TIERS).toEqual([MATCH_DDZ, ...TIER_IDS.map((t) => `ddz-real-${t}`), ...TIER_IDS.map((t) => `ddz-clump-${t}`)]);
+    expect(ddzStakeOfTier(ddzMatchTierOf(null))).toEqual({ stake: null, noShuffle: false });
+    expect(ddzMatchTierOf(null, true)).toBe(MATCH_DDZ);
+    for (const t of TIER_IDS) {
+      expect(ddzStakeOfTier(ddzMatchTierOf(t))).toEqual({ stake: t, noShuffle: false });
+      expect(ddzStakeOfTier(ddzMatchTierOf(t, true))).toEqual({ stake: t, noShuffle: true });
+    }
+    expect(ddzMatchRoomOptions('ddz-clump-lux')).toEqual({ variant: 'ddz', stake: 'lux', noShuffle: true });
+    expect(ddzStakeOfTier('ddz-clump-nope')).toBeUndefined();
     expect(ddzStakeOfTier('ddz-real-nope')).toBeUndefined();
     expect(ddzStakeOfTier('real-small')).toBeUndefined();
     expect(ddzMatchRoomOptions('real-small')).toBeUndefined();

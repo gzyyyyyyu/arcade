@@ -8,7 +8,7 @@ import type { SeatKind } from 'arcade-kit/protocol';
 import { stream, type Entropy } from 'arcade-kit/rng';
 import { stakeTableKit, type TableEffect, type TableView } from '../../../net/stake-table.ts';
 import type { DdzResult } from '../core/index.ts';
-import { CURRENT_RULES, RULES_V1, ROOM_DEALS, isTier, newRoomBook, payout, roomAddDeal, roomOver, roomRef, rulesOf, type RoomBook, type StakeRules, type TierId } from '../stake/index.ts';
+import { CURRENT_RULES, RULES_CLUMP, RULES_V1, ROOM_DEALS, isTier, newRoomBook, payout, roomAddDeal, roomOver, roomRef, rulesOf, type RoomBook, type StakeRules, type TierId } from '../stake/index.ts';
 
 export { ROOM_DEALS };
 
@@ -45,8 +45,8 @@ export type DdzStakeView = TableView & { rules?: number };
 
 /** 每个规则版本一份桌的实现：结回额的每分不同（带入、结回、换人的规矩是一样的） */
 const kitOf = (r: StakeRules) => stakeTableKit({ seats: 3, payout: (tier, points) => payout(tier, points, r), midDeal: (phase) => phase === 'bid' || phase === 'show' || phase === 'play' });
-const KITS = new Map<number, ReturnType<typeof kitOf>>([RULES_V1, CURRENT_RULES].map((r) => [r.v, kitOf(r)] as const));
-/** 这张桌的规则；不认识的版本当现行的（不会出现：开房只写现行版本） */
+const KITS = new Map<number, ReturnType<typeof kitOf>>([RULES_V1, CURRENT_RULES, RULES_CLUMP].map((r) => [r.v, kitOf(r)] as const));
+/** 这张桌的规则；不认识的版本当现行的（不会出现：开房只写现行版本或不洗牌的版本 3） */
 export const tableRules = (t: { rules?: number }): StakeRules => rulesOf(t.rules) ?? CURRENT_RULES;
 const kitFor = (t: { rules?: number }) => KITS.get(tableRules(t).v)!;
 
@@ -58,8 +58,9 @@ export function stakeRef(key: Entropy): string {
 
 export const shareRef = (t: DdzStakeTable, seat: number): string => kitFor(t).shareRef(t, seat);
 
-export function stakeBegin(key: Entropy, tier: TierId, seats: readonly SeatKind[]): DdzStakeTable {
-  const t: DdzStakeTable = { tier, ref: stakeRef(key), rules: CURRENT_RULES.v, book: newRoomBook(tier), pending: [], over: false, why: [null, null, null], out: [false, false, false], share: [0, 0, 0] };
+/** rules：开房时定的那套（经典是现行版本，不洗牌是版本 3），一场里不变 */
+export function stakeBegin(key: Entropy, tier: TierId, seats: readonly SeatKind[], rules: StakeRules = CURRENT_RULES): DdzStakeTable {
+  const t: DdzStakeTable = { tier, ref: stakeRef(key), rules: rules.v, book: newRoomBook(tier), pending: [], over: false, why: [null, null, null], out: [false, false, false], share: [0, 0, 0] };
   const humans = [0, 1, 2].filter((i) => seats[i] === 'human');
   const kit = kitFor(t);
   if (humans.length < 2) return kit.needTwo(t, humans);
