@@ -13,7 +13,7 @@ import { AFTER_CLOSE_MAX, AVATAR, BODY_H, BODY_Y, HEADER_H, BUBBLE_W, CW, CX, GA
 import { addEarningsBanner, addIpoBanner, addSysPill, addWatch, addWeeklyBanner } from './chatBanners.ts';
 import { addMessage, commentNode, tickerNode } from './chatBubbles.ts';
 import { addFluff } from './chatFluffView.ts';
-import { layoutRecs, addRec } from './chatRec.ts';
+import { layoutRecs, addRec, recAction } from './chatRec.ts';
 import { newsFold, toggleNews } from './chatNews.ts';
 
 export { recAction } from './chatRec.ts';
@@ -65,6 +65,8 @@ export class ChatView3 {
 
   /** 手机群聊页里带推荐、点一下就能买的消息位置（自动化点击用）。 */
   recBuy: { index: number; x: number; y: number }[] = [];
+  /** 手机：这位群友今天哪条推荐点消息就能买（和推荐卡「买入」同一个判断：买过、次数用完、没现金都不算），没有就不挂「买 ›」 */
+  msgBuy = new Map<string, number>();
 
   get recBuyCenters(): readonly { index: number; x: number; y: number }[] {
     return this.recBuy;
@@ -110,10 +112,10 @@ export class ChatView3 {
   private recsY = 0;
   private minRecH = REC_H_MINI;
 
-  /** 消息侧的输入：这些都没变，版面（消息字号、推荐卡高度、各横条位置）就和上次一样。手机上消息气泡带「买它」，推荐买没买也算。 */
+  /** 消息侧的输入：这些都没变，版面（消息字号、推荐卡高度、各横条位置）就和上次一样。手机上消息气泡带「买 ›」，哪些推荐还能买也算。 */
   private keyOf(s: GameState, v: ChatView, notes: readonly string[]): string {
     const tb = topBar(s);
-    return JSON.stringify([s.dayIndex, s.phase, s.month, notes, s.friends.length, tb.weekly?.rule ?? null, tb.flash?.day ?? null, ipoToday(s)?.stockId ?? null, earningsView(s)?.stage ?? null, s.watch ?? null, s.lastDay?.day ?? null, canShortNow(s), v.recs.length, v.messages, PHONE_MODE ? s.today.recs.map((r) => r.taken) : null]);
+    return JSON.stringify([s.dayIndex, s.phase, s.month, notes, s.friends.length, tb.weekly?.rule ?? null, tb.flash?.day ?? null, ipoToday(s)?.stockId ?? null, earningsView(s)?.stage ?? null, s.watch ?? null, s.lastDay?.day ?? null, canShortNow(s), v.recs.length, v.messages, PHONE_MODE ? [...msgBuyOf(s, v)] : null]);
   }
 
   /** 按状态重建当天的群聊（无动画）；同一天只有推荐卡变了时只重建推荐卡。 */
@@ -138,6 +140,7 @@ export class ChatView3 {
     this.newsBoard = null;
     this.msgs = [];
     this.recBuy = [];
+    this.msgBuy = PHONE_MODE && s.phase === 'premarket' ? msgBuyOf(s, v) : new Map();
     this.recNodes = [];
     this.buttons = [];
     this.shortButtons = [];
@@ -641,4 +644,11 @@ export class ChatView3 {
   rect(): Rect {
     return { ...PHONE };
   }
+}
+
+/** 每位群友今天点消息能买的那条推荐（只认还能买或能换仓的）。 */
+function msgBuyOf(s: GameState, v: ChatView): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const r of v.recs) if (r.friend && !out.has(r.friend.id) && recAction(s, r).action !== null) out.set(r.friend.id, r.index);
+  return out;
 }

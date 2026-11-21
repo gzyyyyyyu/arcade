@@ -145,9 +145,11 @@ export class SlotCard {
     });
     // 放大镜：股票详情卡（大走势图、连涨连跌、风口热度、比大环境）
     const magIcon = addGlyph(scene, bx + bw - 1, y + 57, 'magnifier', 20);
-    // 图标只有 20：透明点击区垫到 32（电脑，docs/ui.md），触屏上撑到 HIT_MIN
-    const mag = touchHit(scene, bx + bw - 1, y + 57, 32, 32);
-    this.magCenter = { x: bx + bw - 1, y: y + 57 };
+    // 图标只有 20：透明点击区垫到 32（电脑，docs/ui.md），触屏上撑到 HIT_MIN；
+    // 点击区中心往卡里收，不伸进隔壁卡（844 横屏卡窄，走势框贴着卡右边）
+    const magHx = Math.min(bx + bw - 1, x + w - Math.max(32, HIT_MIN) / 2);
+    const mag = touchHit(scene, magHx, y + 57, 32, 32);
+    this.magCenter = { x: magHx, y: y + 57 };
     mag.on(Phaser.Input.Events.POINTER_UP, (p: Phaser.Input.Pointer) => {
       if (p.button !== 0 || clickSuppressed(performance.now())) return;
       if (this.state) openStockDetail(scene, this.state, card.id);
@@ -471,13 +473,18 @@ export class SlotCard {
     // 开局就在手里、还没开过盘：和其他日子开盘前一样显示"昨天"的涨跌（开局前历史的最后一天），不写"未开盘"
     const pre = c.todayRet === null && !boughtToday && this.state ? (stockMoves(this.state, c.id, 1).at(-1) ?? null) : null;
     this.setToday(c.todayRet ?? pre, boughtToday && premarket);
-    // 0.35.0 累计写百分比和钱（「累计 ↑16.4% +¥1,230」）；放不下先去掉「累计」两个字，再去掉钱（都在卡身的悬停说明里）
-    const money = c.holdMoney === 0 ? '' : ` ${formatMoney(c.holdMoney, { sign: true })}`;
+    // 0.35.0 累计写百分比和钱（「累计 ↑16.4% +¥1,230」）；放不下先去掉「累计」两个字，再去掉钱（都在卡身的悬停说明里）。
+    // 0.36.1 矮卡（竖屏）：累计和当天涨跌在同一行，按当天涨跌右边剩下的宽度量；放不下整句时只写钱，
+    // 不然两个光秃秃的百分比并排，新手分不清哪个是今天、哪个是买入以来
+    const money = c.holdMoney === 0 ? '' : formatMoney(c.holdMoney, { sign: true });
     const hold = this.hold;
-    const fits = (): boolean => !this.tiny && hold.width <= this.rect.w - 20;
-    hold.setText(`${holdText(c.holdRet)}${money}`);
-    if (!fits()) hold.setText(`${pctArrow(c.holdRet)}${money}`);
-    if (!fits()) hold.setText(pctArrow(c.holdRet));
+    const today = this.today;
+    const room = this.compact && today ? this.rect.x + this.rect.w - 8 - (today.x + today.width + 8) : this.tiny ? 0 : this.rect.w - 20;
+    const tries = [`${holdText(c.holdRet)}${money ? ` ${money}` : ''}`, ...(this.compact ? [money] : [`${pctArrow(c.holdRet)}${money ? ` ${money}` : ''}`]), pctArrow(c.holdRet)].filter((t) => t !== '');
+    for (const t of tries) {
+      hold.setText(t);
+      if (hold.width <= room) break;
+    }
     setColor(hold, signColor(c.holdRet));
     this.holdBg?.setFillStyle(Math.abs(c.holdRet) < 0.05 ? COLOR.muted : signColor(c.holdRet), 0.16);
     this.guy?.setFace(c.face);

@@ -154,14 +154,9 @@ interface TutorialCard {
 /** 一句话的字数上限（教程卡）。 */
 export const TUTORIAL_LINE_MAX = 15;
 
-/** 名字太长时截短（保证整句不超过上限）。 */
+/** 金额写法（¥12,345）。 */
 function money(v: number): string {
   return `¥${group(Math.round(v))}`;
-}
-
-function pct(v: number): string {
-  const a = Math.abs(v);
-  return `${v >= 0 ? '+' : '-'}${a >= 10 ? a.toFixed(0) : a.toFixed(1)}%`;
 }
 
 /**
@@ -188,23 +183,17 @@ export function tutorialCard(step: TutorialStep, s: Readonly<GameState>, stockId
         ? { line: '绿涨红跌，设置里能换', chips: [{ icon: 'glyph:arrow_up', text: '涨', tone: 'up' }, { icon: 'glyph:arrow_down', text: '跌', tone: 'down' }] }
         : { line: '红涨绿跌，设置里能换', chips: [{ icon: 'glyph:arrow_up', text: '涨', tone: 'up' }, { icon: 'glyph:arrow_down', text: '跌', tone: 'down' }] };
     case 'heat': {
+      // 0.36.1：只讲「热度涨跌 → 股票跟着涨跌」这一个因果，拿昨天热度变得最多的风口举例。
+      // 以前先写自己那只的涨跌、再配别的风口的热度签，新手对不上两者的关系
       const chips: TutorialChip[] = [];
       let line = '热度涨，股票就涨';
-      if (last && last.themes.length > 0) {
-        const mine = [...last.holdings].filter((x) => x.stockId).sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))[0];
-        if (mine) {
-          line = `${name(mine.stockId, 6)}昨天${pct(mine.ret)}`;
-          chips.push({ icon: 'glyph:wallet', text: pct(mine.ret), tone: mine.ret >= 0 ? 'up' : 'down' });
-        }
-        const ownTheme = mine ? stockById(mine.stockId).theme : null;
-        const big = [...last.themes].filter((t) => t.id !== ownTheme).sort((a, b) => Math.abs(b.dH) - Math.abs(a.dH))[0];
-        if (big && Math.abs(Math.round(big.dH)) >= 1) {
-          const d = Math.round(big.dH);
-          chips.push({ icon: `theme:${big.id}`, text: `热度${d > 0 ? '+' : ''}${d}`, tone: d > 0 ? 'up' : 'down' });
-          if (!mine) line = `${ellipsize(themeById(big.id).name, 4)}热度${d > 0 ? '涨' : '跌'}，股票跟着${d > 0 ? '涨' : '跌'}`;
-        }
-      }
-      if (chips.length === 0) chips.push({ icon: 'glyph:arrow_up', text: '热度↑', tone: 'up' }, { icon: 'glyph:arrow_up', text: '股价↑', tone: 'up' });
+      const big = last ? [...last.themes].sort((a, b) => Math.abs(b.dH) - Math.abs(a.dH))[0] : undefined;
+      const d = big ? Math.round(big.dH) : 0;
+      if (big && d !== 0) {
+        const up = d > 0;
+        line = `${ellipsize(themeById(big.id).name, 4)}热度${up ? '涨' : '跌'}，股票跟着${up ? '涨' : '跌'}`;
+        chips.push({ icon: `theme:${big.id}`, text: `热度${up ? '+' : ''}${d}`, tone: up ? 'up' : 'down' }, { icon: up ? 'glyph:arrow_up' : 'glyph:arrow_down', text: up ? '股价↑' : '股价↓', tone: up ? 'up' : 'down' });
+      } else chips.push({ icon: 'glyph:arrow_up', text: '热度↑', tone: 'up' }, { icon: 'glyph:arrow_up', text: '股价↑', tone: 'up' });
       return { line, chips };
     }
     case 'chain': {

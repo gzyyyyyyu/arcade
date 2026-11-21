@@ -56,6 +56,8 @@ export async function pagesAShots(browser: Browser): Promise<void> {
     if ('size:taste' in (await controls(ctx))) await tap(ctx, 'size:taste');
     await waitIdle(ctx, '点消息买入');
     expect((await state<number>(ctx, held)) === before + 1, '点群聊里带推荐的消息应买入一只');
+    // 0.36.1：今天买够了（或没现金）时消息上不再挂「买 ›」，和推荐卡的「买入」一致
+    if ((await state<number>(ctx, 's.today.buysLeft')) <= 0) expect(!('chat:buy' in (await controls(ctx))), '今天买够了，群聊消息上不该还有「买 ›」');
     await shot(ctx, 'pa4-chat-bought');
     await dispatch2(ctx, { type: 'open' });
     await ctx.page.waitForTimeout(600);

@@ -1,6 +1,6 @@
 // --playtest 模式：动画开启、1 倍速、真实鼠标与键盘从开始菜单玩起，报告每天耗时与点击次数。
 import type { Browser } from 'playwright-core';
-import { buyVia, click, clock, controls, errors, guideStep, openPage, press, shot, state, waitIdle, type Ctx } from '../harness.ts';
+import { buyVia, click, clock, controls, errors, guideStep, openPage, press, shot, state, tap, waitIdle, type Ctx } from '../harness.ts';
 
 // ---------------------------------------------------------------- 试玩
 
@@ -30,7 +30,10 @@ export const fmt = (c: Record<string, number>): string =>
  * 之后每天开盘后按空格跳过动画，直到本局结束。报告每天的耗时与点击次数。
  */
 export async function playtest(browser: Browser): Promise<void> {
-  const ctx = await openPage(browser, 'playtest', '', { guide: true });
+  // --portrait：手机竖屏 390×844 触屏，点按代替鼠标
+  const portrait = process.argv.includes('--portrait');
+  const ctx = await openPage(browser, 'playtest', '', portrait ? { guide: true, touch: true, screen: { width: 390, height: 844, dpr: 2 } } : { guide: true });
+  const act = portrait ? tap : click;
   // 固定「随机」种子，保证每次试玩同一局
   await ctx.page.context().addInitScript(() => {
     const orig = crypto.getRandomValues.bind(crypto);
@@ -58,7 +61,10 @@ export async function playtest(browser: Browser): Promise<void> {
   });
   await ctx.page.reload();
   await waitIdle(ctx, '开始菜单', "window.__game.scene === 'title'");
-  await click(ctx, 'quick');
+  // --snap：新手实录，全新存档从开始菜单起，每天盘前、开盘后各截一张（看前几分钟哪里卡、哪里看不懂）
+  const snap = process.argv.includes('--snap');
+  if (snap) await shot(ctx, 'nb00-title');
+  await act(ctx, 'quick');
   await waitIdle(ctx, '进入新局', "window.__game.scene === 'trade'");
   const report: string[] = [];
   const times: number[] = [];
@@ -77,7 +83,7 @@ export async function playtest(browser: Browser): Promise<void> {
       }
       // 要动手的步骤（买入、开盘、卖出）没有「下一步」：交给后面的正常流程去点
       if (!('guide:next' in (await controls(ctx)))) return;
-      await click(ctx, 'guide:next');
+      await act(ctx, 'guide:next');
       await ctx.page.waitForTimeout(250);
     }
   };
@@ -106,14 +112,15 @@ export async function playtest(browser: Browser): Promise<void> {
         });
         throw new Error(`[playtest] 奖励卡不见了：${JSON.stringify(dump)}`);
       }
-      await click(ctx, `reward:${i}`);
+      if (snap) await shot(ctx, `nb-m${await state<number>(ctx, 's.month')}-reward`);
+      await act(ctx, `reward:${i}`);
       let n = 1;
       if (cards[i]?.kind === 'stock') {
         await ctx.page.waitForTimeout(100);
         const c = await controls(ctx);
         const slot = Object.keys(c).find((k) => k.startsWith('slot:'));
         if (slot) {
-          await click(ctx, slot);
+          await act(ctx, slot);
           n++;
         }
       }
@@ -123,6 +130,7 @@ export async function playtest(browser: Browser): Promise<void> {
       continue;
     }
     if (phase === 'event') {
+      if (snap) await shot(ctx, `nb-m${await state<number>(ctx, 's.month')}-event`);
       await press(ctx, 'Digit1');
       // 接着就是新月份时，结果写进月初的看点卡里，没有单独的结果页（trade/monthFlow.ts 的 playAfterEvent）
       await waitIdle(ctx, '事件结果', "window.__game.awaiting || window.__game.state().phase === 'premarket'").catch(async (e: unknown) => {
@@ -143,13 +151,14 @@ export async function playtest(browser: Browser): Promise<void> {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: 这是交给页面 eval 的表达式，${} 要在页面里才展开
     const label = await state<string>(ctx, '`${s.month}月第${s.dayInMonth + 1}天`');
     const fast = day > 10;
+    if (snap) await shot(ctx, `nb${String(day).padStart(2, '0')}a-pre`);
     const c0 = await clock(ctx);
     const t0 = Date.now();
     const ops: string[] = [];
     // 卖：持有收益跌破 -8% 的第一只
     const sell = await state<number>(ctx, 's.slots.findIndex((h, i) => h && h.value < 0.92 && h.boughtDay < s.today.day)');
     if (sell >= 0) {
-      await click(ctx, `sell:${sell}`);
+      await act(ctx, `sell:${sell}`);
       await waitIdle(ctx, '卖出');
       ops.push('卖出');
     }
@@ -158,8 +167,13 @@ export async function playtest(browser: Browser): Promise<void> {
       ctx,
       `(() => { if (!s.slots.some((h) => !h) || s.today.buysLeft <= 0) return -1; const score = (id) => { const f = s.friends.find((x) => x.id === id); return f ? (f.hits + 1) / (f.total + 2) : 0; }; let b = -1; s.today.recs.forEach((r, i) => { if (!r.taken && !s.slots.some((h) => h && h.stockId === r.stockId) && (b < 0 || score(r.friendId) > score(s.today.recs[b].friendId))) b = i; }); return b; })()`,
     );
+    // 竖屏的推荐卡在「推荐」页签里
+    if (portrait && sell < 0 && buy >= 0 && 'tab:recs' in (await controls(ctx))) {
+      await act(ctx, 'tab:recs');
+      await ctx.page.waitForTimeout(150);
+    }
     if (sell < 0 && buy >= 0 && `buy:${buy}` in (await controls(ctx))) {
-      await buyVia(ctx, `buy:${buy}`);
+      await buyVia(ctx, `buy:${buy}`, portrait);
       await waitIdle(ctx, '买入');
       ops.push('买入');
     }
@@ -174,10 +188,11 @@ export async function playtest(browser: Browser): Promise<void> {
     // 月底账单：逾期 / 通关时要点「继续」
     await waitIdle(ctx, `第 ${day} 天`);
     if (await ctx.page.evaluate(() => window.__game?.awaiting)) {
-      await click(ctx, 'continue');
+      await act(ctx, 'continue');
       ops.push('继续');
       await waitIdle(ctx, '结束页');
     }
+    if (snap) await shot(ctx, `nb${String(day).padStart(2, '0')}b-after`);
     const animMs = Date.now() - tOpen;
     const total = Date.now() - t0;
     const fps = await ctx.page.evaluate(() => window.__game?.fps ?? 0);

@@ -34,7 +34,7 @@ export function phoneTopBar(W: number) {
     itemsX, itemsY: 4, itemsW: help.x - 6 - itemsX, itemsWExt: Math.max(30, bank.x - 6 - itemsX), rowIconY: 23, rowChipY: 23, row2Y0: 11, row2H: 23, row2Icon: 21,
     billHit: { y: 4, h: 44 },
     bank, bankIconDy: 14, bankIconS: 20,
-    help, settings: { x: R - 40, y: 7, w: 40, h: 38 }, gear: { x: R - 20, y: 26, r: 10 }, rollY: 48,
+    help, settings: { x: R - 42, y: 7, w: 42, h: 38 }, gear: { x: R - 21, y: 26, r: 10 }, rollY: 48,
   };
 }
 

@@ -4,7 +4,7 @@ import { friendView, type Comment, type FriendView, type MessageView } from '../
 import { avatarKey, type AvatarFace } from '../assets.ts';
 import { TURN_LABEL, claimSign, recordText } from '../labels.ts';
 import { DIR_WORD, term, termTip } from '../glossary.ts';
-import { COLOR, FS, PHONE as PHONE_MODE } from '../theme.ts';
+import { COLOR, FS } from '../theme.ts';
 import { addGlyph, addImage, addPill, addSlice } from '../ui/art.ts';
 import { addText } from '../ui/text.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
@@ -94,7 +94,7 @@ export function addMessage(v: ChatView3, m: MessageView, y: number, size: number
   const inRow = turnText !== null && turnText.width + 10 <= CX + CW - chipW - 6 - tx;
   const inBubble = turnText !== null && !inRow;
   // 手机横屏：这位群友今天有推荐，点这条消息就能买（和推荐卡「买入」同一条路径），不用先切到「推荐」页签
-  const recIdx = PHONE_MODE && v.state.phase === 'premarket' ? v.state.today.recs.findIndex((r) => r.friendId === m.friend.id && !r.taken) : -1;
+  const recIdx = v.msgBuy.get(m.friend.id) ?? -1;
   const buyTag = recIdx >= 0 ? addText(s, 0, 0, '买 ›', { size: 12, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5 }) : null;
   // 气泡里只放 ≤10 字的短话，整句点开（悬停 / 长按）看
   const text = addText(s, BUBBLE_X + 12, y + v.head + (v.tight ? 4 : 6) + (inBubble ? 18 : 0), bubbleLine(m.text, big ? size + 1 : size), { size: big ? size + 1 : size, bold: big, wrap: BUBBLE_W - 20, lineSpacing: 2 });
