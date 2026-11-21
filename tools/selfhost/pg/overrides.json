@@ -203,11 +203,11 @@
   },
   {
     "why": "每日统计：按游戏合计（键按字节排，和 SQLite 一样）",
-    "sqlite": "SELECT g.key AS game, SUM(json_extract(g.value, '$.in')) AS i, SUM(json_extract(g.value, '$.out')) AS o, SUM(CASE WHEN json_extract(g.value, '$.in') > 0 THEN 1 ELSE 0 END) AS p, SUM(json_extract(g.value, '$.back')) AS b, SUM(json_extract(g.value, '$.capped')) AS c FROM (SELECT CASE WHEN json_extract(state, '$.today.day') = ?1 THEN json_extract(state, '$.today') WHEN json_extract(state, '$.prev.day') = ?1 THEN json_extract(state, '$.prev') END AS d FROM wallets) AS w, json_each(w.d, '$.games') AS g WHERE w.d IS NOT NULL GROUP BY g.key ORDER BY g.key",
+    "sqlite": "SELECT g.key AS game, SUM(json_extract(g.value, '$.in')) AS i, SUM(json_extract(g.value, '$.out')) AS o, SUM(CASE WHEN json_extract(g.value, '$.in') > 0 THEN 1 ELSE 0 END) AS p, SUM(json_extract(g.value, '$.back')) AS b, SUM(json_extract(g.value, '$.capped')) AS c, COALESCE(SUM(json_extract(g.value, '$.ex')), 0) AS e FROM (SELECT CASE WHEN json_extract(state, '$.today.day') = ?1 THEN json_extract(state, '$.today') WHEN json_extract(state, '$.prev.day') = ?1 THEN json_extract(state, '$.prev') END AS d FROM wallets) AS w, json_each(w.d, '$.games') AS g WHERE w.d IS NOT NULL GROUP BY g.key ORDER BY g.key",
     "pg": [
       "SELECT g.key AS game, SUM((g.value->>'in')::numeric) AS i, SUM((g.value->>'out')::numeric) AS o,",
       "  SUM(CASE WHEN (g.value->>'in')::numeric > 0 THEN 1 ELSE 0 END) AS p,",
-      "  SUM((g.value->>'back')::numeric) AS b, SUM((g.value->>'capped')::numeric) AS c",
+      "  SUM((g.value->>'back')::numeric) AS b, SUM((g.value->>'capped')::numeric) AS c, COALESCE(SUM((g.value->>'ex')::numeric), 0) AS e",
       "FROM (SELECT CASE WHEN st->'today'->>'day' = $1 THEN st->'today' WHEN st->'prev'->>'day' = $1 THEN st->'prev' END AS d FROM (SELECT state::json AS st FROM wallets) AS x) AS w CROSS JOIN LATERAL json_each(w.d->'games') AS g",
       "WHERE w.d IS NOT NULL GROUP BY g.key ORDER BY g.key COLLATE \"C\""
     ],

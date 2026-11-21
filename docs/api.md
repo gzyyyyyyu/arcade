@@ -3,7 +3,7 @@
 > 给平台和游戏的开发者参考。接口**只增不改**（`platform/AGENTS.md`）：已上线的字段不改含义、不删除，新能力加新字段或新路径，所以路径里不带版本号。不存在的路径返回 404 `not_found`。
 > 括号里的版本号是该接口所在的平台版本。数字（限流、预算）以 `platform/worker/api/lib/config.ts` 为准，本文和代码不一致时改本文；限流见 15.6，写入行数的来历见 [data.md](data.md) 7.2。
 > 设计和理由：账号和防刷见 [accounts.md](accounts.md)，云存档、钱包、战绩见 [platform-backend.md](platform-backend.md) 第 5 节，写入预算见 [cost-guard.md](cost-guard.md)。
-> 从 platform-backend.md 拆出来，**节号沿用原来的第 15 节（15.1–15.21）**，别处写的「platform-backend.md 15.x」就是这里的 15.x；文中不带文件名的其他节号按 platform-backend.md 开头的对照去找。
+> 从 platform-backend.md 拆出来，**节号沿用原来的第 15 节（15.1–15.22）**，别处写的「platform-backend.md 15.x」就是这里的 15.x；文中不带文件名的其他节号按 platform-backend.md 开头的对照去找。
 
 ## 15. 接口约定（`/api/*`）
 
@@ -327,12 +327,12 @@ const res = await env.ARCADE.fetch('https://<站点>/api/me', {   // 主机名�
 | 接口 | 谁能调 | 请求 | 成功 | 错误 | 写入 |
 |---|---|---|---|---|---|
 | `POST /api/invites` | 登录；平台页和游戏页 | `{"to": 好友的 userId, "game": 登记的游戏 id, "room": 6 位数字的房间码}` | 200 `{"id"}` | 400；403 `not_friend`；429 `rate_limited`；401；403（CSRF） | 3；被拒 0 |
-| `GET /api/invites` | 登录；平台页和游戏页 | — | 200 `{"invites": [{"id", "from": {"id", "name"}, "game", "room", "until"}]}`：给我的、没过期、没点"不了"、对方现在还是好友的，先到期的在前，最多 20 条 | 401 | 0 |
+| `GET /api/invites` | 登录；平台页和游戏页 | — | 200 `{"invites": [...同前], "meetups": [{"host": {"id", "name"}, "game", "at"}], "mine": {"game", "at"} 或 null, "online": 数字}`：`invites` 是给我的、没过期、没点"不了"、对方现在还是好友的，先到期的在前，最多 20 条；`meetups` 是好友约的、开局后 30 分钟以内的，先开的在前，最多 20 条（15.22）；`mine` 是我自己约的；`online` 是几个好友在线（口径同 15.14） | 401 | 0 |
 | `POST /api/invites/<id>/dismiss` | 登录 | — | 204（不是给我的、点过的、不存在的也是 204，什么都不改） | 404（id 格式不对） | 1 或 0 |
 
 - **有效期** `inviteTtlMs` 10 分钟；每人最近 24 小时 `invitesPerDay`（50）条，叫同一个好友至少隔 `inviteGapMs`（1 分钟）。这两条和"是好友、没屏蔽"写在插入的同一条语句里（`INSERT … SELECT … WHERE`），并发冲不破；不是好友的先回 403，不透露次数。
 - **跳转地址**按 `/games/<game>/?room=<room>` 拼，所以 `game` 只收登记的 id、`room` 只收 6 位数字。
-- **收**：平台页和游戏页在前台每 30 秒问一次，有就在顶上弹一条"老王叫你来掼蛋 [去] [不了]"；点"去"先记"不了"再跳。删了好友、屏蔽之后，没过期的邀请也不再给对方看。
+- **收**：平台页和游戏页在前台每 30 秒问一次，有就在顶上弹一条"老王叫你来掼蛋 [去] [不了]"；点"去"先记"不了"再跳。删了好友、屏蔽之后，没过期的邀请也不再给对方看。同一次轮询顺带回约局和在线好友数（顶栏用）。
 - **好友页的"加入"**：好友在线、开着"让好友看到我在哪"、在房间里时，那一行有"加入"，直接打开他的房间（满了或开打了由房间那头处理）。"叫他来"在游戏里的好友列表上（kit）。
 - **存储**：`invites` 表。Cron 删 2 天前的，注销时发出的、收到的一起删。
 
@@ -444,3 +444,15 @@ const res = await env.ARCADE.fetch('https://<站点>/api/me', {   // 主机名�
 - **存储**：默认在 `settings` 的 `hidden_games`（游戏 id 的 JSON 数组）；个人在 `users.game_prefs`，只存和默认不一样的 `{"show": [默认隐藏、我要看的], "hide": [默认显示、我不看的]}`，和默认一样时存空。管理员以后改默认，个人没动过的那部分跟着变。下架了的游戏 id 读的时候去掉。
 - **算法只有一处**：`platform/shared/game-prefs.ts`（`hiddenGameIds`、`prefsFor`、`visibleOf`），接口和界面共用；界面只经 `session.tsx` 的 `useVisible` 过滤。
 - **接口**：`GET /api/me` 给 `hiddenDefault` 和 `user.gamePrefs`（15.2）；`PUT /api/me/games {"hidden"}` 改个人（`prefs:<userId>` 每天 60 次，2 行；差量按现读的默认算，不用 30 秒缓存，读不到就报错不写）；`GET` / `POST /api/admin/settings/games` 改默认（15.7，2 行）。
+
+### 15.22 约局
+
+| 接口 | 谁能调 | 请求 | 成功 | 错误 | 写入 |
+|---|---|---|---|---|---|
+| `PUT /api/meetup` | 登录；平台页 | `{"game": 能开好友房的游戏 id, "at": 开局时间（毫秒）}` | 200 `{"meetup": {"game", "at"}}` | 400（游戏不能开好友房、不在整点半点、已经过了、晚于北京时间明天结束）；429 `rate_limited`（今天约满 3 次，Retry-After 到北京时间明天 0 点）；401；403（CSRF） | 1；被拒 0 |
+| `DELETE /api/meetup` | 登录；平台页 | — | 204 | 401；403（CSRF） | 有没过的约局 1，没有 0 |
+
+- **一人一行**：再约覆盖；次数（`day`、`made`）和覆盖写在同一条 UPSERT 里，并发冲不破；取消把 `at` 改成 0，当天次数不还。
+- **上限**：`meetupsPerDay` 3，`meetupGraceMs` 30 分钟（开局后多久好友还看得到）。开局前 10 分钟起算"到点"是界面的事。
+- **读**：跟着 `GET /api/invites` 回（15.15）。扫 `meetups` 整表（只有约过局的人那么多行），每行按主键查一次是不是好友。
+- **存储**：`meetups` 表（迁移 0015）。Cron 删开局过了 1 天的和取消了的；注销时删。
