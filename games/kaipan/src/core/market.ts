@@ -6,7 +6,7 @@ import { isMonthThemeId, monthThemeById } from './content/monthThemes.ts';
 import { DIFFICULTIES, ITEMS, calendarOf, clampDifficulty, isItemId, isPersonaId, itemById, personaById, stocksOf } from './content/index.ts';
 import type { MarketRules, Rules } from './hooks.ts';
 import { applyWeeklyRules, weeklyRuleOf } from './weekly.ts';
-import { isTrack, realMarketPct, realSectorPct, realStockPct } from './real.ts';
+import { isEaseRun, isTrack, realMarketPct, realSectorPct, realStockPct } from './real.ts';
 import { rngFor, type Rng } from './rng.ts';
 import type { RealMarket, Regime } from './segment.ts';
 import type { Dir, Feel, GameState, Mood, PersonaId, Stage, StockMove, StockState, ThemeId, ThemeState } from './types.ts';
@@ -113,7 +113,7 @@ export function rulesFor(
 /** 这一局的账单整体打几折：实盘按开局设置；真实行情的娱乐局按难度放宽（BALANCE.ease），短局再乘开局设置里的折扣。 */
 export function runBillMult(s: Readonly<Pick<GameState, 'setup' | 'difficulty' | 'real'>>): number {
   if (s.setup?.live) return s.setup.live.billMult;
-  return (s.real?.track ? easeFor('bill', s.difficulty) : 1) * (s.setup?.short?.billMult ?? 1);
+  return (isEaseRun(s) ? easeFor('bill', s.difficulty) : 1) * (s.setup?.short?.billMult ?? 1);
 }
 
 export function rulesOf(s: Readonly<GameState>): Rules {
@@ -438,7 +438,7 @@ export function moveStocks(inp: MoveInput): StockMove[] {
         x = beta * (inp.themeRet[theme] ?? 0) + p.market * inp.marketRet + noise * z;
         x += st.boards * BALANCE.boards.momentum * (held ? rules.momentumMult : 1);
       }
-      // 归因只记录，不改动 x 的算法（同种子同操作的结果必须和 0.3.0 逐位相同）
+      // 归因只记录，不改动 x 的算法
       if (parts && !rl) {
         const tr = inp.themeRet[theme] ?? 0;
         parts.push({ kind: 'theme', value: tr }, { kind: 'role', value: beta * tr - tr }, { kind: 'market', value: p.market * inp.marketRet });

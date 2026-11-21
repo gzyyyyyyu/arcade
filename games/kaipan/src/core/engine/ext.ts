@@ -3,7 +3,7 @@ import { BALANCE } from '../balance.ts';
 import { EXT_REACT_LINES, collateralTerms } from '../content/index.ts';
 import { round2, rulesOf } from '../market.ts';
 import { rngFor } from '../rng.ts';
-import { tapeIndex } from '../real.ts';
+import { isEaseRun, tapeIndex } from '../real.ts';
 import type { BuySize, CollateralId, ExtState, Loan, Comment, GameState, Holding } from '../types.ts';
 import { isFlash } from './calendar.ts';
 import { setAccount } from './holdings.ts';
@@ -53,9 +53,13 @@ export function shortWind(s: Readonly<GameState>, mood: GameState['mood']): numb
   return round2(Math.max(-1.5 * k, Math.min(1.5 * k, (-trend * k) / 2)));
 }
 
-/** 现在能不能押跌：押跌许可证、人设，或者难度够高。 */
+/**
+ * 现在能不能押跌：真实行情的娱乐局开局就能（0.35.0）；实盘、合成行情要押跌许可证、人设、月度主题解锁，或者难度够高。
+ * 规则表里的 canShort 只记「解锁了」：空军老周跟着解锁进群，娱乐局开局不拉他（他什么都喊跌，开局就在群里会把跟消息的人带偏，
+ * 0.35.0 模拟：普通打法 L3 通关率 72% → 63%）。
+ */
 export function canShortNow(s: Readonly<GameState>): boolean {
-  return !!s.ext && (rulesOf(s).canShort || s.difficulty >= BALANCE.ext.shortLevel);
+  return !!s.ext && (isEaseRun(s) || rulesOf(s).canShort || s.difficulty >= BALANCE.ext.shortLevel);
 }
 
 /** 欠银行多少（元）。 */

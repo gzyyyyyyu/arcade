@@ -191,3 +191,46 @@ export function vsWord(d: number | null): { word: string; sign: number } | null 
   if (d < -1) return { word: '弱于大环境', sign: -1 };
   return { word: '跟着大环境', sign: 0 };
 }
+
+/** 大盘情绪的五档说法（0 最冷 → 4 最热）。 */
+export const SENTIMENT_WORDS = ['恐慌', '谨慎', '平稳', '火热', '疯狂'] as const;
+
+export interface Sentiment {
+  /** 0..4，见 SENTIMENT_WORDS */
+  level: number;
+  /** 最近一个交易日涨停 / 跌停的家数 */
+  ups: number;
+  downs: number;
+}
+
+/**
+ * 0.35.0 大盘情绪：最近 5 天大环境合计涨跌（pp）+ 最近一天涨停家数 − 跌停家数，分五档。
+ * 门槛按 40 段行情实测的五分位定（每档约两成的交易日）。只用已收盘的数据；还没开过盘为 null。
+ */
+export function sentimentOf(s: Readonly<GameState>): Sentiment | null {
+  const mk = marketMoves(s, 5);
+  if (mk.length === 0) return null;
+  let ups = 0;
+  let downs = 0;
+  for (const m of s.lastDay?.stocks ?? []) {
+    if (m.limitUp) ups++;
+    else if (m.limitDown) downs++;
+  }
+  const score = sumMoves(mk) + ups - downs;
+  const level = score < -5 ? 0 : score < -1 ? 1 : score < 2.5 ? 2 : score < 6 ? 3 : 4;
+  return { level, ups, downs };
+}
+
+/** 0.35.0 板块涨跌榜：最近一个交易日各风口里股票的平均涨跌（pp），高 → 低；还没开过盘为空。 */
+export function sectorMoves(s: Readonly<GameState>, themeOf: (stockId: string) => ThemeId): { id: ThemeId; move: number }[] {
+  const sum = new Map<ThemeId, { v: number; n: number }>();
+  for (const m of s.lastDay?.stocks ?? []) {
+    const id = themeOf(m.id);
+    if (!s.themeIds.includes(id)) continue;
+    const x = sum.get(id) ?? { v: 0, n: 0 };
+    x.v += m.move;
+    x.n++;
+    sum.set(id, x);
+  }
+  return [...sum.entries()].map(([id, x]) => ({ id, move: x.v / x.n })).sort((a, b) => b.move - a.move);
+}

@@ -1,7 +1,7 @@
 import type { StockDef } from '../types.ts';
 
 /**
- * 打新的新股（docs/design.md 第 18 节）：每个题材 2 只，全部化名。
+ * 打新的新股（docs/design-modes.md 第 18 节）：每个题材 2 只，全部化名。
  * 它们不在 STOCKS 里（开局登场、推荐、群聊、奖励都不碰），只在申购中签后才加进 s.stocks；
  * look 是画面借用形象的同题材内容股（`def.look ?? def.id`）。
  */

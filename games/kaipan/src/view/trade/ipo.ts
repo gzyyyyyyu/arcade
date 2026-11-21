@@ -19,7 +19,7 @@ import { Dialog, dialogW } from '../ui/dialog.ts';
 import { addText } from '../ui/text.ts';
 
 /**
- * 打新（docs/design.md 第 18 节）的申购面板：三档（试一口 / 半仓 / 重仓），每档写抽中率和冻结多少现金，
+ * 打新（docs/design-modes.md 第 18 节）的申购面板：三档（试一口 / 半仓 / 重仓），每档写抽中率和冻结多少现金，
  * 点一档就申购（和「买多少」同一个做法）。钱数、份数、抽中率都从规则层的数来，这里只管画。
  */
 

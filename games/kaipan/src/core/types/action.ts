@@ -25,4 +25,6 @@ export type Action =
   /** 事件：选第 option 个选项（0 或 1） */
   | { type: 'choose'; option: number }
   /** 0.20.0 实盘杠杆：盘中减仓，杠杆降一档（3× → 2× → 1×），不能再加回去 */
-  | { type: 'deleverage' };
+  | { type: 'deleverage' }
+  /** 0.35.0 自选：给一只股票加星 / 取消（只记标记，不影响任何规则） */
+  | { type: 'star'; stockId: string };

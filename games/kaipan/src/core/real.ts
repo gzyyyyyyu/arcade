@@ -149,6 +149,14 @@ export function isTrack(real: Readonly<RealMarket> | null | undefined): boolean 
   return !!real && real.track === true;
 }
 
+/**
+ * 真实行情的娱乐局（不是实盘）：账单按难度打折、靠谱群友更准（BALANCE.ease），带仓位玩法时开局就能押跌。
+ * 实盘不放宽：它的期望按配平表定，改了要重跑实盘模拟。
+ */
+export function isEaseRun(s: Readonly<{ real?: RealMarket | null; setup?: { live?: unknown } | null }>): boolean {
+  return !!s.real?.track && !s.setup?.live;
+}
+
 /** 放大后的大盘当天涨跌（pp）。 */
 export function trackMarketRet(real: Readonly<RealMarket>, i: number): number {
   return BALANCE.track.amp * realMarketPct(real, i);

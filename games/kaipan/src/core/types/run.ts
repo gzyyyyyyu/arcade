@@ -211,6 +211,8 @@ export interface GameState {
   stats: RunStats;
   /** 本局全部操作，配合 seed 与 setup 可完整回放 */
   actions: Action[];
+  /** 0.35.0 自选：加了星的股票 id（加星的先后顺序；没加过为缺省） */
+  stars?: string[];
   /**
    * 0.4 重做：这一局用的真实行情段（只含登场风口用到的部分，读档、回放不用再下载）。
    * null 或缺省 = 0.3 的合成行情（离线、数据加载失败时的兜底，也是 0.3 存档的样子）。
@@ -298,8 +300,6 @@ export interface TempoState {
   results: { month: number; id: string; done: boolean }[];
   /** 小奖励、月度奖励累计发的钱（元） */
   bonus: number;
-  /** 月度目标的规则版本（tempo.ts 的 GOAL_RULES）；没有 = 1（0.32.0 以前开的局，以及每日挑战、闪电盘、本周市场、实盘） */
-  goalRules?: number;
 }
 
 /** 0.5：一次高光。 */

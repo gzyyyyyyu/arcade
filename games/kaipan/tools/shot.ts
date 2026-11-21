@@ -21,11 +21,12 @@
  *                                   局内设置、结束页，逐个量页面 scrollHeight / scrollWidth 不超过视口、画布和所有按钮都在视口里；
  *                                   再量画布里的重叠和裁字（调试桥 layout()，src/debug/layout.ts）：控件底板和点击区两两不相交，文字不伸出屏幕、按钮底板，不压在别的按钮和文字上
  *   node tools/shot.ts --content    内容包的画面：顶栏里的新战法图标、新事件弹窗（真实行情普通局开局后改状态，不走完整一局）
- *   node tools/shot.ts --pages-a  只跑页面细节 A：结束页排版、手机群聊点推荐消息直接买、昨日回顾收成角标、竖屏「照样玩」（后两段要加 --phone）
+ *   node tools/shot.ts --pages-a  只跑页面细节 A：结束页排版、手机群聊点推荐消息直接买、昨日回顾收成角标、竖屏版横过来提示换版、「照样玩」（后两段要加 --phone）
  *   node tools/shot.ts --pages-b    只跑页面细节 B：开局面板、每日挑战的遮罩盖住标题页按钮、设置的分组和「恢复默认」、三选一卡悬停（电脑 1280×800；加 --phone 跑手机的设置）
  *   node tools/shot.ts --ext        只跑 0.4 C：买多少、加仓 / 减一半、押跌与被轧、银行（借钱、打电话、收走、赎回）、图鉴小知识、带经历的结局
  *   node tools/shot.ts --v05 [--l1|--l3] [--until N] --out shots/v05   0.5 试玩：选难度开局、真实鼠标键盘打完整局（--until 打到第 N 个月），记时长、每月停几次、弹窗数
  *   node tools/shot.ts --ipo [--phone] 只跑打新：申购日横条 → 申购面板 → 申购 → 出签 → 新股持仓；刷新读档、连点、减少动态效果、回菜单继续、不发网络请求（--phone 为 844×390，另外还跑 390×844 竖屏「照样玩」）
+ *   node tools/shot.ts --market     0.35.0 炒股手感：中盘局面的交易页（大盘情绪、领涨领跌、持仓累计钱数）→ 股票详情 K 线页 → 加自选（电脑 1280 + 竖屏 390×844）
  *   node tools/shot.ts --main       只跑主流程那一段（不加参数时跑主流程 + --meta、--friendly、--real、--story）
  *   node tools/shot.ts --vis --out shots/vis-after   0.5 去文字化：主要画面截图，并统计每个画面可见汉字数（counts.json）
  *   node tools/shot.ts --phone [--ext|--meta|…] --out shots/phone   0.5.5 手机横屏：同一套冒烟改在 844×390（layout=phone）上跑，
@@ -57,6 +58,7 @@ import { metaShots } from './shot/modes/meta.ts';
 import { contentShots } from './shot/modes/content.ts';
 import { noScrollShots } from './shot/modes/noscroll.ts';
 import { pagesAShots } from './shot/modes/pages-a.ts';
+import { marketShots } from './shot/modes/market.ts';
 import { pagesBShots } from './shot/modes/pages-b.ts';
 import { playtest } from './shot/modes/playtest.ts';
 import { realShots } from './shot/modes/real.ts';
@@ -131,6 +133,7 @@ async function main(): Promise<void> {
     else if (process.argv.includes('--pages-b')) await pagesBShots(browser);
     else if (process.argv.includes('--live')) await liveShots(browser);
     else if (process.argv.includes('--ipo')) await ipoShots(browser);
+    else if (process.argv.includes('--market')) await marketShots(browser);
     else if (process.argv.includes('--main')) await run(browser);
     else {
       // 演出和节奏放在最前面（动画开着的几段，别被后面的超时挤掉）；它失败只记一笔，后面的照跑

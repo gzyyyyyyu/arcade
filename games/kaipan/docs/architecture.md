@@ -23,6 +23,8 @@
   `tradeActions`（玩家操作）、`tradeInput`（键盘、拖拽）、`dayPlayback`（一天的结算演出）、`monthFlow`（月底和新月份衔接）、`tradeFx`（短动画飘字）、
   `tradeHints`（教程和提示）、`tradeRegions`（`controls()` / `regions()` 给自动化的坐标）、`tradeConsts`（共用常量）。
 - **群聊** `trade/chat.ts` 同样按职责拆出 `chatBubbles`（消息、吐槽）、`chatRec`（推荐卡）、`chatBanners`（横条、待揭晓）、`chatNews`（新闻）、`chatFluffView`（热闹元素）、`chatConsts`（尺寸常量）。
+- **行情画面** `trade/marketScreen.ts`（开盘区的大盘屏）读 `tape.ts`（情绪 `sentimentOf`、风口领涨领跌 `sectorMoves`、跑马灯）；股票详情 `trade/detail.ts` 的 K 线页由 `trade/kline.ts` 生成：
+  开高低、分时、买卖力量和量柱在画面层按「种子:股票:交易日」用 `ui/stable.ts` 稳定生成，收盘涨跌只用已发生的（`stockMoves`），不读 `real`。
 - **持仓格** `trade/holdings.ts`（`HoldingsView`）+ `slotCard.ts`（单张卡）+ `holdingsShared.ts`（冻结格、选择模式等共用小件）。
 - **结束页** `scenes/EndScene.ts` 保留生命周期、主结算页和对外方法，其余在 `end/`（拿场景引用 `s`）：`endGeo`（电脑 / 手机两套尺寸和分句换行）、
   `endFlash`（闪电盘 / 本周盘的结束页和滚数字演出）、`endRows`（右栏的挑战、排行榜、下次试试和「收获」一排）。
@@ -36,6 +38,15 @@
 - `public/data/segments/`：135 段行情段，只存逐日涨跌基点，文件名是不透明 id。
 - `tools/data/raw/years/`：年包，数据管线的产物和切段的默认输入，`tests/core/story.test.ts` 拿它核对化名；不在 `public/` 下，不进任何构建。
 - `tools/data/story-aliases.json`：故事稿化名表（id、化名、改写代码、真实代码、可交易），`tests/core/story.test.ts` 和 `tools/data/check.ts` 读它。
+
+## 浏览器存储 key（全部 `kaipan.` 前缀）
+
+`kaipan.save`、`kaipan.save.corrupt`、`kaipan.profile`、`kaipan.settings`、`kaipan.view.prefs`、`kaipan.setup.last`、`kaipan.tutorial.v3`、
+`kaipan.extTips.v1`、`kaipan.codex.viewed.v1`、`kaipan.soundboard`、`kaipan.errors`、`kaipan.run.unscored`、`kaipan.cloud`（云同步元数据）、`kaipan.homeTip.off`（关掉了「添加到主屏幕」提示）、`kaipan.live`（实盘这一局的筹码走到哪一步，见 `src/platform/live.ts`）、`kaipan.challenge`（这台设备接下的好友挑战，见 `src/platform/challenge.ts`）；
+云同步备份类：`kaipan.<槽>.pre-sync`、`kaipan.<槽>.pre-switch.<userId>`、`kaipan.<槽>.pre-switch.<userId>.restored`（槽是 `profile`、`tutorial`；key 由 `src/platform/cloud.ts` 的 `preSwitchKey` 拼接、并回后在末尾加 `.restored`，不是固定常量）；
+`kaipan.profile.corrupt`。
+启动时清掉（`src/platform/storage.ts` 的 `LEGACY_KEYS`）：`kaipan.records`（旧版本地纪录，档案取代了它）、`kaipan.save.v1`、`kaipan.save.v0.1/v0.2/v0.3/v0.3a/v0.4a/v0.3.restored`、
+`kaipan.records.v0.2/v0.3/v0.4a/v0.3.restored`、`kaipan.terms.v04`。新增、删除 key 都改这张表。
 
 ## 冒烟截图怎么做到可复现
 

@@ -5,12 +5,14 @@ import { FEEL_WORD, ROLE_TERM, ROLE_WORD, term } from '../glossary.ts';
 import { pctArrow, recordText } from '../labels.ts';
 import { COLOR, FEEL_COLOR, FS, THEME_COLOR, TYPE, signColor, textOn } from '../theme.ts';
 import { addGlyph, addImage, addPill } from '../ui/art.ts';
+import { Button } from '../ui/button.ts';
 import { Dialog, dialogW, phonePanel } from '../ui/dialog.ts';
 import { addSpark } from '../ui/spark.ts';
+import { buyPower, candles, intraday, volumes } from './kline.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
 import { MIN_NUM_SIZE_PHONE, MIN_TEXT_SIZE, addText, fitWidth } from '../ui/text.ts';
 import { hideTooltip } from '../ui/tooltip.ts';
-import { friendCalls, preCount, stockMoves, streakOf, sumMoves, themeHeat, toLevels, vsMarket, vsWord } from './tape.ts';
+import { friendCalls, preCount, stockMoves, streakOf, sumMoves, themeHeat, vsMarket, vsWord } from './tape.ts';
 import { phoneLayout, viewOf } from '../viewport.ts';
 
 /**
@@ -18,6 +20,8 @@ import { phoneLayout, viewOf } from '../viewport.ts';
  * 打开时向场景发 DETAIL_EVENT（交易场景登记成当前对话框，自动化和快捷键都认它）。
  */
 export const DETAIL_EVENT = 'detail:open';
+/** 0.35.0 详情卡上点了「自选」：向场景发这个事件（参数是股票 id），交易场景执行加星 / 取消 */
+export const STAR_EVENT = 'detail:star';
 
 const W = 640;
 const H = 420;
@@ -64,6 +68,11 @@ class DetailDialog extends Dialog {
     hideTooltip(scene);
     scene.events.emit(DETAIL_EVENT, this);
   }
+
+  /** 详情卡里的按钮登记给自动化（controls() 认它） */
+  nameControl(key: string, b: Button): void {
+    this.named[key] = b;
+  }
 }
 
 interface Box {
@@ -85,12 +94,83 @@ function stockGeo(scene: Phaser.Scene): { pad: number; full: number; stage: Box;
   return { pad: 24, full: 592, stage: { x: 24, y: k ? 66 : 74, w: 168, h: k ? 160 : 170 }, guyY: k ? 202 : 214, guyS: k ? 112 : 120, roleX: 24, roleY: k ? 234 : 252, roleW: 168, chart: { x: 208, y: k ? 66 : 74, w: 408, h: k ? 140 : 150 }, cellX: 208, cellY: k ? 214 : 234, cellW: 96, cellGap: 7, cellRow: k ? 60 : 62, recY: k ? 336 : 360 };
 }
 
-/** 股票详情：大走势图、近几天涨跌、连涨连跌、风口热度、角色、推荐人、比大环境。 */
+/** K 线页：左 62% 日 K（开局前的日子淡色）+ 量柱，右边昨天的分时 + 买卖力量条。只画已经收盘的日子。 */
+function drawKline(scene: Phaser.Scene, r: Phaser.GameObjects.Container, ch: Box, s: Readonly<GameState>, id: string, moves: readonly number[]): void {
+  const pre = preCount(s, moves.length);
+  const split = Math.round(ch.w * 0.62);
+  chartBox(scene, r, ch.x, ch.y, ch.w, ch.h, moves.length ? `日K · ${moves.length} 天${pre > 0 ? `（开局前 ${pre} 天淡色）` : ''}` : '日K');
+  r.add(addText(scene, ch.x + split + 8, ch.y + 8, '昨天分时', { size: 12, bold: true, color: COLOR.screenText }));
+  if (moves.length === 0) {
+    r.add(addText(scene, ch.x + ch.w / 2, ch.y + ch.h / 2 + 8, '还没开过盘', { size: 14, color: 0xb8cde0, originX: 0.5, originY: 0.5 }));
+    return;
+  }
+  const up = signColor(1);
+  const down = signColor(-1);
+  const colorOf = (m: number): number => (Math.abs(m) < 0.05 ? 0xb8cde0 : m > 0 ? up : down);
+  const g = scene.add.graphics();
+  r.add(g);
+  // 日 K
+  const kx = ch.x + 12;
+  const kw = split - 20;
+  const ky = ch.y + 30;
+  const volH = 22;
+  const kh = ch.h - 30 - volH - 12;
+  const firstDay = (s.lastDay?.day ?? -1) - moves.length + 1;
+  const cs = candles(moves, `${s.seed}:${id}`, firstDay);
+  const hi = Math.max(...cs.map((c) => c.h));
+  const lo = Math.min(...cs.map((c) => c.l));
+  const span = Math.max(hi - lo, 0.5);
+  const yOf = (v: number): number => ky + kh - ((v - lo) / span) * kh;
+  const step = kw / Math.max(cs.length, 12);
+  const body = Math.max(3, Math.min(10, step * 0.62));
+  const vols = volumes(moves);
+  cs.forEach((c, i) => {
+    const x = kx + (i + 0.5) * step;
+    const col = colorOf(c.move);
+    const a = i < pre ? 0.45 : 1;
+    g.lineStyle(1.5, col, a).lineBetween(x, yOf(c.h), x, yOf(c.l));
+    const y1 = yOf(Math.max(c.o, c.c));
+    g.fillStyle(col, a).fillRect(x - body / 2, y1, body, Math.max(1.5, yOf(Math.min(c.o, c.c)) - y1));
+    const vh = Math.max(2, (vols[i] ?? 0) * volH);
+    g.fillStyle(col, a * 0.7).fillRect(x - body / 2, ch.y + ch.h - 8 - vh, body, vh);
+  });
+  // 昨天分时：从昨收（0）走到收盘，横线是昨收
+  const last = moves[moves.length - 1] ?? 0;
+  const path = intraday(last, `${s.seed}:${id}:${s.lastDay?.day ?? -1}`);
+  const tx = ch.x + split + 8;
+  const tw = ch.w - split - 20;
+  const ty = ch.y + 32;
+  const th = ch.h - 32 - 34;
+  const lim = Math.max(1, ...path.map((v) => Math.abs(v)));
+  const pyOf = (v: number): number => ty + th / 2 - (v / lim) * (th / 2);
+  g.lineStyle(1, 0x8fa6bd, 0.6).lineBetween(tx, pyOf(0), tx + tw, pyOf(0));
+  g.lineStyle(2, colorOf(last), 1).beginPath();
+  path.forEach((v, k) => {
+    const x = tx + (k / (path.length - 1)) * tw;
+    if (k === 0) g.moveTo(x, pyOf(v));
+    else g.lineTo(x, pyOf(v));
+  });
+  g.strokePath();
+  // 买卖力量
+  const buy = buyPower(moves);
+  const by = ch.y + ch.h - 26;
+  g.fillStyle(up, 1).fillRect(tx, by, tw * buy, 8);
+  g.fillStyle(down, 1).fillRect(tx + tw * buy, by, tw * (1 - buy), 8);
+  r.add(addText(scene, tx, by + 10, `买 ${Math.round(buy * 100)}%`, { size: 12, bold: true, num: true, color: mixLight(up) }));
+  r.add(addText(scene, tx + tw, by + 10, `卖 ${Math.round((1 - buy) * 100)}%`, { size: 12, bold: true, num: true, color: mixLight(down), originX: 1 }));
+}
+
+/** 深色底上的涨跌色提亮一点 */
+function mixLight(c: number): number {
+  const m = (v: number): number => Math.round(v + (255 - v) * 0.35);
+  return (m((c >> 16) & 0xff) << 16) | (m((c >> 8) & 0xff) << 8) | m(c & 0xff);
+}
+
+/** 股票详情：K 线页、近几天涨跌、连涨连跌、风口热度、角色、推荐人、比大环境。 */
 export function openStockDetail(scene: Phaser.Scene, s: Readonly<GameState>, id: string): Dialog {
   const c = stockCard(s, id);
   const d = new DetailDialog(scene, c.name, 566);
   const r = d.inner;
-  const calm = false;
   const G = stockGeo(scene);
   // 左：小人 + 风口签 + 角色
   const tc = THEME_COLOR[c.theme];
@@ -105,22 +185,29 @@ export function openStockDetail(scene: Phaser.Scene, s: Readonly<GameState>, id:
   r.add([tag, tagT]);
   const role = addImage(scene, st.x + st.w - 20, st.y + 22, roleKey(c.role), 26);
   r.add(role);
+  // 0.35.0 自选：角色名同一行、靠右的按钮（Button 原点在左上），点了加星 / 取消（交易场景执行；按钮当场换字）
+  let starred = (s.stars ?? []).includes(id);
+  const starBtn: Button = new Button(scene, G.roleX + G.roleW - 88, G.roleY - 6, {
+    width: 88,
+    height: 28,
+    fontSize: 13,
+    label: starred ? '已自选' : '自选',
+    icon: 'star',
+    variant: starred ? 'primary' : 'default',
+    onClick: () => {
+      starred = !starred;
+      starBtn.setLabel(starred ? '已自选' : '自选');
+      scene.events.emit(STAR_EVENT, id);
+    },
+  });
+  r.add(starBtn);
+  d.nameControl('detail:star', starBtn);
   const roleT = addText(scene, G.roleX, G.roleY, `${ROLE_WORD[c.role]}`, { size: 15, bold: true, color: c.role === 'st' ? COLOR.danger : COLOR.ink });
-  const roleD = addText(scene, G.roleX, G.roleY + 22, term(ROLE_TERM[c.role]).explain, { size: 12, color: COLOR.muted, wrap: G.roleW, lineSpacing: 2 });
+  const roleD = addText(scene, G.roleX, G.roleY + 28, term(ROLE_TERM[c.role]).explain, { size: 12, color: COLOR.muted, wrap: G.roleW, lineSpacing: 2 });
   r.add([roleT, roleD]);
-  // 走势图（最近 10 天涨跌柱 + 累计折线）：电脑和横屏在右上，竖屏在小人下面
-  const moves = stockMoves(s, id, 10);
-  const pre = preCount(s, moves.length);
-  const ch = G.chart;
-  const k = ch.h < 150;
-  chartBox(scene, r, ch.x, ch.y, ch.w, ch.h, moves.length ? `最近 ${moves.length} 天${pre > 0 ? `（开局前 ${pre} 天虚线）` : ''}` : '最近走势');
-  const levels = toLevels(moves);
-  const line = addSpark(scene, ch.x + 18, ch.y + (k ? 28 : 30), ch.w - 36, k ? 56 : 60, levels, { kind: 'line', area: true, dot: true, width: 2.5, pre: pre > 0 ? pre + 1 : 0, preLabel: true });
-  const bars = addSpark(scene, ch.x + 18, ch.y + (k ? 92 : 98), ch.w - 36, k ? 42 : 44, moves, { kind: 'bars', cap: 10, pre });
-  r.add([...line.nodes(), ...bars.nodes()]);
-  line.play(600, calm);
-  bars.play(600, calm);
-  if (moves.length === 0) r.add(addText(scene, ch.x + ch.w / 2, ch.y + (k ? 72 : 76), '还没开过盘', { size: 14, color: 0xb8cde0, originX: 0.5, originY: 0.5 }));
+  // 0.35.0 K 线页：左边日 K + 量柱，右边昨天的分时 + 买卖力量（电脑和横屏在右上，竖屏在小人下面）
+  const moves = stockMoves(s, id, 20);
+  drawKline(scene, r, G.chart, s, id, moves);
   // 数据格
   const theme = themeBoard(s).find((t) => t.id === c.theme);
   const vs = vsWord(vsMarket(s, id, Math.min(5, moves.length)));
@@ -197,6 +284,7 @@ export function openThemeDetail(scene: Phaser.Scene, s: Readonly<GameState>, id:
     const x = (pt ? 16 : 24) + i * cw + cw / 2;
     const guy = new StockGuy(scene, x, ry + 76, sid, sc.face, 54, { idle: false });
     const n = addText(scene, x, ry + 80, sc.name, { size: FS.xs, bold: true, originX: 0.5 });
+    if ((s.stars ?? []).includes(sid)) r.add(addGlyph(scene, x + 22, ry + 30, 'star', 18));
     const m = addText(scene, x, ry + 96, sc.history.length ? pctArrow(sc.move) : '—', { size: 13, bold: true, num: true, color: signColor(sc.move), originX: 0.5 });
     const hit = scene.add.rectangle(x - cw / 2 + 4, ry + 18, cw - 8, 96, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     hit.on(Phaser.Input.Events.POINTER_UP, () => {

@@ -167,3 +167,9 @@ export function repay(s: GameState, id: CollateralId, em: Emitter): void {
   emit(em, { type: 'repaid', loan: { ...loan }, account: s.account });
   react(s, em, 'redeem', x.log.redeemed.length);
 }
+
+/** 0.35.0 自选：加星或取消（只记标记，不发事件、不影响规则） */
+export function toggleStar(s: GameState, stockId: string): void {
+  const stars = s.stars ?? [];
+  s.stars = stars.includes(stockId) ? stars.filter((id) => id !== stockId) : [...stars, stockId];
+}

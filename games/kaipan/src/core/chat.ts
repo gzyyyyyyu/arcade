@@ -26,7 +26,7 @@ import {
 import { formatMoney } from './format.ts';
 import type { Rules } from './hooks.ts';
 import { DIRS, clamp, dirOf, effectiveDH, feelOf, turnOf } from './market.ts';
-import { bandDir, forwardRet, isTrack } from './real.ts';
+import { bandDir, forwardRet, isEaseRun, isTrack } from './real.ts';
 import { rngFor, type Rng } from './rng.ts';
 import type { RealMarket } from './segment.ts';
 import type { Comment, DayReport, Dir, Feel, FriendState, GameState, Message, Rec, StockDef, ThemeId, TurnTalk } from './types.ts';
@@ -76,7 +76,7 @@ export function topicsOf(s: Readonly<GameState>, f: Readonly<FriendState>): Them
 
 /**
  * 0.7.0 群友这一局的状态（隐藏）：可信度偏移和说话权重倍数，按种子和群友 id 定，整局不变、均值为 0 / 1。
- * 中途入群的群友也一样，不用存进存档。只在真实行情下有：0.3 的合成行情是离线兜底，保持和 0.3 逐位相同（见 replay-golden 测试）。
+ * 中途入群的群友也一样，不用存进存档。只在真实行情下有：合成行情只是离线兜底，不加这些。
  */
 export function friendForm(s: Readonly<GameState>, friendId: string): { cred: number; talk: number } {
   if (!isTrack(s.real)) return NO_FORM;
@@ -113,7 +113,7 @@ function credOf(s: Readonly<GameState>, friendId: string, theme: ThemeId, rules:
   const base = isExpert ? expert : other;
   // 0.5（真实行情）：难度每高一级，所有人的准确率再低一点；
   // 0.34.0 娱乐局（不是实盘）按难度放宽（BALANCE.ease）：只让本来不反指的人更准，群主照样反着说
-  const ease = !s.setup?.live && base >= 0.5 ? easeFor('cred', s.difficulty) : 0;
+  const ease = isEaseRun(s) && base >= 0.5 ? easeFor('cred', s.difficulty) : 0;
   const diff = isTrack(s.real) ? BALANCE.intel.diffStep * (Math.max(1, s.difficulty) - 1) - ease : 0;
   const form = friendForm(s, friendId).cred;
   const c = clamp(base + form + tip + (msg ? rules.credDelta : 0) + (rules.credBonus[friendId] ?? 0) - diff, 0, credMax);

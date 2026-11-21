@@ -2,18 +2,18 @@
 import { BALANCE } from '../balance.ts';
 import { FRIENDS, MAX_DIFFICULTY, THEME_IDS, clampDifficulty, isFriendId, isItemId, isPersonaId, isStockId, isThemeId, personaAccount, personaById, stocksOf } from '../content/index.ts';
 import { isLiveTier } from '../liveTiers.ts';
-import { MOODS, baseMarketRules, newStock, rulesFor, warmUpTheme } from '../market.ts';
+import { MOODS, baseMarketRules, newStock, rulesFor, rulesOf, warmUpTheme } from '../market.ts';
 import { rngFor } from '../rng.ts';
 import { fitRoles, realMood, trackMood, warmUpReal } from '../real.ts';
-import { newTempo } from '../tempo.ts';
+import { isRegularRun, newTempo } from '../tempo.ts';
 import { isWeekId } from '../weekly.ts';
 import { realFromSegment, type Segment } from '../segment.ts';
 import type { Action, GameEvent, GameState, PersonaId, RunSetup, ThemeId } from '../types.ts';
-import { addTo, borrow, buy, repay, sell, subscribe, trim } from './actions.ts';
+import { addTo, borrow, buy, repay, sell, subscribe, toggleStar, trim } from './actions.ts';
 import { firstEmpty, isFlash, totalDays } from './calendar.ts';
 import { startDay, startMonth } from './day.ts';
 import { choose } from './event.ts';
-import { canShortNow, newExt } from './ext.ts';
+import { newExt } from './ext.ts';
 import { deleverage } from './gear.ts';
 import { addFriend, gainItem, newHolding, syncSlots } from './holdings.ts';
 import { open } from './open.ts';
@@ -120,10 +120,10 @@ export function pickThemes(seed: string, must: readonly ThemeId[] = []): ThemeId
 /** 开局选项：segment 是抽中的真实行情段（缺省或 null = 0.3 的合成行情）。 */
 export interface CreateOptions {
   segment?: Readonly<Segment> | null;
-  /** 0.4 C：打开仓位、押跌、抵押（正式游戏都开；缺省关 = 0.3 的玩法，replay-golden 用） */
+  /** 0.4 C：打开仓位、押跌、抵押（正式游戏都开；缺省关 = 不带仓位玩法的基础规则，合成行情回放基准用） */
   ext?: boolean;
   /**
-   * 0.5：月度主题、中场、高光、连击。缺省：有行情段时打开、合成行情关闭（replay-golden 逐位不变）。
+   * 0.5：月度主题、中场、高光、连击。缺省：有行情段时打开、合成行情关闭。
    * 回放要带同样的值：replay(seed, actions, setup, { segment, ext: !!state.ext, tempo: !!state.tempo })。
    */
   tempo?: boolean;
@@ -151,8 +151,7 @@ export function createRun(seed: string, setup: RunSetup | null = null, opts: Cre
   for (const id of themeIds) themes[id] = real ? warmUpReal(real, id) : warmUpTheme(seed, id);
   const account = setup?.account ?? personaAccount(persona);
   const rules0 = rulesFor([], difficulty, persona);
-  // 真实行情的普通局：每日挑战、闪电盘、本周市场、实盘之外的局，新主题和新的目标规则只给它们（那几种要和排行榜、配平表对得上）
-  const regular = !!real && setup?.daily === undefined && setup?.flash === undefined && setup?.weekly === undefined && setup?.live === undefined;
+  const regular = isRegularRun(real, setup);
   const s: GameState = {
     version: 4,
     seed,
@@ -204,7 +203,7 @@ export function createRun(seed: string, setup: RunSetup | null = null, opts: Cre
   // 本周市场「满仓周」：多给的持仓格开局就有
   if (s.setup?.weekly !== undefined) syncSlots(s);
   // 0.4 C：人设、难度一开局就能押跌时，空军老周直接在群里
-  if (s.ext && canShortNow(s)) addFriend(s, 'kongjun', em);
+  if (s.ext && rulesOf(s).canShort) addFriend(s, 'kongjun', em);
   em.events = [];
   startMonth(s, 1, em);
   // 闪电盘：先三选一道具（领完才开第一天，见 afterReward）
@@ -255,6 +254,9 @@ export function dispatch(prev: GameState, action: Action, opts: DispatchOptions 
       break;
     case 'choose':
       choose(s, action.option, em);
+      break;
+    case 'star':
+      toggleStar(s, action.stockId);
       break;
   }
   return { state: s, events: em.events, error: null };

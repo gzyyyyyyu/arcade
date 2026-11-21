@@ -37,7 +37,9 @@
 
 ## 行情数据管线（`data/`，一次性或换数据时才用）
 
-原始数据（WIKI Prices，4 GB 多）不进仓库，放哪里见 `data/common.ts`。顺序：`slice` → `build` → `check` → `segments`。
+原始数据（WIKI Prices：Quandl 社区整理、Nasdaq Data Link 托管，公有领域；4 GB 多）不进仓库，默认在模块里的 `.data/wiki-prices/`（被 .gitignore，逐年年包缓存在 `.data/wiki-prices/packs`），
+环境变量 `KAIPAN_WIKI_PRICES` 或命令行参数能改；下载要 Nasdaq Data Link 的 key，设环境变量 `NASDAQ_DATA_LINK_API_KEY`，不进仓库。顺序：`slice` → `build` → `check` → `segments`。
+段文件名和 id 是加盐哈希，年份对照只在 `data/segments-manifest.json`，`tests/repo/segments-leak.test.ts` 保证线上文件不含年份日期。伤亡、灾害、袭击、停市、选举类事件不进故事。
 
 | 脚本 | 用途 | 命令 |
 |---|---|---|
