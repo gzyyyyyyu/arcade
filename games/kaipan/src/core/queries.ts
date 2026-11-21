@@ -10,3 +10,4 @@ export * from './queries/topbar.ts';
 export * from './queries/items.ts';
 export * from './queries/summary.ts';
 export * from './queries/history.ts';
+export * from './queries/board.ts';

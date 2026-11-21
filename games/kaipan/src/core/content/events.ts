@@ -1,5 +1,5 @@
 import { fx } from '../balance.ts';
-import type { EventDef } from '../hooks.ts';
+import type { EventDef, EventPrepCtx } from '../hooks.ts';
 import type { EventState, GameState, Stage, ThemeId } from '../types.ts';
 import { formatMoney } from '../format.ts';
 import { BALANCE } from '../balance.ts';
@@ -63,6 +63,144 @@ function tacticIds(state: GameState): string[] {
 function pctText(v: number): string {
   return `${Math.round(v * 100) / 100}%`;
 }
+
+/**
+ * 0.36 消息面事件只在真实行情的普通局出现（同 isRegularRun：不是每日挑战、闪电盘、本周市场、实盘）：
+ * 池子变了同种子抽到的事件就变了，排行榜和实盘期望要对得上。
+ */
+function regularOnly(state: Readonly<GameState>): boolean {
+  // 和 tempo.ts 的 isRegularRun 同口径；这里不引 tempo.ts（它经 content/index.ts 绕回本文件，成环）
+  return realOnly(state) && state.setup?.live === undefined;
+}
+
+/** 本局登场的风口里随机挑一个（只当话题，不代表方向）。 */
+function anyTheme(state: Readonly<GameState>, rng: { int(n: number): number }): ThemeId | undefined {
+  return state.themeIds[rng.int(state.themeIds.length)];
+}
+
+/**
+ * 情报类：选「听」拿一个临时情报道具（用到下个月底），选「不听」什么都不变。手里已经有、或人设不让拿时不出。
+ * 道具只看不改：风口温度计、熬夜复盘、老王的小本本、小道消息、反着信韭菜收割机都只让消息更清楚，涨跌照真的走。
+ */
+function intelPrep(item: string) {
+  return ({ state, rng, month }: EventPrepCtx): Omit<EventState, 'id' | 'month'> | null => {
+    if (!regularOnly(state) || month >= 12 || state.items.includes(item)) return null;
+    if ((PERSONAS.find((p) => p.id === state.persona)?.bannedItems ?? []).includes(item)) return null;
+    const theme = anyTheme(state, rng);
+    return theme ? { itemId: item, theme } : null;
+  };
+}
+
+/** 小钱类：账户的 fx(id, 'pct')%。 */
+function cashPrep(id: string) {
+  return ({ state, rng, month }: EventPrepCtx): Omit<EventState, 'id' | 'month'> | null => {
+    if (!regularOnly(state) || month >= 12) return null;
+    const theme = anyTheme(state, rng);
+    return theme ? { theme, amount: Math.round((state.account * fx(id, 'pct')) / 100) } : null;
+  };
+}
+
+const itemName = (id: string | undefined): string => ITEMS.find((d) => d.id === id)?.name ?? '？';
+
+export const NEWS_EVENTS: readonly EventDef[] = [
+  {
+    id: 'policy_talk',
+    name: '政策吹风会',
+    text: (e) => `晚间新闻里开了个吹风会，点名提到了「${themeName(e.theme)}」。群里吵翻了：有人说是好事，有人说是要管。`,
+    options: (e) => [`蹲直播看解读（拿到「${itemName(e.itemId)}」，用到 ${e.month + 1} 月底）`, '不看（新闻联播看完就睡）'],
+    prepare: intelPrep('mood_meter'),
+    resolve(c, option) {
+      if (option !== 0 || !c.event.itemId) return '你关了电视。第二天群里还在吵，你决定看行情说话。';
+      c.gainItem(c.event.itemId, c.event.month + 1);
+      return "专家讲了两个钟头，你记了满满一页：哪个风口真热、哪个是虚火，心里有点数了。";
+    },
+  },
+  {
+    id: 'merger_rumor',
+    name: '并购传闻',
+    text: (e) => `群里传「${themeName(e.theme)}」里有家公司要被收购，截图有鼻子有眼。老王说他有个表弟在那边上班。`,
+    options: (e) => [`请老王喝一杯打听（拿到「${itemName(e.itemId)}」，用到 ${e.month + 1} 月底）`, '不信谣不传谣'],
+    prepare: intelPrep('notebook'),
+    resolve(c, option) {
+      if (option !== 0 || !c.event.itemId) return '你没接话。截图在群里转了三圈，没人知道真假。';
+      c.gainItem(c.event.itemId, c.event.month + 1);
+      return '两杯下肚，老王把他的小本本推了过来："以后我说的，你记着。"';
+    },
+  },
+  {
+    id: 'debunk',
+    name: '官方辟谣',
+    text: (e) => `昨天韭菜收割机在群里喊的「${themeName(e.theme)}」大消息，今天被官方辟谣了。他装没看见，又发了一条新的。`,
+    options: (e) => [`记下这笔账（拿到「${itemName(e.itemId)}」，用到 ${e.month + 1} 月底）`, '算了，收割机也不容易'],
+    prepare: intelPrep('fan_qunzhu'),
+    resolve(c, option) {
+      if (option !== 0 || !c.event.itemId) return '你给他点了个赞。收割机私聊你："懂我。"';
+      c.gainItem(c.event.itemId, c.event.month + 1);
+      return '你把他这个月喊过的话列了张表，对着行情一看：反着听，好像更准。';
+    },
+  },
+  {
+    id: 'stamp_tax',
+    name: '降印花税的传言',
+    text: () => '半夜群里有人说"明早要降交易印花税"，几百条消息刷屏，有人说是真的，有人说去年也这么传过。',
+    options: (e) => [`熬夜等消息（拿到「${itemName(e.itemId)}」，用到 ${e.month + 1} 月底）`, '睡觉（明早再说）'],
+    prepare: intelPrep('night_review'),
+    resolve(c, option) {
+      if (option !== 0 || !c.event.itemId) return '你睡得很香。早上起来，传言还是传言。';
+      c.gainItem(c.event.itemId, c.event.month + 1);
+      return '消息到天亮也没来，但你养成了收盘后复盘的习惯。';
+    },
+  },
+  {
+    id: 'tv_analyst',
+    name: '电视股评',
+    text: (e) => `财经频道的股评嘉宾拍着桌子讲「${themeName(e.theme)}」，台下观众连连点头。节目最后给了个热线号码。`,
+    options: (e) => [`记下热线（拿到「${itemName(e.itemId)}」，用到 ${e.month + 1} 月底）`, '换台（看会儿动画片）'],
+    prepare: intelPrep('rumor_mill'),
+    resolve(c, option) {
+      if (option !== 0 || !c.event.itemId) return '你换了台。动画片里的猫也在炒股，亏得比你还惨。';
+      c.gainItem(c.event.itemId, c.event.month + 1);
+      return '热线那头每天给你发一条小道消息。准不准另说，反正热闹。';
+    },
+  },
+  {
+    id: 'fake_insider',
+    name: '冒牌内幕群',
+    text: () => '有人私聊你："拉你进 VIP 内幕群，跟单包赚，先交会员费。"头像是一辆跑车。',
+    options: (e) => [`举报（平台奖励 +${yuan(e.amount ?? 0)}）`, '直接拉黑（跑车头像也不好使）'],
+    prepare: cashPrep('fake_insider'),
+    resolve(c, option) {
+      if (option !== 0) return '拉黑了。跑车头像换了个号，又来加你。';
+      c.addAccount(c.event.amount ?? 0);
+      return `举报成功，平台发来 ${yuan(c.event.amount ?? 0)} 奖励和一句"谢谢您守护投资环境"。`;
+    },
+  },
+  {
+    id: 'rate_rumor',
+    name: '降息传闻',
+    text: () => '银行的朋友神神秘秘地说"最近可能要降息"。你问他哪天，他说"反正是最近"。',
+    options: (e) => [`请他吃顿饭（他抢着买单，还塞给你 +${yuan(e.amount ?? 0)} 的购物卡）`, '不了（"最近"这个词我听过很多次）'],
+    prepare: cashPrep('rate_rumor'),
+    resolve(c, option) {
+      if (option !== 0) return '他耸耸肩："信不信由你。"';
+      c.addAccount(c.event.amount ?? 0);
+      return `饭桌上他讲了一晚上利率，你一句没听懂，倒是拿到一张 ${yuan(c.event.amount ?? 0)} 的购物卡。`;
+    },
+  },
+  {
+    id: 'clarify',
+    name: '公司澄清公告',
+    text: (e) => `一家公司发澄清公告："我们和「${themeName(e.theme)}」没有关系。"顺便邀请股东来参加开放日，有纪念品。`,
+    options: (e) => [`去开放日（纪念品折价 +${yuan(e.amount ?? 0)}；跑了一天，下个交易日没空：不能买也不能卖）`, '不去（澄清就澄清吧）'],
+    prepare: cashPrep('clarify'),
+    resolve(c, option) {
+      if (option !== 0) return '你没去。听说纪念品是个印着公司名的保温杯。';
+      c.addAccount(c.event.amount ?? 0);
+      c.skipNextDay();
+      return `你领到一个保温杯和一盒点心，折合 ${yuan(c.event.amount ?? 0)}。回到家，行情已经收盘了。`;
+    },
+  },
+];
 
 /**
  * 事件（0.3.0：15 个，前 6 个是 M0 的）：每月领完奖励后按概率触发一个，二选一，后果简单明确。数值在 BALANCE.fx[id]。
@@ -586,6 +724,8 @@ export const EVENTS: readonly EventDef[] = [
       return `你排了三个钟头，领到一盒鸡蛋和一份礼包，折合 ${yuan(c.event.amount ?? 0)}。回到家天都黑了，行情没顾上看。`;
     },
   },
+  // ---------------------------------------------------------------- 0.36：消息面（政策、传闻、辟谣），只给情报或小钱，不改涨跌
+  ...NEWS_EVENTS,
 ];
 
 /** 0.5 事件卡上一个选项：≤8 字的按钮 + 一个大数字（代价或收益；tone 决定颜色）。 */
@@ -713,6 +853,38 @@ export const EVENT_BRIEF: Readonly<Record<string, EventBrief>> = {
   free_eggs: {
     brief: () => '营业部送鸡蛋，排队要一整天',
     picks: (e) => [{ label: '排队领', big: gain(e.amount ?? 0), tone: 'gain' }, { label: '不领' }],
+  },
+  policy_talk: {
+    brief: (e) => `吹风会点名「${themeName(e.theme)}」`,
+    picks: (e) => [{ label: '看解读', big: itemName(e.itemId), tone: 'plain' }, { label: '不看' }],
+  },
+  merger_rumor: {
+    brief: (e) => `群里传「${themeName(e.theme)}」有公司要被收购`,
+    picks: (e) => [{ label: '打听', big: itemName(e.itemId), tone: 'plain' }, { label: '不信' }],
+  },
+  debunk: {
+    brief: () => '收割机的大消息被辟谣了',
+    picks: (e) => [{ label: '记账', big: itemName(e.itemId), tone: 'plain' }, { label: '算了' }],
+  },
+  stamp_tax: {
+    brief: () => '半夜传言：明早降印花税',
+    picks: (e) => [{ label: '熬夜等', big: itemName(e.itemId), tone: 'plain' }, { label: '睡觉' }],
+  },
+  tv_analyst: {
+    brief: (e) => `股评嘉宾拍桌讲「${themeName(e.theme)}」`,
+    picks: (e) => [{ label: '记热线', big: itemName(e.itemId), tone: 'plain' }, { label: '换台' }],
+  },
+  fake_insider: {
+    brief: () => '有人拉你进收费「内幕群」',
+    picks: (e) => [{ label: '举报', big: gain(e.amount ?? 0), tone: 'gain' }, { label: '拉黑' }],
+  },
+  rate_rumor: {
+    brief: () => '银行朋友：最近可能要降息',
+    picks: (e) => [{ label: '请吃饭', big: gain(e.amount ?? 0), tone: 'gain' }, { label: '不了' }],
+  },
+  clarify: {
+    brief: () => '公司澄清公告，顺便办开放日',
+    picks: (e) => [{ label: '去开放日', big: gain(e.amount ?? 0), tone: 'gain' }, { label: '不去' }],
   },
 };
 

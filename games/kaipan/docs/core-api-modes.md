@@ -62,7 +62,7 @@
 | `Holding.buyStage / sawEbb`、`TradeLog.stage / guard` | 买入时的阶段、站岗判定。结束页复盘可以揭晓，局中不显示 |
 | `ThemeMove.stage`（`themeMoved` 事件、`report.themes`） | 当天真实阶段，局中不显示 |
 | `PendingEffect` 的结果 | 到期才掷，画面只显示本金和到期月份 |
-| `crashPlan / surprisePlan / turnOf / messageCred / themeTruth / stockTruth / forwardRet` | 只给测试和模拟用 |
+| `crashPlan / surprisePlan / turnOf / messageCred / themeTruth / stockTruth / forwardRet / earningsPlan / earningsBets` | 只给测试和模拟用 |
 
 可以显示的：热度、走势、体感、大盘天气（上一个交易日）、消息与推荐、战绩、收盘后揭晓的 `truth`、连板、ST 警告、当月的 `bill.extras`、本月 `notice`、已到月份的主题与目标。
 

@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
-import { friendView, themeById, type IpoOffer, type GameState, type topBar } from '../../core/index.ts';
+import { formatPoints, friendView, themeById, type EarningsView, type IpoOffer, type GameState, type topBar } from '../../core/index.ts';
 import { claimSign } from '../labels.ts';
 import { DIR_WORD, termTip } from '../glossary.ts';
 import type { Rect } from '../rect.ts';
-import { COLOR, FS } from '../theme.ts';
+import { COLOR, FS, signColor } from '../theme.ts';
 import { addGlyph, addPill, addSlice } from '../ui/art.ts';
 import { addText, fitWidth } from '../ui/text.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
@@ -44,6 +44,32 @@ export function addIpoBanner(v: ChatView3, s: GameState, offer: IpoOffer, y: num
   });
   bindTooltip(bg, () => r, () => termTip('newstock', `${offer.name}：点开选试一口、半仓或重仓。`));
   v.content.add([bg, star, t1, t2, go, goT]);
+  return y + h;
+}
+
+/**
+ * 0.36 财报横条（盘前，预告到揭晓）：第一行「财报 · 股票名」和状态（第 N 天出 / 今天收盘出 / 超预期 ↑x% / 暴雷 ↓x%），
+ * 第二行群友押的方向，揭晓后写对错。只说会有大动静，不说方向。
+ */
+export function addEarningsBanner(v: ChatView3, e: EarningsView, y: number): number {
+  const h = 44;
+  const done = e.stage === 'done';
+  const edge = done ? signColor(e.move ?? 0) : COLOR.info;
+  const bg = v.scene.add.rectangle(CX, y, CW, h, 0xeef6ff).setOrigin(0, 0).setRounded(12).setStrokeStyle(2.5, edge, 1);
+  const status = done ? `${e.beat ? '超预期' : '暴雷'} ${formatPoints(e.move ?? 0)}` : e.stage === 'today' ? '今天收盘出' : `${e.daysLeft} 天后出`;
+  const st = addText(v.scene, CX + CW - 10, y + 13, status, { size: 13, bold: true, color: done ? signColor(e.move ?? 0) : COLOR.accentDark, originX: 1, originY: 0.5 });
+  const t1 = fitWidth(addText(v.scene, CX + 10, y + 13, `财报 · ${e.name}`, { size: 14, bold: true, color: COLOR.ink, originY: 0.5 }), CW - 28 - st.width);
+  const bets = `押：${e.bets.map((b) => `${b.name}${b.up ? '↑' : '↓'}${b.right === undefined ? '' : b.right ? '对' : '错'}`).join('  ')}`;
+  // 放不下先省掉「要有大动静 ·」（悬停里有），押注的人尽量写全
+  const t2 = addText(v.scene, CX + 10, y + 32, done ? bets : `要有大动静 · ${bets}`, { size: FS.xs, color: COLOR.muted, originY: 0.5 });
+  if (!done && t2.width > CW - 20) t2.setText(bets);
+  fitWidth(t2, CW - 20);
+  bg.setInteractive();
+  const body = done
+    ? `${e.name}的财报${e.beat ? '超出预期' : '暴雷了'}，那天 ${formatPoints(e.move ?? 0)}。${e.bets.filter((b) => b.right).map((b) => b.name).join('、') || '没人'}押对了。`
+    : `${e.name}这周第 ${e.nth} 天出财报。只知道会有大动静，涨还是跌没人知道；群友押的方向准不准，看他们平时的战绩。`;
+  bindTooltip(bg, () => ({ x: CX, y, w: CW, h }), () => ({ title: '财报周', body }));
+  v.content.add([bg, t1, st, t2]);
   return y + h;
 }
 

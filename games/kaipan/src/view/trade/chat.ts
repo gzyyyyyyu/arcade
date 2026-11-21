@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { chatView, friendView, ipoToday, type ChatView, type Comment, type GameState, type MessageJudge, type MessageView, type NewsItem, canShortNow, topBar } from '../../core/index.ts';
+import { chatView, dragonBoard, earningsView, friendView, ipoToday, type ChatView, type Comment, type DayReport, type DragonBoard, type GameState, type MessageJudge, type MessageView, type NewsItem, canShortNow, topBar } from '../../core/index.ts';
 import type { Animator } from '../fx/anim.ts';
 import type { Rect } from '../rect.ts';
 import { sound } from '../sound.ts';
@@ -10,7 +10,7 @@ import type { Spark } from '../ui/spark.ts';
 import { addText } from '../ui/text.ts';
 import { PHONE_RECT as PHONE } from './layout.ts';
 import { AFTER_CLOSE_MAX, AVATAR, BODY_H, BODY_Y, HEADER_H, BUBBLE_W, CW, CX, GAP, INTRO_MAX, JUDGE_MAX, REC_H, REC_H_FLAT, REC_H_MINI, SW, SX, bubbleLine, recShort, type MsgNode } from './chatConsts.ts';
-import { addIpoBanner, addSysPill, addWatch, addWeeklyBanner } from './chatBanners.ts';
+import { addEarningsBanner, addIpoBanner, addSysPill, addWatch, addWeeklyBanner } from './chatBanners.ts';
 import { addMessage, commentNode, tickerNode } from './chatBubbles.ts';
 import { addFluff } from './chatFluffView.ts';
 import { layoutRecs, addRec } from './chatRec.ts';
@@ -100,8 +100,32 @@ export class ChatView3 {
     // 不在这里先画一遍：场景建完马上整页 render（带上提示条），群聊是最贵的一块，开局时画两遍白费
   }
 
-  /** 按状态重建当天的群聊（无动画）。 */
+  /**
+   * 0.36 增量更新：上一次整块重建时消息侧的输入（见 keyOf）。同一天里买卖、加自选只改推荐卡，
+   * 这时只重建推荐卡，消息、横条、新闻、热闹元素原样留着（每次整块重建约 150 个文字对象）。
+   * 收盘盖章、吐槽、系统提示这些往群聊里加东西的方法会把它清掉，下次整块重建。
+   */
+  private lastKey: string | null = null;
+  /** 推荐卡从哪一行排起、最矮能压到多高（增量重建推荐卡时照原位排） */
+  private recsY = 0;
+  private minRecH = REC_H_MINI;
+
+  /** 消息侧的输入：这些都没变，版面（消息字号、推荐卡高度、各横条位置）就和上次一样。手机上消息气泡带「买它」，推荐买没买也算。 */
+  private keyOf(s: GameState, v: ChatView, notes: readonly string[]): string {
+    const tb = topBar(s);
+    return JSON.stringify([s.dayIndex, s.phase, s.month, notes, s.friends.length, tb.weekly?.rule ?? null, tb.flash?.day ?? null, ipoToday(s)?.stockId ?? null, earningsView(s)?.stage ?? null, s.watch ?? null, s.lastDay?.day ?? null, canShortNow(s), v.recs.length, v.messages, PHONE_MODE ? s.today.recs.map((r) => r.taken) : null]);
+  }
+
+  /** 按状态重建当天的群聊（无动画）；同一天只有推荐卡变了时只重建推荐卡。 */
   render(s: GameState, notes: string[] = []): void {
+    const v = chatView(s);
+    const key = s.phase === 'premarket' ? this.keyOf(s, v, notes) : null;
+    if (key !== null && key === this.lastKey) {
+      this.state = s;
+      this.renderRecs(s, v);
+      return;
+    }
+    this.lastKey = key;
     this.state = s;
     this.extra = notes;
     this.title.setText(`韭菜交流群（${s.friends.length}）`);
@@ -111,6 +135,7 @@ export class ChatView3 {
     this.newsOpen = null;
     this.newsOpenRect = null;
     this.newsList = [];
+    this.newsBoard = null;
     this.msgs = [];
     this.recBuy = [];
     this.recNodes = [];
@@ -120,8 +145,22 @@ export class ChatView3 {
     this.recSparks.clear();
     this.fluffNodes = [];
     this.closeState = null;
-    const v = chatView(s);
     this.layout(s, v);
+  }
+
+  /** 只重建推荐卡（电脑在消息下面原位，手机在推荐页）。 */
+  private renderRecs(s: GameState, v: ChatView): void {
+    for (const n of this.recNodes) n.destroy();
+    this.recLayer.removeAll(true);
+    this.recNodes = [];
+    this.buttons = [];
+    this.shortButtons = [];
+    this.recRects = [];
+    this.recSparks.clear();
+    let y = this.recsY;
+    if (!PHONE_MODE) for (const r of v.recs) y = addRec(this, s, r, y, this.recHeight) + GAP;
+    else layoutRecs(this, s, v.recs, this.minRecH);
+    if (this.newsOpen) this.content.bringToTop(this.newsOpen);
   }
 
   private layout(s: GameState, v: ChatView): void {
@@ -136,6 +175,9 @@ export class ChatView3 {
     this.ipoRect = null;
     const ipo = s.phase === 'premarket' ? ipoToday(s) : null;
     if (ipo) y = addIpoBanner(this, s, ipo, y) + 4;
+    // 0.36 财报周：预告到揭晓，挂在打新下面
+    const earn = earningsView(s);
+    if (earn) y = addEarningsBanner(this, earn, y) + 4;
     // 0.5：前几天发的、还没揭晓的多日消息（到揭晓那天收盘时盖章）
     this.watchNodes = [];
     this.watchPills = [];
@@ -175,7 +217,9 @@ export class ChatView3 {
     }
     // 昨天收盘的新闻放在最上面（解释昨天各风口为什么动）；地方不够时它先让位，今天的消息优先
     const news = premarket ? (s.lastDay?.news ?? []) : [];
-    let paper = news.length > 0 ? newsFold(this, news, '昨日新闻') : null;
+    // 0.36 龙虎榜跟昨日新闻折在一起（折着露出领涨的一只）
+    const board = premarket ? dragonBoard(s) : null;
+    let paper = news.length > 0 || board ? newsFold(this, news, '昨日新闻', board) : null;
     const fitIn = (r: number): [number, number, boolean?] | undefined => tries.find(([size, rh, tight]) => this.estimate(v.messages, recs.length, size, rh, tight) <= r);
     let fit = paper ? fitIn(room - paper.h - GAP) : undefined;
     if (paper && !fit) {
@@ -201,6 +245,8 @@ export class ChatView3 {
       const recsH = recs.length > 0 ? 2 + recs.length * (recH + GAP) : 0;
       y = addFluff(this, s, y, BODY_Y + BODY_H - 4 - recsH, 'pre', messages.map((m) => ({ friendId: m.friend.id, text: m.text }))).y;
       if (recs.length > 0) y += 2;
+      this.recsY = y;
+      this.minRecH = minRecH;
       for (const r of recs) y = addRec(this, s, r, y, recH) + GAP;
       if (PHONE_MODE) layoutRecs(this, s, allRecs, minRecH);
     } else {
@@ -321,6 +367,7 @@ export class ChatView3 {
 
   /** 收盘后：消息逐条标出说中 / 说错。 */
   async judge(anim: Animator, judges: MessageJudge[], gap = 90, next: GameState | null = null): Promise<void> {
+    this.lastKey = null;
     gap = Math.min(gap, JUDGE_MAX / Math.max(1, judges.length));
     if (next) {
       this.refreshRecords(next);
@@ -359,6 +406,7 @@ export class ChatView3 {
 
   /** 0.5：多日消息到期揭晓——在那一行盖「说对了 / 翻车了」。 */
   async judgeIntel(anim: Animator, judges: MessageJudge[], gap = 90): Promise<void> {
+    this.lastKey = null;
     gap = Math.min(gap, JUDGE_MAX / Math.max(1, judges.length));
     for (const j of judges) {
       const w = this.watchNodes.find((x) => x.day === j.day && x.index === j.index);
@@ -384,7 +432,8 @@ export class ChatView3 {
    * 收盘后：群友吐槽，然后是「今日新闻」（F2，只解释今天已经发生的热度变化）。
    * 推荐卡收起；位置不够时把最早的几条消息收起来（写明收起了几条），保证吐槽和新闻完整显示。
    */
-  async afterClose(anim: Animator, list: Comment[], news: NewsItem[], gap = 260, ticker: string[] = []): Promise<void> {
+  async afterClose(anim: Animator, list: Comment[], news: NewsItem[], gap = 260, ticker: string[] = [], report: DayReport | null = null): Promise<void> {
+    this.lastKey = null;
     for (const n of this.recNodes) n.destroy();
     this.recNodes = [];
     this.recSparks.clear();
@@ -400,7 +449,8 @@ export class ChatView3 {
       t.destroy();
       return h;
     });
-    const paper = news.length > 0 ? newsFold(this, news, '今日新闻') : null;
+    const board = report ? dragonBoard(this.state, report) : null;
+    const paper = news.length > 0 || board ? newsFold(this, news, '今日新闻', board) : null;
     // 0.5：盘中播报（识别出的连续涨停、没封住、过山车异动），最多 2 条
     const tick = ticker.slice(0, 2).map((text) => tickerNode(this, text));
     const need = commentH.reduce((n, h) => n + h + GAP, 0) + (paper ? paper.h + GAP : 0) + tick.reduce((n, t) => n + t.h + GAP, 0);
@@ -465,6 +515,7 @@ export class ChatView3 {
 
 
   newsList: NewsItem[] = [];
+  newsBoard: DragonBoard | null = null;
   newsHeading = '';
   newsMore: Phaser.GameObjects.Text | null = null;
   newsOpen: Phaser.GameObjects.Container | null = null;
@@ -495,6 +546,7 @@ export class ChatView3 {
 
   /** 位置不够放 need 高度时，收起最早的消息（其余往上挪），并在顶上写明收起了几条。 */
   private makeRoom(need: number): void {
+    this.lastKey = null;
     const bottom = BODY_Y + BODY_H - 6;
     let folded = 0;
     while (this.msgs.length > 1 && this.cursorAfterMessages() + need > bottom) {
@@ -523,6 +575,7 @@ export class ChatView3 {
 
   /** 追加一条系统提示（新群友入群等）。 */
   note(text: string): void {
+    this.lastKey = null;
     this.cursor = addSysPill(this, text, this.cursor) + 4;
   }
 

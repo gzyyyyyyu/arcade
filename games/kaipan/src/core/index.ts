@@ -112,6 +112,7 @@ export {
 export type { DispatchOptions, DispatchResult } from './engine/index.ts';
 export { ipoBoundStock, ipoFirstPremium, ipoPartLabel, ipoPremiumOn, ipoSwitch, ipoWon } from './ipo.ts';
 export { SWAN_DEFS, SWAN_KINDS, swanDelta, swanShortDelta, swanSwitch, swanWarn } from './swan.ts';
+export { EARNINGS_MONTHS, earningsBets, earningsPlan, earningsView, type EarningsBet, type EarningsPlan, type EarningsView } from './earnings.ts';
 export { END_TITLES, STYLE_TITLES, liveSettleStats, titlesJson, type SettleStats } from './career.ts';
 export { LIVE_MAX_BP, LIVE_TIERS, isCleanLiveSetup, isLive, isLiveTier, liveAssets, liveGear, liveLevered, liveMultipleBp, liveReturn, liveSetup, liveStart, liveTierById, liveTierOf, liveValue } from './live.ts';
 export type { LiveTier, LiveTierDef } from './live.ts';
@@ -225,6 +226,7 @@ export {
   playStyle,
   topBar,
   preHistory,
+  dragonBoard,
 } from './queries.ts';
 export type {
   BillView,
@@ -244,6 +246,8 @@ export type {
   ThemeCard,
   TopBar,
   PreHistory,
+  BoardEntry,
+  DragonBoard,
 } from './queries.ts';
 export { createRng, hashSeed, rngFor } from './rng.ts';
 export type { Rng } from './rng.ts';
