@@ -118,6 +118,29 @@
   font-size: 36px;
   letter-spacing: 6px;
 }
+/* 手机横屏（舞台 560 高，844×390 这类）：两栏时面板放不下，开打那排压出面板底（0.45.1）。
+ * 茶馆的画不画、面板占满宽（规则摘要一行放下）；每日挑战不画七天的日期条；好友房娱乐、实盘两排档位并成左右两块 */
+.stage[data-orient='land']:not([data-fit='desk']) .screen.lobby {
+  grid-template-columns: minmax(0, 1fr);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .screen.lobby > .lobby-art,
+.stage[data-orient='land']:not([data-fit='desk']) .screen.lobby .daily-week {
+  display: none;
+}
+.stage[data-orient='land']:not([data-fit='desk']) .screen.lobby .lobby-panel {
+  grid-column: 1;
+  gap: var(--sp-1);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .screen.lobby .lobby-head h1 {
+  font-size: 30px;
+}
+.stage[data-orient='land']:not([data-fit='desk']) .screen.lobby .lobby-panel.room .stakes-box {
+  display: grid;
+  grid-template-columns: 3fr 4fr;
+  grid-template-rows: auto auto;
+  grid-auto-flow: column;
+  column-gap: var(--sp-3);
+}
 .lobby-head {
   text-align: center;
 }

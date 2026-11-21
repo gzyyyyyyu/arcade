@@ -11,9 +11,13 @@ import { el } from './dom.ts';
 import { pageOf } from './variants/pages.ts';
 import './daily.css';
 
+/** 北京时间的日期格式：建一个 Intl.DateTimeFormat 很贵（手机上十几毫秒），只建一次 */
+let cnDay: Intl.DateTimeFormat | null = null;
+
 /** 北京时间的今天，YYYY-MM-DD */
 export function todayCN(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(now);
+  cnDay ??= new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' });
+  return cnDay.format(now);
 }
 
 function readAll(): DailyAll {

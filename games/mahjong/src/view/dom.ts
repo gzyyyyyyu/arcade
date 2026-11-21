@@ -33,3 +33,27 @@ export async function busy(b: HTMLButtonElement, task: () => Promise<unknown>): 
 export function clear(e: HTMLElement): void {
   e.replaceChildren();
 }
+
+/**
+ * 把 box 的子节点换成 next 的子节点，按位置比，一模一样的（isEqualNode）留着原来的不动：牌桌每一步整块重画的地方（牌河、副露、别家手牌、名牌、中控盘）
+ * 只换真变了的节点，没变的不重算样式、不重排版，正在放的动画也不断。isEqualNode 不比事件监听，只用在不挂监听的节点上
+ */
+export function sync(box: Element, next: Element): void {
+  let cur = box.firstChild;
+  for (const n of [...next.childNodes]) {
+    if (cur?.isEqualNode(n)) {
+      cur = cur.nextSibling;
+      continue;
+    }
+    if (cur) {
+      const after = cur.nextSibling;
+      box.replaceChild(n, cur);
+      cur = after;
+    } else box.appendChild(n);
+  }
+  while (cur) {
+    const after = cur.nextSibling;
+    box.removeChild(cur);
+    cur = after;
+  }
+}

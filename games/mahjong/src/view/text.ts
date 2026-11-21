@@ -146,7 +146,9 @@ export function cheerLine(lost: number): string | null {
 export const SWAP_DIR = ['换给下家', '换给对家', '换给上家'] as const;
 
 /** 四位数以上加逗号 */
-export const num = (n: number): string => Math.round(n).toLocaleString('zh-CN');
+/** 千分位（zh-CN）：toLocaleString 每次调用都新建一个格式器，牌桌每一步每家都要写筹码，只建一次（用到时才建，不拖开机） */
+let NUM: Intl.NumberFormat | null = null;
+export const num = (n: number): string => (NUM ??= new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 })).format(Math.round(n));
 /** 档位卡上的大数换短说法（docs/ui.md：放不下换"4万"，不截断）：整万写"15万"，不到一万或不是整万照常写 */
 export const wan = (n: number): string => (n >= 10_000 && n % 10_000 === 0 ? `${n / 10_000}万` : num(n));
 export const signed = (n: number): string => (n > 0 ? `+${num(n)}` : n < 0 ? `−${num(-n)}` : '0');

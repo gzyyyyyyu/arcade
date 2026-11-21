@@ -22,7 +22,7 @@ import type { SeatMeta } from '../view/table.ts';
 import { num } from '../view/text.ts';
 import type { AnyOpts, AnyView } from '../view/variants/page.ts';
 import { pageOf } from '../view/variants/pages.ts';
-import { alertTurn, newFun, publicMoments, feed } from './fun.ts';
+import { alertTurn, newFun, publicMoments, feed, refreshFun } from './fun.ts';
 import { dispose } from './lifecycle.ts';
 import { prefs, savePrefs } from './prefs.ts';
 import { roomRoundEnd } from './room-settle.ts';
@@ -245,7 +245,7 @@ function drawRoomTable(s: OnlineState, rv: RoomView, fresh: boolean): void {
   table.root.querySelector('.room-note')?.remove();
   const n = roomNotice(rv, seat, () => session.online?.rebuy(), seat === null ? watching(s, g) : null);
   if (n) table.root.appendChild(n);
-  session.fun?.refresh();
+  refreshFun();
   if (!replay) {
     recordDex(g.events, seat, dexKey(s.code, g, g.events, seat));
     recordAch(g, seat, s.code);

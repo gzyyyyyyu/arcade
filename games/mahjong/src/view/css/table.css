@@ -291,6 +291,18 @@
 /* 全桌最近打出的那张：金边慢慢呼吸两下再停住，头上一个往下点的小箭头，一眼找得到 */
 .river .tile.last {
   z-index: 1;
+}
+/* 呼吸只动发光层的透明度（动 box-shadow 每帧重算样式，别家出牌时一直在跑） */
+.river .tile.last::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    0 0 0 3px var(--gold),
+    0 0 18px var(--gold);
+  opacity: 0;
+  pointer-events: none;
   animation: last-in 0.9s ease-out 2;
 }
 .river .tile.last::after {
@@ -312,9 +324,7 @@
 }
 @keyframes last-in {
   50% {
-    box-shadow:
-      0 0 0 3px var(--gold),
-      0 0 18px var(--gold);
+    opacity: 1;
   }
 }
 @keyframes drop {
@@ -464,19 +474,32 @@
     transform: translateY(-7px);
   }
 }
-/* 轮到我打牌：手牌底下一道金边，轻轻呼吸（减少动态效果时只亮不动） */
+/* 轮到我打牌：手牌底下一道金边，轻轻呼吸（减少动态效果时只亮不动）。
+   呼吸只动发光层的透明度：直接动 box-shadow 每帧都要重算样式、重绘，手机上等出牌时主线程一直忙 */
+.my-hand {
+  position: relative;
+}
 .my-hand.turn {
   border-radius: 8px;
   box-shadow: 0 6px 0 -2px var(--gold);
+}
+.my-hand.turn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 6px 10px -2px var(--gold);
+  opacity: 0;
+  pointer-events: none;
   animation: turn-glow 1.6s ease-in-out infinite;
 }
 @keyframes turn-glow {
   50% {
-    box-shadow: 0 6px 10px -2px var(--gold);
+    opacity: 1;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .my-hand.turn {
+  .my-hand.turn::after {
     animation: none;
   }
 }
