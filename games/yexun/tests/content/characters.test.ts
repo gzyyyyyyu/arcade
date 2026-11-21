@@ -244,8 +244,8 @@ describe('能选的角色（PICK_CHAR_IDS）', () => {
     for (let i = 0; i < 90; i++) step(w, 0, -1);
     expect(w.phase).not.toBe('over');
   });
-  it('一开始就能选的角色至少 5 个', async () => {
+  it('一开始就能选的只有小道士、符师、剑侠（其余逐步解锁）', async () => {
     const { PICK_CHAR_IDS } = await import('../../src/content/meta.ts');
-    expect(PICK_CHAR_IDS.filter((c) => charOpen(fresh(), c)).length).toBeGreaterThanOrEqual(5);
+    expect(PICK_CHAR_IDS.filter((c) => charOpen(fresh(), c))).toEqual(['xiaodao', 'fushi', 'jianxia']);
   });
 });
