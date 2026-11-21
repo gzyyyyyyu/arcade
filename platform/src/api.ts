@@ -64,6 +64,21 @@ export interface Invite {
   until: number;
 }
 
+/** 好友约的局（docs/social.md 1.6）：at 是开局时间（毫秒，整点半点） */
+export interface Meetup {
+  host: { id: string; name: string };
+  game: string;
+  at: number;
+}
+
+/** 30 秒一次的轮询（15.15、15.22）：给我的邀请、好友约的局、我约的局、几个好友在线 */
+export interface InvitePoll {
+  invites: Invite[];
+  meetups: Meetup[];
+  mine: { game: string; at: number } | null;
+  online: number;
+}
+
 /** 在哪（docs/platform-backend.md 15.13）：大厅、在玩某个游戏、在某个游戏的房间里（带房间码和人数） */
 export interface Where {
   place: 'lobby' | 'game' | 'room';
@@ -449,7 +464,9 @@ export const api = {
   /** 报位置：平台每 2 分钟最多记一次，写不了时也回 204 */
   presence: (where: Where) => request<void>('POST', '/api/presence', where),
   /** 邀请：收是只读；"不了"只改自己收到的那条 */
-  invites: () => request<{ invites: Invite[] }>('GET', '/api/invites'),
+  invites: () => request<InvitePoll>('GET', '/api/invites'),
+  meetup: (game: string, at: number) => request<{ meetup: { game: string; at: number } }>('PUT', '/api/meetup', { game, at }),
+  cancelMeetup: () => request<void>('DELETE', '/api/meetup'),
   /** 好友动态：我和好友最近 7 天的；赞或扔道具每条每人一次 */
   feed: () => request<{ items: FeedItem[] }>('GET', '/api/feed'),
   react: (id: string, kind: string) => request<void>('POST', `/api/feed/${encodeURIComponent(id)}/react`, { kind }),

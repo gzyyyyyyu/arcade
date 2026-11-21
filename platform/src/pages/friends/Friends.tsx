@@ -13,6 +13,7 @@ import { useSession } from '../../session.tsx';
 import { playError, playSuccess } from '../../lib/sound.ts';
 import { Empty, Field, FormError, LoadError, Panel, Skeleton, useWritable } from '../../ui.tsx';
 import { Avatar, Blocked, Friend, Incoming, Outgoing, useAction } from './FriendsPeople.tsx';
+import { MeetupButton, MeetupStrip, useMeetupRows } from './Meetups.tsx';
 
 import './friends.css';
 
@@ -23,6 +24,8 @@ const FEW_ROWS = 3;
 const ROOMY = '(min-height: 700px)';
 
 const WIDE = '(min-width: 1100px) and (min-height: 600px)';
+/** 卡片头放得下"约一局"和"好友动态"两个按钮的宽度；更窄时"约一局"挪进列表顶上的约局条 */
+const HEAD_ROOMY = '(min-width: 600px)';
 
 /** 没登录、停服、连不上时好友页和好友链接都显示的提示；返回 null 表示可以往下走。 */
 function useGate(from: string): ReactNode | null {
@@ -59,6 +62,9 @@ function Friends() {
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
   const wide = useMedia(WIDE);
+  const headRoomy = useMedia(HEAD_ROOMY);
+  const meetupNew = !headRoomy && (data?.friends.length ?? 0) > 0;
+  const meetupRows = useMeetupRows(meetupNew);
   // 最佳搭档：好友里做搭档赢得最多的那个
   const best = data ? bestPartner(data.friends) : null;
 
@@ -107,7 +113,18 @@ function Friends() {
       {loadError ? <LoadError onRetry={reload}>{loadError}</LoadError> : <Skeleton rows={3} />}
     </Panel>
   ) : (
-    <Panel icon="people" title={`好友（${data.friends.length}）`} className={`friends-list${few(data.friends.length) ? ' friends-list--few' : ''}`} action={<FeedEntry me={user!.id} />}>
+    <Panel
+      icon="people"
+      title={`好友（${data.friends.length}）`}
+      className={`friends-list${few(data.friends.length + meetupRows) ? ' friends-list--few' : ''}`}
+      action={
+        <span className="row friends-list__acts">
+          {headRoomy && data.friends.length > 0 && <MeetupButton />}
+          <FeedEntry me={user!.id} />
+        </span>
+      }
+    >
+      <MeetupStrip friends={data.friends} withNew={meetupNew} />
       {data.friends.length === 0 ? (
         <Empty
           action={
@@ -119,7 +136,7 @@ function Friends() {
           还没有好友。把好友链接发给朋友，对方点开就能加你。
         </Empty>
       ) : (
-        <Paged items={data.friends} keyOf={(p) => p.userId} render={(p) => <Friend p={p} best={p.userId === best} onChanged={reload} />} fixed={few(data.friends.length) ? Number.POSITIVE_INFINITY : undefined} className="people" label="好友翻页" testId="friends-paged" />
+        <Paged items={data.friends} keyOf={(p) => p.userId} render={(p) => <Friend p={p} best={p.userId === best} onChanged={reload} />} fixed={few(data.friends.length + meetupRows) ? Number.POSITIVE_INFINITY : undefined} className="people" label="好友翻页" testId="friends-paged" />
       )}
     </Panel>
   );

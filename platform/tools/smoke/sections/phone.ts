@@ -55,6 +55,8 @@ export async function phoneAudit(browser: Browser, sizes: readonly (readonly [st
     await page.route('**/api/me', (r) => r.fulfill(json({ user: FAKE_ADMIN, service: 'ok', saves: 'ok', registration: 'closed' })));
     await page.route('**/api/wallet', (r) => r.fulfill(json(wallet)));
     await page.route('**/api/feed', (r) => r.fulfill(json({ items: FAKE_FEED })));
+    // 顶栏带上在线数和约局到点的小点量（docs/social.md 1.2、1.6）：两样都叠在按钮外，不该把 360 宽的顶栏挤坏
+    await page.route('**/api/invites', (r) => r.fulfill(json({ invites: [], meetups: [{ host: { id: 'f1', name: '小明' }, game: 'guandan', at: Date.now() + 300_000 }], mine: null, online: 12 })));
     await fakeFeedFiles(page);
     await page.route('**/api/friends', (r) => r.fulfill(json(FAKE_FRIENDS)));
     await page.route('**/api/blocks', (r) => r.fulfill(json({ blocks: [] })));

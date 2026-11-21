@@ -36,6 +36,7 @@ import { feedPop } from './smoke/sections/feedpop.ts';
 import { friendsUx } from './smoke/sections/friends.ts';
 import { friendsFeed } from './smoke/sections/friendsfeed.ts';
 import { adminInvites } from './smoke/sections/invites.ts';
+import { meetupFlow } from './smoke/sections/meetup.ts';
 import { hiddenGames } from './smoke/sections/prefs.ts';
 import { anonymous, adminFlow } from './smoke/sections/main-flow.ts';
 import { mobile } from './smoke/sections/mobile.ts';
@@ -110,6 +111,7 @@ try {
     friendsfeed: friendsFeed, // 好友页和动态页，好友多、动态多的时候
     rules: walletRulesAdmin, // 管理页的钱包规则
     invites: adminInvites, // 管理页的邀请码
+    meetup: meetupFlow, // 约局、顶栏在线数和头像小点
     prefs: hiddenGames, // 隐藏游戏：偏好、大厅、排行、管理页默认
     overview: adminOverview, // 管理页的今日概况和账号详情
     tally: adminTally, // 管理页的真人对局
@@ -142,6 +144,7 @@ try {
     await feedPop(browser);
     await friendsFeed(browser);
     await friendsUx(browser);
+    await meetupFlow(browser);
     await walletRulesAdmin(browser);
     await adminInvites(browser);
     await hiddenGames(browser);

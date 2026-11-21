@@ -106,14 +106,26 @@ export async function mobile(browser: Browser): Promise<void> {
   const fr = await newPage(browser, '手机竖屏好友', 'portrait');
   // 小明在掼蛋房里，有"加入"；有人叫我时顶上一条、顶栏"好友"带红点
   await fakeFriends(fr.page, [{ id: 'inv-0000000000001', from: { id: 'f3', name: '阿花' }, game: 'guandan', room: '654321', until: Date.now() + 600_000 }], FAKE_FEED);
-  await fr.page.getByText('23 天前来过').waitFor();
-  await fr.page.getByText('昨天来过').waitFor();
+  // 好友按在房间里、在线、最近来过排：小明在第 1 页；手机上列表顶上有约局条，后面的人可能翻到下一页，翻着找完再翻回第 1 页
   await fr.page.getByTestId('person-小明').getByText('在牌馆房里 · 3/4 人').waitFor();
   check(
     (await fr.page.getByTestId('person-小明').getByTestId('join-room').getAttribute('href')) === '/games/guandan/?room=123456',
     '"加入"该指向好友的房间',
   );
   check((await fr.page.getByTestId('join-room').count()) === 1, '只有在房间里的好友才有"加入"');
+  const pager = fr.page.getByTestId('friends-paged');
+  const flip = async (name: '上一页' | '下一页') => {
+    const btn = pager.getByRole('button', { name });
+    if (!(await btn.count()) || (await btn.isDisabled())) return false;
+    await btn.click();
+    return true;
+  };
+  for (const text of ['昨天来过', '23 天前来过']) {
+    while (!(await pager.getByText(text).isVisible()) && (await flip('下一页')));
+    await pager.getByText(text).waitFor();
+  }
+  while (await flip('上一页'));
+  await fr.page.getByTestId('person-小明').waitFor();
   await fr.page.getByTestId('invite-bar').getByText('叫你来牌馆').waitFor();
   await fr.page.getByTestId('invite-dot').waitFor();
   await shot(fr.page, 'mobile-friends');

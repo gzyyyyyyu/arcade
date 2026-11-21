@@ -6,6 +6,7 @@ import { dismissInvite, inviteParams, listInvites, sendInvite } from './invites'
 import { feedParams, listFeed, postMoment, react } from './feed';
 import { friendsWeek, overtakes, weekParams } from './friends-week';
 import { postPresence } from './presence';
+import { deleteMeetup, putMeetup } from './meetups';
 import { userParams } from '../core/context';
 
 export const SOCIAL_ROUTES: Route[] = [
@@ -21,6 +22,9 @@ export const SOCIAL_ROUTES: Route[] = [
   { method: 'POST', path: /^\/api\/feed\/([^/]+)\/react$/, params: feedParams, cat: 'live', auth: 'user', handler: react },
   { method: 'GET', path: '/api/invites', cat: 'live', auth: 'user', handler: listInvites },
   { method: 'POST', path: /^\/api\/invites\/([^/]+)\/dismiss$/, params: inviteParams, cat: 'live', auth: 'user', handler: dismissInvite },
+  // 约局（15.22）：每人每天最多 meetupsPerDay 次
+  { method: 'PUT', path: '/api/meetup', cat: 'live', auth: 'user', handler: putMeetup },
+  { method: 'DELETE', path: '/api/meetup', cat: 'live', auth: 'user', handler: deleteMeetup },
   { method: 'GET', path: /^\/api\/friends\/code\/([^/]+)$/, params: codeParams, cat: 'social', auth: 'user', handler: lookupCode },
   { method: 'POST', path: '/api/friends/requests', cat: 'social', auth: 'user', handler: sendRequest },
   { method: 'POST', path: /^\/api\/friends\/([^/]+)\/accept$/, params: userParams, cat: 'social', auth: 'user', handler: acceptRequest },

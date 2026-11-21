@@ -86,7 +86,7 @@
 
 /* 在线的绿点挂在头像右下角 */
 .people__face { position: relative; display: inline-flex; flex: none; }
-.people__online { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border: 2px solid var(--surface); border-radius: 50%; background: #3fae5f; }
+.people__online { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border: 2px solid var(--surface); border-radius: 50%; background: var(--online); }
 .people__sub--online { color: #2f8a4b; font-weight: 700; }
 /* 搭子战绩：昵称下面第二行小字；最佳搭档是一个小牌子 */
 .people__mates { display: block; font-size: 0.85em; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -94,3 +94,17 @@
 /* 删好友、屏蔽：文字样式的危险按钮（红字、无底色），点开后换成的确认行里才是实心红按钮；一行里只有"接受"或"加入"是主按钮 */
 .people .btn--quiet-danger { background: transparent; box-shadow: none; border-color: transparent; color: var(--danger); text-decoration: underline; }
 @media (hover: hover) { .people .btn--quiet-danger:not(:disabled):hover { background: var(--highlight-warm); } }
+
+/* 约局（Meetups.tsx）：卡片头上"约一局"和"动态"并排；列表顶上一两条约局，到点的暖色底 */
+.friends-page .friends-list__acts { flex: none; flex-wrap: nowrap; gap: var(--s-2); margin: 0; }
+.friends-page .friends-list__acts > .btn { padding: 0 var(--s-3); }
+.friends-page .meetups { flex: none; display: flex; flex-direction: column; gap: var(--s-1); }
+.friends-page .meetups__row { display: flex; align-items: center; gap: var(--s-2); margin: 0; padding: var(--s-1) var(--s-2); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); }
+.friends-page .meetups__row--due { background: var(--highlight-warm); }
+.friends-page .meetups__text { flex: 1; min-width: 0; font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.friends-page .meetups__row > .btn { flex: none; }
+/* 约一局的弹窗（在 .friends-page 里渲染）：游戏一排放不下就折行，不横着滑 */
+.friends-page .meetup-form__set { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.friends-page .meetup-form .pills { flex-wrap: wrap; overflow: visible; }
+.friends-page .meetup-form__when { align-items: center; gap: var(--s-3); margin: 0; }
+.friends-page .meetup-form__when > .field__input { flex: 1; min-width: 7em; }

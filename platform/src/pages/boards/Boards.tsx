@@ -30,8 +30,10 @@ function WeeklyCard({ tab, data, scope, compact }: { tab: BoardTab; data: Leader
   let card: CardData = 'loading';
   if (b) {
     const fmt = (v: number) => ({ text: signed(v), tone: tone(v) });
+    // 只看好友时总榜的第 1 名挂"本周牌王"（只做总榜一个，各游戏不分）
+    const crowned = scope === 'friends' && tab.weekly === 'total';
     card = {
-      rows: b.entries.map((e) => ({ ...e, ...fmt(e.value) })),
+      rows: b.entries.map((e) => ({ ...e, ...fmt(e.value), ...(crowned && e.rank === 1 ? { crown: '本周牌王' } : {}) })),
       me: b.me ? { rank: b.me.rank, userId: '', displayName: '', isMe: true, ...fmt(b.me.value) } : null,
       // 榜上只有赢了的：我不在榜上就是这周还没赢（没打、输了、打平都算）
       meNote: b.me ? undefined : '这周还没赢，赢了就上榜',

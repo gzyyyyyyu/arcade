@@ -22,17 +22,22 @@ export const FAKE_WALLET = {
 };
 /** 只给冒烟用的假令牌（wrangler dev 用 --var 传进去）。 */
 export const ADMIN_TOKEN = 'smoke:smoke-only-admin-token-0000';
+/** GET /api/invites 的完整形状（docs/platform-backend.md 15.15、15.22）：没邀请、没约局、没人在线 */
+export const EMPTY_POLL = { invites: [], meetups: [], mine: null, online: 0 };
+
 /**
  * 装作某人登录着：/api/me、/api/wallet 都用假的，再写上登录提示 cookie。
  * me 里的字段盖掉 /api/me 默认的几项（写 undefined 就是不带这一项）；wallet 是函数时每次请求现算，用来模拟领完补给这类前后变化。
  */
 export async function mockSession(
   page: Page,
-  { user = FAKE_USER, me = {}, wallet = FAKE_WALLET, invites = [], overtakes = [], feed = [] }: {
+  { user = FAKE_USER, me = {}, wallet = FAKE_WALLET, invites = [], poll = {}, overtakes = [], feed = [] }: {
     user?: object;
     me?: Record<string, unknown>;
     wallet?: object | (() => object);
     invites?: object[];
+    /** 30 秒轮询里除邀请以外的：约局（meetups、mine）、在线好友数（online） */
+    poll?: Record<string, unknown>;
     overtakes?: object[];
     feed?: object[];
   } = {},
@@ -42,7 +47,7 @@ export async function mockSession(
   // 登录后的大厅会报在线；模拟的人在真接口那边不认识，回 401
   await page.route('**/api/presence', (r) => r.fulfill({ status: 204 }));
   // 登录后每 30 秒问一次有没有人叫；"不了"回 204
-  await page.route('**/api/invites', (r) => r.fulfill(json({ invites })));
+  await page.route('**/api/invites', (r) => r.fulfill(json({ ...EMPTY_POLL, invites, ...poll })));
   await page.route('**/api/invites/*/dismiss', (r) => r.fulfill({ status: 204 }));
   // 大厅问一次"这周哪个好友超过了我"
   await page.route('**/api/friends/overtakes', (r) => r.fulfill(json({ overtakes })));

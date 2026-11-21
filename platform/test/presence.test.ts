@@ -111,6 +111,16 @@ describe('报位置', () => {
 });
 
 describe('好友列表里的在线和在哪', () => {
+  it('排序：在房间里的最前（能一键加入），其次在线的，其余按最近来过', async () => {
+    const a = await newUser();
+    const [b, c, d] = [await newUser(), await newUser(), await newUser()];
+    for (const u of [d, b, c]) await befriend(a, u);
+    advance(11_000);
+    expect((await report(b, { place: 'lobby' })).status).toBe(204);
+    expect((await report(c, { place: 'room', game: 'guandan', room: '123456' })).status).toBe(204);
+    expect((await friendsOf(a)).map((f) => f.userId)).toEqual([c.user.id, b.user.id, d.user.id]);
+  });
+
   it('好友在房间里：online 和 where（游戏、房间码、人数）；5 分钟没报就离线；不是好友的看不到', async () => {
     const [a, b, stranger] = [await newUser(), await newUser(), await newUser()];
     await befriend(a, b);

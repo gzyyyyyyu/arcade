@@ -21,6 +21,8 @@
   --highlight: #fff3c4;
   --highlight-warm: #fff3d6;
   --good: #2f7a3a;
+  /* 在线：好友列表的绿点、顶栏"好友"上的在线数 */
+  --online: #3fae5f;
   --bad: #b4232d;
   --danger: #c8402a;
   --error-bg: #ffe1d6;
@@ -445,6 +447,9 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .topbar .account--admin { display: none; }
 }
 .account .dot { position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; border: 2px solid var(--white); border-radius: 50%; background: #e0412f; }
+/* 顶栏"好友"左上角：几个好友在线（绿底白字，和好友列表的在线绿点同色）。绝对定位叠在按钮外，不占顶栏的宽（手机 360 宽顶栏是算着排的）；
+   数字 14px 是触屏上数字的最小字号（docs/ui.md） */
+.account__online { position: absolute; top: -7px; left: -7px; min-width: 20px; height: 20px; padding: 0 4px; border: 2px solid var(--white); border-radius: var(--r-pill); background: var(--online); color: var(--white); font-size: 14px; font-weight: 800; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
 .nudges { margin: 0; display: grid; gap: var(--s-2); }
 .nudges .banner { margin: 0; }
 .nudge { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-1) var(--s-3); padding-top: var(--s-1); padding-bottom: var(--s-1); text-align: left; min-height: 56px; }

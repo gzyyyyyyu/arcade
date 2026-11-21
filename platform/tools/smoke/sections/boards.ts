@@ -77,8 +77,11 @@ export async function boardsPage(browser: Browser): Promise<void> {
     // 先等台子撤掉：+12,500 那格在全站榜的领奖台上也有，只等它会在好友榜画出来之前就往下走
     await total.locator('.podium').waitFor({ state: 'detached' });
     await total.locator('.rank--me').getByText('+12,500').waitFor();
+    // 好友总榜第 1 名挂"本周牌王"（docs/social.md 1.5）；全站榜不挂，各游戏的榜也不挂
+    check((await total.getByTestId('rank-crown').filter({ hasText: '本周牌王' }).count()) === 1, '只看好友时总榜第 1 名该挂"本周牌王"');
     await page.getByRole('button', { name: '全部' }).click();
     await total.getByText('+48,000').waitFor();
+    check((await page.getByTestId('rank-crown').count()) === 0, '全站榜不该挂"本周牌王"');
     // 页签：总榜 + 接了钱包或有代表性每日榜（featuredDaily）的游戏；飞驰、弹里个弹都没有，不开
     const tablist = page.getByRole('tablist', { name: '哪个榜' });
     for (const name of ['总榜', '开盘', '牌馆', '德州扑克', '雀馆', '夜巡', '海岛']) check((await tablist.getByRole('tab', { name, exact: true }).count()) === 1, `排行页该有"${name}"页签`);

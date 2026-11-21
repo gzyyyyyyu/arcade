@@ -132,6 +132,10 @@ export async function runCleanup(env: Env, now: number): Promise<{ rowsWritten: 
     await step('invites', () =>
       db.run(db.stmt('DELETE FROM invites WHERE id IN (SELECT id FROM invites WHERE created_at < ?1 LIMIT ?2)', now - 2 * DAY, budget())),
     );
+    // 约局（迁移 0015）：一人一行，开局过了 1 天（或取消了，at = 0）就删；当天的次数在行里，过了一天本来也清零
+    await step('meetups', () =>
+      db.run(db.stmt('DELETE FROM meetups WHERE host_id IN (SELECT host_id FROM meetups WHERE at < ?1 LIMIT ?2)', now - DAY, budget())),
+    );
     // 邀请码：没用的过期或撤回满 30 天就删，已用的留着（额度要算）
     await step('invite_codes', () => db.run(inviteCleanupStatement(db, now, budget())));
     await step('monitor_counts', () => db.run(monitorCleanupStatement(db, now, limits, budget())));

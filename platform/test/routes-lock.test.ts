@@ -35,6 +35,8 @@ const ROUTE_TABLE: [string, string, string, Record<string, string>, string][] = 
   ['POST', '/api/feed/abcdefghiABCDEFGHIJK/react', 'react', { 'id': 'abcdefghiABCDEFGHIJK' }, 'live/user'],
   ['GET', '/api/invites', 'listInvites', {}, 'live/user'],
   ['POST', '/api/invites/ABCDEFGHIJKLMNOP/dismiss', 'dismissInvite', { 'id': 'ABCDEFGHIJKLMNOP' }, 'live/user'],
+  ['PUT', '/api/meetup', 'putMeetup', {}, 'live/user'],
+  ['DELETE', '/api/meetup', 'deleteMeetup', {}, 'live/user'],
   ['GET', '/api/stats/me', 'getStats', { 'userId': 'me' }, 'social/user'],
   ['GET', '/api/leaderboard', 'getLeaderboard', {}, 'board/user'],
   ['GET', '/api/friends/code/ABCD2345', 'lookupCode', { 'code': 'ABCD2345' }, 'social/user'],

@@ -3,7 +3,7 @@ import type { Browser, Route } from 'playwright-core';
 import { GAMES } from '../../../shared/games.ts';
 import { BASE, check, expectHttp, shot, newPage, json } from '../lib/core.ts';
 import { meTab, openMeSection, savesRow } from './me-tabs.ts';
-import { fakeLoginHint, FAKE_USER, FAKE_WALLET, mockSession } from '../lib/fakes.ts';
+import { EMPTY_POLL, fakeLoginHint, FAKE_USER, FAKE_WALLET, mockSession } from '../lib/fakes.ts';
 
 export async function serviceStates(browser: Browser): Promise<void> {
   console.log('只读档：写按钮灰掉，云存档标暂停；一个游戏的存档读不到不连累别的');
@@ -73,7 +73,7 @@ export async function serviceStates(browser: Browser): Promise<void> {
     await page.route('**/api/me', (r) => r.fulfill(json({ user: FAKE_USER, service: 'ok', saves: 'ok' })));
     await page.route('**/api/wallet', (r) => r.fulfill(json(FAKE_WALLET)));
     await page.route('**/api/presence', (r) => r.fulfill({ status: 204 }));
-    await page.route('**/api/invites', (r) => r.fulfill(json({ invites: [] })));
+    await page.route('**/api/invites', (r) => r.fulfill(json(EMPTY_POLL)));
     await page.route('**/api/friends/overtakes', (r) => r.fulfill(json({ overtakes: [] })));
     await page.route('**/api/feed', (r) => r.fulfill(json({ items: [] })));
     await page.route('**/api/saves/*', (r) => r.fulfill(json({ saves: [] })));
