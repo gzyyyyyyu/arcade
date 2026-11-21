@@ -113,6 +113,8 @@ export const hallRoom: RoomGame<HallState, HallAction, HallView, HallOpts, Stake
   timeout: (s, seat) => (isDdz(s) ? ddzTimeout(s, seat) : guandanRoom.timeout(s, seat)),
   over: (s) => (isDdz(s) ? ddzOver(s) : guandanRoom.over(s)),
   pause: (s) => (isDdz(s) ? null : guandanRoom.pause!(s)),
+  // 斗地主打完 over 就为真，没有"等再来一场"
+  idle: (s) => !isDdz(s) && guandanRoom.idle!(s),
   resume: (s) => (isDdz(s) ? s : guandanRoom.resume!(s)),
   seated: (s, seat, kind) => (isDdz(s) ? ddzSeated(s, seat, kind) : guandanRoom.seated!(s, seat, kind)),
   effects: (s) => (isDdz(s) ? ddzEffects(s) : guandanRoom.effects!(s)),

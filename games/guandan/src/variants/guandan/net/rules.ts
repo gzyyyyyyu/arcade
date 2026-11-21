@@ -442,6 +442,8 @@ export const guandanRoom: Omit<RoomGame<NetState, NetAction, NetView, RoomOpts, 
     (s.g.phase === 'gameOver' && !waitingAgain(s)) || s.stake?.over === true || (s.humans !== undefined && !s.humans.some(Boolean) && !s.stake?.pending.some((e) => e.kind === 'in') && !s.stake?.leaving?.some(Boolean)),
   // 等"再来一场"时谁也不用出手：由房间停着计时（kit 0.5.0），电脑、托管的座位不会被代出
   pause: (s) => (waitingAgain(s) ? AGAIN_MS : null),
+  // 停着等"再来一场"时已经不算在打（kit 0.27.0）：先还开房名额，每人同时 1 个房间时回大厅开房、点再来一场开新房间不会被挡回这里
+  idle: waitingAgain,
   resume: (s) => ({ ...s, ev: [], again: null }),
   // 座位换人（kit 0.3.0）：记下谁是真人；实盘的带入、离开结回在 stakeSeated
   seated: (s, seat, kind) => {
