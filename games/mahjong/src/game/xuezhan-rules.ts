@@ -1,6 +1,6 @@
 /**
- * 川麻（血战、血流、三人两房）选桌页的规则表（game/rule-spec.ts）：局数、封顶、自摸、换三张、呼叫转移、血流成河、三人两房。
- * 血流成河、三人两房是同一份规则里的两个开关，只能开一个。
+ * 川麻（血战、血流、三人两房）选桌页的规则表（game/rule-spec.ts）：局数、封顶、自摸、换三张、呼叫转移。
+ * 血流成河（opts.flow）、三人两房（opts.three）在选桌页的玩法行选（VariantPage.homePick），不在这张表里：同一件事只一处选。
  */
 import { DEFAULT_OPTS, type XzOpts } from '../core/variants/sichuan-xuezhan/index.ts';
 import type { RuleSpec } from './rule-spec.ts';
@@ -47,22 +47,6 @@ export const XZ_RULES: RuleSpec<XzOpts> = {
       brief: (o) => (o.swap ? '换三张' : '不换三张'),
     },
     { key: 'transfer', label: '呼叫转移', choices: onOff, brief: (o) => (o.transfer ? '呼叫转移' : '') },
-    {
-      key: 'flow',
-      label: '血流成河',
-      choices: onOff,
-      brief: (o) => (o.flow ? '血流成河' : ''),
-      hint: (o) => (o.flow ? '胡了不下桌，接着摸打，能连胡' : ''),
-      also: (o) => (o.flow ? { ...o, three: false } : o),
-    },
-    {
-      key: 'three',
-      label: '三人两房',
-      choices: onOff,
-      brief: (o) => (o.three ? '三人两房' : ''),
-      hint: (o) => (o.three ? '三人打，只用筒条，不定缺' : ''),
-      also: (o) => (o.three ? { ...o, flow: false } : o),
-    },
   ],
   minutes: (o) =>
     o.rounds === 1 ? (o.three ? 2 : 3) : Math.max(5, Math.round(((o.three ? MINUTES_PER_ROUND_THREE : MINUTES_PER_ROUND) * o.rounds) / 5) * 5),

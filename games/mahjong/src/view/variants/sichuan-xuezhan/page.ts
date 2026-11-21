@@ -52,7 +52,6 @@ export const xuezhanPage: VariantPage = {
     store.opts = choiceId === THREE ? { ...store.opts, three: true, swap: false, flow: false } : { ...store.opts, three: false, flow: choiceId === FLOW };
   },
   rulesLink: '规则和番型表',
-  lobbyChip: '血战到底',
   matchTag: '',
   rules: XZ_RULES as RuleSpec<AnyOpts>,
   lengthText: (opts) => `${(opts as XzOpts).rounds} 局`,

@@ -4,7 +4,7 @@
  */
 import { matchConfigErrors } from 'arcade-kit/game';
 import { describe, expect, it } from 'vitest';
-import { MATCH_FUN, MATCH_FUN_TIERS, MATCH_RC_FUN, MATCH_TABLE, MATCH_TABLE_X3, MATCH_TIERS, MATCH_X3_FUN, tableSizeOf, matchRoomOptions, matchTierOf, stakesOfTier } from '../src/game/match.ts';
+import { MATCH_FUN, MATCH_FUN_TIERS, MATCH_RC_FUN, MATCH_TABLE, MATCH_TABLE_X3, MATCH_TIERS, MATCH_X3_FUN, MATCH_XL_FUN, tableSizeOf, matchRoomOptions, matchTierOf, stakesOfTier } from '../src/game/match.ts';
 import { REAL_ROUNDS, realOpts, STAKES } from '../src/game/stakes.ts';
 import { sichuanXuezhan as XZ } from '../src/core/variants/sichuan-xuezhan/index.ts';
 import { mahjongRoom } from '../src/room/rules.ts';
@@ -21,7 +21,7 @@ describe('快速匹配的档位', () => {
 
   it('娱乐一个档、实盘每档一个，来回换得回来；认不得的不开桌', () => {
     const real = STAKES.filter((s) => s.wallet).map((s) => s.id);
-    expect(MATCH_TIERS).toEqual([MATCH_FUN, MATCH_RC_FUN, ...real.map((t) => `real-${t}`), ...real.map((t) => `rc-${t}`), MATCH_X3_FUN, ...real.map((t) => `x3-${t}`)]);
+    expect(MATCH_TIERS).toEqual([MATCH_FUN, MATCH_RC_FUN, ...real.map((t) => `real-${t}`), ...real.map((t) => `rc-${t}`), MATCH_X3_FUN, ...real.map((t) => `x3-${t}`), MATCH_XL_FUN, ...real.map((t) => `xl-${t}`)]);
     for (const s of ['fun', ...real] as const) expect(stakesOfTier(matchTierOf(s))).toBe(s);
     for (const bad of ['real-', 'real-nope', 'real-fun', 'Fun', '']) {
       expect(stakesOfTier(bad)).toBeNull();
@@ -47,7 +47,7 @@ describe('快速匹配的档位', () => {
     expect(stakesOfTier(MATCH_RC_FUN)).toBe('fun');
     expect(matchRoomOptions(MATCH_RC_FUN)).toEqual({ variant: 'riichi', stakes: 'fun', rules: { length: 'hanchan' } });
     expect(matchRoomOptions(MATCH_FUN)?.variant).toBe('sichuan-xuezhan');
-    expect(MATCH_FUN_TIERS).toEqual([MATCH_FUN, MATCH_RC_FUN, MATCH_X3_FUN]);
+    expect(MATCH_FUN_TIERS).toEqual([MATCH_FUN, MATCH_RC_FUN, MATCH_X3_FUN, MATCH_XL_FUN]);
   });
 
   it('川麻实盘档一局一结，娱乐档和立直照默认', () => {
@@ -62,19 +62,34 @@ describe('快速匹配的档位', () => {
   });
 
   it('三人两房：x3-fun 和实盘四档来回换得回来，开桌 three 开、不换三张，一桌 3 人', () => {
-    expect(matchTierOf('fun', 'sichuan-xuezhan', true)).toBe('x3-fun');
-    expect(matchTierOf('fun', 'riichi', true)).toBe(MATCH_RC_FUN);
+    expect(matchTierOf('fun', 'sichuan-xuezhan', { three: true })).toBe('x3-fun');
+    expect(matchTierOf('fun', 'riichi', { three: true })).toBe(MATCH_RC_FUN);
     expect(matchTierOf('fun')).toBe(MATCH_FUN);
     expect(tableSizeOf('x3-fun')).toBe(MATCH_TABLE_X3);
     expect(tableSizeOf('real-small')).toBe(MATCH_TABLE);
     expect(matchRoomOptions('x3-fun')).toMatchObject({ variant: 'sichuan-xuezhan', stakes: 'fun', rules: { three: true, swap: false, flow: false, rounds: 8 } });
     for (const s of STAKES.filter((x) => x.wallet)) {
-      const tier = matchTierOf(s.id, 'sichuan-xuezhan', true);
+      const tier = matchTierOf(s.id, 'sichuan-xuezhan', { three: true });
       expect(tier).toBe(`x3-${s.id}`);
       expect(stakesOfTier(tier)).toBe(s.id);
       expect(matchRoomOptions(tier)).toMatchObject({ stakes: s.id, rules: { three: true, swap: false, rounds: REAL_ROUNDS } });
     }
     expect(matchRoomOptions('x3-nope')).toBeUndefined();
     expect(MATCH_FUN_TIERS).not.toContain('x3-small');
+  });
+
+  it('血流成河：xl-fun 和实盘四档来回换得回来，开桌 flow 开、四人桌；三人两房优先', () => {
+    expect(matchTierOf('fun', 'sichuan-xuezhan', { flow: true })).toBe(MATCH_XL_FUN);
+    expect(matchTierOf('small', 'riichi', { flow: true })).toBe('rc-small');
+    expect(matchTierOf('small', 'sichuan-xuezhan', { three: true, flow: true })).toBe('x3-small');
+    expect(tableSizeOf(MATCH_XL_FUN)).toBe(MATCH_TABLE);
+    expect(matchRoomOptions(MATCH_XL_FUN)).toMatchObject({ variant: 'sichuan-xuezhan', stakes: 'fun', rules: { flow: true, three: false, rounds: 8 } });
+    for (const s of STAKES.filter((x) => x.wallet)) {
+      const tier = matchTierOf(s.id, 'sichuan-xuezhan', { flow: true });
+      expect(tier).toBe(`xl-${s.id}`);
+      expect(stakesOfTier(tier)).toBe(s.id);
+      expect(matchRoomOptions(tier)).toMatchObject({ stakes: s.id, rules: { flow: true, three: false, rounds: REAL_ROUNDS } });
+    }
+    expect(matchRoomOptions('xl-nope')).toBeUndefined();
   });
 });

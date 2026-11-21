@@ -132,6 +132,31 @@
   font-size: var(--fs-lg);
   opacity: 0.9;
 }
+/* 玩法行（血战到底、血流成河、三人两房、立直）：一排不折行，每个切换项一样宽 */
+.screen.lobby .lobby-variants {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: auto;
+  grid-auto-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-2);
+  align-self: stretch;
+  font-size: var(--fs-sm);
+}
+.screen.lobby .lobby-variants .label {
+  opacity: 0.8;
+}
+/* 手机：面板窄，标签不写（顶栏写着玩法名）、切换项收窄内边距，四个一排放下 */
+.stage:not([data-fit='desk']) .screen.lobby .lobby-variants {
+  grid-template-columns: none;
+  gap: var(--sp-1);
+}
+.stage:not([data-fit='desk']) .screen.lobby .lobby-variants .label {
+  display: none;
+}
+.stage:not([data-fit='desk']) .screen.lobby .lobby-variants .chip {
+  padding: 0 var(--sp-1);
+}
 .stakes {
   display: flex;
   gap: var(--sp-3);
@@ -212,7 +237,7 @@
 .screen.lobby .edit-rules {
   flex-shrink: 0;
 }
-/* 「改规则」弹窗：两项一行；四个以上选项的（局数）、带说明的、只有一项的（立直的长度）独占一行 */
+/* 「改规则」弹窗：两项一行；四个以上选项的（局数）、只有一项的（立直的长度）独占一行 */
 .rules-sheet .rules-opts {
   display: grid;
   grid-template-columns: minmax(max-content, 1fr) minmax(max-content, 1fr);
@@ -220,14 +245,8 @@
 }
 .rules-sheet .rules-opts > :not(.opt),
 .rules-sheet .rules-opts > .opt:has(> button:nth-of-type(4)),
-.rules-sheet .rules-opts > .opt:has(> .hint),
 .rules-sheet .rules-opts > .opt:only-of-type {
   grid-column: 1 / -1;
-}
-.rules-sheet .opt .hint {
-  margin-left: var(--sp-1);
-  font-size: var(--fs-sm);
-  opacity: 0.8;
 }
 .rules-sheet .fixed {
   margin: var(--sp-1) 0 0;
@@ -260,7 +279,7 @@
   min-height: max(44px, var(--tap));
 }
 .opt .label {
-  /* 四个字的（呼叫转移、三人两房）不折成两行 */
+  /* 四个字的（呼叫转移）不折成两行 */
   min-width: 72px;
   white-space: nowrap;
   opacity: 0.8;

@@ -3,6 +3,7 @@
  * 娱乐：三个难度 + 单机开打；实盘：四档 + 单机开打；好友房：娱乐三个难度和实盘四档都能选（房间按这个开）+ 开房间、输房间号进房。
  * 娱乐、实盘的单机开打旁边是快速匹配（0.21.0，和陌生人按这一档排）。钱包连不上时实盘不可选。单独部署（没有平台）时只有娱乐，好友房上面多一个昵称框。
  * 版面（0.41.0）：和主页一样左边茶馆的画、右边一块木框面板（竖屏画在上、面板在下）；面板里玩法、档位卡是主角，开打贴底。
+ * 玩法行（0.45.0）：主页快速一局底下同一组切换项（血战到底、血流成河、三人两房、立直，各玩法的 homeChoices），娱乐、实盘、好友房三页一样，选着的和主页同一份记忆。
  * 规则细节默认收起，只露一行摘要和「改规则」（所有者 11-20：选项看不懂、默认选好就行），点开是一个弹窗，照玩法的规则表画（game/rule-spec.ts）；
  * 档位、难度、玩法这些主选项照旧一屏摆开。
  */
@@ -14,7 +15,7 @@ import { homeScene, stakeIcon } from './art.ts';
 import { dailyEntry } from './daily.ts';
 import type { DailyVariant } from '../game/daily.ts';
 import type { AnyOpts, RulesStore } from './variants/page.ts';
-import { allPages, pageOf } from './variants/pages.ts';
+import { homeChoiceOf } from './variants/pages.ts';
 import { closeDialog, dialog } from './dialog.ts';
 import { busy, button, el } from './dom.ts';
 import { renderRules } from './rule-row.ts';
@@ -29,8 +30,8 @@ export interface LobbyProps {
   level: Level;
   /** 偏好里存着的各玩法的规则设置（「改规则」里改的只在这一页有效，开打时才交出去） */
   rules: RulesStore;
-  /** "玩法"选项（立直入口开着时才有，单机和好友房都有）：current 是选着的玩法 */
-  variants?: { current: string; onPick(id: string): void };
+  /** "玩法"选项：ids 是主页同一组切换项（各玩法的 homeChoices），current 是选着的那一项 */
+  variants?: { ids: string[]; current: string; onPick(id: string): void };
   canResume: boolean;
   /** 开单机、开房间要先问钱包和服务器：按钮转圈直到回来；opts 是选着的玩法的规则设置 */
   onSolo(stakes: StakesId, opts: AnyOpts, level: Level, variant: string): Promise<void>;
@@ -60,7 +61,7 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   let stakes = p.stakes;
   let level = p.level;
   // 选着的玩法给规则表（game/rule-spec.ts），这一页改的是一份拷贝，开打时才交出去
-  const page = pageOf(p.variants?.current);
+  const page = homeChoiceOf(p.variants?.current ?? '').page;
   let opts = { ...page.rulesOf(p.rules) } as AnyOpts;
   // 单机实盘一局一结（app/solo-flow.ts 套 realOpts），局数、长度不给选；好友房实盘照开房时选的打
   const real = p.mode === 'real';
@@ -74,13 +75,14 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   const head = el('div', 'lobby-head', panel);
   el('h1', '', head, MODE_TITLE[p.mode]);
   el('div', 'variant', head, `${GAME_NAME} ${page.name(opts as { flow?: boolean; three?: boolean })}`);
-  // 玩法：血战到底 / 立直（记住上次选的）。选了以后整页重画，档位卡和规则摘要跟着换
+  // 玩法：血战到底 / 血流成河 / 三人两房 / 立直（和主页快速一局同一份记忆）。选了以后整页重画，档位卡和规则摘要跟着换
   if (p.variants) {
+    const { ids, current, onPick } = p.variants;
     const row = el('div', 'lobby-variants', panel);
     el('span', 'label', row, '玩法');
-    for (const pg of allPages()) {
-      const on = pg.id === p.variants.current;
-      const b = button(`chip${on ? ' on' : ''}`, row, pg.lobbyChip, () => !on && p.variants!.onPick(pg.id));
+    for (const id of ids) {
+      const on = id === current;
+      const b = button(`chip${on ? ' on' : ''}`, row, homeChoiceOf(id).choice.chip, () => !on && onPick(id));
       b.setAttribute('aria-pressed', String(on));
     }
   }

@@ -14,14 +14,10 @@ export interface RuleDef<O> {
   key: string;
   label: string;
   choices: readonly RuleChoice[];
-  /** 摘要里这一项写什么，空串不写（关着的呼叫转移、血流成河） */
+  /** 摘要里这一项写什么，空串不写（关着的呼叫转移） */
   brief(o: O): string;
-  /** 面板里这一行后面补一句说明（开了血流成河：胡了不下桌……） */
-  hint?(o: O): string;
   /** 实盘不让选：实盘一局一结，局数、长度是固定的 */
   realFixed?: boolean;
-  /** 选了以后连带改别项（血流成河和三人两房只能开一个） */
-  also?(o: O): O;
 }
 
 export interface RuleSpec<O> {
@@ -44,12 +40,11 @@ export function chosen<O>(d: RuleDef<O>, o: O): RuleChoice | undefined {
   return d.choices.find((c) => c.value === field(o, d.key));
 }
 
-/** 选了某一项：返回新的规则设置（不改原来的），连带改的一起改 */
+/** 选了某一项：返回新的规则设置（不改原来的） */
 export function choose<O>(spec: RuleSpec<O>, o: O, key: string, value: RuleChoice['value']): O {
   const d = spec.defs.find((x) => x.key === key);
   if (!d?.choices.some((c) => c.value === value)) throw new Error(`unknown rule choice ${key}=${String(value)}`);
-  const next = { ...o, [key]: value } as O;
-  return d.also ? d.also(next) : next;
+  return { ...o, [key]: value } as O;
 }
 
 /** 摘要的各项（「4 局 · 4 番封顶 · 自摸加底 · 换三张」）；实盘开头写「一局一结」，不写固定的那几项 */

@@ -24,13 +24,13 @@ describe('川麻的规则表', () => {
     expect(summary(XZ_RULES, XZ_FIRST_OPTS, true)[0]).toBe('一局一结');
     expect(summary(XZ_RULES, XZ_FIRST_OPTS, true).join(' ')).not.toContain('4 局');
   });
-  test('血流成河和三人两房只能开一个，选了一项不改原来那份', () => {
-    const flow = choose(XZ_RULES, XZ_FIRST_OPTS, 'flow', true);
-    expect(XZ_FIRST_OPTS.flow).toBe(false);
-    const three = choose(XZ_RULES, flow, 'three', true);
-    expect(three).toMatchObject({ three: true, flow: false });
-    expect(choose(XZ_RULES, three, 'flow', true)).toMatchObject({ three: false, flow: true });
-    expect(summary(XZ_RULES, three, false)).toContain('三人两房');
+  test('血流成河、三人两房只在玩法行选，不在规则表里；选了一项不改原来那份', () => {
+    expect(XZ_RULES.defs.map((d) => d.key)).not.toContain('flow');
+    expect(XZ_RULES.defs.map((d) => d.key)).not.toContain('three');
+    expect(() => choose(XZ_RULES, XZ_FIRST_OPTS, 'flow', true)).toThrow();
+    const swapped = choose(XZ_RULES, XZ_FIRST_OPTS, 'swap', false);
+    expect(XZ_FIRST_OPTS.swap).toBe(true);
+    expect(swapped.swap).toBe(false);
   });
   test('不认识的选项直接报错', () => {
     expect(() => choose(XZ_RULES, XZ_FIRST_OPTS, 'cap', 9)).toThrow();

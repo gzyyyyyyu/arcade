@@ -49,7 +49,6 @@ export const riichiPage: VariantPage = {
     store.variant = ID;
   },
   rulesLink: '规则和役种表',
-  lobbyChip: '立直',
   matchTag: '立直 · ',
   rules: RC_RULES as RuleSpec<AnyOpts>,
   lengthText: (opts) => lengthName((opts as RcOpts).length),

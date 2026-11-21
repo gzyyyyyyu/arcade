@@ -43,7 +43,8 @@ function rulesParts(o: RoomOpts | null): string[] {
   const stake = st?.wallet ? `实盘${STAKES_NAME[o.stakes]}档（一份 ${num(st.share)}）` : '娱乐';
   const page = pageOf(o.variant);
   // 好友房实盘不改局数（不像单机实盘一局一结），规则照开房时选的全写
-  return [page.name(), stake, ...summary(page.rules, o.rules, false)];
+  // 玩法名带上血流成河、三人两房（它们不在规则表里，见 game/xuezhan-rules.ts）
+  return [page.name(o.rules as { flow?: boolean; three?: boolean }), stake, ...summary(page.rules, o.rules, false)];
 }
 
 export function renderWaiting(box: HTMLElement, p: WaitingProps): void {
