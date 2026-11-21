@@ -1,4 +1,7 @@
 import Phaser from 'phaser';
+import { TUT_SAILED } from './view/tutorial.ts';
+import { TRAIN_BY_ID, TRAIN_TD_LEVEL } from './content/training.ts';
+import { TRAIN_SEED, trainSetup, trainTdSetup } from './core/training.ts';
 import { reportErrors } from 'arcade-kit/report';
 import { BRANCH_LEVEL, BUILDINGS, CAMPAIGN, branchOptions } from './content/index.ts';
 import { TD_TOWER_KINDS, canPlace, produce, tdGrowthProfile, type TdTowerKind } from './core/index.ts';
@@ -46,7 +49,7 @@ function loadWithOffline(): void {
   const s = loadSave();
   if (s.lastSeen > 0) s.profile = produce(s.profile, Math.max(0, Math.min(OFFLINE_MAX, (Date.now() - s.lastSeen) / 1000)));
   // 老玩家（已经出过海）不再引导
-  if (s.profile.stats.attacks > 0 && s.profile.tutorial < 7) s.profile = { ...s.profile, tutorial: 7 };
+  if (s.profile.stats.attacks > 0 && s.profile.tutorial < TUT_SAILED) s.profile = { ...s.profile, tutorial: TUT_SAILED };
   s.lastSeen = Date.now();
   app.save = s;
 }
@@ -219,6 +222,20 @@ function main(): void {
       if (res.ok) toScene('td', res.data);
       else toast('开不了这一局');
     });
+  };
+  app.startTrain = (id) => {
+    const l = TRAIN_BY_ID.get(id);
+    if (!l) return;
+    const setup = trainSetup(l, TRAIN_SEED);
+    if (!setup) {
+      void field0().then(() => prepareTd(TRAIN_TD_LEVEL, game.textures, r, { setup: trainTdSetup(TRAIN_SEED), train: true })).then((res) => {
+        if (res.ok) toScene('td', res.data);
+        else toast('开不了这一关');
+      });
+      return;
+    }
+    const data: BattleData = { levelId: 'train', setup, auto: false, settle: false, speed: q.has('fast') ? 4 : 1, train: { lesson: id } };
+    void Promise.all([warmField(), ensureArt(game.textures, battlePieces(setup), r), ensureTurrets(game.textures, setup.layout, r)]).finally(() => toScene('battle', data));
   };
   app.startTdTide = () => {
     void field0().then(() => prepareTide(game.textures, r)).then((data) => toScene('td', data));

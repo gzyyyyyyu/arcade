@@ -147,7 +147,11 @@ ${W} .hd-key { display:none; }
   ${W} .hd-base .hd-bar .hd-pill .hd-img { height:20px !important; width:20px !important; }
   ${W} .hd-base .hd-profile { width:44px; }
   ${W} .hd-base .hd-live-xbtn { margin-left:0; }
-  ${W} .hd-bottom { gap:8px; padding:4px 110px calc(4px + env(safe-area-inset-bottom,0px)) 6px; }
+  ${W} .hd-base .hd-trainbtn span { display:none; }
+  ${W} .hd-base .hd-trainbtn { padding:0; }
+  /* 右边三颗 44 宽（换、训练营、个人）+ 间距 8 共 148，底栏四颗 44 + 间距 8 共 200：360 宽两边各只能留 2 才能保住两组之间 8 的间距 */
+  ${W} .hd-base .hd-bar2 { right:2px; }
+  ${W} .hd-bottom { gap:8px; padding:4px 158px calc(4px + env(safe-area-inset-bottom,0px)) 2px; }
   ${W} .hd-bottom .hd-btn { min-height:52px; padding:0 2px; }
   }
   ${W} .hd-td .hd-td-bar2 { bottom:calc(4px + env(safe-area-inset-bottom,0px)); height:48px; }
@@ -331,6 +335,40 @@ ${W} .hd-claim-list { display:flex; flex-direction:column; gap:6px; margin-botto
 ${W} .hd-claim-row { display:flex; align-items:center; gap:8px; font-size:16px; }
 ${W} .hd-claim-row.left b { font-size:14px; font-weight:600; color:#8a4b1a; }
 ${W} .hd-claim-row.badge b { color:#7a5a2e; }
+/* 训练营：顶栏第二行的入口、选关面板（一块一关）、结算 */
+${W} .hd-trainbtn { position:relative; display:inline-flex; align-items:center; gap:4px; min-height:44px; min-width:44px; padding:0 10px; font-size:14px; }
+${W} .hd-dialog.hd-train { position:relative; width:min(720px, calc(100vw - 24px)); }
+${W} .hd-dialog.hd-train > .hd-x { position:absolute; right:8px; top:8px; }
+${W} .hd-dialog.hd-train h2 { margin:0 0 4px; font-size:20px; }
+${W} .hd-dialog.hd-train > .hd-sub { padding-right:48px; }
+${W} .hd-train-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:8px; margin:8px 0 4px; max-height:calc(100dvh - 180px); overflow:hidden; }
+${W} .hd-train-card { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:100px; padding:6px 4px; border-radius:12px; border:2px solid ${ink}; background:#f6e7c4; color:${ink}; font:inherit; cursor:pointer; }
+${W} .hd-train-card.f { background:#eadcf2; }
+${W} .hd-train-card.done { background:#d9ecd0; }
+${W} .hd-train-card.na { opacity:.55; }
+${W} .hd-train-card.next { box-shadow:0 0 0 3px #ffd34a; }
+${W} .hd-train-card b { font-size:14px; }
+${W} .hd-train-tag { font-size:12px; color:#7a5a2e; }
+${W} .hd-train-st { display:inline-flex; align-items:center; gap:2px; font-size:12px; white-space:nowrap; }
+${W} .hd-dialog.hd-train-end { text-align:center; }
+${W} .hd-train-take { margin:8px 0; font-size:16px; }
+${W} .hd-train-rw { display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; font-size:14px; margin-bottom:8px; }
+${W} .hd-train-rw b { font-size:16px; margin-right:6px; }
+${W} .hd-train-btns { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+@media (max-width:559px) {
+  ${W} .hd-train-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  ${W} .hd-train-card { min-height:84px; padding:4px 2px; }
+  ${W} .hd-train-card .hd-img { height:36px !important; width:auto !important; }
+}
+@media (max-height:500px) {
+  ${W} .hd-train-grid { grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); max-height:calc(100dvh - 130px); }
+  /* 844×390 两排卡片 + 标题 + 翻页要压进 390 高：收内边距、去掉「兵种 / 排兵」小字（底色已经分开） */
+  ${W} .hd-dialog.hd-train { padding:8px 12px; }
+  ${W} .hd-dialog.hd-train .hd-sub { margin:0; }
+  ${W} .hd-train-tag { display:none; }
+  ${W} .hd-train-card { min-height:0; padding:2px 4px; }
+  ${W} .hd-train-card .hd-img { height:28px !important; width:auto !important; }
+}
 
 `;
 }

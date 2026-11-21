@@ -1,4 +1,5 @@
 import type { TdScene } from './TdScene.ts';
+import { trainTdRefresh } from './trainplay.ts';
 import { TD_TREASURE } from '../content/index.ts';
 import { TD2_BATTERY, TD2_ENEMIES, TD2_FLEET, TD2_HERO_SKILL } from '../content/td2units.ts';
 import { heroCd, hookEnabled, tdPreview, tdRoutes, tdCallBonus, tdDareCan, tdNextTide, tdSluiceCan, type WavePreview } from '../core/index.ts';
@@ -254,12 +255,13 @@ export function refreshPlan(bs: TdScene, force = false): void {
 /**
  * 第一次见到的东西弹一张不挡操作的小卡（头像、会干什么、怎么打），每样只讲一次，一次只讲一条（pickHint 排队）：
  * 关内事件提前一波讲（预告里「再下一波」有它时），开局讲这一关的章末机制和航海士，再是这一波第一次来的敌人。
- * 战书那一波倒数里浮着卷轴，卡让开，排到下一波
+ * 战书那一波倒数里浮着卷轴，卡让开，排到下一波。训练营不弹
  */
 function foeHint(bs: TdScene, start: boolean): void {
   const s = bs.s;
   const [p, q] = bs.pv;
-  if (!p) return;
+  // 训练营有自己的分步横幅，小卡会压住它；这些敌人第一次在战役里遇到时再讲
+  if (!p || bs.d.train) return;
   const events = [q?.event, p.event].filter((k): k is NonNullable<WavePreview['event']> => !!k);
   const want: HintItem[] = [
     ...events.map((k) => ({ t: 'm' as const, k })),
@@ -356,6 +358,7 @@ export function updateHud(bs: TdScene, force = false): void {
   refreshPlan(bs);
   syncPadGuide(bs);
   syncGoalMark(bs);
+  trainTdRefresh(bs);
   bs.esc?.refresh(bs.pv);
   const total = s.level.waves.length;
   const endless = !!s.level.endless;

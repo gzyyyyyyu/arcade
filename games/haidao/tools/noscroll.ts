@@ -709,6 +709,13 @@ try {
         await click('.hd-claim .hd-btn-gold');
         await page.waitForTimeout(300);
       });
+      await attempt('训练营', async () => {
+        await click('.hd-trainbtn');
+        await page.locator('.hd-train').waitFor({ timeout: 4000 });
+        await snap('训练营');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+      });
       await attempt('介绍卡片', async () => {
         // 船队面板的兵种卡全在一页上（建造列表分页，第一张带介绍的卡可能在没翻到的页）
         await click('.hd-bottom button:has-text("船队")');

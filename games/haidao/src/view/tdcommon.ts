@@ -23,6 +23,8 @@ export interface TdData {
   escort?: boolean;
   /** 护航实盘的一局（同时 escort 为真）：结束走筹码结回，不发护航奖励、不记护航星数 */
   escortLive?: { tier: LiveTier };
+  /** 训练营的守岛关（src/view/trainplay.ts）：一步一提示，结束时记过关，不发守岛奖励、不记星数 */
+  train?: boolean;
 }
 
 export type Act = TdAction extends infer U ? (U extends { t: number } ? Omit<U, 't'> : never) : never;

@@ -105,6 +105,10 @@ export const app = {
   goBase: (): void => undefined,
   /** 下次进基地先打开建造面板（结算里「仓库满了」的「去扩仓库」） */
   buildOnBase: false,
+  /** 下次进基地先打开训练营（训练营结算里的「回训练营」） */
+  trainOnBase: false,
+  /** 训练营：开一关（src/view/training.ts 调，main 接） */
+  startTrain: (_lessonId: string): void => undefined,
   /** 守岛：开一局（读自己的岛，烘焙素材后进 td 场景） */
   startTdLevel: (_levelId: string): void => undefined,
   /** 悬赏守岛（实盘）：用固定的悬赏岛开一局，不读自己的岛、不发本岛守岛奖励 */

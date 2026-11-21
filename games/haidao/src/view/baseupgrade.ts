@@ -4,6 +4,7 @@ import type { BaseScene } from './BaseScene.ts';
 import { TD2_HERO_SKILL } from '../content/td2units.ts';
 import { BUILDINGS, TROOPS, SKILLS, HQ_LEVELS } from '../content/index.ts';
 import { heroCap, heroLevel, navUnlocked, heroResearchCost, hqLevel, researchLevel, research, researchCost, researchHero, totalStars, upgrade, upgradeCost, collect, collectAll } from '../core/index.ts';
+import { claimTrain } from '../core/training.ts';
 import type { TroopKind, SkillKind, Placed, Res } from '../core/types.ts';
 import { app, fmt } from './app.ts';
 import { runAchievements } from './meta.ts';
@@ -16,7 +17,7 @@ import { feelOn } from './feel.ts';
 import { newHintCss } from './newhint.ts';
 import { isBigBuilding } from './audio/pick.ts';
 import { nextUnlock, itemArt, unlocksAt, itemDesc } from './unlock.ts';
-import { tutStep, tutSet, tutAdv } from './tutorial.ts';
+import { TUT_SAILED, tutStep, tutSet, tutAdv } from './tutorial.ts';
 import { badgePopup, el, img, openModal, button, toast, costRow, paginate } from './ui.ts';
 import type { ArtPiece } from './art.ts';
 import { closeSheet, short, openInfo } from './basepanel.ts';
@@ -238,7 +239,7 @@ export function doUpgrade(bs: BaseScene, id: number, reopen = true): void {
   const upgraded = r.value.base.buildings.find((x) => x.id === id);
   const prev = bs.nodes.get(id);
   app.commit(r.value);
-  if (tutStep() >= 6) tutSet(7);
+  if (tutStep() >= 6) tutSet(TUT_SAILED);
   const hq = upgraded?.kind === 'hq';
   if (hq) bs.celebrating = true;
   if (prev && before && upgraded) {
@@ -296,15 +297,17 @@ export function doCollect(bs: BaseScene, id: number): void {
 }
 
 /**
- * 一键收取（主寨顶栏的「收取」、键盘 C、升级面板里的「先收」）：金矿、伐木场全部收进仓库，顺带结算达成的成就；
+ * 一键收取（主寨顶栏的「收取」、键盘 C、升级面板里的「先收」）：金矿、伐木场全部收进仓库，再领训练营的待领奖励，顺带结算达成的成就；
  * summary = true 时弹一个汇总框（收了多少、仓库满了留在矿里多少、新徽章），false 只飘字（升级面板里收完接着升级用）。
  */
 export function claimAll(bs: BaseScene, summary = true): void {
   const p0 = app.profile;
   const r = collectAll(p0);
-  const ach = runAchievements(r.profile);
-  if (!r.ids.length && !ach.fresh.length) {
-    if (r.left.gold + r.left.wood > 0) {
+  const t = claimTrain(r.profile);
+  const tGot = t.got.gold + t.got.wood > 0;
+  const ach = runAchievements(t.profile);
+  if (!r.ids.length && !tGot && !ach.fresh.length) {
+    if (r.left.gold + r.left.wood + t.left.gold + t.left.wood > 0) {
       sfx('error');
       return toast('仓库满了，先花掉一些或升级金库、木料场');
     }
@@ -327,14 +330,14 @@ export function claimAll(bs: BaseScene, summary = true): void {
       collectFly(bs, k, screenOf(bs, n.img.x, topOf(bs, n)), p0.res[k], r.profile.res[k]);
     }
   }
-  if (r.got.gold) sfx('coin');
-  else if (r.got.wood) sfx('wood');
+  if (r.got.gold || t.got.gold) sfx('coin');
+  else if (r.got.wood || t.got.wood) sfx('wood');
   bs.refresh();
-  if (summary) claimSummary(r.got, r.left, ach.fresh);
+  if (summary) claimSummary(r.got, r.left, ach.fresh, t.got, t.left);
   else if (ach.fresh.length) badgePopup(ach.fresh);
 }
 
-function claimSummary(got: Res, left: Res, badges: Array<{ name: string; desc: string; tier: 'bronze' | 'silver' | 'gold' }>): void {
+function claimSummary(got: Res, left: Res, badges: Array<{ name: string; desc: string; tier: 'bronze' | 'silver' | 'gold' }>, train: Res, trainLeft: Res): void {
   const mask = openModal({ cls: 'hd-claim-mask', closable: true });
   const dlg = el('div', 'hd-dialog hd-claim', undefined, mask);
   el('h2', '', '全部收好了', dlg);
@@ -348,6 +351,9 @@ function claimSummary(got: Res, left: Res, badges: Array<{ name: string; desc: s
   if (got.wood) row(iconA('wood'), `+${fmt(got.wood)} 木材`);
   if (left.gold) row(iconA('gold'), `金库满了，金矿里还留着 ${fmt(left.gold)}`, 'left');
   if (left.wood) row(iconA('wood'), `木料场满了，伐木场里还留着 ${fmt(left.wood)}`, 'left');
+  if (train.gold) row(iconA('gold'), `+${fmt(train.gold)} 金币（训练营）`);
+  if (train.wood) row(iconA('wood'), `+${fmt(train.wood)} 木材（训练营）`);
+  if (trainLeft.gold + trainLeft.wood > 0) row(iconA('star'), `仓库满了，训练营奖励还留着 ${[trainLeft.gold ? `${fmt(trainLeft.gold)} 金` : '', trainLeft.wood ? `${fmt(trainLeft.wood)} 木` : ''].filter(Boolean).join('、')}`, 'left');
   for (const b of badges) row(iconA('star'), `新徽章：${b.name}`, 'badge');
   button('好', 'hd-btn-gold', () => mask.remove(), dlg, 'confirm');
 }

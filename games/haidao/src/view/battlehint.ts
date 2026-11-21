@@ -47,9 +47,9 @@ export function newDefenses(kinds: Iterable<BuildingKind>, seen: ReadonlySet<str
   return HINT_ORDER.filter((k) => have.has(k) && !seen.has(k)).slice(0, max);
 }
 
-/** 哪些战斗不弹：首领关（有自己的战前弹层）、机器人代打、回放和异步攻防、寻宝航线、悬赏 */
-export function hintAllowed(d: { auto: boolean; pvp?: unknown; map?: unknown; bounty?: boolean }, boss: boolean): boolean {
-  return !boss && !d.auto && !d.pvp && !d.map && !d.bounty;
+/** 哪些战斗不弹：首领关（有自己的战前弹层）、机器人代打、回放和异步攻防、寻宝航线、悬赏、训练营（有自己的分步提示） */
+export function hintAllowed(d: { auto: boolean; pvp?: unknown; map?: unknown; bounty?: boolean; train?: unknown }, boss: boolean): boolean {
+  return !boss && !d.auto && !d.pvp && !d.map && !d.bounty && !d.train;
 }
 
 /** 读存储里的已见列表：坏数据当空 */

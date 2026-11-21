@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { openTraining } from './training.ts';
 import { BUILDINGS } from '../content/index.ts';
 import { islandExt, produce, rankOf } from '../core/index.ts';
 import type { BuildingKind, Res } from '../core/types.ts';
@@ -79,6 +80,8 @@ export class BaseScene extends Phaser.Scene {
   buildBtn!: HTMLElement;
   /** 一键收取（basehud.ts 的 claimLabel 按矿里的存量显隐） */
   claimBtn: HTMLButtonElement | null = null;
+  /** 顶栏第二行的「训练营」（新手引导最后一步指它） */
+  trainBtn: HTMLButtonElement | null = null;
   fleetBtn!: HTMLElement;
   mapBtn!: HTMLElement;
   lastTut = 0;
@@ -283,6 +286,10 @@ export class BaseScene extends Phaser.Scene {
     if (app.buildOnBase) {
       app.buildOnBase = false;
       openBuild(this);
+    }
+    if (app.trainOnBase) {
+      app.trainOnBase = false;
+      openTraining();
     }
   }
 

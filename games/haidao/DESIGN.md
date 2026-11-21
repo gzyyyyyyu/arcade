@@ -14,6 +14,7 @@
 | 10.1–10.4b | 守岛：一局怎么打、克制表、寻敌走位、敌人、战役 30 关、海盗来袭 | [docs/design-td.md](docs/design-td.md) |
 | 10.5–10.6h | 守岛：悬赏守岛实盘、英雄驻岛、战役数据和配平、关卡机制、断崖海岸、大潮无尽、关内事件、规则版本 | [docs/design-td-more.md](docs/design-td-more.md) |
 | 11、12 | 寻宝航线、护航（含各自实盘） | [docs/design-voyage.md](docs/design-voyage.md) |
+| 16 | 训练营：兵种教学关、排兵布阵关、奖励 | [docs/design-training.md](docs/design-training.md) |
 
 画面和界面的实现笔记在 [docs/ui-haidao.md](docs/ui-haidao.md)，配平数据在 [docs/balance-haidao.md](docs/balance-haidao.md)。
 

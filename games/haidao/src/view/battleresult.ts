@@ -16,6 +16,7 @@ import { resultBeats, resultTimes, resultTiming } from './audio/result.ts';
 import { adviceLines } from './battleadvice.ts';
 import { lossStreakOf, NO_EXTRA, settleOutcome, type Extra } from './battlesettle.ts';
 import { tutSet, tutStep } from './tutorial.ts';
+import { trainBattleEnd } from './trainplay.ts';
 import { badgePopup, button, el, img, openModal, toast } from './ui.ts';
 import { TITLES, rewardName } from './battlecommon.ts';
 import type { BattleScene } from './BattleScene.ts';
@@ -115,6 +116,11 @@ export function finish(bs: BattleScene, delay: number): void {
     const alive = aliveByBoat(bs.st, bs.d.setup.army, bs.lands);
     const energy = bs.st.energy;
     setTimeout(() => bs.ui.isConnected && mp.onFinish(res, alive, energy), Math.min(delay, 900));
+    return;
+  }
+  if (bs.d.train) {
+    const done = (): void => trainBattleEnd(bs, res);
+    if (!battleEnd(bs, res.stars > 0, delay, done)) setTimeout(done, delay);
     return;
   }
   const pvp = bs.d.pvp;

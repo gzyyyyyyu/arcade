@@ -1,4 +1,6 @@
 import type { TdScene } from './TdScene.ts';
+import { trainEnd } from './trainplay.ts';
+import { TRAIN_TD_LESSON } from '../content/training.ts';
 import { TD_TREASURE } from '../content/index.ts';
 import { tdResult, settleTd, tdCampaign, settleTdHome, type IsoWeek, weekLabel, tideScore, tideLine, tideBoardId, tideMod, TIDE_MODS } from '../core/index.ts';
 import { recordTide, submitTide } from '../net/tide.ts';
@@ -58,6 +60,11 @@ export function finish(bs: TdScene): void {
 function settle(bs: TdScene): void {
   if (bs.ui.querySelector('.hd-td-result')) return;
   const res = tdResult(bs.s);
+  if (bs.d.train) {
+    playBeats(resultBeats({ kind: 'td', stars: res.stars, win: res.stars > 0, roll: false }), () => bs.ui.isConnected);
+    trainEnd(TRAIN_TD_LESSON, res.stars > 0, res.stars, bs.ui);
+    return;
+  }
   if (bs.d.escort) {
     finishEscort(bs, res);
     return;

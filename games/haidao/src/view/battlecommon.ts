@@ -17,6 +17,8 @@ export interface BattleData {
   pvp?: PvpHooks;
   /** 寻宝航线的一站（src/view/maproute.ts）：到 MAP_STOP_TICKS 截断，结束时交给 onFinish、不弹战役结算 */
   map?: MapStopHooks;
+  /** 训练营的一关（src/view/trainplay.ts）：一步一提示，结束时记过关、不弹战役结算 */
+  train?: { lesson: string };
 }
 
 export interface MapStopHooks {

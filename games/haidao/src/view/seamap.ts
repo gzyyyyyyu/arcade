@@ -13,7 +13,7 @@ import { liveEntryReady, liveMapButton, openLive } from './live.ts';
 import { openEscortLive, openMapLive } from './livemore.ts';
 import { mapCard, mapLiveChip, openRoute } from './maproute.ts';
 import { escortCard, openEscortSelect } from './escortsel.ts';
-import { TUT_DONE, tutStep } from './tutorial.ts';
+import { TUT_SAILED, tutStep } from './tutorial.ts';
 
 const X = [50, 30, 68, 34, 70, 38, 64, 30, 62, 36, 68, 50];
 const STEP = 138;
@@ -77,7 +77,7 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
   if (focus < 0) focus = CAMPAIGN.findIndex((l) => stars >= l.reqStars && (p.stars[l.id] ?? 0) < 3);
   if (focus < 0) focus = current;
   // 新手引导还在带路时，引导自己的高亮框和箭头指着这座岛：旗和出发钮会被框压住、和箭头抢位置，先不画（引导走完再出现）
-  const guided = tutStep() < TUT_DONE;
+  const guided = tutStep() < TUT_SAILED;
   let detail: HTMLElement | null = null;
   let bountyEl: HTMLElement | null = null;
 

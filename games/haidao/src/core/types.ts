@@ -128,6 +128,8 @@ export interface Profile {
   td?: { stars: Record<string, number>; day: number; gotGold: number; gotWood: number };
   /** 护航进度（escortrun.ts）：每关（`<图>-<难度>`）最高星数；资源奖励和守岛共用 td 的每日上限 */
   escort?: { stars: Record<string, number> };
+  /** 训练营（training.ts）：过了哪几关、还没领的奖励（没有待领就不写 owed） */
+  train?: { done: string[]; owed?: Res };
 }
 
 /** 规则函数的统一回话：成功给新值，失败给固定短码（界面按码出文案） */
