@@ -19,6 +19,8 @@ export interface Row {
   isMe: boolean;
   text: string;
   tone?: 'up' | 'down';
+  /** 名字后面的小称号：只看好友时总榜本周第 1 名是"本周牌王"（docs/social.md 1.5，读的时候算、不存） */
+  crown?: string;
 }
 
 export interface Share {
@@ -67,6 +69,11 @@ function Name({ r }: { r: Row }) {
     <Link className="rank__name" href={`/u/${r.userId}`}>
       {r.displayName}
       {r.isMe && <span className="rank__me">我</span>}
+      {r.crown && (
+        <span className="rank__crown" data-testid="rank-crown">
+          {r.crown}
+        </span>
+      )}
     </Link>
   );
 }

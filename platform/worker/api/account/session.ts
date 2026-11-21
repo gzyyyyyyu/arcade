@@ -157,6 +157,8 @@ export function deleteUserStatements(db: Db, userId: string, username: string): 
     // 邀请（迁移 0007）：发出的、收到的都删；两个方向各走一个索引
     db.stmt('DELETE FROM invites WHERE from_id = ?1', userId),
     db.stmt('DELETE FROM invites WHERE to_id = ?1', userId),
+    // 约局（迁移 0015）：一人一行
+    db.stmt('DELETE FROM meetups WHERE host_id = ?1', userId),
     // 好友动态（迁移 0008）：本人发的走 (user_id, created_at) 索引；本人赞的没有按人的索引，要扫全表——表只留 7 天，注销很少，接受。
     // 别人给本人动态的赞留着，7 天后跟着 Cron 删
     db.stmt('DELETE FROM feed WHERE user_id = ?1', userId),

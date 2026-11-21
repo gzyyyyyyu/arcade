@@ -12,6 +12,7 @@ import { newInviteId } from '../lib/crypto';
 import type { Ctx } from '../core/context';
 import { ApiError, json, noContent, rateLimited } from '../lib/http';
 import { ROOM_RE } from './presence';
+import { meetupsFor } from './meetups';
 
 const ID_RE = /^[A-Za-z0-9_-]{16}$/;
 
@@ -75,25 +76,41 @@ interface InviteRow {
   until: number;
 }
 
-/** GET /api/invites：给我的、没过期、没点"不了"、对方还是好友的，先到期的在前。只读。 */
+/**
+ * GET /api/invites：给我的、没过期、没点"不了"、对方还是好友的邀请，先到期的在前；同一次轮询顺带回
+ * 约局（meetups.ts：好友约的和我约的）和几个好友在线（顶栏"好友"上的小绿数字，口径同好友列表：关了"让好友看到我在哪"的不算）。只读。
+ */
 export async function listInvites(c: Ctx): Promise<Response> {
-  const { db, now } = c;
+  const { db, now, limits } = c;
   const me = c.session!.user.id;
-  const rows = await db.all<InviteRow>(
-    db.stmt(
-      `SELECT i.id, i.from_id, u.display_name, i.game, i.room, i.until
-         FROM invites i
-         JOIN users u ON u.id = i.from_id
-         JOIN friendships f ON f.user_a = MIN(i.from_id, i.to_id) AND f.user_b = MAX(i.from_id, i.to_id) AND f.status = 'accepted'
-        WHERE i.to_id = ?1 AND i.until > ?2 AND i.dismissed = 0
-        ORDER BY i.until LIMIT 20`,
-      me, now,
+  const [rows, meet, online] = await Promise.all([
+    db.all<InviteRow>(
+      db.stmt(
+        `SELECT i.id, i.from_id, u.display_name, i.game, i.room, i.until
+           FROM invites i
+           JOIN users u ON u.id = i.from_id
+           JOIN friendships f ON f.user_a = MIN(i.from_id, i.to_id) AND f.user_b = MAX(i.from_id, i.to_id) AND f.status = 'accepted'
+          WHERE i.to_id = ?1 AND i.until > ?2 AND i.dismissed = 0
+          ORDER BY i.until LIMIT 20`,
+        me, now,
+      ),
     ),
-  );
+    meetupsFor(c, me),
+    db.first<{ n: number }>(
+      db.stmt(
+        `SELECT COUNT(*) AS n
+           FROM friendships f JOIN users u ON u.id = CASE WHEN f.user_a = ?1 THEN f.user_b ELSE f.user_a END
+          WHERE (f.user_a = ?1 OR f.user_b = ?1) AND f.status = 'accepted' AND u.show_where = 1 AND u.presence_at > ?2`,
+        me, now - limits.presenceOnlineMs,
+      ),
+    ),
+  ]);
   return json(200, {
     invites: rows
       .filter((r) => GAME_IDS.has(r.game))
       .map((r) => ({ id: r.id, from: { id: r.from_id, name: r.display_name }, game: r.game, room: r.room, until: r.until })),
+    ...meet,
+    online: online?.n ?? 0,
   });
 }
 

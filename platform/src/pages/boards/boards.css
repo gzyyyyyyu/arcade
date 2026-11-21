@@ -124,3 +124,5 @@ html.no-motion .boards-page .podium .podium__step, html.no-motion .boards-page .
     left: min(0px, calc(50% - var(--tap) / 2)); right: min(0px, calc(50% - var(--tap) / 2));
   }
 }
+/* 只看好友时总榜第 1 名的"本周牌王"（docs/social.md 1.5）：和"我"同一种小标签，暖黄底、深棕字 */
+.boards-page .rank__crown { margin-left: 6px; vertical-align: 1px; font-size: var(--fs-xs); line-height: 18px; padding: 0 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--highlight); color: var(--ink); }

@@ -18,6 +18,7 @@
 | `0012_monitor.sql` | 浏览器报错按签名每天计数；计量加监控写入 |
 | `0013_play_tally.sql` | 真人对局统计（只存每天的汇总，不存哪一局、哪个人） |
 | `0014_invites_and_prefs.sql` | 长期邀请码（`max_uses`、`uses`、每次使用一行的 `invite_code_uses`）；`users.game_prefs`（隐藏游戏的个人偏好） |
+| `0015_meetups.sql` | 约局（一人一行：游戏、开局时间、这天约了几次） |
 
 ## 约定
 

@@ -98,6 +98,9 @@ export const DEFAULT_LIMITS = {
   inviteTtlMs: 600_000,
   invitesPerDay: 50,
   inviteGapMs: 60_000,
+  /** 约局（docs/social.md 1.6）：每人每天（北京时间）最多约几次；开局后多久还算"到点"（之后好友那边就不给了）。开局前 10 分钟起算到点是界面的事（meetup-logic.ts） */
+  meetupsPerDay: 3,
+  meetupGraceMs: 1_800_000,
   /** 好友动态（15.17）：每人每天（北京时间）最多几条（结回生成的和游戏报的合计）、留几天、每人每天赞和扔道具最多几次 */
   feedPerDay: 10,
   feedKeepMs: 7 * 86_400_000,

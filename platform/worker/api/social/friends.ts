@@ -114,8 +114,9 @@ export async function listFriends(c: Ctx): Promise<Response> {
     else if (r.requested_by === me) outgoing.push(publicProfile(r));
     else if (!r.blocked) incoming.push(publicProfile(r));
   }
-  // 在线的排前面，其余按最近来过
-  friends.sort((x, y) => Number(y.online) - Number(x.online) || x.lastSeenDaysAgo - y.lastSeenDaysAgo);
+  // 在房间里的最前（能一键"加入"，docs/social.md 1.3），其次在线的，其余按最近来过
+  const rank = (f: { online: boolean; where?: { place: string } }) => (f.where?.place === 'room' ? 2 : f.online ? 1 : 0);
+  friends.sort((x, y) => rank(y) - rank(x) || x.lastSeenDaysAgo - y.lastSeenDaysAgo);
   return json(200, { friends, incoming, outgoing });
 }
 

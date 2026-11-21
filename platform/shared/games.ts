@@ -222,6 +222,10 @@ export const GAMES: readonly GameEntry[] = [
 /** 登记过的游戏 id：接口的游戏白名单（云存档、分数榜、钱包），只从上面这一份派生 */
 export const GAME_IDS: ReadonlySet<string> = new Set(GAMES.map((g) => g.id));
 
+/** 能开好友房的游戏（标签里写了"好友房"、已上线）：约局只能选这些 */
+export const ROOM_GAMES: readonly GameEntry[] = GAMES.filter((g) => g.status === 'playable' && g.tags.includes('好友房'));
+export const ROOM_GAME_IDS: ReadonlySet<string> = new Set(ROOM_GAMES.map((g) => g.id));
+
 /** 用平台钱包的游戏（界面上按游戏列筹码的地方用） */
 export const WALLET_GAMES: readonly GameEntry[] = GAMES.filter((g) => g.wallet !== false);
 

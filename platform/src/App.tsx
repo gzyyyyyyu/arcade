@@ -8,7 +8,7 @@ import { HotkeyHelp, useHotkeys } from './features/hotkeys/Hotkeys.tsx';
 import { api, type Overtake } from './api.ts';
 import { useSession, useVisible } from './session.tsx';
 import { FeedButton } from './features/feed/Feed.tsx';
-import { InviteBar, useHasInvites, useInvitePolling } from './features/invites/Invites.tsx';
+import { InviteBar, useHasInvites, useInvitePolling, useMeetupDue, useOnlineFriends } from './features/invites/Invites.tsx';
 import { useLobbyPresence } from './lib/presence.ts';
 import { useWallet } from './features/wallet/Wallet.tsx';
 import { num, signed } from './lib/format.ts';
@@ -341,23 +341,39 @@ function AccountButton() {
       <FeedButton me={user.id} />
       <FriendsLink path={path} />
       <WalletBadge path={path} />
-      <Link className="account" href="/me" title="我的账号" {...here(path, '/me')}>
-        <span className="account__avatar" aria-hidden="true">
-          {Array.from(user.displayName)[0]}
-        </span>
-        <span className="account__name">{user.displayName}</span>
-      </Link>
+      <AvatarLink path={path} name={user.displayName} />
     </span>
   );
 }
 
-/** 顶栏的"好友"：有还没过期的邀请时带红点（docs/social.md 1.3） */
+/** 头像：平时进"我的账号"；有约局到点（开局前 10 分钟到开局后 30 分钟，docs/social.md 1.6）时带小点、点了去好友页看约局 */
+function AvatarLink({ path, name }: { path: string; name: string }) {
+  const due = useMeetupDue();
+  const href = due ? '/friends' : '/me';
+  return (
+    <Link className="account" href={href} title={due ? '约局到点了，去好友页' : '我的账号'} data-testid="avatar-link" {...here(path, '/me')}>
+      <span className="account__avatar" aria-hidden="true">
+        {Array.from(name)[0]}
+      </span>
+      <span className="account__name">{name}</span>
+      {due && <span className="dot" role="img" aria-label="约局到点了" data-testid="meetup-dot" />}
+    </Link>
+  );
+}
+
+/** 顶栏的"好友"：有还没过期的邀请时右上角带红点（docs/social.md 1.3）；有好友在线时左上角一个绿底数字（1.2），叠在按钮外、不占宽 */
 function FriendsLink({ path }: { path: string }) {
   const dot = useHasInvites();
+  const online = useOnlineFriends();
   return (
     <Link className="account account--nav" href="/friends" data-testid="friends-link" data-tour="friends" {...here(path, '/friends')}>
       <PeopleIcon />
       <span className="account__label">好友</span>
+      {online > 0 && (
+        <span className="account__online" role="img" aria-label={`${online} 个好友在线`} data-testid="online-count">
+          {online > 9 ? '9+' : online}
+        </span>
+      )}
       {dot && <span className="dot" role="img" aria-label="有人叫你" data-testid="invite-dot" />}
     </Link>
   );
