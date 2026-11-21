@@ -124,7 +124,8 @@ export function spottedText(e: Pick<Extract<GameEvent, { type: 'spotted' }>, 'ki
   const name = stockById(e.stockId).name;
   const mine = e.held ? '（你手里的）' : '';
   const pct = `${e.move > 0 ? '+' : ''}${fmt(e.move)}%`;
-  if (e.kind === 'boards') return `${name}${mine}连续 ${e.boards} 天涨停`;
+  // 0.36 新股连板单独播：「新股」打头，说上市后
+  if (e.kind === 'boards') return stockById(e.stockId).role === 'ipo' ? `新股${name}${mine}上市后连续 ${e.boards} 天涨停` : `${name}${mine}连续 ${e.boards} 天涨停`;
   if (e.kind === 'blown') return `${name}${mine}昨天涨停，今天没封住：${pct}`;
   return `过山车${name}${mine}${e.move >= 0 ? '突然暴涨' : '突然暴跌'} ${pct}`;
 }

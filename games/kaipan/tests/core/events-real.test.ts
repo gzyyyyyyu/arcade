@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { createRun, dailySetup, eventById, eventView, fx, itemById, rngFor, type GameState, type Segment } from '../../src/core/index.ts';
+import { createRun, dailySetup, liveSetup, eventById, eventView, fx, itemById, rngFor, type GameState, type Segment } from '../../src/core/index.ts';
 import { SENSITIVE_WORDS } from '../../src/core/content/tales.ts';
 import { SIX, must } from '../helpers.ts';
 
@@ -111,6 +111,69 @@ describe('0.20 真实行情局事件', () => {
       const s = atEvent(id);
       const v = eventView(s);
       const all = [v?.text ?? '', ...(v?.options ?? [])];
+      for (const o of [0, 1]) {
+        const r = must(atEvent(id), { type: 'choose', option: o });
+        const res = r.events.find((e) => e.type === 'eventResolved');
+        all.push(res && res.type === 'eventResolved' ? res.text : '');
+      }
+      for (const t of all) {
+        expect(t.length, id).toBeGreaterThan(4);
+        for (const w of SENSITIVE_WORDS) expect(t, `${id} ${w}`).not.toContain(w);
+      }
+    }
+  });
+});
+
+describe('0.36 消息面事件（政策、传闻、辟谣）', () => {
+  const NEWS = ['policy_talk', 'merger_rumor', 'debunk', 'stamp_tax', 'tv_analyst', 'fake_insider', 'rate_rumor', 'clarify'];
+  const INTEL: Record<string, string> = { policy_talk: 'mood_meter', merger_rumor: 'notebook', debunk: 'fan_qunzhu', stamp_tax: 'night_review', tv_analyst: 'rumor_mill' };
+
+  it('只在真实行情的普通局出：合成行情、每日挑战、实盘、12 月都不出', () => {
+    const synth = createRun('evt-synth', { account: 1e6, themes: SIX }).state;
+    const d = dailySetup('2026-10-27');
+    const daily = createRun(d.seed, d.setup, { segment: seg }).state;
+    const live = createRun('evt-live', liveSetup('small'), { segment: seg }).state;
+    const real = createRun('evt-synth', { account: 1e6, themes: SIX }, { segment: seg }).state;
+    for (const id of NEWS) {
+      for (const s of [synth, daily, live]) expect(eventById(id).prepare({ state: s, rng: rngFor('x'), month: 3 }), id).toBeNull();
+      expect(eventById(id).prepare({ state: real, rng: rngFor('x'), month: 3 }), id).not.toBeNull();
+      expect(eventById(id).prepare({ state: real, rng: rngFor('x'), month: 12 }), id).toBeNull();
+    }
+  });
+
+  it('情报类：听了拿到临时情报道具（到下月底），不听什么都不变；不改账户', () => {
+    for (const [id, item] of Object.entries(INTEL)) {
+      const s = atEvent(id);
+      const yes = must(s, { type: 'choose', option: 0 }).state;
+      expect(yes.items, id).toContain(item);
+      expect(yes.account, id).toBeCloseTo(s.account, 0);
+      expect(itemById(item).kind, id).toBe('network');
+      const no = must(atEvent(id), { type: 'choose', option: 1 }).state;
+      expect(no.items, id).not.toContain(item);
+      expect(no.account, id).toBeCloseTo(s.account, 0);
+    }
+  });
+
+  it('手里已有那个道具时不出', () => {
+    const s = atEvent('policy_talk');
+    s.items.push('mood_meter');
+    expect(eventById('policy_talk').prepare({ state: s, rng: rngFor('x'), month: 3 })).toBeNull();
+  });
+
+  it('小钱类：选了账户小赚（≤1%），不选不变', () => {
+    for (const id of ['fake_insider', 'rate_rumor', 'clarify']) {
+      const s = atEvent(id);
+      const amount = Math.round((s.account * fx(id, 'pct')) / 100);
+      expect(fx(id, 'pct')).toBeLessThanOrEqual(1);
+      expect(must(s, { type: 'choose', option: 0 }).state.account, id).toBeCloseTo(s.account + amount, 0);
+      expect(must(atEvent(id), { type: 'choose', option: 1 }).state.account, id).toBeCloseTo(s.account, 0);
+    }
+  });
+
+  it('文案齐全，不含敏感词', () => {
+    for (const id of NEWS) {
+      const v = eventView(atEvent(id));
+      const all = [v?.text ?? '', ...(v?.options ?? []), v?.brief ?? ''];
       for (const o of [0, 1]) {
         const r = must(atEvent(id), { type: 'choose', option: o });
         const res = r.events.find((e) => e.type === 'eventResolved');

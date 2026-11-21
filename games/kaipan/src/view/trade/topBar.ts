@@ -293,7 +293,9 @@ export class TopBarView {
     const months = runMonths(this.state);
     const cal = calendarView(this.state).filter((c) => c.month <= months);
     const cur = cal.find((c) => c.current);
-    const lines = cal.map((c) => `${c.current ? '▶ ' : '   '}${c.month}月 ${c.name}${c.days !== 5 ? `（${c.days} 天）` : ''}`);
+    // 0.36 打新、财报周也列上：哪个月第几天能抽新股、哪个月有财报周
+    const extra = (c: (typeof cal)[number]): string => [c.ipo ? `抽新股第${c.ipo.nth}天` : '', c.earnings ? '财报周' : ''].filter(Boolean).join(' · ');
+    const lines = cal.map((c) => `${c.current ? '▶ ' : '   '}${c.month}月 ${c.name}${c.days !== 5 ? `（${c.days} 天）` : ''}${extra(c) ? ` · ${extra(c)}` : ''}`);
     const mood = topBar(this.state).mood;
     return {
       title: cur ? `${cur.month}月 · ${cur.name}：${cur.desc}` : '日历',

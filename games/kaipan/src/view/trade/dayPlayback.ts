@@ -312,8 +312,10 @@ export class DayPlayback {
     // 消息揭晓（当天的、前几天的多日消息），然后播报、吐槽和新闻
     await this.s.chat.judge(a, pick(events, 'messageJudged'), T.judge * k, next);
     await this.s.chat.judgeIntel(a, pick(events, 'intelJudged'), T.judge * k);
-    const ticker = pick(events, 'spotted').sort((x, y) => Number(y.held) - Number(x.held)).map((e) => spottedText(e));
-    await this.s.chat.afterClose(a, pick(events, 'comment'), report?.news ?? [], T.comment * k, ticker);
+    // 0.36 新股上市当天也播一条（排最前：是你手里的）
+    const listed = pick(events, 'ipoListed').map((e) => `新股${stockById(e.stockId).name}（你手里的）上市首日 ${formatPoints(report?.stocks.find((m) => m.id === e.stockId)?.move ?? e.premium)}`);
+    const ticker = [...listed, ...pick(events, 'spotted').sort((x, y) => Number(y.held) - Number(x.held)).map((e) => spottedText(e))];
+    await this.s.chat.afterClose(a, pick(events, 'comment'), report?.news ?? [], T.comment * k, ticker, report ?? null);
     // 股灾：收盘后才揭晓，所有题材提前退潮
     if (first(events, 'crashHit')) {
       sound.cue({ type: 'weather', to: 'bear' });

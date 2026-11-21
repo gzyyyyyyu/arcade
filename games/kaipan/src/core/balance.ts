@@ -653,6 +653,9 @@ export const BALANCE: Balance = {
     broker_tea: { pct: 1, billMult: 0.9 },
     show_off: { pct: 1, billMult: 1.06 },
     free_eggs: { pct: 1 },
+    fake_insider: { pct: 0.5 },
+    rate_rumor: { pct: 0.5 },
+    clarify: { pct: 1 },
   },
   real: {
     ampMarket: 0.6,

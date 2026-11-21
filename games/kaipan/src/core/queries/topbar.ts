@@ -3,7 +3,8 @@ import { CALENDAR, calendarOf, difficultyDef, eventById, personaAccount, persona
 import { liveTierOf, liveValue } from '../live.ts';
 import { weeklyInfo, weeklyRule } from '../weekly.ts';
 import type { WeeklyRuleId } from '../weekly.ts';
-import { billFor, daysInMonth, daysLeftInMonth, flashDays, isBusy, isFlash, runMonths, shortGoal, swanNotice } from '../engine/index.ts';
+import { billFor, daysInMonth, daysLeftInMonth, flashDays, ipoOffer, isBusy, isFlash, runMonths, shortGoal, swanNotice } from '../engine/index.ts';
+import { earningsPlan } from '../earnings.ts';
 import { rulesWithoutTheme } from '../market.ts';
 import { WEATHER_LABEL } from '../labels.ts';
 import type { BillExtra, GameState, MarketNotice, SwanNotice, Mood, PersonaId } from '../types.ts';
@@ -147,6 +148,18 @@ export interface CalendarView {
   days: number;
   current: boolean;
   past: boolean;
+  /** 0.36 这个月的抽新股（第几天申购，1 起）；没有为 null */
+  ipo: { name: string; nth: number } | null;
+  /** 0.36 这个月有财报周 */
+  earnings: boolean;
+}
+
+/** 这个月的打新和财报周（日历上提前就能看到；只说哪天有，不说结果）。 */
+function monthExtras(s: Readonly<GameState>, month: number): Pick<CalendarView, 'ipo' | 'earnings'> {
+  const o = ipoOffer(s, month);
+  let start = 0;
+  for (let m = 1; m < month; m++) start += daysInMonth(m);
+  return { ipo: o ? { name: o.name, nth: o.day - start + 1 } : null, earnings: earningsPlan(s, month) !== null };
 }
 
 /** A 股日历：12 个月，固定、提前可见。 */
@@ -159,11 +172,12 @@ export function calendarView(s: Readonly<GameState>): CalendarView[] {
     days: daysInMonth(c.month),
     current: c.month === s.month,
     past: c.month < s.month,
+    ...monthExtras(s, c.month),
   }));
 }
 
 /** 当月日历事件。 */
 export function currentCalendar(s: Readonly<GameState>): CalendarView {
   const c = calendarOf(Math.max(1, s.month));
-  return { month: c.month, id: c.id, name: c.name, desc: s.real?.track && c.realDesc ? c.realDesc : c.desc, days: daysInMonth(c.month), current: true, past: false };
+  return { month: c.month, id: c.id, name: c.name, desc: s.real?.track && c.realDesc ? c.realDesc : c.desc, days: daysInMonth(c.month), current: true, past: false, ...monthExtras(s, c.month) };
 }

@@ -25,6 +25,8 @@
 - **群聊** `trade/chat.ts` 同样按职责拆出 `chatBubbles`（消息、吐槽）、`chatRec`（推荐卡）、`chatBanners`（横条、待揭晓）、`chatNews`（新闻）、`chatFluffView`（热闹元素）、`chatConsts`（尺寸常量）。
 - **行情画面** `trade/marketScreen.ts`（开盘区的大盘屏）读 `tape.ts`（情绪 `sentimentOf`、风口领涨领跌 `sectorMoves`、跑马灯）；股票详情 `trade/detail.ts` 的 K 线页由 `trade/kline.ts` 生成：
   开高低、分时、买卖力量和量柱在画面层按「种子:股票:交易日」用 `ui/stable.ts` 稳定生成，收盘涨跌只用已发生的（`stockMoves`），不读 `real`。
+- **群聊增量更新**（0.36.0）：`ChatView3.render` 记下消息侧的输入（日期、阶段、提示、消息、横条、新闻、押跌开关、推荐条数，手机上加推荐买没买），同一天这些没变（买卖、加自选）就只重建推荐卡；
+  收盘盖章、吐槽、系统提示等往群聊里加东西的方法把记录清掉，下一次整块重建。新加进群聊版面的输入要放进 `keyOf`。
 - **持仓格** `trade/holdings.ts`（`HoldingsView`）+ `slotCard.ts`（单张卡）+ `holdingsShared.ts`（冻结格、选择模式等共用小件）。
 - **结束页** `scenes/EndScene.ts` 保留生命周期、主结算页和对外方法，其余在 `end/`（拿场景引用 `s`）：`endGeo`（电脑 / 手机两套尺寸和分句换行）、
   `endFlash`（闪电盘 / 本周盘的结束页和滚数字演出）、`endRows`（右栏的挑战、排行榜、下次试试和「收获」一排）。

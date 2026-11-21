@@ -126,6 +126,14 @@ describe('事件（15 + 0.4 C 4 个，二选一）', () => {
       'broker_tea',
       'show_off',
       'free_eggs',
+      'policy_talk',
+      'merger_rumor',
+      'debunk',
+      'stamp_tax',
+      'tv_analyst',
+      'fake_insider',
+      'rate_rumor',
+      'clarify',
     ]);
     let n = 0;
     const N = 200;

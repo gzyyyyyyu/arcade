@@ -86,10 +86,10 @@ describe('每日挑战', () => {
 });
 
 describe('图鉴', () => {
-  it('股票 40、群友 10、道具 32、事件 25、成就 57，条目带名字和说明', () => {
+  it('股票 40、群友 10、道具 32、事件 33、成就 57，条目带名字和说明', () => {
     const c = codex();
     expect(c.stocks.map((e) => e.id)).toEqual(STOCKS.map((d) => d.id));
-    expect([c.stocks.length, c.friends.length, c.items.length, c.events.length, c.achievements.length]).toEqual([40, 10, 32, 25, 57]);
+    expect([c.stocks.length, c.friends.length, c.items.length, c.events.length, c.achievements.length]).toEqual([40, 10, 32, 33, 57]);
     for (const list of Object.values(c)) for (const e of list) expect(e.name.length * e.desc.length, e.id).toBeGreaterThan(0);
   });
 });

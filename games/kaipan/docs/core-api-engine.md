@@ -157,11 +157,13 @@ validate(state, action): string | null
 | `friendsView / friendView` | 群友名、身份、战绩、擅长风口 |
 | `topBar(s)` | 顶栏：月日、账户、账单、剩余天数、天气、道具、格数、人设难度、`daily`、`flash`（闪电盘的日期、第几天、共几天、开局资产；本周市场也有，date 是周号）、`weekly`（本周市场的周号、规则 id、名字、进局一句话、说明；不是本周市场为 null）、`notice`、`busy`、`live`（实盘档位名/一份/按现在资产能结回多少）、`expiring`、`pending` |
 | `billView(s)` | `amount`（总额）、`base`（常规）、`extras`（突发明细）、`enough`、`credit` |
-| `calendarView / currentCalendar` | 12 个月日历；真实行情下 `desc` 自动换成 `realDesc`（老话说……涨跌照真的走） |
+| `calendarView / currentCalendar` | 12 个月日历；真实行情下 `desc` 自动换成 `realDesc`（老话说……涨跌照真的走）；0.36 起带 `ipo`（这个月抽新股的名字、第几天）和 `earnings`（有没有财报周） |
 | `itemView(id)` / `rewardView(s)` / `eventView(s)` | 道具（`tag`「道具（常见）」、`brief` 短版）、三选一卡、事件（`brief`、`picks`） |
 | `monthThemeView(s)` | 本月主题与目标（第 9 节） |
 | `storyView(s)` | 局末「这段日子」（第 7 节） |
 | `runSummary(s)` | 结束页小结：`won, account, peakAccount, month, billsPaid, bestTrade, title, style, startAccount / billMoney / tradeMoney / otherMoney / debtLeft`（账：本钱 + 炒股 − 账单 + 其他 + 没还的借款 = 最后剩）、`runId`（只用来判重，不要解析）、`ranked, short, daily, flash, weekly, live, achievements, seen, segment, knowledge, recap` |
+| `dragonBoard(s, report?)` | 0.36 龙虎榜：`{ up, down, brag }`，涨跌各前 3（`BoardEntry`：名字、风口、涨跌、是否涨跌停、`callers` 当天说对它风口方向的群友名），`brag` 上榜群友的得意话；只读收盘报告，缺省 `s.lastDay` |
+| `earningsView(s)` / `earningsPlan(s, month)` | 0.36 财报周（`earnings.ts`）：盘前横条 `{ name, stage: soon/today/done, daysLeft, nth, bets[], move?, beat? }`；`earningsPlan` 是隐藏的日程（哪只、哪天），画面只用 `earningsView` |
 | `preHistory(s)` | 开局前 `warm` 天已发生的走势（大盘、个股、风口热度），按交易日同样的放大与截断算；合成行情补 20 天。画面画「开局前走势」只用它 |
 | `validate / canSell / canShortNow / holdingBase / daysInMonth / totalDays / baseBill` | 按钮可用性与日历、账单预览 |
 

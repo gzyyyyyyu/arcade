@@ -270,7 +270,7 @@ describe('事件、小知识、故事', () => {
       expect(eventById(id).text(e, s).length).toBeGreaterThan(8);
       for (const o of eventById(id).options(e, s)) expect(o.length).toBeGreaterThan(2);
     }
-    expect(EVENTS.length).toBe(25);
+    expect(EVENTS.length).toBe(33);
   });
 
   it('小知识：一句大白话 + 一句真实世界里叫什么；局中点亮、记进档案', () => {
