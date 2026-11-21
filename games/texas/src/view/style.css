@@ -322,7 +322,8 @@ body::before {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  z-index: 12;
+  /* 压在特效层（.fx 30）上面：分池的筹码从池子（就在结果条这里）飞出去，不能盖住刚出来的结果 */
+  z-index: 31;
 }
 .result.on { opacity: 1; animation: banner .35s ease-out; }
 .result:has(.r-face) { display: flex; align-items: center; gap: var(--s-3); text-align: left; padding-left: var(--s-2); }
@@ -1203,7 +1204,6 @@ body::before {
 .rw-sit { height: 40px; padding: 0 var(--s-3); flex: none; }
 .rw-seat:not(.taken) .rw-sit { height: 44px; width: 100%; }
 .rw-go { display: flex; align-items: center; gap: var(--s-3); margin-top: var(--s-4); }
-.rw-go .pill { height: 44px; }
 .rw-go .start { flex: 1; }
 .rw-wait { flex: 1; text-align: center; font-size: var(--fs-4); color: var(--muted); }
 .rw-two { text-align: center; font-size: var(--fs-3); color: var(--gold); }

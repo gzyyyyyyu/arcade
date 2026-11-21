@@ -155,5 +155,11 @@ export function createState(): State {
 /** 单机现金桌上正在快进（我弃牌了或没在这一手里）：好友房、快速匹配的真人桌、锦标赛都不快进 */
 export const fastForwarding = (s: State): boolean => !!s.solo && !s.online && !s.tour && fastForward(s.solo.table, s.ffSkip);
 
-/** 动画节奏：减少动画 0.3、快 0.55（快进时也走这一档）、正常 1，快速局再快一倍；好友房追状态时 0 */
-export const pace = (s: State): number => (s.skipAnim ? 0 : (s.reduced ? 0.3 : s.settings.fast || fastForwarding(s) ? 0.55 : 1) * (s.pfMode ? 0.5 : 1));
+/** 按档取倍率：减少动画 0.3、快 0.55（快进时也走这一档）、正常 normal，快速局再快一倍；好友房追状态时 0 */
+const tier = (s: State, normal: number): number => (s.skipAnim ? 0 : (s.reduced ? 0.3 : s.settings.fast || fastForwarding(s) ? 0.55 : normal) * (s.pfMode ? 0.5 : 1));
+
+/** 动画节奏。正常档 0.8：6 人桌打到摊牌一手里动画占大半，1 倍时一手要二十几秒（docs/experience.md 13.1） */
+export const pace = (s: State): number => tier(s, 0.8);
+
+/** 等待节奏：电脑想多久、一手打完停着看结果、自动下一手的倒数。正常档 1：想得久本身是给人看的信号，看结果也要时间 */
+export const waitPace = (s: State): number => tier(s, 1);

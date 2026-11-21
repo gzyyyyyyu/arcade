@@ -21,7 +21,7 @@ import { soloSummary, type SoloSummary } from '../view/summary.ts';
 import { must } from '../must.ts';
 import { shareIt } from './shell.ts';
 import { AUTO_NEXT_MS, END_CARD_MS, PF_NEXT_MS, RETRY_MS, TOPUP_RETRY_MS, TOPUP_WAIT_MS } from '../view/timing.ts';
-import { fastForwarding, LOGIN_NOTE, pace, type App, type Fns, type State } from './state.ts';
+import { fastForwarding, LOGIN_NOTE, waitPace, type App, type Fns, type State } from './state.ts';
 
 
 /** 单机和锦标赛的依赖：钱包（回话顺手记下最新余额）、本机存档、随机、电脑想多久、等多久、每一步的画面 */
@@ -39,14 +39,14 @@ export function soloDeps(s: State, fn: Fns): { deps: SoloDeps; tourDeps: TourDep
   };
   /**
    * 电脑想多久：规则在 src/ai/think.ts（纯函数，只看公开的局面、性格和这一场的快慢，不看牌力；docs/ai.md 4.7）。
-   * 这里只管三件页面上的事：随机流（每次打开页面一条，和牌无关）、7–9 人桌的紧凑、节奏档 pace
+   * 这里只管三件页面上的事：随机流（每次打开页面一条，和牌无关）、7–9 人桌的紧凑、等待节奏 waitPace
    */
   const thinkRng = stream(Array.from(crypto.getRandomValues(new Uint32Array(8))), 'think');
-  const think = (t: Table, seat: number): number => thinkMs(view(t, seat), thinkRng) * pace(s);
+  const think = (t: Table, seat: number): number => thinkMs(view(t, seat), thinkRng) * waitPace(s);
   // 单机桌我不在这一手里时电脑少想一会儿（只改等待，不碰规则和随机）
   const soloThink = (t: Table, seat: number): number => {
     const raw = thinkMs(view(t, seat), thinkRng);
-    return fastForwarding(s) ? ffThinkMs(raw, raw * pace(s)) : raw * pace(s);
+    return fastForwarding(s) ? ffThinkMs(raw, raw * waitPace(s)) : raw * waitPace(s);
   };
   const onStep = (st: Step): Promise<void> => fn.onStep(st);
   const deps: SoloDeps = {
@@ -66,7 +66,7 @@ export function soloDeps(s: State, fn: Fns): { deps: SoloDeps; tourDeps: TourDep
     // 我淘汰了在旁观时，电脑想得快一点
     think: (t, seat) => think(t, seat) * (s.tour?.eliminated ? 0.5 : 1),
     // 一手打完停几秒让人看清结果，再自动发下一手；旁观时短一点
-    gap: (watching) => (watching ? 1_200 : 3_200) * pace(s),
+    gap: (watching) => (watching ? 1_200 : 3_200) * waitPace(s),
     wait: deps.wait,
     onStep,
   };
@@ -170,7 +170,7 @@ export function createTable(c: App) {
     toggle(ring, 'hidden', !auto);
     if (!show || !auto) return stopCountdown();
     if (autoTimer) return;
-    const ms = (pfMode ? PF_NEXT_MS : AUTO_NEXT_MS) * pace(c);
+    const ms = (pfMode ? PF_NEXT_MS : AUTO_NEXT_MS) * waitPace(c);
     c.countdown = drain(ring, ms);
     autoTimer = window.setTimeout(nextHand, ms);
   }
@@ -219,7 +219,7 @@ export function createTable(c: App) {
       drawBetween(false);
       window.setTimeout(() => {
         if (c.solo === s) void f.pfFinish(s);
-      }, END_CARD_MS * pace(c));
+      }, END_CARD_MS * waitPace(c));
       return;
     }
     // 第一手由进桌时看完提示自己发，不给"下一手"
@@ -240,7 +240,7 @@ export function createTable(c: App) {
       bustTimer = window.setTimeout(() => {
         bustTimer = 0;
         if (c.solo === s && s.busted && c.animating === 0) void offerTopUp(true);
-      }, END_CARD_MS * pace(c));
+      }, END_CARD_MS * waitPace(c));
     }
   }
 

@@ -24,7 +24,7 @@ vi.mock('../../src/view/reads.ts', () => ({ readLines: vi.fn(), styleTag: vi.fn(
 vi.mock('../../src/app/shell.ts', () => ({ shareIt: vi.fn(() => null) }));
 
 import { createTable } from '../../src/app/table.ts';
-import { fastForwarding, LOGIN_NOTE, pace, type App } from '../../src/app/state.ts';
+import { fastForwarding, LOGIN_NOTE, pace, waitPace, type App } from '../../src/app/state.ts';
 import { RETRY_MS } from '../../src/view/timing.ts';
 import { site } from '../../src/site.ts';
 import { walletError } from '../../src/net/wallet.ts';
@@ -401,13 +401,14 @@ describe('快进', () => {
     expect(pace(c)).toBe(0.55);
   });
 
-  it('我没弃牌（还在这一手里）：不快进', async () => {
+  it('我没弃牌（还在这一手里）：不快进，动画正常档 0.8、等待 1', async () => {
     const s = await open();
     patch(s, () => ({ handNo: 3 }));
     mePatch(s, { status: 'active' });
     build(s);
     expect(fastForwarding(c)).toBe(false);
-    expect(pace(c)).toBe(1);
+    expect(pace(c)).toBe(0.8);
+    expect(waitPace(c)).toBe(1);
   });
 
   it('好友房、锦标赛、没有单机桌：都不快进', async () => {
@@ -435,7 +436,8 @@ describe('快进', () => {
     ui.ffBtn.click();
     expect(c.ffSkip).toBe(3);
     expect(fastForwarding(c)).toBe(false);
-    expect(pace(c)).toBe(1);
+    expect(pace(c)).toBe(0.8);
+    expect(waitPace(c)).toBe(1);
     patch(s, () => ({ handNo: 4 }));
     expect(fastForwarding(c)).toBe(true);
   });
