@@ -10,7 +10,7 @@ import { cellIdx, GRID, inGrid, inIsle } from './grid.ts';
 import { BEACH, ISLAND, UNIT } from './types.ts';
 import type { BBuilding, BChest, BUnit, BattleEvent, BattleSetup, BattleState, ChestReward, TroopKind } from './types.ts';
 
-export interface AllyPlan {
+interface AllyPlan {
   at: number;
   x: number;
   y: number;

@@ -9,11 +9,11 @@ import type { Kv } from './kv.ts';
 
 /** 奖杯差多少以内、主寨差几级以内算一个段位 */
 export const TROPHY_RANGE = 150;
-export const HQ_RANGE = 1;
+const HQ_RANGE = 1;
 /** 最近这么久有操作（上传快照）的算在线，不进匹配 */
 export const ONLINE_MS = 3 * 60_000;
 /** 这么多天没上传过快照的人不进匹配，记录逐步删掉 */
-export const INACTIVE_DAYS = 14;
+const INACTIVE_DAYS = 14;
 export const INACTIVE_MS = INACTIVE_DAYS * 24 * 3600_000;
 /** 一次范围查询最多取几个候选 */
 export const PICK_LIMIT = 32;
@@ -44,7 +44,7 @@ export interface RangeQuery {
  * 真人攻防的汇总统计（DESIGN.md 5.9）：不含任何个人信息，只有计数。cells 的键 `主寨差|进攻方主寨`，
  * 主寨差 = 防守方 − 进攻方，-2 以下并成 -2、+2 以上并成 2。放弃、过期空打只记 cancelled，不进 cells。
  */
-export interface StatCell {
+interface StatCell {
   n: number;
   /** 0 / 1 / 2 / 3 星各多少场 */
   stars: [number, number, number, number];
@@ -57,7 +57,7 @@ export interface PvpStats {
   cancelled: number;
   cells: Record<string, StatCell>;
 }
-export interface RaidSample {
+interface RaidSample {
   /** 防守方主寨 − 进攻方主寨（原值，这里再并档） */
   diff: number;
   attHq: number;
@@ -65,7 +65,7 @@ export interface RaidSample {
   pct: number;
   cancelled: boolean;
 }
-export const STAT_DIFF_MAX = 2;
+const STAT_DIFF_MAX = 2;
 const clampDiff = (d: number): number => Math.max(-STAT_DIFF_MAX, Math.min(STAT_DIFF_MAX, d));
 
 /** 把一场记进汇总（纯函数，测试直接用） */
@@ -107,7 +107,7 @@ export interface HarborStore {
 }
 
 /** 候选的主寨区间：不给就是同级上下各 HQ_RANGE 级；pick 分档挑时用它收窄 */
-export interface HqSpan {
+interface HqSpan {
   hqLo?: number;
   hqHi?: number;
 }

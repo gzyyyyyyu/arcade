@@ -33,7 +33,7 @@ import { castFlag, castReward, flagOn, navEnabled } from './tdnav.ts';
 import { dareCount, heroCd, initHappen, killGold, payBounty, queueBounty, raining, toggleDare } from './tdevent.ts';
 
 /** 敌人在格子里按 id 散开的步长（单位）：同一条路上的敌人错开成几列，不叠成一个点 */
-export const TD_LANE_SPREAD = 18;
+const TD_LANE_SPREAD = 18;
 /** 英雄等级上限：和基地的英雄研究一样（8 级后能研究到 12） */
 const HERO_MAX = HERO_RESEARCH_MAX;
 
@@ -238,7 +238,6 @@ export function createTd(setup: TdSetup): TdState {
     wave: 0,
     next: level.first,
     fires: [],
-    rally: { until: 0, ids: [] },
     barricades: [],
     over: false,
     internal,
@@ -573,12 +572,12 @@ export function tdBombDmg(s: TdState): number {
 }
 
 /** 岸防老炮一发的伤害：同一个口径，TD2_BATTERY.dmgPct% */
-export function tdBatteryDmg(s: TdState): number {
+function tdBatteryDmg(s: TdState): number {
   return Math.max(1, Math.floor((levelAvg(s).unit * TD2_BATTERY.dmgPct) / 100));
 }
 
 /** 友军巡航船一炮的伤害：同一个口径，TD2_FLEET.dmgPct% */
-export function tdFleetDmg(s: TdState): number {
+function tdFleetDmg(s: TdState): number {
   return Math.max(1, Math.floor((levelAvg(s).unit * TD2_FLEET.dmgPct) / 100));
 }
 

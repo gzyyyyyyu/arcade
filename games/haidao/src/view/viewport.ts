@@ -13,7 +13,7 @@ export const LOW_MEMORY = ((): boolean => {
 })();
 
 /** 手机平板画布渲染倍数的上限（见 renderScale） */
-export const PHONE_RS_CAP = 1.5;
+const PHONE_RS_CAP = 1.5;
 
 /** 画布的渲染倍数：按 devicePixelRatio，最多 2（电脑上 3 倍也没有看得出的好处，省显存）；手机平板另有 PHONE_RS_CAP。?rs=<1–3> 强制（帧率 A/B 测量用） */
 export function renderScale(): number {

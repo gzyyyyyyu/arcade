@@ -57,7 +57,7 @@ export const TD_SAPPER_WALL_COST = 1;
  * 驻岛版按守岛版（TD_HERO）的百分比折算，可以比守岛版弱：登陆战的兵是玩家自己挑的、会集火，英雄又不复活。
  * 改了跑 `node tools/raid-sim.ts --n 200` 看配平门槛（平均星数降 ≤ 0.3、胜率降 ≤ 10 个百分点）。
  */
-export const RAID_HERO_PCT = { hp: 50, dmg: 50, keg: 50 };
+const RAID_HERO_PCT = { hp: 50, dmg: 50, keg: 50 };
 export const RAID_HERO: TdHeroLevel[] = TD_HERO.map((h) => ({
   ...h,
   hp: Math.floor((h.hp * RAID_HERO_PCT.hp) / 100),

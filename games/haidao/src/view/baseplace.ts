@@ -40,7 +40,7 @@ function pickItems(bs: BaseScene): PickItem[] {
  * (wx, wy) 在建筑 id 的贴图不透明像素上吗：先按外框快速排除，再读那一个像素的 alpha
  * （alphaAt 只读 1×1，不读整张图）。
  */
-export function hitPixel(bs: BaseScene, id: number, wx: number, wy: number): boolean {
+function hitPixel(bs: BaseScene, id: number, wx: number, wy: number): boolean {
   const n = bs.nodes.get(id);
   if (!n?.img.visible) return false;
   const im = n.img;
@@ -67,7 +67,7 @@ function diamondPts(x: number, y: number, size: number): Phaser.Math.Vector2[] {
 }
 
 /** 悬停 / 按下的占地菱形加描边（鼠标悬停和手指按下共用） */
-export function drawHover(bs: BaseScene, id: number | null): void {
+function drawHover(bs: BaseScene, id: number | null): void {
   const g = bs.hoverG;
   g.clear();
   const b = id === null ? undefined : app.profile.base.buildings.find((q) => q.id === id);
@@ -385,7 +385,7 @@ export function lineBegin(bs: BaseScene, wx: number, wy: number, mouse = false):
 }
 
 /** 从起点拖到 (cx, cy)：取更长的那根轴画一排；合法的格子绿、不合法的红，费用实时显示 */
-export function setLine(bs: BaseScene, cx: number, cy: number): void {
+function setLine(bs: BaseScene, cx: number, cy: number): void {
   const pl = bs.place!;
   const f = pl.lineFrom ?? { x: cx, y: cy };
   const dx = cx - f.x;
@@ -430,7 +430,7 @@ export function dragTo(bs: BaseScene, wx: number, wy: number): void {
 }
 
 /** 虚影挪到 (x0, y0)：每一格按能放 / 出界 / 压到建筑涂色，底栏写原因（位置没变就不重画） */
-export function setPlace(bs: BaseScene, x0: number, y0: number): void {
+function setPlace(bs: BaseScene, x0: number, y0: number): void {
   const pl = bs.place!;
   const { x, y } = clampPlace(x0, y0, pl.size, bs.ext);
   if (pl.check && x === pl.x && y === pl.y) return;

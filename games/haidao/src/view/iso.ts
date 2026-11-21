@@ -3,8 +3,8 @@
  * 格 (x, y) 的菱形：宽 TILE_W、高 TILE_H；格坐标 (gx, gy)（可带小数）的屏幕位置 = 世界原点 + iso(gx, gy)。
  * 建筑贴图的锚点 = 它占地菱形的中心，美术按这个锚点画（art 里每张图给出 anchor）。
  */
-export const TILE_W = 64;
-export const TILE_H = 32;
+const TILE_W = 64;
+const TILE_H = 32;
 
 /** 格坐标 → 屏幕偏移（1 倍像素，未乘渲染倍数） */
 export function iso(gx: number, gy: number): { x: number; y: number } {

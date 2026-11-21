@@ -25,7 +25,7 @@ export function hullTone(pct: number): 'good' | 'mid' | 'low' {
   return pct < 34 ? 'low' : pct < 67 ? 'mid' : 'good';
 }
 
-export interface MendView {
+interface MendView {
   state: 'ready' | 'cool' | 'poor' | 'full';
   /** 冷却还剩多少（0..1），转圈用 */
   cd: number;
@@ -44,7 +44,7 @@ export function mendView(o: { hull: number; max: number; gold: number; tick: num
 }
 
 /** retreated：玩家点了撤退（规则里和误了潮一样是「没到也没沉」，只有画面层知道是谁结束的） */
-export interface ResultLike { arrived: boolean; sunk: boolean; retreated?: boolean }
+interface ResultLike { arrived: boolean; sunk: boolean; retreated?: boolean }
 /** 结算标题：到港 / 沉没 / 撤退 / 误了潮（没到也没沉、时间到了） */
 export function resultTitle(r: ResultLike): string {
   return r.arrived ? '到港' : r.sunk ? '沉没' : r.retreated ? '撤退' : '误了潮';

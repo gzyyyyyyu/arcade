@@ -6,7 +6,7 @@ import Phaser from 'phaser';
 import { CAMPAIGN } from '../content/index.ts';
 import { botActions, canLand, createBattle, rankOf, stepBattle } from '../core/index.ts';
 import { MAP_LAYERS, MAP_STOP_TICKS } from '../core/maptypes.ts';
-import { SCOUT_TIP, holdScout } from './battlescout.ts';
+import { FIRST_TIP, SCOUT_TIP, holdScout } from './battlescout.ts';
 import { scoutRings } from './battleranges.ts';
 import { BEACH, ISLAND, TICKS_PER_SEC, UNIT, type BattleAction, type BattleState, type BBuilding, type BUnit, type Placed, type TroopKind } from '../core/types.ts';
 import { app } from './app.ts';
@@ -37,7 +37,7 @@ import { iso } from './iso.ts';
 import { sfx, setAmbience } from './audio/sfx.ts';
 import { beachPts } from './battleadvice.ts';
 import { takeActions } from './battleflow.ts';
-import type { Tutorial } from './tutorial.ts';
+import { tutStep, type Tutorial } from './tutorial.ts';
 import { el } from './ui.ts';
 
 import type { BattleData, USpr, BSpr } from './battlecommon.ts';
@@ -437,7 +437,10 @@ export class BattleScene extends Phaser.Scene {
       el('p', '', `${MAP_STOP_TICKS / TICKS_PER_SEC} 秒内拆得越多，宝分越多`, box);
     }
     hint(this, ''); // 俯瞰期间只留下面这一条提示，收起后 afterSelect 再把"先点船卡"补回来
-    const tip = el('div', '', this.d.pvp?.replay || this.d.auto ? '红圈是防御的射程 · 点任意处开始' : SCOUT_TIP, cover);
+    // 新手第一场（引导第 5 步）只说一句大白话；射程、盲区、侦察计时这些等打过一场再讲
+    const first = tutStep() === 5 && !this.d.train;
+    const text = this.d.pvp?.replay || this.d.auto ? '红圈是防御的射程 · 点任意处开始' : first ? FIRST_TIP : SCOUT_TIP;
+    const tip = el('div', '', text, cover);
     tip.style.cssText = 'position:absolute;left:0;right:0;bottom:30%;box-sizing:border-box;padding:0 16px;text-wrap:balance;text-align:center;color:#fff;font:600 14px system-ui;text-shadow:0 1px 3px #000';
     let done = false;
     const end = (): void => {

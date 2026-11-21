@@ -50,7 +50,7 @@ export function drawBeach(bs: BattleScene): void {
 }
 
 /** 还有没登陆的船、也没在选技能：沙滩高亮着 */
-export function beachOn(bs: BattleScene): boolean {
+function beachOn(bs: BattleScene): boolean {
   return !bs.st.over && !bs.ended && bs.selSkill < 0 && bs.groups.some((g) => g.idx.some((i) => bs.st.landed[i] !== true));
 }
 
@@ -105,7 +105,7 @@ export function buildUi(bs: BattleScene): void {
 export const SKILL_KEYS = 'qwertyuiop';
 
 /** 放不下要滑时给个渐隐提示（竖屏兵种行向右滑，横屏右列向下滑）；滑到头就收掉 */
-export function updateMore(bs: BattleScene): void {
+function updateMore(bs: BattleScene): void {
   const b = bs.boatsEl;
   const c = bs.cardsEl;
   b.classList.toggle('hd-more', b.scrollWidth > b.clientWidth + 2 && b.scrollLeft + b.clientWidth < b.scrollWidth - 2);
@@ -184,7 +184,7 @@ export function sig(bs: BattleScene): string {
  * 船都出完、兵（医疗兵不算）都倒了、还没结束：规则核心要能量也不够放技能才自动结束（battle.ts 的 spent），
  * 剩着能量时计时照走、画面上什么都不动，玩家不知道在等什么。提示条和发光的「结束」钮告诉玩家下一步
  */
-export function allDown(bs: BattleScene): boolean {
+function allDown(bs: BattleScene): boolean {
   const s = bs.st;
   return !s.over && !bs.d.pvp?.replay && s.landed.every(Boolean) && !s.units.some((u) => u.mode !== 'dead' && u.kind !== 'medic');
 }
@@ -280,7 +280,7 @@ function tapNote(bs: BattleScene, wx: number, wy: number, text: string, color: s
 }
 
 /** 点到了不能登陆的地方：提示一句，沙滩亮一下提醒往哪点 */
-export function badTap(bs: BattleScene, wx: number, wy: number, text = '✕ 只能在沙滩登陆'): void {
+function badTap(bs: BattleScene, wx: number, wy: number, text = '✕ 只能在沙滩登陆'): void {
   tapNote(bs, wx, wy, text, '#ff8a7a', 18);
   if (bs.selBoat < 0) return;
   bs.tweens.killTweensOf(bs.beachG);
@@ -336,7 +336,7 @@ export function askEnd(bs: BattleScene): void {
 }
 
 /** 航线站的顶栏条：第 N/4 站 · 宝分 · 倒计时条（样式在 mapcss.ts） */
-export function mapStrip(bs: BattleScene, m: MapStopHooks): void {
+function mapStrip(bs: BattleScene, m: MapStopHooks): void {
   const strip = el('div', 'hd-mapstrip', undefined, bs.ui);
   el('b', '', `第 ${m.stop}/${MAP_LAYERS} 站`, strip);
   const pts = el('span', 'hd-mapstrip-pts', undefined, strip);
@@ -347,7 +347,7 @@ export function mapStrip(bs: BattleScene, m: MapStopHooks): void {
   bs.mapEl = { pts: n, bar, lastPct: -1 };
 }
 
-export function mapStripTick(bs: BattleScene, m: MapStopHooks, r: BattleResult): void {
+function mapStripTick(bs: BattleScene, m: MapStopHooks, r: BattleResult): void {
   const me = bs.mapEl!;
   const k = Math.max(0, 1 - bs.st.tick / MAP_STOP_TICKS);
   me.bar.style.transform = `scaleX(${k.toFixed(4)})`;
@@ -444,7 +444,8 @@ export function tutRefresh(bs: BattleScene): void {
   const root = bs.ui;
   const sk = bs.d.setup.army.skills;
   const cost = sk[0] ? (SKILLS[sk[0].kind].levels[sk[0].level - 1]?.energy ?? 99) : 99;
-  if (bs.selSkill >= 0) return t.show('aim', '再点敌人的建筑，炮弹就打过去了', null);
+  // 选中技能后瞄准条（aimcalc）已经说了点哪里，引导框收起，同屏只留一句
+  if (bs.selSkill >= 0) return t.hide();
   if (s.landed.some(Boolean) && s.energy >= cost && !bs.skillUsed && sk[0]) {
     return t.show('skill', '能量够了！点“' + SKILLS[sk[0].kind].name + '”，再点敌人的建筑', () => rectOf(bs.skillsEl.querySelector('.hd-skill'), root));
   }

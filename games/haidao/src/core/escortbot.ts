@@ -59,7 +59,7 @@ function aheadGap(s: TdState, sl: { x: number; y: number }): number {
   return -1;
 }
 
-export type EscortBot = (s: TdState) => TdAction[];
+type EscortBot = (s: TdState) => TdAction[];
 
 /** 造一个护航机器人：返回"看一眼状态 → 这一拍的操作"的函数 */
 export function escortBotActions(kind: EscortBotKind, seed: number): EscortBot {

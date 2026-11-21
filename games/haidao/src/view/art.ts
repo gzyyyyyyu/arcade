@@ -36,7 +36,7 @@ export type { ArtPiece };
 /** 环境动画用的素材（envfx.ts）：棕榈 5 帧错切、主寨无旗布版、旗布 3 帧；按参数记下来，不每次现画 */
 let palmMemo: ArtPiece[] | null = null;
 export const palmFrames = (): ArtPiece[] => (palmMemo ??= palmSwayFrames());
-export const hqNf = (level: number): ArtPiece => m(`hqnf${level}`, () => hqNoFlagArt(level));
+const hqNf = (level: number): ArtPiece => m(`hqnf${level}`, () => hqNoFlagArt(level));
 const flagMemo = new Map<number, ArtPiece[]>();
 export const hqFlagF = (level: number): ArtPiece[] => {
   const v = flagMemo.get(level) ?? hqFlagFrames(level);

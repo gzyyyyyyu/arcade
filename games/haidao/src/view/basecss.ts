@@ -73,7 +73,7 @@ ${W} .hd-sheet .hd-rs { display:grid; grid-template-columns:minmax(0,3fr) minmax
 /* 研究区：先靠缩卡片放下；真放不下（手机横屏、矮竖屏）只这一块原生惯性滚动，升级钮和底栏不动 */
 ${W} .hd-base > .hd-sheet:has(.hd-rs) { display:flex; flex-direction:column; overflow:hidden; }
 ${W} :where(.hd-base > .hd-sheet:has(.hd-rs)) > .hd-sbody { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
-${W} .hd-sheet .hd-up-more:has(> .hd-rs) { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; }
+${W} .hd-sheet .hd-up-more:has(> .hd-rs) { flex:1 1 auto; min-height:0; overflow:hidden; }
 ${W} .hd-sheet .hd-rs-g.troops { grid-column:1 / -1; }
 ${W} .hd-sheet .hd-rs-t { display:block; font-size:14px; font-weight:900; margin:0 0 2px; }
 ${W} .hd-sheet .hd-rs-grid { display:grid; gap:8px; }
@@ -253,7 +253,7 @@ ${W} .hd-fleetgrid .hd-card { min-height:0; padding:6px 2px; gap:2px; border-wid
 ${W} .hd-fleetgrid .hd-card.cur { background:#ffe885; }
 ${W} .hd-fleetgrid .hd-nm { font-size:14px; text-align:center; }
 ${W} .hd-fleetgrid .hd-sub { text-align:center; line-height:1.2; }
-${W} .hd-fleetgrid .hd-card .hd-img { height:36px !important; width:auto !important; }
+${W} .hd-fleetgrid .hd-card > .hd-img { height:36px !important; width:auto !important; }
 ${W} .hd-boatname { font-weight:900; margin:0 0 6px; }
 
 /* 侦察图是可拖动缩放的视窗，内容按需缩放，不是溢出；用 clip 明示裁在视窗里 */
@@ -276,8 +276,10 @@ ${W} .hd-scout-map { overflow:clip !important; }
   ${W} .hd-base > .hd-sheet .hd-pager { margin-top:8px; }
   ${W} .hd-base > .hd-sheet .hd-tabs { margin-bottom:4px; }
   ${W} .hd-base > .hd-sheet .hd-fleetgrid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin-bottom:2px; }
-  ${W} .hd-base > .hd-sheet .hd-fleetgrid .hd-card { padding:3px 2px; }
-  ${W} .hd-base > .hd-sheet .hd-fleetgrid .hd-card .hd-img { height:22px !important; }
+  /* 船队卡横屏改成「兵图在左、名字和木材在右」：两排卡各省一截高度，主寨 7 级兵种多也一屏放下 */
+  ${W} .hd-base > .hd-sheet .hd-fleetgrid .hd-card { padding:3px 4px; display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:4px; align-items:center; justify-items:start; }
+  ${W} .hd-base > .hd-sheet .hd-fleetgrid .hd-card > .hd-img { height:26px !important; grid-row:1 / span 3; }
+  ${W} .hd-base > .hd-sheet .hd-fleetgrid .hd-card > span { text-align:left; }
   ${W} .hd-fleetgrid .hd-card > span { line-height:1.15; }
   ${W} .hd-sbody > .hd-chips:last-child { margin:2px 0 0; }
   ${W} .hd-boattabs { margin-bottom:8px; }
@@ -301,7 +303,7 @@ ${W} .hd-scout-map { overflow:clip !important; }
   ${W} .hd-base > .hd-sheet .hd-desc { margin:0 0 6px; }
   ${W} .hd-fleetgrid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
   ${W} .hd-fleetgrid .hd-sub { font-size:12px; }
-  ${W} .hd-fleetgrid .hd-card .hd-img { height:30px !important; }
+  ${W} .hd-fleetgrid .hd-card > .hd-img { height:30px !important; }
   ${W} .hd-base > .hd-sheet .hd-unlock { padding:6px 8px; margin-bottom:6px; }
   ${W} .hd-base > .hd-sheet .hd-items { margin:4px 0; }
   ${W} .hd-base > .hd-sheet .hd-chips { margin-bottom:8px; }

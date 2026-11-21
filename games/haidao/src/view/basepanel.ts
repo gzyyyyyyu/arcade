@@ -141,9 +141,10 @@ export function openInfo(bs: BaseScene, id: number): void {
     }
     el('p', 'hd-td-note', '守岛全额生效；别人来打你时效果打折，防空、穿甲、灯塔不起作用', more);
   }
-  if (b.kind === 'armory') researchList(bs, more, b.id);
+  const pageResearch = b.kind === 'armory' ? researchList(bs, more, b.id) : null;
   if (!more.childElementCount) more.remove();
   footRow(bs, box, body, b);
+  pageResearch?.();
 }
 
 /** 左栏：当前等级的大立绘；能升级时下面一排"N 级 → N+1 级"两张小图（下一级带金光） */
@@ -244,7 +245,7 @@ function footRow(bs: BaseScene, box: HTMLElement, body: HTMLElement, b: Placed):
 }
 
 /** 成就面板：列表、已得/未得、挑一个称号显示在顶栏 */
-export function openAchievements(bs: BaseScene, tab: 'ach' | 'col' = 'ach'): void {
+function openAchievements(bs: BaseScene, tab: 'ach' | 'col' = 'ach'): void {
   const p = app.profile;
   const list = achievementList();
   const { body } = openSheet(bs, `成就 ${p.achievements.length}/${list.length}`);

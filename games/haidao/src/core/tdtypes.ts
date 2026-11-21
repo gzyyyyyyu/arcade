@@ -129,7 +129,7 @@ export interface TdWave {
   hpPct?: number;
 }
 
-export interface TdObstacle {
+interface TdObstacle {
   kind: 'wreck' | 'barrel';
   x: number;
   y: number;

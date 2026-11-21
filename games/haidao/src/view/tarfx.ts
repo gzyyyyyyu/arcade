@@ -13,7 +13,7 @@ import { DEPTH } from './depth.ts';
 /** 水洼停留多久、再用多久淡掉（毫秒） */
 export const PUDDLE_HOLD = 3500;
 export const PUDDLE_FADE = 2500;
-export const PUDDLE_MAX = 10;
+const PUDDLE_MAX = 10;
 
 /** 水洼的样子：age = 出现多久；a = 不透明度系数，grow = 大小系数（刚溅开时从 0.4 很快铺到 1） */
 export function puddleLook(age: number): { a: number; grow: number } {
@@ -50,7 +50,7 @@ interface Puddle {
 /** 1 格在等距屏幕上的横向半径（像素） */
 const CELL_RX = 45.25;
 
-export class TarGround {
+class TarGround {
   private readonly g: Phaser.GameObjects.Graphics;
   private readonly pool: Puddle[] = [];
   private n = 0;

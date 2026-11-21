@@ -24,7 +24,7 @@ export function worldBounds(ext: number): Bounds {
 }
 
 /** 画面层用的确定性散列（同一个格子每次得到同一个数，不用随机数） */
-export function hash2(x: number, y: number, salt = 0): number {
+function hash2(x: number, y: number, salt = 0): number {
   let h = (Math.imul(x + 1000, 73856093) ^ Math.imul(y + 1000, 19349663) ^ Math.imul(salt + 7, 83492791)) >>> 0;
   h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0;
   return (h ^ (h >>> 13)) >>> 0;

@@ -18,7 +18,7 @@ import { drawFlare } from './battleranges.ts';
 import { STEP_MS } from './motion.ts';
 
 /** 城墙按四邻选图（和基地一致） */
-export function wallMaskOf(bs: BattleScene, w: { x: number; y: number; id: number }): number {
+function wallMaskOf(bs: BattleScene, w: { x: number; y: number; id: number }): number {
   const has = (x: number, y: number): boolean => bs.st.buildings.some((q) => q.kind === 'wall' && q.hp > 0 && q.x === x && q.y === y);
   return (has(w.x, w.y - 1) ? 1 : 0) | (has(w.x + 1, w.y) ? 2 : 0) | (has(w.x, w.y + 1) ? 4 : 0) | (has(w.x - 1, w.y) ? 8 : 0);
 }

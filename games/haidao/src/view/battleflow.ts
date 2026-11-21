@@ -11,7 +11,7 @@ export function takeActions(botAct: ReadonlyArray<BattleAction>, botI: number, p
 }
 
 /** 画面处理事件的顺序 = 规则核心给出的数组顺序；这里按拍分好，供测试锁住 */
-export interface TickEvents {
+interface TickEvents {
   tick: number;
   events: BattleEvent[];
 }

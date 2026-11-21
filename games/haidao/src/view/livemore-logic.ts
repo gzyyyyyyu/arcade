@@ -7,7 +7,7 @@ import type { LiveTier } from '../core/live.ts';
 import { mapLiveBp } from '../core/maplive.ts';
 import type { MapState } from '../core/maptypes.ts';
 
-export const MAPLIVE_RUN_KEY = 'haidao.maplive.run';
+const MAPLIVE_RUN_KEY = 'haidao.maplive.run';
 
 /** 本机记的实盘航线：哪一天、哪一档、走到哪（进了战斗还没写回的一站记在 pending） */
 export interface LiveRun {

@@ -42,7 +42,7 @@ export const hook = (page: Page): Promise<Hook> => page.evaluate(() => ((window 
 type SfxCount = { req: number; played: number; gap: number; cap: number; silent: number };
 const sfxTotal = new Map<string, SfxCount>();
 /** 每 400ms 读一次页面里的计数（页面跳转会清零，按增量累加；计数只增不减，变小就当作重新载入） */
-export function trackSfx(page: Page): () => Promise<void> {
+function trackSfx(page: Page): () => Promise<void> {
   const prev = new Map<string, SfxCount>();
   const poll = async (): Promise<void> => {
     const st = await page.evaluate(() => (window as unknown as { __haidao?: { sfxStats?(): { counts: Record<string, SfxCount> } } }).__haidao?.sfxStats?.().counts ?? null).catch(() => null);

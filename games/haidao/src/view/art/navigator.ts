@@ -7,7 +7,7 @@ import { PALETTE as C } from './palette.ts';
 import type { Look, TroopDeco } from './troops.ts';
 
 /** 深青外套（急射旗旗面、选英雄钮也用这个色） */
-export const NAV_COAT = '#1f7a8c';
+const NAV_COAT = '#1f7a8c';
 const COAT_D = '#155866';
 const BRAID = '#4a2a1a';
 const BRASS = '#d8a33c';

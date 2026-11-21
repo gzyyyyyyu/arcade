@@ -2,7 +2,7 @@ import { attachIntel } from './intelcard.ts';
 import { troopCard } from './intel.ts';
 import type { BaseScene } from './BaseScene.ts';
 import { TROOPS } from '../content/index.ts';
-import { hqLevel, boatSlots, setBoat, armyFor, armyCost, startCampaign, researchLevel } from '../core/index.ts';
+import { hqLevel, boatSlots, setBoat, armyFor, armyCost, startCampaign, researchLevel, upgrade } from '../core/index.ts';
 import type { TroopKind, BuildingKind } from '../core/types.ts';
 import { liveEntryReady, openTdLive } from './live.ts';
 import { app } from './app.ts';
@@ -53,10 +53,13 @@ export function openFleet(bs: BaseScene): void {
     if (locked) el('span', 'hd-sub', `主寨 ${t.unlockHq} 级开放`, c);
     else if (!hyp.ok) el('span', 'hd-sub', '一场只能带一个船长', c);
     else {
-      // 每船装 N 个、每个 X 木材；装不满写剩几格空着（容量和人口来自内容表，人数来自核心）
+      // 每个多少木材（图标 + 数字，一行放得下）；装不满才标红写空几格（容量和人口来自内容表，人数来自核心）
       const spare = Math.max(0, boatCap - count * t.housing);
-      el('span', 'hd-sub hd-n', `每个 ${t.levels[(app.profile.research[k] ?? 1) - 1]?.cost ?? t.levels[0]?.cost ?? 0} 木材`, c);
-      el('span', spare > 0 ? 'hd-sub hd-short' : 'hd-sub', spare > 0 ? `剩 ${spare} 格空着` : '装满了', c);
+      const each = t.levels[(app.profile.research[k] ?? 1) - 1]?.cost ?? t.levels[0]?.cost ?? 0;
+      const per = el('span', 'hd-sub', undefined, c);
+      per.appendChild(costRow({ gold: 0, wood: each }));
+      per.title = `每个 ${each} 木材`;
+      if (spare > 0) el('span', 'hd-sub hd-short', `空 ${spare} 格`, c);
     }
     attachIntel(c, () => troopCard(k, researchLevel(app.profile, k)));
     c.addEventListener('click', () => {
@@ -230,7 +233,16 @@ export function tutRefresh(bs: BaseScene): void {
     case 5:
       t.show('sail', '点“出海”，去打第一座岛', () => rectOf(bs.mapBtn, root));
       break;
-    default:
-      t.show('home', '打赢了！点一座建筑再点“升级”，用抢来的资源变强', null);
+    default: {
+      // 主寨 1 级时别的建筑都升不了（等级不能超过主寨），所以直接指主寨；星或资源不够就叫他再出海
+      const hq = bld('hq');
+      if (hq === undefined || !upgrade(app.profile, hq).ok) {
+        t.show('home-sail', '打赢了！再打几座岛攒星，星够了就能升主寨', () => rectOf(bs.mapBtn, root));
+        break;
+      }
+      const up = bs.ring.isOpen && bs.ring.owner === hq ? bs.ring.button('upgrade') : null;
+      if (up) t.show('hq-up', '点“升级”，主寨升到 2 级，开放新建筑', () => rectOf(up, root));
+      else t.show('home', bs.touch ? '打赢了！星够了：点中间的主寨，再点“升级”' : '打赢了！星够了：点一下主寨，再点“升级”', world(hq));
+    }
   }
 }

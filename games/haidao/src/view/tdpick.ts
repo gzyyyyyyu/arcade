@@ -14,7 +14,7 @@ import { slotLift } from './tdcliff.ts';
 const ALPHA_MIN = 24;
 
 /** 每块木台一项：占地 2×2（高台的占地跟着画面抬高）；有塔的取塔图的真实深度 */
-export function slotItems(bs: TdScene): PickItem[] {
+function slotItems(bs: TdScene): PickItem[] {
   const tower = new Map<number, number>();
   for (const sp of bs.tsp.values()) if (sp.slot >= 0) tower.set(sp.slot, sp.img.depth);
   return bs.s.slots.map((q, i) => {
@@ -36,7 +36,7 @@ function opaqueAt(bs: TdScene, key: string, im: Phaser.GameObjects.Image, wx: nu
 }
 
 /** (wx, wy) 在第 slot 块木台上那座塔的不透明像素上（或附近）吗：九个取样点，先按外框快速排除 */
-export function hitTower(bs: TdScene, slot: number, wx: number, wy: number): boolean {
+function hitTower(bs: TdScene, slot: number, wx: number, wy: number): boolean {
   for (const sp of bs.tsp.values()) {
     if (sp.slot !== slot) continue;
     const im = sp.img;

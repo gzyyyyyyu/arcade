@@ -6,7 +6,7 @@ import type Phaser from 'phaser';
 import { parseSeen } from './battlehint.ts';
 import { el } from './ui.ts';
 
-export interface HintRow {
+interface HintRow {
   icon: HTMLElement;
   name: string;
   text: string;

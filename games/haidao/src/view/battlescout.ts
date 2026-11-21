@@ -10,7 +10,7 @@ import { TROOPS } from '../content/index.ts';
 import type { ArmySetup, BUnit, TroopKind } from '../core/types.ts';
 
 /** 侦察期要看的现场：拍数、是不是回放、预排的电脑操作有几条、玩家这一拍排了几条 */
-export interface ScoutCtx {
+interface ScoutCtx {
   tick: number;
   replay: boolean;
   botActs: number;
@@ -30,6 +30,8 @@ export const SCOUT_LABEL = '侦察中';
 
 /** 开场俯瞰的提示合成这一条：红圈是什么、点哪里继续、什么时候开始计时；"先点船卡再点沙滩"留给俯瞰收起后的提示条，不同时出现 */
 export const SCOUT_TIP = '红圈是射程、斜线暗圈是打不到的盲区 · 点任意处开始侦察，出第一船才开始计时';
+/** 新手第一场的开场提示：不讲盲区和计时，只说红圈危险、点一下开始 */
+export const FIRST_TIP = '这是敌人的岛，红圈里的炮会打你的兵 · 点一下开始';
 
 /** 每拍最多算一次兵团血量：全部登陆过的兵的当前血 / 满血 */
 export function troopHpPct(units: ReadonlyArray<Pick<BUnit, 'hp' | 'maxHp'>>): number {

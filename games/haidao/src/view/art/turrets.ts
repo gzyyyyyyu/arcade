@@ -413,7 +413,7 @@ function harpoonDir(phi: number, lv: number, loaded: boolean): { body: string; p
 }
 
 /** 鱼叉头：三角形矛尖加一个倒钩，朝 from → tip 的方向 */
-export function harpoonHead(tip: Pt, from: Pt, lv: number): string {
+function harpoonHead(tip: Pt, from: Pt, lv: number): string {
   const dx = tip[0] - from[0];
   const dy = tip[1] - from[1];
   const l = Math.hypot(dx, dy) || 1;

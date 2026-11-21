@@ -12,7 +12,7 @@ import { footCenter, iso } from './iso.ts';
  */
 
 /** 一座建筑的射程和盲区（格）；不是会打人的防御返回 null。地雷、焦油是陷阱、墙不打人，不画 */
-export function defenseReach(b: BBuilding): { range: number; minRange: number } | null {
+function defenseReach(b: BBuilding): { range: number; minRange: number } | null {
   if (b.kind === 'mine' || b.kind === 'tar' || b.kind === 'wall') return null;
   const lvl = BUILDINGS[b.kind]?.levels[b.level - 1] as { range?: number; minRange?: number; dmg?: number } | undefined;
   if (!lvl?.range || !lvl.dmg) return null;

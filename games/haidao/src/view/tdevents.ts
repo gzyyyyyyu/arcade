@@ -527,7 +527,7 @@ function recordReason(bs: TdScene, e: TdEvent): void {
   } else if (e.type === 'hero' && e.what === 'down') log.heroDown++;
 }
 
-export function chestNear(bs: TdScene, ux: number, uy: number): { x: number; y: number } {
+function chestNear(bs: TdScene, ux: number, uy: number): { x: number; y: number } {
   let best = bs.s.treasures[0];
   let bd = 1e18;
   for (const t of bs.s.treasures) {

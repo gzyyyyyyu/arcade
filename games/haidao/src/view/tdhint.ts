@@ -64,7 +64,7 @@ export const MECH_KEY = 'haidao.hint.mech';
 /** 航海士技能持续几秒（提示、技能钮的悬停说明共用，跟着 TD2_NAV_SKILL 走） */
 export const navSecs = (k: 'flag' | 'reward'): number => Math.round(TD2_NAV_SKILL[k].ticks / TICKS_PER_SEC);
 /** 章末机制、关内事件、第一次带航海士和第一次见到崖上的高台共用这一套首次提示 */
-export type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet' | TdEventKind | 'nav' | 'cliff';
+type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet' | TdEventKind | 'nav' | 'cliff';
 
 /** 每种章末机制一句怎么用（每章倒数第二关第一次见到时弹，和新敌人共用一张卡） */
 export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }>> = {

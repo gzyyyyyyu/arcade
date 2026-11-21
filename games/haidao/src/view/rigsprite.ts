@@ -75,7 +75,7 @@ const FLASH_STEPS = 5;
 const FLASH_LIGHT = { hold: 40, total: 100 };
 const FLASH_HEAVY = { hold: 70, total: 180 };
 /** 受击闪白的档位（1..FLASH_STEPS，0 = 不闪）；el = 挨打后过了多少毫秒 */
-export function flashStep(el: number, heavy: boolean): number {
+function flashStep(el: number, heavy: boolean): number {
   const f = heavy ? FLASH_HEAVY : FLASH_LIGHT;
   if (el < 0 || el >= f.total) return 0;
   if (el < f.hold) return FLASH_STEPS;

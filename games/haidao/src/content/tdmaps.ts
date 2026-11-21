@@ -30,7 +30,7 @@ const SAMPLE_LAYOUT = layoutOf([
 ]);
 
 /** 样板关：8 波，水手为主，第 3 波起铁甲、第 5 波起小艇，第 6 波起落潮路开。单测和规则核心的冒烟用，数值不配平 */
-export const TD2_SAMPLE_LEVEL: TdIslandLevel = {
+const TD2_SAMPLE_LEVEL: TdIslandLevel = {
   id: 'td2-sample',
   name: '样板关',
   index: 0,

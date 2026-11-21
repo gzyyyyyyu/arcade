@@ -17,7 +17,7 @@ import { DEPTH } from './depth.ts';
  * 演出不挡操作：期间照样能点别的建筑、开面板、再升级（同一座再升级会把上一场直接播完）。
  */
 
-export interface UpStart {
+interface UpStart {
   img: Phaser.GameObjects.Image;
   /** 占地边长（选脚手架尺寸） */
   size: number;
@@ -83,7 +83,7 @@ interface Drop {
 const MAX_SLOTS = 4;
 const FONT = 'system-ui,"PingFang SC","Microsoft YaHei",sans-serif';
 
-export interface BuildStart {
+interface BuildStart {
   img: Phaser.GameObjects.Image;
   size: number;
   /** 大建筑：金光、彩带和声音用大档 */

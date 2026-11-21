@@ -30,7 +30,7 @@ export const STREAK_STEP_PCT = 10;
 export const STREAK_MAX_PCT = 50;
 /** 0 星的安慰奖：这关掠夺的百分之几，另给一点木材 */
 export const CONSOLATION_PCT = 15;
-export const CONSOLATION_WOOD = 10;
+const CONSOLATION_WOOD = 10;
 
 export type Drop =
   | { kind: 'gold' | 'wood'; amount: number }

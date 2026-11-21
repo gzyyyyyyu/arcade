@@ -28,7 +28,7 @@ export function tdDailyCap(p: Profile): Res {
 }
 
 /** 守岛类（战役、护航、海盗来袭）一局实际发多少，以及写回存档的 res、当天已拿 */
-export interface TdGrant {
+interface TdGrant {
   /** 本局奖励：先按今天剩的上限截，再按仓库剩的空间截 */
   run: Res;
   /** 首次拿星的奖励：不占每日上限，只按仓库截（先装它） */

@@ -719,7 +719,11 @@ try {
       await attempt('介绍卡片', async () => {
         // 船队面板的兵种卡全在一页上（建造列表分页，第一张带介绍的卡可能在没翻到的页）
         await click('.hd-bottom button:has-text("船队")');
+        // 鼠标还停在「船队」钮的位置，面板弹出后正压在一张兵种卡上，悬停会弹介绍卡片把面板盖住：先移开
+        await page.mouse.move(0, 0);
         await page.waitForTimeout(400);
+        // 主寨 7 级的船队面板（兵种多、每格写满）比新档的挤，单独量一次
+        await snap('船队面板（主寨 7 级）');
         const card = page.locator('.hd-fleetgrid .hd-intel-host:visible').first();
         if (v.hasTouch) {
           const b = (await card.boundingBox())!;
@@ -741,6 +745,7 @@ try {
       await fresh();
       await attempt('船队面板', async () => {
         await click('.hd-bottom button:has-text("船队")');
+        await page.mouse.move(0, 0);
         await snap('船队面板');
         await closeSheet();
       });

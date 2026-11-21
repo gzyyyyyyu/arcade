@@ -249,7 +249,7 @@ export function stepFog(bs: TdScene, now: number): void {
   }
 }
 
-export function fogOff(bs: TdScene): boolean {
+function fogOff(bs: TdScene): boolean {
   return bs.s.level.fogFrom !== undefined && bs.s.wave <= bs.s.level.fogFrom;
 }
 

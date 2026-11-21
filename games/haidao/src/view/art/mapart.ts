@@ -226,7 +226,7 @@ export const STYLE_SHAPES = {
   mortar: [3, 10],
   boss: [0, 1, 2, 3, 4, 5],
 } as const satisfies Record<string, readonly number[]>;
-export type IsleStyle = keyof typeof STYLE_SHAPES;
+type IsleStyle = keyof typeof STYLE_SHAPES;
 
 /** 岛 id + 风格 → 图的序号：先按风格挑一组造型，再按 id 散列选造型和配色（确定性，同一座岛永远同一张） */
 export function isleLook(id: string, style: IsleStyle): number {

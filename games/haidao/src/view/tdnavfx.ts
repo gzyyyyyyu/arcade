@@ -14,7 +14,7 @@ import { W } from './tdcommon.ts';
 const FLAG = TD2_NAV_SKILL.flag;
 const REWARD = TD2_NAV_SKILL.reward;
 /** 航海士的主色（深青外套），旗面同色，金边 */
-export const NAV_TEAL = 0x1f7a8c;
+const NAV_TEAL = 0x1f7a8c;
 const GOLD = 0xffe885;
 
 /** 塔中心（单位）：和核心 tcx / tcy 一样 */

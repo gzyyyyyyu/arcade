@@ -7,7 +7,7 @@
  * 火烧是每半秒一跳的持续伤害，没有对应的开火事件，所以单位身上记一笔上次的类型，几秒内的无主伤害沿用。
  * 推不出来就返回 null，调用方退回原来的按伤害数选倒下动作（rig.ts 的 deathStyle）。
  */
-export type DmgKind = 'shot' | 'shell' | 'fire' | 'blast';
+type DmgKind = 'shot' | 'shell' | 'fire' | 'blast';
 
 /** 弹种（战斗弹道 kind 或守岛塔的弹道 fx）归类为伤害类型 */
 export function projDmgKind(fx: string): DmgKind | null {
@@ -34,7 +34,7 @@ export function projDmgKind(fx: string): DmgKind | null {
 }
 
 /** 单次伤害占最大血量到这个比例、或绝对值到 HEAVY_ABS，算重击 */
-export const HEAVY_RATIO = 0.25;
+const HEAVY_RATIO = 0.25;
 export const HEAVY_ABS = 90;
 export function isHeavyDmg(dmg: number, maxHp: number): boolean {
   return dmg >= HEAVY_ABS || (maxHp > 0 && dmg >= maxHp * HEAVY_RATIO);

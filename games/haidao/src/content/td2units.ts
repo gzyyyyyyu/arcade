@@ -8,7 +8,7 @@ import type { TdEnemyDef, TdEnemyKind } from '../core/tdtypes.ts';
 import type { TdTier, TdTowerKind } from '../core/td2types.ts';
 
 /** 一座塔某一阶的数值 */
-export interface TdTierStats {
+interface TdTierStats {
   dmg: number;
   /** 两发之间隔几拍 */
   reload: number;
@@ -41,7 +41,7 @@ const tiers = (s: Omit<TdTierStats, 'dmg'>, dmg1: number): readonly [TdTierStats
  * 火枪 11×20/16 = 13.75 秒伤 / 90 金 ≈ 15.3；加农 60×20/80 = 15 / 100 金 = 15；鱼叉 105×20/100 = 21 / 140 ≈ 15；
  * 臼炮 54×20/100 = 10.8 / 120 = 9；喷火 6×20/11 ≈ 10.9 / 120 ≈ 9；火箭 3 发合计 22×3×20/100 = 13.2 / 150 ≈ 8.8。
  */
-export const TD2_TOWERS: Readonly<Record<TdTowerKind, readonly [TdTierStats, TdTierStats, TdTierStats]>> = {
+const TD2_TOWERS: Readonly<Record<TdTowerKind, readonly [TdTierStats, TdTierStats, TdTierStats]>> = {
   gunTower: tiers({ reload: 16, range: 600, minRange: 0, splash: 0, shots: 1 }, 11),
   cannon: tiers({ reload: 80, range: 700, minRange: 0, splash: 0, shots: 1 }, 60),
   harpoon: tiers({ reload: 100, range: 900, minRange: 0, splash: 0, shots: 1 }, 105),

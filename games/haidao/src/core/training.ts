@@ -12,7 +12,7 @@ const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const err = <T>(error: string): Result<T> => ({ ok: false, error });
 
 /** 守岛关能造的塔：第一关的三种基础塔 */
-export const TRAIN_TD_TOWERS: readonly TdTowerKind[] = ['cannon', 'gunTower', 'mortar'];
+const TRAIN_TD_TOWERS: readonly TdTowerKind[] = ['cannon', 'gunTower', 'mortar'];
 /** 守岛关开局圈出来的木台和先造什么（守岛第一关的岛：0 号台挨着登陆路的拐弯、1 号台在路对面；守岛机器人三档开局也都先造这两块） */
 export const TRAIN_TD_OPENER: ReadonlyArray<{ slot: number; kind: TdTowerKind }> = [
   { slot: 0, kind: 'cannon' },

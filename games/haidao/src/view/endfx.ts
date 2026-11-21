@@ -22,11 +22,11 @@ const SKIP_GRACE_MS = 250;
 // ---------------------------------------------------------------- 纯函数（时间线）
 
 /** 欢呼一个循环（毫秒） */
-export const CHEER_MS = 820;
+const CHEER_MS = 820;
 /** 欢呼前的一段（主寨倒塌的余韵），欢呼从这之后才开始 */
-export const CHEER_LEAD_MS = 400;
+const CHEER_LEAD_MS = 400;
 
-export interface Cheer {
+interface Cheer {
   /** 向上的位移（像素，负数往上） */
   oy: number;
   /** 落地压扁 */
@@ -42,7 +42,7 @@ const clamp01 = (k: number): number => Math.min(1, Math.max(0, k));
  * 一个兵在欢呼第 t 毫秒的姿势。预备（蹲一下举起武器）→ 出手（起跳到最高）→ 余势（落地压扁、武器放下）。
  * seed 错开各兵的相位；ramp 是 0..1 的整体淡入（开头几十毫秒从原姿势平滑过渡）。
  */
-export function cheerAt(t: number, seed: number, ramp: number): Cheer {
+function cheerAt(t: number, seed: number, ramp: number): Cheer {
   const ph = ((((t + seed * 137) % CHEER_MS) + CHEER_MS) % CHEER_MS) / CHEER_MS;
   const air = clamp01(ph / 0.68);
   const jump = Math.sin(Math.PI * air) ** 0.8;
@@ -54,7 +54,7 @@ export function cheerAt(t: number, seed: number, ramp: number): Cheer {
 }
 
 /** 镜头推近：缩放按比例插值，中心向目标靠近 blend（不一下居中，免得整座岛跑出屏） */
-export function pushView(from: { cx: number; cy: number; z: number }, to: { cx: number; cy: number; zMul: number; blend: number }, k: number, out: { cx: number; cy: number; z: number }): void {
+function pushView(from: { cx: number; cy: number; z: number }, to: { cx: number; cy: number; zMul: number; blend: number }, k: number, out: { cx: number; cy: number; z: number }): void {
   const e = EASE_FN.recover(clamp01(k));
   out.z = from.z * (1 + (to.zMul - 1) * e);
   out.cx = from.cx + (to.cx - from.cx) * to.blend * e;

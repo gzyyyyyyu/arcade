@@ -121,7 +121,7 @@ export function rect(x: number, y: number, w: number, h: number, fill: string, o
 
 // ---------------------------------------------------------------- 方盒、屋顶
 
-export type Tex = '' | 'h' | 'v' | 'brick';
+type Tex = '' | 'h' | 'v' | 'brick';
 
 /** 方盒：占 [x0,x1]×[y0,y1] 格、高度 z0..z1 像素；可见三面（左前、右前、顶） */
 export function box(x0: number, y0: number, x1: number, y1: number, z0: number, z1: number, m: Mat, tex: Tex = '', sw = SW): string {
@@ -352,7 +352,7 @@ export function shadow(rx: number, ry: number, dx = 0, dy = 0, op = 0.38): strin
 }
 
 /** 不分级的外壳（特效、图标：火焰、爆炸、技能要保持鲜艳） */
-export function wrapRaw(w: number, h: number, inner: string): string {
+function wrapRaw(w: number, h: number, inner: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${inner}</svg>`;
 }
 /** 素材外壳：里面的颜色统一过一遍配色分级（降饱和、拉开明暗、亮面暖暗面冷，见 grade.ts） */

@@ -547,7 +547,7 @@ function scaffoldSheet(): void {
   const mb = (a: ArtPiece[]): string => (a.reduce((n, p) => n + p.w * 2 * (p.h * 2) * 4, 0) / 1048576).toFixed(1);
   const all = allArt();
   console.log(`allArt() 默认：${all.length} 张，2 倍烘焙约 ${mb(all)} MB（目标 ≤ 60）`);
-  console.log(`allArt({ maxLevel: 8, legacyTroops: true })：约 ${mb(allArt({ maxLevel: 8, legacyTroops: true }))} MB`);
+  console.log(`allArt({ maxLevel: 8 })：约 ${mb(allArt({ maxLevel: 8 }))} MB`);
   for (const lv of [3, 5, 8]) console.log(`levelArt(${lv})：约 ${mb(levelArt(lv))} MB`);
 }
 mapSheet();

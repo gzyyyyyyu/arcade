@@ -3,7 +3,7 @@ import { PALETTE as C } from './palette.ts';
 import type { ArtPiece } from './kit.ts';
 import { ell, path, piece, pieceRaw, poly, uid } from './kit.ts';
 
-export type CoastKind = 'reef' | 'wave' | 'shoal' | 'foamPatch' | 'spit' | 'swash' | 'glint' | 'fish' | 'cloud';
+type CoastKind = 'reef' | 'wave' | 'shoal' | 'foamPatch' | 'spit' | 'swash' | 'glint' | 'fish' | 'cloud';
 
 function make(kind: CoastKind): ArtPiece {
   switch (kind) {

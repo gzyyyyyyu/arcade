@@ -80,7 +80,7 @@ function donate(bs: BaseScene, reopen: () => void): void {
  * 升阶演出（不挡操作，逐帧由粒子池和飘字自己推进）：主寨脚下一圈光环、王旗那里两团光（旗面色加镶边色）往上冒、
  * 称号飘字、两声音效。减弱动态（feelOn 为假）时只有飘字和声音。
  */
-export function celebrateRank(bs: BaseScene, rank: number): void {
+function celebrateRank(bs: BaseScene, rank: number): void {
   const R = RANKS[rank - 1];
   const hq = app.profile.base.buildings.find((b) => b.kind === 'hq');
   const n = hq && bs.nodes.get(hq.id);

@@ -92,7 +92,7 @@ export class StopGate {
 
 // ---------------------------------------------------------------- 开关
 
-export const FEEL_KEY = 'haidao.feel';
+const FEEL_KEY = 'haidao.feel';
 
 /** 存过就听存的（'1' 开 / '0' 关）；没存过，系统开了"减弱动态效果"就默认关 */
 export function resolveFeel(stored: string | null, reducedMotion: boolean): boolean {
@@ -149,7 +149,7 @@ export const VIBE = {
   win: [30, 50, 70],
   lose: [70, 50, 70],
 } as const satisfies Record<string, number | readonly number[]>;
-export type VibeKind = keyof typeof VIBE;
+type VibeKind = keyof typeof VIBE;
 
 interface Vibrator {
   vibrate?: (p: number | number[]) => boolean;

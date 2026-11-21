@@ -121,7 +121,7 @@ export type EdgeKind = 'enemy' | 'slot' | 'gate' | 'crate' | 'goal';
 export interface EdgeItem { kind: EdgeKind; sx: number; sy: number; wx: number; wy: number }
 export type Side = 'l' | 'r' | 't' | 'b';
 /** 边缘上的一个指示：同一种、同一边、同一段的合成一个，n 是个数，(wx, wy) 是它们的世界中心，(dx, dy) 是从可见区中心指过去的方向 */
-export interface EdgeMark { kind: EdgeKind; side: Side; x: number; y: number; n: number; wx: number; wy: number; dx: number; dy: number }
+interface EdgeMark { kind: EdgeKind; side: Side; x: number; y: number; n: number; wx: number; wy: number; dx: number; dy: number }
 
 /** 指示离可见区边的距离（中心到边，CSS 像素）：44 像素的点按目标一半再多 4 */
 export const EDGE_PAD = 26;

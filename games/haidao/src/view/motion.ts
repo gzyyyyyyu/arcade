@@ -44,7 +44,7 @@ export function easeOutBack(k: number): number {
 }
 
 /** 落地后的颤动，和 Phaser 的 Bounce.easeOut 同一条 */
-export function easeOutBounce(k: number): number {
+function easeOutBounce(k: number): number {
   let t = clamp01(k);
   const n = 7.5625;
   const d = 2.75;
@@ -235,7 +235,7 @@ export function collapseScale(k: number): { sx: number; sy: number; dy: number }
 
 /** 收链几拍（拉完以后链子缩回英雄手里） */
 export const REEL_TICKS = 4;
-export type HookPhase = { kind: 'fly'; k: number } | { kind: 'pull' } | { kind: 'reel'; k: number } | { kind: 'done' };
+type HookPhase = { kind: 'fly'; k: number } | { kind: 'pull' } | { kind: 'reel'; k: number } | { kind: 'done' };
 
 /** 这一刻（ft 是带小数的拍）锚钩演到哪一段，k 是这一段走了几成（0..1）。纯函数，单测锁住 */
 export function hookPhase(fx: { t0: number; t1: number; t2: number }, ft: number): HookPhase {

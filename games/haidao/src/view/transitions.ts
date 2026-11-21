@@ -9,9 +9,9 @@ import { tween } from './mapfx.ts';
 import { REDUCED } from './feel.ts';
 
 /** 离场时长（毫秒）：淡出加微缩 */
-export const LEAVE_MS = 140;
+const LEAVE_MS = 140;
 /** 幕布从全黑淡到透明的时长 */
-export const VEIL_MS = 200;
+const VEIL_MS = 200;
 
 const rawRemove = (n: Element): void => Element.prototype.remove.call(n);
 

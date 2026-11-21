@@ -139,7 +139,7 @@ const TUNE: Readonly<Record<EscortMapId, Readonly<Record<EscortDiff, Partial<Kno
   cape: { easy: { scale: 54 }, normal: { scale: 73, hull: 1100 }, hard: { scale: 50, hull: 1050 } },
 };
 
-export const ESCORT_MAX_TICKS = 6000;
+const ESCORT_MAX_TICKS = 6000;
 
 /** 一张图一档的 10 波 */
 function levelWaves(rc: (typeof RECIPES)[EscortMapId], scale: number): TdWave[] {

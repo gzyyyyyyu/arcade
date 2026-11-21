@@ -20,7 +20,7 @@ export interface PickItem {
 }
 
 /** 世界坐标 (wx, wy) 在建筑 id 的贴图不透明像素上吗（画面层实现：先看外框再读 alpha） */
-export type HitFn = (id: number, wx: number, wy: number) => boolean;
+type HitFn = (id: number, wx: number, wy: number) => boolean;
 
 /** 同一点连点的循环状态：几像素内算同一点 */
 export interface Cycle {
@@ -66,14 +66,14 @@ export function pick(items: readonly PickItem[], wx: number, wy: number, hit: Hi
 }
 
 /** 占地 (x, y, size) 里取样的点（世界坐标）：3×3，避开边 */
-export function footSamples(x: number, y: number, size: number): Array<{ x: number; y: number }> {
+function footSamples(x: number, y: number, size: number): Array<{ x: number; y: number }> {
   const out: Array<{ x: number; y: number }> = [];
   for (const u of [0.2, 0.5, 0.8]) for (const v of [0.2, 0.5, 0.8]) out.push(iso(x + size * u, y + size * v));
   return out;
 }
 
 /** 占地的深度（和 depthOf(footCenter) 一致：中心 gx+gy） */
-export const footDepth = (x: number, y: number, size: number): number => x + y + size;
+const footDepth = (x: number, y: number, size: number): number => x + y + size;
 
 /**
  * 盖住占地 (x, y, size) 的建筑：比它靠前（depth 大）、且不透明像素落在占地取样点上的。

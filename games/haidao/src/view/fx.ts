@@ -117,7 +117,7 @@ const stop = new StopGate();
  * 震屏：只给大事件，调用处用 bigEvent。闸门管三件事：设置里关了不震；冷却 300 毫秒；
  * 冷却里只有更高一档的能打断，所以同一时间只取最大的（规矩和测试在 feel.ts / tests/feel.test.ts）
  */
-export function shakeCam(scene: Phaser.Scene, level: ShakeLevel): void {
+function shakeCam(scene: Phaser.Scene, level: ShakeLevel): void {
   if (!gate.request(level, performance.now(), feelOn())) return;
   const { ms, k } = SHAKE[level];
   scene.cameras.main.shake(ms, k, true);
@@ -146,7 +146,7 @@ const INK = 0x2b1a15;
 const TAU = Math.PI * 2;
 
 /** 按坐标和序号取 0..1 的确定值（整数散列）：落点碎片的方向快慢用它，同一场回放画面完全一样，不用 Math.random */
-export function hash01(a: number, b: number, c: number): number {
+function hash01(a: number, b: number, c: number): number {
   let h = (Math.imul(Math.round(a * 8) | 0, 374761393) ^ Math.imul(Math.round(b * 8) | 0, 668265263) ^ Math.imul(c | 0, 2246822519)) >>> 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
@@ -206,7 +206,7 @@ interface Part {
   fade: number;
 }
 
-export interface Emit {
+interface Emit {
   vx?: number;
   vy?: number;
   g?: number;
@@ -613,7 +613,7 @@ interface DNum {
 const FADE_AT = 560;
 const HOLD_AT = 200;
 /** 同一个目标的数字最多合并这么久（毫秒）：再挨打就让旧的飘走、另起一个，持续挨打的建筑旁边不会钉着一个越滚越大的总数 */
-export const MERGE_MAX = 700;
+const MERGE_MAX = 700;
 
 /**
  * 飘在目标上的伤害数字。同一个目标正在飘着数字时，新伤害直接累加进去（数字往上滚、轻轻一跳），不另起一个；

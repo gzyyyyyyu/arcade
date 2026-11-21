@@ -428,7 +428,7 @@ export function renderSnipe(bs: TdScene, now: number): void {
 }
 
 /** 炮台每帧：炮口只跟规则的 t.aim（不自己挑目标，免得追着打不到的敌人转）；没有目标就不动 */
-export function syncTurrets(bs: TdScene, now: number, dt: number): void {
+function syncTurrets(bs: TdScene, now: number, dt: number): void {
   const s = bs.s;
   const vt = s.tick - 1 + bs.acc / STEP_MS;
   const o = bs.tin;
@@ -467,7 +467,7 @@ export function matAt(bs: TdScene, x: number, y: number): LandMat {
 }
 
 /** 被炸哑的塔：塔身发灰、头上冒烟；恢复了就去掉 */
-export function syncJam(bs: TdScene): void {
+function syncJam(bs: TdScene): void {
   const s = bs.s;
   // 顺着塔列表走、按编号取画面对象（原来对每个画面对象在塔列表里再找一遍）
   for (const t of s.towers) {
@@ -494,7 +494,7 @@ export function syncJam(bs: TdScene): void {
   }
 }
 
-export function heroAttacking(bs: TdScene): boolean {
+function heroAttacking(bs: TdScene): boolean {
   const h = bs.s.hero;
   return h.aim >= 0 && h.respawn < 0;
 }

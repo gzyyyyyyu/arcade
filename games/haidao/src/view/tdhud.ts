@@ -188,7 +188,7 @@ export function togglePause(bs: TdScene): void {
 
 /** 预告卡的展开 / 收起（只有矮竖屏用得上，状态只在界面层）：展开后点预告卡、点别处（包括点岛）、叫波都会收起 */
 const planClose = new WeakMap<HTMLElement, (e: Event) => void>();
-export function setPlanOpen(bs: TdScene, on: boolean): void {
+function setPlanOpen(bs: TdScene, on: boolean): void {
   const ui = bs.ui;
   ui.classList.toggle('hd-plan-open', on);
   const old = planClose.get(ui);
@@ -226,7 +226,7 @@ export function waveTitle(bs: TdScene, w: number): string {
 }
 
 /** 预告和路线：开新的一波、墙破了或修好时重算（tdPreview、tdRoutes 都要跑找路，不每帧算） */
-export function refreshPlan(bs: TdScene, force = false): void {
+function refreshPlan(bs: TdScene, force = false): void {
   const s = bs.s;
   const walls = s.walls.reduce((n, w, i) => (w.destroyed ? n + (i + 1) * 7 : n), 0);
   // 水闸关上 / 打开下一波会改路线和预告

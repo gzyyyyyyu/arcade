@@ -135,7 +135,7 @@ function settle(bs: TdScene): void {
 }
 
 /** 结算里"首次拿星奖励"一行：数字右对齐等宽，增量标绿 */
-export function bonusLine(_bs: TdScene, box: HTMLElement, gold: number, wood: number): void {
+function bonusLine(_bs: TdScene, box: HTMLElement, gold: number, wood: number): void {
   const p = el('p', 'hd-sub hd-td-line', '首次拿星奖励：金币 ', box);
   el('b', 'hd-n hd-pos', `+${fmt(gold)}`, p);
   p.append('  木材 ');
@@ -190,7 +190,7 @@ export function loot(_bs: TdScene, mask: HTMLElement, box: HTMLElement, before: 
  * 护航的结算：复用守岛的结算演出（星星、战利品飞进仓库条），标题到港 / 沉没 / 误了潮，大数字是船剩的血量百分比，
  * 下面一行"X 星 · 走了 N 格 · 修了 M 次"；奖励由 settleEscort 按每日上限截过。
  */
-export function finishEscort(bs: TdScene, res: ReturnType<typeof tdResult>): void {
+function finishEscort(bs: TdScene, res: ReturnType<typeof tdResult>): void {
   const er = { ...escortResultOf(bs.s), retreated: bs.retreated };
   if (bs.d.escortLive) {
     // 护航实盘：只结筹码，不动自己的存档（没有金币木材、不记星数）；撤退 / 误了潮按走过的格数折算
@@ -242,7 +242,7 @@ export function finishEscort(bs: TdScene, res: ReturnType<typeof tdResult>): voi
  * 海盗来袭的结算：不算星，按撑住的波数给金币木材（settleTdHome 按每日上限截过，和关卡共用上限），
  * 演出用大潮那一套（没星星；撑过 5 波算"守得不错"，不到 5 波是失败的灰蓝横幅）。
  */
-export function finishHome(bs: TdScene, res: ReturnType<typeof tdResult>): void {
+function finishHome(bs: TdScene, res: ReturnType<typeof tdResult>): void {
   const before = { ...app.profile.res };
   const r = settleTdHome(app.profile, res, dayIndex(), bs.d.setup.home);
   if (r.ok) app.commit(r.value.profile);
@@ -277,7 +277,7 @@ export function finishHome(bs: TdScene, res: ReturnType<typeof tdResult>): void 
  * 大潮无尽的结算：不发金币木材、不记星数，只记本机本周最好并往平台每周榜交一次分。
  * 周按开局那一周算（跨周一 0 点结束的局也交开局那周，平台一天内还收上周）。finish 有"已有结算框就不再进"的闸，所以只交一次。
  */
-export function finishTide(bs: TdScene, res: ReturnType<typeof tdResult>, week: IsoWeek): void {
+function finishTide(bs: TdScene, res: ReturnType<typeof tdResult>, week: IsoWeek): void {
   const label = weekLabel(week);
   const score = tideScore(res.waves, res.kills ?? 0);
   const rec = recordTide(label, score);

@@ -6,7 +6,7 @@
 import { ESCORT_CELL } from '../core/escorttypes.ts';
 
 export interface Pt { x: number; y: number }
-export interface ShipPoint extends Pt {
+interface ShipPoint extends Pt {
   /** 航向（格坐标系里的单位向量；停在终点时沿用最后一段） */
   hx: number;
   hy: number;

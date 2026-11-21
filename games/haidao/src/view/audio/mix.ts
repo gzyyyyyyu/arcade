@@ -9,8 +9,8 @@ export const GROUP_MAX: Record<SfxGroup, number> = {
 };
 
 /** 同一个名字在这么短的时间内最多放 2 次（沿用旧规则：60ms 内最多 2 个） */
-export const SAME_NAME_WINDOW_MS = 60;
-export const SAME_NAME_MAX = 2;
+const SAME_NAME_WINDOW_MS = 60;
+const SAME_NAME_MAX = 2;
 
 export interface Slot { name: string; group: SfxGroup; end: number }
 
@@ -60,10 +60,10 @@ export function variantParams(idx: number, rand: () => number = Math.random, jit
 
 /** 闪避：大音效响起时，把环境和小音效压到 depth，保持 holdMs 后用 releaseMs 恢复 */
 export const DUCK_ATTACK_MS = 30;
-export const DUCK_MIN_MS = 300;
-export const DUCK_MAX_MS = 600;
+const DUCK_MIN_MS = 300;
+const DUCK_MAX_MS = 600;
 
-export interface DuckPlan { depth: number; holdMs: number; releaseMs: number }
+interface DuckPlan { depth: number; holdMs: number; releaseMs: number }
 
 /** 按大音效的时长算闪避：时长 → 压低保持时间，夹在 300–600ms 之间 */
 export function duckPlan(soundMs: number, depth = 0.35): DuckPlan {
@@ -84,7 +84,7 @@ export function duckGainAt(plan: DuckPlan, tMs: number): number {
 /** 环境声场景：基地、对战（攻防）、守岛 */
 export type AmbienceMode = 'off' | 'base' | 'battle' | 'td';
 
-export interface AmbienceMix { wave: number; wind: number; bird: number; birdGapMs: [number, number] }
+interface AmbienceMix { wave: number; wind: number; bird: number; birdGapMs: [number, number] }
 
 export const AMBIENCE_MIX: Record<AmbienceMode, AmbienceMix> = {
   off: { wave: 0, wind: 0, bird: 0, birdGapMs: [0, 0] },

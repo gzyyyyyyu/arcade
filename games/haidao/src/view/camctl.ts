@@ -12,7 +12,7 @@ export interface Bounds {
 }
 
 /** 单指拖动的接管者（放建筑时拖虚影）：start 返回 true 就接管，这次拖动不平移；mouse = 这次是鼠标按下（不是手指） */
-export interface DragHook {
+interface DragHook {
   start(wx: number, wy: number, mouse: boolean): boolean;
   move(wx: number, wy: number): void;
   end(): void;

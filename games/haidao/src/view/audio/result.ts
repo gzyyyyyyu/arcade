@@ -4,9 +4,9 @@
 //       -> 战利品滚动（金币连击）-> 最后一句 win / lose。失败更慢更低，没有星星，也没有号角。
 import type { SfxName } from './synth.ts';
 
-export type ResultKind = 'battle' | 'td';
+type ResultKind = 'battle' | 'td';
 
-export interface ResultTiming {
+interface ResultTiming {
   /** 横幅落地的时刻（ms，从结算框出现起；和 skin.ts 的 hd-banner 动画对齐） */
   bannerHit: number;
   /** 第一颗星落下的时刻 */
@@ -42,7 +42,7 @@ export function resultTiming(kind: ResultKind, win: boolean): ResultTiming {
   return { ...(win ? WIN : LOSE), starGap: STAR_GAP[kind] };
 }
 
-export interface ResultTimes {
+interface ResultTimes {
   /** 第 i 颗星落下的时刻 */
   starAt: (i: number) => number;
   /** 战利品开始滚动 */
@@ -63,7 +63,7 @@ export function resultTimes(kind: ResultKind, stars: number, win: boolean): Resu
 
 export interface Beat { at: number; name: SfxName; pitch: number }
 
-export interface BeatOpts {
+interface BeatOpts {
   kind: ResultKind;
   stars: number;
   win: boolean;

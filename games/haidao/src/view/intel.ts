@@ -11,7 +11,7 @@ import { TICKS_PER_SEC, UNIT, type BuildingKind, type TroopKind } from '../core/
 import { towerCounter, TOWER_INFO, ARMOR_NAME, DAMAGE_NAME } from './td-ui.ts';
 
 /** 卡片上的一条属性：当前值、下一级的值（满级没有）、条长（0..1，同类里比） */
-export interface IntelStat {
+interface IntelStat {
   key: string;
   label: string;
   cur: string;
@@ -23,7 +23,7 @@ export interface IntelStat {
 
 /** 寻敌的一条：图标 + 一句话 */
 export type AimIcon = 'near' | 'defense' | 'wall' | 'cluster' | 'heal' | 'lock' | 'splash' | 'dead' | 'multi' | 'stun' | 'slow' | 'shield' | 'hide' | 'priority' | 'air' | 'front';
-export interface AimLine {
+interface AimLine {
   icon: AimIcon;
   text: string;
 }

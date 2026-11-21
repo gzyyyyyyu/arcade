@@ -47,8 +47,8 @@ export function rangeText(kind: TdTowerKind, high = false): string {
 export const DAMAGE_NAME: Readonly<Record<TdDamage, string>> = { shot: '枪弹', shell: '炮弹', fire: '火', blast: '爆破' };
 export const ARMOR_NAME: Readonly<Record<TdArmor, string>> = { cloth: '布衣', heavy: '重甲', wood: '木船', air: '飞禽' };
 /** 小徽记上的单字：塔卡、敌人图标、预告条、克制表共用，一眼对上 */
-export const DAMAGE_CHAR: Readonly<Record<TdDamage, string>> = { shot: '枪', shell: '炮', fire: '火', blast: '爆' };
-export const ARMOR_CHAR: Readonly<Record<TdArmor, string>> = { cloth: '布', heavy: '甲', wood: '船', air: '飞' };
+const DAMAGE_CHAR: Readonly<Record<TdDamage, string>> = { shot: '枪', shell: '炮', fire: '火', blast: '爆' };
+const ARMOR_CHAR: Readonly<Record<TdArmor, string>> = { cloth: '布', heavy: '甲', wood: '船', air: '飞' };
 
 /** 倍率怎么写（人话）：150 → 多打一半，100 → 照常，50 → 只打一半，0 → 打不到；表里没有的倍率退回 ×n */
 export function pctText(pct: number): string {
@@ -144,11 +144,11 @@ export function branchDamageHint(id: string): string | undefined {
 }
 
 /** 伤害徽记的说明：谁打这种伤害、它克谁 */
-export function damageTip(d: TdDamage): string {
+function damageTip(d: TdDamage): string {
   return `${DAMAGE_NAME[d]}（${damageSources(d).join('、')}）：${damageLine(d)}`;
 }
 /** 护甲徽记的说明：谁穿这种护甲、什么打它多一半 */
-export function armorTip(a: TdArmor): string {
+function armorTip(a: TdArmor): string {
   return `${ARMOR_NAME[a]}（${armorFoes(a).map((k) => TD2_ENEMIES[k].name).join('、')}）：${armorLine(a)}`;
 }
 
@@ -169,12 +169,12 @@ function explain(b: HTMLElement, tip: string): HTMLElement {
 export function dmgBadge(d: TdDamage, parent?: HTMLElement): HTMLElement {
   return explain(el('i', `hd-dmg d-${d}`, DAMAGE_CHAR[d], parent), damageTip(d));
 }
-export function armorBadge(a: TdArmor, parent?: HTMLElement): HTMLElement {
+function armorBadge(a: TdArmor, parent?: HTMLElement): HTMLElement {
   return explain(el('i', `hd-arm a-${a}`, ARMOR_CHAR[a], parent), armorTip(a));
 }
 
 /** 敌人的小头像（行走第 1 帧）加护甲徽记；雾船、雾区里的再加一只"眼睛"（要照亮才打得到） */
-export function enemyChip(kind: TdEnemyKind, n: number, fog: boolean, parent: HTMLElement, px = 26): HTMLElement {
+function enemyChip(kind: TdEnemyKind, n: number, fog: boolean, parent: HTMLElement, px = 26): HTMLElement {
   const c = el('span', 'hd-tden', undefined, parent);
   c.title = `${TD2_ENEMIES[kind].name}${fog ? '（在雾里，要照亮）' : ''}`;
   const f = tdE(kind, 'walk')[0];
@@ -262,7 +262,7 @@ export function enemyHints(p: WavePreview): string[] {
 }
 
 /** 开局造法按塔合并（「火枪塔」三座写一次 ×3），保持第一次出现的顺序 */
-export function openerKinds(op: ReadonlyArray<{ kind: TdTowerKind }>): Array<[TdTowerKind, number]> {
+function openerKinds(op: ReadonlyArray<{ kind: TdTowerKind }>): Array<[TdTowerKind, number]> {
   const m = new Map<TdTowerKind, number>();
   for (const o of op) m.set(o.kind, (m.get(o.kind) ?? 0) + 1);
   return [...m];
@@ -495,7 +495,7 @@ export function levelIntro(levels: readonly TdIslandLevel[], i: number): string 
 }
 
 /** 今天还能拿多少守岛收入（金币 / 木材）和上限 */
-export function tdIncome(): { gold: number; wood: number; capGold: number; capWood: number } {
+function tdIncome(): { gold: number; wood: number; capGold: number; capWood: number } {
   const p = app.profile;
   const cap = tdDailyCap(p);
   const same = p.td?.day === dayIndex();
@@ -549,7 +549,7 @@ export function campaignChapters(): readonly Td2ChapterInfo[] {
 }
 
 /** "海盗来袭"的解锁条件：守下第 1 关（学会建塔、英雄、叫波再守自己的岛） */
-export const HOME_UNLOCK = 'td01';
+const HOME_UNLOCK = 'td01';
 /** 选关页传给 onGo 的"海盗来袭"（不是关卡 id） */
 export const HOME_ID = 'home';
 
@@ -711,7 +711,7 @@ const THUMB_QUERY = '(min-width:960px) and (min-height:700px), (min-width:701px)
  * 阶、分叉、加成都读 tdGarrisonOptions（规则核心按存档算，开局时 startTd2 再算一遍，不信界面）。
  * 返回关掉面板的函数。键盘：空格 / 回车开打、Esc 返回。
  */
-export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => void, onBack: () => void): () => void {
+function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => void, onBack: () => void): () => void {
   injectTdCss();
   const p = app.profile;
   const optsOf = (cap: TdGarrisonSpot['cap']): TdGarrisonOption[] => tdGarrisonOptions(p, cap);
@@ -848,7 +848,7 @@ export function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick
  * 带哪个英雄：第一章通关后，战役的驻守台面板和海盗来袭卡片上各一个切换钮，点一下在船长、航海士之间换，
  * 存进存档（heroPick），下次默认上次选的。没解锁不出钮。悬赏守岛、大潮、护航不出（第一版只有船长）
  */
-export function heroSwitch(parent: HTMLElement): HTMLButtonElement | null {
+function heroSwitch(parent: HTMLElement): HTMLButtonElement | null {
   if (!navUnlocked(app.profile)) return null;
   const say = (): void => {
     const nav = app.profile.heroPick === 'nav';
@@ -906,7 +906,7 @@ function homeCard(parent: HTMLElement, stars: number, hardOpen: boolean, onHome:
 }
 
 /** 大潮无尽的解锁条件：通过第一章第 3 关（≥ 1 星） */
-export const TIDE_UNLOCK = 'td03';
+const TIDE_UNLOCK = 'td03';
 
 /** 选关页上的"大潮"入口：本周第几周、这周的图名、我的本周最好；没解锁时显示锁和条件 */
 function tideCard(parent: HTMLElement, stars: number, onTide: () => void): void {
@@ -951,8 +951,8 @@ export function waveEnemies(p: WavePreview): Array<{ kind: TdEnemyKind; n: numbe
  * tide：涨落的潮这一波开不开（不是涨落的关传 null），laneTitle：登陆路下标 → 北路 / 西路…
  */
 /** 关内事件在预告卡事件那一行、图鉴里的短说法；名字给「再下一波」那一小格 */
-export const EVENT_NAME: Readonly<Record<NonNullable<WavePreview['event']>, string>> = { bounty: '赏金船', rain: '暴雨', dare: '战书' };
-export function eventNote(p: WavePreview): string {
+const EVENT_NAME: Readonly<Record<NonNullable<WavePreview['event']>, string>> = { bounty: '赏金船', rain: '暴雨', dare: '战书' };
+function eventNote(p: WavePreview): string {
   if (p.event === 'bounty') return '赏金船上岸，打倒多给金币';
   if (p.event === 'rain') return '暴雨：火弱两成';
   if (p.event === 'dare') return p.dare ? '已接战书：金币翻倍' : '有战书可接';
@@ -960,7 +960,7 @@ export function eventNote(p: WavePreview): string {
 }
 
 /** 雾波的提醒：雾里的敌人塔打不中，要灯塔（火枪塔 3 阶的分叉）照亮 */
-export const FOG_NOTE = '雾里要灯塔照亮：火枪塔 3 阶';
+const FOG_NOTE = '雾里要灯塔照亮：火枪塔 3 阶';
 
 /** opener：这一关还没造的开局造法（只在第一波开打前给），有就显示它；否则显示 next（nextStep 定住的下一步，开头和差多少由 HUD 每拍按 stepLine 补） */
 export function planCard(

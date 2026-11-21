@@ -12,7 +12,7 @@ export interface KeyValueStore {
 /**
  * 同步槽只有 profile 一个：基地、资源、星数、研究、新手引导进度都在这一份存档里（sync.ts）。
  */
-export type SlotName = 'profile';
+type SlotName = 'profile';
 
 function defaultStore(): KeyValueStore | null {
   try {
@@ -74,8 +74,8 @@ export interface SlotDef<T = unknown> {
   empty(): T;
 }
 
-export type CloudState = 'out' | 'synced' | 'syncing' | 'pending' | 'merged';
-export interface CloudView {
+type CloudState = 'out' | 'synced' | 'syncing' | 'pending' | 'merged';
+interface CloudView {
   state: CloudState;
   /** 待上传时的原因（平台忙、连不上、太大），给悬停说明用 */
   note: string | null;
@@ -99,11 +99,11 @@ export const META_KEY = 'haidao.cloud';
 export const preSyncKey = (slot: string): string => `haidao.${slot}.pre-sync`;
 export const preSwitchKey = (slot: string, userId: string): string => `haidao.${slot}.pre-switch.${userId}`;
 export const DEBOUNCE_MS = 10_000;
-export const MAX_WAIT_MS = 60_000;
+const MAX_WAIT_MS = 60_000;
 /** 重新确认"还是不是这个账号"的最小间隔 */
-export const RECHECK_MS = 60_000;
+const RECHECK_MS = 60_000;
 /** 强制确认的节流：几秒内刚问过 /api/me 就只核对磁盘，不再问（账号不一致期间每次本地改动都会触发） */
-export const FORCE_GAP_MS = 5_000;
+const FORCE_GAP_MS = 5_000;
 /** 切到后台补传的最小间隔：手机上每局都切出去的人，不至于很快用完每天 100 次 */
 export const HIDDEN_GAP_MS = 3 * 60_000;
 /** 每槽 data ≤ 48 KB（平台的上限，5.5） */
@@ -130,7 +130,7 @@ interface Meta {
 const bytes = (s: string): number => new TextEncoder().encode(s).length;
 
 /** 键排好序的 JSON：比较"内容一样不一样"用 */
-export function stable(v: unknown): string {
+function stable(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
   if (isObj(v))
     return `{${Object.keys(v)
@@ -717,7 +717,7 @@ export const profileSlot: SlotDef<Save> = {
 };
 
 /** 浏览器里的默认依赖。 */
-export function browserDeps(hooks: Pick<CloudDeps, 'onChange' | 'onApplied'> = {}): CloudDeps {
+function browserDeps(hooks: Pick<CloudDeps, 'onChange' | 'onApplied'> = {}): CloudDeps {
   return {
     store: defaultStore(),
     fetch: (url, init) => globalThis.fetch(url, init),

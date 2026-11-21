@@ -24,7 +24,7 @@ import { DEPTH } from './depth.ts';
 import { battleEnd } from './endfx.ts';
 
 /** 战利品飞进顶栏（仓库的位置）：几枚小图标从数字处弧线飞到左上角 */
-export function flyTo(bs: BattleScene, from: HTMLElement, kind: 'gold' | 'wood'): void {
+function flyTo(bs: BattleScene, from: HTMLElement, kind: 'gold' | 'wood'): void {
   const root = bs.ui.getBoundingClientRect();
   const a = from.getBoundingClientRect();
   for (let i = 0; i < 5; i++) {
@@ -40,7 +40,7 @@ export function flyTo(bs: BattleScene, from: HTMLElement, kind: 'gold' | 'wood')
 }
 
 /** 稀有掉落：宝箱弹开、光、物品跳出来 */
-export function openChest(bs: BattleScene, id: string): void {
+function openChest(bs: BattleScene, id: string): void {
   sfx('star');
   const mask = openModal({ cls: 'hd-badgemask', closable: true, stack: true, parent: bs.ui });
   const box = el('div', 'hd-dialog hd-chestbox', undefined, mask);
@@ -68,7 +68,7 @@ export function openChest(bs: BattleScene, id: string): void {
 }
 
 /** 失败时在岛上把"杀兵最多的那座防御"圈出来（红圈弹出再呼吸），结算框后面也看得见 */
-export function markBlame(bs: BattleScene): void {
+function markBlame(bs: BattleScene): void {
   const tb = topBlame(bs.deathBy);
   if (!tb) return;
   const cand = bs.st.buildings.filter((b) => b.kind === tb.kind && !b.destroyed);
@@ -88,7 +88,7 @@ export function markBlame(bs: BattleScene): void {
 }
 
 /** 失败原因：按这场的统计给 1–2 句话，连输再加一句换打法（拼装在 battleadvice.ts） */
-export function lossAdvice(bs: BattleScene, res: BattleResult): string[] {
+function lossAdvice(bs: BattleScene, res: BattleResult): string[] {
   return adviceLines(res, {
     buildings: bs.st.buildings,
     ext: bs.st.ext,
@@ -143,7 +143,7 @@ export function finish(bs: BattleScene, delay: number): void {
 }
 
 /** 仓库满了截掉的写成「120 金、40 木」；没截返回 null */
-export function cutText(c: Res): string | null {
+function cutText(c: Res): string | null {
   const parts = [c.gold > 0 ? `${fmt(c.gold)} 金` : '', c.wood > 0 ? `${fmt(c.wood)} 木` : ''].filter(Boolean);
   return parts.length ? parts.join('、') : null;
 }

@@ -304,7 +304,7 @@ function heroOff(bs: TdScene, sl: TdState['slots'][number]): void {
 }
 
 /** 卖塔：第一下只是"上膛"（按钮变红，2 秒内再点才卖），防止手滑卖掉 */
-export function sellAt(bs: TdScene, slot: number): void {
+function sellAt(bs: TdScene, slot: number): void {
   if (bs.sellArmed !== slot) {
     bs.sellArmed = slot;
     bs.sellTimer?.remove();

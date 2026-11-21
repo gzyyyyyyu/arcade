@@ -17,7 +17,7 @@ export type { LiveTier } from './live.ts';
 export const TD_LIVE_ZERO_MAX_BP = 7_900;
 
 /** 现在开放带入的档位：四档按每档 2,000 局配平后重开（0.29.1）。 */
-export const TD_LIVE_OPEN: readonly LiveTier[] = ['small', 'mid', 'big', 'lux'];
+const TD_LIVE_OPEN: readonly LiveTier[] = ['small', 'mid', 'big', 'lux'];
 export const tdLiveOpen = (t: unknown): t is LiveTier => typeof t === 'string' && (TD_LIVE_OPEN as readonly string[]).includes(t);
 
 const flip = (x: number, size: number): number => ISLAND - x - size;

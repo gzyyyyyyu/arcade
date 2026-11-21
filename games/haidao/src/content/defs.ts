@@ -55,9 +55,9 @@ export interface TroopDef {
   aim: TroopAim;
 }
 
-export type TroopAim = 'nearest' | 'defense' | 'wallFirst' | 'cluster' | 'heal';
+type TroopAim = 'nearest' | 'defense' | 'wallFirst' | 'cluster' | 'heal';
 
-export interface SkillLevel {
+interface SkillLevel {
   energy: number;
   dmg?: number;
   radius: number;

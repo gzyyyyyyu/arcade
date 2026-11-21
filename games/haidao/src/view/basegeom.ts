@@ -15,7 +15,7 @@ export function occupied(_bs: BaseScene, gx: number, gy: number): boolean {
   });
 }
 
-export function cssSize(bs: BaseScene): { w: number; h: number } {
+function cssSize(bs: BaseScene): { w: number; h: number } {
   return { w: bs.scale.width / bs.r, h: bs.scale.height / bs.r };
 }
 
@@ -66,12 +66,12 @@ export function fitContent(scene: BaseScene): Content {
   return { box: { ...box, t: box.t - TALL_EXTRA }, tight: true, intro: scene.introOnce, must: hq ? cellsBox([foot(hq)], 0) : undefined };
 }
 
-export function camNow(bs: BaseScene): CamView {
+function camNow(bs: BaseScene): CamView {
   return { cx: bs.cc.cx, cy: bs.cc.cy, z: bs.cc.z };
 }
 
 /** 建筑不透明部分在画布上的框（CSS 像素） */
-export function screenBox(bs: BaseScene, n: Node): ScreenRect {
+function screenBox(bs: BaseScene, n: Node): ScreenRect {
   const im = n.img;
   const bx = artBox(n.key) ?? { l: 0, t: 0, r: im.width, b: im.height };
   const ox = im.x - im.originX * im.displayWidth;
@@ -82,7 +82,7 @@ export function screenBox(bs: BaseScene, n: Node): ScreenRect {
 }
 
 /** 面板以外、顶栏底栏以内的可见区（画布 CSS 像素）：按面板的真实位置算，右侧面板让左边、底部抽屉让上面 */
-export function panelArea(bs: BaseScene, sheet: HTMLElement, w: number, h: number): ScreenRect | null {
+function panelArea(bs: BaseScene, sheet: HTMLElement, w: number, h: number): ScreenRect | null {
   const u = bs.ui.getBoundingClientRect();
   // offset* 不含入场动画的 transform，量的是面板停稳后的位置
   const inUi = sheet.offsetParent === bs.ui;
@@ -140,7 +140,7 @@ export function focusFrame(bs: BaseScene, dt: number): void {
   }
 }
 
-export function endFocus(bs: BaseScene): void {
+function endFocus(bs: BaseScene): void {
   bs.pf = null;
   bs.cc.slack = 0.5;
   bs.cc.apply();

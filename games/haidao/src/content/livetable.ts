@@ -20,7 +20,7 @@ export interface LivePick {
   bp: Bp;
 }
 
-export interface LiveRow {
+interface LiveRow {
   /** 选档页的"电脑多强"（1–4）；航线四档同一条，不显示，写 0 */
   power: number;
   pool: readonly LivePick[];
@@ -31,7 +31,7 @@ export const LIVE_STAKE: Readonly<Record<LiveTier, number>> = { small: 2_000, mi
 export const TIER_NAME: Readonly<Record<LiveTier, string>> = { small: '小', mid: '中', big: '大', lux: '豪华' };
 
 /** 悬赏出海雇的船队：每条船的兵种、研究等级；技能和旗舰能量按 hq 级主寨；每条船装 boatCap 人口 */
-export interface BountyCrew {
+interface BountyCrew {
   crew: readonly TroopKind[];
   level: number;
   hq: number;

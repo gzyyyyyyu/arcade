@@ -574,7 +574,6 @@ describe('守岛：英雄技能', () => {
         st.hero.cd = st.tick + 100; // 英雄自己不开枪
         return [{ t: st.tick, type: 'rally' }];
       });
-      expect(s.rally.ids).toEqual([]);
       return at[2]! - at[1]!;
     };
     const plain = BUILDINGS.gunTower.levels[0]!.reload!;

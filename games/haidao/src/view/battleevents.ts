@@ -298,7 +298,7 @@ export function isWater(ext: number, x: number, y: number): boolean {
 
 /** 木屑 / 石屑：木头的（低级和伐木类）飞木屑，石头的飞石屑 */
 
-export function debris(bs: BattleScene, x: number, y: number, kind: string, level: number, n: number): void {
+function debris(bs: BattleScene, x: number, y: number, kind: string, level: number, n: number): void {
   if (kind === 'palm' || kind === 'rock') return;
   const wood = level <= 2 || kind === 'sawmill' || kind === 'woodyard' || kind === 'barrel';
   if (wood) bs.pt.splinters(x, y, n);
