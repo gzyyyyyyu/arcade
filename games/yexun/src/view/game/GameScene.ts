@@ -10,6 +10,7 @@
  * 留在这里的：怪的精灵（drawMobs / onMob / 画皮）、夜探（drawRaid / 鬼市摊子 / 指引）、事件分发（readEvents）、主角和镜头、HUD 同步——
  * 它们和 hold / freeze / now / 事件处理纠缠在一起，拆出去要传一大把状态，反而更难读。
  */
+import { XINFA_FX, XINFA_TEXT } from '../../content/xinfa.ts';
 import Phaser from 'phaser';
 import { DROWN, ENEMIES, HOP_AIR, HOP_PERIOD, HUAPI, JUEMU, SPROUT, WATER } from '../../content/enemies.ts';
 import { CHAR_FX, CHARACTERS } from '../../content/meta.ts';
@@ -251,6 +252,8 @@ export class GameScene extends Phaser.Scene {
   private dropsView!: DropsView;
   private groundPainter!: GroundPainter;
   private bambooView!: BambooView;
+  /** 义庄的棺材：第几块 → 它的图（打碎了删） */
+  private readonly coffins = new Map<number, Phaser.GameObjects.Image>();
   /** 怪的死亡余势（paint-ghosts.ts） */
   private readonly ghosts = new DeathGhosts(this);
   private fx!: Fx;
@@ -571,7 +574,7 @@ export class GameScene extends Phaser.Scene {
         const n = Math.max(1, Math.round(b.h / 80));
         const step = b.h / n;
         for (let k = 0; k < n; k++) this.img('wall_v', b.x + b.w / 2, b.y + step * (k + 1)).setScale(1 / this.frame('wall_v').res, step / 80 / this.frame('wall_v').res).setDepth(b.y + step * (k + 1));
-      } else if (b.look === 'coffin') this.img('coffin', b.x + b.w / 2, b.y + b.h + 4).setDepth(b.y + b.h);
+      } else if (b.look === 'coffin') this.coffins.set(this.w.allBlocks.indexOf(b), this.img('coffin', b.x + b.w / 2, b.y + b.h + 4).setDepth(b.y + b.h));
       else if (b.look === 'stall') this.img('stall', b.x + b.w / 2, b.y + b.h + 4).setDepth(b.y + b.h);
       else if (b.look === 'gstall') this.img('gstall', b.x + b.w / 2, b.y + b.h + 6).setDepth(b.y + b.h);
       // 乱葬岗的坟包：两种（插木牌、立石碑）按位置轮换，一半左右翻
@@ -889,7 +892,8 @@ export class GameScene extends Phaser.Scene {
           this.items.propBreak(x, y, ev.a[i]!, ev.b[i]!);
           break;
         case Ev.Chop:
-          this.bambooView.chop(ev.a[i]!, x, y, ev.b[i]!, ev.c[i] === 1, this.fx);
+          if (this.w.allBlocks[ev.a[i]!]?.look === 'coffin') this.coffinChop(ev.a[i]!, x, y, ev.c[i] === 1);
+          else this.bambooView.chop(ev.a[i]!, x, y, ev.b[i]!, ev.c[i] === 1, this.fx);
           break;
         case Ev.Bomb:
           this.items.bombBlast(x, y, ev.b[i]!);
@@ -1499,12 +1503,57 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** 夜市买的临时增益还剩多久，给顶栏小标签 */
+  /** 义庄的棺材挨打：抖一下；碎了炸木片、删图（坐起的跳尸是核心刷的怪，自己会画） */
+  private coffinChop(k: number, x: number, y: number, fell: boolean): void {
+    const img = this.coffins.get(k);
+    if (!img) return;
+    if (!fell) {
+      this.tweens.add({ targets: img, x: { from: img.x - 3, to: img.x }, duration: 120, ease: 'Sine.easeOut' });
+      sfx.play('propWood', { pitch: 0.8, volume: 0.45 });
+      return;
+    }
+    this.coffins.delete(k);
+    img.destroy();
+    sfx.play('coffinSmash');
+    for (let n = 0; n < (LOW_MEMORY ? 3 : 8); n++) this.fx.spawn({ frame: 'shard', x: x + (Math.random() - 0.5) * 50, y: y - 14, vx: (Math.random() - 0.5) * 180, vy: -80 - Math.random() * 90, g: 320, life: 520, s0: 1, s1: 0.6, tint: 0x85613c, rot: Math.random() * 6, spin: 6 });
+  }
+
   private buffText(): string | null {
     const w = this.w;
     const parts: string[] = [];
     if (w.mightUntil > w.tick) parts.push(`伤害 +${Math.round(NIGHT_MARKET.might * 100)}% ${Math.ceil((w.mightUntil - w.tick) / 30)} 秒`);
     if (w.speedUntil > w.tick) parts.push(`移速 +${Math.round(NIGHT_MARKET.speed * 100)}% ${Math.ceil((w.speedUntil - w.tick) / 30)} 秒`);
+    const xf = this.xinfaText();
+    if (xf) parts.push(xf);
     return parts.length > 0 ? parts.join(' · ') : null;
+  }
+
+  /** 心法特色这一拍起没起作用（只显示跟着你的状态走的那几种；剑意、逐浪、燎原看打的是哪只怪，不显示） */
+  private xinfaText(): string | null {
+    const w = this.w;
+    const xf = w.xinfa;
+    if (!xf) return null;
+    const s = w.xf;
+    const name = XINFA_TEXT[xf].name;
+    const pct = (x: number): number => Math.round(x * 100);
+    switch (xf) {
+      case 'talisman':
+        return s.stack > 0 ? `${name} +${pct(s.stack * XINFA_FX.talisman.step)}%` : null;
+      case 'wood':
+        return s.stack > 0 ? `${name} +${pct(s.stack * XINFA_FX.wood.step)}%` : null;
+      case 'wealth':
+        return s.stack > 0 ? `${name} +${pct(s.stack * XINFA_FX.wealth.step)}%` : null;
+      case 'ward':
+        return s.still >= XINFA_FX.ward.still ? name : null;
+      case 'array':
+        return s.inZone ? name : null;
+      case 'paper':
+        return s.papers > 0 ? `${name} 挨打 −${pct(Math.min(XINFA_FX.paper.max, s.papers * XINFA_FX.paper.step))}%` : null;
+      case 'ghost':
+        return w.hp <= w.stats.hpMax * XINFA_FX.ghost.hp ? name : null;
+      default:
+        return null;
+    }
   }
 
   /** 买下后头上飘的"-价钱"（鬼市和夜市共用；同时有几条就往上错开） */
@@ -2566,7 +2615,7 @@ export class GameScene extends Phaser.Scene {
     });
     const raid = this.raid;
     this.drawSkillButton();
-    this.d.hud.setBuffs(raid ? null : this.buffText());
+    this.d.hud.setBuffs(raid ? this.xinfaText() : this.buffText());
     this.d.hud.update({
       rush: !!w.rush,
       hp: Math.max(0, w.hp),

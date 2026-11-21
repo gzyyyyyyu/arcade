@@ -130,10 +130,5 @@ export function altStart(id: PoolCharacterId): WeaponId {
   return ALT_START_FIX[id] ?? SCHOOL_CORE[altSchool(id)];
 }
 
-/** B：心法让这个流派单子上的法器和被动在升级三选一里权重 ×XINFA_MUL，再保底一张这个流派的卡（core/step.ts guarantee），这个流派的法器伤害 ×XINFA_DMG（见下） */
+/** B：心法让这个流派单子上的法器和被动在升级三选一里权重 ×XINFA_MUL，再保底一张这个流派的卡（core/step.ts guarantee），外加一条特色（content/xinfa.ts） */
 export const XINFA_MUL = 1.5;
-/**
- * 心法流派单子上的法器伤害倍数（core/skills.ts charDmgMul）：主修单子占角色卡池的 38–63%，不带心法三张里也有 76–95% 的机会出主修卡，
- * 保底和权重都冲不出差别（diag 11-17）；给一个看得见的小效果，不再加权重
- */
-export const XINFA_DMG = 1.1;

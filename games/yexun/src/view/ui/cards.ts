@@ -5,7 +5,7 @@
 import { ELEMENT_SET, PASSIVES, TYPE_SETS, WEAPONS, MAX_WEAPON_LEVEL, type PassiveId, type WeaponId } from '../../content/weapons.ts';
 import { Pick, type Choice, type World } from '../../core/index.ts';
 import { SCHOOLS } from '../../content/guide.ts';
-import { XINFA_DMG } from '../../content/pools.ts';
+import { XINFA_TEXT } from '../../content/xinfa.ts';
 import { MONSTER_INFO } from './codex.ts';
 import { counterLine } from './counters.ts';
 import { mergeHint, type MergeHint } from './mergeHint.ts';
@@ -16,7 +16,7 @@ export interface CardView {
   name: string;
   /** "新" 或 "Lv 3 → 4" */
   tag: string;
-  /** 心法流派的法器："心法+10%"（规则 65），和 tag 一样的小标 */
+  /** 心法流派的法器："心法·特色名"（content/xinfa.ts），和 tag 一样的小标 */
   xinfa?: string;
   text: string;
   /** 进化提示："进化还差：朱砂" / "满级 + 朱砂 → 斩妖剑" */
@@ -44,9 +44,9 @@ function describeBase(w: World, c: Choice): CardView {
     const evo = def.evolve;
     const hint = evo ? `满级 + ${PASSIVES[evo.with].name} → ${evo.name}${(w.passives[evo.with] ?? 0) > 0 ? '（已有）' : ''}` : null;
     const tags = `${def.el}·${def.type}`;
-    // 心法流派的法器（规则 65 起伤害 +10%，core/skills.ts charDmgMul）：名字旁边标一个小标，让心法在局里看得见（手机上五行·类型那行是藏着的）
+    // 心法流派的法器（特色只加它们，core/xinfa.ts）：名字旁边标特色名，让心法在局里看得见（手机上五行·类型那行是藏着的）
     const xf = w.xinfa;
-    const xinfa = xf && SCHOOLS[xf].weapons.includes(def.id) ? `心法+${Math.round((XINFA_DMG - 1) * 100)}%` : undefined;
+    const xinfa = xf && SCHOOLS[xf].weapons.includes(def.id) ? `心法·${XINFA_TEXT[xf].name}` : undefined;
     const counter = counterLine(def.type, def.el, (k) => MONSTER_INFO[k].name) ?? undefined;
     if (!o) {
       // 新法器：拿了以后能凑成哪个套装

@@ -5,8 +5,6 @@
  * 这个文件不 import step.ts（step 反过来 import 它）：要借 step 里的伤害、发子弹，由 step 传一份 SkillOps 进来。
  */
 import { CHAR_FX, PERK_FX, type CharacterId } from '../content/meta.ts';
-import { SCHOOLS } from '../content/guide.ts';
-import { XINFA_DMG } from '../content/pools.ts';
 import { PICKUP, PLAYER } from '../content/player.ts';
 import { WEAPONS, weaponStats, type WeaponId, type WeaponStats } from '../content/weapons.ts';
 import { dcos, dsin, fsqrt } from './fmath.ts';
@@ -160,13 +158,11 @@ export function skillFortune(w: World): boolean {
 
 /**
  * 乘在每一下伤害上的角色和开局配置那部分（hitEnemy 用）：
- * 摆渡人的水类法器 +50%；货郎每 100 枚铜钱 +1%（最多 +10%）；阴阳先生血过半 +8%；心法流派单子上的法器 ×XINFA_DMG。
+ * 摆渡人的水类法器 +50%；货郎每 100 枚铜钱 +1%（最多 +10%）；阴阳先生血过半 +8%（心法特色在 core/xinfa.ts）。
  * owner = 记功的法器（技能打的没有）
  */
 export function charDmgMul(w: World, owner: WeaponId | undefined): number {
-  const xf = w.xinfa;
-  const school = xf && owner !== undefined && SCHOOLS[xf].weapons.includes(owner) ? XINFA_DMG : 1;
-  return school * charPerkMul(w, owner);
+  return charPerkMul(w, owner);
 }
 
 function charPerkMul(w: World, owner: WeaponId | undefined): number {
