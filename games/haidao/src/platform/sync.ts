@@ -4,6 +4,7 @@
  * 进度一样时取最近玩过的。另一份会被 cloud.ts 先备份到 haidao.profile.pre-sync。
  */
 import { ESCORT_LEVELS } from '../content/index.ts';
+import { TRAIN_BY_ID } from '../content/training.ts';
 import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, COSMETICS, SKILLS, HERO_RESEARCH_MAX, RANKS, tdCampaign, TROOPS, canPlace, hqLevel, navUnlocked, newProfile, sanitizeBranch, tdDailyCap, totalStars } from '../core/index.ts';
 import type { Placed, Profile } from '../core/types.ts';
 import { isObj } from '../core/validate.ts';
@@ -114,6 +115,15 @@ export function reviveSave(raw: unknown): Save | null {
     const stars: Record<string, number> = {};
     if (isObj(p.escort.stars)) for (const l of ESCORT_LEVELS) if (isInt(p.escort.stars[l.id], 0, 3)) stars[l.id] = p.escort.stars[l.id] as number;
     profile.escort = { stars };
+  }
+  // 训练营：只留认识的关、不重复；待领不能为负、不超过已过关的奖励合计（坏档不能凭空多领）
+  if (isObj(p.train) && Array.isArray(p.train.done)) {
+    const done = [...new Set(p.train.done.filter((id): id is string => typeof id === 'string' && TRAIN_BY_ID.has(id)))];
+    const sum = (k: 'gold' | 'wood'): number => done.reduce((n, id) => n + TRAIN_BY_ID.get(id)!.reward[k], 0);
+    const owed = isObj(p.train.owed) ? p.train.owed : {};
+    const amt = (v: unknown, max: number): number => (isNum(v) && v >= 0 ? Math.min(max, Math.floor(v)) : 0);
+    const o = { gold: amt(owed.gold, sum('gold')), wood: amt(owed.wood, sum('wood')) };
+    profile.train = o.gold > 0 || o.wood > 0 ? { done, owed: o } : { done };
   }
   // 收藏：只留认识的（掉宝池 + 纪念装饰）；装备的皮肤必须已拥有；摆出来的装饰也必须已拥有（规则核心 build 同样这么查）
   const pool = new Set(COSMETICS);

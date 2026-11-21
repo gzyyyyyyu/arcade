@@ -1,4 +1,5 @@
 import { claimAll } from './baseupgrade.ts';
+import { openTraining, trainDot } from './training.ts';
 import type { BaseScene } from './BaseScene.ts';
 import { capacity, hqLevel, rankOf } from '../core/index.ts';
 import type { Placed } from '../core/types.ts';
@@ -135,9 +136,10 @@ export function updateHud(bs: BaseScene): void {
   bs.dotEls.get('collect')?.classList.toggle('on', d.collect);
   bs.dotEls.get('attacked')?.classList.toggle('on', d.attacked);
   claimLabel(bs, d.collect);
+  bs.trainBtn?.querySelector('.hd-dot')?.classList.toggle('on', trainDot());
 }
 
-/** 一键收取钮：写上矿里攒着多少（金、木各一个数），没有能收的就藏起来；内容没变不重建 DOM */
+/** 一键收取钮：写上矿里攒着的加训练营待领的有多少（金、木各一个数），没有能收的就藏起来；内容没变不重建 DOM */
 function claimLabel(bs: BaseScene, on: boolean): void {
   const btn = bs.claimBtn;
   if (!btn) return;
@@ -145,6 +147,11 @@ function claimLabel(bs: BaseScene, on: boolean): void {
   for (const b of app.profile.base.buildings) {
     if (b.kind === 'goldmine') st.gold += Math.floor(b.stored ?? 0);
     else if (b.kind === 'sawmill') st.wood += Math.floor(b.stored ?? 0);
+  }
+  const owed = app.profile.train?.owed;
+  if (owed) {
+    st.gold += owed.gold;
+    st.wood += owed.wood;
   }
   const sig = on ? `${st.gold}:${st.wood}` : '';
   if (btn.dataset.sig === sig) return;
@@ -181,6 +188,11 @@ export function buildUi(bs: BaseScene): void {
   hq.appendChild(img(iconA('home'), 22));
   el('b', '', '', hq);
   exchangeButton(bar2);
+  bs.trainBtn = button('', 'hd-btn-wood hd-trainbtn', () => openTraining(), bar2);
+  bs.trainBtn.appendChild(img(iconA('sword'), 22));
+  el('span', '', '训练营', bs.trainBtn);
+  bs.trainBtn.appendChild(el('i', 'hd-dot'));
+  bs.trainBtn.title = '训练营：每种兵一关短教学';
   const me = button('', 'hd-btn-plain hd-profile', () => openProfile(bs), bar2);
   bs.hud = { gold, wood, hq, me };
   me.innerHTML = CAPTAIN_ICON;

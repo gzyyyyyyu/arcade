@@ -37,6 +37,7 @@ import { isTurret } from './aim.ts';
 import { setAmbience } from './audio/sfx.ts';
 import { LOW_MEMORY } from './viewport.ts';
 import { uiRoot } from './ui.ts';
+import { trainTdInit } from './trainplay.ts';
 import type { LiveTier } from '../core/live.ts';
 import { isEscortId, escortUnlocked, escortSetup } from './escortapi.ts';
 import type { EscortView } from './escortview.ts';
@@ -349,6 +350,7 @@ export class TdScene extends Phaser.Scene {
     window.addEventListener('keydown', letters);
     this.events.once('shutdown', () => window.removeEventListener('keydown', letters));
     buildUi(this);
+    trainTdInit(this);
     // 镜头按岛适配：整座岛、临时塔位、所有登陆口（含落潮那条）都在顶栏和操作区之间的可见区里，敌人一落地就看得见
     this.fit = new FitCam(this, this.cc, this.ui, () => this.fitIsland(), this.r, () => this.fitContent(), () => introFocus(this));
     this.fit.setDirector(tdDirector(this));
@@ -560,13 +562,13 @@ export async function prepareTide(tm: Phaser.Textures.TextureManager, r: number)
  * 一局守岛的入口数据（main 用）：战役关走 startTd2（关卡岛 + 选关页挑好的驻守塔，没挑过就按默认挑法），
  * HOME_ID 走海盗来袭（tdHomeSetup：自己的岛）；烘焙守岛素材和炮台再开场景。
  */
-export async function prepareTd(levelId: string, tm: Phaser.Textures.TextureManager, r: number, pre?: { setup: TdSetup; tier: LiveTier }): Promise<{ ok: true; data: TdData } | { ok: false; error: string }> {
+export async function prepareTd(levelId: string, tm: Phaser.Textures.TextureManager, r: number, pre?: { setup: TdSetup; tier?: LiveTier; train?: boolean }): Promise<{ ok: true; data: TdData } | { ok: false; error: string }> {
   const seed = (Date.now() & 0x3fffffff) | 1;
   const p = app.profile;
   const home = levelId === HOME_ID;
   const escort = isEscortId(levelId);
   let st: Result<TdSetup>;
-  // 护航实盘：开局已由档位表算好（不看解锁），只负责烘焙素材、开场景
+  // 护航实盘、训练营：开局已由档位表 / 关卡表算好（不看解锁），只负责烘焙素材、开场景
   if (pre) st = { ok: true as const, value: pre.setup };
   else if (escort) st = escortUnlocked(p, levelId) ? { ok: true as const, value: escortSetup(levelId, seed) } : { ok: false as const, error: 'locked' };
   // 加难开关是这次打开游戏的界面状态：换了账号、主寨不够时不带上（tdHomeSetup 会拒绝开局）
@@ -590,7 +592,8 @@ export async function prepareTd(levelId: string, tm: Phaser.Textures.TextureMana
   const data: TdData = { levelId, setup, speed: new URLSearchParams(location.search).has('fast') ? 4 : 1 };
   if (home) data.home = true;
   if (escort) data.escort = true;
-  if (pre) data.escortLive = { tier: pre.tier };
+  if (pre?.tier) data.escortLive = { tier: pre.tier };
+  if (pre?.train) data.train = true;
   return { ok: true, data };
 }
 void uiRoot;

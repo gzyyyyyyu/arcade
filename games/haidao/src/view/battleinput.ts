@@ -15,6 +15,7 @@ import { REDUCED, vibrate } from './feel.ts';
 import { iso, unIso } from './iso.ts';
 import { sfx } from './audio/sfx.ts';
 import { Tutorial, rectOf, tutStep } from './tutorial.ts';
+import { trainBattleInit, trainBattleRefresh } from './trainplay.ts';
 import { button, confirmBox, el, hallButton, img, screen, toast } from './ui.ts';
 import { v2 } from './battlecommon.ts';
 import type { MapStopHooks } from './battlecommon.ts';
@@ -97,6 +98,7 @@ export function buildUi(bs: BattleScene): void {
     ro.observe(bs.cardsEl);
   }
   bs.tut = new Tutorial(bs.ui);
+  trainBattleInit(bs);
 }
 
 /** 技能的键位：兵种占数字键 1–9，技能用字母键（编号再多也按得出来） */
@@ -431,12 +433,13 @@ export function updateHud(bs: BattleScene): void {
   }
   funHud(bs);
   tutRefresh(bs);
+  trainBattleRefresh(bs);
 }
 
 /** 新手引导（第 5 步）：先点船卡 → 点沙滩 → 能量够了放炮击 */
 export function tutRefresh(bs: BattleScene): void {
   const t = bs.tut;
-  if (tutStep() !== 5 || bs.ended || bs.paused) return t.hide();
+  if (tutStep() !== 5 || bs.ended || bs.paused || bs.d.train) return t.hide();
   const s = bs.st;
   const root = bs.ui;
   const sk = bs.d.setup.army.skills;

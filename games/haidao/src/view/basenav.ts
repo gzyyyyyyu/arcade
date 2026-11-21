@@ -12,8 +12,8 @@ import { tArt } from './art.ts';
 import { lackText, trimText } from './basefeel.ts';
 import { openSeaMap } from './seamap.ts';
 import { openTdSelect } from './td-ui.ts';
-import { tutAdv, tutStep, type Rect, rectOf } from './tutorial.ts';
-import { el, button, img, toast, costRow } from './ui.ts';
+import { TUT_DONE, TUT_SAILED, tutAdv, tutStep, type Rect, rectOf } from './tutorial.ts';
+import { el, button, img, toast, costRow, modalOpen } from './ui.ts';
 import { openSheet, short, closeSheet } from './basepanel.ts';
 import { ghostRect } from './baseplace.ts';
 
@@ -145,7 +145,12 @@ export function openMap(bs: BaseScene): void {
 export function tutRefresh(bs: BaseScene): void {
   const st = tutStep();
   const t = bs.tut;
-  if (st >= 7) return t.hide();
+  if (st >= TUT_DONE) return t.hide();
+  if (st === TUT_SAILED) {
+    // 最后一步：指一下训练营（开过面板就算看过）；有面板、海图开着时先不指
+    if (bs.sheet || bs.place || bs.stopMap || modalOpen()) return t.hide();
+    return t.show('train', '训练营：每种兵一关短教学，过关有奖励。点这里看看', () => rectOf(bs.trainBtn, bs.ui));
+  }
   const root = bs.ui;
   const world = (id: number): (() => Rect | null) => () => {
     const n = bs.nodes.get(id);

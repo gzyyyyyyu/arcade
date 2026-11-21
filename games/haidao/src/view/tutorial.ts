@@ -4,10 +4,12 @@ import { button, el } from './ui.ts';
 /**
  * 新手引导：气泡 + 高亮框 + 箭头，每步一句大白话，随时可以"跳过"。
  * 步数记在 Profile.tutorial：
- *   0 收金币  1 建金库  2 看主寨升级  3 看船队  4 出海  5 战斗里登陆/放炮  6 回家升级  7 完成
+ *   0 收金币  1 建金库  2 看主寨升级  3 看船队  4 出海  5 战斗里登陆/放炮  6 回家升级  7 去训练营看看  8 完成
  * 场景负责判断"现在该指哪"（show / hide），本文件只管画。演示局（volatile）一律视作已完成。
  */
-export const TUT_DONE = 7;
+export const TUT_DONE = 8;
+/** 出海那一段带完了（海图不再按引导藏旗和出发钮；老玩家开档直接到这一步，还会被指一次训练营） */
+export const TUT_SAILED = 7;
 
 export interface Rect {
   x: number;
@@ -54,14 +56,16 @@ export class Tutorial {
 
   private readonly root: HTMLElement;
 
-  constructor(root: HTMLElement) {
+  /** skip：横幅上那个钮换成别的字和动作（训练营的「跳过提示」）；没给 = 「跳过引导」，跳过整个新手引导 */
+  constructor(root: HTMLElement, skip?: { label: string; onSkip: () => void }) {
     this.root = root;
     this.ring = el('div', 'hd-tut-ring', undefined, root);
     this.arrow = el('div', 'hd-tut-arrow', undefined, root);
     this.tip = el('div', 'hd-tut-tip', undefined, root);
     this.txt = el('p', '', '', this.tip);
-    button('跳过引导', 'hd-btn-plain', () => {
-      tutSet(TUT_DONE);
+    button(skip?.label ?? '跳过引导', 'hd-btn-plain', () => {
+      if (skip) skip.onSkip();
+      else tutSet(TUT_DONE);
       this.hide();
     }, this.tip);
     this.hide();
