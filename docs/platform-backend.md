@@ -17,7 +17,7 @@
 - 账号用用户名 + 密码，建号时给一个恢复码。当前是**邀请制**：新人凭老用户的邀请码注册，公开注册由管理员开关（5.8、15.20）；游戏要登录才能进（15.8）。
   账号系统的第一目标是防刷、守住额度：匿名只开放注册、登录、找回、`GET /api/me`，写操作一律要登录，账号、IP、全站三级日上限（5.4）。
 - **排行榜不防作弊**（能作弊算玩家自己的本事）：游戏页直接调 `POST /api/scores` 交分，平台只防刷额度、查数据合法性（9.2、15.5）。
-- **钱包**（筹码，5.9；方案正本 `docs/economy.md`）：一人一行，带入、结回、放弃只有游戏服务端经服务绑定 RPC 能调，浏览器只能看和领补给。
+- **钱包**（筹码，5.9；方案正本 `docs/economy.md`）：一人一行，带入、结回、放弃、兑换只有游戏服务端经服务绑定 RPC 能调，浏览器只能看和领补给。
 - 所有代码在单一总仓库 `gzyyyyyyu/arcade`；每个模块可以随时拆出去单独部署（AGENTS.md 第 1、2 节）。
 
 ## 1. 约束
@@ -145,7 +145,7 @@
 
 - **页面**（React，没有路由库，约 40 行的极简路由，线上靠静态资源的单页回退）：`/login`（登录；注册页签只在注册开着或带了邀请码时才有）、`/forgot`（用户名 + 恢复码 + 新密码重设，成功后给新恢复码）、
   `/me`（页签：资料（昵称、好友码）、隐私、云存档、邀请码、安全（改密码、换恢复码、退出其他设备、注销，都要再输一次当前密码，注销也可改用恢复码）；选中的页签记在 `?tab=`，宽屏上资料和隐私并成一页）、`/privacy`、`/admin`、`/friends`、`/f/<码>`、`/i/<码>`（邀请码注册）、
-  `/feed`、`/wallet`、`/boards`、`/me/stats`、`/u/<用户 id>`。首页右上角：没登录是"登录"，登录后是头像加昵称；管理员多一个"管理"链接。每页一屏放下、页面本身不滚：宽屏分栏，窄屏用页签或翻页；宽度 ≥1200 时子页面左边有侧栏导航。
+  `/feed`、`/wallet`、`/boards`、`/me/stats`、`/u/<用户 id>`。首页右上角：没登录是"登录"，登录后是头像加昵称；管理员多一个"管理"链接。每页一屏放下、页面本身不滚：宽屏分栏，窄屏用页签或翻页。导航只在顶栏一处（0.41.0 去掉了宽屏侧栏）。
 - `/login?from=<id>`：`from` 只认 `platform/shared/games.ts` 白名单里的游戏 id（以及 `friends`、`f/<码>`），登录后整页跳回。别的值一律回首页，防止被拿来跳到外站。
 - `/login?next=<路径>`（给游戏"叫朋友来"和闸门用）：登录或注册完成后整页跳到 `next`，查询参数原样带回（比如房间码）。游戏照着拼：`'/login?next=' + encodeURIComponent(location.pathname + location.search)`；闸门 302 时同样拼。
   - **只认**：以 `/` 开头、不超过 200 个字符的本站路径，落在 `/games/…` 或平台自己的页面（`/`、`/friends`、`/feed`、`/f/<码>`、`/u/<22 位用户 id>`、`/me`、`/me/<页>`、`/wallet`、`/boards`、`/privacy`、`/admin`）。不认登录页和找回页，免得绕回来。
@@ -199,14 +199,15 @@
   - **并发**：用 `rev` 做乐观并发 `UPDATE … WHERE user_id = ? AND rev = ?`，写 0 行说明被抢先，重读重算再写，最多 4 次，还不行回 `busy`；第一次建行用 `INSERT … ON CONFLICT DO NOTHING`。遇到 D1 标"重试即可"的暂时性错误，平台自己退避重试最多 3 次。
   - **新号**：注册时不建行，第一次带入（或领补给）时才建，送 10,000；没有钱包的人看钱包是余额 10,000、`fresh: true`，不写库。
   - **换日**：北京时间 0 点。碰钱包时发现过了 0 点，就把当天计数挪到"前一天"。跨零点还在桌上的 client 那一份算进新一天这个游戏的带入，否则 23:50 带入、00:10 结回时本金会被当成赢的。
-- **给游戏的 RPC**：`WalletService`（`WorkerEntrypoint`），参数是一个对象，回 `{ ok: true, wallet, credited?, capped?, dup? }` 或 `{ ok: false, error, wallet? }`。业务拒绝都用返回值、不抛异常。
+- **给游戏的 RPC**：`WalletService`（`WorkerEntrypoint`），参数是一个对象，回 `{ ok: true, wallet, credited?, capped?, left?, dup?, exchangeLeft?, exchangeCap? }` 或 `{ ok: false, error, wallet?, left? }`。业务拒绝都用返回值、不抛异常。
 
   | 方法 | 参数 | 成功 | 写入 |
   |---|---|---|---|
-  | `view(userId)` | — | 钱包 | 0；有到期退回时 1 |
+  | `view(userId)` | — | 钱包；另带这个游戏（绑定的 `game`）今天还能兑换多少 `exchangeLeft` 和今天的上限 `exchangeCap`（管理页设成 0 时两个都是 0，界面写"今天兑换关了"） | 0；有到期退回时 1 |
   | `buyin(req)` | `userId, game, ref, tier, amount, until, mode, op` | 余额扣掉 `amount`，记到这个游戏桌上那一份 | 1 |
   | `settle(req)` | `userId, game, ref, amount, mode, op`，可选 `stats`（5.10）、可选 `tally`（5.11） | `credited` 进余额（client 模式超出每日上限的在 `capped` 里，不进），清掉那一份 | 1；带合格的 `tally` 时 2 |
   | `refund(req)` | `userId, game, ref, mode, op` | 那一份原样退回，清掉 | 1 |
+  | `exchange(req)` | `userId, game, op, amount` | 游戏内货币换的筹码进余额：`credited` 是实际入账，`left` 是这次之后今天这个游戏还剩的额度 | 1 |
   | `together(req)` | `op, players: [{userId, team?, win}]` | 搭子战绩，一场整桌报一次（15.19）；回 `pairs` | 每对 1–2 行，记在排行榜类 |
 
   - `game` 是登记的游戏 id；`tier` 是 `small` / `mid` / `big` / `lux`（一份 2,000 / 10,000 / 50,000 / 200,000，`economy.md` 第 2 节）；`ref`、`op` 是 8–64 位 `[A-Za-z0-9_-]`；`amount`、`until`（Unix 毫秒）是非负安全整数；
@@ -216,27 +217,29 @@
   - **出错重发是安全的**：回了 `internal`（或调用抛错、超时）时，拿**同一个 `op`** 再调一次：写成了的回第一次的结果，没写成的照常做。
   - **带入**：每次 1 到一份（`bad_amount`）；`until` 已过回 `bad_until`，超过 24 小时按 24 小时算。同一个 `ref` 再带入是补码，要同一档（`at_table`）、同一 `mode`（`bad_mode`），加到那一份上，到期时间取晚的；
     新开一份、补码都只要余额 ≥ 这次的 `amount`（`no_funds`）。到期退回过的 `ref` 不能再开（`expired`）。
+  - **兑换**：`amount` 至少 1（`bad_amount`）。每人每个游戏每天（北京时间）最多换进 `exchangeCap`（默认 2,000，管理页可调），当天计数记在钱包行 `today.games.<game>.ex`；超出的只入剩下的那部分（回话 `credited < amount`、`left: 0`），
+    剩 0 回 `exchange_cap`（带 `left: 0`、写 0 行）；`exchangeCap` 是 0 就是关掉兑换。和带入一样受只读档、钱包预算（`busy`）和每天 1,000 次写入（`limit`）管；指纹只有类型，同一个 `op` 先用在别的操作上回 `op_conflict`。
   - **结回**：要有这个游戏、这个 `ref` 的那一份，`mode` 一致。没有回 `no_stake`（已到期退回过的回 `expired`）——钱包里没带入就没有结回。`amount` 可以是 0，最多是带上桌的加 20 份（只防写错）。
-  - **错误码**：`bad_request`、`unknown_game`、`bad_game`、`no_user`、`limit`（今天写满 1,000 次）、`no_funds`、`at_table`、`bad_amount`、`bad_until`、`bad_mode`、`no_stake`、`expired`、`op_conflict`、`busy`、`internal`。被拒时一般带当前的 `wallet`。
+  - **错误码**：`bad_request`、`unknown_game`、`bad_game`、`no_user`、`limit`（今天写满 1,000 次）、`no_funds`、`at_table`、`bad_amount`、`bad_until`、`bad_mode`、`no_stake`、`expired`、`op_conflict`、`exchange_cap`（今天兑换额度用完）、`no_change`（兑换时余额已到上限）、`busy`、`internal`。被拒时一般带当前的 `wallet`。
 - **游戏怎么接**：在游戏 `wrangler.jsonc` 里加一个服务绑定（和认人的 `ARCADE` 分开）：`"services": [{ "binding": "WALLET", "service": "arcade", "entrypoint": "WalletService", "props": { "game": "texas" } }]`；
   `await env.WALLET.buyin({ userId, game: 'texas', ref: roomId, tier: 'small', amount: 2_000, until: Date.now() + 6 * 3_600_000, mode: 'server', op })`。平台要先部署（带 `WalletService` 的版本），游戏才能部署带这个绑定的版本。
-- **防别的游戏冒充 game id**：只有本账号里的 Worker 能声明到 `arcade` 的服务绑定，公网和浏览器碰不到 RPC（`/api` 里没有带入、结回、放弃这几条路，测试锁住）。**绑定上必须写 `props.game`**，参数里的 `game` 必须和它一致，
-  否则四个方法（含 `view`）一律回 `bad_game`、不碰库。`props` 写在调用方自己的部署配置里，游戏代码在运行时改不了。每个游戏只能动自己那一份，结回、放弃还要对得上 `ref`。信任边界就是这个账号：账号里的 Worker 都经 PR 审阅后由 CI 部署。
+- **防别的游戏冒充 game id**：只有本账号里的 Worker 能声明到 `arcade` 的服务绑定，公网和浏览器碰不到 RPC（`/api` 里没有带入、结回、放弃、兑换这几条路，测试锁住）。**绑定上必须写 `props.game`**，参数里的 `game` 必须和它一致，
+  否则这几个方法（含 `view`）一律回 `bad_game`、不碰库。`props` 写在调用方自己的部署配置里，游戏代码在运行时改不了。每个游戏只能动自己那一份，结回、放弃还要对得上 `ref`。信任边界就是这个账号：账号里的 Worker 都经 PR 审阅后由 CI 部署。
 - **服务绑定 RPC 在免费版**：能用；不另收请求费（游戏调平台算一个请求，两边 CPU 合计；平台 6.6 计量照样算 1 次调用）；算调用方的子请求（免费版每次调用最多 50 个）；CPU 每次 10 ms，钱包一次操作远低于它；
   异常只保证 `name` 和 `message`，所以业务错误都用返回值；命名入口要从平台主模块导出。
-- **计量和熔断**：每次 RPC 算平台 1 次调用；写入记在"钱包"类预算（6.6，6,000 行）。停服档全停（`busy`）；只读档或钱包类预算用完：停带入和领补给，**结回、放弃照收**（桌上的筹码总要能回来），看钱包照常；
+- **计量和熔断**：每次 RPC 算平台 1 次调用；写入记在"钱包"类预算（6.6，6,000 行）。停服档全停（`busy`）；只读档或钱包类预算用完：停带入、兑换和领补给，**结回、放弃照收**（桌上的筹码总要能回来），看钱包照常；
   停增长档：不建新钱包，已有的照常。
-- **每人每天 1,000 次写入**（北京时间，各游戏合计，记在钱包行里）：到了上限不能带入（`limit`）、不能领补给（429）；结回、放弃、到期退回不受限。
-- **管理员可调的规则**：补给额（默认 2,000）、单机每日净赢份数（默认 10）、新号送多少（默认 10,000）、管理员单次调整上限（默认 ±1,000,000）这四个数存在 `settings` 的 `wallet_rules` 一行里（连同最近 20 次改动记录），管理页改了即时生效（15.7）。钱包按 30 秒缓存读这一行，读不到用代码默认值。
+- **每人每天 1,000 次写入**（北京时间，各游戏合计，记在钱包行里）：到了上限不能带入、兑换（`limit`），不能领补给（429）；结回、放弃、到期退回不受限。
+- **管理员可调的规则**：补给额（默认 2,000）、单机每日净赢份数（默认 10）、新号送多少（默认 10,000）、管理员单次调整上限（默认 ±1,000,000）、兑换每人每游戏每天上限 `exchangeCap`（默认 2,000，0–1,000,000，0 是关掉）这五个数存在 `settings` 的 `wallet_rules` 一行里（连同最近 20 次改动记录），管理页改了即时生效（15.7）。钱包按 30 秒缓存读这一行，读不到用代码默认值。
 - **client 模式的每日上限**（`economy.md` 第 4 节）：每个游戏每天净赢 ≤ 10 份。净赢 = 当天这个游戏 client 模式结回进钱包的 − 带入的；份 = 当天这个游戏带上桌的各份里最大的那一份，每份取 min(档位一份, 实际带上桌的)；
   结回时最多进到"净赢正好 10 份"，超出的在 `capped` 里不进钱包；**带上桌的那一份总能拿回来**（到顶以后至少退回带入的数）；放弃、到期退回把那一份从"带入"里减回去，否则转几圈能撑大上限；server 模式（好友房）不设上限。
 - **浏览器接口**（15.9）：`GET /api/wallet` 看自己的钱包；`POST /api/wallet/relief` 领每日补给（余额加桌上的不到补给额、北京时间今天没领过，就补到补给额），按 5.2 的 CSRF 规矩，一天只能领一次。大厅有筹码在桌上时提醒并直达游戏，`canRelief` 时就地放"领补给"按钮。
 - **到期退回**：每次碰钱包时，先把过了 `until` 的那一份原样退回、记下 `游戏:ref`。之后这个 `ref` 来结回、放弃、带入都回 `expired`。被拒的操作不写库，到期退回留到下次能写时。
-- **统计**（`economy.md` 第 6 节）：每天的 Cron（7.3）先记一行北京时间昨天的全站统计到 `wallet_stats`（1 行，系统类）：全站筹码总量、钱包数、新号送的、补给、各游戏的带入 / 结回 / 退回 / 到顶没进。管理页显示最近 30 天，"庄家"一列 = 带入 − 结回 − 退回。
+- **统计**（`economy.md` 第 6 节）：每天的 Cron（7.3）先记一行北京时间昨天的全站统计到 `wallet_stats`（1 行，系统类）：全站筹码总量、钱包数、新号送的、补给、管理员调整、兑换（`exchange`），各游戏的带入 / 结回 / 退回 / 到顶没进 / 兑换（`ex`）。管理页显示最近 30 天，"庄家"一列 = 带入 − 结回 − 退回。
 - **删号**：钱包行在 `deleteUserStatements` 里（7.3）。`wallet_stats` 只有全站合计，不带人。
 - **管理员调整**：`GET /api/admin/wallet/<用户名>` 查人（钱包、`career`、`ledger`、调整记录）；`POST /api/admin/wallet/adjust {username, amount, note?}` 正数加负数扣，单次上限见上；`GET /api/admin/wallet-adjustments` 看全站最近 10 次。
   只认管理员会话（令牌 403），按 5.2 做 CSRF，记在账号安全类；每次只写钱包那 1 行，加到余额上限、扣到 0 为止，不碰桌上那一份；记录存在钱包 state 的 `adminLog`（每人最近 20 条）。
-- **流水**：钱包 state 里的 `ledger` 记每人最近 30 笔余额变动 `{"at", "t", "g"?, "a", "capped"?}`，`t` 是 `grant`、`buyin`、`settle`、`refund`、`expire`、`relief`、`admin`。跟着钱包那 1 行一起写，不新增行；本人的 `GET /api/wallet` 回自己的，游戏的 RPC 不回。
+- **流水**：钱包 state 里的 `ledger` 记每人最近 30 笔余额变动 `{"at", "t", "g"?, "a", "capped"?}`，`t` 是 `grant`、`buyin`、`settle`、`refund`、`expire`、`relief`、`admin`、`exchange`。跟着钱包那 1 行一起写，不新增行；本人的 `GET /api/wallet` 回自己的，游戏的 RPC 不回。
 
 ### 5.10 战绩（career）
 
