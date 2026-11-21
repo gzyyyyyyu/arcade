@@ -115,6 +115,14 @@ export interface BarCtx<A> extends Paint {
   act(a: A): void;
   /** 改了选择、要重画 */
   setSelected(tiles: Tile[]): void;
+  /** 声明窗口里推荐点哪个（suggestClaim）；没开推荐、不在声明窗口是 null。玩法自己画的声明条用 recMark 标出来 */
+  rec: string | null;
+}
+
+/** 推荐点的那个按钮：描金、角上一个"荐"，和手牌的推荐一个说法（css/table.css 的 .bar .act.rec） */
+export function recMark(b: HTMLElement): void {
+  b.classList.add('rec');
+  el('i', 'rec-badge', b, '荐').title = '推荐点这个';
 }
 
 /** 画面效果：给玩法用 */
@@ -864,6 +872,8 @@ export class TableUi<V extends TableView, A> {
         this.drawHand();
         this.drawBar();
       },
+      // 开了推荐（娱乐新手、实盘小档）时才算
+      rec: this.coach && v.prompt?.claim ? (this.ui.suggestClaim?.(v) ?? null) : null,
     };
     if (this.ui.bar(v, bar, ctx)) return;
     const p = v.prompt;
@@ -883,11 +893,9 @@ export class TableUi<V extends TableView, A> {
       const tile = v.claim!.tile;
       const show = el('div', 'claim-tile', bar);
       this.tile(tile, 'md', show);
-      // 开了推荐（娱乐新手、实盘小档）时，推荐的那个按钮描金、带个"荐"，和手牌的推荐一个说法
-      const rec = this.coach ? (this.ui.suggestClaim?.(v) ?? null) : null;
       for (const o of [...c.opts, 'pass']) {
-        const b = button(`act ${o}${o === rec ? ' rec' : ''}`, bar, CLAIM_TEXT[o] ?? o, () => this.send({ t: 'claim', w: c.w, c: o }));
-        if (o === rec) el('i', 'rec-badge', b, '荐').title = '推荐点这个';
+        const b = button(`act ${o}`, bar, CLAIM_TEXT[o] ?? o, () => this.send({ t: 'claim', w: c.w, c: o }));
+        if (o === ctx.rec) recMark(b);
       }
       // 好友房声明窗口有时限：名牌上的秒数离按钮太远，按钮条边上再放一个（由 startTimer 同步写字）
       el('span', 'bar-clock', bar);

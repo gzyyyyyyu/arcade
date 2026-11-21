@@ -121,7 +121,7 @@ export interface VariantPage {
   // ---------- 结算、分享、颁奖、名场面 ----------
   roundSummary(v: AnyView, names: string[], unit: string): HTMLElement;
   matchSummary(v: AnyView, names: string[], unit: string): HTMLElement;
-  /** 一局定输赢（快速一局、实盘一局一结）时，结算页头一行底下用大白话说这一局输赢主要因为什么；说不清返回 null */
+  /** 一场打完，结算页头一行底下用大白话说输赢主要因为什么（川麻只在一局定输赢时说，立直看整场）；说不清返回 null */
   verdictWhy?(v: AnyView, seat: number, names: string[]): string | null;
   /** 单机：一局打完到弹结算停多久（毫秒，未乘速度） */
   soloEndMs(v: AnyView): number;

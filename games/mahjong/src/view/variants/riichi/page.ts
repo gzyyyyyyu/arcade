@@ -12,7 +12,7 @@ import type { SoloState } from '../../../solo.ts';
 import { TableUi, type CommonAct } from '../../table.ts';
 import type { AnyOpts, VariantPage } from '../page.ts';
 import { RC_PAGES, dexPage, rulesPage } from './guide.ts';
-import { cardOf, matchSummary, roundSummary } from './summary.ts';
+import { cardOf, matchSummary, roundSummary, verdictWhy } from './summary.ts';
 import { lengthName, roundName } from './text.ts';
 import { resetRiichiUi, riichiUi, toRcAction } from './ui.ts';
 import { tableView } from './view.ts';
@@ -65,6 +65,7 @@ export const riichiPage: VariantPage = {
 
   roundSummary: (v, names) => roundSummary(v as RcView, names),
   matchSummary: (v, names, unit) => matchSummary(v as RcView, names, unit),
+  verdictWhy: (v, seat, names) => verdictWhy(v as RcView, seat, names),
   soloEndMs: (v) => (hasWins(v as RcView) ? 1_900 : 1_000),
   roomEndMs: (v) => (hasWins(v as RcView) ? 2_600 : 0),
   // 立直的小计没有杠数，不评杠王（game/riichi/fun.ts）

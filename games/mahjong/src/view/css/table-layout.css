@@ -168,3 +168,41 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 [data-orient='port'] .banner.r3 { left: 22%; top: 40%; }
 [data-orient='port'] .banner.swap { left: 50%; top: 34%; }
 
+
+/* ---------- 竖屏两排手牌（data-hand="two"：viewport.ts，舞台高 ≥ 1000） ----------
+ * 一排 14 张在 560 宽里最多 37，屏幕上只有约 26 像素（11-21 新手试玩：看不清、点不准）。舞台够高时手牌摆两排（前一半在上、后一半和摸的那张在下），
+ * 每张 42–60（舞台越高越大；390×844 全屏约 60，屏幕上约 42 像素），多出来的高度 --e 从中间那一截让：名牌、碰杠条往上挪 --e，
+ * 中间一截的中心 --c 落在对家那排下沿（160）和自己名牌上沿之间的正中，牌河按剩下的高度算（上下各放得下 5 行，长屏上基本不变，舞台 1000 左右小一号）。
+ * 舞台高 H = 1080 − --cut；--e = 两排高 + 行距 12 − 原来一排的 52；牌河 5 行上下各占 58 + 5 × 1.39 × --pw，
+ * 夹在 160 和 H − 164 − --e 之间，每行另算 1 的缝、留 10 的余量 → --pw ≤ (670 − --cut − 2.78 × --hw) / 14.3 */
+.stage[data-orient='port'][data-hand='two'] {
+  --hw: min(60px, calc(42px + (200px - var(--cut, 0px)) * 0.0616));
+  --hh: calc(var(--hw) * 1.39);
+  --e: calc(var(--hh) * 2 + 12px - 52px);
+  --c: calc((1076px - var(--cut, 0px) - var(--e)) / 2);
+  --pw: min(44px, calc((670px - var(--cut, 0px) - var(--hw) * 2.78) / 14.3));
+}
+/* 每排放几张 = 一半（向上取整）：手牌越碰越少，两排跟着变窄，碰杠摆在右边不挤出去 */
+[data-hand='two'] .my-hand {
+  --cols: 1;
+  flex-wrap: wrap;
+  row-gap: 12px;
+  width: calc(var(--cols) * (var(--hw) + 1px) + 10px);
+}
+[data-hand='two'] .my-hand:has(> :nth-child(3)) { --cols: 2; }
+[data-hand='two'] .my-hand:has(> :nth-child(5)) { --cols: 3; }
+[data-hand='two'] .my-hand:has(> :nth-child(7)) { --cols: 4; }
+[data-hand='two'] .my-hand:has(> :nth-child(9)) { --cols: 5; }
+[data-hand='two'] .my-hand:has(> :nth-child(11)) { --cols: 6; }
+[data-hand='two'] .my-hand:has(> :nth-child(13)) { --cols: 7; }
+[data-hand='two'] .my-hand .tile { width: var(--hw); height: var(--hh); }
+/* 自己的碰杠在两排右边：手牌少了几张、两排变窄，右边空出来，碰杠放大一号（26 → 32，屏幕上约 22 像素）；四个杠也只比 544 宽一点 */
+[data-hand='two'] .melds.r0 .tile { width: 32px; height: 45px; }
+[data-hand='two'] .badge.r0,
+[data-hand='two'] .badge.r1,
+[data-hand='two'] .fun-slot { bottom: calc(84px + var(--e)); }
+[data-hand='two'] .bar { bottom: calc(172px + var(--e)); }
+/* 窄屏对家那排紧贴名牌下沿（一排手牌时放在 150，下面空着；两排时中间一截要往上让） */
+@media (max-width: 400px) {
+  [data-hand='two'] .side.r2 { top: 96px; }
+}

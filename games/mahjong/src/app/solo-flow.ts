@@ -275,7 +275,7 @@ function matchEndDialog(mine: Solo, v: SoloView, names: string[], unit: string):
 }
 
 /**
- * 结算页最上面一行：第几名、赢了输了多少，一局定输赢时再用一句大白话说为什么（玩法的 verdictWhy）。
+ * 结算页最上面一行：第几名、赢了输了多少，底下再用一句大白话说为什么（玩法的 verdictWhy，说不清不写）。
  * 放在翻页区外面，哪一页都看得见；新手第一局最想知道的就是这两件事（11-21 新手试玩：输了只看到一屏流水）
  */
 function verdict(box: HTMLElement, v: SoloView, names: string[], unit: string, net: number): void {
@@ -286,7 +286,7 @@ function verdict(box: HTMLElement, v: SoloView, names: string[], unit: string, n
   const top = el('div', `verdict ${net > 0 ? 'up' : net < 0 ? 'down' : ''}`, box);
   el('b', 'rank', top, `第 ${rank} 名`);
   el('b', 'net', top, net === 0 ? '打平' : `${net > 0 ? '赢' : '输'} ${num(Math.abs(net))}${unit}`);
-  const why = v.history.length <= 1 ? pageOf(v.variant).verdictWhy?.(v, me, names) : null;
+  const why = pageOf(v.variant).verdictWhy?.(v, me, names);
   if (why) el('p', 'why', top, why);
 }
 
