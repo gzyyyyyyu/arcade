@@ -19,6 +19,7 @@ type Stub = {
   buyin(req: unknown): Promise<WalletReply>;
   settle(req: unknown): Promise<WalletReply>;
   refund(req: unknown): Promise<WalletReply>;
+  exchange(req: unknown): Promise<WalletReply>;
 };
 /** 没写 props 的绑定 */
 const unbound = (exports as unknown as { WalletService: Stub }).WalletService;
@@ -359,9 +360,104 @@ describe('带入、结回、放弃', () => {
   });
 });
 
-describe('RPC 只露出四个方法', () => {
-  it('原型上只有 view、buyin、settle、refund、together（搭子战绩）：RPC 能调的就是原型上的方法，内部的 #op、#run 调不到（否则能把带入当成"回"，绕过只读档的拦截）', () => {
-    expect(Object.getOwnPropertyNames(WalletService.prototype).sort()).toEqual(['buyin', 'constructor', 'refund', 'settle', 'together', 'view']);
+describe('RPC 只露出这几个方法', () => {
+  it('原型上只有 view、buyin、settle、refund、exchange、together（搭子战绩）：RPC 能调的就是原型上的方法，内部的 #op、#run 调不到（否则能把带入当成"回"，绕过只读档的拦截）', () => {
+    expect(Object.getOwnPropertyNames(WalletService.prototype).sort()).toEqual(['buyin', 'constructor', 'exchange', 'refund', 'settle', 'together', 'view']);
+  });
+});
+
+describe('兑换（游戏内货币换筹码，5.9）', () => {
+  const exchange = (userId: string, o: Partial<{ game: string; op: string; amount: unknown }> = {}) => {
+    const req = { userId, game: 'yexun', op: id('op'), amount: 500, ...o };
+    return boundTo('yexun').exchange(req);
+  };
+
+  it('入账 1 行、回 credited 和 left；超出今天的额度只入剩下的；用完回 exchange_cap、0 行；北京时间第二天重新算', async () => {
+    const u = await registerUser();
+    const uid = u.user.id;
+    // 游戏看钱包：回这个游戏今天还能换多少和上限（还没钱包的新号也回）
+    expect(await boundTo('yexun').view(uid)).toMatchObject({ ok: true, exchangeLeft: 2_000, exchangeCap: 2_000 });
+    expect(await exchange(uid, { amount: 500 })).toMatchObject({ ok: true, credited: 500, left: 1_500, wallet: { balance: 10_500, fresh: false } });
+    expect(wrote()).toBe(1);
+    expect(await boundTo('yexun').view(uid)).toMatchObject({ ok: true, exchangeLeft: 1_500, exchangeCap: 2_000 });
+    // 按绑定的游戏算：别的游戏今天一点没换
+    expect(await boundTo('kaipan').view(uid)).toMatchObject({ ok: true, exchangeLeft: 2_000 });
+    expect(await exchange(uid, { amount: 1_800 })).toMatchObject({ ok: true, credited: 1_500, left: 0, wallet: { balance: 12_000 } });
+    expect(wrote()).toBe(1);
+    expect(await exchange(uid, { amount: 1 })).toMatchObject({ ok: false, error: 'exchange_cap', left: 0, wallet: { balance: 12_000 } });
+    expect(wrote()).toBe(0);
+    const s = await state(uid);
+    expect(s.today.games.yexun).toMatchObject({ ex: 2_000, in: 0 });
+    expect(s.today.writes).toBe(2);
+    expect(s.ledger!.slice(-2)).toEqual([
+      { at: expect.any(Number), t: 'exchange', g: 'yexun', a: 500 },
+      { at: expect.any(Number), t: 'exchange', g: 'yexun', a: 1_500 },
+    ]);
+    // 全站每日统计：来源里多一项"兑换"，按游戏也分开记
+    const { summarizeDay } = await import('../worker/api/wallet/store');
+    const { Db, newStats } = await import('../worker/api/lib/db');
+    expect(await summarizeDay(new Db(env.DB, newStats(), 'sys'), s.today.day)).toMatchObject({ exchange: 2_000, games: { yexun: { ex: 2_000, in: 0, players: 0 } } });
+    advance(24 * HOUR);
+    expect(await exchange(uid, { amount: 2_500 })).toMatchObject({ ok: true, credited: 2_000, left: 0 });
+  });
+
+  it('操作号幂等：重发回第一次的结果（dup）、0 行；同号用在别的操作上 op_conflict', async () => {
+    const u = await registerUser();
+    const uid = u.user.id;
+    const op = id('op');
+    expect(await exchange(uid, { op, amount: 300 })).toMatchObject({ ok: true, credited: 300, left: 1_700 });
+    expect(await exchange(uid, { op, amount: 300 })).toMatchObject({ ok: true, credited: 300, left: 1_700, dup: true, wallet: { balance: 10_300 } });
+    expect(wrote()).toBe(0);
+    expect(await boundTo('yexun').buyin({ userId: uid, game: 'yexun', ref: 'ref-000001', tier: 'small', amount: 100, until: Date.now() + HOUR, mode: 'server', op })).toEqual({
+      ok: false,
+      error: 'op_conflict',
+      wallet: expect.anything(),
+    });
+    expect(wrote()).toBe(0);
+  });
+
+  it('每个游戏单算；参数里的 game 要和绑定一致；形状不对 bad_request、0 不行 bad_amount；没这个人 no_user', async () => {
+    const u = await registerUser();
+    const uid = u.user.id;
+    await exchange(uid, { amount: 2_000 });
+    expect(await boundTo('kaipan').exchange({ userId: uid, game: 'kaipan', op: id('op'), amount: 2_000 })).toMatchObject({ ok: true, credited: 2_000 });
+    expect(await boundTo('kaipan').exchange({ userId: uid, game: 'yexun', op: id('op'), amount: 1 })).toEqual({ ok: false, error: 'bad_game' });
+    expect(await unbound.exchange({ userId: uid, game: 'yexun', op: id('op'), amount: 1 })).toEqual({ ok: false, error: 'bad_game' });
+    for (const amount of [-1, 1.5, '9', undefined]) expect(await exchange(uid, { amount })).toEqual({ ok: false, error: 'bad_request' });
+    expect(await exchange(uid, { op: 'short' })).toEqual({ ok: false, error: 'bad_request' });
+    expect(await exchange(uid, { game: 'nope' })).toEqual({ ok: false, error: 'unknown_game' });
+    expect(await exchange(uid, { amount: 0 })).toMatchObject({ ok: false, error: 'bad_amount' });
+    expect(await exchange('nobody')).toEqual({ ok: false, error: 'no_user' });
+    expect(wrote()).toBe(0);
+  });
+
+  it('只读档、钱包预算用完：busy、0 行；每天写入次数到顶：limit', async () => {
+    const u = await registerUser();
+    const uid = u.user.id;
+    await exchange(uid, { amount: 100 });
+    await seed({ rows_save: 50_000 });
+    expect(await exchange(uid)).toEqual({ ok: false, error: 'busy' });
+    expect(wrote()).toBe(0);
+    await seed({ rows_wallet: 6_000 });
+    expect(await exchange(uid)).toEqual({ ok: false, error: 'busy' });
+    await seed({ rows_wallet: 0 });
+    await patchState(uid, (s) => {
+      s.today.writes = DAILY_WRITES;
+    });
+    expect(await exchange(uid)).toMatchObject({ ok: false, error: 'limit' });
+    expect(wrote()).toBe(0);
+  });
+
+  it('管理员把额度调成 0：关掉兑换（exchange_cap）；调大即时生效', async () => {
+    const a = await registerUser();
+    await env.DB.prepare("UPDATE users SET role = 'admin' WHERE id = ?1").bind(a.user.id).run();
+    const u = await registerUser();
+    expect((await call('/api/admin/settings/wallet', { body: { exchangeCap: 0 }, cookie: a.cookie })).status).toBe(200);
+    expect(await exchange(u.user.id)).toMatchObject({ ok: false, error: 'exchange_cap', left: 0 });
+    // 关了：看钱包时上限和剩余都是 0，游戏据此写"今天兑换关了"
+    expect(await boundTo('yexun').view(u.user.id)).toMatchObject({ ok: true, exchangeLeft: 0, exchangeCap: 0 });
+    expect((await call('/api/admin/settings/wallet', { body: { exchangeCap: 5_000 }, cookie: a.cookie })).status).toBe(200);
+    expect(await exchange(u.user.id, { amount: 4_000 })).toMatchObject({ ok: true, credited: 4_000, left: 1_000 });
   });
 });
 
@@ -687,9 +783,10 @@ describe('删号、统计', () => {
       // 碰过钱包的人数、领补给的人数、各游戏上过桌的人数
       active: 2,
       reliefCount: 0,
+      exchange: 0,
       games: {
-        kaipan: { in: 3_000, out: 5_000, back: 0, capped: 0, players: 2 },
-        texas: { in: 2_000, out: 0, back: 0, capped: 0, players: 1 },
+        kaipan: { in: 3_000, out: 5_000, back: 0, capped: 0, ex: 0, players: 2 },
+        texas: { in: 2_000, out: 0, back: 0, capped: 0, ex: 0, players: 1 },
       },
     });
     // 同一天再跑：0 行

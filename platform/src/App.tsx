@@ -5,7 +5,6 @@ import { setSoundOn, soundOn, subscribeSound } from './lib/sound.ts';
 import { playUrl } from './lib/play.ts';
 import { Link, navigate, useLocation } from './router.tsx';
 import { HotkeyHelp, useHotkeys } from './features/hotkeys/Hotkeys.tsx';
-import { SideNav } from './features/side-nav/SideNav.tsx';
 import { api, type Overtake } from './api.ts';
 import { useSession, useVisible } from './session.tsx';
 import { FeedButton } from './features/feed/Feed.tsx';
@@ -118,7 +117,18 @@ function GameCard({ game, last = null }: { game: GameEntry; last?: number | null
     <article className={`card${playable ? '' : ' card--coming'}`} data-game={game.id}>
       {/* 介绍和标签叠在封面上：电脑上悬停或键盘移到卡上才浮出来，卡片平时只有封面、名字、一句话和按钮；手机上不显示 */}
       <div className="card__media">
-        <img className="card__cover" src={game.cover} alt={`${game.name}封面`} width={800} height={450} loading="lazy" decoding="async" />
+        {/* 400 宽的小图（npm run cover -- --small）给手机短卡和电脑一倍屏，2 倍屏的电脑才拿 800 宽的原图：首屏封面少下一半多 */}
+        <img
+          className="card__cover"
+          src={game.cover}
+          srcSet={`${game.cover.replace(/\.webp$/, '-400.webp')} 400w, ${game.cover} 800w`}
+          sizes="(max-width: 560px) 112px, 400px"
+          alt={`${game.name}封面`}
+          width={800}
+          height={450}
+          loading="lazy"
+          decoding="async"
+        />
         <div className="card__more">
           <p className="card__desc">{game.desc}</p>
           <ul className="card__tags">
@@ -295,7 +305,10 @@ function OvertakeNudge() {
   );
 }
 
-/** 右上角：没登录是"登录"，登录了是头像（昵称第一个字）加昵称；管理员前面多一个"管理"。 */
+/** 顶栏上指向当前页的那一项标成 aria-current（styles.css 画暖色底）：手机上没有侧栏，靠它看出在哪一页 */
+const here = (path: string, href: string) => (path === href ? ({ 'aria-current': 'page' } as const) : {});
+
+/** 右上角：没登录是"登录"，登录了是头像（昵称第一个字）加昵称；管理员前面多一个"管理"。所有页面都是这同一组、同样的顺序 */
 function AccountButton() {
   const { loading, user, service } = useSession();
   const path = useLocation().pathname;
@@ -316,19 +329,19 @@ function AccountButton() {
   return (
     <span className="topbar">
       {user.isAdmin && (
-        <Link className="account account--admin" href="/admin">
+        <Link className="account account--admin" href="/admin" {...here(path, '/admin')}>
           <ShieldIcon />
           管理
         </Link>
       )}
-      <Link className="account account--nav" href="/boards">
+      <Link className="account account--nav" href="/boards" {...here(path, '/boards')}>
         <TrophyIcon />
         <span className="account__label">排行</span>
       </Link>
       <FeedButton me={user.id} />
-      <FriendsLink />
-      <WalletBadge />
-      <Link className="account" href="/me" title="我的账号">
+      <FriendsLink path={path} />
+      <WalletBadge path={path} />
+      <Link className="account" href="/me" title="我的账号" {...here(path, '/me')}>
         <span className="account__avatar" aria-hidden="true">
           {Array.from(user.displayName)[0]}
         </span>
@@ -339,10 +352,10 @@ function AccountButton() {
 }
 
 /** 顶栏的"好友"：有还没过期的邀请时带红点（docs/social.md 1.3） */
-function FriendsLink() {
+function FriendsLink({ path }: { path: string }) {
   const dot = useHasInvites();
   return (
-    <Link className="account account--nav" href="/friends" data-testid="friends-link" data-tour="friends">
+    <Link className="account account--nav" href="/friends" data-testid="friends-link" data-tour="friends" {...here(path, '/friends')}>
       <PeopleIcon />
       <span className="account__label">好友</span>
       {dot && <span className="dot" role="img" aria-label="有人叫你" data-testid="invite-dot" />}
@@ -351,9 +364,9 @@ function FriendsLink() {
 }
 
 /** 顶栏的筹码小牌子：点开进钱包页。还在读时数字位置放一个不带字的占位（写"筹码"像是坏了），读不到才写"筹码"，入口照样在 */
-function WalletBadge() {
+function WalletBadge({ path }: { path: string }) {
   const { wallet, error } = useWallet();
-  const shown = useCountUp(wallet?.balance ?? 0);
+  const shown = useCountUp(wallet?.balance ?? null);
   // 刚从游戏回来且总数（余额 + 桌上筹码）变了：数字从旧值滚到新值，多了再迸一撮金币（chips-fx.ts）；只在钱包第一次读到时比一次
   const [rolled, setRolled] = useState<number | null>(null);
   const numEl = useRef<HTMLSpanElement>(null);
@@ -392,7 +405,7 @@ function WalletBadge() {
   // 今天能领补给：牌子上亮红点，进钱包页领（原来大厅有一整条领补给提示，占首屏）
   const canRelief = !!wallet && wallet.canRelief && wallet.writesLeft > 0;
   return (
-    <Link className="account account--chips" href="/wallet" title={canRelief ? '我的筹码（今天能领补给）' : '我的筹码'} data-testid="wallet-badge" data-tour="chips">
+    <Link className="account account--chips" href="/wallet" title={canRelief ? '我的筹码（今天能领补给）' : '我的筹码'} data-testid="wallet-badge" data-tour="chips" {...here(path, '/wallet')}>
       <CoinIcon />
       {wallet ? <span className="chips-num" ref={numEl}>{num(rolled ?? shown)}</span> : error ? <span className="chips-num">筹码</span> : <span className="chips-num chips-num--wait" role="img" aria-label="筹码" />}
       {canRelief && <span className="dot" role="img" aria-label="今天能领补给" data-testid="relief-dot" />}
@@ -430,10 +443,9 @@ export function App() {
       if (loc.pathname !== '/' && !document.querySelector('[role="dialog"]')) navigate('/');
     },
   });
-  // 登录后的账号子页宽屏上左边有侧栏（SideNav），顶栏就不再重复排行、动态、好友（styles.css 的 page--shell）
-  const shell = !!Page && !!user && isDesk(loc.pathname);
+  // 导航只在顶栏一处：所有页面同一个顶栏、同样的项和位置，页面容器宽度也不跟着页面变，换页只换内容区
   return (
-    <div className={`${!Page ? 'page' : loc.pathname === '/admin' ? 'page page--wide' : 'page page--narrow'}${shell ? ' page--shell' : ''}`}>
+    <div className={!Page ? 'page' : loc.pathname === '/admin' ? 'page page--wide' : 'page page--narrow'}>
       <header className="top">
         <Link className="top__home" href="/">
           <h1 className="top__logo">
@@ -459,9 +471,7 @@ export function App() {
       <div className="page__body">
       {Page ? (
         // 管理页是控制台布局，要整页宽；其余账号页面都是中间一栏。key 跟着地址换：换页时内容区重新淡入（styles.css 的 page-in）
-        // 登录后的账号类页面在宽屏上左边多一列导航（SideNav.tsx），手机和窄屏照旧只有顶栏
-        <div className={shell ? 'shell' : 'solo'}>
-          {shell && <SideNav path={loc.pathname} />}
+        <div className="solo">
           <main key={loc.pathname} className={`page-in ${loc.pathname === '/admin' ? 'wide' : isDesk(loc.pathname) ? 'narrow narrow--desk' : 'narrow'}`}>
             <Suspense fallback={<p className="note page-loading">正在打开…</p>}>
               <Page />

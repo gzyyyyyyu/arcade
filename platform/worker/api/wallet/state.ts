@@ -7,9 +7,10 @@
  *
  * - 账是纯函数（apply）：输入这一行的状态、一条操作、现在的时间，输出新状态或者拒绝的理由。
  *   操作 id 幂等、到期退回、记下退回过的 ref；每个游戏可以同时有几份在桌上。
- * - 带入、结回、放弃只由游戏的服务端经 RPC 调（service.ts）；浏览器只能看钱包、领补给（api.ts）。
+ * - 带入、结回、放弃、兑换只由游戏的服务端经 RPC 调（service.ts）；浏览器只能看钱包、领补给（api.ts）。
  *
- * 筹码只是游戏积分：没有转给别人、买、换的路（docs/project.md 第 3 节、economy.md 第 0 节）。
+ * 筹码只是游戏积分：没有转给别人、买、换成现金或实物的路（docs/project.md 第 3 节、economy.md 第 0 节）。
+ * 唯一的"换入"是兑换：游戏里攒的游戏内货币按游戏定的比例换成筹码，每人每游戏每天有上限（exchangeCap）。
  */
 import { isFiniteNumber, isRecord, isRecordOf } from '../lib/json-column';
 import { HOUR } from '../core/context';
@@ -43,7 +44,7 @@ const ADMIN_LOG = 20;
 const LEDGER = 30;
 /**
  * 管理员能随时调的几条规则（存在 settings 的 wallet_rules 一行里，读写和缓存在 store.ts），改了不用发版；
- * 没设过、读不到就是代码里的默认值。只有这四条，别的数（每天写入次数、到期时间这些）仍是常量。
+ * 没设过、读不到就是代码里的默认值。只有这五条，别的数（每天写入次数、到期时间这些）仍是常量。
  */
 export interface WalletRules {
   /** 补给补到多少 */
@@ -54,6 +55,8 @@ export interface WalletRules {
   newBalance: number;
   /** 管理员单次加减最多多少 */
   adminAdjustMax: number;
+  /** 兑换：每人每个游戏每天最多换进来多少筹码；0 是关掉兑换 */
+  exchangeCap: number;
 }
 
 /** 每个游戏最多记几个称号、几个自定义数的 key（游戏改名换 key 时旧的留着） */
@@ -69,6 +72,8 @@ export const DEFAULT_RULES: WalletRules = {
   newBalance: 10_000,
   // 防多打几个 0
   adminAdjustMax: 1_000_000,
+  // 所有者定（2026-11-21）：一天最多换进小档一份
+  exchangeCap: 2_000,
 };
 
 export type Mode = 'server' | 'client';
@@ -105,6 +110,8 @@ export interface GameDay {
    * 0 是今天还没带入过。单机的带入额由浏览器定，按整档算的话带 1 筹码进豪华档，当天上限就成了 200 万
    */
   top: number;
+  /** 兑换进来的（早期的状态里没有这一项，按 0 算） */
+  ex?: number;
 }
 
 /** 一天的计数（北京日期） */
@@ -131,7 +138,7 @@ export interface AdminAdjust {
 /** 一条流水：什么时候、哪种动作、哪个游戏、余额变了多少（带入是负的）；结回到顶没进钱包的在 capped */
 export interface LedgerEntry {
   at: number;
-  t: 'grant' | 'buyin' | 'settle' | 'refund' | 'expire' | 'relief' | 'admin';
+  t: 'grant' | 'buyin' | 'settle' | 'refund' | 'expire' | 'relief' | 'admin' | 'exchange';
   g?: string;
   a: number;
   capped?: number;
@@ -143,6 +150,8 @@ export interface OpResult {
   capped?: number;
   /** 结回带的小结被忽略了（钱照常结） */
   statsIgnored?: StatsError;
+  /** 兑换：这次之后今天在这个游戏还能换多少 */
+  left?: number;
 }
 
 /** 结回值得发的一条好友动态（15.17）：哪一档、净赢几份（乘 10 取整）、这一份里第一次拿到的称号 */
@@ -222,6 +231,7 @@ export type WalletError =
   | 'relief_not_needed'
   | 'no_change'
   | 'op_conflict'
+  | 'exchange_cap'
   | 'busy'
   | 'internal';
 
@@ -229,6 +239,7 @@ export type Cmd =
   | { t: 'buyin'; game: string; ref: string; tier: TierId; amount: number; until: number; mode: Mode; op: string }
   | { t: 'settle'; game: string; ref: string; amount: number; mode: Mode; op: string; stats?: SettleStats; statsIgnored?: StatsError; tally?: Tally }
   | { t: 'refund'; game: string; ref: string; mode: Mode; op: string }
+  | { t: 'exchange'; game: string; amount: number; op: string }
   | { t: 'relief' }
   | { t: 'admin'; amount: number; note: string; by: string };
 
@@ -317,7 +328,7 @@ function emptyDay(day: string): DayCounters {
 }
 
 function emptyGame(): GameDay {
-  return { in: 0, out: 0, back: 0, capped: 0, cin: 0, cout: 0, top: 0 };
+  return { in: 0, out: 0, back: 0, capped: 0, cin: 0, cout: 0, top: 0, ex: 0 };
 }
 
 /** 新钱包：送 NEW_BALANCE，记在当天的"新号送的"里 */
@@ -403,6 +414,9 @@ export function normalize(s0: WalletState, now: number): { s: WalletState; expir
   return { s, expired };
 }
 
+/** 这个游戏今天还能兑换进多少（已经 normalize 过、today 是今天的状态）：兑换和游戏看钱包共用这一处 */
+export const exchangeLeft = (s: WalletState, game: string, rules: WalletRules): number => Math.max(0, rules.exchangeCap - (s.today.games[game]?.ex ?? 0));
+
 /** 余额加上桌上的：补给看的是这个（桌上有筹码也能领，免得一小份卡在桌上就领不了） */
 const holdings = (s: WalletState): number => Object.values(s.stakes).reduce((t, st) => t + st.amount, s.balance);
 
@@ -431,6 +445,7 @@ export function viewOf(s: WalletState, fresh: boolean, rules: WalletRules): Wall
  * 房间补码时就会被当成已经扣过，白拿筹码。amount 不进指纹：重发的金额本来就一样，指纹只要分得清是不是同一件事。
  */
 function opPrint(cmd: Extract<Cmd, { op: string }>): string {
+  if (cmd.t === 'exchange') return cmd.t;
   return [cmd.t, cmd.mode, cmd.ref, cmd.t === 'buyin' ? cmd.tier : ''].join('|');
 }
 
@@ -462,7 +477,7 @@ export function apply(
   // 下面要改它：normalize 没改时给的是 s0 本身，复制一份，s0 留给调用方回原样
   const s = structuredClone(normalize(s0, now).s);
   // 结回、放弃不受每天的次数管：桌上的筹码总要能回来（次数由带入那头管住）
-  if ((cmd.t === 'buyin' || cmd.t === 'relief') && s.today.writes >= DAILY_WRITES) return { error: 'limit' };
+  if ((cmd.t === 'buyin' || cmd.t === 'relief' || cmd.t === 'exchange') && s.today.writes >= DAILY_WRITES) return { error: 'limit' };
   const before = s.balance;
   // 结回前记下那一份和这个游戏已有的称号：结回成功后看值不值得生成一条好友动态
   const stake = cmd.t === 'settle' ? s.stakes[stakeKey(cmd.game, cmd.ref)] : undefined;
@@ -585,6 +600,18 @@ function step(s: WalletState, cmd: Cmd, now: number, rules: WalletRules): OpResu
       if (st.mode === 'client') g.cin = Math.max(0, g.cin - st.amount);
       delete s.stakes[key];
       return { credited: st.amount };
+    }
+    case 'exchange': {
+      // 今天这个游戏还剩多少额度：超了只入剩下的那部分，剩 0 就拒（不写，游戏留着它的货币）
+      if (cmd.amount < 1) return { error: 'bad_amount' };
+      const room = exchangeLeft(s, cmd.game, rules);
+      if (room === 0) return { error: 'exchange_cap' };
+      const g = gameDay(s, cmd.game);
+      const credited = Math.min(cmd.amount, room, MAX_BALANCE - s.balance);
+      if (credited === 0) return { error: 'no_change' };
+      s.balance += credited;
+      g.ex = (g.ex ?? 0) + credited;
+      return { credited, left: room - credited };
     }
     case 'admin': {
       // 加到余额上限、扣到 0 为止，只动余额，不碰桌上那一份；不算进实盘每日净赢

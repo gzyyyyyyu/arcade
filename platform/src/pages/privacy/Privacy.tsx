@@ -27,7 +27,7 @@ export function PrivacyPage() {
   const sec = PRIVACY_SECTIONS.find((s) => s.id === id) ?? PRIVACY_SECTIONS[0]!;
   return (
     <Panel icon="lock" title="我们存了你什么" className="privacy-page">
-      <div className="privacy-tabs" role="tablist" aria-label="哪一节">
+      <div className="pills privacy-tabs" role="tablist" aria-label="哪一节">
         {PRIVACY_SECTIONS.map((s) => (
           <button key={s.id} type="button" role="tab" aria-selected={s.id === sec.id} className={s.id === sec.id ? 'tabs__on' : ''} onClick={() => setId(s.id)} data-testid={`ptab-${s.id}`}>
             {s.name}

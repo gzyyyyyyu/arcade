@@ -31,6 +31,7 @@ export function WalletStats() {
     { key: 'grant', label: '新号送', num: true, cell: (d) => num(d.grant) },
     { key: 'relief', label: '补给', num: true, cell: (d) => num(d.relief) },
     { key: 'admin', label: '管理员调整', num: true, cell: (d) => num(d.admin ?? 0) },
+    { key: 'exchange', label: '兑换', num: true, cell: (d) => num(d.exchange ?? 0) },
     { key: 'house', label: '庄家', num: true, cell: (d) => num(sum(d, 'in') - sum(d, 'out') - sum(d, 'back')) },
     { key: 'capped', label: '到顶没进', num: true, cell: (d) => num(sum(d, 'capped')) },
     {
@@ -45,6 +46,7 @@ export function WalletStats() {
                 <b>{gameName(g)}</b>{' '}
                 <span>
                   <span>带入 {num(x.in)}</span> · <span>结回 {num(x.out)}</span> · <span>退回 {num(x.back)}</span>
+                  {x.ex ? <> · <span>兑换 {num(x.ex)}</span></> : null}
                 </span>
               </li>
             ))}

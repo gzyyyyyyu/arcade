@@ -1,8 +1,11 @@
 /** 几处页面都要用的数字、日期、游戏名写法：放一处，免得各页各写一份、慢慢写得不一样。 */
 import { GAMES } from '../../shared/games.ts';
 
-/** 筹码、人数这类整数：按中文习惯加千分位 */
-export const num = (n: number) => n.toLocaleString('zh-CN');
+/**
+ * 筹码、人数这类整数：按中文习惯加千分位（和 zh-CN 的 toLocaleString 一样）。整数不走 Intl：页面第一次用 zh-CN 格式化要先加载区域数据，
+ * 手机 4× 降速下首屏多卡约 90ms，大厅只为顶栏一个数付这个钱不值；不是整数的照旧交给 toLocaleString
+ */
+export const num = (n: number) => (Number.isSafeInteger(n) ? String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : n.toLocaleString('zh-CN'));
 /** 输赢：正数带 +，负数本来就有 - */
 export const signed = (n: number) => (n > 0 ? `+${num(n)}` : num(n));
 /** 加绿减红：给数字配 up / down 类 */

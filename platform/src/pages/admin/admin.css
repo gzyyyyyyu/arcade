@@ -205,6 +205,11 @@
 .invite-code__acts { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: var(--s-1); }
 .invite-code--spent .mono { color: var(--muted); }
 .console .apanel > form.multi-code { flex: none; padding-bottom: var(--s-2); border-bottom: 1px solid var(--divider); }
+.console .apanel > form.multi-code .multi-code__acts { display: flex; gap: var(--s-2); }
+/* 码表顶上：新建长期码的入口，建好后换成新码和复制按钮 */
+.console .apanel .multi-entry, .console .apanel .multi-created { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); padding-bottom: var(--s-2); border-bottom: 1px solid var(--divider); font-size: var(--fs-sm); }
+.console .apanel .multi-created p { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.console .apanel .multi-created__acts { display: flex; flex-wrap: wrap; gap: var(--s-1); }
 .code-status { display: inline-block; padding: 0 var(--s-2); border: var(--bw-thin) solid transparent; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 700; line-height: 20px; }
 .code-status--unused { background: #e3f4e8; border-color: #4fae6f; color: #24663b; }
 .code-status--used { background: var(--highlight-warm); border-color: var(--accent); color: #9a4416; }

@@ -54,29 +54,55 @@ export async function adminInvites(browser: Browser): Promise<void> {
     check(over.x <= 1 && over.y <= 1, `一屏放下，整页不该滑（${name}）：横 ${over.x}px、竖 ${over.y}px`);
     check((await page.getByTestId('invite-quota').locator('select.field__input').count()) === 1, '"谁"的下拉框该和输入框一个样式');
     // 码表按高度翻页（竖屏一页放不下 5 个）：逐页数，数完翻回第一页
-    let dead = await table.getByText('已注销').count();
-    let multi = await table.getByText('能用 4/100').count();
+    // 按码去重：翻到有高条目的一页时每页条数会变少、边界后移，同一个码可能在两页都出现
+    const seen = new Map<string, { dead: number; multi: number }>();
+    const tally = async () => {
+      for (const row of await table.locator('.invite-code').all()) {
+        const code = (await row.locator('.invite-code__code').textContent()) ?? '';
+        seen.set(code, { dead: await row.getByText('已注销').count(), multi: await row.getByText('能用 4/100').count() });
+      }
+    };
+    // 码表吃满面板剩下的高（以前一份全局样式把它变成网格，1280×800 一页只放 3 条、下面空一大块）。
+    // Paged 按见过的最高一条估每页条数，所以有翻页时最后一条下面最多空出不到两条高
+    const fill = await table.evaluate((t) => {
+      const list = t.querySelector('.paged__list')!.getBoundingClientRect();
+      const rows = [...t.querySelectorAll('.invite-code')].map((r) => r.getBoundingClientRect());
+      return { paged: !!t.querySelector('.paged__bar'), free: list.bottom - rows[rows.length - 1]!.bottom, row: Math.max(...rows.map((r) => r.height)), n: rows.length };
+    });
+    check(!fill.paged || fill.free < 2 * fill.row, `码表下面空着 ${Math.round(fill.free)}px，还放得下一条（${name}，一页 ${fill.n} 条）`);
+    await tally();
     const next = table.getByRole('button', { name: '下一页' });
     let flips = 0;
     for (; flips < 10 && (await next.count()) > 0 && (await next.isEnabled()); flips++) {
       await next.click();
-      dead += await table.getByText('已注销').count();
-      multi += await table.getByText('能用 4/100').count();
+      await tally();
     }
-    for (let i = 0; i < flips; i++) await table.getByRole('button', { name: '上一页' }).click();
+    const dead = [...seen.values()].reduce((t, r) => t + r.dead, 0);
+    const multi = [...seen.values()].reduce((t, r) => t + r.multi, 0);
+    check(seen.size === codes.length, `翻完该见到全部 ${codes.length} 个码（见到 ${seen.size} 个）`);
+    const prev = table.getByRole('button', { name: '上一页' });
+    for (let i = 0; i < 10 && (await prev.count()) > 0 && (await prev.isEnabled()); i++) await prev.click();
     check(dead === 2, `注销了的发码人和用码人都该写"已注销"（数到 ${dead} 个）`);
     check(multi === 1, `长期码该显示一次 已用/上限（数到 ${multi} 个）`);
     await table.locator('.invite-code', { hasText: 'K7QM' }).getByRole('button', { name: '复制' }).click();
     await table.getByRole('button', { name: '已复制' }).waitFor();
     check((await page.evaluate(() => navigator.clipboard.readText())) === 'K7QM-2RTP-XCWJ', '复制的该是完整的码');
     await shot(page, `admin-invites-${name}`);
-    // 筛到"长期码"：表上面出来建长期码的表单，默认 100 次、不过期
-    await panel.getByRole('button', { name: '长期码' }).click();
+    // 码表顶上一直有"新建长期邀请码"（不用先筛到长期码）：点开是表单，默认 100 次、不过期；建好显示新码，能一键复制完整链接和码
+    await panel.getByTestId('multi-new').click();
     const form = page.getByTestId('multi-code');
     const posted = page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/admin/invite-codes');
-    await form.getByRole('button', { name: '建一个长期码' }).click();
+    await form.getByRole('button', { name: '建好' }).click();
     await posted;
     check(JSON.stringify(made) === JSON.stringify({ maxUses: 100, days: null }), `建长期码发的不对：${JSON.stringify(made)}`);
+    const created = page.getByTestId('multi-created');
+    await created.getByRole('button', { name: '复制链接' }).click();
+    await created.getByRole('button', { name: '已复制' }).waitFor();
+    check((await page.evaluate(() => navigator.clipboard.readText())) === `${BASE}/i/WXYZ23456789`, '复制链接该是完整的注册链接');
+    await created.getByRole('button', { name: '复制码' }).click();
+    await created.getByRole('button', { name: '已复制' }).nth(1).waitFor();
+    check((await page.evaluate(() => navigator.clipboard.readText())) === 'WXYZ-2345-6789', '复制码该是完整的码');
+    check(await panel.getByRole('button', { name: '长期码' }).getAttribute('aria-pressed') === 'true', '建好后码表该筛到长期码');
     const over2 = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
     check(over2 <= 1, `长期码筛选下一屏放下（${name}）：竖 ${over2}px`);
     await shot(page, `admin-invites-multi-${name}`);

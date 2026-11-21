@@ -166,7 +166,7 @@ export function BoardsPage() {
 
   return (
     <Panel icon="trophy" title="排行榜" className="boards-page" action={toggle}>
-      <div className="boards-tabs" role="tablist" aria-label="哪个榜">
+      <div className="pills boards-tabs" role="tablist" aria-label="哪个榜">
         {tabs.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={t.id === tab.id} className={t.id === tab.id ? 'tabs__on' : ''} onClick={() => setTabId(t.id)} data-testid={`btab-${t.id}`}>
             {t.name}

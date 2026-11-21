@@ -211,7 +211,8 @@ export async function adminFlow(browser: Browser, adminPw: string): Promise<void
     await img.scrollIntoViewIfNeeded();
     await img.evaluate((el: HTMLImageElement) => el.decode());
     const w = await img.evaluate((el: HTMLImageElement) => el.naturalWidth);
-    check(w >= 800, `封面没画出来：${await img.getAttribute('src')}，宽 ${w}`);
+    // srcset 按屏幕挑：一倍屏的短卡拿 400 宽的小图，高分屏拿 800 宽的原图；两种都算画出来了
+    check(w >= 400, `封面没画出来：${await img.getAttribute('src')}，宽 ${w}`);
   }
   await texas.scrollIntoViewIfNeeded();
   await shot(friend.page, 'home-texas');
@@ -330,15 +331,14 @@ export async function friendsFlow(a: Page, b: Page): Promise<void> {
   check(sent === 200, `发邀请该回 200（${sent}）`);
   await b.reload();
   await b.getByTestId('invite-bar').getByText('冒烟阿国').waitFor();
-  // 1280 宽的子页顶栏不放"好友"，红点在侧栏的"好友"上
-  await b.getByTestId('sidenav-invite-dot').waitFor();
+  await b.getByTestId('invite-dot').waitFor();
   await shot(b, 'invite-bar');
   await b.getByTestId('invite-bar').getByRole('button', { name: '不了' }).click();
   await b.getByTestId('invite-bar').waitFor({ state: 'detached' });
   await b.reload();
   await b.getByRole('heading', { name: '好友（1）' }).waitFor();
   check((await b.getByTestId('invite-bar').count()) === 0, '点了"不了"刷新后不该再弹');
-  check((await b.getByTestId('sidenav-invite-dot').count()) === 0, '点了"不了"刷新后侧栏红点该消失');
+  check((await b.getByTestId('invite-dot').count()) === 0, '点了"不了"刷新后顶栏"好友"的红点该消失');
 
   console.log('朋友屏蔽管理员：要先勾确认；好友没了，屏蔽的人里有');
   const row = b.getByTestId('person-冒烟阿国');

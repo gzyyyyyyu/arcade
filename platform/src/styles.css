@@ -150,8 +150,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 }
 .page > .page__body::-webkit-scrollbar { display: none; }
 .page__body > * { flex: 1; min-height: 0; }
-.shell, .solo { display: flex; flex-direction: column; }
-.shell > main, .solo > main { flex: 1; min-height: 0; width: 100%; }
+.solo { display: flex; flex-direction: column; }
+.solo > main { flex: 1; min-height: 0; width: 100%; }
 .narrow { max-width: var(--narrow); margin: 0 auto; display: flex; flex-direction: column; gap: var(--s-5); }
 /* 管理页的控制台占满内容宽度 */
 .wide { display: flex; flex-direction: column; gap: var(--s-5); }
@@ -223,6 +223,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   transition: transform var(--ease), box-shadow var(--ease);
 }
 .account--loading { width: 88px; opacity: 0.4; box-shadow: none; }
+/* 当前页：暖色底、橙字（和页签、侧栏的选中同一组颜色，不用橙底免得和"进入游戏"这类主按钮混） */
+.topbar .account[aria-current="page"] { background: var(--highlight-warm); color: var(--accent-ink); }
 .account__avatar { display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--white); font-size: 15px; }
 .account__name { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account--chips { gap: 6px; position: relative; }
@@ -315,6 +317,13 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 @media (hover: hover) {
   .tabs a:not(.tabs__on):hover, .seg button:not(.seg__on):hover, .chips button:not(.chips__on):hover { background: var(--highlight-warm); }
 }
+/* 面板里的一排页签（哪个榜、哪个游戏、账号的哪一块、隐私的哪一节）：分开的胶囊，多了一行横滑不折行；各页只管排布 */
+.pills { flex: none; display: flex; gap: var(--s-2); overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.pills::-webkit-scrollbar { display: none; }
+.pills button { flex: none; white-space: nowrap; min-height: 36px; padding: 0 var(--s-4); font: inherit; font-size: var(--fs-sm); font-weight: 700; color: var(--ink); background: var(--white); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); cursor: pointer; }
+.pills button.tabs__on { background: var(--accent); color: var(--white); box-shadow: inset 0 -3px 0 var(--accent-deep); }
+@media (hover: hover) { .pills button:not(.tabs__on):hover { background: var(--highlight-warm); } }
+@media (pointer: coarse) { .pills button { min-height: var(--tap); } }
 .seg { display: inline-flex; flex-wrap: nowrap; gap: 0; border: var(--bw) solid var(--line); border-radius: var(--r-pill); overflow: hidden; }
 .seg button { border: 0; border-radius: 0; min-height: calc(var(--tap) - 2 * var(--bw)); }
 .seg button + button { border-left: var(--bw) solid var(--line); }
@@ -445,7 +454,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .lobby > .banner, .lobby > .nudges { flex: none; margin: 0; }
 .lobby__games { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 @media (min-width: 1440px) {
-  .page:not(.page--narrow):not(.page--wide) { max-width: calc(1600px + 2 * var(--s-5)); }
+  /* 所有页面的容器一样宽，顶栏的位置换页不动（原来只有大厅放宽到 1600，进子页顶栏往里缩 160px）；单栏子页仍是中间一窄列 */
+  .page { max-width: calc(1600px + 2 * var(--s-5)); }
 }
 
 /* ---------- 大厅的游戏卡片 ---------- */
@@ -698,7 +708,6 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 }
 /* 邀请码：登录页顶上"朋友邀请你来"一句；"我的"里的码列表 */
 .invited { margin: 0 0 var(--s-3); padding: var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--highlight-warm); font-weight: 700; }
-.invite-codes { list-style: none; margin: var(--s-3) 0 0; padding: 0; display: grid; gap: var(--s-2); }
 .invite-code { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-2) 0; border-top: 1px dashed var(--line, #ddd); }
 .invite-code--used, .invite-code--expired, .invite-code--revoked { opacity: 0.65; }
 .code-mid { font-size: 18px; font-weight: 700; letter-spacing: 2px; user-select: all; }

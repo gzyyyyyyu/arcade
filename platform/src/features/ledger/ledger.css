@@ -6,7 +6,7 @@
 .ledger__row + .ledger__row { border-top: 1px solid var(--divider); }
 .ledger__time { color: var(--muted); }
 .ledger__kind { display: inline-flex; align-items: center; gap: var(--s-1); padding: 2px var(--s-2); border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 700; white-space: nowrap; }
-.ledger__kind--grant { background: #efe4ff; color: #6a3fb5; }
+.ledger__kind--grant, .ledger__kind--exchange { background: #efe4ff; color: #6a3fb5; }
 .ledger__kind--buyin { background: #ffe6d4; color: var(--accent-ink); }
 .ledger__kind--settle { background: #dff3e4; color: var(--good); }
 .ledger__kind--refund, .ledger__kind--expire { background: #e3ecf5; color: #36597d; }

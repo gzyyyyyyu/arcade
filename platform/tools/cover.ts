@@ -8,9 +8,10 @@
  *   npm run cover -- --shrink --id=kaipan --id=guandan  # 把别的游戏给的封面缩到同样的 800×450（只缩比它宽的，重复跑没事）；
  *     --id 可以写几次，不写就是开盘、掼蛋（最早给的两张）
  *   npm run cover -- --from=<SVG 路径> --id=<游戏 id>  # 把别的游戏给的 16:9 SVG 光栅化成 public/covers/<id>.webp（麻将）
+ *   npm run cover -- --small  # 每张封面再出一份 400×225 的 <id>-400.webp：大厅按屏幕挑（手机短卡、电脑一倍屏用小的），换了封面就重跑
  *     路径从命令行传进来，工具本身不引用模块外的文件；SVG 里的中文用运行环境装的字体（比如 Noto Sans CJK SC），换了环境字形可能略有不同
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 
 const W = 1280;
@@ -18,6 +19,9 @@ const H = 720;
 /** 输出尺寸：SVG 是矢量，直接按这个尺寸画，不糊 */
 const OUT_W = 800;
 const OUT_H = 450;
+/** 小图：大厅卡片按屏幕挑，手机短卡（约 112 宽 × 3 倍屏）、电脑一倍屏（约 300 宽）都够 */
+const SMALL_W = 400;
+const SMALL_H = 225;
 const INK = '#3a2422';
 const SKIN = '#ffd9b8';
 const BLUSH = '#ff9b8f';
@@ -201,8 +205,8 @@ function coverSvg(): string {
 </svg>`;
 }
 
-/** 把一张 webp 缩到 OUT_W×OUT_H（比它小的不动） */
-async function shrink(page: import('playwright-core').Page, file: URL): Promise<void> {
+/** 把一张 webp 缩到 w×h 写到 out（默认原地缩到 OUT_W×OUT_H；比它小的不动） */
+async function shrink(page: import('playwright-core').Page, file: URL, out_ = file, w = OUT_W, h = OUT_H): Promise<void> {
   const src = `data:image/webp;base64,${readFileSync(file).toString('base64')}`;
   const out = await page.evaluate(
     async ({ src, w, h }) => {
@@ -218,11 +222,11 @@ async function shrink(page: import('playwright-core').Page, file: URL): Promise<
       g.drawImage(img, 0, 0, w, h);
       return canvas.toDataURL('image/webp', 0.86);
     },
-    { src, w: OUT_W, h: OUT_H },
+    { src, w, h },
   );
-  if (!out) return console.log(`${file.pathname} 已经不比 ${OUT_W} 宽，不动`);
-  writeFileSync(file, Buffer.from(out.slice(out.indexOf(',') + 1), 'base64'));
-  console.log(`缩好了 ${file.pathname}`);
+  if (!out) return console.log(`${file.pathname} 已经不比 ${w} 宽，不动`);
+  writeFileSync(out_, Buffer.from(out.slice(out.indexOf(',') + 1), 'base64'));
+  console.log(`缩好了 ${out_.pathname}`);
 }
 
 /** 把 SVG 按 OUT_W×OUT_H 画成 webp，写到 public/covers/<id>.webp */
@@ -259,6 +263,19 @@ async function main(): Promise<void> {
   const svg = from !== undefined ? readFileSync(from, 'utf8') : coverSvg();
   if (process.argv.includes('--svg')) {
     process.stdout.write(svg);
+    return;
+  }
+  if (process.argv.includes('--small')) {
+    const dir = new URL('../public/covers/', import.meta.url);
+    const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--no-proxy-server', '--no-zygote', '--in-process-gpu'] });
+    try {
+      const page = await browser.newPage();
+      for (const f of readdirSync(dir).filter((x) => /^[a-z][a-z0-9-]*\.webp$/.test(x) && !x.endsWith(`-${SMALL_W}.webp`))) {
+        await shrink(page, new URL(f, dir), new URL(f.replace(/\.webp$/, `-${SMALL_W}.webp`), dir), SMALL_W, SMALL_H);
+      }
+    } finally {
+      await browser.close();
+    }
     return;
   }
   if (process.argv.includes('--shrink')) {
