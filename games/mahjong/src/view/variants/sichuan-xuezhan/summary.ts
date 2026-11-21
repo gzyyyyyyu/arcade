@@ -88,11 +88,12 @@ export function roundSummary(v: XzView, names: string[], unit: string): HTMLElem
 }
 
 /**
- * 结算页头一行底下那句（一局定输赢时）：赢了说胡了什么，输了说钱主要输在哪种上，用大白话，不写术语表里才有的词。
+ * 结算页头一行底下那句（只在一局定输赢时）：赢了说胡了什么，输了说钱主要输在哪种上，用大白话，不写术语表里才有的词。
  * 只看这一局公开的流水（v.ledger）和胡牌记录
  */
 export function verdictWhy(v: XzView, seat: number, names: string[]): string | null {
-  const h = v.history.at(-1);
+  // 流水只留最后一局：几局的场说不准是哪一局输的，不说
+  const h = v.history.length === 1 ? v.history[0] : undefined;
   if (!h) return null;
   const net = h.net[seat] ?? 0;
   const mine = h.wins.filter((w) => w.seat === seat);

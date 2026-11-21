@@ -23,6 +23,9 @@ const PORT_MIN_H = 920;
 const PORT_MAX_H = 1240;
 /** 竖屏舞台最宽多少：牌桌 560 宽居中，两边露板壁 */
 const PORT_MAX_W = 700;
+/** 竖屏舞台高到这个数，自己的手牌摆成两排、每张放大（css/table-layout.css 的两排手牌一节）：一排 14 张在 560 宽里最多 37，屏幕上只有约 26 像素；
+ * 再矮（iPhone SE 工具栏展开这类）中间那一截让不出两排的高度，牌河会挤得太小，还是一排 */
+const PORT_TWO_ROW_H = 1000;
 /** 横屏舞台最宽多少：再宽牌桌两边的空呢子太多，按高缩放后两边留边 */
 const LAND_MAX_W = 1500;
 /** 电脑和平板（横屏、看得见的区域够大）舞台高的范围：高跟着屏幕比例变，16:10、16:9 都铺满不留黑边，牌河、中控盘才有地方放大 */
@@ -71,6 +74,8 @@ export function watchViewport(app: HTMLElement, stage: HTMLElement, onChange: (o
     stage.style.setProperty('--grow', `${o === 'land' ? h - LAND_BASE_H : 0}px`);
     if (desk) stage.dataset.fit = 'desk';
     else delete stage.dataset.fit;
+    if (o === 'port' && h >= PORT_TWO_ROW_H) stage.dataset.hand = 'two';
+    else delete stage.dataset.hand;
     // kit 的"互动"按钮在舞台外面，样式认 html 上的这个标记（电脑版缩成图标按钮）
     if (desk) document.documentElement.dataset.fit = 'desk';
     else delete document.documentElement.dataset.fit;

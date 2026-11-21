@@ -1,9 +1,12 @@
-/** 新手第一局的几处（0.46.0 前五分钟）：碰杠胡也给推荐、名场面记在刚打完的那一局、结算页头一行说为什么 */
+/** 新手第一局的几处（0.46.0 前五分钟，0.47.0 立直跟上）：碰杠胡也给推荐、名场面记在刚打完的那一局、结算页头一行说为什么 */
 import { describe, expect, it, vi } from 'vitest';
 import { view, type XzView } from '../src/core/variants/sichuan-xuezhan/index.ts';
 import { xuezhanPage } from '../src/view/variants/sichuan-xuezhan/page.ts';
 import { verdictWhy } from '../src/view/variants/sichuan-xuezhan/summary.ts';
 import { xuezhanUi } from '../src/view/variants/sichuan-xuezhan/ui.ts';
+import type { RcView } from '../src/core/variants/riichi/index.ts';
+import { verdictWhy as rcWhy } from '../src/view/variants/riichi/summary.ts';
+import { riichiUi } from '../src/view/variants/riichi/ui.ts';
 import { act, RON, tileIn } from './xz-table.ts';
 
 vi.stubGlobal('window', globalThis);
@@ -48,7 +51,33 @@ describe('结算页头一行的"为什么"', () => {
     expect(verdictWhy(v([800, -800, 0, 0], wins, []), 0, NAMES)).toMatch(/^胡了：.+，3 番$/);
     expect(verdictWhy(v([80, -80, 0, 0], [{ seat: 0, from: 1, fan: 0, items: [{ id: 'ping' }] }], []), 0, NAMES)).toMatch(/^胡了/);
   });
+  it('几局的场：流水只剩最后一局，说不准，不说', () => {
+    const two = { history: [{ round: 0, dealer: 0, net: [-80, 80, 0, 0], wins: [], end: 'hu' }, { round: 1, dealer: 1, net: [-80, 80, 0, 0], wins: [], end: 'hu' }], ledger: [{ kind: 'hu', from: 0, to: 1, amount: 80 }] } as unknown as XzView;
+    expect(verdictWhy(two, 0, NAMES)).toBeNull();
+  });
   it('没输没赢、流水里没有自己付的：不说', () => {
     expect(verdictWhy(v([0, 0, 0, 0], [], []), 0, NAMES)).toBeNull();
+  });
+});
+
+describe('立直：结算页头一行的"为什么"（看整场）', () => {
+  const sc = { yaku: [{ id: 'riichi', han: 1 }], yakuman: 0, kazoe: false, han: 3, fu: 30, dora: 2, aka: 0, ura: 0, base: 0, limit: 'none' };
+  const win = (seat: number, from: number | null, gain: number) => ({ seat, from, gain, score: sc, tile: 0, hand: [], melds: [], pao: null });
+  const round = (delta: number[], wins: unknown[], tenpai: boolean[] | null = null) => ({ wind: 0, hand: 0, honba: 0, dealer: 0, end: wins.length ? 'ron' : 'draw', delta, wins, tenpai, dora: [], ura: [] });
+  const rv = (history: unknown[]) => ({ history }) as unknown as RcView;
+  it('赢的：和了几次、最大一手（役名不带宝牌）', () => {
+    const why = rcWhy(rv([round([3900, -3900, 0, 0], [win(0, 1, 3900)]), round([-1000, 3000, -1000, -1000], [win(1, null, 3000)])]), 0, NAMES);
+    expect(why).toBe('和了 1 次，最大一手：立直，30 符 3 番');
+  });
+  it('输在放铳上：说给了谁、丢多少、怎么少放铳', () => {
+    const why = rcWhy(rv([round([-8000, 8000, 0, 0], [win(1, 0, 8000)]), round([-1000, -1000, 3000, -1000], [win(2, null, 3000)])]), 0, NAMES);
+    expect(why).toContain('放铳 1 次（给 幺妹儿），共丢 8,000 点');
+  });
+  it('流局没听丢得最多：说没听牌要赔', () => {
+    const why = rcWhy(rv([round([-3000, 1000, 1000, 1000], [], [false, true, true, true])]), 0, NAMES);
+    expect(why).toContain('没听牌 1 次');
+  });
+  it('立直的推荐只在声明窗口里出', () => {
+    expect(riichiUi.suggestClaim!({ me: { seat: 0 }, prompt: { discard: [] } } as unknown as Parameters<NonNullable<typeof riichiUi.suggestClaim>>[0])).toBeNull();
   });
 });

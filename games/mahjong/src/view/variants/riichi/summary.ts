@@ -229,3 +229,37 @@ export function cardOf(v: RcView, title: string, unit: string, name: string): Sh
     player: { name, ...(badge ? { badge } : {}) },
   };
 }
+
+/**
+ * 结算页头一行底下那句（一场打完）：赢了说和了几次、最大的一手；输了说点数主要丢在哪种上（放铳、别人自摸、流局没听），用大白话。
+ * 只看这一场公开的每局小结（v.history）
+ */
+export function verdictWhy(v: RcView, seat: number, names: string[]): string | null {
+  const total = v.history.reduce((a, h) => a + (h.delta[seat] ?? 0), 0);
+  const mine = v.history.flatMap((h) => h.wins.filter((w) => w.seat === seat));
+  if (total > 0 && mine.length) {
+    const best = mine.reduce((a, w) => (w.gain > a.gain ? w : a));
+    const yaku = yakuLines(best.score).filter((y) => !y.dora).map((y) => y.name);
+    return `和了 ${mine.length} 次，最大一手：${yaku.length ? `${yaku.join('、')}，` : ''}${scoreHead(best.score)}`;
+  }
+  if (total >= 0) return null;
+  // 每局丢的点按这一局为什么丢归一类，挑丢得最多的那类说
+  const lost = { dealIn: { pts: 0, n: 0, to: new Set<number>() }, tsumo: { pts: 0, n: 0, to: new Set<number>() }, noten: { pts: 0, n: 0, to: new Set<number>() } };
+  for (const h of v.history) {
+    const d = h.delta[seat] ?? 0;
+    if (d >= 0) continue;
+    const hit = h.wins.filter((w) => w.from === seat);
+    const tsumo = h.wins.filter((w) => w.from === null && w.seat !== seat);
+    const k = hit.length ? 'dealIn' : tsumo.length ? 'tsumo' : h.tenpai && !h.tenpai[seat] ? 'noten' : null;
+    if (!k) continue;
+    lost[k].pts -= d;
+    lost[k].n++;
+    for (const w of hit.length ? hit : tsumo) lost[k].to.add(w.seat);
+  }
+  const [k, x] = (Object.entries(lost) as [keyof typeof lost, (typeof lost)['dealIn']][]).sort((a, b) => b[1].pts - a[1].pts)[0]!;
+  if (!x.pts) return null;
+  const who = [...x.to].map((s) => names[s]).join('、');
+  if (k === 'dealIn') return `放铳 ${x.n} 次（给 ${who}），共丢 ${num(x.pts)} 点。别人立直以后，打他河里有的牌最安全`;
+  if (k === 'tsumo') return `${who} 自摸了 ${x.n} 次，没放铳也要付，共丢 ${num(x.pts)} 点`;
+  return `牌摸完时没听牌 ${x.n} 次，要赔给听了牌的人，共丢 ${num(x.pts)} 点`;
+}

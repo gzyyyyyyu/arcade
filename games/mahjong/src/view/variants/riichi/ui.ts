@@ -7,7 +7,7 @@ import { byTile, kindOf, type Tile } from '../../../core/tiles/index.ts';
 import { isRed, type RcAction, type RcEvent } from '../../../core/variants/riichi/index.ts';
 import { button, el } from '../../dom.ts';
 import { play } from '../../sound.ts';
-import { landAt, type BarCtx, type CommonAct, type Paint, type VariantUi } from '../../table.ts';
+import { landAt, recMark, type BarCtx, type CommonAct, type Paint, type VariantUi } from '../../table.ts';
 import { num } from '../../text.ts';
 import { TERMS } from '../../terms.ts';
 import { showToast } from '../../toast.ts';
@@ -160,14 +160,17 @@ function claimBar(v: RcTable, bar: HTMLElement, ctx: BarCtx<RcAction>): void {
   for (const o of CLAIM_ORDER) {
     if (!c.opts.includes(o)) continue;
     const send = (): void => ctx.act(o === 'chi' ? { t: 'claim', w: c.w, c: 'chi', low: c.chi[0]! } : { t: 'claim', w: c.w, c: o });
-    if (o === 'chi' && c.chi.length > 1) {
-      button(`act chi${pick === 'chi' ? ' on' : ''}`, bar, '吃', () => {
-        pick = pick === 'chi' ? null : 'chi';
-        ctx.setSelected([]);
-      });
-    } else button(`act ${o}`, bar, CLAIM_TEXT[o], send);
+    const b =
+      o === 'chi' && c.chi.length > 1
+        ? button(`act chi${pick === 'chi' ? ' on' : ''}`, bar, '吃', () => {
+            pick = pick === 'chi' ? null : 'chi';
+            ctx.setSelected([]);
+          })
+        : button(`act ${o}`, bar, CLAIM_TEXT[o], send);
+    if (o === ctx.rec) recMark(b);
   }
-  button('act pass', bar, '过', () => ctx.act({ t: 'claim', w: c.w, c: 'pass' }));
+  const pass = button('act pass', bar, '过', () => ctx.act({ t: 'claim', w: c.w, c: 'pass' }));
+  if (ctx.rec === 'pass') recMark(pass);
   if (pick === 'chi' && c.chi.length > 1) {
     const panel = el('div', 'rc-pick', bar);
     el('div', 'rc-pick-title', panel, '吃哪一组？');
@@ -316,6 +319,11 @@ export const riichiUi: VariantUi<RcTable, RcAction> = {
   bar,
 
   suggest: (v) => (v.me && v.prompt?.discard ? discardOf(decideAs(v, COACH_STYLE)) : null),
+  suggestClaim: (v) => {
+    if (!v.me || !v.prompt?.claim) return null;
+    const a = decideAs(v, COACH_STYLE);
+    return a.t === 'claim' ? a.c : null;
+  },
 
   discardable(v) {
     sync(v);
