@@ -117,7 +117,7 @@ function barMark(g: Phaser.GameObjects.Graphics, x: number, y: number, mark: num
 }
 
 /** 射程圈：外圈淡金半透明填充加虚线边，臼炮这类有死区的把内圈压暗加斜线和虚线边；半径直接用核心给的数 */
-export function rangeRing(_bs: TdScene, f: Phaser.GameObjects.Graphics, x: number, y: number, range: number, minRange: number, a: number, u: number, now: number, calm: boolean): void {
+function rangeRing(_bs: TdScene, f: Phaser.GameObjects.Graphics, x: number, y: number, range: number, minRange: number, a: number, u: number, now: number, calm: boolean): void {
   const K = RANGE_RING;
   const flow = calm ? 0 : now * K.flow;
   const R = isoRing(range / UNIT);
@@ -134,7 +134,7 @@ export function rangeRing(_bs: TdScene, f: Phaser.GameObjects.Graphics, x: numbe
 }
 
 /** 脚下准星：小椭圆加四道短刻线 */
-export function reticle(_bs: TdScene, f: Phaser.GameObjects.Graphics, x: number, y: number, sc: number, a: number, col: number, u: number): void {
+function reticle(_bs: TdScene, f: Phaser.GameObjects.Graphics, x: number, y: number, sc: number, a: number, col: number, u: number): void {
   const w = 26 * sc;
   const h = 13 * sc;
   f.lineStyle(2.4 * u, 0x2b1a15, a * 0.8).strokeEllipse(x, y, w + 2 * u, h + u);
@@ -145,7 +145,7 @@ export function reticle(_bs: TdScene, f: Phaser.GameObjects.Graphics, x: number,
 }
 
 /** 看懂谁在打谁、打多远：射程圈、目标虚线和准星、开火闪、英雄守点和旗子（全画在每帧清空的一张 Graphics 上） */
-export function drawAim(bs: TdScene, f: Phaser.GameObjects.Graphics, now: number, z: number): void {
+function drawAim(bs: TdScene, f: Phaser.GameObjects.Graphics, now: number, z: number): void {
   const s = bs.s;
   const u = 1 / Math.max(0.6, z);
   const calm = !feelOn();

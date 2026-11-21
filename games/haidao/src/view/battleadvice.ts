@@ -10,7 +10,7 @@ export const SIDE_NAME = ['左边', '下边', '右边', '上边'];
 const ARTILLERY = new Set(['cannon', 'mortar', 'rocket', 'harpoon', 'shock']);
 
 /** 失败建议要用到的这一场的统计（都是纯数据，不依赖 Phaser 和 DOM） */
-export interface AdviceInput {
+interface AdviceInput {
   buildings: ReadonlyArray<BBuilding>;
   /** 岛扩了几圈（这一局的 state.ext） */
   ext: number;

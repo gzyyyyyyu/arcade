@@ -11,7 +11,7 @@ import { DEPTH } from './depth.ts';
 import { depthOf, footCenter, iso } from './iso.ts';
 
 /** 崖顶比地面高多少（1 倍像素；一格菱形高 32） */
-export const CLIFF_LIFT = 28;
+const CLIFF_LIFT = 28;
 
 /** 这块木台画的时候要抬高多少：高台抬 CLIFF_LIFT，别的木台不抬 */
 export function slotLift(s: Pick<TdState, 'slots'>, slot: number): number {

@@ -6,7 +6,7 @@
 import type { MapState } from '../core/maptypes.ts';
 import { submitTide, type TideSubmit } from './tide.ts';
 
-export const MAP_KEY = 'haidao.map';
+const MAP_KEY = 'haidao.map';
 
 export interface MapLocal {
   /** 北京日期 'YYYY-MM-DD' */
@@ -19,7 +19,7 @@ export interface MapLocal {
   pending?: { node: number; rest: number };
 }
 
-export const mapBoardId = (day: string): string => `daily-${day}-map`;
+const mapBoardId = (day: string): string => `daily-${day}-map`;
 
 /** 今天的本机记录；换天了（或没有、坏数据）给一份空的 */
 export function readMap(day: string): MapLocal {

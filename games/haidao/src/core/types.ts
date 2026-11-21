@@ -78,7 +78,7 @@ export interface Placed {
 }
 
 /** 一条船：只装一种兵，数量 = 船容量 ÷ 兵的人口（向下取整） */
-export interface Boat {
+interface Boat {
   troop: TroopKind;
 }
 

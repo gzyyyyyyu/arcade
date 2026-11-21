@@ -152,8 +152,6 @@ export interface TdState {
   /** 下一波开始的拍；没有下一波为 -1 */
   next: number;
   fires: Array<{ x: number; y: number; r: number; dps: number; until: number }>;
-  /** 主动号令（号令现在是被动，这里永远是空的；字段留给画面层兼容） */
-  rally: { until: number; ids: number[] };
   /** 场上的拒马（格子坐标） */
   barricades: TdBarricade[];
   over: boolean;

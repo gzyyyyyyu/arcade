@@ -4,9 +4,9 @@
  */
 import { loggedIn } from './pvp.ts';
 
-export const TIDE_KEY = 'haidao.tide';
+const TIDE_KEY = 'haidao.tide';
 
-export interface TideLocal {
+interface TideLocal {
   /** 哪一周（2026-W44） */
   week: string;
   best: number;

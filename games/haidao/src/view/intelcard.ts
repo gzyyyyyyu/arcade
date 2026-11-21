@@ -63,7 +63,7 @@ function chip(c: IntelCard, k: string, parent: HTMLElement, cls: string): void {
 }
 
 /** 整张卡（compact = 战斗里贴边的小卡：只留数值和寻敌，不放相克和大图） */
-export function intelEl(c: IntelCard, compact = false): HTMLElement {
+function intelEl(c: IntelCard, compact = false): HTMLElement {
   injectCss();
   const box = el('div', `hd-intel${compact ? ' compact' : ''} f-${c.family}`);
   const head = el('div', 'hd-intel-head', undefined, box);
@@ -116,7 +116,7 @@ export function intelButton(label: string, make: () => IntelCard, parent: HTMLEl
 }
 
 /** 弹窗打开一张卡（叠在面板上，Esc / 点遮罩 / × 关） */
-export function openIntel(c: IntelCard): void {
+function openIntel(c: IntelCard): void {
   const mask = openModal({ cls: 'hd-intel-mask', closable: true, stack: true });
   const dlg = el('div', 'hd-dialog hd-intel-dlg', undefined, mask);
   dlg.appendChild(intelEl(c));

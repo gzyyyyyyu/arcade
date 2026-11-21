@@ -19,7 +19,7 @@ function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string,
 }
 
 /** 小地图要画的东西：关卡（木台、登陆点）、岛上的墙 / 宝藏 / 主寨，护航关再加航线和隘口 */
-export interface IsleSpec {
+interface IsleSpec {
   lv: Pick<TdLevel, 'name' | 'slots' | 'lanes' | 'tide' | 'water' | 'cliffs'>;
   layout: readonly Placed[];
   escort?: Pick<EscortDef, 'route' | 'gates'>;

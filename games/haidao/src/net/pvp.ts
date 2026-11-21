@@ -12,10 +12,10 @@ import { RULES_VERSION } from '../core/types.ts';
 import type { BattleAction, BattleSetup, Profile, Res } from '../core/types.ts';
 import type { Save } from '../platform/sync.ts';
 
-export const PVP_KEY = 'haidao.pvp';
+const PVP_KEY = 'haidao.pvp';
 const API = 'api/pvp/';
 /** 存档写完后多久上传一次快照（防抖），切后台时补一次 */
-export const SNAPSHOT_DEBOUNCE_MS = 30_000;
+const SNAPSHOT_DEBOUNCE_MS = 30_000;
 
 export interface Pending {
   raidId: string;
@@ -70,7 +70,7 @@ export interface RaidStart {
   until: number;
   maxGain: Res;
 }
-export interface RaidResult {
+interface RaidResult {
   raidId: string;
   stars: number;
   pct: number;
@@ -82,7 +82,7 @@ export interface RaidResult {
   expired: boolean;
   dup: boolean;
 }
-export interface DefenseReplay {
+interface DefenseReplay {
   raidId: string;
   attacker: string;
   at: number;

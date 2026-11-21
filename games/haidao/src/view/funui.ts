@@ -20,11 +20,11 @@ import { sfx } from './audio/sfx.ts';
 import { el, img, toast } from './ui.ts';
 import type { BattleScene } from './BattleScene.ts';
 
-export const HINT_KEYS = { chest: 'haidao.hint.chest', ally: 'haidao.hint.ally' } as const;
+const HINT_KEYS = { chest: 'haidao.hint.chest', ally: 'haidao.hint.ally' } as const;
 
 /** 每个提示只出一次：记在本地存储里，存储不可用就当这次进程内出过 */
 const seen = new Set<string>();
-export function hintOnce(key: string, text: string): void {
+function hintOnce(key: string, text: string): void {
   if (seen.has(key)) return;
   seen.add(key);
   try {
@@ -79,8 +79,8 @@ function drawChest(g: Phaser.GameObjects.Graphics): void {
   g.fillStyle(0xffd23f, 1).fillRect(-3, -14, 6, 8).fillRect(-15, -13, 30, 3);
 }
 
-export const REWARD_ICON: Record<ChestReward, 'energy' | 'medkit' | 'shieldOn'> = { energy: 'energy', heal: 'medkit', shield: 'shieldOn' };
-export const REWARD_TEXT: Record<ChestReward, (n: number) => string> = {
+const REWARD_ICON: Record<ChestReward, 'energy' | 'medkit' | 'shieldOn'> = { energy: 'energy', heal: 'medkit', shield: 'shieldOn' };
+const REWARD_TEXT: Record<ChestReward, (n: number) => string> = {
   energy: (n) => `+${n}`,
   heal: (n) => `+${n}%`,
   shield: (n) => `${Math.round(n / TICKS_PER_SEC)}秒`,

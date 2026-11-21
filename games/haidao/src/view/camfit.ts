@@ -16,7 +16,7 @@ import { REDUCED } from './feel.ts';
 export interface Box { l: number; r: number; t: number; b: number }
 export interface Inset { top: number; bottom: number; left: number; right: number }
 /** pano：竖屏放大（登陆战、守岛）时另给整岛全景的视角，开场先停在这里再推过去，"全景"钮也回到这里 */
-export interface Fit { z: number; cx: number; cy: number; minZ: number; maxZ: number; pano?: { z: number; cx: number; cy: number } }
+interface Fit { z: number; cx: number; cy: number; minZ: number; maxZ: number; pano?: { z: number; cx: number; cy: number } }
 
 /** 建筑往上长：图比脚印高出的部分（世界单位），框的顶边要多留这么多 */
 const TALL = 64;

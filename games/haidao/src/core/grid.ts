@@ -13,7 +13,7 @@ export const GRID = ISLAND + 2 * OFF;
 export const INF = 0x3fffffff;
 /** 堆里把（代价, 格子下标）打成一个数：代价 × PACK + 下标；PACK 要大于格子数，排序才和先比代价再比下标一样 */
 const PACK = 2048;
-export const NEIGHBORS: ReadonlyArray<readonly [number, number, number]> = [
+const NEIGHBORS: ReadonlyArray<readonly [number, number, number]> = [
   [1, 0, 10], [0, 1, 10], [-1, 0, 10], [0, -1, 10],
   [1, 1, 14], [-1, 1, 14], [-1, -1, 14], [1, -1, 14],
 ];

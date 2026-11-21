@@ -53,7 +53,7 @@ export function syncUnits(bs: BattleScene): void {
 }
 
 /** 从对象池取一个兵的骨架（装了皮肤且皮肤图集烘好了就用皮肤的） */
-export function newRig(bs: BattleScene, kind: TroopKind, x: number, y: number): Rig {
+function newRig(bs: BattleScene, kind: TroopKind, x: number, y: number): Rig {
   const skin = app.profile.skins?.[kind];
   const rk: RigKind = `t.${kind}`;
   const frames: FrameSrc = (an) => safeFrames(bs, kind, an, skin);
@@ -236,7 +236,7 @@ export function recoil(bs: BattleScene, id: number, pr: { x0: number; y0: number
 }
 
 /** 驻岛英雄、地火、号令光：和守岛（TdScene）里的英雄同一套画法 */
-export function renderHero(bs: BattleScene, frac: number, time: number, dt: number): void {
+function renderHero(bs: BattleScene, frac: number, time: number, dt: number): void {
   const s = bs.st;
   const h = s.hero;
   const fg = bs.fireG;
@@ -304,7 +304,7 @@ export function renderHero(bs: BattleScene, frac: number, time: number, dt: numb
   bs.heroRing?.setPosition(hw.x, hw.y + 1).setDepth(d + 0.25).setVisible(!dead);
 }
 
-export function safeFrames(bs: BattleScene, kind: TroopKind, anim: 'idle' | 'walk' | 'attack', skin?: string): ReturnType<typeof troopF> | null {
+function safeFrames(bs: BattleScene, kind: TroopKind, anim: 'idle' | 'walk' | 'attack', skin?: string): ReturnType<typeof troopF> | null {
   try {
     const f = troopF(kind, anim, skin);
     if (f.length && bs.textures.exists(f[0]!.key)) return f;

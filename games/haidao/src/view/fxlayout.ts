@@ -1,7 +1,7 @@
 import { BUILDING_KINDS, isDecoKind } from '../content/buildings.ts';
 // 飘字的排布算法：纯函数，不依赖 Phaser，单测直接测（tests/fx-layout.test.ts）。
 
-export interface Spot {
+interface Spot {
   x: number;
   y: number;
   /** 占的宽高（屏幕像素）；不给就按小数字算 */

@@ -29,7 +29,7 @@ import { drawSel } from './basemenu.ts';
 import { rankHint } from './rankui.ts';
 
 /** 做完会涨统计的事（升级、结算）之后查一遍成就，新的弹徽章 */
-export function checkAch(bs: BaseScene): void {
+function checkAch(bs: BaseScene): void {
   const r = runAchievements(app.profile);
   if (r.fresh.length) {
     app.commit(r.profile);
@@ -137,10 +137,11 @@ export function showNewHint(bs: BaseScene): void {
 }
 
 /**
- * 军械所研究：网格卡片分「兵种」「技能」「英雄」三组，一屏看完（不翻页）。整张卡是按钮：升得起点一下就升，
+ * 军械所研究：网格卡片分「兵种」「技能」「英雄」三组；放不下（手机横屏、360×640）就页内翻页，整组都不在这一页的小标题一起收起。
+ * 返回分页函数：面板其余部分（底部一排）都摆好后再调，才量得准。整张卡是按钮：升得起点一下就升，
  * 升不起灰着写原因（主寨几级解锁、先升级军械所、已满级），只缺资源时照样列花费、缺的数字标红。等级不能超过军械所等级。
  */
-export function researchList(bs: BaseScene, body: HTMLElement, armoryId: number): void {
+export function researchList(bs: BaseScene, body: HTMLElement, armoryId: number): () => void {
   const p = app.profile;
   const hq = hqLevel(p);
   // 说明不另起一段：军械所的描述已经写了"研究等级不能超过军械所等级"，英雄只花木材看它卡上的花费
@@ -175,6 +176,14 @@ export function researchList(bs: BaseScene, body: HTMLElement, armoryId: number)
     if (isTroop) attachIntel(card, () => troopCard(k as TroopKind, researchLevel(app.profile, k)));
   }
   heroCard(bs, group('英雄', 'hero'), reopen);
+  return () => {
+    const cards = [...box.querySelectorAll<HTMLElement>('.hd-rs-card')];
+    const groups = [...box.querySelectorAll<HTMLElement>('.hd-rs-g')];
+    const sync = (): void => {
+      for (const g of groups) g.style.display = [...g.querySelectorAll<HTMLElement>('.hd-rs-card')].some((c) => c.style.display !== 'none') ? '' : 'none';
+    };
+    paginate(body, cards, box, null, sync);
+  };
 }
 
 /** 卡上灰着的原因；只缺资源时返回 null（卡上照样列花费，缺的数字标红） */

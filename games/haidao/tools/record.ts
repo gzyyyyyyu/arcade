@@ -10,7 +10,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { CDPSession, Page } from 'playwright-core';
 
-export interface Crop {
+interface Crop {
   /** 裁剪区占画面宽、高的比例（以画面中心为中心）；向上偏移占画面高的比例 */
   w: number;
   h: number;

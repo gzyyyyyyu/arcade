@@ -15,14 +15,14 @@ import { loggedIn } from './pvp.ts';
 export const LIVE_KEY = 'haidao.live';
 /** 悬赏守岛（DESIGN.md 10.5）、护航（12.1）、寻宝航线（11.1）走同一套流程，本机进度和接口各用自己的 */
 export const TDLIVE_KEY = 'haidao.tdlive';
-export const ESCORTLIVE_KEY = 'haidao.escortlive';
+const ESCORTLIVE_KEY = 'haidao.escortlive';
 export const MAPLIVE_KEY = 'haidao.maplive';
 const API = 'api/live/';
 const TD_API = 'api/td/';
 const ESCORT_API = 'api/escort/';
 const MAP_API = 'api/map/';
 
-export type LiveStep = 'buying' | 'playing' | 'settling' | 'done';
+type LiveStep = 'buying' | 'playing' | 'settling' | 'done';
 export interface LiveRecord {
   ref: string;
   tier: LiveTier;
@@ -214,7 +214,7 @@ function pendingOp<R extends { ref: string }>(key: string, action: string, prefi
 }
 
 /** 金银锭换筹码（存档里的锭在发之前已经扣了） */
-export const INGOT_KEY = 'haidao.ingotx';
+const INGOT_KEY = 'haidao.ingotx';
 export interface IngotRecord {
   ref: string;
   n: number;
@@ -222,7 +222,7 @@ export interface IngotRecord {
 export const ingotX = pendingOp<IngotRecord>(INGOT_KEY, 'ingot', 'hdi-', (v) => Number.isInteger(v.n) && v.n > 0);
 
 /** 筹码买装饰（扣成了才把收藏加进存档） */
-export const SHOP_KEY = 'haidao.shopx';
+const SHOP_KEY = 'haidao.shopx';
 export interface ShopRecord {
   ref: string;
   item: string;

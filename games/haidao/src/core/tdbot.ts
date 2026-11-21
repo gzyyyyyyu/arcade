@@ -42,7 +42,7 @@ const isAir = (e: { kind: keyof typeof TD_ENEMY_ARMOR }): boolean => TD_ENEMY_AR
 const BY_SHOT: readonly TdTowerKind[] = ['gunTower', 'harpoon'];
 
 /** 预告里下两波的护甲占比（加起来）、有没有飞的、有没有要照亮的 */
-export function outlook(s: TdState, pv: WavePreview[]): { share: Record<TdArmor, number>; air: boolean; fog: boolean } {
+function outlook(s: TdState, pv: WavePreview[]): { share: Record<TdArmor, number>; air: boolean; fog: boolean } {
   const share: Record<TdArmor, number> = { cloth: 0, heavy: 0, wood: 0, air: 0 };
   let air = false;
   let fog = false;
@@ -163,7 +163,7 @@ function coverage(s: TdState, cells: readonly number[]): number {
  * 水闸值不值得关（真人的想法：把敌人赶到自己塔多的那条路上）：下一波走落潮路的占这一波人数的四分之一以上，
  * 并且关闸后要改走的 0 号路被塔盖住的程度比落潮路多两成以上。只看人数就关会把敌人赶进没塔、有雾的路（td11 实测三星 37% → 5%）
  */
-export function sluiceWorth(s: TdState, pv: WavePreview[]): boolean {
+function sluiceWorth(s: TdState, pv: WavePreview[]): boolean {
   const p = pv[0];
   if (!p || p.wave !== s.wave) return false;
   let all = 0;
@@ -185,7 +185,7 @@ export function sluiceWorth(s: TdState, pv: WavePreview[]): boolean {
  * 去捡这个补给箱安不安全：宝藏箱 8 格内没有地面敌人、没有拿着宝藏往回跑的、地上没有掉的宝藏（飞的不算，英雄在不在都拦不住），
  * 下一波开打前来得及走个来回，而且箱子离英雄 6 格以内（绕一下就回来；td06 的英雄站位一偏就漏，离开远了 200 局三星 100% → 87%）
  */
-export function crateSafe(s: TdState, box: { x: number; y: number }): boolean {
+function crateSafe(s: TdState, box: { x: number; y: number }): boolean {
   const tr = s.treasures[0];
   if (!tr || s.piles.length > 0) return false;
   if (d2(box.x, box.y, s.hero.x, s.hero.y) > 600 * 600) return false;
@@ -204,7 +204,7 @@ export function crateSafe(s: TdState, box: { x: number; y: number }): boolean {
  * 战书值不值得接：这一局还没丢过宝藏、木台全都造上了塔（没有空着的）。贪机器人不看，一律接。
  * 赏金船机器人不去追：追要反复改英雄的守点，追完回不到原来自己守的样子，误差比赏金本身大；塔打得到就拿
  */
-export function dareWorth(s: TdState): boolean {
+function dareWorth(s: TdState): boolean {
   return s.lost === 0 && s.slots.every((sl) => sl.tower >= 0 || sl.wreck !== undefined);
 }
 
@@ -212,7 +212,7 @@ export function dareWorth(s: TdState): boolean {
  * 老炮往哪打：地面敌人里炸得到最多人的那一点（同样多取离宝藏近的，也就是走得最靠前的），够 min 个或圈里有船长才打；不值得为 null。
  * 飞的炸不到不算
  */
-export function batteryTarget(s: TdState, min: number): { x: number; y: number } | null {
+function batteryTarget(s: TdState, min: number): { x: number; y: number } | null {
   const ground = s.enemies.filter((e) => (e.mode === 'in' || e.mode === 'out') && !isAir(e));
   const r2 = TD2_BATTERY.r * TD2_BATTERY.r;
   const tr = s.treasures[0];
@@ -299,7 +299,7 @@ export const towerOn = (s: TdState, slot: number): TdTower | undefined => {
   return sl && sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
 };
 
-export type TdBot = (s: TdState) => TdAction[];
+type TdBot = (s: TdState) => TdAction[];
 
 /**
  * 配平用的开关（td-sim 的"反压制""英雄拆开看"）：only = 木台上只造这一种塔（没解锁就照常挑）；
@@ -371,7 +371,7 @@ function inReach(s: TdState, tw: TdTower, live: readonly TdEnemy[]): TdEnemy[] {
  * 航海士的急射旗插在哪（冷却没好、没有值得插的为 null）：以英雄够得着的每座「正在打」的塔（射程里有首领，或有 3 个以上敌人）的中心为候选，
  * 数圈里正在打的塔有几座，挑最多的；同样多挑有首领的，再同样按塔的编号顺序取先到的
  */
-export function flagSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y: number } | null {
+function flagSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y: number } | null {
   const h = s.hero;
   const fl = TD2_NAV_SKILL.flag;
   if (h.respawn >= 0 || s.tick < (h.barricadeReady ?? 0)) return null;
@@ -399,7 +399,7 @@ export function flagSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y: 
 /**
  * 航海士的重赏画在哪（冷却没好、没有扎堆为 null）：英雄投得到、圈里有 3 个以上敌人、那一点至少两座塔打得到，按敌人顺序取第一个
  */
-export function rewardSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y: number } | null {
+function rewardSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y: number } | null {
   const h = s.hero;
   const rw = TD2_NAV_SKILL.reward;
   if (h.respawn >= 0 || s.tick < h.kegReady) return null;

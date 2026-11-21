@@ -4,11 +4,11 @@ import type { ArtPiece, Pt } from './kit.ts';
 import { limb, woodShield } from './troops.ts';
 import { OUT, P, box, cyl, darken, ell, f, lighten, line, mat, path, piece, poly, rect, shadow, skull, uid } from './kit.ts';
 
-export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate', 'medic', 'gunboat', 'king'] as const;
+const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate', 'medic', 'gunboat', 'king'] as const;
 export type TdEnemyKind = (typeof TD_ENEMY_KINDS)[number];
 export type TdAnim = 'walk' | 'attack';
 export type TdPropKind = 'pad' | 'padBuilt' | 'keg' | 'wreck' | 'barrel' | 'tideEdge' | 'mist' | 'jam' | 'tideWave' | 'sluiceUp' | 'sluiceDown' | 'battery' | 'crate';
-export const TD_PROP_KINDS: TdPropKind[] = ['pad', 'padBuilt', 'keg', 'wreck', 'barrel', 'tideEdge', 'mist', 'jam', 'tideWave', 'sluiceUp', 'sluiceDown', 'battery', 'crate'];
+const TD_PROP_KINDS: TdPropKind[] = ['pad', 'padBuilt', 'keg', 'wreck', 'barrel', 'tideEdge', 'mist', 'jam', 'tideWave', 'sluiceUp', 'sluiceDown', 'battery', 'crate'];
 
 // ================================================================= 人形的共用部分
 

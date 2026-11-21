@@ -15,7 +15,7 @@ import { NAV_DECO, NAV_LOOK, NAV_RANK } from './navigator.ts';
 import { DECO, LOOKS, SKIN_GLOW, blade, woodShield, torsoShape, cart, grenadeBall, hammer, harpoon, head, keg, limb, medkit, musket, pistol, skinDeco, skinify, type Look, type PoseData, type TroopDeco, type TroopSkin } from './troops.ts';
 import { tdEnemyDef, tdMan, type TdManSpec } from './tdart.ts';
 
-export const RIG_FRAMES = ['shadow', 'legB', 'legF', 'armB', 'torso', 'head', 'headBlink', 'headAtk', 'hat', 'armF', 'wep', 'trail', 'shield'] as const;
+const RIG_FRAMES = ['shadow', 'legB', 'legF', 'armB', 'torso', 'head', 'headBlink', 'headAtk', 'hat', 'armF', 'wep', 'trail', 'shield'] as const;
 export type RigFrame = (typeof RIG_FRAMES)[number];
 
 /** 一个部件：设计单位的 SVG（锚点在原点）和包围盒 [x0, y0, x1, y1]（设计单位，宽松一点） */
@@ -55,8 +55,8 @@ function trail(r: number, color = '#ffffff'): Part {
 }
 
 /** 盾兵的大木盾（分件骨架里的单独部件，中心是锚点；rigsprite.ts 按 gx / gy 把它摆到身体前后左右） */
-export const SHIELD_W = 22;
-export const SHIELD_H = 28;
+const SHIELD_W = 22;
+const SHIELD_H = 28;
 const SHIELD_PART: Part = { svg: woodShield(SHIELD_W, SHIELD_H), box: [-SHIELD_W / 2 - 3, -SHIELD_H / 2 - 3, SHIELD_W / 2 + 3, SHIELD_H / 2 + 3] };
 
 // ---------------------------------------------------------------- 兵（troops.ts 的外观）
@@ -90,9 +90,9 @@ function rotHammer(): string {
 }
 
 /** 守岛英雄按等级换的外观（部件图集另烘一张，key 见 rigsprite.ts 的 rigTex） */
-export type HeroRank = 'rank1' | 'rank2' | 'rank3';
+type HeroRank = 'rank1' | 'rank2' | 'rank3';
 /** 英雄到这几级换外观：4 级帽子插白色长羽，8 级加金肩章，12 级腰带上再插一把手枪（双枪） */
-export const HERO_RANK_LEVELS = [4, 8, 12] as const;
+const HERO_RANK_LEVELS = [4, 8, 12] as const;
 export function heroRank(level: number): HeroRank | undefined {
   const n = HERO_RANK_LEVELS.filter((l) => level >= l).length;
   return n === 0 ? undefined : (`rank${n}` as HeroRank);

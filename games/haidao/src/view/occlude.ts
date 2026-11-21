@@ -10,7 +10,7 @@ import { boxOf, OCC_CELL, occludes, type OccBox } from './fxlayout.ts';
  */
 
 /** 同屏最多画几个剪影：人一多，再多的剪影也看不出来，对象数和每帧改属性的次数封顶 */
-export const MAX_GHOSTS = 14;
+const MAX_GHOSTS = 14;
 
 const key = (cx: number, cy: number): number => (cx + 2048) * 4096 + (cy + 2048);
 

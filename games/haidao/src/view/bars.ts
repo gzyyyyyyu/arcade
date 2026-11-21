@@ -64,7 +64,7 @@ export class BarTracker {
   }
 }
 
-export interface BarSlot {
+interface BarSlot {
   x: number;
   y: number;
   /** 条宽（世界单位，和 x 同一坐标系） */

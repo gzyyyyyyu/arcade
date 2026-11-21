@@ -27,7 +27,7 @@ export const POSES = ['idle', 'walk1', 'walk2', 'attack'] as const;
 export const TILE_KINDS = ['grass', 'grass2', 'sand', 'shallow', 'sea'] as const;
 export const COAST_KINDS = ['reef', 'wave', 'shoal', 'foamPatch', 'spit', 'swash', 'glint', 'fish', 'cloud'] as const;
 export const DECO_KINDS = ['bush', 'flowers', 'stones', 'tuft', 'path'] as const;
-export const MAP_DECO_KINDS = ['wave', 'gull', 'rock', 'compass', 'ship'] as const;
+const MAP_DECO_KINDS = ['wave', 'gull', 'rock', 'compass', 'ship'] as const;
 export const FX_FRAME_KINDS = ['hit', 'boom', 'collapse', 'slash', 'muzzle'] as const;
 /** 皮肤帧不进 allArt（太占内存）：画面层按需 troopFrames(kind, anim, skin) 再烘焙 */
 export const TROOP_SKINS = ['gold', 'shadow', 'royal'] as const;
@@ -52,10 +52,10 @@ export function levelArt(level: number): ArtPiece[] {
 /**
  * 烘成纹理的通用素材。为了控制纹理内存（全部 2 倍烘焙 ≤ 60 MB），默认只带建筑 1–2 级（城墙只 1 级）和兵种动画帧；
  * 更高等级用 `levelArt(n)` 按需补烘焙，皮肤帧用 `troopFrames(kind, anim, skin)` 按需补烘焙。海图的岛、纪念章只进 DOM（ui.ts 的 img），不烘。
- * opts.maxLevel：带到第几级（默认 2，最多 8）；opts.legacyTroops：带上旧的 troopArt 四个静态姿势（默认不带）；
+ * opts.maxLevel：带到第几级（默认 2，最多 8）；
  * opts.troops = false：不带兵的动作帧（开局用，兵帧见 troopArt3）。
  */
-export function allArt(opts: { maxLevel?: number; legacyTroops?: boolean; troops?: boolean } = {}): ArtPiece[] {
+export function allArt(opts: { maxLevel?: number; troops?: boolean } = {}): ArtPiece[] {
   const maxLevel = Math.max(1, Math.min(ART_MAX_LEVEL, opts.maxLevel ?? 2));
   const out: ArtPiece[] = [];
   for (const k of BUILDING_KINDS) {
@@ -63,7 +63,6 @@ export function allArt(opts: { maxLevel?: number; legacyTroops?: boolean; troops
     else for (let lv = 1; lv <= maxLevel; lv++) { if (k === 'wall') { if (lv === 1) for (let m = 0; m < 16; m++) out.push(wallArt(lv, m)); } else if (k !== 'kraken' || lv === 1) out.push(buildingArt(k, lv)); }
   }
   out.push(krakenArt('slam', 1));
-  if (opts.legacyTroops) for (const k of TROOP_KINDS) for (const p of POSES) out.push(troopArt(k, p));
   if (opts.troops !== false) out.push(...troopArt3());
   for (const k of COAST_KINDS) out.push(coastArt(k));
   for (const k of DECO_KINDS) out.push(decoArt(k));

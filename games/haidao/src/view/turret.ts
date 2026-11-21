@@ -31,7 +31,7 @@ function plainPieces(kind: TurretKind, level: number): ArtPiece[] {
   return out;
 }
 
-export function turretReady(tm: Phaser.Textures.TextureManager, kind: TurretKind, level: number): boolean {
+function turretReady(tm: Phaser.Textures.TextureManager, kind: TurretKind, level: number): boolean {
   return tm.exists(turretTex(kind, turretTier(kind, level))) && plainPieces(kind, level).every((p) => isBaked(p.key)) && isBaked(flameJetArt().key);
 }
 
@@ -42,7 +42,7 @@ const atlasPending = new Map<string, Promise<void>>();
 let jetP: Promise<void> | null = null;
 const bakeJet = (tm: Phaser.Textures.TextureManager, r: number): Promise<void> => (jetP ??= bakeSome(tm, [flameJetArt()], r));
 /** 烘一座炮台的分件素材（同一种同一级并发只烘一次）；图集的帧设好转轴（setFrame 时自动用作原点） */
-export function ensureTurret(tm: Phaser.Textures.TextureManager, kind: TurretKind, level: number, r: number): Promise<void> {
+function ensureTurret(tm: Phaser.Textures.TextureManager, kind: TurretKind, level: number, r: number): Promise<void> {
   const k = `${kind}.${level}`;
   let p = pending.get(k);
   if (!p) {
@@ -87,7 +87,7 @@ export const turretStats = { shots: 0, snaps: 0, maxSnap: 0 };
 
 // ---------------------------------------------------------------- 炮台
 
-export interface TurretIn {
+interface TurretIn {
   /** 游戏时钟（毫秒）和这一帧的时长（冻住时传 0） */
   now: number;
   dt: number;

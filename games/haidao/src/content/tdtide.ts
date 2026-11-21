@@ -162,7 +162,7 @@ const UNLOCK: Record<Exclude<TdEnemyKind, 'skiffling' | 'captain' | 'shield' | '
 /** 一个敌人折多少点：和战役同一张表（TD2_ENEMY_POINTS），预算也走同一条公式 */
 const COST = TD2_ENEMY_POINTS;
 /** 大潮的预算按战役里第几关（0 起）的底数算：靠这个把"开局多难"和战役对上，往后的涨幅靠 hpPct 曲线 */
-export const TIDE_LEVEL = 4;
+const TIDE_LEVEL = 4;
 /** 每 N 波一个首领波（从第 N 波起：第 8、16、24… 波） */
 export const TIDE_BOSS_EVERY = 8;
 /** 雾区从第几波起起作用（开了这么多波之后）、炸塔工兵的冲击波 */

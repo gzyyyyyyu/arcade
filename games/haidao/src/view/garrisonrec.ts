@@ -33,7 +33,7 @@ export function levelFoes(waves: readonly TdWave[]): { share: Record<TdArmor, nu
 }
 
 /** 一种塔对这一关的分：克制分（已经推过 same 座同种的打折）+ 阶 */
-export function optionScore(o: TdGarrisonOption, foes: ReturnType<typeof levelFoes>, same = 0): number {
+function optionScore(o: TdGarrisonOption, foes: ReturnType<typeof levelFoes>, same = 0): number {
   const d = TD_TOWER_DAMAGE[o.kind];
   let v = 0;
   for (const a of TD_ARMORS) v += (foes.share[a] * COUNTER[d][a]) / 100;

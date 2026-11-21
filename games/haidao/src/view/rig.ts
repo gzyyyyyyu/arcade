@@ -46,7 +46,7 @@ export interface Pose {
 }
 
 export const POSE_KEYS = ['x', 'y', 'rot', 'lean', 'head', 'armF', 'armB', 'wep', 'legF', 'legB', 'hipY', 'sq', 'trail', 'turn'] as const satisfies ReadonlyArray<keyof Pose>;
-export type PoseKey = (typeof POSE_KEYS)[number];
+type PoseKey = (typeof POSE_KEYS)[number];
 
 export const zeroPose = (): Pose => ({ x: 0, y: 0, rot: 0, lean: 0, head: 0, armF: 0, armB: 0, wep: 0, legF: 0, legB: 0, hipY: 0, sq: 0, trail: 0, turn: 0 });
 export function pose(p: Partial<Pose>): Pose {
@@ -69,7 +69,7 @@ export function mixPose(out: Pose, a: Pose, b: Pose, w: number): Pose {
 
 // ---------------------------------------------------------------- 关键帧
 
-export interface Key {
+interface Key {
   /** 0..1 */
   t: number;
   p: Pose;
@@ -138,7 +138,7 @@ export function onRest(out: Pose, rest: Pose, d: Pose, clip: Clip): Pose {
 }
 
 /** 按通道放大缩小一个动作（兵种差异：壮汉腿摆小、身子晃大……） */
-export function scaleClip(clip: Clip, f: Partial<Record<PoseKey, number>>, extra?: Partial<Clip>): Clip {
+function scaleClip(clip: Clip, f: Partial<Record<PoseKey, number>>, extra?: Partial<Clip>): Clip {
   return {
     ...clip,
     ...extra,
@@ -192,7 +192,7 @@ const G_HIP = [0, 0, 0.2, 0.7, 1, 0.6, 0.2, 0] as const;
 const G_ASYM = [0, 0.6, 1, 1, 0, 1, 1, 0.8] as const;
 
 /** 一个兵种的步态参数：全是相对默认值的倍数（除 leg 外 1 = 默认） */
-export interface Gait {
+interface Gait {
   /** 腿摆幅倍数（同时决定步幅，见 strideOf） */
   leg: number;
   /** 手臂摆幅；armF 再额外乘前臂（拿盾、提药箱的手摆得小） */
@@ -213,7 +213,7 @@ export interface Gait {
   asym: number;
 }
 
-export function gaitClip(g: Gait): Clip {
+function gaitClip(g: Gait): Clip {
   const keys: Key[] = [];
   for (let step = 0; step < 2; step++) {
     const sg = step ? -1 : 1;
@@ -247,7 +247,7 @@ export const WALK: Clip = gaitClip(BASE_GAIT);
 
 /** 待机：呼吸起伏（吸气时身子微微拉长、手臂外张），一个循环 IDLE_MS */
 export const IDLE_MS = 2600;
-export const IDLE: Clip = {
+const IDLE: Clip = {
   loop: true,
   smooth: true,
   keys: [
@@ -281,7 +281,7 @@ export const LOOK: Clip = {
 };
 
 /** 船长的指挥姿势（待机时随机）：举剑指向前方、往前一点一点，再收回 */
-export const COMMAND: Clip = {
+const COMMAND: Clip = {
   loop: false,
   smooth: false,
   ms: 1800,
@@ -342,7 +342,7 @@ export const SMASH: Clip = {
 };
 
 /** 火枪：举枪瞄准 → 开火（出手点）→ 后坐（枪口上跳、身子后仰）→ 放低枪、通条往枪口里捅两下（装填）→ 端回 */
-export const SHOOT: Clip = {
+const SHOOT: Clip = {
   loop: false,
   smooth: false,
   ms: 1300,
@@ -367,7 +367,7 @@ export const SHOOT: Clip = {
  * 手枪（船长）：单手把枪从举着放平、瞄住 → 开火（出手点）→ 后坐（枪口上跳、手往上弹、身子一仰）→ 枪口朝上收回。
  * 姿态的角度照搬火枪的瞄准和后坐（枪件都是枪口朝 +x），去掉通条装填；时长由场景按英雄的装填拍缩放（atkPhase 对齐出手拍）
  */
-export const PISTOL: Clip = {
+const PISTOL: Clip = {
   loop: false,
   smooth: false,
   ms: 600,
@@ -425,7 +425,7 @@ export const THROW: Clip = {
 };
 
 /** 船医：把药箱举过头晃一晃（出手点放绿光），再放下 */
-export const HEAL: Clip = {
+const HEAL: Clip = {
   loop: false,
   smooth: false,
   ms: 800,
@@ -444,7 +444,7 @@ export const HEAL: Clip = {
 };
 
 /** 小艇怪：船身往后一仰再往前一撞（出手点），船员跟着探身 */
-export const RAM: Clip = {
+const RAM: Clip = {
   loop: false,
   smooth: false,
   ms: 600,
@@ -772,7 +772,7 @@ export interface Skel {
 }
 
 /** 正解的结果：各部件锚点在容器里的位置（世界像素）和角度（弧度，Phaser 的顺时针为正） */
-export interface PartXf {
+interface PartXf {
   x: number;
   y: number;
   r: number;

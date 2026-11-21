@@ -6,9 +6,9 @@
 import type { BuildingKind, Placed, Res, TroopKind } from '../core/types.ts';
 import { TROOPS } from './troops.ts';
 
-export type TrainKind = 'troop' | 'front' | 'counter' | 'td';
+type TrainKind = 'troop' | 'front' | 'counter' | 'td';
 
-export interface TrainBoat {
+interface TrainBoat {
   troop: TroopKind;
   count: number;
 }

@@ -118,7 +118,7 @@ function run(id: string, kind: TdBotKind, growth: TdGrowth, o: TdBotOpts = {}, b
   return c;
 }
 
-export interface LevelRaw {
+interface LevelRaw {
   id: string;
   cells: Record<string, Cell>;
 }

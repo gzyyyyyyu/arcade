@@ -20,7 +20,7 @@ export type SfxName =
   // 结算
   | 'star' | 'star3' | 'win' | 'lose';
 
-export interface SfxMeta {
+interface SfxMeta {
   group: SfxGroup;
   /** 变体个数（1 = 不做变体，用于有固定旋律的短句） */
   variants: number;

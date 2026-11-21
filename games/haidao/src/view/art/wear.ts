@@ -7,7 +7,7 @@ import { rng, h32, type Material } from './grade.ts';
 import { darken, lighten, uid } from './kit.ts';
 
 type Pt = [number, number];
-export type Face = 'L' | 'R' | 'T';
+type Face = 'L' | 'R' | 'T';
 
 const r2 = (n: number): number => Math.round(n * 100) / 100;
 const f1 = (n: number): string => String(Math.round(n * 10) / 10);

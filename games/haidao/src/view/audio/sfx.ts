@@ -37,7 +37,7 @@ function note(name: string, key: keyof SfxCount, ok = false): void {
   if (recent.length > 40) recent.shift();
 }
 
-export interface SfxOpts {
+interface SfxOpts {
   /** 音高倍数（星星递增、失败压低） */
   pitch?: number;
   /** 覆盖 MIN_GAP_MS 的同名最小间隔 */

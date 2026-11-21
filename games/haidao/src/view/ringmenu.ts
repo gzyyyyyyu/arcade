@@ -5,7 +5,7 @@ import { button, el } from './ui.ts';
  * 布局是纯函数（ringLayout，tests/ringmenu.test.ts 锁住）；DOM 只在这里。
  */
 
-export interface RingRect { l: number; r: number; t: number; b: number }
+interface RingRect { l: number; r: number; t: number; b: number }
 
 /**
  * 圆钮直径（CSS 像素，≥ 44）、环半径。竖屏适配后岛变小，钮大了、贴近了会把建筑和邻居全盖住：

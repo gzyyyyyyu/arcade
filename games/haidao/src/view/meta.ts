@@ -13,7 +13,7 @@ export function dayIndex(now = Date.now()): number {
   return Math.floor((now + 8 * 3600_000) / 86_400_000);
 }
 
-export interface Bounty {
+interface Bounty {
   levelId: string;
   name: string;
   done: boolean;
@@ -34,7 +34,7 @@ export function bountyOf(p: Profile): Bounty | null {
   return { levelId: lv.id, name: lv.name, done: p.daily?.day === day && p.daily.done, day };
 }
 
-export function markBountyDone(p: Profile): Profile {
+function markBountyDone(p: Profile): Profile {
   return { ...p, daily: { day: dayIndex(), done: true }, stats: { ...p.stats, dailyDone: (p.stats.dailyDone ?? 0) + 1 } };
 }
 

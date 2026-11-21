@@ -9,7 +9,7 @@ export const LINE_MAX = 26;
 export const KEY_MAX = 30;
 
 /** 缓存下来的敌人信息（escape 事件时敌人可能已经移出 s.enemies） */
-export interface EnemyMeta {
+interface EnemyMeta {
   kind: TdEnemyKind;
   /** 第几波（从 1 数起） */
   wave: number;
@@ -48,7 +48,7 @@ export interface ReasonRes {
   goldEarned: number;
 }
 
-export interface ReasonExtra {
+interface ReasonExtra {
   /** 局末没花的金币 */
   gold: number;
   /** 场上的塔（种类 + 分叉），判断护甲有没有克它的 */
@@ -59,7 +59,7 @@ export interface ReasonExtra {
   unlocked?: readonly string[];
 }
 
-export interface Reason {
+interface Reason {
   line: string;
   key: string | null;
   /** 局末没花的金币提示，单独一行（并进原因行时 360 宽会从数字中间折行） */
@@ -71,7 +71,7 @@ const ARMOR_TEXT: Readonly<Record<TdArmor, string>> = { cloth: '布衣', heavy: 
 /** 余金超过整局收入这个比例才提示 */
 const IDLE_GOLD_PCT = 25;
 
-export function enemyName(kind: TdEnemyKind): string {
+function enemyName(kind: TdEnemyKind): string {
   return TD2_ENEMIES[kind]?.name ?? '敌人';
 }
 
@@ -89,7 +89,7 @@ function top(m: Map<string, number>): [string, number] | null {
 }
 
 /** 丢得最多的一波里，丢得最多的那条路和那种敌人 */
-export function worstMoment(losses: readonly LossRec[]): string | null {
+function worstMoment(losses: readonly LossRec[]): string | null {
   if (losses.length === 0) return null;
   const wave = Number(top(groupBy(losses, (l) => String(l.wave), (l) => l.n))?.[0]);
   const inWave = losses.filter((l) => l.wave === wave);

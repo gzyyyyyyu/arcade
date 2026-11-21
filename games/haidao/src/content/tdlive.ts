@@ -16,7 +16,7 @@ function boss(...groups: G[]): TdWave {
   return { ...wave(...groups), boss: true };
 }
 
-export interface TdLiveIsland {
+interface TdLiveIsland {
   layout: Placed[];
   level: TdLevel;
   /** 英雄等级（固定，不看玩家的研究） */

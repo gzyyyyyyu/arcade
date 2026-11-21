@@ -11,18 +11,18 @@ export const SLIDE_MS = 320;
 export const HOP_MS = 220;
 export const WADE_MS = 240;
 /** 最后一个兵比第一个晚起跳的上限；一船兵再多，整段也不超过 SLIDE + 这个 + HOP + WADE ≈ 1 秒 */
-export const STAGGER_MAX_MS = 220;
+const STAGGER_MAX_MS = 220;
 /** 相邻两个兵起跳的间隔上限（兵少时别拖） */
-export const STAGGER_STEP_MS = 60;
+const STAGGER_STEP_MS = 60;
 /** 筏停在落点外多远（屏幕像素，朝海里） */
 export const RAFT_OFFSHORE = 46;
 /** 兵落水的位置在落点外多远 */
-export const SHALLOW_OFFSHORE = 24;
+const SHALLOW_OFFSHORE = 24;
 /** 跳起的高度 */
 export const HOP_H = 12;
 /** 筏退走的距离和淡出时长 */
-export const RAFT_LEAVE_PX = 36;
-export const RAFT_FADE_MS = 360;
+const RAFT_LEAVE_PX = 36;
+const RAFT_FADE_MS = 360;
 
 export interface V2 {
   x: number;

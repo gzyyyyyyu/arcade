@@ -9,9 +9,9 @@ import { clamp01, riseScale, easeInQuad, easeOutBack, easeOutCubic, easeOutQuad,
 
 // ---------------------------------------------------------------- 升级面板
 
-export type StatKey = 'hp' | 'rate' | 'cap' | 'dmg' | 'range' | 'splash' | 'boats' | 'boatCap';
+type StatKey = 'hp' | 'rate' | 'cap' | 'dmg' | 'range' | 'splash' | 'boats' | 'boatCap';
 
-export interface StatRow {
+interface StatRow {
   key: StatKey;
   label: string;
   cur: number;
@@ -59,7 +59,7 @@ export function statDiff(kind: BuildingKind, level: number): StatRow[] {
   return out;
 }
 
-export interface CostItem {
+interface CostItem {
   k: 'gold' | 'wood';
   need: number;
   have: number;
@@ -106,13 +106,13 @@ export function celebrateGo(items: Array<{ type: string }>): 'build' | 'close' {
 
 // ---------------------------------------------------------------- 摆放
 
-export interface Foot {
+interface Foot {
   id: number;
   kind: BuildingKind;
   x: number;
   y: number;
 }
-export type CellState = 'ok' | 'out' | 'hit';
+type CellState = 'ok' | 'out' | 'hit';
 export interface PlaceCheck {
   ok: boolean;
   cells: Array<{ x: number; y: number; s: CellState }>;
@@ -212,7 +212,7 @@ export type BaseKeyAction = 'upgrade' | 'info' | 'collectAll' | 'move' | 'build'
 /** 基地的字母快捷键（大小写都认）；键位提示写在按钮的悬停提示里 */
 export const BASE_KEYS: Record<string, BaseKeyAction> = { u: 'upgrade', i: 'info', c: 'collectAll', m: 'move', b: 'build', escape: 'cancel' };
 /** 动作 → 提示里显示的键名 */
-export const KEY_HINT: Record<BaseKeyAction, string> = { upgrade: 'U', info: 'I', collectAll: 'C', move: 'M', build: 'B', cancel: 'Esc' };
+const KEY_HINT: Record<BaseKeyAction, string> = { upgrade: 'U', info: 'I', collectAll: 'C', move: 'M', build: 'B', cancel: 'Esc' };
 
 export function keyAction(key: string): BaseKeyAction | null {
   return BASE_KEYS[key.toLowerCase()] ?? null;
@@ -284,7 +284,7 @@ export function upPlan(kind: 'normal' | 'hq' | 'quick'): UpPlan {
 }
 
 /** 某一时刻演出各部分的状态（t = 开始后的毫秒） */
-export interface UpFrame {
+interface UpFrame {
   /** 脚手架露出多少（0..1，从地面往上长） */
   scaf: number;
   /** 脚手架散开落下的进度（0 = 还立着，1 = 落完消失） */
@@ -385,7 +385,7 @@ export function upFrame(p: UpPlan, t: number): UpFrame {
  * 另加 growAt / growDur：建筑本体从地面升起（riseScale）的起点和用时。升起一定在完工之前结束。
  * 总长 1.5–1.6 秒；大建筑（isBigBuilding）更隆重一点。
  */
-export interface BuildPlan extends UpPlan {
+interface BuildPlan extends UpPlan {
   growAt: number;
   growDur: number;
 }
@@ -395,7 +395,7 @@ export function buildPlan(big: boolean): BuildPlan {
   return { rise: 220, hits: [180, 330, 480], growAt: 240, growDur: 560, morph: 820, end: 1500 };
 }
 
-export interface BuildFrame extends UpFrame {
+interface BuildFrame extends UpFrame {
   /** 本体透明度：脚手架先搭，本体还没长出来之前是 0 */
   alpha: number;
 }

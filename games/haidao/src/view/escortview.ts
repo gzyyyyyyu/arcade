@@ -24,7 +24,7 @@ import { REDUCED } from './feel.ts';
 
 type EAct = EscortAction extends infer U ? (U extends { t: number } ? Omit<U, 't'> : never) : never;
 
-export interface EscortHost {
+interface EscortHost {
   scene: Phaser.Scene;
   r: number;
   ui: HTMLElement;

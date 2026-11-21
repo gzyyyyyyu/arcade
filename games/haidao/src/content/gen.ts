@@ -259,7 +259,7 @@ const WALLS: Record<number, Spec['walls']> = {
 const POS_OF: Record<number, string> = { 14: 'EDGE', 18: 'CORE', 22: 'EDGE', 26: 'CORE', 28: 'NORTH' };
 
 /** 各关的细档（没列的 = S 里写的 lv、不升级、墙同 lv）：lv 覆盖基础等级，up 座塔再高一级，wall 是墙的等级 */
-export type Tune = Record<number, { lv?: number; up?: number; wall?: number; add?: Partial<Record<BuildingKind, number>>; lvBy?: Spec['lvBy']; pos?: string }>;
+type Tune = Record<number, { lv?: number; up?: number; wall?: number; add?: Partial<Record<BuildingKind, number>>; lvBy?: Spec['lvBy']; pos?: string }>;
 export const TUNE: Tune = {
   13: { lv: 5, up: 6, lvBy: { sniper: 5, shock: 5 } },
   14: { lv: 5, up: 4, lvBy: { sniper: 5, shock: 5 } },
@@ -289,7 +289,7 @@ function addN(n: Spec['n'], add: Spec['n'] | undefined): Spec['n'] {
 }
 
 /** 按细档表生成 c13–c30（调参脚本传自己的表） */
-export function makeLate(tune: Tune = TUNE): LevelDef[] {
+function makeLate(tune: Tune = TUNE): LevelDef[] {
   const S = (i: number, name: string, captain: string, blurb: string, hq: number, lv: number, n: Spec['n'], boss?: Spec['boss'], plan?: Spec['plan'], lvBy?: Spec['lvBy']): LevelDef => {
     const t = tune[i] ?? {};
     return build({ id: `c${i}`, name, captain, blurb, hq, reqStars: 30 + (i - 12) * 2, loot: loot(i), lv: t.lv ?? lv, up: t.up, wallLv: t.wall, n: addN(n, t.add), boss, plan, lvBy: t.lvBy ?? lvBy, walls: WALLS[i], pos: t.pos ?? POS_OF[i] });

@@ -17,7 +17,7 @@ export function takesCamera(dx: number, dy: number, touch: boolean, fingers: num
   return fingers > 1 || exceedsDrag(dx, dy, touch);
 }
 
-export interface TapCheck {
+interface TapCheck {
   /** 这次按下中途动过超过阈值（只升不降：拖出去再拖回原处也不算点） */
   moved: boolean;
   /** 中途出现过第二根手指（捏合） */

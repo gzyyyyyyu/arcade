@@ -25,9 +25,9 @@ export interface ShieldPlace {
 }
 
 /** 盾离身体中心的横向、纵向距离（设计单位） */
-export const SHIELD_REACH = { x: 11, y: 5 };
+const SHIELD_REACH = { x: 11, y: 5 };
 /** 盾心的基准高度（设计单位，负为向上） */
-export const SHIELD_Y = -17;
+const SHIELD_Y = -17;
 
 /** 世界朝向 (gx, gy)（没朝向 / 全 0 当作朝右下）→ 盾的摆法，写进 out（不新建对象） */
 export function shieldPlace(gx: number, gy: number, out: ShieldPlace): ShieldPlace {
@@ -61,7 +61,7 @@ export function lerpPlace(cur: ShieldPlace, want: ShieldPlace, k: number): Shiel
 }
 
 /** 一次格挡的盾晃：沿盾面朝向往身体里一顿再弹回（阻尼振荡），顺带小幅摆角和一点点变大 */
-export interface GuardKick {
+interface GuardKick {
   /** 推的距离（设计单位，沿 -n 方向） */
   push: number;
   rot: number;

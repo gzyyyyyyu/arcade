@@ -42,7 +42,7 @@ export function liveTopBp(kind: LiveKind, tier: LiveTier): number {
   return Math.min(LIVE_MAX_BP, Math.max(...LIVE_TABLE[kind][tier].pool.map((p) => p.bp[3])));
 }
 
-export function liveArmy(tier: LiveTier): ArmySetup {
+function liveArmy(tier: LiveTier): ArmySetup {
   const t = BOUNTY_CREW[tier];
   const boats = t.crew.map((troop) => ({ troop, count: troop === 'captain' ? 1 : Math.max(1, Math.floor(t.boatCap / TROOPS[troop].housing)), level: t.level }));
   const skills: ArmySetup['skills'] = [];

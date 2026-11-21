@@ -4,7 +4,7 @@ import { ingotOwed } from '../core/ingot.ts';
 import { trainClaimable } from '../core/training.ts';
 
 /** 基地底部操作栏的红点：现在有事可做的提示（纯函数，tests/dots.test.ts 锁住） */
-export interface Dots {
+interface Dots {
   /** 有建筑现在升得起（资源、主寨等级、星数都够） */
   upgrade: boolean;
   /** 金矿 / 伐木场里有能领的（仓库没满） */

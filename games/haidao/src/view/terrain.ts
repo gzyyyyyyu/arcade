@@ -15,11 +15,11 @@ import { iso, unIso } from './iso.ts';
 type Pt = { x: number; y: number };
 
 /** 岛外画多远的海（格），和 ground.ts 的 EXT 一致 */
-export const SEA_EXT = BEACH + 3;
+const SEA_EXT = BEACH + 3;
 
 const g = (c: string): string => gradeHex(c);
 /** 地面用色（都过一遍配色分级，和素材统一） */
-export const TERRAIN = {
+const TERRAIN = {
   seaFar: g(C.seaDeep!),
   seaMid: g(C.sea!),
   seaNear: g(C.shallow!),
@@ -86,7 +86,7 @@ export function shoreline(e: number, amp: number, seed: number, outwardOnly = fa
 }
 
 /** 闭合折线 → 二次曲线平滑的路径（过各段中点） */
-export function trace(cx: CanvasRenderingContext2D, pts: Pt[]): void {
+function trace(cx: CanvasRenderingContext2D, pts: Pt[]): void {
   const n = pts.length;
   cx.beginPath();
   const mid = (a: Pt, b: Pt): Pt => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
@@ -120,7 +120,7 @@ function onIsland(R: () => number, ext: number, margin = 0): Pt {
   return iso(-ext + margin + R() * n, -ext + margin + R() * n);
 }
 
-export interface TerrainOpts {
+interface TerrainOpts {
   /** 战斗和守岛：细节收一收（格子线更淡、花草少一点），免得和兵、塔抢眼 */
   soft: boolean;
   /** 岛按主寨扩了几圈（只有玩家自己的岛扩）：岛边、海滩、海整体往外挪 ext 格，岛心不动 */

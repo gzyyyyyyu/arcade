@@ -194,7 +194,7 @@ export interface TdMapDef {
 
 /**
  * 战役的一关（守岛 2.0）：就是一份 TdLevel（引擎照旧吃它）加上关卡岛的部分。
- * - hpPct 一律 100（类型里保留只为旧代码和大潮兼容；难度只来自 waveBudget、敌人种类、地图）；
+ * - 战役 hpPct 一律 100（难度只来自 waveBudget、敌人种类、地图）；悬赏守岛和大潮靠 hpPct 调整敌人血量；
  * - slots 写木台（TdPadDef，可带 wreck），obstacles 只放不压木台的装饰障碍（木桶等）；
  * - garrison 是驻守台（1–3 个），cap 是这一关的上限阶；
  * - index 是战役里的下标（0 起），进难度公式；bossExtra 是首领波前多给的倒数（拍，默认 TD2_BOSS_EXTRA_TICKS）。
@@ -274,7 +274,7 @@ export interface TdHomeReward {
 // ---------------------------------------------------------------- 预告和路线
 
 /** 一路的一种敌人 */
-export interface WaveEnemyPreview {
+interface WaveEnemyPreview {
   kind: TdEnemyKind;
   armor: TdArmor;
   n: number;

@@ -11,7 +11,7 @@ import { REDUCED } from './feel.ts';
  *   `?bloom=1` 强制开（不自动关）、`?bloom=0` 强制关，测帧率 A/B 用。
  */
 
-export type Weather = 'clear' | 'fog' | 'dusk' | 'night';
+type Weather = 'clear' | 'fog' | 'dusk' | 'night';
 
 /** 守岛关卡的天气：先看关卡已有字段（雾区 → 雾，首领技能 → 黄昏），再用这张表按关卡 id 补（不改关卡数据） */
 const WEATHER_BY_ID: Record<string, Weather> = {

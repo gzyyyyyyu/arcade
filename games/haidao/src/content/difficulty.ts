@@ -6,11 +6,11 @@
  * - 实测偏出目标超过 DIFF_TOL 个百分点算离群，要调到线上（宁简勿难：两条线顾不全时先保新手过关、往容易的一边偏）。
  * 进度 p：出海、守岛是第 i 关 / (关数 − 1)；护航三张图并列，按难度档（新手 0、普通 0.5、高手 1）。
  */
-export const DIFF_TOL = 20;
+const DIFF_TOL = 20;
 const STEADY3 = { from: 100, to: 45 } as const;
 const NOVICE1 = { from: 100, to: 65 } as const;
 
-export interface DiffTarget {
+interface DiffTarget {
   /** 稳机器人三星率（%） */
   steady3: number;
   /** 新手机器人至少 1 星的比例（%） */

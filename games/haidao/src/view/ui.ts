@@ -72,9 +72,9 @@ export function costRow(c: Res, have?: Res): HTMLElement {
  * 长列表翻页（不滚动）：按 box 能放下多少分页，页内上一页 / 下一页，页码"1 / 3"。
  * 做法：逐个显示列表项，box 一超出（scrollHeight > clientHeight）就退回一个、从这里开新页；
  * 转屏 / 改窗口大小后重新分页并停在原来第一项所在的页。items 必须已经挂在 box 里；翻页条插在 anchor 后面。
- * focus：开着的第一页要包含它（新手引导要指的那张卡）。
+ * focus：开着的第一页要包含它（新手引导要指的那张卡）。sync：每次换显示的项之后调（比如把整组都没显示的小标题收掉），量高度前生效。
  */
-export function paginate(box: HTMLElement, items: HTMLElement[], anchor: HTMLElement, focus?: HTMLElement | null): void {
+export function paginate(box: HTMLElement, items: HTMLElement[], anchor: HTMLElement, focus?: HTMLElement | null, sync?: () => void): void {
   if (items.length < 2) return;
   const bar = el('div', 'hd-pager');
   anchor.after(bar);
@@ -83,7 +83,10 @@ export function paginate(box: HTMLElement, items: HTMLElement[], anchor: HTMLEle
   const next = button('下一页 ›', 'hd-btn-plain hd-pg', () => go(page + 1), bar);
   let starts: number[] = [0];
   let page = 0;
-  const show = (from: number, to: number): void => items.forEach((it, i) => (it.style.display = i >= from && i < to ? '' : 'none'));
+  const show = (from: number, to: number): void => {
+    items.forEach((it, i) => (it.style.display = i >= from && i < to ? '' : 'none'));
+    sync?.();
+  };
   const overflow = (): boolean => box.scrollHeight > box.clientHeight + 1;
   const compute = (): void => {
     starts = [];
@@ -157,7 +160,7 @@ export function screen(cls = ''): HTMLElement {
 const modals = new ModalStack();
 const entries = new WeakMap<HTMLElement, ModalEntry>();
 
-export interface ModalOpts {
+interface ModalOpts {
   /** 额外的类名（跟在 hd-mask 后面） */
   cls?: string;
   /** 可关：Esc 和点遮罩都关（或走 onEsc）。结算类传 false：点遮罩不理，Esc 等于点主按钮（onEsc） */
@@ -301,7 +304,7 @@ export function settingsButton(): void {
 }
 
 /** 设置面板：音乐、音效分开，震屏和振动，恢复默认。改了立刻生效、立刻记下，没有"保存"钮 */
-export function openSettings(): void {
+function openSettings(): void {
   const mask = openModal({ cls: 'hd-setmask', closable: true });
   const box = el('div', 'hd-dialog hd-settings', undefined, mask);
   const head = el('div', 'hd-head', undefined, box);

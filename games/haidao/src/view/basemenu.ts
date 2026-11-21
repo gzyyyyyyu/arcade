@@ -17,7 +17,7 @@ import { v2 } from './basecommon.ts';
 // ---- 建筑的操作：手机点建筑弹操作环，电脑右键弹菜单；两边的项都来自 basefeel.ts 的 buildingMenu
 
 /** 这座建筑现在能做的操作（升级不了时带原因） */
-export function menuFor(bs: BaseScene, id: number): MenuItem[] {
+function menuFor(bs: BaseScene, id: number): MenuItem[] {
   const b = app.profile.base.buildings.find((q) => q.id === id);
   if (!b) return [];
   const cost = upgradeCost(b.kind, b.level);
@@ -98,7 +98,7 @@ export function right(bs: BaseScene, wx: number, wy: number, sx: number, sy: num
 }
 
 /** 右键菜单：竖排，升级（带花费）、信息、收集、移动，每项右边写快捷键 */
-export function openCtx(bs: BaseScene, id: number, sx: number, sy: number): void {
+function openCtx(bs: BaseScene, id: number, sx: number, sy: number): void {
   const b = app.profile.base.buildings.find((q) => q.id === id);
   if (!b) return;
   closeCtx(bs);
@@ -168,7 +168,7 @@ export function escapeKey(bs: BaseScene): void {
 }
 
 /** 快捷键作用的建筑：选中的，没有就是鼠标下面那座 */
-export function focusId(bs: BaseScene): number | null {
+function focusId(bs: BaseScene): number | null {
   const ids = new Set(app.profile.base.buildings.map((b) => b.id));
   for (const id of [bs.sel, bs.ring.owner, bs.hoverId]) if (id !== null && ids.has(id)) return id;
   return null;

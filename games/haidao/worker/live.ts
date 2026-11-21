@@ -62,7 +62,7 @@ interface KindDef {
   dailyDefault: number;
 }
 
-export const LIVE_KINDS: Record<LiveKind, KindDef> = {
+const LIVE_KINDS: Record<LiveKind, KindDef> = {
   live: { prefix: '/games/haidao/api/live/', ns: '', daily: (e) => e.HAIDAO_LIVE_DAILY, dailyDefault: 8 },
   td: { prefix: '/games/haidao/api/td/', ns: 'ht-', daily: (e) => e.HAIDAO_TD_DAILY, dailyDefault: 8 },
   escort: { prefix: '/games/haidao/api/escort/', ns: 'he-', daily: (e) => e.HAIDAO_ESCORT_DAILY, dailyDefault: 4 },
@@ -84,7 +84,7 @@ export function kindDaily(env: LiveEnv, kind: LiveKind): number {
   return typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 1000 ? n : LIVE_KINDS[kind].dailyDefault;
 }
 
-export const WALLET_TIMEOUT_MS = 5000;
+const WALLET_TIMEOUT_MS = 5000;
 const BODY_MAX = 2048;
 const BUYIN_TTL_MS = 24 * 3600 * 1000;
 /** 钱包只收 8–64 位；最长的后缀 -refund 占 7 位，加了三位前缀的再少 3 位 */

@@ -28,7 +28,7 @@ import { button, confirmBox, el, hallButton, img, openModal, toast, uiRoot } fro
 
 // ---------------------------------------------------------------- 显示用的小表
 
-export const STYLE_LOOK: Record<MapIslandDef['style'], { tag: string; c: string }> = {
+const STYLE_LOOK: Record<MapIslandDef['style'], { tag: string; c: string }> = {
   cannon: { tag: '炮台多', c: '#b03a2e' },
   mine: { tag: '有暗雷', c: '#6b4f9e' },
   mortar: { tag: '臼炮多', c: '#a0522d' },
@@ -38,7 +38,7 @@ export const STYLE_LOOK: Record<MapIslandDef['style'], { tag: string; c: string 
 const DEFENSE = new Set(['cannon', 'gunTower', 'mortar', 'flame', 'harpoon', 'rocket', 'shock', 'kraken', 'mine', 'tar']);
 
 /** 风险星（只是给玩家的直观提示）：岛上防御建筑越多越危险；终点岛恒为 3 */
-export function riskOf(def: MapIslandDef): number {
+function riskOf(def: MapIslandDef): number {
   if (def.style === 'boss') return 3;
   const n = def.layout.filter((p) => DEFENSE.has(p.kind)).length;
   return n <= 3 ? 1 : n <= 6 ? 2 : 3;

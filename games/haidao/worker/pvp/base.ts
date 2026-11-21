@@ -23,7 +23,7 @@ const DEFENSES_MAX = 10;
 const DONE_MAX = 20;
 export const PENDING_MAX = 50;
 /** 并起来的那条最多留几笔明细；更早的只留在合计里（见 pieces） */
-export const MERGE_PARTS_MAX = 100;
+const MERGE_PARTS_MAX = 100;
 
 /** 一场进攻的结果（服务端重放算的） */
 export interface Outcome {
@@ -162,9 +162,9 @@ export interface BaseState {
 }
 
 /** 四种实盘的场次记录（worker/live.ts 的 LiveKind） */
-export type SlotKind = 'live' | 'td' | 'escort' | 'map';
+type SlotKind = 'live' | 'td' | 'escort' | 'map';
 
-export function emptyState(): BaseState {
+function emptyState(): BaseState {
   return { name: '', created: 0, snap: null, snapAt: 0, trophies: 0, shieldUntil: 0, lock: null, active: null, pending: [], attacked: {}, pair: {}, snapApplied: [], done: [], rate: { hour: 0, find: 0, snap: 0 }, ex: { day: '', n: 0, refs: {} }, live: { day: '', n: 0, refs: [] }, td: { day: '', n: 0, refs: [] }, escort: { day: '', n: 0, refs: [] }, map: { day: '', n: 0, refs: [] } };
 }
 
@@ -213,10 +213,10 @@ export interface HarborEntry {
   activeAt: number;
 }
 
-export type Err = { ok: false; error: string };
+type Err = { ok: false; error: string };
 const err = (error: string): Err => ({ ok: false, error });
 
-export interface Opponent {
+interface Opponent {
   name: string;
   trophies: number;
   hq: number;

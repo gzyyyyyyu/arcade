@@ -13,7 +13,7 @@ export function warnK(fireAt: number, vt: number): number {
   return Math.max(0, Math.min(1, 1 - (fireAt - vt) / SNIPE_WARN));
 }
 
-export interface SnipeLook {
+interface SnipeLook {
   /** 瞄准线：不透明度、线宽（屏幕像素）、颜色 */
   lineA: number;
   lineW: number;

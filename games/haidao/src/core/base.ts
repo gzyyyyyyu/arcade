@@ -11,7 +11,7 @@ const err = <T>(error: string): Result<T> => ({ ok: false, error });
 const BASE_BOATS = 2;
 const BASE_BOAT_CAP = 6;
 
-export function hqOf(p: Profile): Placed | undefined {
+function hqOf(p: Profile): Placed | undefined {
   return p.base.buildings.find((b) => b.kind === 'hq');
 }
 

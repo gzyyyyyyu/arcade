@@ -13,13 +13,8 @@ describe('settings', () => {
     expect(loadSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
 
-  it('旧版只有 muted：true 当作两个都关，false 都开', () => {
-    expect(parseSettings({ muted: true })).toEqual({ music: false, sfx: false });
-    expect(parseSettings({ muted: false })).toEqual({ music: true, sfx: true });
-  });
-
-  it('新字段优先于 muted；字段类型不对当作没存', () => {
-    expect(parseSettings({ muted: true, music: true, sfx: false })).toEqual({ music: true, sfx: false });
+  it('字段类型不对当作没存', () => {
+    expect(parseSettings({ music: true, sfx: false })).toEqual({ music: true, sfx: false });
     expect(parseSettings({ music: 'no', sfx: 1 })).toEqual(DEFAULT_SETTINGS);
   });
 
@@ -36,12 +31,10 @@ describe('settings', () => {
     expect(loadSettings(st)).toEqual({ music: true, sfx: false });
   });
 
-  it('写回保留不认识的字段，muted 只在两个都关时为 true', () => {
-    const st = memStore(JSON.stringify({ muted: true, other: 7 }));
+  it('写回保留不认识的字段', () => {
+    const st = memStore(JSON.stringify({ other: 7 }));
     saveSettings({ music: false, sfx: true }, st);
-    expect(JSON.parse(st.raw()!)).toEqual({ muted: false, other: 7, music: false, sfx: true });
-    saveSettings({ music: false, sfx: false }, st);
-    expect(JSON.parse(st.raw()!).muted).toBe(true);
+    expect(JSON.parse(st.raw()!)).toEqual({ other: 7, music: false, sfx: true });
   });
 
   it('恢复默认写回后读出来是全开', () => {

@@ -11,7 +11,7 @@ export function rankTitle(rank: number): string {
   return r ? `海盗王阶 ${Math.floor(rank)} · ${r.name}` : '';
 }
 
-export interface RankView {
+interface RankView {
   /** 已到第几阶（0..10） */
   rank: number;
   /** 下一阶；满阶 null */

@@ -11,7 +11,7 @@ const OX = CW / 2;
 const OY = 260;
 const NS = 'http://www.w3.org/2000/svg';
 
-export interface Mini {
+interface Mini {
   fit(): void;
   /** 高亮选中的建筑并画射程圈（range 单位：格）；null 取消 */
   pick(id: number | null, range?: number): void;

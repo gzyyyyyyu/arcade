@@ -16,7 +16,7 @@ export type ShotFx = 'ball' | 'bullet' | 'shell' | 'flame' | 'rocket' | 'harpoon
 /** 落地的分量：决定尘土多少、要不要冲击圈 */
 export type LandKind = 'ball' | 'shell' | 'bullet' | 'harpoon' | 'rocket' | 'shock' | 'grenade' | 'snipe' | 'none';
 
-export interface ShotIn {
+interface ShotIn {
   fx: ShotFx;
   /** 出发点（炮口，屏幕）和它正下方的地面点、目标脚下的地面点 */
   sx: number;
@@ -88,7 +88,7 @@ interface Streak {
   age: number;
   on: boolean;
 }
-export const STREAK_MS = 260;
+const STREAK_MS = 260;
 const STREAK_POOL = 6;
 
 /** 落点粒子的同屏软上限（粒子池本身 140，火箭尾烟等另用） */

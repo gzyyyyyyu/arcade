@@ -10,7 +10,7 @@ import { REDUCED } from './feel.ts';
  */
 
 
-export interface SnipeAim {
+interface SnipeAim {
   /** 塔的编号 */
   tower: number;
   /** 目标的编号（登陆战的兵 / 守岛的敌人；英雄用 -1 并看 hero） */
@@ -22,7 +22,7 @@ export interface SnipeAim {
 }
 
 /** 回调：把塔的炮口、目标的身高中点和脚下位置（世界坐标）写进 out，目标没了返回 false */
-export interface SnipeEnds {
+interface SnipeEnds {
   mx: number;
   my: number;
   tx: number;

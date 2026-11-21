@@ -15,7 +15,7 @@ import { REDUCED } from './feel.ts';
 type P = { x: number; y: number };
 
 /** 外缘一圈的四个角（格坐标，顺时针）：岛是 [-ext, ISLAND+ext)，外面一圈 BEACH 宽的沙滩 */
-export function ringCorners(ext: number): P[] {
+function ringCorners(ext: number): P[] {
   const lo = -ext - BEACH;
   const hi = ISLAND + ext + BEACH;
   return [

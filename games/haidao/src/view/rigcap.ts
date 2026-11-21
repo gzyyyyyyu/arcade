@@ -8,7 +8,7 @@
  */
 
 /** 同屏最多这么多个完整骨架（和 rig.ts 的 CROWD 同一个数：超过它姿势本来就隔帧算了） */
-export const RIG_CAP = 36;
+const RIG_CAP = 36;
 /** 正在完整档的单位排名时分数乘这个（越小越不容易被挤下去） */
 const HOLD = 0.8;
 
