@@ -3,7 +3,7 @@
 《开盘》怎么存档、怎么接平台的账号、云存档、排行榜、实盘、好友挑战等功能，以及单独部署时少什么。入口见 [README](../README.md)。
 
 - **存档**：`kaipan.save` 存完整的局面快照和版本号（格式 5），读档直接用快照，小版本调数值后旧存档按当时的局面继续；
-  更早格式的存档接不上，读到时清掉并提示开新局。存档损坏时先备份到 `kaipan.save.corrupt`。启动时清掉早年留下的旧 key（`src/platform/storage.ts` 的 `LEGACY_KEYS`）。
+  更早格式的存档和 0.4 开发期的真实行情局（`state.real` 没有 `track`）接不上，读到时清掉并提示开新局。存档损坏时先备份到 `kaipan.save.corrupt`。启动时清掉早年留下的旧 key（`src/platform/storage.ts` 的 `LEGACY_KEYS`）。
 - **档案**：`kaipan.profile` 和单局存档分开，记图鉴、成就、解锁和各人设、难度、每日挑战的最好成绩；损坏时备份到 `kaipan.profile.corrupt` 后重建。
 - **云存档**（`src/platform/cloud.ts`，同步哪些槽在 `src/view/cloudSync.ts`）：登录后同步档案（槽 `profile`）和教程标记（槽 `tutorial`），
   打到一半的局和设置不同步。元数据在 `kaipan.cloud`，合并前的本地备份在 `kaipan.<槽>.pre-sync`；换账号时上一个账号的本地进度存在
@@ -11,9 +11,9 @@
   切回前台、上传前、收到 409 时重新确认账号；多个标签页靠 storage 事件互通。接口见总仓库 `docs/platform-backend.md`。
 - **每日排行榜**（交分和读榜 `src/platform/board.ts`，一局的交分状态 `src/view/dailyBoard.ts`）：每日榜分子榜，一局结束交一次分，
   经典每日挑战交到 `daily-YYYY-MM-DD-classic`（通关分 = 1e11 + 账户元数，没通关 = 还上的月数），闪电盘交到 `daily-YYYY-MM-DD-flash`（分数 = 最终资产元数）
-  （北京日期；规则版本 `DAILY_RULES` 大于 0 时在子榜后加 `-v<n>`），显示规则在 `public/daily.json` 的 `boards.classic` / `boards.flash`；平台那边要在登记里写这两个子榜。
+  （北京日期），显示规则在 `public/daily.json` 的 `boards.classic` / `boards.flash`；平台那边要在登记里写这两个子榜。
   本周市场交到周榜 `week-YYYY-Www-rules`（周号是北京时间 ISO 周，分数 = 最终资产元数，只收当周），显示规则在 `public/weekly.json` 的 `boards.rules`，平台登记里也要写这个榜。
-  只有用当天冻结段池（`src/core/content/dailySegments.ts`）里那段真实行情的局才交；段池顺序和数量不能改，要换就加版本。
+  只有用当天冻结段池（`src/core/content/dailySegments.ts`）里那段真实行情的局才交；段池顺序和数量不随便改（改的那一天前后打的不是同一局）。
   429（限流）结束页写「成绩稍后补交」，照平台给的 retryAfter（没给按 60 秒）自动补交一次，再被限写「这局成绩没交上」；busy、wrong_user 不重试，连不上给「重试」。读榜按榜和范围缓存 45 秒，交上分时作废。
 - **请求超时**（`src/platform/fetchTimeout.ts`）：排行榜、好友挑战、实盘的请求最多等 10 秒，云存档 20 秒；超时按连不上处理，走各自原来的说法和重试。
 - **实盘**（设计 `design-live.md`）：规则在开局设置 `RunSetup.live` 和 `src/core/live.ts`（四档对应难度 1/2/3/3，杠杆 1× / 2× / 3×）；

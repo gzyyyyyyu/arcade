@@ -34,15 +34,15 @@ export interface RunSummary {
   title: string;
   /** 0.6.3 按打法给的评语：一个标签和一句话（结束页称号下面） */
   style: PlayStyle;
-  /** 0.5.4：开局本钱、账户实际付掉的账单合计、炒股本身累计赚亏（旧存档没有后两项时为 null） */
+  /** 0.5.4：开局本钱、账户实际付掉的账单合计、炒股本身累计赚亏 */
   startAccount: number;
-  billMoney: number | null;
-  tradeMoney: number | null;
+  billMoney: number;
+  tradeMoney: number;
   /**
    * 0.5.4：其他进出（红包、事件、月度奖励、借款利息、被收走的罚款……），让 本钱 + 炒股 − 账单 + 其他 + 没还的借款 = 最后剩。
-   * 按差额算，保证几个数加得起来；旧存档为 null。
+   * 按差额算，保证几个数加得起来。
    */
-  otherMoney: number | null;
+  otherMoney: number;
   /** 0.5.4：结束时还欠着银行的钱（中途出局时借来的钱还在账户里） */
   debtLeft: number;
   autoSold: Record<string, number>;
@@ -107,11 +107,11 @@ function seenSegment(s: Readonly<GameState>): SeenSegment | null {
 /**
  * 称号。通关的按"炒股本身赚了几倍本钱"评（0.5.4，试玩反馈：10 万剩 4.38 万也叫"惊险上岸"看不懂）：
  * 12 个月账单合计比本钱还多，通关时剩的钱普遍只有一两万，剩多少不说明打得好不好；炒股净赚才说明。
- * trade 缺省（旧存档）时退回按最后剩的钱评。
+ * 本钱不是正数（调试开局）时按最后剩的钱评。
  */
-export function titleFor(won: boolean, month: number, account: number, trade?: { money: number; start: number }): string {
+export function titleFor(won: boolean, month: number, account: number, trade: { money: number; start: number }): string {
   if (!won) return month <= 3 ? '新韭菜' : month <= 8 ? '老韭菜' : '差一点上岸的韭菜';
-  if (trade && trade.start > 0) {
+  if (trade.start > 0) {
     // 只看炒股本身：剩多少钱受本钱和账单影响（自定义开局本钱可以很大），不算数。
     // 分档按机器人实测（真实行情各 120 局通关局的 炒股净赚/本钱）：smart 中位 0.5（p10 0.21、p90 1.5），oracle 中位约 4
     const x = trade.money / trade.start;
@@ -190,11 +190,11 @@ export function runSummary(s: Readonly<GameState>): RunSummary {
     chains: s.stats.chains,
     bestTrade: best,
     style: playStyle(s),
-    title: titleFor(won, s.month, s.account, s.stats.tradeMoney === undefined ? undefined : { money: s.stats.tradeMoney, start: startAccount }),
+    title: titleFor(won, s.month, s.account, { money: s.stats.tradeMoney, start: startAccount }),
     startAccount,
-    billMoney: s.stats.billMoney ?? null,
-    tradeMoney: s.stats.tradeMoney ?? null,
-    otherMoney: s.stats.tradeMoney === undefined || s.stats.billMoney === undefined ? null : round2(s.account - startAccount - s.stats.tradeMoney + s.stats.billMoney - debtLeft),
+    billMoney: s.stats.billMoney,
+    tradeMoney: s.stats.tradeMoney,
+    otherMoney: round2(s.account - startAccount - s.stats.tradeMoney + s.stats.billMoney - debtLeft),
     debtLeft,
     autoSold,
     seed: s.seed,

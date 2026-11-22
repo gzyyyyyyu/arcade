@@ -223,7 +223,7 @@ export const EVENTS: readonly EventDef[] = [
       const good = rng.next() < fx('cousin', 'acc');
       // 0.5 真实行情：表哥说中 = 这只接下来 3 天真的涨
       const real = state.real;
-      const fits = real?.track
+      const fits = real
         ? memes.filter((d) => forwardRet(real, 'stock', d.id, state.dayIndex, 3) > 0 === good)
         : memes.filter((d) => UP_STAGES.includes(state.themes[d.theme]?.stage ?? 'cold') === good);
       const pool = fits.length > 0 ? fits : memes;
@@ -240,7 +240,7 @@ export const EVENTS: readonly EventDef[] = [
     name: '大V直播间',
     text: (e) => `股市小诸葛开直播："家人们，${themeName(e.theme)}还能冲！"弹幕刷屏，要不要跟着买？`,
     options: (e, s) => [
-      s.real?.track
+      s.real
         ? `跟（直播间粉丝抢着买：手里${themeName(e.theme)}的股票每一份马上多赚 ${fx('livestream', 'realBonus')}%；热度也被带起来，但涨跌照真的走）`
         : `跟（接下来 ${fx('livestream', 'days')} 天${themeName(e.theme)}每天热度 +${fx('livestream', 'dH')}；手里有它的股票才赚得到）`,
       '不跟，看看就好',
@@ -260,7 +260,7 @@ export const EVENTS: readonly EventDef[] = [
     resolve(c, option) {
       if (option !== 0 || !c.event.theme) return '你关掉了直播间，世界清静了。';
       c.boostTheme(c.event.theme, fx('livestream', 'dH'), fx('livestream', 'days'));
-      if (c.state.real?.track) {
+      if (c.state.real) {
         let units = 0;
         for (const h of c.state.slots) if (h && !h.short && STOCKS.find((d) => d.id === h.stockId)?.theme === c.event.theme) units += h.units ?? 1;
         const got = c.addAccount((c.state.account * units * fx('livestream', 'realBonus')) / 400);
@@ -416,7 +416,7 @@ export const EVENTS: readonly EventDef[] = [
       const random = pool[rng.int(pool.length)]?.id;
       // 0.5 真实行情：猫有 BALANCE.intel.cat 的概率踩中接下来 2 天真实涨得最多的那只小弟
       const real = state.real;
-      if (real?.track && rng.next() < BALANCE.intel.cat) {
+      if (real && rng.next() < BALANCE.intel.cat) {
         let best = pool[0]?.id;
         let bx = -Infinity;
         for (const d of pool) {
@@ -752,7 +752,7 @@ export const EVENT_BRIEF: Readonly<Record<string, EventBrief>> = {
   livestream: {
     brief: (e) => `小诸葛直播：${themeName(e.theme)}还能冲！`,
     picks: (_e, s) => [
-      s.real?.track ? { label: '跟', big: `+${fx('livestream', 'realBonus')}%`, tone: 'gain' } : { label: '跟', big: `热度+${fx('livestream', 'dH')}`, tone: 'gain' },
+      s.real ? { label: '跟', big: `+${fx('livestream', 'realBonus')}%`, tone: 'gain' } : { label: '跟', big: `热度+${fx('livestream', 'dH')}`, tone: 'gain' },
       { label: '不跟' },
     ],
   },

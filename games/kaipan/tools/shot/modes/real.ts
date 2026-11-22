@@ -28,7 +28,7 @@ export async function realShots(browser: Browser): Promise<void> {
     let st = (await ctx.page.evaluate(() => window.__game?.state())) as GameState;
     expect(!!st.real, '开局应该用上真实行情段');
     const segId = st.real?.segId ?? '';
-    notes.push(`真实行情：种子 ${seed} 抽到 ${segId}（${st.real?.from}–${st.real?.to}，${st.real?.regime}）`);
+    notes.push(`真实行情：种子 ${seed} 抽到 ${segId}（${st.real?.regime}）`);
     await shot(ctx, 'r2-trade-day1');
     const body = await ctx.page.evaluate(() => document.body.innerText);
     expect(!/(19|20)\d\d 年/.test(body), '玩的时候页面上不该出现年份');

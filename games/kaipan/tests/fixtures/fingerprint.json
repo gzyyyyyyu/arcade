@@ -5,7 +5,7 @@
   "events": 1340,
   "eventsHash": "cf14c3338bdb98ec",
   "months": [
-   "1:f6d3fbe8e45691a4",
+   "1:f518148b91f8c153",
    "2:0c6db762370b1c35",
    "3:4bc5aacd46909c9c",
    "4:f35891adb7a21728",
@@ -26,7 +26,7 @@
   "events": 1184,
   "eventsHash": "b55e4141480039fb",
   "months": [
-   "1:82e094d2ca7e6c8f",
+   "1:2e90d13c4b630be9",
    "2:7383d480ab710ab0",
    "3:18eafeb68d185337",
    "4:5f9904dc84a1284b",
@@ -46,9 +46,9 @@
   "events": 1443,
   "eventsHash": "4da0667d2051c6b0",
   "months": [
-   "1:47ce0aa40ac29227",
-   "2:5782a2b8631f4ea4",
-   "3:d98ae611c1dacf06",
+   "1:61e5de014219e98e",
+   "2:e2492b76760a1162",
+   "3:891f4aa1b5b35bb4",
    "4:4fddd8f06b1959cc",
    "5:da9861b80a5a5604",
    "6:b601d0bbbcab456b",
@@ -68,9 +68,9 @@
   "events": 1551,
   "eventsHash": "65c1990da98285a0",
   "months": [
-   "1:abd64a9a5e8b4a9b",
-   "2:64a5a5cad2b01556",
-   "3:eaef01d4ba38ff4e",
+   "1:690b2bab504bb7af",
+   "2:ba533e9802bbeb3f",
+   "3:2ac5a4463ca2af5b",
    "4:abce1bb32f116726",
    "5:ec171c8b26868e8e",
    "6:66450283987d1272",
@@ -90,8 +90,8 @@
   "events": 852,
   "eventsHash": "a57bc6775e78a7ba",
   "months": [
-   "1:6d1dc8f77e068df1",
-   "2:2bb48df1f988ea45",
+   "1:fcbedcb52a3468ab",
+   "2:cb534acfa651875a",
    "3:f0b8972723a7e68e",
    "4:c2dc2bf641d6b465",
    "5:116963aa0627e8cf",
@@ -107,7 +107,7 @@
   "events": 1326,
   "eventsHash": "8edfdf86fb4dc622",
   "months": [
-   "1:00b92ac0155514fd",
+   "1:ec8f20389d45dd14",
    "2:c17b11267f2f3e27",
    "3:3998a06a75949a76",
    "4:9936ea3bfb3fb337",
@@ -128,12 +128,12 @@
   "events": 906,
   "eventsHash": "48c62e21f36d97a1",
   "months": [
-   "1:2e70b997083a5fe4",
-   "2:f4999771e0104433",
-   "3:9653b15b70580a52",
-   "4:2ea65f65154ae1f3",
-   "5:b4c2e4ce0a13dcbd",
-   "6:4b0e007c125232dc",
+   "1:673ce1c415bfa94d",
+   "2:ceace16730a16e6e",
+   "3:5e11a5bd2d2d7dfa",
+   "4:23f89065355bc21e",
+   "5:fa69eee6caee751d",
+   "6:cb447ab74518faab",
    "7:2d897d9d003974fc",
    "7:e8a84fd66c708cfb"
   ],
@@ -145,11 +145,11 @@
   "events": 924,
   "eventsHash": "47cd94bc895c68ef",
   "months": [
-   "1:16a83ef54d86ab63",
-   "2:3f42a6e85df2dc4f",
-   "3:4493545135be7cd4",
-   "4:e35350a9540d0a34",
-   "5:7499838a0fb7b5b7",
+   "1:d34f2630a59e1832",
+   "2:a32c9812dd7672a3",
+   "3:cf85aa3c05038462",
+   "4:5b43306e205f967d",
+   "5:23f09935985d001b",
    "6:43d986c37092a4ee",
    "7:ba1df74db7e7a8e7",
    "8:ed30ee9f1613ae3a",
@@ -163,10 +163,10 @@
   "events": 611,
   "eventsHash": "fc989b446c32349e",
   "months": [
-   "1:32651b0a8b245c22",
-   "2:84bae84edd8e2765",
-   "3:23023941c5561603",
-   "4:ab3a214951b24900",
+   "1:32cca81eaca3e17f",
+   "2:f8f207912c11680d",
+   "3:278a2057c0a226fd",
+   "4:988cc040156cb4bc",
    "5:e3ed8a0953548fbd",
    "5:150e856158634078"
   ],
@@ -178,9 +178,9 @@
   "events": 1158,
   "eventsHash": "d28d0b21263dbfb7",
   "months": [
-   "1:9a156c9b66d6823f",
-   "2:4ddb23ae87938b85",
-   "3:9d77d108287a2437",
+   "1:e7263b9e45b3cd1c",
+   "2:7882168be461c89c",
+   "3:1b8560406c2e356e",
    "4:268c522dfcf2515d",
    "5:047e864119eaec1d",
    "6:1c315727e246900e",
@@ -197,11 +197,11 @@
   "events": 777,
   "eventsHash": "5167ad9c8cb878c0",
   "months": [
-   "1:9c11d471ee3a6fba",
-   "2:340837190f834c4e",
-   "3:6436b8050c29103c",
-   "4:c85e62b57ec5ef18",
-   "5:2ff405ad382892bf",
+   "1:6759d0fb5c2429eb",
+   "2:5699e5e8c2fb8ab1",
+   "3:8f235bf1e072529f",
+   "4:b4b1dc6838a31181",
+   "5:f2ebff270ca47258",
    "6:d3d3263511e90b00",
    "7:ca804506b23c18af",
    "8:3e72b035b4ab384d",
@@ -215,21 +215,21 @@
   "events": 1968,
   "eventsHash": "015003ccd4a8b158",
   "months": [
-   "1:b05c6736c1bfc7d2",
-   "2:b1fcfe0d328f6bf9",
-   "3:d5d267e272e19b33",
-   "4:83ab01e270bcb19f",
-   "5:37532b4a719c11f4",
-   "6:5faaf728251ed6d6",
-   "7:052925d5f633bd8d",
-   "8:c50c7d00dde9eb2f",
-   "9:dd52994f26fbd6c4",
-   "10:93433bb052666ba7",
-   "11:c8177e157296c280",
-   "12:d756a80d0246677a",
-   "12:8ac1d3b08f14a835"
+   "1:d74c03189b5bb18e",
+   "2:3ca8b0e3d99d200a",
+   "3:3bf332d1d5e8a82d",
+   "4:0e39fadf2f894d07",
+   "5:345ec0456e63b174",
+   "6:514e11104291cdc7",
+   "7:be069c7301b9d6a4",
+   "8:dd1fe556e1c9186e",
+   "9:7f2f14ddea26ed6a",
+   "10:aa23794fa9982a25",
+   "11:02f2dda81ecc5a81",
+   "12:9e1844c4cb0be615",
+   "12:a512d328482820d2"
   ],
-  "final": "8ac1d3b08f14a835"
+  "final": "a512d328482820d2"
  },
  "real0-smart-d8-ext": {
   "id": "real0-smart-d8-ext",
@@ -237,19 +237,19 @@
   "events": 1775,
   "eventsHash": "34375e0e3cd52c5c",
   "months": [
-   "1:8a6dfd5634168c25",
-   "2:926083c95eec2aca",
-   "3:25b27ec075ce79e5",
-   "4:fe36c9c6c34529e2",
-   "5:0f14fdd4ebde365a",
-   "6:0d6adcb14df0646c",
-   "7:141dedcea61276dc",
-   "8:89dc2af5d71f785b",
-   "9:c882232c9907d73a",
-   "10:9e2e9bc2ae8cbf5e",
-   "10:8c257e4cf34fb7ce"
+   "1:aa5abedb887c2f36",
+   "2:0e2266a93061ba36",
+   "3:8bff6b34bbc20f53",
+   "4:4427256b12f8a112",
+   "5:2e9d6cbef1b4a07d",
+   "6:e20f71c11f1fbf50",
+   "7:72ebe4481c226559",
+   "8:85567f902ef4bd89",
+   "9:e482183ee42301e0",
+   "10:21583528a6995cc2",
+   "10:29569649ef58c861"
   ],
-  "final": "8c257e4cf34fb7ce"
+  "final": "29569649ef58c861"
  },
  "real1-normal-d4-ext": {
   "id": "real1-normal-d4-ext",
@@ -257,21 +257,21 @@
   "events": 1918,
   "eventsHash": "6cad4013ab4ee8fb",
   "months": [
-   "1:9f8ef23c2b12bcc8",
-   "2:4cfcf0c9ccb91ae8",
-   "3:0548442c2f33da25",
-   "4:019c771e938966a7",
-   "5:0198a53efba7888e",
-   "6:c76713c60cdef28f",
-   "7:1f4838071a217679",
-   "8:4f9ef5a9b823e77e",
-   "9:fd6abaf02b089b2e",
-   "10:546bd643d6f82554",
-   "11:2ecf75b9ae7c23ad",
-   "12:94d8eba616dba22a",
-   "12:9af691dd1013549c"
+   "1:5647517618ea7d3b",
+   "2:f21bb05baa2a3340",
+   "3:ce2cd72098bc421d",
+   "4:51026d9ee70f075d",
+   "5:5c4c9fbb64dc6224",
+   "6:79cb56e0a5ff51c3",
+   "7:922b9becd9675ebe",
+   "8:5b8080cc72832bf4",
+   "9:ef6bfdf0e153c2ea",
+   "10:1ca44b62623bbfe5",
+   "11:0180d20591bbf152",
+   "12:cbe681502871f59f",
+   "12:6853492828a24135"
   ],
-  "final": "9af691dd1013549c"
+  "final": "6853492828a24135"
  },
  "real1-smart-d2": {
   "id": "real1-smart-d2",
@@ -279,21 +279,21 @@
   "events": 2025,
   "eventsHash": "ba2a83bc2be3ae8b",
   "months": [
-   "1:93ab397db41fd8cd",
-   "2:95531ddfad3665f0",
-   "3:29d3fe2ce0f6957f",
-   "4:fbde572ac57bf7cb",
-   "5:c8167ed7c606cd93",
-   "6:0caf367cf36e4eb6",
-   "7:b23779b2513abca5",
-   "8:27b0146f8d97db9d",
-   "9:bf67e634c73ad58b",
-   "10:2222068037c8f5a2",
-   "11:4af8ec5c1e63e10c",
-   "12:d4716a778b8a6d8b",
-   "12:cd08d3226341ef7d"
+   "1:f82c04f356ec2682",
+   "2:6f30b5cff4a74dce",
+   "3:feba8985d108cd51",
+   "4:e7dd890288afc44d",
+   "5:d52b716cce4ba9d6",
+   "6:28c91eecc87eba14",
+   "7:e12eb3234114c0c7",
+   "8:d543b95e3d56c82a",
+   "9:cb332630b389bf78",
+   "10:11fde8ed54cfea06",
+   "11:51dae9d2eeb86c98",
+   "12:efbdb8feddba1180",
+   "12:2cddc6c9b181006e"
   ],
-  "final": "cd08d3226341ef7d"
+  "final": "2cddc6c9b181006e"
  },
  "real2-smart-d6-ext": {
   "id": "real2-smart-d6-ext",
@@ -301,21 +301,21 @@
   "events": 2165,
   "eventsHash": "56469e2a03e4f930",
   "months": [
-   "1:3c9b3cfad3e3a8b0",
-   "2:f153f3df94db47c7",
-   "3:a93e440352adb6bf",
-   "4:44dedfe83d7d5363",
-   "5:58a9845ca6078a44",
-   "6:559dcb3b39931aa3",
-   "7:21f70b7b0359a487",
-   "8:189f8bb11de34012",
-   "9:2405c07946e0cdf2",
-   "10:cbdfbff74dcaf73a",
-   "11:e235373244e70261",
-   "12:7091a126d2c4aed0",
-   "12:8f158b8c8cfcb493"
+   "1:ee388a05477bd450",
+   "2:89033ce830f32b09",
+   "3:7441dc578f4c43af",
+   "4:3500ac3843c60172",
+   "5:f86e0539707a14ad",
+   "6:abd07d6474c5dd48",
+   "7:6e6021ef45320563",
+   "8:5ac6574469f80b43",
+   "9:dc7cdbf349288382",
+   "10:e05dba7515640d29",
+   "11:d5a349c30643b7ff",
+   "12:c038ef2b9e012a22",
+   "12:9196a239aea0839f"
   ],
-  "final": "8f158b8c8cfcb493"
+  "final": "9196a239aea0839f"
  },
  "real0-ipo-only": {
   "id": "real0-ipo-only",
@@ -323,21 +323,21 @@
   "events": 1532,
   "eventsHash": "d118dcdb8db5c9c2",
   "months": [
-   "1:de82d3a759e703fb",
-   "2:9a61f481a9b76ede",
-   "3:bbff041f2e1e3711",
-   "4:8a5a41014186a1a4",
-   "5:0729fc6f68b47a74",
-   "6:6305604db752d90d",
-   "7:59a32e351b979dca",
-   "8:f8493867d67753e7",
-   "9:5129b34f95e0239d",
-   "10:0b0adc41c9cb0e97",
-   "11:b8505b9537b50766",
-   "12:8e3c8625db81033b",
-   "12:7fb4c7fbf804a48c"
+   "1:f1a1569b6741e980",
+   "2:5ca0864f4028e477",
+   "3:486af65e422ad63a",
+   "4:aea97545a2a744d9",
+   "5:4c7a967ec24cdbdf",
+   "6:ba6dd17720b06e98",
+   "7:d5468dedc90f41af",
+   "8:b8a7e17e1774aa30",
+   "9:b5e2133a1de0ee29",
+   "10:ee6e2811e8ba3b95",
+   "11:ab4de8d50c61761b",
+   "12:3dd6bcfd826bdcf9",
+   "12:5ba7d5ef1f553d24"
   ],
-  "final": "7fb4c7fbf804a48c"
+  "final": "5ba7d5ef1f553d24"
  },
  "real1-ipo-only-half": {
   "id": "real1-ipo-only-half",
@@ -345,21 +345,21 @@
   "events": 1482,
   "eventsHash": "412d468da52d3a1a",
   "months": [
-   "1:4b0e98a4bd3b957f",
-   "2:e5c552e8a3ae9521",
-   "3:f9eb66e3a700ad0c",
-   "4:1e81cbc4dfaf4d0c",
-   "5:4959d726027d97a4",
-   "6:395b2c95be93fbcc",
-   "7:fffb3ac16ebadd7d",
-   "8:44b4692a3a56a518",
-   "9:167a178fddad5a0d",
-   "10:43707bd0c5a2c002",
-   "11:8596080cb1f390f6",
-   "12:a4070529060a2c75",
-   "12:7b940d38bc133f71"
+   "1:2f790d9e7b72453e",
+   "2:664db64f6a0318c4",
+   "3:97c49b0d73b74459",
+   "4:e7b7aafdb73d3294",
+   "5:90f70136385d6f37",
+   "6:cda5d29df47261a5",
+   "7:a57e3ab1f8c9add5",
+   "8:9a76f66c57d01565",
+   "9:ec94d9691eeb47c4",
+   "10:8068b24e96f3ac57",
+   "11:37718d87f052b351",
+   "12:884893feb6dfba94",
+   "12:c3bf9956d1184e33"
   ],
-  "final": "7b940d38bc133f71"
+  "final": "c3bf9956d1184e33"
  },
  "real2-ipo-only-heavy": {
   "id": "real2-ipo-only-heavy",
@@ -367,20 +367,20 @@
   "events": 1397,
   "eventsHash": "879568636fead075",
   "months": [
-   "1:38a3fcc5de59d933",
-   "2:bd75bdb6e3deb1ad",
-   "3:14c7f88919b9ba5e",
-   "4:6c963c4b555135ef",
-   "5:f9ea6c6c014a1723",
-   "6:76372631e0c9e0fd",
-   "7:1bf6a5ed91a249a2",
-   "8:436a00dbaf3ebc13",
-   "9:817ca7c570a7f582",
-   "10:2b9dacda70b5d550",
-   "11:cff0e7b4747d7aa8",
-   "11:ae33baeb21acf0fc"
+   "1:1f89ab10b8415cfa",
+   "2:8e2c9f3360d82ff5",
+   "3:c49dbdc1b576df1c",
+   "4:43b58be25d2ca7a4",
+   "5:d1b3aed871ec4f76",
+   "6:ac058a5ad340997d",
+   "7:c053860e0befb05c",
+   "8:932e841c40d834c0",
+   "9:d4792fe51e011850",
+   "10:8fe17a728dd4efc5",
+   "11:9bbe98734a6f10d3",
+   "11:d573e818eb87de1a"
   ],
-  "final": "ae33baeb21acf0fc"
+  "final": "d573e818eb87de1a"
  },
  "daily": {
   "id": "daily",
@@ -388,21 +388,21 @@
   "events": 1914,
   "eventsHash": "392296b3462f2b2d",
   "months": [
-   "1:e41f4257e65c4208",
-   "2:33a14c4f3e90b44e",
-   "3:7cbd47421621be84",
-   "4:7fdcb0607a4605d5",
-   "5:26d9e2844c8b0902",
-   "6:fb8f8b0d4b1d1d03",
-   "7:bbbfd33dcf6cefeb",
-   "8:7ed65fb336818213",
-   "9:708174e438b0c65b",
-   "10:86ca35e4aac0239f",
-   "11:0cacb06bdee6b5a0",
-   "12:481615e24c986685",
-   "12:147887aa1ac62a76"
+   "1:204e2a234409e4e9",
+   "2:cc25c650388c7478",
+   "3:7e32070cc2967b8c",
+   "4:2498956779cd310a",
+   "5:36b54a01424b4d60",
+   "6:41465b381845bf7a",
+   "7:c8c5415b8ef67d85",
+   "8:14e17fa3bad7da2c",
+   "9:81a9a9ae018f6006",
+   "10:a39ac082b190ab4b",
+   "11:ac5c791207b544d7",
+   "12:167def608c85c8ee",
+   "12:773e58dcd0d18b30"
   ],
-  "final": "147887aa1ac62a76"
+  "final": "773e58dcd0d18b30"
  },
  "flash": {
   "id": "flash",
@@ -410,11 +410,11 @@
   "events": 315,
   "eventsHash": "f1db5eb0d115b7fb",
   "months": [
-   "1:df9f19d3c2d91cff",
-   "2:b7e8ebd2b8b502fb",
-   "2:991ac4d281cd3341"
+   "1:f12899746203861a",
+   "2:20504190db5e5680",
+   "2:5df45c90ace668c5"
   ],
-  "final": "991ac4d281cd3341"
+  "final": "5df45c90ace668c5"
  },
  "weekly": {
   "id": "weekly",
@@ -422,11 +422,11 @@
   "events": 284,
   "eventsHash": "45c6839e679a8f4b",
   "months": [
-   "1:051ce4522e564390",
-   "2:f0492b54837d41ca",
-   "2:af1e1a20aed68a8e"
+   "1:81274702850d28a5",
+   "2:70ac954da2ab8534",
+   "2:37e961c0b7a9a7f0"
   ],
-  "final": "af1e1a20aed68a8e"
+  "final": "37e961c0b7a9a7f0"
  },
  "short": {
   "id": "short",
@@ -434,7 +434,7 @@
   "events": 622,
   "eventsHash": "30ef86bb8b46f322",
   "months": [
-   "1:3912ad24f1bd717c",
+   "1:74585a3cf9844a78",
    "2:c4420f3e9b6d9127",
    "3:983e5fc6dd371f73",
    "4:35d43007158ed2c2",
@@ -449,14 +449,14 @@
   "events": 876,
   "eventsHash": "d39afa67c9e4924d",
   "months": [
-   "1:cc46973e25101ee5",
-   "2:d7e181b868c6b571",
-   "3:029a212b0831e37a",
-   "4:58396668d552d8b6",
-   "5:a63f0fba69ca7633",
-   "5:219ecfd37c4511ba"
+   "1:cf65b62e6a0bbcc6",
+   "2:c5ab5b790f3b7502",
+   "3:54af7ce103da37ab",
+   "4:cb71cf76d4f8c1ee",
+   "5:7108b0f4b92bdcac",
+   "5:3587eec37b3af2d3"
   ],
-  "final": "219ecfd37c4511ba"
+  "final": "3587eec37b3af2d3"
  },
  "live-mid-gear": {
   "id": "live-mid-gear",
@@ -464,13 +464,13 @@
   "events": 753,
   "eventsHash": "558d810fdbeaf750",
   "months": [
-   "1:c3cd55fda2ae28b3",
-   "2:ec24579ea19638ec",
-   "3:679b3868862fe86e",
-   "4:3c3998dd8822cef1",
-   "5:100046283c71af84",
-   "5:76bf0acdd1efa999"
+   "1:25acb16cbd8f8301",
+   "2:aeb973b196d67005",
+   "3:0282abd14e3faf46",
+   "4:b648a3300366f267",
+   "5:2f3282cfd44b2de4",
+   "5:a941ba991bafc9de"
   ],
-  "final": "76bf0acdd1efa999"
+  "final": "a941ba991bafc9de"
  }
 }

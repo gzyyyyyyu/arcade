@@ -53,6 +53,8 @@ export class EndScene extends BaseScene {
   result: RecordResult | null = null;
   /** 0.6.0 实盘局：结算的大字和说明（结回的回话晚到时就地改字，不重建场景） */
   private liveHead: Phaser.GameObjects.Text | null = null;
+  /** 左栏「最后剩多少钱」的大字 */
+  private moneyText: Phaser.GameObjects.Text | null = null;
   private liveBody: Phaser.GameObjects.Text | null = null;
   private liveBodyW = 0;
   private readonly flash = new EndFlash(this);
@@ -140,7 +142,8 @@ export class EndScene extends BaseScene {
       : null;
     const ay = y + G.titleY + 18 + title.height + subT.height + styleT.height + (swanT ? swanT.height + 4 : 0) + (ipoT ? ipoT.height + 4 : 0) + (ph ? 18 : 24);
     addGlyph(this, L + 22, ay, 'wallet', G.wallet);
-    addText(this, L + 52, ay, formatMoney(sum.account), { size: G.moneySize, bold: true, num: true, color: COLOR.ink, originY: 0.5 });
+    // 有动画时从开局本金起步，过场收起后滚到终值（enter 里的 rollMoney）
+    this.moneyText = addText(this, L + 52, ay, formatMoney(this.lively && !this.anim.instant ? sum.startAccount : sum.account), { size: G.moneySize, bold: true, num: true, color: COLOR.ink, originY: 0.5 });
     // 0.5.2：「最赚的一笔」收进一块浅底卡：左边大小人，右边一列（标题、名字、涨幅、这段日子）在卡里上下居中，
     // 以前三样各自摆在固定坐标上，和小人对不齐、底下空一大截
     const boxY = ay + (ph ? 28 : 36);
@@ -203,17 +206,17 @@ export class EndScene extends BaseScene {
     const ty0 = G.single ? boxY + boxH + 14 : y + (ph ? 16 : 28);
     // 竖排的窄格里金额写短的（「¥5479.9万」），全数在悬停
     const money = (v: number, sign = false): string => (G.stacked ? moneyShort(v, sign) : formatMoney(v, sign ? { sign: true } : undefined));
-    const tiles: [Glyph, string, string, number?][] = [
-      ['calendar', `${sum.billsPaid}/${months}`, '还上', sum.won ? COLOR.accentDark : undefined],
-      ['wallet', money(sum.peakAccount), '最高'],
-      ['bolt', `${sum.limitUpDays}天`, '涨停'],
-      ['arrow_up', sum.maxBoards > 1 ? `${sum.maxBoards}天` : '–', '连涨停'],
-      ['horn', `${sum.chains}次`, '带小弟'],
+    const tiles: [Glyph, string, string, number | undefined, boolean][] = [
+      ['calendar', `${sum.billsPaid}/${months}`, '还上', sum.won ? COLOR.accentDark : undefined, false],
+      ['wallet', money(sum.peakAccount), '最高', undefined, false],
+      ['bolt', `${sum.limitUpDays}天`, '涨停', undefined, sum.limitUpDays === 0],
+      ['arrow_up', sum.maxBoards > 1 ? `${sum.maxBoards}天` : '–', '连涨停', undefined, sum.maxBoards <= 1],
+      ['horn', `${sum.chains}次`, '带小弟', undefined, sum.chains === 0],
     ];
-    tiles.forEach(([g, v, label, color], i) => {
+    tiles.forEach(([g, v, label, color, muted], i) => {
       const tx = mx + (i % cols) * (tw + tgx);
       const ty = ty0 + Math.floor(i / cols) * (th + rowGap);
-      statTile(this, tx, ty, g, v, label, { w: tw, icon: G.tileIcon, size: G.tileSize, color, tint: g === 'arrow_up' ? COLOR.up : undefined, stacked: G.stacked });
+      statTile(this, tx, ty, g, v, label, { w: tw, icon: G.tileIcon, size: G.tileSize, color, tint: g === 'arrow_up' ? COLOR.up : undefined, stacked: G.stacked, muted });
     });
     // 第 6 格：炒股本身净赚多少（0.5.4：以前是"最好 0/12"，没计入档案时看不懂；最好成绩挪到下面那一行）
     {
@@ -221,16 +224,13 @@ export class EndScene extends BaseScene {
       const ty = ty0 + Math.floor(tiles.length / cols) * (th + rowGap);
       const tm = sum.tradeMoney;
       // 0.18.1 亏了写「炒股净亏 ¥325万」（以前写「炒股净赚 −¥325万」，和副标题对不上）
-      const word = tm === null ? '炒股净赚' : tradeWord(tm);
-      const v = tm === null ? '–' : tm < 0 ? money(-tm) : money(tm, true);
-      statTile(this, tx, ty, tm !== null && tm < 0 ? 'arrow_down' : 'arrow_up', v, word, { w: tw, icon: G.tileIcon, size: G.tileSize, color: tm === null ? undefined : signColor(tm), tint: tm === null ? undefined : signColor(tm), stacked: G.stacked });
+      const word = tradeWord(tm);
+      const v = tm < 0 ? money(-tm) : money(tm, true);
+      statTile(this, tx, ty, tm < 0 ? 'arrow_down' : 'arrow_up', v, word, { w: tw, icon: G.tileIcon, size: G.tileSize, color: signColor(tm), tint: signColor(tm), stacked: G.stacked });
       const hit = this.add.rectangle(tx, ty, tw, th, 0xffffff, 0.001).setOrigin(0, 0);
       bindTooltip(hit, () => ({ x: tx, y: ty, w: tw, h: th }), () => ({
         title: word,
-        body:
-          tm === null
-            ? '这局是旧版本开的，没有记下炒股合计。'
-            : `每天收盘股票带来的赚亏，加上买入的手续费和持股分红（不算账单、利息和奖励）。\n${ledgerRows(sum).map(([k, v]) => `${k} ${v}`).join('\n')}\n称号按炒股净赚是本钱的几倍来定。`,
+        body: `每天收盘股票带来的赚亏，加上买入的手续费和持股分红（不算账单、利息和奖励）。\n${ledgerRows(sum).map(([k, v]) => `${k} ${v}`).join('\n')}\n称号按炒股净赚是本钱的几倍来定。`,
       }));
     }
     const rowsN = Math.ceil((tiles.length + 1) / cols);
@@ -506,6 +506,7 @@ export class EndScene extends BaseScene {
     }
     sound.cue({ type: this.summary.won ? 'runWon' : 'runLost' });
     await this.cutscene(this.summary.won);
+    await this.rollMoney(this.summary);
     if (this.summary.won) confetti(this, this.anim);
     // 0.11.0 实盘结回 ≥ 3 倍：大字庆祝、再放一次彩带和大赚的音效
     const lv = this.summary.live;
@@ -519,6 +520,35 @@ export class EndScene extends BaseScene {
     // 真实行情局：「这段日子」不再自动弹出挡住成绩；每局第一次进结束页，成绩页上的按钮闪两下提醒，点了才打开
     if (this.session.state.real && this.session.takeReveal(this.summary.runId)) this.nudgeReveal();
     unlocks();
+  }
+
+  /** 最后剩的钱从开局本金滚到终值，滚动时一档一响，落定跳一下；关动画、减少动态效果、自动化下直接是终值。 */
+  private async rollMoney(sum: RunSummary): Promise<void> {
+    const num = this.moneyText;
+    const a = this.anim;
+    if (!num?.active) return;
+    const start = sum.startAccount;
+    const final = sum.account;
+    if (a.instant || !this.lively) {
+      num.setText(formatMoney(final));
+      return;
+    }
+    a.begin();
+    let last = -1;
+    await a.count(start, final, 1400, (v) => {
+      if (!num.active) return;
+      num.setText(formatMoney(v));
+      const p = final === start ? 1 : (v - start) / (final - start);
+      const step = Math.floor(p * 12);
+      if (step !== last) {
+        last = step;
+        sound.cue({ type: 'countUp', progress: Math.max(0, Math.min(1, p)) });
+      }
+    });
+    if (!num.active) return;
+    num.setText(formatMoney(final));
+    sound.cue({ type: 'settle', ret: final >= start ? 5 : -3 });
+    a.fx({ targets: num, scale: { from: 1.14, to: 1 }, duration: 360, ease: 'Back.Out' }, () => num.setScale(1));
   }
 
   /** 「这段日子」按钮闪两下金边（只有这一局第一次进结束页）；减少动态效果、关动画时不闪。 */

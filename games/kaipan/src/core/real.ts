@@ -1,19 +1,16 @@
 /**
- * 0.4 重做：真实行情驱动 0.3 的风口、大盘和个股（state.real 不为 null 时生效）。
+ * 真实行情驱动风口、大盘和个股（state.real 不为 null 时生效）。
  *
  * - 风口热度：每天的热度变化 = heatGain × 行业相对所有行业平均的超额收益（按 smooth 均摊、按这一段的日波动归一）
  *   − heatPull × (热度 − heatBase)。行业跑赢别的行业热度就涨，跑输就跌，没人炒慢慢凉。
  * - 风口阶段：按热度和当天热度变化，用一个只能按 冷 → 冒头 → 发酵 → 主升 → 高潮 → 退潮 → 冷 走的状态机判定
  *   （冒头可以夭折回冷门，发酵可以证伪直接退潮），所以 0.3 的生命周期、拐点、群聊里的"启动、见顶、退潮"都还在，
  *   只是什么时候发生由真实行业的强弱决定。
- * - 大盘：涨跌 = ampMarket × 老三十当天的真实涨跌；天气按最近几天的平均定。
- * - 个股：涨跌 = 绑定的真实股票当天的总收益，拆成大盘、行业超额、个股自身三块分别放大，再加 0.3 的游戏规则（连板惯性、炸板、妖股消息、ST 消息、
- *   龙头带小弟、涨跌停）。
+ * - 大盘、风口、个股：涨跌 = BALANCE.track.amp × 老三十 / 行业 / 绑定的真实股票当天的涨跌（个股再按涨跌停截断）；天气按最近几天的平均定。
  *
  * 确定性：只用加减乘除和比较（没有 exp/log/pow/sin），同一个行情段 + 种子 + 操作一定得到同一个结果。
  */
 import { BALANCE } from './balance.ts';
-import type { MarketRules } from './hooks.ts';
 import type { RealMarket } from './segment.ts';
 import type { Mood, Stage, ThemeId, ThemeState } from './types.ts';
 
@@ -26,17 +23,6 @@ export function tapeIndex(real: Readonly<RealMarket>, day: number): number {
 /** 大盘当天真实涨跌（pp，未放大）。 */
 export function realMarketPct(real: Readonly<RealMarket>, i: number): number {
   return (real.market[i] ?? 0) / 100;
-}
-
-/**
- * 风口当天的涨跌（pp，不含加成）：行业超额收益按这一段的典型幅度归一后乘 themeK（再乘 0.3 的题材振幅），
- * 所以不管哪一年、哪个行业，风口的起落幅度都和 0.3 差不多；方向、节奏、相对大小都是真实的。
- */
-export function realThemeRet(real: Readonly<RealMarket>, t: Readonly<ThemeState>, i: number, vol: number): number {
-  const R = BALANCE.real;
-  const th = real.themes[t.id];
-  if (!th) return 0;
-  return (vol * R.themeK * BALANCE.themes[t.id].amp * (th.ex[i] ?? 0)) / th.scale;
 }
 
 /** 行业当天真实涨跌（pp，未放大）。 */
@@ -55,19 +41,6 @@ export function realDH(real: Readonly<RealMarket>, t: Readonly<ThemeState>, i: n
   const th = real.themes[t.id];
   if (!th) return 0;
   return (R.heatGain * (th.ex[i] ?? 0)) / th.scale - R.heatPull * (t.heat - R.heatBase);
-}
-
-/** 大盘天气：最近 moodDays 天（含今天）放大后的平均涨跌。 */
-export function realMood(real: Readonly<RealMarket>, i: number, mr: Readonly<MarketRules>): Mood {
-  const R = BALANCE.real;
-  let sum = 0;
-  let n = 0;
-  for (let k = 0; k < R.moodDays && i - k >= 0; k++) {
-    sum += realMarketPct(real, i - k);
-    n += 1;
-  }
-  const avg = (R.ampMarket * mr.vol * sum) / Math.max(1, n);
-  return avg >= R.moodBull ? 'bull' : avg <= -R.moodBull ? 'bear' : 'flat';
 }
 
 /** 按今天的热度变化判定今天的阶段（只能按生命周期的顺序走）。 */
@@ -144,17 +117,12 @@ export function warmHeatSeries(real: Readonly<RealMarket>, id: ThemeId): number[
 
 // ================================================================ 0.5：个股照搬真实走势
 
-/** 0.5 的真实行情（个股照搬真实走势、情报从真实未来推算）。0.4 的旧存档没有 track，照 0.4 的映射走。 */
-export function isTrack(real: Readonly<RealMarket> | null | undefined): boolean {
-  return !!real && real.track === true;
-}
-
 /**
  * 真实行情的娱乐局（不是实盘）：账单按难度打折、靠谱群友更准（BALANCE.ease），带仓位玩法时开局就能押跌。
  * 实盘不放宽：它的期望按配平表定，改了要重跑实盘模拟。
  */
 export function isEaseRun(s: Readonly<{ real?: RealMarket | null; setup?: { live?: unknown } | null }>): boolean {
-  return !!s.real?.track && !s.setup?.live;
+  return !!s.real && !s.setup?.live;
 }
 
 /** 放大后的大盘当天涨跌（pp）。 */

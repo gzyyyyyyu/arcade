@@ -8,7 +8,7 @@ import { inviteUrl, mountSocial } from 'arcade-kit/social';
 import { reportErrors } from 'arcade-kit/report';
 import { APP_VERSION } from './platform/version.ts';
 import { mountRotateHint, setRotateLobbyLabel } from './platform/orientation.ts';
-import { fitViewport } from './platform/viewportFit.ts';
+import { watchViewport } from 'arcade-kit/viewport';
 import { getSettings, onSettingsChange } from './platform/settings.ts';
 import { loadProfile } from './platform/profile.ts';
 import { cloudUserId, onCloudChange, startCloudSync } from './view/cloudSync.ts';
@@ -102,10 +102,14 @@ for (const t of ['mousedown', 'touchstart'] as const) {
     if (e.target !== game.canvas) e.stopPropagation();
   });
 }
-// 手机平板上画布按看得见的区域铺（iOS Safari 的地址栏、标签栏不压画面），尺寸一变让 Phaser 重新量；别的走 CSS 的 100dvh
+// 手机平板上画布按看得见的区域铺（iOS Safari 的地址栏、标签栏不压画面）：共用包写 --app-h，尺寸一变让 Phaser 重新量；别的走 CSS 的 100dvh。
+// 不听 visualViewport 的 scroll（工具栏收放时 resize 也会来，开盘一直只听 resize）
 if (LOW_MEMORY) {
-  fitViewport(() => {
-    if (game.isBooted) game.scale.refresh();
+  watchViewport({
+    listenScroll: false,
+    onChange: () => {
+      if (game.isBooted) game.scale.refresh();
+    },
   });
 }
 // 首次触摸后才确认是触屏：重建当前场景，去掉快捷键提示

@@ -169,18 +169,16 @@ export function tradeWord(tradeMoney: number): string {
 
 /**
  * 0.5.4：一本加得起来的账——本钱 + 炒股净赚 − 账单 + 其他 (+ 没还的借款) = 最后剩。
- * 旧存档没有炒股和账单合计：只列本钱和最后剩。
  */
 export function ledgerRows(s: RunSummary): [string, string][] {
-  const rows: [string, string][] = [['本钱', formatMoney(s.startAccount)]];
-  if (s.tradeMoney !== null && s.billMoney !== null && s.otherMoney !== null) {
-    rows.push([tradeWord(s.tradeMoney), formatMoney(s.tradeMoney, { sign: true })]);
-    rows.push(['还掉的账单', formatMoney(-s.billMoney, { sign: true })]);
-    rows.push(['其他（奖励、利息、罚款）', formatMoney(s.otherMoney, { sign: true })]);
-    if (s.debtLeft > 0) rows.push(['借来还没还', formatMoney(s.debtLeft, { sign: true })]);
-  }
-  rows.push(['最后剩', formatMoney(s.account)]);
-  return rows;
+  return [
+    ['本钱', formatMoney(s.startAccount)],
+    [tradeWord(s.tradeMoney), formatMoney(s.tradeMoney, { sign: true })],
+    ['还掉的账单', formatMoney(-s.billMoney, { sign: true })],
+    ['其他（奖励、利息、罚款）', formatMoney(s.otherMoney, { sign: true })],
+    ...(s.debtLeft > 0 ? ([['借来还没还', formatMoney(s.debtLeft, { sign: true })]] as [string, string][]) : []),
+    ['最后剩', formatMoney(s.account)],
+  ];
 }
 
 /** 结束页那一行「黑天鹅：躲过 / 中招 ¥X」；没有黑天鹅的局为 null。 */
@@ -214,16 +212,12 @@ export function summaryRows(s: RunSummary): [string, string][] {
 
 /**
  * 结束页副标题：讲清三件事——还了多少账单、炒股净赚多少、最后剩多少（0.5.4）。
- * 旧存档没有账单和炒股合计时退回旧说法。
  */
 export function endSubtitle(s: RunSummary): string {
-  const trade = s.tradeMoney === null ? '' : `${tradeWord(s.tradeMoney)} ${formatMoney(Math.abs(s.tradeMoney))}`;
-  const bills = s.billMoney === null ? '' : `还了 ${formatMoney(s.billMoney)} 账单`;
-  if (s.won) {
-    if (!trade || !bills) return `12 个月的钱全还上了，带着 ${formatMoney(s.account)} 上岸`;
-    return `${trade}，${bills}，带着 ${formatMoney(s.account)} 上岸`;
-  }
-  return trade ? `${s.month} 月要还的钱没还上：${trade}${bills && s.billMoney ? `，${bills}` : ''}` : `${s.month} 月要还的钱没还上，游戏结束`;
+  const trade = `${tradeWord(s.tradeMoney)} ${formatMoney(Math.abs(s.tradeMoney))}`;
+  const bills = `还了 ${formatMoney(s.billMoney)} 账单`;
+  if (s.won) return `${trade}，${bills}，带着 ${formatMoney(s.account)} 上岸`;
+  return `${s.month} 月要还的钱没还上：${trade}${s.billMoney ? `，${bills}` : ''}`;
 }
 
 /** 关于面板里的玩法简介（数字来自 core）。 */

@@ -98,8 +98,7 @@ describe('行情段文件', () => {
       for (const e of s.events) {
         expect(e.day, s.id).toBeGreaterThanOrEqual(0);
         expect(e.day, s.id).toBeLessThan(s.days);
-        expect(e.date, s.id).toBeUndefined();
-        expect(e.text, s.id).toBeUndefined();
+        expect('date' in e || 'text' in e, s.id).toBe(false);
       }
       // 段里的股票不带真实代码和化名（游戏里用小人的名字）
       for (const t of Object.values(s.themes))

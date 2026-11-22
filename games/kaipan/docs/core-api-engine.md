@@ -18,7 +18,6 @@ validate(state, action): string | null
 | `segment` | 抽中的行情段（第 7 节）。缺省或 `null` = 合成行情：离线兜底、`?market=synthetic`、行情段下载失败时走它；一局最少要 `totalDays()`（58）天 |
 | `ext` | 打开仓位、押跌、抵押（第 8 节）。正式游戏都开；不开时新操作报「这一局没有这个玩法」，新道具不进奖励池 |
 | `tempo` | 月度主题、目标、高光、连击（第 9 节）。缺省：有行情段就开、合成行情关 |
-| `legacyReal` | 真实行情用旧映射（风口热度推着个股走）。只给对照和读旧档的测试用 |
 
 `createRun` 返回的 `events` 是第 1 个月的开场事件（`monthStarted`、`monthTheme`、`dayStarted`、`chat`）。
 

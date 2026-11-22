@@ -22,7 +22,6 @@ import {
   OPENINGS,
   PERSONA_SHORT,
   SEGMENT_TITLES,
-  SENSITIVE_WORDS,
   VERDICTS,
   WORST_LINES,
   EXT_TALES,
@@ -112,17 +111,6 @@ function gameTime(day: number): { month: number; d: number; len: number } {
   return { month: BALANCE.monthDays.length, d: 0, len: 1 };
 }
 
-/**
- * 真实日期在一局里大约是第几个交易日（按自然日比例折算，只用来说"第几个月"）。
- * 生成行情段时用（tools/data/segments.ts 把它写进大事的 day）；画面上只有 0.4 开发期的旧存档还会走到这里。
- */
-export function dayOfDate(from: string, to: string, days: number, date: string): number {
-  const t = (x: string): number => Date.UTC(Number(x.slice(0, 4)), Number(x.slice(5, 7)) - 1, Number(x.slice(8, 10)));
-  const span = Math.max(1, t(to) - t(from));
-  const f = Math.min(1, Math.max(0, (t(date) - t(from)) / span));
-  return Math.min(days - 1, Math.floor(f * days));
-}
-
 interface Beat {
   day: number;
   t?: string;
@@ -130,18 +118,9 @@ interface Beat {
   sectors: readonly string[];
 }
 
-/** 段里的大事 → 故事情节；0.4 开发期旧存档（真实日期 + 原文）折算成第几天，不带故事句（按大环境方向写通用句）。 */
+/** 段里的大事 → 故事情节。 */
 function beatsOf(real: RealMarket): Beat[] {
-  const out: Beat[] = [];
-  for (const e of real.events) {
-    if (typeof e.day === 'number') {
-      out.push({ day: Math.max(0, Math.min(real.days - 1, Math.floor(e.day))), t: e.t, alt: e.alt, sectors: e.sectors ?? [] });
-    } else if (typeof e.date === 'string' && real.from && real.to) {
-      if (isSensitive(e.text ?? '') || isSensitive(e.quip ?? '')) continue;
-      out.push({ day: dayOfDate(real.from, real.to, real.days, e.date), sectors: e.sectors ?? sectorsOf(e.text ?? '') });
-    }
-  }
-  return out;
+  return real.events.map((e) => ({ day: Math.max(0, Math.min(real.days - 1, Math.floor(e.day))), t: e.t, alt: e.alt, sectors: e.sectors ?? [] }));
 }
 
 function whenText(day: number, prevMonth: number | null, key: (string | number)[]): string {
@@ -207,10 +186,6 @@ function stockFor(theme: ThemeId, traded: ReadonlySet<string>, key: (string | nu
   const mine = list.filter((d) => traded.has(d.id));
   if (mine.length > 0) return pick(mine, ...key, 'mine').name;
   return (list.find((d) => d.role === 'leader') ?? pick(list, ...key, 'any')).name;
-}
-
-function isSensitive(text: string): boolean {
-  return SENSITIVE_WORDS.some((w) => text.includes(w));
 }
 
 /** 0.4 C：玩家自己的仓位、押跌、抵押经历（最多两句）。 */

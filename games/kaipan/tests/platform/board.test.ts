@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DAILY_RULES, DAILY_WIN_BASE, dailyBoardId, dailyScore, dailyScoreView, dailySegmentId, dailySetup, flashSegmentId, flashSetup, hashSeed, pickSegmentId, type GameState, type RunSummary } from '../../src/core/index.ts';
+import { DAILY_WIN_BASE, dailyBoardId, dailyScore, dailyScoreView, dailySegmentId, dailySetup, flashSegmentId, flashSetup, hashSeed, pickSegmentId, type GameState, type RunSummary } from '../../src/core/index.ts';
 import { DAILY_SEGMENTS } from '../../src/core/content/dailySegments.ts';
 import { boardDateOpen, askUser, cleanName, readBoard, shiftDate, submitScoreAs, type BoardDeps, type SubmitResult } from '../../src/platform/board.ts';
 import { KEEPALIVE_BYTES, keepaliveLeft, resetKeepalive } from '../../src/platform/keepalive.ts';
@@ -67,11 +67,10 @@ describe('分数和榜单 ID', () => {
     expect(boardScoreText(lost11)).toBe('还清 11 个月');
   });
 
-  it('榜单 ID 是 daily-YYYY-MM-DD-<子榜>（规则版本 0）：经典 classic、闪电盘 flash', () => {
-    expect(DAILY_RULES).toBe(0);
+  it('榜单 ID 是 daily-YYYY-MM-DD-<子榜>：经典 classic、闪电盘 flash', () => {
     expect(dailyBoardId('2026-10-14')).toBe('daily-2026-10-14-classic');
     expect(dailyBoardId('2026-10-14', 'flash')).toBe('daily-2026-10-14-flash');
-    expect(dailyBoardId('2026-10-14')).toMatch(/^daily-\d{4}-\d{2}-\d{2}-(classic|flash)(-v[1-9]\d?)?$/);
+    expect(dailyBoardId('2026-10-14')).toMatch(/^daily-\d{4}-\d{2}-\d{2}-(classic|flash)$/);
   });
 
   it('段池冻结：都在段目录里、不重复；每日挑战只在池里抽，同一天总是同一段', () => {

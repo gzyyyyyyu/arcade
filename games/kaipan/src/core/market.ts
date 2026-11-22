@@ -6,7 +6,7 @@ import { isMonthThemeId, monthThemeById } from './content/monthThemes.ts';
 import { DIFFICULTIES, ITEMS, calendarOf, clampDifficulty, isItemId, isPersonaId, itemById, personaById, stocksOf } from './content/index.ts';
 import type { MarketRules, Rules } from './hooks.ts';
 import { applyWeeklyRules, weeklyRuleOf } from './weekly.ts';
-import { isEaseRun, isTrack, realMarketPct, realSectorPct, realStockPct } from './real.ts';
+import { isEaseRun, realMarketPct, realSectorPct, realStockPct } from './real.ts';
 import { rngFor, type Rng } from './rng.ts';
 import type { RealMarket, Regime } from './segment.ts';
 import type { Dir, Feel, GameState, Mood, PersonaId, Stage, StockMove, StockState, ThemeId, ThemeState } from './types.ts';
@@ -127,7 +127,7 @@ export function rulesWithoutTheme(s: Readonly<GameState>): Rules {
 }
 
 function runRules(s: Readonly<GameState>, mod: Parameters<typeof rulesFor>[4]): Rules {
-  const r = rulesFor(s.items, s.difficulty, s.persona, s.real?.track ? s.real.regime : false, mod, !!s.setup?.short);
+  const r = rulesFor(s.items, s.difficulty, s.persona, s.real ? s.real.regime : false, mod, !!s.setup?.short);
   // 0.6.0 实盘、0.10.0 娱乐短局：常规月供整体打折（突发账单在 surprisePlan 里打同样的折）
   r.billMult *= runBillMult(s);
   // 本周市场：这一周的限定规则最后叠加（不进别的模式）
@@ -372,11 +372,8 @@ interface MoveInput {
    * 各项之和等于取整前的涨跌；取整的零头由调用方并进"随机波动"。
    */
   partsOut?: Map<string, RawPart[]>;
-  /**
-   * 0.4 重做：真实行情。有这一项时个股涨跌 = amp × 绑定的真实股票当天的总收益（大盘、行业超额、个股自身三块），
-   * 加上日历、难度、道具、事件给大盘和风口的加成（marketExtra、extraDH），再套 0.3 的连板、炸板、妖股、ST、带小弟、涨跌停。
-   */
-  real?: { tape: Readonly<RealMarket>; i: number; themeRet: Partial<Record<ThemeId, number>>; marketExtra: number; extraDH: Partial<Record<ThemeId, number>> };
+  /** 真实行情：有这一项时个股照搬绑定的真实股票当天的涨跌（moveStocksTrack），themeRet、marketRet 只给合成行情用 */
+  real?: { tape: Readonly<RealMarket>; i: number };
 }
 
 /** 未取整的归因项（kind 同 RetPartKind，不含 item）。 */
@@ -390,7 +387,7 @@ export interface RawPart {
  * 会修改 state.stocks（价格、连板、ST 状态）。随机数一次取齐，分支不同也不会扰动其他用途。
  */
 export function moveStocks(inp: MoveInput): StockMove[] {
-  if (inp.real && isTrack(inp.real.tape)) return moveStocksTrack(inp, inp.real.tape, inp.real.i);
+  if (inp.real) return moveStocksTrack(inp, inp.real.tape, inp.real.i);
   const { state: s, mr, rules } = inp;
   const out: StockMove[] = [];
   for (const theme of s.themeIds) {
@@ -413,33 +410,11 @@ export function moveStocks(inp: MoveInput): StockMove[] {
       const held = inp.held.has(def.id);
       const beta = p.beta * (mr.beta[def.role] ?? 1);
       const noise = p.noise * (mr.noise[def.role] ?? 1) * mr.vol;
-      let x: number;
       const parts: RawPart[] | null = held && inp.partsOut ? [] : null;
-      const rl = inp.real;
-      if (rl) {
-        // 真实行情：大盘 + 行业超额 × 题材系数倍数（日历"中报"）+ 个股自身 × 噪声倍数（日历"年报"）
-        const R = BALANCE.real;
-        const m = R.ampMarket * mr.vol * realMarketPct(rl.tape, rl.i);
-        const e = rl.themeRet[theme] ?? 0;
-        // 个股自身那块：真实的方向和相对大小，幅度按 0.3 的角色噪声（白马小、妖股大）
-        const own = (R.ownK * p.noise * mr.vol * (realStockPct(rl.tape, def.id, rl.i) - realSectorPct(rl.tape, theme, rl.i))) / (rl.tape.stocks[def.id]?.scale ?? 1);
-        const bm = mr.beta[def.role] ?? 1;
-        const nm = mr.noise[def.role] ?? 1;
-        const extraTheme = BALANCE.heat.coef * (rl.extraDH[theme] ?? 0);
-        const mom = st.boards * BALANCE.boards.momentum * (held ? rules.momentumMult : 1);
-        // 角色性格照 0.3：风口那块乘题材系数（龙头 1.5、白马 0.5……），大盘那块乘大盘系数
-        const tb = p.beta * bm;
-        x = p.market * (m + rl.marketExtra) + tb * (e + extraTheme) + nm * own + mom;
-        if (parts) {
-          parts.push({ kind: 'market', value: p.market * (m + rl.marketExtra) }, { kind: 'theme', value: e + extraTheme });
-          parts.push({ kind: 'role', value: (tb - 1) * (e + extraTheme) }, { kind: 'noise', value: nm * own }, { kind: 'momentum', value: mom });
-        }
-      } else {
-        x = beta * (inp.themeRet[theme] ?? 0) + p.market * inp.marketRet + noise * z;
-        x += st.boards * BALANCE.boards.momentum * (held ? rules.momentumMult : 1);
-      }
+      let x = beta * (inp.themeRet[theme] ?? 0) + p.market * inp.marketRet + noise * z;
+      x += st.boards * BALANCE.boards.momentum * (held ? rules.momentumMult : 1);
       // 归因只记录，不改动 x 的算法
-      if (parts && !rl) {
+      if (parts) {
         const tr = inp.themeRet[theme] ?? 0;
         parts.push({ kind: 'theme', value: tr }, { kind: 'role', value: beta * tr - tr }, { kind: 'market', value: p.market * inp.marketRet });
         parts.push({ kind: 'noise', value: noise * z }, { kind: 'momentum', value: st.boards * BALANCE.boards.momentum * (held ? rules.momentumMult : 1) });

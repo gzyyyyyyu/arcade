@@ -101,11 +101,11 @@ export function buyinFailText(error: string, why?: 'offline' | 'login', code?: s
 
 /**
  * 0.32.0 实盘结束页的账本：炒股赚了多少、生活费（账单）吃掉多少，资产比开局涨跌几成、按几倍算进筹码。
- * 以前只写「结回 1.01 倍」，和旁边「炒股净赚 +¥5,070」对不上，玩家以为算错了。旧存档没有炒股和账单合计时为 null。
+ * 以前只写「结回 1.01 倍」，和旁边「炒股净赚 +¥5,070」对不上，玩家以为算错了。不是实盘为 null。
  */
 export function liveLedger(s: Pick<RunSummary, 'tradeMoney' | 'billMoney' | 'otherMoney' | 'live'>): string | null {
   const lv = s.live;
-  if (!lv || s.tradeMoney === null || s.billMoney === null || s.otherMoney === null || !(lv.start > 0)) return null;
+  if (!lv || !(lv.start > 0)) return null;
   const parts = [`炒股 ${formatMoney(s.tradeMoney, { sign: true })}`, `生活费 ${formatMoney(-s.billMoney, { sign: true })}`];
   if (Math.round(s.otherMoney) !== 0) parts.push(`其他 ${formatMoney(s.otherMoney, { sign: true })}`);
   const pct = formatPct(lv.assets / lv.start - 1);

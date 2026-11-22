@@ -3,7 +3,7 @@ import { BALANCE } from '../balance.ts';
 import { stockById } from '../content/index.ts';
 import { baseMarketRules, marketReturn, MOODS, rulesOf, warmUpTheme } from '../market.ts';
 import { rngFor } from '../rng.ts';
-import { isTrack, realStockPct, trackMarketRet, warmHeatSeries } from '../real.ts';
+import { realStockPct, trackMarketRet, warmHeatSeries } from '../real.ts';
 import type { GameState, ThemeId } from '../types.ts';
 
 // ================================================================ 0.5.1 开局前的真实历史（只读）
@@ -24,7 +24,7 @@ const SYNTH_PRE_DAYS = 20;
 
 /**
  * 画面用：行情段里开局前 warm 天（开局之前，已经发生）的走势，按和交易日一样的放大、涨跌停截断算。
- * 只读这一段开局前的数据，不碰第 0 个交易日以后。0.4 旧档（不照搬个股）只给大盘和风口。
+ * 只读这一段开局前的数据，不碰第 0 个交易日以后。
  * 合成行情（离线兜底）没有行情段，见 syntheticPreHistory。
  */
 export function preHistory(s: Readonly<GameState>): PreHistory | null {
@@ -37,20 +37,18 @@ export function preHistory(s: Readonly<GameState>): PreHistory | null {
   const market: number[] = [];
   for (let i = 0; i < n; i++) market.push(Math.round(trackMarketRet(real, i) * 100) / 100);
   const stocks: Record<string, number[]> = {};
-  if (isTrack(real)) {
-    const rules = rulesOf(s);
-    for (const id of Object.keys(s.stocks)) {
-      if (!real.stocks[id]) continue;
-      const def = stockById(id);
-      const limit = BALANCE.roles[def.role].limit * rules.limitMult;
-      const up = Math.round(limit * rules.limitUpMult * 100) / 100;
-      const row: number[] = [];
-      for (let i = 0; i < n; i++) {
-        const raw = BALANCE.track.amp * realStockPct(real, id, i);
-        row.push(Math.round(Math.min(up, Math.max(-limit, raw)) * 100) / 100);
-      }
-      stocks[id] = row;
+  const rules = rulesOf(s);
+  for (const id of Object.keys(s.stocks)) {
+    if (!real.stocks[id]) continue;
+    const def = stockById(id);
+    const limit = BALANCE.roles[def.role].limit * rules.limitMult;
+    const up = Math.round(limit * rules.limitUpMult * 100) / 100;
+    const row: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const raw = BALANCE.track.amp * realStockPct(real, id, i);
+      row.push(Math.round(Math.min(up, Math.max(-limit, raw)) * 100) / 100);
     }
+    stocks[id] = row;
   }
   const heat: Partial<Record<ThemeId, number[]>> = {};
   for (const id of s.themeIds) heat[id] = warmHeatSeries(real, id);

@@ -144,9 +144,8 @@ describe('0.32.0 实盘结束页的账本', () => {
     expect(liveLedger({ ...base, otherMoney: 1200, live: lv({ gear: 2, assets: 101_510 }) })).toBe('炒股 +¥5,070，生活费 -¥4,760，其他 +¥1,200；资产比开局 +1.5%，按 2.8 倍、再乘杠杆 ×2算进筹码。');
     expect(liveLedger({ tradeMoney: -3000, billMoney: 4760, otherMoney: 0, live: lv({ assets: 92_240 }) })).toBe('炒股 -¥3,000，生活费 -¥4,760；资产比开局 -7.8%，按 2.8 倍算进筹码。');
   });
-  it('老局（涨跌倍数 1）不写倍数；旧存档没有炒股合计、不是实盘的局为 null', () => {
+  it('老局（涨跌倍数 1）不写倍数；不是实盘的局为 null', () => {
     expect(liveLedger({ ...base, live: lv({ lev: 1 }) })).toBe('炒股 +¥5,070，生活费 -¥4,760；资产比开局 +0.3%。');
-    expect(liveLedger({ ...base, tradeMoney: null, live: lv() })).toBeNull();
     expect(liveLedger({ ...base, live: null })).toBeNull();
   });
   it('真打完的一局：账本和结算的数对得上', () => {

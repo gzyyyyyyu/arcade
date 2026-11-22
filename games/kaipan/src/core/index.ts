@@ -160,13 +160,12 @@ export {
   seenOf,
 } from './meta.ts';
 export type { AchievementHint, AchievementView, Codex, CodexEntry, CodexKind, DifficultyView, PersonaView, SeenSets } from './meta.ts';
-export { DAILY_RULES, DAILY_WIN_BASE, dailyBoardId, dailyScore, dailyScoreView, dailySegmentId, flashScore, flashSegmentId, weeklyBoardId, weeklyScore, weeklySegmentId, type DailyKind } from './daily.ts';
+export { DAILY_WIN_BASE, dailyBoardId, dailyScore, dailyScoreView, dailySegmentId, flashScore, flashSegmentId, weeklyBoardId, weeklyScore, weeklySegmentId, type DailyKind } from './daily.ts';
 export { WEEKLY_RULE_IDS, WEEKLY_RULE_INFO, isWeekId, isoWeeksInYear, weekMondayDays, weeklyInfo, weeklyRule, weeklyRuleOf, type WeeklyRuleId } from './weekly.ts';
 export { CHALLENGE_FORMAT, canChallenge, challengeOf, challengeScore, challengeSetup, challengeStats, isChallengeRun, parseChallenge, parseChallengeStats, type ChallengePayload, type ChallengeStats } from './challenge.ts';
 export {
   AUTO_SELL_LABEL,
   DIR_LABEL,
-  END_REASON_LABEL,
   FEEL_LABEL,
   ITEM_KIND_LABEL,
   MOOD_LABEL,
@@ -254,9 +253,9 @@ export type { Rng } from './rng.ts';
 export type * from './types.ts';
 export { REGIMES, REGIME_LABEL, THEME_REAL, checkSegment, pickSegmentId, realFromSegment } from './segment.ts';
 export type { RealMarket, Regime, Segment, SegmentEvent, SegmentIndex, SegmentIndexEntry, SegmentStats, SegmentStock, SegmentTheme } from './segment.ts';
-export { realDH, realMarketPct, realMood, realNextStage, realSectorPct, realStockPct, tapeIndex, warmUpReal } from './real.ts';
+export { realDH, realMarketPct, realNextStage, realSectorPct, realStockPct, tapeIndex, warmUpReal } from './real.ts';
 // 0.5：个股照搬真实走势、情报从真实未来推算、月度主题与节奏
-export { bandDir, fitRoles, forwardRet, isTrack, stockTraits, trackMarketRet, trackMood, trackThemeRet } from './real.ts';
+export { bandDir, fitRoles, forwardRet, stockTraits, trackMarketRet, trackMood, trackThemeRet } from './real.ts';
 export type { StockTraits } from './real.ts';
 export { needsHeadline, stockTruth, themeTruth } from './chat.ts';
 export { goalTarget, monthThemeView, planTempo, premarketQuiet, premarketQuiet as isQuietDay } from './tempo.ts';

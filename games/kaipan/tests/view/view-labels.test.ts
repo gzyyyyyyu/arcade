@@ -85,8 +85,6 @@ describe('画面文案：结束页与关于', () => {
     expect(won).toContain('炒股净赚');
     expect(won).toContain('账单');
     expect(endSubtitle({ ...sum, won: false, month: 4 })).toContain('4 月');
-    // 旧存档没有合计：退回旧说法
-    expect(endSubtitle({ ...sum, won: true, tradeMoney: null, billMoney: null })).toContain('12 个月的钱全还上了');
   });
 
   it('0.18.1 炒股亏了叫「净亏」，账本、副标题说法一致；每笔都亏时不说「最赚」', () => {
@@ -111,7 +109,7 @@ describe('画面文案：结束页与关于', () => {
     expect(titleFor(true, 12, 1_200_000, { money: 10_000, start: 1_000_000 })).toBe('惊险上岸');
     expect(titleFor(true, 12, 54_680_000, { money: 5_936_400, start: 50_000_000 })).toBe('惊险上岸');
     // 旧存档没有炒股合计：仍按剩多少钱
-    expect(titleFor(true, 12, 1_200_000)).toBe('百万韭菜王');
+    expect(titleFor(true, 12, 1_200_000, { money: 0, start: 0 })).toBe('百万韭菜王');
     expect(titleFor(false, 2, 0, { money: 50_000, start: 100_000 })).toBe('新韭菜');
   });
 

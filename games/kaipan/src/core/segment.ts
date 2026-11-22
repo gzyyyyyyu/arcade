@@ -61,17 +61,13 @@ export interface SegmentTheme {
  * 段内一件大事（生成时已经换成故事版，见 tools/data/beats.ts）。段文件里不带真实日期和原文，免得被人对出年份。
  * day：一局里的第几个交易日（0 起，按真实日期折算）；t / alt：故事句（t 里可以有 {股}{风口}，对不上本局的风口时用 alt）；
  * 没有 t 和 alt 的按大环境那几天的方向写一句通用的。
- * date / text / quip 是 0.4 开发期旧存档里的格式（真实日期、原文），只为读旧档保留。
  */
 export interface SegmentEvent {
-  day?: number;
+  day: number;
   t?: string;
   alt?: string;
   /** 相关行业 id（'market' 为全市场）；局末小故事把大事对应到本局的风口用 */
   sectors?: string[];
-  date?: string;
-  text?: string;
-  quip?: string;
 }
 
 export interface SegmentStats {
@@ -121,12 +117,8 @@ export interface SegmentIndex {
 /** 存档里的真实行情（只含本局登场的风口）。 */
 export interface RealMarket {
   segId: string;
-  /** 0.5：个股照搬真实走势、情报从真实未来推算（新开局为 true；0.4 的存档没有，照 0.4 的映射走） */
-  track?: boolean;
-  /** 0.4 开发期旧存档才有（真实起止日期、年份）；新存档不存 */
-  from?: string;
-  to?: string;
-  year?: number;
+  /** 0.5 起新开局都写 true（个股照搬真实走势）；读档时没有它的是 0.4 开发期的旧档，提示一次后清掉（platform/storage.ts） */
+  track: true;
   regime: Regime;
   title: string;
   stats: SegmentStats;
@@ -228,6 +220,7 @@ export function realFromSegment(seg: Readonly<Segment>, themeIds: readonly Theme
   for (const sid of stockIds) if (!stocks[sid]) throw new Error(`行情段 ${seg.id} 没有绑定股票 ${sid}`);
   return {
     segId: seg.id,
+    track: true,
     regime: seg.regime,
     title: seg.title,
     stats: { ...seg.stats },

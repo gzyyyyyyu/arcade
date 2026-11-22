@@ -3,7 +3,6 @@ import { BALANCE } from '../balance.ts';
 import { stockQuip } from '../story.ts';
 import { stockById } from '../content/index.ts';
 import { round2, rulesOf } from '../market.ts';
-import { isTrack } from '../real.ts';
 import type { Action, BuySize, CollateralId, Loan, GameState } from '../types.ts';
 import { firstEmpty, ipoToday } from './calendar.ts';
 import { debtOf, freeUnits, learn, loanOffer, noteUnits, react, sizeUnits, unitsOf } from './ext.ts';
@@ -44,7 +43,7 @@ export function buy(s: GameState, a: Extract<Action, { type: 'buy' }>, em: Emitt
     cost = round2(b0 - s.account);
   }
   // 0.5（真实行情）：手续费（难度"熊出没"起），按这一笔的金额算
-  const fee = isTrack(s.real) ? rulesOf(s).buyFee : 0;
+  const fee = s.real ? rulesOf(s).buyFee : 0;
   if (fee > 0) {
     const b0 = s.account;
     setAccount(s, s.account * (1 - ((units / BALANCE.slots) * fee) / 100));

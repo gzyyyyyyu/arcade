@@ -1,7 +1,7 @@
 /**
  * 每日挑战的行情段池（0.5.10 起冻结）：每日挑战只在这些段里按种子抽，段库以后加了新段也不影响每日挑战抽到哪一段，
- * 同一天前后打的是同一局（排行榜才比得起来）。顺序和数量都不能改；要换段池就加一个版本（DAILY_RULES），
- * 榜单 ID 跟着加 -v<n>。冻结时和 public/data/segments/index.json 的顺序一致，所以抽到的段和 0.5.9 及以前一样。
+ * 同一天前后打的是同一局（排行榜才比得起来）。顺序和数量不随便改：改了的那一天，改之前和之后打的不是同一局。
+ * 冻结时和 public/data/segments/index.json 的顺序一致。
  */
 export const DAILY_SEGMENTS: readonly string[] = [
   'seg_118683445d', 'seg_bea9d7405c', 'seg_a2b822e5af', 'seg_3406225ac6', 'seg_503ea2c0d0', 'seg_1f3c87568b', 'seg_426e8efecc', 'seg_2fd2afad3f',

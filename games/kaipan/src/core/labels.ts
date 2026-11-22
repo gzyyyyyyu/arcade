@@ -1,4 +1,4 @@
-import type { AutoSellReason, Dir, EndReason, Feel, ItemKind, Mood, Rarity, RewardKind, Role, Stage } from './types.ts';
+import type { AutoSellReason, Dir, Feel, ItemKind, Mood, Rarity, RewardKind, Role, Stage } from './types.ts';
 
 /** 风口的真实状态（只有"风口温度计"、"熬夜复盘"、结束页复盘能显示）。 */
 export const STAGE_LABEL: Record<Stage, string> = {
@@ -73,7 +73,3 @@ export const AUTO_SELL_LABEL: Record<AutoSellReason, string> = {
   delist: '退市',
 };
 
-export const END_REASON_LABEL: Record<EndReason, string> = {
-  bankrupt: '没还上钱，游戏结束',
-  margin: '开了杠杆，跌到清零线，这局按 0 结',
-};

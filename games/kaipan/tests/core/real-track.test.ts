@@ -64,15 +64,11 @@ describe('0.5 个股照搬真实走势', () => {
     expect(checked).toBeGreaterThan(1000);
   });
 
-  it('性格校正只在风口内换绑定的真实序列，不丢股票；0.4 的映射（legacyReal）不校正', () => {
+  it('性格校正只在风口内换绑定的真实序列，不丢股票', () => {
     const seg = segs[3] as (typeof segs)[number];
     const a = createRun('fit', null, { segment: seg }).state;
-    const b = createRun('fit', null, { segment: seg, legacyReal: true }).state;
-    expect(b.real?.track).toBeUndefined();
-    expect(Object.keys(a.real?.stocks ?? {}).sort()).toEqual(Object.keys(b.real?.stocks ?? {}).sort());
-    const idsA = Object.values(a.real?.stocks ?? {}).map((x) => x.id).sort();
-    const idsB = Object.values(b.real?.stocks ?? {}).map((x) => x.id).sort();
-    expect(idsA).toEqual(idsB);
+    expect(a.real?.track).toBe(true);
+    expect(Object.keys(a.real?.stocks ?? {}).sort()).toEqual(Object.keys(a.stocks).sort());
     for (const [slot, x] of Object.entries(a.real?.stocks ?? {})) expect(x.id.split('_')[0]).toBe(seg.themes[stockById(slot).theme].stocks[0]?.id.split('_')[0]);
   });
 

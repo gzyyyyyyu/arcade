@@ -18,7 +18,8 @@ import { APP_VERSION } from './version.ts';
  * 存档：完整的局面快照 + 写入时的版本号（format 5，对应 0.3.0 起的状态结构 GameState.version 4）。
  *
  * 读档直接使用快照，不回放：小版本调整数值后，旧存档仍按玩家当时看到的局面继续。
- * 0.3 以前和撤回的 0.4.0-alpha.1 的存档（format ≤ 4、6）读不了：清掉，提示"版本大更新"后开新局。
+ * 0.3 以前和撤回的 0.4.0-alpha.1 的存档（format ≤ 4、6），以及格式 5 里 0.3.0、0.4 开发期的老局（isOldSave）读不了：
+ * 清掉，提示"版本大更新"后开新局。
  * 它们以前的迁移和备份在 0.6.15 删了，启动时 clearLegacyKeys 一次性清掉当年留下的备份 key。
  * 存档损坏时先另存一份到 CORRUPT_KEY 再清除，便于排查。
  * 档案（成就、图鉴、解锁、各种最好成绩）在 src/platform/profile.ts，与单局存档互不影响；设置（kaipan.settings）也不受影响。
@@ -159,7 +160,7 @@ export function reviveState(raw: unknown): GameState | null {
   const copy = structuredClone(raw);
   const state = asGameState(copy);
   state.difficulty = clampDifficulty(state.difficulty);
-  // 统计字段：缺失或类型不对的补缺省值（0.3.0 新增的 monthRets、acquired 等，缺了读档后玩几步会出错）
+  // 统计字段：缺失或类型不对的补缺省值（以后加的统计项，旧存档读进来从 0 记起，玩几步不出错）
   // copy 和 state 是同一个对象，这里按「键值表」读写 stats，前面的校验已经保证它是对象
   const stats = copy.stats;
   if (!isObject(stats)) return null;
@@ -167,26 +168,6 @@ export function reviveState(raw: unknown): GameState | null {
     const cur = stats[k];
     const ok = Array.isArray(v) ? Array.isArray(cur) : v === null ? cur === null || finite(cur) : finite(cur);
     if (!ok) stats[k] = structuredClone(v);
-  }
-  // 0.5.4 的炒股、账单合计不补缺省值：0.5.3 的存档从半路记起是半截数，缺了就让结算走旧说法；坏了两项一起丢
-  if (!finite(stats.tradeMoney) || !finite(stats.billMoney)) {
-    delete stats.tradeMoney;
-    delete stats.billMoney;
-  }
-  // 0.3.0 存档里的上一天结算没有 0.3.1 的归因、新闻、台词：补空，画面照常显示
-  const last = state.lastDay as unknown;
-  if (isObject(last)) {
-    if (!Array.isArray(last.news)) last.news = [];
-    if (!Array.isArray(last.quips)) last.quips = [];
-    if (isObject(last.account) && !Array.isArray(last.account.effects)) last.account.effects = [];
-    if (Array.isArray(last.holdings)) {
-      for (const h of last.holdings as unknown[]) {
-        if (!isObject(h)) continue;
-        if (!Array.isArray(h.parts)) h.parts = [];
-        if (!isObject(h.lead)) h.lead = null;
-        if (!finite(h.amount)) h.amount = 0;
-      }
-    }
   }
   state.pending = state.pending.filter((p) => isObject(p) && typeof p.id === 'string' && isEventId(p.id) && finite(p.amount) && int(p.month));
   state.expiring = state.expiring.filter((x) => isObject(x) && typeof x.id === 'string' && isItemId(x.id) && int(x.month));
@@ -230,7 +211,7 @@ function discard(store: KeyValueStore | null, key: string, raw: string, reason: 
 /**
  * 读取存档（启动时调用一次）：
  * - 没有存档：{ state: null, notice: null }
- * - 0.3 以前或 0.4.0-alpha.1 的存档：清掉，{ state: null, notice: 'legacy' }，开始菜单提示后开新局
+ * - 0.3 以前、0.4.0-alpha.1 的存档，和格式 5 里接不上的老局（isOldSave）：清掉，{ state: null, notice: 'legacy' }，开始菜单提示后开新局
  * - 存档损坏、格式不认识：备份到 kaipan.save.corrupt 后清除，{ state: null, notice: 'corrupt' }
  */
 export function loadSave(store: KeyValueStore | null = defaultStore()): LoadResult {
@@ -250,10 +231,26 @@ export function loadSave(store: KeyValueStore | null = defaultStore()): LoadResu
     return { state: null, notice: 'legacy' };
   }
   if (format !== SAVE_FORMAT) return discard(store, KEY, raw, `未知存档格式 ${String(format)}`);
+  if (isOldSave(data.state)) {
+    remove(store, KEY);
+    console.info('读到接不上的老局（0.4 开发期真实行情或 0.3.0），已清掉');
+    return { state: null, notice: 'legacy' };
+  }
   const state = reviveState(data.state);
   if (!state) return discard(store, KEY, raw, '局面结构不对');
   if (data.appVersion !== APP_VERSION) console.info(`存档来自 ${String(data.appVersion)}，当前 ${APP_VERSION}，按存档局面继续`);
   return { state, notice: null };
+}
+
+/**
+ * 格式也是 5、但现在的代码接不上的老局，读到提示一次后清掉：
+ * - 0.4 开发期的真实行情局：state.real 没有 track（0.5 起个股照搬真实走势，旧的映射走法已删）；
+ * - 0.3.0 的局：上一天结算没有新闻（0.3.1 起才有归因、新闻、台词）。
+ */
+function isOldSave(state: unknown): boolean {
+  if (!isObject(state)) return false;
+  if (isObject(state.real) && state.real.track !== true) return true;
+  return isObject(state.lastDay) && !Array.isArray(state.lastDay.news);
 }
 
 /** 是否有可以继续的存档（不修改存储）。 */
@@ -262,7 +259,7 @@ export function hasSave(store: KeyValueStore | null = defaultStore()): boolean {
   if (!raw) return false;
   try {
     const data = JSON.parse(raw) as Partial<SaveData>;
-    return data.format === SAVE_FORMAT && reviveState(data.state) !== null;
+    return data.format === SAVE_FORMAT && !isOldSave(data.state) && reviveState(data.state) !== null;
   } catch {
     return false;
   }

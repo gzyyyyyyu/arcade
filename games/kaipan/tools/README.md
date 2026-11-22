@@ -23,6 +23,7 @@
 | `live.ts` | 实盘量测：某档、某机器人打 N 局，结回倍数分布（由 sim 和测试调用） | `npm run sim -- --live` |
 | `intel-check.ts` | 群友消息说中率、推荐股票后续涨跌 | `node tools/intel-check.ts` |
 | `realness.ts` | 游戏里个股、大盘逐日涨跌与真实行情的相似度 | `node tools/realness.ts` |
+| `parity.ts` | 核心对拍：同一批种子（实盘四档 + 娱乐普通局，真实行情）在两份代码上各跑一遍，逐局比终局阶段、账户、持仓、结回额、事件流和状态指纹；重构、删旧路径交审时附上 | 在要跑的那份代码的模块目录里 `node <路径>/tools/parity.ts run --from 1 --to 200 --out <结果.json>`，再 `node tools/parity.ts diff <旧.json> <新.json>` |
 | `tempo-check.ts` | 节奏：主题是否重复、每月高光、平淡日比例、月度目标完成率 | `node tools/tempo-check.ts` |
 | `perf.ts` | 性能：正式构建上量开机、开局、交易日的长任务、帧时间、纹理上传和量字次数、包体积（电脑 1280 / 竖屏 CPU 4 倍降速）；`--who` 找纹理上传来自哪段代码，`--cpuprofile` 存 CPU 采样 | `npm run build -- --outDir <目录>` 后 `node tools/perf.ts --dist <目录>`（浏览器排队） |
 

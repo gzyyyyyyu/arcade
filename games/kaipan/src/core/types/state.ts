@@ -203,11 +203,6 @@ export interface DayPlan {
   marketRet: number;
   /** 各题材今天的热度变化（未截断到 0..100） */
   dH: Partial<Record<ThemeId, number>>;
-  /**
-   * 0.4 重做（真实行情）：其中来自真实行情的部分（大盘涨跌 pp、各题材热度变化）；其余是日历、难度、道具、事件的加成。
-   * 合成行情没有这一项。
-   */
-  base?: { market: number; dH: Partial<Record<ThemeId, number>> };
 }
 
 export interface TodayState {

@@ -3,8 +3,8 @@ import { BALANCE } from '../balance.ts';
 import { ITEMS, personaById, stockById, stocksOf } from '../content/index.ts';
 import { rulesOf, stageDays, uniformInt } from '../market.ts';
 import { rngFor } from '../rng.ts';
-import { forwardRet, isTrack } from '../real.ts';
-import type { RealMarket } from '../segment.ts';
+import { forwardRet } from '../real.ts';
+
 import type { Action, GameState, Holding, Rarity, RewardCard } from '../types.ts';
 import { daysInMonth, firstEmpty, isFlash } from './calendar.ts';
 import { startDay } from './day.ts';
@@ -51,7 +51,7 @@ export function rewardCandidates(s: Readonly<GameState>): Record<RewardCard['kin
   for (const id of s.themeIds) {
     const t = s.themes[id];
     // 0.5 真实行情：股票卡是"内部消息"——以 BALANCE.intel.headline 的概率只给接下来一个月真实走势偏强的（不看风口阶段）
-    const track = isTrack(s.real) ? (s.real as RealMarket) : null;
+    const track = s.real ?? null;
     if (!t || (!track && !(STOCK_CARD_STAGES as readonly string[]).includes(t.stage))) continue;
     for (const d of stocksOf(id)) {
       if ((d.role !== 'leader' && d.role !== 'meme') || held.has(d.id) || !s.stocks[d.id] || s.stocks[d.id]?.delisted) continue;

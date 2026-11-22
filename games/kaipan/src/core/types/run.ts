@@ -47,16 +47,16 @@ export interface RunStats {
   chains: number;
   peakAccount: number;
   billsPaid: number;
-  /** 0.5.4：账户实际付掉的账单合计（信用卡垫的不算；旧存档没有） */
-  billMoney?: number;
-  /** 0.5.4：炒股本身累计赚亏（每天收盘结算的账户变化之和，不含账单、利息、奖励、银行；旧存档没有） */
-  tradeMoney?: number;
+  /** 0.5.4：账户实际付掉的账单合计（信用卡垫的不算） */
+  billMoney: number;
+  /** 0.5.4：炒股本身累计赚亏（每天收盘结算的账户变化之和，不含账单、利息、奖励、银行） */
+  tradeMoney: number;
   trades: TradeLog[];
   /** 选过的奖励 id */
   picked: string[];
   events: string[];
-  /** 0.20.x：事件里选了哪个选项，每项 `事件id:选项序号`（成就用；只记录、不影响规则；旧存档没有） */
-  eventPicks?: string[];
+  /** 0.20.x：事件里选了哪个选项，每项 `事件id:选项序号`（成就用；只记录、不影响规则） */
+  eventPicks: string[];
   /** 持仓里有跌停的交易日数 */
   limitDownDays: number;
   /** 单日账户最大涨幅（pp） */

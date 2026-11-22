@@ -243,6 +243,10 @@ export class RewardPanel {
     if (pt) {
       title.setY(top - 30);
       gift.setY(top - 30);
+      // 竖屏的标题正好落在持仓卡的文字上，隔着遮罩还和底下的字糊在一起：垫一条深色圆角底
+      const left = gift.x - gift.displayWidth / 2 - 14;
+      const band = scene.add.rectangle(left, top - 30, title.x + title.width / 2 + 18 - left, 54, COLOR.ink, 0.72).setOrigin(0, 0.5).setRounded(27);
+      this.root.addAt(band, this.root.getIndex(gift));
     }
     const x0 = pt ? 12 : V.w / 2 - (CW * n + gap * (n - 1)) / 2;
     let rare = false;

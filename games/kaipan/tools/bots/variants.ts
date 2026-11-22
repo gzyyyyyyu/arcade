@@ -221,12 +221,12 @@ export function trackBot(name: string, mode: 'smart' | 'oracle' | 'truster', inn
   };
 }
 
-/** 真实行情 0.5 用 trackBot，其余（合成行情、0.4 旧档）用原来的机器人。 */
+/** 真实行情用 trackBot，合成行情用原来的机器人。 */
 export function dual(track: Bot, old: Bot): Bot {
   return {
     name: track.name,
     act(s, rng) {
-      return s.real?.track ? track.act(s, rng) : old.act(s, rng);
+      return s.real ? track.act(s, rng) : old.act(s, rng);
     },
   };
 }

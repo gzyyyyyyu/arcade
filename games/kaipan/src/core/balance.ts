@@ -192,7 +192,7 @@ export interface Balance {
   real: RealParams;
   /** 0.4 C：仓位、押跌、抵押（state.ext 不为 null 时生效），见 docs/core-api-market.md 第 8 节 */
   ext: ExtParams;
-  /** 0.5：个股照搬真实走势（state.real.track 为 true 时生效），见 docs/core-api-market.md 第 7.2 节 */
+  /** 0.5：个股照搬真实走势（真实行情的局都是），见 docs/core-api-market.md 第 7.2 节 */
   track: TrackParams;
   /** 0.5：情报从真实未来推算（真实行情 0.5 模式） */
   intel: IntelParams;
@@ -390,24 +390,17 @@ export interface ExtParams {
   shortLevel: number;
 }
 
-/** 真实行情怎么映射成 0.3 的风口、大盘和个股。 */
+/** 真实行情怎么推出风口的热度和阶段、大盘天气（个股和风口涨跌照搬真实走势，见 TrackParams）。 */
 export interface RealParams {
-  /** 大盘：游戏里的大盘涨跌 = ampMarket × 老三十当天的真实涨跌 */
-  ampMarket: number;
-  /** 个股相对行业那块：按这只股票这一段的平均幅度归一后乘 ownK × 0.3 的角色噪声（白马 0.6、妖股 4……） */
-  ownK: number;
   /** 行业超额收益的均摊系数（1 = 不均摊；0.35 = 当天只体现 35%，其余摊到之后几天）：让风口有惯性，热度和群聊说法也跟着顺 */
   smooth: number;
-  /** 风口涨跌：行业相对所有行业平均的超额收益（均摊后）按这一段的日波动归一后乘 themeK，再乘 0.3 的题材振幅（pp） */
-  themeK: number;
   /** 行业一个"平常日子"的超额收益（相对大盘，按这一段的平均绝对值归一）带来的热度变化 */
   heatGain: number;
   /** 热度每天向 heatBase 回落的比例（没人炒的风口慢慢凉） */
   heatPull: number;
   heatBase: number;
-  /** 大盘天气：最近 moodDays 天大盘涨跌（放大后，pp）的平均 ≥ moodBull 为晴，≤ −moodBull 为雨 */
+  /** 大盘天气：最近 moodDays 天大盘涨跌（放大后，pp）的平均 ≥ track.moodBull 为晴，≤ −track.moodBull 为雨 */
   moodDays: number;
-  moodBull: number;
   /** 风口阶段的判定（热度、当天热度变化） */
   stage: {
     /** 冷门 → 冒头：当天热度涨 ≥ sproutDH 且收盘热度 ≥ sproutHeat */
@@ -660,15 +653,11 @@ export const BALANCE: Balance = {
     clarify: { pct: 1 },
   },
   real: {
-    ampMarket: 0.6,
-    ownK: 0.8,
     smooth: 0.35,
-    themeK: 11,
     heatGain: 12,
     heatPull: 0.2,
     heatBase: 20,
     moodDays: 3,
-    moodBull: 0.4,
     stage: {
       sproutDH: 4,
       sproutHeat: 24,
