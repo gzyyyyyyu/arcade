@@ -697,6 +697,21 @@ export class MatchClient {
   }
 }
 
+// ---------- 大厅声音（0.30.0） ----------
+
+/**
+ * 大厅的声音开关（平台对游戏公开的唯一一个存储约定，docs/sound.md）：平台把关掉记成 localStorage `arcade.sound` = 'off'。
+ * 游戏只读不写：启动时读一次，false 就这一次打开先静音、自己的开关显示关；玩家在游戏里打开只管本游戏这一次，不写这个 key、也不改游戏自己存的偏好。
+ * 没有这个 key、读不了（隐私模式、单独部署没有平台）都算开着。
+ */
+export function platformSoundOn(): boolean {
+  try {
+    return globalThis.localStorage?.getItem('arcade.sound') !== 'off';
+  } catch {
+    return true;
+  }
+}
+
 // ---------- 有没有平台（0.10.0，独立部署时页面降级用） ----------
 
 /**

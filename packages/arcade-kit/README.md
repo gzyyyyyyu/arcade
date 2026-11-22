@@ -75,7 +75,7 @@ if (!('error' in made)) {
 | `arcade-kit/room` | `GameRoom`: Durable Object room base class (seats, turns, reconnect, bots, limits) |
 | `arcade-kit/worker` | `acceptCreate`, `acceptJoin`, `acceptMatch`, `loginGate`, and small response helpers for the game Worker |
 | `arcade-kit/game` | `RoomGame` rule interface, `snapshotBytes`, `matchConfigErrors` |
-| `arcade-kit/client` | `RoomClient`, `MatchClient`, `createRoom`, default texts, `detectPlatform` |
+| `arcade-kit/client` | `RoomClient`, `MatchClient`, `createRoom`, default texts, `detectPlatform`, `platformSoundOn` |
 | `arcade-kit/protocol` | Message types, protocol version, close codes, room-code format |
 | `arcade-kit/meter` | `RoomMeter` daily write and room quota (export it, bind it as `METER`) |
 | `arcade-kit/match` | `MatchQueue`: quick-match queue Durable Object |
@@ -113,7 +113,7 @@ if (!('error' in made)) {
 | `auth`、`guest` | 经平台 `/api/me` 认人（fail-closed）、按部署方式认人、同站校验；独立模式的游客 cookie 和昵称清洗 | [deploy-modes](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/deploy-modes.md) |
 | `meter` | 计量 `RoomMeter`：每天的写入额度、每人和全站的开房名额；`meterReport`、`meterLevel` 给房间以外的 DO 用 | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) 的"每天的额度" |
 | `game` | 规则接口 `RoomGame`、快照体积 `snapshotBytes`、匹配档位检查 `matchConfigErrors` | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) |
-| `client` | `RoomClient`：退避加抖动重连、静默死连接探测、seq 去重、没确认的操作重发；`MatchClient`；`createRoom`、默认文案；`detectPlatform` | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) |
+| `client` | `RoomClient`：退避加抖动重连、静默死连接探测、seq 去重、没确认的操作重发；`MatchClient`；`createRoom`、默认文案；`detectPlatform`；`platformSoundOn`（大厅静音带进游戏，[sound](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/sound.md)） | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) |
 | `protocol` | 消息类型、协议版本、关闭码、房间码格式 | |
 | `rng`、`prng` | 联机发牌用 ChaCha20 流；单机规则核心用 sfc32（种子 32 位、不保密，**不得用于联机发牌**） | |
 | `viewport` | 手机平板的可见区、双指放大、安全区、渲染倍数、省内存、WebGL 丢失恢复 | [viewport](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/viewport.md) |

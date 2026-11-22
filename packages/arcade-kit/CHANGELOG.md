@@ -1,5 +1,12 @@
 # 更新日志
 
+## 0.30.0（2026-11-22）
+
+- **新 `platformSoundOn()`（`arcade-kit/client`，`docs/sound.md`）：大厅静音带进游戏。** 平台大厅关了声音记成 localStorage `arcade.sound` = `'off'`，
+  这是平台对游戏公开的唯一一个存储约定，游戏只读不写。游戏启动时读一次：false 就这一次打开先静音、自己的开关显示关；玩家在游戏里打开只管本游戏这一次，
+  不写 `arcade.sound`、不改游戏自己存的偏好。没有这个 key、读不了（隐私模式、单独部署、Node）都返回 true。
+- 测试：`create.test.ts` 加两条（只有 'off' 是关、读不了算开且不抛错；假 localStorage 的 setItem 一碰就抛，锁住"只读"）。
+
 ## 0.29.0（2026-11-22）
 
 - **新子路径 `arcade-kit/personas`：全站共用的电脑名册**（`docs/personas.md`）。牌类游戏里的电脑以后是同一批人，名字、人设、口头禅、头像、性格只写在这里，每个游戏把性格翻译成自己的打法：

@@ -1,6 +1,6 @@
 /** 开房和默认文案（0.8.0，client.ts）：createRoom 把各种回话收成 { code } 或 { error }；文案按 key 可以覆盖 */
 import { describe, expect, it, vi } from 'vitest';
-import { closeText, createRoom, createText, detectPlatform, ROOM_TEXT, withNickname } from '../src/client.ts';
+import { closeText, createRoom, createText, detectPlatform, platformSoundOn, ROOM_TEXT, withNickname } from '../src/client.ts';
 import { CLOSE, CLOSE_REASON } from '../src/protocol.ts';
 
 /** 假的 fetch：记下请求，回指定的响应 */
@@ -96,5 +96,35 @@ describe('detectPlatform、withNickname（0.10.0）', () => {
     expect(withNickname('wss://a.example/games/x/rooms/123456/ws?cv=3#x', 'a b')).toBe('wss://a.example/games/x/rooms/123456/ws?cv=3&name=a%20b#x');
     expect(withNickname('rooms', '')).toBe('rooms');
     expect(withNickname('rooms', null)).toBe('rooms');
+  });
+});
+
+describe('platformSoundOn：大厅静音带进游戏（平台公开的 arcade.sound，只读）', () => {
+  const store = (v: string | null) => ({ getItem: (k: string) => (k === 'arcade.sound' ? v : null), setItem: () => { throw new Error('游戏不该写 arcade.sound'); } });
+
+  it("只有 'off' 才是关；没有这个 key、别的值都算开", () => {
+    const real = globalThis.localStorage;
+    try {
+      vi.stubGlobal('localStorage', store('off'));
+      expect(platformSoundOn()).toBe(false);
+      for (const v of [null, 'on', '', 'OFF']) {
+        vi.stubGlobal('localStorage', store(v));
+        expect(platformSoundOn()).toBe(true);
+      }
+    } finally {
+      vi.stubGlobal('localStorage', real);
+    }
+  });
+
+  it('读不了（隐私模式抛错、没有 localStorage）都算开，不抛错', () => {
+    const real = globalThis.localStorage;
+    try {
+      vi.stubGlobal('localStorage', { getItem: () => { throw new Error('SecurityError'); } });
+      expect(platformSoundOn()).toBe(true);
+      vi.stubGlobal('localStorage', undefined);
+      expect(platformSoundOn()).toBe(true);
+    } finally {
+      vi.stubGlobal('localStorage', real);
+    }
   });
 });
