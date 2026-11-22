@@ -2,12 +2,14 @@
 
 > 本文件是 [core-api.md](core-api.md) 的分册，节号和内容原样保留；总目录见 [core-api.md](core-api.md)。
 
-## 10. 局的种类：完整一年、娱乐短局、实盘、每日挑战、闪电盘、本周市场、好友挑战
+## 10. 局的种类：完整一年、娱乐短局、新号短局、新手课、实盘、每日挑战、闪电盘、本周市场、好友挑战
 
 | 种类 | 开局 | 规则差别 |
 |---|---|---|
 | 完整一年 | `createRun(seed, { persona, difficulty })` | 12 个月，打完最后一个月月底的账单即通关（`runWon`），没有奖励 |
 | 娱乐短局 | `shortSetup(persona, difficulty)` | 只打 `BALANCE.short.months`（5）个月；账单 × `billMult`（0.25）；最后一个月月底多交一笔「首付」（突发账单 `SHORT_GOAL_BILL`，金额 = 开局资产 × `short.goal[难度]`，`shortGoal(s)`）。`runMonths(s)` 给出这局打几个月；`shortNeed(s)` 给出剩下的账单加首付一共约多少（本月用已公布的账单，以后几个月按不带主题的规则表 `rulesWithoutTheme` 估，不透露没公布的主题和突发账单） |
+| 新号短局 | `noviceSetup(persona)` | 新手档短局，首付比例换成 `BALANCE.novice.goal`（0.85）；画面在档案正式局不到 `BALANCE.novice.runs`（3）局时用它，行情段只从 `NOVICE_SEGMENTS`（不含崩盘、熊市）里按种子抽，`isNoviceSetup(setup)` 认出它（重玩同池）。规则和娱乐短局相同，进档案 |
+| 新手课 | `lessonSetup()`，种子 `LESSON.seed`、段 `LESSON.segment` | 两个月短局，账单 × 0.05，首付 = 开局资产（不亏就过）；`setup.lesson = true`，必须是短局、不和每日挑战等同开。`lessonAdvice(s)` 给盘前建议，`mindMoment(s)` 给心法的当场例子（`src/core/lesson.ts`，设计见 `design-lesson.md`）。不进档案、不交分，过关记 `Profile.lessonWon`、六张心法全亮 |
 | 实盘 | `liveSetup(tier, persona, x)` | 档位 `small / mid / big / lux`（`LIVE_TIERS`：一份 2,000 / 10,000 / 50,000 / 200,000 筹码，难度 1/2/3/3）；打 5 个月；账单 × 档位 `billMult`。结回倍数见下 |
 | 每日挑战 | `dailySetup(date)` → `{ date, seed, setup }` | 种子 `daily-<日期>`；人设从 5 个里挑（含未解锁的）、难度 2..5（`DAILY_LEVELS`）；段在冻结池里抽，大家同一段；日期用玩家本地日期，由画面决定 |
 | 闪电盘 | `flashSetup(date)` → `{ date, seed, setup }` | 种子 `flash-<日期>`，独立的 rng 用途名；人设 5 选 1、难度 2..4（`FLASH_LEVELS`）；段 `flashSegmentId(date)` 在每日冻结池里抽。只打 `BALANCE.flash.months`（2）个月 = `flashDays()`（10）个交易日：没有月供、突发账单、股灾传闻、月度主题（`startMonth` 的 `isFlash` 分支，不发 `monthStarted`），月底不发奖励不抽事件，不会出局。开局 `phase = 'reward'`，三选一只出道具（`rollFlashRewards`，不含 `credit / crowd_fund`，rng 用途 `flashReward`），领完才 `startDay`；第 `BALANCE.flash.eventAfter`（4、8）个交易日收盘后必来一个事件，从 `FLASH_EVENTS`（当场见分晓的 9 个）里抽、不重复（`flashEvent`，rng 用途 `flashEvent`），选完直接接着打。`isFlash(s)` 判断；`flashScore(s)` 是分数。不进档案，不能发好友挑战 |

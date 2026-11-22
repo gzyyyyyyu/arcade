@@ -4,6 +4,7 @@ import {
   isBusy,
   validate,
   ipoToday,
+  lessonAdvice,
   type Action,
   type ThemeId,
 } from '../../src/core/index.ts';
@@ -169,3 +170,21 @@ export function qunzhuBot(): Bot {
   };
 }
 
+
+/**
+ * 新手课（src/core/lesson.ts）：一直照 lessonAdvice 做。variant 是故意不照做的一条，测这条心法值多少：
+ * nostop 不止损（建议卖的只在不是止损时卖）、heavy 买一律重仓。奖励都不要，事件选第 2 项。
+ */
+export function lessonBot(variant: '' | 'nostop' | 'heavy' = ''): Bot {
+  return {
+    name: variant ? `lesson-${variant}` : 'lesson',
+    act(s) {
+      if (s.phase === 'reward') return { type: 'skipReward' };
+      if (s.phase === 'event') return { type: 'choose', option: 1 };
+      const a = lessonAdvice(s);
+      if (!a || a.kind === 'wait') return { type: 'open' };
+      if (a.kind === 'sell') return variant === 'nostop' && a.mind === 'zhisun' ? { type: 'open' } : { type: 'sell', slot: a.slot };
+      return { type: 'buy', rec: a.rec, size: variant === 'heavy' ? 'heavy' : 'taste' };
+    },
+  };
+}

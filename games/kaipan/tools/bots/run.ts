@@ -11,13 +11,13 @@ import {
   type RunSetup,
 } from '../../src/core/index.ts';
 import { type Bot, type BotFactory, shouldCut, swanSell, swanBlocks, ipoSubscribe, touchesFrozen } from './common.ts';
-import { ipoOnlyBot, randomBot, followerBot, chaserBot, xiaobaiBot, qunzhuBot } from './simple.ts';
+import { ipoOnlyBot, randomBot, followerBot, chaserBot, xiaobaiBot, qunzhuBot, lessonBot } from './simple.ts';
 import { normalBot } from './normal.ts';
 import { SmartBot } from './smart.ts';
 import { extBot, trackBot, dual } from './variants.ts';
 
 /** 这些机器人要用新机制，playRun 总是给它们打开 ext。 */
-const NEEDS_EXT = new Set(['heavy', 'shorter', 'gambler', 'gambler-smart', 'ipo-only', 'ipo-only-half', 'ipo-only-heavy']);
+const NEEDS_EXT = new Set(['heavy', 'shorter', 'gambler', 'gambler-smart', 'ipo-only', 'ipo-only-half', 'ipo-only-heavy', 'lesson', 'lesson-nostop', 'lesson-heavy']);
 
 /** 行情来源：缺省为 0.3 的合成行情；模拟真实行情时设成"按种子给行情段"（见 tools/segments-disk.ts）。 */
 let marketOf: ((seed: string) => Segment | null) | null = null;
@@ -90,6 +90,9 @@ export const BOTS: Record<string, BotFactory> = {
   'smart-norec': () => new SmartBot({ name: 'smart-norec', maxPerTheme: 2, sameThemeBonus: 0, oracle: false, ignoreRec: true }),
   'oracle-stage': () => new SmartBot({ name: 'oracle-stage', maxPerTheme: 9, sameThemeBonus: 0, oracle: true, oracleToday: false }),
   qunzhu: qunzhuBot,
+  lesson: () => lessonBot(),
+  'lesson-nostop': () => lessonBot('nostop'),
+  'lesson-heavy': () => lessonBot('heavy'),
   'ipo-only': () => ipoOnlyBot('taste'),
   'ipo-only-half': () => ipoOnlyBot('half'),
   'ipo-only-heavy': () => ipoOnlyBot('heavy'),
@@ -121,6 +124,9 @@ export const BOT_DESC: Record<string, string> = {
   gambler: '0.4 C 抵押赌徒：normal 的选股，第 2 个月起能押的都押去借钱，从不主动赎回',
   'gambler-smart': '0.4 C 诊断：smart 的选股 + 能押的都押',
   qunzhu: '无脑跟群主：买群主推荐的，群主说跌就卖',
+  lesson: '新手课：一直照 lessonAdvice 做（每只试一口、亏 8% 止损、过热喊跌落袋、黑天鹅预告就空仓）',
+  'lesson-nostop': '新手课对照：照建议买，但从不止损',
+  'lesson-heavy': '新手课对照：照建议做，但买一律重仓',
   'ipo-only': '只打新（配平用）：除了申购什么都不买，每次试一口，中签的新股上市第 2 天卖；-half / -heavy 是每次半仓 / 重仓',
   'normal-nomsg': '诊断：normal 不看消息（推荐照常）',
   'smart-peek': '诊断：smart + 偷看所有题材今天的热度变化（消息价值的上限）',

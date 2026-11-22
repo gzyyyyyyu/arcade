@@ -27,6 +27,7 @@
  *   node tools/shot.ts --v05 [--l1|--l3] [--until N] --out shots/v05   0.5 试玩：选难度开局、真实鼠标键盘打完整局（--until 打到第 N 个月），记时长、每月停几次、弹窗数
  *   node tools/shot.ts --ipo [--phone] 只跑打新：申购日横条 → 申购面板 → 申购 → 出签 → 新股持仓；刷新读档、连点、减少动态效果、回菜单继续、不发网络请求（--phone 为 844×390，另外还跑 390×844 竖屏「照样玩」）
  *   node tools/shot.ts --market     0.35.0 炒股手感：中盘局面的交易页（大盘情绪、领涨领跌、持仓累计钱数）→ 股票详情 K 线页 → 加自选（电脑 1280 + 竖屏 390×844）
+ *   node tools/shot.ts --lesson [--defy] [--portrait]  新手课：新号点「先上一课」照老师傅做完要过关、六张心法全亮、图鉴心法页；--defy 一律重仓不卖要弹心法、没过
  *   node tools/shot.ts --main       只跑主流程那一段（不加参数时跑主流程 + --meta、--friendly、--real、--story）
  *   node tools/shot.ts --vis --out shots/vis-after   0.5 去文字化：主要画面截图，并统计每个画面可见汉字数（counts.json）
  *   node tools/shot.ts --phone [--ext|--meta|…] --out shots/phone   0.5.5 手机横屏：同一套冒烟改在 844×390（layout=phone）上跑，
@@ -51,6 +52,7 @@ import { extShots } from './shot/modes/ext.ts';
 import { friendlyShots } from './shot/modes/friendly.ts';
 import { ipoShots } from './shot/modes/ipo.ts';
 import { liveShots } from './shot/modes/live.ts';
+import { lessonShots } from './shot/modes/lesson.ts';
 import { lobbyShots } from './shot/modes/lobby.ts';
 import { lowMemShots } from './shot/modes/lowmem.ts';
 import { run } from './shot/modes/main.ts';
@@ -111,6 +113,7 @@ async function main(): Promise<void> {
       for (const lv of only) await playtest05(browser, lv, `L${lv}`, lv === 1 ? 7919 : 9001, until);
     } else if (process.argv.includes('--vis')) await visShots(browser);
     else if (process.argv.includes('--playtest')) await playtest(browser);
+    else if (process.argv.includes('--lesson')) await lessonShots(browser);
     else if (process.argv.includes('--meta')) await metaShots(browser);
     else if (process.argv.includes('--friendly')) await friendlyShots(browser);
     else if (process.argv.includes('--real')) await realShots(browser);

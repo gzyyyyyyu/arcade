@@ -694,7 +694,7 @@ export class SetupPanel extends Dialog {
     if (d) {
       const t = this.levelText(d.level, d.desc, d.detail);
       const desc = t.desc === this.levelShort(this.difficulty) ? (t.detail ?? t.desc) : t.desc;
-      const goal = shortGoalFor(funSetup({ persona: this.persona, difficulty: this.difficulty, short: this.short }));
+      const goal = shortGoalFor(funSetup({ persona: this.persona, difficulty: this.difficulty, short: this.short }, this.profile.runs));
       const len = this.short ? `${BALANCE.short.months} 个月约 ${LIVE_MINUTES} 分钟 · 最后交首付 ${wanShort(goal)}` : `一年约 ${FUN_MINUTES} 分钟 · ${desc}`;
       this.diffDesc.setText(ellipsize(`${d.who ? `适合${d.who} · ` : ''}${len}`, 56));
       this.fitPhone(this.diffDesc);
