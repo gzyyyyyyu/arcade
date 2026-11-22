@@ -376,7 +376,7 @@ export class BankPanel extends Dialog {
       y += sectionH;
       for (const l of b.loans) {
         line(y, 0xfff1c4, COLOR.gold, COLLATERAL_GLYPH[l.id] ?? 'bag', l.name, false);
-        add(addText(scene, amtX, y + mid, moneyShort(-l.amount), { size: amtSize, bold: true, num: true, color: COLOR.down, originY: 0.5 }));
+        add(addText(scene, amtX, y + mid, moneyShort(-l.amount), { size: amtSize, bold: true, num: true, color: COLOR.danger, originY: 0.5 }));
         if (showInt) add(addText(scene, intX, y + mid, `息${moneyShort(l.interest)}/月`, { size: TYPE.label + 1, num: true, color: COLOR.muted, originY: 0.5 }));
         if (!ph) {
           add(addGlyph(scene, 494, y + 23, 'calendar', 18));

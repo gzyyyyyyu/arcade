@@ -10,7 +10,7 @@ const BODY = 15;
 function size(scene: Phaser.Scene, body: string): { w: number; h: number } {
   const w = dialogW(scene, 520);
   const t = addText(scene, 0, 0, body, { size: BODY, wrap: w - 64, lineSpacing: 6 });
-  const h = Math.max(260, Math.ceil(80 + t.height + 84));
+  const h = Math.max(200, Math.ceil(80 + t.height + 84));
   t.destroy();
   return { w, h };
 }

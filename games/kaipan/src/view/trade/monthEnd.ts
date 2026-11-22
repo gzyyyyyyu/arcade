@@ -6,13 +6,12 @@ import type { Animator } from '../fx/anim.ts';
 import { addBackdrop, shake } from '../fx/effects.ts';
 import { goldGlint, sparkles } from '../fx/particles.ts';
 import { EVENT_ORDER, eventOptionForKey, shortItemName } from '../labels.ts';
-import { isTouch } from '../input.ts';
 import { sound } from '../sound.ts';
 import { ROLE_WORD } from '../glossary.ts';
 import { COLOR, FS, ITEM_KIND_COLOR, RARITY_COLOR, THEME_COLOR, TYPE, signColor, textOn } from '../theme.ts';
 import { addGlyph, addImage, addPaper, addPill } from '../ui/art.ts';
 import { actionButtons, iconChip, moneyShort, dialogW } from '../ui/dialog.ts';
-import { extraChip } from './tempoFx.ts';
+import { DONE_H, doneButton, extraChip } from './tempoFx.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
 import { Button } from '../ui/button.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
@@ -192,7 +191,12 @@ const CARD_LAYOUT = {
   desktop: { icon: 98, iconS: 96, name: 160, big: 208 },
   // 0.19.0 手机世界高 404，卡片矮到 286：图标、名字、大数字再往上收
   phone: { icon: 74, iconS: 70, name: 120, big: 160 },
+  // 0.36.2 竖屏横卡（高 ROW_CARD_H）：icon 不用（图标竖直居中），name、big 是左对齐文字那一栏
+  row: { icon: 0, iconS: 72, name: 44, big: 88 },
 } as const;
+/** 竖屏横卡的高和右边「就要它」的宽 */
+const ROW_CARD_H = 150;
+const ROW_BTN_W = 104;
 
 /** 三选一奖励卡（phase = reward 时常驻，直到选择）：稀有度色框 + 大图标 + 名字 + 大数字 + 一行；详情悬停。 */
 export class RewardPanel {
@@ -225,29 +229,37 @@ export class RewardPanel {
     const pt0 = pt ? Math.max(0, Math.round((V.h - 404) / 2)) : 0;
     const ty = ph ? 30 + pt0 : s.setup?.weekly !== undefined ? 94 : 104;
     const title = addText(scene, V.w / 2 + 22, ty, s.setup?.weekly !== undefined ? '本周市场开局 · 挑一样' : s.setup?.flash !== undefined ? '闪电盘开局 · 挑一样' : '挑一样', { size: TYPE.big + 6, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5, stroke: COLOR.ink, strokeWidth: 7 });
-    this.root.add([addGlyph(scene, V.w / 2 - title.width / 2 - 14, ty, 'gift', ph ? 44 : 52), title]);
-    // 竖屏版只有 404 宽：卡间距收到 10，三张卡各约 118 宽
-    const gap = ph ? (V.h > V.w ? 10 : 20) : 30;
-    const CW = Math.min(236, Math.floor((V.w - 24 - gap * (cards.length - 1)) / cards.length));
+    const gift = addGlyph(scene, V.w / 2 - title.width / 2 - 14, ty, 'gift', ph ? 44 : 52);
+    this.root.add([gift, title]);
+    // 竖屏版（0.36.2）只有 404 宽：三张竖卡各 118 宽，字被挤成孤字折行；改成上下三张横卡（图标在左、按钮在右）
+    const gap = pt ? 10 : ph ? 20 : 30;
+    const n = cards.length;
+    const CW = pt ? V.w - 24 : Math.min(236, Math.floor((V.w - 24 - gap * (n - 1)) / n));
     // 0.19.0 手机世界高 404：卡片高按剩下的算（标题 58 起，下面还要放「都不要」）
-    const CH = ph ? Math.min(308, V.h - 58 - 60) : 350;
-    const top = ph ? 58 + pt0 : 146;
-    const x0 = V.w / 2 - (CW * cards.length + gap * (cards.length - 1)) / 2;
+    const CH = pt ? ROW_CARD_H : ph ? Math.min(308, V.h - 58 - 60) : 350;
+    const top = pt ? Math.max(58, Math.round((V.h - (ROW_CARD_H * n + gap * (n - 1) + 60)) / 2) + 20) : ph ? 58 : 146;
+    if (pt) {
+      title.setY(top - 30);
+      gift.setY(top - 30);
+    }
+    const x0 = pt ? 12 : V.w / 2 - (CW * n + gap * (n - 1)) / 2;
     let rare = false;
     cards.forEach((r, i) => {
-      const x = x0 + i * (CW + gap);
-      const node = this.card(scene, r, x, top, CW, CH, idle, s);
+      const x = pt ? x0 : x0 + i * (CW + gap);
+      const y = pt ? top + i * (CH + gap) : top;
+      const node = this.card(scene, r, x, y, CW, CH, idle, s, pt);
       if (r.rarity === 'rare') {
         // 金卡：卡淡入后闪一下（并行，不拖慢月底）
         rare = true;
-        goldGlint(scene, anim, { x: x + 5, y: top + 5, w: CW - 10, h: CH - 10 }, this.root, FLIP_MS.first + FLIP_MS.step * i + 200);
+        goldGlint(scene, anim, { x: x + 5, y: y + 5, w: CW - 10, h: CH - 10 }, this.root, FLIP_MS.first + FLIP_MS.step * i + 200);
       }
-      const b = new Button(scene, x + 28, top + CH - 62, { width: CW - 56, height: 46, label: '就要它', variant: 'primary', fontSize: TYPE.title, hotkey: `${i + 1}`, sound: null, onClick: () => pick(i) });
+      const bAt = pt ? { x: x + CW - 14 - ROW_BTN_W, y: y + 40 + (CH - 40 - 46) / 2, w: ROW_BTN_W } : { x: x + 28, y: y + CH - 62, w: CW - 56 };
+      const b = new Button(scene, bAt.x, bAt.y, { width: bAt.w, height: 46, label: '就要它', variant: 'primary', fontSize: TYPE.title, hotkey: `${i + 1}`, sound: null, onClick: () => pick(i) });
       node.add(b);
       this.buttons.push(b);
       // 外壳放在卡中心：卡本身挪回原位，静止时世界坐标不变
       const cx = x + CW / 2;
-      const cy = top + CH / 2;
+      const cy = y + CH / 2;
       const wrap = scene.add.container(cx, cy);
       node.setPosition(-cx, -cy);
       wrap.add(node);
@@ -264,9 +276,10 @@ export class RewardPanel {
       }
     });
     this.enableHover(scene);
-    const skipY = top + CH + (ph ? 10 : 18);
+    const bottom = pt ? top + n * CH + (n - 1) * gap : top + CH;
+    const skipY = bottom + (ph ? 10 : 18);
     const skipX = V.w / 2 - 60;
-    this.box = { x: x0 - 6, y: top - 6, w: CW * cards.length + gap * (cards.length - 1) + 12, h: skipY + 42 - top + 12 };
+    this.box = { x: x0 - 6, y: top - 6, w: pt ? CW + 12 : CW * n + gap * (n - 1) + 12, h: skipY + 42 - top + 12 };
     this.skip = new Button(scene, skipX, skipY, { width: 120, height: 42, label: '都不要', variant: 'default', fontSize: TYPE.title - 2, hotkey: '0', sound: null, onClick: skipIt });
     this.root.add(this.skip);
     // 本周市场：进局第一眼就写清这一周的规则（反向群聊用红色，必须让人知道群友说的是反话）
@@ -288,7 +301,8 @@ export class RewardPanel {
     }
   }
 
-  private card(scene: Phaser.Scene, r: RewardView, x: number, y: number, w: number, h: number, idle: boolean, s: GameState): Phaser.GameObjects.Container {
+  /** row：竖屏横卡（图标在左，名字、大数字、说明在中间，「就要它」在右，按钮由调用方放） */
+  private card(scene: Phaser.Scene, r: RewardView, x: number, y: number, w: number, h: number, idle: boolean, s: GameState, row = false): Phaser.GameObjects.Container {
     const c = scene.add.container(0, 0);
     c.add(addPaper(scene, x, y, w, h));
     const rc = RARITY_COLOR[r.rarity];
@@ -296,10 +310,15 @@ export class RewardPanel {
     c.add(scene.add.rectangle(x + 5, y + 5, w - 10, h - 10).setOrigin(0, 0).setRounded(14).setStrokeStyle(5, rc, 1));
     c.add(scene.add.rectangle(x + 5, y + 5, w - 10, 34, rc, 0.18).setOrigin(0, 0).setRounded(12));
     const stars = RARITY_STARS[r.rarity] ?? 1;
-    for (let k = 0; k < stars; k++) c.add(addGlyph(scene, x + w / 2 + (k - (stars - 1) / 2) * 26, y + 22, 'star', 24));
-    const ax = x + w / 2;
-    const L = phoneLayout(scene) ? CARD_LAYOUT.phone : CARD_LAYOUT.desktop;
-    const iy = y + L.icon;
+    const sx = row ? x + 20 + ((stars - 1) * 26) / 2 + 12 : x + w / 2;
+    for (let k = 0; k < stars; k++) c.add(addGlyph(scene, sx + (k - (stars - 1) / 2) * 26, y + 22, 'star', 24));
+    const L = row ? CARD_LAYOUT.row : phoneLayout(scene) ? CARD_LAYOUT.phone : CARD_LAYOUT.desktop;
+    // 横卡：图标在左边一栏的中间；文字从 tx 起左对齐，右边让出按钮
+    const ax = row ? x + 14 + L.iconS / 2 : x + w / 2;
+    const iy = row ? y + 40 + (h - 40) / 2 : y + L.icon;
+    const tx = row ? x + 28 + L.iconS : ax;
+    const tw = row ? w - (tx - x) - ROW_BTN_W - 24 : w - 16;
+    const ox = row ? 0 : 0.5;
     if (r.item) {
       const color = ITEM_KIND_COLOR[r.item.kind] ?? COLOR.accent;
       if (hasArt(scene.textures, itemKey(r.id))) {
@@ -314,26 +333,26 @@ export class RewardPanel {
     } else if (r.stock) {
       c.add(new StockGuy(scene, ax, iy + L.iconS / 2 - 4, r.stock.id, 'happy', L.iconS - 4, { idle }));
       // 风口小图标（右上角）
-      c.add(addImage(scene, ax + 50, iy - 30, `theme:${r.stock.theme}`, 34));
+      c.add(addImage(scene, row ? ax + L.iconS / 2 - 8 : ax + 50, iy - 30, `theme:${r.stock.theme}`, row ? 28 : 34));
     }
-    const nm = addText(scene, ax, y + L.name, r.name, { size: TYPE.title + 2, bold: true, originX: 0.5 });
-    // 竖屏版卡窄：长名字（「过山车爱好者」）先缩一号字，还放不下再截（全名在悬停里）
-    if (nm.width > w - 16) nm.setFontSize(TYPE.title - 2);
-    c.add(fitWidth(nm, w - 16));
+    const nm = addText(scene, tx, y + L.name, r.name, { size: TYPE.title + 2, bold: true, originX: ox });
+    // 卡窄：长名字（「过山车爱好者」）先缩一号字，还放不下再截（全名在悬停里）
+    if (nm.width > tw) nm.setFontSize(TYPE.title - 2);
+    c.add(fitWidth(nm, tw));
     const big = r.brief.big;
     if (r.stock) {
       // 股票卡：风口 · 角色的色签放在大数字的位置
       const tc = THEME_COLOR[r.stock.theme];
-      const t = addText(scene, ax, y + L.big, `${r.stock.themeName} · ${ROLE_WORD[r.stock.role]}`, { size: TYPE.label + 1, bold: true, color: textOn(tc), originX: 0.5, originY: 0.5 });
-      c.add(addPill(scene, ax - t.width / 2 - 12, y + L.big - 14, t.width + 24, 28, tc));
+      const t = addText(scene, row ? tx + 12 : ax, y + L.big, `${r.stock.themeName} · ${ROLE_WORD[r.stock.role]}`, { size: TYPE.label + 1, bold: true, color: textOn(tc), originX: ox, originY: 0.5 });
+      c.add(addPill(scene, row ? tx : ax - t.width / 2 - 12, y + L.big - 14, t.width + 24, 28, tc));
       c.add(t);
     }
-    if (big) c.add(addText(scene, ax, y + L.big, big, { size: TYPE.big, bold: true, num: true, color: COLOR.accentDark, originX: 0.5, originY: 0.5 }));
+    if (big) c.add(addText(scene, tx, y + L.big, big, { size: TYPE.big, bold: true, num: true, color: COLOR.accentDark, originX: ox, originY: 0.5 }));
     // 0.5.1：说明短（≤34 字）就整句写出来，长的用短句；分类标签放在顶部色带左边
     const descShort = r.desc && [...r.desc].length <= 34 ? r.desc : r.brief.line;
-    const desc = addText(scene, ax, big || r.stock ? y + L.big + 26 : y + L.big + 4, descShort, { size: TYPE.label, color: COLOR.muted, originX: 0.5, align: 'center', wrap: w - 28, lineSpacing: 2 });
+    const desc = addText(scene, tx, big || r.stock ? y + L.big + (row ? 20 : 26) : y + L.big + 4, descShort, { size: TYPE.label, color: COLOR.muted, originX: ox, align: row ? 'left' : 'center', wrap: row ? tw : w - 28, lineSpacing: 2 });
     // 0.19.0 手机上卡矮：整句放不下就换短句，还放不下就截短（全文在悬停里），不压「就要它」
-    const room = y + h - 66 - desc.y;
+    const room = (row ? y + h - 8 : y + h - 66) - desc.y;
     if (desc.height > room && desc.text !== r.brief.line) desc.setText(r.brief.line);
     if (desc.height > room) {
       let cut = Array.from(desc.text);
@@ -346,11 +365,13 @@ export class RewardPanel {
     if (r.tag) {
       const tg = addText(scene, x + 16, y + 22, r.tag, { size: FS.xs, bold: true, color: textOn(rc), originY: 0.5 });
       // 标签放在星星左边，不压星星（手机上字大一号，按星星实际占的宽度算）
-      if (x + 22 + tg.width < ax - (stars - 1) * 13 - 18) c.add([addPill(scene, x + 10, y + 12, tg.width + 12, 20, rc, false), tg.setX(x + 16)]);
+      // 横卡的星星靠左：标签放在星星右边
+      const tagX = row ? sx + ((stars - 1) * 26) / 2 + 22 : x + 10;
+      if (row || x + 22 + tg.width < ax - (stars - 1) * 13 - 18) c.add([addPill(scene, tagX, y + 12, tg.width + 12, 20, rc, false), tg.setX(tagX + 6)]);
       else tg.destroy();
     }
     // 道具的一句俏皮话（0.5 只在悬停里，0.5.1 放回卡面底部，放不下就不放）
-    if (r.item?.flavor && !(r.stock && s.slots.every((x2) => x2 !== null))) {
+    if (!row && r.item?.flavor && !(r.stock && s.slots.every((x2) => x2 !== null))) {
       const fy = desc.y + desc.height + 6;
       const fl = addText(scene, ax, fy, `「${r.item.flavor}」`, { size: FS.xs, color: COLOR.dim, originX: 0.5, align: 'center', wrap: w - 36 });
       if (fy + fl.height > y + h - 70) fl.destroy();
@@ -358,13 +379,14 @@ export class RewardPanel {
     }
     // 稀有股票：满仓时提示会替换
     if (r.stock && s.slots.every((x2) => x2 !== null)) {
-      c.add(addText(scene, ax, y + h - 78, '格子满了，要换掉一只', { size: TYPE.label - 1, color: COLOR.danger, originX: 0.5 }));
+      c.add(addText(scene, row ? x + w - 14 - ROW_BTN_W / 2 : ax, row ? y + h - 22 : y + h - 78, row ? '会换掉一只' : '格子满了，要换掉一只', { size: TYPE.label - 1, color: COLOR.danger, originX: 0.5 }));
     }
-    // 详情：悬停整张卡
-    const hit = scene.add.rectangle(x, y, w, h - 70, 0xffffff, 0.001).setOrigin(0, 0);
+    // 详情：悬停整张卡（横卡是按钮左边那一块）
+    const hitR = row ? { x, y, w: w - ROW_BTN_W - 20, h } : { x, y, w, h: h - 70 };
+    const hit = scene.add.rectangle(hitR.x, hitR.y, hitR.w, hitR.h, 0xffffff, 0.001).setOrigin(0, 0);
     c.add(hit);
     const tip = { title: `${r.name} · ${r.tag}`, body: r.item ? `${r.desc}\n${r.item.flavor}` : r.desc, color: rc };
-    bindTooltip(hit, () => ({ x, y: y + 40, w, h: h - 110 }), () => tip);
+    bindTooltip(hit, () => (row ? hitR : { x, y: y + 40, w, h: h - 110 }), () => tip);
     return c;
   }
 
@@ -541,7 +563,7 @@ export class EventPanel {
       const bg = scene.add.rectangle(cx, cy, cw, ch, i === 0 ? 0xfff1c4 : COLOR.paperLo).setOrigin(0, 0).setRounded(16).setStrokeStyle(2, i === 0 ? COLOR.gold : COLOR.edge, 1);
       this.root.add(bg);
       const tone = pick.tone ?? 'plain';
-      const color = tone === 'gain' ? COLOR.up : tone === 'cost' ? COLOR.down : COLOR.accentDark;
+      const color = tone === 'gain' ? COLOR.up : tone === 'cost' ? COLOR.danger : COLOR.accentDark;
       if (pick.big) {
         const t = addText(scene, cx + cw / 2, cy + L.bigY, pick.big, { size: TYPE.big + 4, bold: true, num: true, color, originX: 0.5, originY: 0.5 });
         if (t.width > cw - 16) t.setScale((cw - 16) / t.width);
@@ -635,12 +657,12 @@ export function eventResult(scene: Phaser.Scene, anim: Animator, name: string, t
 }
 
 /** 新月份开场（没有月度主题时）：大字月份 + 日历名，交易日和要还的钱是图标胶囊；附加说明每条一行，原句悬停。 */
-export function monthIntro(scene: Phaser.Scene, cal: CalendarView, bill: { name: string; amount: number }, extras: string[]): Phaser.GameObjects.Container {
+export function monthIntro(scene: Phaser.Scene, cal: CalendarView, bill: { name: string; amount: number }, extras: string[], onDone: () => void): Phaser.GameObjects.Container {
   const root = scene.add.container(0, 0).setDepth(DEPTH);
-  root.add(addBackdrop(scene, 0.3));
+  root.add(addBackdrop(scene, 0.45));
   const W = dialogW(scene, 480);
   const shown = extras.slice(0, 5);
-  const H = 196 + shown.length * 38;
+  const H = 196 + DONE_H + shown.length * 38;
   const V = viewOf(scene);
   const x = V.w / 2 - W / 2;
   const y = Math.max(4, Math.round(V.h / 2 - H / 2));
@@ -664,16 +686,16 @@ export function monthIntro(scene: Phaser.Scene, cal: CalendarView, bill: { name:
   }
   let ly = cy + 46;
   for (const e of shown) {
-    const { head, money } = extraChip(e);
+    const { head, money, color } = extraChip(e);
     const rowBg = scene.add.rectangle(x + 30, ly, W - 60, 32, COLOR.paperLo).setOrigin(0, 0).setRounded(10);
     root.add([rowBg, addGlyph(scene, x + 48, ly + 16, 'bolt', 22), addText(scene, x + 66, ly + 16, head, { size: TYPE.label + 1, bold: true, originY: 0.5 })]);
-    if (money) root.add(addText(scene, x + W - 42, ly + 16, money, { size: TYPE.title, bold: true, num: true, color: money.startsWith('+') ? COLOR.up : money.startsWith('-') || head.includes('花') ? COLOR.down : COLOR.ink, originX: 1, originY: 0.5 }));
+    if (money) root.add(addText(scene, x + W - 42, ly + 16, money, { size: TYPE.title, bold: true, num: true, color, originX: 1, originY: 0.5 }));
     rowBg.setInteractive();
     const ry = ly;
     bindTooltip(rowBg, () => ({ x: x + 30, y: ry, w: W - 60, h: 32 }), () => ({ title: head.replace(/…$/, ''), body: e }));
     ly += 38;
   }
-  root.add(addText(scene, x + W - 18, y + H - 10, isTouch() ? '点一下' : '空格', { size: TYPE.label - 1, color: COLOR.dim, originX: 1, originY: 1 }));
+  root.add(doneButton(scene, x + W - 30, y + H - 14, onDone));
   sound.cue({ type: 'monthStart' });
   return root;
 }

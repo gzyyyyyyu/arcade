@@ -4,7 +4,7 @@ import { hasArt, roleKey, stockKey } from '../assets.ts';
 import { dayWord as ipoDayWord } from './ipo.ts';
 import { boardsText, holdText, sellKey, stText, todayText } from '../labels.ts';
 import type { Rect } from '../rect.ts';
-import { COLOR, FS, PHONE, PORTRAIT, THEME_COLOR, signColor, textOn } from '../theme.ts';
+import { COLOR, FS, PHONE, PORTRAIT, THEME_COLOR, pctColor, signColor, textOn } from '../theme.ts';
 import { addImage, addPill, addSlice } from '../ui/art.ts';
 import { Button, HIT_MIN, touchHit } from '../ui/button.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
@@ -144,7 +144,8 @@ export class SlotCard {
       if (p.button === 2 && !clickSuppressed(performance.now())) onMenu?.(slot);
     });
     // 放大镜：股票详情卡（大走势图、连涨连跌、风口热度、比大环境）
-    const magIcon = addGlyph(scene, bx + bw - 1, y + 57, 'magnifier', 20);
+    // 图标往卡里收，不压卡的右边框
+    const magIcon = addGlyph(scene, Math.min(bx + bw - 1, x + w - 14), y + 57, 'magnifier', 20);
     // 图标只有 20：透明点击区垫到 32（电脑，docs/ui.md），触屏上撑到 HIT_MIN；
     // 点击区中心往卡里收，不伸进隔壁卡（844 横屏卡窄，走势框贴着卡右边）
     const magHx = Math.min(bx + bw - 1, x + w - Math.max(32, HIT_MIN) / 2);
@@ -160,14 +161,16 @@ export class SlotCard {
     this.today = addText(scene, x + w / 2, y + 143 + (PHONE ? -11 : 0), '', { size: small ? 19 : 22, bold: true, num: true, originX: 0.5 });
     // 持有盈亏色块
     // 手机：卖出键加高到 34，累计条往上挪 4、矮 2，两者不叠；卖出的点击区只往下撑（往上会盖住卡片，点卡片看拆解时误卖）
-    const holdY = PHONE ? y + 158 : y + 170;
-    const holdH = PHONE ? 16 : 18;
+    // 0.36.2 累计是钱：字号到金额下限（docs/ui.md 第 3 节，电脑 14；手机世界比屏幕小一圈，13 放大后也过 14）
+    const holdY = PHONE ? y + 158 : y + 169;
+    const holdH = PHONE ? 16 : 20;
     this.holdBg = scene.add.rectangle(x + 10, holdY, w - 20, holdH, COLOR.muted, 0.16).setOrigin(0, 0).setRounded(holdH / 2);
-    this.hold = addText(scene, x + w / 2, holdY + holdH / 2, '', { size: 12, bold: true, num: true, color: COLOR.muted, originX: 0.5, originY: 0.5 });
+    this.hold = addText(scene, x + w / 2, holdY + holdH / 2, '', { size: PHONE ? 13 : 14, bold: true, num: true, color: COLOR.muted, originX: 0.5, originY: 0.5 });
     const sellH = PHONE ? 34 : 26;
     // 卖出一步到位：「卖出」直接全卖（押跌的写「不押了」，一样是一步收手）；有仓位玩法时右边多一个小按钮「加减」，点开加仓 / 减一半的菜单
     const moreW = ext ? (tiny ? 38 : PHONE ? 44 : 38) : 0;
-    const gap = ext ? (tiny ? 3 : 4) : 0;
+    // 「卖出」「加减」之间隔 8（docs/ui.md 第 2 节：相邻可点区域 ≥ 8）
+    const gap = ext ? 8 : 0;
     const sellW = w - 20 - moreW - gap;
     // 手机上最窄的卡（SE 五格，约 104 宽）「卖出」只剩 40 多宽：三个字的标签换成两个字的，放不下会溢出
     this.sellNarrow = sellW < 56;
@@ -240,7 +243,7 @@ export class SlotCard {
     this.nameText = name;
     this.today = addText(scene, colX, y + 40, '', { size: 17, bold: true, num: true });
     // 累计：宽卡（2 张一行）写在涨跌右边；窄卡只在悬停里
-    this.hold = addText(scene, x + w - 8, y + 50, '', { size: 12, bold: true, num: true, color: COLOR.muted, originX: 1, originY: 0.5 }).setVisible(w >= 170);
+    this.hold = addText(scene, x + w - 8, y + 50, '', { size: 14, bold: true, num: true, color: COLOR.muted, originX: 1, originY: 0.5 }).setVisible(w >= 170);
     // 点卡身看详情：从卡顶到「卖出」的点击区为止、让开右上角放大镜那一列，高约 55（点击区够 HIT_MIN）
     const bodyH = sellY - pad.top - y;
     const bodyW = w - magS;
@@ -257,7 +260,7 @@ export class SlotCard {
       if (p.button === 2 && !clickSuppressed(performance.now())) onMenu?.(slot);
     });
     const moreW = ext ? 44 : 0;
-    const gap = ext ? 4 : 0;
+    const gap = ext ? 8 : 0;
     const sellW = w - 16 - moreW - gap;
     this.sellNarrow = sellW < 56;
     this.sell = new Button(scene, x + 8, sellY, { width: sellW, height: sellH, label: this.sellWord(true), variant: 'danger', fontSize: 14, hotkey: sellKey(slot), hitPad: pad, hitPadX: { right: 0 }, onClick: () => onSell(slot) });
@@ -485,7 +488,7 @@ export class SlotCard {
       hold.setText(t);
       if (hold.width <= room) break;
     }
-    setColor(hold, signColor(c.holdRet));
+    setColor(hold, pctColor(c.holdRet));
     this.holdBg?.setFillStyle(Math.abs(c.holdRet) < 0.05 ? COLOR.muted : signColor(c.holdRet), 0.16);
     this.guy?.setFace(c.face);
     this.setPills(c.boards, stText(c), c.lowBuy);
@@ -554,7 +557,7 @@ export class SlotCard {
     if (!this.today) return;
     this.shownToday = v ?? 0;
     this.today.setText(todayText(v, boughtToday, this.dayWord));
-    setColor(this.today, v === null ? COLOR.muted : signColor(v));
+    setColor(this.today, v === null ? COLOR.muted : pctColor(v));
   }
 
   /** 角标：连板（右）、ST 提示或低吸（左）。 */

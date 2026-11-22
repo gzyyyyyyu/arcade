@@ -65,8 +65,8 @@ export class ChatView3 {
 
   /** 手机群聊页里带推荐、点一下就能买的消息位置（自动化点击用）。 */
   recBuy: { index: number; x: number; y: number }[] = [];
-  /** 手机：这位群友今天哪条推荐点消息就能买（和推荐卡「买入」同一个判断：买过、次数用完、没现金都不算），没有就不挂「买 ›」 */
-  msgBuy = new Map<string, number>();
+  /** 手机：消息序号 → 点这条消息能买的推荐（同一位群友、同一个风口、看涨；能不能买和推荐卡「买入」同一个判断），没有就不挂「买 ›」 */
+  msgBuy = new Map<number, number>();
 
   get recBuyCenters(): readonly { index: number; x: number; y: number }[] {
     return this.recBuy;
@@ -647,8 +647,15 @@ export class ChatView3 {
 }
 
 /** 每位群友今天点消息能买的那条推荐（只认还能买或能换仓的）。 */
-function msgBuyOf(s: GameState, v: ChatView): Map<string, number> {
-  const out = new Map<string, number>();
-  for (const r of v.recs) if (r.friend && !out.has(r.friend.id) && recAction(s, r).action !== null) out.set(r.friend.id, r.index);
+function msgBuyOf(s: GameState, v: ChatView): Map<number, number> {
+  const out = new Map<number, number>();
+  // 推荐和消息在规则里各挑各的：先挂同一风口看涨的那条，没有就挂这位群友不唱空的一条；唱空的消息不挂「买」（前后矛盾，Gemini 界面审查第 3 条）
+  const said = (m: MessageView): MessageView['claim'] => m.readAs ?? m.claim;
+  for (const r of v.recs) {
+    if (!r.friend || r.short || recAction(s, r).action === null) continue;
+    const mine = v.messages.filter((m) => m.friend.id === r.friend?.id && !out.has(m.index) && said(m) !== 'down');
+    const m = mine.find((x) => x.theme === r.stock.theme && said(x) === 'up') ?? mine[0];
+    if (m) out.set(m.index, r.index);
+  }
   return out;
 }

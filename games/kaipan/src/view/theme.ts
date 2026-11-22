@@ -93,6 +93,11 @@ export function css(color: number): string {
 }
 
 /** 按正负取涨/跌/平色。 */
+/** 写到一位小数的百分比（pp）用的涨跌色：显示成 0.0% 的用平色，不用涨色或跌色 */
+export function pctColor(pp: number): number {
+  return Math.abs(pp) < 0.05 ? COLOR.flat : signColor(pp);
+}
+
 export function signColor(v: number): number {
   return v > 0.004 ? COLOR.up : v < -0.004 ? COLOR.down : COLOR.flat;
 }

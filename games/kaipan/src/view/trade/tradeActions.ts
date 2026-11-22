@@ -44,10 +44,11 @@ export class TradeActions {
       sound.ui('denied');
       return;
     }
-    // 满仓：选一格替换（原持仓卖出），再确认
+    // 满仓：选一格替换（原持仓卖出），再确认；卖掉没法撤回，确认框按危险操作（回车 = 取消）
     sound.ui('select');
     const cards = holdingCards(s);
-    this.setPick(`把「${r.stock.name}」换进哪一格？原来那只会被卖掉`, {
+    // 竖屏一行放不下后半句（截成「原来那只…」）：卡上已经写着「换掉这只」，只留问句
+    this.setPick(`把「${r.stock.name}」换进哪一格？${PORTRAIT ? '' : '原来那只会被卖掉'}`, {
       label: (slot) => (buyError(s, rec, slot) === null ? '换掉这只' : null),
       onPick: (slot) => {
         const old = cards[slot];
@@ -64,6 +65,8 @@ export class TradeActions {
             this.clearPick();
             this.act({ type: 'buy', rec, slot });
           },
+          undefined,
+          true,
         );
       },
     });
@@ -97,7 +100,7 @@ export class TradeActions {
     if (recAction(s, r).action !== 'replace') return this.onBuy(rec);
     const old = holdingCards(s)[slot];
     if (s.ext) return this.openBuy(rec, slot, false);
-    this.s.openConfirm('换掉这一只？', `卖掉「${old?.name ?? ''}」（买入以来 ${formatPoints(old?.holdRet ?? 0)}），换成「${r.stock.name}」？`, '换掉', () => this.act({ type: 'buy', rec, slot }));
+    this.s.openConfirm('换掉这一只？', `卖掉「${old?.name ?? ''}」（买入以来 ${formatPoints(old?.holdRet ?? 0)}），换成「${r.stock.name}」？`, '换掉', () => this.act({ type: 'buy', rec, slot }), undefined, true);
   }
 
   /** 在持仓卡上点了右键：弹出加仓 / 卖出菜单（没有仓位玩法的局没有菜单，直接卖）。 */
@@ -240,7 +243,7 @@ export class TradeActions {
     const ok = new Set(rewardSlots(s, index));
     this.s.reward?.setVisible(false);
     this.setPick(
-      `把「${card.name}」放进哪一格？${s.slots.every((x) => x) ? '原来那只会被卖掉' : ''}`,
+      `把「${card.name}」放进哪一格？${s.slots.every((x) => x) && !PORTRAIT ? '原来那只会被卖掉' : ''}`,
       {
         label: (slot, c) => (ok.has(slot) ? (c ? '换掉这只' : '放这里') : null),
         onPick: (slot) => {
@@ -291,10 +294,12 @@ export class TradeActions {
     const y = pt ? SLOTS.y - 52 : SLOTS.y - 58;
     const paper = addPaper(this.s, x, y, w, 46, false);
     t.setPosition(x + 20, y + 23);
-    // 竖屏版键高 34：点击区上下各撑 8，正好夹在第一行的怎么玩、设置（到 51）和持仓格（102 起）中间
+    // 竖屏版键高 34（按下沉 3，占 56–93）：点击区上撑 5、下撑 8 凑够 50，夹在第一行怎么玩、设置的点击区（到 49.5）和持仓格（102 起）中间；
+    // 以前上下各撑 8，伸进了怎么玩、设置的点击区（noscroll 390「放哪一格」）
     this.s.bannerCancel = new Button(this.s, x + w - 104, y + (pt ? 6 : 8), {
       width: 90,
       height: pt ? 34 : 30,
+      hitPad: pt ? { top: 5, bottom: 8 } : undefined,
       label: '取消',
       fontSize: 14,
       hotkey: 'Esc',

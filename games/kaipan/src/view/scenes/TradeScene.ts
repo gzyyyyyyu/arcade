@@ -154,7 +154,8 @@ export class TradeScene extends BaseScene {
     this.events.on(STAR_EVENT, onStar);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(STAR_EVENT, onStar));
     // 0.18.0 开盘台：按钮下面垫一块木头（art-v3 的木材质）
-    addWood(this, OPEN.x - 14, OPEN.y + OPEN.h - 20, OPEN.w + 28, PHONE_MODE ? 28 : 36);
+    // 手机上开盘键离画面底只有 4：木台只露出键底 4，不出画面（以前露 8，底边被裁）
+    addWood(this, OPEN.x - 14, OPEN.y + OPEN.h - 24, OPEN.w + 28, PHONE_MODE ? 28 : 36);
     this.openBtn = new Button(this, OPEN.x, OPEN.y, {
       width: OPEN.w,
       height: OPEN.h,

@@ -11,7 +11,7 @@ import { coverOf } from '../viewport.ts';
 import { gearNow } from '../live.ts';
 import { bankCallCard, seizedCard } from '../trade/ext.ts';
 import { collateralById } from '../../core/index.ts';
-import { monthCard } from '../trade/tempoFx.ts';
+import { monthCard, SPEND_HEAD } from '../trade/tempoFx.ts';
 import { pick, first, T } from './tradeConsts.ts';
 import type { TradeScene } from '../scenes/TradeScene.ts';
 
@@ -146,7 +146,7 @@ export class MonthFlow {
     const ms = first(events, 'monthStarted');
     if (!ms) return;
     const s = this.s.session.state;
-    const surprise = (s.bill.extras ?? []).map((e) => `突然要花钱：${e.name} ${formatMoney(e.amount)}（已经算进这个月要还的钱里）`);
+    const surprise = (s.bill.extras ?? []).map((e) => `${SPEND_HEAD}：${e.name} ${formatMoney(-e.amount)}（已经算进这个月要还的钱里）`);
     const extras = [
       // 市场传闻（股灾预告）、到期的临时道具、事件的延后结算，再是打新
       ...pick(events, 'marketNotice').map((e) => `${e.notice.name}：${e.notice.text}`),
@@ -163,6 +163,7 @@ export class MonthFlow {
     const ev = first(events, 'monthTheme');
     let box: Phaser.GameObjects.Container;
     let ms2 = T.monthIntro + Math.min(3, all.length) * 600;
+    const done = (): void => this.s.anim.hurry();
     if (mt) {
       const cal = currentCalendar(s);
       const card = monthCard(
@@ -173,12 +174,13 @@ export class MonthFlow {
         cal,
         s.bill,
         all,
+        done,
       );
       box = card.root;
       this.s.cardRect = card.rect;
       ms2 = (mt.goal.boss ? T.bossCard : T.monthCard) + Math.min(3, all.length) * 500;
       this.s.top.render(s);
-    } else box = monthIntro(this.s, currentCalendar(s), s.bill, all);
+    } else box = monthIntro(this.s, currentCalendar(s), s.bill, all, done);
     sound.mood('payday');
     this.s.session.notify();
     // 附加说明多时多留一会儿读（点击或空格可以跳过）

@@ -9,7 +9,7 @@ export interface TipContent {
   title: string;
   body: string;
   color?: number;
-  /** 放在目标右侧（左栏看板用）；缺省放在下方或上方 */
+  /** 放在目标右侧（左栏看板、开始菜单的云朵）；右边放不下或缺省时放在下方或上方 */
   side?: 'right';
 }
 
@@ -50,7 +50,9 @@ class Tooltip {
     let y = rect.y + rect.h + 8;
     if (y + h > V.h - 6) y = rect.y - h - 8;
     let x = rect.x + rect.w / 2 - W / 2;
-    if (c.side === 'right') {
+    // 右侧放不下（竖屏窄）就照默认放下方或上方
+    const right = c.side === 'right' && rect.x + rect.w + 10 + W <= V.w - 6;
+    if (right) {
       x = rect.x + rect.w + 10;
       y = rect.y;
     }
@@ -61,7 +63,7 @@ class Tooltip {
     const hits = (bx: number, by: number): boolean => !!g && bx < g.x + g.w && bx + W > g.x && by < g.y + g.h && by + h > g.y;
     if (hits(x, y)) {
       const alt =
-        c.side === 'right'
+        right
           ? { x: Math.max(6, rect.x - W - 10), y }
           : { x, y: Math.max(6, Math.min(V.h - h - 6, y > rect.y ? rect.y - h - 8 : rect.y + rect.h + 8)) };
       if (!hits(alt.x, alt.y)) ({ x, y } = alt);
