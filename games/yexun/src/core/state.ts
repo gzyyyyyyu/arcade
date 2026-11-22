@@ -21,7 +21,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 72;
+export const RULES_VERSION = 73;
 export const TICKS_PER_SECOND = 30;
 /**
  * 刷怪的一圈：刚好在屏幕外（横屏一屏约 1000 × 560 到 1080 × 500 单位，画面层 viewport.ts 的 worldZoom），
@@ -146,6 +146,8 @@ export interface Setup {
   danger: Danger;
   /** 这台设备上的第一局：3 分钟前不会死（DESIGN.md 13.2） */
   firstRun?: boolean;
+  /** 新号前 NOVICE.runs 局（存档 runs 小于它）开的娱乐守夜：开局魂火磁吸放大、怪从前方来（content/player.ts NOVICE）；只有 noviceAssist 为真时留着 */
+  novice?: boolean;
   /** 地图（缺省雪原） */
   map?: MapId;
   /** 角色（缺省小道士；实盘可选已解锁的，结回乘角色系数） */
@@ -206,6 +208,11 @@ export interface Setup {
   trial?: TrialId;
 }
 
+/** 新手照顾生效的局：只给娱乐守夜，实盘、试炼、首领连战、本周夜事、夜探都不开（每日挑战的固定配置不带 novice，online/daily.ts isDailySetup 也拒掉） */
+export function noviceAssist(s: Setup): boolean {
+  return s.novice === true && s.mode === 'vigil' && !s.live && s.trial === undefined && !s.rush && s.weekly === undefined;
+}
+
 /** 试炼展开：表里定的盖掉传进来的，玩家自己的东西都不带（实盘、连战不开试炼） */
 function expandTrial(s: Setup): Setup {
   if (s.trial === undefined) return s;
@@ -238,6 +245,7 @@ export function normalizeSetup(raw: Setup): Setup {
   const out = { ...s, danger, character, curses, perks };
   // 本周夜事只给守夜：实盘、夜探不开（每日挑战的 Setup 本来就不带它，isDailySetup 也核了）
   if (out.weekly !== undefined && (!isWeeklyId(out.weekly) || out.mode !== 'vigil' || out.live)) delete out.weekly;
+  if (out.novice !== undefined && !noviceAssist(out)) delete out.novice;
   // 开局配置：A 只认 true；B 只认本角色的主修流派；首领连战要人人一样，两个都不开
   if (out.startAlt !== true || out.rush) delete out.startAlt;
   const pc = (POOL_CHARACTER_IDS as readonly string[]).includes(character) ? (character as PoolCharacterId) : undefined;

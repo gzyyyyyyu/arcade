@@ -24,6 +24,8 @@
   -webkit-text-stroke: 6px #17131c; paint-order: stroke fill;
 }
 .yx-picks-tip { color: #f6efdc; font-size: var(--fs-md, 14px); text-shadow: 0 1px 2px #000; }
+.yx-picks-left { color: #ffd23a; font-weight: 800; }
+.yx-picks-left[hidden] { display: none; }
 .yx-picks-row { display: flex; gap: 14px; }
 .yx-picks .yx-pick {
   position: relative;

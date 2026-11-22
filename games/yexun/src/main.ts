@@ -6,6 +6,7 @@
 import type Phaser from 'phaser';
 import { DAWN_TICK, type Danger } from './content/waves.ts';
 import { COIN_EXCHANGE, CURSE_IDS, LOOKS, MAX_CURSES } from './content/meta.ts';
+import { NOVICE } from './content/player.ts';
 import type { Setup, World } from './core/index.ts';
 import { autoSkillSetting } from './view/game/autoskill.ts';
 import { buyChar, buyLook, buyPerk, dangerOpen, loadoutSetup, loadSave, mapOpen, payKits, refundPerks, saveHooks, setLoadout, settings, trialTierOpen, wearLook, weekGoalView, writeSave } from './platform/save.ts';
@@ -16,7 +17,7 @@ import { hasLoginHint, startCloud } from './platform/cloud.ts';
 import { createLive, liveSetup } from './platform/live.ts';
 import { liveCharOk, LIVE_TIERS, liveMapOk, type LiveTier } from './content/live.ts';
 import { loadRecords, RunTally } from './meta/records.ts';
-import { AchievementToast, Codex } from './view/ui/codex.ts';
+import { AchievementToast, Codex, MONSTER_INFO } from './view/ui/codex.ts';
 import { Guide } from './view/ui/guide.ts';
 import { Recorder } from './replay/recorder.ts';
 import { loadReplays } from './replay/store.ts';
@@ -437,7 +438,7 @@ async function boot(): Promise<void> {
     const tall = css().h > css().w ? { tall: true } : {};
     // 局前锦囊：只有菜单开的娱乐守夜、夜探带（实盘、每日、本周夜事、连战、教学镇不带），开局这一下扣铜钱
     const kits = kind === null && !debug && fixed?.raid?.template !== 'teach' && save.kits.length ? payKits(save, fixed?.seed ?? seed, nonce()) : [];
-    const w = createWorld({ ...(fixed ?? { seed, mode: 'vigil', danger, map, firstRun: save.runs === 0, character: ms.character, ...loadoutSetup(save, ms.character), curses: ms.curses, perks: save.perks, assist: save.assist, ...(wantEndless ? { endless: true } : {}) }), ...(kits.length ? { kits } : {}), ...tall });
+    const w = createWorld({ ...(fixed ?? { seed, mode: 'vigil', danger, map, firstRun: save.runs === 0, novice: save.runs < NOVICE.runs, character: ms.character, ...loadoutSetup(save, ms.character), curses: ms.curses, perks: save.perks, assist: save.assist, ...(wantEndless ? { endless: true } : {}) }), ...(kits.length ? { kits } : {}), ...tall });
     world = w;
     autopilot = undefined;
     social.setWhere(w.raid ? 'raid' : 'vigil');
@@ -486,6 +487,12 @@ async function boot(): Promise<void> {
       beforeStep: (x: World, dir: number, choice: number, skill: number) => sess.rec?.before(x, dir, choice, skill),
       afterStep: (x: World) => {
         sess.tally.feed(x);
+        // 第一次被跳尸扑中：讲它怎么动、怕什么（新手实录：两次倒下都是被跳尸围死，前面没人提过它）
+        const js = sess.tally.hurtByKind.jiangshi;
+        if (js && !autopilot && !tipDone('jiangshi')) {
+          markTip('jiangshi');
+          tips.show(`<b>跳尸</b>一扑掉 ${Math.round(js)} 血：${MONSTER_INFO.jiangshi.blurb}`, 6000);
+        }
         dbg?.lateMerge(q, x);
         if (sess.liveRun && x.tick % 300 === 0) live.progress(sess.liveRun.seed, x.tick);
       },
