@@ -231,4 +231,5 @@ export function buildUi(bs: BaseScene): void {
   bs.bottom.after(bar2);
   bs.plate = el('div', 'hd-nameplate', undefined, bs.ui);
   bs.tut = new Tutorial(bs.ui);
+  bs.vaultTut = new Tutorial(bs.ui, { label: '先不了', onSkip: () => (app.storageCut = null) });
 }

@@ -67,6 +67,8 @@ export class BattleScene extends Phaser.Scene {
   speed = 1;
   paused = false;
   pending: BattleAction[] = [];
+  /** 这一局各条船点下去的登陆点（世界坐标，画面用；规则单位的在 landPts）：最后一船上岸时镜头平移到它们中间 */
+  landAt: Array<{ x: number; y: number }> = [];
   botAct: BattleAction[] = [];
   botI = 0;
   /** 异步攻防：这场实际生效的操作 */
@@ -219,6 +221,7 @@ export class BattleScene extends Phaser.Scene {
     this.skillUsed = false;
     this.deathBy = new Map();
     this.landPts = [];
+    this.landAt = [];
     this.casts = 0;
     this.fogSpr = new Map();
     this.followT = null;
@@ -327,7 +330,9 @@ export class BattleScene extends Phaser.Scene {
     // 主寨（外扩 1 格）必须在屏内：竖屏放大档、全景都按它保证，进场不再只露岛的左缘
     const hq = this.st.buildings.find((b) => b.kind === 'hq');
     // 横屏和电脑也贴着内容盒（tight）：以前按含沙滩的整岛适配、缩放封顶 1.5，1280 上岛只占三成、兵二十来像素；缩出去照样看全岛
-    return { box: cellsBox(rs, 0), tight: true, zCap: BATTLE_Z_CAP, ...(this.d.map ? { nearCap: MAP_NEAR } : {}), ...(hq ? { must: cellsBox([[hq.x, hq.y, hq.x + hq.size - 1, hq.y + hq.size - 1]], 1) } : {}) };
+    // 竖屏开场停在全景侦察（看得到所有红圈），选船卡时再推到登陆那一侧；航线一站本来就推得浅，训练营有自己的分步镜头，回放不用侦察
+    const scoutPano = !this.d.map && !this.d.train && !this.d.pvp?.replay;
+    return { box: cellsBox(rs, 0), tight: true, zCap: BATTLE_Z_CAP, scoutPano, ...(this.d.map ? { nearCap: MAP_NEAR } : {}), ...(hq ? { must: cellsBox([[hq.x, hq.y, hq.x + hq.size - 1, hq.y + hq.size - 1]], 1) } : {}) };
   }
 
   /** 竖屏开场推镜的落点（世界 x）：发光沙滩（能登陆的格）在屏幕左右哪半边多就推到那一边的最外沿；一样多推左边（引导先指左边） */

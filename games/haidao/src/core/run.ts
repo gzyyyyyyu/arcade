@@ -100,6 +100,33 @@ export function equipSkin(p: Profile, troop: TroopKind, skin: string | null): Re
  * loot 是实际进了仓库的数量（含连胜加成、首次星级奖励、掉落的金币木材箱，都已乘收入倍率 INCOME_PCT，再按仓库上限截断），cut 是仓库满了截掉的。
  * 连胜：连续 ≥1 星的场数；0 星清零并给安慰奖。seed 用来掉宝（不传就按战绩算一个）。
  */
+/**
+ * 一场战役打完、还没加掉落、还没按仓库截断的毛收入（连胜加成、新星奖励、重打折扣、收入倍率都在里面）。
+ * 结算（settleCampaign）和出海前岛面板的「最多能拿多少」都用它，两边的数不会对不上。
+ */
+export function campaignGross(p: Profile, levelId: string, result: Pick<BattleResult, 'stars' | 'destroyedPct'>): Res {
+  const lv = CAMPAIGN.find((l) => l.id === levelId);
+  if (!lv) return { gold: 0, wood: 0 };
+  const prev = p.stars[levelId] ?? 0;
+  const newStars = Math.max(prev, result.stars) - prev;
+  let gold: number;
+  let wood: number;
+  if (result.stars > 0) {
+    const bonusPct = Math.min(STREAK_MAX_PCT, (p.stats.streak ?? 0) * STREAK_STEP_PCT);
+    const pct = prev >= 3 ? REPLAY_PCT : 100;
+    gold = Math.floor((lv.loot.gold * result.destroyedPct * pct) / 10000);
+    wood = Math.floor((lv.loot.wood * result.destroyedPct * pct) / 10000);
+    gold += Math.floor((gold * bonusPct) / 100);
+    wood += Math.floor((wood * bonusPct) / 100);
+    gold += newStars * STAR_BONUS_GOLD;
+  } else {
+    gold = Math.floor((lv.loot.gold * CONSOLATION_PCT) / 100);
+    wood = Math.floor((lv.loot.wood * CONSOLATION_PCT) / 100) + CONSOLATION_WOOD;
+  }
+  // 收入倍率乘在结算里、不改关卡的 loot：流浪海盗岛（异步攻防，服务端重放）也读 lv.loot，那边不调
+  return income({ gold, wood });
+}
+
 export function settleCampaign(
   p: Profile,
   levelId: string,
@@ -113,23 +140,7 @@ export function settleCampaign(
   const win = result.stars > 0;
   const streakBefore = p.stats.streak ?? 0;
   const bonusPct = win ? Math.min(STREAK_MAX_PCT, streakBefore * STREAK_STEP_PCT) : 0;
-  let gold = 0;
-  let wood = 0;
-  if (lv) {
-    if (win) {
-      const pct = prev >= 3 ? REPLAY_PCT : 100;
-      gold = Math.floor((lv.loot.gold * result.destroyedPct * pct) / 10000);
-      wood = Math.floor((lv.loot.wood * result.destroyedPct * pct) / 10000);
-      gold += Math.floor((gold * bonusPct) / 100);
-      wood += Math.floor((wood * bonusPct) / 100);
-      gold += newStars * STAR_BONUS_GOLD;
-    } else {
-      gold = Math.floor((lv.loot.gold * CONSOLATION_PCT) / 100);
-      wood = Math.floor((lv.loot.wood * CONSOLATION_PCT) / 100) + CONSOLATION_WOOD;
-    }
-    // 收入倍率乘在结算里、不改关卡的 loot：流浪海盗岛（异步攻防，服务端重放）也读 lv.loot，那边不调
-    ({ gold, wood } = income({ gold, wood }));
-  }
+  let { gold, wood } = campaignGross(p, levelId, result);
   const owned = p.cosmetics ?? [];
   const firstThree = lv?.boss === true && prev < 3 && result.stars >= 3;
   const drops = rollDrops(seed ?? hash32(`${levelId}:${p.stats.attacks}`, p.stats.wins), result, levelId, owned, firstThree, hqLevel(p));

@@ -34,7 +34,7 @@ export { presetLayout } from './preset.ts';
 export type { PresetStyle } from './preset.ts';
 export { nextUnlock, unlocksAt } from './unlock.ts';
 export type { UnlockItem } from './unlock.ts';
-export { CONSOLATION_PCT, COSMETICS, RARE_POOL, TD_TROPHIES, STAR_BONUS_GOLD, STREAK_MAX_PCT, STREAK_STEP_PCT, campaignSetup, equipSkin, rollDrops, settleCampaign, startCampaign } from './run.ts';
+export { CONSOLATION_PCT, COSMETICS, RARE_POOL, TD_TROPHIES, STAR_BONUS_GOLD, STREAK_MAX_PCT, STREAK_STEP_PCT, campaignGross, campaignSetup, equipSkin, rollDrops, settleCampaign, startCampaign } from './run.ts';
 export type { Drop } from './run.ts';
 export * from './tdtypes.ts';
 export { createTd, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';

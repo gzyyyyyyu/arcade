@@ -34,6 +34,11 @@ export function bountyOf(p: Profile): Bounty | null {
   return { levelId: lv.id, name: lv.name, done: p.daily?.day === day && p.daily.done, day };
 }
 
+/** 今日悬赏打到 100% 拿多少（还没按仓库截断）：和 settleBounty 同一个数 */
+export function bountyGross(p: Profile): Res {
+  return Core.dailyBounty(dayIndex(), p).loot;
+}
+
 function markBountyDone(p: Profile): Profile {
   return { ...p, daily: { day: dayIndex(), done: true }, stats: { ...p.stats, dailyDone: (p.stats.dailyDone ?? 0) + 1 } };
 }

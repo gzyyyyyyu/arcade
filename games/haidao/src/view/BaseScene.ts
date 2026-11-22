@@ -73,6 +73,10 @@ export class BaseScene extends Phaser.Scene {
   lastTick = 0;
   lastSave = 0;
   tut!: Tutorial;
+  /** 仓库满了之后的一次性「升金库」引导（自己一条横幅：「先不了」只关这一条，不跳过整个新手引导） */
+  vaultTut!: Tutorial;
+  /** 金库引导开着时记下指的是哪座、当时几级：升了就收 */
+  vaultAt: { id: number; level: number } | null = null;
   deco: DecoSpr[] = [];
   buildCards = new Map<BuildingKind, HTMLElement>();
   /** 船队面板当前看的是第几条船 */
@@ -229,6 +233,9 @@ export class BaseScene extends Phaser.Scene {
       this.stopMap?.();
       closeCtx(this);
       this.tut.destroy();
+      this.vaultTut.destroy();
+      // 这次回岛没升就算了：引导只出一次，出海回来不再指
+      app.storageCut = null;
       this.ui.remove();
       app.flush();
     });

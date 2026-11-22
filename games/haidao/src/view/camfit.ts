@@ -85,6 +85,11 @@ export interface Content {
    * 按常规推近，竖屏只剩上下两条沙子，试玩里点在草地上一直出不了船
    */
   nearCap?: number;
+  /**
+   * 竖屏开场停在整岛全景当「侦察」，不推到登陆那一侧（推过去另一侧画了红圈的塔在屏外，只剩一段红弧）；
+   * 场景在玩家选船卡 / 技能时调 endScout 再推到放大档。登陆战用，寻宝航线一站（nearCap）不用
+   */
+  scoutPano?: boolean;
 }
 
 /**
@@ -226,6 +231,8 @@ export class FitCam {
   private pano = { cx: 0, cy: 0, z: 1 };
   private inset: Inset = { top: 0, bottom: 0, left: 0, right: 0 };
   private introDone = false;
+  /** 竖屏侦察中（Content.scoutPano）：停在全景，等 endScout */
+  private scouting = false;
   /** 正在走的镜头动画：t0 在下一帧补上（构造时还不知道场景时间） */
   private anim: { from: { cx: number; cy: number; z: number }; to: { cx: number; cy: number; z: number }; t0: number; hold: number; push: number } | null = null;
   private readonly btn: HTMLButtonElement;
@@ -407,7 +414,10 @@ export class FitCam {
     }
     this.anim = null;
     if (keepView) this.cc.apply();
-    else if (this.live && !this.introDone && !REDUCED && this.contentOf?.().intro !== false) {
+    else if (this.live && (this.scouting || (!this.introDone && content?.scoutPano))) {
+      this.scouting = true;
+      this.cc.setView(this.pano.cx, this.pano.cy, this.pano.z);
+    } else if (this.live && !this.introDone && !REDUCED && this.contentOf?.().intro !== false) {
       // 开场：先停在整岛全景，再推到要守 / 要登陆的那一侧
       this.cc.setView(this.pano.cx, this.pano.cy, this.pano.z);
       this.anim = { from: this.pano, to: this.home, t0: -1, hold: INTRO_HOLD, push: INTRO_PUSH };
@@ -455,8 +465,17 @@ export class FitCam {
     }
   }
 
+  /** 侦察结束（玩家选了船卡或技能）：还停在侦察的全景就推到放大档；玩家自己切过视角就不动 */
+  endScout(): void {
+    if (!this.scouting) return;
+    this.scouting = false;
+    if (this.live && this.atPano()) this.moveTo(this.home, PAN_MS);
+    this.syncBtn();
+  }
+
   /** "全景"钮 / 空格：live 模式下在整岛全景和开场视角之间切换，其余回到适配视角 */
   toggle(): void {
+    this.scouting = false;
     if (!this.live) return this.back();
     // 切全景 / 放大是玩家自己定的视角：自动构图先让位
     this.markUser();

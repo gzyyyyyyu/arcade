@@ -87,7 +87,7 @@ export function lackText(cost: Res, have: Res): string {
 }
 
 /**
- * 出海前的仓库提醒：这座岛预计掠夺的（还没算三星奖励、连胜加成和掉落）已经比仓库剩下的位置多，
+ * 出海前的仓库提醒：这座岛打满能拿的（三星、连胜加成都算上，掉落不算）已经比仓库剩下的位置多，
  * 就提醒先回岛花掉（不然赢了也白丢：新号第三座岛三星白丢过 1,666 金）。
  */
 export function roomText(loot: Res, have: Res, cap: Res): string {
