@@ -1,13 +1,12 @@
 /**
  * 入口：开始菜单 → 守夜一局 → 结算（再来一局 / 换难度 / 大厅）。第一次打开只有一个大按钮，第一局带最多 3 条引导。
  * 画布按 CSS 尺寸 × 渲染倍数开，再用 CSS 缩回去：手机上不糊，省内存设备倍数封顶 2（viewport.ts）。
- * 调试参数：?seed=123 固定种子，?diff=easy|normal|hard，?play 跳过菜单直接开局，?auto 让机器人代打、?warp=9000 先快进到第 9000 拍、&choose 停在选卡、?give=mirror:8,gourd:8 开局换法器（这几个只在开发服务器里有，冒烟截图用），?sheet 看图集。
+ * 调试参数：?seed=123 固定种子，?danger=0–8，?play 跳过菜单直接开局，?auto 让机器人代打、?warp=9000 先快进到第 9000 拍、&choose 停在选卡、?give=mirror:8,gourd:8 开局换法器（这几个只在开发服务器里有，冒烟截图用），?sheet 看图集。
  */
 import type Phaser from 'phaser';
 import { DAWN_TICK, type Danger } from './content/waves.ts';
 import { COIN_EXCHANGE, CURSE_IDS, LOOKS, MAX_CURSES } from './content/meta.ts';
-import { createWorld, type Setup, type World } from './core/index.ts';
-import { openEliteChestNow } from './core/debug.ts';
+import type { Setup, World } from './core/index.ts';
 import { autoSkillSetting } from './view/game/autoskill.ts';
 import { buyChar, buyLook, buyPerk, dangerOpen, loadoutSetup, loadSave, mapOpen, payKits, refundPerks, saveHooks, setLoadout, settings, trialTierOpen, wearLook, weekGoalView, writeSave } from './platform/save.ts';
 import { ExchangeClient } from './platform/exchange.ts';
@@ -21,7 +20,6 @@ import { AchievementToast, Codex } from './view/ui/codex.ts';
 import { Guide } from './view/ui/guide.ts';
 import { Recorder } from './replay/recorder.ts';
 import { loadReplays } from './replay/store.ts';
-import { ReplayPlayer } from './replay/player.ts';
 import { ReplayList } from './replay/view/list.ts';
 import { ReplayBar } from './replay/view/bar.ts';
 import type { ReplayRecord } from './replay/format.ts';
@@ -56,9 +54,7 @@ import { Confirm, Menu, Pause, Result, Tips, type Toggle } from './view/ui/scree
 import { skillFirstTip, skillTipHtml } from './view/ui/skillInfo.ts';
 import { LOW_MEMORY, TOUCH, fitViewport, renderScale, worldZoom } from './view/viewport.ts';
 import { reportErrors } from 'arcade-kit/report';
-import './explore/register.ts';
 import { createFinisher, type Session } from './app/finish.ts';
-import { applyDebugStart } from './app/debugStart.ts';
 import { buildRows, setLines } from './app/buildRows.ts';
 import { mountFpsMeter } from './app/fpsMeter.ts';
 import { iconMaker } from './app/icons.ts';
@@ -413,7 +409,7 @@ async function boot(): Promise<void> {
   const startRun = async (picked: Danger, map: MapId = save.map, debug = false, fixed?: Setup, kind: 'live' | 'daily' | 'weekly' | 'rush' | 'trial' | null = null): Promise<void> => {
     const e = await ready();
     if (!e) return;
-    const { game: g, GameScene } = e;
+    const { game: g, GameScene, createWorld } = e;
     g.loop.wake();
     sess.liveRun = kind === 'live' && fixed ? { seed: fixed.seed } : null;
     if (kind !== 'live') sess.lastLive = null;
@@ -447,7 +443,9 @@ async function boot(): Promise<void> {
     social.setWhere(w.raid ? 'raid' : 'vigil');
     // 调试参数改过开局、快进过的局不录（录像要从第 0 拍逐拍记）
     sess.rec = q.has('give') || q.has('warp') ? null : new Recorder(w.setup, Date.now());
-    autopilot = await applyDebugStart(q, w, sess.tally, seed);
+    // 调试开局只在开发服务器里动态加载：它静态引 core/debug → step，静态 import 会把整个规则核心拖进首屏
+    const dbg = import.meta.env.DEV ? await import('./app/debugStart.ts') : null;
+    autopilot = dbg ? await dbg.applyDebugStart(q, w, sess.tally, seed) : undefined;
     const firstRun = save.runs === 0;
     showPlay(true);
     setPaused(false);
@@ -488,7 +486,7 @@ async function boot(): Promise<void> {
       beforeStep: (x: World, dir: number, choice: number, skill: number) => sess.rec?.before(x, dir, choice, skill),
       afterStep: (x: World) => {
         sess.tally.feed(x);
-        if (import.meta.env.DEV && q.get('merge')?.startsWith('late') && x.tick === (Number(q.get('merge')!.slice(5)) || 28)) openEliteChestNow(x, 0);
+        dbg?.lateMerge(q, x);
         if (sess.liveRun && x.tick % 300 === 0) live.progress(sess.liveRun.seed, x.tick);
       },
     });
@@ -566,7 +564,7 @@ async function boot(): Promise<void> {
   const startReplay = async (record: ReplayRecord): Promise<void> => {
     const e = await ready();
     if (!e) return;
-    const { game: g, GameScene } = e;
+    const { game: g, GameScene, ReplayPlayer } = e;
     g.loop.wake();
     const player = ReplayPlayer.from(record);
     if (!player) {

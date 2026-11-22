@@ -6,16 +6,14 @@ import { Rng, hash32 } from '../core/rng.ts';
 import type { RushResult } from '../core/rush.ts';
 import type { MapId } from '../content/maps.ts';
 import { RUSH } from '../content/rush.ts';
-import { DAILY_DANGER, DAILY_RULES } from './daily.ts';
+import { DAILY_DANGER, DATE_RE, dailyBoardId } from './daily.ts';
 import type { OnlineSetup } from './types.ts';
 
 /** 平台每日榜的子榜 id */
-export const RUSH_SUB = 'rush';
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const RUSH_SUB = 'rush' as const;
 
 export function rushBoardId(date: string): string {
-  return DAILY_RULES > 0 ? `daily-${date}-${RUSH_SUB}-v${DAILY_RULES}` : `daily-${date}-${RUSH_SUB}`;
+  return dailyBoardId(date, RUSH_SUB);
 }
 
 /**
@@ -64,9 +62,4 @@ export function decodeRush(score: number): { cleared: boolean; down: number; tot
 export function rushClock(ticks: number): string {
   const s = Math.ceil(ticks / 30);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
-/** 结算页、分享卡上的一行："连战 6/9 · 用时 5:00" */
-export function rushLine(r: RushResult): string {
-  return `连战 ${r.down}/${r.total} · 用时 ${rushClock(r.ticks)}`;
 }

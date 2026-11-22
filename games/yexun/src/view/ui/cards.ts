@@ -3,7 +3,7 @@
  * 卡片排在屏幕中下部、左右手拇指都够得着（手感清单第 10 条）。
  */
 import { ELEMENT_SET, PASSIVES, TYPE_SETS, WEAPONS, MAX_WEAPON_LEVEL, upChanges, baseNums, type PassiveId, type StatChange, type WeaponId } from '../../content/weapons.ts';
-import { Pick, type Choice, type World } from '../../core/index.ts';
+import { Pick, type Choice, type World } from '../../core/state.ts';
 import { SCHOOLS } from '../../content/guide.ts';
 import { XINFA_TEXT } from '../../content/xinfa.ts';
 import { MONSTER_INFO } from './codex.ts';
@@ -128,7 +128,11 @@ export class Cards {
   }
 
   /** onPick 收到的是 step 的 choice：0–2 选第几张，或 Pick.Reroll / Pick.Ban + i / Pick.Skip */
-  show(level: number, cards: CardView[], firstTime: boolean, counts: { rerolls: number; bans: number }, onPick: (i: number) => void): void {
+  /**
+   * simple：这台设备的第一局。卡上只留名字、说明和数，不写克制、套件、合成（新手实录：第一次选卡三张卡十几行小字）；
+   * 3 级以前也不摆刷新、封禁、跳过（快捷键照样能用）
+   */
+  show(level: number, cards: CardView[], firstTime: boolean, simple: boolean, counts: { rerolls: number; bans: number }, onPick: (i: number) => void): void {
     this.onPick = onPick;
     this.counts = counts;
     this.banning = false;
@@ -148,11 +152,12 @@ export class Cards {
       // 固定的几段：图标 → 名字（一行）→ 标签行（新 / Lv / 心法）→ 五行·类型 → 效果 → 底部提示；没内容的段也占位，三张卡同一套格子对齐
       const badges = (c.tag ? `<em${c.tag === '新' ? ' class="new"' : ''}>${c.tag}</em>` : '') + (c.xinfa ? `<em>${c.xinfa}</em>` : '');
       const nums = c.nums?.length ? `<span class="yx-pick-nums${c.tag === '新' ? ' base' : ''}">${c.nums.map((n) => `<span>${n.name} <b>${n.from === n.to ? n.from : `${n.from}→${n.to}`}</b>${n.unit}</span>`).join('')}</span>` : '';
-      const foot =
-        (c.counter ? `<span class="yx-pick-counter">${c.counter}</span>` : '') +
+      const foot = simple
+        ? ''
+        : (c.counter ? `<span class="yx-pick-counter">${c.counter}</span>` : '') +
         (c.set ? `<span class="yx-pick-set">${c.set}</span>` : '') +
         (c.merge ? `<span class="yx-pick-merge${c.merge.ready ? ' ready' : ''}" style="--mc:${c.merge.color}"><b>${c.merge.dual ? '双' : '合'}</b>${c.merge.text}</span>` : '') +
-        (c.hint ? `<span class="yx-pick-hint">${c.hint}</span>` : '');
+          (c.hint ? `<span class="yx-pick-hint">${c.hint}</span>` : '');
       b.innerHTML =
         `<span class="yx-pick-key">${i + 1}</span>` +
         `<img alt="" src="${this.icons(c.icon)}">` +
@@ -179,6 +184,7 @@ export class Cards {
       else if (a === 'ban') this.toggleBan();
       else if (a === 'skip') this.action(Pick.Skip);
     });
+    if (simple && level < 3) bar.style.display = 'none';
     this.bar = bar;
     this.root.appendChild(bar);
     this.root.classList.remove('banning');

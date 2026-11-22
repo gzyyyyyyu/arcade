@@ -155,7 +155,7 @@ describe('每日挑战', () => {
     const old = dailyPlan('2026-10-25', 'vigil');
     expect(old.curses.length).toBeGreaterThanOrEqual(1);
   });
-  it('固定值：2026-10-17 守夜的计划不随改动漂移（改了抽法要同时加 DAILY_RULES）', () => {
+  it('固定值：2026-10-17 守夜的计划不随改动漂移（改了抽法，同一天的榜会混进两种局）', () => {
     const p = dailyPlan('2026-10-17', 'vigil');
     expect({ seed: p.setup.seed, map: p.setup.map, curses: p.curses, danger: p.setup.danger }).toMatchInlineSnapshot(`
       {

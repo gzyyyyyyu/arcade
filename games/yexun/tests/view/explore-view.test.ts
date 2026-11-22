@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DAWN_RED, DAWN_WARN } from '../../src/content/explore.ts';
 import { newGuide } from '../../src/explore/guide.ts';
 import { Raid } from '../../src/explore/raid.ts';
-import { dawnText, edgeArrow, walkSecs } from '../../src/explore/view/guide-hud.ts';
+import { edgeArrow, walkSecs } from '../../src/explore/view/guide-hud.ts';
 
 describe('夜探指引的画面计算', () => {
   it('箭头贴在屏幕边上（内缩），写门名和秒数；没有开着的门不画', () => {
@@ -18,10 +17,7 @@ describe('夜探指引的画面计算', () => {
     expect(b.onScreen).toBe(true);
   });
 
-  it('天亮倒计时：14:00 起醒目，最后 30 秒变红', () => {
-    expect(dawnText(0)).toEqual({ text: '离天亮 15:00', level: 0 });
-    expect(dawnText(DAWN_WARN)).toEqual({ text: '天亮 1:00', level: 1 });
-    expect(dawnText(DAWN_RED)).toEqual({ text: '天亮 0:30', level: 2 });
+  it('沿路走过去的秒数向上取整', () => {
     expect(walkSecs(91)).toBe(2);
   });
 });

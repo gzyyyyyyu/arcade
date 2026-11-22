@@ -13,7 +13,7 @@
  * - 400 / 403 / 404 和钱包的未知错误码是夜巡自己的 bug：记 error、控制台留证据，不自动重试。
  * 不依赖 DOM：fetch、时钟、存储从外面传进来。
  */
-import { LIVE_CHAR_IDS, liveCharOk, LIVE_MAX_BP, LIVE_TIERS, isLiveTier, liveReturn, vigilBp, type LiveTier } from '../content/live.ts';
+import { LIVE_CHAR_IDS, liveCharOk, LIVE_MAX_BP, LIVE_TIERS, isLiveTier, vigilBp, type LiveTier } from '../content/live.ts';
 import type { Setup } from '../core/state.ts';
 import { RAID_LIVE, RAID_LIVE_TEMPLATES, type RaidLiveTemplate } from '../content/explore.ts';
 import type { CharacterId } from '../content/meta.ts';
@@ -398,6 +398,3 @@ export function createLive(over: Partial<LiveDeps> = {}): LiveClient {
   }
   return new LiveClient({ store, fetch: (u, i) => globalThis.fetch(u, i), now: () => Date.now(), ...over });
 }
-
-/** 结回多少（给结算页预告用，和 Worker 算法一致；真正进账以钱包回话为准） */
-export const previewReturn = liveReturn;

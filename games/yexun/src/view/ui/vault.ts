@@ -13,8 +13,8 @@ import { closeModal, modalChrome, openModal } from './modal.ts';
 import { PAGER_CTL, Pager } from './pager.ts';
 import './codex.css';
 import './vault.css';
+import { esc } from './screens/shared.ts';
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 export class Vault {
   readonly root: HTMLDivElement;

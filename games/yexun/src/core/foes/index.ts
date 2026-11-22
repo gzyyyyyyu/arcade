@@ -36,8 +36,6 @@ const SHUOSHU_C = CODE('shuoshu');
 const PILE_C = CODE('ricepile');
 const COFFIN_C = CODE('coffin');
 const SPROUT_C = CODE('bamsprout');
-const TROUPE_C = CODE('troupe');
-const RAT_C = CODE('ratdemon');
 const PROP_CODES: ReadonlySet<number> = new Set(PROP_KINDS.map(CODE));
 const PH = [0.5] as const;
 
@@ -713,5 +711,3 @@ function shuoshuAct(w: World, i: number, d: number, dx: number, dy: number, mv: 
   void d;
   void mv;
 }
-
-export const FOE_CODES = { ZHUMU_C, SHUIHOU_C, BINGHUN_C, WUMIAN_C, XUETONG_C, GUANDING_C, HONGYI_C, SHUOSHU_C, TROUPE_C, RAT_C, COFFIN_C, PILE_C, CLONE_C };

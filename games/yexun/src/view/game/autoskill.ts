@@ -1,7 +1,8 @@
 // 「自动放技能」：只在画面层把"该放了"当作按了技能键，规则核心和录像格式都不动。
 // 录像器记的是实际送进 step 的技能键，所以自动放的和手按的在回放里一模一样。
 
-import { skillReady, type World } from '../../core/index.ts';
+import { skillReady } from '../../core/skills.ts';
+import type { World } from '../../core/state.ts';
 import { readFlag, writeFlag } from '../audio/sfx.ts';
 
 /** 附近有怪的范围（像素）：屏幕上看得见的近处，怪不近身就不浪费技能 */

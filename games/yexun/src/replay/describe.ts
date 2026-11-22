@@ -1,5 +1,5 @@
 /** 录像在列表里怎么写（纯函数，不碰 DOM） */
-import { RULES_VERSION } from '../core/index.ts';
+import { RULES_VERSION } from '../core/state.ts';
 import type { ReplayRecord } from './format.ts';
 
 const mmss = (s: number): string => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;

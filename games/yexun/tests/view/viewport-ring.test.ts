@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { RING, createWorld, step } from '../../src/core/step.ts';
+import { createWorld, step } from '../../src/core/step.ts';
+import { RING } from '../../src/core/state.ts';
 import { worldZoom } from '../../src/view/viewport.ts';
 
 // 怪从刷怪圈上出生：看得见的半宽、半高必须在圈里面，不然怪会在屏幕里凭空冒出来（10-20 竖屏放大视野时主线要求）

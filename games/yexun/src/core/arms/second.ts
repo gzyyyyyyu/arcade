@@ -32,12 +32,6 @@ function dmgOf(w: World, api: ArmApi, id: WeaponId): { k: number; dmg: number } 
   const k = slotOf(w, id);
   return { k, dmg: k >= 0 ? api.eff(w, w.wstats[k]!).dmg : 0 };
 }
-/** 这一拍有没有某种事件，返回第一条的下标，没有 -1 */
-function evOf(w: World, type: number, a = -1): number {
-  const ev = w.ev;
-  for (let q = 0; q < ev.n; q++) if (ev.type[q] === type && (a < 0 || ev.a[q] === a)) return q;
-  return -1;
-}
 
 // ───────────────────────── 套件和被动 ─────────────────────────
 
@@ -563,7 +557,7 @@ function maibuBurst(w: World, g: Grid, api: ArmApi, x: number, y: number): void 
 function secondCombos(w: World, g: Grid, api: ArmApi): void {
   const C = ARM_FX2.combo;
   // 阴律斩：每次挥剑，判官笔对挥中最疼（血最多）的那只补一笔
-  if (hasMerge(w, 'yinlv') && evOf(w, Ev.Fire, CODE.sword) >= 0) {
+  if (hasMerge(w, 'yinlv') && w.ev.find(Ev.Fire, CODE.sword) >= 0) {
     const ks = slotOf(w, 'sword');
     const { k, dmg } = dmgOf(w, api, 'brush');
     if (ks >= 0 && k >= 0) {
@@ -620,7 +614,7 @@ function secondCombos(w: World, g: Grid, api: ArmApi): void {
     }
   }
   // 爆竹驱年：护盾破时连放一串爆竹，震开全屏
-  if (hasMerge(w, 'baozhu') && evOf(w, Ev.Shield, 0) >= 0) {
+  if (hasMerge(w, 'baozhu') && w.ev.find(Ev.Shield, 0) >= 0) {
     const { k, dmg } = dmgOf(w, api, 'cracker');
     if (k >= 0) {
       const M = C.baozhu;

@@ -275,6 +275,11 @@
 .yx-rcoins .yx-fly { position: absolute; left: calc(50% - 90px); top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; opacity: 0; animation: yx-fly 0.7s calc(0.1s + var(--i) * 0.09s) ease-in both; }
 .yx-rsrc { display: grid; grid-template-columns: 1fr; gap: 2px 28px; max-width: 520px; width: 100%; margin: 0 auto; font-size: var(--fs-md, 14px); color: #4a3a2a; }
 .yx-rsrc.two { grid-template-columns: 1fr 1fr; }
+/* 放不下时一级级收（result.ts fit） */
+.yx-result-panel:is(.fit1, .fit2, .fit3, .fit4) .yx-rbuild .yx-rrow:nth-child(n + 5) { display: none; }
+.yx-result-panel:is(.fit2, .fit3, .fit4) :is(.yx-rpasses, .yx-rnight) { display: none; }
+.yx-result-panel:is(.fit3, .fit4) .yx-rsrc { grid-template-columns: 1fr 1fr; gap: 0 14px; font-size: var(--fs-sm, 13px); }
+.yx-result-panel.fit4 .yx-rsrc { display: none; }
 .yx-rsrc > div { display: flex; align-items: center; gap: 6px; opacity: 0; animation: yx-src-in 0.3s ease-out both; }
 .yx-rsrc img { width: 16px; height: 16px; }
 .yx-rsrc span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px dotted #b8a68a; }

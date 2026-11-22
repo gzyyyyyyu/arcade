@@ -157,4 +157,10 @@ export class Events {
     this.c[i] = c;
     this.n = i + 1;
   }
+
+  /** 这一拍第一条类型为 t（a ≥ 0 时还要 a 对上）的事件下标，没有回 -1 */
+  find(t: number, a = -1): number {
+    for (let q = 0; q < this.n; q++) if (this.type[q] === t && (a < 0 || this.a[q] === a)) return q;
+    return -1;
+  }
 }

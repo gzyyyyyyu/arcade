@@ -12,6 +12,7 @@ import { zoomed } from '../viewport.ts';
 import { exchangeHtml, kitsHtml, looksHtml, type ShopState } from './prepShop.ts';
 import type { KitId, LookId } from '../../content/meta.ts';
 import './prep.css';
+import { esc } from './screens/shared.ts';
 
 /** 电脑大屏上弹窗的设计尺寸（逻辑像素）和占屏上限：宽 70%、高 85%（和选关页的 --k 同一思路，按可视区算放大倍数） */
 const PANEL_W = 1200;
@@ -37,7 +38,6 @@ export interface PrepState {
   shop: ShopState;
 }
 
-const esc = (t: string): string => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 export class Prep {
   readonly root: HTMLDivElement;

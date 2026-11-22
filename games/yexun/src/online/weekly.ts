@@ -5,10 +5,9 @@
  */
 import { WEEKLIES, WEEKLY_ORDER, type WeeklyDef } from '../content/weekly.ts';
 import type { MapId } from '../content/maps.ts';
-import { DAILY_DANGER } from './daily.ts';
+import { DAILY_DANGER, DATE_RE } from './daily.ts';
 import type { OnlineSetup } from './types.ts';
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DAY = 86400_000;
 /** 1970-01-05 是周一，从它起数周序号 */
 const FIRST_MONDAY_DAY = 4;
@@ -18,22 +17,10 @@ function dayNo(date: string): number {
   return Math.floor(Date.UTC(y, m - 1, d) / DAY);
 }
 
-function fmt(day: number): string {
-  const t = new Date(day * DAY);
-  const p = (n: number): string => String(n).padStart(2, '0');
-  return `${t.getUTCFullYear()}-${p(t.getUTCMonth() + 1)}-${p(t.getUTCDate())}`;
-}
-
 /** 这一天所在周的序号（周一起算，1970-01-05 那周是 0）；日期不合格式返回 -1 */
 export function weekIndex(date: string): number {
   if (!DATE_RE.test(date)) return -1;
   return Math.floor((dayNo(date) - FIRST_MONDAY_DAY) / 7);
-}
-
-/** 这一天所在周的周一 */
-export function weekStart(date: string): string {
-  const k = weekIndex(date);
-  return k < 0 ? '' : fmt(FIRST_MONDAY_DAY + k * 7);
 }
 
 /** 这一周还剩几天（含今天：周一 7，周日 1） */

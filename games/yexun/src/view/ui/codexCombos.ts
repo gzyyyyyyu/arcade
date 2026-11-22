@@ -9,8 +9,8 @@ import { CHARACTER_POOLS, mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId 
 import { mergeReach, mergeWho, reachWhy, SHOWN_MERGES } from '../../content/combos.ts';
 import { MERGE_STAGE, PASSIVES, SCHOOL_SETS, WEAPONS, type MergeDef } from '../../content/weapons.ts';
 import type { Records } from '../../meta/records.ts';
+import { esc } from './screens/shared.ts';
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 /**
  * 怎么合（规则 63 的两段式，DESIGN 3.3f）：两件都到 5 级开宝箱合初成（效果减半），到原条件再开宝箱升大成（合成两件都进化；双修一件进化、另一件满级）。

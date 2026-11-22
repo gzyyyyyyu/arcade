@@ -52,6 +52,8 @@ export interface ResultView {
   raid?: RaidResultView;
   /** 本局经历的夜事（地图事件、血月、精英发狂的次数）；全 0 或没有就不显示「今晚」一行 */
   night?: NightLog;
+  /** 新手前几局倒下时的「下次试试」一句（finish.ts 定），占「本局最强」那一块；没有就照常显示本局最强 */
+  advice?: string;
 }
 
 export class Result {
@@ -110,6 +112,16 @@ export class Result {
       (lost ? `<label>丢在镇里 ${rr.lost.length} 件</label><div class="yx-ritems">${lost}</div>` : '') +
       '</div>'
     );
+  }
+
+  /**
+   * 一屏放下不滚动（docs/ui.md 第 11 节）：面板比屏幕高就一级级收（.fit1 … .fit4，样式在 screens.css）——
+   * 法器伤害只留前 3 行 → 收起被动和「今晚」→ 铜钱明细分两栏 → 收起铜钱明细（总数那行还在）。手机竖屏一局玩久了 6 件法器 + 6 条明细放不下
+   */
+  private fit(): void {
+    const panel = this.root.querySelector<HTMLElement>('.yx-result-panel');
+    if (!panel) return;
+    for (let k = 1; k <= 4 && panel.scrollHeight > panel.clientHeight + 1; k++) panel.classList.add(`fit${k}`);
   }
 
   show(r: ResultView): void {
@@ -187,7 +199,9 @@ export class Result {
       `<div><b>${r.level}</b><span>级</span></div>` +
       (total === undefined ? `<div><b>${r.coins.toLocaleString('zh-CN')}</b><span>铜钱</span></div>` : '') +
       '</div>' +
-      (best && !rr ? `<div class="yx-rbest"><img alt="" src="${this.icons('ui_medal')}"><div><small>本局最强</small><b>${esc(best.name)}</b><span>${fmt(best.dmg)} 伤 · ${best.kills} 斩</span></div></div>` : '') +
+      // 有「下次试试」时占「本局最强」的位置（最强那件就是下面伤害榜第一行）：多一行手机竖屏就放不下了
+      (r.advice && !rr ? `<div class="yx-rbest yx-radvice"><div><small>下次试试</small><span>${esc(r.advice)}</span></div></div>` : '') +
+      (best && !rr && !r.advice ? `<div class="yx-rbest"><img alt="" src="${this.icons('ui_medal')}"><div><small>本局最强</small><b>${esc(best.name)}</b><span>${fmt(best.dmg)} 伤 · ${best.kills} 斩</span></div></div>` : '') +
       '</div>' +
       (rr ? this.raidItems(rr) : `<div class="yx-rbuild"><label>法器伤害</label>${rows}${passives ? `<div class="yx-rpasses">${passives}</div>` : ''}</div>`) +
       '</div>' +
@@ -203,6 +217,7 @@ export class Result {
         : '<button type="button" class="yx-big yx-again" data-a="again">再来一局</button>') +
       '</div></div>';
     this.root.style.display = '';
+    this.fit();
     // 铜钱总数从"加之前"数到"加之后"，和飞币动画同步
     const num = this.root.querySelector<HTMLElement>('.yx-tot b');
     if (num) {
