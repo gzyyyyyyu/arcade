@@ -279,7 +279,7 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
           this.overlay = 'settle';
           this.overlayModal = prev;
           this.refreshSettleWait();
-        }));
+        }, true));
         return;
       }
       return this.leaveRoom();

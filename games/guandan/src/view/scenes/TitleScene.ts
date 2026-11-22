@@ -18,7 +18,7 @@ import { DDZ_FLOW, DdzStakeSession, clearDdzStakeSave, ddzStakeExpired, ddzStake
 import { DDZ_DAILY_LEVEL, beijingDate, ddzDailySeed } from '../doudizhu/daily.ts';
 import { DailySession } from '../guandan/daily.ts';
 import { COLOR, LIGHT, RADIUS, TYPE, minHit, phoneType } from '../common/theme.ts';
-import { FIGURE_SIZE, LANTERN_SIZE, homeLayout } from '../common/home-layout.ts';
+import { FIGURE_SIZE, LANTERN_SIZE, homeLayout, panelRows } from '../common/home-layout.ts';
 import { LOW_MEMORY } from '../common/device.ts';
 import { anim } from '../common/anim.ts';
 import { goLobby } from '../common/lobby.ts';
@@ -37,7 +37,9 @@ import type { SoloLevel } from '../../variants/guandan/ai/venue.ts';
 /** 右上角图标的名字（电脑上鼠标停上去冒出来） */
 const ICON_LABEL: Record<string, string> = { rules: '规则', settings: '设置', stats: '战绩', achievements: '成就' };
 /** 还没打过的战绩条：一句话加下一步（点这条开快速局，控件名 statsEmpty） */
-const EMPTY_STATS_LINE = '还没有战绩 · 点这里去打一局 ›';
+// 空战绩条：右边挤着每日挑战（斗地主还有残局），话要短到 1280 宽也不用省略号截（docs/ui.md 第 10 节）
+const EMPTY_STATS_LINE = '还没打过 · 去打一局 ›';
+const EMPTY_STATS_SHORT = '去打一局 ›';
 const PITCH_DDZ ='一个地主对两个农民，谁先出完谁那边赢';
 const PITCH_DDZ_SHORT = '一个地主对两个农民';
 
@@ -73,6 +75,7 @@ export class TitleScene extends Phaser.Scene {
     const W = worldW(this);
     const L = homeLayout(W, worldH(this));
     const P = L.panel;
+    const R = panelRows(P.h);
     // 灯笼晃、人物呼吸、火星：省内存设备和关了动画（anim=0、截图）时不开
     const lively = LOW_MEMORY === 0 && !anim.instant;
     this.buttons = {};
@@ -118,7 +121,7 @@ export class TitleScene extends Phaser.Scene {
     // 内阴影：四边往里压一圈暗，面板像是凹进漆里的托盘，标题和主按钮落在亮处；顶边内侧一道暖白细线是光打在边上
     g.lineStyle(18, LIGHT.shadow, 0.3).strokeRoundedRect(P.x + 8, P.y + 8, P.w - 16, P.h - 16, RADIUS.xl - 4);
     // 标题后面一团暖光，把视线引到"牌馆"和主按钮上
-    for (const [k, a] of [[1, 0.025], [0.85, 0.025], [0.7, 0.03], [0.55, 0.03], [0.4, 0.035]] as const) g.fillStyle(0xffc06a, a).fillEllipse(P.x + P.w / 2, P.y + 118, P.w * 0.9 * k, 230 * k);
+    for (const [k, a] of [[1, 0.025], [0.85, 0.025], [0.7, 0.03], [0.55, 0.03], [0.4, 0.035]] as const) g.fillStyle(0xffc06a, a).fillEllipse(P.x + P.w / 2, P.y + R.logo + 26, P.w * 0.9 * k, 230 * k);
     g.lineStyle(3, 0x2b1d14, 1).strokeRoundedRect(P.x, P.y, P.w, P.h, RADIUS.xl);
     g.lineStyle(1.5, LIGHT.highlight, 0.5).lineBetween(P.x + RADIUS.xl, P.y + 2.5, P.x + P.w - RADIUS.xl, P.y + 2.5);
     g.lineStyle(2, COLOR.gold, 0.8).strokeRoundedRect(P.x + 8, P.y + 8, P.w - 16, P.h - 16, RADIUS.xl - 6);
@@ -126,7 +129,7 @@ export class TitleScene extends Phaser.Scene {
     const inner = P.w - 48;
 
     // 牌馆：掼蛋 + 斗地主两个玩法，标题写"牌馆"
-    const logo = this.add.image(cx, P.y + 92, 'logo:hall').setDisplaySize(380, 161).setDepth(20);
+    const logo = this.add.image(cx, P.y + R.logo, 'logo:hall').setDisplaySize(380, 161).setDepth(20);
     if (lively) {
       logo.setAlpha(0).setScale(logo.scaleX * 1.2);
       this.tweens.add({ targets: logo, alpha: 1, scale: logo.scaleX / 1.2, duration: 520, ease: 'Back.easeOut' });
@@ -135,7 +138,7 @@ export class TitleScene extends Phaser.Scene {
     const variant: VariantId = getVariant();
     // 点按区要 minHit() 高（手机横屏约 82–100），下面紧挨着主按钮：下沿对齐画出来的底边（高 44），往上伸进标题字（字点不了）
     const hitM = minHit();
-    const segY = P.y + 186;
+    const segY = P.y + R.seg;
     const seg = segmented(this, cx - 75, segY, [{ label: '掼蛋', value: 'guandan' }, { label: '斗地主', value: 'ddz' }], variant, (v) => {
       setVariant(v as VariantId);
       this.scene.restart();
@@ -146,7 +149,7 @@ export class TitleScene extends Phaser.Scene {
     if (variant === 'ddz') {
       // 今日残局现算一次要几百毫秒（慢手机上一两秒）：牌桌素材烘完、主页闲着时先算好，点开选关就不卡
       void startBackgroundBake(this).then(() => this.scene.isActive() && this.time.delayedCall(800, () => dailyPuzzleOf()));
-      this.buildDdzPanel(P, cx, inner);
+      this.buildDdzPanel(P, cx, inner, R);
       this.buildCorner(W, L.portrait);
       return;
     }
@@ -161,7 +164,7 @@ export class TitleScene extends Phaser.Scene {
       this.time.delayedCall(600, () => toast(this, STAKE_ERROR.expired!, W / 2, worldH(this) - 60));
     }
     const saved = save && save.state.phase !== 'gameOver' ? `第 ${save.state.dealNo} 副 · 我方 ${levelName(save.state.levels[0])} · 对方 ${levelName(save.state.levels[1])}` : null;
-    const by = P.y + 256;
+    const by = P.y + R.main;
     // 按钮下面一行小字：sub 里的 {0} 是要红绿的分（nums），没有就整行原样
     const primary = (key: string, label: string, sub: string, fn: () => void, nums: number[] = []): { btn: Button; line: Phaser.GameObjects.Container } => {
       const btn = new Button(this, cx, by, inner, 72, label, 'red', fn, 'play').setDepth(20);
@@ -193,9 +196,9 @@ export class TitleScene extends Phaser.Scene {
     ];
     const gap = 16;
     const cw = (inner - gap * (modes.length - 1)) / modes.length;
-    const cy = P.y + 402;
+    const cy = P.y + R.cards;
     modes.forEach(([key, name, desc, style, icon, fn], i) => {
-      const card = new ModeCard(this, P.x + 24 + cw / 2 + i * (cw + gap), cy, cw, 150, name, desc, style, icon, fn).setDepth(20);
+      const card = new ModeCard(this, P.x + 24 + cw / 2 + i * (cw + gap), cy, cw, R.cardH, name, desc, style, icon, fn).setDepth(20);
       this.buttons[key] = card;
       if (lively) {
         card.setAlpha(0);
@@ -225,7 +228,7 @@ export class TitleScene extends Phaser.Scene {
     const statsHit = this.add.zone(daily ? P.x + 24 + statsW / 2 : cx, sy, statsW, statsH).setDepth(21);
     setHit(statsHit, statsW, statsH);
     // 还没有战绩时这条是"去打一局"：和快速开始同一条路径；控件名 statsEmpty（有战绩后还叫 stats 那个右上角图标，这条不进控件表）
-    if (st.games > 0) statsHit.on('pointerup', () => (this.overlay = openStats(this)));
+    if (st.games > 0) statsHit.on('pointerup', () => this.openStatsPanel());
     else {
       statsHit.on('pointerup', () => (saved ? this.continueGame() : this.newGame()));
       this.buttons.statsEmpty = this.add.container(statsHit.x, statsHit.y);
@@ -233,7 +236,7 @@ export class TitleScene extends Phaser.Scene {
     if (daily) {
       // 点按区往下挪到模式卡底边以下（手机横屏要 minHit() 高，居中会伸进卡里）
       const dh = Math.max(48, minHit());
-      const top = Math.max(sy - dh / 2, cy + 75 + 1);
+      const top = Math.max(sy - dh / 2, cy + R.cardH / 2 + 1);
       this.buttons.daily = new Button(this, P.x + 24 + inner - 88, sy, 160, 48, '每日挑战', 'gold', () => this.newGdDaily(), 'crown').setHit(160, dh, top + dh / 2 - sy).setDepth(20);
     }
 
@@ -247,15 +250,28 @@ export class TitleScene extends Phaser.Scene {
     btn.setHit(w, h, top + h / 2 - by);
   }
 
+  /** 手机（竖屏或手机横屏）：顶栏最多 4 个图标（docs/ui.md 第 10 节），成就收进战绩面板 */
+  private compactBar(): boolean {
+    return worldH(this) > worldW(this) || phoneType();
+  }
+
+  private openAchievementsPanel(): void {
+    this.overlay = openAchievements(this, getVariant() === 'ddz' ? 'ddz' : 'gd');
+  }
+
+  private openStatsPanel(): void {
+    this.overlay = openStats(this, this.compactBar() ? () => this.openAchievementsPanel() : undefined);
+  }
+
   /** 右上角的图标、左上角的回大厅和回到房间、版本号、音乐（掼蛋和斗地主的主页共用） */
   private buildCorner(W: number, portrait: boolean): void {
-    // 右上角：规则、设置、战绩、成就、云存档（图标），左上角：回大厅、回到房间
+    // 右上角：规则、设置、战绩、成就（手机上收进战绩）、云存档（图标），左上角：回大厅、回到房间
     const icons: [string, string, () => void][] = [
       ['rules', 'rules', () => (this.overlay = getVariant() === 'ddz' ? openDdzRules(this) : openRules(this))],
       ['settings', 'settings', () => (this.overlay = openSettings(this))],
-      ['stats', 'stats', () => (this.overlay = openStats(this))],
+      ['stats', 'stats', () => this.openStatsPanel()],
       // 成就没有专用图标，借奖杯皇冠
-      ['achievements', 'crown', () => (this.overlay = openAchievements(this, getVariant() === 'ddz' ? 'ddz' : 'gd'))],
+      ...(this.compactBar() ? [] : [['achievements', 'crown', () => this.openAchievementsPanel()] as [string, string, () => void]]),
     ];
     const step = Math.max(64, minHit() + 4);
     // 点按区从屏幕上沿往下算（setTopHit），居中的话手机横屏上伸出屏幕的一截点不到
@@ -301,15 +317,15 @@ export class TitleScene extends Phaser.Scene {
   /**
    * 斗地主的面板：主按钮（接着打实盘 / 继续上局 / 快速开始）、三张卡（娱乐：选难度、快速匹配；实盘；好友房）、战绩条（右边是每日挑战）。
    */
-  private buildDdzPanel(P: { x: number; y: number; w: number; h: number }, cx: number, inner: number): void {
+  private buildDdzPanel(P: { x: number; y: number; w: number; h: number }, cx: number, inner: number, R: ReturnType<typeof panelRows>): void {
     // 手机横屏字号托底放大，整句放不下：删字不缩字（AGENTS 画面层约定），再按面板宽度兜底
     const phone = phoneType();
-    fitWidth(text(this, cx, P.y + 228, phone ? PITCH_DDZ_SHORT : PITCH_DDZ, { size: TYPE.small, color: 0xf6e4c0 }).setDepth(20), inner);
+    fitWidth(text(this, cx, P.y + R.pitch, phone ? PITCH_DDZ_SHORT : PITCH_DDZ, { size: TYPE.small, color: 0xf6e4c0 }).setDepth(20), inner);
     const save = loadDdzSave();
     // {0} 是我的分（按钮下的小字红绿）；pickDdz 只看有没有
     const saved = save && save.state.phase !== 'gameOver' ? `第 ${save.state.dealNo}/${save.state.opts.deals} 副 · 我 {0} 分` : null;
     const level = getSettings().difficulty;
-    const by = P.y + 286;
+    const by = P.y + R.mainDdz;
     // 主按钮：有没结完的实盘先接着打（或去结算），否则有存档"继续上局"，否则"快速开始"。过期没结的那一份平台已经原样退回，存档删掉
     let stake = standalone() ? null : loadDdzStakeSave();
     if (stake && !stake.settle && ddzStakeExpired(stake)) {
@@ -339,13 +355,13 @@ export class TitleScene extends Phaser.Scene {
     const gap = 16;
     const cw = (inner - gap * (modes.length - 1)) / modes.length;
     modes.forEach(([key, name, desc, style, icon, fn], i) => {
-      this.buttons[key] = new ModeCard(this, P.x + 24 + cw / 2 + i * (cw + gap), P.y + 428, cw, 150, name, desc, style, icon, fn).setDepth(20);
+      this.buttons[key] = new ModeCard(this, P.x + 24 + cw / 2 + i * (cw + gap), P.y + R.cardsDdz, cw, R.cardH, name, desc, style, icon, fn).setDepth(20);
     });
     const st = getDdzStats();
     const sy = P.y + P.h - 62;
     const strip = this.add.graphics().setDepth(19);
     strip.fillStyle(0xffffff, 0.06).fillRoundedRect(P.x + 24, sy - 30, inner, 60, RADIUS.lg);
-    const line = st.games > 0 ? `赢了 ${st.wins}/${st.games} 局` : EMPTY_STATS_LINE;
+    const line = st.games > 0 ? `赢了 ${st.wins}/${st.games} 局` : EMPTY_STATS_SHORT;
     // 战绩条右边是"残局"（明牌闯关，不用平台）和每日挑战（全服同一副牌，打完上今天的榜；单独部署没有榜，不摆），两个并排
     const daily = !standalone();
     const pw = 108;
@@ -355,7 +371,7 @@ export class TitleScene extends Phaser.Scene {
     fitWidth(text(this, P.x + 24 + textW / 2, sy, line, { size: TYPE.label, color: st.games > 0 ? COLOR.goldLight : 0xd8c6a6 }).setDepth(20), textW - 8);
     // 点按区往下挪到模式卡底边以下（手机横屏要 minHit() 高，居中会伸进卡里）
     const dh = Math.max(48, minHit());
-    const top = Math.max(sy - dh / 2, P.y + 428 + 75 + 1);
+    const top = Math.max(sy - dh / 2, P.y + R.cardsDdz + R.cardH / 2 + 1);
     if (st.games === 0) {
       // 空战绩条 = "去打一局"，和主按钮同一条路径（有存档就继续上局，不覆盖）
       const zx = P.x + 24 + textW / 2;
@@ -368,7 +384,7 @@ export class TitleScene extends Phaser.Scene {
       // 有战绩时和掼蛋一样，点战绩条打开战绩（停在斗地主页签）
       const zone = this.add.zone(P.x + 24 + textW / 2, top + dh / 2, textW, dh).setDepth(21);
       setHit(zone, textW, dh);
-      zone.on('pointerup', () => (this.overlay = openStats(this)));
+      zone.on('pointerup', () => this.openStatsPanel());
     }
     this.buttons.puzzles = new Button(this, puzzleX, sy, pw, 48, '残局', 'green', () => this.pickPuzzle(), 'cards').setHit(Math.max(pw, minHit()), dh, top + dh / 2 - sy).setDepth(20);
     if (daily) {
@@ -443,7 +459,7 @@ export class TitleScene extends Phaser.Scene {
     this.overlay = m;
     const levels: SoloLevel[] = ['novice', 'normal', 'pro'];
     const fresh = (lv: SoloLevel): void => {
-      if (saved) this.overlay = confirm(this, '重新开一局？现在这局的进度会丢掉', '开新局', () => this.newDdz(lv));
+      if (saved) this.overlay = confirm(this, '重新开一局？现在这局的进度会丢掉', '开新局', () => this.newDdz(lv), undefined, true);
       else this.newDdz(lv);
     };
     const top = -H / 2 + 90;
@@ -503,7 +519,7 @@ export class TitleScene extends Phaser.Scene {
   pickFun(saved: string | null): void {
     const s = getSettings();
     const fresh = (): void => {
-      if (saved) this.overlay = confirm(this, '重新开一局？现在这局的进度会丢掉', '开新局', () => this.newGame());
+      if (saved) this.overlay = confirm(this, '重新开一局？现在这局的进度会丢掉', '开新局', () => this.newGame(), undefined, true);
       else this.newGame();
     };
     this.overlay = openLevelPicker(

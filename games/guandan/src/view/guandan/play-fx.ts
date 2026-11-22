@@ -261,9 +261,15 @@ export async function flyTribute(sc: TableScene, from: number, to: number, card:
   }
   v.setDepth(TRIBUTE_FLY.depth);
   const mid = { x: worldW(sc) / 2, y: TRIBUTE_FLY.midY };
-  const tag = text(sc, mid.x, mid.y - TRIBUTE_FLY.tagDy, `${seatName(from)} ${label}给 ${seatName(to)}`, { size: TYPE.body, bold: true, color: COLOR.goldLight, stroke: 0x2b1d14, strokeWidth: 5 }).setDepth(TRIBUTE_FLY.depth + 1).setAlpha(0);
-  await tweenP(sc, { targets: v, x: mid.x, y: mid.y, scale: TRIBUTE_FLY.midScale, angle: 0, duration: PACE.tribute.in, ease: 'Cubic.easeOut' });
+  // 字下垫一块深色半透明底：桌布花纹深浅不一，光靠描边在淡入时看不清（docs/ui.md 第 4 节）
+  const word = text(sc, 0, 0, `${seatName(from)} ${label}给 ${seatName(to)}`, { size: TYPE.body, bold: true, color: COLOR.goldLight, stroke: 0x2b1d14, strokeWidth: 4 });
+  const pw = word.width + TRIBUTE_FLY.tagPadX * 2;
+  const ph = word.height + TRIBUTE_FLY.tagPadY * 2;
+  const plate = sc.add.graphics().fillStyle(0x1a0c06, TRIBUTE_FLY.tagBgAlpha).fillRoundedRect(-pw / 2, -ph / 2, pw, ph, ph / 2);
+  const tag = sc.add.container(mid.x, mid.y - TRIBUTE_FLY.tagDy, [plate, word]).setDepth(TRIBUTE_FLY.depth + 1).setAlpha(0);
+  // 字和牌一起出来：等牌落定再淡入的话，慢机器上牌停在桌心时字还是半透明的（Gemini 审查第 4 条截到的就是这一下）
   sc.tweens.add({ targets: tag, alpha: 1, duration: dur(TRIBUTE_FLY.tagInMs) });
+  await tweenP(sc, { targets: v, x: mid.x, y: mid.y, scale: TRIBUTE_FLY.midScale, angle: 0, duration: PACE.tribute.in, ease: 'Cubic.easeOut' });
   // 贡的是哪张、谁给谁：在桌子中间停够一秒多看清
   await wait(sc, PACE.tribute.hold);
   sc.tweens.add({ targets: tag, alpha: 0, duration: dur(TRIBUTE_FLY.tagOutMs), onComplete: () => tag.destroy() });

@@ -237,7 +237,12 @@ async function main(): Promise<void> {
     clients.push(host);
     await until(host, '标题页', "g.ready && g.scene === 'title'");
     const p = (await host.page.evaluate(() => window.__game!.controls())).online!;
+    // ?online=1 一进来就开着好友房面板；点遮罩（角上）要能关，再点主页的"好友房"卡重新打开（点开的那一下不能被遮罩当成点外面关掉）
+    await host.page.waitForSelector('#ol-create');
+    await host.page.mouse.click(4, 4);
+    await host.page.waitForSelector('#online', { state: 'detached', timeout: 5_000 });
     await host.page.mouse.click(p.x, p.y);
+    await host.page.waitForSelector('#ol-create', { timeout: 5_000 });
     await host.page.click('#ol-create');
     await host.page.waitForSelector('#ol-room-code');
     const code = (await host.page.textContent('#ol-room-code'))!.trim();
@@ -450,8 +455,7 @@ async function main(): Promise<void> {
     // 电脑按性格回怼、装没看见或认怂，三个都不理的概率约 4%，加上打牌时炸弹、头游的显摆，等 90 秒总该有一条
     const solo = await openClient(browser, stack, { ...SPECS[0]!, name: '电脑房', user: 'u-bots' }, '');
     await until(solo, '标题页', "g.ready && g.scene === 'title'");
-    const op = (await solo.page.evaluate(() => window.__game!.controls())).online!;
-    await solo.page.mouse.click(op.x, op.y);
+    // ?online=1 已经开着好友房面板（再点主页的卡等于点遮罩，会关掉）
     await solo.page.click('#ol-create');
     await until(solo, '房主坐下', 'g.net()?.seat === 0');
     await solo.page.click('#ol-start');

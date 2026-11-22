@@ -170,6 +170,10 @@ export const TRIBUTE_FLY = {
   endAlpha: 0.2,
   /** 说明字淡入、淡出（毫秒，经 dur） */
   tagInMs: 120,
+  /** 说明字的深色底：左右、上下留白，底的不透明度 */
+  tagPadX: 18,
+  tagPadY: 6,
+  tagBgAlpha: 0.72,
   tagOutMs: 160,
 };
 

@@ -44,7 +44,7 @@ export function mountRotateHint(onLobby: () => void): void {
   // 和主页同一张背景（art-v3，人物和灯笼是单独的精灵、不在图里）。竖屏按高铺满后横向取 30%，正好把月洞窗留在中间；
   // CSS 背景图只在竖屏真显示出来时才栅格化
   el.style.setProperty('--rh-art', `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(titleArtSvg(1280, 720))}")`);
-  el.innerHTML = `<button id="rh-lobby" class="gd-btn" type="button">${HOUSE}大厅</button>${ICON}<div>把屏幕横过来</div><span>牌桌是横的，横屏才排得下 27 张牌</span>`;
+  el.innerHTML = `<button id="rh-lobby" class="gd-btn" type="button">${HOUSE}大厅</button>${ICON}<div>把屏幕横过来</div><span>牌桌是横的，横屏才排得下一手牌</span>`;
   el.querySelector('#rh-lobby')!.addEventListener('click', onLobby);
   document.body.appendChild(el);
 }

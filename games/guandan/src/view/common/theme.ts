@@ -172,6 +172,8 @@ export const BUTTON = {
   blue: { fill: 0x3474c4, text: 0xf0f7ff, rim: 0xa8cdf5 },
   /** 弱按钮（不要、重选、理牌）：饱和度低的暖灰褐，退到背景里 */
   quiet: { fill: 0x5f4a3b, text: 0xf0e2cc, rim: 0xb59f86 },
+  /** 危险（确认框里会丢东西的那个：离开好友房、开新局丢进度、退出实盘）：深酒红，和主按钮的亮红分得开（docs/ui.md 第 2、5 节） */
+  danger: { fill: 0x8e1b22, text: 0xffe3da, rim: 0xe0726a },
   off: { fill: 0x9a948d, text: 0xece8e2, rim: 0xb8b2aa },
 } as const;
 
@@ -205,7 +207,7 @@ export const TIER = {
   off: { ledge: 2, top: 1, bottom: 0.96, hi: 0, drop: 0, rise: 0 },
 } as const;
 export type ButtonTier = keyof typeof TIER;
-export const BUTTON_TIER: Record<keyof typeof BUTTON, ButtonTier> = { red: 'primary', gold: 'secondary', green: 'secondary', wood: 'secondary', blue: 'secondary', quiet: 'quiet', off: 'off' };
+export const BUTTON_TIER: Record<keyof typeof BUTTON, ButtonTier> = { red: 'primary', gold: 'secondary', green: 'secondary', wood: 'secondary', blue: 'secondary', quiet: 'quiet', danger: 'secondary', off: 'off' };
 /** 键盘焦点框的颜色：金色在红、木、绿底上都看得见 */
 export const FOCUS_RING = 0xffd54a;
 
@@ -242,7 +244,15 @@ export const THEME_CSS = `
 .gd-btn.is-loading { color: transparent; pointer-events: none; }
 .gd-btn.is-loading::after { content: ""; position: absolute; width: 18px; height: 18px; border-radius: 50%;
   border: 3px solid rgba(255, 243, 214, 0.35); border-top-color: #fff3d6; animation: gd-spin 0.8s linear infinite; }
+/* 次按钮木色；gd-on 是选中项（金底深字），不和主按钮同色 */
 .gd-btn.gd-2 { background: var(--gd-gloss), ${css(BUTTON.wood.fill)}; }
+.gd-btn.gd-on { background: var(--gd-gloss), ${css(BUTTON.gold.fill)}; color: ${css(BUTTON.gold.text)}; }
+/* 危险按钮（删存档、离开好友房）：深酒红加浅字，和主按钮的亮红分得开（docs/ui.md 第 2 节） */
+.gd-btn.gd-danger { background: var(--gd-gloss), var(--gd-red-dark); color: #ffd9cf; }
+/* 弹窗右上角的 ✕：没有底，点区 44 见方（docs/ui.md 第 5 节） */
+.gd-btn.gd-x { width: var(--gd-hit); padding: 0; border: 0; background: transparent; box-shadow: none; color: var(--gd-ink); font-size: 24px; }
+.gd-btn.gd-x::before { display: none; }
+.gd-btn.gd-x:hover { background: rgba(43, 29, 20, 0.08); filter: none; }
 .gd-btn.gd-big { min-height: 56px; font-size: 22px; background: var(--gd-gloss), ${css(BUTTON.green.fill)}; }
 @keyframes gd-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .gd-btn { transition: none; } .gd-btn.is-loading::after { animation-duration: 2.4s; } }

@@ -4,6 +4,7 @@
  */
 import { soloLevelOf, type SoloLevel } from '../variants/guandan/ai/venue.ts';
 import type { GameState, Options } from '../variants/guandan/core/index.ts';
+import type { MatchLog } from '../variants/guandan/stake/titles.ts';
 import { DDZ_RULES, type DdzState } from '../variants/doudizhu/core/index.ts';
 import { isTier, type TierId } from '../core/stake.ts';
 
@@ -220,6 +221,9 @@ interface SaveData {
   counted: boolean;
   /** 已记入战绩的副数（同上） */
   dealsCounted: number;
+  /** 这一局攒到哪了（整局称号、晒战绩用；回大厅再"继续"不丢）。0.40.1 以前的存档没有，从接着打的那副开始攒 */
+  log?: MatchLog;
+  loggedDeal?: number;
 }
 
 export function loadSave(): SaveData | null {
