@@ -17,7 +17,8 @@ function whereText(w: Where | undefined): string {
   if (!w) return '在线';
   if (w.place === 'lobby' || !w.game) return '在大厅';
   if (w.place === 'game') return `在玩${gameName(w.game)}`;
-  return `在${gameName(w.game)}房里${w.seats ? ` · ${w.seats} 人` : ''}`;
+  // "·"用不换行空格粘在"房里"后面，折行只会落在点后头：下一行从"3/4 人"开始，不以"·"开头（整段都粘住 360 宽放不下）
+  return `在${gameName(w.game)}房里${w.seats ? `\u00a0· ${w.seats}\u00a0人` : ''}`;
 }
 
 /** "今天来过 / 昨天来过 / N 天前来过"（服务端按北京时间算天，不给精确时间）。 */

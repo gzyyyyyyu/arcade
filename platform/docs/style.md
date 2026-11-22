@@ -36,7 +36,7 @@
 
 ## 声音
 
-`src/lib/sound.ts` 用 WebAudio 现场合成，不带音频文件；页脚的"声音"开关（localStorage `arcade.sound`）关着时一点声音都不出，也不建 AudioContext；无头浏览器（`navigator.webdriver`）下四种提示音都是空操作，也不延迟跳转。每种不到 0.6 秒，音量不超过点按声的 1.5 倍。
+`src/lib/sound.ts` 用 WebAudio 现场合成，不带音频文件；页脚的"声音"开关（localStorage `arcade.sound`）关着时一点声音都不出，也不建 AudioContext，进游戏也静音（游戏经 arcade-kit `platformSoundOn()` 读同一个 key，值只有 `off` 或没有，格式不改）；无头浏览器（`navigator.webdriver`）下四种提示音都是空操作，也不延迟跳转。每种不到 0.6 秒，音量不超过点按声的 1.5 倍。
 
 | 提示音 | 声音 | 响的地方 |
 |---|---|---|

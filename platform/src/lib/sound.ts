@@ -2,7 +2,8 @@
  * 大厅的点按声：按下按钮、链接时一声很轻的"嗒"，WebAudio 现场合成，不下载音频文件。
  * 可以关（页脚的"声音"），关掉记在 localStorage 的 `arcade.sound`（平台的 key 加 arcade. 前缀）。
  * 关着的时候连 AudioContext 都不建，保证一点声音都不出；开着时也等第一次按下才建（手机浏览器要用户先碰一下屏幕才放声音）。
- * 只有大厅这边有：游戏页是整页跳过去的，各游戏有自己的声音和开关。
+ * 这个开关也管游戏：各游戏经 arcade-kit 的 platformSoundOn() 读同一个 key，大厅静音了进游戏也是静音的（游戏自己的开关另算）。
+ * `arcade.sound` 的值是对游戏公开的约定：只有 'off'（静音）或者没有这个 key（开着），以后别改格式，改了游戏会读错。
  */
 const KEY = 'arcade.sound';
 const listeners = new Set<() => void>();

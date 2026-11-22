@@ -1,7 +1,7 @@
 /**
  * 晒战绩（战绩页和排行页都叫这个名字）：卡由共用包 arcade-kit/share 画（和游戏的分享卡一个样），平台只交数据。
  * 链接是本人的好友链接 /f/<码>：朋友扫码或点开，登录后直接加好友。图在浏览器里画，不上传、不写库。
- * iOS 只许在点击的那一下里调系统分享，所以卡在 effect 里先画好（prepareShare），点的时候同步调 share()。
+ * iOS 只许在点击的那一下里调系统分享，所以卡在 effect 里趁空闲先画好（prepareShare），点的时候同步调 share()。
  */
 import { useEffect, useRef } from 'react';
 import { prepareShare, type PreparedShare, type ShareCard } from 'arcade-kit/share';
@@ -13,8 +13,12 @@ import { pickStats } from './share-pick.ts';
 /** 平台的主题色（和大厅的橙色一致） */
 export const SHARE_ACCENT = '#e8742c';
 
+/** 最近画过的一张头像：战绩页每次渲染都拼卡，不留着就每次新画一张 256 的 canvas */
+let lastArt: { name: string; canvas: HTMLCanvasElement } | null = null;
+
 /** 头像：和页面上一样，主题色圆里写昵称的第一个字。画成一个小 canvas 当卡上的图 */
 function avatarArt(name: string): HTMLCanvasElement {
+  if (lastArt?.name === name) return lastArt.canvas;
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const g = c.getContext('2d');
@@ -29,6 +33,7 @@ function avatarArt(name: string): HTMLCanvasElement {
     g.textBaseline = 'middle';
     g.fillText(Array.from(name)[0] ?? '我', 128, 136);
   }
+  lastArt = { name, canvas: c };
   return c;
 }
 
@@ -82,8 +87,15 @@ export function ShareButton({ card, url, label, testId }: { card: ShareCard; url
   const key = JSON.stringify(data) + url;
   // biome-ignore lint/correctness/useExhaustiveDependencies: 只在内容变了（key）时重画：card 每次渲染都是新对象
   useEffect(() => {
-    prepared.current = prepareShare(card, { url, text: `${card.game} · ${card.title}`, fileName: 'arcade.png', log: shareLog });
+    // 空闲时再画：打开战绩页那一帧原来要同步画卡、转 PNG，手机上一卡。空闲前就点了，点击里当场画（下面的退路）
+    const draw = () => {
+      prepared.current = prepare(card, url);
+    };
+    const idle = typeof requestIdleCallback === 'function';
+    const id = idle ? requestIdleCallback(draw, { timeout: 2000 }) : window.setTimeout(draw, 300);
     return () => {
+      if (idle) cancelIdleCallback(id);
+      else clearTimeout(id);
       prepared.current = null;
     };
     // 只在内容变了时重画：card 每次渲染都是新对象
@@ -94,13 +106,17 @@ export function ShareButton({ card, url, label, testId }: { card: ShareCard; url
       type="button"
       data-testid={testId}
       onClick={() => {
-        const p = prepared.current ?? prepareShare(card, { url, fileName: 'arcade.png', log: shareLog });
+        const p = prepared.current ?? prepare(card, url);
         void p.share().then(playSuccess, () => undefined);
       }}
     >
       {label}
     </button>
   );
+}
+
+function prepare(card: ShareCard, url: string): PreparedShare {
+  return prepareShare(card, { url, text: `${card.game} · ${card.title}`, fileName: 'arcade.png', log: shareLog });
 }
 
 /** 冒烟读这个看分享走的是系统还是预览；线上只是一个小数组 */
