@@ -6,7 +6,7 @@
 #     wrangler 重新检查产物和配置，填上正式库的 id，先迁移 D1、再部署（注入域名和 SITE_ORIGIN）。
 # 正式站的域名和 D1 的 id 只在 production 环境的 secret 里（SITE_HOST、D1_DATABASE_ID），见 platform/README.md 的部署一节。
 # 拆成独立仓库时：去掉 paths 和 working-directory，把 platform/ 前缀去掉，并把 tools/deployer、tools/verify-main.sh 一起带走。
-# Cloudflare 部署默认关：仓库变量 CF_DEPLOY 设成 true 才在 main 上测试、打包、部署（还要 production 环境里的三个 secret，见 docs/deployment.md）；
+# Cloudflare 部署默认关：仓库变量 CF_DEPLOY 设成 true 才在 main 上测试、打包、部署（还要 production 环境里的四个 secret，见 docs/deployment.md）；
 # 没设时合并进 main 两个作业都跳过，不花运行时间。PR 上的测试不受这个变量影响。
 name: Deploy platform
 on:
@@ -45,7 +45,7 @@ jobs:
           cache-dependency-path: platform/package-lock.json
       - run: node ../tools/check-isolation.mjs
       - run: npm ci
-      # 接口测试在本地 workerd + 本地 D1 里跑（@cloudflare/vitest-plugin），不碰线上；没有 test 脚本的旧版本跳过
+      # 接口测试在本地 workerd + 本地 D1 里跑（@cloudflare/vitest-plugin），不碰线上
       - run: npm run test --if-present
       - run: npm run build
       # PR 上也打一次包（几秒钟），合并前就能发现打包的问题；只有 main 上才上传给 deploy。在冒烟之前打，打的是刚构建出来的 dist
@@ -112,7 +112,7 @@ jobs:
           OWNER: ${{ github.repository_owner }}
         run: bash tools/verify-main.sh "${{ github.sha }}"
       # 只部署 main 上本模块的最新提交：排队或等批准期间又合并了新的 PR，而且改过本模块（或它的流程、tools/），这次运行的提交就旧了，部署它会把线上退回旧版本。
-      # 别的模块、文档、共用包的合并不挡（2026-10-18 起各模块能同时发）。失败时不重跑这次运行：对 main 手动运行本流程（workflow_dispatch），部署的就是最新提交（见 CONTRIBUTING.md）
+      # 别的模块、文档、共用包的合并不挡（各模块能同时发）。失败时不重跑这次运行：对 main 手动运行本流程（workflow_dispatch），部署的就是最新提交（见 docs/deployment.md）
       - name: 只部署 main 上本模块的最新提交
         env:
           GH_TOKEN: ${{ github.token }}

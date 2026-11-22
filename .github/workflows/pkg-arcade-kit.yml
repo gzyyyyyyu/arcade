@@ -2,7 +2,7 @@
 # 测试在本地 workerd 里跑真的 Durable Object、WebSocket 休眠接口和闹钟（@cloudflare/vitest-plugin），不碰线上、不用凭证。
 # games 作业（kit 兼容性）：把 kit 打成 npm 包（npm pack，和发到 npm 的是同一种东西），装进每个用 kit 的游戏（覆盖 file: 或 npm 上的版本）
 # 跑游戏自己的测试，发布前就知道这一版 kit 有没有把哪个游戏弄坏。没有凭证、不部署，只读游戏代码。
-# 每个游戏一个并行的作业（kit-games 先列出用 kit 的游戏）：排成一串跑时海岛一家就要 20 多分钟，合起来会撞上时间上限（11-18 #34 被取消）。
+# 每个游戏一个并行的作业（kit-games 先列出用 kit 的游戏）：排成一串跑时海岛一家就要 20 多分钟，合起来会撞上时间上限。
 # 拆成独立仓库时：去掉 paths 和 working-directory，把 packages/arcade-kit/ 前缀去掉，kit-games 和 games 两个作业删掉（游戏各自升级 kit 时自己测）。
 name: Test arcade-kit
 on:

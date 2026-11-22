@@ -10,7 +10,7 @@
 # 只看最新提交不够：带 [skip ci] 直接推进 main 的提交不会触发任何检查，会被下一次正常合并一起带上线。
 #
 # 用法：tools/verify-main.sh <sha>     需要环境变量 GH_TOKEN、REPO、OWNER；需要完整历史（checkout 时 fetch-depth: 0）。
-# 局限：有推送权限的人直接推 main 时可以连同本脚本和 workflow 一起改掉，彻底解决要靠 GitHub 规则集（见 CONTRIBUTING.md）。
+# 局限：有推送权限的人直接推 main 时可以连同本脚本和 workflow 一起改掉，彻底解决要靠 GitHub 规则集（见 docs/deployment.md）。
 set -euo pipefail
 
 # 可信起点：它及之前的历史视为已确认。现在是导入全部模块的那个提交（#1）；新建的仓库填初始提交的完整 SHA（初始提交不是 PR 合并出来的，只能在这里认）。
@@ -23,7 +23,7 @@ TRUSTED_BASE=6f5f1d3dba6cdfcd85434435651b26b133fc4994
 SHA=${1:?用法：verify-main.sh <sha>}
 : "${REPO:?}" "${OWNER:?}" "${GH_TOKEN:?}"
 
-# GitHub API 偶尔回空的 200（2026-10-22 起时有时无）：不带 --jq 时 gh 报 "unexpected end of JSON input"，带 --jq 时什么也不输出、却返回成功。
+# GitHub API 偶尔回空的 200（时有时无）：不带 --jq 时 gh 报 "unexpected end of JSON input"，带 --jq 时什么也不输出、却返回成功。
 # 所以失败或输出为空都隔几秒重试，五次都不行才算失败（照样 fail-closed，不会放过没核对的提交）。这里的调用正常时都不会是空输出。
 api() {
   local out i

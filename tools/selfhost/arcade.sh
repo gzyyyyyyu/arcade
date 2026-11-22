@@ -2,7 +2,7 @@
 # 发布包里的启动脚本（bin/arcade）：在发布目录里起 workerd。systemd 单元和 Docker 都用它，参数都从环境变量来：
 #   ARCADE_DATA          数据目录（sqlite 存储时必填，要先建好）；memory 存储不用
 #   ARCADE_LISTEN        站点监听，默认 127.0.0.1:8787（前面是 Caddy）
-#   ARCADE_DB            sqlite（默认）或 pg：发布包带了 pg/（release.sh --with-pg，发布的镜像都带）时，pg 用那一份 PG 档的配置
+#   ARCADE_DB            sqlite（默认）或 pg：发布包带了 pg/（release.sh --with-pg，Docker 镜像都带）时，pg 用那一份 PG 档的配置
 #   ARCADE_PG_URL        PG 模式（release.json 里 "db": "pg"）必填：平台库的 PostgreSQL 连接串
 #   ARCADE_ADMIN_LISTEN  管理入口监听，默认 127.0.0.1:8788（没有认证，只许回环地址；容器里也只听容器内的 127.0.0.1，用 docker exec 进去调）
 #   ARCADE_VARS_<Worker>_<名>  覆盖某个 Worker 的某个 var 的默认值（比如 ARCADE_VARS_arcade_LIMITS='{"anonPerIpPerMinute":30}'）。
