@@ -3,7 +3,7 @@ import type { Browser, Page } from 'playwright-core';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BASE, check, json, newPage, OUT, shot } from '../lib/core.ts';
-import { FAKE_ADMIN, FAKE_FEED, FAKE_FRIENDS, FAKE_WALLET, fakeFeedFiles, mockAdmin } from '../lib/fakes.ts';
+import { FAKE_ADMIN, FAKE_FEED, FAKE_FRIENDS, FAKE_WALLET, fakeFeedFiles, mockAdmin, mockInviteCodes, mockStats } from '../lib/fakes.ts';
 import { noScrollIssues, overlapClipIssues } from '../lib/ui.ts';
 
 /** docs/ui.md 第 0、11 节的五个验收尺寸 */
@@ -24,7 +24,16 @@ const PAGES: readonly (readonly [string, string, string, ((p: Page) => Promise<v
   ['动态', '/feed', 'main h2'],
   ['我的账号', '/me', 'main h2'],
   ['隐私说明', '/privacy', 'main h2'],
+  ['战绩', '/me/stats', '[data-testid="player-card"]'],
+  ['别人战绩', `/u/${'A'.repeat(22)}`, '[data-testid="player-card"]'],
   ['管理概览', '/admin', '[data-testid="admin-overview"]'],
+  ['管理用户', '/admin?s=users', '.users__item'],
+  ['账号详情', '/admin?s=users', '.users__item', async (p) => {
+    await p.getByTestId('user-xiaoming_2026').click();
+    await p.getByTestId('user-detail').waitFor();
+  }],
+  ['邀请码', '/admin?s=invites', '[data-testid="invite-rules"]'],
+  ['管理设置', '/admin?s=settings', '[data-testid="admin-settings"] form'],
   // 快捷键只在有鼠标的设备上开（src/features/hotkeys/Hotkeys.tsx），触屏尺寸跳过
   ['快捷键弹窗', '/', '.lobby-grid .card', async (p) => {
     await p.keyboard.press('?');
@@ -65,6 +74,10 @@ export async function noScroll(browser: Browser): Promise<void> {
     await page.route('**/api/blocks', (r) => r.fulfill(json({ blocks: [] })));
     await page.route('**/api/saves/*', (r) => r.fulfill(json({ saves: [] })));
     await page.route('**/api/leaderboard?scope=*', (r) => r.fulfill(json(leaderboard)));
+    await mockStats(page, u(0));
+    await mockInviteCodes(page);
+    // 账号详情的手上、桌上按大数给：金额不许被省略号截（AGENTS.md 第 5 节自查第 2 条）
+    await page.route('**/api/admin/wallet/*', (r) => r.fulfill(json({ ...wallet, wallet: { ...wallet.wallet, balance: 12_345_678 }, log: [] })));
     for (const [name, path, ready, after] of pages) {
       await page.goto(`${BASE}${path}`);
       await page.locator(ready).first().waitFor();

@@ -81,7 +81,7 @@ export async function noScrollIssues(page: Page): Promise<string[]> {
  */
 export const CLIP_OK: readonly (readonly [string, string])[] = [
   ['.card__tagline', '大厅卡片的一句话最多两行，多的省略；完整介绍在电脑上悬停时、游戏里看'],
-  ['.nudge__mid', '大厅提醒条"德州扑克好友房桌上还有"窄屏省略地点，金额是单独一块、不截'],
+  ['.nudge__mid', '大厅提醒条窄屏只写"桌上"，几份加起来还放不下时省略它，游戏名和金额是单独两块、不截'],
 ];
 
 /** 一屏里看得见的可点元素两两不相交（嵌套的不算）；文字不被裁（白名单 CLIP_OK 除外） */

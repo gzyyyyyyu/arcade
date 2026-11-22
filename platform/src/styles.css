@@ -93,36 +93,14 @@ h1, h2, h3 { line-height: 1.25; }
 /* 手机上去掉点击的灰色高亮和双击缩放的延迟 */
 a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 /* 数字一律等宽，排行、余额、表格上下对得齐 */
-.stats-table, .tile dd, .tnum, .rank__value, .stake__amount, .wallet__balance, .account--chips, .career__facts dd, .ledger, .card__week { font-variant-numeric: tabular-nums; }
+.tile dd, .tnum, .rank__value, .stake__amount, .account--chips, .ledger, .card__week { font-variant-numeric: tabular-nums; }
 .up { color: var(--good); }
 .down { color: var(--bad); }
 
 /* ---------- 页面骨架 ---------- */
-/*
- * 电脑版排版：≥1100 内容区放宽到 1280；做好电脑版的页面（App.tsx 的 DESK_PAGES）≥960 主区不再是 520 的窄列，
- * 里面用 .desk 分两栏：左边一列放概况和操作，右边放长的列表。960 以下照旧一窄列（手机、竖着的平板）
- */
+/* 电脑版排版：≥1100 内容区放宽到 1280；做好电脑版的页面（App.tsx 的 DESK_PAGES）≥960 主区不再是 520 的窄列，各页自己分栏 */
 @media (min-width: 1100px) { :root { --content: 1280px; } }
-/* 好友页：960 以下两列拆开，按"想加你的人、好友列表、加好友、我的好友码"排，等对方接受和屏蔽的人最下 */
-@media (max-width: 959px) {
-  .desk--friends > .desk__col { display: contents; }
-  .desk--friends .friends-incoming { order: 2; }
-  .desk--friends .friends-list { order: 3; }
-  .desk--friends .friends-add { order: 4; }
-  .desk--friends .friends-code { order: 5; }
-  .desk--friends .friends-late { order: 6; }
-}
-.desk { display: flex; flex-direction: column; gap: var(--s-5); }
-.desk__col { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
-@media (min-width: 960px) {
-  .narrow.narrow--desk { max-width: none; }
-  .desk { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); align-items: start; }
-  .desk > .banner { grid-column: 1 / -1; }
-}
-@media (min-width: 1100px) {
-  /* 战绩页右栏宽：各游戏两张一排 */
-  .desk .careers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+@media (min-width: 960px) { .narrow.narrow--desk { max-width: none; } }
 /* 读取中的占位条：一条条灰底慢慢闪；不想看动画的不闪 */
 .skeleton { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-1) 0; }
 .skeleton__row { display: block; height: 44px; border-radius: var(--r-md); background: linear-gradient(90deg, var(--soft) 0%, #f7f0e6 50%, var(--soft) 100%) 0 0 / 200% 100%; animation: skeleton 1.2s ease-in-out infinite; }
@@ -173,6 +151,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .foot > span + span::before { content: '·'; margin: 0 var(--s-1); }
 /* 窄屏页脚折成两行：分隔点会落到第二行开头孤零零一个，改成只靠间距分开 */
 @media (max-width: 599px) { .foot { column-gap: var(--s-4); } .foot > span + span::before { content: none; } }
+.foot__short { display: none; }
+@media (max-width: 599px) { .foot__long { display: none; } .foot__short { display: inline; } }
 .foot a { color: inherit; display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--s-1); }
 .foot a, .foot__sound { position: relative; vertical-align: middle; }
 .foot__sound { font: inherit; display: inline-flex; align-items: center; gap: var(--s-1); min-height: 32px; padding: 0 var(--s-1); border: 0; background: none; color: inherit; text-decoration: underline; cursor: pointer; }
@@ -309,7 +289,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 @keyframes spin { to { transform: rotate(360deg); } }
 .linkish { font: inherit; font-size: var(--fs-sm); align-self: flex-start; min-height: var(--tap); padding: 0; border: 0; background: none; color: var(--accent-ink); text-decoration: underline; cursor: pointer; }
 .inline-link { color: var(--accent-ink); font-weight: 700; font-size: var(--fs-sm); display: inline-flex; align-items: center; min-height: var(--tap); }
-.prose a, .note a { color: var(--accent-ink); font-weight: 700; }
+.note a { color: var(--accent-ink); font-weight: 700; }
 .row { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; }
 
 /* ---------- 切换（登录/注册、哪个榜、全部/好友、哪个游戏） ---------- */
@@ -389,17 +369,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .feed__note { flex: 1 1 auto; min-width: 0; color: var(--muted); font-size: var(--fs-sm); line-height: 1.5; overflow-wrap: anywhere; }
 .feed__note--fold { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .feed__more { flex: none; }
-.feed__load { width: 100%; margin-top: var(--s-3); }
-.feed__end { margin: var(--s-3) 0 0; text-align: center; }
 .feedpage { width: 100%; max-width: 720px; margin: 0 auto; }
-/* 好友多了在卡片里滚 */
-.friends-scroll { max-height: min(600px, 70vh); overflow-y: auto; overscroll-behavior: contain; margin-right: calc(-1 * var(--s-2)); padding-right: var(--s-2); }
-/* 电脑上右栏和左栏一样高：好友卡片撑满剩下的高度，列表在里面滚（左栏比 8 个好友还矮时就按左栏的高度） */
-@media (min-width: 960px) {
-  .desk--friends { align-items: stretch; }
-  .desk--friends > .desk__col:last-child .friends-list { flex: 1 1 0; min-height: 360px; display: flex; flex-direction: column; }
-  .desk--friends .friends-list .friends-scroll { flex: 1 1 0; min-height: 0; max-height: none; }
-}
 /* 顶栏"动态"：电脑上是挂在按钮下面的浮层 */
 .feedpop { position: relative; display: inline-flex; }
 /* 按钮不继承字体，不写就比旁边的链接小一号 */
@@ -613,14 +583,6 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .facts dt { color: var(--muted); }
 .facts dd { margin: 0; font-weight: 600; min-width: 0; }
 .facts dd.mono { overflow-wrap: anywhere; }
-/* 折起来的一节（改密码、注销……） */
-.fold { border-top: var(--bw-thin) dashed var(--dashed); padding: var(--s-2) 0 2px; margin-top: var(--s-1); }
-.fold > summary { min-height: var(--tap); display: flex; align-items: center; gap: 6px; list-style: none; cursor: pointer; font-weight: 700; border-radius: var(--r-sm); }
-.fold > summary::-webkit-details-marker { display: none; }
-.fold > summary::before { content: '▸'; display: inline-block; width: 1em; text-align: center; }
-.fold[open] > summary { margin-bottom: var(--s-2); }
-.fold[open] > summary::before { content: '▾'; }
-.fold--danger > summary { color: var(--danger); }
 .recovery { display: flex; flex-direction: column; gap: var(--s-4); }
 .recovery__lead { margin: 0; line-height: 1.7; }
 .recovery__code { margin: 0; padding: var(--s-4); border: var(--bw) dashed var(--line); border-radius: var(--r-md); background: var(--white); font: 700 var(--fs-xl)/1.3 var(--mono); letter-spacing: 1px; text-align: center; color: var(--accent-ink); word-break: break-all; user-select: all; }
@@ -629,11 +591,6 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .link-text { overflow-wrap: anywhere; user-select: all; color: var(--ink); }
 .message { margin: 0; padding: var(--s-3) var(--s-4); border: var(--bw) dashed var(--line); border-radius: var(--r-md); background: var(--white); font-size: var(--fs-sm); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; user-select: all; }
 .tag { display: inline-flex; align-items: center; font-size: var(--fs-xs); font-weight: 700; line-height: 18px; padding: 0 var(--s-2); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); background: var(--highlight); }
-.prose { line-height: 1.7; }
-.prose h3 { margin: var(--s-5) 0 6px; font-size: var(--fs-lg); }
-.prose ul { margin: 0; padding-left: 1.3em; }
-.prose p { margin: 0 0 var(--s-2); }
-.prose .promise { margin: 0 0 var(--s-4); padding: var(--s-3) var(--s-4); border: var(--bw) solid var(--line); border-radius: var(--r-md); background: var(--highlight); font-weight: 700; }
 /* 空列表：小插画加一句话 */
 .empty { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); padding: var(--s-4) 0; text-align: center; }
 .empty .note { max-width: 32em; }
@@ -647,7 +604,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .adjusts .minus { color: var(--bad); font-weight: 800; }
 
 /* ---------- 列表里的一项（存档、好友、账号、桌上筹码、战绩） ---------- */
-.saves, .people, .users, .stakes, .careers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
+.saves, .people, .users, .stakes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-3); }
 .saves { margin-top: var(--s-3); gap: var(--s-2); }
 .saves li, .people__item, .stake, .career { padding: var(--s-3) var(--s-4); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); }
 .saves li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-3); }
@@ -666,8 +623,6 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .people .btn--small, .user-panel .btn--small { min-height: var(--tap); }
 
 /* ---------- 钱包 ---------- */
-.wallet__balance { display: flex; align-items: center; gap: var(--s-3); margin: var(--s-1) 0 var(--s-2); font-size: 44px; font-weight: 800; line-height: 1.1; }
-.wallet__balance .coin { border-radius: 50%; background: radial-gradient(circle, rgb(255 200 61 / 55%) 0 40%, transparent 70%); }
 .wallet__relief { margin-top: var(--s-4); }
 .wallet__relief .note { margin: var(--s-2) 0 0; }
 .stake { border-width: var(--bw); }
@@ -675,22 +630,9 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .stake__mode { padding: 0 var(--s-2); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); font-size: 13px; }
 .stake__amount { margin-left: auto; font-size: var(--fs-xl); font-weight: 800; }
 .stake .note { margin: 6px 0; }
-@media (max-width: 560px) { .wallet__balance { font-size: 36px; } }
 
 /* ---------- 战绩 ---------- */
 .career { border-width: var(--bw); }
-.career__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-3); font-size: var(--fs-lg); }
-.career__week { font-weight: 700; font-size: 15px; white-space: nowrap; }
-.career__facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); margin: var(--s-3) 0 0; }
-.career__facts div { text-align: center; }
-.career__facts dt { font-size: var(--fs-xs); color: var(--muted); }
-.career__facts dd { margin: 2px 0 0; font-weight: 700; font-size: var(--fs-lg); }
-@media (max-width: 420px) { .career__facts { grid-template-columns: repeat(2, 1fr); } }
-.shelves { display: grid; gap: var(--s-4); }
-/* 电脑上战绩页右栏宽：称号墙一排放两三个游戏，不一个游戏占一整行、下面空一大片 */
-@media (min-width: 960px) { .desk .shelves { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); align-items: start; } }
-.shelf__game { margin: 0 0 var(--s-2); font-size: var(--fs-md); display: flex; gap: var(--s-2); align-items: baseline; }
-.shelf__count { color: var(--muted); font-size: 13px; font-weight: 400; }
 .titles { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .title { display: inline-flex; flex-direction: column; align-items: center; min-width: 72px; padding: 6px var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--highlight-warm); box-shadow: var(--sh-sm); }
 .title__name { font-weight: 700; }
@@ -711,8 +653,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .rank__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-weight: 700; text-decoration: none; }
 .rank__me { margin-left: 6px; vertical-align: 1px; font-size: var(--fs-xs); line-height: 18px; padding: 0 6px; border-radius: 6px; background: var(--accent); color: var(--white); }
 .rank__value { font-weight: 800; }
-.rank__mine { margin: 0 0 var(--s-3); font-weight: 700; }
-.ranks + .note, .rank__mine + .note, [data-testid='ranks'] + .note { margin-top: var(--s-3); }
+.ranks + .note, [data-testid='ranks'] + .note { margin-top: var(--s-3); }
 
 
 @media (prefers-reduced-motion: reduce) {

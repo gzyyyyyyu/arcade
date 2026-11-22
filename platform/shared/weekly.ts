@@ -4,7 +4,7 @@
  * 年份和周号补零后按字典序就是按时间排：Cron 按 board_id 范围删旧榜，和每日榜同一个办法。
  */
 // 这个文件不 import 别的：Worker、浏览器、冒烟工具三套 tsconfig 对引用后缀的要求不一样
-const DAY = 24 * 60 * 60 * 1000;
+export const DAY = 24 * 60 * 60 * 1000;
 const SHIFT = 8 * 60 * 60 * 1000;
 
 // 子榜 id 的写法同每日子榜（games.ts 的 DAILY_SUB_RE）：字母开头，不能像版本号 v2

@@ -8,7 +8,7 @@
  * - 赞和扔道具：每条每人一次；不是好友的、自己的、过期的、不存在的一律 404，看不出是哪种。
  */
 import { gameId, isInt, match, oneOf } from '../lib/body';
-import type { Ctx } from '../core/context';
+import { DAY, type Ctx } from '../core/context';
 import { newTimeId, timeIdPrefix } from '../lib/crypto';
 import type { Db } from '../lib/db';
 import { ApiError, json, noContent } from '../lib/http';
@@ -145,7 +145,7 @@ export async function react(c: Ctx): Promise<Response> {
   );
   if (!item) throw new ApiError(404, 'not_found');
   if (await db.first(db.stmt('SELECT 1 FROM feed_reactions WHERE item_id = ?1 AND user_id = ?2', id, me))) return noContent();
-  await hit(db, `react:${me}`, limits.feedReactPerDay, 86_400_000, now);
+  await hit(db, `react:${me}`, limits.feedReactPerDay, DAY, now);
   await db.run(db.stmt('INSERT INTO feed_reactions (item_id, user_id, kind, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT DO NOTHING', id, me, kind, now));
   return noContent();
 }

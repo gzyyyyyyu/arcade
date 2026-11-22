@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { type AdminOverview, api, errorText, type WalletDayStats } from '../../api.ts';
 import { LoadError, Panel, Skeleton } from '../../ui.tsx';
 import { WALLET_GAMES } from '../../../shared/games.ts';
+import { DAY } from '../../../shared/weekly.ts';
 import { Paged } from '../../features/fit/Fit.tsx';
 import { AdminChipsButton } from './AdminChips.tsx';
 import { AdminTable, AdminTabs, type Col, useAdminWide } from './AdminLayout.tsx';
@@ -151,7 +152,7 @@ function week(today: WalletDayStats, past: WalletDayStats[]): Day[] {
   const byDay = new Map([today, ...past].map((d) => [d.day, d]));
   const end = Date.parse(`${today.day}T00:00:00Z`);
   return Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(end - (6 - i) * 86_400_000).toISOString().slice(0, 10);
+    const day = new Date(end - (6 - i) * DAY).toISOString().slice(0, 10);
     const d = byDay.get(day);
     return { day, in: d ? sum(d, 'in') : 0, out: d ? sum(d, 'out') : 0, people: d?.active ?? 0 };
   });

@@ -7,14 +7,14 @@ export interface User {
   displayName: string;
   friendCode: string;
   createdAt: number;
-  /** 让好友看到我在不在线、在哪；旧的接口回应里没有，按开着算 */
-  showWhere?: boolean;
-  /** 好友动态开关；没有就是开着 */
-  showFeed?: boolean;
-  /** 搭子战绩开关；没有就是开着 */
-  showMates?: boolean;
-  /** 隐藏游戏里和默认不一样的那部分（shared/game-prefs.ts）；旧的接口回应里没有，按全跟默认 */
-  gamePrefs?: GamePrefs;
+  /** 让好友看到我在不在线、在哪 */
+  showWhere: boolean;
+  /** 好友动态开关 */
+  showFeed: boolean;
+  /** 搭子战绩开关 */
+  showMates: boolean;
+  /** 隐藏游戏里和默认不一样的那部分（shared/game-prefs.ts） */
+  gamePrefs: GamePrefs;
   /** 只有管理员有，值总是 true。 */
   isAdmin?: true;
 }

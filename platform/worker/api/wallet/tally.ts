@@ -6,6 +6,7 @@
 import { isCount, isPlain } from '../lib/body';
 import type { Db } from '../lib/db';
 import { beijingDate } from '../core/time';
+import { DAY } from '../core/context';
 
 export interface Tally {
   variant: string;
@@ -80,7 +81,7 @@ export function tallyCleanupStatement(db: Db, now: number, keepDays: number, max
   return db.stmt(
     `DELETE FROM play_tally WHERE (day, game, variant, mode, tier, dur, outcome) IN
        (SELECT day, game, variant, mode, tier, dur, outcome FROM play_tally WHERE day < ?1 LIMIT ?2)`,
-    beijingDate(now - keepDays * 86_400_000), max,
+    beijingDate(now - keepDays * DAY), max,
   );
 }
 
@@ -96,7 +97,7 @@ export interface TallyRow {
 
 /** 管理页：最近 days 天（含今天）按游戏、玩法、mode、档位汇总。0 写入。 */
 export async function readTally(db: Db, now: number, days: number): Promise<{ from: string; to: string; rows: TallyRow[] }> {
-  const from = beijingDate(now - (days - 1) * 86_400_000);
+  const from = beijingDate(now - (days - 1) * DAY);
   const to = beijingDate(now);
   const got = await db.all<{ game: string; variant: string; mode: string; tier: string; dur: string; outcome: string; n: number }>(
     db.stmt(

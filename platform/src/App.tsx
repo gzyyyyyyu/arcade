@@ -254,6 +254,8 @@ function Home({ deleted }: { deleted: boolean }) {
 function LobbyNudge() {
   const { user } = useSession();
   const { wallet } = useWallet();
+  // 和下面压成一行的样式同一个条件：窄屏只说"桌上"，游戏名、金额都不用省略号截
+  const narrow = useMedia('(pointer: coarse), (max-width: 959px)');
   if (!user || !wallet?.stakes.length) return null;
   const { stakes } = wallet;
   const onTable = stakes.reduce((t, s) => t + s.amount, 0);
@@ -261,14 +263,15 @@ function LobbyNudge() {
   const games = new Set(stakes.map((s) => s.game));
   const g = games.size === 1 ? GAMES.find((x) => games.has(x.id)) : undefined;
   const where = stakes.length === 1 && stakes[0]!.mode === 'server' ? '好友房' : '';
+  const mid = narrow ? '桌上' : g ? `${where}桌上还有` : games.size > 1 ? '的桌上还有' : '桌上还有';
   const parts = stakes.length > 1 ? `（${stakes.length} 份）` : '';
   return (
     <div className="nudges" data-testid="nudges">
-      {/* 手机上也是页面顶上的一条（原来是底部固定条）：字太长时中间那段先省略，游戏名和数字留着 */}
+      {/* 手机上也是页面顶上的一条（原来是底部固定条）：说法换短；万一还放不下，中间那段先省略，游戏名和数字留着 */}
       <p className="banner nudge nudge--stake" data-testid="nudge-stake">
         <span className="nudge__what">
           <span className="nudge__keep">{g ? g.name : games.size > 1 ? `${games.size} 个游戏` : ''}</span>
-          <span className="nudge__mid">{g ? `${where}桌上还有` : games.size > 1 ? '的桌上还有' : '桌上还有'}</span>
+          <span className="nudge__mid">{mid}</span>
           <span className="nudge__keep">
             {' '}
             {num(onTable)}
@@ -457,7 +460,7 @@ function SoundToggle() {
   );
 }
 
-/** 做好了电脑版排版的页面：电脑上主区放开成两栏（styles.css 的 .desk），手机上照旧是中间一窄列 */
+/** 做好了电脑版排版的页面：电脑上主区不限 520 宽、各页自己分栏，手机上照旧是中间一窄列 */
 const DESK_PAGES = new Set(['/wallet', '/boards', '/friends', '/me', '/me/stats', '/feed']);
 const isDesk = (path: string) => DESK_PAGES.has(path) || path.startsWith('/u/');
 
@@ -518,7 +521,11 @@ export function App() {
       <HotkeyHelp open={keys.helpOpen} onClose={keys.closeHelp} />
       {/* 分隔点由 CSS 加在每项外层的 span 上（加在链接里会带下划线）：手机上一项一行，不会有点挂在行尾 */}
       <footer className="foot">
-        <span>全部游戏内容均为虚构 · 美术与音频为原创程序生成</span>
+        {/* 手机上换短说法：长的那句占满一行，声音开关就得单独掉到第二行 */}
+        <span>
+          <span className="foot__long">全部游戏内容均为虚构 · 美术与音频为原创程序生成</span>
+          <span className="foot__short">内容虚构 · 美术音频原创</span>
+        </span>
         <span>
           <Link href="/privacy">隐私说明</Link>
         </span>

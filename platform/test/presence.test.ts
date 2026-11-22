@@ -166,4 +166,14 @@ describe('好友列表里的在线和在哪', () => {
     expect((await call('/api/me', { method: 'PATCH', body: {}, cookie: a.cookie })).status).toBe(400);
     expect((await call('/api/me', { method: 'PATCH', body: { showWhere: 'no' }, cookie: a.cookie })).status).toBe(400);
   });
+
+  it('PATCH /api/me：只改开关走 prefsPerDay，不占改昵称的 profilePerDay；带昵称的照算昵称那份', async () => {
+    await resetAll.limits({ profilePerDay: 1, prefsPerDay: 3 });
+    const a = await newUser();
+    const flip = (showWhere: boolean) => call('/api/me', { method: 'PATCH', body: { showWhere }, cookie: a.cookie });
+    for (const v of [false, true, false]) expect((await flip(v)).status).toBe(200);
+    expect((await flip(true)).status).toBe(429);
+    expect((await call('/api/me', { method: 'PATCH', body: { displayName: '新名字' }, cookie: a.cookie })).status).toBe(200);
+    expect((await call('/api/me', { method: 'PATCH', body: { displayName: '又一个名字', showWhere: true }, cookie: a.cookie })).status).toBe(429);
+  });
 });

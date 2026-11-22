@@ -16,20 +16,21 @@ export async function lobbyNudge(browser: Browser): Promise<void> {
   });
   await page.goto(`${BASE}/`);
   const toTable = page.getByTestId('nudge-stake');
-  await toTable.getByText('德州扑克好友房桌上还有 1,000').waitFor();
+  await toTable.getByText('德州扑克桌上 1,000').waitFor();
+  // 手机竖屏只说"桌上"（不写好友房，免得游戏名被省略号截）
   // 同一个游戏两份（单机加好友房）：还是直达德州，不说"2 个游戏"
   await page.unroute('**/api/wallet');
   const solo = { ...stake, ref: 'solo-abcdef', mode: 'client', amount: 2_000 };
   await page.route('**/api/wallet', (r) => r.fulfill(json({ ...FAKE_WALLET, wallet: { ...low, stakes: [stake, solo] }, ledger: [] })));
   await page.reload();
-  await toTable.getByText('德州扑克桌上还有 3,000（2 份）').waitFor();
+  await toTable.getByText('德州扑克桌上 3,000（2 份）').waitFor();
   await toTable.getByRole('link', { name: '回去接着打' }).waitFor();
   await page.unroute('**/api/wallet');
   await page.route('**/api/wallet', (r) =>
     r.fulfill(json({ ...FAKE_WALLET, wallet: relieved ? { ...low, balance: 1_000, canRelief: false } : low, ledger: [] })),
   );
   await page.reload();
-  await toTable.getByText('德州扑克好友房桌上还有 1,000').waitFor();
+  await toTable.getByText('德州扑克桌上 1,000').waitFor();
   const href = await toTable.getByRole('link', { name: '回去接着打' }).getAttribute('href');
   check(href === '/games/texas/', `"回去接着打"指错了：${href}`);
   // 领补给不再占大厅一条提示：首屏只有"桌上还有"这一条，筹码牌子上亮红点，到钱包页领

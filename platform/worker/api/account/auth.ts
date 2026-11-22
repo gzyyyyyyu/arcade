@@ -81,7 +81,7 @@ async function touch(c: Ctx): Promise<string[]> {
   return touchSession(c.db.as('social'), c.session, c.sidCookie, c.limits, c.now);
 }
 
-/** PATCH /api/me：改昵称和几个隐私开关，共用每人每天 profilePerDay 次。 */
+/** PATCH /api/me：改昵称（每人每天 profilePerDay 次）和几个隐私开关（只改开关的，和隐藏游戏共用每天 prefsPerDay 次）。 */
 export async function patchMe(c: Ctx): Promise<Response> {
   const user = c.session!.user;
   // 改昵称、"让好友看到我在哪"、"好友动态"、"搭子战绩"三个开关：至少带一样，几样一起带就一起改（一次计数、一行）
@@ -94,7 +94,9 @@ export async function patchMe(c: Ctx): Promise<Response> {
   const flag = flagOf(showWhere, user.show_where);
   const feed = flagOf(showFeed, user.show_feed);
   const mates = flagOf(showMates, user.show_mates);
-  await hit(c.db, `profile:${user.id}`, c.limits.profilePerDay, DAY, c.now);
+  // 开关来回点不该把改昵称的次数用掉：只改开关的走偏好那份（次数宽，用户感觉不到）
+  if (hasName) await hit(c.db, `profile:${user.id}`, c.limits.profilePerDay, DAY, c.now);
+  else await hit(c.db, `prefs:${user.id}`, c.limits.prefsPerDay, DAY, c.now);
   await c.db.run(
     c.db.stmt('UPDATE users SET display_name = ?1, show_where = ?2, show_feed = ?3, show_mates = ?4 WHERE id = ?5', displayName, flag, feed, mates, user.id),
   );

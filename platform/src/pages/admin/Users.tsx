@@ -121,7 +121,7 @@ export function UserList({ version, selfId, onCard, onChanged }: { version: numb
                   <span className="users__meta">
                     <span className="mono">{u.username}</span> · {u.lastSeenAt > u.createdAt ? `${dateText(u.lastSeenAt)} 来过` : '还没来过'}
                   </span>
-                  {u.wallet && <span className="users__meta" data-testid="user-wallet">{walletLine(u.wallet)}</span>}
+                  {u.wallet && <WalletLine w={u.wallet} />}
                 </span>
               </button>
             )}
@@ -164,12 +164,18 @@ export function UserList({ version, selfId, onCard, onChanged }: { version: numb
 }
 
 /** 账号列表里的一行钱包摘要 */
-function walletLine(w: NonNullable<AdminUser['wallet']>): string {
-  if (w.balance === null) return '还没用过钱包';
+/** 列表里的钱包一行：金额整段不截，横屏并成一行放不下时只省略后面的游戏次数 */
+function WalletLine({ w }: { w: NonNullable<AdminUser['wallet']> }) {
+  if (w.balance === null) return <span className="users__meta" data-testid="user-wallet">还没用过钱包</span>;
   const played = Object.entries(w.played)
     .map(([g, n]) => `${gameName(g)} ${n} 次`)
     .join('、');
-  return `手上 ${num(w.balance)}${w.onTable ? ` · 桌上 ${num(w.onTable)}` : ''}${played ? ` · ${played}` : ''}`;
+  return (
+    <span className="users__meta users__meta--wallet" data-testid="user-wallet">
+      <span className="users__money">{`手上 ${num(w.balance)}${w.onTable ? ` · 桌上 ${num(w.onTable)}` : ''}`}</span>
+      {played && <span className="users__played">{` · ${played}`}</span>}
+    </span>
+  );
 }
 
 /** 右边的详情：头部、钱包和战绩、流水、操作（一次只展开一个操作） */

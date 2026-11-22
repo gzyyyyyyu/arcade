@@ -1,6 +1,7 @@
 /**
  * 上限和阈值的默认值。数字的来历见 docs/platform-backend.md 5.4、6.6、15.6；
  * 线上要调就在 wrangler.jsonc 的 vars.LIMITS 里写要改的项；嵌套的 budget、readonly、off 可以只写其中几项（按项深合并）。
+ * 管理员在管理页里随时改的规则不在这里，默认值跟着各自的读写放：钱包 wallet/state.ts 的 DEFAULT_RULES，邀请码 account/invite-codes.ts 的 DEFAULT_INVITE_RULES。
  */
 import type { Env } from '../../env';
 
@@ -49,7 +50,7 @@ export const DEFAULT_LIMITS = {
   failMaxMs: 3_600_000,
   failWindowMs: 86_400_000,
   profilePerDay: 10,
-  /** 设置 → 偏好里改隐藏哪些游戏（15.21）：每人每天，点一下存一次 */
+  /** 设置 → 偏好里改隐藏哪些游戏（15.21）和"好友能看到什么"的开关：每人每天合计，点一下存一次 */
   prefsPerDay: 60,
   acctPerDay: 10,
   /** 好友（5.6、15.6）：每天发请求、查好友码、换好友码、屏蔽的次数；待处理的请求（发出、收到各算）、好友数上限。 */
