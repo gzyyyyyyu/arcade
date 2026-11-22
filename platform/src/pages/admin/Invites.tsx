@@ -311,11 +311,12 @@ function CodesPanel() {
         </Empty>
       )}
       {codes && codes.length > 0 && (
-        // 一个码占两行：码、状态、时间；发的人、用的人。按剩下的高度翻页
+        // 一个码占两行：码、状态、时间；发的人、用的人（名字长的折三行）。按剩下的高度、每条的实际高度翻页
         <Paged
           className="invite-codes"
           testId="invite-code-table"
           label="邀请码翻页"
+          uneven
           items={codes}
           keyOf={(c) => c.id}
           render={(c) => (

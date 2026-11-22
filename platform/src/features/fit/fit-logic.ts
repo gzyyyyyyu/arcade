@@ -11,3 +11,22 @@ export function perPage(height: number, item: number, gap: number, cols: number)
 export function pageCount(n: number, size: number): number {
   return Math.max(1, Math.ceil(n / Math.max(1, size)));
 }
+
+/**
+ * 条目高矮不一时按每条的实际高度分页：从头往下装，装不下就另起一页（每页至少一条）。
+ * 全部放得下 full（没有翻页条时的整块高）就一页；否则每页能用 room（扣掉翻页条）。返回每页第一条的下标。
+ */
+export function packPages(heights: readonly number[], full: number, room: number, gap: number): number[] {
+  const total = heights.reduce((s, h) => s + h, 0) + gap * Math.max(0, heights.length - 1);
+  if (total <= full) return [0];
+  const starts = [0];
+  let used = 0;
+  heights.forEach((h, i) => {
+    const need = used === 0 ? h : used + gap + h;
+    if (used > 0 && need > room) {
+      starts.push(i);
+      used = h;
+    } else used = need;
+  });
+  return starts;
+}
