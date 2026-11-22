@@ -64,7 +64,7 @@ export interface FunSeat {
 
 /**
  * storageKey 的检查（0.13.1）：它就是游戏 id，kit 拿它拼 `<id>.hint.fun`、`<id>.fun.blocked`。同站的几个游戏和平台只靠 `<id>.` 前缀分开存储，
- * 所以只认游戏 id 的写法（小写字母、数字、连字符，字母或数字开头，最多 32 位）；带点（"guandan." 会拼出 "guandan..fun"）、大写、空串、
+ * 所以只认游戏 id 的写法（小写字母、数字、连字符，字母或数字开头，最多 32 位）；带点（"<游戏id>." 会拼出 "<游戏id>..fun"）、大写、空串、
  * 平台自己的前缀 arcade 都不行。不合格直接抛错：同一个字符串每次都一样，开发时第一次打开牌桌就看得到，不会带到线上
  */
 export function checkStorageKey(key: unknown): string {
@@ -89,7 +89,7 @@ export interface TableFunOptions {
   button?(): RectLike | null;
   /**
    * "互动"按钮的样子（0.18.2，替掉游戏自己对 .atf-btn 的 CSS 覆盖）：scale 把字（13px）和图标（22px）一起放大（舞台放大了的大屏用，最小 1）；
-   * row 为 true 时图标和字横排；fontSize、icon（0.20.1，像素）直接给字号和图标边长，给了就不按 scale 算（德州、麻将原来直接改 .atf-btn）。
+   * row 为 true 时图标和字横排；fontSize、icon（0.20.1，像素）直接给字号和图标边长，给了就不按 scale 算（有的游戏原来直接改 .atf-btn）。
    * 颜色、圆角走主题变量（--ak-soft、--ak-border、--ak-radius-btn）。每次 refresh 现问
    */
   buttonStyle?(): ButtonStyle;
@@ -110,7 +110,7 @@ export interface TableFunOptions {
   /** 设置里"聊天：开 / 不看"（和"互动"分开）：不看时别人说的不冒气泡、不进记录，自己也没有聊天页；默认开 */
   chatEnabled?(): boolean;
   /**
-   * 聊天的设置（弹幕开关、电脑版聊天框收没收起）存在哪个 localStorage key（0.19.0）：必须是 `<storageKey>.<名字>`，比如 'texas.chat'；
+   * 聊天的设置（弹幕开关、电脑版聊天框收没收起）存在哪个 localStorage key（0.19.0）：必须是 `<storageKey>.<名字>`，比如 '<游戏id>.chat'；
    * 默认 `<storageKey>.chat`，游戏不用传
    */
   prefsKey?: string;
@@ -120,7 +120,7 @@ export interface TableFunOptions {
   chatDock?(): RectLike | null;
   /**
    * 电脑版聊天框默认收不收（0.20.1）：玩家自己点过收起、展开就以玩家为准（存在 prefsKey 里）；没点过时听这个，给了 chatDock 也生效。
-   * 不给：没给 chatDock 时四个角都会压到东西才收（dockFits，0.20.0），给了 chatDock 默认展开。德州原来自己往 texas.chat 写 folded
+   * 不给：没给 chatDock 时四个角都会压到东西才收（dockFits，0.20.0），给了 chatDock 默认展开。有的游戏原来自己往 <游戏id>.chat 写 folded
    */
   chatFolded?(): boolean;
   /**
@@ -273,7 +273,7 @@ export interface ButtonStyle {
 /**
  * 头像旁的气泡（含首次提示"点头像扔道具"）要避开哪些地方（0.20.1）：
  * - 软的（压一点还行）：游戏的禁区、桌上出的牌、正在冒的别的气泡、别人的头像；
- * - 硬的（代价 ×3）：叠在气泡上面的按钮、聊天框（0.19.1，竖屏自己的气泡被"互动"按钮压住），以及各家的名牌和头像旁的标签（marks，麻将的缺门签）——
+ * - 硬的（代价 ×3）：叠在气泡上面的按钮、聊天框（0.19.1，竖屏自己的气泡被"互动"按钮压住），以及各家的名牌和头像旁的标签（marks，比如缺门签）——
  *   名字和筹码数是小字，气泡底色不透明，压一点就看不清是谁、剩多少（0.18.2 当软的，提示还是会盖住对家的名牌）
  */
 export function bubbleZones(
@@ -1033,7 +1033,7 @@ export class TableFun {
   }
 
   /**
-   * 气泡放哪：硬禁区是名牌、标签、聊天框、"互动"按钮和开着的菜单（0.21.1，德州 1920 报菜单盖住自己的气泡），四周再让 HARD_PAD；
+   * 气泡放哪：硬禁区是名牌、标签、聊天框、"互动"按钮和开着的菜单（0.21.1，1920 实测菜单盖住自己的气泡），四周再让 HARD_PAD；
    * 软的是游戏的禁区、桌上的牌、别人的头像和正在冒的别的气泡（except 是要挪的那个自己）
    */
   private spot(seat: number, anchor: DOMRect | RectLike, w: number, h: number, strict: boolean, except?: HTMLElement): { left: number; top: number } | null {

@@ -17,9 +17,9 @@
  *   计量说今天快满了（busy）就不进新人；说满了（stop）就在这一段打完（RoomGame.breakPoint）时收场。
  */
 import { DurableObject } from 'cloudflare:workers';
-import { CHAT_MAX, checkChat } from './chat.js';
+import { CHAT_MAX, CHAT_RATE, checkChat, EMOTE_RATE } from './chat.js';
 import type { RoomEffect, RoomGame, RoomSetup } from './game.js';
-import { type Identity, KIT_HOST, LIMITED_HEADER, MISS_HEADER, meterStub, parseIdentity } from './internal.js';
+import { type Identity, KIT_HOST, LIMITED_HEADER, MISS_HEADER, meterStub, parseIdentity, TimeoutError, withTimeout } from './internal.js';
 import { kitStoreOf, MirrorStore } from './store.js';
 import type { MeterEnv, MeterLevel, RoomMeter } from './meter.js';
 import { ENTROPY_WORDS } from './rng.js';
@@ -68,7 +68,7 @@ export interface RoomLimits {
   maxInbound: number;
   /**
    * 一个人最多用掉 maxInbound 的几成（0–1）。超了只断开他本人（4030）、以后也进不来，房间照常：
-   * 一个人刷不完整个房间的额度。默认 0.4：正常一局一个人用不到一成（掼蛋 4 真人桌一局全桌约 1000 条）
+   * 一个人刷不完整个房间的额度。默认 0.4：正常一局一个人用不到一成（4 真人桌一局全桌约 1000 条）
    */
   maxInboundShare: number;
   /**
@@ -132,6 +132,9 @@ export interface RoomLimits {
 }
 
 /** 4.5、4.6 的默认值。 */
+/** 开房时找计量占名额最多等多久：计量 DO 卡住时开房请求不跟着挂住，按"计量连不上"回 unavailable */
+export const METER_CALL_MS = 3_000;
+
 export const DEFAULT_LIMITS: RoomLimits = {
   maxMessageBytes: 4096,
   ratePerSec: 5,
@@ -147,10 +150,10 @@ export const DEFAULT_LIMITS: RoomLimits = {
   aiDelayMs: 900,
   maxAiBatch: 64,
   minClientVersion: 0,
-  emoteMs: 1000,
-  emoteBurst: 3,
-  chatMs: 3000,
-  chatPerMin: 10,
+  emoteMs: EMOTE_RATE.ms,
+  emoteBurst: EMOTE_RATE.burst,
+  chatMs: CHAT_RATE.ms,
+  chatPerMin: CHAT_RATE.perMin,
   meterBatch: 200,
   closingMs: 60 * 60_000,
   matchJoinMs: 20_000,
@@ -357,11 +360,13 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     // 码不对、房间已经在（码撞了）的先挡掉，不去占名额；这两样 create 里还会再查一遍
     if (meter && validHost(code, host) && !this.load()) {
       try {
-        const r = await meter.kitReserve(host.userId, code, Date.now() + this.limits.maxLifeMs);
+        const r = await withTimeout((async () => meter.kitReserve(host.userId, code, Date.now() + this.limits.maxLifeMs))(), METER_CALL_MS);
         if (!r.ok) return r.error === 'has_room' ? { r: 'has_room', code: r.code } : { r: r.error };
         reserved = true;
       } catch (e) {
         console.error('meter unreachable, refusing new room', e instanceof Error ? e.message : e);
+        // 超时的那次可能晚一步占上了：退回去（计量认重复还），不然名额指着一个没建成的房间，到点才作废
+        if (e instanceof TimeoutError) void meter.kitRelease(host.userId, code, 0, true).catch(() => console.error('meter release failed', code));
         return { r: 'unavailable' };
       }
     }
@@ -387,7 +392,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     let reserved = false;
     if (meter && !this.load()) {
       try {
-        const r = await meter.kitReserveMany(users, code, Date.now() + this.limits.maxLifeMs);
+        const r = await withTimeout((async () => meter.kitReserveMany(users, code, Date.now() + this.limits.maxLifeMs))(), METER_CALL_MS);
         if (!r.ok) {
           if (r.error === 'has_room') return { r: 'refused', userId: r.userId, why: 'has_room', code: r.code };
           return r.error === 'daily_limit' ? { r: 'refused', userId: r.userId, why: 'daily_limit' } : { r: 'refused', userId: null, why: 'busy' };
@@ -395,6 +400,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
         reserved = true;
       } catch (e) {
         console.error('meter unreachable, refusing match room', e instanceof Error ? e.message : e);
+        if (e instanceof TimeoutError) void meter.kitReleaseMany(users, code, 0, true).catch(() => console.error('meter release failed', code));
         return { r: 'unavailable' };
       }
     }
@@ -895,7 +901,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
       case 'sit':
         return this.sit(ws, me, seat, msg.seat);
       case 'leave':
-        return this.leave(seat);
+        return this.leave(ws, seat);
       case 'start':
         return this.start(ws, me, seat, msg.opts);
       case 'act':
@@ -1015,11 +1021,14 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     this.commit({ frames });
   }
 
-  private leave(seat: number | null): void {
+  private leave(ws: WebSocket, seat: number | null): void {
     const st = this.st!;
     if (seat === null || (st.match && st.status === 'waiting')) return;
     // 等人时空出来；开打后由电脑接手（不判负），轮到它就接着出。座位还绑着他，留下昵称给牌桌显示"电脑代某某打"
     st.seats[seat] = st.status === 'playing' ? { ...aiSeat(), name: st.seats[seat]!.name } : emptySeat();
+    // 等人时最后一个人走了、也没别人连着（没人在挑座位）：马上关房还名额。不然房主的名额要等没人超时（noHumanMs）才还，
+    // 这期间开不了新房（每人同时 1 个）
+    if (st.status === 'waiting' && !st.seats.some((x) => x.kind === 'human') && this.sockets().every((x) => x === ws)) return this.closeRoom('everyone left');
     if (!this.seatedOnline()) st.noHumanSince ??= Date.now();
     if (st.status === 'playing') this.seatChanged(seat, 'ai', Date.now());
     const frames = [{ state: st.game, delay: 0 }];
@@ -1127,7 +1136,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     const st = this.st!;
     const game = st.game as S;
     const views: unknown[] = [this.game.view(game, null)];
-    // 只问在局的座位（0.24.2）：房间按最大座位数开（雀馆三人局、斗地主开在 4 座房间里），多出来的空座没有玩家，
+    // 只问在局的座位（0.24.2）：房间按最大座位数开（比如三人局开在 4 座房间里），多出来的空座没有玩家，
     // 游戏的 view 不一定接得住；空座也没人看，不用比
     const count = this.countOf(st.opts as O | undefined);
     for (let i = 0; i < Math.min(count, st.seats.length); i++) if (i !== seat && st.seats[i]!.kind !== 'empty') views.push(this.game.view(game, i));

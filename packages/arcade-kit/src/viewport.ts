@@ -1,7 +1,7 @@
 /**
  * 手机平板的可见区、双指放大、转屏、渲染倍数、省内存、WebGL 丢失恢复（0.25.0）。浏览器用，纯 DOM，不依赖 Phaser。
  *
- * 规矩是仓库根 docs/ui.md 第 10 节"手机"，以开盘的实现为准；默认值都取开盘的，牌馆独有的做法（钉 #app、扣安全区、
+ * 规矩是仓库根 docs/ui.md 第 10 节"手机"，以最早接入的那个游戏的实现为准；默认值都取它的，另一个游戏独有的做法（钉 #app、扣安全区、
  * 省内存三档、20 秒降档）做成选项。游戏迁过来时传自己原来的值，行为不变；阈值统一另做。
  *
  * 判断和公式拆成纯函数（isZoomed、measureBox、insetBox、sameBox、renderScaleFor、bootLevel、createLossWatch……），
@@ -57,7 +57,7 @@ export function isStandalone(): boolean {
 }
 
 /**
- * 省内存的设备（开盘的口径）：iOS，或者主要靠触屏的（手机平板）。老 iPhone 只有 2GB，超了 WebKit 直接杀页面，
+ * 省内存的设备（最早接入的游戏的口径）：iOS，或者主要靠触屏的（手机平板）。老 iPhone 只有 2GB，超了 WebKit 直接杀页面，
  * 所以这些设备渲染倍数封顶 2、大背景按 1 倍光栅化
  */
 export function isLowMemoryDevice(): boolean {
@@ -67,7 +67,7 @@ export function isLowMemoryDevice(): boolean {
 
 // ───────────── 可见区 ─────────────
 
-/** 双指放大着：visualViewport.scale 明显不是 1（开盘口径，放大缩小都算）。默认阈值 0.02 */
+/** 双指放大着：visualViewport.scale 明显不是 1（默认口径，放大缩小都算）。默认阈值 0.02 */
 export function isZoomed(scale: number | undefined, epsilon = 0.02): boolean {
   return scale !== undefined && Math.abs(scale - 1) > epsilon;
 }
@@ -122,20 +122,20 @@ export function safeInsets(): Insets {
 export interface WatchViewportOptions {
   /** 可见区真的变了才调（判重按 x、y、w、h）；pin 模式给的是扣过安全区、钉上去的区域 */
   onChange(box: Box): void;
-  /** 双指放大的阈值：|scale − 1| 超过它就不跟（默认 0.02，开盘）；牌馆原来是只认放大 1.01，传 isZoomed 自定义 */
+  /** 双指放大的阈值：|scale − 1| 超过它就不跟（默认 0.02）；另一个游戏原来是只认放大 1.01，传 isZoomed 自定义 */
   zoomEpsilon?: number;
   isZoomed?: (scale: number) => boolean;
-  /** 每次事件之后再补算一次的延时（iOS 转屏后要过一会儿才给最终尺寸）。默认 300ms（开盘） */
+  /** 每次事件之后再补算一次的延时（iOS 转屏后要过一会儿才给最终尺寸）。默认 300ms */
   settleMs?: number;
-  /** 补算那一下之后再调（牌馆在这里决定要不要换世界宽度、重建画面）；不管尺寸变没变都调 */
+  /** 补算那一下之后再调（有的游戏在这里决定要不要换世界宽度、重建画面）；不管尺寸变没变都调 */
   onSettle?(): void;
-  /** 给了就把这个元素钉成可见区扣掉安全区的像素位置（牌馆的做法）；不给就写 --app-h（开盘的做法） */
+  /** 给了就把这个元素钉成可见区扣掉安全区的像素位置（选项做法）；不给就写 --app-h（默认做法） */
   pin?: HTMLElement;
   /** 写 document 根上的 --app-h（可见区高度，不扣安全区，CSS 自己 calc 扣）。默认：没给 pin 时写 */
   writeAppH?: boolean;
-  /** 页面被系统推上去一截时滚回顶部（默认是，开盘） */
+  /** 页面被系统推上去一截时滚回顶部（默认是） */
   scrollTop?: boolean;
-  /** 也听 visualViewport 的 scroll：工具栏收放时只有偏移变（默认是；牌馆原来就听） */
+  /** 也听 visualViewport 的 scroll：工具栏收放时只有偏移变（默认是；有的游戏原来就听） */
   listenScroll?: boolean;
 }
 
@@ -192,7 +192,7 @@ export function watchViewport(o: WatchViewportOptions): () => void {
 }
 
 /**
- * 舞台等比缩放的游戏（雀馆、德州、飞驰）用：kit 只管量 app 的矩形、判重、转屏补算、放大中不动，
+ * 舞台等比缩放的游戏用：kit 只管量 app 的矩形、判重、转屏补算、放大中不动，
  * 怎么缩放、写哪些 CSS 变量和类名留在游戏的 onChange 里。返回取消监听的函数
  */
 export function watchStage(app: HTMLElement, onChange: (r: DOMRect) => void, o: Pick<WatchViewportOptions, 'zoomEpsilon' | 'isZoomed' | 'settleMs' | 'listenScroll'> = {}): () => void {
@@ -226,13 +226,13 @@ export interface RenderScaleInput {
   lowMemory?: boolean;
   /** 省内存设备的封顶（默认 2，仓库根 docs/ui.md 第 10 节：手机平板渲染倍数最多 2） */
   lowMemoryCap?: number;
-  /** 取整前先减掉（牌馆 0.05：刚好超一点不升档）；默认 0（开盘） */
+  /** 取整前先减掉（比如 0.05：刚好超一点不升档）；默认 0 */
   bias?: number;
 }
 
 /**
- * 只按像素比的渲染倍数（海岛、夜巡、弹里个弹原来的写法）：max(1, min(上限, dpr))，可以是小数；省内存设备的上限再取 lowMemoryCap。
- * 海岛 cap 2、lowMemoryCap 1.5，夜巡 cap 3、lowMemoryCap 2，弹里个弹 cap 2（不分设备）
+ * 只按像素比的渲染倍数（只按像素比的那类游戏原来的写法）：max(1, min(上限, dpr))，可以是小数；省内存设备的上限再取 lowMemoryCap。
+ * 比如 cap 2、lowMemoryCap 1.5，或 cap 3、lowMemoryCap 2，或 cap 2（不分设备）
  */
 export function dprScale(i: { dpr: number; cap?: number; lowMemory?: boolean; lowMemoryCap?: number }): number {
   const cap = i.lowMemory ? Math.min(i.cap ?? 3, i.lowMemoryCap ?? 2) : (i.cap ?? 3);
@@ -254,8 +254,8 @@ export function forcedScale(search: string): number | null {
 }
 
 /**
- * 现在的渲染倍数（开盘的取法）：真正的手机平板（省内存设备、窗口长边接近屏幕长边）按窗口算——iOS 的 screen 是竖着的整屏、不扣地址栏；
- * 电脑和开了小窗的二合一按显示器算，窗口开小再拉大也不发虚。`basis: 'visible'` 一律按可见区算（牌馆）。URL 的 scale=N 优先
+ * 现在的渲染倍数（默认取法）：真正的手机平板（省内存设备、窗口长边接近屏幕长边）按窗口算——iOS 的 screen 是竖着的整屏、不扣地址栏；
+ * 电脑和开了小窗的二合一按显示器算，窗口开小再拉大也不发虚。`basis: 'visible'` 一律按可见区算（选项做法）。URL 的 scale=N 优先
  */
 export function renderScale(o: { designW: number; designH: number; cap?: number; lowMemory?: boolean; lowMemoryCap?: number; bias?: number; basis?: 'auto' | 'visible' }): number {
   if (typeof window === 'undefined') return 1;
@@ -281,7 +281,7 @@ export function renderScale(o: { designW: number; designH: number; cap?: number;
   return renderScaleFor({ w, h, dpr, designW: o.designW, designH: o.designH, cap: o.cap, lowMemory, lowMemoryCap: o.lowMemoryCap, bias: o.bias });
 }
 
-// ───────────── 省内存三档（可选，牌馆的做法） ─────────────
+// ───────────── 省内存三档（可选） ─────────────
 
 /**
  * 老 iPhone 内存不够时 WebKit 直接杀页面，JS 来不及做任何事。页面在前台时记一笔"开着"（pending），切后台或正常离开就清掉；
@@ -325,7 +325,7 @@ export interface LowMemoryTier {
 }
 
 /**
- * 省内存三档：存储由游戏给（key 要带游戏前缀，比如 guandan.boot），只在 track 为真时记（默认只在 iOS 上：桌面崩溃、断电不该把画质永久降下去）
+ * 省内存三档：存储由游戏给（key 要带游戏前缀，比如 <游戏id>.boot），只在 track 为真时记（默认只在 iOS 上：桌面崩溃、断电不该把画质永久降下去）
  */
 export function lowMemoryTier(o: { read(): unknown; write(mark: BootMark): void; version: string; track?: boolean }): LowMemoryTier {
   const track = o.track ?? isIOS();
@@ -361,14 +361,14 @@ export function webglUsable(): boolean {
 // ───────────── WebGL 丢失恢复 ─────────────
 
 export interface LossOptions {
-  /** 丢了多久还没回来才提示（默认 3000ms，开盘） */
+  /** 丢了多久还没回来才提示（默认 3000ms） */
   showAfterMs?: number;
   /** 显示提示，返回收起它的函数（恢复时调） */
   show(): (() => void) | void;
-  /** 丢了这么久还没回来就放弃（牌馆 20 秒记一笔下次降档）；不给就不放弃 */
+  /** 丢了这么久还没回来就放弃（比如 20 秒记一笔下次降档）；不给就不放弃 */
   giveUpMs?: number;
   onGiveUp?(): void;
-  /** 页面离开（pagehide）时还丢着也算放弃（牌馆）；默认否 */
+  /** 页面离开（pagehide）时还丢着也算放弃（选项做法）；默认否 */
   giveUpOnHide?: boolean;
 }
 export interface Timers {

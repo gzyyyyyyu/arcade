@@ -551,12 +551,18 @@ function showPreview(blob: Blob, name: string, opts: ShareOptions): void {
   const root = document.createElement('div');
   root.id = PREVIEW_ID;
   root.setAttribute('role', 'dialog');
-  root.style.cssText = `position:fixed;inset:0;z-index:${opts.zIndex ?? 11000};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px;box-sizing:border-box;background:var(--ak-overlay,rgba(0,0,0,.72));font:600 16px var(--ak-font,${FONT});color:var(--ak-fg,#fff)`;
+  root.style.cssText = `position:fixed;inset:0;z-index:${opts.zIndex ?? 11000};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px;box-sizing:border-box;background:var(--ak-overlay,rgba(0,0,0,.85));font:600 16px var(--ak-font,${FONT});color:var(--ak-fg,#fff)`;
   applyTheme(root, opts.theme);
+  // 关法和"叫朋友来"面板一样：右上角 ✕、Esc、点空白处，底下的"关闭"也留着
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape') close();
+  };
   const close = (): void => {
+    document.removeEventListener('keydown', onKey);
     root.remove();
     if (url) URL.revokeObjectURL(url);
   };
+  document.addEventListener('keydown', onKey);
   root.addEventListener('click', (e) => {
     if (e.target === root) close();
   });
@@ -570,12 +576,13 @@ function showPreview(blob: Blob, name: string, opts: ShareOptions): void {
     reader.readAsDataURL(blob);
   }
   img.alt = '战绩图';
-  img.style.cssText = 'max-width:min(92vw,540px);max-height:calc(100% - 140px);border-radius:var(--ak-radius,16px);box-shadow:0 8px 32px rgba(0,0,0,.5)';
+  // 图在纵向弹性盒里收缩（min-height:0）：按钮折成两行、提示变长时图让出位置，不再按写死的 140px 留底，窄屏不挤不压
+  img.style.cssText = 'flex:0 1 auto;min-height:0;max-width:min(92vw,540px);max-height:100%;object-fit:contain;border-radius:var(--ak-radius,16px);box-shadow:0 8px 32px rgba(0,0,0,.5)';
   const tip = document.createElement('div');
   tip.textContent = mode.tip;
-  tip.style.cssText = 'font-size:13px;opacity:.75';
+  tip.style.cssText = 'flex:none;font-size:13px;opacity:.75';
   const row = document.createElement('div');
-  row.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;justify-content:center';
+  row.style.cssText = 'flex:none;display:flex;gap:12px;flex-wrap:wrap;justify-content:center';
   const btn = (label: string, key: string, fn: () => void, primary = false): HTMLButtonElement => {
     const b = document.createElement('button');
     b.type = 'button';
@@ -623,6 +630,10 @@ function showPreview(blob: Blob, name: string, opts: ShareOptions): void {
   if (mode.save) row.appendChild(save);
   row.appendChild(copy);
   row.appendChild(shut);
+  const x = btn('✕', 'share:x', close);
+  x.setAttribute('aria-label', '关闭');
+  x.style.cssText = 'position:absolute;right:8px;top:8px;width:44px;height:44px;padding:0;border:0;border-radius:var(--ak-radius-btn,22px);background:transparent;color:var(--ak-fg,#fff);font:inherit;font-size:22px;cursor:pointer';
+  root.appendChild(x);
   root.appendChild(img);
   root.appendChild(tip);
   root.appendChild(row);

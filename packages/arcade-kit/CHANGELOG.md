@@ -1,5 +1,19 @@
 # 更新日志
 
+## 0.28.0（2026-11-22）
+
+- **等人时离开房间还名额**（`GameRoom`）：以前等人页点「离开房间」只断开连接，房间要等 `noHumanMs`（10 分钟）才关，期间开房的人被 `has_room` 挡回旧房间。
+  现在房间还在等人、座位上没有真人、除了这条连接没别人连着时，`leave` 直接关房（4000 `everyone left`）并把名额还给计量；有人还连着或已经开打的照旧。
+- **开房找计量有超时**：`kitCreate` / `kitCreateMatch` 等计量最多 `METER_CALL_MS`（3 秒），超时按计量连不上处理（不开房），
+  并补一次退回，防止计量晚到的占位把名额卡到过期。`withTimeout` / `TimeoutError` 挪进 `internal.ts`，匹配和房间共用。
+- **社交请求有超时、平台没问出来会再问**（`social.ts`）：请求默认 `SOCIAL_FETCH_MS`（8 秒）超时；`detectPlatform` 回 unknown（平台慢、超过 2.5 秒）时
+  按 `SOCIAL_DETECT_RETRY` 隔 5 秒、15 秒各再问一次（每次等 10 秒），以前一次没问出来好友面板就整局不挂。新导出 `platformWithRetry`。
+- 聊天和短语的节奏默认值只在 `chat.ts` 的 `CHAT_RATE`、`EMOTE_RATE`，房间和 `RoomClient` 都引它，不再各写一份。
+- 分享预览（`share.ts`）：右上角加 ✕（`share:x`，44px）、Esc 关闭，底色 `.85`，图在矮屏上按比例缩小不把按钮挤出屏幕。
+- 注释里去掉具体游戏的名字；`AGENTS.md` 精简到 5KB 内；更新日志归档拆成 `docs/changelog-archive.md`（0.11.0–0.19.1）和 `docs/changelog-archive-2.md`（0.10.2 及以前），各不到 40KB。
+- 测试：`quota.test.ts` 加等人时离开还名额、有人还连着不关房、计量慢于超时不开房且补退回三条；`room.test.ts` 加扫全部服务端源码不用 `setTimeout`/`setInterval`，
+  受新离开行为影响的两条改了写法；`social.test.ts` 加再问平台、请求带超时信号两条。离开还名额、计量超时两条做了反证。
+
 ## 0.27.0（2026-11-20）
 
 - **新可选钩子 `RoomGame.idle(state)`**：牌局没结束、但只在等"再来一场"这类事时返回 true。从不是变成是的那一步，房间就把开房名额还给计量
@@ -174,4 +188,4 @@
 - 测试：`match.test.ts` 18 条、`client.test.ts` 加 4 条（MatchClient、兜底）、`game.test.ts` 加 1 条（matchConfigErrors）、`fun-logic` 加 1 条（dockFits）；`FlakyMeter` 改拦 `kitReserveMany` / `kitReleaseMany` / `kitPeek`。
   反证七处（外人能进、不自动开打、不按 joinBy 开、没来的不托管、只还第一个人的名额、建房不设超时、没来的不退名额）各有测试失败。
 
-0.19.1 及更早的版本见 [docs/changelog-archive.md](docs/changelog-archive.md)。
+0.19.1 及更早的版本见 [docs/changelog-archive.md](docs/changelog-archive.md)（0.11.0–0.19.1）和 [docs/changelog-archive-2.md](docs/changelog-archive-2.md)（更早）。

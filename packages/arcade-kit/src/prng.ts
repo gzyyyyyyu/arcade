@@ -1,5 +1,5 @@
 /**
- * 单机规则核心用的确定性伪随机：sfc32 加两种种子哈希，逐位照搬各游戏原来的实现（开盘、牌馆、海岛、夜巡），
+ * 单机规则核心用的确定性伪随机：sfc32 加两种种子哈希，逐位照搬各游戏原来的实现（两种种子写法），
  * 收进 kit 是为了不再各抄一份；存档续玩、回放、每日题、服务端复算都靠"同一个种子出同一串数"，所以这里只能搬、不能改算法，
  * test/prng.test.ts 用从各游戏原代码算出的黄金向量钉住。
  *
@@ -9,7 +9,7 @@
  */
 
 /**
- * 把若干分量混合成 32 位无符号整数（FNV-1a + murmur3 fmix32；牌馆、开盘的写法）。
+ * 把若干分量混合成 32 位无符号整数（FNV-1a + murmur3 fmix32；第一种写法）。
  * 数字分量写成 `#n|`、字符串写成 `s|`，所以 `hashSeed(1)` 和 `hashSeed('1')` 不同。
  */
 export function hashSeed(...parts: readonly (string | number)[]): number {
@@ -25,7 +25,7 @@ export function hashSeed(...parts: readonly (string | number)[]): number {
 }
 
 /**
- * 字符串加种子 → 32 位无符号整数（FNV-1a，种子异或进初值，再 fmix32；海岛、夜巡的写法）。
+ * 字符串加种子 → 32 位无符号整数（FNV-1a，种子异或进初值，再 fmix32；第二种写法）。
  * 和 `hashSeed` 是两套数，同样的输入给出的值不同，不能互相替代。
  */
 export function hash32(text: string, seed: number): number {
@@ -49,7 +49,7 @@ function fmix32(x: number): number {
 
 /**
  * sfc32 生成器。四个游戏的步进完全一样，只是 a、b、c、d 的初值不同（见 `createRng`、`streamRng`）。
- * 初值原样存，不做换算：`snapshot()` 要和原来的实现逐位相等（夜巡把它写进回放指纹）。
+ * 初值原样存，不做换算：`snapshot()` 要和原来的实现逐位相等（有的游戏把它写进回放指纹）。
  */
 export class Sfc32 {
   private a: number;
@@ -81,7 +81,7 @@ export class Sfc32 {
     return this.u32() / 4294967296;
   }
 
-  /** [0, n) 均匀整数，取法是 floor(next × n)（海岛用的是 `intModulo`，结果不同） */
+  /** [0, n) 均匀整数，取法是 floor(next × n)（第二种写法用的是 `intModulo`，结果不同） */
   int(n: number): number {
     return Math.floor(this.next() * n);
   }
@@ -108,7 +108,7 @@ export class Sfc32 {
   }
 }
 
-/** 牌馆、开盘的初始化：a、b、c 是固定常数，d 是种子，空转 12 次 */
+/** 第一种初始化：a、b、c 是固定常数，d 是种子，空转 12 次 */
 export function createRng(seed: number): Sfc32 {
   return new Sfc32(0x9e3779b9 | 0, 0x243f6a88 | 0, 0xb7e15162 | 0, seed | 0);
 }
@@ -118,12 +118,12 @@ export function rngFor(...parts: readonly (string | number)[]): Sfc32 {
   return createRng(hashSeed(...parts));
 }
 
-/** 海岛、夜巡的初始化：a、b、c 由流名和种子经 `hash32` 得到，d 是 1，空转 12 次 */
+/** 第二种初始化：a、b、c 由流名和种子经 `hash32` 得到，d 是 1，空转 12 次 */
 export function streamRng(seed: number, stream: string): Sfc32 {
   return new Sfc32(hash32(stream, seed), hash32(`${stream}#b`, seed), hash32(`${stream}#c`, seed), 1);
 }
 
-/** [0, n) 整数，取法是 u32 % n（海岛的写法；n 远小于 2³² 时偏差可忽略）。和 `Sfc32.int` 结果不同，单独给出 */
+/** [0, n) 整数，取法是 u32 % n（第二种写法；n 远小于 2³² 时偏差可忽略）。和 `Sfc32.int` 结果不同，单独给出 */
 export function intModulo(rng: Sfc32, n: number): number {
   return rng.u32() % n;
 }

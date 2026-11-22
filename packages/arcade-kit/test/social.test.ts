@@ -15,6 +15,8 @@ import {
   parseFriend,
   parseInvites,
   pickInvite,
+  platformWithRetry,
+  SOCIAL_DETECT_RETRY,
   postMoment,
   postPresence,
   sendInvite,
@@ -226,6 +228,33 @@ describe('挑哪条邀请弹', () => {
     expect(untilOf('123')).toBe(123);
     expect(untilOf('2026-10-16T00:00:00Z')).toBe(Date.parse('2026-10-16T00:00:00Z'));
     expect(untilOf(null)).toBeNaN();
+  });
+
+  it('没问出有没有平台（unknown）：按 5 秒、15 秒再问两次，每次给 10 秒；问出来就停；一直问不出还是 unknown', async () => {
+    const slept: number[] = [];
+    const sleep = async (ms: number) => void slept.push(ms);
+    // 游戏传进来的是 unknown，第一次再问 503，第二次问出来
+    const a = fake(new Response(null, { status: 503 }), json({ user: { id: 'u1' } }));
+    expect(await platformWithRetry({ platform: { platform: 'unknown' }, fetchImpl: a.f }, sleep)).toEqual({ platform: true, user: { id: 'u1' } });
+    expect(slept).toEqual([...SOCIAL_DETECT_RETRY.waits]);
+    expect(a.calls.map((c) => c.url)).toEqual(['/api/me', '/api/me']);
+    expect(a.calls.every((c) => c.init.signal instanceof AbortSignal)).toBe(true);
+    // 问出来了（没平台、有平台）就不再问
+    slept.length = 0;
+    const b = fake();
+    expect(await platformWithRetry({ platform: { platform: false }, fetchImpl: b.f }, sleep)).toEqual({ platform: false });
+    expect(b.calls).toHaveLength(0);
+    // 一直问不出
+    const c = fake(new Response(null, { status: 500 }), new Response(null, { status: 500 }), new Response(null, { status: 500 }));
+    expect(await platformWithRetry({ fetchImpl: c.f }, sleep)).toEqual({ platform: 'unknown' });
+    expect(c.calls).toHaveLength(3);
+  });
+
+  it('每个社交请求都带超时（平台挂住时轮询不卡死）', async () => {
+    const { f, calls } = fake(json({ invites: [] }), json({ friends: [] }));
+    await fetchInvites({ fetchImpl: f });
+    await fetchFriends({ fetchImpl: f });
+    expect(calls.every((c) => c.init.signal instanceof AbortSignal)).toBe(true);
   });
 
   it('没有页面（房间、Node）时不挂，也不发请求', async () => {

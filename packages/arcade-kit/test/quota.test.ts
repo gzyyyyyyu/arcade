@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { roomStub } from '../src/internal.ts';
 import { DEFAULT_QUOTA, levelOf, parseQuota, type RoomMeter } from '../src/meter.ts';
 import { CLOSE, CLOSE_REASON, isFinalClose, type StateMsg } from '../src/protocol.ts';
-import { DEFAULT_LIMITS } from '../src/room.ts';
+import { DEFAULT_LIMITS, METER_CALL_MS } from '../src/room.ts';
 import { advance, type Conn, createRoom, freezeClock, inspect, join, loseRoomStorage, meter, openRoom, refusedWith, resetMeter, roomRow, setMeterDay, stub, upgrade } from './helpers.ts';
 import { type FlakyMeter, type FlakyRoom, SITE, type ToyView } from './worker.ts';
 
@@ -38,8 +38,8 @@ async function noHumanSince(code: string): Promise<number | null | undefined> {
 }
 
 /** 等到 fn 成立（房间还名额、报数是在广播之后 await 的，测试先收到消息）。 */
-async function eventually(fn: () => Promise<boolean>): Promise<void> {
-  const deadline = performance.now() + 2_000;
+async function eventually(fn: () => Promise<boolean>, ms = 2_000): Promise<void> {
+  const deadline = performance.now() + ms;
   while (!(await fn())) {
     if (performance.now() > deadline) throw new Error('condition not met');
     await new Promise((ok) => setTimeout(ok, 20));
@@ -88,6 +88,26 @@ describe('按人的开房名额', () => {
     expect((await inspect(code)).persist).toBeNull();
     await openRoom('a');
     expect((await usage()).rooms).toBe(2);
+  });
+
+  it('等人时最后一个人离开、没别人连着：马上关房还名额，可以再开（不用等没人超时）', async () => {
+    const code = await openRoom('a');
+    // 房主连上就坐在 0 号位
+    const { conn } = await join(code, 'a');
+    conn.send({ t: 'leave' });
+    expect(await conn.closedWith()).toBe(CLOSE.roomClosed);
+    expect((await inspect(code)).persist).toBeNull();
+    await eventually(async () => (await createRoom('a')).status === 201);
+  });
+
+  it('等人时房主离开但还有人连着（在挑座位）：房间留着，名额照旧占着', async () => {
+    const code = await openRoom('a');
+    const { conn } = await join(code, 'a');
+    await join(code, 'b');
+    conn.send({ t: 'leave' });
+    await conn.until((m) => m.t === 'state' && m.you.seat === null);
+    expect((await inspect(code)).persist).not.toBeNull();
+    expect(await body(await createRoom('a'))).toEqual({ status: 409, error: 'has_room', code });
   });
 
   it('整场打完就还名额（房间还留着给大家看结果）', async () => {
@@ -307,6 +327,20 @@ describe('计量连不上', () => {
     await eventually(async () => (await createRoom('host', FLAKY)).status === 201);
     const room = await runInDurableObject(flakyRoom(code), (r: FlakyRoom) => r.totalWrites);
     expect((await usage(env.FLAKY_METER)).writes).toBeGreaterThanOrEqual(room);
+  });
+
+  it('计量卡住：开房最多等 METER_CALL_MS 就回 503 unavailable；那次晚到的占名额退回去，恢复后马上能开', async () => {
+    await runInDurableObject(flakyMeter(), (m: FlakyMeter) => {
+      m.slowMs = METER_CALL_MS + 2_000;
+    });
+    const t0 = performance.now();
+    expect(await body(await createRoom('slow', FLAKY))).toEqual({ status: 503, error: 'unavailable' });
+    expect(performance.now() - t0).toBeLessThan(METER_CALL_MS + 1_500);
+    await runInDurableObject(flakyMeter(), (m: FlakyMeter) => {
+      m.slowMs = 0;
+    });
+    // 卡住的那次占上以后被退回：名额、当天次数都不留
+    await eventually(async () => (await createRoom('slow', FLAKY)).status === 201, 6_000);
   });
 });
 

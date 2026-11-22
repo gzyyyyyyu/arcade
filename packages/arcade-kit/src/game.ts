@@ -29,7 +29,7 @@ export interface RoomEffect {
  * 房间只通过这些函数碰游戏状态，自己不懂规则。
  */
 export interface RoomGame<S, A, V, O = unknown, E extends RoomEffect = RoomEffect> {
-  /** 座位数（掼蛋 4） */
+  /** 座位数（四人牌桌 4） */
   seats: number;
   /** 规则版本：开局时记进状态，进行中的牌局按开局时的版本打完（4.3） */
   rulesVersion: number;
@@ -83,7 +83,7 @@ export interface RoomGame<S, A, V, O = unknown, E extends RoomEffect = RoomEffec
   /** 整场打完了 */
   over(state: S): boolean;
   /**
-   * 这一刻是不是一段的结尾，适合收场（0.2.0，可选）：比如掼蛋一副打完、停在结算页。
+   * 这一刻是不是一段的结尾，适合收场（0.2.0，可选）：比如一副牌打完、停在结算页。
    * 当天全站写入到了 stopWrites（meter.ts）时，在打的房间走到这里就停下电脑、把这一步发给大家，然后以 4000 加原因 quota 关房。
    * 不写的游戏没有"这一段"可等，房间知道要收场时马上关
    */
@@ -98,7 +98,7 @@ export interface RoomGame<S, A, V, O = unknown, E extends RoomEffect = RoomEffec
    */
   options?(raw: unknown): O | null;
   /**
-   * 这一局用几个座位（1 到 seats）：比如德州 2–6 人一桌、座位数按选项定。只用前面这么多个座位，
+   * 这一局用几个座位（1 到 seats）：比如一桌 2–6 人的牌桌、座位数按选项定。只用前面这么多个座位，
    * 开局时只给它们补电脑，后面的座位一直空着、谁也坐不进去；有真人坐在后面的座位上时房间回 seat_closed、不开局。不写就是 seats
    */
   seatCount?(opts: O | undefined): number;
@@ -131,7 +131,7 @@ export interface RoomGame<S, A, V, O = unknown, E extends RoomEffect = RoomEffec
   // ---------- 0.3.2 ----------
 
   /**
-   * 牌局没打完、这一刻谁也不用出手，在等外面的事（0.3.2，可选）：比如德州的牌桌上能打的人不够两个，等有人坐下、补码、从暂离回来，
+   * 牌局没打完、这一刻谁也不用出手，在等外面的事（0.3.2，可选）：比如牌桌上能打的人不够两个，等有人坐下、补码、从暂离回来，
    * 或者买入到账。返回 true 时 actors（turn）可以是空的：房间不当作出错，不计时、不驱动电脑、不设这一手的闹钟，一行也不写；
    * 等到有人发不轮流的操作、座位换人、对外的事办完，牌局变了再看该谁出手。只在没人能出手时才问它；不写就和以前一样，空了按出错处理
    */

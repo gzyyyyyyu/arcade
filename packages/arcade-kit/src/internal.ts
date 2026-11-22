@@ -81,3 +81,15 @@ export function matchStub(ns: DurableObjectNamespace, tier: string): DurableObje
 
 /** 档位 key 的格式：游戏给的短字符串（如 real-2、fun-normal） */
 export const TIER_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
+
+/** 服务端找别的 DO、平台时最多等多久：超时抛错（原来的调用照样可能晚到，先接住它的错，免得变成没人处理的 rejection）。只在 workerd 里调（scheduler） */
+export class TimeoutError extends Error {}
+
+export async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  // 超时以后原来的调用照样可能失败：先接住它的错，免得变成没人处理的 rejection
+  const settled = p.then((v) => ({ ok: true as const, v }), (e: unknown) => ({ ok: false as const, e }));
+  const out = await Promise.race([settled, scheduler.wait(ms).then(() => null)]);
+  if (out === null) throw new TimeoutError(`timed out after ${ms} ms`);
+  if (!out.ok) throw out.e;
+  return out.v;
+}

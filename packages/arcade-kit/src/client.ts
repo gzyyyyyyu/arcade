@@ -19,7 +19,7 @@
  *
  * 浏览器里的计时器（重连、心跳）可以用 setTimeout，"只用一个闹钟"是房间（Durable Object）那边的规矩。
  */
-import { type ChatSendResult, checkChat } from './chat.js';
+import { CHAT_RATE, type ChatSendResult, checkChat, EMOTE_RATE } from './chat.js';
 import { type ChattedMsg, CLOSE, CLOSE_REASON, type CreateError, type DownMsg, type EmotedMsg, isFinalClose, type MatchDownMsg, type MatchSoloWhy, PING, PONG, PROTOCOL_VERSION, type RoomInfo, type UpMsg } from './protocol.js';
 
 export type ClientStatus = 'connecting' | 'open' | 'reconnecting' | 'closed' | 'failed';
@@ -140,14 +140,14 @@ export class RoomClient<A = unknown, V = unknown> {
   private resendQueue: string[] = [];
   private moveCounter = 0;
   /** 快捷短语的本地令牌桶（0.7.0）：节奏按房间 welcome 里给的，没收到前按默认 1 秒 1 个、攒 3 个 */
-  private emoteRate = { ms: 1000, burst: 3 };
-  private emoteTokens = 3;
+  private emoteRate: { ms: number; burst: number } = { ...EMOTE_RATE };
+  private emoteTokens: number = EMOTE_RATE.burst;
   private emoteAt = 0;
   /** 太快时排着的（只留最后 EMOTE_QUEUE 个），到下一个令牌时发 */
   private emoteQueue: { id: number; to?: number }[] = [];
   private emoteTimer: unknown = null;
   /** 聊天的节奏（0.18.0，welcome.chat）和本地记的最近一分钟发出去的时间；没收到 welcome 前按 kit 的默认 */
-  private chatRate = { ms: 3000, perMin: 10 };
+  private chatRate: { ms: number; perMin: number } = { ...CHAT_RATE };
   private chatTimes: number[] = [];
   private readonly opts: Required<Pick<RoomClientOptions<V>, 'random' | 'setTimer' | 'clearTimer'>> & RoomClientOptions<V>;
   private readonly onWake = () => this.wake(false);

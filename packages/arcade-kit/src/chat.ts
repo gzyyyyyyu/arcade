@@ -5,6 +5,11 @@
  */
 import { CHAT_WORDS } from './chat-words.js';
 
+/** 节奏的默认值（房间的 limits、RoomClient 没收到 welcome 前、单机聊天都用这一份）：聊天两条至少隔 ms、滚动一分钟最多 perMin 条 */
+export const CHAT_RATE = { ms: 3000, perMin: 10 } as const;
+/** 快捷短语的令牌桶默认：每 ms 补 1 个、最多攒 burst 个 */
+export const EMOTE_RATE = { ms: 1000, burst: 3 } as const;
+
 /** 一条最多几个字（按码点） */
 export const CHAT_MAX = 30;
 
@@ -157,8 +162,8 @@ export interface LocalChatOptions {
  * 电脑不读、不回（公平：电脑的决策和反应都不看真人打的字）。不碰 DOM；时间只在这里用（上面的过滤仍然是纯函数）
  */
 export function localChat(say: (text: string, masked: boolean) => void, opts: LocalChatOptions = {}): (text: string) => ChatSendResult {
-  const ms = opts.ms ?? 3000;
-  const perMin = opts.perMin ?? 10;
+  const ms = opts.ms ?? CHAT_RATE.ms;
+  const perMin = opts.perMin ?? CHAT_RATE.perMin;
   const now = opts.now ?? ((): number => Date.now());
   let times: number[] = [];
   return (text) => {

@@ -9,6 +9,14 @@ import { identityHeader, KIT_HOST, MISS_HEADER, missStub, roomStub, SESSION_COOK
 import type { RoomMeter } from '../src/meter.ts';
 import { isEntropy } from '../src/rng.ts';
 import roomSrc from '../src/room.ts?raw';
+import roomPersistSrc from '../src/room-persist.ts?raw';
+import roomRateSrc from '../src/room-rate.ts?raw';
+import roomSeatsSrc from '../src/room-seats.ts?raw';
+import matchSrc from '../src/match.ts?raw';
+import meterSrc from '../src/meter.ts?raw';
+import togetherSrc from '../src/together.ts?raw';
+import storeSrc from '../src/store.ts?raw';
+import internalSrc from '../src/internal.ts?raw';
 import workerSrc from '../src/worker.ts?raw';
 import { advance, Conn, freezeClock, inspect, join, openRoom, PG, refusedWith, resetMeter, roomRow, setMissCount, setRoomRow, stub, upgrade } from './helpers.ts';
 import type { RoomGame } from '../src/game.ts';
@@ -674,6 +682,14 @@ describe('只用一个闹钟', () => {
     expect(src).not.toMatch(/setTimeout|setInterval|\.accept\(\)/);
     expect(src).toMatch(/acceptWebSocket/);
   });
+
+  it('别的服务端文件（房间拆出去的、排队、计量、搭子、存储、内部）也没有 setTimeout、setInterval：等待只用 scheduler.wait 或闹钟', () => {
+    const files = { roomPersistSrc, roomRateSrc, roomSeatsSrc, matchSrc, meterSrc, togetherSrc, storeSrc, internalSrc };
+    for (const [name, raw] of Object.entries(files)) {
+      const src = raw.replace(/^\s*(\*|\/\/|\/\*\*).*$/gm, '');
+      expect(src, name).not.toMatch(/setTimeout|setInterval/);
+    }
+  });
 });
 
 describe('硬限制（4.6）', () => {
@@ -687,7 +703,8 @@ describe('硬限制（4.6）', () => {
   it('发太快（每秒 5 条，最多攒 10 条）：1008 断开', async () => {
     const code = await openRoom('fast');
     const { conn } = await join(code, 'fast');
-    for (let i = 0; i < 11; i++) conn.send({ t: 'leave' });
+    // 坐不了的座位：每条都回个错，不改房间（房主坐着时发 leave 会让空房间直接关掉）
+    for (let i = 0; i < 11; i++) conn.send({ t: 'sit', seat: 99 });
     expect(await conn.closedWith()).toBe(1008);
   });
 
@@ -753,6 +770,8 @@ describe('硬限制（4.6）', () => {
     let c = (await join(code, 'reseat')).conn;
     await drop(c);
     c = (await join(code, 'reseat')).conn;
+    // 另有人连着（不然等人时最后一个人离座房间就关了）
+    await join(code, 'watcher');
     // 离座、再坐下（换成一个新座位）
     c.send({ t: 'leave' });
     await c.until((m) => m.t === 'state' && m.you.seat === null);
@@ -760,7 +779,7 @@ describe('硬限制（4.6）', () => {
     await c.until((m) => m.t === 'state' && m.you.seat === 0);
     await drop(c);
     expect(await refusedWith(await upgrade(code, 'reseat'))).toBe(4029);
-    expect((await inspect(code)).persist.joins).toEqual({ reseat: 2 });
+    expect((await inspect(code)).persist.joins.reseat).toBe(2);
   });
 
   it('会写库的重连也算入站消息：房间一生的写入被 maxInbound 封住；关房日志记下发得最多的 userId（不记内容）', async () => {
