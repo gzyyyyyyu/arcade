@@ -304,7 +304,8 @@ async function main(): Promise<void> {
         await c.page.waitForSelector('#online', { state: 'detached', timeout: 5_000 });
         const op = (await c.page.evaluate(() => window.__game!.controls())).online!;
         await c.page.mouse.click(op.x, op.y);
-        await c.page.waitForSelector('#ol-friend-0', { timeout: 5_000 });
+        // 社交部件挂好才有好友行：启动时没问出平台会隔 10 秒再问一次，机器忙时要等它（和 1280 那步一样等 20 秒）
+        await c.page.waitForSelector('#ol-friend-0', { timeout: 20_000 });
         const row = (await c.page.textContent('#ol-friends'))!;
         assert(row.includes('房主老王') && row.includes('1/4'), `"好友在打"应写朋友和人数（实际 ${row}）`);
         await shot(c, '50b-online-friend-row');
@@ -544,8 +545,8 @@ async function main(): Promise<void> {
     notes.push(`刚进页面就开好友房面板："好友在打"两桌 ${((Date.now() - t9) / 1000).toFixed(1)} 秒后出来（1280）`);
     await shot(solo, '58a-online-friend-row-1280');
     await solo.page.click('#ol-create');
-    // 有好友：开完房弹"叫朋友来"，关掉再开局
-    await solo.page.waitForSelector('#arcade-invite-panel', { timeout: 5_000 });
+    // 有好友：开完房弹"叫朋友来"，关掉再开局（开房和问好友列表各一次请求，机器忙时给到 20 秒）
+    await solo.page.waitForSelector('#arcade-invite-panel', { timeout: 20_000 });
     await solo.page.click('#arcade-invite-panel [aria-label="关闭"]');
     await until(solo, '房主坐下', 'g.net()?.seat === 0');
     await solo.page.click('#ol-start');

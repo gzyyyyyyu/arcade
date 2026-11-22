@@ -117,18 +117,18 @@ function rotatePreview(p: NextPreview | null, r: Rot): NextPreview | null {
 /** 整个网络视图转成"我 = 0" */
 export function rotateNetView(nv: NetView, me: number): NetView {
   const r = rotation(me);
-  const out: NetView = { view: rotateView(nv.view, r), events: nv.events.map((e) => rotateEvent(e, r)), next: rotatePreview(nv.next, r), ready: nv.ready ? r.bySeat(nv.ready) : null };
+  // 这一场的记录：按座位的转座位，赢的副数按队转
+  const m = nv.log;
+  const log: NetView['log'] = { deals: m.deals, firsts: r.bySeat(m.firsts), lasts: r.bySeat(m.lasts), bombs: r.bySeat(m.bombs), wins: r.byTeam(m.wins as [number, number]) };
+  if (m.places) log.places = r.bySeat(m.places);
+  if (m.score) log.score = r.byTeam(m.score as [number, number]);
+  const out: NetView = { view: rotateView(nv.view, r), events: nv.events.map((e) => rotateEvent(e, r)), next: rotatePreview(nv.next, r), ready: nv.ready ? r.bySeat(nv.ready) : null } as NetView;
   // 实盘的每个座位的账（0.5.0）：和 ready 一样按座位排
   if (nv.stake) out.stake = { ...nv.stake, seats: r.bySeat(nv.stake.seats) };
   // 再来一场（0.6.2）：谁点的换成画面座位，房间码不动
   if (nv.again !== undefined) out.again = nv.again && { code: nv.again.code, by: r.seat(nv.again.by) };
   if (nv.afk) out.afk = r.bySeat(nv.afk);
-  // 这一场的记录（0.14.0）：按座位的转座位，赢的副数按队转
-  if (nv.log) {
-    const m = nv.log;
-    out.log = { deals: m.deals, firsts: r.bySeat(m.firsts), lasts: r.bySeat(m.lasts), bombs: r.bySeat(m.bombs), wins: r.byTeam(m.wins as [number, number]) };
-    if (m.places) out.log.places = r.bySeat(m.places);
-    if (m.score) out.log.score = r.byTeam(m.score as [number, number]);
-  }
+  // log 放最后：字段顺序和以前一致，金样按字节比
+  out.log = log;
   return out;
 }

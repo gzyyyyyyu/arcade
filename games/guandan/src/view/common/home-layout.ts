@@ -34,6 +34,8 @@ export function panelWidth(W: number): number {
 const PANEL_H = 600;
 /** 竖屏时面板离下沿留多少（版本号写在下沿） */
 const PORTRAIT_BOTTOM = 44;
+/** 竖屏灯笼挂点：顶栏按钮下沿以下 */
+const PORTRAIT_LANTERN_Y = 76;
 /** 竖屏主视觉的下沿（桌子前沿的回纹带在 686 收住）：高竖屏面板顶到这里，中间不留空带 */
 const PORTRAIT_ART_BOTTOM = 700;
 
@@ -44,7 +46,7 @@ const PORTRAIT_ART_BOTTOM = 700;
 export function panelRows(h: number): { logo: number; seg: number; pitch: number; main: number; mainDdz: number; cards: number; cardsDdz: number; cardH: number } {
   const e = h - PANEL_H;
   const r = (base: number, k: number): number => Math.round(base + e * k);
-  return { logo: r(92, 0.15), seg: r(186, 0.2), pitch: r(228, 0.2), main: r(256, 0.25), mainDdz: r(286, 0.25), cards: r(402, 0.55), cardsDdz: r(428, 0.5), cardH: r(150, 0.3) };
+  return { logo: r(92, 0.15), seg: r(186, 0.2), pitch: r(228, 0.2), main: r(256, 0.25), mainDdz: r(286, 0.25), cards: r(402, 0.7), cardsDdz: r(428, 0.65), cardH: r(150, 0.45) };
 }
 
 export function homeLayout(W: number, H = 720): HomeLayout {
@@ -74,10 +76,10 @@ export function homeLayout(W: number, H = 720): HomeLayout {
     artW,
     panel,
     window: { x: Math.round(artW * 0.46), y: 290 + top, r: 230 },
-    // 灯笼从顶上挂下来，不跟着主视觉往下挪
+    // 灯笼从顶上挂下来，不跟着主视觉往下挪；竖屏顶栏图标排满右半边，灯笼从顶栏下沿挂、右边那只挂在两个图标的空当里，绳子不从图标后面穿过
     lanterns: [
-      { x: Math.round(artW * 0.07), y: 10, s: 0.95 },
-      { x: Math.round(artW * 0.84), y: 0, s: 0.8 },
+      { x: Math.round(artW * 0.07), y: portrait ? PORTRAIT_LANTERN_Y : 10, s: 0.95 },
+      { x: Math.round(artW * (portrait ? 0.88 : 0.84)), y: portrait ? PORTRAIT_LANTERN_Y : 0, s: 0.8 },
     ],
     figures,
     table: { back, front: 640 + top },

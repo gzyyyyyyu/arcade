@@ -50,7 +50,7 @@ if (r.error) 显示 r.error（大白话中文），state 不变
 | `{ type: 'nextDeal' }` | `phase === 'dealEnd'` | 开下一副。**牌桌动作，不属于任何座位**：联机时只由房间在全员"准备"或倒计时结束后发出，玩家发来的一律不收；单机时本地会话代替房间发（玩家点"下一副"） |
 
 前四种是玩家动作 `SeatAction`，`nextDeal` 是牌桌动作 `TableAction`，`Action = SeatAction | TableAction`。
-房间收到玩家消息时先用 `isSeatAction(a)` 过滤，再核对 `a.seat` 是不是这条连接的座位。
+房间收到的玩家消息经 `net/rules.ts` 的 `parseNetAction` 校验：四种玩家动作加上房间自己的几种（准备、带入、我回来了、再来一场），座位由房间按连接补上，`nextDeal` 发不进来。
 
 ### 判断轮到谁
 

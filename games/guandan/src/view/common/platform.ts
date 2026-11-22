@@ -37,8 +37,10 @@ export function platformInfo(): PlatformInfo {
 /** 页面发给平台和本游戏 Worker 的请求一律有超时：网络挂住时开房按钮不一直转、实盘结回的重试等得到失败 */
 export const FETCH_TIMEOUT_MS = 10_000;
 
+/** 老浏览器没有 AbortSignal.timeout 时不带超时（照旧等浏览器自己的），不报错 */
 export function timed(init: RequestInit = {}): RequestInit {
-  return { ...init, signal: init.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS) };
+  if (init.signal || typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') return init;
+  return { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) };
 }
 
 export function standalone(): boolean {

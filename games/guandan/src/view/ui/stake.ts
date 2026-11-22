@@ -285,7 +285,8 @@ export function openTierPicker<S = StakeSession>(
     btn.setEnabled(false);
     buttons[tier] = btn;
   });
-  const note = text(scene, 0, H / 2 - 114, '', { size: TYPE.label, bold: true, color: COLOR.redDark, wrap: RW - 40 });
+  // 底部从下往上：无现金价值、退回按钮（有时）、提示一行；三样不压着（退回按钮 50 高，提示句一行放得下）
+  const note = text(scene, 0, H / 2 - 132, '', { size: TYPE.label, bold: true, color: COLOR.redDark, wrap: RW - 40 });
   b.add(note);
   b.add(text(scene, 0, H / 2 - 38, STAKE_TEXT.noCash, { size: TYPE.small, color: COLOR.muted }));
   let stray: Button | null = null;
@@ -322,7 +323,7 @@ export function openTierPicker<S = StakeSession>(
     for (const t of TIER_IDS) buttons[t]!.setEnabled(!busy && w.balance >= TIERS[t]);
     if (other?.solo) {
       note.setText(msg || STAKE_TEXT.elsewhere);
-      stray = reg(m, 'stray', new Button(scene, 0, H / 2 - 68, 300, 50, '原样退回那一份', 'wood', () => void giveBack(other.ref)));
+      stray = reg(m, 'stray', new Button(scene, 0, H / 2 - 86, 300, 50, '原样退回那一份', 'wood', () => void giveBack(other.ref)));
     } else if (msg) note.setText(msg);
     else note.setText(w.balance < TIERS.mid ? STAKE_TEXT.lowFunds : '');
   };

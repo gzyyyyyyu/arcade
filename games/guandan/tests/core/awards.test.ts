@@ -53,15 +53,6 @@ describe('房间的这一场记录', () => {
       expect(v.log!.wins).toEqual(me % 2 ? [m.wins[1], m.wins[0]] : m.wins);
     }
   }, 30_000);
-
-  it('以前开的房间（状态里没有 log）照旧能打，视图里没有', () => {
-    const { log: _l, ...old } = R.begin(testKey(23), R.rulesVersion);
-    const seat = R.turn(old)!;
-    const n = R.apply(old, seat, R.ai(old, seat));
-    expect('error' in n).toBe(false);
-    expect((n as NetState).log).toBeUndefined();
-    expect(R.view(old, 0).log).toBeUndefined();
-  });
 });
 
 describe('评奖', () => {

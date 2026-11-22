@@ -35,8 +35,8 @@ interface TableBase<S = never, Y = never> {
   out: boolean[];
   /** 每个座位这一份攒的战绩（只有要攒的玩法有） */
   tally?: Y[];
-  /** 每个座位现在是第几份（0：没带入过）；老的局没有，按第 1 份算 */
-  share?: number[];
+  /** 每个座位现在是第几份（0：没带入过） */
+  share: number[];
   /** 这一副打到一半点了"离开"、等这副结束再结回的座位 */
   leaving?: boolean[];
 }
@@ -67,13 +67,13 @@ export function stakeTableKit<S = never, Y = never>(cfg: TableCfg<S, Y>) {
 
   /** 座位现在这一份的 ref（钱包按它分开好几份） */
   function shareRef<T extends TableBase<S, Y>>(t: T, seat: number): string {
-    const n = t.share?.[seat] ?? 1;
+    const n = t.share[seat]!;
     return n <= 1 ? t.ref : `${t.ref}s${seat}n${n}`;
   }
 
   /** 新带入一份：份数加 1，分和战绩从 0 记；上一份结回过的分挪进 book.settled（庄家 + 结回过的 + 各座位 = 0 这本账才对得上） */
   function addIn<T extends TableBase<S, Y>>(t: T, seat: number): T {
-    const cur = t.share ?? t.book.seats.map((x) => (x.paid === 'no' ? 0 : 1));
+    const cur = t.share;
     const old = t.book.seats[seat]!;
     const book = { ...setPaid(t.book, seat, 'pending'), settled: (t.book.settled ?? 0) + (old.paid === 'left' ? old.points : 0) };
     book.seats = book.seats.map((s, i) => (i === seat ? { ...s, points: 0 } : s));

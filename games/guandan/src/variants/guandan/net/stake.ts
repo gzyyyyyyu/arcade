@@ -51,11 +51,11 @@ export interface StakeTable {
   why: (string | null)[];
   /** 每个座位：结回办完了 */
   out: boolean[];
-  /** 每个座位这一份攒的战绩（只记到账以后的副）；0.6.0 以前开的局没有 */
-  tally?: Tally[];
-  /** 每个座位现在是第几份（0：没带入过）；0.6.0 以前开的局没有，按第 1 份算 */
-  share?: number[];
-  /** 这一副打到一半点了"离开"、等这副结束再结回的座位（0.12.4）；以前开的局没有 */
+  /** 每个座位这一份攒的战绩（只记到账以后的副） */
+  tally: Tally[];
+  /** 每个座位现在是第几份（0：没带入过） */
+  share: number[];
+  /** 这一副打到一半点了"离开"、等这副结束再结回的座位；没人点过时没有 */
   leaving?: boolean[];
 }
 
@@ -105,9 +105,9 @@ export const stakeRebuy = (t: StakeTable, seat: number): StakeTable => kitOf(t).
 /** 一副结束：记账（战绩小结只记到账的座位）；一场结束就记下每个到账座位的结回。history 是这一副的出牌记录 */
 export function stakeDeal(t: StakeTable, r: DealResult, phase: Phase, history: readonly PlayRecord[] = []): StakeTable {
   if (t.over || r.dealNo !== t.book.deals + 1) return t;
-  const tally = t.tally?.map((x, seat) => (t.book.seats[seat]!.paid === 'yes' ? tallyDeal(x, r, history, seat, t.tier, t.book.rules) : x));
+  const tally = t.tally.map((x, seat) => (t.book.seats[seat]!.paid === 'yes' ? tallyDeal(x, r, history, seat, t.tier, t.book.rules) : x));
   // 这一副打到一半离开的：这副算完了，按现在的分结回
-  const next = kitOf(t).leaveDone<StakeTable>({ ...t, book: roomAddDeal(t.book, r), ...(tally ? { tally } : {}) });
+  const next = kitOf(t).leaveDone<StakeTable>({ ...t, book: roomAddDeal(t.book, r), tally });
   return roomOver(next.book, phase) ? kitOf(next).finish(next) : next;
 }
 

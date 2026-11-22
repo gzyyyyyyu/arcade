@@ -49,14 +49,14 @@ export interface NetState {
   ready: boolean[] | null;
   /** 实盘房间的桌（0.5.0，src/net/stake.ts）；娱乐房间没有 */
   stake?: StakeTable;
-  /** 每个真实座位现在是不是真人（0.6.0：一个真人都没了就结束房间）；0.6.0 以前开的局没有 */
+  /** 每个真实座位现在是不是真人（一个真人都没了就结束房间）；开局不带座位（只有测试直接调 begin）时没有 */
   humans?: boolean[];
   /** 娱乐房间打完一整场后"再来一场"（0.6.2）：谁开了哪个新房间；没人点、停够了是 null；还在等是 undefined */
   again?: Again | null;
-  /** 每个真实座位连着被房间代出了几手（0.6.3）：到 IDLE_AFTER 就算走开了、每手只等 IDLE_MS；自己出一手或者点"我回来了"清零。0.6.3 以前开的局没有 */
+  /** 每个真实座位连着被房间代出了几手：到 IDLE_AFTER 就算走开了、每手只等 IDLE_MS；自己出一手或者点"我回来了"清零。和 humans 一起有 */
   idle?: number[];
-  /** 这一场攒的公开记录（0.14.0，结束颁奖用，src/net/awards.ts）：每副的名次、炸弹、赢家，按真实座位。0.14.0 以前开的局没有 */
-  log?: MatchLog;
+  /** 这一场攒的公开记录（结束颁奖用，src/net/awards.ts）：每副的名次、炸弹、赢家，按真实座位 */
+  log: MatchLog;
 }
 
 /** 新房间的码和点的人（真实座位），所有人看得到：大家跟着进同一个房间 */
@@ -92,10 +92,10 @@ export interface NetView {
   stake?: StakeView;
   /** 再来一场（0.6.2）：同 NetState.again；不是在等再来一场时没有 */
   again?: Again | null;
-  /** 每个座位是不是走开了、房间在替他快速代出（0.6.3，公开：大家看得到他为什么出得快）；0.6.3 以前开的局没有 */
+  /** 每个座位是不是走开了、房间在替他快速代出（公开：大家看得到他为什么出得快）；和 NetState.idle 一起有 */
   afk?: boolean[];
-  /** 这一场的公开记录（0.14.0，同 NetState.log）：名次、炸弹谁都看得见，大家算出来的奖一样 */
-  log?: MatchLog;
+  /** 这一场的公开记录（同 NetState.log）：名次、炸弹谁都看得见，大家算出来的奖一样 */
+  log: MatchLog;
 }
 
 /** 结算页等大家点"继续"最多多久（docs 9.1） */
@@ -149,7 +149,7 @@ function roomBot(s: NetState, seat: number): { difficulty: Difficulty; persona?:
 
 /**
  * 房间里的电脑和它们的互动性格（0.12.0 起给 kit 的 botReact）：只算真电脑的座位（替掉线真人代打的不算，不替人说话）。
- * 0.6.0 以前开的局没有 humans，不互动
+ * 没有 humans（测试直接调 begin）时不互动
  */
 export function funBots(s: NetState): FunBot[] {
   if (!s.humans) return [];
@@ -275,14 +275,13 @@ function step(s: NetState, a: SeatAction | { type: 'nextDeal' }): NetState | { e
   const r = dispatch(s.g, a);
   if (r.error) return { error: errorCode(r.error) };
   const end = r.state.phase === 'dealEnd';
-  const out: NetState = { g: r.state, ev: r.events, next: end ? previewNext(r.state) : null, ready: end ? [false, false, false, false] : null };
+  let log = s.log;
+  for (const e of r.events) if (e.type === 'dealEnd') log = logDeal(log, e.result, r.state.history);
+  // 字段顺序和存进房间的 JSON 一致（金样按字节比）：humans、idle 在 log 前面
+  const out = { g: r.state, ev: r.events, next: end ? previewNext(r.state) : null, ready: end ? [false, false, false, false] : null } as NetState;
   if (s.humans) out.humans = s.humans;
   if (s.idle) out.idle = s.idle;
-  if (s.log) {
-    let m = s.log;
-    for (const e of r.events) if (e.type === 'dealEnd') m = logDeal(m, e.result, r.state.history);
-    out.log = m;
-  }
+  out.log = log;
   if (s.stake) {
     let t = s.stake;
     for (const e of r.events) if (e.type === 'dealEnd') t = stakeDeal(t, e.result, r.state.phase, r.state.history);
@@ -293,7 +292,7 @@ function step(s: NetState, a: SeatAction | { type: 'nextDeal' }): NetState | { e
 
 /**
  * 在等"再来一场"：娱乐房间打完一整场、还有真人、还没人点也没停够。实盘房间打完就结回，不在这里等；
- * 0.6.0 以前开的局不知道谁是真人，照旧打完就结束
+ * 不知道谁是真人（测试直接调 begin）时打完就结束
  */
 function waitingAgain(s: NetState): boolean {
   return s.g.phase === 'gameOver' && !s.stake && s.again === undefined && !!s.humans?.some(Boolean);
@@ -301,7 +300,7 @@ function waitingAgain(s: NetState): boolean {
 
 const isAfk = (s: NetState, seat: number): boolean => (s.idle?.[seat] ?? 0) >= IDLE_AFTER;
 
-/** 记下这个座位这一步是不是被代出的：代出的连着数，自己出的（含"我回来了"）清零。0.6.3 以前开的局不记 */
+/** 记下这个座位这一步是不是被代出的：代出的连着数，自己出的（含"我回来了"）清零 */
 function countIdle(s: NetState, seat: number, idle: boolean): NetState {
   if (!s.idle) return s;
   const n = idle ? s.idle[seat]! + 1 : 0;
@@ -414,11 +413,11 @@ export const guandanRoom: Omit<RoomGame<NetState, NetAction, NetView, RoomOpts, 
   },
   view: (s, seat) => {
     const me = seat ?? -1;
-    const v: NetView = { view: viewFor(s.g, me), events: eventsFor(s.ev, me), next: s.next, ready: s.ready };
+    const v = { view: viewFor(s.g, me), events: eventsFor(s.ev, me), next: s.next, ready: s.ready } as NetView;
     if (s.stake) v.stake = stakeView(s.stake, me);
     if (s.again !== undefined) v.again = s.again;
     if (s.idle) v.afk = s.idle.map((_, i) => isAfk(s, i));
-    if (s.log) v.log = s.log;
+    v.log = s.log;
     return v;
   },
   ai: (s, seat) => {

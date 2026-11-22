@@ -479,6 +479,13 @@ async function guandanParts(browser: Browser, stack: OnlineStack): Promise<void>
     assert(await stray.evaluate(() => Object.keys(window.__game!.controls()).includes('tier:small')), '有一份不在本机时照样能开新的');
     await shot(stray, '51-stray');
     notes.push('钱包里有一份不在本机的单机实盘：照样能开新的，也可以原样退回');
+    // 手机竖屏同一屏：底部提示、退回按钮、"无现金价值"三样最挤（0.40.4 起不再压着）
+    const strayPhone = await openPage(browser, stack, 'stray-2', { balance: 10_000, stakes: [{ game: 'guandan', ref: `solo-small-${'e'.repeat(32)}`, tier: 'small', mode: 'client' }] }, { width: 390, height: 844 }, '', { deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+    await strayPhone.waitForTimeout(800);
+    await until(strayPhone, '主页（手机竖屏）', "'stake' in g.controls()");
+    await click(strayPhone, 'stake');
+    await until(strayPhone, '原样退回那一份（手机竖屏）', "'stray' in g.controls()");
+    await shot(strayPhone, '51b-stray-phone');
 
     await ddzSolo(browser, stack);
     if (!process.argv.includes('--no-room')) {

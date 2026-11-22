@@ -146,11 +146,6 @@ type TableAction = { type: 'nextDeal' };
 
 export type Action = SeatAction | TableAction;
 
-/** 是不是玩家能发的动作（房间收到玩家消息时先用它过滤，再核对 seat 是不是这条连接的座位） */
-export function isSeatAction(a: Action): a is SeatAction {
-  return a.type === 'play' || a.type === 'pass' || a.type === 'tribute' || a.type === 'return';
-}
-
 export type GameEvent =
   | { type: 'dealStart'; dealNo: number; level: number; declarer: Team; levels: [number, number] }
   | { type: 'antiTribute'; seats: Seat[] }
