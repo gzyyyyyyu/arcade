@@ -216,8 +216,12 @@ export function WalletPage() {
           </div>
         </div>
         <WeekTrend balance={wallet.balance} ledger={ledger} />
-        <p className="wcard__note" data-testid="relief-hint">每天一次，连桌上的补到 {num(reliefTo)}</p>
-        {blocked && <p className="wcard__note" data-testid="relief-why">{blocked}</p>}
+        {/* 领不了时原因顶替说明，不多占一行：多一行会把下面"桌上的筹码"挤得裁字 */}
+        {blocked ? (
+          <p className="wcard__note" data-testid="relief-why">{blocked}</p>
+        ) : (
+          <p className="wcard__note" data-testid="relief-hint">每天一次，连桌上的补到 {num(reliefTo)}</p>
+        )}
         <FormError text={relief.error} />
         <p className="wcard__note">筹码没有现金价值：不能买、不能换、不能转。</p>
         {wallet.fresh && <p className="wcard__note">新号送的 {num(wallet.balance)}，第一次在游戏里用时到账。</p>}
