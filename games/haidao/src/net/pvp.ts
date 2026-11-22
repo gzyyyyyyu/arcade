@@ -9,8 +9,10 @@ import { capacity } from '../core/index.ts';
 import { validateBase } from '../core/validate.ts';
 import { pvpSnapshot } from '../core/tdbase.ts';
 import { RULES_VERSION } from '../core/types.ts';
+import { APPLIED_MAX } from '../core/pvp.ts';
 import type { BattleAction, BattleSetup, Profile, Res } from '../core/types.ts';
 import type { Save } from '../platform/sync.ts';
+import { netTimeout } from './timeout.ts';
 
 const PVP_KEY = 'haidao.pvp';
 const API = 'api/pvp/';
@@ -112,7 +114,7 @@ async function call<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unkn
   if (!pvpState.off && !loggedIn()) pvpState.off = true;
   if (pvpState.off) return { ok: false, status: 501, error: 'no_platform' };
   try {
-    const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store' };
+    const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store', signal: netTimeout() };
     if (method !== 'GET') init.headers = { 'Content-Type': 'application/json', 'X-Arcade': '1' };
     if (body !== undefined) init.body = JSON.stringify(body);
     else if (method !== 'GET') init.body = '{}';
@@ -137,8 +139,8 @@ export const pvpApi = {
   cancel: (raidId: string) => call<{ cancelled: boolean; trophies?: number; total?: number }>('POST', 'cancel', { raidId }),
   ack: (raidIds: string[]) => call<{ cleared: number }>('POST', 'ack', { raidIds }),
   defense: (raidId: string) => call<DefenseReplay>('GET', `defense/${encodeURIComponent(raidId)}`),
-  /** applied：这份存档已经加 / 扣过的待扣 / 待领 raidId（readLocal().applied）；服务端最多收 100 个，带最近的 */
-  snapshot: (profile: Profile, applied: readonly string[] = []) => call<unknown>('PUT', 'snapshot', { profile, applied: applied.slice(-100) }),
+  /** applied：这份存档已经加 / 扣过的待扣 / 待领 raidId（readLocal().applied）；服务端最多收 APPLIED_MAX 个，带最近的 */
+  snapshot: (profile: Profile, applied: readonly string[] = []) => call<unknown>('PUT', 'snapshot', { profile, applied: applied.slice(-APPLIED_MAX) }),
 };
 
 interface Local {

@@ -5,7 +5,7 @@
 import type Phaser from 'phaser';
 import { TD2_NAV_SKILL, flagOn } from '../core/index.ts';
 import type { TdEvent } from '../core/index.ts';
-import { UNIT } from '../core/types.ts';
+import { TICKS_PER_SEC, UNIT } from '../core/types.ts';
 import type { TdScene } from './TdScene.ts';
 import { sfx } from './audio/sfx.ts';
 import { forEachEllipseDash, isoRing } from './tdfx.ts';
@@ -22,7 +22,7 @@ const center = (t: { x: number; y: number; size: number }): { x: number; y: numb
 
 /** 一个圈：很淡的填充 + 流动的虚线边，最后 1 秒淡出（急射旗深青边、重赏金边） */
 function zone(f: Phaser.GameObjects.Graphics, x: number, y: number, r: number, left: number, line: number, fill: number, u: number, now: number): void {
-  const a = Math.min(1, left / 20);
+  const a = Math.min(1, left / TICKS_PER_SEC);
   const c = W(x, y);
   const R = isoRing(r / UNIT);
   f.fillStyle(fill, 0.1 * a).fillEllipse(c.x, c.y, R.w, R.h);

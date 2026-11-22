@@ -13,6 +13,7 @@ import { short, openInfo, closeSheet } from './basepanel.ts';
 import { startPlace, cancelPlace, buildingAt, openBuild } from './baseplace.ts';
 import { measureSafe, centerOf, topOf } from './basegeom.ts';
 import { v2 } from './basecommon.ts';
+import { openTraining, trainDot } from './training.ts';
 
 // ---- 建筑的操作：手机点建筑弹操作环，电脑右键弹菜单；两边的项都来自 basefeel.ts 的 buildingMenu
 
@@ -23,7 +24,7 @@ function menuFor(bs: BaseScene, id: number): MenuItem[] {
   const cost = upgradeCost(b.kind, b.level);
   const r = cost ? upgrade(app.profile, id) : null;
   const up = r ? (r.ok ? { ok: true as const } : { ok: false as const, why: whyNot(bs, b, r.error, cost!) }) : null;
-  return buildingMenu(b.kind, b.level, b.stored ?? 0, up, cost);
+  return buildingMenu(b.kind, b.level, b.stored ?? 0, up, cost).map((m) => (m.id === 'train' ? { ...m, dot: trainDot() } : m));
 }
 
 /** 操作环灰钮下的短原因：钮只有 48 宽，整句放不下，点了还有整句的提示 */
@@ -59,6 +60,9 @@ export function act(bs: BaseScene, what: MenuItem['id'], id: number, after?: () 
   } else if (what === 'info') {
     closeRing(bs);
     openInfo(bs, id);
+  } else if (what === 'train') {
+    closeRing(bs);
+    openTraining();
   } else if (what === 'collect') {
     doCollect(bs, id);
     after?.();
@@ -193,6 +197,7 @@ export function keyAct(bs: BaseScene, a: BaseKeyAction): void {
     return;
   }
   if (a === 'collectAll') return claimAll(bs);
+  if (a === 'train') return openTraining();
   const id = focusId(bs);
   if (id === null) return toast('先点一座建筑');
   closeCtx(bs);

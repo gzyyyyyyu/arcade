@@ -14,13 +14,18 @@ export const DAY = 24 * HOUR;
 export const LOCK_MS = 4 * 60_000;
 /** 新号保护：第一次上传快照起 3 天 */
 export const PROTECT_MS = 3 * DAY;
-/** 每人每小时最多找几次对手（含复仇）、上传几次快照 */
-export const FIND_PER_HOUR = 20;
+/**
+ * 每人每小时最多找几次对手（含复仇、「换一个」）、上传几次快照。找对手只挡脚本：
+ * 实测「换一个」不看卡连点每次约 1 秒（0.58.6，假服务端），真人看卡再点约 3 秒，一小时不停也到不了 1200
+ */
+export const FIND_PER_HOUR = 1200;
 export const SNAP_PER_HOUR = 30;
 /** 同一对玩家 24 小时内最多打几场（不分方向，含复仇、放弃、过期空打）：正常一场 + 复仇一场 */
 export const PAIR_PER_DAY = 2;
 const DEFENSES_MAX = 10;
 const DONE_MAX = 20;
+/** 兑换、实盘每日场次各记最近几个 ref（按 ref 幂等用：重发同一个 ref 不重复计） */
+const REFS_MAX = 20;
 export const PENDING_MAX = 50;
 /** 并起来的那条最多留几笔明细；更早的只留在合计里（见 pieces） */
 const MERGE_PARTS_MAX = 100;
@@ -636,7 +641,7 @@ export class BaseCore {
     if (s.ex.day !== day) s.ex = { day, n: 0, refs: s.ex.refs };
     if (s.ex.n >= perDay) return err('limit');
     s.ex.n++;
-    const keep = Object.entries(s.ex.refs).slice(-19);
+    const keep = Object.entries(s.ex.refs).slice(-(REFS_MAX - 1));
     s.ex.refs = Object.fromEntries([...keep, [ref, 'wait']]);
     await this.save(s);
     return { ok: true, state: 'new' };
@@ -673,7 +678,7 @@ export class BaseCore {
     if (c.day === day && c.refs.includes(ref)) return { ok: true, left: Math.max(0, max - n) };
     if (n >= max) return err('live_daily');
     const s = structuredClone(cur);
-    s[k] = { day, n: n + 1, refs: [...(c.day === day ? c.refs : []), ref].slice(-20) };
+    s[k] = { day, n: n + 1, refs: [...(c.day === day ? c.refs : []), ref].slice(-REFS_MAX) };
     await this.save(s);
     return { ok: true, left: Math.max(0, max - n - 1) };
   }

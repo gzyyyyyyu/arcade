@@ -139,6 +139,14 @@ function showFloat(c: IntelCard, anchor: HTMLElement, compact: boolean): void {
   const y = above >= 8 ? above : Math.min(innerHeight - H - 8, r.bottom + 8);
   f.style.transform = `translate(${Math.round(x)}px,${Math.round(Math.max(8, y))}px)`;
   floatEl = f;
+  // 锚点被重画掉（战斗结束时兵种卡整排重建）就收不到 pointerleave：浮卡开着时每帧看一眼，锚点没了或鼠标不在上面就收，
+  // 不然它会一直盖在结算框上
+  const watch = (): void => {
+    if (floatEl !== f) return;
+    if (!anchor.isConnected || !anchor.matches(':hover')) return hideFloat();
+    requestAnimationFrame(watch);
+  };
+  requestAnimationFrame(watch);
 }
 function hideFloat(): void {
   floatEl?.remove();

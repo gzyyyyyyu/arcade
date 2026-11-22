@@ -710,7 +710,9 @@ try {
         await page.waitForTimeout(300);
       });
       await attempt('训练营', async () => {
-        await click('.hd-trainbtn');
+        // 手机竖屏顶栏没有训练营钮（从主寨的操作环进，layout.ts）：用快捷键 T 打开同一个面板，量的是面板
+        if (await page.locator('.hd-trainbtn').isVisible()) await click('.hd-trainbtn');
+        else await page.keyboard.press('t');
         await page.locator('.hd-train').waitFor({ timeout: 4000 });
         await snap('训练营');
         await page.keyboard.press('Escape');
@@ -926,10 +928,10 @@ try {
       await sceneIs('td', 40_000);
       await attempt('守岛局内（开局倒数）', () => snap('守岛局内（开局倒数）', 1500));
       await attempt('敌人图鉴和克制表', async () => {
-        // 矮竖屏预告卡默认收起，先点顶栏里的小钮展开
-        if (await page.locator('.hd-plan-tog').isVisible()) await click('.hd-plan-tog');
         // 点第一行（卡中间那一格「下一座造 / 升级」点了是平移镜头，不开图鉴）
-        await click('.hd-td-plan .hd-plan-r1');
+        // 矮竖屏的预告卡只看不点，图鉴从顶栏「图鉴」钮进
+        if (await page.locator('.hd-best-btn').isVisible()) await click('.hd-best-btn');
+        else await click('.hd-td-plan .hd-plan-r1');
         await page.locator('.hd-td-best').first().waitFor({ timeout: 5000 });
         await snap('敌人图鉴和克制表', 400);
         await click('.hd-td-best .hd-x');
@@ -938,11 +940,6 @@ try {
       await attempt('守岛木台造塔面板', async () => {
         const si = await buildSheet();
         await snap('守岛木台造塔面板');
-        if (await page.locator('.hd-td-sheet .hd-ctr-tog').count()) {
-          await click('.hd-td-sheet .hd-ctr-tog');
-          await snap('守岛造塔面板（展开克制表）', 300);
-        }
-        await click('.hd-ctr-off');
         await click('.hd-td-tower[data-kind="cannon"]');
         await page.waitForTimeout(600);
         const p = await pt((await info()).slots[si]!.x, (await info()).slots[si]!.y);

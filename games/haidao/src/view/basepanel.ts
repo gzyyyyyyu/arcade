@@ -360,12 +360,7 @@ export function openPresets(bs: BaseScene): void {
     el('b', '', name, box);
     el('span', 'hd-sub', desc, box);
     const host = el('div', 'hd-preset-map', undefined, box);
-    let layout: ReturnType<typeof presetLayout> = [];
-    try {
-      layout = presetLayout(p, style);
-    } catch {
-      layout = [];
-    }
+    const layout = presetLayout(p, style);
     // 预览按框的实际大小画：翻页藏起来的框量不到尺寸，翻到时再画
     const draw = (): void => {
       if (host.isConnected && host.clientWidth > 0) renderLayout(host, layout, islandExt(p.base.buildings), { interactive: false });

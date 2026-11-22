@@ -10,7 +10,7 @@
 import { meUrlOf, whoIs } from 'arcade-kit/auth';
 import { isStandalone, json, readJson } from 'arcade-kit/worker';
 import { validateBase } from '../../src/core/validate.ts';
-import { raidGain, raidSetup, sanitizeActions, wandererIsland } from '../../src/core/pvp.ts';
+import { APPLIED_MAX, raidGain, raidLoss, raidSetup, sanitizeActions, wandererIsland } from '../../src/core/pvp.ts';
 import { islandExt } from '../../src/core/base.ts';
 import { BATTLE_TICKS } from '../../src/core/types.ts';
 import type { BattleAction } from '../../src/core/types.ts';
@@ -214,7 +214,7 @@ async function startRaid(ports: Ports, userId: string, now: number, target?: { i
 
 /** 摧毁 100% 时防守方最多掉多少（给"预计掠夺"显示用） */
 function lossCap(stash: { gold: number; wood: number }): { gold: number; wood: number } {
-  return { gold: Math.floor(stash.gold / 5), wood: Math.floor(stash.wood / 5) };
+  return raidLoss(stash, 100);
 }
 
 /** 平台 /api/me 的 user.isAdmin 为 true 才算管理员；平台连不上一律不算（fail-closed） */
@@ -290,7 +290,7 @@ export async function handlePvp(req: Request, env: PvpEnv, ports: Ports | null, 
       if (!v.ok) return json({ ok: false, error: 'bad_snapshot', reason: v.error }, 400, ck);
       // applied：这份存档已经含了哪些待扣 / 待领（ack 时不再改服务端快照的资源）；格式不对就当没带
       const ap = body.applied;
-      const applied = Array.isArray(ap) && ap.length <= 100 ? ap.filter((x): x is string => typeof x === 'string' && RAID_RE.test(x)) : [];
+      const applied = Array.isArray(ap) && ap.length <= APPLIED_MAX ? ap.filter((x): x is string => typeof x === 'string' && RAID_RE.test(x)) : [];
       const r = await me.upload(v.value, name, now, applied);
       if (!r.ok) return failErr(r, ck);
       await ports.harbor().upsert([r.entry], now);

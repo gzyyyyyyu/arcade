@@ -21,6 +21,7 @@ import { DEPTH } from './depth.ts';
 import type { Occluder } from './occlude.ts';
 import { SHIP_BAR, ghostAlpha, trailStep } from './shiplook.ts';
 import { REDUCED } from './feel.ts';
+import { PORTRAIT_PHONE } from './layout.ts';
 
 type EAct = EscortAction extends infer U ? (U extends { t: number } ? Omit<U, 't'> : never) : never;
 
@@ -38,7 +39,6 @@ interface EscortHost {
 
 const LAND_PHONE = '(orientation:landscape) and (max-height:500px)';
 /** 手机竖屏：速度排收成底栏小钮的那种排布（和 escortcss 的媒体查询同一条） */
-const PORTRAIT_PHONE = '(max-width:559px) and (orientation:portrait)';
 
 export class EscortView {
   private readonly h: EscortHost;
@@ -62,7 +62,7 @@ export class EscortView {
   private pv: readonly WavePreview[] = [];
   private bar: { wrap: HTMLElement; box: HTMLElement; fill: HTMLElement; txt: HTMLElement } | null = null;
   private ctl: HTMLElement | null = null;
-  /** 矮竖屏的速度小钮：显示当前船速，点一下换下一档，长按（或点血条）展开修船和跟随 */
+  /** 手机竖屏的船速钮：显示当前船速，点一下换下一档 */
   private sum: HTMLButtonElement | null = null;
   private sumPace: EscortPace | null = null;
   /** 矮竖屏展开的速度排里的局内加速钮：点它等于点顶栏那个被收起的加速钮 */
@@ -119,7 +119,6 @@ export class EscortView {
   buildBar(bar: HTMLElement): void {
     const def = this.st().escort!.def;
     const wrap = el('div', 'hd-esc-hullw', undefined, bar);
-    wrap.addEventListener('click', () => this.toggleTray());
     const box = el('div', 'hd-esc-hull', undefined, wrap);
     box.title = '商船的血：到港时剩得越多，星越多';
     const fill = el('i', 'fill', undefined, box);
@@ -161,46 +160,35 @@ export class EscortView {
     el('b', '', '跟随', f);
     el('i', '', undefined, f);
     f.title = '英雄跟着船走，贴身保护';
-    // 手机竖屏：速度排收成小钮时修船和跟随也跟着藏进长按里，试玩一局一次没修上、一次没开跟随。
-    // 竖屏时把这两颗钮搬到船速小钮上面的一列常驻（浮在画面右边，不占底栏的高度），别的尺寸搬回速度排
+    // 手机竖屏放不下速度排（顶底栏合计会超质量线）：三档并成底栏里的一颗船速钮（显示当前档，点一下换下一档），
+    // 游戏加速、修船、跟随竖成一列常驻在它上面（浮在画面右边，不占底栏高度）；没有要展开才看得到的东西。别的尺寸这几颗钮回速度排
     const quick = el('div', 'hd-esc-quick', undefined, this.h.ui);
-    const mq = matchMedia(PORTRAIT_PHONE);
-    const place = (): void => {
-      if (mq.matches) quick.append(m, f);
-      else right.prepend(m, f);
-    };
-    place();
-    mq.addEventListener('change', place);
-    this.h.scene.events.once('shutdown', () => mq.removeEventListener('change', place));
-    // 矮竖屏：速度排收成底栏同一行里的一个小钮（别的尺寸 CSS 把它藏起来）
     const bar2 = this.h.ui.querySelector('.hd-td-bar2');
+    let speed: HTMLButtonElement | null = null;
     if (bar2) {
-      let held = false;
-      let timer = 0;
-      const sum = (this.sum = button('', 'hd-btn-wood hd-esc-sum', () => {
-        if (held) held = false;
-        else this.cyclePace();
-      }, bar2 as HTMLElement));
-      sum.addEventListener('pointerdown', () => {
-        held = false;
-        timer = window.setTimeout(() => {
-          held = true;
-          this.toggleTray();
-        }, 450);
-      });
-      for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) sum.addEventListener(ev, () => window.clearTimeout(timer));
-      sum.title = '船速：点一下换下一档，长按展开修船和跟随';
+      const sum = (this.sum = button('', 'hd-btn-wood hd-esc-sum', () => this.cyclePace(), bar2 as HTMLElement));
+      sum.title = '船速：点一下换下一档';
       bar2.insertBefore(sum, bar2.lastElementChild);
-      const src = bar2.querySelector<HTMLElement>('.hd-btn-wood:not(.hd-esc-sum)');
+      const src = bar2.querySelector<HTMLElement>('.hd-td-speed');
       if (src) {
-        const btn = button(src.textContent ?? '', 'hd-btn-wood hd-esc-speed', () => {
+        const btn = (speed = button(src.textContent ?? '', 'hd-btn-wood hd-esc-speed', () => {
           src.click();
           btn.textContent = src.textContent;
-        }, right);
+        }, right));
         btn.title = '游戏速度';
         this.speedMirror = { src, btn };
       }
     }
+    const mq = matchMedia(PORTRAIT_PHONE);
+    const place = (): void => {
+      const moved = speed ? [speed, m, f] : [m, f];
+      if (mq.matches) quick.append(...moved);
+      else right.prepend(m, f);
+      if (!mq.matches && speed) right.append(speed);
+    };
+    place();
+    mq.addEventListener('change', place);
+    this.h.scene.events.once('shutdown', () => mq.removeEventListener('change', place));
     this.back = button('', 'hd-btn-wood hd-esc-back', () => this.h.fit().resume(), this.h.ui);
     this.back.innerHTML = `${escortIcon('ship')}<span>回到船</span>`;
     this.back.setAttribute('aria-label', '镜头回到船');
@@ -209,11 +197,6 @@ export class EscortView {
   private cyclePace(): void {
     const cur = this.st().escort!.pace;
     this.setPace(PACE_ORDER[(PACE_ORDER.indexOf(cur) + 1) % PACE_ORDER.length]!);
-  }
-
-  /** 手机竖屏：展开 / 收起速度排（三档和加速；修船、跟随常驻在 .hd-esc-quick）；别的尺寸速度排一直摆着，这个类不起作用 */
-  private toggleTray(): void {
-    this.ctl?.classList.toggle('open');
   }
 
   private setPace(p: EscortPace): void {

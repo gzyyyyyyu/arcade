@@ -3,6 +3,7 @@
  * 排行榜不防作弊（所有者定），所以只是把分报上去；没登录、单独部署（501 / 404 / 401）静默跳过，不报错。
  */
 import { loggedIn } from './pvp.ts';
+import { netTimeout } from './timeout.ts';
 
 const TIDE_KEY = 'haidao.tide';
 
@@ -56,6 +57,7 @@ export async function submitTide(boardId: string, score: number): Promise<TideSu
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
+      signal: netTimeout(),
       headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' },
       body: JSON.stringify({ gameId: 'haidao', boardId, score }),
     });

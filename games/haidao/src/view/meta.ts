@@ -2,6 +2,7 @@ import { CAMPAIGN } from '../content/index.ts';
 import * as Core from '../core/index.ts';
 import { totalStars } from '../core/index.ts';
 import type { BattleSetup, Profile, Res } from '../core/types.ts';
+import { beijingDayIndex } from '../core/day.ts';
 
 /**
  * 每日悬赏、成就、称号的画面侧适配：直接用规则核心的 dailyBounty / ACHIEVEMENTS / checkAchievements；
@@ -10,7 +11,7 @@ import type { BattleSetup, Profile, Res } from '../core/types.ts';
 
 /** 北京时间的第几天（画面层可以用 Date） */
 export function dayIndex(now = Date.now()): number {
-  return Math.floor((now + 8 * 3600_000) / 86_400_000);
+  return beijingDayIndex(now);
 }
 
 interface Bounty {

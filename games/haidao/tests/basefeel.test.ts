@@ -106,6 +106,9 @@ describe('电脑操作', () => {
     expect(b[0]!.off).toBe(true);
     expect(b[0]!.why).toBe('还差 180 金币');
     expect(buildingMenu('cannon', 8, 0, null, null).map((m) => m.id)).toEqual(['info', 'move']);
+    // 训练营挂在主寨的菜单里（手机顶栏没有训练营钮）
+    expect(buildingMenu('hq', 1, 0, null, null).map((m) => [m.id, m.key])).toEqual([['info', 'I'], ['train', 'T'], ['move', 'M']]);
+    expect(keyAction('t')).toBe('train');
   });
   it('菜单贴在鼠标右下，右边 / 下边放不下就翻过去，不出可见区', () => {
     const area = { l: 0, r: 1280, t: 60, b: 720 };

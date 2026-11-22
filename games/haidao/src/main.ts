@@ -170,6 +170,14 @@ function main(): void {
     scene: [BootScene, BaseScene, BattleScene, TdScene],
   }));
 
+  // 界面层（.hd-ui 的按钮、面板、兵种卡……）上的按下不冒到 window：Phaser 在 window 上收到「目标不是画布」的按下也照坐标当点画布
+  // （为了拖出画布外也收得到抬起，抬起照常冒），点按钮会连带点到正下方的建筑、沙滩。只挡按下，移动和抬起不动
+  for (const t of ['mousedown', 'touchstart'] as const) {
+    document.addEventListener(t, (e) => {
+      if (e.target !== game.canvas) e.stopPropagation();
+    });
+  }
+
   // WebGL 上下文丢了（显存吃紧时 iOS 会收回）Phaser 会等它恢复；3 秒还没恢复才提示刷新，恢复就收起，同一时间只有一条
   game.events.once(Phaser.Core.Events.READY, () => {
     let wait: ReturnType<typeof setTimeout> | null = null;

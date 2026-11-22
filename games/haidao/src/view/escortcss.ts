@@ -54,20 +54,19 @@ ${U} .hd-esc .hd-td-sheet { z-index:36; }
 @media (orientation:portrait) and (max-width:559px), (orientation:portrait) and (max-height:700px) {
   ${U} .hd-esc:has(.hd-td-sheet) .hd-esc-ctl { display:none; }
 }
-/* 手机竖屏（360×640、390×844 同）：速度排收成底栏同一行里的小钮（显示当前船速，点一下换档），长按小钮或点血条展开速度排（三档、修船、跟随），血条同时是展开的入口所以拉到 44 高。
-   844 高也收：摆开的速度排 56 高再叠在底栏上，顶底栏合计会到 25% 以上（质量线 22%） */
-${U} .hd-esc-sum, ${U} .hd-esc-ctl .hd-esc-speed, ${U} .hd-esc-quick { display:none; }
+/* 手机竖屏（360×640、390×844 同）：三档并成底栏同一行里的船速钮（显示当前船速，点一下换档）；游戏加速、修船、跟随竖成一列常驻在它上面，不收不藏。
+   844 高也这样：摆开的速度排 56 高再叠在底栏上，顶底栏合计会到 25% 以上（质量线 22%） */
+${U} .hd-esc-sum, ${U} .hd-esc-speed, ${U} .hd-esc-quick { display:none; }
 @media (max-width:559px) and (orientation:portrait) {
   ${U} .hd-esc-sum { display:flex; flex:none; flex-direction:column; align-items:center; justify-content:center; gap:0; min-width:44px; min-height:48px; padding:0 2px; font-size:12px; font-weight:900; line-height:1.05; }
   ${U} .hd-esc-sum svg { width:20px; height:20px; display:block; }
-  ${U} .hd-esc-hullw { flex:1 1 100px; min-width:100px; height:44px; pointer-events:auto; cursor:pointer; }
+  ${U} .hd-esc-hullw { flex:1 1 100px; min-width:100px; }
   ${U} .hd-esc-ctl { display:none; }
-  ${U} .hd-esc-ctl.open { display:flex; }
-  ${U} .hd-esc-ctl .hd-esc-speed { display:flex; min-width:56px; min-height:56px; padding:2px 6px; align-items:center; justify-content:center; font-size:16px; font-weight:900; }
-  /* 修船、跟随常驻：竖在右下角船速小钮上面（小钮在底栏上沿 +8、48 高，layout.ts 的 .hd-esc-sum；escortview 的 PORTRAIT_PHONE 把两颗钮搬进来）；
-     造塔面板开着、速度排展开时收起 */
+  ${U} .hd-esc-quick .hd-esc-speed { display:flex; min-width:56px; min-height:48px; padding:2px 6px; align-items:center; justify-content:center; font-size:16px; font-weight:900; }
+  /* 加速、修船、跟随常驻：竖在右下角船速钮上面（船速钮在底栏上沿 +8、48 高，layout.ts 的 .hd-esc-sum；escortview 的 PORTRAIT_PHONE 把三颗钮搬进来）；
+     造塔面板开着时游戏暂停，收起免得压面板 */
   ${U} .hd-esc-quick { display:flex; flex-direction:column; gap:8px; position:absolute; right:6px; bottom:calc(116px + env(safe-area-inset-bottom,0px)); z-index:37; }
-  ${U} .hd-esc:has(.hd-td-sheet) .hd-esc-quick, ${U} .hd-esc:has(.hd-esc-ctl.open) .hd-esc-quick { display:none; }
+  ${U} .hd-esc:has(.hd-td-sheet) .hd-esc-quick { display:none; }
   ${U} .hd-esc-quick .hd-esc-mend { min-width:56px; padding:2px 4px; }
   ${U} .hd-esc-quick .hd-esc-mend small { display:none; }
 }

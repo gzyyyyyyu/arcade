@@ -58,6 +58,7 @@ export const RING_ICON = {
   upgrade: SVG('<path d="M12 20V5M5 12l7-7 7 7" /><path d="M6 21h12"/>'),
   info: SVG('<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".6" fill="#2b1a15"/>'),
   collect: SVG('<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8.5 12H15.5" />'),
+  train: SVG('<path d="M5 19L17 7M17 7V3h4v4h-4M19 19L7 7M7 7V3H3v4h4M8 16l-3 3M16 16l3 3"/>'),
   move: SVG('<path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/>'),
 } as const;
 

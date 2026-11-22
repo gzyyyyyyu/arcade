@@ -46,8 +46,6 @@ export function buildUi(bs: TdScene): void {
   wp.appendChild(img(iconA('sword'), 22));
   const wave = el('b', '', '', wp);
   bs.esc?.buildBar(bar);
-  // 矮竖屏（见 layout.ts）：预告卡默认收起，顶栏里留一个 44×44 的小钮显示下一波的波次号，点开在顶栏下面浮出预告卡；别的尺寸这个钮不显示
-  button('', 'hd-btn-wood hd-plan-tog', () => setPlanOpen(bs, !bs.ui.classList.contains('hd-plan-open')), bar).setAttribute('aria-label', '下两波预告');
   const bar2 = el('div', 'hd-td-bar2', undefined, bs.ui);
   const gp = el('div', 'hd-pill', undefined, bar2);
   gp.appendChild(img(iconA('hammer'), 22));
@@ -64,12 +62,15 @@ export function buildUi(bs: TdScene): void {
   // 暂停（P）：守岛压力大时停下来想一想；实盘也能停（服务端只收浏览器报的倍数、不按墙钟卡时限，见 docs/backend-haidao.md）
   const pause = button('暂停', 'hd-btn-wood hd-td-pause', () => togglePause(bs), bar2);
   pause.title = '暂停 / 继续（P）';
-  const speed = button(`${bs.speed}×`, 'hd-btn-wood', flip, bar2);
+  const speed = button(`${bs.speed}×`, 'hd-btn-wood hd-td-speed', flip, bar2);
   // 矮竖屏（360×640 一类）底栏一行装不下三个技能钮 + 叫波 + 金币牌 + 加速 + 撤退，加速挪到顶栏的空位（layout.ts），别的尺寸这个钮不显示
   const speedTop = button(`${bs.speed}×`, 'hd-btn-wood hd-td-speedtop', flip, bar);
   // 手机竖屏第二行的木钮都收起（layout.ts），暂停同加速一样在顶栏留一个
   const pauseTop = button('暂停', 'hd-btn-wood hd-td-pausetop', () => togglePause(bs), bar);
   pauseTop.title = '暂停 / 继续（P）';
+  // 矮竖屏、平板竖屏护航：预告卡只剩一行、只看不点，图鉴从这颗钮进（layout.ts）；别的尺寸点预告卡进，这颗钮不显示
+  const bestBtn = button('图鉴', 'hd-btn-wood hd-best-btn', () => (bs.bestOpen ? closeSheet(bs) : showBest(bs)), bar);
+  bestBtn.title = '敌人图鉴和克制表（C）';
   button('撤退', 'hd-btn-red', () => askEnd(bs), bar2);
   const hint = el('div', 'hd-hint', '', bs.ui);
   hint.style.display = 'none';
@@ -84,7 +85,6 @@ export function buildUi(bs: TdScene): void {
   const plan = el('div', 'hd-td-plan', undefined, bs.ui);
   plan.title = '下两波的预告：点开看每一路的敌人和克制表（C）';
   plan.addEventListener('click', () => {
-    setPlanOpen(bs, false);
     if (bs.bestOpen) closeSheet(bs);
     else showBest(bs);
   });
@@ -186,29 +186,6 @@ export function togglePause(bs: TdScene): void {
   }
 }
 
-/** 预告卡的展开 / 收起（只有矮竖屏用得上，状态只在界面层）：展开后点预告卡、点别处（包括点岛）、叫波都会收起 */
-const planClose = new WeakMap<HTMLElement, (e: Event) => void>();
-function setPlanOpen(bs: TdScene, on: boolean): void {
-  const ui = bs.ui;
-  ui.classList.toggle('hd-plan-open', on);
-  const old = planClose.get(ui);
-  if (old) document.removeEventListener('pointerdown', old, true);
-  planClose.delete(ui);
-  if (!on) return;
-  ui.querySelector('.hd-plan-tog')?.classList.remove('hint');
-  const onDown = (e: Event): void => {
-    if (!ui.isConnected) {
-      document.removeEventListener('pointerdown', onDown, true);
-      return;
-    }
-    const t = e.target as Element | null;
-    if (t?.closest('.hd-td-plan, .hd-plan-tog')) return;
-    setPlanOpen(bs, false);
-  };
-  planClose.set(ui, onDown);
-  document.addEventListener('pointerdown', onDown, true);
-}
-
 export function canCall(bs: TdScene): boolean {
   const s = bs.s;
   return (!!s.level.endless || s.wave < s.level.waves.length) && s.next >= 0 && !s.over;
@@ -247,8 +224,6 @@ function refreshPlan(bs: TdScene, force = false): void {
     bs.hud.plan.classList.remove('fresh');
     void bs.hud.plan.offsetWidth;
     bs.hud.plan.classList.add('fresh');
-    // 收起时有了新的预告（新一波的推荐）：小钮亮一个提示点
-    if (!bs.ui.classList.contains('hd-plan-open')) bs.ui.querySelector('.hd-plan-tog')?.classList.add('hint');
   }
 }
 
@@ -408,14 +383,6 @@ export function updateHud(bs: TdScene, force = false): void {
       short.textContent = ln.short;
       placeHint(bs);
     }
-  }
-  // 收起状态的小钮写下一波的波次号；叫波后（波数变了）自动收起
-  const tog = bs.ui.querySelector('.hd-plan-tog');
-  const w0 = bs.pv[0]?.wave;
-  if (tog) tog.textContent = w0 === undefined ? '—' : endless ? `${w0 + 1}` : `${w0 + 1}/${total}`;
-  if (bs.ui.dataset.pw !== String(s.wave)) {
-    if (bs.ui.dataset.pw !== undefined && bs.ui.classList.contains('hd-plan-open')) setPlanOpen(bs, false);
-    bs.ui.dataset.pw = String(s.wave);
   }
   // 手机上顶栏放不下"宝藏"两个字（.hd-tw 在窄屏隐藏），只留图标和数字
   H.treasure.textContent = '';

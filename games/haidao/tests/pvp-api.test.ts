@@ -315,7 +315,7 @@ describe('接口把关', () => {
     const bad = await call(w, 'a', 'PUT', 'snapshot', [1, 2]);
     expect([bad.status, bad.body.error]).toEqual([400, 'bad_request']);
   });
-  it('限流：快照第 31 次、找人第 21 次（同一小时）→ 429 rate_limited', async () => {
+  it('限流：快照第 31 次、找人超过 FIND_PER_HOUR（同一小时）→ 429 rate_limited', async () => {
     const w = new World();
     for (let i = 0; i < SNAP_PER_HOUR; i++) expect((await put(w, 'a', attacker())).status).toBe(200);
     const r = await put(w, 'a', attacker());

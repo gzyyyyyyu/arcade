@@ -4,9 +4,10 @@
  * 炮口到目标画一条红线、目标脚下一个红准星，越接近开火线越粗越实、准星越收越紧，最后一小段亮成近白的红。
  */
 import { SNIPE_WARN } from '../core/combat.ts';
+import { STEP_MS } from './motion.ts';
 
 /** 预警总时长（毫秒） */
-export const SNIPE_WARN_MS = SNIPE_WARN * 50;
+export const SNIPE_WARN_MS = SNIPE_WARN * STEP_MS;
 
 /** 预警进度 0..1：fireAt - vt = 离开火还剩几拍（vt 是带帧内比例的规则时间） */
 export function warnK(fireAt: number, vt: number): number {

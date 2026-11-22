@@ -1,6 +1,7 @@
 import { fresh, mergeSave, reviveSave, savePayload, type Save } from './sync.ts';
 import { isObj } from '../core/validate.ts';
 import { SAVE_KEY } from './save.ts';
+import { netTimeout } from '../net/timeout.ts';
 
 /** 本地存储的最小接口（localStorage 满足；测试里换成内存假的） */
 export interface KeyValueStore {
@@ -670,7 +671,7 @@ export class Cloud {
 
   private async call(method: string, url: string, body?: string, keepalive = false): Promise<Res> {
     try {
-      const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store' };
+      const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store', signal: netTimeout() };
       // 写请求必须带 X-Arcade（平台只挡浏览器里的跨站写，15.1）
       if (body !== undefined) Object.assign(init, { body, keepalive, headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' } });
       const r = await (keepalive && body !== undefined ? keepaliveSend(body, () => this.d.fetch(url, init)) : this.d.fetch(url, init));
