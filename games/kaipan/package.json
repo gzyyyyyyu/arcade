@@ -3,7 +3,7 @@
   "description": "《开盘》：股市主题的肉鸽网页游戏（arcade 的一个模块）",
   "private": true,
   "license": "MIT",
-  "version": "0.36.3",
+  "version": "0.36.4",
   "type": "module",
   "engines": {
     "node": ">=22"

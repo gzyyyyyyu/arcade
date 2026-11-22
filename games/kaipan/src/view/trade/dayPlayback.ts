@@ -307,8 +307,9 @@ export class DayPlayback {
       this.s.room.celebrate(a, report.account.ret);
       this.s.room.setRainbow(report.market.ret >= 1.5);
     }
-    // ⑥ 高光、连击：屏幕中部大字（快进时也照常播，最多两条）；连击的红包让账户再跳一下；目标进度、达成、没达成
-    const stopped = await this.playTempo(prev, next, events, report);
+    // ⑥ 高光、连击：屏幕中部大字（快进时也照常播，最多两条）；连击的红包让账户再跳一下；目标进度、达成、没达成。
+    // 0.36.4 大字和群聊那边（揭晓盖章 → 播报、吐槽、新闻）一起播，两边都播完才往下走：以前排队，一天多挡 1.5 秒左右
+    const tempo = this.playTempo(prev, next, events, report);
     // 消息揭晓（当天的、前几天的多日消息），然后播报、吐槽和新闻
     await this.s.chat.judge(a, pick(events, 'messageJudged'), T.judge * k, next);
     await this.s.chat.judgeIntel(a, pick(events, 'intelJudged'), T.judge * k);
@@ -316,6 +317,7 @@ export class DayPlayback {
     const listed = pick(events, 'ipoListed').map((e) => `新股${stockById(e.stockId).name}（你手里的）上市首日 ${formatPoints(report?.stocks.find((m) => m.id === e.stockId)?.move ?? e.premium)}`);
     const ticker = [...listed, ...pick(events, 'spotted').sort((x, y) => Number(y.held) - Number(x.held)).map((e) => spottedText(e))];
     await this.s.chat.afterClose(a, pick(events, 'comment'), report?.news ?? [], T.comment * k, ticker, report ?? null);
+    const stopped = await tempo;
     // 股灾：收盘后才揭晓，所有题材提前退潮
     if (first(events, 'crashHit')) {
       sound.cue({ type: 'weather', to: 'bear' });
