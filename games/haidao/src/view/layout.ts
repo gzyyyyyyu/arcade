@@ -323,12 +323,14 @@ ${LAND} {
   ${W} .hd-result > .hd-stars .hd-img { width:44px !important; height:44px !important; }
 }
 /* 一键收取：浮在底栏正上方居中（底栏收起时跟着收）；手机横屏底栏是右侧一竖列，它挂在竖列左边 */
-${W} .hd-base .hd-bottom > .hd-claimfab { position:absolute; left:50%; bottom:100%; transform:translateX(-50%); margin-bottom:8px; display:none; flex:none; flex-direction:row; width:auto; max-width:none; height:auto; align-items:center; gap:4px; min-height:44px; padding:0 14px; white-space:nowrap; font-size:14px; pointer-events:auto; }
+/* 居中不用 transform:translateX(-50%)：按钮的悬停、按下手感（transitions.ts，权重更高）也写 transform，会把它整个顶掉，电脑上每点一下就往右跳半个按钮宽（所有者 11-21 点名）；
+   改成左右 0 + 自动外边距 + 按内容宽，悬停、按下的手感照常 */
+${W} .hd-base .hd-bottom > .hd-claimfab { position:absolute; left:0; right:0; bottom:100%; margin:0 auto 8px; display:none; flex:none; flex-direction:row; width:max-content; max-width:none; height:auto; align-items:center; gap:4px; min-height:44px; padding:0 14px; white-space:nowrap; font-size:14px; pointer-events:auto; }
 ${W} .hd-base .hd-bottom > .hd-claimfab.on { display:inline-flex; }
 ${W} .hd-base .hd-claimfab .hd-claim-t { font-weight:900; margin-right:4px; }
 ${W} .hd-base .hd-claimfab b { margin-right:4px; }
 ${LAND} {
-  ${W} .hd-base .hd-bottom > .hd-claimfab { left:auto; right:calc(100% + 8px); bottom:auto; top:0; transform:none; margin:0; }
+  ${W} .hd-base .hd-bottom > .hd-claimfab { left:auto; right:calc(100% + 8px); bottom:auto; top:0; margin:0; }
 }
 ${W} .hd-claim h2 { margin:0 0 10px; font-size:20px; }
 ${W} .hd-claim-list { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
