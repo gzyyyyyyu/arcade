@@ -532,18 +532,19 @@ export async function portraitLobby(browser: Browser, base: string): Promise<voi
     };
     await onScreen('.qstart', '快速开始');
     for (const m of ['fun', 'real', 'room']) await onScreen(`.mcard[data-mode="${m}"]`, `mode card ${m}`);
-    await onScreen('.mystats', 'stats');
+    // 战绩新号没打过牌时不显示（.mystats.none），查它下面那一排：今日谜题、成就都在首屏，整页就放得下
+    await onScreen('.lobby .extras', 'puzzle / achievements row');
     await shot(page, `${tag}-lobby`);
     await enter(page, '好友房', phone);
     await onScreen('.friends.join .code-in', 'room code');
     if (!(await page.locator('.friends.open .pill', { hasText: '开房间' }).isVisible())) throw new Error(`${tag}: 开房间 missing`);
     await shot(page, `${tag}-friends`);
-    // 快速匹配（0.20.0）挨着"坐下开打"，最窄的屏也整个看得见
+    // 匹配真人（0.20.0）挨着"坐下开打"，最窄的屏也整个看得见
     await enter(page, '实盘', phone);
     await openMore(page, phone);
     await page.locator('.lobby .pill.match').scrollIntoViewIfNeeded();
     const m = await page.locator('.lobby .pill.match').boundingBox();
-    if (!m || m.x < 0 || m.x + m.width > width) throw new Error(`${tag}: 快速匹配 should fit the width, got ${JSON.stringify(m)}`);
+    if (!m || m.x < 0 || m.x + m.width > width) throw new Error(`${tag}: 匹配真人 should fit the width, got ${JSON.stringify(m)}`);
     await shot(page, `${tag}-real`);
     await ctx.close();
   }

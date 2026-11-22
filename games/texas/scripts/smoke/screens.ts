@@ -53,7 +53,7 @@ export async function dialogsFlow(browser: Browser, base: string): Promise<void>
  */
 /**
  * 选桌页的界面规范（--only lobbyui，docs/ui.md 第 2、4、9、11 节）：实盘选桌首屏金色主按钮只有"坐下开打"一个、
- * 选项不折叠（人数、带多少、止盈、快速匹配、锦标赛、快速局、今日局、今日赛直接摆着）、选中的档位卡不和主按钮同色；
+ * 选项不折叠（人数、带多少、止盈、匹配真人、锦标赛、全下局、今日全下、今日锦标赛直接摆着）、选中的档位卡不和主按钮同色；
  * 五个尺寸（1280×720、1920×1080、844×390、390×844、360×640）下主页、实盘/娱乐/好友房选桌的 .lobby 和右栏都不滚（scrollHeight ≤ clientHeight），
  * 可见按钮不小于 32、字不小于 12，各截一张；
  * 然后不碰鼠标：← / → 换档位、回车坐下开打；弹窗开着、输入框里不拦（电脑 1280×720）
@@ -110,7 +110,7 @@ export async function lobbyUiFlow(browser: Browser, base: string): Promise<void>
       return { sel: bg('.lobby .tile.sel'), start: bg('.lobby .start') };
     });
     if (fill.sel === fill.start) throw new Error(`[${tag}] 选中的档位卡和主按钮填充一样：${fill.sel}`);
-    // 选项不折叠：实盘选桌上人数、带多少、止盈、快速匹配、锦标赛都直接看得见，不点任何东西
+    // 选项不折叠：实盘选桌上人数、带多少、止盈、匹配真人、锦标赛都直接看得见，不点任何东西
     for (const sel of ['.lobby .sizes .size', '.lobby .slider', '.lobby .tp-pick-btn', '.lobby .plays .pill.match', '.lobby .tour-btn']) {
       if (!(await page.locator(sel).first().isVisible())) throw new Error(`[${tag}] 实盘选桌上 ${sel} 应直接可见`);
     }
@@ -140,7 +140,7 @@ export async function lobbyUiFlow(browser: Browser, base: string): Promise<void>
     };
     await measure('实盘选桌');
     await enter(page, '娱乐', touch);
-    for (const name of ['快速匹配', '锦标赛', '快速局', '今日局', '今日赛']) {
+    for (const name of ['匹配真人', '锦标赛', '全下局', '今日全下', '今日锦标赛']) {
       if (!(await page.locator('.lobby .plays .pill', { hasText: name }).first().isVisible())) throw new Error(`[${tag}] 娱乐选桌上 ${name} 应直接可见`);
     }
     await measure('娱乐选桌');

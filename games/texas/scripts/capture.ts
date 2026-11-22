@@ -2,7 +2,7 @@
  * 连拍（docs/experience.md 13.1 的"验证"）：看节奏不能只看静态截图。本地起页面（vite，端口由系统分配），单机娱乐桌自动打，
  * 每隔固定毫秒截一张，再拼成带时间的大图（一张 4×4），逐帧看一手从发牌、下注、翻牌到结束、下一手的全过程。
  *
- *   node scripts/capture.ts [--out 目录] [--every 300] [--secs 40] [--device desk|phone|both] [--auto] [--size 6] [--peek] [--read] [--journal] [--mix]
+ *   node scripts/capture.ts [--out 目录] [--every 300] [--secs 40] [--device desk|phone|tall|both] [--auto] [--size 6] [--peek] [--read] [--journal] [--mix]
  *
  * 平台的 /api/me、/api/saves、/api/wallet 由这里代答（娱乐桌不碰钱包）。--auto 打开"自动下一手"，不开时一手结束后过 3 秒替人点"下一手"。
  * 输出：<out>/<device>/f0001.png…，<out>/<device>-sheet-01.png…（拼好的大图）。不部署，不进 CI。
@@ -53,6 +53,14 @@ const DEVICES = {
   phone: {
     viewport: { width: 844, height: 390 },
     deviceScaleFactor: 3,
+    isMobile: true,
+    hasTouch: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  },
+  /** 手机竖屏（390×844，交审要的竖屏尺寸） */
+  tall: {
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
     isMobile: true,
     hasTouch: true,
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
@@ -163,9 +171,9 @@ async function run(browser: Browser, url: string, name: keyof typeof DEVICES): P
   // 连拍不是在测新手指引，它第一次轮到我会盖住整页
   await page.addInitScript(() => localStorage.setItem('texas.guide', JSON.stringify({ v: 1, done: true, seen: ['result', 'showdown', 'raise'] })));
   await page.goto(url);
+  // 标题页先点"娱乐"卡进选桌，"坐下开打"才出来
+  await page.locator('.mcard[data-mode="fun"]').click();
   await page.locator('.lobby .start').waitFor();
-  const fun = page.locator('.lobby .mode', { hasText: '娱乐' });
-  if (await fun.isVisible().catch(() => false)) await fun.click();
   const dir = join(OUT, name);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });

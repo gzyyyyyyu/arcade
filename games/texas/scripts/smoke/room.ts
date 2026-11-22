@@ -1,4 +1,4 @@
-/** 好友房（--only room）和快速匹配（--only match）。 */
+/** 好友房（--only room）和匹配真人（--only match）。 */
 import type { Browser, Page } from 'playwright-core';
 import { HANDS, DESK_W, allowed409, log, newContext, watch, shot, balance, skipTips, enter, openMore, PHONE, handNo, settled, linkSit } from './harness.ts';
 
@@ -298,7 +298,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   await Promise.all([host.close(), a.close(), b.close(), d.close()]);
 }
 
-/** 快速匹配：见文件头 */
+/** 匹配真人：见文件头 */
 export async function match(browser: Browser, base: string): Promise<void> {
   const one = await newContext(browser, base, 'smoke-m1');
   const two = await newContext(browser, base, 'smoke-m2');
@@ -334,7 +334,7 @@ export async function match(browser: Browser, base: string): Promise<void> {
   for (const [p, tag] of [[p1, 'm1'], [p2, 'm2']] as const) {
     if (await p.locator('.invite-btn').isVisible()) throw new Error(`[${tag}] match table: no invite button`);
     const where = (await p.locator('.topbar .where').textContent()) ?? '';
-    if (!where.startsWith('快速匹配') || /\d{6}/.test(where)) throw new Error(`[${tag}] match table title: ${where}`);
+    if (!where.startsWith('匹配真人') || /\d{6}/.test(where)) throw new Error(`[${tag}] match table title: ${where}`);
   }
   const roomWs = (p: Page): string => sockets.get(p)!.find((u) => /\/rooms\/\d{6}/.test(u)) ?? '';
   if (!roomWs(p1).includes('chat=1')) throw new Error(`match: chat on should connect with chat=1: ${roomWs(p1)}`);

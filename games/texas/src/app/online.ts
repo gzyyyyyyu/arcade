@@ -1,5 +1,5 @@
 /**
- * 好友房（docs/online.md 6）和快速匹配（docs/online.md 6.11）的页面：开房进房、排队、牌桌上的座位和计时、带入补码、离开和结算、叫朋友、报位置。
+ * 好友房（docs/online.md 6）和匹配真人（docs/online.md 6.11）的页面：开房进房、排队、牌桌上的座位和计时、带入补码、离开和结算、叫朋友、报位置。
  * 连接本身在 src/online.ts（kit 的 RoomClient），规则在 src/room/；好友房锦标赛的出局和结束页在 tour.ts。
  */
 import { MATCH_TEXT, MatchClient } from 'arcade-kit/client';
@@ -151,7 +151,7 @@ export function createOnline(c: App) {
     mc.start();
     const pick = await dialog(
       stage,
-      '快速匹配',
+      '匹配真人',
       body,
       [
         { label: '不等了，和电脑打', value: 'solo' },
@@ -299,7 +299,7 @@ export function createOnline(c: App) {
   /** 我在哪（kit 每次报之前现问）：在好友房里报房间码和"真人/座位数"，别的时候报在玩德州 */
   function presence(): Presence {
     const s = c.online?.state;
-    // 快速匹配桌进不去（不是这一桌的人房间回 4004），不报房间码
+    // 匹配真人桌进不去（不是这一桌的人房间回 4004），不报房间码
     if (!s?.room || c.online?.match) return { place: 'game', game: 'texas' };
     const humans = s.room.seats.filter((x) => x.kind === 'human').length;
     const size = s.view?.size ?? s.opts?.size ?? s.room.seats.length;
@@ -309,7 +309,7 @@ export function createOnline(c: App) {
   /** 点了邀请横条的"去"：正在牌桌上的先问一句（单机这一桌留在本机，回来接着打；好友房的座位照旧，掉线算歇着） */
   async function goInvite(game: string, room: string): Promise<void> {
     if (stage.classList.contains('at-table')) {
-      const ok = await dialog(stage, '去朋友的房间', '先离开这一桌？单机这一桌会留着，回来接着打。', [
+      const ok = await dialog(stage, '去朋友的房间', '先离开这一桌？这一桌会留着，回来接着打。', [
         { label: '留下', value: 'no' },
         { label: '去', value: 'yes', primary: true },
       ]);
@@ -567,7 +567,7 @@ export function createOnline(c: App) {
     toggle(backSeatBtn, 'hidden', me !== null || (s.you?.bound ?? null) === null);
     // 互动只有坐着的人能发（kit：旁观的不能发，免得刷屏）
     f.syncFun();
-    // 快速匹配桌叫不进人
+    // 匹配真人桌叫不进人
     toggle(inviteBtn, 'hidden', must(c.online, '联机房间的状态（只在好友房里被调用）').match);
     // 竖屏小屏那一排放不下时藏"第几手"（style.css 的 .hud.inviting），切类不用 :has
     toggle(hud, 'inviting', !must(c.online, '联机房间的状态（只在好友房里被调用）').match);
@@ -677,7 +677,7 @@ export function createOnline(c: App) {
       setText(leaveBtn, '离开');
       return;
     }
-    const kind = c.online?.match ? '快速匹配' : `好友房 ${s.code}`;
+    const kind = c.online?.match ? '匹配真人' : `好友房 ${s.code}`;
     // 娱乐房间不写档位：筹码不算数，盲注照小桌
     const table = s.opts?.tour ? ` · 锦标赛 · ${c.online?.fun ? '娱乐' : (st?.name ?? '')}` : c.online?.fun ? ' · 娱乐 · 筹码不算数' : st ? ` · ${st.name} · 盲注 ${chips(st.sb)}/${chips(st.bb)}` : '';
     setText(where, `${watching ? '旁观中 · ' : ''}${kind}${table}`);

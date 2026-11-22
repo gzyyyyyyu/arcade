@@ -1,4 +1,4 @@
-/** 全下或弃牌的快速局（docs/features.md 13.9）：规则限制、电脑的推跟范围、同种子同结果、一局的结束条件。 */
+/** 全下或弃牌的全下局（docs/features.md 13.9）：规则限制、电脑的推跟范围、同种子同结果、一局的结束条件。 */
 import { stream } from 'arcade-kit/rng';
 import { describe, expect, it } from 'vitest';
 import { pushFoldAction } from '../../src/ai/pushfold.ts';
@@ -15,7 +15,7 @@ import { conserve, must, rig, SEED } from '../support/helpers.ts';
 const BB = 20;
 const ME = 0;
 
-/** 6 人快速局：我坐 0 号，其余是电脑，每人 stackBB 个大盲；还没发牌 */
+/** 6 人全下局：我坐 0 号，其余是电脑，每人 stackBB 个大盲；还没发牌 */
 function pfTable(seed: readonly number[] = SEED, stackBB = PF_STACK_BB): Table {
   let t = newTable('small', 6, seed, { holdHands: true, pushFold: true });
   t = must(seatPlayer(t, ME, BB * PF_STACK_BB, false));
@@ -114,7 +114,7 @@ describe('规则：翻牌前只有弃牌 / 全下', () => {
     expect(isFail(apply(t, seat, { t: 'raise', to: 60 }))).toBe(false);
   });
 
-  it('快速局只有娱乐：实盘开局直接拒，不碰钱包', async () => {
+  it('全下局只有娱乐：实盘开局直接拒，不碰钱包', async () => {
     let calls = 0;
     const wallet = new Proxy({}, { get: () => () => {
       calls++;
@@ -250,7 +250,7 @@ describe('同种子同结果、一局的结束条件', () => {
   });
 });
 
-describe('今日局：每天同一副牌，一天记一次分', () => {
+describe('今日全下：每天同一副牌，一天记一次分', () => {
   const holes = (t: Table): number[][] => t.seats.map((x) => x.hole);
 
   it('同一天的种子和发牌一模一样，不同的天不一样', () => {

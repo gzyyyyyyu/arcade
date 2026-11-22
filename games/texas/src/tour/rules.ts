@@ -131,7 +131,7 @@ export interface TourState {
   every: number;
   /** 座位 → 名次（1 = 冠军），还没出局的是 null */
   places: (number | null)[];
-  /** 座位 → 出局（或夺冠）时一共打了几手，和 places 同时记（今日赛的分数用；旧存档没有，按打到现在算） */
+  /** 座位 → 出局（或夺冠）时一共打了几手，和 places 同时记（今日锦标赛的分数用；旧存档没有，按打到现在算） */
   outHand?: (number | null)[];
   /** 这一手开始时（交盲注之前）每个座位的筹码，同一手出局的人按它排名次 */
   startStacks: number[];

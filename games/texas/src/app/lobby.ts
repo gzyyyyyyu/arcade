@@ -13,7 +13,7 @@ import { isRoomCode } from '../online.ts';
 import { site, twoText } from '../site.ts';
 import { ME, SESSION_KEY, Solo } from '../solo.ts';
 import { remove } from '../store.ts';
-import { TOUR_KEY, TourSolo } from '../tour/solo.ts';
+import { TOUR_KEY, TourSolo } from '../tour-solo.ts';
 import { notMyTurn } from '../view/alert.ts';
 import { closeCoach } from '../view/coach.ts';
 import { closeDialog } from '../view/dialog.ts';

@@ -70,8 +70,7 @@ export function decide(v: View, r: RandomStream): Action {
   const rel = eq * (opp + 1);
   const eff = effectiveBb(v, me, others);
   const pos = positionOf(v, me, yet.length, p, k, k.depth ? eff : 0);
-  // 旧存档、旧房间的视图没有 tilt，按 0 算
-  const tilt = (v.tilt ?? 0) > 0;
+  const tilt = v.tilt > 0;
   const jit = r.below(2 * JITTER + 1) - JITTER;
   // 这一档的翻牌前门槛：功力的 tight 加上性格在软桌上放松的部分（老好更爱跟、阿飙更爱加，见 personas.ts 的 loose / wild）；
   // loose 同时把面对加注时的底池赔率放宽 ¼，否则赔率这一关挡住，松不起来

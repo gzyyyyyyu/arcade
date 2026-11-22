@@ -322,7 +322,7 @@ describe('输光弹窗的时机（refresh）', () => {
     expect(m.askTopUp).not.toHaveBeenCalled();
   });
 
-  it('快速局不走这个弹窗', async () => {
+  it('全下局不走这个弹窗', async () => {
     const s = await busted();
     build(s, { pfMode: true });
     atTable();
@@ -421,7 +421,7 @@ describe('快进', () => {
     expect(fastForwarding(c)).toBe(false);
   });
 
-  it('快速局（pushFold）和还没发过牌（handNo 0）：不快进', async () => {
+  it('全下局（pushFold）和还没发过牌（handNo 0）：不快进', async () => {
     const s = await folded();
     patch(s, () => ({ pushFold: true }));
     build(s);

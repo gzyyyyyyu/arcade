@@ -76,9 +76,9 @@ describe('新手指引的状态（只出一次）', () => {
     expect(stepsFor(true).find((s) => s.id === 'buttons')!.items!.map((i) => i[0])).toEqual(['弃牌', '过牌', '跟注', '加注']);
   });
 
-  it('触屏不出快捷键页；快捷键一页：牌桌、快速局、谜题、选桌四处的键都在', () => {
+  it('触屏不出快捷键页；快捷键一页：牌桌、全下局、谜题、选桌四处的键都在', () => {
     const keys = stepsFor(false).find((s) => s.id === 'keys')!.items!.map((i) => `${i[0]} ${i[1]}`).join('\n');
-    for (const want of ['F 牌桌：弃牌', 'C 牌桌', 'R 牌桌', '回车 牌桌', 'Esc 牌桌', '1–5', 'Shift', '滚轮', 'A 快速局', 'F 快速局', '1 2 3 今日谜题', '← → 选桌：换档位', '回车 选桌：坐下开打']) expect(keys, want).toContain(want);
+    for (const want of ['F 牌桌：弃牌', 'C 牌桌', 'R 牌桌', '回车 牌桌', 'Esc 牌桌', '1–5', 'Shift', '滚轮', 'A 全下局', 'F 全下局', '1 2 3 今日谜题', '← → 选桌：换档位', '回车 选桌：坐下开打']) expect(keys, want).toContain(want);
   });
 
   it('src/guide.ts 不碰页面和存储（读写在 store.ts，画面在 view/coach.ts）', () => {

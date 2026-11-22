@@ -18,7 +18,7 @@ import {
   type TourFormat,
   type TourState,
 } from '../../src/tour/rules.ts';
-import { TOUR_KEY, TourSolo, type TourDeps } from '../../src/tour/solo.ts';
+import { TOUR_KEY, TourSolo, type TourDeps } from '../../src/tour-solo.ts';
 
 const seedOf = (g: number): number[] => {
   const e = stream([0x7406, g, 1, 1, 2, 2, 3, 3], 'seed');

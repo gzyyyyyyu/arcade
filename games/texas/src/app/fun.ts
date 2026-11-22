@@ -14,7 +14,7 @@ import { tauntId, TAUNTS } from '../fun/taunts.ts';
 import { ME, type Step } from '../solo.ts';
 import { KEYS, patchSettings, readJson } from '../store.ts';
 import { START_STACK } from '../tour/rules.ts';
-import type { TourSolo } from '../tour/solo.ts';
+import type { TourSolo } from '../tour-solo.ts';
 import { saveAch } from '../view/ach.ts';
 import { el, toggle } from '../view/dom.ts';
 import { saveFunOff, suggest } from '../view/fun.ts';
@@ -27,11 +27,11 @@ import { must } from '../must.ts';
 /** 头像菜单里的三句点名短语：一句挑衅、一句激将、一句服气 */
 const MENU_SAYS = ['就这？', '跟啊，怕了？', '好牌，服了'] as const;
 
-/** 聊天开关三档：开 → 不和陌生人（快速匹配桌不聊，好友房、单机照常）→ 不看 */
+/** 聊天开关三档：开 → 不和陌生人（匹配真人桌不聊，好友房、单机照常）→ 不看 */
 type ChatMode = 'on' | 'friends' | 'off';
 const CHAT_MODE: Record<ChatMode, { label: string; next: ChatMode; tip: string }> = {
   on: { label: '聊天：开', next: 'friends', tip: '聊天：开' },
-  friends: { label: '聊天：不和陌生人', next: 'off', tip: '聊天：不和陌生人（快速匹配的桌上不聊，好友房照常）' },
+  friends: { label: '聊天：不和陌生人', next: 'off', tip: '聊天：不和陌生人（匹配真人的桌上不聊，好友房照常）' },
   off: { label: '聊天：不看', next: 'on', tip: '聊天：不看（别人说的话不显示，自己也不能说）' },
 };
 
@@ -315,7 +315,7 @@ export function createFun(c: App) {
 
   /** 一手打完（onStep 里、画面播完以后）：单机和锦标赛才算；st.next 是完整的牌桌，底牌在 kept 里 */
   function achHand(st: Step, prev: View, next: View): void {
-    // 快速局每手不是全下就是弃牌，"全下赢""以小博大"这类成就在这里是白送的，不算
+    // 全下局每手不是全下就是弃牌，"全下赢""以小博大"这类成就在这里是白送的，不算
     if (c.online || c.pfMode) return;
     const h = handOver(prev, next);
     if (!h) return;

@@ -1,5 +1,5 @@
 /**
- * 锦标赛的页面：单机锦标赛（src/tour/solo.ts，我 + 5 个电脑）、今日赛（每天一场单机极速赛），和好友房锦标赛（docs/tournament.md 14.3）的出局、结束页。
+ * 锦标赛的页面：单机锦标赛（src/tour-solo.ts，我 + 5 个电脑）、今日锦标赛（每天一场单机极速赛），和好友房锦标赛（docs/tournament.md 14.3）的出局、结束页。
  * 牌桌画面和出手节奏用单机那一套（table.ts 的 onStep、TableView）。
  */
 import { canScoreTour, dailyTourBoardId, dailyTourSeed, finishTourDaily, parseTourDaily, sentTourDaily, startTourDaily, tourScore } from '../core/daily.ts';
@@ -13,7 +13,7 @@ import { site } from '../site.ts';
 import { ME } from '../solo.ts';
 import { KEYS, readJson, writeJson } from '../store.ts';
 import { formatInfo, START_STACK, tourLevel, type TourFormat } from '../tour/rules.ts';
-import { TourSolo } from '../tour/solo.ts';
+import { TourSolo } from '../tour-solo.ts';
 import { dialog } from '../view/dialog.ts';
 import { el, setText, toggle } from '../view/dom.ts';
 import { beijingDate } from '../view/puzzle.ts';
@@ -30,7 +30,7 @@ export function createTour(c: App) {
   let ending = false;
 
   /**
-   * 今日赛：每天一场单机极速赛（6 人），只有娱乐、难度固定"普通"，不碰钱包。
+   * 今日锦标赛：每天一场单机极速赛（6 人），只有娱乐、难度固定"普通"，不碰钱包。
    * 种子由北京日期推出（dailyTourSeed），当天所有人的牌堆、电脑性格和座位一样。
    * 当天第一场记分上榜（点开始就算打过，存 texas.dailytour），之后重打是练习
    */
@@ -230,7 +230,7 @@ export function createTour(c: App) {
       el('b', '', li, `第 ${k + 1} 名`);
       el('span', '', li, seat === ME ? `${c.myName}（你）` : personaName(must(t.table.seats[seat], '赛桌每个座位号都有座位').persona));
     });
-    // 今日赛：当天第一场记分交榜，其余是练习
+    // 今日锦标赛：当天第一场记分交榜，其余是练习
     const dly = t.session.daily;
     if (dly) {
       const score = tourScore(place, t.myHands);
@@ -247,10 +247,10 @@ export function createTour(c: App) {
           if (ok) writeJson(KEYS.dailyTour, sentTourDaily(parseTourDaily(readJson(KEYS.dailyTour)), dly.date));
           setText(dailyNote, ok ? '已上今日榜' : '今日榜没交上：连不上，稍后再试；分数已记在本机');
         });
-      } else setText(dailyNote, dly.scored ? '' : `练习局（${dly.date} 的今日赛已经记过分），不上榜`);
+      } else setText(dailyNote, dly.scored ? '' : `练习局（${dly.date} 的今日锦标赛已经记过分），不上榜`);
     }
     el('div', 'sum-note', body, `${t.table.seats.length} 人、每人 ${chips(START_STACK)} 比赛筹码，每 ${t.state.every} 手涨一次盲注`);
-    const pick = await dialog(stage, dly ? '今日赛结束' : '锦标赛结束', body, [
+    const pick = await dialog(stage, dly ? '今日锦标赛结束' : '锦标赛结束', body, [
       { label: '回首页', value: 'ok', primary: !dly },
       ...(dly ? [{ label: '再练一场', value: 'again', primary: true }] : []),
     ], true);

@@ -17,6 +17,7 @@
 .lobby .tile small, .lobby .tile span { overflow: hidden; text-overflow: ellipsis; }
 /* 窄一点的电脑屏上这两句会折出一个字孤零零占一行：两行匀开 */
 .lobby :is(.subtitle, .mode-note) { text-wrap: balance; }
+.lobby .subtitle > span { display: inline-block; }
 /* 右栏内容放不下时在栏里滚，不让页面被切；细滚动条做提示 */
 .lobby .side > :is(.panel, .front) {
   min-height: 0;
@@ -106,7 +107,7 @@
 /* 灰着的档位卡：原来"最多输"那一行写要多少筹码；手机横屏收起了小字，这一行留着 */
 .lobby .tile small.need { font-weight: 800; opacity: 1; }
 .stage.tight:not(.tall) .lobby .stakes:not(.fun) .tile small.need { display: block; }
-/* 快速匹配原来是绿色大按钮；现在和其他玩法一样是次按钮，选桌页不再有第二个抢眼的实色按钮 */
+/* 匹配真人原来是绿色大按钮；现在和其他玩法一样是次按钮，选桌页不再有第二个抢眼的实色按钮 */
 .stage .lobby .plays .pill.match { background-color: var(--cg-cream, #f5e6c0); color: var(--cg-ink, #2b1d14); text-shadow: none; }
 /* 竖屏、手机横屏：选桌页收起一句话和扇形牌（标题和版本号留着），整页一屏放下；
    舞台缩小以后（--ui = 1/缩放）按钮的真实高度按 32 个屏幕像素算，触屏的 44 由按钮自己的 ::before 撑开 */
@@ -114,7 +115,7 @@
 .stage:is(.tall, .tight) .lobby.on-pick .tile .mini { display: none; }
 .stage:is(.tall, .tight) .lobby :is(.mode, .size, .pill, .p-back, .howto) { min-height: calc(32px * var(--ui)); }
 /* 触屏：选桌页的按钮本身就做到 44 个屏幕像素高（--hit）。只靠 ::before 外扩不够：上下两行挨得近，外扩被相邻按钮盖掉一截
-   （审计：返回 37、模式 40–43、快速匹配和锦标赛 37–38、人数键横屏只有 24 宽） */
+   （审计：返回 37、模式 40–43、匹配真人和锦标赛 37–38、人数键横屏只有 24 宽） */
 @media (pointer: coarse), (max-width: 959px) {
   .stage:is(.tall, .tight) .lobby :is(.mode, .size, .pill, .p-back, .howto) { min-height: var(--hit); }
   /* 人数 2–9：八个键各占一个 --hit 宽的格子（键间的缝算在格子里），"人数"两个字放在键的上面，不再和键抢宽度 */

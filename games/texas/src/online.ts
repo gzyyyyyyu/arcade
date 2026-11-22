@@ -22,7 +22,7 @@ export interface SavedRoom {
   /** 是我开的（房间不下发房主是谁，只有开房的人自己知道） */
   host: boolean;
   at: number;
-  /** 快速匹配排到的桌：刷新后回来也按陌生人桌对待（聊天看"和陌生人打字聊天"、藏起房间码和叫人） */
+  /** 匹配真人排到的桌：刷新后回来也按陌生人桌对待（聊天看"和陌生人打字聊天"、藏起房间码和叫人） */
   match?: true;
   /** 娱乐档排到的（0.21.0）：刷新后连上以前也不提钱包 */
   fun?: true;
@@ -125,12 +125,12 @@ export class Online {
   }
 
   /** 我在牌桌上的座位：坐着的、离座了还绑着的，都没有就按 0 号摆（旁观） */
-  /** 是快速匹配的桌：房间说了算（RoomInfo.match），还没连上时看本机记的 */
+  /** 是匹配真人的桌：房间说了算（RoomInfo.match），还没连上时看本机记的 */
   get match(): boolean {
     return this.s.room ? this.s.room.match === true : this.saved.match === true;
   }
 
-  /** 是娱乐房间（0.21.0，快速匹配的娱乐档）：筹码不算数、不碰钱包。房间发来开局选项以前看本机记的 */
+  /** 是娱乐房间（0.21.0，匹配真人的娱乐档）：筹码不算数、不碰钱包。房间发来开局选项以前看本机记的 */
   get fun(): boolean {
     return this.s.opts ? this.s.opts.fun === true : this.saved.fun === true;
   }
@@ -247,7 +247,7 @@ export class Online {
   }
 }
 
-/** 快速匹配排队的地址：rooms/match/<档位>，同样按相对路径 */
+/** 匹配真人排队的地址：rooms/match/<档位>，同样按相对路径 */
 export function matchUrl(tier: string): string {
   const u = new URL(`rooms/match/${tier}`, location.href);
   u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';

@@ -167,7 +167,7 @@ export interface Table {
   /** 电脑的强弱档（stakes.ts 的 LEVELS）：场地按档位定（SOLO_LEVEL、ROOM_LEVEL）；没填按单机的 */
   level?: number;
   /**
-   * 全下或弃牌的快速局（docs/features.md 13.10）：每个人翻牌前只能弃牌或全下、面对全下只能跟或弃，不能平跟、不能加注；
+   * 全下或弃牌的全下局（docs/features.md 13.10）：每个人翻牌前只能弃牌或全下、面对全下只能跟或弃，不能平跟、不能加注；
    * 翻牌前说完话就一次发完公共牌摊牌，没有翻牌后的下注。电脑坐下带 PF_STACK_BB 个大盲。没填就是普通牌桌
    */
   pushFold?: boolean;
@@ -770,7 +770,7 @@ function putHouse(t: Table, seat: number): void {
   const w = LEVEL_HOUSE[lv] ?? LEVEL_HOUSE[0]!;
   let x = r.below(free.reduce((a, i) => a + w[i]!, 0));
   const persona = lv >= 5 ? STRONG.find((i) => !used.has(i))! : free.find((i) => (x -= w[i]!) < 0)!;
-  // 随机数照样取，后面的状态分流不变；全下或弃牌的快速局一律带 PF_STACK_BB 个大盲
+  // 随机数照样取，后面的状态分流不变；全下或弃牌的全下局一律带 PF_STACK_BB 个大盲
   const deep = t.bb * (HOUSE_MIN_BB + r.below(HOUSE_MAX_BB - HOUSE_MIN_BB + 1));
   const stack = t.pushFold ? t.bb * PF_STACK_BB : deep;
   t.seats[seat] = { ...emptySeat(), owner: 'house', persona, stack, form: drawForm(r), start: stack };

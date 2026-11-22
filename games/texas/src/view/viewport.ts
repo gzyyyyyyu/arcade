@@ -1,11 +1,11 @@
 /**
- * 看得见的区域（AGENTS.md 第 4 节的 iOS 几条）：
- * - 高度不用 100vh：CSS 先写 100vh → 100dvh，再由这里按 visualViewport（没有就 innerHeight）写 --app-h；
- *   转屏、收放地址栏后重算，转屏后过一会儿再补算一次（iOS 转屏时第一次拿到的尺寸常常是旧的）；
- * - 双指放大时（visualViewport.scale 明显不是 1）不改尺寸、不重排，缩回 1 倍再说；
- * - 舞台按 layout.fit 缩放，safe-area 由 CSS 的 env(safe-area-inset-*, 0px) 让出来。
+ * 看得见的区域（仓库根 AGENTS.md 第 4 节，手机用 arcade-kit/viewport）：
+ * - kit 量可见区（visualViewport，带 Safari 工具栏的偏移）、写 --app-h（CSS 先写 100vh → 100dvh 兜底）、
+ *   转屏和收放地址栏后重算并在稍后补算一次、双指放大时不动（阈值用 kit 的默认）；
+ * - 这里只管舞台：按 app 的矩形用 layout.fit 缩放，写舞台的尺寸、类名和 CSS 变量；safe-area 由 CSS 的 env(safe-area-inset-*, 0px) 让出来。
  * 牌桌是 DOM + CSS，没有画布和 WebGL，"画布倍数封顶 2""WebGL 上下文丢失"那两条不适用（docs/screens.md 8.1）。
  */
+import { watchViewport as watchVisible } from 'arcade-kit/viewport';
 import { fit, type Geo } from './layout.ts';
 
 export interface Fit extends Geo {
@@ -14,13 +14,8 @@ export interface Fit extends Geo {
 
 export function watchViewport(app: HTMLElement, stage: HTMLElement, onFit: (f: Fit) => void): () => Fit {
   let last: Fit = { w: 960, h: 540, tall: false, scale: 1 };
-  let timer = 0;
 
   const measure = (): void => {
-    const vv = window.visualViewport;
-    if (vv && Math.abs(vv.scale - 1) > 0.05) return;
-    const h = vv?.height ?? window.innerHeight;
-    document.documentElement.style.setProperty('--app-h', `${Math.round(h)}px`);
     // 舞台放在去掉 safe-area 以后的区域里
     const r = app.getBoundingClientRect();
     if (r.width < 10 || r.height < 10) return;
@@ -43,15 +38,7 @@ export function watchViewport(app: HTMLElement, stage: HTMLElement, onFit: (f: F
     stage.classList.toggle('narrow', !f.tall && f.w < 900);
     onFit(f);
   };
-  const later = (): void => {
-    measure();
-    window.clearTimeout(timer);
-    timer = window.setTimeout(measure, 350);
-  };
-
-  window.addEventListener('resize', later);
-  window.addEventListener('orientationchange', later);
-  window.visualViewport?.addEventListener('resize', later);
-  measure();
+  // kit 写好 --app-h 再回调：这时量到的 app 已经是新的大小；补算那一下不管可见区变没变都再量一次（转屏后 app 晚到）
+  watchVisible({ onChange: measure, onSettle: measure });
   return () => last;
 }

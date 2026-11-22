@@ -81,7 +81,9 @@
 }
 
 
-* { box-sizing: border-box; }
+/* 页面级的元素规则只管德州自己的界面（#app 和挂在 body 上的指引层 .coach-layer）：kit 挂在 body 上的好友、分享面板用 kit 自己的样式。
+   牌桌互动（kit TableFun 的 .atf-ui、.arcade-fun）是德州配了皮肤摆在牌桌上的，尺寸按 border-box 量过，盒模型一起算（不然电脑版聊天框的快捷语高 32→39） */
+:where(#app, .coach-layer, .atf-ui, .arcade-fun), :where(#app, .coach-layer, .atf-ui, .arcade-fun) * { box-sizing: border-box; }
 html, body {
   margin: 0;
   height: 100vh;
@@ -99,23 +101,23 @@ html, body {
   -webkit-user-select: none;
   touch-action: manipulation;
 }
-button { position: relative; font: inherit; color: inherit; cursor: pointer; }
+:where(#app, .coach-layer) button { position: relative; font: inherit; color: inherit; cursor: pointer; }
 
 /*
  * 按钮的状态（0.9.0）：所有按钮一套规矩，各按钮只管自己的颜色和大小。
  * 悬停只在有鼠标的设备上亮（触屏点完不会一直亮着）；按下缩一点（用 scale，不和按钮自己的 transform 打架）；
  * 禁用灰掉；键盘焦点一圈金边；加载中（.loading）文字换成转圈，不能再点
  */
-button { transition: scale .08s ease-out, filter .15s, opacity .15s, background-color .15s, border-color .15s, color .15s; }
+:where(#app, .coach-layer) button { transition: scale .08s ease-out, filter .15s, opacity .15s, background-color .15s, border-color .15s, color .15s; }
 @media (hover: hover) {
-  button:not(:disabled):hover { filter: brightness(1.14); }
+  :where(#app, .coach-layer) button:not(:disabled):hover { filter: brightness(1.14); }
 }
-button:not(:disabled):active { scale: .96; filter: brightness(.92); }
-button:disabled { cursor: default; opacity: .42; filter: grayscale(.7); }
-button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-button.loading { color: transparent !important; pointer-events: none; }
-button.loading:disabled { opacity: 1; filter: none; }
-button.loading::after {
+:where(#app, .coach-layer) button:not(:disabled):active { scale: .96; filter: brightness(.92); }
+:where(#app, .coach-layer) button:disabled { cursor: default; opacity: .42; filter: grayscale(.7); }
+:where(#app, .coach-layer) button:focus-visible, :where(#app, .coach-layer) a:focus-visible, :where(#app, .coach-layer) input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+:where(#app, .coach-layer) button.loading { color: transparent !important; pointer-events: none; }
+:where(#app, .coach-layer) button.loading:disabled { opacity: 1; filter: none; }
+:where(#app, .coach-layer) button.loading::after {
   content: '';
   position: absolute;
   left: 50%; top: 50%;
@@ -129,7 +131,7 @@ button.loading::after {
 /* 触屏上按钮能点的范围撑到至少 --hit（看着的大小不变；相邻按钮的缝里谁后画归谁） */
 /* 无头浏览器和一些安卓浏览器不报 coarse，窄屏也按触屏撑（和平台一样；平台走查量到"大厅"只有 68×26） */
 @media (pointer: coarse), (max-width: 959px) {
-  button::before, .home::before {
+  :where(#app, .coach-layer) button::before, :where(#app, .coach-layer) .home::before {
     content: '';
     position: absolute;
     top: min(0px, calc((100% - var(--hit)) / 2));
@@ -174,7 +176,7 @@ body::before {
   transform-origin: 50% 50%;
 }
 
-.hidden { display: none !important; }
+:where(#app, .coach-layer) .hidden { display: none !important; }
 
 /* ---------- 顶栏 ---------- */
 .topbar {
@@ -1220,7 +1222,7 @@ body::before {
 .rw-go .start { flex: 1; }
 .rw-wait { flex: 1; text-align: center; font-size: var(--fs-4); color: var(--muted); }
 .rw-two { text-align: center; font-size: var(--fs-3); color: var(--gold); }
-/* 快速匹配桌（0.20.0）：没有房间码和"叫朋友来"，只说一句在等谁 */
+/* 匹配真人桌（0.20.0）：没有房间码和"叫朋友来"，只说一句在等谁 */
 .room-wait.match .rw-head { display: none; }
 .room-wait .rw-match { text-align: center; font-size: var(--fs-4); font-weight: 800; color: var(--gold); }
 .room-banner {
@@ -1242,7 +1244,7 @@ body::before {
 .spectate { font-size: var(--fs-2); color: #9fd6f5; }
 /* 旁观中（docs/social.md 1.4）：顶栏那一行字换成蓝色，一眼看出自己只是在看 */
 .where.watching { color: #9fd6f5; font-weight: 700; }
-.toast {
+:where(#app, .coach-layer) .toast {
   position: absolute;
   left: 50%; top: 100px;
   transform: translate(-50%, -8px);
@@ -1257,10 +1259,10 @@ body::before {
   pointer-events: none;
   transition: opacity .2s, transform .2s;
 }
-.toast.on { opacity: 1; transform: translate(-50%, 0); }
+:where(#app, .coach-layer) .toast.on { opacity: 1; transform: translate(-50%, 0); }
 
 /* ---------- 弹窗 ---------- */
-.mask {
+:where(#app, .coach-layer) .mask {
   position: absolute;
   inset: 0;
   z-index: 50;
@@ -1269,7 +1271,7 @@ body::before {
   place-items: center;
   animation: fade .15s ease-out;
 }
-.dialog {
+:where(#app, .coach-layer) .dialog {
   width: 400px;
   /* 结算页加了称号会变高：手机横屏舞台只有 540 个单位，超了就在框里滚，不出屏 */
   max-height: calc(100% - 24px);
@@ -1283,8 +1285,8 @@ body::before {
 }
 .d-title { font-size: var(--fs-5); font-weight: 900; color: var(--gold); }
 /* 右上角 ✕：看得见 32、点区按 --hit 外扩到 44（docs/ui.md 第 2、5 节）；标题右边留出它的位置 */
-.dialog { position: relative; }
-.dialog:has(> .d-x) > .d-title { padding-right: 36px; }
+:where(#app, .coach-layer) .dialog { position: relative; }
+:where(#app, .coach-layer) .dialog:has(> .d-x) > .d-title { padding-right: 36px; }
 .d-x { position: absolute; top: var(--s-2); right: var(--s-2); width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 18px; font-weight: 700; line-height: 1; cursor: pointer; }
 .d-x::before { content: ''; position: absolute; inset: -6px; }
 .d-x:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
@@ -1295,19 +1297,19 @@ body::before {
 .d-btn.danger { border: 0; background: var(--btn-danger); color: #fff; font-weight: 800; }
 .d-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 /* 止盈的选择框（0.22.0） */
-.dialog .tp-pick { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-3); } /* 输入框的默认宽度不撑开列（360 宽屏上多出 5） */
-.dialog .tp-pick .tp-note { font-size: var(--fs-3); color: var(--muted); }
-.dialog .tp-pick .tp-opts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.dialog .tp-pick .tp-opts .pill.sel { padding-right: var(--s-4); }
-.dialog .tp-pick .tp-own { display: flex; gap: var(--s-2); }
-.dialog .tp-pick .tp-amount { flex: 1; min-width: 0; height: 40px; padding: 0 var(--s-3); border-radius: var(--r-3); border: 1px solid var(--line-2); background: rgba(255, 255, 255, .06); color: var(--ink); font-size: var(--fs-4); }
+:where(#app, .coach-layer) .dialog .tp-pick { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-3); } /* 输入框的默认宽度不撑开列（360 宽屏上多出 5） */
+:where(#app, .coach-layer) .dialog .tp-pick .tp-note { font-size: var(--fs-3); color: var(--muted); }
+:where(#app, .coach-layer) .dialog .tp-pick .tp-opts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+:where(#app, .coach-layer) .dialog .tp-pick .tp-opts .pill.sel { padding-right: var(--s-4); }
+:where(#app, .coach-layer) .dialog .tp-pick .tp-own { display: flex; gap: var(--s-2); }
+:where(#app, .coach-layer) .dialog .tp-pick .tp-amount { flex: 1; min-width: 0; height: 40px; padding: 0 var(--s-3); border-radius: var(--r-3); border: 1px solid var(--line-2); background: rgba(255, 255, 255, .06); color: var(--ink); font-size: var(--fs-4); }
 /* 选桌"带上桌"那一行末尾的止盈按钮 */
 .lobby .buyin .tp-pick-btn { flex: none; height: 36px; padding: 0 var(--s-3); font-size: var(--fs-3); }
-/* 快速匹配的排队卡（0.20.0） */
-.dialog .match-card { display: grid; gap: var(--s-2); }
-.dialog .match-card .mc-tier { font-weight: 800; }
-.dialog .match-card .mc-wait { font-size: var(--fs-5); font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; }
-.dialog .match-card .mc-tip { font-size: var(--fs-3); color: var(--muted); }
+/* 匹配真人的排队卡（0.20.0） */
+:where(#app, .coach-layer) .dialog .match-card { display: grid; gap: var(--s-2); }
+:where(#app, .coach-layer) .dialog .match-card .mc-tier { font-weight: 800; }
+:where(#app, .coach-layer) .dialog .match-card .mc-wait { font-size: var(--fs-5); font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; }
+:where(#app, .coach-layer) .dialog .match-card .mc-tip { font-size: var(--fs-3); color: var(--muted); }
 .topup-line { display: flex; align-items: center; gap: var(--s-3); }
 .topup-note { font-size: var(--fs-2); color: var(--muted); }
 
@@ -1415,10 +1417,10 @@ body.texas-raising-tall .atf-btn { visibility: hidden; }
 @keyframes glow { 50% { box-shadow: 0 0 14px rgba(63, 179, 125, .8); } }
 @keyframes tilt { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  :where(#app, .coach-layer) *, :where(#app, .coach-layer) *::before, :where(#app, .coach-layer) *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 /* 页面在后台（app/lobby.ts 切 body.texas-paused）：一直在转的动画都停下 */
-body.texas-paused *, body.texas-paused *::before, body.texas-paused *::after { animation-play-state: paused !important; }
+body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .coach-layer) *::before, body.texas-paused :where(#app, .coach-layer) *::after { animation-play-state: paused !important; }
 
 /* ---------- 一场的结算页（summary.ts） ---------- */
 .summary { min-width: 300px; }
@@ -1573,7 +1575,7 @@ body.texas-fun-idle .atf-hot { pointer-events: none; }
 /* 触屏（和文件开头 ::before 外扩同一个条件）：放在最后，压过上面各自的高度 */
 @media (pointer: coarse), (max-width: 959px) {
   /* 能放大的按钮直接放到 44 个屏幕像素（--hit 已按舞台缩放换算），放不下的靠上面 button::before 外扩；电脑上不变 */
-  .dialog .d-btn { min-width: max(96px, var(--hit)); height: max(44px, var(--hit)); }
+  :where(#app, .coach-layer) .dialog .d-btn { min-width: max(96px, var(--hit)); height: max(44px, var(--hit)); }
   .stage .between .next-hand { height: max(56px, var(--hit)); min-width: max(150px, var(--hit)); }
   .stage .actions .act { height: max(54px, var(--hit)); }
 }

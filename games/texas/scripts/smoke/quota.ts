@@ -5,7 +5,7 @@ import { playRoom } from './room.ts';
 /**
  * 每人同时 1 个房间（0.39.0，--only quota）。德州没有"再来一场"按钮（结算页只回标题），再来 = 回大厅开新房 / 再排：
  * - 现金房：房主先走、朋友还在打，房主还占着这一间：开房被 has_room 送回原房间，并提示一句；朋友（不是房主）离桌后自己开房开出新的；
- * - 快速匹配：一个人先走、另一个还在打，先走的人还占着那一桌：再排被送回原桌，同一句提示。
+ * - 匹配真人：一个人先走、另一个还在打，先走的人还占着那一桌：再排被送回原桌，同一句提示。
  * 锦标赛打完马上能开新房在 tourroom 冒烟里核对，大家都走了再开在 room 冒烟里核对。
  */
 export async function quotaFlow(browser: Browser, base: string): Promise<void> {
@@ -73,7 +73,7 @@ export async function quotaFlow(browser: Browser, base: string): Promise<void> {
   log('quota: guest new room', a2);
   await leave(ap);
 
-  // —— 快速匹配：两个人排到一桌，m1 先走、m2 还在打，m1 再排被送回原桌 ——
+  // —— 匹配真人：两个人排到一桌，m1 先走、m2 还在打，m1 再排被送回原桌 ——
   const p1 = await page('smoke-qm1', 'quota-m1');
   const p2 = await page('smoke-qm2', 'quota-m2');
   for (const p of [p1, p2]) {

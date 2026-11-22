@@ -29,7 +29,7 @@ export class RoomPanel {
   private readonly waitNote: HTMLDivElement;
   /** 坐下的真人不到两个：开打灰掉，说一句为什么 */
   private readonly twoNote: HTMLDivElement;
-  /** 快速匹配桌：没有房间码、叫不了人、不用选座、不用点开打，只说一句在等谁 */
+  /** 匹配真人桌：没有房间码、叫不了人、不用选座、不用点开打，只说一句在等谁 */
   private readonly matchNote: HTMLDivElement;
   private readonly banner: HTMLDivElement;
   private readonly bannerText: HTMLSpanElement;

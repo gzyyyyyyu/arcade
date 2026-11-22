@@ -2,7 +2,7 @@
 import { el, toggle } from '../dom.ts';
 import { boardPos, felt, isTop, type Pt } from '../layout.ts';
 import { personaStyle } from '../text.ts';
-import { KEEP_OUT } from './types.ts';
+import { KEEP_OUT, type SeatNodes } from './types.ts';
 import { place, union } from './nodes.ts';
 import type { TableCtx } from './context.ts';
 import type { TableScene } from './base.ts';
@@ -49,6 +49,7 @@ export class TableProbe {
       // 我的座位不挪（操作区在右下角，碰不到我；万一碰到也不能把自己的牌挪走）
       if (!r || i === this.c.me || !overlap(box, r)) {
         n.root.style.translate = '';
+        n.bet.style.translate = '';
         toggle(n.root, 'tucked', false);
         toggle(n.root, 'shifted', false);
         continue;
@@ -70,7 +71,24 @@ export class TableProbe {
       // 挪过去的座位也算占了地方，后面的座位别再挪到这里
       boxes[i] = move[2];
       n.root.style.translate = move[0] || move[1] ? `${Math.round(move[0] / scale)}px ${Math.round(move[1] / scale)}px` : '';
+      this.clearBet(n, move[0] - mx * scale, move[1] - my * scale, gap);
     }
+  }
+
+  /**
+   * 整个挪开的座位，动作签挂到名牌朝桌心那一侧，正好是这一家面前下注筹码的高度（审查 1122：横屏「大盲 20」盖住筹码数、电脑版「弃牌」盖住小盲的 10）。
+   * 压住了就把筹码往桌心让开：金额不许被压。dx、dy 是座位从现在到挪好还差多少（屏幕像素），量的是挪好以后动作签在哪
+   */
+  private clearBet(n: SeatNodes, dx: number, dy: number, gap: number): void {
+    n.bet.style.translate = '';
+    if (!n.root.classList.contains('shifted') || !n.bubble.classList.contains('on') || n.bet.classList.contains('hidden')) return;
+    const b = n.bubble.getBoundingClientRect();
+    const q = n.bet.getBoundingClientRect();
+    const tag = { left: b.left + dx, right: b.right + dx, top: b.top + dy, bottom: b.bottom + dy };
+    if (tag.right <= q.left || tag.left >= q.right || tag.bottom <= q.top || tag.top >= q.bottom) return;
+    const scale = this.c.root.getBoundingClientRect().height / (this.c.root.offsetHeight || 1);
+    const away = n.root.classList.contains('right') ? tag.left - q.right - gap / 2 : tag.right - q.left + gap / 2;
+    n.bet.style.translate = `${Math.round(away / scale)}px 0`;
   }
 
   /** 这个座位头像在屏幕上的位置（道具往这儿扔）；按实际画出来的算，横竖屏、9 人桌都对。空座位、没摆出来回 null */

@@ -613,7 +613,7 @@ describe('换人、托管', () => {
   }, 20_000); // 0.1.1 起每手之后多一次停顿（拨时钟、跑闹钟），要多打好几手，5 秒的默认上限和别的测试一起跑时不够
 });
 
-describe('快速匹配（0.20.0，kit 的 MatchQueue；docs/online.md 6.11）', () => {
+describe('匹配真人（0.20.0，kit 的 MatchQueue；docs/online.md 6.11）', () => {
   // 这里的假平台 ARCADE 只有 fetch（vitest.worker.config.ts），排队凑桌前问屏蔽名单的 RPC 会失败：kit 记一笔日志、当没人屏蔽谁接着凑（workerd 会打一行 Failed to get handler），屏蔽名单本身在 kit 里测
   /** 排队连接：收到的消息和关闭码 */
   async function enqueue(tier: string, sid: string, e?: Partial<typeof env>) {

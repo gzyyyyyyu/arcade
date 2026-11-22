@@ -1,12 +1,12 @@
-/** 今日赛（docs/tournament.md 14.5）：分数、种子、一天只记一次分、交榜只一次、同一天同一场牌。 */
+/** 今日锦标赛（docs/tournament.md 14.5）：分数、种子、一天只记一次分、交榜只一次、同一天同一场牌。 */
 import { describe, expect, it } from 'vitest';
 import { canScoreTour, dailySeed, dailyTourBoardId, dailyTourSeed, finishTourDaily, parseTourDaily, sentTourDaily, startTourDaily, tourScore } from '../../src/core/daily.ts';
 import { submitScore } from '../../src/net/scores.ts';
 import type { WalletApi } from '../../src/net/wallet.ts';
 import type { Store } from '../../src/solo.ts';
-import { TourSolo, type TourDeps } from '../../src/tour/solo.ts';
+import { TourSolo, type TourDeps } from '../../src/tour-solo.ts';
 
-describe('今日赛分数', () => {
+describe('今日锦标赛分数', () => {
   it('名次分 (7 - 名次) × 1000', () => {
     for (let p = 2; p <= 6; p++) expect(tourScore(p, 0)).toBe((7 - p) * 1000);
   });
@@ -32,7 +32,7 @@ describe('今日赛分数', () => {
   });
 });
 
-describe('今日赛种子和榜名', () => {
+describe('今日锦标赛种子和榜名', () => {
   it('同一天种子相同、别的天不同', () => {
     const a = dailyTourSeed('2026-10-31');
     expect(dailyTourSeed('2026-10-31')).toEqual(a);
@@ -40,7 +40,7 @@ describe('今日赛种子和榜名', () => {
     expect(a).toHaveLength(8);
     expect(() => dailyTourSeed('10/31')).toThrow();
   });
-  it('和快速局今日局的种子不同', () => {
+  it('和全下局今日全下的种子不同', () => {
     expect(dailyTourSeed('2026-10-31')).not.toEqual(dailySeed('2026-10-31'));
   });
   it('榜名是 daily-北京日期-tour', () => {
@@ -110,7 +110,7 @@ const deps = (seed: number): TourDeps => ({
   onStep: async () => {},
 });
 
-describe('今日赛开一场', () => {
+describe('今日锦标赛开一场', () => {
   const open = async (seed: number, date: string) => {
     const t = await TourSolo.open(deps(seed), { userId: null, stakes: 'small', practice: true, level: 1, format: 'turbo', entropy: dailyTourSeed(date), daily: { date, scored: true } });
     if ('error' in t) throw new Error(t.error);

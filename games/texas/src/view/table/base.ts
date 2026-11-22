@@ -117,11 +117,28 @@ export class TableScene {
     const vw = window.visualViewport?.width ?? window.innerWidth;
     const vh = window.visualViewport?.height ?? window.innerHeight;
     const bound = { left: Math.max(st.left, 0), top: Math.max(st.top, 0), right: Math.min(st.right, vw), bottom: Math.min(st.bottom, vh) };
-    const { dx, dy } = clampShift(r, bound);
+    const { dx, dy: dy0 } = clampShift(r, bound);
+    const dy = dy0 + (n ? this.potShift(r, dx, dy0) : 0);
     if (dx === 0 && dy === 0) return;
     // 屏幕像素换成舞台像素（舞台整体缩放过）
     const k = st.width / this.c.g.w || 1;
     e.style.translate = `${dx / k}px ${dy / k}px`;
+  }
+
+  /**
+   * 座位的动作签压到桌心的池子就上下让开（挪得少的那边）：池子的数不许被压。
+   * 冒烟 scenes：手机 360×640 六人桌两个边池时，左边那家的「下注 270」压住「主池」
+   */
+  private potShift(r: DOMRect, dx: number, dy: number): number {
+    const top = r.top + dy;
+    const bottom = r.bottom + dy;
+    const hit = [this.c.potMain, ...this.c.potSides.children]
+      .map((e) => e.getBoundingClientRect())
+      .filter((p) => p.width > 0 && !(r.right + dx <= p.left || r.left + dx >= p.right || bottom <= p.top || top >= p.bottom));
+    if (!hit.length) return 0;
+    const down = Math.max(...hit.map((p) => p.bottom)) - top + 2;
+    const up = bottom - Math.min(...hit.map((p) => p.top)) + 2;
+    return down <= up ? down : -up;
   }
 
   // ---------- 位置 ----------
@@ -364,7 +381,7 @@ export class TableScene {
     setText(n.bubble, s.tag);
     toggle(n.bubble, 'on', s.tag !== '');
     toggle(n.bubble, 'fold', s.tag === '弃牌');
-    this.clampIn(n.bubble, s.tag === '' ? '' : `${s.tag}|${this.c.root.clientWidth}|${window.innerWidth}|${i}`, n);
+    this.clampIn(n.bubble, s.tag === '' ? '' : `${s.tag}|${this.c.root.clientWidth}|${window.innerWidth}|${i}|${this.c.potEl.dataset.k ?? ''}`, n);
     // 翻牌后我在这一手里：底牌旁边显示现在凑成的牌；摊牌时换成摊牌的牌型
     const live =
       mine && !s.hand && f.board.length >= 3 && (s.status === 'active' || s.status === 'allin') && s.cards.length === 2 && s.cards.every((c) => c !== null)

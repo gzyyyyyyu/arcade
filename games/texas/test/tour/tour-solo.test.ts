@@ -1,10 +1,10 @@
-/** 单机锦标赛的流程和钱包（src/tour/solo.ts）：报名扣一份、按名次结奖金、断线后用同一个操作 id 重办只办一次。钱包是内存里的假的。 */
+/** 单机锦标赛的流程和钱包（src/tour-solo.ts）：报名扣一份、按名次结奖金、断线后用同一个操作 id 重办只办一次。钱包是内存里的假的。 */
 import { describe, expect, it } from 'vitest';
 import { stakesOf, type StakesId } from '../../src/core/stakes.ts';
 import type { WalletApi, WalletReply } from '../../src/net/wallet.ts';
 import type { Store } from '../../src/solo.ts';
 import { payouts } from '../../src/tour/rules.ts';
-import { TOUR_KEY, TourSolo, type TourDeps } from '../../src/tour/solo.ts';
+import { TOUR_KEY, TourSolo, type TourDeps } from '../../src/tour-solo.ts';
 
 class FakeWallet implements WalletApi {
   balance = 10_000;

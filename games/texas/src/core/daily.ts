@@ -1,5 +1,5 @@
 /**
- * 快速局的“今日局”（docs/features.md 13.10）：每天同一副牌，一天只记一次分，上平台的每日榜。
+ * 全下局的“今日全下”（docs/features.md 13.10）：每天同一副牌，一天只记一次分，上平台的每日榜。
  * 这里只放纯函数：日期（北京时间，由画面层算好传进来）→ 当天的种子和榜名，以及本机 texas.pushfold 记录的整理。
  * 随机数只用 arcade-kit/rng：日期的数字当密钥，按用途分出 8 个 32 位字，同一天永远得到同一把种子。
  */
@@ -20,12 +20,12 @@ export function dailySeed(date: string): Entropy {
   return Array.from({ length: 8 }, () => r.below(0x100000000));
 }
 
-/** 本机存的快速局记录（texas.pushfold） */
+/** 本机存的全下局记录（texas.pushfold） */
 interface PushFoldRecord {
-  /** 普通快速局的最好成绩（最后的筹码）和玩过几局 */
+  /** 普通全下局的最好成绩（最后的筹码）和玩过几局 */
   best: number | null;
   plays: number;
-  /** 今日局：哪天开始打过、得了多少（还没打完是 null）。一天一条，只留最近一次 */
+  /** 今日全下：哪天开始打过、得了多少（还没打完是 null）。一天一条，只留最近一次 */
   daily: { date: string; score: number | null } | null;
 }
 
@@ -42,23 +42,23 @@ export function parseRecord(raw: unknown): PushFoldRecord {
   };
 }
 
-/** 这一天还没打过今日局（开始就算打过，刷新接着打同一局，不能重开刷分）：才能记分、上榜 */
+/** 这一天还没打过今日全下（开始就算打过，刷新接着打同一局，不能重开刷分）：才能记分、上榜 */
 export const canScore = (rec: PushFoldRecord, date: string): boolean => rec.daily?.date !== date;
 
-/** 开始今日局：记下今天打过 */
+/** 开始今日全下：记下今天打过 */
 export const startDaily = (rec: PushFoldRecord, date: string): PushFoldRecord => (canScore(rec, date) ? { ...rec, daily: { date, score: null } } : rec);
 
-/** 今日局打完：记分数（只记当天第一次那一局） */
+/** 今日全下打完：记分数（只记当天第一次那一局） */
 export const finishDaily = (rec: PushFoldRecord, date: string, score: number): PushFoldRecord =>
   rec.daily?.date === date && rec.daily.score === null ? { ...rec, daily: { date, score } } : rec;
 
-// ---------- 今日赛（docs/tournament.md 14.5）：每天一场单机极速赛，只有娱乐 ----------
+// ---------- 今日锦标赛（docs/tournament.md 14.5）：每天一场单机极速赛，只有娱乐 ----------
 
 /** 平台每日榜的榜名：子榜叫 tour */
 export const dailyTourBoardId = (date: string): string => `daily-${date}-tour`;
 
 /**
- * 当天今日赛的种子：同样是日期当密钥，但盐字和用途名都和快速局今日局（dailySeed）不同，
+ * 当天今日锦标赛的种子：同样是日期当密钥，但盐字和用途名都和全下局今日全下（dailySeed）不同，
  * 所以同一天两种今日玩法的牌不会撞。当天所有人的牌堆、电脑性格和座位都一样
  */
 export function dailyTourSeed(date: string): Entropy {
@@ -70,7 +70,7 @@ export function dailyTourSeed(date: string): Entropy {
 }
 
 /**
- * 今日赛的分数（整数）：名次分 (7 − 名次) × 1000；
+ * 今日锦标赛的分数（整数）：名次分 (7 − 名次) × 1000；
  * 第 1 名再加 clamp(100 − 用了几手, 0, 100)（赢得越快越高），第 2–6 名再加 min(撑到第几手, 999)（撑得越久越高）。
  * 第 1 名最高 6100，第 6 名最低 1000 + 手数
  */
@@ -80,7 +80,7 @@ export function tourScore(place: number, hands: number): number {
   return (7 - p) * 1000 + (p === 1 ? Math.min(100, Math.max(0, 100 - h)) : Math.min(h, 999));
 }
 
-/** 本机存的今日赛记录（texas.dailytour）：一天一条，只留最近一次 */
+/** 本机存的今日锦标赛记录（texas.dailytour）：一天一条，只留最近一次 */
 interface TourDailyRecord {
   date: string;
   /** 打完得的分；还没打完是 null */
@@ -96,14 +96,14 @@ export function parseTourDaily(raw: unknown): TourDailyRecord | null {
   return { date: o.date, score: int(o.score), sent: o.sent === true && int(o.score) !== null };
 }
 
-/** 这一天还没打过今日赛（点开始就算打过，刷新接着打同一场）：才能记分、上榜 */
+/** 这一天还没打过今日锦标赛（点开始就算打过，刷新接着打同一场）：才能记分、上榜 */
 export const canScoreTour = (rec: TourDailyRecord | null, date: string): boolean => rec?.date !== date;
 
-/** 开始今日赛：记下今天打过 */
+/** 开始今日锦标赛：记下今天打过 */
 export const startTourDaily = (rec: TourDailyRecord | null, date: string): TourDailyRecord | null =>
   canScoreTour(rec, date) ? { date, score: null, sent: false } : rec;
 
-/** 今日赛打完：记分数（只记当天第一场；已经记过就原样返回，调用方据此判断要不要交榜） */
+/** 今日锦标赛打完：记分数（只记当天第一场；已经记过就原样返回，调用方据此判断要不要交榜） */
 export const finishTourDaily = (rec: TourDailyRecord | null, date: string, score: number): TourDailyRecord | null =>
   rec?.date === date && rec.score === null ? { date, score, sent: false } : rec;
 
