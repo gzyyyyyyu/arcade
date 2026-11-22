@@ -2,6 +2,7 @@
  * 钱包卡的"本周走势"：用当前余额和接口给的流水倒推本周每天结束时的余额。
  * 纯函数，不碰 DOM；北京时间（UTC+8，没有夏令时）每周一 0 点起算，和排行榜的"本周"一致。
  * 流水只留最近 30 笔，所以只画流水能覆盖到的部分：从本周第一笔进出那天的"开头"画到今天。
+ * 本周只有今天有进出时按天只有两个点，改成每笔一个点，线才有起伏。
  */
 import type { LedgerEntry } from '../../api.ts';
 import { DAY } from '../../../shared/weekly.ts';
@@ -30,13 +31,18 @@ export interface Trend {
   change: number;
 }
 
-/** 本周每天结束时的余额，第一个是"第一笔进出那天开始前"的余额；本周没有流水返回空数组 */
+/** 本周每天结束时的余额（只有今天有进出时是每笔之后的余额），第一个是"第一笔进出那天开始前"的余额；本周没有流水返回空数组 */
 export function weekBalances(balance: number, ledger: readonly LedgerEntry[], now: number): number[] {
   const today = dayOf(now);
   const start = mondayOf(today);
   const mine = ledger.filter((e) => dayOf(e.at) >= start && dayOf(e.at) <= today);
   if (mine.length === 0) return [];
   const first = Math.min(...mine.map((e) => dayOf(e.at)));
+  // 本周只有今天有进出（比如周一）：按天只有两个点、永远是一条直线，改成每一笔之后一个点
+  if (first === today) {
+    let run = balance - mine.reduce((t, e) => t + e.a, 0);
+    return [run, ...[...mine].sort((a, b) => a.at - b.at).map((e) => (run += e.a))];
+  }
   const out: number[] = [];
   // 从今天往回：今天结束 = 当前余额；前一天结束 = 今天结束 减 今天的进出
   let cur = balance;

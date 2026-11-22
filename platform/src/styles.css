@@ -723,7 +723,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .card, .btn, .card__play { transition: none; }
 }
 html.no-motion .lobby-grid .card { animation: none; }
-html.no-motion .card, html.no-motion .btn, html.no-motion .card__play { transition: none; }
+html.no-motion .card, html.no-motion .btn, html.no-motion .card__play, html.no-motion .pills button { transition: none; }
 
 /* ===== 过渡（docs/style.md "动效"）===== */
 /* 进游戏 / 回大厅：盖在最上层的封面（enter-fx.ts 用 transform 从卡片位置放大到满屏或反过来） */

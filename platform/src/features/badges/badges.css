@@ -63,3 +63,4 @@
 }
 @media (prefers-reduced-motion: reduce) { .badges .badge--fx .badge__disc, .badges .badge--fx .badge__disc::after { animation: none; } }
 html.no-motion .badges .badge--fx .badge__disc, html.no-motion .badges .badge--fx .badge__disc::after { animation: none; }
+html.no-motion .badges .badge { transition: none; }
