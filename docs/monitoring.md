@@ -1,8 +1,8 @@
 # 监控和告警
 
-> 从 [platform-backend.md](platform-backend.md) 拆出来，**节号沿用原来的第 16 节（16.1–16.3）**，别处写的「platform-backend.md 16.x」就是这里的 16.x。
+> 本文是平台文档的第 16 节（16.1–16.3），别处写的「platform-backend.md 16.x」就是这里的 16.x。
 > 检查项和阈值以 `platform/worker/api/ops/monitor.ts` 为准；本文和代码不一致时改本文。
-> 文中不带文件名的其他节号：4.x 指 [rooms.md](rooms.md)，5.1–5.4 指 [accounts.md](accounts.md)，第 6 节指 [cost-guard.md](cost-guard.md)，第 7 节指 [data.md](data.md)，15.x 指 [api.md](api.md)，第 16 节指 [monitoring.md](monitoring.md)，其余指 [platform-backend.md](platform-backend.md)。
+> 文中不带文件名的其他节号按全站编号找，对照表见 [README.md](README.md#节号对照)。
 
 
 ## 16. 监控和告警
@@ -24,7 +24,7 @@
 
 ### 16.2 检查项和阈值
 
-巡检是第 2 个 Cron（`*/5 * * * *`），每天 19:17 那次清理之后也跑一遍。阈值在 `config.ts` 的 `monitor*`。
+巡检是第 2 个 Cron（`*/5 * * * *`），每天 UTC 19:17（北京时间 03:17）那次清理之后也跑一遍。阈值在 `config.ts` 的 `monitor*`。
 
 | 检查项 | 失败的条件 | 说明 |
 |---|---|---|

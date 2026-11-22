@@ -1,8 +1,8 @@
 # 平台账号：登录、安全边界、认人、防刷
 
-> 从 [platform-backend.md](platform-backend.md) 拆出来，**节号沿用原来的 5.1–5.4**，别处写的「platform-backend.md 5.x」就是这里的 5.x。
+> 本文是平台文档的 5.1–5.4 节，别处写的「platform-backend.md 5.1–5.4」就是这里；节号对照见 [README.md](README.md#节号对照)。
 > 数字（限额、预算、阈值）以 `platform/worker/api/lib/config.ts` 为准；本文和代码不一致时改本文。
-> 文中不带文件名的其他节号：4.x 指 [rooms.md](rooms.md)，5.1–5.4 指 [accounts.md](accounts.md)，第 6 节指 [cost-guard.md](cost-guard.md)，第 7 节指 [data.md](data.md)，15.x 指 [api.md](api.md)，第 16 节指 [monitoring.md](monitoring.md)，其余指 [platform-backend.md](platform-backend.md)。
+> 文中不带文件名的其他节号按全站编号找，对照表见 [README.md](README.md#节号对照)。
 
 
 ## 5. 账号与登录（5.1–5.4）
@@ -25,8 +25,8 @@
 **密码哈希**：
 - WebCrypto PBKDF2-SHA256，每个用户 16 字节随机盐，迭代 100,000 次（`vars.LIMITS.pbkdf2Iterations`）；结果再用 pepper（Secret `PEPPER_PW`）做一层 HMAC-SHA256，这样数据库被拖走而 Secret 没泄露时离线猜密码无从下手。
 - 存成 `pbkdf2-sha256$<迭代次数>$<pepper kid>$<盐>$<哈希>`。迭代次数或 pepper 变了，用户登录成功时透明地重新哈希（多写 1 行），不用迁移。
-- **免费版 CPU 上限 10 ms，10 万次迭代的 PBKDF2 压在这条线上**：线上登录一次 CPU p99 约 39–55 ms、p50 约 2.7 ms，0 错误（2026-10-14/15 实测）；文档说 isolate 允许"偶尔"超过 10 ms、"持续"超才被终止（1102）。
-  只发生在注册、登录、找回、再验证这几个低频接口。**决定**：参数不改，维护者定期看 Cloudflare 统计里 arcade 的 errors 和 1102；持续出现（连着几天，或一天里成批）就开 PR 把 `pbkdf2Iterations` 设成 50000（本地约 8 ms），老哈希登录时自动升级。
+- **免费版 CPU 上限 10 ms，10 万次迭代的 PBKDF2 压在这条线上**：线上登录一次 CPU p99 约 39–55 ms、p50 约 2.7 ms，0 错误（线上实测）；文档说 isolate 允许"偶尔"超过 10 ms、"持续"超才被终止（1102）。
+  只发生在注册、登录、找回、再验证这几个低频接口。迭代次数保持 10 万，维护者定期看 Cloudflare 统计里 arcade 的 errors 和 1102；持续出现（连着几天，或一天里成批）就开 PR 把 `pbkdf2Iterations` 设成 50000（本地约 8 ms），老哈希登录时自动升级。
   开付费版（CPU 上限 30 秒）后再透明重哈希回 10 万。这是现在开付费版的唯一理由（project.md 第 6 节）。
 
 **恢复码、会话令牌、IP**：都只存 HMAC-SHA256，各用各的 pepper（Secret `PEPPER_RC`、`PEPPER_SID`、`PEPPER_IP`）。
@@ -73,8 +73,8 @@
   - 界面和构建产物都没有内联脚本和内联 style，所以 `style-src` 不放 `'unsafe-inline'`，以后也不要为了省事加；`img-src` 放 `data: blob:` 是因为恢复码"存成图片"在浏览器里用 canvas 现画。
   - `_headers` 只作用于静态资源，`/api` 的响应由 Worker 自己回；`wrangler dev` 下同样生效，所以冒烟是在正式 CSP 下跑的，并监听 `securitypolicyviolation`。
   - 游戏自己的 `_headers` 里目前只有缓存规则、没有 CSP；以后游戏加 CSP 时按平台这一份来，同样要放行 `static.cloudflareinsights.com` 的脚本。
-- **日志**：不记 cookie、请求体和 `Authorization`；密码和恢复码只走请求体，不进 URL。线上 Workers Logs 关着（`observability.enabled: false`）；查问题用 `wrangler tail`
-  （它把 `cookie`、`authorization` 头显示成 `REDACTED`，但 `cf-connecting-ip` 是原文；只是实时流，不保存）。要开 Workers Logs 先重新核对这一条。
+- **日志**：不记 cookie、请求体和 `Authorization`；密码和恢复码只走请求体，不进 URL。线上 Workers Logs 开着（`observability.enabled: true`），接口只记路径和错误类型、浏览器报错只记截断的报错和不带查询串的路径（[monitoring.md](monitoring.md)）；
+  实时排查用 `wrangler tail`（它把 `cookie`、`authorization` 头显示成 `REDACTED`，但 `cf-connecting-ip` 是原文；只是实时流，不保存）。
 
 ### 5.3 开房、进房与认人（房间登记和入场票没有做）
 
@@ -101,7 +101,7 @@
    突发没实测（测试网络经代理）。遇到大规模刷量，维护者可临时在 WAF 里加自定义规则直接拦 `/api/*`。前提是请求经过 zone，所以平台 `workers_dev: false`（3 节）。
 2. **进 Worker 后、碰 D1 之前的廉价检查**（完整顺序见 15.1）：Host → 方法和路径白名单 → 熔断档位（内存里）→ 写请求的 `X-Arcade` 和 `Origin` → 路径参数 → 请求体大小 → JSON 解析。任何一步不过就直接返回，不读不写 D1。
    **isolate 内存限流**：每个 isolate 在内存里给每个 IP 哈希一个令牌桶（匿名接口每分钟 10 次），并缓存"某个限流键已超限到某时"，命中直接 429；isolate 很多、随时回收，只是挡突发的第一道。
-3. **匿名只开放极少的接口**：注册、登录、找回、`GET /api/me`（没带 cookie 时直接返回未登录，不碰 D1）。其余都要登录。注册先过内存令牌桶，再读开关（1 行读）：关着回 403、写 0 行。
+3. **匿名只开放极少的接口**：注册、登录、找回、退出、`GET /api/me`（没带 cookie 时直接返回未登录，不碰 D1），以及巡检用的 `/api/health`、`/api/monitor`、`/api/client-error`（[monitoring.md](monitoring.md)）。其余都要登录。注册先过内存令牌桶，再读开关（1 行读）：关着回 403、写 0 行。
 4. **持久计数限流**：表 `rate_counters`，键形如 `<用途>:<对象>`，固定窗口计数，超了 429 并带 `Retry-After`。每条规则的上限和写入代价见 15.6。
    - **超限的请求不写行**：带条件的 UPSERT——`INSERT … ON CONFLICT(key) DO UPDATE SET count = count + 1 WHERE count < 上限`（窗口过期时重置）。已超限时条件不成立，**写入 0 行**（`test/d1-facts.test.ts` 实测）。
    - **失败计数锁着的时候再失败，也写 0 行**：`WHERE blocked_until <= now OR 窗口已过`，所以锁到期那一刻并发打进来的一批失败，最多写到重新锁上为止。登录失败和再验证失败都是这样。

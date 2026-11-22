@@ -37,7 +37,7 @@
 
 - **一个账号玩所有游戏**：用户名 + 密码 + 恢复码；默认邀请制，管理员可以随时开关注册。
 - **云存档、好友、排行榜、战绩**：平台的 `/api` 统一提供，所有游戏共用。
-- **娱乐筹码钱包**：所有游戏一个钱包，分娱乐和实盘；每天有补给；好友房由服务端结算。
+- **娱乐筹码钱包**：所有游戏一个钱包，每个游戏都有娱乐，多数还有实盘；每天有补给；好友房由服务端结算。
 - **好友房**：基于 Durable Objects（WebSocket 休眠、每个房间只用一个闹钟），服务端说了算，绝不下发别人的底牌。
 - **单机对电脑**：整局在浏览器里跑，不花服务器钱。
 - **手机优先**：在低内存的 iPhone、iPad 上实测过：渲染倍数封顶、按可见区域算高度、让出刘海、WebGL 上下文丢了能恢复。
@@ -152,7 +152,7 @@ flowchart LR
 - [AGENTS.md](AGENTS.md)：仓库规范，给开发者和 AI 编程代理（模块独立、代码规范、手机适配、测试）
 - [docs/project.md](docs/project.md)：项目做什么、给谁、守什么底线、路线图
 - [docs/architecture.md](docs/architecture.md)：整体架构
-- [docs/platform-backend.md](docs/platform-backend.md)：平台后端的总体设计、钱包和云存档（账号、额度防护、数据表、监控各自一篇，见 [docs/README.md](docs/README.md)）；[docs/rooms.md](docs/rooms.md)：所有游戏都要守的联机房间规范；[docs/api.md](docs/api.md)：`/api` 接口约定
+- [docs/platform-backend.md](docs/platform-backend.md)：平台后端的总体设计（云存档和好友、钱包、账号、额度防护、数据表、监控各自一篇，见 [docs/README.md](docs/README.md)）；[docs/rooms.md](docs/rooms.md)：所有游戏都要守的联机房间规范；[docs/api.md](docs/api.md)：`/api` 接口约定
 - [docs/economy.md](docs/economy.md)：筹码体系
 - [docs/social.md](docs/social.md)：社交（分享、在线、邀请、旁观、好友榜）
 - [docs/balance.md](docs/balance.md)：难度和收益的配平目标（所有游戏共用）

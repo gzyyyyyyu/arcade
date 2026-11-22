@@ -1,8 +1,8 @@
 # 平台数据（D1）
 
-> 从 [platform-backend.md](platform-backend.md) 拆出来，**节号沿用原来的第 7 节（7.1–7.5）**，别处写的「platform-backend.md 7.x」就是这里的 7.x。
+> 本文是平台文档的第 7 节（7.1–7.5），别处写的「platform-backend.md 7.x」就是这里的 7.x。
 > 表结构以 `platform/migrations/` 为准；本文和迁移不一致时改本文。
-> 文中不带文件名的其他节号：4.x 指 [rooms.md](rooms.md)，5.1–5.4 指 [accounts.md](accounts.md)，第 6 节指 [cost-guard.md](cost-guard.md)，第 7 节指 [data.md](data.md)，15.x 指 [api.md](api.md)，第 16 节指 [monitoring.md](monitoring.md)，其余指 [platform-backend.md](platform-backend.md)。
+> 文中不带文件名的其他节号按全站编号找，对照表见 [README.md](README.md#节号对照)。
 
 
 ## 7. 数据（平台 D1）
@@ -43,7 +43,7 @@ play_tally(day, game, variant, mode, tier, dur, outcome, n, PRIMARY KEY (day, ga
 monitor_counts(day, game, kind, sig, n, first_ver, ver, last_at, PRIMARY KEY (day, game, kind, sig))   WITHOUT ROWID   -- 浏览器报错计数（第 16 节）；巡检状态放 settings 的 monitor 一行
 ```
 
-迁移：0001 账号、0002 `users.role`、0003 排行榜、0004 设置、0005 钱包、0006 在线位置、0007 邀请、0008 动态、0009 挑战、0010 搭子、0011 邀请码、0012 监控（`monitor_counts`、`meter_hourly.rows_mon`）、0013 真人对局统计（`play_tally`）、0014 长期邀请码（`max_uses`、`uses`、`invite_code_uses`）和 `users.game_prefs`。设计取舍（都为少写行数）：
+迁移：0001 账号、0002 `users.role`、0003 排行榜、0004 设置、0005 钱包、0006 在线位置、0007 邀请、0008 动态、0009 挑战、0010 搭子、0011 邀请码、0012 监控（`monitor_counts`、`meter_hourly.rows_mon`）、0013 真人对局统计（`play_tally`）、0014 长期邀请码（`max_uses`、`uses`、`invite_code_uses`）和 `users.game_prefs`、0015 约局（`meetups`）。设计取舍（都为少写行数）：
 - **全部用 `WITHOUT ROWID`**：主键是 TEXT 或多列的普通表，SQLite 会另建一个自动唯一索引、每次插入多算 1 行；`WITHOUT ROWID` 表的主键就是表本身。
 - **`credentials` 主键是 `(user_id, type)`，没有 identifier 列和额外索引**：密码和恢复码都是先按用户名找到用户再比对，注册因此从约 13 行降到约 9 行。代价是每种类型只能有一条；以后多个 passkey、第三方登录**另建表**，不改这张表。
 - **注销是直接删除**，没有 `deleted_at`，也没有游客。
@@ -116,7 +116,7 @@ D1 按写入行数计费：插入时表本身一行，每个索引再各算一�
 
 - **注销**：再验证后一次 `db.batch`（D1 里是一个事务），删掉这个人在 users、sessions、credentials、saves、boards、friendships（两个方向）、blocks（两个方向）、wallets、invites（发出的、收到的）、meetups、feed（本人发的）、feed_reactions（本人赞的；别人给本人动态的赞 7 天后跟着 Cron 删）、
   challenges 和 challenge_results（本人发起的连同所有结果、本人交的结果）、mates（本人在 `lo`、`hi` 两边的）、invite_codes（本人生成的连同别人用它的 `invite_code_uses` 一起删；本人注册时用过的码只清 `used_by`、删 `invite_code_uses` 里本人那行（走 `user_id` 索引），`uses`、`used_at` 留着，邀请人的额度、长期码的名额不还，不然"邀请 → 让对方注销 → 再邀请"能绕过额度）、
-  rate_counters（键里带他的用户 id 或用户名的）里的所有行。计数键清单在 `deleteUserStatements`（`worker/api/account/session.ts`）：`login:fail`、`reauth:fail`、`profile`、`acct`、`save`、`freq`、`fcode`、`fcnew`、`block`、`score`、`admin`、`react`、`chal`。
+  rate_counters（键里带他的用户 id 或用户名的）里的所有行。计数键清单在 `deleteUserStatements`（`worker/api/account/session.ts`）：`login:fail`、`reauth:fail`、`profile`、`acct`、`save`、`prefs`、`freq`、`fcode`、`fcnew`、`block`、`score`、`admin`、`react`、`chal`。
   管理员删号、一年清理用同一套语句。`blocks` 按被屏蔽方删除没有索引、要扫全表，注销很少，接受。**以后加的表和新的计数键都要加进这个 batch，并有"注销后删干净"的测试。**
 - **1 年未登录**：每天的 Cron 找出 `last_seen_at` 早于 365 天前、`role = 'user'` 的用户（没有索引，只花读行数），每次最多 200 个，按注销同样的语句删。**管理员不清**。注意存档接口不更新 `last_seen_at`（5.5）。
 - **每天的 Cron 先记筹码统计**（5.9），先于一年清理；出错只记日志，不影响后面的清理。

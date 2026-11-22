@@ -39,7 +39,7 @@ docker build -f tools/selfhost/docker/Dockerfile -t arcade:local build/out/arcad
 | `SITE_ORIGIN` | 前面有 HTTPS（compose、Caddy）时要 | 站点地址，比如 `https://game.example.com`；不设的话经 HTTPS 反代登录会被拒（"请求来源不对"） |
 | `ARCADE_DB` | 否 | `sqlite`（默认）或 `pg` |
 | `ARCADE_PG_URL` | `ARCADE_DB=pg` 时 | PostgreSQL 连接串 |
-| `ARCADE_VARS_<Worker>_<名>` | 否 | 运行时改模块的设置，比如 `ARCADE_VARS_arcade_LIMITS`（平台的限流和每日预算）、`ARCADE_VARS_texas_KIT_QUOTA`（房间配额）。默认值照 Cloudflare 免费版定，200 人在线约 1 小时就会切成只读：照 [tools/selfhost/README.md](#自托管推荐值) 的推荐值写。一行，不加引号、不留空格 |
+| `ARCADE_VARS_<Worker>_<名>` | 否 | 运行时改模块的设置，比如 `ARCADE_VARS_arcade_LIMITS`（平台的限流和每日预算）、`ARCADE_VARS_texas_KIT_QUOTA`（房间配额）。默认值照 Cloudflare 免费版定，200 人在线约 1 小时就会切成只读：照下面[自托管推荐值](#自托管推荐值)写。一行，不加引号、不留空格 |
 
 先生成一次 Secret（这个文件另存一份，和备份分开放）：
 
@@ -84,7 +84,7 @@ docker compose up -d
 SQLite 经内部管理入口逻辑导出，管理入口只在容器里：
 
 ```sh
-docker compose exec arcade /app/ops/backup.sh /data/backups
+docker compose exec arcade /app/ops/backup.sh /data/backups http://127.0.0.1:8788 /data/do
 docker compose cp arcade:/data/backups ./backups                      # 从这里拷到别的机器
 docker compose exec arcade sh -c '/app/ops/restore.sh d1-arcade-DB "$(ls -d /data/backups/*/ | tail -1)d1-arcade-DB.sql"'   # 恢复最近一份
 ```
@@ -123,9 +123,9 @@ echo "SITE_HOST=game.example.com" | sudo tee /etc/default/caddy && sudo systemct
 ### 验证到什么程度
 
 - 项目自己的站点在正式环境里跑过这样打出来的 Docker 镜像，前面是反向隧道。
-- CI（`selfhost.yml`）用平台和德州打的包测二进制、镜像（SQLite）、PostgreSQL 的三种档，以及 `compose --profile pg`（arcade + postgres，不起 caddy）。
+- CI（`selfhost.yml`）用平台和德州打的包测二进制、镜像（SQLite）、存储的三种档（SQLite、PostgreSQL、PostgreSQL 加房间放内存），以及 `compose --profile pg`（arcade + postgres，不起 caddy）。
 - 还没自动测的：经 Caddy 的整套 compose；还没在真机上走过的：Caddy 给公网域名申请真证书，systemd 单元和 `install.sh`、`upgrade.sh`、`rollback.sh`。
-- 游戏房间也放进 PostgreSQL（什么都不落盘）要有房间的游戏都用 arcade-kit ≥ 0.21.0，现在只差飞驰，见下面「现状」；没走过的细节也在那里。
+- 游戏房间也放进 PostgreSQL（什么都不落盘）要有房间的游戏都用 arcade-kit ≥ 0.21.0（本仓库的游戏都够）；没走过的细节见下面「现状」。
 
 ## 现状
 
@@ -137,9 +137,9 @@ echo "SITE_HOST=game.example.com" | sudo tee /etc/default/caddy && sudo systemct
   | PG | `--db pg` | PostgreSQL | SQLite | 要 |
   | PG 不落盘 | `--db pg --storage memory` | PostgreSQL | PostgreSQL | 不要 |
 
-- **PG 不落盘要有房间的游戏都用 arcade-kit ≥ 0.21.0**（KIT_STORE），不够 `build.mjs` 直接报错，不生成。现在只有飞驰（racing）的 kit 低于 0.21.0：整站打 PG 不落盘要先用 `--only` 去掉它，等它升了 kit 再全打。哪个游戏够不够以各自 `package-lock.json` 里的 kit 版本为准，`build.mjs` 会逐个检查。
+- **PG 不落盘要有房间的游戏都用 arcade-kit ≥ 0.21.0**（KIT_STORE），不够 `build.mjs` 直接报错，不生成；按各游戏 `package-lock.json` 里的 kit 版本逐个检查。
 - **没在真机上走过的**：Caddy 给公网域名申请真证书、在别的反代或 CDN 后面时的真实 IP，systemd 单元、`install.sh`/`upgrade.sh`/`rollback.sh`。
-  CI 里 Caddy 只用 `localhost`（Caddy 的内部证书）起过整套 compose；安装、升级、回滚只在打包机上用模拟的 `systemctl` 跑过。第一次上真机时要逐项验。
+  CI 只校验 compose 配置、起 `--profile pg`（不起 Caddy）；安装、升级、回滚只在打包机上用模拟的 `systemctl` 跑过。第一次上真机时要逐项验。
 
 ## 运行时调参数（vars）
 
@@ -204,7 +204,7 @@ ARCADE_VERSION=$v tools/selfhost/release.sh build/art build/out --with-pg   # �
 | `arcade.sh` | 发布包里的 `bin/arcade`：在发布目录里起 workerd，按 `ARCADE_DB` 选 SQLite 档或 PG 档；管理入口不是回环地址、PG 档没设 `ARCADE_PG_URL` 都拒绝启动 |
 | `create-admin.sh` | 建第一个管理员（`ops/create-admin.sh <用户名> <昵称>`）：用 `ADMIN_TOKEN` 调平台，令牌从环境变量或 `/etc/arcade/secrets.env` 读，不上命令行；用户名不能是 `admin` 这类保留名 |
 | `smoke.mjs` | 全站冒烟（不用浏览器）：静态和路由、建号登录、德州单机带入结回、好友房 WebSocket、定时任务、导出；`--save`/`--rejoin` 测重启后回到同一个房间 |
-| `backup.sh`、`restore.sh`、`restore-drill.sh` | 逻辑备份（每个 SQLite 库导出 SQL + 房间目录快照；PG 的库跳过）、恢复（文件读不到、是空的直接拒绝；容器里跑的是 `arcade` 用户，文件要对它可读）、恢复演练（临时端口起同一个发布包，导入再导出必须逐字节一样） |
+| `backup.sh`、`restore.sh`、`restore-drill.sh` | 逻辑备份（每个 SQLite 库导出 SQL + 房间目录快照，数据目录默认 `/var/lib/arcade/data`、容器里传 `/data/do`；PG 的库跳过）、恢复（文件读不到、是空的直接拒绝；容器里跑的是 `arcade` 用户，文件要对它可读）、恢复演练（临时端口起同一个发布包，导入再导出必须逐字节一样） |
 | `install.sh`、`upgrade.sh`、`rollback.sh` | 第一次安装、升级（先备份、换软链接、等健康检查，起不来自动切回）、回滚 |
 | `systemd/arcade.service` | systemd 单元（只听 127.0.0.1、只能写数据目录） |
 | `docker/Caddyfile` | HTTPS、用真实地址覆盖 `cf-connecting-ip`、挡 `/cdn-cgi`（compose 挂它；发布包里在 `ops/Caddyfile`，二进制部署用） |

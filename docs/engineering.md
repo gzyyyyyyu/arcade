@@ -28,7 +28,7 @@ games/<id>/
 - **注释**：中文，写"为什么"；不写过程（"10-18 改的"）和内部称呼，这些留给提交信息。
 - **格式**：遵守根 `.editorconfig`（UTF-8、LF、两格缩进、末尾换行），按所在文件已有风格写。
 - **lint**：用 [Biome](https://biomejs.dev/)，模板 `packages/arcade-host/biome.jsonc`（推荐集，只关 `noNonNullAssertion`、`noAssignInExpressions`、`useTemplate`，测试里放行 `any`）。
-  接入：复制模板，`@biomejs/biome` 精确版本装成 devDependency（`--ignore-scripts`），加脚本 `"lint": "biome lint ."` 并在 CI 测试前跑；第一次接入只修报出的问题、行为不变、照常升版本。
+  接入：复制模板，`@biomejs/biome` 精确版本装成 devDependency（`--ignore-scripts`），加脚本 `"lint": "biome lint ."`，交审前跑（CI 里目前只有 `arcade-host` 跑 lint）；第一次接入只修报出的问题、行为不变、照常升版本。
   单处放行写 `// biome-ignore <规则>: <理由>`；不在模块里改全局规则，要改先改模板。
 
 ## 3. 测试
@@ -36,16 +36,16 @@ games/<id>/
 测什么和跑多少（日常 / 交审前两档）见 AGENTS.md 第 4 节，这里补具体要求：
 
 - 规则核心、电脑策略、结算、钱包和存档读写有 vitest 单测；修 bug 先写一个会失败的测试。
-- 每个游戏有 `arch.test.ts`：核心不准用 `Math.random` / `Date` / DOM / 网络，层之间不准反向依赖。
-- 有房间的模块有房间测试（`npm run test:worker`），在 `npm test` 里或模块 CI 里跑。
+- 每个游戏有架构测试（`arch.test.ts`，老模块叫 `architecture.test.ts`）：核心不准用 `Math.random` / `Date` / DOM / 网络，层之间不准反向依赖。
+- 有房间的模块有房间测试（`test:room` 或 `test:worker`），在 `npm test` 里或模块 CI 里跑。
 - 冒烟 `npm run smoke` 按流程拆文件，不写成一个几千行的文件。
 - golden 只当当前版本的回归基准：规则改了就重新生成，PR 里说明为什么变；不加"逐局不变"的跨版本 golden。
 - 改数值、改电脑的附模拟结果（局数、指标、和 [balance.md](balance.md) 目标的对照）；改到实盘期望的，附改前改后的实盘模拟数。
 
 ## 4. 统一的脚本名
 
-`dev`（端口见 AGENTS.md 第 3 节）、`build`、`build:cf`（构建并 `wrangler deploy --dry-run` 打包，CI 用）、`typecheck`（`tsc --noEmit`，所有 tsconfig 都过）、
-`test`（全部单测，不要浏览器和 Cloudflare 账号）、`test:worker`（房间和 Worker 测试，没并进 `test` 时）、`lint`、`smoke`（无头冒烟；老的 `shot`、`shots` 过渡期留作别名）。
+`dev`（端口见 AGENTS.md 第 3 节）、`build`、`build:cf`（构建 Worker 产物；CI 随后用 `wrangler deploy --dry-run` 打包）、`typecheck`（`tsc --noEmit`，所有 tsconfig 都过）、
+`test`（全部单测，不要浏览器和 Cloudflare 账号）、`test:room` / `test:worker`（房间和 Worker 测试，没并进 `test` 时）、`lint`、`smoke`（无头冒烟；开盘、海岛叫 `shot`）。
 
 ## 5. 文档
 

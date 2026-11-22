@@ -71,7 +71,7 @@ git clone https://github.com/gzyyyyyyu/arcade.git
 cd arcade/games/texas       # or platform, games/kaipan, games/guandan, games/mahjong, games/yexun, games/racing, games/danli, games/haidao
 npm ci
 npm run dev                 # local dev server (single-player works without the platform)
-npm test                    # unit tests (vitest) and Worker tests
+npm test                    # unit tests (vitest); see the module README for room/Worker tests
 npm run build               # production build
 ```
 
@@ -139,10 +139,10 @@ flowchart LR
 | [`docs/`](docs/) | Cross-module design (in Chinese) |
 | [`tools/`](tools/) | Repository tooling ([tools/README.md](tools/README.md)): isolation and deploy-config checks, the pinned deployer, module split, git hooks, deploy guard, self-hosting scripts |
 
-Hard rules, enforced by `node tools/check-isolation.mjs` in CI:
+Hard rules (the full list is in [AGENTS.md](AGENTS.md)):
 
 - each module carries all of its own files and dependencies, and never references files outside its directory
-  (except the shared packages via `file:../../packages/<name>`);
+  (except the shared packages via `file:../../packages/<name>`) — enforced in CI by `node tools/check-isolation.mjs`;
 - modules talk only through public interfaces (same-origin HTTP, service bindings);
 - browser storage keys are prefixed with the module id (`kaipan.`, `texas.`, …) because everything shares one origin;
 - any module can be split into its own repository with `tools/split-module.sh`.
@@ -156,7 +156,7 @@ Detailed documentation is written in Chinese; the documents marked *(English)* a
 - [docs/self-hosting.md](docs/self-hosting.md) *(English)* — running the whole site on your own server; [docs/deployment.md](docs/deployment.md) *(English)* — the deploy pipeline and its security model
 - [docs/project.md](docs/project.md) — what the project is, who it is for, principles and roadmap
 - [docs/architecture.md](docs/architecture.md) — overall architecture
-- [docs/platform-backend.md](docs/platform-backend.md) — platform backend design, wallet and saves (accounts, cost guard, data and monitoring are split into their own files, listed in [docs/README.md](docs/README.md)); [docs/rooms.md](docs/rooms.md) — the online-room rules every game follows; [docs/api.md](docs/api.md) — the `/api` reference
+- [docs/platform-backend.md](docs/platform-backend.md) — platform backend design (saves, friends, wallet, accounts, cost guard, data and monitoring each have their own file, listed in [docs/README.md](docs/README.md)); [docs/rooms.md](docs/rooms.md) — the online-room rules every game follows; [docs/api.md](docs/api.md) — the `/api` reference
 - [docs/economy.md](docs/economy.md) — the chip economy
 - [docs/social.md](docs/social.md) — sharing, presence, invitations, spectating, friends' boards
 - [docs/balance.md](docs/balance.md) — difficulty and payout targets shared by all games

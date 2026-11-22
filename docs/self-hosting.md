@@ -83,7 +83,7 @@ docker compose up -d
 SQLite: logical export through the internal admin endpoint, which only listens inside the container:
 
 ```sh
-docker compose exec arcade /app/ops/backup.sh /data/backups
+docker compose exec arcade /app/ops/backup.sh /data/backups http://127.0.0.1:8788 /data/do
 docker compose cp arcade:/data/backups ./backups                      # copy off the server from here
 docker compose exec arcade sh -c '/app/ops/restore.sh d1-arcade-DB "$(ls -d /data/backups/*/ | tail -1)d1-arcade-DB.sql"'   # restore the latest
 ```
@@ -122,9 +122,9 @@ roll back: `sudo /opt/arcade/current/ops/rollback.sh`. PostgreSQL: add the two l
 
 ## What has been tested
 
-- The project's own site has run in production on a Docker image built this way, behind a reverse tunnel.
-- CI (`selfhost.yml`) builds a release with the platform and the Texas game and tests the binary, the Docker image (SQLite), all three PostgreSQL modes, and `compose --profile pg` (arcade + postgres, without caddy).
+- The project's own site has run in production on a Docker image built this way.
+- CI (`selfhost.yml`) builds a release with the platform and the Texas game and tests the binary, the Docker image (SQLite), all three storage modes (SQLite, PostgreSQL, PostgreSQL with rooms in memory), and `compose --profile pg` (arcade + postgres, without caddy).
 - Not tested automatically: the full compose setup through Caddy. Not yet exercised on a real server: Caddy obtaining a certificate for a public domain, and the systemd unit with the install, upgrade and rollback scripts.
-- Keeping game rooms in PostgreSQL too (nothing on disk) needs every game with rooms on arcade-kit ≥ 0.21.0; today only the racing game is still below that, so leave it out with `--only` for now.
+- Keeping game rooms in PostgreSQL too (nothing on disk) needs every game with rooms on arcade-kit ≥ 0.21.0; all games in this repository are, and `build.mjs` refuses to build otherwise.
 
 Details, all options and the CI coverage: [tools/selfhost/README.md](../tools/selfhost/README.md).
