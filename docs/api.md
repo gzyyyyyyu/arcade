@@ -192,7 +192,8 @@
 | `GET` / `POST /api/admin/settings/invites` | `{"userQuota"?, "adminQuota"?, "ttlDays"?, "perDay"?}` | 200 同钱包规则的形状（15.20） | 400（超出范围） | GET 0；POST 有变化 2 |
 | `POST /api/admin/users/<id>/invite-quota` | `{"quota": 整数 0–1000 \| null}`（null 恢复默认） | 200 `{"quota", "custom"}` | 404 | 2 |
 | `GET /api/admin/invite-codes?status=unused\|used\|multi\|all` / `POST /api/admin/invite-codes/<id>/revoke` | — / `{}` | 全站最近 100 条（还能用的才给 `code`；每条有 `uses`、`maxUses`，长期码的 `expiresAt` 不过期时是 null、`users` 是用它注册的人）/ 204；名额用完、已撤回的 404 | 401；403 | 0 / 2 |
-| `POST /api/admin/invite-codes` | `{"maxUses"?: 2–1000（默认 100）, "days"?: 1–365 \| null（默认不过期）}` | 201 `{"id", "code", "link", "maxUses", "expiresAt"}`：建一个长期码（15.20），记在当前管理员名下 | 400；403 `session_required`（令牌不能建） | 4 |
+| `POST /api/admin/invite-codes` | `{"maxUses"?: 2–10000（默认 100）, "days"?: 1–365 \| null（默认不过期）}` | 201 `{"id", "code", "link", "maxUses", "expiresAt"}`：建一个长期码（15.20），记在当前管理员名下 | 400；403 `session_required`（令牌不能建） | 4 |
+| `POST /api/admin/invite-codes/<id>/uses` | `{"maxUses": 2–10000}`（不小于已经用掉的次数） | 200 `{"id", "maxUses"}`：改长期码能用几次，只改没撤回的长期码 | 400；403 `session_required`（令牌不能改）；404（不存在、不是长期码、已撤回）；409 `below_used`（带 `used`） | 2 |
 | `GET` / `POST /api/admin/settings/games` | `{"hidden": [游戏 id]}` | 200 `{"hidden"}`：默认隐藏的游戏（15.21），本 isolate 马上变，别的最多晚 30 秒 | 400（没登记的 id） | GET 0；POST 2 |
 | `GET /api/admin/play-tally?days=N` | — | 200 `{"from", "to", "rows": [{"game", "variant", "mode", "tier", "n", "dur": {桶: 局数}, "outcome": {桶: 局数}}]}`，北京时间最近 N 天（1–90，默认 30，含今天）按游戏、玩法、mode、档位汇总（5.11），局数多的在前 | 400；401；403 | 0 |
 | 钱包相关 `GET /api/admin/wallet-stats`、`wallet/<用户名>`、`POST wallet/adjust`、`GET wallet-adjustments`、`GET overview` | 见 15.9 | | | |
@@ -413,7 +414,7 @@ const res = await env.ARCADE.fetch('https://<站点>/api/me', {   // 主机名�
 
 - **码**：12 位 Crockford base32（60 bit），显示成 `ABCD-EFGH-JKMN`；不分大小写，输入时去掉空格和横线，`I`/`L` 当 `1`、`O` 当 `0`。
 - **两种码**，类型显式存在 `max_uses`：**普通码**（`max_uses` = 1）谁都能生成，按下面的额度，一码一人，注册后两人自动成为好友；
-  **长期码**（`max_uses` 2–1000，默认 100）只有管理员在管理页建（`POST /api/admin/invite-codes`，令牌不行），默认不过期（`expires_at` 存成远未来，接口给 `null`），不占额度、不算每天上限，注册后不加好友，能撤回（撤回不影响已经注册的人）。
+  **长期码**（`max_uses` 2–10000，默认 100）只有管理员在管理页建（`POST /api/admin/invite-codes`，令牌不行），建好后能改次数（`POST /api/admin/invite-codes/<id>/uses`，不小于已用），默认不过期（`expires_at` 存成远未来，接口给 `null`），不占额度、不算每天上限，注册后不加好友，能撤回（撤回不影响已经注册的人）。
   用户侧的生成接口传什么都只建普通码。注册的 `reg:ip`、`reg:all` 上限对两种码一样算。
   **存明文**：码本身是唯一索引，注册时直接按码查；很多人先生成、过几天才发，"我的"里没用的码要能再复制、再分享，只存哈希就只能撤回重生成。码只能拿来注册、7 天过期，泄露的代价很小，和"密码、恢复码、令牌只存哈希"不冲突。
   用掉、撤回、过期以后接口里只给末 4 位。链接 `/i/<码>` 打开注册页并预填好码（注册关着时也露出"注册"页签）。
