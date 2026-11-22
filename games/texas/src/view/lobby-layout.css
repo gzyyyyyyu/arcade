@@ -104,6 +104,9 @@
 .lobby .plays .play .pill { flex: none; width: 100%; }
 .lobby .play-note { font-size: var(--fs-1); line-height: 1.2; text-align: center; opacity: .8; text-wrap: balance; }
 .lobby .play-note.why { opacity: 1; font-weight: 800; }
+/* 竖屏一排放五个玩法会挤得字压字（"匹配真人""锦标赛 · 免费"连成一串）：折成三个、两个两排 */
+.stage.tall .lobby .plays { flex-wrap: wrap; row-gap: var(--s-2); }
+.stage.tall .lobby .plays .play { flex: 1 1 30%; }
 /* 灰着的档位卡：原来"最多输"那一行写要多少筹码；手机横屏收起了小字，这一行留着 */
 .lobby .tile small.need { font-weight: 800; opacity: 1; }
 .stage.tight:not(.tall) .lobby .stakes:not(.fun) .tile small.need { display: block; }

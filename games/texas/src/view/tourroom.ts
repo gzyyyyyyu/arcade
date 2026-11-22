@@ -1,8 +1,10 @@
 /**
  * 好友房锦标赛的结束页和淘汰提示的内容（docs/tournament.md 14.3）：只摆文字，名次、奖金都是房间算好的（RoomView.tour）。
- * 样式在 tour.css（限定在 .dialog 下，和单机的结束页共用 tour-sum 那一套）。
+ * 大字块、两栏和离桌结算共用 summary.ts；名次表的样式在 tour.css（限定在 .dialog 下，和单机的结束页共用）。
  */
+import type { HandResult } from '../core/table.ts';
 import { el } from './dom.ts';
+import { heroBox, lastHandBox, sumGrid } from './summary.ts';
 import { chips } from './text.ts';
 
 export interface TourRow {
@@ -28,15 +30,15 @@ interface TourEnd {
 }
 
 export function tourEndBody(i: TourEnd): HTMLElement {
-  const body = el('div', 'tour-sum');
+  const body = el('div', 'summary tour-sum');
   // 奖金按真人之间的名次分：大字写真人里第几，全桌名次（含电脑）放小字，免得"第 5 名拿全部奖池"看着像算错
   const mine = i.rows.findIndex((r) => r.me);
-  if (i.place === null || mine < 0) el('div', 'tour-place', body, `冠军 ${i.champion}`);
+  const prize = i.played ? (i.fun ? '娱乐赛：筹码不算数' : `结回钱包 ${chips(i.prize ?? 0)}`) : '';
+  if (i.place === null || mine < 0) heroBox(body, `冠军 ${i.champion}`, 'even', prize);
   else {
-    el('div', 'tour-place', body, i.rows.length > 1 ? `真人第 ${mine + 1} 名` : `第 ${i.place} 名`);
+    heroBox(body, i.rows.length > 1 ? `真人第 ${mine + 1} 名` : `第 ${i.place} 名`, mine === 0 || (i.prize ?? 0) > 0 ? 'win' : 'even', prize);
     if (i.rows.length > 1) el('div', 'sum-note', body, `全桌第 ${i.place} 名（含电脑）`);
   }
-  if (i.played) el('div', 'tour-prize', body, i.fun ? '娱乐赛：筹码不算数' : `结回钱包 ${chips(i.prize ?? 0)}`);
   const list = el('ol', 'tour-top', body);
   for (const [k, r] of i.rows.entries()) {
     const li = el('li', r.me ? 'me' : '', list);
@@ -49,11 +51,23 @@ export function tourEndBody(i: TourEnd): HTMLElement {
   return body;
 }
 
-/** 我被淘汰了（打完前）：名次已经定了，问看到结束还是现在离开 */
-export function tourOutBody(place: number, fun: boolean): HTMLElement {
-  const body = el('div', 'tour-out');
-  el('p', 'tour-out-place', body, `你出局了：全桌第 ${place} 名`);
-  el('p', '', body, fun ? '娱乐赛，筹码不算数。' : '打完按名次结奖金，直接结回钱包，不用你在线。');
-  el('p', 'sum-note', body, '看到结束：留在房间看谁拿冠军。现在离开：直接回首页，名次和奖金不变。');
+/** 我被淘汰了（打完前）：大字名次、奖金那句、打了几手和出局那一手；问看到结束还是现在离开（单机、好友房共用） */
+export interface TourOut {
+  place: number;
+  /** 大字下面那一句：娱乐赛筹码不算数 / 奖金多少 / 没进奖励圈 */
+  prize: string;
+  /** 单机知道我打了几手；好友房不写 */
+  hands?: number;
+  last: HandResult | null;
+  name: (seat: number) => string;
+  me: number;
+}
+
+export function tourOutBody(o: TourOut): HTMLElement {
+  const body = el('div', 'summary tour-out');
+  heroBox(body, `第 ${o.place} 名`, 'lose', o.prize);
+  if (o.hands !== undefined) sumGrid(body, [['打了', `${o.hands} 手`]]);
+  lastHandBox(body, '出局那手', o.last, o.name, o.me);
+  el('p', 'sum-note', body, '现在离开也照样排名次、结奖金。');
   return body;
 }

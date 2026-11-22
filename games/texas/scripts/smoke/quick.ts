@@ -75,7 +75,7 @@ export async function pushFoldFlow(browser: Browser, base: string): Promise<void
     const n = await playPf(page, tag, device.viewport?.height ?? 0, touch);
     await shot(page, `pushfold-${tag}-result`);
     const sum = (await page.locator('.pf-sum').textContent()) ?? '';
-    if (!/打了 \d+ 手/.test(sum)) throw new Error(`[${tag}] result card: ${sum}`);
+    if (!/打了\s*\d+ 手/.test(sum)) throw new Error(`[${tag}] result card: ${sum}`);
     const rec = await page.evaluate(() => JSON.parse(localStorage.getItem('texas.pushfold') ?? 'null') as { best: number; plays: number } | null);
     if (rec?.plays !== 1 || !(rec.best >= 0)) throw new Error(`[${tag}] texas.pushfold: ${JSON.stringify(rec)}`);
     const again = page.locator('.d-btn.primary', { hasText: '再来一局' });

@@ -2,10 +2,12 @@
  * 一场打完的结算页（试玩反馈："离桌直接回到标题页，只看到余额变了"）：单机离桌、好友房离开或房间关了时弹出。
  * 写清带上桌多少、结回多少、这一场 +/−，打了几手、赢了几手、最大的一手；到顶、输光各一句温和的话。
  * 只有一个"回首页"按钮，不放"再来一场"（快乐为主、不诱导，docs/economy.md 第 0 节）。
- * 0.18.4（美术 v3 第 5 步）：最上面一块大字写这一场 +/−，赢了金色带光、输了一句宽心话，不再和别的行长得一样。
+ * 最上面一块大字写这一场 +/−，赢了金色带光、输了一句宽心话；全下局结束、锦标赛出局也用这一套。
  */
 import { dialog } from './dialog.ts';
 import { el } from './dom.ts';
+import type { HandResult } from '../core/table.ts';
+import { resultLines } from './table/result.ts';
 import type { Award } from './titles.ts';
 import { chips, handName, signed } from './text.ts';
 
@@ -121,9 +123,32 @@ function awardBox(body: HTMLElement, awards: Award[]): void {
 /** 这一场的大字：赢了金色、输了柔和的红，各配一句（不嘲讽、不催着再来） */
 function hero(body: HTMLElement, net: number, played: boolean): void {
   const mood = net > 0 ? 'win' : net < 0 ? 'lose' : 'even';
+  heroBox(body, signed(net), mood, !played ? '还没打完一手' : mood === 'win' ? '这一场赢了！' : mood === 'lose' ? '牌有起落，下次手气就来了' : '不输不赢，打了个平手');
+}
+
+/** 结算类弹窗最上面的大字块：离桌结算、全下局结束、锦标赛出局共用一个样子 */
+export function heroBox(body: HTMLElement, big: string, mood: 'win' | 'lose' | 'even', line: string): void {
   const box = el('div', `sum-hero ${mood}`, body);
-  el('b', 'sum-net', box, signed(net));
-  el('span', 'sum-mood', box, !played ? '还没打完一手' : mood === 'win' ? '这一场赢了！' : mood === 'lose' ? '牌有起落，下次手气就来了' : '不输不赢，打了个平手');
+  el('b', 'sum-net', box, big);
+  el('span', 'sum-mood', box, line);
+}
+
+/** 大字下面的两栏数 */
+export function sumGrid(body: HTMLElement, rows: [label: string, value: string][]): void {
+  const grid = el('div', 'sum-grid', body);
+  for (const [k, v] of rows) row(grid, k, v);
+}
+
+/** 最后一手谁赢了什么（结果条同一套说法）：全下局输光、锦标赛出局时让人知道输给了谁 */
+export function lastHandBox(body: HTMLElement, label: string, r: HandResult | null, name: (seat: number) => string, me: number): void {
+  if (!r) return;
+  const mine = r.shown.find((x) => x.seat === me);
+  const box = el('div', 'sum-last', body);
+  el('span', 'sum-k', box, label);
+  const lines = el('span', 'sum-last-v', box);
+  // 一个池子一行（resultLines 已经转义了名字，只拼 <b>/<em>）；我输了再补一行我是什么牌
+  for (const l of resultLines(r, name, me)) el('span', '', lines).innerHTML = l.html;
+  if (mine && !r.pots.some((p) => p.winners.some((w) => w.seat === me))) el('span', '', lines, `你是 ${handName(mine.value)}`);
 }
 
 function row(grid: HTMLElement, label: string, value: string, cls = ''): void {
