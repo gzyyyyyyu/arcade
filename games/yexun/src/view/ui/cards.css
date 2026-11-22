@@ -23,6 +23,7 @@
   font-family: 'YxBrush', serif; font-weight: 400; font-size: 44px; color: #f6efdc;
   -webkit-text-stroke: 6px #17131c; paint-order: stroke fill;
 }
+.yx-picks-lv.chest { color: #ffd23a; }
 .yx-picks-tip { color: #f6efdc; font-size: var(--fs-md, 14px); text-shadow: 0 1px 2px #000; }
 .yx-picks-left { color: #ffd23a; font-weight: 800; }
 .yx-picks-left[hidden] { display: none; }

@@ -4,6 +4,11 @@
  */
 import { EVENT_ICON } from './eventIcons.ts';
 import './banner.css';
+import { BRUSH_CHARS } from './brushChars.ts';
+
+const BRUSH = new Set(BRUSH_CHARS);
+/** 这句全在毛笔字子集里（空格不算） */
+export const brushOk = (text: string): boolean => [...text].every((c) => c === ' ' || BRUSH.has(c));
 
 
 /** 宝箱展示的一组：evo 进化、merge 双修 / 合成、up 升级；tint 是合成自己的颜色 */
@@ -113,7 +118,8 @@ export class Banners {
   say(text: string, kind: 'warn' | 'gold' | 'ink' = 'ink', ms = 1800, sub?: string, ev?: string): void {
     const el = document.createElement('div');
     const icon = ev ? EVENT_ICON[ev] : undefined;
-    el.className = `yx-banner ${kind}${icon ? ` ev-${ev}` : ''}`;
+    // 标题里有毛笔字子集外的字（宝物名、怪名这类拼进来的），整条换粗体：一句里两种字体最难看
+    el.className = `yx-banner ${kind}${icon ? ` ev-${ev}` : ''}${brushOk(text) ? '' : ' plain'}`;
     el.innerHTML = `${icon ? `<span class="ic">${icon}</span>` : ''}<span class="t">${text}</span>${sub ? `<span class="s">${sub}</span>` : ''}`;
     this.root.appendChild(el);
     setTimeout(() => el.classList.add('out'), ms);

@@ -7,6 +7,7 @@
   font: 700 15px/1.3 system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #17131c;
 }
 .yx-banner .t { font-family: 'YxBrush', serif; font-weight: 400; font-size: 34px; }
+.yx-banner.plain .t { font-family: inherit; font-weight: 800; font-size: 28px; }
 .yx-banner .s { font-size: var(--fs-sm, 13px); opacity: 0.8; }
 .yx-banner.warn { background: linear-gradient(#5a1a24, #2a0c14); color: #ffe0d0; border-color: #17131c; }
 .yx-banner.warn .t { color: #ff7a5a; -webkit-text-stroke: 4px #17131c; paint-order: stroke fill; }

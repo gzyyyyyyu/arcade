@@ -148,7 +148,7 @@ export class Cards {
     const head = document.createElement('div');
     head.className = 'yx-picks-head';
     head.innerHTML =
-      `<span class="yx-picks-lv">${level === 'chest' ? '宝箱 · 挑一件' : `升到 ${level} 级`}</span><span class="yx-picks-tip yx-picks-left" hidden></span>` +
+      `<span class="yx-picks-lv${level === 'chest' ? ' chest' : ''}">${level === 'chest' ? '宝箱 · 挑一件' : `升到 ${level} 级`}</span><span class="yx-picks-tip yx-picks-left" hidden></span>` +
       (firstTime ? '<span class="yx-picks-tip">挑一个：新法器、法器升级，或者被动</span>' : '');
     this.root.appendChild(head);
     const row = document.createElement('div');
