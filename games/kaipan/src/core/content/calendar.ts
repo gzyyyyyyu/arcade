@@ -1,4 +1,4 @@
-import { fx } from '../balance.ts';
+import { BALANCE, fx } from '../balance.ts';
 import type { CalendarDef } from '../hooks.ts';
 
 /**
@@ -106,10 +106,10 @@ export const CALENDAR: readonly CalendarDef[] = [
   },
   {
     id: 'guoqing',
-    realDesc: '这个月只有 3 个交易日，钱照样要还',
+    realDesc: `这个月只有 ${BALANCE.monthDays[9]} 个交易日，钱照样要还`,
     month: 10,
     name: '国庆长假',
-    desc: '这个月只有 3 个交易日，钱照样要还；放假前大家都不太动，涨跌变小',
+    desc: `这个月只有 ${BALANCE.monthDays[9]} 个交易日，钱照样要还；放假前大家都不太动，涨跌变小`,
     market(r) {
       r.vol *= fx('guoqing', 'vol');
     },

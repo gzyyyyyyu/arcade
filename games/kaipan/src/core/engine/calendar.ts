@@ -108,12 +108,12 @@ function monthStartDay(month: number): number {
 }
 
 /**
- * 第 month 月的新股和日程：除了第 1 个月和最后一个月，每月第 floor(当月天数 / 2) 个交易日盘前开放申购，
+ * 第 month 月的新股和日程：BALANCE.ipo.fromMonth 起、最后一个月除外，每月第 floor(当月天数 / 2) 个交易日盘前开放申购，
  * 题材和新股只由种子定（rng 用途 `ipo`，按月分流）；不开打新的局和没有新股的月份为 null。
  * 日程：申购日 D 和 D+1 冻结，D+1 收盘后出签，D+2 上市（首日）。
  */
 export function ipoOffer(s: Readonly<GameState>, month: number): IpoOffer | null {
-  if (!hasIpo(s) || month < 2 || month >= runMonths(s) || s.themeIds.length === 0) return null;
+  if (!hasIpo(s) || month < BALANCE.ipo.fromMonth || month >= runMonths(s) || s.themeIds.length === 0) return null;
   const rng = rngFor(s.seed, 'ipo', month);
   const theme = s.themeIds[rng.int(s.themeIds.length)] as ThemeId;
   const pool = IPO_STOCKS.filter((d) => d.theme === theme);

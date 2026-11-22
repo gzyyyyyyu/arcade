@@ -1,5 +1,6 @@
 import type Phaser from 'phaser';
 import {
+  BALANCE,
   SIZE_LABEL,
   formatMoney,
   holdingBase,
@@ -79,11 +80,11 @@ export class IpoPanel extends Dialog {
       b.add(ft);
       b.setEnabled(err === null);
       b.onDenied(() => err);
-      b.tooltip(() => ({ title: `抽新股 · ${SIZE_LABEL[size]}`, body: `冻结 ${unitsWord(units)}的现金，到出签那天收盘。抽中只配 1 份新股，剩下的现金退回；没抽中，现金原样退回。` }));
+      b.tooltip(() => ({ title: `抽新股 · ${SIZE_LABEL[size]}`, body: `冻结 ${unitsWord(units)}的现金，到出签那天收盘。抽中只配 ${BALANCE.ipo.units} 份新股，剩下的现金退回；没抽中，现金原样退回。` }));
       this.inner.add(b);
       this.named[`ipo:${size}`] = b;
     });
-    const t1 = addText(scene, 30, 240, '多冻结只提高抽中率，抽中了都只配 1 份：钱冻得越多，白白闲置得越多。', { size: TYPE.label, color: COLOR.muted, wrap: W - 60, lineSpacing: 4 });
+    const t1 = addText(scene, 30, 240, `多冻结只提高抽中率，抽中了都只配 ${BALANCE.ipo.units} 份：钱冻得越多，白白闲置得越多。`, { size: TYPE.label, color: COLOR.muted, wrap: W - 60, lineSpacing: 4 });
     this.inner.add(t1);
     this.inner.add(addText(scene, 30, Math.max(284, t1.y + t1.height + 12), '申购占一个空格；冻结期间不涨不跌，也不能卖。', { size: TYPE.label, color: COLOR.muted, wrap: W - 60 }));
   }

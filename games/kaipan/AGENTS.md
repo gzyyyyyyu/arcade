@@ -19,7 +19,7 @@
   - `tests/core/fingerprint.test.ts`：25 局整局指纹，`UPDATE_FINGERPRINT=1 npx vitest run tests/core/fingerprint.test.ts`；
   - `tests/core/replay-golden.test.ts`：合成行情回放基准，`UPDATE_REPLAY_GOLDEN=1 npx vitest run tests/core/replay-golden.test.ts`。
 - 每日挑战、闪电盘、本周市场、实盘要和排行榜、配平表对得上：往它们的抽取池（奖励、事件、主题）加东西会改变同种子的结果，新内容默认只给真实行情的普通局（`isRegularRun`）。
-- 改数值用 `npm run sim` 验证（难度梯度、牛熊都有通关路径、牛市不能躺赢、抵押不是最优解）；口径见 `docs/design-balance.md`。改到实盘期望的要报主线。
+- 改数值用 `npm run sim` 验证（难度梯度、牛熊都有通关路径、牛市不能躺赢、抵押不是最优解）；口径见 `docs/design-balance.md`。改到实盘期望的，PR 里写明改前改后的模拟数。
 
 ## 3. 画面和冒烟
 

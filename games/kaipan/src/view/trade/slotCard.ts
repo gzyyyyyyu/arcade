@@ -197,12 +197,14 @@ export class SlotCard {
 
   /** 竖屏版的矮卡（0.33.0）：第一行的签从这里往右排、到这里为止（放大镜在右上角） */
   private compact = false;
+  /** 矮卡累计只写钱时，钱上方（名字那一行右边）的小字「累计」 */
+  private holdWord: Phaser.GameObjects.Text | null = null;
   private row1X = 0;
   private row1Right = 0;
 
   /**
    * 竖屏版的矮卡（0.33.0，约 124–190 宽、94–103 高）：第一行风口签（押跌写「押跌」）、仓位份数、连板签，右上角放大镜；
-   * 左边小人，右边名字和涨跌（宽卡再写累计）；最下面「卖出」「加减」。走势框、热度、跑赢跑输、ST 签都在悬停和详情里。
+   * 左边小人，右边名字和涨跌（宽卡再写累计，只写得下钱时名字那一行右边补小字「累计」）；最下面「卖出」「加减」。走势框、热度、跑赢跑输、ST 签都在悬停和详情里。
    */
   private drawCompact(card: HoldingCard, idle: boolean, onSell: (slot: number) => void, busy: boolean, onInspect?: (slot: number) => void, ext: SlotExt | null = null, onMore?: (slot: number) => void, onMenu?: (slot: number) => void): void {
     const { scene, slot } = this;
@@ -244,6 +246,7 @@ export class SlotCard {
     this.today = addText(scene, colX, y + 40, '', { size: 17, bold: true, num: true });
     // 累计：宽卡（2 张一行）写在涨跌右边；窄卡只在悬停里
     this.hold = addText(scene, x + w - 8, y + 50, '', { size: 14, bold: true, num: true, color: COLOR.muted, originX: 1, originY: 0.5 }).setVisible(w >= 170);
+    this.holdWord = addText(scene, x + w - 8, y + 37, '累计', { size: 10, color: COLOR.muted, originX: 1, originY: 0.5 }).setVisible(false);
     // 点卡身看详情：从卡顶到「卖出」的点击区为止、让开右上角放大镜那一列，高约 55（点击区够 HIT_MIN）
     const bodyH = sellY - pad.top - y;
     const bodyW = w - magS;
@@ -279,7 +282,7 @@ export class SlotCard {
             : null,
     );
     this.sell.onDenied(() => (this.sellBlocked === 'busy' ? '今天在加班，顾不上炒股，不能买也不能卖' : this.sellBlocked === 't1' ? '今天买的，明天才能卖' : null));
-    this.root.add([frame, ...(flip ? [flip] : []), cardHit, body, tag, tagText, this.guy, magIcon, mag, name, this.today, this.hold, this.sell, ...(this.more ? [this.more] : [])]);
+    this.root.add([frame, ...(flip ? [flip] : []), cardHit, body, tag, tagText, this.guy, magIcon, mag, name, this.today, this.hold, this.holdWord, this.sell, ...(this.more ? [this.more] : [])]);
     this.update(card, true, busy);
   }
 
@@ -477,16 +480,22 @@ export class SlotCard {
     const pre = c.todayRet === null && !boughtToday && this.state ? (stockMoves(this.state, c.id, 1).at(-1) ?? null) : null;
     this.setToday(c.todayRet ?? pre, boughtToday && premarket);
     // 0.35.0 累计写百分比和钱（「累计 ↑16.4% +¥1,230」）；放不下先去掉「累计」两个字，再去掉钱（都在卡身的悬停说明里）。
-    // 0.36.1 矮卡（竖屏）：累计和当天涨跌在同一行，按当天涨跌右边剩下的宽度量；放不下整句时只写钱，
-    // 不然两个光秃秃的百分比并排，新手分不清哪个是今天、哪个是买入以来
+    // 0.36.1 矮卡（竖屏）：累计和当天涨跌在同一行，按当天涨跌右边剩下的宽度量；放不下整句时写「累计 + 钱」，再不行只写钱，
+    // 不然两个光秃秃的百分比并排，新手分不清哪个是今天、哪个是买入以来；光秃秃的钱挨着当天涨跌，也会被当成当天赚亏
     const money = c.holdMoney === 0 ? '' : formatMoney(c.holdMoney, { sign: true });
     const hold = this.hold;
     const today = this.today;
     const room = this.compact && today ? this.rect.x + this.rect.w - 8 - (today.x + today.width + 8) : this.tiny ? 0 : this.rect.w - 20;
-    const tries = [`${holdText(c.holdRet)}${money ? ` ${money}` : ''}`, ...(this.compact ? [money] : [`${pctArrow(c.holdRet)}${money ? ` ${money}` : ''}`]), pctArrow(c.holdRet)].filter((t) => t !== '');
+    const tries = [`${holdText(c.holdRet)}${money ? ` ${money}` : ''}`, ...(this.compact ? [money && `累计 ${money}`, money] : [`${pctArrow(c.holdRet)}${money ? ` ${money}` : ''}`]), pctArrow(c.holdRet)].filter((t) => t !== '');
     for (const t of tries) {
       hold.setText(t);
       if (hold.width <= room) break;
+    }
+    // 竖屏 390 宽连「累计 -¥1,121」都放不下：钱单独写，上方名字那一行右边补小字「累计」（名字太长挨上了就不写）
+    const word = this.holdWord;
+    if (word && this.nameText) {
+      const left = word.x - word.width - 6;
+      word.setVisible(hold.visible && !hold.text.startsWith('累计') && this.nameText.x + this.nameText.width <= left);
     }
     setColor(hold, pctColor(c.holdRet));
     this.holdBg?.setFillStyle(Math.abs(c.holdRet) < 0.05 ? COLOR.muted : signColor(c.holdRet), 0.16);

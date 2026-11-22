@@ -14,7 +14,8 @@
   （北京日期；规则版本 `DAILY_RULES` 大于 0 时在子榜后加 `-v<n>`），显示规则在 `public/daily.json` 的 `boards.classic` / `boards.flash`；平台那边要在登记里写这两个子榜。
   本周市场交到周榜 `week-YYYY-Www-rules`（周号是北京时间 ISO 周，分数 = 最终资产元数，只收当周），显示规则在 `public/weekly.json` 的 `boards.rules`，平台登记里也要写这个榜。
   只有用当天冻结段池（`src/core/content/dailySegments.ts`）里那段真实行情的局才交；段池顺序和数量不能改，要换就加版本。
-  429、busy、wrong_user 不重试，连不上给「重试」。读榜按榜和范围缓存 45 秒，交上分时作废。
+  429（限流）结束页写「成绩稍后补交」，照平台给的 retryAfter（没给按 60 秒）自动补交一次，再被限写「这局成绩没交上」；busy、wrong_user 不重试，连不上给「重试」。读榜按榜和范围缓存 45 秒，交上分时作废。
+- **请求超时**（`src/platform/fetchTimeout.ts`）：排行榜、好友挑战、实盘的请求最多等 10 秒，云存档 20 秒；超时按连不上处理，走各自原来的说法和重试。
 - **实盘**（设计 `design-live.md`）：规则在开局设置 `RunSetup.live` 和 `src/core/live.ts`（四档对应难度 1/2/3/3，杠杆 1× / 2× / 3×）；
   档位表和结回算法在 `src/core/liveTiers.ts`（Worker 也用）。钱包走浏览器 → 开盘 Worker（同域 `POST api/live/{buyin,settle,refund}`，`src/worker/live.ts`）
   → 服务绑定 `WALLET`；浏览器只给 `ref`、`tier`、`bp`，金额和到期时间由 Worker 定。这台设备上的账在 `kaipan.live`（`src/platform/live.ts`）：
@@ -25,6 +26,7 @@
 - **社交**：有登录提示时挂共用包 `arcade-kit/social`，报「在玩开盘」、收好友邀请。
 - **回大厅**（`src/view/lobby.ts`）：跳平台首页 `/`。主页和结束页左上角的「大厅」直接走；对局里从设置走先确认一次，走之前先补传云存档
   （keepalive 额度记账在 `src/platform/keepalive.ts`）。电脑上叠了一个透明的 DOM 按钮（`src/view/ui/domProxy.ts`），读屏和自动化能点到。
+  画布外的 DOM（这个影子按钮、转屏提示、出错面板、好友面板）上的按下不冒到 window（`src/main.ts`）：Phaser 会把它当成点画布，触屏上会连带点到正下方的画布按钮。
 - **安全头**（`public/_headers`）：CSP、`frame-ancestors 'self'`、`X-Frame-Options: SAMEORIGIN`；经 Worker 回的首页也带上。用到新来源时同时改这里，`tests/repo/headers.test.ts` 锁底线。
 - 未捕获的错误弹独立面板，可以继续、重新载入、放弃存档开新局或复制错误信息；最近 20 条错误记在 `kaipan.errors`。没人接住的报错同时经共用包 `arcade-kit/report` 发给平台 `/api/client-error`（单独部署时没有这个接口，发不出去就算了）。
 

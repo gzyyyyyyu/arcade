@@ -280,9 +280,34 @@ describe('这一局能不能上榜', () => {
     expect(f.calls).toHaveLength(3);
   });
 
-  it('429、busy、wrong_user 不给重试', async () => {
+  it('429：写「成绩稍后补交」，照 retryAfter 自动补交一次；再被限照实写没交上，不提快慢', async () => {
+    vi.useFakeTimers();
+    try {
+      for (const [second, retryAfter, wait, end] of [
+        [json({ best: 7, improved: true }), 100, 100_000, '新纪录！成绩交上了'],
+        [json({ error: 'rate_limited' }, 429), null, 60_000, '这局成绩没交上'],
+      ] as const) {
+        let n = 0;
+        const f = fake((c) => (c.url !== '/api/scores' ? json({ entries: [], me: null }) : n++ === 0 ? json({ error: 'rate_limited', ...(retryAfter ? { retryAfter } : {}) }, 429) : second.clone()));
+        setBoardDeps(f.deps);
+        const s = sum();
+        submitRun(s.runId, state(), s, ok, date);
+        await vi.advanceTimersByTimeAsync(0);
+        expect(boardLine(runBoard(s.runId))).toEqual({ text: '成绩稍后补交', good: false, retry: false });
+        await vi.advanceTimersByTimeAsync(wait - 1);
+        expect(f.calls.filter((c) => c.url === '/api/scores')).toHaveLength(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(boardLine(runBoard(s.runId))?.text).toBe(end);
+        await vi.advanceTimersByTimeAsync(10 * 60_000);
+        expect(f.calls.filter((c) => c.url === '/api/scores')).toHaveLength(2);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('busy、wrong_user 不给重试', async () => {
     for (const [res, text] of [
-      [json({ error: 'rate_limited' }, 429), '交成绩太频繁了，歇一会儿再试'],
       [json({ error: 'busy' }, 503), '服务器今天有点忙，成绩先交不上，明早恢复'],
       [json({ error: 'wrong_user' }, 409), '账号换过了，刷新后再打一局才能上榜'],
       [new Response('oops', { status: 200 }), '成绩交了，点「排行榜」看看'],

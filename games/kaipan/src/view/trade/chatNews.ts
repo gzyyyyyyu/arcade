@@ -12,6 +12,13 @@ import type { ChatView3 } from './chat.ts';
  * 折叠的新闻条（画面重点：新闻收进群聊里，不跟小结卡、猫抢眼）：一行「今日新闻（3 条）· 点开看」，
  * 点一下在群聊里展开完整新闻卡（盖在消息上面），再点一下或点卡片收起。
  */
+/** 头名一行：放不下时先去掉「领涨 / 领跌」（颜色和正负号已经说了涨跌），还放不下再缩名字，数字不缩 */
+function leadText(t: Phaser.GameObjects.Text, top: { name: string; move: number }, room: number): Phaser.GameObjects.Text {
+  const tail = ` ${formatPoints(top.move)}`;
+  t.setText(`${top.move > 0 ? '领涨' : '领跌'} ${top.name}${tail}`);
+  return t.width > room ? fitKeepTail(t, top.name, tail, room) : t;
+}
+
 export function newsFold(v: ChatView3, list: NewsItem[], heading: string, board: DragonBoard | null = null): { node: Phaser.GameObjects.Container; h: number } {
   const s = v.scene;
   const node = s.add.container(0, 0).setVisible(false);
@@ -22,9 +29,7 @@ export function newsFold(v: ChatView3, list: NewsItem[], heading: string, board:
   const more = addText(s, CX + CW - 12, h / 2, '展开 ▾', { size: FS.xs, bold: true, color: COLOR.info, originX: 1, originY: 0.5 });
   // 0.36 折着也露出龙虎榜的头名：涨得最多的一只（没有就跌得最多的）
   const top = board?.up[0] ?? board?.down[0];
-  const lead = top
-    ? [fitKeepTail(addText(s, title.x + title.width + 10, h / 2, '', { size: FS.xs, bold: true, color: signColor(top.move), originY: 0.5 }), `${top.move > 0 ? '领涨' : '领跌'} ${top.name}`, ` ${formatPoints(top.move)}`, more.x - more.width - title.x - title.width - 20)]
-    : [];
+  const lead = top ? [leadText(addText(s, title.x + title.width + 10, h / 2, '', { size: FS.xs, bold: true, color: signColor(top.move), originY: 0.5 }), top, more.x - more.width - title.x - title.width - 20)] : [];
   // 条只有 30 高：触屏上点击区上下撑到 HIT_MIN（docs/ui.md：触屏可点区域 ≥ 44 像素）
   const hit = touchHit(s, CX + CW / 2, h / 2, CW, h);
   hit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {

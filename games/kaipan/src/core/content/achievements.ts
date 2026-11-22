@@ -5,6 +5,9 @@ import { ITEMS } from './items.ts';
 import { personaAccount } from './personas.ts';
 import { STOCKS } from './stocks.ts';
 
+/** 「坐得住」要拿满几个交易日 */
+const SIT_TIGHT_DAYS = 20;
+
 const roleOf = new Map(STOCKS.map((d) => [d.id, d.role]));
 
 /** 道具名（带引号），跟着道具表走。 */
@@ -415,11 +418,11 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
   {
     id: 'sit_tight',
     name: '坐得住',
-    desc: '同一只股票拿满 4 个月（20 个交易日），最后还是赚的',
+    desc: `同一只股票拿满 ${SIT_TIGHT_DAYS} 个交易日，最后还是赚的`,
     tier: 'bronze',
     icon: 'clover',
     // 押跌不算：押跌是「它跌你赚」，不是拿着不动；拿到结束还没卖的也算（reason 为 end）
-    check: (c) => c.trades.some((t) => !t.short && t.sellDay - t.buyDay >= 20 && t.ret > 0),
+    check: (c) => c.trades.some((t) => !t.short && t.sellDay - t.buyDay >= SIT_TIGHT_DAYS && t.ret > 0),
   },
   {
     id: 'no_red',

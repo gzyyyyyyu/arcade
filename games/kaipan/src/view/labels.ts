@@ -2,6 +2,7 @@ import {
   BALANCE,
   baseBill,
   dailyScoreView,
+  flashDays,
   formatMoney,
   formatPoints,
   totalDays,
@@ -18,6 +19,10 @@ import {
 import type { RunBoard } from './dailyBoard.ts';
 import { FEEL_CYCLE, TURN_WORD } from './glossary.ts';
 import { ellipsize } from '../core/format.ts';
+
+/** 闪电盘、本周市场打几个交易日、第几天收盘后来事件（读规则表） */
+export const FLASH_DAYS = flashDays();
+export const FLASH_EVENT_DAYS = `第 ${BALANCE.flash.eventAfter.join('、')} 天`;
 
 /**
  * 界面文案与纯计算（不依赖 Phaser，可单测）。涉及规则的数字一律从 core 取。
@@ -359,6 +364,7 @@ export function boardLine(b: RunBoard, kind: 'classic' | 'flash' | 'weekly' = 'c
   if (b.state === 'none') return null;
   if (b.state === 'skip') return plain(b.why === 'synthetic' ? '这局用的是模拟行情，不计入排行' : kind === 'weekly' ? '这周已经过了，这局不计入排行' : '日期过了，这局不计入排行');
   if (b.state === 'sending') return plain('正在交成绩……');
+  if (b.state === 'later') return plain('成绩稍后补交');
   const r = b.result;
   if (r.kind === 'ok') {
     const when = kind === 'weekly' ? '本周' : '今日';
@@ -367,7 +373,8 @@ export function boardLine(b: RunBoard, kind: 'classic' | 'flash' | 'weekly' = 'c
     return plain(`${rank ? `${rank} · ` : ''}榜上最好：${show(r.best)}`);
   }
   // 0.6.5 照平台的错误码对照表（15.10）说清怎么办
-  if (r.kind === 'limit') return plain(`交成绩太频繁了，歇一会儿再试${r.retryAfter ? `（${Math.max(1, Math.ceil(r.retryAfter / 60))} 分钟后）` : ''}`);
+  // 自动补交过一次还是被限：照实说没交上，不提快慢
+  if (r.kind === 'limit') return plain('这局成绩没交上');
   if (r.kind === 'busy') return plain('服务器今天有点忙，成绩先交不上，明早恢复');
   // 刷新后这一局已经结算过、不会再交：要上榜得换好账号再打一局
   if (r.kind === 'wrong_user') return plain('账号换过了，刷新后再打一局才能上榜');

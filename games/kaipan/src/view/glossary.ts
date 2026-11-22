@@ -1,4 +1,4 @@
-import { DIR_LABEL, FEEL_LABEL, fx, itemById, MOOD_LABEL, ROLE_LABEL, STAGE_LABEL, type Dir, type Feel, type Mood, type Role, type Stage, type TurnTalk } from '../core/index.ts';
+import { BALANCE, DIR_LABEL, FEEL_LABEL, fx, itemById, MOOD_LABEL, ROLE_LABEL, STAGE_LABEL, type Dir, type Feel, type Mood, type Role, type Stage, type TurnTalk } from '../core/index.ts';
 
 /**
  * 小白词表（docs/design-play.md 第 2 节）：画面上一律用新说法，A 股原词只出现在提示和词典的括注里。
@@ -85,8 +85,8 @@ export const GLOSSARY: readonly Term[] = [
   { key: 'follower', word: ROLE_LABEL.follower, original: '跟风', explain: '跟着大哥走，大哥涨停它也沾光。', example: '大哥吃肉，小弟喝汤，汤也挺香。' },
   { key: 'bluechip', word: ROLE_LABEL.bluechip, original: '白马', explain: '涨得慢、跌得也少，适合压舱。', example: '它是你股票里那个按时上班、从不请假的同事。' },
   { key: 'meme', word: ROLE_LABEL.meme, original: '妖股', explain: '经常突然暴涨或暴跌，刺激但危险。', example: '早上还在天上，下午已经在地下室了。' },
-  { key: 'st', word: ROLE_LABEL.st, original: 'ST', explain: '公司出了问题，每天最多只涨跌 5%。名字前带 ST 的，都是出了问题的公司。可能翻身（问题解决后，连着几天涨停），也可能退市归零。', example: '买它之前，先把心脏病药放桌上。' },
-  { key: 'limit', word: '涨停 / 跌停', original: '涨停、跌停', explain: '一天最多涨 10%（或跌 10%），涨满了就叫涨停，跌满了叫跌停。道具的加成可以让收益超过 10%。', example: '涨停是天花板，跌停是地板，你在电梯里。' },
+  { key: 'st', word: ROLE_LABEL.st, original: 'ST', explain: `公司出了问题，每天最多只涨跌 ${BALANCE.roles.st.limit}%。名字前带 ST 的，都是出了问题的公司。可能翻身（问题解决后，连着几天涨停），也可能退市归零。`, example: '买它之前，先把心脏病药放桌上。' },
+  { key: 'limit', word: '涨停 / 跌停', original: '涨停、跌停', explain: `一天最多涨 ${BALANCE.roles.leader.limit}%（或跌 ${BALANCE.roles.leader.limit}%），涨满了就叫涨停，跌满了叫跌停。道具的加成可以让收益超过 ${BALANCE.roles.leader.limit}%。`, example: '涨停是天花板，跌停是地板，你在电梯里。' },
   { key: 'boards', word: '连续涨停', original: '连板', explain: '连着好几天都涨停，越连越猛，但随时可能没封住。', example: '连续涨停 5 天的股票，名字会被群主写进课程宣传。' },
   { key: 'broken', word: '涨停没封住', original: '炸板', explain: '本来涨停了，收盘前又被砸下来。', example: '到嘴的鸭子，扑棱两下飞走了。' },
   { key: 'chain', word: '大哥带小弟', original: '龙头带动', explain: '带头大哥涨停时，同一个风口的小弟会额外多涨一点。', example: '大哥上了热搜，小弟的粉丝也涨了。' },
@@ -100,7 +100,7 @@ export const GLOSSARY: readonly Term[] = [
   { key: 'bill', word: '这个月要还', original: '月供', explain: '每个月底要从账户里还一笔钱，名目越来越离谱。月底还不上，游戏就结束。', example: '这个月的名目是"表舅的婚礼份子钱"。' },
   { key: 'margin', word: '借钱炒股', original: '两融', explain: '借钱放大收益：赚的时候多赚，亏的时候也多亏。', example: '用别人的钱炒股，心跳是自己的。' },
   { key: 'ipo', word: '抽中新股', original: '打新中签', explain: `抽中新上市的股票，往往能白捡一笔。在游戏里就是每个月初账户 +${fx('ipo', 'pct')}%。`, example: '比彩票中奖率高一点，比捡钱低一点。' },
-  { key: 'newstock', word: '新股', original: '打新、新股上市', explain: '每个月中旬有一只新股可以申购（抽签）。中签只配 1 份，上市头两天常常大涨，也可能一上市就跌（破发）；之后和别的股票一样，可以拿着，也可以卖。', example: '抽签像开盲盒：中了不一定赚，没中钱原样退回。' },
+  { key: 'newstock', word: '新股', original: '打新、新股上市', explain: `每个月中旬有一只新股可以申购（抽签）。中签只配 ${BALANCE.ipo.units} 份，上市头两天常常大涨，也可能一上市就跌（破发）；之后和别的股票一样，可以拿着，也可以卖。`, example: '抽签像开盲盒：中了不一定赚，没中钱原样退回。' },
   { key: 'lowbuy', word: '冷时买的', original: '低吸', explain: `你是在它${FEEL_LABEL.cold}或${FEEL_LABEL.cooling}时买的。只有带「${itemById('dixi').name}」这类道具时才有加成，否则只是个记号。`, example: '别人恐惧时我贪婪，别人贪婪时我已经睡了。' },
   { key: 'bust', word: '游戏结束', original: '爆仓', explain: '月底账户不够还这个月要还的钱，游戏就结束。', example: '和房东说"下个月一定"，这次不灵了。' },
 ];
