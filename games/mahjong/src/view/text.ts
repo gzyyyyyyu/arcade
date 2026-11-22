@@ -191,7 +191,8 @@ export function walletError(code: string, retryAfter?: number): { text: string; 
     case 'internal':
       return { text: NET_FAIL };
     case 'rate_limited':
-      return { text: `操作太频繁了，歇一会儿再试${retryAfter ? `（${Math.ceil(retryAfter / 60)} 分钟后）` : ''}` };
+      // 限流不怪玩家「太快、太频繁」（所有者：对用户无感的限速），只说服务器忙、什么时候再来
+      return { text: `服务器这会儿忙，${retryAfter ? `${Math.ceil(retryAfter / 60)} 分钟后` : '过一会儿'}再试` };
     case 'login':
       return { text: '登录过期了，重新登录再来', fix: 'refresh' };
     case 'unavailable':

@@ -36,6 +36,14 @@
   font-size: var(--fs-sm);
   opacity: 0.85;
 }
+/* 横屏高度紧：颁奖牌子压矮一截（名字小一档、内边距收一档），一场的名次四行能和颁奖放在同一页（11-22 走查：1280×720 上第 4 名被挤到第二页） */
+[data-orient='land'] .summary.awards .award {
+  padding: var(--sp-2) var(--sp-3);
+}
+[data-orient='land'] .summary.awards .award-who {
+  margin: 0;
+  font-size: var(--fs-xl);
+}
 .summary .rows {
   display: flex;
   flex-direction: column;

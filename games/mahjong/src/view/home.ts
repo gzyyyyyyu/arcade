@@ -28,8 +28,10 @@ interface HomeProps {
   variants?: { ids: string[]; current: string; onPick(id: string): void };
   /** 有没打完的单机：按钮换成"继续上局"，底下一行写是哪一场、打到第几局 */
   resume: string | null;
-  /** 实盘卡灰掉的原因（钱包连不上、没筹码）；null 是能选。单独部署没有实盘卡 */
-  realOff: string | null;
+  /** 实盘卡灰掉：卡上一行短话（label，窄的横屏手机上也不折行），点卡提示完整原因（why，钱包连不上、登录过期、没筹码）；null 是能选。单独部署没有实盘卡 */
+  realOff: { label: string; why: string } | null;
+  /** 点灰掉的卡时说原因（app 层的提示条） */
+  onNote(text: string): void;
   standalone: boolean;
   /** 单机的战绩（本地记的）：没打过时是 null */
   record: { played: number; won: number; lost: number } | null;
@@ -67,11 +69,11 @@ export function renderHome(box: HTMLElement, p: HomeProps): void {
   }
 
   const modes = el('div', 'modes', main);
-  const card = (id: HomeMode, icon: 'fun' | 'lux' | 'room', name: string, line: string, off: string | null): void => {
-    const b = button(`mode ${id}${off ? ' off' : ''}`, modes, '', () => (off ? undefined : p.onMode(id)));
+  const card = (id: HomeMode, icon: 'fun' | 'lux' | 'room', name: string, line: string, off: { label: string; why: string } | null): void => {
+    const b = button(`mode ${id}${off ? ' off' : ''}`, modes, '', () => (off ? p.onNote(off.why) : p.onMode(id)));
     b.insertAdjacentHTML('afterbegin', stakeIcon(icon));
     el('b', '', b, name);
-    el('small', '', b, off ?? line);
+    el('small', '', b, off?.label ?? line);
   };
   card('fun', 'fun', '娱乐', '不算筹码', null);
   if (!p.standalone) card('real', 'lux', '实盘', '用钱包筹码', p.realOff);
