@@ -257,6 +257,9 @@ describe('座位换人', () => {
     expect(debits(s).map(strip)).toEqual([{ id: 'b2', seat: 3, kind: 'debit', amount: MAX }]);
     s = settleAll(s);
     expect(G.view(s, 3).buying[3]).toBe(true);
+    // 名牌上写他到账的买入，不写电脑剩下的（自己和别人看都一样）；桌上那份还是电脑的
+    expect(s.t.seats[3]!.stack).toBe(house.stack);
+    for (const who of [0, 3]) expect(G.view(s, who).seats[3]!.stack).toBe(MAX);
     // 这一手打完：电脑离桌（筹码收回庄家，不结给任何人），他坐上去
     while (s.t.handNo === 1) s = drive(act(s, G.turn(s)!, { t: 'fold' }));
     // 停着那几秒里就坐上了，下一手直接发到他（盲注可能已经交了一点）
