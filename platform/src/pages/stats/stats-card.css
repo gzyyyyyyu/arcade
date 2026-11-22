@@ -174,7 +174,8 @@ html.no-motion .pcard { animation: none; }
 .stats-page .ov-head { flex: none; padding: 0 var(--s-3); color: var(--muted); font-size: var(--fs-xs); }
 .stats-page .ov-head span:not(:first-child), .stats-page .ov-row span { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .stats-page .ov-row { width: 100%; min-height: 44px; padding: var(--s-1) var(--s-3); font: inherit; color: var(--ink); text-align: left; background: var(--white); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); cursor: pointer; }
-.stats-page .ov-row strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 游戏名放不下就折成两行（"德州/扑克"），不用省略号截（docs/ui.md 第 10 节） */
+.stats-page .ov-row strong { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
 @media (hover: hover) { .stats-page .ov-row:hover { background: var(--highlight-warm); } }
 
 /* 游戏页签：左边战绩数字（标签左、数字右），右边称号墙 */
@@ -220,4 +221,8 @@ html.no-motion .pcard { animation: none; }
 @media (max-height: 420px) {
   .stats-page .badges .badge__disc { width: 30px; height: 30px; }
   .stats-page .badges .badge__bar { display: none; }
+}
+/* 手机竖屏：游戏页签一行放不下就折行，全都看得到（原来横滑，第 5 个只露半个） */
+@media (max-width: 560px) {
+  .stats-page .stats-tabs { flex-wrap: wrap; overflow: visible; }
 }

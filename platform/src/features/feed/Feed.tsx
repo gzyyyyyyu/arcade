@@ -362,7 +362,8 @@ export function FeedButton({ me }: { me: string }) {
   };
   return (
     <span className="feedpop" ref={root}>
-      <button className="account feedpop__btn" type="button" aria-expanded={open} aria-controls="feedpop" data-testid="feed-button" onClick={() => setOpen(!open)}>
+      {/* 在动态页时和顶栏别的项一样标成当前页（暖色底） */}
+      <button className="account feedpop__btn" type="button" aria-expanded={open} aria-controls="feedpop" aria-current={path === '/feed' ? 'page' : undefined} data-testid="feed-button" onClick={() => setOpen(!open)}>
         <FeedIcon />
         <span className="feedpop__label">动态</span>
         {fresh && <span className="dot" role="img" aria-label="有新动态" data-testid="feed-dot" />}

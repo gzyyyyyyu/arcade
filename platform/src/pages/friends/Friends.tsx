@@ -122,7 +122,7 @@ function Friends() {
       {data.friends.length === 0 ? (
         <Empty
           action={
-            <button className="btn btn--small btn--primary" type="button" onClick={goInvite}>
+            <button className="btn btn--small" type="button" onClick={goInvite}>
               去发我的好友链接
             </button>
           }
@@ -152,7 +152,7 @@ function Friends() {
       ]
     : [
         { id: 'friends', name: '好友', body: friendsPanel },
-        ...(requests.length ? [{ id: 'req', name: data?.incoming.length ? `请求（${data.incoming.length}）` : '请求', body: <div className="friends-side">{requests}</div> }] : []),
+        ...(requests.length ? [{ id: 'req', name: data?.incoming.length ? `请求 ${data.incoming.length}` : '请求', body: <div className="friends-side">{requests}</div> }] : []),
         { id: 'add', name: '加好友', body: <AddByCode /> },
         { id: 'code', name: '好友码', body: <MyCode /> },
       ];
@@ -219,7 +219,7 @@ function MyCode() {
           <FormError text={error} />
           {done && <p className="ok">换好了</p>}
           <button
-            className="btn btn--primary"
+            className="btn"
             type="button"
             aria-busy={busy}
             disabled={busy || !writable}
@@ -255,7 +255,7 @@ function AddByCode() {
         }}
       >
         <Field label="对方的好友码" hint="8 位，不分大小写" name="friendCode" autoComplete="off" autoCapitalize="characters" spellCheck={false} required value={code} onChange={(e) => setCode(e.target.value)} />
-        <button className="btn btn--primary" type="submit">
+        <button className="btn" type="submit">
           查找
         </button>
       </form>

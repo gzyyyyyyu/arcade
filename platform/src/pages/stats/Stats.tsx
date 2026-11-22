@@ -181,8 +181,10 @@ export function StatsPage() {
   }, [user, who, tick]);
 
   const badge = useBadge(data);
+  // 读取中、出错时的标题和读完一致：看自己的写"我的战绩"，不然读完标题跳一下
+  const title = who === 'me' ? '我的战绩' : '战绩';
 
-  if (loading) return <Panel icon="trophy" title="战绩"><Skeleton rows={4} /></Panel>;
+  if (loading) return <Panel icon="trophy" title={title}><Skeleton rows={4} /></Panel>;
   if (!user) {
     return (
       <Panel icon="trophy" title="战绩">
@@ -194,11 +196,11 @@ export function StatsPage() {
     );
   }
   if (error) return (
-      <Panel icon="trophy" title="战绩">
+      <Panel icon="trophy" title={title}>
         <LoadError onRetry={() => setTick((t) => t + 1)}>{errorText(error, { not_found: '没有找到这个人' })}</LoadError>
       </Panel>
     );
-  if (!data) return <Panel icon="trophy" title="战绩"><Skeleton rows={4} /></Panel>;
+  if (!data) return <Panel icon="trophy" title={title}><Skeleton rows={4} /></Panel>;
 
   const mine = data.relation === 'self';
   const games = Object.entries(data.games).sort(([a], [b]) => order(a) - order(b));

@@ -85,6 +85,8 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-height: 100vh; min-height: 100dvh; }
+/* 段落最后一行不留单个字（"开一/局。""凑一桌就开/打"），不支持的浏览器照常折行 */
+p, li, label { text-wrap: pretty; }
 h1, h2, h3 { line-height: 1.25; }
 /* 所有能点的东西，键盘切过来时都有一圈看得见的框（用主题的深橙色，和暖色界面一致）；鼠标点不出这圈 */
 :focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
@@ -472,6 +474,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
  * 矮下来的部分由封面让出（object-fit 裁边），名字、一句话、按钮不动
  */
 .lobby-grid--all .paged__list { grid-auto-rows: minmax(0, auto); align-content: center; }
+/* 平板竖屏（820×1180 这类）：封面压矮一点，一页放下三排六张（原来简介折两行的那排高出一行字，三排差几像素只放得下两排，下面空四成） */
+@media (min-width: 600px) and (max-width: 959px) and (min-height: 900px) { .lobby-grid .card__cover { aspect-ratio: 2.2 / 1; } }
 /* 高屏（1920×1080 这类）封面放回 16:9，不在格子下面留一大片空白 */
 @media (min-height: 900px) { .lobby-grid--all .card__cover { aspect-ratio: 16 / 9; } }
 .lobby-grid--all .paged__item, .lobby-grid--all .card { min-height: 0; }

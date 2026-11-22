@@ -6,7 +6,8 @@ import { PHONES, phoneIssues, lobbyTopIssues, DEVICES } from '../lib/ui.ts';
 
 /** npm run smoke -- --only=ui：界面核对用，电脑 1280 和手机 390 每页各一张（同样跑手机清单的检查），再加没登录的登录页 */
 export async function uiPages(browser: Browser): Promise<void> {
-  await phoneAudit(browser, [['电脑1280', { width: 1280, height: 800 }], PHONES[1]]);
+  // 所有者核对用的四个尺寸：电脑 1280、1920，手机竖屏 390、横屏 844
+  await phoneAudit(browser, [['电脑1280', { width: 1280, height: 800 }], ['电脑1920', { width: 1920, height: 1080 }], PHONES[1], PHONES[2]]);
   for (const screen of ['desktop', 'portrait'] as const) {
     const { ctx, page } = await newPage(browser, `界面核对 登录 ${screen}`, screen);
     await page.route('**/api/me', (r) => r.fulfill(json({ user: null, service: 'ok', saves: 'ok', registration: 'closed' })));

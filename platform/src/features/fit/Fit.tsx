@@ -82,10 +82,13 @@ export function Paged<T>({
       const step = grid ? Math.max(1, cols) : 1;
       const all = perPage(full, tallest, gap, step);
       const fit = all >= items.length ? all : perPage(full - barH.current - outerGap, tallest, gap, step);
-      // 画出来还溢出（条目高矮不一）：记一个上限再少一行；容器尺寸变了上限作废，免得两种算法来回跳
+      // 画出来还溢出（条目高矮不一）：记一个上限再少一行；容器尺寸变了上限作废，免得两种算法来回跳。
+      // 尺寸刚变的这一次不记：眼下的条数是按旧尺寸算的，溢出是因为框变矮了（比如大厅的提示条晚到），不是条目高矮不一；
+      // 原来这一下就把上限钉死，平板竖屏大厅放得下 6 张却只放 4 张
       const key = `${el.clientWidth}x${full}`;
-      if (cap.current.key !== key) cap.current = { key, max: Infinity };
-      if (el.scrollHeight > el.clientHeight + 1) cap.current.max = Math.min(cap.current.max, per - step);
+      const sameSize = cap.current.key === key;
+      if (!sameSize) cap.current = { key, max: Infinity };
+      if (sameSize && el.scrollHeight > el.clientHeight + 1) cap.current.max = Math.min(cap.current.max, per - step);
       setPer(Math.max(step, Math.min(fit, cap.current.max)));
     };
     measure();

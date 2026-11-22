@@ -457,6 +457,7 @@ export async function friendFlow(browser: Browser, ctx: BrowserContext, page: Pa
   await d.getByRole('button', { name: '保存' }).click();
   await d.getByText('改好了').waitFor();
   await page.locator('.account__name', { hasText: '冒烟老王' }).waitFor();
+  check(await d.getByRole('button', { name: '保存' }).isDisabled(), '昵称没改时"保存"该是灰的');
   const patchOnly = (handle: (r: Route) => Promise<void>) => (r: Route) => (r.request().method() === 'PATCH' ? handle(r) : r.continue());
   for (const [what, handler, text, status] of [
     ['429', patchOnly((r) => r.fulfill(json({ error: 'rate_limited', message: '操作太频繁，过一会儿再试', retryAfter: 120 }, 429))), '操作太频繁，过一会儿再试（2 分钟后）', 429],
@@ -465,6 +466,8 @@ export async function friendFlow(browser: Browser, ctx: BrowserContext, page: Pa
   ] as const) {
     await page.route('**/api/me', handler);
     if (status) expectHttp(status, '/api/me');
+    // 和现在的昵称一样时"保存"是灰的：每次换个名字
+    await d.getByLabel('改昵称').fill(`冒烟老王${what}`);
     await d.getByRole('button', { name: '保存' }).click();
     await d.getByText(text).waitFor();
     if (what === '429') await shot(page, 'rename-429');

@@ -18,6 +18,8 @@ export interface GameEntry {
   tags: string[];
   /** 封面（平台 public/covers 下） */
   cover: string;
+  /** 封面被裁成窄图时（手机短卡）保留哪一段，横向 0–100（object-position 的 x），不写居中；封面上的标题字在左右边上时写，免得字被裁掉 */
+  coverX?: number;
   /** 线上路径，同域 */
   path: string;
   /** 本地开发时的地址（游戏自己的开发服务器） */
@@ -103,6 +105,7 @@ export const GAMES: readonly GameEntry[] = [
       { id: 'ddzpz', name: '斗地主残局' },
     ],
     cover: '/covers/guandan.webp',
+    coverX: 100,
     path: '/games/guandan/',
     devUrl: 'http://localhost:5174/',
     status: 'playable',
@@ -114,6 +117,7 @@ export const GAMES: readonly GameEntry[] = [
     desc: '无限注德州扑克，一桌 2 到 9 人。和稳哥、阿飙、虎子、叨叨这些性格各不相同的电脑过招，也能开好友房，叫朋友一起来。筹码来自平台钱包，只用来玩，不能买、不能换。',
     tags: ['牌类', '好友房', '随时离桌'],
     cover: '/covers/texas.webp',
+    coverX: 100,
     path: '/games/texas/',
     devUrl: 'http://localhost:5175/',
     status: 'playable',
@@ -156,6 +160,7 @@ export const GAMES: readonly GameEntry[] = [
     desc: '出牌换挡、算好热量，过弯超速就会打滑，跟车还能吃尾流。三条赛道，和性格各异的电脑比，也能开好友房，叫朋友一起来。',
     tags: ['赛车', '卡牌', '好友房'],
     cover: '/covers/racing.webp',
+    coverX: 0,
     path: '/games/racing/',
     devUrl: 'http://localhost:5177/',
     status: 'playable',
@@ -170,6 +175,7 @@ export const GAMES: readonly GameEntry[] = [
     desc: '道士夜巡雪夜古镇：只管走位，符咒、桃木剑自己出手，升级三选一、法器进化。守夜是成群的跳尸纸人扑上来，撑到天亮；夜探是进镇搜宝，趁镇门开着撤出去。',
     tags: ['动作', '单人', '守夜·夜探', '约 15 分钟一局'],
     cover: '/covers/yexun.webp',
+    coverX: 80,
     path: '/games/yexun/',
     devUrl: 'http://localhost:5178/',
     status: 'playable',
@@ -208,6 +214,7 @@ export const GAMES: readonly GameEntry[] = [
     desc: '回合制抛物线对战：小动物站在悬空的面团地形上，轮流调角度、按住蓄力、看风开炮，炮弹炸出坑，掉出画本就出局。连发、三岔、加力、纸飞机、锅盖，单机和电脑比一场，也能开好友房，叫朋友一起来。',
     tags: ['对战', '抛物线', '单人', '好友房'],
     cover: '/covers/danli.webp',
+    coverX: 0,
     path: '/games/danli/',
     devUrl: 'http://localhost:5179/',
     status: 'playable',
@@ -223,6 +230,7 @@ export const GAMES: readonly GameEntry[] = [
     desc: '海盗题材的海岛攻防：在自己的岛上摆建筑、升级，立即完成不用等，攒金币和木材；开船去打电脑海盗的岛，选海滩登陆，兵自动开打，旗舰放炮、信号弹支援，拆掉主寨拿星，抢资源回家升级。',
     tags: ['海盗', '攻防', '建造'],
     cover: '/covers/haidao.webp',
+    coverX: 0,
     path: '/games/haidao/',
     devUrl: 'http://localhost:5170/',
     status: 'playable',

@@ -6,7 +6,8 @@
 .friends-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); }
 .friends-page > .banner, .friends-page > .form-error { flex: none; margin: 0; }
 .friends-page .friends-tabs { gap: var(--s-2); }
-.friends-page .ptabs__bar button { min-height: 36px; font-size: var(--fs-sm); }
+/* 手机上四个页签一行，字不折行（"请求（1）"原来折成两行） */
+.friends-page .ptabs__bar button { min-height: 36px; font-size: var(--fs-sm); white-space: nowrap; padding-inline: var(--s-2); }
 .friends-page .ptabs__panes, .friends-page .ptabs__pane { gap: var(--s-3); }
 @media (pointer: coarse) { .friends-page .ptabs__bar button { min-height: var(--tap); } }
 
@@ -80,6 +81,12 @@
   .friends-page .people__item { padding-block: var(--s-1); }
   /* 好友码一栏在横屏只有 390 高：码字号原来被上面带 .friends-code 的规则压着不变，这里一起缩 */
   .friends-page .code-big, .friends-page .friends-code .code-big { font-size: 20px; }
+}
+/* 手机横屏：卡片头（好友 N、约一局）和约局条并成一行，省下的高给名单；原来竖着排，名单只剩 40 高、第一个好友被拦腰裁掉 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .friends-page .friends-list { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); align-items: center; column-gap: var(--s-3); }
+  .friends-page .friends-list > :not(.panel__head):not(.meetups) { grid-column: 1 / -1; align-self: stretch; }
+  .friends-page .friends-list > .panel__head { gap: var(--s-3); }
 }
 
 /* 在线的绿点挂在头像右下角 */

@@ -143,7 +143,7 @@ export async function walletAndSlowNet(browser: Browser): Promise<void> {
     }));
     await box.getByRole('button', { name: '确认' }).click();
     check((await asked) === '给 小明（xiaoming_2026）加 5,000？', `确认的话不对：${await asked}`);
-    await box.getByText('加了 5,000，现在余额 8,200').waitFor();
+    await box.getByText('加了 5,000，现在手上 8,200').waitFor();
     await box.getByTestId('admin-chips-recent').getByText('同学测试').waitFor();
     await shot(page, `admin-chips-${screen}`);
     await ctx.close();

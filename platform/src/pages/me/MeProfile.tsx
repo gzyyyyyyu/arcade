@@ -56,7 +56,10 @@ function Rename() {
   return (
     <form className="me-rename" onSubmit={onSubmit} data-testid="me-rename" aria-label="改昵称">
       <Field label="改昵称" hint="2–12 个字，一天能改 10 次" name="displayName" required value={name} onChange={(e) => setName(e.target.value)} />
-      <SubmitButton busy={busy}>保存</SubmitButton>
+      {/* 没改（或只差首尾空格）时灰着：亮着的橙按钮让人以为还有没保存的 */}
+      <SubmitButton busy={busy} disabled={name.trim() === user!.displayName}>
+        保存
+      </SubmitButton>
       <FormError text={error} />
       {done && <p className="ok">改好了</p>}
     </form>

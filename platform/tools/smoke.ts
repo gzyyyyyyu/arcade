@@ -103,7 +103,7 @@ try {
     desk: deskPages, // 电脑版排版：大厅、好友、我的、战绩
     phone: phoneAudit, // 手机界面专项：四种屏幕逐页量
     noscroll: noScroll, // 一屏放下不滚：五个尺寸逐页量
-    ui: uiPages, // 界面核对：每页电脑 1280、手机 390 各一张，加登录页（不在全量里）
+    ui: uiPages, // 界面核对：每页电脑 1280、1920，手机 390、横屏 844 各一张，加登录页（不在全量里）
     devices: deviceMatrix, // 多尺寸矩阵：手机竖横、平板、折叠屏、电脑，只做通用检查
     boards: boardsPage, // 排行榜
     podium: podiumMatrix, // 总榜领奖台：1、2、3、10 人 × 我在不在榜 × 五个尺寸
