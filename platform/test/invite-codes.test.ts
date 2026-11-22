@@ -276,7 +276,8 @@ describe('长期码（多次）', () => {
     expect(m).toMatchObject({ maxUses: 100, expiresAt: null });
     const token = await call('/api/admin/invite-codes', { body: {}, csrf: false, authorization: `Bearer ${env.ADMIN_TOKEN}` });
     expect([token.status, await errorOf(token)]).toEqual([403, 'session_required']);
-    for (const body of [{ maxUses: 1 }, { maxUses: 1001 }, { maxUses: '5' }, { days: 0 }, { days: 366 }]) {
+    expect((await createMulti(admin, { maxUses: 10_000 })).status).toBe(201);
+    for (const body of [{ maxUses: 1 }, { maxUses: 10_001 }, { maxUses: '5' }, { days: 0 }, { days: 366 }]) {
       expect((await createMulti(admin, body)).status, JSON.stringify(body)).toBe(400);
     }
     // 用户侧的生成接口传什么都只建普通码
@@ -334,15 +335,15 @@ describe('长期码（多次）', () => {
     expect((await registerWith(forever.code)).status).toBe(201);
   });
 
-  it('改长期码能用几次：管理员会话 2 行；2–1000；不小于已用（等于可以，用完的改大又能用）；普通码、撤回的、不存在 404；普通用户 403，令牌 403 session_required；都是 0 行', async () => {
+  it('改长期码能用几次：管理员会话 2 行；2–10000；不小于已用（等于可以，用完的改大又能用）；普通码、撤回的、不存在 404；普通用户 403，令牌 403 session_required；都是 0 行', async () => {
     const [admin, a] = [await adminUser(), await newUser()];
     const m = await multi(admin, { maxUses: 2 });
     const setUses = (id: string, maxUses: unknown, u: U = admin) => call(`/api/admin/invite-codes/${id}/uses`, { body: { maxUses }, cookie: u.cookie });
-    const res = await setUses(m.id, 1000);
-    expect([res.status, await res.json()]).toEqual([200, { id: m.id, maxUses: 1000 }]);
+    const res = await setUses(m.id, 10_000);
+    expect([res.status, await res.json()]).toEqual([200, { id: m.id, maxUses: 10_000 }]);
     expect(rowsWritten()).toBe(2);
-    expect(await count('SELECT max_uses AS n FROM invite_codes WHERE id = ?1', m.id)).toBe(1000);
-    for (const v of [1, 1001, '5', null, 2.5]) {
+    expect(await count('SELECT max_uses AS n FROM invite_codes WHERE id = ?1', m.id)).toBe(10_000);
+    for (const v of [1, 10_001, '5', null, 2.5]) {
       expect((await setUses(m.id, v)).status, JSON.stringify(v)).toBe(400);
       expect(rowsWritten()).toBe(0);
     }

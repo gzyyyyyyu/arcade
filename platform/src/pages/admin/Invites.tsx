@@ -150,7 +150,7 @@ function MultiCodeForm({ onCreated, onCancel }: { onCreated: (c: MultiInviteCode
   return (
     <form className="form multi-code" onSubmit={(e) => void onSubmit(e)} data-testid="multi-code">
       <div className="fields fields--2">
-        <Field label="能用几次" hint="2–1000" name="maxUses" type="number" inputMode="numeric" min={2} max={1000} required value={uses} onChange={(e) => setUses(e.target.value)} />
+        <Field label="能用几次" hint={`2–${USES_MAX}`} name="maxUses" type="number" inputMode="numeric" min={2} max={USES_MAX} required value={uses} onChange={(e) => setUses(e.target.value)} />
         <Field label="有效天数" hint="留空不过期" name="days" type="number" inputMode="numeric" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)} />
       </div>
       <p className="note">一码多人，不占额度，不自动加好友；注册的每 IP、每天上限照算。</p>
@@ -187,6 +187,8 @@ function CreatedCode({ code, onClose }: { code: MultiInviteCode; onClose: () => 
   );
 }
 
+/** 长期码最多能用几次：和接口的 MULTI_CODE.usesMax（worker/api/account/invite-codes.ts）一致，超了接口回 400 */
+const USES_MAX = 10_000;
 const STATUS_TEXT: Record<AdminInviteCode['status'], string> = { unused: '没用', used: '已用', expired: '过期', revoked: '撤回' };
 const MULTI_STATUS_TEXT: Record<AdminInviteCode['status'], string> = { unused: '能用', used: '用完', expired: '过期', revoked: '撤回' };
 type CodeFilter = 'all' | 'unused' | 'used' | 'multi';
@@ -357,7 +359,7 @@ function CodesPanel() {
   );
 }
 
-/** 长期码改能用几次（2–1000，不少于已经用掉的）：弹框填数字；用完了的改大又能用 */
+/** 长期码改能用几次（2–USES_MAX，不少于已经用掉的）：弹框填数字；用完了的改大又能用 */
 function UsesButton({ code, onDone }: { code: AdminInviteCode; onDone: () => void }) {
   const [open, setOpen] = useState(false);
   const [uses, setUses] = useState(String(code.maxUses));
@@ -383,7 +385,7 @@ function UsesButton({ code, onDone }: { code: AdminInviteCode; onDone: () => voi
           <p className="note">
             <span className="mono">{code.code ?? code.hint}</span> 已经用了 <b className="tnum">{num(code.uses)}</b> 次，现在能用 <b className="tnum">{num(code.maxUses)}</b> 次。
           </p>
-          <Field label="能用几次" hint={`${min}–1000`} name="maxUses" type="number" inputMode="numeric" min={min} max={1000} required value={uses} onChange={(e) => setUses(e.target.value)} />
+          <Field label="能用几次" hint={`${min}–${USES_MAX}`} name="maxUses" type="number" inputMode="numeric" min={min} max={USES_MAX} required value={uses} onChange={(e) => setUses(e.target.value)} />
           <FormError text={error} />
           <SubmitButton busy={busy} disabled={!writable}>
             保存
