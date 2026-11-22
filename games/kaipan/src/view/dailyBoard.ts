@@ -19,6 +19,8 @@ export type RunBoard =
   /** 每日挑战，但这局不计入排行：synthetic = 行情没拿到、用的模拟行情（和别人不是同一局）；stale = 日期太早，平台不收了 */
   | { state: 'skip'; why: 'synthetic' | 'stale' }
   | { state: 'sending'; boardId: string; score: number }
+  /** 平台限流（429）：照它给的秒数等一会儿自动再交一次，结束页写「成绩稍后补交」 */
+  | { state: 'later'; boardId: string; score: number }
   /** 交完了；ok 时 rank 是交完再读一次榜得到的我的名次（读不到为 undefined，1 万名以后为 null） */
   | { state: 'done'; boardId: string; score: number; result: SubmitResult; rank?: number | null };
 
@@ -156,7 +158,10 @@ export function retryRun(runId: string): void {
   void send(runId, b.boardId, b.score);
 }
 
-async function send(runId: string, boardId: string, score: number): Promise<void> {
+/** 平台限流没给秒数时，过这么久再交 */
+const LIMIT_RETRY_S = 60;
+
+async function send(runId: string, boardId: string, score: number, again = false): Promise<void> {
   let who: Who = currentUser();
   if (!who) {
     const p = askOnce();
@@ -166,6 +171,15 @@ async function send(runId: string, boardId: string, score: number): Promise<void
   }
   // 问完账号紧接着（同一段同步代码里）发出交分，boardBeforeLeave 才等得到
   const result = await submitScoreAs(deps, who, boardId, score);
+  // 限流只自动补交一次：再被限就照实写没交上
+  if (result.kind === 'limit' && !again) {
+    set(runId, { state: 'later', boardId, score });
+    setTimeout(() => {
+      set(runId, { state: 'sending', boardId, score });
+      void send(runId, boardId, score, true);
+    }, (result.retryAfter ?? LIMIT_RETRY_S) * 1000);
+    return;
+  }
   set(runId, { state: 'done', boardId, score, result });
   if (result.kind === 'bug') console.warn(`排行榜交分被拒（${result.status} ${result.error}）：${boardId} ${score}`);
   // 交上了（odd 多半也交上了）：这个榜之前读的都过时了，这时打开面板要重读

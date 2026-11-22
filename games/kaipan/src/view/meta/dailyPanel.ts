@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { dailySetup, difficultyDef, difficultyView, flashSetup, formatMoney, personaById, personaView, weeklyInfo, weeklySetup, type DailyKind, type RunSetup } from '../../core/index.ts';
 import { isPersonaUnlocked, type Profile } from '../../platform/profile.ts';
-import { dailyDate, dailyText, levelLabel } from '../labels.ts';
+import { FLASH_DAYS, FLASH_EVENT_DAYS, dailyDate, dailyText, levelLabel } from '../labels.ts';
 import { COLOR, FS, TYPE } from '../theme.ts';
 import { addGlyph, addPill } from '../ui/art.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
@@ -74,19 +74,19 @@ export class DailyPanel extends Dialog {
     this.inner.add(row(tops[2]!, hs[2]!));
     this.inner.add(addGlyph(scene, R + 36, tops[2]! + (ph ? 31 : 32), flash ? 'bolt' : 'trophy', 36));
     const played = !!rec && rec.attempts > 0;
-    this.inner.add(addText(scene, R + 72, tops[2]! + (ph ? 8 : 14), wk ? '本周规则 · 10 天约 5 分钟' : flash ? '玩法' : '今日最好', { size: TYPE.label - 2, bold: true, color: COLOR.muted }));
-    const best = wk ? wk.name : flash ? '10 个交易日 · 约 5 分钟' : !rec || !played ? '今天还没打' : rec.won ? formatMoney(rec.bestAccount) : `撑到 ${rec.bestMonths}/12 月`;
+    this.inner.add(addText(scene, R + 72, tops[2]! + (ph ? 8 : 14), wk ? `本周规则 · ${FLASH_DAYS} 天约 5 分钟` : flash ? '玩法' : '今日最好', { size: TYPE.label - 2, bold: true, color: COLOR.muted }));
+    const best = wk ? wk.name : flash ? `${FLASH_DAYS} 个交易日 · 约 5 分钟` : !rec || !played ? '今天还没打' : rec.won ? formatMoney(rec.bestAccount) : `撑到 ${rec.bestMonths}/12 月`;
     this.inner.add(addText(scene, R + 72, tops[2]! + (ph ? 24 : 30), best, { size: played ? TYPE.title + 2 : TYPE.title, bold: true, num: played, color: played ? COLOR.ink : flash ? COLOR.ink : COLOR.muted }));
     const rHit = tip(tops[2]!, hs[2]!, () =>
       wk
         ? {
             title: `本周市场 · ${wk.name}`,
-            body: `${wk.tip}\n玩法和闪电盘一样：10 个交易日，不用还钱，不会出局，开局先三选一道具，第 4、8 天收盘后各来一件事。\n这一周所有人玩的都是同一局，成绩上本周的排行榜，不记进档案和成就；北京时间周一 0 点换新规则。\n这一局的编号：${d.seed}`,
+            body: `${wk.tip}\n玩法和闪电盘一样：${FLASH_DAYS} 个交易日，不用还钱，不会出局，开局先三选一道具，${FLASH_EVENT_DAYS}收盘后各来一件事。\n这一周所有人玩的都是同一局，成绩上本周的排行榜，不记进档案和成就；北京时间周一 0 点换新规则。\n这一局的编号：${d.seed}`,
           }
         : flash
         ? {
             title: '闪电盘',
-            body: '10 个交易日，不用还钱，不会出局：开局先三选一道具，第 4、8 天收盘后各来一件事。\n10 天后账户里的钱就是分数，比谁多。\n今天所有人玩的都是同一局：同样的开局、人设和行情。成绩只上闪电盘的排行榜，不记进档案和成就。\n这一局的编号：' + d.seed,
+            body: `${FLASH_DAYS} 个交易日，不用还钱，不会出局：开局先三选一道具，${FLASH_EVENT_DAYS}收盘后各来一件事。\n${FLASH_DAYS} 天后账户里的钱就是分数，比谁多。\n今天所有人玩的都是同一局：同样的开局、人设和行情。成绩只上闪电盘的排行榜，不记进档案和成就。\n这一局的编号：${d.seed}`,
           }
         : {
             title: '今日挑战',

@@ -4,7 +4,7 @@ import { goalShort, stamp } from './tempoFx.ts';
 import type { Animator } from '../fx/anim.ts';
 import { flashBox, floatText, pop } from '../fx/effects.ts';
 import { sparkles } from '../fx/particles.ts';
-import { billLine, billStatus, dailyTag, dayLabel, downPaymentLine, flashFinal, flashLeft, flashTag, levelHint, shortItemName, weeklyTag } from '../labels.ts';
+import { billLine, billStatus, dailyTag, dayLabel, downPaymentLine, FLASH_DAYS, FLASH_EVENT_DAYS, flashFinal, flashLeft, flashTag, levelHint, shortItemName, weeklyTag } from '../labels.ts';
 import type { Rect } from '../rect.ts';
 import { sound } from '../sound.ts';
 import { COLOR, FS, ITEM_KIND_COLOR, PHONE, PORTRAIT, TYPE, VIEW, signColor, textOn } from '../theme.ts';
@@ -99,9 +99,9 @@ function flagList(t: ReturnType<typeof topBar>): Flag[] {
       label: `本周 · ${t.weekly.name}`,
       short: '本周市场',
       fill: t.weekly.rule === 'reverse' ? COLOR.danger : COLOR.accent,
-      tip: { title: `${weeklyTag(t.weekly.week)} · ${t.weekly.name}`, body: `${t.weekly.tip}\n10 个交易日，不用还钱，比谁最后的资产多。这一周所有人玩的是同一局，成绩上本周的排行榜。` },
+      tip: { title: `${weeklyTag(t.weekly.week)} · ${t.weekly.name}`, body: `${t.weekly.tip}\n${FLASH_DAYS} 个交易日，不用还钱，比谁最后的资产多。这一周所有人玩的是同一局，成绩上本周的排行榜。` },
     });
-  } else if (t.flash) out.push({ label: flashTag(t.flash.date), short: '闪电盘', fill: COLOR.accent, tip: { title: '闪电盘', body: `${t.flash.date} 的闪电盘：10 个交易日，不用还钱，比谁最后的资产多。今天所有人玩的是同一局：一样的行情、一样的人设，只比今天。` } });
+  } else if (t.flash) out.push({ label: flashTag(t.flash.date), short: '闪电盘', fill: COLOR.accent, tip: { title: '闪电盘', body: `${t.flash.date} 的闪电盘：${FLASH_DAYS} 个交易日，不用还钱，比谁最后的资产多。今天所有人玩的是同一局：一样的行情、一样的人设，只比今天。` } });
   if (t.notice) out.push({ label: t.notice.name, short: '市场传闻', fill: COLOR.danger, tip: { title: t.notice.name, body: t.notice.text } });
   // 黑天鹅预告：倒数标记，悬停看是哪一类和怎么避险（不说幅度）
   if (t.swan) {
@@ -246,7 +246,7 @@ export class TopBarView {
         const gain = this.state.account - f.start;
         return {
           title: `${weekly ? '本周市场' : '闪电盘'} · 第 ${f.day}/${f.days} 天`,
-          body: `比开局${gain >= 0 ? '多' : '少'}了 ${formatMoney(Math.abs(gain))}。\n还剩 ${flashLeft(f)} 天（含今天）；不用还钱，第 4、8 天收盘后各有一件事要你拿主意。\n${f.days} 天后账户里的钱就是分数，上${weekly ? '本周' : '当天'}的排行榜。${tb.weekly ? `\n本周规则：${tb.weekly.line}` : ''}`,
+          body: `比开局${gain >= 0 ? '多' : '少'}了 ${formatMoney(Math.abs(gain))}。\n还剩 ${flashLeft(f)} 天（含今天）；不用还钱，${FLASH_EVENT_DAYS}收盘后各有一件事要你拿主意。\n${f.days} 天后账户里的钱就是分数，上${weekly ? '本周' : '当天'}的排行榜。${tb.weekly ? `\n本周规则：${tb.weekly.line}` : ''}`,
         };
       }
       const mt = monthThemeView(this.state);

@@ -49,7 +49,7 @@ export class EndRows {
       const line = boardLine(b);
       const open = new Button(this.s, x + w - 100, y - 4, { width: 100, height: 34, label: '排行榜', icon: 'trophy', fontSize: FS.sm });
       open.setHandler(() => {
-        if (!this.s.dialogOpen) this.s.trackDialog(new BoardPanel(this.s, date, b.state === 'sending' || b.state === 'done' ? b.boardId : dailyBoardId(date)));
+        if (!this.s.dialogOpen) this.s.trackDialog(new BoardPanel(this.s, date, 'boardId' in b ? b.boardId : dailyBoardId(date)));
       });
       box.add(open);
       this.s.buttons.board = open;

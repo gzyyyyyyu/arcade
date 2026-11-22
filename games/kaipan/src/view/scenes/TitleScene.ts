@@ -389,7 +389,7 @@ export class TitleScene extends BaseScene {
     const d = dailySetup(date);
     const items: { key: string; glyph: Glyph; title: string; sub: string; fn: () => void }[] = [
       { key: 'daily', glyph: 'calendar', title: '每日挑战', sub: `${personaView(d.setup.persona).name} · ${difficultyView(d.setup.difficulty).name}`, fn: () => this.openDaily() },
-      { key: 'flash', glyph: 'bolt', title: '闪电盘', sub: '10 天 · 约 5 分钟', fn: () => this.openFlash() },
+      { key: 'flash', glyph: 'bolt', title: '闪电盘', sub: `${flashDays()} 天 · 约 5 分钟`, fn: () => this.openFlash() },
       { key: 'weekly', glyph: 'star', title: '本周市场', sub: weeklyInfo(beijingIsoWeek()).name, fn: () => this.openWeekly() },
     ];
     if (!standalone()) items.push({ key: 'live', glyph: 'moneybag', title: '实盘', sub: this.liveWhy() ?? `带筹码打 ${BALANCE.live.months} 个月`, fn: () => this.openLive() });

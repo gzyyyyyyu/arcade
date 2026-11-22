@@ -70,6 +70,8 @@ export interface OpenOpts {
   userAgent?: string;
   /** 0.5.10：这个场景故意让请求失败（模拟连不上），浏览器自己打的 "Failed to load resource" 不算报错 */
   netErrors?: boolean;
+  /** 0.36.5：这个场景故意把请求挂着、由冒烟自己放行：页面里的请求超时（AbortSignal.timeout）不生效，免得软件渲染慢时超时先到 */
+  holdRequests?: boolean;
 }
 
 export async function openPage(browser: Browser, name: string, query: string, opts: OpenOpts = {}): Promise<Ctx> {
@@ -101,6 +103,7 @@ export async function openPage(browser: Browser, name: string, query: string, op
     });
     await context.route('**/api/invites**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"invites":[]}' }));
   }
+  if (opts.holdRequests) await context.addInitScript(() => Object.defineProperty(AbortSignal, 'timeout', { configurable: true, value: () => new AbortController().signal }));
   // __Host- cookie 只能在 https 下设，冒烟是 http：直接让页面读到提示 cookie
   if (opts.loginHint) await context.addInitScript(() => Object.defineProperty(Document.prototype, 'cookie', { configurable: true, get: () => '__Host-arcade_li=1', set: () => undefined }));
   // 0.13.1：CSP 违规（含 Report-Only）一律记成报错，冒烟算失败。例外是没有来源文件的 eval：那是这个脚本让 Playwright

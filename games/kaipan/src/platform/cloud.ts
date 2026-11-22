@@ -1,3 +1,4 @@
+import { timeoutSignal } from './fetchTimeout.ts';
 import { defaultStore, type KeyValueStore } from './settings.ts';
 import type { SyncSlot } from './localChange.ts';
 import { keepaliveLeft, keepaliveSend } from './keepalive.ts';
@@ -54,6 +55,8 @@ export interface CloudDeps {
 }
 
 export const META_KEY = 'kaipan.cloud';
+/** 云存档上传的整局快照比别的请求大，慢网多等一会儿 */
+const CLOUD_TIMEOUT_MS = 20_000;
 export const preSyncKey = (slot: string): string => `kaipan.${slot}.pre-sync`;
 export const preSwitchKey = (slot: string, userId: string): string => `kaipan.${slot}.pre-switch.${userId}`;
 export const DEBOUNCE_MS = 10_000;
@@ -629,7 +632,7 @@ export class Cloud {
 
   private async call(method: string, url: string, body?: string, keepalive = false): Promise<Res> {
     try {
-      const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store' };
+      const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store', ...timeoutSignal(CLOUD_TIMEOUT_MS) };
       // 写请求必须带 X-Arcade（平台只挡浏览器里的跨站写，15.1）
       if (body !== undefined) Object.assign(init, { body, keepalive, headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' } });
       const r = await (keepalive && body !== undefined ? keepaliveSend(body, () => this.d.fetch(url, init)) : this.d.fetch(url, init));

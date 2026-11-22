@@ -187,7 +187,7 @@ export async function boardShots(browser: Browser): Promise<void> {
       return fake(route);
     };
     // 带个参数：页面地址有查询串，才分得清还在本页还是到了大厅 /
-    const ctx = await openPage(browser, 'board-lobby', 'anim=0', { storage: profileStorage('partial'), api: slowMe, loginHint: true, touch: PHONE, netErrors: true });
+    const ctx = await openPage(browser, 'board-lobby', 'anim=0', { storage: profileStorage('partial'), api: slowMe, loginHint: true, touch: PHONE, netErrors: true, holdRequests: true });
     await ctx.page.route((u) => u.pathname === '/' && u.search === '', (r) => r.fulfill({ contentType: 'text/html', body: '<!doctype html><title>lobby</title>' }));
     await loadState(ctx, ended);
     await waitIdle(ctx, '结束页', "window.__game.scene === 'end'");

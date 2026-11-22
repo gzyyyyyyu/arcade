@@ -95,6 +95,13 @@ if (!fromUrl && !params.debug) startLive(session.state);
 session.profileNotice = loadProfile().notice === 'corrupt';
 const game = startGame(session, 'app', { toTitle: !fromUrl });
 throttleWhenIdle(game, session);
+// DOM 层（「大厅」的透明影子按钮、转屏提示、出错条、好友面板）上的按下不冒到 window：Phaser 在 window 上收到「目标不是画布」的按下
+// 也照坐标点画布（为了拖出画布外也收得到抬起，抬起照常冒），点影子会连带点到正下方的画布按钮，「大厅」按一次走两遍
+for (const t of ['mousedown', 'touchstart'] as const) {
+  document.addEventListener(t, (e) => {
+    if (e.target !== game.canvas) e.stopPropagation();
+  });
+}
 // 手机平板上画布按看得见的区域铺（iOS Safari 的地址栏、标签栏不压画面），尺寸一变让 Phaser 重新量；别的走 CSS 的 100dvh
 if (LOW_MEMORY) {
   fitViewport(() => {

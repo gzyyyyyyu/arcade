@@ -250,6 +250,8 @@ export interface Balance {
   };
   /** 打新（docs/design-modes.md 第 18 节）：中签率、冻结天数、上市溢价（pp） */
   ipo: {
+    /** 第几个月起开放申购（最后一个月没有） */
+    fromMonth: number;
     /** 各档中签率 */
     odds: Record<BuySize, number>;
     /** 冻结几个交易日（申购日当天算第 1 天），冻结满那天收盘后抽签 */
@@ -732,7 +734,7 @@ export const BALANCE: Balance = {
   // 黑天鹅：最后一天的额外涨跌（pp）；配平见 docs/design-balance.md 的黑天鹅一节
   swan: { blackout: 8, themeBust: 15, windfall: 12, flashCrash: 3, warnDays: 3 },
   // 打新：配平见 docs/design-modes.md 第 18 节（起始数值 pop 0.7、涨 15..45 时，普通机器人通关率比不打新高 4–8 个百分点，压到现在这组）
-  ipo: { odds: { taste: 0.1, half: 0.16, heavy: 0.22 }, freezeDays: 2, units: 1, pop: 0.62, up: [10, 30], down: [5, 20], carry: 0.3 },
+  ipo: { fromMonth: 2, odds: { taste: 0.1, half: 0.16, heavy: 0.22 }, freezeDays: 2, units: 1, pop: 0.62, up: [10, 30], down: [5, 20], carry: 0.3 },
   // 实盘：5 个月，各档的账单和涨跌倍数（0.10.0 配平，实测见 docs/design-live.md 第 3 节）
   live: {
     months: 5,

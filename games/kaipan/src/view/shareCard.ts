@@ -12,7 +12,7 @@
 import type { ShareArt, ShareCard } from 'arcade-kit/share';
 import { BALANCE, formatPoints, liveTierById, weeklyInfo, type RunSummary } from '../core/index.ts';
 import { artRef, stockKey } from './assets.ts';
-import { weeklyTag } from './labels.ts';
+import { FLASH_DAYS, weeklyTag } from './labels.ts';
 import { chips } from './liveText.ts';
 import { arrowOf, COLOR, css } from './theme.ts';
 
@@ -39,7 +39,7 @@ export function shareLine(sum: Readonly<RunSummary>): string {
   if (lv?.margin) return `杠杆 ×${lv.gear}，第 ${sum.month} 个月清零`;
   if (sum.maxBoards >= 3) return `连涨 ${sum.maxBoards} 天，全程坐在车上`;
   if (best && best.ret >= 50) return `${best.name}一把赚了 ${formatPoints(best.ret, 1, false)}`;
-  if (sum.flash || sum.weekly) return '10 个交易日，比的是谁抓得住风口';
+  if (sum.flash || sum.weekly) return `${FLASH_DAYS} 个交易日，比的是谁抓得住风口`;
   if (!lv && sum.won) return `${monthsOf(sum)} 个月的账全还上了`;
   return sum.style.line;
 }
@@ -64,7 +64,7 @@ export function shareData(sum: Readonly<RunSummary>, rank?: number | null): Shar
       stats.push(rank ? { label: '本周', value: `第 ${rank} 名` } : { label: '规则', value: weeklyInfo(sum.weekly).name });
     } else if (sum.flash) {
       title = `闪电盘 ${sum.flash.slice(5).replace('-', '/')}`;
-      stats.push(rank ? { label: '今天', value: `第 ${rank} 名` } : { label: '用时', value: '10 个交易日' });
+      stats.push(rank ? { label: '今天', value: `第 ${rank} 名` } : { label: '用时', value: `${FLASH_DAYS} 个交易日` });
     } else if (sum.daily) {
       title = `每日挑战 ${sum.daily.slice(5).replace('-', '/')}`;
       stats.push(rank ? { label: '今天', value: `第 ${rank} 名` } : { label: '还上', value: `${sum.billsPaid}/12 个月` });

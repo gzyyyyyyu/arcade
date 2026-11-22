@@ -1,3 +1,4 @@
+import { FLASH_DAYS } from './labels.ts';
 import { FEEL_LABEL, chatView, holdingCards, isFlash, stockById, themeById, type GameState } from '../core/index.ts';
 import { touched } from '../platform/localChange.ts';
 import { defaultStore, type KeyValueStore } from '../platform/settings.ts';
@@ -169,7 +170,7 @@ export function tutorialCard(step: TutorialStep, s: Readonly<GameState>, stockId
   switch (step) {
     case 'goal':
       // 闪电盘没有月供：目标是 10 天后资产越多越好
-      if (isFlash(s)) return { line: '10 天后，资产越多越好', chips: [{ icon: 'glyph:wallet', text: money(s.account), tone: 'accent' }, { icon: 'glyph:arrow_up', text: '买变火的', tone: 'up' }] };
+      if (isFlash(s)) return { line: `${FLASH_DAYS} 天后，资产越多越好`, chips: [{ icon: 'glyph:wallet', text: money(s.account), tone: 'accent' }, { icon: 'glyph:arrow_up', text: '买变火的', tone: 'up' }] };
       return { line: '月底前，凑够要还的钱', chips: [{ icon: 'glyph:house', text: money(s.bill.amount), tone: 'accent' }, { icon: 'glyph:arrow_up', text: '买变火的', tone: 'up' }] };
     case 'chat':
       // 开局群友都是「新」，没有战绩可看：不举「说对 3/5」这种当下看不到的例子，只说战绩会记在名字后面

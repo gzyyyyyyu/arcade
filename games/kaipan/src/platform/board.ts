@@ -1,8 +1,9 @@
 /**
  * 0.5.10 每日挑战排行榜：交分、读榜（平台 15.5，简单版、不防作弊）。只管和平台说话、把回话理成几种结果，不碰画面；
  * fetch 和"当前账号"从外面传进来，方便测试。回来的东西一律先校验再用（别人的昵称、分数都是外来数据）。
- * 平台每人每天只收 50 次交分（所有游戏合计）：一局只在结束时交一次，什么情况都不自动重试。
+ * 平台每人每天只收 50 次交分（所有游戏合计）：一局只在结束时交一次；只有被限流（429）时照平台给的秒数自动补交一次（view/dailyBoard.ts），别的情况不自动重试。
  */
+import { timeoutSignal } from './fetchTimeout.ts';
 import { keepaliveSend } from './keepalive.ts';
 import { ellipsize } from '../core/format.ts';
 
@@ -57,7 +58,7 @@ const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object
 
 async function call(d: BoardDeps, method: string, url: string, body?: unknown): Promise<Res> {
   try {
-    const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store' };
+    const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store', ...timeoutSignal() };
     // 写请求必须带 X-Arcade（15.1）；交分用 keepalive：结束页马上点「大厅」走了也交得上（请求体只有几十字节）
     // keepalive 记账（keepalive.ts）：离开页面时云存档补传要扣掉这一份
     const text = body === undefined ? undefined : JSON.stringify(body);

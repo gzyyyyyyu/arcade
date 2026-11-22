@@ -6,7 +6,7 @@ import { goLobby, lobbyLabel } from '../lobby.ts';
 import { loadProfile } from '../../platform/profile.ts';
 import type { Glyph } from '../assets.ts';
 import { confetti, fireworks, rainCloud, sparkles } from '../fx/particles.ts';
-import { boardLine, flashTag, weeklyTag } from '../labels.ts';
+import { FLASH_DAYS, boardLine, flashTag, weeklyTag } from '../labels.ts';
 import { sound } from '../sound.ts';
 import { COLOR, FS, GAME_WIDTH, TYPE, signColor } from '../theme.ts';
 import { addGlyph } from '../ui/art.ts';
@@ -62,7 +62,7 @@ export class EndFlash {
     const kick = (cx: number, cy: number, text: string): void => {
       addText(this.s, cx, cy, text, { size: TYPE.label + 2, bold: true, color: COLOR.muted, originX: 0.5, originY: 0.5 });
     };
-    kick(lx, ky, rule ? `本周「${rule.name}」· 10 天后的资产` : '10 天后的资产');
+    kick(lx, ky, rule ? `本周「${rule.name}」· ${FLASH_DAYS} 天后的资产` : `${FLASH_DAYS} 天后的资产`);
     // 最终资产：先写开局本钱（演出时滚上去），不演出（动画关、重建画面）直接写终值
     this.s.flashRoll = this.s.lively && this.s.session.takeReveal(sum.runId);
     const long = Math.max(this.yuanText(start).length, this.yuanText(final).length);
@@ -89,7 +89,7 @@ export class EndFlash {
       const b = runBoard(sum.runId);
       const line = boardLine(b, weekly ? 'weekly' : 'flash');
       const rank = b.state === 'done' && b.result.kind === 'ok' ? b.rank : undefined;
-      const big = rank ? `第 ${rank} 名` : rank === null ? '1 万名以后' : b.state === 'done' && b.result.kind === 'ok' ? '已上榜' : b.state === 'sending' ? '…' : '—';
+      const big = rank ? `第 ${rank} 名` : rank === null ? '1 万名以后' : b.state === 'done' && b.result.kind === 'ok' ? '已上榜' : b.state === 'sending' || b.state === 'later' ? '…' : '—';
       const t = addText(this.s, rx, rny, big, { size: rank ? (ph ? 44 : 64) : ph ? 32 : 44, bold: true, num: true, color: rank ? COLOR.accentDark : COLOR.muted, originX: 0.5, originY: 0.5, stroke: COLOR.paper, strokeWidth: 6 });
       fitWidth(t, two ? W * 0.42 : W - (one ? 48 : 160));
       box.add(t);
@@ -127,7 +127,7 @@ export class EndFlash {
     else {
       mk('board', '排行榜', bx + bw[0]! + 16, bw[1]!, 'primary', () => {
         const b = runBoard(sum.runId);
-        if (!this.s.dialogOpen) this.s.trackDialog(new BoardPanel(this.s, date, b.state === 'sending' || b.state === 'done' ? b.boardId : weekly ? weeklyBoardId(date) : dailyBoardId(date, 'flash'), undefined, weekly ? 'weekly' : 'flash'));
+        if (!this.s.dialogOpen) this.s.trackDialog(new BoardPanel(this.s, date, 'boardId' in b ? b.boardId : weekly ? weeklyBoardId(date) : dailyBoardId(date, 'flash'), undefined, weekly ? 'weekly' : 'flash'));
       }, '空格', 'trophy');
     }
     mk('menu', '主菜单', bx + bw[0]! + bw[1]! + 32, bw[2]!, 'default', () => this.s.session.toTitle(), 'Esc');

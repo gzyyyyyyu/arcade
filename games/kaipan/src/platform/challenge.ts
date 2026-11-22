@@ -6,6 +6,7 @@
  * - 每人每挑战只算第一次（平台按 (挑战, 人) 只收一条）：交过了平台回 already 和原来那条，开盘照样显示。
  * - 什么都不自动重试：连不上给「重试」，由人点。
  */
+import { timeoutSignal } from './fetchTimeout.ts';
 import { parseChallenge, parseChallengeStats, type ChallengePayload, type ChallengeStats } from '../core/index.ts';
 import { ellipsize } from '../core/format.ts';
 
@@ -48,7 +49,7 @@ const name = (x: unknown): string => (typeof x === 'string' && x.trim() ? ellips
 
 async function call(f: Fetch, method: 'GET' | 'POST', url: string, body?: unknown): Promise<{ status: number; body: Record<string, unknown> | null }> {
   try {
-    const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store' };
+    const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store', ...timeoutSignal() };
     // 写请求带 X-Arcade（平台 15.1 的 CSRF 规矩）
     if (body !== undefined) Object.assign(init, { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' } });
     const r = await f(url, init);

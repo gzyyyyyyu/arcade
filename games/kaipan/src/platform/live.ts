@@ -1,3 +1,4 @@
+import { timeoutSignal } from './fetchTimeout.ts';
 import type { SettleStats } from '../core/career.ts';
 import { LIVE_MAX_BP, isLiveTier, liveTierById, type LiveTier } from '../core/liveTiers.ts';
 import type { KeyValueStore } from './settings.ts';
@@ -21,13 +22,6 @@ const LIVE_TTL_MS = 24 * 3_600_000;
 /** 相对路径：线上是 /games/kaipan/api/live/…（游戏挂在子路径下，资源一律相对路径） */
 const API = 'api/live/';
 const WALLET_API = '/api/wallet';
-/** 一次请求最多等这么久（Worker 那边问平台 3 秒、钱包 5 秒）；超时按连不上算，之后重发 */
-const LIVE_FETCH_MS = 10_000;
-
-/** 给请求加个超时（老浏览器没有 AbortSignal.timeout 就不加，靠浏览器自己的超时） */
-function timeoutSignal(): { signal?: AbortSignal } {
-  return typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function' ? { signal: AbortSignal.timeout(LIVE_FETCH_MS) } : {};
-}
 
 export type LiveStep = 'buying' | 'playing' | 'settling' | 'done' | 'void' | 'error';
 
