@@ -1,6 +1,6 @@
 /** 锦标赛（--only tour / tourfmt / tourroom）。 */
 import type { Browser, Page } from 'playwright-core';
-import { DESK_W, log, newContext, watch, shot, balance, skipTips, handText, enter, openMore, settled, badgesClear, DESK_H, linkSit } from './harness.ts';
+import { DESK_W, log, newContext, watch, shot, balance, handText, enter, openMore, settled, badgesClear, DESK_H, linkSit } from './harness.ts';
 import { IPHONE } from './solo.ts';
 
 export async function tourFlow(browser: Browser, base: string): Promise<void> {
@@ -26,7 +26,6 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
   await enter(page, '娱乐');
   await openMore(page);
   await page.locator('.lobby .tour-btn').click();
-  await skipTips(page);
   await page.locator('.stage.at-table').waitFor();
   const where =(await page.locator('.topbar .where').textContent()) ?? '';
   if (!/^锦标赛 · 第 \d+ 级 · 盲注 [\d,]+\/[\d,]+$/.test(where)) throw new Error(`tour top bar: ${where}`);
@@ -89,7 +88,6 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
   const fee =Number(((await page.locator('.lobby .tour-btn').textContent()) ?? '').replace(/\D/g, ''));
   if (!(fee > 0)) throw new Error('real tournament button should show the fee');
   await page.locator('.lobby .tour-btn').click();
-  await skipTips(page);
   await page.locator('.stage.at-table').waitFor();
   await page.locator('.pill.leave').click();
   await page.locator('.d-title', { hasText: '现在离开' }).waitFor();
@@ -107,7 +105,7 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
 }
 
 /**
- * 单机锦标赛的赛制（--only tour 的第二段，0.29.0）：选赛制的一行在手机竖屏 390×844、横屏 667×375、电脑上都在屏内，选择记在设置里；
+ * 单机锦标赛的赛制（--only tour 的第二段）：选赛制的一行在手机竖屏 390×844、横屏 667×375、电脑上都在屏内，选择记在设置里；
  * 电脑上开 9 人赛（9 个座位、顶栏写赛制）刷新后接着打、截图，离开后结束页名次 1–9，再开一场极速赛（6 个座位、顶栏写赛制）离开；
  * 实盘里极速赛、9 人赛能报（竖屏、电脑各截一张），报一场 9 人赛实盘离开，钱包按 9 人赛奖金表对上。
  */
@@ -126,7 +124,7 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
     await page.locator('.lobby .tfmt', { hasText: '极速赛' }).tap();
     await shot(page, `tour-fmt-${tag}`);
     if (tag === 'phone-portrait') {
-      // 实盘也有三种赛制（0.40.0）：竖屏选 9 人赛，按钮能点
+      // 实盘也有三种赛制：竖屏选 9 人赛，按钮能点
       await enter(page, '实盘', true);
       await page.locator('.lobby .tfmt', { hasText: '9 人赛' }).tap();
       await row.scrollIntoViewIfNeeded();
@@ -172,7 +170,6 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
   await openMore(page);
   if (!(await page.locator('.lobby .tfmt.sel', { hasText: '9 人赛' }).count())) throw new Error('tour format choice not remembered');
   await page.locator('.lobby .tour-btn').click();
-  await skipTips(page);
   await page.locator('.stage.at-table').waitFor();
   let where = (await page.locator('.topbar .where').textContent()) ?? '';
   if (!/锦标赛 · 9 人赛 · 第 1 级 · 盲注 15\/30/.test(where)) throw new Error(`nine top bar: ${where}`);
@@ -185,7 +182,6 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
   await page.reload();
   await page.locator('.qstart', { hasText: '继续上局' }).click();
   await page.locator('.stage.at-table').waitFor();
-  await skipTips(page);
   where = (await page.locator('.topbar .where').textContent()) ?? '';
   if (!/锦标赛 · 9 人赛 · 第 \d+ 级/.test(where) || (await page.locator('.seat:not(.empty)').count()) !== 9) throw new Error(`nine resume: ${where}`);
   const leave = async (): Promise<number> => {
@@ -206,14 +202,13 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
   await openMore(page);
   await page.locator('.lobby .tfmt', { hasText: '极速赛' }).click();
   await page.locator('.lobby .tour-btn').click();
-  await skipTips(page);
   await page.locator('.stage.at-table').waitFor();
   where = (await page.locator('.topbar .where').textContent()) ?? '';
   if (!/锦标赛 · 极速赛 · 第 1 级 · 盲注 25\/50/.test(where) || (await page.locator('.seat:not(.empty)').count()) !== 6) throw new Error(`turbo top bar: ${where}`);
   const p6 = await leave();
   if (!(p6 >= 1 && p6 <= 6)) throw new Error(`turbo place out of range: ${p6}`);
   log('turbo place', p6);
-  // 实盘三种赛制都能报（0.40.0）：选 9 人赛，说明写奖金；报名扣一份，开打就离开（托管跑完），钱包 = 报名前 - 报名费 + 9 人赛奖金
+  // 实盘三种赛制都能报：选 9 人赛，说明写奖金；报名扣一份，开打就离开（托管跑完），钱包 = 报名前 - 报名费 + 9 人赛奖金
   await page.locator('.d-btn.primary').click();
   await page.locator('.lobby').waitFor();
   await enter(page, '实盘');
@@ -228,7 +223,6 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
   const before = await balance(page);
   const fee = Number(((await page.locator('.lobby .tour-btn').textContent()) ?? '').replace(/\D/g, ''));
   await page.locator('.lobby .tour-btn').click();
-  await skipTips(page);
   await page.locator('.stage.at-table').waitFor();
   if ((await page.locator('.seat:not(.empty)').count()) !== 9) throw new Error('real nine should seat 9');
   const pr = await leave();
@@ -243,7 +237,7 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
 }
 
 /**
- * 好友房锦标赛（--only tourroom，0.24.0）：两个浏览器上下文。房主在好友房里选"锦标赛"（实盘小桌、空位电脑补）开房，
+ * 好友房锦标赛（--only tourroom）：两个浏览器上下文。房主在好友房里选"锦标赛"（实盘小桌、空位电脑补）开房，
  * 另一个人用房间码进来坐下，房主点"开赛"；两人前几手跟注、之后能加注就全下（房间里电脑一步 1.6 秒，一直跟注要十几分钟），被淘汰就选"看到结束"，直到两边的结束页出现。
  * 核对：顶栏"锦标赛 · 第 N 级"、没有止盈旗子 / 补码 / 歇一手 / 下一手；两人钱包变化之和 = 0（奖池只在两个真人之间分，第 1 名拿走全部）、
  * 每人变化 = 结束页写的奖金 - 报名费。截牌桌和结束页。
@@ -352,7 +346,7 @@ export async function tourRoomFlow(browser: Browser, base: string): Promise<void
     if (delta[0]! + delta[1]! !== 0) throw new Error(`wallet changes should sum to 0, got ${delta.join()} (prizes ${prizes.join()})`);
     if (delta[0] !== prizes[0]! - 2_000 || delta[1] !== prizes[1]! - 2_000) throw new Error(`wallet deltas ${delta.join()} do not match prizes ${prizes.join()} - fee 2,000`);
     log('tour room wallets', delta.join(), 'sum 0');
-    // 每人同时 1 个房间（0.39.0）：比赛打完 kit 就还了房主的名额，回大厅马上能开新房，不被 has_room 送回这一间
+    // 每人同时 1 个房间：比赛打完 kit 就还了房主的名额，回大厅马上能开新房，不被 has_room 送回这一间
     await enter(hp, '好友房');
     await hp.locator('.friends.open .kind', { hasText: '现金桌' }).click();
     await hp.locator('.friends .pill', { hasText: '开房间' }).click();

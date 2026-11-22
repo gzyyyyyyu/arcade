@@ -77,7 +77,7 @@ interface FormatInfo {
   seats: number;
   every: number;
   blinds: Blinds;
-  /** 前几名的奖金，单位 0.1 份报名费（docs/tournament.md 14.4 的配平表）；第 1 名最多 40，一场净赢不超过 3 份（docs/balance.md 第 2 节） */
+  /** 前几名的奖金，单位 0.1 份报名费（docs/tournament.md 14.4 的配平表）；第 1 名最多 40，一场净赢不超过 3 份（仓库根 docs/balance.md 第 2 节） */
   pay: readonly number[];
   /** 实盘各档的电脑强弱档；不写按现金桌的 SOLO_LEVEL */
   levels?: Readonly<Record<StakesId, number>>;

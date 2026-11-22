@@ -15,7 +15,7 @@ export const KEYS = {
   tour: 'texas.tour',
   /** 互动的总开关（"互动：不看"）。按人屏蔽、首次提示是 kit 的 TableFun 按 storageKey 存的：texas.fun.blocked（sessionStorage）、texas.hint.fun */
   fun: 'texas.fun',
-  /** kit 0.19 的聊天设置（TableFun 的 prefsKey 默认值，kit 自己读写：弹幕开关 danmaku、电脑版聊天框收起 folded、记录展开 long） */
+  /** kit 的聊天设置（TableFun 的 prefsKey 默认值，kit 自己读写：弹幕开关 danmaku、电脑版聊天框收起 folded、记录展开 long） */
   chat: 'texas.chat',
   /** 成就（src/achievements.ts）：已拿到的和计数，只在本机，不进云存档 */
   ach: 'texas.ach',
@@ -75,7 +75,7 @@ export function patchSettings(patch: Record<string, unknown>): void {
 export interface Prefs {
   /** 音效开关（游戏里没有背景音乐，声音全是音效；道具声音也跟着它） */
   sound: boolean;
-  /** 总音量 0–1：设置面板的滑条。旧版只存过 0.8（大声）和 0.35（小声），都还是合法值 */
+  /** 总音量 0–1：设置面板的滑条 */
   volume: number;
   fast: boolean;
   /** 单机一手打完，结果摆几秒后自己发下一手（默认关：试玩时大家要"点了才发"） */

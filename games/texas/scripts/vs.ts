@@ -18,7 +18,7 @@ import { STRATEGIES } from '../test/support/strategies.ts';
 
 export const SESSION_HANDS = 100;
 const MIX_HANDS = 2_000;
-/** 混桌里筹码超过 3 份买入就把多的带走（bots.ts 的 cashOut，0.3.0 起；之前的混桌数字没有这一条） */
+/** 混桌里筹码超过 3 份买入就把多的带走（bots.ts 的 cashOut，；之前的混桌数字没有这一条） */
 const CASH_OUT = 3;
 
 type Job =
@@ -28,8 +28,8 @@ type Job =
 type Result = { mbb: number[]; personas: number[]; table: number[]; bluff: number[][] } | { rounds: [number, number][][]; style: number[][]; table: number[]; bluff: number[][]; per: number[][][] };
 
 /**
- * 整桌的热闹程度（0.3.0）：打完的手数、看到翻牌的人次、摊牌的手数、底池合计（大盲）；
- * 0.3.0 实打后加：开局时有人上头的手数、摊牌亮出诈唬的手数（画面的"诈唬"标记，fame.ts 的 bluffer）、诈唬把别人打弃的手数、
+ * 整桌的热闹程度：打完的手数、看到翻牌的人次、摊牌的手数、底池合计（大盲）；
+ * 另有：开局时有人上头的手数、摊牌亮出诈唬的手数（画面的"诈唬"标记，fame.ts 的 bluffer）、诈唬把别人打弃的手数、
  * 上头的座位·手数、发到牌的座位·手数
  */
 const TABLE = 9;
@@ -38,7 +38,7 @@ const BLUFF = 3;
 
 /**
  * 打法统计（每种性格）：发到牌的手数、翻牌前主动入池、翻牌前加注、翻牌后下注加注、翻牌后跟注；
- * 0.28.0 加：下注加注时手里只有高牌的次数（诈唬率 = 它 ÷ 下注加注）、翻牌和转牌手里有三条以上时的出手数和其中只过牌跟注的数（慢打率）、
+ * 还有：下注加注时手里只有高牌的次数（诈唬率 = 它 ÷ 下注加注）、翻牌和转牌手里有三条以上时的出手数和其中只过牌跟注的数（慢打率）、
  * 翻牌后下注占池子的比例合计和次数（平均下注）、翻牌前开池加注的大盲数合计和次数（平均开池）
  */
 const STYLE = 12;
@@ -52,7 +52,7 @@ function work(j: Job): Result {
     const style = PERSONAS.map(() => new Array<number>(STYLE).fill(0));
     const table = new Array<number>(TABLE).fill(0);
     const bluff = PERSONAS.map(() => new Array<number>(BLUFF).fill(0));
-    // 每一场每种性格的 [发到牌, 入池, 翻牌前加注]（0.5.0）：看同一个性格场与场之间打法差多少
+    // 每一场每种性格的 [发到牌, 入池, 翻牌前加注]：看同一个性格场与场之间打法差多少
     const per: number[][][] = [];
     for (let k = j.from; k < j.to; k++) {
       const personas = mixPersonas(k, j.size);
@@ -162,7 +162,7 @@ function work(j: Job): Result {
 }
 
 /**
- * 整桌热闹程度的计数器（0.3.0），每一步调一次，累加到 acc（见 TABLE）和 bluff（见 BLUFF，按开局时的性格记，真人座位不记）。
+ * 整桌热闹程度的计数器，每一步调一次，累加到 acc（见 TABLE）和 bluff（见 BLUFF，按开局时的性格记，真人座位不记）。
  * 翻牌时还在的人 = 发到牌的 − 翻牌前弃的：一手的最后一个操作会随新的一手清掉看不到，但它要么让一手在翻牌前结束（没人看翻牌），要么不是弃。
  * 诈唬也一样：摊牌前的最后一个操作是跟注或过牌，弃牌收池的最后一个操作是弃，都不是下注、加注，少了它不影响"翻牌后最后一个下注的人"
  */
@@ -246,7 +246,7 @@ function bluffLine(parts: { bluff: number[][] }[]): string {
 }
 
 /** 混桌第 k 场坐哪几种性格、怎么排：10 种洗一遍取前 size 个 */
-export function mixPersonas(k: number, size: number): number[] {
+function mixPersonas(k: number, size: number): number[] {
   return shuffle(Array.from({ length: PERSONA_COUNT }, (_, i) => i), stream([k, 2, 3, 4, 5, 6, 7, 8], 'mix')).slice(0, size);
 }
 
@@ -285,8 +285,8 @@ const meanSe = (xs: number[]): [number, number, number] => {
 
 /**
  * npm run sim -- --vs [每格场数] [档位,...] [策略,...] [--persona=编号] [--size=人数] [--humans=玩家数] [--level=0–5 | --room]
- * --humans（0.4.0，好友房）：前几个座位都是玩家、打印他们合起来的输赢。
- * 电脑的强弱档（0.5.0）：不给按单机的（SOLO_LEVEL），--room 按好友房的（ROOM_LEVEL），--level= 钉死一档（docs/ai.md 4.7、6.5）
+ * --humans（好友房）：前几个座位都是玩家、打印他们合起来的输赢。
+ * 电脑的强弱档：不给按单机的（SOLO_LEVEL），--room 按好友房的（ROOM_LEVEL），--level= 钉死一档（docs/ai.md 4.7、6.5）
  */
 export async function vsMain(args: string[]): Promise<void> {
   const sessions = Number(args[0] ?? 600);
@@ -331,7 +331,7 @@ export async function vsMain(args: string[]): Promise<void> {
 export async function mixMain(hands: number, stakes: StakesId, size = 6): Promise<void> {
   const n = Math.max(6, Math.ceil(hands / MIX_HANDS));
   const bb = stakesOf(stakes).bb;
-  // --no-form：电脑不抽这一场的状态（0.5.0 以前的样子），对照场与场之间的浮动
+  // --no-form：电脑不抽这一场的状态，对照场与场之间的浮动
   const form = !process.argv.includes('--no-form');
   const lv = process.argv.find((a) => a.startsWith('--level='));
   const level = lv ? Number(lv.slice(8)) : undefined;
@@ -351,13 +351,13 @@ export async function mixMain(hands: number, stakes: StakesId, size = 6): Promis
     const [, se] = meanSe(on.map((r) => (r[i]![1] / bb / r[i]![0]) * 100));
     const [dealt, vpip, pfr, aggr, calls, air, slowN, strongN, sizeSum, sizeN, openSum, openN] = parts.reduce((a, x) => a.map((v, m) => v + x.style[i]![m]!), new Array<number>(STYLE).fill(0));
     const pct = (x: number): string => `${((x * 100) / dealt!).toFixed(0)}%`;
-    // 场与场之间（0.5.0）：这种性格上桌够 200 手的场次，入池率、翻牌前加注率的标准差（百分点）
+    // 场与场之间：这种性格上桌够 200 手的场次，入池率、翻牌前加注率的标准差（百分点）
     const sessions = per.map((r) => r[i]!).filter((x) => x[0]! >= 200);
     const sd = (m: number): string => (sessions.length > 2 ? meanSe(sessions.map((x) => (x[m]! * 100) / x[0]!))[2].toFixed(1) : '—');
     console.log(
       `  ${p.name}  每百手 ${((net / bb / h) * 100).toFixed(1).padStart(6)} ± ${se.toFixed(1)} 个大盲（${h} 手）  入池 ${pct(vpip!)}（场间 ±${sd(1)}）、翻牌前加注 ${pct(pfr!)}（±${sd(2)}）、翻牌后下注加注 / 跟注 ${(aggr! / calls!).toFixed(1)}`,
     );
-    // 风格（0.28.0）：AF = 翻牌后下注加注 ÷ 跟注；诈唬 = 下注加注里手里只有高牌的比例；慢打 = 翻牌转牌有三条以上时只过牌跟注的比例
+    // 风格：AF = 翻牌后下注加注 ÷ 跟注；诈唬 = 下注加注里手里只有高牌的比例；慢打 = 翻牌转牌有三条以上时只过牌跟注的比例
     console.log(
       `        风格：VPIP ${pct(vpip!)} / PFR ${pct(pfr!)} / AF ${(aggr! / calls!).toFixed(2)} / 诈唬 ${((air! * 100) / aggr!).toFixed(0)}% / 慢打 ${((slowN! * 100) / strongN!).toFixed(0)}% / 平均下注 ${((sizeSum! * 100) / sizeN!).toFixed(0)}% 池 / 平均开池 ${(openSum! / openN!).toFixed(1)} 个大盲`,
     );

@@ -65,7 +65,7 @@ export interface Step {
 }
 
 /**
- * 键盘快捷键全表（docs/ui.md 第 9 节：帮助里要有一页）。键位以 view/actions.ts（牌桌、全下局）、view/puzzle.ts（谜题）、
+ * 键盘快捷键全表（仓库根 docs/ui.md 第 9 节：帮助里要有一页）。键位以 view/actions.ts（牌桌、全下局）、view/puzzle.ts（谜题）、
  * view/lobbykeys.ts（选桌）为准，改了键位记得同步这里。手机没有键盘，这一页只有电脑上用得到
  */
 const KEYS_TABLE: [string, string, string][] = [

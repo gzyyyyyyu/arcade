@@ -114,11 +114,11 @@ export function buildShell(app: HTMLElement, s: State, fn: Fns) {
   ffBtn.type = 'button';
   const backSeatBtn = el('button', 'pill go hidden', hud, '回到我的座位');
   backSeatBtn.type = 'button';
-  // 旁观（docs/social.md 1.4）：座位满了、已经开打时进来的人只看。有电脑座位能接管时给"坐下"（接第一个亮着蓝圈的，也可以直接点那个座位）
+  // 旁观（仓库根 docs/social.md 1.4）：座位满了、已经开打时进来的人只看。有电脑座位能接管时给"坐下"（接第一个亮着蓝圈的，也可以直接点那个座位）
   const sitDownBtn = el('button', 'pill go hidden', hud, '坐下');
   sitDownBtn.type = 'button';
   const spectate = el('span', 'spectate hidden', hud, '也可以点蓝圈的座位');
-  // 互动（docs/table-fun.md 第 1 节）：左下角的"互动"按钮由 kit 画，这里只占个位置（funSlot 的屏幕矩形交给 TableFun 的 button）；
+  // 互动（仓库根 docs/table-fun.md 第 1 节）：左下角的"互动"按钮由 kit 画，这里只占个位置（funSlot 的屏幕矩形交给 TableFun 的 button）；
   // 一手打完按公开发生的事冒 1–2 句顺手提示，一点就发。都在左下，不挡底牌和操作区
   const funSlot = el('div', 'fun-slot hidden', hud);
   // 放在这一行最前面：后面的"补码""歇一手"一显一隐，这个位置也不挪（kit 的按钮按矩形摆，挪了会压到别的按钮）

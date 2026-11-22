@@ -24,14 +24,14 @@ export interface SavedRoom {
   at: number;
   /** 匹配真人排到的桌：刷新后回来也按陌生人桌对待（聊天看"和陌生人打字聊天"、藏起房间码和叫人） */
   match?: true;
-  /** 娱乐档排到的（0.21.0）：刷新后连上以前也不提钱包 */
+  /** 娱乐档排到的：刷新后连上以前也不提钱包 */
   fun?: true;
 }
 
 export interface OnlineState {
   code: string;
   host: boolean;
-  /** 开房时定下的档位和人数（房间发来的 room.opts，kit 0.4.0）；进房前不知道 */
+  /** 开房时定下的档位和人数（房间发来的 room.opts）；进房前不知道 */
   opts: RoomOpts | null;
   status: ClientStatus;
   room: RoomInfo | null;
@@ -69,10 +69,10 @@ export interface OnlineUi {
   toast(text: string): void;
   /**
    * 有人发了嘲讽、表情、道具（kit 的 emote）：seat 是谁发的，id 见 room/rules.ts 的编号表，to 是对谁；我自己发的也会回来。
-   * bot：房间替电脑座位发的（kit 0.10 的 botEmote），即时到，不跟着帧的播放延迟走
+   * bot：房间替电脑座位发的（kit 的 botEmote），即时到，不跟着帧的播放延迟走
    */
   emote(seat: number, id: number, to?: number, bot?: boolean): void;
-  /** 有人说了一句（kit 0.18 的好友房聊天）：房间过滤、打码后的字，我自己说的也会回来 */
+  /** 有人说了一句（kit 的好友房聊天）：房间过滤、打码后的字，我自己说的也会回来 */
   chat(seat: number, text: string, masked: boolean): void;
   /** 房间拒了我的一句（本地已经先挡过一遍，一般是刚重连、节奏刚调过） */
   chatError(code: string): void;
@@ -130,7 +130,7 @@ export class Online {
     return this.s.room ? this.s.room.match === true : this.saved.match === true;
   }
 
-  /** 是娱乐房间（0.21.0，匹配真人的娱乐档）：筹码不算数、不碰钱包。房间发来开局选项以前看本机记的 */
+  /** 是娱乐房间（匹配真人的娱乐档）：筹码不算数、不碰钱包。房间发来开局选项以前看本机记的 */
   get fun(): boolean {
     return this.s.opts ? this.s.opts.fun === true : this.saved.fun === true;
   }
@@ -298,7 +298,7 @@ function errorText(code: string): string {
     case 'seat_closed':
       return '这一局用不到这个座位，坐前面的';
     case 'not_host':
-      // 坐着的人都有"开打"按钮（0.3.5：房主换了设备、页面被顶掉后，本机不知道自己是房主，按钮不能藏）
+      // 坐着的人都有"开打"按钮（房主换了设备、页面被顶掉后，本机不知道自己是房主，按钮不能藏）
       return '只有开房的人能开打，等他点一下';
     case 'not_in_tour':
       return '锦标赛里没有这个操作';

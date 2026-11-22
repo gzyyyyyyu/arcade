@@ -11,14 +11,14 @@ import { shuffle, stream, type Entropy, type RandomStream } from 'arcade-kit/rng
 import { HOUSE_MAX_BB, HOUSE_MIN_BB, LEVEL_HOUSE, PF_STACK_BB, SOLO_LEVEL, stakesOf, STRONG, type StakesId } from './stakes.ts';
 
 export const RULES_VERSION = 1;
-/** 电脑性格的个数（名字和参数在 src/ai/personas.ts）。9 人桌最多 8 个电脑、一桌不重复，所以至少 8 种（0.2.0 起 10 种） */
+/** 电脑性格的个数（名字和参数在 src/ai/personas.ts）。9 人桌最多 8 个电脑、一桌不重复，所以至少 8 种（现在 10 种） */
 export const PERSONA_COUNT = 10;
-/** 一桌最多几个人（0.2.0 起 9 人） */
+/** 一桌最多几个人（9 人） */
 export const MAX_SEATS = 9;
 /**
  * 随机数的用途（arcade-kit/rng 按"用途 + 序号"分流）：多算一次电脑的蒙特卡洛不会改变后面发的牌。
  * 测试断言这几个名字的哈希互不相同。banter 是好友房电脑对名场面的反应、reply 是被扔时的回应（worker/room.ts）；hint 是画面上的跟注提示（src/fun/odds.ts）；
- * 名字是 0.6.0 起的，改了随机序列就变，所以不改
+ * 名字定下了，改了随机序列就变，所以不改
  */
 export const RNG = { deal: 'deal', button: 'button', house: 'house', ai: 'ai', room: 'room', banter: 'banter', reply: 'reply', runout: 'runout', puzzle: 'puzzle', hint: 'hint' } as const;
 const DECK: readonly Card[] = Array.from({ length: 52 }, (_, i) => i);
@@ -61,7 +61,7 @@ export interface SeatState {
   timedOut: boolean;
   /** 这一手打完离桌 */
   leaving: boolean;
-  /** "上头"还剩几手（0.3.0）。0 时不存这个字段：旧存档、旧房间状态没有它，一律按 0 算 */
+  /** "上头"还剩几手。0 时不存这个字段，读时按 0 */
   tilt?: number;
   /**
    * 电脑这一场的状态（docs/ai.md 4.7）：坐下时按种子抽，在性格的范围里浮动，同一个性格每一场打法不一样。
@@ -143,7 +143,7 @@ export interface Table {
   log: LogEntry[];
   lastHand: HandResult | null;
   bank: number;
-  /** 庄家净投入：电脑坐下带上桌的减去电脑离桌收回的（0.3.3）。真人那边扣的 = 结回的 + 输给电脑的（= 牌桌清空时的 house），测试据此核对没有筹码凭空消失；旧存档没有，按 0 算 */
+  /** 庄家净投入：电脑坐下带上桌的减去电脑离桌收回的。真人那边扣的 = 结回的 + 输给电脑的（= 牌桌清空时的 house），测试据此核对没有筹码凭空消失；旧存档没有，按 0 算 */
   house?: number;
   out: Payout[];
   opSeq: number;
@@ -338,7 +338,7 @@ export function stay(t0: Table, seat: number): Table {
 }
 
 /**
- * 好友房点了"离开房间"（0.2.4：离开就"立即结算"）：已经弃了牌、要离桌的人，桌上剩下的筹码马上进待结算，不等这一手打完。
+ * 好友房点了"离开房间"（离开就"立即结算"）：已经弃了牌、要离桌的人，桌上剩下的筹码马上进待结算，不等这一手打完。
  * 投进池子的留在池子里（这一手由别人接着打完）；座位等这一手打完再空出来。不是这种情况就原样返回
  */
 export function cashOut(t0: Table, seat: number): Table {
@@ -582,8 +582,8 @@ function dealStreet(t: Table): void {
 
 /**
  * 这一轮最高注里没人跟的部分退回（最后一个加注超出别人能跟的）。只退给还在这一手里的人：下了注又弃牌的
- * （好友房里下注后马上离座，不轮到他也算弃牌）那一注是死钱，留在池里给赢家。0.3.3 前也退给弃了牌的人，
- * 可他离座时那一份已经结回钱包、封上了，退回的这一注只能搁在房间里，房间关了就没了
+ * （好友房里下注后马上离座，不轮到他也算弃牌）那一注是死钱，留在池里给赢家。不退给弃了牌的人：
+ * 他离座时那一份已经结回钱包、封上了，退回的这一注只能搁在房间里，房间关了就没了
  */
 function returnUncalled(t: Table): void {
   let top = -1;
@@ -752,7 +752,7 @@ function removeSeat(t: Table, seat: number): void {
 
 /**
  * 座位换了人：上一个人留着等亮的底牌作废、亮过的收起来。不清的话，停着时有人离桌、别人马上坐进同一个座位，
- * view 会把上一个人的两张当成新来的人的 kept 下发（审阅 0.19.0 时发现）
+ * view 会把上一个人的两张当成新来的人的 kept 下发（审阅时发现）
  */
 function forget(t: Table, seat: number): void {
   if (t.kept?.[seat]) t.kept[seat] = [];

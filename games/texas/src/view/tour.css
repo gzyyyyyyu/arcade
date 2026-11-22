@@ -1,4 +1,4 @@
-/* 单机锦标赛（0.23.0）：大厅入口和结束页。限定在界面根节点下，不碰 style.css */
+/* 单机锦标赛：大厅入口和结束页。限定在界面根节点下，不碰 style.css */
 .lobby .tour-fmts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-top: var(--s-2); }
 .lobby .tour-fmts .size.tfmt { flex: 0 0 auto; height: 38px; padding: 0 var(--s-3); font-size: var(--fs-2); white-space: nowrap; }
 /* 实盘时只开娱乐的赛制（9 人赛）：还能点选（选了下面写为什么报不了），只是淡一点 */
@@ -13,7 +13,7 @@
 :where(#app, .coach-layer) .dialog .tour-top li.me { outline: 2px solid currentColor; }
 :where(#app, .coach-layer) .dialog .tour-top b { min-width: 4.5em; }
 
-/* 好友房锦标赛（0.24.0）：开房那一行的玩法键和电脑补开关、娱乐档的卡、结束页的奖金列 */
+/* 好友房锦标赛：开房那一行的玩法键和电脑补开关、娱乐档的卡、结束页的奖金列 */
 .lobby .friends.open .size.kind { flex: 0 0 auto; height: 52px; padding: 0 var(--s-3); font-size: var(--fs-3); white-space: nowrap; }
 .lobby .friends.open .size.kind.fill { padding: 0 var(--s-2); }
 .lobby .friends.open.rt .pill { letter-spacing: 0; font-size: var(--fs-4); white-space: nowrap; }

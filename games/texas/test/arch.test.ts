@@ -33,7 +33,7 @@ describe('架构约束', () => {
     for (const f of files('src/room')) expect(read(f), f).not.toMatch(/from '\.\.\/(view|net)\/|from '\.\.\/(main|solo)\.ts'/);
   });
 
-  it('电脑的出牌决定拿不到嘲讽、表情、道具（0.6.0）：src/ai 和 bot.ts 不引用页面、网络、房间和电脑的互动（src/fun），只吃规则给的视图', () => {
+  it('电脑的出牌决定拿不到嘲讽、表情、道具：src/ai 和 bot.ts 不引用页面、网络、房间和电脑的互动（src/fun），只吃规则给的视图', () => {
     for (const f of [...files('src/ai'), 'src/bot.ts']) expect(read(f), f).not.toMatch(/from '\.\.?\/(view|net|room|fun)\/|from '\.\.?\/(main|solo|online)\.ts'|banter|emote/);
   });
 
@@ -89,7 +89,7 @@ describe('架构约束', () => {
     expect(argCounts(read('src/app/table.ts'))).toContain(3);
   });
 
-  it('CSS 里的 :has() 只挂在不常变的小块上（弹窗、结果条、谜题格）：牌桌、舞台、body 上的 :has 在 iOS Safari 上让每次 DOM 变动都大面积重算样式（0.33.2 卡顿）', () => {
+  it('CSS 里的 :has() 只挂在不常变的小块上（弹窗、结果条、谜题格）：牌桌、舞台、body 上的 :has 在 iOS Safari 上让每次 DOM 变动都大面积重算样式（卡顿）', () => {
     const css = (dir: string): string[] =>
       readdirSync(join(ROOT, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? css(join(dir, e.name)) : e.name.endsWith('.css') ? [join(dir, e.name)] : []));
     const ok = /(^|[\s,{}])(\.dialog|\.result|\.pz-slot(\.runout)?):has\(/;

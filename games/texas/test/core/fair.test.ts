@@ -252,7 +252,7 @@ describe('视图里只有该看到的牌', () => {
     expect(shows).toBeGreaterThan(100);
   });
 
-  it('一手打完停着（0.19.0 亮牌）：kept 只给自己、主动亮的只是那家自己的牌，别人没亮的牌哪里都没有', () => {
+  it('一手打完停着（亮牌）：kept 只给自己、主动亮的只是那家自己的牌，别人没亮的牌哪里都没有', () => {
     const g = stream([5, 0xfa3, 2, 3, 4, 5, 6, 7], 'fair-show');
     let held = 0;
     let showed = 0;
@@ -269,7 +269,7 @@ describe('视图里只有该看到的牌', () => {
         }
         if (!t.hold) break;
         held++;
-        // 停着时随机有人离桌、别人马上坐进同一个座位（0.19.1）：上一个人的牌对新来的人也是别人的
+        // 停着时随机有人离桌、别人马上坐进同一个座位：上一个人的牌对新来的人也是别人的
         const orig = t.kept!.map((c) => [...c]);
         const swapped = new Set<number>();
         for (let i = 0; i < size; i++) {

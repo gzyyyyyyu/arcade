@@ -293,7 +293,7 @@ describe('超时、暂离、离桌、补码', () => {
     expect(t.out).toEqual([]);
   });
 
-  it('下了注又离桌（不轮到他也算弃牌），别人都弃了：那一注不退给他，是死钱，归赢家（0.3.3）', () => {
+  it('下了注又离桌（不轮到他也算弃牌），别人都弃了：那一注不退给他，是死钱，归赢家', () => {
     let t = setup([1000, 1000, 1000], 2);
     t = play(t, [[0, raise(60)]]);
     t = must(apply(t, 0, { t: 'leave' }));
@@ -366,7 +366,7 @@ describe('超时、暂离、离桌、补码', () => {
   });
 });
 
-describe('一手打完先停着（holdHands，0.1.1）', () => {
+describe('一手打完先停着（holdHands）', () => {
   const held = (stacks: number[]): Table => {
     const t = newTable('small', stacks.length, SEED, { holdHands: true });
     stacks.forEach((x, i) => {
@@ -442,7 +442,7 @@ describe('一手打完先停着（holdHands，0.1.1）', () => {
   });
 });
 
-describe('主动亮牌（0.19.0）', () => {
+describe('主动亮牌', () => {
   /** 两个真人，0 号弃牌、1 号不用亮就赢：停着等下一手 */
   const ended = (): Table => {
     let t: Table = newTable('small', 2, SEED, { holdHands: true });
@@ -471,7 +471,7 @@ describe('主动亮牌（0.19.0）', () => {
     expect(apply(t, folder, { t: 'show', cards: [0] })).toEqual({ error: 'cannot_show' });
   });
 
-  it('停着时亮了牌就离桌、别人坐进同一个座位：他亮的收起来，不摆在新来的人座位上（0.19.2）', () => {
+  it('停着时亮了牌就离桌、别人坐进同一个座位：他亮的收起来，不摆在新来的人座位上', () => {
     let t = ended();
     t = must(apply(t, 0, { t: 'show', cards: [0] }));
     t = must(apply(t, 1, { t: 'show', cards: [1] }));

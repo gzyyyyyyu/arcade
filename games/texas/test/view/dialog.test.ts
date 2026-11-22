@@ -1,5 +1,5 @@
 /**
- * 弹窗的键盘和焦点（docs/ui.md 第 5 节）：Esc、Tab 循环、焦点归还、不漏到牌桌快捷键、危险按钮的类名。
+ * 弹窗的键盘和焦点（仓库根 docs/ui.md 第 5 节）：Esc、Tab 循环、焦点归还、不漏到牌桌快捷键、危险按钮的类名。
  * 项目里没有 DOM 测试库（不新增依赖），这里手写一个够 dialog.ts 用的最小 DOM；事件按"window 捕获 → 目标冒泡到 window"的顺序派发。
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';

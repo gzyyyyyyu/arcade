@@ -15,7 +15,7 @@ mkdirSync(SHOTS, { recursive: true });
 
 const ROOT = new URL('../..', import.meta.url).pathname;
 export const errors: string[] = [];
-/** 开房的 409（has_room）按页面记数：0.2.4 起不该再有，最后核对是 0 */
+/** 开房的 409（has_room）按页面记数：不该再有，最后核对是 0 */
 export const allowed409: Record<string, number> = {};
 export const log = (...a: unknown[]): void => console.log('[smoke]', ...a);
 
@@ -68,7 +68,7 @@ async function fakePlatform(ctx: BrowserContext, userId: string, scores: unknown
   let data: unknown = null;
   // 回大厅跳到的平台首页
   await ctx.route((u) => u.pathname === '/', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>大厅</title>大厅' }));
-  // 报位置、收邀请、叫人、报名场面（kit 的 social，docs/social.md 1.2、1.3，平台 15.17）：位置、名场面收下，邀请一条都没有，好友一个、叫他就成
+  // 报位置、收邀请、叫人、报名场面（kit 的 social，仓库根 docs/social.md 1.2、1.3，平台 15.17）：位置、名场面收下，邀请一条都没有，好友一个、叫他就成
   await ctx.route(/\/api\/(presence|invites|friends|feed)/, (route) => {
     const req = route.request();
     const path = new URL(req.url()).pathname;
@@ -112,7 +112,7 @@ export async function newContext(browser: Browser, base: string, userId: string,
   return ctx;
 }
 
-/** 页面的 CSP（0.17.1）：违规（拦了的、只报不拦的）都在控制台记一条错误，冒烟按零报错查 */
+/** 页面的 CSP：违规（拦了的、只报不拦的）都在控制台记一条错误，冒烟按零报错查 */
 export async function cspWatch(ctx: BrowserContext): Promise<void> {
   await ctx.addInitScript(() =>
     document.addEventListener('securitypolicyviolation', (e) => console.error(`csp ${e.disposition}: ${e.effectiveDirective} ${e.blockedURI}`)),
@@ -213,21 +213,9 @@ export async function balance(page: Page): Promise<number> {
   return Number(t.replace(/,/g, ''));
 }
 
-/** 旧的三页弹窗提示（新手指引取代了它，别的流程已预先记成走完）：留着兜底，没有弹窗就马上返回 */
-export async function skipTips(page: Page): Promise<void> {
-  for (let i = 0; i < 3; i++) {
-    const d = page.locator('.dialog');
-    if (!(await d.isVisible().catch(() => false))) {
-      await page.waitForTimeout(300);
-      if (!(await d.isVisible().catch(() => false))) return;
-    }
-    await page.locator('.d-btn.primary').click();
-  }
-}
-
 export const handText = async (page: Page): Promise<number> => Number(((await page.locator('.hand-no').textContent()) ?? '').replace(/\D/g, '')) || 0;
 
-/** 一手打完停着（0.1.1）：结果条亮着、"下一手"在，等 5 秒不点也不发 */
+/** 一手打完停着：结果条亮着、"下一手"在，等 5 秒不点也不发 */
 export async function assertHeld(page: Page, tag: string): Promise<void> {
   const no = await handText(page);
   if (!(await page.locator('.result.on').isVisible())) throw new Error(`[${tag}] no result bar after hand ${no}`);
@@ -254,7 +242,7 @@ export async function assertAutoNext(page: Page): Promise<void> {
 }
 
 /** 自动打到第 n 手打完；大多跟注过牌，偶尔加注、弃牌，让各条路都走到。一手打完点"下一手"（第一次先核对不点不发、再试一次自动下一手） */
-/** 加注面板盖住了几个座位的头像或名牌（单机打磨时加的检查）；只留名牌的座位（.tucked，0.9.0）头像藏着，不算 */
+/** 加注面板盖住了几个座位的头像或名牌（单机打磨时加的检查）；只留名牌的座位（.tucked）头像藏着，不算 */
 export const coveredSeats = (page: Page): Promise<number> =>
   page.evaluate(() => {
     const r = document.querySelector('.raise-panel')!.getBoundingClientRect();
@@ -266,10 +254,10 @@ export const coveredSeats = (page: Page): Promise<number> =>
     ).length;
   });
 
-/** 座位之间互相压着的对数（头像、名牌；0.9.0：原来挪开的座位会压到别的座位上，上面那个检查看不出来） */
+/** 座位之间互相压着的对数（头像、名牌；原来挪开的座位会压到别的座位上，上面那个检查看不出来） */
 export const seatOverlaps = (page: Page): Promise<number> =>
   page.evaluate(() => {
-    // 0.18.3 起连动作签一起算：挪开的座位的签原来压在上一家的名牌上
+    // 连动作签一起算：挪开的座位的签原来压在上一家的名牌上
     const boxes = [...document.querySelectorAll('.seat:not(.empty)')].map((seat) =>
       [...seat.querySelectorAll(seat.classList.contains('tucked') ? '.plate' : '.avatar, .plate, .bubble.on')].map((e) => e.getBoundingClientRect()),
     );
@@ -280,7 +268,7 @@ export const seatOverlaps = (page: Page): Promise<number> =>
     return n;
   });
 
-/** 0.18.0 起标题页先是主页：在主页就点模式卡，已经在选桌就点上面的玩法按钮 */
+/** 标题页先是主页：在主页就点模式卡，已经在选桌就点上面的玩法按钮 */
 export async function enter(page: Page, mode: '娱乐' | '实盘' | '好友房', tap = false): Promise<void> {
   const id = { 娱乐: 'fun', 实盘: 'real', 好友房: 'room' }[mode];
   const card = page.locator(`.mcard[data-mode="${id}"]`);
@@ -289,7 +277,7 @@ export async function enter(page: Page, mode: '娱乐' | '实盘' | '好友房',
 }
 
 /**
- * 按朋友的链接（?room=）进了还没开打的好友房：页面替他坐第一个空位（0.41.4）；实盘房先问一句"坐下"（开打时从钱包带入），点了才坐
+ * 按朋友的链接（?room=）进了还没开打的好友房：页面替他坐第一个空位；实盘房先问一句"坐下"（开打时从钱包带入），点了才坐
  */
 export async function linkSit(page: Page, tap = false): Promise<void> {
   await page.locator('.rw-seat.me, .mask .dialog').first().waitFor({ timeout: 20_000 });
@@ -302,7 +290,7 @@ export async function linkSit(page: Page, tap = false): Promise<void> {
   await page.locator('.rw-seat.me').waitFor();
 }
 
-/** 选桌页的选项不折叠（0.34.0）：人数、带多少、止盈、各玩法入口一直摆在页面上，不用展开；留着这个空操作，免得每处调用都改 */
+/** 选桌页的选项不折叠：人数、带多少、止盈、各玩法入口一直摆在页面上，不用展开；留着这个空操作，免得每处调用都改 */
 export async function openMore(_page: Page, _tap = false): Promise<void> {}
 
 export const PHONE = {
@@ -332,10 +320,10 @@ export async function settled(page: Page, tag: string): Promise<number> {
 }
 
 /**
- * 单机锦标赛（--only tour，0.23.0）：娱乐锦标赛进去，一直跟注到被淘汰或打完；淘汰了点"现在离开"；
+ * 单机锦标赛（--only tour）：娱乐锦标赛进去，一直跟注到被淘汰或打完；淘汰了点"现在离开"；
  * 看到结束页，名次在 1–6，前三名三行；顶上写"锦标赛 · 第 N 级"，桌上没有止盈旗子；选桌里"坐下开打"和锦标赛入口都在第一屏
  */
-/** 名牌上的标签（锦标赛出局的"输光"等）不压名字（0.25.2）；返回这次查到几个标签 */
+/** 名牌上的标签（锦标赛出局的"输光"等）不压名字；返回这次查到几个标签 */
 export async function badgesClear(page: Page): Promise<number> {
   const r = await page.evaluate(() => {
     const seats = [...document.querySelectorAll('.seat')].filter((seat) => seat.querySelector('.badge.on'));

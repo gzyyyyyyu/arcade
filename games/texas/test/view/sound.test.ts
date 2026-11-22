@@ -1,6 +1,6 @@
 /**
  * 音效（src/view/sound.ts）在一个照 WebAudio 规矩查参数的假 AudioContext 上全放一遍：哪个都不许抛错。
- * 0.10.0 线上：全下那段噪声 0.5 秒正好等于噪声缓冲的长度，start 的偏移成了负数、抛 RangeError，牌局卡死。
+ * 线上：全下那段噪声 0.5 秒正好等于噪声缓冲的长度，start 的偏移成了负数、抛 RangeError，牌局卡死。
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type * as Sound from '../../src/view/sound.ts';

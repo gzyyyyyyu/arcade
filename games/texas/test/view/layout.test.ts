@@ -1,4 +1,4 @@
-/** 牌桌的摆位（docs/screens.md 8.2）：下注的筹码离座位远近一致、不压公共牌（0.18.2，美术 v3 第 3 步） */
+/** 牌桌的摆位（docs/screens.md 8.2）：下注的筹码离座位远近一致、不压公共牌（美术 v3 第 3 步） */
 import { describe, expect, it } from 'vitest';
 import { betPos, boardPos, buttonPos, dealerSpots, felt, fit, isCompact, potPos, seatPos, STAGE_MAX_W, STAGE_MIN_W, type Geo } from '../../src/view/layout.ts';
 
@@ -49,7 +49,7 @@ describe('荷官能站的地方', () => {
           expect(d.y).toBeLessThan(f.cy);
           for (let seat = 0; seat < size; seat++) {
             const p = seatPos(seat, 0, size, g);
-            // 座位右边只有底牌，让 112 就够；左边有动作签，要 150（0.25.2）
+            // 座位右边只有底牌，让 112 就够；左边有动作签，要 150
             if (p.y < 200) expect(Math.abs(p.x - d.x)).toBeGreaterThanOrEqual(d.x > p.x ? 112 : 150);
           }
         }

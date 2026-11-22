@@ -460,7 +460,7 @@ export function createOnline(c: App) {
   }
 
   /**
-   * 第一次拿到房间状态时报位置（docs/social.md 1.2：朋友列表据此出"加入"）。平台同一个人 10 秒内只记一次位置（docs/api.md 7.2），
+   * 第一次拿到房间状态时报位置（仓库根 docs/social.md 1.2：朋友列表据此出"加入"）。平台同一个人 10 秒内只记一次位置（仓库根 docs/api.md 7.2），
    * 刚打开页面、刚从链接进来时这一次会被丢掉，所以过 PRESENCE_RETRY_MS 再报一次；不然要等 kit 两分钟一次的定时报
    */
   function reportRoom(s: OnlineState): void {
@@ -666,7 +666,7 @@ export function createOnline(c: App) {
     const v = s.view;
     const o = v ? { stakes: v.stakes, size: v.size } : s.opts;
     const st = o ? stakesOf(o.stakes) : null;
-    // 旁观中（docs/social.md 1.4）：开打了、我没坐下也没绑着座位（离座回来的有"回到我的座位"）
+    // 旁观中（仓库根 docs/social.md 1.4）：开打了、我没坐下也没绑着座位（离座回来的有"回到我的座位"）
     const watching = s.room?.status === 'playing' && (s.you?.seat ?? null) === null && (s.you?.bound ?? null) === null;
     if (v?.tour) {
       const t = v.tour;

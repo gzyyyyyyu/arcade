@@ -41,7 +41,7 @@ export interface State {
   ffSkip: number;
   /** 在全下或弃牌的全下局里（docs/features.md 13.10）：节奏整体快一倍，一手几十秒 */
   pfMode: boolean;
-  /** 互动"不看"（texas.fun）。菜单、面板、冷却、连击回敬、按人屏蔽、首次提示、电脑的反应都是 kit 的 TableFun（docs/table-fun.md 第 0 节） */
+  /** 互动"不看"（texas.fun）。菜单、面板、冷却、连击回敬、按人屏蔽、首次提示、电脑的反应都是 kit 的 TableFun（仓库根 docs/table-fun.md 第 0 节） */
   funOff: boolean;
   /** 聊天"不看"（texas.settings 的 chatOff）：别人说的不冒气泡、不进记录，自己也没有聊天页 */
   chatOff: boolean;

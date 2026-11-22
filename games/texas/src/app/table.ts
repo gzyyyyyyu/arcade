@@ -428,7 +428,7 @@ export function createTable(c: App) {
       busted,
       titles,
     };
-    // 分享卡（docs/social.md 1.1）：单独部署没有，还没打完一手的也不给
+    // 分享卡（仓库根 docs/social.md 1.1）：单独部署没有，还没打完一手的也不给
     await soloSummary(stage, site.standalone || !st.hands ? sum : { ...sum, share: shareIt(soloCard(sum, soloWhere(s), c.myName)) });
     if (err && s.closing) {
       c.walletNote = err === 'login' ? LOGIN_NOTE : '钱包暂时连不上：这一桌的筹码先记在本机，稍后会自动结回钱包';

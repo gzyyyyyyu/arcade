@@ -1,5 +1,5 @@
 /**
- * 电脑再训练（0.5.0，docs/ai.md 4.7）：场地 → 强弱档、这一场的状态、公开的打法统计。
+ * 电脑再训练（docs/ai.md 4.7）：场地 → 强弱档、这一场的状态、公开的打法统计。
  * 期望（各场地普通玩家每百手）用模拟器量，写在 DESIGN；这里锁住结构和"不读牌、同种子同结果"
  */
 import { stream } from 'arcade-kit/rng';
@@ -34,7 +34,7 @@ describe('场地 → 强弱档', () => {
     }
     for (const st of STAKES) expect(ROOM_LEVEL[st.id]).toBeGreaterThanOrEqual(SOLO_LEVEL[st.id]);
     expect(SKILL.length).toBe(LEVELS);
-    // 0.12.0 配平：豪华桌、最强档不手软；多跟少加、不敢先打逐档变少（docs/balance.md）
+    // 配平：豪华桌、最强档不手软；多跟少加、不敢先打逐档变少（仓库根 docs/balance.md）
     for (const k of SKILL.slice(4)) expect(k.slip).toBe(0);
     for (let i = 1; i < LEVELS; i++) {
       expect(SKILL[i]!.passive).toBeLessThanOrEqual(SKILL[i - 1]!.passive);
@@ -136,7 +136,7 @@ describe('公开的打法统计（seen）', () => {
           const [h, vpip, pfr] = s.seen;
           expect(vpip!).toBeLessThanOrEqual(h!);
           expect(pfr!).toBeLessThanOrEqual(vpip!);
-          // 0.28.0：看到翻牌 ≤ 发到牌，打到摊牌 ≤ 看到翻牌（旧存档没有这两项，按 0 算）
+          // 看到翻牌 ≤ 发到牌，打到摊牌 ≤ 看到翻牌（旧存档没有这两项，按 0 算）
           const [flops = 0, showdowns = 0] = s.seen.slice(5);
           expect(flops).toBeLessThanOrEqual(h!);
           expect(showdowns).toBeLessThanOrEqual(flops);
@@ -170,8 +170,8 @@ describe('公开的打法统计（seen）', () => {
   });
 });
 
-describe('0.8.0：新手不连开三枪、大桌以上记住上一手亮的牌（docs/ai.md 4.9）', () => {
-  it('新参数只在该有的档：0–3 档价值注小、会放过第三枪；豪华桌价值注略小（0.12.0）；记住上一手只在豪华桌以上', () => {
+describe('新手不连开三枪、大桌以上记住上一手亮的牌（docs/ai.md 4.9）', () => {
+  it('新参数只在该有的档：0–3 档价值注小、会放过第三枪；豪华桌价值注略小；记住上一手只在豪华桌以上', () => {
     for (const k of SKILL.slice(0, 4)) {
       expect(k.value).toBeLessThan(1000);
       expect(k.third).toBeGreaterThan(0);
@@ -179,7 +179,7 @@ describe('0.8.0：新手不连开三枪、大桌以上记住上一手亮的牌�
     expect(SKILL[4]!.value).toBeLessThan(1000);
     for (const k of SKILL.slice(4)) expect(k.third).toBe(0);
     expect(SKILL[5]!.value).toBe(1000);
-    // 0.12.0 大桌（3）配平后不看人，也不记上一手
+    // 大桌（3）配平后不看人，也不记上一手
     SKILL.forEach((k, i) => (i >= 4 ? expect(k.memory).toBeGreaterThan(0) : expect(k.memory).toBe(0)));
   });
 

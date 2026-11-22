@@ -17,7 +17,7 @@ import { GAME } from './platform.ts';
 
 /**
  * 6.1 的限额：德州一手里说话的次数比掼蛋多，入站给到 4,000；寿命 6 小时。
- * 电脑每出一手页面停 1.6 秒（0.1.1：试玩时嫌快，"看都看不清"）：这是房间给每一帧的播放时间，页面播完动画再补足剩下的
+ * 电脑每出一手页面停 1.6 秒（试玩时嫌快，"看都看不清"）：这是房间给每一帧的播放时间，页面播完动画再补足剩下的
  */
 export const ROOM_LIMITS: RoomLimits = { ...DEFAULT_LIMITS, turnMs: TURN_MS, aiDelayMs: AI_DELAY_MS, maxAiBatch: 30, maxLifeMs: 6 * 3_600_000, maxInbound: 4_000 };
 /** 钱包里"桌上那一份"的到期退回：晚于房间最长能活多久（寿命 + 关房时办事的时间）再多 1 小时，正常的房间一定先结算（平台最长 24 小时） */
@@ -30,7 +30,7 @@ export class TexasRoom extends GameRoom<TexasState, RoomAction, RoomView, Env, R
   protected override readonly limits = ROOM_LIMITS;
 
   /**
-   * 电脑的互动（0.6.1 起房间替电脑座位发，kit 的 botEmote，所有人看到的一样；0.13.0 起怎么反应交给 kit 的 botReact，docs/table-fun.md 第 4 节）。不写存储。
+   * 电脑的互动（房间替电脑座位发，kit 的 botEmote，所有人看到的一样；怎么反应交给 kit 的 botReact，仓库根 docs/table-fun.md 第 4 节）。不写存储。
    * - 一手打完（onStep）：只看公开的结果（操作记录、摊牌亮出来的牌）认名场面，每个电脑问一次；
    * - 真人对电脑扔道具、点名（onEmote）：被点的电脑问一次。真人发的东西只在这一刻用来决定回不回，不记下来，
    *   电脑的出牌决定（规则、src/ai）拿不到。

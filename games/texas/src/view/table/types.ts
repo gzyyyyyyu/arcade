@@ -70,9 +70,9 @@ export interface TableViewOpts {
   onSeat?: (seat: number) => void;
   /** 好友房：每帧的时长是房间定的，大场面只放不占时间的轻效果（不加悬念停顿、不下筹码雨） */
   quick?: () => boolean;
-  /** 不看嘲讽和道具（0.3.0 总开关）：电脑说话也一起收起 */
+  /** 不看嘲讽和道具（总开关）：电脑说话也一起收起 */
   quiet?: () => boolean;
-  /** 这个座位被我屏蔽了（0.6.0：真人、电脑都能屏蔽）：电脑说话也不显示 */
+  /** 这个座位被我屏蔽了（真人、电脑都能屏蔽）：电脑说话也不显示 */
   muted?: (seat: number) => boolean;
   /** 电脑说话时配一个表情包（和真人发的同一套画法，kit 的 STICKERS） */
   sticker?: (seat: number, id: StickerId) => void;

@@ -167,7 +167,7 @@ describe('单机', () => {
     expect(w.s.balance).toBe(balance);
   });
 
-  it('离桌时登录过期：钱包没收到，这一桌和那笔结回留在本机，登录后用同一个操作 id 再结（0.3.3：原来当明确拒了，整桌筹码丢了）', async () => {
+  it('离桌时登录过期：钱包没收到，这一桌和那笔结回留在本机，登录后用同一个操作 id 再结（原来当明确拒了，整桌筹码丢了）', async () => {
     const w = new FakeWallet();
     const d = deps(w);
     const solo = await open(d);
@@ -185,7 +185,7 @@ describe('单机', () => {
     expect(d.store.getItem(SESSION_KEY)).toBeNull();
   });
 
-  it('坐下时平台停了带入（busy）：钱没扣，当明确拒了，不留本机的牌局、不一直重试（0.3.3）', async () => {
+  it('坐下时平台停了带入（busy）：钱没扣，当明确拒了，不留本机的牌局、不一直重试', async () => {
     const w = new FakeWallet();
     const d = deps(w);
     w.refuse = 'busy';
@@ -252,7 +252,7 @@ describe('单机', () => {
     w.s = { ...w.s, balance: 100 };
     expect(await Solo.open(d, { userId: 'u1', stakes: 'small', size: 6, amount: 2_000, practice: false })).toEqual({ error: 'no_funds' });
     expect(d.store.getItem(SESSION_KEY)).toBeNull();
-    // 平台 0.10.2：钱包不够一整份，少带一点照样能开
+    // 钱包不够一整份，少带一点照样能开
     w.s = { ...w.s, balance: 1_500 };
     expect('error' in (await Solo.open(d, { userId: 'u1', stakes: 'small', size: 6, amount: 1_200, practice: false }))).toBe(false);
   });
@@ -323,7 +323,7 @@ describe('单机', () => {
     expect(solo.table.seats[ME]!).toMatchObject({ away: false, stack: 2_000 });
   });
 
-  it('补码时钱包连不上：牌桌停住（不发下一手、不能离桌），连上后用同一个操作 id 再办、只扣一次，补上了接着打（0.3.4）', async () => {
+  it('补码时钱包连不上：牌桌停住（不发下一手、不能离桌），连上后用同一个操作 id 再办、只扣一次，补上了接着打', async () => {
     const w = new FakeWallet();
     const d = deps(w);
     const solo = await open(d, 1_000);
@@ -357,7 +357,7 @@ describe('单机', () => {
     expect(w.s.balance).toBe(balance + stack);
   });
 
-  it('0.3.3 及以前的存档：补码到账时人正在一手里加不上，不再抛错卡死；先记着，下一次两手之间加上，离桌时一起结回（0.3.4）', async () => {
+  it('旧存档：补码到账时人正在一手里加不上，不再抛错卡死；先记着，下一次两手之间加上，离桌时一起结回', async () => {
     const w = new FakeWallet();
     const d = deps(w);
     const solo = await open(d, 1_000);
@@ -382,7 +382,7 @@ describe('单机', () => {
     expect(again.table.seats[ME]!.stack + again.table.seats[ME]!.total).toBe(stack + 300);
   });
 
-  it('画面播一步出错（0.10.0 线上：全下的音效抛错）：电脑照常接着出手，牌局不卡', async () => {
+  it('画面播一步出错（线上：全下的音效抛错）：电脑照常接着出手，牌局不卡', async () => {
     const w = new FakeWallet();
     const d = deps(w);
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -408,7 +408,7 @@ describe('单机', () => {
   });
 });
 
-describe('一手打完停着（0.1.1）', () => {
+describe('一手打完停着', () => {
   it('坐下不发第一手；一手打完不点"下一手"不发，点了才发；这一场的数记着手数、赢了几手、最大的一手', async () => {
     const w = new FakeWallet();
     const d = deps(w);
@@ -438,7 +438,7 @@ describe('一手打完停着（0.1.1）', () => {
     if (st.won > 0) expect(st.best!.won).toBeGreaterThan(0);
   });
 
-  it('0.1.0 的存档（没有 holdHands）读进来也停着', () => {
+  it('旧存档（没有 holdHands）读进来也停着', () => {
     const w = new FakeWallet();
     const d = deps(w);
     const t = newTable('small', 2, Array.from({ length: 8 }, (_, i) => i + 1));

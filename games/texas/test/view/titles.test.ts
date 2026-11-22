@@ -1,4 +1,4 @@
-/** 名场面和称号（0.3.0）：只用亮出来的牌和操作记录 */
+/** 名场面和称号：只用亮出来的牌和操作记录 */
 import { describe, expect, it } from 'vitest';
 import { parseCards } from '../../src/core/cards.ts';
 import { evalCards } from '../../src/core/eval.ts';
@@ -48,7 +48,7 @@ describe('名场面', () => {
     expect(showcase(plain, [e(1, 'bb', 20, true)])).toBeNull();
     expect(showcase(plain, [e(1, 'raise', 2000, true), e(0, 'call', 1980)])).toEqual({ kind: 'allin', seat: 0 });
   });
-  it('全下对决按主池的赢家写：只平分了边池的不算笑到最后；主池平分写"平分秋色"（0.3.0 实打）', () => {
+  it('全下对决按主池的赢家写：只平分了边池的不算笑到最后；主池平分写"平分秋色"（实打）', () => {
     const allin = [e(2, 'raise', 2000, true), e(0, 'call', 1980), e(1, 'call', 1980)];
     // 2 号赢了主池，0、1 号平分边池；0 号排在 shown 前面
     const side = result([sh(0, 'Ad Qc'), sh(1, 'Ac Qd'), sh(2, '7h 7c')], 2, {
@@ -90,7 +90,7 @@ describe('称号', () => {
   });
 });
 
-describe('颁奖（0.15.0，好友房一场结束）', () => {
+describe('颁奖（好友房一场结束）', () => {
   const who = (i: number) => ({ key: `k${i}`, name: `p${i}` });
   const rows = [
     { name: 'p0', net: 500 },
@@ -126,10 +126,10 @@ describe('颁奖（0.15.0，好友房一场结束）', () => {
   });
 });
 
-describe('嘲讽（0.3.0）', () => {
+describe('嘲讽', () => {
   it('短语表和房间允许的编号一样多；只能往后加', () => {
     expect(TAUNTS.length).toBe(TAUNT_COUNT);
-    // 编号表：0–14 短语、15–26 表情、27–34 道具（kit 的 funItem，0.13.0）；催促炸弹是第 5 个道具
+    // 编号表：0–14 短语、15–26 表情、27–34 道具（kit 的 funItem）；催促炸弹是第 5 个道具
     expect(EMOTE_COUNT).toBe(35);
     expect(funItem(propId(TAUNT_COUNT, PROPS.indexOf('bomb')), TAUNT_COUNT)).toMatchObject({ kind: 'prop', index: 4 });
     expect(TAUNTS[0]).toBe('就这？');
@@ -151,7 +151,7 @@ describe('嘲讽（0.3.0）', () => {
   });
 });
 
-describe('战绩小结（0.3.0，平台 settle.stats）', () => {
+describe('战绩小结（平台 settle.stats）', () => {
   it('每个称号 id 在 public/titles.json 里有名字，文件不超过 32 KB；小结最坏也不超过 256 字节', async () => {
     const { readFileSync } = await import('node:fs');
     const raw = readFileSync(new URL('../../public/titles.json', import.meta.url), 'utf8');

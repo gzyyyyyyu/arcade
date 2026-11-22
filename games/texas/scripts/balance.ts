@@ -1,5 +1,5 @@
 /**
- * 配平（docs/balance.md，docs/ai.md 4.10，0.12.0）：小白（novice）、普通（simple）两个确定性玩家各打很多场，量
+ * 配平（仓库根 docs/balance.md，docs/ai.md 4.10）：小白（novice）、普通（simple）两个确定性玩家各打很多场，量
  * - 实盘：每档每场的输赢（份，均值 ± 2 倍标准误）、赢的场次、输光的场次、一场多久；
  * - 娱乐：新手、普通、高手三档里"赢"的场次（打完一场筹码比上桌多）。
  * 一场 = 带一份上桌、打 HANDS 手或输光为止，不补码（test/support/bots.ts 的 runSession）；6 人桌（大厅默认）。
@@ -50,9 +50,9 @@ function fanout(n: number, job: (from: number, to: number) => Job): Promise<Row[
  * 一场多久（分钟，真人速度）：每手固定 8 秒（发牌约 2.5 秒、收注翻牌约 2 秒、看结果和发下一手约 3.5 秒），
  * 电脑每次说话约 1.2 秒（src/app/table.ts 的 think，加上推筹码的动画），我每次说话约 4 秒
  */
-export const minutes = (hands: number, mine: number, theirs: number): number => (hands * 8 + theirs * 1.2 + mine * 4) / 60;
+const minutes = (hands: number, mine: number, theirs: number): number => (hands * 8 + theirs * 1.2 + mine * 4) / 60;
 
-export interface Cell {
+interface Cell {
   mean: number;
   se2: number;
   won: number;
@@ -61,7 +61,7 @@ export interface Cell {
   minutes: number;
 }
 
-export function summarize(rows: Row[]): Cell {
+function summarize(rows: Row[]): Cell {
   const xs = rows.map((r) => r[0]);
   const n = xs.length;
   const mean = xs.reduce((a, b) => a + b, 0) / n;

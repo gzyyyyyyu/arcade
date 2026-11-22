@@ -1,5 +1,5 @@
 /**
- * 单机锦标赛配平（docs/balance.md 第 2 节，docs/tournament.md 14.4）：小白（novice）、普通（simple）坐 0 号，对一桌电脑（强弱档 = 实盘各档的 SOLO_LEVEL）打完一场，
+ * 单机锦标赛配平（仓库根 docs/balance.md 第 2 节，docs/tournament.md 14.4）：小白（novice）、普通（simple）坐 0 号，对一桌电脑（强弱档 = 实盘各档的 SOLO_LEVEL）打完一场，
  * 只记"我"拿第几名。奖金只看名次，所以每格记下名次分布，奖金表怎么调都能直接算期望，不用重跑。
  *
  * node scripts/tour-balance.ts [每格场数，默认 2000] [--format=sng,turbo,nine] [--levels=1,2,3,4] [--from=种子起点] [--pay=a,b,c] [--threads=n]

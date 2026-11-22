@@ -77,7 +77,7 @@ export async function achPanel(parent: HTMLElement, s: AchState): Promise<void> 
       cell.classList.remove('nohow');
     }
   }
-  // 翻页（docs/ui.md 第 11 节）：格子都留在页面里，只显示当前页；一页放几个按网格现在的行列数算，窗口变了重算
+  // 翻页（仓库根 docs/ui.md 第 11 节）：格子都留在页面里，只显示当前页；一页放几个按网格现在的行列数算，窗口变了重算
   const pager = el('div', 'ach-pager', body);
   const prev = el('button', 'ach-prev', pager, '上一页');
   const num = el('span', 'ach-page', pager);

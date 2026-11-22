@@ -9,7 +9,7 @@
  * - 房间要关：这一手作废、各人投的退回，所有人桌上的筹码结回钱包。
  * 钱包的事记在状态里（effects），房间去办、办完写回（settled）；同一笔可能办两次，钱包按操作 id 去重。
  *
- * 钱包是平台的（docs/platform-backend.md 5.9）：每一份（ref）可以多次带入（补码），但只能结回一次，结完那一份就没了，再结回 no_stake。
+ * 钱包是平台的（仓库根 docs/platform-backend.md 5.9）：每一份（ref）可以多次带入（补码），但只能结回一次，结完那一份就没了，再结回 no_stake。
  * 所以一个座位（开打后座位和人一一对应，kit 的 owners）同一时间只办一笔（fx 里这个座位排第一的那笔）；
  * 牌桌结出来的筹码、没上桌的买入都先攒在 owed，等他完全离桌、没有在路上的买入了，合成一笔结回，这一份就封上（sealed）；
  * 之后再坐下开新的一份（ref 里的第几份加一），结回还在路上时新的买入排在它后面。
@@ -53,14 +53,14 @@ export const AI_DELAY_MS = 1_600;
 /** 开打时最多等这么久的买入回话：钱包一直连不上的人先当没坐上，到账了下一手再上 */
 export const OPENING_MS = 30_000;
 /**
- * 好友房的 emote 编号表（0.3.0；0.13.0 起照 kit 的 funItem：短语、表情、道具共用一个编号，房间只转发编号、校验范围和 to）：
+ * 好友房的 emote 编号表（照 kit 的 funItem：短语、表情、道具共用一个编号，房间只转发编号、校验范围和 to）：
  * 0–14 短语（fun/taunts.ts 的 TAUNTS）、15–26 表情包、27–34 道具（kit 的 STICKERS、PROPS 原顺序，催促炸弹就是对人扔 bomb）。
  * 只往后加，不改顺序
  */
 export const TAUNT_COUNT = TAUNTS.length;
 export const EMOTE_COUNT = funIdCount(TAUNT_COUNT);
 /**
- * 一手打完停多久再发下一手（kit 0.5.0 的 pause）：所有人看同一个结果条和倒计时圈，不等谁点（有人走开就卡住）。
+ * 一手打完停多久再发下一手（kit 的 pause）：所有人看同一个结果条和倒计时圈，不等谁点（有人走开就卡住）。
  * 从这一手最后一帧播完算起；页面摊牌、分池的动画要占掉三秒左右，剩下的时间结果静静摆着
  */
 export const HAND_PAUSE_MS = 7_000;
@@ -155,7 +155,7 @@ export interface LastAct {
 
 /**
  * 客户端能发的；timeout 只由房间代出，离座走 kit 的 leave。
- * rebuy 的 amount：钱包不够一整份时少带一点（平台 0.10.2）；不给就带满
+ * rebuy 的 amount：钱包不够一整份时少带一点；不给就带满
  */
 export type RoomAction = Action | { t: 'rebuy'; amount?: number };
 
@@ -293,7 +293,7 @@ export const texasRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wall
   },
   // 亮牌在两手之间的停顿里发，不轮流；停顿不因它重新计时（kit 的 pause）
   free: (a) => a.t === 'away' || a.t === 'back' || a.t === 'rebuy' || a.t === 'show',
-  // 好友房聊天（kit 0.18.0，docs/chat.md）：kit 过滤、限速后只转发，不进状态、不写存储，电脑不读
+  // 好友房聊天（kit 的 docs/chat.md）：kit 过滤、限速后只转发，不进状态、不写存储，电脑不读
   chat: true,
 
   apply(s, seat, a) {
@@ -312,16 +312,16 @@ export const texasRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wall
   // 开打等买入时"轮到"第一个还没回话的人：房间替这一步计时（OPENING_MS），页面在他头像上画倒计时圈
   turn: (s) => (s.closed ? null : s.opening ? openingSeat(s) : s.t.toAct),
   turnMs: (s) => (s.opening ? OPENING_MS : TURN_MS),
-  // 一手打完停着：房间停 HAND_PAUSE_MS 再发下一手（kit 0.5.0，用房间唯一的闹钟）
+  // 一手打完停着：房间停 HAND_PAUSE_MS 再发下一手（用房间唯一的闹钟）
   pause: (s) => (!s.closed && s.t.hold ? HAND_PAUSE_MS : null),
   resume: (s) => sync({ ...s, t: deal(s.t) }),
-  // 一手和一手之间没人要出手：等人坐下、补码、回来，或者买入到账（kit 0.3.2）
+  // 一手和一手之间没人要出手：等人坐下、补码、回来，或者买入到账
   waiting: (s) => s.t.phase === 'idle' && !s.t.hold,
-  // 桌上一个真人都没有了、也没有买入在路上（0.2.4：离开就"立即结算"）：这一场打完，kit 马上还开房名额，办完结回再关房。
+  // 桌上一个真人都没有了、也没有买入在路上（离开就"立即结算"）：这一场打完，kit 马上还开房名额，办完结回再关房。
   // 不再让电脑自己一直打下去：原来要等"10 分钟没真人连着"，房主每次被送回来重新连上，房间就一直关不掉。
   // 这一手已经由 sync 替电脑打完了（停着或空闲）
   over: (s) => !s.kinds.includes('human') && !s.fx.some((e) => e.kind === 'debit') && s.t.toAct === null,
-  // 嘲讽短语（kit 0.6.0 的 emote）：只转发编号、限频，不进状态、不写存储，和牌局无关
+  // 嘲讽短语（kit 的 emote）：只转发编号、限频，不进状态、不写存储，和牌局无关
   emotes: EMOTE_COUNT,
   // 一手刚开、只交了盲注：收场时这一手作废，退回的只有盲注
   breakPoint: (s) => s.t.phase === 'idle' || s.t.log.every((e) => e.act === 'sb' || e.act === 'bb'),
@@ -334,7 +334,7 @@ export const texasRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wall
     let s: RoomState = { ...s0, kinds: s0.kinds.map((k, i) => (i === seat ? kind : k)) };
     if (kind !== 'human' || s.closed) return sync(s);
     const c = s.t.seats[seat];
-    // 说了离桌、这一手还没打完就回来了：还没结回就接着坐；已经结回了（0.2.4 离开马上结）就等这一手打完，买新的一份坐下
+    // 说了离桌、这一手还没打完就回来了：还没结回就接着坐；已经结回了（离开马上结）就等这一手打完，买新的一份坐下
     if (c?.owner === 'player' && !(c.leaving && s.sealed[seat])) return sync(c.leaving ? { ...s, t: stay(s.t, seat) } : s);
     if (!buying(s, seat)) s = buy(s, seat);
     return sync(s);
@@ -384,9 +384,9 @@ export const texasRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wall
     // 被拒了：开打时等的就是这一笔的话，现在可以发第一手了
     if (!isOk(result)) return sync({ ...next, refused: set(s.refused, e.seat, errorOf(result)) });
     const funded = set(s.funded, e.seat, true);
-    // 这一场带入的账（0.1.1 输赢）
+    // 这一场带入的账（输赢）
     const inn = set(s.inn, e.seat, s.inn[e.seat]! + e.amount);
-    // 这一份带入的（0.3.0 战绩：结回时算这一份的净赢）
+    // 这一份带入的（战绩：结回时算这一份的净赢）
     const fm = fameOf(s);
     const fame = { ...fm, inn: set(fm.inn, e.seat, fm.inn[e.seat]! + e.amount) };
     // 扣到了但人已经走了、房间要关了：攒着，和这一份一起结回去
@@ -421,7 +421,7 @@ const openingSeat = (s: RoomState): number | null => s.fx.find((e) => e.kind ===
 const buying = (s: RoomState, seat: number): boolean => s.held[seat]! > 0 || debiting(s, seat);
 
 /**
- * 补码：桌上不满一份就能补到满（0.3.0：好友房不设多余的限制；原来要输光了才能补）；
+ * 补码：桌上不满一份就能补到满（好友房不设多余的限制；原来要输光了才能补）；
  * 或者坐下（开局、中途、接管）时带入被拒了、还没坐上牌桌：再带一次（原来被拒以后就卡在空座位上）
  */
 const canRebuy = (s: RoomState, seat: number): boolean => {
@@ -432,7 +432,7 @@ const canRebuy = (s: RoomState, seat: number): boolean => {
 
 /**
  * 从这个座位的人的钱包扣：坐下扣满买入；桌上还有筹码的补码只补到满。
- * want：钱包不够一整份时自己说带多少（平台 0.10.2 起开一份只要求余额够这次带入）：坐下最少这一档的最少买入，补码最少一个大盲，最多带满
+ * want：钱包不够一整份时自己说带多少（开一份只要求余额够这次带入）：坐下最少这一档的最少买入，补码最少一个大盲，最多带满
  */
 function buy(s: RoomState, seat: number, want?: number): RoomState {
   // 上一份封上了（或者还没开过）：开新的一份；还开着（补码、离座没结完又回来）就加在这一份上
@@ -604,7 +604,7 @@ function seatPass(s: RoomState): RoomState {
         t = must(seatPlayer(t, i, held[i]!, false));
         held[i] = 0;
       } else if (c.owner === 'player' && !c.leaving && c.status === 'out') {
-        // 补到满；补码在路上时又赢了、放不下的那点攒着，离桌时和这一份一起结回（0.3.0 补码不再要输光）
+        // 补到满；补码在路上时又赢了、放不下的那点攒着，离桌时和这一份一起结回（补码不再要输光）
         const fit = Math.min(held[i]!, max - c.stack);
         if (fit > 0) t = must(addChips(t, i, fit, false));
         owed[i]! += held[i]! - fit;

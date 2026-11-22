@@ -10,7 +10,7 @@ export class TableCtx {
   readonly root: HTMLDivElement;
   readonly feltEl: HTMLDivElement;
   readonly markEl: HTMLDivElement;
-  /** 荷官（0.18.3）：站在桌子顶边后面，牌从他手里发出、收回他那里；没地方站时照旧从庄家位置发、收回桌心 */
+  /** 荷官：站在桌子顶边后面，牌从他手里发出、收回他那里；没地方站时照旧从庄家位置发、收回桌心 */
   readonly croupier: Dealer;
   /** 荷官现在站的点（没站是 null） */
   croupierAt: Pt | null = null;

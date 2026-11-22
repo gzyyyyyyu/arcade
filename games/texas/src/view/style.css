@@ -1,7 +1,7 @@
 /* 德州扑克。舞台高 540 个设计单位、宽 860–1170，整体缩放（viewport.ts）；下面的尺寸都是设计单位。 */
 
 /*
- * 主题（0.9.0）：间距按 4 的倍数、字号、圆角、阴影都从这里取，不在下面写死。
+ * 主题：间距按 4 的倍数、字号、圆角、阴影都从这里取，不在下面写死。
  * 牌、筹码、头像这些"画"出来的东西按自己的比例画，不走这套刻度。
  */
 :root {
@@ -35,7 +35,7 @@
   --fs-1: calc(12px * var(--ui));
   --fs-2: max(13px, calc(12.5px * var(--ui)));
   --fs-3: max(14px, calc(13px * var(--ui)));
-  /* 0.25.3 多尺寸：手机上舞台缩小后，16、18、20 的字缩到 10 上下；下限按屏幕上 13–14 算（小屏才起作用） */
+  /* 多尺寸：手机上舞台缩小后，16、18、20 的字缩到 10 上下；下限按屏幕上 13–14 算（小屏才起作用） */
   --fs-4: max(16px, calc(13px * var(--ui)));
   --fs-5: max(18px, calc(13.5px * var(--ui)));
   --fs-6: max(20px, calc(14px * var(--ui)));
@@ -71,7 +71,7 @@
   --win-ink: #0b5a2a;
   --lose-ink: #9c1f16;
 }
-/* 手机横屏（矮）：中大号字按屏幕上 13–14 放大以后选桌页"好友房""带上桌"折行、面板出屏（0.25.3 多尺寸实测），这里下限只给到 12 */
+/* 手机横屏（矮）：中大号字按屏幕上 13–14 放大以后选桌页"好友房""带上桌"折行、面板出屏（多尺寸实测），这里下限只给到 12 */
 @media (orientation: landscape) and (max-height: 430px) {
   :root { --fs-3: max(14px, calc(12px * var(--ui))); --fs-4: max(16px, calc(12px * var(--ui))); --fs-5: max(18px, calc(12.5px * var(--ui))); --fs-6: max(20px, calc(13px * var(--ui))); }
   /* 赔率条折成两行会顶到右边座位的头像：括号里"赢面过几成可跟"的提示收起，只留底池、跟多少、赔率 */
@@ -104,7 +104,7 @@ html, body {
 :where(#app, .coach-layer) button { position: relative; font: inherit; color: inherit; cursor: pointer; }
 
 /*
- * 按钮的状态（0.9.0）：所有按钮一套规矩，各按钮只管自己的颜色和大小。
+ * 按钮的状态：所有按钮一套规矩，各按钮只管自己的颜色和大小。
  * 悬停只在有鼠标的设备上亮（触屏点完不会一直亮着）；按下缩一点（用 scale，不和按钮自己的 transform 打架）；
  * 禁用灰掉；键盘焦点一圈金边；加载中（.loading）文字换成转圈，不能再点
  */
@@ -232,7 +232,7 @@ body::before {
 .spacer { flex: 1; }
 .icon { width: 36px; padding: 0; }
 .icon svg { width: 20px; height: 20px; fill: var(--ink); }
-/* 选中：描边加右上角的勾，底只染一点（档位、人数、预选、自动下一手……都是这一个样子）。不用金色填充：那是主按钮的样子，docs/ui.md 第 4 节 */
+/* 选中：描边加右上角的勾，底只染一点（档位、人数、预选、自动下一手……都是这一个样子）。不用金色填充：那是主按钮的样子，仓库根 docs/ui.md 第 4 节 */
 .sel:is(.icon, .pill, .preset, .mode, .size, .tile, .pre-btn, .auto-next) {
   border-color: var(--sel-edge);
   color: var(--ink);
@@ -402,7 +402,7 @@ body::before {
 .c-corner b { font-size: 21px; font-weight: 800; letter-spacing: -1px; }
 .c-pip { width: 14px; height: 14px; fill: currentColor; margin-top: 1px; }
 .c-big { position: absolute; right: 5px; bottom: 6px; width: 30px; height: 30px; fill: currentColor; opacity: .92; }
-/* 牌面中间（0.10.0）：数字牌和 A 是中心花色（pips.ts），人头牌是半身像画框（art.ts）；按牌的大小用百分比摆，大牌小牌一套 */
+/* 牌面中间：数字牌和 A 是中心花色（pips.ts），人头牌是半身像画框（art.ts）；按牌的大小用百分比摆，大牌小牌一套 */
 .c-pips { position: absolute; left: 15.5%; top: 14.6%; width: 69%; height: 70.7%; }
 .c-court { position: absolute; right: 6%; bottom: 5%; width: 62%; height: auto; }
 .c-big { display: none; }
@@ -420,7 +420,7 @@ body::before {
 .card.mine .c-pip { width: 17px; height: 17px; }
 .card.mine .c-big { width: 32px; height: 32px; }
 .card.board.hidden, .card.gone { visibility: hidden; }
-/* 竖屏的公共牌缩小一点（0.21.3）：桌子窄，58 宽的 5 张两头压到左右座位的名牌（layout.ts 的 boardPos 间距 54） */
+/* 竖屏的公共牌缩小一点：桌子窄，58 宽的 5 张两头压到左右座位的名牌（layout.ts 的 boardPos 间距 54） */
 .stage.tall .card.board { width: 50px; height: 70px; }
 .card.fly { z-index: 30; }
 .showdown .card.up:not(.best) .c-face { filter: brightness(.55); }
@@ -428,7 +428,7 @@ body::before {
 
 /* ---------- 座位 ---------- */
 /*
- * 0.1.1 重排：头像在上、名牌在下；别人的底牌放在头像朝桌子中间的那一侧（.left 座位在右边，.right 座位在左边），不压名牌。
+ * 头像在上、名牌在下；别人的底牌放在头像朝桌子中间的那一侧（.left 座位在右边，.right 座位在左边），不压名牌。
  * 这一轮做了什么（气泡）挂在头像上方，顶上的座位挂在名牌下面；暂离、掉线这类状态是头像下沿的一条小签
  */
 .seat {
@@ -472,7 +472,7 @@ body::before {
   transition: border-color .2s, background .2s;
 }
 .seat .name { display: block; font-size: var(--fs-2); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* 顶上一排赢了：名字那一行先写赢数（0.3.1，原来飘在头像上压住名字） */
+/* 顶上一排赢了：名字那一行先写赢数（原来飘在头像上压住名字） */
 .seat .name.won { color: #ffe08a; font-weight: 900; font-size: var(--fs-4); animation: say .5s ease-out; }
 .seat .stack { display: block; font-size: var(--fs-5); font-weight: 800; color: var(--gold); }
 .seat .plate.up .stack { color: var(--win); }
@@ -537,7 +537,7 @@ body::before {
 .seat .hand.on { display: block; animation: pop .3s ease-out; }
 /* 打着的时候我凑成的牌：比摊牌的牌型低调 */
 .seat .hand.live { color: var(--gold); background: rgba(8, 16, 12, .78); border: 1px solid rgba(243, 200, 107, .45); animation: none; }
-/* 摊牌亮出来是诈唬（0.2.3）：红底，一眼看出来 */
+/* 摊牌亮出来是诈唬：红底，一眼看出来 */
 .seat .hand.bluff { color: #fff; background: linear-gradient(#e2574c, #b3342b); }
 /* 这一轮做了什么："跟注 40"。刚做时弹一下，之后挂着，到下一轮才收 */
 .seat .bubble {
@@ -564,11 +564,11 @@ body::before {
 .seat.hit :is(.bubble, .badge) { opacity: 0; }
 /* 顶上的座位：头像上方是桌边、下方是下注，放在头像左边（底牌在右边） */
 .seat.top .bubble { left: auto; right: 38px; top: -16px; transform: none; }
-/* 加注面板打开时整个往上挪开的座位（table.ts 的 avoid）：头像上方压着上一家的名牌，动作签放到名牌朝桌心那一侧（0.18.3） */
+/* 加注面板打开时整个往上挪开的座位（table.ts 的 avoid）：头像上方压着上一家的名牌，动作签放到名牌朝桌心那一侧 */
 .seat.shifted.right .bubble { left: auto; right: 62px; top: 36px; transform: none; }
 .seat.shifted.left .bubble { left: 62px; top: 36px; transform: none; }
-/* 贴着左边的顶上座位（6、7 人桌左上角）：头像左边放不下，放头像正上方（0.3.1） */
-/* 顶上一排桌心右边的：底牌在头像左边，动作签放到头像右边（外侧），不和左边那家的底牌、自己的底牌挤在一起（0.25.6，竖屏 7 人桌） */
+/* 贴着左边的顶上座位（6、7 人桌左上角）：头像左边放不下，放头像正上方 */
+/* 顶上一排桌心右边的：底牌在头像左边，动作签放到头像右边（外侧），不和左边那家的底牌、自己的底牌挤在一起（竖屏 7 人桌） */
 .seat.top.right .bubble { right: auto; left: 38px; }
 .seat.top.edge .bubble { left: 50%; right: auto; top: -64px; transform: translateX(-50%); }
 /* 竖屏右边下面那两家挨得近：动作签放头像正上方会压住上家名牌，又不能放外侧（出屏）。往外偏一点、压低到头像上沿，刚好让开上家名牌 */
@@ -654,7 +654,7 @@ body::before {
   background: rgba(0, 0, 0, .55);
 }
 
-/* 电脑说的话（0.2.3）：白底对话泡，贴着头像朝桌心那边 */
+/* 电脑说的话：白底对话泡，贴着头像朝桌心那边 */
 .speech {
   position: absolute;
   max-width: 200px;
@@ -687,14 +687,14 @@ body::before {
 }
 .actions.on { display: flex; animation: rise .18s ease-out; }
 .buttons { display: flex; gap: var(--s-2); }
-/* 0.2.1：池子、要跟多少、赔率（小字）；一键下注（点了直接下） */
+/* 池子、要跟多少、赔率（小字）；一键下注（点了直接下） */
 .odds { padding: var(--s-0) var(--s-3); border-radius: var(--r-3); background: rgba(0, 0, 0, .45); font-size: var(--fs-2); color: var(--muted); white-space: nowrap; }
 .odds b { color: #f4efe1; font-weight: 800; }
 .odds .need { color: #9fd8b8; }
 .quick { display: flex; gap: var(--s-2); }
 .qbet { height: 36px; padding: 0 var(--s-3); border-radius: var(--r-3); border: 1px solid rgba(243, 200, 107, .45); background: rgba(243, 200, 107, .1); color: var(--gold); font-size: var(--fs-3); font-weight: 800; white-space: nowrap; }
 .actions.open .quick { display: none; }
-/* 赔率条和一键下注最宽只到我的底牌右边（底牌在舞台正中，左右各约 90）：平板 4:3、手机横屏舞台窄，原来压到第二张底牌（0.25.3 多尺寸）；
+/* 赔率条和一键下注最宽只到我的底牌右边（底牌在舞台正中，左右各约 90）：平板 4:3、手机横屏舞台窄，原来压到第二张底牌（多尺寸）；
    放不下就折行，竖屏的操作区另有排法 */
 .stage:not(.tall) .actions .quick { max-width: calc(var(--stage-w, 960px) / 2 - 90px - var(--s-3)); flex-wrap: wrap; justify-content: flex-end; }
 /* 赔率条永远一行（电脑版 1280 上原来折成两行，数字不许用"…"截）：后面的"赢面"小字更小一号，窄舞台（平板 4:3）上收起，只留底池、跟、赔率 */
@@ -816,15 +816,15 @@ body::before {
   z-index: 20;
 }
 .hand-no { font-size: var(--fs-2); color: var(--muted); margin-right: var(--s-1); }
-/* 好友房嘲讽（0.3.0）：按钮、顺手提示在左下，面板从左下弹出；都不压我的底牌（正下方）和操作区（右下） */
-/* kit 画的"互动"按钮的位置（0.13.0）：hud 里占一个和原来按钮一样大的空位，矩形交给 TableFun */
+/* 好友房嘲讽：按钮、顺手提示在左下，面板从左下弹出；都不压我的底牌（正下方）和操作区（右下） */
+/* kit 画的"互动"按钮的位置：hud 里占一个和原来按钮一样大的空位，矩形交给 TableFun */
 .fun-slot { width: calc(88px * var(--ui)); height: var(--hit); flex: none; }
 /* 一手打完的顺手短语：在"歇一手、互动"那一行上面，不挨着我的头像和名牌 */
 .fun-hints { position: absolute; left: 0; bottom: calc(100% + var(--s-2)); display: flex; gap: var(--s-2); width: max-content; }
 /* 竖屏 hud 紧贴在我的名牌下面，提示挂上面会压住我的头像和名牌：改挂在它下面（一手打完时操作区已收，下面只有"下一手"那一栏），横向铺满居中 */
 .stage.tall .fun-hints { left: 0; right: 0; width: auto; bottom: auto; top: calc(100% + var(--s-2)); justify-content: center; }
 .fun-hint {
-  /* 不折行（0.25.1 实打：电脑版挤成两个窄条、一个字一行） */
+  /* 不折行（实打：电脑版挤成两个窄条、一个字一行） */
   white-space: nowrap;
   padding: var(--s-2) var(--s-3);
   border: 1px solid rgba(243, 200, 107, .7);
@@ -838,7 +838,7 @@ body::before {
   animation: say .3s ease-out;
 }
 
-/* 好友房带入被拒（0.2.5）：挂在我的座位上面，醒目，点了重新带入 */
+/* 好友房带入被拒：挂在我的座位上面，醒目，点了重新带入 */
 .rebuy-cta {
   position: absolute;
   left: 50%; bottom: 150px;
@@ -901,7 +901,7 @@ body::before {
 .fan-card .c-pip { width: 18px; height: 18px; }
 .fan-card .c-big { width: 40px; height: 40px; }
 
-/* 右栏（0.18.0）：横幅 + 主页或选桌，两屏一样宽，切换时左边的标题不动 */
+/* 右栏：横幅 + 主页或选桌，两屏一样宽，切换时左边的标题不动 */
 .side { width: 430px; max-height: 100%; display: flex; flex-direction: column; gap: var(--s-3); }
 .side > :is(.banner, .note) { margin-top: 0; }
 .panel {
@@ -940,7 +940,7 @@ body::before {
 .banner span { flex: 1; }
 .banner .go { height: 36px; padding: 0 var(--s-3); border-radius: var(--r-3); white-space: nowrap; }
 .modes { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-3); }
-/* 模式按钮按字宽给、不折行：字号按缩放放大，定宽 64 在手机竖屏上"好友房"折成两行、"房"被按钮下沿切掉（0.25.5）；挤的是右边的说明，它自己折行 */
+/* 模式按钮按字宽给、不折行：字号按缩放放大，定宽 64 在手机竖屏上"好友房"折成两行、"房"被按钮下沿切掉；挤的是右边的说明，它自己折行 */
 .mode {
   min-width: 64px; height: 40px; padding: 0 var(--s-2);
   flex: none;
@@ -971,7 +971,7 @@ body::before {
 .tile.sel span, .tile.sel small { color: #e8d6a8; }
 .tile.sel b { color: var(--gold); }
 .tile.locked { opacity: .4; }
-/* 选档卡（0.12.0）：电脑多强的星；娱乐只有三个难度，排三列 */
+/* 选档卡：电脑多强的星；娱乐只有三个难度，排三列 */
 .stakes.fun, .stage.tall .stakes.fun { grid-template-columns: repeat(3, 1fr); }
 .tile .stars { color: var(--gold); letter-spacing: 1px; font-size: var(--fs-2); }
 .sizes, .buyin { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-3); }
@@ -1004,7 +1004,7 @@ body::before {
   --spin: var(--gold-ink);
 }
 
-/* ---------- 主页（0.18.0，docs/art.md 第 4 节）：快速开始 → 三张模式卡 → 钱包 → 战绩 ---------- */
+/* ---------- 主页（docs/art.md 第 4 节）：快速开始 → 三张模式卡 → 钱包 → 战绩 ---------- */
 .front {
   display: flex;
   flex-direction: column;
@@ -1096,17 +1096,17 @@ body::before {
 .stage.tight .mcard { min-height: 0; padding: var(--s-2); }
 .stage.tight .mcard svg { width: 26px; height: 26px; }
 .stage.tight :is(.modes, .stakes, .sizes, .buyin, .go-row, .friends) { margin-top: var(--s-2); }
-/* 缩小了或收窄了的横版牌桌（手机横屏、平板竖拿）：左下那一排变宽，"歇一手"压到我的头像（0.25.3 多尺寸）——占位按竖屏的宽度、按钮留白收窄、第几手收起 */
+/* 缩小了或收窄了的横版牌桌（手机横屏、平板竖拿）：左下那一排变宽，"歇一手"压到我的头像（多尺寸）——占位按竖屏的宽度、按钮留白收窄、第几手收起 */
 :is(.stage.tight, .stage.narrow):not(.tall) .hud .fun-slot { width: calc(64px * var(--ui)); }
 :is(.stage.tight, .stage.narrow):not(.tall) .hud > .pill { padding: 0 var(--s-2); }
 :is(.stage.tight, .stage.narrow):not(.tall) .hud .hand-no { display: none; }
-/* 两手之间多一个"补码"，那一排再长一截就碰到我的头像（0.25.6 牌桌互压检查，667×375）：按钮之间收紧 */
+/* 两手之间多一个"补码"，那一排再长一截就碰到我的头像（牌桌互压检查，667×375）：按钮之间收紧 */
 .stage.tight:not(.tall) .hud { gap: var(--s-1); left: var(--s-2); }
 /* 我的动作签（"大盲 20"）字放大后变宽，往右伸到第一张底牌、盖住点数：按右边对齐，右沿停在底牌左边 */
 .stage.tight:not(.tall) .seat.me .bubble { left: -76px; transform: translateX(-100%); }
-/* 两侧座位的动作签字放大后变高，上沿顶到上一家的名牌（7–9 人桌两侧挨着的两家，0.25.6）：往下放 6，搭在自己头像上沿 */
+/* 两侧座位的动作签字放大后变高，上沿顶到上一家的名牌（7–9 人桌两侧挨着的两家）：往下放 6，搭在自己头像上沿 */
 .stage.tight:not(.tall) .seat:not(.top):not(.me):not(.shifted) .bubble { top: -54px; }
-/* 568×320 这种矮横屏：选桌最下面一排"坐下开打"出了屏（0.25.3 多尺寸），锦标赛那行说明收起（按钮上的提示里有） */
+/* 568×320 这种矮横屏：选桌最下面一排"坐下开打"出了屏（多尺寸），锦标赛那行说明收起（按钮上的提示里有） */
 @media (max-height: 340px) {
   .stage.tight .lobby .tour-note { display: none; }
   /* 娱乐的三张难度卡的小字（一场多久、不碰钱包）也收起：实盘档的"最多输""很少赢过"不动 */
@@ -1114,7 +1114,7 @@ body::before {
 }
 
 /* ---------- 好友房 ---------- */
-/* 0.17.4：好友房和娱乐、实盘并排；输码进房紧跟在选项下面，开房间在"坐下开打"的位置（一样大、金色） */
+/* 好友房和娱乐、实盘并排；输码进房紧跟在选项下面，开房间在"坐下开打"的位置（一样大、金色） */
 .friends { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-3); }
 /* 输码进房和下面选档开房是两件事：中间一道虚线隔开，免得以为开房也要填码（界面审查 1121 第 15 条） */
 .stage .lobby .friends.join { position: relative; padding-bottom: var(--s-2); }
@@ -1172,7 +1172,7 @@ body::before {
 .rw-invite { height: 48px; padding: 0 var(--s-5); font-size: var(--fs-5); font-weight: 900; }
 .invite-btn { font-weight: 800; }
 .rw-info { margin-top: var(--s-2); font-size: var(--fs-2); line-height: 1.5; color: var(--muted); }
-/* 0.18.4：等人页是一张桌子，座位是桌边的椅子（room.ts 按百分比沿椭圆摆）；桌面颜色跟主题房走（rooms.css 的 --felt-*、--wood-*） */
+/* 等人页是一张桌子，座位是桌边的椅子（room.ts 按百分比沿椭圆摆）；桌面颜色跟主题房走（rooms.css 的 --felt-*、--wood-*） */
 .rw-seats { position: relative; height: 272px; margin-top: var(--s-3); }
 .rw-felt {
   position: absolute;
@@ -1222,7 +1222,7 @@ body::before {
 .rw-go .start { flex: 1; }
 .rw-wait { flex: 1; text-align: center; font-size: var(--fs-4); color: var(--muted); }
 .rw-two { text-align: center; font-size: var(--fs-3); color: var(--gold); }
-/* 匹配真人桌（0.20.0）：没有房间码和"叫朋友来"，只说一句在等谁 */
+/* 匹配真人桌：没有房间码和"叫朋友来"，只说一句在等谁 */
 .room-wait.match .rw-head { display: none; }
 .room-wait .rw-match { text-align: center; font-size: var(--fs-4); font-weight: 800; color: var(--gold); }
 .room-banner {
@@ -1242,7 +1242,7 @@ body::before {
 }
 .room-banner .pill { height: 32px; }
 .spectate { font-size: var(--fs-2); color: #9fd6f5; }
-/* 旁观中（docs/social.md 1.4）：顶栏那一行字换成蓝色，一眼看出自己只是在看 */
+/* 旁观中（仓库根 docs/social.md 1.4）：顶栏那一行字换成蓝色，一眼看出自己只是在看 */
 .where.watching { color: #9fd6f5; font-weight: 700; }
 :where(#app, .coach-layer) .toast {
   position: absolute;
@@ -1284,7 +1284,7 @@ body::before {
   animation: rise .18s ease-out;
 }
 .d-title { font-size: var(--fs-5); font-weight: 900; color: var(--gold); }
-/* 右上角 ✕：看得见 32、点区按 --hit 外扩到 44（docs/ui.md 第 2、5 节）；标题右边留出它的位置 */
+/* 右上角 ✕：看得见 32、点区按 --hit 外扩到 44（仓库根 docs/ui.md 第 2、5 节）；标题右边留出它的位置 */
 :where(#app, .coach-layer) .dialog { position: relative; }
 :where(#app, .coach-layer) .dialog:has(> .d-x) > .d-title { padding-right: 36px; }
 .d-x { position: absolute; top: var(--s-2); right: var(--s-2); width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 18px; font-weight: 700; line-height: 1; cursor: pointer; }
@@ -1296,7 +1296,7 @@ body::before {
 /* 危险按钮（离桌、认输、放弃）：红底白字，不和主按钮的金色混；焦点环另给，键盘走到它能看见 */
 .d-btn.danger { border: 0; background: var(--btn-danger); color: #fff; font-weight: 800; }
 .d-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-/* 止盈的选择框（0.22.0） */
+/* 止盈的选择框 */
 :where(#app, .coach-layer) .dialog .tp-pick { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-3); } /* 输入框的默认宽度不撑开列（360 宽屏上多出 5） */
 :where(#app, .coach-layer) .dialog .tp-pick .tp-note { font-size: var(--fs-3); color: var(--muted); }
 :where(#app, .coach-layer) .dialog .tp-pick .tp-opts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
@@ -1305,7 +1305,7 @@ body::before {
 :where(#app, .coach-layer) .dialog .tp-pick .tp-amount { flex: 1; min-width: 0; height: 40px; padding: 0 var(--s-3); border-radius: var(--r-3); border: 1px solid var(--line-2); background: rgba(255, 255, 255, .06); color: var(--ink); font-size: var(--fs-4); }
 /* 选桌"带上桌"那一行末尾的止盈按钮 */
 .lobby .buyin .tp-pick-btn { flex: none; height: 36px; padding: 0 var(--s-3); font-size: var(--fs-3); }
-/* 匹配真人的排队卡（0.20.0） */
+/* 匹配真人的排队卡 */
 :where(#app, .coach-layer) .dialog .match-card { display: grid; gap: var(--s-2); }
 :where(#app, .coach-layer) .dialog .match-card .mc-tier { font-weight: 800; }
 :where(#app, .coach-layer) .dialog .match-card .mc-wait { font-size: var(--fs-5); font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; }
@@ -1313,7 +1313,7 @@ body::before {
 .topup-line { display: flex; align-items: center; gap: var(--s-3); }
 .topup-note { font-size: var(--fs-2); color: var(--muted); }
 
-/* ---------- 竖屏（0.10.0）：手机竖着拿，舞台 540 宽（viewport.ts 加 .tall，位置见 layout.ts） ---------- */
+/* ---------- 竖屏：手机竖着拿，舞台 540 宽（viewport.ts 加 .tall，位置见 layout.ts） ---------- */
 /*
  * 牌桌下面的一排：互动、聊天、第几手、补码、歇一手（好友房还有叫朋友来）。原来互动、聊天在顶栏下面，补码、歇一手在右边，
  * 现在合成一排放在我的名牌和操作区之间：底边是"没展开的操作区"的顶上（一排主按钮 + 快捷下注 + 底池条，约 --hit + 125），
@@ -1321,9 +1321,9 @@ body::before {
  */
 .stage.tall .hud { top: auto; bottom: calc(var(--hit) + 125px + var(--lift)); left: var(--s-3); right: var(--s-3); flex-wrap: wrap; gap: calc(8px * var(--ui)); }
 .stage.tall .hud .hand-no { margin-right: auto; }
-/* 竖屏"互动""聊天"两个占位并排（0.21.3）：窄一点，SE 上好友房那一排还要放"歇一手""叫朋友来"，不换行 */
+/* 竖屏"互动""聊天"两个占位并排：窄一点，SE 上好友房那一排还要放"歇一手""叫朋友来"，不换行 */
 .stage.tall .hud .fun-slot { width: calc(64px * var(--ui)); }
-/* 好友房里"补码""歇一手""叫朋友来"同时出现时 SE 上排不下、"叫朋友来"掉到第二行（0.25.2 冒烟）：这一排的按钮左右留白收窄；
+/* 好友房里"补码""歇一手""叫朋友来"同时出现时 SE 上排不下、"叫朋友来"掉到第二行（冒烟）：这一排的按钮左右留白收窄；
    按钮本身不小于 44×44 屏幕像素（--hit 已按舞台缩放换算），相邻的缝 8 屏幕像素 */
 .stage.tall .hud > .pill { padding: 0 var(--s-2); min-width: var(--hit); min-height: var(--hit); }
 /* 按钮放大到 44 以后，SE 上好友房再加"叫朋友来"还是排不下：这时把"第几手"藏起来，让出位置 */
@@ -1364,7 +1364,7 @@ body.texas-raising-tall .atf-btn { visibility: hidden; }
 .stage.tall .actions.open .slider { height: var(--hit); }
 .stage.tall .quick { justify-content: stretch; }
 .stage.tall .qbet { flex: 1; height: 44px; }
-/* 320 宽的老 SE 上"全下 2,000"挤出屏幕（0.25.3 多尺寸）：四个按钮左右留白收窄，按内容分宽度 */
+/* 320 宽的老 SE 上"全下 2,000"挤出屏幕（多尺寸）：四个按钮左右留白收窄，按内容分宽度 */
 .stage.tall .qbet { min-width: 0; padding: 0 var(--s-1); }
 .stage.tall .odds { align-self: center; }
 .stage.tall .raise-panel { width: auto; }
@@ -1374,12 +1374,12 @@ body.texas-raising-tall .atf-btn { visibility: hidden; }
 /* 别人的座位徽章（没筹码、暂离、离桌）挂在名牌下面，不盖头像；名牌下沿约 72。摊牌的牌型小签也在这一带，同时有就让到徽章下面 */
 .stage.tall .seat:not(.me) .badge { top: 74px; }
 .stage.tall .seat.badged:not(.me) .hand { top: 94px; }
-/* 竖屏摊牌的结果条几个池子就几行，往下长到下面两侧那两家：字小一号、头像小一号、行距收紧（0.25.6 牌桌互压检查） */
+/* 竖屏摊牌的结果条几个池子就几行，往下长到下面两侧那两家：字小一号、头像小一号、行距收紧（牌桌互压检查） */
 .stage.tall .result { font-size: var(--fs-3); line-height: 1.2; padding: var(--s-0) var(--s-3); }
 .stage.tall .result .r-face { width: 32px; height: 32px; }
 /* 标题页、好友房等人页：上下排 */
 .stage.tall .lobby { flex-direction: column; justify-content: flex-start; gap: var(--s-4); padding: 72px var(--s-4) var(--s-4); overflow-y: auto; }
-/* 放得下时上下居中，放不下时从顶上排、整页能滚到底（0.25.5：Safari 带着工具栏只剩六百多高，实盘选桌最底下锦标赛那行说明出了屏）。
+/* 放得下时上下居中，放不下时从顶上排、整页能滚到底（Safari 带着工具栏只剩六百多高，实盘选桌最底下锦标赛那行说明出了屏）。
    用 auto 外边距不用 justify-content: center：居中溢出时顶上那截滚不到 */
 .stage.tall .lobby > :first-child { margin-top: auto; }
 .stage.tall .lobby > :last-child { margin-bottom: auto; }
@@ -1427,7 +1427,7 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
 .sum-titles { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-2); margin-top: var(--s-3); }
 .sum-title { display: flex; gap: var(--s-2); align-items: baseline; padding: var(--s-1) var(--s-3); border-radius: var(--r-3); background: rgba(243, 200, 107, .12); font-size: var(--fs-2); }
 .sum-title b { color: var(--gold); }
-/* 颁奖（0.15.0）：好友房一场结束，最上面一排大字；窄屏一个奖一行 */
+/* 颁奖：好友房一场结束，最上面一排大字；窄屏一个奖一行 */
 .sum-awards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s-2); margin-bottom: var(--s-4); }
 .sum-award { display: flex; flex-direction: column; gap: 2px; padding: var(--s-2) var(--s-3); border-radius: var(--r-3); background: rgba(243, 200, 107, .12); border: 1px solid rgba(243, 200, 107, .35); text-align: center; animation: sum-award-in .4s ease-out backwards; }
 .sum-award:nth-child(2) { animation-delay: .15s; }
@@ -1435,7 +1435,7 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
 .sum-award.worst { background: rgba(255, 155, 143, .1); border-color: rgba(255, 155, 143, .3); }
 .sum-award-t { font-size: var(--fs-3); font-weight: 700; color: var(--gold); }
 .sum-award.worst .sum-award-t { color: var(--lose-ink); }
-/* 名字长了折成两行、字小一号（0.18.4：原来一行截成"本机sm…"，谁得的奖看不出来） */
+/* 名字长了折成两行、字小一号（原来一行截成"本机sm…"，谁得的奖看不出来） */
 .sum-award-n { font-size: var(--fs-6); font-weight: 800; line-height: 1.2; overflow: hidden; word-break: break-all; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .sum-award-l { font-size: var(--fs-2); line-height: 1.4; color: #d9d2bd; }
 @keyframes sum-award-in { from { opacity: 0; transform: scale(.85); } }
@@ -1451,7 +1451,7 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
 :where(#app, .coach-layer) .dialog .sum-last-v { flex: 1; display: flex; flex-direction: column; align-items: flex-end; font-size: var(--fs-3); line-height: 1.45; text-align: right; }
 :where(#app, .coach-layer) .dialog .sum-last-v em { font-style: normal; font-weight: 800; color: var(--gold); }
 :where(#app, .coach-layer) .dialog .sum-last-v .r-pot { color: var(--muted); }
-/* 横屏（电脑、手机横着）舞台只有 540 高：结算的四行数字排成两列两行，大字和间距收一点，有颁奖、称号时也一屏放下（docs/ui.md 第 11 节） */
+/* 横屏（电脑、手机横着）舞台只有 540 高：结算的四行数字排成两列两行，大字和间距收一点，有颁奖、称号时也一屏放下（仓库根 docs/ui.md 第 11 节） */
 .stage:not(.tall) .dialog:has(.summary) { width: min(640px, calc(100% - 24px)); }
 .stage:not(.tall) .summary .sum-v { white-space: nowrap; }
 .stage:not(.tall) .summary .sum-grid { grid-template-columns: auto 1fr auto 1fr; column-gap: var(--s-3); }
@@ -1461,7 +1461,7 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
 .stage:not(.tall) .summary .sum-awards { margin-bottom: var(--s-3); }
 .stage:not(.tall) .summary .sum-note { margin-top: var(--s-2); }
 .stage:not(.tall) .summary .sum-share { margin-top: var(--s-3); }
-/* 这一场的大字（0.18.4）：赢了绿字配一圈慢慢转的金光，输了柔和的红，平手白（赢绿输红和全站一致，docs/ui.md） */
+/* 这一场的大字：赢了绿字配一圈慢慢转的金光，输了柔和的红，平手白（赢绿输红和全站一致，仓库根 docs/ui.md） */
 .sum-hero { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--s-1); margin-bottom: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-4); overflow: hidden; }
 .sum-net { position: relative; font-size: 44px; font-weight: 900; line-height: 1.05; letter-spacing: 1px; }
 .sum-mood { position: relative; font-size: var(--fs-3); color: var(--muted); }
@@ -1485,7 +1485,7 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
 .sum-hero.even { background: rgba(255, 255, 255, .05); border: 1px solid var(--line); }
 .lowfx .sum-hero.win::before { animation: none; }
 
-/* ---------- 两手之间（0.1.1）：下一手、自动下一手；好友房是大家一起的倒计时 ---------- */
+/* ---------- 两手之间：下一手、自动下一手；好友房是大家一起的倒计时 ---------- */
 .between {
   position: absolute;
   right: var(--s-3); bottom: var(--s-3);
@@ -1520,7 +1520,7 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
 .room-pause circle { stroke: var(--gold); }
 .auto-next { height: 40px; padding: 0 var(--s-3); border-radius: var(--r-3); border: 1px solid var(--line-2); background: var(--btn-glass); font-size: var(--fs-3); color: var(--muted); }
 .room-pause { display: flex; align-items: center; gap: var(--s-2); height: 44px; padding: 0 var(--s-4) 0 var(--s-2); border-radius: var(--r-pill); background: rgba(0, 0, 0, .5); font-size: var(--fs-4); font-weight: 700; color: #f1e9d2; }
-/* 主动亮牌（0.19.0）：两张小牌点哪张亮哪张，亮过的压暗；和倒计时同一种底 */
+/* 主动亮牌：两张小牌点哪张亮哪张，亮过的压暗；和倒计时同一种底 */
 /* 不占"下一手"那一排的横向位置：它挤在左边会压到舞台正中我的名牌和筹码（0.26.x 走查），改成浮在这一排的右上方（右边那个座位的名牌下面、下一手按钮上面），
    本来就空；赢了筹码的"+100"也不再落到它上面 */
 .between .show-cards { position: absolute; right: 0; bottom: calc(100% + var(--s-2)); display: flex; align-items: center; gap: var(--s-2); height: 52px; padding: 0 var(--s-2) 0 var(--s-4); border-radius: var(--r-pill); background: rgba(0, 0, 0, .5); animation: rise .25s ease-out; white-space: nowrap; }.between .sc-label { font-size: var(--fs-4); font-weight: 700; color: #f1e9d2; }
@@ -1529,10 +1529,10 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
 .between .sc-card:not(:disabled):hover { transform: translateY(-3px); }
 .between .sc-card:disabled { opacity: .45; }
 .between .sc-both { height: 40px; padding: 0 var(--s-3); border-radius: var(--r-pill); border: 1px solid var(--line-2); background: var(--btn-glass); font-size: var(--fs-3); font-weight: 700; color: var(--gold); }
-/* 好友房能打的真人不到两个（0.4.0）：和倒计时同一个样子，只有字 */
+/* 好友房能打的真人不到两个：和倒计时同一个样子，只有字 */
 .two-note { display: flex; align-items: center; min-height: 44px; padding: 0 var(--s-4); border-radius: var(--r-pill); background: rgba(0, 0, 0, .5); font-size: var(--fs-4); font-weight: 700; color: #f1e9d2; }
 
-/* ---------- 看对手的小卡（0.2.2） ---------- */
+/* ---------- 看对手的小卡 ---------- */
 .read-card {
   position: absolute;
   transform: translate(0, -50%);
@@ -1546,7 +1546,7 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
   animation: fade .18s ease-out;
   pointer-events: none;
 }
-/* 催促炸弹（0.3.0）：轮到的真人想了 8 秒以上，头像旁边一个小炸弹一晃一晃 */
+/* 催促炸弹：轮到的真人想了 8 秒以上，头像旁边一个小炸弹一晃一晃 */
 .urge {
   position: absolute;
   z-index: 36;
@@ -1561,7 +1561,7 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
 }
 .urge svg { width: 100%; height: 100%; display: block; }
 @keyframes urge { 0%, 100% { transform: translate(-50%, -50%) rotate(-10deg); } 50% { transform: translate(-50%, -50%) rotate(10deg) scale(1.08); } }
-/* kit 的道具、表情层和互动菜单（TableFun，0.13.0）挂在 body 上，压在整个牌桌上面：德州弹窗开着时收起（层叠上下文夹不到中间，0.3.0） */
+/* kit 的道具、表情层和互动菜单（TableFun）挂在 body 上，压在整个牌桌上面：德州弹窗开着时收起（层叠上下文夹不到中间） */
 body.texas-dialog :is(.arcade-fun, .atf-ui) { visibility: hidden !important; }
 /* 旁观、关了互动时 kit 的头像热区不接点按，点头像穿过去给牌桌：看对手、接管电脑座位（docs/experience.md 13.7） */
 body.texas-fun-idle .atf-hot { pointer-events: none; }

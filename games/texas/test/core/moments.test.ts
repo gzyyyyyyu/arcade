@@ -1,4 +1,4 @@
-/** 德州自己的那部分互动（0.13.0，docs/experience.md 13.7）：电脑的互动性格、名场面怎么认；其余（菜单、冷却、电脑怎么回）是 kit 的，kit 自己测 */
+/** 德州自己的那部分互动（docs/experience.md 13.7）：电脑的互动性格、名场面怎么认；其余（菜单、冷却、电脑怎么回）是 kit 的，kit 自己测 */
 import { botReact, funIdCount, newBotState } from 'arcade-kit/fun-logic';
 import { describe, expect, it } from 'vitest';
 import { PERSONAS } from '../../src/ai/personas.ts';

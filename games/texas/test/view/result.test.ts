@@ -1,4 +1,4 @@
-/** 一手打完的结果条（0.1.1）：谁赢了多少、什么牌；分池时看得出每个池子归谁 */
+/** 一手打完的结果条：谁赢了多少、什么牌；分池时看得出每个池子归谁 */
 import { describe, expect, it } from 'vitest';
 import { evalCards } from '../../src/core/eval.ts';
 import { parseCards } from '../../src/core/cards.ts';

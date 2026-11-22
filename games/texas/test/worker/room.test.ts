@@ -141,7 +141,7 @@ async function table(n: number, opts: { stakes: string; size: number }) {
     }
     conns.push(c);
   }
-  // 档位和人数开房时已经定了（kit 0.4.0），开打不用再带
+  // 档位和人数开房时已经定了，开打不用再带
   conns[0]!.send({ t: 'start' });
   await conns[0]!.until((m) => m.t === 'state' && m.room.status === 'playing');
   return { code, ids, conns };
@@ -170,8 +170,8 @@ async function playUntil(conns: Conn[], done: (v: RoomView) => boolean, maxMoves
       rebuys++;
       continue;
     }
-    // 一手打完房间停着（kit 0.5.0 的 pause）：时间拨到房间存的那个闹钟，跑闹钟，还停着就再来一次。
-    // 同一条消息里 pause.until 就等于闹钟（kit 0.7.2 查清、测试锁住）；按闹钟拨是因为闹钟醒来后电脑可能一口气打完下一手又停，
+    // 一手打完房间停着（kit 的 pause）：时间拨到房间存的那个闹钟，跑闹钟，还停着就再来一次。
+    // 同一条消息里 pause.until 就等于闹钟（kit 查清、测试锁住）；按闹钟拨是因为闹钟醒来后电脑可能一口气打完下一手又停，
     // 手里那条旧消息的 until 就过时了，新的截止时间多出这一批电脑的播放时间
     const pause = top.last!.room.pause;
     if (pause && seat === undefined) {
@@ -218,7 +218,7 @@ describe('开房、买入、打牌', () => {
     await writesOk(code);
   });
 
-  it('娱乐好友房（0.41.0）：一个人也能开打，空座电脑补、照常发牌；打几手、离开，钱包一次都没调过', async () => {
+  it('娱乐好友房：一个人也能开打，空座电脑补、照常发牌；打几手、离开，钱包一次都没调过', async () => {
     const host = user();
     const code = await openRoom(host, { stakes: 'big', size: 4, fun: true });
     const c = await join(code, host);
@@ -238,7 +238,7 @@ describe('开房、买入、打牌', () => {
     await writesOk(code);
   }, 20_000);
 
-  it('开房就定档位和人数（kit 0.4.0）：进房的人都看得到，坐不进用不到的座位；开打时 start 带的不看；不合格的开不了', async () => {
+  it('开房就定档位和人数：进房的人都看得到，坐不进用不到的座位；开打时 start 带的不看；不合格的开不了', async () => {
     const [host, guest] = [user(), user()];
     const code = await openRoom(host, { stakes: 'mid', size: 3 });
     const h = await join(code, host);
@@ -318,7 +318,7 @@ describe('开房、买入、打牌', () => {
   });
 });
 
-describe('电脑的互动（0.6.1；0.13.0 起反应交给 kit 的 botReact）', () => {
+describe('电脑的互动（反应交给 kit 的 botReact）', () => {
   it('名场面（全下摊牌）赢了的电脑，房间替它广播一下（bot: true）：只从电脑座位发、编号在表里、点名桌上的人；大家收到的一样，不写存储', async () => {
     const { code, conns } = await table(2, { stakes: 'small', size: 4 });
     await conns[0]!.see((x) => x.handNo >= 1);
@@ -364,7 +364,7 @@ describe('电脑的互动（0.6.1；0.13.0 起反应交给 kit 的 botReact）',
   });
 });
 
-describe('电脑回应真人（0.6.1，kit 0.10.1 的 onEmote）', () => {
+describe('电脑回应真人（kit 的 onEmote）', () => {
   it('真人对电脑扔东西：电脑按性格回（房间替它发，bot: true，回给扔的人），大家收到的一样；对真人扔的电脑不插嘴；不写存储', async () => {
     const { code, conns } = await table(2, { stakes: 'small', size: 4 });
     await conns[0]!.see((x) => x.handNo >= 1);
@@ -454,7 +454,7 @@ describe('钱包的事', () => {
   });
 });
 
-describe('停着等人（kit 0.3.2 的 waiting）', () => {
+describe('停着等人（kit 的 waiting）', () => {
   it('一桌只剩一个能打的人、等别人补码：房间停 10 分钟一行不写，闹钟只剩寿命（和没人）；补码到账接着打', async () => {
     const { code, ids, conns } = await table(2, { stakes: 'small', size: 2 });
     await conns[0]!.see((x) => x.handNo >= 1 && x.seats.every((s) => s.owner === 'player'));
@@ -465,7 +465,7 @@ describe('停着等人（kit 0.3.2 的 waiting）', () => {
       if (v.seats.some((s) => s.stack === 0 && s.status === 'out')) break;
       const seat = top.last!.room.turn?.seat;
       const c = conns.find((x) => x.seat === seat && x.last!.seq === top.last!.seq);
-      // 平分了池子、没人输光：两手之间停着（kit 0.5.0），拨到点让闹钟发下一手（不然这里一直等，偶发失败）
+      // 平分了池子、没人输光：两手之间停着，拨到点让闹钟发下一手（不然这里一直等，偶发失败）
       const pause = top.last!.room.pause;
       if (seat === undefined && pause) {
         advance(Math.max(0, pause.until - Date.now()));
@@ -488,7 +488,7 @@ describe('停着等人（kit 0.3.2 的 waiting）', () => {
     const loser = conns[broke]!;
     await loser.see((v) => v.canRebuy && v.phase === 'idle');
     expect(loser.last!.room.turn).toBeNull();
-    // 这一手打完先停 HAND_PAUSE_MS（kit 0.5.0）：到点发不了下一手（只剩一个能打的），转成停着等补码
+    // 这一手打完先停 HAND_PAUSE_MS：到点发不了下一手（只剩一个能打的），转成停着等补码
     const p = loser.last!.room.pause!;
     expect(p.until).toBeGreaterThan(Date.now());
     advance(p.until - Date.now());
@@ -518,9 +518,9 @@ describe('停着等人（kit 0.3.2 的 waiting）', () => {
   });
 });
 
-describe('离开马上结（0.2.4）', () => {
+describe('离开马上结', () => {
   it('最后一个真人点离开：桌上的马上结回钱包，房间算打完、开房名额还了，马上能再开一个', async () => {
-    // 两个真人才发牌（0.4.0）：1 号先走（这一手照常打完，之后不发），0 号就是最后一个真人
+    // 两个真人才发牌：1 号先走（这一手照常打完，之后不发），0 号就是最后一个真人
     const { code, ids, conns } = await table(2, { stakes: 'small', size: 4 });
     await conns[0]!.see((x) => x.handNo >= 1);
     conns[1]!.send({ t: 'leave' });
@@ -529,7 +529,7 @@ describe('离开马上结（0.2.4）', () => {
     conns[0]!.send({ t: 'leave' });
     await waitFor(async () => (await walletOf(ids[0]!)).stakes.length === 0);
     expect((await walletOf(ids[0]!)).balance).toBeGreaterThan(0);
-    // 结回带了这一份的小结（0.3.0，平台 settle.stats），平台收下了（没有 statsIgnored）
+    // 结回带了这一份的小结（平台 settle.stats），平台收下了（没有 statsIgnored）
     const [st] = await statsOf(ids[0]!);
     expect(st).toMatchObject({ stats: { rounds: expect.any(Number), wins: expect.any(Number), best: expect.any(Number) } });
     expect(st!.ignored).toBeUndefined();
@@ -541,7 +541,7 @@ describe('离开马上结（0.2.4）', () => {
   });
 });
 
-describe('搭子战绩（0.17.0，平台 15.19）', () => {
+describe('搭子战绩（平台 15.19）', () => {
   it('三个真人：先走的和还坐着的各报一场，后两个散桌时再报一场；每对一场，op 是房间码-开房时刻-场次；同一场重报不加', async () => {
     const { code, ids, conns } = await table(3, { stakes: 'small', size: 4 });
     for (const c of conns) await c.see((x) => x.handNo >= 1);
@@ -588,7 +588,7 @@ describe('搭子战绩（0.17.0，平台 15.19）', () => {
 
 describe('换人、托管', () => {
   it('开打后有人接管电脑的座位：扣他的买入，下一手坐上；离线超过宽限由电脑托管，只过牌或弃牌', async () => {
-    // 两个真人在打（0.4.0 至少两个才发牌），第三个人接管 3 号电脑
+    // 两个真人在打（至少两个才发牌），第三个人接管 3 号电脑
     const { code, conns } = await table(2, { stakes: 'small', size: 4 });
     await conns[0]!.see((x) => x.handNo >= 1);
     const late = user();
@@ -610,10 +610,10 @@ describe('换人、托管', () => {
     const s = (await inspect(code)).persist!.game;
     expect(s.t.seats[3]!.owner).toBe('player');
     await writesOk(code);
-  }, 20_000); // 0.1.1 起每手之后多一次停顿（拨时钟、跑闹钟），要多打好几手，5 秒的默认上限和别的测试一起跑时不够
+  }, 20_000); // 每手之后多一次停顿（拨时钟、跑闹钟），要多打好几手，5 秒的默认上限和别的测试一起跑时不够
 });
 
-describe('匹配真人（0.20.0，kit 的 MatchQueue；docs/online.md 6.11）', () => {
+describe('匹配真人（kit 的 MatchQueue；docs/online.md 6.11）', () => {
   // 这里的假平台 ARCADE 只有 fetch（vitest.worker.config.ts），排队凑桌前问屏蔽名单的 RPC 会失败：kit 记一笔日志、当没人屏蔽谁接着凑（workerd 会打一行 Failed to get handler），屏蔽名单本身在 kit 里测
   /** 排队连接：收到的消息和关闭码 */
   async function enqueue(tier: string, sid: string, e?: Partial<typeof env>) {
@@ -654,7 +654,7 @@ describe('匹配真人（0.20.0，kit 的 MatchQueue；docs/online.md 6.11）', 
     await writesOk(code);
   });
 
-  it('娱乐档（0.21.0）：两个人排到同一张娱乐桌，打几手、都离开，钱包一次都没调过、一分没动，也不报搭子战绩', async () => {
+  it('娱乐档：两个人排到同一张娱乐桌，打几手、都离开，钱包一次都没调过、一分没动，也不报搭子战绩', async () => {
     const [a, b] = [user(), user()];
     const qa = await enqueue('fun', a);
     const qb = await enqueue('fun', b);

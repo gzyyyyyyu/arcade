@@ -49,7 +49,7 @@ export function createLobby(c: App) {
     const u = p.platform === true ? (p.user as { displayName?: unknown } | null) : null;
     if (typeof u?.displayName === 'string' && u.displayName) c.myName = u.displayName;
     if (site.standalone) standaloneUi();
-    // 报位置、收邀请（docs/social.md 1.2、1.3，kit 的 social）：没平台、没登录 kit 回 null，一个请求都不发
+    // 报位置、收邀请（仓库根 docs/social.md 1.2、1.3，kit 的 social）：没平台、没登录 kit 回 null，一个请求都不发
     void mountSocial({ platform: p, where: () => f.presence(), gameName: (id) => (id === 'texas' ? '德州扑克' : undefined), onGo: (inv) => void f.goInvite(inv.game, inv.room) }).then((h) => (c.social = h));
     c.cloud = createCloud({
       fetch: (...a) => fetch(...a),

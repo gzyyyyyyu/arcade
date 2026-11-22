@@ -43,7 +43,7 @@ describe('登录闸门', () => {
     expect(res.headers.getSetCookie()).toEqual(['__Host-sid=renew; Max-Age=34560000; Path=/; Secure; HttpOnly']);
   });
 
-  it('游戏页带内容安全策略（0.17.1，docs/deploy.md 10.3）：脚本只许同源、WebSocket 只许本站的 wss、不许别的站点嵌；不是页面的不带', async () => {
+  it('游戏页带内容安全策略（docs/deploy.md 10.3）：脚本只许同源、WebSocket 只许本站的 wss、不许别的站点嵌；不是页面的不带', async () => {
     const res = await get('/', 'renew');
     expect(res.status).toBe(200);
     const csp = res.headers.get('content-security-policy')!;
@@ -106,7 +106,7 @@ describe('登录闸门', () => {
 });
 
 describe('单机的带入、结回（经服务绑定调平台钱包，client 模式）', () => {
-  it('结回带这一份的小结（0.3.0）：原样转给平台；不合格的平台整份忽略、钱照常结，回话带 statsIgnored', async () => {
+  it('结回带这一份的小结：原样转给平台；不合格的平台整份忽略、钱照常结，回话带 statsIgnored', async () => {
     for (const [stats, ignored] of [
       [{ rounds: 12, wins: 5, best: 340, titles: ['river_god'], sum: { rivers: 1 } }, undefined],
       [{ rounds: -1, wins: 0, best: 0 }, 'bad_stats'],
@@ -141,7 +141,7 @@ describe('单机的带入、结回（经服务绑定调平台钱包，client 模
     expect(await usage(u)).toEqual({ calls: 4, writes: 2 });
   });
 
-  it('单机的 op 由 Worker 加 solo- 前缀再交平台（0.13.2 审计高危）：和好友房的 op 撞不上；旧页面不带前缀、新页面带前缀的同一个 op 认作同一笔；加了前缀超长的不收', async () => {
+  it('单机的 op 由 Worker 加 solo- 前缀再交平台（审计高危）：和好友房的 op 撞不上；旧页面不带前缀、新页面带前缀的同一个 op 认作同一笔；加了前缀超长的不收', async () => {
     const u = user();
     const s = session();
     const raw = op();
@@ -163,7 +163,7 @@ describe('单机的带入、结回（经服务绑定调平台钱包，client 模
     const u = user();
     const s = session();
     await post('solo/buyin', u, { op: op(), session: s, stakes: 'small', amount: 2_000 });
-    // 单机每天最多净赢 10 份（平台 0.10.2）：带 2,000 赢回 25,000，进 22,000（本金 + 10 份），3,000 不进
+    // 单机每天最多净赢 10 份：带 2,000 赢回 25,000，进 22,000（本金 + 10 份），3,000 不进
     expect(await body(await post('solo/cashout', u, { op: op(), session: s, amount: 25_000 }))).toMatchObject({ ok: true, credited: 22_000, capped: 3_000, wallet: { balance: 30_000 } });
   });
 
@@ -175,7 +175,7 @@ describe('单机的带入、结回（经服务绑定调平台钱包，client 模
     const big = await post('solo/buyin', u, { op: op(), session: session(), stakes: 'small', amount: 3_000 });
     expect(big.status).toBe(400);
     expect(await body(big)).toMatchObject({ error: 'bad_amount' });
-    // 同一份补码换了档（平台 0.9.5 起同一个游戏可以同时有好几份，按 ref 分开；补码要同档）
+    // 同一份补码换了档（同一个游戏可以同时有好几份，按 ref 分开；补码要同档）
     const s = session();
     await post('solo/buyin', u, { op: op(), session: s, stakes: 'small', amount: 2_000 });
     const again = await post('solo/buyin', u, { op: op(), session: s, stakes: 'mid', amount: 2_000 });

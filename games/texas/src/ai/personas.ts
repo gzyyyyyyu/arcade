@@ -1,5 +1,5 @@
 /**
- * 电脑的性格（docs/ai.md 4.3；0.3.0 起的参数和取舍见 4.6）。名字是化名，不对应真人；平台的昵称保留名单要有这几个名字。
+ * 电脑的性格（docs/ai.md 4.3；参数和取舍见 4.6）。名字是化名，不对应真人；平台的昵称保留名单要有这几个名字。
  * 个数要等于规则里的 PERSONA_COUNT（test/ai.test.ts 核对）。
  * 门槛都用"相对强度"：胜率 ×（对手数 + 1），千分数，1000 = 这一桌的平均水平。参数由 scripts/sim.ts 的机器人对打调。
  */
@@ -12,11 +12,11 @@ export interface Persona {
   call: number;
   /** 加注的相对强度门槛 */
   raise: number;
-  /** 翻牌前开池加注的门槛，不填同 raise（0.3.0 实打后：慢慢翻牌后照样很少加注，翻牌前拿 QQ+、AK 这类大牌开池多加一点） */
+  /** 翻牌前开池加注的门槛，不填同 raise（慢慢翻牌后照样很少加注，翻牌前拿 QQ+、AK 这类大牌开池多加一点） */
   open?: number;
   /** 没人下注时诈唬下注的概率（‰，按对手数再打折） */
   bluff: number;
-  /** 翻牌后跟注时对底池赔率的放宽（‰，负数是更挑；正数 0.3.0 起按档的 soft 打折） */
+  /** 翻牌后跟注时对底池赔率的放宽（‰，负数是更挑；正数按档的 soft 打折） */
   slack: number;
   /** 拿到大牌时慢打（只过牌、跟注）的概率（‰） */
   slow: number;
@@ -30,12 +30,12 @@ export interface Persona {
   raiser: number;
   /** 翻牌前面对一次加注，拿着够跟的牌再加注的概率（‰）：凶的人不只拿大牌再加 */
   threebet: number;
-  /** 上一轮自己下了注、这一轮没人下注时，接着再打一枪的概率（‰，0.3.0；按档的 bluff 倍数，对手每多一个少 60） */
+  /** 上一轮自己下了注、这一轮没人下注时，接着再打一枪的概率（‰；按档的 bluff 倍数，对手每多一个少 60） */
   barrel: number;
   /** 河牌上：连着打过来的诈唬改成全下、或者大牌直接全下的概率（‰） */
   shove: number;
   /**
-   * 河牌没人下注、手里只有高牌（也不到 THIN）时诈唬的概率（‰，0.3.0 实打后；按档的 bluff 倍数，对手每多一个少 80）。
+   * 河牌没人下注、手里只有高牌（也不到 THIN）时诈唬的概率（‰；按档的 bluff 倍数，对手每多一个少 80）。
    * 翻牌上的诈唬多半当场把人打走，空气很少打到河牌；河牌的诈唬常被有一对的人跟到摊牌，"诈唬"才亮得出来
    */
   river: number;
@@ -70,14 +70,14 @@ type Flaw = 'overcall' | 'scared' | 'spew' | 'trap';
 
 export const PERSONAS: readonly Persona[] = [
   { name: '稳哥', style: '好牌才进，进了就打', call: 1400, raise: 1320, bluff: 120, slack: 0, slow: 50, size: 750, loose: 60, wild: 0, raiser: 100, threebet: 40, barrel: 250, shove: 0, river: 300, trust: 1150, posX: 1300, steal: 20, openX: 900, spread: 450, mild: 850, reads: 700, flaw: 'scared', leak: 40 },
-  // 0.3.0 起 call 是"没人加注时跟进"的门槛（不再查赔率），按目标入池率重调：紧的调高，loose 只剩软桌上的放松（原来要大到抵掉赔率那一关）
-  // 阿飙的 loose / wild 0.2.0 从 100 / 70 收到 80 / 55：9 人桌后面坐的人多，原来那么松在小桌混桌里每百手 −59，收一点到 −39；6 人桌小桌入池 34% → 32%
+  // call 是"没人加注时跟进"的门槛（不再查赔率），按目标入池率重调：紧的调高，loose 只剩软桌上的放松（原来要大到抵掉赔率那一关）
+  // 阿飙的 loose / wild 是 80 / 55：9 人桌后面坐的人多，再松在小桌混桌里亏太多
   { name: '阿飙', style: '爱加注，常偷盲', call: 1250, raise: 1200, bluff: 220, slack: 0, slow: 30, size: 800, loose: 80, wild: 55, raiser: 60, threebet: 150, barrel: 350, shove: 120, river: 800, trust: 900, posX: 1100, steal: 50, openX: 1100, spread: 1100, mild: 800, reads: 500, flaw: 'spew', leak: 70 },
   { name: '老好', style: '爱跟注，很难被吓走', call: 1100, raise: 1450, bluff: 40, slack: 30, slow: 100, size: 550, loose: 150, wild: 0, raiser: 45, threebet: 5, barrel: 80, shove: 0, river: 150, trust: 500, posX: 300, steal: 0, openX: 800, spread: 700, mild: 1000, reads: 100, flaw: 'overcall', leak: 120 },
   { name: '慢慢', style: '很少加注，好牌爱装弱', call: 1290, raise: 1700, open: 1500, bluff: 20, slack: -30, slow: 300, size: 500, loose: 0, wild: 0, raiser: 100, threebet: 0, barrel: 100, shove: 0, river: 30, trust: 1350, posX: 800, steal: 0, openX: 1000, spread: 500, mild: 1000, reads: 400, flaw: 'scared', leak: 90 },
   { name: '算盘', style: '严格按赔率算', call: 1230, raise: 1300, bluff: 180, slack: -10, slow: 60, size: 700, loose: 0, wild: 0, raiser: 100, threebet: 50, barrel: 300, shove: 20, river: 400, trust: 1000, posX: 1400, steal: 40, openX: 1000, spread: 300, mild: 900, reads: 1000 },
   { name: '江湖', style: '爱慢打，偶尔过牌加注', call: 1230, raise: 1300, bluff: 250, slack: 10, slow: 250, size: 800, loose: 0, wild: 0, raiser: 100, threebet: 60, barrel: 300, shove: 40, river: 650, trust: 900, posX: 1000, steal: 30, openX: 1000, spread: 1600, mild: 800, reads: 800, flaw: 'trap', leak: 100 },
-  // 0.2.0 起（9 人桌最多 8 个电脑、一桌不重复）
+  // （9 人桌最多 8 个电脑、一桌不重复）
   { name: '虎子', style: '爱诈唬，下注又大又猛', call: 1210, raise: 1200, bluff: 200, slack: 0, slow: 20, size: 850, loose: 40, wild: 40, raiser: 100, threebet: 220, barrel: 360, shove: 140, river: 950, trust: 850, posX: 600, steal: 30, openX: 1100, spread: 1400, mild: 850, reads: 250, flaw: 'spew', leak: 120 },
   { name: '老鹰', style: '挑牌进池，一进就加，翻牌后也凶', call: 1270, raise: 1190, bluff: 220, slack: 10, slow: 30, size: 750, loose: 0, wild: 0, raiser: 100, threebet: 100, barrel: 400, shove: 60, river: 600, trust: 1050, posX: 1500, steal: 70, openX: 1000, spread: 500, mild: 750, reads: 1000 },
   { name: '叨叨', style: '话多，爱凑热闹跟一手', call: 1150, raise: 1400, bluff: 100, slack: 15, slow: 80, size: 600, loose: 180, wild: 0, raiser: 45, threebet: 15, barrel: 120, shove: 0, river: 500, trust: 700, posX: 400, steal: 0, openX: 900, spread: 1200, mild: 1000, reads: 200, flaw: 'overcall', leak: 100 },
@@ -85,13 +85,13 @@ export const PERSONAS: readonly Persona[] = [
 ];
 
 /**
- * 电脑的"功力"，按强弱档（0.5.0 起按档，原来按档位，docs/ai.md 4.3、4.7）：同一种性格，低档松、软、不太会看人（0 新手档只给娱乐），越往上越紧、越凶、越会按对手的动作猜他的牌。
+ * 电脑的"功力"，按强弱档（按档，原来按档位，docs/ai.md 4.3、4.7）：同一种性格，低档松、软、不太会看人（0 新手档只给娱乐），越往上越紧、越凶、越会按对手的动作猜他的牌。
  * 电脑从 View.level 知道是哪一档；场地按档位挑档（stakes.ts 的 SOLO_LEVEL、ROOM_LEVEL），补位时各档挑哪些性格多一些见 stakes.ts 的 LEVEL_HOUSE。
  */
 export interface Skill {
   /**
    * 翻牌后这一轮每有一次下注、加注，胜率乘 (1 − read)（‰，最多连乘 3 次；转牌 ×1.15、河牌 ×1.3）：越大越相信别人下注是真有牌。
-   * 0.3.0 前是线性的 read × 次数、约 100；它是"简单打法"每百手最敏感的一项，各档的值见 docs/ai.md 4.10 的表
+   * 它是"简单打法"每百手最敏感的一项，各档的值见 docs/ai.md 4.10 的表
    */
   read: number;
   /** 翻牌前每有一次加注，加注门槛抬高多少（相对强度；跟注门槛少抬 50） */
@@ -108,10 +108,10 @@ export interface Skill {
   tight: number;
   /** 性格的 loose / wild 和正的 slack 在这一档用几成（‰）：第 0–2 档全用，越往上越少 */
   soft: number;
-  /** "手软"（0.5.0；0.12.0 起第 0–3 档）：翻牌后拿着中等牌被人下注时偶尔就弃了、该薄薄下一注时偶尔只过牌（‰）。给低档桌的人留点赢的感觉 */
+  /** "手软"（第 0–3 档）：翻牌后拿着中等牌被人下注时偶尔就弃了、该薄薄下一注时偶尔只过牌（‰）。给低档桌的人留点赢的感觉 */
   slip: number;
   /**
-   * 翻牌后价值下注、加注的尺度（‰，1000 = 照性格）：低档小一点（0.12.0 起第 0–4 档逐档放大），面对一路跟到底的人少输一些（docs/ai.md 4.9）。
+   * 翻牌后价值下注、加注的尺度（‰，1000 = 照性格）：低档小一点（第 0–4 档逐档放大），面对一路跟到底的人少输一些（docs/ai.md 4.9）。
    * 只管有牌时的下注，诈唬照性格
    */
   value: number;
@@ -124,7 +124,7 @@ export interface Skill {
   memory: number;
   /**
    * 多跟少加（‰，低档）：翻牌后拿着够加注的牌、有人下注时，这么多的时候只跟不加；翻牌前面对加注也只跟不再加。
-   * 新手像人一样弱：有牌也不敢打大，不靠乱弃乱推（docs/balance.md 第 3 节）
+   * 新手像人一样弱：有牌也不敢打大，不靠乱弃乱推（仓库根 docs/balance.md 第 3 节）
    */
   passive: number;
   /** 不敢先打（‰，低档）：没人下注时拿着够加注、够薄打的牌，这么多的时候只过牌（翻牌前是平跟不开池加注） */

@@ -1,6 +1,6 @@
 /** 全下局（--only pushfold）和今日锦标赛（--only dailytour）。 */
 import type { Browser, Page } from 'playwright-core';
-import { log, newContext, watch, shot, skipTips, enter, openMore } from './harness.ts';
+import { log, newContext, watch, shot, enter, openMore } from './harness.ts';
 import { tallDevice } from './solo.ts';
 
 /** 全下局打到结果卡出来：检查操作区只有两个大键，电脑版按键盘 A / F，手机点按钮；返回操作了几次 */
@@ -194,7 +194,6 @@ export async function dailyTourFlow(browser: Browser, base: string): Promise<voi
   if (!btn || !ref || Math.abs(btn.height - ref.height) > 0.5) throw new Error(`今日锦标赛 button should be as high as 今日全下: ${JSON.stringify([btn, ref])}`);
   await shot(page, 'dailytour-lobby');
   await page.locator('.lobby [data-act="daily-tour"]').click();
-  await skipTips(page);
   await page.locator('.stage.at-table').waitFor();
   const where = (await page.locator('.topbar .where').textContent()) ?? '';
   if (!/^今日锦标赛 · 极速赛/.test(where)) throw new Error(`daily tour top bar: ${where}`);

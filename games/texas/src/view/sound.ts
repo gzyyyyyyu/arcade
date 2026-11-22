@@ -137,7 +137,7 @@ function burst(t: number, freq: number, q: number, peak: number, decay: number, 
   src.connect(f).connect(g).connect(must(master, 'master'));
   track(src, [f, g]);
   const dur = (o.attack ?? 0.002) + decay + 0.02;
-  // 偏移不能是负的（start 会抛 RangeError）：0.10.0 全下那段 0.5 秒正好等于噪声长度，偏移成了负数，抛错把牌局卡住
+  // 偏移不能是负的（start 会抛 RangeError）：全下那段 0.5 秒正好等于噪声长度时，偏移成了负数，抛错把牌局卡住
   src.start(t, Math.random() * Math.max(0, must(noise, 'noise').duration - dur - 0.01), dur);
 }
 
@@ -254,7 +254,7 @@ function sfx(s: Sfx): void {
       tone(t, 392, 'triangle', 0.13, 0.22, { lp: 1600 });
       tone(t + 0.16, 311, 'triangle', 0.12, 0.36, { lp: 1400 });
       break;
-    // 轮到我（0.3.0 朋友们："到自己出牌来点音效提示一下"）：三个音往上走的钟声，友好、听得清
+    // 轮到我（朋友们："到自己出牌来点音效提示一下"）：三个音往上走的钟声，友好、听得清
     case 'turn':
       bell(t, 784, 0.19, 0.25);
       bell(t + 0.11, 988, 0.17, 0.25);
@@ -375,7 +375,7 @@ function sfx(s: Sfx): void {
   }
 }
 
-/** 好友房道具的声音（kit 0.7.0 现场合成）：跟着静音开关和总音量走，用同一个 AudioContext */
+/** 好友房道具的声音（kit 的现场合成）：跟着静音开关和总音量走，用同一个 AudioContext */
 export function funSound(prop: PropId, phase: FunPhase): void {
   if (!on || !ctx || !master || ctx.state !== 'running') {
     if (on && ctx && needsResume(ctx)) void ctx.resume().catch(() => undefined);

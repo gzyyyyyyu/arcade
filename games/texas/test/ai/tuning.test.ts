@@ -93,7 +93,7 @@ const fmt = (xs: { vpip: number; pfr: number }[]): string =>
   xs.flatMap((x, i) => (Number.isNaN(x.vpip) ? [] : [`${PERSONAS[i]!.name} ${x.vpip}/${x.pfr}`])).join('、');
 
 describe('电脑的难度', () => {
-  it('配平（0.12.0）：娱乐新手档小白平均赢、过半场次赢；高手档小白平均输，同一批牌比新手档输得多', () => {
+  it('配平：娱乐新手档小白平均赢、过半场次赢；高手档小白平均输，同一批牌比新手档输得多', () => {
     // 每格 80 场 × 40 手（一场约 0.2 秒），种子和 scripts/balance.ts 一样。长期的数字（每格 2,000 场）见 docs/ai.md 4.10；
     // 新手档长期 +0.21 份、赢 68%，高手档 −0.33 份；80 场的 2 倍标准误约 ±0.1 份、±10%，这里只拦方向翻掉
     const cell = (level: number): { mean: number; won: number } => {
@@ -116,7 +116,7 @@ describe('电脑的难度', () => {
   }, 60_000);
 
   it('跟注站、乱全下在豪华桌输得很多；小桌对跟注站没那么狠', () => {
-    // 0.12.0 配平（docs/ai.md 4.10）：小桌的电脑多跟少加、价值注小，"什么都跟"的人在小桌差不多打平（6 场约 −60），这是配平要的
+    // 配平（docs/ai.md 4.10）：小桌的电脑多跟少加、价值注小，"什么都跟"的人在小桌差不多打平（6 场约 −60），这是配平要的
     const station = { small: bb100('small', 'station', 6), lux: bb100('lux', 'station', 6) };
     const jammer = { small: bb100('small', 'jammer', 6), lux: bb100('lux', 'jammer', 6) };
     console.log(`每百手：跟注站 小桌 ${station.small.toFixed(0)}、豪华桌 ${station.lux.toFixed(0)}；乱全下 小桌 ${jammer.small.toFixed(0)}、豪华桌 ${jammer.lux.toFixed(0)}`);
@@ -134,7 +134,7 @@ describe('电脑的难度', () => {
     expect(small).toBeGreaterThan(-25);
   });
 
-  it('同一批翻牌后被下注的局面，小桌、豪华桌两档的电脑决定得不一样（强弱档管用；0.5.0 起按强弱档）', () => {
+  it('同一批翻牌后被下注的局面，小桌、豪华桌两档的电脑决定得不一样（强弱档管用；按强弱档）', () => {
     // 从机器人对打里收集"翻牌后要跟注"的局面，换成各档的视图让电脑重新决定。整场输赢太吵，几十场比不出来，这里直接比决定
     const spots: View[] = [];
     runBots({
@@ -150,7 +150,7 @@ describe('电脑的难度', () => {
         }
       },
     });
-    // 0.12.0 以前是"豪华桌弃得多"；配平后小桌第 1 档跟注放得宽、被加注又只跟不加，弃牌数和豪华桌差不多，差别在怎么打（docs/ai.md 4.10）
+    // 是"豪华桌弃得多"；配平后小桌第 1 档跟注放得宽、被加注又只跟不加，弃牌数和豪华桌差不多，差别在怎么打（docs/ai.md 4.10）
     const act = (level: number): string[] => spots.map((v, i) => decide({ ...v, level }, stream(SEED, 'spot', i)).t);
     const small = act(1);
     const lux = act(4);
@@ -162,14 +162,14 @@ describe('电脑的难度', () => {
     expect(raised(small)).toBeLessThan(raised(lux));
   });
 
-  it('小桌整体松、很少加注（0.12.0），性格照样拉得开：老好最松，稳哥、慢慢最紧；豪华桌收回去', () => {
+  it('小桌整体松、很少加注，性格照样拉得开：老好最松，稳哥、慢慢最紧；豪华桌收回去', () => {
     // 原来的 6 种坐 6 人桌（每场轮换座位），6 场 × 500 手，每种性格约 3,000 手，入池比例的标准误约 ±1%。长期的数字见 docs/ai.md 4.3
     const six = (k: number): number[] => Array.from({ length: 6 }, (_, i) => (i + k) % 6);
     const small = style('small', 6, 6, 500, six);
     const lux = style('lux', 6, 6, 500, six);
     console.log(`6 人桌入池 / 翻牌前加注（%）小桌 ${fmt(small)}`);
     console.log(`                           豪华桌 ${fmt(lux)}`);
-    // 0.12.0 小桌改用第 1 档（松、不敢先打）：入池整体高、翻牌前加注少；0.11 及以前的区间见 CHANGELOG
+    // 小桌用第 1 档（松、不敢先打）：入池整体高、翻牌前加注少
     const [wen, abiao, laohao, manman] = small;
     expect(laohao!.vpip).toBeGreaterThanOrEqual(55);
     expect(laohao!.vpip).toBeLessThanOrEqual(75);
@@ -197,13 +197,13 @@ describe('电脑的难度', () => {
     console.log(`9 人桌入池 / 翻牌前加注（%）小桌 ${fmt(small)}`);
     console.log(`                           豪华桌 ${fmt(lux)}`);
     const [wen, , laohao, manman, suanpan, jianghu, , laoying, daodao, xiaobai] = small;
-    // 0.3.0：小白、叨叨原来 ≥ 17（实测 22），新的目标是松（9 人桌人多，比 6 人桌的 45–60% 低一点）
+    // 小白、叨叨原来 ≥ 17（实测 22），新的目标是松（9 人桌人多，比 6 人桌的 45–60% 低一点）
     expect(xiaobai!.vpip).toBeGreaterThanOrEqual(40);
     expect(xiaobai!.pfr).toBeLessThanOrEqual(9);
     expect(daodao!.vpip).toBeGreaterThanOrEqual(40);
     expect(daodao!.pfr).toBeLessThanOrEqual(12);
     expect(laoying!.pfr).toBeGreaterThan(wen!.pfr);
-    // 0.12.0：小桌第 1 档不敢先打，"一进就加""加得多"只在豪华桌看（docs/ai.md 4.10）
+    // 小桌第 1 档不敢先打，"一进就加""加得多"只在豪华桌看（docs/ai.md 4.10）
     expect(lux[7]!.pfr).toBeGreaterThanOrEqual(lux[7]!.vpip * 0.6);
     expect(lux[6]!.pfr).toBeGreaterThanOrEqual(10);
     expect(manman!.vpip).toBeLessThanOrEqual(35);
@@ -215,7 +215,7 @@ describe('电脑的难度', () => {
     expect(lux[9]!.vpip).toBeLessThan(xiaobai!.vpip - 6);
   });
 
-  it('"小白一直弃牌"（0.3.0）：6 人桌没人加注、前面位置只补一个大盲，小白一半左右会跟进看牌', () => {
+  it('"小白一直弃牌"：6 人桌没人加注、前面位置只补一个大盲，小白一半左右会跟进看牌', () => {
     // 原来翻牌前没人加注也查底池赔率（按 5 个对手的胜率比 400‰），除了 JJ 以上基本全弃
     const spots = preflopSpots((v) => v.seats[v.me!]!.persona === 9 && v.legal!.call === v.bb && v.seats.filter((s) => s.status === 'active').length >= 5);
     const play = spots.filter((v, i) => decide(v, stream(SEED, 'spot', i)).t !== 'fold').length;
@@ -233,7 +233,7 @@ describe('电脑的难度', () => {
     expect(hot).toBeGreaterThan(calm * 1.1);
   });
 
-  it('河牌没人下注、手里只有高牌：爱诈唬的常偷一把，老实的很少（0.3.0 实打后，摊牌才亮得出"诈唬"）', () => {
+  it('河牌没人下注、手里只有高牌：爱诈唬的常偷一把，老实的很少（实打后，摊牌才亮得出"诈唬"）', () => {
     // 翻牌的诈唬多半当场把人打走，空气很少打到河牌；河牌的诈唬常被有一对的人跟到摊牌
     const spots: View[] = [];
     runBots({
@@ -253,7 +253,7 @@ describe('电脑的难度', () => {
     const bets = (persona: number): number =>
       spots.filter((v, i) => {
         const seats = v.seats.map((x, j) => (j === v.me ? { ...x, persona } : x));
-        // 0.12.0：小桌第 1 档几乎不诈唬（配平），性格的差别放在豪华桌那一档比
+        // 小桌第 1 档几乎不诈唬（配平），性格的差别放在豪华桌那一档比
         return decide({ ...v, seats, level: 4 }, stream(SEED, 'river', i)).t !== 'check';
       }).length;
     const huzi = bets(6);
@@ -308,11 +308,11 @@ describe('电脑的难度', () => {
       });
     }
     console.log(`小桌 6 人 ${hands} 手：每手平均 ${(seers / hands).toFixed(2)} 人看翻牌`);
-    // 0.2.5 时约 1.5（之前的数字见 CHANGELOG）
+    // 原来约 1.5
     expect(seers / hands).toBeGreaterThan(2);
   });
 
-  it('补位按强弱档的权重挑（单机按档位定强弱档，0.5.0）：小桌多来爱跟注、胆小、新手、话多的，豪华桌多来紧凶、会算、爱诈唬的', () => {
+  it('补位按强弱档的权重挑（单机按档位定强弱档）：小桌多来爱跟注、胆小、新手、话多的，豪华桌多来紧凶、会算、爱诈唬的', () => {
     // 两人桌只补一个电脑，看得出权重；9 人桌 8 个电脑只差两个
     const count = (stakes: StakesId): number[] => {
       const n = new Array<number>(PERSONA_COUNT).fill(0);

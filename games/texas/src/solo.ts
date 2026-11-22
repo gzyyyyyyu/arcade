@@ -33,8 +33,7 @@ export interface Session {
   /** 还没得到钱包回话的那一笔 */
   pending: Pending | null;
   /**
-   * 钱包已经扣了、还没能上桌的补码（0.3.4）：0.3.3 及以前补码没回话时还能接着打，到账时人可能正在一手里、加不上。
-   * 先记着，下一次两手之间加上；离桌时一起结回。新版本补码没回话时牌桌停住，不会再有
+   * 钱包已扣但加不上桌的补码：下一次两手之间加上、离桌时一起结回
    */
   held?: number;
   /** 这一场的数（离桌的结算页用；老存档没有，读的时候补上） */
@@ -195,7 +194,7 @@ export class Solo {
     try {
       const s = JSON.parse(store.getItem(SESSION_KEY) ?? 'null') as Session | null;
       if (s?.v !== 1 || !s.table || s.userId !== userId) return null;
-      // 0.1.0 的存档：打完一手照样停着；这一场的数从现在记
+      // 旧存档：打完一手照样停着；这一场的数从现在记
       if (!s.table.holdHands) s.table = { ...s.table, holdHands: true, hold: false };
       s.stats ??= { ...NO_STATS };
       return s;
@@ -225,7 +224,7 @@ export class Solo {
       // 坐下那一笔不开第一手（等 next）；补码在两手之间，也不自己发
       const t = me.owner === 'none' ? seatPlayer(prev, ME, p.amount, false) : addChips(prev, ME, p.amount, false);
       if (isFail(t)) {
-        // 旧存档：到账时人在一手里（或补完超上限）加不上，先记着（见 held）
+        // 到账时人在一手里（或补完超上限）加不上：先记着（见 held）
         this.s.held = (this.s.held ?? 0) + p.amount;
       } else {
         this.s.table = t;
@@ -369,7 +368,7 @@ export class Solo {
     this.stopped = true;
   }
 
-  /** 播这一步。画面出了错只记一笔：状态已经走了、存了盘，电脑照常接着出手（0.10.0 线上全下的音效抛错，循环断了，牌局卡死） */
+  /** 播这一步。画面出了错只记一笔：状态已经走了、存了盘，电脑照常接着出手（线上全下的音效抛错，循环断了，牌局卡死） */
   private async show(st: Step): Promise<void> {
     try {
       await this.d.onStep(st);

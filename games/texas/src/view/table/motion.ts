@@ -32,7 +32,7 @@ export class TableMotion {
   }
 
   /**
-   * 催促炸弹（0.3.0 朋友们："谁出得慢就炸他"）：轮到的真人想了 8 秒以上，他头像旁边冒一个小炸弹，别人点了就对他扔。seat 为 null 收起。
+   * 催促炸弹（朋友们："谁出得慢就炸他"）：轮到的真人想了 8 秒以上，他头像旁边冒一个小炸弹，别人点了就对他扔。seat 为 null 收起。
    * 只是个按钮：不缩短他的计时、不碰规则
    */
   urge(seat: number | null, onClick: () => void): void {
@@ -86,7 +86,7 @@ export class TableMotion {
     place(
       e,
       // 两边的贴着名牌往里摆：头像上面要放赢了多少（float），旁边是亮出来的牌
-      // 我自己的放在头像左上（0.6.1：原来和头像一样高，盖住左下角的"歇一手""嘲讽"）
+      // 我自己的放在头像左上（原来和头像一样高，盖住左下角的"歇一手""嘲讽"）
       seat === this.c.me ? { x: p.x - 196, y: p.y - 30 } : side === 'below' ? { x: p.x, y: p.y + 92 } : { x: p.x + (side === 'right' ? 80 : -80), y: p.y + 58 },
     );
     after();
@@ -193,7 +193,7 @@ export class TableMotion {
 
   float(seat: number, text: string): void {
     const p = this.scene.seatPt(seat);
-    // 顶上一排：赢数写在自己名牌的名字那一行，停一会儿换回名字。头顶放会被屏幕上沿裁掉、压住标题（0.3.0 实打），
+    // 顶上一排：赢数写在自己名牌的名字那一行，停一会儿换回名字。头顶放会被屏幕上沿裁掉、压住标题（实打），
     // 压在头像下沿又挡住名字，两边是邻座的牌和名牌（9 人桌只隔 190 个单位），没有空地方飘
     const n = this.c.seats[seat];
     if (seat !== this.c.me && p.y < 110 && n) {

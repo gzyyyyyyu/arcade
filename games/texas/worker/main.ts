@@ -1,13 +1,13 @@
 /**
  * texas Worker：挂在站点的 /games/texas* 下（docs/deploy.md 10；路由部署时注入，见 README 的部署一节）。
- * 两种部署（kit 0.10 的 isStandalone，docs/deploy.md 10.1）：本站由部署工具补上 ARCADE、WALLET 和 GATE=login，下面说的都是这种；
+ * 两种部署（kit 的 isStandalone，docs/deploy.md 10.1）：本站由部署工具补上 ARCADE、WALLET 和 GATE=login，下面说的都是这种；
  * 单独部署（wrangler.jsonc 原样，没有平台）认游客 cookie，没有钱包：单机实盘的接口回 404 no_wallet，好友房的筹码不记账，`/` 跳到 /games/texas/。
  * - /games/texas/health 是探活：不读存储、不要登录，回 {ok, version}（version 是 package.json 的版本），排在登录闸门前面，单独部署也能访问；
- * - 首页三个路径过登录闸门（15.8，kit 0.8.0 的 loginGate）：登录了放行，没登录 302 到 /login?next=<原路径和查询参数>（平台 0.10.1），平台不可用回德州自己的 503 页；GATE=off 时不拦；
+ * - 首页三个路径过登录闸门（15.8，kit 的 loginGate）：登录了放行，没登录 302 到 /login?next=<原路径和查询参数>，平台不可用回德州自己的 503 页；GATE=off 时不拦；
  * - /games/texas/api/solo/* 是单机的带入、结回（5.4）：经服务绑定 WALLET 调平台钱包（client 模式）；看钱包、领补给页面直接走平台的 /api/wallet；
  * - /games/texas/rooms（开房）、/games/texas/rooms/<码>/ws（进房）原样交给 kit 的 acceptCreate / acceptJoin（6）；
- *   开房的请求体 { opts } 是档位和人数，交给 kit 开房时校验、定下（kit 0.4.0），进房的人都看得到；
- * - /games/texas/rooms/match/<档位> 是匹配真人的排队（kit 0.20.0 的 acceptMatch，6.11）：只开实盘四档；没有钱包（单独部署）一档都不开，没绑 MATCH 也回 4004；
+ *   开房的请求体 { opts } 是档位和人数，交给 kit 开房时校验、定下，进房的人都看得到；
+ * - /games/texas/rooms/match/<档位> 是匹配真人的排队（kit 的 acceptMatch，6.11）：只开实盘四档；没有钱包（单独部署）一档都不开，没绑 MATCH 也回 4004；
  * - 别的路径不经过这里（wrangler.jsonc 的 run_worker_first 只列了上面这些），由静态资源直接回。
  *
  * 带入、结回要过两道：CSRF（X-Arcade: 1 且 Origin 是本站）、登录；额度、每日上限、写入次数都由平台钱包管（docs/economy.md 第 3、4 节）。
@@ -34,11 +34,11 @@ export interface Env extends MeterEnv {
   /** 平台钱包（服务绑定，entrypoint WalletService，props.game = texas）；单独部署没有 */
   WALLET?: PlatformWallet;
   ROOM: DurableObjectNamespace<TexasRoom>;
-  /** 匹配真人的排队（kit 0.20.0，worker/match.ts 的 Queue）；没绑就不开匹配 */
+  /** 匹配真人的排队（worker/match.ts 的 Queue）；没绑就不开匹配 */
   MATCH?: DurableObjectNamespace;
   /** off 以外（包括没配）都要登录 */
   GATE?: string;
-  /** 写请求的 Origin 只认它（正式站由部署流程注入）；没设就认请求自己的 origin（kit 0.9.0） */
+  /** 写请求的 Origin 只认它（正式站由部署流程注入）；没设就认请求自己的 origin */
   SITE_ORIGIN?: string;
 }
 
@@ -48,7 +48,7 @@ const ROOMS = `${BASE}/rooms`;
 const JOIN = /^\/games\/texas\/rooms\/([^/]+)\/ws$/;
 const MATCH = new RegExp(`^${MATCH_PATH}/([a-z0-9-]+)$`);
 /**
- * 单独部署时的游客（kit 0.10）：首页、开房、进房传同一份。电脑人物的名字不许当昵称（真人不能冒充电脑）；
+ * 单独部署时的游客：首页、开房、进房传同一份。电脑人物的名字不许当昵称（真人不能冒充电脑）；
  * cookie 用 kit 默认的，同一个站点下单独部署的几个游戏共用一个游客身份
  */
 const GUEST = { reserved: PERSONAS.map((p) => p.name) };
@@ -72,7 +72,7 @@ const STATUS: Record<string, number> = {
 
 export default {
   async fetch(request, env): Promise<Response> {
-    // 单独部署时站点根 / 跳到游戏首页，/api/me 答"没有平台"（kit 0.10.2，页面的 detectPlatform 据此降级）
+    // 单独部署时站点根 / 跳到游戏首页，/api/me 答"没有平台"（页面的 detectPlatform 据此降级）
     const root = standaloneRoot(request, env, 'texas');
     if (root) return root;
     const url = new URL(request.url);
@@ -164,7 +164,7 @@ async function solo(request: Request, env: Env, sub: string): Promise<Response> 
     r =
       sub === 'buyin'
         ? await wallet.buyin({ ...base, tier: b.stakes as StakesId, amount, until: Date.now() + SOLO_HOLD_MS })
-        : // 这一份的小结（0.3.0，平台 0.10.0 settle.stats）：原样转发，不改、不补；不合格平台整份忽略、钱照常结
+        : // 这一份的小结（平台的 settle.stats）：原样转发，不改、不补；不合格平台整份忽略、钱照常结
           await wallet.settle({ ...base, amount, ...(b.stats !== undefined ? { stats: b.stats } : {}) });
   } catch (e) {
     // 连不上平台：请求可能到了，页面留着操作 id 重发
