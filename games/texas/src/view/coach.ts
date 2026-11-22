@@ -20,17 +20,18 @@ export function closeCoach(): void {
 const box = (r: DOMRect | null): Box | null => (r && r.width > 0 && r.height > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null);
 
 /**
- * 桌上不许压的东西：每个座位的名牌（名字和筹码）、我的底牌、头像和牌型名牌、操作区（弃牌、跟注、加注，亮着时）。
+ * 桌上不许压的东西：每个座位的名牌（名字和筹码）、我的底牌、翻开的公共牌、头像和牌型名牌、操作区（弃牌、跟注、加注，亮着时），
+ * 还有顶栏、底栏和两手之间的按钮、互动快捷语（提示不拦点击，压住了就点不到；11-21 手机竖屏摊牌提示压住"互动""聊天"和快捷语）。
  * 现量 DOM，不靠调用方一个个传；量不到（没发牌、座位空着没摆出来）就自然少几块。
  * 目标自己如果是其中一块，placeCoach 贴着目标摆（留 gap），不受这里影响
  */
 function tableAvoid(): Box[] {
   const out: Box[] = [];
-  for (const e of document.querySelectorAll('.table .seat:not(.empty) .plate, .table .seat.me .card:not(.hidden), .table .seat.me .avatar, .table .seat.me .hand, .actions.on')) {
+  for (const e of document.querySelectorAll('.table .seat:not(.empty) .plate, .table .seat.me .card:not(.hidden), .table .card.board:not(.hidden), .table .seat.me .avatar, .table .seat.me .hand, .actions.on, .topbar button, .hud button, .between button, .fun-hints .fun-hint')) {
     const b = box(e.getBoundingClientRect());
     if (!b) continue;
-    // 实在放不下时（手机横屏）宁可压别人的名牌，也别压我的牌和操作区：这几块重复记，摆放按压到的面积算代价
-    out.push(b, ...(e.matches('.plate') ? [] : [b, b, b]));
+    // 实在放不下时（手机横屏）宁可压别人的名牌，再是按钮，也别压牌和操作区：按压到的面积算代价，越不能压的重复记越多次
+    out.push(b, ...(e.matches('.plate') ? [] : e.matches('button') ? [b] : [b, b, b]));
   }
   return out;
 }

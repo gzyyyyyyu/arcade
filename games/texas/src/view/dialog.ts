@@ -1,6 +1,6 @@
 /**
  * 弹窗：确认离开、补码、新手提示。同一时间只有一个。
- * 关闭：点遮罩（sticky 的不理）、Esc（没有 sticky 才关；带 cancel 的按钮即使 sticky 也认 Esc，等于点它）、按钮。
+ * 关闭：右上角 ✕ 和点遮罩（sticky 的都没有）、Esc（没有 sticky 才关；带 cancel 的按钮即使 sticky 也认 Esc，等于点它）、按钮。
  * 键盘：Tab / Shift+Tab 在弹窗里循环；弹窗开着时按键不往下漏（牌桌的 F/C/R 在 window 上听，这里在它前面截掉）；
  * 关掉后焦点还给打开前那个元素。默认焦点：带 focus 的按钮 > 主按钮 > 第一个不危险的按钮（离桌确认默认落在"接着打"）。
  */
@@ -59,6 +59,14 @@ export function dialog(parent: HTMLElement, title: string, body: string | HTMLEl
       btn.type = 'button';
       btn.addEventListener('click', () => done(c.value));
       btns.push(btn);
+    }
+    // 右上角 ✕（docs/ui.md 第 5 节）：能点遮罩关的弹窗都有，等于点遮罩；必须做决定的（sticky）只认按钮，不放。
+    // 放在按钮后面：Tab 先走操作按钮，最后才到 ✕（位置靠 CSS 摆到右上角）
+    if (!sticky) {
+      const x = el('button', 'd-x', box, '✕');
+      x.type = 'button';
+      x.setAttribute('aria-label', '关闭');
+      x.addEventListener('click', () => done(null));
     }
     const onKey = (e: KeyboardEvent): void => {
       if (open?.root !== mask) return;

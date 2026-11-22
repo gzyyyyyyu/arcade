@@ -11,7 +11,7 @@ import { DIFFICULTIES, DIFFICULTY_NAME, difficultyOf, FUN_LEVEL, FUN_STAKES, PF_
 import { MAX_SEATS } from '../core/table.ts';
 import type { Stake, WalletView } from '../net/wallet.ts';
 import { patchSettings, readSettings } from '../store.ts';
-import { DEFAULT_FORMAT, FORMATS, type TourFormat } from '../tour/rules.ts';
+import { DEFAULT_FORMAT, FORMATS, START_STACK, type TourFormat } from '../tour/rules.ts';
 import { makeCard, setCard } from './art.ts';
 import { el, setText, toggle } from './dom.ts';
 import { focusKind, lobbyKey, stepPick } from './lobbykeys.ts';
@@ -249,7 +249,7 @@ export class Lobby {
     for (const st of STAKES) {
       const t = button(grid, 'tile', '', () => this.pick(st.id));
       if (st.id !== 'small') t.dataset.room = st.id;
-      t.innerHTML = `<i class="mini"></i><em>${ROOM_NAME[st.id]}</em>` + card(st.name, STARS[st.id], `盲注 ${chips(st.sb)}/${chips(st.bb)}`, [`最多输 ${short(st.max)}`, `赢很少过 ${short(3 * st.max)}`]);
+      t.innerHTML = `<i class="mini"></i><em>${ROOM_NAME[st.id]}</em>` + card(st.name, STARS[st.id], `盲注 ${chips(st.sb)}/${chips(st.bb)}`, [`最多输 ${short(st.max)}`, `很少赢过 ${short(3 * st.max)}`]);
       this.tiles.set(st.id, t);
     }
     for (const d of DIFFICULTIES) {
@@ -498,7 +498,7 @@ export class Lobby {
     patchSettings({ stakes: this.stakes, size: this.size, mode: this.mode, diff: this.diff, tourFmt: this.tourFmt });
   }
 
-  /** 战绩小卡：没打过就一句话叫他先来一把 */
+  /** 战绩小卡：没打过就不出 */
   private drawStats(): void {
     const { hands, won, biggestPot, best } = this.s.stats;
     const html = hands
@@ -511,7 +511,9 @@ export class Lobby {
         ]
           .map(([v, k]) => `<span class="ms"><b>${v}</b><small>${k}</small></span>`)
           .join('')
-      : '<span class="ms-label">还没打过：点"快速开始"先来一把</span>';
+      : '';
+    // 没打过不放一条提示（像个按钮、主页不放常驻提示条，界面审查 1121 第 14 条）：整块不出，"快速开始"本来就是最显眼的那个
+    this.statsEl.classList.toggle('none', !hands);
     if (this.statsHtml !== html) this.statsEl.innerHTML = this.statsHtml = html;
   }
 
@@ -579,7 +581,7 @@ export class Lobby {
     this.drawStats();
     setText(
       this.modeNote,
-      room ? (this.roomTour ? '锦标赛：6 人、每人 1,500 比赛筹码打到剩一人；实盘每人交一份报名费，奖池只在真人之间按名次分' : '和朋友一桌：开个房间把房间码发给他们，或者输朋友给的码') : this.alone ? '筹码不算数，随便玩' : fun ? '不碰钱包，筹码不算数，随便玩' : '从钱包带筹码上桌，离桌结回；最多输掉带上去的',
+      room ? (this.roomTour ? `锦标赛：6 人、每人 ${chips(START_STACK)} 比赛筹码打到剩一人；实盘每人交一份报名费，奖池只在真人之间按名次分` : '和朋友一桌：开个房间把房间码发给他们，或者输入朋友给的房间码') : this.alone ? '筹码不算数，随便玩' : fun ? '不碰钱包，筹码不算数，随便玩' : '从钱包带筹码上桌，离桌结回；最多输掉带上去的',
     );
     // 好友房：档位、人数照旧选，下面换成开房间、输码进房；单机的带多少、坐下开打收起来
     toggle(this.buyRow, 'hidden', room);
@@ -701,9 +703,9 @@ const TOUR_RULES: Record<TourFormat, string> = {
 };
 /** 完整规则（按钮提示用）：每人 1,500 比赛筹码、打到剩一人 */
 const TOUR_FULL: Record<TourFormat, string> = {
-  sng: '6 人、每人 1,500 比赛筹码、打到剩一人，前四名拿奖 3 / 1.2 / 1 / 0.9 份报名费（一份 = 这一档的报名费）',
-  turbo: '极速赛：6 人、每人 1,500 比赛筹码、每 3 手涨一次盲注（经典是 6 手），约一半时间打完，前四名拿奖 3.3 / 1 / 0.9 / 0.9 份报名费',
-  nine: '9 人赛：9 人、每人 1,500 比赛筹码、打到剩一人，约经典赛的 1.3 倍时间，前四名拿奖 4 / 1.4 / 1.3 / 1.2 份报名费',
+  sng: `6 人、每人 ${chips(START_STACK)} 比赛筹码、打到剩一人，前四名拿奖 3 / 1.2 / 1 / 0.9 份报名费（一份 = 这一档的报名费）`,
+  turbo: `极速赛：6 人、每人 ${chips(START_STACK)} 比赛筹码、每 3 手涨一次盲注（经典是 6 手），约一半时间打完，前四名拿奖 3.3 / 1 / 0.9 / 0.9 份报名费`,
+  nine: `9 人赛：9 人、每人 ${chips(START_STACK)} 比赛筹码、打到剩一人，约经典赛的 1.3 倍时间，前四名拿奖 4 / 1.4 / 1.3 / 1.2 份报名费`,
 };
 const tourRule = (f: TourFormat): string => TOUR_RULES[f];
 /** 单机有一桌没打完时，别的单机玩法都灰着 */
@@ -711,7 +713,7 @@ const RESUME_FIRST = '先打完上一桌';
 
 /** 主页三张模式卡：名字和一句话（话里别带别的卡的名字，冒烟按名字找卡） */
 const MODE_CARDS: readonly (readonly [Mode, string, string])[] = [
-  ['fun', '娱乐', '练手，不算筹码'],
+  ['fun', '娱乐', '练手，筹码不算数'],
   ['real', '实盘', '带筹码上桌'],
   ['room', '好友房', '叫朋友一起打'],
 ];
@@ -740,7 +742,7 @@ const FOR_WHOM: Readonly<Record<Difficulty, string>> = { easy: '刚学会，先�
 
 /**
  * 选档卡：名字、星、一句（盲注或适合谁）、最多输赢（娱乐写不碰钱包）。不写"一场多久"：40 手只是配平模拟用的场长，实际打多久由玩家定，写了就成了没兑现的承诺。
- * "赢很少过 3 份"是配平模拟量的（docs/ai.md 4.10：一场赢超过 3 份的不到 1%），规则不封顶，所以不写"最多赢"
+ * "很少赢过 3 份"是配平模拟量的（docs/ai.md 4.10：一场赢超过 3 份的不到 1%），规则不封顶，所以不写"最多赢"
  */
 function card(name: string, stars: number, line: string, stake: readonly string[]): string {
   return (

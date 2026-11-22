@@ -90,7 +90,7 @@ export function createDaily(c: App) {
     for (;;) {
       pick = await dialog(stage, daily ? '今日局结束' : '快速局结束', body, [
         ...(share ? [{ label: '分享', value: 'share' }] : []),
-        { label: '回大厅', value: 'lobby' },
+        { label: '回首页', value: 'lobby' },
         { label: daily ? '再练一遍' : '再来一局', value: 'again', primary: true },
       ], true);
       if (pick === 'share' && share) share();

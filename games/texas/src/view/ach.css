@@ -36,8 +36,10 @@
 @media (prefers-reduced-motion: reduce) { .ach-toast .ach-item { animation: none; } }
 
 /* 成就墙（放在弹窗里）：框有定高，格子按行列翻页（ach.ts），不出现滚动条；舞台宽了（电脑）框跟着宽、一页多放几列 */
+
 .dialog:has(.ach-panel) {
-  width: min(880px, calc(100% - 24px)); height: calc(100% - 24px); max-height: 640px;
+  /* 框高到顶会切过顶栏，露出"大厅""设置"的半截（界面审查 1121 第 8 条）：让出顶栏（52），整个框落在它下面 */
+  width: min(880px, calc(100% - 24px)); height: calc(100% - 52px - 24px); max-height: 640px; margin-top: 52px;
   display: flex; flex-direction: column;
   padding-top: var(--s-3); padding-bottom: var(--s-3);
 }
@@ -59,6 +61,7 @@
 .ach-panel .ach-cell > b, .ach-panel .ach-cell > small { min-width: 0; }
 .ach-panel .ach-name { font-size: var(--fs-3); font-weight: 800; }
 .ach-panel .ach-how { font-size: var(--fs-2); opacity: .75; font-variant-numeric: tabular-nums; }
+.ach-panel .ach-now { white-space: nowrap; }
 /* 名字和条件上下叠着、放在图标右边 */
 .ach-panel .ach-cell { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: var(--s-2); row-gap: 0; align-content: center; }
 .ach-panel .ach-cell .ach-ico { grid-row: 1 / span 2; align-self: center; }

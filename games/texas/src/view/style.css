@@ -570,7 +570,7 @@ body::before {
 .seat.top.right .bubble { right: auto; left: 38px; }
 .seat.top.edge .bubble { left: 50%; right: auto; top: -64px; transform: translateX(-50%); }
 /* 竖屏右边下面那两家挨得近：动作签放头像正上方会压住上家名牌，又不能放外侧（出屏）。往外偏一点、压低到头像上沿，刚好让开上家名牌 */
-.stage.tall .seat.right:not(.top):not(.me):not(.shifted) .bubble { left: calc(50% + 22px); top: -34px; }
+.stage.tall .seat.right:not(.top):not(.me):not(.shifted) .bubble { left: calc(50% + 22px); top: -46px; }
 /* 矮竖屏的格子（layout.ts 的 isCompact）：别人的底牌只露出一半，顶上一排的动作签放头像正上方（左右都是邻居） */
 .stage.tall .seat.pack:not(.me) .hole .card:nth-child(1) { left: 36px; }
 .stage.tall .seat.pack:not(.me) .hole .card:nth-child(2) { left: 48px; }
@@ -578,7 +578,7 @@ body::before {
 .stage.tall .seat.pack.right:not(.me) .hole .card:nth-child(2) { left: -36px; }
 .stage.tall .seat.pack.top .bubble { left: 50%; right: auto; top: -50px; transform: translateX(-50%); }
 /* 左边下面那几家同理：居中放头像正上方、压低到头像上沿，不压上家的名牌（0.35.x 9 人桌全下，阿飙的"全下"压到上家江湖的名牌） */
-.stage.tall .seat.left:not(.top):not(.me):not(.shifted) .bubble { top: -34px; }
+.stage.tall .seat.left:not(.top):not(.me):not(.shifted) .bubble { top: -46px; }
 /* 矮竖屏左边的格子离屏幕边只有 65：居中时"下注 310"这种长签左端出屏，改成从头像左沿起往右摆 */
 .stage.tall .seat.pack.left:not(.top) .bubble { left: -56px; transform: none; }
 
@@ -699,10 +699,9 @@ body::before {
 .stage:not(.tall) .actions .odds { white-space: nowrap; }
 .actions .odds .need { margin-left: var(--s-2); font-size: var(--fs-1); }
 .stage.narrow .actions .odds .need { display: none; }
-/* 跟注提示（单机桌，src/fun/odds.ts）：有它时收起"赔率 6.0 : 1"那一段（新手读"你约 X% · 要 Y%"就够了），赔率条和原来差不多长，
-   不伸到我的底牌上、不把座位挤开（scenes 1920×1080 和 667×375 量出来的）；手机横屏矮、平板窄舞台再收起"要 Y%"，颜色照样分够不够 */
+/* 跟注提示（单机桌，src/fun/odds.ts）："胜率约 X% · 要过 Y% · 划算"，赔率条不伸到我的底牌上、不把座位挤开（scenes 1920×1080 和 667×375 量出来的）；
+   手机横屏矮、平板窄舞台再收起"要过 Y%"，颜色照样分够不够 */
 .actions .odds .hint { margin-left: var(--s-2); font-size: var(--fs-1); }
-.actions .odds.with-hint .ratio { display: none; }
 .stage:is(.narrow, .tight):not(.tall) .actions .odds.with-hint .h-need { display: none; }
 .act {
   min-width: 104px;
@@ -1108,13 +1107,15 @@ body::before {
 /* 568×320 这种矮横屏：选桌最下面一排"坐下开打"出了屏（0.25.3 多尺寸），锦标赛那行说明收起（按钮上的提示里有） */
 @media (max-height: 340px) {
   .stage.tight .lobby .tour-note { display: none; }
-  /* 娱乐的三张难度卡的小字（一场多久、不碰钱包）也收起：实盘档的"最多输""赢很少过"不动 */
+  /* 娱乐的三张难度卡的小字（一场多久、不碰钱包）也收起：实盘档的"最多输""很少赢过"不动 */
   .stage.tight .lobby .tile.diff small { display: none; }
 }
 
 /* ---------- 好友房 ---------- */
 /* 0.17.4：好友房和娱乐、实盘并排；输码进房紧跟在选项下面，开房间在"坐下开打"的位置（一样大、金色） */
 .friends { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-3); }
+/* 输码进房和下面选档开房是两件事：中间一道虚线隔开，免得以为开房也要填码（界面审查 1121 第 15 条） */
+.stage .lobby .friends.join { padding-bottom: var(--s-2); border-bottom: 1px dashed var(--line-2); }
 .friends .pill { height: 40px; flex: none; }
 .friends.open .pill { flex: 1; height: 52px; border-radius: var(--r-4); font-size: var(--fs-5); font-weight: 900; letter-spacing: 2px; }
 /* 从大厅的"好友房"进来：这一行亮两下，告诉他开房、进房在这里 */
@@ -1151,6 +1152,12 @@ body::before {
   box-shadow: var(--sh-3);
 }
 .stage:not(.in-room) .room-wait { display: none; }
+/* 电脑版：原来往下偏 4%（让开顶栏）后底边伸出舞台 4 像素（界面审查 1121 第 4 条）。改成在顶栏（52）下面的空里居中，桌子矮一点放得下 */
+.stage:not(.tall) .room-wait { top: calc(50% + 26px); transform: translate(-50%, -50%); }
+.stage:not(.tall) .rw-seats { height: 248px; }
+.stage:not(.tall) .rw-go { margin-top: var(--s-3); }
+/* 手机横屏（tight）顶栏只有半截高：让 26 会让底边伸出 2 像素（noscroll 的"出"），少让一点 */
+.stage.tight:not(.tall) .room-wait { top: calc(50% + 14px); }
 .rw-head { display: flex; align-items: center; gap: var(--s-3); }
 .rw-label { font-size: var(--fs-3); color: var(--muted); }
 .rw-code { flex: 1; font-size: var(--fs-9); font-weight: 900; letter-spacing: 6px; color: var(--gold); }
@@ -1269,6 +1276,12 @@ body::before {
   animation: rise .18s ease-out;
 }
 .d-title { font-size: var(--fs-5); font-weight: 900; color: var(--gold); }
+/* 右上角 ✕：看得见 32、点区按 --hit 外扩到 44（docs/ui.md 第 2、5 节）；标题右边留出它的位置 */
+.dialog { position: relative; }
+.dialog:has(> .d-x) > .d-title { padding-right: 36px; }
+.d-x { position: absolute; top: var(--s-2); right: var(--s-2); width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 18px; font-weight: 700; line-height: 1; cursor: pointer; }
+.d-x::before { content: ''; position: absolute; inset: -6px; }
+.d-x:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .d-body { margin-top: var(--s-2); font-size: var(--fs-4); line-height: 1.6; color: var(--ink); }
 .d-buttons { display: flex; justify-content: flex-end; gap: var(--s-3); margin-top: var(--s-4); }
 .d-btn { min-width: 96px; height: 44px; padding: 0 var(--s-4); border-radius: var(--r-3); border: 1px solid var(--line-2); background: rgba(255, 255, 255, .06); font-size: var(--fs-4); font-weight: 700; }
@@ -1333,6 +1346,7 @@ body.texas-raising-tall .atf-btn { visibility: hidden; }
 /* 加注面板展开时，桌心已经摆着池子（odds.pot-shown，翻牌后）就把赔率条收起：面板下面再写一遍「底池 N」是重复的。
    翻牌前桌心没有池子（盲注还摆在各人面前），这时赔率条是唯一写着底池的地方，面板展开也留着；竖屏的操作区另有排法，展开时一律收起（上面） */
 .stage .actions.open .odds.pot-shown { display: none; }
+.stage .actions .odds.dup { display: none; }
 .stage.tall .actions.open .odds { display: none; }
 .stage.tall .actions.open .raise-panel { padding: var(--s-1) var(--s-2); }
 .stage.tall .actions.open .buttons { margin-top: 0; }
@@ -1434,13 +1448,14 @@ body.texas-paused *, body.texas-paused *::before, body.texas-paused *::after { a
 .stage:not(.tall) .summary .sum-awards { margin-bottom: var(--s-3); }
 .stage:not(.tall) .summary .sum-note { margin-top: var(--s-2); }
 .stage:not(.tall) .summary .sum-share { margin-top: var(--s-3); }
-/* 这一场的大字（0.18.4）：赢了金色加一圈慢慢转的光，输了柔和的红，平手白 */
+/* 这一场的大字（0.18.4）：赢了绿字配一圈慢慢转的金光，输了柔和的红，平手白（赢绿输红和全站一致，docs/ui.md） */
 .sum-hero { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--s-1); margin-bottom: var(--s-4); padding: var(--s-3) var(--s-4); border-radius: var(--r-4); overflow: hidden; }
 .sum-net { position: relative; font-size: 44px; font-weight: 900; line-height: 1.05; letter-spacing: 1px; }
 .sum-mood { position: relative; font-size: var(--fs-3); color: var(--muted); }
 .sum-hero.win { background: linear-gradient(rgba(243, 200, 107, .2), rgba(243, 200, 107, .05)); border: 1px solid rgba(243, 200, 107, .45); }
-.sum-hero.win .sum-net { color: var(--gold); text-shadow: 0 0 18px rgba(255, 214, 110, .55); }
-.sum-hero.win .sum-mood { color: #f2e2b4; }
+.sum-hero.win .sum-net { color: var(--win-ink); }
+/* 浅纸底上的光效：副标题用深色字（原来 #f2e2b4 浅黄几乎看不见，界面审查 1121 第 3 条） */
+.sum-hero.win .sum-mood { color: var(--win-ink); font-weight: 700; }
 .sum-hero.win::before {
   content: '';
   position: absolute;

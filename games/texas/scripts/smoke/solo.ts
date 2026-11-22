@@ -264,14 +264,14 @@ export async function desktop(browser: Browser, base: string): Promise<void> {
   await ctx.close();
 }
 
-/** 一场打完的结算页：只有一个"回标题"，不放"再来一场"。回这一场的输赢 */
+/** 一场打完的结算页：只有一个"回首页"，不放"再来一场"。回这一场的输赢 */
 export async function summary(page: Page, name: string): Promise<number> {
   await page.locator('.summary').waitFor({ timeout: 20_000 });
   const text = (await page.locator('.dialog').textContent()) ?? '';
   for (const w of ['带上桌', '这一场']) if (!text.includes(w)) throw new Error(`summary lacks ${w}: ${text}`);
   if ((await page.locator('.sum-hero').count()) !== 1) throw new Error('summary should lead with the big +/− line');
   const buttons = await page.locator('.dialog .d-btn').allTextContents();
-  if (buttons.join() !== '回标题') throw new Error(`summary buttons: ${buttons.join()}`);
+  if (buttons.join() !== '回首页') throw new Error(`summary buttons: ${buttons.join()}`);
   // 0.18.4 起这一场的 +/− 是最上面的大字
   const net = ((await page.locator('.sum-hero .sum-net').textContent()) ?? '').replace(/,/g, '');
   await shot(page, name);

@@ -195,15 +195,18 @@ describe('弹窗：键盘与焦点', () => {
   it('Tab / Shift+Tab 在弹窗里循环，走不出去', () => {
     void dialog(stage, 'x', 'y', [{ label: 'a', value: 'a' }, { label: 'b', value: 'b' }, { label: 'c', value: 'c', primary: true }]);
     const [a, b, c] = btns();
+    // 右上角 ✕ 排在按钮后面，是 Tab 顺序里的最后一个
+    const x = root.querySelector('.d-x')!;
     expect(active).toBe(c);
+    x.focus();
     expect(press('Tab').defaultPrevented).toBe(true); // 最后一个往后：回到第一个
     expect(active).toBe(a);
     expect(press('Tab', { shift: true }).defaultPrevented).toBe(true); // 第一个往前：到最后一个
-    expect(active).toBe(c);
+    expect(active).toBe(x);
     b!.focus();
     expect(press('Tab').defaultPrevented).toBe(false); // 中间的交给浏览器按顺序走
     // 十次 Tab（浏览器顺序走用 next 模拟）焦点始终在弹窗里
-    const order = btns();
+    const order = [...btns(), x];
     for (let i = 0; i < 10; i++) {
       const e = press('Tab');
       if (!e.defaultPrevented) order[order.indexOf(active!) + 1]!.focus();

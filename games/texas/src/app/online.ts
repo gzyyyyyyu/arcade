@@ -221,7 +221,7 @@ export function createOnline(c: App) {
   function tourLeaveText(t: NonNullable<RoomView['tour']>, me: number | null): string {
     const playing = t.in && !t.over && me !== null && t.places[me] === null;
     if (!playing) return '离开房间？名次和奖金不变，奖金会直接结回钱包。';
-    return t.fun ? '你的座位交给电脑接着打，打完出名次。' : '你的座位交给电脑接着打，打完按名次把奖金结回钱包，不用你在线。报名费不退，想拿奖就坚持到底。';
+    return t.fun ? '你的座位交给电脑接着打，打完出名次。' : '你的座位交给电脑接着打，打完按名次把奖金结回钱包，不用你在线。报名费不退；名次按电脑替你打到的算，自己打通常更好。';
   }
 
   /** 离开房间：坐着的先离座（这一手弃牌，打完结回钱包），再断开。auto：止盈到了自动走，不问 */
@@ -236,10 +236,10 @@ export function createOnline(c: App) {
       const how = await dialog(
         stage,
         '网络断了',
-        '现在连不上房间，"离开"发不出去：你还坐着，掉线由电脑代打，筹码还在桌上。等连上了再点离开，筹码马上结回；先回大厅也行，回来点"回到房间"再离开。',
+        '现在连不上房间，"离开"发不出去：你还坐着，掉线由电脑代打，筹码还在桌上。等连上了再点离开，筹码马上结回；先回首页也行，回来点"回到房间"再离开。',
         [
           { label: '等连上', value: 'wait', primary: true },
-          { label: '先回大厅', value: 'lobby' },
+          { label: '先回首页', value: 'lobby' },
         ],
       );
       if (how !== 'lobby' || c.online !== o) return;

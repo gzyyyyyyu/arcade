@@ -32,6 +32,11 @@ export class ShowBar {
     this.both = el('button', 'sc-both', this.root, '都亮');
     this.both.type = 'button';
     this.both.addEventListener('click', () => onShow([0, 1]));
+    // 量的时候要都停稳：这一条自己升上来（rise，起点低 8px，量着刚好擦过）、摊牌的牌型签一家家弹出来（pop），动画完了各再量一次
+    document.addEventListener('animationend', (e) => {
+      if (this.root.classList.contains('hidden') || !(e.target instanceof Element)) return;
+      if (e.target === this.root || e.target.matches('.seat:not(.me) .hand.on')) this.clear();
+    });
   }
 
   /**
@@ -54,6 +59,24 @@ export class ShowBar {
       b.setAttribute('aria-label', `亮这张：${must(b.firstElementChild, 'b.firstElementChild').getAttribute('aria-label')}`);
     });
     toggle(this.both, 'hidden', shown.length > 0);
+    this.clear();
+  }
+
+  /**
+   * 不压别家的名牌和牌型签：这一条贴在右下，电脑版右下那家摊牌时，牌型签（"一对"）正好在它底下被盖住（11-21 走查）。
+   * 每次重画、每个牌型签弹完先回原位再量，压到了就整条往左挪到它们左边（舞台缩放过，屏幕像素按比例折回去）
+   */
+  private clear(): void {
+    this.root.style.translate = '';
+    const r = this.root.getBoundingClientRect();
+    if (!r.width) return;
+    const hits = [...document.querySelectorAll('.seat:not(.me) :is(.hand.on, .plate)')]
+      .map((e) => e.getBoundingClientRect())
+      .filter((h) => h.width > 0 && h.left < r.right && h.right > r.left && h.top < r.bottom && h.bottom > r.top);
+    if (!hits.length) return;
+    const k = r.width / this.root.offsetWidth || 1;
+    const dx = r.right - Math.min(...hits.map((h) => h.left)) + 8;
+    this.root.style.translate = `${-dx / k}px 0`;
   }
 
   hide(): void {

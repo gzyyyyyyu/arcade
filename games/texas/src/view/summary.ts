@@ -1,7 +1,7 @@
 /**
  * 一场打完的结算页（试玩反馈："离桌直接回到标题页，只看到余额变了"）：单机离桌、好友房离开或房间关了时弹出。
  * 写清带上桌多少、结回多少、这一场 +/−，打了几手、赢了几手、最大的一手；到顶、输光各一句温和的话。
- * 只有一个"回标题"按钮，不放"再来一场"（快乐为主、不诱导，docs/economy.md 第 0 节）。
+ * 只有一个"回首页"按钮，不放"再来一场"（快乐为主、不诱导，docs/economy.md 第 0 节）。
  * 0.18.4（美术 v3 第 5 步）：最上面一块大字写这一场 +/−，赢了金色带光、输了一句宽心话，不再和别的行长得一样。
  */
 import { dialog } from './dialog.ts';
@@ -62,7 +62,7 @@ export function soloSummary(parent: HTMLElement, s: SoloSummary): Promise<unknow
   titleBox(body, s.titles ?? []);
   for (const n of notes) el('p', 'sum-note', body, n);
   shareButton(body, s.share);
-  return dialog(parent, s.practice ? '这一场（娱乐）' : '这一场', body, [{ label: '回标题', value: 'ok', primary: true }]);
+  return dialog(parent, s.practice ? '这一场（娱乐）' : '这一场', body, [{ label: '回首页', value: 'ok', primary: true }]);
 }
 
 /** 好友房：先颁奖，再列这一场每个人的输赢（我排第一） */
@@ -84,7 +84,7 @@ export function roomSummary(
   for (const r of sorted) row(grid, r.me ? `${r.name}（你）` : r.name, signed(r.net), r.net > 0 ? 'plus' : r.net < 0 ? 'minus' : '');
   if (!rows.length) el('p', 'sum-note', body, '这一场没人带筹码上桌。');
   shareButton(body, share);
-  return dialog(parent, title, body, [{ label: '回标题', value: 'ok', primary: true }]);
+  return dialog(parent, title, body, [{ label: '回首页', value: 'ok', primary: true }]);
 }
 
 /** 分享（docs/social.md 1.1）：放在结算页里面，点了不关结算页；kit 出系统分享或预览 */

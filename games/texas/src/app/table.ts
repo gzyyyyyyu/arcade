@@ -357,11 +357,11 @@ export function createTable(c: App) {
    */
   async function waitTopUp(s: Solo): Promise<void> {
     const body = document.createElement('div');
-    const msg = el('p', '', body, '钱包连不上，补码还没补上。钱可能已经从钱包扣了，所以牌桌先停在这儿等它回话：连上了自动补上、接着打，不会重复扣。');
+    const msg = el('p', '', body, '钱包连不上，补码还没补上。这笔筹码可能已经从钱包扣了，所以牌桌先停在这儿等它回话：连上了自动补上、接着打，不会重复扣。');
     const clock = el('p', 'sum-note', body);
     const t0 = Date.now();
     let closed = false;
-    void dialog(stage, '补码在路上', body, [{ label: '先回大厅', value: 'lobby' }]).then(() => (closed = true));
+    void dialog(stage, '补码在路上', body, [{ label: '先回首页', value: 'lobby' }]).then(() => (closed = true));
     let err: string | null = null;
     while (!closed && s.toppingUp && Date.now() - t0 < TOPUP_WAIT_MS) {
       setText(clock, `已经等了 ${Math.round((Date.now() - t0) / 1000)} 秒，最多等 ${TOPUP_WAIT_MS / 1000} 秒`);
@@ -373,9 +373,9 @@ export function createTable(c: App) {
       return toppedUp(s, err);
     }
     if (!closed) {
-      setText(msg, '等了一分钟，钱包还是连不上。先回大厅：这一桌和这一笔补码记在本机，钱包连上后自动补上，点"接着打"回到这一桌。');
+      setText(msg, '等了一分钟，钱包还是连不上。先回首页：这一桌和这一笔补码记在本机，钱包连上后自动补上，点"接着打"回到这一桌。');
       setText(clock, '');
-      await dialog(stage, '补码在路上', body, [{ label: '回大厅', value: 'lobby', primary: true }]);
+      await dialog(stage, '补码在路上', body, [{ label: '回首页', value: 'lobby', primary: true }]);
     }
     if (c.solo !== s || !s.toppingUp) return refresh();
     stopCountdown();
@@ -392,7 +392,7 @@ export function createTable(c: App) {
     const inHand = must(s.table.seats[ME], '单机桌一定有我的座位').status === 'active';
     if (!s.busted && !s.closing && !auto) {
       const back = s.session.practice ? '' : '桌上的筹码带回钱包。';
-      const ok = await dialog(stage, '离桌', inHand ? `这一手会弃牌。${back}` : back || '回大厅，这一桌就结束了。', [
+      const ok = await dialog(stage, '离桌', inHand ? `这一手会弃牌。${back}` : back || '回首页，这一桌就结束了。', [
         { label: '接着打', value: 'no', cancel: true },
         { label: '离桌', value: 'yes', danger: true },
       ]);
@@ -404,7 +404,7 @@ export function createTable(c: App) {
     const err = await s.leave();
     if (s.toppingUp) {
       // 补码那一笔还没回话，先不走（钱包可能已经扣了，离桌的结回会把它覆盖掉）
-      await dialog(stage, '先等补码', err === 'login' ? walletError('login') : '补码还在路上：钱包连不上，钱可能已经扣了。等它回话再离桌，这一笔才不会丢；连上后自动补上。', [{ label: '好', value: 'ok', primary: true }]);
+      await dialog(stage, '先等补码', err === 'login' ? walletError('login') : '补码还在路上：钱包连不上，这笔筹码可能已经扣了。等它回话再离桌，这一笔才不会丢；连上后自动补上。', [{ label: '好', value: 'ok', primary: true }]);
       refresh();
       return false;
     }

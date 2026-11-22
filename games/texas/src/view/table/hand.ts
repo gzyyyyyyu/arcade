@@ -310,17 +310,33 @@ export class TableHand {
   }
 
   /**
-   * 牌型金牌不压座位的名牌：电脑版正上方座位的名牌离公共牌近，金牌摆在公共牌上方 100 就盖住了它的名字和筹码。
-   * 压到了就往下挪到名牌下面；最多挪 MAX_DODGE（再往下就压公共牌了，那时宁可压着名牌一点）
+   * 牌型金牌不压东西：电脑版正上方座位的名牌离公共牌近，金牌摆在公共牌上方 100 就盖住它的名字和筹码；
+   * 原来往下躲名牌又会压住公共牌（界面审查 1121 第 1 条）。往左/右让开名牌、往下（最多 MAX_DODGE、不过公共牌顶）、往上让开公共牌几种挪法里，
+   * 名牌、头像、翻开的牌（公共牌和亮出来的底牌）都不压、挪得最少的那个就用；都不行就用往下那个（宁可压名牌一点，也不压牌）
    */
   private clearOfPlates(e: HTMLElement): void {
     const r = e.getBoundingClientRect();
-    const hit = [...this.c.root.querySelectorAll('.seat .plate')]
-      .map((p) => p.getBoundingClientRect())
-      .filter((p) => p.width > 0 && p.top < r.top && p.right > r.left && p.left < r.right && p.bottom > r.top);
-    if (!hit.length) return;
-    const k = this.c.root.getBoundingClientRect().width / this.c.g.w || 1;
-    const dy = Math.min(MAX_DODGE, (Math.max(...hit.map((p) => p.bottom)) + 4 - r.top) / k);
-    e.style.top = `${Number.parseFloat(e.style.top) + dy}px`;
+    const rects = (sel: string): DOMRect[] => [...this.c.root.querySelectorAll(sel)].map((x) => x.getBoundingClientRect()).filter((x) => x.width > 0);
+    const people = rects('.seat:not(.empty) :is(.plate, .avatar)');
+    const cards = rects('.card:not(.hidden)');
+    const stage = this.c.root.getBoundingClientRect();
+    const k = stage.width / this.c.g.w || 1;
+    const hits = (dx: number, dy: number, list: DOMRect[]): DOMRect[] =>
+      list.filter((p) => p.left < r.right + dx && p.right > r.left + dx && p.top < r.bottom + dy && p.bottom > r.top + dy);
+    const blocked = hits(0, 0, people);
+    if (!blocked.length && !hits(0, 0, cards).length) return;
+    const gap = 6;
+    const boardTop = Math.min(...rects('.card.board:not(.hidden)').map((c) => c.top), Number.POSITIVE_INFINITY);
+    const down = Math.max(0, Math.min(MAX_DODGE * k, (Math.max(r.top, ...blocked.map((p) => p.bottom)) + 4 - r.top), boardTop - gap - r.bottom));
+    const tries: [number, number][] = [
+      ...blocked.flatMap((p): [number, number][] => [[p.left - gap - r.right, 0], [p.right + gap - r.left, 0]]),
+      [0, down],
+      [0, Math.min(0, boardTop - gap - r.bottom)],
+    ];
+    const fits = ([dx, dy]: [number, number]): boolean =>
+      r.left + dx >= stage.left && r.right + dx <= stage.right && !hits(dx, dy, people).length && !hits(dx, dy, cards).length;
+    const [dx, dy] = tries.filter((t) => t[0] !== 0 || t[1] !== 0).sort((a, b) => Math.abs(a[0]) + Math.abs(a[1]) - Math.abs(b[0]) - Math.abs(b[1])).find(fits) ?? [0, down];
+    e.style.left = `${Number.parseFloat(e.style.left) + dx / k}px`;
+    e.style.top = `${Number.parseFloat(e.style.top) + dy / k}px`;
   }
 }

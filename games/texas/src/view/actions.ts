@@ -48,7 +48,7 @@ export class ActionBar {
     this.root = el('div', 'actions', parent);
     this.panel = el('div', 'raise-panel', this.root);
     const row = el('div', 'presets', this.panel);
-    for (const [label, frac] of [['最小', 0], ['½池', 0.5], ['¾池', 0.75], ['1池', 1], ['全下', -1]] as const) {
+    for (const [label, frac] of [['最小', 0], ['半池', 0.5], ['¾池', 0.75], ['满池', 1], ['全下', -1]] as const) {
       const b = el('button', 'preset', row, label);
       b.type = 'button';
       b.dataset.frac = String(frac);
@@ -181,21 +181,23 @@ export class ActionBar {
     const lg = must(v.legal, 'v.legal');
     const pot = v.pot;
     // 桌心已经摆着池子（翻牌后：前几轮收进去的）：加注面板展开时这条的「底池」就是重复的，样式里据此收起（style.css）
-    toggle(this.odds, 'pot-shown', v.pots.some((x) => x > 0));
+    const shown = v.pots.some((x) => x > 0);
+    toggle(this.odds, 'pot-shown', shown);
+    // 能过牌（这一轮没人下注）又已经摆着池子：赔率条只剩「底池 N」，和桌心那块一模一样，不写（界面审查 1121 第 11 条）
+    toggle(this.odds, 'dup', shown && lg.check);
     toggle(this.odds, 'with-hint', false);
     if (lg.check) this.odds.innerHTML = `底池 <b>${chips(pot)}</b>`;
     else {
-      const ratio = pot / lg.call;
       const need = Math.round((lg.call / (pot + lg.call)) * 100);
-      // 括号去掉、字缩短并放进小字：电脑版 1280 宽上原来折成两行；金额一个字都不截。有跟注提示时赔率那一段收起（style.css 的 .with-hint .ratio）
-      const head = `底池 <b>${chips(pot)}</b> · 跟 <b>${chips(lg.call)}</b><span class="ratio"> · 赔率 <b>${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)} : 1</b></span>`;
+      // 一套大白话口径（界面审查 1121 第 13 条）：都说"胜率"，不写"赔率 2.5 : 1"这种术语；金额一个字都不截
+      const head = `底池 <b>${chips(pot)}</b> · 跟 <b>${chips(lg.call)}</b>`;
       const eq = hint ? this.myOdds(v) : null;
       toggle(this.odds, 'with-hint', eq !== null);
-      // 只给"要多少"新手读不懂（以为写的是"可以跟"）：有提示时把我的赢面和要的摆在一起，够了标绿
+      // 只给"要多少"新手读不懂（以为写的是"可以跟"）：有提示时把我的胜率和要的摆在一起，够了标绿
       this.odds.innerHTML =
         eq === null
-          ? `${head}<span class="need">赢面要过 ${need}%</span>`
-          : `${head}<span class="hint ${eq >= need ? 'ok' : 'bad'}">你约 <b>${eq}%</b><span class="h-need"> · 要 ${need}%</span> · ${eq >= need ? '划算' : '不太划算'}</span>`;
+          ? `${head}<span class="need">胜率要过 ${need}% 才划算</span>`
+          : `${head}<span class="hint ${eq >= need ? 'ok' : 'bad'}">胜率约 <b>${eq}%</b><span class="h-need"> · 要过 ${need}%</span> · ${eq >= need ? '划算' : '不太划算'}</span>`;
     }
     // 一键下注：每个按钮写上会下到多少；和最小加注、全下一样多的不重复给
     toggle(this.quick, 'hidden', !lg.raise);

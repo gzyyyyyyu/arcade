@@ -94,9 +94,9 @@ export class Tally {
     const c = top('calls', 6);
     if (c) out.push({ title: '跟注站', name: c.name, why: `跟了 ${c.calls} 次` });
     const win = rows.reduce<{ name: string; net: number } | null>((a, x) => (x.net > 0 && (!a || x.net > a.net) ? x : a), null);
-    if (win) out.push({ title: '大赢家', name: win.name, why: `赢了 ${win.net.toLocaleString('zh-CN')}` });
+    if (win) out.push({ title: '大赢家', name: win.name, why: `赢了 ${chips(win.net)}` });
     const lose = rows.reduce<{ name: string; net: number } | null>((a, x) => (x.net < 0 && (!a || x.net < a.net) ? x : a), null);
-    if (lose) out.push({ title: '送财童子', name: lose.name, why: `送出 ${(-lose.net).toLocaleString('zh-CN')}` });
+    if (lose) out.push({ title: '送财童子', name: lose.name, why: `送出 ${chips(-lose.net)}` });
     return out;
   }
 

@@ -199,7 +199,7 @@ export function createTour(c: App) {
       const err = await t.leave();
       if (!abandoned) f.achTour(t);
       if (t.session.pending?.t === 'buyin') {
-        await dialog(stage, '先等报名', err === 'login' ? walletError('login') : '报名那一笔还没回话，钱可能已经扣了。等它回话再离开，这一场才不会丢。', [{ label: '好', value: 'ok', primary: true }]);
+        await dialog(stage, '先等报名', err === 'login' ? walletError('login') : '报名那一笔还没回话，报名费可能已经扣了。等它回话再离开，这一场才不会丢。', [{ label: '好', value: 'ok', primary: true }]);
         refreshTour();
         return false;
       }
@@ -251,7 +251,7 @@ export function createTour(c: App) {
     }
     el('div', 'sum-note', body, `${t.table.seats.length} 人、每人 ${chips(START_STACK)} 比赛筹码，每 ${t.state.every} 手涨一次盲注`);
     const pick = await dialog(stage, dly ? '今日赛结束' : '锦标赛结束', body, [
-      { label: '回大厅', value: 'ok', primary: !dly },
+      { label: '回首页', value: 'ok', primary: !dly },
       ...(dly ? [{ label: '再练一场', value: 'again', primary: true }] : []),
     ], true);
     if (err && t.closing) {
@@ -292,7 +292,7 @@ export function createTour(c: App) {
     c.roomWatch = true;
   }
 
-  /** 整场打完：我的名次、奖金（实盘"结回钱包 X"，娱乐"筹码不算数"）和真人名次表；点"回大厅"离开房间 */
+  /** 整场打完：我的名次、奖金（实盘"结回钱包 X"，娱乐"筹码不算数"）和真人名次表；点"回首页"离开房间 */
   async function roomTourEnd(s: OnlineState): Promise<void> {
     const o = c.online;
     const v = s.view;
@@ -316,7 +316,7 @@ export function createTour(c: App) {
       rows,
       champion: t.humans.includes(champ) ? nameOf(champ) : personaName(must(v.seats[champ], '视图里每个座位号都有座位').persona),
     });
-    await dialog(stage, '锦标赛结束', body, [{ label: '回大厅', value: 'ok', primary: true }], true);
+    await dialog(stage, '锦标赛结束', body, [{ label: '回首页', value: 'ok', primary: true }], true);
     if (c.online !== o) return;
     o.close();
     f.forgetRoom();
