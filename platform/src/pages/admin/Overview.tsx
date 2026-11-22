@@ -73,11 +73,12 @@ function OverviewBody({ data }: { data: AdminOverview }) {
               <div className="game-today__item">
                 <strong>{gameName(g)}</strong>
                 <span className="tnum">{dash(x.players)} 人</span>
-                <span>
+                {/* 带入、结回各自不断行，放不下就整段换行（不用"·"隔开：折行时点会悬在行尾） */}
+                <span className="game-today__flow">
                   <span className="nowrap">
                     带入 <b className="tnum">{num(x.in)}</b>
-                  </span>{' '}
-                  · <span className="nowrap">
+                  </span>
+                  <span className="nowrap">
                     结回 <b className="tnum">{num(x.out)}</b>
                   </span>
                 </span>

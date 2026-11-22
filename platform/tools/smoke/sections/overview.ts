@@ -31,7 +31,7 @@ export async function adminOverview(browser: Browser): Promise<void> {
     const ov = page.getByTestId('overview');
     await ov.getByText('14').waitFor();
     const texasToday = (await page.locator('.game-today__item', { hasText: '德州扑克' }).innerText()).replace(/\s+/g, ' ');
-    check(texasToday.includes('6 人') && texasToday.includes('带入 24,000 · 结回 21,000'), `今天各游戏里德州那行不对：${texasToday}`);
+    check(texasToday.includes('6 人') && texasToday.includes('带入 24,000') && texasToday.includes('结回 21,000'), `今天各游戏里德州那行不对：${texasToday}`);
     check(await page.locator('.panel__head').getByTestId('admin-chips-open').isVisible(), '"管理筹码"应该在"今天"的标题行里');
     await shot(page, `admin-console-${screen}`);
     // 管理后台在 1280、1920 宽也不是窄列、不横着滑
@@ -59,7 +59,7 @@ export async function adminOverview(browser: Browser): Promise<void> {
     const trendGames = (await page.getByTestId('trend').locator('.atable__row').first().locator('.per-people').innerText()).replace(/\s+/g, ' ');
     check(trendGames.includes('德州扑克') && !trendGames.includes('飞驰'), `趋势表按用钱包的游戏分列，不列飞驰：${trendGames}`);
     await adminSection(page, '用户');
-    await page.getByTestId('user-xiaoming_2026').getByTestId('user-wallet').getByText('余额 23,400 · 桌上 2,000 · 开盘 3 次、德州扑克 12 次').waitFor();
+    await page.getByTestId('user-xiaoming_2026').getByTestId('user-wallet').getByText('手上 23,400 · 桌上 2,000 · 开盘 3 次、德州扑克 12 次').waitFor();
     await page.getByTestId('user-a_very_long_name_20').getByText('还没用过钱包').waitFor();
     const user = await pickUser(page, 'xiaoming_2026');
     await user.getByTestId('user-detail').getByText('21%').waitFor();

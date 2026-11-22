@@ -35,6 +35,13 @@ function reliefBlocked(w: Wallet, reliefTo: number): string | null {
   return '今天领过了，明天再来';
 }
 
+/** 流水从北京时间 2026-10-16 起才记、只留最近 LEDGER_KEEP 笔：记满了、或者账号比这早，才说明为什么看不到更早的（新号不写） */
+const LEDGER_KEEP = 30;
+const LEDGER_SINCE = Date.UTC(2026, 9, 15, 16);
+function ledgerNote(count: number, createdAt: number): string {
+  return [count >= LEDGER_KEEP ? `只留最近 ${LEDGER_KEEP} 笔` : '', createdAt < LEDGER_SINCE ? '10 月 16 日以前的没记下来' : ''].filter(Boolean).join('；');
+}
+
 function StakeRow({ s }: { s: Stake }) {
   const g = gameOf(s.game);
   const room = s.mode === 'server';
@@ -119,8 +126,10 @@ function WeekTrend({ balance, ledger }: { balance: number; ledger: LedgerEntry[]
 }
 
 const OTHER = '_other';
-// 桌上的筹码（一条约 70 高）和进出记录（一行 36 高）最多这么多条时面板按内容高；再多按高度翻页
+// 桌上的筹码和进出记录（一行 36 高）最多这么多条时面板按内容高；再多按高度翻页。
+// 桌上的一条带两行说明约 100 高，左栏还有钱包卡和这周：两条要 900 高的屏才按内容高，1280×800 原来第二条被裁掉半截
 const FIT_STAKES = 2;
+const STAKES_ROOMY = '(min-height: 900px)';
 const FIT_LEDGER = 3;
 const WIDE = '(min-width: 960px) and (min-height: 600px)';
 
@@ -131,6 +140,7 @@ export function WalletPage() {
   const wide = useMedia(WIDE);
   // 竖屏够高（≥700）时桌上没筹码，或者这周没打带筹码的局（"这周"只剩一行），就把"这周"并进"筹码"页签，少一个页签
   const tall = useMedia('(min-height: 700px)');
+  const stakesRoomy = useMedia(STAKES_ROOMY);
   const writable = useWritable();
   const reliefBtn = useRef<HTMLButtonElement>(null);
   const relief = useSubmit(async () => {
@@ -180,7 +190,7 @@ export function WalletPage() {
   const blocked = reliefBlocked(wallet, reliefTo);
   // 列表很短（一页肯定放得下）时面板按内容高，不撑满一屏留一大块空框；多了才吃剩下的高、交给 <Paged> 翻页。
   // 按内容高时 <Paged> 不量高度、一次画完（fixed），不然面板高随条数变、量出的条数又改面板高，来回跳（React #185）
-  const stakesFit = wallet.stakes.length <= FIT_STAKES;
+  const stakesFit = wallet.stakes.length <= 1 || (wallet.stakes.length <= FIT_STAKES && stakesRoomy);
   const caps = Object.entries(wallet.caps);
   // 筛选：流水里出现过的游戏各一个，没有游戏的（补给、新号、管理员调整）归"其他"
   const games = [...new Set(ledger.flatMap((e) => (e.g ? [e.g] : [])))];
@@ -194,7 +204,7 @@ export function WalletPage() {
         <div className="wcard__top">
           <CoinIcon size={40} />
           <div className="wcard__main">
-            <span className="wcard__label">余额</span>
+            <span className="wcard__label">手上的筹码</span>
             <strong className="wcard__balance" data-testid="wallet-balance">
               {num(wallet.balance)}
             </strong>
@@ -263,7 +273,7 @@ export function WalletPage() {
       ) : (
         <Empty action={<Link className="btn btn--small" href="/">去大厅玩一局</Link>}>还没有进出，去玩一局带筹码的吧。</Empty>
       )}
-      <p className="note">只留最近 30 笔；10 月 16 日以前的没记下来。</p>
+      {ledgerNote(ledger.length, user!.createdAt) && <p className="note">{ledgerNote(ledger.length, user!.createdAt)}</p>}
     </Panel>
   );
   // 宽屏两栏等高：左栏卡片加桌上的加这周，右栏进出；窄屏分页签。桌上没筹码时那块收成一行，空出来的高给"这周"

@@ -78,7 +78,7 @@ function ChipsDialog() {
     void run(async () => {
       const r = await api.admin.adjust(found.username, n, note.trim());
       setFound({ ...found, wallet: r.wallet });
-      setDone(`${r.credited > 0 ? '加了' : '扣了'} ${num(Math.abs(r.credited))}，现在余额 ${num(r.wallet.balance)}`);
+      setDone(`${r.credited > 0 ? '加了' : '扣了'} ${num(Math.abs(r.credited))}，现在手上 ${num(r.wallet.balance)}`);
       setAmount('');
       setNote('');
       void loadRecent();
@@ -96,7 +96,7 @@ function ChipsDialog() {
         {found && (
           <>
             <p className="modal__who">
-              <strong>{found.displayName}</strong>（{found.username}）余额 <strong data-testid="admin-chips-balance">{num(found.wallet.balance)}</strong>
+              <strong>{found.displayName}</strong>（{found.username}）手上 <strong data-testid="admin-chips-balance">{num(found.wallet.balance)}</strong>
               {found.wallet.fresh && `（还没用过钱包，调整时先按新号送 ${num(found.wallet.balance)}）`}
               {found.wallet.stakes.length > 0 && `；桌上还有 ${num(found.wallet.stakes.reduce((a, s) => a + s.amount, 0))}（不受调整影响）`}
             </p>

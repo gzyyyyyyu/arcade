@@ -98,6 +98,9 @@
 /* 触屏上数字至少 14px：这一行里有带入、结回的数 */
 @media (pointer: coarse), (max-width: 959px) { .game-today__item > span:not(.tnum), .game-today__item > small { font-size: var(--fs-sm); } }
 .game-today .nowrap { white-space: nowrap; }
+.game-today__item > .game-today__flow { display: flex; flex-wrap: wrap; column-gap: var(--s-3); }
+/* 同一行的两张一样高 */
+.game-today .paged__item > .game-today__item { height: 100%; }
 @media (min-width: 700px) and (max-height: 600px) {
   .ov-today { flex-direction: row; gap: var(--s-4); }
   .ov-today .tiles { flex: 0 0 56%; grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; }
@@ -305,5 +308,8 @@
   .console .invite-code__code, .console .invite-code .code-status { white-space: nowrap; }
   .console .invite-code__code { font-size: var(--fs-sm); }
   .console .invite-code__acts .btn { padding-inline: var(--s-2); }
+  /* 长期码的状态"能用 4/100"更宽：码和状态占满第一行，按钮挪到第二行右边，不然跨两行居中的按钮压住它；一般码保持原排法、两行高 */
+  .console .invite-code--multi .invite-code__main { grid-column: 1 / -1; }
+  .console .invite-code--multi .invite-code__acts { grid-row: 2; }
 }
 .console .hidden-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 0 var(--s-3); }

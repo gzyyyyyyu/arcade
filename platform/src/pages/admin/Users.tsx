@@ -169,7 +169,7 @@ function walletLine(w: NonNullable<AdminUser['wallet']>): string {
   const played = Object.entries(w.played)
     .map(([g, n]) => `${gameName(g)} ${n} 次`)
     .join('、');
-  return `余额 ${num(w.balance)}${w.onTable ? ` · 桌上 ${num(w.onTable)}` : ''}${played ? ` · ${played}` : ''}`;
+  return `手上 ${num(w.balance)}${w.onTable ? ` · 桌上 ${num(w.onTable)}` : ''}${played ? ` · ${played}` : ''}`;
 }
 
 /** 右边的详情：头部、钱包和战绩、流水、操作（一次只展开一个操作） */
@@ -252,7 +252,7 @@ function UserDetail({ username, hidden }: { username: string; hidden: boolean })
       <div className="user-sum">
         <dl className="tiles tiles--small">
           <div className="tile">
-            <dt>余额</dt>
+            <dt>手上的筹码</dt>
             <dd>{num(data.wallet.balance)}</dd>
           </div>
           <div className="tile">

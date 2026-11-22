@@ -14,7 +14,7 @@ const TEXT: Record<keyof InviteRules, string> = {
   userQuota: '普通用户每人几个',
   adminQuota: '管理员每人几个',
   ttlDays: '码的有效期（天）',
-  perDay: '每人 24 小时最多生成几个',
+  perDay: '每人 24 小时内最多生成',
 };
 
 function RulesPanel() {
@@ -237,7 +237,8 @@ function CopyButton({ text, label = '复制', primary = false }: { text: string;
     );
   return (
     <button className={`btn btn--small${primary ? ' btn--primary' : ''}`} type="button" onClick={() => void copy()}>
-      {state === 'done' ? '已复制' : state === 'failed' ? '手动复制' : label}
+      {/* 并排两个复制按钮时说清是哪个复制好了（"链接已复制"），不都写"已复制" */}
+      {state === 'done' ? `${label.replace('复制', '')}已复制` : state === 'failed' ? '手动复制' : label}
     </button>
   );
 }
@@ -318,7 +319,7 @@ function CodesPanel() {
           items={codes}
           keyOf={(c) => c.id}
           render={(c) => (
-            <div className={`invite-code${c.status === 'unused' ? '' : ' invite-code--spent'}`}>
+            <div className={`invite-code${c.status === 'unused' ? '' : ' invite-code--spent'}${c.maxUses > 1 ? ' invite-code--multi' : ''}`}>
               <div className="invite-code__main">
                 <span className="mono invite-code__code">{c.code ?? c.hint}</span>
                 {/* 长期码的 已用/上限 放进状态块里，一行放得下 */}
@@ -384,12 +385,12 @@ export function InvitesSection() {
             </>
           ),
         },
-        { id: 'codes', name: '邀请码', body: <CodesPanel /> },
+        { id: 'codes', name: '全部邀请码', body: <CodesPanel /> },
       ]
     : [
         { id: 'rules', name: '额度', body: <RulesPanel /> },
         { id: 'quota', name: '单独改额度', body: <UserQuotaPanel /> },
-        { id: 'codes', name: '邀请码', body: <CodesPanel /> },
+        { id: 'codes', name: '全部邀请码', body: <CodesPanel /> },
       ];
   return <AdminTabs tabs={tabs} label="邀请码分页" />;
 }

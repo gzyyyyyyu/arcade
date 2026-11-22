@@ -129,6 +129,7 @@ function GameCard({ game, last = null, main = false }: { game: GameEntry; last?:
           alt={`${game.name}封面`}
           width={800}
           height={450}
+          style={game.coverX === undefined ? undefined : { objectPosition: `${game.coverX}% 50%` }}
           loading="lazy"
           decoding="async"
         />
@@ -183,8 +184,10 @@ function GameCard({ game, last = null, main = false }: { game: GameEntry; last?:
           </a>
         ) : (
           // 测试期要登录才能玩（游戏那边也会挡）：登录后直接回这个游戏
-          <Link className="card__play" href={`/login?from=${game.id}`}>
-            登录后才能玩
+          <Link className="card__play" href={`/login?from=${game.id}`} aria-label="登录后才能玩">
+            <span>
+              登录<span className="card__play-more">后才能玩</span>
+            </span>
           </Link>
         )}
       </div>

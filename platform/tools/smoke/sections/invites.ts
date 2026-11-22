@@ -97,10 +97,10 @@ export async function adminInvites(browser: Browser): Promise<void> {
     check(JSON.stringify(made) === JSON.stringify({ maxUses: 100, days: null }), `建长期码发的不对：${JSON.stringify(made)}`);
     const created = page.getByTestId('multi-created');
     await created.getByRole('button', { name: '复制链接' }).click();
-    await created.getByRole('button', { name: '已复制' }).waitFor();
+    await created.getByRole('button', { name: '链接已复制' }).waitFor();
     check((await page.evaluate(() => navigator.clipboard.readText())) === `${BASE}/i/WXYZ23456789`, '复制链接该是完整的注册链接');
     await created.getByRole('button', { name: '复制码' }).click();
-    await created.getByRole('button', { name: '已复制' }).nth(1).waitFor();
+    await created.getByRole('button', { name: '码已复制' }).waitFor();
     check((await page.evaluate(() => navigator.clipboard.readText())) === 'WXYZ-2345-6789', '复制码该是完整的码');
     check(await panel.getByRole('button', { name: '长期码' }).getAttribute('aria-pressed') === 'true', '建好后码表该筛到长期码');
     const over2 = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
