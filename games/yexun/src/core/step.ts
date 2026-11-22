@@ -41,7 +41,7 @@ import {
   WHITEFOX,
   type EnemyKind,
 } from '../content/enemies.ts';
-import { BOMB, CHEST, DROPS, MERCY, PICKUP, PLAYER, PROPS, PURSE, xpNeed } from '../content/player.ts';
+import { BOMB, CHEST, DROPS, MERCY, NOVICE, PICKUP, PLAYER, PROPS, PURSE, xpNeed } from '../content/player.ts';
 import { RUSH } from '../content/rush.ts';
 import { MID_BOSS_KINDS, SHUIHOU } from '../content/foes.ts';
 import { bindFoeApi, foeAct, foeGhost, foeHitMul, foeHurtMul, foeInit, foeOnHit, foeOnKill, foePack, foeSlowMul, foeTick, foeUntargetable, isProp, noDrop, type FoeMv } from './foes/index.ts';
@@ -869,7 +869,9 @@ function spawnWaves(w: World): void {
       const [x, y] = nearPoint(w, kind);
       spawnEnemy(w, kind, x, y);
     } else {
-      const [x, y] = ringPoint(w, w.rSpawn.int(DIR_N));
+      // 新手局开局：怪从前方的圈上来，一直在走的人也迎面碰得上（content/player.ts NOVICE）
+      const a = w.setup.novice && w.tick < NOVICE.until ? w.face + w.rSpawn.int(NOVICE.ahead) - (NOVICE.ahead >> 1) : w.rSpawn.int(DIR_N);
+      const [x, y] = ringPoint(w, a);
       spawnEnemy(w, kind, x, y);
     }
   }
@@ -3362,7 +3364,8 @@ function addDrop(w: World, kind: Drop, x: number, y: number, val: number): numbe
 
 function movePickups(w: World): void {
   // 磁吸半径随等级涨（每级 +1.5%，40 级封顶 +60%）：后期怪多、走位忙，不用一颗颗去碰
-  const m = w.stats.magnet * dangerDef(w.setup.mode, w.setup.danger).magnetMul * (1 + PICKUP.magnetPerLevel * (w.level < 41 ? w.level - 1 : 40));
+  const novice = w.setup.novice && w.tick < NOVICE.until ? NOVICE.magnetMul : 1;
+  const m = w.stats.magnet * dangerDef(w.setup.mode, w.setup.danger).magnetMul * (1 + PICKUP.magnetPerLevel * (w.level < 41 ? w.level - 1 : 40)) * novice;
   const m2 = m * m;
   for (let i = 0; i < MAX_DROPS; i++) {
     if (!w.dAlive[i]) continue;

@@ -93,7 +93,9 @@ export class Cards {
   onShow: (firstTime: boolean) => void = () => undefined;
   /** 封禁模式：下一张点的卡被封掉 */
   private banning = false;
-  private counts = { rerolls: 0, bans: 0 };
+  private counts = { rerolls: 0, bans: 0, left: 1 };
+  /** 正在一口气连选（打倒首领、开宝箱后连升好几级）：倒数到最后一次也写一句，选完才清 */
+  private batch = false;
   private bar: HTMLDivElement | null = null;
 
   constructor(parent: HTMLElement, icons: (key: string) => string) {
@@ -133,7 +135,7 @@ export class Cards {
    * simple：这台设备的第一局。卡上只留名字、说明和数，不写克制、套件、合成（新手实录：第一次选卡三张卡十几行小字）；
    * 3 级以前也不摆刷新、封禁、跳过（快捷键照样能用）
    */
-  show(level: number, cards: CardView[], firstTime: boolean, simple: boolean, counts: { rerolls: number; bans: number }, onPick: (i: number) => void): void {
+  show(level: number, cards: CardView[], firstTime: boolean, simple: boolean, counts: { rerolls: number; bans: number; left: number }, onPick: (i: number) => void): void {
     this.onPick = onPick;
     this.counts = counts;
     this.banning = false;
@@ -141,7 +143,9 @@ export class Cards {
     this.root.innerHTML = '';
     const head = document.createElement('div');
     head.className = 'yx-picks-head';
-    head.innerHTML = `<span class="yx-picks-lv">升到 ${level} 级</span>${firstTime ? '<span class="yx-picks-tip">挑一个：新法器、法器升级，或者被动</span>' : ''}`;
+    head.innerHTML =
+      `<span class="yx-picks-lv">升到 ${level} 级</span><span class="yx-picks-tip yx-picks-left" hidden></span>` +
+      (firstTime ? '<span class="yx-picks-tip">挑一个：新法器、法器升级，或者被动</span>' : '');
     this.root.appendChild(head);
     const row = document.createElement('div');
     row.className = 'yx-picks-row';
@@ -195,8 +199,23 @@ export class Cards {
     window.setTimeout(() => this.root.classList.remove('locked'), 150);
     this.root.style.display = '';
     fitBadges(this.root);
+    this.setLeft(counts.left);
     this.setFocus(0);
     this.onShow(firstTime);
+  }
+
+  /**
+   * 连升好几级时写还要选几次（含这一次），倒数到最后一张写「最后一次」；平常升一级不写。
+   * 新手实录：打倒纸扎老爷后连弹 8 次，一张接一张，看不出什么时候完。选的那一拍又吸到魂火会再加，GameScene 每帧调
+   */
+  setLeft(left: number): void {
+    this.counts.left = left;
+    if (left >= 2) this.batch = true;
+    const text = left >= 2 ? `还要选 ${left} 次` : this.batch ? '最后一次' : '';
+    const el = this.root.querySelector<HTMLElement>('.yx-picks-left');
+    if (!el || el.textContent === text) return;
+    el.textContent = text;
+    el.hidden = !text;
   }
 
   private setFocus(i: number): void {
@@ -223,6 +242,8 @@ export class Cards {
     // 卡片刚弹出的 150 ms 里不收，免得正在连点屏幕走路的手误选
     if (!this.onPick || performance.now() - this.openedAt < 150) return;
     if (code === Pick.Reroll && this.counts.rerolls <= 0) return;
+    // 选掉了最后一张（刷新、封禁之后还会再弹，不算）
+    if (this.counts.left <= 1 && (code < Pick.Reroll || code === Pick.Skip)) this.batch = false;
     const cb = this.onPick;
     this.onPick = null;
     this.root.classList.remove('open');

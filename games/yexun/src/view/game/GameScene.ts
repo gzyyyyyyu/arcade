@@ -678,6 +678,8 @@ export class GameScene extends Phaser.Scene {
         }
       } else if (this.w.phase === 'choose') this.openCards();
     }
+    // 选卡开着时还剩几次可能变（选的那一拍又吸到魂火）：标题跟着改
+    if (this.d.cards.open) this.d.cards.setLeft(this.w.pendingLevels);
     this.draw(dt);
   }
 
@@ -753,7 +755,7 @@ export class GameScene extends Phaser.Scene {
       w.choices.map((c) => describe(w, c)),
       this.d.firstRun && !this.cardsSeen,
       !!w.setup.firstRun,
-      { rerolls: w.rerolls, bans: w.bans },
+      { rerolls: w.rerolls, bans: w.bans, left: w.pendingLevels },
       (i) => {
         this.cardsSeen = true;
         sfx.play('choose');

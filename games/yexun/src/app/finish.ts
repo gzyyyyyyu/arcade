@@ -33,7 +33,8 @@ import { treasureIconKey } from '../view/art/sprites-raid.ts';
 import type { GameScene } from '../view/game/GameScene.ts';
 import { decorateRushResult } from '../view/ui/rushResult.ts';
 import type { Banners } from '../view/ui/banner.ts';
-import type { AchievementToast } from '../view/ui/codex.ts';
+import { type AchievementToast, MONSTER_INFO } from '../view/ui/codex.ts';
+import type { EnemyKind } from '../content/enemies.ts';
 import type { Confirm, Result, Tips } from '../view/ui/screens.ts';
 import { prepareShare } from 'arcade-kit/share';
 import { buildRows } from './buildRows.ts';
@@ -50,6 +51,13 @@ const ADVICE: readonly string[] = [
   '升级时多挑「新」法器，法器越多清怪越快；地上的肉包能回血',
   '铜钱去「选模式」里的「加成」买力量、体魄，带着再来',
 ];
+
+/** 第几局倒下的「下次试试」：跳尸打掉的血最多时讲跳尸（新手实录：两次倒下都是被跳尸围死，结算页却在讲走位、加成） */
+export function adviceFor(runs: number, worst: EnemyKind | null): string | undefined {
+  const base = ADVICE[runs - 1];
+  if (!base) return undefined;
+  return worst === 'jiangshi' ? `跳尸打你最狠：${MONSTER_INFO.jiangshi.blurb}` : base;
+}
 
 /** 一局的流转状态：开局（main 的 startRun）写，结束（下面的 finish）读写，两边共用这一份 */
 export interface Session {
@@ -285,7 +293,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     // 不弹顶上的成就横幅：结算页一出来横幅正好盖住标题（新手第一局一次解锁三四个，盖十来秒），成就名写在上面那条铜钱明细里
     showPlay(false);
     const label = w.trial ? `试炼 · ${w.trial.name} · ${goalText(w.trial.goal)}` : `${sess.dailyDate ? '每日挑战 · ' : ''}${sess.weeklyDate && w.setup.weekly ? `本周夜事 · ${WEEKLIES[w.setup.weekly].name} · ` : ''}${w.setup.endless ? '无尽 · ' : ''}${DANGERS[w.setup.danger].name}${sess.dailyDate && isNightmareSunday(sess.dailyDate, w.setup.mode) ? ' · 周日噩梦日' : ''}${w.setup.curses?.length ? ` · 咒印 ${w.setup.curses.length}` : ''}${w.setup.assist ? ' · 降低伤害' : ''}`;
-    const advice = !w.won && !quit && !w.raid && !w.trial && !sess.dailyDate && !sess.weeklyDate ? ADVICE[save.runs - 1] : undefined;
+    const advice = !w.won && !quit && !w.raid && !w.trial && !sess.dailyDate && !sess.weeklyDate ? adviceFor(save.runs, sess.tally.worstFoe) : undefined;
     result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: got.coins + achCoins + extraCoins, coinsTotal: coins(save), night: scene()?.nightLog, sources, label, ...(advice ? { advice } : {}), fixed: !!sess.dailyDate || !!(sess.weeklyDate && w.setup.weekly) || !!w.trial, record: got.record && !w.trial, build: buildRows(w) });
     if (got.askAssist)
       confirm.ask('连着倒下好几局了。要不要把挨打的伤害降低 30%？开着时成绩不进总榜，设置里随时能关。', '降低伤害', '不用', (ok) => {

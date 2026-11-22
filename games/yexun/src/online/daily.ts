@@ -100,5 +100,5 @@ export function dailyPlan(date: string, mode: RunMode): DailyPlan {
 export function isDailySetup(date: string | null | undefined, s: OnlineSetup): boolean {
   if (!date || !DATE_RE.test(date)) return false;
   const p = dailyPlan(date, s.mode).setup;
-  return p.seed === s.seed && p.map === s.map && p.danger === s.danger && !s.endless && (p.curses ?? []).join() === (s.curses ?? []).join() && p.raid?.template === s.raid?.template && !s.assist && !s.weekly && Object.keys(s.perks ?? {}).length === 0;
+  return p.seed === s.seed && p.map === s.map && p.danger === s.danger && !s.endless && (p.curses ?? []).join() === (s.curses ?? []).join() && p.raid?.template === s.raid?.template && !s.assist && !s.novice && !s.weekly && Object.keys(s.perks ?? {}).length === 0;
 }

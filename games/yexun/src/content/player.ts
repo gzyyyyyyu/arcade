@@ -81,3 +81,9 @@ export const MERCY = { hp: 0.4, bun: 3, gap: 20 * 30 };
 
 /** 魂珠：靠近被吸以后的速度（每拍，越吸越快）；地上最多 soulCap 颗（多的并成大珠）；磁吸半径每级加 magnetPerLevel；宝箱、肉包、符纸卷走到 walkReach 内才捡 */
 export const PICKUP = { pull: 5, pullAccel: 0.5, grab: 18, walkReach: 56, soulCap: 80, magnetPerLevel: 0.015 };
+
+/**
+ * 新号前几局的娱乐守夜（Setup.novice，core/state.ts noviceAssist 判）：开局 until 拍内魂火磁吸 ×magnetMul，平时补的怪刷在主角朝向前方 ±ahead/2（DIR_N 份）的圈上。
+ * 为什么：新号实录（0.36.4）照「只管走、绕着圈走」玩，起手近战够不着屏幕外追来的怪、魂火留在身后，第一次升级 129–154 秒（机器人 22 秒）
+ */
+export const NOVICE = { runs: 3, until: 120 * 30, magnetMul: 3, ahead: 86 };

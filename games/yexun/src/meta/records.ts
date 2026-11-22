@@ -112,6 +112,8 @@ export class RunTally {
   killsByKind: Partial<Record<EnemyKind, number>> = {};
   private readonly seenSet = new Set<EnemyKind>();
   hurts = 0;
+  /** 每种怪打掉主角多少血（远程弹、地形不算）：新手倒下时「下次试试」讲最狠的那种 */
+  hurtByKind: Partial<Record<EnemyKind, number>> = {};
   chests = 0;
   blocks = 0;
   /** 打倒几只精英、进化几次（周目标用） */
@@ -129,7 +131,12 @@ export class RunTally {
           this.seenSet.add(kind);
         }
         if (e.b[i] === 1) this.elites++;
-      } else if (t === Ev.Hurt) this.hurts++;
+      } else if (t === Ev.Hurt) {
+        this.hurts++;
+        // hurtBy 是这一拍最后打中主角的：怪的编号就是 ENEMIES 的下标，远程弹（SHOT_BY 起）查不到
+        const kind = w.hurtBy >= 0 ? ENEMIES[w.hurtBy]?.kind : undefined;
+        if (kind) this.hurtByKind[kind] = (this.hurtByKind[kind] ?? 0) + e.a[i]!;
+      }
       else if (t === Ev.Chest) this.chests++;
       else if (t === Ev.Block) this.blocks++;
       else if (t === Ev.Evolve) this.evolves++;
@@ -138,6 +145,13 @@ export class RunTally {
     if (w.tick % 15 === 0) {
       for (let i = 0; i < w.eAlive.length; i++) if (w.eAlive[i]) this.seenSet.add(ENEMIES[w.eKind[i]!]!.kind);
     }
+  }
+
+  /** 打掉血最多的怪；一下都没挨过返回 null */
+  get worstFoe(): EnemyKind | null {
+    let best: EnemyKind | null = null;
+    for (const [k, v] of Object.entries(this.hurtByKind) as [EnemyKind, number][]) if (best === null || v > this.hurtByKind[best]!) best = k;
+    return best;
   }
 
   get seen(): EnemyKind[] {
