@@ -28,7 +28,14 @@ export interface RecapLine {
   /** 0.5：这一只当天的涨跌（百分点，押跌时为自己的赚亏方向）与是否押跌，画「头像 + 箭头数字」用 */
   ret: number;
   short: boolean;
+  /** 0.36.3：过山车股逆着风口大跌（风口热度没降，它却跌了 ≥ SWING_DROP）——新手最容易「输得莫名其妙」的一种 */
+  swing: boolean;
 }
+
+/** 过山车股跌多少算「逆着风口大跌」（百分点；跌停是 10） */
+export const SWING_DROP = 7;
+/** 过山车逆风口大跌时的大白话（收盘小结的小签、悬停、猫都用它） */
+export const SWING_WORD = '过山车：不看风口，说跌就跌';
 
 export interface Recap {
   /** 0.5：今天最精彩的事（有高光时放在最前面；没有为空串） */
@@ -94,6 +101,14 @@ function limitTag(r: DayReport, h: HoldingMove): string {
   return '';
 }
 
+/** 过山车股逆着风口大跌：风口热度当天没降，这只却跌了 SWING_DROP 以上（押跌的不算，它跌是赚） */
+export function swingDrop(r: DayReport, h: HoldingMove): boolean {
+  const def = stockById(h.stockId);
+  if (def.role !== 'meme' || h.short || h.ret > -SWING_DROP) return false;
+  const t = r.themes.find((x) => x.id === def.theme);
+  return !!t && t.dH >= 0;
+}
+
 export function recapOf(r: DayReport, when: DayWord = '昨天'): Recap {
   const total = Math.round((r.account.after - r.account.before) * 100) / 100;
   const holds = r.holdings.filter((h) => h.stockId);
@@ -107,6 +122,7 @@ export function recapOf(r: DayReport, when: DayWord = '昨天'): Recap {
     amount: h.amount,
     ret: h.ret,
     short: !!h.short,
+    swing: swingDrop(r, h),
   }));
   lines.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
   const effects = (r.account.effects ?? []).filter((e) => Math.round(e.amount) !== 0).map((e) => `${e.label}（${formatMoney(e.amount, { sign: true })}）`);

@@ -516,7 +516,11 @@ export class TopBarView {
       }
       this.bill.setPosition(GOAL_X + 14 + this.goalTagW, TB.billY).setFontSize(15);
       this.bill.setText(`${g.text}${state}`);
-      // 0.19.0 窄顶栏：目标一行不压到右边的沙漏和天数
+      // 0.19.0 窄顶栏：目标一行不压到右边的沙漏和天数；0.36.3 整句放不下先换短写法（进度数字不截）
+      const goalRoom = TB.hourglass.x - 12 - this.bill.x;
+      if (PHONE && this.bill.width > goalRoom) this.bill.setText(goalShort(mt.goal, true).text);
+      // 带小数的进度（「亏≤5%·已1.8%」）还放不下：字缩到 13（手机世界放大后仍过 12）
+      if (PHONE && this.bill.width > goalRoom) this.bill.setFontSize(13);
       if (PHONE) fitWidth(this.bill, TB.hourglass.x - 12 - this.bill.x, 3);
       setColor(this.bill, mt.goal.failed ? COLOR.muted : mt.goal.done ? COLOR.up : COLOR.ink);
       this.daysLeft.setText(`${mt.daysLeft}`).setVisible(true);

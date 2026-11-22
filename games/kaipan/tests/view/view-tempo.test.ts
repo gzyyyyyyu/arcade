@@ -14,6 +14,14 @@ describe('0.5 节奏文字', () => {
     expect(k.text).toBe('最多亏 4%，已亏 1%');
     expect(k.frac).toBeCloseTo(0.75);
     for (const kind of ['shortWin', 'streak', 'themes', 'beat', 'quickWin', 'bigDay'] as const) expect(goalShort({ kind, progress: 1, target: 2 }).text.length).toBeLessThan(18);
+    // 竖屏短写法：进度数字一定在、比整句短
+    expect(goalShort({ kind: 'keep', progress: 0, target: 5 }, true).text).toBe('亏≤5%·已0%');
+    for (const kind of ['gain', 'keep', 'beat', 'limitUp', 'shortWin', 'streak', 'themes', 'quickWin', 'bigDay'] as const) {
+      const tight = goalShort({ kind, progress: 1, target: 2 }, true).text;
+      expect(tight.length).toBeLessThanOrEqual(goalShort({ kind, progress: 1, target: 2 }).text.length);
+      expect(tight.length).toBeLessThanOrEqual(12);
+      expect(tight).toMatch(/1/);
+    }
   });
 
   it('翻牌档位：押跌反过来', () => {

@@ -1,6 +1,7 @@
 import { billView, chatView, holdingCards, themeBoard, type GameState } from '../core/index.ts';
 import { FEEL_WORD } from './glossary.ts';
-import { billStatus } from './labels.ts';
+import { billStatus, pctArrow } from './labels.ts';
+import { SWING_DROP } from './recap.ts';
 
 /**
  * 新手提示（F4）：开盘前猫根据公开信息说一句建议。
@@ -36,6 +37,13 @@ export function newbieHint(s: Readonly<GameState>): Hint | null {
   const tail = TAILS[s.dayIndex % TAILS.length] ?? TAILS[0]!;
   const board = themeBoard(s);
   const byId = new Map(board.map((c) => [c.id, c]));
+  // 0. 0.36.3：手里的过山车股昨天逆着风口大跌（风口热度没降）：先讲清楚为什么，不然新手以为「热度涨就该涨」被骗了
+  for (const c of holdingCards(s)) {
+    if (c?.role !== 'meme' || c.short || c.todayRet === null || c.todayRet > -SWING_DROP) continue;
+    const t = byId.get(c.theme);
+    if (!t || t.lastDelta < 0) continue;
+    return { text: `${c.name}是过山车，说跌就跌。它不看风口：${t.name}热度没降，它昨天照样${pctArrow(c.todayRet)}。${tail}`, theme: t.id, stockId: c.id };
+  }
   // 1. 手里的股票所在风口在降温 / 太火了：提醒可以先卖（只挑今天能卖的）
   for (const c of holdingCards(s)) {
     if (!c?.canSell) continue;

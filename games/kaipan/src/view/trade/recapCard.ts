@@ -3,7 +3,7 @@ import { formatMoney, type HoldingMove } from '../../core/index.ts';
 import { CAT_HINT_KEY, NEWS_KEY, hasArt, stockKey } from '../assets.ts';
 import type { Animator } from '../fx/anim.ts';
 import type { Rect } from '../rect.ts';
-import { breakdownOf, moveWord, shortPart, shortWord, type DayWord, type Recap } from '../recap.ts';
+import { breakdownOf, moveWord, shortPart, shortWord, SWING_WORD, type DayWord, type Recap, type RecapLine } from '../recap.ts';
 import { pctArrow } from '../labels.ts';
 import { COLOR, FS, PHONE, TYPE, signColor } from '../theme.ts';
 import { addGlyph, addImage, addPill, addSlice } from '../ui/art.ts';
@@ -37,6 +37,13 @@ const BADGE_RECT: Rect = { x: RECAP_RECT.x + RECAP_RECT.w - 92, y: RECAP_RECT.y 
  * 点持仓卡时同一个位置换成那一格的拆解条（各项涨跌和说明），再点 × 回到小结。
  * 纸张用 ui/recap_paper（九宫格 24），没有时退回圆角矩形。
  */
+/** 收盘小结里一只股票的悬停说明：钱和原因、谁说对了、过山车逆着风口大跌的大白话 */
+function chipTip(l: RecapLine): { title: string; body: string } {
+  const called = l.called ? `\n${l.called}之前在群里说对了这个风口的方向` : '';
+  const swing = l.swing ? `\n${SWING_WORD}：它是过山车股，风口热度没降它也会大跌。` : '';
+  return { title: l.head, body: `${l.money}：${l.why}${called}${swing}` };
+}
+
 export class RecapCard {
   private readonly scene: Phaser.Scene;
   private root: Phaser.GameObjects.Container | null = null;
@@ -268,14 +275,17 @@ export class RecapCard {
     const headR = pct.x + pct.width;
     if (headR <= headRoom) root.add(pct);
     else pct.destroy();
-    // 最精彩的一件事：星星 + 一句（放不下就截短，整句在详情里）
-    if (r.star) {
+    // 最精彩的一件事：星星 + 一句（放不下就截短，整句在详情里）。
+    // 0.36.3 收成一行时（电脑默认）有过山车逆着风口大跌，这一句换成它：不然要点开详情才知道为什么亏
+    const swing = this.brief ? r.lines.find((l) => l.swing) : undefined;
+    const note = swing ? `${swing.head.split(' ')[0]} ${SWING_WORD}` : r.star ? arrowize(r.star.replace(/^(今天|昨天)最精彩：/, '')) : '';
+    if (note) {
       const sx = headR + 22;
       const room = x + RECAP_RECT.w - PAD - 60 - (sx + 16) - (this.catBtn ? 32 : 0);
       // 窄卡上放不下四个字就不写（整句在详情里）
       if (room >= 60) {
-        root.add(addGlyph(s, sx, y + 30, 'star', 22));
-        const st = addText(s, sx + 16, y + 21, arrowize(r.star.replace(/^(今天|昨天)最精彩：/, '')), { size: 14, bold: true, color: COLOR.accentDark });
+        root.add(addGlyph(s, sx, y + 30, swing ? 'bolt' : 'star', 22));
+        const st = addText(s, sx + 16, y + 21, note, { size: 14, bold: true, color: swing ? COLOR.danger : COLOR.accentDark });
         fitWidth(st, room, 4);
         root.add(st);
       }
@@ -299,7 +309,11 @@ export class RecapCard {
         const mt = addText(s, tx, cy + 20, l.money, { size: 13, bold: true, num: true, color: c });
         if (mt.width > cx + cw - 4 - tx) mt.setText(moneyShort(l.amount, true));
         root.add(mt);
-        if (l.called) {
+        if (l.swing) {
+          // 0.36.3 过山车逆着风口大跌：底下那条换成小签（整句在悬停）
+          const st = addText(s, tx + 3, cy + 46, '过山车', { size: 13, bold: true, color: COLOR.white, originY: 0.5 });
+          root.add([addPill(s, tx - 2, cy + 37, Math.min(cw - (tx - cx) - 2, st.width + 10), 18, COLOR.danger), st]);
+        } else if (l.called) {
           const ct = addText(s, 0, cy + 46, `${l.called}说对了`, { size: 13, bold: true, color: COLOR.white, originY: 0.5 });
           if (ct.width > cw - (tx - cx) - 12) ct.setText(`${l.called}对了`);
           if (ct.width > cw - (tx - cx) - 12) ct.setText('说对了');
@@ -313,7 +327,7 @@ export class RecapCard {
           root.add(s.add.rectangle(tx, cy + 42, bw, 6, c).setOrigin(0, 0).setRounded(3));
         }
         const hit = s.add.rectangle(cx, cy, cw, 56, 0xffffff, 0.001).setOrigin(0, 0).setInteractive();
-        bindTooltip(hit, () => ({ x: cx, y: cy, w: cw, h: 56 }), () => ({ title: l.head, body: `${l.money}：${l.why}${l.called ? `\n${l.called}之前在群里说对了这个风口的方向` : ''}` }));
+        bindTooltip(hit, () => ({ x: cx, y: cy, w: cw, h: 56 }), () => chipTip(l));
         root.add(hit);
         return;
       }
@@ -324,8 +338,9 @@ export class RecapCard {
       root.add(pt);
       root.add(addText(s, pt.x + pt.width + 6, cy + 7, l.money, { size: FS.sm, bold: true, num: true, color: c }));
       // 按卡宽截（下面量宽度），不再统一砍到 8 个字：「大消费热度涨了 9」这种一眼要看完的不打省略号
-      const why = shortPart(l.why.split('；')[0] ?? l.why, 16);
-      const wt = addText(s, cx + 44, cy + 24, why, { size: FS.xs, color: COLOR.muted });
+      // 0.36.3 过山车逆着风口大跌：原因那行直接写大白话（规则层的原因是「运气」一类，新手看了还是不懂为什么跌）
+      const why = l.swing ? SWING_WORD : shortPart(l.why.split('；')[0] ?? l.why, 16);
+      const wt = addText(s, cx + 44, cy + 24, why, { size: FS.xs, bold: l.swing, color: l.swing ? COLOR.danger : COLOR.muted });
       fitWidth(wt, cw - 50, 3);
       root.add(wt);
       // 谁说对了：单独一枚小签骑在卡片上沿右边（以前接在原因后面，窄卡里被截成"老王说…"）
@@ -343,7 +358,7 @@ export class RecapCard {
       const bar = s.add.rectangle(cx + 44, cy + 43, bw, 6, c).setOrigin(0, 0).setRounded(3);
       root.add(bar);
       const hit = s.add.rectangle(cx, cy, cw, 56, 0xffffff, 0.001).setOrigin(0, 0).setInteractive();
-      bindTooltip(hit, () => ({ x: cx, y: cy, w: cw, h: 56 }), () => ({ title: l.head, body: `${l.money}：${l.why}${l.called ? `\n${l.called}之前在群里说对了这个风口的方向` : ''}` }));
+      bindTooltip(hit, () => ({ x: cx, y: cy, w: cw, h: 56 }), () => chipTip(l));
       root.add(hit);
       // 小条从 0 长出来（不阻塞流程；点哪都不用等）
       if (!(s.data.get('calm') as boolean)) {
