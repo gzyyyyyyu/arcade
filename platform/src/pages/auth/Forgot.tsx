@@ -31,7 +31,7 @@ export function ForgotPage() {
       <form className="form form--forgot" onSubmit={onSubmit}>
         <p className="note form__lead">输入用户名和注册时拿到的恢复码，设一个新密码。</p>
         <Field label="用户名" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} required value={username} onChange={(e) => setUsername(e.target.value)} />
-        <Field label="恢复码" hint="20 位字母和数字，横线可有可无" name="recoveryCode" placeholder="20 位字母数字，横线可省" autoComplete="off" autoCapitalize="characters" spellCheck={false} required value={code} onChange={(e) => setCode(e.target.value)} />
+        <Field label="恢复码" hint="20 位字母和数字，横线可有可无" name="recoveryCode" placeholder="20 位，横线可有可无" autoComplete="off" autoCapitalize="characters" spellCheck={false} required value={code} onChange={(e) => setCode(e.target.value)} />
         <Field label="新密码" hint="至少 8 位，别用常见密码" name="newPassword" type="password" placeholder="至少 8 位" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         <FormError text={error} />
         <SubmitButton busy={busy}>重设密码</SubmitButton>

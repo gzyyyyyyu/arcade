@@ -159,8 +159,8 @@ html.no-motion .pcard { animation: none; }
 .stats-page .stats-badges .paged__list--grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: var(--s-2); }
 .stats-page .badges .badge { height: 100%; }
 .stats-page .badges__tip { flex: none; margin: 0; padding: var(--s-1) var(--s-3); font-size: var(--fs-xs); }
-/* 矮的（电脑 720 高、手机小屏、横屏）：徽章横着排，奖章在左、字在右，一页放得下更多 */
-@media (max-height: 800px) {
+/* 矮的（电脑 720 高、手机小屏、横屏）：徽章横着排，奖章在左、字在右，一页放得下更多；手机竖屏也这样（390×844 竖排大方块一页只放 3 枚、下面空着） */
+@media (max-height: 800px), (max-width: 560px) {
   .stats-page .stats-badges .paged__list--grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .stats-page .badges .badge { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'disc name' 'disc tier' 'disc bar'; align-content: center; column-gap: var(--s-2); row-gap: 0; padding: var(--s-1) var(--s-2); text-align: left; }
   .stats-page .badges .badge__disc { grid-area: disc; width: 36px; height: 36px; margin: 0; }
@@ -225,4 +225,6 @@ html.no-motion .pcard { animation: none; }
 /* 手机竖屏：游戏页签一行放不下就折行，全都看得到（原来横滑，第 5 个只露半个） */
 @media (max-width: 560px) {
   .stats-page .stats-tabs { flex-wrap: wrap; overflow: visible; }
+  /* 横排小徽章在 390 宽排两列（按 150 只排得下一列，一页还是 3 枚） */
+  .stats-page .stats-badges .paged__list--grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }

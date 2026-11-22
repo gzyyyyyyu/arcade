@@ -15,6 +15,8 @@
 .auth-page .form--register, .auth-page .form--forgot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-2) var(--s-3); align-items: start; }
 .auth-page .form--register > .form__lead, .auth-page .form--register > .field:nth-of-type(1), .auth-page .form--register > .form-error, .auth-page .form--register > .btn,
 .auth-page .form--forgot > .form__lead, .auth-page .form--forgot > .field:nth-of-type(2), .auth-page .form--forgot > .form-error, .auth-page .form--forgot > .btn, .auth-page .form--forgot > .note { grid-column: 1 / -1; }
+/* 找回只有三个框：恢复码要全宽，用户名、新密码半宽的话三个框左右不齐；一列排齐（矮屏下面改三列并排） */
+.auth-page .form--forgot { grid-template-columns: minmax(0, 1fr); }
 
 /* 恢复码卡片 */
 .auth-page .recovery { gap: var(--s-2); }
@@ -43,6 +45,10 @@
 /* 一屏放下：不太高的屏上字段的提示字改成输入框里的灰字（placeholder），不另占一行 */
 @media (max-height: 800px) {
   .auth-page .field__hint { display: none; }
+}
+/* 高屏提示字在框下面，框里的灰字就不显示，同一句话不出现两遍 */
+@media (min-height: 801px) {
+  .auth-page .field:has(.field__hint) .field__input::placeholder { color: transparent; }
 }
 .auth-page .form--register { gap: var(--s-1) var(--s-3); }
 

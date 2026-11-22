@@ -30,7 +30,8 @@ function space(el: HTMLElement, room: ((list: HTMLElement) => number) | undefine
  * room：列表按内容高、不撑满时（排行榜满榜卡片也按内容高），量不出"还能放多高"，由调用方给出列表顶上往下能用的高度（含翻页条），
  * 窗口变了也重量；不给就量列表自己的高度。
  * uneven：条目高矮差得多（管理页邀请码：带长名字的用过码折三行）时按每条的实际高度装页，每页条数不同；
- * 默认按见过的最高一条算，一条高的就让每页都少放。只用于一条一行的列表，要量全部条目（列表变了、宽度变了时先整列画一帧再量）。
+ * 默认按见过的最高一条算，一条高的就让每页都少放。只用于一条一行的列表，要量全部条目：宽度变了、条目变了（按 keyOf 的序列比，
+ * 调用方每次渲染传新数组不算变）、当前页有条目变高变矮时，先整列画一帧再量。
  * 翻页条可以由调用方的 CSS 挪到列表旁边（好友页手机横屏挪到卡片头那一行）：量到它不在列表下面就不给它留高。
  */
 export function Paged<T>({
@@ -66,7 +67,9 @@ export function Paged<T>({
   const tall = useRef({ key: '', full: 0, h: 0 });
   // uneven：每页第一条的下标，null = 还没量（这一帧整列画出来量每条的高）
   const [starts, setStarts] = useState<readonly number[] | null>(null);
-  const heights = useRef<{ width: number; items: readonly T[]; h: number[] } | null>(null);
+  const heights = useRef<{ width: number; sig: string; h: number[] } | null>(null);
+  // 条目序列：只在 uneven 时算，按 key 比，不按数组引用比（调用方每次渲染给新数组时按引用比会整列重量、来回循环）
+  const sig = uneven ? items.map(keyOf).join('\n') : '';
   const size = fixed ?? per;
   let pages: number;
   let at: number;
@@ -90,11 +93,14 @@ export function Paged<T>({
     if (fixed !== undefined || !uneven) return;
     const el = box.current;
     if (!el) return;
+    const rows = () => [...el.children].map((c) => c.getBoundingClientRect().height);
     const measure = () => {
       const known = heights.current;
-      if (!known || known.width !== el.clientWidth || known.items !== items) {
+      // 当前页的条目和记下的高差半像素以上：内容变了（比如码被用掉、多一行"用："），整列重量
+      const moved = starts !== null && known !== null && rows().some((h, i) => Math.abs(h - (known.h[starts[at]! + i] ?? h)) > 0.5);
+      if (!known || known.width !== el.clientWidth || known.sig !== sig || moved) {
         if (starts !== null) return setStarts(null);
-        heights.current = { width: el.clientWidth, items, h: [...el.children].map((c) => c.getBoundingClientRect().height) };
+        heights.current = { width: el.clientWidth, sig, h: rows() };
       }
       const { full, cost } = space(el, room, barCost);
       const next = packPages(heights.current!.h, full, full - cost, parseFloat(getComputedStyle(el).rowGap) || 0);
@@ -103,8 +109,10 @@ export function Paged<T>({
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
+    // 条目变高变矮列表框不变，单看列表的 ResizeObserver 不响：当前页每一条也盯着
+    for (const c of el.children) ro.observe(c);
     return () => ro.disconnect();
-  }, [fixed, uneven, items, starts, room]);
+  }, [fixed, uneven, sig, starts, at, room]);
 
   useLayoutEffect(() => {
     if (fixed !== undefined || uneven) return;

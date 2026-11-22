@@ -91,6 +91,13 @@
   .friends-page .friends-list > .paged { display: contents; }
   .friends-page .friends-list > .paged > .paged__list { grid-column: 1 / -1; grid-row: 2; align-self: stretch; }
   .friends-page .friends-list > .paged > .paged__bar { grid-column: 3; grid-row: 1; }
+  /* 行再紧一点（按钮 44 撑着行高，上下各 2px）：740×360 名单区 110 高，原来一行 57、只放 1 个，现在放 2 个 */
+  .friends-page .friends-list .paged__list { gap: var(--s-1); }
+  .friends-page .friends-list .people__item { padding-block: 2px; }
+}
+/* 触屏名字链接的 44 高点击区原来上下各伸 10px（styles.css），行只留 2px 时往上伸进卡片头、压住"约一局"：横屏这里只往下伸 */
+@media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+  .friends-page .friends-list .people__link { padding-block: 0 20px; margin-block: 0 -20px; }
 }
 /* 更窄的横屏（568、740 宽）一行放不下标题：上面的页签已经写着"好友"，标题只留给读屏 */
 @media (max-height: 500px) and (max-width: 799px) and (orientation: landscape) {

@@ -18,6 +18,7 @@ import { ApiError, json, noContent, rateLimited } from '../lib/http';
 import { isRecord, parseJsonColumn } from '../lib/json-column';
 import { avatarOf } from './session';
 import { readSetting, writeSettingStatement } from '../core/settings';
+import { MULTI_CODE } from '../../../shared/invite';
 
 // ---------- 管理员可调的四个数 ----------
 
@@ -361,11 +362,8 @@ async function usesOf(db: Db, ids: string[]) {
   return map;
 }
 
-/** 长期码能设的范围；默认 100 次、不过期 */
-export const MULTI_CODE = { usesDefault: 100, usesMax: 10_000, daysMax: 365 } as const;
-
 /**
- * POST /api/admin/invite-codes {maxUses?: 2–1000（默认 100）, days?: 1–365（不给或 null 不过期）}：建一个长期码，只有管理员会话能建
+ * POST /api/admin/invite-codes {maxUses?: 2–10000（默认 100）, days?: 1–365（不给或 null 不过期），范围见 shared/invite.ts 的 MULTI_CODE}：建一个长期码，只有管理员会话能建
  * （码要记在一个人名下；Bearer 令牌 403 session_required）。不占邀请额度，不算 24 小时上限。
  * 返回要写的语句（表 + 两个索引 3 行），调用方和每日计数一起 batch
  */

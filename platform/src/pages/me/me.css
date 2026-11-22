@@ -55,6 +55,12 @@
 .me-page .saves-row, .me-page .invite-code { padding: var(--s-2) var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); }
 .me-page .saves-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-3); }
 .me-page .saves__info { min-width: 0; text-align: right; font-size: var(--fs-sm); }
+/* 宽屏云存档左卡的汇总：三格数字，标签小字在上 */
+.me-page .saves-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); margin: var(--s-3) 0 0; }
+.me-page .saves-sum > div { display: flex; flex-direction: column; gap: 2px; padding: var(--s-2) var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); }
+.me-page .saves-sum dt { font-size: var(--fs-sm); color: var(--muted); }
+.me-page .saves-sum dd { margin: 0; font-size: var(--fs-xl); font-weight: 800; }
+.me-page .saves-sum__empty { margin: var(--s-3) 0 0; color: var(--muted); }
 .me-page .invite-code { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); }
 .me-page .invite-code .row { margin-left: auto; }
 .me-page .invite-code--used, .me-page .invite-code--expired, .me-page .invite-code--revoked { opacity: 0.65; }
