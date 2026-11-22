@@ -23,8 +23,9 @@ export const TOAST = PHONE_MODE ? { x: SLOTS.x + SLOTS.w / 2, y: SLOTS.y + SLOTS
 export const SHOUT_AT = PHONE_MODE ? { x: SLOTS.x + SLOTS.w / 2, y: SLOTS.y + 70 } : { x: 612, y: 150 };
 export const T = {
   open: 240,
-  themes: 700,
-  reveal: 340,
+  // 0.36.4 收紧：热度条 420→300ms、每只翻牌 255→180ms（实际用 ×0.6、×0.75，见 dayPlayback）
+  themes: 500,
+  reveal: 240,
   afterReveal: 240,
   chain: 460,
   item: 400,
