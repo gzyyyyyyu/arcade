@@ -88,6 +88,7 @@ if (!('error' in made)) {
 | `arcade-kit/chat` | Friend-room chat filter shared by the room and the page |
 | `arcade-kit/share` | Share card drawing and system share or preview |
 | `arcade-kit/social` | Presence, friend invites, invite panel, feed moments |
+| `arcade-kit/personas` | Shared bot roster: names, faces, traits, style switching |
 | `arcade-kit/theme` | `--ak-*` theme variables for the DOM components |
 | `arcade-kit/report` | `reportErrors`: report uncaught page errors to the platform |
 | `arcade-kit/testing` | Fake platform wallet for tests and local dev only |
@@ -120,6 +121,7 @@ if (!('error' in made)) {
 | `chat` | 好友房聊天过滤（链接、号码整条拒发，脏话打码）、单机 `localChat`；不落库 | [chat](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/chat.md) |
 | `match` | 快速匹配排队 `MatchQueue`：每个档位一个实例、一个闹钟，凑满或到点开桌 | [match](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/match.md) |
 | `share`、`social` | 分享卡（1080×1350，带二维码）；报位置、收好友邀请、叫朋友来、报名场面 | [share](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/share.md) |
+| `personas` | 共用电脑名册：16 个人的名字、人设、头像、性格，这一手的性格（换打法、手感、上头）、按权重挑人 | [personas](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/personas.md) |
 | `theme` | DOM 组件的主题变量 `--ak-*`，不传主题外观不变 | [theme](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/theme.md) |
 | `report` | `reportErrors`：把没人接住的页面报错报给平台 `/api/client-error` | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) |
 | `testing` | 假平台钱包（`WalletService`、`FakeBank`、`walletHttp`），只给测试和本地开发 | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) 的"假钱包" |
