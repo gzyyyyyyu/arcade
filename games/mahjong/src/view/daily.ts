@@ -8,7 +8,7 @@ import { DAILY_KEY, DAILY_VARIANTS, dailyBoard, emptyDaily, lastDays, markSent, 
 import { dailyCardOf } from './share.ts';
 import type { ShareCard } from 'arcade-kit/share';
 import { el } from './dom.ts';
-import { apiFetch } from '../net/http.ts';
+import { submitScore } from '../net/scores.ts';
 import { pageOf } from './variants/pages.ts';
 import './daily.css';
 
@@ -70,9 +70,6 @@ function netText(parent: HTMLElement, n: number, tag: 'b' | 'span' = 'span'): vo
   el(tag, `pts ${tone(n)}`.trim(), parent, signed(n));
 }
 
-/** 正在交的榜：同一个榜不并发交两次 */
-const sending = new Set<string>();
-
 /**
  * 把这一天的今日成绩交给平台每日榜（先记账后交：成绩已经在本机记下，交成功才写 sent）。
  * 只有登录才交；榜没登记、断网都不吭声，下次打开主页再交。回 true 是这次交上了
@@ -80,25 +77,9 @@ const sending = new Set<string>();
 async function submitDaily(variant: DailyVariant, date: string, userId: string): Promise<boolean> {
   const score = toSubmit(readDaily(variant), date);
   const board = dailyBoard(date, variant);
-  if (score === null || sending.has(board)) return false;
-  sending.add(board);
-  try {
-    const res = await apiFetch('/api/scores', {
-      method: 'POST',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      keepalive: true,
-      headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' },
-      body: JSON.stringify({ gameId: 'mahjong', boardId: board, score, userId }),
-    });
-    if (!res.ok) return false;
-    writeDaily(variant, markSent(readDaily(variant), date));
-    return true;
-  } catch {
-    return false;
-  } finally {
-    sending.delete(board);
-  }
+  if (score === null || !(await submitScore(board, score, userId))) return false;
+  writeDaily(variant, markSent(readDaily(variant), date));
+  return true;
 }
 
 /** 打开主页时补交：只补今天的（昨天没交上的不补，榜已经过去了） */

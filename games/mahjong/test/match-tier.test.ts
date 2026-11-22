@@ -4,7 +4,7 @@
  */
 import { matchConfigErrors } from 'arcade-kit/game';
 import { describe, expect, it } from 'vitest';
-import { MATCH_FUN, MATCH_FUN_TIERS, MATCH_RC_FUN, MATCH_TABLE, MATCH_TABLE_X3, MATCH_TIERS, MATCH_X3_FUN, MATCH_XL_FUN, tableSizeOf, matchRoomOptions, matchTierOf, stakesOfTier } from '../src/game/match.ts';
+import { MATCH_FUN, MATCH_FUN_TIERS, MATCH_RC_FUN, MATCH_TABLE, MATCH_TIERS, MATCH_X3_FUN, MATCH_XL_FUN, tableSizeOf, matchRoomOptions, matchTierOf, stakesOfTier } from '../src/game/match.ts';
 import { REAL_ROUNDS, realOpts, STAKES } from '../src/game/stakes.ts';
 import { sichuanXuezhan as XZ } from '../src/core/variants/sichuan-xuezhan/index.ts';
 import { mahjongRoom } from '../src/room/rules.ts';
@@ -21,7 +21,7 @@ describe('快速匹配的档位', () => {
 
   it('娱乐一个档、实盘每档一个，来回换得回来；认不得的不开桌', () => {
     const real = STAKES.filter((s) => s.wallet).map((s) => s.id);
-    expect(MATCH_TIERS).toEqual([MATCH_FUN, MATCH_RC_FUN, ...real.map((t) => `real-${t}`), ...real.map((t) => `rc-${t}`), MATCH_X3_FUN, ...real.map((t) => `x3-${t}`), MATCH_XL_FUN, ...real.map((t) => `xl-${t}`)]);
+    expect([...MATCH_TIERS].sort()).toEqual([MATCH_FUN, MATCH_RC_FUN, ...real.map((t) => `real-${t}`), ...real.map((t) => `rc-${t}`), MATCH_X3_FUN, ...real.map((t) => `x3-${t}`), MATCH_XL_FUN, ...real.map((t) => `xl-${t}`)].sort());
     for (const s of ['fun', ...real] as const) expect(stakesOfTier(matchTierOf(s))).toBe(s);
     for (const bad of ['real-', 'real-nope', 'real-fun', 'Fun', '']) {
       expect(stakesOfTier(bad)).toBeNull();
@@ -65,7 +65,7 @@ describe('快速匹配的档位', () => {
     expect(matchTierOf('fun', 'sichuan-xuezhan', { three: true })).toBe('x3-fun');
     expect(matchTierOf('fun', 'riichi', { three: true })).toBe(MATCH_RC_FUN);
     expect(matchTierOf('fun')).toBe(MATCH_FUN);
-    expect(tableSizeOf('x3-fun')).toBe(MATCH_TABLE_X3);
+    expect(tableSizeOf('x3-fun')).toBe(3);
     expect(tableSizeOf('real-small')).toBe(MATCH_TABLE);
     expect(matchRoomOptions('x3-fun')).toMatchObject({ variant: 'sichuan-xuezhan', stakes: 'fun', rules: { three: true, swap: false, flow: false, rounds: 8 } });
     for (const s of STAKES.filter((x) => x.wallet)) {

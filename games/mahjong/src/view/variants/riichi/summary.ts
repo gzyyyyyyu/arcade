@@ -83,25 +83,28 @@ export function roundSummary(v: RcView, names: string[]): HTMLElement {
   const box = el('div', 'summary rc-summary');
   const h = v.history.at(-1);
   if (!h) return box;
-  const head = el('h2', '', box);
+  // 明细（和了谁、手牌、役种）和各家点数分两块：电脑横屏左右两栏一页放下（riichi.css），竖屏照样上下排
+  const main = el('div', 'rc-main', box);
+  const head = el('h2', '', main);
   head.append(`${roundName(h.wind, h.hand)} · ${END_NAME[h.end]}`);
-  const notes = el('div', 'term-notes', box);
+  const notes = el('div', 'term-notes', main);
   if (h.honba) {
     const small = el('small', '', head, ` ${h.honba} `);
     term(small, '本场', notes);
   }
   const why = ABORT_WHY[h.end];
-  if (why) el('p', 'fair', box, why);
+  if (why) el('p', 'fair', main, why);
   // 电脑不看牌对玩家是看不见的（DESIGN.md 5.4），和了、听牌的人把牌亮出来，自己对得上
   // 这句每局都一样：一场的第一局讲一次就够
-  if ((h.wins.length || h.tenpai) && v.history.length <= 1) el('p', 'fair', box, '和了、听牌的人亮出手牌。电脑和你一样，看不到别人手里的牌和牌墙。');
+  if ((h.wins.length || h.tenpai) && v.history.length <= 1) el('p', 'fair', main, '和了、听牌的人亮出手牌。电脑和你一样，看不到别人手里的牌和牌墙。');
   if (h.dora.length || h.ura.length) {
-    const line = el('div', 'rc-inds', box);
+    const line = el('div', 'rc-inds', main);
     indicators('宝牌指示', h.dora, line, notes);
     if (h.ura.length) indicators('里宝指示', h.ura, line, notes);
   }
-  for (const w of h.wins) winBlock(v, w, names, box);
-  const rows = el('div', 'rows', box);
+  for (const w of h.wins) winBlock(v, w, names, main);
+  const side = el('div', 'rc-side', box);
+  const rows = el('div', 'rows', side);
   for (let seat = 0; seat < SEATS; seat++) {
     const row = el('div', `row${seat === v.me?.seat ? ' me' : ''}`, rows);
     row.dataset.seat = `${seat}`;
@@ -132,7 +135,7 @@ export function roundSummary(v: RcView, names: string[]): HTMLElement {
     flows.set(key, (flows.get(key) ?? 0) + p.amount);
   }
   if (flows.size) {
-    const list = el('div', 'flows', box);
+    const list = el('div', 'flows', side);
     for (const [key, amount] of flows) {
       const [kind, from, to] = key.split('|') as [string, string, string];
       const f = Number(from);
@@ -142,7 +145,7 @@ export function roundSummary(v: RcView, names: string[]): HTMLElement {
       flow.append(`：${f < 0 ? '桌上' : names[f]} → ${t < 0 ? '桌上' : names[t]} ${num(amount)} 点`);
     }
   }
-  if (v.sticks && !v.final) el('div', 'rc-sticks', box, `桌上还有 ${v.sticks} 根立直棒，留给下一个和牌的人`);
+  if (v.sticks && !v.final) el('div', 'rc-sticks', side, `桌上还有 ${v.sticks} 根立直棒，留给下一个和牌的人`);
   return box;
 }
 

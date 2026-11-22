@@ -11,7 +11,7 @@ import { wallUrl } from './view/tiles.ts';
 import { installArt } from './view/art.ts';
 import { guideKey, showGuide } from './view/guide.ts';
 import { play, setAmbience, setSound, setVolume, unlockAudio } from './view/sound.ts';
-import { watchViewport } from './view/viewport.ts';
+import { fitStage } from './view/viewport.ts';
 import { setSafeHint } from './view/variants/riichi/ui.ts';
 import './view/style.css';
 import './view/art.css';
@@ -38,7 +38,7 @@ installArt();
 document.documentElement.style.setProperty('--wall-h', `url("${wallUrl('h')}")`);
 document.documentElement.style.setProperty('--wall-v', `url("${wallUrl('v')}")`);
 
-watchViewport(app, stage, () => {});
+fitStage(app, stage);
 document.addEventListener('pointerdown', unlockAudio, { capture: true });
 // 按钮点按一律轻响一下（手牌出牌有自己的声音，不在这里）
 document.addEventListener('click', (e) => {

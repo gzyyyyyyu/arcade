@@ -11,7 +11,7 @@ import { pageOf } from '../view/variants/pages.ts';
 import { toReport } from '../game/feed.ts';
 import type { ChatResultLike, FunSeat, FunTemper, TableFun } from 'arcade-kit/table-fun';
 import { readRecord } from './record.ts';
-import { GAME_ID } from './report.ts';
+import { GAME_ID } from '../game/id.ts';
 import { session } from './session.ts';
 import { topbar } from './shell.ts';
 import { TIMING } from './timing.ts';

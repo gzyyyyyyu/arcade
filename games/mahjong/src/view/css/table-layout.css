@@ -147,6 +147,8 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 [data-orient='port'] .river.r1 { right: 54px; top: calc(var(--c) - var(--pw) * 2.8); width: calc(var(--pw) * 3 + 2px); }
 [data-orient='port'] .bar { left: 50%; bottom: 172px; height: max(64px, var(--tap, 0px)); transform: translateX(-50%); justify-content: center; }
 /* 竖屏一行放不下提示加三个按钮（字号放大以后，0.17.6）：提示挪到按钮上面一行，不缩字 */
+/* 碰杠胡过旁边那张要拿的牌：竖屏 md 只有 26 宽（屏幕上约 15 像素，看不清是哪张），放大到和按钮差不多高（11-22 走查） */
+[data-orient='port'] .bar .claim-tile .tile { width: 46px; height: 64px; }
 [data-orient='port'] .bar .hint { position: absolute; left: 50%; bottom: calc(100% + var(--sp-2)); transform: translateX(-50%); }
 /* 操作条上只有提示、没有按钮（"再点一下打出"）：提示落到操作条自己的高度里，不再浮在上面压住我牌河的最后几排（11-20 试玩） */
 [data-orient='port'] .bar:not(:has(> :not(.hint))) .hint { bottom: var(--sp-2); }

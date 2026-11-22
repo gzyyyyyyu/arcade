@@ -128,8 +128,10 @@
   color: #2b1d14;
   white-space: nowrap;
 }
-/* 旁观条按钮多、比别的提示宽：放在对家手牌和中控盘之间的空处，不压顶上两家的名牌 */
-.room-note.watch {
+/* 旁观条按钮多、比别的提示宽：放在对家手牌和中控盘之间的空处，不压顶上两家的名牌。
+ * 竖屏上顶边两角就是两家的名牌，别的提示（坐下了等下一局、等人带入）也挪到这里（11-22 走查：压住了名字和分数） */
+.room-note.watch,
+.stage[data-orient='port'] .room-note {
   top: 24%;
 }
 .room-note.watch .act {

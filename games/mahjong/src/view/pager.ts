@@ -94,8 +94,8 @@ export function pageTo(e: HTMLElement): void {
   const page = e.closest<HTMLElement>('.paged');
   if (page) PAGERS.get(page)?.show(e);
 }
-/** 一场打完的结算：名次、这一局的明细一块块小结都按行拆，第一页名次下面空着的地方接着摆明细 */
-export const END_SPLIT = '.summary, .summary > .rows';
+/** 一场打完的结算：名次、这一局的明细一块块小结都按行拆，第一页名次下面空着的地方接着摆明细（立直的明细和点数各包一层，也拆开） */
+export const END_SPLIT = '.summary, .summary > .rows, .rc-main, .rc-side, .rc-side > .rows';
 
 const PAGERS = new WeakMap<HTMLElement, Pager>();
 const LISTENING = new WeakSet<HTMLElement>();

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { snapshotBytes } from 'arcade-kit/game';
 import { HIDDEN, sichuanXuezhan as XZ, view, type XzState } from '../src/core/variants/sichuan-xuezhan/index.ts';
 import { wallLeft } from '../src/core/table/index.ts';
-import { runAuto } from '../src/game/driver.ts';
+import { runAuto } from './driver.ts';
 import type { SeatKind } from '../src/core/variants/types.ts';
 
 const ALL_AI: SeatKind[] = ['ai', 'ai', 'ai', 'ai'];

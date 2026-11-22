@@ -96,13 +96,20 @@ export function showLadder(box: HTMLElement, o: LadderPageOpts): void {
   button('ld-back', h, '‹ 主页', o.onExit);
   el('b', 'ld-title', h, '茶馆擂台');
   if (o.cloud) cloudBadge(h, o.cloud);
+  // 规矩画成一条路线（三桌 → 称号）加几个短标签，不写成一段段长句（11-22 打磨）
   const intro = el('div', 'ld-intro', root);
-  el('div', 'ld-lead', intro, `连打三桌：${LADDER_LEVELS.map((l) => LEVEL_NAME[l]).join(' → ')}`);
-  const ul = el('ul', 'ld-rules', intro);
-  el('li', '', ul, '每桌打一局，打完不亏（不输分）就算赢，进下一桌');
-  el('li', '', ul, '输一桌这一轮就结束，下次从第一桌重来');
-  el('li', '', ul, '三桌全赢拿这种打法的称号；中途离开，下次接着这一桌打');
-  el('li', '', ul, '纯娱乐，不算筹码');
+  const steps = el('div', 'ld-steps', intro);
+  LADDER_LEVELS.forEach((l, t) => {
+    const step = el('div', 'ld-step', steps);
+    el('span', 'ld-pip', step, String(t + 1));
+    el('span', 'ld-step-name', step, `${LEVEL_NAME[l]}桌`);
+    el('span', 'ld-arrow', steps).setAttribute('aria-hidden', 'true');
+  });
+  const goal = el('div', 'ld-step goal', steps);
+  el('span', 'ld-pip won', goal, '★');
+  el('span', 'ld-step-name', goal, '拿称号');
+  const how = el('div', 'ld-how', intro);
+  for (const t of ['每桌打一局，不输分就过', '输了从第一桌重来', '中途离开下次接着打', '纯娱乐，不算筹码']) el('span', 'ld-tag', how, t);
   const d = readLadder();
   const cards = el('div', 'ld-cards', root);
   for (const m of LADDER_MODES) {

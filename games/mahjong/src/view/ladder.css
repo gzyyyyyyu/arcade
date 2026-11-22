@@ -96,19 +96,58 @@
 }
 .ladder-page .ld-intro {
   width: min(100%, 940px);
-  text-align: left;
 }
-.ladder-page .ld-lead {
-  font-size: var(--fs-xl);
-  font-weight: 700;
+/* 三桌的路线：圆圈编号在上、桌名在下，中间箭头，最后一站金色的称号 */
+.ladder-page .ld-steps {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--sp-3);
 }
-.ladder-page .ld-rules {
-  /* 整块和下面的卡片同宽，项目符号紧贴卡片左缘内侧，不再居中飘着 */
-  margin: var(--sp-2) 0 0;
-  padding-left: 1.2em;
+.ladder-page .ld-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  min-width: 4.5em;
+}
+.ladder-page .ld-step .ld-pip {
+  width: 40px;
+  height: 40px;
+  font-size: var(--fs-lg);
+}
+.ladder-page .ld-step-name {
   font-size: var(--fs-md);
-  line-height: 1.6;
-  color: #f6f1e3cc;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ladder-page .ld-step.goal .ld-step-name {
+  color: var(--gold-hi);
+}
+.ladder-page .ld-arrow {
+  align-self: center;
+  margin-top: calc(-1 * var(--fs-md));
+  width: 0;
+  height: 0;
+  border-block: 7px solid transparent;
+  border-left: 10px solid #f6f1e380;
+}
+/* 规矩的几个短标签：一行排开，放不下折行 */
+.ladder-page .ld-how {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+.ladder-page .ld-tag {
+  padding: 2px var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: #0000003d;
+  font-size: var(--fs-sm);
+  color: #f6f1e3e0;
+  white-space: nowrap;
 }
 .ladder-page .ld-cards {
   display: grid;
@@ -156,9 +195,9 @@
   min-width: 6em;
 }
 /* 竖屏手机（360×640 这类矮的）四张卡：说明行距、卡片内边距收一点，一屏放下 */
-.stage[data-orient='port']:not([data-fit='desk']) .ladder-page .ld-rules {
-  line-height: 1.4;
-  margin-top: var(--sp-1);
+.stage[data-orient='port']:not([data-fit='desk']) .ladder-page .ld-how {
+  margin-top: var(--sp-2);
+  gap: var(--sp-1);
 }
 .stage[data-orient='port']:not([data-fit='desk']) .ladder-page .ld-card {
   padding-block: var(--sp-2);

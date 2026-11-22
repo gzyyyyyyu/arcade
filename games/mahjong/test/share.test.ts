@@ -4,7 +4,7 @@
 import { describe, expect, test } from 'vitest';
 import { sichuanXuezhan as XZ, view, type XzState } from '../src/core/variants/sichuan-xuezhan/index.ts';
 import type { SeatKind } from '../src/core/variants/types.ts';
-import { runAuto } from '../src/game/driver.ts';
+import { runAuto } from './driver.ts';
 import { cardOf } from '../src/view/variants/sichuan-xuezhan/card.ts';
 import { signed, TITLE_NAME } from '../src/view/text.ts';
 

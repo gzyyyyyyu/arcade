@@ -27,7 +27,7 @@ import { celebrate } from './fx.ts';
 import { play } from './sound.ts';
 import { tileName, tileUrl } from './tiles.ts';
 import { button, el } from './dom.ts';
-import { apiFetch } from '../net/http.ts';
+import { submitScore } from '../net/scores.ts';
 import { todayCN } from './daily.ts';
 import './hekiri.css';
 
@@ -45,25 +45,6 @@ export function hekiriToday(): { score: number | null; streak: number } {
   const d = readHekiri();
   const today = todayCN();
   return { score: d.days[today]?.score ?? null, streak: hekiriStreak(d, today) };
-}
-
-/**
- * 把今天的分数交给平台的每日榜（第一次做完才交）。榜没登记、断网都不吭声：
- * 榜是锦上添花，不能让它挡住成绩卡
- */
-async function submitBoard(date: string, score: number, userId: string): Promise<void> {
-  try {
-    await apiFetch('/api/scores', {
-      method: 'POST',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      keepalive: true,
-      headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' },
-      body: JSON.stringify({ gameId: 'mahjong', boardId: hekiriBoard(date), score, userId }),
-    });
-  } catch {
-    // 同上
-  }
 }
 
 const SHANTEN_NAME = ['听牌', '一向听', '两向听', '三向听', '四向听'];
@@ -277,7 +258,8 @@ export function showHekiri(box: HTMLElement, o: HekiriOpts): () => void {
     const scored = r.first;
     if (scored) {
       writeHekiri(r.data);
-      if (o.userId) void submitBoard(date, total, o.userId);
+      // 第一次做完才交（交不上不补交）
+      if (o.userId) void submitScore(hekiriBoard(date), total, o.userId);
     }
     const data = r.data;
     root.replaceChildren();

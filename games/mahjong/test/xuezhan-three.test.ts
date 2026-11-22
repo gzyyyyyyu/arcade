@@ -3,7 +3,7 @@ import { sichuanXuezhan as XZ, options, view, type XzOpts, type XzState } from '
 import { seatsOf } from '../src/core/variants/sichuan-xuezhan/rules.ts';
 import { wallLeft } from '../src/core/table/index.ts';
 import { kindOf, suitOf, tileOf } from '../src/core/tiles/index.ts';
-import { runAuto } from '../src/game/driver.ts';
+import { runAuto } from './driver.ts';
 import type { SeatKind } from '../src/core/variants/types.ts';
 
 // 三人两房（DESIGN.md 第 13 节）：3 个人、筒条两门 72 张、不定缺；血战两家胡了就结束。四人局不受影响
