@@ -14,8 +14,6 @@
 .friends-page .panel { display: flex; flex-direction: column; gap: var(--s-2); min-height: 0; min-width: 0; padding: var(--s-3) var(--s-4); overflow: hidden; }
 .friends-page .panel > .panel__head, .friends-page .panel > .panel__title { flex: none; margin: 0; align-items: center; }
 .friends-page .panel__title { display: flex; align-items: center; gap: var(--s-2); margin: 0; white-space: nowrap; }
-.friends-page .panel__head > .feed-entry { padding: 0 var(--s-3); gap: 6px; font-size: var(--fs-sm); }
-.friends-page .panel__head > .feed-entry { flex: none; }
 .friends-page .panel > .note, .friends-page .panel > .row { margin: 0; }
 .friends-page .friends-list, .friends-page .friends-req { flex: 1 1 0; }
 .friends-page .friends-req__fill { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -96,8 +94,6 @@
 @media (hover: hover) { .people .btn--quiet-danger:not(:disabled):hover { background: var(--highlight-warm); } }
 
 /* 约局（Meetups.tsx）：卡片头上"约一局"和"动态"并排；列表顶上一两条约局，到点的暖色底 */
-.friends-page .friends-list__acts { flex: none; flex-wrap: nowrap; gap: var(--s-2); margin: 0; }
-.friends-page .friends-list__acts > .btn { padding: 0 var(--s-3); }
 .friends-page .meetups { flex: none; display: flex; flex-direction: column; gap: var(--s-1); }
 .friends-page .meetups__row { display: flex; align-items: center; gap: var(--s-2); margin: 0; padding: var(--s-1) var(--s-2); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); }
 .friends-page .meetups__row--due { background: var(--highlight-warm); }

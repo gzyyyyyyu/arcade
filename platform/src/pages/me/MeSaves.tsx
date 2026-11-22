@@ -38,11 +38,6 @@ export function useSaves(): SaveRow[] {
   return rows;
 }
 
-function kb(slots: SaveSlot[]): string {
-  const bytes = slots.reduce((n, s) => n + new TextEncoder().encode(JSON.stringify(s.data)).byteLength, 0);
-  return bytes < 1024 ? `${bytes} 字节` : `${(bytes / 1024).toFixed(1)} KB`;
-}
-
 /** 说明和"先暂停"的提示（宽屏放左卡，窄屏放列表上面） */
 export function SavesNote() {
   const { savesPaused } = useSession();
@@ -76,7 +71,7 @@ export function SavesList({ rows }: { rows: SaveRow[] }) {
                 ? '读取中…'
                 : r.slots.length === 0
                   ? '还没有存档'
-                  : `${r.slots.length} 份 · ${kb(r.slots)} · 最近 ${timeText(Math.max(...r.slots.map((s) => s.updatedAt)))}`}
+                  : `已存 ${r.slots.length} 份 · 最近 ${timeText(Math.max(...r.slots.map((s) => s.updatedAt)))}`}
           </span>
         </div>
       )}

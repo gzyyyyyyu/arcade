@@ -3,7 +3,6 @@
  * 不按昵称搜人，只能靠好友码或链接加；对别人只显示昵称，不显示用户名。
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { FeedEntry } from '../../features/feed/Feed.tsx';
 import { api, ApiFail, errorText, type FriendLists, type Profile, type Relation } from '../../api.ts';
 import { PageTabs, Paged, useMedia } from '../../features/fit/Fit.tsx';
 import { bestPartner } from '../../lib/mates.ts';
@@ -53,7 +52,7 @@ export function FriendsPage() {
 }
 
 function Friends() {
-  const { service, user } = useSession();
+  const { service } = useSession();
   const roomy = useMedia(ROOMY);
   const few = (n: number) => roomy && n <= FEW_ROWS;
   const [data, setData] = useState<FriendLists | null>(null);
@@ -117,12 +116,7 @@ function Friends() {
       icon="people"
       title={`好友（${data.friends.length}）`}
       className={`friends-list${few(data.friends.length + meetupRows) ? ' friends-list--few' : ''}`}
-      action={
-        <span className="row friends-list__acts">
-          {headRoomy && data.friends.length > 0 && <MeetupButton />}
-          <FeedEntry me={user!.id} />
-        </span>
-      }
+      action={headRoomy && data.friends.length > 0 ? <MeetupButton /> : undefined}
     >
       <MeetupStrip friends={data.friends} withNew={meetupNew} />
       {data.friends.length === 0 ? (

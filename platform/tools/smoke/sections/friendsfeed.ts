@@ -71,7 +71,7 @@ export async function friendsFeed(browser: Browser): Promise<void> {
       const ys = await Promise.all(['ptab-friends', 'friends-paged'].map(async (t) => (await page.getByTestId(t).boundingBox())!.y));
       check(ys[0]! < ys[1]!, `${label}：手机上页签该在好友列表上面（${ys.join(',')}）`);
       for (const t of ['req', 'add', 'code']) check((await page.getByTestId(`ptab-${t}`).count()) === 1, `${label}：手机上该有"${t}"页签`);
-      for (const el of await page.locator('.feed-entry, .people .btn').all()) {
+      for (const el of await page.locator('.people .btn').all()) {
         const b = await el.boundingBox();
         if (b && b.height < 44) fail(`${label}：好友页「${(await el.textContent())?.trim()}」不到 44 高`);
       }
@@ -83,8 +83,8 @@ export async function friendsFeed(browser: Browser): Promise<void> {
       await page.getByTestId('ptab-friends').click();
     }
     await shot(page, `friends-many-${label}`);
-    await page.getByTestId('feed-entry').click();
-    await page.waitForURL(`${BASE}/feed`);
+    check((await page.getByTestId('feed-entry').count()) === 0, `${label}：好友页不该再有动态入口（顶栏有）`);
+    await page.goto(`${BASE}/feed`);
     const list = page.getByTestId('feed');
     await list.getByTestId('feed-item').first().waitFor();
     await noScroll(page, label, '动态页');

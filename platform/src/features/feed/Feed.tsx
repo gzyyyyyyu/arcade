@@ -1,6 +1,6 @@
 /**
  * 好友动态（docs/platform-backend.md 15.17）：动态页 /feed（全部，一屏放下按高度翻页，说明长的点"展开"在弹窗里看），顶栏的"动态"按钮点开一个浮层（最新 8 条，放不下的翻页，加"看全部"，有新的带红点），
- * 好友页好友列表上方一行入口（有几条新的）。浮层和动态页都能赞、扔道具。电脑上浮层挂在按钮下面，手机上是从底下弹出的半屏面板（样式见 styles.css 的 .feedpop）。
+ * 浮层和动态页都能赞、扔道具。电脑上浮层挂在按钮下面，手机上是从底下弹出的半屏面板（样式见 styles.css 的 .feedpop）。
  * 接口只给编号和数字，文字在这里拼，拆成"谁、在哪、结果标签"三段排版：
  * - 实盘结回的：平台的模板"老王在掼蛋小档赢了 1.6 份，称号：双下王"，称号名读游戏的 titles.json（读不到写"神秘称号"）；
  * - 游戏报的名场面：模板在游戏的 /games/<id>/moments.json（{"<编号>": {"text": "…"}}），只认 {name} {n} {n2} {n3} 四个占位符，
@@ -314,19 +314,6 @@ export function FeedList({ me }: { me: string }) {
 export function useFeedFresh(me: string): boolean {
   const { items } = useFeed();
   return freshCount(items, useSeen(), me) > 0;
-}
-
-/** 好友页好友列表上方的一行入口："好友动态 · N 条新 →"，没有新的写"看好友动态 →" */
-export function FeedEntry({ me }: { me: string }) {
-  const { items } = useFeed();
-  const n = freshCount(items, useSeen(), me);
-  return (
-    <Link className="feed-entry" href="/feed" data-testid="feed-entry">
-      <FeedIcon />
-      <span>{n > 0 ? `好友动态 · ${n} 条新` : '看好友动态'}</span>
-      <span aria-hidden="true">→</span>
-    </Link>
-  );
 }
 
 /**
