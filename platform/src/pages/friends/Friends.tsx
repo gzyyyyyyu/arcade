@@ -23,8 +23,8 @@ const FEW_ROWS = 3;
 const ROOMY = '(min-height: 700px)';
 
 const WIDE = '(min-width: 1100px) and (min-height: 600px)';
-/** 卡片头放得下"约一局"和"好友动态"两个按钮的宽度；更窄时"约一局"挪进列表顶上的约局条 */
-const HEAD_ROOMY = '(min-width: 600px)';
+/** 卡片头放得下"约一局"的宽度，更窄时"约一局"挪进列表顶上的约局条；手机横屏再窄也放卡片头：约局条多一行，名单就一个人都放不下 */
+const HEAD_ROOMY = '(min-width: 600px), (max-height: 500px) and (orientation: landscape)';
 
 /** 没登录、停服、连不上时好友页和好友链接都显示的提示；返回 null 表示可以往下走。 */
 function useGate(from: string): ReactNode | null {
