@@ -1,5 +1,11 @@
 # 更新日志
 
+## 0.28.1（2026-11-22）
+
+- 老浏览器不报错：`detectPlatform`、社交请求（`social.ts`）、服务端问平台（`auth.ts`）的超时信号经新的 `timeoutSignal(ms)`（`internal.ts`，两边共用）拿，
+  没有 `AbortSignal.timeout` 的浏览器不带超时照常发请求。以前直接调，老浏览器上抛 TypeError，`detectPlatform` 永远回"不知道"、好友面板挂不上。
+- 测试：`create.test.ts` 加一条没有 `AbortSignal.timeout` 时照常问到平台（旧写法会回 unknown）。
+
 ## 0.28.0（2026-11-22）
 
 - **等人时离开房间还名额**（`GameRoom`）：以前等人页点「离开房间」只断开连接，房间要等 `noHumanMs`（10 分钟）才关，期间开房的人被 `has_room` 挡回旧房间。

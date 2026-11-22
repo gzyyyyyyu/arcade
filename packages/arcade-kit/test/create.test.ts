@@ -1,5 +1,5 @@
 /** 开房和默认文案（0.8.0，client.ts）：createRoom 把各种回话收成 { code } 或 { error }；文案按 key 可以覆盖 */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { closeText, createRoom, createText, detectPlatform, ROOM_TEXT, withNickname } from '../src/client.ts';
 import { CLOSE, CLOSE_REASON } from '../src/protocol.ts';
 
@@ -73,6 +73,22 @@ describe('detectPlatform、withNickname（0.10.0）', () => {
     const t = performance.now();
     expect(await detectPlatform({ fetchImpl: hang, timeoutMs: 50 })).toEqual({ platform: 'unknown' });
     expect(performance.now() - t).toBeLessThan(1_000);
+  });
+
+  it('老浏览器没有 AbortSignal.timeout：照常问、不带超时，不报错', async () => {
+    const real = globalThis.AbortSignal;
+    let init: RequestInit | undefined;
+    vi.stubGlobal('AbortSignal', { timeout: undefined });
+    try {
+      const f = ((_: unknown, i?: RequestInit) => {
+        init = i;
+        return Promise.resolve(Response.json({ user: null }));
+      }) as typeof fetch;
+      expect(await detectPlatform({ fetchImpl: f })).toEqual({ platform: true, user: null });
+      expect(init && 'signal' in init).toBe(false);
+    } finally {
+      vi.stubGlobal('AbortSignal', real);
+    }
   });
 
   it('withNickname：加 ?name= 或 &name=（编码），# 之前；没名字原样', () => {

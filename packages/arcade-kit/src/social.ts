@@ -9,6 +9,7 @@
  * - 接口形状以 docs/platform-backend.md 为准：都要登录，写的请求带 `x-arcade: 1`、同源（平台的 CSRF 规矩）。
  */
 import { detectPlatform, type PlatformInfo } from './client.js';
+import { timeoutSignal } from './internal.js';
 import { pageChips } from './fun-logic.js';
 import { applyTheme, type KitTheme } from './theme.js';
 
@@ -81,7 +82,7 @@ export const SOCIAL_FETCH_MS = 8_000;
 
 function api(opts: ApiOptions): typeof fetch {
   const f = opts.fetchImpl ?? fetch;
-  return (input, init = {}) => f(input, { ...init, signal: init.signal ?? AbortSignal.timeout(SOCIAL_FETCH_MS) });
+  return (input, init = {}) => f(input, init.signal ? init : { ...init, ...timeoutSignal(SOCIAL_FETCH_MS) });
 }
 
 /** 写的请求：同源 cookie、`x-arcade: 1`（平台的 CSRF 规矩） */

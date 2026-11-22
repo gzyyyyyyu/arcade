@@ -19,7 +19,7 @@
  * 换来不用管签名密钥、不用改平台；等开房要走平台登记和配额、或者进房量大到这一次调用显得贵了，再换成入场票，房间这边只是换一种认人的方式。
  */
 import { cleanNickname, guestIdentity, type GuestOptions, isStandalone, mintGuestCookie, type ModeEnv, readGuestCookie } from './guest.js';
-import { hasSessionCookie, type Identity } from './internal.js';
+import { hasSessionCookie, type Identity, timeoutSignal } from './internal.js';
 
 /** 平台"我是谁"接口的路径；完整地址按请求的 origin 拼（meUrlOf） */
 export const ME_PATH = '/api/me';
@@ -51,7 +51,7 @@ export async function whoIs(request: Request, arcade: Fetcher | undefined, opts:
         cookie: request.headers.get('cookie') ?? '',
         'cf-connecting-ip': request.headers.get('cf-connecting-ip') ?? '',
       },
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 3_000),
+      ...timeoutSignal(opts.timeoutMs ?? 3_000),
     });
     if (res.status !== 200) return UNAVAILABLE;
     const body = (await res.json()) as { user?: { id?: unknown; displayName?: unknown } | null };

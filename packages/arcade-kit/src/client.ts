@@ -21,6 +21,7 @@
  */
 import { CHAT_RATE, type ChatSendResult, checkChat, EMOTE_RATE } from './chat.js';
 import { type ChattedMsg, CLOSE, CLOSE_REASON, type CreateError, type DownMsg, type EmotedMsg, isFinalClose, type MatchDownMsg, type MatchSoloWhy, PING, PONG, PROTOCOL_VERSION, type RoomInfo, type UpMsg } from './protocol.js';
+import { timeoutSignal } from './internal.js';
 
 export type ClientStatus = 'connecting' | 'open' | 'reconnecting' | 'closed' | 'failed';
 
@@ -719,7 +720,7 @@ export async function detectPlatform(opts: DetectPlatformOptions = {}): Promise<
   const f = opts.fetchImpl ?? fetch;
   let res: Response;
   try {
-    res = await f(opts.url ?? '/api/me', { credentials: 'same-origin', headers: { accept: 'application/json' }, signal: AbortSignal.timeout(opts.timeoutMs ?? 2_500) });
+    res = await f(opts.url ?? '/api/me', { credentials: 'same-origin', headers: { accept: 'application/json' }, ...timeoutSignal(opts.timeoutMs ?? 2_500) });
   } catch {
     return { platform: 'unknown' };
   }
