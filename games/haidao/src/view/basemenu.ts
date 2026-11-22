@@ -26,6 +26,16 @@ function menuFor(bs: BaseScene, id: number): MenuItem[] {
   return buildingMenu(b.kind, b.level, b.stored ?? 0, up, cost);
 }
 
+/** 操作环灰钮下的短原因：钮只有 48 宽，整句放不下，点了还有整句的提示 */
+function ringTag(why: string | undefined): string | undefined {
+  if (!why) return undefined;
+  const stars = /还差 (\d+) 颗星/.exec(why);
+  if (stars) return `差 ${stars[1]} 星`;
+  const gold = why.includes('金币');
+  const wood = why.includes('木材');
+  return gold && wood ? '缺资源' : gold ? '缺金币' : wood ? '缺木材' : undefined;
+}
+
 /** 升级不了的一句话 */
 export function whyNot(bs: BaseScene, b: Placed, code: string, cost: Res): string {
   return code === 'need_stars' ? starText(bs, b) : short(bs, code, cost);
@@ -66,7 +76,7 @@ export function openRing(bs: BaseScene, id: number): void {
   bs.sel = id;
   drawSel(bs);
   const items: RingItem[] = menuFor(bs, id).map((m) => ({
-    id: m.id, label: m.label, icon: RING_ICON[m.id], off: m.off, dot: m.dot,
+    id: m.id, label: m.label, icon: RING_ICON[m.id], off: m.off, dot: m.dot, tag: m.off ? ringTag(m.why) : undefined,
     onTap: () => act(bs, m.id, id, () => openRing(bs, id)),
   }));
   bs.ring.open(id, items);

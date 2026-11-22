@@ -132,11 +132,13 @@ export function renderCards(bs: BattleScene): void {
     c.type = 'button';
     if (gi < 9) keyBadge(c, gi + 1);
     c.appendChild(img(tArt(g.troop, 'idle'), tight ? 44 : 56));
-    el('span', 'hd-nm', done ? TROOPS[g.troop].name : `${TROOPS[g.troop].name} ×${total}`, c);
+    // 派完的写「×0」：手机竖屏收起了下面那行「已出发 N」，只变灰看不出是派完了还是点不动
+    el('span', 'hd-nm', `${TROOPS[g.troop].name} ×${total}`, c);
     el('small', '', done ? `已出发 ${g.idx.reduce((n, i) => n + army.boats[i]!.count, 0)}` : `${left.length} 船待命`, c);
-    attachIntel(c, () => troopCard(g.troop, army.boats[g.idx[0]!]?.level ?? 1));
+    attachIntel(c, () => troopCard(g.troop, army.boats[g.idx[0]!]?.level ?? 1), true);
     c.addEventListener('click', () => {
-      if (done || s.over) return;
+      if (s.over) return;
+      if (done) return toast(`${TROOPS[g.troop].name}都派出去了`);
       // 再点已选中的卡不取消：出完一船再点卡是常见手势，取消了之后点沙滩就没反应；取消用右键、Esc 或点技能
       bs.selBoat = gi;
       bs.selSkill = -1;
@@ -189,7 +191,13 @@ function allDown(bs: BattleScene): boolean {
   return !s.over && !bs.d.pvp?.replay && s.landed.every(Boolean) && !s.units.some((u) => u.mode !== 'dead' && u.kind !== 'medic');
 }
 
-const downText = (bs: BattleScene): string => `兵都倒了：还剩 ${bs.st.energy} 能量，放完技能点「结束」`;
+/** 能量还够放最便宜的技能才叫玩家去放；不够了直接叫收工（规则核心按同一个最低价判自动结束） */
+function downText(bs: BattleScene): string {
+  const costs = bs.d.setup.army.skills.map((k) => SKILLS[k.kind].levels[k.level - 1]?.energy ?? 0);
+  const min = costs.length > 0 ? Math.min(...costs) : 0;
+  if (costs.length > 0 && bs.st.energy >= min) return `兵都倒了：还剩 ${bs.st.energy} 能量，放完技能点「结束」`;
+  return costs.length > 0 ? `兵都倒了，放技能还差 ${min - bs.st.energy} 能量：点「结束」收工` : '兵都倒了：点「结束」收工';
+}
 
 export function afterSelect(bs: BattleScene): void {
   bs.hoverCell = '';

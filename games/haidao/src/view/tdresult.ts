@@ -258,7 +258,7 @@ function finishHome(bs: TdScene, res: ReturnType<typeof tdResult>): void {
   box.style.setProperty('--sd', `${tm.sd}ms`);
   box.style.setProperty('--fin', `${tm.fin}ms`);
   const hard = rw?.hard ?? bs.d.setup.home?.hard === true;
-  const h2 = el('h2', '', `撑住 ${waves} 波`, box);
+  const h2 = el('h2', '', `撑过 ${waves} 波`, box);
   if (hard) el('span', 'hd-home-hardtag', '加难', h2);
   if (bs.s.wave > waves) el('p', 'hd-sub hd-td-line', `打到第 ${bs.s.wave} 波时结束，守住了前 ${waves} 波`, box);
   el('p', 'hd-td-kept', `击退 ${res.kills ?? 0} 个海盗`, box);

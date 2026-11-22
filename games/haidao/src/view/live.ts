@@ -423,7 +423,7 @@ function practice(tier: LiveTier): void {
       el('h2', '', TITLES[local.stars] ?? '', box);
       el('p', 'hd-live-bal', `摧毁 ${local.destroyedPct}% · 实盘的话拿回带入的 ${Math.round(liveBp(tier, seed, local) / 100)}%`, box);
       el('p', 'hd-live-note', '（娱乐悬赏，不带筹码）', box);
-      main = button('回家', 'hd-btn-gold hd-btn-wide', () => {
+      main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {
         mask.remove();
         app.goBase();
       }, box);
@@ -451,7 +451,7 @@ async function showResult(tier: LiveTier, stars: number, what: string, bp: numbe
     el('p', 'hd-live-note', '结果记下了，连上网后会自动结回。', box);
   } else el('p', 'hd-live-note', errText(res.error), box);
   el('p', 'hd-live-note', NO_CASH, box);
-  main = button('回家', 'hd-btn-gold hd-btn-wide', () => {
+  main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {
     mask.remove();
     app.goBase();
   }, box);
@@ -547,7 +547,7 @@ export async function showTdLiveResult(tier: LiveTier, seed: number, res: Pick<T
     el('p', 'hd-live-note', '结果记下了，连上网后会自动结回。', box);
   } else el('p', 'hd-live-note', tdErrText(r.error), box);
   el('p', 'hd-live-note', NO_CASH, box);
-  main = button('回家', 'hd-btn-gold hd-btn-wide', () => {
+  main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {
     mask.remove();
     app.goBase();
   }, box);

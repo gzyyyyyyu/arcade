@@ -218,9 +218,22 @@ let toastTimer: ReturnType<typeof setTimeout> | undefined;
 export function toast(msg: string): void {
   toastEl ??= el('div', 'hd-toast', undefined, uiRoot());
   toastEl.textContent = msg;
+  toastEl.style.top = '';
+  avoidTutTip(toastEl);
   toastEl.classList.add('on');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastEl?.classList.remove('on'), 1800);
+}
+
+/** 引导横幅开着、且和提示条叠在一起时，提示条挪到横幅下面：两条字叠着哪条都读不清 */
+function avoidTutTip(t: HTMLElement): void {
+  const tip = uiRoot().querySelector<HTMLElement>('.hd-tut-tip');
+  if (!tip || tip.style.display === 'none') return;
+  const k = tip.getBoundingClientRect();
+  const root = uiRoot().getBoundingClientRect();
+  const top = root.top + t.offsetTop;
+  if (top + t.offsetHeight <= k.top || top >= k.bottom) return;
+  t.style.top = `${Math.round(k.bottom - root.top + 8)}px`;
 }
 
 export function confirmBox(msg: string, okLabel: string, onOk: () => void, cancelLabel = '再想想', onCancel?: () => void): void {
@@ -250,8 +263,14 @@ export function glitchBanner(): () => void {
 export function badgePopup(list: Array<{ name: string; desc: string; tier: 'bronze' | 'silver' | 'gold'; title?: string }>, onClose?: () => void): void {
   const [a] = list;
   if (!a) return;
-  const mask = openModal({ cls: 'hd-badgemask', closable: true, stack: true });
+  // Esc、点遮罩、✕、「太棒了」四种关法都要走 onClose（结算页靠它接着开下一局）
+  const close = (): void => {
+    mask.remove();
+    onClose?.();
+  };
+  const mask = openModal({ cls: 'hd-badgemask', closable: true, stack: true, onEsc: close });
   const box = el('div', 'hd-dialog hd-badge', undefined, mask);
+  button('×', 'hd-x', close, box).title = '关掉（Esc）';
   if (list.length === 1) {
     el('small', '', '新成就！', box);
     const im = img(badgeArt(a.tier), 96);
@@ -259,7 +278,7 @@ export function badgePopup(list: Array<{ name: string; desc: string; tier: 'bron
     box.appendChild(im);
     el('h2', '', a.name, box);
     el('p', '', a.desc, box);
-    if (a.title) el('p', 'hd-sub', `解锁称号「${a.title}」，点顶栏的船长钮、进成就页可以佩戴`, box);
+    if (a.title) el('p', 'hd-sub', `解锁称号「${a.title}」，点船长头像进成就页可以佩戴`, box);
   } else {
     el('small', '', `新成就 ×${list.length}`, box);
     const col = el('div', 'hd-badgelist', undefined, box);
@@ -276,10 +295,7 @@ export function badgePopup(list: Array<{ name: string; desc: string; tier: 'bron
     // 一次拿很多个（老号补发）时按弹窗高度翻页，不出滚动条
     paginate(col, [...col.children] as HTMLElement[], col);
   }
-  button('太棒了', 'hd-btn-gold', () => {
-    mask.remove();
-    onClose?.();
-  }, box).style.width = '100%';
+  button('太棒了', 'hd-btn-gold', close, box).style.width = '100%';
 }
 
 /** 小锁图标（未解锁的东西用） */
@@ -363,6 +379,8 @@ function css(): string {
   const ink = c.ink!, cream = c.cream!, creamD = c.creamD!, gold = c.gold!, wood = c.wood!, woodL = c.woodL!, red = c.red!;
   return `
 .hd-ui { position:absolute; inset:0; pointer-events:none; font:600 14px/1.35 system-ui,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif; color:${ink}; }
+/* 折行时不让最后一行只剩一两个字（「打不 / 到」「补兵（+5 / 人）」），整个界面统一 */
+.hd-ui { text-wrap:pretty; }
 .hd-ui * { box-sizing:border-box; }
 .hd-ui .hd-screen { position:absolute; inset:0; pointer-events:none; }
 .hd-ui .hd-screen > * { pointer-events:auto; }
@@ -394,7 +412,10 @@ function css(): string {
 .hd-ui .hd-item { display:inline-flex; align-items:center; gap:4px; background:${creamD}; border-radius:12px; padding:2px 10px 2px 6px; }
 .hd-ui .hd-need { margin:0; color:${red}; font-weight:800; }
 .hd-ui .hd-lockrow { display:inline-flex; align-items:center; gap:4px; }
-.hd-ui .hd-celebrate h2 { text-align:center; margin:0 0 6px; font-size:20px; }
+.hd-ui .hd-celebrate { position:relative; }
+.hd-ui .hd-celebrate > .hd-x { position:absolute; right:6px; top:6px; }
+.hd-ui .hd-badge > .hd-x { position:absolute; right:6px; top:6px; }
+.hd-ui .hd-celebrate h2 { text-align:center; margin:0 0 6px; padding:0 44px; font-size:20px; }
 .hd-ui .hd-newlist { display:flex; flex-direction:column; gap:8px; margin:8px 0 14px; max-height:46vh; overflow:hidden; }
 .hd-ui .hd-newitem { display:flex; gap:10px; align-items:center; background:#fff8e6; border:2px solid ${ink}; border-radius:12px; padding:6px 10px; transition:opacity .25s; }
 /* 整行不转圈：hd-pop 的旋转回弹会让一整行的外框伸出列表（overflow:hidden）十几像素，最后一行弹出时角被裁掉 */
@@ -417,7 +438,7 @@ function css(): string {
 .hd-ui .hd-bounty .hd-bt { display:flex; flex-direction:column; line-height:1.2; }
 .hd-ui .hd-bounty small { font-size:12px; }
 .hd-ui .hd-badgemask { z-index:70; }
-.hd-ui .hd-badge { text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.hd-ui .hd-badge { position:relative; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; }
 .hd-ui .hd-badge small { font-size:14px; font-weight:900; color:${c.redD}; }
 .hd-ui .hd-badge h2 { margin:0; font-size:20px; }
 .hd-ui .hd-badge p { margin:0 0 6px; }
@@ -436,7 +457,8 @@ function css(): string {
 .hd-ui .hd-ach .hd-btn { min-height:44px; padding:0 10px; font-size:14px; }
 .hd-ui .hd-stars .hd-img.drop { animation:hd-dropin .55s cubic-bezier(.3,1.5,.5,1); }
 @keyframes hd-dropin { 0% { transform:translateY(-140px) scale(2.4); opacity:0; } 60% { transform:translateY(6px) scale(.9); opacity:1; } 100% { transform:none; } }
-.hd-ui .hd-chestbox { text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.hd-ui .hd-chestbox > .hd-x { position:absolute; right:6px; top:6px; }
+.hd-ui .hd-chestbox { position:relative; text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; }
 .hd-ui .hd-chestbox small { font-size:14px; font-weight:900; color:${c.redD}; }
 .hd-ui .hd-chest { position:relative; width:160px; height:170px; margin:4px 0; }
 .hd-ui .hd-chest .hd-chest-shut, .hd-ui .hd-chest .hd-chest-open { position:absolute; left:50%; bottom:0; transform:translateX(-50%); }
@@ -469,7 +491,7 @@ function css(): string {
 .hd-ui .hd-scout-tip2 { display:flex; align-items:center; gap:6px; margin-top:2px; font-size:14px; }
 .hd-ui .hd-scout-info { min-height:64px; background:${cream}; border:3px solid ${ink}; border-radius:12px; padding:6px 10px; display:flex; flex-direction:column; }
 .hd-ui .hd-preset { display:flex; flex-direction:column; gap:4px; border:3px solid ${ink}; border-radius:12px; background:#fff8e6; padding:6px; margin-bottom:8px; }
-.hd-ui .hd-preset-map { height:200px; border-radius:8px; background:#2fb8c8; }
+.hd-ui .hd-preset-map { height:160px; border-radius:8px; background:#2fb8c8; }
 .hd-ui .hd-tabs { display:flex; gap:8px; margin-bottom:8px; }
 .hd-ui .hd-tabs .hd-btn { flex:1; }
 .hd-ui .hd-pill small { font-size:12px; opacity:.7; font-weight:700; }

@@ -450,7 +450,7 @@ export async function tdLive(c: ShotCtx): Promise<boolean> {
     })) &&
     (await step('打完结算', async () => {
       for (let i = 0; i < 2; i++) await click(TD_SPEED);
-      await page.locator('.hd-live button:has-text("回家")').waitFor({ timeout: 300_000 });
+      await page.locator('.hd-live button:has-text("回岛")').waitFor({ timeout: 300_000 });
       await page.waitForTimeout(600);
       await shot('tdlive-result');
       await check('悬赏守岛结算');
@@ -458,8 +458,8 @@ export async function tdLive(c: ShotCtx): Promise<boolean> {
       if (set.length !== 1 || !String(set[0]!.a.ref).startsWith('ht-')) throw new Error('钱包里没有一次 ht- 前缀的结回');
       if ((await page.locator('.hd-live-net').count()) === 0) throw new Error('结算页没有显示赢 / 输多少筹码');
     })) &&
-    (await step('回家', async () => {
-      await click('.hd-live button:has-text("回家")');
+    (await step('回岛', async () => {
+      await click('.hd-live button:has-text("回岛")');
       await sceneIs('base');
       await page.waitForTimeout(800);
       await shot('tdlive-home');

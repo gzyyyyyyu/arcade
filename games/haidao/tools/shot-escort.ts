@@ -159,7 +159,7 @@ export async function escort(c: ShotCtx): Promise<boolean> {
 /** --escortlive：护航实盘 */
 export async function escortLive(c: ShotCtx): Promise<boolean> {
   const { page, v, ROOT, problems, shot, tap, sceneIs, step, click, ready } = c;
-  // 护航实盘：海图护航卡 → 选图页「实盘」→ 选档 → 带入 → 造塔、叫波 → 打完（或到时撤退）→ 结算 → 回家
+  // 护航实盘：海图护航卡 → 选图页「实盘」→ 选档 → 带入 → 造塔、叫波 → 打完（或到时撤退）→ 结算 → 回岛
   const fake = new FakePvp();
   await fake.seed();
   await fake.route(page, problems);
@@ -228,14 +228,14 @@ export async function escortLive(c: ShotCtx): Promise<boolean> {
     })) &&
     (await step('打完或撤退后结算', async () => {
       for (let i = 0; i < 2; i++) await click(TD_SPEED);
-      const done = await page.locator('.hd-live button:has-text("回家")').waitFor({ timeout: 150_000 }).then(() => true, () => false);
+      const done = await page.locator('.hd-live button:has-text("回岛")').waitFor({ timeout: 150_000 }).then(() => true, () => false);
       if (!done) {
         // 撤退：按走过的格数折算
         await click('.hd-td-bar2 button:has-text("撤退")');
         const t = await page.locator('.hd-dialog', { hasText: '按已经走过的路结回筹码' }).count();
         if (!t) throw new Error('撤退确认没写按走过的路结回筹码');
         await click('.hd-dialog button:has-text("撤退")');
-        await page.locator('.hd-live button:has-text("回家")').waitFor({ timeout: 20_000 });
+        await page.locator('.hd-live button:has-text("回岛")').waitFor({ timeout: 20_000 });
       }
       await page.waitForTimeout(600);
       await shot('escortlive-result');
@@ -250,8 +250,8 @@ export async function escortLive(c: ShotCtx): Promise<boolean> {
       const save = await page.evaluate(() => localStorage.getItem('haidao.save') ?? '');
       if (/"escort":\{"stars":\{"[^}]+\d/.test(save)) throw new Error('实盘不该记护航星数');
     })) &&
-    (await step('回家', async () => {
-      await click('.hd-live button:has-text("回家")');
+    (await step('回岛', async () => {
+      await click('.hd-live button:has-text("回岛")');
       await sceneIs('base');
       await page.waitForTimeout(800);
       await shot('escortlive-home');

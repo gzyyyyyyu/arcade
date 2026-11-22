@@ -248,7 +248,7 @@ function footRow(bs: BaseScene, box: HTMLElement, body: HTMLElement, b: Placed):
 function openAchievements(bs: BaseScene, tab: 'ach' | 'col' = 'ach'): void {
   const p = app.profile;
   const list = achievementList();
-  const { body } = openSheet(bs, `成就 ${p.achievements.length}/${list.length}`);
+  const { body } = openSheet(bs, tab === 'col' ? '收藏' : `成就 ${p.achievements.length}/${list.length}`);
   const tabs = el('div', 'hd-tabs', undefined, body);
   button('成就', tab === 'ach' ? 'hd-btn-gold' : 'hd-btn-plain', () => openAchievements(bs, 'ach'), tabs);
   button('收藏', tab === 'col' ? 'hd-btn-gold' : 'hd-btn-plain', () => openAchievements(bs, 'col'), tabs);
@@ -352,8 +352,11 @@ export function openPresets(bs: BaseScene): void {
     ['spread', '分散阵', '防御铺开，不怕被一炮端；墙只立几段。'],
     ['trap', '陷阱阵', '墙圈留个缺口，缺口里埋地雷和焦油。'],
   ];
+  const boxes: HTMLElement[] = [];
+  const draws: Array<() => void> = [];
   for (const [style, name, desc] of styles) {
     const box = el('div', 'hd-preset', undefined, body);
+    boxes.push(box);
     el('b', '', name, box);
     el('span', 'hd-sub', desc, box);
     const host = el('div', 'hd-preset-map', undefined, box);
@@ -363,8 +366,11 @@ export function openPresets(bs: BaseScene): void {
     } catch {
       layout = [];
     }
-    renderLayout(host, layout, islandExt(p.base.buildings), { interactive: false });
-    requestAnimationFrame(() => host.isConnected && renderLayout(host, layout, islandExt(p.base.buildings), { interactive: false }));
+    // 预览按框的实际大小画：翻页藏起来的框量不到尺寸，翻到时再画
+    const draw = (): void => {
+      if (host.isConnected && host.clientWidth > 0) renderLayout(host, layout, islandExt(p.base.buildings), { interactive: false });
+    };
+    draws.push(draw);
     button('用这套', 'hd-btn-gold', () => {
       confirmBox(`换成「${name}」？建筑会重新摆位置，随时可以再换。`, '换', () => {
         app.commit({ ...app.profile, base: { ...app.profile.base, buildings: layout } });
@@ -374,4 +380,9 @@ export function openPresets(bs: BaseScene): void {
       });
     }, box).disabled = layout.length === 0;
   }
+  // 三套放不下一屏就翻页（不滚动）
+  const redraw = (): void => draws.forEach((d) => d());
+  if (bs.sheet) paginate(bs.sheet, boxes, boxes[boxes.length - 1]!, null, redraw);
+  redraw();
+  requestAnimationFrame(redraw);
 }

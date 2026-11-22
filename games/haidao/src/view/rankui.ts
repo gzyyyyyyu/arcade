@@ -109,10 +109,10 @@ export function paintProfileRank(me: HTMLElement, rank: number): void {
   if (R) {
     me.style.setProperty('--rk', rankHex(R.color));
     me.style.setProperty('--rk-trim', rankHex(R.trim));
-    me.title = `船长档案：${rankTitle(rank)}`;
+    me.title = `船长档案（${rankTitle(rank)}）：星数、成就、收藏`;
   } else {
     me.style.removeProperty('--rk');
     me.style.removeProperty('--rk-trim');
-    me.title = '船长档案';
+    me.title = '船长档案：星数、成就、收藏';
   }
 }

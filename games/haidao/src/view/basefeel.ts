@@ -88,7 +88,7 @@ export function lackText(cost: Res, have: Res): string {
 
 /**
  * 出海前的仓库提醒：这座岛预计掠夺的（还没算三星奖励、连胜加成和掉落）已经比仓库剩下的位置多，
- * 就提醒先回家花掉（不然赢了也白丢：新号第三座岛三星白丢过 1,666 金）。
+ * 就提醒先回岛花掉（不然赢了也白丢：新号第三座岛三星白丢过 1,666 金）。
  */
 export function roomText(loot: Res, have: Res, cap: Res): string {
   const f = (n: number): string => Math.floor(n).toLocaleString('en-US');
@@ -96,7 +96,7 @@ export function roomText(loot: Res, have: Res, cap: Res): string {
   const parts: string[] = [];
   if (loot.gold > room.gold) parts.push(`${f(room.gold)} 金币`);
   if (loot.wood > room.wood) parts.push(`${f(room.wood)} 木材`);
-  return parts.length ? `仓库只装得下 ${parts.join('、')}，先回家花掉` : '';
+  return parts.length ? `仓库只装得下 ${parts.join('、')}，先回岛花掉` : '';
 }
 
 /** 建造卡名额满了以后，主寨升到哪一级才有更多名额（limits 按主寨 1 级起逐级给这种建筑的名额）；到顶了返回 null */
@@ -106,10 +106,10 @@ export function nextSlotHq(limits: number[], hq: number): number | null {
   return null;
 }
 
-/** 建造卡上名额满了的那一句 */
+/** 建造卡上名额满了的那一句（卡上已经写着「已建 1/1」，不再重复「名额满了」，整句放得进一行） */
 export function fullText(max: number, nextHq: number | null): string {
   if (max === 0) return '现在还不能建';
-  return nextHq === null ? '名额满了' : `名额满了，主寨 ${nextHq} 级加名额`;
+  return nextHq === null ? '名额满了' : `主寨 ${nextHq} 级加名额`;
 }
 
 /** 主寨庆祝框的主按钮：新开放的里有建筑就直接带去建造，否则只是收起来 */

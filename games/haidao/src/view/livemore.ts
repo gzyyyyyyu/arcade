@@ -112,7 +112,7 @@ export async function showEscortLiveResult(tier: LiveTier, seed: number, er: Esc
     el('p', 'hd-live-note', '结果记下了，连上网后会自动结回。', box);
   } else el('p', 'hd-live-note', escortErr(r.error), box);
   el('p', 'hd-live-note', NO_CASH, box);
-  main = button('回家', 'hd-btn-gold hd-btn-wide', () => {
+  main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {
     mask.remove();
     app.goBase();
   }, box);

@@ -347,7 +347,7 @@ class RoutePage {
     // 节点
     const visited = new Map(s.log.map((l) => [`${l.layer}.${l.node}`, l]));
     s.route.layers.forEach((ns, layer) => {
-      const lbl = el('div', 'hd-route-layer', layer === MAP_LAYERS - 1 ? '终点' : `第 ${layer + 1} 站`, this.nodesEl);
+      const lbl = el('div', `hd-route-layer${layer === MAP_LAYERS - 1 ? ' end' : ''}`, layer === MAP_LAYERS - 1 ? '终点' : `第 ${layer + 1} 站`, this.nodesEl);
       lbl.style.top = `${rowY()[layer + 1]! - 8.5}%`;
       ns.forEach((n, i) => {
         const cur = !s.over && layer === s.layer;
@@ -620,7 +620,7 @@ class RoutePage {
   private askHome(): void {
     if (this.busy || !run) return;
     const pts = run.s.pts;
-    confirmBox(pts > 0 ? `现在收航，带着 ${fmt(pts)} 宝分回家？后面的站就不打了。` : '一站没打就收航？宝分是 0。', '收航', () => {
+    confirmBox(pts > 0 ? `现在收航，带着 ${fmt(pts)} 宝分回岛？后面的站就不打了。` : '一站没打就收航？宝分是 0。', '收航', () => {
       if (!run) return;
       run.s = mapRules().goHome(run.s);
       this.close();

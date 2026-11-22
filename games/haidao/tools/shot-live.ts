@@ -1,6 +1,6 @@
 /**
  * --bounty：悬赏出海（实盘）这一批的真人流程（DESIGN 4.5–4.7），钱包是假的（shot-fake.ts → 真的 worker/live.ts + fake-bank.ts）：
- * 顶栏「换」→ 金银锭换筹码 → 海图「悬赏出海（实盘）」→ 连闯三座 → 带入 → 真人登陆打第一座 → 过了就收手（没过直接结）→ 结算 → 回家
+ * 顶栏「换」→ 金银锭换筹码 → 海图「悬赏出海（实盘）」→ 连闯三座 → 带入 → 真人登陆打第一座 → 过了就收手（没过直接结）→ 结算 → 回岛
  * → 船长档案的收藏页 → 用筹码买一件装饰。核对钱包里兑换走 hx-i-、装饰走 hd- 命名空间，余额按步对得上。
  */
 import { newProfile } from '../src/core/index.ts';
@@ -83,7 +83,7 @@ export async function bounty(c: ShotCtx): Promise<boolean> {
     })) &&
     (await step('收手结算', async () => {
       const stop = page.locator('.hd-dialog button:has-text("收手")');
-      const home = page.locator('.hd-live button:has-text("回家")');
+      const home = page.locator('.hd-live button:has-text("回岛")');
       await stop.or(home).first().waitFor({ timeout: 180_000 });
       if (await stop.count()) {
         await page.waitForTimeout(400);

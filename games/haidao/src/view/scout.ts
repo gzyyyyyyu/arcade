@@ -1,7 +1,7 @@
 import { BUILDINGS, TROOPS, type LevelDef } from '../content/index.ts';
 import { hqLevel, publicLayout } from '../core/index.ts';
 import type { BuildingKind, Placed, TroopKind } from '../core/types.ts';
-import { app } from './app.ts';
+import { app, fmt } from './app.ts';
 import { bArt, iconA, tArt } from './art.ts';
 import { renderLayout } from './mini.ts';
 import { button, el, img, uiRoot } from './ui.ts';
@@ -56,9 +56,9 @@ export function openScout(lv: LevelDef): void {
     const loot = el('div', 'hd-scout-loot', undefined, info);
     el('span', 'hd-sub', '最多能抢', loot);
     loot.appendChild(img(iconA('gold'), 18));
-    el('b', '', String(lv.loot.gold), loot);
+    el('b', 'hd-n', fmt(lv.loot.gold), loot);
     loot.appendChild(img(iconA('wood'), 18));
-    el('b', '', String(lv.loot.wood), loot);
+    el('b', 'hd-n', fmt(lv.loot.wood), loot);
     const tip = el('div', 'hd-scout-tip2', undefined, info);
     const hq = hqLevel(app.profile);
     const icon = (['brute', 'bomber', 'sailor'] as TroopKind[]).find((k) => TROOPS[k].unlockHq <= hq) ?? 'sailor';

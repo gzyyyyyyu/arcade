@@ -134,12 +134,17 @@ export class Tutorial {
     let bottom = root.height;
     let left = 0;
     let right = root.width;
-    for (const e of this.root.querySelectorAll('.hd-bottom, .hd-cards, .hd-place, .hd-sheet, .hd-bounty, .hd-mapcard, .hd-map-close, .hd-map-home')) {
+    for (const e of this.root.querySelectorAll('.hd-bottom, .hd-cards, .hd-place, .hd-sheet, .hd-bounty, .hd-mapcard, .hd-map-close, .hd-map-home, .hd-fitbtn, .hd-claimfab')) {
       const b = e.getBoundingClientRect();
       if (b.width === 0 || b.height === 0) continue;
+      // 浮在底栏正上方的「一键收取」：横幅停在它上面，不盖住它（手机横屏它贴在右侧竖排旁边，按竖排让）
+      if (e.classList.contains('hd-claimfab') && b.top - root.top > root.height * 0.5) {
+        bottom = Math.min(bottom, b.top - root.top);
+        continue;
+      }
       // 手机横屏的底栏挪到右侧竖排：窄的不算底部（和镜头适配 measureInsets 同一口径），否则底部像是没地方，横幅只能停顶上压住目标
       if (b.width > root.width * 0.5) bottom = Math.min(bottom, b.top - root.top);
-      // 贴边的竖排（横屏的兵种卡和技能列、海图左上的悬赏和航线卡、海图右上的「回岛」「回到下一关」）：横幅左右让开，免得盖住引导要你点的那个钮
+      // 贴边的竖排（横屏的兵种卡和技能列、海图左上的悬赏和航线卡、海图右上的「回岛」「找下一关」、右上的「全景」）：横幅左右让开，免得盖住引导要你点的那个钮
       else if (b.left - root.left > root.width * 0.6) right = Math.min(right, b.left - root.left - 8);
       else if (b.right - root.left < root.width * 0.4) left = Math.max(left, b.right - root.left + 8);
     }
@@ -195,5 +200,9 @@ export class Tutorial {
       this.arrow.style.borderBottomColor = '#2b1a15';
       this.arrow.style.borderTopColor = 'transparent';
     }
+    // 目标在一排挨着的钮里（建造列表的卡）：箭头无论放哪边都压在隔壁钮的字上，只留光圈
+    const o = this.root.getBoundingClientRect();
+    const under = document.elementFromPoint(o.left + this.arrow.offsetLeft + 12, o.top + this.arrow.offsetTop + 12);
+    if (under?.closest('button')) this.arrow.style.display = 'none';
   }
 }

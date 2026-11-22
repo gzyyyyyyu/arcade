@@ -190,7 +190,7 @@ export async function map(c: ShotCtx): Promise<boolean> {
 /** --maplive：航线实盘 */
 export async function mapLive(c: ShotCtx): Promise<boolean> {
   const { page, v, ROOT, problems, shot, tap, sceneIs, step, click, beach, ready } = c;
-  // 航线实盘：海图「今日航线」旁的「实盘」→ 选档 → 带入 → 打一站 → 刷新页面 → 接着跑 → 收航 → 结算 → 回家
+  // 航线实盘：海图「今日航线」旁的「实盘」→ 选档 → 带入 → 打一站 → 刷新页面 → 接着跑 → 收航 → 结算 → 回岛
   const fake = new FakePvp();
   await fake.seed();
   await fake.route(page, problems);

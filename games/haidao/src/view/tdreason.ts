@@ -124,7 +124,7 @@ function hasCounter(armor: TdArmor, towers: ReasonExtra['towers']): boolean {
 
 /** 局末余金提示；不到整局收入的 25% 返回 null */
 export function idleGoldText(gold: number, earned: number): string | null {
-  return earned > 0 && gold > 0 && gold * 100 >= earned * IDLE_GOLD_PCT ? `还有 ${gold} 金没花` : null;
+  return earned > 0 && gold > 0 && gold * 100 >= earned * IDLE_GOLD_PCT ? `还有 ${gold.toLocaleString('en-US')} 金没花` : null;
 }
 
 export function tdReason(log: ReasonLog, res: ReasonRes, extra: ReasonExtra): Reason {

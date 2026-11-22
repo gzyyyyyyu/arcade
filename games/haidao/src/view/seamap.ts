@@ -72,7 +72,7 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
   CAMPAIGN.forEach((l, i) => {
     if (stars >= l.reqStars) current = i;
   });
-  // 下一关：第一座解锁了还没拿星的岛；都拿过星就是第一座没三星的；全三星停在最后解锁的那座。光圈、「下一关」旗、出发钮和「回到下一关」都认它
+  // 下一关：第一座解锁了还没拿星的岛；都拿过星就是第一座没三星的；全三星停在最后解锁的那座。光圈、「下一关」旗、出发钮和「找下一关」都认它
   let focus = CAMPAIGN.findIndex((l) => stars >= l.reqStars && (p.stars[l.id] ?? 0) === 0);
   if (focus < 0) focus = CAMPAIGN.findIndex((l) => stars >= l.reqStars && (p.stars[l.id] ?? 0) < 3);
   if (focus < 0) focus = current;
@@ -237,7 +237,7 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
     cards.remove();
   }
   // 海图是可拖动的游戏地图：页面本身不滚（容器 overflow:clip），内容用 transform 平移；
-  // 拖动平移，滚轮不响应（不滚页面），按钮和面板都在 wrap 外固定在屏幕上，「回到下一关」把地图平移回下一关
+  // 拖动平移，滚轮不响应（不滚页面），按钮和面板都在 wrap 外固定在屏幕上，「找下一关」把地图平移回下一关
   let off = 0;
   const maxOff = (): number => Math.max(0, H - wrap.clientHeight);
   const setOff = (v: number, anim = false): void => {
@@ -284,7 +284,7 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
   wrap.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
   const onResize = (): void => setOff(off);
   window.addEventListener('resize', onResize);
-  const home = button('回到下一关', 'hd-btn-plain hd-map-home', () => setOff(homeOff(), true), uiRoot());
+  const home = button('找下一关', 'hd-btn-plain hd-map-home', () => setOff(homeOff(), true), uiRoot());
   requestAnimationFrame(() => setOff(homeOff()));
   return stop;
 }

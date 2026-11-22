@@ -101,7 +101,10 @@ export function collectFly(bs: BaseScene, kind: 'gold' | 'wood', from: { x: numb
   });
 }
 
-/** 花钱的反馈：顶栏的资源条抖一下，数字下面飘一个红色的 -N（升级、建造、研究都走这里；收取有自己的飞币） */
+/**
+ * 花钱的反馈：顶栏的资源条抖一下，牌子下半截冒一个红色的 -N 往上飘着淡掉（升级、建造、研究都走这里；收取有自己的飞币）。
+ * 不往下飘：手机竖屏顶栏两行，往下会撞在第二行的「训练营」上
+ */
 export function spendFx(bs: BaseScene, kind: 'gold' | 'wood', amount: number): void {
   const pill = bs.hud[kind];
   pill.animate([{ transform: 'scale(1)' }, { transform: 'scale(.93)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' });
@@ -109,8 +112,8 @@ export function spendFx(bs: BaseScene, kind: 'gold' | 'wood', amount: number): v
   const b = bs.ui.getBoundingClientRect();
   const t = el('div', 'hd-spend', `-${fmt(amount)}`, bs.ui);
   t.style.left = `${a.left - b.left + a.width / 2}px`;
-  t.style.top = `${a.bottom - b.top - 4}px`;
-  t.animate([{ opacity: 1, transform: 'translate(-50%,0)' }, { opacity: 1, transform: 'translate(-50%,10px)', offset: 0.7 }, { opacity: 0, transform: 'translate(-50%,20px)' }], { duration: 1400, easing: 'ease-out' }).onfinish = () => t.remove();
+  t.style.top = `${a.top - b.top + a.height / 2}px`;
+  t.animate([{ opacity: 1, transform: 'translate(-50%,0)' }, { opacity: 1, transform: 'translate(-50%,-10px)', offset: 0.7 }, { opacity: 0, transform: 'translate(-50%,-20px)' }], { duration: 1400, easing: 'ease-out' }).onfinish = () => t.remove();
 }
 
 export function updateHud(bs: BaseScene): void {
@@ -202,7 +205,7 @@ export function buildUi(bs: BaseScene): void {
   const me = button('', 'hd-btn-plain hd-profile', () => openProfile(bs), bar2);
   bs.hud = { gold, wood, hq, me };
   me.innerHTML = CAPTAIN_ICON;
-  me.setAttribute('aria-label', '船长档案：星数和成就');
+  me.setAttribute('aria-label', '船长档案：星数、成就、收藏');
   bs.bottom = el('div', 'hd-bottom', undefined, bs.ui);
   const mk = (label: string, icon: 'hammer' | 'map' | 'ship' | 'shield', cls: string, f: () => void, dots: Array<'upgrade' | 'collect' | 'attacked'> = []): HTMLElement => {
     const b = button('', cls, f, bs.bottom);

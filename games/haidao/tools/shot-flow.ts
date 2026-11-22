@@ -1,5 +1,5 @@
 /**
- * shot.ts 的 --flow：新存档的真人主流程（收金币 → 建造 → 主寨 → 船队 → 出海 → 手动登陆 → 结算 → 回家）。
+ * shot.ts 的 --flow：新存档的真人主流程（收金币 → 建造 → 主寨 → 船队 → 出海 → 手动登陆 → 结算 → 回岛）。
  * 是新玩家第一次进游戏走的路，最长、最常跑，单独一个文件。
  */
 import { HQ, hook, layoutProblems, type ShotCtx } from './shot-lib.ts';
@@ -167,7 +167,7 @@ export async function flow(c: ShotCtx): Promise<boolean> {
       await shot('result');
       for (const p of await layoutProblems(page)) problems.push(`${v.name} 结算 ${p}`);
     })) &&
-    (await step('回家', async () => {
+    (await step('回岛', async () => {
       // 新成就的弹窗盖在结算上面（新档第一场必弹），先收起
       await page.waitForTimeout(3500);
       for (let i = 0; i < 4; i++) {
@@ -177,7 +177,7 @@ export async function flow(c: ShotCtx): Promise<boolean> {
         await ok.first().click({ timeout: 5000 });
         await page.waitForTimeout(500);
       }
-      await click('.hd-result button:has-text("回家")');
+      await click('.hd-result button:has-text("回岛")');
       await sceneIs('base');
       await page.waitForTimeout(1000);
       await shot('home');

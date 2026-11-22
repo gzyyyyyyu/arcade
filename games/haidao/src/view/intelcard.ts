@@ -62,7 +62,7 @@ function chip(c: IntelCard, k: string, parent: HTMLElement, cls: string): void {
   }
 }
 
-/** 整张卡（compact = 战斗里贴边的小卡：只留数值和寻敌，不放相克和大图） */
+/** 整张卡（compact = 战斗里用的小卡：只留当前数值和寻敌，不放升级对照、相克和大图） */
 function intelEl(c: IntelCard, compact = false): HTMLElement {
   injectCss();
   const box = el('div', `hd-intel${compact ? ' compact' : ''} f-${c.family}`);
@@ -71,7 +71,8 @@ function intelEl(c: IntelCard, compact = false): HTMLElement {
   const ht = el('div', 'hd-intel-ht', undefined, head);
   const nm = el('div', 'hd-intel-nm', undefined, ht);
   el('b', '', c.name, nm);
-  el('span', 'hd-intel-lv', c.level >= c.maxLevel ? `${c.level} ${c.levelWord}（满）` : `${c.level} ${c.levelWord} ➜ ${c.level + 1} ${c.levelWord}`, nm);
+  const lv = `${c.level} ${c.levelWord}`;
+  el('span', 'hd-intel-lv', compact ? lv : c.level >= c.maxLevel ? `${lv}（满）` : `${lv} ➜ ${c.level + 1} ${c.levelWord}`, nm);
   el('p', 'hd-intel-role', c.role, ht);
   const body = el('div', 'hd-intel-body', undefined, box);
   const st = el('div', 'hd-intel-stats', undefined, body);
@@ -82,7 +83,7 @@ function intelEl(c: IntelCard, compact = false): HTMLElement {
     el('i', '', undefined, bar).style.width = `${Math.round(s.bar * 100)}%`;
     el('b', 'hd-intel-v hd-n', s.cur, row);
     // 下一级对照：「➜ 125（+15）」，没涨的不写
-    el('span', 'hd-intel-up hd-n', s.next !== null && s.up ? `➜ ${s.next.replace(/ .*$/, '')}（${s.up}）` : '', row);
+    el('span', 'hd-intel-up hd-n', !compact && s.next !== null && s.up ? `➜ ${s.next.replace(/ .*$/, '')}（${s.up}）` : '', row);
   }
   const aim = el('div', 'hd-intel-aims', undefined, body);
   el('h4', '', '怎么找目标', aim);
@@ -116,24 +117,25 @@ export function intelButton(label: string, make: () => IntelCard, parent: HTMLEl
 }
 
 /** 弹窗打开一张卡（叠在面板上，Esc / 点遮罩 / × 关） */
-function openIntel(c: IntelCard): void {
+function openIntel(c: IntelCard, compact = false): void {
   const mask = openModal({ cls: 'hd-intel-mask', closable: true, stack: true });
   const dlg = el('div', 'hd-dialog hd-intel-dlg', undefined, mask);
-  dlg.appendChild(intelEl(c));
+  dlg.appendChild(intelEl(c, compact));
   button('×', 'hd-x hd-intel-x', () => mask.remove(), dlg).title = '关掉（Esc）';
 }
 
 let floatEl: HTMLElement | null = null;
-/** 电脑悬停：卡片浮在元素旁边（不抢焦点、不挡点击），移开就收 */
-function showFloat(c: IntelCard, anchor: HTMLElement): void {
+/** 电脑悬停：卡片浮在元素旁边（不抢焦点、不挡点击），移开就收；战斗里浮在整个底栏上方，不盖技能行 */
+function showFloat(c: IntelCard, anchor: HTMLElement, compact: boolean): void {
   hideFloat();
   const f = el('div', 'hd-intel-float', undefined, uiRoot());
-  f.appendChild(intelEl(c));
+  f.appendChild(intelEl(c, compact));
   const r = anchor.getBoundingClientRect();
+  const top = compact ? (anchor.closest('.hd-cards')?.getBoundingClientRect().top ?? r.top) : r.top;
   const W = f.offsetWidth;
   const H = f.offsetHeight;
   const x = Math.max(8, Math.min(innerWidth - W - 8, r.left + r.width / 2 - W / 2));
-  const above = r.top - H - 8;
+  const above = top - H - 8;
   const y = above >= 8 ? above : Math.min(innerHeight - H - 8, r.bottom + 8);
   f.style.transform = `translate(${Math.round(x)}px,${Math.round(Math.max(8, y))}px)`;
   floatEl = f;
@@ -176,12 +178,14 @@ const HOVER_MS = 500;
 /**
  * 给一个元素挂上介绍卡片：手机长按（松手后这次点击不算）、电脑悬停一会儿浮出、右键弹出。
  * make 每次现算（等级会变）；返回 null 就不弹。
+ * battle：战斗里的兵种卡——弹精简卡（不放升级对照和相克，手机上不盖住底栏），也不挂角上的小「i」（贴着头像像个按钮，
+ * 战斗里点卡是选兵，长按是给熟手的）
  */
-export function attachIntel(target: HTMLElement, make: () => IntelCard | null): void {
+export function attachIntel(target: HTMLElement, make: () => IntelCard | null, battle = false): void {
   injectCss();
   // 角上一个小「i」：告诉玩家这张卡能看介绍（长按、悬停、右键都是藏着的手势）
   target.classList.add('hd-intel-host');
-  el('span', 'hd-intel-i', 'i', target).setAttribute('aria-hidden', 'true');
+  if (!battle) el('span', 'hd-intel-i', 'i', target).setAttribute('aria-hidden', 'true');
   if (!target.title) target.title = '长按或右键看介绍';
   let hold: ReturnType<typeof setTimeout> | undefined;
   let hover: ReturnType<typeof setTimeout> | undefined;
@@ -195,7 +199,7 @@ export function attachIntel(target: HTMLElement, make: () => IntelCard | null): 
     hold = setTimeout(() => {
       const c = make();
       if (!c) return;
-      openIntel(c);
+      openIntel(c, battle);
       swallowClick();
     }, HOLD_MS);
   });
@@ -208,7 +212,7 @@ export function attachIntel(target: HTMLElement, make: () => IntelCard | null): 
     clearTimeout(hover);
     hover = setTimeout(() => {
       const c = make();
-      if (c && target.isConnected && target.matches(':hover')) showFloat(c, target);
+      if (c && target.isConnected && target.matches(':hover')) showFloat(c, target, battle);
     }, HOVER_MS);
   });
   target.addEventListener('pointerleave', () => {
@@ -221,7 +225,7 @@ export function attachIntel(target: HTMLElement, make: () => IntelCard | null): 
     e.preventDefault();
     clearTimeout(hover);
     hideFloat();
-    openIntel(c);
+    openIntel(c, battle);
   });
 }
 
@@ -313,7 +317,8 @@ ${U} .hd-intel-pin .hd-intel-x { right:2px; top:2px; }
   ${U} .hd-intel-body { grid-template-columns:1fr; gap:6px; }
   ${U} .hd-intel-aim { margin-bottom:2px; }
   ${U} .hd-intel-pin { left:8px; right:8px; top:auto; bottom:calc(env(safe-area-inset-bottom) + 96px); }
-  ${U} .hd-intel.compact { width:auto; }
+  /* 浮卡左右各留 8，再减浮卡自己的内边距和边框（12 + 2）×2 */
+  ${U} .hd-intel.compact { width:calc(100vw - 44px); }
   ${U} .hd-intel.compact .hd-intel-stats { display:grid; grid-template-columns:1fr 1fr; column-gap:10px; }
   ${U} .hd-intel.compact .hd-intel-st { grid-template-columns:auto minmax(20px,1fr) auto; }
   ${U} .hd-intel.compact .hd-intel-up { display:none; }
