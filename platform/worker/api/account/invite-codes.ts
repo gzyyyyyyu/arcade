@@ -362,7 +362,7 @@ async function usesOf(db: Db, ids: string[]) {
 }
 
 /** 长期码能设的范围；默认 100 次、不过期 */
-export const MULTI_CODE = { usesDefault: 100, usesMax: 1000, daysMax: 365 } as const;
+export const MULTI_CODE = { usesDefault: 100, usesMax: 10_000, daysMax: 365 } as const;
 
 /**
  * POST /api/admin/invite-codes {maxUses?: 2–1000（默认 100）, days?: 1–365（不给或 null 不过期）}：建一个长期码，只有管理员会话能建
