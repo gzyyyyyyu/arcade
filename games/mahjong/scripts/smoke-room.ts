@@ -7,7 +7,7 @@
  * 内容：
  * 1. 娱乐房：A 开房（局数 4），回主页再开房被挡、点"回到你的房间"回到原房间；B 凭 ?room= 进等人页坐下、A 开打，两边自动打满 N 局（换三张、定缺、能胡就胡、不然过、打最右边那张），
  *    B 离开并确认，A 继续打、牌桌还在动；
- *    中途 C 凭链接进来旁观（看得到桌面、没有手牌、不能扔东西），点"坐下"接管电脑座位，离开再进来是"回到我的座位"；
+ *    中途 C 凭链接进来直接接管电脑座位（不落在旁观），离开再进来直接回到自己的座位；
  * 2. 实盘小档房：A 一个人时"开打"灰着、有"至少要两个人"的提示；A、B 进房开打，检查假钱包各扣 2,000、stakes 里各有 mahjong 的 server 模式一份；
  *    B 一局打到一半离开：这一局由电脑替他打完、那一份先还在；A 打完这一局，只剩 A 一个人在下注：这一场结束，两个人的那一份都结回、余额加回结回的数，A 的结算上写着提前结束。
  * 3. 血流成河娱乐房：A 在选桌页的玩法行点"血流成河"再开房，等人页写着血流成河；两边自动打到有人胡第二次（名牌上"胡×2"），
@@ -192,11 +192,19 @@ async function openRoom(page: Page, base: string, stake: '娱乐' | '小档', fl
   return code;
 }
 
-/** B 凭链接进房坐下、A 开打。娱乐房 B 一进来就自动坐第一个空位；实盘房要自己点"坐这里"（坐下就要带一份） */
-async function joinAndStart(a: Page, b: Page, base: string, code: string, wallet = false): Promise<void> {
-  await b.goto(`${base}/games/mahjong/?room=${code}`);
+/**
+ * B 进房坐下、A 开打。娱乐房 B 一进来就自动坐第一个空位；实盘房要自己点"坐这里"（坐下就要带一份）。
+ * via 'friends'：B 不用链接，从好友房选桌页标题右边的「加入 A 的桌」进（A 进房时报的位置，本地假平台的好友列表带回来）
+ */
+async function joinAndStart(a: Page, b: Page, base: string, code: string, wallet = false, via: 'link' | 'friends' = 'link'): Promise<void> {
+  if (via === 'friends') {
+    await b.goto(`${base}/games/mahjong/?online=1`);
+    const join = await b.waitForSelector(`.lobby-head .friend-join[title="房间 ${code}"]`, { timeout: 10_000 });
+    check(/^加入.+ · 1\/4$/.test((await join.textContent()) ?? ''), `B 在好友房选桌页看到「${await join.textContent()}」`);
+    await join.click();
+  } else await b.goto(`${base}/games/mahjong/?room=${code}`);
   await b.waitForSelector('.room-code');
-  check(((await b.textContent('.room-code')) ?? '').trim() === code, `B 凭 ?room= 直接进等人页，房间号 ${code}`);
+  check(((await b.textContent('.room-code')) ?? '').trim() === code, via === 'friends' ? `B 点「加入」进了 A 的等人页，房间号 ${code}` : `B 凭 ?room= 直接进等人页，房间号 ${code}`);
   const auto = await b.waitForSelector('.room-seat.me', { timeout: 4_000 }).then(() => true, () => false);
   check(auto === !wallet, wallet ? '实盘房凭链接进来不自动坐下' : '娱乐房凭链接进来自动坐第一个空位');
   if (!auto) await b.click('.room-seat.empty .act');
@@ -280,7 +288,7 @@ try {
     await pb.waitForSelector('.lobby-head');
     const freed = await pa.waitForFunction(() => document.querySelectorAll('.room-seat:not(.empty)').length === 1, null, { timeout: 5_000 }).then(() => true, () => false);
     check(freed, 'B 在等人页点"离开房间"，A 这边他的座位空出来');
-    await joinAndStart(pa, pb, base, code);
+    await joinAndStart(pa, pb, base, code, false, 'friends');
     check(true, `娱乐房开打，两边进牌桌（${Math.round((Date.now() - t) / 1000)} 秒）`);
     const here = presence.map((x) => JSON.parse(x || '{}') as { place?: string; room?: string; seats?: string }).find((x) => x.place === 'room');
     check(here?.room === code && /^[1-4]\/4$/.test(here.seats ?? ''), `A 进房后报了位置：在房间里（${JSON.stringify(here)}）`);
@@ -338,34 +346,30 @@ try {
       await hot(pa, 2 + (i % 2));
       await key(pa, 'fun:prop0');
     }
-    // 旁观（docs/social.md 1.4）：C 在开打后凭链接进来，座位都有人（A、B 和两个电脑），进"旁观中"：看得到牌桌、没有自己的手牌、不能扔东西，
-    // 两个没绑人的电脑座位各有一个"坐下"；坐下接管一个，离开后再进来是"回到我的座位"（kit 的座位绑人规则）
+    // 开打后凭链接进来（0.47.2）：娱乐房里直接接管一个没绑人的电脑座位，不落在旁观；离开后再进来直接回到自己坐过的座位（kit 的座位绑人规则）
     const ctxC = await newContext(browser, base, 'smokeC0003', { width: 390, height: 844 });
     const pc = await ctxC.newPage();
     pages.push(pc);
     watch(pc, 'C');
+    // 牌面带 title（牌名），牌背没有；换三张、定缺时手牌是 off，所以不按能不能点数
+    const seated = async (): Promise<number> => {
+      await pc.waitForFunction(() => document.querySelectorAll('.my-hand .tile[title]').length >= 13 && !document.querySelector('.room-note.watch'), null, { timeout: 15_000 });
+      return pc.$$eval('.my-hand .tile[title]', (xs) => xs.length);
+    };
     await pc.goto(`${base}/games/mahjong/?room=${code}`);
-    await pc.waitForSelector('.room-note.watch .watch-tag:has-text("旁观中")', { timeout: 10_000 });
-    const backs = await pc.$$eval('.my-hand .tile:not([title])', (xs) => xs.length);
-    const faces = await pc.$$eval('.my-hand .tile[title]', (xs) => xs.length);
-    const sits = await pc.$$eval('.room-note.watch button', (xs) => xs.map((x) => x.textContent ?? ''));
-    check(backs >= 13 && faces === 0 && sits.length === 2 && sits.every((x) => x.startsWith('坐下')), `C 开打后进来是旁观：底下那家是 ${backs} 张牌背、没有牌面，两个"坐下"（${sits.join(' / ')}）`);
-    check(!(await pc.$('.atf-btn')), 'C 旁观时没有"互动"按钮（不能扔表情道具）');
-    await pc.screenshot({ path: join(SHOTS, 'room-watch-c.png') });
+    const mine = await seated();
+    check(!!(await pc.$('.atf-btn')), `C 开打后凭链接进来直接接管了一个电脑座位：手牌亮出来（${mine} 张），有"互动"按钮`);
+    await pc.screenshot({ path: join(SHOTS, 'room-late-c.png') });
     await pc.setViewportSize({ width: 1280, height: 720 });
     await sleep(500);
-    await pc.screenshot({ path: join(SHOTS, 'room-watch-c-land.png') });
+    await pc.screenshot({ path: join(SHOTS, 'room-late-c-land.png') });
     await pc.setViewportSize({ width: 390, height: 844 });
-    await sleep(500);
-    await pc.click('.room-note.watch button >> nth=0');
-    await pc.waitForSelector('.room-note.watch', { state: 'detached', timeout: 10_000 });
-    // 牌面带 title（牌名），牌背没有；换三张、定缺时手牌是 off，所以不按能不能点数
-    const mine = await pc.$$eval('.my-hand .tile[title]', (xs) => xs.length);
-    check(mine >= 13 && !!(await pc.$('.atf-btn')), `C 点"坐下"接管了一个电脑座位：手牌亮出来（${mine} 张），有"互动"按钮了`);
     await leaveRoom(pc, 'C');
     await pc.goto(`${base}/games/mahjong/?room=${code}`);
-    await pc.waitForSelector('.room-note.watch button:has-text("回到我的座位")', { timeout: 10_000 });
-    check(true, 'C 离开后再进来：旁观中，有"回到我的座位"');
+    await seated();
+    check(true, 'C 离开后再进来：直接回到自己的座位');
+    // 坐着直接关页面只算掉线、座位还是他的，房间打完前不收场（A 的开房名额还不回来）：先正常离座
+    await leaveRoom(pc, 'C');
     await pc.close();
     pages.splice(pages.indexOf(pc), 1);
     await ctxC.close();

@@ -1,7 +1,7 @@
 /**
  * 好友：报位置、收邀请、叫朋友来（docs/social.md 1.2、1.3，kit 的 arcade-kit/social；没平台、没登录时不挂）。
  */
-import { inviteUrl, mountSocial, openInvite, type Invite, type Presence } from 'arcade-kit/social';
+import { fetchFriends, inviteUrl, mountSocial, openInvite, type Invite, type Presence } from 'arcade-kit/social';
 import type { KitTheme } from 'arcade-kit/theme';
 import { GAME_NAME } from '../view/text.ts';
 import { leave, leaveRoom } from './leave.ts';
@@ -37,6 +37,26 @@ function whereAmI(): Presence {
   if (!s?.room || inMatch()) return { place: 'game', game: GAME_ID };
   const humans = s.room.seats.filter((x) => x.kind === 'human').length;
   return { place: 'room', game: GAME_ID, room: s.code, seats: `${humans}/${s.room.seats.length}` };
+}
+
+/** 一个正在好友房里打雀馆的朋友：房号和"真人/座位"（他自己报的位置） */
+export interface FriendTable {
+  name: string;
+  room: string;
+  seats: string;
+}
+
+/**
+ * 好友房选桌页的「加入」挑哪一桌（朋友回来玩，0.47.2）：在线、在雀馆好友房里的朋友，没坐满的在前。
+ * 没登录、没平台（social 没挂上）不问；好友列表取不到就当没人在打，这一钮本来就是可有可无的
+ */
+export async function friendTable(): Promise<FriendTable | null> {
+  if (!session.social) return null;
+  const tables = ((await fetchFriends()) ?? []).flatMap((f) =>
+    f.online && f.where?.place === 'room' && f.where.game === GAME_ID && f.where.room ? [{ name: f.name, room: f.where.room, seats: f.where.seats ?? '' }] : [],
+  );
+  const full = (t: FriendTable): boolean => /^(\d+)\/\1$/.test(t.seats);
+  return tables.find((t) => !full(t)) ?? tables[0] ?? null;
 }
 
 /** 点邀请的"去"：打到一半先照常确认离开（实盘的结回照旧），取消了就留下 */
