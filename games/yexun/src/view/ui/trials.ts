@@ -40,10 +40,10 @@ function setupLine(t: TrialDef): string {
   return `${where} · ${CHARACTERS[t.character].name} · ${danger}`;
 }
 
-/** 词缀：咒印、夜事、新词缀，各一小句 */
+/** 词缀：咒印、夜事、新词缀，各一小句；没有就空（卡上不占一行） */
 function rulesLine(t: TrialDef): string {
   const parts = [...(t.curses ?? []).map((c) => CURSES[c].text), ...(t.weekly ? [WEEKLIES[t.weekly].text] : []), ...affixTexts(t)];
-  return parts.length ? parts.join('；') : '没有额外规矩';
+  return parts.join('；');
 }
 
 export class TrialsPanel {
@@ -84,7 +84,7 @@ export class TrialsPanel {
         `<button type="button" class="yx-tr-card t${t.tier}${best !== undefined && best >= 1e9 ? ' done' : ''}" data-id="${id}"${open ? '' : ' disabled'}>` +
         `<span class="h"><b>${esc(t.name)}</b><span class="g">${esc(goalText(t.goal))}</span><i>${tier.name}</i></span>` +
         `<small>${esc(setupLine(t))}</small>` +
-        `<small class="r">${esc(rulesLine(t))}</small>` +
+        (rulesLine(t) ? `<small class="r">${esc(rulesLine(t))}</small>` : '') +
         `<span class="s">${esc(status)}</span>` +
         '<span class="f"></span>' +
         '</button>'
@@ -95,7 +95,7 @@ export class TrialsPanel {
       .join('');
     this.root.innerHTML =
       '<div class="yx-panel yx-trials">' +
-      `<div class="yx-panel-head"><b class="yx-brush">试炼</b><em>人人同一关 · 第一次通关给铜钱</em></div>` +
+      `<div class="yx-panel-head"><b class="yx-brush">试炼</b><em>人人同一关 · 首通给铜钱</em></div>` +
       `<ul class="yx-tr-week" aria-label="本周目标"><li class="hd"><span>本周目标</span><em>还剩 ${v.daysLeft} 天 · 全完成再 +500</em></li>${week}</ul>` +
       `<div class="yx-tr-grid">${cards}</div>` +
       `<div class="yx-row3 yx-pgfoot">${PAGER_CTL}<button type="button" class="yx-big ghost" data-a="close">返回</button></div>` +

@@ -124,12 +124,12 @@ export class Guide {
       `<div class="yx-gbody">${body}</div>` +
       `<div class="yx-row3 yx-pgfoot">${PAGER_CTL}<button type="button" class="yx-big ghost" data-a="close">返回</button></div>` +
       '</div>';
-    // 电脑（宽屏）：页内分两栏，每页一整块、一屏放下，不翻页（流派页每张卡多一行心法特色，放不下，按卡翻页）；手机单栏：标题、段落、列表项、配方行、快捷键表的一行各算一块，放不下的页再翻，标题跟着后面走
+    // 电脑（宽屏）：页内分两栏，每页一整块、一屏放下，不翻页（流派页按卡、合成页按行翻：放不下，原来合成页整块算一页，底下几行被裁掉）；手机单栏：标题、段落、列表项、配方行、快捷键表的一行各算一块，放不下的页再翻，标题跟着后面走
     this.pager = new Pager({
       body: this.root.querySelector<HTMLElement>('.yx-gbody')!,
       ctl: this.root.querySelector<HTMLElement>('.yx-pager')!,
       leaves: WIDE.matches
-        ? '.yx-gcols, .yx-gpage, .yx-gbody > .yx-gsec, .yx-gflow > .yx-gtop, .yx-gschool'
+        ? '.yx-gcols, .yx-gbody > .yx-gsec, .yx-gflow > .yx-gtop, .yx-gschool, .yx-gmhead, .yx-gmrow'
         : '.yx-gsec > h3, .yx-gsec > p, .yx-glist > li, .yx-gcards, .yx-grecipes > .yx-grecipe, .yx-gsec > .yx-grecipe, .yx-grole, .yx-gkeys tr, .yx-gschool, .yx-gmrow, .yx-gtop, .yx-gmhead',
       keep: 'h3',
     });
@@ -321,7 +321,7 @@ export class Guide {
     const list = SHOWN_MERGES;
     const mine = list.filter((m) => mergeReach(m, this.char) === 'ok').length;
     return (
-      '<div class="yx-gpage"><div class="yx-gmhead"><b>合成·双修</b>' +
+      '<div class="yx-gmpage"><div class="yx-gmhead"><b>合成·双修</b>' +
       `<span><em class="yx-gtag mix">合成</em>${esc(mergeHow({}))}</span>` +
       `<span><em class="yx-gtag dual">双修</em>${esc(mergeHow({ dual: true }))}</span>` +
       `<span class="yx-gnote">条件齐了，下一个宝箱就合上，大成才空出一格；共 ${list.length} 个，${esc(poolCharName(this.char))}凑得出 ${mine} 个（压暗的凑不出）</span></div>` +

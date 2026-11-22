@@ -494,7 +494,7 @@ async function boot(): Promise<void> {
     // 引导第 1 条：开局"拖动走位"，一动就收起（0–10 秒）
     if (!tipDone('moved') && !autopilot) {
       input.moved = false;
-      tips.show(TOUCH ? '<b>按住屏幕拖动</b>走位，法器会自己出手；2 级解锁右下角技能钮' : '<b>WASD</b> 或<b>方向键</b>走位，法器会自己出手；<b>Q</b> / <b>空格</b>放技能（2 级解锁）', 10000);
+      tips.show(TOUCH ? '<b>按住屏幕拖动</b>走位，法器自己出手' : '<b>WASD</b> / <b>方向键</b>走位，法器自己出手', 10000);
       const watch = window.setInterval(() => {
         if (input.moved || sess.ended) {
           window.clearInterval(watch);

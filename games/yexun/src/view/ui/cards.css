@@ -7,9 +7,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  padding-bottom: max(10px, 3vh);
-  background: radial-gradient(ellipse at 50% 60%, rgba(20, 24, 40, 0.25), rgba(20, 24, 40, 0.6));
+  gap: 14px;
+  padding-bottom: max(16px, 3vh, calc(env(safe-area-inset-bottom, 0px) + 10px));
+  /* 遮罩 50%–65%（docs/ui.md 第 5 节）：原来中间只有 25%，底下的 HUD 看着像能点 */
+  background: radial-gradient(ellipse at 50% 60%, rgba(20, 24, 40, 0.5), rgba(20, 24, 40, 0.65));
   font: 700 15px/1.3 system-ui, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
   color: #17131c;
 }
@@ -90,6 +91,8 @@
 .yx-picks-bar kbd { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); min-width: 20px; padding: 0 4px; height: 20px; border-radius: 6px; background: #17131c; color: #f6efdc; font-size: var(--fs-xs, 12px); line-height: 20px; text-align: center; }
 /* 触屏没有键盘：快捷键角标不显示 */
 @media (hover: none), (pointer: coarse) { .yx-picks-bar kbd, .yx-pick-key { display: none; } }
+/* 触屏没有键盘焦点：第一张卡不带金框（像是推荐），按下时才亮 */
+@media (hover: none), (pointer: coarse) { .yx-picks:not(.banning) .yx-pick.focus:not(:active) { transform: none; box-shadow: 0 5px 0 #17131c; } }
 .yx-picks-bar button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1.15; }
 .yx-picks-bar button small { font-size: var(--fs-xs, 12px); color: #7a6a52; }
 .yx-picks-bar button.on small { color: #fbf5e4; }
@@ -101,7 +104,7 @@
   to { transform: none; }
 }
 @media (max-height: 500px) {
-  .yx-picks { padding-bottom: 6px; gap: 6px; }
+  .yx-picks { padding-bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) + 6px)); gap: 8px; }
   .yx-picks-head { top: 58px; gap: 0; }
   .yx-picks-lv { font-size: 30px; -webkit-text-stroke-width: 5px; }
   .yx-picks-tip { font-size: var(--fs-sm, 13px); }
@@ -129,7 +132,7 @@
 
 /* 手机竖屏：三张卡竖排（左图右字），整列贴底放，主角和周围留在上半屏；点击区整张卡，远大于 44 */
 @media (max-width: 600px) and (orientation: portrait) {
-  .yx-picks { justify-content: safe flex-end; padding: 0 10px 10px; gap: 6px; overflow-y: auto; }
+  .yx-picks { justify-content: safe flex-end; padding: 0 10px max(18px, calc(env(safe-area-inset-bottom, 0px) + 10px)); gap: 12px; overflow-y: auto; }
   .yx-picks-head { top: 100px; }
   .yx-picks-lv { font-size: 30px; -webkit-text-stroke-width: 5px; }
   .yx-picks-row { flex-direction: column; gap: 6px; width: 100%; max-width: 380px; }

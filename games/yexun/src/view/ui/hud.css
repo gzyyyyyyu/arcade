@@ -64,19 +64,19 @@
   border: 3px solid var(--ink);
   border-radius: 50%;
   background: radial-gradient(circle at 40% 35%, #fff8e6, #e9d7ae);
-  overflow: hidden;
   box-shadow: 0 3px 0 var(--ink);
   flex: none;
 }
+.yx-avatar .yx-face { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
 .yx-avatar img { position: absolute; left: -6%; top: 6%; width: 112%; }
 .yx-lv {
-  position: absolute; right: -2px; bottom: -2px;
+  position: absolute; z-index: 1; right: -8px; bottom: -6px;
   min-width: calc(22px * var(--s, 1)); padding: 0 3px;
   border: 2px solid var(--ink); border-radius: 8px;
   background: var(--red); color: #fff;
   font-size: max(var(--fs-xs, 12px), calc(var(--fs-xs, 12px) * var(--s, 1))); text-align: center; line-height: calc(18px * var(--s, 1));
 }
-/* 阴阳标放在头像顶上正中：头像是圆、overflow 隐藏，放角上会被圆切掉一半 */
+/* 阴阳标放在头像顶上正中，等级在右下角，两个角标不挤在一处 */
 .yx-hud .yx-yy {
   position: absolute; left: 50%; top: -2px; transform: translateX(-50%); min-width: calc(22px * var(--s, 1)); padding: 0 2px;
   border: 2px solid var(--ink); border-radius: 8px;
@@ -234,15 +234,17 @@
 
 /* 连斩横幅：毛笔字 + 墨点，数字一变就弹一下 */
 .yx-combo {
-  position: absolute; left: max(10px, env(safe-area-inset-left, 0px)); top: 30%;
+  position: absolute; left: max(16px, calc(env(safe-area-inset-left, 0px) + 8px)); top: 30%;
   display: flex; align-items: baseline; gap: 2px;
   font-family: 'YxBrush', serif; font-weight: 400;
-  opacity: 0; transform: rotate(-6deg);
+  /* 以左边为轴转、弹：绕中心时左下角和弹大的数字伸出屏幕左缘，首字被切 */
+  opacity: 0; transform: rotate(-6deg); transform-origin: left top;
   transition: opacity 0.3s;
 }
 .yx-combo.on { opacity: 1; }
 .yx-combo.pop .yx-combo-num { animation: yx-combo-pop 0.22s ease-out; }
 .yx-combo-num {
+  transform-origin: left bottom;
   font-size: calc(56px * var(--s, 1)); line-height: 1; color: var(--ink);
   -webkit-text-stroke: 4px #fff; paint-order: stroke fill;
   text-shadow: 3px 4px 0 rgba(23, 19, 28, 0.2);
@@ -319,17 +321,17 @@
    平板竖屏（768、820、884 宽）也用这一套：老样子血条固定 190 宽、计时居中，两者相交（10-20 多尺寸矩阵） */
 @media (max-width: 999px) and (orientation: portrait) {
   .yx-hud .yx-top {
-    position: absolute; display: flex; align-items: center; gap: 4px;
+    position: absolute; display: flex; align-items: center; gap: 8px;
     left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); top: 12px;
   }
   .yx-hud .yx-tl, .yx-hud .yx-tr, .yx-hud .yx-timer { position: static; transform: none; }
-  .yx-hud .yx-tl { flex: 1 1 0; min-width: 0; gap: 4px; align-items: center; }
+  .yx-hud .yx-tl { flex: 1 1 0; min-width: 0; gap: 6px; align-items: center; }
   .yx-hud .yx-tr { display: contents; }
   .yx-hud .yx-home span { display: none; }
   .yx-hud .yx-home { padding: 0; flex: none; }
-  .yx-hud .yx-card { flex: 1 1 0; min-width: 0; gap: 3px; }
+  .yx-hud .yx-card { flex: 1 1 0; min-width: 0; gap: 7px; }
   .yx-hud .yx-avatar { width: 34px; height: 34px; flex: none; border-width: 2.5px; }
-  .yx-hud .yx-lv { min-width: 16px; font-size: var(--fs-xs, 12px); line-height: 13px; right: -4px; bottom: -4px; }
+  .yx-hud .yx-lv { min-width: 16px; font-size: var(--fs-xs, 12px); line-height: 13px; right: -7px; bottom: -5px; }
   .yx-hud .yx-yy { min-width: 16px; line-height: 13px; top: 0; }
   .yx-hud .yx-bars { flex: 1 1 0; min-width: 0; gap: 3px; }
   .yx-hud .yx-bar { width: 100%; min-width: 0; height: 16px; }
@@ -340,7 +342,7 @@
   .yx-hud .yx-moon, .yx-hud .yx-tlabel { display: none; }
   .yx-hud .yx-time { font-size: 20px; }
   /* 击杀、铜钱上下叠两行：并排时胶囊随数字变宽，挤的是同一行里的血条（390 宽击杀上千时只剩 23 像素，360 宽只剩 4 像素） */
-  .yx-hud .yx-caps { flex: none; height: 34px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; padding: 0 7px 0 5px; font-size: var(--fs-sm, 13px); line-height: 15px; }
+  .yx-hud .yx-caps { flex: none; height: 34px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; padding: 0 7px 0 5px; font-size: var(--fs-md, 14px); line-height: 16px; }
   .yx-hud .yx-cap { gap: 3px; }
   .yx-hud .yx-ico { width: 14px; height: 14px; }
   .yx-hud .yx-pause { flex: none; padding: 0; }

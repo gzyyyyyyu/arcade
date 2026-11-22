@@ -211,6 +211,10 @@ export class Cards {
     this.banning = !this.banning;
     this.root.classList.toggle('banning', this.banning);
     this.bar?.querySelector('[data-a="ban"]')?.classList.toggle('on', this.banning);
+    // 封禁模式说一句接下来干什么（手机上按钮底下的小字是藏着的）
+    const head = this.root.querySelector('.yx-picks-head');
+    head?.querySelector('.yx-picks-bantip')?.remove();
+    if (this.banning) head?.insertAdjacentHTML('beforeend', '<span class="yx-picks-tip yx-picks-bantip">点一张卡封掉，这局不再出现</span>');
   }
 
   private action(code: number): void {

@@ -13,5 +13,5 @@ export function weeklyEntry(today: string): string {
   if (!e) return '';
   const n = weekDaysLeft(today);
   const title = '单独开一局：本周的事件、固定的图和角色，成绩只进周榜';
-  return `<button type="button" class="yx-mweekly" data-a="weekly" title="${esc(title)}"><b>本周夜事 · ${esc(e.name)}</b><small>${esc(e.text)} · 还剩 ${n} 天</small></button>`;
+  return `<button type="button" class="yx-mweekly" data-a="weekly" title="${esc(title)}"><b>本周夜事 · ${esc(e.name)}</b><small>${esc(e.text)}<span> · 还剩 ${n} 天</span></small></button>`;
 }

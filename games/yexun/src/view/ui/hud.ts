@@ -175,7 +175,8 @@ export class Hud {
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10.5V20h12v-9.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg><span>大厅</span>';
     const card = el('div', 'yx-card', tl);
     const av = el('div', 'yx-avatar', card);
-    const img = el('img', '', av);
+    // 脸放在圆形裁切的内层里；等级、阴阳标挂在外层，不被圆切掉
+    const img = el('img', '', el('span', 'yx-face', av));
     this.faceImg = img;
     this.avatar = av;
     img.src = face;

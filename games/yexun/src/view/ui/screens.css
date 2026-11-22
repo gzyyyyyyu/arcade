@@ -143,7 +143,8 @@
 .yx-coin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); background: radial-gradient(circle, transparent 2.5px, #f2c94c 3px); flex: none; }
 .yx-livenote { font-size: var(--fs-md, 14px); line-height: 1.5; color: #5a4a3a; }
 .yx-tiers small { letter-spacing: 0; }
-.yx-rnote { text-align: center; font-size: var(--fs-sm, 13px); color: #6b6f7a; margin-top: 6px; }
+.yx-rnote { display: flex; align-items: center; justify-content: center; gap: 10px; text-align: center; font-size: var(--fs-sm, 13px); color: #4a4250; margin-top: 6px; }
+.yx-rnote .yx-rretry { flex: none; min-height: 44px; padding: 0 16px; font-size: var(--fs-md, 14px); font-weight: 700; }
 .yx-rlive { text-align: center; font-size: 20px; font-weight: 700; color: #8a4a1a; }
 .yx-best { font-size: var(--fs-sm, 13px); color: #5a4a3a; min-height: 1.3em; }
 .yx-tpls .yx-chip { min-height: 46px; }
@@ -225,6 +226,8 @@
 .yx-rshare { min-height: 44px; min-width: 44px; padding: 0 14px; font-size: 15px; flex: none; white-space: nowrap; }
 .yx-rtags em { font-style: normal; font-size: var(--fs-md, 14px); color: #5a4a3a; }
 .yx-record {
+  /* 不折行：390 宽原来折成「新纪」「录」两行 */
+  flex: none; white-space: nowrap;
   position: relative; overflow: hidden; padding: 6px 14px; border: 2.5px solid var(--ink); border-radius: 10px;
   background: var(--gold); color: var(--ink); font-size: var(--fs-xl, 18px); transform: rotate(-4deg); box-shadow: 0 3px 0 var(--ink);
   animation: yx-stamp 0.5s 0.3s cubic-bezier(0.3, 1.6, 0.5, 1) both;
@@ -245,15 +248,15 @@
 .yx-rstats b { font-size: 24px; line-height: 1.1; }
 .yx-rstats span { font-size: var(--fs-sm, 13px); color: #5a4a3a; }
 .yx-rbest { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 2.5px solid var(--ink); border-radius: 12px; background: #fff3c4; }
-.yx-rbest img { width: 48px; height: 48px; flex: none; }
 .yx-rbest div { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
 .yx-rbest small { font-size: var(--fs-sm, 13px); color: #8a5a10; }
-.yx-rbest b { font-size: var(--fs-xl, 18px); }
 .yx-rbest span { font-size: var(--fs-sm, 13px); font-weight: 600; color: #5a4a3a; }
 .yx-rbuild { display: flex; flex-direction: column; gap: 7px; min-width: 0; justify-content: center; }
 .yx-rbuild label { font-size: var(--fs-sm, 13px); color: #5a4a3a; }
 .yx-rrow { display: grid; grid-template-columns: 34px 76px 1fr 70px; gap: 8px; align-items: center; font-size: var(--fs-md, 14px); }
 .yx-rrow img { width: 34px; height: 34px; }
+.yx-rrow .yx-ricon { position: relative; display: flex; }
+.yx-rrow .yx-ricon .m { position: absolute; right: -7px; bottom: -7px; width: 20px; height: 20px; }
 .yx-rrow b { white-space: nowrap; }
 .yx-rrow span { text-align: right; font-weight: 700; }
 .yx-rrow.top b, .yx-rrow.top span { color: var(--red); }
@@ -313,6 +316,7 @@
   .yx-result-panel .yx-row3 { gap: 8px; }
   .yx-result-panel .yx-row3 .yx-big { min-width: 0; min-height: 50px; font-size: var(--fs-lg, 16px); padding: 0 6px; }
   .yx-result-panel .yx-row3 .yx-again { font-size: 19px; }
+  .yx-result-panel .yx-record { padding: 4px 8px; font-size: var(--fs-lg, 16px); }
 }
 @keyframes yx-pop { from { opacity: 0; transform: scale(0.92) translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes yx-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -372,14 +376,17 @@
   .yx-best { min-height: 0; font-size: var(--fs-sm, 13px); }
   .yx-panel { padding: 8px 12px 10px; gap: 6px; }
   .yx-panel-head .yx-brush { font-size: 30px; }
-  .yx-pause-panel { width: min(70vw, 100%); min-width: 0; min-height: 0; }
+  /* 844×390：面板 70vw 时左栏只有约 390 宽，套装一条一行、角色说明五六行，今晚规矩和说明被裁（11-21 走查）；摊满宽度、右栏放宽到开关字不折行，
+     角色的被动和「适合」不在这里写（角色页有，点技能图标看全） */
+  .yx-pause-panel { width: min(96vw, 100%); min-width: 0; min-height: 0; }
+  .yx-pause-panel .yx-phx { display: none; }
   .yx-pause-body { gap: 12px; }
   .yx-build { gap: 8px; }
   .yx-cell { width: 44px; height: 44px; }
   .yx-grid { min-height: 44px; gap: 6px; }
   .yx-bdetail { min-height: 40px; font-size: var(--fs-sm, 13px); padding: 4px 8px; }
   .yx-pause-panel .yx-rules { max-height: 96px; padding: 3px 8px; }
-  .yx-pause-side { width: 190px; gap: 6px; }
+  .yx-pause-side { width: 236px; gap: 6px; }
   .yx-pause-side .yx-resume { min-height: 48px; font-size: var(--fs-xl, 18px); }
   .yx-toggle { min-height: 44px; padding: 0 8px; font-size: var(--fs-sm, 13px); gap: 5px; }
   .yx-rhead .yx-brush { font-size: 34px; }
@@ -393,11 +400,10 @@
   .yx-rstats b { font-size: var(--fs-xl, 18px); }
   .yx-rstats > div { padding: 3px 4px; }
   .yx-rbest { padding: 4px 8px; }
-  .yx-rbest img { width: 34px; height: 34px; }
-  .yx-rbest b { font-size: 15px; }
   .yx-rbuild { gap: 4px; }
   .yx-rrow { grid-template-columns: 22px 64px 1fr 56px; font-size: var(--fs-sm, 13px); }
   .yx-rrow img { width: 22px; height: 22px; }
+  .yx-rrow .yx-ricon .m { width: 14px; height: 14px; right: -5px; bottom: -5px; }
   .yx-rbar { height: 10px; }
   .yx-rpass { width: 24px; height: 24px; }
   .yx-rsrc { font-size: var(--fs-sm, 13px); gap: 0 18px; }
@@ -423,6 +429,10 @@
     padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-top: calc(max(10px, env(safe-area-inset-top, 0px)) + 58px);
   }
   .yx-menu .yx-more { flex-direction: row; gap: 4px; top: max(10px, env(safe-area-inset-top, 0px)); left: calc(max(10px, env(safe-area-inset-left, 0px)) + 100px); right: auto; }
+}
+/* 手机横屏（矮）：左边七个按钮竖成一列要 400 高，844×390「玩法」掉出屏外（11-21 走查）；排两列 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .yx-menu:not(.yx-selscreen) .yx-more { display: grid; grid-template-columns: repeat(2, auto); }
 }
 /* 手机竖屏（≤ 460 宽）：0.4.1 加了"玩法"以后五个按钮一行放不下，齿轮被挤出屏幕（10-20 多尺寸矩阵 320–375 宽），390–430 宽"玩法"压在齿轮上；
    五个按钮挪到大厅和齿轮下面单独一行，内容整体再往下让一行 */
@@ -643,6 +653,11 @@
   box-shadow: inset 0 1px 0 rgba(255, 220, 200, 0.6), 0 4px 0 var(--ink), 0 8px 18px rgba(168, 50, 36, 0.35);
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
 }
+/* 结算的「再来一局」用金色：红系只给危险操作（docs/ui.md 第 2、4 节），暗红底在结算的暗遮罩上像「认输」 */
+.yx-screen .yx-result-panel .yx-again:not(.ghost) {
+  background: linear-gradient(#ffe07a, #f2c94c 55%, #d9a92a); color: var(--ink, #17131c); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 250, 220, 0.8), 0 4px 0 var(--ink), 0 8px 18px rgba(217, 169, 42, 0.35);
+}
 .yx-screen :is(.yx-chip, .yx-mcard, .yx-btn, .yx-big):active { box-shadow: var(--yx-hi), 0 1px 0 var(--ink); }
 .yx-screen .yx-chip.locked, .yx-screen .yx-chip:disabled { box-shadow: var(--yx-hi), 0 3px 0 var(--ink); }
 
@@ -742,9 +757,13 @@
   .yx-build { flex: none; gap: 10px; }
   .yx-bline { align-items: flex-start; }
   .yx-bline label { padding-top: 14px; }
-  .yx-cell { width: 52px; height: 52px; }
+  /* 6 件法器一行放得下（52 宽时 390 折成两行）；开关排三列：带咒印、技能说明长的角色（剑侠）原来高出屏幕 24px */
+  .yx-cell { width: 46px; height: 46px; }
+  .yx-grid { gap: 6px; }
+  .yx-pause-side .yx-toggles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .yx-pause-side .yx-toggle { padding: 0 5px; gap: 4px; font-size: var(--fs-sm, 13px); }
   .yx-pause-panel .yx-rules { max-height: 20vh; }
-  .yx-bdetail { margin-top: 0; min-height: 48px; }
+  .yx-bdetail { margin-top: 0; min-height: 48px; font-size: var(--fs-sm, 13px); padding: 6px 10px; }
 }
 /* 矮的手机竖屏（360×640）：玩法说明并进认输 / 回大厅那一行（和它们隔 20px 防误点），按钮、法器格和间距收紧，一屏放下不滚 */
 @media (orientation: portrait) and (max-width: 700px) and (max-height: 760px) {
