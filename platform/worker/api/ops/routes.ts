@@ -1,6 +1,6 @@
 /** 监控、管理页的设置与账号管理接口的路由条目（router.ts 按功能拼成总表；通用检查在 router.ts）。 */
 import type { Route } from '../core/route';
-import { adminRevokeCode, createMultiCode, createUser, deleteUser, getHiddenGames, getNotice, getRegistration, getWalletRules, listUsers, resetPassword, setHiddenGames, setInviteRules, setNotice, setRegistration, setUserInviteQuota, setWalletRules } from './admin';
+import { adminRevokeCode, createMultiCode, setMultiCodeUses, createUser, deleteUser, getHiddenGames, getNotice, getRegistration, getWalletRules, listUsers, resetPassword, setHiddenGames, setInviteRules, setNotice, setRegistration, setUserInviteQuota, setWalletRules } from './admin';
 import { clientError, health, monitorStatus } from './monitor';
 import { codeIdParams } from '../account/invite-codes';
 import { userParams } from '../core/context';
@@ -13,6 +13,7 @@ export const OPS_ROUTES: Route[] = [
   { method: 'POST', path: '/api/admin/settings/invites', cat: 'acct', auth: 'admin', acct: 'capped', handler: setInviteRules },
   { method: 'POST', path: '/api/admin/invite-codes', cat: 'acct', auth: 'admin', acct: 'capped', handler: createMultiCode },
   { method: 'POST', path: /^\/api\/admin\/invite-codes\/([^/]+)\/revoke$/, params: codeIdParams, cat: 'acct', auth: 'admin', acct: 'capped', handler: adminRevokeCode },
+  { method: 'POST', path: /^\/api\/admin\/invite-codes\/([^/]+)\/uses$/, params: codeIdParams, cat: 'acct', auth: 'admin', acct: 'capped', handler: setMultiCodeUses },
   {
     method: 'POST',
     path: /^\/api\/admin\/users\/([^/]+)\/invite-quota$/,

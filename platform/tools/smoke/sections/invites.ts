@@ -106,6 +106,25 @@ export async function adminInvites(browser: Browser): Promise<void> {
     const over2 = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
     check(over2 <= 1, `长期码筛选下一屏放下（${name}）：竖 ${over2}px`);
     await shot(page, `admin-invites-multi-${name}`);
+    // 长期码改次数：弹框默认是现在的次数，改成 1000 发出去；码表重读后写"能用 4/1000"
+    let usesBody: unknown = null;
+    await page.route('**/api/admin/invite-codes/c6/uses', (r) => {
+      usesBody = r.request().postDataJSON();
+      const c6 = codes.find((c) => c.id === 'c6')!;
+      c6.maxUses = 1000;
+      return r.fulfill(json({ id: 'c6', maxUses: 1000 }));
+    });
+    await table.locator('.invite-code', { hasText: '7MUL' }).getByTestId('code-uses').click();
+    const usesForm = page.getByTestId('code-uses-form');
+    const usesInput = usesForm.getByLabel('能用几次');
+    check((await usesInput.inputValue()) === '100', `改次数的框该先填现在的次数（是 ${await usesInput.inputValue()}）`);
+    await usesInput.fill('1000');
+    await shot(page, `admin-invites-uses-${name}`);
+    await usesForm.getByRole('button', { name: '保存' }).click();
+    await table.locator('.invite-code', { hasText: '7MUL' }).getByText('能用 4/1000').waitFor();
+    check(JSON.stringify(usesBody) === JSON.stringify({ maxUses: 1000 }), `改次数发的不对：${JSON.stringify(usesBody)}`);
+    check((await usesForm.count()) === 0 || !(await usesForm.isVisible()), '改好后弹框该收起');
+    codes.find((c) => c.id === 'c6')!.maxUses = 100; // 假数据各尺寸共用，改回去
     await ctx.close();
   }
 }

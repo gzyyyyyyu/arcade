@@ -535,6 +535,7 @@ export const api = {
     inviteCodes: (status: 'all' | 'unused' | 'used' | 'multi') => request<{ codes: AdminInviteCode[] }>('GET', `/api/admin/invite-codes?status=${status}`),
     createMultiCode: (maxUses: number, days: number | null) => request<MultiInviteCode>('POST', '/api/admin/invite-codes', { maxUses, days }),
     revokeInviteCode: (id: string) => request<void>('POST', `/api/admin/invite-codes/${id}/revoke`, {}),
+    setMultiCodeUses: (id: string, maxUses: number) => request<{ id: string; maxUses: number }>('POST', `/api/admin/invite-codes/${id}/uses`, { maxUses }),
     hiddenGames: () => request<{ hidden: string[] }>('GET', '/api/admin/settings/games'),
     setHiddenGames: (hidden: string[]) => request<{ hidden: string[] }>('POST', '/api/admin/settings/games', { hidden }),
   },

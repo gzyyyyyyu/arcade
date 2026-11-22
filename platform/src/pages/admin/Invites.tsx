@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { api, errorText, type AdminInviteCode, type AdminUser, type InviteRules, type InviteRulesState, type MultiInviteCode } from '../../api.ts';
 import { Empty, Field, FormError, Panel, Skeleton, SubmitButton, useSubmit, useWritable } from '../../ui.tsx';
 import { Paged } from '../../features/fit/Fit.tsx';
+import { Modal } from '../../features/modal/Modal.tsx';
 import { dateText, num, timeText } from './common.ts';
 import { AdminTabs, useAdminWide } from './AdminLayout.tsx';
 
@@ -345,6 +346,7 @@ function CodesPanel() {
               </div>
               <div className="invite-code__acts">
                 {c.code && <CopyButton text={c.code} />}
+                {c.maxUses > 1 && c.status !== 'revoked' && <UsesButton code={c} onDone={() => setVersion((v) => v + 1)} />}
                 {c.status === 'unused' && <RevokeButton id={c.id} onDone={() => setVersion((v) => v + 1)} />}
               </div>
             </div>
@@ -352,6 +354,43 @@ function CodesPanel() {
         />
       )}
     </Panel>
+  );
+}
+
+/** 长期码改能用几次（2–1000，不少于已经用掉的）：弹框填数字；用完了的改大又能用 */
+function UsesButton({ code, onDone }: { code: AdminInviteCode; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [uses, setUses] = useState(String(code.maxUses));
+  const writable = useWritable();
+  const min = Math.max(2, code.uses);
+  const { busy, error, setError, onSubmit } = useSubmit(async () => {
+    await api.admin.setMultiCodeUses(code.id, Number(uses));
+    setOpen(false);
+    onDone();
+  });
+  const show = () => {
+    setUses(String(code.maxUses));
+    setError('');
+    setOpen(true);
+  };
+  return (
+    <>
+      <button className="btn btn--small" type="button" disabled={!writable} onClick={show} data-testid="code-uses">
+        改次数
+      </button>
+      <Modal open={open} title="改能用几次" onClose={() => setOpen(false)} className="modal__box--narrow" testId="code-uses-form">
+        <form className="form" onSubmit={(e) => void onSubmit(e)}>
+          <p className="note">
+            <span className="mono">{code.code ?? code.hint}</span> 已经用了 <b className="tnum">{num(code.uses)}</b> 次，现在能用 <b className="tnum">{num(code.maxUses)}</b> 次。
+          </p>
+          <Field label="能用几次" hint={`${min}–1000`} name="maxUses" type="number" inputMode="numeric" min={min} max={1000} required value={uses} onChange={(e) => setUses(e.target.value)} />
+          <FormError text={error} />
+          <SubmitButton busy={busy} disabled={!writable}>
+            保存
+          </SubmitButton>
+        </form>
+      </Modal>
+    </>
   );
 }
 
