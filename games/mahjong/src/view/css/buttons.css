@@ -48,6 +48,24 @@
   position: absolute;
   inset: min(0px, calc((100% - var(--tap)) / 2)) min(0px, calc((100% - var(--tap)) / 2));
 }
+/* 主页「我的进度」两排胶囊，排距只有 --sp-1，居中撑开上下排会互相盖住：上排往上撑、下排往下撑，
+ * 中间各让一半排距（11-22 审查：竖屏手机上胶囊在屏幕上只有 22 像素高） */
+.home-art .prog {
+  position: relative;
+}
+.home-art .prog::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+}
+.home-art .prog:nth-child(-n + 3)::after {
+  top: min(0px, calc(100% - var(--tap)));
+  bottom: calc(var(--sp-1) / -2);
+}
+.home-art .prog:nth-child(n + 4)::after {
+  top: calc(var(--sp-1) / -2);
+  bottom: min(0px, calc(100% - var(--tap)));
+}
 @media (hover: hover) {
   :is(.act, .pill, .icon, .chip, .stake, .link, .home, .dialog .x):not(:disabled, .off):hover {
     filter: brightness(1.12);

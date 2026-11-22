@@ -5,6 +5,7 @@
  */
 import type { SettleStats } from '../core/match/index.ts';
 import type { TierId } from '../game/stakes.ts';
+import { apiFetch } from './http.ts';
 
 export interface WalletView {
   balance: number;
@@ -19,7 +20,7 @@ export type WalletReply = { ok: true; wallet?: WalletView; credited?: number; ca
 async function call(url: string, init?: RequestInit): Promise<WalletReply> {
   let res: Response;
   try {
-    res = await fetch(url, { credentials: 'same-origin', ...init });
+    res = await apiFetch(url, { credentials: 'same-origin', ...init });
   } catch {
     return { ok: false, error: 'network' };
   }

@@ -21,7 +21,7 @@ import { dailyKey } from './game/daily.ts';
 import type { LadderMode } from './game/ladder.ts';
 import { baseOf, stakesOf, type StakesId, type TierId } from './game/stakes.ts';
 import { maybeApplied, randomId, soloBuyin, soloSettle, type WalletReply } from './net/wallet.ts';
-import { TIMING } from './app/timing.ts';
+import { sleep, TIMING } from './app/timing.ts';
 
 export const SOLO_KEY = 'mahjong.solo';
 const KINDS: SeatKind[] = ['human', 'ai', 'ai', 'ai'];
@@ -315,7 +315,5 @@ export class Solo {
     await this.finish();
   }
 }
-
-const sleep = (ms: number): Promise<void> => new Promise((r) => window.setTimeout(r, ms));
 
 export type { TierId };

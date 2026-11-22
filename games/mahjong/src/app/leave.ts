@@ -9,7 +9,7 @@ import { lobby } from './routes.ts';
 import { roomBack, session } from './session.ts';
 import { home, stage } from './shell.ts';
 import { showError } from './wallet.ts';
-import { TIMING } from './timing.ts';
+import { sleep, TIMING } from './timing.ts';
 
 /** 好友房里离开：开打了先确认（实盘这一局由电脑替他打完再结回），座位交给电脑 */
 export async function leaveRoom(): Promise<void> {
@@ -23,7 +23,7 @@ export async function leaveRoom(): Promise<void> {
     if (!ok) return;
     session.online!.leaveSeat();
     // 等房间收到离座再断开（结回由房间办，断开也不影响）
-    await new Promise((r) => window.setTimeout(r, TIMING.leaveSeatGraceMs));
+    await sleep(TIMING.leaveSeatGraceMs);
   }
   lobby(false, back);
 }

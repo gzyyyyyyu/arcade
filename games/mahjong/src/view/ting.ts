@@ -14,6 +14,7 @@ import { celebrate } from './fx.ts';
 import { play } from './sound.ts';
 import { tileName, tileUrl } from './tiles.ts';
 import { button, el } from './dom.ts';
+import { apiFetch } from '../net/http.ts';
 import './ting.css';
 
 /** 答完一题亮出答案停多久（点一下可以跳过） */
@@ -45,7 +46,7 @@ async function submitDaily(d: DailyTing, userId: string): Promise<void> {
   if (sending.has(d.date)) return;
   sending.add(d.date);
   try {
-    const res = await fetch('/api/scores', {
+    const res = await apiFetch('/api/scores', {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',

@@ -8,6 +8,7 @@ import { DAILY_KEY, DAILY_VARIANTS, dailyBoard, emptyDaily, lastDays, markSent, 
 import { dailyCardOf } from './share.ts';
 import type { ShareCard } from 'arcade-kit/share';
 import { el } from './dom.ts';
+import { apiFetch } from '../net/http.ts';
 import { pageOf } from './variants/pages.ts';
 import './daily.css';
 
@@ -82,7 +83,7 @@ async function submitDaily(variant: DailyVariant, date: string, userId: string):
   if (score === null || sending.has(board)) return false;
   sending.add(board);
   try {
-    const res = await fetch('/api/scores', {
+    const res = await apiFetch('/api/scores', {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',

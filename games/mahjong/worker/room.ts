@@ -56,7 +56,7 @@ export class MahjongRoom extends GameRoom<RoomState, RoomAction, RoomView, Env, 
         ? await wallet.buyin({ ...base, tier: e.stakes, amount: e.amount, until: Date.now() + HOLD_MS })
         : await wallet.settle({ ...base, amount: e.amount, ...(e.stats ? { stats: e.stats } : {}) });
     if (r.ok) {
-      if (r.statsIgnored) console.error('mahjong room: stats ignored', r.statsIgnored);
+      if (r.statsIgnored) console.error('mahjong room: stats ignored', e.ref, r.statsIgnored);
       return { ok: true };
     }
     // 平台暂时办不了（busy、internal）：带入、结回都重办（同一个操作 id，平台去重）；

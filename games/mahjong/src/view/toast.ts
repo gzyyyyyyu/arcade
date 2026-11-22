@@ -1,5 +1,5 @@
 /**
- * 右上角的小提示（成就解锁、图鉴新收集共用）：贴在顶栏下面，一条一条排队，点击穿透，2.6 秒自己消失。
+ * 顶栏下居中的小提示（成就解锁、图鉴新收集共用）：贴在顶栏下面，一条一条排队，点击穿透，2.6 秒自己消失。
  * 样式在 achieve.css 的 .ach-toasts 下。
  */
 import './achieve.css';
@@ -39,8 +39,20 @@ function next(): void {
   const icon = el('span', 'ach-medal', t);
   icon.innerHTML = item.icon;
   el('span', 'ach-t', t, item.text);
+  dodgeBadges(box, t);
   window.setTimeout(() => {
     t.remove();
     window.setTimeout(next, GAP_MS);
   }, TOAST_MS);
+}
+
+/** 窄屏上居中的提示还会碰到左右两家的名牌：碰到就挪到名牌下面（名牌上的分数、缺门不能被挡） */
+function dodgeBadges(box: HTMLElement, t: HTMLElement): void {
+  const r = t.getBoundingClientRect();
+  let below = 0;
+  for (const e of document.querySelectorAll('.badge')) {
+    const b = e.getBoundingClientRect();
+    if (b.width && b.left < r.right && b.right > r.left && b.top < r.bottom && b.bottom > r.top) below = Math.max(below, b.bottom);
+  }
+  if (below) box.style.top = `${Math.round(below + 8)}px`;
 }

@@ -32,3 +32,6 @@ export const TIMING = {
   /** 换三张、定缺这些 */
   thinkOtherMs: 800,
 } as const;
+
+/** 页面流程里等一会儿（单机电脑出牌节奏、房间电脑的出牌延迟、离座后等房间收到） */
+export const sleep = (ms: number): Promise<void> => new Promise((r) => window.setTimeout(r, ms));
