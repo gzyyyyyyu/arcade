@@ -27,7 +27,8 @@ describe('确定性', () => {
     play(7, 6000, (w, t) => t % 50 === 0 && b.push(fingerprint(w)));
     expect(a.length).toBeGreaterThan(50);
     expect(b).toEqual(a);
-  });
+    // 两局各 6,000 拍，单跑约 1 秒；整套并行、机器忙时超过默认 5 秒
+  }, 20_000);
 
   it('换个种子，局面就不一样', () => {
     expect(fingerprint(play(1, 2000))).not.toBe(fingerprint(play(2, 2000)));

@@ -81,7 +81,8 @@ export class Hud {
   readonly homeBtn: HTMLButtonElement;
   readonly pauseBtn: HTMLButtonElement;
   private hpFill: HTMLDivElement;
-  private hpText: HTMLSpanElement;
+  private hpNow: HTMLSpanElement;
+  private hpMax: HTMLSpanElement;
   private shFill: HTMLDivElement;
   private shBar: HTMLDivElement;
   private lv: HTMLSpanElement;
@@ -186,7 +187,9 @@ export class Hud {
     const bars = el('div', 'yx-bars', card);
     const hp = el('div', 'yx-bar yx-hp', bars);
     this.hpFill = el('div', 'yx-fill', hp);
-    this.hpText = el('span', 'yx-bar-text', hp);
+    const hpText = el('span', 'yx-bar-text', hp);
+    this.hpNow = el('span', '', hpText);
+    this.hpMax = el('span', 'yx-bar-max', hpText);
     const sh = el('div', 'yx-bar yx-sh', bars);
     this.shFill = el('div', 'yx-fill', sh);
     this.shBar = sh;
@@ -287,7 +290,8 @@ export class Hud {
     this.hpFill.style.width = `${(100 * s.hp) / s.hpMax}%`;
     // 血上限按百分比放大会带浮点尾巴（100 × 1.15 = 114.99999999999999），显示时取整；当前血不超过显示的上限
     const max = Math.round(s.hpMax);
-    this.hpText.textContent = `${Math.min(Math.ceil(s.hp), max)}/${max}`;
+    this.hpNow.textContent = `${Math.min(Math.ceil(s.hp), max)}`;
+    this.hpMax.textContent = `/${max}`;
     // 没有护盾的时候整条不显示（空着的深色条像是坏了）
     this.shBar.style.visibility = s.shieldMax > 0 ? '' : 'hidden';
     if (s.shieldMax > 0) this.shFill.style.width = `${(100 * s.shield) / s.shieldMax}%`;

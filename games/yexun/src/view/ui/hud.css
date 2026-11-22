@@ -338,6 +338,8 @@
   .yx-hud .yx-sh { width: 72%; height: 9px; }
   /* 竖屏血条也留数字（缩小一点、贴右），只看红条看不出掉了多少 */
   .yx-hud .yx-bar-text { right: 4px; font-size: var(--fs-xs, 12px); line-height: 1; }
+  /* 只留当前血：「175/175」在 390 宽的血条里放不下，左边被切成「/5/175」；上限看红条长短 */
+  .yx-hud .yx-bar-max { display: none; }
   .yx-hud .yx-timer { flex: none; padding: 4px 8px; gap: 0; }
   .yx-hud .yx-moon, .yx-hud .yx-tlabel { display: none; }
   .yx-hud .yx-time { font-size: 20px; }
