@@ -38,6 +38,8 @@ async function openClient(browser: Browser, stack: OnlineStack, name: string, us
   await context.route('**/api/wallet', (r) => r.fulfill({ json: { wallet: { balance: 10_000, stakes: [], canRelief: false, writesLeft: 200, caps: {}, fresh: false }, tiers: {}, reliefTo: 2000 } }));
   await context.route('**/api/presence', (r) => r.fulfill({ status: 204 }));
   await context.route('**/api/invites', (r) => r.fulfill({ json: { invites: [] } }));
+  // 好友房面板读"好友在打"、开完房看有没有好友可叫（0.40.2）
+  await context.route('**/api/friends', (r) => r.fulfill({ json: { friends: [] } }));
   // 排队卡说过的每句话记在 window.__said：转单机时卡片马上收起，失败现场要靠它看是哪种 solo（alone、unavailable……）
   await context.addInitScript(() => {
     const w = window as unknown as { __said: string[] };

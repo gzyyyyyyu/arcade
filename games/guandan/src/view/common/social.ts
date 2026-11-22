@@ -1,9 +1,10 @@
 /**
  * 报位置、收邀请（0.13.0，仓库根 docs/social.md 1.2、1.3）：用 kit 的 `arcade-kit/social`，只在有平台、已登录时挂（单独部署、没登录一个请求都不发）。
  * 掼蛋只告诉它"我在哪"：好友房里报 place: room、房间码和真人几个（"3/4"），别的时候报 place: game。
- * 进房、离开房间时马上补报一次（online.ts 调 presenceNow），不用等 2 分钟。
+ * 进房、离开、房间里真人数变了马上报一次（presenceNow），不用等 2 分钟；平台同一人 10 秒内只记一次，所以 11 秒后再补报一次。
  */
-import type { Presence, SocialHandle } from 'arcade-kit/social';
+import type { Friend, Presence, SocialHandle } from 'arcade-kit/social';
+import { detectPlatform } from 'arcade-kit/client';
 import { platformInfo } from './platform.ts';
 import { seatCountOf } from '../../net/room-info.ts';
 import type { RoomLink } from './room-link.ts';
@@ -28,15 +29,35 @@ export function presenceOf(s: LinkInfo | null): Presence {
 }
 
 let handle: SocialHandle | null = null;
+let where: (() => LinkInfo | null) | null = null;
+/** 上次报出去的位置（比较用）；同样的位置不重报，kit 自己每 2 分钟还会报 */
+let lastWhere = '';
+let retry: ReturnType<typeof setTimeout> | undefined;
+/** 补报的间隔：平台同一人 10 秒内只记第一次（刚进房那次常被前一次挤掉），过了 10 秒再报一次才记得上 */
+export const PRESENCE_RETRY_MS = 11_000;
+/** 启动时没问出有没有平台，挂社交前再问一次的超时 */
+const SOCIAL_DETECT_RETRY_MS = 10_000;
 
 /** 启动时挂一次（main.ts 在 detectOnce 之后调）。session：现在连着的好友房会话 */
 export async function mountSocialOnce(session: () => LinkInfo | null): Promise<void> {
-  if (handle) return;
-  const info = platformInfo();
-  if (info.platform !== true || !info.user) return;
-  const { mountSocial } = await import('arcade-kit/social');
-  handle = await mountSocial({ platform: info, where: () => presenceOf(session()), gameName: (id) => GAME_NAME[id] });
+  try {
+    if (handle) return;
+    let info = platformInfo();
+    // 启动时那一次超时（kit 默认 2.5 秒；刚启动主线程忙着烘纹理，慢手机上常见）只是"不知道"：再问一次、给足时间。
+    // 不然这一整次打开都收不到邀请、好友看不到你在哪，好友房面板也读不到"好友在打"（0.40.2 联机冒烟抓到）
+    if (info.platform === 'unknown') info = await detectPlatform({ timeoutMs: SOCIAL_DETECT_RETRY_MS });
+    if (info.platform !== true || !info.user) return;
+    where = session;
+    const { mountSocial } = await import('arcade-kit/social');
+    handle = await mountSocial({ platform: info, where: () => presenceOf(session()), gameName: (id) => GAME_NAME[id] });
+  } finally {
+    settle();
+  }
 }
+
+/** 挂没挂上已经有结论（单独部署、没登录也算）：刚进页面就点开好友房面板时，读好友列表先等它，不然那一下读到的是空的 */
+let settle: () => void = () => {};
+const settled = new Promise<void>((r) => (settle = r));
 
 /**
  * "叫朋友来"面板的层级（0.13.2）：要盖住房间弹窗 #online（8500，online.ts），不然面板在 DOM 里却看不见、点不到（0.13.1 线上补验）；
@@ -67,7 +88,57 @@ export function postFeed(m: { moment: string; n?: number }): void {
   void import('arcade-kit/social').then(({ postMoment }) => postMoment('guandan', m.moment, m.n));
 }
 
-/** 位置变了（进房、离开房间、开打）：马上报一次 */
+/** 好友房面板顶上"好友在打"那一行的一桌：谁在、房间码、真人几个 */
+export interface FriendTable {
+  names: string[];
+  room: string;
+  seats: string;
+}
+
+/** 面板里最多摆几桌：手机横屏（844×390）一屏放得下 */
+export const FRIEND_TABLES_MAX = 2;
+
+/** 好友列表（好友房面板打开、开完房时各读一次）：没挂 social（单独部署、没登录）、读不到都是空的 */
+async function friendsNow(): Promise<readonly Friend[]> {
+  await settled;
+  if (!handle) return [];
+  const { fetchFriends } = await import('arcade-kit/social');
+  return (await fetchFriends()) ?? [];
+}
+
+/** 有没有好友可叫：有才在开完房时自动弹"叫朋友来"（没好友时那个面板只剩复制链接，房间面板上本来就有） */
+export async function hasFriends(): Promise<boolean> {
+  return (await friendsNow()).length > 0;
+}
+
+/** 在线、在牌馆好友房里的好友，按房间并成一桌（同一桌的人写在一行），先列人多的 */
+export function friendTables(list: readonly Friend[]): FriendTable[] {
+  const byRoom = new Map<string, FriendTable>();
+  for (const f of list) {
+    const w = f.where;
+    if (!f.online || w?.place !== 'room' || w.game !== 'guandan' || !w.room) continue;
+    const t = byRoom.get(w.room) ?? { names: [], room: w.room, seats: w.seats ?? '' };
+    t.names.push(f.name);
+    byRoom.set(w.room, t);
+  }
+  return [...byRoom.values()].sort((a, b) => b.names.length - a.names.length).slice(0, FRIEND_TABLES_MAX);
+}
+
+/** 现在哪几桌有好友 */
+export async function fetchFriendTables(): Promise<FriendTable[]> {
+  return friendTables(await friendsNow());
+}
+
+/**
+ * 位置可能变了（进房、离开、房间里有人坐下或走了）：和上次报的不一样才报，11 秒后按那时的位置补报一次。
+ * online.ts 在房间的每个事件上调，没变就什么都不做
+ */
 export function presenceNow(): void {
-  handle?.presenceNow(true);
+  if (!handle || !where) return;
+  const key = JSON.stringify(presenceOf(where()));
+  if (key === lastWhere) return;
+  lastWhere = key;
+  handle.presenceNow(true);
+  clearTimeout(retry);
+  retry = setTimeout(() => handle?.presenceNow(true), PRESENCE_RETRY_MS);
 }
