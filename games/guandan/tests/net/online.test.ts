@@ -11,7 +11,6 @@ import {
   cardValue,
   createGame,
   dispatch,
-  isSeatAction,
   isWild,
   legalPlays,
   previewNext,
@@ -90,15 +89,6 @@ describe('规则版本', () => {
   });
 });
 
-describe('玩家动作和牌桌动作', () => {
-  it('出牌、不要、进贡、还贡是玩家动作；开下一副不是', () => {
-    expect(isSeatAction({ type: 'play', seat: 0, cards: [1] })).toBe(true);
-    expect(isSeatAction({ type: 'pass', seat: 1 })).toBe(true);
-    expect(isSeatAction({ type: 'tribute', seat: 2, card: 3 })).toBe(true);
-    expect(isSeatAction({ type: 'return', seat: 3, card: 4 })).toBe(true);
-    expect(isSeatAction({ type: 'nextDeal' })).toBe(false);
-  });
-});
 
 describe('超时代出 timeoutAction', () => {
   it('跟牌时一律不要（队友的牌也不接）', () => {

@@ -74,6 +74,16 @@ describe('请求和地址（0.40.3）', () => {
     expect(FETCH_TIMEOUT_MS).toBe(10_000);
   });
 
+  it('老浏览器没有 AbortSignal.timeout：不带超时照常发，不报错', () => {
+    const real = AbortSignal;
+    vi.stubGlobal('AbortSignal', { timeout: undefined });
+    const init = { credentials: 'same-origin' } as const;
+    expect(timed(init)).toEqual(init);
+    vi.stubGlobal('AbortSignal', undefined);
+    expect(timed()).toEqual({});
+    vi.stubGlobal('AbortSignal', real);
+  });
+
   it('房间和匹配的 ws 地址按页面目录拼：换挂载点不用改页面', () => {
     setNick('');
     vi.stubGlobal('window', { location: { href: 'https://game.example.com/x/y/?room=123456#a' } });

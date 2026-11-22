@@ -120,8 +120,8 @@ export class NetSession extends RoomLink<NetAction, NetView, NetView> implements
     return (this.queue[this.queue.length - 1]?.nv ?? this.shown)?.again;
   }
 
-  /** 这一场的公开记录（0.14.0，结束颁奖用；画面座位）：看收到的最新一帧，结算页开着时帧不往下播。0.14.0 以前开的房间没有 */
-  get matchLog(): NetView['log'] {
+  /** 这一场的公开记录（结束颁奖用；画面座位）：看收到的最新一帧，结算页开着时帧不往下播。还没收到帧时没有 */
+  get matchLog(): NetView['log'] | undefined {
     return (this.queue[this.queue.length - 1]?.nv ?? this.shown)?.log;
   }
 
