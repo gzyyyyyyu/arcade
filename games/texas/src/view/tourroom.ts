@@ -54,6 +54,6 @@ export function tourOutBody(place: number, fun: boolean): HTMLElement {
   const body = el('div', 'tour-out');
   el('p', 'tour-out-place', body, `你出局了：全桌第 ${place} 名`);
   el('p', '', body, fun ? '娱乐赛，筹码不算数。' : '打完按名次结奖金，直接结回钱包，不用你在线。');
-  el('p', 'sum-note', body, '看到结束：留在房间看谁拿冠军。现在离开：直接回大厅，名次和奖金不变。');
+  el('p', 'sum-note', body, '看到结束：留在房间看谁拿冠军。现在离开：直接回首页，名次和奖金不变。');
   return body;
 }

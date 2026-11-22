@@ -69,10 +69,11 @@ export async function achPanel(parent: HTMLElement, s: AchState): Promise<void> 
     cell.title = d.how;
     cell.innerHTML = icon(d, has);
     el('b', 'ach-name', cell, d.name);
-    // 已拿到的不再写条件；没拿到的计数类写 现在/目标，其他写怎么拿
-    const line = has ? '' : d.goal ? `${chips(Math.min(progressOf(s, d), d.goal))} / ${chips(d.goal)}` : d.how;
-    if (line) {
-      el('small', 'ach-how', cell, line);
+    // 已拿到的不再写条件；没拿到的写怎么拿，计数类后面跟着现在到几了（只写"4 / 100"看不出数的是什么，界面审查 1121 第 9 条）
+    // 「现在 n」不拆行：手机两栏窄，「打满 2000 手 · 现在 8」会把 8 单独挤到第三行（11-21 老号走查）
+    if (!has) {
+      const how = el('small', 'ach-how', cell, d.goal ? `${d.how} ` : d.how);
+      if (d.goal) el('span', 'ach-now', how, `· 现在 ${chips(Math.min(progressOf(s, d), d.goal))}`);
       cell.classList.remove('nohow');
     }
   }

@@ -25,8 +25,11 @@ interface ScrollHit {
   axis: Axis;
   over: number;
 }
-/** 纵、横：要滚；叠：两个可点的东西框子相交；裁：文字装不下被截（11-02：只量滚不滚抓不到按钮互压、字被裁一截） */
-type Axis = '纵' | '横' | '叠' | '裁';
+/**
+ * 纵、横：要滚；叠：两个可点的东西框子相交；裁：文字装不下被截（11-02：只量滚不滚抓不到按钮互压、字被裁一截）；
+ * 出：面板、弹窗、按钮、名牌、牌伸出屏幕（11-21：好友房等人页电脑版底边伸出 4 像素，页面不滚所以前三样都抓不到）
+ */
+type Axis = '纵' | '横' | '叠' | '裁' | '出';
 
 /**
  * 有意截断、不算"裁"的文字（选择器 → 理由）。只放确实想要省略号或固定一行的；加一条写一句为什么。
@@ -36,7 +39,7 @@ const CLIP_OK: [string, string][] = [
 ];
 
 /** 页面本身和所有看得见的、overflow 是 auto 或 scroll 的元素：内容比框大（超过 1px）就算要滚 */
-const measureScroll = (page: Page): Promise<{ el: string; axis: Axis; over: number }[]> =>
+export const measureScroll = (page: Page): Promise<{ el: string; axis: Axis; over: number }[]> =>
   page.evaluate((CLIP) => {
     const out: { el: string; axis: Axis; over: number }[] = [];
     const name = (e: Element): string => {
@@ -83,6 +86,13 @@ const measureScroll = (page: Page): Promise<{ el: string; axis: Axis; over: numb
         if (w > 1 && h > 1) out.push({ el: `${name(ea)} × ${name(eb)}`, axis: '叠', over: Math.round(Math.min(w, h)) });
       }
     });
+    // 伸出屏幕：整块的东西（面板、弹窗、按钮、名牌、牌、结果条）框子出了视口 1px 以上；fx 层的飞行动画不算
+    for (const e of document.querySelectorAll<HTMLElement>(`${TAP}, .panel, .front, .room-wait, .dialog, .seat .plate, .card, .result.on, .actions .odds`)) {
+      if (!vis(e) || e.closest('.fx')) continue;
+      const r = e.getBoundingClientRect();
+      const over = Math.max(-r.left, -r.top, r.right - innerWidth, r.bottom - innerHeight);
+      if (over > 1) out.push({ el: name(e), axis: '出', over: Math.round(over) });
+    }
     // 文字被裁：自己直接带字、框子装不下（scrollWidth/Height 比 clientWidth/Height 大 1px 以上），登记过的有意截断除外
     const ok = (e: Element): boolean => CLIP.some((s) => e.matches(s));
     for (const e of document.querySelectorAll<HTMLElement>('body *')) {
@@ -447,9 +457,9 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
   }
 
   const lines = [
-    `不滚动检查 ${new Date().toISOString().slice(0, 10)}：${sizes.map((s) => s[0]).join(' ')}；量了 ${reached.length} 个界面，要滚 ${hits.filter((h) => h.axis === '纵' || h.axis === '横').length} 处、可点元素重叠 ${hits.filter((h) => h.axis === '叠').length} 处、文字被裁 ${hits.filter((h) => h.axis === '裁').length} 处（德州没有画布，按钮都是 DOM，全部量到）`,
+    `不滚动检查 ${new Date().toISOString().slice(0, 10)}：${sizes.map((s) => s[0]).join(' ')}；量了 ${reached.length} 个界面，要滚 ${hits.filter((h) => h.axis === '纵' || h.axis === '横').length} 处、可点元素重叠 ${hits.filter((h) => h.axis === '叠').length} 处、文字被裁 ${hits.filter((h) => h.axis === '裁').length} 处、伸出屏幕 ${hits.filter((h) => h.axis === '出').length} 处（德州没有画布，按钮都是 DOM，全部量到）`,
     '',
-    '尺寸\t界面\t元素\t类别（纵/横=要滚，叠=可点元素相交，裁=文字被裁）\t多出(px)',
+    '尺寸\t界面\t元素\t类别（纵/横=要滚，叠=可点元素相交，裁=文字被裁，出=伸出屏幕）\t多出(px)',
     ...hits.map((h) => `${h.size}\t${h.screen}\t${h.el}\t${h.axis}\t${h.over}`),
     '',
     `没走到 ${unreached.length} 项`,

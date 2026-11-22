@@ -45,6 +45,11 @@
 /* 我自己的底牌已经是最大的一档，再放大会顶到上面的结果条（冒烟报压住 7 像素）：只留光圈 */
 .table.showdown .card.mine.best { scale: 1; animation: none; }
 .table.showdown .card.up:not(.best) .c-face { filter: brightness(.7) saturate(.85); }
+/* 同一个人的两张：第二张始终压在第一张上（点数在左上角，错开的那一截正好露出第一张的点数）。赢的那张被提到最上层就把另一张的点数整个盖住了 */
+.table.showdown .seat .hole .card.best { z-index: auto; }
+/* 摊牌时别人亮出来的两张拉开一点：平时只错开 16，赢的那张再放大就把另一张的点数盖得只剩一角（界面审查 1121 第 1 条）。竖屏座位挤，不动 */
+.stage:not(.tall) .table.showdown .seat:not(.me):not(.right) .hole .card:nth-child(2) { left: 80px; }
+.stage:not(.tall) .table.showdown .seat.right:not(.me) .hole .card:nth-child(1) { left: -80px; }
 @keyframes pfx-win {
   0% { scale: 1; }
   55% { scale: 1.2; }

@@ -87,7 +87,7 @@ export async function pushFoldFlow(browser: Browser, base: string): Promise<void
     // 离桌回大厅：娱乐不碰钱包，没有结回
     await page.locator('.pill.leave').click();
     await page.locator('.d-btn.danger', { hasText: '离桌' }).click();
-    await page.locator('.d-btn.primary', { hasText: '回标题' }).click();
+    await page.locator('.d-btn.primary', { hasText: '回首页' }).click();
     await page.locator('.lobby').waitFor();
     log(tag, 'pushfold ok, hands played', n);
     await ctx.close();

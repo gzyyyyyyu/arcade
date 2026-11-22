@@ -186,7 +186,7 @@
   .stage.tall .lobby .qstart { min-height: 68px; }
   .stage.tall .lobby .fan { height: 84px; margin-top: var(--s-1); }
 }
-/* 手机横屏矮：四张档位卡的小字（最多输、赢很少过）收起，让"坐下开打"留在第一屏；档位的盲注、星还在，细节选中后桌上都有 */
+/* 手机横屏矮：四张档位卡的小字（最多输、很少赢过）收起，让"坐下开打"留在第一屏；档位的盲注、星还在，细节选中后桌上都有 */
 .stage.tight:not(.tall) .lobby .stakes:not(.fun) .tile small { display: none; }
 .stage.tight:not(.tall) .lobby .tile.diff small { display: none; }
 /* 键位角标只给有鼠标的设备（触屏没有键盘） */

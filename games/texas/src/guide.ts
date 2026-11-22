@@ -74,7 +74,7 @@ const KEYS_TABLE: [string, string, string][] = [
   ['R', '牌桌：加注（展开加注面板）', ''],
   ['回车', '牌桌：加注面板开着时确认', ''],
   ['Esc', '牌桌：收起加注面板', ''],
-  ['1–5', '加注面板：最小 / ½池 / ¾池 / 1池 / 全下', ''],
+  ['1–5', '加注面板：最小 / 半池 / ¾池 / 满池 / 全下', ''],
   ['← → ↑ ↓', '加注面板：加减一个大盲，加 Shift 是五个', ''],
   ['滚轮', '加注面板上滚动：加减加注额', ''],
   ['A', '快速局：全下 / 跟注全下', ''],
@@ -123,7 +123,7 @@ export const STEPS: readonly Step[] = [
 ];
 
 /** 快捷键那一页：只给有鼠标键盘的设备 */
-const KEYS_STEP: Step = { id: 'keys', target: null, title: '电脑快捷键', lines: [], wide: true, items: KEYS_TABLE };
+const KEYS_STEP: Step = { id: 'keys', target: null, title: '键盘快捷键', lines: [], wide: true, items: KEYS_TABLE };
 
 /**
  * 这台设备走哪几步：触屏没有键盘，不出快捷键那一页；第一次自动弹（first）也不出——新手还没出过一手，先学会打，
@@ -136,7 +136,7 @@ export const HINT_TEXT: Record<HintId, string> = {
   result: '这手打完了：这里写谁赢、赢多少。点"下一手"接着打。',
   pot: '这是底池：大家下的筹码都在这。牌最大的人拿走；别人都弃牌，剩下的人拿走。',
   showdown: '摊牌：{who}的{kind}最大，所以赢。亮起来的是赢的那 5 张。',
-  raise: '选个数再点"确认"，想全押点"全下"。',
+  raise: '选个数再点"确认"，想全下点"全下"。',
 };
 
 // ---------- 摆放 ----------

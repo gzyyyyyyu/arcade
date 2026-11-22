@@ -104,15 +104,15 @@ function sentence(a: ChoiceId, s: Setup, equity: number, need: number): string {
   const n = pct(need);
   if (s.sizing === 'push') {
     return a === 'shove'
-      ? `${s.rangeText.replace('大盲', '他')}，被跟时你只要 ${n}% 赢面就不亏，你有 ${e}%，全下赚。`
-      : `被跟时你得有 ${n}% 赢面才不亏，这手牌只有 ${e}%，弃牌更好。`;
+      ? `${s.rangeText.replace('大盲', '他')}，被跟时你只要 ${n}% 胜率就不亏，你有 ${e}%，全下赚。`
+      : `被跟时你得有 ${n}% 胜率才不亏，这手牌只有 ${e}%，弃牌更好。`;
   }
   const f = s.flavor;
-  if (a === 'fold') return `${f}赢面 ${e}% 不够跟注要的 ${n}%，长期跟就是送钱，弃牌。`;
-  if (a === 'raise') return `${f}赢面 ${e}% 远高于要的 ${n}%，别只跟注，加注多收钱。`;
+  if (a === 'fold') return `${f}胜率 ${e}% 不够跟注要的 ${n}%，长期跟就是送钱，弃牌。`;
+  if (a === 'raise') return `${f}胜率 ${e}% 远高于要的 ${n}%，别只跟注，加注多收钱。`;
   return s.sizing === 'allin' || s.sizing === 'shove'
-    ? `${f}赢面 ${e}% 高过要的 ${n}%，跟上去长期赚钱。`
-    : `${f}赢面 ${e}% 高过要的 ${n}%，跟注划算，但还没强到该加注。`;
+    ? `${f}胜率 ${e}% 高过要的 ${n}%，跟上去长期赚钱。`
+    : `${f}胜率 ${e}% 高过要的 ${n}%，跟注划算，但还没强到该加注。`;
 }
 
 /** 试着出一道题：失败（牌发不出、局面模糊）给 null */
