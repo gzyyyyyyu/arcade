@@ -10,12 +10,6 @@ export const MID_BOSS_KINDS: readonly EnemyKind[] = ['lord', 'huapi', 'zhumu', '
 
 /** 摆设怪：不伤人、不掉东西、武器不瞄它；到点自己散掉。主角走不过去（core/foes 每拍把人推出圈外） */
 export const PROP_KINDS: readonly EnemyKind[] = ['ricepile', 'coffin'];
-/**
- * 暂时收起的镇子（见 save.ts RAID_PICKS）里才有的怪：玩家遇不到，图鉴收集度、百鬼录、成就都先不算它们，免得永远集不齐。
- * 现在没有收起的镇子（粮仓镇 0.17.4 放出来了）；以后再收起某个镇子，把它独有的怪和成就填进这两张表
- */
-export const SHELVED_KINDS: readonly EnemyKind[] = [];
-export const SHELVED_ACHIEVEMENTS: readonly string[] = [];
 
 /**
  * 千年竹母（竹林 8:00）。eT 倒数到下一个技能；eV 数放了几个技能；eS 0 平时。

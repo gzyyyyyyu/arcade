@@ -8,9 +8,9 @@
  * 不依赖 DOM：fetch 和存档从外面传进来。
  */
 import { endExchange, newXcOp, startExchange, type Save } from './save.ts';
+import { timeoutSignal } from './timeout.ts';
 
 const API = 'api/exchange/';
-const FETCH_MS = 10_000;
 
 /** 今天的额度；拿不到（单独部署、没登录、连不上）是 null，界面写「每天最多 2,000」 */
 export interface Quota {
@@ -114,7 +114,7 @@ export class ExchangeClient {
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' },
         body: JSON.stringify(body),
-        ...(typeof AbortSignal.timeout === 'function' ? { signal: AbortSignal.timeout(FETCH_MS) } : {}),
+        ...timeoutSignal(),
       });
       let json: unknown = null;
       try {

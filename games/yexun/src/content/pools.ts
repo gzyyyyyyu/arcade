@@ -3,14 +3,10 @@
  * 池里有 2–3 个主修流派的完整成套件加几件跨流派的搭配件。这样新法器不会稀释老流派，每个角色的卡池也更像这个角色。
  * 池由「主修流派的单子（content/guide.ts）+ 几件跨流派的搭配件」算出来：被动 = 池里每件法器的进化被动 + 主修流派要的被动 + 仙桃、朱砂。
  * 实盘局和娱乐局一样按池抽。
- * 新 4 个角色的 id 在角色那一路加进 meta.ts 的 CharacterId 之前，先用字符串字面量。
  */
-import type { CharacterId } from './meta.ts';
+import { CHARACTER_IDS, type CharacterId } from './meta.ts';
 import { SCHOOLS, type SchoolId } from './guide.ts';
 import { WEAPONS, type PassiveId, type WeaponId } from './weapons.ts';
-
-export type PoolCharacterId = CharacterId | 'zhijiang' | 'baidu' | 'huolang' | 'yinyang';
-export const POOL_CHARACTER_IDS: readonly PoolCharacterId[] = ['xiaodao', 'fushi', 'jianxia', 'pang', 'gengfu', 'caiyao', 'zhijiang', 'baidu', 'huolang', 'yinyang'];
 
 export interface CharacterPool {
   /** 主修流派（2–3 个） */
@@ -20,7 +16,7 @@ export interface CharacterPool {
 }
 
 /** 每个角色：起手法器、主修流派、几件跨流派的搭配件（包括专属搭配的料） */
-const SPEC: Record<PoolCharacterId, { start: WeaponId; schools: SchoolId[]; extra: WeaponId[] }> = {
+const SPEC: Record<CharacterId, { start: WeaponId; schools: SchoolId[]; extra: WeaponId[] }> = {
   // 近战成长：剑修 + 五雷；阴律斩要判官笔，引魂鹤铃要纸鹤
   xiaodao: { start: 'sword', schools: ['sword', 'wood'], extra: ['brush', 'crane', 'mirror', 'shield', 'tide'] },
   // 远程连发：符箓 + 烈火；买路符钱要铜钱镖
@@ -51,7 +47,7 @@ const SPEC: Record<PoolCharacterId, { start: WeaponId; schools: SchoolId[]; extr
  * 试过采药女加勾魂锁（雷劫锁魂）：她的花灯会 69% → 62%，过了「专属掉 1 个点就不做」的止损线，没加
  */
 
-function build(id: PoolCharacterId, extra: readonly WeaponId[]): CharacterPool {
+function build(id: CharacterId, extra: readonly WeaponId[]): CharacterPool {
   const { start, schools } = SPEC[id];
   const weapons: WeaponId[] = [start];
   for (const s of schools) for (const w of SCHOOLS[s].weapons) if (!weapons.includes(w)) weapons.push(w);
@@ -71,13 +67,13 @@ function build(id: PoolCharacterId, extra: readonly WeaponId[]): CharacterPool {
 }
 
 /** 每个角色的池（界面、图鉴、可达性、局内抽卡都按它） */
-export const CHARACTER_POOLS = Object.fromEntries(POOL_CHARACTER_IDS.map((id) => [id, build(id, SPEC[id].extra)])) as Record<PoolCharacterId, CharacterPool>;
+export const CHARACTER_POOLS = Object.fromEntries(CHARACTER_IDS.map((id) => [id, build(id, SPEC[id].extra)])) as Record<CharacterId, CharacterPool>;
 
 /** 起手法器（和 meta.ts CHARACTERS[id].start 一致，测试锁住；新角色在 meta 里还没有时用这里的） */
-export const POOL_START: Record<PoolCharacterId, WeaponId> = Object.fromEntries(POOL_CHARACTER_IDS.map((id) => [id, SPEC[id].start])) as Record<PoolCharacterId, WeaponId>;
+export const POOL_START: Record<CharacterId, WeaponId> = Object.fromEntries(CHARACTER_IDS.map((id) => [id, SPEC[id].start])) as Record<CharacterId, WeaponId>;
 
 const SETS: Record<string, { w: Set<string>; p: Set<string> }> = Object.fromEntries(
-  POOL_CHARACTER_IDS.map((id) => [id, { w: new Set<string>(CHARACTER_POOLS[id].weapons), p: new Set<string>(CHARACTER_POOLS[id].passives) }]),
+  CHARACTER_IDS.map((id) => [id, { w: new Set<string>(CHARACTER_POOLS[id].weapons), p: new Set<string>(CHARACTER_POOLS[id].passives) }]),
 );
 
 /** 这个角色的池里有没有这件法器 / 被动（不认识的角色按小道士） */
@@ -104,10 +100,10 @@ export const SCHOOL_CORE: Record<SchoolId, WeaponId> = {
 };
 
 /** 角色的两个主修流派 */
-export const mainSchools = (id: PoolCharacterId): readonly SchoolId[] => SPEC[id].schools;
+export const mainSchools = (id: CharacterId): readonly SchoolId[] => SPEC[id].schools;
 
 /** 起手件所在的主修流派之外的那个（「另一主修」）：起手件所在流派先按核心件、再按流派单子找，都找不到或两个都有按 SPEC 里排第一的 */
-export function altSchool(id: PoolCharacterId): SchoolId {
+export function altSchool(id: CharacterId): SchoolId {
   const { start, schools } = SPEC[id];
   const own = schools.find((s) => SCHOOL_CORE[s] === start) ?? schools.find((s) => SCHOOLS[s].weapons.includes(start)) ?? schools[0]!;
   return schools.find((s) => s !== own) ?? own;
@@ -118,7 +114,7 @@ export function altSchool(id: PoolCharacterId): SchoolId {
  * 0.19.0 实盘雪原中档普通机器人胜率只有正常起手的零头），换成另一主修流派单子里胜率最接近正常起手的那件（量法见 DESIGN 3.7）。
  * `npm run sim:starts` 守着：每个角色两件起手，第二件的胜率不低于正常起手的一半
  */
-export const ALT_START_FIX: Partial<Record<PoolCharacterId, WeaponId>> = {
+export const ALT_START_FIX: Partial<Record<CharacterId, WeaponId>> = {
   // 实盘雪原中档、普通机器人、心法带另一主修，100 局胜率；正常起手（同样带心法）：小道士桃木剑 88%、纸匠纸兵 80%、阴阳先生阵旗 95%
   xiaodao: 'petals', // 雷符 43%；花瓣 83%、符咒 94%
   zhijiang: 'bell', // 招魂幡 13%；镇魂铃 90%、判官笔 31%、勾魂锁 32%
@@ -126,7 +122,7 @@ export const ALT_START_FIX: Partial<Record<PoolCharacterId, WeaponId>> = {
 };
 
 /** A：第二件起手法器 = 另一主修流派的核心件（主线 11-06：按规则定，不逐个手挑），个别换掉（ALT_START_FIX） */
-export function altStart(id: PoolCharacterId): WeaponId {
+export function altStart(id: CharacterId): WeaponId {
   return ALT_START_FIX[id] ?? SCHOOL_CORE[altSchool(id)];
 }
 

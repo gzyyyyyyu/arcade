@@ -1,7 +1,8 @@
 // 两段式合成（DESIGN 3.3f）：两件料都到 5 级先合初成（效果按 mergePower 打折、不空法器格），到原条件开宝箱升大成。娱乐、实盘一样
+import type { CharacterId } from '../../src/content/meta.ts';
 import { describe, expect, it } from 'vitest';
 import { mergeWho } from '../../src/content/combos.ts';
-import { CHARACTER_POOLS, type PoolCharacterId } from '../../src/content/pools.ts';
+import { CHARACTER_POOLS } from '../../src/content/pools.ts';
 import { MAX_WEAPONS, MERGE_STAGE, MERGES, WEAPONS, type MergeDef, type WeaponId } from '../../src/content/weapons.ts';
 import { grantWeapon, openChestNow, openEliteChestNow, spawnNow } from '../../src/core/debug.ts';
 import { createWorld, Ev, MAX_SHOTS, Pick, Shot, step, type Setup, type World } from '../../src/core/index.ts';
@@ -104,7 +105,7 @@ function staged(m: MergeDef, stage: Stage): { w: World; ids: number[] } {
   const w = createWorld({ seed: 11, mode: 'vigil', danger: 2, character: c as never });
   w.weapons.length = 0;
   w.wstats.length = 0;
-  const evoIn = (id: WeaponId): boolean => !!WEAPONS[id].evolve && CHARACTER_POOLS[c as PoolCharacterId].passives.includes(WEAPONS[id].evolve!.with);
+  const evoIn = (id: WeaponId): boolean => !!WEAPONS[id].evolve && CHARACTER_POOLS[c as CharacterId].passives.includes(WEAPONS[id].evolve!.with);
   const aEvo = !m.dual || evoIn(m.a);
   grantWeapon(w, m.a, 8, aEvo);
   grantWeapon(w, m.b, 8, !m.dual || !aEvo);

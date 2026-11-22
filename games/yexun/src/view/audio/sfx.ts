@@ -23,36 +23,7 @@ export type SfxName = BaseSfxName | ArmSfxName | Arm2SfxName | FoeSfxName;
 
 import type { FoeSfxName } from './sfx-foes.ts';
 import { installFoeSfx } from './sfx-foes.ts';
-
-const SETTINGS_KEY = 'yexun.settings';
-
-/** 读设置里的一个布尔字段；存储不可用、内容损坏都当没有，用默认值。 */
-export function readFlag(field: string, def: boolean): boolean {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return def;
-    const o: unknown = JSON.parse(raw);
-    if (o && typeof o === 'object') {
-      const v = (o as Record<string, unknown>)[field];
-      if (typeof v === 'boolean') return v;
-    }
-  } catch { /* 隐私模式等：照常运行 */ }
-  return def;
-}
-
-/** 写一个字段：先读出整个对象合并再写回，不能覆盖同一个 key 里别人的字段。 */
-export function writeFlag(field: string, value: boolean): void {
-  try {
-    let o: Record<string, unknown> = {};
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) {
-      const p: unknown = JSON.parse(raw);
-      if (p && typeof p === 'object' && !Array.isArray(p)) o = p as Record<string, unknown>;
-    }
-    o[field] = value;
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(o));
-  } catch { /* 写不进去就算了，只是下次不记得 */ }
-}
+import { readFlag, writeFlag } from '../../platform/save.ts';
 
 // ---------- 音频环境 ----------
 let ctx: AudioContext | null = null;
@@ -61,6 +32,13 @@ let musicIn: GainNode | null = null;
 let noiseBuf: AudioBuffer | null = null;
 let failed = false;
 const readyHooks: Array<() => void> = [];
+/** WebAudio 出错不拖垮游戏，但第一次要留个痕迹（只打一次，免得每个音都刷一条） */
+let warned = false;
+export function audioWarnOnce(what: string, e: unknown): void {
+  if (warned) return;
+  warned = true;
+  console.warn(`声音出错（${what}），之后同类错误不再打印：`, e);
+}
 
 function ensureCtx(): AudioContext | null {
   if (ctx || failed) return ctx;
@@ -464,7 +442,11 @@ export const sfx = {
     if (!c) return;
     if (c.state === 'suspended') void c.resume().catch(() => { /* 手势外 resume 会拒绝，下次手势再来 */ });
     while (readyHooks.length) {
-      try { readyHooks.shift()!(); } catch { /* 钩子出错不影响音效 */ }
+      try {
+        readyHooks.shift()!();
+      } catch (e) {
+        audioWarnOnce('音频就绪钩子', e);
+      }
     }
   },
   play(name: SfxName, opts?: { volume?: number; pitch?: number }): void {
@@ -486,7 +468,9 @@ export const sfx = {
     vol = opts?.volume !== undefined ? Math.max(0, opts.volume) : 1;
     try {
       voice(ctx.currentTime + 0.005);
-    } catch { /* 音效永远不该拖垮游戏 */ }
+    } catch (e) {
+      audioWarnOnce('音效', e);
+    }
     pitch = 1;
     vol = 1;
   },

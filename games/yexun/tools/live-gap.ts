@@ -14,7 +14,7 @@ import { MID_BOSS_KINDS } from '../src/content/foes.ts';
 import { LIVE_CHAR_IDS, liveCharOk, liveMapOk } from '../src/content/live.ts';
 import { MAP_EVENTS } from '../src/content/mapEvents.ts';
 import { MAP_IDS, MAPS } from '../src/content/maps.ts';
-import { PICK_CHAR_IDS, CHARACTERS } from '../src/content/meta.ts';
+import { CHARACTER_IDS, CHARACTERS } from '../src/content/meta.ts';
 import { RAID_REGIONS, vigilRegion } from '../src/content/regions.ts';
 import { midBossOf } from '../src/content/waves.ts';
 
@@ -84,7 +84,7 @@ export function liveGaps(): LiveGap[] {
   const towns = (Object.keys(RAID_TEMPLATES) as RaidTemplateId[]).filter((t) => t !== 'teach' && !(RAID_LIVE_TEMPLATES as readonly string[]).includes(t));
 
   // 角色：娱乐里能选的（摆渡人两边都收着，不算）
-  const chars = PICK_CHAR_IDS.filter((c) => !liveCharOk('small', c) || !LIVE_CHAR_IDS.includes(c));
+  const chars = CHARACTER_IDS.filter((c) => !liveCharOk('small', c) || !LIVE_CHAR_IDS.includes(c));
 
   const gaps: LiveGap[] = [
     { category: '怪', items: sorted(missing.filter((k) => !isElite(k)).map(foeName)) },

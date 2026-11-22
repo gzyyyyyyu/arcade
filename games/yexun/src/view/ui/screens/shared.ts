@@ -5,7 +5,7 @@ import { DANGERS, type Danger } from '../../../content/waves.ts';
 import type { CharacterId, CurseId } from '../../../content/meta.ts';
 import type { LiveTier } from '../../../content/live.ts';
 import { RAID_LIVE_TEMPLATES, type RaidLiveTemplate } from '../../../content/explore.ts';
-import { RAID_PICKS, type Best, type LastMode, type RaidPick } from '../../../platform/save.ts';
+import type { Best, LastMode, RaidPick } from '../../../platform/save.ts';
 import { beijingDate, daysToNightmareSunday } from '../../../online/daily.ts';
 
 /** 锁：不用表情字符（有的设备、无头浏览器没有表情字体，显示成方框） */
@@ -130,8 +130,6 @@ export interface MenuState {
   mobIcon: (key: string, px?: number) => string;
 }
 
-/** 夜探卡能选的镇子（教学镇不在里面：第一次固定进） */
-export const RAID_PICK: readonly RaidPick[] = RAID_PICKS;
 /** 实盘能选的镇子（RAID_LIVE_TEMPLATES） */
 export const LIVE_PICK: readonly RaidLiveTemplate[] = RAID_LIVE_TEMPLATES;
 export const isLiveTown = (t: RaidPick): t is RaidLiveTemplate => (LIVE_PICK as readonly string[]).includes(t);

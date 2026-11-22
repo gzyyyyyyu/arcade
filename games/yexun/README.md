@@ -20,7 +20,7 @@ It is one module of the Arcade monorepo, but deploys on its own too. Chips are p
 - [ASSETS.md](ASSETS.md)：素材来源和许可
 - [docs/balance-live.md](docs/balance-live.md)：实盘系数的拟合记录；[docs/balance-play.md](docs/balance-play.md)：全流派配平的量测数据
 - [docs/palette.md](docs/palette.md)：界面配色；[docs/art.md](docs/art.md)：界面流程和各尺寸布局规则
-- [CHANGELOG.md](CHANGELOG.md)：版本记录（0.9.0 及更早的在 [docs/changelog-archive.md](docs/changelog-archive.md)）
+- [CHANGELOG.md](CHANGELOG.md)：版本记录（0.19.8 及更早的在 [docs/changelog-archive.md](docs/changelog-archive.md)）
 
 ## 本地开发
 

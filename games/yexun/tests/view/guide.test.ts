@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SCHOOL_IDS, SCHOOLS, WEAPON_ROLE, GUIDE_EXAMPLES } from '../../src/content/guide.ts';
 import { PASSIVES, WEAPONS, type WeaponId } from '../../src/content/weapons.ts';
-import { PICK_CHAR_IDS } from '../../src/content/meta.ts';
+import { CHARACTER_IDS } from '../../src/content/meta.ts';
 import { mainSchools } from '../../src/content/pools.ts';
 import { BUILD_IDS, BUILDS } from '../../tools/bots.ts';
 
@@ -27,7 +27,7 @@ describe('玩法说明的数据', () => {
   it('流派页每个流派有一句话打法，也都有角色主修（流派页写的就是角色页「主修」那份）', () => {
     for (const id of SCHOOL_IDS) {
       expect(SCHOOLS[id].brief.length).toBeGreaterThan(4);
-      expect(PICK_CHAR_IDS.some((c) => mainSchools(c).includes(id))).toBe(true);
+      expect(CHARACTER_IDS.some((c) => mainSchools(c).includes(id))).toBe(true);
     }
   });
 });

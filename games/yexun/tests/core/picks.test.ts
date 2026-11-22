@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PICKS, SKIP_FX, SKIP_PRIZES } from '../../src/content/picks.ts';
+import { COIN_PICK, PICKS, SKIP_FX, SKIP_PRIZES } from '../../src/content/picks.ts';
 import { createWorld, Ev, Pick, step, type Setup, type World } from '../../src/core/index.ts';
 import { spawnNow } from '../../src/core/debug.ts';
 import { Bot } from '../../tools/bots.ts';
@@ -104,5 +104,15 @@ describe('选卡三件套（10-20）', () => {
     const w = toChoice(7, { live: true });
     step(w, 0, Pick.Skip);
     expect(evs(w, Ev.Skip)[0]!.a).toBeGreaterThanOrEqual(0);
+  }, 20_000);
+
+  it('铜钱一袋（全升满后）：按 COIN_PICK 加铜钱、回血', () => {
+    const w = toChoice(7);
+    w.choices = [{ kind: 'coins', id: 'coins' }];
+    w.hp = 1;
+    const coins = w.coins;
+    step(w, 0, 0);
+    expect(w.coins - coins).toBe(COIN_PICK.coins);
+    expect(w.hp).toBe(1 + COIN_PICK.heal);
   }, 20_000);
 });

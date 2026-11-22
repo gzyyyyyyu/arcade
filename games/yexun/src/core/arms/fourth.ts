@@ -4,7 +4,7 @@
  * 能不能合由宝箱（core/step.ts mergeOpen）把关，所以这里只看 w.merges。
  * 和前几批一样只用四则运算，不用随机。
  */
-import { COMBO62, WEAPON_IDS, type WeaponId } from '../../content/weapons.ts';
+import { COMBO62, WEAPON_CODE, type WeaponId } from '../../content/weapons.ts';
 import { ENEMIES } from '../../content/enemies.ts';
 import { Ev } from '../events.ts';
 import type { Grid } from '../grid.ts';
@@ -13,7 +13,6 @@ import { ArmEv, ArmFx } from './events.ts';
 import type { ArmApi } from './index.ts';
 import { spawnDart } from './second.ts';
 
-const CODE = Object.fromEntries(WEAPON_IDS.map((id, i) => [id, i])) as Record<WeaponId, number>;
 
 const has = (w: World, id: string): boolean => w.merges.includes(id as never);
 function emit(w: World, t: number, x: number, y: number, a = 0, b = 0, c = 0): void {
@@ -49,7 +48,7 @@ export function fourthTick(w: World, g: Grid, api: ArmApi): void {
       const dmg = api.eff(w, w.wstats[kd]!).dmg * M.mul * w.mergePower('jianzou');
       const evo = w.weapons[kd]!.evolved ? 1 : 0;
       for (let q = 0; q < ev.n; q++) {
-        if (ev.type[q] !== Ev.Fire || ev.a[q] !== CODE.flysword) continue;
+        if (ev.type[q] !== Ev.Fire || ev.a[q] !== WEAPON_CODE.flysword) continue;
         const t = api.nearest(w, g, ev.x[q]!, ev.y[q]!, M.reach);
         if (t < 0) continue;
         spawnDart(w, ev.x[q]!, ev.y[q]!, t, dmg, kd, evo);
@@ -61,7 +60,7 @@ export function fourthTick(w: World, g: Grid, api: ArmApi): void {
   if (has(w, 'longshe')) {
     const kb = slotOf(w, 'brush');
     let fired = false;
-    for (let q = 0; q < ev.n && !fired; q++) fired = ev.type[q] === Ev.Fire && ev.a[q] === CODE.tide;
+    for (let q = 0; q < ev.n && !fired; q++) fired = ev.type[q] === Ev.Fire && ev.a[q] === WEAPON_CODE.tide;
     if (kb >= 0 && fired) {
       const M = COMBO62.longshe;
       const t = mostHp(w, g, g.query(w, w.x, w.y, M.reach));

@@ -90,8 +90,8 @@ async function boot(): Promise<void> {
   const mobAtlas = buildMobAtlas(res);
   const heroAtlas = buildHeroAtlas(res);
   const ground = buildGround(512);
-  if (q.has('sheet')) {
-    // ?sheet 看主图集，?sheet=mob 看特色怪的图集
+  if (import.meta.env.DEV && q.has('sheet')) {
+    // ?sheet 看主图集，?sheet=mob 看特色怪的图集（只在开发服务器里）
     const sheet = q.get('sheet') === 'mob' ? mobAtlas : atlas;
     sheet.canvas.style.cssText = 'position:absolute;left:0;top:0;background:#e4e8f0';
     document.body.style.overflow = 'auto';
@@ -710,7 +710,7 @@ async function boot(): Promise<void> {
   if (hasLoginHint() && !q.has('auto')) void social.start();
   const { danger: qd, map: qm } = readStartQuery(q, save);
   // ?raid=guzhen|dukou|shansi|xilou|teach 直接开一局夜探（冒烟截图用；可带 &auto 机器人代打）。只开娱乐：实盘必须在菜单里选档位。
-  // 线上只认能进的镇子，收起的粮仓镇只在开发服务器里能进（raidOpen）
+  // 线上只认 RAID_OPEN 里的镇子（raidOpen）
   const qr = q.get('raid');
   // ?rush 直接开今天的首领连战（冒烟截图用；可带 &auto）
   if (q.has('rush')) void startRush();

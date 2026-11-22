@@ -89,6 +89,18 @@ describe('带入', () => {
     expect(store.m.has(LIVE_KEY)).toBe(false);
   });
 
+  it('本机存储写不进：不发带入、筹码不动，回 storage', async () => {
+    const full = { ...mem(), setItem: () => { throw new DOMException('full', 'QuotaExceededError'); } };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { c, calls } = rig(undefined, full);
+    const r = await c.buyin('small', 1);
+    expect(r).toMatchObject({ ok: false, outcome: { kind: 'reject', error: 'storage' } });
+    expect(calls).toHaveLength(0);
+    expect(c.busy).toBe(false);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it('没登录 401：清掉记录（肯定没带入）', async () => {
     const { c, store } = rig(() => res(401, { ok: false, error: 'login' }));
     const r = await c.buyin('small', 1);

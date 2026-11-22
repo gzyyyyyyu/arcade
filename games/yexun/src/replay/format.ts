@@ -5,7 +5,7 @@
 import type { OnlineSetup } from '../online/types.ts';
 
 /** 33 个符号：0 = 不动，1–32 = 32 向。都不是数字和小写字母，和 36 进制的拍数不会混。
- * 慢走（33–64）写成 `~` 加上对应全速方向的符号，旧录像没有 `~`，格式向后兼容 */
+ * 慢走（33–64）写成 `~` 加上对应全速方向的符号 */
 const DIR_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&*+';
 
 export interface ReplayRecord {
@@ -23,7 +23,7 @@ export interface ReplayRecord {
   ticks: number;
   /** 升级时的选择，按先后：「拍号:选择」逗号隔开（选择 0–2 是三张卡，100+ 刷新，200+ 封禁，300 跳过） */
   picks: string;
-  /** 按技能键的拍号（推进时间的拍，从 0 数，和 dirs 同一把尺），逗号隔开；稀疏。没按过就不写这一项，旧录像也没有（读出来按空） */
+  /** 按技能键的拍号（推进时间的拍，从 0 数，和 dirs 同一把尺），逗号隔开；稀疏。没按过就不写这一项（读出来按空） */
   skills?: string;
   /** 打完时的状态指纹：重放到同一拍的指纹对不上就说明放歪了（规则变了） */
   fp: number;

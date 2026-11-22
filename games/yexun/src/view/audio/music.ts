@@ -2,7 +2,8 @@
 // 用 AudioContext 时钟提前调度（lookahead），不依赖帧率，切后台也不会拖拍。
 // 与 sfx.ts 共用同一个 AudioContext 和压缩器总线，所以音乐不会和音效一起把声音顶爆。
 
-import { audioBus, onAudioReady, readFlag, writeFlag } from './sfx.ts';
+import { readFlag, writeFlag } from '../../platform/save.ts';
+import { audioBus, audioWarnOnce, onAudioReady } from './sfx.ts';
 
 type TrackName = 'night' | 'boss' | 'raid';
 type Level = 0 | 1 | 2 | 3;
@@ -270,7 +271,9 @@ function tick(): void {
   while (nextTime < ctx.currentTime + LOOKAHEAD) {
     try {
       scheduleStep(current.name, current.env, step % total, nextTime, stepDur);
-    } catch { /* 音乐出错也不能影响游戏 */ }
+    } catch (e) {
+      audioWarnOnce('音乐', e);
+    }
     nextTime += stepDur;
     step++;
   }

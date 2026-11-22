@@ -6,7 +6,7 @@
  */
 import { ENEMIES } from '../../content/enemies.ts';
 import { CHAR_FX, CURSE_FX } from '../../content/meta.ts';
-import { ARM_FX, ARM_FX2, WEAPON_IDS, type WeaponId, type Element, type WeaponStats, type WeaponType } from '../../content/weapons.ts';
+import { ARM_FX, ARM_FX2, WEAPON_CODE, type WeaponId, type Element, type WeaponStats, type WeaponType } from '../../content/weapons.ts';
 import { DIR_N } from '../dirs.ts';
 import { Ev } from '../events.ts';
 import { dcos, dirIndex, dsin } from '../fmath.ts';
@@ -32,7 +32,6 @@ export interface ArmApi {
 }
 export type Eff = { dmg: number; cd: number; area: number; amount: number };
 
-const CODE = Object.fromEntries(WEAPON_IDS.map((id, i) => [id, i])) as Record<WeaponId, number>;
 const tmp = new Int32Array(MAX_ENEMIES);
 const tmp2 = new Int32Array(MAX_ENEMIES);
 const pulled = new Int32Array(64);
@@ -172,7 +171,7 @@ function castFlag(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStats,
     }
     addZone(w, x, y, e.area, life, wp.evolved ? 1 : 0, e.dmg, s.rehit, k, j * 4);
   }
-  emit(w, Ev.Fire, w.x, w.y, CODE.flag);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.flag);
   return true;
 }
 
@@ -184,7 +183,7 @@ function autoZone(w: World, g: Grid, api: ArmApi): void {
   const kf = slotOf(w, 'flag');
   const dmg = kf >= 0 ? api.eff(w, w.wstats[kf]!).dmg * 0.6 : ARM_FX.flag.autoDmg;
   addZone(w, w.x, w.y, ARM_FX.flag.autoHalf * w.stats.areaMul, Math.round(ARM_FX.flag.autoLife * w.stats.durMul), 2, dmg, 15, kf, 0);
-  emit(w, Ev.Fire, w.x, w.y, CODE.flag);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.flag);
 }
 
 function zoneTick(w: World, g: Grid, z: import('./state.ts').Zone, q: number, api: ArmApi): void {
@@ -303,7 +302,7 @@ function castChain(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStats
       }
     }
   }
-  emit(w, Ev.Fire, w.x, w.y, CODE.chain);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.chain);
   return got > 0;
 }
 
@@ -343,7 +342,7 @@ function castPole(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStats,
     }
     if (wp.evolved) for (let at = P.trailStep; at <= len; at += P.trailStep) addPuddle(w, w.x + ux * at, w.y + uy * at, P.trailR, life);
   }
-  emit(w, Ev.Fire, w.x, w.y, CODE.pole);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.pole);
   return true;
 }
 
@@ -386,7 +385,7 @@ function castLamp(w: World, k: number, wp: OwnedWeapon, s: WeaponStats, e: Eff):
     A.lamps.push({ x, y, r: e.area, life, kind: wp.evolved ? 1 : 0, dmg: e.dmg, rehit: s.rehit, slot: k });
     emit(w, ArmEv.Lamp, x, y, wp.evolved ? 1 : 0, e.area, life);
   }
-  emit(w, Ev.Fire, w.x, w.y, CODE.lamp);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.lamp);
   return true;
 }
 

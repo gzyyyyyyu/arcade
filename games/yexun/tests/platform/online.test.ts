@@ -134,7 +134,7 @@ describe('每日挑战', () => {
     expect(counts.size).toBe(2);
     expect(maps.size).toBe(2);
   });
-  it('周日噩梦日：2026-11-01 起的周日守夜是危险 6、1 条咒印；其余不变', () => {
+  it('周日噩梦日：每个周日的守夜是危险 6、1 条咒印；其余不变', () => {
     const sun = dailyPlan('2026-11-01', 'vigil');
     expect(sun.setup.danger).toBe(6);
     expect(sun.curses).toHaveLength(1);
@@ -143,17 +143,12 @@ describe('每日挑战', () => {
     expect(dailyPlan('2026-11-02', 'vigil').setup.danger).toBe(2);
     expect(dailyPlan('2026-11-01', 'raid').setup.danger).toBe(2);
     expect(isNightmareSunday('2026-11-08', 'vigil')).toBe(true);
-    // 入口上的倒数：起始日之前数到起始日，之后数到下一个周日
+    expect(isNightmareSunday('2026-10-25', 'vigil')).toBe(true);
+    // 入口上的倒数：数到下一个周日
     expect(daysToNightmareSunday('2026-10-27')).toBe(5);
     expect(daysToNightmareSunday('2026-11-01')).toBe(0);
     expect(daysToNightmareSunday('2026-11-02')).toBe(6);
     expect(daysToNightmareSunday('2026-11-07')).toBe(1);
-    // 起始日之前的周日：和改前一样（危险 2、咒印数由原抽法决定）
-    expect(isNightmareSunday('2026-10-25', 'vigil')).toBe(false);
-    expect(dailyPlan('2026-10-25', 'vigil').setup.danger).toBe(2);
-    // 噩梦日的图和种子与不改时一致，咒印是原来的第一条
-    const old = dailyPlan('2026-10-25', 'vigil');
-    expect(old.curses.length).toBeGreaterThanOrEqual(1);
   });
   it('固定值：2026-10-17 守夜的计划不随改动漂移（改了抽法，同一天的榜会混进两种局）', () => {
     const p = dailyPlan('2026-10-17', 'vigil');
@@ -211,6 +206,7 @@ describe('平台接口', () => {
     expect(c.url).toBe('/api/scores');
     expect(JSON.parse(c.init.body as string)).toEqual({ gameId: 'yexun', boardId: 'vigil', score: 5, userId: 'u1' });
     expect((c.init.headers as Record<string, string>)['X-Arcade']).toBe('1');
+    expect(c.init.signal).toBeInstanceOf(AbortSignal);
   });
   it('各种回话理成几种结果', async () => {
     const code = (status: number, body?: unknown) => submitScoreAs(fake(() => ({ status, body })), 'u', 'vigil', 1);

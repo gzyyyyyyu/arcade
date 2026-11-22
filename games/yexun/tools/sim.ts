@@ -13,6 +13,7 @@
  * 节奏指标（第一次升级、3 分钟 / 5 分钟内升级次数、全局升级次数、7:30 以后每分钟升级次数，DESIGN.md 13.3）、击杀、一局耗时。
  * 多线程：每个线程跑一部分种子，结果按种子顺序合并，和线程数无关。
  */
+import { CHARACTER_IDS, type CharacterId } from '../src/content/meta.ts';
 import { availableParallelism } from 'node:os';
 import { Worker, isMainThread, parentPort } from 'node:worker_threads';
 import { createWorld, rushResult, step, trialResult, Ev, type Setup } from '../src/core/index.ts';
@@ -23,14 +24,13 @@ import { writeFileSync } from 'node:fs';
 import { DIFFICULTIES, type Danger } from '../src/content/waves.ts';
 import { tierOfDanger, vigilBp } from '../src/content/live.ts';
 import { MAPS, type MapId } from '../src/content/maps.ts';
-import type { CharacterId } from '../src/content/meta.ts';
 import { Bot, routeDone, type Build, type Skill } from './bots.ts';
 import { RaidBot } from '../src/explore/bot.ts';
 import { settleRaid } from '../src/explore/settle.ts';
 import '../src/explore/register.ts';
 import { RAID_LIVE, RAID_TEMPLATES, RAID_LIVE_TIERS, type RaidLiveTier, type RaidTemplateId } from '../src/content/explore.ts';
 import { MERGES } from '../src/content/weapons.ts';
-import { mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId } from '../src/content/pools.ts';
+import { mainSchools } from '../src/content/pools.ts';
 import type { SchoolId } from '../src/content/guide.ts';
 import { STOP_DEFAULTS, stopWhy, tierOf, type StopWhy } from './early-stop.ts';
 
@@ -119,7 +119,7 @@ export function runRush(date: string, skill: Skill): { down: number; total: numb
 export function runTrial(seed: number, id: TrialId, skill: Skill): { won: boolean; progress: number; seconds: number } {
   const t = TRIALS[id];
   const w = createWorld({ seed, mode: t.mode, danger: t.danger, trial: id });
-  const build = (t.only ?? mainSchools(t.character as PoolCharacterId)[0]!) as Build;
+  const build = (t.only ?? mainSchools(t.character as CharacterId)[0]!) as Build;
   const bot = new Bot(skill, build, seed);
   const guide = w.raid ? new RaidBot(w.raid, RAID_LEAVE.normal!) : null;
   let guard = 0;
@@ -137,7 +137,7 @@ export function runTrial(seed: number, id: TrialId, skill: Skill): { won: boolea
   return { won: r.won, progress: r.progress, seconds: w.tick / 30 };
 }
 
-export function runOne(seed: number, danger: Danger, skill: Skill, build: Build, map: MapId = 'snow', character: CharacterId = 'xiaodao', noDual = false, tall = false, live = false, pool: PoolCharacterId | 'all' | '' = '', skills = true, startAlt = false, xinfa = ''): RunResult {
+export function runOne(seed: number, danger: Danger, skill: Skill, build: Build, map: MapId = 'snow', character: CharacterId = 'xiaodao', noDual = false, tall = false, live = false, pool: CharacterId | 'all' | '' = '', skills = true, startAlt = false, xinfa = ''): RunResult {
   const w = createWorld({ seed, mode: 'vigil', danger, map, character, ...(startAlt ? { startAlt } : {}), ...(xinfa ? { xinfa: xinfa as SchoolId } : {}), ...(noDual ? { noDual } : {}), ...(tall ? { tall } : {}), ...(live ? { live } : {}), ...(pool ? { pool } : {}) });
   const bot = new Bot(skill, build, seed, { skills });
   let firstLevel = -1;
@@ -190,7 +190,7 @@ interface Task {
   /** --live：按实盘局开（Setup.live，老卡池，不放 2.0 新内容） */
   live: boolean;
   /** --pool：法器池按这个 id（'all' 不限池） */
-  pool: PoolCharacterId | 'all' | '';
+  pool: CharacterId | 'all' | '';
   /** 机器人放技能（--noskill 关） */
   skills: boolean;
   /** --start alt */
@@ -260,8 +260,8 @@ if (!isMainThread) {
   const tall = process.argv.includes('--tall');
   const live = process.argv.includes('--live');
   const poolArg = arg('--pool', '');
-  if (poolArg && poolArg !== 'all' && !(POOL_CHARACTER_IDS as readonly string[]).includes(poolArg)) throw new Error(`--pool 只认 all 或 ${POOL_CHARACTER_IDS.join('/')}，收到 ${poolArg}`);
-  const pool = poolArg as PoolCharacterId | 'all' | '';
+  if (poolArg && poolArg !== 'all' && !(CHARACTER_IDS as readonly string[]).includes(poolArg)) throw new Error(`--pool 只认 all 或 ${CHARACTER_IDS.join('/')}，收到 ${poolArg}`);
+  const pool = poolArg as CharacterId | 'all' | '';
   // 机器人默认会放技能（bots.ts pressSkill）；--noskill 是不放技能的对照臂
   const useSkills = !process.argv.includes('--noskill');
   // 开局配置（规则 52）：--start alt = 第二件起手；--xinfa 流派 / auto（auto 按每格 --build 的流派，不是本角色主修就不带）
@@ -269,7 +269,7 @@ if (!isMainThread) {
   const xinfaArg = arg('--xinfa', '');
   const xinfaOf = (build: string): string => {
     const sch = xinfaArg === 'auto' ? build.split(':')[0]! : xinfaArg;
-    return sch && (POOL_CHARACTER_IDS as readonly string[]).includes(char) && (mainSchools(char as PoolCharacterId) as readonly string[]).includes(sch) ? sch : '';
+    return sch && (CHARACTER_IDS as readonly string[]).includes(char) && (mainSchools(char as CharacterId) as readonly string[]).includes(sch) ? sch : '';
   };
 
   const cells: (Cell & { map: string })[] = [];

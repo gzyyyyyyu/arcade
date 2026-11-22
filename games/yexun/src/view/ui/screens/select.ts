@@ -4,13 +4,13 @@ import { drawMapThumb } from '../../art/terrain.ts';
 import { drawTownThumb } from '../../art/sprites-townmap.ts';
 import { noSchoolIcon, schoolIcon, tierIcon } from '../../art/sprites-selicons.ts';
 import { DANGER_IDS, DANGERS, NIGHTMARE_FROM, RAID_MAX_DANGER, type Danger } from '../../../content/waves.ts';
-import { CHARACTERS, CURSES } from '../../../content/meta.ts';
+import { CHARACTERS, CHIPS_NO_CASH, CURSES } from '../../../content/meta.ts';
 import { LIVE_TIER_IDS, LIVE_TIERS, liveCharOk, liveMapOk, type LiveTier } from '../../../content/live.ts';
 import { RAID_LIVE, RAID_TEMPLATES, type RaidTemplateId } from '../../../content/explore.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, type Region } from '../../../content/regions.ts';
-import type { RaidPick } from '../../../platform/save.ts';
+import { RAID_PICKS, type RaidPick } from '../../../platform/save.ts';
 import { MONSTER_INFO } from '../codex.ts';
-import { LOCK_SVG, esc, layer, onAction, type MenuState, RAID_PICK, LIVE_PICK, isLiveTown, HOME_BTN, bestText, loadoutNote } from './shared.ts';
+import { LOCK_SVG, esc, layer, onAction, type MenuState, LIVE_PICK, isLiveTown, HOME_BTN, bestText, loadoutNote } from './shared.ts';
 import { zoomed } from '../../viewport.ts';
 import { sceneUrl, TitleArt } from './titleArt.ts';
 import type { Menu } from './menu.ts';
@@ -239,7 +239,7 @@ export class Select {
         '</span></button>'
       );
     }).join('');
-    const townCards = (live ? LIVE_PICK : RAID_PICK).map(
+    const townCards = (live ? LIVE_PICK : RAID_PICKS).map(
       (t) =>
         `<button type="button" class="yx-mcard yx-towncard${t === this.tpl ? ' on' : ''}" data-a="tpl" data-t="${t}"><canvas class="yx-thumb" data-town="${t}" aria-hidden="true"></canvas><span class="yx-cardtxt"><b>${RAID_TEMPLATES[t].name}</b><small>${RAID_TEMPLATES[t].blurb}</small>${heads(RAID_REGIONS[t], true)}</span></button>`,
     ).join('');
@@ -308,7 +308,7 @@ export class Select {
     } else {
       // 第一行 档位 | 角色 + 起手心法；第二行危险档一句；第三行数字小牌（原来三行长句的位置）
       // 实盘能换已解锁的角色和地图（各自有实盘系数，DESIGN 4.2a），加成、咒印不带
-      opts = `${tiers}${charLine}<div class="yx-livenote">${note}</div>${facts}`;
+      opts = `${tiers}${charLine}<div class="yx-livenote">${note}<span class="yx-nocash">${CHIPS_NO_CASH}</span></div>${facts}`;
     }
     const vault = raid && s.vault && !live ? `<button type="button" class="yx-chip yx-vaultbtn" data-a="vault"><b>藏宝阁</b><small>${s.vault.got} / ${s.vault.total}</small></button>` : '';
     const aside = `<div class="yx-aside"><div class="yx-opts">${opts}</div><div class="yx-startbar"><button type="button" class="yx-big" data-a="go">${startLabel}</button>${vault}</div></div>`;

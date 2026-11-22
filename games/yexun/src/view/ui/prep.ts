@@ -5,7 +5,7 @@ import { CHARACTER_POOLS } from '../../content/pools.ts';
 import { reachableMerges } from '../../content/combos.ts';
 import { SCHOOLS } from '../../content/guide.ts';
 import { skillInfo } from './skillInfo.ts';
-import { CHARACTERS, PICK_CHAR_IDS, CURSE_COIN_BONUS, CURSE_IDS, CURSES, MAX_CURSES, PERK_IDS, PERKS, type CharacterId, type CurseId, type PerkId } from '../../content/meta.ts';
+import { CHARACTERS, CHARACTER_IDS, CURSE_COIN_BONUS, CURSE_IDS, CURSES, MAX_CURSES, PERK_IDS, PERKS, type CharacterId, type CurseId, type PerkId } from '../../content/meta.ts';
 import { WEAPONS } from '../../content/weapons.ts';
 import { heroKey } from '../art/heroes.ts';
 import { zoomed } from '../viewport.ts';
@@ -230,7 +230,7 @@ export class Prep {
       }
       return { foot: `${LOCK_SVG}<span class="yx-plt">没解锁</span>`, attrs: `data-a="peek" data-id="${id}"` };
     };
-    const cards = PICK_CHAR_IDS.map((id) => {
+    const cards = CHARACTER_IDS.map((id) => {
       const st = s.chars[id];
       const sk = skillInfo(id);
       const a = act(id);
@@ -265,7 +265,7 @@ export class Prep {
   }
 
   /** 主修流派、凑得出几个搭配（content/combos.ts）+ 法器池的一排小图标（只有选中的宽卡显示；池的内容见 content/pools.ts） */
-  private poolHtml(id: (typeof PICK_CHAR_IDS)[number]): string {
+  private poolHtml(id: (typeof CHARACTER_IDS)[number]): string {
     const p = CHARACTER_POOLS[id];
     const icons = p.weapons.map((w) => `<img alt="${esc(WEAPONS[w].name)}" title="${esc(WEAPONS[w].name)}" src="${this.icons(WEAPONS[w].icon)}">`).join('');
     return `<span class="yx-ppool"><b>主修 ${esc(p.schools.map((k) => SCHOOLS[k].name).join('·'))} · 能合 ${reachableMerges(id).length} 个搭配</b><span class="yx-pwl">${icons}</span></span>`;

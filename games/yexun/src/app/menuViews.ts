@@ -1,5 +1,5 @@
 import type { ExchangeView } from '../view/ui/prepShop.ts';
-import { CHARACTERS, PICK_CHAR_IDS, type CharacterId } from '../content/meta.ts';
+import { CHARACTERS, CHARACTER_IDS, type CharacterId } from '../content/meta.ts';
 import { LIVE_OPEN } from '../content/live.ts';
 import { MAP_IDS, type MapId } from '../content/maps.ts';
 import { SCHOOLS } from '../content/guide.ts';
@@ -18,7 +18,7 @@ export function createMenuViews(save: ReturnType<typeof loadSave>, live: ReturnT
   const prepState = (): PrepState => ({
     coins: coins(save),
     character: save.character,
-    chars: Object.fromEntries(PICK_CHAR_IDS.map((c) => [c, { open: charOpen(save, c), price: CHAR_PRICE[c], progress: charProgress(save, c) }])) as PrepState['chars'],
+    chars: Object.fromEntries(CHARACTER_IDS.map((c) => [c, { open: charOpen(save, c), price: CHAR_PRICE[c], progress: charProgress(save, c) }])) as PrepState['chars'],
     curses: save.curses,
     cursesOpen: save.cleared >= 0,
     perks: save.perks,

@@ -5,12 +5,16 @@
 import { ELEMENT_SET, PASSIVES, TYPE_SETS, WEAPONS, MAX_WEAPON_LEVEL, upChanges, baseNums, type PassiveId, type StatChange, type WeaponId } from '../../content/weapons.ts';
 import { Pick, type Choice, type World } from '../../core/state.ts';
 import { SCHOOLS } from '../../content/guide.ts';
+import { COIN_PICK } from '../../content/picks.ts';
 import { XINFA_TEXT } from '../../content/xinfa.ts';
 import { MONSTER_INFO } from './codex.ts';
 import { counterLine } from './counters.ts';
 import { mergeHint, type MergeHint } from './mergeHint.ts';
 import { statChip } from './statIcons.ts';
 import './cards.css';
+
+/** 「铜钱一袋」卡面和选中后横幅共用的一句 */
+export const COIN_PICK_TEXT = `铜钱 +${COIN_PICK.coins}，回 ${COIN_PICK.heal} 点血`;
 
 export interface CardView {
   icon: string;
@@ -74,7 +78,7 @@ function describeBase(w: World, c: Choice): CardView {
       hint: pairs.length ? `${pairs.map((p) => p.name).join('、')}进化要它` : null,
     };
   }
-  return { icon: 'coin', name: '铜钱一袋', tag: '', text: '铜钱 +25，回 20 点血', hint: null };
+  return { icon: 'coin', name: '铜钱一袋', tag: '', text: COIN_PICK_TEXT, hint: null };
 }
 
 /** 小标行放不下时缩到 12 像素（字号下限，AGENTS.md「画面」），不折行；要在显示之后量 */

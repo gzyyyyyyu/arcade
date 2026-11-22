@@ -38,11 +38,6 @@ export const CURSE_FX = { fastSpeed: 1.15, noheal: 0.5, moreCount: 1.25, darkVie
 export type CharacterId = 'xiaodao' | 'fushi' | 'jianxia' | 'pang' | 'gengfu' | 'caiyao' | 'zhijiang' | 'baidu' | 'huolang' | 'yinyang';
 /** 顺序 = 技能编号（core/skills.ts 的 SKILL_IDS）= 角色页的排列；以后加角色往后加，别插队 */
 export const CHARACTER_IDS: readonly CharacterId[] = ['xiaodao', 'fushi', 'jianxia', 'pang', 'gengfu', 'caiyao', 'zhijiang', 'baidu', 'huolang', 'yinyang'];
-/**
- * 能选的角色（选模式页、角色页、玩法说明列这些）：十个全开。摆渡人 0.13.0–0.29.0 收着（所有者 11-01：横江一渡和定阵都是减速区，重复），
- * 0.30.0 放出（所有者 11-18）：阴阳先生规则 66 起有了阴阳互换那一下，两人不再只是同一种减速区
- */
-export const PICK_CHAR_IDS: readonly CharacterId[] = CHARACTER_IDS;
 
 export interface CharacterDef {
   id: CharacterId;
@@ -203,6 +198,9 @@ export const ASSIST = { deaths: 3, dmg: 0.7 };
  * 换满一天要 6,000 枚，约 3～4 局普通守夜；同样的时间打小档实盘期望高 2.5 倍以上，不挤掉实盘（所有者 11-21 定）。
  */
 export const COIN_EXCHANGE = { rate: 3, dailyCap: 2_000, steps: [100, 500, 1_000] as const };
+
+/** 换筹码、实盘带入处写明（仓库根 AGENTS.md 第 4 节「不碰真钱」） */
+export const CHIPS_NO_CASH = '筹码只在游戏厅里用，无任何现金价值';
 
 /** 局前锦囊：开局前选上，开局时扣铜钱，只管这一局；娱乐守夜、夜探能带，实盘、每日挑战、连战、本周夜事不带（core normalizeSetup 也挡） */
 export type KitId = 'reroll' | 'start2' | 'passive';

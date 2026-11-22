@@ -54,7 +54,7 @@ tools/         截图冒烟、模拟、回归、耗时、手感等    tests/  �
 
 ## 存储 key（`yexun.` 前缀，新增补进此表）
 
-`settings`（开关；`platform/save.ts`、`view/audio/sfx.ts`）、`save`（存档；`platform/save.ts`）、`records`（成就图鉴统计；`meta/records.ts`）、
+`settings`（开关；`platform/save.ts`）、`save`（存档；`platform/save.ts`）、`records`（成就图鉴统计；`meta/records.ts`）、
 `cloud`、`profile.pre-sync`、`profile.pre-switch.<userId>`（换回后改名 `.restored`）（`platform/cloud.ts`）、`live`（实盘进度，断网后接着结；`platform/live.ts`）、`replays`（本地录像，总量有上限；`replay/store.ts`）。
 
 ## 发布
