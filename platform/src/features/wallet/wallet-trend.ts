@@ -4,8 +4,8 @@
  * 流水只留最近 30 笔，所以只画流水能覆盖到的部分：从本周第一笔进出那天的"开头"画到今天。
  */
 import type { LedgerEntry } from '../../api.ts';
+import { DAY } from '../../../shared/weekly.ts';
 
-const DAY = 86_400_000;
 const BJ = 8 * 3_600_000;
 
 /** 北京时间的第几天（从 1970-01-01 数起） */

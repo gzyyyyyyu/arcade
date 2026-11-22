@@ -54,7 +54,7 @@ export async function walletAndSlowNet(browser: Browser): Promise<void> {
     const badge = page.getByTestId('wallet-badge');
     await badge.getByText('10,320').waitFor();
     // 大厅提醒：两个游戏有筹码在桌上，指去钱包页
-    await page.getByTestId('nudge-stake').getByText('2 个游戏的桌上还有 12,000').waitFor();
+    await page.getByTestId('nudge-stake').getByText(screen === 'desktop' ? '2 个游戏的桌上还有 12,000' : '2 个游戏桌上 12,000').waitFor();
     check((await page.getByTestId('nudge-relief').count()) === 0, '钱包加桌上的够多，不该提醒领补给');
     // 最近玩过的排前面（流水里最后碰的是德州），卡片上有本周净赢，这周没玩的没有
     const order = await page.locator('.card__title').evaluateAll((els) => els.map((e) => e.firstChild?.textContent));

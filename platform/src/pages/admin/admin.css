@@ -62,7 +62,7 @@
 .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); margin: 0; }
 .tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: var(--s-2) var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); }
 .tile dt { font-size: var(--fs-xs); color: var(--muted); font-weight: 700; }
-.tile dd { margin: 0; font-size: var(--fs-lg); font-weight: 800; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.tile dd { margin: 0; font-size: var(--fs-lg); font-weight: 800; line-height: 1.15; white-space: nowrap; font-variant-numeric: tabular-nums; }
 /* 手机竖屏一行三格只剩约 100px：内边距收窄、数字小一号，"1,240 万"这类金额放得下，不靠省略号截（冒烟 noscroll 段量裁字） */
 @media (max-width: 420px) {
   .tile { padding-inline: var(--s-2); }
@@ -292,6 +292,10 @@
   .users__item { min-height: var(--tap); padding-block: 0; }
   .users__head { flex-direction: row; align-items: baseline; gap: var(--s-2); }
   .users__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* 钱包那行：金额不截（AGENTS.md 第 5 节自查第 2 条），放不下只省略后面的游戏次数 */
+  .users__meta--wallet { display: flex; }
+  .users__money { flex: none; }
+  .users__played { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   /* 用户详情没有流水、战绩时只留一句话，图收起（横屏放不下那张图） */
   .user-detail__body > .empty svg { display: none; }
 }

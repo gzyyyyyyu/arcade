@@ -12,7 +12,7 @@ export async function fakeLoginHint(page: Page): Promise<void> {
   });
 }
 
-export const FAKE_USER = { id: 'x', username: 'someone', displayName: '某人', friendCode: 'ABCD2345', createdAt: Date.UTC(2026, 9, 1) };
+export const FAKE_USER = { id: 'x', username: 'someone', displayName: '某人', friendCode: 'ABCD2345', createdAt: Date.UTC(2026, 9, 1), showWhere: true, showFeed: true, showMates: true, gamePrefs: { show: [] as string[], hide: [] as string[] } };
 export const FAKE_ADMIN = { ...FAKE_USER, id: 'a', username: 'owner', displayName: '阿国', isAdmin: true };
 /** 模拟登录的页面也要模拟钱包：不然真的 /api/wallet 回 401，页面会当成会话失效、退回没登录 */
 export const FAKE_WALLET = {
@@ -173,4 +173,37 @@ export async function fakeFriends(page: Page, invites: object[] = [], feed: obje
   await page.route('**/api/friends/code/*', (r) => r.fulfill(json({ user: { userId: 'f7', displayName: '小红', avatar: null }, relation: 'pending_in' })));
   await page.goto(`${BASE}/friends`);
   await page.getByRole('heading', { name: '好友（3）' }).waitFor();
+}
+
+/** 管理页邀请码：没用、用过、过期、撤回各一条，加一个长期码（每次调用给一份新的，段落里改了不串到别的段） */
+export function fakeInviteCodes() {
+  const at = (h: number, m = 0) => Date.UTC(2026, 9, 17, h - 8, m);
+  const p = (username: string, displayName: string) => ({ username, displayName });
+  return [
+    { id: 'c1', hint: '…XCWJ', code: 'K7QM-2RTP-XCWJ', status: 'unused', owner: p('owner', '阿国'), createdAt: at(20), expiresAt: at(20) + 7 * 86_400_000 },
+    { id: 'c2', hint: '…1Y8K', status: 'used', owner: p('a_very_long_name_20', '名字有十二个字那么长的人'), createdAt: at(19, 39), expiresAt: 0, usedAt: at(19, 50), usedBy: p('pialfe2o3', 'pialfe2o3') },
+    { id: 'c3', hint: '…3J1F', status: 'used', owner: p('qatest01', 'QA测试一'), createdAt: at(19, 38), expiresAt: 0, usedAt: at(19, 40), usedBy: null },
+    { id: 'c4', hint: '…9PQR', status: 'expired', owner: null, createdAt: at(9, 5), expiresAt: at(9, 6) },
+    { id: 'c5', hint: '…HHMM', status: 'revoked', owner: p('xiaoming_2026', '小明'), createdAt: at(8, 1), expiresAt: at(8, 1) + 86_400_000 },
+    // 长期码：已用/上限、用它注册的人列前 3 个
+    { id: 'c6', hint: '…7MUL', code: 'ABCD-EFGH-7MUL', status: 'unused', owner: p('owner', '阿国'), createdAt: at(7), expiresAt: null, maxUses: 100, uses: 4,
+      users: [{ ...p('u1', '一号'), usedAt: at(8) }, { ...p('u2', '二号'), usedAt: at(8) }, { ...p('u3', '三号'), usedAt: at(8) }, { ...p('u4', '四号'), usedAt: at(8) }] },
+  ].map((c) => ({ uses: c.status === 'used' ? 1 : 0, maxUses: 1, ...c }));
+}
+
+/** 管理页邀请码的两个读接口：规则和码表（status=multi 只回长期码） */
+export async function mockInviteCodes(page: Page, codes: { maxUses: number }[] = fakeInviteCodes()): Promise<void> {
+  const rules = { userQuota: 3, adminQuota: 50, ttlDays: 7, perDay: 5 };
+  const range = { userQuota: [0, 100], adminQuota: [0, 1_000], ttlDays: [1, 90], perDay: [1, 100] };
+  await page.route('**/api/admin/settings/invites', (r) => r.fulfill(json({ rules, defaults: rules, range })));
+  await page.route('**/api/admin/invite-codes?*', (r) => r.fulfill(json({ codes: r.request().url().includes('status=multi') ? codes.filter((c) => c.maxUses > 1) : codes })));
+}
+
+/** 战绩页：自己和 otherId 那个人各玩过开盘、德州（德州 1,000 局，数字最长） */
+export async function mockStats(page: Page, otherId: string): Promise<void> {
+  const career = (o: Record<string, unknown>) => ({ n: 3, net: 2_000, wnet: 0, rounds: 0, wins: 0, best: 0, titles: [], max: {}, sum: {}, ...o });
+  const games = { kaipan: career({ n: 2, wnet: 12_000, rounds: 2, wins: 1, best: 12_000 }), texas: career({ n: 4, wnet: -1_500, rounds: 1_000, wins: 213, best: 18_400 }) };
+  await page.route(`**/api/stats/${otherId}`, (r) => r.fulfill(json({ user: { userId: otherId, displayName: '玩家1', avatar: null }, relation: 'none', week: '2026-10-12', games })));
+  await page.route('**/api/stats/me', (r) => r.fulfill(json({ user: { userId: FAKE_ADMIN.id, displayName: FAKE_ADMIN.displayName, avatar: null }, relation: 'self', week: '2026-10-12', games })));
+  await page.route('**/games/*/titles.json', (r) => r.fulfill(json({})));
 }

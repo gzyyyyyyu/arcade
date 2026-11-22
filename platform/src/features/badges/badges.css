@@ -6,8 +6,6 @@
   --m-silver-hi: #f4f6f8; --m-silver: #aab3bd; --m-silver-lo: #6b7580;
   --m-gold-hi: #fff0a8; --m-gold: #e8aa1c; --m-gold-lo: #96620a;
 }
-.badges__count { margin: 0 0 var(--s-3); color: var(--muted); font-size: var(--fs-sm); }
-.badges__count strong { color: var(--ink); font-size: var(--fs-xl); }
 .badges__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: var(--s-2); }
 .badges__grid > li { min-width: 0; }
 .badges .badge { width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: var(--s-2) var(--s-1); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--highlight-warm); color: var(--ink); font: inherit; cursor: pointer; box-shadow: var(--sh-sm); }

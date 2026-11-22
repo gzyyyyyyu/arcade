@@ -1,7 +1,7 @@
 /** 冒烟分段：phoneAudit deviceMatrix（npm run smoke -- --only=<段名>，段名表在 tools/smoke.ts） */
 import type { Browser } from 'playwright-core';
 import { BASE, check, shot, newPage, json } from '../lib/core.ts';
-import { FAKE_ADMIN, FAKE_WALLET, mockAdmin, FAKE_FRIENDS, FAKE_FEED, fakeFeedFiles } from '../lib/fakes.ts';
+import { FAKE_ADMIN, FAKE_WALLET, mockAdmin, mockInviteCodes, mockStats, FAKE_FRIENDS, FAKE_FEED, fakeFeedFiles } from '../lib/fakes.ts';
 import { PHONES, phoneIssues, lobbyTopIssues, DEVICES } from '../lib/ui.ts';
 
 /** npm run smoke -- --only=ui：界面核对用，电脑 1280 和手机 390 每页各一张（同样跑手机清单的检查），再加没登录的登录页 */
@@ -26,8 +26,6 @@ export async function deviceMatrix(browser: Browser): Promise<void> {
 }
 
 export async function phoneAudit(browser: Browser, sizes: readonly (readonly [string, { width: number; height: number }])[] = PHONES, matrix = false): Promise<void> {
-  const career = (o: Record<string, unknown>) => ({ n: 3, net: 2_000, wnet: 0, rounds: 0, wins: 0, best: 0, titles: [], max: {}, sum: {}, ...o });
-  const games = { kaipan: career({ n: 2, wnet: 12_000, rounds: 2, wins: 1, best: 12_000 }), texas: career({ n: 4, wnet: -1_500, rounds: 1_000, wins: 213, best: 18_400 }) };
   const u = (i: number) => String.fromCharCode(65 + i).repeat(22);
   const row = (i: number, name: string, value: number, rank = i + 1, isMe = false) => ({ rank, userId: u(i), displayName: name, avatar: null, value, isMe });
   const many = Array.from({ length: 12 }, (_, i) => row(i, `玩家${i + 1}`, 50_000 - i * 3_000));
@@ -80,12 +78,9 @@ export async function phoneAudit(browser: Browser, sizes: readonly (readonly [st
     await page.route('**/api/friends', (r) => r.fulfill(json(FAKE_FRIENDS)));
     await page.route('**/api/blocks', (r) => r.fulfill(json({ blocks: [] })));
     await page.route('**/api/saves/*', (r) => r.fulfill(json({ saves: [] })));
-    await page.route(`**/api/stats/${u(0)}`, (r) => r.fulfill(json({ user: { userId: u(0), displayName: '玩家1', avatar: null }, relation: 'none', week: '2026-10-12', games })));
-    await page.route('**/api/stats/me', (r) => r.fulfill(json({ user: { userId: FAKE_ADMIN.id, displayName: FAKE_ADMIN.displayName, avatar: null }, relation: 'self', week: '2026-10-12', games })));
+    await mockStats(page, u(0));
     await page.route('**/api/leaderboard?scope=*', (r) => r.fulfill(json(leaderboard)));
-    await page.route('**/games/*/titles.json', (r) => r.fulfill(json({})));
-    await page.route('**/api/admin/settings/invites', (r) => r.fulfill(json({ rules: { userQuota: 3, adminQuota: 50, ttlDays: 7, perDay: 5 }, defaults: { userQuota: 3, adminQuota: 50, ttlDays: 7, perDay: 5 }, range: { userQuota: [0, 100], adminQuota: [0, 1_000], ttlDays: [1, 90], perDay: [1, 100] } })));
-    await page.route('**/api/admin/invite-codes?*', (r) => r.fulfill(json({ codes: [] })));
+    await mockInviteCodes(page, []);
     await page.route('**/api/admin/wallet-adjustments', (r) => r.fulfill(json({ recent: [] })));
     for (const [name, path, ready] of pages) {
       await page.goto(`${BASE}${path}`);

@@ -9,7 +9,7 @@
 import { gameId, match, str } from '../lib/body';
 import { GAME_IDS } from '../../../shared/games';
 import { newInviteId } from '../lib/crypto';
-import type { Ctx } from '../core/context';
+import { DAY, type Ctx } from '../core/context';
 import { ApiError, json, noContent, rateLimited } from '../lib/http';
 import { ROOM_RE } from './presence';
 import { meetupsFor } from './meetups';
@@ -33,7 +33,7 @@ export async function sendInvite(c: Ctx): Promise<Response> {
   const room = match(c.body.room, ROOM_RE);
   if (to === me) throw new ApiError(403, 'not_friend');
   const id = newInviteId();
-  const dayAgo = now - 86_400_000;
+  const dayAgo = now - DAY;
   const gapAgo = now - limits.inviteGapMs;
   const [a, b] = me < to ? [me, to] : [to, me];
   const meta = await db.run(
@@ -64,7 +64,7 @@ export async function sendInvite(c: Ctx): Promise<Response> {
   const first = await db.first<{ at: number }>(
     db.stmt('SELECT MIN(created_at) AS at FROM invites WHERE from_id = ?1 AND created_at > ?2', me, dayAgo),
   );
-  throw rateLimited((first?.at ?? now) + 86_400_000 - now);
+  throw rateLimited((first?.at ?? now) + DAY - now);
 }
 
 interface InviteRow {

@@ -101,7 +101,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // loading 只表示"第一次还没读到人"：已经登录时后台再读一次（改完昵称、登录后补读）不该把页面换成骨架，
   // 不然页面整个卸掉重画，我的账号、管理页选中的页签回到第一个，安全页签里没存好的恢复码也跟着丢
-  const prefs = user?.gamePrefs ?? NO_PREFS;
+  const prefs = user ? user.gamePrefs : NO_PREFS;
   // 登录、注册的回应里没有默认（只有 /api/me 给）：刚登录时先按偏好算，补读完 /api/me 再算一遍
   const hidden = useMemo(() => (user ? hiddenGameIds(hiddenDefault, prefs) : new Set<string>()), [user, hiddenDefault, prefs]);
   return (

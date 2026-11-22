@@ -46,7 +46,7 @@ export const MESSAGES: Record<string, string> = {
   invalid_score: '分数不对',
   relief_used: '今天的补给已经领过了，明早 0 点再来',
   relief_not_needed: '筹码还够用：钱包加桌上的不到补给额才能领',
-  no_change: '余额已经是 0（或到上限了），没有可调的',
+  no_change: '筹码已经是 0（或到上限了），没有可调的',
   bad_amount: '数量要是不为 0 的整数，而且不能超过单次上限',
   too_big: '内容太大了',
   full: '这个挑战的人满了，自己开一个新的吧',

@@ -1,25 +1,12 @@
 /** 冒烟分段：adminInvites（npm run smoke -- --only=<段名>，段名表在 tools/smoke.ts） */
 import type { Browser } from 'playwright-core';
 import { BASE, check, shot, newPage, json } from '../lib/core.ts';
-import { mockAdmin } from '../lib/fakes.ts';
+import { fakeInviteCodes, mockAdmin, mockInviteCodes } from '../lib/fakes.ts';
 
 /** 管理页的钱包规则：不合格的数直接提示、不发请求；改一条要确认，发的只有改了的那条，改完显示记录。 */
 /** 管理页"邀请码"。宽屏、普通电脑、手机各截一张：行高紧凑、码表不撑破面板、一屏放下不滚、完整的码能复制、状态小色块、已注销灰着 */
 export async function adminInvites(browser: Browser): Promise<void> {
-  const at = (h: number, m = 0) => Date.UTC(2026, 9, 17, h - 8, m);
-  const p = (username: string, displayName: string) => ({ username, displayName });
-  const codes = [
-    { id: 'c1', hint: '…XCWJ', code: 'K7QM-2RTP-XCWJ', status: 'unused', owner: p('owner', '阿国'), createdAt: at(20), expiresAt: at(20) + 7 * 86_400_000 },
-    { id: 'c2', hint: '…1Y8K', status: 'used', owner: p('a_very_long_name_20', '名字有十二个字那么长的人'), createdAt: at(19, 39), expiresAt: 0, usedAt: at(19, 50), usedBy: p('pialfe2o3', 'pialfe2o3') },
-    { id: 'c3', hint: '…3J1F', status: 'used', owner: p('qatest01', 'QA测试一'), createdAt: at(19, 38), expiresAt: 0, usedAt: at(19, 40), usedBy: null },
-    { id: 'c4', hint: '…9PQR', status: 'expired', owner: null, createdAt: at(9, 5), expiresAt: at(9, 6) },
-    { id: 'c5', hint: '…HHMM', status: 'revoked', owner: p('xiaoming_2026', '小明'), createdAt: at(8, 1), expiresAt: at(8, 1) + 86_400_000 },
-    // 长期码：已用/上限、用它注册的人列前 3 个
-    { id: 'c6', hint: '…7MUL', code: 'ABCD-EFGH-7MUL', status: 'unused', owner: p('owner', '阿国'), createdAt: at(7), expiresAt: null, maxUses: 100, uses: 4,
-      users: [{ ...p('u1', '一号'), usedAt: at(8) }, { ...p('u2', '二号'), usedAt: at(8) }, { ...p('u3', '三号'), usedAt: at(8) }, { ...p('u4', '四号'), usedAt: at(8) }] },
-  ].map((c) => ({ uses: c.status === 'used' ? 1 : 0, maxUses: 1, ...c }));
-  const range = { userQuota: [0, 100], adminQuota: [0, 1_000], ttlDays: [1, 90], perDay: [1, 100] };
-  const rules = { userQuota: 3, adminQuota: 50, ttlDays: 7, perDay: 5 };
+  const codes = fakeInviteCodes();
   const screens = [
     ['wide', 'desktop', { viewport: { width: 2000, height: 1000 } }],
     ['desktop', 'desktop', {}],
@@ -29,8 +16,7 @@ export async function adminInvites(browser: Browser): Promise<void> {
     console.log(`管理页·邀请码（${name}）：行高、码表不出框、复制完整的码`);
     const { ctx, page } = await newPage(browser, `邀请码 ${name}`, screen, { ...extra, permissions: ['clipboard-read', 'clipboard-write'] });
     await mockAdmin(page);
-    await page.route('**/api/admin/settings/invites', (r) => r.fulfill(json({ rules, defaults: rules, range })));
-    await page.route('**/api/admin/invite-codes?*', (r) => r.fulfill(json({ codes: r.request().url().includes('status=multi') ? codes.filter((c) => c.maxUses > 1) : codes })));
+    await mockInviteCodes(page, codes);
     let made: unknown = null;
     await page.route('**/api/admin/invite-codes', (r) => {
       made = r.request().postDataJSON();

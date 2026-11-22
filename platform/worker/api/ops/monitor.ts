@@ -8,7 +8,7 @@ import pkg from '../../../package.json';
 import { GAMES } from '../../../shared/games';
 import type { Env } from '../../env';
 import { limitsOf, type Limits } from '../lib/config';
-import type { Ctx } from '../core/context';
+import { DAY, type Ctx } from '../core/context';
 import { Db, newStats } from '../lib/db';
 import { ApiError, json, noContent } from '../lib/http';
 import { isFiniteNumber, isRecord, parseJsonColumnOr } from '../lib/json-column';
@@ -213,6 +213,6 @@ export function monitorCleanupStatement(db: Db, now: number, limits: Limits, max
   return db.stmt(
     `DELETE FROM monitor_counts WHERE (day, game, kind, sig) IN
        (SELECT day, game, kind, sig FROM monitor_counts WHERE day < ?1 LIMIT ?2)`,
-    utcDay(now - limits.monitorKeepDays * 86_400_000), max,
+    utcDay(now - limits.monitorKeepDays * DAY), max,
   );
 }

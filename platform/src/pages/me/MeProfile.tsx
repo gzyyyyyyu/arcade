@@ -117,7 +117,7 @@ export function PrivacyCard() {
 }
 
 /**
- * "好友能看到什么"里的开关：点了马上存（和改昵称共用每天 10 次）。
+ * "好友能看到什么"里的开关：点了马上存（不占改昵称的次数，和隐藏游戏共用每天 60 次）。
  * - 在哪（docs/social.md 1.2）：关了好友那边只看到"几天前来过"；
  * - 好友动态（第 2 节）：关了不再生成，已有的好友也看不到；
  * - 搭子战绩（第 2 节）：关了两边都看不到，照样记。
@@ -135,7 +135,7 @@ function PrivacySwitch({ field, label, onNote, offNote, save, testId }: {
   const [error, setError] = useState('');
   // 先按点的显示，存不上再退回：等回话再变，勾选框看着像没点上
   const [shown, setShown] = useState<boolean | null>(null);
-  const on = shown ?? user![field] !== false;
+  const on = shown ?? user![field];
   const flip = async (next: boolean) => {
     setShown(next);
     setBusy(true);

@@ -100,6 +100,12 @@ html.no-motion .boards-page .podium .podium__step, html.no-motion .boards-page .
   .boards-page .bcard { padding: var(--s-2); gap: var(--s-1); }
 }
 
+/* 又矮又窄（320×568 这类小竖屏）：页签右边让不出 160px，会被挤成一列竖排；"全部/只看好友"回到页签上面单独一行 */
+@media (max-height: 600px) and (max-width: 599px) {
+  .boards-page .panel__head { position: static; justify-content: flex-end; }
+  .boards-page .boards-tabs { margin-right: 0; }
+}
+
 /* 宽屏只有一块榜（总榜、海岛）、人多要翻页时：左栏领奖台在上、"我的名次"卡在下，右栏翻页名单，两栏顶部对齐（不要中间一窄条、两边空着）。
    台子按固定高度，第一名最高约 200：原来按左栏剩下的高度拉伸，1920 下三根斜纹柱拉到约 500 高，像图表不像台子 */
 @media (min-width: 960px) and (min-height: 600px) {
