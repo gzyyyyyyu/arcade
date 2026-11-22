@@ -8,8 +8,8 @@ import { resetMonitorForTests } from '../worker/api/ops/monitor';
 import { lastStats } from '../worker/api/router';
 import { resetSettingsCacheForTests } from '../worker/api/core/settings';
 import { resetLeaderboardCacheForTests } from '../worker/api/scores/leaderboard';
-import { resetWalletRulesCacheForTests } from '../worker/api/wallet/store';
-import { resetInviteRulesCacheForTests } from '../worker/api/account/invite-codes';
+import { walletRuleSet } from '../worker/api/wallet/store';
+import { inviteRuleSet } from '../worker/api/account/invite-codes';
 
 export const ORIGIN = 'https://game.test';
 const TABLES = ['users', 'sessions', 'credentials', 'friendships', 'blocks', 'saves', 'rate_counters', 'meter_hourly', 'boards', 'settings', 'wallets', 'wallet_stats', 'invites', 'feed', 'feed_reactions', 'challenges', 'challenge_results', 'mates', 'invite_codes', 'invite_code_uses', 'monitor_counts', 'play_tally', 'meetups'];
@@ -48,8 +48,8 @@ export async function resetAll(limits: LimitsOverride = {}): Promise<void> {
   ]);
   resetSettingsCacheForTests();
   resetLeaderboardCacheForTests();
-  resetWalletRulesCacheForTests();
-  resetInviteRulesCacheForTests();
+  walletRuleSet.resetCacheForTests();
+  inviteRuleSet.resetCacheForTests();
   resetMeterForTests();
   resetRateLimitCacheForTests();
   resetMonitorForTests();

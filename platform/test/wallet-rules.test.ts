@@ -80,4 +80,20 @@ describe('钱包规则', () => {
     advance(30_000);
     expect((await walletOf(u.cookie)).reliefTo).toBe(4_000);
   });
+
+  it('存着的规则坏了：钱包和邀请码都报错，不悄悄按默认值继续（会把管理员改过的数冲掉）', async () => {
+    const u = await registerUser();
+    for (const [key, value] of [
+      ['wallet_rules', JSON.stringify({ rules: { reliefTo: 99_000_000 }, log: [] })],
+      ['invite_rules', '{not json'],
+    ]) {
+      await env.DB.prepare('INSERT INTO settings (key, value, updated_at) VALUES (?1, ?2, 0)').bind(key, value).run();
+    }
+    const wallet = await call('/api/wallet', { cookie: u.cookie });
+    expect(wallet.status).toBe(500);
+    expect(await errorOf(wallet)).toBe('internal');
+    expect((await kaipan.buyin({ userId: u.user.id, game: 'kaipan', ref: id('r'), tier: 'small', amount: 2_000, until: Date.now() + 3_600_000, mode: 'client', op: id('op') })).ok).toBe(false);
+    expect((await call('/api/invite-codes', { cookie: u.cookie })).status).toBe(500);
+    expect((await call('/api/invite-codes', { body: {}, cookie: u.cookie })).status).toBe(500);
+  });
 });

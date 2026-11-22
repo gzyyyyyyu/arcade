@@ -9,7 +9,7 @@ import { limitsOf } from '../worker/api/lib/config';
 import type { Ctx } from '../worker/api/core/context';
 import { runCleanup } from '../worker/api/ops/cron';
 import { Db, newStats } from '../worker/api/lib/db';
-import { claimStatement, resetInviteRulesCacheForTests, recordUseStatement } from '../worker/api/account/invite-codes';
+import { claimStatement, inviteRuleSet, recordUseStatement } from '../worker/api/account/invite-codes';
 import { newSession } from '../worker/api/account/session';
 import { advance, call, count, env, errorOf, registerUser, resetAll, rowsWritten, sidOf, uniqueName } from './helpers';
 
@@ -52,7 +52,7 @@ async function makeAdmin(u: U) {
 }
 async function setRules(rules: Record<string, number>) {
   await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('invite_rules', ?1, 0)").bind(JSON.stringify({ rules, log: [] })).run();
-  resetInviteRulesCacheForTests();
+  inviteRuleSet.resetCacheForTests();
 }
 
 describe('生成和额度', () => {

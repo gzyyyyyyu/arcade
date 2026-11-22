@@ -19,6 +19,9 @@ export const FAKE_WALLET = {
   wallet: { balance: 10_000, stakes: [], canRelief: false, writesLeft: 200, caps: {}, fresh: true },
   tiers: { small: 2_000, mid: 10_000, big: 50_000, lux: 200_000 },
   reliefTo: 2_000,
+  winUnits: 10,
+  ledger: [] as unknown[],
+  week: {} as Record<string, number>,
 };
 /** 只给冒烟用的假令牌（wrangler dev 用 --var 传进去）。 */
 export const ADMIN_TOKEN = 'smoke:smoke-only-admin-token-0000';

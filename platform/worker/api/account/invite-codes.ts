@@ -15,9 +15,8 @@ import { type Ctx, DAY } from '../core/context';
 import { formatInviteCode, newInviteCode, newTimeId } from '../lib/crypto';
 import type { Db } from '../lib/db';
 import { ApiError, json, noContent, rateLimited } from '../lib/http';
-import { isRecord, parseJsonColumn } from '../lib/json-column';
 import { avatarOf } from './session';
-import { readSetting, writeSettingStatement } from '../core/settings';
+import { adjustableRules } from '../core/adjustable-rules';
 import { MULTI_CODE } from '../../../shared/invite';
 
 // ---------- 管理员可调的四个数 ----------
@@ -42,50 +41,8 @@ export const INVITE_RULE_RANGE: Record<keyof InviteRules, readonly [number, numb
 /** 单个人的额度能改到多少 */
 export const USER_QUOTA_MAX = 1000;
 
-const RULES_KEY = 'invite_rules';
-/** 每个 isolate 记 30 秒，同钱包规则 */
-const RULES_CACHE_MS = 30_000;
-const RULES_LOG = 20;
-
-interface RulesChange {
-  at: number;
-  by: string;
-  changes: Partial<Record<keyof InviteRules, [number, number]>>;
-}
-
-let rulesCache: { rules: InviteRules; at: number } | null = null;
-
-export function resetInviteRulesCacheForTests(): void {
-  rulesCache = null;
-}
-
-const inRange = (k: keyof InviteRules, v: unknown): v is number =>
-  typeof v === 'number' && Number.isSafeInteger(v) && v >= INVITE_RULE_RANGE[k][0] && v <= INVITE_RULE_RANGE[k][1];
-
-const isInviteRulesValue = (v: unknown): v is { rules: Partial<InviteRules>; log?: RulesChange[] } =>
-  isRecord(v) && isRecord(v.rules) && (v.log === undefined || Array.isArray(v.log));
-
-async function readRulesRow(db: Db): Promise<{ rules: InviteRules; log: RulesChange[]; updatedAt: number | null }> {
-  const row = await readSetting(db, RULES_KEY);
-  const v = row ? parseJsonColumn(row.value, isInviteRulesValue, 'settings.invite_rules') : { rules: {}, log: [] };
-  const rules = { ...DEFAULT_INVITE_RULES };
-  for (const k of Object.keys(DEFAULT_INVITE_RULES) as (keyof InviteRules)[]) if (inRange(k, v.rules[k])) rules[k] = v.rules[k];
-  return { rules, log: v.log ?? [], updatedAt: row?.updated_at ?? null };
-}
-
-/** 生成、注册用的规则：30 秒缓存；读不到按默认值 */
-export async function inviteRules(db: Db, now: number): Promise<InviteRules> {
-  if (rulesCache && now >= rulesCache.at && now - rulesCache.at < RULES_CACHE_MS) return rulesCache.rules;
-  try {
-    const { rules } = await readRulesRow(db);
-    rulesCache = { rules, at: now };
-    return rules;
-  } catch (e) {
-    // 库暂时读不了：用兜底值撑住，只记错误类型（不记数据），免得悄悄退化没人知道
-    console.warn('invite rules read failed', e instanceof Error ? e.name : 'error');
-    return DEFAULT_INVITE_RULES;
-  }
-}
+/** 生成、注册用 current（30 秒缓存，读不到抛出）；管理页用 state、plan（core/adjustable-rules.ts） */
+export const inviteRuleSet = adjustableRules<InviteRules>('invite_rules', DEFAULT_INVITE_RULES, INVITE_RULE_RANGE);
 
 const defaultQuota = (rules: InviteRules, role: string) => (role === 'admin' ? rules.adminQuota : rules.userQuota);
 
@@ -145,7 +102,7 @@ const hint = (code: string) => `…${code.slice(-4)}`;
 
 /** GET /api/invite-codes：额度、最近 50 个普通码（长期码在管理页看）。只读，0 行 */
 export async function listMyCodes(c: Ctx): Promise<Response> {
-  const rules = await inviteRules(c.db, c.now);
+  const rules = await inviteRuleSet.current(c.db, c.now);
   const q = await quotaState(c, rules);
   const rows = await c.db.all<CodeRow & { used_by: string | null; display_name: string | null; avatar_json: string | null }>(
     c.db.stmt(
@@ -181,7 +138,7 @@ export async function listMyCodes(c: Ctx): Promise<Response> {
  * 写入：表 + 两个索引 = 3 行；被拒 0 行（满了先只读查一遍给出准确的错误码）。码撞上唯一索引（60 bit，几乎不会）就换一个再试。
  */
 export async function createCode(c: Ctx): Promise<Response> {
-  const rules = await inviteRules(c.db, c.now);
+  const rules = await inviteRuleSet.current(c.db, c.now);
   const me = c.session!.user;
   const q = await quotaState(c, rules);
   if (q.left <= 0) throw new ApiError(409, 'quota_full', { quota: q.quota });
@@ -261,43 +218,10 @@ export function inviteFriendStatement(db: Db, ownerId: string, newId: string, no
 
 // ---------- 管理 ----------
 
-async function rulesState(c: Ctx) {
-  const { rules, log, updatedAt } = await readRulesRow(c.db);
-  return { rules, defaults: DEFAULT_INVITE_RULES, range: INVITE_RULE_RANGE, log: [...log].reverse(), updatedAt };
-}
-
 /** GET /api/admin/settings/invites：读 1 行 */
 export async function getInviteRules(c: Ctx): Promise<Response> {
-  return json(200, await rulesState(c));
+  return json(200, await inviteRuleSet.state(c.db));
 }
-
-/**
- * POST /api/admin/settings/invites {userQuota?, adminQuota?, ttlDays?, perDay?}：只改传了的，每条要在范围里，不合格整个 400。
- * 有变化时返回要写的语句（settings 1 行），调用方和管理员每日计数一起 batch；没变化返回 null
- */
-export async function planInviteRulesChange(c: Ctx, by: string): Promise<{ stmt: D1PreparedStatement | null; rules: InviteRules }> {
-  const cur = await readRulesRow(c.db);
-  const next = { ...cur.rules };
-  const changes: RulesChange['changes'] = {};
-  for (const k of Object.keys(DEFAULT_INVITE_RULES) as (keyof InviteRules)[]) {
-    const v = c.body[k];
-    if (v === undefined) continue;
-    if (!inRange(k, v)) throw new ApiError(400, 'bad_request', { field: k, range: INVITE_RULE_RANGE[k] });
-    if (v !== cur.rules[k]) {
-      changes[k] = [cur.rules[k], v];
-      next[k] = v;
-    }
-  }
-  if (!Object.keys(changes).length) return { stmt: null, rules: cur.rules };
-  const log = [...cur.log, { at: c.now, by, changes }].slice(-RULES_LOG);
-  return { stmt: writeSettingStatement(c.db, RULES_KEY, JSON.stringify({ rules: next, log }), c.now), rules: next };
-}
-
-export function rememberInviteRules(rules: InviteRules, now: number): void {
-  rulesCache = { rules, at: now };
-}
-
-export { rulesState as inviteRulesState };
 
 /** 管理页的全站列表：最近 100 个，看得到用户名（管理员本来就看得到） */
 export async function adminCodes(c: Ctx): Promise<Response> {

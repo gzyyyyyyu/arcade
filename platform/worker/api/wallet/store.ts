@@ -5,9 +5,8 @@
  */
 import { DAY } from '../core/context';
 import type { Db } from '../lib/db';
-import { ApiError } from '../lib/http';
 import { isFiniteNumber, isRecord, parseJsonColumn } from '../lib/json-column';
-import { readSetting, writeSettingStatement } from '../core/settings';
+import { adjustableRules } from '../core/adjustable-rules';
 import { beijingDate, beijingWeek } from '../core/time';
 import {
   apply,
@@ -93,7 +92,7 @@ export async function runOp(
   now: number,
   opts: { create: boolean; rules?: WalletRules; onFeed?: (feed: SettleFeed) => Promise<unknown>; onTally?: (tally: SettleTally) => Promise<unknown> },
 ): Promise<WalletReply> {
-  const rules = opts.rules ?? (await walletRules(db, now));
+  const rules = opts.rules ?? (await walletRuleSet.current(db, now));
   for (let i = 0; i < MAX_TRIES; i++) {
     const row = await readRow(db, userId);
     let s0: WalletState;
@@ -130,7 +129,7 @@ export async function viewWallet(
   now: number,
   opts: { write: boolean; rules?: WalletRules; mine?: boolean; game?: string },
 ): Promise<WalletReply> {
-  const rules = opts.rules ?? (await walletRules(db, now));
+  const rules = opts.rules ?? (await walletRuleSet.current(db, now));
   const exchangeOf = (s: WalletState) => (opts.game ? { exchangeLeft: exchangeLeft(s, opts.game, rules), exchangeCap: rules.exchangeCap } : {});
   const row = await readRow(db, userId);
   if (!row) {
@@ -151,13 +150,7 @@ export async function viewWallet(
   return { ok: true, wallet: viewOf(s, false, rules), ledger: [...(s.ledger ?? [])].reverse(), week };
 }
 
-// ---------- 管理员可调的规则（settings 里 wallet_rules 一行） ----------
-
-const RULES_KEY = 'wallet_rules';
-/** 每个 isolate 记 30 秒，和注册开关一样：改了以后别的 isolate 最多晚 30 秒跟上 */
-const RULES_CACHE_MS = 30_000;
-/** 改动记录留几条 */
-const RULES_LOG = 20;
+// ---------- 管理员可调的规则（settings 里 wallet_rules 一行，core/adjustable-rules.ts） ----------
 
 /** 每条规则能调的范围：防手滑（比如多打几个 0），不是业务上限 */
 export const RULE_RANGE: Record<keyof WalletRules, readonly [number, number]> = {
@@ -168,88 +161,8 @@ export const RULE_RANGE: Record<keyof WalletRules, readonly [number, number]> = 
   exchangeCap: [0, 1_000_000],
 };
 
-/** 一次改动：谁、什么时候、哪几条从多少改成多少 */
-export interface RulesChange {
-  at: number;
-  by: string;
-  changes: Partial<Record<keyof WalletRules, [number, number]>>;
-}
-
-interface RulesValue {
-  rules: Partial<WalletRules>;
-  log: RulesChange[];
-}
-
-const isRulesValue = (v: unknown): v is RulesValue => isRecord(v) && isRecord(v.rules) && Array.isArray(v.log);
-
-let rulesCache: { rules: WalletRules; at: number } | null = null;
-
-export function resetWalletRulesCacheForTests(): void {
-  rulesCache = null;
-}
-
-const inRange = (k: keyof WalletRules, v: unknown): v is number =>
-  typeof v === 'number' && Number.isSafeInteger(v) && v >= RULE_RANGE[k][0] && v <= RULE_RANGE[k][1];
-
-/** 存着的值 → 完整的规则：缺的、不合格的用默认值 */
-function mergeRules(saved: Partial<WalletRules>): WalletRules {
-  const out = { ...DEFAULT_RULES };
-  for (const k of Object.keys(DEFAULT_RULES) as (keyof WalletRules)[]) if (inRange(k, saved[k])) out[k] = saved[k];
-  return out;
-}
-
-/** 读那一行（管理页用，不走缓存）。没设过时规则全是默认值、记录是空的。 */
-export async function readRulesRow(db: Db): Promise<{ rules: WalletRules; log: RulesChange[]; updatedAt: number | null }> {
-  const row = await readSetting(db, RULES_KEY);
-  const v = row ? parseJsonColumn(row.value, isRulesValue, 'settings.wallet_rules') : { rules: {}, log: [] };
-  return { rules: mergeRules(v.rules), log: v.log ?? [], updatedAt: row?.updated_at ?? null };
-}
-
-/** 钱包每次操作用的规则：30 秒缓存；读不到按默认值，钱包照常 */
-export async function walletRules(db: Db, now: number): Promise<WalletRules> {
-  if (rulesCache && now >= rulesCache.at && now - rulesCache.at < RULES_CACHE_MS) return rulesCache.rules;
-  try {
-    const { rules } = await readRulesRow(db);
-    rulesCache = { rules, at: now };
-    return rules;
-  } catch (e) {
-    // 库暂时读不了：用兜底值撑住，只记错误类型（不记数据），免得悄悄退化没人知道
-    console.warn('wallet rules read failed', e instanceof Error ? e.name : 'error');
-    return DEFAULT_RULES;
-  }
-}
-
-/**
- * 管理员改规则：只改传了的几条，每条要在 RULE_RANGE 里，不合格整个拒（bad_request）。没有真的变化时不写。
- * 返回要写的语句（1 行，settings）和新的值；调用方和管理员每日计数一起 batch。同一个 isolate 的缓存马上跟着变。
- */
-export async function planRulesChange(
-  db: Db,
-  input: Record<string, unknown>,
-  by: string,
-  now: number,
-): Promise<{ stmt: D1PreparedStatement | null; rules: WalletRules; log: RulesChange[] }> {
-  const cur = await readRulesRow(db);
-  const next = { ...cur.rules };
-  const changes: RulesChange['changes'] = {};
-  for (const k of Object.keys(DEFAULT_RULES) as (keyof WalletRules)[]) {
-    if (input[k] === undefined) continue;
-    if (!inRange(k, input[k])) throw new ApiError(400, 'bad_request', { field: k, range: RULE_RANGE[k] });
-    if (input[k] !== cur.rules[k]) {
-      changes[k] = [cur.rules[k], input[k]];
-      next[k] = input[k];
-    }
-  }
-  if (!Object.keys(changes).length) return { stmt: null, rules: cur.rules, log: cur.log };
-  const log = [...cur.log, { at: now, by, changes }].slice(-RULES_LOG);
-  const value: RulesValue = { rules: next, log };
-  const stmt = writeSettingStatement(db, RULES_KEY, JSON.stringify(value), now);
-  return { stmt, rules: next, log };
-}
-
-export function rememberRules(rules: WalletRules, now: number): void {
-  rulesCache = { rules, at: now };
-}
+/** 钱包每次操作用 current（30 秒缓存）；读不到抛出，钱包操作跟着报 503，不按默认值写 */
+export const walletRuleSet = adjustableRules<WalletRules>('wallet_rules', DEFAULT_RULES, RULE_RANGE);
 
 // ---------- 今天大家在玩什么（大厅卡片上的人数） ----------
 
@@ -259,9 +172,9 @@ let playingCache: { day: string; at: number; counts: Record<string, number> } | 
 
 /**
  * 北京时间今天各游戏带筹码上过桌的人数（只有人数，不带名字）。不另写计数：今天的带入本来就记在每人的钱包行里。
- * 读不到就当没有，钱包照常回。
+ * 读不到回 null（不当成 0 人），钱包照常回、不带这一项。
  */
-export async function playingToday(db: Db, now: number): Promise<Record<string, number>> {
+export async function playingToday(db: Db, now: number): Promise<Record<string, number> | null> {
   const day = beijingDate(now);
   if (playingCache && playingCache.day === day && now - playingCache.at < PLAYING_TTL) return playingCache.counts;
   try {
@@ -277,9 +190,9 @@ export async function playingToday(db: Db, now: number): Promise<Record<string, 
     playingCache = { day, at: now, counts };
     return counts;
   } catch (e) {
-    // 库暂时读不了：用兜底值撑住，只记错误类型（不记数据），免得悄悄退化没人知道
+    // 只记错误类型（不记数据）；人数只是大厅上的点缀，不值得让钱包出错
     console.warn('playing counts read failed', e instanceof Error ? e.name : 'error');
-    return {};
+    return null;
   }
 }
 

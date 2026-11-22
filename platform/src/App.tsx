@@ -203,6 +203,8 @@ function Home({ deleted }: { deleted: boolean }) {
   const { games, last } = useRecentGames(user?.id ?? '');
   // 电脑上一页放下全部游戏；手机、横屏、矮窗口按剩下的高度翻页
   const wide = useMedia('(min-width: 960px) and (min-height: 600px)');
+  // 手机竖屏、横屏一条一行（styles.css 同一条媒体查询）：带「本周」「今天几人玩过」的卡高一截，按每张实际高度装页，不按最高那张让每页都少放
+  const oneCol = useMedia('(max-width: 599px), (max-height: 500px)');
   // 横幅只在注销后这一次显示：记下来，再把 ?deleted=1 从网址里去掉，刷新或分享出去都不会再冒出来
   const [notice] = useState(deleted);
   // 刚从某个游戏回来：满屏封面缩回那张卡（enter-fx.ts）；浏览器后退从往返缓存恢复时也在这里收拾残留的封面
@@ -234,6 +236,7 @@ function Home({ deleted }: { deleted: boolean }) {
           className={wide ? 'lobby-grid lobby-grid--all' : 'lobby-grid'}
           grid
           fixed={wide ? Infinity : undefined}
+          uneven={oneCol}
           items={games}
           keyOf={(g) => g.id}
           // 主按钮一屏一个：桌上有筹码时是提示条的"回去接着打"，否则是最近玩的那张"继续玩"；都没有就全是次按钮

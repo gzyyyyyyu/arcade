@@ -30,3 +30,10 @@ export function packPages(heights: readonly number[], full: number, room: number
   });
   return starts;
 }
+
+/** 网格按排装页：每 cols 条一排，一排的高是这排最高的那条 */
+export function rowHeights(heights: readonly number[], cols: number): number[] {
+  const rows: number[] = [];
+  for (let i = 0; i < heights.length; i += cols) rows.push(Math.max(...heights.slice(i, i + cols)));
+  return rows;
+}

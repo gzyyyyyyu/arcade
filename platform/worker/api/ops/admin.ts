@@ -17,7 +17,8 @@ import { checkUsernameFree, insertUser } from '../account/auth';
 import { type Ctx, DAY, HOUR } from '../core/context';
 import { hashPassword, hashRecoveryCode, newRecoveryCode, newUserId, normalizeRecoveryCode } from '../lib/crypto';
 import { ApiError, json, noContent, rateLimited } from '../lib/http';
-import { adminRevokeStatement, inviteRulesState, parseUserQuota, planInviteRulesChange, planMultiCode, planMultiUses, rememberInviteRules } from '../account/invite-codes';
+import { adminRevokeStatement, inviteRuleSet, parseUserQuota, planMultiCode, planMultiUses } from '../account/invite-codes';
+import type { AdjustableRules } from '../core/adjustable-rules';
 import { isNumberRecord, parseJsonColumnOr } from '../lib/json-column';
 import { meter } from '../lib/meter';
 import { checkCached, clearStatement, dailyCapStatement, hit, peek, remember, takeAnonToken } from '../core/ratelimit';
@@ -35,8 +36,7 @@ import {
   setNoticeStatement,
   setRegistrationStatement,
 } from '../core/settings';
-import { DEFAULT_RULES } from '../wallet/state';
-import { planRulesChange, readRulesRow, rememberRules, RULE_RANGE } from '../wallet/store';
+import { walletRuleSet } from '../wallet/store';
 import {
   checkDisplayName,
   checkPassword,
@@ -308,44 +308,32 @@ export async function setHiddenGames(c: Ctx): Promise<Response> {
   return json(200, { hidden });
 }
 
-/** 钱包规则：现在的值、默认值、能调的范围、最近 20 次改动。 */
-async function walletRulesState(c: Ctx) {
-  const { rules, log, updatedAt } = await readRulesRow(c.db);
-  return { rules, defaults: DEFAULT_RULES, range: RULE_RANGE, log: [...log].reverse(), updatedAt };
+/** 改一组可调规则：有变化时写 2 行（settings 1 + 管理员每日计数 1），没变化 0 行；回改后的状态 */
+async function setRules<R extends { [K in keyof R]: number }>(c: Ctx, set: AdjustableRules<R>): Promise<Response> {
+  const plan = await set.plan(c.db, c.body, c.session?.user.username ?? '令牌', c.now);
+  if (plan.stmt) {
+    const cap = await checkAdminCap(c);
+    await c.db.batch([plan.stmt, cap]);
+    set.remember(plan.rules, c.now);
+  }
+  return json(200, await set.state(c.db));
 }
 
-/** GET /api/admin/settings/wallet：读 1 行，写 0 行。 */
+/** GET /api/admin/settings/wallet：现在的值、默认值、能调的范围、最近 20 次改动。读 1 行，写 0 行。 */
 export async function getWalletRules(c: Ctx): Promise<Response> {
-  return json(200, await walletRulesState(c));
+  return json(200, await walletRuleSet.state(c.db));
 }
 
 /**
  * POST /api/admin/settings/wallet {reliefTo?, winUnits?, newBalance?, adminAdjustMax?, exchangeCap?}：改了即时生效（本 isolate 马上，别的最多 30 秒），不用发版。
- * 有变化时写 2 行（settings 1 + 管理员每日计数 1），没变化 0 行；记下谁、什么时候、从多少改成多少。
+ * 有变化时写 2 行，没变化 0 行；记下谁、什么时候、从多少改成多少。
  */
-export async function setWalletRules(c: Ctx): Promise<Response> {
-  const by = c.session?.user.username ?? '令牌';
-  const plan = await planRulesChange(c.db, c.body, by, c.now);
-  if (plan.stmt) {
-    const cap = await checkAdminCap(c);
-    await c.db.batch([plan.stmt, cap]);
-    rememberRules(plan.rules, c.now);
-  }
-  return json(200, await walletRulesState(c));
-}
+export const setWalletRules = (c: Ctx) => setRules(c, walletRuleSet);
 
 // ---------- 邀请码（15.20） ----------
 
-/** POST /api/admin/settings/invites：有变化时 2 行（settings 1 + 每日计数 1），没变化 0 行；改了即时生效（别的 isolate 最多晚 30 秒） */
-export async function setInviteRules(c: Ctx): Promise<Response> {
-  const plan = await planInviteRulesChange(c, c.session?.user.username ?? '令牌');
-  if (plan.stmt) {
-    const cap = await checkAdminCap(c);
-    await c.db.batch([plan.stmt, cap]);
-    rememberInviteRules(plan.rules, c.now);
-  }
-  return json(200, await inviteRulesState(c));
-}
+/** POST /api/admin/settings/invites {userQuota?, adminQuota?, ttlDays?, perDay?}：同钱包规则 */
+export const setInviteRules = (c: Ctx) => setRules(c, inviteRuleSet);
 
 /**
  * POST /api/admin/users/<用户 id>/invite-quota {quota: 整数 | null}：单独给某人改额度，null 恢复按角色的默认。2 行（users 1 + 每日计数 1）。

@@ -116,7 +116,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   /* 加到主屏幕上全屏打开时（viewport-fit=cover）顶上是状态栏和刘海 */
   padding-top: max(var(--s-4), env(safe-area-inset-top, 0px));
   /* 一屏高、不滚（docs/ui.md 第 11 节）：顶栏、提示条、内容区、一行页脚竖着排，内容区吃剩下的高。
-   * 高度依次 100vh → 100dvh → 脚本按看得见的区域写的 --app-h（src/lib/viewport.ts） */
+   * 高度依次 100vh → 100dvh → 脚本按看得见的区域写的 --app-h（main.tsx 里 arcade-kit/viewport 的 watchViewport） */
   height: 100vh; height: 100dvh; height: var(--app-h, 100dvh);
   display: flex; flex-direction: column;
 }
