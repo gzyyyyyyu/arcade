@@ -191,9 +191,10 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   /* 矮屏一屏放下（只有 390 高）：去掉副标题、顶部和标题下的空白收紧，内容区多出一截 */
   .top__sub { display: none; }
   .top { margin-bottom: var(--s-1); }
-  /* 页脚触屏做到 44 高以后横屏又少一截：页脚不留上外边距，主体也不往页脚那边伸（下沿阴影裁掉一点，换内容区多 8px） */
+  /* 页脚触屏做到 44 高以后横屏又少一截：页脚不留上外边距；主体往页脚伸 4px 刚好放下面板 3px 的实线投影（原来是 0，投影被页脚盖住），
+     伸进去的 4px 落在页脚 44 高点击区的上沿空白里，不挡字 */
   .foot { margin-top: 0; }
-  .page > .page__body { padding-bottom: 0; margin-bottom: 0; }
+  .page > .page__body { padding-bottom: 4px; margin-bottom: -4px; }
   .page { padding-top: max(var(--s-2), env(safe-area-inset-top, 0px)); }
   .logo-mark { width: 32px; height: 32px; }
   /* 横屏高度最缺、宽度富余：单栏子页放宽，排行的一排页签和"全部/只看好友"能并在一行 */
@@ -543,24 +544,27 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 }
 .card__playing .icon { width: 16px; height: 16px; color: var(--accent-deep); }
 /*
- * 手机（≤599）：一行一张的短卡——左边封面缩略图、中间名字和一句话、右边"进入"。一张约 84 高，
+ * 手机（≤599）：一行一张的短卡——左边封面缩略图、中间名字和一句话、右边"进入"。一张约 68 高（一句话折两行时；
+ * 封面不再撑到 76、上下内边距 3、一句话行高 1.3、卡间 6），360×640 带"回去接着打"也一页 5 张（原来 83 高只放 4 张），
  * 390×844 第一屏在今日挑战和继续玩下面还能看到 3–4 个游戏的入口（原来一张卡要大半屏）
  */
 @media (max-width: 599px), (max-height: 500px) {
-  .lobby-grid .paged__list { grid-template-columns: 1fr; gap: var(--s-2); }
+  .lobby-grid .paged__list { grid-template-columns: 1fr; gap: 6px; }
   .lobby-grid .card {
     display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; border-radius: var(--r-md); box-shadow: var(--sh-sm);
   }
   .lobby-grid .card .card__media { align-self: stretch; border-bottom: 0; border-right: var(--bw) solid var(--line); }
-  .lobby-grid .card .card__cover { height: 100%; aspect-ratio: auto; min-height: 76px; }
+  .lobby-grid .card .card__cover { height: 100%; aspect-ratio: auto; min-height: 60px; }
   .lobby-grid .card .card__more { display: none; }
-  .lobby-grid .card .card__body { gap: 2px var(--s-2); padding: var(--s-2) var(--s-3); }
+  .lobby-grid .card .card__body { gap: 2px var(--s-2); padding: 3px var(--s-3); }
   .lobby-grid .card .card__title { grid-area: title; font-size: var(--fs-lg); column-gap: var(--s-2); }
   .lobby-grid .card .card__week { font-size: var(--fs-xs); }
-  .lobby-grid .card .card__tagline { font-size: var(--fs-xs); }
+  .lobby-grid .card .card__tagline { font-size: var(--fs-xs); line-height: 1.3; }
   .lobby-grid .card .card__body > .card__play { min-width: 64px; padding: 0 var(--s-3); font-size: var(--fs-md); }
   /* "上次玩"：短卡上压在封面左上角 */
-  .lobby-grid .card .card__kicker { top: 4px; bottom: auto; left: calc(-112px + 4px); padding: 0 6px; font-size: 12px; }
+  /* 封面只有 112 宽："上次玩 ·"只留给读屏，角标只写"36 天前"，不伸出封面压住标题（0.42.3 修过一次，长一点的天数又压了） */
+  .lobby-grid .card .card__kicker { top: 4px; bottom: auto; left: calc(-112px + 4px); max-width: calc(112px - 8px); padding: 0 6px; font-size: 12px; white-space: nowrap; }
+  .lobby-grid .card .card__kicker-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .lobby-grid .card .card__play-more { display: none; }
   /* "今天 N 人玩过"：手机短卡上改成压在封面左下角的小牌子 */
   .lobby-grid .card .card__playing { top: auto; bottom: 4px; right: auto; left: calc(-112px + 4px); padding: 0 6px; font-size: 11px; }
@@ -770,7 +774,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .lobby-grid .paged__item:nth-child(n + 6) .card { animation-delay: 200ms; }
 .chips-num { font-variant-numeric: tabular-nums; }
 /* 余额还在读：占一个和"10,000"差不多宽的灰条，读到后数字换进来不跳宽 */
-.account--chips .chips-num--wait { display: inline-block; width: 4.5ch; height: 0.9em; border-radius: var(--r-sm); background: var(--soft); vertical-align: middle; }
+/* 读取中的灰条：里面放一串看不见的"10,000"（新号起手就是这个数）撑宽，读完换成真数时顶栏按钮不挪（原来定宽 4.5ch，比 10,000 窄） */
+.account--chips .chips-num--wait { display: inline-block; line-height: 0.9; color: transparent; border-radius: var(--r-sm); background: var(--soft); vertical-align: middle; user-select: none; }
 .card__play:not(.card__play--disabled):active { transform: translateY(4px) scale(0.97); }
 @media (prefers-reduced-motion: reduce) {
   .lobby-grid .card { animation: none; }

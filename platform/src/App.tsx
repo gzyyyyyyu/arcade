@@ -152,7 +152,8 @@ function GameCard({ game, last = null, main = false }: { game: GameEntry; last?:
         )}
         {last !== null && (
           <span className="card__kicker" data-testid={`last-${game.id}`}>
-            上次玩 · {relativeTime(last, Date.now())}
+            <span className="card__kicker-label">上次玩 · </span>
+            {relativeTime(last, Date.now())}
           </span>
         )}
         <h2 className="card__title">
@@ -439,7 +440,7 @@ function WalletBadge({ path }: { path: string }) {
   return (
     <Link className="account account--chips" href="/wallet" title={canRelief ? '我的筹码（今天能领补给）' : '我的筹码'} data-testid="wallet-badge" data-tour="chips" {...here(path, '/wallet')}>
       <CoinIcon />
-      {wallet ? <span className="chips-num" ref={numEl}>{num(rolled ?? shown)}</span> : error ? <span className="chips-num">筹码</span> : <span className="chips-num chips-num--wait" role="img" aria-label="筹码" />}
+      {wallet ? <span className="chips-num" ref={numEl}>{num(rolled ?? shown)}</span> : error ? <span className="chips-num">筹码</span> : <span className="chips-num chips-num--wait" role="img" aria-label="筹码">10,000</span>}
       {canRelief && <span className="dot" role="img" aria-label="今天能领补给" data-testid="relief-dot" />}
     </Link>
   );

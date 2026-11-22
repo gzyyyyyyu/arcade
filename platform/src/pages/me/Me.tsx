@@ -94,7 +94,7 @@ function MeBody({ readonly }: { readonly: boolean }) {
         {cur === 'saves' && (
           <div className={wide ? 'me-cols' : 'me-one'}>
             <div className="me-card me-card--note">
-              <SavesNote />
+              <SavesNote rows={wide ? saves : undefined} />
             </div>
             <SavesList rows={saves} />
           </div>

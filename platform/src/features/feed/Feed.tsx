@@ -285,6 +285,41 @@ function Row({ item, me, onReacted }: { item: Shown; me: string; onReacted?: () 
 const FEW_ITEMS = 2;
 const ROOMY = '(min-height: 700px)';
 
+/**
+ * 没有动态时：有好友就叫人去玩一局（打出东西好友才看得到），一个好友都没有就指去加好友（玩再多这里也是空的）。
+ * 好友数只在动态为空时问一次 /api/friends；问到之前不放按钮，问不到按有好友处理。
+ */
+function FeedEmpty({ testId, long = false }: { testId: string; long?: boolean }) {
+  const [alone, setAlone] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api.friends().then(
+      (r) => alive && setAlone(r.friends.length === 0),
+      () => alive && setAlone(false),
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const action =
+    alone === null ? undefined : alone ? (
+      <Link className="btn btn--small btn--primary" href="/friends">
+        去加好友
+      </Link>
+    ) : (
+      <Link className="btn btn--small btn--primary" href="/">
+        去玩一局
+      </Link>
+    );
+  return (
+    <Empty testId={testId} action={action}>
+      {alone
+        ? `还没有好友，这里就一直是空的。${long ? '加了好友，你们实盘赢了、拿到新称号、打出名场面，都会出现在这里。' : ''}`
+        : `最近 7 天你和好友还没有动态。${long ? '实盘赢了、拿到新称号，或者在游戏里打出名场面，好友就能看到。' : ''}`}
+    </Empty>
+  );
+}
+
 /** 动态页的列表：按剩下的高度分页（<Paged>），一页放不下的翻页，不滚；打开就算看过。能赞、扔道具 */
 export function FeedList({ me }: { me: string }) {
   const { items, error, reload } = useFeed();
@@ -292,19 +327,7 @@ export function FeedList({ me }: { me: string }) {
   useEffect(() => markSeen(items), [items]);
   if (!items) return <Skeleton rows={3} />;
   if (error) return <LoadError onRetry={reload}>{error}</LoadError>;
-  if (!items.length)
-    return (
-      <Empty
-        testId="feed-empty"
-        action={
-          <Link className="btn btn--small btn--primary" href="/">
-            去玩一局
-          </Link>
-        }
-      >
-        最近 7 天你和好友还没有动态。实盘赢了、拿到新称号，或者在游戏里打出名场面，好友就能看到。
-      </Empty>
-    );
+  if (!items.length) return <FeedEmpty testId="feed-empty" long />;
   // 条数很少（一页肯定放得下）时不量高度、全部画出，外框按内容高；多了才按剩下的高度翻页
   const few = roomy && items.length <= FEW_ITEMS;
   return <Paged items={items} keyOf={(i) => i.id} render={(i) => <Row item={i} me={me} onReacted={reload} />} grid fixed={few ? Number.POSITIVE_INFINITY : undefined} className={`feedlist${few ? ' feedlist--few' : ''}`} label="动态翻页" testId="feed" />;
@@ -380,16 +403,7 @@ export function FeedButton({ me }: { me: string }) {
               ) : items.length ? (
                 <Paged items={items.slice(0, 8)} keyOf={(i) => i.id} render={(i) => <Row item={i} me={me} onReacted={reload} />} className="feedlist" label="动态翻页" />
               ) : (
-                <Empty
-                  testId="feed-pop-empty"
-                  action={
-                    <Link className="btn btn--small btn--primary" href="/">
-                      去玩一局
-                    </Link>
-                  }
-                >
-                  最近 7 天你和好友还没有动态。
-                </Empty>
+                <FeedEmpty testId="feed-pop-empty" />
               )}
             </div>
             <Link className="feedpop__all" href="/feed">

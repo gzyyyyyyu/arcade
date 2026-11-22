@@ -38,18 +38,43 @@ export function useSaves(): SaveRow[] {
   return rows;
 }
 
-/** 说明和"先暂停"的提示（宽屏放左卡，窄屏放列表上面） */
-export function SavesNote() {
+/** 说明和"先暂停"的提示（宽屏放左卡，窄屏放列表上面）；宽屏给 rows 时下面加一块汇总，左卡不只一句话、下半空着 */
+export function SavesNote({ rows }: { rows?: SaveRow[] }) {
   const { savesPaused } = useSession();
   return (
     <>
       <p className="note">游戏里登录后，档案、战绩和新手教程进度会自动存到这里，换台设备也能接着玩。打到一半的那一局不存。</p>
+      {rows && <SavesSum rows={rows} />}
       {savesPaused && (
         <p className="banner banner--inline" data-testid="saves-paused">
           服务器有点忙，云存档先暂停了。游戏里的进度先存在这台设备上，过后再同步。
         </p>
       )}
     </>
+  );
+}
+
+/** 汇总：几个游戏有存档、一共几份、最近一次；还有游戏没读完时不写（数会跳） */
+function SavesSum({ rows }: { rows: SaveRow[] }) {
+  if (rows.some((r) => r.slots === null && !r.error)) return null;
+  const slots = rows.flatMap((r) => r.slots ?? []);
+  if (slots.length === 0) return <p className="saves-sum__empty">还没有游戏存过档。进游戏登录后玩一局，就会出现在右边。</p>;
+  const games = rows.filter((r) => r.slots?.length).length;
+  return (
+    <dl className="saves-sum" data-testid="saves-sum">
+      <div>
+        <dt>有存档的游戏</dt>
+        <dd className="tnum">{games}</dd>
+      </div>
+      <div>
+        <dt>一共</dt>
+        <dd className="tnum">{slots.length} 份</dd>
+      </div>
+      <div>
+        <dt>最近一次</dt>
+        <dd className="tnum">{timeText(Math.max(...slots.map((s) => s.updatedAt)))}</dd>
+      </div>
+    </dl>
   );
 }
 
