@@ -19,6 +19,8 @@ export const TOPUP_RETRY_MS = 5_000;
 export const RETRY_MS = 15_000;
 /** 刷新页面后多久以内自动回到上次的房间（房间最长活 6 小时） */
 export const ROOM_REMEMBER_MS = 6 * 3_600_000;
+/** 进房后补报一次位置的间隔：比平台"同一个人 10 秒内只记一次位置"（docs/api.md 7.2）多 1 秒 */
+export const PRESENCE_RETRY_MS = 11_000;
 /**
  * 催促炸弹（朋友们："谁出得慢就炸他"）：轮到的是别的真人（不是电脑、不是电脑代打）、他已经想了 8 秒以上，
  * 他头像旁边冒一个小炸弹，我坐着就能点：对他扔 bomb（kit 的道具，走 emote 带 to）。不缩短他的计时、不碰规则

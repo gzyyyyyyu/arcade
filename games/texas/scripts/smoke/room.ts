@@ -1,6 +1,6 @@
 /** 好友房（--only room）和快速匹配（--only match）。 */
 import type { Browser, Page } from 'playwright-core';
-import { HANDS, DESK_W, allowed409, log, newContext, watch, shot, balance, skipTips, enter, openMore, PHONE, handNo, settled } from './harness.ts';
+import { HANDS, DESK_W, allowed409, log, newContext, watch, shot, balance, skipTips, enter, openMore, PHONE, handNo, settled, linkSit } from './harness.ts';
 
 /** 好友房两手之间停了多久（看到倒计时 → 下一手发出来），按页面记 */
 const roomPauses: Record<string, number[]> = {};
@@ -128,8 +128,8 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   await bp.locator('.code-in:not(.nick-in)').fill(code);
   await bp.locator('.friends .pill', { hasText: '进房间' }).tap();
   await bp.locator('.room-wait').waitFor();
-  await ap.locator('.rw-seat').nth(1).locator('.rw-sit').click();
-  await ap.locator('.rw-seat.me').waitFor();
+  // 点链接进来的自动坐第一个空位（0.41.4）；实盘先问"坐下"
+  await linkSit(ap);
   await bp.locator('.rw-seat').nth(2).locator('.rw-sit').tap();
   await bp.locator('.rw-seat.me').waitFor();
   // 输码进来的也知道档位和人数（开房时定的）：要带多少写着，用不到的座位不显示

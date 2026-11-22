@@ -1,5 +1,5 @@
 import type { Browser, Page } from 'playwright-core';
-import { allowed409, enter, log, newContext, openMore, watch } from './harness.ts';
+import { allowed409, enter, log, newContext, openMore, watch, linkSit } from './harness.ts';
 import { playRoom } from './room.ts';
 
 /**
@@ -50,9 +50,7 @@ export async function quotaFlow(browser: Browser, base: string): Promise<void> {
   const code = await codeOf(hp);
   log('quota: cash room', code);
   await ap.goto(`${base}/games/texas/?room=${code}`);
-  await ap.locator('.room-wait').waitFor();
-  await ap.locator('.rw-seat').nth(1).locator('.rw-sit').click();
-  await ap.locator('.rw-seat.me').waitFor();
+  await linkSit(ap);
   await hp.locator('.rw-go .start').click();
   for (const p of [hp, ap]) await p.locator('.seat.me .card.up').first().waitFor({ timeout: 20_000 });
   await Promise.all([playRoom(hp, 1, 'qh'), playRoom(ap, 1, 'qa')]);

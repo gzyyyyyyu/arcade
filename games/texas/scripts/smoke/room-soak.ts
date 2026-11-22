@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Browser, BrowserContext, Page } from 'playwright-core';
 import { opt } from '../args.ts';
-import { SHOTS, log, newContext, watch, shot, handNo } from './harness.ts';
+import { SHOTS, log, newContext, watch, shot, handNo, linkSit } from './harness.ts';
 
 /**
  * 好友房长跑（--only roomsoak，--soak-hands 200 --soak-csv 路径）：一个真人加三台电脑打很多手，每 10 手量一次页面的内存、DOM、监听器、计时器、重连次数。
@@ -69,8 +69,7 @@ async function startSoakRoom(browser: Browser, base: string): Promise<SoakRoom> 
   const gp = await gctx.newPage();
   watch(gp, 'soak-guest');
   await gp.goto(`${base}/games/texas/?room=${code}`);
-  await gp.locator('.rw-seat').nth(1).locator('.rw-sit').click();
-  await gp.locator('.rw-seat.me').waitFor();
+  await linkSit(gp);
   await page.locator('.rw-seat.taken').nth(1).waitFor();
   await page.locator('.rw-go .start').click();
   await page.locator('.seat.me .card.up').first().waitFor({ timeout: 20_000 });

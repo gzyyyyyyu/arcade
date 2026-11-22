@@ -288,6 +288,20 @@ export async function enter(page: Page, mode: '娱乐' | '实盘' | '好友房',
   await (tap ? target.tap() : target.click());
 }
 
+/**
+ * 按朋友的链接（?room=）进了还没开打的好友房：页面替他坐第一个空位（0.41.4）；实盘房先问一句"坐下"（开打时从钱包带入），点了才坐
+ */
+export async function linkSit(page: Page, tap = false): Promise<void> {
+  await page.locator('.rw-seat.me, .mask .dialog').first().waitFor({ timeout: 20_000 });
+  if (await page.locator('.mask .dialog').isVisible()) {
+    const title = (await page.locator('.mask .d-title').textContent()) ?? '';
+    if (title !== '坐下') throw new Error(`link join: unexpected dialog ${title}`);
+    const ok = page.locator('.mask .d-btn.primary');
+    await (tap ? ok.tap() : ok.click());
+  }
+  await page.locator('.rw-seat.me').waitFor();
+}
+
 /** 选桌页的选项不折叠（0.34.0）：人数、带多少、止盈、各玩法入口一直摆在页面上，不用展开；留着这个空操作，免得每处调用都改 */
 export async function openMore(_page: Page, _tap = false): Promise<void> {}
 

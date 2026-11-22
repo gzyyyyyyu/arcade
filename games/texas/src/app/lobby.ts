@@ -93,7 +93,7 @@ export function createLobby(c: App) {
     const code = q.get('room');
     const wantOnline = q.get('online') === '1';
     if (q.has('room') || q.has('online')) history.replaceState(null, '', location.pathname);
-    if (code && isRoomCode(code)) f.joinRoom(code);
+    if (code && isRoomCode(code)) f.joinRoom(code, true);
     else if (wantOnline) lobby.showFriends();
     drawLobby();
     // 第一版真数据已画好（钱包、云存档、本机没打完的一桌都到了）：标题页右栏淡入，不先露一排空面板

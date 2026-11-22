@@ -1,7 +1,7 @@
 /** 新手指引（--only guide）和止盈（--only tp）。 */
 import type { Browser, Page } from 'playwright-core';
 import { opt } from '../args.ts';
-import { log, newContext, watch, shot, balance, skipTips, handText, enter, openMore, settled, DESK_H } from './harness.ts';
+import { log, newContext, watch, shot, balance, skipTips, handText, enter, openMore, settled, DESK_H, linkSit } from './harness.ts';
 import { summary, IPHONE, tallDevice } from './solo.ts';
 
 export async function takeProfitFlow(browser: Browser, base: string): Promise<void> {
@@ -330,8 +330,7 @@ async function guideRoom(browser: Browser, base: string): Promise<void> {
   await hp.locator('.rw-seat.me').waitFor();
   const code = ((await hp.locator('.rw-code').textContent()) ?? '').replace(/\D/g, '');
   await pp.goto(`${base}/games/texas/?room=${code}`);
-  await pp.locator('.rw-seat').nth(1).locator('.rw-sit').click();
-  await pp.locator('.rw-seat.me').waitFor();
+  await linkSit(pp);
   await hp.locator('.rw-go .start').tap();
   await hp.locator('.stage.at-table').waitFor({ timeout: 30_000 });
   await hp.locator('.seat.me .card.up').first().waitFor({ timeout: 30_000 });
