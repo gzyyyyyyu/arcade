@@ -55,7 +55,7 @@ The rest of this README, the code comments and the API contract (`docs/platform-
 |---|---|---|
 | `arcade.reloaded` | sessionStorage | 发版后分块加载失败时只自动重载一次 |
 | `arcade.enterFx` | sessionStorage | 进游戏时记下游戏 id、时间和当时的筹码总数（余额 + 桌上筹码），30 分钟内回大厅播一次封面缩回，并在顶栏筹码牌子上按总数变化滚数字、多了迸金币，播完就删 |
-| `arcade.sound` | localStorage | 声音开关 |
+| `arcade.sound` | localStorage | 声音开关：只有 `off`（静音）或没有；游戏经 arcade-kit `platformSoundOn()` 读，格式不改 |
 | `arcade.feedSeen` | localStorage | 动态看到哪一条（顶栏红点） |
 | `arcade.recent.<用户 id>` | localStorage | 最近点过"进入游戏"的记录，按账号分开 |
 | `arcade.tour.<用户 id>` | localStorage | 新人引导看过没有（`arcade.tour.test` 只给冒烟用） |

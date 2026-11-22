@@ -735,9 +735,11 @@ html.no-motion .card, html.no-motion .btn, html.no-motion .card__play { transiti
 @keyframes page-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .page-in { animation: page-in 160ms ease-out both; }
 /* 标签、分段、小圆片的按下和禁用（按钮、卡片按钮在上面"按钮"一节） */
-.tabs a:active, .seg button:active:not(:disabled), .chips button:active:not(:disabled) { transform: translateY(1px); }
+.tabs a:active, .seg button:active:not(:disabled), .chips button:active:not(:disabled), .pills button:active:not(:disabled) { transform: translateY(1px); }
+/* 触屏没有悬停底色，按下时给同样的暖色底，手指下面看得出按到了 */
+.pills button:active:not(:disabled):not(.tabs__on) { background: var(--highlight-warm); }
 .seg button:disabled, .chips button:disabled { opacity: 0.5; cursor: not-allowed; }
-.tabs a, .seg button, .chips button { transition: background-color var(--ease), transform var(--ease); }
+.tabs a, .seg button, .chips button, .pills button { transition: background-color var(--ease), transform var(--ease); }
 /* 页脚的键盘提示只给有鼠标键盘的电脑 */
 .foot__keys { display: none; }
 @media (hover: hover) and (pointer: fine) { .foot__keys { display: inline; } }
