@@ -3,6 +3,8 @@
  * 名字、配方、数值全从内容表现取（weapons / enemies / maps / meta / waves / explore / live / guide），以后加法器、地图、流派自动跟上；
  * 只有讲道理的句子写在这里。主页和暂停面板都能打开，关掉回到打开它的地方。
  */
+import { ENEMY_BY_KIND } from '../../content/enemies.ts';
+import { fmtClock, TICKS_PER_SECOND } from '../../content/clock.ts';
 import { PICKS } from '../../content/picks.ts';
 import type { EnemyKind } from '../../content/enemies.ts';
 import { GATE_WINDOWS, RAID_DAWN, RAID_LATE } from '../../content/explore.ts';
@@ -20,7 +22,6 @@ import { schoolIcon } from '../art/sprites-selicons.ts';
 import { heroKey } from '../art/heroes.ts';
 import { DANGER_IDS, DANGERS, DAWN_TICK, EVENTS, MID_BOSS } from '../../content/waves.ts';
 import { ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, NEXT_ELEMENT, PASSIVES, STAT_NAME, TYPE_SETS, WEAPONS, type MergeDef, type WeaponId, type WeaponType } from '../../content/weapons.ts';
-import { MONSTER_INFO } from './codex.ts';
 import { counters } from './counters.ts';
 import { closeModal, modalChrome, openModal } from './modal.ts';
 import { PAGER_CTL, Pager } from './pager.ts';
@@ -51,10 +52,7 @@ const TABS: [GuideTab, string][] = [
 ];
 
 /** 拍数 → "14:00" */
-const clock = (ticks: number): string => {
-  const s = Math.round(ticks / 30);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-};
+const clock = (ticks: number): string => fmtClock(Math.round(ticks / TICKS_PER_SECOND));
 /** 电脑宽屏（和 guide.css 里两栏的条件一致） */
 const WIDE = window.matchMedia('(min-width: 900px) and (min-height: 560px)');
 const WEAPON_IDS = Object.keys(WEAPONS) as WeaponId[];
@@ -149,7 +147,7 @@ export class Guide {
     return `<span class="yx-gw">${this.img(PASSIVES[id].icon)}<b>${esc(PASSIVES[id].name)}</b></span>`;
   }
   private mob(k: EnemyKind): string {
-    return `<span class="yx-gw">${this.img(k)}<b>${esc(MONSTER_INFO[k].name)}</b></span>`;
+    return `<span class="yx-gw">${this.img(k)}<b>${esc(ENEMY_BY_KIND[k].name)}</b></span>`;
   }
   private recipe(id: WeaponId): string {
     const e = WEAPONS[id].evolve;
@@ -175,16 +173,16 @@ export class Guide {
         '<ul class="yx-glist">' +
           '<li><b>走位</b>电脑用 WASD 或方向键，手机按住屏幕左半边拖出摇杆，轻轻一拖慢走（摇杆头变小）、拖远全速。</li>' +
           `<li>${this.img(WEAPONS.sword.icon)}法器自己出手，不用点。最多带 ${MAX_WEAPONS} 件法器、${MAX_PASSIVES} 件被动。</li>` +
-          `<li>${this.img(SKILLS.xiaodao.icon)}<b>技能</b>每个角色一个主动技能：电脑按空格或 Q，手机点右下角的技能钮，冷却环走满就发亮。按住或悬停技能钮看它做什么，暂停页也写着。设置里的「自动放技能」打开后，技能好了而且身边有怪就自动放，不用你按（默认关）。</li>` +
+          `<li>${this.img(SKILLS.xiaodao.icon)}<b>技能</b>每个角色一个主动技能：电脑按空格或 Q，手机点右下角的技能钮，冷却环走满就发亮。按住或悬停技能钮看它做什么，暂停页也写着。设置里的「自动技能」打开后，技能好了而且身边有怪就自动放，不用你按（默认关）。</li>` +
           `<li>${this.img('soul')}怪倒下掉魂火，走近自动吸，吸满就升级。</li>` +
           '</ul>',
       ),
       this.sec(
         `撑到天亮（${clock(DAWN_TICK)}）`,
         '<ul class="yx-glist">' +
-          (mid ? `<li>${this.img(mid.enemy)}离天亮还剩 ${clock(DAWN_TICK - mid.at)}，${esc(MONSTER_INFO[mid.enemy].name)}来闹一场。</li>` : '') +
-          (mid ? `<li>${this.img('zhumu')}每张特色图这时来的首领不一样：${(Object.keys(MID_BOSS) as (keyof typeof MID_BOSS)[]).map((m) => `${MAPS[m].name}是${esc(MONSTER_INFO[MID_BOSS[m]!].name)}`).join('、')}（画皮混在怪群里，头顶一缕红丝，打疼了才现形）。</li>` : '') +
-          (boss ? `<li>${this.img('boss')}还剩 ${clock(DAWN_TICK - boss.at)}，${esc(MONSTER_INFO.boss.name)}现身；打倒它天亮得更早，奖励也多。</li>` : '') +
+          (mid ? `<li>${this.img(mid.enemy)}离天亮还剩 ${clock(DAWN_TICK - mid.at)}，${esc(ENEMY_BY_KIND[mid.enemy].name)}来闹一场。</li>` : '') +
+          (mid ? `<li>${this.img('zhumu')}每张特色图这时来的首领不一样：${(Object.keys(MID_BOSS) as (keyof typeof MID_BOSS)[]).map((m) => `${MAPS[m].name}是${esc(ENEMY_BY_KIND[MID_BOSS[m]!].name)}`).join('、')}（画皮混在怪群里，头顶一缕红丝，打疼了才现形）。</li>` : '') +
+          (boss ? `<li>${this.img('boss')}还剩 ${clock(DAWN_TICK - boss.at)}，${esc(ENEMY_BY_KIND.boss.name)}现身；打倒它天亮得更早，奖励也多。</li>` : '') +
           `<li>${this.img('chest')}精英倒下掉宝箱：法器升级，凑齐了就进化。</li>` +
           '</ul>',
       ) +

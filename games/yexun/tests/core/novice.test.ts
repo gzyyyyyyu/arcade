@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { NOVICE } from '../../src/content/player.ts';
+import { NOVICE, PLAYER, xpNeed } from '../../src/content/player.ts';
+import { dangerDef } from '../../src/content/waves.ts';
 import { TRIAL_IDS } from '../../src/content/trials.ts';
 import { createWorld, normalizeSetup, step, type Setup } from '../../src/core/index.ts';
-import { noviceAssist } from '../../src/core/state.ts';
+import { Drop, noviceAssist } from '../../src/core/state.ts';
 import { dailyPlan, isDailySetup } from '../../src/online/daily.ts';
 import { rushDaily } from '../../src/online/rush.ts';
 import { weeklyPlan } from '../../src/online/weekly.ts';
@@ -75,4 +76,23 @@ describe('新手照顾的效果', () => {
     expect(mean(nov.map((r) => r.first))).toBeLessThan(mean(plain.map((r) => r.first)));
     expect(mean(nov.map((r) => r.level))).toBeGreaterThan(mean(plain.map((r) => r.level)));
   }, 30_000);
+
+  it('开局地上的魂火圈：只有新手局有，都在开局磁吸外，合计够升头两级', () => {
+    const plain = createWorld({ seed: 3, mode: 'vigil', danger: 0 });
+    const nov = createWorld({ seed: 3, mode: 'vigil', danger: 0, novice: true });
+    const live = createWorld({ ...liveSetup('small', 3), novice: true });
+    const souls = (w: ReturnType<typeof createWorld>): number[] => {
+      const d: number[] = [];
+      for (let i = 0; i < w.dAlive.length; i++) if (w.dAlive[i] && w.dKind[i] === Drop.Soul) d.push(i);
+      return d;
+    };
+    expect(souls(plain)).toHaveLength(0);
+    expect(souls(live)).toHaveLength(0);
+    const got = souls(nov);
+    expect(got).toHaveLength(NOVICE.souls.reduce((a, r) => a + r.n, 0));
+    expect(got.reduce((a, i) => a + nov.dVal[i]!, 0)).toBeGreaterThanOrEqual(xpNeed(1) + xpNeed(2));
+    // 开局不立刻弹选卡：危险 0 新手局开局磁吸（基础 × 危险档 × 新手倍数）够不着任何一颗
+    const reach = PLAYER.magnet * dangerDef('vigil', 0).magnetMul * NOVICE.magnetMul;
+    for (const i of got) expect(Math.hypot(nov.dX[i]! - nov.x, nov.dY[i]! - nov.y)).toBeGreaterThan(reach);
+  });
 });

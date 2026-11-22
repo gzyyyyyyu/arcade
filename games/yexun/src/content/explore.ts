@@ -2,11 +2,12 @@
  * 夜探（搜打撤）的内容表（DESIGN.md 2.3、3.5、3.6、3.8、4.2）：地图模板、宝箱、撤离门的时间、夜探刷怪表、守卫的数值、结回倍数。
  * 规则在 `src/explore/`，这里只放数。时间以拍计（每秒 30 拍），距离以单位计（主角半径 14，每拍走 3）。
  */
+import { TICKS_PER_SECOND } from './clock.ts';
 import type { EnemyDef, EnemyKind } from './enemies.ts';
 import type { CharacterId } from './meta.ts';
 import type { Minute } from './waves.ts';
 
-const S = 30;
+const S = TICKS_PER_SECOND;
 const M = 60 * S;
 
 export type RaidTemplateId = 'guzhen' | 'dukou' | 'shansi' | 'teach' | 'xilou' | 'liangcang' | 'yaozhen';
@@ -319,7 +320,7 @@ export const RAID_MINUTES: readonly Minute[] = [
  * 镇门石兽：守最值钱的院子，青石身子，刀剑、土都不太吃；怕水（冲刷）和镇（镇物压得住）。
  */
 export type RaidEnemyKind = 'patrol' | 'beast' | 'goblin';
-export const RAID_ENEMIES: Record<RaidEnemyKind, Omit<EnemyDef, 'kind' | 'code'>> = {
+export const RAID_ENEMIES: Record<RaidEnemyKind, Omit<EnemyDef, 'kind' | 'code' | 'name' | 'tint'>> = {
   patrol: { hp: 900, speed: 2.5, dmg: 14, r: 26, xp: 30, steady: 0.9, elite: true, vs: { 剑: 0.7, 火: 1.25 } },
   beast: { hp: 9000, speed: 1.4, dmg: 20, r: 46, xp: 80, steady: 0.97, boss: true, vs: { 剑: 0.6, 土: 0.7, 水: 1.4, 镇: 1.3 } },
   // 宝妖：背着宝袋的小妖，见人就跑（比主角慢一点，追得上），不打人；打倒掉两件好宝物

@@ -20,7 +20,7 @@ import type { CharacterId } from '../content/meta.ts';
 import { MAP_IDS } from '../content/maps.ts';
 import type { MapId } from '../content/maps.ts';
 import type { KeyValueStore } from './cloud.ts';
-import { timeoutSignal } from './timeout.ts';
+import { isObj, requestJson, type Fetch } from './http.ts';
 
 export const LIVE_KEY = 'yexun.live';
 const LIVE_TTL_MS = 24 * 3_600_000;
@@ -87,7 +87,7 @@ export type Outcome =
 
 export interface LiveDeps {
   store: KeyValueStore | null;
-  fetch: (url: string, init: RequestInit) => Promise<Response>;
+  fetch: Fetch;
   now(): number;
   onChange?(): void;
 }
@@ -97,7 +97,6 @@ const REJECT_ERRORS = new Set(['no_funds', 'at_table', 'limit', 'expired', 'no_s
 const STEPS: readonly LiveStep[] = ['buying', 'playing', 'settling', 'done', 'void', 'error'];
 const UNSETTLED: readonly LiveStep[] = ['buying', 'playing', 'settling'];
 
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /** 读回本机的记录；格式不对当作没有 */
@@ -337,26 +336,7 @@ export class LiveClient {
   }
 
   private async post(action: 'buyin' | 'settle' | 'refund', body: unknown): Promise<{ outcome: Outcome; user: string | null }> {
-    let status = 0;
-    let json: unknown = null;
-    try {
-      const res = await this.d.fetch(`${API}${action}`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' },
-        body: JSON.stringify(body),
-        ...timeoutSignal(),
-      });
-      status = res.status;
-      try {
-        json = await res.json();
-      } catch {
-        json = null;
-      }
-    } catch {
-      status = 0;
-    }
+    const { status, body: json } = await requestJson(this.d.fetch, 'POST', `${API}${action}`, JSON.stringify(body));
     const outcome = classify(status, json);
     if (outcome.kind === 'unavailable') this.off = true;
     return { outcome, user: isObj(json) && typeof json.user === 'string' ? json.user : null };

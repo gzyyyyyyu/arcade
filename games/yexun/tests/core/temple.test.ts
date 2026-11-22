@@ -4,7 +4,6 @@ import { inRects, MAPS, MAP_IDS, MAP_UNLOCK, TERRAIN } from '../../src/content/m
 import { ARENA } from '../../src/content/player.ts';
 import { VIGIL_REGIONS } from '../../src/content/regions.ts';
 import { liveMapOk } from '../../src/content/live.ts';
-import { MONSTER_INFO } from '../../src/view/ui/codex.ts';
 import { createWorld, Ev, step, type World } from '../../src/core/index.ts';
 import { spawnNow } from '../../src/core/debug.ts';
 
@@ -26,7 +25,7 @@ describe('荒庙', () => {
     expect(MAP_UNLOCK.temple?.seconds).toBe(600);
     expect(VIGIL_REGIONS.temple?.mobs.map((m) => m.kind)).toEqual(['templeghost', 'stonemonk']);
     expect(VIGIL_REGIONS.temple?.elites?.every((e) => e.enemy === 'shishi')).toBe(true);
-    expect(MONSTER_INFO.templeghost.name).toBe('庙祝鬼');
+    expect(ENEMY_BY_KIND.templeghost.name).toBe('庙祝鬼');
   });
 
   it('块都在场地里，出生点空着；每块香火区里有一尊香炉，香炉四周站得下人', () => {

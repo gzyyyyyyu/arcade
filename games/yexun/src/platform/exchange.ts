@@ -8,7 +8,7 @@
  * 不依赖 DOM：fetch 和存档从外面传进来。
  */
 import { endExchange, newXcOp, startExchange, type Save } from './save.ts';
-import { timeoutSignal } from './timeout.ts';
+import { isObj, requestJson, type Fetch, type JsonRes } from './http.ts';
 
 const API = 'api/exchange/';
 
@@ -27,12 +27,11 @@ export type ExchangeResult =
   | { kind: 'skip'; why: 'coins' | 'busy' };
 
 const RETRY = new Set(['busy', 'internal']);
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const int = (v: unknown): number | null => (typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 ? v : null);
 
 export interface ExchangeDeps {
   save: Save;
-  fetch: (url: string, init: RequestInit) => Promise<Response>;
+  fetch: Fetch;
   /** 生成兑换号（测试里固定） */
   newOp?: () => string;
 }
@@ -106,25 +105,8 @@ export class ExchangeClient {
     return { kind: 'reject', error, left };
   }
 
-  private async post(action: 'view' | 'do', body: unknown): Promise<{ status: number; body: unknown }> {
-    try {
-      const res = await this.d.fetch(`${API}${action}`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' },
-        body: JSON.stringify(body),
-        ...timeoutSignal(),
-      });
-      let json: unknown = null;
-      try {
-        json = await res.json();
-      } catch {
-        json = null;
-      }
-      return { status: res.status, body: json };
-    } catch {
-      return { status: 0, body: null };
-    }
+  private post(action: 'view' | 'do', body: unknown): Promise<JsonRes> {
+    return requestJson(this.d.fetch, 'POST', `${API}${action}`, JSON.stringify(body));
   }
+
 }

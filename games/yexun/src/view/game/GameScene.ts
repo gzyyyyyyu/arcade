@@ -10,6 +10,7 @@
  * 留在这里的：怪的精灵（drawMobs / onMob / 画皮）、夜探（drawRaid / 鬼市摊子 / 指引）、事件分发（readEvents）、主角和镜头、HUD 同步——
  * 它们和 hold / freeze / now / 事件处理纠缠在一起，拆出去要传一大把状态，反而更难读。
  */
+import { fmtClock } from '../../content/clock.ts';
 import { XINFA_FX, XINFA_TEXT } from '../../content/xinfa.ts';
 import Phaser from 'phaser';
 import { DROWN, ENEMIES, ENEMY_BY_KIND, HOP_AIR, HOP_PERIOD, HUAPI, JUEMU, SPROUT, WATER } from '../../content/enemies.ts';
@@ -28,6 +29,7 @@ import { MAP_EVENTS, MAP_EVENT_KINDS, nextMapEvent } from '../../content/mapEven
 import { newNightLog, noteNight, type NightLog } from '../ui/eventIcons.ts';
 import { MERGES, PASSIVE_IDS, PASSIVES, WEAPON_IDS, WEAPONS } from '../../content/weapons.ts';
 import { autoSkillSetting, wantAutoSkill } from './autoskill.ts';
+import { BOSS_TIP, ELITE_TIP, PHASE_BANNER } from './banners.ts';
 import { Drop, Ev, MAX_ENEMIES, MERGE_CODE, skillCooldown, skillOf, skillReady, step, TICKS_PER_SECOND, yinyangSide, type World } from '../../core/index.ts';
 import { COS, SIN } from '../../core/dirs.ts';
 import { HERO_TEX, MOB_TEX, RAID_TEX, makeIcons, peekHeroAtlas, type Atlas, type Frame } from '../art/atlas.ts';
@@ -36,7 +38,6 @@ import { LookAura } from './lookAura.ts';
 import { playSkillFx, SK, type SkillFxCtx } from '../art/skills.ts';
 import { GROUND_TINT } from '../art/terrain.ts';
 import { treasureIconKey } from '../art/sprites-raid.ts';
-import { MOB_COLOR } from '../art/sprites.ts';
 import { music } from '../audio/music.ts';
 import { sfx, type SfxName } from '../audio/sfx.ts';
 import '../audio/sfx-skills.ts';
@@ -65,18 +66,15 @@ import { RushShow } from './rush.ts';
 import { Bump, drawArenaWall } from './wall.ts';
 import type { Input } from './input.ts';
 
-const TICK_MS = 1000 / 30;
+const TICK_MS = 1000 / TICKS_PER_SECOND;
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 /** 夜探提示里的时刻一律按 HUD 顶上的"离天亮"倒计时写（和 HUD 一样向上取整）：写已过时间（"8:00 以后"）所有者按倒计时理解，早到了打不开宝库（0.3.10） */
 const raidClock = (tick: number): string => {
-  const s = Math.max(0, Math.ceil((RAID_DAWN - tick) / 30));
+  const s = Math.max(0, Math.ceil((RAID_DAWN - tick) / TICKS_PER_SECOND));
   return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`;
 };
 /** 还差多少拍 → m:ss（向上取整，和倒计时对得上） */
-const waitClock = (ticks: number): string => {
-  const s = Math.max(0, Math.ceil(ticks / 30));
-  return `${Math.floor(s / 60)}:${pad2(s % 60)}`;
-};
+const waitClock = (ticks: number): string => fmtClock(Math.ceil(ticks / TICKS_PER_SECOND));
 /** 只在 dev 构建里认 ?slowmo=N（截图预览用），正式构建恒为 1 */
 const SLOWMO = import.meta.env.DEV ? Math.max(1, Number(new URLSearchParams(location.search).get('slowmo') ?? 1) || 1) : 1;
 /** 慢动作时拍子推得多慢（只改画面推拍的快慢，规则照常一拍一拍走） */
@@ -90,38 +88,6 @@ MOB_FRAME[ENEMY_BY_KIND.coffin.code] = 'coffinopen';
 const MOB_FALLBACK: Record<string, string> = {
   fox: 'wisp', shishi: 'jiangshi_big', general: 'jiangshi_big', boss: 'jiangshi_big',
   horse: 'paper', water: 'wisp', bone: 'paper', bat: 'wisp', scarecrow: 'jiangshi', weasel: 'fox', snow: 'wisp', whitefox: 'fox', palanquin: 'shishi', ice: 'fireball', lord: 'boss', money: 'coin',
-};
-/** 怪的主色（按编号）：没画好的怪借图时上这个色，死亡碎片也用它 */
-const MOB_TINT = [
-  MOB_COLOR.paper, MOB_COLOR.wisp, MOB_COLOR.jiangshi, MOB_COLOR.lantern, MOB_COLOR.fox, 0x9aa0ad, 0x2f5a46, 0xb8902e,
-  0xf4f1ea, 0x3f9a8a, 0xe8e2d0, 0x5a3a78, 0xc9a04a, 0xb9853a, 0x8fd0f0, 0xf6f8ff, 0xd0362e, 0xf0e0b0,
-  // 夜探的守卫：巡夜将（黑甲）、镇门石兽（青石）
-  0x343a4a, 0x7f8da0,
-  // 宝妖（金黄）
-  0xf2b930,
-  // 各地区的特色怪（编号 21 起）：竹精、蛇精、竹王、溺鬼、河蟹、河伯、冰傀、冰凌、冰魄、更夫鬼、石僧
-  0x7fc45a, 0x5faa3e, 0x4a8f3a, 0x8c8676, 0xa48c6c, 0x7c9488, 0xbfe6fa, 0xeaf8ff, 0xdff3ff, 0x46598c, 0xb4b8bf,
-  // 提灯鬼（淡青白，半透明的身子）、庙祝鬼（灰白长袍）
-  0xcfe4e0, 0xc9c2b4,
-  // 鬼市：皮影鬼（驴皮赭红）、鬼贩（灰蓝短褂）、鬼市主（铜钱褂子的暗金）
-  0xc0563a, 0x5a6a8a, 0xb8902e,
-  // 画皮（青绿）、人皮（淡粉）
-  0x79b9a2, 0xf6cfc4,
-  // 2.0：竹母、水猴王、冰魄娘娘、无面佛；雪童子、棺钉鬼、鼠妖、戏班鬼影；红衣戏子、假身、硕鼠将军；米山、空棺
-  0x7fc45a, 0x7c9488, 0xbfe6fa, 0xd9b84a, 0xf4f1ea, 0x6a7a74, 0x8a7a68, 0xa890d0, 0xe0384a, 0xe0384a, 0x8a7a68, 0xf0e4bc, 0x4a3a2a,
-  // 规则 55：纸弩手、催命鬼（糊纸的米白）；乱葬岗的掘墓鬼（沾土寿衣的灰褐）、窑镇的陶俑（赭红泥胎）
-  0xefe4c8, 0xefe4c8, 0x5e5848, 0xb8643a,
-];
-/** 精英出场的横幅：名字 + 一句怎么打 */
-const ELITE_BANNER: Partial<Record<string, [string, string]>> = {
-  shishi: ['石狮怪', '刀剑砍不动，用符和铃'],
-  general: ['跳尸将军', '会召小跳尸，打倒掉宝箱'],
-  whitefox: ['白狐', '连冲三下，看准了躲'],
-  palanquin: ['纸轿', '打碎会放出一群纸人'],
-  bambooking: ['竹王', '隔一阵在你四周种出竹精，看地上的绿圈'],
-  hebo: ['河伯', '涨潮放出一圈水弹，还会放溺鬼'],
-  frostsoul: ['冰魄', '蓄力后震出寒霜圈，躲出圈外'],
-  marketboss: ['鬼市主', '朝你撒一扇铜钱，往两边躲'],
 };
 const WATER_CODE = ENEMY_BY_KIND.water.code;
 const SPROUT_CODE = ENEMY_BY_KIND.bamsprout.code;
@@ -137,26 +103,6 @@ const DIVER_CODES = new Set((['shuihou', 'shuoshu'] as const).map((k) => ENEMY_B
 const HUAPISKIN_CODE = ENEMY_BY_KIND.huapiskin.code;
 /** 混迹中的画皮借这张常规怪的图（放大 HUAPI.disguiseScale 画）：放在怪群里认不出来 */
 const HUAPI_DISGUISE = 'paper';
-/** 顶部 Boss 血条的名字（按怪种类；没登记的当尸王） */
-const BOSS_NAME: Partial<Record<string, string>> = { boss: '尸王', lord: '纸扎老爷', huapi: '画皮', zhumu: '千年竹母', shuihou: '水猴王', binghun: '冰魄娘娘', wumian: '无面佛', hongyi: '红衣戏子', shuoshu: '硕鼠将军', beast: '镇门石兽' };
-/** 出场横幅：首领名 + 一句怎么打（画皮混迹时不报，现形才盖章） */
-const BOSS_ARRIVE: Partial<Record<string, [string, string]>> = {
-  boss: ['尸王来了', '天亮前打倒它，天就提前亮'],
-  lord: ['纸扎老爷来了', '撒纸钱、召纸轿，打倒掉宝箱'],
-  zhumu: ['千年竹母来了', '笋刺先冒红圈，血少了竹浪扫来，躲进空隙'],
-  shuihou: ['水猴王来了', '它潜水会从脚边冒出来，看红圈'],
-  binghun: ['冰魄娘娘来了', '冰风吹过路更滑，躲开冰刺圈'],
-  wumian: ['无面佛来了', '躲金光圈，它撞上柱子眩晕时输出'],
-};
-/** Boss 进下一段的横幅（按种类、段号） */
-const PHASE_BANNER: Partial<Record<string, [string, string][]>> = {
-  boss: [['', ''], ['尸王发怒', '会吐尸气了'], ['尸王发狂', '跳砸更大，尸气两圈']],
-  lord: [['', ''], ['老爷翻脸', '纸钱两圈，会召纸轿']],
-  zhumu: [['', ''], ['竹母发怒', '竹浪四面扫来，躲进空隙']],
-  shuihou: [['', ''], ['水猴王发怒', '会把你往河里拖，走出河岸就断']],
-  binghun: [['', ''], ['冰魄发怒', '冰面要裂开了，找浮冰站稳']],
-  wumian: [['', ''], ['无面佛发怒', '冲撞更勤，金光圈两尊同放']],
-};
 
 /** 子弹种类 → 图集帧（光波画在 Graphics 上，这里给个占位） */
 
@@ -1109,7 +1055,7 @@ export class GameScene extends Phaser.Scene {
 
   private onKill(x: number, y: number, code: number, elite: boolean, slot: number): void {
     this.ghosts.spawn(this.frame(MOB_FRAME[code]!), x, y, this.w.eSize[slot] ?? 1, this.renderX);
-    const tint = MOB_TINT[code] ?? 0xffffff;
+    const tint = ENEMIES[code]?.tint ?? 0xffffff;
     const big = elite || code === 7;
     const n = LOW_MEMORY ? 4 : big ? 18 : 8;
     for (let k = 0; k < n; k++) {
@@ -1580,7 +1526,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onNightMarket(x: number, y: number, a: number, stall: number, good: number): void {
-    const S = 30;
+    const S = TICKS_PER_SECOND;
     if (a === 0) {
       sfx.play('bell');
       this.d.banners.say('夜市要开了', 'gold', 3000, `${NIGHT_MARKET.warn / S} 秒后开，顺着屏幕边的箭头去，带够铜钱`);
@@ -1614,7 +1560,7 @@ export class GameScene extends Phaser.Scene {
 
   /** 石兽：0 扑击预警（落点）1 扑下 2 甩尾预警 3 甩尾 4 进二段 */
   private onBeast(x: number, y: number, a: number, r: number): void {
-    const tick = 1000 / 30;
+    const tick = 1000 / TICKS_PER_SECOND;
     if (a === 0) this.telegraphs.push({ x, y, r, life: 0, max: BEAST.pounce.warn * tick, round: true, color: 0xd23a2a });
     else if (a === 2) this.telegraphs.push({ x, y, r, life: 0, max: BEAST.sweep.warn * tick, round: true, color: 0xe27a1a });
     else if (a === 1) {
@@ -1653,21 +1599,20 @@ export class GameScene extends Phaser.Scene {
     if (def.kind === 'huapi') return;
     if (def.boss) {
       sfx.play(isFoeBoss(code) ? (`${def.kind}Arrive` as SfxName) : 'boss');
-      const [name, tip] = BOSS_ARRIVE[def.kind] ?? BOSS_ARRIVE.boss!;
-      this.d.banners.say(name, 'warn', 2600, tip);
+      this.d.banners.say(`${def.name}来了`, 'warn', 2600, BOSS_TIP[def.kind] ?? BOSS_TIP.boss!);
       this.shake(400, 0.006);
       music.start('boss');
       this.bossOn = true;
     } else {
       sfx.play('elite');
-      const [name, tip] = ELITE_BANNER[def.kind] ?? ['精英', '打倒掉宝箱'];
-      this.d.banners.say(name, 'warn', 1600, tip);
+      const tip = ELITE_TIP[def.kind];
+      this.d.banners.say(tip ? def.name : '精英', 'warn', 1600, tip ?? '打倒掉宝箱');
     }
   }
 
   /** 特色怪的技能（Ev.Mob 的子类见 events.ts）：预警画地上的圈，落下时一圈冲击加碎屑 */
   private onMob(x: number, y: number, a: number, r: number, ticks: number): void {
-    const tick = 1000 / 30;
+    const tick = 1000 / TICKS_PER_SECOND;
     const warn = (color: number): void => {
       this.telegraphs.push({ x, y, r, life: 0, max: ticks * tick, round: true, color });
     };
@@ -2239,7 +2184,7 @@ export class GameScene extends Phaser.Scene {
     else if (this.raid) {
       // 夜探：只有镇门石兽有血条，主角走近了（它在追或要扑）才亮
       const near = b >= 0 && !!w.eAlive[b] && w.phase !== 'over' && ['beast', 'hongyi', 'shuoshu'].includes(ENEMIES[w.eKind[b]!]!.kind) && (w.eX[b]! - w.x) ** 2 + (w.eY[b]! - w.y) ** 2 < 640 * 640;
-      if (near) this.d.banners.setBoss(BOSS_NAME[ENEMIES[w.eKind[b]!]!.kind] ?? '镇门石兽', w.eHp[b]! / w.eHpMax[b]!);
+      if (near) this.d.banners.setBoss(ENEMIES[w.eKind[b]!]!.name, w.eHp[b]! / w.eHpMax[b]!);
       if (near !== this.bossShown) {
         this.bossShown = near;
         if (!near) this.d.banners.setBoss(null);
@@ -2248,7 +2193,7 @@ export class GameScene extends Phaser.Scene {
       const bk = ENEMIES[w.eKind[b]!]!.kind;
       // 画皮混迹时不出血条（玩家不知道它是首领），现形以后才出
       if (bk === 'huapi' && w.eS[b] === 0) this.d.banners.setBoss(null);
-      else this.d.banners.setBoss(BOSS_NAME[bk] ?? '尸王', w.eHp[b]! / w.eHpMax[b]!);
+      else this.d.banners.setBoss(ENEMY_BY_KIND[bk].name, w.eHp[b]! / w.eHpMax[b]!);
     } else if (this.bossOn) {
       this.d.banners.setBoss(null);
       this.bossOn = false;
@@ -2284,7 +2229,7 @@ export class GameScene extends Phaser.Scene {
     const img = old?.img ?? this.add.image(0, 0, f.tex ?? 'atlas', f.key);
     img.setTexture(f.tex ?? 'atlas', f.key).setOrigin(f.ox, f.oy).setVisible(true).clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
     // 没画好专属造型的怪先用相近的图换个颜色
-    if (!this.frames.has(key)) img.setTint(MOB_TINT[code]!);
+    if (!this.frames.has(key)) img.setTint(ENEMIES[code]!.tint);
     const shadow = old?.shadow ?? this.img('shadow');
     shadow.setVisible(true).setAlpha(0.8);
     let glow = old?.glow ?? null;

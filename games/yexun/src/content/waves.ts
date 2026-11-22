@@ -2,6 +2,7 @@
  * 守夜的刷怪节奏（DESIGN.md 2.2）和难度。每分钟一档：场上至少保持多少只、每秒补多少只、各种怪的比例；
  * 加上几个定点事件（开场正面一波、围圈、精英、群冲、纸人海、尸王）。
  */
+import { TICKS_PER_SECOND } from './clock.ts';
 import type { EnemyKind } from './enemies.ts';
 
 export interface Minute {
@@ -41,6 +42,10 @@ export type WaveEvent =
 /** 中期首领（8:00）：纸扎老爷是雪原、义庄的，其余每张特色图一个自己的（DESIGN.md 3.5） */
 export type MidBoss = 'lord' | 'huapi' | 'zhumu' | 'shuihou' | 'binghun' | 'wumian';
 /** 中期首领按地图换：登记了的图出自己的，其余仍是纸扎老爷（守夜 8:00 和首领连战第五关都按这张表） */
+/** 守夜的地区首领（各地图换人）和尸王什么时候来（拍）；图鉴的「约 X 分钟现身」也读这两个 */
+export const MID_BOSS_AT = 480 * TICKS_PER_SECOND;
+export const BOSS_AT = 840 * TICKS_PER_SECOND;
+
 export const MID_BOSS: Partial<Record<'bamboo' | 'riverbank' | 'icelake' | 'temple' | 'guishi', MidBoss>> = {
   bamboo: 'zhumu',
   riverbank: 'shuihou',
@@ -52,7 +57,7 @@ export function midBossOf(map: string | undefined): MidBoss {
   return (map ? (MID_BOSS as Record<string, MidBoss | undefined>)[map] : undefined) ?? 'lord';
 }
 
-const S = 30;
+const S = TICKS_PER_SECOND;
 /**
  * 定点事件，at 是拍数。精英在 1:45（只掉单件箱）、3:00、5:00、7:30、10:00、12:00、13:00；"小爆点"在 2:30（纸人围圈）、7:30（小鬼火群冲）、12:30（纸人海），
  * 纸马群冲在 4:00、9:00 垫一下（DESIGN.md 2.2、13.3）。
@@ -60,7 +65,7 @@ const S = 30;
 export const EVENTS: readonly WaveEvent[] = [
   // 开场 2 秒：正面近处来一小群纸人，保证 10 秒内第一次升级（验收 ①）
   { at: 2 * S, kind: 'front', enemy: 'paper', count: 12 },
-  // 1:45 一只只掉单件箱（small）的纸轿：开局别一下子给太多；用走得慢的纸轿（白狐太快，危险 4 的新手 420 局里有 49 局在第 4 分钟前被它追死），血和伤害打 BALANCE_57.small 折
+  // 1:45 一只只掉单件箱（small）的纸轿：开局别一下子给太多；用走得慢的纸轿（白狐太快，危险 4 的新手 420 局里有 49 局在第 4 分钟前被它追死），血和伤害打 VIGIL_BALANCE.small 折
   { at: 105 * S, kind: 'elite', enemy: 'palanquin', count: 1, small: true },
   { at: 150 * S, kind: 'ring', enemy: 'paper', count: 56, radius: 400 },
   { at: 180 * S, kind: 'elite', enemy: 'shishi', count: 1 },
@@ -68,7 +73,7 @@ export const EVENTS: readonly WaveEvent[] = [
   { at: 300 * S, kind: 'elite', enemy: 'whitefox', count: 1 },
   { at: 450 * S, kind: 'elite', enemy: 'palanquin', count: 1 },
   { at: 452 * S, kind: 'line', enemy: 'wisp', count: 34 },
-  { at: 480 * S, kind: 'boss', enemy: 'lord' },
+  { at: MID_BOSS_AT, kind: 'boss', enemy: 'lord' },
   { at: 540 * S, kind: 'line', enemy: 'horse', count: 20 },
   { at: 600 * S, kind: 'elite', enemy: 'general', count: 2 },
   { at: 720 * S, kind: 'elite', enemy: 'shishi', count: 1 },
@@ -76,14 +81,14 @@ export const EVENTS: readonly WaveEvent[] = [
   { at: 750 * S, kind: 'ring', enemy: 'paper', count: 90, radius: 430 },
   // 13:00 补首领前的空档
   { at: 780 * S, kind: 'elite', enemy: 'whitefox', count: 1 },
-  { at: 840 * S, kind: 'boss', enemy: 'boss' },
+  { at: BOSS_AT, kind: 'boss', enemy: 'boss' },
 ];
 
 /**
  * 守夜配平（夜探不受影响）：精英多了、宝箱更大且一箱结完，按娱乐 sim 前后对照压回来——
  * 精英血量 ×eliteHp（试过 1.3–1.6 会伤新手，留 1），怪每分钟变硬 hpPerMin（替 SCALE.hpPerMin）；1:45 那只开局精英血 ×small.hp、伤害 ×small.dmg、不吃 eliteHp。不砍 3 件、5 件的概率（所有者要宝箱有好东西）
  */
-export const BALANCE_57 = { eliteHp: 1, hpPerMin: 0.35, small: { hp: 0.5, dmg: 0.6 } };
+export const VIGIL_BALANCE = { eliteHp: 1, hpPerMin: 0.35, small: { hp: 0.5, dmg: 0.6 } };
 
 /**
  * 收获期（DESIGN.md 2.2）：精英倒下、爆点刷出来以后的一段时间里，场上保持的数量和补怪速度打 keepMul 折，铜钱、肉包掉率乘 dropMul。

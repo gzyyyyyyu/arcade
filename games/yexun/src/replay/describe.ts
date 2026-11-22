@@ -1,8 +1,8 @@
 /** 录像在列表里怎么写（纯函数，不碰 DOM） */
+import { fmtClock } from '../content/clock.ts';
 import { RULES_VERSION } from '../core/state.ts';
 import type { ReplayRecord } from './format.ts';
 
-const mmss = (s: number): string => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 export function replayTitle(r: ReplayRecord): string {
   const s = r.setup;
@@ -16,9 +16,9 @@ export function replayResult(r: ReplayRecord): string {
   const x = r.summary;
   if (r.setup.mode === 'raid') return x.loot > 0 ? `带出 ${x.loot.toLocaleString('zh-CN')} 铜钱` : x.quit ? '认输' : '没撤出';
   // 连战：录像的小结里没有打倒几只（要重放才知道），写全清没有和用时
-  if (r.setup.rush) return `${x.won ? '全清' : x.quit ? '认输' : '没打完'} · ${mmss(x.seconds)} · 斩${x.kills.toLocaleString('zh-CN')}`;
+  if (r.setup.rush) return `${x.won ? '全清' : x.quit ? '认输' : '没打完'} · ${fmtClock(x.seconds)} · 斩${x.kills.toLocaleString('zh-CN')}`;
   if (x.won) return `天亮 · 斩${x.kills.toLocaleString('zh-CN')}`;
-  return `${x.quit ? '认输' : '倒下'} · ${mmss(x.seconds)} · 斩${x.kills.toLocaleString('zh-CN')}`;
+  return `${x.quit ? '认输' : '倒下'} · ${fmtClock(x.seconds)} · 斩${x.kills.toLocaleString('zh-CN')}`;
 }
 
 export function isOutdated(r: ReplayRecord): boolean {

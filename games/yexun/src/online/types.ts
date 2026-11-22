@@ -13,17 +13,6 @@ export type { CurseId };
  *  新咒印不进来，免得已有日期的每日挑战变样（快照测试锁着） */
 export const DAILY_CURSE_IDS: readonly CurseId[] = ['fast', 'noheal', 'noreroll', 'more', 'elites', 'dark'];
 
-export const CURSE_NAMES: Record<CurseId, string> = {
-  fast: '怪更快',
-  noheal: '少回血',
-  noreroll: '禁用刷新',
-  more: '怪更多',
-  elites: '精英更多',
-  dark: '夜更黑',
-  rage: '精英发狂',
-  moon: '血月',
-};
-
 /** 模式：守夜 vigil、夜探 raid（无尽是守夜的一种玩法，用 endless 标记） */
 export type RunMode = 'vigil' | 'raid';
 

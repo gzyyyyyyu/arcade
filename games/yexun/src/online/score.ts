@@ -10,6 +10,7 @@
  * | 本周夜事 | 同守夜总榜（vigilScore）；单独开局的挑战，只进周榜 week-<ISO 周>-vigil |
  * | 每日连战 | 全清 × 1e9 + 打倒几只 × 1e7 + 一共几只 × 1e5 + 尾数（全清：剩下的秒数；没全清：最后一关打掉的百分比），online/rush.ts |
  */
+import { fmtClock } from '../content/clock.ts';
 import { dailyBoardId, dailyDateOpen } from './daily.ts';
 import { decodeRush, isRushSetup, rushBoardId, rushScore } from './rush.ts';
 import { weeklyBoardId, weeklyDateOpen } from './weekly.ts';
@@ -59,28 +60,27 @@ export function dailyVigilScore(o: { won: boolean; seconds: number; kills: numbe
 /** 分数在榜上怎么显示（每日榜平台自己按 daily.json 写，这里管总榜） */
 export function formatScore(board: BoardKind, score: number): string {
   const n = (x: number): string => x.toLocaleString('zh-CN');
-  const mmss = (s: number): string => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   switch (board) {
     case 'vigil':
     case 'weekly-vigil': {
       const d = decodeVigil(score);
-      return `${d.danger >= 6 ? `噩梦${d.danger - 5}` : `危险${d.danger}`} · ${mmss(d.seconds)} · 斩${n(d.kills)}`;
+      return `${d.danger >= 6 ? `噩梦${d.danger - 5}` : `危险${d.danger}`} · ${fmtClock(d.seconds)} · 斩${n(d.kills)}`;
     }
     case 'endless': {
       const d = decodeEndless(score);
-      return `${mmss(d.seconds)} · 斩${n(d.kills)}`;
+      return `${fmtClock(d.seconds)} · 斩${n(d.kills)}`;
     }
     case 'raid':
       return `${n(score)} 铜钱`;
     case 'daily-vigil':
-      return score >= DAILY_WIN_BASE ? `天亮 · 斩${n(score - DAILY_WIN_BASE)}` : `撑了 ${mmss(score)}`;
+      return score >= DAILY_WIN_BASE ? `天亮 · 斩${n(score - DAILY_WIN_BASE)}` : `撑了 ${fmtClock(score)}`;
     case 'daily-raid':
       return `${n(score)} 铜钱`;
     case 'trial':
       return score >= 1e9 ? '通关' : `${n(score)}`;
     case 'daily-rush': {
       const d = decodeRush(score);
-      return d.cleared ? `全清 ${d.down}/${d.total} · 剩 ${mmss(d.tail)}` : `连战 ${d.down}/${d.total} · 下一关 ${d.tail}%`;
+      return d.cleared ? `全清 ${d.down}/${d.total} · 剩 ${fmtClock(d.tail)}` : `连战 ${d.down}/${d.total} · 下一关 ${d.tail}%`;
     }
   }
 }

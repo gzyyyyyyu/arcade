@@ -47,6 +47,7 @@ tools/         截图冒烟、模拟、回归、耗时、手感等    tests/  �
 | `npm run sim:starts` | 起手回归（约 20 分钟，不进 test）；改起手、法器池、流派单后跑 |
 | `node tools/sim-merge.ts <目录>` | 拼分片的 `sim --json` 结果 |
 | `npm run bench -- <种子> <难度>` / `-- --worst` | 核心每拍耗时 |
+| `node tools/parity.ts run --root <模块目录> --out <结果>`、`diff <旧> <新>` | 核心对拍：两份代码跑同一批种子（娱乐、实盘的守夜和夜探），比终局拍数、魂、铜钱、击杀、胜负、结回额和指纹；搬家、重构核心后交审前跑（用法见文件头） |
 | `npm run shot -- --out <目录>` | 截图并查点击区、控制台；`--flow` 走全界面，`--query` 带开发参数 |
 | `?fps`（页面参数） | 显示帧率、最长帧、怪数，不写存储 |
 | `node tools/feel.ts` | 手感测量 |

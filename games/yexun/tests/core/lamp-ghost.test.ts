@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ENEMY_BY_KIND } from '../../src/content/enemies.ts';
+import { ENEMY_BY_KIND, type EnemyKind } from '../../src/content/enemies.ts';
 import { lampShare, type Danger } from '../../src/content/waves.ts';
 import { WEAPONS } from '../../src/content/weapons.ts';
 import { createWorld, step, type World } from '../../src/core/index.ts';
-import { MONSTER_INFO } from '../../src/view/ui/codex.ts';
 import { counterLine, counters, multiplier } from '../../src/view/ui/counters.ts';
 
 const LAMP = ENEMY_BY_KIND.lampghost.code;
@@ -36,7 +35,7 @@ function census(mode: 'vigil' | 'raid', danger: Danger, minute: number, ticks: n
 describe('提灯鬼', () => {
   it('登记：编号接着往后，图鉴有名字，火 ×0.5', () => {
     expect(LAMP).toBe(ENEMY_BY_KIND.lampghost.code);
-    expect(MONSTER_INFO.lampghost.name).toBe('提灯鬼');
+    expect(ENEMY_BY_KIND.lampghost.name).toBe('提灯鬼');
     expect(ENEMY_BY_KIND.lampghost.vs?.火).toBe(0.5);
     expect(ENEMY_BY_KIND.lampghost.elite).toBeUndefined();
   });
@@ -75,7 +74,7 @@ describe('提灯鬼', () => {
 });
 
 describe('选卡的克制小字', () => {
-  const name = (k: string): string => MONSTER_INFO[k as keyof typeof MONSTER_INFO].name;
+  const name = (k: string): string => ENEMY_BY_KIND[k as EnemyKind].name;
   it('每件法器都有结果，且只有常规怪，克的倍数 > 1、怕的 < 1', () => {
     for (const d of Object.values(WEAPONS)) {
       const { strong, weak } = counters(d.type, d.el);

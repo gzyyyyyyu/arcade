@@ -1,6 +1,7 @@
+import { fmtClock } from '../../../content/clock.ts';
 import type { TreasureTier } from '../../../content/treasures.ts';
 import { nightItems, type NightLog } from '../eventIcons.ts';
-import { esc, mmss, layer, onAction } from './shared.ts';
+import { esc, layer, onAction } from './shared.ts';
 import type { BuildRow } from './pause.ts';
 
 /** 结算页上的一件宝物 */
@@ -171,8 +172,8 @@ export class Result {
           ? '打倒尸王，天提前亮了'
           : '撑过了一整夜'
         : r.seconds >= dawn
-          ? `天亮后又撑了 ${mmss(r.seconds - dawn)}`
-          : `离天亮还差 ${mmss(dawn - r.seconds)}`;
+          ? `天亮后又撑了 ${fmtClock(r.seconds - dawn)}`
+          : `离天亮还差 ${fmtClock(dawn - r.seconds)}`;
     const fmt = (n: number): string => Math.round(n).toLocaleString('zh-CN');
     const weapons = r.build.filter((b) => b.dmg >= 0).sort((a, b) => b.dmg - a.dmg);
     const top = Math.max(1, ...weapons.map((b) => b.dmg));
@@ -209,7 +210,7 @@ export class Result {
       `<div class="yx-rhead"><b class="yx-brush">${title}</b><div class="yx-rtags"><em>${esc(r.label)}</em>${r.record ? '<strong class="yx-record">新纪录</strong>' : ''}${this.onShare ? '<button type="button" class="yx-btn yx-rshare" data-a="share">分享</button>' : ''}</div></div>` +
       '<div class="yx-rmain">' +
       '<div class="yx-rleft">' +
-      `<div class="yx-rtime"><span>${rr ? '在镇里' : '撑了'}</span><b>${mmss(r.seconds)}</b><small>${sub}</small></div>` +
+      `<div class="yx-rtime"><span>${rr ? '在镇里' : '撑了'}</span><b>${fmtClock(r.seconds)}</b><small>${sub}</small></div>` +
       '<div class="yx-rstats">' +
       `<div><b>${r.kills.toLocaleString('zh-CN')}</b><span>斩</span></div>` +
       `<div><b>${r.level}</b><span>级</span></div>` +

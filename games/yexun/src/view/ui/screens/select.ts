@@ -1,3 +1,4 @@
+import { ENEMY_BY_KIND } from '../../../content/enemies.ts';
 import type { SchoolId } from '../../../content/guide.ts';
 import { MAP_IDS, MAP_UNLOCK, MAPS, type MapId } from '../../../content/maps.ts';
 import { drawMapThumb } from '../../art/terrain.ts';
@@ -9,9 +10,8 @@ import { LIVE_TIER_IDS, LIVE_TIERS, liveCharOk, liveMapOk, type LiveTier } from 
 import { RAID_LIVE, RAID_TEMPLATES, type RaidTemplateId } from '../../../content/explore.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, type Region } from '../../../content/regions.ts';
 import { RAID_PICKS, type RaidPick } from '../../../platform/save.ts';
-import { MONSTER_INFO } from '../codex.ts';
 import { LOCK_SVG, esc, layer, onAction, type MenuState, LIVE_PICK, isLiveTown, HOME_BTN, bestText, loadoutNote } from './shared.ts';
-import { zoomed } from '../../viewport.ts';
+import { isZoomed } from 'arcade-kit/viewport';
 import { sceneUrl, TitleArt } from './titleArt.ts';
 import type { Menu } from './menu.ts';
 import { type LiveFact, liveFacts, liveNote, plainNote, raidLiveFacts, raidLiveNote } from './liveNote.ts';
@@ -120,7 +120,7 @@ export class Select {
    * 1920×911 算出 1.30（和改版前写死的 1.3 一样），1280×720 是 1，2560×1440 到顶 1.6。尺寸取 visualViewport（iOS 看得见的区域，和 --app-h 同一来源），不用 100vh
    */
   private fitScale(): void {
-    if (zoomed(window.visualViewport?.scale)) return;
+    if (isZoomed(window.visualViewport?.scale)) return;
     const vv = window.visualViewport;
     const raw = Math.min((vv?.width ?? window.innerWidth) / DESIGN_W, (vv?.height ?? window.innerHeight) / DESIGN_H);
     const k = Math.max(1, Math.min(K_MAX, Math.floor(raw * 100 + 1e-6) / 100));
@@ -210,7 +210,7 @@ export class Select {
     const keep = this.root.scrollTop;
     const heads = (r: Region | undefined, names: boolean): string => {
       if (!r) return '<span class="yx-mobs"><em>只有常规怪</em></span>';
-      const list = r.mobs.map((x) => ({ k: x.kind, n: MONSTER_INFO[x.kind].name }));
+      const list = r.mobs.map((x) => ({ k: x.kind, n: ENEMY_BY_KIND[x.kind].name }));
       return `<span class="yx-mobs">${list.map((x) => `<img class="yx-mob" alt="${esc(x.n)}" title="${esc(x.n)}" src="${s.mobIcon(x.k, 48)}">`).join('')}${names ? `<em>${list.map((x) => x.n).join('、')}</em>` : ''}</span>`;
     };
     const top = HOME_BTN + '<div class="yx-more"><button type="button" class="yx-btn" data-a="back" aria-label="返回主页">‹ 返回</button></div>';
@@ -231,11 +231,13 @@ export class Select {
       const locked = !s.maps[id] || liveOff;
       const u = MAP_UNLOCK[id];
       const why = liveOff ? '实盘暂不开放' : u ? `${u.text}解锁` : '';
+      // 手机竖屏三列小卡放不下整句，换短的（整句在 title 里）
+      const short = liveOff ? '暂不开放' : u ? `撑过 ${u.seconds / 60} 分钟` : '';
       return (
         `<button type="button" class="yx-mcard yx-mapcard${id === this.map ? ' on' : ''}${locked ? ' locked' : ''}" data-a="map" data-m="${id}"${locked ? ` aria-disabled="true" title="${why}"` : ''}>` +
         `<canvas class="yx-thumb" data-thumb="${id}" aria-hidden="true"></canvas>` +
         `<span class="yx-cardtxt"><b>${MAPS[id].name}</b>${MAPS[id].hard ? '<i class="yx-hard">难</i>' : ''}` +
-        (locked && why ? `<em class="yx-unlock">${LOCK_SVG}${why}</em>` : `<small>${MAPS[id].blurb}</small>${heads(VIGIL_REGIONS[id], true)}`) +
+        (locked && why ? `<em class="yx-unlock">${LOCK_SVG}<span class="yx-ulong">${why}</span><span class="yx-ushort">${short}</span></em>` : `<small>${MAPS[id].blurb}</small>${heads(VIGIL_REGIONS[id], true)}`) +
         '</span></button>'
       );
     }).join('');

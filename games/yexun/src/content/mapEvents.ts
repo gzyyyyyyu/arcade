@@ -2,10 +2,11 @@
  * 地图事件（DESIGN.md 3.6，0.5.0）：每张守夜图一种自己的天象或怪潮，第 4、8、12 分钟各来一次，提前 3 秒预告，让各图打法不一样。
  * 夜探没有；实盘守夜照样有（实盘系数按带事件的全量模拟拟合，DESIGN 4.2）。核心在 `core/step.ts` 的 mapEvents。
  */
+import { TICKS_PER_SECOND } from './clock.ts';
 import type { EnemyKind } from './enemies.ts';
 import type { MapId } from './maps.ts';
 
-const S = 30;
+const S = TICKS_PER_SECOND;
 
 export type MapEventKind = 'wind' | 'sprouts' | 'icefall' | 'tide' | 'risen' | 'bell' | 'parade' | 'allfire';
 /** 事件编号（Ev.MapEvent 的 b，画面层按它查名字） */

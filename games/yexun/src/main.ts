@@ -53,8 +53,9 @@ import { Hud } from './view/ui/hud.ts';
 import { tonightRules } from './view/ui/codexNights.ts';
 import { Confirm, Menu, Pause, Result, Tips, type Toggle } from './view/ui/screens.ts';
 import { skillFirstTip, skillTipHtml } from './view/ui/skillInfo.ts';
-import { LOW_MEMORY, TOUCH, fitViewport, renderScale, worldZoom } from './view/viewport.ts';
+import { LOW_MEMORY, TOUCH, renderScale, worldZoom } from './view/viewport.ts';
 import { reportErrors } from 'arcade-kit/report';
+import { watchViewport } from 'arcade-kit/viewport';
 import { createFinisher, type Session } from './app/finish.ts';
 import { buildRows, setLines } from './app/buildRows.ts';
 import { mountFpsMeter } from './app/fpsMeter.ts';
@@ -153,11 +154,11 @@ async function boot(): Promise<void> {
   const toggles: Toggle[] = [
     { key: 'sfx', label: '音效', get: () => sfx.enabled, set: (on) => sfx.setEnabled(on) },
     { key: 'music', label: '音乐', get: () => music.enabled, set: (on) => music.setEnabled(on) },
-    { key: 'shake', label: TOUCH ? '震屏和震动' : '震屏', get: () => settings.shake, set: (on) => (settings.shake = on) },
+    { key: 'shake', label: TOUCH ? '震屏震动' : '震屏', get: () => settings.shake, set: (on) => (settings.shake = on) },
   ];
   // 连死以后开的"降低伤害"（13.2）：设置里随时能关，开着时成绩不进总榜
   toggles.push({ key: 'assist', label: '降低伤害', get: () => save.assist, set: (on) => { save.assist = on; writeSave(save); } });
-  toggles.push({ key: 'autoSkill', label: '自动放技能', get: () => autoSkillSetting.on, set: (on) => (autoSkillSetting.on = on) });
+  toggles.push({ key: 'autoSkill', label: '自动技能', get: () => autoSkillSetting.on, set: (on) => (autoSkillSetting.on = on) });
   if (TOUCH) toggles.push({ key: 'stick', label: '固定摇杆', get: () => settings.fixedStick, set: (on) => { settings.fixedStick = on; input.setFixed(on); } });
   input.setFixed(TOUCH && settings.fixedStick);
   const menu = new Menu(stage, toggles);
@@ -725,11 +726,15 @@ async function boot(): Promise<void> {
     if (qm) save.map = qm;
     menu.show(menuState());
   }
-  fitViewport(() => {
-    const s = css();
-    game?.scale.resize(s.w * r, s.h * r);
-    game?.scale.setZoom(1 / r);
-    scene?.cameras.main.setZoom(worldZoom(s.w, s.h, viewTall) * r);
+  // 写 --app-h（看得见的高度），转屏后稍等补算一次，双指放大中不动
+  watchViewport({
+    listenScroll: false,
+    onChange: () => {
+      const s = css();
+      game?.scale.resize(s.w * r, s.h * r);
+      game?.scale.setZoom(1 / r);
+      scene?.cameras.main.setZoom(worldZoom(s.w, s.h, viewTall) * r);
+    },
   });
 }
 

@@ -3,7 +3,7 @@
  * 只读核心的 Ev.Rush 事件和 World 的连战字段，不算规则。DOM 挂在 HUD 根节点下，样式限定在 .yx-hud .yx-rushfx（rush.css）。
  */
 import { ENEMIES, ENEMY_BY_KIND } from '../../content/enemies.ts';
-import { RUSH, RUSH_NAMES } from '../../content/rush.ts';
+import { RUSH } from '../../content/rush.ts';
 import type { World } from '../../core/index.ts';
 import { rushClock } from '../../online/rush.ts';
 import { music } from '../audio/music.ts';
@@ -25,7 +25,7 @@ export interface RushShowDeps {
   burst: (x: number, y: number, tint: number, size: number) => void;
 }
 
-const nameOf = (code: number): string => RUSH_NAMES[ENEMIES[code]!.kind] ?? '首领';
+const nameOf = (code: number): string => ENEMIES[code]!.name;
 
 export class RushShow {
   private readonly d: RushShowDeps;
@@ -71,7 +71,7 @@ export class RushShow {
     const plan = w.rush;
     if (!plan) return;
     if (a === 0) {
-      const names = plan.stages[b]!.map((k) => RUSH_NAMES[k] ?? k).join(' + ');
+      const names = plan.stages[b]!.map((k) => ENEMY_BY_KIND[k].name).join(' + ');
       const last = b === plan.stages.length - 1;
       this.d.banners.say(`${last ? '最后一关' : `第 ${b + 1} 关`} · ${names}`, 'warn', 2000, c > 1 ? `一次来 ${c} 只` : last ? '打倒它就全清' : `还剩 ${plan.stages.length - b} 关`);
       sfx.play(last || plan.stages[b]!.some((k) => ENEMY_BY_KIND[k].boss) ? 'boss' : 'elite');
@@ -120,7 +120,7 @@ export class RushShow {
     const on = max > 0 && w.phase !== 'over';
     if (on) {
       const st = Math.min(w.rushStage, plan.stages.length - 1);
-      this.d.banners.setBoss(`${plan.stages[st]!.map((k) => RUSH_NAMES[k] ?? k).join(' + ')} · 连斩 ${w.rushDown}/${plan.total}`, hp / max);
+      this.d.banners.setBoss(`${plan.stages[st]!.map((k) => ENEMY_BY_KIND[k].name).join(' + ')} · 连斩 ${w.rushDown}/${plan.total}`, hp / max);
     } else if (this.barOn) this.d.banners.setBoss(null);
     // 血条和小牌在同一个位置：打的时候看血条（上面写着连斩几只），喘息的时候看小牌
     if (on !== this.barOn) this.chip.style.display = on ? 'none' : '';

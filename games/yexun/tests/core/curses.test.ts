@@ -4,7 +4,7 @@ import { BLOOD_MOON, ELITE_RAGE } from '../../src/content/waves.ts';
 import { createWorld, Ev, step, type World } from '../../src/core/index.ts';
 import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
 import { dailyPlan } from '../../src/online/daily.ts';
-import { CURSE_NAMES, DAILY_CURSE_IDS } from '../../src/online/types.ts';
+import { DAILY_CURSE_IDS } from '../../src/online/types.ts';
 
 function quiet(w: World): World {
   w.weapons.length = 0;
@@ -44,7 +44,7 @@ describe('新咒印：狂、月', () => {
     for (const id of ['rage', 'moon'] as const) {
       expect(CURSE_IDS).toContain(id);
       expect(CURSES[id].text.length).toBeGreaterThan(0);
-      expect(CURSE_NAMES[id].length).toBeGreaterThan(0);
+      expect(CURSES[id].label.length).toBeGreaterThan(0);
     }
   });
 

@@ -3,7 +3,9 @@
  * 走过去站一会儿、身上铜钱够就买下；怪照常刷，不暂停。摊子的距离、站多久和夜探鬼市（content/explore.ts 的 RAID_LATE.market）一样。
  * 价格先按局内铜钱收入的初值摆，目标是一次平均买得起 1–2 件：机器人试跑每次夜市平均买 1.65 件（0.4.6），实盘放开后照用。
  */
-const S = 30;
+import { TICKS_PER_SECOND } from './clock.ts';
+
+const S = TICKS_PER_SECOND;
 
 export type MarketGood = 'heal' | 'reroll' | 'ban' | 'might' | 'speed' | 'vacuum' | 'upgrade' | 'omen';
 /** 下标进录像和指纹（w.mkGood）：新货只往后加 */
@@ -39,4 +41,4 @@ export const NIGHT_MARKET = {
 export const MARKET_PRICE: Record<MarketGood, number> = { heal: 60, reroll: 50, ban: 50, might: 70, speed: 70, vacuum: 70, upgrade: 120, omen: 80 };
 
 /** 摊上的货名（画面层用） */
-export const MARKET_NAME: Record<MarketGood, string> = { heal: '回血', reroll: '刷新 +1', ban: '封禁 +1', might: '伤害 +15%', speed: '移速 +15%', vacuum: '全屏吸珠', upgrade: '法器 +1 级', omen: '求签' };
+export const MARKET_NAME: Record<MarketGood, string> = { heal: '回血', reroll: '刷新 +1', ban: '封禁 +1', might: `伤害 +${Math.round(NIGHT_MARKET.might * 100)}%`, speed: `移速 +${Math.round(NIGHT_MARKET.speed * 100)}%`, vacuum: '全屏吸珠', upgrade: '法器 +1 级', omen: '求签' };
