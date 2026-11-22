@@ -77,13 +77,14 @@ export function renderHome(box: HTMLElement, p: HomeProps): void {
   if (!p.standalone) card('real', 'lux', '实盘', '用钱包筹码', p.realOff);
   card('room', 'room', '好友房', '叫朋友一起', null);
 
-  const rec = el('div', 'record', main);
-  if (p.record) {
+  // 没战绩又有存档时整行不画（空的一行会留一个暗色小条）
+  const rec = p.record || !p.resume ? el('div', 'record', main) : null;
+  if (rec && p.record) {
     const r = p.record;
     el('span', '', rec, `打了 ${r.played} 场`);
     el('span', '', rec, `赢 ${r.won} 场`);
     if (r.lost >= 2) el('span', 'down', rec, `连输 ${r.lost}`);
-  } else el('span', '', rec, '还没打过：先来一场新手练练手');
+  } else if (rec) el('span', '', rec, '还没打过：先来一场新手练练手');
   progressCard(art, p);
   button('link', main, page.rulesLink, p.onRules);
   el('div', 'ver', box, `v${__MAHJONG_VERSION__}`);

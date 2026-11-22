@@ -60,7 +60,7 @@ export function renderAch(page: HTMLElement, variant: DexVariant): void {
   const list = achFor(variant);
   const got = list.filter((a) => rec.got[a.id]).length;
   const root = el('div', 'ach-page', page);
-  el('p', 'ach-progress', root, `已解锁 ${got} / ${list.length}`);
+  el('p', 'ach-progress', root, `这个玩法已解锁 ${got} / ${list.length}`);
   el('p', 'note', root, '只按你自己座位的公开动作判定，解锁了就一直在。');
   const ul = el('ul', 'ach-list', root);
   for (const a of list) {

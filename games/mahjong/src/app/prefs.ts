@@ -32,13 +32,13 @@ interface Prefs extends RulesStore {
 /** 各玩法从存着的偏好里读自己的规则设置（缺的、坏的补默认） */
 const rulesFrom = (raw: Partial<RulesStore>): RulesStore => Object.assign({}, ...allPages().map((pg) => pg.loadRules(raw))) as RulesStore;
 
-/** 顶栏"声"面板管的偏好的出厂值（loadPrefs 的缺省也是它们） */
-export const SOUND_DEFAULTS = { sound: true, volume: 0.8, ambience: true, safeHint: true, coach: true } as const;
+/** 顶栏齿轮（设置面板）管的偏好的出厂值（loadPrefs 的缺省也是它们） */
+export const SETTINGS_DEFAULTS = { sound: true, volume: 0.8, fast: false, ambience: true, safeHint: true, coach: true } as const;
 
 function loadPrefs(): Prefs {
   try {
     const p = readJson<Partial<Prefs> | null>(PREFS_KEY, null) ?? {};
-    const vol = typeof p.volume === 'number' && p.volume >= 0 && p.volume <= 1 ? p.volume : SOUND_DEFAULTS.volume;
+    const vol = typeof p.volume === 'number' && p.volume >= 0 && p.volume <= 1 ? p.volume : SETTINGS_DEFAULTS.volume;
     const level = LEVELS.includes(p.level as Level) ? (p.level as Level) : 'easy';
     return {
       sound: p.sound !== false,
@@ -54,7 +54,7 @@ function loadPrefs(): Prefs {
     };
   } catch {
     // 存储读写已由 storage.ts 兜住；这里接的是各玩法 loadRules 遇到存档里的怪值抛错，整份回出厂值
-    return { ...SOUND_DEFAULTS, fast: false, stakes: 'fun', level: 'easy', ...rulesFrom({}), variant: DEFAULT_VARIANT };
+    return { ...SETTINGS_DEFAULTS, stakes: 'fun', level: 'easy', ...rulesFrom({}), variant: DEFAULT_VARIANT };
   }
 }
 
@@ -65,9 +65,9 @@ export function savePrefs(): void {
   writeJson(PREFS_KEY, prefs);
 }
 
-/** "声"面板的恢复默认：音量、静音、茶馆声、安全牌提示、推荐出牌回出厂值并存回（互动、聊天另存，由面板自己复位）。返回 p 方便测试 */
-export function resetSoundPrefs(p: Prefs = prefs): Prefs {
-  Object.assign(p, SOUND_DEFAULTS);
+/** 设置面板的恢复默认：音量、静音、茶馆声、出牌速度、安全牌提示、推荐出牌回出厂值并存回（互动、聊天另存，由面板自己复位）。返回 p 方便测试 */
+export function resetSettings(p: Prefs = prefs): Prefs {
+  Object.assign(p, SETTINGS_DEFAULTS);
   if (p === prefs) savePrefs();
   return p;
 }

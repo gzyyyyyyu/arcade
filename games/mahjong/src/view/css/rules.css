@@ -8,6 +8,10 @@
   border: 1px solid #b08a54;
   box-shadow: inset 0 0 0 4px #f8eed6, inset 0 0 0 5px #c8a46c88, var(--sh-3);
 }
+/* 新手说明每页一样宽（跟着内容撑时三页宽度不同，「下一页」左右跳，0.47.1 走查） */
+.mask.guide .dialog {
+  width: min(720px, 94%);
+}
 .mask:is(.rules, .guide) .dialog h2 {
   color: #9a2a1a;
   font-family: 'Quehall Title', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
@@ -41,13 +45,13 @@
 /* 横屏弹窗宽、不高：规则小册子的表（番型、图鉴）两列并排，一页多摆一倍 */
 [data-orient='land'] .rules .paged table:not(.keys) {
   display: grid;
-  /* 两列各是"名字 番数 说明"，用 subgrid 让同一列里上下行的名字、番数对齐 */
-  grid-template-columns: auto auto 1fr auto auto 1fr;
+  grid-template-columns: 1fr 1fr;
 }
+/* 每行自己定列宽，不用 subgrid：subgrid 的名字、番数列取全表最宽那个，翻页切的时候所有行都摆着、说明栏被挤窄，
+   量出来一行有一页高；翻到那页只剩一行时列又变窄，结果 844 横屏图鉴每页只摆一行、31 页（0.47.1 走查）。名字、番数给最小宽度，上下行大致对齐 */
 [data-orient='land'] .rules .paged table:not(.keys) tr {
   display: grid;
-  grid-column: span 3;
-  grid-template-columns: subgrid;
+  grid-template-columns: minmax(4.5em, max-content) minmax(3em, max-content) minmax(0, 1fr);
   align-items: start;
   border-bottom: 1px dashed #8a643a55;
 }
@@ -134,6 +138,12 @@
   margin: 0 var(--sp-6) var(--sp-3) 0;
   border-bottom: 1px solid #8a643a55;
   row-gap: var(--sp-1);
+}
+/* 横屏弹窗矮：页签只排一行（844×390 折两行时吃掉内容区快三成，图鉴一页只摆得下一排） */
+[data-orient='land'] .rules .tabs {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
 }
 .rules .tab {
   position: relative;

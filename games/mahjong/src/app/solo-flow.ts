@@ -58,7 +58,7 @@ function rememberChoice(stakes: StakesId, opts: AnyOpts, level: Level, variant: 
 async function settleBeforeNew(): Promise<boolean> {
   const old = loadSolo();
   if (!unsettled(old)) return true;
-  if (!(await confirmBox(stage, '上一场实盘还没结算完。先把上一场的筹码结回钱包，再开新的一场？', '先结算', '不了'))) return false;
+  if (!(await confirmBox(stage, '上一场实盘还没结算完。先把上一场的筹码结回钱包，再开新的一场？', '先结算', '不了', false))) return false;
   const r = await new Solo(old!, quietUi).finish();
   if (!old!.done) {
     showError(`上一场还没结上：${walletError(r && !r.ok ? r.error : 'network').text}`);

@@ -63,7 +63,7 @@ export function renderDex(page: HTMLElement, variant: DexVariant, groups: { titl
   const seen = dexMarkSeen(rec, variant);
   if (seen !== rec) saveDex(seen);
   const { got, total } = dexProgress(rec, variant);
-  el('p', 'dex-progress', page, `已收集 ${got} / ${total}`);
+  el('p', 'dex-progress', page, `这个玩法已收集 ${got} / ${total}`);
   el('p', 'note', page, '只记你自己和出来的牌型，每和一次加一次。');
   for (const g of groups) {
     if (g.title) el('h2', '', page, g.title);

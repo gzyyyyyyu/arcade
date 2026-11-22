@@ -52,7 +52,7 @@ export async function checkFunds(share: number): Promise<boolean> {
 
 /** 带入没成：明确被拒的照说原因；没回话的告诉他下次会自动再确认，不会多扣 */
 export function buyinFailed(r: Extract<WalletReply, { ok: false }>): void {
-  if (maybeApplied(r.error)) return showError('钱包这次没回话，不知道筹码扣了没有。下次点"接着打上一场"会自动再确认一次，不会多扣。');
+  if (maybeApplied(r.error)) return showError('钱包这次没回话，不知道筹码扣了没有。下次点"接着打"会自动再确认一次，不会多扣。');
   const e = walletError(r.error, r.retryAfter);
   showError(e.text, e.fix);
 }

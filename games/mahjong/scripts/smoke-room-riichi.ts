@@ -154,7 +154,7 @@ async function joinAndStart(a: Page, b: Page, base: string, code: string): Promi
 
 async function leaveRoom(page: Page): Promise<void> {
   await page.click('.pill.leave');
-  await page.click('.mask.confirm .act.go');
+  await page.click('.mask.confirm .act.danger');
   await page.waitForSelector('.lobby-head', { timeout: 5_000 });
 }
 

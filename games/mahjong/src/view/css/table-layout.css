@@ -78,7 +78,11 @@
 }
 /* "互动"：电脑版只留一个图标圆钮（屏幕上约 50 像素），放在自己头像右边，不和右边的碰杠胡过抢位置；
  * 按钮在舞台外面（kit 画），认 html 上的 data-fit（viewport.ts） */
-[data-fit='desk'] .fun-slot { width: calc(max(44px, var(--tap, 44px)) * 1.15); height: calc(max(44px, var(--tap, 44px)) * 1.15); left: 218px; bottom: 104px; }
+/* 底下两家的名牌比手机版高 30：手牌右端是摸到的那张，选中抬起后连「荐」角标顶到 98 那条线，被下家名牌裁掉半截（0.47.1 Gemini 审查 pc1280）；
+ * 我的名牌横跨手牌左端，同理一起抬，互动圆钮跟着 */
+[data-fit='desk'] .badge.r0,
+[data-fit='desk'] .badge.r1 { bottom: 128px; }
+[data-fit='desk'] .fun-slot { width: calc(max(44px, var(--tap, 44px)) * 1.15); height: calc(max(44px, var(--tap, 44px)) * 1.15); left: 218px; bottom: 134px; }
 html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 
 /* ---------- 竖屏布局（舞台 560 × 920–1240，牌桌高 1080 − --cut；--cut 在高过 1120 时是负数） ----------
@@ -101,7 +105,7 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 [data-orient='port'] .badge.r3 { left: 8px; top: 8px; }
 /* 下面两家的章在名牌上方居中（宽章「自摸」不再从中线往右伸、压到名字），再抬高一点：章高 34，转 12 度后角会探进名牌 */
 [data-orient='port'] .table .badge.r0 .stamp,
-[data-orient='port'] .table .badge.r1 .stamp { top: -40px; left: 50%; margin-left: 0; transform: translateX(-50%) rotate(-12deg); }
+[data-orient='port'] .table .badge.r1 .stamp { top: calc(-6px - var(--stamp)); left: 50%; margin-left: 0; transform: translateX(-50%) rotate(-12deg); }
 /* 竖屏名牌上的状态签（选好了、换牌中、缺门、自风）：舞台缩到约 0.64 倍，原来 12 × --fs-k 的字配 14 的行高，字比签框还高，
  * 屏幕上看着只有约 10px。字放到 12.5 屏幕像素（× --fs-k 折回设计像素，360 宽约 19.4），行高跟着字走；
  * 名字和筹码两行行高 1.3 → 1.15 腾出这几像素（两行共省约 7 设计像素），名牌整体高度基本不变 */

@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { resetSoundPrefs, SOUND_DEFAULTS, prefs } from '../src/app/prefs.ts';
+import { resetSettings, SETTINGS_DEFAULTS, prefs } from '../src/app/prefs.ts';
 import { TERMS } from '../src/view/terms.ts';
 import { ERR_REFRESH, NET_FAIL, walletError } from '../src/view/text.ts';
 import { LIMIT_NAME, PAY_NAME } from '../src/view/variants/riichi/text.ts';
 import { PAY_KIND } from '../src/view/text.ts';
 
-describe('声音面板恢复默认', () => {
+describe('设置面板恢复默认', () => {
   it('改过的偏好回到出厂值，其余不动', () => {
-    const p = { ...prefs, sound: false, volume: 0.1, ambience: false, safeHint: false, fast: true };
-    resetSoundPrefs(p);
-    expect(p).toMatchObject({ ...SOUND_DEFAULTS, fast: true });
+    const p = { ...prefs, sound: false, volume: 0.1, ambience: false, safeHint: false, fast: true, level: 'hard' as const };
+    resetSettings(p);
+    expect(p).toMatchObject({ ...SETTINGS_DEFAULTS, level: 'hard' });
   });
 });
 

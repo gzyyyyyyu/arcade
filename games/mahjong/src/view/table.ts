@@ -321,9 +321,13 @@ export class TableUi<V extends TableView, A> {
     return this.frame?.seats[seat] ?? null;
   }
 
-  /** 互动的菜单、面板不能盖的：自己的手牌和操作条 */
+  /**
+   * 互动的菜单、面板、气泡尽量不盖的：自己的手牌和操作条，加三家的手牌和碰杠
+   * （竖屏上面两家的气泡往下冒，盖住对家大半排手牌，0.47.1 Gemini 审查 port360）
+   */
   avoidRects(): DOMRect[] {
-    return [this.myHand.getBoundingClientRect(), this.bar.getBoundingClientRect()].filter((r) => r.width > 0);
+    const opp = this.hands.slice(1).map((h) => h.parentElement!);
+    return [this.myHand, this.bar, ...opp].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
   }
 
   /** 名牌旁的小签（川麻：缺门、托管）：kit 0.20.1 的 marks，首次提示和气泡硬避开 */
@@ -927,7 +931,8 @@ export class TableUi<V extends TableView, A> {
       this.tile(tileOf(w.kind, 0), 'xs', k);
       el('small', '', k, `${w.left}`);
     }
-    el('span', 'sum', box, sum ? `剩 ${sum} 张` : '都没了');
+    // 只听一种时牌下的小数字就是总数，不再重复写「剩 N 张」（0.47.1 走查）
+    if (ws.length > 1 || !sum) el('span', 'sum', box, sum ? `剩 ${sum} 张` : '都没了');
   }
 
   // ---------- 倒计时 ----------

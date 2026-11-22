@@ -77,7 +77,11 @@ if (typeof document !== 'undefined') {
   });
 }
 
-export function confirmBox(parent: HTMLElement, text: string, yes: string, no: string): Promise<boolean> {
+/**
+ * 二选一确认框：按钮写动词。yes 是会丢东西的（离开、放弃）时 danger 为真，用红系危险色（docs/ui.md 第 2、5 节），
+ * 焦点放在安全的 no 上，回车默认选它
+ */
+export function confirmBox(parent: HTMLElement, text: string, yes: string, no: string, danger = true): Promise<boolean> {
   return new Promise((resolve) => {
     let escCancel = (): void => {};
     dialog(
@@ -90,12 +94,13 @@ export function confirmBox(parent: HTMLElement, text: string, yes: string, no: s
           closeDialog();
           resolve(false);
         };
-        button('act soft', row, no, cancel);
+        const safe = button(danger ? 'act' : 'act soft', row, no, cancel);
         escCancel = cancel;
-        button('act go', row, yes, () => {
+        button(danger ? 'act danger' : 'act go', row, yes, () => {
           closeDialog();
           resolve(true);
         });
+        if (danger) safe.focus();
       },
       false,
       () => escCancel(),

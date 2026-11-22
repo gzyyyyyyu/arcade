@@ -422,7 +422,7 @@ async function ladderSmoke(): Promise<void> {
     await page.waitForTimeout(60);
   }
   await page.click('.topbar >> text=离开');
-  await page.click('.mask.confirm .act.go');
+  await page.click('.mask.confirm .act.danger');
   await page.waitForSelector('.lobby-head', { timeout: 8_000 }).catch(async () => { await page.screenshot({ path: `${root}shots/smoke-ladder-leave.png` }); throw new Error('离开以后没回选桌页'); });
   if (!(await page.evaluate(() => localStorage.getItem('mahjong.solo')))) errors.push('离开以后擂台这一桌的存档没了');
   await page.goto(url);

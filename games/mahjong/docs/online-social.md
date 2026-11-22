@@ -49,5 +49,5 @@
     kit 自己挑会放到左下压住我的名牌；手机版"聊天"是紧挨"互动"右边的同样大小的圆钮（位置由 `TableUi.chatButtonRect` 算，碰到下家名牌就挪到名牌左边）；弹幕在对家那排下面、中控盘上面；顶栏也加进 avoid（上家的气泡会盖房间号）。
     弹幕开关存在 kit 默认的 `mahjong.chat`，声音面板"弹幕：开 / 关"接同一份。
     单机：TableFun 传 kit 的 `localChat((t, m) => fun.chat(0, t, m))`，过滤、限速和房间一样，只在本地显示；说的话不进 `Solo`、不给电脑（`test/arch.test.ts`：规则、电脑、`solo.ts` 不 import `arcade-kit/chat`、`table-fun`）。
-  - 设置：总开关"互动：开 / 不看"在顶栏"声"的小面板里（`mahjong.comms`）；"屏蔽他""全部屏蔽"在 kit 的菜单和面板里，按房间分开（sessionStorage）。只是自己不看，牌局照常。
+  - 设置：总开关"互动：开 / 不看"在顶栏齿轮（设置）的小面板里（`mahjong.comms`）；"屏蔽他""全部屏蔽"在 kit 的菜单和面板里，按房间分开（sessionStorage）。只是自己不看，牌局照常。
   - 互动的菜单、面板、冷却、连击回敬、电脑反应都在 kit 里，本游戏不自己做；kit 里没有催促炸弹，规范也没有，所以不做。

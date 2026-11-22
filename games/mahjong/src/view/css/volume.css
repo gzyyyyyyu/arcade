@@ -3,9 +3,10 @@
   position: absolute;
   right: var(--sp-3);
   top: 44px;
-  z-index: 50;
+  /* 比竖屏「横过来玩更舒服」（70）高：刚进牌桌就点开设置时提示条不盖按钮 */
+  z-index: 71;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--sp-3);
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-md);
