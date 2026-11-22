@@ -2,6 +2,16 @@
 
 每版按“新增 / 调整 / 修复”三类写，旧版见 [docs/changelog-archive.md](docs/changelog-archive.md)。
 
+## 0.41.10 — 2026-11-22
+
+收尾：文档、注释改成只写现状，删掉没人用的代码。玩法、画面、电脑和实盘期望都不变。
+
+**其他**
+- 文档按现状重写：docs/perf.md 改成现行的测法和数字；DESIGN.md 删掉过时的第 11 节；art、economy、online、scenes、features、experience、tournament 去掉版本号和「第几版」的说法；指到仓库根的文档统一写「仓库根 docs/…」，README 和 testing.md 补上冒烟的 quota 段。
+- 代码和测试注释里的版本史（「0.x.y 起」「0.x.y 以前」）删掉，只留现在为什么这么做。
+- 删掉冒烟里没用的 skipTips，以及没人引用的导出（模拟脚本的 minutes、Cell、summarize、mixPersonas，noscroll 的 measureScroll）。
+- 新手指引冒烟按现在的提示字查「这手打完了」：原来查「这一手打完了」，这一手没摊牌时就误报。
+
 ## 0.41.9 — 2026-11-22
 
 手感批：结束页补上庆祝声。按键按下态、点按声、弹窗的 Esc / 点外面关闭逐项核过，原来就一致；动画帧时间实测在 60 帧，不改。输赢、电脑和实盘期望不变。

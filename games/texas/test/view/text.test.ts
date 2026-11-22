@@ -26,7 +26,7 @@ describe('我现在凑成的牌', () => {
   });
 });
 
-describe('认诈唬（0.2.3）', () => {
+describe('认诈唬', () => {
   const e = (seat: number, act: LogEntry['act'], amount = 0): LogEntry => ({ seat, act, amount });
   const log = [e(1, 'sb', 10), e(2, 'bb', 20), e(1, 'call', 10), e(2, 'check'), e(-1, 'flop'), e(1, 'bet', 40), e(2, 'raise', 120), e(1, 'call', 80), e(-1, 'turn'), e(2, 'bet', 200)];
   it('翻牌以后最后一次下注的人亮出高牌才算', () => {

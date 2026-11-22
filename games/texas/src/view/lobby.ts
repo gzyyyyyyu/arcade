@@ -1,5 +1,5 @@
 /**
- * 标题页（0.18.0 起分两屏，docs/art.md 第 4 节）：左边标题和一手同花顺，右边先是主页——一个"快速开始"（按上次的设置；
+ * 标题页（分两屏，docs/art.md 第 4 节）：左边标题和一手同花顺，右边先是主页——一个"快速开始"（按上次的设置；
  * 有没打完的一桌就是"继续上局"）、三张模式卡（娱乐 / 实盘 / 好友房，docs/economy.md 第 1 节）、钱包和战绩；
  * 点了模式卡才到选桌：档位、人数、带多少，"返回"回主页。一进来就直接选游戏方式显得太满，所以选项不再一进来就摆满。
  * 娱乐不碰钱包、随便玩；实盘从钱包带一份上桌、离桌结回；好友房选档位和人数后开房间、输码进房。
@@ -138,7 +138,7 @@ export class Lobby {
   private stakes: StakesId = 'small';
   private diff: Difficulty = 'easy';
   private size = 6;
-  /** 第一次来默认娱乐·新手（docs/balance.md 第 3 节）；记过的按记的 */
+  /** 第一次来默认娱乐·新手（仓库根 docs/balance.md 第 3 节）；记过的按记的 */
   private mode: Mode = 'fun';
   private s: LobbyState = { wallet: null, note: null, resume: null, orphan: null, busy: true, room: null, stats: { hands: 0, won: 0, biggestPot: 0, best: 0 } };
   private readonly h: LobbyHandlers;
@@ -247,7 +247,7 @@ export class Lobby {
     Object.assign(this.nickIn, { type: 'text', maxLength: 12, placeholder: '好友房里显示的名字，可不填', autocomplete: 'nickname' });
     this.nickIn.addEventListener('change', () => patchSettings({ nick: this.nickname() }));
 
-    // 每档一张卡（docs/balance.md 第 5 节）：电脑多强（★）、一场约多久、一场最多输赢；实盘四档、娱乐三个难度
+    // 每档一张卡（仓库根 docs/balance.md 第 5 节）：电脑多强（★）、一场约多久、一场最多输赢；实盘四档、娱乐三个难度
     const grid = (this.grid = el('div', 'stakes', panel));
     for (const st of STAKES) {
       const t = button(grid, 'tile', '', () => this.pick(st.id));
@@ -263,7 +263,7 @@ export class Lobby {
     }
     this.funTile = button(grid, 'tile diff room-fun', '', () => this.pickRoomFun());
     this.funTile.innerHTML = card('娱乐', stars(FUN_LEVEL.normal), '朋友之间练手', ['不碰钱包', '筹码不算数']);
-    // 选桌只留一个主按钮（docs/ui.md 第 2、11 节）：选好档位点"坐下开打"；人数、带多少、止盈和别的玩法入口都直接摆出来（选项不折叠），用次按钮。
+    // 选桌只留一个主按钮（仓库根 docs/ui.md 第 2、11 节）：选好档位点"坐下开打"；人数、带多少、止盈和别的玩法入口都直接摆出来（选项不折叠），用次按钮。
     const opts = el('div', 'opts', panel);
     const sizeRow = (this.sizeRow = el('div', 'sizes', opts));
     el('span', 'label', sizeRow, '人数');
@@ -389,7 +389,7 @@ export class Lobby {
 
   /**
    * 快速开始：有没打完的一桌就接着打；不然按上次的设置开一桌单机（上次是实盘、钱包够就实盘满买入，否则娱乐；
-   * 上次是好友房也开娱乐——开房要叫人，不算"快速"）。第一次来是娱乐·新手·6 人（docs/balance.md 第 3 节）
+   * 上次是好友房也开娱乐——开房要叫人，不算"快速"）。第一次来是娱乐·新手·6 人（仓库根 docs/balance.md 第 3 节）
    */
   private quick(): void {
     if (this.s.resume) return this.h.resume();
@@ -605,7 +605,7 @@ export class Lobby {
     // 娱乐卡：好友房的现金桌和锦标赛都有（朋友之间练手，不碰钱包，人不够电脑补）
     toggle(this.funTile, 'hidden', !room);
     toggle(this.funTile, 'sel', room && this.roomFun);
-    // 实盘新开一份只要钱包够这次带入（平台 0.10.2）：够这一档的最少买入就能开，不够一整份就少带一点
+    // 实盘新开一份只要钱包够这次带入：够这一档的最少买入就能开，不够一整份就少带一点
     for (const st of STAKES) {
       const t = must(this.tiles.get(st.id), 'this.tiles.get(st.id)');
       toggle(t, 'sel', st.id === this.stakes && !(room && this.roomFun));
@@ -638,7 +638,7 @@ export class Lobby {
     }
     this.slider.disabled = !ok;
     setText(this.buyAmt, ok ? chips(Number(this.slider.value)) : `钱包要有 ${chips(st.min)}`);
-    // 本机一次只摆一桌单机（没打完的先接着打）；钱包里别处还有德州的份不影响（平台 0.9.5 起可以同时有好几份）
+    // 本机一次只摆一桌单机（没打完的先接着打）；钱包里别处还有德州的份不影响（可以同时有好几份）
     this.startBtn.disabled = busy || !ok || !!resume;
     // 娱乐档不碰钱包，单独部署也有；实盘档没钱包（连不上）不给，钱包够这一档的最少买入才能排（不够一整份的，坐下时少带一点，和好友房一样）
     toggle(must(this.matchBtn.parentElement, 'this.matchBtn.parentElement'), 'hidden', !fun && (this.alone || !wallet));
@@ -651,7 +651,7 @@ export class Lobby {
     // 灰着的按钮在自己下面写原因（按上面 disabled 的条件，一条一条对）
     this.setNote(this.tourBtn, resume ? RESUME_FIRST : tourOk ? null : this.alone ? '只有娱乐' : !wallet ? '钱包连不上' : `要 ${chips(st.max)} 筹码`);
     this.tourBtn.title = tourOk ? `报名费 ${chips(st.max)}（这一档的一份）：${TOUR_FULL[this.tourFmt]}` : `报名要一整份 ${chips(st.max)}`;
-    // 灰着的按钮要说为什么（0.25.1 实打：钱包不够一整份时只灰、没说要多少）
+    // 灰着的按钮要说为什么（实打：钱包不够一整份时只灰、没说要多少）
     setText(
       this.tourNote,
       !fun && !this.alone && wallet && !tourOk ? `钱包要有 ${chips(st.max)} 才能报名这一档的锦标赛` : tourRule(this.tourFmt),
@@ -671,7 +671,7 @@ export class Lobby {
     toggle(this.tourNote, 'hidden', room);
     const back = this.s.room;
     // 开房只看钱包够不够这一档的最少买入（坐下就要带；不够一整份的，坐下时少带一点）；单机没打完、别处还有一份都不拦
-    // （0.3.0：好友房不设多余的限制）
+    // （好友房不设多余的限制）
     // 单独部署没有钱包：好友房的筹码不记账，不看钱包
     // 锦标赛报名要一整份（娱乐不碰钱包）
     const need = rt ? st.max : st.min;
@@ -691,7 +691,7 @@ export class Lobby {
   }
 }
 
-/** 实盘带多少的上限：这一档的满买入，钱包不够就按大盲取整少带，至少这一档的最少买入（平台 0.10.2） */
+/** 实盘带多少的上限：这一档的满买入，钱包不够就按大盲取整少带，至少这一档的最少买入 */
 export function topBuyIn(st: { min: number; max: number; bb: number }, bal: number): number {
   return Math.max(st.min, Math.min(st.max, Math.floor(bal / st.bb) * st.bb));
 }

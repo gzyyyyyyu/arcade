@@ -1,6 +1,6 @@
 /**
- * "上头"（docs/ai.md 4.6，0.3.0）：一手净输到 TILT_LOSS_BB（40）个大盲，接下来 TILT_HANDS（3）手 tilt 依次是 3、2、1，之后字段删掉。
- * 0.3.0 实打后从"25 个大盲、5 手"收到"40 个大盲、3 手"：原来桌上常有电脑一直挂着最高的 5 手，桌子偏乱。
+ * "上头"（docs/ai.md 4.6）：一手净输到 TILT_LOSS_BB（40）个大盲，接下来 TILT_HANDS（3）手 tilt 依次是 3、2、1，之后字段删掉。
+ * 实打后从"25 个大盲、5 手"收到"40 个大盲、3 手"：原来桌上常有电脑一直挂着最高的 5 手，桌子偏乱。
  * 只由规则推出来（同种子同结果，determinism.test 覆盖），视图只给自己的座位。
  */
 import { describe, expect, it } from 'vitest';
@@ -30,7 +30,7 @@ function bigLoss(t0: Table, to: number): Table {
 const foldHand = (t: Table): Table => must(apply(t, t.toAct!, FOLD));
 
 describe('上头', () => {
-  it('线和手数是 40 个大盲、3 手（0.3.0 实打后从 25、5 收的）', () => {
+  it('线和手数是 40 个大盲、3 手（实打后从 25、5 收的）', () => {
     expect([TILT_LOSS_BB, TILT_HANDS]).toEqual([40, 3]);
   });
 

@@ -50,10 +50,10 @@ export async function walletOf(userId: string) {
 /** 假平台被调了几次、写了几次（数 RPC 和写入用） */
 export const usage = (userId: string) => runInDurableObject(bankOf(userId), (b: FakeBank) => ({ calls: b.calls, writes: b.writes }));
 
-/** 这个人结回时带上来的小结（平台 0.10.0 settle.stats） */
+/** 这个人结回时带上来的小结（平台的 settle.stats） */
 export const statsOf = (userId: string) => runInDurableObject(bankOf(userId), (b: FakeBank) => b.stats);
 
-/** 报到这个人头上的搭子战绩（0.17.0，平台 15.19 together） */
+/** 报到这个人头上的搭子战绩（平台 15.19 together） */
 export const togetherOf = (userId: string) => runInDurableObject(bankOf(userId), (b: FakeBank) => b.together);
 
 let n = 0;

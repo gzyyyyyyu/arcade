@@ -4,7 +4,7 @@
  *   再单线程打 6,000 手测电脑单次决策和一批、规则每步的耗时，以及牌力评估、蒙特卡洛。数字写进 PR 描述。
  * - npm run sim -- --vs [每格场数] [档位,...] [策略,...] [--size=人数]：每档 × 每种策略（test/support/strategies.ts）一个玩家对（人数 − 1）个电脑，
  *   一场 100 手，打印每百手大盲（± 一个标准误）和赢的场次比例。
- * - npm run sim -- --balance [每格场数]：配平（0.12.0）：小白、普通对单机各档、娱乐各难度，每场输赢（份）和赢的场次，见 balance.ts。--humans=<玩家数>（0.4.0）：几个玩家合起来对电脑；--level=0–5（0.5.0）指定电脑的强弱档，--room 按好友房的档（docs/ai.md 4.7、6.5）。
+ * - npm run sim -- --balance [每格场数]：配平：小白、普通对单机各档、娱乐各难度，每场输赢（份）和赢的场次，见 balance.ts。--humans=<玩家数>：几个玩家合起来对电脑；--level=0–5指定电脑的强弱档，--room 按好友房的档（docs/ai.md 4.7、6.5）。
  */
 import { stream } from 'arcade-kit/rng';
 import { equity } from '../src/ai/equity.ts';

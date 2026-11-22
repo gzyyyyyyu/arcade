@@ -1,6 +1,6 @@
 /** 单机桌面和手机、竖屏大厅、各种高度的手机、单独部署：见 smoke.ts 顶部说明。 */
 import type { Browser, Page } from 'playwright-core';
-import { HANDS, DESK_W, log, newContext, cspWatch, watch, shot, balance, skipTips, handText, assertHeld, assertAutoNext, coveredSeats, seatOverlaps, enter, openMore, PHONE, DESK_H, linkSit } from './harness.ts';
+import { HANDS, DESK_W, log, newContext, cspWatch, watch, shot, balance, handText, assertHeld, assertAutoNext, coveredSeats, seatOverlaps, enter, openMore, PHONE, DESK_H, linkSit } from './harness.ts';
 import { playRoom } from './room.ts';
 
 /** 单机亮过牌没有（一场只试一次） */
@@ -21,7 +21,7 @@ async function playUntil(page: Page, hands: number, shotAt: Set<number>, checks 
     if (no > hands) return;
     if (await page.locator('.next-hand').isVisible()) {
       if (no === hands) return;
-      // 主动亮牌（0.19.0，单机）：第一次有亮牌那一块就点"都亮"，我的两张翻开、那一块收起
+      // 主动亮牌（单机）：第一次有亮牌那一块就点"都亮"，我的两张翻开、那一块收起
       if (checks && !soloShowed && (await page.locator('.show-cards').isVisible())) {
         soloShowed = true;
         await page.locator('.show-cards .sc-both').click();
@@ -76,7 +76,7 @@ async function playUntil(page: Page, hands: number, shotAt: Set<number>, checks 
           await shot(page, `raise-stacks-${no}`);
           throw new Error(`moving seats out of the raise panel stacked ${stacked} pair(s) of seats`);
         }
-        // 0.18.2：面板矮了一行，电脑上 6 人桌右下角的座位不用再挤成只剩名牌
+        // 面板矮了一行，电脑上 6 人桌右下角的座位不用再挤成只剩名牌
         if ((page.viewportSize()?.width ?? 0) >= 1280 && (await page.locator('.seat:not(.empty)').count()) === 6 && (await page.locator('.seat.tucked').count())) {
           await shot(page, `raise-tucked-${no}`);
           throw new Error('raise panel still tucks a seat at a 6-seat desktop table');
@@ -111,7 +111,7 @@ export async function desktop(browser: Browser, base: string): Promise<void> {
   await page.locator('.w-balance').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
   const before = await balance(page);
   if (before !== 10_000) throw new Error(`new wallet should have 10,000, got ${before}`);
-  // 0.18.0：一进来是主页，不摆选项（主页不再一进来就摆选项）；快速开始第一次是娱乐·新手·6 人，背景是分层的
+  // 一进来是主页，不摆选项（主页不再一进来就摆选项）；快速开始第一次是娱乐·新手·6 人，背景是分层的
   if ((await page.locator('.tile:visible').count()) !== 0) throw new Error('home should not show the stakes cards');
   const quick = (await page.locator('.qstart').textContent()) ?? '';
   if (!quick.includes('快速开始') || !quick.includes('娱乐 · 新手 · 6 人')) throw new Error(`first visit quick start: ${quick}`);
@@ -126,7 +126,7 @@ export async function desktop(browser: Browser, base: string): Promise<void> {
   await enter(page, '实盘');
   if ((await page.locator('.tile:not(.diff):visible').count()) !== 4) throw new Error('real mode should show four stakes cards');
   await shot(page, 'lobby-real');
-  // 主题房（0.18.1）：选中哪一档，背景和舞台就换成那一间；选回小桌回到默认
+  // 主题房：选中哪一档，背景和舞台就换成那一间；选回小桌回到默认
   await page.locator('.tile', { hasText: '黑金' }).click();
   if ((await page.locator('.stage[data-room="lux"]').count()) !== 1 || (await page.locator('.scene[data-room="lux"]').count()) !== 1) throw new Error('picking 豪华桌 should switch to the 黑金 room');
   await shot(page, 'lobby-lux');
@@ -139,7 +139,7 @@ export async function desktop(browser: Browser, base: string): Promise<void> {
     throw new Error(`no hole cards after start; note: ${await page.locator('.note').textContent()}; ${String(e)}`);
   });
   if (await page.locator('.coach-layer').count()) throw new Error('guide shown although marked done');
-  // 荷官（0.18.3）：电脑上 6 人桌站在桌子顶边
+  // 荷官：电脑上 6 人桌站在桌子顶边
   if ((await page.locator('.dealer-guy:not(.hidden)').count()) !== 1) {
     // 带上顶栏各块的位置，好看出是谁挡了荷官的站位
     const bar = await page.locator('.topbar > :not(.spacer)').evaluateAll((es) => es.map((e) => { const r = e.getBoundingClientRect(); return `${e.className}:${Math.round(r.left)}-${Math.round(r.right)}x${Math.round(r.top)}-${Math.round(r.bottom)}`; }));
@@ -150,7 +150,7 @@ export async function desktop(browser: Browser, base: string): Promise<void> {
     });
     throw new Error(`desktop 6-seat table should show the dealer; top bar ${bar.join(' ')}; ${st}`);
   }
-  // 互动（docs/table-fun.md，0.13.0 起是 kit 的 TableFun）：点 1 号电脑的头像扔一个道具，点自己的头像发一个表情；
+  // 互动（仓库根 docs/table-fun.md，是 kit 的 TableFun）：点 1 号电脑的头像扔一个道具，点自己的头像发一个表情；
   // "互动"面板里发一句；全部屏蔽、再全部恢复；点名牌看对手
   await page.locator('.atf-hot[data-seat="1"]').click();
   await page.locator('.atf-box [data-key="fun:prop0"]').click();
@@ -170,12 +170,12 @@ export async function desktop(browser: Browser, base: string): Promise<void> {
   await page.locator('.atf-box [data-key="fun:blockAll"]', { hasText: '全部屏蔽' }).click();
   await page.locator('.atf-btn').click();
   await page.locator('.atf-box [data-key="fun:blockAll"]', { hasText: '全部恢复' }).click();
-  // 电脑版聊天框（kit 0.19，0.19.4）：放得下就常驻、不压下注按钮；1280×720 的 6 人桌放不下，第一次进桌收成"聊天"小按钮
+  // 电脑版聊天框：放得下就常驻、不压下注按钮；1280×720 的 6 人桌放不下，第一次进桌收成"聊天"小按钮
   const dock = page.locator('[data-key="chat:dock"], [data-key="chat:open"]').first();
   await dock.waitFor({ timeout: 5_000 });
   const db = (await dock.boundingBox())!;
   if (db.x + db.width > DESK_W / 2 && db.y + db.height > DESK_H * 0.7) throw new Error(`desktop chat dock sits on the bet buttons ${JSON.stringify(db)}`);
-  // 单机聊天（0.19.3，kit 的 localChat）：顶栏有聊天开关，聊天页说一句，冒在我自己头上；链接不让发
+  // 单机聊天（kit 的 localChat）：顶栏有聊天开关，聊天页说一句，冒在我自己头上；链接不让发
   if (!(await page.locator('.chat-toggle').isVisible())) throw new Error('solo: chat toggle should show');
   await page.locator('.atf-btn').click();
   await page.locator('.atf-box [data-key="fun:tab:chat"]').click();
@@ -250,7 +250,6 @@ export async function desktop(browser: Browser, base: string): Promise<void> {
   await enter(page, '娱乐');
   await shot(page, 'lobby-fun');
   await page.locator('.lobby .start').click();
-  await skipTips(page);
   await page.locator('.seat.me .card.up').first().waitFor();
   const stakes = await page.evaluate(async () => ((await (await fetch('/api/wallet')).json()) as { wallet: { stakes: unknown[] } }).wallet.stakes);
   if (stakes.length) throw new Error(`fun mode touched the wallet: ${JSON.stringify(stakes)}`);
@@ -272,10 +271,10 @@ export async function summary(page: Page, name: string): Promise<number> {
   if ((await page.locator('.sum-hero').count()) !== 1) throw new Error('summary should lead with the big +/− line');
   const buttons = await page.locator('.dialog .d-btn').allTextContents();
   if (buttons.join() !== '回首页') throw new Error(`summary buttons: ${buttons.join()}`);
-  // 0.18.4 起这一场的 +/− 是最上面的大字
+  // 这一场的 +/− 是最上面的大字
   const net = ((await page.locator('.sum-hero .sum-net').textContent()) ?? '').replace(/,/g, '');
   await shot(page, name);
-  // 分享卡（docs/social.md 1.1，kit 的 share）：无头浏览器不能带文件分享，出预览层；看一眼再关，结算页还在
+  // 分享卡（仓库根 docs/social.md 1.1，kit 的 share）：无头浏览器不能带文件分享，出预览层；看一眼再关，结算页还在
   if (await page.locator('.sum-share').isVisible()) {
     await page.locator('.sum-share').click();
     await page.locator('[data-key="share:close"]').waitFor({ timeout: 10_000 });
@@ -305,7 +304,6 @@ export async function mobile(browser: Browser, base: string): Promise<void> {
   await shot(page, 'phone-lobby');
   // 快速开始：第一次来是娱乐·新手·6 人
   await page.locator('.qstart').tap();
-  await skipTips(page);
   await page.locator('.seat.me .card.up').first().waitFor();
   await playUntil(page, 3, new Set([2]));
   await shot(page, 'phone-table');
@@ -323,7 +321,7 @@ export async function mobile(browser: Browser, base: string): Promise<void> {
   await page.evaluate(() => window.dispatchEvent(new Event('resize')));
   await page.waitForTimeout(600);
   log('pinch scale', zoomed, 'stage kept');
-  // 竖屏（0.10.0）：换竖的牌桌，座位、操作区都在舞台里、互不压
+  // 竖屏：换竖的牌桌，座位、操作区都在舞台里、互不压
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(600);
   if (!(await page.locator('.stage.tall').count())) throw new Error('portrait layout not used');
@@ -347,7 +345,7 @@ export async function mobile(browser: Browser, base: string): Promise<void> {
 }
 
 /**
- * 竖屏打磨（--only tall，0.21.3）：五档竖屏（SE 375×667、安卓 360×780、390×844、414×896、430×932）各截单机 6 人桌、打开聊天条、发一句冒气泡、点头像出互动菜单；
+ * 竖屏打磨（--only tall）：五档竖屏（SE 375×667、安卓 360×780、390×844、414×896、430×932）各截单机 6 人桌、打开聊天条、发一句冒气泡、点头像出互动菜单；
  * SE 再截一张好友房（两个人坐下开打，顶上那一排不换行）。看谁压了谁用，控制台零报错照样算
  */
 const TALL: [string, number, number][] = [
@@ -369,7 +367,6 @@ export async function tall(browser: Browser, base: string): Promise<void> {
     await page.goto(`${base}/games/texas/`);
     await page.locator('.w-balance').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
     await page.locator('.qstart').tap();
-    await skipTips(page);
     if (!(await page.locator('.stage.tall').count())) throw new Error(`${tag}: portrait layout not used`);
     // 轮到我、操作按钮亮着的时候截：手牌、公共牌、按钮都在
     await page.locator('.actions.on').waitFor({ timeout: 60_000 });
@@ -427,7 +424,6 @@ export async function tall(browser: Browser, base: string): Promise<void> {
   await hp.locator('.rw-go .start').tap();
   await hp.locator('.stage.at-table').waitFor({ timeout: 30_000 });
   await hp.locator('.seat.me .card.up').first().waitFor({ timeout: 30_000 });
-  await skipTips(hp);
   await shot(hp, 'tall-se-room');
   // 换行了的话第二行的中线比第一行低一大截
   const mids = await hp.locator('.hud > :not(.hidden)').evaluateAll((es) =>
@@ -468,7 +464,6 @@ export async function standalone(browser: Browser, base: string): Promise<void> 
   await openMore(page);
   await page.locator('.size', { hasText: /^4$/ }).click();
   await page.locator('.lobby .start').click();
-  await skipTips(page);
   await playUntil(page, 2, new Set()).catch(async (e: unknown) => {
     await shot(page, 'debug-alone-solo');
     throw e;
@@ -507,11 +502,11 @@ export async function standalone(browser: Browser, base: string): Promise<void> 
 }
 
 /**
- * 竖着拿的手机看标题页（0.17.4，手机上曾找不到好友房）：iPhone SE 和常见的 390 宽，快速开始和"好友房"卡在第一屏，
+ * 竖着拿的手机看标题页（手机上曾找不到好友房）：iPhone SE 和常见的 390 宽，快速开始和"好友房"卡在第一屏，
  * 点了以后输码进房那一行也在第一屏（开房间在选完档位的下面，和"坐下开打"一个位置）
  */
 export async function portraitLobby(browser: Browser, base: string): Promise<void> {
-  // 0.18.0 加上手机横屏和电脑：主页的快速开始、三张模式卡都在第一屏（手机横屏的标题页最挤）
+  // 也查手机横屏和电脑：主页的快速开始、三张模式卡都在第一屏（手机横屏的标题页最挤）
   for (const [tag, width, height, phone] of [
     ['se', 375, 667, true],
     ['portrait', 390, 844, true],
@@ -539,7 +534,7 @@ export async function portraitLobby(browser: Browser, base: string): Promise<voi
     await onScreen('.friends.join .code-in', 'room code');
     if (!(await page.locator('.friends.open .pill', { hasText: '开房间' }).isVisible())) throw new Error(`${tag}: 开房间 missing`);
     await shot(page, `${tag}-friends`);
-    // 匹配真人（0.20.0）挨着"坐下开打"，最窄的屏也整个看得见
+    // 匹配真人挨着"坐下开打"，最窄的屏也整个看得见
     await enter(page, '实盘', phone);
     await openMore(page, phone);
     await page.locator('.lobby .pill.match').scrollIntoViewIfNeeded();

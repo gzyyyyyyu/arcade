@@ -1,5 +1,5 @@
 /**
- * 钱包（平台的，docs/economy.md 第 3、4 节，docs/platform-backend.md 5.9、15.9）。
+ * 钱包（平台的，docs/economy.md 第 3、4 节，仓库根 docs/platform-backend.md 5.9、15.9）。
  * - 看钱包、领补给：平台的 /api/wallet、/api/wallet/relief（同域，绝对路径）；
  * - 单机带入、结回：德州 Worker 的 api/solo/*（相对路径，页面在 /games/texas/ 下），Worker 再经服务绑定调平台（client 模式）。
  * 连不上、回来的不是 JSON（网关出错页、开发时 vite 的首页）都按 offline：钱包那边可能根本没收到，调用方留着操作 id 下次重发。
@@ -35,14 +35,14 @@ export interface WalletView {
 /** credited：进了钱包的；capped：今天这个游戏的进账到顶了、没进钱包的 */
 export type WalletReply = { ok: true; wallet: WalletView; credited?: number; capped?: number } | { ok: false; error: string; wallet?: WalletView; retryAfter?: number };
 
-/** 钱包里德州的那几份（平台 0.9.5 起同一个游戏可以同时有好几份：单机一份、每个好友房各一份）；mode 不给就是全部 */
+/** 钱包里德州的那几份（同一个游戏可以同时有好几份：单机一份、每个好友房各一份）；mode 不给就是全部 */
 export const texasStakes = (w: WalletView | null, mode?: Mode): Stake[] => w?.stakes.filter((s) => s.game === 'texas' && (!mode || s.mode === mode)) ?? [];
 
 /**
  * 本机记着的带入（buyin）/结回（cashout）没办成时，要不要留着下次用同一个操作 id 重办（单机现金桌和单机锦标赛共用）：
  * 连不上、平台出错要留；结回回 busy（平台停服档）留着再办，带入回 busy 是平台停了带入、钱没扣，当明确拒了
- * （0.3.3：原来也当连不上，一整天每 15 秒重试，这期间连娱乐局都开不了）；
- * 结回时登录过期、没过 CSRF：钱包没收到，留在本机，登录后再结（0.3.3：原来当明确拒了，整桌筹码就丢了）
+ * （原来也当连不上，一整天每 15 秒重试，这期间连娱乐局都开不了）；
+ * 结回时登录过期、没过 CSRF：钱包没收到，留在本机，登录后再结（原来当明确拒了，整桌筹码就丢了）
  */
 export function retryable(error: string, kind: 'buyin' | 'cashout'): boolean {
   if (error === 'offline' || error === 'unavailable' || error === 'internal') return true;
@@ -91,7 +91,7 @@ export const walletApi: WalletApi = {
 };
 
 /**
- * 给玩家看的一句话：照 docs/platform-backend.md 15.10 的对照表（平台 0.10.2），出了什么事、怎么办，不只回一个错误码。
+ * 给玩家看的一句话：照仓库根 docs/platform-backend.md 15.10 的对照表，出了什么事、怎么办，不只回一个错误码。
  * retryAfter：/api 限次（rate_limited）时平台给的秒数。限次只防刷、对玩家无感：说法不提"频繁""太快"，只说忙、筹码没动、多久后再试。
  * where：在哪收到的。单机的钱包 RPC 照表说"娱乐局照常玩"；好友房里没有娱乐模式，不提它；
  * 看钱包、领补给走的是 /api，busy 按 /api 那张表说"先只能看、不能改"

@@ -4,10 +4,10 @@ import { join } from 'node:path';
 import type { Browser, BrowserContext, Page } from 'playwright-core';
 import { args, opt } from '../args.ts';
 import { bigHand, scene, sceneSave, type BigKind, type SceneKind } from '../scenes.ts';
-import { SHOTS, errors, log, newContext, watch, skipTips, enter, stableShot, pinPage } from './harness.ts';
+import { SHOTS, errors, log, newContext, watch, enter, stableShot, pinPage } from './harness.ts';
 
 /**
- * 多尺寸（--only devices，0.25.3）：一个浏览器跑完手机竖横、平板、折叠屏、电脑的尺寸矩阵，每个尺寸走
+ * 多尺寸（--only devices）：一个浏览器跑完手机竖横、平板、折叠屏、电脑的尺寸矩阵，每个尺寸走
  * 主页 → 选桌（娱乐、实盘、好友房各一遍）→ 对局（轮到我）→ 离桌结算，自动查：横向滚动、伸出屏幕又滚不到、点击区 ≥ 44（320 宽 ≥ 40）、关键元素互相压、
  * 截字（有意的省略号除外）、按钮里的字折出按钮、字号 ≥ 12、控制台报错。有问题的尺寸才截图；问题全收齐了一起报。
  * 390×664 是 iPhone Safari 带着上下工具栏剩下的高度。--lobby 只查主页和选桌页
@@ -77,10 +77,10 @@ async function audit(page: Page, where: string, touch: boolean): Promise<string[
       if (parseFloat(cs.fontSize) * (r.height / Math.max(1, (e as HTMLElement).offsetHeight || r.height)) < 11.5) out.push(`字小 ${label(e)} ${cs.fontSize}`);
       const he = e as HTMLElement;
       if (cs.textOverflow !== 'ellipsis' && cs.overflow !== 'visible' && he.scrollWidth > he.clientWidth + 1) out.push(`截字 ${label(e)}`);
-      // 出了屏幕下沿、又没有能滚的外层：看不到也滚不到（0.25.5，选桌页锦标赛那行说明）
+      // 出了屏幕下沿、又没有能滚的外层：看不到也滚不到（选桌页锦标赛那行说明）
       if (r.bottom > H + 1 && !scrolls(e)) out.push(`出屏 ${label(e)} 下沿 ${Math.round(r.bottom)}>${H}`);
     }
-    // 按钮里的字折行后高出按钮（0.25.5，竖屏选桌页"好友房"折成两行、"房"被切掉一半）
+    // 按钮里的字折行后高出按钮（竖屏选桌页"好友房"折成两行、"房"被切掉一半）
     for (const e of document.querySelectorAll('button')) {
       if (!shown(e)) continue;
       // 量字本身占的框（scrollHeight 会算上 ::before 撑开的点按区）
@@ -144,7 +144,6 @@ export async function devicesFlow(browser: Browser, base: string): Promise<void>
       await page.waitForTimeout(300);
       await page.locator('.lobby .start').click();
       await page.locator('.stage.at-table').waitFor();
-      await skipTips(page);
       await page.locator('.actions.on').waitFor({ timeout: 30_000 });
       await page.waitForTimeout(500);
       await check('table');
@@ -167,7 +166,7 @@ export async function devicesFlow(browser: Browser, base: string): Promise<void>
 }
 
 /**
- * 牌桌上的东西两两不压（0.25.6，曾出现：边池变成两条长条压住桌心和手牌、底池被公共牌盖住一半、D 压住名牌）：
+ * 牌桌上的东西两两不压（曾出现：边池变成两条长条压住桌心和手牌、底池被公共牌盖住一半、D 压住名牌）：
  * 名牌、头像、底牌、动作签、牌型、下注、D、公共牌、底池和边池、结果条、操作区、左下一排、顶栏、聊天框。同一个座位里的（头像挨着名牌这种）不算。
  * 返回问题清单，空就是没压
  */
@@ -266,7 +265,6 @@ export async function scenesFlow(browser: Browser, base: string): Promise<void> 
         await page.goto(`${base}/games/texas/`);
         await page.locator('.qstart', { hasText: '继续上局' }).click();
         await page.locator('.stage.at-table').waitFor();
-        await skipTips(page);
         if (kind === 'side') {
           await page.locator('.actions.on').waitFor({ timeout: 15_000 });
           await page.waitForTimeout(700);
@@ -304,7 +302,7 @@ export async function scenesFlow(browser: Browser, base: string): Promise<void> 
 }
 
 /**
- * 大场面（--only bigmoments，0.28.0）：摆好牌的两人桌（scripts/scenes.ts 的 bigHand），电脑已全下、我跟注，真速度（不开快档）放完：
+ * 大场面（--only bigmoments）：摆好牌的两人桌（scripts/scenes.ts 的 bigHand），电脑已全下、我跟注，真速度（不开快档）放完：
  * 补牌时每家标出胜率、转牌河牌慢翻；四条 / 葫芦的庆祝字；葫芦那手转牌领先 95% 的电脑输了，冒"被逆转"。
  * 电脑 1280×720 和手机竖屏 390×844 各截几张（<shots>/big-<局>-<尺寸>-<步>.png），控制台零报错。
  */
@@ -335,7 +333,6 @@ export async function bigMomentsFlow(browser: Browser, base: string): Promise<vo
         await page.goto(`${base}/games/texas/`);
         await page.locator('.qstart', { hasText: '继续上局' }).click();
         await page.locator('.stage.at-table').waitFor();
-        await skipTips(page);
         await page.locator('.actions.on').waitFor({ timeout: 15_000 });
         await page.locator('.actions .act', { hasText: /跟注|全下/ }).first().click();
         // 底牌翻开、胜率出来

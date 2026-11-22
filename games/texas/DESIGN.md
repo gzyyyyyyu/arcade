@@ -1,9 +1,9 @@
 # 《德州扑克》设计（texas）
 
 > 设计总纲，描述代码现在的样子；各版本改了什么见 [CHANGELOG.md](CHANGELOG.md)。模块 id `texas`，Worker 名 `texas`，路径 `/games/texas/`，开发端口 5175、预览 4175。
-> 依据：仓库根 `AGENTS.md`、`CONTRIBUTING.md`、`docs/project.md`、`docs/platform-backend.md`、`docs/economy.md`、`packages/arcade-kit/README.md`。
+> 依据：仓库根 `AGENTS.md`、`CONTRIBUTING.md`、仓库根 `docs/project.md`、仓库根 `docs/platform-backend.md`、`docs/economy.md`、`packages/arcade-kit/README.md`。
 > 第 3 节牌力速度的数字来自本地原型实测（3.3），正式代码里用测试锁住。
-> 各章正文拆在 `docs/` 下的几篇里，节号保持不变（代码注释里的"DESIGN.md 13.8"之类对应下面目录里的文件）。
+> 各章正文拆在 `docs/` 下的几篇里，节号保持不变（代码注释里的节号，如 8.5、13.8，对应下面目录里的文件）。
 
 ## 0. 摘要
 
@@ -44,11 +44,6 @@
 | 8 画面与手机 | [docs/screens.md](docs/screens.md)、[docs/scenes.md](docs/scenes.md) | screens 8.1–8.7、8.14：渲染、布局、iOS、回大厅与登录闸门、存储键、音效、性能、顶栏设置键盘（性能实测见 [docs/perf.md](docs/perf.md)）；scenes 8.8–8.13：主页、主题房、关键时刻、结算、亮牌与聊天、止盈 |
 | 9 测试 | [docs/testing.md](docs/testing.md) | 单测、冒烟、模拟 |
 | 10 目录和部署 | [docs/deploy.md](docs/deploy.md) | 10.1 单独部署、10.2 仓库级的事、10.3 安全响应头 |
-| 11 分阶段 | 本文件（下） | 已全部完成 |
 | 12 已知取舍 | [docs/testing.md](docs/testing.md) | 故意输给朋友、改输赢、免费版 CPU、规则版本 |
 | 13 体验细节 | [docs/experience.md](docs/experience.md)（13.1–13.7）、[docs/features.md](docs/features.md)（13.8–13.11） | 13.1 节奏、13.2 最多 9 人、13.3 博弈感、13.4 电脑和好友房的乐子、13.5–13.7 互动；13.8 新手指引、13.9 成就、13.10 全下局、13.11 每日谜题 |
 | 14 锦标赛 | [docs/tournament.md](docs/tournament.md) | 14.1 规则核心、14.2 单机、14.3 好友房、14.4 赛制和配平、14.5 今日锦标赛 |
-
-## 11. 分阶段
-
-已全部完成：规则核心与电脑、Worker 与钱包、单机牌桌、好友房、发布。每一版改了什么见 [CHANGELOG.md](CHANGELOG.md)。

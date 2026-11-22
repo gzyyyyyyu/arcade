@@ -3,11 +3,11 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Browser, Page } from 'playwright-core';
 import { opt } from '../args.ts';
-import { SHOTS, log, newContext, watch, skipTips, enter } from './harness.ts';
+import { SHOTS, log, newContext, watch, enter } from './harness.ts';
 import { IPHONE } from './solo.ts';
 
 /**
- * 不滚动（--only noscroll，docs/ui.md 第 11 节）：五个尺寸各走一遍所有界面，量页面和每个能滚的元素有没有"装不下"（纵横都查，多 1px 不算）。
+ * 不滚动（--only noscroll，仓库根 docs/ui.md 第 11 节）：五个尺寸各走一遍所有界面，量页面和每个能滚的元素有没有"装不下"（纵横都查，多 1px 不算）。
  * 结果写成清单 <shots>/noscroll.txt（尺寸、界面、元素、多出多少 px），只给有问题的界面截图；有问题就抛错。没走到的界面也列在清单里。
  */
 const NOSCROLL_SIZES: [string, number, number, boolean][] = [
@@ -39,7 +39,7 @@ const CLIP_OK: [string, string][] = [
 ];
 
 /** 页面本身和所有看得见的、overflow 是 auto 或 scroll 的元素：内容比框大（超过 1px）就算要滚 */
-export const measureScroll = (page: Page): Promise<{ el: string; axis: Axis; over: number }[]> =>
+const measureScroll = (page: Page): Promise<{ el: string; axis: Axis; over: number }[]> =>
   page.evaluate((CLIP) => {
     const out: { el: string; axis: Axis; over: number }[] = [];
     const name = (e: Element): string => {
@@ -170,7 +170,6 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
     };
     const myTurn = (): Promise<void> => page.locator('.actions.on').waitFor({ timeout: 90_000 });
     const sit = async (): Promise<void> => {
-      await skipTips(page);
       await page.locator('.seat.me .card.up').first().waitFor({ timeout: 30_000 });
     };
     /** 前面几段离开时没离桌，主页挂着"继续上局"：今日全下、坐下开打都灰着（先打完上一桌）。接着打进去再离桌结算掉 */
@@ -186,7 +185,6 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
         if (!shown) return;
         await resume.click();
         await page.locator('.stage.at-table').waitFor();
-        await skipTips(page);
         await go('.leave');
         await page.locator('.dialog').waitFor();
         await go('.d-btn.danger');
@@ -312,7 +310,6 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
       await enter(page, '娱乐', touch);
       await reveal('.lobby .tour-btn');
       await go('.lobby .tour-btn');
-      await skipTips(page);
       await page.locator('.stage.at-table').waitFor();
       await myTurn();
       await look('tour-table');
@@ -328,7 +325,6 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
       await enter(page, '娱乐', touch);
       await reveal('.lobby [data-act="pf"]');
       await go('.lobby [data-act="pf"]');
-      await skipTips(page);
       await page.locator('.stage.at-table').waitFor();
       await page.locator('.actions.on').waitFor({ timeout: 60_000 });
       await look('pushfold-table');
@@ -361,7 +357,6 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
       fresh('pushfold-daily-result', async (dp) => {
         await enter(dp, '娱乐', touch);
         await dp.locator('.lobby [data-act="daily-pf"]').evaluate((e) => (e as HTMLElement).click());
-        await skipTips(dp);
         await dp.locator('.stage.at-table').waitFor();
         await playPfToEnd(dp);
       }),
@@ -427,7 +422,6 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
       fresh('table-fun', async (fp) => {
         await enter(fp, '娱乐', touch);
         await fp.locator('.lobby .start').evaluate((e) => (e as HTMLElement).click());
-        await skipTips(fp);
         await fp.locator('.seat.me .card.up').first().waitFor({ timeout: 30_000 });
         // kit 的互动按钮坐下后才挂上：等看得见的那个再点
         const btn = fp.locator('.atf-btn:visible').first();

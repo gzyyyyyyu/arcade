@@ -1,6 +1,6 @@
 /** 好友房（--only room）和匹配真人（--only match）。 */
 import type { Browser, Page } from 'playwright-core';
-import { HANDS, DESK_W, allowed409, log, newContext, watch, shot, balance, skipTips, enter, openMore, PHONE, handNo, settled, linkSit } from './harness.ts';
+import { HANDS, DESK_W, allowed409, log, newContext, watch, shot, balance, enter, openMore, PHONE, handNo, settled, linkSit } from './harness.ts';
 
 /** 好友房两手之间停了多久（看到倒计时 → 下一手发出来），按页面记 */
 const roomPauses: Record<string, number[]> = {};
@@ -21,7 +21,7 @@ export async function playRoom(page: Page, hands: number, tag: string, shotAt: S
       paused = null;
     }
     if (no > hands) return;
-    // 主动亮牌（0.19.0）：房主第一次看到亮牌那一块就亮一张，自己座位上那张翻过来（经房间转一圈回来的视图）
+    // 主动亮牌：房主第一次看到亮牌那一块就亮一张，自己座位上那张翻过来（经房间转一圈回来的视图）
     if (tag === 'host' && !roomShowed && (await page.locator('.show-cards').isVisible())) {
       roomShowed = true;
       await page.locator('.show-cards .sc-card').first().click();
@@ -39,7 +39,7 @@ export async function playRoom(page: Page, hands: number, tag: string, shotAt: S
       await page.locator('.d-btn.primary').click();
       continue;
     }
-    // 0.3.0 起桌上不满一份就能补：按钮常亮着，只在输光了才补（像真人一样），按钮刚好收起了就不等
+    // 桌上不满一份就能补：按钮常亮着，只在输光了才补（像真人一样），按钮刚好收起了就不等
     const topUp = page.locator('.hud .pill', { hasText: '补码' });
     if ((await topUp.isVisible()) && (await page.locator('.seat.me .stack').textContent())?.trim() === '0') {
       await topUp.click({ timeout: 2_000 }).catch(() => {});
@@ -119,7 +119,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   await ap.goto(`${base}/games/texas/?room=${code}`);
   await ap.locator('.room-wait').waitFor();
   if (new URL(ap.url()).search) throw new Error('invite link query not stripped');
-  // 好友房卡在主页第一屏（0.17.4 起第一屏就看得见，0.18.0 换成模式卡），点了才出开房、输码
+  // 好友房卡在主页第一屏（第一屏就看得见，换成模式卡），点了才出开房、输码
   const tab = await bp.locator('.mcard[data-mode="room"]').boundingBox();
   if (!tab || tab.y + tab.height > PHONE.viewport.height) throw new Error(`phone: 好友房 should be on the first screen, got ${JSON.stringify(tab)}`);
   if (await bp.locator('.friends.join').isVisible()) throw new Error('phone: friends row should wait for the 好友房 card');
@@ -128,7 +128,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   await bp.locator('.code-in:not(.nick-in)').fill(code);
   await bp.locator('.friends .pill', { hasText: '进房间' }).tap();
   await bp.locator('.room-wait').waitFor();
-  // 点链接进来的自动坐第一个空位（0.41.4）；实盘先问"坐下"
+  // 点链接进来的自动坐第一个空位；实盘先问"坐下"
   await linkSit(ap);
   await bp.locator('.rw-seat').nth(2).locator('.rw-sit').tap();
   await bp.locator('.rw-seat.me').waitFor();
@@ -138,7 +138,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   await hp.locator('.rw-seat.taken').nth(2).waitFor();
   await shot(hp, 'room-wait-host');
   await shot(bp, 'room-wait-phone');
-  // 等人页画成桌子（0.18.4）：竖屏也得把椅子都放在桌子那块里、不压到下面的按钮
+  // 等人页画成桌子：竖屏也得把椅子都放在桌子那块里、不压到下面的按钮
   await bp.setViewportSize({ width: 390, height: 844 });
   await bp.waitForTimeout(400);
   await shot(bp, 'room-wait-portrait');
@@ -149,7 +149,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
     if (!box || !go || !r || r.x < 0 || r.x + r.width > 390 || r.y + r.height > go.y) throw new Error(`portrait waiting room: seat out of place ${JSON.stringify(r)}`);
   }
   await bp.setViewportSize(PHONE.viewport);
-  // 坐着的人都有"开打"（0.3.5）：不是房主的点了，房间回 not_host，冒一句，还在等
+  // 坐着的人都有"开打"：不是房主的点了，房间回 not_host，冒一句，还在等
   await ap.locator('.rw-go .start').click();
   await ap.locator('.toast.on', { hasText: '只有开房的人能开打' }).waitFor({ timeout: 5_000 });
   if (!(await ap.locator('.rw-seat.me').isVisible())) throw new Error('guest should still be waiting after not_host');
@@ -158,7 +158,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   for (const p of [hp, ap, bp]) await p.locator('.seat.me .card.up').first().waitFor({ timeout: 20_000 });
   log('room started');
 
-  // 好友房的乐子（0.3.0）：房主点手机的头像扔一个番茄，1 号从面板发一句嘲讽；手机上看得到道具飞过来、嘲讽的气泡，两边截图
+  // 好友房的乐子：房主点手机的头像扔一个番茄，1 号从面板发一句嘲讽；手机上看得到道具飞过来、嘲讽的气泡，两边截图
   await hp.locator('.atf-hot[data-seat="2"]').click();
   await hp.locator('.atf-box [data-key="fun:prop0"]').click();
   await bp.locator('.arcade-fun > *').first().waitFor({ timeout: 5_000 });
@@ -170,7 +170,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   await shot(bp, 'fun-taunt-phone');
   await shot(hp, 'fun-taunt-host');
   log('fun: prop and taunt seen on the other screens');
-  // 好友房聊天（0.19.0，kit 0.18）：1 号从互动面板的聊天页说一句，房主和手机上都冒气泡；顶栏有聊天开关
+  // 好友房聊天：1 号从互动面板的聊天页说一句，房主和手机上都冒气泡；顶栏有聊天开关
   if (!(await hp.locator('.chat-toggle').isVisible())) throw new Error('room: chat toggle should show');
   await ap.locator('.atf-btn').click();
   await ap.locator('.atf-box [data-key="fun:tab:chat"]').click();
@@ -179,7 +179,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   for (const p of [hp, bp]) await p.locator('.atf-say', { hasText: '这把我跟到底' }).waitFor({ timeout: 5_000 });
   await shot(hp, 'chat-host');
   await ap.locator('.atf-away').dispatchEvent('pointerdown');
-  // kit 0.19 的聊天（0.19.4）：手机竖屏"聊天"按钮挨着"互动"，不压任何座位的头像和名牌
+  // kit 的聊天：手机竖屏"聊天"按钮挨着"互动"，不压任何座位的头像和名牌
   await bp.setViewportSize({ width: 390, height: 844 });
   await bp.waitForTimeout(500);
   const cb = await bp.locator('[data-key="chat:button"]').boundingBox();
@@ -204,8 +204,8 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   await ap.locator('.atf-away').dispatchEvent('pointerdown');
   log('chat: seen on the other screens, portrait button clear, danmaku off works');
 
-  // 打到一半手机刷新：不自动进房（0.2.3），标题页有"回到房间"，点了回到原来的座位
-  // 带着房间记录启动页面不能报错（0.3.7：原来先画大厅、后建云存档，这里一刷新就是 pageerror、大厅画不出来；结尾的零报错核对会抓到）
+  // 打到一半手机刷新：不自动进房，标题页有"回到房间"，点了回到原来的座位
+  // 带着房间记录启动页面不能报错（原来先画大厅、后建云存档，这里一刷新就是 pageerror、大厅画不出来；结尾的零报错核对会抓到）
   const half = Math.max(2, Math.floor(hands / 2));
   const phone = (async () => {
     await playRoom(bp, half - 1, 'phone', new Set([1]));
@@ -224,7 +224,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
     await dp.goto(`${base}/games/texas/?room=${code}`);
     await dp.locator('.seat.takeable .avatar').first().waitFor({ timeout: 30_000 });
     await shot(dp, 'room-spectate');
-    // 旁观（docs/social.md 1.4）：顶上写旁观中、有"坐下"、看不到任何人的底牌、不能扔东西（没有互动按钮）
+    // 旁观（仓库根 docs/social.md 1.4）：顶上写旁观中、有"坐下"、看不到任何人的底牌、不能扔东西（没有互动按钮）
     await dp.locator('.where.watching', { hasText: '旁观中' }).waitFor({ timeout: 10_000 });
     await dp.locator('.hud .pill', { hasText: /^坐下$/ }).waitFor();
     // 一手打完摊牌亮出来的是公开的，下一手发牌前才收；所以连着看两眼都在打牌、都有亮着的底牌才算看到了不该看的
@@ -261,7 +261,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
     // 坐着离开的：每个人这一场的输赢
     await p.locator('.summary').waitFor({ timeout: 5_000 });
     if (tag === 'phone') await shot(p, 'room-summary');
-    // 颁奖（0.15.0）：打了好几手，真人里总有人输赢（电脑不进这张表，可能全是输的），至少一个奖；第一个走的点一下分享，卡能出来
+    // 颁奖：打了好几手，真人里总有人输赢（电脑不进这张表，可能全是输的），至少一个奖；第一个走的点一下分享，卡能出来
     if ((await p.locator('.sum-award').count()) < 1) throw new Error(`[${tag}] room summary: expected awards`);
     if (tag === 'phone') {
       await p.locator('.sum-share').tap();
@@ -273,7 +273,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
     await p.locator('.lobby').waitFor();
     log(tag, 'left, wallet', await settled(p, tag));
   }
-  // 都离开了：房间没有真人就结束（0.2.4），标题页不给"回到房间"；房主再点"开房间"开出一个新的，不会 409、不会回到原来的房间
+  // 都离开了：房间没有真人就结束，标题页不给"回到房间"；房主再点"开房间"开出一个新的，不会 409、不会回到原来的房间
   if (await hp.locator('.banner.room').isVisible()) throw new Error('left the room: no "back to room" banner');
   await enter(hp, '好友房');
   await hp.locator('.friends .pill', { hasText: '开房间' }).click();
@@ -341,7 +341,7 @@ export async function match(browser: Browser, base: string): Promise<void> {
   if (!roomWs(p2) || roomWs(p2).includes('chat=1')) throw new Error(`match: stranger chat off should connect without chat=1: ${roomWs(p2)}`);
   // 1280×720 的 6 人桌放不下聊天框：第一次进桌（座位都坐上人以后才判断）先收成"聊天"小按钮
   if (DESK_W <= 1280) await p1.locator('.atc-pill').waitFor({ timeout: 15_000 });
-  // 1920 放得下：聊天框展开着（kit 0.20.1 的 chatFolded 曾让 1920 也默认收起，0.20.2 修了）
+  // 1920 放得下：聊天框展开着（kit 的 chatFolded 曾让 1920 也默认收起，修了）
   if (DESK_W >= 1600) {
     await p1.waitForTimeout(1_500);
     if (!(await p1.locator('[data-key="chat:dock"]').isVisible())) throw new Error('match table at 1920: chat dock should be open');
@@ -359,7 +359,7 @@ export async function match(browser: Browser, base: string): Promise<void> {
   }
   log('match wallet', before, '->', await balance(p1));
 
-  // 娱乐档（0.21.0）：两个人排到同一张娱乐桌，标题写"娱乐"，打一手离开，钱包一分不动
+  // 娱乐档：两个人排到同一张娱乐桌，标题写"娱乐"，打一手离开，钱包一分不动
   const funBefore = await Promise.all([p1, p2].map((p) => balance(p)));
   for (const p of [p1, p2]) {
     await enter(p, '娱乐');
@@ -391,7 +391,6 @@ export async function match(browser: Browser, base: string): Promise<void> {
   const said = await p1.evaluate(() => (window as { __said?: string[] }).__said ?? []);
   if (!said.some((t) => t.includes('现在没人在排'))) throw new Error(`match alone: expected the solo note, said ${said.join(' | ')}`);
   if (await p1.locator('.stage.in-room').count()) throw new Error('match alone: should be a solo table');
-  await skipTips(p1);
   await shot(p1, 'match-solo');
   await Promise.all([one.close(), two.close()]);
 }

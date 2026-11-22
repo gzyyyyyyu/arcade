@@ -1,5 +1,5 @@
 /**
- * 翻牌前查表（docs/rules.md 3.4）：169 种起手牌 × 1–8 个随机对手的胜率（千分数；0.2.0 起 9 人桌，从 5 扩到 8）。
+ * 翻牌前查表（docs/rules.md 3.4）：169 种起手牌 × 1–8 个随机对手的胜率（千分数； 9 人桌，从 5 扩到 8）。
  * 表由 scripts/gen-preflop.ts 用固定种子离线生成（每格 3 万次蒙特卡洛），写在 preflop-table.ts；test/ai.test.ts 抽几格重算核对。
  */
 import { rankOf, suitOf, type Card } from '../core/cards.ts';
@@ -7,7 +7,7 @@ import { PREFLOP } from './preflop-table.ts';
 
 /**
  * 表里最多几个对手（9 人桌 = 8 个）。不能少于桌上的对手数：电脑按"胜率 ×（对手数 + 1）"比门槛，
- * 8 个对手却查 5 个对手的胜率，每手牌的相对强度都虚高一半，9 人桌的电脑个个乱加注（0.2.0 调教时发现）
+ * 8 个对手却查 5 个对手的胜率，每手牌的相对强度都虚高一半，9 人桌的电脑个个乱加注（调教时发现）
  */
 export const PREFLOP_OPP = 8;
 

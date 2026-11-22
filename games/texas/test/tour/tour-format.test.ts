@@ -68,7 +68,7 @@ describe('赛制表', () => {
 });
 
 describe('奖金和电脑强弱（CI 配平，docs/tournament.md 14.4）', () => {
-  it('每个赛制第 1 名最多 4 份：一场净赢不超过 3 份（docs/balance.md 第 2 节）；名次越前拿得越多，取整到整数', () => {
+  it('每个赛制第 1 名最多 4 份：一场净赢不超过 3 份（仓库根 docs/balance.md 第 2 节）；名次越前拿得越多，取整到整数', () => {
     for (const f of FORMATS)
       for (const b of [100, 500, 2_000, 33, 7]) {
         const p = payouts(b, f);

@@ -1,7 +1,7 @@
 /** 新手指引（--only guide）和止盈（--only tp）。 */
 import type { Browser, Page } from 'playwright-core';
 import { opt } from '../args.ts';
-import { log, newContext, watch, shot, balance, skipTips, handText, enter, openMore, settled, DESK_H, linkSit } from './harness.ts';
+import { log, newContext, watch, shot, balance, handText, enter, openMore, settled, DESK_H, linkSit } from './harness.ts';
 import { summary, IPHONE, tallDevice } from './solo.ts';
 
 export async function takeProfitFlow(browser: Browser, base: string): Promise<void> {
@@ -24,7 +24,6 @@ export async function takeProfitFlow(browser: Browser, base: string): Promise<vo
   if (!go || go.y + go.height > DESK_H) throw new Error(`lobby: 坐下开打 off screen ${JSON.stringify(go)}`);
   await shot(page, 'tp-lobby');
   await page.locator('.lobby .start').click();
-  await skipTips(page);
   const deadline = Date.now() + 420_000;
   while (!(await page.locator('.summary').isVisible())) {
     if (Date.now() > deadline) {
@@ -262,7 +261,7 @@ export async function guideFlow(browser: Browser, base: string): Promise<void> {
     await page.locator('.coach-layer:not(.block) .coach-box').waitFor({ timeout: 8_000 });
     g = await assertCoach(page, tag, 'end hint', null);
     const showdown = g.text.includes('摊牌');
-    if (!showdown && !g.text.includes('这一手打完了')) throw new Error(`[guide ${tag}] end hint text: ${g.text}`);
+    if (!showdown && !g.text.includes('这手打完了')) throw new Error(`[guide ${tag}] end hint text: ${g.text}`);
     // 不压"下一手"
     const next = await page.locator('.next-hand').boundingBox();
     if (next && g.box.l < next.x + next.width && next.x < g.box.r && g.box.t < next.y + next.height && next.y < g.box.b) throw new Error(`[guide ${tag}] end hint covers 下一手`);

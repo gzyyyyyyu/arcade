@@ -1,4 +1,4 @@
-/** 止盈（src/core/takeprofit.ts，0.22.0）：目标怎么算、什么时候算到、存档读回来 */
+/** 止盈（src/core/takeprofit.ts）：目标怎么算、什么时候算到、存档读回来 */
 import { describe, expect, it } from 'vitest';
 import { parseTakeProfit, profitTarget, reached, takeProfitLabel, TP_OFF } from '../../src/core/takeprofit.ts';
 

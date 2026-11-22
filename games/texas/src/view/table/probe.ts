@@ -21,14 +21,14 @@ export class TableProbe {
    * 加注面板打开时，被它盖住的座位挪开（r 是操作区在屏幕上的位置），收起时放回去。
    * 按实际位置算：不同人数、不同屏幕宽，盖住的是哪个座位不一样。先试整个座位往上挪到面板上方，再试往左挪到面板左边，
    * 都放不下就只留名牌（名字和筹码）塞到面板上方（.tucked，头像、底牌、动作签先藏起来）。挪过去不许压到别的座位、出舞台
-   * （0.9.0 之前只往上挪，6 人桌右下的座位叠到右上那个上面）
+   * （原来只往上挪，6 人桌右下的座位叠到右上那个上面）
    */
   avoid(r: DOMRect | null): void {
     const stage = this.c.root.getBoundingClientRect();
     // 屏幕像素换回舞台单位（舞台整体缩放过）
     const scale = stage.height / (this.c.root.offsetHeight || 1);
     // 各座位没挪时占的地方：轮到我时操作区一更新就会再问一次，座位可能已经挪过、还在挪的动画里，减掉此刻挪到哪了
-    // （不然第二次量到的是挪了一半的位置，0.3.0 冒烟抓到）
+    // （不然第二次量到的是挪了一半的位置，冒烟抓到）
     const boxes = this.c.seats.map((n) => {
       const [mx = 0, my = 0] = (getComputedStyle(n.root).translate.match(/-?[\d.]+/g) ?? []).map(Number);
       const parts = [n.avatar, n.plate, ...n.cards.filter((c) => !c.classList.contains('hidden'))].map((e) => e.getBoundingClientRect()).filter((b) => b.width > 0);
@@ -100,7 +100,7 @@ export class TableProbe {
   }
 
   /**
-   * 名牌和筹码那一块（kit 0.19 的 plate：气泡、弹幕、聊天按钮都避开）；我自己的连头像和底牌一起算，说话不盖自己的牌
+   * 名牌和筹码那一块（kit 的 plate：气泡、弹幕、聊天按钮都避开）；我自己的连头像和底牌一起算，说话不盖自己的牌
    */
   plateRect(seat: number): DOMRect | null {
     const n = this.c.seats[seat];
@@ -129,14 +129,14 @@ export class TableProbe {
     return new DOMRect(box.left + ((b0.x + b4.x) / 2 - hw) * k, box.top + (b0.y - 40) * k, 2 * hw * k, 80 * k);
   }
 
-  /** 牌桌中间的信息区（kit 0.19 的 center）：公共牌、底池、一手的结果条，弹幕不横穿、聊天框和气泡不压 */
+  /** 牌桌中间的信息区（kit 的 center）：公共牌、底池、一手的结果条，弹幕不横穿、聊天框和气泡不压 */
   centerRects(): DOMRect[] {
     const board = union(this.c.boardCards.map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0));
     return [board, ...[this.c.potEl, this.c.resultEl].map((e) => e.getBoundingClientRect())].filter((r): r is DOMRect => !!r && r.width > 0 && r.height > 0);
   }
 
   /**
-   * 电脑版常驻聊天框放哪（kit 0.19 的 chatDock，屏幕坐标）：kit 自己只试屏幕四个角，德州的四个角都有座位或下注按钮（实测 1920 落在右下的按钮上）。
+   * 电脑版常驻聊天框放哪（kit 的 chatDock，屏幕坐标）：kit 自己只试屏幕四个角，德州的四个角都有座位或下注按钮（实测 1920 落在右下的按钮上）。
    * 这里在整个屏幕上每 16×8 像素试一格，挑盖得最不要紧的：公共牌最要紧，名牌上的名字和筹码数、面前下的注、下注区其次，头像和底牌再次，空桌面不算；一样的先左后上。
    * 1920 上落在左边两个座位中间的空当；1280×720 的 6 人桌没有空当，落在左下那家的牌和公共牌之间。
    * 底牌、下的注、公共牌、下注区都按版式算（没发牌、没下注、没轮到我时节点藏着，量不到），同一个窗口、同一桌人只算一次：
@@ -164,7 +164,7 @@ export class TableProbe {
         return [[rect(n.plate), 10], [at(this.scene.betPt(i), 44, 18), 10], [rect(n.avatar), i === this.c.me ? 10 : 4], [at(this.scene.holePt(i, 0), 32, 44), 2], [at(this.scene.holePt(i, 1), 32, 44), 2]];
       }),
       // 我的牌型（"一对 Q"，style.css 的 .seat.me .hand 以座位左边 150 为中线、上面 60 起）：没亮时量不到，按版式算（1280 上被聊天框盖住）
-      // 好友房等人页还没排座位（this.c.me 不是个数、没有座位）时没有这一块：0.25.6 起这里直接按 seatPt 算，朋友页报 reading 'NaN'
+      // 好友房等人页还没排座位（this.c.me 不是个数、没有座位）时没有这一块：这里直接按 seatPt 算，朋友页报 reading 'NaN'
       ...(this.c.seats[this.c.me] ? [[at({ x: this.scene.seatPt(this.c.me).x - 150, y: this.scene.seatPt(this.c.me).y - 46 }, 60, 16), 10] as [DOMRect, number]] : []),
       // 别人的动作签（"过牌"）贴在头像旁边，平时藏着：头像四周各让出一截（1920 的 5 人桌）
       ...live.filter((i) => i !== this.c.me).map((i): [DOMRect, number] => {
@@ -197,8 +197,8 @@ export class TableProbe {
   }
 
   /**
-   * 互动菜单、面板不许盖的地方（kit 的 TableFun 的 avoid，docs/table-fun.md 第 1 节）：我的底牌和操作区，屏幕矩形。
-   * 0.13.0 起头像菜单是 kit 画的，这里只报位置
+   * 互动菜单、面板不许盖的地方（kit 的 TableFun 的 avoid，仓库根 docs/table-fun.md 第 1 节）：我的底牌和操作区，屏幕矩形。
+   * 头像菜单是 kit 画的，这里只报位置
    */
   keepOut(): DOMRect[] {
     const mine = this.c.seats[this.c.me]?.cards.filter((c) => !c.classList.contains('hidden')) ?? [];
@@ -208,7 +208,7 @@ export class TableProbe {
 
   /**
    * 看对手：点名牌弹一张小卡，名字、风格、这一场的数；放在座位往桌心那一侧，点别处或 5 秒后收起。
-   * tag 是按这一场的数给的标签，电脑再加上它的性格那一句。0.13.0 起点头像是 kit 的互动菜单，这张卡只放数（docs/experience.md 13.7）
+   * tag 是按这一场的数给的标签，电脑再加上它的性格那一句。点头像是 kit 的互动菜单，这张卡只放数（docs/experience.md 13.7）
    */
   showCard(seat: number, tag: string, rows: string[]): void {
     this.hideCard();

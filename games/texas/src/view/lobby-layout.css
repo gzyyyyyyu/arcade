@@ -92,7 +92,7 @@
   .stage:not(.tall):not(.tight) .lobby .hero { max-width: 340px; flex-basis: 320px; }
 }
 
-/* ---------- 选桌：选项不折叠（docs/ui.md 第 11 节）。主按钮只有"坐下开打"一个，玩法入口是一排次按钮 ---------- */
+/* ---------- 选桌：选项不折叠（仓库根 docs/ui.md 第 11 节）。主按钮只有"坐下开打"一个，玩法入口是一排次按钮 ---------- */
 .lobby .go-row { flex-wrap: nowrap; align-items: stretch; }
 .lobby .go-row .start { min-width: 0; }
 /* 其他玩法：一排次按钮，等分一行；放不下时按钮里的字不折行，整排收窄间距 */
@@ -211,7 +211,7 @@
     vertical-align: middle;
   }
 }
-/* 选中的档位卡、模式钮：描边加勾加浅底，不用金色填充（金色填充只给"坐下开打"，docs/ui.md 第 4 节） */
+/* 选中的档位卡、模式钮：描边加勾加浅底，不用金色填充（金色填充只给"坐下开打"，仓库根 docs/ui.md 第 4 节） */
 .stage .lobby :is(.tile, .mode).sel {
   background: #fff8e1;
   border-color: var(--cg-gold-deep, #a85a00);

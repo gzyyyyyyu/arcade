@@ -43,12 +43,12 @@ export interface BotOptions {
   onStep?: (t: Table) => void;
   /** 穿插超时、暂离、离桌（默认开） */
   chaos?: boolean;
-  /** 电脑的强弱档（0.5.0，不给按单机的） */
+  /** 电脑的强弱档（不给按单机的） */
   level?: number;
-  /** 每个座位抽这一场的状态（0.5.0，默认抽；量"没有状态时"的对照用 false） */
+  /** 每个座位抽这一场的状态（默认抽；量"没有状态时"的对照用 false） */
   form?: boolean;
   /**
-   * 赢多了下桌（sim 的混桌用，0.3.0）：每手开始时筹码超过 cashOut × 买入上限的，多出来的当作带走（从买入里扣），
+   * 赢多了下桌（sim 的混桌用）：每手开始时筹码超过 cashOut × 买入上限的，多出来的当作带走（从买入里扣），
    * 不然 2,000 手里赢家的筹码越滚越深，底池平均上百个大盲，每百手的误差大到比不出性格
    */
   cashOut?: number;
@@ -71,7 +71,7 @@ export function runBots(o: BotOptions): BotStats {
   for (let i = 0; i < o.size; i++) {
     t.seats[i]!.owner = 'player';
     t.seats[i]!.persona = personas[i]!;
-    // 和电脑坐下时一样抽这一场的状态（0.5.0）：混桌量出来的打法才带着场与场之间的浮动
+    // 和电脑坐下时一样抽这一场的状态：混桌量出来的打法才带着场与场之间的浮动
     if (o.form ?? true) t.seats[i]!.form = drawForm(stream(o.seed, 'form', i));
     t.seats[i]!.start = st.max;
     t.seats[i]!.stack = st.max;
@@ -174,7 +174,7 @@ function ok(x: Table | { error: string }): Table {
 }
 
 /**
- * 配平的一场（docs/balance.md，docs/ai.md 4.10，0.12.0）：玩家坐 0 号、带一份（这一档的买入上限）上桌，对 size − 1 个电脑（强弱档 level），
+ * 配平的一场（仓库根 docs/balance.md，docs/ai.md 4.10）：玩家坐 0 号、带一份（这一档的买入上限）上桌，对 size − 1 个电脑（强弱档 level），
  * 打 hands 手或输光为止，不补码。result 是这一场的输赢（份）；mine、theirs 是玩家、电脑各说了几次话（估一场多久）
  */
 export function runSession(o: { seed: Entropy; stakes: StakesId; size: number; hands: number; strategy: Strategy; level: number }): {
@@ -208,7 +208,7 @@ export function runSession(o: { seed: Entropy; stakes: StakesId; size: number; h
 /**
  * 一个"玩家"对一桌电脑（和单机一样：电脑先按 putHouse 坐满，玩家坐 0 号、买满 100 个大盲，输光了补满）。
  * 打 hands 手，返回玩家净赢多少大盲（千分之一个大盲为单位取整，免得小数）和电脑的性格出场次数。
- * humans（0.4.0，好友房）：前几个座位都是玩家、用同一种打法，返回他们合起来的净赢；level：电脑的强弱档（0.5.0，不给按单机的）
+ * humans（好友房）：前几个座位都是玩家、用同一种打法，返回他们合起来的净赢；level：电脑的强弱档（不给按单机的）
  */
 export function runVs(o: {
   seed: Entropy;

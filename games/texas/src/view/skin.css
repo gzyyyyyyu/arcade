@@ -20,7 +20,7 @@
   --line: rgba(255, 255, 255, .14);
   --line-2: rgba(255, 255, 255, .2);
   --sel-bg: linear-gradient(rgba(243, 200, 107, .16), rgba(243, 200, 107, .05)), #1b2a23;
-  /* 选中 = 描边 + 右上角的勾（docs/ui.md 第 4 节）；危险 = 红。两者都不和主按钮的金色填充混 */
+  /* 选中 = 描边 + 右上角的勾（仓库根 docs/ui.md 第 4 节）；危险 = 红。两者都不和主按钮的金色填充混 */
   --sel-edge: var(--gold);
   --sel-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.5l2.7 2.7L10 3.2' fill='none' stroke='%23f3c86b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --danger: #c8372d;
@@ -323,7 +323,7 @@ html, body, body::before { background: var(--night); }
   .seat.acting::after, .seat.win::before { animation: none; }
 }
 
-/* ---------- 荷官（dealer.ts，0.18.3）：站在桌子顶边后面，svg 底边比桌边高 7（木边宽 17，压住腰，手搭在木边上） ---------- */
+/* ---------- 荷官（dealer.ts）：站在桌子顶边后面，svg 底边比桌边高 7（木边宽 17，压住腰，手搭在木边上） ---------- */
 .dealer-guy {
   position: absolute;
   /* 画的是 80 × 96，缩到 0.8：再大头就顶到顶栏里 */
@@ -341,7 +341,7 @@ html, body, body::before { background: var(--night); }
 .lowfx .dealer-guy .eyes { animation: none; }
 .lowfx .dealer-guy .arm { transition: none; }
 
-/* ---------- 关键时刻（fx.ts，0.18.3）：金币、全下聚光、大锅金边 ---------- */
+/* ---------- 关键时刻（fx.ts）：金币、全下聚光、大锅金边 ---------- */
 .fx-coin {
   position: absolute;
   width: 18px;
@@ -366,8 +366,7 @@ html, body, body::before { background: var(--night); }
 @keyframes table-in { from { opacity: 0; scale: 1.04; } }
 
 /*
- * kit 的面板（分享预览、叫朋友来、互动菜单和面板）换成本游戏的墨绿金（kit 0.16 的 --ak-* 变量，写在根上靠继承；
- * 0.18.4 美术 v3 第 5 步）。不写时 kit 是它自己的棕红色，和牌室不搭
+ * kit 的面板（分享预览、叫朋友来、互动菜单和面板）换成本游戏的墨绿金（kit 的 --ak-* 变量，写在根上靠继承）。不写时 kit 是它自己的棕红色，和牌室不搭
  */
 :root {
   --ak-bg: #0f1d17;
@@ -765,10 +764,10 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 :where(#app, .coach-layer) .mask .dialog .sum-note { color: #6b5338; }
 :where(#app, .coach-layer) .mask .dialog .tour-top li { background: rgba(43, 29, 20, .07); }
 
-/* 0.25.2：卡通描边让标签高了几 px，"没筹码""暂离"往下压到名牌的名字（锦标赛出局的电脑留在桌上最明显）；往上挪进头像下沿 */
+/* 卡通描边让标签高了几 px，"没筹码""暂离"往下压到名牌的名字（锦标赛出局的电脑留在桌上最明显）；往上挪进头像下沿 */
 .stage .seat:not(.me) .badge { top: 6px; }
 
-/* ---------- 大场面（fx.ts，0.28.0）：大牌庆祝的光爆、横幅字、被逆转的小签；都在 .fx 层里，不拦点按 ---------- */
+/* ---------- 大场面（fx.ts）：大牌庆祝的光爆、横幅字、被逆转的小签；都在 .fx 层里，不拦点按 ---------- */
 .fx .fx-burst {
   position: absolute;
   width: 150px;

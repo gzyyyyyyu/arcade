@@ -46,7 +46,7 @@ function seatedAll(seats: SeatKind[]): RoomState {
   return s;
 }
 
-/** 像房间一样：轮到电脑（和托管的座位）就替它出；一手打完停着的，当时间到了替房间 resume（kit 0.5.0）；直到轮到真人或者没人要出 */
+/** 像房间一样：轮到电脑（和托管的座位）就替它出；一手打完停着的，当时间到了替房间 resume；直到轮到真人或者没人要出 */
 function drive(s0: RoomState, auto: number[] = []): RoomState {
   let s = s0;
   for (let k = 0; k < 500; k++) {
@@ -77,7 +77,7 @@ describe('开局和买入', () => {
   });
 
   it('开打时坐下的人的买入都有了回话才发第一手（先到账的不和电脑先打）；被拒的原因只给那个座位看，不卡着', () => {
-    // 三个真人：1 号被拒以后还剩两个能打的（0.4.0 好友房至少两个真人才发牌），这里看的是"被拒不卡着别人"
+    // 三个真人：1 号被拒以后还剩两个能打的（好友房至少两个真人才发牌），这里看的是"被拒不卡着别人"
     let s = begin(['human', 'human', 'human', 'ai']);
     s = G.settled!(s, 'b0', OK);
     expect(s.t.seats[0]).toMatchObject({ owner: 'player', stack: MAX });
@@ -107,7 +107,7 @@ describe('开局和买入', () => {
   });
 
   it('开打时有人的买入一直没回话：房间按"轮到他"计 30 秒，到点先开打（当他没坐上），到账了下一手上', () => {
-    // 三个真人：不等 1 号先开打时桌上还有两个真人（0.4.0），不然到点也发不了牌
+    // 三个真人：不等 1 号先开打时桌上还有两个真人，不然到点也发不了牌
     let s = begin(['human', 'human', 'human', 'ai']);
     s = G.settled!(G.settled!(s, 'b0', OK), 'b2', OK);
     expect(G.turn(s)).toBe(1);
@@ -131,8 +131,8 @@ describe('开局和买入', () => {
     expect(s.t.seats[1]!.status).not.toBe('out');
   });
 
-  it('带入被拒（0.2.5）：座位上能重新带入，到账后下一手上桌；接管电脑座位被拒的一样', () => {
-    // 三个真人：1 号被拒时另外两个照常开打（0.4.0 至少两个真人），他重新带入后下一手上
+  it('带入被拒：座位上能重新带入，到账后下一手上桌；接管电脑座位被拒的一样', () => {
+    // 三个真人：1 号被拒时另外两个照常开打（至少两个真人），他重新带入后下一手上
     let s = begin(['human', 'human', 'human', 'ai']);
     s = G.settled!(G.settled!(G.settled!(s, 'b0', OK), 'b2', OK), 'b1', { ok: false, error: 'no_funds' });
     expect(G.view(s, 1)).toMatchObject({ refused: 'no_funds', canRebuy: true });
@@ -154,9 +154,9 @@ describe('开局和买入', () => {
     expect(G.view(t, 0).next![3]).toBe(true);
   });
 
-  it('钱包不够一整份（平台 0.10.2）：重新带入可以少带一点，最少这一档的最少买入、最多一份；到账按带的数上桌', () => {
+  it('钱包不够一整份：重新带入可以少带一点，最少这一档的最少买入、最多一份；到账按带的数上桌', () => {
     const st = stakesOf('small');
-    // 三个真人：1 号被拒时另外两个已经开打（0.4.0 至少两个真人），他少带一点、下一手上
+    // 三个真人：1 号被拒时另外两个已经开打（至少两个真人），他少带一点、下一手上
     const refused = G.settled!(G.settled!(G.settled!(begin(['human', 'human', 'human', 'ai']), 'b0', OK), 'b2', OK), 'b1', { ok: false, error: 'no_funds' });
     const want = (amount: number) => debits(act(refused, 1, { t: 'rebuy', amount })).map((e) => e.amount);
     expect(want(1_200)).toEqual([1_200]);
@@ -192,7 +192,7 @@ describe('操作', () => {
   });
 
   it('托管的真人座位只过牌或弃牌（和超时一样记一次超时），电脑座位按性格打', () => {
-    // 两个真人（0.4.0 至少两个才发牌）：1 号自己打（能过就过、不然弃），0 号托管
+    // 两个真人（至少两个才发牌）：1 号自己打（能过就过、不然弃），0 号托管
     const manual = (x: RoomState) => act(x, 1, G.view(x, 1).legal!.check ? { t: 'check' } : { t: 'fold' });
     /** 像 drive，但轮到 1 号时替他自己出；直到轮到托管以外的 0 号（auto 不含 0 时）或者没人要出 */
     const run = (x0: RoomState, auto: boolean): RoomState => {
@@ -213,7 +213,7 @@ describe('操作', () => {
     s = act(s, 0, G.ai(s, 0));
     if (s.t.handNo === hand) expect(s.t.log.at(-1)).toMatchObject({ seat: 0, act: lg.check ? 'check' : 'fold', auto: true });
     else expect(s.t.seats[0]!.timeouts).toBe(1);
-    // 托管连着两手超时：暂离，不再发牌；能打的真人只剩 1 号一个（0.4.0），停着等
+    // 托管连着两手超时：暂离，不再发牌；能打的真人只剩 1 号一个，停着等
     s = run(s, true);
     expect(s.t.seats[0]!.away).toBe(true);
     expect(G.turn(s)).toBeNull();
@@ -246,7 +246,7 @@ describe('操作', () => {
 
 describe('座位换人', () => {
   it('接管电脑的座位：电脑这一手弃牌、打完收回庄家，新人扣满买入，下一手坐上；这一手电脑的底牌不给他看', () => {
-    // 两个真人在打（0.4.0 至少两个才发牌），第三个人来接管 3 号电脑
+    // 两个真人在打（至少两个才发牌），第三个人来接管 3 号电脑
     let s = drive(settleAll(begin(['human', 'human', 'ai', 'ai'])));
     const house = s.t.seats[3]!;
     expect(house.owner).toBe('house');
@@ -269,7 +269,7 @@ describe('座位换人', () => {
     expect(G.view(s, 3).buying[3]).toBe(false);
   });
 
-  it('加注后马上离座，别人都弃了：没人跟的那一注留在池里归赢家，不退给已经结回封上的他，房间里不搁结不回去的钱（0.3.3）', () => {
+  it('加注后马上离座，别人都弃了：没人跟的那一注留在池里归赢家，不退给已经结回封上的他，房间里不搁结不回去的钱', () => {
     let s = seatedAll(['human', 'human', 'human']);
     const seat = G.turn(s)!;
     const to = G.view(s, seat).legal!.minTo;
@@ -289,8 +289,8 @@ describe('座位换人', () => {
     expect(credits(s)).toEqual([]);
   });
 
-  it('离座（0.2.4 立即结算）：这一手当场弃牌，桌上剩下的马上结回，投进池子的留着；别人打完这一手电脑再坐进来；马上又回来的买新的一份', () => {
-    // 三个真人：他走了还剩两个，下一手照常发（0.4.0 至少两个真人）
+  it('离座（立即结算）：这一手当场弃牌，桌上剩下的马上结回，投进池子的留着；别人打完这一手电脑再坐进来；马上又回来的买新的一份', () => {
+    // 三个真人：他走了还剩两个，下一手照常发（至少两个真人）
     let s = seatedAll(['human', 'human', 'human', 'ai']);
     const seat = G.turn(s)!;
     const others = [0, 1, 2].filter((i) => i !== seat);
@@ -318,7 +318,7 @@ describe('座位换人', () => {
   });
 
   it('最后一个真人离座：电脑替他把这一手打完，筹码马上结回去，房间算打完（over）', () => {
-    // 两个真人才发得出牌（0.4.0）：1 号先在这一手弃牌、离座，0 号就是最后一个真人，再走就没真人了
+    // 两个真人才发得出牌：1 号先在这一手弃牌、离座，0 号就是最后一个真人，再走就没真人了
     let s = drive(settleAll(begin(['human', 'human', 'ai', 'ai', 'ai'])));
     // 等到 1 号已经弃了、轮到 0 号、他弃牌以后还有两个电脑在这一手里（不然他一弃这一手就完了）。
     // 1 号一轮到就弃；0 号在 1 号弃之前跟着（这一手留到 1 号弃完再轮到他），之后不够条件就弃
@@ -339,7 +339,7 @@ describe('座位换人', () => {
     expect(s.t.seats[0]!.owner).toBe('house');
     expect(s.t.seats[1]!.owner).toBe('house');
     expect(credits(s).map(strip)).toEqual([{ id: expect.stringMatching(/^c/), seat: 0, kind: 'credit', amount: expect.any(Number) }]);
-    // 没有真人了：这一场打完（0.2.4），kit 还开房名额、办完结回关房
+    // 没有真人了：这一场打完，kit 还开房名额、办完结回关房
     expect(G.over(s)).toBe(true);
     // 这一手打完先停着；停够了发不了下一手（没有真人），停着等人
     expect(G.pause!(s)).toBe(HAND_PAUSE_MS);
@@ -386,14 +386,14 @@ describe('座位换人', () => {
 });
 
 describe('补码', () => {
-  it('补码（0.3.0）：不满一份就能补到满，满了不能补；补码在路上时不能再补；这一手打完才上桌；路上又赢满了，放不下的攒着、离桌时一起结回', () => {
+  it('补码：不满一份就能补到满，满了不能补；补码在路上时不能再补；这一手打完才上桌；路上又赢满了，放不下的攒着、离桌时一起结回', () => {
     // 打到第 2 手轮到真人（drive 停在真人出手前）
     const base = drive(settleAll(begin(['human', 'human', 'ai'])));
     const full = structuredClone(base);
     full.t.bank += MAX - full.t.seats[0]!.stack;
     full.t.seats[0]!.stack = MAX;
     expect(G.apply(full, 0, { t: 'rebuy' })).toEqual({ error: 'cannot_rebuy' });
-    // 钱包不够补满（平台 0.10.2）：补钱包够的，最少一个大盲、最多补到满
+    // 钱包不够补满：补钱包够的，最少一个大盲、最多补到满
     const short = structuredClone(base);
     short.t.bank += MAX - 300 - short.t.seats[0]!.stack;
     short.t.seats[0]!.stack = MAX - 300;
@@ -448,7 +448,7 @@ describe('收场', () => {
   });
 
   it('收场点：一手和一手之间，或者新的一手只交了盲注', () => {
-    // 两个真人才发牌（0.4.0）
+    // 两个真人才发牌
     let s = begin(['human', 'human', 'ai']);
     expect(G.breakPoint!(s)).toBe(true);
     s = settleAll(s);
@@ -472,7 +472,7 @@ describe('隐藏信息和体积', () => {
     }
   });
 
-  // 0.2.0 起最坏是 9 个真人座位：房间信息（每个座位的昵称）和牌桌都多了三个座位，上限从 6 KB 放到 8 KB
+  // 最坏是 9 个真人座位：房间信息（每个座位的昵称）和牌桌都多了三个座位，上限从 6 KB 放到 8 KB
   it('快照（最坏：9 个真人座位、河牌、长操作记录）不超过 8 KB', () => {
     let s = settleAll(begin(new Array<SeatKind>(9).fill('human')));
     // 一路小注加注到河牌，操作记录最长
@@ -539,17 +539,17 @@ describe('随机走很多步（座位换人、买入被拒、补码、收场）'
       expect(s.t.bank).toBe(0);
       // 每一份都结回了，钱包里不留"桌上那一份"
       expect([...open.keys()]).toEqual([]);
-      // 没有搁着结不回去的（0.3.3：封上以后又攒到的会随房间删掉，等于丢了）
+      // 没有搁着结不回去的（封上以后又攒到的会随房间删掉，等于丢了）
       expect(s.owed).toEqual(new Array<number>(s.owed.length).fill(0));
       expect(s.held).toEqual(new Array<number>(s.held.length).fill(0));
-      // 扣的 = 结回的 + 输给电脑的：牌桌清空时庄家净投入 house 是负的，就是电脑从真人那里赢走的（0.3.3）
+      // 扣的 = 结回的 + 输给电脑的：牌桌清空时庄家净投入 house 是负的，就是电脑从真人那里赢走的
       expect(debited).toBeGreaterThan(0);
       expect(debited - credited + s.t.house!).toBe(0);
     }
   });
 });
 
-describe('一手打完停一会儿（0.1.1，kit 0.5.0 的 pause）', () => {
+describe('一手打完停一会儿（kit 的 pause）', () => {
   it('一手打完：没人要出手、pause 给 HAND_PAUSE_MS、不算在等人；这时坐下、补码到账都不发牌；resume 才发下一手', () => {
     let s = drive(settleAll(begin(['human', 'human', 'ai', 'ai'])));
     expect(s.t.handNo).toBe(1);
@@ -576,7 +576,7 @@ describe('一手打完停一会儿（0.1.1，kit 0.5.0 的 pause）', () => {
     conserve(s.t);
   });
 
-  it('亮牌（0.19.0）：停着时亮自己的，所有人（含旁观）都看到；不轮流、不改停顿；形状不对的不进规则；发下一手后不能亮', () => {
+  it('亮牌：停着时亮自己的，所有人（含旁观）都看到；不轮流、不改停顿；形状不对的不进规则；发下一手后不能亮', () => {
     let s = drive(settleAll(begin(['human', 'human', 'ai', 'ai'])));
     for (let k = 0; k < 50 && s.t.handNo === 1 && !s.t.hold; k++) {
       const seat = G.turn(s);
@@ -600,7 +600,7 @@ describe('一手打完停一会儿（0.1.1，kit 0.5.0 的 pause）', () => {
   });
 
   it('房间要关时不再停：pause 为 null', () => {
-    // 两个真人才发牌（0.4.0）：真人都弃，电脑打完这一手
+    // 两个真人才发牌：真人都弃，电脑打完这一手
     let s = drive(settleAll(begin(['human', 'human', 'ai'])));
     while (!s.t.hold) s = act(s, G.turn(s)!, s.kinds[G.turn(s)!] === 'human' ? { t: 'fold' } : G.ai(s, G.turn(s)!));
     expect(G.pause!(s)).toBe(HAND_PAUSE_MS);
@@ -637,7 +637,7 @@ describe('一手打完停一会儿（0.1.1，kit 0.5.0 的 pause）', () => {
   });
 });
 
-describe('实盘至少两个真人（0.4.0）、电脑按好友房的强弱档（0.5.0）', () => {
+describe('实盘至少两个真人、电脑按好友房的强弱档', () => {
   /** 轮到的真人能过就过、不然跟（不弃，这一手打到摊牌），电脑按性格；直到这一手打完、停着的也 resume 过 */
   const finishHand = (s0: RoomState): RoomState => {
     let s = s0;
@@ -725,7 +725,7 @@ describe('实盘至少两个真人（0.4.0）、电脑按好友房的强弱档�
     expect(G.view(s, seat).needTwo).toBe(false);
   });
 
-  it('电脑按档位用好友房的强弱档（0.5.0，ROOM_LEVEL）', () => {
+  it('电脑按档位用好友房的强弱档（ROOM_LEVEL）', () => {
     for (const st of STAKES) {
       const s = settleAll(begin(['human', 'human', 'ai', 'ai'], 4, st.id));
       expect(s.t, st.id).toMatchObject({ minHumans: 2, level: ROOM_LEVEL[st.id] });
@@ -734,7 +734,7 @@ describe('实盘至少两个真人（0.4.0）、电脑按好友房的强弱档�
   });
 });
 
-describe('钱包 op 和结回上限（0.13.2 审计）', () => {
+describe('钱包 op 和结回上限（审计）', () => {
   it('好友房每一笔的 op 都以房间号 r 开头，永远不是 solo- 开头（单机的由 Worker 加 solo- 前缀，两边撞不上）', () => {
     let s = seatedAll(['human', 'human', 'ai', 'ai']);
     const ops: string[] = [];
@@ -772,7 +772,7 @@ describe('钱包 op 和结回上限（0.13.2 审计）', () => {
   });
 });
 
-describe('搭子战绩：切场（0.17.0，平台 15.19；docs/online.md 6.10）', () => {
+describe('搭子战绩：切场（平台 15.19；docs/online.md 6.10）', () => {
   const pair = (m: { players: { seat: number }[] }) => m.players.map((p) => p.seat).sort().join('-');
   it('四个真人陆续走、最后散桌：每一对同桌的只算一场，在先走的那一刻算；赢没赢按各自这一份的净输赢', () => {
     let s = seatedAll(['human', 'human', 'human', 'human']);
@@ -823,7 +823,7 @@ describe('搭子战绩：切场（0.17.0，平台 15.19；docs/online.md 6.10）
   });
 });
 
-describe('旁观（docs/social.md 1.4）', () => {
+describe('旁观（仓库根 docs/social.md 1.4）', () => {
   it('座位 -1（没入座的连接，kit 按 null 要视图）：一路打几手，视图里从不出现任何人没亮的底牌；上一手只带真的亮出来的牌', () => {
     // 两个真人、两个电脑；真人轮流跟注或过牌，让牌打到摊牌，也有弃牌赢的手
     let s = seatedAll(['human', 'human', 'ai', 'ai']);

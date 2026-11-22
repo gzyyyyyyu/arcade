@@ -76,7 +76,7 @@ export class TableScene {
       place(s.bet, betPos(p, g, i === this.c.me, packed));
       // 我的下注按底边摆、往上长：筹码多了也不压到自己的底牌
       s.bet.classList.toggle('mine', i === this.c.me);
-      // 两侧座位的下注按靠座位那头摆、往桌心长：居中摆时几摞筹码一多，往回伸到那家的底牌上（0.25.6 牌桌互压检查）
+      // 两侧座位的下注按靠座位那头摆、往桌心长：居中摆时几摞筹码一多，往回伸到那家的底牌上（牌桌互压检查）
       const sideBet = i !== this.c.me && !isTop(p, g) && (!g.tall || packed || p.y >= f.cy);
       s.bet.classList.toggle('from-l', sideBet && p.x < w / 2);
       s.bet.classList.toggle('from-r', sideBet && p.x > w / 2);
@@ -244,7 +244,7 @@ export class TableScene {
     const key = pots.join(',');
     if (this.c.potEl.dataset.k === key) return;
     this.c.potEl.dataset.k = key;
-    // 有边池时不写总数，换成一排小标签：主池、边池（一、二……），各带一枚筹码，宽度按字（0.25.6：原来标签的 class 叫 side，
+    // 有边池时不写总数，换成一排小标签：主池、边池（一、二……），各带一枚筹码，宽度按字（原来标签的 class 叫 side，
     // 撞上选桌页右栏的 .side，被撑成 430 宽、竖排的两条，横在桌心压住手牌，主池的数字也挤没了）
     const multi = pots.length > 1;
     this.c.potMain.innerHTML = total && !multi ? `<span class="pile">${chipPile(total)}</span><span class="pot-label">底池</span><b>${chips(total)}</b>` : '';

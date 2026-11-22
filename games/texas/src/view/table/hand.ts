@@ -197,7 +197,7 @@ export class TableHand {
     }
     const winners = new Set(r.pots.flatMap((p) => p.winners.map((x) => x.seat)));
     for (const seat of winners) {
-      // 赢家头像里迸出金币（0.18.3；大锅更多更远）
+      // 赢家头像里迸出金币（大锅更多更远）
       coinBurst(this.c.fx, this.scene.seatPt(seat), this.c.opts.pace(), big || cele?.seat === seat, isTop(this.scene.seatPt(seat), this.c.g));
       this.motion.float(seat, `+${chips(r.pots.reduce((a, p) => a + (p.winners.find((x) => x.seat === seat)?.won ?? 0), 0))}`);
     }
@@ -282,7 +282,7 @@ export class TableHand {
     const target = frameOf(v);
     const flights: Promise<void>[] = [];
     let n = 0;
-    // 发牌总时长按两圈 12 张封顶：9 人桌 18 张照 170 毫秒一张要 3 秒多（0.3.0 实打嫌一手太慢）
+    // 发牌总时长按两圈 12 张封顶：9 人桌 18 张照 170 毫秒一张要 3 秒多（实打嫌一手太慢）
     const gap = MS.dealGap * Math.min(1, 12 / (order.length * 2));
     this.c.croupier.deal((gap * order.length * 2 + MS.dealFly) * this.c.opts.pace());
     for (let round = 0; round < 2; round++) {

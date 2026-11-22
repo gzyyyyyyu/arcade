@@ -60,7 +60,7 @@ export function dialog(parent: HTMLElement, title: string, body: string | HTMLEl
       btn.addEventListener('click', () => done(c.value));
       btns.push(btn);
     }
-    // 右上角 ✕（docs/ui.md 第 5 节）：能点遮罩关的弹窗都有，等于点遮罩；必须做决定的（sticky）只认按钮，不放。
+    // 右上角 ✕（仓库根 docs/ui.md 第 5 节）：能点遮罩关的弹窗都有，等于点遮罩；必须做决定的（sticky）只认按钮，不放。
     // 放在按钮后面：Tab 先走操作按钮，最后才到 ✕（位置靠 CSS 摆到右上角）
     if (!sticky) {
       const x = el('button', 'd-x', box, '✕');

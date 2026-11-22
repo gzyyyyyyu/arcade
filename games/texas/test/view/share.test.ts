@@ -1,4 +1,4 @@
-/** 结算页的分享卡（0.14.0，docs/social.md 1.1）：只交公开的数，画法是 kit 的 */
+/** 结算页的分享卡（仓库根 docs/social.md 1.1）：只交公开的数，画法是 kit 的 */
 import { describe, expect, it } from 'vitest';
 import { parseCards } from '../../src/core/cards.ts';
 import { evalCards } from '../../src/core/eval.ts';
@@ -30,7 +30,7 @@ describe('分享卡', () => {
     expect(roomCard(rows, [], '小桌 · 6 人桌', '小明')).toMatchObject({ title: '好友房 · 小桌 · 6 人桌', big: { value: '−400' }, stats: [{ value: '3 人' }, { value: '第 2' }] });
     expect(roomCard(rows.map((r) => ({ ...r, me: false })), [], 'x', '小明')).toBeNull();
   });
-  it('好友房颁奖（0.15.0）：三格是谁拿了什么奖；我拿了奖，那句话做名场面、奖名做徽章；没拿就用 MVP 那句', () => {
+  it('好友房颁奖：三格是谁拿了什么奖；我拿了奖，那句话做名场面、奖名做徽章；没拿就用 MVP 那句', () => {
     const rows = [
       { name: '老王', net: 3_000, me: false },
       { name: '小明', net: -400, me: true },

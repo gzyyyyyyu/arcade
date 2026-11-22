@@ -1,5 +1,5 @@
 /**
- * 电脑出手（docs/ai.md 4.2；0.3.0 的改动见 4.6）。参数是这个座位的视图，不是完整状态：电脑在结构上就拿不到别人的底牌和牌堆。
+ * 电脑出手（docs/ai.md 4.2；见 4.6）。参数是这个座位的视图，不是完整状态：电脑在结构上就拿不到别人的底牌和牌堆。
  * 手牌强度（翻牌前查表、翻牌后蒙特卡洛）→ 和底池赔率、位置、性格、这一档的功力比 → 弃、过、跟、加。全程整数。
  */
 import type { RandomStream } from 'arcade-kit/rng';
@@ -56,7 +56,7 @@ export function decide(v: View, r: RandomStream): Action {
   const bettor = raises > 0 ? lastAggressor(v, [streetStart(v), v.log.length]) : -1;
   const opp2 = adapt ? readOpponents(v, others, yet, bettor) : NO_READ;
   // 有人这一轮下注、加注时他的牌通常更好，每有一次打一个折扣（翻牌前的门槛另按加注次数抬高）
-  // 0.3.0 起按次数连乘（原来是线性的 read × 次数）：read 调大以后，对随机牌还有四五成的高牌、空气碰到下注就该弃，不再每手跟到摊牌
+  // 按次数连乘：随机牌、空气碰到下注就该弃，不每手跟到摊牌
   let eq = raw;
   // 越往后的下注越说明有牌：转牌的折扣 ×1.15、河牌 ×1.3（河牌对随机牌的胜率最虚，空气也常有四五成）
   let read = Math.floor((k.read * (1000 + 150 * (v.board.length - 3))) / 1000);
@@ -98,7 +98,7 @@ export function decide(v: View, r: RandomStream): Action {
     return lg.check ? { t: 'check' } : { t: 'fold' };
   }
 
-  // 低档不连开三枪（0.8.0；0.12.0 起第 0–3 档）：翻牌、转牌都是我下的注，河牌没人下注时有牌也多半只过牌（只管价值注，诈唬照常）
+  // 低档不连开三枪（第 0–3 档）：翻牌、转牌都是我下的注，河牌没人下注时有牌也多半只过牌（只管价值注，诈唬照常）
   const third = !pre && v.board.length === 5 && raises === 0 && k.third > 0 && lg.check && streak(v, me) >= 2 && r.below(1000) < k.third;
 
   // 大牌：加注（偶尔慢打）
@@ -177,7 +177,7 @@ export function decide(v: View, r: RandomStream): Action {
   // 爱跟的性格（slack 为正）和 loose 一样按档的 soft 打折：小桌全用，越往上越收（中桌的小白原来翻牌后照样跟到底，每百手 −150）
   const slack = p.slack > 0 ? Math.floor((p.slack * k.soft) / 1000) : p.slack;
   const ok = eq >= odds - slack - k.slack - (tilt ? TILT.slack : 0);
-  // 低档手软（0.5.0；0.12.0 起第 0–3 档）：够跟、但只比赔率多一点的牌，偶尔就弃了
+  // 低档手软（第 0–3 档）：够跟、但只比赔率多一点的牌，偶尔就弃了
   if (ok && k.slip && eq < odds + 150 && r.below(1000) < k.slip) return { t: 'fold' };
   // 小错（性格的 flaw）：舍不得弃（差一点的牌被下注仍然跟）、怕了（够跟但注太大）弃掉
   if (!ok && p.flaw === 'overcall' && eq >= odds - slack - k.slack - 150 && toCall * 3 <= v.pot && r.below(1000) < flawRate(p, k)) return { t: 'call' };
@@ -216,7 +216,7 @@ const rate = (n: number | undefined, d: number | undefined): number => (d ? Math
 const sampled = (seen: readonly number[] | undefined): seen is readonly number[] => !!seen && seen[0]! >= READ_HANDS;
 
 /**
- * 看对手的打法（0.5.0；0.28.0 加摊牌率、下注的人、偷盲）：只用公开的统计（SeatView.seen，出手推出来的），手数够了才算。
+ * 看对手的打法（入池、加注、摊牌率、下注的人、偷盲）：只用公开的统计（SeatView.seen，出手推出来的），手数够了才算。
  * 入池 ≤ 22% 算紧；入池 ≥ 45%、翻牌后下注加注不到跟注的六成算跟注站；翻牌前加注 ≥ 20% 算爱加注；
  * 看到翻牌的手里打到摊牌 ≥ 38% 算"一路看到底"（诈唬打不走），≤ 18% 算"爱弃牌"（诈唬、偷盲有用）
  */
@@ -421,7 +421,7 @@ function raise(v: View, p: Persona, k: Skill, eq: number, raises: number, r: Ran
     // 翻牌后：性格的基本尺度乘 0.7–1.3（五档随机挑，不总是同一个数）；很大的牌再大一点
     // 河牌上的大牌，凶的人偶尔直接全下
     if (v.board.length === 5 && eq >= 900 && k.value >= 1000 && r.below(1000) < p.shove) return { t: 'allin' };
-    // 低档（功力的 value 不到 1000；0.12.0 起第 0–4 档）：尺度小一点，很大的牌也不再加码
+    // 低档（功力的 value 不到 1000；第 0–4 档）：尺度小一点，很大的牌也不再加码
     const size = Math.floor((Math.floor((p.size * k.value) / 1000) * (1000 + Math.floor(((r.below(5) - 2) * 150 * styled(p.spread, k)) / 1000))) / 1000) + (eq >= 850 && k.value >= 1000 ? 250 : 0);
     to = v.currentBet + Math.floor(((v.pot + lg.call) * size) / 1000);
   }

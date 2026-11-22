@@ -28,7 +28,7 @@ export interface SoloSummary {
   /** 今天德州进账到顶、没进钱包的 */
   capped: number;
   busted: boolean;
-  /** 这一场的称号（0.3.0 实打后单机也给；算法和好友房一样） */
+  /** 这一场的称号（实打后单机也给；算法和好友房一样） */
   titles?: Title[];
   /** "分享"按钮（kit 的分享卡）：不给就不出（单独部署、还没打完一手） */
   share?: () => void;
@@ -89,7 +89,7 @@ export function roomSummary(
   return dialog(parent, title, body, [{ label: '回首页', value: 'ok', primary: true }]);
 }
 
-/** 分享（docs/social.md 1.1）：放在结算页里面，点了不关结算页；kit 出系统分享或预览 */
+/** 分享（仓库根 docs/social.md 1.1）：放在结算页里面，点了不关结算页；kit 出系统分享或预览 */
 function shareButton(body: HTMLElement, share: (() => void) | undefined): void {
   if (!share) return;
   const b = el('button', 'pill sum-share', body, '分享这一场');

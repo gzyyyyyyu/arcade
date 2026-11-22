@@ -3,7 +3,7 @@
  * - simple：简单合理的打法，相当于认真但不精的新手——起手牌挑一挑，翻牌后看自己用上底牌的成牌，好牌下注、差牌弃；
  * - station：跟注站，什么都跟，从不加注；
  * - jammer：乱全下，随手推光。
- * - novice：小白（docs/balance.md 第 1 节，0.12.0）：见牌就跟、偶尔乱加，只在明显差的时候弃。
+ * - novice：小白（仓库根 docs/balance.md 第 1 节）：见牌就跟、偶尔乱加，只在明显差的时候弃。
  * 电脑要做到：simple 在小桌常赢、越往上越难；station、jammer 每一档都明显输。配平（docs/ai.md 4.10）用 novice 当"小白"、simple 当"普通"。
  */
 import type { RandomStream } from 'arcade-kit/rng';

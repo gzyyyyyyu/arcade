@@ -1,5 +1,5 @@
 /**
- * 顺手提示和互动总开关（docs/experience.md 13.4、13.7）。短语的文字在 fun/taunts.ts；菜单、面板、屏蔽 0.13.0 起是 kit 的 TableFun。
+ * 顺手提示和互动总开关（docs/experience.md 13.4、13.7）。短语的文字在 fun/taunts.ts；菜单、面板、屏蔽是 kit 的 TableFun。
  * 顺手提示只看公开事件（谁赢了、怎么赢的、亮出来的牌），不碰没亮的底牌。
  */
 import { bluffer, riverTurnaround } from '../core/fame.ts';

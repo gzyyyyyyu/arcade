@@ -1,4 +1,4 @@
-/** 钱包错误给玩家看的话（平台 15.10）：单机的 RPC、好友房、/api 三处说法不同（0.3.5） */
+/** 钱包错误给玩家看的话（平台 15.10）：单机的 RPC、好友房、/api 三处说法不同 */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getWallet, walletError } from '../../src/net/wallet.ts';
 

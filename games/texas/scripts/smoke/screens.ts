@@ -1,11 +1,11 @@
 /** 弹窗、大厅界面、成就、谜题、设置（--only dialogs / lobbyui / ach / puzzle / settings）。 */
 import type { Browser, Page } from 'playwright-core';
 import { opt } from '../args.ts';
-import { DESK_W, log, newContext, watch, shot, skipTips, enter, openMore } from './harness.ts';
+import { DESK_W, log, newContext, watch, shot, enter, openMore } from './harness.ts';
 import { summary, IPHONE, tallDevice } from './solo.ts';
 
 /**
- * 弹窗（--only dialogs，docs/ui.md 第 5 节）：娱乐桌上点离桌，确认框的默认焦点在"接着打"、"离桌"是危险色；
+ * 弹窗（--only dialogs，仓库根 docs/ui.md 第 5 节）：娱乐桌上点离桌，确认框的默认焦点在"接着打"、"离桌"是危险色；
  * 弹窗开着按 F/C 不会弃牌或跟注（键不漏到牌桌）、Tab 十次焦点不出弹窗、Esc 关掉并把焦点还给离桌按钮；最后真离桌走到结算页
  */
 export async function dialogsFlow(browser: Browser, base: string): Promise<void> {
@@ -17,7 +17,6 @@ export async function dialogsFlow(browser: Browser, base: string): Promise<void>
   await page.locator('.w-balance').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
   await enter(page, '娱乐');
   await page.locator('.lobby .start').click();
-  await skipTips(page);
   await page.locator('.seat.me .card.up').first().waitFor();
   const focused = (): Promise<string> => page.evaluate(() => (document.activeElement as HTMLElement | null)?.textContent?.trim() ?? '');
   await page.locator('.leave').click();
@@ -48,11 +47,11 @@ export async function dialogsFlow(browser: Browser, base: string): Promise<void>
 }
 
 /**
- * 止盈（--only tp，0.22.0）：实盘小桌把止盈设成"赢 1"，一直跟注，赢到的那一手打完就自动离桌：
+ * 止盈（--only tp）：实盘小桌把止盈设成"赢 1"，一直跟注，赢到的那一手打完就自动离桌：
  * 不问"离桌吗"、出结算页、钱包比坐下前多。大厅"带上桌"下面那一行显示同一个设置
  */
 /**
- * 选桌页的界面规范（--only lobbyui，docs/ui.md 第 2、4、9、11 节）：实盘选桌首屏金色主按钮只有"坐下开打"一个、
+ * 选桌页的界面规范（--only lobbyui，仓库根 docs/ui.md 第 2、4、9、11 节）：实盘选桌首屏金色主按钮只有"坐下开打"一个、
  * 选项不折叠（人数、带多少、止盈、匹配真人、锦标赛、全下局、今日全下、今日锦标赛直接摆着）、选中的档位卡不和主按钮同色；
  * 五个尺寸（1280×720、1920×1080、844×390、390×844、360×640）下主页、实盘/娱乐/好友房选桌的 .lobby 和右栏都不滚（scrollHeight ≤ clientHeight），
  * 可见按钮不小于 32、字不小于 12，各截一张；
@@ -193,7 +192,7 @@ export async function lobbyUiFlow(browser: Browser, base: string): Promise<void>
 }
 
 /**
- * 成就（--only ach，0.27.0）：标题页"成就"打开成就墙（30 个格子、没拿到的灰着）；娱乐桌一直跟注到第一次赢，
+ * 成就（--only ach）：标题页"成就"打开成就墙（30 个格子、没拿到的灰着）；娱乐桌一直跟注到第一次赢，
  * 右上角冒出"成就解锁"小提示，不压操作按钮，texas.ach 里存上了；手机竖屏再看一次成就墙（格子不出屏）
  */
 export async function achFlow(browser: Browser, base: string): Promise<void> {
@@ -213,7 +212,6 @@ export async function achFlow(browser: Browser, base: string): Promise<void> {
   await page.locator('.d-btn.primary').click();
   await enter(page, '娱乐');
   await page.locator('.lobby .start').click();
-  await skipTips(page);
   await page.locator('.stage.at-table').waitFor();
   const deadline = Date.now() + 240_000;
   while (!(await page.locator('.ach-item').count())) {
@@ -430,7 +428,6 @@ export async function settingsFlow(browser: Browser, base: string): Promise<void
     await page.locator('.w-balance').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
     await enter(page, '娱乐', touch);
     await click('.lobby .start');
-    await skipTips(page);
     await page.locator('.stage.at-table').waitFor();
     await page.locator('.topbar .where:not(:empty)').waitFor({ state: 'attached' });
 

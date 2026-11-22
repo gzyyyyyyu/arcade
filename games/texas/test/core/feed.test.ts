@@ -1,4 +1,4 @@
-/** 好友动态的名场面（0.16.0）：判定只看亮出来的牌和分池结果，模板文件守平台的格式（docs/platform-backend.md 15.17） */
+/** 好友动态的名场面：判定只看亮出来的牌和分池结果，模板文件守平台的格式（仓库根 docs/platform-backend.md 15.17） */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parseCards } from '../../src/core/cards.ts';
