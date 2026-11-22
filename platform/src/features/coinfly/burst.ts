@@ -1,4 +1,4 @@
-/** 顶栏筹码牌子上迸出一小撮金币（约 600ms）。只动 transform/opacity；样式在 coinfly.css 的 .account--chips 下（App.tsx 引入） */
+/** 顶栏筹码牌子上迸出一小撮金币（约 600ms）。只动 transform/opacity；样式在 coinfly.css 的 .account--chips 下（features/topbar/TopBar.tsx 引入） */
 import { burstTarget } from './burst-logic.ts';
 
 const DURATION = 600;

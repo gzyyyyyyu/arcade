@@ -145,6 +145,9 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 @media (hover: hover) {
   .top__home:hover .logo-mark { transform: rotate(0deg) scale(1.06); }
 }
+/* 按下：标志摆正、缩一下；页脚和名字这类文字链接按下变淡。手指下面看得出按到了（触屏没有悬停） */
+.top__home:active .logo-mark { transform: rotate(0deg) scale(0.94); transition-duration: 0.06s; }
+.foot a:active, .foot__sound:active, .people__link:active { opacity: 0.6; }
 .top__sub { margin: 0; color: var(--muted); }
 /* 页脚一行（一屏放下，不再在手机上竖排成四行）：链接看着 24 高，点击区用透明的 ::after 外扩到 44 */
 .foot { margin-top: var(--s-2); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; column-gap: 0; text-align: center; color: var(--muted); font-size: var(--fs-xs); line-height: 1.4; }
@@ -723,7 +726,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .card, .btn, .card__play { transition: none; }
 }
 html.no-motion .lobby-grid .card { animation: none; }
-html.no-motion .card, html.no-motion .btn, html.no-motion .card__play, html.no-motion .pills button { transition: none; }
+html.no-motion .card, html.no-motion .btn, html.no-motion .card__play, html.no-motion .pills button, html.no-motion .logo-mark { transition: none; }
 
 /* ===== 过渡（docs/style.md "动效"）===== */
 /* 进游戏 / 回大厅：盖在最上层的封面（enter-fx.ts 用 transform 从卡片位置放大到满屏或反过来） */

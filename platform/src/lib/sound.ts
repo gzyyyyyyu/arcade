@@ -46,32 +46,12 @@ export function setSoundOn(next: boolean) {
   if (next) tap(true);
 }
 
-/** 一声"嗒"：正弦波从高往低滑一点，50 毫秒左右收住 */
-function tap(confirm = false) {
-  if (!on) return;
-  const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AC) return;
-  ctx ??= new AC();
-  if (ctx.state === 'suspended') void ctx.resume();
-  const t = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  const [from, to, len] = confirm ? [880, 1320, 0.12] : [700, 420, 0.05];
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(from, t);
-  osc.frequency.exponentialRampToValueAtTime(to, t + len);
-  gain.gain.setValueAtTime(0.0001, t);
-  // 音量压得很低：只是手指下的一点反馈，不吵
-  gain.gain.exponentialRampToValueAtTime(confirm ? 0.05 : 0.035, t + 0.005);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + len);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start(t);
-  osc.stop(t + len + 0.02);
-}
-
-/** 拿到可用的 AudioContext；关着、无头浏览器（冒烟要确定）、不支持时给 null */
-function audio(): AudioContext | null {
-  if (!on || navigator.webdriver) return null;
+/**
+ * 拿到可用的 AudioContext；关着、不支持时给 null。无头浏览器（冒烟要确定）下提示音也给 null，
+ * 只有点按声照建：冒烟靠数点按声建了几个 AudioContext 验"关了一点声音都不出"
+ */
+function audio(isTap: boolean): AudioContext | null {
+  if (!on || (navigator.webdriver && !isTap)) return null;
   const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AC) return null;
   ctx ??= new AC();
@@ -82,9 +62,9 @@ function audio(): AudioContext | null {
 type Note = { at: number; hz: number; len: number; type?: OscillatorType; to?: number; vol?: number };
 
 /** 按时间排好的几个音，音量都压在点按声的 1.5 倍以内（0.05 × 1.5） */
-function play(notes: Note[]) {
+function play(notes: Note[], isTap = false) {
   try {
-    const c = audio();
+    const c = audio(isTap);
     if (!c) return;
     const t0 = c.currentTime;
     for (const n of notes) {
@@ -104,6 +84,12 @@ function play(notes: Note[]) {
   } catch {
     // 声音出不来不影响任何操作
   }
+}
+
+/** 一声"嗒"：正弦波从高往低滑一点，50 毫秒左右收住；confirm 是打开声音时往上的一声 */
+function tap(confirm = false) {
+  // 音量压得很低：只是手指下的一点反馈，不吵
+  play([confirm ? { at: 0, hz: 880, to: 1320, len: 0.12 } : { at: 0, hz: 700, to: 420, len: 0.05, vol: 0.035 }], true);
 }
 
 /** 进游戏：往上的两声"叮叮"（约 0.3 秒） */
@@ -136,15 +122,18 @@ export function playError() {
   play([{ at: 0, hz: 220, to: 130, len: 0.16, vol: 0.07 }]);
 }
 
-/** 整页只挂一个监听：按下能点的东西（没禁用的按钮、链接、折叠标题）就响一声 */
+/** 整页只挂一个监听：按下能点的东西（没禁用的按钮、链接、页签、勾选框和它的字、下拉框）就响一声 */
 export function installTapSound() {
   document.addEventListener(
     'pointerdown',
     (e) => {
       if (!on || e.button !== 0) return;
-      const el = (e.target as Element | null)?.closest('a[href], button:not(:disabled), summary');
+      // 不用 :has：Chrome 105、Safari 15.4 以前不认，closest 会每按一下抛一次错
+      const el = (e.target as Element | null)?.closest('a[href], button:not(:disabled), summary, [role="tab"], label, select:not(:disabled)');
       // 声音开关自己在打开时响确认的那一声
-      if (el && !el.closest('[data-sound-toggle]')) tap();
+      if (!el || el.closest('[data-sound-toggle]')) return;
+      if (el instanceof HTMLLabelElement && !(el.control && !(el.control as HTMLInputElement).disabled)) return;
+      tap();
     },
     { capture: true, passive: true },
   );
