@@ -15,12 +15,12 @@
 2. **不引用目录以外的文件**：import、require、`new URL(..., import.meta.url)`、tsconfig 的 extends/paths、构建和部署配置里不能有 `../` 指到模块外。
    唯一例外：`package.json` 里 `"file:../../packages/<name>"` 依赖共用包。
 3. **不用 npm workspaces，根目录没有 `package.json`**：各模块各自 `npm ci`、各有 lockfile 和 `node_modules`。
-4. **模块间只走公开接口**：游戏和平台之间用同域 `/api/*` 和服务绑定 RPC（游戏 Worker 认人经 `ARCADE` 绑定调 `/api/me`）；游戏之间不交互；不读别的模块的源码、数据、产物、D1 或 DO。
+4. **模块间只走公开接口**：游戏和平台之间用同域 `/api/*` 和服务绑定 RPC（游戏 Worker 认人经 `ARCADE` 绑定调 `/api/me`）；游戏之间不交互；不读别的模块的源码、数据、产物、D1 或 DO。唯一例外：平台的 `arcade.sound`（大厅静音）对游戏公开、只读，游戏经 `arcade-kit/client` 的 `platformSoundOn()` 读，不直接读这个 key。
 5. **线上资源各自独立**：
    - 每个模块一个 Worker；`wrangler.jsonc` 能单独部署：游戏自己的资源、DO、`vars` 写在里面，不带平台也能以游客身份玩；
      接平台的绑定、`GATE`、路由由部署工具补（[docs/new-game.md](docs/new-game.md) 第 4 节）；平台的 Secret 用 `wrangler secret put` 设，不进仓库。
    - 浏览器存储（localStorage、sessionStorage、IndexedDB、Cache）的 key 一律加 `<游戏id>.` 前缀：大家同域，前缀是唯一的隔离。平台的 key 以 `arcade.` 开头，加、删 key 的 PR 同步改这份清单：
-     sessionStorage `arcade.reloaded`、`arcade.enterFx`；localStorage `arcade.sound`、`arcade.feedSeen`、`arcade.recent.<用户>`、`arcade.tour.<用户>`（`arcade.tour.test` 只给冒烟用）、`arcade.badgesSeen.<用户>`。
+     sessionStorage `arcade.reloaded`、`arcade.enterFx`；localStorage `arcade.sound`（只有 `off` 或没有，格式不改）、`arcade.feedSeen`、`arcade.recent.<用户>`、`arcade.tour.<用户>`（`arcade.tour.test` 只给冒烟用）、`arcade.badgesSeen.<用户>`。
    - 资源用相对路径，只有回大厅指向 `/`。
    - 线上 Worker = 平台 1 个 + 每个游戏 1 个，**不建测试或实验 Worker**；临时实验用完当天删。
 6. **不写死本机路径**：没有 `/root/`、`/home/`、`/tmp/` 这类绝对路径；临时文件用 `os.tmpdir()` 或命令行参数。
