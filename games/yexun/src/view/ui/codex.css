@@ -97,6 +97,8 @@
   .yx-ccard > span { justify-self: start; }
   .yx-ccard .yx-cn-ic { width: 36px; height: 36px; font-size: 22px; grid-column: 1; grid-row: 1 / span 3; }
   .yx-ccard p { margin: 0; font-size: var(--fs-xs, 12px); line-height: 1.25; }
+  /* 合成卡的「怎么合」每张一样（按合成 / 双修两种），矮屏写上它卡比内容区还高、底下被裁（11-21 走查 844×390）；玩法·合成页有 */
+  .yx-ccard em.how { display: none; }
   .yx-badges { margin-top: 2px; }
   .yx-arow { padding: 3px 8px; }
 }

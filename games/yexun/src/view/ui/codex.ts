@@ -189,7 +189,7 @@ export class Codex {
       return (
         `<div class="yx-ccard ${done ? 'done' : 'lock'}${m.dual ? ' dual' : ''}" style="--mc:${m.color}">` +
         `<img${done ? '' : ' class="sil"'} alt="" src="${this.icons(done ? m.icon : WEAPONS[m.a].icon)}"><b>${m.dual ? '双修 · ' : ''}${esc(m.name)}</b><span>${esc(whoText(m))}</span>` +
-        `<p class="evo">${recipe}</p><p>${esc(m.desc)}</p>${done ? '<em>合成过</em>' : `<em>${mergeHow(m)}</em>`}</div>`
+        `<p class="evo">${recipe}</p><p>${esc(m.desc)}</p>${done ? '<em>合成过</em>' : `<em class="how">${mergeHow(m)}</em>`}</div>`
       );
     }).join('');
     const usedN = rec.weaponsUsed.length;

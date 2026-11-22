@@ -163,9 +163,13 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       storeReplay(sess.rec.finish(w, { won: run.won, quit, seconds: run.seconds, kills: run.kills, level: run.level, bossKilled: run.bossKilled, loot: run.loot, daily: run.daily }, scoresOfRun(run, today)));
       sess.rec = null;
     }
-    void submitter.submit(run).then((outs) => {
-      if (outs.length) result.setNote(outs.map(outcomeText).join('；'));
-    });
+    // 没交上（断网、榜单忙）的给一个「重试」按钮，重交那几个榜
+    const note = (outs: Awaited<ReturnType<typeof submitter.submit>>): void => {
+      if (!outs.length) return;
+      const failed = outs.some((o) => o.result.kind === 'offline' || o.result.kind === 'busy');
+      result.setNote(outs.map(outcomeText).join('；'), failed ? () => void submitter.retry(run).then(note) : null);
+    };
+    void submitter.submit(run).then(note);
     return run;
   };
   /**

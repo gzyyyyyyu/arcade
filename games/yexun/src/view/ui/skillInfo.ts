@@ -74,9 +74,10 @@ export function skillTipHtml(id: CharacterId): string {
   );
 }
 
-/** 每个角色第一次在局里拿到技能时的提示：做什么、怎么放（touch：触屏设备） */
+/** 每个角色第一次在局里拿到技能时的一行提示：叫什么、怎么放（touch：触屏设备） */
 export function skillFirstTip(id: CharacterId, touch: boolean): string {
   const k = skillInfo(id);
-  const how = touch ? '点右下角的技能钮放，<b>按住</b>它看详细说明' : '按 <b>空格</b> 或 <b>Q</b> 放，鼠标停在右下角的技能钮上看详细说明';
-  return `<b>技能「${esc(k.name)}」</b>${esc(k.text)}（${k.cd} 秒一次）<br>${how}`;
+  // 一行短句（开战就挂三行长条挡住上面来的怪）；干什么、多久一次在按住 / 悬停的说明里
+  const how = touch ? '点右下角放，<b>按住</b>看说明' : '<b>空格</b> / <b>Q</b> 放，悬停右下角看说明';
+  return `<b>技能「${esc(k.name)}」</b>解锁：${how}`;
 }

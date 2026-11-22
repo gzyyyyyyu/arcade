@@ -16,7 +16,7 @@ export interface SubmitOutcome {
 export interface Submitter {
   /** 交这一局；已经交过的（runId 相同）返回上次的结果；不该交的返回空数组 */
   submit(run: RunSummary): Promise<SubmitOutcome[]>;
-  /** 把上次没交上（offline）的榜再交一次 */
+  /** 把上次没交上（offline、busy）的榜再交一次 */
   retry(run: RunSummary): Promise<SubmitOutcome[]>;
 }
 
@@ -49,7 +49,7 @@ export function createSubmitter(deps: BoardDeps, now: () => number = () => Date.
     },
     async retry(run) {
       const old = done.get(run.runId) ?? [];
-      const redo = new Set(old.filter((o) => o.result.kind === 'offline').map((o) => o.submission.boardId));
+      const redo = new Set(old.filter((o) => o.result.kind === 'offline' || o.result.kind === 'busy').map((o) => o.submission.boardId));
       if (redo.size === 0) return old;
       const fresh = await send(run, redo);
       const merged = old.map((o) => fresh.find((f) => f.submission.boardId === o.submission.boardId) ?? o);
@@ -68,11 +68,11 @@ export function outcomeText(o: SubmitOutcome): string {
     case 'limit':
       return '今天交得太多了，成绩没上榜，明天再来';
     case 'busy':
-      return '榜单有点忙，这一局没交上，稍后点一下重试';
+      return '榜单有点忙，这一局没交上';
     case 'wrong_user':
       return '账号变了，这一局没交上，请刷新页面再打';
     case 'offline':
-      return netDown('成绩还在本机，点一下重试');
+      return netDown('成绩还在本机');
     case 'odd':
       return '已交榜';
     case 'out':

@@ -28,7 +28,7 @@
 .yx-guide .yx-grecipe > i, .yx-guide .yx-gto > i { font-style: normal; color: #6a5a48; }
 /* "→ 进化后的样子"捆在一起换行：窄屏上箭头留在上一行末尾、结果孤零零掉到下一行，看不出是谁进化成了谁 */
 .yx-guide .yx-gto { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-.yx-guide .yx-gtag { font-style: normal; font-size: var(--fs-xs, 12px); color: #fff; background: var(--mc, #b58cff); border-radius: 7px; padding: 0 6px; }
+.yx-guide .yx-gtag { font-style: normal; font-size: var(--fs-xs, 12px); color: #fff; background: var(--mc, #b58cff); border-radius: 7px; padding: 0 6px; white-space: nowrap; flex: none; }
 .yx-guide .yx-gcards { display: flex; gap: 8px; margin: 2px 0 6px; }
 .yx-guide .yx-gcards span { flex: 1; padding: 10px 4px; text-align: center; font-size: var(--fs-md, 14px); font-weight: 700; border: 2.5px solid var(--ink, #17131c); border-radius: 10px; background: #fff3c4; box-shadow: 0 3px 0 var(--ink, #17131c); }
 .yx-guide .yx-groles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
@@ -69,6 +69,8 @@
 .yx-guide .yx-gsi u { width: 1.5px; height: 18px; margin: 0 4px; background: rgba(23, 19, 28, 0.35); }
 .yx-guide .yx-gbadge { width: 28px; height: 28px; }
 .yx-guide .yx-gsr { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; font-size: var(--fs-xs, 12px); }
+/* 心法说明不小于 12（原来 small 默认缩到 10） */
+.yx-guide .yx-gsr small { font-size: var(--fs-xs, 12px); }
 .yx-guide .yx-gsr > i { font-style: normal; color: #6a5a48; }
 .yx-guide .yx-gsr > i:not(:first-child) { margin-left: 8px; }
 .yx-guide .yx-gsr > b { font-size: var(--fs-md, 14px); }
@@ -101,7 +103,11 @@
   .yx-guide .yx-gevo { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .yx-guide .yx-gschools { gap: 10px 12px; }
   .yx-guide .yx-gschool { padding: 9px 10px; gap: 4px; }
-  .yx-guide .yx-gmlist .yx-gmrow { padding-top: 2px; padding-bottom: 2px; }
+  /* 合成页按行翻页，每行放宽：字 13、图标 22 */
+  .yx-guide .yx-gmlist { gap: 6px 14px; }
+  .yx-guide .yx-gmlist .yx-gmrow { padding-top: 4px; padding-bottom: 4px; font-size: var(--fs-sm, 13px); }
+  .yx-guide .yx-gmrow .yx-gw { font-size: var(--fs-sm, 13px); }
+  .yx-guide .yx-gmrow .yx-gi { width: 22px; height: 22px; }
   .yx-guide .yx-gcols.yx-g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .yx-guide .yx-gtwo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; }
   .yx-guide .yx-grole { padding: 3px 8px; }

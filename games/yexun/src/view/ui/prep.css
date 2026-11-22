@@ -173,13 +173,17 @@
   .yx-prep .yx-pbv { text-align: left; }
   .yx-prep .yx-pd-act { align-self: end; }
 }
-/* 小竖屏（360×640 这一档）：五列小卡只有 58 宽，技能名四个字刚好放下；头像缩一点、外观那行不写（大卡上的「蓝袍桃木剑…」），详情底下的按钮才放得下 */
+/* 小竖屏（360×640 这一档）：五列小卡只有 58 宽，技能名四个字刚好放下；头像缩一点、外观那行不写（大卡上的「蓝袍桃木剑…」），详情底下的按钮才放得下。
+   法器图标 18：能合 15 件的角色（小道士、剑侠）一行放下，不折第二行；技能说明五行的角色「出战」按钮不伸出详情卡 */
 @media (orientation: portrait) and (max-height: 700px) and (max-width: 999px) {
-  .yx-prep .yx-pchars { --yx-pfs: 26px; --yx-pcg: 4px; --yx-pdr: 3px; }
+  .yx-prep .yx-pchars { --yx-pfs: 26px; --yx-pcg: 4px; --yx-pdr: 2px; --yx-pdfs: 40px; --yx-pdsk: 24px; --yx-pdw: 18px; --yx-pdp: 6px 9px; }
+  .yx-prep .yx-pskill { padding: 3px 6px; }
+  .yx-prep .yx-pskill small { line-height: 1.25; }
   .yx-prep .yx-plook { display: none; }
 }
 @media (orientation: portrait) and (min-height: 760px) and (max-width: 999px) {
-  .yx-prep .yx-pchars { --yx-pdf: 15px; --yx-pdn: 22px; --yx-pdfs: 64px; --yx-pdsk: 38px; --yx-pdw: 26px; --yx-pdr: 12px; --yx-pdp: 14px; --yx-pfs: 36px; --yx-pcg: 6px; --yx-pbg: 8px; }
+  /* 390×844：技能说明长的角色（小道士五行）原来把「出战」按钮挤出详情卡，字 14、行距和内边距收一档 */
+  .yx-prep .yx-pchars { --yx-pdf: 14px; --yx-pdn: 22px; --yx-pdfs: 56px; --yx-pdsk: 34px; --yx-pdw: 24px; --yx-pdr: 8px; --yx-pdp: 10px 12px; --yx-pfs: 36px; --yx-pcg: 6px; --yx-pbg: 6px; }
   .yx-prep .yx-pchar { padding: 6px 1px; column-gap: 4px; }
   .yx-prep .yx-pbt { display: block; }
   .yx-prep .yx-pbars { grid-template-columns: 1fr 1fr; }

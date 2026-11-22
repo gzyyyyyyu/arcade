@@ -86,8 +86,8 @@ export class Result {
     if (el) el.textContent = text;
   }
 
-  /** 交分、存录像的结果：结算面板最下面一行小字（同一局只留一行，后来的替换先前的） */
-  setNote(text: string): void {
+  /** 交分、存录像的结果：结算面板最下面一行小字（同一局只留一行，后来的替换先前的）；retry 给了就带一个「重试」按钮 */
+  setNote(text: string, retry: (() => void) | null = null): void {
     const panel = this.root.querySelector('.yx-result-panel');
     if (!panel) return;
     let el = panel.querySelector<HTMLElement>('.yx-rnote');
@@ -97,6 +97,22 @@ export class Result {
       panel.append(el);
     }
     el.textContent = text;
+    if (retry) el.append(this.retryButton(retry));
+    // 结算面板一屏放下：多了一行（带按钮更高）再收一档
+    this.fit();
+  }
+
+  private retryButton(retry: () => void): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'yx-btn yx-rretry';
+    b.textContent = '重试';
+    b.addEventListener('click', () => {
+      b.disabled = true;
+      b.textContent = '在交…';
+      retry();
+    });
+    return b;
   }
 
   /** 夜探的右半边：带出的宝物（按档上色的格子），丢在镇里的灰着排在后面 */
@@ -164,7 +180,7 @@ export class Result {
     const rows = weapons
       .map(
         (b, i) =>
-          `<div class="yx-rrow${i === 0 && best ? ' top' : ''}"><img alt="" src="${this.icons(b.icon)}"><b>${esc(b.name)}</b><div class="yx-rbar"><i style="width:${b.dmg > 0 ? Math.max(3, Math.round((100 * b.dmg) / top)) : 0}%;animation-delay:${0.25 + i * 0.08}s"></i></div><span>${fmt(b.dmg)}</span></div>`,
+          `<div class="yx-rrow${i === 0 && best ? ' top' : ''}"><span class="yx-ricon"><img alt="" src="${this.icons(b.icon)}">${i === 0 && best ? `<img class="m" alt="本局最强" title="本局最强" src="${this.icons('ui_medal')}">` : ''}</span><b>${esc(b.name)}</b><div class="yx-rbar"><i style="width:${b.dmg > 0 ? Math.max(3, Math.round((100 * b.dmg) / top)) : 0}%;animation-delay:${0.25 + i * 0.08}s"></i></div><span>${fmt(b.dmg)}</span></div>`,
       )
       .join('');
     const passives = r.build
@@ -199,9 +215,8 @@ export class Result {
       `<div><b>${r.level}</b><span>级</span></div>` +
       (total === undefined ? `<div><b>${r.coins.toLocaleString('zh-CN')}</b><span>铜钱</span></div>` : '') +
       '</div>' +
-      // 有「下次试试」时占「本局最强」的位置（最强那件就是下面伤害榜第一行）：多一行手机竖屏就放不下了
+      // 本局最强不单列一块（和伤害榜第一行重复）：第一行图标挂奖牌；前三局倒下在这里给「下次试试」
       (r.advice && !rr ? `<div class="yx-rbest yx-radvice"><div><small>下次试试</small><span>${esc(r.advice)}</span></div></div>` : '') +
-      (best && !rr && !r.advice ? `<div class="yx-rbest"><img alt="" src="${this.icons('ui_medal')}"><div><small>本局最强</small><b>${esc(best.name)}</b><span>${fmt(best.dmg)} 伤 · ${best.kills} 斩</span></div></div>` : '') +
       '</div>' +
       (rr ? this.raidItems(rr) : `<div class="yx-rbuild"><label>法器伤害</label>${rows}${passives ? `<div class="yx-rpasses">${passives}</div>` : ''}</div>`) +
       '</div>' +

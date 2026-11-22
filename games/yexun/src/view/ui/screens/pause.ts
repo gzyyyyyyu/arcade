@@ -91,7 +91,7 @@ export class Pause {
     const how = `${k.cd} 秒一次 · ${TOUCH ? '右下角技能钮' : '空格 / Q'}`;
     return (
       `<b>${esc(CHARACTERS[id].name)} · ${esc(k.name)}</b> ${how}${xinfa ? ` <em class="yx-xftag">心法·${esc(xinfa)}</em>` : ''}<br><span>${esc(k.detail)}</span>` +
-      `<br><i>被动「${esc(k.perkName)}」${esc(k.perk)}</i><br><span class="yx-phfit">适合 ${esc(k.fit)}</span>`
+      `<span class="yx-phx"><br><i>被动「${esc(k.perkName)}」${esc(k.perk)}</i><br><span class="yx-phfit">适合 ${esc(k.fit)}</span></span>`
     );
   }
 
