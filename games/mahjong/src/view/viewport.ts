@@ -1,8 +1,6 @@
 /**
- * 看得见的区域（AGENTS.md 第 4 节 iOS 那几条，DESIGN.md 第 7 节）：
- * - 高度不用 100vh：CSS 先写 100vh → 100dvh，再由这里按 visualViewport（没有就 innerHeight）写 --app-h；
- *   转屏、收放地址栏后重算，转屏后过一会儿再补算一次（iOS 转屏时第一次拿到的尺寸常常是旧的）；
- * - 双指放大时（visualViewport.scale 明显不是 1）不改尺寸、不重排，缩回 1 倍再说；
+ * 看得见的区域（仓库根 docs/ui.md 手机一节，DESIGN.md 第 7 节）：量可见区、写 --app-h、转屏后补算、双指放大时不动都用 kit 的 watchViewport
+ * （CSS 先写 100vh → 100dvh，再由 kit 写 --app-h）；这里只管舞台怎么缩放：
  * - 舞台是设计尺寸（横屏 1000×560、竖屏 560×1120），按看得见的区域等比缩放，safe-area 由 CSS 让出来；
  *   竖屏的高度跟着屏幕比例在 920–1240 之间变（中间那一截上下挪，CSS 用 --cut，高过 1120 时是负数），
  *   不然 iPhone SE 工具栏展开时（约 375×553）按 1120 高缩到 0.49 倍，两边留黑、手牌只有 18 像素宽；现在约 0.6 倍。
@@ -14,6 +12,8 @@
  *   16:10、16:9 铺满、不留上下黑边；多出来的高度和宽度给牌河放大、中控盘、牌桌宽到 1200（css/table-layout.css 的电脑版一节）。手机横屏（高不到 600）还是 560 高。
  * 牌桌是 DOM + SVG，没有画布和 WebGL，"渲染倍数封顶 2""WebGL 上下文丢失"那两条不适用。
  */
+import { watchViewport } from 'arcade-kit/viewport';
+
 type Orient = 'land' | 'port';
 
 const STAGE: Record<Orient, { w: number; h: number }> = { land: { w: 1000, h: 560 }, port: { w: 560, h: 1120 } };
@@ -34,17 +34,12 @@ const DESK_MAX_H = 700;
 /** 横屏舞台的基础高度：--grow（舞台比它高出多少）让牌桌中间一截往下挪、牌河放大（css/table-layout.css 的电脑版一节） */
 const LAND_BASE_H = 560;
 
-export function watchViewport(app: HTMLElement, stage: HTMLElement, onChange: (o: Orient) => void): void {
+export function fitStage(app: HTMLElement, stage: HTMLElement): void {
   let orient: Orient | null = null;
   let scale = 0;
   let height = 0;
   let width = 0;
-  let timer = 0;
   const measure = (): void => {
-    const vv = window.visualViewport;
-    if (vv && Math.abs(vv.scale - 1) > 0.05) return;
-    const vh = vv?.height ?? window.innerHeight;
-    document.documentElement.style.setProperty('--app-h', `${Math.round(vh)}px`);
     const r = app.getBoundingClientRect();
     if (r.width < 10 || r.height < 10) return;
     // 竖屏且明显窄（手机竖着拿）用竖屏布局，其余都用横屏
@@ -89,16 +84,8 @@ export function watchViewport(app: HTMLElement, stage: HTMLElement, onChange: (o
     if (o !== orient) {
       orient = o;
       stage.dataset.orient = o;
-      onChange(o);
     }
   };
-  const later = (): void => {
-    measure();
-    window.clearTimeout(timer);
-    timer = window.setTimeout(measure, 350);
-  };
-  window.addEventListener('resize', later);
-  window.addEventListener('orientationchange', later);
-  window.visualViewport?.addEventListener('resize', later);
-  measure();
+  // 原来的口径：放大超过 5% 才算放大、转屏后 350ms 补算、不听 visualViewport 的 scroll、不滚回顶部；补算那一下不管可见区变没变都重量舞台
+  watchViewport({ onChange: measure, onSettle: measure, zoomEpsilon: 0.05, settleMs: 350, listenScroll: false, scrollTop: false });
 }

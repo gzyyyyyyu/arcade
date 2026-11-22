@@ -344,6 +344,40 @@ describe('离座和结回', () => {
   });
 });
 
+describe('0.47.3 的老房间（存下的状态没有 leaving、waiting、ready）：读的时候补齐，照常结回（0.47.5 上线满 3 小时后连同 fillOld 删）', () => {
+  const old = (s: RoomState): RoomState => {
+    const { leaving: _l, waiting: _w, ready: _r, ...o } = s;
+    return o as unknown as RoomState;
+  };
+  /** 实盘两个真人在打，一局正打到一半 */
+  const mid = (): RoomState => drive(settleAll(begin(['human', 'human', 'ai', 'ai'])), 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
+  /** 1 号离座 → 推到这一局打完 → 关房，一路收下钱包的事 */
+  const run = (s0: RoomState): WalletEffect[] => {
+    const all: WalletEffect[] = [];
+    let s = G.seated!(s0, 1, 'ai');
+    all.push(...fx(s));
+    s = settleAll(s);
+    s = drive(s, 4_000, (x) => g(x, null).phase === 'end');
+    all.push(...fx(s));
+    s = settleAll(s);
+    s = G.closing!(s);
+    all.push(...fx(s));
+    settleAll(s);
+    return all;
+  };
+
+  test('看、判断打没打完不抛错；离座、一局打完、关房的结回和新房间一模一样，两个真人各结回一次', () => {
+    const s = mid();
+    expect(G.view(old(s), 0)).toEqual(G.view(s, 0));
+    expect(G.over(old(s))).toBe(false);
+    const want = run(s);
+    const credits = want.filter((e) => e.kind === 'credit');
+    expect(credits.map((e) => e.seat).sort()).toEqual([0, 1]);
+    expect(credits.every((e) => e.amount >= 0)).toBe(true);
+    expect(run(old(s))).toEqual(want);
+  });
+});
+
 describe('实盘一局打到一半坐下：这一局电脑照打，下一局才带入（0.47.3）', () => {
   /** 两个真人在打、2 号座位是电脑；推到一局正打到一半 */
   const midRound = (): RoomState => drive(settleAll(begin(['human', 'human', 'ai', 'ai'])), 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
@@ -614,11 +648,6 @@ describe('再来一场', () => {
       expect(G.parse({ t: 'next', code })).toBeNull();
     expect(G.parse({ t: 'next', code: '000123' })).toEqual({ t: 'next', code: '000123' });
     expect(G.free!({ t: 'next', code: '000123' })).toBe(true);
-  });
-
-  test('部署前存下的房间（没有 next、ended）照常打', () => {
-    const { next: _n, ended: _e, ...old } = settleAll(begin(['human', 'human', 'ai', 'ai']));
-    expect(G.over(old as RoomState)).toBe(false);
   });
 });
 

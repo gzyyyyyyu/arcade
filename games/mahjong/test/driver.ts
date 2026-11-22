@@ -1,11 +1,11 @@
 /**
- * 不经过房间、在一个地方把一场推下去（单机、模拟器、测试共用）：电脑的座位用玩法的 auto 出手，
+ * 测试用：不经过房间、在一个地方把一场推下去：电脑的座位用玩法的 auto 出手，
  * 一直推到轮到真人、或者停在一局结算、或者打完。房间里这件事由 kit 做（4.4 的批量出牌），这里是同样的规矩：
  * 一组人同时出手时组里的电脑一个个代出，剩下的真人各自点。
  */
-import { AIS } from '../ai/index.ts';
-import type { AnyVariant, StateOf } from '../core/variants/index.ts';
-import type { SeatKind } from '../core/variants/types.ts';
+import { AIS } from '../src/ai/index.ts';
+import type { AnyVariant, StateOf } from '../src/core/variants/index.ts';
+import type { SeatKind } from '../src/core/variants/types.ts';
 
 interface Step<S> {
   seat: number;

@@ -14,7 +14,7 @@ import { celebrate } from './fx.ts';
 import { play } from './sound.ts';
 import { tileName, tileUrl } from './tiles.ts';
 import { button, el } from './dom.ts';
-import { apiFetch } from '../net/http.ts';
+import { submitScore } from '../net/scores.ts';
 import './ting.css';
 
 /** 答完一题亮出答案停多久（点一下可以跳过） */
@@ -35,31 +35,12 @@ export function tingLabel(): string {
   return d ? `今天 ${d.score} 分` : '没做';
 }
 
-/** 正在交的日期：同一天不并发交两次 */
-const sending = new Set<string>();
-
 /**
  * 把今天的分数交给平台的每日榜（只有登录才交，榜没登记、断网都不吭声，不挡成绩页）。
  * 交成功才写 sent；没成功下次进页面再交
  */
 async function submitDaily(d: DailyTing, userId: string): Promise<void> {
-  if (sending.has(d.date)) return;
-  sending.add(d.date);
-  try {
-    const res = await apiFetch('/api/scores', {
-      method: 'POST',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      keepalive: true,
-      headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' },
-      body: JSON.stringify({ gameId: 'mahjong', boardId: tingBoard(d.date), score: d.score, userId }),
-    });
-    if (res.ok) writeTing(markSent(readTing(), d.date));
-  } catch {
-    // 同上
-  } finally {
-    sending.delete(d.date);
-  }
+  if (await submitScore(tingBoard(d.date), d.score, userId)) writeTing(markSent(readTing(), d.date));
 }
 
 /** 进页面或主页时清账（规则见 game/ting.ts 的 settleDaily）：该交的交，没登录就留着 */

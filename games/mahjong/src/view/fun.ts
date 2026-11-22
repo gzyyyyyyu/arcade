@@ -8,6 +8,7 @@ import { readText, removeKey, writeText } from '../storage.ts';
 import { playFunSound } from 'arcade-kit/fun';
 import { TableFun, type ButtonStyle, type ChatResultLike, type FunSeat, type RectLike } from 'arcade-kit/table-fun';
 import { audioOut } from './sound.ts';
+import { GAME_ID } from '../game/id.ts';
 import { MOOD_LINES, PHRASES } from './text.ts';
 
 /** 总开关"互动：开 / 不看"：关了别人的一律不播，单机电脑也不反应 */
@@ -43,7 +44,7 @@ interface FunWiring {
 
 export function createFun(w: FunWiring): TableFun {
   return new TableFun({
-    storageKey: 'mahjong',
+    storageKey: GAME_ID,
     phrases: PHRASES,
     named: NAMED,
     seats: w.seats,

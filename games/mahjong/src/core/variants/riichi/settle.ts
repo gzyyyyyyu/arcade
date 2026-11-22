@@ -188,7 +188,7 @@ export function finishMatch(s: RcState, early = false): void {
   const per = SHARE_POINTS[s.opts.length];
   const chipsOf = (x: number): number => (x < 0 ? -1 : 1) * Math.floor((Math.abs(x) * s.share) / per);
   // 和 standings 同一种算法的那份比：提前收场不含马（entryEarly），打完含马（entry）
-  const entry = (early ? (s.entryEarly ?? s.entry) : s.entry) ?? [0, 0, 0, 0];
+  const entry = (early ? s.entryEarly : s.entry) ?? [0, 0, 0, 0];
   const delta = f.score.map((x, i) => x - entry[i]!);
   const owe = delta.map((x, i) => (x < 0 ? Math.min(chipsOf(-x), Math.max(0, s.chips[i]!)) : 0));
   const want = delta.map((x) => (x > 0 ? chipsOf(x) : 0));

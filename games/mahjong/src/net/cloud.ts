@@ -11,10 +11,10 @@
  *   以后登录回那个账号，拉完把备份并回本机、上传成功后改名 `.restored`，不再并第二次。
  */
 import { readText, writeJson, writeText } from '../storage.ts';
+import { GAME_ID } from '../game/id.ts';
 import { cloudPart, emptyLadder, LADDER_KEY, mergeLadder, parseLadder, sameCloud, type LadderData } from '../game/ladder.ts';
 
 export const CLOUD_KEY = 'mahjong.cloud';
-const GAME = 'mahjong';
 const SLOT = 'ladder';
 export const PRE_SYNC = `${LADDER_KEY}.pre-sync`;
 export const preSwitch = (uid: string): string => `${LADDER_KEY}.pre-switch.${uid}`;
@@ -192,7 +192,7 @@ export class CloudSync {
     this.set('syncing');
     let r: Response;
     try {
-      r = await this.d.fetch(`/api/saves/${GAME}?userId=${encodeURIComponent(uid)}`, { credentials: 'same-origin' });
+      r = await this.d.fetch(`/api/saves/${GAME_ID}?userId=${encodeURIComponent(uid)}`, { credentials: 'same-origin' });
     } catch {
       this.set('pending');
       return;
@@ -285,7 +285,7 @@ export class CloudSync {
     if (!keepalive) this.set('syncing');
     let r: Response;
     try {
-      r = await this.d.fetch(`/api/saves/${GAME}/${SLOT}`, {
+      r = await this.d.fetch(`/api/saves/${GAME_ID}/${SLOT}`, {
         method: 'PUT',
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },

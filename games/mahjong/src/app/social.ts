@@ -5,7 +5,7 @@ import { fetchFriends, inviteUrl, mountSocial, openInvite, type Invite, type Pre
 import type { KitTheme } from 'arcade-kit/theme';
 import { GAME_NAME } from '../view/text.ts';
 import { leave, leaveRoom } from './leave.ts';
-import { GAME_ID } from './report.ts';
+import { GAME_ID } from '../game/id.ts';
 import { enterRoom } from './room-flow.ts';
 import { inMatch, session } from './session.ts';
 

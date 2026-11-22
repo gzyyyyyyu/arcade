@@ -7,61 +7,72 @@
  * 四人档一桌最多 4 个真人、三人两房档 3 个，空位电脑补；座位由房间随机排（kit 默认）。
  */
 import { DEFAULT_VARIANT, VARIANTS } from '../core/variants/index.ts';
+import { seatsOf } from '../core/variants/sichuan-xuezhan/rules.ts';
 import { REAL_ROUNDS, STAKES, type StakesId, type TierId } from './stakes.ts';
 
-type MatchTier = 'fun' | 'rc-fun' | `real-${TierId}` | `rc-${TierId}` | 'x3-fun' | `x3-${TierId}` | 'xl-fun' | `xl-${TierId}`;
-
-export const MATCH_FUN: MatchTier = 'fun';
-/** 立直的娱乐档 */
-export const MATCH_RC_FUN: MatchTier = 'rc-fun';
-/** 川麻三人两房的娱乐档 */
-export const MATCH_X3_FUN: MatchTier = 'x3-fun';
-/** 川麻血流成河的娱乐档 */
-export const MATCH_XL_FUN: MatchTier = 'xl-fun';
 const RIICHI = 'riichi';
+
+/**
+ * 排队的种类，一行一种：娱乐档 id 是 fun，实盘每档是 `<real>-<档位>`；开桌规则在玩法默认规则上改 rules 这几项，一桌几个真人按 rules 算座位。
+ * 档位 id 上线后不改（排队按它分桌），加一种排队只加一行
+ */
+const KINDS = [
+  { fun: 'fun', real: 'real', variant: DEFAULT_VARIANT, rules: {} },
+  { fun: 'rc-fun', real: 'rc', variant: RIICHI, rules: {} },
+  // 三人两房：three 开、不换三张、血流关（和主页三人两房快速一局一样）
+  { fun: 'x3-fun', real: 'x3', variant: DEFAULT_VARIANT, rules: { three: true, swap: false, flow: false } },
+  { fun: 'xl-fun', real: 'xl', variant: DEFAULT_VARIANT, rules: { flow: true, three: false } },
+] as const;
+type Kind = (typeof KINDS)[number];
+type MatchTier = Kind['fun'] | `${Kind['real']}-${TierId}`;
+
+const [XZ_KIND, RC_KIND, X3_KIND, XL_KIND] = KINDS;
+export const MATCH_FUN: MatchTier = XZ_KIND.fun;
+export const MATCH_RC_FUN: MatchTier = RC_KIND.fun;
+export const MATCH_X3_FUN: MatchTier = X3_KIND.fun;
+export const MATCH_XL_FUN: MatchTier = XL_KIND.fun;
 
 const TIER_IDS = STAKES.filter((s) => s.wallet).map((s) => s.id as TierId);
 
-/** 全部档位；单独部署（没有钱包）只开三个娱乐档（MATCH_FUN_TIERS） */
-export const MATCH_TIERS: readonly MatchTier[] = [MATCH_FUN, MATCH_RC_FUN, ...TIER_IDS.map((t): MatchTier => `real-${t}`), ...TIER_IDS.map((t): MatchTier => `rc-${t}`), MATCH_X3_FUN, ...TIER_IDS.map((t): MatchTier => `x3-${t}`), MATCH_XL_FUN, ...TIER_IDS.map((t): MatchTier => `xl-${t}`)];
-export const MATCH_FUN_TIERS: readonly MatchTier[] = [MATCH_FUN, MATCH_RC_FUN, MATCH_X3_FUN, MATCH_XL_FUN];
+/** 全部档位（按种类，每种先娱乐后各实盘档）；单独部署（没有钱包）只开娱乐档（MATCH_FUN_TIERS） */
+export const MATCH_TIERS: readonly MatchTier[] = KINDS.flatMap((k): MatchTier[] => [k.fun, ...TIER_IDS.map((t): MatchTier => `${k.real}-${t}`)]);
+export const MATCH_FUN_TIERS: readonly MatchTier[] = KINDS.map((k) => k.fun);
 
-/** 四人档一桌最多几个真人 */
+/** 四人档一桌最多几个真人（排队类的默认，认不得的档位也按它） */
 export const MATCH_TABLE = 4;
-/** 三人两房档一桌最多几个真人 */
-export const MATCH_TABLE_X3 = 3;
 
-/** 这个档位一桌最多几个真人（排队类覆盖 tableSize 用） */
+const kindOf = (tier: string): Kind | undefined => KINDS.find((k) => tier === k.fun || tier.startsWith(`${k.real}-`));
+
+/** 这个档位一桌最多几个真人（排队类覆盖 tableSize 用）：按开桌规则的座位数 */
 export function tableSizeOf(tier: string): number {
-  return tier.startsWith('x3-') ? MATCH_TABLE_X3 : MATCH_TABLE;
+  const k = kindOf(tier);
+  return k ? seatsOf(k.rules) : MATCH_TABLE;
 }
 
-/** 选档页的档位和玩法 → 排队的档位（立直排 rc-fun 或 rc-<档位>；川麻三人两房 three 排 x3-，血流成河 flow 排 xl-） */
+/** 选档页的档位和玩法 → 排队的档位（立直排 rc-；川麻三人两房 three 排 x3-，血流成河 flow 排 xl-） */
 export function matchTierOf(stakes: StakesId, variant: string = DEFAULT_VARIANT, opts: { three?: boolean; flow?: boolean } = {}): MatchTier {
-  if (variant === RIICHI) return stakes === 'fun' ? MATCH_RC_FUN : `rc-${stakes}`;
-  const pre = opts.three ? 'x3' : opts.flow ? 'xl' : null;
-  if (pre) return stakes === 'fun' ? `${pre}-fun` : `${pre}-${stakes}`;
-  return stakes === 'fun' ? MATCH_FUN : `real-${stakes}`;
+  const k = variant === RIICHI ? RC_KIND : opts.three ? X3_KIND : opts.flow ? XL_KIND : XZ_KIND;
+  return stakes === 'fun' ? k.fun : `${k.real}-${stakes}`;
 }
 
 /** 排队的档位 → 选档页的档位；认不得的是 null */
 export function stakesOfTier(tier: string): StakesId | null {
-  if (MATCH_FUN_TIERS.includes(tier as MatchTier)) return 'fun';
-  const t = /^(?:real|rc|x3|xl)-(.+)$/.exec(tier)?.[1];
-  return t && (TIER_IDS as readonly string[]).includes(t) ? (t as TierId) : null;
+  const k = kindOf(tier);
+  if (!k) return null;
+  if (tier === k.fun) return 'fun';
+  const t = tier.slice(k.real.length + 1);
+  return (TIER_IDS as readonly string[]).includes(t) ? (t as TierId) : null;
 }
 
-/** 开桌带的开局选项：和好友房开房的 opts 一样（默认玩法、默认规则），房间的 options 校验；认不得的档位 undefined */
+/** 开桌带的开局选项：和好友房开房的 opts 一样（玩法默认规则加这一种的改动），房间的 options 校验；认不得的档位 undefined */
 export function matchRoomOptions(tier: string): { variant: string; stakes: StakesId; rules: unknown } | undefined {
+  const k = kindOf(tier);
   const stakes = stakesOfTier(tier);
-  const variant = tier.startsWith('rc-') ? RIICHI : DEFAULT_VARIANT;
-  if (!stakes) return undefined;
-  // 三人两房：three 开、不换三张、血流关（和主页三人两房快速一局一样）；血流成河：flow 开
-  const base = VARIANTS[variant]!.defaults as object;
-  const defaults = tier.startsWith('x3-') ? { ...base, three: true, swap: false, flow: false } : tier.startsWith('xl-') ? { ...base, flow: true, three: false } : base;
+  if (!k || !stakes) return undefined;
+  const defaults = { ...(VARIANTS[k.variant]!.defaults as object), ...k.rules };
   // 实盘一局一结，和各玩法页面的 realOpts 一样（川麻 rounds、立直 length）；娱乐档照玩法默认
-  const rules = stakes === 'fun' ? defaults : variant === RIICHI ? { ...(defaults as object), length: 'ikkyoku' } : { ...(defaults as object), rounds: REAL_ROUNDS };
-  return { variant, stakes, rules };
+  const rules = stakes === 'fun' ? defaults : k.variant === RIICHI ? { ...defaults, length: 'ikkyoku' } : { ...defaults, rounds: REAL_ROUNDS };
+  return { variant: k.variant, stakes, rules };
 }
 
 /** 排队的路径（相对页面；在开房、进房的 rooms/ 下面，wrangler.jsonc 的 run_worker_first 已经放行） */

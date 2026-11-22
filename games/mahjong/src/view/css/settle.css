@@ -155,6 +155,11 @@
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
+/* 电脑上结算弹窗宽：各家的牌放大一号，看得清胡的是什么（11-22 走查：1280 上每张只有 20 像素，一行右边还空着一截） */
+[data-fit='desk'] .summary .mini {
+  width: 26px;
+  height: 36px;
+}
 .summary .mini.won {
   border-radius: 3px;
   box-shadow: 0 0 0 2px var(--gold);
