@@ -179,7 +179,8 @@ export function actorsOf(s: RcState): { seats: number[]; group: string } | null 
 }
 
 /**
- * 好友房有人接管座位、带入到账：筹码重新记；点数不动，记下这个座位此刻按打完算的得分（含马），终局时新来的人只按接手以后的涨落算。
+ * 好友房有人接管座位、带入到账：筹码重新记；点数不动，记下这个座位此刻的得分，终局时新来的人只按接手以后的涨落算：
+ * 打完一整场和含马的那份比（entry），提前收场、离座和不含马的那份比（entryEarly），同一种算法相减。
  * 前一个人离座时按"没打完"结走（不算马，见 standings），两种算法之间的差和电脑代打那一段一样归庄家
  */
 export function restakeMut(s: RcState, seat: number, chips: number): void {
@@ -188,6 +189,7 @@ export function restakeMut(s: RcState, seat: number, chips: number): void {
   // 还没开打（开局时真人的带入到账也走这里）：从头算，不记；按名次算马时点数都一样也会差出几万分
   if (s.kyoku === 0 && s.discards === 0) return;
   s.entry = (s.entry ?? [0, 0, 0, 0]).map((x, i) => (i === seat ? standings(s).score[seat]! : x));
+  s.entryEarly = (s.entryEarly ?? [0, 0, 0, 0]).map((x, i) => (i === seat ? standings(s, true).score[seat]! : x));
 }
 
 /** 好友房里座位换了人：只换"是谁"，统计从头算 */

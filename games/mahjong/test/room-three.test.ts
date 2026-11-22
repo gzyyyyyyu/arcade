@@ -90,7 +90,8 @@ describe('三人两房好友房', () => {
         v.seats.forEach((x, i) => {
           if (i !== seat) expect(x.hand).toBeNull();
         });
-        expect(v.me?.seat).toBe(seat);
+        // 筹码是真人的座位才看到自己的牌；电脑座位没人看，和旁观一样（0.47.3：庄家在打的座位不给暗牌）
+        expect(v.me?.seat ?? null).toBe(s.kinds[seat] === 'human' ? seat : null);
       }
       const seats = seatsOf(s);
       if (!seats.length) break;

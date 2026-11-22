@@ -200,3 +200,23 @@ describe('立直房里电脑起哄', () => {
     expect(tsumo.map((m) => m.kind === 'moment' && [m.moment, m.hand])).toEqual([['self-draw', hand]]);
   });
 });
+
+describe('跨审 0.47.3：局间坐下到账马上走，一张牌没打，结回的正好是带进来的一份', () => {
+  // 带入到账时 entry 按含马的得分记，局间离座按"没打完"（不含马）结：两种算法差出来的马由庄家补，坐下就走能白拿（Gemini 跨审第 1 条）
+  for (const length of ['hanchan', 'tonpuu'] as const)
+    test(`${length}：东一局打完停在结算，两个电脑座位各坐下、到账、马上离开`, () => {
+      let s = drive(settleAll(begin(['human', 'human', 'ai', 'ai'], 'small', { length })), 20_000, (x) => (x.g as RcState).kyoku >= 1 && g(x, null).phase === 'end');
+      expect([(s.g as RcState).kyoku, g(s, null).phase]).toEqual([1, 'end']);
+      for (const seat of [2, 3]) {
+        s = G.seated!(s, seat, 'human');
+        const debit = fx(s).find((e) => e.seat === seat && e.kind === 'debit');
+        expect(debit?.amount).toBe(SHARE);
+        s = G.settled!(s, debit!.id, OK);
+        expect(s.own[seat]).toBe(true);
+        s = G.seated!(s, seat, 'ai');
+        const credit = fx(s).find((e) => e.seat === seat && e.kind === 'credit');
+        expect(credit?.amount).toBe(SHARE);
+        s = settleAll(s);
+      }
+    });
+});

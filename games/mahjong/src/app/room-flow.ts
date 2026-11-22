@@ -263,13 +263,13 @@ function drawRoomTable(s: OnlineState, rv: RoomView, fresh: boolean): void {
   roomRoundEnd(s, rv, g, replay);
 }
 
-/** 没入座：回自己坐过的座位，或者能接管的电脑座位（没绑人的；实盘房间旁观只看，不给坐） */
+/** 没入座：回自己坐过的座位，或者能接管的电脑座位（没绑人的；实盘的坐下了等下一局才带入一份） */
 function watching(s: OnlineState, g: AnyView): Watching {
   const metas = seatMetas(s, g);
   return {
     back: s.you?.bound ?? null,
     free: tableSeats(s).flatMap((x, i) => (x.kind === 'ai' && !x.reserved ? [{ seat: i, name: metas[i]!.name }] : [])),
-    wallet: !!stakesOf(s.view?.stakes)?.wallet,
+    share: ((st) => (st?.wallet && !s.view?.unrated ? st.share : null))(stakesOf(s.view?.stakes)),
     onSit: (seat) => session.online?.sit(seat),
   };
 }

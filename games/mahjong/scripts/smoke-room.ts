@@ -416,6 +416,31 @@ try {
     const d0 = B.discards;
     await playUntil([A, B], () => B.discards >= d0 + 3, 120_000, '实盘房先打几张');
     await pa.screenshot({ path: join(SHOTS, 'room-stake-a.png') });
+    // 实盘一局打到一半 C 凭链接进来（0.47.3）：旁观，有"坐下（下一局带 2,000）"；坐下后这一局不扣钱、电脑照打，下一局开始才带入一份、手牌亮出来
+    const ctxC2 = await newContext(browser, base, 'smokeC0004', { width: 390, height: 844 });
+    const pc2 = await ctxC2.newPage();
+    pages.push(pc2);
+    watch(pc2, 'C');
+    await pc2.goto(`${base}/games/mahjong/?room=${code}`);
+    const wc0 = await wallet(pc2);
+    await pc2.click('.room-note.watch button:has-text("下一局带 2,000")', { timeout: 10_000 });
+    await pc2.waitForSelector('.room-note:has-text("下一局开始算你的")', { timeout: 10_000 });
+    check((await wallet(pc2)).stakes.length === 0, 'C 实盘一局打到一半坐下：这一局不扣钱，牌桌顶上写"下一局开始算你的"');
+    await pc2.screenshot({ path: join(SHOTS, 'room-stake-wait-c.png') });
+    let wc = await wallet(pc2);
+    for (let i = 0; i < 900 && wc.stakes.length === 0; i++) {
+      await step(A);
+      await step(B);
+      await sleep(150);
+      if (i % 4 === 0) wc = await wallet(pc2);
+    }
+    check(wc.stakes.length === 1 && wc0.balance - wc.balance === 2_000, `下一局开始 C 才带入一份（余额 ${wc0.balance} → ${wc.balance}）`);
+    await pc2.waitForFunction(() => document.querySelectorAll('.my-hand .tile[title]').length >= 13, null, { timeout: 15_000 });
+    check(true, 'C 到账以后手牌亮出来');
+    // 下一局真打起来再走（C 到账那一刻还停在局间：这时离座按规则马上结回，下面"一局打到一半离开"就测不到了）
+    const d1 = B.discards;
+    await playUntil([A, B], () => B.discards >= d1 + 2, 120_000, '实盘房下一局先打几张');
+    await leaveRoom(pc2, 'C');
     await leaveRoom(pb, 'B');
     // 一局打到一半走的：这一局由电脑替他打完（输赢照算），那一份还在；A 接着打完这一局才结回
     let w2 = await wallet(pb);
@@ -427,6 +452,15 @@ try {
     }
     log('B 离开后钱包', w2.balance, JSON.stringify(w2.stakes));
     check(w2.stakes.length === 0, 'A 打完这一局，B 的那一份结回了');
+    let wc2 = await wallet(pc2);
+    for (let i = 0; i < 25 && wc2.stakes.length > 0; i++) {
+      await sleep(200);
+      wc2 = await wallet(pc2);
+    }
+    check(wc2.stakes.length === 0, `C 那一份也只结回一次就没了（余额 ${wc.balance} → ${wc2.balance}）`);
+    await pc2.close();
+    pages.splice(pages.indexOf(pc2), 1);
+    await ctxC2.close();
     check(w2.balance >= w1.b.balance, `B 余额加回结回的数：${w1.b.balance} → ${w2.balance}（结回 ${w2.balance - w1.b.balance}）`);
     // 只剩 A 一个人在下注：这一场当场结束，A 的那一份也马上结回（实盘至少两个真人）
     let wa = await wallet(pa);
