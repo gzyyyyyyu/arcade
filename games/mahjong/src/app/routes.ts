@@ -24,6 +24,7 @@ import { quickMatch } from './match-flow.ts';
 import { activeVariant, prefs, savePrefs } from './prefs.ts';
 import { readRecord } from './record.ts';
 import { enterRoom, openRoom } from './room-flow.ts';
+import { friendTable } from './social.ts';
 import { session } from './session.ts';
 import { idleTitle, screen, stage, title, toast } from './shell.ts';
 import { playLadder, quitLadder, resumeSolo, startDaily, startLadder, startSolo } from './solo-flow.ts';
@@ -178,6 +179,7 @@ export function lobby(friends = false, mode: HomeMode | null = null): void {
     // 快速匹配：选了三人两房（opts.three）、血流成河（opts.flow）排各自的档位，转单机也是这个玩法
     ...(m !== 'room' ? { onMatch: (st: StakesId, o: AnyOpts, l: Level, v: string) => void quickMatch(st, o, l, v) } : {}),
     friends,
+    ...(m === 'room' ? { friendTable: friendTable() } : {}),
     ...(standalone ? { standalone: { nick: nick(), onNick: setNick } } : {}),
     onBack: homePage,
     mode: m,

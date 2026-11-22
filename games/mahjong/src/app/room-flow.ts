@@ -109,11 +109,18 @@ const onlineUi = {
       if (s.room.seats[arrive.seat]?.kind === 'empty') session.online?.sit(arrive.seat);
       session.arrive = { ...arrive, sit: false };
     }
-    // 凭链接、房间号进来的娱乐房：多数人是来打的，直接坐第一个空位，不用再点"坐这里"（11-18 体检）
+    // 凭链接、房间号、好友的「加入」进来的娱乐房：多数人是来打的，直接坐下，不用再点（11-18 体检）。
+    // 还在等人坐第一个空位；已经开打了回自己坐过的座位，没坐过就接管一个电脑座位（0.47.2：以前落在旁观，还要再点「坐下」）
     if (session.autoSit && s.you && s.opts) {
       session.autoSit = false;
-      const free = tableSeats(s).findIndex((x) => x.kind === 'empty');
-      if (s.room.status === 'waiting' && s.you.seat === null && !stakesOf(s.opts.stakes)?.wallet && free >= 0) session.online?.sit(free);
+      const seats = tableSeats(s);
+      const seat =
+        s.room.status === 'waiting'
+          ? seats.findIndex((x) => x.kind === 'empty')
+          : s.room.status === 'playing'
+            ? (s.you.bound ?? seats.findIndex((x) => x.kind === 'ai' && !x.reserved))
+            : -1;
+      if (s.you.seat === null && !stakesOf(s.opts.stakes)?.wallet && seat >= 0) session.online?.sit(seat);
     }
     if (s.room.status === 'waiting' || !s.view) return drawWaiting(s);
     drawRoomTable(s, s.view, fresh);

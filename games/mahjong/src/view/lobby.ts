@@ -45,6 +45,8 @@ interface LobbyProps {
   onJoin?(code: string): void;
   /** 快速匹配（0.21.0）：按选中的档位和玩法排队，和陌生人打（这个玩法的默认规则；立直只有娱乐）；没有时不显示 */
   onMatch?(stakes: StakesId, opts: AnyOpts, level: Level, variant: string): void;
+  /** 好友房页：正在好友房里打雀馆的一个朋友（标题右边「加入」，问到了才摆；没人在打就没有） */
+  friendTable?: Promise<{ name: string; room: string; seats: string } | null>;
   /** 从平台大厅的"好友房"按钮进来（?online=1，和德州、掼蛋同一个约定）：开房、进房那一块滚到看得见、亮一下 */
   friends?: boolean;
   /** 单独部署：没有钱包和实盘；好友房里别人看到的昵称自己填 */
@@ -78,6 +80,15 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   el('div', 'variant', head, `${GAME_NAME} ${page.name(opts as { flow?: boolean; three?: boolean })}`);
   // 有没打完的一场：标题右边一个小钮，不单占一排（0.47.1：单占一排时 1280×800 把「单机开打」挤出屏幕）
   if (p.resume && p.mode !== 'room') button('act go resume', head, p.resume, p.onResume);
+  // 朋友正在好友房里打：一键坐过去（和「接着打」同一个位置，好友房页不摆接着打；不占新的一行）
+  void p.friendTable?.then((t) => {
+    if (!t || !head.isConnected || !p.onJoin) return;
+    const join = p.onJoin;
+    // 昵称长的截到 4 个字：按钮不能 overflow 截字（网格会把这一栏压窄、按钮压到标题上），390 竖屏要和「好友房」并排放下
+    const name = [...t.name].length > 4 ? `${[...t.name].slice(0, 4).join('')}…` : t.name;
+    const b = button('act go resume friend-join', head, `加入${name} · ${t.seats}`, () => join(t.room));
+    b.title = `房间 ${t.room}`;
+  });
   // 玩法：血战到底 / 血流成河 / 三人两房 / 立直（和主页快速一局同一份记忆）。选了以后整页重画，档位卡和规则摘要跟着换
   if (p.variants) {
     const { ids, current, onPick } = p.variants;

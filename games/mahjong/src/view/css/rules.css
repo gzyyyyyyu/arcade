@@ -62,6 +62,24 @@
 [data-orient='land'] .rules .paged table:not(.keys) td {
   border-bottom: 0;
 }
+/* 手机横屏（舞台矮，844×390 这类）：两栏时说明挤成三四行，一页只摆两条、下面空一大半。改一栏，说明和「还没和过」排一行、牌例另起一行：
+   844 上立直图鉴 19→9 页、血战图鉴 6→4 页（0.47.2 量测）。电脑照旧两栏 */
+.stage[data-orient='land']:not([data-fit='desk']) .rules .paged table:not(.keys) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .rules .paged table.dex td.d {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--sp-2);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .rules .paged table.dex td.d .ex {
+  order: 3;
+  flex-basis: 100%;
+}
+.stage[data-orient='land']:not([data-fit='desk']) .rules .paged table.dex .cnt {
+  margin-top: 0;
+}
 .pager {
   display: flex;
   align-items: center;
