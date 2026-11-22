@@ -107,12 +107,12 @@ export const measureScroll = (page: Page): Promise<{ el: string; axis: Axis; ove
     return out;
   }, CLIP_OK.map(([s]) => s));
 
-/** 快速局：全下和弃牌交替点（直接 click 事件，不管触屏还是鼠标），打到结果卡出来 */
+/** 全下局：全下和弃牌交替点（直接 click 事件，不管触屏还是鼠标），打到结果卡出来 */
 async function playPfToEnd(page: Page): Promise<number> {
   let n = 0;
   const deadline = Date.now() + 240_000;
   while (!(await page.locator('.pf-sum').isVisible())) {
-    if (Date.now() > deadline) throw new Error('快速局 4 分钟没打完');
+    if (Date.now() > deadline) throw new Error('全下局 4 分钟没打完');
     if (await page.locator('.actions.on').isVisible()) await page.locator(n++ % 3 === 2 ? '.act.fold' : '.act.call').evaluate((e) => (e as HTMLElement).click()).catch(() => {});
     await page.waitForTimeout(150);
   }
@@ -173,7 +173,7 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
       await skipTips(page);
       await page.locator('.seat.me .card.up').first().waitFor({ timeout: 30_000 });
     };
-    /** 前面几段离开时没离桌，主页挂着"继续上局"：今日局、坐下开打都灰着（先打完上一桌）。接着打进去再离桌结算掉 */
+    /** 前面几段离开时没离桌，主页挂着"继续上局"：今日全下、坐下开打都灰着（先打完上一桌）。接着打进去再离桌结算掉 */
     const clearUnfinished = async (): Promise<void> => {
       for (let tries = 0; tries < 3; tries++) {
         await home();
@@ -323,7 +323,7 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
       await page.locator('.tour-sum').waitFor({ timeout: 60_000 });
       await look('tour-summary');
     });
-    await step('快速局', async () => {
+    await step('全下局', async () => {
       await home();
       await enter(page, '娱乐', touch);
       await reveal('.lobby [data-act="pf"]');
@@ -357,7 +357,7 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
         await fctx.close();
       }
     };
-    await step('今日局结果', () =>
+    await step('今日全下结果', () =>
       fresh('pushfold-daily-result', async (dp) => {
         await enter(dp, '娱乐', touch);
         await dp.locator('.lobby [data-act="daily-pf"]').evaluate((e) => (e as HTMLElement).click());
@@ -394,7 +394,7 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
         await look('settings-takeprofit');
       } else unreached.push(`${size} 设置里的止盈叠层: 选桌页的设置里没有止盈这一行`);
     });
-    await step('快速匹配卡', async () => {
+    await step('匹配真人卡', async () => {
       await home();
       await enter(page, '实盘', touch);
       await reveal('.lobby .pill.match');

@@ -60,7 +60,7 @@ async function startWorker(port: number, state: string, config: string[]): Promi
 /** 平台的接口：/api/me 认 cookie 里的人，云存档存在内存里 */
 async function fakePlatform(ctx: BrowserContext, userId: string, scores: unknown[] = []): Promise<void> {
   let rev = 0;
-  // 每日榜交分（POST /api/scores）：记下请求体，--only pushfold 的今日局核对
+  // 每日榜交分（POST /api/scores）：记下请求体，--only pushfold 的今日全下核对
   await ctx.route((u) => u.pathname === '/api/scores', (route) => {
     scores.push(route.request().postDataJSON());
     return route.fulfill({ json: { best: 1, improved: true } });

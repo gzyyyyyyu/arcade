@@ -8,12 +8,12 @@
  * 娱乐不碰钱包。
  */
 import type { Entropy } from 'arcade-kit/rng';
-import { stakesOf, type StakesId } from '../core/stakes.ts';
-import { apply, isFail, type Action, type Table } from '../core/table.ts';
-import type { WalletApi } from '../net/wallet.ts';
-import type { Step, Store } from '../solo.ts';
-import { KEYS } from '../store.ts';
-import { DEFAULT_FORMAT, finishOrder, formatInfo, handOver, newTour, payouts, playOut, tourAi, tourStep, tourView, type TourFormat, type TourState, type TourView } from './rules.ts';
+import { stakesOf, type StakesId } from './core/stakes.ts';
+import { apply, isFail, type Action, type Table } from './core/table.ts';
+import { retryable, type WalletApi } from './net/wallet.ts';
+import type { Step, Store } from './solo.ts';
+import { KEYS } from './store.ts';
+import { DEFAULT_FORMAT, finishOrder, formatInfo, handOver, newTour, payouts, playOut, tourAi, tourStep, tourView, type TourFormat, type TourState, type TourView } from './tour/rules.ts';
 
 /** 我永远坐 0 号位 */
 export const ME = 0;
@@ -36,7 +36,7 @@ interface TourSession {
   pending: TourPending | null;
   /** 淘汰后选了"看到结束" */
   watch: boolean;
-  /** 今日赛（docs/tournament.md 14.5）：哪天的牌；scored = 这是当天第一场，记分上榜（之后重打是练习） */
+  /** 今日锦标赛（docs/tournament.md 14.5）：哪天的牌；scored = 这是当天第一场，记分上榜（之后重打是练习） */
   daily?: { date: string; scored: boolean };
 }
 
@@ -168,13 +168,7 @@ export class TourSolo {
         ? await this.d.wallet.buyin(p.op, this.s.id, this.s.stakes, p.amount)
         : await this.d.wallet.cashout(p.op, this.s.id, p.amount, keepalive);
     if (!r.ok) {
-      const retry =
-        r.error === 'offline' ||
-        r.error === 'unavailable' ||
-        r.error === 'internal' ||
-        (r.error === 'busy' && p.t === 'cashout') ||
-        (p.t === 'cashout' && (r.error === 'login' || r.error === 'forbidden'));
-      if (retry) return r.error;
+      if (retryable(r.error, p.t)) return r.error;
       // 明确拒了：报名作罢；结算被拒（比如那一份放太久已经退回）也只能作罢
       this.s.pending = null;
       this.d.store.removeItem(TOUR_KEY);

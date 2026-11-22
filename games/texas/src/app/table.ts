@@ -1,5 +1,5 @@
 /**
- * 单机现金桌和快速局的牌桌：进桌、出手、播画面、两手之间、补码、离桌结算。
+ * 单机现金桌和全下局的牌桌：进桌、出手、播画面、两手之间、补码、离桌结算。
  * 规则在 src/core，流程在 solo.ts，这里只把它们和画面连起来。onStep、drawBetween 这几个锦标赛和好友房也用。
  */
 import { stream } from 'arcade-kit/rng';
@@ -10,7 +10,7 @@ import { view, type View } from '../core/view.ts';
 import { walletApi, walletError, type WalletApi, type WalletReply } from '../net/wallet.ts';
 import { site } from '../site.ts';
 import { ffThinkMs, ME, type Solo, type SoloDeps, type Step } from '../solo.ts';
-import type { TourDeps } from '../tour/solo.ts';
+import type { TourDeps } from '../tour-solo.ts';
 import { myTurn, notMyTurn } from '../view/alert.ts';
 import { closeCoach } from '../view/coach.ts';
 import { askTopUp, closeDialog, dialog } from '../view/dialog.ts';
@@ -73,7 +73,7 @@ export function soloDeps(s: State, fn: Fns): { deps: SoloDeps; tourDeps: TourDep
   return { deps, tourDeps };
 }
 
-/** 左上角的手数：快速局写"第 n / 15 手" */
+/** 左上角的手数：全下局写"第 n / 15 手" */
 const handText = (v: View): string => (v.handNo ? (v.pf ? `第 ${v.handNo} / ${PF_HANDS} 手` : `第 ${v.handNo} 手`) : '');
 
 /** 圈在 ms 里走完 */
@@ -95,7 +95,7 @@ export function createTable(c: App) {
   let autoTimer = 0;
   /** 输光了：结果先摆一会儿，再问补码 */
   let bustTimer = 0;
-  /** 快速局的结果卡已经弹出（一局只弹一次） */
+  /** 全下局的结果卡已经弹出（一局只弹一次） */
   let pfOver = false;
 
   /** 快进时（我弃牌了、这一手还没打完）显示"看完这手"；点了这一手恢复正常节奏，下一手再弃牌会重新快进 */
@@ -161,7 +161,7 @@ export function createTable(c: App) {
     toggle(betweenBar, 'hidden', !show);
     toggle(roomPause, 'hidden', true);
     toggle(nextBtn, 'hidden', false);
-    // 快速局一律自动下一手（点"下一手"可以更快），不给关
+    // 全下局一律自动下一手（点"下一手"可以更快），不给关
     const auto = settings.autoNext || pfMode;
     toggle(autoBtn, 'hidden', pfMode);
     toggle(autoBtn, 'sel', settings.autoNext);
@@ -213,7 +213,7 @@ export function createTable(c: App) {
     toggle(sitBtn, 'sel', meSeat.away);
     toggle(sitBtn, 'hidden', s.busted || pfMode);
     f.drawTop();
-    // 快速局打满手数或输光了：一手打完停着时出结果卡
+    // 全下局打满手数或输光了：一手打完停着时出结果卡
     if (pfMode && s.between && v.handNo > 0 && c.animating === 0 && !c.asking && !pfOver && (v.handNo >= PF_HANDS || s.busted)) {
       pfOver = true;
       drawBetween(false);
@@ -232,10 +232,10 @@ export function createTable(c: App) {
       void drive(s.act(auto));
       return;
     }
-    // 快速局不走新手指引（只有两个键，没什么可讲）
+    // 全下局不走新手指引（只有两个键，没什么可讲）
     if (!pfMode) f.guideTurn(v);
     if (v.hold && !pfMode) f.guideEnd(v);
-    // 输光了：先让人看清这一手怎么输的，再问补码（快速局直接出结果卡）
+    // 输光了：先让人看清这一手怎么输的，再问补码（全下局直接出结果卡）
     if (s.busted && c.animating === 0 && !c.asking && !bustTimer && !s.toppingUp && !pfMode) {
       bustTimer = window.setTimeout(() => {
         bustTimer = 0;

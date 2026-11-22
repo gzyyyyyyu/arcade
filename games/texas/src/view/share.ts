@@ -60,11 +60,11 @@ export function roomCard(rows: readonly RoomSummaryRow[], awards: readonly Award
   };
 }
 
-/** 今日局的分享卡：当天剩多少筹码、打了几手、赢了几手（只放公开的数，不画牌） */
+/** 今日全下的分享卡：当天剩多少筹码、打了几手、赢了几手（只放公开的数，不画牌） */
 export function pushFoldCard(date: string, final: number, hands: number, won: number, name: string): ShareCard {
   return {
     game: GAME,
-    title: `今日局 · 全下或弃牌 · ${date}`,
+    title: `今日全下 · ${date}`,
     accent: ACCENT,
     big: { value: chips(final), label: '剩下的筹码（娱乐，不算数）' },
     stats: [

@@ -3,7 +3,7 @@
  * 0.2.1：按钮上面一行写池子多大、要跟多少、赔率（要有多大把握才值得跟），再一排一键下注（半池、⅔ 池、满池、全下，点了直接下）。
  * 不该我说话时可以预选"过牌或弃牌""跟任何注"，轮到我时自动做（只在页面里，不发消息）。
  * 桌面上有快捷键：F 弃牌、C 过牌或跟注、R 加注、回车确认、Esc 收起；展开后 1–5 选五档、←/→ 和滚轮一步一个大盲（Shift 五个）。
- * 全下或弃牌的快速局是 F 弃牌、A 全下。按钮上的键位提示只在有鼠标的设备上画（style.css 里按 data-key 取）。
+ * 全下或弃牌的全下局是 F 弃牌、A 全下。按钮上的键位提示只在有鼠标的设备上画（style.css 里按 data-key 取）。
  */
 import type { Action } from '../core/table.ts';
 import type { View } from '../core/view.ts';
@@ -96,7 +96,7 @@ export class ActionBar {
   /**
    * 按视图摆出来；轮到我且有预选时返回要自动做的操作。
    * hint：要跟注时写上"我的牌大约赢几成"（src/fun/odds.ts）。只有单机现金桌传 true（app/table.ts，设置里能关）；
-   * 好友房、快速匹配、锦标赛的调用不传这个参数，真人桌上永远不显示（test/arch.test.ts 查）
+   * 好友房、匹配真人、锦标赛的调用不传这个参数，真人桌上永远不显示（test/arch.test.ts 查）
    */
   update(v: View | null, enabled: boolean, hint = false): Action | null {
     this.v = v;
@@ -104,7 +104,7 @@ export class ActionBar {
     toggle(this.root, 'on', lg !== null);
     if (v && v.handNo !== this.presetHand) this.preset = null;
     const inHand = !!v && v.me !== null && v.seats[v.me]?.status === 'active' && v.phase !== 'idle';
-    // 全下或弃牌的快速局只有两个键，不预选
+    // 全下或弃牌的全下局只有两个键，不预选
     toggle(this.pre, 'on', !lg && inHand && v?.toAct !== v?.me && !v?.pf);
     toggle(this.root, 'pf', v?.pf === true);
     toggle(this.preCheck, 'sel', this.preset === 'checkfold');
@@ -124,7 +124,7 @@ export class ActionBar {
     const allinCall = !lg.check && lg.call >= me.stack;
     setText(this.call, lg.check ? '过牌' : allinCall ? `全下 ${chips(lg.call)}` : `跟注 ${chips(lg.call)}`);
     toggle(this.call, 'allin', allinCall);
-    // 快速局把跟注键标成 A，回到普通桌要换回来
+    // 全下局把跟注键标成 A，回到普通桌要换回来
     this.call.dataset.key = 'C';
     toggle(this.raise, 'hidden', !lg.raise);
     // 能过牌时弃牌放一边、淡一点（白白弃牌多半是点错了）
@@ -141,7 +141,7 @@ export class ActionBar {
   }
 
   /**
-   * 全下或弃牌的快速局（docs/features.md 13.10）：只有"弃牌"和"全下"两个键（面对全下时是"跟注全下"），都是大按钮；
+   * 全下或弃牌的全下局（docs/features.md 13.10）：只有"弃牌"和"全下"两个键（面对全下时是"跟注全下"），都是大按钮；
    * 不摆加注、一键下注。F 弃牌、A 全下（键位提示由样式在有鼠标键盘的设备上显示）
    */
   private updatePf(v: View, call: number): null {
@@ -190,7 +190,7 @@ export class ActionBar {
     else {
       const need = Math.round((lg.call / (pot + lg.call)) * 100);
       // 一套大白话口径（界面审查 1121 第 13 条）：都说"胜率"，不写"赔率 2.5 : 1"这种术语；金额一个字都不截
-      const head = `底池 <b>${chips(pot)}</b> · 跟 <b>${chips(lg.call)}</b>`;
+      const head = `${potLabel(v)} <b>${chips(pot)}</b> · 跟 <b>${chips(lg.call)}</b>`;
       const eq = hint ? this.myOdds(v) : null;
       toggle(this.odds, 'with-hint', eq !== null);
       // 只给"要多少"新手读不懂（以为写的是"可以跟"）：有提示时把我的胜率和要的摆在一起，够了标绿
@@ -360,6 +360,15 @@ export function raiseStep(bb: number, big: boolean): number {
 }
 
 /** 方向键换成加减方向（→、↑ 加；←、↓ 减），别的键 0 */
+/**
+ * 赔率条上池子的叫法：桌心的「底池」只算前几轮收进去的，赔率条的数还算上这一轮各家面前的注。
+ * 桌心摆着池子、两个数又不一样时叫「总池」，免得两个「底池」对不上（审查 1122）
+ */
+export function potLabel(v: Pick<View, 'pot' | 'pots'>): '底池' | '总池' {
+  const center = v.pots.reduce((a, x) => a + x, 0);
+  return center > 0 && v.pot !== center ? '总池' : '底池';
+}
+
 export function arrowDir(k: string): number {
   return k === 'arrowright' || k === 'arrowup' ? 1 : k === 'arrowleft' || k === 'arrowdown' ? -1 : 0;
 }

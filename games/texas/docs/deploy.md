@@ -8,17 +8,17 @@
 games/texas/
 ├─ src/core/        规则、牌力、随机数、边池（纯函数）
 ├─ src/ai/          电脑：胜率表、蒙特卡洛、性格
-├─ src/tour/        锦标赛：rules.ts 规则（纯函数）、solo.ts 单机的一场（第 14 节）
-├─ src/room/        好友房的规则（接 kit 的 RoomGame，纯函数，房间和页面共用）：rules.ts 现金桌、tour.ts 锦标赛、game.ts 按开房选项分发、match.ts 快速匹配的档位
+├─ src/tour/        锦标赛规则 rules.ts（纯函数；单机的一场是 src/tour-solo.ts，第 14 节）
+├─ src/room/        好友房的规则（接 kit 的 RoomGame，纯函数，房间和页面共用）：rules.ts 现金桌、tour.ts 锦标赛、game.ts 按开房选项分发、match.ts 匹配真人的档位
 ├─ src/fun/         互动里德州自己的：短语表 taunts、名场面和互动性格 moments（其余是 kit 的 table-fun）
 ├─ src/view/        页面（DOM + CSS）：牌桌 table、操作区 actions、标题页 lobby、等人页 room、牌面头像筹码 art、布局 layout、音效 sound 等，其余见目录
 ├─ src/net/         钱包 wallet、云存档 cloud
 ├─ src/app/         页面的流程，把规则、钱包、画面接起来：mount 装页面（建状态、骨架，把各块的函数接成 ctx.fn），state 共享状态，shell 骨架和顶栏，
-│                   lobby 大厅和启动，table 单机牌桌，daily 快速局和今日局，tour 锦标赛（单机、今日赛、好友房的出局和结束页），
-│                   online 好友房和快速匹配，fun 互动聊天和成就，guide 新手指引，takeprofit 止盈，puzzle 每日谜题；
+│                   lobby 大厅和启动，table 单机牌桌，daily 全下局和今日全下，tour 锦标赛（单机、今日锦标赛、好友房的出局和结束页），
+│                   online 好友房和匹配真人，fun 互动聊天和成就，guide 新手指引，takeprofit 止盈，puzzle 每日谜题；
 │                   import 进来没有副作用，模块顶层不碰 DOM、不放可变状态，之间的运行时 import 没有环（test/arch.test.ts 查）
-├─ src/             main.ts 页面入口（找到 #app，交给 app/mount.ts），solo.ts 单机的一桌，online.ts 好友房连接（kit 的 RoomClient），bot.ts 电脑的入口，store.ts 浏览器存储，site.ts 有没有平台
-├─ worker/          texas Worker：探活 /games/texas/health（回 {ok, version}，不读存储、不要登录，排在登录闸门前面）、登录闸门、单机带入结回（转平台钱包）、好友房 TexasRoom DO、快速匹配的排队 Queue DO（match.ts）
+├─ src/             main.ts 页面入口（找到 #app，交给 app/mount.ts），solo.ts 单机的一桌，tour-solo.ts 单机锦标赛的一场（钱包、存档），online.ts 好友房连接（kit 的 RoomClient），bot.ts 电脑的入口，store.ts 浏览器存储，site.ts 有没有平台
+├─ worker/          texas Worker：探活 /games/texas/health（回 {ok, version}，不读存储、不要登录，排在登录闸门前面）、登录闸门、单机带入结回（转平台钱包）、好友房 TexasRoom DO、匹配真人的排队 Queue DO（match.ts）
 ├─ test/            规则、电脑的 vitest（Node；分 core/ ai/ tour/ view/，辅助在 support/）；test/worker/ 是 Worker、钱包、房间的 vitest（workerd，配置 test/wrangler.test.jsonc）；
 │                   test/standalone/ 是单独部署的（配置 test/wrangler.standalone.jsonc，入口就是 worker/main.ts）
 ├─ scripts/         smoke.ts（冒烟入口，各段在 smoke/ 下）  sim.ts + vs.ts（模拟，vs 是多线程部分）  balance.ts（配平）  tour-sim.ts（锦标赛时长）  tour-balance.ts（锦标赛配平）  scenes.ts（牌桌互压的固定局面）  capture.ts（连拍看节奏）  gen-preflop.ts（生成翻牌前胜率表）  args.ts

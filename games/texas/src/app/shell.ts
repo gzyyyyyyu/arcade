@@ -231,7 +231,7 @@ export function createTop(c: App) {
       const v = tour.view;
       const fmt = tour.state.format && tour.state.format !== 'sng' ? `${formatInfo(tour.state.format).name} · ` : '';
       const dly = tour.session.daily;
-      setText(where, `${dly ? (dly.scored ? '今日赛' : '今日赛（练习）') : '锦标赛'} · ${fmt}第 ${v.level + 1} 级 · 盲注 ${chips(v.blinds[0])}/${chips(v.blinds[1])}`);
+      setText(where, `${dly ? (dly.scored ? '今日锦标赛' : '今日锦标赛（练习）') : '锦标赛'} · ${fmt}第 ${v.level + 1} 级 · 盲注 ${chips(v.blinds[0])}/${chips(v.blinds[1])}`);
       toggle(leaveBtn, 'hidden', false);
     } else {
       drawSoloTop();
@@ -243,7 +243,7 @@ export function createTop(c: App) {
     const at = stage.classList.contains('at-table') && solo;
     const diff = solo?.session.practice ? difficultyOf(solo.table.level) : null;
     const so = at ? must(solo, 'at 为真则在单机牌桌上') : null;
-    setText(where, so?.table.pushFold ? `${so.session.daily ? (so.session.daily.scored ? '今日局' : '今日局（练习）') : '快速局'} · 全下或弃牌 · 盲注 ${chips(so.table.sb)}/${chips(so.table.bb)}` : so ? `${so.session.practice ? `娱乐 · ${diff ? DIFFICULTY_NAME[diff] : stakesOf(so.table.stakes).name}` : stakesOf(so.table.stakes).name} · 盲注 ${chips(so.table.sb)}/${chips(so.table.bb)}` : '');
+    setText(where, so?.table.pushFold ? `${so.session.daily ? (so.session.daily.scored ? '今日全下' : '今日全下（练习）') : '全下局'} · 盲注 ${chips(so.table.sb)}/${chips(so.table.bb)}` : so ? `${so.session.practice ? `娱乐 · ${diff ? DIFFICULTY_NAME[diff] : stakesOf(so.table.stakes).name}` : stakesOf(so.table.stakes).name} · 盲注 ${chips(so.table.sb)}/${chips(so.table.bb)}` : '');
     toggle(leaveBtn, 'hidden', !at);
   }
 

@@ -68,7 +68,7 @@ export const HAND_PAUSE_MS = 7_000;
 export interface RoomOpts {
   stakes: StakesId;
   size: number;
-  /** 娱乐房间（快速匹配的娱乐档）：筹码不算数，带入、结回都不碰钱包（worker/room.ts 的 perform），档位固定 FUN_STAKES */
+  /** 娱乐房间（匹配真人的娱乐档）：筹码不算数，带入、结回都不碰钱包（worker/room.ts 的 perform），档位固定 FUN_STAKES */
   fun?: true;
   /** 好友房锦标赛（src/room/tour.ts）：6 人单桌打到剩一人；size 固定 6，stakes 是报名费那一档（fun 时固定 FUN_STAKES） */
   tour?: true;

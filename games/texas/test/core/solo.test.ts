@@ -464,7 +464,7 @@ describe('快进判定（fastForward）', () => {
     expect(fastForward(mk('active'), -1)).toBe(false);
     expect(fastForward(mk('allin'), -1)).toBe(false);
   });
-  it('点过"看完这手"的那一手、快速局、第一手之前不快进', () => {
+  it('点过"看完这手"的那一手、全下局、第一手之前不快进', () => {
     expect(fastForward(mk('folded'), 3)).toBe(false);
     expect(fastForward(mk('folded'), 2)).toBe(true);
     expect(fastForward(mk('folded', { pushFold: true }), -1)).toBe(false);

@@ -7,7 +7,7 @@
  * 单独部署（没有平台，10.1）：藏起钱包和实盘，只有娱乐和好友房；好友房下面多一个昵称框。
  */
 import { CATEGORY_NAMES, categoryOf } from '../core/eval.ts';
-import { DIFFICULTIES, DIFFICULTY_NAME, difficultyOf, FUN_LEVEL, FUN_STAKES, PF_HANDS, PF_STACK_BB, STAKES, stakesOf, type Difficulty, type StakesId } from '../core/stakes.ts';
+import { DIFFICULTIES, DIFFICULTY_NAME, difficultyOf, FUN_LEVEL, FUN_STAKES, PF_HANDS, PF_STACK_BB, RARE_WIN_STAKES, SOLO_LEVEL, STAKES, stakesOf, type Difficulty, type StakesId } from '../core/stakes.ts';
 import { MAX_SEATS } from '../core/table.ts';
 import type { Stake, WalletView } from '../net/wallet.ts';
 import { patchSettings, readSettings } from '../store.ts';
@@ -39,14 +39,14 @@ interface LobbyHandlers {
   start(stakes: StakesId, size: number, amount: number, practice: boolean, level?: number): void;
   resume(): void;
   relief(): void;
-  /** 快速匹配：这一档排队找真人，一桌 6 人；只有实盘、有钱包时有 */
-  /** 快速匹配：fun 是娱乐档（level 是选的难度，没排到人转单机时用） */
+  /** 匹配真人：这一档排队找真人，一桌 6 人；只有实盘、有钱包时有 */
+  /** 匹配真人：fun 是娱乐档（level 是选的难度，没排到人转单机时用） */
   match(stakes: StakesId, fun: boolean, level: number): void;
   /** 单机锦标赛：fun 是娱乐（level 是选的难度）；实盘报名费是这一档的一份 */
   tour(stakes: StakesId, fun: boolean, level: number, format: TourFormat): void;
-  /** 快速局 · 全下或弃牌（娱乐，不碰钱包） */
+  /** 全下局 · 全下或弃牌（娱乐，不碰钱包） */
   pushFold(daily: boolean): void;
-  /** 今日赛：每天一场极速赛（docs/tournament.md 14.5） */
+  /** 今日锦标赛：每天一场极速赛（docs/tournament.md 14.5） */
   dailyTour(): void;
   /** 止盈：点了弹选择框 */
   takeProfit(): void;
@@ -157,7 +157,8 @@ export class Lobby {
     }
     const hero = el('div', 'hero', this.root);
     el('div', 'title', hero, '德州扑克');
-    el('div', 'subtitle', hero, '两张底牌、五张公共牌，凑出最大的五张');
+    // 两段各自不拆开：窄的时候在逗号处换行，不会断成「公共 / 牌」
+    el('div', 'subtitle', hero).innerHTML = '<span>两张底牌、五张公共牌，</span><span>凑出最大的五张</span>';
     const fan = el('div', 'fan', hero);
     [48, 44, 40, 36, 32].forEach((c, i) => {
       const card = makeCard('fan-card');
@@ -251,16 +252,17 @@ export class Lobby {
     for (const st of STAKES) {
       const t = button(grid, 'tile', '', () => this.pick(st.id));
       if (st.id !== 'small') t.dataset.room = st.id;
-      t.innerHTML = `<i class="mini"></i><em>${ROOM_NAME[st.id]}</em>` + card(st.name, STARS[st.id], `盲注 ${chips(st.sb)}/${chips(st.bb)}`, [`最多输 ${short(st.max)}`, `很少赢过 ${short(3 * st.max)}`]);
+      t.innerHTML = `<i class="mini"></i><em>${ROOM_NAME[st.id]}</em>` + card(st.name, stars(SOLO_LEVEL[st.id]), `盲注 ${chips(st.sb)}/${chips(st.bb)}`, [`最多输 ${short(st.max)}`, `很少赢过 ${short(RARE_WIN_STAKES * st.max)}`]);
       this.tiles.set(st.id, t);
     }
     for (const d of DIFFICULTIES) {
       const t = button(grid, 'tile diff', '', () => this.pickDiff(d));
-      t.innerHTML = card(DIFFICULTY_NAME[d], FUN_STARS[d], FOR_WHOM[d], ['不碰钱包', '筹码不算数']);
+      // 不碰钱包、筹码不算数写在上面娱乐的说明里一次，三张卡不再各写一遍
+      t.innerHTML = card(DIFFICULTY_NAME[d], stars(FUN_LEVEL[d]), FOR_WHOM[d], []);
       this.diffTiles.set(d, t);
     }
     this.funTile = button(grid, 'tile diff room-fun', '', () => this.pickRoomFun());
-    this.funTile.innerHTML = card('娱乐', FUN_STARS.normal, '朋友之间练手', ['不碰钱包', '筹码不算数']);
+    this.funTile.innerHTML = card('娱乐', stars(FUN_LEVEL.normal), '朋友之间练手', ['不碰钱包', '筹码不算数']);
     // 选桌只留一个主按钮（docs/ui.md 第 2、11 节）：选好档位点"坐下开打"；人数、带多少、止盈和别的玩法入口都直接摆出来（选项不折叠），用次按钮。
     const opts = el('div', 'opts', panel);
     const sizeRow = (this.sizeRow = el('div', 'sizes', opts));
@@ -286,22 +288,22 @@ export class Lobby {
     this.startBtn.title = '快捷键：← → 换档位，回车坐下开打';
     // 其他玩法：一排次按钮，都不是金色，主按钮只有"坐下开打"
     const plays = (this.pfRow = el('div', 'plays', panel));
-    // 快速匹配（docs/online.md 6.11）：实盘才有；人数按匹配桌的 6 人，带这一档的满买入（和好友房一样）
-    this.matchBtn = this.playButton(plays, 'pill match', '快速匹配', '和真人一起打', () => h.match(this.stakes, this.fun(), FUN_LEVEL[this.diff]));
+    // 匹配真人（docs/online.md 6.11）：实盘才有；人数按匹配桌的 6 人，带这一档的满买入（和好友房一样）
+    this.matchBtn = this.playButton(plays, 'pill match', '匹配真人', '随机凑一桌', () => h.match(this.stakes, this.fun(), FUN_LEVEL[this.diff]));
 
     // 单机锦标赛：和现金桌共用上面选的档位（娱乐按难度，实盘报名费 = 这一档的一份），人数、带多少不用选
-    this.tourBtn = this.playButton(plays, 'pill tour-btn', '锦标赛', '打到最后一人', () => this.wait(this.tourBtn, () => h.tour(this.stakes, this.fun(), FUN_LEVEL[this.diff], this.tourFmt)));
+    this.tourBtn = this.playButton(plays, 'pill tour-btn', '锦标赛', '打到剩一人', () => this.wait(this.tourBtn, () => h.tour(this.stakes, this.fun(), FUN_LEVEL[this.diff], this.tourFmt)));
 
-    // 快速局 · 全下或弃牌（docs/features.md 13.10）：只有娱乐
-    this.pfBtn = this.playButton(plays, 'pill pf-btn', '快速局', '只能全下或弃牌', () => this.wait(this.pfBtn, () => h.pushFold(false)));
-    this.dailyBtn = this.playButton(plays, 'pill pf-btn pf-daily', '今日局', '每天同一副牌上榜', () => this.wait(this.dailyBtn, () => h.pushFold(true)));
-    this.dailyTourBtn = this.playButton(plays, 'pill pf-btn pf-daily', '今日赛', '每天一场比赛上榜', () => this.wait(this.dailyTourBtn, () => h.dailyTour()));
-    // 今日局、今日赛共用 .pf-daily 的样式，冒烟按 data-act 分开点
+    // 全下局 · 全下或弃牌（docs/features.md 13.10）：只有娱乐
+    this.pfBtn = this.playButton(plays, 'pill pf-btn', '全下局', '只能全下弃牌', () => this.wait(this.pfBtn, () => h.pushFold(false)));
+    this.dailyBtn = this.playButton(plays, 'pill pf-btn pf-daily', '今日全下', '同一副牌比分', () => this.wait(this.dailyBtn, () => h.pushFold(true)));
+    this.dailyTourBtn = this.playButton(plays, 'pill pf-btn pf-daily', '今日锦标赛', '每天一场上榜', () => this.wait(this.dailyTourBtn, () => h.dailyTour()));
+    // 今日全下、今日锦标赛共用 .pf-daily 的样式，冒烟按 data-act 分开点
     this.pfBtn.dataset.act = 'pf';
     this.dailyBtn.dataset.act = 'daily-pf';
     this.dailyTourBtn.dataset.act = 'daily-tour';
     this.dailyTourBtn.title = '每天一场 6 人极速赛，牌堆和对手每天固定；每天第一场记分上榜';
-    plays.title = `${PF_HANDS} 手、每人 ${PF_STACK_BB} 个大盲，只点全下或弃牌；今日局每天同一副牌、记一次分上榜`;
+    plays.title = `${PF_HANDS} 手、每人 ${PF_STACK_BB} 个大盲，只点全下或弃牌；今日全下每天同一副牌、记一次分上榜`;
     // 锦标赛的赛制：挨着锦标赛的说明
     const fmts = (this.fmtRow = el('div', 'tour-fmts', panel));
     for (const f of FORMATS) this.fmtBtns.set(f, button(fmts, 'size tfmt', FORMAT_LABEL[f], () => this.pickFormat(f)));
@@ -659,7 +661,7 @@ export class Lobby {
     toggle(must(this.pfBtn.parentElement, 'this.pfBtn.parentElement'), 'hidden', !fun);
     this.pfBtn.disabled = busy || !!resume;
     this.setNote(this.pfBtn, resume ? RESUME_FIRST : null);
-    // 今日局要上平台的榜：单独部署没有平台，不给
+    // 今日全下要上平台的榜：单独部署没有平台，不给
     toggle(must(this.dailyBtn.parentElement, 'this.dailyBtn.parentElement'), 'hidden', this.alone || !fun);
     this.dailyBtn.disabled = busy || !!resume;
     this.setNote(this.dailyBtn, resume ? RESUME_FIRST : null);
@@ -737,9 +739,8 @@ function button(parent: HTMLElement, cls: string, text: string, onClick: () => v
 /** 格子窄，一万以上写成"4万" */
 const short = (n: number): string => (n >= 10_000 && n % 10_000 === 0 ? `${n / 10_000}万` : chips(n));
 
-/** 电脑多强（1–4 颗星，四个游戏一样的画法）：实盘按档位，娱乐按难度（高手和豪华桌是同一档电脑） */
-const STARS: Readonly<Record<StakesId, number>> = { small: 1, mid: 2, big: 3, lux: 4 };
-const FUN_STARS: Readonly<Record<Difficulty, number>> = { easy: 1, normal: 2, hard: 4 };
+/** 电脑多强（1–4 颗星，四个游戏一样的画法）：就是这一桌电脑的强弱档（实盘 SOLO_LEVEL、娱乐 FUN_LEVEL），新手的 0 档也画 1 颗 */
+const stars = (level: number): number => Math.max(1, level);
 const FOR_WHOM: Readonly<Record<Difficulty, string>> = { easy: '刚学会，先赢几把', normal: '会看牌、会弃牌', hard: '想和最强的电脑过招' };
 
 /**

@@ -325,6 +325,7 @@ describe('领补给（relief）', () => {
     c.wallet = walletView({ balance: 3 });
     await lobby.relief();
     expect(c.walletNote).toContain(text);
+    expect(c.walletNote).not.toMatch(/频繁|太快/);
     expect(c.wallet?.balance).toBe(3);
     expect(m.play).not.toHaveBeenCalled();
     expect(c.busy).toBe(false);

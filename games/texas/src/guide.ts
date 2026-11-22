@@ -65,7 +65,7 @@ export interface Step {
 }
 
 /**
- * 键盘快捷键全表（docs/ui.md 第 9 节：帮助里要有一页）。键位以 view/actions.ts（牌桌、快速局）、view/puzzle.ts（谜题）、
+ * 键盘快捷键全表（docs/ui.md 第 9 节：帮助里要有一页）。键位以 view/actions.ts（牌桌、全下局）、view/puzzle.ts（谜题）、
  * view/lobbykeys.ts（选桌）为准，改了键位记得同步这里。手机没有键盘，这一页只有电脑上用得到
  */
 const KEYS_TABLE: [string, string, string][] = [
@@ -77,8 +77,8 @@ const KEYS_TABLE: [string, string, string][] = [
   ['1–5', '加注面板：最小 / 半池 / ¾池 / 满池 / 全下', ''],
   ['← → ↑ ↓', '加注面板：加减一个大盲，加 Shift 是五个', ''],
   ['滚轮', '加注面板上滚动：加减加注额', ''],
-  ['A', '快速局：全下 / 跟注全下', ''],
-  ['F', '快速局：弃牌', ''],
+  ['A', '全下局：全下 / 跟注全下', ''],
+  ['F', '全下局：弃牌', ''],
   ['1 2 3', '今日谜题：选答案（Esc 关）', ''],
   ['← →', '选桌：换档位', ''],
   ['回车', '选桌：坐下开打', ''],
@@ -148,7 +148,8 @@ export interface Box {
   h: number;
 }
 
-const hit = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+/** 两个框压没压到 */
+export const overlaps = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const overlapArea = (a: Box, b: Box): number => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
 const grow = (b: Box, d: number): Box => ({ x: b.x - d, y: b.y - d, w: b.w + 2 * d, h: b.h + 2 * d });
 const inside = (b: Box, area: Box): boolean => b.x >= area.x && b.y >= area.y && b.x + b.w <= area.x + area.w && b.y + b.h <= area.y + area.h;
@@ -169,7 +170,7 @@ export function placeCoach(target: Box | null, size: { w: number; h: number }, a
     for (let y = area.y; y <= area.y + area.h - h + 0.5; y += 8) {
       for (let x = area.x; x <= area.x + area.w - w + 0.5; x += 8) {
         const b: Box = { x, y, w, h };
-        if (hard && hit(b, hard)) continue;
+        if (hard && overlaps(b, hard)) continue;
         const cost = soft.reduce((a, k) => a + overlapArea(b, k), 0);
         if (cost < bestCost) [best, bestCost] = [b, cost];
       }
@@ -177,7 +178,7 @@ export function placeCoach(target: Box | null, size: { w: number; h: number }, a
     return best ?? center;
   };
   // 没有目标：居中；居中压到别的块就换个压得最少的位置
-  if (!target) return soft.some((a) => hit(center, a)) ? scan(null) : center;
+  if (!target) return soft.some((a) => overlaps(center, a)) ? scan(null) : center;
   const clampX = (x: number): number => Math.max(area.x, Math.min(x, area.x + area.w - w));
   const clampY = (y: number): number => Math.max(area.y, Math.min(y, area.y + area.h - h));
   const cx = target.x + target.w / 2 - w / 2;
@@ -195,7 +196,7 @@ export function placeCoach(target: Box | null, size: { w: number; h: number }, a
   const hard = grow(target, gap / 2);
   const blocks = [hard, ...soft];
   // 四边四角都不行才扫全区（空桌面比盖住座位和操作区强）
-  return cand.find((b) => inside(b, area) && !blocks.some((x) => hit(b, x))) ?? scan(hard);
+  return cand.find((b) => inside(b, area) && !blocks.some((x) => overlaps(b, x))) ?? scan(hard);
 }
 
 /**
@@ -207,10 +208,8 @@ export function placeBest(target: Box | null, sizeAt: (maxW: number) => { w: num
   for (const mw of widths) {
     const b = placeCoach(target, sizeAt(Math.min(mw, area.w)), area, avoid);
     last = b;
-    if ((!target || !hit(b, target)) && !avoid.some((a) => hit(b, a))) return b;
+    if ((!target || !overlaps(b, target)) && !avoid.some((a) => overlaps(b, a))) return b;
   }
   return last!;
 }
 
-/** 两个框压没压到（冒烟和测试共用） */
-export const overlaps = hit;

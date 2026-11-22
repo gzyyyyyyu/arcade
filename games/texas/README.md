@@ -21,7 +21,7 @@ The rest of this README, the design document (`DESIGN.md`) and the code comments
 
 # 德州扑克（texas）
 
-无限注德州扑克，一桌 2–9 人：单机对电脑（全在浏览器里跑）、好友房（基于 `arcade-kit`，空位电脑补）、快速匹配和淘汰的锦标赛（经典 6 人、极速赛、9 人赛）。
+无限注德州扑克，一桌 2–9 人：单机对电脑（全在浏览器里跑）、好友房（基于 `arcade-kit`，空位电脑补）、匹配真人和淘汰的锦标赛（经典 6 人、极速赛、9 人赛）。
 筹码跨场保留，存在平台的钱包里（几个游戏共用一个余额，`docs/economy.md`），先选娱乐（不碰钱包）或实盘；筹码只是游戏积分，**无任何现金价值**：不能买、不能换钱换物、不能转给别人，输光了靠每日补给。
 也能不带平台单独部署（见下面"单独部署这个游戏"）：单机和游客好友房照常玩，没有登录、钱包和实盘。
 
@@ -32,10 +32,10 @@ The rest of this README, the design document (`DESIGN.md`) and the code comments
 ## 功能
 
 - **单机**：对 1–5 个电脑，10 种性格，每种有自己的风格（松凶、紧凶、跟注站、爱诈唬……入池、加注、下注大小、爱犯的小错都不一样），高档的会按位置、筹码深浅和对手的公开打法调整，想多久随局面和性格变但不透露牌力（docs/ai.md 4.3、4.11）；娱乐分新手、普通、高手三个难度，实盘四档（docs/ai.md 4.3、4.10）。娱乐桌不碰钱包，实盘从平台钱包带一份上桌、离桌结回。要跟注时赔率条写"胜率约 X% · 要过 Y%"（跟注提示，只在单机桌，设置里能关，docs/screens.md 8.2）。牌局存在浏览器里，刷新接着打。
-- **好友房**：六位房间码或邀请链接，空位电脑补，服务端说了算、不下发别人的底牌（docs/online.md 6）。现金桌和锦标赛开房时都可选实盘四档或娱乐：实盘现金桌至少两个真人才发牌，娱乐现金桌一个人也能开打（空位电脑补，筹码不算数）；锦标赛至少两个真人（第 14 节）。**快速匹配**排队凑一桌，有实盘四档和一个娱乐档，娱乐档开的是筹码不算数的娱乐房间（docs/online.md 6.11）。
+- **好友房**：六位房间码或邀请链接，空位电脑补，服务端说了算、不下发别人的底牌（docs/online.md 6）。现金桌和锦标赛开房时都可选实盘四档或娱乐：实盘现金桌至少两个真人才发牌，娱乐现金桌一个人也能开打（空位电脑补，筹码不算数）；锦标赛至少两个真人（第 14 节）。**匹配真人**排队凑一桌，有实盘四档和一个娱乐档，娱乐档开的是筹码不算数的娱乐房间（docs/online.md 6.11）。
 - **锦标赛**（Sit & Go）：打到剩一人；单机有经典 6 人、极速赛（6 人、涨盲快一倍）和 9 人赛，娱乐、实盘都有，好友房是经典 6 人（第 14 节）。**止盈**：赢够自动起身（8.13）。
-- **快速局 · 全下或弃牌**（只有娱乐）：6 人、每人 10 个大盲，只点“全下 / 弃牌”（面对全下是“跟注全下 / 弃牌”），翻牌前定胜负，15 手或输光一局，几十秒一手；电脑版 A 全下、F 弃牌；结果卡记在浏览器本地最好成绩；另有**今日局**：每天同一副牌，一天记一次分上平台每日榜（docs/features.md 13.10）。
-- **今日赛**（只有娱乐）：每天一场 6 人极速赛，牌堆、电脑性格和座位当天人人一样，难度固定“普通”；当天第一场按名次和手数记分（第 1 名最高 6100）上平台每日榜，之后重打是练习（docs/tournament.md 14.5）。
+- **全下局 · 全下或弃牌**（只有娱乐）：6 人、每人 10 个大盲，只点“全下 / 弃牌”（面对全下是“跟注全下 / 弃牌”），翻牌前定胜负，15 手或输光一局，几十秒一手；电脑版 A 全下、F 弃牌；结果卡记在浏览器本地最好成绩；另有**今日全下**：每天同一副牌，一天记一次分上平台每日榜（docs/features.md 13.10）。
+- **今日锦标赛**（只有娱乐）：每天一场 6 人极速赛，牌堆、电脑性格和座位当天人人一样，难度固定“普通”；当天第一场按名次和手数记分（第 1 名最高 6100）上平台每日榜，之后重打是练习（docs/tournament.md 14.5）。
 - **成就**：30 个铜银金成就（牌型、全下、诈唬、赢过每个电脑、连胜、锦标赛名次……），单机和单机锦标赛里拿，标题页有成就墙，存在浏览器本地（docs/features.md 13.9）。
 - **每日谜题**：每天（北京日期）5 道牌局题，所有人一样，选弃牌、跟注、加注或全下；每道揭晓看赢面对要的赢面的条和一句为什么，按和最优选择的 EV 差给分（每道 100、满分 500），答完总分上平台每日榜，可以晒一下；不碰钱包，进度存在浏览器本地（docs/features.md 13.11）。
 - **新手指引**：第一次轮到出手时一步步指着桌上的底牌、公共牌、按钮和牌型讲（3 步；从牌桌的"?"再看时电脑多一页快捷键），前几手有情境提示（结果、摊牌、加注、底池）；大厅的"怎么玩"、牌桌上的"?"随时再看（docs/features.md 13.8）。
@@ -51,7 +51,7 @@ The rest of this README, the design document (`DESIGN.md`) and the code comments
 npm ci
 npm run dev           # 页面（vite，5175）；钱包连不上时娱乐照常，设 TEXAS_WORKER=<本地 Worker 端口> 把 api/、/api/wallet* 转给 Worker
 npm run build:cf      # 页面打包到 dist-cf/games/texas/（Worker 的静态资源），并把 _headers（assets 长缓存）拷到 dist-cf/
-npm run smoke         # 冒烟：先 build:cf；本地起 Worker + 无头 Chromium，跑单机（打满 30 手、补码、离桌结算、回大厅）、手机横屏、双指放大、竖屏、好友房、快速匹配，
+npm run smoke         # 冒烟：先 build:cf；本地起 Worker + 无头 Chromium，跑单机（打满 30 手、补码、离桌结算、回大厅）、手机横屏、双指放大、竖屏、好友房、匹配真人，
                       # 再用原样的 wrangler.jsonc 起一个单独部署的 Worker 跑单机和游客好友房；
                       # --only desktop|mobile|portrait|room|match|standalone 只跑一段，tall|guide|tp|tour|tourfmt|tourroom|devices|scenes|noscroll|lobbyui|settings|dialogs|ach|puzzle|pushfold|dailytour|bigmoments|roomsoak|roomweak 只能单独指定（docs/testing.md 第 9 节；devices 是 27 个尺寸的多尺寸检查，加 --lobby 只查主页和选桌页；scenes 是牌桌各种局面的互压检查，8.2；roomsoak 好友房长跑量内存和连接、roomweak 后台和弱网后恢复，第 6 节）
 npm run capture -- [--device desk|phone|both] [--every 250] [--secs 40] [--auto] [--out 目录]
@@ -88,7 +88,7 @@ curl -b '__Host-sid=me' http://localhost:8775/api/wallet
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/gzyyyyyyu/arcade/tree/main/games/texas)
 
 `wrangler.jsonc` 是能原样部署的独立配置：点上面的按钮，或者 fork 后在本目录 `npm ci && npm run deploy`（先 `npx wrangler login`），
-部署到你自己 Cloudflare 账号的 `texas.<你的子域>.workers.dev`，打开根路径会跳到 `/games/texas/`。只用到 Workers、静态资源和三个 Durable Object（免费版就够；单独部署的快速匹配只有娱乐档）。
+部署到你自己 Cloudflare 账号的 `texas.<你的子域>.workers.dev`，打开根路径会跳到 `/games/texas/`。只用到 Workers、静态资源和三个 Durable Object（免费版就够；单独部署的匹配真人只有娱乐档）。
 
 单独部署有的和没有的（细节见 docs/deploy.md 10.1）：
 
@@ -116,7 +116,7 @@ PR 上只测试不部署。在本仓库里不对正式环境手动部署（`npm 
 | `ASSETS` | 静态资源 | `dist-cf/`，由 `npm run build:cf` 生成 |
 | `ROOM` | Durable Object `TexasRoom` | 好友房 |
 | `METER` | Durable Object `RoomMeter` | kit 的每日额度计量 |
-| `MATCH` | Durable Object `Queue` | 快速匹配的排队（每档一个实例，不写存储） |
+| `MATCH` | Durable Object `Queue` | 匹配真人的排队（每档一个实例，不写存储） |
 | `ARCADE` | 服务绑定 → `arcade`（本站部署时补） | 登录闸门和认人，问平台 `/api/me`；没有就是单独部署 |
 | `WALLET` | 服务绑定 → `arcade` 的 `WalletService`，`props.game = texas`（本站部署时补） | 单机和好友房的带入、结回 |
 | `GATE` | 变量（本站部署时补） | `login`（没登录跳平台登录页；没绑 ARCADE 时拒绝，不退成游客）或 `off`（不拦，本地试页面用）；不写时看有没有 ARCADE |

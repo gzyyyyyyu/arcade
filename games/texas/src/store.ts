@@ -11,7 +11,7 @@ export const KEYS = {
   /** 上一次进的好友房：钱包里还有那一桌的一份时，标题页按它给"回到房间"；点"离开房间"、房间关了就清掉 */
   lastRoom: 'texas.lastRoom',
   session: 'texas.session',
-  /** 单机锦标赛（Sit & Go）本机存档：刷新、断线后接着打或接着结（src/tour/solo.ts） */
+  /** 单机锦标赛（Sit & Go）本机存档：刷新、断线后接着打或接着结（src/tour-solo.ts） */
   tour: 'texas.tour',
   /** 互动的总开关（"互动：不看"）。按人屏蔽、首次提示是 kit 的 TableFun 按 storageKey 存的：texas.fun.blocked（sessionStorage）、texas.hint.fun */
   fun: 'texas.fun',
@@ -21,9 +21,9 @@ export const KEYS = {
   ach: 'texas.ach',
   /** 新手指引（src/guide.ts）：走完或跳过了没、情境提示出过哪几条。不同步 */
   guide: 'texas.guide',
-  /** 快速局（全下或弃牌）的最好成绩和玩过几局：{ best, plays }，只在本机 */
+  /** 全下局（全下或弃牌）的最好成绩和玩过几局：{ best, plays }，只在本机 */
   pushfold: 'texas.pushfold',
-  /** 今日赛（src/core/daily.ts）：{ date, score, sent }，哪天打过、得了多少分、交榜了没有。和 pushfold 分开存：形状不同，互不覆盖；只在本机 */
+  /** 今日锦标赛（src/core/daily.ts）：{ date, score, sent }，哪天打过、得了多少分、交榜了没有。和 pushfold 分开存：形状不同，互不覆盖；只在本机 */
   dailyTour: 'texas.dailytour',
   /** 每日谜题（src/puzzle/progress.ts）：哪天选了什么、连续答对几天、一共答对几次。只在本机 */
   puzzle: 'texas.puzzle',

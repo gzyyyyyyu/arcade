@@ -47,6 +47,9 @@ export const LEVEL_HOUSE: readonly (readonly number[])[] = [
  */
 export const STRONG: readonly number[] = [1, 0, 7, 4, 6, 5, 8, 3, 2, 9];
 
+/** 选桌卡上"很少赢过 N 份"的 N：配平模拟量的，一场赢超过 3 份（这一档的满买入）的不到 1%（docs/ai.md 4.10） */
+export const RARE_WIN_STAKES = 3;
+
 /**
  * 单机实盘按档位用哪一档电脑（0.12.0 配平，docs/ai.md 4.10；0.5.0–0.11 是 0、2、3、4，娱乐也按它）：小桌 1、中桌 2、大桌 3、豪华桌 4。
  * 0 档只给娱乐的新手（FUN_LEVEL）。0.12.0 以前开的娱乐桌没记 level，也按这张表
@@ -77,6 +80,6 @@ export const SESSION_HANDS = 40;
 export const HOUSE_MIN_BB = 60;
 export const HOUSE_MAX_BB = 100;
 
-/** 全下或弃牌的快速局（docs/features.md 13.10）：每人带这么多个大盲上桌（短码），打这么多手或输光为止 */
+/** 全下或弃牌的全下局（docs/features.md 13.10）：每人带这么多个大盲上桌（短码），打这么多手或输光为止 */
 export const PF_STACK_BB = 10;
 export const PF_HANDS = 15;

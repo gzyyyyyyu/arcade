@@ -38,9 +38,26 @@ export type WalletReply = { ok: true; wallet: WalletView; credited?: number; cap
 /** 钱包里德州的那几份（平台 0.9.5 起同一个游戏可以同时有好几份：单机一份、每个好友房各一份）；mode 不给就是全部 */
 export const texasStakes = (w: WalletView | null, mode?: Mode): Stake[] => w?.stakes.filter((s) => s.game === 'texas' && (!mode || s.mode === mode)) ?? [];
 
+/**
+ * 本机记着的带入（buyin）/结回（cashout）没办成时，要不要留着下次用同一个操作 id 重办（单机现金桌和单机锦标赛共用）：
+ * 连不上、平台出错要留；结回回 busy（平台停服档）留着再办，带入回 busy 是平台停了带入、钱没扣，当明确拒了
+ * （0.3.3：原来也当连不上，一整天每 15 秒重试，这期间连娱乐局都开不了）；
+ * 结回时登录过期、没过 CSRF：钱包没收到，留在本机，登录后再结（0.3.3：原来当明确拒了，整桌筹码就丢了）
+ */
+export function retryable(error: string, kind: 'buyin' | 'cashout'): boolean {
+  if (error === 'offline' || error === 'unavailable' || error === 'internal') return true;
+  return kind === 'cashout' && (error === 'busy' || error === 'login' || error === 'forbidden');
+}
+
+/**
+ * 德州自己发的请求（钱包、云存档、交榜）最多等这么久：挂住的连接不让按钮一直转圈。超时按连不上处理——
+ * 钱包的带入、结回先记在本机（pending），同一个操作 id 重发、平台去重，不会多扣多给
+ */
+export const FETCH_TIMEOUT_MS = 15_000;
+
 async function call(url: string, init: RequestInit): Promise<WalletReply> {
   try {
-    const res = await fetch(url, init);
+    const res = await fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (res.status === 401) return { ok: false, error: 'login' };
     const data = (await res.json()) as { ok?: boolean; wallet?: WalletView; error?: unknown; credited?: number; capped?: number; retryAfter?: unknown };
     if (res.ok && data.wallet) return { ok: true, wallet: data.wallet, credited: data.credited, capped: data.capped };
@@ -75,7 +92,7 @@ export const walletApi: WalletApi = {
 
 /**
  * 给玩家看的一句话：照 docs/platform-backend.md 15.10 的对照表（平台 0.10.2），出了什么事、怎么办，不只回一个错误码。
- * retryAfter：/api 限次（rate_limited）时平台给的秒数。
+ * retryAfter：/api 限次（rate_limited）时平台给的秒数。限次只防刷、对玩家无感：说法不提"频繁""太快"，只说忙、筹码没动、多久后再试。
  * where：在哪收到的。单机的钱包 RPC 照表说"娱乐局照常玩"；好友房里没有娱乐模式，不提它；
  * 看钱包、领补给走的是 /api，busy 按 /api 那张表说"先只能看、不能改"
  */
@@ -101,7 +118,7 @@ export function walletError(e: string, retryAfter?: number, where: 'solo' | 'roo
     case 'expired':
       return '这一份放太久了，已经原样退回钱包';
     case 'rate_limited':
-      return `操作太频繁了，歇一会儿再试${retryAfter ? `（${Math.max(1, Math.ceil(retryAfter / 60))} 分钟后）` : ''}`;
+      return `钱包这会儿忙，筹码没动，过一会儿再试${retryAfter ? `（${Math.max(1, Math.ceil(retryAfter / 60))} 分钟后）` : ''}`;
     case 'internal':
       return '出了点问题，筹码没动，过一会儿再试';
     case 'offline':

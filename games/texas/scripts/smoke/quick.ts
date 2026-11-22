@@ -1,9 +1,9 @@
-/** 快速局（--only pushfold）和今日赛（--only dailytour）。 */
+/** 全下局（--only pushfold）和今日锦标赛（--only dailytour）。 */
 import type { Browser, Page } from 'playwright-core';
 import { log, newContext, watch, shot, skipTips, enter, openMore } from './harness.ts';
 import { tallDevice } from './solo.ts';
 
-/** 快速局打到结果卡出来：检查操作区只有两个大键，电脑版按键盘 A / F，手机点按钮；返回操作了几次 */
+/** 全下局打到结果卡出来：检查操作区只有两个大键，电脑版按键盘 A / F，手机点按钮；返回操作了几次 */
 async function playPf(page: Page, tag: string, height: number, touch: boolean): Promise<number> {
     let checked = false;
     let n = 0;
@@ -43,8 +43,8 @@ async function playPf(page: Page, tag: string, height: number, touch: boolean): 
 }
 
 /**
- * 快速局 · 全下或弃牌（--only pushfold，docs/features.md 13.9）：电脑版 1280×800（键盘 A 全下、F 弃牌，按钮上有键位提示）和手机竖屏 390×844（点两个大按钮）
- * 各打一整局：娱乐选桌里点"快速局"，操作区只有"弃牌"和"全下 / 跟注全下"两个键（没有加注、一键下注），
+ * 全下局 · 全下或弃牌（--only pushfold，docs/features.md 13.9）：电脑版 1280×800（键盘 A 全下、F 弃牌，按钮上有键位提示）和手机竖屏 390×844（点两个大按钮）
+ * 各打一整局：娱乐选桌里点"全下局"，操作区只有"弃牌"和"全下 / 跟注全下"两个键（没有加注、一键下注），
  * 打满 15 手或输光后弹出结果卡（筹码、手数、最好成绩，本机存在 texas.pushfold），点"再来一局"马上重开；全程控制台零报错。
  */
 export async function pushFoldFlow(browser: Browser, base: string): Promise<void> {
@@ -65,12 +65,12 @@ export async function pushFoldFlow(browser: Browser, base: string): Promise<void
     await pf.scrollIntoViewIfNeeded();
     await shot(page, `pushfold-${tag}-lobby`);
     const box = await pf.boundingBox();
-    if (!box || (!touch && box.height < 44) || box.x + box.width > (device.viewport?.width ?? 0) || box.y + box.height > (device.viewport?.height ?? 0)) throw new Error(`[${tag}] 快速局 button off screen or too small: ${JSON.stringify(box)}`);
+    if (!box || (!touch && box.height < 44) || box.x + box.width > (device.viewport?.width ?? 0) || box.y + box.height > (device.viewport?.height ?? 0)) throw new Error(`[${tag}] 全下局 button off screen or too small: ${JSON.stringify(box)}`);
     await shot(page, `pushfold-${tag}-lobby`);
     await (touch ? pf.tap() : pf.click());
     await page.locator('.stage.at-table').waitFor();
     const where = (await page.locator('.topbar .where').textContent()) ?? '';
-    if (!where.includes('快速局')) throw new Error(`[${tag}] top bar: ${where}`);
+    if (!where.includes('全下局')) throw new Error(`[${tag}] top bar: ${where}`);
 
     const n = await playPf(page, tag, device.viewport?.height ?? 0, touch);
     await shot(page, `pushfold-${tag}-result`);
@@ -93,7 +93,7 @@ export async function pushFoldFlow(browser: Browser, base: string): Promise<void
     await ctx.close();
   }
 
-  // 今日局：同一天同一副牌、一天记一次分上榜。第一局交一次分（榜名 daily-北京日期-pushfold），"再练一遍"是练习、不再交
+  // 今日全下：同一天同一副牌、一天记一次分上榜。第一局交一次分（榜名 daily-北京日期-pushfold），"再练一遍"是练习、不再交
   const scores: { gameId?: string; boardId?: string; score?: number }[] = [];
   const ctx = await newContext(browser, base, 'smoke-pf-daily', { viewport: { width: 1280, height: 800 } }, false, scores);
   const page = await ctx.newPage();
@@ -104,7 +104,7 @@ export async function pushFoldFlow(browser: Browser, base: string): Promise<void
   await openMore(page);
   await page.locator('.lobby [data-act="daily-pf"]').click();
   await page.locator('.stage.at-table').waitFor();
-  if (!((await page.locator('.topbar .where').textContent()) ?? '').includes('今日局')) throw new Error('daily: top bar should say 今日局');
+  if (!((await page.locator('.topbar .where').textContent()) ?? '').includes('今日全下')) throw new Error('daily: top bar should say 今日全下');
   await playPf(page, 'daily', 800, false);
   await page.locator('.pf-best', { hasText: '已上今日榜' }).waitFor({ timeout: 10_000 });
   await shot(page, 'pushfold-daily-result');
@@ -124,9 +124,9 @@ export async function pushFoldFlow(browser: Browser, base: string): Promise<void
 }
 
 /**
- * 今日赛（--only dailytour，docs/tournament.md 14.5）：电脑 1280×800，从娱乐选桌点"今日赛"，一路全下加快出局，打到结束页。
- * 第一场：顶栏写"今日赛"，加注面板展开时底池条不再重复（截图），结束页有分数，假平台只收到一次 POST（榜名 daily-北京日期-tour、整数分），写"已上今日榜"；
- * "再练一场"是练习：顶栏写"今日赛（练习）"，打完不交分。全程控制台零报错
+ * 今日锦标赛（--only dailytour，docs/tournament.md 14.5）：电脑 1280×800，从娱乐选桌点"今日锦标赛"，一路全下加快出局，打到结束页。
+ * 第一场：顶栏写"今日锦标赛"，加注面板展开时底池条不再重复（截图），结束页有分数，假平台只收到一次 POST（榜名 daily-北京日期-tour、整数分），写"已上今日榜"；
+ * "再练一场"是练习：顶栏写"今日锦标赛（练习）"，打完不交分。全程控制台零报错
  */
 async function playDailyTour(page: Page, tag: string, panelShot: boolean): Promise<void> {
   const deadline = Date.now() + 300_000;
@@ -187,17 +187,17 @@ export async function dailyTourFlow(browser: Browser, base: string): Promise<voi
   await page.goto(`${base}/games/texas/`);
   await page.locator('.w-balance').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
   await enter(page, '娱乐');
-  // 舞台整体缩放过，高度和同一行的"今日局"比（都是 44 css 像素）
+  // 舞台整体缩放过，高度和同一行的"今日全下"比（都是 44 css 像素）
   await openMore(page);
   const btn = await page.locator('.lobby [data-act="daily-tour"]').boundingBox();
   const ref = await page.locator('.lobby [data-act="daily-pf"]').boundingBox();
-  if (!btn || !ref || Math.abs(btn.height - ref.height) > 0.5) throw new Error(`今日赛 button should be as high as 今日局: ${JSON.stringify([btn, ref])}`);
+  if (!btn || !ref || Math.abs(btn.height - ref.height) > 0.5) throw new Error(`今日锦标赛 button should be as high as 今日全下: ${JSON.stringify([btn, ref])}`);
   await shot(page, 'dailytour-lobby');
   await page.locator('.lobby [data-act="daily-tour"]').click();
   await skipTips(page);
   await page.locator('.stage.at-table').waitFor();
   const where = (await page.locator('.topbar .where').textContent()) ?? '';
-  if (!/^今日赛 · 极速赛/.test(where)) throw new Error(`daily tour top bar: ${where}`);
+  if (!/^今日锦标赛 · 极速赛/.test(where)) throw new Error(`daily tour top bar: ${where}`);
   await playDailyTour(page, 'first', true);
   await page.locator('.tour-daily', { hasText: '已上今日榜' }).waitFor({ timeout: 10_000 });
   await shot(page, 'dailytour-result');
@@ -210,7 +210,7 @@ export async function dailyTourFlow(browser: Browser, base: string): Promise<voi
   if (rec?.score !== scores[0]!.score || rec.sent !== true) throw new Error(`dailytour: record ${JSON.stringify(rec)}`);
   await page.locator('.d-btn.primary', { hasText: '再练一场' }).click();
   await page.locator('.stage.at-table').waitFor();
-  if (!((await page.locator('.topbar .where').textContent()) ?? '').includes('今日赛（练习）')) throw new Error('daily tour replay should be marked practice');
+  if (!((await page.locator('.topbar .where').textContent()) ?? '').includes('今日锦标赛（练习）')) throw new Error('daily tour replay should be marked practice');
   await playDailyTour(page, 'practice', false);
   await page.locator('.tour-daily', { hasText: '练习局' }).waitFor();
   if (scores.length !== 1) throw new Error(`dailytour replay must not submit: ${JSON.stringify(scores)}`);

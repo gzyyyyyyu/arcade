@@ -65,7 +65,7 @@ describe('架构约束', () => {
     }
   });
 
-  it('跟注提示（我的牌大约赢几成）只在单机桌：好友房、快速匹配（app/online.ts）和锦标赛（app/tour.ts）调 bar.update 只给两个参数，不传 hint', () => {
+  it('跟注提示（我的牌大约赢几成）只在单机桌：好友房、匹配真人（app/online.ts）和锦标赛（app/tour.ts）调 bar.update 只给两个参数，不传 hint', () => {
     /** 每处 bar.update( … ) 顶层有几个参数（数逗号，跳过括号、方括号、花括号里的） */
     const argCounts = (src: string): number[] =>
       [...src.matchAll(/bar\.update\(/g)].map((m) => {
@@ -95,6 +95,17 @@ describe('架构约束', () => {
     const ok = /(^|[\s,{}])(\.dialog|\.result|\.pz-slot(\.runout)?):has\(/;
     for (const f of css('src')) {
       for (const line of read(f).split('\n')) if (line.includes(':has(')) expect(ok.test(line), `${f}: ${line.trim()}`).toBe(true);
+    }
+  });
+
+  it('元素选择器（* button a input）和通用类名（.hidden .toast .mask .dialog）开头的规则限定在德州的根节点下：kit 挂在 body 上的互动、好友面板不吃德州的样式（仓库根 AGENTS.md 第 5 节③）', () => {
+    const css = (dir: string): string[] =>
+      readdirSync(join(ROOT, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? css(join(dir, e.name)) : e.name.endsWith('.css') ? [join(dir, e.name)] : []));
+    const bare = /^(\*|button|a|input|select|textarea|\.hidden|\.toast|\.mask|\.dialog)(?![\w-])/;
+    for (const f of css('src')) {
+      for (const [, sel] of read(f).matchAll(/(?:^|[{};])\s*([^{};@]+?)\s*\{/g)) {
+        for (const one of sel!.split(',').map((x) => x.trim())) expect(bare.test(one), `${f}: ${one}`).toBe(false);
+      }
     }
   });
 });

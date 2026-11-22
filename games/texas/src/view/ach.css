@@ -37,14 +37,14 @@
 
 /* 成就墙（放在弹窗里）：框有定高，格子按行列翻页（ach.ts），不出现滚动条；舞台宽了（电脑）框跟着宽、一页多放几列 */
 
-.dialog:has(.ach-panel) {
+:where(#app, .coach-layer) .dialog:has(.ach-panel) {
   /* 框高到顶会切过顶栏，露出"大厅""设置"的半截（界面审查 1121 第 8 条）：让出顶栏（52），整个框落在它下面 */
   width: min(880px, calc(100% - 24px)); height: calc(100% - 52px - 24px); max-height: 640px; margin-top: 52px;
   display: flex; flex-direction: column;
   padding-top: var(--s-3); padding-bottom: var(--s-3);
 }
-.dialog:has(.ach-panel) .d-body { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: var(--s-1); }
-.dialog:has(.ach-panel) .d-buttons { margin-top: var(--s-2); }
+:where(#app, .coach-layer) .dialog:has(.ach-panel) .d-body { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: var(--s-1); }
+:where(#app, .coach-layer) .dialog:has(.ach-panel) .d-buttons { margin-top: var(--s-2); }
 .ach-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .ach-panel .ach-sum { font-size: var(--fs-4); font-weight: 900; text-align: center; font-variant-numeric: tabular-nums; line-height: 1.3; }
 .ach-panel .ach-grid {

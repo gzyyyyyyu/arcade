@@ -14,7 +14,7 @@ import type { WalletView } from '../net/wallet.ts';
 import type { Online } from '../online.ts';
 import { fastForward, type Solo, type SoloDeps } from '../solo.ts';
 import { readPrefs, readSettings, type Prefs } from '../store.ts';
-import type { TourDeps, TourSolo } from '../tour/solo.ts';
+import type { TourDeps, TourSolo } from '../tour-solo.ts';
 import { loadAch } from '../view/ach.ts';
 import { loadFunOff } from '../view/fun.ts';
 import type { createDaily } from './daily.ts';
@@ -39,13 +39,13 @@ export interface State {
   skipAnim: boolean;
   /** 单机桌上点了"看完这手"的那一手的手数（-1 没点过）；下一手自动恢复快进 */
   ffSkip: number;
-  /** 在全下或弃牌的快速局里（docs/features.md 13.10）：节奏整体快一倍，一手几十秒 */
+  /** 在全下或弃牌的全下局里（docs/features.md 13.10）：节奏整体快一倍，一手几十秒 */
   pfMode: boolean;
   /** 互动"不看"（texas.fun）。菜单、面板、冷却、连击回敬、按人屏蔽、首次提示、电脑的反应都是 kit 的 TableFun（docs/table-fun.md 第 0 节） */
   funOff: boolean;
   /** 聊天"不看"（texas.settings 的 chatOff）：别人说的不冒气泡、不进记录，自己也没有聊天页 */
   chatOff: boolean;
-  /** 快速匹配桌上和陌生人聊不聊（texas.settings 的 strangerChat，默认聊）：不聊时进匹配桌不带 chat=1，好友房、单机照常 */
+  /** 匹配真人桌上和陌生人聊不聊（texas.settings 的 strangerChat，默认聊）：不聊时进匹配桌不带 chat=1，好友房、单机照常 */
   strangerChat: boolean;
   /** 止盈（texas.settings 的 takeProfit） */
   takeProfit: TakeProfit;
@@ -92,7 +92,7 @@ export interface State {
   roomWatch: boolean;
   /** 这一局（坐上一桌到离开，进一个房间到离开）已经报过的名场面 */
   feedSent: Set<FeedMoment>;
-  /** 成就（src/achievements.ts）：只记单机和单机锦标赛；好友房、快速局不算 */
+  /** 成就（src/achievements.ts）：只记单机和单机锦标赛；好友房、全下局不算 */
   ach: AchState;
 }
 
@@ -152,10 +152,10 @@ export function createState(): State {
   };
 }
 
-/** 单机现金桌上正在快进（我弃牌了或没在这一手里）：好友房、快速匹配的真人桌、锦标赛都不快进 */
+/** 单机现金桌上正在快进（我弃牌了或没在这一手里）：好友房、匹配真人的真人桌、锦标赛都不快进 */
 export const fastForwarding = (s: State): boolean => !!s.solo && !s.online && !s.tour && fastForward(s.solo.table, s.ffSkip);
 
-/** 按档取倍率：减少动画 0.3、快 0.55（快进时也走这一档）、正常 normal，快速局再快一倍；好友房追状态时 0 */
+/** 按档取倍率：减少动画 0.3、快 0.55（快进时也走这一档）、正常 normal，全下局再快一倍；好友房追状态时 0 */
 const tier = (s: State, normal: number): number => (s.skipAnim ? 0 : (s.reduced ? 0.3 : s.settings.fast || fastForwarding(s) ? 0.55 : normal) * (s.pfMode ? 0.5 : 1));
 
 /** 动画节奏。正常档 0.8：6 人桌打到摊牌一手里动画占大半，1 倍时一手要二十几秒（docs/experience.md 13.1） */

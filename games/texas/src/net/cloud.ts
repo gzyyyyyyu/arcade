@@ -6,6 +6,7 @@
  * 存储写不进去时宁可暂停同步，也不清本地（第 5 条）。依赖都从 deps 进来，测试用假的 fetch、存储和定时器。
  */
 import { KEYS } from '../store.ts';
+import { FETCH_TIMEOUT_MS } from './wallet.ts';
 
 export interface Stats {
   v: 1;
@@ -248,7 +249,7 @@ export function createCloud(deps: CloudDeps): Cloud {
   }
 
   async function call(method: 'GET' | 'PUT', path: string, body?: string, keepalive = false): Promise<Reply> {
-    const init: RequestInit = { method, credentials: 'same-origin' };
+    const init: RequestInit = { method, credentials: 'same-origin', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) };
     if (body !== undefined) {
       init.headers = { 'X-Arcade': '1', 'content-type': 'application/json' };
       init.body = body;

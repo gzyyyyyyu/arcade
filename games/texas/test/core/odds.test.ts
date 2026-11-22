@@ -41,16 +41,21 @@ describe('跟注提示的赢面', () => {
     expect(() => handOdds(parseCards('Td'), [], 1)).toThrow();
   });
 
-  it('够快：9 人桌翻牌前（最慢的情形）一次中位数不过 10 ms（每次轮到我只算一次；机器负载 37 时实测 1 家 2 ms、8 家 4.5 ms，这条只防成倍变慢）', () => {
-    // 先热身几次（JIT），量的是打牌时每次轮到我那一下
+  it('够快：9 人桌翻牌前（最慢的情形）和一对一比不过 4 倍（每次轮到我只算一次；实测 1 家 2 ms、8 家 4.5 ms）。和同一台机、同一时刻的一对一比，机器忙不忙不影响结论，只防算法成倍变慢', () => {
+    // 先热身几次（JIT），量的是打牌时每次轮到我那一下；两种交替量，负载起伏两边一起吃，再各取最快的一次
     for (let i = 0; i < 5; i++) handOdds([i, i + 20], [], 8);
-    const ms: number[] = [];
-    for (let i = 0; i < 31; i++) {
+    const time = (opp: number, i: number): number => {
       const t0 = performance.now();
-      handOdds([i % 52, (i + 13) % 52], [], 8);
-      ms.push(performance.now() - t0);
+      handOdds([i % 52, (i + 13) % 52], [], opp);
+      return performance.now() - t0;
+    };
+    const one: number[] = [];
+    const nine: number[] = [];
+    for (let i = 0; i < 31; i++) {
+      one.push(time(1, i));
+      nine.push(time(8, i));
     }
-    ms.sort((a, b) => a - b);
-    expect(ms[15]).toBeLessThan(10);
+    // 比最快的那次：机器忙只会让某几次变慢，最快的那次最接近算法本身的耗时
+    expect(Math.min(...nine)).toBeLessThan(4 * Math.min(...one));
   });
 });

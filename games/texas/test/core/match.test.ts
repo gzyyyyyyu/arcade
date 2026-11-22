@@ -1,5 +1,5 @@
 /**
- * 快速匹配的档位（src/room/match.ts，docs/online.md 6.11）：排队给的一桌人数和开局选项，房间都得认，对不上的话线上每桌都会转单机。
+ * 匹配真人的档位（src/room/match.ts，docs/online.md 6.11）：排队给的一桌人数和开局选项，房间都得认，对不上的话线上每桌都会转单机。
  */
 import { matchConfigErrors } from 'arcade-kit/game';
 import { describe, expect, it } from 'vitest';
@@ -7,7 +7,7 @@ import { FUN_STAKES, STAKES } from '../../src/core/stakes.ts';
 import { MATCH_TABLE, MATCH_TIERS, matchRoomOptions, matchTierOf, stakeOfTier } from '../../src/room/match.ts';
 import { texasRoom } from '../../src/room/rules.ts';
 
-describe('快速匹配的档位', () => {
+describe('匹配真人的档位', () => {
   it('排队给的一桌人数和开局选项，房间都认（kit 的 matchConfigErrors 为空）', () => {
     expect(matchConfigErrors(texasRoom, MATCH_TIERS, () => MATCH_TABLE, matchRoomOptions)).toEqual([]);
   });

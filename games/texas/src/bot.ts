@@ -11,7 +11,7 @@ import { view } from './core/view.ts';
 export function aiAction(t: Table, seat: number): Action {
   const v = view(t, seat);
   const r = stream(t.seed, RNG.ai, aiIndex(t, seat));
-  // 全下或弃牌的快速局有自己的一套（docs/features.md 13.10）
+  // 全下或弃牌的全下局有自己的一套（docs/features.md 13.10）
   return v.pf ? pushFoldAction(v, r) : decide(v, r);
 }
 

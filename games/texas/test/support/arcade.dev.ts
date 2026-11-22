@@ -7,7 +7,7 @@ import { walletHttp, type FakeEnv } from 'arcade-kit/testing';
 
 export { FakeBank, WalletService } from 'arcade-kit/testing';
 
-/** 写成 WorkerEntrypoint：快速匹配的排队凑桌前经 RPC 问平台的屏蔽名单（kit 0.20.0，平台 0.25.0 的 blockedAmong），本地没人屏蔽谁 */
+/** 写成 WorkerEntrypoint：匹配真人的排队凑桌前经 RPC 问平台的屏蔽名单（kit 0.20.0，平台 0.25.0 的 blockedAmong），本地没人屏蔽谁 */
 export default class FakeArcade extends WorkerEntrypoint<FakeEnv> {
   blockedAmong(_userIds: string[]): [string, string][] {
     return [];
