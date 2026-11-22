@@ -2,7 +2,7 @@
 # 打自托管的发布包：生成发布目录（build.mjs），放进 workerd 二进制和启动脚本，打成 arcade-<版本>.tar.gz。
 # 服务器上解开就能跑，不装 Node（Node 只在这台打包的机器上用）。
 # 用法（仓库根）：tools/selfhost/release.sh <产物目录> <输出目录> [--with-pg] [build.mjs 的其他参数，比如 --only arcade,texas --db pg]
-# --with-pg：同一个包里再带一份 PG 档的配置（pg/ 子目录，平台库放 PostgreSQL、房间仍落盘），启动时 ARCADE_DB=pg 用它；发布的镜像就是这样打的。
+# --with-pg：同一个包里再带一份 PG 档的配置（pg/ 子目录，平台库放 PostgreSQL、房间仍落盘），启动时 ARCADE_DB=pg 用它；Docker 镜像就是这样打的。
 # 之前要：tools/selfhost/pack-all.sh <产物目录>；npm ci --ignore-scripts --prefix tools/deployer；packages/arcade-host 里 npm ci && npm run build。
 set -euo pipefail
 artifacts=${1:?用法：tools/selfhost/release.sh <产物目录> <输出目录> [build.mjs 的参数]}

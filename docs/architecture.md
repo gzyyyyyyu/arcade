@@ -8,7 +8,7 @@
 
 | 原则 | 落实 |
 |---|---|
-| 技术栈统一 | 平台和所有游戏都用 TypeScript + Vite，Node 22（`.nvmrc`）。平台界面用 React；游戏按类型选渲染层（开盘、掼蛋、夜巡用 Phaser，牌桌类也有纯 DOM 的），但构建和部署方式一致。后端接口也用 TypeScript 写在 Worker 里。 |
+| 技术栈统一 | 平台和所有游戏都用 TypeScript + Vite，Node 22（`.nvmrc`）。平台界面用 React；游戏按类型选渲染层（开盘、掼蛋、夜巡、海岛用 Phaser，掼蛋用按需裁剪的精简版；牌桌类也有纯 DOM 的），但构建和部署方式一致。后端接口也用 TypeScript 写在 Worker 里。 |
 | 都按 Workers 运行时写 | 每个模块构建出静态资源，加上一个 Worker 入口，用 wrangler 打包。账号、好友、排行榜等接口在平台 Worker 里，数据放 D1；联机房间放各游戏 Worker 的 Durable Object。同一份产物既能部署到 Cloudflare，也能用自托管运行时（第 6 节，workerd 加 SQLite 或 PostgreSQL）跑在自己的机器上，所以模块代码只用 Workers 的标准能力。 |
 | 资源轻量 | 平台首页只有 React 加一个游戏列表；各游戏只在进入时才加载。游戏素材烘焙成图集或程序生成，正式构建不带 sourcemap。 |
 | 打包方便 | 每个模块都是 `npm run build` 加 `wrangler deploy --dry-run` 打包；经 PR 合并进 `main` 后，开了 Cloudflare 部署时由 GitHub Actions 按路径只部署有改动的模块；自托管从同一份源码打整站发布包（[deployment.md](deployment.md)）。 |
@@ -58,7 +58,7 @@ https://<站点>/games/<id>/*     → 各游戏的 Worker（路径路由；静�
 
 完整方案见 [platform-backend.md](platform-backend.md)。要点：
 
-- 账号、好友、排行榜归平台的 `/api/*`，数据在平台独占的 D1；账号用用户名 + 密码 + 恢复码；现在是邀请制，注册默认关着、管理员可以随时开关，不登录不能玩游戏（游戏 Worker 在首页上做登录闸门，见 platform-backend.md 5.8、[api.md](api.md) 15.8）。
+- 账号、好友、排行榜归平台的 `/api/*`，数据在平台独占的 D1；账号用用户名 + 密码 + 恢复码；邀请制：注册默认关着、管理员可以随时开关，不登录不能玩游戏（游戏 Worker 在首页上做登录闸门，见 [platform-features.md](platform-features.md) 5.8、[api-account.md](api-account.md) 15.8）。
 - 排行榜是简单版、不防作弊：游戏页直接调 `/api/scores` 交分，平台只防刷额度、查数据格式，不重放验分（platform-backend.md 9.2）。
 - 排行榜分两层（游戏多了以后不把所有榜都摊出来）：
   - **总榜**：全站一个，按本周带筹码的输赢（单机实盘、好友房）排，排行页默认就显示它，带"只看好友"；
@@ -69,7 +69,7 @@ https://<站点>/games/<id>/*     → 各游戏的 Worker（路径路由；静�
 - 每个游戏的联机房间放在它自己的 Worker 里（Durable Objects，休眠写法，SQLite 后端）。开房进房的路径各游戏不同，以各游戏的 `wrangler.jsonc` 里 `run_worker_first` 为准。
 - 共用代码放进共用包 `packages/arcade-kit`，所有游戏必须遵守其中的房间规范；开房进房靠 `/api/me` 认人、不发入场票，取舍见 [accounts.md](accounts.md) 5.3，房间额度见 [rooms.md](rooms.md) 4.6。
 - 牌桌游戏的互动统一做成 kit 里的组件，规范见 [table-fun.md](table-fun.md)；社交部件（分享、在线、邀请、旁观）见 [social.md](social.md)；各游戏的难度和筹码收益按 [balance.md](balance.md) 配平，档位和钱包见 [economy.md](economy.md)。
-- 费用：自计量熔断 + GraphQL 对账 + 墓碑版本兜底，默认 8 美元停服；平台接口按免费版的日额度自计量，到线就只读或停服（[cost-guard.md](cost-guard.md) 6.6）。
+- 额度：跑在免费版，房间有硬限制和计量（[rooms.md](rooms.md) 4.6、4.7），平台接口按免费版的日额度自计量，到线就停增长、只读或停服（[cost-guard.md](cost-guard.md) 6.6）；按账单金额熔断没有做（6.2）。
 
 ## 5. 本地开发
 

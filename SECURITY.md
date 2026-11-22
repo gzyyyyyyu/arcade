@@ -11,7 +11,7 @@ if you run your own copy, update it from `main`.
 Please **do not open a public issue** for security problems.
 
 Report privately through GitHub: **Security → Advisories → [Report a vulnerability](https://github.com/gzyyyyyyu/arcade/security/advisories/new)**.
-Include the affected module (`platform/`, `games/<id>/` or `packages/arcade-kit/`), steps to reproduce and the impact you expect.
+Include the affected module (`platform/`, `games/<id>/`, `packages/arcade-kit/` or `packages/arcade-host/`), steps to reproduce and the impact you expect.
 
 Do not include real credentials, other players' personal data or a working exploit against a live deployment in the report; a minimal reproduction against a local copy is best.
 

@@ -22,7 +22,7 @@
 | 单人、画布动画（Phaser） | `games/kaipan`、`games/yexun`（动作类，固定步长模拟） |
 | 竞赛规则复杂、电脑多档强度 | `games/guandan`（一个模块里放多个玩法的结构：`src/variants/<玩法>/`） |
 
-模块里至少要有（`node tools/check-isolation.mjs` 会查）：
+模块里至少要有（`node tools/check-isolation.mjs` 查其中的 `package.json`、`package-lock.json`、`.nvmrc`、`README.md`、`AGENTS.md`，其余靠审阅）：
 
 ```
 games/<id>/
@@ -40,7 +40,7 @@ games/<id>/
 
 隐藏文件只许有 `.gitignore`、`.nvmrc`、`.dev.vars.example`（和 `tools/check-deploy-config.mjs` 的名单一致）；不要提交 `.env*`、`.npmrc`、`.wrangler/`、`wrangler.json`、`wrangler.toml`、符号链接（部署配置检查会拦，见第 4 节）。
 
-`package.json` 里写 `"license": "MIT"`；依赖共用包写 npm 上发布的版本，按别名装（`"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.25.1"`，包名是 `@yyyu-star/arcade-kit`，别名让代码里的 `arcade-kit/...` 不用改；命令行是 `npm i arcade-kit@npm:@yyyu-star/arcade-kit`。单独部署和 Deploy to Cloudflare 按钮只复制游戏目录，`file:` 路径带不过去），
+`package.json` 里写 `"license": "MIT"`；依赖共用包写 npm 上发布的版本，按别名装（`"arcade-kit": "npm:@yyyu-star/arcade-kit@^<版本>"`，包名是 `@yyyu-star/arcade-kit`，别名让代码里的 `arcade-kit/...` 不用改；命令行是 `npm i arcade-kit@npm:@yyyu-star/arcade-kit`。单独部署和 Deploy to Cloudflare 按钮只复制游戏目录，`file:` 路径带不过去），
 或者仓库内的 `"arcade-kit": "file:../../packages/arcade-kit"`（唯一允许指向模块外的路径，跟着仓库里最新的 kit 走，但不能单独部署）。
 脚本里要有 `deploy`：先构建出 `assets.directory` 指的目录再 `wrangler deploy`（比如 `"deploy": "npm run build:cf && wrangler deploy"`），单独部署和按钮都用它。
 
@@ -92,7 +92,7 @@ npm run build
   不写 `routes`、域名、`account_id`、`env`、`limits`；
 - `main` 和 `assets.directory` 必须在模块目录里；构建产物放在 `assets.directory`（现有游戏是 `dist-cf/`），Worker 由 `wrangler deploy --dry-run` 打成一个文件；
 - 绑定只许：静态资源 `ASSETS`；本模块自己的 Durable Object（只写 `name`、`class_name`，房间 `ROOM`、计量 `METER`、快速匹配排队 `MATCH`）；
-- **不写服务绑定和 `GATE`**。过渡期里已经写了 `ARCADE`、`WALLET` 的游戏，必须和规范形式一字不差
+- **不写服务绑定和 `GATE`**。如果写了服务绑定，必须和规范形式一字不差
   （`{ "binding": "ARCADE", "service": "arcade" }`、`{ "binding": "WALLET", "service": "arcade", "entrypoint": "WalletService", "props": { "game": "<id>" } }`），
   别的服务绑定（包括 `tools/workers.json` 没给这个游戏声明的）一律拒绝；
 - Durable Object 的 `migrations` 只许 `tag`、`new_classes`、`new_sqlite_classes`（不许转移、删除、改名类）；`observability` 不许 `destinations`；
@@ -114,7 +114,7 @@ npm run build
     "directory": "./dist-cf",
     "binding": "ASSETS",
     "not_found_handling": "none",
-    "run_worker_first": ["/", "/api/me", "/games/mahjong", "/games/mahjong/", "/games/mahjong/index.html", "/games/mahjong/api/stake/*", "/games/mahjong/rooms", "/games/mahjong/rooms/*"]
+    "run_worker_first": ["/", "/api/me", "/games/mahjong", "/games/mahjong/", "/games/mahjong/index.html", "/games/mahjong/health", "/games/mahjong/api/stake/*", "/games/mahjong/rooms", "/games/mahjong/rooms/*"]
   },
   "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "MahjongRoom" }, { "name": "METER", "class_name": "RoomMeter" }, { "name": "MATCH", "class_name": "Queue" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MahjongRoom", "RoomMeter"] }, { "tag": "v2", "new_sqlite_classes": ["Queue"] }],
@@ -132,18 +132,19 @@ npm run build
      （名单里只放 main 上已经有目录的模块：自托管默认按这份名单打包全部模块，目录还不存在会让从 main 打包失败，所以和游戏 PR 一起合，不提前加）
      （`"<id>": { "platform": ["ARCADE", "WALLET"] }`，只认人就只写 `ARCADE`；不写就按游戏自己的独立配置部署成游客模式）；
      把它用到的 `vars` 名加进 `tools/deploy-allowlist.json`（`GATE` 由部署工具补，不用列）；
-   - 从 `game-kaipan.yml`（不用共用包）或 `game-mahjong.yml`（用共用包）复制一份 `.github/workflows/game-<id>.yml`，只改名字和路径
+   - 从 `game-kaipan.yml`（没有房间）或 `game-mahjong.yml`（有房间，多跑 `test:room`）复制一份 `.github/workflows/game-<id>.yml`，只改名字和路径
      （test 作业打包、deploy 作业 sparse-checkout 本模块的 `wrangler.jsonc`、用 `tools/deployer/deploy.mjs` 部署，这些结构不动）；
-   - 在平台的 `platform/shared/games.ts` 登记（名字、介绍、封面、路径、状态），放封面；云存档、排行榜、钱包的游戏白名单都从这份登记派生；
+   - 在平台的 `platform/shared/games.ts` 登记（名字、介绍、路径、本地开发地址 `devUrl`、状态；想先接钱包、存档再上大厅的先登记成 `status: 'coming'`），
+     封面放 `platform/public/covers/<id>.webp` 和 `<id>-400.webp`；云存档、排行榜、钱包的游戏白名单都从这份登记派生（不接钱包的写 `wallet: false`，否则默认进钱包白名单）；
    - 要排行榜的，按榜的形式在同一份登记里写：每日挑战 `daily`（榜名 `daily-YYYY-MM-DD[-<子榜>]`，分数写法放游戏的 `public/daily.json`）、
      每周挑战 `weekly: [{ id, name }]`（榜名 `week-<YYYY>-W<ww>-<子榜>`，北京时间的 ISO 周，只收这周的；分数写法放 `public/weekly.json`）、
-     不清零的固定榜 `boards`（分数写法放 `public/boards.json`）；规则和交分的返回码见 `docs/api.md` 15.5、15.12；
-     排行页只列总榜和每个游戏的小榜（本周输赢 + 最多 1 个代表性每日榜，architecture.md 第 4 节），登记时说明哪个是代表性的；别的榜放在游戏自己的界面里显示；
+     不清零的固定榜 `boards`（分数写法放 `public/boards.json`）；规则和交分的返回码见 `docs/api-boards.md` 15.5、15.12；
+     排行页只列总榜和每个游戏的小榜（本周输赢 + 最多 1 个代表性每日榜，architecture.md 第 4 节），代表性的每日榜写在登记的 `featuredDaily`；别的榜放在游戏自己的界面里显示；
    - 游戏里的菜单页（首页、选档、结算、图鉴）照 `docs/ui.md`：任何尺寸一屏放下不滚动、开局选项不折叠、两栏等高；
    - 有电脑人物的话把名字加进平台的保留昵称（`platform/worker/api/account/reserved-names.ts`），免得真人起同样的昵称冒充电脑；
    - 在 AGENTS.md 和根 README（中英两份）的端口表里登记端口，README 的游戏表和封面表里加上这个游戏；
    - 在 `.github/ISSUE_TEMPLATE/` 两个模板的模块列表里加上 `games/<id>`。
-3. **合并、部署、线上验证**：先合登记，再合游戏；合并后由维护者部署（[deployment.md](deployment.md)），再到线上实际打开验证（版本号、主流程、控制台零报错）。
+3. **合并、部署、线上验证**：游戏 PR 连同 `tools/workers.json` 那一行先合（见上），平台登记的 PR 随后合；合并后由维护者部署（[deployment.md](deployment.md)），再到线上实际打开验证（版本号、主流程、控制台零报错）。
 4. 之后的改动就是普通的游戏 PR：一个 PR 只改这个游戏；自动审阅代理按清单审完后，由维护者复核、合并、部署。
    改 `package.json`、lockfile、构建测试配置、模块里的脚本、隐藏文件或 wrangler 配置的 PR 要维护者亲自审，会慢一些（[review-policy.md](review-policy.md) 第 6 节）。
 
@@ -165,7 +166,7 @@ PR 怎么被审、什么会被打回、什么要等维护者，见 [review-polic
 每个游戏的 `wrangler.jsonc` 都是独立配置，任何人都能只部署一个游戏到自己的 Cloudflare 账户，不需要平台：
 
 - **Deploy to Cloudflare 按钮**：`https://deploy.workers.cloudflare.com/?url=https://github.com/gzyyyyyyu/arcade/tree/main/games/<id>`。
-  按钮只把 `games/<id>/` 复制成你账户下的新仓库，所以游戏要依赖 npm 上的 `@yyyu-star/arcade-kit`（按别名 `"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.25.1"`，不是 `file:`），并且有第 1 节说的 `deploy` 脚本
+  按钮只把 `games/<id>/` 复制成你账户下的新仓库，所以游戏要依赖 npm 上的 `@yyyu-star/arcade-kit`（按别名 `"arcade-kit": "npm:@yyyu-star/arcade-kit@^<版本>"`，不是 `file:`），并且有第 1 节说的 `deploy` 脚本
   （按钮会自动带上 `package.json` 里的 `build`、`deploy` 脚本；Durable Object 按配置自动建）。
 - **fork 或拆出来的仓库**：在游戏目录里 `npm ci && npx wrangler login && npm run deploy`。
 

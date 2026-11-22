@@ -8,7 +8,7 @@ contributors only need [CONTRIBUTING.md](../CONTRIBUTING.md). The review rules f
 | Target | Built by | Deployed by | Used for |
 |---|---|---|---|
 | **Self-hosted** (release tarball or Docker image) | whoever runs the site, from a checkout of `main` with `tools/selfhost/` ([self-hosting.md](self-hosting.md)); no image is published. `.github/workflows/selfhost.yml` tests the packaging on pull requests that touch it | the operator installs or upgrades the release on their server | the project's own site; anyone self-hosting |
-| **Cloudflare Workers** | the `test` job of each module's workflow (`platform.yml`, `game-<id>.yml`) on every pull request, and on `main` when Cloudflare deploys are on | the `deploy` job, only on `main` and only when the repository variable `CF_DEPLOY` is `true` | the project's own site; forks that deploy to Cloudflare |
+| **Cloudflare Workers** | the `test` job of each module's workflow (`platform.yml`, `game-<id>.yml`) on every pull request that touches the module, and on `main` when Cloudflare deploys are on | the `deploy` job, only on `main` and only when the repository variable `CF_DEPLOY` is `true` | the project's own site; forks that deploy to Cloudflare |
 
 Both targets build from the same module code and the same `wrangler.jsonc` files, and both add the platform bindings with the same rules
 (`tools/deployer/lib.mjs`). `main` only accepts pull requests; the Cloudflare deploy additionally refuses to run unless `tools/verify-main.sh`
@@ -30,7 +30,7 @@ Kept in sync with the repository's settings:
   deploy needs), then set `CF_DEPLOY=true`. The hostname and database ID are secrets so they are masked in the Actions logs; the repository itself names no domain.
   On a plan with environment protection rules, adding the repository owner as a required reviewer of `production` makes every deploy wait for approval.
 - **One deploy per module at a time**: deploy jobs of the same module queue instead of cancelling each other. Only the latest commit on `main` is deployed: if another
-  pull request touching the module was merged while a run was queued, that run fails its "latest commit" step; do not re-run old runs — start the module's
+  pull request touching the module, its workflow or `tools/` was merged while a run was queued, that run fails its "latest commit" step; do not re-run old runs — start the module's
   workflow on `main` manually (*Run workflow*), which deploys the current head.
 - **Merging and publishing are maintainer-only.** The automated reviewer never merges and never approves deployments; its token has no
   Deployments, Environments, Secrets or Administration permission.
@@ -60,7 +60,7 @@ Kept in sync with the repository's settings:
 - **Publishing `arcade-kit` to npm** (package name `@yyyu-star/arcade-kit`; the npm token only covers that scope): only a maintainer publishes, from their own machine, from a merge commit on `main` — the npm token never goes into
   GitHub. `git switch --detach origin/main && cd packages/arcade-kit && npm ci && npm test && npm publish` (the version must be the one in its
   `package.json` / `CHANGELOG.md`, merged through a kit pull request). Then verify in an empty directory with `npm i arcade-kit@npm:@yyyu-star/arcade-kit@<version>`.
-  Games install it under the alias `arcade-kit` (`"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.25.1"`), so their `arcade-kit/...` imports stay unchanged.
+  Games install it under the alias `arcade-kit` (`"arcade-kit": "npm:@yyyu-star/arcade-kit@^<version>"`), so their `arcade-kit/...` imports stay unchanged.
   Games move to a new kit version through their own pull requests; `pkg-arcade-kit.yml` already runs every game's tests against the packed kit.
 - **Pinned tooling**: third-party actions are pinned to full commit SHAs, and the deployer's wrangler version is fixed in `tools/deployer/` (upgrade steps in
   [tools/deployer/README.md](../tools/deployer/README.md)). Pull requests that touch `tools/` or `.github/workflows/` also run the whole deploy path for one game
@@ -125,7 +125,7 @@ No platform, no domain needed — the game gets a `https://<id>.<your-subdomain>
 
 - **Deploy to Cloudflare button**: `https://deploy.workers.cloudflare.com/?url=https://github.com/gzyyyyyyu/arcade/tree/main/games/<id>`
   (replace `<id>` with `kaipan`, `guandan`, `texas`, `mahjong`, `racing`, `yexun`, `danli` or `haidao`). The button copies only that game's directory, so it needs the game to depend on the published `@yyyu-star/arcade-kit` from npm
-  (aliased, see the `arcade-kit` line in each game's `package.json`) instead of the in-repo copy; each game's README says whether its button is ready.
+  (aliased, see the `arcade-kit` line in each game's `package.json`) instead of the in-repo copy.
   The same button on [`platform`](https://deploy.workers.cloudflare.com/?url=https://github.com/gzyyyyyyu/arcade/tree/main/platform) deploys the lobby alone (it creates the D1 database and asks for the secrets in `platform/.dev.vars.example`); games deployed with their own buttons are not connected to it.
 - **From a fork**: `cd games/<id> && npm ci && npx wrangler login && npm run deploy`.
 
