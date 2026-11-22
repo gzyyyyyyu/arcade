@@ -155,6 +155,8 @@ export function drawTitleStill(c: Ctx, w: number, h: number, padTop?: number, se
   c.beginPath();
   c.moveTo(0, horizon);
   for (let x = 0; x <= w; x += 20) c.lineTo(x, horizon + Math.sin(x * 0.012) * 4);
+  // 宽度不是 20 的倍数时补上右边缘那一点，否则右边漏出一条天空色的细三角（390 竖屏）
+  c.lineTo(w, horizon + Math.sin(w * 0.012) * 4);
   c.lineTo(w, h);
   c.lineTo(0, h);
   c.fill();

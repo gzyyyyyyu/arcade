@@ -18,7 +18,7 @@ import { CHAR_FX, CHARACTERS } from '../../content/meta.ts';
 import { ARENA, DROPS, xpNeed } from '../../content/player.ts';
 import { MAPS } from '../../content/maps.ts';
 import { BEAST, DAWN_RED, DAWN_WARN, GATE, RAID_DAWN, RAID_LATE } from '../../content/explore.ts';
-import { MARKET_GOODS, MARKET_NAME, NIGHT_MARKET, type MarketGood } from '../../content/market.ts';
+import { MARKET_GOODS, MARKET_NAME, NIGHT_MARKET } from '../../content/market.ts';
 import { TIERS, TIER_INFO, TREASURES } from '../../content/treasures.ts';
 import { edgeArrow, walkSecs } from '../../explore/view/guide-hud.ts';
 import { guide, newGuide } from '../../explore/guide.ts';
@@ -58,6 +58,7 @@ import { DeathGhosts } from './paint-ghosts.ts';
 import { GroundPainter } from './paint-ground.ts';
 import { ShotsView } from './paint-shots.ts';
 import { FoeView } from './foes.ts';
+import { MARKET_ICON, type StallItem, StallsView } from './stalls.ts';
 import { isFoeBoss } from '../../core/foes/index.ts';
 import { weaponLook } from './look.ts';
 import { Town } from './town.ts';
@@ -161,19 +162,6 @@ interface MobView {
   ky: number;
 }
 
-interface StallItem {
-  x: number;
-  y: number;
-  icon: string;
-  price: number;
-  sold: boolean;
-  /** 预告阶段：半透明、不写价钱 */
-  ghost: boolean;
-  name?: string;
-}
-
-/** 夜市货的图标：从现有图集里挑意思接近的帧 */
-const MARKET_ICON: Record<MarketGood, string> = { heal: 'bun', reroll: 'p_luopan', ban: 'p_lingpai', might: 'p_zhusha', speed: 'p_caoxie', vacuum: 'scroll', upgrade: 'chest', omen: 'talisman' };
 
 export class GameScene extends Phaser.Scene {
   private d!: GameDeps;
@@ -208,6 +196,7 @@ export class GameScene extends Phaser.Scene {
   private readonly ghosts = new DeathGhosts(this);
   private fx!: Fx;
   private foeView!: FoeView;
+  private stalls!: StallsView;
   private ground!: Fx;
   private nums!: DamageNumbers;
   /** 摆设、符咒炸弹、开箱光效、铜钱袋飘字（items.ts） */
@@ -244,7 +233,6 @@ export class GameScene extends Phaser.Scene {
   private gateViews: { img: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; label: Phaser.GameObjects.Text; open: boolean }[] = [];
   private gd = newGuide();
   /** 鬼市的三个摊子（开市时建，收市时拆）：棚、货的图标、价钱、灯笼光 */
-  private stallViews: { img: Phaser.GameObjects.Image; icon: Phaser.GameObjects.Image; price: Phaser.GameObjects.Text; glow: Phaser.GameObjects.Image; sig: string }[] = [];
   /** 宝库的封条（金箱上的交叉符纸） */
   private sealImg: Phaser.GameObjects.Image | null = null;
   /** 宝库上方的一行字：还差多久开封 / 可以搜了 / 要钥匙（走近了才显示） */
@@ -399,6 +387,13 @@ export class GameScene extends Phaser.Scene {
       say: (title, sub) => this.d.banners.say(title, 'warn', 1800, sub),
       img: (key, x, y, scale) => this.img(key, x, y, scale),
     });
+    this.stalls = new StallsView({
+      scene: this,
+      img: (key, x, y, scale) => this.img(key, x, y, scale),
+      frame: (k) => this.frame(k),
+      coins: () => this.w.coins,
+      now: () => this.now,
+    });
     if (window.matchMedia('(pointer: coarse)').matches) this.nums.scaleK = 1.2;
     this.gfx = this.add.graphics().setDepth(8000);
     this.arms = new ArmsFxView(this, this.fx, LOW_MEMORY);
@@ -450,8 +445,9 @@ export class GameScene extends Phaser.Scene {
     this.heroBack = this.img(this.heroFrame).setTint(0x17131c).setTintMode(Phaser.TintModes.FILL);
     this.hero = this.img(this.heroFrame);
     const line = CHARACTERS[this.w.setup.character ?? 'xiaodao'].line;
+    // 中文没有空格，默认按空格折行等于不折：要 useAdvancedWrap 才按字折；宽 160 是 390 竖屏主角居中时右边不碰法器栏的上限
     this.bubble = this.add
-      .text(0, 0, line, { fontFamily: 'system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#2a1f14', backgroundColor: '#fff6dc', padding: { x: 8, y: 5 }, wordWrap: { width: 190 }, align: 'center' })
+      .text(0, 0, line, { fontFamily: 'system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#2a1f14', backgroundColor: '#fff6dc', padding: { x: 8, y: 5 }, wordWrap: { width: 160, useAdvancedWrap: true }, align: 'center' })
       .setOrigin(0.5, 1)
       .setDepth(9300);
     this.bubbleUntil = this.now + 3600;
@@ -1363,57 +1359,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** 摊子的共用画法：items 为 null 就全收起；有就按需建、按内容刷新。鬼市和守夜夜市都走这里 */
-  private syncStalls(items: StallItem[] | null): void {
-    if (items && this.stallViews.length === 0) {
-      for (const it of items) {
-        const glow = this.img('haze', it.x, it.y - 52, 3).setTint(0xff9a4a).setDepth(it.y - 1).setAlpha(0.5);
-        const img = this.img('mstall', it.x, it.y).setDepth(it.y);
-        const icon = this.img('shadow', it.x, it.y - 46).setDepth(it.y + 1).setVisible(false);
-        const price = this.add
-          .text(it.x, it.y + 10, '', { fontFamily: 'system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif', fontSize: '22px', fontStyle: 'bold', color: '#ffe08a', stroke: '#17131c', strokeThickness: 6, align: 'center' })
-          .setOrigin(0.5, 0)
-          .setResolution(2)
-          .setDepth(it.y + 2);
-        this.stallViews.push({ img, icon, price, glow, sig: '' });
-      }
-    } else if (!items && this.stallViews.length > 0) {
-      for (const v of this.stallViews) {
-        v.img.destroy();
-        v.icon.destroy();
-        v.price.destroy();
-        v.glow.destroy();
-      }
-      this.stallViews.length = 0;
-    }
-    if (!items) return;
-    const w = this.w;
-    this.stallViews.forEach((v, k) => {
-      const it = items[k];
-      if (!it) return;
-      const afford = w.coins >= it.price;
-      const sig = `${it.sold ? 1 : 0}${afford ? 1 : 0}${it.ghost ? 1 : 0}${it.icon}`;
-      if (sig !== v.sig) {
-        v.sig = sig;
-        // 预告时只摆虚影：半透明、不写价钱，让人知道往哪走；卖掉的整摊变暗
-        const al = it.ghost ? 0.5 : 1;
-        v.img.setAlpha(al).setTint(it.sold ? 0x707078 : 0xffffff);
-        v.icon.setAlpha(al);
-        v.price.setAlpha(al);
-        if (it.sold) {
-          v.icon.setVisible(false);
-          v.price.setText('售罄').setColor('#9aa0b0');
-        } else {
-          const f = this.frame(it.icon);
-          v.icon.setTexture(f.tex ?? 'atlas', f.key).setOrigin(f.ox, f.oy).setScale(1.5 / f.res).setVisible(true);
-          const cost = it.ghost ? '' : `${it.price} 钱`;
-          v.price.setText(it.name ? `${it.name}\n${cost}`.trim() : cost).setColor(afford ? '#ffe08a' : '#ff5a4a');
-        }
-      }
-      v.glow.setAlpha((it.ghost ? 0.25 : 0.42) + Math.sin(this.now * 0.005 + k * 1.7) * 0.12);
-    });
-  }
-
   /** 屏幕外的目标 (x, y)（世界坐标）→ 屏幕边上的箭头；在屏幕内返回 null */
   private edgeArrowTo(x: number, y: number, label: string): HudArrow | null {
     const cam = this.cameras.main;
@@ -1436,7 +1381,7 @@ export class GameScene extends Phaser.Scene {
     if (this.raid) return;
     const secs = (n: number): number => Math.max(0, Math.ceil(n / 30));
     if (w.mkPhase === 0 || w.mkX.length === 0) {
-      this.syncStalls(null);
+      this.stalls.sync(null);
       this.d.hud.setMarketArrow(null);
       return;
     }
@@ -1446,7 +1391,7 @@ export class GameScene extends Phaser.Scene {
       const g = MARKET_GOODS[w.mkGood[k]!]!;
       items.push({ x: w.mkX[k]!, y: w.mkY[k]!, icon: MARKET_ICON[g], price: w.mkPrice[k]!, sold: w.mkSold[k] === 1, ghost, name: ghost ? undefined : MARKET_NAME[g] });
     }
-    this.syncStalls(items);
+    this.stalls.sync(items);
     if (!ghost && w.mkStall >= 0) {
       const p = w.mkHold / NIGHT_MARKET.hold;
       if (p > 0) this.progressBar(w.mkX[w.mkStall]!, w.mkY[w.mkStall]! - 108, Math.min(1, p), 0xffd23a);
@@ -1457,7 +1402,6 @@ export class GameScene extends Phaser.Scene {
     this.d.hud.setMarketArrow(this.edgeArrowTo(w.mkX[mid]!, w.mkY[mid]!, ghost ? `夜市 · ${secs(left)} 秒后开` : `夜市 · 还剩 ${secs(left)} 秒`));
   }
 
-  /** 夜市买的临时增益还剩多久，给顶栏小标签 */
   /** 义庄的棺材挨打：抖一下；碎了炸木片、删图（坐起的跳尸是核心刷的怪，自己会画） */
   private coffinChop(k: number, x: number, y: number, fell: boolean): void {
     const img = this.coffins.get(k);
@@ -1473,6 +1417,7 @@ export class GameScene extends Phaser.Scene {
     for (let n = 0; n < (LOW_MEMORY ? 3 : 8); n++) this.fx.spawn({ frame: 'shard', x: x + (Math.random() - 0.5) * 50, y: y - 14, vx: (Math.random() - 0.5) * 180, vy: -80 - Math.random() * 90, g: 320, life: 520, s0: 1, s1: 0.6, tint: 0x85613c, rot: Math.random() * 6, spin: 6 });
   }
 
+  /** 夜市买的临时增益还剩多久，给顶栏小标签 */
   private buffText(): string | null {
     const w = this.w;
     const parts: string[] = [];
@@ -1909,7 +1854,8 @@ export class GameScene extends Phaser.Scene {
     this.heroShadow.setPosition(hx, hy).setDepth(-400);
     this.lookAura?.update(hx, hy, walking && moving, this.now);
     if (this.bubble) {
-      if (this.now > this.bubbleUntil) {
+      // 选卡一打开就收：A4 以后新号最快 3 秒就升级，台词压在卡上（竖屏还被法器栏切掉一截）
+      if (this.now > this.bubbleUntil || this.w.phase === 'choose') {
         this.bubble.destroy();
         this.bubble = null;
       } else this.bubble.setPosition(hx, hy - 82).setAlpha(Math.min(1, (this.bubbleUntil - this.now) / 500));
@@ -2382,8 +2328,8 @@ export class GameScene extends Phaser.Scene {
         const t = TREASURES[raid.stallItem[k]!]!;
         items.push({ x: raid.stallX[k]!, y: raid.stallY[k]!, icon: treasureIconKey(t.icon), price: raid.stallPrice[k]!, sold: raid.stallSold[k] === 1, ghost: false });
       }
-      this.syncStalls(items);
-    } else this.syncStalls(null);
+      this.stalls.sync(items);
+    } else this.stalls.sync(null);
     if (raid.marketOpen === 1 && raid.buyStall >= 0) {
       const bp = raid.buyProgress();
       if (bp > 0) this.progressBar(raid.stallX[raid.buyStall]!, raid.stallY[raid.buyStall]! - 108, bp, 0xffd23a);
