@@ -92,7 +92,8 @@ describe('局外成长（第 5 步）', () => {
     for (const c of ['zhijiang', 'yinyang'] as const) expect(charOpen(fresh(), c)).toBe(false);
   });
   it('纸匠守夜撑过 4 分钟、阴阳先生守夜撑到天亮 1 次（实盘的天亮也算）', async () => {
-    const { fresh, charOpen, finishRun, recordLiveVigil, ZHIJIANG_SECONDS } = await import('../../src/platform/save.ts');
+    const { ZHIJIANG_SECONDS } = await import('../../src/content/meta.ts');
+    const { fresh, charOpen, finishRun, recordLiveVigil } = await import('../../src/platform/save.ts');
     const s = fresh();
     finishRun(s, end({ id: 'a', ticks: (ZHIJIANG_SECONDS - 1) * 30 }));
     expect(charOpen(s, 'zhijiang')).toBe(false);
@@ -213,7 +214,8 @@ describe('实盘守夜也记解锁进度（0.3.11）', () => {
   });
 
   it('实盘守夜的夜市次数也算货郎的解锁进度', async () => {
-    const { fresh, recordLiveVigil, charOpen, HUOLANG_BUYS } = await import('../../src/platform/save.ts');
+    const { HUOLANG_BUYS } = await import('../../src/content/meta.ts');
+    const { fresh, recordLiveVigil, charOpen } = await import('../../src/platform/save.ts');
     const s = fresh();
     recordLiveVigil(s, { danger: 1, won: false, ticks: 300 * 30, market: HUOLANG_BUYS - 1 });
     expect(s.marketBuys).toBe(HUOLANG_BUYS - 1);

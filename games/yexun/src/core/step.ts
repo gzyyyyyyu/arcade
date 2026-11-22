@@ -45,17 +45,18 @@ import { BOMB, CHEST, DROPS, MERCY, NOVICE, PICKUP, PLAYER, PROPS, PURSE, xpNeed
 import { RUSH } from '../content/rush.ts';
 import { MID_BOSS_KINDS, SHUIHOU } from '../content/foes.ts';
 import { bindFoeApi, foeAct, foeGhost, foeHitMul, foeHurtMul, foeInit, foeOnHit, foeOnKill, foePack, foeSlowMul, foeTick, foeUntargetable, isProp, noDrop, type FoeMv } from './foes/index.ts';
+import { bossAct, bossPhase, huapiAct, huapiDist, lordAct } from './foes/elders.ts';
 import type { RushPlan } from './rush.ts';
 import { inRects, MAPS, pushOut, TERRAIN, type Block } from '../content/maps.ts';
 import { BlockIndex, type RaidBlock } from './blocks.ts';
 import { raidHooks, type RaidPort } from './raid-port.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, vigilRegion, EMERGE_KINDS, regionKind, regionTotal, type Region } from '../content/regions.ts';
-import { BALANCE_57, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, FIRST_RUN_GUARD, lampShare, LIVE_EASE, lootMul, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
+import { VIGIL_BALANCE, BLOOD_MOON, CALM, DAWN_TICK, dangerDef, ELITE_RAGE, EARLY_TICKS, EVENTS, FIRST_RUN_GUARD, lampShare, LIVE_EASE, lootMul, midBossOf, MINUTES, OPEN_TICKS, SCALE, TWIN_BOSS_HP, type WaveEvent } from '../content/waves.ts';
 import { ASSIST, CHAR_FX, CHARACTERS, CURSE_FX, PERK_FX, REVIVE, type CurseId, type PerkId } from '../content/meta.ts';
 import { WEEKLY_FX } from '../content/weekly.ts';
 import { TRIAL_FX } from '../content/trials.ts';
 import { trialVerdict } from './trial.ts';
-import { COIN_PICK, PICKS, PICKS_60, PICKS_65, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
+import { COIN_PICK, PICKS, FATE_PICKS, OWN_PICKS, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
 import { BELL_STUN, PARADE, MAP_EVENT_AT, MAP_EVENT_KINDS, MAP_EVENT_WARN, MAP_EVENTS, mapEventRound, TIDE_SLOW, WIND_PUSH, type MapEventKind } from '../content/mapEvents.ts';
 import { MARKET_GOODS, MARKET_PRICE, NIGHT_MARKET, type MarketGood } from '../content/market.ts';
 import {
@@ -64,7 +65,6 @@ import {
   MERGE_STAGE,
   MAX_WEAPONS,
   DUAL_FX,
-  PAPER_FX,
   WATER_FX,
   MERGES,
   mergeFor,
@@ -77,7 +77,6 @@ import {
   NEXT_ELEMENT,
   TYPE_SETS,
   WARD_SET_HIT,
-  GOURD_BURN_FIRES,
   ELITE_NO_WARD_PIECES,
   type Element,
   type MergeDef,
@@ -90,13 +89,14 @@ import { Ev } from './events.ts';
 import { CHARACTER_POOLS, inPool, XINFA_MUL } from '../content/pools.ts';
 import { Rng } from './rng.ts';
 import { SCHOOLS } from '../content/guide.ts';
-import { armsStalls, armsBindBonus, armsFire, armsHitMul, armsRecompute, armsSlow, armsStats, armsTick, type ArmApi } from './arms/index.ts';
+import { armsStalls, armsFire, armsHitMul, armsRecompute, armsSlow, armsStats, armsTick, type ArmApi } from './arms/index.ts';
+import { bindFirstApi, coinsTick, craneTick, fireTalismans, flyTick, gourdTick, MINI_CRANE, movePaper, paperTick, rope, shieldTick, springs, strike, swordSwing, thunder, tides } from './arms/first.ts';
 import { DIR_N } from './dirs.ts';
 import { clamp, dcos, dirIndex, dsin, fsqrt, INPUT_DIRS, inputCos, inputSin, SLOW_WALK } from './fmath.ts';
 import { Grid } from './grid.ts';
 import { fireTick, type FireApi } from './fire.ts';
 import { type XinfaApi, xinfaCoin, xinfaHitMul, xinfaHurtMul, xinfaOnKill, xinfaSplash, xinfaTick } from './xinfa.ts';
-import { borrowStats, charDmgMul, moveSkillFu, paperLifeMul, paperRefund, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, yinyangFlip, type SkillOps } from './skills.ts';
+import { borrowStats, charDmgMul, moveSkillFu, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, yinyangFlip, type SkillOps } from './skills.ts';
 import { baseStats, Drop, RING, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, WEAPON_SLOTS, World, type Choice, type Setup } from './state.ts';
 
 export { WEAPON_CODE };
@@ -140,6 +140,7 @@ export function createWorld(setup: Setup): World {
   applyKits(w);
   w.hp = w.stats.hpMax;
   if (!w.raid) scatterProps(w);
+  if (w.setup.novice) layNoviceSouls(w);
   return w;
 }
 
@@ -647,9 +648,9 @@ function spawnEnemy(w: World, kind: EnemyKind, x: number, y: number): number {
   const zone = w.raid ? raidHooks().zoneMul(w.raid, x, y) : null;
   const zHp = zone ? zone.hp : 1;
   const zDmg = zone ? zone.dmg : 1;
-  const v57 = !w.raid;
-  const perMin = v57 ? BALANCE_57.hpPerMin : SCALE.hpPerMin;
-  const hp = (def.boss ? def.hp * diff.hpMul * twin : def.hp * (1 + perMin * min) * diff.hpMul * (v57 && def.elite ? BALANCE_57.eliteHp : 1)) * zHp;
+  const vigil = !w.raid;
+  const perMin = vigil ? VIGIL_BALANCE.hpPerMin : SCALE.hpPerMin;
+  const hp = (def.boss ? def.hp * diff.hpMul * twin : def.hp * (1 + perMin * min) * diff.hpMul * (vigil && def.elite ? VIGIL_BALANCE.eliteHp : 1)) * zHp;
   w.eAlive[i] = 1;
   w.eGen[i]!++;
   w.eRush[i] = 0;
@@ -829,10 +830,10 @@ function spawnWaves(w: World): void {
         if (i >= 0 && e.kind === 'elite' && e.small) {
           w.smallElites.push(i);
           // 开局那只：不吃 eliteHp，血和伤害再打折
-          const k = BALANCE_57.small.hp / BALANCE_57.eliteHp;
+          const k = VIGIL_BALANCE.small.hp / VIGIL_BALANCE.eliteHp;
           w.eHp[i] = w.eHp[i]! * k;
           w.eHpMax[i] = w.eHpMax[i]! * k;
-          w.eDmg[i] = w.eDmg[i]! * BALANCE_57.small.dmg;
+          w.eDmg[i] = w.eDmg[i]! * VIGIL_BALANCE.small.dmg;
         }
       }
     }
@@ -1221,7 +1222,7 @@ function moveEnemies(w: World): void {
     let mx = vx * sp;
     let my = vy * sp;
     let kd = 0.72;
-    if (w.water.length + w.ice.length > 0 && !FLIES.has(kind)) {
+    if (w.water.length + w.ice.length > 0 && !ENEMY_BY_KIND[kind].ignoresTerrain) {
       const ex = w.eX[i]!;
       const ey = w.eY[i]!;
       if (w.water.length > 0 && inRects(w.water, ex, ey)) {
@@ -1249,8 +1250,6 @@ function moveEnemies(w: World): void {
   }
 }
 
-/** 飞的、水里的、冰上的怪不受水和冰影响（水鬼、溺鬼、河蟹、河伯在水里本来就自在，冰傀、冰锥、冰魄生在冰湖） */
-const FLIES = new Set<EnemyKind>(['bat', 'water', 'drown', 'crab', 'hebo', 'icegolem', 'icicle', 'frostsoul', 'shuihou']);
 /** 2.0 新增的怪从这个编号起（foeInit 管出场的初始化） */
 const FOE_FIRST = ENEMY_BY_KIND.zhumu.code;
 const foeMv: FoeMv = { vx: 0, vy: 0, sp: 0 };
@@ -1617,162 +1616,6 @@ function weaselAct(w: World, i: number, d: number): void {
   }
 }
 
-/**
- * 尸王：eT 倒数到下一个技能；eS = 1 时正在跳砸（eAX/eAY 是每拍的位移方向，速度另算）。
- * 跳砸：在主角站的地方画圈警告，boss 用 stompWarn 拍跳过去，落地一圈伤害。
- */
-function bossAct(w: World, i: number, sp: number): number {
-  const phase = bossPhase(w, i, BOSS.phaseAt);
-  const raged = phase === 2;
-  const stompR = BOSS.stompRadius * (raged ? BOSS.ragedStomp : 1);
-  if (w.eS[i] === 1) {
-    // 跳砸中：直线飞向落点
-    if (--w.eT[i]! <= 0) {
-      w.eS[i] = 0;
-      w.eT[i] = BOSS.every[phase]!;
-      w.ev.push(Ev.Boss, w.eX[i]!, w.eY[i]!, 1, stompR);
-      const dx = w.x - w.eX[i]!;
-      const dy = w.y - w.eY[i]!;
-      if (dx * dx + dy * dy < stompR * stompR) hurt(w, BOSS.stompDmg, w.eKind[i]!);
-      return 0;
-    }
-    return w.eV[i]!;
-  }
-  if (--w.eT[i]! > 0) return sp;
-  // 一段只有跳砸和召唤；二段起加尸气
-  const skill = w.rAi.int(phase === 0 ? 2 : 3);
-  if (skill === 0) {
-    // 落点：主角现在的位置；每拍走 (距离 / 拍数)，这一跳的速度记在 eV
-    const tx = w.x;
-    const ty = w.y;
-    const dx = tx - w.eX[i]!;
-    const dy = ty - w.eY[i]!;
-    const d = fsqrt(dx * dx + dy * dy) || 1;
-    w.eS[i] = 1;
-    w.eT[i] = BOSS.stompWarn;
-    w.eAX[i] = dx / d;
-    w.eAY[i] = dy / d;
-    w.eV[i] = d / BOSS.stompWarn;
-    w.ev.push(Ev.Boss, tx, ty, 0, stompR);
-    return 0;
-  }
-  w.eT[i] = BOSS.every[phase]!;
-  if (skill === 1) {
-    w.ev.push(Ev.Boss, w.eX[i]!, w.eY[i]!, 2, 90);
-    const n = raged ? BOSS.ragedSummon : BOSS.summon;
-    for (let k = 0; k < n; k++) {
-      const a = (k * DIR_N) / n;
-      spawnEnemy(w, 'jiangshi', w.eX[i]! + dcos(a) * 90, w.eY[i]! + dsin(a) * 90);
-    }
-  } else {
-    w.ev.push(Ev.Boss, w.eX[i]!, w.eY[i]!, 3, 0);
-    // 三段：两圈，第二圈错开半格、慢一点
-    for (let ring = 0; ring < (raged ? 2 : 1); ring++) {
-      const n = BOSS.breath + 6 * ring;
-      const off = w.rAi.int(DIR_N);
-      const v = BOSS.breathSpeed * (ring === 0 ? 1 : 0.7);
-      for (let k = 0; k < n; k++) {
-        const a = off + Math.floor((k * DIR_N) / n);
-        addShot(w, Shot.Fireball, w.eX[i]!, w.eY[i]! - 30, dcos(a) * v, dsin(a) * v, 240, BOSS.breathDmg, 12, 0, -1, 0);
-      }
-    }
-  }
-  return sp;
-}
-
-/** Boss 现在是第几段（血线 at 从高到低）；刚进新一段时发一个事件（a = 4，b = 段号），画面层吼一声、出横幅 */
-function bossPhase(w: World, i: number, at: readonly number[]): number {
-  const f = w.eHp[i]! / w.eHpMax[i]!;
-  let p = 0;
-  while (p < at.length && f < at[p]!) p++;
-  if (p > w.ePhase[i]!) {
-    w.ePhase[i] = p;
-    w.ev.push(Ev.Boss, w.eX[i]!, w.eY[i]!, 4, p, w.eKind[i]!);
-  }
-  return w.ePhase[i]!;
-}
-
-/** 纸扎老爷：eT 倒数到下一个技能，eS 数放了几个技能（二段每第三个召纸轿），eAX 是纸钱圈转到的方向 */
-function lordAct(w: World, i: number, dx: number, dy: number): void {
-  const phase = bossPhase(w, i, [0.5]);
-  if (--w.eT[i]! > 0) return;
-  w.eT[i] = LORD.every[phase]!;
-  w.eS[i]!++;
-  if (phase === 1 && w.eS[i]! % 3 === 0) {
-    let have = 0;
-    for (let k = 0; k < MAX_ENEMIES; k++) if (w.eAlive[k] && w.eKind[k] === PALANQUIN_CODE) have++;
-    if (have < LORD.maxPalanquin) {
-      // 召来的纸轿不掉宝箱（eV = 1）
-      const j = spawnEnemy(w, 'palanquin', w.eX[i]! - dx * 90, w.eY[i]! - dy * 90);
-      if (j >= 0) w.eV[j] = 1;
-      w.ev.push(Ev.Boss, w.eX[i]!, w.eY[i]!, 5, 0);
-      return;
-    }
-  }
-  // 撒纸钱：一圈（二段两圈，第二圈错开半格）慢慢旋开
-  w.ev.push(Ev.Boss, w.eX[i]!, w.eY[i]!, 6, 0);
-  w.eAX[i] = (w.eAX[i]! + 5) & (DIR_N - 1);
-  for (let ring = 0; ring <= phase; ring++) {
-    const off = w.eAX[i]! + ring * (DIR_N / LORD.money / 2);
-    const v = LORD.moneySpeed * (ring === 0 ? 1 : 0.8);
-    for (let k = 0; k < LORD.money; k++) {
-      const a = off + Math.floor((k * DIR_N) / LORD.money);
-      addShot(w, Shot.Fireball, w.eX[i]!, w.eY[i]! - 40, dcos(a) * v, dsin(a) * v, LORD.moneyLife, LORD.moneyDmg, LORD.moneyR, 2, -1, ring);
-    }
-  }
-}
-const PALANQUIN_CODE = ENEMY_BY_KIND.palanquin.code;
-const SKIN_CODE = ENEMY_BY_KIND.huapiskin.code;
-
-/** 画皮出场离主角多远：在 spawnMin–spawnMax 里抽（走 rSpawn 流，和别的刷怪一样） */
-function huapiDist(w: World): number {
-  return HUAPI.spawnMin + w.rSpawn.next() * (HUAPI.spawnMax - HUAPI.spawnMin);
-}
-
-/**
- * 画皮：eS 0 混迹 / 1 现形，eAY 记"混迹时挨过打"（只提示一次），eT 倒数到下一次甩分身。
- * 混迹时和普通怪一样追人、不放技能；血掉到 revealAt 现形并立刻甩一次；现形后缠丝常驻（silkUntil 每拍续上）。
- */
-function huapiAct(w: World, i: number, sp: number, d: number): number {
-  const f = w.eHp[i]! / w.eHpMax[i]!;
-  if (w.eS[i] === 0) {
-    if (f < HUAPI.revealAt) {
-      w.eS[i] = 1;
-      w.ev.push(Ev.Huapi, w.eX[i]!, w.eY[i]!, 2, i);
-      w.eT[i] = HUAPI.every[0]!;
-      huapiClones(w, i);
-    }
-    return sp;
-  }
-  // 一拍里主角先走、怪后动，所以要续到下一拍：+2
-  if (d < HUAPI.silkR) w.silkUntil = w.tick + 2;
-  if (--w.eT[i]! <= 0) {
-    w.eT[i] = HUAPI.every[f < HUAPI.rageAt ? 1 : 0]!;
-    huapiClones(w, i);
-  }
-  return sp * HUAPI.revealSpeed;
-}
-
-/** 在主角四周落 clones 个人皮分身（场上最多 maxClones 个），血和寿命按 HUAPI 定，不随时间涨 */
-function huapiClones(w: World, i: number): void {
-  let have = 0;
-  for (let k = 0; k < MAX_ENEMIES; k++) if (w.eAlive[k] && w.eKind[k] === SKIN_CODE) have++;
-  const n = Math.min(HUAPI.clones, HUAPI.maxClones - have);
-  if (n <= 0) return;
-  const off = w.rAi.int(DIR_N);
-  let made = 0;
-  for (let k = 0; k < n; k++) {
-    const a = off + Math.floor((k * DIR_N) / n);
-    const j = spawnEnemy(w, 'huapiskin', w.x + dcos(a) * HUAPI.cloneRing, w.y + dsin(a) * HUAPI.cloneRing * 0.8);
-    if (j < 0) continue;
-    w.eHp[j] = HUAPI.cloneHp;
-    w.eHpMax[j] = HUAPI.cloneHp;
-    w.eT[j] = HUAPI.cloneLife;
-    made++;
-  }
-  w.ev.push(Ev.Huapi, w.eX[i]!, w.eY[i]!, 3, made);
-}
-
 /** 主角走路的减速倍数：寒冰、水鬼的（slowUntil）和画皮缠丝（silkUntil）相乘，不低于 slowFloor */
 function playerSlowMul(w: World): number {
   let m = w.tick < w.slowUntil ? PLAYER_SLOW : 1;
@@ -1927,7 +1770,6 @@ function spawnMiniCrane(w: World, k: number, x: number, y: number): void {
 }
 
 /** 小纸鹤的编号从这里起（和常驻的纸鹤分开：不算数量、到时候就散） */
-const MINI_CRANE = 1000;
 
 function otherBoss(w: World): number {
   for (let j = 0; j < MAX_ENEMIES; j++) if (w.eAlive[j] && ENEMIES[w.eKind[j]!]!.boss) return j;
@@ -2237,575 +2079,6 @@ function fireWeapons(w: World, g: Grid): void {
   }
 }
 
-/**
- * 寒泉：在主角 360 以内挑几只怪当候选（看得见的精英、首领一定在候选里），数谁身边（泉的半径里）怪最多，泉就冒在它脚下；
- * 冒第二眼时离已经冒的泉太近（一个半径以内）的候选不要，免得几眼泉叠在一处。没怪不冒，10 拍后再看。
- */
-const springAt = new Float64Array(16);
-function springs(w: World, g: Grid, k: number, evolved: boolean, s: WeaponStats, e: { dmg: number; area: number; amount: number }): boolean {
-  const n = g.query(w, w.x, w.y, 360);
-  if (n === 0) return false;
-  for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
-  const tries = Math.min(n, 8);
-  let hard = -1;
-  for (let q = 0; q < n && hard < 0; q++) {
-    const def = ENEMIES[w.eKind[scratch[q]!]!]!;
-    if (def.elite || def.boss) hard = scratch[q]!;
-  }
-  const life = Math.round(s.duration * w.stats.durMul);
-  let made = 0;
-  for (let j = 0; j < e.amount && j < 8; j++) {
-    let best = -1;
-    let most = -1;
-    for (let t = 0; t <= tries; t++) {
-      if (t === tries && hard < 0) break;
-      const c = t === tries ? hard : scratch[w.rWeapon.int(n)]!;
-      const cx = w.eX[c]!;
-      const cy = w.eY[c]!;
-      let near = false;
-      for (let p = 0; p < made; p++) {
-        const dx = cx - springAt[p * 2]!;
-        const dy = cy - springAt[p * 2 + 1]!;
-        if (dx * dx + dy * dy < e.area * e.area) near = true;
-      }
-      if (near) continue;
-      // 精英、首领脚下算多 6 只：硬怪站在泉里一直挨冻，水府才打得动它们
-      const def = ENEMIES[w.eKind[c]!]!;
-      const m = g.query(w, cx, cy, e.area) + (def.elite || def.boss ? 6 : 0);
-      if (m > most) {
-        most = m;
-        best = c;
-      }
-    }
-    if (best < 0) break;
-    const x = w.eX[best]!;
-    const y = w.eY[best]!;
-    springAt[made * 2] = x;
-    springAt[made * 2 + 1] = y;
-    made++;
-    addShot(w, Shot.Spring, x, y, 0, 0, life, e.dmg, e.area, evolved ? 1 : 0, k, j);
-    w.ev.push(Ev.Spring, x, y, 0, e.area);
-  }
-  if (made > 0) w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.spring);
-  return made > 0;
-}
-
-/** 龙王令：朝最近的怪（420 以内）挥出几道浪，多道时摆成扇面（每道错开约 20°） */
-function tides(w: World, g: Grid, k: number, s: WeaponStats, e: { dmg: number; area: number; amount: number }): boolean {
-  const t = nearest(w, g, w.x, w.y, 420);
-  if (t < 0) return false;
-  const a = dirIndex(w.eX[t]! - w.x, w.eY[t]! - w.y);
-  const life = s.duration;
-  for (let j = 0; j < e.amount; j++) {
-    const d = a + (j * 2 - (e.amount - 1)) * 7;
-    addShot(w, Shot.Tide, w.x, w.y - 10, dcos(d) * s.speed, dsin(d) * s.speed, life, e.dmg, e.area, 0, k, j);
-  }
-  w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.tide);
-  return true;
-}
-
-/** 火葫芦：没在喷时找最近的怪定方向；喷的那几拍，扇面里的怪隔 rehit 拍挨一下 */
-function gourdTick(w: World, g: Grid, k: number, wp: { timer: number; phase: number; angle: number; evolved: boolean }, s: WeaponStats, e: { dmg: number; cd: number; area: number; amount: number }): void {
-  if (wp.phase > 0) {
-    wp.phase--;
-    // 火舌跟着最近的怪转（每 6 拍重新瞄一次）：人一直在走，定死方向的话喷一会儿就喷空了
-    if (wp.phase % 6 === 0) {
-      const t = nearest(w, g, w.x, w.y, e.area * 1.2);
-      if (t >= 0) wp.angle = dirIndex(w.eX[t]! - w.x, w.eY[t]! - w.y);
-    }
-    const ux = dcos(wp.angle);
-    const uy = dsin(wp.angle);
-    // 半宽：基础 ±28°，扇面每宽 1 级多 6°（换算成方向表格数）
-    const half = Math.round(((28 + 6 * (e.amount - 1)) * DIR_N) / 360);
-    const c = dcos(half);
-    const c2 = c * c;
-    if (wp.phase % 2 === 0) w.ev.push(Ev.Flame, w.x, w.y - 18, wp.angle, e.area, half);
-    chop(w, w.x + ux * e.area * 0.55, w.y + uy * e.area * 0.55, e.area * 0.45, e.dmg);
-    // 三昧真火：每 6 拍在火舌中段留一摊火
-    if (wp.evolved && wp.phase % 6 === 0) {
-      const a = wp.angle + w.rWeapon.int(half * 2 + 1) - half;
-      const r = e.area * (0.35 + w.rWeapon.next() * 0.45);
-      const life = Math.round(90 * w.stats.durMul);
-      const bx = w.x + dcos(a) * r;
-      const by = w.y + dsin(a) * r;
-      addShot(w, Shot.Burn, bx, by, 0, 0, life, e.dmg * 0.5, 40, 0, k, 0);
-      w.ev.push(Ev.Burn, bx, by, 0, 40, life);
-    }
-    const n = g.query(w, w.x, w.y, e.area);
-    for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
-    for (let q = 0; q < n; q++) {
-      const i = scratch[q]!;
-      const dx = w.eX[i]! - w.x;
-      const dy = w.eY[i]! - w.y;
-      const dot = dx * ux + dy * uy;
-      if (dot <= 0 || dot * dot < c2 * (dx * dx + dy * dy)) continue;
-      hitEnemy(w, i, e.dmg, k, ux, uy, s.knock, s.rehit);
-    }
-    // 带够火法器时（GOURD_BURN_FIRES），火舌把扇面里飞来的冰锥、纸钱、火球都烧掉（火流派没有飞剑和铜钱，靠这个顶远程怪）
-    let fires = 0;
-    for (const o of w.weapons) if (WEAPONS[o.id].el === '火') fires++;
-    if (fires < GOURD_BURN_FIRES) return;
-    const r2 = e.area * e.area;
-    for (let q = 0; q < MAX_SHOTS; q++) {
-      if (!w.sAlive[q] || w.sKind[q] !== Shot.Fireball) continue;
-      const dx = w.sX[q]! - w.x;
-      const dy = w.sY[q]! + 16 - w.y;
-      const d2 = dx * dx + dy * dy;
-      const dot = dx * ux + dy * uy;
-      if (d2 > r2 || dot <= 0 || dot * dot < c2 * d2) continue;
-      w.ev.push(Ev.Block, w.sX[q]!, w.sY[q]!);
-      killShot(w, q);
-    }
-    return;
-  }
-  if (--wp.timer > 0) return;
-  const t = nearest(w, g, w.x, w.y, e.area * 1.4);
-  if (t < 0) {
-    wp.timer = 6;
-    return;
-  }
-  wp.angle = dirIndex(w.eX[t]! - w.x, w.eY[t]! - w.y);
-  wp.phase = Math.round(s.duration * w.stats.durMul);
-  wp.timer = e.cd;
-  w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.gourd);
-}
-
-/** 缚妖索：从最近的一只开始，一只接一只往外找最近的没捆的，捆住一串；Boss 捆不住，精英只捆一半时间。没有怪返回 false */
-function rope(w: World, g: Grid, k: number, s: WeaponStats, e: { dmg: number; area: number; amount: number }): boolean {
-  let cx = w.x;
-  let cy = w.y;
-  let reach = 320;
-  let got = 0;
-  for (let j = 0; j < e.amount; j++) {
-    const n = g.query(w, cx, cy, reach);
-    let best = -1;
-    let bd = Infinity;
-    for (let q = 0; q < n; q++) {
-      const i = g.out[q]!;
-      if (ENEMIES[w.eKind[i]!]!.boss || w.eBind[i]! > w.tick) continue;
-      const dx = w.eX[i]! - cx;
-      const dy = w.eY[i]! - cy;
-      const d = dx * dx + dy * dy;
-      if (d < bd) {
-        bd = d;
-        best = i;
-      }
-    }
-    if (best < 0) break;
-    if (got === 0) w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.rope);
-    const elite = ENEMIES[w.eKind[best]!]!.elite;
-    const t = Math.round(s.duration * w.stats.durMul) + armsBindBonus(w);
-    w.eBind[best] = w.tick + (elite ? t >> 1 : t);
-    w.ev.push(Ev.Bind, w.eX[best]!, w.eY[best]!, got, 0, best);
-    hitEnemy(w, best, e.dmg, k, 0, 0, 0, s.rehit);
-    got++;
-    cx = w.eX[best]!;
-    cy = w.eY[best]!;
-    reach = e.area;
-  }
-  return got > 0;
-}
-
-/** 金钟罩：不满就按冷却回一层；碎了的下一拍震开身边 */
-function shieldTick(w: World, g: Grid, k: number, wp: { timer: number }, s: WeaponStats, e: { dmg: number; cd: number; area: number; amount: number }): void {
-  w.shieldMax = e.amount;
-  if (w.shield > w.shieldMax) w.shield = w.shieldMax;
-  if (w.shieldBurst) {
-    w.shieldBurst = false;
-    w.ev.push(Ev.Shield, w.x, w.y, 0, e.area);
-    chop(w, w.x, w.y, e.area, e.dmg);
-    if (w.merges.includes('fenzhong')) shieldFire(w);
-    const n = g.query(w, w.x, w.y, e.area);
-    for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
-    for (let q = 0; q < n; q++) {
-      const i = scratch[q]!;
-      hitEnemy(w, i, e.dmg, k, w.eX[i]! - w.x, w.eY[i]! - w.y, s.knock, s.rehit);
-    }
-  }
-  if (w.shield >= w.shieldMax) {
-    wp.timer = e.cd;
-    return;
-  }
-  // 墨斗：回层更快
-  const cd = Math.max(4, Math.round(e.cd / w.stats.durMul));
-  if (wp.timer > cd) wp.timer = cd;
-  if (--wp.timer > 0) return;
-  wp.timer = cd;
-  // 不坏金身：一回就回满
-  w.shield = (w.weapons[k]!.evolved ? w.shieldMax : w.shield + 1);
-  w.ev.push(Ev.Shield, w.x, w.y, 1, e.area);
-}
-
-/** 纸鹤：常驻盘旋，轮流俯冲到最近的怪那里啄一下（落点一小圈），再飞回来 */
-function craneTick(w: World, g: Grid, k: number, wp: { timer: number; phase: number }, s: WeaponStats, e: { cd: number; amount: number; dmg: number; area: number }): void {
-  let have = 0;
-  for (let i = 0; i < MAX_SHOTS; i++) if (w.sAlive[i] && w.sKind[i] === Shot.Crane && w.sSlot[i] === k && w.sIdx[i]! < MINI_CRANE) have++;
-  for (let j = have; j < e.amount; j++) addShot(w, Shot.Crane, w.x, w.y - 60, 0, 0, 0, e.dmg, 26, 0, k, j);
-  if (--wp.timer > 0) return;
-  const target = nearest(w, g, w.x, w.y, e.area);
-  if (target < 0) {
-    wp.timer = 6;
-    return;
-  }
-  for (let tries = 0; tries < e.amount; tries++) {
-    const idx = wp.phase % e.amount;
-    wp.phase++;
-    for (let i = 0; i < MAX_SHOTS; i++) {
-      if (!w.sAlive[i] || w.sKind[i] !== Shot.Crane || w.sSlot[i] !== k || w.sIdx[i] !== idx || w.sState[i] !== 0) continue;
-      const dx = w.eX[target]! - w.sX[i]!;
-      const dy = w.eY[target]! - w.sY[i]!;
-      const d = fsqrt(dx * dx + dy * dy) || 1;
-      w.sState[i] = 1;
-      w.sVX[i] = (dx / d) * s.speed;
-      w.sVY[i] = (dy / d) * s.speed;
-      w.sLife[i] = Math.max(1, Math.ceil(d / s.speed));
-      w.sDmg[i] = e.dmg;
-      w.ev.push(Ev.Fire, w.sX[i]!, w.sY[i]!, WEAPON_CODE.crane);
-      wp.timer = Math.max(3, Math.round(e.cd / e.amount));
-      return;
-    }
-  }
-  wp.timer = 4;
-}
-
-/** 纸兵：不够数就隔 cd 拍在主角身边补一个（剪刀让它活得更久） */
-function paperTick(w: World, k: number, wp: { timer: number; phase: number }, s: WeaponStats, e: { cd: number; amount: number; dmg: number }): void {
-  if (--wp.timer > 0) return;
-  let have = 0;
-  for (let i = 0; i < MAX_SHOTS; i++) if (w.sAlive[i] && w.sKind[i] === Shot.Paper && w.sSlot[i] === k) have++;
-  if (have >= e.amount) {
-    wp.timer = 6;
-    return;
-  }
-  wp.timer = e.cd;
-  const life = Math.round(s.duration * w.stats.durMul * (1 + PAPER_FX.jiandaoLife * (w.passives.jiandao ?? 0)) * paperLifeMul(w));
-  const a = (wp.phase++ * 37) & (DIR_N - 1);
-  addShot(w, Shot.Paper, w.x + dcos(a) * 40, w.y + dsin(a) * 30, 0, 0, life, e.dmg, 20, 0, k, have);
-  w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.zhibing);
-}
-
-/**
- * 纸兵这一拍：找 area 内最近的怪走过去，贴上了就停下顶住——每 rehit 拍打一下、把怪往回顶；
- * 贴身时每拍多折 1 拍寿（挡怪是要付代价的）。没有怪就跟在主角身边。寿尽倒下：撒豆成兵炸开、火兵留火、鸣兵震开。
- */
-function movePaper(w: World, g: Grid, i: number, k: number, s: WeaponStats): void {
-  const x = w.sX[i]!;
-  const y = w.sY[i]!;
-  const area = s.area * w.stats.areaMul;
-  const t = nearest(w, g, x, y, area);
-  let touching = false;
-  if (t >= 0) {
-    const dx = w.eX[t]! - x;
-    const dy = w.eY[t]! - y;
-    const d = fsqrt(dx * dx + dy * dy) || 1;
-    const reach = w.sR[i]! + ENEMIES[w.eKind[t]!]!.r * w.eSize[t]!;
-    if (d > reach) {
-      w.sX[i] = x + (dx / d) * s.speed;
-      w.sY[i] = y + (dy / d) * s.speed;
-    } else touching = true;
-  } else {
-    // 没有怪：回到主角身边（按编号错开站位）
-    const a = (w.sIdx[i]! * 41) & (DIR_N - 1);
-    const tx = w.x + dcos(a) * 60;
-    const ty = w.y + dsin(a) * 40;
-    const dx = tx - x;
-    const dy = ty - y;
-    const d = fsqrt(dx * dx + dy * dy);
-    if (d > s.speed) {
-      w.sX[i] = x + (dx / d) * s.speed * 1.4;
-      w.sY[i] = y + (dy / d) * s.speed * 1.4;
-    }
-  }
-  // 不挂槽位的（k = -1）没有逐怪的再打间隔，改用这只纸兵自己的计时（sState）每 rehit 拍打一下
-  if (touching && (k >= 0 || --w.sState[i]! <= 0)) {
-    if (k < 0) w.sState[i] = s.rehit;
-    const n = g.query(w, w.sX[i]!, w.sY[i]!, w.sR[i]! + 24);
-    for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
-    for (let q = 0; q < n; q++) {
-      const j = scratch[q]!;
-      hitEnemy(w, j, w.sDmg[i]!, k, w.eX[j]! - w.sX[i]!, w.eY[j]! - w.sY[i]!, s.knock, s.rehit);
-    }
-  }
-  if (touching) {
-    w.sLife[i]!--;
-    if (k >= 0 && w.merges.includes('huobing') && --w.sDist[i]! <= 0) {
-      w.sDist[i] = DUAL_FX.paperFire.every;
-      addShot(w, Shot.Burn, w.sX[i]!, w.sY[i]!, 0, 0, DUAL_FX.paperFire.life, w.sDmg[i]! * DUAL_FX.paperFire.mul * w.mergePower('huobing'), DUAL_FX.paperFire.r, 0, k, 0);
-    }
-  }
-  if (--w.sLife[i]! > 0) return;
-  paperFall(w, g, i, k, s);
-  // 纸匠·巧手：倒下时两成概率还一张纸兵的冷却（下一拍就补一个）
-  if (k >= 0 && paperRefund(w, i)) w.weapons[k]!.timer = 1;
-  killShot(w, i);
-}
-
-function paperFall(w: World, g: Grid, i: number, k: number, s: WeaponStats): void {
-  const x = w.sX[i]!;
-  const y = w.sY[i]!;
-  const dmg = w.sDmg[i]!;
-  const evolved = w.weapons[k]?.evolved ?? false;
-  w.ev.push(Ev.Paper, x, y, 0, 0);
-  const ring = (r: number, d: number, knock: number, kind: number): void => {
-    w.ev.push(Ev.Paper, x, y, kind, r);
-    const n = g.query(w, x, y, r);
-    for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
-    for (let q = 0; q < n; q++) hitEnemy(w, scratch[q]!, d, -1, w.eX[scratch[q]!]! - x, w.eY[scratch[q]!]! - y, knock, 0, k);
-  };
-  if (evolved) ring(PAPER_FX.boomR * w.stats.areaMul, dmg * PAPER_FX.boomMul, s.knock, 1);
-  if (w.merges.includes('mingbing')) ring(DUAL_FX.paperBell.r * w.stats.areaMul, dmg * DUAL_FX.paperBell.mul * w.mergePower('mingbing'), DUAL_FX.paperBell.knock, 2);
-  if (k >= 0 && w.merges.includes('huobing')) addShot(w, Shot.Burn, x, y, 0, 0, DUAL_FX.paperFire.deathLife, dmg * DUAL_FX.paperFire.mul * w.mergePower('huobing'), DUAL_FX.paperFire.deathR, 0, k, 0);
-}
-
-/**
- * 桃木剑：第 j 道的方向——0 面前、1 身后、2 面前偏上、3 身后偏下……扇形 ±75°。
- * 进化后（斩妖剑）砍中回血，每一挥最多回 4 点。
- */
-function swordSwing(w: World, g: Grid, k: number, s: WeaponStats, e: { dmg: number; area: number; amount: number }): void {
-  const evolved = w.weapons[k]!.evolved;
-  let healed = 0;
-  w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.sword);
-  for (let j = 0; j < e.amount; j++) {
-    const base = j % 2 === 0 ? w.face : w.face + DIR_N / 2;
-    const tilt = j < 2 ? 0 : ((j >> 1) % 2 === 1 ? -1 : 1) * 22;
-    const a = base + tilt;
-    const ux = dcos(a);
-    const uy = dsin(a);
-    w.ev.push(Ev.Slash, w.x, w.y, a & (DIR_N - 1), e.area, evolved ? 1 : 0);
-    chop(w, w.x + ux * e.area * 0.55, w.y + uy * e.area * 0.55, e.area * 0.5, e.dmg);
-    const n = g.query(w, w.x, w.y, e.area);
-    for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
-    for (let q = 0; q < n; q++) {
-      const i = scratch[q]!;
-      const dx = w.eX[i]! - w.x;
-      const dy = w.eY[i]! - w.y;
-      const dot = dx * ux + dy * uy;
-      // cos 75° ≈ 0.26：dot ≥ 0.26 × |d|，两边平方免得开方
-      if (dot < 0 || dot * dot < 0.0676 * (dx * dx + dy * dy)) continue;
-      if (hitEnemy(w, i, e.dmg, k, ux, uy, s.knock, s.rehit) && evolved && healed < 4) {
-        heal(w, 1);
-        healed++;
-      }
-    }
-  }
-  // 诛邪剑阵：挥剑时待命的飞剑一起射出去
-  if (w.merges.includes('zhuxie')) {
-    const kf = w.weapons.findIndex((o) => o.id === 'flysword');
-    const t = kf >= 0 ? nearest(w, g, w.x, w.y, 420) : -1;
-    if (t >= 0) launchAllFly(w, kf, w.wstats[kf]!, eff(w, w.wstats[kf]!).dmg * w.mergePower('zhuxie'), w.eX[t]!, w.eY[t]! - 20);
-  }
-}
-
-function fireTalismans(w: World, g: Grid, k: number, s: WeaponStats, e: { dmg: number; area: number; amount: number }): void {
-  // 依次瞄最近的几只（不重复），没有怪就朝面前飞
-  const n = g.query(w, w.x, w.y, 520);
-  for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
-  let taken = 0;
-  w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.talisman);
-  // 符师：每第 4 次出符多发一张
-  const amount = e.amount + (w.setup.character === 'fushi' && ++w.weapons[k]!.phase % CHAR_FX.fushiEvery === 0 ? 1 : 0);
-  for (let j = 0; j < amount; j++) {
-    let best = -1;
-    let bd = Infinity;
-    for (let q = taken; q < n; q++) {
-      const i = scratch[q]!;
-      const dx = w.eX[i]! - w.x;
-      const dy = w.eY[i]! - w.y;
-      const d = dx * dx + dy * dy;
-      if (d < bd) {
-        bd = d;
-        best = q;
-      }
-    }
-    let vx = dcos(w.face + j * 9);
-    let vy = dsin(w.face + j * 9);
-    if (best >= 0) {
-      const i = scratch[best]!;
-      scratch[best] = scratch[taken]!;
-      scratch[taken++] = i;
-      const dx = w.eX[i]! - w.x;
-      const dy = w.eY[i]! - (w.y - 24);
-      const d = fsqrt(dx * dx + dy * dy) || 1;
-      vx = dx / d;
-      vy = dy / d;
-    }
-    addShot(w, Shot.Talisman, w.x, w.y - 24, vx * s.speed, vy * s.speed, s.duration, e.dmg, e.area, 1, k, j);
-  }
-}
-
-function coinsTick(w: World, k: number, wp: { timer: number; phase: number; angle: number; evolved: boolean }, s: WeaponStats, e: { area: number; amount: number; dmg: number }): void {
-  if (wp.evolved) {
-    // 金钱阵：两圈铜钱常驻，不歇
-    wp.angle = (wp.angle + s.speed) & (DIR_N - 1);
-    let have = 0;
-    for (let i = 0; i < MAX_SHOTS; i++) if (w.sAlive[i] && w.sKind[i] === Shot.Coin && w.sSlot[i] === k) have++;
-    for (let j = have; j < e.amount; j++) addShot(w, Shot.Coin, w.x, w.y, 0, 0, 1 << 30, e.dmg, 12, 0, k, j);
-    return;
-  }
-  // 墨斗：转得更久
-  const dur = Math.round(s.duration * w.stats.durMul);
-  if (wp.phase > 0) {
-    wp.phase--;
-    wp.angle = (wp.angle + s.speed) & (DIR_N - 1);
-    if (wp.phase === 0) {
-      removeShots(w, Shot.Coin, k);
-      wp.timer = Math.max(4, Math.round((s.cd - s.duration) * w.stats.cdMul));
-    }
-    return;
-  }
-  if (--wp.timer > 0) return;
-  wp.phase = dur;
-  w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.coins);
-  for (let j = 0; j < e.amount; j++) addShot(w, Shot.Coin, w.x, w.y, 0, 0, dur + 1, e.dmg, 12, 0, k, j);
-}
-
-/** 把这一格所有待命的飞剑一起射向 (tx, ty)，排成扇面（万剑归宗、诛邪剑阵） */
-function launchAllFly(w: World, k: number, s: WeaponStats, dmg: number, tx: number, ty: number): number {
-  let n = 0;
-  for (let i = 0; i < MAX_SHOTS; i++) if (w.sAlive[i] && w.sKind[i] === Shot.Fly && w.sSlot[i] === k && w.sState[i] === 0) n++;
-  if (n === 0) return 0;
-  const base = dirIndex(tx - w.x, ty - w.y);
-  let j = 0;
-  for (let i = 0; i < MAX_SHOTS; i++) {
-    if (!w.sAlive[i] || w.sKind[i] !== Shot.Fly || w.sSlot[i] !== k || w.sState[i] !== 0) continue;
-    // 扇面：每把错开 6 格（约 8°）
-    const a = base + Math.round((j - (n - 1) / 2) * 6);
-    w.sState[i] = 1;
-    w.sVX[i] = dcos(a) * s.speed;
-    w.sVY[i] = dsin(a) * s.speed;
-    w.sDist[i] = 0;
-    w.sDmg[i] = dmg;
-    j++;
-  }
-  w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.flysword);
-  return n;
-}
-
-function flyTick(w: World, g: Grid, k: number, wp: { timer: number; phase: number; evolved: boolean }, s: WeaponStats, e: { cd: number; amount: number; dmg: number }): void {
-  // 飞剑常驻：数量不够就补上（升级、令牌加数量时）
-  let have = 0;
-  for (let i = 0; i < MAX_SHOTS; i++) if (w.sAlive[i] && w.sKind[i] === Shot.Fly && w.sSlot[i] === k) have++;
-  for (let j = have; j < e.amount; j++) addShot(w, Shot.Fly, w.x, w.y, 0, 0, 1 << 30, e.dmg, 14, 0, k, j);
-  if (--wp.timer > 0) return;
-  // 轮到下一把待命的飞出去
-  const target = nearest(w, g, w.x, w.y, s.duration * 0.9);
-  if (target < 0) {
-    wp.timer = 6;
-    return;
-  }
-  if (wp.evolved) {
-    // 万剑归宗：一次全射出去
-    wp.timer = launchAllFly(w, k, s, e.dmg, w.eX[target]!, w.eY[target]! - 20) > 0 ? e.cd : 4;
-    return;
-  }
-  for (let tries = 0; tries < e.amount; tries++) {
-    const idx = wp.phase % e.amount;
-    wp.phase++;
-    for (let i = 0; i < MAX_SHOTS; i++) {
-      if (!w.sAlive[i] || w.sKind[i] !== Shot.Fly || w.sSlot[i] !== k || w.sIdx[i] !== idx || w.sState[i] !== 0) continue;
-      const dx = w.eX[target]! - w.sX[i]!;
-      const dy = w.eY[target]! - 20 - w.sY[i]!;
-      const d = fsqrt(dx * dx + dy * dy) || 1;
-      w.sState[i] = 1;
-      w.sVX[i] = (dx / d) * s.speed;
-      w.sVY[i] = (dy / d) * s.speed;
-      w.sDist[i] = 0;
-      w.sDmg[i] = e.dmg;
-      w.ev.push(Ev.Fire, w.sX[i]!, w.sY[i]!, WEAPON_CODE.flysword);
-      wp.timer = Math.max(3, Math.round((Math.max(4, Math.round(s.cd * w.stats.cdMul)) / e.amount) * 1.2));
-      return;
-    }
-  }
-  wp.timer = 4;
-}
-
-function thunder(w: World, g: Grid, k: number, s: WeaponStats, e: { dmg: number; area: number; amount: number }): void {
-  const n = g.query(w, w.x, w.y, s.duration);
-  if (n === 0) return;
-  for (let q = 0; q < n; q++) scratch[q] = g.out[q]!;
-  w.ev.push(Ev.Fire, w.x, w.y, WEAPON_CODE.thunder);
-  // 五雷正法：每道雷劈完再连着往最近的没劈过的跳，一共五下
-  const chain = w.weapons[k]!.evolved ? 5 : 1;
-  // 雷雨：这一阵的前几道雷先劈泉里的怪（每眼泉一道）
-  let pools = 0;
-  if (w.merges.includes('leiyu')) {
-    for (let p = 0; p < MAX_SHOTS && pools < poolList.length; p++) if (w.sAlive[p] && w.sKind[p] === Shot.Spring) poolList[pools++] = p;
-  }
-  for (let j = 0; j < e.amount; j++) {
-    let t = scratch[w.rWeapon.int(n)]!;
-    if (j < pools) {
-      const p = poolList[j]!;
-      const inPool = nearest(w, g, w.sX[p]!, w.sY[p]!, w.sR[p]!);
-      if (inPool >= 0) t = inPool;
-    }
-    let px = w.eX[t]!;
-    let py = w.eY[t]! - 400;
-    for (let c = 0; c < chain && t >= 0; c++) {
-      const tx = w.eX[t]!;
-      const ty = w.eY[t]!;
-      w.ev.push(Ev.Thunder, tx, ty, c, e.area, c === 0 ? 0 : 1);
-      if (c > 0) w.ev.push(Ev.Chain, px, py, 0, tx, ty);
-      strike(w, g, k, tx, ty, e.dmg, e.area, s.knock);
-      if (c === 0 && pools > 0) conduct(w, g, k, tx, ty, e.dmg, pools);
-      px = tx;
-      py = ty;
-      t = c + 1 < chain ? nearestUnhit(w, g, tx, ty, 220, k) : -1;
-    }
-  }
-}
-
-/** 雷雨：这一阵雷要先劈的泉（子弹下标） */
-const poolList = new Int32Array(8);
-
-/** 雷雨：从天上劈下的雷落在哪眼泉里，整眼泉的怪都挨一截（只传一眼） */
-function conduct(w: World, g: Grid, k: number, x: number, y: number, dmg: number, pools: number): void {
-  for (let q = 0; q < pools; q++) {
-    const p = poolList[q]!;
-    if (!w.sAlive[p] || w.sKind[p] !== Shot.Spring) continue;
-    const cx = w.sX[p]!;
-    const cy = w.sY[p]!;
-    const r = w.sR[p]!;
-    const dx = x - cx;
-    const dy = y - cy;
-    if (dx * dx + dy * dy > r * r) continue;
-    w.ev.push(Ev.Spring, cx, cy, 2, r);
-    const m = g.query(w, cx, cy, r);
-    for (let j = 0; j < m; j++) scratch2[j] = g.out[j]!;
-    for (let j = 0; j < m; j++) hitEnemy(w, scratch2[j]!, dmg * DUAL_FX.rain.mul * w.mergePower('leiyu'), -1, 0, 0, 0, 0, k);
-    return;
-  }
-}
-
-/** 一道雷落在 (x, y)：一圈都挨打（雷符、雷火符箓） */
-function strike(w: World, g: Grid, k: number, x: number, y: number, dmg: number, area: number, knock: number): void {
-  chop(w, x, y, area, dmg);
-  const m = g.query(w, x, y, area);
-  const local = scratch2;
-  for (let q = 0; q < m; q++) local[q] = g.out[q]!;
-  for (let q = 0; q < m; q++) {
-    const i = local[q]!;
-    hitEnemy(w, i, dmg, -1, w.eX[i]! - x, w.eY[i]! - y, knock, 0, k);
-  }
-}
-
-/** 离 (x, y) 最近、这一拍还没被这件法器打过的怪（连锁雷用） */
-function nearestUnhit(w: World, g: Grid, x: number, y: number, r: number, k: number): number {
-  const n = g.query(w, x, y, r);
-  let best = -1;
-  let bd = Infinity;
-  for (let j = 0; j < n; j++) {
-    const i = g.out[j]!;
-    if (w.eLastHit[i] === w.tick && w.eLastBy[i] === k) continue;
-    const dx = w.eX[i]! - x;
-    const dy = w.eY[i]! - y;
-    const d = dx * dx + dy * dy;
-    if (d < bd) {
-      bd = d;
-      best = i;
-    }
-  }
-  return best;
-}
 
 // ───────────────────────── 子弹 ─────────────────────────
 
@@ -3456,6 +2729,16 @@ function gainXp(w: World, v: number): void {
 // ───────────────────────── 摆设、炸弹 ─────────────────────────
 
 /** 开局在场地里散摆设：离出生点 300 以外，避开墙和棺材 */
+/** 新手局开局在主角四周摆几圈魂火（在开局磁吸外，走几步就吸到）：躲着怪走的人不贴怪也能升头几级（content/player.ts NOVICE.souls） */
+function layNoviceSouls(w: World): void {
+  for (const ring of NOVICE.souls) {
+    for (let k = 0; k < ring.n; k++) {
+      const a = ((k * DIR_N) / ring.n + (ring.n & 1 ? 0 : DIR_N / ring.n / 2)) | 0;
+      addDrop(w, Drop.Soul, w.x + dcos(a) * ring.r, w.y + dsin(a) * ring.r, ring.val);
+    }
+  }
+}
+
 function scatterProps(w: World): void {
   for (let k = 0; k < PROPS.start; k++) {
     const x = 60 + w.rProp.next() * (w.arenaW - 120);
@@ -3852,13 +3135,13 @@ function choicePool(w: World): { c: Choice; weight: number }[] {
     const hasB = w.weapons.some((o) => o.id === def.b);
     if (hasA === hasB) {
       if (mine && !hasA) {
-        bump(def.a, PICKS_65.ownMul);
-        bump(def.b, PICKS_65.ownMul);
+        bump(def.a, OWN_PICKS.ownMul);
+        bump(def.b, OWN_PICKS.ownMul);
       }
       continue;
     }
     const other = hasA ? def.b : def.a;
-    const m = mine ? PICKS_65.ownHeldMul : PICKS_60.fateMul;
+    const m = mine ? OWN_PICKS.ownHeldMul : FATE_PICKS.fateMul;
     bump(other, m);
     const evo = WEAPONS[other].evolve;
     if (evo) bump(evo.with, m);
@@ -4085,7 +3368,7 @@ function marketGive(w: World, g: MarketGood): void {
   } else if (g === 'omen') {
     // 求签：买的那一刻定指哪个搭配（摊是开市时摆的，到买的时候手上可能又变了）；没有缺料的搭配了就换成刷新 +2
     w.omen = omenTarget(w);
-    if (w.omen < 0) for (let k = 0; k < PICKS_60.omenRerolls; k++) addReroll(w, -1);
+    if (w.omen < 0) for (let k = 0; k < FATE_PICKS.omenRerolls; k++) addReroll(w, -1);
   } else {
     const pool = w.weapons.filter((o) => !o.evolved && o.level < MAX_WEAPON_LEVEL);
     if (!pool.length) return;
@@ -4264,13 +3547,16 @@ function chestUpgrade(w: World): boolean {
   return true;
 }
 
+// 第一批法器要用的本文件私有函数（arms/first.ts 被本文件 import，不能反过来 import 本文件）
+bindFirstApi({ hitEnemy, nearest, eff, heal, chop, push, addShot, killShot, removeShots, shieldFire });
+
 // foes 要用的本文件私有函数（foes 被本文件 import，不能反过来 import 本文件）
 bindFoeApi({
   spawn: spawnEnemy,
   hurt: hurt,
   areaHurt,
-  shot: (w, x, y, vx, vy, life, dmg, r, state) => {
-    addShot(w, Shot.Fireball, x, y, vx, vy, life, dmg, r, state, -1, 0);
+  shot: (w, x, y, vx, vy, life, dmg, r, state, idx = 0) => {
+    addShot(w, Shot.Fireball, x, y, vx, vy, life, dmg, r, state, -1, idx);
   },
   phase: bossPhase,
   blocked: (w, x, y, r) => {

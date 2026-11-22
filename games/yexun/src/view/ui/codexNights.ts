@@ -2,6 +2,7 @@
  * 图鉴「夜事」页的数据（DESIGN.md 3.8）：地图事件、噩梦档机制、咒印。全部从内容表派生，不手抄数字；
  * 写成纯函数，方便单测，不碰 DOM。
  */
+import { TICKS_PER_SECOND } from '../../content/clock.ts';
 import { MAPS, MAP_IDS, type MapId } from '../../content/maps.ts';
 import { CURSES, CURSE_COIN_BONUS, CURSE_IDS, MAX_CURSES } from '../../content/meta.ts';
 import { MAP_EVENTS, MAP_EVENT_AT, type MapEventKind } from '../../content/mapEvents.ts';
@@ -11,7 +12,7 @@ import { weeklyFor } from '../../online/weekly.ts';
 import { affixTexts, goalText, TRIALS, type TrialId } from '../../content/trials.ts';
 import { EVENT_ICON } from './eventIcons.ts';
 
-const S = 30;
+const S = TICKS_PER_SECOND;
 const pct = (x: number): number => Math.round(x * 100);
 
 export interface NightEvent { kind: MapEventKind | 'blood'; icon: string; name: string; map: string; blurb: string }

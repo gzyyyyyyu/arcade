@@ -1,3 +1,4 @@
+import { fmtClock, TICKS_PER_SECOND } from '../../../content/clock.ts';
 import type { SchoolId } from '../../../content/guide.ts';
 import { XINFA_TEXT } from '../../../content/xinfa.ts';
 import type { MapId } from '../../../content/maps.ts';
@@ -15,7 +16,6 @@ export const HOME_SVG =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10.5V20h12v-9.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg><span>大厅</span>';
 
 export const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-export const mmss = (sec: number): string => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 
 /**
  * 入场上滑只在切换页面时播：整屏从隐藏变显示时浏览器重播根节点的淡入（yx-scr-in），借它的开始 / 结束给根节点挂摘 yx-entering，
@@ -139,7 +139,7 @@ export const isLiveTown = (t: RaidPick): t is RaidLiveTemplate => (LIVE_PICK as 
 export const HOME_BTN = `<button type="button" class="yx-btn yx-home" data-a="home" aria-label="回大厅">${HOME_SVG}</button>`;
 
 export const bestText = (b: Best | undefined): { big: string; small: string } =>
-  !b ? { big: '还没玩过', small: '' } : { big: b.won ? '天亮了' : mmss(b.ticks / 30), small: `斩 ${b.kills.toLocaleString('zh-CN')}` };
+  !b ? { big: '还没玩过', small: '' } : { big: b.won ? '天亮了' : fmtClock(b.ticks / TICKS_PER_SECOND), small: `斩 ${b.kills.toLocaleString('zh-CN')}` };
 
 // ───────────────────────── 主页 ─────────────────────────
 

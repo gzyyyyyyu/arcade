@@ -4,6 +4,7 @@
  * 新词缀（法器白名单、不给新法器、怪死爆裂、不掉肉包）和目标在核心里按这里的数算。改数值要跑 `npm run sim -- --trial all`。
  * id 是排行榜名的一部分（`trial-<id>`，平台登记过），定了不改；内容和档位可以配平。
  */
+import { fmtClock } from './clock.ts';
 import type { RaidTemplateId } from './explore.ts';
 import { SCHOOLS, type SchoolId } from './guide.ts';
 import type { MapId } from './maps.ts';
@@ -83,10 +84,9 @@ export function isTrialId(x: unknown): x is TrialId {
 
 /** 目标一句话（试炼卡、暂停面板、结算页共用） */
 export function goalText(g: TrialGoal): string {
-  const mmss = (s: number): string => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   if (g.kind === 'dawn') return '撑到天亮';
-  if (g.kind === 'slay') return g.foe === 'boss' ? (g.by >= 900 ? '天亮前打倒尸王' : `${mmss(g.by)} 前打倒尸王`) : `${mmss(g.by)} 前打倒首领`;
-  if (g.kind === 'nobun') return `没有肉包，撑到 ${mmss(g.until)}`;
+  if (g.kind === 'slay') return g.foe === 'boss' ? (g.by >= 900 ? '天亮前打倒尸王' : `${fmtClock(g.by)} 前打倒尸王`) : `${fmtClock(g.by)} 前打倒首领`;
+  if (g.kind === 'nobun') return `没有肉包，撑到 ${fmtClock(g.until)}`;
   return `夜探撤出，宝物值 ${g.value} 以上`;
 }
 
@@ -111,8 +111,7 @@ export function trialScore(won: boolean, progress: number): number {
 export function trialScoreText(t: TrialDef, score: number): string {
   const won = score >= 1e9;
   const p = score % 1e9;
-  const mmss = (s: number): string => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   if (t.goal.kind === 'loot') return won ? `通关 · 带出 ${p}` : `带出 ${p}`;
-  if (!won) return `撑了 ${mmss(p)}`;
-  return t.goal.kind === 'slay' ? `通关 · 剩 ${mmss(p)}` : '通关';
+  if (!won) return `撑了 ${fmtClock(p)}`;
+  return t.goal.kind === 'slay' ? `通关 · 剩 ${fmtClock(p)}` : '通关';
 }

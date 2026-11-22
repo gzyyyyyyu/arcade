@@ -2,6 +2,7 @@
  * 每日首领连战（DESIGN.md 2.5、5.7）：北京时间的日期 → 种子 → 地图；构筑和关卡由核心按种子算（core/rush.ts），同一天全服一样。
  * 只有每日这一种，交平台每日榜的子榜 rush（榜名 daily-YYYY-MM-DD-rush），分数怎么显示写在 public/daily.json。
  */
+import { fmtClock, TICKS_PER_SECOND } from '../content/clock.ts';
 import { Rng, hash32 } from '../core/rng.ts';
 import type { RushResult } from '../core/rush.ts';
 import type { MapId } from '../content/maps.ts';
@@ -60,6 +61,5 @@ export function decodeRush(score: number): { cleared: boolean; down: number; tot
 
 /** 用时写成分:秒 */
 export function rushClock(ticks: number): string {
-  const s = Math.ceil(ticks / 30);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  return fmtClock(Math.ceil(ticks / TICKS_PER_SECOND));
 }

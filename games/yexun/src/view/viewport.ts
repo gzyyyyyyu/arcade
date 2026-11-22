@@ -1,17 +1,15 @@
+import { dprScale, isLowMemoryDevice } from 'arcade-kit/viewport';
 import { RING } from '../core/state.ts';
 
 /**
- * 手机和平板（尤其 iOS）的几条规矩（仓库根 AGENTS.md 第 4 节，做法照开盘 0.5.9）：
- * 省内存设备渲染倍数封顶 2；高度按看得见的区域算；双指放大时不改尺寸。
+ * 手机和平板（尤其 iOS）的规矩照仓库根 AGENTS.md 第 4 节，设备判断、可见区、双指放大都用 arcade-kit/viewport；
+ * 这里只留夜巡自己的：?lowmem 强制省内存、渲染倍数的上限、世界缩放。
  */
 
-/** iOS（含报成 Mac 的 iPad）和触屏手机平板：渲染倍数封顶 2、关粒子；?lowmem 强制（冒烟用） */
+/** 省内存设备（iOS、触屏手机平板）：渲染倍数封顶 2、关粒子；?lowmem 强制（冒烟用） */
 export const LOW_MEMORY = ((): boolean => {
   if (typeof window === 'undefined') return false;
-  if (new URLSearchParams(window.location.search).has('lowmem')) return true;
-  const ua = navigator.userAgent;
-  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  return ios || !!window.matchMedia?.('(pointer: coarse)').matches;
+  return new URLSearchParams(window.location.search).has('lowmem') || isLowMemoryDevice();
 })();
 
 /** 触屏（显示虚拟摇杆、不显示键盘提示） */
@@ -19,8 +17,7 @@ export const TOUCH = typeof window !== 'undefined' && !!window.matchMedia?.('(po
 
 /** 画布的渲染倍数：按 devicePixelRatio，省内存设备最多 2、别的最多 3 */
 export function renderScale(): number {
-  const dpr = window.devicePixelRatio || 1;
-  return Math.max(1, Math.min(LOW_MEMORY ? 2 : 3, dpr));
+  return dprScale({ dpr: window.devicePixelRatio, cap: 3, lowMemory: LOW_MEMORY, lowMemoryCap: 2 });
 }
 
 /** 竖屏按屏宽定缩放：一屏宽看到这么多世界单位（10-20 三档对比后定，见 CHANGELOG 0.3.15） */
@@ -36,43 +33,4 @@ export function worldZoom(cssW: number, cssH: number, tall: boolean): number {
   const base = cssH > cssW ? cssW / TALL_BASE : cssH / (cssH < 500 ? 500 : 560);
   const [rx, ry] = tall ? [RING.short, RING.long] : [RING.long, RING.short];
   return Math.max(base, cssW / (2 * rx), cssH / (2 * ry));
-}
-
-/** 双指放大着（visualViewport.scale 明显不是 1） */
-export function zoomed(scale: number | undefined): boolean {
-  return scale !== undefined && Math.abs(scale - 1) > 0.02;
-}
-
-/** 写 --app-h（看得见的高度），尺寸变化时通知；转屏后稍等再补算一次。返回取消监听的函数 */
-export function fitViewport(onFit: () => void): () => void {
-  const root = document.documentElement;
-  let last = '';
-  const apply = (): void => {
-    if (zoomed(window.visualViewport?.scale)) return;
-    const vv = window.visualViewport;
-    const w = Math.round(vv?.width ?? window.innerWidth);
-    const h = Math.round(vv?.height ?? window.innerHeight);
-    if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
-    const size = `${w}x${h}`;
-    if (size === last) return;
-    last = size;
-    root.style.setProperty('--app-h', `${h}px`);
-    onFit();
-  };
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const later = (): void => {
-    apply();
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(apply, 300);
-  };
-  apply();
-  window.addEventListener('resize', later);
-  window.addEventListener('orientationchange', later);
-  window.visualViewport?.addEventListener('resize', later);
-  return () => {
-    window.removeEventListener('resize', later);
-    window.removeEventListener('orientationchange', later);
-    window.visualViewport?.removeEventListener('resize', later);
-    if (timer) clearTimeout(timer);
-  };
 }

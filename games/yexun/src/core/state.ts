@@ -21,8 +21,8 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 73;
-export const TICKS_PER_SECOND = 30;
+export const RULES_VERSION = 74;
+export { TICKS_PER_SECOND } from '../content/clock.ts';
 /**
  * 刷怪的一圈：刚好在屏幕外（横屏一屏约 1000 × 560 到 1080 × 500 单位，画面层 viewport.ts 的 worldZoom），
  * 椭圆横向宽；竖屏开的局（setup.tall）转 90°，纵向宽。放在这里而不是 step.ts：画面层要读它，不能为一个常量把整个 step 拉进首屏

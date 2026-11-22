@@ -38,6 +38,12 @@ export interface EnemyDef {
   kind: EnemyKind;
   /** 数组里的编号（核心用整数存种类） */
   code: number;
+  /** 图鉴、横幅、结算页上的名字 */
+  name: string;
+  /** 画面上给这种怪的图染的颜色（图集里没有单独一帧时也靠它认） */
+  tint: number;
+  /** 水面、冰面拖不慢它：飞的，或者本来就生在水里、冰上的（水鬼、溺鬼、河蟹、河伯、冰傀、冰锥、冰魄） */
+  ignoresTerrain?: true;
   hp: number;
   speed: number;
   /** 碰到主角掉多少血 */
@@ -60,81 +66,81 @@ export interface EnemyDef {
 }
 
 export const ENEMIES: readonly EnemyDef[] = [
-  { kind: 'paper', code: 0, hp: 5, speed: 1.7, dmg: 5, r: 13, xp: 1, steady: 0, vs: { 火: 1.5 } },
-  { kind: 'wisp', code: 1, hp: 4, speed: 2.5, dmg: 4, r: 11, xp: 1, steady: 0 },
-  { kind: 'jiangshi', code: 2, hp: 18, speed: 1.45, dmg: 9, r: 17, xp: 2, steady: 0.3, vs: { 剑: 0.65, 火: 1.2, 镇: 1.35, 木: 1.3, 符: 1.2 } },
-  { kind: 'lantern', code: 3, hp: 14, speed: 1.2, dmg: 6, r: 15, xp: 2, steady: 0.1, vs: { 剑: 0.6, 水: 1.5, 镇: 1.3 } },
-  { kind: 'fox', code: 4, hp: 12, speed: 1.9, dmg: 8, r: 14, xp: 2, steady: 0.1, vs: { 木: 0.9, 镇: 1.15 } },
-  { kind: 'shishi', code: 5, hp: 270, speed: 1.15, dmg: 15, r: 30, xp: 20, steady: 0.9, elite: true, vs: { 剑: 0.5, 符: 1.2 } },
-  { kind: 'general', code: 6, hp: 520, speed: 1.3, dmg: 16, r: 30, xp: 30, steady: 0.85, elite: true, vs: { 剑: 0.6, 火: 1.1, 镇: 1.3, 符: 1.2 } },
-  { kind: 'boss', code: 7, hp: 20000, speed: 1.55, dmg: 19, r: 44, xp: 0, steady: 0.97, boss: true, vs: { 剑: 0.8, 火: 1.2, 镇: 1.65, 木: 0.85 } },
+  { kind: 'paper', code: 0, name: '纸人', tint: 0xf4f1ea, hp: 5, speed: 1.7, dmg: 5, r: 13, xp: 1, steady: 0, vs: { 火: 1.5 } },
+  { kind: 'wisp', code: 1, name: '小鬼火', tint: 0x5fd3f0, hp: 4, speed: 2.5, dmg: 4, r: 11, xp: 1, steady: 0 },
+  { kind: 'jiangshi', code: 2, name: '跳尸', tint: 0x4f7a76, hp: 18, speed: 1.45, dmg: 9, r: 17, xp: 2, steady: 0.3, vs: { 剑: 0.65, 火: 1.2, 镇: 1.35, 木: 1.3, 符: 1.2 } },
+  { kind: 'lantern', code: 3, name: '灯笼鬼', tint: 0xe8582f, hp: 14, speed: 1.2, dmg: 6, r: 15, xp: 2, steady: 0.1, vs: { 剑: 0.6, 水: 1.5, 镇: 1.3 } },
+  { kind: 'fox', code: 4, name: '狐妖', tint: 0xe58a3a, hp: 12, speed: 1.9, dmg: 8, r: 14, xp: 2, steady: 0.1, vs: { 木: 0.9, 镇: 1.15 } },
+  { kind: 'shishi', code: 5, name: '石狮怪', tint: 0x9aa0ad, hp: 270, speed: 1.15, dmg: 15, r: 30, xp: 20, steady: 0.9, elite: true, vs: { 剑: 0.5, 符: 1.2 } },
+  { kind: 'general', code: 6, name: '跳尸将军', tint: 0x2f5a46, hp: 520, speed: 1.3, dmg: 16, r: 30, xp: 30, steady: 0.85, elite: true, vs: { 剑: 0.6, 火: 1.1, 镇: 1.3, 符: 1.2 } },
+  { kind: 'boss', code: 7, name: '尸王', tint: 0xb8902e, hp: 20000, speed: 1.55, dmg: 19, r: 44, xp: 0, steady: 0.97, boss: true, vs: { 剑: 0.8, 火: 1.2, 镇: 1.65, 木: 0.85 } },
   // 第 4 步：编号接着往后排（存档、录像里存的是编号，已有的不挪）
-  { kind: 'horse', code: 8, hp: 10, speed: 4, dmg: 7, r: 16, xp: 2, steady: 0.2, vs: { 火: 1.5, 镇: 1.15, 木: 0.8 } },
-  { kind: 'water', code: 9, hp: 22, speed: 0.9, dmg: 6, r: 15, xp: 2, steady: 0.5, vs: { 土: 1.5, 镇: 1.3, 火: 0.7 } },
-  { kind: 'bone', code: 10, hp: 16, speed: 1.6, dmg: 7, r: 14, xp: 1, steady: 0.2, vs: { 剑: 0.7, 镇: 1.4 } },
-  { kind: 'bat', code: 11, hp: 6, speed: 2.7, dmg: 4, r: 10, xp: 1, steady: 0 },
-  { kind: 'scarecrow', code: 12, hp: 55, speed: 1.1, dmg: 10, r: 18, xp: 4, steady: 0.8, vs: { 剑: 0.6, 火: 1.25 } },
-  { kind: 'weasel', code: 13, hp: 14, speed: 2.4, dmg: 3, r: 13, xp: 2, steady: 0.1 },
-  { kind: 'snow', code: 14, hp: 16, speed: 1.3, dmg: 5, r: 14, xp: 2, steady: 0.2, vs: { 剑: 0.5, 火: 1.2, 镇: 1.3 } },
-  { kind: 'whitefox', code: 15, hp: 400, speed: 1.7, dmg: 9, r: 26, xp: 25, steady: 0.85, elite: true, vs: { 剑: 0.6, 镇: 1.15, 符: 1.4, 火: 0.8, 木: 1.25, 水: 1.2 } },
-  { kind: 'palanquin', code: 16, hp: 760, speed: 1, dmg: 14, r: 36, xp: 30, steady: 0.9, elite: true, vs: { 剑: 0.7, 火: 1.25, 符: 1.2 } },
-  { kind: 'lord', code: 17, hp: 6000, speed: 1.15, dmg: 18, r: 40, xp: 60, steady: 0.96, boss: true, vs: { 火: 1.15 } },
+  { kind: 'horse', code: 8, name: '纸马', tint: 0xf4f1ea, hp: 10, speed: 4, dmg: 7, r: 16, xp: 2, steady: 0.2, vs: { 火: 1.5, 镇: 1.15, 木: 0.8 } },
+  { kind: 'water', code: 9, name: '水鬼', tint: 0x3f9a8a, ignoresTerrain: true, hp: 22, speed: 0.9, dmg: 6, r: 15, xp: 2, steady: 0.5, vs: { 土: 1.5, 镇: 1.3, 火: 0.7 } },
+  { kind: 'bone', code: 10, name: '枯骨', tint: 0xe8e2d0, hp: 16, speed: 1.6, dmg: 7, r: 14, xp: 1, steady: 0.2, vs: { 剑: 0.7, 镇: 1.4 } },
+  { kind: 'bat', code: 11, name: '蝙蝠精', tint: 0x5a3a78, ignoresTerrain: true, hp: 6, speed: 2.7, dmg: 4, r: 10, xp: 1, steady: 0 },
+  { kind: 'scarecrow', code: 12, name: '稻草人', tint: 0xc9a04a, hp: 55, speed: 1.1, dmg: 10, r: 18, xp: 4, steady: 0.8, vs: { 剑: 0.6, 火: 1.25 } },
+  { kind: 'weasel', code: 13, name: '黄鼠狼', tint: 0xb9853a, hp: 14, speed: 2.4, dmg: 3, r: 13, xp: 2, steady: 0.1 },
+  { kind: 'snow', code: 14, name: '雪魅', tint: 0x8fd0f0, hp: 16, speed: 1.3, dmg: 5, r: 14, xp: 2, steady: 0.2, vs: { 剑: 0.5, 火: 1.2, 镇: 1.3 } },
+  { kind: 'whitefox', code: 15, name: '白狐', tint: 0xf6f8ff, hp: 400, speed: 1.7, dmg: 9, r: 26, xp: 25, steady: 0.85, elite: true, vs: { 剑: 0.6, 镇: 1.15, 符: 1.4, 火: 0.8, 木: 1.25, 水: 1.2 } },
+  { kind: 'palanquin', code: 16, name: '纸轿', tint: 0xd0362e, hp: 760, speed: 1, dmg: 14, r: 36, xp: 30, steady: 0.9, elite: true, vs: { 剑: 0.7, 火: 1.25, 符: 1.2 } },
+  { kind: 'lord', code: 17, name: '纸扎老爷', tint: 0xf0e0b0, hp: 6000, speed: 1.15, dmg: 18, r: 40, xp: 60, steady: 0.96, boss: true, vs: { 火: 1.15 } },
   // 夜探的守卫（数值在 content/explore.ts，移动由 src/explore/guards.ts 算）
-  { kind: 'patrol', code: 18, ...RAID_ENEMIES.patrol },
-  { kind: 'beast', code: 19, ...RAID_ENEMIES.beast },
-  { kind: 'goblin', code: 20, ...RAID_ENEMIES.goblin },
+  { kind: 'patrol', code: 18, ...RAID_ENEMIES.patrol, name: '巡夜将', tint: 0x343a4a },
+  { kind: 'beast', code: 19, ...RAID_ENEMIES.beast, name: '镇门石兽', tint: 0x7f8da0 },
+  { kind: 'goblin', code: 20, ...RAID_ENEMIES.goblin, name: '宝妖', tint: 0xf2b930 },
   // 各地区的特色怪（编号 21 起；数值按同一时间段的现有怪定，行为见下面的常量和 step.ts 的 mobAct）
   // 竹林：竹精（地里钻出来）、蛇精（藏着突然窜）、竹王（精英）
-  { kind: 'bamsprout', code: 21, hp: 16, speed: 1.4, dmg: 8, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.3, 木: 0.7 } },
-  { kind: 'snakespirit', code: 22, hp: 12, speed: 1.5, dmg: 9, r: 13, xp: 2, steady: 0.1, vs: { 火: 1.25, 镇: 1.15 } },
-  { kind: 'bambooking', code: 23, hp: 560, speed: 1.2, dmg: 15, r: 32, xp: 30, steady: 0.85, elite: true, vs: { 剑: 0.7, 火: 1.35, 符: 1.2, 木: 0.8 } },
+  { kind: 'bamsprout', code: 21, name: '竹精', tint: 0x7fc45a, hp: 16, speed: 1.4, dmg: 8, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.3, 木: 0.7 } },
+  { kind: 'snakespirit', code: 22, name: '蛇精', tint: 0x5faa3e, hp: 12, speed: 1.5, dmg: 9, r: 13, xp: 2, steady: 0.1, vs: { 火: 1.25, 镇: 1.15 } },
+  { kind: 'bambooking', code: 23, name: '竹王', tint: 0x4a8f3a, hp: 560, speed: 1.2, dmg: 15, r: 32, xp: 30, steady: 0.85, elite: true, vs: { 剑: 0.7, 火: 1.35, 符: 1.2, 木: 0.8 } },
   // 河滩（渡口也用溺鬼）：溺鬼（拖住人）、河蟹（横着走的硬壳）、河伯（精英）
-  { kind: 'drown', code: 24, hp: 22, speed: 1.0, dmg: 6, r: 15, xp: 2, steady: 0.4, vs: { 土: 1.4, 镇: 1.2, 火: 0.8 } },
-  { kind: 'crab', code: 25, hp: 28, speed: 1.5, dmg: 7, r: 15, xp: 3, steady: 0.5, vs: { 剑: 0.6, 符: 0.85, 火: 1.6, 镇: 1.15 } },
-  { kind: 'hebo', code: 26, hp: 700, speed: 1.0, dmg: 14, r: 34, xp: 30, steady: 0.9, elite: true, vs: { 土: 1.3, 火: 0.8, 剑: 0.75, 符: 1.2 } },
+  { kind: 'drown', code: 24, name: '溺鬼', tint: 0x8c8676, ignoresTerrain: true, hp: 22, speed: 1.0, dmg: 6, r: 15, xp: 2, steady: 0.4, vs: { 土: 1.4, 镇: 1.2, 火: 0.8 } },
+  { kind: 'crab', code: 25, name: '河蟹', tint: 0xa48c6c, ignoresTerrain: true, hp: 28, speed: 1.5, dmg: 7, r: 15, xp: 3, steady: 0.5, vs: { 剑: 0.6, 符: 0.85, 火: 1.6, 镇: 1.15 } },
+  { kind: 'hebo', code: 26, name: '河伯', tint: 0x7c9488, ignoresTerrain: true, hp: 700, speed: 1.0, dmg: 14, r: 34, xp: 30, steady: 0.9, elite: true, vs: { 土: 1.3, 火: 0.8, 剑: 0.75, 符: 1.2 } },
   // 冰湖：冰傀（碎成两个）、冰凌（预告落点的冰刺）、冰魄（精英）
-  { kind: 'icegolem', code: 27, hp: 30, speed: 1.0, dmg: 8, r: 17, xp: 3, steady: 0.5, vs: { 剑: 0.6, 火: 1.3, 镇: 1.4 } },
-  { kind: 'icicle', code: 28, hp: 12, speed: 1.5, dmg: 4, r: 13, xp: 2, steady: 0.1, vs: { 火: 1.4, 剑: 0.7 } },
-  { kind: 'frostsoul', code: 29, hp: 620, speed: 1.15, dmg: 14, r: 30, xp: 30, steady: 0.85, elite: true, vs: { 火: 1.3, 剑: 0.6, 符: 1.3 } },
+  { kind: 'icegolem', code: 27, name: '冰傀', tint: 0xbfe6fa, ignoresTerrain: true, hp: 30, speed: 1.0, dmg: 8, r: 17, xp: 3, steady: 0.5, vs: { 剑: 0.6, 火: 1.3, 镇: 1.4 } },
+  { kind: 'icicle', code: 28, name: '冰凌', tint: 0xeaf8ff, ignoresTerrain: true, hp: 12, speed: 1.5, dmg: 4, r: 13, xp: 2, steady: 0.1, vs: { 火: 1.4, 剑: 0.7 } },
+  { kind: 'frostsoul', code: 29, name: '冰魄', tint: 0xdff3ff, ignoresTerrain: true, hp: 620, speed: 1.15, dmg: 14, r: 30, xp: 30, steady: 0.85, elite: true, vs: { 火: 1.3, 剑: 0.6, 符: 1.3 } },
   // 夜探：古镇的更夫鬼、山寺的石僧（渡口用溺鬼）
-  { kind: 'nightwatch', code: 30, hp: 26, speed: 1.3, dmg: 7, r: 15, xp: 3, steady: 0.3, vs: { 火: 1.3, 镇: 1.3, 剑: 0.8 } },
-  { kind: 'stonemonk', code: 31, hp: 60, speed: 0.9, dmg: 11, r: 19, xp: 4, steady: 0.8, vs: { 剑: 0.5, 火: 0.85, 水: 1.3, 镇: 0.6, 符: 1.25 } },
+  { kind: 'nightwatch', code: 30, name: '更夫鬼', tint: 0x46598c, hp: 26, speed: 1.3, dmg: 7, r: 15, xp: 3, steady: 0.3, vs: { 火: 1.3, 镇: 1.3, 剑: 0.8 } },
+  { kind: 'stonemonk', code: 31, name: '石僧', tint: 0xb4b8bf, hp: 60, speed: 0.9, dmg: 11, r: 19, xp: 4, steady: 0.8, vs: { 剑: 0.5, 火: 0.85, 水: 1.3, 镇: 0.6, 符: 1.25 } },
   // 守夜危险 3 起的常规怪（waves.ts LAMP 决定谁在几分钟出）：提灯鬼，近战直走，不怕火，给火流派一个对手；怕符怕铃。数值按同期的河蟹、冰傀
-  { kind: 'lampghost', code: 32, hp: 32, speed: 1.35, dmg: 8, r: 15, xp: 3, steady: 0.2, vs: { 火: 0.5, 木: 1.2, 镇: 1.15 } },
-  { kind: 'templeghost', code: 33, hp: 18, speed: 1.3, dmg: 5, r: 14, xp: 3, steady: 0.1, vs: { 火: 1.35, 水: 1.2, 剑: 0.85 } },
+  { kind: 'lampghost', code: 32, name: '提灯鬼', tint: 0xcfe4e0, hp: 32, speed: 1.35, dmg: 8, r: 15, xp: 3, steady: 0.2, vs: { 火: 0.5, 木: 1.2, 镇: 1.15 } },
+  { kind: 'templeghost', code: 33, name: '庙祝鬼', tint: 0xc9c2b4, hp: 18, speed: 1.3, dmg: 5, r: 14, xp: 3, steady: 0.1, vs: { 火: 1.35, 水: 1.2, 剑: 0.85 } },
   // 鬼市：皮影鬼是驴皮刻的，怕火、怕符，刀剑砍上去像砍皮子（×0.8）；鬼贩躲着人，围着主角转的镇类不好够着它（×0.8），火和木克它
-  { kind: 'puppet', code: 34, hp: 14, speed: 1.0, dmg: 7, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.35, 符: 1.2, 剑: 0.8 } },
-  { kind: 'peddler', code: 35, hp: 24, speed: 1.15, dmg: 5, r: 15, xp: 3, steady: 0.3, vs: { 木: 1.3, 火: 1.2, 镇: 0.8 } },
+  { kind: 'puppet', code: 34, name: '皮影鬼', tint: 0xc0563a, hp: 14, speed: 1.0, dmg: 7, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.35, 符: 1.2, 剑: 0.8 } },
+  { kind: 'peddler', code: 35, name: '鬼贩', tint: 0x5a6a8a, hp: 24, speed: 1.15, dmg: 5, r: 15, xp: 3, steady: 0.3, vs: { 木: 1.3, 火: 1.2, 镇: 0.8 } },
   // 鬼市主：扛刀剑和火（一身铜钱褂子），怕符怕铃，给符和镇守一个主场
-  { kind: 'marketboss', code: 36, hp: 640, speed: 1.1, dmg: 14, r: 32, xp: 30, steady: 0.88, elite: true, vs: { 剑: 0.7, 火: 0.85, 符: 1.3, 镇: 1.2 } },
+  { kind: 'marketboss', code: 36, name: '鬼市主', tint: 0xb8902e, hp: 640, speed: 1.1, dmg: 14, r: 32, xp: 30, steady: 0.88, elite: true, vs: { 剑: 0.7, 火: 0.85, 符: 1.3, 镇: 1.2 } },
   // 画皮：混在怪群里的首领，速度和纸扎老爷一样；血和撞人比纸扎老爷少（多了分身和缠丝两手）。
   // 混迹时机器人和玩家都认不出它、不躲，原来快一档、撞 14 时竹林河滩鬼市危险 2 通关率比纸扎老爷低 4–10 个点（DESIGN 8.1）
-  { kind: 'huapi', code: 37, hp: 5600, speed: 1.15, dmg: 10, r: 30, xp: 60, steady: 0.92, boss: true, vs: { 火: 1.1, 符: 1.15 } },
+  { kind: 'huapi', code: 37, name: '画皮', tint: 0x79b9a2, hp: 5600, speed: 1.15, dmg: 10, r: 30, xp: 60, steady: 0.92, boss: true, vs: { 火: 1.1, 符: 1.15 } },
   // 人皮分身：一碰就破的皮，血量在 HUAPI.cloneHp（刷出来时覆盖）
-  { kind: 'huapiskin', code: 38, hp: 80, speed: 1.9, dmg: 8, r: 14, xp: 1, steady: 0.1, vs: { 火: 1.4 } },
+  { kind: 'huapiskin', code: 38, name: '人皮', tint: 0xf6cfc4, hp: 80, speed: 1.9, dmg: 8, r: 14, xp: 1, steady: 0.1, vs: { 火: 1.4 } },
   // 2.0 的首领和特色怪（DESIGN.md 3.5）。中期首领血、撞人按画皮、纸扎老爷同档起步，行为在 core/foes/，数值在 content/foes.ts
-  { kind: 'zhumu', code: 39, hp: 3800, speed: 0.9, dmg: 12, r: 36, xp: 60, steady: 0.95, boss: true, vs: { 火: 1.2, 木: 0.85 } },
-  { kind: 'shuihou', code: 40, hp: 4500, speed: 1.2, dmg: 9, r: 30, xp: 60, steady: 0.95, boss: true, vs: { 土: 1.15, 符: 1.1 } },
-  { kind: 'binghun', code: 41, hp: 6000, speed: 1.0, dmg: 12, r: 32, xp: 60, steady: 0.95, boss: true, vs: { 火: 1.3, 镇: 1.1 } },
-  { kind: 'wumian', code: 42, hp: 4800, speed: 1.0, dmg: 10, r: 40, xp: 60, steady: 0.96, boss: true, vs: { 符: 1.15, 剑: 0.9 } },
+  { kind: 'zhumu', code: 39, name: '千年竹母', tint: 0x7fc45a, hp: 3800, speed: 0.9, dmg: 12, r: 36, xp: 60, steady: 0.95, boss: true, vs: { 火: 1.2, 木: 0.85 } },
+  { kind: 'shuihou', code: 40, name: '水猴王', tint: 0x7c9488, ignoresTerrain: true, hp: 4500, speed: 1.2, dmg: 9, r: 30, xp: 60, steady: 0.95, boss: true, vs: { 土: 1.15, 符: 1.1 } },
+  { kind: 'binghun', code: 41, name: '冰魄娘娘', tint: 0xbfe6fa, hp: 6000, speed: 1.0, dmg: 12, r: 32, xp: 60, steady: 0.95, boss: true, vs: { 火: 1.3, 镇: 1.1 } },
+  { kind: 'wumian', code: 42, name: '无面佛', tint: 0xd9b84a, hp: 4800, speed: 1.0, dmg: 10, r: 40, xp: 60, steady: 0.96, boss: true, vs: { 符: 1.15, 剑: 0.9 } },
   // 雪童子：白毛风里隐在雪中只露一对眼；怕火。棺钉鬼：坐起来远远钉三枚棺钉，倒了留一副挡路的空棺（棺材是不伤人的摆设怪）
-  { kind: 'xuetong', code: 43, hp: 20, speed: 1.5, dmg: 7, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.3, 剑: 0.8 } },
-  { kind: 'guandingui', code: 44, hp: 18, speed: 0.55, dmg: 6, r: 15, xp: 3, steady: 0.3, vs: { 火: 1.2, 符: 1.2 } },
-  { kind: 'ratdemon', code: 45, hp: 8, speed: 2.6, dmg: 6, r: 11, xp: 1, steady: 0, vs: { 火: 1.3, 镇: 1.2 } },
-  { kind: 'troupe', code: 46, hp: 36, speed: 1.4, dmg: 13, r: 14, xp: 3, steady: 0.2, vs: { 火: 1.2, 符: 1.2 } },
+  { kind: 'xuetong', code: 43, name: '雪童子', tint: 0xf4f1ea, hp: 20, speed: 1.5, dmg: 7, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.3, 剑: 0.8 } },
+  { kind: 'guandingui', code: 44, name: '棺钉鬼', tint: 0x6a7a74, hp: 18, speed: 0.55, dmg: 6, r: 15, xp: 3, steady: 0.3, vs: { 火: 1.2, 符: 1.2 } },
+  { kind: 'ratdemon', code: 45, name: '鼠妖', tint: 0x8a7a68, hp: 8, speed: 2.6, dmg: 6, r: 11, xp: 1, steady: 0, vs: { 火: 1.3, 镇: 1.2 } },
+  { kind: 'troupe', code: 46, name: '戏班鬼影', tint: 0xa890d0, hp: 36, speed: 1.4, dmg: 13, r: 14, xp: 3, steady: 0.2, vs: { 火: 1.2, 符: 1.2 } },
   // 夜探的守门首领（行为在 core/foes/raid.ts，替石兽守最值钱的院子）
-  { kind: 'hongyi', code: 47, hp: 10000, speed: 1.6, dmg: 24, r: 28, xp: 60, steady: 0.95, boss: true, vs: { 符: 1.2, 剑: 0.8 } },
-  { kind: 'hongyiclone', code: 48, hp: 40, speed: 1.7, dmg: 8, r: 26, xp: 0, steady: 0.5 },
-  { kind: 'shuoshu', code: 49, hp: 11000, speed: 1.4, dmg: 24, r: 36, xp: 60, steady: 0.96, boss: true, vs: { 火: 1.1, 镇: 1.15 } },
-  { kind: 'ricepile', code: 50, hp: 260, speed: 0, dmg: 0, r: 34, xp: 0, steady: 1 },
-  { kind: 'coffin', code: 51, hp: 300, speed: 0, dmg: 0, r: 34, xp: 0, steady: 1 },
+  { kind: 'hongyi', code: 47, name: '红衣戏子', tint: 0xe0384a, hp: 10000, speed: 1.6, dmg: 24, r: 28, xp: 60, steady: 0.95, boss: true, vs: { 符: 1.2, 剑: 0.8 } },
+  { kind: 'hongyiclone', code: 48, name: '戏子假身', tint: 0xe0384a, hp: 40, speed: 1.7, dmg: 8, r: 26, xp: 0, steady: 0.5 },
+  { kind: 'shuoshu', code: 49, name: '硕鼠将军', tint: 0x8a7a68, hp: 11000, speed: 1.4, dmg: 24, r: 36, xp: 60, steady: 0.96, boss: true, vs: { 火: 1.1, 镇: 1.15 } },
+  { kind: 'ricepile', code: 50, name: '米山', tint: 0xf0e4bc, hp: 260, speed: 0, dmg: 0, r: 34, xp: 0, steady: 1 },
+  { kind: 'coffin', code: 51, name: '空棺', tint: 0x4a3a2a, hp: 300, speed: 0, dmg: 0, r: 34, xp: 0, steady: 1 },
   // 规则 55：纸弩手保持在镇守法器够不着的远处放箭，怕火、怕木（纸扎的），镇类够不着它（×0.8）；催命鬼脆，怕火怕符
-  { kind: 'crossbow', code: 52, hp: 20, speed: 1.6, dmg: 5, r: 14, xp: 3, steady: 0.2, vs: { 火: 1.3, 木: 1.2, 镇: 0.8 } },
-  { kind: 'hurrier', code: 53, hp: 22, speed: 1.2, dmg: 7, r: 14, xp: 3, steady: 0.1, vs: { 火: 1.25, 符: 1.2 } },
+  { kind: 'crossbow', code: 52, name: '纸弩手', tint: 0xefe4c8, hp: 20, speed: 1.6, dmg: 5, r: 14, xp: 3, steady: 0.2, vs: { 火: 1.3, 木: 1.2, 镇: 0.8 } },
+  { kind: 'hurrier', code: 53, name: '催命鬼', tint: 0xefe4c8, hp: 22, speed: 1.2, dmg: 7, r: 14, xp: 3, steady: 0.1, vs: { 火: 1.25, 符: 1.2 } },
   // 掘墓鬼：照水鬼的规矩在主角附近冒出来（冒的时候不动不伤人），之后直扑；怕火（火类法器 ×1.5，火区里再乘 FIRE.fear）
-  { kind: 'juemu', code: 54, hp: 28, speed: 1.7, dmg: 10, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.5, 镇: 1.2 } },
+  { kind: 'juemu', code: 54, name: '掘墓鬼', tint: 0x5e5848, hp: 28, speed: 1.7, dmg: 10, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.5, 镇: 1.2 } },
   // 陶俑：硬，慢，刀剑砍上去 ×0.6，水泡软了 ×1.6
-  { kind: 'taoyong', code: 55, hp: 42, speed: 0.95, dmg: 10, r: 17, xp: 3, steady: 0.6, vs: { 剑: 0.6, 水: 1.6, 镇: 1.15, 火: 0.8 } },
+  { kind: 'taoyong', code: 55, name: '陶俑', tint: 0xb8643a, hp: 42, speed: 0.95, dmg: 10, r: 17, xp: 3, steady: 0.6, vs: { 剑: 0.6, 水: 1.6, 镇: 1.15, 火: 0.8 } },
 ];
 
 export const ENEMY_BY_KIND: Record<EnemyKind, EnemyDef> = Object.fromEntries(ENEMIES.map((e) => [e.kind, e])) as Record<EnemyKind, EnemyDef>;

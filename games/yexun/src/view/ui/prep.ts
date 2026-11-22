@@ -8,11 +8,11 @@ import { skillInfo } from './skillInfo.ts';
 import { CHARACTERS, CHARACTER_IDS, CURSE_COIN_BONUS, CURSE_IDS, CURSES, MAX_CURSES, PERK_IDS, PERKS, type CharacterId, type CurseId, type PerkId } from '../../content/meta.ts';
 import { WEAPONS } from '../../content/weapons.ts';
 import { heroKey } from '../art/heroes.ts';
-import { zoomed } from '../viewport.ts';
+import { isZoomed } from 'arcade-kit/viewport';
 import { exchangeHtml, kitsHtml, looksHtml, type ShopState } from './prepShop.ts';
 import type { KitId, LookId } from '../../content/meta.ts';
 import './prep.css';
-import { esc } from './screens/shared.ts';
+import { esc, LOCK_SVG } from './screens/shared.ts';
 
 /** 电脑大屏上弹窗的设计尺寸（逻辑像素）和占屏上限：宽 70%、高 85%（和选关页的 --k 同一思路，按可视区算放大倍数） */
 const PANEL_W = 1200;
@@ -21,8 +21,6 @@ const FILL_W = 0.7;
 const FILL_H = 0.85;
 const K_MAX = 1.6;
 
-/** 锁：不用表情字符（有的设备、无头浏览器没有表情字体，显示成方框） */
-const LOCK_SVG = '<svg class="yx-lock" viewBox="0 0 12 12" aria-label="没解锁"><rect x="2" y="5.5" width="8" height="6" rx="1.2" fill="currentColor"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 
 export type PrepTab = 'char' | 'curse' | 'perk' | 'kit' | 'look' | 'xc';
 
@@ -124,7 +122,7 @@ export class Prep {
    */
   private fit(): void {
     const vv = window.visualViewport;
-    if (zoomed(vv?.scale)) return;
+    if (isZoomed(vv?.scale)) return;
     const w = vv?.width ?? window.innerWidth;
     const h = vv?.height ?? window.innerHeight;
     const st = this.root.style;

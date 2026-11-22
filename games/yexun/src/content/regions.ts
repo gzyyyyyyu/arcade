@@ -4,11 +4,12 @@
  * 所以总量和节奏不变。没登记的地图一次额外的随机数都不抽，刷怪和以前逐位相同（2.0 起雪原、义庄也各有一种，只剩教学场景之类没登记）。
  * 怪的行为在 `core/step.ts` 的 mobAct，数值在 `enemies.ts`。
  */
+import { TICKS_PER_SECOND } from './clock.ts';
 import type { EnemyKind } from './enemies.ts';
 import type { RaidTemplateId } from './explore.ts';
 import type { MapId } from './maps.ts';
 
-const S = 30;
+const S = TICKS_PER_SECOND;
 
 export interface RegionMob {
   kind: EnemyKind;

@@ -2,10 +2,11 @@
  * 首领连战（DESIGN.md 2.5）：守夜的一个子模式（Setup.rush）。开局直接给一套成型的构筑，精英和首领一关一关上，
  * 打倒全部或 5 分钟到点收工。这里只放数值和名单；按种子抽构筑和关卡在 core/rush.ts，每日的种子在 online/rush.ts。
  */
+import { TICKS_PER_SECOND } from './clock.ts';
 import type { EnemyKind } from './enemies.ts';
 import type { MapId } from './maps.ts';
 
-const S = 30;
+const S = TICKS_PER_SECOND;
 
 export const RUSH = {
   /** 一局最多 5 分钟 */
@@ -47,20 +48,3 @@ export const RUSH_STAGES: readonly (readonly ('b' | 's' | 'lord' | 'boss')[])[] 
 /** 构筑：主法器到几级（进化的概率）、副法器、第三件；第四件有一定概率带 */
 export const RUSH_BUILD = { main: 8, evolve: 0.5, second: [6, 7] as const, third: [4, 5] as const, fourth: 0.4, fourthLevel: 3, passive: [2, 3] as const };
 
-/** 横幅、结算页上的名字 */
-export const RUSH_NAMES: Partial<Record<EnemyKind, string>> = {
-  shishi: '石狮怪',
-  whitefox: '白狐',
-  general: '跳尸将军',
-  palanquin: '纸轿',
-  bambooking: '竹王',
-  hebo: '河伯',
-  frostsoul: '冰魄',
-  lord: '纸扎老爷',
-  huapi: '画皮',
-  zhumu: '千年竹母',
-  shuihou: '水猴王',
-  binghun: '冰魄娘娘',
-  wumian: '无面佛',
-  boss: '尸王',
-};

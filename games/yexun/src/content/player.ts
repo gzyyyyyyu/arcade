@@ -83,7 +83,18 @@ export const MERCY = { hp: 0.4, bun: 3, gap: 20 * 30 };
 export const PICKUP = { pull: 5, pullAccel: 0.5, grab: 18, walkReach: 56, soulCap: 80, magnetPerLevel: 0.015 };
 
 /**
- * 新号前几局的娱乐守夜（Setup.novice，core/state.ts noviceAssist 判）：开局 until 拍内魂火磁吸 ×magnetMul，平时补的怪刷在主角朝向前方 ±ahead/2（DIR_N 份）的圈上。
- * 为什么：新号实录（0.36.4）照「只管走、绕着圈走」玩，起手近战够不着屏幕外追来的怪、魂火留在身后，第一次升级 129–154 秒（机器人 22 秒）
+ * 新号前几局的娱乐守夜（Setup.novice，core/state.ts noviceAssist 判）：开局 until 拍内魂火磁吸 ×magnetMul，平时补的怪刷在主角朝向前方 ±ahead/2（DIR_N 份）的圈上；
+ * 开局地上在主角四周摆 souls 几圈魂火（半径 r、颗数 n、每颗 val 魂）。
+ * 为什么：新号实录（0.36.4）照「只管走、绕着圈走」玩，起手近战够不着屏幕外追来的怪、魂火留在身后，第一次升级 129–154 秒（机器人 22 秒）；
+ * 躲着怪走的人连前两项也吃不到（模拟 111.7 秒），所以再给不用贴怪就能捡的魂火。内圈放在危险 0 新手局的磁吸（约 460）外面，开局不会立刻弹选卡
  */
-export const NOVICE = { runs: 3, until: 120 * 30, magnetMul: 3, ahead: 86 };
+export const NOVICE = {
+  runs: 3,
+  until: 120 * 30,
+  magnetMul: 3,
+  ahead: 86,
+  souls: [
+    { r: 560, n: 12, val: 3 },
+    { r: 800, n: 16, val: 3 },
+  ],
+} as const;

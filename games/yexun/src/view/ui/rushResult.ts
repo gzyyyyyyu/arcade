@@ -3,7 +3,7 @@
  * 标题写"全清"或"连战 N/M"，"撑了"那一格换成用时，再加一排这一局的首领（打倒的亮、没打到的灰）。
  * 只改结算面板里的几个节点，不改 Result 本身；找不到节点就什么也不做。
  */
-import { RUSH_NAMES } from '../../content/rush.ts';
+import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import type { RushPlan, RushResult } from '../../core/index.ts';
 import { rushClock } from '../../online/rush.ts';
 import './rushResult.css';
@@ -30,7 +30,7 @@ export function decorateRushResult(root: HTMLElement, plan: RushPlan, r: RushRes
     kinds.forEach((k, i) => {
       const el = document.createElement('span');
       el.className = i < r.down ? 'down' : '';
-      el.textContent = RUSH_NAMES[k] ?? k;
+      el.textContent = ENEMY_BY_KIND[k].name;
       row.append(el);
     });
     time.after(row);

@@ -121,7 +121,7 @@ describe('按录像重放', () => {
 
   it('旧规则版本的录像标 outdated 但照放；放歪了 exact 为 false', () => {
     const { rec } = playAndRecord(3, 30 * 30);
-    // 版本号只要不等于当前就标 outdated；<37 的会换旧卡池（skills.test.ts 用真旧录像锁住），这里用一个 >= 37 的假版本号
+    // 版本号只要不等于当前就标 outdated，照现行规则重放
     const old = ReplayPlayer.from({ ...rec, rules: RULES_VERSION + 1 })!;
     expect(old.outdated).toBe(true);
     while (!old.done) old.tickOnce();

@@ -3,7 +3,7 @@
  *
  * - 自己起一个 vite 开发服务（端口由系统分配，不占 5178/4178，见仓库根 AGENTS.md 第 3 节），用 playwright-core + chromium-headless-shell；
  * - 电脑横屏 1280×720 和手机横屏 844×390（3 倍屏、触屏）各截一张，--frames 再隔 100 ms 连截 N 张（动态的帧序列），--video 录一段 webm；
- * - 验收 ④⑤（DESIGN.md 第 1 节）：页面里所有按钮的点击区域 ≥ 44×44 CSS 像素、文字不溢出，控制台没有 error、页面没有未捕获的异常，不过就退出码 1；
+ * - 验收 ④⑤（DESIGN.md 第 1 节）：页面里所有按钮的点击区域触屏 ≥ 44×44、鼠标 ≥ 32×32 CSS 像素、文字不溢出，控制台没有 error、页面没有未捕获的异常，不过就退出码 1；
  * - 没有 GPU 的环境 WebGL 走 SwiftShader（启动参数照开盘）。截图里要有中文字体，系统要装 Noto Sans CJK 之类。
  */
 import { mkdirSync } from 'node:fs';
@@ -49,21 +49,22 @@ const VIEWS = [
 /** 不点名时只跑这两个（竖屏、大屏按需 --view 点名） */
 const DEFAULT_VIEWS = ['desktop', 'phone'];
 
-/** 页面里检查：可点的东西 ≥ 44×44、文字没有溢出自己的框 */
-async function layoutProblems(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
+/** 页面里检查：可点的东西触屏 ≥ 44×44、鼠标 ≥ 32×32（模块 AGENTS.md「画面」），文字没有溢出自己的框 */
+async function layoutProblems(page: Page, touch: boolean): Promise<string[]> {
+  const min = touch ? 44 : 32;
+  return page.evaluate((min) => {
     const bad: string[] = [];
     for (const el of document.querySelectorAll<HTMLElement>('button, a, [role="button"]')) {
       const r = el.getBoundingClientRect();
       if (r.width === 0 && r.height === 0) continue;
-      if (r.width < 44 || r.height < 44) bad.push(`点击区域太小 ${Math.round(r.width)}×${Math.round(r.height)}：${el.getAttribute('aria-label') ?? el.textContent?.trim()}`);
+      if (r.width < min || r.height < min) bad.push(`点击区域太小 ${Math.round(r.width)}×${Math.round(r.height)}：${el.getAttribute('aria-label') ?? el.textContent?.trim()}`);
     }
     for (const el of document.querySelectorAll<HTMLElement>('.yx-hud *')) {
       if (el.children.length > 0 || !el.textContent?.trim()) continue;
       if (el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow !== 'visible') bad.push(`文字溢出：${el.textContent.trim()}`);
     }
     return bad;
-  });
+  }, min);
 }
 
 const server = await createServer({ logLevel: 'warn', server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false } });
@@ -92,7 +93,7 @@ try {
       const snap = async (name: string): Promise<void> => {
         await page.waitForTimeout(400);
         await page.screenshot({ path: join(OUT, `${TAG}${v.name}-${name}.png`) });
-        for (const p of await layoutProblems(page)) problems.push(`${v.name} ${name} ${p}`);
+        for (const p of await layoutProblems(page, v.hasTouch)) problems.push(`${v.name} ${name} ${p}`);
       };
       const click = async (sel: string): Promise<void> => {
         await page.locator(sel).first().click();
@@ -189,7 +190,7 @@ try {
         }),
     );
     console.log(`${TAG}${v.name}：${perf.fps} 帧/秒，最长一帧 ${perf.worst} ms，同屏怪 ${perf.mobs}，场景脚本每帧 ${perf.cost} ms`);
-    for (const p of await layoutProblems(page)) problems.push(`${v.name} ${p}`);
+    for (const p of await layoutProblems(page, v.hasTouch)) problems.push(`${v.name} ${p}`);
     await ctx.close();
   }
 } finally {

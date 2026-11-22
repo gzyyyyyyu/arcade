@@ -5,6 +5,7 @@
  * 和 GameScene 里的光波、绳子同一个做法（不建补间：阵旗这类整局常驻的东西一拍可能来好几条）。
  * 雪地很亮：全部用饱和色加深色边、普通混合，不用 ADD。省内存模式（?lowmem）不放粒子，旗、圈照画。
  */
+import { TICKS_PER_SECOND } from '../../content/clock.ts';
 import type Phaser from 'phaser';
 import { ArmEv, ArmFx } from '../../core/arms/events.ts';
 import { COS, SIN } from '../../core/dirs.ts';
@@ -13,7 +14,7 @@ import '../audio/sfx-arms.ts';
 import type { Fx } from './fx.ts';
 
 /** 一拍的毫秒数（核心每秒 30 拍） */
-const TICK = 1000 / 30;
+const TICK = 1000 / TICKS_PER_SECOND;
 const INK = 0x17131c;
 const GOLD = 0xf2c94c;
 const GOLD_D = 0x7a4a0a;

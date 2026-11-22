@@ -10,14 +10,14 @@ export const PICKS = {
   rerollMax: 9,
 } as const;
 
-/** 规则 60 的选卡：缘分的权重倍数、求签没有缺料的搭配时换成几次刷新 */
-export const PICKS_60 = { fateMul: 1.5, omenRerolls: 2 } as const;
+/** 选卡加权：缘分的权重倍数、求签没有缺料的搭配时换成几次刷新 */
+export const FATE_PICKS = { fateMul: 1.5, omenRerolls: 2 } as const;
 
 /**
- * 规则 65（DESIGN 3.9）：本角色专属搭配（MergeDef.only）的两件料在三选一里更常出——通用的符咒、火葫芦、镇魂铃人人池里都有，
+ * 专属搭配（DESIGN 3.9）：本角色专属搭配（MergeDef.only）的两件料在三选一里更常出——通用的符咒、火葫芦、镇魂铃人人池里都有，
  * 不加权时专属搭配每局只出 0.5–1.4 个，角色玩起来都一样。两件都没拿：两件 ×ownMul；拿了一件：另一件和它的进化被动 ×ownHeldMul（取代缘分的 fateMul，不叠乘）
  */
-export const PICKS_65 = { ownMul: 2, ownHeldMul: 3 } as const;
+export const OWN_PICKS = { ownMul: 2, ownHeldMul: 3 } as const;
 
 /** 法器、被动都升满后升级给的「铜钱一袋」：加多少铜钱、回多少血（卡面和选中后的横幅都读这里） */
 export const COIN_PICK = { coins: 25, heal: 20 } as const;

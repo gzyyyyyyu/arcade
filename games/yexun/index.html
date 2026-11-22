@@ -28,8 +28,8 @@
         overflow: hidden;
       }
       #app { position: absolute; inset: 0; }
-      /* 画布默认是行内元素，底下留一截字体下沿的空行（舞台里多出 4px 被裁），改成块 */
-      #stage canvas { display: block; }
+      /* 游戏画布默认是行内元素，底下留一截字体下沿的空行（舞台里多出 4px 被裁），改成块；只管 Phaser 那张，界面里的小画布各管各的 */
+      #app > canvas { display: block; }
       #boot {
         position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
         color: #c9d2e3; font: 16px/1.5 system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; pointer-events: none;

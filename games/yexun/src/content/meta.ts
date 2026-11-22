@@ -16,18 +16,20 @@ export const CURSE_COIN_BONUS = 0.25;
 export interface CurseDef {
   id: CurseId;
   name: string;
+  /** 分享卡上写的一句（单字 name 离开选关页不好懂） */
+  label: string;
   text: string;
 }
 
 export const CURSES: Record<CurseId, CurseDef> = {
-  fast: { id: 'fast', name: '疾', text: '怪走得快 15%' },
-  noheal: { id: 'noheal', name: '枯', text: '肉包和回血减半' },
-  noreroll: { id: 'noreroll', name: '定', text: '不能刷新卡片' },
-  more: { id: 'more', name: '众', text: '怪多 25%' },
-  elites: { id: 'elites', name: '凶', text: '每次精英多来一只' },
-  dark: { id: 'dark', name: '暗', text: '夜更黑，看得更近' },
-  rage: { id: 'rage', name: '狂', text: '精英掉过半血就发狂' },
-  moon: { id: 'moon', name: '月', text: '血月当空，怪一阵阵发疯' },
+  fast: { id: 'fast', name: '疾', label: '怪更快', text: '怪走得快 15%' },
+  noheal: { id: 'noheal', name: '枯', label: '少回血', text: '肉包和回血减半' },
+  noreroll: { id: 'noreroll', name: '定', label: '禁用刷新', text: '不能刷新卡片' },
+  more: { id: 'more', name: '众', label: '怪更多', text: '怪多 25%' },
+  elites: { id: 'elites', name: '凶', label: '精英更多', text: '每次精英多来一只' },
+  dark: { id: 'dark', name: '暗', label: '夜更黑', text: '夜更黑，看得更近' },
+  rage: { id: 'rage', name: '狂', label: '精英发狂', text: '精英掉过半血就发狂' },
+  moon: { id: 'moon', name: '月', label: '血月', text: '血月当空，怪一阵阵发疯' },
 };
 
 /** 咒印的数值（核心按这些算；"暗"只改画面，看得见的半径） */
@@ -71,16 +73,28 @@ export interface CharBase {
 }
 const EVEN: CharBase = { hp: 1, speed: 1, might: 1, cd: 1, area: 1, magnet: 1, luck: 0 };
 
+/** 角色解锁的门槛（platform/save.ts 的 charOpen 判；角色卡、角色页进度的文案都从这几个数拼） */
+/** 纸匠：守夜一局撑过这么久（秒） */
+export const ZHIJIANG_SECONDS = 4 * 60;
+/** 更夫：守夜一局撑过这么久（秒） */
+export const GENGFU_SECONDS = 8 * 60;
+/** 摆渡人：夜探撤出过之后，守夜一局撑过这么久（秒） */
+export const BAIDU_SECONDS = 6 * 60;
+/** 货郎：夜市买过几次东西 */
+export const HUOLANG_BUYS = 3;
+/** 胖师叔的价钱 */
+export const PANG_PRICE = 300;
+
 export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   xiaodao: { id: 'xiaodao', name: '小道士', start: 'sword', perkName: '越战越勇', perk: '每升 5 级，伤害、范围、持续、移速各 +1.5%', unlock: '一开始就有', look: '蓝袍桃木剑，什么都会一点', line: '师父说，夜路不怕，怕的是不走。', base: EVEN, privilege: '起步多 1 次刷新' },
   fushi: { id: 'fushi', name: '符师', start: 'talisman', perkName: '连环符', perk: '符类冷却 −10%，每第 4 次出符多飞一张', unlock: '一开始就有', look: '紫袍高冠，腰上挂满黄符', line: '符纸管够，今晚谁来都是一张。', base: { ...EVEN, hp: 0.9, cd: 0.92, area: 1.1 }, privilege: '起步多 1 次封禁' },
   jianxia: { id: 'jianxia', name: '剑侠', start: 'flysword', perkName: '剑不停步', perk: '走动时暴击 +12%，暴击更疼 +30%', unlock: '一开始就有', look: '青衣红围巾，背着一把长剑', line: '剑在鞘里闷得慌，边走边打。', base: { ...EVEN, hp: 1.15, speed: 1.1, might: 1.15, area: 0.95 }, privilege: '打倒精英多补 1 次刷新' },
-  pang: { id: 'pang', name: '胖师叔', start: 'bell', perkName: '皮糙肉厚', perk: '挨打时震开身边的怪', unlock: '花 300 铜钱请他', look: '橙袍大圆脸，手里摇着小铃', line: '吃饱了才有力气，挨两下不算啥。', base: { ...EVEN, hp: 1.45, speed: 0.9, magnet: 1.2 }, privilege: '跳过时抽中回血的机会翻倍' },
-  gengfu: { id: 'gengfu', name: '更夫', start: 'shield', perkName: '三更锣', perk: '每 24 秒敲一声锣：全屏的怪被震退并受伤，金钟罩补一层', unlock: '守夜撑过 8 分钟', look: '灰袄毡帽，一手锣一手灯笼', line: '天干物燥——小心火烛——咣！', base: { ...EVEN, hp: 0.95, area: 1, cd: 1.1 }, privilege: '夜市提前 10 秒预告、多开 5 秒' },
+  pang: { id: 'pang', name: '胖师叔', start: 'bell', perkName: '皮糙肉厚', perk: '挨打时震开身边的怪', unlock: `花 ${PANG_PRICE} 铜钱请他`, look: '橙袍大圆脸，手里摇着小铃', line: '吃饱了才有力气，挨两下不算啥。', base: { ...EVEN, hp: 1.45, speed: 0.9, magnet: 1.2 }, privilege: '跳过时抽中回血的机会翻倍' },
+  gengfu: { id: 'gengfu', name: '更夫', start: 'shield', perkName: '三更锣', perk: '每 24 秒敲一声锣：全屏的怪被震退并受伤，金钟罩补一层', unlock: `守夜撑过 ${GENGFU_SECONDS / 60} 分钟`, look: '灰袄毡帽，一手锣一手灯笼', line: '天干物燥——小心火烛——咣！', base: { ...EVEN, hp: 0.95, area: 1, cd: 1.1 }, privilege: '夜市提前 10 秒预告、多开 5 秒' },
   caiyao: { id: 'caiyao', name: '采药女', start: 'petals', perkName: '百草香', perk: '每秒回 0.7 血，肉包回血加倍，经验 +20%', unlock: '夜探成功撤出 1 次', look: '青裙双髻，背着药篓采药', line: '药篓里什么都有，也有给你的。', base: { ...EVEN, hp: 0.95, luck: 0.15, magnet: 1.2 }, privilege: '夜市打九折' },
-  zhijiang: { id: 'zhijiang', name: '纸匠', start: 'zhibing', perkName: '巧手', perk: '纸兵活得久 30%，倒下时两成概率还你一张纸兵的冷却；身边的纸兵会替你挨一下，挨完就碎', unlock: '守夜撑过 4 分钟', look: '蓝布衫挽着袖子，手里总捏着一把剪刀', line: '纸也能站岗——你信不信？', base: { ...EVEN, hp: 0.9, speed: 1.05, might: 0.95, cd: 0.95, area: 1.1, magnet: 1.1 } },
-  baidu: { id: 'baidu', name: '摆渡人', start: 'pole', perkName: '顺水', perk: '水里不减速，冰面不打滑，水类法器伤害 +50%，竹篙冷却 −25%、多戳一下', unlock: '夜探撤出 1 次后，守夜撑过 6 分钟', look: '蓑衣斗笠，肩上扛着长竹篙', line: '上船不问来路，下船不问归途。', base: { ...EVEN, hp: 1.05, speed: 1.1, cd: 1.05, area: 1.05 } },
-  huolang: { id: 'huolang', name: '货郎', start: 'dart', perkName: '讨价', perk: '夜市九折，局内铜钱 +15%，铜钱每满 100 枚伤害 +1%（最多 +10%）；每捡 100 枚铜钱补一次刷新', unlock: '夜市买过 3 次东西', look: '花布头巾，挑着一副叮当响的货担', line: '好货不贵，不好的白送。', base: { ...EVEN, hp: 1, speed: 1.05, might: 0.95, magnet: 1.3, luck: 0.1 } },
+  zhijiang: { id: 'zhijiang', name: '纸匠', start: 'zhibing', perkName: '巧手', perk: '纸兵活得久 30%，倒下时两成概率还你一张纸兵的冷却；身边的纸兵会替你挨一下，挨完就碎', unlock: `守夜撑过 ${ZHIJIANG_SECONDS / 60} 分钟`, look: '蓝布衫挽着袖子，手里总捏着一把剪刀', line: '纸也能站岗——你信不信？', base: { ...EVEN, hp: 0.9, speed: 1.05, might: 0.95, cd: 0.95, area: 1.1, magnet: 1.1 } },
+  baidu: { id: 'baidu', name: '摆渡人', start: 'pole', perkName: '顺水', perk: '水里不减速，冰面不打滑，水类法器伤害 +50%，竹篙冷却 −25%、多戳一下', unlock: `夜探撤出 1 次后，守夜撑过 ${BAIDU_SECONDS / 60} 分钟`, look: '蓑衣斗笠，肩上扛着长竹篙', line: '上船不问来路，下船不问归途。', base: { ...EVEN, hp: 1.05, speed: 1.1, cd: 1.05, area: 1.05 } },
+  huolang: { id: 'huolang', name: '货郎', start: 'dart', perkName: '讨价', perk: '夜市九折，局内铜钱 +15%，铜钱每满 100 枚伤害 +1%（最多 +10%）；每捡 100 枚铜钱补一次刷新', unlock: `夜市买过 ${HUOLANG_BUYS} 次东西`, look: '花布头巾，挑着一副叮当响的货担', line: '好货不贵，不好的白送。', base: { ...EVEN, hp: 1, speed: 1.05, might: 0.95, magnet: 1.3, luck: 0.1 } },
   yinyang: { id: 'yinyang', name: '阴阳先生', start: 'flag', perkName: '阴阳互济', perk: '血过半是阳：伤害 +8%；不足一半是阴：技能冷却 −8%，捆、定住的怪多定半秒；血量越过一半那一下（阳变阴、阴变阳都算）脚下炸一圈，身边的怪定住 1 秒，两个方向共用 20 秒冷却', unlock: '守夜撑到天亮 1 次', look: '黑袍方巾，腰间挂着罗盘和八卦牌', line: '阴阳有序，今晚的账我来算。', base: { ...EVEN, hp: 0.95, speed: 0.95, might: 1.05, cd: 1.05, area: 1.1 } },
 };
 

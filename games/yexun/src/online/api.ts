@@ -3,12 +3,12 @@
  * 只管请求和把回话理成几种结果，不碰画面；fetch 从外面传进来，方便测试。回来的东西（别人的昵称、分数）一律先校验再用。
  * 平台每人每天只收有限次交分（所有游戏合计）：一局只在结束时交一次，什么情况都不自动重试。
  */
-import { timeoutSignal } from '../platform/timeout.ts';
+import { isObj, requestJson, userOf, type Fetch, type JsonRes } from '../platform/http.ts';
 
 const GAME_ID = 'yexun';
 
 export interface BoardDeps {
-  fetch: (url: string, init: RequestInit) => Promise<Response>;
+  fetch: Fetch;
 }
 
 export type SubmitResult =
@@ -44,32 +44,12 @@ export type BoardResult =
 
 export type Scope = 'all' | 'friends';
 
-interface Res {
-  status: number;
-  body: Record<string, unknown> | null;
+/** 交分用 keepalive：结算页马上点"大厅"走了也交得上（请求体只有几十字节） */
+function call(d: BoardDeps, method: 'GET' | 'POST', url: string, body?: unknown): Promise<JsonRes> {
+  return requestJson(d.fetch, method, url, body === undefined ? undefined : JSON.stringify(body), body !== undefined);
 }
 
-const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
-
-async function call(d: BoardDeps, method: 'GET' | 'POST', url: string, body?: unknown): Promise<Res> {
-  try {
-    const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store', ...timeoutSignal() };
-    // 写请求必须带 X-Arcade；交分用 keepalive：结算页马上点"大厅"走了也交得上（请求体只有几十字节）
-    if (body !== undefined) Object.assign(init, { body: JSON.stringify(body), keepalive: true, headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' } });
-    const r = await d.fetch(url, init);
-    let json: unknown = null;
-    try {
-      json = await r.json();
-    } catch {
-      json = null;
-    }
-    return { status: r.status, body: isObj(json) ? json : null };
-  } catch {
-    return { status: 0, body: null };
-  }
-}
-
-function failure(res: Res): { kind: 'busy' } | { kind: 'offline' } | { kind: 'out' } | { kind: 'bug'; status: number; error: string } | null {
+function failure(res: JsonRes): { kind: 'busy' } | { kind: 'offline' } | { kind: 'out' } | { kind: 'bug'; status: number; error: string } | null {
   if (res.status === 200 && res.body) return null;
   const err = typeof res.body?.error === 'string' ? res.body.error : '';
   if (res.status === 401) return { kind: 'out' };
@@ -83,9 +63,7 @@ export async function askUser(d: BoardDeps): Promise<string | null | 'fail'> {
   const res = await call(d, 'GET', '/api/me');
   if (res.status === 404) return null;
   if (res.status !== 200 || !res.body) return 'fail';
-  const user = res.body.user;
-  if (user === null || user === undefined) return null;
-  return isObj(user) && typeof user.id === 'string' ? user.id : 'fail';
+  return userOf(res.body);
 }
 
 /** 账号已经问好了再交：问完和发出交分之间没有别的等待 */

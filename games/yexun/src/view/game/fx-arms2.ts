@@ -3,13 +3,14 @@
  * 做法同 fx-arms.ts：只读核心发的 ArmEv 事件，登记一条"有寿命的特效"，每帧在地面层 / 空中层两个 Graphics 上重画。
  * 雪地很亮：饱和色 + 深色边、普通混合，不用 ADD。省内存模式（?lowmem）不放粒子。
  */
+import { TICKS_PER_SECOND } from '../../content/clock.ts';
 import type Phaser from 'phaser';
 import { ArmEv, ArmFx } from '../../core/arms/events.ts';
 import { sfx } from '../audio/sfx.ts';
 import '../audio/sfx-arms2.ts';
 import type { Fx } from './fx.ts';
 
-const TICK = 1000 / 30;
+const TICK = 1000 / TICKS_PER_SECOND;
 const INK = 0x17131c;
 const GOLD = 0xf2c94c;
 const GOLD_D = 0x7a4a0a;

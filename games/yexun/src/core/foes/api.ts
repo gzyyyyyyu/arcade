@@ -10,8 +10,8 @@ export interface FoeApi {
   hurt(w: World, dmg: number, by: number): void;
   /** (x, y) 半径 r 里的主角挨 dmg，打中返回 true */
   areaHurt(w: World, x: number, y: number, r: number, dmg: number, by: number): boolean;
-  /** 一颗敌方弹（直飞），state 是 sState（4 水鞭：打中减速；5 棺钉） */
-  shot(w: World, x: number, y: number, vx: number, vy: number, life: number, dmg: number, r: number, state: number): void;
+  /** 一颗敌方弹（直飞），state 是 sState（2 纸钱；4 水鞭：打中减速；5 棺钉），idx 是 sIdx（纸钱记第几圈，默认 0） */
+  shot(w: World, x: number, y: number, vx: number, vy: number, life: number, dmg: number, r: number, state: number, idx?: number): void;
   /** Boss 现在是第几段（血线 at 从高到低），刚进新一段发 Ev.Boss a=4 */
   phase(w: World, i: number, at: readonly number[]): number;
   /** 半径 r 的东西放在 (x, y) 会不会压到挡路的块 */

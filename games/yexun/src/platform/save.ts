@@ -5,10 +5,11 @@
  * 局外成长（DESIGN.md 3.7、3.8）：铜钱只在游戏里，和筹码完全分开。铜钱不存一个总数，存"流水"（每局赚的、每次花的各一条，带 id）：
  * 两台设备各玩各花，合并时按 id 取并集再加总，不会因为"取较大的那个总数"白送或者扣成负数（5.5）。
  */
+import { fmtClock } from '../content/clock.ts';
 import { DANGER_IDS, type Danger, type Difficulty } from '../content/waves.ts';
 import { MAP_UNLOCK, type MapId } from '../content/maps.ts';
 import { WEEKLY_FX, type WeeklyId } from '../content/weekly.ts';
-import { CHARACTER_IDS, CURSE_COIN_BONUS, CURSE_IDS, FIRST_RUN_COINS, RUN_BONUS, MAX_CURSES, PERK_IDS, PERKS, ASSIST, COIN_EXCHANGE, KIT_IDS, KITS, LOOK_IDS, LOOKS, type CharacterId, type CurseId, type KitId, type LookId, type LookSlot, type PerkId } from '../content/meta.ts';
+import { BAIDU_SECONDS, CHARACTER_IDS, GENGFU_SECONDS, HUOLANG_BUYS, PANG_PRICE, ZHIJIANG_SECONDS, CURSE_COIN_BONUS, CURSE_IDS, FIRST_RUN_COINS, RUN_BONUS, MAX_CURSES, PERK_IDS, PERKS, ASSIST, COIN_EXCHANGE, KIT_IDS, KITS, LOOK_IDS, LOOKS, type CharacterId, type CurseId, type KitId, type LookId, type LookSlot, type PerkId } from '../content/meta.ts';
 import { isLiveTier, type LiveTier } from '../content/live.ts';
 import { RAID_OPEN } from '../content/explore.ts';
 import { emptyVault, herbalistUnlocked, normalizeVault, type VaultSave } from '../explore/vault.ts';
@@ -481,18 +482,8 @@ export function mapOpen(s: Save, id: MapId): boolean {
   return !u || s.maxSeconds >= u.seconds;
 }
 
-/** 纸匠：守夜一局撑过这么久（秒） */
-export const ZHIJIANG_SECONDS = 4 * 60;
 /** 0.34.0 起要解锁、老存档照留的角色 */
 const LEGACY_CHARS: readonly CharacterId[] = ['zhijiang', 'yinyang'];
-/** 更夫：守夜一局撑过这么久（秒） */
-export const GENGFU_SECONDS = 8 * 60;
-/** 摆渡人：夜探撤出过之后，守夜一局撑过这么久（秒） */
-export const BAIDU_SECONDS = 6 * 60;
-/** 货郎：夜市买过几次东西 */
-export const HUOLANG_BUYS = 3;
-/** 胖师叔的价钱 */
-export const PANG_PRICE = 300;
 
 /**
  * 角色解锁（3.7）：小道士、符师、剑侠一开始就有；纸匠守夜撑过 4 分钟；胖师叔花铜钱；更夫守夜撑过 8 分钟；采药女夜探撤出 1 次；
@@ -525,7 +516,6 @@ export function charOpen(s: Save, c: CharacterId): boolean {
 /** 花铜钱买的角色和价格 */
 export const CHAR_PRICE: Partial<Record<CharacterId, number>> = { pang: PANG_PRICE };
 
-const mmss = (sec: number): string => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 
 /** 没解锁的角色，角色页上显示的进度（一句话） */
 export function charProgress(s: Save, c: CharacterId): string {
@@ -533,13 +523,13 @@ export function charProgress(s: Save, c: CharacterId): string {
     case 'pang':
       return `攒够 ${PANG_PRICE} 铜钱就能请他`;
     case 'zhijiang':
-      return `守夜撑过 4 分钟（最好 ${mmss(s.maxSeconds)}）`;
+      return `守夜撑过 ${ZHIJIANG_SECONDS / 60} 分钟（最好 ${fmtClock(s.maxSeconds)}）`;
     case 'gengfu':
-      return `守夜撑过 8 分钟（最好 ${mmss(s.maxSeconds)}）`;
+      return `守夜撑过 ${GENGFU_SECONDS / 60} 分钟（最好 ${fmtClock(s.maxSeconds)}）`;
     case 'caiyao':
       return `夜探成功撤出 1 次（已 ${s.extracts} 次）`;
     case 'baidu':
-      return `夜探撤出 1 次（已 ${s.extracts} 次），再守夜撑过 6 分钟（最好 ${mmss(s.maxSeconds)}）`;
+      return `夜探撤出 1 次（已 ${s.extracts} 次），再守夜撑过 ${BAIDU_SECONDS / 60} 分钟（最好 ${fmtClock(s.maxSeconds)}）`;
     case 'huolang':
       return `夜市买过 ${HUOLANG_BUYS} 次东西（已 ${s.marketBuys} 次）`;
     case 'yinyang':

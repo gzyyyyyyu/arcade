@@ -1,6 +1,6 @@
 import { fresh, mergeSave, reviveSave, SAVE_KEY, savePayload, type Save } from './save.ts';
 import { netDown } from './messages.ts';
-import { timeoutSignal } from './timeout.ts';
+import { isObj, requestJson, userOf, type Fetch, type JsonRes } from './http.ts';
 
 /** 本地存储的最小接口（localStorage 满足；测试里换成内存假的） */
 export interface KeyValueStore {
@@ -88,7 +88,7 @@ export interface CloudView {
 
 export interface CloudDeps {
   store: KeyValueStore | null;
-  fetch: (url: string, init: RequestInit) => Promise<Response>;
+  fetch: Fetch;
   slots: readonly SlotDef[];
   hasLoginHint(): boolean;
   now(): number;
@@ -132,7 +132,6 @@ interface Meta {
   dirty: string[];
 }
 
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const bytes = (s: string): number => new TextEncoder().encode(s).length;
 
 /** 键排好序的 JSON：比较"内容一样不一样"用 */
@@ -178,12 +177,6 @@ export function loadMeta(store: KeyValueStore | null): Meta {
   if (isObj(m.rev)) for (const [k, v] of Object.entries(m.rev)) if (Number.isSafeInteger(v) && (v as number) >= 0) meta.rev[k] = v as number;
   if (Array.isArray(m.dirty)) meta.dirty = [...new Set(m.dirty.filter((x): x is string => typeof x === 'string'))];
   return meta;
-}
-
-interface Res {
-  /** 0 = 连不上 */
-  status: number;
-  body: Record<string, unknown> | null;
 }
 
 /** /api/me 的结论：登录的 userId；null = 平台明确说没登录；'fail' = 没问到（连不上、停服、暂停档等，原因已记下） */
@@ -479,10 +472,9 @@ export class Cloud {
     }
     this.meAt = this.d.now();
     this.askOk = true;
-    const user = me.body.user;
-    if (user === null) return null;
-    const id = isObj(user) && typeof user.id === 'string' ? user.id : null;
-    if (id === null) {
+    const id = userOf(me.body);
+    if (id === null) return null;
+    if (id === 'fail') {
       // 回的东西不对：当作没问到，不当作没登录
       this.fail({ status: 0, body: null });
       return 'fail';
@@ -626,7 +618,7 @@ export class Cloud {
     if (!back || stable(back) !== stable(v)) throw new StorageFull();
   }
 
-  private fail(res: Res): void {
+  private fail(res: JsonRes): void {
     if (res.status === 401) return this.stop('out');
     // 只有平台明确回了 busy 才是停服 / 预算用完（15.1）；别的 503（网关、不是 JSON）按连不上
     if (res.status === 503 && res.body?.error === 'busy') return this.stop('paused');
@@ -674,23 +666,11 @@ export class Cloud {
     this.d.onChange?.(this.view);
   }
 
-  private async call(method: string, url: string, body?: string, keepalive = false): Promise<Res> {
-    try {
-      const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store', ...timeoutSignal() };
-      // 写请求必须带 X-Arcade（平台只挡浏览器里的跨站写，15.1）
-      if (body !== undefined) Object.assign(init, { body, keepalive, headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' } });
-      const r = await (keepalive && body !== undefined ? keepaliveSend(body, () => this.d.fetch(url, init)) : this.d.fetch(url, init));
-      let json: unknown = null;
-      try {
-        json = await r.json();
-      } catch {
-        json = null;
-      }
-      return { status: r.status, body: isObj(json) ? json : null };
-    } catch {
-      return { status: 0, body: null };
-    }
+  private call(method: 'GET' | 'PUT', url: string, body?: string, keepalive = false): Promise<JsonRes> {
+    const send: Fetch = keepalive && body !== undefined ? (u, i) => keepaliveSend(body, () => this.d.fetch(u, i)) : this.d.fetch;
+    return requestJson(send, method, url, body, keepalive);
   }
+
 }
 
 /** 页面上有没有登录提示 cookie（不带 HttpOnly，页面读得到；__Host-sid 读不到，也不需要读）：没有就是没登录，不调接口 */

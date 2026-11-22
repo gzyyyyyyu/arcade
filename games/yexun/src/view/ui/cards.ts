@@ -2,12 +2,12 @@
  * 升级三选一（DESIGN.md 2.1，手感清单第 5 条）：卡片弹入，点、按 1/2/3、方向键加回车都能选，1 秒内能选完。
  * 卡片排在屏幕中下部、左右手拇指都够得着（手感清单第 10 条）。
  */
+import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import { ELEMENT_SET, PASSIVES, TYPE_SETS, WEAPONS, MAX_WEAPON_LEVEL, upChanges, baseNums, type PassiveId, type StatChange, type WeaponId } from '../../content/weapons.ts';
 import { Pick, type Choice, type World } from '../../core/state.ts';
 import { SCHOOLS } from '../../content/guide.ts';
 import { COIN_PICK } from '../../content/picks.ts';
 import { XINFA_TEXT } from '../../content/xinfa.ts';
-import { MONSTER_INFO } from './codex.ts';
 import { counterLine } from './counters.ts';
 import { mergeHint, type MergeHint } from './mergeHint.ts';
 import { statChip } from './statIcons.ts';
@@ -54,7 +54,7 @@ function describeBase(w: World, c: Choice): CardView {
     // 心法流派的法器（特色只加它们，core/xinfa.ts）：名字旁边标特色名，让心法在局里看得见（手机上五行·类型那行是藏着的）
     const xf = w.xinfa;
     const xinfa = xf && SCHOOLS[xf].weapons.includes(def.id) ? `心法·${XINFA_TEXT[xf].name}` : undefined;
-    const counter = counterLine(def.type, def.el, (k) => MONSTER_INFO[k].name) ?? undefined;
+    const counter = counterLine(def.type, def.el, (k) => ENEMY_BY_KIND[k].name) ?? undefined;
     if (!o) {
       // 新法器：拿了以后能凑成哪个套装
       const sameType = w.weapons.filter((x) => WEAPONS[x.id].type === def.type).length + 1;

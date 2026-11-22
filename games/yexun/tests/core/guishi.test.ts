@@ -7,7 +7,6 @@ import { VIGIL_REGIONS } from '../../src/content/regions.ts';
 import { liveMapOk } from '../../src/content/live.ts';
 import { dangerDef } from '../../src/content/waves.ts';
 import { ACHIEVEMENT_BY_ID } from '../../src/content/achievements.ts';
-import { MONSTER_INFO } from '../../src/view/ui/codex.ts';
 import { createWorld, Ev, Shot, step, type World } from '../../src/core/index.ts';
 import { spawnNow } from '../../src/core/debug.ts';
 
@@ -43,9 +42,9 @@ describe('鬼市', () => {
     expect(VIGIL_REGIONS.guishi?.mobs.map((m) => m.kind)).toEqual(['puppet', 'peddler']);
     expect(VIGIL_REGIONS.guishi?.elites?.every((e) => e.enemy === 'marketboss')).toBe(true);
     expect(MAP_EVENTS.guishi.kind).toBe('parade');
-    expect(MONSTER_INFO.puppet.name).toBe('皮影鬼');
-    expect(MONSTER_INFO.peddler.name).toBe('鬼贩');
-    expect(MONSTER_INFO.marketboss.name).toBe('鬼市主');
+    expect(ENEMY_BY_KIND.puppet.name).toBe('皮影鬼');
+    expect(ENEMY_BY_KIND.peddler.name).toBe('鬼贩');
+    expect(ENEMY_BY_KIND.marketboss.name).toBe('鬼市主');
     expect(ACHIEVEMENT_BY_ID.dawn_guishi).toBeTruthy();
     expect(liveMapOk('guishi')).toBe(true); // 0.17.7 拟好系数后开实盘
     // 新怪只在鬼市刷：别的图的特色怪表里没有它们

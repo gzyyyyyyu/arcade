@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMY_BY_KIND, HUAPI } from '../../src/content/enemies.ts';
 import { MAP_IDS } from '../../src/content/maps.ts';
-import { RUSH_NAMES } from '../../src/content/rush.ts';
 import { midBossOf } from '../../src/content/waves.ts';
 import { createWorld, Ev, fingerprint, rushPlan, step, type World } from '../../src/core/index.ts';
 import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
@@ -146,7 +145,7 @@ describe('画皮：连战与确定性', () => {
         expect(p.stages[6]).toEqual(['boss']);
       }
     }
-    expect(RUSH_NAMES.huapi).toBe('画皮');
+    expect(ENEMY_BY_KIND.huapi.name).toBe('画皮');
   });
 
   it('同种子同输入：逐拍指纹相同', () => {

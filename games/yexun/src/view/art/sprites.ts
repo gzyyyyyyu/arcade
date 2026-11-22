@@ -17,15 +17,6 @@ export interface SpriteDef {
   draw: (c: Ctx) => void;
 }
 
-/** 怪的主色：一种怪一个颜色（DESIGN.md 3.4），死亡碎片也按它着色 */
-export const MOB_COLOR = {
-  paper: 0xf4f1ea,
-  wisp: 0x5fd3f0,
-  jiangshi: 0x4f7a76,
-  lantern: 0xe8582f,
-  fox: 0xe58a3a,
-} as const;
-
 const SKIN = '#f7dcc3';
 const SKIN_SH = '#e6b999';
 
