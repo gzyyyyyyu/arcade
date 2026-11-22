@@ -19,6 +19,7 @@ import { wallMask, openBuild } from './baseplace.ts';
 import { openProfile } from './basepanel.ts';
 import { paintProfileRank } from './rankui.ts';
 import { openMap, openFleet, openTd } from './basenav.ts';
+import { PORTRAIT_PHONE } from './layout.ts';
 
 /** 按存档给建筑换上该用的贴图（升级完成换外观、高等级外观烘好之后） */
 export function retexture(bs: BaseScene, n: Node, b: Placed): void {
@@ -206,6 +207,15 @@ export function buildUi(bs: BaseScene): void {
   bs.hud = { gold, wood, hq, me };
   me.innerHTML = CAPTAIN_ICON;
   me.setAttribute('aria-label', '船长档案：星数、成就、收藏');
+  // 手机竖屏顶上只有一行（layout.ts）：船长头像挪进资源那一行，别的尺寸回第二行
+  const mq = matchMedia(PORTRAIT_PHONE);
+  const place = (): void => {
+    if (mq.matches) bar.append(me);
+    else bar2.append(me);
+  };
+  place();
+  mq.addEventListener('change', place);
+  bs.events.once('shutdown', () => mq.removeEventListener('change', place));
   bs.bottom = el('div', 'hd-bottom', undefined, bs.ui);
   const mk = (label: string, icon: 'hammer' | 'map' | 'ship' | 'shield', cls: string, f: () => void, dots: Array<'upgrade' | 'collect' | 'attacked'> = []): HTMLElement => {
     const b = button('', cls, f, bs.bottom);

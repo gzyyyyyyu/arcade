@@ -10,6 +10,8 @@ import { isObj } from './validate.ts';
 
 /** 防守方一场最多掉仓库里的百分之几（按摧毁率折算） */
 export const LOOT_PCT = 20;
+/** 上传快照时带的「这份存档已经加 / 扣过的 raidId」最多几个：浏览器带最近这么多，服务端超了整份不认 */
+export const APPLIED_MAX = 100;
 /** 进攻方另得的系统赏金（掠夺的百分之几） */
 export const BOUNTY_PCT = 50;
 /** 流浪海盗岛：掠夺按关卡掠夺的百分之几给 */

@@ -71,21 +71,22 @@ export async function escort(c: ShotCtx): Promise<boolean> {
       }
     })) &&
     (await step('停冲修船跟随', async () => {
-      // 手机竖屏速度排收成底栏的船速小钮（escortcss.ts），点血条展开三档；修船、跟随常驻在小钮上方（.hd-esc-quick），展开时收起
+      // 手机竖屏三档并成底栏的船速钮（点一下换下一档，escortcss.ts）；加速、修船、跟随常驻在它上方（.hd-esc-quick）
       const folded = await page.locator('.hd-esc-sum').isVisible();
-      if (folded) await click('.hd-esc-hullw');
-      await click('.hd-esc-pbtn[data-pace="hold"]');
-      await page.waitForTimeout(500);
-      if ((await paceOn()) !== 'hold') throw new Error('点停之后高亮没跟过去');
-      await click('.hd-esc-pbtn[data-pace="rush"]');
-      await page.waitForTimeout(500);
-      if ((await paceOn()) !== 'rush') throw new Error('点冲之后高亮没跟过去');
+      const pick = async (p: string): Promise<void> => {
+        if (!folded) await click(`.hd-esc-pbtn[data-pace="${p}"]`);
+        else for (let i = 0; i < 3 && (await paceOn()) !== p; i++) await click('.hd-esc-sum');
+        await page.waitForTimeout(500);
+        if ((await paceOn()) !== p) throw new Error(`换到 ${p} 之后高亮没跟过去`);
+      };
+      await pick('hold');
+      await pick('rush');
       if (folded) {
-        await click('.hd-esc-hullw');
-        await page.waitForTimeout(300);
-        if (!(await page.locator('.hd-esc-quick .hd-esc-follow').isVisible())) throw new Error('竖屏收起速度排后「跟随」没常驻');
+        for (const q of ['.hd-esc-quick .hd-esc-speed', '.hd-esc-quick .hd-esc-mend', '.hd-esc-quick .hd-esc-follow']) {
+          if (!(await page.locator(q).isVisible())) throw new Error(`竖屏 ${q} 没常驻`);
+        }
       }
-      for (const q of await page.locator('.hd-esc-pbtn, .hd-esc-mend, .hd-esc-follow').all()) {
+      for (const q of await page.locator('.hd-esc-pbtn, .hd-esc-sum, .hd-esc-speed, .hd-esc-mend, .hd-esc-follow').all()) {
         if (!(await q.isVisible())) continue;
         const b = await q.boundingBox();
         if (b && (b.width < 44 || b.height < 44)) problems.push(`${v.name} 护航按钮小于 44：${Math.round(b.width)}×${Math.round(b.height)}`);
@@ -93,9 +94,7 @@ export async function escort(c: ShotCtx): Promise<boolean> {
       await click('.hd-esc-follow');
       await page.waitForTimeout(300);
       if (await page.locator('.hd-esc-mend:not([disabled])').count()) await click('.hd-esc-mend');
-      if (folded) await click('.hd-esc-hullw');
-      await click('.hd-esc-pbtn[data-pace="sail"]');
-      if (folded) await click('.hd-esc-hullw');
+      await pick('sail');
       await shot('escort-controls');
       await check('护航操作钮');
     })) &&
@@ -106,8 +105,6 @@ export async function escort(c: ShotCtx): Promise<boolean> {
       await check('护航战斗中');
     })) &&
     (await step('打到结束', async () => {
-      // 手机竖屏加速钮在收起的速度排里，先点血条展开
-      if (await page.locator('.hd-esc-sum').isVisible()) await click('.hd-esc-hullw');
       for (let i = 0; i < 2; i++) await click(TD_SPEED);
       const done = await page.locator('.hd-esc-result').waitFor({ timeout: 300_000 }).then(() => true, () => false);
       if (!done) {

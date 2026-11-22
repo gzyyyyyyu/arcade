@@ -88,6 +88,20 @@ describe('Worker 实盘接口', () => {
     expect(await r.json()).toMatchObject({ ok: true, credited: 3000 });
     expect(w.bank.balance).toBe(10_000 - 2000 + 3000);
   });
+  it('settle：钱包里没有这一份（没带入 / 已经结过）回 no_stake，不按浏览器报的档位算、余额不动', async () => {
+    const w = world();
+    const r = await handleLive(post('settle', { ref: REF, tier: 'lux', bp: 15_000, stars: 3 }), w.env, w.ports, T0);
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ ok: false, error: 'no_stake' });
+    expect(w.bank.balance).toBe(10_000);
+    // 结过一次再重发：这一份已经没了，同样回 no_stake，不会再加钱
+    await handleLive(post('buyin', { ref: REF, tier: 'small' }), w.env, w.ports, T0);
+    await handleLive(post('settle', { ref: REF, tier: 'small', bp: 15_000, stars: 3 }), w.env, w.ports, T0);
+    const after = w.bank.balance;
+    const again = await handleLive(post('settle', { ref: REF, tier: 'lux', bp: 15_000, stars: 3 }), w.env, w.ports, T0);
+    expect(await again.json()).toMatchObject({ ok: false, error: 'no_stake' });
+    expect(w.bank.balance).toBe(after);
+  });
   it('refund 原样退回；bp 超上限 400', async () => {
     const w = world();
     await handleLive(post('buyin', { ref: REF, tier: 'mid' }), w.env, w.ports, T0);

@@ -80,13 +80,14 @@ export const TRAIN_LESSONS: readonly TrainLesson[] = [
     reward: reward(3),
   },
   {
-    // 兵克塔：火枪手怕臼炮、好打大炮，壮汉专拆防御、不怕臼炮（模拟：壮汉去右上拆臼炮、火枪手去左边打大炮 100% 三星，反过来 0%）
+    // 兵克塔：火枪手怕臼炮、好打大炮，壮汉专拆防御、不怕臼炮（模拟 400 种子：壮汉去右上拆臼炮、火枪手去左边打大炮 100% 三星，反过来 2%；
+    // 壮汉 2→3 后小白机器人过关（≥1 星）64%→100%，三星仍要派对兵）
     id: 'f-counter',
     kind: 'counter',
     name: '兵克塔',
     hq: 3,
     layout: layout([['hq', 2, 9, 9], ['mortar', 2, 14, 5], ['cannon', 2, 5, 14], ['cannon', 2, 4, 10], ...ECO]),
-    boats: [{ troop: 'brute', count: 2 }, { troop: 'gunner', count: 6 }, { troop: 'gunner', count: 6 }],
+    boats: [{ troop: 'brute', count: 3 }, { troop: 'gunner', count: 6 }, { troop: 'gunner', count: 6 }],
     reward: reward(3),
   },
   // 塔位摆放：守岛第一关的岛，只打前几波（core/training.ts 的 trainTdLevel）

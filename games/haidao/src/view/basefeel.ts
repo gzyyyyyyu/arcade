@@ -220,12 +220,12 @@ export function edgePan(mx: number, my: number, w: number, h: number, margin = 4
 
 // ---------------------------------------------------------------- 快捷键和右键菜单
 
-export type BaseKeyAction = 'upgrade' | 'info' | 'collectAll' | 'move' | 'build' | 'cancel';
+export type BaseKeyAction = 'upgrade' | 'info' | 'collectAll' | 'move' | 'build' | 'train' | 'cancel';
 
 /** 基地的字母快捷键（大小写都认）；键位提示写在按钮的悬停提示里 */
-export const BASE_KEYS: Record<string, BaseKeyAction> = { u: 'upgrade', i: 'info', c: 'collectAll', m: 'move', b: 'build', escape: 'cancel' };
+export const BASE_KEYS: Record<string, BaseKeyAction> = { u: 'upgrade', i: 'info', c: 'collectAll', m: 'move', b: 'build', t: 'train', escape: 'cancel' };
 /** 动作 → 提示里显示的键名 */
-const KEY_HINT: Record<BaseKeyAction, string> = { upgrade: 'U', info: 'I', collectAll: 'C', move: 'M', build: 'B', cancel: 'Esc' };
+const KEY_HINT: Record<BaseKeyAction, string> = { upgrade: 'U', info: 'I', collectAll: 'C', move: 'M', build: 'B', train: 'T', cancel: 'Esc' };
 
 export function keyAction(key: string): BaseKeyAction | null {
   return BASE_KEYS[key.toLowerCase()] ?? null;
@@ -237,7 +237,7 @@ export function withKey(label: string, a: BaseKeyAction): string {
 }
 
 export interface MenuItem {
-  id: 'upgrade' | 'info' | 'collect' | 'move';
+  id: 'upgrade' | 'info' | 'collect' | 'train' | 'move';
   label: string;
   key: string;
   /** 不可用（资源不够等）：灰着，点了提示 why */
@@ -258,6 +258,8 @@ export function buildingMenu(kind: BuildingKind, level: number, stored: number, 
   if (cost && up) out.push({ id: 'upgrade', label: '升级', key: 'U', off: !up.ok, why: up.ok ? undefined : up.why, cost, dot: up.ok });
   out.push({ id: 'info', label: '信息', key: 'I', off: false, dot: false });
   if ((kind === 'goldmine' || kind === 'sawmill') && Math.floor(stored) >= 1) out.push({ id: 'collect', label: '收集', key: 'C', off: false, dot: true });
+  // 训练营挂在主寨上：手机顶栏只留资源和船长，训练营从岛上点主寨进（电脑顶栏另有一颗钮）；红点由调用方按待领奖励补
+  if (kind === 'hq') out.push({ id: 'train', label: '训练营', key: 'T', off: false, dot: false });
   out.push({ id: 'move', label: '移动', key: 'M', off: false, dot: false });
   void level;
   return out;

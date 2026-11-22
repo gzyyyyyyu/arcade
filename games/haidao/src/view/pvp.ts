@@ -17,7 +17,7 @@ const ERR: Record<string, string> = {
   no_platform: '这个版本没有联机，单机照常玩',
   login: '登录后才能打别的玩家',
   no_snapshot: '基地还没同步上去，在岛上待一会儿再来',
-  rate_limited: '打得太勤了，歇一会儿再来',
+  rate_limited: '港口这会儿没有新对手，过几分钟再找',
   busy: '今天联机的人太多了，明天再来',
   shield: '对方开着护盾，打不了',
   locked: '对方正在被别人打，过几分钟再来',
@@ -425,6 +425,8 @@ function submit(s: RaidStart, log: BattleAction[], end: number): void {
       const c = el('span', 'hd-pvp-chip', '抢到 ', lo);
       c.appendChild(costRow(o.gain)).classList.add('hd-pos');
       if (!o.wanderer && !revengeRaids.has(s.raidId) && (o.gain.gold || o.gain.wood)) el('p', 'hd-sub', '里面有三分之一是港口发的赏金。', box);
+      // 结算显示完这一场就不用再认它是不是复仇了：Set 只留还没结算的
+      revengeRaids.delete(s.raidId);
       const me = await pvpApi.me();
       if (me.ok) await syncPending(me.data);
       main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {

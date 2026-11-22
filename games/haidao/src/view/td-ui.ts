@@ -2,7 +2,7 @@ import { BRANCH_BY_ID, BRANCH_LEVEL, BUILDINGS, branchOptions } from '../content
 import { TD2_ENEMIES } from '../content/td2units.ts';
 import { TD2_CHAPTERS } from '../content/tdmaps.ts';
 import type { Td2ChapterInfo } from '../content/tdmaps.ts';
-import { ISLAND, UNIT } from '../core/types.ts';
+import { ISLAND, TICKS_PER_SEC, UNIT } from '../core/types.ts';
 import { counterKind, freeSlotPick, isTdTowerKind, tdBuildCost, tdBuildRange, tdHomeHardOpen, tdUpCost } from '../core/index.ts';
 import { TD2_HOME } from '../content/td2units.ts';
 import {
@@ -189,15 +189,11 @@ function enemyChip(kind: TdEnemyKind, n: number, fog: boolean, parent: HTMLEleme
  * 克制表卡：伤害（行）× 护甲（列）。行头是伤害加打这种伤害的塔的小图，列头是护甲加穿这种护甲的敌人头像，
  * 格子写人话（多打一半 / 照常 / 只打一半 / 打不到）按档上色；表上一句怎么读，表下按名字列出每种伤害、每种护甲都有谁。
  * 塔、敌人、英雄这些全部从核心的表现算（damageSources、armorFoes），不手写名单。
- * 默认收起成一个"克制表"按钮，点开展开（建塔菜单和敌人图鉴共用）。open 为 true 时直接展开。
+ * 只放在敌人图鉴里、一直摊开；建塔面板每张塔卡上写着这座塔克谁、打不到谁，不再收一份要点开的表。
  */
-export function counterCard(parent: HTMLElement, open = false): HTMLElement {
+export function counterCard(parent: HTMLElement): HTMLElement {
   injectTdCss();
-  const wrap = el('div', `hd-ctr${open ? ' on fixed' : ''}`, undefined, parent);
-  const tog = button('', 'hd-btn-wood hd-ctr-tog', () => wrap.classList.toggle('on'), wrap);
-  tog.title = '克制表（C）';
-  el('span', '', '克制表', tog);
-  el('small', '', '什么塔打什么敌人最狠', tog);
+  const wrap = el('div', 'hd-ctr', undefined, parent);
   const key = el('p', 'hd-ctr-key', '每座塔打一种伤害，每个敌人穿一种护甲。', wrap);
   for (const [tier, word] of [['good', '多打一半'], ['weak', '只打一半'], ['none', '打不到']] as const) el('i', `c-${tier}`, word, key);
   const tb = el('table', 'hd-ctr-tb', undefined, wrap);
@@ -235,8 +231,6 @@ export function counterCard(parent: HTMLElement, open = false): HTMLElement {
     armorBadge(a, s);
     s.append(`${ARMOR_NAME[a]}：${armorFoes(a).map((k) => TD2_ENEMIES[k].name).join('、')}`);
   }
-  // 展开后在建塔面板里只留克制表（其余收起让位），靠这个钮收回去；图鉴里克制表一直展开，没有这个钮
-  button('收起克制表', 'hd-btn-wood hd-ctr-off', () => wrap.classList.remove('on'), wrap);
   return wrap;
 }
 
@@ -374,7 +368,7 @@ export function starRule(): string {
 
 /** 叫波按钮的第二行：叫了拿多少金、英雄技能快几秒（tdCallBonus 给的拍数换成秒，向下取整） */
 export function callBonusText(gold: number, cdCutTicks: number): string {
-  const sec = Math.floor(cdCutTicks / 20);
+  const sec = Math.floor(cdCutTicks / TICKS_PER_SEC);
   const parts: string[] = [];
   if (gold > 0) parts.push(`+${gold} 金`);
   if (sec > 0) parts.push(`技能快 ${sec} 秒`);
@@ -1088,7 +1082,7 @@ export function bestiary(
     }
   };
   draw(0);
-  counterCard(box, true);
+  counterCard(box);
 }
 
 /** 守岛结算的标题：按星数分档（M1）。1 星带上丢了几枚；悬赏守岛和普通关共用，别各写一套 */

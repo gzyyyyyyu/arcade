@@ -227,8 +227,7 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
       const w = bs.W(e.x, e.y);
       const def = SKILLS[e.skill];
       const lv = bs.d.setup.army.skills.find((k) => k.kind === e.skill)?.level ?? 1;
-      const rad0 = def.levels[lv - 1]?.radius ?? 2;
-      const R = rad0 > 30 ? rad0 / UNIT : rad0;
+      const R = def.levels[lv - 1]!.radius;
       const col = e.skill === 'medkit' ? 0x3fae52 : e.skill === 'flare' ? 0xffd23f : 0xff6a1f;
       const g = bs.add.graphics().setDepth(DEPTH.marker);
       g.lineStyle(4, col, 1).fillStyle(col, 0.18).fillEllipse(w.x, w.y, R * 90, R * 45).strokeEllipse(w.x, w.y, R * 90, R * 45);

@@ -10,32 +10,7 @@ import { hash32 } from './rng.ts';
 import { ISLAND, RULES_VERSION } from './types.ts';
 import type { TdLevel, TdSetup } from './tdtypes.ts';
 import { TD_TOWER_KINDS } from './td2types.ts';
-
-const DAY = 24 * 60 * 60 * 1000;
-/** 北京时间 = UTC+8，不用时区库 */
-const SHIFT = 8 * 60 * 60 * 1000;
-
-/** 公历 y-m-d 距 1970-01-01 的天数（整数算法，不用 Date） */
-function daysFromCivil(y: number, m: number, d: number): number {
-  const yy = m <= 2 ? y - 1 : y;
-  const era = Math.floor(yy / 400);
-  const yoe = yy - era * 400;
-  const doy = Math.floor((153 * (m + (m > 2 ? -3 : 9)) + 2) / 5) + d - 1;
-  const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
-  return era * 146097 + doe - 719468;
-}
-
-/** 距 1970-01-01 的第 z 天落在公历哪一年 */
-function yearOfDay(z: number): number {
-  const zz = z + 719468;
-  const era = Math.floor(zz / 146097);
-  const doe = zz - era * 146097;
-  const yoe = Math.floor((doe - Math.floor(doe / 1460) + Math.floor(doe / 36524) - Math.floor(doe / 146096)) / 365);
-  const doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100));
-  const mp = Math.floor((5 * doy + 2) / 153);
-  const m = mp + (mp < 10 ? 3 : -9);
-  return yoe + era * 400 + (m <= 2 ? 1 : 0);
-}
+import { beijingDayIndex, daysFromCivil, yearOfDay } from './day.ts';
 
 export interface IsoWeek {
   year: number;
@@ -47,7 +22,7 @@ export interface IsoWeek {
  * 和 platform/src/weekly.ts 的 beijingIsoWeek 同一个算法，只是年份用整数算法求、不用 Date（规则核心不许用）。
  */
 export function beijingIsoWeek(ms: number): IsoWeek {
-  const day = Math.floor((ms + SHIFT) / DAY);
+  const day = beijingDayIndex(ms);
   // 1970-01-01 是周四：(day + 3) % 7 是离本周一几天
   const thursday = day - (((day + 3) % 7) + 7) % 7 + 3;
   const year = yearOfDay(thursday);

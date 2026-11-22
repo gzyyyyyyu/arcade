@@ -11,6 +11,7 @@
 import { RULES_VERSION } from '../core/types.ts';
 import type { LiveTier } from '../core/live.ts';
 import { loggedIn } from './pvp.ts';
+import { netTimeout } from './timeout.ts';
 
 export const LIVE_KEY = 'haidao.live';
 /** 悬赏守岛（DESIGN.md 10.5）、护航（12.1）、寻宝航线（11.1）走同一套流程，本机进度和接口各用自己的 */
@@ -50,6 +51,7 @@ async function post(api: string, action: string, body: Record<string, unknown>):
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
+      signal: netTimeout(),
       headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' },
       body: JSON.stringify(body),
     });
@@ -147,7 +149,7 @@ function makeLive(api: string, key: string, keepPlaying: (r: LiveRecord) => bool
       const r = load(key);
       if (r?.step !== 'settling') return { ok: false, why: 'reject', error: 'no_record' };
       const base = { ref: r.ref, ...(r.user ? { user: r.user } : {}) };
-      const res = r.kind === 'refund' ? await post(api, 'refund', base) : await post(api, 'settle', { ...base, tier: r.tier, bp: r.bp ?? 0 });
+      const res = r.kind === 'refund' ? await post(api, 'refund', base) : await post(api, 'settle', { ...base, tier: r.tier, bp: r.bp });
       if (res.ok || res.why === 'reject') {
         // 钱包拒了（已经退过、过期）也收尾：再发也不会变
         const credited = res.ok && typeof res.body.credited === 'number' ? res.body.credited : 0;
@@ -241,15 +243,17 @@ export const mapLiveHooks: { keep: (r: LiveRecord) => boolean } = { keep: () => 
 export const mapLive = makeLive(MAP_API, MAPLIVE_KEY, (r) => mapLiveHooks.keep(r));
 
 /** 悬赏守岛、护航、航线今天还能打几场（GET api/<玩法>/today）；拿不到为 null */
+const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+
 async function todayOf(kind: 'td' | 'escort' | 'map'): Promise<{ left: number; max: number } | null> {
   if (liveState.off || !loggedIn()) return null;
   try {
-    const r = await fetch(`api/${kind}/today`, { credentials: 'same-origin', cache: 'no-store' });
+    const r = await fetch(`api/${kind}/today`, { credentials: 'same-origin', cache: 'no-store', signal: netTimeout() });
     if (r.status === 501) liveState.off = true;
     if (!r.ok) return null;
     const v = ((await r.json()) as Record<string, { left?: unknown; max?: unknown } | undefined>)[kind];
-    const num = (x: unknown): number => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
-    return { left: num(v?.left), max: num(v?.max) };
+    // 字段不对就当拿不到（界面写「暂时看不到」），不当 0 场显示
+    return isNum(v?.left) && isNum(v?.max) ? { left: v.left, max: v.max } : null;
   } catch {
     return null;
   }
@@ -262,15 +266,16 @@ export const mapToday = (): Promise<{ left: number; max: number } | null> => tod
 export async function liveToday(): Promise<{ live: { left: number; max: number }; exchange: { left: number; max: number }; ingot: { left: number; cap: number } | null } | null> {
   if (liveState.off || !loggedIn()) return null;
   try {
-    const r = await fetch(`${API}today`, { credentials: 'same-origin', cache: 'no-store' });
+    const r = await fetch(`${API}today`, { credentials: 'same-origin', cache: 'no-store', signal: netTimeout() });
     if (r.status === 501) liveState.off = true;
     if (!r.ok) return null;
     const v = (await r.json()) as { live?: { left?: unknown; max?: unknown }; exchange?: { left?: unknown; max?: unknown }; ingot?: { left?: unknown; cap?: unknown } };
-    const num = (x: unknown): number => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
+    if (!isNum(v.live?.left) || !isNum(v.live?.max) || !isNum(v.exchange?.left) || !isNum(v.exchange?.max)) return null;
+    if (v.ingot && (!isNum(v.ingot.left) || !isNum(v.ingot.cap))) return null;
     return {
-      live: { left: num(v.live?.left), max: num(v.live?.max) },
-      exchange: { left: num(v.exchange?.left), max: num(v.exchange?.max) },
-      ingot: v.ingot ? { left: num(v.ingot.left), cap: num(v.ingot.cap) } : null,
+      live: { left: v.live.left, max: v.live.max },
+      exchange: { left: v.exchange.left, max: v.exchange.max },
+      ingot: v.ingot ? { left: v.ingot.left as number, cap: v.ingot.cap as number } : null,
     };
   } catch {
     return null;
@@ -281,7 +286,7 @@ export async function liveToday(): Promise<{ live: { left: number; max: number }
 export async function walletBalance(): Promise<number | null> {
   if (liveState.off || !loggedIn()) return null;
   try {
-    const r = await fetch('/api/wallet', { credentials: 'same-origin', cache: 'no-store' });
+    const r = await fetch('/api/wallet', { credentials: 'same-origin', cache: 'no-store', signal: netTimeout() });
     if (!r.ok) return null;
     const v = (await r.json()) as { wallet?: { balance?: unknown } };
     return typeof v.wallet?.balance === 'number' ? v.wallet.balance : null;

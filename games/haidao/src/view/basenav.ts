@@ -213,14 +213,20 @@ export function tutRefresh(bs: BaseScene): void {
   const t = bs.tut;
   if (vaultGuide(bs, st)) return t.hide();
   if (st >= TUT_DONE) return t.hide();
-  if (st === TUT_SAILED) {
-    // 最后一步：指一下训练营（开过面板就算看过）；有面板、海图开着时先不指
-    if (bs.sheet || bs.place || bs.stopMap || modalOpen()) return t.hide();
-    return t.show('train', '训练营：每种兵一关短教学，过关有奖励。点黄框里的「训练营」看看', () => rectOf(bs.trainBtn, bs.ui));
-  }
   const root = bs.ui;
   const world = (id: number): (() => Rect | null) => buildingRect(bs, id);
   const bld = (kind: BuildingKind): number | undefined => app.profile.base.buildings.find((b) => b.kind === kind)?.id;
+  if (st === TUT_SAILED) {
+    // 最后一步：指一下训练营（开过面板就算看过）；有面板、海图开着时先不指。
+    // 电脑和平板顶栏有训练营钮；手机竖屏顶栏没有（layout.ts），先指主寨，操作环开了再指环上的「训练营」
+    if (bs.sheet || bs.place || bs.stopMap || modalOpen()) return t.hide();
+    const btn = bs.trainBtn;
+    if (btn?.getClientRects().length) return t.show('train', '训练营：每种兵一关短教学，过关有奖励。点黄框里的「训练营」看看', () => rectOf(btn, root));
+    const hq = bld('hq');
+    const ring = hq !== undefined && bs.ring.isOpen && bs.ring.owner === hq ? bs.ring.button('train') : null;
+    if (ring) return t.show('train-ring', '点「训练营」：每种兵一关短教学，过关有奖励', () => rectOf(ring, root));
+    return t.show('train-hq', '训练营在主寨里：点中间的主寨，再点「训练营」', hq !== undefined ? world(hq) : null);
+  }
   if (bs.stopMap) {
     const go = document.querySelector('.hd-map .hd-sheet .hd-btn-gold');
     if (st >= 4) {

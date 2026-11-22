@@ -22,7 +22,7 @@ export const TD_HQ = Number(opt('--hq') ?? Math.max(3, TD_LV?.hq ?? 3));
 /** --td --nav：在驻守台面板上换成航海士（要第一章通关，dev.td 给了），技能那一步改放急射旗和重赏 */
 export const TD_NAV = flag('--nav');
 export const TD_MECHANIC = !!(TD_LV && (TD_LV.sapperJam || TD_LV.bossSkill));
-// 守岛类的加速钮：电脑和横屏在底栏，手机竖屏挪到顶栏（.hd-td-speedtop，layout.ts）；竖屏护航在展开的速度排里（.hd-esc-speed，escortview.ts）
+// 守岛类的加速钮：电脑和横屏在底栏，手机竖屏挪到顶栏（.hd-td-speedtop，layout.ts）；竖屏护航常驻在右边一列（.hd-esc-quick .hd-esc-speed，escortview.ts）
 export const TD_SPEED = '.hd-td-bar2 button:has-text("×"):visible, .hd-td-speedtop:visible, .hd-esc-speed:visible';
 
 export const VIEWS = [

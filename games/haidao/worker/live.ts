@@ -16,6 +16,7 @@ import { isStandalone, json } from 'arcade-kit/worker';
 import { EXCHANGE_CHIPS, EXCHANGE_GOLD, EXCHANGE_PER_DAY, EXCHANGE_WOOD, LIVE_MAX_BP, LIVE_TIER_IDS, isLiveTier, liveReturn, type LiveTier } from '../src/core/live.ts';
 import { tdLiveOpen } from '../src/core/tdlive.ts';
 import { RULES_VERSION } from '../src/core/types.ts';
+import { beijingDate } from '../src/core/day.ts';
 import { CHIP_SHOP, INGOT_CHIPS, LIVE_STAKE } from '../src/content/livetable.ts';
 import type { Ports } from './pvp/api.ts';
 
@@ -126,7 +127,7 @@ export function checkRules(body: Record<string, unknown>, cookies: readonly stri
 
 /** 北京时间的日期（钱包的"天"也按北京时间） */
 export function beijingDay(now: number): string {
-  return new Date(now + 8 * 3600_000).toISOString().slice(0, 10);
+  return beijingDate(now);
 }
 
 /** 钱包里海岛桌上 ref 这一份带入了多少（平台 WalletView.stakes）；没有或形状不对为 null */
@@ -269,9 +270,12 @@ export async function handleLive(req: Request, env: LiveEnv, ports: Ports | null
     } else {
       call = (async () => {
         const v = await w.view(userId);
-        // 看不了钱包就当连不上（503，浏览器过会儿重发），不退回去按浏览器报的档位算
+        // 看不了钱包就当连不上（503，浏览器过会儿重发）
         if (!okShape(v) || !v.ok) throw new Error('view');
-        const base = stakeAmount(v.wallet, wref) ?? LIVE_STAKE[tierId!];
+        // 钱包里没有这一份（已经结过、退过或过期）：不按浏览器报的档位算本金，照钱包的说法回「没有这一份」，浏览器收尾。
+        // 不回 503：结回成功但回复丢了时押注已经没了，503 会让浏览器一直重发、记录永远卡在结回中、进不了实盘
+        const base = stakeAmount(v.wallet, wref);
+        if (base === null) return { ok: false, error: 'no_stake' } as WalletReply;
         return w.settle({ userId, game: 'haidao', ref: wref, amount: liveReturn(base, bp), mode: 'client', op: `${wref}-out` });
       })();
     }

@@ -3,6 +3,7 @@
  */
 import { MAP_RULES, mapIsland } from '../core/index.ts';
 import type { MapIslandDef, MapRules } from '../core/maptypes.ts';
+import { beijingDate } from '../core/day.ts';
 
 /** 契约的 MapRules 加一样画面要的：岛的定义（名字、风格、宝分、侦察） */
 export interface MapSource extends MapRules {
@@ -15,5 +16,5 @@ export const mapRules = (): MapSource => src;
 
 /** 北京时间的日期 'YYYY-MM-DD'（航线一天一条，按北京时间换天） */
 export function beijingDay(now = Date.now()): string {
-  return new Date(now + 8 * 3600_000).toISOString().slice(0, 10);
+  return beijingDate(now);
 }

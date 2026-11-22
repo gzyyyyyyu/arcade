@@ -97,10 +97,6 @@ export function equipSkin(p: Profile, troop: TroopKind, skin: string | null): Re
 }
 
 /**
- * loot 是实际进了仓库的数量（含连胜加成、首次星级奖励、掉落的金币木材箱，都已乘收入倍率 INCOME_PCT，再按仓库上限截断），cut 是仓库满了截掉的。
- * 连胜：连续 ≥1 星的场数；0 星清零并给安慰奖。seed 用来掉宝（不传就按战绩算一个）。
- */
-/**
  * 一场战役打完、还没加掉落、还没按仓库截断的毛收入（连胜加成、新星奖励、重打折扣、收入倍率都在里面）。
  * 结算（settleCampaign）和出海前岛面板的「最多能拿多少」都用它，两边的数不会对不上。
  */
@@ -127,6 +123,10 @@ export function campaignGross(p: Profile, levelId: string, result: Pick<BattleRe
   return income({ gold, wood });
 }
 
+/**
+ * loot 是实际进了仓库的数量（含连胜加成、首次星级奖励、掉落的金币木材箱，都已乘收入倍率 INCOME_PCT，再按仓库上限截断），cut 是仓库满了截掉的。
+ * 连胜：连续 ≥1 星的场数；0 星清零并给安慰奖。seed 用来掉宝（不传就按战绩算一个）。
+ */
 export function settleCampaign(
   p: Profile,
   levelId: string,

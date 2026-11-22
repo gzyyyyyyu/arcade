@@ -10,6 +10,9 @@ import { PALETTE as P } from './art/index.ts';
  * - 手机横屏（宽 > 高且高 ≤ 500）：底部的操作区挪到右侧竖着排，把高度让给岛。
  * 横屏判断和 camfit.ts 的 isLandscapePhone 一致。
  */
+/** 手机竖屏（和下面 @media 同一条件）：要在这个尺寸挪 DOM 的界面（护航操作钮、基地船长头像）用它 matchMedia */
+export const PORTRAIT_PHONE = '(max-width:559px) and (orientation:portrait)';
+
 export function layoutCss(): string {
   const c = P as Record<string, string>;
   const ink = c.ink!;
@@ -133,31 +136,34 @@ ${W} .hd-key { display:none; }
 }
 
 /* 手机竖屏的守岛 / 护航（360×640 和 390×844 都走这一套）：顶栏 + 底栏合计 ≤ 22% 屏高（640 高只有 140，844 高 185），口径是 noscroll 的「岛被上下 HUD 吃掉的高度」。
-   第二行不再单独占一行：基地的个人面板、换筹码钮和守岛的金币、加速、撤退并进底栏同一行（右端），主寨等级牌和守岛的数量牌收起
-   （主寨等级在个人面板里看）；底栏钮压到 52 / 48 高、内边距 4。顶上只剩第一行。点按目标 ≥ 44、间距 ≥ 8 */
+   第二行不再单独占一行：基地的船长头像并进顶栏、换筹码钮并进底栏右端，守岛的金币、加速、撤退并进底栏同一行（右端），主寨等级牌、训练营钮和守岛的数量牌收起；
+   底栏钮压到 52 / 48 高、内边距 4。顶上只剩第一行。点按目标 ≥ 44、间距 ≥ 8 */
 @media (max-width:559px) and (orientation:portrait) {
   ${W} .hd-td .hd-td-bar2 { top:auto; left:auto; right:6px; z-index:31; align-items:center; gap:8px; }
   /* 资源牌的上限在所有手机竖屏都写成「/ 25,200」（去掉「上限」两个字）：390 宽上「上限 25,200」比牌子宽 3 像素、穿出右边框，
      金额不截断（仓库约定），放不下就换短说法 */
   ${W} .hd-base .hd-bar .hd-pill .hd-capk { display:none; }
   ${W} .hd-base .hd-bar .hd-pill small::before { content:'/ '; }
-  /* 基地只在矮竖屏收（390×844 的基地顶底栏本来就只占 13%） */
-  @media (max-height:700px) {
-  ${W} .hd-battle .hd-hall, ${W} .hd-battle .hd-bar { top:0; }
-  ${W} .hd-base .hd-bar2 { top:auto; left:auto; right:6px; z-index:31; align-items:center; gap:8px; }
-  ${W} .hd-base .hd-bar2 { bottom:calc(4px + env(safe-area-inset-bottom,0px)); height:52px; }
-  ${W} .hd-base .hd-bar2 .hd-pill { display:none; }
-  ${W} .hd-base .hd-bottom[style*="display: none"] ~ .hd-bar2 { display:none; }
-  ${W} .hd-base .hd-bar { gap:6px; }
+  /* 基地顶上只有一行：大厅（只留小房子图标，点区 44×44）、金、木、船长头像、设置。主寨等级在点主寨的操作环和船长档案里看，
+     训练营从岛上点主寨进（basemenu 的「训练营」项）；船长头像由 basehud 按 PORTRAIT_PHONE 挪进这一行。
+     「换」（登录才有）留在第二行，第二行并进底栏同一行右端 */
+  ${W} .hd-base .hd-hall { width:44px; min-width:44px; padding:0; justify-content:center; }
+  ${W} .hd-base .hd-hall span { display:none; }
+  ${W} .hd-base .hd-bar { left:58px; right:58px; max-width:none; flex-wrap:nowrap; gap:6px; }
   ${W} .hd-base .hd-bar .hd-pill { padding:0 6px 0 4px; gap:4px; }
   ${W} .hd-base .hd-bar .hd-pill .hd-img { height:20px !important; width:20px !important; }
-  ${W} .hd-base .hd-profile { width:44px; }
+  ${W} .hd-base .hd-bar > .hd-profile { flex:none; width:44px; min-height:44px; margin-left:auto; pointer-events:auto; }
+  ${W} .hd-base .hd-bar2 .hd-pill, ${W} .hd-base .hd-trainbtn { display:none; }
+  ${W} .hd-base .hd-bar2 { top:auto; left:auto; right:6px; z-index:31; align-items:center; gap:8px; }
+  ${W} .hd-base .hd-bar2 { bottom:calc(8px + env(safe-area-inset-bottom,0px)); height:52px; }
+  ${W} .hd-base .hd-bottom[style*="display: none"] ~ .hd-bar2 { display:none; }
   ${W} .hd-base .hd-live-xbtn { margin-left:0; }
-  ${W} .hd-base .hd-trainbtn span { display:none; }
-  ${W} .hd-base .hd-trainbtn { padding:0; }
-  /* 右边三颗 44 宽（换、训练营、个人）+ 间距 8 共 148，底栏四颗 44 + 间距 8 共 200：360 宽两边各只能留 2 才能保住两组之间 8 的间距 */
-  ${W} .hd-base .hd-bar2 { right:2px; }
-  ${W} .hd-bottom { gap:8px; padding:4px 158px calc(4px + env(safe-area-inset-bottom,0px)) 2px; }
+  ${W} .hd-base:has(.hd-live-xbtn) .hd-bottom { padding-right:58px; }
+  /* 矮竖屏底栏再压到 52 高 */
+  @media (max-height:700px) {
+  ${W} .hd-battle .hd-hall, ${W} .hd-battle .hd-bar { top:0; }
+  ${W} .hd-base .hd-bar2 { bottom:calc(4px + env(safe-area-inset-bottom,0px)); }
+  ${W} .hd-bottom { gap:8px; padding:4px 2px calc(4px + env(safe-area-inset-bottom,0px)); }
   ${W} .hd-bottom .hd-btn { min-height:52px; padding:0 2px; }
   }
   ${W} .hd-td .hd-td-bar2 { bottom:calc(4px + env(safe-area-inset-bottom,0px)); height:48px; }
@@ -178,14 +184,12 @@ ${W} .hd-key { display:none; }
   /* 护航同理装不下（多一个航速钮）：航速钮浮到撤退正上方，底栏右边只让金币牌 + 撤退 */
   ${W} .hd-esc .hd-td-bottom { padding-right:152px; }
   ${W} .hd-esc .hd-td-bar2 > .hd-esc-sum { position:absolute; right:0; bottom:calc(100% + 8px); }
-  ${W} .hd-esc .hd-esc-ctl.open { bottom:calc(116px + env(safe-area-inset-bottom,0px)); }
   ${W} .hd-esc .hd-td-bar2 > .hd-btn-wood:not(.hd-esc-sum) { display:none; }
-  /* 预告卡收成顶栏里的一个小钮（波次号）：顶栏里的「已来 N/M 波」让位给它；点开才在顶栏下面浮出预告卡 */
+  /* 预告卡常显、缩成摘要：第一行第几波、来什么敌人、倒数，第二行只留「先造 / 下一座造」（点了镜头移过去）；
+     护甲占比、关内事件、从哪来都在点开的图鉴里写全。顶栏「已来 N/M 波」和卡重复，让位 */
   ${W} .hd-td .hd-td-bar .hd-pill:nth-of-type(2) { display:none; }
-  ${W} .hd-plan-tog { display:flex; align-items:center; justify-content:center; padding:0 3px; min-width:56px; }
-  ${W} .hd-plan-tog.hint { padding-right:12px; }
-  ${W} .hd-td:not(.hd-plan-open) .hd-td-plan { display:none; }
-  ${W} .hd-td.hd-plan-open .hd-td-plan { z-index:36; box-shadow:0 0 0 3px #fff3b0, 0 4px 0 ${ink}; }
+  ${W} .hd-td .hd-td-plan :is(.hd-plan-arm > span:not(.hd-plan-sug), .hd-plan-ev, .hd-plan-note, .hd-esc-meet) { display:none; }
+  ${W} .hd-td .hd-td-plan .hd-plan-arm:not(:has(.hd-plan-sug)) { display:none; }
   ${W} .hd-td-call { flex:1 1 0; min-width:44px; max-width:none; min-height:48px; padding:0 4px; font-size:14px; line-height:1.1; }
   ${W} .hd-td-call small { display:none; }
   /* 章末机制钮（水闸、老炮、援船）和锚钩（英雄 8 级起，不够级时锁着也摆）：同一行再挤一颗，相邻钮间距就不到 8
@@ -193,6 +197,14 @@ ${W} .hd-key { display:none; }
   ${W} .hd-td-hasmech .hd-td-mech:not(.hd-td-hookbtn), ${W} .hd-td-hashook .hd-td-hookbtn { position:absolute; right:144px; bottom:calc(100% + 8px); }
   ${W} .hd-td-hasmech.hd-td-hashook .hd-td-hookbtn { right:196px; }
   @media (max-height:700px) { ${W} .hd-tdsel.hd-tdsel-main { padding-top:4px; padding-bottom:4px; } }
+  /* 矮竖屏（360×640）：预告卡只留第一行（第几波、敌人、倒数），贴着顶栏下沿、内边距收小，顶底栏才在 22% 内；
+     「先造哪座」地上的金圈和塔名牌照样指着 */
+  @media (max-height:700px) {
+    ${W} .hd-td .hd-td-plan { top:calc(env(safe-area-inset-top, 0px) + 54px); padding:1px 6px 2px; pointer-events:none; cursor:default; }
+    ${W} .hd-td .hd-td-plan .hd-plan-arm { display:none; }
+    /* 一行高的卡做不成 44 高的点按目标（做成就超 22%），卡只看不点；图鉴从顶栏这颗钮进（tdhud.ts 的 .hd-best-btn，开的是整页图鉴，不是展开 HUD） */
+    ${W} .hd-td .hd-best-btn { display:flex; align-items:center; justify-content:center; }
+  }
   ${W} .hd-td-plan, ${W} .hd-td-banner { top:calc(env(safe-area-inset-top, 0px) + 58px); }
   /* 第二行搬走后顶栏下面是空的：「全景」「回到船」钮上提到预告卡右边的那一列（卡展开时已给它们让出 74 像素，见 td-ui.ts）；
      登陆战竖屏的次顶栏也搬到了底部，「全景」同样贴着顶栏下沿，落在岛上方的空海里，不压右上的沙滩 */
@@ -228,14 +240,14 @@ ${W} .hd-key { display:none; }
 }
 
 /* 平板竖屏（560–899 宽，如 820×1180）的护航：顶上预告卡（五六行）和底上整排速度钮各占一大块，合计 27.7%（质量线 22%）。
-   预告卡收成顶栏里的波次小钮（和手机竖屏同一套：顶栏的「波」牌让位给它，点开浮出、点别处收起），速度排保持原样大小不动（平板上够宽，不收）。
+   预告卡常显、只留第一行（顶栏的「波」牌让位；「先造哪座」看地上的金圈），速度排保持原样大小不动（平板上够宽）。
    守岛、海盗来袭、大潮在平板上只有预告卡一块，本来就在线内，不动 */
 @media (min-width:560px) and (max-width:899px) and (orientation:portrait) {
   ${W} .hd-esc .hd-td-bar .hd-pill:nth-of-type(2) { display:none; }
-  ${W} .hd-esc .hd-plan-tog { display:flex; align-items:center; justify-content:center; padding:0 3px; min-width:56px; }
-  ${W} .hd-esc .hd-plan-tog.hint { padding-right:12px; }
-  ${W} .hd-esc:not(.hd-plan-open) .hd-td-plan { display:none; }
-  ${W} .hd-esc.hd-plan-open .hd-td-plan { z-index:36; box-shadow:0 0 0 3px #fff3b0, 0 4px 0 ${ink}; }
+  ${W} .hd-esc .hd-td-plan :is(.hd-plan-arm > span:not(.hd-plan-sug), .hd-plan-ev, .hd-plan-note, .hd-esc-meet) { display:none; }
+  ${W} .hd-esc .hd-td-plan .hd-plan-arm { display:none; }
+  ${W} .hd-esc .hd-td-plan { pointer-events:none; cursor:default; }
+  ${W} .hd-esc .hd-best-btn { display:flex; align-items:center; justify-content:center; }
 }
 
 /* 电脑和横屏平板：建筑、守岛面板放右侧，不把手机竖排的抽屉拉宽 */

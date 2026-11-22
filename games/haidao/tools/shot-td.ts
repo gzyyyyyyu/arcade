@@ -98,8 +98,6 @@ export async function td(c: ShotCtx): Promise<boolean> {
       // 「下一座造」在木台造满时换成「钱够就升级」（td-ui.ts 的 nextStep），这里只查：本波敌人有头像、护甲写了全名
       if (!(await page.locator('.hd-td-plan .hd-plan-foes .hd-tden').count())) throw new Error(`预告卡没画本波敌人：${txt}`);
       if (!/布衣|重甲|木船|飞禽/.test(txt)) throw new Error(`预告卡没写护甲名：${txt}`);
-      // 手机竖屏预告卡收在顶栏的波次小钮里（layout.ts），先点开
-      if (await page.locator('.hd-plan-tog').isVisible()) await click('.hd-plan-tog');
       await shot('preview');
       // 点卡的标题（左上角）：卡正中可能正好是「建议」徽记，点徽记弹的是伤害说明，不开图鉴
       await page.locator('.hd-td-plan').click({ position: { x: 14, y: 12 }, timeout: 8000 });
@@ -120,12 +118,9 @@ export async function td(c: ShotCtx): Promise<boolean> {
       await page.waitForTimeout(400);
       await shot('build-menu');
       await check('建塔菜单');
-      await click('.hd-td-sheet .hd-ctr-tog');
-      await page.waitForTimeout(300);
-      await shot('build-counter');
-      // 克制表点开后只留表（0.30.3 起一屏放下），先收起才看得到塔卡
-      await click('.hd-td-sheet .hd-ctr-off');
-      await page.waitForTimeout(300);
+      // 建塔面板不放克制表（0.58.6 起整表只在敌人图鉴里），每张塔卡写着克谁
+      if (await page.locator('.hd-td-sheet .hd-ctr').count()) throw new Error('建塔面板里不该再有克制表');
+      if (!(await page.locator('.hd-td-tower .hd-td-ctr').count())) throw new Error('塔卡上没写克谁');
       // 电脑用数字键选塔（建塔菜单开着时 1 = 第一种），手机点卡片
       if (v.hasTouch) await click('.hd-td-tower[data-kind="cannon"]');
       else await page.keyboard.press(String((await page.locator('.hd-td-tower').evaluateAll((els) => els.findIndex((e) => (e as HTMLElement).dataset.kind === 'cannon'))) + 1));
@@ -436,8 +431,18 @@ export async function tdLive(c: ShotCtx): Promise<boolean> {
       await click('.hd-td-tower[data-kind="cannon"]');
       await page.waitForTimeout(600);
       if ((await info()).slots[0]!.tower < 0) throw new Error('没造出塔');
-      const hp = await pt(10, 7);
+      // 英雄挪到 (10, 7)；手机竖屏这点可能压在常显的预告卡下面（点到会开图鉴），压着就挪到刚造的塔旁边
+      const onCanvas = (q: { x: number; y: number }): Promise<boolean> => page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.tagName === 'CANVAS', [q.x, q.y]);
       await click('.hd-td-herobtn');
+      await page.waitForTimeout(300);
+      let hp = await pt(10, 7);
+      for (const [x, y] of [[10, 7], [10, 10], [12, 12], [8, 12], [inf.slots[0]!.x + 1, inf.slots[0]!.y + 1]] as const) {
+        const q = await pt(x, y);
+        if (await onCanvas(q)) {
+          hp = q;
+          break;
+        }
+      }
       await tap(hp.x, hp.y);
       await page.waitForTimeout(700);
       await shot('tdlive-built');

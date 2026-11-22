@@ -250,13 +250,11 @@ function tdCss(): string {
 /* 局内 */
 .hd-ui .hd-td-bar { position:absolute; top:6px; left:92px; right:58px; display:flex; flex-wrap:nowrap; gap:6px; pointer-events:none !important; }
 .hd-ui .hd-td-bar .hd-pill { min-width:0; }
+.hd-ui .hd-best-btn { display:none; flex:none; min-width:44px; min-height:44px; padding:0 6px; font-size:14px; font-weight:900; }
 .hd-ui .hd-td-speedtop, .hd-ui .hd-td-pausetop { display:none; flex:none; min-width:44px; min-height:44px; padding:0 4px; }
 .hd-ui .hd-td-pause.on, .hd-ui .hd-td-pausetop.on { background:#ffe885; }
-.hd-ui .hd-plan-tog { display:none; position:relative; flex:none; min-width:44px; min-height:44px; padding:0 2px; font-size:12px; font-weight:900; white-space:nowrap; }
 /* 驻守台选塔页盖在选关页上面时，底下那页不再参与排版和点按 */
 .hd-ui .hd-tdsel:not(.hd-tdgar):has(~ .hd-tdgar) { visibility:hidden; }
-.hd-ui .hd-plan-tog.hint { padding-right:12px; }
-.hd-ui .hd-plan-tog.hint::after { content:''; position:absolute; top:3px; right:3px; width:10px; height:10px; border-radius:50%; background:#e0402f; border:2px solid ${ink}; } /* 红点收在钮里：探出去会把钮的可滚宽度撑大；钮右边让出一截，免得压住「4/8」 */
 @media (max-width:520px) {
   .hd-ui .hd-td-bar { gap:4px; }
   .hd-ui .hd-td-bar .hd-tw { display:none; }
@@ -277,15 +275,10 @@ function tdCss(): string {
 .hd-ui .hd-eye { display:inline-block; width:16px; height:10px; border:2px solid ${ink}; border-radius:50%/60%; background:radial-gradient(circle,${ink} 0 2.5px,#fff 3px); position:absolute; right:-6px; top:-4px; }
 /* 克制表卡：默认收成一个按钮，.on 展开 */
 .hd-ui .hd-ctr { margin:8px 0 2px; }
-.hd-ui .hd-ctr-tog { width:100%; min-height:44px; flex-direction:row; gap:8px; justify-content:center; }
-.hd-ui .hd-ctr-tog small { font-size:12px; opacity:.85; }
-.hd-ui .hd-ctr-tb, .hd-ui .hd-ctr-who, .hd-ui .hd-ctr-key { display:none; }
-.hd-ui .hd-ctr.on .hd-ctr-tb { display:table; }
-.hd-ui .hd-ctr.on .hd-ctr-who, .hd-ui .hd-ctr.on .hd-ctr-key { display:flex; }
+.hd-ui .hd-ctr-key, .hd-ui .hd-ctr-who { display:flex; }
 /* 表上一句怎么读，后面三个色块就是格子的颜色 */
 .hd-ui .hd-ctr-key { flex-wrap:wrap; align-items:center; gap:2px 6px; margin:0 0 2px; font-size:12px; font-weight:700; }
 .hd-ui .hd-ctr-key i { font-style:normal; font-weight:900; padding:0 5px; border:2px solid ${ink}; border-radius:6px; }
-.hd-ui .hd-ctr.on .hd-ctr-tog { display:none; }
 .hd-ui .hd-ctr-tb { width:100%; border-collapse:separate; border-spacing:3px; font-size:14px; animation:hd-tdin .22s cubic-bezier(.3,1.4,.5,1); }
 .hd-ui .hd-ctr-tb th { font-weight:800; font-size:12px; white-space:nowrap; text-align:center; }
 .hd-ui .hd-ctr-tb th span { margin-left:3px; }
@@ -472,11 +465,6 @@ function tdCss(): string {
 }
 @media (max-height:500px) { .hd-ui .hd-td-sheet { max-height:72%; } }
 
-
-/* 克制表展开（建塔面板里）：其余内容让位，只留表和"收起"钮；图鉴里的表一直展开 */
-.hd-ui .hd-ctr-off { display:none; width:100%; min-height:44px; margin-top:8px; }
-.hd-ui .hd-ctr.on:not(.fixed) .hd-ctr-off { display:flex; }
-.hd-ui .hd-td-sheet:not(.hd-td-best):has(.hd-ctr.on) > :not(.hd-head):not(.hd-ctr) { display:none; }
 .hd-ui .hd-best-pager { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:8px; }
 .hd-ui .hd-best-pager .hd-btn { min-width:88px; min-height:44px; }
 .hd-ui .hd-td-price b, .hd-ui .hd-td-store b, .hd-ui .hd-td-kept b { font-variant-numeric:tabular-nums; }

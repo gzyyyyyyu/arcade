@@ -8,7 +8,7 @@ import { type TdState, tdBuildBlock, tdClearCost, TD2_ECON, type TdTowerKind, is
 import { TICKS_PER_SEC, UNIT } from '../core/types.ts';
 import { iconA } from './art.ts';
 import { keyBadge } from './inputs.ts';
-import { bestiary, openerLeft, towerIcon, TOWER_INFO, rangeText, towerCounter, dmgBadge, counterCard, ARMOR_NAME, DAMAGE_NAME, branchName, pendingTier, branchCards, branchDamageHint } from './td-ui.ts';
+import { bestiary, openerLeft, towerIcon, TOWER_INFO, rangeText, towerCounter, dmgBadge, ARMOR_NAME, DAMAGE_NAME, branchName, pendingTier, branchCards, branchDamageHint } from './td-ui.ts';
 import { sfx } from './audio/sfx.ts';
 import { buildSound, upgradeSound } from './audio/pick.ts';
 import { el, button, img } from './ui.ts';
@@ -211,7 +211,8 @@ export function renderSheet(bs: TdScene): void {
     });
     const locked = TEMP_KINDS.length - kinds.length;
     if (locked > 0) el('p', 'hd-td-note', `还有 ${locked} 种塔：主寨升级后解锁`, box);
-    counterCard(box);
+    // 整张克制表在敌人图鉴里（点预告卡或按 C）；这里每张塔卡已写着克谁、打不到谁
+    el('p', 'hd-td-note', '全部克制关系：点预告卡看敌人图鉴', box);
     return;
   }
   const tier = t.tier ?? Math.min(3, sl.ups + 1);
