@@ -44,7 +44,8 @@ export function homePage(): void {
   const { wallet, walletNote } = session;
   renderHome(screen, {
     quick: kind(quickStakes, prefs.level),
-    resume: save ? `${kind(save.stakes, save.level)} · ${progressOf(save)}` : null,
+    // 带上存档的玩法：上面标题写的是选着的玩法，和这一场可能不是一种（0.47.1 走查）
+    resume: save ? `${saveVariant(save)} · ${kind(save.stakes, save.level)} · ${progressOf(save)}` : null,
     // 卡上只写原因的头一句（"连不上服务器"），整句挤不下一屏（docs/ui.md 第 11 节）
     realOff: wallet ? (wallet.balance <= 0 ? '钱包没有筹码了' : null) : (walletNote ?? NET_FAIL).split(/[，。]/)[0]!,
     standalone: session.standalone,
@@ -138,6 +139,9 @@ function cloudTap(s: CloudState): void {
 }
 
 /** 存档打到哪了（主页"继续上局"底下那行） */
+/** 存档是哪个玩法（「血流成河」「立直麻将」）：主页、选桌页的接着打都写上，选着的玩法和存档可能不是一种 */
+const saveVariant = (save: SoloSave): string => pageOf(save.state.variant).name(save.state.opts as never).replace('川麻·', '');
+
 function progressOf(save: SoloSave): string {
   return pageOf(save.state.variant).progress(save.state, save.daily);
 }
@@ -163,7 +167,8 @@ export function lobby(friends = false, mode: HomeMode | null = null): void {
     level: prefs.level,
     rules: prefs,
     variants: variantChoices(() => lobby(false, session.lobbyMode)),
-    canResume: loadSolo() !== null,
+    // 只挂在存档那种的页上：实盘页挂着娱乐局的「接着打」，点了却进娱乐局（0.47.1 走查）；主页「继续上局」照旧都有
+    resume: ((s) => (s && (stakesOf(s.stakes)?.wallet ? 'real' : 'fun') === m ? `接着打 · ${saveVariant(s)}` : null))(loadSolo()),
     onSolo: startSolo,
     onResume: () => void resumeSolo(),
     onDaily: (v) => void startDaily(v),

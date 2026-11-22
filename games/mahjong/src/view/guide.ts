@@ -51,8 +51,8 @@ function guidePage(parent: HTMLElement, page: number, done: () => void, variant:
 
 /** 电脑上的快捷键（table.ts 的 onKey、ting.ts 的 act 实现的键位，改键位时两边一起改） */
 const KEYS: readonly [string[], string][] = [
-  [['H'], '胡（自摸 / 和）'],
-  [['C'], '吃（立直；能吃的不止一种时再点选哪一种）'],
+  [['H'], '胡（立直里叫「和」）'],
+  [['C'], '吃（只有立直能吃；能吃的不止一种时再点选哪一种）'],
   [['P'], '碰'],
   [['G'], '杠'],
   [['X'], '过'],

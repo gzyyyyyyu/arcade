@@ -64,6 +64,30 @@
   padding: 0 var(--sp-3);
   font-size: var(--fs-sm);
 }
+.icon.gear {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: max(40px, var(--tap, 0px));
+  padding: 0;
+}
+.icon.gear svg {
+  width: 20px;
+  height: 20px;
+}
+/* 静音时齿轮右下角一个小「静」：声音状态不用点开也看得到 */
+.icon.gear.muted::after {
+  content: '静';
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  padding: 0 3px;
+  border-radius: var(--r-pill);
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  line-height: 14px;
+}
 .pill.leave {
   background: #ffffff2e;
 }

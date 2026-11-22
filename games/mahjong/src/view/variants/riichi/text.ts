@@ -28,7 +28,7 @@ export const END_NAME: Record<RcEnd, string> = {
 
 /** 中途流局的原因（一句话，不用术语） */
 export const ABORT_WHY: Partial<Record<RcEnd, string>> = {
-  nine_terminals: '第一巡手里有 9 种以上的幺九牌，宣告流局',
+  nine_terminals: '有一家第一巡手里就有 9 种以上的幺九牌，宣告流局',
   four_winds: '第一巡四家打出同一种风牌',
   four_kans: '两人以上合计开了四个杠',
   four_riichi: '四家都立直了',

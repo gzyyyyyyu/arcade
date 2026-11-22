@@ -86,7 +86,8 @@ export const xuezhanUi: VariantUi<XzView, XzAction> = {
         el('div', 'hint', bar, me ? '等别人定缺…' : '大家在定缺');
         return true;
       }
-      if (v.swapDir !== null && me) el('div', 'hint', bar, `${SWAP_DIR[v.swapDir]}，定一门不要的：`);
+      // 不换三张的桌也要一句：只剩三个按钮时新手不知道在干什么（0.47.1 走查）
+      el('div', 'hint', bar, v.swapDir !== null ? `${SWAP_DIR[v.swapDir]}，定一门不要的：` : '定一门不要的（这门打干净才能胡）：');
       const best = chooseQue(me.hand);
       const picks: HTMLButtonElement[] = [];
       for (const s of [0, 1, 2] as Suit[]) {

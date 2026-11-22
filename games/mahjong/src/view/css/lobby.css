@@ -123,7 +123,9 @@
 .stage[data-orient='land']:not([data-fit='desk']) .screen.lobby {
   grid-template-columns: minmax(0, 1fr);
 }
+/* 版本号也藏（面板占满宽，压在面板底边上，0.47.1 走查）；主页还有 */
 .stage[data-orient='land']:not([data-fit='desk']) .screen.lobby > .lobby-art,
+.stage[data-orient='land']:not([data-fit='desk']) .screen.lobby .ver,
 .stage[data-orient='land']:not([data-fit='desk']) .screen.lobby .daily-week {
   display: none;
 }
@@ -141,8 +143,26 @@
   grid-auto-flow: column;
   column-gap: var(--sp-3);
 }
+/* 标题居中、「接着打」在右栏：三栏网格，面板窄时标题往左让，不被盖住（绝对定位时 1280×800 压掉「盘」字半边，0.47.1 走查） */
 .lobby-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: var(--sp-2);
+  align-self: stretch;
   text-align: center;
+}
+.lobby-head h1 {
+  grid-column: 2;
+}
+.lobby-head .variant {
+  grid-column: 1 / -1;
+}
+.lobby-head .resume {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  white-space: nowrap;
 }
 .lobby-head h1 {
   margin: 0;
@@ -232,6 +252,8 @@
 .wallet-note {
   font-size: var(--fs-sm);
   line-height: 1.5;
+  /* 折两行时两行差不多长，不留「赢 3 份」单挂一行 */
+  text-wrap: balance;
   opacity: 0.8;
   text-align: center;
   max-width: 640px;

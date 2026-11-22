@@ -126,6 +126,13 @@
   padding: var(--sp-3) var(--sp-6);
   border-radius: var(--r-lg);
 }
+/* 危险按钮（离开、放弃，docs/ui.md 第 2 节）：红系，不和主按钮同色 */
+.act.danger {
+  border-color: #ffb3a8;
+  background: linear-gradient(#d9483a, #9a2318);
+  color: #fff3e8;
+  text-shadow: 0 1px 0 #5a0a06;
+}
 .act.soft {
   border-color: transparent;
   background: var(--surface-hi);

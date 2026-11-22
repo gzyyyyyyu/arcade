@@ -50,7 +50,7 @@ export function dailyEntry(box: HTMLElement, variant: DailyVariant, onStart: () 
     netText(state, mine.net);
     state.append(' 分 · 再打算练习');
   }
-  const more = el('span', 'daily-state', b, `${run > 0 ? `连续 ${run} 天` : '还没连上'} · 全天同一副牌，普通档 ${pageOf(variant).daily.lengthText}`);
+  const more = el('span', 'daily-state', b, `连续 ${run} 天 · 全天同一副牌，普通档 ${pageOf(variant).daily.lengthText}`);
   if (d.best !== null) {
     more.append(' · 最好 ');
     netText(more, d.best);

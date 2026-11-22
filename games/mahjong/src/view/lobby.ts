@@ -32,7 +32,8 @@ interface LobbyProps {
   rules: RulesStore;
   /** "玩法"选项：ids 是主页同一组切换项（各玩法的 homeChoices），current 是选着的那一项 */
   variants?: { ids: string[]; current: string; onPick(id: string): void };
-  canResume: boolean;
+  /** 这一页（娱乐 / 实盘）有没打完的一场时「接着打」按钮的字（带存档的玩法），没有就是 null */
+  resume: string | null;
   /** 开单机、开房间要先问钱包和服务器：按钮转圈直到回来；opts 是选着的玩法的规则设置 */
   onSolo(stakes: StakesId, opts: AnyOpts, level: Level, variant: string): Promise<void>;
   onResume(): void;
@@ -75,6 +76,8 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   const head = el('div', 'lobby-head', panel);
   el('h1', '', head, MODE_TITLE[p.mode]);
   el('div', 'variant', head, `${GAME_NAME} ${page.name(opts as { flow?: boolean; three?: boolean })}`);
+  // 有没打完的一场：标题右边一个小钮，不单占一排（0.47.1：单占一排时 1280×800 把「单机开打」挤出屏幕）
+  if (p.resume && p.mode !== 'room') button('act go resume', head, p.resume, p.onResume);
   // 玩法：血战到底 / 血流成河 / 三人两房 / 立直（和主页快速一局同一份记忆）。选了以后整页重画，档位卡和规则摘要跟着换
   if (p.variants) {
     const { ids, current, onPick } = p.variants;
@@ -86,7 +89,6 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
       b.setAttribute('aria-pressed', String(on));
     }
   }
-  if (p.canResume && p.mode !== 'room') button('act go big resume', panel, '接着打上一场', p.onResume);
 
   if (p.mode === 'fun' && p.onDaily) {
     const onDaily = p.onDaily;
@@ -130,8 +132,10 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
     el('div', 'stakes-label', pick, `实盘 · 用钱包里的筹码 · ${realMins}`);
     const real = el('div', 'stakes', pick);
     for (const s of tiers) {
-      const off = !p.wallet || p.wallet.balance <= 0;
-      card(real, s.id === stakes, off, s.id, `${STAKES_NAME[s.id]}档`, STARS[s.id as TierId], [`最多赢 ${wan(s.share * 3)}`, `最多输 ${wan(s.share)}`], () => (stakes = s.id));
+      // 余额不够带进一份的档直接灰掉、写明（以前能选，点开打才报筹码不够，0.47.1 走查）
+      const off = !p.wallet || p.wallet.balance < s.share;
+      const lines = p.wallet && off ? [`要 ${wan(s.share)}`, '筹码不够'] : [`最多赢 ${wan(s.share * 3)}`, `最多输 ${wan(s.share)}`];
+      card(real, s.id === stakes, off, s.id, `${STAKES_NAME[s.id]}档`, STARS[s.id as TierId], lines, () => (stakes = s.id));
     }
   };
   paint();

@@ -210,7 +210,7 @@ async function joinAndStart(a: Page, b: Page, base: string, code: string, wallet
 /** 点"离开"并确认，回到选桌页；再等一会儿，旧房间还在路上的帧不能把牌桌画回来（0.2.0 冒烟抓到过，online.ts 的 closed） */
 async function leaveRoom(page: Page, tag: string): Promise<void> {
   await page.click('.pill.leave');
-  await page.click('.mask.confirm .act.go');
+  await page.click('.mask.confirm .act.danger');
   await page.waitForSelector('.lobby-head', { timeout: 5_000 });
   await sleep(2_500);
   if (!(await page.$('.lobby-head'))) {

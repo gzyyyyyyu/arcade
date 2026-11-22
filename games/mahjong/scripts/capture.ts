@@ -91,10 +91,10 @@ async function tapSizes(): Promise<string> {
     return `条[${bar.join(', ')}] 圆钮[${fun.join(', ')}] 条到手牌 ${b && h ? Math.round(h.top - b.bottom) : '-'} 牌宽 河${w('.river .tile')} 手${w('.my-hand .tile')}`;
   });
 }
-/** 牌桌上不同部分（各家的牌河、副露、手牌、头像、中间、操作条）有没有互相压住：按每张牌、每个按钮的框算 */
+/** 牌桌上不同部分（各家的牌河、副露、手牌、头像、中间、操作条、互动气泡）有没有互相压住：按每张牌、每个按钮的框算 */
 async function overlaps(): Promise<string[]> {
   return page.evaluate(() => {
-    const parts = ['.center', '.bar > *', '.my-hand .tile', '.atf-btn'];
+    const parts = ['.center', '.bar > *', '.my-hand .tile', '.atf-btn', '.atf-bubble'];
     for (let r = 0; r < 4; r++) parts.push(`.river.r${r} .tile`, `.melds.r${r} .tile`, `.badge.r${r}`, `.opp-hand.r${r} > *`);
     const boxes = parts.map((sel) => [...document.querySelectorAll(sel)].map((e) => e.getBoundingClientRect()).filter((b) => b.width > 0));
     const out: string[] = [];
