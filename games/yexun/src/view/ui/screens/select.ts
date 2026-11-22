@@ -208,11 +208,10 @@ export class Select {
     const live = this.live.available && this.live.on;
     const raid = this.kind === 'raid';
     const keep = this.root.scrollTop;
-    const esc2 = esc;
     const heads = (r: Region | undefined, names: boolean): string => {
       if (!r) return '<span class="yx-mobs"><em>只有常规怪</em></span>';
       const list = r.mobs.map((x) => ({ k: x.kind, n: MONSTER_INFO[x.kind].name }));
-      return `<span class="yx-mobs">${list.map((x) => `<img class="yx-mob" alt="${esc2(x.n)}" title="${esc2(x.n)}" src="${s.mobIcon(x.k, 48)}">`).join('')}${names ? `<em>${list.map((x) => x.n).join('、')}</em>` : ''}</span>`;
+      return `<span class="yx-mobs">${list.map((x) => `<img class="yx-mob" alt="${esc(x.n)}" title="${esc(x.n)}" src="${s.mobIcon(x.k, 48)}">`).join('')}${names ? `<em>${list.map((x) => x.n).join('、')}</em>` : ''}</span>`;
     };
     const top = HOME_BTN + '<div class="yx-more"><button type="button" class="yx-btn" data-a="back" aria-label="返回主页">‹ 返回</button></div>';
     const lvSw = this.live.available
@@ -256,7 +255,7 @@ export class Select {
     let facts = '';
     // 实盘数字小牌：一行等宽排完（守夜 4 格，夜探 5 格），大字写数、小字写它是什么，整段细则在悬停里
     const factCards = (list: LiveFact[], tip: string): string =>
-      `<div class="yx-livefacts" data-n="${list.length}" style="--fc:${list.length}" title="${esc2(tip)}">${list.map((x) => `<span class="yx-fact"><b>${esc2(x.big)}</b><small>${esc2(x.small)}</small></span>`).join('')}</div>`;
+      `<div class="yx-livefacts" data-n="${list.length}" style="--fc:${list.length}" title="${esc(tip)}">${list.map((x) => `<span class="yx-fact"><b>${esc(x.big)}</b><small>${esc(x.small)}</small></span>`).join('')}</div>`;
     if (raid && s.raidFirst) {
       pick = `<div class="yx-raidnote"><b>${RAID_TEMPLATES.teach.name}</b>${RAID_TEMPLATES.teach.blurb}</div>`;
     } else if (live) {

@@ -26,6 +26,5 @@ export const SKIP_PRIZES = [
   { id: 'card', weight: 0.25 },
   { id: 'reroll', weight: 0.15 },
 ] as const;
-export type SkipPrize = (typeof SKIP_PRIZES)[number]['id'];
 /** 铜钱 = base + perLevel × 当前等级；回血按最大血量的比例 */
 export const SKIP_FX = { coinBase: 10, coinPerLevel: 2, heal: 0.2 } as const;

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { ACHIEVEMENTS, rewardCoins, rewardTitles } from '../../src/content/achievements.ts';
+import { ACHIEVEMENTS, ACHIEVEMENT_BY_ID, rewardCoins, rewardLine } from '../../src/content/achievements.ts';
 import { ENEMIES } from '../../src/content/enemies.ts';
 import { MAX_WEAPON_LEVEL, MERGES, PASSIVES, WEAPONS, type PassiveId, type WeaponId } from '../../src/content/weapons.ts';
 import { RECORDS_KEY, applyRun, collection, emptyRecords, loadRecords, recordTrial, saveRecords, type Records, type RunSummary } from '../../src/meta/records.ts';
@@ -83,9 +83,10 @@ describe('成就数据', () => {
     expect(r.unlocked).toContain('dawn_5');
   });
 
-  it('称号只发给带称号的成就，铜钱按成就累加', () => {
+  it('铜钱按成就累加', () => {
     expect(rewardCoins(['dawn_1', 'dawn_5'])).toBe(90);
-    expect(rewardTitles(['dawn_1', 'dawn_hard', 'nope'])).toEqual(['dawn_hard']);
+    expect(rewardLine(['dawn_1'])).toBe(`成就「${ACHIEVEMENT_BY_ID.dawn_1!.name}」`);
+    expect(rewardLine(['dawn_1', 'dawn_5'])).toBe(`成就「${ACHIEVEMENT_BY_ID.dawn_1!.name}」等 2 个`);
   });
 });
 

@@ -13,6 +13,7 @@ import type { FriendBests } from '../../online/trials.ts';
 import { closeModal, openModal } from './modal.ts';
 import { PAGER_CTL, Pager } from './pager.ts';
 import './trials.css';
+import { esc } from './screens/shared.ts';
 
 export interface TrialsView {
   /** 每关的最好成绩（没打过没有） */
@@ -30,7 +31,6 @@ export interface TrialsOptions {
   onClose(): void;
 }
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const n = (x: number): string => x.toLocaleString('zh-CN');
 
 /** 配置一行：图（夜探写镇子）· 角色 · 危险 */

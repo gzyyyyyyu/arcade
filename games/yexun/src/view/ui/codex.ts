@@ -15,8 +15,8 @@ import { nightData } from './codexNights.ts';
 import { closeModal, modalChrome, openModal } from './modal.ts';
 import { PAGER_CTL, Pager } from './pager.ts';
 import './codex.css';
+import { esc } from './screens/shared.ts';
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 /** 怪的名字和一句话（图集里的帧名 = 怪的 kind） */
 export const MONSTER_INFO: Record<EnemyKind, { name: string; tag: string; blurb: string }> = {

@@ -141,5 +141,8 @@ export const trialUnlocks = (c: Records): string[] => ([0, 1, 2] as const).filte
 
 /** 一批新解锁的成就一共给多少铜钱 */
 export const rewardCoins = (ids: readonly string[]): number => ids.reduce((s, id) => s + (ACHIEVEMENT_BY_ID[id]?.coins ?? 0), 0);
-/** 其中带称号的成就 id（称号 id = 成就 id，写进平台钱包） */
-export const rewardTitles = (ids: readonly string[]): string[] => ids.filter((id) => ACHIEVEMENT_BY_ID[id]?.title);
+/** 结算页铜钱明细里这一批成就的一行：一个写名字，多个写第一个的名字和个数 */
+export const rewardLine = (ids: readonly string[]): string => {
+  const first = ACHIEVEMENT_BY_ID[ids[0]!]!.name;
+  return ids.length === 1 ? `成就「${first}」` : `成就「${first}」等 ${ids.length} 个`;
+};

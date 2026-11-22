@@ -310,6 +310,8 @@ try {
       });
       for (const b of bad) fail(`${name} ${b}`);
       await page.waitForFunction(() => !!document.querySelector('.yx-tr-card[data-id="chuye"] .f')?.textContent, null, { timeout: 10_000 }).catch(() => fail(`${name} 卡上没写好友最好`));
+      // 试炼层打开有淡入（yx-scr-in），读榜回得快时会截在半透明中途
+      await page.waitForFunction(() => getComputedStyle(document.querySelector('.yx-trials-layer')!).opacity === '1');
       if (SHOT_DIR) await page.screenshot({ path: join(SHOT_DIR, `trials-${vp.width}.png`) });
       await card.click();
       await page.waitForFunction(() => (window as unknown as { __yx: { world: { trial: { id: string } | null } | null } }).__yx.world?.trial?.id === 'chuye');

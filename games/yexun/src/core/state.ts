@@ -2,7 +2,6 @@
  * 一局的全部状态（DESIGN.md 5.1）：怪、子弹、掉落物用定长的并列数组，空位用空闲表复用，热路径不分配对象。
  * `step` 原地修改这里的东西（主线批准的例外，见模块 AGENTS.md 第 3 节）。
  */
-import { ENEMIES } from '../content/enemies.ts';
 import { LIVE_EASE, RAID_MAX_DANGER, type Danger, type WaveEvent } from '../content/waves.ts';
 import { CHAR_FX, CHARACTERS, CURSE_IDS, KIT_FX, KIT_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type KitId, type PerkId } from '../content/meta.ts';
 import { isWeeklyId, type WeeklyId } from '../content/weekly.ts';
@@ -24,6 +23,11 @@ import { FoeState } from './foes/state.ts';
 
 export const RULES_VERSION = 72;
 export const TICKS_PER_SECOND = 30;
+/**
+ * 刷怪的一圈：刚好在屏幕外（横屏一屏约 1000 × 560 到 1080 × 500 单位，画面层 viewport.ts 的 worldZoom），
+ * 椭圆横向宽；竖屏开的局（setup.tall）转 90°，纵向宽。放在这里而不是 step.ts：画面层要读它，不能为一个常量把整个 step 拉进首屏
+ */
+export const RING = { long: 600, short: 360 };
 
 export const MAX_ENEMIES = 300;
 /** 法器格最多几个：6 个，每合成一次空出一个（合成以后两件都还在出手） */
@@ -620,9 +624,4 @@ export class World {
 
 export function baseStats(): Stats {
   return { might: 1, cdMul: 1, areaMul: 1, amount: 0, speed: PLAYER.speed, magnet: PLAYER.magnet, armor: 0, hpMax: PLAYER.hp, regen: 0, luck: 0, xpMul: 1, coinBonus: 0, durMul: 1, curse: 0, bindDouble: false, critAdd: 0, critDmg: 0, nearSlow: false };
-}
-
-/** 怪种类编号 → 定义 */
-export function enemyDef(code: number): (typeof ENEMIES)[number] {
-  return ENEMIES[code]!;
 }

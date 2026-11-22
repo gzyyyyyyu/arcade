@@ -62,8 +62,3 @@ export function liveMultiplier(value: number, tier: RaidLiveTier, template: Raid
 export function liveBp(value: number, tier: RaidLiveTier, template: RaidLiveTemplate = 'guzhen', ticks: number = RAID_LIVE.floorRamp[tier], character: CharacterId = 'xiaodao'): number {
   return Math.floor(liveMultiplier(value, tier, template, ticks, character) * 10000);
 }
-
-/** 结回：带入 × bp ÷ 10000 向下取整 */
-export function livePayout(buyin: number, bp: number): number {
-  return Math.floor((buyin * bp) / 10000);
-}

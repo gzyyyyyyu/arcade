@@ -22,11 +22,6 @@ function slotOf(w: World, id: WeaponId): number {
   for (let k = 0; k < w.weapons.length; k++) if (w.weapons[k]!.id === id) return k;
   return -1;
 }
-function evOf(w: World, type: number, a = -1): number {
-  const ev = w.ev;
-  for (let q = 0; q < ev.n; q++) if (ev.type[q] === type && (a < 0 || ev.a[q] === a)) return q;
-  return -1;
-}
 
 /** 给一只怪上易伤（和勾魂锁共用同一份 vulnUntil / vulnMul，取倍数大的、时间长的，不把别人的盖低） */
 function vuln(w: World, i: number, mul: number, ticks: number): void {
@@ -54,11 +49,11 @@ function inZone(w: World, x: number, y: number): boolean {
 export function thirdTick(w: World, g: Grid, api: ArmApi): void {
   // 铃符 / 铃焰 / 钟鼓齐鸣：都挂在镇魂铃响的那一拍上
   if (has(w, 'linfu') || has(w, 'lingyan') || has(w, 'zhonggu')) {
-    const q = evOf(w, Ev.Bell);
+    const q = w.ev.find(Ev.Bell);
     if (q >= 0) bellCombos(w, g, api, w.ev.b[q]!);
   }
   // 符火燎原：每放一次符，最近的怪脚下烧起一摊火（火摊用火葫芦的伤害）
-  if (has(w, 'fuhuo') && evOf(w, Ev.Fire, CODE.talisman) >= 0) {
+  if (has(w, 'fuhuo') && w.ev.find(Ev.Fire, CODE.talisman) >= 0) {
     const kg = slotOf(w, 'gourd');
     if (kg >= 0) {
       const M = COMBO55.fuhuo;

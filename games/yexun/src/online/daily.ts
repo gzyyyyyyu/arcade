@@ -10,8 +10,6 @@ import { DAILY_CURSE_IDS, type CurseId, type OnlineSetup, type RunMode } from '.
 
 /** 每日挑战统一的危险档：2 是配平的基准档（docs/balance.md），大家比的是走位，不比谁敢开高档 */
 export const DAILY_DANGER = 2;
-/** 每日挑战的规则版本：抽法、计分大改时加一，榜名带 -v<n>，改前改后不在一个榜上比；0 = 不带 */
-export const DAILY_RULES = 0;
 /** 周日噩梦日：从这天（含）起的北京时间周日，守夜每日挑战改为噩梦 1（危险 6）、咒印只抽 1 条；更早的周日保持原样，已有的榜不变 */
 export const NIGHTMARE_SUNDAY_FROM = '2026-11-01';
 export const NIGHTMARE_SUNDAY_DANGER = 6;
@@ -20,7 +18,8 @@ export const DAILY_MAPS: readonly MapId[] = ['snow', 'yizhuang'];
 /** 夜探每日挑战抽的模板（不抽教学镇） */
 export const DAILY_RAID: readonly RaidTemplateId[] = ['guzhen', 'dukou', 'shansi'];
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** 北京日期 YYYY-MM-DD（每日、每周、连战共用） */
+export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** 北京时间的日期 YYYY-MM-DD（平台只认北京时间的昨天、今天、明天） */
 export function beijingDate(nowMs: number): string {
@@ -68,14 +67,13 @@ export interface DailyPlan {
   boardId: string;
 }
 
-/** 每日榜的榜名：子榜就是模式 id */
-export function dailyBoardId(date: string, mode: RunMode): string {
-  return DAILY_RULES > 0 ? `daily-${date}-${mode}-v${DAILY_RULES}` : `daily-${date}-${mode}`;
+/** 每日榜的榜名：子榜是模式 id，连战是 rush */
+export function dailyBoardId(date: string, sub: RunMode | 'rush'): string {
+  return `daily-${date}-${sub}`;
 }
 
 /**
  * 这一天、这个模式的挑战。守夜和夜探用不同的种子和咒印（流名里带模式），同一天两个榜不是同一局。
- * 难度字段是过渡：核心 Setup 接上 danger 以前按 danger 2 对应 normal。
  */
 export function dailyPlan(date: string, mode: RunMode): DailyPlan {
   if (!DATE_RE.test(date)) throw new Error('每日挑战的日期要是 YYYY-MM-DD');

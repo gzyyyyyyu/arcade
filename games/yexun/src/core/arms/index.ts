@@ -450,12 +450,6 @@ function inAnyZone(w: World): boolean {
   return false;
 }
 
-/** 这一拍有没有某种事件（法器里发的铃响、盾碎），返回第一条的下标，没有 -1 */
-function evOf(w: World, type: number, a = -1): number {
-  const ev = w.ev;
-  for (let q = 0; q < ev.n; q++) if (ev.type[q] === type && (a < 0 || ev.a[q] === a)) return q;
-  return -1;
-}
 
 function combos(w: World, g: Grid, api: ArmApi): void {
   const has = (id: string): boolean => w.merges.includes(id as never);
@@ -466,7 +460,7 @@ function combos(w: World, g: Grid, api: ArmApi): void {
   };
 
   // 盾碎：鹤翼金身（纸鹤俯冲一圈）、乾坤护阵（光波 + 挡弹幕）
-  const burst = has('hejin') || has('qiankun') ? evOf(w, Ev.Shield, 0) : -1;
+  const burst = has('hejin') || has('qiankun') ? w.ev.find(Ev.Shield, 0) : -1;
   if (burst >= 0) {
     if (has('hejin')) {
       const { k, dmg } = dmgOf('crane');
@@ -515,7 +509,7 @@ function combos(w: World, g: Grid, api: ArmApi): void {
   }
   // 铃响：引魂鹤铃（纸鹤啄铃里最近的怪）、晨钟暮鼓（站在阵里，铃再响一遍）
   if (has('heling') || has('chenzhong')) {
-    const q = evOf(w, Ev.Bell);
+    const q = w.ev.find(Ev.Bell);
     if (q >= 0) {
       const r = w.ev.b[q]!;
       if (has('heling')) {

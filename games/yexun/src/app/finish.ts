@@ -7,8 +7,10 @@ import { RUSH } from '../content/rush.ts';
 import { SCHOOLS } from '../content/guide.ts';
 import { TREASURES } from '../content/treasures.ts';
 import { WEEKLIES } from '../content/weekly.ts';
-import { rewardCoins } from '../content/achievements.ts';
-import { rushResult, trialResult, type World } from '../core/index.ts';
+import { rewardCoins, rewardLine } from '../content/achievements.ts';
+import { rushResult } from '../core/rush.ts';
+import type { World } from '../core/state.ts';
+import { trialResult } from '../core/trial.ts';
 import { goalText } from '../content/trials.ts';
 import type { WeekRun } from '../content/weekGoals.ts';
 import { WEAPONS } from '../content/weapons.ts';
@@ -37,6 +39,17 @@ import { prepareShare } from 'arcade-kit/share';
 import { buildRows } from './buildRows.ts';
 import { recordText } from './liveText.ts';
 import type { loadRecords } from '../meta/records.ts';
+import { TOUCH } from '../view/viewport.ts';
+
+/**
+ * 这台设备前三局倒下时结算页的「下次试试」（新手实录：不动的新号 3:43 倒下，结算页只写撑了多久，不知道下次该怎么办）。
+ * 按第几局给：先教走位，再教挑法器和吃肉包，最后指到「加成」
+ */
+const ADVICE: readonly string[] = [
+  TOUCH ? '按住屏幕拖动走位，绕着怪群转圈，别站着让它们围上来' : '用 WASD 或方向键走位，绕着怪群转圈，别站着让它们围上来',
+  '升级时多挑「新」法器，法器越多清怪越快；地上的肉包能回血',
+  '铜钱去「选模式」里的「加成」买力量、体魄，带着再来',
+];
 
 /** 一局的流转状态：开局（main 的 startRun）写，结束（下面的 finish）读写，两边共用这一份 */
 export interface Session {
@@ -263,12 +276,13 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     saveRecords(sess.records);
     for (const id of ach.unlocked) grantCoins(save, `ach:${id}`, rewardCoins([id]));
     const achCoins = rewardCoins(ach.unlocked);
-    const sources = [...got.sources, ...(achCoins > 0 ? [{ label: `成就 ${ach.unlocked.length} 个`, coins: achCoins }] : []), ...extra];
+    const sources = [...got.sources, ...(achCoins > 0 ? [{ label: rewardLine(ach.unlocked), coins: achCoins }] : []), ...extra];
     const extraCoins = extra.reduce((a, x) => a + x.coins, 0);
-    toast.show(ach.unlocked);
+    // 不弹顶上的成就横幅：结算页一出来横幅正好盖住标题（新手第一局一次解锁三四个，盖十来秒），成就名写在上面那条铜钱明细里
     showPlay(false);
     const label = w.trial ? `试炼 · ${w.trial.name} · ${goalText(w.trial.goal)}` : `${sess.dailyDate ? '每日挑战 · ' : ''}${sess.weeklyDate && w.setup.weekly ? `本周夜事 · ${WEEKLIES[w.setup.weekly].name} · ` : ''}${w.setup.endless ? '无尽 · ' : ''}${DANGERS[w.setup.danger].name}${sess.dailyDate && isNightmareSunday(sess.dailyDate, w.setup.mode) ? ' · 周日噩梦日' : ''}${w.setup.curses?.length ? ` · 咒印 ${w.setup.curses.length}` : ''}${w.setup.assist ? ' · 降低伤害' : ''}`;
-    result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: got.coins + achCoins + extraCoins, coinsTotal: coins(save), night: scene()?.nightLog, sources, label, fixed: !!sess.dailyDate || !!(sess.weeklyDate && w.setup.weekly) || !!w.trial, record: got.record && !w.trial, build: buildRows(w) });
+    const advice = !w.won && !quit && !w.raid && !w.trial && !sess.dailyDate && !sess.weeklyDate ? ADVICE[save.runs - 1] : undefined;
+    result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: got.coins + achCoins + extraCoins, coinsTotal: coins(save), night: scene()?.nightLog, sources, label, ...(advice ? { advice } : {}), fixed: !!sess.dailyDate || !!(sess.weeklyDate && w.setup.weekly) || !!w.trial, record: got.record && !w.trial, build: buildRows(w) });
     if (got.askAssist)
       confirm.ask('连着倒下好几局了。要不要把挨打的伤害降低 30%？开着时成绩不进总榜，设置里随时能关。', '降低伤害', '不用', (ok) => {
         save.assist = ok;

@@ -46,3 +46,8 @@ export async function applyDebugStart(q: URLSearchParams, w: World, tally: RunTa
   }
   return autopilot;
 }
+
+/** &merge=late[:拍数]：到那一拍当场开宝箱合成（默认第 28 拍），每拍之后调 */
+export function lateMerge(q: URLSearchParams, w: World): void {
+  if (q.get('merge')?.startsWith('late') && w.tick === (Number(q.get('merge')!.slice(5)) || 28)) openEliteChestNow(w, 0);
+}

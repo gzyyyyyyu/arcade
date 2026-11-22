@@ -2,16 +2,20 @@
  * 画面引擎（Phaser + 对局场景）：main.ts 在主页画出来以后才动态 import 这个文件，Phaser 的下载、解析、开 WebGL 都不挡首屏。
  * 起好以后趁空闲把三张常驻图集先传上显卡（一张一个空闲片），点开局时不再一次传完。
  * 不在对局里时帧循环睡着（菜单盖着画布，空画也要每帧清屏、合成）：开局、回放时 main.ts 叫醒，回主页时让它睡。
+ * 开局、回放才用的规则核心（createWorld、step、夜探注册）也从这里给出去，跟引擎一个块，不进首屏。
  */
 import Phaser from 'phaser';
+import { createWorld } from '../core/index.ts';
+import '../explore/register.ts';
+import { ReplayPlayer } from '../replay/player.ts';
 import { GameScene } from '../view/game/GameScene.ts';
 import { watchContextLoss } from './glitchTip.ts';
-
-export { GameScene };
 
 export interface Engine {
   game: Phaser.Game;
   GameScene: typeof GameScene;
+  createWorld: typeof createWorld;
+  ReplayPlayer: typeof ReplayPlayer;
 }
 
 export interface EngineOpts {
@@ -52,7 +56,7 @@ export function startEngine(o: EngineOpts): Promise<Engine> {
       // READY 之后 Phaser 才同步开帧循环（Game.texturesReady），放到微任务里再让它睡
       queueMicrotask(() => {
         game.loop.sleep();
-        resolve({ game, GameScene });
+        resolve({ game, GameScene, createWorld, ReplayPlayer });
       });
     });
   });

@@ -8,6 +8,7 @@ import { CHARACTERS, type CharacterId } from '../../content/meta.ts';
 import { WEAPONS } from '../../content/weapons.ts';
 import { SKILL_FX, SKILLS } from '../../core/skills.ts';
 import { TICKS_PER_SECOND } from '../../core/state.ts';
+import { esc } from './screens/shared.ts';
 
 const sec = (ticks: number): string => {
   const s = ticks / TICKS_PER_SECOND;
@@ -63,7 +64,6 @@ export function skillInfo(id: CharacterId): SkillInfo {
   };
 }
 
-const esc = (t: string): string => t.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /** 对局里悬停 / 长按技能钮弹出的完整说明 */
 export function skillTipHtml(id: CharacterId): string {

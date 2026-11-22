@@ -2,7 +2,6 @@
  * 撤离指引的画面计算（DESIGN.md 2.3）：屏幕边上的箭头放在哪、写什么，顶上的天亮倒计时。纯函数，画面层（主代理接进对局场景）每帧调。
  * 距离写成"走过去要几秒"而不是单位数：玩家关心的是天亮前赶不赶得到。
  */
-import { DAWN_RED, DAWN_WARN, RAID_DAWN } from '../../content/explore.ts';
 import type { Guide } from '../guide.ts';
 import type { Raid } from '../raid.ts';
 
@@ -40,12 +39,4 @@ export function edgeArrow(raid: Raid, g: Guide, gx: number, gy: number, w: numbe
 /** 沿路走过去大约几秒（向上取整） */
 export function walkSecs(units: number): number {
   return Math.ceil(units / UNITS_PER_SEC);
-}
-
-/** 顶上的字：14:00 前是"离天亮 m:ss"（平静），14:00 起是醒目的倒计时，最后 30 秒变红 */
-export function dawnText(tick: number): { text: string; level: 0 | 1 | 2 } {
-  const left = Math.max(0, RAID_DAWN - tick);
-  const s = Math.ceil(left / 30);
-  const text = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  return { text: tick >= DAWN_WARN ? `天亮 ${text}` : `离天亮 ${text}`, level: tick >= DAWN_RED ? 2 : tick >= DAWN_WARN ? 1 : 0 };
 }

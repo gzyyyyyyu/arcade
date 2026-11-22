@@ -30,9 +30,9 @@ import { PAGER_CTL, Pager } from './pager.ts';
 import { mergeHow, poolCharName, schoolMerges, whoText } from './codexCombos.ts';
 import { mergeReach, mergeWho, SHOWN_MERGES } from '../../content/combos.ts';
 import './guide.css';
+import { esc } from './screens/shared.ts';
 
 
-const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 /** 页签和页一一对应：名字两三个字，一个页签讲一件事 */
 export type GuideTab = 'play' | 'cards' | 'grow' | 'roles' | 'maps' | 'school' | 'set' | 'evo' | 'merge' | 'team' | 'night' | 'raid' | 'eg';

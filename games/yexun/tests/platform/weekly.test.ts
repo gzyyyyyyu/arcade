@@ -5,7 +5,7 @@ import { chestSize } from '../../src/core/step.ts';
 import { normalizeSetup, type Setup } from '../../src/core/state.ts';
 import { dailyPlan, isDailySetup } from '../../src/online/daily.ts';
 import { formatScore, submissionsFor, vigilScore } from '../../src/online/score.ts';
-import { WEEKLY_MAPS, beijingIsoWeek, weekDaysLeft, weekIndex, weekStart, weeklyDateOpen, weeklyFor, weeklyPlan } from '../../src/online/weekly.ts';
+import { WEEKLY_MAPS, beijingIsoWeek, weekDaysLeft, weekIndex, weeklyDateOpen, weeklyFor, weeklyPlan } from '../../src/online/weekly.ts';
 import { MAP_IDS } from '../../src/content/maps.ts';
 import { runCoins } from '../../src/platform/save.ts';
 import { tonightRules } from '../../src/view/ui/codexNights.ts';
@@ -13,9 +13,7 @@ import type { RunSummary } from '../../src/online/types.ts';
 
 describe('每周夜事：日期 → 事件', () => {
   it('周一起算，周一到周日同一周，周一换事件', () => {
-    expect(weekStart('2026-10-26')).toBe('2026-10-26'); // 周一
-    expect(weekStart('2026-11-01')).toBe('2026-10-26'); // 周日
-    expect(weekStart('2026-11-02')).toBe('2026-11-02');
+    expect(weekIndex('2026-11-01')).toBe(weekIndex('2026-10-26')); // 周日和同周周一
     expect(weekIndex('2026-11-02')).toBe(weekIndex('2026-10-26') + 1);
     expect(weeklyFor('2026-10-26')).toBe(weeklyFor('2026-11-01'));
     expect(weeklyFor('2026-10-26')!.id).not.toBe(weeklyFor('2026-11-02')!.id);
@@ -39,7 +37,7 @@ describe('每周夜事：日期 → 事件', () => {
   });
   it('坏日期返回 null', () => {
     expect(weeklyFor('abc')).toBeNull();
-    expect(weekStart('2026/10/26')).toBe('');
+    expect(weekIndex('2026/10/26')).toBe(-1);
     expect(weekDaysLeft('x')).toBe(0);
   });
 });

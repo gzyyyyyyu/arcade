@@ -10,7 +10,7 @@ import { NAV_CELL, NAV_INF } from '../../src/explore/nav.ts';
 import { RaidEv, type GuardHost } from '../../src/explore/host.ts';
 import { bagValue } from '../../src/explore/loot.ts';
 import { Raid, raidFingerprint, Role } from '../../src/explore/raid.ts';
-import { liveBp, liveFloor, livePayout, settleRaid } from '../../src/explore/settle.ts';
+import { liveBp, liveFloor, settleRaid } from '../../src/explore/settle.ts';
 import { raidMinute, raidSpawnPoint, raidZoneMul } from '../../src/explore/spawn.ts';
 import { emptyVault, herbalistUnlocked, normalizeVault, recordRaid, vaultProgress } from '../../src/explore/vault.ts';
 
@@ -302,8 +302,6 @@ describe('夜探：结算、实盘倍数、藏宝阁', () => {
       expect(bp).toBeGreaterThanOrEqual(prev);
       prev = bp;
     }
-    expect(livePayout(2000, 13001)).toBe(2600);
-    expect(livePayout(2000, 0)).toBe(0);
     const wb = withBag('guzhen', 'escaped', 'small');
     const r = settleRaid(wb, 5);
     expect(r.bp).toBe(liveBp(r.value, 'small', 'guzhen', wb.endTick));

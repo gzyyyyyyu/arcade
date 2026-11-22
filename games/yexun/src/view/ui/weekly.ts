@@ -4,8 +4,8 @@
  */
 import { weekDaysLeft, weeklyFor } from '../../online/weekly.ts';
 import './weekly.css';
+import { esc } from './screens/shared.ts';
 
-const esc = (t: string): string => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 /** 主页上的入口：本周夜事 · XX周 / 一句说明 · 还剩 N 天；点了由 data-a="weekly" 开局 */
 export function weeklyEntry(today: string): string {

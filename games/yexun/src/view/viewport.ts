@@ -1,4 +1,4 @@
-import { RING } from '../core/step.ts';
+import { RING } from '../core/state.ts';
 
 /**
  * 手机和平板（尤其 iOS）的几条规矩（仓库根 AGENTS.md 第 4 节，做法照开盘 0.5.9）：

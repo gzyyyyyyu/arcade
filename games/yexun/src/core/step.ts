@@ -96,7 +96,7 @@ import { Grid } from './grid.ts';
 import { fireTick, type FireApi } from './fire.ts';
 import { type XinfaApi, xinfaCoin, xinfaHitMul, xinfaHurtMul, xinfaOnKill, xinfaSplash, xinfaTick } from './xinfa.ts';
 import { borrowStats, charDmgMul, moveSkillFu, paperLifeMul, paperRefund, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, yinyangFlip, type SkillOps } from './skills.ts';
-import { baseStats, Drop, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, WEAPON_SLOTS, World, type Choice, type Setup } from './state.ts';
+import { baseStats, Drop, RING, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, WEAPON_SLOTS, World, type Choice, type Setup } from './state.ts';
 
 /** 法器在事件里的编号 */
 export const WEAPON_CODE: Record<WeaponId, number> = Object.fromEntries(WEAPON_IDS.map((id, i) => [id, i])) as Record<WeaponId, number>;
@@ -711,11 +711,7 @@ function spawnEnemy(w: World, kind: EnemyKind, x: number, y: number): number {
   return i;
 }
 
-/**
- * 刷怪的一圈：刚好在屏幕外（横屏一屏约 1000 × 560 到 1080 × 500 单位，画面层 viewport.ts 的 worldZoom），
- * 椭圆横向宽；竖屏开的局（setup.tall）转 90°，纵向宽。出了场地就换到对面。
- */
-export const RING = { long: 600, short: 360 };
+/** 刷怪点在 RING 那一圈上（定义在 state.ts），出了场地就换到对面 */
 function ringPoint(w: World, a: number, scale = 1): [number, number] {
   const rx = w.setup.tall ? RING.short : RING.long;
   const ry = w.setup.tall ? RING.long : RING.short;

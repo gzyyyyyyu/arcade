@@ -2,7 +2,9 @@
  * 录像录制：在每次调 `step` 之前调一下 `before(world, dir, choice)`。
  * 只记推进时间的拍（phase 为 play 的调用）的方向，和选卡阶段的选择（带当时的拍号）；选卡阶段画面每帧都在调 step，那些空转的不记。
  */
-import { fingerprint, RULES_VERSION, skillReady, type World } from '../core/index.ts';
+import { fingerprint } from '../core/fingerprint.ts';
+import { skillReady } from '../core/skills.ts';
+import { RULES_VERSION, type World } from '../core/state.ts';
 import type { OnlineSetup } from '../online/types.ts';
 import { encodeDirs, encodePicks, encodeSkills, type ReplayRecord } from './format.ts';
 
