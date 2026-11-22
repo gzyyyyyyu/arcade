@@ -59,7 +59,7 @@ describe('wrangler.jsonc', () => {
     expect(conf.migrations[0]).toEqual({ tag: 'v1', new_sqlite_classes: ['Room'] });
   });
 
-  it('掼蛋的写入门槛：4.5 万停开新房、5.5 万收场（全账户 10 万，各游戏怎么分见仓库 docs/platform-backend.md 4.7）；每人同时 5 个房间、每天 100 个（0.6.0）', () => {
+  it('掼蛋的写入门槛：4.5 万停开新房、5.5 万收场（全账户 10 万，各游戏怎么分见仓库 docs/platform-backend.md 4.7）；每人同时 1 个房间（0.38.0）、每天 100 个（0.6.0）', () => {
     // 整个对象比对：字段名写错（kit 会忽略、用默认值）也会挂
     expect(conf.vars.KIT_QUOTA).toEqual({ busyWrites: 45_000, stopWrites: 55_000, roomsPerUser: 1, dailyRoomsPerUser: 100 });
   });

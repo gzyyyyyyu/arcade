@@ -543,8 +543,8 @@ export const DDZ_COUNTER = {
   leftDy: [31, 40],
 } as const;
 
-/** "互动"按钮的中心 y；聊天按钮离屏幕左沿（顶栏"大厅"右边）；弹幕区离左右两家头像的间隙 */
-export const DDZ_FUN = { y: 390, chatX: 126 + 12, chatDockW: 280, danmakuGap: 40 } as const;
+/** 斗地主牌桌互动：按钮、聊天钮的位置；弹幕区离左右两家头像多远、离顶栏和底下按钮多远；表情别压的按钮区从 BUTTON_Y 往上留多少 */
+export const DDZ_FUN = { y: 390, chatX: 126 + 12, chatDockW: 280, danmakuGap: 40, danmakuTop: 40, danmakuBottom: 72, avoidAbove: 40 } as const;
 
 /** 互动用的轮询：显隐每 200 毫秒检查一次（毫秒，不经 dur()） */
 export const DDZ_FUN_POLL_MS = 200;

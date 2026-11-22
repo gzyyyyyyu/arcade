@@ -330,7 +330,7 @@ export function buildFun(sc: DdzScene, W: number): void {
           temper: who === 'laozhou' || who === 'wangjie' ? TEMPER_DDZ[who] : 'normal',
         };
       }),
-    avoid: () => [sc.worldRect(0, BUTTON_Y - 40, W, GAME_HEIGHT - BUTTON_Y + 40)],
+    avoid: () => [sc.worldRect(0, BUTTON_Y - DDZ_FUN.avoidAbove, W, GAME_HEIGHT - BUTTON_Y + DDZ_FUN.avoidAbove)],
     center: () => sc.trick.boxes().map((b) => sc.worldRect(b.x, b.y, b.w, b.h)),
     button: () => sc.worldRect(left, DDZ_FUN.y - bh / 2, bw, bh),
     buttonStyle: () => ({ scale: sc.worldRect(0, 0, 100, 100).width / 100 }),
@@ -348,8 +348,8 @@ export function buildFun(sc: DdzScene, W: number): void {
       const [l, r] = [sc.seats[2]!, sc.seats[1]!];
       const x0 = l.a.ax + l.a.size / 2 + DDZ_FUN.danmakuGap;
       const x1 = r.a.ax - r.a.size / 2 - DDZ_FUN.danmakuGap;
-      const y0 = Math.max(TOPBAR_H + 40, sc.counterBottom + 4);
-      return sc.worldRect(x0, y0, x1 - x0, BUTTON_Y - 72 - y0);
+      const y0 = Math.max(TOPBAR_H + DDZ_FUN.danmakuTop, sc.counterBottom + 4);
+      return sc.worldRect(x0, y0, x1 - x0, BUTTON_Y - DDZ_FUN.danmakuBottom - y0);
     },
     lite: () => LOW_MEMORY > 0,
     send: (id, to) => (net ? net.emote(id, to) : sc.funIn(DDZ_ME, id, to)),

@@ -66,10 +66,9 @@ export function payout(tier: TierId, points: number, rules: StakeRules = CURRENT
 
 /**
  * 单机 ref：`solo-<档位>-<32 位十六进制>`（0.12.2 起把档位编进去）。ref 由 Worker 生成，结回时按 ref 里的档位算结回额，
- * 不信页面带来的档位——否则小档带入、报豪华档结回会按豪华档算（安全审计 2026-10-16，低危：钱包另有"不超过带入 + 20 份"兜着）。
- * 0.12.1 以前的旧格式 `solo-<32 位十六进制>` 照旧认（没有档位，按页面带的算），带入最多 24 小时就过期，之后不会再有
+ * 不信页面带来的档位——否则小档带入、报豪华档结回会按豪华档算（钱包另有"不超过带入 + 20 份"兜着）。
  */
-const SOLO_REF = /^solo-(?:(small|mid|big|lux)-)?[0-9a-f]{32}$/;
+const SOLO_REF = /^solo-(small|mid|big|lux)-[0-9a-f]{32}$/;
 const ROOM_REF = /^gd-[0-9a-f]{16}$/;
 
 export function isSoloRef(x: unknown): x is string {
@@ -83,7 +82,7 @@ export function soloRef(tier: TierId, hex: string): string {
   return ref;
 }
 
-/** 单机 ref 里的档位；旧格式（没编档位）和不是单机 ref 的回 null */
+/** 单机 ref 里的档位；不是单机 ref 的回 null */
 export function soloRefTier(ref: string): TierId | null {
   return (SOLO_REF.exec(ref)?.[1] as TierId | undefined) ?? null;
 }

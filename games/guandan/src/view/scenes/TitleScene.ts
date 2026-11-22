@@ -20,7 +20,7 @@ import { DailySession } from '../guandan/daily.ts';
 import { COLOR, LIGHT, RADIUS, TYPE, minHit, phoneType } from '../common/theme.ts';
 import { FIGURE_SIZE, LANTERN_SIZE, homeLayout, panelRows } from '../common/home-layout.ts';
 import { LOW_MEMORY } from '../common/device.ts';
-import { anim } from '../common/anim.ts';
+import { anim, dur } from '../common/anim.ts';
 import { goLobby } from '../common/lobby.ts';
 import { startBackgroundBake, startWhenReady, titleBackdrop, upgradeTitleBackdrop } from '../common/textures.ts';
 import { join, openMatch, openOnline } from '../online.ts';
@@ -132,7 +132,7 @@ export class TitleScene extends Phaser.Scene {
     const logo = this.add.image(cx, P.y + R.logo, 'logo:hall').setDisplaySize(380, 161).setDepth(20);
     if (lively) {
       logo.setAlpha(0).setScale(logo.scaleX * 1.2);
-      this.tweens.add({ targets: logo, alpha: 1, scale: logo.scaleX / 1.2, duration: 520, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: logo, alpha: 1, scale: logo.scaleX / 1.2, duration: dur(520), ease: 'Back.easeOut' });
     }
     // 掼蛋 / 斗地主的切换（docs/doudizhu.md 第 4 节），上次选的记在 guandan.variant
     const variant: VariantId = getVariant();
@@ -202,7 +202,7 @@ export class TitleScene extends Phaser.Scene {
       this.buttons[key] = card;
       if (lively) {
         card.setAlpha(0);
-        this.tweens.add({ targets: card, alpha: 1, y: { from: cy + 24, to: cy }, duration: 320, delay: 200 + i * 80, ease: 'Cubic.easeOut' });
+        this.tweens.add({ targets: card, alpha: 1, y: { from: cy + 24, to: cy }, duration: dur(320), delay: dur(200 + i * 80), ease: 'Cubic.easeOut' });
       }
     });
 

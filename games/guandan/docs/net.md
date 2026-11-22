@@ -16,6 +16,8 @@
     最后一个人准备好的那一步里开下一副。玩家发不了开下一副的操作（`next` 解析不认）。这一刻谁能出手用 `actors()`、时限用 `turnMs()`，
     双下的进贡、还贡也靠 `actors()` 两个人同时等。结算页开着时，别人点"继续"的帧（step 不变）要当场收下刷新，不然会堵住开下一副的那一帧。
   - 路由：`POST /games/guandan/room/rooms` 开房（`acceptCreate`），`GET /games/guandan/room/rooms/<6 位码>/ws` 进房（`acceptJoin`），都要登录（问平台 `/api/me`）、同源。
+    页面里这些路径按页面所在目录写相对的（`ROOM_REL`、`STAKE_REL`、`MATCH_REL`，ws 地址经 `room-link.ts` 的 `socketUrl`），带挂载点的 `ROOM_PATH`、`STAKE_PATH` 只给 Worker 路由用；
+    页面发的请求都经 `platform.ts` 的 `timed()` 带 10 秒超时（`FETCH_TIMEOUT_MS`），网络挂住时开房按钮不一直转、实盘结回的重试等得到失败。
     变量 `ONLINE`：`"on"` 开放；`"off"`（以及配错的值）开房回 404（页面说"好友房暂时关了"），进房接上就以 4004 关掉（和"没有这个房间"一样，客户端不再重连）。
     标题页一直有"好友房"，本机记着这个账号的房间时旁边还有"回到房间"；`?online=1` 是"打开就弹出好友房面板"（平台大厅的入口），邀请链接 `room=` 不带它也能进。
     房间路由不经过 `GATE`：认人由 arcade-kit 问平台，认不出就 4401。

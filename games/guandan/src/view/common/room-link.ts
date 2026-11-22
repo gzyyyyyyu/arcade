@@ -9,13 +9,13 @@
  */
 import { RoomClient, type ChatSendResult, type ClientStatus, type RoomClientOptions, type WebSocketLike } from 'arcade-kit/client';
 import { CLOSE, CLOSE_REASON, EMOTE_ERRORS, type CreateError, type DownMsg, type RoomInfo } from 'arcade-kit/protocol';
-import { CLIENT_VERSION, ROOM_PATH } from '../../net/version.ts';
+import { CLIENT_VERSION, ROOM_REL } from '../../net/version.ts';
 import { isStakeRoom, roomVariant, seatCountOf, type RoomVariant } from '../../net/room-info.ts';
 import type { TierId } from '../../core/stake.ts';
 import { setSeatIdentities, setWatching } from './labels.ts';
 import { QUOTA_TEXT } from './quota-text.ts';
 import { KEYS, getSettings, rawStore } from '../store.ts';
-import { GUEST_ID, lobbyName, standalone, withNick } from './platform.ts';
+import { GUEST_ID, lobbyName, standalone, timed, withNick } from './platform.ts';
 
 export { QUOTA_TEXT };
 
@@ -69,7 +69,7 @@ export function roomOwnerCheck(saved: SavedRoom, userId: string | null): 'show' 
 export async function currentUserId(fetcher: typeof fetch = fetch): Promise<string | null> {
   if (standalone()) return GUEST_ID;
   try {
-    const res = await fetcher('/api/me', { credentials: 'same-origin' });
+    const res = await fetcher('/api/me', timed({ credentials: 'same-origin' }));
     if (res.status !== 200) return null;
     const body = (await res.json()) as { user?: { id?: unknown } | null };
     return typeof body.user?.id === 'string' ? body.user.id : null;
@@ -165,14 +165,22 @@ export function closeText(code: number | null, reason: string | null = null): st
   }
 }
 
-/** 房间接口的地址（同域） */
+/** 房间接口的地址（相对页面目录） */
 function roomsUrl(): string {
-  return `${ROOM_PATH}/rooms`;
+  return `${ROOM_REL}/rooms`;
+}
+
+/** 相对页面目录的路径换成同域的 ws/wss 地址（单独部署时带昵称） */
+export function socketUrl(rel: string): string {
+  const u = new URL(rel, window.location.href);
+  u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
+  u.search = '';
+  u.hash = '';
+  return withNick(u.href);
 }
 
 function wsUrl(code: string): string {
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return withNick(`${proto}//${window.location.host}${ROOM_PATH}/rooms/${code}/ws`);
+  return socketUrl(`${ROOM_REL}/rooms/${code}/ws`);
 }
 
 /**
@@ -193,7 +201,7 @@ export async function createRoom(
     const init: RequestInit = body
       ? { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
       : { method: 'POST', credentials: 'same-origin' };
-    res = await fetcher(withNick(roomsUrl()), init);
+    res = await fetcher(withNick(roomsUrl()), timed(init));
   } catch {
     return { error: '连不上服务器，检查一下网络' };
   }

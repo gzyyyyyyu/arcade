@@ -47,7 +47,7 @@ function post(action: string, body: unknown, headers: Record<string, string> = {
 }
 
 const REF = `solo-mid-${'ab'.repeat(16)}`;
-/** 0.12.1 以前带入的旧 ref：没编档位 */
+/** 没编档位的旧格式 ref */
 const OLD_REF = `solo-${'ab'.repeat(16)}`;
 
 describe('带入', () => {
@@ -118,11 +118,10 @@ describe('结回、放弃', () => {
     expect(w.calls[1]!.req).toMatchObject({ amount: 1_800 });
   });
 
-  it('旧 ref（0.12.1 以前带入、没编档位，最多 24 小时）照旧按页面带的档位结回；没带档位 400', async () => {
+  it('没编档位的旧格式 ref 一律 400，带了档位也不认、不找钱包', async () => {
     const w = wallet(() => ({ ok: true, wallet: W }));
-    await handle(post('settle', { ref: OLD_REF, tier: 'mid', points: 3, deals: 8 }), env(w));
-    expect(w.calls[0]!.req).toMatchObject({ ref: OLD_REF, amount: 11_500 });
-    expect((await handle(post('settle', { ref: OLD_REF, points: 3, deals: 8 }), env(w))).status).toBe(400);
+    expect((await handle(post('settle', { ref: OLD_REF, tier: 'mid', points: 3, deals: 8 }), env(w))).status).toBe(400);
+    expect(w.calls).toHaveLength(0);
   });
 
   it('战绩小结（平台 0.10.0）原样转给钱包，不改、不补；没带就不带', async () => {

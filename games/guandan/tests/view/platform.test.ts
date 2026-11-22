@@ -3,8 +3,8 @@
  * platform.ts 的结果是模块级的（启动时问一次），这个文件只测"没有平台"这一面；有平台时什么都不变，由其余测试和冒烟管。
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { createRoom, currentUserId } from '../../src/view/common/room-link.ts';
-import { GUEST_ID, detectOnce, lobbyName, lobbyUrl, standalone, withNick } from '../../src/view/common/platform.ts';
+import { createRoom, currentUserId, socketUrl } from '../../src/view/common/room-link.ts';
+import { FETCH_TIMEOUT_MS, GUEST_ID, detectOnce, lobbyName, lobbyUrl, standalone, timed, withNick } from '../../src/view/common/platform.ts';
 import { KEYS, getNick, setNick } from '../../src/view/store.ts';
 
 const mem = new Map<string, string>();
@@ -50,7 +50,7 @@ describe('单独部署（没有平台）', () => {
       urls.push(url);
       return new Response(JSON.stringify({ code: '123456' }), { status: 201 });
     }) as unknown as typeof fetch);
-    expect(urls).toEqual([`/games/guandan/room/rooms?name=${encodeURIComponent('阿花')}`]);
+    expect(urls).toEqual([`room/rooms?name=${encodeURIComponent('阿花')}`]);
     setNick('');
     expect(mem.has(KEYS.nick)).toBe(false);
   });
@@ -58,5 +58,27 @@ describe('单独部署（没有平台）', () => {
   it('开房 401（浏览器没存住游客 cookie）：说刷新，不往登录页带', async () => {
     const r = await createRoom((async () => new Response('', { status: 401 })) as unknown as typeof fetch);
     expect(r).toEqual({ error: '认不出你是谁，刷新页面再试' });
+  });
+});
+
+describe('请求和地址（0.40.3）', () => {
+  it('开房请求带超时信号，调用方自己给了 signal 就用调用方的', async () => {
+    let got: RequestInit | undefined;
+    await createRoom((async (_url: string, init?: RequestInit) => {
+      got = init;
+      return new Response(JSON.stringify({ code: '123456' }), { status: 201 });
+    }) as unknown as typeof fetch);
+    expect(got?.signal).toBeInstanceOf(AbortSignal);
+    const mine = new AbortController().signal;
+    expect(timed({ signal: mine }).signal).toBe(mine);
+    expect(FETCH_TIMEOUT_MS).toBe(10_000);
+  });
+
+  it('房间和匹配的 ws 地址按页面目录拼：换挂载点不用改页面', () => {
+    setNick('');
+    vi.stubGlobal('window', { location: { href: 'https://game.example.com/x/y/?room=123456#a' } });
+    expect(socketUrl('room/rooms/123456/ws')).toBe('wss://game.example.com/x/y/room/rooms/123456/ws');
+    vi.stubGlobal('window', { location: { href: 'http://localhost:5174/games/guandan/index.html' } });
+    expect(socketUrl('room/match/mid')).toBe('ws://localhost:5174/games/guandan/room/match/mid');
   });
 });

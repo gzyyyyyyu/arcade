@@ -2,7 +2,7 @@
  * 斗地主单机实盘（docs/stake-ddz.md）的页面会话，不画界面：存档 guandan.ddz.stake（读写在 store.ts）、
  * 经掼蛋 Worker 的三个接口（请求体带 variant: 'ddz'）带入 / 结回 / 放弃、实盘的牌局会话。
  * 流程和掼蛋的 stake.ts 一样：一场打完先把要结的数记进存档再结回，钱包忙（busy、internal、连不上）用同一个 op 重试，
- * no_stake / expired 算办完；结回、重试、响应的处理直接用 common/stake-api.ts 里玩法无关的那一半（settleWith、refundWith）。
+ * no_stake / expired 算办完；结回、重试、响应的处理直接用 common/stake-api.ts 里玩法无关的那一半（settleWith、refundStray）。
  * 我坐 0 号，1、2 号电脑不碰钱包；我的累计分就是结回额，不另记一份（核心状态里的 scores[0]）。
  * 不计战绩、不写 guandan.ddz.save（会话把 persist 关掉，存档由这里写）。
  */
@@ -15,7 +15,7 @@ import { getSettings, updateSettings, type DdzDeal } from '../store.ts';
 import { DDZ_ME, DdzSession, ddzSeeds } from './session.ts';
 import { currentUserId } from '../common/room-link.ts';
 import { clearDdzStake, loadDdzStake, writeDdzStake, type DdzStakeSaveData } from '../store.ts';
-import { postStake, refundWith, settleWith, stakeSeed, withRetry, realSleep, type Deps, type SettleOutcome, type StakeReply, type WalletView } from '../common/stake-api.ts';
+import { postStake, refundStray, settleWith, stakeSeed, type Deps, type SettleOutcome, type WalletView } from '../common/stake-api.ts';
 
 export type DdzStakeSave = DdzStakeSaveData;
 
@@ -56,11 +56,6 @@ export async function settleDdzStake(s: DdzStakeSave, deps: Deps = {}): Promise<
   return settleWith({ ...VARIANT, ref: s.ref, tier: s.tier, points: st.points, deals: st.deals, ...(rules.v > 1 ? { rules: rules.v } : {}) }, st.points, () => clearDdzStakeSave(s.ref), deps);
 }
 
-/** 一副没打完就不玩了：那一份原样退回 */
-export async function refundDdzStake(s: DdzStakeSave, deps: Deps = {}): Promise<SettleOutcome> {
-  return refundWith({ ...VARIANT, ref: s.ref }, () => clearDdzStakeSave(s.ref), deps);
-}
-
 /** 进场：认人、带入一份，成功就开一场（noShuffle：不洗牌那套数，0.39.0）。带入不重试：ref 由 Worker 生成，重发是另一份 */
 export async function buyinDdzStake(tier: TierId, fetcher: typeof fetch = fetch, noShuffle = false): Promise<{ ok: true; ses: DdzStakeSession } | { ok: false; error: string; wallet?: WalletView }> {
   const userId = await currentUserId(fetcher);
@@ -79,11 +74,6 @@ export function strayDdzStake(w: WalletView, local: DdzStakeSave | null): { ref:
   // 钱包按游戏 id 记，掼蛋和斗地主都是 guandan：只认斗地主单机的 ref，掼蛋那几份不归这里管
   const st = w.stakes.find((x) => x.game === 'guandan' && isSoloRef(x.ref) && x.ref !== local?.ref);
   return st ? { ref: st.ref, solo: true } : null;
-}
-
-/** 退回不在这台设备上的那一份斗地主单机实盘 */
-async function refundDdzStray(ref: string, deps: Deps = {}): Promise<StakeReply> {
-  return withRetry(() => postStake('refund', { ...VARIANT, ref }, deps.fetcher), deps.sleep ?? realSleep);
 }
 
 // ───────────── 实盘的牌局会话 ─────────────
@@ -181,5 +171,5 @@ export const DDZ_FLOW: TierFlow<DdzStakeSession> = {
   pointValue: (tier, mode) => pointValue(tier, newRules(mode === 'clump')),
   buyin: (tier, mode) => buyinDdzStake(tier, fetch, mode === 'clump'),
   stray: (w) => strayDdzStake(w, loadDdzStakeSave()),
-  refundStray: (ref) => refundDdzStray(ref),
+  refundStray: (ref) => refundStray(ref, VARIANT),
 };

@@ -2,7 +2,8 @@
  * 单机实盘的页面接口（两个玩法共用，docs/stake.md 第 2 节）：钱包余额、和 Worker 的三个实盘接口（带入 / 结回 / 放弃）打交道、
  * 钱包忙时重试、结回和放弃的公共流程。存档和实盘的牌局会话在各玩法的 stake.ts。
  */
-import { STAKE_PATH } from '../../net/version.ts';
+import { STAKE_REL } from '../../net/version.ts';
+import { timed } from './platform.ts';
 import type { TierId } from '../../core/stake.ts';
 
 export interface WalletView {
@@ -17,7 +18,7 @@ export type StakeReply =
 /** 平台浏览器接口 GET /api/wallet（15.9）。连不上、没登录都回 null：选档页把实盘灰掉 */
 export async function fetchWallet(fetcher: typeof fetch = fetch): Promise<WalletView | null> {
   try {
-    const res = await fetcher('/api/wallet', { credentials: 'same-origin' });
+    const res = await fetcher('/api/wallet', timed({ credentials: 'same-origin' }));
     if (res.status !== 200) return null;
     const body = (await res.json()) as { wallet?: { balance?: unknown; stakes?: unknown } };
     const w = body.wallet;
@@ -31,12 +32,10 @@ export async function fetchWallet(fetcher: typeof fetch = fetch): Promise<Wallet
 /** 调掼蛋 Worker 的实盘接口。HTTP 出错、连不上都折成 { ok: false, error }：401 → login，其余 → unavailable */
 export async function postStake(action: 'buyin' | 'settle' | 'refund', body: unknown, fetcher: typeof fetch = fetch): Promise<StakeReply> {
   try {
-    const res = await fetcher(`${STAKE_PATH}/${action}`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    const res = await fetcher(
+      `${STAKE_REL}/${action}`,
+      timed({ method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+    );
     if (res.status === 401) return { ok: false, error: 'login' };
     if (res.status === 400) return { ok: false, error: 'bad_request' };
     if (res.status !== 200) return { ok: false, error: 'unavailable' };
@@ -107,9 +106,9 @@ export async function refundWith(body: Record<string, unknown>, clear: () => voi
   return transient(r.error) ? { kind: 'later' } : { kind: 'failed', error: r.error };
 }
 
-/** 退回不在这台设备上的那一份单机实盘 */
-export async function refundStray(ref: string, deps: { fetcher?: typeof fetch; sleep?: (ms: number) => Promise<void> } = {}): Promise<StakeReply> {
-  return withRetry(() => postStake('refund', { ref }, deps.fetcher), deps.sleep ?? realSleep);
+/** 退回不在这台设备上的那一份单机实盘（extra：斗地主带 variant），忙就重试 */
+export async function refundStray(ref: string, extra: Record<string, unknown> = {}, deps: Deps = {}): Promise<StakeReply> {
+  return withRetry(() => postStake('refund', { ...extra, ref }, deps.fetcher), deps.sleep ?? realSleep);
 }
 
 /** 实盘局的种子：浏览器里用 crypto 生成（2.1），不用 Math.random */

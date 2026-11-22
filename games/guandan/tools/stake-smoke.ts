@@ -471,7 +471,7 @@ async function guandanParts(browser: Browser, stack: OnlineStack): Promise<void>
     notes.push('钱包回 no_funds：留在选档页，说清楚');
 
     // 钱包里有一份本机没有的单机实盘：照样能开新的，另给"原样退回那一份"
-    const stray = await openPage(browser, stack, 'stray-1', { balance: 10_000, stakes: [{ game: 'guandan', ref: `solo-${'e'.repeat(32)}`, tier: 'small', mode: 'client' }] });
+    const stray = await openPage(browser, stack, 'stray-1', { balance: 10_000, stakes: [{ game: 'guandan', ref: `solo-small-${'e'.repeat(32)}`, tier: 'small', mode: 'client' }] });
     await stray.waitForTimeout(800);
     await until(stray, '主页', "'stake' in g.controls()");
     await click(stray, 'stake');

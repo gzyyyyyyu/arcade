@@ -1,6 +1,6 @@
 # 更新日志归档（0.6.4–0.13.2）
 
-0.30.0 之前的版本记录（从 [CHANGELOG.md](../CHANGELOG.md) 挪来，内容不变），这一份是 0.6.4–0.13.2；其余：[0.14.0–0.30.0](changelog-archive.md)、[0.1.0–0.6.3](changelog-archive-3.md)。
+0.30.0 之前的版本记录（从 [CHANGELOG.md](../CHANGELOG.md) 挪来，内容不变），这一份是 0.6.4–0.13.2；其余：[0.14.0–0.30.0](changelog-archive.md)、[0.1.0–0.6.3](changelog-archive-3.md)、[0.30.1–0.31.0](changelog-archive-4.md)。
 
 ## 0.13.2（2026-10-17）
 
