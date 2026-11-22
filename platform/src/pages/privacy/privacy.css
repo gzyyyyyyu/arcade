@@ -22,6 +22,8 @@
 @media (max-height: 600px) and (orientation: landscape) {
   .privacy-page { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: var(--s-3); row-gap: var(--s-1); padding-block: var(--s-2); }
   .privacy-page .privacy-tabs { align-self: center; }
+  /* 折到第二行的不拉满整行（只剩"怎么删"一个时像提交按钮） */
+  .privacy-page .privacy-tabs button { flex: 0 0 auto; }
   .privacy-page .privacy-list { grid-column: 1 / -1; }
 }
 

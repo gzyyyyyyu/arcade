@@ -27,7 +27,7 @@ export async function mobile(browser: Browser): Promise<void> {
   await page.getByRole('heading', { name: '我们存了你什么' }).waitFor();
   // 一屏放下：隐私说明按小节分页签、每节翻页，逐节找
   const seen = async (text: string | RegExp) => (await privacyCount(page, text)) > 0;
-  check(await seen(/^我们不放广告，也不卖你的数据；除了下面"访问统计"/), '隐私说明里没有"不放广告"');
+  check(await seen(/^我们不放广告，也不卖你的数据；除了上面"访问统计"页签/), '隐私说明里没有"不放广告"');
   check(await seen(/^排行榜：每个榜只留你最好的一次成绩/), '隐私说明里没有排行榜一条');
   check(await seen(/^我们用 Cloudflare 的网站统计，看有多少次访问/), '隐私说明里没有访问统计');
   // 注册开着、关着都成立的说法；不再说"只对受邀的朋友开放"
@@ -136,10 +136,10 @@ export async function mobile(browser: Browser): Promise<void> {
     const box = await t.boundingBox();
     check(box && box.height >= 44, `好友页的按钮不到 44 高：${await t.textContent()}（${box?.height ?? 0}）`);
   }
-  // 好友动态在动态页：好友页只有一行入口。结回的按平台模板拼、称号读 titles.json；名场面按游戏的模板拼；模板不合格的那条不显示
+  // 好友动态在动态页，入口只在顶栏（好友页不重复放）。结回的按平台模板拼、称号读 titles.json；名场面按游戏的模板拼；模板不合格的那条不显示
   check((await fr.page.getByTestId('feed').count()) === 0, '好友页不该再铺动态列表');
-  await fr.page.getByTestId('feed-entry').getByText('好友动态 · 2 条新').click();
-  await fr.page.waitForURL(`${BASE}/feed`);
+  check((await fr.page.getByTestId('feed-entry').count()) === 0, '好友页不该再有动态入口（顶栏有）');
+  await fr.page.goto(`${BASE}/feed`);
   const feed = fr.page.getByTestId('feed');
   await feedLine(feed.getByTestId('feed-item').first(), '小明', '牌馆小档', ['赢了 1.6 份', '称号：双下王']);
   await feedLine(feed.getByTestId('feed-item').nth(1), '阿花', '牌馆', ['一副牌扔了 4 个炸弹']);
@@ -170,7 +170,7 @@ export async function mobile(browser: Browser): Promise<void> {
   await land.page.getByRole('heading', { name: '我的账号' }).waitFor();
   await shot(land.page, 'landscape-me');
   await land.page.goto(`${BASE}/privacy`);
-  await land.page.getByText(/^我们不放广告，也不卖你的数据；除了下面"访问统计"/).waitFor();
+  await land.page.getByText(/^我们不放广告，也不卖你的数据；除了上面"访问统计"页签/).waitFor();
   await land.page.getByTestId('ptab-coins').waitFor();
   await shot(land.page, 'landscape-privacy');
   await land.ctx.close();

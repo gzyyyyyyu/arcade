@@ -102,8 +102,11 @@ function pageFor(pathname: string): ComponentType | undefined {
   return ACCOUNT_PAGES[pathname];
 }
 
-/** last：这是最近玩的那个游戏时，上次玩的时间（卡上写"上次玩 · 多久以前"，按钮写"继续玩"） */
-function GameCard({ game, last = null }: { game: GameEntry; last?: number | null }) {
+/**
+ * last：这是最近玩的那个游戏时，上次玩的时间（卡上写"上次玩 · 多久以前"，按钮写"继续玩"）。
+ * main：这张卡的按钮是大厅唯一的主按钮（实心橙，docs/ui.md 第 2 节一屏一个），别的卡是次按钮
+ */
+function GameCard({ game, last = null, main = false }: { game: GameEntry; last?: number | null; main?: boolean }) {
   const playable = game.status === 'playable';
   const { loading, slow, user, service } = useSession();
   // 问 /api/me 超时、连不上时不知道登没登录：照样给"进入游戏"，游戏自己有登录闸门，没登录会跳去登录页
@@ -166,8 +169,17 @@ function GameCard({ game, last = null }: { game: GameEntry; last?: number | null
           <span className="card__play card__play--disabled">请稍等…</span>
         ) : user || unknown ? (
           // 只有一个按钮：好友房在游戏里开、进；叫人、邀请、好友页的"加入"都直接链到游戏的 ?room=
-          <a className="card__play" href={playUrl(game)} data-tour="play" onClick={(e) => enterGame(e, playUrl(game), game.id, e.currentTarget.closest('.card')?.querySelector('.card__cover') ?? null)}>
-            {last !== null ? '继续玩' : '进入游戏'}
+          <a className={`card__play${main ? ' card__play--main' : ''}`} href={playUrl(game)} aria-label={last !== null ? '继续玩' : '进入游戏'} data-tour="play" onClick={(e) => enterGame(e, playUrl(game), game.id, e.currentTarget.closest('.card')?.querySelector('.card__cover') ?? null)}>
+            {/* 手机短卡上只写两个字"继续""进入"：省下的宽给一句话，360 宽也不用省略号。包一层：按钮是带间距的弹性盒，拆成两块会隔开 */}
+            {last !== null ? (
+              <span>
+                继续<span className="card__play-more">玩</span>
+              </span>
+            ) : (
+              <span>
+                进入<span className="card__play-more">游戏</span>
+              </span>
+            )}
           </a>
         ) : (
           // 测试期要登录才能玩（游戏那边也会挡）：登录后直接回这个游戏
@@ -220,7 +232,8 @@ function Home({ deleted }: { deleted: boolean }) {
           fixed={wide ? Infinity : undefined}
           items={games}
           keyOf={(g) => g.id}
-          render={(g) => <GameCard game={g} last={last?.id === g.id ? last.at : null} />}
+          // 主按钮一屏一个：桌上有筹码时是提示条的"回去接着打"，否则是最近玩的那张"继续玩"；都没有就全是次按钮
+          render={(g) => <GameCard game={g} last={last?.id === g.id ? last.at : null} main={!onTable && last?.id === g.id} />}
           label="翻看更多游戏"
           testId="lobby-pages"
         />

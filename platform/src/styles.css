@@ -20,6 +20,8 @@
   --dashed: #d9c9b8;
   --highlight: #fff3c4;
   --highlight-warm: #fff3d6;
+  /* 页签、分段选中的底：比悬停的 --highlight-warm 深一档，一眼分得出"选了的"和"划过的" */
+  --selected: #ffe2c4;
   --good: #2f7a3a;
   /* 在线：好友列表的绿点、顶栏"好友"上的在线数 */
   --online: #3fae5f;
@@ -99,10 +101,9 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
  * 里面用 .desk 分两栏：左边一列放概况和操作，右边放长的列表。960 以下照旧一窄列（手机、竖着的平板）
  */
 @media (min-width: 1100px) { :root { --content: 1280px; } }
-/* 好友页：960 以下两列拆开，按"动态入口、想加你的人、好友列表、加好友、我的好友码"排，等对方接受和屏蔽的人最下 */
+/* 好友页：960 以下两列拆开，按"想加你的人、好友列表、加好友、我的好友码"排，等对方接受和屏蔽的人最下 */
 @media (max-width: 959px) {
   .desk--friends > .desk__col { display: contents; }
-  .desk--friends .feed-entry { order: 1; }
   .desk--friends .friends-incoming { order: 2; }
   .desk--friends .friends-list { order: 3; }
   .desk--friends .friends-add { order: 4; }
@@ -275,7 +276,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 }
 
 /* ---------- 按钮 ---------- */
-/* 一套按钮：常态白底（次要）、--primary 橙（主要）、--danger 红；悬停抬起、按下压下去、禁用灰掉、加载中转圈 */
+/* 一套按钮：常态白底（次要）、--primary 橙（主要）、--danger 红；大厅卡片的按钮平时是次要，只有 --main 那一张是主要；悬停抬起、按下压下去、禁用灰掉、加载中转圈 */
 .btn, .card__play {
   font: inherit; font-weight: 700; line-height: 1.2;
   display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
@@ -286,7 +287,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   transition: transform var(--ease), box-shadow var(--ease), background-color var(--ease);
 }
 /* 主按钮上亮下暗（恢复之前去掉的渐变）；白字下面压一道深色，橙底上也看得清 */
-.btn--primary, .card__play { background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%); color: var(--white); text-shadow: 0 1px 0 rgb(80 30 0 / 45%); }
+.btn--primary, .card__play--main { background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%); color: var(--white); text-shadow: 0 1px 0 rgb(80 30 0 / 45%); }
 .btn--danger { background: linear-gradient(180deg, #dc5a3e 0%, var(--danger) 100%); color: var(--white); }
 .btn--small { min-height: 36px; padding: var(--s-1) var(--s-3); font-size: var(--fs-sm); box-shadow: var(--sh-sm); }
 .btn--big { font-size: var(--fs-lg); padding: var(--s-3) var(--s-6); }
@@ -309,7 +310,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .row { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; }
 
 /* ---------- 切换（登录/注册、哪个榜、全部/好友、哪个游戏） ---------- */
-/* 三种切换一个样子：同样的高度、描边和"选中=橙底白字"；.tabs 撑满一行，.seg 连成一条，.chips 分开的小圆片 */
+/* 三种切换一个样子：同样的高度、描边和"选中=浅橙底、深橙字、底下一道橙线"（不和实心橙的主按钮同色，docs/ui.md 第 4 节）；.tabs 撑满一行，.seg 连成一条，.chips 分开的小圆片 */
 .tabs, .seg, .chips { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-4); }
 .tabs a, .seg button, .chips button {
   font: inherit; font-weight: 700; line-height: 1.2;
@@ -320,7 +321,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   transition: background-color var(--ease), color var(--ease);
 }
 .tabs a { flex: 1; padding: 0 var(--s-2); white-space: nowrap; }
-.tabs a.tabs__on, .seg button.seg__on, .chips button.chips__on { background: var(--accent); color: var(--white); box-shadow: inset 0 -3px 0 var(--accent-deep); }
+.tabs a.tabs__on, .seg button.seg__on, .chips button.chips__on { background: var(--selected); color: var(--accent-ink); box-shadow: inset 0 -4px 0 var(--accent); }
 @media (hover: hover) {
   .tabs a:not(.tabs__on):hover, .seg button:not(.seg__on):hover, .chips button:not(.chips__on):hover { background: var(--highlight-warm); }
 }
@@ -328,7 +329,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .pills { flex: none; display: flex; gap: var(--s-2); overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .pills::-webkit-scrollbar { display: none; }
 .pills button { flex: none; white-space: nowrap; min-height: 36px; padding: 0 var(--s-4); font: inherit; font-size: var(--fs-sm); font-weight: 700; color: var(--ink); background: var(--white); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); cursor: pointer; }
-.pills button.tabs__on { background: var(--accent); color: var(--white); box-shadow: inset 0 -3px 0 var(--accent-deep); }
+.pills button.tabs__on { background: var(--selected); color: var(--accent-ink); border-color: var(--accent-ink); box-shadow: inset 0 -3px 0 var(--accent); }
 @media (hover: hover) { .pills button:not(.tabs__on):hover { background: var(--highlight-warm); } }
 @media (pointer: coarse) { .pills button { min-height: var(--tap); } }
 .seg { display: inline-flex; flex-wrap: nowrap; gap: 0; border: var(--bw) solid var(--line); border-radius: var(--r-pill); overflow: hidden; }
@@ -388,13 +389,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .feed__load { width: 100%; margin-top: var(--s-3); }
 .feed__end { margin: var(--s-3) 0 0; text-align: center; }
 .feedpage { width: 100%; max-width: 720px; margin: 0 auto; }
-/* 好友页：好友列表上方一行去动态页的入口；好友多了在卡片里滚 */
-.feed-entry {
-  display: flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-4);
-  border: var(--bw) solid var(--line); border-radius: var(--r-pill); background: var(--face-white); color: var(--ink);
-  font-weight: 700; text-decoration: none; box-shadow: var(--sh-sm);
-}
-.feed-entry > span:last-child { margin-left: auto; }
+/* 好友多了在卡片里滚 */
 .friends-scroll { max-height: min(600px, 70vh); overflow-y: auto; overscroll-behavior: contain; margin-right: calc(-1 * var(--s-2)); padding-right: var(--s-2); }
 /* 电脑上右栏和左栏一样高：好友卡片撑满剩下的高度，列表在里面滚（左栏比 8 个好友还矮时就按左栏的高度） */
 @media (min-width: 960px) {
@@ -520,9 +515,9 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 }
 .card__body > .card__title { grid-area: title; }
 .card__body > .card__tagline { grid-area: tagline; }
-/* "上次玩 · 多久以前"：和"今天 N 人玩过"一样骑在封面和正文的分界线上，在左边 */
+/* "上次玩 · 多久以前"：压在封面左下角里面（原来骑在分界线上，往下压住游戏名的字头） */
 .card__kicker {
-  position: absolute; top: -15px; left: var(--s-4);
+  position: absolute; bottom: calc(100% + var(--bw) + var(--s-2)); left: var(--s-3);
   padding: 2px var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); background: var(--accent); color: var(--white);
   font-size: 13px; font-weight: 700; white-space: nowrap; box-shadow: var(--sh-sm);
 }
@@ -561,7 +556,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .lobby-grid .card .card__tagline { font-size: var(--fs-xs); }
   .lobby-grid .card .card__body > .card__play { min-width: 64px; padding: 0 var(--s-3); font-size: var(--fs-md); }
   /* "上次玩"：短卡上压在封面左上角 */
-  .lobby-grid .card .card__kicker { top: 4px; left: calc(-112px + 4px); padding: 0 6px; font-size: 12px; }
+  .lobby-grid .card .card__kicker { top: 4px; bottom: auto; left: calc(-112px + 4px); padding: 0 6px; font-size: 12px; }
+  .lobby-grid .card .card__play-more { display: none; }
   /* "今天 N 人玩过"：手机短卡上改成压在封面左下角的小牌子 */
   .lobby-grid .card .card__playing { top: auto; bottom: 4px; right: auto; left: calc(-112px + 4px); padding: 0 6px; font-size: 11px; }
   .lobby-grid .card .card__playing .icon { width: 12px; height: 12px; }
@@ -744,7 +740,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 }
 /*
  * 桌上还有筹码的提示条（首屏顶栏以下唯一的一条）：手机上压成一行、放在页面顶上（做过底部固定条，单手够得着但和顶上那条重复，已并回顶部）。
- * 游戏名和数字不省略，中间那句先省略；按钮是 44 高的橙色药丸
+ * 游戏名和数字不省略，中间那句先省略
  */
 @media (pointer: coarse), (max-width: 959px) {
   .nudge--stake { flex-wrap: nowrap; gap: var(--s-3); min-height: 52px; }
@@ -753,10 +749,11 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   /* 弹性盒里开头的空格会被吃掉，数字前的空隙用边距补 */
   .nudge--stake .nudge__keep:last-child { margin-left: 0.3em; }
   .nudge--stake .nudge__mid { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .nudge--stake > a {
-    flex: none; display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 var(--s-4);
-    border: var(--bw) solid var(--line); border-radius: var(--r-pill); background: var(--accent); color: var(--white); text-decoration: none; box-shadow: var(--sh-sm);
-  }
+}
+/* 按钮是橙色药丸，电脑上也是（桌上有筹码时它是大厅唯一的主按钮，卡片都是次按钮） */
+.nudge--stake > a {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 var(--s-4);
+  border: var(--bw) solid var(--line); border-radius: var(--r-pill); background: var(--accent); color: var(--white); font-weight: 700; text-decoration: none; box-shadow: var(--sh-sm);
 }
 
 /* ===== 动效（docs/style.md "动效"）：只用 transform / opacity；减少动效和自动化浏览器下一律关掉 ===== */
