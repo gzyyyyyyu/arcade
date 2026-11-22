@@ -1,5 +1,6 @@
 import type { Feel, Rarity, ThemeId } from '../core/index.ts';
 import type { ColorScheme } from '../platform/settings.ts';
+import { isLowMemoryDevice, renderScale } from 'arcade-kit/viewport';
 
 /**
  * 配色与字体集中在这里（0.3 纸张卡通风）。颜色按 A 股习惯：红涨绿跌；设置里可切换为绿涨红跌
@@ -197,38 +198,14 @@ export const PHONE_SCALE = ((): number => {
  * 几百张 SVG 各自光栅化，实测纹理从约 380 MB 涨到 830 MB），整屏的场景背景按 1 倍光栅化（背景是柔和的插画，
  * 每张 2 倍要 15 MB、十几张就两百多 MB）。
  */
-export const LOW_MEMORY = ((): boolean => {
-  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  return ios || !!window.matchMedia?.('(pointer: coarse)').matches;
-})();
+export const LOW_MEMORY = isLowMemoryDevice();
 
 /**
  * 渲染倍数：按屏幕物理像素取整（1..3；省内存的设备最多 2），画布尺寸 = 世界尺寸 × 倍数，
- * 各场景相机 zoom 同样倍数。这样 FIT 缩放时浏览器基本只做缩小，文字不再发虚。
+ * 各场景相机 zoom 同样倍数。这样 FIT 缩放时浏览器基本只做缩小，文字不再发虚。算法在共用包 arcade-kit/viewport（屏幕长边对世界长边；
+ * 手机平板按窗口、电脑按显示器；URL 参数 scale=N 强制倍数做清晰度对比）。
  */
-export const RENDER_SCALE = ((): number => {
-  // 单元测试（node）里没有 window
-  if (typeof window === 'undefined') return 1;
-  // 调试：URL 参数 scale=N 强制渲染倍数（用于清晰度对比）
-  const forced = Number(new URLSearchParams(window.location.search).get('scale'));
-  if (forced >= 1 && forced <= 3) return Math.round(forced);
-  const dpr = window.devicePixelRatio || 1;
-  // 手机横屏时屏幕的长边对应世界的宽。真正的手机平板（省内存的设备、窗口长边接近屏幕长边）按看得见的区域算
-  // （iOS 的 screen 是竖着的整屏、不扣地址栏）；电脑和开了小窗的二合一按显示器算：窗口开小了之后再拉大，画面也不发虚
-  const iw = window.innerWidth;
-  const ih = window.innerHeight;
-  const scw = window.screen?.width || VIEW.w;
-  const sch = window.screen?.height || VIEW.h;
-  const visible = LOW_MEMORY && Math.max(iw, ih) >= 0.9 * Math.max(scw, sch);
-  const sw = (visible ? iw : scw) || VIEW.w;
-  const sh = (visible ? ih : sch) || VIEW.h;
-  // 手机按布局的方向对齐屏幕（横屏版长边对世界的宽，竖屏版短边对世界的宽）
-  const w = (PHONE ? (PORTRAIT ? Math.min(sw, sh) : Math.max(sw, sh)) : sw) * dpr;
-  const h = (PHONE ? (PORTRAIT ? Math.max(sw, sh) : Math.min(sw, sh)) : sh) * dpr;
-  return Math.min(LOW_MEMORY ? 2 : 3, Math.max(1, Math.ceil(Math.min(w / VIEW.w, h / VIEW.h))));
-})();
+export const RENDER_SCALE = renderScale({ designW: Math.max(VIEW.w, VIEW.h), designH: Math.min(VIEW.w, VIEW.h), lowMemory: LOW_MEMORY });
 
 /**
  * 0.5 字号只用三级：大数字（账户、涨跌幅、效果数字）、标题（卡名、弹窗标题、结论）、标签（其余所有常驻文字）。

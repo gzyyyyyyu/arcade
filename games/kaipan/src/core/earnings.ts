@@ -11,7 +11,7 @@ import { BALANCE } from './balance.ts';
 import { friendById, stockById, stocksOf } from './content/index.ts';
 import { friendForm, topicsOf } from './chat.ts';
 import { daysInMonth, lastDayIndex, runMonths } from './engine/calendar.ts';
-import { isTrack, realStockPct, tapeIndex } from './real.ts';
+import { realStockPct, tapeIndex } from './real.ts';
 import { rngFor } from './rng.ts';
 import { isRegularRun } from './tempo.ts';
 import type { GameState } from './types.ts';
@@ -46,7 +46,7 @@ function monthStart(month: number): number {
 /** 这一局 month 月有没有财报周、是哪只哪天；没有为 null。只看种子、行情段和本局风口，整局不变。 */
 export function earningsPlan(s: Readonly<GameState>, month: number): EarningsPlan | null {
   const real = s.real;
-  if (!real || !isTrack(real) || !isRegularRun(real, s.setup)) return null;
+  if (!real || !isRegularRun(real, s.setup)) return null;
   if (!EARNINGS_MONTHS.includes(month) || month > runMonths(s)) return null;
   const start = monthStart(month);
   const last = lastDayIndex(s);

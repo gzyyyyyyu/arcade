@@ -34,25 +34,28 @@ export function statTile(
   g: Glyph,
   value: string,
   label: string,
-  opts: { color?: number; w?: number; icon?: number; size?: number; bg?: boolean; tint?: number; stacked?: boolean } = {},
+  opts: { color?: number; w?: number; icon?: number; size?: number; bg?: boolean; tint?: number; stacked?: boolean; muted?: boolean } = {},
 ): Phaser.GameObjects.Container {
   const c = scene.add.container(x, y);
   const icon = opts.icon ?? 40;
   const w = opts.w ?? 180;
   const h = opts.stacked ? 54 : icon + 16;
+  // 没拿到的项（0 天、0 次）：数字变灰、图标淡一半，一眼看出这局亮点在哪几格
+  const valueColor = opts.muted ? COLOR.muted : (opts.color ?? COLOR.ink);
+  const glyphAlpha = opts.muted ? 0.45 : 1;
   if (opts.bg !== false) c.add(scene.add.rectangle(0, 0, w, h, COLOR.paperHi, 0.9).setOrigin(0, 0).setRounded(14).setStrokeStyle(2, COLOR.edge, 1));
   // 窄格（手机结束页一格约 110 宽）：小图标和标签在上面一行，数字单独一行（金额由调用方写成短的，数字不截）
   if (opts.stacked) {
-    c.add(addGlyph(scene, 8 + icon / 2, 6 + icon / 2, g, icon, opts.tint));
+    c.add(addGlyph(scene, 8 + icon / 2, 6 + icon / 2, g, icon, opts.tint).setAlpha(glyphAlpha));
     if (label) c.add(addText(scene, 14 + icon, 6 + icon / 2, label, { size: TYPE.label, color: COLOR.muted, originY: 0.5 }));
-    c.add(addText(scene, 10, h - 5, value, { size: opts.size ?? TYPE.title, bold: true, num: true, color: opts.color ?? COLOR.ink, originY: 1 }));
+    c.add(addText(scene, 10, h - 5, value, { size: opts.size ?? TYPE.title, bold: true, num: true, color: valueColor, originY: 1 }));
     c.setSize(w, h);
     return c;
   }
-  c.add(addGlyph(scene, 8 + icon / 2, h / 2, g, icon, opts.tint));
+  c.add(addGlyph(scene, 8 + icon / 2, h / 2, g, icon, opts.tint).setAlpha(glyphAlpha));
   const tx = 16 + icon;
   // 没有标签时数字垂直居中
-  c.add(addText(scene, tx, label ? h / 2 + 1 : h / 2, value, { size: opts.size ?? TYPE.title + 4, bold: true, num: true, color: opts.color ?? COLOR.ink, originY: label ? 1 : 0.5 }));
+  c.add(addText(scene, tx, label ? h / 2 + 1 : h / 2, value, { size: opts.size ?? TYPE.title + 4, bold: true, num: true, color: valueColor, originY: label ? 1 : 0.5 }));
   if (label) c.add(addText(scene, tx, h / 2 + 3, label, { size: TYPE.label, color: COLOR.muted }));
   c.setSize(w, h);
   return c;

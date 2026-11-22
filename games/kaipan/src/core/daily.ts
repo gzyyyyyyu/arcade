@@ -31,18 +31,12 @@ export function isDailyRun(date: string | null | undefined, seed: string, person
   return d.seed === seed && d.setup.persona === persona && d.setup.difficulty === difficulty;
 }
 
-/**
- * 每日挑战规则的版本（0.5.10 排行榜）：0 = 榜单 `daily-YYYY-MM-DD-<子榜>`。人设难度的抽法、段池（DAILY_SEGMENTS）、计分方法大改时加一，
- * 榜单变成 `daily-YYYY-MM-DD-<子榜>-v<n>`，改之前和之后打的不在一个榜上比。
- */
-export const DAILY_RULES = 0;
-
 /** 每日榜的子榜（平台登记的 daily 子榜 id）：经典每日挑战 classic，闪电盘 flash。 */
 export type DailyKind = 'classic' | 'flash';
 
 /** 这一天某个子榜的排行榜 ID（平台只收北京时间的昨天、今天、明天）。 */
 export function dailyBoardId(date: string, kind: DailyKind = 'classic'): string {
-  return DAILY_RULES > 0 ? `daily-${date}-${kind}-v${DAILY_RULES}` : `daily-${date}-${kind}`;
+  return `daily-${date}-${kind}`;
 }
 
 /** 这一天的每日挑战该用哪一段真实行情：只在冻结的段池里抽，段库加了新段也不变。 */

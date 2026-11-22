@@ -83,6 +83,7 @@
 ## 省内存设备
 
 iOS 和触屏设备渲染倍数封顶 2，整屏背景按 1 倍光栅化（`theme.ts` 的 `LOW_MEMORY`，原因见仓库根 `AGENTS.md` 第 4 节）。
+判断、渲染倍数、可见区（写 `--app-h`、转屏后 300ms 补量、双指放大时不动）和 WebGL 丢失 3 秒后提示刷新都用共用包 `arcade-kit/viewport`（`main.ts`、`theme.ts`、`game.ts`）；iOS Safari 的「添加到主屏幕」提示在 `src/platform/homeTip.ts`。
 `node tools/mem-probe.ts` 按几种视口和 DPR 估算显存；冒烟 `npm run shot -- --lowmem` 模拟一次。
 
 ## 怎么验

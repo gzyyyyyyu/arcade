@@ -5,7 +5,7 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { THEME_IDS, checkSegment, createRun, storyView, type Segment, type SegmentIndex } from '../../src/core/index.ts';
+import { THEME_IDS, checkSegment, type Segment, type SegmentIndex } from '../../src/core/index.ts';
 
 const DIR = 'public/data/segments';
 const files = readdirSync(DIR);
@@ -81,27 +81,5 @@ describe('行情段不泄漏年份', () => {
   it('画面包里不放按真实日期排的大事表', () => {
     const tales = readFileSync('src/core/content/tales.ts', 'utf8');
     expect(tales).not.toMatch(/'\d{4}-\d{2}-\d{2}'/);
-  });
-});
-
-describe('0.4 开发期旧存档的真实行情（带真实日期和原文）', () => {
-  it('照样能讲局末故事，不报错、不露日期', () => {
-    const index = JSON.parse(readFileSync(`${DIR}/index.json`, 'utf8')) as SegmentIndex;
-    const seg = JSON.parse(readFileSync(`${DIR}/${index.segments[0]?.file}`, 'utf8')) as Segment;
-    const s = createRun('legacy-real', null, { segment: seg }).state;
-    const real = s.real;
-    if (!real) throw new Error('没有真实行情');
-    // 模拟旧存档：起止日期、年份、date/text 格式的大事（含一条带敏感词的，应被过滤）
-    Object.assign(real, { segId: '1996-01-bull', from: '1996-01-02', to: '1996-03-22', year: 1996 });
-    real.events = [
-      { date: '1996-02-08', text: '新规矩下来了，电话和电视可以互相抢生意', quip: '' },
-      { date: '1996-03-01', text: '某地地震', quip: '' },
-    ];
-    s.phase = 'won';
-    s.dayIndex = real.days;
-    const v = storyView(s);
-    expect(v?.lines.length).toBeGreaterThanOrEqual(4);
-    const text = (v?.lines ?? []).join('');
-    expect(text).not.toMatch(/(19|20)\d\d|地震/);
   });
 });

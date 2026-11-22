@@ -24,7 +24,15 @@ import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { BALANCE } from '../../src/core/balance.ts';
 import { STOCKS, THEME_IDS } from '../../src/core/content/stocks.ts';
-import { assignTitles, dayOfDate, sectorsOf } from '../../src/core/reveal.ts';
+import { assignTitles, sectorsOf } from '../../src/core/reveal.ts';
+
+/** 真实日期在一局里大约是第几个交易日（按自然日比例折算，只用来说"第几个月"），写进段文件大事的 day。 */
+export function dayOfDate(from: string, to: string, days: number, date: string): number {
+  const t = (x: string): number => Date.UTC(Number(x.slice(0, 4)), Number(x.slice(5, 7)) - 1, Number(x.slice(8, 10)));
+  const span = Math.max(1, t(to) - t(from));
+  const f = Math.min(1, Math.max(0, (t(date) - t(from)) / span));
+  return Math.min(days - 1, Math.floor(f * days));
+}
 import { REGIME_LABEL, THEME_REAL, type Regime, type Segment, type SegmentIndex, type SegmentStock, type SegmentTheme } from '../../src/core/segment.ts';
 import type { Role, ThemeId } from '../../src/core/types.ts';
 import { DATA_DIR, DEFAULT_CACHE, DEFAULT_SRC, arg, flag, pct } from './common.ts';

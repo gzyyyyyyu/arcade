@@ -100,7 +100,7 @@ export const ITEMS: readonly ItemDef[] = [
     },
     // 0.5 真实行情：走势不能改，改成结算规则——连续涨停（第 2 个起）+realBonus，炸板 −realBlow
     onHolding(c) {
-      if (!c.state.real?.track) return;
+      if (!c.state.real) return;
       if (c.move.limitUp && c.move.boards >= 2) {
         c.ret += fx('lianban', 'realBonus');
         c.trigger(`${c.stock.name}连续 ${c.move.boards} 天涨停，再 +${n('lianban', 'realBonus')}%`);

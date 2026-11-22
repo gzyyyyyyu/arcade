@@ -96,13 +96,13 @@ export function rewardView(s: Readonly<GameState>): RewardView[] {
     return {
       ...base,
       name: stock.name,
-      desc: s.real?.track
+      desc: s.real
         ? `${stock.themeName}风口的${stock.roleLabel}。内部消息说它下个月走势偏强（消息大多靠谱，但不是百分百），可以直接放进手里`
         : `${stock.themeName}风口的${stock.roleLabel}。它所在的风口这个月一定会"要火"，可以直接放进手里`,
       item: null,
       friend: null,
       stock,
-      brief: { line: s.real?.track ? '内部消息：下个月偏强' : '它的风口这个月准火' },
+      brief: { line: s.real ? '内部消息：下个月偏强' : '它的风口这个月准火' },
     };
   });
 }

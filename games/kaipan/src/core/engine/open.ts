@@ -9,7 +9,7 @@ import { itemById, stockById, stocksOf } from '../content/index.ts';
 import type { HoldingCtx, MarketRules, Rules } from '../hooks.ts';
 import { dirOf, feelOf, moveStocks, newStock, round2, rulesOf, settleTheme, type RawPart } from '../market.ts';
 import { rngFor } from '../rng.ts';
-import { isTrack, realMarketPct, realSectorPct, realStockPct, realThemeRet, tapeIndex, trackThemeRet } from '../real.ts';
+import { realMarketPct, realSectorPct, realStockPct, tapeIndex, trackThemeRet } from '../real.ts';
 import { tempoClose } from '../tempo.ts';
 import type { RealMarket } from '../segment.ts';
 import type { AccountEffect, DayPlan, ChainLink, DayReport, GameState, HoldingMove, HoldingStep, IpoOffer, ItemTrigger, MessageJudge, Stage, StockMove, ThemeId, ThemeMove } from '../types.ts';
@@ -74,7 +74,6 @@ interface DayBase {
 interface ThemeStep {
   moodBefore: GameState['mood'];
   themeRet: Partial<Record<ThemeId, number>>;
-  realBase: Partial<Record<ThemeId, number>>;
   themes: ThemeMove[];
   stageOf: Map<ThemeId, Stage>;
 }
@@ -158,7 +157,6 @@ function settleThemes(s: GameState, em: Emitter, b: DayBase): ThemeStep {
   s.mood = plan.mood;
   emit(em, { type: 'marketMoved', moodBefore, mood: s.mood, ret: plan.marketRet });
   const themeRet: Partial<Record<ThemeId, number>> = {};
-  const realBase: Partial<Record<ThemeId, number>> = {};
   const themes: ThemeMove[] = [];
   for (const id of s.themeIds) {
     const t = s.themes[id];
@@ -166,14 +164,8 @@ function settleThemes(s: GameState, em: Emitter, b: DayBase): ThemeStep {
     const heatBefore = t.heat;
     const feelBefore = feelOf(t.history);
     const stage = t.stage;
-    // 真实行情：风口涨跌 = 行业的真实超额收益（归一、均摊后 × themeK）+ 加成热度带来的涨跌（0.3 的 coef × ΔH）
-    // 0.5：风口涨跌 = amp × 真实行业当天涨跌（和个股一致；热度只是信息）
-    const realRet = isTrack(s.real)
-      ? round2(trackThemeRet(s.real as RealMarket, id, tapeIndex(s.real as RealMarket, day)))
-      : s.real
-        ? round2(realThemeRet(s.real, t, tapeIndex(s.real, day), mr.vol) + BALANCE.heat.coef * ((plan.dH[id] ?? 0) - (plan.base?.dH[id] ?? 0)))
-        : undefined;
-    if (realRet !== undefined) realBase[id] = realThemeRet(s.real as RealMarket, t, tapeIndex(s.real as RealMarket, day), mr.vol);
+    // 真实行情：风口涨跌 = amp × 真实行业当天涨跌（和个股一致；热度只是信息）
+    const realRet = s.real ? round2(trackThemeRet(s.real, id, tapeIndex(s.real, day))) : undefined;
     const r = settleTheme(t, plan.dH[id] ?? 0, mr, rngFor(s.seed, 'themeNoise', id, day), realRet);
     themeRet[id] = r.ret;
     const tm: ThemeMove = { id, heatBefore, heat: t.heat, dH: r.dH, ret: r.ret, feelBefore, feel: feelOf(t.history), stage };
@@ -181,28 +173,20 @@ function settleThemes(s: GameState, em: Emitter, b: DayBase): ThemeStep {
     emit(em, { type: 'themeMoved', ...tm });
   }
   const stageOf = new Map(themes.map((t) => [t.id, t.stage]));
-  return { moodBefore, themeRet, realBase, themes, stageOf };
+  return { moodBefore, themeRet, themes, stageOf };
 }
 
 /** 2. 个股涨跌（含打新中签的新股） */
 function settleStocks(s: GameState, b: DayBase, th: ThemeStep): StockStep {
   const { day, plan, mr, rules } = b;
-  const { themeRet, realBase } = th;
+  const { themeRet } = th;
   const held = new Set<string>();
   // 申购冻结中的新股还没上市（s.stocks 里没有它），不算持仓
   for (const h of s.slots) if (h && h.ipo?.stage !== 'frozen') held.add(h.stockId);
   const rawParts = new Map<string, RawPart[]>();
   const boardsBefore = new Map<string, number>();
   for (const id of held) boardsBefore.set(id, s.stocks[id]?.boards ?? 0);
-  const real = s.real
-    ? {
-        tape: s.real,
-        i: tapeIndex(s.real, day),
-        themeRet: realBase,
-        marketExtra: plan.marketRet - (plan.base?.market ?? 0),
-        extraDH: Object.fromEntries(s.themeIds.map((id) => [id, (plan.dH[id] ?? 0) - (plan.base?.dH[id] ?? 0)])) as Partial<Record<ThemeId, number>>,
-      }
-    : undefined;
+  const real = s.real ? { tape: s.real, i: tapeIndex(s.real, day) } : undefined;
   const moves = moveStocks({ seed: s.seed, day, state: s, themeRet, marketRet: plan.marketRet, mr, rules, held, partsOut: rawParts, real });
   // 打新中签的新股不在 moveStocks 的股票池里：逐日照搬"替身"的真实涨跌，上市头两天再叠溢价
   const ipoPremium = new Map<string, number>();
@@ -312,7 +296,7 @@ function settleHoldings(s: GameState, em: Emitter, b: DayBase, th: ThemeStep, st
       dH: themes.find((t) => t.id === stock.theme)?.dH ?? 0,
       marketRet: plan.marketRet,
       boardsBefore: boardsBefore.get(h.stockId) ?? 0,
-      track: !!s.real && isTrack(s.real),
+      track: !!s.real,
       swan: swanToday && swanRet !== 0 ? { name: SWAN_DEFS[swanToday.kind].name, value: swanRet } : undefined,
       ipo: ipoPremium.has(h.stockId) ? { value: ipoPremium.get(h.stockId) as number } : undefined,
     };
@@ -449,7 +433,7 @@ function judgeMessages(s: GameState, em: Emitter, b: DayBase, th: ThemeStep): Ju
     }
   };
   // 0.5（真实行情）：消息说的是风口接下来 days 天的真实累计方向；说一天的当天揭晓，说几天的到期那天收盘揭晓（report.intel）
-  const track = isTrack(s.real) ? (s.real as RealMarket) : null;
+  const track = s.real ?? null;
   const judged: MessageJudge[] = [];
   s.today.messages.forEach((m, index) => {
     const days = m.days ?? 1;

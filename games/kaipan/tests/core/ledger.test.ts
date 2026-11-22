@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { dispatch, itemById, runSummary, type GameEvent, type GameState } from '../../src/core/index.ts';
 import { reviveState } from '../../src/platform/storage.ts';
-import { endSubtitle, ledgerRows } from '../../src/view/labels.ts';
+import { ledgerRows } from '../../src/view/labels.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 import { segmentForSeed } from '../../tools/segments-disk.ts';
 
@@ -47,40 +47,22 @@ describe('结算对得上账', () => {
 });
 
 describe('旧存档接着玩', () => {
-  /** 0.5.3 的存档没有这两项 */
-  function legacy(s: GameState): GameState {
-    const raw = JSON.parse(JSON.stringify(s)) as GameState;
+  it('缺了的统计项从 0 记起，账照样加得起来（差额进「其他」）', () => {
+    let s = playRun('ledger-legacy', botByName('smart'), null, undefined, 60);
+    const raw = JSON.parse(JSON.stringify(s)) as { stats: Record<string, unknown> };
     delete raw.stats.tradeMoney;
     delete raw.stats.billMoney;
-    return raw;
-  }
-
-  it('读档后不从半路记起，结算走旧说法', () => {
-    let s = playRun('ledger-legacy', botByName('smart'), null, undefined, 60);
-    expect(s.stats.tradeMoney).toBeDefined();
-    const back = reviveState(legacy(s));
+    raw.stats.eventPicks = 'x';
+    const back = reviveState(raw);
     expect(back).not.toBeNull();
     s = back as GameState;
+    expect([s.stats.tradeMoney, s.stats.billMoney, s.stats.eventPicks]).toEqual([0, 0, []]);
     for (let i = 0; i < 400 && s.phase !== 'won' && s.phase !== 'lost'; i++) {
       const a = s.phase === 'reward' ? ({ type: 'skipReward' } as const) : s.phase === 'event' ? ({ type: 'choose', option: 0 } as const) : ({ type: 'open' } as const);
       s = dispatch(s, a).state;
     }
-    expect(s.stats.tradeMoney).toBeUndefined();
-    expect(s.stats.billMoney).toBeUndefined();
     const sum = runSummary(s);
-    expect([sum.tradeMoney, sum.billMoney, sum.otherMoney]).toEqual([null, null, null]);
-    expect(ledgerRows(sum).map((r) => r[0])).toEqual(['本钱', '最后剩']);
-    const sub = endSubtitle(sum);
-    expect(sub).not.toContain('炒股');
-    expect(sub).toMatch(sum.won ? /12 个月的钱全还上了/ : /游戏结束/);
-  });
-
-  it('存档里这两项坏了：一起丢掉，不补 0', () => {
-    const s = playRun('ledger-bad', botByName('smart'), null, undefined, 30);
-    const raw = JSON.parse(JSON.stringify(s)) as { stats: Record<string, unknown> };
-    raw.stats.tradeMoney = 'x';
-    const back = reviveState(raw) as GameState;
-    expect(back.stats.tradeMoney).toBeUndefined();
-    expect(back.stats.billMoney).toBeUndefined();
+    expect(r2(sum.startAccount + sum.tradeMoney - sum.billMoney + sum.otherMoney + sum.debtLeft)).toBeCloseTo(sum.account, 1);
+    expect(ledgerRows(sum).map((r) => r[0])).toContain('还掉的账单');
   });
 });

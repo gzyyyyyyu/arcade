@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { onWebglLoss } from 'arcade-kit/viewport';
 import { BootScene } from './scenes/BootScene.ts';
 import { EndScene } from './scenes/EndScene.ts';
 import { TitleScene } from './scenes/TitleScene.ts';
@@ -28,26 +29,11 @@ export function startGame(session: Session, parent: string, opts: { toTitle: boo
     scene: [new BootScene(session, opts.toTitle), new TitleScene(session), new TradeScene(session), new EndScene(session)],
   });
   // 0.5.9：拿不到 WebGL 时 Phaser.AUTO 自己退回 Canvas；WebGL 用着用着丢了（显存吃紧时 iOS 会收回），Phaser 会等它恢复。
-  // 3 秒还没恢复才提示刷新，恢复了就收起；同一时间只有一条
+  // 共用包 arcade-kit/viewport：3 秒还没恢复才提示刷新，恢复了就收起；同一时间只有一条
   game.events.once(Phaser.Core.Events.READY, () => {
     // 右键在游戏里有用（持仓卡弹菜单、空白处取消）：只在画布上关掉浏览器自带的右键菜单，页面其他地方不动
     game.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-    let wait: ReturnType<typeof setTimeout> | null = null;
-    let close: (() => void) | null = null;
-    game.canvas.addEventListener('webglcontextlost', () => {
-      console.warn('WebGL 上下文丢了（多半是显存不够），等它恢复');
-      if (wait || close) return;
-      wait = setTimeout(() => {
-        wait = null;
-        close = showBanner('画面出了点问题，刷新一下页面就好（进度都存着）');
-      }, 3000);
-    });
-    game.canvas.addEventListener('webglcontextrestored', () => {
-      if (wait) clearTimeout(wait);
-      wait = null;
-      close?.();
-      close = null;
-    });
+    onWebglLoss(game.canvas, { show: () => showBanner('画面出了点问题，刷新一下页面就好（进度都存着）') });
   });
   return game;
 }

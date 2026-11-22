@@ -41,7 +41,7 @@ export function makeNews(s: Readonly<GameState>, report: Readonly<DayReport>): N
   });
   // 0.5（真实行情）：一条预告——某个风口接下来 1–3 天（从明天起）会涨还是跌，按 BALANCE.intel.news 说中
   const real = s.real;
-  if (real?.track && report.day + 1 < real.days && s.themeIds.length > 0) {
+  if (real && report.day + 1 < real.days && s.themeIds.length > 0) {
     const r = rngFor(s.seed, 'newsAhead', report.day);
     const theme = s.themeIds[r.int(s.themeIds.length)] as (typeof s.themeIds)[number];
     const n = Math.min(1 + r.int(3), real.days - report.day - 1);

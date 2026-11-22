@@ -26,3 +26,8 @@ declare module 'node:os' {
   /** 系统临时目录（截图等临时产物的默认位置，不写死 /tmp） */
   export function tmpdir(): string;
 }
+
+// tools/parity.ts 从当前目录动态加载另一份代码
+declare module 'node:url' {
+  export function pathToFileURL(path: string): { href: string };
+}

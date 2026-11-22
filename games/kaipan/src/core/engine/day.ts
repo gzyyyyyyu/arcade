@@ -5,7 +5,7 @@ import { BILL_NAMES, GEAR_INTEREST_BILL, SHORT_GOAL_BILL, SURPRISE_BILLS, calend
 import type { MarketRules } from '../hooks.ts';
 import { advanceStage, marketReturn, nextMood, rollDH, round2, runBillMult, rulesOf, stageDays, uniformInt } from '../market.ts';
 import { rngFor } from '../rng.ts';
-import { isTrack, realDH, realEnter, realMarketPct, realMood, realNextStage, tapeIndex, trackMarketRet, trackMood } from '../real.ts';
+import { realDH, realEnter, realNextStage, tapeIndex, trackMarketRet, trackMood } from '../real.ts';
 import { announceMonth, beginMonth, premarketQuiet, type TempoCtx } from '../tempo.ts';
 import type { RealMarket } from '../segment.ts';
 import type { DayPlan, GameState, ThemeId } from '../types.ts';
@@ -107,65 +107,6 @@ export function tempoCtx(s: GameState, em: Emitter): TempoCtx {
 }
 
 /**
- * 真实行情的今天（盘前就定好，收盘揭晓）：大盘涨跌 = amp × 真实涨跌 + 日历和难度的加成；
- * 各风口热度变化 = 真实行业的超额收益 + 日历、直播间、震荡等加成；阶段按热度判定。
- */
-function realPlan(s: GameState, real: Readonly<RealMarket>, mr: MarketRules, crash: boolean): DayPlan {
-  if (isTrack(real)) return trackPlan(s, real, mr, crash);
-  const R = BALANCE.real;
-  const day = s.dayIndex;
-  const i = tapeIndex(real, day);
-  const dH: Partial<Record<ThemeId, number>> = {};
-  const baseDH: Partial<Record<ThemeId, number>> = {};
-  for (const id of s.themeIds) {
-    const t = s.themes[id];
-    if (!t) continue;
-    const rng = rngFor(s.seed, 'stage', id, day);
-    const uIgnite = rng.next();
-    const uChop = rng.next();
-    const data = realDH(real, t, i);
-    let bonus = (mr.themeDH[id] ?? 0) + (t.boost?.dH ?? 0);
-    // 日历"更容易火"：冷门风口有一定概率被点燃
-    if (t.stage === 'cold' && uIgnite < mr.sprout + (mr.sproutTheme[id] ?? 0)) bonus += R.igniteDH;
-    // 震荡：热度变化多一层来回拉扯
-    if (mr.dHNoise > 0) bonus += -mr.dHNoise + 2 * mr.dHNoise * uChop;
-    let d = data * mr.dHMult + bonus;
-    // 股灾：还没退潮、不在冷门的风口今天一起退潮（隐藏，收盘后揭晓）
-    if (crash && (CRASH_STAGES as readonly string[]).includes(t.stage)) {
-      t.lastStage = t.stage;
-      t.stage = 'ebb';
-      t.age = 0;
-      t.sure = false;
-      t.rebound = true;
-      d += R.crashDH;
-    }
-    const forced = crash && t.rebound === true && t.age === 0;
-    const next = forced ? 'ebb' : realNextStage(t, Math.round(d) || 0);
-    if (next === 'ebb' && d < 0) d *= mr.ebbMult * (crash ? BALANCE.crash.plunge : 1);
-    realEnter(t, next);
-    dH[id] = Math.round(d) || 0;
-    baseDH[id] = Math.round(data) || 0;
-  }
-  let mood = realMood(real, i, mr);
-  const market = Math.round(R.ampMarket * mr.vol * realMarketPct(real, i) * 100) / 100 || 0;
-  let extra = mr.marketAdd;
-  // 日历、难度"更容易晴 / 转熊"：在真实涨跌上叠一层 0.3 的晴雨涨跌
-  const u = rngFor(s.seed, 'mood', day).next();
-  if (u < mr.bullBias) {
-    mood = 'bull';
-    extra += BALANCE.market.ret.bull;
-  } else if (u < mr.bullBias + mr.bearBias) {
-    mood = 'bear';
-    extra += BALANCE.market.ret.bear;
-  }
-  if (crash) {
-    mood = 'bear';
-    extra += BALANCE.crash.marketHit;
-  }
-  return { mood, marketRet: round2(market + extra), dH, base: { market, dH: baseDH } };
-}
-
-/**
  * 0.5：个股照搬真实走势时的今天。大盘 = amp × 真实涨跌（日历、难度、股灾不再改大盘）；
  * 风口热度和阶段照 0.4（真实相对强弱 + 日历、直播间、震荡等加成，股灾时一起退潮）——热度只是信息，不影响个股涨跌。
  */
@@ -174,7 +115,6 @@ function trackPlan(s: GameState, real: Readonly<RealMarket>, mr: MarketRules, cr
   const day = s.dayIndex;
   const i = tapeIndex(real, day);
   const dH: Partial<Record<ThemeId, number>> = {};
-  const baseDH: Partial<Record<ThemeId, number>> = {};
   for (const id of s.themeIds) {
     const t = s.themes[id];
     if (!t) continue;
@@ -199,10 +139,9 @@ function trackPlan(s: GameState, real: Readonly<RealMarket>, mr: MarketRules, cr
     if (next === 'ebb' && d < 0) d *= mr.ebbMult * (crash ? BALANCE.crash.plunge : 1);
     realEnter(t, next);
     dH[id] = Math.round(d) || 0;
-    baseDH[id] = Math.round(data) || 0;
   }
   const market = round2(trackMarketRet(real, i));
-  return { mood: trackMood(real, i), marketRet: market, dH, base: { market, dH: baseDH } };
+  return { mood: trackMood(real, i), marketRet: market, dH };
 }
 
 export function startDay(s: GameState, em: Emitter): void {
@@ -213,7 +152,7 @@ export function startDay(s: GameState, em: Emitter): void {
   const dH: Partial<Record<ThemeId, number>> = {};
   const crash = s.notice?.id === 'crash' && crashPlan(s.seed, s.difficulty, s.real ?? null)?.dayInMonth === s.dayInMonth;
   if (s.real) {
-    s.today = { day, messages: [], recs: [], buysLeft: s.busyDay === day ? 0 : rules.buysPerDay, ops: 0, buys: 0, plan: realPlan(s, s.real, mr, crash) };
+    s.today = { day, messages: [], recs: [], buysLeft: s.busyDay === day ? 0 : rules.buysPerDay, ops: 0, buys: 0, plan: trackPlan(s, s.real, mr, crash) };
   }
   for (const id of s.real ? [] : s.themeIds) {
     const t = s.themes[id];
@@ -239,7 +178,7 @@ export function startDay(s: GameState, em: Emitter): void {
   }
   const busy = s.busyDay === day;
   if (!s.real) s.today = { day, messages: [], recs: [], buysLeft: busy ? 0 : rules.buysPerDay, ops: 0, buys: 0, plan: { mood, marketRet, dH } };
-  const manufactured = isTrack(s.real) && needsHeadline(s);
+  const manufactured = !!s.real && needsHeadline(s);
   s.today.messages = makeMessages(s, rules);
   s.today.recs = makeRecs(s, rules);
   if (s.tempo) s.today.quiet = premarketQuiet(s);

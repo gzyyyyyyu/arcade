@@ -26,7 +26,7 @@ import {
 import { formatMoney } from './format.ts';
 import type { Rules } from './hooks.ts';
 import { DIRS, clamp, dirOf, effectiveDH, feelOf, turnOf } from './market.ts';
-import { bandDir, forwardRet, isEaseRun, isTrack } from './real.ts';
+import { bandDir, forwardRet, isEaseRun } from './real.ts';
 import { rngFor, type Rng } from './rng.ts';
 import type { RealMarket } from './segment.ts';
 import type { Comment, DayReport, Dir, Feel, FriendState, GameState, Message, Rec, StockDef, ThemeId, TurnTalk } from './types.ts';
@@ -79,7 +79,7 @@ export function topicsOf(s: Readonly<GameState>, f: Readonly<FriendState>): Them
  * 中途入群的群友也一样，不用存进存档。只在真实行情下有：合成行情只是离线兜底，不加这些。
  */
 export function friendForm(s: Readonly<GameState>, friendId: string): { cred: number; talk: number } {
-  if (!isTrack(s.real)) return NO_FORM;
+  if (!s.real) return NO_FORM;
   // 一天要查几十次（每只候选股都要算一次可信度），按种子缓存；同样的输入结果不变，缓存不影响确定性。
   // 数值改了（模拟器 --set、测试里临时改 BALANCE）也要作废
   const { cred, talk } = BALANCE.chat.form;
@@ -103,7 +103,7 @@ function credOf(s: Readonly<GameState>, friendId: string, theme: ThemeId, rules:
   const over = rules.credOverride[friendId];
   if (over !== undefined) return clamp(over, 0, 1);
   const f = s.friends.find((x) => x.id === friendId);
-  const [expert, other] = (isTrack(s.real) ? BALANCE.intel.cred[friendId] : BALANCE.cred[friendId]) ?? [0.5, 0.5];
+  const [expert, other] = (s.real ? BALANCE.intel.cred[friendId] : BALANCE.cred[friendId]) ?? [0.5, 0.5];
   const isExpert = f ? topicsOf(s, f).includes(theme) : false;
   // 开局就在群里的靠谱群友聊擅长的题材时，消息比他荐的股更准（荐股还要挑个股，消息只说题材的方向）；
   // 道具带进来的群友（内幕哥、主播）按道具说明的可信度，不加
@@ -114,7 +114,7 @@ function credOf(s: Readonly<GameState>, friendId: string, theme: ThemeId, rules:
   // 0.5（真实行情）：难度每高一级，所有人的准确率再低一点；
   // 0.34.0 娱乐局（不是实盘）按难度放宽（BALANCE.ease）：只让本来不反指的人更准，群主照样反着说
   const ease = isEaseRun(s) && base >= 0.5 ? easeFor('cred', s.difficulty) : 0;
-  const diff = isTrack(s.real) ? BALANCE.intel.diffStep * (Math.max(1, s.difficulty) - 1) - ease : 0;
+  const diff = s.real ? BALANCE.intel.diffStep * (Math.max(1, s.difficulty) - 1) - ease : 0;
   const form = friendForm(s, friendId).cred;
   const c = clamp(base + form + tip + (msg ? rules.credDelta : 0) + (rules.credBonus[friendId] ?? 0) - diff, 0, credMax);
   // 消息失真：一部分消息是瞎传的（随机方向），可信度向 1/3 靠拢
@@ -171,7 +171,7 @@ export function messageCred(s: Readonly<GameState>, friendId: string, theme: The
   const bonus = BALANCE.chat.turnCred * rules.turnCredMult;
   if (bonus <= 0 || turnWeight(s, theme) <= 1) return c;
   const f = s.friends.find((x) => x.id === friendId);
-  const reliable = ((isTrack(s.real) ? BALANCE.intel.cred : BALANCE.cred)[friendId]?.[0] ?? 0) >= BALANCE.chat.reliable;
+  const reliable = ((s.real ? BALANCE.intel.cred : BALANCE.cred)[friendId]?.[0] ?? 0) >= BALANCE.chat.reliable;
   if (!f || !reliable || !topicsOf(s, f).includes(theme)) return c;
   return clamp(c + bonus, 0, 1);
 }
@@ -216,7 +216,7 @@ function withHand(s: Readonly<GameState>, f: Readonly<FriendState>, key: number,
  */
 export function makeMessages(s: Readonly<GameState>, rules: Readonly<Rules>): Message[] {
   if (s.setup?.noChat) return [];
-  if (isTrack(s.real)) return trackMessages(s, s.real as RealMarket, rules);
+  if (s.real) return trackMessages(s, s.real, rules);
   const rng = rngFor(s.seed, 'chat', s.today.day);
   const [lo, hi] = BALANCE.messages;
   const n = lo + rng.int(hi - lo + 1) + rules.extraMessages;
@@ -306,7 +306,7 @@ function pickByWeight<T>(items: readonly T[], weights: readonly number[], u: num
  * 关闭群聊时（模拟用）推荐来自行情软件，随机挑，friendId 为空串。
  */
 export function makeRecs(s: Readonly<GameState>, rules: Readonly<Rules>): Rec[] {
-  if (isTrack(s.real) && !s.setup?.noChat) return trackRecs(s, s.real as RealMarket, rules);
+  if (s.real && !s.setup?.noChat) return trackRecs(s, s.real, rules);
   const rng = rngFor(s.seed, 'recs', s.today.day);
   const taken = new Set<string>();
   for (const h of s.slots) if (h) taken.add(h.stockId);

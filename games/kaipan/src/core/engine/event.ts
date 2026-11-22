@@ -103,7 +103,7 @@ export function choose(s: GameState, option: number, em: Emitter): void {
       if (l) l.rate = rate;
     },
   };
-  (s.stats.eventPicks ??= []).push(`${e.id}:${option}`);
+  s.stats.eventPicks.push(`${e.id}:${option}`);
   const text = def.resolve(ctx, option);
   emit(em, { type: 'eventResolved', id: e.id, option, text, delta: round2(s.account - before) });
   s.event = null;

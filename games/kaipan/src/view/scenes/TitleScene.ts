@@ -35,7 +35,7 @@ import { ChoiceDialog } from '../ui/noticeDialog.ts';
 import { acceptInvite, onChallengeChange, takeInvite } from '../challenge.ts';
 import { ChallengeInviteDialog, ChallengePanel } from '../meta/challengePanel.ts';
 import type { ChallengeFail, ChallengeView } from '../../platform/challenge.ts';
-import { hideHomeTip, showHomeTip } from '../../platform/viewportFit.ts';
+import { hideHomeTip, showHomeTip } from '../../platform/homeTip.ts';
 import { Room } from '../trade/room.ts';
 import { bleedOf, coverOf, phoneLayout, viewOf } from '../viewport.ts';
 import { phoneHome, portraitHome } from '../meta/homeGeo.ts';

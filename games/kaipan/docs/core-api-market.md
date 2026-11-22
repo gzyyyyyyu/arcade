@@ -8,11 +8,11 @@
 
 | 模式 | 条件 | 行为 |
 |---|---|---|
-| 真实行情 | `createRun` 给了 `segment`；`state.real.track === true` | 个股、风口、大盘照搬绑定的真实走势；情报读真实未来；`tempo` 默认打开 |
+| 真实行情 | `createRun` 给了 `segment`（`state.real` 不为 null） | 个股、风口、大盘照搬绑定的真实走势；情报读真实未来；`tempo` 默认打开 |
 | 合成行情 | 不给 `segment` | 风口生命周期（冷门 → 萌芽 → 发酵 → 主升 → 高潮 → 退潮）、随机行情、日历与难度改走势；没有 `tempo` |
 
 合成行情完整保留，`tests/core/replay-golden.test.ts` 在这个模式下固定若干局当当前版本的回归基准：规则真的改了用 `UPDATE_REPLAY_GOLDEN=1` 重新生成，diff 里说明原因。
-`state.real` 里没有 `track` 的是旧存档，走旧映射（`market.ts` 的 `rl` 分支），没有月度主题。
+0.4 开发期的真实行情存档（`state.real` 没有 `track`）读档时提示一次后清掉（`platform/storage.ts`），核心里只有上面两种模式。
 
 ### 7.2 真实行情怎么算（`market.ts` 的 `moveStocksTrack`、`real.ts`）
 

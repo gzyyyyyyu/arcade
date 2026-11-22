@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRun, dispatch, type Action, type GameState } from '../../src/core/index.ts';
 import { DEFAULT_SETTINGS, loadSettings, sanitizeSettings, saveSettings, type KeyValueStore } from '../../src/platform/settings.ts';
-import { LEGACY_KEYS, clearLegacyKeys, clearSave, hasSave, loadSave, reviveState, writeSave } from '../../src/platform/storage.ts';
+import { LEGACY_KEYS, SAVE_FORMAT, clearLegacyKeys, clearSave, hasSave, loadSave, reviveState, writeSave } from '../../src/platform/storage.ts';
 import { APP_VERSION } from '../../src/platform/version.ts';
 
 /** 内存版 localStorage。 */
@@ -203,25 +203,15 @@ describe('存档（format 5）', () => {
     expect(st.month === month + 1 || st.phase === 'lost').toBe(true);
   });
 
-  it('0.3.0 存档里的上一天结算（没有归因、新闻、台词）读进来补空', () => {
-    const raw = JSON.parse(JSON.stringify(playedState())) as GameState;
-    expect(raw.lastDay).not.toBeNull();
-    const last = raw.lastDay as unknown as Record<string, unknown> & { account: Record<string, unknown>; holdings: Record<string, unknown>[] };
-    delete last.news;
-    delete last.quips;
-    delete last.account.effects;
-    for (const h of last.holdings) {
-      delete h.parts;
-      delete h.amount;
-    }
-    const revived = reviveState(raw);
-    expect(revived?.lastDay?.news).toEqual([]);
-    expect(revived?.lastDay?.quips).toEqual([]);
-    expect(revived?.lastDay?.account.effects).toEqual([]);
-    for (const h of revived?.lastDay?.holdings ?? []) {
-      expect(h.parts).toEqual([]);
-      expect(h.amount).toBe(0);
-    }
+  it('0.3.0 的局（上一天结算没有新闻）提示一次后清掉', () => {
+    const state = JSON.parse(JSON.stringify(playedState())) as GameState;
+    expect(state.lastDay).not.toBeNull();
+    delete (state.lastDay as unknown as Record<string, unknown>).news;
+    const store = new MemoryStore();
+    store.setItem('kaipan.save', JSON.stringify({ format: SAVE_FORMAT, appVersion: '0.3.0', savedAt: '2026-01-01', state }));
+    expect(hasSave(store)).toBe(false);
+    expect(loadSave(store)).toEqual({ state: null, notice: 'legacy' });
+    expect(store.getItem('kaipan.save')).toBeNull();
   });
 
   it('写入失败（配额不足）不抛错', () => {

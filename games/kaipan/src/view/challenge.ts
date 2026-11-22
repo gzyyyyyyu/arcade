@@ -18,18 +18,13 @@ import {
 import { APP_VERSION } from '../platform/version.ts';
 import { gameLink } from './shareCard.ts';
 
-let fetchImpl: Fetch = (url, init) => globalThis.fetch(url, init);
+const fetchImpl: Fetch = (url, init) => globalThis.fetch(url, init);
 const listeners = new Set<() => void>();
 const notify = (): void => listeners.forEach((fn) => fn());
 
 export function onChallengeChange(fn: () => void): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
-}
-
-/** 测试用：换掉 fetch */
-export function setChallengeFetch(f: Fetch): void {
-  fetchImpl = f;
 }
 
 // ---------------------------------------------------------------- 打开链接

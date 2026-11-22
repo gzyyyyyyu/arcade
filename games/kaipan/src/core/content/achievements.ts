@@ -448,7 +448,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     desc: '楼下老股民请吃饭，你选了「陪他聊」（真实行情局才会遇到）',
     tier: 'bronze',
     icon: 'chat',
-    check: (c) => c.state.stats.eventPicks?.includes('old_trader:0') === true,
+    check: (c) => c.state.stats.eventPicks.includes('old_trader:0'),
   },
   {
     id: 'moonlight',
@@ -456,7 +456,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     desc: '预支过一次工资，这局还通关了（真实行情局才会遇到）',
     tier: 'bronze',
     icon: 'bill',
-    check: (c) => c.won && c.state.stats.eventPicks?.includes('salary_advance:0') === true,
+    check: (c) => c.won && c.state.stats.eventPicks.includes('salary_advance:0'),
   },
   // ---------------------------------------------------------------- 0.28：抄底、早起的两个新战法，和投资群事件
   {
@@ -473,7 +473,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     desc: '同事拉你进投资群，你进了（真实行情局才会遇到）',
     tier: 'bronze',
     icon: 'chat',
-    check: (c) => c.state.stats.eventPicks?.includes('invest_group:0') === true,
+    check: (c) => c.state.stats.eventPicks.includes('invest_group:0'),
   },
   {
     id: 'egg_queue',
@@ -481,7 +481,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     desc: '营业部门口排长队送鸡蛋，你排了（真实行情局才会遇到）',
     tier: 'bronze',
     icon: 'coin',
-    check: (c) => c.state.stats.eventPicks?.includes('free_eggs:0') === true,
+    check: (c) => c.state.stats.eventPicks.includes('free_eggs:0'),
   },
   // ---------------------------------------------------------------- 0.29：两个新月度主题（只在真实行情局里出现）
   {

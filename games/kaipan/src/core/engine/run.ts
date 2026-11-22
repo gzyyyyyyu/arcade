@@ -2,9 +2,9 @@
 import { BALANCE } from '../balance.ts';
 import { FRIENDS, MAX_DIFFICULTY, THEME_IDS, clampDifficulty, isFriendId, isItemId, isPersonaId, isStockId, isThemeId, personaAccount, personaById, stocksOf } from '../content/index.ts';
 import { isLiveTier } from '../liveTiers.ts';
-import { MOODS, baseMarketRules, newStock, rulesFor, rulesOf, warmUpTheme } from '../market.ts';
+import { MOODS, newStock, rulesFor, rulesOf, warmUpTheme } from '../market.ts';
 import { rngFor } from '../rng.ts';
-import { fitRoles, realMood, trackMood, warmUpReal } from '../real.ts';
+import { fitRoles, trackMood, warmUpReal } from '../real.ts';
 import { isRegularRun, newTempo } from '../tempo.ts';
 import { isWeekId } from '../weekly.ts';
 import { realFromSegment, type Segment } from '../segment.ts';
@@ -35,9 +35,12 @@ export function emptyStats(account: number): GameState['stats'] {
     chains: 0,
     peakAccount: account,
     billsPaid: 0,
+    billMoney: 0,
+    tradeMoney: 0,
     trades: [],
     picked: [],
     events: [],
+    eventPicks: [],
     limitDownDays: 0,
     maxDayRet: 0,
     surprisesPaid: [],
@@ -127,8 +130,6 @@ export interface CreateOptions {
    * 回放要带同样的值：replay(seed, actions, setup, { segment, ext: !!state.ext, tempo: !!state.tempo })。
    */
   tempo?: boolean;
-  /** 0.5：真实行情用 0.4 的映射（个股 = 大盘 + 风口 + 自身分别放大 + 连板惯性……）；只给对照和旧档测试用 */
-  legacyReal?: boolean;
 }
 
 export function createRun(seed: string, setup: RunSetup | null = null, opts: CreateOptions = {}): { state: GameState; events: GameEvent[] } {
@@ -144,8 +145,7 @@ export function createRun(seed: string, setup: RunSetup | null = null, opts: Cre
   if (seg && seg.days < totalDays()) throw new Error(`行情段 ${seg.id} 只有 ${seg.days} 天，一局要 ${totalDays()} 天`);
   const real = seg ? realFromSegment(seg, themeIds, Object.keys(stocks), BALANCE.real.smooth) : null;
   // 0.5：个股照搬真实走势；开局按这一段的真实表现校正性格（只决定显示和情报口吻）
-  if (real && !opts.legacyReal) {
-    real.track = true;
+  if (real) {
     fitRoles(real, themeIds, (t) => stocksOf(t));
   }
   for (const id of themeIds) themes[id] = real ? warmUpReal(real, id) : warmUpTheme(seed, id);
@@ -166,7 +166,7 @@ export function createRun(seed: string, setup: RunSetup | null = null, opts: Cre
     themeIds,
     themes,
     stocks,
-    mood: real ? (real.track ? trackMood(real, real.warm - 1) : realMood(real, real.warm - 1, baseMarketRules())) : (MOODS[rngFor(seed, 'mood0').int(MOODS.length)] ?? 'flat'),
+    mood: real ? trackMood(real, real.warm - 1) : (MOODS[rngFor(seed, 'mood0').int(MOODS.length)] ?? 'flat'),
     slots: Array.from({ length: rules0.slots }, () => null),
     friends: [],
     items: [],
@@ -183,7 +183,7 @@ export function createRun(seed: string, setup: RunSetup | null = null, opts: Cre
     expiring: [],
     busyDay: null,
     // 炒股净赚、还掉的账单只在新开的局里从 0 记起（emptyStats 也给读档补缺省值用，不能放在那里）
-    stats: { ...emptyStats(account), tradeMoney: 0, billMoney: 0 },
+    stats: emptyStats(account),
     actions: [],
     real,
     ...(opts.ext ? { ext: newExt() } : {}),

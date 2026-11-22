@@ -168,7 +168,7 @@ export function calendarView(s: Readonly<GameState>): CalendarView[] {
     month: c.month,
     id: c.id,
     name: c.name,
-    desc: s.real?.track && c.realDesc ? c.realDesc : c.desc,
+    desc: s.real && c.realDesc ? c.realDesc : c.desc,
     days: daysInMonth(c.month),
     current: c.month === s.month,
     past: c.month < s.month,
@@ -179,5 +179,5 @@ export function calendarView(s: Readonly<GameState>): CalendarView[] {
 /** 当月日历事件。 */
 export function currentCalendar(s: Readonly<GameState>): CalendarView {
   const c = calendarOf(Math.max(1, s.month));
-  return { month: c.month, id: c.id, name: c.name, desc: s.real?.track && c.realDesc ? c.realDesc : c.desc, days: daysInMonth(c.month), current: true, past: false, ...monthExtras(s, c.month) };
+  return { month: c.month, id: c.id, name: c.name, desc: s.real && c.realDesc ? c.realDesc : c.desc, days: daysInMonth(c.month), current: true, past: false, ...monthExtras(s, c.month) };
 }

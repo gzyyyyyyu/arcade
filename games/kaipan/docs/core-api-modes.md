@@ -21,7 +21,7 @@
 `gearLevered(s)` 给放大后的倍数，`warnGap` 内顶栏提醒（只是画面）。
 **盘中减仓**（`deleverage`）：降一档后 `s.gearCut = { r0, v0, x }`，之后倍数 = `v0 + x × lev ×（资产比 − r0）`，利息按 x 那一档（1× 为 0），不再检查清零线；`liveMultipleBp` 同样按它算。
 
-每日挑战的分数：`dailyScore(won, account, billsPaid)`，通关的按最后账户（元，取整）排、都排在没通关的前面，没通关的按还上几个月排；`dailyScoreView` 还原，`dailyBoardId(date, kind)` 是榜单 id：每日榜按子榜分，经典是 `daily-<日期>-classic`（`kind` 缺省），闪电盘是 `daily-<日期>-flash`（`DAILY_RULES` 随抽法或计分改动加一、接在子榜后面 `-v<n>`，新旧不在一个榜上比）。好友挑战沿用这个分数（`challengeScore`）。
+每日挑战的分数：`dailyScore(won, account, billsPaid)`，通关的按最后账户（元，取整）排、都排在没通关的前面，没通关的按还上几个月排；`dailyScoreView` 还原，`dailyBoardId(date, kind)` 是榜单 id：每日榜按子榜分，经典是 `daily-<日期>-classic`（`kind` 缺省），闪电盘是 `daily-<日期>-flash`。好友挑战沿用这个分数（`challengeScore`）。
 **黑天鹅 Boss 日**（`src/core/swan.ts` 内容表和纯函数，`engine/calendar.ts` 定哪局哪天）：`hasSwan(s)`（真实行情、正常开局、非每日 / 闪电 / 实盘）、`lastDayIndex(s)`（这局最后一个交易日的 `dayIndex`）、
 `swanPlan(s)`（`{ kind, theme }`，只由种子定，rng 用途名 `blackSwan`；隐藏信息，画面不直接读）、`swanNotice(s)`（最后 `BALANCE.swan.warnDays` 天盘前公开：`kind / name / theme / daysLeft（2、1、0）/ line / hedge`，不含幅度；`topBar(s).swan` 同源）。
 最后一天 `open` 时发 `swanOpen { notice }`，每格持仓的 `HoldingMove.swan`（这格被额外改了多少 pp）、`parts` 里的 `swan` 项（`RetPartKind`）和 `DayReport.swan`（`SwanReport`：种类、题材、对持仓的盈亏元、`touched`）都在收盘报告里；
@@ -75,7 +75,7 @@
 | 基础 | `startAccount` 10 万、`monthDays` [5×9, 3, 5, 5]（共 58 天）、`slots` 4、`buysPerDay` 1、`recs` 3、`messages` [2,4]、`activeThemes` 6 |
 | `bills`、`surprise` | 月供 = 9,000 × 1.105^(月−1)，取整到百元（12 月约 1 月的 3 倍）；一局 2–3 次突发账单，窗口 [2,4] [5,8] [9,10]；金额范围按名目 |
 | `heat`、`stages`、`themes`、`market`、`roles`、`boards`、`chain`、`st` | 合成行情的风口生命周期、角色参数（`beta / market / noise / limit / jump`）、连板、龙头带跟风、ST；真实行情下只有 `roles[].limit` 和显示相关的用到 |
-| `real`、`track` | 真实行情映射：`smooth 0.35, themeK 11, heatGain 12, heatPull 0.2, heatBase 20`、阶段门槛 `real.stage`；个股照搬：`track.amp 2`、`billMult 0.5`、`regimeBill`、识别阈值 `blown −5 / wild 7 / follow 3` |
+| `real`、`track` | 真实行情推热度和天气：`smooth 0.35, heatGain 12, heatPull 0.2, heatBase 20, moodDays 3`、阶段门槛 `real.stage`；个股照搬：`track.amp 2`、`billMult 0.5`、`regimeBill`、识别阈值 `blown −5 / wild 7 / follow 3` |
 | `intel`、`chat`、`cred` | 情报与群聊：群友准确率表 `intel.cred`（合成行情用 `cred`）、`diffStep 0.02`、`qunzhuFlip 0.8`、`headline 0.85`、`news 0.65`、`cat 0.6`；`chat.credMax 0.95`、`form` 每局状态 |
 | `ext` | 仓位 / 押跌 / 抵押（第 8 节） |
 | `tempo` | 月度主题与高光（第 9 节） |
