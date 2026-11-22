@@ -9,6 +9,7 @@ import { XINFA_TEXT } from '../../content/xinfa.ts';
 import { MONSTER_INFO } from './codex.ts';
 import { counterLine } from './counters.ts';
 import { mergeHint, type MergeHint } from './mergeHint.ts';
+import { statChip } from './statIcons.ts';
 import './cards.css';
 
 export interface CardView {
@@ -151,7 +152,8 @@ export class Cards {
       b.style.animationDelay = `${i * 60}ms`;
       // 固定的几段：图标 → 名字（一行）→ 标签行（新 / Lv / 心法）→ 五行·类型 → 效果 → 底部提示；没内容的段也占位，三张卡同一套格子对齐
       const badges = (c.tag ? `<em${c.tag === '新' ? ' class="new"' : ''}>${c.tag}</em>` : '') + (c.xinfa ? `<em>${c.xinfa}</em>` : '');
-      const nums = c.nums?.length ? `<span class="yx-pick-nums${c.tag === '新' ? ' base' : ''}">${c.nums.map((n) => `<span>${n.name} <b>${n.from === n.to ? n.from : `${n.from}→${n.to}`}</b>${n.unit}</span>`).join('')}</span>` : '';
+      // 数写成「图标 + 数」（叫法在悬停提示里）；第一局的简版卡图标后面还写叫法，先认图标
+      const nums = c.nums?.length ? `<span class="yx-pick-nums${c.tag === '新' ? ' base' : ''}">${c.nums.map((n) => statChip(n, simple)).join('')}</span>` : '';
       const foot = simple
         ? ''
         : (c.counter ? `<span class="yx-pick-counter">${c.counter}</span>` : '') +
