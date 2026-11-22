@@ -39,6 +39,13 @@ describe('weekTrend', () => {
     expect(t.change).toBe(-100);
   });
 
+  it('只有今天有进出：每笔一个点，按时间先后（流水是新的在前）', () => {
+    const ledger = [e(at(28, 11), 300), e(at(28, 9), -200), e(at(28, 8), 50)];
+    // 现在 1150；开头 1150 - 150 = 1000；8 点 +50 → 1050；9 点 -200 → 850；11 点 +300 → 1150
+    expect(weekBalances(1150, ledger, NOW)).toEqual([1000, 1050, 850, 1150]);
+    expect(weekTrend(1150, ledger, NOW).change).toBe(150);
+  });
+
   it('余额为 0：点都在范围内，不出 NaN', () => {
     const t = weekTrend(0, [e(at(27, 10), -400)], NOW);
     expect(weekBalances(0, [e(at(27, 10), -400)], NOW)).toEqual([400, 0, 0]);

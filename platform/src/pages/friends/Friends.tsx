@@ -19,6 +19,8 @@ import './friends.css';
 /** 宽屏并排：左边我的好友码和加好友，中间好友列表，有请求时右边再加一栏请求（三栏都放得下才并排）；其余尺寸用页签 */
 /** 名单不超过这个数就按内容高排、不翻页（一页肯定放得下）；多了才撑满剩下的高度翻页 */
 const FEW_ROWS = 3;
+/** 好友那栏独占一列（手机上还有一条约局条算一行）：4 行也肯定放得下，3 个好友加约局条不再撑满一屏、下面空一大块 */
+const FEW_FRIEND_ROWS = 4;
 /** 够高才按内容高：手机横屏、360×640 这类矮屏三个人加标题、页签已经放不下，照旧撑满、按高度翻页 */
 const ROOMY = '(min-height: 700px)';
 
@@ -64,6 +66,7 @@ function Friends() {
   const headRoomy = useMedia(HEAD_ROOMY);
   const meetupNew = !headRoomy && (data?.friends.length ?? 0) > 0;
   const meetupRows = useMeetupRows(meetupNew);
+  const fewFriends = roomy && (data?.friends.length ?? 0) + meetupRows <= FEW_FRIEND_ROWS;
   // 最佳搭档：好友里做搭档赢得最多的那个
   const best = data ? bestPartner(data.friends) : null;
 
@@ -115,7 +118,7 @@ function Friends() {
     <Panel
       icon="people"
       title={`好友（${data.friends.length}）`}
-      className={`friends-list${few(data.friends.length + meetupRows) ? ' friends-list--few' : ''}`}
+      className={`friends-list${fewFriends ? ' friends-list--few' : ''}`}
       action={headRoomy && data.friends.length > 0 ? <MeetupButton /> : undefined}
     >
       <MeetupStrip friends={data.friends} withNew={meetupNew} />
@@ -130,7 +133,7 @@ function Friends() {
           还没有好友。把好友链接发给朋友，对方点开就能加你。
         </Empty>
       ) : (
-        <Paged items={data.friends} keyOf={(p) => p.userId} render={(p) => <Friend p={p} best={p.userId === best} onChanged={reload} />} fixed={few(data.friends.length + meetupRows) ? Number.POSITIVE_INFINITY : undefined} className="people" label="好友翻页" testId="friends-paged" />
+        <Paged items={data.friends} keyOf={(p) => p.userId} render={(p) => <Friend p={p} best={p.userId === best} onChanged={reload} />} fixed={fewFriends ? Number.POSITIVE_INFINITY : undefined} className="people" label="好友翻页" testId="friends-paged" />
       )}
     </Panel>
   );
