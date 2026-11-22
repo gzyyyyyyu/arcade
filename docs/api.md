@@ -71,7 +71,7 @@
 | `POST /api/auth/login` | 任何人 | `{"username", "password"}` | 200 `{"user"}`，设两个 cookie | 401 `bad_credentials`；429（含用户名被暂时锁住） | 成功 6（+1 重新哈希）；失败 1–2；超限 0 |
 | `POST /api/auth/logout` | 任何人（没登录也 204，幂等） | `{}` | 204，清两个 cookie | — | 1（没有会话时 0） |
 | `POST /api/auth/recover` | 任何人 | `{"username", "recoveryCode", "newPassword"}` | 200 `{"user", "recoveryCode": 新码}`，其他会话全部失效，给当前设备设新 cookie | 401 `bad_credentials`；422 `weak_password`；429 | 6 + 原有会话数 |
-| `PATCH /api/me` | 登录；平台页 | `{"displayName"?, "showWhere"?, "showFeed"?, "showMates"?}`，至少一样 | 200 `{"user"}` | 422 `invalid_display_name` / `reserved_display_name`；429（共用每天 10 次） | 2 |
+| `PATCH /api/me` | 登录；平台页 | `{"displayName"?, "showWhere"?, "showFeed"?, "showMates"?}`，至少一样 | 200 `{"user"}` | 422 `invalid_display_name` / `reserved_display_name`；429（改昵称每天 10 次；只改开关的和隐藏游戏共用每天 60 次） | 2 |
 | `PUT /api/me/games` | 登录；平台页 | `{"hidden": [游戏 id]}`：我要隐藏的（15.21） | 200 `{"user", "hiddenDefault"}` | 400（不是数组、没登记的 id）；429（每天 60 次） | 2 |
 | `POST /api/account/password` | 登录；平台页 | `{"currentPassword", "newPassword"}` | 204；其他会话失效，当前设备换新令牌 | 401 `bad_credentials`；422；429；503 `busy` | 4 + 会话数 |
 | `POST /api/account/recovery-code` | 登录；平台页 | `{"currentPassword"}` | 200 `{"recoveryCode"}`，旧码作废 | 401；429；503 | 2 |
