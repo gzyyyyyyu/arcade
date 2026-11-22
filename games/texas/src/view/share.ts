@@ -83,7 +83,7 @@ export function puzzleCard(total: number, oks: readonly boolean[], streak: numbe
   const right = oks.filter(Boolean).length;
   return {
     game: GAME,
-    title: `每日谜题 · ${dayText}`,
+    title: `今日谜题 · ${dayText}`,
     accent: ACCENT,
     big: { value: `${total} 分`, label: `5 道题，满分 ${oks.length * 100}` },
     stats: [

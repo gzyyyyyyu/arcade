@@ -1115,7 +1115,13 @@ body::before {
 /* 0.17.4：好友房和娱乐、实盘并排；输码进房紧跟在选项下面，开房间在"坐下开打"的位置（一样大、金色） */
 .friends { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-3); }
 /* 输码进房和下面选档开房是两件事：中间一道虚线隔开，免得以为开房也要填码（界面审查 1121 第 15 条） */
-.stage .lobby .friends.join { padding-bottom: var(--s-2); border-bottom: 1px dashed var(--line-2); }
+.stage .lobby .friends.join { position: relative; padding-bottom: var(--s-2); }
+/* 底边的分界线：虚线 · 小字 · 虚线，骑在底边上，不多占高度 */
+.stage .lobby .friends.join .fr-or { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: var(--s-2); transform: translateY(50%); font-size: var(--fs-2); line-height: 1.3; color: rgba(43, 29, 20, .72); white-space: nowrap; pointer-events: none; }
+.stage .lobby .friends.join .fr-or::before, .stage .lobby .friends.join .fr-or::after { content: ''; flex: 1; border-top: 1px dashed var(--line-2); }
+/* 横屏（tight）档位卡紧贴这一行、没有空隙放字：只留虚线 */
+.stage.tight .lobby .friends.join { border-bottom: 1px dashed var(--line-2); }
+.stage.tight .lobby .friends.join .fr-or { display: none; }
 .friends .pill { height: 40px; flex: none; }
 .friends.open .pill { flex: 1; height: 52px; border-radius: var(--r-4); font-size: var(--fs-5); font-weight: 900; letter-spacing: 2px; }
 /* 从大厅的"好友房"进来：这一行亮两下，告诉他开房、进房在这里 */

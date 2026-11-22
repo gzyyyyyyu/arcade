@@ -57,7 +57,7 @@ export function soloSummary(parent: HTMLElement, s: SoloSummary): Promise<unknow
   const notes: string[] = [];
   if (s.refused) notes.push(s.refused);
   if (s.practice) notes.push('娱乐桌的筹码不算数，不进钱包。');
-  if (s.capped > 0) notes.push(`今天单机实盘赢够了，多出的 ${chips(s.capped)} 没进钱包；好友房不限，娱乐模式照常玩。`);
+  if (s.capped > 0) notes.push(`今天实盘赢够了，多出的 ${chips(s.capped)} 没进钱包；好友房不限，娱乐照常玩。`);
   if (s.busted) notes.push(s.practice ? '这一桌的筹码打完了，想玩随时再开一桌。' : '这一桌打完了。歇一会儿吧：钱包快空了的话每天能领一次补给，娱乐模式随时能玩。');
   titleBox(body, s.titles ?? []);
   for (const n of notes) el('p', 'sum-note', body, n);

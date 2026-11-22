@@ -274,12 +274,12 @@ export const createRoom = (opts: RoomOpts, name?: string | null): Promise<Create
 /** kit 的默认说法里换掉德州自己的措辞：房间关了要说桌上的筹码结回钱包、收场是"这一手打完" */
 const TEXTS: RoomTexts = {
   roomClosed: '房间关了，桌上的筹码已经结回钱包',
-  quota: '今天联机的人太多了，这一手打完先散了，桌上的筹码结回钱包，单机照常玩',
+  quota: '今天联机的人太多了，这一手打完先散了，桌上的筹码结回钱包，娱乐、实盘照常玩',
 };
 /** 单独部署没有钱包（docs/deploy.md 10.1）：不提结回 */
 const STANDALONE_TEXTS: RoomTexts = {
   roomClosed: '房间关了',
-  quota: '今天联机的人太多了，这一手打完先散了，单机照常玩',
+  quota: '今天联机的人太多了，这一手打完先散了，娱乐、实盘照常玩',
 };
 const texts = (noWallet = false): RoomTexts => (site.standalone || noWallet ? STANDALONE_TEXTS : TEXTS);
 

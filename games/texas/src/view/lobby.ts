@@ -237,6 +237,8 @@ export class Lobby {
       if (e.key === 'Enter' && !this.joinBtn.disabled) this.wait(this.joinBtn, () => h.joinRoom(this.codeIn.value));
     });
     this.joinBtn = button(fr, 'pill', '进房间', () => this.wait(this.joinBtn, () => h.joinRoom(this.codeIn.value)));
+    // 分界线上写清下面是什么：上面进朋友的房，下面自己开（界面审查 1121 第 10 条：原来只有一道虚线，看不出下面的档位是开房用的）
+    el('span', 'fr-or', fr, '或者自己开一间');
     // 单独部署时好友房里别人看到的名字（kit 的 ?name=，服务端清洗，不合格就是"游客1234"）；有平台时用平台的昵称，不显示
     this.nickRow = el('div', 'nick-row hidden', panel);
     el('span', 'label', this.nickRow, '昵称');

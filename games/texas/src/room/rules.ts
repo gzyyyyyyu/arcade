@@ -219,7 +219,7 @@ const FRIENDS = { holdHands: true, minHumans: 2 } as const;
 const FUN = { holdHands: true, minHumans: 1, level: FUN_LEVEL.normal } as const;
 
 /** 真人不到两个时页面上的那句（等人页和牌桌共用） */
-export const TWO_NOTE = '实盘好友房至少要两个人；一个人想玩实盘，去单机';
+export const TWO_NOTE = '实盘好友房至少要两个人；一个人想玩，回首页点「实盘」和电脑打';
 
 export const texasRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, WalletEffect> = {
   seats: SEATS,
@@ -342,6 +342,9 @@ export const texasRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wall
 
   view(s, seat) {
     const v = tableView(s.t, seat);
+    // 接管电脑、中途坐下的人这一手还没坐上（桌上还是电脑或空座），名牌已经按房间座位写他的名字：筹码写他已经到账的买入，
+    // 不写电脑剩下的（那些打完收回庄家；11-21 走查「本机f-c 1,200 · 下一手上桌」看着像只带了 1,200）。只改视图，状态不动
+    v.seats = v.seats.map((c, i) => (s.kinds[i] === 'human' && c.owner !== 'player' && s.held[i]! > 0 ? { ...c, stack: s.held[i]! } : c));
     const mine = seat === null ? undefined : s.t.seats[seat];
     // 接管时电脑还在打的这一手、还没坐上桌：这个座位的牌不是他的
     if (mine?.owner !== 'player') {

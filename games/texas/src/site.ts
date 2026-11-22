@@ -8,4 +8,4 @@ import { TWO_NOTE } from './room/rules.ts';
 export const site = { standalone: false };
 
 /** 好友房能打的真人不到两个时的说明：规则里那句说的是实盘，单独部署没有实盘 */
-export const twoText = (): string => (site.standalone ? '好友房至少要两个人才开打；一个人想玩，去单机' : TWO_NOTE);
+export const twoText = (): string => (site.standalone ? '好友房至少要两个人才开打；一个人想玩，回首页点「娱乐」和电脑打' : TWO_NOTE);
