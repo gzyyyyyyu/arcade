@@ -118,9 +118,9 @@ describe('钱包的 ref 和 op', () => {
     expect(isSoloRef(42)).toBe(false);
   });
 
-  it('单机 ref 里编着档位（0.12.2，结回按它算）；0.12.1 以前的旧 ref 照认、但没有档位', () => {
+  it('单机 ref 里编着档位（结回按它算）；没编档位的旧格式不认', () => {
     for (const t of ['small', 'mid', 'big', 'lux'] as const) expect(soloRefTier(soloRef(t, hex32))).toBe(t);
-    expect(isSoloRef(`solo-${hex32}`)).toBe(true);
+    expect(isSoloRef(`solo-${hex32}`)).toBe(false);
     expect(soloRefTier(`solo-${hex32}`)).toBeNull();
     expect(soloRefTier(`gd-${hex16}`)).toBeNull();
   });

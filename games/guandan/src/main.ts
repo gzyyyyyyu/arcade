@@ -19,7 +19,7 @@ import { installIdleLimiter } from './view/common/idle.ts';
 import { goLobby, inOnlineGame, leaveText, mountLobbyOverlay, savedGameInProgress } from './view/common/lobby.ts';
 import { autoJoin, forgetRoom, lobbySession, openOnline } from './view/online.ts';
 import { mountRotateHint, setAtTable, setRotateLobbyLabel } from './view/common/orientation.ts';
-import { detectOnce, lobbyName, standalone } from './view/common/platform.ts';
+import { detectOnce, lobbyName, standalone, timed } from './view/common/platform.ts';
 import { mountSocialOnce } from './view/common/social.ts';
 import { BootScene } from './view/scenes/BootScene.ts';
 import { DdzScene } from './view/scenes/DdzScene.ts';
@@ -68,7 +68,7 @@ if (params.ddz && params.seed !== null) {
 
 // 云存档：战绩和教程标记（登录了才发请求）
 const cloud = new CloudSync({
-  fetch: (url, init) => window.fetch(url, init),
+  fetch: (url, init) => window.fetch(url, timed(init)),
   hasLoginHint: () => /(?:^|;\s*)__Host-arcade_li=/.test(document.cookie),
   read: (slot: SyncSlot) => (slot === 'stats' ? getStats() : { v: 1, done: tutorialDone() }),
   write: (slot, data) => rawStore.write(SYNC_SLOTS[slot], data),

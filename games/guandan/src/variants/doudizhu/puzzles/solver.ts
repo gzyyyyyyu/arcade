@@ -51,6 +51,8 @@ function fakeCards(vals: readonly number[]): Card[] {
 }
 
 const movesCache = new Map<string, Move[]>();
+/** 出法缓存的上限：每日题在页面里一直算，不清会越攒越多；满了整个清掉（和 memo 一样） */
+const MOVES_MAX = 50_000;
 
 /** 一手牌里所有能出的不同点数组合（手牌 ≤ 约 17 张时也能算，求解器按 ≤ 10 张设计） */
 function movesOf(hand: readonly number[]): Move[] {
@@ -71,6 +73,7 @@ function movesOf(hand: readonly number[]): Move[] {
   }
   // 张数多的先试：地主常常大手先出，剪枝更快
   out.sort((a, b) => b.vals.length - a.vals.length || a.vals[0]! - b.vals[0]!);
+  if (movesCache.size >= MOVES_MAX) movesCache.clear();
   movesCache.set(key, out);
   return out;
 }

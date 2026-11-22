@@ -4,7 +4,7 @@
  * 一桌最多 4 个真人，空位电脑补；座位由房间随机排（kit 默认）。
  */
 import { TIER_IDS, type TierId } from '../stake/index.ts';
-import { ROOM_PATH } from '../../../net/version.ts';
+import { ROOM_PATH, ROOM_REL } from '../../../net/version.ts';
 
 type MatchTier = 'fun' | `real-${TierId}`;
 
@@ -36,3 +36,5 @@ export function matchRoomOptions(tier: string): { stake: TierId } | undefined {
 
 /** 排队的路径（游戏 Worker 里，在 ROOM_PATH 下面，run_worker_first 已经放行） */
 export const MATCH_PATH = `${ROOM_PATH}/match`;
+/** 页面里用的相对写法 */
+export const MATCH_REL = `${ROOM_REL}/match`;

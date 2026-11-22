@@ -12,7 +12,7 @@ import { strayStake } from '../../src/view/stake-stray.ts';
 import { transient } from '../../src/view/common/stake-api.ts';
 import { KEYS } from '../../src/view/store.ts';
 
-const REF = `solo-${'cd'.repeat(16)}`;
+const REF = `solo-mid-${'cd'.repeat(16)}`;
 const mem = new Map<string, string>();
 
 beforeEach(() => {
@@ -130,7 +130,7 @@ describe('结回、放弃', () => {
     const s = over();
     const f = fakeFetch([{ body: { ok: true, credited: 10_000, capped: 0, wallet: { balance: 18_000, stakes: [] } } }]);
     expect(await settleStake(s, { fetcher: f, sleep: noSleep })).toEqual({ kind: 'done', points: 0, credited: 10_000, capped: 0, balance: 18_000 });
-    expect(f.calls[0]).toEqual({ url: '/games/guandan/api/stake/settle', body: { ref: REF, tier: 'mid', points: 0, deals: 0, rules: 2, stats: { rounds: 0, wins: 0, best: 0, sum: { bombs: 0, firsts: 0 } } } });
+    expect(f.calls[0]).toEqual({ url: 'api/stake/settle', body: { ref: REF, tier: 'mid', points: 0, deals: 0, rules: 2, stats: { rounds: 0, wins: 0, best: 0, sum: { bombs: 0, firsts: 0 } } } });
     expect(loadStake()).toBeNull();
   });
 
@@ -175,13 +175,13 @@ describe('结回、放弃', () => {
     })();
     const f = fakeFetch([{ body: { ok: false, error: 'busy' } }, { body: { ok: true, credited: 10_000, wallet: { balance: 10_000, stakes: [] } } }]);
     expect((await refundStake(s, { fetcher: f, sleep: noSleep })).kind).toBe('done');
-    expect(f.calls.map((c) => c.url)).toEqual(['/games/guandan/api/stake/refund', '/games/guandan/api/stake/refund']);
+    expect(f.calls.map((c) => c.url)).toEqual(['api/stake/refund', 'api/stake/refund']);
     expect(loadStake()).toBeNull();
   });
 
   it('删存档只删同一场：别的标签页已经开了新的一场就不动', () => {
     started();
-    clearStake('solo-ffffffffffffffffffffffffffffffff');
+    clearStake('solo-mid-ffffffffffffffffffffffffffffffff');
     expect(loadStake()).not.toBeNull();
     clearStake(REF);
     expect(loadStake()).toBeNull();
@@ -198,7 +198,7 @@ describe('进场', () => {
     const f = fakeFetch([{ body: { user: { id: 'u9' } } }, { body: { ok: true, ref: REF, tier: 'small', share: 2000, until: Date.now() + 1000, wallet: { balance: 8000, stakes: [] } } }]);
     const r = await buyinStake('small', f);
     expect(r.ok).toBe(true);
-    expect(f.calls.map((c) => c.url)).toEqual(['/api/me', '/games/guandan/api/stake/buyin']);
+    expect(f.calls.map((c) => c.url)).toEqual(['/api/me', 'api/stake/buyin']);
     expect(loadStake()).toMatchObject({ userId: 'u9', ref: REF, tier: 'small', share: 2000 });
   });
 

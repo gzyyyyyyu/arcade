@@ -5,6 +5,7 @@ import type { Mood } from '../art/index.ts';
 import { app } from '../app.ts';
 import { audio } from '../common/audio.ts';
 import { dur } from '../common/anim.ts';
+import { NOTICE_MS } from '../common/pace.ts';
 import { backToPicker } from '../table/again.ts';
 import { PLACE_NAMES, seatIdentity, seatName, seatPerson } from '../common/labels.ts';
 import { goalWord, levelName, playDetail } from './labels.ts';
@@ -506,7 +507,7 @@ export function showStakeResult(sc: TableScene, toLobby = false): void {
     }
     if (toLobby) {
       status.setText(`${status.text}，正在回${lobbyName()}…`);
-      sc.time.delayedCall(1200, () => goLobby());
+      sc.time.delayedCall(NOTICE_MS, () => goLobby());
     }
   });
 }
@@ -608,5 +609,5 @@ export async function stakeAgain(sc: TableScene, tier: StakeSession['tier'], sta
   // 带入没成（钱不够、已在另一桌、没登录……）：写出原因，稍等一下回选档页，让人换档或去看钱包
   const msg = stakeError(r.error);
   status.setText(msg);
-  sc.time.delayedCall(1200, () => sc.alive && backToPicker(sc, 'guandan', msg));
+  sc.time.delayedCall(NOTICE_MS, () => sc.alive && backToPicker(sc, 'guandan', msg));
 }

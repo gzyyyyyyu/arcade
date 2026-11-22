@@ -103,7 +103,7 @@
    - 电脑难度按 1.3 的表；规则选项固定成默认，实盘不让改规则。
 4. 每副结束，结算页多一行"这一副 +2 分（+1,000）"，本场合计也一直显示着。
 5. 一场打完，或者碰到封顶，页面调 `POST /games/guandan/api/stake/settle`，带上 `{ ref, points, deals }`。Worker 做的事：
-   - 检查 `|points| ≤ 20`、`deals ≤ 8`，按 ref 里的档位算出结回额 `一份 + points × 一份/20`（页面带来的档位只用于没编档位的旧 ref `solo-<32 位十六进制>`）；
+   - 检查 `|points| ≤ 20`、`deals ≤ 8`，按 ref 里的档位算出结回额 `一份 + points × 一份/20`（页面带来的档位不信）；
    - 调 `settle({ userId, game: 'guandan', ref, amount: 结回额, mode: 'client', op: ref + '-out' })`；
    - 成功时钱包回 `credited`（实际进钱包的）和 `capped`（超出每日上限、没进的）。`capped > 0` 时页面照常显示这一场赢了多少，
      下面另写一句"今天掼蛋的进账到顶了，多出来的 3,000 这次不进钱包"（数字就是 `capped`）。

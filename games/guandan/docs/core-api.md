@@ -110,8 +110,8 @@ if (r.error) 显示 r.error（大白话中文），state 不变
 - `previewNext(state)` → `{ anti, payers, to } | null`：一副结束（`dealEnd`）时下一副谁进贡（`payers`）、给谁（`to`，双下要等贡牌比大小，为 -1）、
   是不是抗贡（`anti`，这时 `payers` 是抗贡的人）。要用完整状态（下一副的牌）推演，所以联机时由房间算好随结算下发；其他阶段返回 null。
 - 规则版本：`RULES_VERSION`（现在 2）。开局时记进 `state.rules`，视角里也有 `view.rules`。1 = 按种子发牌（`createGame`，单机），2 = 按密钥发牌（`createKeyedGame`，联机：
-  `GameState.key` 只在服务端、`viewFor` 不带，每一副从 `stream(key, 'deal', 第几副)` 发，`seed` 是空串）。改了会影响牌局结果的规则就加 1，
-  并让 `rulesSupported` 继续认旧版本（旧版本的牌局要按旧规则打完）；`dispatch` 遇到不认的版本返回错误、状态不变。没有 `rules` 字段的老存档，`rulesOf(state)` 按 1 算，下一步的新状态会补上。
+  `GameState.key` 只在服务端、`viewFor` 不带，每一副从 `stream(key, 'deal', 第几副)` 发，`seed` 是空串）。版本只区分发牌方式：
+  改规则直接改、不加版本、不留旧规则的分叉；`dispatch` 遇到不认的版本返回错误、状态不变。没有 `rules` 字段的老存档，`rulesOf(state)` 按 1 算，下一步的新状态会补上。
 - 状态体积：整局里最大的一份状态 JSON 约 6 KB（测试卡 8 KB），房间每步整份存一次。
 
 ## 6. 事件 `GameEvent`（按顺序播放）

@@ -37,6 +37,9 @@ export const PACE = {
   ddz: { bid: 250, bidThink: 500, bottom: 300, bomb: 560, rocket: 800, spring: 900 },
 } as const;
 
+/** 提示一句话后停多久再跳走（实盘带入没成回选档页、结回后回大厅）：留给读字的时间，不随动画速度变，不经 dur() */
+export const NOTICE_MS = 1_200;
+
 /** 发 n 张牌（含翻面）从第一张起飞到最后一张翻完要多久 */
 export function dealInMs(n: number): number {
   const d = PACE.deal;

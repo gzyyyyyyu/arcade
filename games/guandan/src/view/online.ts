@@ -8,19 +8,19 @@ import { MATCH_TEXT, MatchClient, type MatchSoloWhy } from 'arcade-kit/client';
 import { CLOSE } from 'arcade-kit/protocol';
 import { app } from './app.ts';
 import { NetSession } from './guandan/net.ts';
-import { createRoom, forgetRoom, isFinalForRoom, myRoom, roomInUrl, savedRoom } from './common/room-link.ts';
+import { createRoom, forgetRoom, isFinalForRoom, myRoom, roomInUrl, savedRoom, socketUrl } from './common/room-link.ts';
 import { errorText } from '../net/error-text.ts';
 import { isNoShuffleRoom, roomVariant, seatCountOf, type RoomVariant } from '../net/room-info.ts';
 import { DDZ_NOSHUFFLE } from '../variants/doudizhu/index.ts';
 import { DdzNetSession } from './doudizhu/net.ts';
 import { MATCH_DDZ_TABLE, ddzMatchTierOf } from '../variants/doudizhu/net/match.ts';
-import { MATCH_PATH, matchTierOf } from '../variants/guandan/net/match.ts';
+import { MATCH_REL, matchTierOf } from '../variants/guandan/net/match.ts';
 import { parseRoomOpts } from '../variants/guandan/net/stake.ts';
 import { ROOM_DEALS, TIERS, TIER_IDS, pointValue, type TierId } from '../variants/guandan/stake/index.ts';
 import { ROOM_DEALS as DDZ_ROOM_DEALS, newRules as ddzRules, pointValue as ddzPointValue } from '../variants/doudizhu/stake/index.ts';
 import { NET_DOWN, RETRY_LABEL, ROOM_STAKE_TEXT, STAKE_TEXT, TIER_NAME, fmtChips } from './common/stake-text.ts';
 import { fetchWallet } from './common/stake-api.ts';
-import { standalone, withNick } from './common/platform.ts';
+import { standalone } from './common/platform.ts';
 import { fetchFriendTables, hasFriends, openInvitePanel, presenceNow } from './common/social.ts';
 import { getNick, getSettings, setNick, updateSettings } from './store.ts';
 import { loginUrl } from './ui/cloud.ts';
@@ -549,9 +549,8 @@ export function openMatch(stake: TierId | null, solo: () => void, variant: RoomV
     }, 1200);
     else row.appendChild(button('好', () => close(), 'gd-2', 'ol-ok'));
   };
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const m = new MatchClient({
-    url: withNick(`${proto}//${window.location.host}${MATCH_PATH}/${ddz ? ddzMatchTierOf(stake, noShuffle) : matchTierOf(stake)}`),
+    url: socketUrl(`${MATCH_REL}/${ddz ? ddzMatchTierOf(stake, noShuffle) : matchTierOf(stake)}`),
     onWaiting: (count, size, leftMs) => {
       [n, seats, until] = [count, size, Date.now() + leftMs];
       paint();

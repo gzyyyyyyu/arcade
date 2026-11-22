@@ -16,9 +16,8 @@ export type { Seat };
 export type Team = number;
 
 /**
- * 规则版本：改了会影响牌局结果的规则（牌型、比大小、进贡、升级、发牌）就加 1，同时让 rulesSupported 继续认旧版本
- * （旧版本的牌局要按旧规则打完）。和状态结构版本 GameState.v 不是一回事：v 管存储格式，这个管玩法。
- * 联机时房间和页面可能新旧并存几十分钟，进行中的牌局按开局时记下的版本打（docs/platform-backend.md 第 4.3 节）。
+ * 规则版本只区分发牌方式：1 = 按种子发（单机），2 = 按密钥发（联机）。改规则直接改、不加版本、不留旧规则的分叉。
+ * 和状态结构版本 GameState.v 不是一回事：v 管存储格式。
  */
 export const RULES_VERSION = 2;
 

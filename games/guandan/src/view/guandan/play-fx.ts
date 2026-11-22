@@ -267,7 +267,7 @@ export async function flyTribute(sc: TableScene, from: number, to: number, card:
   const ph = word.height + TRIBUTE_FLY.tagPadY * 2;
   const plate = sc.add.graphics().fillStyle(0x1a0c06, TRIBUTE_FLY.tagBgAlpha).fillRoundedRect(-pw / 2, -ph / 2, pw, ph, ph / 2);
   const tag = sc.add.container(mid.x, mid.y - TRIBUTE_FLY.tagDy, [plate, word]).setDepth(TRIBUTE_FLY.depth + 1).setAlpha(0);
-  // 字和牌一起出来：等牌落定再淡入的话，慢机器上牌停在桌心时字还是半透明的（Gemini 审查第 4 条截到的就是这一下）
+  // 字和牌一起出来：等牌落定再淡入的话，慢机器上牌停在桌心时字还是半透明的（慢机器的截图上截到过这一下）
   sc.tweens.add({ targets: tag, alpha: 1, duration: dur(TRIBUTE_FLY.tagInMs) });
   await tweenP(sc, { targets: v, x: mid.x, y: mid.y, scale: TRIBUTE_FLY.midScale, angle: 0, duration: PACE.tribute.in, ease: 'Cubic.easeOut' });
   // 贡的是哪张、谁给谁：在桌子中间停够一秒多看清

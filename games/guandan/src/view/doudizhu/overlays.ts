@@ -4,6 +4,7 @@ import type { DdzResult } from '../../variants/doudizhu/index.ts';
 import { app } from '../app.ts';
 import { audio } from '../common/audio.ts';
 import { dur } from '../common/anim.ts';
+import { NOTICE_MS } from '../common/pace.ts';
 import { backToPicker } from '../table/again.ts';
 import { DDZ_ME, DdzSession, ddzFunOpts } from './session.ts';
 import { DailyPuzzleSession, puzzleAfter, puzzlesDone } from './puzzle.ts';
@@ -324,5 +325,5 @@ export async function stakeAgain(sc: DdzScene, tier: DdzStakeSession['stake']['t
   }
   const msg = stakeError(r.error);
   status.setText(msg);
-  sc.time.delayedCall(1200, () => sc.alive && backToPicker(sc, 'ddz', msg));
+  sc.time.delayedCall(NOTICE_MS, () => sc.alive && backToPicker(sc, 'ddz', msg));
 }

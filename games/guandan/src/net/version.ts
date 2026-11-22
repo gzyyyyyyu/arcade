@@ -7,11 +7,15 @@
 // 4（0.34.0）：斗地主娱乐房间开明牌，多了"选明不明牌"这一步（show 操作、视图里地主亮出的手牌）；认不得的旧页面会被请去刷新
 export const CLIENT_VERSION = 4;
 
+/** 页面里的房间、实盘接口写相对页面目录的路径（资源相对路径，Worker 换挂载点页面不用改）；带挂载点的完整路径只给 Worker 路由用 */
+export const ROOM_REL = 'room';
+export const STAKE_REL = 'api/stake';
+
 /** 房间接口的路径前缀（游戏 Worker 里，run_worker_first 放行这一段） */
-export const ROOM_PATH = '/games/guandan/room';
+export const ROOM_PATH = `/games/guandan/${ROOM_REL}`;
 
 /**
  * 单机实盘接口的路径前缀（游戏 Worker 里，run_worker_first 放行这一段；worker/stake.ts）。
  * 放在 /api/ 下面：网关的限速规则（每 IP 每 10 秒 60 次）只认 /api/*、/games/* 下含 /room/ 或 /rooms、/games/* 下含 /api/ 的路径
  */
-export const STAKE_PATH = '/games/guandan/api/stake';
+export const STAKE_PATH = `/games/guandan/${STAKE_REL}`;

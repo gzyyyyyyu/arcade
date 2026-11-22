@@ -121,10 +121,10 @@ async function handleStake(request: Request, env: StakeEnv, action: string): Pro
     const ref = body.ref;
     if (!rules.isSoloRef(ref)) return reply({ ok: false, error: 'bad_request' }, 400);
     if (action === 'settle') {
-      // 档位按 ref 里编的算（ref 是带入时 Worker 生成的），页面带来的不信；只有 0.12.1 以前带入的旧 ref（没编档位，24 小时内过期）才用页面带的
+      // 档位按 ref 里编的算（ref 是带入时 Worker 生成的），页面带来的不信
       // rules：这一场用哪一套数（3 副之前开的没有，按旧的算）
       const { points, deals, stats, rules: ver } = body;
-      const tier = rules.soloRefTier(ref) ?? body.tier;
+      const tier = rules.soloRefTier(ref);
       if (!isTier(tier) || !rules.known(ver) || !rules.validSoloResult(points, deals, ver)) return reply({ ok: false, error: 'bad_request' }, 400);
       const amount = rules.payout(tier, points as number, ver);
       // 页面报的战绩小结原样转给平台（5.10：游戏的接口不改、不补，平台校验）；没带就不带

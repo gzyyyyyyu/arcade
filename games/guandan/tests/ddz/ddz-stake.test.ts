@@ -10,8 +10,9 @@ import {
   DDZ_SOLO_BOTS, DDZ_SOLO_BOTS_CLUMP, DDZ_SOLO_OPTS, POINTS_PER_SHARE, RULES_CLUMP, RULES_V1, RULES_V2, SOLO_DEALS, newRules, soloBots, rulesOf, stakeOptions, TIER_IDS, TIERS, isSoloRef, payout, pointValue, soloOp, soloRef, soloRefTier, validSoloResult,
 } from '../../src/variants/doudizhu/stake/index.ts';
 import {
-  DdzStakeSession, buyinDdzStake, ddzStakeRules, clearDdzStakeSave, ddzStakeLeft, loadDdzStakeSave, refundDdzStake, settleDdzStake, strayDdzStake, type DdzStakeSave,
+  DdzStakeSession, buyinDdzStake, ddzStakeRules, clearDdzStakeSave, ddzStakeLeft, loadDdzStakeSave, settleDdzStake, strayDdzStake, type DdzStakeSave,
 } from '../../src/view/doudizhu/stake.ts';
+import { refundStray } from '../../src/view/common/stake-api.ts';
 import { KEYS } from '../../src/view/store.ts';
 
 const REF = `solo-ddz-mid-${'cd'.repeat(16)}`;
@@ -250,7 +251,7 @@ describe('结回、放弃', () => {
     const s = over();
     const f = fakeFetch([{ body: { ok: true, credited: 10_000, capped: 0, wallet: { balance: 18_000, stakes: [] } } }]);
     expect(await settleDdzStake(s, { fetcher: f, sleep: noSleep })).toEqual({ kind: 'done', points: 0, credited: 10_000, capped: 0, balance: 18_000 });
-    expect(f.calls[0]).toEqual({ url: '/games/guandan/api/stake/settle', body: { variant: 'ddz', ref: REF, tier: 'mid', points: 0, deals: 0, rules: 2 } });
+    expect(f.calls[0]).toEqual({ url: 'api/stake/settle', body: { variant: 'ddz', ref: REF, tier: 'mid', points: 0, deals: 0, rules: 2 } });
     expect(loadDdzStakeSave()).toBeNull();
   });
 
@@ -286,12 +287,10 @@ describe('结回、放弃', () => {
     expect(f.calls).toHaveLength(0);
   });
 
-  it('放弃：退回那一份，带 variant ddz；忙就重试', async () => {
-    started();
+  it('退回别处那一份：带 variant ddz；忙就重试', async () => {
     const f = fakeFetch([{ body: { ok: false, error: 'busy' } }, { body: { ok: true, credited: 10_000, wallet: { balance: 10_000, stakes: [] } } }]);
-    expect((await refundDdzStake(loadDdzStakeSave()!, { fetcher: f, sleep: noSleep })).kind).toBe('done');
+    expect((await refundStray(REF, { variant: 'ddz' }, { fetcher: f, sleep: noSleep })).ok).toBe(true);
     expect(f.calls.map((c) => c.body)).toEqual([{ variant: 'ddz', ref: REF }, { variant: 'ddz', ref: REF }]);
-    expect(loadDdzStakeSave()).toBeNull();
   });
 
   it('删存档只删同一场', () => {
@@ -325,7 +324,7 @@ describe('进场', () => {
     const f = fakeFetch([{ body: { user: { id: 'u9' } } }, { body: { ok: true, ref, tier: 'small', share: 2000, until: Date.now() + 1000, wallet: { balance: 8000, stakes: [] } } }]);
     const r = await buyinDdzStake('small', f);
     expect(r.ok).toBe(true);
-    expect(f.calls.map((c) => c.url)).toEqual(['/api/me', '/games/guandan/api/stake/buyin']);
+    expect(f.calls.map((c) => c.url)).toEqual(['/api/me', 'api/stake/buyin']);
     expect(f.calls[1]!.body).toEqual({ variant: 'ddz', tier: 'small' });
     expect(loadDdzStakeSave()).toMatchObject({ userId: 'u9', ref, tier: 'small', share: 2000 });
   });

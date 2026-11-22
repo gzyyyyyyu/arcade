@@ -4,7 +4,7 @@
  * 每日挑战不写存档、不记战绩（和自己练的局分开），排行榜不防作弊（榜只为好玩，防刷额度在平台做）。
  */
 import { currentUserId } from './room-link.ts';
-import { standalone } from './platform.ts';
+import { standalone, timed } from './platform.ts';
 
 /** 北京时间的日期 YYYY-MM-DD */
 export function beijingDate(nowMs: number): string {
@@ -35,7 +35,7 @@ export async function submitDaily(board: string, score: number, fetcher: typeof 
   const userId = await currentUserId(fetcher);
   if (!userId) return { kind: 'out' };
   try {
-    const r = await fetcher('/api/scores', {
+    const r = await fetcher('/api/scores', timed({
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
@@ -43,7 +43,7 @@ export async function submitDaily(board: string, score: number, fetcher: typeof 
       keepalive: true,
       headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' },
       body: JSON.stringify({ gameId: 'guandan', boardId: board, score, userId }),
-    });
+    }));
     if (r.status === 401) return { kind: 'out' };
     if (r.status === 429) return { kind: 'limit' };
     if (r.status === 200) {
