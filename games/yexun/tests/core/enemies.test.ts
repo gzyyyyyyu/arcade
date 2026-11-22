@@ -1,6 +1,6 @@
 import { Bot } from '../../tools/bots.ts';
 import { describe, expect, it } from 'vitest';
-import { BONE, ENEMY_BY_KIND, LORD, PALANQUIN, WATER, WEASEL, WHITEFOX } from '../../src/content/enemies.ts';
+import { BONE, ENEMIES, ENEMY_BY_KIND, LORD, PALANQUIN, WATER, WEASEL, WHITEFOX } from '../../src/content/enemies.ts';
 import { CALM, DANGERS, EVENTS, OPEN_TICKS } from '../../src/content/waves.ts';
 import { createWorld, Drop, Ev, step, type World } from '../../src/core/index.ts';
 import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
@@ -286,5 +286,11 @@ describe('Boss', () => {
   it('时间线：8:00 纸扎老爷、14:00 尸王', () => {
     expect(EVENTS.find((e) => e.kind === 'boss' && e.enemy === 'lord')?.at).toBe(480 * 30);
     expect(EVENTS.find((e) => e.kind === 'boss' && e.enemy === 'boss')?.at).toBe(840 * 30);
+  });
+});
+
+describe('怪的编号', () => {
+  it('code 就是在 ENEMIES 里的下标（画面按 code 取表、取定义）', () => {
+    ENEMIES.forEach((e, i) => expect(e.code).toBe(i));
   });
 });

@@ -19,6 +19,7 @@ interface Req {
   method: string;
   url: string;
   body: Record<string, any> | null;
+  signal: AbortSignal | null | undefined;
 }
 
 /** 假平台：一个账号、一个 profile 槽 */
@@ -38,7 +39,7 @@ function setup(over: { user?: string | null } = {}) {
   const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
   const fetchFn = async (url: string, init: RequestInit) => {
     const body = typeof init.body === 'string' ? JSON.parse(init.body) : null;
-    reqs.push({ method: init.method ?? 'GET', url, body });
+    reqs.push({ method: init.method ?? 'GET', url, body, signal: init.signal });
     if (server.down) throw new TypeError('offline');
     if (server.status) return json(server.status, { error: 'x' });
     if (url === '/api/me') return json(200, { user: server.user ? { id: server.user } : null });
@@ -111,6 +112,8 @@ describe('云存档', () => {
     expect(e.store.getItem(preSyncKey('profile'))).not.toBeNull();
     expect(e.puts()).toHaveLength(1);
     expect(e.puts()[0]!.body!.baseRev).toBe(3);
+    // 每个请求都带超时：卡住的按连不上处理
+    for (const r of e.reqs) expect(r.signal).toBeInstanceOf(AbortSignal);
     expect(coins({ ...fresh(), ...(e.server.slot!.data as Save) })).toBe(170);
     expect(e.cloud.view.state).toBe('merged');
   });

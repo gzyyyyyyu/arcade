@@ -1,6 +1,7 @@
+import type { CharacterId } from '../../src/content/meta.ts';
 import { describe, expect, it } from 'vitest';
 import { mergeWho, SHOWN_MERGES } from '../../src/content/combos.ts';
-import { CHARACTER_POOLS, type PoolCharacterId } from '../../src/content/pools.ts';
+import { CHARACTER_POOLS } from '../../src/content/pools.ts';
 import { WEAPONS, type MergeDef, type WeaponId } from '../../src/content/weapons.ts';
 import { grantWeapon, openChestNow, spawnNow } from '../../src/core/debug.ts';
 import { createWorld, fingerprint, step, type World } from '../../src/core/index.ts';
@@ -14,7 +15,7 @@ function setup(c: string, m: MergeDef): World {
   const w = createWorld({ seed: 11, mode: 'vigil', danger: 2, character: c as never });
   w.weapons.length = 0;
   w.wstats.length = 0;
-  const evoIn = (id: WeaponId): boolean => !!WEAPONS[id].evolve && CHARACTER_POOLS[c as PoolCharacterId].passives.includes(WEAPONS[id].evolve!.with);
+  const evoIn = (id: WeaponId): boolean => !!WEAPONS[id].evolve && CHARACTER_POOLS[c as CharacterId].passives.includes(WEAPONS[id].evolve!.with);
   const aEvo = !m.dual || evoIn(m.a);
   grantWeapon(w, m.a, 8, aEvo);
   grantWeapon(w, m.b, 8, !m.dual || !aEvo);

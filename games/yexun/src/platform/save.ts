@@ -1,5 +1,5 @@
 /**
- * 本机存档（localStorage `yexun.save`）和设置（`yexun.settings`，音效、音乐开关由 audio/ 读写，同一个 key 里各管各的字段）。
+ * 本机存档（localStorage `yexun.save`）和设置（`yexun.settings`，读写都走本文件的 readFlag / writeFlag；音效、音乐、震屏等同一个 key 里各管各的字段）。
  * 存储不可用（隐私模式、满了）时照常能玩，只是不记得。云存档（`cloud.ts`）同步的就是这一份去掉本机字段后的样子，合并见 `mergeSave`。
  *
  * 局外成长（DESIGN.md 3.7、3.8）：铜钱只在游戏里，和筹码完全分开。铜钱不存一个总数，存"流水"（每局赚的、每次花的各一条，带 id）：
@@ -8,8 +8,7 @@
 import { DANGER_IDS, type Danger, type Difficulty } from '../content/waves.ts';
 import { MAP_UNLOCK, type MapId } from '../content/maps.ts';
 import { WEEKLY_FX, type WeeklyId } from '../content/weekly.ts';
-import { CHARACTER_IDS, PICK_CHAR_IDS, CURSE_COIN_BONUS, CURSE_IDS, FIRST_RUN_COINS, RUN_BONUS, MAX_CURSES, PERK_IDS, PERKS, ASSIST, COIN_EXCHANGE, KIT_IDS, KITS, LOOK_IDS, LOOKS, type CharacterId, type CurseId, type KitId, type LookId, type LookSlot, type PerkId } from '../content/meta.ts';
-import { readFlag, writeFlag } from '../view/audio/sfx.ts';
+import { CHARACTER_IDS, CURSE_COIN_BONUS, CURSE_IDS, FIRST_RUN_COINS, RUN_BONUS, MAX_CURSES, PERK_IDS, PERKS, ASSIST, COIN_EXCHANGE, KIT_IDS, KITS, LOOK_IDS, LOOKS, type CharacterId, type CurseId, type KitId, type LookId, type LookSlot, type PerkId } from '../content/meta.ts';
 import { isLiveTier, type LiveTier } from '../content/live.ts';
 import { RAID_OPEN } from '../content/explore.ts';
 import { emptyVault, herbalistUnlocked, normalizeVault, type VaultSave } from '../explore/vault.ts';
@@ -19,7 +18,7 @@ import type { Setup } from '../core/state.ts';
 import { TRIAL_IDS, TRIAL_OPEN_NEED, TRIAL_TIERS, TRIALS, type TrialId, type TrialTier } from '../content/trials.ts';
 import { WEEK_GOAL_ALL, WEEK_GOAL_COINS, weekGoals, type WeekRun } from '../content/weekGoals.ts';
 
-const SAVE_KEY = 'yexun.save';
+export const SAVE_KEY = 'yexun.save';
 
 export interface Best {
   /** 撑了多少拍（赢了 = 天亮） */
@@ -41,7 +40,7 @@ export interface Loadout {
 function reviveLoadout(o: unknown): Save['loadout'] {
   const out: Save['loadout'] = {};
   if (!o || typeof o !== 'object') return out;
-  for (const id of PICK_CHAR_IDS) {
+  for (const id of CHARACTER_IDS) {
     const v = (o as Record<string, unknown>)[id];
     if (!v || typeof v !== 'object') continue;
     const { alt, xinfa } = v as Record<string, unknown>;
@@ -230,7 +229,7 @@ export function reviveSave(o: unknown): Save | null {
   }
   const dg = num(r.danger, 0, 8);
   if (dg !== null) s.danger = dg as Danger;
-  if (typeof r.character === 'string' && PICK_CHAR_IDS.includes(r.character as CharacterId)) s.character = r.character as CharacterId;
+  if (typeof r.character === 'string' && CHARACTER_IDS.includes(r.character as CharacterId)) s.character = r.character as CharacterId;
   s.loadout = reviveLoadout(r.loadout);
   s.curses = CURSE_IDS.filter((c) => strs(r.curses).includes(c)).slice(0, MAX_CURSES);
   if (r.bestD && typeof r.bestD === 'object') {
@@ -767,6 +766,36 @@ export function mergeSave(local: Save, cloud: Save): Save {
 export function savePayload(s: Save): Omit<Save, 'difficulty' | 'map' | 'danger' | 'character' | 'loadout' | 'curses' | 'streak' | 'assist' | 'tipsOff' | 'liveOn' | 'liveTier' | 'lastMode' | 'raidTpl' | 'kits' | 'wear'> {
   const { difficulty: _d, map: _m, danger: _g, character: _c, loadout: _lo, curses: _u, streak: _s, assist: _a, tipsOff: _t, liveOn: _l, liveTier: _lt, lastMode: _lm, raidTpl: _rt, kits: _k, wear: _w, ...rest } = s;
   return rest;
+}
+
+export const SETTINGS_KEY = 'yexun.settings';
+
+/** 读设置里的一个布尔字段；存储不可用、内容损坏都当没有，用默认值。 */
+export function readFlag(field: string, def: boolean): boolean {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return def;
+    const o: unknown = JSON.parse(raw);
+    if (o && typeof o === 'object') {
+      const v = (o as Record<string, unknown>)[field];
+      if (typeof v === 'boolean') return v;
+    }
+  } catch { /* 隐私模式等：照常运行 */ }
+  return def;
+}
+
+/** 写一个字段：先读出整个对象合并再写回，不能覆盖同一个 key 里别人的字段。 */
+export function writeFlag(field: string, value: boolean): void {
+  try {
+    let o: Record<string, unknown> = {};
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const p: unknown = JSON.parse(raw);
+      if (p && typeof p === 'object' && !Array.isArray(p)) o = p as Record<string, unknown>;
+    }
+    o[field] = value;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(o));
+  } catch { /* 写不进去就算了，只是下次不记得 */ }
 }
 
 /** 设置里除了声音的几项（声音开关在 audio/ 里） */

@@ -1,7 +1,7 @@
 /**
  * 开局准备里花铜钱的三页（DESIGN 3.8a）：锦囊（下一局带）、外观（买下永久有）、换筹码。只画，状态由 main.ts 给，点击回给 prep.ts。
  */
-import { COIN_EXCHANGE, KIT_IDS, KITS, LOOK_IDS, LOOKS, type KitId, type LookId, type LookSlot } from '../../content/meta.ts';
+import { CHIPS_NO_CASH, COIN_EXCHANGE, KIT_IDS, KITS, LOOK_IDS, LOOKS, type KitId, type LookId, type LookSlot } from '../../content/meta.ts';
 import type { XcLogRow } from '../../platform/save.ts';
 
 /** 换筹码页的状态：quota 为 null 是拿不到今天的额度（没登录、连不上），按 COIN_EXCHANGE.dailyCap 写 */
@@ -87,7 +87,7 @@ export function exchangeHtml(s: ShopState): string {
     .map((r) => `<li><span>${r.at === null ? '更早' : stamp(r.at)}</span><b>+${fmt(r.chips)} 筹码</b><span>${coin(r.coins)}${r.pending ? ' · 还没到账' : ''}</span></li>`)
     .join('');
   return (
-    `<div class="yx-pnote">${rate} 铜钱换 1 筹码；筹码进平台钱包，各个游戏通用。每天额度按北京时间算。</div>` +
+    `<div class="yx-pnote">${rate} 铜钱换 1 筹码；筹码进平台钱包，各个游戏通用。每天额度按北京时间算。${CHIPS_NO_CASH}。</div>` +
     `<div class="yx-pxchead"><b>${head}</b>${x.pending ? `<span>有 ${x.pending} 笔还没到账，铜钱先扣着，会自动重发</span>` : ''}</div>` +
     `<div class="yx-pgrid yx-pxcs">${btns}${all}</div>` +
     (x.msg ? `<div class="yx-pxcmsg" role="status">${x.msg}</div>` : '') +

@@ -722,6 +722,8 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
 };
 
 export const WEAPON_IDS = Object.keys(WEAPONS) as WeaponId[];
+/** 法器在事件里的编号（WEAPON_IDS 的下标） */
+export const WEAPON_CODE: Record<WeaponId, number> = Object.fromEntries(WEAPON_IDS.map((id, i) => [id, i])) as Record<WeaponId, number>;
 
 /** 镇 3 件：被减速的怪挨打的倍数（只算镇 3 件和镇魂铃减速的怪） */
 export const WARD_SET_HIT = 1.25;

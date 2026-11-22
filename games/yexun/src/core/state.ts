@@ -3,7 +3,7 @@
  * `step` 原地修改这里的东西（主线批准的例外，见模块 AGENTS.md 第 3 节）。
  */
 import { LIVE_EASE, RAID_MAX_DANGER, type Danger, type WaveEvent } from '../content/waves.ts';
-import { CHAR_FX, CHARACTERS, CURSE_IDS, KIT_FX, KIT_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type KitId, type PerkId } from '../content/meta.ts';
+import { CHAR_FX, CHARACTERS, CURSE_IDS, KIT_FX, KIT_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type KitId, type PerkId, CHARACTER_IDS } from '../content/meta.ts';
 import { isWeeklyId, type WeeklyId } from '../content/weekly.ts';
 import { isTrialId, TRIALS, type TrialDef, type TrialId } from '../content/trials.ts';
 import { MAPS, type Block, type MapId, type Rect } from '../content/maps.ts';
@@ -16,7 +16,7 @@ import { raidHooks, type RaidPort } from './raid-port.ts';
 import type { RaidSetup } from './raid-host.ts';
 import { BlockIndex, type RaidBlock } from './blocks.ts';
 import { rushPlan, type RushPlan } from './rush.ts';
-import { altStart, mainSchools, POOL_CHARACTER_IDS, type PoolCharacterId } from '../content/pools.ts';
+import { altStart, mainSchools } from '../content/pools.ts';
 import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
@@ -173,7 +173,7 @@ export interface Setup {
    * 法器池按这个 id 算（content/pools.ts），缺省 = 角色。只给模拟器用：新角色还没加进来之前量幽冥、聚财；
    * 'all' = 不限池（量新法器稀释老流派用）。界面不开、录像和存档里不会有
    */
-  pool?: PoolCharacterId | 'all';
+  pool?: CharacterId | 'all';
   /**
    * 竖屏开的局：刷怪圈转 90°（纵向远、横向近）。竖屏看得见的世界是竖长条，横屏那圈的上下两边会落在屏幕里，
    * 怪凭空冒出来（10-20）。开局按屏幕定、录进录像，转屏不改（缺省 false = 横屏那圈）
@@ -248,7 +248,7 @@ export function normalizeSetup(raw: Setup): Setup {
   if (out.novice !== undefined && !noviceAssist(out)) delete out.novice;
   // 开局配置：A 只认 true；B 只认本角色的主修流派；首领连战要人人一样，两个都不开
   if (out.startAlt !== true || out.rush) delete out.startAlt;
-  const pc = (POOL_CHARACTER_IDS as readonly string[]).includes(character) ? (character as PoolCharacterId) : undefined;
+  const pc = (CHARACTER_IDS as readonly string[]).includes(character) ? (character as CharacterId) : undefined;
   if (out.xinfa !== undefined && (out.rush || !pc || !mainSchools(pc).includes(out.xinfa))) delete out.xinfa;
   // 锦囊：只认表里的、不重复；实盘、连战、本周夜事要人人一样，不带
   const kits = KIT_IDS.filter((k) => s.kits?.includes(k));

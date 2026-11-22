@@ -55,7 +55,7 @@ import { ASSIST, CHAR_FX, CHARACTERS, CURSE_FX, PERK_FX, REVIVE, type CurseId, t
 import { WEEKLY_FX } from '../content/weekly.ts';
 import { TRIAL_FX } from '../content/trials.ts';
 import { trialVerdict } from './trial.ts';
-import { PICKS, PICKS_60, PICKS_65, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
+import { COIN_PICK, PICKS, PICKS_60, PICKS_65, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
 import { BELL_STUN, PARADE, MAP_EVENT_AT, MAP_EVENT_KINDS, MAP_EVENT_WARN, MAP_EVENTS, mapEventRound, TIDE_SLOW, WIND_PUSH, type MapEventKind } from '../content/mapEvents.ts';
 import { MARKET_GOODS, MARKET_PRICE, NIGHT_MARKET, type MarketGood } from '../content/market.ts';
 import {
@@ -70,6 +70,7 @@ import {
   mergeFor,
   PASSIVE_IDS,
   PASSIVES,
+  WEAPON_CODE,
   WEAPON_IDS,
   WEAPONS,
   weaponStats,
@@ -98,8 +99,7 @@ import { type XinfaApi, xinfaCoin, xinfaHitMul, xinfaHurtMul, xinfaOnKill, xinfa
 import { borrowStats, charDmgMul, moveSkillFu, paperLifeMul, paperRefund, SKILL_FX, skillFerrying, skillFortune, skillHurtMul, skillSlowRadius, skillStep, skillZone, yinyangFlip, type SkillOps } from './skills.ts';
 import { baseStats, Drop, RING, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, WEAPON_SLOTS, World, type Choice, type Setup } from './state.ts';
 
-/** 法器在事件里的编号 */
-export const WEAPON_CODE: Record<WeaponId, number> = Object.fromEntries(WEAPON_IDS.map((id, i) => [id, i])) as Record<WeaponId, number>;
+export { WEAPON_CODE };
 /** 宝箱事件里合成的编号：200 + MERGES 下标 */
 export const MERGE_CODE = 200;
 export const PASSIVE_CODE: Record<PassiveId, number> = Object.fromEntries(PASSIVE_IDS.map((id, i) => [id, 100 + i])) as Record<PassiveId, number>;
@@ -3942,8 +3942,8 @@ function applyChoice(w: World, c: Choice): void {
   if (c.kind === 'weapon') upgradeWeapon(w, c.id as WeaponId);
   else if (c.kind === 'passive') upgradePassive(w, c.id as PassiveId);
   else {
-    w.coins += 25;
-    heal(w, 20);
+    w.coins += COIN_PICK.coins;
+    heal(w, COIN_PICK.heal);
   }
   w.pendingLevels--;
   w.choices = [];

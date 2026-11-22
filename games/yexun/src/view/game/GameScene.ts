@@ -12,7 +12,7 @@
  */
 import { XINFA_FX, XINFA_TEXT } from '../../content/xinfa.ts';
 import Phaser from 'phaser';
-import { DROWN, ENEMIES, HOP_AIR, HOP_PERIOD, HUAPI, JUEMU, SPROUT, WATER } from '../../content/enemies.ts';
+import { DROWN, ENEMIES, ENEMY_BY_KIND, HOP_AIR, HOP_PERIOD, HUAPI, JUEMU, SPROUT, WATER } from '../../content/enemies.ts';
 import { CHAR_FX, CHARACTERS } from '../../content/meta.ts';
 import { ARENA, DROPS, xpNeed } from '../../content/player.ts';
 import { MAPS } from '../../content/maps.ts';
@@ -42,7 +42,7 @@ import { sfx, type SfxName } from '../audio/sfx.ts';
 import '../audio/sfx-skills.ts';
 import { browserHaptics } from '../haptics.ts';
 import type { Banners } from '../ui/banner.ts';
-import { type Cards, describe } from '../ui/cards.ts';
+import { COIN_PICK_TEXT, type Cards, describe } from '../ui/cards.ts';
 import { upgradeNeed } from '../ui/mergeHint.ts';
 import type { Hud, HudArrow, HudSlot } from '../ui/hud.ts';
 import { RaidHud } from '../ui/raidhud.ts';
@@ -85,8 +85,8 @@ const SLOW_K = 0.3;
 /** 怪种类编号 → 图集帧（没画好的先借相近的） */
 const MOB_FRAME = ENEMIES.map((e) => e.kind as string);
 // 戏子的假身画得和真身一样（只差头顶的红丝）；挡路的空棺用敞着盖的那张
-MOB_FRAME[ENEMIES.findIndex((e) => e.kind === 'hongyiclone')] = 'hongyi';
-MOB_FRAME[ENEMIES.findIndex((e) => e.kind === 'coffin')] = 'coffinopen';
+MOB_FRAME[ENEMY_BY_KIND.hongyiclone.code] = 'hongyi';
+MOB_FRAME[ENEMY_BY_KIND.coffin.code] = 'coffinopen';
 const MOB_FALLBACK: Record<string, string> = {
   fox: 'wisp', shishi: 'jiangshi_big', general: 'jiangshi_big', boss: 'jiangshi_big',
   horse: 'paper', water: 'wisp', bone: 'paper', bat: 'wisp', scarecrow: 'jiangshi', weasel: 'fox', snow: 'wisp', whitefox: 'fox', palanquin: 'shishi', ice: 'fireball', lord: 'boss', money: 'coin',
@@ -123,18 +123,18 @@ const ELITE_BANNER: Partial<Record<string, [string, string]>> = {
   frostsoul: ['冰魄', '蓄力后震出寒霜圈，躲出圈外'],
   marketboss: ['鬼市主', '朝你撒一扇铜钱，往两边躲'],
 };
-const WATER_CODE = ENEMIES.findIndex((e) => e.kind === 'water');
-const SPROUT_CODE = ENEMIES.findIndex((e) => e.kind === 'bamsprout');
-const DROWN_CODE = ENEMIES.findIndex((e) => e.kind === 'drown');
-const JUEMU_CODE = ENEMIES.findIndex((e) => e.kind === 'juemu');
-const SNAKE_CODE = ENEMIES.findIndex((e) => e.kind === 'snakespirit');
-const PUPPET_CODE = ENEMIES.findIndex((e) => e.kind === 'puppet');
-const HUAPI_CODE = ENEMIES.findIndex((e) => e.kind === 'huapi');
-const XUETONG_CODE = ENEMIES.findIndex((e) => e.kind === 'xuetong');
-const GUANDING_CODE = ENEMIES.findIndex((e) => e.kind === 'guandingui');
-const HURRIER_CODE = ENEMIES.findIndex((e) => e.kind === 'hurrier');
-const DIVER_CODES = new Set(['shuihou', 'shuoshu'].map((k) => ENEMIES.findIndex((e) => e.kind === k)));
-const HUAPISKIN_CODE = ENEMIES.findIndex((e) => e.kind === 'huapiskin');
+const WATER_CODE = ENEMY_BY_KIND.water.code;
+const SPROUT_CODE = ENEMY_BY_KIND.bamsprout.code;
+const DROWN_CODE = ENEMY_BY_KIND.drown.code;
+const JUEMU_CODE = ENEMY_BY_KIND.juemu.code;
+const SNAKE_CODE = ENEMY_BY_KIND.snakespirit.code;
+const PUPPET_CODE = ENEMY_BY_KIND.puppet.code;
+const HUAPI_CODE = ENEMY_BY_KIND.huapi.code;
+const XUETONG_CODE = ENEMY_BY_KIND.xuetong.code;
+const GUANDING_CODE = ENEMY_BY_KIND.guandingui.code;
+const HURRIER_CODE = ENEMY_BY_KIND.hurrier.code;
+const DIVER_CODES = new Set((['shuihou', 'shuoshu'] as const).map((k) => ENEMY_BY_KIND[k].code));
+const HUAPISKIN_CODE = ENEMY_BY_KIND.huapiskin.code;
 /** 混迹中的画皮借这张常规怪的图（放大 HUAPI.disguiseScale 画）：放在怪群里认不出来 */
 const HUAPI_DISGUISE = 'paper';
 /** 顶部 Boss 血条的名字（按怪种类；没登记的当尸王） */
@@ -1218,7 +1218,7 @@ export class GameScene extends Phaser.Scene {
       if (evo && def.evolve) return { icon: def.evolve.icon, title: def.evolve.name, sub: `进化！${def.evolve.desc}`, kind: 'evo' };
       return { icon: def.icon, title: def.name, sub: o?.evolved ? '升了一级' : `升到 Lv ${o?.level ?? 1}`, kind: 'up' };
     }
-    return { icon: 'coin', title: '铜钱一袋', sub: '铜钱 +40，回 30 点血', kind: 'up' };
+    return { icon: 'coin', title: '铜钱一袋', sub: COIN_PICK_TEXT, kind: 'up' };
   }
 
   /**

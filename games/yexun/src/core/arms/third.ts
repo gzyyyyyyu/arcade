@@ -4,14 +4,13 @@
  * 能不能合由宝箱（core/step.ts mergeOpen）把关，所以这里只看 w.merges。
  * 和第二批一样只用四则运算，随机不用。
  */
-import { COMBO55, WEAPON_IDS, type WeaponId } from '../../content/weapons.ts';
+import { COMBO55, WEAPON_CODE, type WeaponId } from '../../content/weapons.ts';
 import { Ev } from '../events.ts';
 import type { Grid } from '../grid.ts';
 import { MAX_ENEMIES, type World } from '../state.ts';
 import { ArmEv, ArmFx } from './events.ts';
 import type { ArmApi } from './index.ts';
 
-const CODE = Object.fromEntries(WEAPON_IDS.map((id, i) => [id, i])) as Record<WeaponId, number>;
 const tmp = new Int32Array(MAX_ENEMIES);
 
 const has = (w: World, id: string): boolean => w.merges.includes(id as never);
@@ -53,7 +52,7 @@ export function thirdTick(w: World, g: Grid, api: ArmApi): void {
     if (q >= 0) bellCombos(w, g, api, w.ev.b[q]!);
   }
   // 符火燎原：每放一次符，最近的怪脚下烧起一摊火（火摊用火葫芦的伤害）
-  if (has(w, 'fuhuo') && w.ev.find(Ev.Fire, CODE.talisman) >= 0) {
+  if (has(w, 'fuhuo') && w.ev.find(Ev.Fire, WEAPON_CODE.talisman) >= 0) {
     const kg = slotOf(w, 'gourd');
     if (kg >= 0) {
       const M = COMBO55.fuhuo;

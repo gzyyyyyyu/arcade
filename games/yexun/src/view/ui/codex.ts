@@ -5,7 +5,6 @@
  */
 import { ACHIEVEMENTS, rewardCoins } from '../../content/achievements.ts';
 import { ENEMIES, type EnemyKind } from '../../content/enemies.ts';
-import { SHELVED_KINDS } from '../../content/foes.ts';
 import { PASSIVES, WEAPONS, spanNums, type WeaponId } from '../../content/weapons.ts';
 import { collection, type Records } from '../../meta/records.ts';
 import { beijingDate } from '../../online/daily.ts';
@@ -152,16 +151,15 @@ export class Codex {
 
   private monsters(rec: Records): [string, string] {
     // 收起的镇子里才有的怪不列（遇不到，列出来只会永远是问号）
-    const list = ENEMIES.filter((e) => !SHELVED_KINDS.includes(e.kind));
-    const seenN = list.filter((e) => rec.seen.includes(e.kind)).length;
-    const cards = list.map((e) => {
+    const seenN = ENEMIES.filter((e) => rec.seen.includes(e.kind)).length;
+    const cards = ENEMIES.map((e) => {
       const info = MONSTER_INFO[e.kind];
       const seen = rec.seen.includes(e.kind);
       const n = rec.killed[e.kind] ?? 0;
       if (!seen) return `<div class="yx-ccard lock"><img class="sil" alt="" src="${this.icons(e.kind)}"><b>？？？</b><span>${info.tag}</span><em>还没见过</em></div>`;
       return `<div class="yx-ccard${n > 0 ? ' done' : ''}"><img alt="" src="${this.icons(e.kind)}"><b>${esc(info.name)}</b><span>${info.tag}</span><p>${esc(info.blurb)}</p><em>${n > 0 ? `打倒 ${n.toLocaleString('zh-CN')} 只` : '见过，还没打倒'}</em></div>`;
     }).join('');
-    return [`见过 ${seenN}/${list.length}`, `<div class="yx-cgrid">${cards}</div>`];
+    return [`见过 ${seenN}/${ENEMIES.length}`, `<div class="yx-cgrid">${cards}</div>`];
   }
 
   private weapons(rec: Records): [string, string] {

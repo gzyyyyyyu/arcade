@@ -5,7 +5,6 @@
  */
 import type { Records, RunSummary } from '../meta/records.ts';
 import { ENEMIES, type EnemyKind } from './enemies.ts';
-import { SHELVED_ACHIEVEMENTS, SHELVED_KINDS } from './foes.ts';
 import { MAX_WEAPON_LEVEL, MERGES, PASSIVES, WEAPONS } from './weapons.ts';
 import { TRIAL_IDS, TRIAL_TIERS, TRIALS, type TrialTier } from './trials.ts';
 
@@ -35,7 +34,7 @@ export interface Achievement {
 }
 
 // 人皮是画皮召出来的分身，不是常规怪：只在鬼市第 8 分钟出现，算进"每种常规怪"会逼人专门去刷；红衣戏子的假身、米山、空棺是首领的附属物，同理
-const regular = ENEMIES.filter((e) => !e.elite && !e.boss && !SHELVED_KINDS.includes(e.kind) && e.kind !== 'huapiskin' && e.kind !== 'hongyiclone' && e.kind !== 'ricepile' && e.kind !== 'coffin').map((e) => e.kind);
+const regular = ENEMIES.filter((e) => !e.elite && !e.boss && e.kind !== 'huapiskin' && e.kind !== 'hongyiclone' && e.kind !== 'ricepile' && e.kind !== 'coffin').map((e) => e.kind);
 const elites = ENEMIES.filter((e) => e.elite).map((e) => e.kind);
 const killed = (rec: Records, k: EnemyKind): number => rec.killed[k] ?? 0;
 const nWeapons = Object.keys(WEAPONS).length;
@@ -45,7 +44,7 @@ const evolvedNow = (run: RunSummary): number => run.weapons.filter((o) => o.evol
 const has3 = (run: RunSummary): boolean => run.sets.some((s) => s.endsWith('3') && !s.includes('·'));
 const finished = (run: RunSummary): boolean => run.won && !run.quit;
 
-const ALL_ACHIEVEMENTS: readonly Achievement[] = [
+export const ACHIEVEMENTS: readonly Achievement[] = [
   // ── 守夜 ──
   { id: 'dawn_1', group: '守夜', name: '天亮了', desc: '撑到天亮一次', coins: 30, test: (r) => finished(r) },
   { id: 'dawn_normal', group: '守夜', name: '普通的一夜', desc: '在危险 2 或更高撑到天亮', coins: 60, test: (_r, c) => winsFrom(c, 2) >= 1 },
@@ -132,8 +131,6 @@ const ALL_ACHIEVEMENTS: readonly Achievement[] = [
   // 试炼各档全通：称号为主（大头铜钱在每关首通时给过了），成就照例带一点铜钱
   ...([0, 1, 2] as const).map((t): Achievement => ({ id: `trial_${t}`, group: '挑战', name: `试炼${TRIAL_TIERS[t]!.name}全通`, desc: `试炼${TRIAL_TIERS[t]!.name}的 4 关都通过`, coins: [100, 200, 300][t]!, title: TRIAL_TIERS[t]!.title, test: (_r, c) => trialTierDone(c, t) })),
 ];
-/** 收起的镇子里才拿得到的成就先不列（content/foes.ts SHELVED_ACHIEVEMENTS） */
-export const ACHIEVEMENTS: readonly Achievement[] = ALL_ACHIEVEMENTS.filter((a) => !SHELVED_ACHIEVEMENTS.includes(a.id));
 export const ACHIEVEMENT_BY_ID: Readonly<Record<string, Achievement>> = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));
 
 /** 试炼全通的成就里，按累计统计已经达成的 id（records.ts recordTrial 用） */

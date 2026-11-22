@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mergeReach, mergeWho, reachableMerges, SHOWN_MERGES } from '../../src/content/combos.ts';
-import { PICK_CHAR_IDS } from '../../src/content/meta.ts';
-import { CHARACTER_POOLS, inPool, mainSchools, type PoolCharacterId } from '../../src/content/pools.ts';
+import { CHARACTER_IDS, type CharacterId } from '../../src/content/meta.ts';
+import { CHARACTER_POOLS, inPool, mainSchools } from '../../src/content/pools.ts';
 import { SCHOOL_IDS } from '../../src/content/guide.ts';
 import { MERGES, PASSIVES, WEAPON_IDS, WEAPONS, type MergeDef, type WeaponId } from '../../src/content/weapons.ts';
 import { grantWeapon, openChestNow } from '../../src/core/debug.ts';
@@ -17,7 +17,7 @@ function chestWith(c: string, m: MergeDef): World {
   const w = createWorld({ seed: 7, mode: 'vigil', danger: 2, character: c as never });
   w.weapons.length = 0;
   w.wstats.length = 0;
-  const evoIn = (id: WeaponId): boolean => !!WEAPONS[id].evolve && CHARACTER_POOLS[c as PoolCharacterId].passives.includes(WEAPONS[id].evolve!.with);
+  const evoIn = (id: WeaponId): boolean => !!WEAPONS[id].evolve && CHARACTER_POOLS[c as CharacterId].passives.includes(WEAPONS[id].evolve!.with);
   const aEvo = !m.dual || evoIn(m.a);
   grantWeapon(w, m.a, 8, aEvo);
   grantWeapon(w, m.b, 8, !m.dual || !aEvo);
@@ -26,7 +26,7 @@ function chestWith(c: string, m: MergeDef): World {
 }
 
 describe('组合可达性：和规则核心、角色池一致', () => {
-  for (const c of PICK_CHAR_IDS) {
+  for (const c of CHARACTER_IDS) {
     it(`${c}：每个搭配的结论都对得上`, () => {
       for (const m of MERGES) {
         const r = mergeReach(m, c);
@@ -55,7 +55,7 @@ describe('组合可达性：和规则核心、角色池一致', () => {
   });
 
   it('每个能选的角色至少凑得出 6 个搭配，且至少一个是自己的专属', () => {
-    for (const c of PICK_CHAR_IDS) {
+    for (const c of CHARACTER_IDS) {
       const mine = reachableMerges(c);
       expect(mine.length, c).toBeGreaterThanOrEqual(6);
       expect(mine.some((m) => m.only?.split(',').includes(c)), c).toBe(true);
@@ -67,7 +67,7 @@ describe('组合可达性：界面如实显示', () => {
   const rec = emptyRecords();
   const icons = (k: string): string => k;
   it('图鉴搭配表：按角色看时，「凑得出」那一段正好是他凑得出的，其余压暗写原因', () => {
-    for (const c of PICK_CHAR_IDS) {
+    for (const c of CHARACTER_IDS) {
       const st = newCombosState();
       st.char = c;
       const html = renderCombos(st, icons, rec);
@@ -82,7 +82,7 @@ describe('组合可达性：界面如实显示', () => {
   });
 
   it('「人人能合」只写给能选的角色都凑得出的', () => {
-    for (const m of SHOWN_MERGES) expect(whoText(m) === '人人能合', m.id).toBe(mergeWho(m).length === PICK_CHAR_IDS.length);
+    for (const m of SHOWN_MERGES) expect(whoText(m) === '人人能合', m.id).toBe(mergeWho(m).length === CHARACTER_IDS.length);
     // 凑不出的人少时写排除的人：阴阳镇魂只有符师凑不出；诛邪剑阵四人能合，照常列名字
     expect(whoText(MERGES.find((m) => m.id === 'yinyang')!)).toBe('除符师都能合');
     expect(whoText(MERGES.find((m) => m.id === 'zhuxie')!)).toBe('小道士、符师、剑侠、货郎能合');
@@ -90,13 +90,13 @@ describe('组合可达性：界面如实显示', () => {
 
   it('玩法说明的流派例子只推荐主修这个流派的人凑得出的搭配', () => {
     for (const s of SCHOOL_IDS) {
-      const mains = PICK_CHAR_IDS.filter((c) => mainSchools(c).includes(s));
+      const mains = CHARACTER_IDS.filter((c) => mainSchools(c).includes(s));
       for (const m of schoolMerges(s)) expect(mains.some((c) => mergeReach(m, c) === 'ok'), `${s} ${m.id}`).toBe(true);
     }
   });
 
   it('选卡提示：凑不出的搭配，拿什么卡都不提示', () => {
-    for (const c of PICK_CHAR_IDS) {
+    for (const c of CHARACTER_IDS) {
       for (const m of MERGES) {
         if (mergeReach(m, c) === 'ok') continue;
         // 手上有其中一件（满级），把这个角色池里所有的卡都试一遍

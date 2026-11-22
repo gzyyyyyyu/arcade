@@ -10,8 +10,7 @@ import { DAILY_CURSE_IDS, type CurseId, type OnlineSetup, type RunMode } from '.
 
 /** 每日挑战统一的危险档：2 是配平的基准档（docs/balance.md），大家比的是走位，不比谁敢开高档 */
 export const DAILY_DANGER = 2;
-/** 周日噩梦日：从这天（含）起的北京时间周日，守夜每日挑战改为噩梦 1（危险 6）、咒印只抽 1 条；更早的周日保持原样，已有的榜不变 */
-export const NIGHTMARE_SUNDAY_FROM = '2026-11-01';
+/** 周日噩梦日：北京时间周日的守夜每日挑战改为噩梦 1（危险 6）、咒印只抽 1 条 */
 export const NIGHTMARE_SUNDAY_DANGER = 6;
 
 export const DAILY_MAPS: readonly MapId[] = ['snow', 'yizhuang'];
@@ -43,19 +42,15 @@ export function dailyDateOpen(date: string, today: string): boolean {
 
 /** 这一天、这个模式是不是周日噩梦日（按日期串本身算星期，不看时区；字符串比较够用，格式固定） */
 export function isNightmareSunday(date: string, mode: RunMode): boolean {
-  if (mode !== 'vigil' || !DATE_RE.test(date) || date < NIGHTMARE_SUNDAY_FROM) return false;
+  if (mode !== 'vigil' || !DATE_RE.test(date)) return false;
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 0;
 }
 
-/** 离下一个守夜噩梦日还有几天（按北京日期串算；0 = 今天就是；起始日之前一律数到起始日） */
+/** 离下一个守夜噩梦日还有几天（按北京日期串算；0 = 今天就是） */
 export function daysToNightmareSunday(date: string): number {
-  const from = date < NIGHTMARE_SUNDAY_FROM ? NIGHTMARE_SUNDAY_FROM : date;
-  const [y, m, d] = from.split('-').map(Number) as [number, number, number];
-  const toSunday = (7 - new Date(Date.UTC(y, m - 1, d)).getUTCDay()) % 7;
-  const [y0, m0, d0] = date.split('-').map(Number) as [number, number, number];
-  const gap = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y0, m0 - 1, d0)) / 86400_000);
-  return gap + toSunday;
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  return (7 - new Date(Date.UTC(y, m - 1, d)).getUTCDay()) % 7;
 }
 
 export interface DailyPlan {

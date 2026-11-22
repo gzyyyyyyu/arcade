@@ -3,6 +3,8 @@
  * 只管请求和把回话理成几种结果，不碰画面；fetch 从外面传进来，方便测试。回来的东西（别人的昵称、分数）一律先校验再用。
  * 平台每人每天只收有限次交分（所有游戏合计）：一局只在结束时交一次，什么情况都不自动重试。
  */
+import { timeoutSignal } from '../platform/timeout.ts';
+
 const GAME_ID = 'yexun';
 
 export interface BoardDeps {
@@ -51,7 +53,7 @@ const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object
 
 async function call(d: BoardDeps, method: 'GET' | 'POST', url: string, body?: unknown): Promise<Res> {
   try {
-    const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store' };
+    const init: RequestInit = { method, credentials: 'same-origin', cache: 'no-store', ...timeoutSignal() };
     // 写请求必须带 X-Arcade；交分用 keepalive：结算页马上点"大厅"走了也交得上（请求体只有几十字节）
     if (body !== undefined) Object.assign(init, { body: JSON.stringify(body), keepalive: true, headers: { 'Content-Type': 'application/json', 'X-Arcade': '1' } });
     const r = await d.fetch(url, init);

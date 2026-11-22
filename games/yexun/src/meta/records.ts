@@ -4,7 +4,6 @@
  * 不碰规则核心：只读 World 和它这一拍的事件；这里的代码不用随机数和时间。
  */
 import { ENEMIES, type EnemyKind } from '../content/enemies.ts';
-import { SHELVED_KINDS } from '../content/foes.ts';
 import { MAP_IDS, type MapId } from '../content/maps.ts';
 import { SHOWN_MERGES } from '../content/combos.ts';
 import type { Danger } from '../content/waves.ts';
@@ -90,8 +89,6 @@ export interface Records {
 const DANGER_KEYS: DangerKey[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
 const MAPS_: MapId[] = [...MAP_IDS];
 const KINDS = ENEMIES.map((e) => e.kind);
-/** 收集度只算遇得到的怪（收起的镇子里才有的不算，见 content/foes.ts SHELVED_KINDS）；存读和累计照旧用全部 */
-const COUNT_KINDS = KINDS.filter((k) => !SHELVED_KINDS.includes(k));
 const WEAPON_IDS = Object.keys(WEAPONS) as WeaponId[];
 const PASSIVE_IDS = Object.keys(PASSIVES) as PassiveId[];
 const MERGE_IDS = MERGES.map((m) => m.id);
@@ -238,10 +235,10 @@ export function recordTrial(records: Records, id: TrialId): { records: Records; 
 
 /** 总收集度：怪见过 1 + 打倒过 1；法器用过、满级、进化各 1；合成 1；成就 1。返回已得 / 总数 / 百分比（整数） */
 export function collection(r: Records): { done: number; total: number; percent: number } {
-  const total = COUNT_KINDS.length * 2 + WEAPON_IDS.length * 3 + COUNT_MERGES.length + ACHIEVEMENTS.length;
+  const total = KINDS.length * 2 + WEAPON_IDS.length * 3 + COUNT_MERGES.length + ACHIEVEMENTS.length;
   const done =
-    COUNT_KINDS.filter((k) => r.seen.includes(k)).length +
-    COUNT_KINDS.filter((k) => (r.killed[k] ?? 0) > 0).length +
+    KINDS.filter((k) => r.seen.includes(k)).length +
+    KINDS.filter((k) => (r.killed[k] ?? 0) > 0).length +
     WEAPON_IDS.filter((k) => r.weaponsUsed.includes(k)).length +
     WEAPON_IDS.filter((k) => r.weaponsMaxed.includes(k)).length +
     WEAPON_IDS.filter((k) => r.weaponsEvolved.includes(k)).length +

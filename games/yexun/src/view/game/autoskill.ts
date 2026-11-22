@@ -3,7 +3,7 @@
 
 import { skillReady } from '../../core/skills.ts';
 import type { World } from '../../core/state.ts';
-import { readFlag, writeFlag } from '../audio/sfx.ts';
+import { readFlag, writeFlag } from '../../platform/save.ts';
 
 /** 附近有怪的范围（像素）：屏幕上看得见的近处，怪不近身就不浪费技能 */
 export const AUTO_SKILL_RANGE = 360;

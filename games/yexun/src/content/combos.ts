@@ -3,14 +3,14 @@
  * 规则核心只按专属放行（weapons.ts 的 mergeFor），料抽不抽得到看角色池（pools.ts）；两样叠起来才是「凑得出」：
  * 专属给了别人的、两件料有一件不在池里的、进化用的被动不在池里（合成要两件都进化，双修要至少一件进化）的，都凑不出。
  */
-import { PICK_CHAR_IDS } from './meta.ts';
-import { CHARACTER_POOLS, type PoolCharacterId } from './pools.ts';
+import { CHARACTER_IDS, type CharacterId } from './meta.ts';
+import { CHARACTER_POOLS } from './pools.ts';
 import { MERGES, mergeFor, WEAPONS, type MergeDef, type WeaponId } from './weapons.ts';
 
 /** ok 凑得出；only 是别人的专属；pool 料不在池里；evo 进化用的被动不在池里 */
 export type Reach = 'ok' | 'only' | 'pool' | 'evo';
 
-export function mergeReach(m: MergeDef, c: PoolCharacterId): Reach {
+export function mergeReach(m: MergeDef, c: CharacterId): Reach {
   if (!mergeFor(m, c)) return 'only';
   const p = CHARACTER_POOLS[c];
   if (!p.weapons.includes(m.a) || !p.weapons.includes(m.b)) return 'pool';
@@ -22,7 +22,7 @@ export function mergeReach(m: MergeDef, c: PoolCharacterId): Reach {
 }
 
 /** 凑不出的原因，一句话（图鉴用）；ok 时是空串 */
-export function reachWhy(m: MergeDef, c: PoolCharacterId): string {
+export function reachWhy(m: MergeDef, c: CharacterId): string {
   const r = mergeReach(m, c);
   if (r === 'only') return '别的角色专属';
   if (r === 'pool') {
@@ -33,10 +33,10 @@ export function reachWhy(m: MergeDef, c: PoolCharacterId): string {
 }
 
 /** 能选的角色里谁凑得出这个搭配（按选角页的顺序） */
-export const mergeWho = (m: MergeDef): PoolCharacterId[] => PICK_CHAR_IDS.filter((c) => mergeReach(m, c) === 'ok');
+export const mergeWho = (m: MergeDef): CharacterId[] => CHARACTER_IDS.filter((c) => mergeReach(m, c) === 'ok');
 
 /** 界面上列的搭配：能选的角色里至少一个人凑得出（以后再收起某个角色，他的专属搭配就不列，数据留着） */
 export const SHOWN_MERGES: readonly MergeDef[] = MERGES.filter((m) => mergeWho(m).length > 0);
 
 /** 这个角色凑得出的搭配（按 MERGES 的顺序） */
-export const reachableMerges = (c: PoolCharacterId): MergeDef[] => SHOWN_MERGES.filter((m) => mergeReach(m, c) === 'ok');
+export const reachableMerges = (c: CharacterId): MergeDef[] => SHOWN_MERGES.filter((m) => mergeReach(m, c) === 'ok');

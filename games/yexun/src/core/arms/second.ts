@@ -5,7 +5,7 @@
  */
 import { ENEMIES } from '../../content/enemies.ts';
 import { SCHOOLS } from '../../content/guide.ts';
-import { ARM_FX2, COMBO55, WEAPON_IDS, type WeaponId, type WeaponStats } from '../../content/weapons.ts';
+import { ARM_FX2, COMBO55, WEAPON_CODE, type WeaponId, type WeaponStats } from '../../content/weapons.ts';
 import { Ev } from '../events.ts';
 import { dcos, dirIndex, dsin, fsqrt } from '../fmath.ts';
 import type { Grid } from '../grid.ts';
@@ -14,7 +14,6 @@ import { ArmEv, ArmFx } from './events.ts';
 import type { ArmApi, Eff } from './index.ts';
 import type { Banner, Cracker } from './state.ts';
 
-const CODE = Object.fromEntries(WEAPON_IDS.map((id, i) => [id, i])) as Record<WeaponId, number>;
 const tmp = new Int32Array(MAX_ENEMIES);
 const picks = new Int32Array(16);
 
@@ -151,7 +150,7 @@ function castDart(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStats,
     w.arms.darts.push({ x: w.x, y: w.y, tgt: picks[r % got]!, last: -1, phase: 0, trip: 1, hops, hopsMax: hops, dmg: e.dmg, speed: s.speed, evo: wp.evolved ? 1 : 0, slot: k });
   }
   emit(w, ArmEv.Dart, w.x, w.y, wp.evolved ? 1 : 0, 9, 0);
-  emit(w, Ev.Fire, w.x, w.y, CODE.dart);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.dart);
   return true;
 }
 
@@ -244,7 +243,7 @@ function settle(w: World, g: Grid, k: number, wp: OwnedWeapon, e: Eff, api: ArmA
   }
   if (count === 0) return false;
   emit(w, ArmEv.Abacus, w.x, w.y, 1, e.area, count);
-  emit(w, Ev.Fire, w.x, w.y, CODE.abacus);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.abacus);
   // 财源滚滚：每结算一次，从层数最多的那只怪身上弹出一枚铜钱镖
   if (hasMerge(w, 'caiyuan') && top >= 0 && w.eAlive[top]) {
     const { k: kd, dmg } = dmgOf(w, api, 'dart');
@@ -275,7 +274,7 @@ function castBanner(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStat
   const b: Banner = { x: bx, y: by, r: e.area, life, evo: wp.evolved ? 1 : 0, slot: k };
   A.banners.push(b);
   emit(w, ArmEv.Banner, b.x, b.y, b.evo, b.r, life);
-  emit(w, Ev.Fire, w.x, w.y, CODE.banner);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.banner);
   return true;
 }
 
@@ -452,7 +451,7 @@ function castBrush(w: World, g: Grid, k: number, wp: OwnedWeapon, e: Eff): boole
     got++;
   }
   if (got === 0) return false;
-  emit(w, Ev.Fire, w.x, w.y, CODE.brush);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.brush);
   return true;
 }
 
@@ -497,7 +496,7 @@ function castCracker(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponSta
   const ux = dcos(d);
   const uy = dsin(d);
   pushCracker(w, { x: w.x + ux * 50, y: w.y + uy * 50, ux, uy, step: s.speed, total: e.amount, left: e.amount, next: w.tick, dmg: e.dmg, r: e.area, knock: s.knock, evo: wp.evolved ? 1 : 0, round: 1, slot: k });
-  emit(w, Ev.Fire, w.x, w.y, CODE.cracker);
+  emit(w, Ev.Fire, w.x, w.y, WEAPON_CODE.cracker);
   return true;
 }
 
@@ -557,7 +556,7 @@ function maibuBurst(w: World, g: Grid, api: ArmApi, x: number, y: number): void 
 function secondCombos(w: World, g: Grid, api: ArmApi): void {
   const C = ARM_FX2.combo;
   // 阴律斩：每次挥剑，判官笔对挥中最疼（血最多）的那只补一笔
-  if (hasMerge(w, 'yinlv') && w.ev.find(Ev.Fire, CODE.sword) >= 0) {
+  if (hasMerge(w, 'yinlv') && w.ev.find(Ev.Fire, WEAPON_CODE.sword) >= 0) {
     const ks = slotOf(w, 'sword');
     const { k, dmg } = dmgOf(w, api, 'brush');
     if (ks >= 0 && k >= 0) {

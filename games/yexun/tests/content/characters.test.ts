@@ -232,20 +232,17 @@ describe('角色初始数值和小特权（所有者 10-20，0.4.5）', () => {
   }, 30_000);
 });
 
-describe('能选的角色（PICK_CHAR_IDS）', () => {
-  it('0.30.0 起十个角色都能选：存档里选着摆渡人的留着；他的局照样能开', async () => {
-    const { PICK_CHAR_IDS } = await import('../../src/content/meta.ts');
+describe('能选的角色（CHARACTER_IDS）', () => {
+  it('十个角色都能选：存档里选着摆渡人的留着；他的局照样能开', async () => {
     const { reviveSave } = await import('../../src/platform/save.ts');
-    expect(PICK_CHAR_IDS).toHaveLength(10);
-    expect(PICK_CHAR_IDS).toEqual(CHARACTER_IDS);
+    expect(CHARACTER_IDS).toHaveLength(10);
     const s = { ...fresh(), character: 'baidu' };
     expect(reviveSave(JSON.parse(JSON.stringify(s)))!.character).toBe('baidu');
     const w = make('baidu');
     for (let i = 0; i < 90; i++) step(w, 0, -1);
     expect(w.phase).not.toBe('over');
   });
-  it('一开始就能选的只有小道士、符师、剑侠（其余逐步解锁）', async () => {
-    const { PICK_CHAR_IDS } = await import('../../src/content/meta.ts');
-    expect(PICK_CHAR_IDS.filter((c) => charOpen(fresh(), c))).toEqual(['xiaodao', 'fushi', 'jianxia']);
+  it('一开始就能选的只有小道士、符师、剑侠（其余逐步解锁）', () => {
+    expect(CHARACTER_IDS.filter((c) => charOpen(fresh(), c))).toEqual(['xiaodao', 'fushi', 'jianxia']);
   });
 });

@@ -20,12 +20,12 @@ import type { CharacterId } from '../content/meta.ts';
 import { MAP_IDS } from '../content/maps.ts';
 import type { MapId } from '../content/maps.ts';
 import type { KeyValueStore } from './cloud.ts';
+import { timeoutSignal } from './timeout.ts';
 
 export const LIVE_KEY = 'yexun.live';
 const LIVE_TTL_MS = 24 * 3_600_000;
 /** 相对路径：线上是 /games/yexun/api/live/…（游戏挂在子路径下） */
 const API = 'api/live/';
-const LIVE_FETCH_MS = 10_000;
 
 /**
  * 实盘的开局配置（DESIGN 4.1）：危险档由档位定，角色、地图可选已解锁的（缺省小道士、雪原；夜探的"地图"是镇子，本来就能选，地图参数忽略），
@@ -99,10 +99,6 @@ const UNSETTLED: readonly LiveStep[] = ['buying', 'playing', 'settling'];
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
-
-function timeoutSignal(): { signal?: AbortSignal } {
-  return typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function' ? { signal: AbortSignal.timeout(LIVE_FETCH_MS) } : {};
-}
 
 /** 读回本机的记录；格式不对当作没有 */
 export function reviveLive(raw: unknown): LiveRecord | null {
@@ -203,7 +199,9 @@ export class LiveClient {
     if (this.inflight || this.busy) return { ok: false, outcome: { kind: 'reject', error: 'pending' } };
     const now = this.d.now();
     const rec: LiveRecord = { ref: newRef(), tier, stake: LIVE_TIERS[tier].stake, seed, at: now, until: now + LIVE_TTL_MS, step: 'buying', ...(raid ? { raid } : {}), ...(character && character !== 'xiaodao' ? { character } : {}), ...(!raid && map && map !== 'snow' ? { map } : {}) };
-    if (!this.save(rec, rec.ref)) return { ok: false, outcome: { kind: 'reject', error: 'pending' } };
+    const saved = this.save(rec, rec.ref);
+    if (saved === 'full') this.save(null, rec.ref);
+    if (saved !== 'ok') return { ok: false, outcome: { kind: 'reject', error: saved === 'full' ? 'storage' : 'pending' } };
     let o!: Outcome;
     let user: string | null = null;
     this.inflight = this.post('buyin', { ref: rec.ref, tier }).then((x) => {
@@ -364,27 +362,32 @@ export class LiveClient {
     return { outcome, user: isObj(json) && typeof json.user === 'string' ? json.user : null };
   }
 
-  /** 写记录（null 是清掉）；存储里已经是另一份没结完的（别的标签页开的）时不写，返回 false */
-  private save(rec: LiveRecord | null, ref: string): boolean {
+  /**
+   * 写记录（null 是清掉）。存储里已经是另一份没结完的（别的标签页开的）时不写，返回 'pending'；
+   * 存储写不进（满了、被禁用）返回 'full'：内存里照样换成新记录，接着结回，但刷新页面后就找不回这一份，带入前要挡住
+   */
+  private save(rec: LiveRecord | null, ref: string): 'ok' | 'pending' | 'full' {
     const stored = this.d.store ? loadLive(this.d.store) : null;
     if (stored && stored.ref !== ref && UNSETTLED.includes(stored.step)) {
       this.rec = stored;
       this.d.onChange?.();
-      return false;
+      return 'pending';
     }
     if (!rec && stored && stored.ref !== ref) {
       this.rec = stored;
-      return true;
+      return 'ok';
     }
     this.rec = rec;
+    let wrote = true;
     try {
       if (rec) this.d.store?.setItem(LIVE_KEY, JSON.stringify(rec));
       else this.d.store?.removeItem(LIVE_KEY);
-    } catch {
-      // 存储满了：内存里照样有
+    } catch (e) {
+      wrote = false;
+      console.warn('实盘记录写不进本机存储：', e);
     }
     this.d.onChange?.();
-    return true;
+    return wrote ? 'ok' : 'full';
   }
 }
 
