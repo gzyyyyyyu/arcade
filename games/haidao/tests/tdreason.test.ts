@@ -41,6 +41,7 @@ describe('tdReason', () => {
   it('余金多：整局收入的 25% 以上才提示', () => {
     expect(idleGoldText(250, 1000)).toBe('还有 250 金没花');
     expect(idleGoldText(249, 1000)).toBeNull();
+    expect(idleGoldText(1671, 4000)).toBe('还有 1,671 金没花');
     const log = logOf([loss(3, 'sailor', '北路', 1), loss(3, 'sailor', '西路', 1), loss(4, 'sailor', '南路', 1)]);
     const r = tdReason(log, res(3, 1, 1000), { gold: 600, towers: cannons, wave: 5 });
     expect(r.idle).toBe('还有 600 金没花');

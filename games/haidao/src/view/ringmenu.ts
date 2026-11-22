@@ -46,6 +46,8 @@ export interface RingItem {
   off?: boolean;
   /** 右上角小红点（比如"现在能升级"） */
   dot?: boolean;
+  /** 灰着时钮下方的短原因（「差 3 星」「缺金币」）：手机没有悬停，不点就看不到为什么灰 */
+  tag?: string;
   onTap: () => void;
 }
 
@@ -91,6 +93,7 @@ export class RingMenu {
       const b = button('', `hd-ringbtn ${it.id === 'upgrade' || it.id === 'collect' ? 'hd-btn-gold' : 'hd-btn-plain'}${it.off ? ' off' : ''}`, it.onTap, this.box!);
       b.dataset.ring = it.id;
       b.innerHTML = `${it.icon}<span>${it.label}</span>${it.dot ? '<i class="hd-dot"></i>' : ''}`;
+      if (it.off && it.tag) el('small', 'hd-ringtag', it.tag, b);
       b.setAttribute('aria-label', it.label);
       return b;
     });

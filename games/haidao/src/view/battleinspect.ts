@@ -69,6 +69,8 @@ export function inspectFrame(bs: BattleScene): void {
   const it = bs.inspect;
   if (!it) return;
   const s = bs.st;
+  // 打完就收：航线一站打完场景还在，卡会一直盖着站点结算、补给礁和下一站的准备面板
+  if (s.over) return clearInspect(bs);
   const g = it.g.clear();
   const z = Math.max(0.5, bs.cc.z);
   if (it.kind === 'unit') {

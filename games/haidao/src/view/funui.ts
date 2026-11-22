@@ -121,7 +121,8 @@ export function funHud(bs: BattleScene): void {
     bs.tweens.add({ targets: g, scale: { from: 1 / bs.r, to: 1.12 / bs.r }, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     v.chests.set(c.id, g);
   }
-  if (chests.length > 0 && s.tick < 40) hintOnce(HINT_KEYS.chest, '漂来宝箱，派兵去捡');
+  // 开场俯瞰（侦察提示）还盖着时先不说：同一时间只一条提示，俯瞰期间时钟停着，收起后 tick 还在 40 以内
+  if (chests.length > 0 && s.tick < 40 && !bs.paused) hintOnce(HINT_KEYS.chest, '漂来宝箱，派兵去捡');
   if (v.flag) v.flag.t.setText(String(Math.max(0, Math.ceil((v.flag.at - s.tick) / TICKS_PER_SEC))));
   // 撤回钮：规则说能撤的船才出，到点（或兵出手了）就收
   for (let i = 0; i < army.boats.length; i++) {

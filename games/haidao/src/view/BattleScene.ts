@@ -441,7 +441,8 @@ export class BattleScene extends Phaser.Scene {
     const first = tutStep() === 5 && !this.d.train;
     const text = this.d.pvp?.replay || this.d.auto ? '红圈是防御的射程 · 点任意处开始' : first ? FIRST_TIP : SCOUT_TIP;
     const tip = el('div', '', text, cover);
-    tip.style.cssText = 'position:absolute;left:0;right:0;bottom:30%;box-sizing:border-box;padding:0 16px;text-wrap:balance;text-align:center;color:#fff;font:600 14px system-ui;text-shadow:0 1px 3px #000';
+    // 叠在岛上的字要有底（沙滩是亮黄的，白字看不清）
+    tip.style.cssText = 'position:absolute;left:50%;bottom:30%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;padding:6px 14px;border-radius:14px;background:rgba(20,14,10,.72);text-wrap:balance;text-align:center;color:#fff;font:600 14px system-ui;text-shadow:0 1px 3px #000';
     let done = false;
     const end = (): void => {
       if (done) return;

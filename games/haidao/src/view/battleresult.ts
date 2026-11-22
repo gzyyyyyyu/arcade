@@ -39,11 +39,21 @@ function flyTo(bs: BattleScene, from: HTMLElement, kind: 'gold' | 'wood'): void 
   }
 }
 
-/** 稀有掉落：宝箱弹开、光、物品跳出来 */
-function openChest(bs: BattleScene, id: string): void {
+/**
+ * 稀有掉落：宝箱弹开、光、物品跳出来。结算窗先藏起来、收下再回来（两张同宽的框叠着，像层级错位）；
+ * 结算窗必须点按钮离开，它不关，只是暂时看不见
+ */
+function openChest(bs: BattleScene, id: string, under: HTMLElement): void {
   sfx('star');
   const mask = openModal({ cls: 'hd-badgemask', closable: true, stack: true, parent: bs.ui });
+  under.style.visibility = 'hidden';
+  const rm = mask.remove.bind(mask);
+  mask.remove = () => {
+    under.style.visibility = '';
+    rm();
+  };
   const box = el('div', 'hd-dialog hd-chestbox', undefined, mask);
+  button('×', 'hd-x', () => mask.remove(), box).title = '关掉（Esc）';
   el('small', '', '稀有掉落！', box);
   // 合着的箱子先晃两下，换成开着的、箱口放光，物品从箱口跳到箱子上方（容器上半截留给它，不压标题）
   const chest = el('div', 'hd-chest', undefined, box);
@@ -61,7 +71,8 @@ function openChest(bs: BattleScene, id: string): void {
     item.textContent = '★';
   }
   el('h2', '', nm, box);
-  el('p', 'hd-sub', type === 'skin' ? '去“成就 → 收藏”里装备' : '去“成就 → 收藏”里摆到岛上', box);
+  // 船长档案钮只有头像没有字（矮竖屏还挪到了底下）：说清楚点哪
+  el('p', 'hd-sub', type === 'skin' ? '回岛点船长头像 → 收藏，装备上' : '回岛点船长头像 → 收藏，摆到岛上', box);
   setTimeout(() => chest.classList.add('open'), 520);
   setTimeout(() => item.classList.add('out'), 900);
   button('收下', 'hd-btn-gold', () => mask.remove(), box).style.width = '100%';
@@ -227,7 +238,7 @@ export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newSta
     }
   }
   const rare = extra.drops.find((d) => d.kind === 'cosmetic') as { kind: 'cosmetic'; id: string } | undefined;
-  if (rare) setTimeout(() => openChest(bs, rare.id), rollAt + 1200);
+  if (rare) setTimeout(() => mask.isConnected && openChest(bs, rare.id, mask), rollAt + 1200);
   if (bonus) {
     const bl = el('p', 'hd-bountyline', `今日悬赏完成，奖励翻倍（上面的战利品就是）。明天再来！`, box);
     bl.style.cssText = 'text-align:center;margin:0 0 10px';
@@ -256,9 +267,10 @@ export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newSta
   const nu = nextUnlock(app.profile);
   if (nu) {
     const names = nu.items.map((i) => i.name).join('、');
-    const tail = nu.starsLeft > 0 ? `还差 ${nu.starsLeft} 颗星` : '星数够了，回家就能升级';
+    const tail = nu.starsLeft > 0 ? `还差 ${nu.starsLeft} 颗星` : '星数够了，回岛就能升级';
     const p = el('p', 'hd-sub', `下一个解锁：主寨 ${nu.hq} 级开放 ${names} · ${tail}`, box);
-    p.style.cssText = 'text-align:center;margin:0 0 12px;font-size:14px';
+    // 只在「、」「·」和空格处换行，不把「信号弹」拆成「信号 / 弹」
+    p.style.cssText = 'text-align:center;margin:0 0 12px;font-size:14px;word-break:keep-all';
   }
   if (!bs.d.settle) el('p', '', '（演示局，不记进度）', box).style.margin = '0 0 12px';
   if (bs.d.settle && !bs.d.bounty) {
@@ -267,7 +279,7 @@ export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newSta
     const go = (id: string): void => {
       const before = app.profile;
       const r = startCampaign(before, id, (Date.now() & 0x3fffffff) | 1);
-      if (!r.ok) return toast(r.error === 'no_wood' ? `木材连一个兵都带不起，先回家收一收` : '这座岛还没解锁');
+      if (!r.ok) return toast(r.error === 'no_wood' ? `木材连一个兵都带不起，先回岛收一收` : '这座岛还没解锁');
       afterBadges(() => {
         app.commit(r.value.profile);
         app.startBattle(id, false, r.value.setup);
@@ -283,7 +295,7 @@ export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newSta
       nb.disabled = !open;
     }
   }
-  main = button('回家', 'hd-btn-gold', () => {
+  main = button('回岛', 'hd-btn-gold', () => {
     leave();
     app.goBase();
   }, box);

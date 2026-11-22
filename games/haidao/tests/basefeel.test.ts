@@ -250,7 +250,7 @@ describe('建造卡和庆祝框的文字', () => {
   it('名额满了写清哪一级加名额，读内容表：金矿 1 级 1 座、2 级 2 座', () => {
     const lims = HQ_LEVELS.map((l) => l.limits.goldmine ?? 0);
     expect(nextSlotHq(lims, 1)).toBe(2);
-    expect(fullText(1, 2)).toBe('名额满了，主寨 2 级加名额');
+    expect(fullText(1, 2)).toBe('主寨 2 级加名额');
   });
 
   it('到顶了只写名额满了，没开放的写还不能建', () => {
@@ -307,8 +307,8 @@ describe('新建筑的施工时间线', () => {
 describe('出海前的仓库提醒', () => {
   it('预计掠夺比仓库剩下的位置多才提醒，写装得下多少', () => {
     // 新号第三座岛：金币 2,963 / 4,000，预计掠夺 1,200 金、700 木
-    expect(roomText({ gold: 1200, wood: 700 }, { gold: 2963, wood: 1393 }, { gold: 4000, wood: 2200 })).toBe('仓库只装得下 1,037 金币，先回家花掉');
+    expect(roomText({ gold: 1200, wood: 700 }, { gold: 2963, wood: 1393 }, { gold: 4000, wood: 2200 })).toBe('仓库只装得下 1,037 金币，先回岛花掉');
     expect(roomText({ gold: 1200, wood: 700 }, { gold: 100, wood: 100 }, { gold: 4000, wood: 2200 })).toBe('');
-    expect(roomText({ gold: 900, wood: 900 }, { gold: 4000, wood: 2200 }, { gold: 4000, wood: 2200 })).toBe('仓库只装得下 0 金币、0 木材，先回家花掉');
+    expect(roomText({ gold: 900, wood: 900 }, { gold: 4000, wood: 2200 }, { gold: 4000, wood: 2200 })).toBe('仓库只装得下 0 金币、0 木材，先回岛花掉');
   });
 });

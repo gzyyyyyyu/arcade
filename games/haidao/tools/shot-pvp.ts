@@ -89,15 +89,15 @@ export async function pvp(c: ShotCtx): Promise<boolean> {
     })) &&
     (await step('服务端结算', async () => {
       // 等它打完（4 倍速），超时就撤退：结果仍由服务端按交上去的操作和结束拍重放
-      await page.locator('.hd-pvp button:has-text("回家")').waitFor({ timeout: 90_000 }).catch(async () => {
+      await page.locator('.hd-pvp button:has-text("回岛")').waitFor({ timeout: 90_000 }).catch(async () => {
         await click('.hd-bar2 button.hd-btn-red');
         await page.locator('.hd-dialog button:has-text("结束")').click({ timeout: 5000 });
       });
-      await page.locator('.hd-pvp button:has-text("回家")').waitFor({ timeout: 30_000 });
+      await page.locator('.hd-pvp button:has-text("回岛")').waitFor({ timeout: 30_000 });
       await page.waitForTimeout(600);
       await shot('pvp-result');
       await check('攻防结算');
-      await click('.hd-pvp button:has-text("回家")');
+      await click('.hd-pvp button:has-text("回岛")');
       await sceneIs('base');
       await page.waitForTimeout(800);
     })) &&
@@ -124,7 +124,7 @@ export async function pvp(c: ShotCtx): Promise<boolean> {
       await page.waitForTimeout(400);
       await shot('pvp-replay-end');
       await check('回放结束');
-      await click('.hd-pvp button:has-text("回家")');
+      await click('.hd-pvp button:has-text("回岛")');
       await sceneIs('base');
       await page.waitForTimeout(800);
     })) &&

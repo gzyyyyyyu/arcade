@@ -252,6 +252,9 @@ ${W} .hd-fleetgrid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; mar
 ${W} .hd-fleetgrid .hd-card { min-height:0; padding:6px 2px; gap:2px; border-width:3px; }
 ${W} .hd-fleetgrid .hd-card.cur { background:#ffe885; }
 ${W} .hd-fleetgrid .hd-nm { font-size:14px; text-align:center; }
+${W} .hd-fleetgrid .hd-cnt { white-space:nowrap; }
+/* 窄卡上「火枪手 ×6」会折成两行：木材价贴卡底，几张卡的价钱还在同一高度 */
+${W} .hd-fleetgrid .hd-per { margin-top:auto; }
 ${W} .hd-fleetgrid .hd-sub { text-align:center; line-height:1.2; }
 ${W} .hd-fleetgrid .hd-card > .hd-img { height:36px !important; width:auto !important; }
 ${W} .hd-boatname { font-weight:900; margin:0 0 6px; }
@@ -316,10 +319,10 @@ ${W} .hd-btn.hd-ctxitem { position:relative; justify-content:flex-start; gap:8px
 ${W} .hd-btn.hd-ctxitem.up { background:var(--hd-wood),linear-gradient(#ffe58a,#e0a824); }
 ${W} .hd-btn.hd-ctxitem.off { filter:saturate(.3) brightness(.9); }
 ${W} .hd-ctxic { display:inline-flex; width:20px; justify-content:center; }
-${W} .hd-ctxlb { font-weight:900; }
+${W} .hd-ctxlb { font-weight:900; white-space:nowrap; }
 ${W} .hd-ctxitem .hd-cost { margin-left:auto; font-size:14px; }
 ${W} .hd-ctxitem .hd-cost .hd-img { height:16px !important; width:auto !important; }
-${W} .hd-ctxwhy { margin-left:auto; font-size:12px; font-weight:800; color:${red}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px; }
+${W} .hd-ctxwhy { margin-left:auto; flex:1; min-width:0; font-size:12px; line-height:14px; font-weight:800; color:${red}; text-align:right; }
 ${W} .hd-ctxwhy + .hd-ctxkey { margin-left:6px; }
 ${W} .hd-ctxkey { margin-left:auto; min-width:22px; height:22px; padding:0 5px; border-radius:6px; background:rgba(43,26,21,.8); color:#fff4dc; font:800 12px/22px system-ui,sans-serif; text-align:center; }
 ${W} .hd-ctxitem .hd-cost + .hd-ctxkey { margin-left:6px; }

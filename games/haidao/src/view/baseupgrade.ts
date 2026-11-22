@@ -59,11 +59,10 @@ export function unlockBlock(_bs: BaseScene, body: HTMLElement): void {
     c.appendChild(img(itemArt(it), 28));
     el('span', '', it.name, c);
   }
-  const need: string[] = [];
-  if (nu.starsLeft > 0) need.push(`还差 ${nu.starsLeft} 颗星`);
-  if (nu.cost.gold > p.res.gold) need.push(`还差 ${fmt(nu.cost.gold - p.res.gold)} 金币（出海抢金币，重打已通关的岛只给三成）`);
-  if (nu.cost.wood > p.res.wood) need.push(`还差 ${fmt(nu.cost.wood - p.res.wood)} 木材`);
-  el('p', need.length ? 'hd-need' : 'hd-need ok', need.length ? need.join('，') : '条件够了，可以升级！', box);
+  // 差几颗星、差多少金木，上面的升级钮和花费栏已经写了，这里不再写一遍；只补「金币去哪拿」
+  const short = nu.starsLeft > 0 || nu.cost.gold > p.res.gold || nu.cost.wood > p.res.wood;
+  if (nu.cost.gold > p.res.gold) el('p', 'hd-need', '金币靠出海抢，重打已通关的岛只给三成', box);
+  else if (!short) el('p', 'hd-need ok', '条件够了，可以升级！', box);
   rankHint(box);
 }
 
@@ -75,6 +74,7 @@ export function celebrate(bs: BaseScene, level: number): void {
   const items = unlocksAt(level);
   const mask = openModal({ closable: true });
   const box = el('div', 'hd-dialog hd-celebrate', undefined, mask);
+  button('×', 'hd-x', () => mask.remove(), box).title = '关掉（Esc）';
   el('h2', '', `主寨升到 ${level} 级！`, box);
   if (items.length) el('p', 'hd-sub', '新开放：', box);
   const list = el('div', 'hd-newlist', undefined, box);

@@ -49,14 +49,16 @@ export function openFleet(bs: BaseScene): void {
     const c = el('button', `hd-card${locked ? ' off' : ''}${k === cur ? ' cur' : ''}`, undefined, row);
     c.type = 'button';
     c.appendChild(img(tArt(k, 'idle'), 36));
-    el('span', 'hd-nm', hyp.ok ? `${t.name} ×${count}` : t.name, c);
+    const nm = el('span', 'hd-nm', t.name, c);
+    // 「×14」整体不拆开：窄卡上折行只在名字和人数之间折
+    if (hyp.ok) el('span', 'hd-cnt', `×${count}`, nm).before(' ');
     if (locked) el('span', 'hd-sub', `主寨 ${t.unlockHq} 级开放`, c);
     else if (!hyp.ok) el('span', 'hd-sub', '一场只能带一个船长', c);
     else {
       // 每个多少木材（图标 + 数字，一行放得下）；装不满才标红写空几格（容量和人口来自内容表，人数来自核心）
       const spare = Math.max(0, boatCap - count * t.housing);
       const each = t.levels[(app.profile.research[k] ?? 1) - 1]?.cost ?? t.levels[0]?.cost ?? 0;
-      const per = el('span', 'hd-sub', undefined, c);
+      const per = el('span', 'hd-sub hd-per', undefined, c);
       per.appendChild(costRow({ gold: 0, wood: each }));
       per.title = `每个 ${each} 木材`;
       if (spare > 0) el('span', 'hd-sub hd-short', `空 ${spare} 格`, c);
@@ -152,7 +154,7 @@ export function tutRefresh(bs: BaseScene): void {
   if (st === TUT_SAILED) {
     // 最后一步：指一下训练营（开过面板就算看过）；有面板、海图开着时先不指
     if (bs.sheet || bs.place || bs.stopMap || modalOpen()) return t.hide();
-    return t.show('train', '训练营：每种兵一关短教学，过关有奖励。点这里看看', () => rectOf(bs.trainBtn, bs.ui));
+    return t.show('train', '训练营：每种兵一关短教学，过关有奖励。点黄框里的「训练营」看看', () => rectOf(bs.trainBtn, bs.ui));
   }
   const root = bs.ui;
   const world = (id: number): (() => Rect | null) => () => {

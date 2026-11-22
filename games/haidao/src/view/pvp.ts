@@ -376,7 +376,7 @@ function opponent(s: RaidStart, revenge: boolean, onClose: () => void = () => ap
     }, row);
   }
   const go = button('开打', 'hd-btn-gold', () => {
-    if (app.profile.res.wood < cost.wood) return toast(`${lackText({ gold: 0, wood: cost.wood }, app.profile.res)}，先回家收一收`);
+    if (app.profile.res.wood < cost.wood) return toast(`${lackText({ gold: 0, wood: cost.wood }, app.profile.res)}，先回岛收一收`);
     mask.remove();
     fight(s, cost);
   }, row);
@@ -406,7 +406,7 @@ function submit(s: RaidStart, log: BattleAction[], end: number): void {
         el('h2', '', '结果没交上去', box);
         el('p', '', errText(r.error), box);
         const row = el('div', 'hd-row', undefined, box);
-        main = button('回家', 'hd-btn-plain', () => {
+        main = button('回岛', 'hd-btn-plain', () => {
           mask.remove();
           app.goBase();
         }, row);
@@ -427,7 +427,7 @@ function submit(s: RaidStart, log: BattleAction[], end: number): void {
       if (!o.wanderer && !revengeRaids.has(s.raidId) && (o.gain.gold || o.gain.wood)) el('p', 'hd-sub', '里面有三分之一是港口发的赏金。', box);
       const me = await pvpApi.me();
       if (me.ok) await syncPending(me.data);
-      main = button('回家', 'hd-btn-gold hd-btn-wide', () => {
+      main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {
         mask.remove();
         app.goBase();
       }, box);
@@ -459,7 +459,7 @@ async function watch(raidId: string, rules: number): Promise<void> {
       el('span', 'hd-pvp-chip', `拆了 ${r.data.pct}%`, row);
       const lost = el('span', 'hd-pvp-chip', r.data.lost.gold || r.data.lost.wood ? '被抢 ' : '一点没丢', row);
       if (r.data.lost.gold || r.data.lost.wood) lost.appendChild(costRow(r.data.lost)).classList.add('hd-neg');
-      main = button('回家', 'hd-btn-gold hd-btn-wide', () => {
+      main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {
         mask.remove();
         app.goBase();
       }, box);

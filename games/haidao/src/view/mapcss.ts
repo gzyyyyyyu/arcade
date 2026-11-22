@@ -138,6 +138,8 @@ ${U} .hd-route-pick small { font-size:12px; font-weight:700; }
 }
 /* 手机横屏：航线节点矮一点，纸面放得下 */
 @media (orientation:landscape) and (max-height:500px) {
+  /* 手机横屏一行只有 52 高，卡片左边只剩 30 宽，「第 N 站」会被卡片压住半个字：只留「终点」，各站从下往上、船在最下面看得出顺序 */
+  ${U} .hd-route-layer:not(.end) { display:none; }
   ${U} .hd-route-node { width:min(calc(46% - 14px),330px); min-height:44px; padding:1px 8px 1px 5px; gap:5px; }
   ${U} .hd-route-node.boss { width:min(62%,340px); min-height:44px; }
   ${U} .hd-route-harbor { transform:translate(-50%,-80%); }
@@ -251,7 +253,7 @@ ${U} .hd-map { overflow:hidden; overflow:clip; touch-action:none; overscroll-beh
 ${U} .hd-map .hd-map-in { will-change:transform; }
 ${U} .hd-map .hd-map-in.glide { transition:transform .35s cubic-bezier(.2,.9,.3,1); }
 /* 横屏放不下「卡片栏（左 8–368）+ 520 宽的海图」时，海图挪到卡片栏右边：手机横屏原来当前那座岛正好躲在卡片后面，看不见也点不到
-   （岛的横坐标是海图宽的百分比，挪了照样排得开；右边让出回岛 / 回到下一关那一列） */
+   （岛的横坐标是海图宽的百分比，挪了照样排得开；右边让出回岛 / 找下一关那一列） */
 @media (orientation:landscape) and (max-width:1271px) {
   ${U} .hd-map .hd-map-in { margin-left:376px; width:min(520px, calc(100% - 484px)); }
 }
@@ -270,7 +272,7 @@ ${U} .hd-map .hd-node.next span.hd-lb { position:relative; z-index:1; }
 /* 电脑和横屏：入口卡只留图标、标题和一行状态，不再一闪一闪地抢下一关的风头 */
 ${U} .hd-seacards .hd-mapcard { animation:none; min-height:52px; }
 /* 手机竖屏：今日悬赏、今日航线、护航收成顶上一条单行小卡（只留图标 + 标题，细节点进去再看），原来三张叠起来占 31% 屏高盖住航线；
-   回岛放到顶行大厅和设置之间的空当，回到下一关沉到右下角「悬赏出海（实盘）」的上面（左下是罗盘）：以前两颗钮叠在小卡下面，右边一列 8 个控件，切掉岛名牌 */
+   回岛放到顶行大厅和设置之间的空当，找下一关沉到右下角「悬赏出海（实盘）」的上面（左下是罗盘）：以前两颗钮叠在小卡下面，右边一列 8 个控件，切掉岛名牌 */
 @media (max-width:559px) and (orientation:portrait) {
   ${U} .hd-bounty { top:58px; width:114px; max-width:none; min-height:44px; padding:2px 6px; gap:4px; }
   ${U} .hd-bounty .hd-img { height:24px !important; width:24px !important; }
@@ -285,7 +287,7 @@ ${U} .hd-seacards .hd-mapcard { animation:none; min-height:52px; }
   ${U} .hd-seacards .hd-mapcard b { font-size:14px; white-space:nowrap; }
   ${U} .hd-seacards .hd-mapchip { min-width:44px; min-height:44px; padding:2px 4px; }
   ${U} .hd-map-close { top:calc(6px + env(safe-area-inset-top,0px)); right:calc(58px + env(safe-area-inset-right,0px)); min-height:44px; }
-  /* 右下角最底下是登录后的「悬赏出海（实盘）」（底边 14、高 44），回到下一关叠在它上面隔 8 */
+  /* 右下角最底下是登录后的「悬赏出海（实盘）」（底边 14、高 44），找下一关叠在它上面隔 8 */
   ${U} button.hd-map-home { top:auto; bottom:calc(66px + env(safe-area-inset-bottom,0px)); }
 }
 /* 360 宽登录后航线卡旁边多一个「实盘」小钮，图标 + 字放不下：两张卡只留字 */

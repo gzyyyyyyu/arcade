@@ -20,7 +20,9 @@ export function layoutCss(): string {
 /* 红点：建造上有两个（能升级红、能领取金），出海上一个（被打了红）；操作环的钮上常亮 */
 ${W} .hd-bottom .hd-btn { position:relative; }
 ${W} .hd-dot { position:absolute; top:-7px; right:-7px; width:20px; height:20px; border-radius:50%; background:#e0402f; border:3px solid ${ink}; box-shadow:0 1px 0 rgba(0,0,0,.4); pointer-events:none; display:none; z-index:2; }
-${W} .hd-dot.collect { right:auto; left:-7px; background:#f8c630; }
+/* 「建造」上的黄点（有东西可收）和红点（有东西能升级）同在右上角、同时只亮一颗（红的优先）：左上角是数字键角标，两颗并排也说不清各是什么 */
+${W} .hd-dot.collect { background:#f8c630; }
+${W} .hd-dot.upgrade.on ~ .hd-dot.collect { display:none; }
 ${W} .hd-dot.on, ${W} .hd-ringbtn .hd-dot { display:block; animation:hd-dotpulse 1.4s ease-in-out infinite; }
 ${W} .hd-ringbtn .hd-dot { top:-4px; right:-4px; width:16px; height:16px; border-width:2px; background:#e0402f; }
 ${W} .hd-ringbtn[data-ring=collect] .hd-dot { background:#f8c630; }
@@ -33,6 +35,7 @@ ${W} .hd-ringbtn svg { flex:none; }
 ${W} .hd-ringbtn span { font-size:12px; font-weight:900; }
 ${W} .hd-ringbtn:hover, ${W} .hd-ringbtn:active { opacity:1; }
 ${W} .hd-ringbtn.off { filter:saturate(.3) brightness(.85); }
+${W} .hd-ringtag { position:absolute; left:50%; top:calc(100% + 2px); transform:translateX(-50%); white-space:nowrap; padding:0 6px; border-radius:8px; background:rgba(43,26,21,.88); color:#fff4dc; font-size:12px; font-weight:800; line-height:18px; pointer-events:none; }
 @keyframes hd-ringin { 0% { transform:scale(.3); opacity:0; } 100% { transform:none; } }
 
 /* 回到全景：放大或平移后才出现 */
@@ -107,14 +110,17 @@ ${W} .hd-key { display:none; }
   ${W} .hd-cards .hd-boats.hd-more { -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent); }
   ${W} .hd-cards .hd-boat, ${W} .hd-cards .hd-boats.hd-tight .hd-boat { flex:0 0 auto; min-width:76px; max-width:none; min-height:44px; height:44px; flex-direction:row; gap:2px; padding:0 6px; white-space:nowrap; }
   ${W} .hd-cards .hd-en { padding:2px 6px; min-height:36px; }
-  ${W} .hd-cards .hd-skill { flex:none; width:48px; min-width:48px; height:44px; min-height:44px; flex-direction:column; gap:0; padding:0 2px; }
-  ${W} .hd-cards .hd-skill small { font-size:14px; line-height:1; }
-  ${W} .hd-cards .hd-skill.off { padding-bottom:8px; }
-  /* 48×44 里放得下图标、能量数、进度条和锁，但不能互相压：能量不够时图标缩到 18，锁缩到 12 挪到右上角，进度条贴底边、高 4 */
+  /* 技能钮 48×44：上一行图标 + 能量（⚡4），下一行名字（12 号，「信号弹」三个字 36 宽放得下）。名字不能藏：引导、提示都说「点炮击」，
+     只有图标找不到是哪个。能量不够时图标缩到 18，进度条贴底边、高 4。选中不上浮（和兵种卡一样）：上浮会顶到上面的提示条 */
+  ${W} .hd-cards .hd-skill { flex:none; width:48px; min-width:48px; height:44px; min-height:44px; display:grid; grid-template-columns:auto auto; align-content:center; justify-content:center; column-gap:2px; row-gap:1px; padding:0 2px; }
+  ${W} .hd-cards .hd-skill.sel { transform:none; }
+  ${W} .hd-cards .hd-skill .hd-sk-t { display:contents; }
+  ${W} .hd-cards .hd-skill .hd-img { grid-row:1; grid-column:1; height:20px !important; width:20px !important; }
+  ${W} .hd-cards .hd-skill small { grid-row:1; grid-column:2; align-self:center; font-size:12px; line-height:1; }
+  ${W} .hd-cards .hd-skill .hd-sk-n { grid-row:2; grid-column:1 / -1; justify-self:center; font-size:12px; line-height:1; }
+  ${W} .hd-cards .hd-skill.off { padding-bottom:6px; }
   ${W} .hd-cards .hd-skill.off .hd-img { height:18px !important; width:18px !important; }
   ${W} .hd-cards .hd-skill.off::before { left:6px; right:6px; bottom:2px; height:4px; border-width:1px; }
-  ${W} .hd-cards .hd-skill .hd-img { height:20px !important; width:20px !important; }
-  ${W} .hd-cards .hd-skill .hd-sk-n { display:none; }
   ${W} .hd-cards .hd-boat small { display:none; }
   ${W} .hd-cards .hd-boat .hd-img { height:26px !important; width:auto !important; }
   /* 四种兵以上：「图标 + 火枪手 ×24」一张约 130 宽，第 4 张挤出屏外、也没有能横滑的样子。改成平分一排、图标在上字在下（12 号），
@@ -123,7 +129,7 @@ ${W} .hd-key { display:none; }
   ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat .hd-img { height:20px !important; }
   ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat .hd-nm { font-size:12px; line-height:1.1; }
   /* 出完的兵种卡只有 44 高，原来 20 的锁压在左上角正好盖住小兵；照技能钮缩到 12、挪到右上角 */
-  ${W} .hd-cards .hd-hint { position:absolute; left:50%; bottom:calc(100% + 4px); transform:translateX(-50%); white-space:nowrap; }
+  ${W} .hd-cards .hd-hint { position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%); white-space:nowrap; }
 }
 
 /* 手机竖屏的守岛 / 护航（360×640 和 390×844 都走这一套）：顶栏 + 底栏合计 ≤ 22% 屏高（640 高只有 140，844 高 185），口径是 noscroll 的「岛被上下 HUD 吃掉的高度」。
@@ -313,7 +319,7 @@ ${LAND} {
   ${W} .hd-result > h2 { grid-column:1 / -1; }
   ${W} .hd-result > .hd-stars, ${W} .hd-result > .hd-big, ${W} .hd-result > .hd-loot { grid-column:1; justify-self:center; }
   /* 拿了什么的几行（连胜、安慰奖、满仓少拿、掉落、悬赏）也放左栏：以前只有三项在左边，右栏堆五六项（失败原因框约 130 高）超过 358，
-     居中后标题顶出屏外、「回家」被切 */
+     居中后标题顶出屏外、「回岛」被切 */
   ${W} .hd-result > :is(.hd-streak, .hd-consol, .hd-cutline, .hd-chips, .hd-bountyline) { grid-column:1; justify-self:stretch; }
   ${W} .hd-result .hd-advice { margin:2px 0; padding:6px 10px; }
   ${W} .hd-result .hd-advice p { margin:2px 0 0; }
