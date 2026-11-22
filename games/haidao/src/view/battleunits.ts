@@ -305,13 +305,10 @@ function renderHero(bs: BattleScene, frac: number, time: number, dt: number): vo
 }
 
 function safeFrames(bs: BattleScene, kind: TroopKind, anim: 'idle' | 'walk' | 'attack', skin?: string): ReturnType<typeof troopF> | null {
-  try {
-    const f = troopF(kind, anim, skin);
-    if (f.length && bs.textures.exists(f[0]!.key)) return f;
-    return skin ? safeFrames(bs, kind, anim) : null;
-  } catch {
-    return null;
-  }
+  // 皮肤帧开战前才按需烘焙，没烘好先用默认外观
+  const f = troopF(kind, anim, skin);
+  if (f.length && bs.textures.exists(f[0]!.key)) return f;
+  return skin ? safeFrames(bs, kind, anim) : null;
 }
 
 /** 每座塔上一次找到的最近的兵：id → 兵的编号和找的那一帧 */

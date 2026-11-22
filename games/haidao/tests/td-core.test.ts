@@ -16,7 +16,7 @@ function base(extra: Placed[] = [], treasure: [number, number] = [10, 13]): Plac
   return [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }, { id: 2, kind: 'treasure', level: 1, x: treasure[0], y: treasure[1] }, ...extra];
 }
 function setup(layout: Placed[], level: TdLevel, seed = 1, extra: Partial<TdSetup> = {}): TdSetup {
-  return { layout, level, hero: 1, seed, rules: RULES_VERSION, ...extra };
+  return { layout, level, hero: 1, seed, rules: RULES_VERSION, mode: 'campaign', ...extra };
 }
 /** 英雄先"倒下"很久：测塔和敌人的时候不让它插手 */
 function benchHero(s: TdState): void {

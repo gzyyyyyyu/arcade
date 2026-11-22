@@ -12,7 +12,7 @@ function lvl(p: Partial<TdLevel> = {}): TdLevel {
   return { id: 't', name: 't', hq: 1, hpPct: 100, gold: 0, first: 1, waveTicks: 40, lanes: [{ x: 10, y: -2 }, { x: -2, y: 11 }], waves: [], kegs: [], obstacles: [], slots: [], ...p };
 }
 const base: Placed[] = [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }, { id: 2, kind: 'treasure', level: 1, x: 10, y: 13 }];
-const setup = (level: TdLevel): TdSetup => ({ layout: base, level, hero: 1, seed: 1, rules: RULES_VERSION });
+const setup = (level: TdLevel): TdSetup => ({ layout: base, level, hero: 1, seed: 1, rules: RULES_VERSION, mode: 'campaign' });
 function benchHero(s: TdState): void {
   s.hero.respawn = 1_000_000;
   s.hero.hp = 0;

@@ -5,6 +5,7 @@ import { h32 } from './art/grade.ts';
 import { iso } from './iso.ts';
 import { LOW_MEMORY } from './viewport.ts';
 import { REDUCED } from './feel.ts';
+import { DEV } from './devflags.ts';
 
 /**
  * 海面上"活"的东西（装饰，不影响规则，不碰存档）：沿岸推上来又退下去的浪舌、波光、偶尔游过的鱼群、偶尔飞过的海鸥。
@@ -147,7 +148,7 @@ export function startAmbient(scene: Phaser.Scene, r: number, ext: number): () =>
   });
 
   // ?sea=0 关掉空白海面的船 / 云影 / 海鸟（帧率 A/B 用：perf.ts --query sea=0）
-  if (new URLSearchParams(window.location.search).get('sea') !== '0') openSea(scene, sc, img, tween);
+  if (DEV.sea) openSea(scene, sc, img, tween);
   return stop;
 }
 

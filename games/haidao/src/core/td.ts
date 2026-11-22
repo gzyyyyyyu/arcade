@@ -220,7 +220,7 @@ export function createTd(setup: TdSetup): TdState {
     ext,
     tick: 0,
     level,
-    mode: setup.mode ?? (level.escort ? 'escort' : 'campaign'),
+    mode: setup.mode,
     unlocked: TD_TOWER_KINDS.filter((k) => !setup.unlocked || setup.unlocked.includes(k)),
     enemies: [],
     towers,

@@ -30,6 +30,7 @@ import { confirmBox, glitchBanner, settingsButton, toast, uiRoot } from './view/
 import { LOW_MEMORY, fitViewport, renderScale } from './view/viewport.ts';
 import { glRenderer, wantMsaa } from './view/msaa.ts';
 import { SEA_BG } from './view/ground.ts';
+import { DEV } from './view/devflags.ts';
 
 // 页面里没人接住的报错发给平台（共用包 0.22）：只带报错、调用栈、路径、游戏和版本；单独部署没有平台时发不出去也不影响玩
 reportErrors({ game: 'haidao', version: __APP_VERSION__ });
@@ -40,7 +41,6 @@ declare global {
   }
 }
 
-const q = new URLSearchParams(location.search);
 /** 离线最多补多久：和矿自身的上限（12 小时产量，content/buildings.ts）一致，再长矿也装不下 */
 const OFFLINE_MAX = 12 * 3600;
 
@@ -101,10 +101,10 @@ class BootScene extends Phaser.Scene {
       .then(() => ensureArt(this.textures, piecesFor(app.profile.base.buildings), app.r))
       .then(() => {
         document.getElementById('boot')?.remove();
-        const id = q.get('battle');
+        const id = DEV.battle;
         if (id && CAMPAIGN.some((l) => l.id === id)) {
           app.volatile = true;
-          app.startBattle(id, q.has('auto'));
+          app.startBattle(id, DEV.auto);
         } else {
           this.scene.start('base');
           void warmField(false).catch(() => undefined);
@@ -164,7 +164,7 @@ function main(): void {
     scale: { mode: Phaser.Scale.NONE, zoom: 1 / r },
     // ?mt1：只用一个纹理单元合批。没有 GPU 的无头 Chrome（SwiftShader）多纹理合批会取错纹理、精灵随机缺整块，录屏时加这个；正常玩家不加
     // 多重采样（antialiasGL）按渲染器决定：软件光栅（没显卡）的电脑上关，真 GPU、读不到渲染器、手机平板都开，理由见 view/msaa.ts。?msaa=1 / ?msaa=0 强制（帧率 A/B 用）
-    render: { antialias: true, antialiasGL: wantMsaa(LOW_MEMORY, LOW_MEMORY ? null : glRenderer(), q.get('msaa')), powerPreference: 'high-performance', maxTextures: q.has('mt1') ? 1 : -1 },
+    render: { antialias: true, antialiasGL: wantMsaa(LOW_MEMORY, LOW_MEMORY ? null : glRenderer(), DEV.msaa), powerPreference: 'high-performance', maxTextures: DEV.oneTexture ? 1 : -1 },
     banner: false,
     audio: { noAudio: true },
     scene: [BootScene, BaseScene, BattleScene, TdScene],
@@ -211,7 +211,7 @@ function main(): void {
   // 驻岛英雄借船长的帧：进攻方没带船长时开局没烘，这里一起补
   const battlePieces = (st: BattleSetup) => [...piecesFor(st.layout), ...(st.hero ? (['idle', 'walk', 'attack'] as const).flatMap((an) => troopF('captain', an)) : [])];
   app.startBattle = (levelId, auto, setup, opts) => {
-    const data = battleData(levelId, auto, setup, opts, q);
+    const data = battleData(levelId, auto, setup, opts);
     if (!data) return;
     const s = data.setup;
     // 敌岛里用到的（种类, 等级）没烘过的先烘，再开战；烘不出来也能开（用低等级顶替）
@@ -242,7 +242,7 @@ function main(): void {
       });
       return;
     }
-    const data: BattleData = { levelId: 'train', setup, auto: false, settle: false, speed: q.has('fast') ? 4 : 1, train: { lesson: id } };
+    const data: BattleData = { levelId: 'train', setup, auto: false, settle: false, speed: DEV.speed, train: { lesson: id } };
     void Promise.all([warmField(), ensureArt(game.textures, battlePieces(setup), r), ensureTurrets(game.textures, setup.layout, r)]).finally(() => toScene('battle', data));
   };
   app.startTdTide = () => {
@@ -252,15 +252,15 @@ function main(): void {
     // 悬赏守岛：岛是固定模板，素材和战役守岛同一批
     void Promise.all([warmField(), ensureArt(game.textures, tdPieces(), r), ensureTurrets(game.textures, setup.layout, r)])
       .catch(() => undefined)
-      .finally(() => toScene('td', { levelId: 'tdlive', setup, speed: q.has('fast') ? 4 : 1, live: { tier } }));
+      .finally(() => toScene('td', { levelId: 'tdlive', setup, speed: DEV.speed, live: { tier } }));
   };
   app.startPvp = (setup, pvp) => {
-    const data: BattleData = { levelId: 'pvp', setup, auto: false, settle: false, speed: q.has('fast') ? 4 : 1, pvp };
+    const data: BattleData = { levelId: 'pvp', setup, auto: false, settle: false, speed: DEV.speed, pvp };
     // 对手岛上的（种类, 等级）没烘过的先烘，和 startBattle 一样
     void Promise.all([warmField(), ensureArt(game.textures, battlePieces(setup), r), ensureTurrets(game.textures, setup.layout, r)]).finally(() => toScene('battle', data));
   };
   app.startMapStop = (setup, map) => {
-    const data: BattleData = { levelId: 'map', setup, auto: false, settle: false, speed: q.has('fast') ? 4 : 1, map };
+    const data: BattleData = { levelId: 'map', setup, auto: false, settle: false, speed: DEV.speed, map };
     void Promise.all([warmField(), ensureArt(game.textures, battlePieces(setup), r), ensureTurrets(game.textures, setup.layout, r)]).finally(() => toScene('battle', data));
   };
   // 测试辅助：音效触发统计（每种请求 / 放出 / 被限频或并发上限丢掉几次）和最近 40 次；只读计数，不影响声音
@@ -318,7 +318,7 @@ function main(): void {
     }
     return p.base;
   };
-  if (q.has('dev')) {
+  if (DEV.on) {
     // 测试辅助：给资源和星数，不写存档（volatile）
     app.volatile = true;
     app.api.dev = {

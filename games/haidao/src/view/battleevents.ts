@@ -229,14 +229,14 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
       const lv = bs.d.setup.army.skills.find((k) => k.kind === e.skill)?.level ?? 1;
       const R = def.levels[lv - 1]!.radius;
       const col = e.skill === 'medkit' ? 0x3fae52 : e.skill === 'flare' ? 0xffd23f : 0xff6a1f;
-      const g = bs.add.graphics().setDepth(DEPTH.marker);
+      const g = bs.gfx.get(DEPTH.marker);
       g.lineStyle(4, col, 1).fillStyle(col, 0.18).fillEllipse(w.x, w.y, R * 90, R * 45).strokeEllipse(w.x, w.y, R * 90, R * 45);
       // 落点圈：从大一圈收到落点大小（ease-out，300 毫秒）当预警，再停一会儿淡掉；炮击收得更狠、更红
       const k0 = e.skill === 'barrage' ? 1.5 : 1.25;
       g.setScale(k0).setAlpha(0.3);
       g.setPosition(w.x * (1 - k0), w.y * (1 - k0));
       bs.tweens.add({ targets: g, scaleX: 1, scaleY: 1, alpha: 1, duration: 300, ease: 'Cubic.easeOut', onUpdate: () => g.setPosition(w.x * (1 - g.scaleX), w.y * (1 - g.scaleY)) });
-      bs.tweens.add({ targets: g, alpha: 0, duration: 700, delay: 600, ease: 'Quad.easeIn', onComplete: () => g.destroy() });
+      bs.tweens.add({ targets: g, alpha: 0, duration: 700, delay: 600, ease: 'Quad.easeIn', onComplete: () => bs.gfx.put(g) });
       if (e.skill === 'flare') {
         // 信号弹：一道亮光从下面蹿上来，在落点炸开（ease-out 280 毫秒）
         const sp = fxA('spark');
@@ -257,9 +257,9 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
         sfx('keg');
       } else if (e.what === 'rally') {
         sfx('rally');
-        const g = bs.add.graphics().setDepth(DEPTH.marker);
+        const g = bs.gfx.get(DEPTH.marker);
         g.lineStyle(4, 0xffe885, 1).fillStyle(0xffe885, 0.15).fillEllipse(w.x, w.y, 90, 45).strokeEllipse(w.x, w.y, 90, 45);
-        bs.tweens.add({ targets: g, scaleX: 4, scaleY: 4, alpha: 0, duration: 800, onUpdate: () => g.setPosition(w.x * (1 - g.scaleX), w.y * (1 - g.scaleY)), onComplete: () => g.destroy() });
+        bs.tweens.add({ targets: g, scaleX: 4, scaleY: 4, alpha: 0, duration: 800, onUpdate: () => g.setPosition(w.x * (1 - g.scaleX), w.y * (1 - g.scaleY)), onComplete: () => bs.gfx.put(g) });
       } else {
         sfx('die');
         boom(bs, w.x, w.y, 0.8);

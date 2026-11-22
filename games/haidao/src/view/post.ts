@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import { LOW_MEMORY } from './viewport.ts';
 import { DEPTH } from './depth.ts';
 import { REDUCED } from './feel.ts';
+import { DEV } from './devflags.ts';
 
 /**
  * 整屏后期，全部是便宜的做法：
@@ -90,11 +91,7 @@ interface Glow {
   s1: number;
 }
 
-const FORCE = ((): boolean | null => {
-  if (typeof window === 'undefined') return null;
-  const v = new URLSearchParams(window.location.search).get('bloom');
-  return v === '1' ? true : v === '0' ? false : null;
-})();
+const FORCE: boolean | null = DEV.bloom === '1' ? true : DEV.bloom === '0' ? false : null;
 
 export class Bloom {
   /** 现在开着没有 */

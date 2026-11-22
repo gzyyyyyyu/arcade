@@ -51,6 +51,8 @@ import { finish } from './battleresult.ts';
 import { battleDirector, renderProjectiles, renderUnits, syncUnits } from './battleunits.ts';
 import { DEPTH } from './depth.ts';
 import { STEP_MS } from './motion.ts';
+import { GfxPool } from './gfxpool.ts';
+import { DEV } from './devflags.ts';
 export type { BattleData, MapStopHooks, PvpHooks } from './battlecommon.ts';
 
 export class BattleScene extends Phaser.Scene {
@@ -158,6 +160,8 @@ export class BattleScene extends Phaser.Scene {
   /** 命中停顿：画面层暂停 40–80 毫秒（规则的拍数不变，只是晚一点推进） */
   hs = new HitStop();
   pt!: Particles;
+  /** 技能落点圈、集结圈、援军旗（gfxpool.ts） */
+  gfx!: GfxPool;
   env!: EnvAnim;
   /** 自己船帆的王阶涂装（0 = 原样，landfx.ts 画木筏用） */
   sailRank = 0;
@@ -175,8 +179,7 @@ export class BattleScene extends Phaser.Scene {
   init(data: BattleData): void {
     this.d = data;
     // 取证用（?dev&devwalls）：去掉最外面的金矿，在左边沙滩和炮台之间拉一道城墙，看手雷越墙
-    const q = new URLSearchParams(location.search);
-    if (q.has('dev') && q.has('devwalls')) {
+    if (DEV.walls) {
       const walls: Placed[] = [];
       for (let y = 6; y <= 15; y++) walls.push({ id: 900 + y, kind: 'wall', level: 1, x: 4, y });
       this.d = { ...data, setup: { ...data.setup, layout: [...data.setup.layout.filter((b) => b.kind !== 'goldmine'), ...walls] } };
@@ -245,6 +248,7 @@ export class BattleScene extends Phaser.Scene {
     this.rallied = new Set();
     this.hs = new HitStop();
     this.pt = new Particles(this, this.r, LOW_MEMORY ? 90 : 140);
+    this.gfx = new GfxPool(this);
     setWeather('clear');
     this.env = new EnvAnim(this, this.r, this.pt, this.d.pvp?.rank ?? 0);
     // 自己出海的船按自己的王阶涂装；看别人进攻自己的回放时进攻的是别人，不涂
@@ -313,7 +317,7 @@ export class BattleScene extends Phaser.Scene {
     const sk = app.profile.skins ?? {};
     for (const [k, v] of Object.entries(sk)) {
       if (!v) continue;
-      const pcs = (['idle', 'walk', 'attack'] as const).flatMap((an) => { try { return troopF(k as TroopKind, an, v); } catch { return []; } });
+      const pcs = (['idle', 'walk', 'attack'] as const).flatMap((an) => troopF(k as TroopKind, an, v));
       void bakeSome(this.textures, pcs, this.r);
       if (v === 'gold' || v === 'shadow' || v === 'royal') void bakeAtlas(this.textures, rigTex(`t.${k as TroopKind}`, v), rigPieces(`t.${k as TroopKind}`, v), this.r);
     }

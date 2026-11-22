@@ -23,7 +23,7 @@ type RecUnit = { id: number; kind: string; mode: string; hp: number; maxHp: numb
 /**
  * --record <目录>：录动作短片。视口 480×400 @2x、渲染倍数 2（?rs=2）、关掉泛光，镜头用 follow 钩子对准一个单位、放大 --rec-zoom 倍，
  * 裁出画面正中一块拼成 640 宽的 webm（tools/record.ts），每段旁边一张抽帧拼图（同名 .png）。
- * - 登陆战（--level，默认 c07，机器人代打）：--rec-kinds 里每个兵种开一局（devarmy=<兵种>，全军都是这种兵），各录走路、攻击 --rec-secs 秒，
+ * - 登陆战（--level，默认 c07，机器人代打）：--rec-kinds 里每个兵种开一局（dev&devarmy=<兵种>，全军都是这种兵），各录走路、攻击 --rec-secs 秒，
  *   再等一个血量掉到三成以下的同种兵，跟着它录到倒下消失后 1.5 秒（battle-<兵种>-walk / attack / die）；
  * - 守岛（td03，dev 示范岛，造一座炮塔后叫波）：--rec-td 里每种敌人（any = 第一个出现的）录走路，再录一个倒下的（td-<种类>-walk / die）。
  */
@@ -82,7 +82,7 @@ export async function recordAll(browser: Browser, ROOT: string, dir: string, pro
   const byHp = (a: RecUnit, b: RecUnit): number => a.hp / a.maxHp - b.hp / b.maxHp;
   for (let kind of REC_KINDS) {
     // 只放 3 个，镜头里不叠成一团（--rec-kinds sailor:4 可改）
-    const { page, cdp, close } = await open(`${ROOT}?battle=${REC_LEVEL}&auto&devarmy=${kind.includes(':') ? kind : `${kind}:3`}&${q}`);
+    const { page, cdp, close } = await open(`${ROOT}?battle=${REC_LEVEL}&auto&dev&devarmy=${kind.includes(':') ? kind : `${kind}:3`}&${q}`);
     kind = kind.split(':')[0]!;
     await hideUi(page);
     await clip(page, cdp, `battle-${kind}-walk`, await pick(page, (u) => u.kind === kind && u.mode === 'move', 30_000), REC_SECS * 1000);

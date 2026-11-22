@@ -303,7 +303,7 @@ describe('候选位置摆放（海盗来袭用）：避开建筑、不重叠、�
       for (const c of [...placed.slots, ...placed.kegs]) expect(c.x >= 0 && c.y >= 0 && c.x < ISLAND && c.y < ISLAND).toBe(true);
       expect(placed.slots.length).toBe(level.place.slots);
       expect(placeTdLevel(level, layout, 0)).toEqual(placed);
-      const s = createTd({ layout, level: placed, hero: 1, seed: 1, rules: RULES_VERSION });
+      const s = createTd({ layout, level: placed, hero: 1, seed: 1, rules: RULES_VERSION, mode: 'campaign' });
       expect(s.slots).toHaveLength(placed.slots.length);
       expect(s.kegs).toHaveLength(placed.kegs.length);
     });

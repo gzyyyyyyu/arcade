@@ -1,7 +1,7 @@
 /**
  * 每局不一样的真实画面和冒烟（DESIGN 15）：node tools/fun-shot.ts [--out <目录>] [--view desktop,phonep]
  *
- * - 战役 c05、固定种子 7（?funseed=7）：先停住帧循环，用 frameStep 一拍一拍推进，所以宝箱被捡、援军预告和靠岸的拍数是确定的：
+ * - 战役 c05、固定种子 7（?dev&funseed=7）：先停住帧循环，用 frameStep 一拍一拍推进，所以宝箱被捡、援军预告和靠岸的拍数是确定的：
  *   开局宝箱 + 第一次提示 → 兵路过捡到宝箱（光圈、图标、数字）→ 援军预告旗和倒计时 → 援军靠岸；
  * - 误放撤回：登陆后点"撤回"小钮，60 帧录一段 webm 加联系表（tools/record.ts 的 recordFixed）；
  * - 试打自己的岛：从 pvp.ts 直接开一局，撤退后看"试打结果"，核对没有任何 pvp 接口请求；
@@ -73,7 +73,7 @@ try {
     if (!ONLY.includes(v.name)) continue;
     // ---- 宝箱和援军
     {
-      const { page, close } = await open(v, 'battle=c05&funseed=7&mt1&bloom=0');
+      const { page, close } = await open(v, 'battle=c05&dev&funseed=7&mt1&bloom=0');
       await page.evaluate(() => (window as unknown as { __haidao: Hook }).__haidao.frameStep?.(1, 1000 / 60));
       await page.waitForTimeout(600);
       await page.screenshot({ path: join(OUT, `${v.name}-1-chests.png`) });
@@ -93,7 +93,7 @@ try {
     }
     // ---- 撤回：落地后点"撤回"，60 帧
     {
-      const { page, close } = await open(v, 'battle=c05&funseed=7&mt1&bloom=0');
+      const { page, close } = await open(v, 'battle=c05&dev&funseed=7&mt1&bloom=0');
       await page.evaluate(() => (window as unknown as { __haidao: Hook }).__haidao.frameStep?.(1, 1000 / 60));
       await landOne(page, 0);
       let clicked = false;

@@ -231,8 +231,8 @@ export interface TdSetup {
   hero: number;
   seed: number;
   rules: number;
-  /** 守岛 2.0：哪种玩法（没写按 campaign；旧存档、旧测试不带） */
-  mode?: TdMode;
+  /** 守岛 2.0：哪种玩法 */
+  mode: TdMode;
   /** 守岛 2.0：驻守台上的塔（tdrun 按存档算好阶和分叉） */
   garrison?: TdGarrisonTower[];
   /** 守岛 2.0：基地加成（每种塔的伤害加成百分比，baseBonusPct 算好） */

@@ -12,7 +12,7 @@ import { flag, opt } from './args.ts';
 export const QUERY = opt('--query') ?? '';
 /** 驻岛英雄截图：给战役局加一个宝藏箱和英雄（等级 1-8），见 main.ts 的 devhero */
 const HERO = opt('--hero');
-export const HQ = HERO ? `devhero=${HERO}` : '';
+export const HQ = HERO ? `dev&devhero=${HERO}` : '';
 export const LEVEL = opt('--level') ?? CAMPAIGN[0]?.id ?? '';
 /** --td 默认打第一章第 1 关；--level td07 打别的关（章节标签、主寨等级随关卡走，--hq 可改主寨） */
 export const TD_LEVEL = opt('--level') ?? 'td01';

@@ -191,7 +191,7 @@ function enemyChip(kind: TdEnemyKind, n: number, fog: boolean, parent: HTMLEleme
  * 塔、敌人、英雄这些全部从核心的表现算（damageSources、armorFoes），不手写名单。
  * 只放在敌人图鉴里、一直摊开；建塔面板每张塔卡上写着这座塔克谁、打不到谁，不再收一份要点开的表。
  */
-export function counterCard(parent: HTMLElement): HTMLElement {
+function counterCard(parent: HTMLElement): HTMLElement {
   injectTdCss();
   const wrap = el('div', 'hd-ctr', undefined, parent);
   const key = el('p', 'hd-ctr-key', '每座塔打一种伤害，每个敌人穿一种护甲。', wrap);

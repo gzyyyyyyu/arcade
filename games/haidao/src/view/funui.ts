@@ -168,7 +168,7 @@ export function funEvent(bs: BattleScene, e: BattleEvent): boolean {
     const v = viewOf(bs);
     const w = bs.W(e.x, e.y);
     if (e.phase === 'warn') {
-      const g = bs.add.graphics().setPosition(w.x, w.y).setScale(1 / bs.r).setDepth(DEPTH.impactFx);
+      const g = bs.gfx.get(DEPTH.impactFx).setPosition(w.x, w.y).setScale(1 / bs.r);
       g.fillStyle(0xffe885, 0.4).fillEllipse(0, 0, 90, 44).lineStyle(3, 0xffe885, 1).strokeEllipse(0, 0, 90, 44);
       g.lineStyle(3, 0x2b1a15, 1).lineBetween(0, 0, 0, -44);
       g.fillStyle(0x2f9bd8, 1).fillTriangle(0, -44, 26, -36, 0, -26);
@@ -178,7 +178,7 @@ export function funEvent(bs: BattleScene, e: BattleEvent): boolean {
       hintOnce(HINT_KEYS.ally, '援军 3 秒后靠岸');
       return true;
     }
-    v.flag?.g.destroy();
+    if (v.flag) bs.gfx.put(v.flag.g);
     v.flag?.t.destroy();
     v.flag = undefined;
     // 友军船靠岸：和登陆同一套滑进来的画法，反方向（从海那一侧来）

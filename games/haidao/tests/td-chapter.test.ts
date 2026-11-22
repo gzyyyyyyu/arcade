@@ -157,13 +157,13 @@ describe('关卡岛的地形', () => {
   });
   it('每条登陆路（含落潮路）都走得到宝藏箱，水手走完全程 8 秒以上；每关至少有一条 14 格以上的主路', () => {
     for (const l of TD2_LEVELS) {
-      const s = createTd({ layout: l.layout, level: l, hero: 1, seed: 1, rules: RULES_VERSION });
+      const s = createTd({ layout: l.layout, level: l, hero: 1, seed: 1, rules: RULES_VERSION, mode: 'campaign' });
       const all = [...l.lanes, ...(l.tide ? [l.tide.lane] : [])];
       const lens = all.map((p) => tdRoute(s, p.x, p.y).length);
       lens.forEach((n, i) => expect(n, `${l.id} 路 ${i}`).toBeGreaterThanOrEqual(8));
       expect(Math.max(...lens), l.id).toBeGreaterThanOrEqual(14);
       // 每个木台、驻守台、火药桶都真的摆上了（不被关卡自己的东西挤掉）
-      const st = createTd({ layout: l.layout, level: l, hero: 1, seed: 1, rules: RULES_VERSION });
+      const st = createTd({ layout: l.layout, level: l, hero: 1, seed: 1, rules: RULES_VERSION, mode: 'campaign' });
       expect(st.slots, l.id).toHaveLength(l.slots.length + l.garrison.length);
       expect(st.kegs, l.id).toHaveLength(l.kegs.length);
     }
