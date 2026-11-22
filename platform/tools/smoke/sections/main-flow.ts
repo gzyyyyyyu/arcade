@@ -435,7 +435,7 @@ export async function friendFlow(browser: Browser, ctx: BrowserContext, page: Pa
 
   await page.getByTitle('我的账号').click();
   await page.getByRole('heading', { name: '我的账号' }).waitFor();
-  await (await savesRow(page, 'kaipan')).getByText(/^1 份/).waitFor();
+  await (await savesRow(page, 'kaipan')).getByText(/^已存 1 份/).waitFor();
   await (await savesRow(page, 'guandan')).getByText('还没有存档').waitFor();
   await shot(page, 'me');
 
