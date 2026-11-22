@@ -118,7 +118,7 @@ npm run build
   },
   "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "MahjongRoom" }, { "name": "METER", "class_name": "RoomMeter" }, { "name": "MATCH", "class_name": "Queue" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MahjongRoom", "RoomMeter"] }, { "tag": "v2", "new_sqlite_classes": ["Queue"] }],
-  "vars": { "KIT_QUOTA": { "busyWrites": 8000, "stopWrites": 10000, "roomsPerUser": 5, "dailyRoomsPerUser": 30 } }
+  "vars": { "KIT_QUOTA": { "busyWrites": 8000, "stopWrites": 10000, "roomsPerUser": 1, "dailyRoomsPerUser": 30 } }
 }
 ```
 
