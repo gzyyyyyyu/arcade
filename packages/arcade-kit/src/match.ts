@@ -10,7 +10,7 @@
  * - 名额由房间开桌时向计量一次占齐（kitCreateMatch），排队本身不占。
  */
 import { DurableObject } from 'cloudflare:workers';
-import { type Identity, KIT_HOST, newRoomCode, parseIdentity, roomStub } from './internal.js';
+import { type Identity, KIT_HOST, newRoomCode, parseIdentity, roomStub, withTimeout } from './internal.js';
 import { CLOSE, type MatchDownMsg, type MatchSoloWhy } from './protocol.js';
 import type { MatchOutcome } from './room.js';
 import { kitStoreOf, MirrorStore } from './store.js';
@@ -36,7 +36,7 @@ interface Waiter {
 const CODE_TRIES = 5;
 /** 一次凑桌最多重来几轮（有人被计量挡掉、请出去以后接着凑） */
 const FORM_ROUNDS = 8;
-/** 平台屏蔽名单一次最多问几个人（平台 blockedAmong 的上限，德州 9 人桌） */
+/** 平台屏蔽名单一次最多问几个人（平台 blockedAmong 的上限，最多 9 人一桌） */
 const BLOCK_MAX = 9;
 /**
  * 凑桌时找平台、找房间最多等多久（毫秒，安全审阅 0.20.0）：凑桌持着"正在凑"的锁，平台或房间卡住时整个档位都会一直"等待中"。
@@ -401,17 +401,4 @@ function send(ws: WebSocket, msg: MatchDownMsg): void {
   } catch {
     // 连接正在关
   }
-}
-
-/**
- * 等一个外部调用最多 ms 毫秒，超时抛错（调用方按失败处理）。只在凑桌这一次请求里等，不是房间的状态计时，
- * 所以用运行时的 scheduler.wait（不是 setTimeout、也不占那一个闹钟）
- */
-async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  // 超时以后原来的调用照样可能失败：先接住它的错，免得变成没人处理的 rejection
-  const settled = p.then((v) => ({ ok: true as const, v }), (e: unknown) => ({ ok: false as const, e }));
-  const out = await Promise.race([settled, scheduler.wait(ms).then(() => null)]);
-  if (out === null) throw new Error(`timed out after ${ms} ms`);
-  if (!out.ok) throw out.e;
-  return out.v;
 }

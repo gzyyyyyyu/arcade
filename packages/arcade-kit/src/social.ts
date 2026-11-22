@@ -23,7 +23,7 @@ export interface Presence {
 }
 
 /**
- * 默认的层级（0.12.4）：游戏自己的弹窗可能很高（掼蛋的房间弹窗 8500），kit 的横条、面板、分享预览默认都在 10000 以上，
+ * 默认的层级（0.12.4）：游戏自己的弹窗可能很高（有的游戏房间弹窗到 8500），kit 的横条、面板、分享预览默认都在 10000 以上，
  * 顺序是横条 < 面板 < 预览。游戏有更高的层再用 zIndex 选项往上提
  */
 export const SOCIAL_Z = { banner: 10500, panel: 10600, preview: 11000 } as const;
@@ -76,8 +76,12 @@ export const INVITE_POLL_MS = 30_000;
 const GAME_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const ROOM_CODE = /^[A-Za-z0-9]{4,16}$/;
 
+/** 每个社交请求最多等多久：平台挂住时轮询不卡死（pollNow 等回话才放下 polling）、面板不一直转 */
+export const SOCIAL_FETCH_MS = 8_000;
+
 function api(opts: ApiOptions): typeof fetch {
-  return opts.fetchImpl ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
+  const f = opts.fetchImpl ?? fetch;
+  return (input, init = {}) => f(input, { ...init, signal: init.signal ?? AbortSignal.timeout(SOCIAL_FETCH_MS) });
 }
 
 /** 写的请求：同源 cookie、`x-arcade: 1`（平台的 CSRF 规矩） */
@@ -315,13 +319,35 @@ export interface SocialHandle {
 const BANNER_ID = 'arcade-invite-banner';
 
 /**
- * 挂上报位置和收邀请。没平台、没登录、平台连不上都回 null（不挂）；中途掉了登录（401）自己停
+ * 没问出有没有平台（`platform: 'unknown'`：超时、5xx、断网）时再问的间隔和每次的超时。游戏启动那一下主线程忙着加载，
+ * 2.5 秒的默认超时在慢手机上常常不够；不再问，这一整次打开都收不到邀请、好友看不到你在哪
+ */
+export const SOCIAL_DETECT_RETRY = { waits: [5_000, 15_000], timeoutMs: 10_000 } as const;
+
+/**
+ * 挂上报位置和收邀请。没平台、没登录不挂（回 null）；没问出来（unknown）按 SOCIAL_DETECT_RETRY 再问，还是问不出才回 null；
+ * 中途掉了登录（401）自己停
  */
 export async function mountSocial(opts: SocialOptions): Promise<SocialHandle | null> {
   if (typeof document === 'undefined') return null;
-  const info = opts.platform ?? (await detectPlatform(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}));
+  const info = await platformWithRetry(opts);
   if (info.platform !== true || !info.user) return null;
   return new Social(opts);
+}
+
+/** 有没有平台：用游戏给的（或自己问一次），unknown 时按 SOCIAL_DETECT_RETRY 再问。sleep 给测试换掉 */
+export async function platformWithRetry(
+  opts: Pick<SocialOptions, 'platform' | 'fetchImpl'>,
+  sleep: (ms: number) => Promise<void> = (ms) => new Promise((ok) => setTimeout(ok, ms)),
+): Promise<PlatformInfo> {
+  const ask = (timeoutMs?: number): Promise<PlatformInfo> => detectPlatform({ ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}), ...(timeoutMs ? { timeoutMs } : {}) });
+  let info = opts.platform ?? (await ask());
+  for (const wait of SOCIAL_DETECT_RETRY.waits) {
+    if (info.platform !== 'unknown') break;
+    await sleep(wait);
+    info = await ask(SOCIAL_DETECT_RETRY.timeoutMs);
+  }
+  return info;
 }
 
 class Social implements SocialHandle {

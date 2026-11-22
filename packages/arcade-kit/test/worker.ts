@@ -142,8 +142,11 @@ export class FlakyMeter extends RoomMeter {
     if (this.down) throw new Error('meter down');
   }
   // 单人的 kitReserve / kitRelease 也经这两个（0.20.0），拦这里就都拦住了
+  /** 占名额时先卡这么久（测开房找计量的超时） */
+  slowMs = 0;
   override async kitReserveMany(...a: Parameters<RoomMeter['kitReserveMany']>) {
     this.check();
+    if (this.slowMs) await scheduler.wait(this.slowMs);
     return super.kitReserveMany(...a);
   }
   override async kitReleaseMany(...a: Parameters<RoomMeter['kitReleaseMany']>) {
