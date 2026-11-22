@@ -7,30 +7,33 @@ import { friendView, stockById, type GameEvent, type GameState, type Highlight, 
 
 const fmt = (v: number): string => String(Math.round(v * 10) / 10);
 
-/** 顶栏用的目标短说法："涨停 0/1 次"、"本月 +1.2% / 3%"；frac 为进度条 0..1（keep 是剩下的余量）。 */
-export function goalShort(g: Pick<MonthGoalState, 'kind' | 'progress' | 'target'>): { text: string; frac: number } {
+/**
+ * 顶栏用的目标短说法（"涨停 0/1 次"、"本月 +1.2% / 3%"）；frac 为进度条 0..1（keep 是剩下的余量）。tight（0.36.3，竖屏顶栏放不下整句时）：短写法，进度数字一定在（以前截成「最多亏5%，已…」看不到进度）。
+ */
+export function goalShort(g: Pick<MonthGoalState, 'kind' | 'progress' | 'target'>, tight = false): { text: string; frac: number } {
   const p = g.progress;
   const t = g.target;
   const ratio = t > 0 ? Math.max(0, Math.min(1, p / t)) : 0;
+  const sp = `${p >= 0 ? '+' : ''}${fmt(p)}`;
   switch (g.kind) {
     case 'gain':
-      return { text: `本月 ${p >= 0 ? '+' : ''}${fmt(p)}% / 要 ${fmt(t)}%`, frac: ratio };
+      return { text: tight ? `本月${sp}%/要${fmt(t)}%` : `本月 ${sp}% / 要 ${fmt(t)}%`, frac: ratio };
     case 'keep':
-      return { text: `最多亏 ${fmt(t)}%，已亏 ${fmt(Math.max(0, p))}%`, frac: t > 0 ? Math.max(0, Math.min(1, 1 - p / t)) : 0 };
+      return { text: tight ? `亏≤${fmt(t)}%·已${fmt(Math.max(0, p))}%` : `最多亏 ${fmt(t)}%，已亏 ${fmt(Math.max(0, p))}%`, frac: t > 0 ? Math.max(0, Math.min(1, 1 - p / t)) : 0 };
     case 'beat':
-      return { text: `比大环境多 ${p >= 0 ? '+' : ''}${fmt(p)} / 要 ${fmt(t)}`, frac: ratio };
+      return { text: tight ? `跑赢${sp}/要${fmt(t)}` : `比大环境多 ${sp} / 要 ${fmt(t)}`, frac: ratio };
     case 'limitUp':
-      return { text: `抓涨停 ${fmt(p)}/${fmt(t)} 次`, frac: ratio };
+      return { text: tight ? `涨停 ${fmt(p)}/${fmt(t)}` : `抓涨停 ${fmt(p)}/${fmt(t)} 次`, frac: ratio };
     case 'shortWin':
-      return { text: `押跌赚 ${fmt(p)}/${fmt(t)} 次`, frac: ratio };
+      return { text: tight ? `押跌赚 ${fmt(p)}/${fmt(t)}` : `押跌赚 ${fmt(p)}/${fmt(t)} 次`, frac: ratio };
     case 'streak':
-      return { text: `连着赚 ${fmt(p)}/${fmt(t)} 天`, frac: ratio };
+      return { text: tight ? `连赚 ${fmt(p)}/${fmt(t)} 天` : `连着赚 ${fmt(p)}/${fmt(t)} 天`, frac: ratio };
     case 'themes':
-      return { text: `同时拿 ${fmt(p)}/${fmt(t)} 个风口`, frac: ratio };
+      return { text: tight ? `风口 ${fmt(p)}/${fmt(t)}` : `同时拿 ${fmt(p)}/${fmt(t)} 个风口`, frac: ratio };
     case 'quickWin':
-      return { text: `当天买当天赚 ${fmt(p)}/${fmt(t)}`, frac: ratio };
+      return { text: tight ? `当天赚 ${fmt(p)}/${fmt(t)}` : `当天买当天赚 ${fmt(p)}/${fmt(t)}`, frac: ratio };
     case 'bigDay':
-      return { text: `单日最多 +${fmt(Math.max(0, p))}% / 要 ${fmt(t)}%`, frac: ratio };
+      return { text: tight ? `单日+${fmt(Math.max(0, p))}%/要${fmt(t)}%` : `单日最多 +${fmt(Math.max(0, p))}% / 要 ${fmt(t)}%`, frac: ratio };
     default:
       return { text: `${fmt(p)}/${fmt(t)}`, frac: ratio };
   }

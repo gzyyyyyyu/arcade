@@ -114,6 +114,16 @@ describe('收盘小结', () => {
     // 做多的照旧
     expect(recap.lines.find((l) => l.amount === -300)?.head).toMatch(/ 跌 10\.0%（跌停）$/);
   });
+  it('过山车股逆着风口大跌：标 swing（风口热度没降、跌 ≥ 7；押跌和普通股不算）', () => {
+    const base = day('recap-swing', 1).lastDay!;
+    const mk = (slot: number, stockId: string, ret: number, short = false): HoldingMove => ({ ...base.holdings[0]!, slot, stockId, amount: ret * 100, ret, short, parts: [], lead: null });
+    const themes = base.themes.map((t) => ({ ...t, dH: t.id === 'ai' ? 3 : -3 }));
+    const r = { ...base, themes, holdings: [mk(0, 'ai_meme', -10), mk(1, 'ne_meme', -10), mk(2, 'ai_leader', -10), mk(3, 'ai_meme', -5)], account: { ...base.account, effects: [] } };
+    const swing = recapOf(r).lines.filter((l) => l.swing).map((l) => `${l.stockId}:${l.slot}`);
+    // 只有 AI 风口（热度涨）里的过山车跌 10 算；新能源热度降了、大哥股、只跌 5 的都不算
+    expect(swing).toEqual(['ai_meme:0']);
+    expect(recapOf({ ...r, holdings: [mk(0, 'ai_meme', -10, true)] }).lines[0]?.swing).toBe(false);
+  });
   it('手里没股票时直说', () => {
     const s = day('recap-2', 1);
     const r = { ...s.lastDay!, holdings: [] };

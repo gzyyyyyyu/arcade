@@ -197,6 +197,8 @@ const CARD_LAYOUT = {
 /** 竖屏横卡的高和右边「就要它」的宽 */
 const ROW_CARD_H = 150;
 const ROW_BTN_W = 104;
+/** 竖屏横卡上「名字 + 大数字」那一行的中线（相对卡顶；顶上色带 40 高） */
+const ROW_LINE_Y = 60;
 
 /** 三选一奖励卡（phase = reward 时常驻，直到选择）：稀有度色框 + 大图标 + 名字 + 大数字 + 一行；详情悬停。 */
 export class RewardPanel {
@@ -335,11 +337,16 @@ export class RewardPanel {
       // 风口小图标（右上角）
       c.add(addImage(scene, row ? ax + L.iconS / 2 - 8 : ax + 50, iy - 30, `theme:${r.stock.theme}`, row ? 28 : 34));
     }
-    const nm = addText(scene, tx, y + L.name, r.name, { size: TYPE.title + 2, bold: true, originX: ox });
-    // 卡窄：长名字（「过山车爱好者」）先缩一号字，还放不下再截（全名在悬停里）
-    if (nm.width > tw) nm.setFontSize(TYPE.title - 2);
-    c.add(fitWidth(nm, tw));
     const big = r.brief.big;
+    // 0.36.3 竖屏横卡（不是股票的）：大数字和名字放同一行，说明腾出两三行（以前说明只剩一行，「大哥涨停，同风口的再…」）
+    const inline = row && !r.stock && !!big;
+    const bigT = inline && big ? addText(scene, 0, y + ROW_LINE_Y, big, { size: TYPE.big, bold: true, num: true, color: COLOR.accentDark, originY: 0.5 }) : null;
+    const nameRoom = bigT ? tw - bigT.width - 10 : tw;
+    const nm = addText(scene, tx, inline ? y + ROW_LINE_Y : y + L.name, r.name, { size: TYPE.title + 2, bold: true, originX: ox, originY: inline ? 0.5 : 0 });
+    // 卡窄：长名字（「过山车爱好者」）先缩一号字，还放不下再截（全名在悬停里）
+    if (nm.width > nameRoom) nm.setFontSize(TYPE.title - 2);
+    c.add(fitWidth(nm, nameRoom));
+    if (bigT) c.add(bigT.setX(tx + nm.width + 10));
     if (r.stock) {
       // 股票卡：风口 · 角色的色签放在大数字的位置
       const tc = THEME_COLOR[r.stock.theme];
@@ -347,10 +354,11 @@ export class RewardPanel {
       c.add(addPill(scene, row ? tx : ax - t.width / 2 - 12, y + L.big - 14, t.width + 24, 28, tc));
       c.add(t);
     }
-    if (big) c.add(addText(scene, tx, y + L.big, big, { size: TYPE.big, bold: true, num: true, color: COLOR.accentDark, originX: ox, originY: 0.5 }));
+    if (big && !inline) c.add(addText(scene, tx, y + L.big, big, { size: TYPE.big, bold: true, num: true, color: COLOR.accentDark, originX: ox, originY: 0.5 }));
     // 0.5.1：说明短（≤34 字）就整句写出来，长的用短句；分类标签放在顶部色带左边
     const descShort = r.desc && [...r.desc].length <= 34 ? r.desc : r.brief.line;
-    const desc = addText(scene, tx, big || r.stock ? y + L.big + (row ? 20 : 26) : y + L.big + 4, descShort, { size: TYPE.label, color: COLOR.muted, originX: ox, align: row ? 'left' : 'center', wrap: row ? tw : w - 28, lineSpacing: 2 });
+    const descY = inline ? y + ROW_LINE_Y + 22 : big || r.stock ? y + L.big + (row ? 20 : 26) : y + L.big + 4;
+    const desc = addText(scene, tx, descY, descShort, { size: TYPE.label, color: COLOR.muted, originX: ox, align: row ? 'left' : 'center', wrap: row ? tw : w - 28, lineSpacing: 2 });
     // 0.19.0 手机上卡矮：整句放不下就换短句，还放不下就截短（全文在悬停里），不压「就要它」
     const room = (row ? y + h - 8 : y + h - 66) - desc.y;
     if (desc.height > room && desc.text !== r.brief.line) desc.setText(r.brief.line);
