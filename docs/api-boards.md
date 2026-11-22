@@ -30,7 +30,7 @@
 
 | 接口 | 请求 | 成功 | 主要错误 | 写入 |
 |---|---|---|---|---|
-| `GET /api/wallet` | 要登录 | 200 `{"wallet", "tiers", "reliefTo", "winUnits", "playing", "ledger", "week"}`。`wallet` 是 `{"balance", "stakes": [{"game", "ref", "tier", "amount", "mode", "at", "until"}], "canRelief", "writesLeft", "caps": {"<game>": {"net", "cap"}}, "fresh"}`（`fresh: true` 是还没有钱包，看到的是新号的 10,000）；`tiers` 是各档一份多少；`ledger` 是自己最近 30 笔进出；`week` 是本周各游戏的净赢；`playing` 是北京时间今天各游戏带筹码上过桌的人数（只有人数，每个 isolate 缓存 10 分钟） | 401；503 | 0；有到期退回时 1（只读档不写） |
+| `GET /api/wallet` | 要登录 | 200 `{"wallet", "tiers", "reliefTo", "winUnits", "playing", "ledger", "week"}`。`wallet` 是 `{"balance", "stakes": [{"game", "ref", "tier", "amount", "mode", "at", "until"}], "canRelief", "writesLeft", "caps": {"<game>": {"net", "cap"}}, "fresh"}`（`fresh: true` 是还没有钱包，看到的是新号的 10,000）；`tiers` 是各档一份多少；`ledger` 是自己最近 30 笔进出；`week` 是本周各游戏的净赢；`playing` 是北京时间今天各游戏带筹码上过桌的人数（只有人数，每个 isolate 缓存 10 分钟；读不到时不带这一项，大厅不显示人数） | 401；503 | 0；有到期退回时 1（只读档不写） |
 | `POST /api/wallet/relief` | `{}`，要 `X-Arcade` 和 `Origin` | 200 `{"wallet"}`，把余额加桌上的补到补给额 | 403；409 `relief_not_needed` / `relief_used`（带 `wallet`）；429（今天写满 1,000 次）；503 `busy` | 1；被拒 0 |
 | `GET /api/admin/wallet-stats` | 管理员（5.8 两种认证） | 200 `{"days": [{"day", "total", "wallets", "grant", "relief", "games": {"<game>": {"in", "out", "back", "capped", "ex", "players"}}, "active", "reliefCount", "admin", "exchange"}]}`（`ex`、`exchange` 是兑换进来的，早期记录里没有），最近 30 天，新的在前 | 401；403 | 0 |
 | `GET /api/admin/wallet/<用户名>` | 管理员会话（令牌 403） | 200 `{"user", "wallet", "log", "career", "ledger"}` | 400；401；403；404 | 0 |
