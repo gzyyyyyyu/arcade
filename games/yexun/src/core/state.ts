@@ -21,7 +21,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 74;
+export const RULES_VERSION = 75;
 export { TICKS_PER_SECOND } from '../content/clock.ts';
 /**
  * 刷怪的一圈：刚好在屏幕外（横屏一屏约 1000 × 560 到 1080 × 500 单位，画面层 viewport.ts 的 worldZoom），
@@ -357,6 +357,10 @@ export class World {
   xp = 0;
   /** 攒着还没选的升级次数 */
   pendingLevels = 0;
+  /** 其中来自夜探宝箱的（先选这些；选卡标题写「宝箱」） */
+  chestPicks = 0;
+  /** 夜探宝气（伤害加成），和 raid.boost 同步，变了重算数值 */
+  raidBoost = 0;
   choices: Choice[] = [];
   weapons: OwnedWeapon[] = [];
   /** 每件法器算上被动以后的数值（和 weapons 同下标；法器或被动变了就重算） */

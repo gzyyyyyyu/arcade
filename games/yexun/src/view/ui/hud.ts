@@ -36,7 +36,7 @@ export interface HudState {
   event?: { kind: string; name: string; left: number; urgent: boolean } | null;
   /** 首领连战：顶上写"剩余"，隐藏夜市小字 */
   rush?: boolean;
-  raid?: { label: string; level: 0 | 1 | 2; bag: number; value: number };
+  raid?: { label: string; level: 0 | 1 | 2; bag: number; value: number; boost: number };
 }
 
 /** 技能按钮的状态（对局里每帧给；show 为 false 整个收起） */
@@ -81,6 +81,7 @@ export class Hud {
   readonly homeBtn: HTMLButtonElement;
   readonly pauseBtn: HTMLButtonElement;
   private hpFill: HTMLDivElement;
+  private boost: HTMLElement;
   private hpNow: HTMLSpanElement;
   private hpMax: HTMLSpanElement;
   private shFill: HTMLDivElement;
@@ -218,6 +219,7 @@ export class Hud {
     this.bagBox.setAttribute('aria-label', '背包');
     el('span', 'yx-ico yx-ico-bag', this.bagBox);
     this.bag = el('span', '', this.bagBox, '0');
+    this.boost = el('b', 'yx-boost', this.bagBox);
     this.bagBox.style.display = 'none';
     const pause = el('button', 'yx-btn yx-pause', tr);
     this.pauseBtn = pause;
@@ -316,6 +318,7 @@ export class Hud {
       this.timer.classList.toggle('warn', s.raid.level === 1);
       this.timer.classList.toggle('red', s.raid.level === 2);
       this.bag.textContent = `${s.raid.bag} 件 · ${s.raid.value}`;
+      this.boost.textContent = s.raid.boost > 0 ? `宝气 +${Math.round(s.raid.boost * 100)}%` : '';
     }
     if (!!s.raid !== this.raidOn) {
       this.raidOn = !!s.raid;

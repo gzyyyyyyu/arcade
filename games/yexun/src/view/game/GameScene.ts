@@ -15,7 +15,7 @@ import { XINFA_FX, XINFA_TEXT } from '../../content/xinfa.ts';
 import Phaser from 'phaser';
 import { DROWN, ENEMIES, ENEMY_BY_KIND, HOP_AIR, HOP_PERIOD, HUAPI, JUEMU, SPROUT, WATER } from '../../content/enemies.ts';
 import { CHAR_FX, CHARACTERS } from '../../content/meta.ts';
-import { ARENA, DROPS, xpNeed } from '../../content/player.ts';
+import { ARENA, xpNeed } from '../../content/player.ts';
 import { MAPS } from '../../content/maps.ts';
 import { BEAST, DAWN_RED, DAWN_WARN, GATE, RAID_DAWN, RAID_LATE } from '../../content/explore.ts';
 import { MARKET_GOODS, MARKET_NAME, NIGHT_MARKET } from '../../content/market.ts';
@@ -693,7 +693,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     this.d.cards.show(
-      w.level - w.pendingLevels + 1,
+      w.chestPicks > 0 ? 'chest' : w.level - (w.pendingLevels - w.chestPicks) + 1,
       w.choices.map((c) => describe(w, c)),
       this.d.firstRun && !this.cardsSeen,
       !!w.setup.firstRun,
@@ -803,7 +803,7 @@ export class GameScene extends Phaser.Scene {
           break;
         }
         case Ev.Pickup:
-          this.onPickup(x, y, ev.a[i]!);
+          this.onPickup(x, y, ev.a[i]!, ev.b[i]!);
           break;
         case Ev.LevelUp:
           sfx.play('levelup');
@@ -1098,7 +1098,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private onPickup(x: number, y: number, kind: number): void {
+  private onPickup(x: number, y: number, kind: number, val: number): void {
     if (kind === Drop.Soul) {
       // 连吃音调递增（手感清单第 4 条）；停 0.6 秒以上从头来
       if (this.now - this.pickupAt > 600) this.pickupChain = 0;
@@ -1119,7 +1119,7 @@ export class GameScene extends Phaser.Scene {
     else if (kind === Drop.Bun) {
       sfx.play('heal');
       // 回血数字飘在主角头上（绿色），不占屏幕中间的横幅
-      this.nums.show(this.w.x, this.w.y - 70, DROPS.bunHeal, false, 0x5fd38a);
+      this.nums.show(this.w.x, this.w.y - 70, val, false, 0x5fd38a);
     } else if (kind === Drop.Purse) {
       // 一串叮当 + 头上飘"+N 铜钱"；N 是核心现掷的，靠铜钱袋累计的差值得到
       sfx.play('purse');
@@ -2377,6 +2377,7 @@ export class GameScene extends Phaser.Scene {
       level: w.tick >= DAWN_RED ? 2 : w.tick >= DAWN_WARN ? 1 : 0,
       teach: raid.teach,
       bag: raid.bag,
+      boost: w.setup.live ? null : w.raidBoost,
       hx: this.renderX,
       hy: this.renderY,
       chestOpen: raid.chestOpen,
@@ -2527,7 +2528,7 @@ export class GameScene extends Phaser.Scene {
       xp: w.xp / xpNeed(w.level, !!w.raid),
       left: w.rush ? RushShow.left(w) : ((raid ? RAID_DAWN : DAWN_TICK) - w.tick) / 30,
       event: raid || w.rush ? null : nextMapEvent(w.tick, w.setup),
-      raid: raid ? { label: w.tick >= DAWN_WARN ? '天亮' : '离天亮', level: w.tick >= DAWN_RED ? 2 : w.tick >= DAWN_WARN ? 1 : 0, bag: raid.bag.length, value: raid.bag.reduce((a, id) => a + TREASURES[id]!.value, 0) } : undefined,
+      raid: raid ? { label: w.tick >= DAWN_WARN ? '天亮' : '离天亮', level: w.tick >= DAWN_RED ? 2 : w.tick >= DAWN_WARN ? 1 : 0, bag: raid.bag.length, value: raid.bag.reduce((a, id) => a + TREASURES[id]!.value, 0), boost: w.raidBoost } : undefined,
       kills: w.kills,
       coins: w.coins,
       slots,

@@ -29,7 +29,7 @@ function num(h: number, v: number): number {
 
 export function fingerprint(w: World): number {
   let h = 0x811c9dc5;
-  for (const v of [w.tick, w.x, w.y, w.hp, w.face, w.invuln, w.level, w.xp, w.pendingLevels, w.kills, w.coins, w.spawnAcc, w.nextEvent, w.regenAcc, w.slowUntil, w.calmUntil, w.mercyAt, w.revives, w.rerolls, w.bans, w.bonusCard, w.mkIndex, w.mkPhase, w.mkStall, w.mkHold, w.mightUntil, w.speedUntil, ...w.mkSold]) h = num(h, v);
+  for (const v of [w.tick, w.x, w.y, w.hp, w.face, w.invuln, w.level, w.xp, w.pendingLevels, w.chestPicks, w.raidBoost, w.kills, w.coins, w.spawnAcc, w.nextEvent, w.regenAcc, w.slowUntil, w.calmUntil, w.mercyAt, w.revives, w.rerolls, w.bans, w.bonusCard, w.mkIndex, w.mkPhase, w.mkStall, w.mkHold, w.mightUntil, w.speedUntil, ...w.mkSold]) h = num(h, v);
   // 夜市求签：没买过时不进指纹
   if (w.omen >= 0) h = num(h, w.omen);
   // 初成的搭配：没有时不进指纹
