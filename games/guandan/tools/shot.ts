@@ -90,6 +90,8 @@ async function serveApi(name: string, route: Route, api: FakeApi | undefined): P
     return route.fulfill({ status: 204 });
   }
   if (path === '/api/invites' && req.method() === 'GET') return reply({ invites: [] });
+  // 好友房面板读"好友在打"、开完房看有没有好友可叫（0.40.2）
+  if (path === '/api/friends' && req.method() === 'GET') return reply({ friends: [] });
   // 好友动态的名场面（0.15.0）：一副打完可能报一条
   if (path === '/api/feed' && req.method() === 'POST') {
     if (h['x-arcade'] !== '1') errors.push(`[${name}] 报名场面没带 X-Arcade`);

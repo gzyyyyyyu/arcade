@@ -74,7 +74,20 @@ interface Client {
   page: Page;
   got: Got[];
   raw: string[];
+  social: FakeSocial;
 }
+
+/**
+ * 同域的社交接口（本地联机栈里没有平台的 /api/*）：好友列表按测试给的回；报位置照平台的规矩，同一人 10 秒内只记第一次
+ * （social.md 1.2），记下每次报的和平台真记上的，好量"朋友那边几秒后看到人数变了"
+ */
+interface FakeSocial {
+  friends: unknown[];
+  posts: { t: number; seats: string | null }[];
+  kept: { t: number; seats: string | null }[];
+}
+const socialOf = new WeakMap<BrowserContext, FakeSocial>();
+const PLATFORM_PRESENCE_MIN_MS = 10_000;
 
 async function openClient(browser: Browser, stack: OnlineStack, spec: Spec, query: string, reuse?: BrowserContext, online = true, autoplay = true): Promise<Client> {
   const context = reuse ?? (await browser.newContext(spec.ctx));
@@ -83,6 +96,18 @@ async function openClient(browser: Browser, stack: OnlineStack, spec: Spec, quer
     await context.addCookies([{ name: '__Host-sid', value: spec.user, domain: new URL(stack.origin).hostname, path: '/', secure: true }]);
     // 页面自己问"现在是谁"（记着的房间分账号）走同域 /api/me：本地联机栈里假平台只是服务绑定、同域上没有，这里按这个客户端的账号回答
     await context.route('**/api/me', (r) => r.fulfill({ json: { user: { id: spec.user, displayName: `玩家${spec.user}` } } }));
+    const social: FakeSocial = { friends: [], posts: [], kept: [] };
+    socialOf.set(context, social);
+    await context.route('**/api/friends', (r) => r.fulfill({ json: { friends: social.friends } }));
+    await context.route('**/api/invites**', (r) => r.fulfill({ json: { invites: [] } }));
+    await context.route('**/api/presence', (r) => {
+      const t = Date.now();
+      const seats = (r.request().postDataJSON() as { seats?: string } | null)?.seats ?? null;
+      social.posts.push({ t, seats });
+      const last = social.kept.at(-1);
+      if (!last || t - last.t >= PLATFORM_PRESENCE_MIN_MS) social.kept.push({ t, seats });
+      return r.fulfill({ status: 204 });
+    });
     const storage = { 'guandan.tutorial': JSON.stringify({ v: 1, done: true }), ...(spec.storage ?? {}) };
     await context.addInitScript((kv) => {
       if (sessionStorage.getItem('__seeded')) return;
@@ -91,7 +116,7 @@ async function openClient(browser: Browser, stack: OnlineStack, spec: Spec, quer
     }, storage);
   }
   const page = await context.newPage();
-  const c: Client = { spec, context, page, got: [], raw: [] };
+  const c: Client = { spec, context, page, got: [], raw: [], social: socialOf.get(context)! };
   page.on('console', (m) => {
     // 断线测试里浏览器自己打的连接失败不算（关页面、断网是故意的）
     if (m.type() === 'error' && !/WebSocket connection|Failed to load resource/.test(m.text())) errors.push(`[${spec.name}] console.error: ${m.text()}`);
@@ -235,6 +260,7 @@ async function main(): Promise<void> {
     // ① 房主开房
     const host = await openClient(browser, stack, SPECS[0]!, '');
     clients.push(host);
+    host.social.friends = [{ userId: 'u-far', displayName: '不在线的', online: false }];
     await until(host, '标题页', "g.ready && g.scene === 'title'");
     const p = (await host.page.evaluate(() => window.__game!.controls())).online!;
     // ?online=1 一进来就开着好友房面板；点遮罩（角上）要能关，再点主页的"好友房"卡重新打开（点开的那一下不能被遮罩当成点外面关掉）
@@ -243,10 +269,19 @@ async function main(): Promise<void> {
     await host.page.waitForSelector('#online', { state: 'detached', timeout: 5_000 });
     await host.page.mouse.click(p.x, p.y);
     await host.page.waitForSelector('#ol-create', { timeout: 5_000 });
+    // 没有好友在打（只有个不在线的好友，重开面板时读到）："好友在打"那一块不显示；有好友，开完房才弹"叫朋友来"
+    await host.page.waitForTimeout(500);
+    assert((await host.page.locator('#ol-friends .ol-friend').count()) === 0, '没有好友在打时不该有"加入"那一行');
     await host.page.click('#ol-create');
     await host.page.waitForSelector('#ol-room-code');
     const code = (await host.page.textContent('#ol-room-code'))!.trim();
     assert(/^\d{6}$/.test(code), `房间码格式不对：${code}`);
+    // 开完房直接弹"叫朋友来"（0.40.2），关掉后是房间面板
+    await host.page.waitForSelector('#arcade-invite-panel', { timeout: 5_000 });
+    await shot(host, '50a-online-invite-after-create');
+    await host.page.click('#arcade-invite-panel [aria-label="关闭"]');
+    await host.page.waitForSelector('#arcade-invite-panel', { state: 'detached', timeout: 5_000 });
+    notes.push('开完房直接弹"叫朋友来"，关掉回到房间面板');
     // 开房的人自动坐 0 号位
     await until(host, '房主坐下', 'g.net()?.seat === 0');
     // 开房后地址栏带上房间码：刷新还在这个房间、还是房主、还坐 0 号位
@@ -257,14 +292,50 @@ async function main(): Promise<void> {
     await host.page.waitForSelector('#ol-start', { timeout: 10_000 });
     notes.push(`开房后地址栏带 room=${code}，刷新回到房间（0 号位、房主）`);
     await shot(host, '50-online-lobby-host');
-    // ② 另外三个人用邀请链接进房、各坐一个位
+    // ② 另外三个人进房、各坐一个位：iPhone 从好友房面板"好友在打"那一行点"加入"（0.40.2），另外两个点邀请链接
     for (let i = 1; i < 4; i++) {
-      const c = await openClient(browser, stack, SPECS[i]!, `&room=${code}`);
+      let c: Client;
+      if (i === 1) {
+        c = await openClient(browser, stack, SPECS[i]!, '');
+        c.social.friends = [{ userId: 'u-desk', displayName: '房主老王', online: true, where: { place: 'room', game: 'guandan', room: code, seats: '1/4' } }];
+        // 面板是启动时打开的，那时好友列表还是空的：点遮罩关掉、点主页的"好友房"卡重开一次
+        await c.page.waitForSelector('#ol-create');
+        await c.page.mouse.click(4, 4);
+        await c.page.waitForSelector('#online', { state: 'detached', timeout: 5_000 });
+        const op = (await c.page.evaluate(() => window.__game!.controls())).online!;
+        await c.page.mouse.click(op.x, op.y);
+        await c.page.waitForSelector('#ol-friend-0', { timeout: 5_000 });
+        const row = (await c.page.textContent('#ol-friends'))!;
+        assert(row.includes('房主老王') && row.includes('1/4'), `"好友在打"应写朋友和人数（实际 ${row}）`);
+        await shot(c, '50b-online-friend-row');
+        // 竖着拿也看一眼（390×844），再转回来
+        await c.page.setViewportSize({ width: 390, height: 844 });
+        await c.page.waitForTimeout(800);
+        await shot(c, '50c-online-friend-row-390');
+        await c.page.setViewportSize({ width: 667, height: 331 });
+        await c.page.waitForTimeout(800);
+        await c.page.click('#ol-friend-0');
+        await until(c, '加入后坐下、还在主页（"加入"压在画布"快速开始"上，不能连带开出单机）', `g.net()?.seat === ${i} && g.scene === 'title'`, 30_000);
+      } else c = await openClient(browser, stack, SPECS[i]!, `&room=${code}`);
       clients.push(c);
-      // 点开链接自动坐第一个空位（0.6.0），不用再点"坐这里"
+      // 点"加入"、点开链接都自动坐第一个空位（0.6.0），不用再点"坐这里"
       await until(c, '自动坐下', `g.net()?.seat === ${i}`, 30_000);
     }
     await until(host, '四人都坐下', "g.net()?.seats.every((s) => s.startsWith('human'))");
+    // 报位置：人数一变房主马上报（那一刻 = 房主第一次报出这个人数）、11 秒后补报；平台 10 秒内只记第一次。
+    // 朋友那边看到 = 平台记上这个人数的时刻；被后一次变化盖过的不算
+    await host.page.waitForTimeout(14_000);
+    const hs = host.social;
+    const t0 = hs.posts[0]?.t ?? 0;
+    const seen = [2, 3, 4].map((n) => {
+      const first = hs.posts.find((x) => x.seats === `${n}/4`);
+      const kept = hs.kept.find((x) => x.seats === `${n}/4`);
+      return { n, first: first?.t ?? null, lag: first && kept ? (kept.t - first.t) / 1000 : null };
+    });
+    const four = seen[2]!;
+    assert(seen.every((x) => x.first !== null), `每次人数变了都要报（${JSON.stringify(hs.posts)}）`);
+    assert(four.lag !== null && four.lag <= 15, `最后的 4/4 平台要在 15 秒内记上（补报 11 秒，页面定时器有一两秒抖动）（${JSON.stringify(hs.posts)}，记上的 ${JSON.stringify(hs.kept)}）`);
+    notes.push(`报位置：朋友看到人数变化 ${seen.map((x) => `${x.n}/4 ${x.lag === null ? '被后一次盖过' : `${x.lag.toFixed(1)} 秒`}`).join('、')}；房主报的 ${hs.posts.map((x) => `${((x.t - t0) / 1000).toFixed(1)}s ${x.seats ?? '不在房里'}`).join('，')}`);
     await shot(host, '51-online-lobby-full');
     await host.page.click('#ol-start');
     for (const c of clients) await until(c, '进牌桌', "g.scene === 'table' && g.view()?.dealNo >= 1", 30_000);
@@ -453,10 +524,29 @@ async function main(): Promise<void> {
 
     // ⑨ 电脑的互动（0.7.1）：另一个号开房、一个人开局（空位电脑补），冲三个电脑各扔一个番茄；
     // 电脑按性格回怼、装没看见或认怂，三个都不理的概率约 4%，加上打牌时炸弹、头游的显摆，等 90 秒总该有一条
-    const solo = await openClient(browser, stack, { ...SPECS[0]!, name: '电脑房', user: 'u-bots' }, '');
+    // 1280×720 开（顺带看 1280 上的"好友在打"）；中途改窗口大小画面要重排，坐标会旧
+    const solo = await openClient(browser, stack, { ...SPECS[0]!, name: '电脑房', user: 'u-bots', ctx: { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 } }, '');
     await until(solo, '标题页', "g.ready && g.scene === 'title'");
-    // ?online=1 已经开着好友房面板（再点主页的卡等于点遮罩，会关掉）
+    // 1280 上看一眼"好友在打"（两桌）：给好友列表、点遮罩关掉启动时开的面板、点"好友房"卡重开
+    solo.social.friends = [
+      { userId: 'u-f1', displayName: '老王', online: true, where: { place: 'room', game: 'guandan', room: '999991', seats: '2/4' } },
+      { userId: 'u-f2', displayName: '一个名字特别特别长的朋友', online: true, where: { place: 'room', game: 'guandan', room: '999991', seats: '2/4' } },
+      { userId: 'u-f3', displayName: '小李', online: true, where: { place: 'room', game: 'guandan', room: '999992', seats: '1/3' } },
+    ];
+    await solo.page.waitForSelector('#ol-create');
+    await solo.page.mouse.click(4, 4);
+    await solo.page.waitForSelector('#online', { state: 'detached', timeout: 5_000 });
+    const sop = (await solo.page.evaluate(() => window.__game!.controls())).online!;
+    const t9 = Date.now();
+    await solo.page.mouse.click(sop.x, sop.y);
+    // 刚进页面就开面板：好友列表等社交部件挂好再读（启动时没问出平台会再问一次，最多 10 秒）
+    await solo.page.waitForSelector('#ol-friend-1', { timeout: 20_000 });
+    notes.push(`刚进页面就开好友房面板："好友在打"两桌 ${((Date.now() - t9) / 1000).toFixed(1)} 秒后出来（1280）`);
+    await shot(solo, '58a-online-friend-row-1280');
     await solo.page.click('#ol-create');
+    // 有好友：开完房弹"叫朋友来"，关掉再开局
+    await solo.page.waitForSelector('#arcade-invite-panel', { timeout: 5_000 });
+    await solo.page.click('#arcade-invite-panel [aria-label="关闭"]');
     await until(solo, '房主坐下', 'g.net()?.seat === 0');
     await solo.page.click('#ol-start');
     await until(solo, '进牌桌', "g.scene === 'table' && g.view()?.dealNo >= 1", 30_000);

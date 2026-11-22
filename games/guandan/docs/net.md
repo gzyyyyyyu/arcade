@@ -39,9 +39,13 @@
     页面：选难度页的 `match`、选档页的"和电脑 / 快速匹配"（控件 `mode:0` / `mode:1`）→ `online.ts` 的 `openMatch`（排队卡 `#ol-match-wait`，人数、倒计时、`#ol-match-solo` 不等了、`#ol-match-cancel` 取消）；
     排到了 `join(code, false, null, true)`，房间信息里 `room.match` 为真（`NetSession.match`）：大厅和牌桌不摆房间码、叫朋友、邀请、开局，分享卡不带房间码；`solo` 由标题页转同档单机（娱乐 `newGame`、实盘带入一份）。
     陌生人聊天：设置"聊天"一行的"不和陌生人"（`strangerChat` 为假，默认开；手机横屏左栏放不下第七行，和 `chat` 并成一行三档）时，匹配桌的 `NetSession` 不给 `onChat`（kit 不带 `chat=1`），`chatOn` 为假，牌桌不给聊天页；记着的房间带 `match: true`，刷新接回去也照这个设置。
-  - 报位置、收邀请（`src/view/common/social.ts`）：kit 的 `mountSocial`，`main.ts` 在 `detectOnce` 之后挂，没平台、没登录不挂；`where()` 在好友房里报 `place: room`、房间码和真人几个（"3/4"），
-    别的时候报 `place: game`；进房（第一次连上）、离开房间时 `presenceNow()` 补报一次。邀请横条和"去"（跳 `/games/<id>/?room=<码>`）都是 kit 的。
-    房间大厅的"叫朋友来"（`ol-share`）和牌桌顶上的邀请图标（控件 `invite`）都调 `openInvitePanel`：kit 的"叫朋友来"面板，没挂上 social 时 `friends: false` 只有复制链接；链接按当前页面地址拼。
+  - 报位置、收邀请（`src/view/common/social.ts`）：kit 的 `mountSocial`，`main.ts` 在 `detectOnce` 之后挂，没平台、没登录不挂（启动那次超时成"不知道"时再问一次、10 秒）；`where()` 在好友房里报 `place: room`、房间码和真人几个（"3/4"），
+    别的时候报 `place: game`；`presenceNow()` 在房间的每个事件上调，位置（房间码、真人数）和上次报的不一样才报，`PRESENCE_RETRY_MS`（11 秒）后补报一次——
+    平台同一人 10 秒内只记第一次，刚进房、人数接连变时那次常被挤掉。邀请横条和"去"（跳 `/games/<id>/?room=<码>`）都是 kit 的。
+    房间大厅的"叫朋友来"（`ol-share`）和两个玩法牌桌顶上"大厅"右边的邀请图标（控件 `invite`，匹配桌不摆）都调 `openInvitePanel`：kit 的"叫朋友来"面板，
+    没挂上 social 时 `friends: false` 只有复制链接；链接按当前页面地址拼。开完房有好友（`hasFriends`）就直接弹这个面板。
+  - 好友房面板顶上"好友在打"（`ol-friends`，0.40.2）：面板打开时读一次好友列表，`friendTables` 挑在线、在牌馆好友房里的，同一桌并一行、最多 2 桌，
+    "加入"走和邀请链接一样的 `rejoin`（等人时自动坐空位，开打了接管电脑或旁观）；没人在打这一块不显示。
     面板传 `zIndex: INVITE_Z`（8800）：要盖住房间弹窗 `#online`（8500），在"请横过来"（9000）、出错面板（9500）之下；改这几个 DOM 层级时 `tests/view/share-card.test.ts` 会核对。
   - 改了房间和页面之间的约定（动作、视图形状）就加 `src/net/version.ts` 的 `CLIENT_VERSION`：旧页面进房会被 4005 请去刷新。改规则加 `RULES_VERSION`，打到一半的房间按旧规则打完。
   - 验收：`npm run test:room`（真房间机器人对打、写入行数、断线、让位、座位绑人、结算等人）、`npm run room-sim`（规则层大批量）、`npm run online-smoke`（四个浏览器端到端，约 5 分钟，`--quick` 跳过 70 秒托管那项）。

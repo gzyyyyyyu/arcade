@@ -22,9 +22,10 @@ import { COLOR, TYPE, minDrawH, minHit, phoneType, GAME_HEIGHT } from '../common
 import { rankName } from '../../core/cards.ts';
 import { countLeftDdz } from './counter.ts';
 import { CardView } from '../table/card.ts';
-import { BUTTON_Y as TABLE_BUTTON_Y, DDZ_BUTTON_DROP, DDZ_BUTTONS, DDZ_COUNTER, DDZ_FUN, DDZ_FUN_POLL_MS, DDZ_PUZZLE_TIP, DDZ_STAKE_BAR, DDZ_TOPBAR, DDZ_TOPMID, ME_AVATAR, TOPBAR_H } from '../table/layout.ts';
+import { BUTTON_Y as TABLE_BUTTON_Y, DDZ_BUTTON_DROP, DDZ_BUTTONS, DDZ_COUNTER, DDZ_FUN, DDZ_FUN_POLL_MS, DDZ_PUZZLE_TIP, DDZ_STAKE_BAR, DDZ_TOPBAR, DDZ_TOPMID, FUN_UI, ME_AVATAR, TOPBAR, TOPBAR_H } from '../table/layout.ts';
 import { hasLayer } from '../ui/focus.ts';
-import { Button, fitWidth, setHit, setTopHit, signedLine, text, worldW } from '../ui/kit.ts';
+import { Button, fitWidth, iconButton, setHit, setTopHit, signedLine, text, worldW } from '../ui/kit.ts';
+import { openInvitePanel } from '../common/social.ts';
 import type { DdzScene } from '../scenes/DdzScene.ts';
 
 /** 斗地主手牌横排一行，比掼蛋的分列矮一截：操作按钮那排跟着往下挪，贴近手牌（掼蛋不变） */
@@ -89,6 +90,11 @@ export function buildButtons(sc: DdzScene, W: number): void {
   sc.status = text(sc, cx, BUTTON_Y - DDZ_BUTTONS.statusDy, '', { size: TYPE.label, color: 0xfff3d6, bold: true }).setDepth(400);
 }
 
+/** 好友房（不是匹配桌）"大厅"右边摆"叫朋友来"，聊天按钮往右让一格；和掼蛋同一组数（TOPBAR、FUN_UI） */
+function inviteShift(sc: DdzScene): number {
+  return sc.net && !sc.net.match ? Math.max(FUN_UI.iconMinW, minHit()) + FUN_UI.chatGap : 0;
+}
+
 export function buildTopBar(sc: DdzScene, W: number): void {
   const c = sc.beginTopBar(W);
   sc.stakeLeft = null;
@@ -98,6 +104,15 @@ export function buildTopBar(sc: DdzScene, W: number): void {
   setTopHit(lobby, DDZ_TOPBAR.lobbyW, deep);
   c.add(lobby);
   sc.reg('lobby', lobby);
+  // 好友房开打以后也能叫朋友（0.40.2，掼蛋 0.6.1 就有）：中途进来的人接管电脑的座位
+  const net = sc.net;
+  if (net && !net.match) {
+    const lp = Math.max(FUN_UI.iconMinW, minHit());
+    const inv = iconButton(sc, TOPBAR.lobbyRight + lp / 2 + TOPBAR.inviteGap, DDZ_TOPBAR.midY, 'invite', () => void openInvitePanel(net.code, '斗地主'), TOPBAR.inviteSize, '邀请');
+    setTopHit(inv, lp, deep);
+    c.add(inv);
+    sc.reg('invite', inv);
+  }
   // 中间：底分 × 倍数，和底牌（叫完才翻开）；残局写"残局 第 n 关 · 关名"
   const v = sc.ses.view();
   const mx = W / 2;
@@ -323,10 +338,10 @@ export function buildFun(sc: DdzScene, W: number): void {
     chatButton: () => {
       sc.chatTopStyle();
       const ph = phoneType();
-      return sc.worldRect(DDZ_FUN.chatX, ph ? 0 : 4, Math.max(DDZ_BUTTONS.funMinW, mh), ph ? mh : Math.max(48, mh));
+      return sc.worldRect(DDZ_FUN.chatX + inviteShift(sc), ph ? 0 : 4, Math.max(DDZ_BUTTONS.funMinW, mh), ph ? mh : Math.max(48, mh));
     },
     // 电脑版聊天默认收成"聊天"小按钮，同一个位置（顶栏"大厅"右边）：kit 自己挑角时会放到"大厅"底下压着它（1280×800 上量过）
-    chatDock: () => sc.worldRect(DDZ_FUN.chatX, 4, DDZ_FUN.chatDockW, Math.max(48, mh)),
+    chatDock: () => sc.worldRect(DDZ_FUN.chatX + inviteShift(sc), 4, DDZ_FUN.chatDockW, Math.max(48, mh)),
     chatFolded: () => true,
     // 弹幕在左右两家之间、顶栏下沿到"轮到你"那行上面
     danmakuArea: () => {

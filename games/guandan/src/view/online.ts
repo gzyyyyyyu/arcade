@@ -21,7 +21,7 @@ import { ROOM_DEALS as DDZ_ROOM_DEALS, newRules as ddzRules, pointValue as ddzPo
 import { NET_DOWN, RETRY_LABEL, ROOM_STAKE_TEXT, STAKE_TEXT, TIER_NAME, fmtChips } from './common/stake-text.ts';
 import { fetchWallet } from './common/stake-api.ts';
 import { standalone, withNick } from './common/platform.ts';
-import { openInvitePanel, presenceNow } from './common/social.ts';
+import { fetchFriendTables, hasFriends, openInvitePanel, presenceNow } from './common/social.ts';
 import { getNick, getSettings, setNick, updateSettings } from './store.ts';
 import { loginUrl } from './ui/cloud.ts';
 import { mountThemeCss } from './common/theme.ts';
@@ -76,6 +76,11 @@ function style(): void {
 #online .ol-seat .gd-btn, #online #ol-tiers .gd-btn { flex: none; padding: 0 var(--gd-s3); font-size: 15px; }
 #online .ol-note { min-height: 1.5em; color: var(--gd-red-dark); font-weight: bold; }
 #online .ol-tip { color: var(--gd-muted); font-size: 14px; }
+/* 好友在打：名字长了按省略号截，"在打 · 2/4"和"加入"永远看得见 */
+#online .ol-friend { flex-wrap: nowrap; }
+#online .ol-friend .ol-fn { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; }
+#online .ol-friend .ol-fs { flex: none; color: var(--gd-muted); font-family: var(--gd-font-num); }
+#online .ol-friend .gd-btn { flex: none; }
 #online #ol-tiers .ol-tip { flex-basis: 100%; }
 /* 手机竖屏放不下一排四档：等宽两行两个，不参差 */
 @media (max-width: 600px) { #online #ol-tiers .gd-btn { flex: 1 1 calc(50% - var(--gd-s2)); } }
@@ -173,6 +178,20 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
   c.appendChild(slot);
   void myRoom().then((back) => {
     if (back && slot.isConnected) slot.appendChild(button(`回到刚才的房间 ${back.code}`, () => join(back.code, back.host, null, false, back.variant ?? 'guandan'), 'gd-2', 'ol-back'));
+  });
+  // 好友在打（0.40.2）：在牌馆好友房里的好友，一点"加入"就进那一桌（等人时自动坐空位，开打了接管电脑或旁观）；没人在打这块不显示
+  const friends = el('div', { id: 'ol-friends' });
+  c.appendChild(friends);
+  void fetchFriendTables().then((list) => {
+    if (!friends.isConnected) return;
+    list.forEach((t, i) => {
+      const row = el('div', { class: 'ol-row ol-friend' });
+      const names = t.names.join('、');
+      row.appendChild(el('span', { class: 'ol-fn', title: names }, names));
+      row.appendChild(el('span', { class: 'ol-fs' }, `在打 · ${t.seats}`));
+      row.appendChild(button('加入', () => void rejoin(t.room), 'gd-2', `ol-friend-${i}`));
+      friends.appendChild(row);
+    });
   });
   // 单独部署（0.8.0）没有账号：别人看到的名字自己填，开房、进房的地址上带着（不填就叫"游客"加数字）
   if (standalone()) {
@@ -291,6 +310,11 @@ async function createOnce(stake: TierId | null, noShuffle: boolean): Promise<voi
   if ('code' in r) {
     note = '';
     join(r.code, true, null, false, panelVariant);
+    // 开完房直接弹"叫朋友来"（0.40.2）：少点一下。没好友（单独部署、没登录、还没加好友）不弹，房间面板上照样有"叫朋友来"
+    const name = panelVariant === 'ddz' ? '斗地主' : '掼蛋';
+    void hasFriends().then((yes) => {
+      if (yes && ses?.code === r.code) void openInvitePanel(r.code, name);
+    });
     return;
   }
   if (offline) return setNetDown(() => void create(stake, noShuffle));
@@ -322,9 +346,7 @@ export function join(code: string, host: boolean, prefer: number | null = null, 
   roomInUrl(code);
   app.net = null;
   app.ddzNet = null;
-  // 进了房间（第一次连上）马上报一次位置，好友那边看得到"在掼蛋好友房 3/4"
-  let told = false;
-  offSes = s.on((k) => {
+  offSes = s.on(() => {
     if (s.wrongVariant) {
       // 房间是另一个玩法：放手这条，换对的重连（座位、房间码都没动）
       offSes?.();
@@ -333,10 +355,8 @@ export function join(code: string, host: boolean, prefer: number | null = null, 
       join(code, host, prefer, match, roomVariant(s.room));
       return;
     }
-    if (!told && k === 'reset') {
-      told = true;
-      presenceNow();
-    }
+    // 进了房间、有人坐下或走了：好友那边的"在牌馆的好友房 · 3/4"跟着变（没变不报）
+    presenceNow();
     renderRoom();
   });
   renderRoom();

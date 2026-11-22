@@ -99,6 +99,8 @@ async function openPage(browser: Browser, stack: OnlineStack, user: string, wall
   // 社交（kit 的 mountSocial）登录后会报位置、问邀请；假平台照样答，不然控制台有 404
   await context.route('**/api/presence', (r) => r.fulfill({ status: 204 }));
   await context.route('**/api/invites', (r) => r.fulfill({ json: { invites: [] } }));
+  // 好友房面板读"好友在打"、开完房看有没有好友可叫（0.40.2）
+  await context.route('**/api/friends', (r) => r.fulfill({ json: { friends: [] } }));
   await context.addInitScript(() => localStorage.setItem('guandan.tutorial', JSON.stringify({ v: 1, done: true })));
   const page = await context.newPage();
   page.on('console', (m) => {
