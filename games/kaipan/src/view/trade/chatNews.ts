@@ -4,7 +4,7 @@ import { NEWS_KEY, hasArt } from '../assets.ts';
 import { COLOR, FS, signColor } from '../theme.ts';
 import { addImage, addSlice } from '../ui/art.ts';
 import { touchHit } from '../ui/button.ts';
-import { addText, fitWidth } from '../ui/text.ts';
+import { addText, fitKeepTail, fitWidth } from '../ui/text.ts';
 import { BODY_Y, BODY_H, CX, CW } from './chatConsts.ts';
 import type { ChatView3 } from './chat.ts';
 
@@ -23,7 +23,7 @@ export function newsFold(v: ChatView3, list: NewsItem[], heading: string, board:
   // 0.36 折着也露出龙虎榜的头名：涨得最多的一只（没有就跌得最多的）
   const top = board?.up[0] ?? board?.down[0];
   const lead = top
-    ? [fitWidth(addText(s, title.x + title.width + 10, h / 2, `${top.move > 0 ? '领涨' : '领跌'} ${top.name} ${formatPoints(top.move)}`, { size: FS.xs, bold: true, color: signColor(top.move), originY: 0.5 }), more.x - more.width - title.x - title.width - 20)]
+    ? [fitKeepTail(addText(s, title.x + title.width + 10, h / 2, '', { size: FS.xs, bold: true, color: signColor(top.move), originY: 0.5 }), `${top.move > 0 ? '领涨' : '领跌'} ${top.name}`, ` ${formatPoints(top.move)}`, more.x - more.width - title.x - title.width - 20)]
     : [];
   // 条只有 30 高：触屏上点击区上下撑到 HIT_MIN（docs/ui.md：触屏可点区域 ≥ 44 像素）
   const hit = touchHit(s, CX + CW / 2, h / 2, CW, h);

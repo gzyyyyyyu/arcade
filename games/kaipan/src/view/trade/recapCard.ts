@@ -353,8 +353,8 @@ export class RecapCard {
     });
     fx.forEach((e, i) => {
       const fy = y + (chips.length > 0 ? 118 : 52);
-      const { head, money } = extraChip(e);
-      const t = addText(s, 0, 0, `${head}${money ? ` ${money}` : ''}`, { size: 12, bold: true, color: money?.startsWith('-') ? COLOR.down : COLOR.ink });
+      const { head, money, color } = extraChip(e);
+      const t = addText(s, 0, 0, `${head}${money ? ` ${money}` : ''}`, { size: 12, bold: true, color });
       const fw = t.width + 36;
       const fxX = x + PAD + i * (RECAP_RECT.w < 600 ? 206 : 210);
       root.add(s.add.rectangle(fxX, fy, Math.min(fw, 200), 24, COLOR.paperHi).setOrigin(0, 0).setRounded(12).setStrokeStyle(1.5, COLOR.edge, 1));

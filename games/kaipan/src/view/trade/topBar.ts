@@ -316,7 +316,8 @@ export class TopBarView {
     // 名字能放全就放全（0.19.1，主线要求）；还放不下才截短，全名和「大环境：xx」都在悬停里
     const room = (): number => FLAGS_RIGHT - TB.calTextX - 16 - this.weather.width;
     this.calText.setText(t.calendar.name);
-    if (this.calText.width > room()) this.weather.setText(arrow);
+    // 只剩箭头时，平盘那道「–」单独看不出意思（Gemini 界面审查第 11 条）：不写，悬停里照样有
+    if (this.calText.width > room()) this.weather.setText(moodSign === 0 ? '' : arrow);
     fitWidth(this.calText, room());
     this.calPill.setSize(this.calText.width + 16, TB.calPill.h);
     this.weather.setX(TB.calPill.x + this.calPill.width + 8);

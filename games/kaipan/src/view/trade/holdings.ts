@@ -13,6 +13,7 @@ import { bindTooltip } from '../ui/tooltip.ts';
 import { COMPACT_SLOTS, SLOTS, slotRects } from './layout.ts';
 import { unitPips } from './ext.ts';
 import { positionsView, formatMoney, freeUnits } from '../../core/index.ts';
+import { moneyShort } from '../ui/dialog.ts';
 import { addGlyph } from '../ui/art.ts';
 import { LOWBUY_ITEMS, dashedBox, frozenKeyOf, frozenOf, newTagOf, type PickMode, type SlotExt } from './holdingsShared.ts';
 import { SlotCard } from './slotCard.ts';
@@ -135,7 +136,9 @@ export class HoldingsView {
         root.add(dashedBox(sc, x + 8, y + 36, w - 16, h - 46, 0xd8c3a8));
         if (k === 0) {
           const bag = addGlyph(sc, x + 20, y + 19, 'moneybag', 22);
-          const amt = fitWidth(addText(sc, x + 34, y + 19, formatMoney(cash), { size: 14, bold: true, num: true, color: COLOR.accentDark, originY: 0.5 }), w - 42);
+          const amt = addText(sc, x + 34, y + 19, formatMoney(cash), { size: 14, bold: true, num: true, color: COLOR.accentDark, originY: 0.5 });
+          // 金额不截断：放不下换短写法
+          if (amt.width > w - 42) amt.setText(moneyShort(cash));
           root.add([bag, amt]);
           if (this.cashRect === null) this.cashRect = { x, y, w, h: 34 };
         }

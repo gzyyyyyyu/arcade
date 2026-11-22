@@ -173,7 +173,8 @@ export class MarketScreen {
     ([['领涨', lead], ['领跌', lag]] as const).forEach(([tag, x], i) => {
       const yy = y0 + 17 * (i + 1);
       this.board.add(label(yy, tag));
-      if (!x) return;
+      // 第一天还没有昨天的数：写一道杠，不留空（空着像没加载出来）
+      if (!x) return void this.board.add(addText(this.scene, right, yy, '—', { size: 13, bold: true, color: 0x8fa6bd, originX: 1, originY: 0.5 }));
       this.board.add(addImage(this.scene, bx + 38, yy, `theme:${x.id}`, 16));
       this.board.add(addText(this.scene, bx + 50, yy, names.get(x.id) ?? '', { size: 12, bold: true, color: 0xe8f1fb, originY: 0.5 }));
       this.board.add(addText(this.scene, right, yy, pctArrow(x.move), { size: 13, bold: true, num: true, color: mixLight(signColor(x.move)), originX: 1, originY: 0.5 }));

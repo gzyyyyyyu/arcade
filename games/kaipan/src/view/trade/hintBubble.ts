@@ -42,12 +42,13 @@ export class HintBubble {
     const root = s.add.container(0, 0).setDepth(40);
     // 0.5：气泡里只放一句短话（≤16 字），整句和来历在悬停提示里
     // 新玩法的说明要整句看完（截成 16 字会把关键那半句截掉）：字号从 15 往下缩到放得下为止
-    const room = h - CAT + 4 - 40;
+    const room = h - CAT - 2 - 40;
     const t = addText(s, 0, 0, full ? text : shortHint(text), { size: 15, bold: true, color: COLOR.ink, wrap: w - 28, lineSpacing: 3 });
     for (let size = 14; full && t.height > room && size >= Math.max(12, MIN_TEXT_SIZE); size--) t.setFontSize(size);
     // 0.5.1：气泡顶上找回小标题（谁在说：猫 / 新手提示），用小字 + 色点
-    const bh = Math.min(h - CAT + 4, t.height + 40);
-    const by = y + h - CAT - bh + 8;
+    // 猫头像底边贴着这块的底边（以前往下多伸 6，手机上被画面底边裁掉）
+    const bh = Math.min(h - CAT - 2, t.height + 40);
+    const by = y + h - CAT - bh + 2;
     const bubble = s.add.rectangle(x, by, w, bh, 0xfffbe8).setOrigin(0, 0).setRounded(12).setStrokeStyle(2.5, COLOR.ink, 1);
     const tail = s.add.triangle(0, 0, x + 18, by + bh - 1, x + 34, by + bh - 1, x + 22, by + bh + 12, 0xfffbe8).setOrigin(0, 0);
     const tailLine = s.add.graphics().lineStyle(2.5, COLOR.ink, 1).strokePoints([new Phaser.Math.Vector2(x + 18, by + bh), new Phaser.Math.Vector2(x + 22, by + bh + 12), new Phaser.Math.Vector2(x + 34, by + bh)]);
@@ -62,7 +63,7 @@ export class HintBubble {
       this.onClose?.();
     });
     const cx = x + 14 + CAT / 2;
-    const cy = y + h - CAT / 2 + 6;
+    const cy = y + h - CAT / 2;
     const cat = hasArt(s.textures, CAT_HINT_KEY)
       ? [addImage(s, cx, cy, CAT_HINT_KEY, CAT)]
       : [s.add.circle(cx, cy, CAT / 2 - 2, 0xf3a54a).setStrokeStyle(2.5, COLOR.ink, 1), addText(s, cx, cy, '喵', { size: 16, bold: true, color: COLOR.ink, originX: 0.5, originY: 0.5 })];

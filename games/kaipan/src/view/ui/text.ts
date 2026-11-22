@@ -148,6 +148,21 @@ export function fitWidth(t: Phaser.GameObjects.Text, room: number, min = 2): Pha
 }
 
 /**
+ * 「名字 + 数字」一行放不下时只缩名字（名字截成「…」，再不够就整段名字不要），数字原样留着：
+ * 数字不截断（docs/ui.md 第 10 节）。t 的内容会被换成 head + tail。
+ */
+export function fitKeepTail(t: Phaser.GameObjects.Text, head: string, tail: string, room: number): Phaser.GameObjects.Text {
+  t.setText(`${head}${tail}`);
+  let cut = Array.from(head);
+  while (t.width > room && cut.length > 1) {
+    cut = cut.slice(0, -1);
+    t.setText(`${cut.join('')}…${tail}`);
+  }
+  if (t.width > room) t.setText(tail.trimStart());
+  return t;
+}
+
+/**
  * 一行放不下时按逗号、分号、顿号、间隔号「·」分行，不在词中间按字数硬折（硬折会把「上岸」的「岸」、「新手」的「手」单独甩到下一行）。
  * 在「·」处断开时去掉行尾的点。只靠量宽度（t.width），文字要用不带 wrap 的 addText 先建好；某一小句自己就超宽时才退回按字折行。
  */

@@ -6,10 +6,10 @@ import { avatarKey, type Glyph } from '../assets.ts';
 import type { Animator } from '../fx/anim.ts';
 import { addBackdrop, shake } from '../fx/effects.ts';
 import { fireworks, sparkles } from '../fx/particles.ts';
-import { isTouch } from '../input.ts';
 import { sound } from '../sound.ts';
 import { COLOR, TYPE } from '../theme.ts';
 import { addGlyph, addImage, addPaper, addPill } from '../ui/art.ts';
+import { Button } from '../ui/button.ts';
 import { iconChip, moneyShort } from '../ui/dialog.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
 import { addText, fitWidth } from '../ui/text.ts';
@@ -85,13 +85,32 @@ function goalBadge(kind: GoalKind, target: number): { big: string; label: string
 }
 
 
-/** 附加说明（"名目：正文（+¥x）"）拆成短标题和金额；完整原句放悬停。 */
-export function extraChip(text: string): { head: string; money: string | null } {
+/** 「突然要花钱」附加说明的开头：monthFlow 拼句、extraChip 认支出都用它。 */
+export const SPEND_HEAD = '突然要花钱';
+
+/**
+ * 附加说明（"名目：正文（+¥x）"）拆成短标题、金额和金额的颜色；完整原句放悬停。
+ * 钱的颜色（0.36.2 统一）：花出去的钱（账单、花钱事件）用危险色、带负号；赚亏（事件结算、道具）按涨跌色。
+ */
+export function extraChip(text: string, ink: number = COLOR.ink): { head: string; money: string | null; color: number } {
   const i = text.indexOf('：');
   let head = (i > 0 ? text.slice(0, i) : text).replace(/ · 后来呢$/, '');
   if (head.length > 9) head = `${head.slice(0, 8)}…`;
   const all = text.match(/[+-]?¥[\d,.]+(?:万亿|万|亿)?/g);
-  return { head, money: all ? (all[all.length - 1] as string) : null };
+  const money = all ? (all[all.length - 1] as string) : null;
+  const color = !money ? ink : text.startsWith(SPEND_HEAD) ? COLOR.danger : money.startsWith('+') ? COLOR.up : money.startsWith('-') ? COLOR.down : ink;
+  return { head, money, color };
+}
+
+/** 月初卡右下的「知道了」按钮高度（含和上面内容的间距）。 */
+export const DONE_H = 52;
+
+/**
+ * 月初卡（看点卡、开场卡）右下的「知道了」：卡片到时自己收，按它、空格或点别处都是提前收。
+ * right、bottom 是按钮右下角在卡片里的位置。
+ */
+export function doneButton(scene: Phaser.Scene, right: number, bottom: number, onDone: () => void): Button {
+  return new Button(scene, right - 132, bottom - 44, { width: 132, height: 44, label: '知道了', hotkey: '空格', fontSize: 16, onClick: onDone });
 }
 
 /**
@@ -107,9 +126,10 @@ export function monthCard(
   cal: Pick<CalendarView, 'name' | 'days'>,
   bill: { name: string; amount: number },
   extras: string[],
+  onDone: () => void,
 ): { root: Phaser.GameObjects.Container; rect: { x: number; y: number; w: number; h: number } } {
   const root = scene.add.container(0, 0).setDepth(200);
-  root.add(addBackdrop(scene, info.boss ? 0.5 : 0.3));
+  root.add(addBackdrop(scene, info.boss ? 0.55 : 0.45));
   const mt = monthThemeView(s);
   const V = viewOf(scene);
   const ph = phoneLayout(scene);
@@ -220,21 +240,19 @@ export function monthCard(
   }
   // ---- 附加说明：每条一行（图标 + 短标题 + 金额），原句在悬停
   for (const e of extras.slice(0, 4)) {
-    const { head, money } = extraChip(e);
+    const { head, money, color } = extraChip(e, ink);
     const rowBg = scene.add.rectangle(col2, y, colW, 32, boss ? 0x46305a : COLOR.paperLo).setOrigin(0, 0).setRounded(10);
     const gl = addGlyph(scene, col2 + 18, y + 16, 'bolt', 22);
     const ht = addText(scene, col2 + 36, y + 16, head, { size: TYPE.label + 1, bold: true, color: ink, originY: 0.5 });
     body.push(rowBg, gl, ht);
-    if (money) {
-      const neg = money.startsWith('-') || head.includes('花');
-      body.push(addText(scene, col2 + colW - 12, y + 16, money, { size: TYPE.title, bold: true, num: true, color: money.startsWith('+') ? COLOR.up : neg ? COLOR.down : ink, originX: 1, originY: 0.5 }));
-    }
+    if (money) body.push(addText(scene, col2 + colW - 12, y + 16, money, { size: TYPE.title, bold: true, num: true, color, originX: 1, originY: 0.5 }));
     rowBg.setInteractive();
     const ry = y;
     bindTooltip(rowBg, () => ({ x: card.x + col2, y: card.y + ry, w: colW, h: 32 }), () => ({ title: head.replace(/…$/, ''), body: e }));
     y += 38;
   }
-  const H = two ? Math.min(V.h - 8, Math.max(leftBottom, y) + 28) : Math.min(narrow ? V.h - 8 : 680, y + 28);
+  // 右下留一个「知道了」按钮的高度（DONE_H）
+  const H = two ? Math.min(V.h - 8, Math.max(leftBottom, y + DONE_H) + 28) : Math.min(narrow ? V.h - 8 : 680, y + DONE_H + 28);
   const y0 = Math.round(V.h / 2 - H / 2);
   const panel = boss
     ? scene.add.rectangle(0, 0, W, H, BOSS_BG).setOrigin(0, 0).setRounded(18).setStrokeStyle(5, COLOR.gold, 1)
@@ -242,8 +260,7 @@ export function monthCard(
   // 背景纹样：右下角一个淡淡的大主题图标
   const mark = addGlyph(scene, W - 70, H - 70, icon, 120).setAlpha(boss ? 0.12 : 0.08);
   body.unshift(mark);
-  const hint = addText(scene, W - 18, H - 10, isTouch() ? '点一下' : '空格', { size: TYPE.label - 1, color: boss ? 0xd9c6e6 : COLOR.dim, originX: 1, originY: 1 });
-  const card = scene.add.container(x0, y0, [panel, ...body, hint]);
+  const card = scene.add.container(x0, y0, [panel, ...body, doneButton(scene, W - pad, H - 14, onDone)]);
   root.add(card);
   sound.cue({ type: 'monthStart' });
   if (!anim.instant) {

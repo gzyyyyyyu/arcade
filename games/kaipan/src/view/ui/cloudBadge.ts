@@ -4,7 +4,7 @@ import { cloudView, onCloudChange } from '../cloudSync.ts';
 import { COLOR, FS, css } from '../theme.ts';
 import { addText } from './text.ts';
 import { HIT_MIN } from './button.ts';
-import { bindTooltip, pinTooltip } from './tooltip.ts';
+import { bindTooltip, pinTooltip, type TipContent } from './tooltip.ts';
 
 /**
  * 开始菜单上的云朵（云存档状态，0.5.7）：按状态上色的实心云 + 云上一个白色粗记号 + 底下两三个字，五种一眼分得清。
@@ -45,7 +45,8 @@ export class CloudBadge extends Phaser.GameObjects.Container {
       const m = this.getBounds();
       return { x: m.x, y: m.y, w: m.width, h: m.height };
     };
-    const tip = (): { title: string; body: string } => ({ title: `云存档 · ${LOOK[this.view.state].word}`, body: this.view.note ? `${this.view.note}。` : LOOK[this.view.state].tip });
+    // 说明放云朵右边的空地：放下方会盖住副标题和「快速开始」
+    const tip = (): TipContent => ({ title: `云存档 · ${LOOK[this.view.state].word}`, body: this.view.note ? `${this.view.note}。` : LOOK[this.view.state].tip, side: 'right' });
     hit.on(Phaser.Input.Events.POINTER_UP, (p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
       // 长按是看说明，不算点
       if (p.wasTouch && p.getDuration() >= 400) return;

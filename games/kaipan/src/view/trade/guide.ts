@@ -15,6 +15,8 @@ import { TOP } from './layout.ts';
 const W = 280;
 const DEPTH = 250;
 const GAP = 16;
+/** 气泡底边两颗按钮（左「跳过全部引导」16+100、右「下一步」100+16）之间的空当，留出箭头半宽 16 */
+const BTN_GAP: [number, number] = [116 + 16, W - 116 - 16];
 /** 每个交易日盘前最多冒几个气泡（剩下的明天再说） */
 const PER_DAY = 3;
 const FREE: readonly TutorialStep[] = ['goal', 'colors'];
@@ -75,6 +77,8 @@ export class Guide {
   private ring: Phaser.GameObjects.Graphics | null = null;
   /** 指向目标的大箭头（随高亮框一起销毁） */
   private arrow: Phaser.GameObjects.Graphics | null = null;
+  /** 这一步画不画大箭头（藏起再显示时照旧） */
+  private arrowOn = false;
   private next: Button | null = null;
   private close: Button | null = null;
   private current: StepHit | null = null;
@@ -122,7 +126,7 @@ export class Guide {
     if (this.root && this.placedFor === sig) {
       this.root.setVisible(true);
       this.ring?.setVisible(true);
-      this.arrow?.setVisible(true);
+      this.arrow?.setVisible(this.arrowOn);
       return;
     }
     const fresh = this.current?.step !== hit.step;
@@ -201,28 +205,32 @@ export class Guide {
     // 手机上只放上下：放左右再沿边滑开，气泡会和指向目标的箭头脱开
     // 0.19.0 手机世界矮到 404：目标是整块推荐列表时上下都放不下，再试左右（总比放进列表里盖住「买入」好）
     const sides = PHONE ? [...away, 'left', 'right'] as Side[] : [...SIDES[step], ...(['left', 'right', 'below', 'above'] as Side[]).filter((x) => !SIDES[step].includes(x))];
+    // 上下放时还试离目标远一点（竖屏：目标下面是群聊、上面紧贴页签，贴着放会压住页签，往上让过页签只盖空着的持仓格）
+    const fars = [0, 40, 80, 120, 160];
     for (const [rank, side] of sides.entries()) {
-      for (const d of slides) {
-        let x: number;
-        let y: number;
-        if (side === 'left' || side === 'right') {
-          x = side === 'left' ? target.x - W - GAP : target.x + target.w + GAP;
-          // 很高的目标（整列看板）：气泡靠上放，别压到中间的持仓卡
-          y = clampY((target.h > 300 ? target.y + 40 : target.y + target.h / 2 - h / 2) + d);
-          if (x < 8 || x + W > V.w - 8) continue;
-        } else {
-          y = side === 'above' ? target.y - h - GAP : target.y + target.h + GAP;
-          x = clampX(target.x + target.w / 2 - W / 2 + d);
-          // 只差一点放不下（「挑一样」下面那条空地）：往里挪一点，只压到目标的留边，不退到压住卡片的位置
-          if (y + h > V.h - 8 && y + h - (V.h - 8) <= 24) y = V.h - 8 - h;
-          if (y < minY && minY - y <= 24) y = minY;
-          if (y < minY || y + h > V.h - 8) continue;
+      for (const far of side === 'left' || side === 'right' ? [0] : fars) {
+        for (const d of slides) {
+          let x: number;
+          let y: number;
+          if (side === 'left' || side === 'right') {
+            x = side === 'left' ? target.x - W - GAP : target.x + target.w + GAP;
+            // 很高的目标（整列看板）：气泡靠上放，别压到中间的持仓卡
+            y = clampY((target.h > 300 ? target.y + 40 : target.y + target.h / 2 - h / 2) + d);
+            if (x < 8 || x + W > V.w - 8) continue;
+          } else {
+            y = side === 'above' ? target.y - h - GAP - far : target.y + target.h + GAP + far;
+            x = clampX(target.x + target.w / 2 - W / 2 + d);
+            // 只差一点放不下（「挑一样」下面那条空地）：往里挪一点，只压到目标的留边，不退到压住卡片的位置
+            if (y + h > V.h - 8 && y + h - (V.h - 8) <= 24) y = V.h - 8 - h;
+            if (y < minY && minY - y <= 24) y = minY;
+            if (y < minY || y + h > V.h - 8) continue;
+          }
+          const box = { x, y, w: W, h };
+          const cost = overlap(box, tgt) * 4 + avoid.reduce((n, r) => n + overlap(box, r), 0);
+          const score = cost + rank * 0.5 + Math.abs(d) * 0.01 + far * 0.02;
+          if (cost === 0) return { x, y, side };
+          if (!best || score < best.cost) best = { x, y, side, cost: score };
         }
-        const box = { x, y, w: W, h };
-        const cost = overlap(box, tgt) * 4 + avoid.reduce((n, r) => n + overlap(box, r), 0);
-        const score = cost + rank * 0.5 + Math.abs(d) * 0.01;
-        if (cost === 0) return { x, y, side };
-        if (!best || score < best.cost) best = { x, y, side, cost: score };
       }
     }
     if (best) return best;
@@ -280,7 +288,9 @@ export class Guide {
     tri.fillStyle(0xfffbe8, 1).lineStyle(3, COLOR.ink, 1);
     const tcx = target.x + target.w / 2 - x;
     const tcy = target.y + target.h / 2 - y;
-    const ax = Math.max(22, Math.min(W - 22, tcx));
+    // 气泡在目标上面时，大箭头的尾巴会伸进气泡底边那一排按钮：箭头挪到「跳过全部引导」和「下一步」之间的空当（还得落在目标上）
+    const gapX = Math.max(BTN_GAP[0], Math.min(BTN_GAP[1], tcx));
+    const ax = side === 'above' && x + gapX >= target.x + 12 && x + gapX <= target.x + target.w - 12 ? gapX : Math.max(22, Math.min(W - 22, tcx));
     const ay = Math.max(22, Math.min(h - 22, tcy));
     const pts =
       side === 'below'
@@ -310,7 +320,10 @@ export class Guide {
     // 目标高亮框 + 指向目标的大箭头（单独一层，不随气泡移动）
     this.ring = s.add.graphics().setDepth(DEPTH - 1);
     this.ring.lineStyle(4, COLOR.accent, 1).strokeRoundedRect(target.x - 5, target.y - 5, target.w + 10, target.h + 10, 12);
-    const arrow = this.pointer(target, side).setVisible(!inside);
+    // 气泡为让过页签离目标远了（中间隔着别的控件）：大箭头会压在那些控件上（竖屏「推荐」页签的字），不画，只留气泡尖角和高亮框
+    const apart = side === 'above' ? target.y - (y + h) : side === 'below' ? y - (target.y + target.h) : 0;
+    this.arrowOn = !inside && apart <= GAP + 8;
+    const arrow = this.pointer(target, side, side === 'above' ? x + ax : undefined).setVisible(this.arrowOn);
     this.arrow = arrow;
     if (!(s.data.get('calm') as boolean)) {
       s.tweens.add({ targets: this.ring, alpha: { from: 1, to: 0.35 }, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -323,7 +336,7 @@ export class Guide {
   }
 
   /** 目标边上的大箭头，从气泡那一侧指向目标（挂在高亮框那一层，一起销毁）。 */
-  private pointer(target: Rect, side: Side): Phaser.GameObjects.Graphics {
+  private pointer(target: Rect, side: Side, atX?: number): Phaser.GameObjects.Graphics {
     // 0.5.1：箭头画在气泡上面一层，不会被气泡挡住
     const g = this.scene.add.graphics().setDepth(DEPTH + 1);
     // 箭头朝右画在原点左侧，再按方向旋转
@@ -337,7 +350,7 @@ export class Guide {
     // 气泡在左边 → 箭头在目标左沿、朝右
     if (side === 'left') g.setPosition(target.x - 6, cy);
     else if (side === 'right') g.setPosition(target.x + target.w + 6, cy).setRotation(Math.PI);
-    else if (side === 'above') g.setPosition(cx, target.y - 6).setRotation(Math.PI / 2);
+    else if (side === 'above') g.setPosition(atX ?? cx, target.y - 6).setRotation(Math.PI / 2);
     else g.setPosition(cx, target.y + target.h + 6).setRotation(-Math.PI / 2);
     // 跟高亮框放进同一个 Graphics 的生命周期：框销毁时箭头一起走
     const ring = this.ring;
