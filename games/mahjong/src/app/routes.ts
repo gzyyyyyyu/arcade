@@ -47,8 +47,13 @@ export function homePage(): void {
     quick: kind(quickStakes, prefs.level),
     // 带上存档的玩法：上面标题写的是选着的玩法，和这一场可能不是一种（0.47.1 走查）
     resume: save ? `${saveVariant(save)} · ${kind(save.stakes, save.level)} · ${progressOf(save)}` : null,
-    // 卡上只写原因的头一句（"连不上服务器"），整句挤不下一屏（docs/ui.md 第 11 节）
-    realOff: wallet ? (wallet.balance <= 0 ? '钱包没有筹码了' : null) : (walletNote ?? NET_FAIL).split(/[，。]/)[0]!,
+    // 卡上只写一行短话：原因的头一句也常折成两行，667 宽的横屏手机上把整栏撑出一屏、底下的规则链接被裁（11-22 走查）；点卡说整句
+    realOff: wallet
+      ? wallet.balance <= 0
+        ? { label: '没筹码了', why: '钱包里没有筹码了，去大厅领补给再来' }
+        : null
+      : { label: '暂时用不了', why: walletNote ?? NET_FAIL },
+    onNote: (text) => toast(text),
     standalone: session.standalone,
     record: readRecord(),
     variant: page.homeId(prefs),
