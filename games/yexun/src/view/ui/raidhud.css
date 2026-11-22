@@ -29,6 +29,7 @@
   pointer-events: auto; font-size: max(12px, calc(14px * var(--s, 1)));
 }
 .yx-bagpanel .hd { font-size: calc(15px * var(--s, 1)); padding: 0 2px 4px; border-bottom: 2px solid rgba(23, 19, 28, 0.25); }
+.yx-bagpanel .boost { font-size: max(12px, calc(12px * var(--s, 1))); color: #8a5a10; padding: 4px 2px; border-bottom: 2px solid rgba(23, 19, 28, 0.15); }
 .yx-bagpanel .empty { opacity: 0.7; padding: 6px 2px; font-weight: 500; }
 .yx-bagpanel .it {
   display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 4px;

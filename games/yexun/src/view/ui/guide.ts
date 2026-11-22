@@ -7,7 +7,9 @@ import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import { fmtClock, TICKS_PER_SECOND } from '../../content/clock.ts';
 import { PICKS } from '../../content/picks.ts';
 import type { EnemyKind } from '../../content/enemies.ts';
-import { GATE_WINDOWS, RAID_DAWN, RAID_LATE } from '../../content/explore.ts';
+import { CHEST, GATE_WINDOWS, RAID_DAWN, RAID_LATE, RAID_SUPPLY } from '../../content/explore.ts';
+
+const pct = (v: number): string => `${Math.round(v * 100)}%`;
 import { NIGHT_MARKET } from '../../content/market.ts';
 import { RUSH, RUSH_STAGES } from '../../content/rush.ts';
 import { GUIDE_EXAMPLES, ROLE_NAME, ROLE_TIP, SCHOOL_IDS, SCHOOLS, WEAPON_ROLE, type Role, type SchoolId } from '../../content/guide.ts';
@@ -391,6 +393,8 @@ export class Guide {
         '夜探：搜宝、打怪、找门撤离',
         '<ul class="yx-glist">' +
           `<li>${this.img('chest')}进镇子开宝箱（站在箱子边读条），宝物放进背包。</li>` +
+          `<li><b>娱乐局</b>开箱回血：木箱 ${pct(CHEST.wood.heal)}、铜箱 ${pct(CHEST.copper.heal)}、金箱 ${pct(CHEST.gold.heal)}；铜箱、金箱再给一次三选一（实盘是随机升一件）。</li>` +
+          `<li><b>宝气</b>（娱乐局）背包里每件珍品伤害 +${pct(RAID_SUPPLY.boost[2]!)}、绝品 +${pct(RAID_SUPPLY.boost[3]!)}，最多 +${pct(RAID_SUPPLY.boostMax)}：越往镇子深处搜越强，倒下跟宝物一起丢。</li>` +
           `<li><b>撤离门</b>${gates}。站进门圈 3 秒撤出，背包带回家。</li>` +
           `<li><b>鬼市</b>倒计时 ${left(RAID_LATE.market.from)} 到 ${left(RAID_LATE.market.to)} 镇中心摆摊，用局里的铜钱买宝物。</li>` +
           `<li><b>宝库</b>倒计时 ${left(RAID_LATE.vault.at)} 开封，要钥匙；钥匙是倒计时 ${left(RAID_LATE.vault.keyFrom)} 以后第一只倒下的精英或守卫掉的，里面 ${RAID_LATE.vault.items} 件好东西。</li>` +

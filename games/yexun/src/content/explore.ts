@@ -249,11 +249,20 @@ export const CHEST_TIERS: readonly ChestTier[] = ['wood', 'copper', 'gold'];
  * 宝箱：几件宝物、每档的权重（凡 / 良 / 珍 / 绝）、深处（离镇中心近）往高档挪多少；铜箱、金箱另给一次守夜的升级宝箱（法器、被动、进化）。
  * deep：深度 0（镇边）到 1（镇中心）之间，按 deep × 深度 把"凡"的权重挪给后三档（按后三档原来的比例）。
  */
-export const CHEST: Record<ChestTier, { items: number; weights: readonly [number, number, number, number]; deep: number; upgrade: boolean }> = {
-  wood: { items: 1, weights: [0.75, 0.21, 0.035, 0.005], deep: 0.25, upgrade: false },
-  copper: { items: 2, weights: [0.42, 0.4, 0.15, 0.03], deep: 0.3, upgrade: true },
-  gold: { items: 3, weights: [0.15, 0.4, 0.33, 0.12], deep: 0.3, upgrade: true },
+export const CHEST: Record<ChestTier, { items: number; weights: readonly [number, number, number, number]; deep: number; upgrade: boolean; heal: number }> = {
+  wood: { items: 1, weights: [0.75, 0.21, 0.035, 0.005], deep: 0.25, upgrade: false, heal: 0.15 },
+  copper: { items: 2, weights: [0.42, 0.4, 0.15, 0.03], deep: 0.3, upgrade: true, heal: 0.25 },
+  gold: { items: 3, weights: [0.15, 0.4, 0.33, 0.12], deep: 0.3, upgrade: true, heal: 0.4 },
 };
+
+/**
+ * 娱乐夜探的补给和成长（实盘不带：动了撤出率就动结回期望，实盘要跟先报数）：
+ * - 开箱回血：按血上限的比例（`CHEST.heal`，木 15% / 铜 25% / 金 40%）；
+ * - 肉包掉率 × bun：夜探怪少（同一分钟击杀约是守夜的三分之一），肉包跟着少，挨了打补不回来；
+ * - 铜箱、金箱给的升级改成三选一（实盘仍是随机升一件）；
+ * - 宝气：背包里每件珍品伤害 +3%、绝品 +8%，最多 +40%；死了宝物丢光，宝气跟着没了。越往深处搜越强。
+ */
+export const RAID_SUPPLY = { bun: 2.5, boost: [0, 0, 0.03, 0.08] as readonly number[], boostMax: 0.4 };
 
 /** 开箱：站在 range 以内 hold 拍（1.5 秒）；走出去就从头来（挨打不打断，但会被推开） */
 export const CHEST_OPEN = { range: 70, hold: 45 };

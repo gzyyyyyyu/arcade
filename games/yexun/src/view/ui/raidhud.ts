@@ -7,6 +7,7 @@
  */
 import './raidhud.css';
 import { TIER_INFO, TREASURES } from '../../content/treasures.ts';
+import { RAID_SUPPLY } from '../../content/explore.ts';
 import type { RaidMap } from '../../explore/mapgen.ts';
 import { treasureIconKey } from '../art/sprites-raid.ts';
 
@@ -20,6 +21,8 @@ export interface RaidHudState {
   teach: boolean;
   /** 背包里的宝物编号 */
   bag: readonly number[];
+  /** 宝气（伤害加成）；实盘局没有，是 null */
+  boost: number | null;
   /** 小地图要的动态数据：主角位置、没开的宝箱下标、开着的门、守卫位置（x, y 交替） */
   hx: number;
   hy: number;
@@ -34,6 +37,13 @@ export interface RaidHudState {
   vault: number;
   /** 身上有宝库钥匙 */
   hasKey: boolean;
+}
+
+/** 宝气一行：数读 RAID_SUPPLY（娱乐夜探，珍、绝宝物加伤害） */
+function boostLine(b: number): string {
+  const [, , zhen, jue] = RAID_SUPPLY.boost;
+  const pct = (v: number): number => Math.round(v * 100);
+  return `<div class="boost">宝气 +${pct(b)}% 伤害 · 珍 +${pct(zhen!)}%、绝 +${pct(jue!)}%，最多 +${pct(RAID_SUPPLY.boostMax)}%，倒下跟宝物一起丢</div>`;
 }
 
 const hex = (n: number): string => `#${n.toString(16).padStart(6, '0')}`;
@@ -264,7 +274,7 @@ export class RaidHud {
           return `<div class="it" style="--tc:${hex(TIER_INFO[t.tier].color)}"><img alt="" src="${this.icons(treasureIconKey(t.icon), 48)}"><span class="n">${t.name}</span><span class="v">${t.value}</span><i>${TIER_INFO[t.tier].name}</i></div>`;
         })
         .join('');
-      this.panel.innerHTML = `<div class="hd">背包 ${s.bag.length} 件 · 共 ${total} 铜钱</div>${rows || '<div class="empty">还没有宝物。打开宝箱，把东西带出门。</div>'}`;
+      this.panel.innerHTML = `<div class="hd">背包 ${s.bag.length} 件 · 共 ${total} 铜钱</div>${s.boost === null ? '' : boostLine(s.boost)}${rows || '<div class="empty">还没有宝物。打开宝箱，把东西带出门。</div>'}`;
       this.btn.dataset.value = String(total);
     }
     // 小地图：每 6 帧重画

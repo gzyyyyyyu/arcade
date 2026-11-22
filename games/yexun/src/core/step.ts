@@ -254,6 +254,7 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
     } else if (choice === Pick.Skip) {
       // 跳过：不选，抽一样随机小奖（content/picks.ts）
       w.pendingLevels--;
+      if (w.chestPicks > 0) w.chestPicks--;
       w.choices = [];
       w.phase = 'play';
       w.bonusCard = 0;
@@ -307,7 +308,24 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
     // 夜探：撤出算赢，倒下、天亮还在镇里算输（DESIGN.md 2.3）
     const raid = w.raid;
     raid.tick(w);
-    while (raid.takeUpgrade()) openChest(w, 1);
+    // 娱乐夜探：铜箱、金箱的升级三选一；实盘照旧随机升一件
+    while (raid.takeUpgrade()) {
+      if (w.setup.live) openChest(w, 1);
+      else {
+        w.pendingLevels++;
+        w.chestPicks++;
+      }
+    }
+    const hp = raid.takeHeal();
+    if (hp > 0) {
+      const n = Math.round(w.stats.hpMax * hp);
+      heal(w, n);
+      w.ev.push(Ev.Pickup, w.x, w.y, Drop.Bun, n);
+    }
+    if (raid.boost !== w.raidBoost) {
+      w.raidBoost = raid.boost;
+      recompute(w);
+    }
     if (w.hp <= 0 && w.revives > 0) revive(w, g);
     if (w.hp <= 0) {
       raid.die(w.tick);
@@ -1905,7 +1923,7 @@ function killEnemy(w: World, i: number): void {
   const more = (w.tick < w.calmUntil ? CALM.dropMul : 1) * (w.setup.weekly === 'lantern' ? WEEKLY_FX.lanternDrop : 1);
   // 受伤补偿：血低时肉包多掉，补出来的那部分有冷却
   // 噩梦档（危险 7 起）补给减半：只乘肉包，别的掉落不变
-  const mercy = (w.hp < w.stats.hpMax * MERCY.hp && w.tick >= w.mercyAt ? MERCY.bun : 1) * dangerDef(w.setup.mode, w.setup.danger).supply;
+  const mercy = (w.hp < w.stats.hpMax * MERCY.hp && w.tick >= w.mercyAt ? MERCY.bun : 1) * dangerDef(w.setup.mode, w.setup.danger).supply * (w.raid ? w.raid.bunMul : 1);
   if (r < DROPS.scroll) addDrop(w, Drop.Scroll, x + 8, y, 1);
   else if (r < DROPS.scroll + DROPS.bun * more * mercy) {
     if (r >= DROPS.scroll + DROPS.bun * more) w.mercyAt = w.tick + MERCY.gap;
@@ -2837,7 +2855,7 @@ function bomb(w: World, x: number, y: number): void {
 function recompute(w: World): void {
   const p = (id: PassiveId): number => w.passives[id] ?? 0;
   const s = baseStats();
-  s.might = 1 + 0.1 * p('zhusha');
+  s.might = 1 + 0.1 * p('zhusha') + w.raidBoost;
   s.cdMul = 1 - 0.08 * p('xianglu');
   s.speed = PLAYER.speed * (1 + 0.1 * p('caoxie'));
   // 仙桃每级血上限 +15、每秒回 0.25（原来 +20、0.3：满级血翻倍还每秒回 1.5，是最强的一件被动，见 CHANGELOG）
@@ -3104,7 +3122,7 @@ function choicePool(w: World): { c: Choice; weight: number }[] {
     } else if (w.weapons.length < MAX_WEAPONS + w.fullMerges) pool.push({ c: { kind: 'weapon', id }, weight: 1 });
   }
   // 前几次升级：和角色初始法器同一类的法器卡更容易出，开局更像这个角色
-  if (w.level - w.pendingLevels + 1 <= 1 + CHAR_FX.earlyEvery) {
+  if (w.level - (w.pendingLevels - w.chestPicks) + 1 <= 1 + CHAR_FX.earlyEvery) {
     const kind = WEAPONS[w.startWeapon].type;
     for (const p of pool) if (p.c.kind === 'weapon' && WEAPONS[p.c.id as WeaponId].type === kind) p.weight *= CHAR_FX.earlyMul;
   }
@@ -3229,6 +3247,7 @@ function applyChoice(w: World, c: Choice): void {
     heal(w, COIN_PICK.heal);
   }
   w.pendingLevels--;
+  if (w.chestPicks > 0) w.chestPicks--;
   w.choices = [];
   w.phase = 'play';
   w.bonusCard = 0;

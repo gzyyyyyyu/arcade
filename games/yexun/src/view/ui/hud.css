@@ -103,6 +103,8 @@
 .yx-fill { position: absolute; left: 0; top: 0; bottom: 0; transition: width 0.15s ease-out; }
 .yx-hp .yx-fill { background: linear-gradient(#ff8a7a, #e0453a 55%, #b8312a); }
 .yx-sh .yx-fill { background: linear-gradient(#a8dcff, #4ba3e6 60%, #2f7cc0); }
+.yx-hud .yx-boost { margin-left: 6px; color: #ffd76a; font-size: var(--fs-xs, 12px); }
+.yx-hud .yx-boost:empty { display: none; }
 .yx-bar-text {
   position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
   color: #fff; font-size: max(var(--fs-xs, 12px), calc(var(--fs-xs, 12px) * var(--s, 1)));

@@ -2,7 +2,7 @@
  * 一局夜探的状态和每拍的规则（DESIGN.md 2.3）：宝箱读条、撤离门开关、站门圈撤出、天亮迷失、背包、守卫排队出场。
  * 核心每拍调一次 `tick`（接法见 host.ts 末尾的清单）。和核心一样原地修改、不分配热路径对象；同种子同输入逐位相同。
  */
-import { BEAST, CHEST, CHEST_OPEN, RAID_EARLY, CHEST_TIERS, DAWN_RED, DAWN_WARN, GATE, GATE_WINDOWS, GATE_WINDOWS_EARLY, GUARD, RAID_DAWN, RAID_LATE, RAID_TEMPLATES, type RaidEnemyKind, type RaidTemplate } from '../content/explore.ts';
+import { RAID_SUPPLY, BEAST, CHEST, CHEST_OPEN, RAID_EARLY, CHEST_TIERS, DAWN_RED, DAWN_WARN, GATE, GATE_WINDOWS, GATE_WINDOWS_EARLY, GUARD, RAID_DAWN, RAID_LATE, RAID_TEMPLATES, type RaidEnemyKind, type RaidTemplate } from '../content/explore.ts';
 import { TIERS, TREASURES } from '../content/treasures.ts';
 import type { EnemyKind } from '../content/enemies.ts';
 import { dist } from '../core/fmath.ts';
@@ -53,6 +53,11 @@ export class Raid {
   endTick = 0;
   /** 攒着的升级宝箱（铜箱、金箱另给一次，核心 openChestNow） */
   upgrades = 0;
+  /** 攒着还没给主角回的血（血上限的比例；娱乐夜探开箱回血） */
+  heals = 0;
+  /** 宝气：背包里珍、绝宝物给的伤害加成（娱乐夜探） */
+  boost = 0;
+  readonly bunMul: number;
   /** 天亮提示到了第几段（0 没到、1 倒计时、2 最后 30 秒） */
   dawnStage = 0;
 
@@ -105,6 +110,7 @@ export class Raid {
     this.setup = setup;
     this.tpl = RAID_TEMPLATES[setup.template];
     this.teach = setup.template === 'teach';
+    this.bunMul = setup.live ? 1 : RAID_SUPPLY.bun;
     if (this.teach && setup.live) throw new Error('教学镇不能开实盘');
     this.map = generateMap(setup.template, setup.seed);
     this.rGate = new Rng(setup.seed, 'raid-gate');
@@ -197,6 +203,17 @@ export class Raid {
   }
 
   /** 攒着的升级宝箱拿一个（核心 openChestNow） */
+  addLoot(it: number): void {
+    this.bag.push(it);
+    if (!this.setup.live) this.boost = Math.min(RAID_SUPPLY.boostMax, this.boost + RAID_SUPPLY.boost[TIERS.indexOf(TREASURES[it]!.tier)]!);
+  }
+
+  takeHeal(): number {
+    const h = this.heals;
+    this.heals = 0;
+    return h;
+  }
+
   takeUpgrade(): boolean {
     if (this.upgrades <= 0) return false;
     this.upgrades--;
@@ -291,11 +308,12 @@ export class Raid {
     h.ev.push(RaidEv.ChestOpen, c.x, c.y, best, CHEST_TIERS.indexOf(c.tier), c.items.length);
     const early = !this.teach && c.tier !== 'gold' && h.tick < RAID_EARLY.until && dist(c.x - this.map.spawn.x, c.y - this.map.spawn.y) <= RAID_EARLY.near;
     for (const it of c.items) {
-      this.bag.push(it);
+      this.addLoot(it);
       if (early) this.earlyBonus += Math.floor(TREASURES[it]!.value * (RAID_EARLY.mul - 1));
       h.ev.push(RaidEv.Loot, c.x, c.y, it, TIERS.indexOf(TREASURES[it]!.tier));
     }
     if (CHEST[c.tier].upgrade) this.upgrades++;
+    if (!this.setup.live) this.heals += CHEST[c.tier].heal;
   }
 
   /** 撤离：在开着的门圈里站 3 秒（挨打不打断，出圈从头来） */
@@ -333,7 +351,7 @@ export class Raid {
     if (g >= 0) this.slotGuard[i] = -1;
     if (g >= 0 && this.gRole[g] === Role.goblin) {
       for (const it of rollChest(this.rLate, 'gold', 1).slice(0, RAID_LATE.goblin.items)) {
-        this.bag.push(it);
+        this.addLoot(it);
         h.ev.push(RaidEv.Loot, x, y, it, TIERS.indexOf(TREASURES[it]!.tier));
       }
       h.ev.push(RaidEv.Goblin, x, y, 2);
@@ -476,7 +494,7 @@ export class Raid {
     h.coins -= this.stallPrice[s]!;
     h.coinSpent += this.stallPrice[s]!;
     this.stallSold[s] = 1;
-    this.bag.push(this.stallItem[s]!);
+    this.addLoot(this.stallItem[s]!);
     this.buyStall = -1;
     this.buyTicks = 0;
     h.ev.push(RaidEv.Loot, this.stallX[s]!, this.stallY[s]!, this.stallItem[s]!, TIERS.indexOf(TREASURES[this.stallItem[s]!]!.tier));

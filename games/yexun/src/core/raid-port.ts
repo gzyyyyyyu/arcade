@@ -31,6 +31,12 @@ export interface RaidPort {
   tick(h: RaidPlayerView): void;
   die(tick: number): void;
   takeUpgrade(): boolean;
+  /** 这一拍开箱该回的血（血上限的比例），取完清零 */
+  takeHeal(): number;
+  /** 宝气：背包给的伤害加成 */
+  readonly boost: number;
+  /** 肉包掉率倍数（娱乐夜探加量） */
+  readonly bunMul: number;
   takeSpawn(): number;
   guardSpawn(g: number): { kind: EnemyKind | RaidEnemyKind; x: number; y: number };
   bindGuard(g: number, i: number, h: GuardHost): void;
