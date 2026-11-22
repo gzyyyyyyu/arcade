@@ -27,7 +27,7 @@ function sumRows(c: Counts): number {
   return CATEGORIES.reduce((s, k) => s + c.rows[k], 0);
 }
 
-export interface D1MetaLike {
+interface D1MetaLike {
   rows_written?: number;
   rows_read?: number;
   size_after?: number;

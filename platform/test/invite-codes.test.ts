@@ -119,7 +119,7 @@ describe('带码注册', () => {
     expect(await errorOf(await registerWith(undefined))).toBe('registration_closed');
     const res = await registerWith(c.code.toLowerCase());
     expect(res.status).toBe(201);
-    // 原来的 9 行 + 试码计数 1 + 占码 1 + 使用记录 2 + 好友 2
+    // 普通注册的 9 行 + 试码计数 1 + 占码 1 + 使用记录 2 + 好友 2
     expect(rowsWritten()).toBe(15);
     const newId = ((await res.json()) as { user: { id: string } }).user.id;
     const friends = ((await (await call('/api/friends', { cookie: a.cookie })).json()) as { friends: { userId: string }[] }).friends;

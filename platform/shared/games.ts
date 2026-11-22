@@ -6,7 +6,7 @@
  * 接口也读这份目录：GAME_IDS 是云存档、分数榜、钱包的游戏白名单，也是保留用户名（worker/api/account/validate.ts），所以这里不放只有浏览器才有的东西。
  * 新游戏想先接钱包、存档，再正式上大厅：先登记成 status 'coming'（大厅显示"即将上线"，进不去），上线时改成 'playable'。
  */
-export type GameStatus = 'playable' | 'coming';
+type GameStatus = 'playable' | 'coming';
 
 export interface GameEntry {
   id: string;
@@ -58,14 +58,14 @@ export interface GameEntry {
 }
 
 /** 每日挑战的子榜：id 只用小写字母和数字、字母开头、不像版本号（v2），name 是标签上的中文名 */
-export interface DailySub {
+interface DailySub {
   id: string;
   name: string;
 }
 export const DAILY_SUB_RE = /^(?!v\d)[a-z][a-z0-9]{0,15}$/;
 
 /** 固定榜：id 是交分用的榜名，name 是排行页标签上的中文名 */
-export interface FixedBoard {
+interface FixedBoard {
   id: string;
   name: string;
 }
@@ -81,7 +81,7 @@ export const GAMES: readonly GameEntry[] = [
     path: '/games/kaipan/',
     devUrl: 'http://localhost:5173/',
     status: 'playable',
-    // 分两个每日子榜：经典（原来的一年局）和闪电盘（5 分钟局）；和开盘改交带子榜的榜名的 PR 一起上线
+    // 分两个每日子榜：经典（一年局）和闪电盘（5 分钟局）
     featuredDaily: 'classic',
     daily: [
       { id: 'classic', name: '经典' },
@@ -222,7 +222,7 @@ export const GAMES: readonly GameEntry[] = [
     wallet: false,
   },
   {
-    // 第八个游戏，0.1.0（12 关战役）上线后直接登记成能玩；接了平台钱包（和夜巡一样不写 wallet，档位走钱包的通用档位表）
+    // 接了平台钱包（和夜巡一样不写 wallet，档位走钱包的通用档位表）
     id: 'haidao',
     name: '海岛',
     // 介绍照游戏 README

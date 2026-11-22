@@ -127,7 +127,7 @@ function WeekTrend({ balance, ledger }: { balance: number; ledger: LedgerEntry[]
 
 const OTHER = '_other';
 // 桌上的筹码和进出记录（一行 36 高）最多这么多条时面板按内容高；再多按高度翻页。
-// 桌上的一条带两行说明约 100 高，左栏还有钱包卡和这周：两条要 900 高的屏才按内容高，1280×800 原来第二条被裁掉半截
+// 桌上的一条带两行说明约 100 高，左栏还有钱包卡和这周：两条要 900 高的屏才按内容高，不然 1280×800 第二条被裁掉半截
 const FIT_STAKES = 2;
 const STAKES_ROOMY = '(min-height: 900px)';
 const FIT_LEDGER = 3;
@@ -237,7 +237,7 @@ export function WalletPage() {
       )}
     </Panel>
   );
-  // 这周没打带筹码的局、也没有今天的上限提示：收成一行大白话，不留一大块空（原来标题和"本周净赢 0"之间全空）
+  // 这周没打带筹码的局、也没有今天的上限提示：收成一行大白话，不留一大块空
   const weekNone = !Object.values(week).some((v) => v !== 0) && caps.length === 0;
   const weekPanel = weekNone ? (
     <Panel icon="coin" title="这周的输赢" className="wallet-page__week wallet-page__week--none">

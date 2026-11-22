@@ -8,7 +8,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Paged, useMedia } from '../../features/fit/Fit.tsx';
 
 /** 左边有 180px 的分区导航，内容区够两栏才并排 */
-export const ADMIN_WIDE = '(min-width: 1100px) and (min-height: 600px)';
+const ADMIN_WIDE = '(min-width: 1100px) and (min-height: 600px)';
 export const useAdminWide = () => useMedia(ADMIN_WIDE);
 
 export function AdminTabs({ tabs, label = '切换' }: { tabs: readonly { id: string; name: string; body: ReactNode }[]; label?: string }) {

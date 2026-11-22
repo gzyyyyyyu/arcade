@@ -61,7 +61,7 @@ export async function friendsFeed(browser: Browser): Promise<void> {
     check((await at.textContent())!.startsWith(`${total} /`), `${label}：翻到最后一页该是 ${total} / ${total}（${await at.textContent()}）`);
     await noScroll(page, label, '好友页最后一页');
     if (screen === 'desktop') {
-      // 各栏顶部对齐、不强求等高（0.39.13 起人少的栏按内容高）；要翻页的好友栏撑满，是最高的那栏
+      // 各栏顶部对齐、不强求等高（人少的栏按内容高）；要翻页的好友栏撑满，是最高的那栏
       const cols = await page.locator('.friends-page .ptabs__pane').evaluateAll((els) => els.map((e) => ({ top: Math.round(e.getBoundingClientRect().top), h: Math.round(e.getBoundingClientRect().height), list: !!e.querySelector('[data-testid="friends-paged"]') })));
       check(cols.length >= 2 && cols.every((c) => Math.abs(c.top - cols[0]!.top) <= 2), `${label}：电脑上各栏该顶部对齐（${cols.map((c) => c.top).join(' / ')}）`);
       const list = cols.find((c) => c.list);

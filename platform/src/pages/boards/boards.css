@@ -30,7 +30,7 @@
 .boards-page .bcard__sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: var(--fs-sm); }
 /* 晒战绩靠标题行右边，和标题同一条中线 */
 .boards-page .bcard__head .btn { flex: none; margin-left: auto; white-space: nowrap; min-height: 32px; padding-block: 0; }
-/* 触屏和窄屏（手机、平板）：晒战绩按得到的范围至少 44 见方，标题行跟着按钮高度居中对齐（原来 72×32，不够按） */
+/* 触屏和窄屏（手机、平板）：晒战绩按得到的范围至少 44 见方，标题行跟着按钮高度居中对齐 */
 @media (pointer: coarse), (max-width: 959px) {
   .boards-page .bcard__head .btn { min-height: var(--tap); min-width: var(--tap); }
 }
@@ -107,7 +107,7 @@ html.no-motion .boards-page .podium .podium__step, html.no-motion .boards-page .
 }
 
 /* 宽屏只有一块榜（总榜、海岛）、人多要翻页时：左栏领奖台在上、"我的名次"卡在下，右栏翻页名单，两栏顶部对齐（不要中间一窄条、两边空着）。
-   台子按固定高度，第一名最高约 200：原来按左栏剩下的高度拉伸，1920 下三根斜纹柱拉到约 500 高，像图表不像台子 */
+   台子按固定高度，第一名最高约 200：按左栏剩下的高度拉伸的话，1920 下三根柱子约 500 高，像图表不像台子 */
 @media (min-width: 960px) and (min-height: 600px) {
   .boards-page .boards-solo { max-width: none; }
   .boards-page .boards-solo .bcard:not(.bcard--fit) .bcard__ranks { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); align-items: start; gap: var(--s-3) var(--s-6); }

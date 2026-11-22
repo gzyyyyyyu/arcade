@@ -96,7 +96,7 @@ export async function peek(db: Db, key: string, windowMs: number, now: number): 
   return row && row.window_start >= start ? row.count : 0;
 }
 
-export interface FailRow {
+interface FailRow {
   count: number;
   window_start: number;
   blocked_until: number;
@@ -138,8 +138,8 @@ function failStatement(db: Db, key: string, limits: Limits, now: number): D1Prep
 
 /**
  * 算密码之前先占一次尝试（第三轮审计）：按失败记一次（同 failStatement），对了再由调用方清零。
- * 原来是先查锁、算完 PBKDF2 再记失败：锁到期那一刻并发打进来的一批都过了查锁，每个都试了一次密码。
- * 占位是一条带条件的 UPSERT，锁着时写 0 行、不返回，这一次就 429；让它锁上的那一次照常往下验（和原来第 5 次失败一样）。
+ * 先占位再验密码：先查锁、算完 PBKDF2 再记失败的话，锁到期那一刻并发打进来的一批都过了查锁，每个都试了一次密码。
+ * 占位是一条带条件的 UPSERT，锁着时写 0 行、不返回，这一次就 429；让它锁上的那一次照常往下验（算第 5 次失败）。
  */
 export async function reserveAttempt(db: Db, key: string, limits: Limits, now: number): Promise<void> {
   const row = await db.first<{ blocked_until: number }>(failStatement(db, key, limits, now));

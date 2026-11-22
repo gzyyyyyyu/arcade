@@ -4,7 +4,7 @@
  */
 import { loadGameFile } from './gamefile.ts';
 
-export interface TitleInfo {
+interface TitleInfo {
   name: string;
   desc?: string;
 }

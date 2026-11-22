@@ -5,10 +5,9 @@
  * 减少动效、自动化浏览器下不播，直接跳；中键、Ctrl 开新标签页照常（不拦）。
  */
 import { getLatestTotal } from './chips-fx.ts';
-import { ENTER_FX_KEY as KEY } from './chips-fx-logic.ts';
+import { ENTER_FX_WITHIN_MS, ENTER_FX_KEY as KEY } from './chips-fx-logic.ts';
 import { playEnter } from './sound.ts';
 
-const BACK_WITHIN_MS = 30 * 60_000;
 const ZOOM_MS = 260;
 const BACK_MS = 220;
 
@@ -96,7 +95,7 @@ function takeRecord(): { id: string; at: number } | null {
 /** 刚从某个游戏回来就播一次"封面缩回卡片"。找不到那张卡（比如滚到别处、游戏下架）就不播 */
 function playBackFx(findCover: (gameId: string) => Element | null): void {
   const rec = takeRecord();
-  if (!rec || Date.now() - rec.at > BACK_WITHIN_MS || quiet()) return;
+  if (!rec || Date.now() - rec.at > ENTER_FX_WITHIN_MS || quiet()) return;
   const img = findCover(rec.id);
   if (!(img instanceof HTMLImageElement)) return;
   const r = img.getBoundingClientRect();

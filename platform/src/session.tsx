@@ -12,7 +12,7 @@ function hasLoginHint(): boolean {
  * ok：正常；readonly：服务器忙，只能看不能改；off：账号服务暂停（接口明确回了 busy）；
  * unreachable：连不上（断网，或者回来的不是我们的接口，比如 Cloudflare 的出错页），可以重试。
  */
-export type Service = 'ok' | 'readonly' | 'off' | 'unreachable';
+type Service = 'ok' | 'readonly' | 'off' | 'unreachable';
 
 interface SessionState {
   /** 还在问服务器（只在有登录提示 cookie 时出现；超时重试期间也算）。 */

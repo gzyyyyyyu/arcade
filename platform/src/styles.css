@@ -13,7 +13,7 @@
   --line: #2b1d14;
   --accent: #f07a3a;
   --accent-deep: #e0601f;
-  /* 浅底上的橙色字：原来的 --accent 对比度不够读 */
+  /* 浅底上的橙色字：--accent 在浅底上对比度不够读 */
   --accent-ink: #b24c14;
   --soft: #eee6dc;
   --divider: #e6dccf;
@@ -174,7 +174,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   /* 矮屏一屏放下（只有 390 高）：去掉副标题、顶部和标题下的空白收紧，内容区多出一截 */
   .top__sub { display: none; }
   .top { margin-bottom: var(--s-1); }
-  /* 页脚触屏做到 44 高以后横屏又少一截：页脚不留上外边距；主体往页脚伸 4px 刚好放下面板 3px 的实线投影（原来是 0，投影被页脚盖住），
+  /* 页脚触屏做到 44 高以后横屏又少一截：页脚不留上外边距；主体往页脚伸 4px 刚好放下面板 3px 的实线投影（不伸的话投影被页脚盖住），
      伸进去的 4px 落在页脚 44 高点击区的上沿空白里，不挡字 */
   .foot { margin-top: 0; }
   .page > .page__body { padding-bottom: 4px; margin-bottom: -4px; }
@@ -212,7 +212,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   transition: transform var(--ease), box-shadow var(--ease);
 }
 .account--loading { width: 88px; opacity: 0.4; box-shadow: none; }
-/* 当前页：暖色底、橙字（和页签、侧栏的选中同一组颜色，不用橙底免得和"进入游戏"这类主按钮混） */
+/* 当前页：暖色底、橙字（和页签的选中同一组颜色，不用橙底免得和"进入游戏"这类主按钮混） */
 .topbar .account[aria-current="page"] { background: var(--highlight-warm); color: var(--accent-ink); }
 .account__avatar { display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--white); font-size: 15px; }
 .account__name { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -223,13 +223,13 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 @media (max-width: 560px) {
   /*
    * 手机竖屏：标题和顶栏并成一行——左边只留 logo 图标（站名留给读屏），右边五个按钮只露图标（排行、动态、好友）、
-   * 筹码数字和头像；不再写副标题。原来顶栏一行 + 大标题 + 副标题占掉约 20% 屏高，现在一行约 7%，第一屏留给游戏
+   * 筹码数字和头像；不写副标题：一行约占 7% 屏高，第一屏留给游戏
    */
   .page { padding-left: max(var(--s-4), env(safe-area-inset-left, 0px)); padding-right: max(var(--s-4), env(safe-area-inset-right, 0px)); padding-top: max(var(--s-3), env(safe-area-inset-top, 0px)); }
   .top { flex-direction: row; justify-content: space-between; align-items: center; gap: var(--s-2); margin-bottom: var(--s-4); }
   .top__sub { display: none; }
   .top__name, .account__avatar + .account__name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  /* 顶栏吃满标题右边剩下的宽，按钮均匀分开（原来全挤在右边、按钮间只隔 2–4px，左边 logo 旁空一截） */
+  /* 顶栏吃满标题右边剩下的宽，按钮均匀分开，不全挤在右边 */
   .topbar { flex: 1; min-width: 0; flex-wrap: nowrap; justify-content: space-between; gap: var(--s-1); }
   .topbar .account { padding: 0 10px; font-size: var(--fs-sm); }
   .topbar .account:has(.account__avatar), .topbar .account:has(.account__label) { padding: 0 6px; min-width: var(--tap); }
@@ -238,14 +238,14 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .topbar .account--nav, .topbar .feedpop__btn { flex-direction: column; gap: 2px; padding: 0 6px; min-width: var(--tap); border-radius: var(--r-md); }
   .topbar .account--nav .icon, .topbar .feedpop__btn .icon { width: 18px; height: 18px; }
   .topbar .account--nav .account__label, .topbar .feedpop__btn .feedpop__label { font-size: var(--fs-xs); line-height: 1; }
-  /* 在线数在图标上面一行：图标从按钮内约 7px 起，角标高 18、往上提到 -12，底边不碰图标（原来 -7、高 20 压住图标一角） */
+  /* 在线数在图标上面一行：图标从按钮内约 7px 起，角标高 18、往上提到 -12，底边不碰图标 */
   .topbar .account--nav .account__online { top: -12px; height: 18px; line-height: 14px; }
   .top__logo { gap: var(--s-2); }
   .logo-mark { width: 36px; height: 36px; }
   /* 只剩图标的回首页链接也要 44×44 好点 */
   .top__home { min-width: var(--tap); justify-content: center; }
 }
-/* 360 宽这一档（要写在上面 560 那段后面，不然内边距被它盖回去）：按钮收窄。普通用户五个按钮加五位数余额原来要 366 宽，
+/* 360 宽这一档（要写在上面 560 那段后面，不然内边距被它盖回去）：按钮收窄。普通用户五个按钮加五位数余额不收要 366 宽，
    超出的那点让手机浏览器把整页缩小，一屏放不下（11-02 排行页领奖台矩阵 360×640 量出来的） */
 @media (max-width: 379px) {
   .top { gap: var(--s-1); }
@@ -282,9 +282,9 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 }
 /* 按下去：往下沉到阴影的位置（按钮的阴影是正下方的实色下沿） */
 .btn:active:not(:disabled), .card__play:not(.card__play--disabled):active, .account:active { transform: translateY(4px); box-shadow: var(--hl), 0 0 0 var(--line); }
-/* 禁用：灰底灰字、没有阴影（原来是半透明，橙按钮成了浅橙，看着像还能点） */
+/* 禁用：灰底灰字、没有阴影（半透明的话橙按钮成了浅橙，看着像还能点） */
 .btn:disabled, .card__play--disabled { background: var(--soft); color: var(--muted); border-color: #b9aaa2; box-shadow: none; text-shadow: none; cursor: not-allowed; }
-/* 加载中：保留原来的颜色，前面一个小圈在转 */
+/* 加载中：颜色不变，前面一个小圈在转 */
 .btn[aria-busy='true'] { cursor: progress; }
 .btn--primary[aria-busy='true'], .btn--danger[aria-busy='true'] { background: var(--accent-deep); color: var(--white); border-color: var(--line); opacity: 0.85; }
 .btn--danger[aria-busy='true'] { background: var(--danger); }
@@ -435,7 +435,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .lobby > .banner, .lobby > .nudges { flex: none; margin: 0; }
 .lobby__games { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 @media (min-width: 1440px) {
-  /* 所有页面的容器一样宽，顶栏的位置换页不动（原来只有大厅放宽到 1600，进子页顶栏往里缩 160px）；单栏子页仍是中间一窄列 */
+  /* 所有页面的容器一样宽，顶栏的位置换页不动；单栏子页仍是中间一窄列 */
   .page { max-width: calc(1600px + 2 * var(--s-5)); }
 }
 
@@ -448,7 +448,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
  * 矮下来的部分由封面让出（object-fit 裁边），名字、一句话、按钮不动
  */
 .lobby-grid--all .paged__list { grid-auto-rows: minmax(0, auto); align-content: center; }
-/* 平板竖屏（820×1180 这类）：封面压矮一点，一页放下三排六张（原来简介折两行的那排高出一行字，三排差几像素只放得下两排，下面空四成） */
+/* 平板竖屏（820×1180 这类）：封面压矮一点，一页放下三排六张（简介折两行的那排会高出一行字，差几像素只放得下两排） */
 @media (min-width: 600px) and (max-width: 959px) and (min-height: 900px) { .lobby-grid .card__cover { aspect-ratio: 2.2 / 1; } }
 /* 高屏（1920×1080 这类）封面放回 16:9，不在格子下面留一大片空白 */
 @media (min-height: 900px) { .lobby-grid--all .card__cover { aspect-ratio: 16 / 9; } }
@@ -486,14 +486,14 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .card:hover .card__more, .card:focus-within .card__more { opacity: 1; transform: none; }
   .card:hover .card__cover { transform: scale(1.05); }
 }
-/* 正文两行：名字和按钮一排、一句话在下面；比原来"按钮单独一行铺满"矮一截，电脑上两排卡放得下 */
+/* 正文两行：名字和按钮一排、一句话在下面；比按钮单独一行矮一截，电脑上两排卡放得下 */
 .card__body {
   flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title play' 'tagline play'; align-content: center; align-items: center;
   gap: 2px var(--s-3); padding: var(--s-3) var(--s-4);
 }
 .card__body > .card__title { grid-area: title; }
 .card__body > .card__tagline { grid-area: tagline; }
-/* "上次玩 · 多久以前"：压在封面左下角里面（原来骑在分界线上，往下压住游戏名的字头） */
+/* "上次玩 · 多久以前"：压在封面左下角里面（骑在分界线上会压住游戏名的字头） */
 .card__kicker {
   position: absolute; bottom: calc(100% + var(--bw) + var(--s-2)); left: var(--s-3);
   padding: 2px var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); background: var(--accent); color: var(--white);
@@ -507,7 +507,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .card__tags li { font-size: var(--fs-xs); line-height: 20px; padding: 0 var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); background: var(--white); }
 /* 卡片上只有一个按钮：铺满卡片正文宽，margin-top: auto 压到卡底，同一行一句话长短不一时按钮照样对齐 */
 .card__body > .card__play { grid-area: play; align-self: center; margin: 0; padding: 0 var(--s-4); white-space: nowrap; }
-/* "今天 N 人玩过"：骑在封面和正文的分界线右边（原来压在封面右上角，挡住封面上的标题字），只盖住封面底边一小条 */
+/* "今天 N 人玩过"：骑在封面和正文的分界线右边（放封面右上角会挡住封面上的标题字），只盖住封面底边一小条 */
 .card__body { position: relative; }
 .card__playing {
   position: absolute; top: -15px; right: var(--s-4);
@@ -518,8 +518,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .card__playing .icon { width: 16px; height: 16px; color: var(--accent-deep); }
 /*
  * 手机（≤599）：一行一张的短卡——左边封面缩略图、中间名字和一句话、右边"进入"。一张约 68 高（一句话折两行时；
- * 封面不再撑到 76、上下内边距 3、一句话行高 1.3、卡间 6），360×640 带"回去接着打"也一页 5 张（原来 83 高只放 4 张），
- * 390×844 第一屏在今日挑战和继续玩下面还能看到 3–4 个游戏的入口（原来一张卡要大半屏）
+ * 封面不再撑到 76、上下内边距 3、一句话行高 1.3、卡间 6），360×640 带"回去接着打"也一页 5 张，
+ * 390×844 第一屏在今日挑战和继续玩下面还能看到 3–4 个游戏的入口
  */
 @media (max-width: 599px), (max-height: 500px) {
   .lobby-grid .paged__list { grid-template-columns: 1fr; gap: 6px; }
@@ -535,7 +535,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .lobby-grid .card .card__tagline { font-size: var(--fs-xs); line-height: 1.3; }
   .lobby-grid .card .card__body > .card__play { min-width: 64px; padding: 0 var(--s-3); font-size: var(--fs-md); }
   /* "上次玩"：短卡上压在封面左上角 */
-  /* 封面只有 112 宽："上次玩 ·"只留给读屏，角标只写"36 天前"，不伸出封面压住标题（0.42.3 修过一次，长一点的天数又压了） */
+  /* 封面只有 112 宽："上次玩 ·"只留给读屏，角标只写"36 天前"，不伸出封面压住标题（天数一长就会压到） */
   .lobby-grid .card .card__kicker { top: 4px; bottom: auto; left: calc(-112px + 4px); max-width: calc(112px - 8px); padding: 0 6px; font-size: 12px; white-space: nowrap; }
   .lobby-grid .card .card__kicker-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .lobby-grid .card .card__play-more { display: none; }
@@ -688,7 +688,6 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   .btn--small, .inline-link { min-width: var(--tap); justify-content: center; }
   .rank__name, .people__link { min-width: var(--tap); padding-block: 10px; margin-block: -10px; }
   .people__link { display: inline-block; }
-  .stats-table { font-size: var(--fs-sm); }
 }
 /*
  * 桌上还有筹码的提示条（首屏顶栏以下唯一的一条）：手机上压成一行、放在页面顶上（做过底部固定条，单手够得着但和顶上那条重复，已并回顶部）。
@@ -718,7 +717,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .lobby-grid .paged__item:nth-child(n + 6) .card { animation-delay: 200ms; }
 .chips-num { font-variant-numeric: tabular-nums; }
 /* 余额还在读：占一个和"10,000"差不多宽的灰条，读到后数字换进来不跳宽 */
-/* 读取中的灰条：里面放一串看不见的"10,000"（新号起手就是这个数）撑宽，读完换成真数时顶栏按钮不挪（原来定宽 4.5ch，比 10,000 窄） */
+/* 读取中的灰条：里面放一串看不见的"10,000"（新号起手就是这个数）撑宽，读完换成真数时顶栏按钮不挪 */
 .account--chips .chips-num--wait { display: inline-block; line-height: 0.9; color: transparent; border-radius: var(--r-sm); background: var(--soft); vertical-align: middle; user-select: none; }
 .card__play:not(.card__play--disabled):active { transform: translateY(4px) scale(0.97); }
 @media (prefers-reduced-motion: reduce) {

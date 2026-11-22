@@ -16,7 +16,7 @@ import { meter } from '../lib/meter';
 import { takeIpToken } from '../core/ratelimit';
 import { readSetting, writeSettingStatement } from '../core/settings';
 
-export const VERSION: string = pkg.version;
+const VERSION: string = pkg.version;
 const STATE_KEY = 'monitor';
 const MSG_MAX = 200;
 const STACK_MAX = 1_000;
@@ -28,7 +28,7 @@ export function resetMonitorForTests(): void {
   lastLogged.clear();
 }
 
-export interface Check {
+interface Check {
   id: string;
   ok: boolean;
   n?: number;

@@ -9,7 +9,7 @@ export function togetherText(t: Together): string {
 }
 
 /** 做搭档至少几场才评"最佳搭档"：一两场看不出来 */
-export const BEST_MIN_TEAM = 3;
+const BEST_MIN_TEAM = 3;
 
 /** teamN ≥ 3 里 teamWins 最多的，平了取 teamN 多的；一个都不够就没有 */
 export function bestPartner<T extends { userId: string; together?: Together }>(friends: T[]): string | null {

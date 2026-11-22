@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
-<!-- 雀馆的大厅封面（平台 0.26.3）：照抄麻将模块手写的 games/mahjong/public/cover.svg，只把副标题换成"血战到底 · 立直"。
+<!-- 雀馆的大厅封面：照抄麻将模块手写的 games/mahjong/public/cover.svg，只把副标题换成"血战到底 · 立直"。
      改图后在 platform 目录跑 npm run cover，参数 from=tools/covers/mahjong.svg、id=mahjong（见 ASSETS.md） -->
 <defs>
 <radialGradient id="felt" cx="50%" cy="48%" r="75%"><stop offset="0" stop-color="#2f8a5f"/><stop offset="0.6" stop-color="#17583c"/><stop offset="1" stop-color="#0a2c1e"/></radialGradient>

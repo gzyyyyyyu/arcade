@@ -5,9 +5,10 @@
  */
 
 export const ENTER_FX_KEY = 'arcade.enterFx';
-export const CHIPS_FX_WITHIN_MS = 30 * 60_000;
+/** 进游戏的记录多久内回来才算"刚从游戏回来"（封面过渡和筹码演出共用） */
+export const ENTER_FX_WITHIN_MS = 30 * 60_000;
 
-export type ChipsFx = { kind: 'none' } | { kind: 'roll'; from: number } | { kind: 'burst'; from: number };
+type ChipsFx = { kind: 'none' } | { kind: 'roll'; from: number } | { kind: 'burst'; from: number };
 
 interface WalletLike {
   balance: number;
@@ -25,7 +26,7 @@ export function chipsTotal(w: WalletLike): number {
  */
 export function decideChipsFx(rec: { total?: unknown; at?: unknown } | null, now: { total: number; balance: number }, nowMs: number): ChipsFx {
   if (!rec || typeof rec.total !== 'number' || !Number.isFinite(rec.total) || typeof rec.at !== 'number') return { kind: 'none' };
-  if (nowMs - rec.at > CHIPS_FX_WITHIN_MS) return { kind: 'none' };
+  if (nowMs - rec.at > ENTER_FX_WITHIN_MS) return { kind: 'none' };
   const diff = now.total - rec.total;
   if (diff === 0) return { kind: 'none' };
   const from = Math.max(0, now.balance - diff);

@@ -1,6 +1,6 @@
 /**
  * public/_headers 的 CSP（docs/platform-backend.md 5.2）：本地冒烟拿不到 Cloudflare 注入的统计脚本，所以在这里锁住每条指令。
- * 只许 script-src 多出 Web Analytics 的脚本来源（维护者 2026-10-14 定"游戏站也要统计"；上报走同源，不用放），别的指令一个来源都不能多。
+ * 只许 script-src 多出 Web Analytics 的脚本来源（游戏站也要统计；上报走同源，不用放），别的指令一个来源都不能多。
  */
 import { describe, expect, it } from 'vitest';
 import headers from '../public/_headers?raw';
@@ -44,7 +44,7 @@ describe('静态页面的 CSP', () => {
       'style-src': ["'self'"],
       'img-src': ["'self'", 'data:', 'blob:'],
       'font-src': ["'self'"],
-      // 自动注入的 beacon 上报到同源 /cdn-cgi/rum（2026-10-14 线上实测），不用放 cloudflareinsights.com
+      // 自动注入的 beacon 上报到同源 /cdn-cgi/rum（线上实测过），不用放 cloudflareinsights.com
       'connect-src': ["'self'"],
       'frame-ancestors': ["'none'"],
       'base-uri': ["'none'"],

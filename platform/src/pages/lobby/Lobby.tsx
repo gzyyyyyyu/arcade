@@ -57,7 +57,7 @@ function GameCard({ game, last = null, main = false }: { game: GameEntry; last?:
         </div>
       </div>
       <div className="card__body">
-        {/* 人数牌子骑在封面和正文的分界线上：原来压在封面右上角，挡住封面上的标题字 */}
+        {/* 人数牌子骑在封面和正文的分界线上：放封面右上角会挡住封面上的标题字 */}
         {playable && playing > 0 && (
           <span className="card__playing" data-testid={`playing-${game.id}`}>
             <PeopleIcon />
@@ -184,7 +184,7 @@ function LobbyNudge() {
   const parts = stakes.length > 1 ? `（${stakes.length} 份）` : '';
   return (
     <div className="nudges" data-testid="nudges">
-      {/* 手机上也是页面顶上的一条（原来是底部固定条）：说法换短；万一还放不下，中间那段先省略，游戏名和数字留着 */}
+      {/* 手机上也是页面顶上的一条：说法换短；万一还放不下，中间那段先省略，游戏名和数字留着 */}
       <p className="banner nudge nudge--stake" data-testid="nudge-stake">
         <span className="nudge__what">
           <span className="nudge__keep">{g ? g.name : games.size > 1 ? `${games.size} 个游戏` : ''}</span>

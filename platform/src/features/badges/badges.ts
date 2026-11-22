@@ -5,7 +5,7 @@
  */
 import type { CareerView } from '../../api.ts';
 
-export type GlyphName = 'compass' | 'coin' | 'crown' | 'star' | 'flame' | 'card' | 'shield' | 'target' | 'ribbon' | 'people';
+type GlyphName = 'compass' | 'coin' | 'crown' | 'star' | 'flame' | 'card' | 'shield' | 'target' | 'ribbon' | 'people';
 
 /** 算徽章只用到游戏登记的这几项：测试里不用拼整份 GameEntry */
 export interface BadgeGame {

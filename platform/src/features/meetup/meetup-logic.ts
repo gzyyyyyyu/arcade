@@ -7,9 +7,9 @@ const DAY = 24 * HOUR;
 const SHIFT = 8 * HOUR;
 const HALF = HOUR / 2;
 /** 开局前 10 分钟起算"到点"：头像出小点、好友页的"去"变主按钮 */
-export const MEETUP_LEAD_MS = 600_000;
+const MEETUP_LEAD_MS = 600_000;
 /** 开局后 30 分钟还算到点（接口的 meetupGraceMs，过了接口就不给了；这里只为两次轮询之间也及时收起） */
-export const MEETUP_GRACE_MS = 1_800_000;
+const MEETUP_GRACE_MS = 1_800_000;
 
 const bjDay = (ms: number) => Math.floor((ms + SHIFT) / DAY);
 

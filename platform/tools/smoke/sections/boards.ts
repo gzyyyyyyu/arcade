@@ -5,12 +5,12 @@ import { mockSession } from '../lib/fakes.ts';
 import { clickShare } from '../lib/ui.ts';
 
 /** 排行页换游戏页签（顶上一排，窄屏横滑；点之前先滚到可见） */
-export async function pickBoard(page: Page, game: string): Promise<void> {
+async function pickBoard(page: Page, game: string): Promise<void> {
   await page.getByRole('tablist', { name: '哪个榜' }).getByRole('tab', { name: game, exact: true }).click();
 }
 
 /** 窄屏上游戏页签里的"本周净赢 / 每日"小页签；宽屏两块并排，没有这一排 */
-export async function pickPane(page: Page, name: string): Promise<void> {
+async function pickPane(page: Page, name: string): Promise<void> {
   const tab = page.getByRole('tablist', { name: '本周净赢和每日榜' }).getByRole('tab', { name });
   if (await tab.isVisible().catch(() => false)) await tab.click();
 }

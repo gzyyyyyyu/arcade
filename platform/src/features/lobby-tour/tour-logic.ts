@@ -1,10 +1,10 @@
 /** 新人大厅引导（三步）的纯逻辑：谁该看、跳过缺失的目标、气泡摆在哪。界面在 LobbyTour.tsx。 */
 
 /** 只给注册不久的新账号看，老玩家上线后不被打扰 */
-export const TOUR_DAYS = 7;
+const TOUR_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export interface TourStep {
+interface TourStep {
   /** 目标元素上的 data-tour 值 */
   target: string;
   text: string;
@@ -30,14 +30,14 @@ export function nextStep(steps: readonly TourStep[], from: number, present: (tar
   return -1;
 }
 
-export interface Box {
+interface Box {
   left: number;
   top: number;
   right: number;
   bottom: number;
 }
 
-export interface Viewport {
+interface Viewport {
   w: number;
   h: number;
   /** 刘海、圆角、home 条让出的边 */

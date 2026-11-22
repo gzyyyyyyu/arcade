@@ -1,7 +1,7 @@
 /** 战绩页的纯逻辑：页签（总览 + 玩过的每个游戏）、胜率文字。 */
 import type { CareerView } from '../../api.ts';
 
-export interface StatsTab {
+interface StatsTab {
   /** 'all' 或游戏 id */
   id: string;
   game: string | null;

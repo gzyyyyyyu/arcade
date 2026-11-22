@@ -238,7 +238,7 @@ describe('登录', () => {
         call('/api/auth/login', { body: { username: u.username, password: 'Wrong-Pass-1' }, ip: `192.0.2.${150 + i}` }),
       ),
     );
-    // 原来查锁和记失败中间隔着 PBKDF2，20 个都过了查锁、都试了一次密码（20 个 401）
+    // 查锁和记失败中间隔着 PBKDF2 的话，20 个都过了查锁、都试了一次密码（20 个 401）
     expect(res.filter((r) => r.status === 401)).toHaveLength(1);
     expect(res.filter((r) => r.status === 429)).toHaveLength(19);
     const row = await env.DB.prepare('SELECT count, blocked_until FROM rate_counters WHERE key = ?1').bind(key).first<{ count: number; blocked_until: number }>();
@@ -260,7 +260,7 @@ describe('登录', () => {
     await resetAll({ loginAllHour: 2, anonPerIpPerMinute: 100 });
     const u = await registerUser();
     const ghost = { username: 'ghost_user', password: 'Wrong-Pass-1' };
-    // 原来这 5 次就把全站 2 次的名额占满，第 3 次起谁都登不上
+    // 不存在的用户名不占全站名额，不然这 5 次就占满，第 3 次起谁都登不上
     for (let i = 0; i < 5; i++) expect((await call('/api/auth/login', { body: ghost, ip: `192.0.2.${61 + i}` })).status).toBe(401);
     expect((await call('/api/auth/login', { body: { username: u.username, password: 'Wrong-Pass-1' }, ip: '192.0.2.70' })).status).toBe(401);
     expect((await call('/api/auth/login', { body: { username: u.username, password: u.password }, ip: '192.0.2.71' })).status).toBe(200);

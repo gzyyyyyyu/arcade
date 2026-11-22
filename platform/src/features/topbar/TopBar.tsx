@@ -15,7 +15,7 @@ import { chipsTotal, decideChipsFx } from '../../lib/chips-fx-logic.ts';
 import { setLatestTotal, takePending } from '../../lib/chips-fx.ts';
 import { quiet } from '../../lib/enter-fx.ts';
 
-/** 顶栏上指向当前页的那一项标成 aria-current（styles.css 画暖色底）：手机上没有侧栏，靠它看出在哪一页 */
+/** 顶栏上指向当前页的那一项标成 aria-current（styles.css 画暖色底），靠它看出在哪一页 */
 const here = (path: string, href: string) => (path === href ? ({ 'aria-current': 'page' } as const) : {});
 
 /** 右上角：没登录是"登录"，登录了是头像（昵称第一个字）加昵称；管理员前面多一个"管理"。所有页面都是这同一组、同样的顺序 */
@@ -128,7 +128,7 @@ function WalletBadge({ path }: { path: string }) {
     if (bal !== null && last.current !== null && bal > last.current) playCoins();
     last.current = bal;
   }, [bal]);
-  // 今天能领补给：牌子上亮红点，进钱包页领（原来大厅有一整条领补给提示，占首屏）
+  // 今天能领补给：牌子上亮红点，进钱包页领（大厅不放一整条领补给提示，不占首屏）
   const canRelief = !!wallet && wallet.canRelief && wallet.writesLeft > 0;
   return (
     <Link className="account account--chips" href="/wallet" title={canRelief ? '我的筹码（今天能领补给）' : '我的筹码'} data-testid="wallet-badge" data-tour="chips" {...here(path, '/wallet')}>

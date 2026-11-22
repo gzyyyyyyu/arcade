@@ -52,7 +52,7 @@ describe('Cron 清理', () => {
     } finally {
       await env.DB.prepare('ALTER TABLE sessions_gone RENAME TO sessions').run();
     }
-    // 原来抛错就整个跳出，这两样都还在
+    // 一段抛错不整个跳出，这两样照样删
     expect(await count("SELECT COUNT(*) AS n FROM rate_counters WHERE key = 'login:ip:x'")).toBe(0);
     expect(await count('SELECT COUNT(*) AS n FROM meter_hourly WHERE hour < ?1', new Date(now - 7 * DAY).toISOString().slice(0, 13))).toBe(0);
   });

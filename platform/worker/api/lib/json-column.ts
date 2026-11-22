@@ -1,7 +1,7 @@
 /**
  * D1 里 JSON 列的读取：解析 + 运行时形状校验。
- * 原来是 `JSON.parse(x) as T` 直接断言，库里的数据坏了（不是合法 JSON、形状不对）要么抛 SyntaxError，
- * 要么带着错的形状往下走（比如钱包余额是字符串）。这里改成解析后过 guard，过不了就明确失败。
+ * 不直接 `JSON.parse(x) as T` 断言：库里的数据坏了（不是合法 JSON、形状不对）要么抛 SyntaxError，
+ * 要么带着错的形状往下走（比如钱包余额是字符串）。解析后过 guard，过不了就明确失败。
  * 错误和日志只带列名，绝不带数据内容（5.2：日志不记数据）。
  */
 
@@ -13,7 +13,7 @@ export class BadColumnError extends Error {
   }
 }
 
-export type Guard<T> = (v: unknown) => v is T;
+type Guard<T> = (v: unknown) => v is T;
 
 /** 严格：解析失败或形状不对就抛 BadColumnError，调用方让它冒到 500，或自己 catch 兜底 */
 export function parseJsonColumn<T>(text: string, guard: Guard<T>, column: string): T {

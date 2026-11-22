@@ -68,7 +68,7 @@ describe('结回带 tally', () => {
     expect((await rows())[0]!.n).toBe(2);
   });
 
-  it('没带：和以前一样只写 1 行，不记统计', async () => {
+  it('没带：只写 1 行，不记统计', async () => {
     const u = await registerUser();
     const a = await round(u.user.id, { back: 0 });
     expect(a.wrote).toBe(1);

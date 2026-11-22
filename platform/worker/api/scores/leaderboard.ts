@@ -108,7 +108,7 @@ function rankedBoards(players: Player[]): Record<string, Ranked> {
   return boards;
 }
 
-export interface BoardEntry {
+interface BoardEntry {
   rank: number;
   userId: string;
   displayName: string;

@@ -9,9 +9,9 @@ export const RECENT_KEY = 'arcade.recent';
 /** 本地最多记几条 */
 export const LOCAL_MAX = 6;
 /** 一行最多显示几个 */
-export const SHOW_MAX = 4;
+const SHOW_MAX = 4;
 
-export interface Recent {
+interface Recent {
   id: string;
   /** 毫秒时间戳 */
   at: number;

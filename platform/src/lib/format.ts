@@ -14,7 +14,7 @@ export const tone = (n: number): 'up' | 'down' | undefined => (n > 0 ? 'up' : n 
 export const dateText = (ms: number) => new Date(ms).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
 /** 带年份的日期：2026年9月26日 */
 export const fullDateText = (ms: number) => new Date(ms).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
-/** 月日加时分，一律 24 小时制，比如"10/15 21:05"（统一过：以前有几处没写 hour12，换个系统设置就可能成了"下午 9:05"） */
+/** 月日加时分，一律 24 小时制，比如"10/15 21:05"（写明 hour12，不然换个系统设置就可能成了"下午 9:05"） */
 export const timeText = (ms: number) =>
   new Date(ms).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 /** 游戏 id 换成大厅上的名字；大厅里没有的（下架了）原样显示 id */

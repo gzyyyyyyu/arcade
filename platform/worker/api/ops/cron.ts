@@ -39,7 +39,7 @@ export async function runCleanup(env: Env, now: number): Promise<{ rowsWritten: 
     }
 
     /**
-     * 每一段单独兜住（第三轮审计）：原来中间一条 DELETE 抛错（D1 一时出错、某张表的语句写错），后面的全跳过，
+     * 每一段单独兜住：免得中间一条 DELETE 抛错（D1 一时出错、某张表的语句写错）后面的全跳过，
      * 当天什么都没清。现在出错只记段名和错误类型，接着清下一段；删不完的第二天再删。
      */
     const step = async (name: string, fn: () => Promise<unknown>): Promise<void> => {

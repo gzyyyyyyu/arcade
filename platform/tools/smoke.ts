@@ -104,9 +104,9 @@ try {
     phone: phoneAudit, // 手机界面专项：四种屏幕逐页量
     noscroll: noScroll, // 一屏放下不滚：五个尺寸逐页量
     ui: uiPages, // 界面核对：每页电脑 1280、1920，手机 390、横屏 844 各一张，加登录页（不在全量里）
-    devices: deviceMatrix, // 多尺寸矩阵：手机竖横、平板、折叠屏、电脑，只做通用检查
+    devices: deviceMatrix, // 多尺寸矩阵：手机竖横、平板、折叠屏、电脑，只做通用检查（不在全量里）
     boards: boardsPage, // 排行榜
-    podium: podiumMatrix, // 总榜领奖台：1、2、3、10 人 × 我在不在榜 × 五个尺寸
+    podium: podiumMatrix, // 总榜领奖台：1、2、3、10、15 人 × 我在不在榜 × 五个尺寸
     feedpop: feedPop, // 顶栏的动态按钮和浮层
     friends: friendsUx, // 好友分享、点名字看战绩、战绩页加好友
     friendsfeed: friendsFeed, // 好友页和动态页，好友多、动态多的时候

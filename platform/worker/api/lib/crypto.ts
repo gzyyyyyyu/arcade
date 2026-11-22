@@ -87,9 +87,9 @@ export function safeEqual(a: string, b: string): boolean {
 
 // ---------- pepper ----------
 
-export type PepperName = 'PEPPER_PW' | 'PEPPER_RC' | 'PEPPER_SID' | 'PEPPER_IP';
+type PepperName = 'PEPPER_PW' | 'PEPPER_RC' | 'PEPPER_SID' | 'PEPPER_IP';
 
-export interface Pepper {
+interface Pepper {
   kid: string;
   key: CryptoKey;
 }

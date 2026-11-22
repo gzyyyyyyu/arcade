@@ -66,7 +66,7 @@ export async function mockSession(
 
 // ---------- 起本地接口 ----------
 
-export const FAKE_LIST = [
+const FAKE_LIST = [
   { id: 'a', username: 'owner', displayName: '阿国', role: 'admin', createdAt: Date.UTC(2026, 9, 14), lastSeenAt: Date.UTC(2026, 9, 14, 8) },
   {
     id: 'b',
@@ -89,7 +89,7 @@ export const FAKE_LIST = [
 ];
 
 /** 今日概况：今天现算，前一天是早期记的（没有人数） */
-export const FAKE_OVERVIEW = {
+const FAKE_OVERVIEW = {
   today: {
     day: '2026-10-16', total: 12_400_000, wallets: 44, grant: 20_000, relief: 3_500, admin: 5_000, active: 9, reliefCount: 2, visitors: 14,
     games: { kaipan: { in: 6_000, out: 9_000, back: 0, capped: 1_200, players: 3 }, texas: { in: 24_000, out: 21_000, back: 2_000, capped: 0, players: 6 } },
@@ -98,7 +98,7 @@ export const FAKE_OVERVIEW = {
 };
 
 /** 手机上的筹码统计表：几个游戏、大数字，看横向能不能滑开 */
-export const FAKE_STATS = [
+const FAKE_STATS = [
   { day: '2026-10-15', total: 12_345_678, wallets: 42, grant: 120_000, relief: 6_000,
     games: { guandan: { in: 20_000, out: 18_500, back: 0, capped: 0 }, kaipan: { in: 8_000, out: 14_000, back: 2_000, capped: 1_500 }, texas: { in: 50_000, out: 38_000, back: 2_000, capped: 0 } } },
   { day: '2026-10-14', total: 12_100_000, wallets: 40, grant: 100_000, relief: 2_000, games: {} },

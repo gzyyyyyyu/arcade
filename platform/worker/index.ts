@@ -15,7 +15,7 @@ import type { Env } from './env';
 export { WalletService } from './api/wallet/service';
 
 /**
- * 默认入口是一个 WorkerEntrypoint（原来是普通对象）：游戏的 `ARCADE` 服务绑定不写 entrypoint，指的就是它，
+ * 默认入口是一个 WorkerEntrypoint：游戏的 `ARCADE` 服务绑定不写 entrypoint，指的就是它，
  * 所以除了 fetch（登录闸门问 /api/me，15.8），这里的公开方法游戏的服务端也能经 RPC 调。只放给服务端用的只读方法
  */
 export default class Arcade extends WorkerEntrypoint<Env> {

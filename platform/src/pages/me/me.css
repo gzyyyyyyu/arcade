@@ -24,7 +24,7 @@
 .me-page .me-cols > .me-card--note { flex: 1; justify-content: flex-start; }
 .me-page .me-card .row { margin: 0; gap: var(--s-2); }
 .me-page .me-body > .me-one > .me-card { flex: none; }
-/* 说明卡按内容高，剩下的高度给下面的列表（窄屏原来被上一条撑到半屏、字飘在中间） */
+/* 说明卡按内容高，剩下的高度给下面的列表（不然窄屏被上一条撑到半屏、字飘在中间） */
 .me-page .me-body > .me-one > .me-card--note { flex: none; }
 
 /* 资料 */

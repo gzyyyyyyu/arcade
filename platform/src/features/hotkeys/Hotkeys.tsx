@@ -6,7 +6,7 @@ import './hotkeys.css';
 /** 只有鼠标加键盘的设备才启用；触屏手机没有实体键盘，装了也是白占监听 */
 const FINE_POINTER = '(hover: hover) and (pointer: fine)';
 
-export interface UseHotkeysOptions {
+interface UseHotkeysOptions {
   /** 大厅里可玩游戏的地址，按显示顺序；按键时才取，保证拿到最新列表 */
   gameUrls: () => string[];
   navigate: (path: string) => void;

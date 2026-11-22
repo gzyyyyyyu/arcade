@@ -159,7 +159,7 @@ html.no-motion .pcard { animation: none; }
 .stats-page .stats-badges .paged__list--grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: var(--s-2); }
 .stats-page .badges .badge { height: 100%; }
 .stats-page .badges__tip { flex: none; margin: 0; padding: var(--s-1) var(--s-3); font-size: var(--fs-xs); }
-/* 手机竖屏徽章缝收到 4、上下内边距收到 2：390×844 第 4 排（三行字的徽章约 62 高）原来差几像素放不下，一页 6 枚、下面空一截 */
+/* 手机竖屏徽章缝收到 4、上下内边距收到 2：390×844 第 4 排（三行字的徽章约 62 高）才放得下 */
 @media (max-width: 560px) {
   .stats-page .stats-badges .paged__list--grid { gap: var(--s-1); }
   .stats-page .badges.stats-badges .badge { padding-block: 2px; }
@@ -197,7 +197,7 @@ html.no-motion .stats-page .ov-row { transition: none; }
 .stats-page .stats-titles .title__name, .stats-page .stats-titles .title__date { max-width: 100%; text-align: center; overflow-wrap: anywhere; }
 @media not all and (min-width: 960px) and (min-height: 600px) {
   .stats-page .stats-facts { display: grid; grid-template-columns: 1fr 1fr; }
-  /* 两栏一格只有一百多宽：名字在上、数在下，原来并排时"本周净赢"被大数挤成竖着一字一行 */
+  /* 两栏一格只有一百多宽：名字在上、数在下，并排时"本周净赢"被大数挤成竖着一字一行 */
   .stats-page .stats-facts > div { flex-direction: column; align-items: flex-start; gap: 0; }
   .stats-page .stats-facts dt { white-space: nowrap; }
   .stats-page .stats-facts dd { text-align: left; }
@@ -234,7 +234,7 @@ html.no-motion .stats-page .ov-row { transition: none; }
   .stats-page .badges .badge__disc { width: 30px; height: 30px; }
   .stats-page .badges .badge__bar { display: none; }
 }
-/* 手机竖屏：游戏页签一行放不下就折行，全都看得到（原来横滑，第 5 个只露半个） */
+/* 手机竖屏：游戏页签一行放不下就折行，全都看得到，不横滑 */
 @media (max-width: 560px) {
   .stats-page .stats-tabs { flex-wrap: wrap; overflow: visible; }
   /* 横排小徽章在 390 宽排两列（按 150 只排得下一列，一页还是 3 枚） */

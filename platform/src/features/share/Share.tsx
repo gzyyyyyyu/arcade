@@ -11,7 +11,7 @@ import { num } from '../../lib/format.ts';
 import { pickStats } from './share-pick.ts';
 
 /** 平台的主题色（和大厅的橙色一致） */
-export const SHARE_ACCENT = '#e8742c';
+const SHARE_ACCENT = '#e8742c';
 
 /** 最近画过的一张头像：战绩页每次渲染都拼卡，不留着就每次新画一张 256 的 canvas */
 let lastArt: { name: string; canvas: HTMLCanvasElement } | null = null;
@@ -87,7 +87,7 @@ export function ShareButton({ card, url, label, testId }: { card: ShareCard; url
   const key = JSON.stringify(data) + url;
   // biome-ignore lint/correctness/useExhaustiveDependencies: 只在内容变了（key）时重画：card 每次渲染都是新对象
   useEffect(() => {
-    // 空闲时再画：打开战绩页那一帧原来要同步画卡、转 PNG，手机上一卡。空闲前就点了，点击里当场画（下面的退路）
+    // 空闲时再画：打开战绩页那一帧同步画卡、转 PNG 的话手机上一卡。空闲前就点了，点击里当场画（下面的退路）
     const draw = () => {
       prepared.current = prepare(card, url);
     };

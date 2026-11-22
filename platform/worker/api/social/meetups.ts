@@ -16,7 +16,7 @@ import { ApiError, json, noContent, rateLimited } from '../lib/http';
 /** 开局时间只收整点、半点（北京时间和 UTC 差整 8 小时，按 UTC 取整一样） */
 const SLOT_MS = 1_800_000;
 
-export interface MeetupOut {
+interface MeetupOut {
   host: { id: string; name: string };
   game: string;
   at: number;

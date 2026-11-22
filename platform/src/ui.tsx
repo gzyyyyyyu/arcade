@@ -127,7 +127,7 @@ export function RecoveryCodeCard({ code, username, onDone, doneText }: { code: s
         这是你的<strong>恢复码</strong>。忘了密码时，只能靠它找回账号。我们不收手机号和邮箱，它<strong>只显示这一次</strong>。
       </p>
       <p className="recovery__code" data-testid="recovery-code">
-        {/* 每组 5 位不拆开，只在"-"后面换行（原来 390 竖屏会断成"…-G9K / 55"）；文字内容和复制的照旧是整串 */}
+        {/* 每组 5 位不拆开，只在"-"后面换行（不然 390 竖屏会断成"…-G9K / 55"）；文字内容和复制的照旧是整串 */}
         {code.split('-').map((g, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: 恢复码按组下标排，组数固定，下标就是稳定的 key
           <Fragment key={i}>

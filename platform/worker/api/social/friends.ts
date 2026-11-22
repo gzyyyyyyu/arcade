@@ -237,7 +237,7 @@ export async function sendRequest(c: Ctx): Promise<Response> {
     // 撞主键：查完关系到写入之间，这一对已经有了一行（freq 已经计过，不退也不再计）
     if (e instanceof Error && e.message.includes('UNIQUE')) {
       const again = await relationRow(c, me, target.id);
-      // 两人同时互发：对方那条先写进去了，和"对方先发过"一样直接成为好友（复审 2026-10-14：原来两边都停在"已发送"）
+      // 两人同时互发：对方那条先写进去了，和"对方先发过"一样直接成为好友，不两边都停在"已发送"
       if (again?.status === 'pending' && again.requested_by !== me) {
         if (await makeFriends(c, me, target.id)) return json(200, { status: 'friends' });
         const last = await relationRow(c, me, target.id);

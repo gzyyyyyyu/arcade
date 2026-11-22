@@ -4,7 +4,7 @@ import type { Locator, Page } from 'playwright-core';
 import { BASE, fail, check } from './core.ts';
 import { ADMIN_TOKEN } from './fakes.ts';
 
-export const STAMP = Date.now().toString(36);
+const STAMP = Date.now().toString(36);
 /** 管理员（管理命令行工具建）、朋友（管理员在界面上建，密码自动生成）、给管理员删的号。用户名最长 20 位。 */
 export const ADMIN = `owner_${STAMP}`;
 export const NAME = `smoke_${STAMP}`;
@@ -27,7 +27,7 @@ export async function login(page: Page, username: string, password: string): Pro
 }
 
 /** 跑一次管理命令行工具（和维护者用的是同一个脚本），接口指向本地。 */
-export function adminCli(args: string[], token = ADMIN_TOKEN): { code: number; out: string } {
+function adminCli(args: string[], token = ADMIN_TOKEN): { code: number; out: string } {
   const r = spawnSync(process.execPath, ['tools/admin.ts', ...args, `--base=${BASE}`], {
     encoding: 'utf8',
     env: { ...process.env, ARCADE_ADMIN_TOKEN: token },

@@ -4,7 +4,7 @@ import type { Browser, BrowserContext, BrowserContextOptions, Dialog, Page } fro
 
 export const PORT = 5181;
 export const BASE = `http://localhost:${PORT}`;
-export const outArg = process.argv.indexOf('--out');
+const outArg = process.argv.indexOf('--out');
 export const OUT = resolve(outArg > 0 ? process.argv[outArg + 1]! : 'shots');
 
 export const problems: string[] = [];
@@ -25,7 +25,7 @@ export function expectHttp(status: number, path: string): void {
 }
 
 /** 盯住一个页面：报错、控制台、CSP 拦截、错误响应。 */
-export async function watch(page: Page, label: string): Promise<Page> {
+async function watch(page: Page, label: string): Promise<Page> {
   page.on('pageerror', (e) => problems.push(`[${label}] 页面报错：${e.message}`));
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
@@ -60,7 +60,7 @@ export function apiCalls(page: Page): string[] {
 }
 
 /** 下一张截图的文件名：按拍的先后编号，看图时和日志对得上 */
-export function shotFile(name: string): string {
+function shotFile(name: string): string {
   shotNo += 1;
   return join(OUT, `${String(shotNo).padStart(2, '0')}-${name}.png`);
 }

@@ -34,7 +34,7 @@ const isIds = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => 
 const isGamePrefs = (v: unknown): v is GamePrefs => isRecord(v) && isIds(v.show) && isIds(v.hide);
 
 /** 存的偏好：没设过、坏数据都按默认；下架了的游戏 id 去掉 */
-export function gamePrefsOf(json: string | null): GamePrefs {
+function gamePrefsOf(json: string | null): GamePrefs {
   if (json === null) return NO_PREFS;
   const p = parseJsonColumnOr(json, isGamePrefs, NO_PREFS, 'users.game_prefs');
   return { show: p.show.filter((id) => GAME_IDS.has(id)), hide: p.hide.filter((id) => GAME_IDS.has(id)) };

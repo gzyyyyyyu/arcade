@@ -4,7 +4,7 @@
  */
 /** link：正文里有一段文字要做成站内链接（只放一处） */
 export type PrivacyBlock = { id: string; body: string; promise?: boolean; link?: { text: string; href: string } };
-export type PrivacySection = { id: string; name: string; blocks: readonly PrivacyBlock[] };
+type PrivacySection = { id: string; name: string; blocks: readonly PrivacyBlock[] };
 
 const b = (id: string, body: string, promise = false, link?: PrivacyBlock['link']): PrivacyBlock => ({ id, body, promise, link });
 

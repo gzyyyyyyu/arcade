@@ -10,7 +10,7 @@ export async function loginNext(browser: Browser): Promise<void> {
   const { ctx, page } = await newPage(browser, '登录 next');
   let loggedIn = false;
   await page.route('**/api/me', (r) => r.fulfill(json({ user: loggedIn ? FAKE_USER : null, service: 'ok', saves: 'ok', registration: 'closed' })));
-  // 登录出错时的提示：网关限速回的 429 不是 JSON，以前被说成"连不上服务器"；每种都要有一句话，按钮恢复能点
+  // 登录出错时的提示：网关限速回的 429 不是 JSON，不能说成"连不上服务器"；每种都要有一句话，按钮恢复能点
   let failWith: ((r: Route) => Promise<void>) | null = null;
   await page.route('**/api/auth/login', (r) => {
     if (failWith) return failWith(r);

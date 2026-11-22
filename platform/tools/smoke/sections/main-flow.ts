@@ -65,7 +65,7 @@ export async function anonymous(browser: Browser): Promise<void> {
   // 从好友链接来、注册关着：顶上说是朋友叫你来的
   await page.getByText('朋友邀请你来街机厅。现在是邀请制，找 TA 要个邀请就能玩。').waitFor();
 
-  console.log('邀请链接 /i/<码>：注册关着也给注册表单，码已经填好（0.20.0）');
+  console.log('邀请链接 /i/<码>：注册关着也给注册表单，码已经填好');
   await Promise.all([page.waitForResponse(`${BASE}/api/me`), page.goto(`${BASE}/i/ABCD2345EFGH`)]);
   await page.getByRole('heading', { name: '注册' }).waitFor();
   check((await page.locator('input[name="inviteCode"]').inputValue()) === 'ABCD2345EFGH', '邀请链接应该预填好码');
@@ -269,7 +269,7 @@ export async function adminFlow(browser: Browser, adminPw: string): Promise<void
 }
 
 /** 好友：管理员（a）和朋友（b）互加、屏蔽、解除、拒绝、换好友码。 */
-export async function friendsFlow(a: Page, b: Page): Promise<void> {
+async function friendsFlow(a: Page, b: Page): Promise<void> {
   console.log('好友：朋友的好友页有好友码和链接，复制链接');
   await b.getByRole('link', { name: '好友', exact: true }).click();
   await b.getByRole('heading', { name: '我的好友码' }).waitFor();
@@ -395,7 +395,7 @@ async function openMe(page: Page, open: () => Promise<unknown>): Promise<void> {
 }
 
 /** 朋友的"我的账号"：资料、云存档、改密码、换恢复码、退出、找回、注销。 */
-export async function friendFlow(browser: Browser, ctx: BrowserContext, page: Page, pw1: string, rc1: string): Promise<void> {
+async function friendFlow(browser: Browser, ctx: BrowserContext, page: Page, pw1: string, rc1: string): Promise<void> {
   const calls = apiCalls(page);
 
   console.log('已经登录着、从游戏点"登录"过来：给"回到开盘"');
@@ -439,7 +439,7 @@ export async function friendFlow(browser: Browser, ctx: BrowserContext, page: Pa
   await (await savesRow(page, 'guandan')).getByText('还没有存档').waitFor();
   await shot(page, 'me');
 
-  console.log('邀请朋友（0.20.0，真接口）：生成一个码、列表里有码和"分享/复制链接"，撤回后额度回来');
+  console.log('邀请朋友（真接口）：生成一个码、列表里有码和"分享/复制链接"，撤回后额度回来');
   await meTab(page, 'invite');
   await page.getByTestId('invite-left').getByText('还能邀请 3 个').waitFor();
   await page.getByTestId('invite-create').click();

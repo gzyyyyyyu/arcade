@@ -164,7 +164,7 @@ export function Friend({ p, best, onChanged }: { p: FriendLists['friends'][numbe
           加入
         </a>
       )}
-      {/* 删好友、屏蔽常显（不藏进菜单），做成灰色小图标，不像原来两个红字那么扎眼；点了还要在原地勾确认 */}
+      {/* 删好友、屏蔽常显（不藏进菜单），做成灰色小图标，不扎眼；点了还要在原地勾确认 */}
       <button className="btn btn--small people__icon-btn" type="button" title="删好友" aria-label="删好友" disabled={!writable} aria-expanded={open === 'remove'} onClick={() => toggle('remove')}>
         <TrashIcon />
       </button>
