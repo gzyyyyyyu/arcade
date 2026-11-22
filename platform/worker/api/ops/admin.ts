@@ -7,7 +7,7 @@
  * - 平台页 /admin：当前会话是管理员，写请求照常要 X-Arcade 和 Origin。只能动普通账号：
  *   偷到管理员 cookie 的人改不了管理员的密码，也删不掉管理员。
  *   例外：邀请额度两种调用方都能给管理员改，额度只是能邀请几个人，碰不到账号本身。
- *   反过来：建长期邀请码（POST /api/admin/invite-codes）只认管理员会话，令牌回 403 session_required。
+ *   反过来：建长期邀请码（POST /api/admin/invite-codes）、改它能用几次（…/<id>/uses）只认管理员会话，令牌回 403 session_required。
  * - 只读的 GET /api/admin/play-tally（wallet/api.ts）：真人对局统计汇总，两种调用方都能看，0 行写入。
  *
  * 写入都记在"账号安全"类；每个管理员（令牌算一个）每天最多 adminPerDay 次写操作，只算成功的。
@@ -17,7 +17,7 @@ import { checkUsernameFree, insertUser } from '../account/auth';
 import { type Ctx, DAY, HOUR } from '../core/context';
 import { hashPassword, hashRecoveryCode, newRecoveryCode, newUserId, normalizeRecoveryCode } from '../lib/crypto';
 import { ApiError, json, noContent, rateLimited } from '../lib/http';
-import { adminRevokeStatement, inviteRulesState, parseUserQuota, planInviteRulesChange, planMultiCode, rememberInviteRules } from '../account/invite-codes';
+import { adminRevokeStatement, inviteRulesState, parseUserQuota, planInviteRulesChange, planMultiCode, planMultiUses, rememberInviteRules } from '../account/invite-codes';
 import { isNumberRecord, parseJsonColumnOr } from '../lib/json-column';
 import { meter } from '../lib/meter';
 import { checkCached, clearStatement, dailyCapStatement, hit, peek, remember, takeAnonToken } from '../core/ratelimit';
@@ -365,6 +365,22 @@ export async function createMultiCode(c: Ctx): Promise<Response> {
   const cap = await checkAdminCap(c);
   await c.db.batch([plan.stmt, cap]);
   return json(201, plan.code);
+}
+
+/**
+ * POST /api/admin/invite-codes/<id>/uses {maxUses}：改长期码能用几次（2–1000，只认管理员会话，令牌 403 session_required）。
+ * 2 行（码 1 + 每日计数 1），改成了才计数；不是长期码、撤回了、不存在 404，比已用次数少 409 below_used（带 used），都是 0 行
+ */
+export async function setMultiCodeUses(c: Ctx): Promise<Response> {
+  const plan = planMultiUses(c);
+  const cap = await checkAdminCap(c);
+  if ((await c.db.run(plan.stmt)).changes === 0) {
+    const row = await c.db.first<{ uses: number }>(c.db.stmt('SELECT uses FROM invite_codes WHERE id = ?1 AND max_uses > 1 AND revoked_at IS NULL', c.params.id));
+    if (!row) throw new ApiError(404, 'not_found');
+    throw new ApiError(409, 'below_used', { used: row.uses });
+  }
+  await c.db.run(cap);
+  return json(200, { id: c.params.id, maxUses: plan.maxUses });
 }
 
 /** POST /api/admin/invite-codes/<id>/revoke：撤回一个名额没满的码。2 行（码 1 + 每日计数 1）；用完了、已撤回、不存在 404、0 行 */

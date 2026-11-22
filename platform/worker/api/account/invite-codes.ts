@@ -371,9 +371,8 @@ export const MULTI_CODE = { usesDefault: 100, usesMax: 1000, daysMax: 365 } as c
  */
 export function planMultiCode(c: Ctx): { stmt: D1PreparedStatement; code: { id: string; code: string; link: string; maxUses: number; expiresAt: number | null } } {
   if (!c.session) throw new ApiError(403, 'session_required');
-  const maxUses = c.body.maxUses === undefined ? MULTI_CODE.usesDefault : count(c.body.maxUses);
+  const maxUses = c.body.maxUses === undefined ? MULTI_CODE.usesDefault : multiUses(c.body.maxUses);
   const days = c.body.days === undefined || c.body.days === null ? null : count(c.body.days);
-  if (maxUses < 2 || maxUses > MULTI_CODE.usesMax) throw new ApiError(400, 'bad_request', { field: 'maxUses', range: [2, MULTI_CODE.usesMax] });
   if (days !== null && (days < 1 || days > MULTI_CODE.daysMax)) throw new ApiError(400, 'bad_request', { field: 'days', range: [1, MULTI_CODE.daysMax] });
   const expiresAt = days === null ? NEVER_EXPIRES : c.now + days * DAY;
   const id = newTimeId(c.now);
@@ -384,6 +383,26 @@ export function planMultiCode(c: Ctx): { stmt: D1PreparedStatement; code: { id: 
       id, code, c.session.user.id, c.now, expiresAt, maxUses,
     ),
     code: { id, code: formatInviteCode(code), link: `/i/${code}`, maxUses, expiresAt: expiresJson(expiresAt) },
+  };
+}
+
+/** 长期码能用几次：整数 2–usesMax，不对 400 */
+function multiUses(v: unknown): number {
+  const n = count(v);
+  if (n < 2 || n > MULTI_CODE.usesMax) throw new ApiError(400, 'bad_request', { field: 'maxUses', range: [2, MULTI_CODE.usesMax] });
+  return n;
+}
+
+/**
+ * 改长期码能用几次（只认管理员会话，同建码）：只改长期码（max_uses > 1）、没撤回的，新次数不小于已经用掉的。
+ * 一条带条件的 UPDATE，写 0 行就是不满足条件（调用方再查是哪一条）；并发注册占名额也走带条件的 UPDATE，不会被改到比已用少。
+ */
+export function planMultiUses(c: Ctx): { maxUses: number; stmt: D1PreparedStatement } {
+  if (!c.session) throw new ApiError(403, 'session_required');
+  const maxUses = multiUses(c.body.maxUses);
+  return {
+    maxUses,
+    stmt: c.db.stmt('UPDATE invite_codes SET max_uses = ?2 WHERE id = ?1 AND max_uses > 1 AND revoked_at IS NULL AND uses <= ?2', c.params.id, maxUses),
   };
 }
 

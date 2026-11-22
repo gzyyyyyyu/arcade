@@ -32,6 +32,7 @@ export const MESSAGES: Record<string, string> = {
   // 邀请码：码不对、用过、过期、撤回都是这一句，不说是哪种
   invite_invalid: '邀请码不对或已经失效，找朋友要个新的',
   invite_used: '这个邀请码刚被别人用掉了，找朋友要个新的',
+  below_used: '比已经用掉的次数还少，改大一点',
   quota_full: '邀请名额用完了：没用的码过期或撤回后会还回来',
   not_admin: '只有管理员能用',
   session_required: '这个操作要在管理页里登录后做，命令行令牌不行',

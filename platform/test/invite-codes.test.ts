@@ -334,6 +334,46 @@ describe('长期码（多次）', () => {
     expect((await registerWith(forever.code)).status).toBe(201);
   });
 
+  it('改长期码能用几次：管理员会话 2 行；2–1000；不小于已用（等于可以，用完的改大又能用）；普通码、撤回的、不存在 404；普通用户 403，令牌 403 session_required；都是 0 行', async () => {
+    const [admin, a] = [await adminUser(), await newUser()];
+    const m = await multi(admin, { maxUses: 2 });
+    const setUses = (id: string, maxUses: unknown, u: U = admin) => call(`/api/admin/invite-codes/${id}/uses`, { body: { maxUses }, cookie: u.cookie });
+    const res = await setUses(m.id, 1000);
+    expect([res.status, await res.json()]).toEqual([200, { id: m.id, maxUses: 1000 }]);
+    expect(rowsWritten()).toBe(2);
+    expect(await count('SELECT max_uses AS n FROM invite_codes WHERE id = ?1', m.id)).toBe(1000);
+    for (const v of [1, 1001, '5', null, 2.5]) {
+      expect((await setUses(m.id, v)).status, JSON.stringify(v)).toBe(400);
+      expect(rowsWritten()).toBe(0);
+    }
+    // 已经用掉 3 次：改成 2 不行（409、带已用数），改成 3 可以（正好用完，注册不了），再改成 4 又能用
+    await env.DB.prepare('UPDATE invite_codes SET uses = 3 WHERE id = ?1').bind(m.id).run();
+    const below = await setUses(m.id, 2);
+    expect([below.status, await errorOf(below)]).toEqual([409, 'below_used']);
+    expect(rowsWritten()).toBe(0);
+    expect((await setUses(m.id, 3)).status).toBe(200);
+    await closeRegistration();
+    expect(await errorOf(await registerWith(m.code))).toBe('invite_invalid');
+    expect((await setUses(m.id, 4)).status).toBe(200);
+    expect((await registerWith(m.code)).status).toBe(201);
+    // 权限：普通用户 403，命令行令牌 403 session_required，缺 X-Arcade 403
+    expect((await setUses(m.id, 500, a)).status).toBe(403);
+    const token = await call(`/api/admin/invite-codes/${m.id}/uses`, { body: { maxUses: 500 }, csrf: false, authorization: `Bearer ${env.ADMIN_TOKEN}` });
+    expect([token.status, await errorOf(token)]).toEqual([403, 'session_required']);
+    expect((await call(`/api/admin/invite-codes/${m.id}/uses`, { body: { maxUses: 500 }, cookie: admin.cookie, csrf: false })).status).toBe(403);
+    expect(rowsWritten()).toBe(0);
+    // 普通码（max_uses = 1）、撤回的长期码、不存在的：404
+    await call('/api/invite-codes', { body: {}, cookie: a.cookie });
+    const plain = (await env.DB.prepare('SELECT id FROM invite_codes WHERE owner_id = ?1').bind(a.user.id).first<{ id: string }>())!;
+    expect((await setUses(plain.id, 5)).status).toBe(404);
+    const r = await multi(admin);
+    await call(`/api/admin/invite-codes/${r.id}/revoke`, { body: {}, cookie: admin.cookie });
+    expect((await setUses(r.id, 500)).status).toBe(404);
+    expect((await setUses(`${r.id.slice(0, -1)}${r.id.endsWith('A') ? 'B' : 'A'}`, 500)).status).toBe(404);
+    expect(rowsWritten()).toBe(0);
+    expect(await count('SELECT max_uses AS n FROM invite_codes WHERE id = ?1', r.id)).toBe(100);
+  });
+
   it('注册防刷照样生效：同一 IP 一天的注册上限到了 429、0 行', async () => {
     const admin = await adminUser();
     const m = await multi(admin);

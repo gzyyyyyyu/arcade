@@ -55,6 +55,7 @@ const ROUTE_TABLE: [string, string, string, Record<string, string>, string][] = 
   ['GET', '/api/admin/invite-codes', 'adminCodes', {}, 'acct/admin'],
   ['POST', '/api/admin/invite-codes', 'createMultiCode', {}, 'acct/admin acct=capped'],
   ['POST', '/api/admin/invite-codes/abcdefghiABCDEFGHIJK/revoke', 'adminRevokeCode', { 'id': 'abcdefghiABCDEFGHIJK' }, 'acct/admin acct=capped'],
+  ['POST', '/api/admin/invite-codes/abcdefghiABCDEFGHIJK/uses', 'setMultiCodeUses', { 'id': 'abcdefghiABCDEFGHIJK' }, 'acct/admin acct=capped'],
   ['POST', '/api/admin/users/AAAAAAAAAAAAAAAAAAAAAA/invite-quota', 'setUserInviteQuota', { 'userId': 'AAAAAAAAAAAAAAAAAAAAAA' }, 'acct/admin acct=capped'],
   ['GET', '/api/admin/users', 'listUsers', {}, 'acct/admin'],
   ['GET', '/api/admin/settings/registration', 'getRegistration', {}, 'acct/admin'],
