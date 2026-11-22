@@ -213,7 +213,7 @@ describe('刷新后恢复（boot）', () => {
   it('邀请链接 ?room= 直接进房间，并把地址栏的参数擦掉', async () => {
     vi.stubGlobal('location', { search: '?room=123456', pathname: '/games/texas/' });
     await build().boot();
-    expect(fn.joinRoom).toHaveBeenCalledWith('123456');
+    expect(fn.joinRoom).toHaveBeenCalledWith('123456', true);
     expect(history.replaceState).toHaveBeenCalled();
   });
 });

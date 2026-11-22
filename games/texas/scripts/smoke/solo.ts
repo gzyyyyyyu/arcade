@@ -1,6 +1,6 @@
 /** 单机桌面和手机、竖屏大厅、各种高度的手机、单独部署：见 smoke.ts 顶部说明。 */
 import type { Browser, Page } from 'playwright-core';
-import { HANDS, DESK_W, log, newContext, cspWatch, watch, shot, balance, skipTips, handText, assertHeld, assertAutoNext, coveredSeats, seatOverlaps, enter, openMore, PHONE, DESK_H } from './harness.ts';
+import { HANDS, DESK_W, log, newContext, cspWatch, watch, shot, balance, skipTips, handText, assertHeld, assertAutoNext, coveredSeats, seatOverlaps, enter, openMore, PHONE, DESK_H, linkSit } from './harness.ts';
 import { playRoom } from './room.ts';
 
 /** 单机亮过牌没有（一场只试一次） */
@@ -423,8 +423,7 @@ export async function tall(browser: Browser, base: string): Promise<void> {
   await hp.locator('.rw-seat.me').waitFor();
   const code = ((await hp.locator('.rw-code').textContent()) ?? '').replace(/\D/g, '');
   await pp.goto(`${base}/games/texas/?room=${code}`);
-  await pp.locator('.rw-seat').nth(1).locator('.rw-sit').click();
-  await pp.locator('.rw-seat.me').waitFor();
+  await linkSit(pp);
   await hp.locator('.rw-go .start').tap();
   await hp.locator('.stage.at-table').waitFor({ timeout: 30_000 });
   await hp.locator('.seat.me .card.up').first().waitFor({ timeout: 30_000 });
@@ -490,9 +489,7 @@ export async function standalone(browser: Browser, base: string): Promise<void> 
   const pp = await phone.newPage();
   watch(pp, 'alone-phone');
   await pp.goto(`${base}/games/texas/?room=${code}`);
-  await pp.locator('.room-wait').waitFor();
-  await pp.locator('.rw-seat').nth(1).locator('.rw-sit').tap();
-  await pp.locator('.rw-seat.me').waitFor();
+  await linkSit(pp, true);
   await page.locator('.rw-seat.taken').nth(1).waitFor();
   const names = (await page.locator('.rw-name').allTextContents()).join('|');
   if (!names.includes('小明') || !/游客\d{4}/.test(names)) throw new Error(`standalone room names: ${names}`);

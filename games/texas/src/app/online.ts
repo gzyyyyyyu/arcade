@@ -20,7 +20,7 @@ import { closeDialog, dialog } from '../view/dialog.ts';
 import { el, setText, toggle } from '../view/dom.ts';
 import { topBuyIn } from '../view/lobby.ts';
 import { roomCard } from '../view/share.ts';
-import { ROOM_REMEMBER_MS, SHOW_MS, URGE_AFTER_MS } from '../view/timing.ts';
+import { PRESENCE_RETRY_MS, ROOM_REMEMBER_MS, SHOW_MS, URGE_AFTER_MS } from '../view/timing.ts';
 import { roomSummary, type RoomSummaryRow } from '../view/summary.ts';
 import { chips } from '../view/text.ts';
 import { shareIt } from './shell.ts';
@@ -46,6 +46,10 @@ export function createOnline(c: App) {
   let urgeFor = '';
   /** 好友房两手之间（房间的停顿，kit RoomInfo.pause）：大家看同一个倒计时，走完房间自己发下一手 */
   let pauseUntil: number | null = null;
+  /** 按朋友给的链接（?room=）进的房间：开打前有空位替他坐下，每个房间只做一次 */
+  let linkSit = '';
+  /** 这个房间的位置报过没有：进房那一刻房间状态还没到，那时报上去只是"在玩德州"，朋友那边没有"加入" */
+  let roomReported = '';
 
   /** 读本机记着的房间：码不对、不是这个账号的、过了 6 小时的都当没有 */
   function readRoom(key: string): SavedRoom | null {
@@ -169,8 +173,10 @@ export function createOnline(c: App) {
     return f.start(stakes, MATCH_TABLE, topBuyIn(st, c.wallet?.balance ?? 0), false);
   }
 
-  function joinRoom(code: string): void {
+  /** byLink：点朋友的链接进来的（平台好友列表的"加入"、邀请横条的"去"都拼成 ?room=），开打前替他坐下 */
+  function joinRoom(code: string, byLink = false): void {
     if (!isRoomCode(code)) return;
+    linkSit = byLink ? code : '';
     const old = savedRoom();
     enterRoom(old?.code === code ? old : { code, userId: c.cloud.userId(), host: false, at: Date.now() });
   }
@@ -213,7 +219,6 @@ export function createOnline(c: App) {
     const o: Online = new Online(r, roomUi(() => c.online === o), { name: f.nickname(), chat: !r.match || c.strangerChat });
     c.online = o;
     f.openFun(`room:${r.code}`);
-    c.social?.presenceNow(true);
     drawRoom(o.state);
   }
 
@@ -345,6 +350,7 @@ export function createOnline(c: App) {
    */
   function exitRoom(note: string | null, keep = false): void {
     c.online = null;
+    roomReported = '';
     c.social?.presenceNow(true);
     if (!keep) saveRoom(null);
     stage.classList.remove('in-room', 'at-table');
@@ -453,8 +459,51 @@ export function createOnline(c: App) {
     return true;
   }
 
+  /**
+   * 第一次拿到房间状态时报位置（docs/social.md 1.2：朋友列表据此出"加入"）。平台同一个人 10 秒内只记一次位置（docs/api.md 7.2），
+   * 刚打开页面、刚从链接进来时这一次会被丢掉，所以过 PRESENCE_RETRY_MS 再报一次；不然要等 kit 两分钟一次的定时报
+   */
+  function reportRoom(s: OnlineState): void {
+    if (!s.room || roomReported === s.code) return;
+    roomReported = s.code;
+    c.social?.presenceNow(true);
+    window.setTimeout(() => {
+      if (c.online?.state.code === s.code) c.social?.presenceNow(true);
+    }, PRESENCE_RETRY_MS);
+  }
+
+  /**
+   * 从链接进来、还没开打：替他坐第一个空位（一键坐进朋友的桌）。娱乐直接坐；实盘坐下就意味着开打时从钱包带入，先问一句，
+   * 和自己点"坐这里"之前看到的说明一样。开打了、坐满了就不管（开打后进来的是旁观，点蓝圈接管）
+   */
+  async function autoSit(s: OnlineState): Promise<void> {
+    if (linkSit !== s.code || !s.room || !s.opts || !s.you) return;
+    linkSit = '';
+    const opts = s.opts;
+    // 现在的状态里还没坐下、还在等人时的第一个空位（问完话以后再看一次，可能已经开打或被人坐了）
+    const free = (): number => {
+      const now = c.online?.state;
+      if (now?.code !== s.code || now.room?.status !== 'waiting' || (now.you?.seat ?? null) !== null) return -1;
+      return now.room.seats.findIndex((x, i) => i < opts.size && x.kind === 'empty');
+    };
+    if (free() < 0) return;
+    if (!noWallet()) {
+      const st = stakesOf(opts.stakes);
+      const how = opts.tour ? `开赛时从钱包交一份报名费 ${chips(st.max)}。` : `开打时从钱包带 ${chips(st.max)} 上桌，离桌或房间关掉时结回去。`;
+      const ok = await dialog(stage, '坐下', `坐到朋友这一桌：${how}`, [
+        { label: '先看看', value: 'no' },
+        { label: '坐下', value: 'yes', primary: true },
+      ]);
+      if (ok !== 'yes') return;
+    }
+    const i = free();
+    if (i >= 0) c.online?.sit(i);
+  }
+
   function drawRoom(s: OnlineState): void {
     roomPanel.draw(s);
+    reportRoom(s);
+    void autoSit(s);
     if (s.opts?.tour && s.host && s.status === 'open' && s.room?.status === 'waiting' && autoStarted !== s.code && s.room.seats.slice(0, s.opts.size).every((x) => x.kind === 'human')) {
       autoStarted = s.code;
       c.online?.start();
@@ -646,8 +695,12 @@ export function createOnline(c: App) {
     const spectator = (s.you?.seat ?? null) === null && (s.you?.bound ?? null) === null;
     if (!spectator || info?.kind !== 'ai' || info.reserved) return f.showRead(i);
     const st = stakesOf(s.view.stakes);
-    const how = site.standalone ? `带 ${chips(st.max)} 上桌。` : `从钱包带 ${chips(st.max)} 上桌，离开时结回钱包。`;
-    const ok = await dialog(stage, '接管这个座位', `电脑这一手弃牌，下一手起你坐这里：${how}`, [
+    // 不碰钱包（娱乐房、单独部署）直接坐，说一声；实盘要从钱包带入，先问
+    if (noWallet()) {
+      c.online?.sit(i);
+      return f.toast(`电脑这一手弃牌，下一手起你坐这里：带 ${chips(st.max)} 上桌（筹码不算数）`);
+    }
+    const ok = await dialog(stage, '接管这个座位', `电脑这一手弃牌，下一手起你坐这里：从钱包带 ${chips(st.max)} 上桌，离开时结回钱包。`, [
       { label: '算了', value: 'no' },
       { label: '坐下', value: 'yes', primary: true },
     ]);

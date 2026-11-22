@@ -1,6 +1,6 @@
 /** 锦标赛（--only tour / tourfmt / tourroom）。 */
 import type { Browser, Page } from 'playwright-core';
-import { DESK_W, log, newContext, watch, shot, balance, skipTips, handText, enter, openMore, settled, badgesClear, DESK_H } from './harness.ts';
+import { DESK_W, log, newContext, watch, shot, balance, skipTips, handText, enter, openMore, settled, badgesClear, DESK_H, linkSit } from './harness.ts';
 import { IPHONE } from './solo.ts';
 
 export async function tourFlow(browser: Browser, base: string): Promise<void> {
@@ -276,9 +276,7 @@ export async function tourRoomFlow(browser: Browser, base: string): Promise<void
     if (!/^\d{6}$/.test(code)) throw new Error(`bad room code ${code}`);
     log('tour room', code);
     await gp.goto(`${base}/games/texas/?room=${code}`);
-    await gp.locator('.room-wait').waitFor();
-    await gp.locator('.rw-seat').nth(1).locator('.rw-sit').click();
-    await gp.locator('.rw-seat.me').waitFor();
+    await linkSit(gp);
     await hp.locator('.rw-seat.taken').nth(1).waitFor();
     if (!(await hp.locator('.rw-go .start').textContent())?.includes('开赛')) throw new Error('start button should say 开赛');
     await shot(hp, 'tourroom-wait');
