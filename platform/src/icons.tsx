@@ -148,6 +148,25 @@ export function LockIcon() {
 }
 
 /** 街机厅徽章中间的小图案（stroke 用 currentColor，随徽章的字色变；纯装饰，名字写在旁边） */
+/** 删好友：垃圾桶（线条，跟着文字色） */
+export function TrashIcon() {
+  return (
+    <svg className="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" />
+    </svg>
+  );
+}
+
+/** 屏蔽：圆圈加一道斜线 */
+export function BlockIcon() {
+  return (
+    <svg className="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="8" />
+      <path d="M6.5 6.5l11 11" />
+    </svg>
+  );
+}
+
 export function BadgeGlyph({ name }: { name: 'compass' | 'coin' | 'crown' | 'star' | 'flame' | 'card' | 'shield' | 'target' | 'ribbon' | 'people' }) {
   const shapes = {
     compass: (

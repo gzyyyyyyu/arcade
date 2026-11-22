@@ -3,10 +3,11 @@
  * 一屏放下不滚（docs/ui.md 第 11 节）：这些行都放在 <Paged> 里按剩下的高度翻页，所以确认框不往行下面加高，
  * 而是在原地换掉这一行（删好友、屏蔽要先勾确认，旁边有"取消"），行高基本不变，翻页的算术不用重量。
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, ApiFail, errorText, type FriendLists, type Profile, type Where } from '../../api.ts';
 import { gameName } from '../../lib/format.ts';
 import { togetherText } from '../../lib/mates.ts';
+import { BlockIcon, TrashIcon } from '../../icons.tsx';
 import { Link } from '../../router.tsx';
 import { playError, playSuccess } from '../../lib/sound.ts';
 import { FormError, useWritable } from '../../ui.tsx';
@@ -122,8 +123,8 @@ export function Incoming({ p, onChanged }: { p: Profile; onChanged: () => void }
         })}>
         拒绝
       </button>
-      <button className="btn btn--small btn--quiet-danger" type="button" disabled={!writable} aria-expanded={blocking} onClick={() => setBlocking(!blocking)}>
-        屏蔽
+      <button className="btn btn--small people__icon-btn" type="button" title="屏蔽" aria-label="屏蔽" disabled={!writable} aria-expanded={blocking} onClick={() => setBlocking(!blocking)}>
+        <BlockIcon />
       </button>
     </Person>
   );
@@ -162,11 +163,12 @@ export function Friend({ p, best, onChanged }: { p: FriendLists['friends'][numbe
           加入
         </a>
       )}
-      <button className="btn btn--small btn--quiet-danger" type="button" disabled={!writable} aria-expanded={open === 'remove'} onClick={() => toggle('remove')}>
-        删好友
+      {/* 删好友、屏蔽常显（不藏进菜单），做成灰色小图标，不像原来两个红字那么扎眼；点了还要在原地勾确认 */}
+      <button className="btn btn--small people__icon-btn" type="button" title="删好友" aria-label="删好友" disabled={!writable} aria-expanded={open === 'remove'} onClick={() => toggle('remove')}>
+        <TrashIcon />
       </button>
-      <button className="btn btn--small btn--quiet-danger" type="button" disabled={!writable} aria-expanded={open === 'block'} onClick={() => toggle('block')}>
-        屏蔽
+      <button className="btn btn--small people__icon-btn" type="button" title="屏蔽" aria-label="屏蔽" disabled={!writable} aria-expanded={open === 'block'} onClick={() => toggle('block')}>
+        <BlockIcon />
       </button>
     </Person>
   );
@@ -219,8 +221,11 @@ function Confirm({ label, button, action, onDone, onCancel }: { label: string; b
   const writable = useWritable();
   const [sure, setSure] = useState(false);
   const { busy, error, run } = useAction();
+  // 点开的按钮被这一行换掉了，焦点挪到勾选框上：键盘接着能勾、能按 Esc 收回
+  const box = useRef<HTMLFieldSetElement>(null);
+  useEffect(() => box.current?.querySelector('input')?.focus(), []);
   return (
-    <div className="people__confirm">
+    <fieldset ref={box} className="people__confirm" aria-label={button} onKeyDown={(e) => e.key === 'Escape' && onCancel()}>
       <label className="check">
         <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} />
         {label}
@@ -237,6 +242,6 @@ function Confirm({ label, button, action, onDone, onCancel }: { label: string; b
           {busy ? '请稍等…' : button}
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 }
