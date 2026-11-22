@@ -18,6 +18,7 @@ import { dialog } from '../view/dialog.ts';
 import { el, setText, toggle } from '../view/dom.ts';
 import { beijingDate } from '../view/puzzle.ts';
 import { chips, personaName } from '../view/text.ts';
+import { play } from '../view/sound.ts';
 import { heroBox } from '../view/summary.ts';
 import { tourEndBody, tourOutBody, type TourRow } from '../view/tourroom.ts';
 import { LOGIN_NOTE, PENDING_NOTE, type App } from './state.ts';
@@ -229,6 +230,8 @@ export function createTour(c: App) {
     else if (prize > 0) line = `奖金 ${chips(prize)}，结回钱包${t.capped ? `（今天进账到顶，其中 ${chips(t.capped)} 没进钱包）` : ''}`;
     else line = `没进前 ${formatInfo(t.state.format).pay.length} 名，这次没有奖金`;
     heroBox(body, `第 ${place} 名`, place === 1 || prize > 0 ? 'win' : 'even', line);
+    if (place === 1) play('cele2');
+    else if (prize > 0) play('cele1');
     const list = el('ol', 'tour-top', body);
     order.slice(0, 3).forEach((seat, k) => {
       const li = el('li', seat === ME ? 'me' : '', list);
@@ -328,6 +331,8 @@ export function createTour(c: App) {
       rows,
       champion: t.humans.includes(champ) ? nameOf(champ) : personaName(must(v.seats[champ], '视图里每个座位号都有座位').persona),
     });
+    if (played && rows[0]?.me) play('cele2');
+    else if (played && (t.prizes?.[me] ?? 0) > 0) play('cele1');
     await dialog(stage, '锦标赛结束', body, [{ label: '回首页', value: 'ok', primary: true }], true);
     if (c.online !== o) return;
     o.close();
