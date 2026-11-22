@@ -180,6 +180,9 @@ html.no-motion .pcard { animation: none; }
 .stats-page .ov-head span:not(:first-child), .stats-page .ov-row span { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .stats-page .ov-row { width: 100%; min-height: 44px; padding: var(--s-1) var(--s-3); font: inherit; color: var(--ink); text-align: left; background: var(--white); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); cursor: pointer; }
 /* 游戏名放不下就折成两行（"德州/扑克"），不用省略号截（docs/ui.md 第 10 节） */
+.stats-page .ov-row { transition: transform var(--ease), background-color var(--ease); }
+.stats-page .ov-row:active { transform: translateY(1px); background: var(--highlight-warm); }
+html.no-motion .stats-page .ov-row { transition: none; }
 .stats-page .ov-row strong { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
 @media (hover: hover) { .stats-page .ov-row:hover { background: var(--highlight-warm); } }
 

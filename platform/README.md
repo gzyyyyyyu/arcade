@@ -186,17 +186,17 @@ npm run admin -- registration open|close|status
 ```
 platform/
 ├─ src/                 界面（React + Vite）：顶层放入口和全站共用的几件，其余按功能、按页面分目录；导出组件的文件用 PascalCase，逻辑和样式用 kebab-case
-│  ├─ main.tsx、App.tsx、router.tsx  入口、大厅和页面切换、极简路由
+│  ├─ main.tsx、App.tsx、router.tsx  入口、页面切换和全站外框（顶栏、页脚）、极简路由
 │  ├─ session.tsx、api.ts  登录状态、接口封装
 │  ├─ ui.tsx、icons.tsx、styles.css  表单和恢复码卡片、手写 SVG 图标和小插画；全站样式（开头是主题变量，组件只用变量；配色表见 docs/style.md）
 │  ├─ features/         一个功能一个目录（组件、逻辑、样式放一起）：fit（一屏放下：按高度翻页、窄屏页签、一屏高的外框）、modal（弹窗：同时只开一个、Tab 循环）、
 │  │                    recent（大厅游戏的先后和"上次玩"）、lobby-tour（新人引导）、hotkeys（键盘快捷键和说明面板）、
 │  │                    wallet（钱包余额和本周走势）、ledger（流水列表）、feed（好友动态浮层）、invites（收邀请，同一次轮询带回约局和在线好友数）、meetup（约局的时间算术）、share（晒战绩卡及挑选）、
-│  │                    badges（战绩页徽章的计算和"已看过"记录）、coinfly（金币飞入钱包）
+│  │                    badges（战绩页徽章的计算和"已看过"记录）、coinfly（金币飞入钱包）、topbar（顶栏右上角和页脚声音开关）
 │  ├─ lib/              不属于单个功能的纯函数和小工具：format、next（登录后跳回的地址）、play（进游戏的地址）、gamefile（读各游戏公开的 JSON）、
 │  │                    scores（榜上分数的显示写法）、titles（称号名）、mates（搭子战绩文字）、presence（报"我在大厅"）、countup（数字滚动）、
-│  │                    viewport（可见区高度）、enter-fx（进出游戏的封面过渡）、sound（提示音，WebAudio 合成，见 docs/style.md 声音一节）
-│  └─ pages/            每个页面一个目录：auth（登录注册、找回密码）、me（我的账号）、friends、feed、wallet、stats（战绩）、boards（排行榜）、privacy（隐私说明）、admin（管理页）
+│  │                    enter-fx（进出游戏的封面过渡）、sound（提示音，WebAudio 合成，见 docs/style.md 声音一节）
+│  └─ pages/            每个页面一个目录：lobby（大厅）、auth（登录注册、找回密码）、me（我的账号）、friends、feed、wallet、stats（战绩）、boards（排行榜）、privacy（隐私说明）、admin（管理页）
 ├─ shared/              界面和 Worker 都要的纯数据、纯函数（只许引 shared 自己的文件；worker 不许引 src/，test/architecture.test.ts 守着）
 │  ├─ games.ts          游戏目录：登记即生效，钱包、云存档、分数榜、保留用户名都从它派生
 │  └─ weekly.ts         每周榜的 ISO 周和榜名
