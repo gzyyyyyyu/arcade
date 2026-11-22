@@ -1,13 +1,15 @@
 import { WEAPONS, type WeaponId } from '../content/weapons.ts';
 import { step, type World } from '../core/index.ts';
 import { grantWeapon, openEliteChestNow } from '../core/debug.ts';
+import { TREASURES_BY_TIER } from '../content/treasures.ts';
+import type { Raid } from '../explore/raid.ts';
 import type { RunTally } from '../meta/records.ts';
 
 export type Autopilot = (w: World) => { dir: number; choice: number };
 
 /**
  * 开发服务器里的调试开局参数（截图、机器人代打用，线上构建整段被摘掉）：
- * ?give 换开局法器、?auto 机器人代打、?warp 快进到某一拍、?at 挪主角。返回代打函数（没开 auto 就是 undefined）
+ * ?give 换开局法器、?auto 机器人代打、?warp 快进到某一拍、?at 挪主角、夜探 ?loot / ?chest。返回代打函数（没开 auto 就是 undefined）
  */
 export async function applyDebugStart(q: URLSearchParams, w: World, tally: RunTally, seed: number): Promise<Autopilot | undefined> {
   let autopilot: Autopilot | undefined;
@@ -43,6 +45,12 @@ export async function applyDebugStart(q: URLSearchParams, w: World, tally: RunTa
       w.x = w.px = at[0]!;
       w.y = w.py = at[1]!;
     }
+  }
+  // 夜探截图用：&loot=3 往背包塞几件绝品（看宝气光圈和横幅），&chest 再给一次宝箱升级（看「宝箱 · 挑一件」）
+  if (import.meta.env.DEV && w.raid && (q.has('loot') || q.has('chest'))) {
+    const raid = w.raid as unknown as Raid;
+    for (let i = Number(q.get('loot') ?? 0); i > 0; i--) raid.addLoot(TREASURES_BY_TIER.jue[0]!);
+    if (q.has('chest')) raid.upgrades++;
   }
   return autopilot;
 }

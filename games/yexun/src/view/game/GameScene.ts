@@ -1294,8 +1294,25 @@ export class GameScene extends Phaser.Scene {
     this.fx.spawn({ frame: 'pillar', x, y, life: 1100, s0: 1, s1: 1.3, a0: 0.9, a1: 0, tint: 0xffe08a, depth: 61 });
   }
 
+  /** 宝气变了：脚下光圈染金、跟着变大；每过一档（10%）弹一次横幅 */
+  private auraBoost = 0;
+  private onBoost(b: number): void {
+    const step = Math.floor(b * 10 + 1e-6);
+    if (step > Math.floor(this.auraBoost * 10 + 1e-6)) {
+      sfx.play('levelup', { volume: 0.6 });
+      this.d.banners.say(`宝气 +${Math.round(b * 100)}%`, 'gold', 1800, '背包里的珍品、绝品让伤害更高；倒下就没了');
+    }
+    this.auraBoost = b;
+    this.aura.setTint(b > 0 ? 0xffd860 : 0xffffff).setScale((1 + b) / this.frame('aura').res);
+  }
+
   private onChestOpen(x: number, y: number, tier: number): void {
-    sfx.play('chest', { volume: 0.8 });
+    sfx.play(tier === 2 ? 'chestGold' : 'chest', { volume: 0.8 });
+    // 金箱：顿一下、轻震，开大箱要有分量（跟随震屏开关）
+    if (tier === 2) {
+      this.freeze = Math.max(this.freeze, 90);
+      this.shake(160, 0.004);
+    }
     const tint = tier === 2 ? 0xffd860 : tier === 1 ? 0xffa860 : 0xe8d8b0;
     this.burst(x, y - 10, tint, tier === 2 ? 2 : tier === 1 ? 1.4 : 1);
     this.fx.spawn({ frame: 'ring', x, y, life: 420, s0: 0.3, s1: 1.8 + tier * 0.5, a0: 1, a1: 0, tint, depth: 60 });
@@ -1318,7 +1335,11 @@ export class GameScene extends Phaser.Scene {
     this.floats.push({ img, text, x, y: y + oy, life: 1600 });
     sfx.play('coin', { pitch: 1 + tierIdx * 0.18 });
     this.burst(x, y + oy, info.color, 0.7 + tierIdx * 0.3);
-    if (tierIdx === 3) this.d.banners.say(`绝品 · ${t.name}`, 'gold', 2200, t.blurb);
+    if (tierIdx === 3) {
+      this.d.banners.say(`绝品 · ${t.name}`, 'gold', 2200, t.blurb);
+      this.freeze = Math.max(this.freeze, 120);
+      this.shake(200, 0.005);
+    }
   }
 
   private onRestock(x: number, y: number, c: number, n: number): void {
@@ -1875,6 +1896,7 @@ export class GameScene extends Phaser.Scene {
         .setDepth(hd + 1);
     } else this.shieldImg.setVisible(false);
     this.aura.setPosition(hx, hy).setDepth(-450).setAlpha(0.75 + Math.sin(this.now * 0.004) * 0.15);
+    if (w.raidBoost !== this.auraBoost) this.onBoost(w.raidBoost);
     // 脚印：走着的时候每隔一段在身后留一个
     if (walking && moving) {
       this.stepAcc += dt;
