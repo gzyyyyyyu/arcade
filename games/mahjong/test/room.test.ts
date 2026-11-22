@@ -129,10 +129,12 @@ describe('开局和带入', () => {
     s = G.settled!(s, 'b0', { ok: false, error: 'no_funds', balance: 1 });
     expect([s.own[0], s.cut]).toEqual([false, false]);
     s = act(s, 0, { t: 'rebuy' });
+    // 已经发牌了：等这一局打完才扣，扣的照旧是整份
+    s = drive(s, 4_000, (x) => fx(x).length > 0);
     expect(fx(s).map(strip)).toEqual([{ id: 'b3', seat: 0, kind: 'debit', amount: lux }]);
   });
 
-  test('被拒（一分钱没有）：座位由庄家出筹码、这里替电脑打，他不能出手；可以再带一次', () => {
+  test('被拒（一分钱没有）：座位由庄家出筹码、这里替电脑打，他不能出手；可以再带一次（一局打到一半点的，这一局打完才扣）', () => {
     // 三个真人：被拒一个还剩两个在下注，接着打
     let s = begin(['human', 'human', 'human', 'ai']);
     s = G.settled!(G.settled!(G.settled!(s, 'b0', OK), 'b2', OK), 'b1', { ok: false, error: 'no_funds', wallet: { balance: 0 } });
@@ -144,6 +146,10 @@ describe('开局和带入', () => {
     expect(seatsOf(s)).not.toContain(1);
     expect(G.apply(s, 1, { t: 'play', v: 'sichuan-xuezhan', a: { t: 'que', suit: 0 } })).toEqual({ error: 'not_seated' });
     s = act(s, 1, { t: 'rebuy' });
+    // 开局已经发牌（不在局间）：先记下，等这一局打完
+    expect([fx(s), G.view(s, 1).waiting, G.view(s, 1).canRebuy, G.view(s, 1).refused]).toEqual([[], true, false, null]);
+    s = drive(s, 4_000, (x) => fx(x).length > 0);
+    expect(g(s, null).phase).toBe('end');
     expect(fx(s).map(strip)).toEqual([{ id: 'b3', seat: 1, kind: 'debit', amount: SHARE }]);
     // 没开成的那一份不算，再带还是第 1 份
     expect(fx(s)[0]!.ref).toBe(`${s.ref}s1n1`);
@@ -153,7 +159,7 @@ describe('开局和带入', () => {
     expect(g(s, 1).seats[1]!.chips).toBe(SHARE);
   });
 
-  test('开局有人的带入一直没回话：到点（房间代出 go）先开打，他的座位先由庄家打，到账了再接手', () => {
+  test('开局有人的带入一直没回话：到点（房间代出 go）先开打，他的座位先由庄家打；钱在这一局中途到账先收着，这一局打完才接手（不在一局中途换人）', () => {
     let s = G.settled!(begin(['human', 'human', 'ai', 'ai']), 'b0', OK);
     expect(G.timeout!(s, 1)).toEqual({ t: 'go' });
     expect(G.ai(s, 1)).toEqual({ t: 'go' });
@@ -162,7 +168,9 @@ describe('开局和带入', () => {
     expect(s.opening).toBe(false);
     expect(seatsOf(s)).not.toContain(1);
     s = G.settled!(s, 'b1', OK);
-    expect(s.own[1]).toBe(true);
+    expect([s.own[1], s.ready?.[1], G.view(s, 1).canRebuy]).toEqual([false, true, false]);
+    s = drive(s, 4_000, (x) => g(x, null).phase === 'end');
+    expect([s.own[1], s.ready?.[1], g(s, 1).seats[1]!.chips]).toEqual([true, false, SHARE]);
   });
 });
 
@@ -333,6 +341,144 @@ describe('离座和结回', () => {
     ]);
     expect(G.apply(s, 0, { t: 'play', v: 'sichuan-xuezhan', a: { t: 'zimo' } })).toEqual({ error: 'closed' });
     expect(G.over(s)).toBe(true);
+  });
+});
+
+describe('实盘一局打到一半坐下：这一局电脑照打，下一局才带入（0.47.3）', () => {
+  /** 两个真人在打、2 号座位是电脑；推到一局正打到一半 */
+  const midRound = (): RoomState => drive(settleAll(begin(['human', 'human', 'ai', 'ai'])), 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
+  const toRoundEnd = (s: RoomState): RoomState => drive(s, 4_000, (x) => g(x, null).phase === 'end');
+  const credits = (s: WalletEffect[], seat: number) => s.filter((e) => e.seat === seat && e.kind === 'credit');
+
+  test('中途坐下：不扣钱、不换人（玩法里这个座位还是那个电脑、筹码不动），他旁观（看不到这个座位的暗牌）、不能出手，这一局照常打完', () => {
+    const s0 = midRound();
+    const s = G.seated!(s0, 2, 'human');
+    const xz = (x: RoomState) => x.g as XzState;
+    expect([fx(s), s.own[2], s.waiting?.[2], G.view(s, 2).waiting]).toEqual([[], false, true, true]);
+    expect([xz(s).kinds[2], xz(s).personas[2], xz(s).chips[2], xz(s).start[2]]).toEqual([xz(s0).kinds[2], xz(s0).personas[2], xz(s0).chips[2], xz(s0).start[2]]);
+    expect(G.view(s, 2).g).toEqual(G.view(s, null).g);
+    expect(G.apply(s, 2, { t: 'play', v: 'sichuan-xuezhan', a: { t: 'discard', tile: 0 } })).toEqual({ error: 'not_seated' });
+    // 电脑替这个座位出手（kit 不会叫他）：一局照常打到结算，中间这个座位一直是电脑、不是他的
+    const a = drive(s, 4_000, (x) => g(x, null).phase === 'end' || x.own[2] || xz(x).kinds[2] !== 'ai');
+    expect([g(a, null).phase, a.own[2], xz(a).kinds[2]]).toEqual(['end', false, 'ai']);
+  });
+
+  test('下一局发牌前扣一份（像开局一样等钱包回话），到账才是他的、从一份算；整场打完只结回一次', () => {
+    let s = toRoundEnd(G.seated!(midRound(), 2, 'human'));
+    expect(fx(s).map(strip)).toEqual([{ id: expect.any(String), seat: 2, kind: 'debit', amount: SHARE }]);
+    expect(fx(s)[0]!.ref).toBe(`${s.ref}s2n1`);
+    expect([s.opening, s.waiting?.[2], G.pause!(s)]).toEqual([true, false, null]);
+    s = settleAll(s);
+    expect([s.opening, s.own[2], g(s, 2).seats[2]!.chips]).toEqual([false, true, SHARE]);
+    // 到账以后看得到自己的牌
+    expect(G.view(s, 2).g).not.toEqual(G.view(s, null).g);
+    const all: WalletEffect[] = [];
+    for (let k = 0; k < 200 && !G.over(s) && !s.done; k++) {
+      s = drive(s, 4_000, (x) => fx(x).length > 0 || x.done);
+      all.push(...fx(s));
+      s = settleAll(s);
+    }
+    all.push(...fx(s));
+    expect(s.done).toBe(true);
+    const c = credits(all, 2);
+    expect(c.length).toBe(1);
+    expect(c[0]!.ref).toBe(`${s.ref}s2n1`);
+  });
+
+  test('坐下以后、下一局开始前走了：不扣钱，记号清掉，座位还是电脑的', () => {
+    let s = G.seated!(G.seated!(midRound(), 2, 'human'), 2, 'ai');
+    expect([fx(s), s.waiting?.[2], s.own[2]]).toEqual([[], false, false]);
+    s = toRoundEnd(s);
+    s = drive(s, 400, (x) => g(x, null).phase !== 'end');
+    expect(fx(s).filter((e) => e.seat === 2)).toEqual([]);
+    expect(s.share[2]).toBe(0);
+  });
+
+  test('局间（停在结算）坐下照旧马上带入；娱乐房中途坐下照旧马上是他的', () => {
+    let s = toRoundEnd(midRound());
+    s = G.seated!(s, 2, 'human');
+    expect(fx(s).map(strip)).toEqual([{ id: expect.any(String), seat: 2, kind: 'debit', amount: SHARE }]);
+    let f = drive(settleAll(begin(['human', 'human', 'ai', 'ai'], 'fun')), 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
+    f = G.seated!(f, 2, 'human');
+    expect([f.own[2], f.waiting?.[2] ?? false, g(f, 2).seats[2]!.chips]).toEqual([true, false, stakesOf('fun')!.share]);
+  });
+});
+
+describe('跨审 0.47.3（Gemini 只读审查的线索，逐条复现）', () => {
+  const midRound = (seats: SeatKind[] = ['human', 'human', 'ai', 'ai']): RoomState =>
+    drive(settleAll(begin(seats)), 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
+  const toRoundEnd = (s: RoomState): RoomState => drive(s, 4_000, (x) => g(x, null).phase === 'end' || x.done || x.opening);
+
+  test('第 2 条①：C 中途坐下等下一局、B 中途离座：这一局打完不算"只剩一个人"，接着打、C 带入', () => {
+    let s = G.seated!(G.seated!(midRound(), 2, 'human'), 1, 'ai');
+    s = toRoundEnd(s);
+    expect(s.cut ?? false).toBe(false);
+    expect(fx(s).filter((e) => e.kind === 'debit').map((e) => e.seat)).toEqual([2]);
+    expect(fx(s).filter((e) => e.kind === 'credit').map((e) => e.seat)).toEqual([1]);
+  });
+
+  test('第 2 条②：A、B 都中途离座、只剩 C 在等：这一场到此结束，C 一分不扣', () => {
+    let s = G.seated!(midRound(), 2, 'human');
+    s = G.seated!(G.seated!(s, 0, 'ai'), 1, 'ai');
+    s = toRoundEnd(s);
+    expect(fx(s).filter((e) => e.seat === 2)).toEqual([]);
+    expect([s.cut, s.done, s.opening]).toEqual([true, true, false]);
+  });
+
+  test('第 4 条①：局间等两个人的钱，先排的那个走了：接着等还坐着的那个，不由电脑代出"开打"', () => {
+    let s = G.seated!(G.seated!(midRound(), 2, 'human'), 3, 'human');
+    s = toRoundEnd(s);
+    expect([s.opening, fx(s).filter((e) => e.kind === 'debit').map((e) => e.seat)]).toEqual([true, [2, 3]]);
+    s = G.seated!(s, 2, 'ai');
+    expect(seatsOf(s)).toEqual([3]);
+    // 走了的那一份到账：原样结回
+    const b2 = fx(s).find((e) => e.seat === 2 && e.kind === 'debit')!;
+    s = G.settled!(s, b2.id, OK);
+    expect([s.opening, s.own[2], fx(s).find((e) => e.seat === 2)?.kind]).toEqual([true, false, 'credit']);
+  });
+
+  test('第 4 条②：局间等钱时他掉线托管（kit 马上替他代出"开打"）：钱在下一局中途到账也不当场换人，等这一局打完才算他的', () => {
+    let s = toRoundEnd(G.seated!(midRound(), 2, 'human'));
+    expect(seatsOf(s)).toEqual([2]);
+    // kit 的 runAuto 对托管的真人调 ai：开局等钱时就是"开打"
+    s = act(s, 2, G.ai(s, 2));
+    expect(s.opening).toBe(false);
+    s = drive(s, 400, (x) => g(x, null).phase === 'turn' && x.n > 5);
+    const b = fx(s).find((e) => e.seat === 2 && e.kind === 'debit')!;
+    s = G.settled!(s, b.id, OK);
+    expect([g(s, null).phase, s.own[2]]).toEqual(['turn', false]);
+    expect(G.view(s, 2).g).toEqual(G.view(s, null).g);
+    // 这一局打完：从一份算、是他的了
+    s = toRoundEnd(s);
+    expect([s.own[2], g(s, 2).seats[2]!.chips]).toEqual([true, SHARE]);
+  });
+
+  test('第 4 条②续：钱收着、还没接手时走了：那一份原样结回一次，座位还是电脑的', () => {
+    let s = toRoundEnd(G.seated!(midRound(), 2, 'human'));
+    s = act(s, 2, G.ai(s, 2));
+    s = drive(s, 400, (x) => g(x, null).phase === 'turn' && x.n > 5);
+    s = G.settled!(s, fx(s).find((e) => e.seat === 2 && e.kind === 'debit')!.id, OK);
+    s = G.seated!(s, 2, 'ai');
+    const c = fx(s).filter((e) => e.seat === 2);
+    expect(c.map(strip)).toEqual([{ id: expect.any(String), seat: 2, kind: 'credit', amount: SHARE }]);
+    expect(c[0]!.ref).toBe(`${s.ref}s2n1`);
+    expect([s.own[2], s.ready?.[2], (s.g as XzState).kinds[2]]).toEqual([false, false, 'ai']);
+  });
+
+  test('第 3 条：筹码不是他的座位（局间带入被拒、带入超时先开打）一律不给暗牌，和旁观一样', () => {
+    // 三个真人在打，2 号是 C：局间带入被拒，下一局这个座位由庄家打
+    let s = G.seated!(midRound(['human', 'human', 'ai', 'ai']), 2, 'human');
+    s = toRoundEnd(s);
+    const b = fx(s).find((e) => e.seat === 2 && e.kind === 'debit')!;
+    s = G.settled!(s, b.id, { ok: false, error: 'no_funds', wallet: { balance: 0 } });
+    s = drive(s, 400, (x) => g(x, null).phase === 'turn');
+    expect([s.own[2], s.waiting?.[2], G.view(s, 2).refused]).toEqual([false, false, 'no_funds']);
+    expect(G.view(s, 2).g).toEqual(G.view(s, null).g);
+    // 开局带入一直没回话、到点先开打：钱还在路上，这个座位由庄家打，也不给暗牌
+    let o = G.settled!(begin(['human', 'human', 'ai', 'ai']), 'b0', OK);
+    o = act(o, 1, { t: 'go' });
+    expect([o.own[1], G.view(o, 1).buying[1]]).toEqual([false, true]);
+    expect(G.view(o, 1).g).toEqual(G.view(o, null).g);
   });
 });
 

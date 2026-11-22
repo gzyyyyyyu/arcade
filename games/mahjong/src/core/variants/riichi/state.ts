@@ -212,6 +212,11 @@ export interface RcState {
    * 没人接管过就没有这个字段（按 0）
    */
   entry?: number[];
+  /**
+   * 同一刻按"没打完"算的得分（standings(s, true)，不含马和头名奖）：提前收场、离座时和它比。
+   * 只记含马的那份的话，坐下到账马上走，一张牌没打也会差出整份马（0.47.3 跨审）。部署前的房间没有，按 entry
+   */
+  entryEarly?: number[];
 }
 
 export type RcAction =

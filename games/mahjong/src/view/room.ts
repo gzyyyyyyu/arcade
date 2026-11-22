@@ -9,7 +9,7 @@ import { MIN_HUMANS, type RoomOpts, type RoomView } from '../room/rules.ts';
 import { avatarSvg } from './avatar.ts';
 import { button, el } from './dom.ts';
 import { pageOf } from './variants/pages.ts';
-import { num, STAKES_NAME, walletError } from './text.ts';
+import { num, STAKES_NAME, walletError, wan } from './text.ts';
 
 interface WaitingProps {
   /** 快速匹配排到的桌（0.21.0）：人已经坐好，到齐（或等满 20 秒）自动开打；不摆房间号、叫朋友、选座、开打 */
@@ -118,8 +118,8 @@ function matchWaiting(box: HTMLElement, p: WaitingProps): void {
 export interface Watching {
   back: number | null;
   free: { seat: number; name: string }[];
-  /** 实盘房间只看：旁观的人不带入（docs/social.md 1.4） */
-  wallet: boolean;
+  /** 实盘房间：坐下等下一局才带入一份（这一份多少）；娱乐是 null */
+  share: number | null;
   onSit(seat: number): void;
 }
 
@@ -129,6 +129,7 @@ export function roomNotice(v: RoomView, seat: number | null, onRebuy: () => void
   if (v.unrated && !v.done) return note('实盘只有一个人，这一场不计输赢、不动钱包');
   if (v.opening) return note('等大家的筹码到账……');
   if (v.own[seat]) return null;
+  if (v.waiting) return note('坐下了，下一局开始算你的');
   if (v.buying[seat]) return note('筹码正在到账，这个座位先由电脑替你打');
   if (v.refused) {
     const n = note(`${walletError(v.refused).text}。这个座位先由电脑替你打。`);
@@ -147,11 +148,10 @@ function watching(w: Watching): HTMLElement {
     button('act go', n, '回到我的座位', () => w.onSit(w.back!));
     return n;
   }
-  if (w.wallet) {
-    el('span', '', n, '实盘房间只能看');
-    return n;
-  }
-  for (const f of w.free.slice(0, 2)) button('act go', n, w.free.length > 1 ? `坐下（替${f.name}）` : '坐下', () => w.onSit(f.seat));
+  // 实盘：一局打到一半坐下，这一局电脑照打，下一局才带入（src/room/rules.ts 的 waiting）
+  const label = (f: { name: string }): string =>
+    w.share !== null ? `坐下（下一局带 ${wan(w.share)}）` : w.free.length > 1 ? `坐下（替${f.name}）` : '坐下';
+  for (const f of w.free.slice(0, w.share !== null ? 1 : 2)) button('act go', n, label(f), () => w.onSit(f.seat));
   if (!w.free.length) el('span', '', n, '看不到手牌，也不能扔东西');
   return n;
 }
