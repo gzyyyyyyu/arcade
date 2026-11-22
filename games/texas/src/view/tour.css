@@ -5,16 +5,13 @@
 .lobby .tour-note { flex: 1 1 150px; min-width: 0; font-size: var(--fs-1); opacity: 0.85; line-height: 1.3; }
 .lobby .go-row .start { white-space: nowrap; }
 :where(#app, .coach-layer) .dialog .tour-sum { display: grid; gap: var(--s-3); text-align: center; }
-:where(#app, .coach-layer) .dialog .tour-place { font-size: 34px; font-weight: 900; }
+:where(#app, .coach-layer) .dialog .tour-sum .sum-hero { margin-bottom: 0; }
 :where(#app, .coach-layer) .dialog .tour-score { font-size: var(--fs-5); font-weight: 800; color: var(--gold); }
 :where(#app, .coach-layer) .dialog .tour-daily { font-size: var(--fs-2); color: var(--muted); min-height: 1.2em; }
-:where(#app, .coach-layer) .dialog .tour-prize { font-size: var(--fs-4); font-weight: 700; }
 :where(#app, .coach-layer) .dialog .tour-top { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); text-align: left; }
 :where(#app, .coach-layer) .dialog .tour-top li { display: flex; gap: var(--s-3); padding: var(--s-2) var(--s-3); border-radius: 10px; background: rgba(255, 255, 255, 0.08); }
 :where(#app, .coach-layer) .dialog .tour-top li.me { outline: 2px solid currentColor; }
 :where(#app, .coach-layer) .dialog .tour-top b { min-width: 4.5em; }
-:where(#app, .coach-layer) .dialog .tour-out { display: grid; gap: var(--s-2); }
-:where(#app, .coach-layer) .dialog .tour-out-place { font-size: var(--fs-5, 22px); font-weight: 800; }
 
 /* 好友房锦标赛（0.24.0）：开房那一行的玩法键和电脑补开关、娱乐档的卡、结束页的奖金列 */
 .lobby .friends.open .size.kind { flex: 0 0 auto; height: 52px; padding: 0 var(--s-3); font-size: var(--fs-3); white-space: nowrap; }
@@ -38,10 +35,5 @@
 .actions.pf .act { min-width: 150px; height: 64px; font-size: var(--fs-5); }
 .stage.tall .actions.pf .act { height: 64px; }
 .actions.pf .act.fold { flex: 0 0 34%; }
-/* 全下局的结果卡 */
-:where(#app, .coach-layer) .dialog .pf-sum { display: grid; gap: var(--s-3); text-align: center; }
-:where(#app, .coach-layer) .dialog .pf-sum .pf-score { font-size: 34px; font-weight: 900; }
-:where(#app, .coach-layer) .dialog .pf-sum .pf-score.up { color: var(--win-ink); }
-:where(#app, .coach-layer) .dialog .pf-sum .pf-score.down { color: var(--lose-ink); }
-:where(#app, .coach-layer) .dialog .pf-sum .pf-line { font-size: var(--fs-3); opacity: .9; }
-:where(#app, .coach-layer) .dialog .pf-sum .pf-best { font-size: var(--fs-3); color: var(--gold); font-weight: 800; }
+/* 全下局的结果卡（大字块、两栏、最后一手和离桌结算共用 .summary，见 style.css） */
+:where(#app, .coach-layer) .dialog .pf-sum .pf-best { margin-top: var(--s-3); text-align: center; font-size: var(--fs-3); color: var(--gold); font-weight: 800; }

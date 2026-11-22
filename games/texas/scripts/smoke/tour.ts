@@ -74,10 +74,10 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
   }
   await shot(page, 'tour-summary');
   log('tour badges checked', badges + (await badgesClear(page)));
-  const place = Number(((await page.locator('.tour-place').textContent()) ?? '').replace(/\D/g, ''));
+  const place = Number(((await page.locator('.tour-sum .sum-net').textContent()) ?? '').replace(/\D/g, ''));
   if (!(place >= 1 && place <= 6)) throw new Error(`tour place out of range: ${place}`);
   if ((await page.locator('.tour-top li').count()) !== 3) throw new Error('tour summary should list the top 3');
-  const prize = (await page.locator('.tour-prize').textContent()) ?? '';
+  const prize = (await page.locator('.tour-sum .sum-mood').textContent()) ?? '';
   if (!prize.includes('筹码不算数')) throw new Error(`fun tournament prize line: ${prize}`);
   log('tour place', place, prize);
   await page.locator('.d-btn.primary').click();
@@ -95,9 +95,9 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
   await page.locator('.d-title', { hasText: '现在离开' }).waitFor();
   await page.locator('.d-btn.danger').click();
   await page.locator('.tour-sum').waitFor({ timeout: 60_000 });
-  const realPlace = Number(((await page.locator('.tour-place').textContent()) ?? '').replace(/\D/g, ''));
+  const realPlace = Number(((await page.locator('.tour-sum .sum-net').textContent()) ?? '').replace(/\D/g, ''));
   const realPrize = [3, 1.2, 1, 0.9].map((k) => Math.round(fee * k))[realPlace - 1] ?? 0;
-  log('real tour place', realPlace, (await page.locator('.tour-prize').textContent()) ?? '');
+  log('real tour place', realPlace, (await page.locator('.tour-sum .sum-mood').textContent()) ?? '');
   await page.locator('.d-btn.primary').click();
   await page.locator('.lobby').waitFor();
   await page.waitForFunction((want) => Number((document.querySelector('.w-balance')?.textContent ?? '').replace(/,/g, '')) === want, before - fee + realPrize, { timeout: 10_000 }).catch(async () => {
@@ -138,7 +138,14 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
     for (const t of await page.locator('.lobby .tfmt').all()) {
       const tb = await t.boundingBox();
       if (!tb || tb.x < 0 || tb.x + tb.width > width + 1 || tb.height < 24) throw new Error(`${tag}: 赛制按钮不合适 ${JSON.stringify(tb)}`);
-      const [sw, cw] = await t.evaluate((e) => [e.scrollWidth, e.clientWidth]);
+      // 只量字：选中的按钮右上角挂着伸出去 6px 的勾（skin.css），scrollWidth 会把它算进去
+      const [sw, cw] = await t.evaluate((e) => {
+        const r = document.createRange();
+        r.selectNodeContents(e);
+        const cs = getComputedStyle(e);
+        const scale = e.getBoundingClientRect().width / (e as HTMLElement).offsetWidth;
+        return [Math.ceil(r.getBoundingClientRect().width / scale), e.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)];
+      });
       if (sw > cw + 2) throw new Error(`${tag}: 赛制按钮字被截断 ${sw}/${cw}`);
     }
     await ctx.close();
@@ -186,7 +193,7 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
     await page.locator('.d-title', { hasText: '现在离开' }).waitFor();
     await page.locator('.d-btn.danger').click();
     await page.locator('.tour-sum').waitFor({ timeout: 60_000 });
-    const place = Number(((await page.locator('.tour-place').textContent()) ?? '').replace(/\D/g, ''));
+    const place = Number(((await page.locator('.tour-sum .sum-net').textContent()) ?? '').replace(/\D/g, ''));
     if ((await page.locator('.tour-top li').count()) !== 3) throw new Error('tour summary should list the top 3');
     return place;
   };
@@ -226,7 +233,7 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
   if ((await page.locator('.seat:not(.empty)').count()) !== 9) throw new Error('real nine should seat 9');
   const pr = await leave();
   const prize = [4, 1.4, 1.3, 1.2].map((k) => Math.round(fee * k))[pr - 1] ?? 0;
-  log('real nine place', pr, (await page.locator('.tour-prize').textContent()) ?? '');
+  log('real nine place', pr, (await page.locator('.tour-sum .sum-mood').textContent()) ?? '');
   await page.locator('.d-btn.primary').click();
   await page.locator('.lobby').waitFor();
   await page.waitForFunction((want) => Number((document.querySelector('.w-balance')?.textContent ?? '').replace(/,/g, '')) === want, before - fee + prize, { timeout: 10_000 }).catch(async () => {
@@ -324,11 +331,11 @@ export async function tourRoomFlow(browser: Browser, base: string): Promise<void
     await shot(hp, 'tourroom-summary');
     const prizes: number[] = [];
     for (const [p, tag] of [[hp, 'host'], [gp, 'guest']] as const) {
-      const place = Number(((await p.locator('.tour-place').textContent()) ?? '').replace(/\D/g, ''));
+      const place = Number(((await p.locator('.tour-sum .sum-net').textContent()) ?? '').replace(/\D/g, ''));
       // 大字是真人之间的名次（1 或 2），奖金跟着它走
       if (!(place === 1 || place === 2)) throw new Error(`${tag}: human place should be 1 or 2: ${place}`);
       if ((await p.locator('.tour-top li').count()) !== 2) throw new Error(`${tag}: 真人名次表 should list the 2 humans`);
-      const line = (await p.locator('.tour-prize').textContent()) ?? '';
+      const line = (await p.locator('.tour-sum .sum-mood').textContent()) ?? '';
       if (!/^结回钱包 [\d,]+$/.test(line)) throw new Error(`${tag}: prize line: ${line}`);
       prizes.push(Number(line.replace(/\D/g, '')));
       if ((place === 1) !== (prizes.at(-1) === 4_000)) throw new Error(`${tag}: human place ${place} but prize ${line}`);

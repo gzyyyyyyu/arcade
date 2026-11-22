@@ -4,6 +4,7 @@
  */
 import { canScore, dailyBoardId, dailySeed, finishDaily, parseRecord, startDaily } from '../core/daily.ts';
 import { FUN_LEVEL, FUN_STAKES, PF_STACK_BB, stakesOf } from '../core/stakes.ts';
+import { view } from '../core/view.ts';
 import { walletError } from '../net/wallet.ts';
 import { submitScore } from '../net/scores.ts';
 import { site } from '../site.ts';
@@ -13,6 +14,7 @@ import { dialog } from '../view/dialog.ts';
 import { el, setText } from '../view/dom.ts';
 import { beijingDate } from '../view/puzzle.ts';
 import { pushFoldCard } from '../view/share.ts';
+import { heroBox, lastHandBox, sumGrid } from '../view/summary.ts';
 import { chips, handName, signed } from '../view/text.ts';
 import { shareIt } from './shell.ts';
 import type { App } from './state.ts';
@@ -74,13 +76,17 @@ export function createDaily(c: App) {
     writeJson(KEYS.pushfold, rec);
     // 交分：失败不挡结果卡（没登录、没网、平台停写都只是没上榜）
     const sent = board && c.cloud.userId() ? submitScore(board, final) : Promise.resolve(false);
-    const body = el('div', 'pf-sum');
-    // 大字写输赢（和开局比），剩下的筹码是最终成绩，放次要行，免得"0"被读成得了 0 分
+    const body = el('div', 'summary pf-sum');
+    // 大字写输赢（和开局比），剩下的筹码放下面，免得"0"被读成得了 0 分；最后一手写清输给了谁
     const diff = final - start;
-    el('div', `pf-score ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}`, body, signed(diff));
-    el('div', 'pf-line', body, `最后剩 ${chips(final)}（开局 ${chips(start)}）${final === 0 ? '，输光了' : ''}`);
-    el('div', 'pf-line', body, `打了 ${st.hands} 手，赢了 ${st.won} 手`);
-    el('div', 'pf-line', body, st.best ? `最大的一手：赢 ${chips(st.best.won)}${st.best.value === null ? '（对手都弃了）' : `，${handName(st.best.value)}`}` : '这一局没赢过');
+    heroBox(body, signed(diff), diff > 0 ? 'win' : diff < 0 ? 'lose' : 'even', final === 0 ? '筹码输光了' : diff > 0 ? '这一局赢了！' : diff < 0 ? '牌有起落，下次手气就来了' : '不输不赢');
+    sumGrid(body, [
+      ['剩下', `${chips(final)}（开局 ${chips(start)}）`],
+      ['打了', `${st.hands} 手，赢了 ${st.won} 手`],
+      ...(st.best ? [['最大的一手', `${st.best.value === null ? '对手都弃了' : handName(st.best.value)}，赢 ${chips(st.best.won)}`] as [string, string]] : []),
+    ]);
+    const v = view(s.table, ME);
+    lastHandBox(body, '最后一手', v.lastHand, (i) => f.nameAt(v, i, ME), ME);
     const note = el('div', 'pf-best', body);
     if (daily) setText(note, daily.scored ? '正在交今日榜的分…' : `练习局（${daily.date} 的牌今天已经记过分），不上榜`);
     else setText(note, record ? (prevBest === null ? '第一局，记下了' : `新纪录！上次最好 ${chips(prevBest)}`) : `最好成绩 ${chips(must(prevBest, '不是新纪录就说明以前记过最好成绩'))}`);

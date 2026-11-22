@@ -18,6 +18,7 @@ import { dialog } from '../view/dialog.ts';
 import { el, setText, toggle } from '../view/dom.ts';
 import { beijingDate } from '../view/puzzle.ts';
 import { chips, personaName } from '../view/text.ts';
+import { heroBox } from '../view/summary.ts';
 import { tourEndBody, tourOutBody, type TourRow } from '../view/tourroom.ts';
 import { LOGIN_NOTE, PENDING_NOTE, type App } from './state.ts';
 import { must } from '../must.ts';
@@ -152,10 +153,15 @@ export function createTour(c: App) {
     c.asking = true;
     const place = must(t.state.places[ME], '赛事一定给我排了名次');
     const prize = t.result().prize;
-    const body = el('div', 'tour-out');
-    el('p', 'tour-out-place', body, `你拿了第 ${place} 名`);
-    el('p', '', body, t.session.practice ? '娱乐赛，筹码不算数。' : prize > 0 ? `奖金 ${chips(prize)}，打完结回钱包。` : `没进前 ${formatInfo(t.state.format).pay.length} 名，没有奖金。`);
-    el('p', 'sum-note', body, '看到结束：电脑接着打，你看谁拿冠军。现在离开：直接跑完，马上出结算。');
+    const v0 = t.view;
+    const body = tourOutBody({
+      place,
+      prize: t.session.practice ? '娱乐赛，筹码不算数' : prize > 0 ? `奖金 ${chips(prize)}，打完结回钱包` : `没进前 ${formatInfo(t.state.format).pay.length} 名，没有奖金`,
+      hands: t.myHands,
+      last: v0.lastHand,
+      name: (i) => f.nameAt(v0, i, ME),
+      me: ME,
+    });
     const v = await dialog(stage, '你出局了', body, [
       { label: '现在离开', value: 'leave' },
       { label: '看到结束', value: 'watch', primary: true },
@@ -215,15 +221,14 @@ export function createTour(c: App) {
     await f.refreshWallet();
     const { place, prize, order } = t.result();
     const practice = t.session.practice;
-    const body = el('div', 'tour-sum');
-    el('div', 'tour-place', body, `第 ${place} 名`);
+    const body = el('div', 'summary tour-sum');
     let line: string;
     if (practice) line = '娱乐赛：筹码不算数';
     else if (err && t.closing) line = err === 'login' ? `奖金 ${chips(prize)}，登录后自动结回` : `奖金 ${chips(prize)}，钱包暂时连不上，稍后自动结回`;
     else if (err) line = `没结成：${walletError(err)}`;
     else if (prize > 0) line = `奖金 ${chips(prize)}，结回钱包${t.capped ? `（今天进账到顶，其中 ${chips(t.capped)} 没进钱包）` : ''}`;
     else line = `没进前 ${formatInfo(t.state.format).pay.length} 名，这次没有奖金`;
-    el('div', 'tour-prize', body, line);
+    heroBox(body, `第 ${place} 名`, place === 1 || prize > 0 ? 'win' : 'even', line);
     const list = el('ol', 'tour-top', body);
     order.slice(0, 3).forEach((seat, k) => {
       const li = el('li', seat === ME ? 'me' : '', list);
@@ -275,14 +280,21 @@ export function createTour(c: App) {
       if (i !== me && !t.over) f.toast(`${f.nameAt(v, i, me)} 出局，第 ${p} 名`);
     });
     if (t.over) return void roomTourEnd(s);
-    if (t.in && me !== null && t.places[me] !== null && !c.roomWatch && !c.asking) void askRoomEliminated(s, t.places[me]!);
+    if (t.in && me !== null && t.places[me] !== null && !c.roomWatch && !c.asking) void askRoomEliminated(s, t.places[me]!, me);
   }
 
-  async function askRoomEliminated(s: OnlineState, place: number): Promise<void> {
+  async function askRoomEliminated(s: OnlineState, place: number, me: number): Promise<void> {
     const o = c.online;
     if (!o) return;
     c.asking = true;
-    const how = await dialog(stage, '你出局了', tourOutBody(place, s.view?.tour?.fun === true), [
+    const v = must(s.view, '出局时房间一定发过视图');
+    const how = await dialog(stage, '你出局了', tourOutBody({
+      place,
+      prize: v.tour?.fun ? '娱乐赛，筹码不算数' : '打完按名次结奖金，直接结回钱包',
+      last: v.lastHand,
+      name: (i) => f.nameAt(v, i, me),
+      me,
+    }), [
       { label: '现在离开', value: 'leave' },
       { label: '看到结束', value: 'watch', primary: true },
     ], true);
