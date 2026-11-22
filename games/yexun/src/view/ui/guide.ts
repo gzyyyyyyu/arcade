@@ -20,7 +20,7 @@ import { schoolIcon } from '../art/sprites-selicons.ts';
 import { heroKey } from '../art/heroes.ts';
 import { DANGER_IDS, DANGERS, DAWN_TICK, EVENTS, MID_BOSS } from '../../content/waves.ts';
 import {
-  ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, NEXT_ELEMENT, PASSIVES, TYPE_SETS, WEAPONS,
+  ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, NEXT_ELEMENT, PASSIVES, STAT_NAME, TYPE_SETS, WEAPONS,
   type MergeDef, type WeaponId, type WeaponType,
 } from '../../content/weapons.ts';
 import { MONSTER_INFO } from './codex.ts';
@@ -29,6 +29,7 @@ import { closeModal, modalChrome, openModal } from './modal.ts';
 import { PAGER_CTL, Pager } from './pager.ts';
 import { mergeHow, poolCharName, schoolMerges, whoText } from './codexCombos.ts';
 import { mergeReach, mergeWho, SHOWN_MERGES } from '../../content/combos.ts';
+import { STAT_ORDER, statIcon } from './statIcons.ts';
 import './guide.css';
 import { esc } from './screens/shared.ts';
 
@@ -203,7 +204,8 @@ export class Guide {
       this.sec(
         '升级三选一',
         '<div class="yx-gcards"><span>新法器</span><span>法器升一级</span><span>被动</span></div>' +
-          `<ul class="yx-glist"><li><b>刷新</b>三张都不想要，整批换掉。起步 ${PICKS.rerolls} 次，进化一件、打倒精英或首领各补 1 次（心法流派的法器进化补 2 次），最多攒 ${PICKS.rerollMax} 次。</li><li><b>封禁</b>先点它再点一张卡，这张整局不再出现。起步 ${PICKS.bans} 次。</li><li><b>跳过</b>不拿，随机拿个小奖：铜钱、回血、下次多一张卡、刷新 +1。</li></ul>` +
+          `<ul class="yx-glist"><li><b>刷新</b>三张都不想要，整批换掉。起步 ${PICKS.rerolls} 次，进化一件、打倒精英或首领各补 1 次（心法流派的法器进化补 2 次），最多攒 ${PICKS.rerollMax} 次。</li><li><b>封禁</b>先点它再点一张卡，这张整局不再出现。起步 ${PICKS.bans} 次。</li><li><b>跳过</b>不拿，随机拿个小奖：铜钱、回血、下次多一张卡、刷新 +1。</li>` +
+          `<li><b>卡上的数</b><span class="yx-gstats">${STAT_ORDER.map((k) => `<span>${statIcon(k)}${STAT_NAME[k]}</span>`).join('')}</span><small>每件法器的叫法不一样（「几道雷」「回一层要多久」），电脑上悬停数字能看到。</small></li></ul>` +
           '<p class="yx-gnote">卡上写着拿了以后能凑成什么，留意「凑成」「再拿 X」。手上有某个搭配的一件料，另一件更常出；带了心法，每次至少一张那个流派的卡（这两条实盘不算）。</p>',
       ),
       this.keys(),

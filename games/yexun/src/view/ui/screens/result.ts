@@ -185,7 +185,7 @@ export class Result {
       .join('');
     const passives = r.build
       .filter((b) => b.dmg < 0)
-      .map((b) => `<span class="yx-rpass"><img alt="" src="${this.icons(b.icon)}"><em>${b.level}</em></span>`)
+      .map((b) => `<span class="yx-rpass" title="${esc(b.name)}"><img alt="${esc(b.name)}" src="${this.icons(b.icon)}"><em>${b.level}</em></span>`)
       .join('');
     const total = r.coinsTotal;
     const coinImg = this.icons('coin');
@@ -218,7 +218,7 @@ export class Result {
       // 本局最强不单列一块（和伤害榜第一行重复）：第一行图标挂奖牌；前三局倒下在这里给「下次试试」
       (r.advice && !rr ? `<div class="yx-rbest yx-radvice"><div><small>下次试试</small><span>${esc(r.advice)}</span></div></div>` : '') +
       '</div>' +
-      (rr ? this.raidItems(rr) : `<div class="yx-rbuild"><label>法器伤害</label>${rows}${passives ? `<div class="yx-rpasses">${passives}</div>` : ''}</div>`) +
+      (rr ? this.raidItems(rr) : `<div class="yx-rbuild"><label>法器伤害</label>${rows}${passives ? `<div class="yx-rpasses"><small class="yx-rptitle">被动</small>${passives}</div>` : ''}</div>`) +
       '</div>' +
       nightHtml +
       coinRow +

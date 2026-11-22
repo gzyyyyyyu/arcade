@@ -762,6 +762,9 @@ export const STAT_NAME: Record<keyof WeaponStats, string> = { dmg: '伤害', cd:
 const STAT_TICKS: ReadonlySet<keyof WeaponStats> = new Set(['cd', 'duration', 'rehit']);
 
 export interface StatChange {
+  /** 哪一项（界面按它挑图标） */
+  key: keyof WeaponStats;
+  /** 这件法器的叫法（def.stat 里写了的用它，否则 STAT_NAME） */
   name: string;
   from: number;
   to: number;
@@ -782,7 +785,7 @@ export function upChanges(id: WeaponId, level: number): StatChange[] {
   return (Object.keys(up.delta) as (keyof WeaponStats)[]).map((k) => {
     const sec = STAT_TICKS.has(k) && !(id === 'flysword' && k === 'duration');
     const f = (v: number): number => +(sec ? v / 30 : v).toFixed(2);
-    return { name: def.stat?.[k] ?? STAT_NAME[k], from: f(a[k]), to: f(b[k]), unit: sec ? '秒' : '' };
+    return { key: k, name: def.stat?.[k] ?? STAT_NAME[k], from: f(a[k]), to: f(b[k]), unit: sec ? '秒' : '' };
   });
 }
 
@@ -793,7 +796,7 @@ export function spanNums(id: WeaponId): StatChange[] {
   return (['dmg', 'cd'] as const).map((k) => {
     const sec = k === 'cd';
     const f = (v: number): number => +(sec ? v / 30 : v).toFixed(2);
-    return { name: WEAPONS[id].stat?.[k] ?? STAT_NAME[k], from: f(a[k]), to: f(b[k]), unit: sec ? '秒' : '' };
+    return { key: k, name: WEAPONS[id].stat?.[k] ?? STAT_NAME[k], from: f(a[k]), to: f(b[k]), unit: sec ? '秒' : '' };
   });
 }
 
@@ -804,7 +807,7 @@ export function baseNums(id: WeaponId): StatChange[] {
   return keys.map((k) => {
     const sec = k === 'cd';
     const v = +(sec ? def.base[k] / 30 : def.base[k]).toFixed(2);
-    return { name: def.stat?.[k] ?? STAT_NAME[k], from: v, to: v, unit: sec ? '秒' : '' };
+    return { key: k, name: def.stat?.[k] ?? STAT_NAME[k], from: v, to: v, unit: sec ? '秒' : '' };
   });
 }
 

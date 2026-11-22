@@ -18,6 +18,9 @@
 .yx-guide .yx-glist li b { color: var(--ink, #17131c); }
 .yx-guide .yx-glist li > b:first-child { margin-right: 6px; }
 .yx-guide .yx-glist li > .yx-gi { margin-right: 4px; }
+.yx-guide .yx-gstats { display: inline-flex; flex-wrap: wrap; gap: 2px 10px; }
+.yx-guide .yx-gstats > span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.yx-guide .yx-stico { flex: none; width: 16px; height: 16px; color: #7a6a52; }
 .yx-guide .yx-glist li small { display: block; margin-top: 2px; font-size: var(--fs-sm, 13px); color: #6a5a48; }
 .yx-guide .yx-gi { width: 26px; height: 26px; object-fit: contain; vertical-align: middle; flex: none; }
 .yx-guide .yx-gw { display: inline-flex; align-items: center; gap: 3px; margin: 0 2px; padding: 1px 7px 1px 2px; border: 1.5px solid rgba(23, 19, 28, 0.35); border-radius: 9px; background: #fff; font-size: var(--fs-sm, 13px); white-space: nowrap; }

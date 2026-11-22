@@ -2,7 +2,7 @@
  * 翻页（docs/ui.md 第 9、11 节：页面不滚，长列表翻页）：图鉴、成就、藏宝阁、玩法说明、排行、回放共用。
  * 做法：内容区是固定高度、overflow: hidden 的；把里面的"最小一块"（卡片、一行、一段）全摆出来量位置，
  * 按内容区的高度贪心切成几页，再把不在当前页的块藏起来。窗口大小变了自动重算，所以每页放几项是"按可用高度算"的，不写死。
- * 块之间有包着的外框（玩法说明的 section）时，这一页没有任何块的外框一起藏；外框自己的上下内边距靠"量一遍、超了就多留一点"补上。
+ * 块之间有包着的外框（玩法说明的 section）时，这一页没有任何块的外框一起藏；外框自己的上下内边距靠逐页摆出来量、超了把末尾一块挪到下一页补上。
  */
 
 import './pager.css';
@@ -101,56 +101,55 @@ export class Pager {
       }
     }
     this.wrappers = [...wr].map(([el, inside]) => ({ el, inside }));
-    // 外框的上下内边距没算在块的位置里：切完试着摆一遍，哪页超了就多留出超的那部分再切
-    let reserve = 0;
-    for (let k = 0; k < 6; k++) {
-      // 上一轮摆过某一页，有的块是藏着的：先全摆出来再量
-      for (const el of body.querySelectorAll(`.${OFF}`)) el.classList.remove(OFF);
-      this.groups = this.split(H - reserve);
-      this.pages = this.groups.length;
-      let over = 0;
-      for (let i = 0; i < this.pages; i++) {
-        this.show(i);
-        over = Math.max(over, body.scrollHeight - body.clientHeight);
-      }
-      if (over <= 0) break;
-      reserve += Math.max(over, 6);
-    }
+    this.groups = this.split(H);
+    this.pages = this.groups.length;
     this.page = Math.min(this.page, this.pages - 1);
     this.apply();
   }
 
+  /**
+   * 逐页切：先按全摆出来时的位置贪心装到 H，再只摆这一页量一遍；外框的内边距让它超了，就把末尾一块挪到下一页再量。
+   * 原来是所有页统一少装「超得最多那页超的高度」：有一页超了，别的页也跟着少装
+   */
   private split(H: number): HTMLElement[][] {
-    const { keep } = this.o;
+    const { body, keep } = this.o;
+    const tops = this.leafs.map((l) => l.getBoundingClientRect());
+    // 块的位置是放大后的（大屏面板带 zoom: 1.3），H 是 clientHeight（放大前）：换到同一个尺度，不然每页只装 1/1.3，底下空一截
+    const k = body.offsetHeight > 0 ? body.getBoundingClientRect().height / body.offsetHeight : 1;
+    const room = H * k;
     const groups: HTMLElement[][] = [];
-    let cur: HTMLElement[] = [];
-    let start = 0;
-    for (const l of this.leafs) {
-      const r = l.getBoundingClientRect();
-      if (cur.length === 0) start = r.top;
-      if (cur.length > 0 && r.bottom - start > H + 0.5 && r.top > start + 0.5) {
-        // 页底留着小标题不好看：标题连同后面一起挪到下一页
-        const moved: HTMLElement[] = [];
-        while (keep && cur.length > 1 && cur[cur.length - 1]!.matches(keep)) moved.unshift(cur.pop()!);
-        groups.push(cur);
-        cur = moved;
-        start = (moved[0] ?? l).getBoundingClientRect().top;
+    let i = 0;
+    while (i < this.leafs.length) {
+      const start = tops[i]!.top;
+      let n = 1;
+      while (i + n < this.leafs.length && !(tops[i + n]!.bottom - start > room + 0.5 && tops[i + n]!.top > start + 0.5)) n++;
+      // 页底留着小标题不好看：标题连同后面一起挪到下一页
+      const trim = (): void => {
+        while (keep && n > 1 && i + n < this.leafs.length && this.leafs[i + n - 1]!.matches(keep)) n--;
+      };
+      trim();
+      for (;;) {
+        this.showOnly(this.leafs.slice(i, i + n));
+        if (n <= 1 || body.scrollHeight <= body.clientHeight) break;
+        n--;
+        trim();
       }
-      cur.push(l);
+      groups.push(this.leafs.slice(i, i + n));
+      i += n;
     }
-    if (cur.length) groups.push(cur);
+    for (const el of body.querySelectorAll(`.${OFF}`)) el.classList.remove(OFF);
     return groups;
   }
 
-  /** 只摆第 i 页（量高度用） */
-  private show(i: number): void {
-    const on = new Set(this.groups[i]);
+  /** 只摆这几块（量高度、翻页共用） */
+  private showOnly(page: readonly HTMLElement[]): void {
+    const on = new Set(page);
     for (const l of this.leafs) l.classList.toggle(OFF, !on.has(l));
     for (const w of this.wrappers) w.el.classList.toggle(OFF, !w.inside.some((l) => on.has(l)));
   }
 
   private apply(): void {
-    this.show(this.page);
+    this.showOnly(this.groups[this.page] ?? []);
     this.paint();
   }
 

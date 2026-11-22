@@ -262,7 +262,9 @@
 .yx-rrow.top b, .yx-rrow.top span { color: var(--red); }
 .yx-rbar { height: 16px; border-radius: 8px; border: 2px solid var(--ink); background: rgba(23, 19, 28, 0.1); overflow: hidden; }
 .yx-rbar i { display: block; height: 100%; background: linear-gradient(90deg, #f2a23a, var(--red)); transform-origin: left; animation: yx-grow 0.7s ease-out both; }
-.yx-rpasses { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.yx-rpasses { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+/* 小图标前写「被动」：只有图标看不出是什么（矮屏「法器伤害」标题藏了，这个不藏，只占行首两个字宽） */
+.yx-rptitle { font-size: var(--fs-sm, 13px); color: #5a4a3a; white-space: nowrap; }
 .yx-rpass { position: relative; width: 32px; height: 32px; }
 .yx-rpass img { width: 100%; height: 100%; }
 .yx-rpass em { position: absolute; right: -5px; bottom: -5px; font-style: normal; font-size: var(--fs-xs, 12px); line-height: 13px; min-width: 14px; text-align: center; border-radius: 5px; background: var(--gold); border: 1.5px solid var(--ink); }
