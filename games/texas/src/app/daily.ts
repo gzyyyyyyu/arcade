@@ -14,6 +14,7 @@ import { dialog } from '../view/dialog.ts';
 import { el, setText } from '../view/dom.ts';
 import { beijingDate } from '../view/puzzle.ts';
 import { pushFoldCard } from '../view/share.ts';
+import { play } from '../view/sound.ts';
 import { heroBox, lastHandBox, sumGrid } from '../view/summary.ts';
 import { chips, handName, signed } from '../view/text.ts';
 import { shareIt } from './shell.ts';
@@ -92,6 +93,8 @@ export function createDaily(c: App) {
     else setText(note, record ? (prevBest === null ? '第一局，记下了' : `新纪录！上次最好 ${chips(prevBest)}`) : `最好成绩 ${chips(must(prevBest, '不是新纪录就说明以前记过最好成绩'))}`);
     if (daily?.scored) void sent.then((ok) => setText(note, ok ? '已上今日榜' : '今日榜没交上：连不上，稍后再试；分数已记在本机'));
     const share = daily?.scored && !site.standalone ? shareIt(pushFoldCard(daily.date, final, st.hands, st.won, c.myName)) : null;
+    // 结果卡弹出时：赢了响一声，破了自己的纪录响大的（输了摊牌时已经响过，不再补）
+    if (diff > 0) play(!daily && record && prevBest !== null ? 'cele2' : 'cele1');
     let pick: string | null;
     for (;;) {
       pick = await dialog(stage, daily ? '今日全下结束' : '全下局结束', body, [
