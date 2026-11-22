@@ -10,21 +10,23 @@ import { beijingDate, beijingDayStart, beijingWeek, nextBeijingMidnight } from '
 import { readTally } from './tally';
 import { normalizeUsername } from '../account/validate';
 import { careerView, freshState, isWalletState, normalize, TIERS, viewOf } from './state';
-import { isDayStats, playingToday, runOp, summarizeDay, viewWallet, walletRules } from './store';
+import { isDayStats, playingToday, runOp, summarizeDay, viewWallet, walletRuleSet } from './store';
 
 // ---------- 浏览器的两个接口（docs/platform-backend.md 5.9） ----------
 
 /** GET /api/wallet：看自己的钱包，加上档位表。只读档不写（到期的那一份在回话里退、下次再写）。 */
 export async function getWallet(c: Ctx): Promise<Response> {
-  const rules = await walletRules(c.db, c.now);
+  const rules = await walletRuleSet.current(c.db, c.now);
   const r = await viewWallet(c.db, c.session!.user.id, c.now, { write: c.tier === 'normal' || c.tier === 'noGrowth', rules, mine: true });
+  const playing = await playingToday(c.db, c.now);
   if (!r.ok) throw new ApiError(500, 'internal');
   return json(200, {
     wallet: r.wallet,
     tiers: TIERS,
     reliefTo: rules.reliefTo,
     winUnits: rules.winUnits,
-    playing: await playingToday(c.db, c.now),
+    // 读不到就不带：大厅不显示人数，不显示成 0
+    ...(playing && { playing }),
     // 钱包页的"最近进出"，自己的最近 30 笔
     ledger: r.ledger ?? [],
     // 大厅卡片上"本周 +3,000"，这周玩过的游戏才有
@@ -95,7 +97,7 @@ export async function adminLookup(c: Ctx): Promise<Response> {
   onlySession(c);
   const u = await adminTarget(c, c.params.username);
   const row = await c.db.first<{ state: string }>(c.db.stmt('SELECT state FROM wallets WHERE user_id = ?1', u.id));
-  const rules = await walletRules(c.db, c.now);
+  const rules = await walletRuleSet.current(c.db, c.now);
   const s = row ? normalize(parseJsonColumn(row.state, isWalletState, 'wallets.state'), c.now).s : freshState(c.now, rules);
   const week = beijingWeek(c.now);
   const career = Object.fromEntries(Object.entries(s.career ?? {}).map(([g, x]) => [g, careerView(x, week)]));
@@ -113,7 +115,7 @@ export async function adminLookup(c: Ctx): Promise<Response> {
 export async function adminAdjust(c: Ctx): Promise<Response> {
   const by = onlySession(c);
   const { amount } = c.body;
-  const rules = await walletRules(c.db, c.now);
+  const rules = await walletRuleSet.current(c.db, c.now);
   if (!isInt(amount) || amount === 0 || Math.abs(amount) > rules.adminAdjustMax) {
     // 上限管理员能调：文案里写现在的数，管理窗口直接显示
     const max = rules.adminAdjustMax;

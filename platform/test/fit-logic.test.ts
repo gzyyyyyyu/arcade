@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { packPages, pageCount, perPage } from '../src/features/fit/fit-logic';
+import { packPages, pageCount, perPage, rowHeights } from '../src/features/fit/fit-logic';
 
 describe('按高度翻页的算术（src/features/fit/Fit.tsx）', () => {
   it('一页放几条：按整行算，至少一行；网格按列数成倍', () => {
@@ -24,5 +24,12 @@ describe('按高度翻页的算术（src/features/fit/Fit.tsx）', () => {
     // 一条比整页还高：自己一页，不卡死
     expect(packPages([300, 40, 40], 200, 150, 0)).toEqual([0, 1]);
     expect(packPages([], 100, 50, 0)).toEqual([0]);
+  });
+});
+
+describe('rowHeights', () => {
+  it('每 cols 条一排取最高；最后一排不满也算一排', () => {
+    expect(rowHeights([50, 60, 48, 48, 70], 2)).toEqual([60, 48, 70]);
+    expect(rowHeights([50, 60], 1)).toEqual([50, 60]);
   });
 });

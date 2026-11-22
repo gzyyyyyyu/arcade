@@ -5,7 +5,7 @@
  * 容器的高度由外面的布局给（flex: 1; min-height: 0），这里只量、不定高。
  */
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { packPages, pageCount, perPage } from './fit-logic.ts';
+import { packPages, pageCount, perPage, rowHeights } from './fit-logic.ts';
 import './fit.css';
 
 /**
@@ -30,7 +30,7 @@ function space(el: HTMLElement, room: ((list: HTMLElement) => number) | undefine
  * room：列表按内容高、不撑满时（排行榜满榜卡片也按内容高），量不出"还能放多高"，由调用方给出列表顶上往下能用的高度（含翻页条），
  * 窗口变了也重量；不给就量列表自己的高度。
  * uneven：条目高矮差得多（管理页邀请码：带长名字的用过码折三行）时按每条的实际高度装页，每页条数不同；
- * 默认按见过的最高一条算，一条高的就让每页都少放。只用于一条一行的列表，要量全部条目：宽度变了、条目变了（按 keyOf 的序列比，
+ * 默认按见过的最高一条算，一条高的就让每页都少放。grid 时按每一排的实际高度装页（徽章墙：一枚进度字多折一行只让那一排高）。要量全部条目：宽度变了、条目变了（按 keyOf 的序列比，
  * 调用方每次渲染传新数组不算变）、当前页有条目变高变矮时，先整列画一帧再量。
  * 翻页条可以由调用方的 CSS 挪到列表旁边（好友页手机横屏挪到卡片头那一行）：量到它不在列表下面就不给它留高。
  */
@@ -67,7 +67,7 @@ export function Paged<T>({
   const tall = useRef({ key: '', full: 0, h: 0 });
   // uneven：每页第一条的下标，null = 还没量（这一帧整列画出来量每条的高）
   const [starts, setStarts] = useState<readonly number[] | null>(null);
-  const heights = useRef<{ width: number; sig: string; h: number[] } | null>(null);
+  const heights = useRef<{ width: number; sig: string; h: number[]; cols: number } | null>(null);
   // 条目序列：只在 uneven 时算，按 key 比，不按数组引用比（调用方每次渲染给新数组时按引用比会整列重量、来回循环）
   const sig = uneven ? items.map(keyOf).join('\n') : '';
   const size = fixed ?? per;
@@ -99,11 +99,16 @@ export function Paged<T>({
       // 当前页的条目和记下的高差半像素以上：内容变了（比如码被用掉、多一行"用："），整列重量
       const moved = starts !== null && known !== null && rows().some((h, i) => Math.abs(h - (known.h[starts[at]! + i] ?? h)) > 0.5);
       if (!known || known.width !== el.clientWidth || known.sig !== sig || moved) {
+        // 清掉旧高度再整列画一帧：不清的话那一帧宽度、序列都没变，会拿旧高度分出同样的页，再判一次变了，来回循环（React #185）
+        heights.current = null;
         if (starts !== null) return setStarts(null);
-        heights.current = { width: el.clientWidth, sig, h: rows() };
+        const top = (el.firstElementChild as HTMLElement | null)?.offsetTop;
+        const cols = grid ? Math.max(1, [...el.children].filter((c) => (c as HTMLElement).offsetTop === top).length) : 1;
+        heights.current = { width: el.clientWidth, sig, h: rows(), cols };
       }
       const { full, cost } = space(el, room, barCost);
-      const next = packPages(heights.current!.h, full, full - cost, parseFloat(getComputedStyle(el).rowGap) || 0);
+      const { h, cols } = heights.current!;
+      const next = packPages(rowHeights(h, cols), full, full - cost, parseFloat(getComputedStyle(el).rowGap) || 0).map((r) => r * cols);
       setStarts((prev) => (prev && prev.length === next.length && prev.every((v, i) => v === next[i]) ? prev : next));
     };
     measure();
@@ -112,7 +117,7 @@ export function Paged<T>({
     // 条目变高变矮列表框不变，单看列表的 ResizeObserver 不响：当前页每一条也盯着
     for (const c of el.children) ro.observe(c);
     return () => ro.disconnect();
-  }, [fixed, uneven, sig, starts, at, room]);
+  }, [fixed, uneven, grid, sig, starts, at, room]);
 
   useLayoutEffect(() => {
     if (fixed !== undefined || uneven) return;
