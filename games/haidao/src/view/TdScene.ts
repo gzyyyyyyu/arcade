@@ -56,6 +56,7 @@ import { type ReasonLog, newReasonLog } from './tdreason.ts';
 import { sync } from './tdsync.ts';
 import { endFxLead, finish } from './tdresult.ts';
 import { STEP_MS } from './motion.ts';
+import { DEV } from './devflags.ts';
 
 export class TdScene extends Phaser.Scene {
   r = 1;
@@ -555,7 +556,7 @@ export async function prepareTide(tm: Phaser.Textures.TextureManager, r: number)
   const week = beijingIsoWeek(Date.now());
   const setup = tideSetup(week);
   await Promise.all([ensureArt(tm, tdPieces(), r), ensureTurrets(tm, setup.layout, r)]).catch(() => undefined);
-  return { levelId: 'tide', setup, speed: new URLSearchParams(location.search).has('fast') ? 4 : 1, tide: { week } };
+  return { levelId: 'tide', setup, speed: DEV.speed, tide: { week } };
 }
 
 /**
@@ -589,7 +590,7 @@ export async function prepareTd(levelId: string, tm: Phaser.Textures.TextureMana
   ];
   await Promise.all([ensureArt(tm, escort ? [...tdPieces(), escortShipArt()] : tdPieces(), r), ensureTurrets(tm, towers, r)]).catch(() => undefined);
   void ensureTurrets(tm, (setup.unlocked ?? TEMP_KINDS).flatMap((k) => [{ kind: k, level: TD_TIER_LEVEL[2] }, { kind: k, level: TD_TIER_LEVEL[3] }]), r).catch(() => undefined);
-  const data: TdData = { levelId, setup, speed: new URLSearchParams(location.search).has('fast') ? 4 : 1 };
+  const data: TdData = { levelId, setup, speed: DEV.speed };
   if (home) data.home = true;
   if (escort) data.escort = true;
   if (pre?.tier) data.escortLive = { tier: pre.tier };

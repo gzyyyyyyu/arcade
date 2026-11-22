@@ -66,7 +66,7 @@ function firstHit(kind: TdTowerKind, enemy: TdEnemyKind): { hits: TdEvent[]; aim
     id: 't', name: 't', hq: 1, hpPct: 1000, gold: 0, first: 0, waveTicks: 4000, lanes: [{ x: 10, y: -2 }],
     waves: [{ groups: [{ enemy, n: 1, lane: 0, every: 1 }] }], kegs: [], obstacles: [], slots: [],
   };
-  const s = createTd({ layout, level, hero: 1, seed: 1, rules: RULES_VERSION });
+  const s = createTd({ layout, level, hero: 1, seed: 1, rules: RULES_VERSION, mode: 'campaign' });
   s.hero.respawn = 1_000_000;
   const hits: TdEvent[] = [];
   let aimed = false;

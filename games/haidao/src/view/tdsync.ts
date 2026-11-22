@@ -187,8 +187,6 @@ export function sync(bs: TdScene, dt: number): void {
       const ms = Math.min(clip?.ms ?? ATK_MS, reload * 0.95);
       const tn = (e.cd - tk) * STEP_MS;
       atk = atkPhase(tn, reload - tn, ms, clip?.hit ?? 0.42);
-      // 旧存档的 cd 可能没对上（一直等不到出手），退回按时间循环
-      if (atk < 0 && tn < -reload) atk = (((now + sp.phase) % ms) + ms) % ms / ms;
     }
     // 转向：朝向连续变，经过 0 时压扁，不瞬切
     sp.face = turnStep(sp.face, e.face < 0 ? -1 : 1, dt);

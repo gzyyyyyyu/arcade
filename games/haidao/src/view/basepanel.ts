@@ -289,11 +289,7 @@ export function collection(bs: BaseScene, body: HTMLElement): void {
   for (const id of skins) {
     const [, kind, name] = id.split(':') as [string, TroopKind, string];
     const row = el('div', 'hd-ach', undefined, body);
-    try {
-      row.appendChild(img(troopF(kind, 'idle', name)[0]!, 46));
-    } catch {
-      // 没有这张图就只显示文字
-    }
+    row.appendChild(img(troopF(kind, 'idle', name)[0]!, 46));
     const t = el('div', 'hd-at', undefined, row);
     el('b', '', rewardName(id), t);
     const on = p.skins?.[kind] === name;
@@ -309,11 +305,7 @@ export function collection(bs: BaseScene, body: HTMLElement): void {
   for (const id of decos) {
     const kind = id.split(':')[1] as BuildingKind;
     const row = el('div', 'hd-ach', undefined, body);
-    try {
-      row.appendChild(img(bArt(kind, 1), 46));
-    } catch {
-      // 没有这张图就只显示文字
-    }
+    row.appendChild(img(bArt(kind, 1), 46));
     const t = el('div', 'hd-at', undefined, row);
     el('b', '', rewardName(id), t);
     const placed = p.base.buildings.some((q) => q.kind === kind);
@@ -332,11 +324,7 @@ export function collection(bs: BaseScene, body: HTMLElement): void {
   // 掉宝池里还没有的，可以用筹码买（登录、有钱包时才有）
   shopSection(body, rewardName, (id) => {
     const [kind, a, b] = id.split(':') as [string, string, string];
-    try {
-      return kind === 'skin' ? img(troopF(a as TroopKind, 'idle', b)[0]!, 46) : img(bArt(a as BuildingKind, 1), 46);
-    } catch {
-      return null;
-    }
+    return kind === 'skin' ? img(troopF(a as TroopKind, 'idle', b)[0]!, 46) : img(bArt(a as BuildingKind, 1), 46);
   }, () => openAchievements(bs, 'col'));
   const items = [...body.children].slice(first) as HTMLElement[];
   if (items.length && bs.sheet) paginate(bs.sheet, items, items[items.length - 1]!);

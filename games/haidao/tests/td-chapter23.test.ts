@@ -12,7 +12,7 @@ function lvl(p: Partial<TdLevel> = {}): TdLevel {
 function base(extra: Placed[] = []): Placed[] {
   return [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }, { id: 2, kind: 'treasure', level: 1, x: 10, y: 13 }, ...extra];
 }
-const setup = (layout: Placed[], level: TdLevel, seed = 1): TdSetup => ({ layout, level, hero: 1, seed, rules: RULES_VERSION });
+const setup = (layout: Placed[], level: TdLevel, seed = 1): TdSetup => ({ layout, level, hero: 1, seed, rules: RULES_VERSION, mode: 'campaign' });
 function benchHero(s: TdState): void {
   s.hero.respawn = 1_000_000;
   s.hero.hp = 0;

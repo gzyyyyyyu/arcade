@@ -64,12 +64,7 @@ function openChest(bs: BattleScene, id: string, under: HTMLElement): void {
   const nm = rewardName(id);
   const item = el('div', 'hd-chest-item', undefined, chest);
   const [type, a, b] = id.split(':');
-  try {
-    const piece = type === 'skin' ? troopF(a as TroopKind, 'idle', b)[0] : bArt(a as 'statue', 1);
-    if (piece) item.appendChild(img(piece, 64));
-  } catch {
-    item.textContent = '★';
-  }
+  item.appendChild(img(type === 'skin' ? troopF(a as TroopKind, 'idle', b)[0]! : bArt(a as 'statue', 1), 64));
   el('h2', '', nm, box);
   // 船长档案钮只有头像没有字（矮竖屏还挪到了底下）：说清楚点哪
   el('p', 'hd-sub', type === 'skin' ? '回岛点船长头像 → 收藏，装备上' : '回岛点船长头像 → 收藏，摆到岛上', box);

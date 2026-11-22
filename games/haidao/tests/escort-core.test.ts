@@ -18,7 +18,7 @@ function lvl(p: Partial<TdLevel> = {}, e: Partial<EscortDef> = {}): TdLevel {
   };
 }
 function make(p: Partial<TdLevel> = {}, e: Partial<EscortDef> = {}, seed = 1): TdState {
-  const s = createTd({ layout: [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }], level: lvl(p, e), hero: 1, seed, rules: RULES_VERSION });
+  const s = createTd({ layout: [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }], level: lvl(p, e), hero: 1, seed, rules: RULES_VERSION, mode: 'escort' });
   s.hero.respawn = 1_000_000; // 英雄先倒下：测船和敌人时不让它插手
   s.hero.hp = 0;
   return s;
@@ -230,7 +230,7 @@ describe('护航：敌人追船、预告相遇点、确定性', () => {
     expect(run(7)).toBe(run(7));
     expect(run(7)).not.toBe(run(8));
     for (const kind of ['novice', 'normal'] as const) {
-      const mk = (): Parameters<typeof runEscortBot>[1] => ({ layout: [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }], level: lvl({ first: 40, waves, maxTicks: 1500 }), hero: 1, seed: 3, rules: RULES_VERSION });
+      const mk = (): Parameters<typeof runEscortBot>[1] => ({ layout: [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }], level: lvl({ first: 40, waves, maxTicks: 1500 }), hero: 1, seed: 3, rules: RULES_VERSION, mode: 'escort' });
       const a = runEscortBot(kind, mk());
       const b = runEscortBot(kind, mk());
       expect(a, kind).toEqual(b);

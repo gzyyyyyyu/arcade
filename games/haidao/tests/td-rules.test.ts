@@ -8,7 +8,7 @@ function lvl(p: Partial<TdLevel> = {}): TdLevel {
   return { id: 't', name: 't', hq: 1, hpPct: 100, gold: 0, first: 0, waveTicks: 4000, lanes: [{ x: 10, y: -2 }], waves: [], kegs: [], obstacles: [], slots: [], ...p };
 }
 function setup(layout: Placed[], level: TdLevel, seed = 1): TdSetup {
-  return { layout, level, hero: 1, seed, rules: RULES_VERSION };
+  return { layout, level, hero: 1, seed, rules: RULES_VERSION, mode: 'campaign' };
 }
 const base = (extra: Placed[] = []): Placed[] => [{ id: 1, kind: 'hq', level: 1, x: 9, y: 9 }, { id: 2, kind: 'treasure', level: 1, x: 10, y: 13 }, ...extra];
 const benchHero = (s: TdState): void => {

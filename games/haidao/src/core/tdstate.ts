@@ -126,7 +126,7 @@ export interface TdState {
   rules: number;
   tick: number;
   level: TdLevel;
-  /** 守岛 2.0：哪种玩法（setup 没写按 campaign） */
+  /** 守岛 2.0：哪种玩法 */
   mode: TdMode;
   /** 守岛 2.0：木台上能造哪些塔 */
   unlocked: TdTowerKind[];

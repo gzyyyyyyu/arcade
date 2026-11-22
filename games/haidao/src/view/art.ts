@@ -13,12 +13,7 @@ type Arg<F> = F extends (a: infer A, ...r: never[]) => unknown ? A : never;
 export const bArt = (kind: BuildingKind, level: number): ArtPiece =>
   m(`b${kind}${level}`, () => {
     if (kind === 'wall') return wallArt(level, 0);
-    try {
-      return buildingArt(kind, level);
-    } catch {
-      // 美术还没画的建筑：先用岩石顶着，不让界面崩
-      return buildingArt('rock', 1);
-    }
+    return buildingArt(kind, level);
   });
 /** 城墙按四邻的有无选图：mask 的四位 = 上右下左有没有墙 */
 export const wArt = (level: number, mask: number): ArtPiece => m(`w${level}.${mask}`, () => wallArt(level, mask));
