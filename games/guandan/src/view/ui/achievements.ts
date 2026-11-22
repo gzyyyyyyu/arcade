@@ -52,7 +52,7 @@ export function showUnlocked(scene: Phaser.Scene, ids: string[], low = hasLayer(
 
 const TABS: { label: string; value: AchGroup }[] = [{ label: '掼蛋', value: 'gd' }, { label: '斗地主', value: 'ddz' }];
 
-/** 成就墙：顶上"已解锁 n/总数"，掼蛋 / 斗地主两个标签，每页 4×2 格；解锁的亮，没解锁的灰；两种都写条件 */
+/** 成就墙：顶上"已解锁 n/这一页总数"，掼蛋 / 斗地主两个标签，每页 4×2 格；解锁的亮，没解锁的灰；两种都写条件 */
 export function openAchievements(scene: Phaser.Scene, group: AchGroup = 'gd'): Modal {
   const W = worldW(scene);
   const PW = Math.min(W - SPACE.xxl * 2, 1100);
@@ -61,7 +61,9 @@ export function openAchievements(scene: Phaser.Scene, group: AchGroup = 'gd'): M
   const b = m.body;
   const unlocked = new Set(loadAch().unlocked);
   const top = -PH / 2 + 84;
-  b.add(text(scene, -PW / 2 + 40, top + 22, `已解锁 ${unlocked.size}/${ACHIEVEMENTS.length}`, { size: TYPE.title, bold: true, color: COLOR.ink, ox: 0 }));
+  // 计数跟着页签走：这一页几个解锁了 / 这一页一共几个（以前写两个玩法的总数 0/16，一页只摆 8 张，像是藏了 8 个）
+  const count = text(scene, -PW / 2 + 40, top + 22, '', { size: TYPE.title, bold: true, color: COLOR.ink, ox: 0 });
+  b.add(count);
   const grid = scene.add.container(0, 0);
   b.add(grid);
 
@@ -71,7 +73,9 @@ export function openAchievements(scene: Phaser.Scene, group: AchGroup = 'gd'): M
   const ch = Math.min(200, (PH - 84 - 70 - 40 - gap) / 2);
   const draw = (g: AchGroup): void => {
     grid.removeAll(true);
-    ACHIEVEMENTS.filter((a) => a.group === g).forEach((a, i) => {
+    const list = ACHIEVEMENTS.filter((a) => a.group === g);
+    count.setText(`已解锁 ${list.filter((a) => unlocked.has(a.id)).length}/${list.length}`);
+    list.forEach((a, i) => {
       const lit = unlocked.has(a.id);
       const x = -PW / 2 + 40 + (i % cols) * (cw + gap);
       const y = top + 70 + Math.floor(i / cols) * (ch + gap);

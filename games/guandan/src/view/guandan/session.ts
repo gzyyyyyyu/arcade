@@ -7,6 +7,7 @@ import { botFor, type SoloLevel, type Venue } from '../../variants/guandan/ai/ve
 import { ACE, SHORT_END_LEVEL, createGame, dispatch, eventsFor, hashSeed, previewNext, viewFor, type Action, type DealResult, type GameEvent, type GameState, type NextPreview, type Options, type PlayerView } from '../../variants/guandan/core/index.ts';
 import { recordAch, type AchSummary } from '../common/achievements.ts';
 import { clearSave, getSettings, loadSave, recordDeal, recordGame, writeSave } from '../store.ts';
+import { emptyMatchLog, type MatchLog } from '../../variants/guandan/stake/titles.ts';
 
 export const ME = 0;
 
@@ -72,6 +73,9 @@ export class Session implements TableSession {
   fullGame = true;
   /** 还没弹给玩家的新成就（画面层用 takeUnlocked 取走） */
   private unlocked: string[] = [];
+  /** 这一局的称号统计（牌桌 logMatch 攒、这里跟着存档走）：以前只在牌桌场景里，回大厅再"继续"就从头攒，晒战绩少算副数、头游 */
+  log: MatchLog = emptyMatchLog();
+  loggedDeal = 0;
 
   constructor(state: GameState, events: GameEvent[], difficulty: SoloLevel) {
     this.state = state;
@@ -94,6 +98,10 @@ export class Session implements TableSession {
     const ses = new Session(d.state, [], d.difficulty);
     ses.counted = d.counted;
     ses.dealsCounted = d.dealsCounted;
+    if (d.log) {
+      ses.log = d.log;
+      ses.loggedDeal = d.loggedDeal ?? d.log.deals;
+    }
     return ses;
   }
 
@@ -193,6 +201,6 @@ export class Session implements TableSession {
       clearSave();
       return;
     }
-    writeSave({ v: 1, state: this.state, difficulty: this.difficulty, counted: this.counted, dealsCounted: this.dealsCounted });
+    writeSave({ v: 1, state: this.state, difficulty: this.difficulty, counted: this.counted, dealsCounted: this.dealsCounted, log: this.log, loggedDeal: this.loggedDeal });
   }
 }

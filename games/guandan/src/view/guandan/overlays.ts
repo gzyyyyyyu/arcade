@@ -10,6 +10,7 @@ import { PLACE_NAMES, seatIdentity, seatName, seatPerson } from '../common/label
 import { goalWord, levelName, playDetail } from './labels.ts';
 import { dealPoints, payout, pointValue, rulesOf } from '../../variants/guandan/stake/index.ts';
 import { ROOM_STAKE_TEXT, STAKE_ERROR, STAKE_TEXT, TIER_NAME, fillSigned, fmtChips, roomWhy, settleNowText, signed, stakeError } from '../common/stake-text.ts';
+import { Session } from './session.ts';
 import { DailySession, GD_DAILY_DEALS, submitGdDaily } from './daily.ts';
 import { dailySubmitText } from '../common/daily.ts';
 import { type StakeSession, buyinStake, refundStake, settleStake } from './stake.ts';
@@ -48,7 +49,7 @@ export function leaveStake(sc: TableScene, st: StakeSession, to: 'lobby' | 'titl
     else sc.scene.start('title');
   };
   if (st.stake.match.deals.length === 0) {
-    sc.openOverlay('menu', confirm(sc, STAKE_TEXT.refundAsk, '退出', () => void sc.refundAndLeave(st, to), () => sc.closeOverlay()));
+    sc.openOverlay('menu', confirm(sc, STAKE_TEXT.refundAsk, '退出', () => void sc.refundAndLeave(st, to), () => sc.closeOverlay(), true));
     return;
   }
   const where = to === 'lobby' ? `，回${lobbyName()}` : '';
@@ -398,6 +399,12 @@ export function logMatch(sc: TableScene): void {
   if (!r || r.dealNo <= sc.loggedDeal) return;
   sc.matchLog = logDeal(sc.matchLog, r, v.history);
   sc.loggedDeal = r.dealNo;
+  // 单机跟着存档存一份（回大厅再"继续"接着攒）
+  if (sc.ses instanceof Session) {
+    sc.ses.log = sc.matchLog;
+    sc.ses.loggedDeal = r.dealNo;
+    sc.ses.save();
+  }
 }
 
 /** "炸弹狂魔 老张 · 炸了 3 次"；最佳搭档写一队两个人 */
@@ -471,7 +478,7 @@ export function showStakeResult(sc: TableScene, toLobby = false): void {
   b.add(capLine);
   b.add(text(sc, 0, 210, STAKE_TEXT.noCash, { size: TYPE.small, color: COLOR.muted }));
   const again = new Button(sc, -140, 120, 240, 64, '再来一场', 'wood', () => void sc.stakeAgain(save.tier, status, again), 'restart');
-  const home = new Button(sc, 140, 120, 240, 64, '回标题', 'wood', () => sc.scene.start('title'), 'back');
+  const home = new Button(sc, 140, 120, 240, 64, '回首页', 'wood', () => sc.scene.start('title'), 'back');
   again.setEnabled(false);
   home.setEnabled(false);
   b.add([again, home]);

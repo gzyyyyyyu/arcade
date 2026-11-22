@@ -120,7 +120,8 @@ export function signedLine(scene: Phaser.Scene, x: number, y: number, tpl: strin
     const s = i % 2 ? signed(n) : p;
     if (!s) return;
     const color = i % 2 ? (o.dark ? signColorOnDark(n, base) : signColor(n, base)) : base;
-    const t = text(scene, w, 0, s, { ...o, color, ox: 0, numeric: o.numeric ?? (o.font === 'num' || NUMERIC.test(whole)) });
+    // 数字段是分数、筹码：一律按数字的下限（ui.md 金额最小 14），不跟着整句当正文（斗地主"继续上局 · 我 0 分"手机上 0 只有 12px）
+    const t = text(scene, w, 0, s, { ...o, color, ox: 0, numeric: i % 2 ? true : (o.numeric ?? (o.font === 'num' || NUMERIC.test(whole))) });
     segs.push(t);
     w += t.width;
   });
@@ -423,9 +424,11 @@ export class ModeCard extends Phaser.GameObjects.Container {
     const st = BUTTON[style];
     this.bg = scene.add.image(0, 0, '__DEFAULT');
     this.add(this.bg);
-    const icon = scene.add.image(0, -h / 2 + 34, `icon:${iconKey}`).setDisplaySize(40, 40).setTint(st.text);
-    const title = text(scene, 0, -h / 2 + 76, name, { size: TYPE.title, bold: true, color: st.text, stroke: shade(st.fill, 0.5), strokeWidth: 3 });
-    const sub = text(scene, 0, -h / 2 + 108, desc, { size: TYPE.small, color: st.text, wrap: w - 20, oy: 0 }).setAlpha(0.9);
+    // 内容按 150 高排、在卡里竖着居中（高竖屏主页的卡更高）
+    const top = -Math.min(h, 150) / 2;
+    const icon = scene.add.image(0, top + 34, `icon:${iconKey}`).setDisplaySize(40, 40).setTint(st.text);
+    const title = text(scene, 0, top + 76, name, { size: TYPE.title, bold: true, color: st.text, stroke: shade(st.fill, 0.5), strokeWidth: 3 });
+    const sub = text(scene, 0, top + 108, desc, { size: TYPE.small, color: st.text, wrap: w - 20, oy: 0 }).setAlpha(0.9);
     this.add([icon, title, sub]);
     this.setData('style', style);
     this.paint();
@@ -741,7 +744,7 @@ export function bubble(scene: Phaser.Scene, x: number, y: number, msg: string, d
   return c;
 }
 
-/** 开关/选项按钮组：一行若干个选项，当前项高亮。 */
+/** 开关/选项按钮组：一行若干个选项，当前项金底加粗描边。 */
 export function segmented(
   scene: Phaser.Scene,
   x: number,
@@ -761,13 +764,14 @@ export function segmented(
   const paint = (): void => {
     for (const b of btns) {
       const on = b.v === cur;
-      const base = on ? BUTTON.red.fill : 0xf6ead2;
+      // 选中项金底深字：不和主按钮（红）同色，分得清「选了的」和「要点的」（docs/ui.md 第 4 节）
+      const base = on ? BUTTON.gold.fill : 0xf6ead2;
       const fill = b.down ? shade(base, 0.9) : b.hover && !on ? 0xf4e8d0 : base;
       const dy = b.down ? 2 : 0;
       b.g.clear();
       b.g.fillStyle(fill, 1).fillRoundedRect(-itemW / 2 + 3, -h / 2 + dy, itemW - 6, h, RADIUS.md);
       b.g.lineStyle(on ? OUTLINE.width : 2, on || b.hover ? OUTLINE.color : 0x8a7560, 1).strokeRoundedRect(-itemW / 2 + 3, -h / 2 + dy, itemW - 6, h, RADIUS.md);
-      b.t.setColor(css(on ? COLOR.white : COLOR.ink));
+      b.t.setColor(css(on ? BUTTON.gold.text : COLOR.ink));
       b.t.y = dy;
     }
   };

@@ -96,7 +96,7 @@ export function openLevelPicker(
       b.add(text(scene, -30, y, c.who, { size: TYPE.label, color: COLOR.ink, ox: 0, wrap: 250, align: 'left' }));
     }
     // 点按区高 P - 2：上下两行、上面的局长切换都不互相压着
-    reg(m, `level:${lv}`, new Button(scene, RW / 2 - 90, y, 130, 52, '开始', 'red', () => {
+    reg(m, `level:${lv}`, new Button(scene, RW / 2 - 90, y, 130, 52, '开始', 'green', () => {
       m.close();
       onPick(lv, len);
     }, 'play')).setHit(Math.max(130, minHit()), Math.min(P - 2, Math.max(52, minHit())));
@@ -275,7 +275,8 @@ export function openTierPicker<S = StakeSession>(
     const time = fitWidth(text(scene, tx, narrow ? row(2) : y + 16, timeOf(), { size: TYPE.small, color: COLOR.muted, ox: 0 }).setData('maxW', maxW), maxW);
     times.push(time);
     b.add(time);
-    const btn = reg(m, `tier:${tier}`, new Button(scene, RW / 2 - 90, y, 150, 52, '进场', 'red', () => {
+    // 每行一个、四个一样的动作：用次按钮（绿），一屏不摆四个主按钮（docs/ui.md 第 2 节）
+    const btn = reg(m, `tier:${tier}`, new Button(scene, RW / 2 - 90, y, 150, 52, '进场', 'green', () => {
       if (matching && onMatch) {
         m.close();
         onMatch(tier, mode);

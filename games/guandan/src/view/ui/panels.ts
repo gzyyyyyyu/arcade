@@ -110,21 +110,15 @@ export function openSettings(scene: Phaser.Scene, opts: { onTutorial?: () => voi
     page.add(text(scene, colL, resetY, '新开一局时生效', { size: TYPE.small, color: COLOR.muted, ox: 0 }));
   };
 
-  const tabBtns: Button[] = [];
   const show = (i: number): void => {
     cur = i;
     page.removeAll(true);
-    tabBtns.forEach((t, j) => t.setAlpha(j === cur ? 1 : 0.62));
     const s = getSettings();
     if (i === 0) pageSound(s);
     else if (i === 1) pageGame(s);
     else pageRules(s);
   };
-  SETTINGS_TABS.forEach((t, i) => {
-    const btn = new Button(scene, tabX(i, SETTINGS_TABS.length), tabY, 150, 48, t, 'wood', () => show(i));
-    tabBtns.push(btn);
-    b.add(btn);
-  });
+  b.add(tabRow(scene, SETTINGS_TABS, tabY, 0, show));
 
   // 恢复默认：一下回到初值，只动设置
   const resetY = rowY(2) + P * 0.5 + 50;
@@ -145,7 +139,7 @@ const NO_RATE = '—';
  * 战绩：总览 + 每个玩法一个页签（仓库 docs/ui.md 第 9 节"按游戏分的内容"），打开时停在主页当前选的玩法上。
  * 每页一排六格；这一页还没打过就摆空状态，不摆一排 0。
  */
-export function openStats(scene: Phaser.Scene): Modal {
+export function openStats(scene: Phaser.Scene, onAchievements?: () => void): Modal {
   const PW = panelW(scene);
   // 竖屏的主页弹窗只有 656 宽：六格排成两行三格，空状态的说明折行
   const narrow = PW < 1000;
@@ -222,18 +216,22 @@ export function openStats(scene: Phaser.Scene): Modal {
       ]);
     },
   ];
-  const tabBtns: Button[] = [];
   const show = (i: number): void => {
     page.removeAll(true);
-    tabBtns.forEach((t, j) => t.setAlpha(j === i ? 1 : 0.62));
     pages[i]?.();
   };
-  STATS_TABS.forEach((t, i) => {
-    const btn = new Button(scene, tabX(i, STATS_TABS.length), tabY, 150, 48, t, 'wood', () => show(i));
-    tabBtns.push(btn);
-    m.body.add(btn);
-  });
-  show(getVariant() === 'ddz' ? 2 : 1);
+  const first = getVariant() === 'ddz' ? 2 : 1;
+  m.body.add(tabRow(scene, STATS_TABS, tabY, first, show));
+  // 手机主页顶栏只放 4 个图标（docs/ui.md 第 10 节）：成就从战绩里进
+  if (onAchievements) {
+    const ach = new Button(scene, 0, PH / 2 - 52, 200, 52, '成就', 'wood', () => {
+      m.close();
+      onAchievements();
+    }, 'crown');
+    m.body.add(ach);
+    m.body.setData('btn:achievements', ach);
+  }
+  show(first);
   return m;
 }
 
@@ -241,7 +239,8 @@ export function openStats(scene: Phaser.Scene): Modal {
  * onClose：不管点哪个按钮，关掉时都会调（牌桌靠它把 overlay 清掉，不然人和电脑都不再出牌）。
  * msg 给若干行（SignedRow）时每行用 signedLine 画、输赢数字红绿（浅底，不用 dark）；窗高随行数加，按钮跟着往下
  */
-export function confirm(scene: Phaser.Scene, msg: string | readonly SignedRow[], okLabel: string, onOk: () => void, onClose?: () => void): Modal {
+/** danger：确定那一下会丢东西（离开好友房、丢进度、退出实盘），确定键用危险色，不和主按钮同红 */
+export function confirm(scene: Phaser.Scene, msg: string | readonly SignedRow[], okLabel: string, onOk: () => void, onClose?: () => void, danger = false): Modal {
   const rows = typeof msg === 'string' ? null : msg;
   const LH = 36;
   const h = rows ? Math.max(280, rows.length * LH + 170) : 280;
@@ -257,7 +256,7 @@ export function confirm(scene: Phaser.Scene, msg: string | readonly SignedRow[],
   const cancel = new Button(scene, -120, by, 180, 58, '算了', 'wood', () => m.close());
   m.body.add(cancel);
   m.body.setData('cancel', cancel);
-  const ok = new Button(scene, 120, by, 180, 58, okLabel, 'red', () => {
+  const ok = new Button(scene, 120, by, 180, 58, okLabel, danger ? 'danger' : 'red', () => {
     m.close();
     onOk();
   });
@@ -295,22 +294,14 @@ export function openRules(scene: Phaser.Scene, onClose?: () => void, level?: num
   const page = scene.add.container(0, 0);
   b.add(page);
   const tabs = ['牌型', '谁大', '怎么打', ...(hasPointerKeys() ? ['快捷键'] : [])];
-  let cur = 0;
-  const tabBtns: Button[] = [];
   const show = (i: number): void => {
-    cur = i;
     page.removeAll(true);
-    tabBtns.forEach((t, j) => t.setAlpha(j === cur ? 1 : 0.62));
     if (i === 0) pagePatterns(scene, page, box, level);
     else if (i === 1) pageOrder(scene, page, box, level);
     else if (i === 2) pageFlow(scene, page, box);
     else pageKeys(scene, page, box);
   };
-  tabs.forEach((t, i) => {
-    const btn = new Button(scene, tabX(i, tabs.length), box.top - 24, 150, 48, t, 'red', () => show(i));
-    tabBtns.push(btn);
-    b.add(btn);
-  });
+  b.add(tabRow(scene, tabs, box.top - 24, 0, show));
   show(0);
   return m;
 }
@@ -323,10 +314,8 @@ export function openDdzRules(scene: Phaser.Scene, onClose?: () => void): Modal {
   const b = m.body;
   const page = scene.add.container(0, 0);
   b.add(page);
-  const tabBtns: Button[] = [];
   const show = (i: number): void => {
     page.removeAll(true);
-    tabBtns.forEach((t, j) => t.setAlpha(j === i ? 1 : 0.62));
     if (i >= DDZ_RULE_TABS.length) return pageKeys(scene, page, box);
     const lines = DDZ_RULE_TABS[i]!.lines;
     let y = box.top + 34;
@@ -343,18 +332,18 @@ export function openDdzRules(scene: Phaser.Scene, onClose?: () => void): Modal {
     }
   };
   const tabs = [...DDZ_RULE_TABS.map((t) => t.tab), ...(hasPointerKeys() ? ['快捷键'] : [])];
-  tabs.forEach((t, i) => {
-    const btn = new Button(scene, tabX(i, tabs.length), box.top - 24, 150, 48, t, 'red', () => show(i));
-    tabBtns.push(btn);
-    b.add(btn);
-  });
+  b.add(tabRow(scene, tabs, box.top - 24, 0, show));
   show(0);
   return m;
 }
 
-/** 规则页顶上的页签：n 个一排、整排居中，间距 170 */
-function tabX(i: number, n: number): number {
-  return (i - (n - 1) / 2) * 170;
+/**
+ * 弹窗顶上的页签（设置、战绩、规则）：n 个一排、整排居中，间距 170。用选项组画：选中项金底深字，没选的浅底深字，
+ * 不靠把别的页签调淡来表示（调淡的字对比度不够，也和主按钮的红分不开，docs/ui.md 第 4 节）
+ */
+function tabRow(scene: Phaser.Scene, labels: readonly string[], y: number, cur: number, show: (i: number) => void): Phaser.GameObjects.Container {
+  const items = labels.map((label, i) => ({ label, value: String(i) }));
+  return segmented(scene, -((labels.length - 1) / 2) * 170, y, items, String(cur), (v) => show(Number(v)), 170);
 }
 
 /** 快捷键一页（只在电脑上有这一页）：左边键，右边干什么 */

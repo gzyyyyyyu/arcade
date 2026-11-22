@@ -138,6 +138,11 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
       this.hand?.destroy();
     });
     this.ses = app.net ?? app.session!;
+    // 单机的称号统计跟着存档走：从会话接过来（新开的一局是空的，第 1 副开始时照样清零）
+    if (this.ses instanceof Session) {
+      this.matchLog = this.ses.log;
+      this.loggedDeal = this.ses.loggedDeal;
+    }
     if (!this.bindNet()) {
       // 单机：标签页切到后台时正轮到我，标题闪
       const onHide = (): void => {
@@ -247,7 +252,7 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
       const ph = net.view().phase;
       const mid = ph === 'play' || ph === 'tribute' || ph === 'return';
       const msg: string | readonly SignedRow[] = ns && !ns.over ? (me?.paid === 'yes' ? roomLeaveText(me.points, me.points * pointValue(ns.tier, rulesOf(ns.rules)), payout(ns.tier, me.points, rulesOf(ns.rules)), mid) : ROOM_STAKE_TEXT.leave) : others ? '离开这个房间？你的座位交给电脑接着打' : '离开这个房间？没有别人在了，这一局就结束';
-      this.openOverlay('menu', confirm(this, msg, '离开', () => this.leaveRoom(), () => this.closeOverlay()));
+      this.openOverlay('menu', confirm(this, msg, '离开', () => this.leaveRoom(), () => this.closeOverlay(), true));
       return;
     }
     if (net) return this.leaveRoom();

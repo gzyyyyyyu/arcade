@@ -1,7 +1,7 @@
 /**
  * 主页（标题页）的排版（art-v3 PR ①，docs/art.md 第 4 节）：纯函数，画背景的 SVG 和场景摆东西用同一份，宽屏时一起铺开。
  * 横屏：世界坐标高 720、宽 1280..1720，左边是主视觉（茶馆一角、四个人），右边一块面板放标题、主按钮、模式卡、战绩。
- * 竖屏（宽 720、高 1080..1600，theme.ts 的 worldSizeFor）：主视觉在上、面板在下，同一块面板（宽 672、高 600）原样搬下来。
+ * 竖屏（宽 720、高 1080..1600，theme.ts 的 worldSizeFor）：主视觉在上、面板在下，同一块面板（宽 672、高 600 起）搬下来，高竖屏面板往上长到主视觉下沿（panelRows 铺开里面的行）。
  */
 import type { AvatarId, Mood } from '../art/index.ts';
 
@@ -30,16 +30,29 @@ export function panelWidth(W: number): number {
   return Math.min(560, 500 + Math.round((W - 1280) * 0.25));
 }
 
-/** 面板的高（横竖屏一样） */
+/** 面板的高（横屏、矮竖屏）；高竖屏面板往上长到主视觉下沿 */
 const PANEL_H = 600;
 /** 竖屏时面板离下沿留多少（版本号写在下沿） */
 const PORTRAIT_BOTTOM = 44;
+/** 竖屏主视觉的下沿（桌子前沿的回纹带在 686 收住）：高竖屏面板顶到这里，中间不留空带 */
+const PORTRAIT_ART_BOTTOM = 700;
+
+/**
+ * 面板里各行的纵坐标（相对面板顶）和模式卡的高：600 高时是原来的排法；
+ * 高竖屏面板更高，多出的高度按比例分给行距和模式卡，主按钮、模式卡跟着往下铺开（docs/ui.md 第 10 节：竖屏主要内容占满）。
+ */
+export function panelRows(h: number): { logo: number; seg: number; pitch: number; main: number; mainDdz: number; cards: number; cardsDdz: number; cardH: number } {
+  const e = h - PANEL_H;
+  const r = (base: number, k: number): number => Math.round(base + e * k);
+  return { logo: r(92, 0.15), seg: r(186, 0.2), pitch: r(228, 0.2), main: r(256, 0.25), mainDdz: r(286, 0.25), cards: r(402, 0.55), cardsDdz: r(428, 0.5), cardH: r(150, 0.3) };
+}
 
 export function homeLayout(W: number, H = 720): HomeLayout {
   const portrait = H > W;
   const pw = portrait ? W - 48 : panelWidth(W);
   const margin = 32;
-  const panel = portrait ? { x: 24, y: H - PORTRAIT_BOTTOM - PANEL_H, w: pw, h: PANEL_H } : { x: W - margin - pw, y: 92, w: pw, h: PANEL_H };
+  const py = Math.min(H - PORTRAIT_BOTTOM - PANEL_H, PORTRAIT_ART_BOTTOM);
+  const panel = portrait ? { x: 24, y: py, w: pw, h: H - PORTRAIT_BOTTOM - py } : { x: W - margin - pw, y: 92, w: pw, h: PANEL_H };
   // 竖屏主视觉占满整宽；面板压住桌子前沿以下的部分（720 高的主视觉、面板顶在 H-644：H 小到 1364 以下时面板盖住桌沿，再小就盖住散牌）
   const artW = portrait ? W : panel.x - 24;
   const top = portrait ? Math.max(0, Math.round((panel.y - 680) * 0.45)) : 0;

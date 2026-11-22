@@ -7,6 +7,7 @@
  *   node tools/shot.ts --playtest      真实速度（动画开、1 倍速）、真实鼠标从标题页玩一副：每次轮到我先点"提示"再点"出牌"，
  *                                      压不过就点"不要"；进贡/还贡点牌再点按钮；报告用时和点击次数
  *   node tools/shot.ts --gallery      三种尺寸（1280×720、1920×1080、844×390）× 全部画面的图集，美术改版前后对比用；走不到的画面记进说明
+ *                                      加 --veteran 按老号跑（大战绩、半数成就）
  *   node tools/shot.ts --look "<query>" [宽x高] [名字]   只开一个页面截一张（调试画面用），例如 --look "seed=a&debug=1" 844x390
  *
  * 特定局面（我要进贡 / 我要还贡）先在 node 里用核心推演找到种子，再用 URL 参数 jump=tribute 交给画面。
@@ -138,7 +139,8 @@ async function open(browser: Browser, name: string, query: string, o: OpenOpts =
   if (o.userAgent) co.userAgent = o.userAgent;
   const context = await browser.newContext(co);
   if (o.init) await context.addInitScript(o.init);
-  const storage: Record<string, string> = { ...(o.storage ?? {}) };
+  // --veteran：老号（打过很多局、解锁了一半成就），看大数字、有战绩的主页和弹窗会不会挤、被裁；显式传的 storage 优先
+  const storage: Record<string, string> = { ...(VETERAN ? VETERAN_STORAGE : {}), ...(o.storage ?? {}) };
   if (!o.freshTutorial) {
     storage['guandan.tutorial'] = JSON.stringify({ v: 1, done: true });
     storage['guandan.ddz.tutorial'] = JSON.stringify({ v: 1, done: true });
@@ -246,6 +248,12 @@ async function shot(ctx: Ctx, file: string): Promise<void> {
  * 字 < 12px（纯数字 < 14px）、点按区域 < 44×44 的；画布里的读调试桥 texts()/hits()，DOM 的读计算样式。最后汇总进 audit.md
  */
 const AUDIT = process.argv.includes('--audit');
+const VETERAN = process.argv.includes('--veteran');
+const VETERAN_STORAGE: Record<string, string> = {
+  'guandan.stats': JSON.stringify({ v: 1, games: 1234, wins: 789, streak: 12, bestStreak: 23, deals: 9876, firsts: 4567, dealWins: 5432 }),
+  'guandan.ddz.stats': JSON.stringify({ v: 1, games: 2345, wins: 1288, deals: 8765, dealWins: 4321, landlord: 3456, landlordWins: 2100, springs: 345 }),
+  'guandan.achievements': JSON.stringify({ v: 1, unlocked: ['gd-first-win', 'gd-streak3', 'gd-pass-a', 'gd-games10', 'ddz-first-win', 'ddz-landlord-win', 'ddz-farmer-win', 'ddz-games10'], gdGames: 1234, ddzGames: 2345, gdStreak: 12 }),
+};
 const audits: string[] = [];
 async function auditShot(ctx: Ctx, file: string): Promise<void> {
   const r = await ctx.page.evaluate(() => {
@@ -1371,8 +1379,13 @@ async function galleryMore(browser: Browser, z: GallerySize): Promise<void> {
   await dd.page.context().close();
   const h = await open(browser, `图集主页弹窗${p}`, 'debug=1', { ...base, api: fakeApi(), storage: { 'guandan.variant': JSON.stringify('ddz') } });
   await step('成就', async () => {
-    await until(h, '主页', "g.scene === 'title' && 'achievements' in g.controls()", 30_000);
+    await until(h, '主页', "g.scene === 'title' && 'stats' in g.controls()", 30_000);
     await h.page.waitForTimeout(800);
+    // 手机顶栏只有 4 个图标，成就在战绩面板里（docs/ui.md 第 10 节）
+    if (!(await h.page.evaluate(() => 'achievements' in window.__game!.controls()))) {
+      await click(h, 'stats', touch);
+      await until(h, '战绩里的成就', "'achievements' in g.controls()", 5000);
+    }
     await click(h, 'achievements', touch);
     await h.page.waitForTimeout(600);
     await shot(h, `${p}-24-achievements`);

@@ -50,11 +50,10 @@ function style(): void {
 #online .ol-card { width: min(560px, calc(100vw - var(--gd-s6))); max-height: calc(100% - var(--gd-s4)); overflow: auto; box-sizing: border-box; padding: var(--gd-s4) var(--gd-s6);
   border-radius: 16px; background: linear-gradient(#fffaf0, var(--gd-paper) 35%, #f3e3c0); border: var(--gd-line);
   box-shadow: 0 0 0 2px var(--gd-gold) inset, 0 0 0 6px var(--gd-paper) inset, 0 0 0 7px #d8c39a inset, 0 8px 0 #2b1d14, 0 16px 32px rgba(0, 0, 0, 0.3);
-  display: flex; flex-direction: column; gap: var(--gd-s3); }
-/* 标题做成和画布里弹窗一样的红飘带（art-v3） */
-#online h2 { align-self: center; margin: 0 0 var(--gd-s1); padding: var(--gd-s1) var(--gd-s8); font-size: 22px; line-height: 1.3; color: #fff;
-  background: linear-gradient(#e8483f, #c8323a 55%, #a8242b); border: var(--gd-line); border-radius: 12px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), var(--gd-shadow); letter-spacing: 2px; }
+  display: flex; flex-direction: column; gap: var(--gd-s3); position: relative; }
+/* 标题只是字：红色留给这一屏唯一的主按钮（docs/ui.md 第 2 节） */
+#online h2 { align-self: center; margin: 0 var(--gd-s8) var(--gd-s1); font-size: 24px; line-height: 1.5; color: var(--gd-red-dark); letter-spacing: 2px; }
+#online .ol-x { position: absolute; top: var(--gd-s1); right: var(--gd-s1); }
 #online .ol-code { font: bold 34px/1.1 var(--gd-font-num); letter-spacing: 6px; color: var(--gd-red); }
 #online .ol-row { display: flex; gap: var(--gd-s2); flex-wrap: wrap; align-items: center; }
 #online .ol-row #ol-share { flex: 1; min-width: 160px; margin-left: var(--gd-s2); }
@@ -77,13 +76,16 @@ function style(): void {
 #online .ol-seat .gd-btn, #online #ol-tiers .gd-btn { flex: none; padding: 0 var(--gd-s3); font-size: 15px; }
 #online .ol-note { min-height: 1.5em; color: var(--gd-red-dark); font-weight: bold; }
 #online .ol-tip { color: var(--gd-muted); font-size: 14px; }
+#online #ol-tiers .ol-tip { flex-basis: 100%; }
+/* 手机竖屏放不下一排四档：等宽两行两个，不参差 */
+@media (max-width: 600px) { #online #ol-tiers .gd-btn { flex: 1 1 calc(50% - var(--gd-s2)); } }
 #online .ol-wait { font: bold 20px/1.4 var(--gd-font); text-align: center; }
 #online .ol-stake { padding: var(--gd-s1) var(--gd-s3); border-radius: var(--gd-r-sm); background: #f6dcc8; color: var(--gd-red-dark); font-weight: bold; }
 /* 还没填东西的占位（回到房间、实盘档位）不占一格间距；手机横屏矮，收紧间距，"关掉"不用滚就够得着（0.27.4 多尺寸） */
 #online .ol-card > div:empty:not(.ol-note) { display: none; }
 @media (max-height: 430px) {
   #online .ol-card { gap: var(--gd-s1); padding: var(--gd-s2) var(--gd-s4); max-height: calc(100% - var(--gd-s2)); }
-  #online h2 { margin: 0; padding: 2px var(--gd-s6); font-size: 18px; }
+  #online h2 { margin: 0 var(--gd-s8); font-size: 18px; }
   #online .ol-note { min-height: 0; }
   #online .ol-row #ol-share { min-height: 48px; font-size: 19px; }
 }
@@ -110,12 +112,31 @@ function button(label: string, onClick: () => void, cls = '', id = ''): HTMLButt
   return b;
 }
 
+/** 现在这一屏能不能随手关（入口面板能；进了房间、匹配中要点"离开""取消"）：Esc 和点遮罩都走它 */
+let dismiss: (() => void) | null = null;
+
+function onKey(ev: KeyboardEvent): void {
+  if (ev.key === 'Escape' && dismiss) {
+    ev.preventDefault();
+    dismiss();
+  }
+}
+
 function card(): HTMLElement {
   style();
   if (!root) {
     root = el('div', { id: 'online' });
+    // 按下、抬起都在遮罩上才算点遮罩：点画布上的"好友房"卡打开面板的那一下，抬起后的 click 会落到刚出现的遮罩上（电脑上一点就关）
+    let downOnRoot = false;
+    root.addEventListener('pointerdown', (ev) => (downOnRoot = ev.target === root));
+    root.addEventListener('click', (ev) => {
+      if (ev.target === root && downOnRoot) dismiss?.();
+      downOnRoot = false;
+    });
+    document.addEventListener('keydown', onKey);
     document.body.appendChild(root);
   }
+  dismiss = null;
   root.replaceChildren();
   const c = el('div', { class: 'ol-card' });
   root.appendChild(c);
@@ -124,6 +145,8 @@ function card(): HTMLElement {
 
 function close(): void {
   stopMatch();
+  dismiss = null;
+  document.removeEventListener('keydown', onKey);
   root?.remove();
   root = null;
 }
@@ -136,13 +159,20 @@ function noteEl(): HTMLElement {
 export function openOnline(variant: RoomVariant = 'guandan'): void {
   panelVariant = variant;
   const c = card();
+  dismiss = () => {
+    note = '';
+    close();
+  };
   c.appendChild(el('h2', {}, '好友房'));
+  const x = el('button', { type: 'button', class: 'gd-btn gd-x ol-x', id: 'ol-close', 'aria-label': '关掉' }, '✕');
+  x.addEventListener('click', () => dismiss?.());
+  c.appendChild(x);
   c.appendChild(el('div', { class: 'ol-tip' }, variant === 'ddz' ? '开个房间把房间码发给朋友，3 个人一起打斗地主；人不够电脑补上。' : '开个房间把房间码发给朋友，4 个人一起打；人不够电脑补上。'));
   // 回到刚才的房间：先问平台现在是谁，是这个账号记下的才给（换了账号的人看不到）
   const slot = el('div');
   c.appendChild(slot);
   void myRoom().then((back) => {
-    if (back && slot.isConnected) slot.appendChild(button(`回到刚才的房间 ${back.code}`, () => join(back.code, back.host, null, false, back.variant ?? 'guandan'), '', 'ol-back'));
+    if (back && slot.isConnected) slot.appendChild(button(`回到刚才的房间 ${back.code}`, () => join(back.code, back.host, null, false, back.variant ?? 'guandan'), 'gd-2', 'ol-back'));
   });
   // 单独部署（0.8.0）没有账号：别人看到的名字自己填，开房、进房的地址上带着（不填就叫"游客"加数字）
   if (standalone()) {
@@ -159,7 +189,15 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
   // 斗地主不洗牌（娱乐 0.33.0）；不洗牌的实盘房间在"开实盘房间"里选（0.39.0）
   if (panelVariant === 'ddz') make.appendChild(button('开不洗牌房间', () => void create(null, true), 'gd-2', 'ol-create-clump'));
   // 实盘房间（0.5.0，docs/stake.md 第 3 节）：开房时选档位，之后不能改。单独部署没有钱包，不摆
-  if (!standalone()) make.appendChild(button('开实盘房间', () => pickTier(tiers), 'gd-2', 'ol-create-stake'));
+  // 点开后是选中态（金底），档位在下面一行展开
+  if (!standalone()) {
+    const sb = button('开实盘房间', () => {
+      sb.className = 'gd-btn gd-on';
+      sb.setAttribute('aria-pressed', 'true');
+      pickTier(tiers);
+    }, 'gd-2', 'ol-create-stake');
+    make.appendChild(sb);
+  }
   c.appendChild(make);
   const tiers = el('div', { class: 'ol-row', id: 'ol-tiers' });
   c.appendChild(tiers);
@@ -171,14 +209,10 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
     button('进房', () => {
       if (!/^\d{6}$/.test(input.value)) return setNote('房间码是 6 位数字');
       join(input.value, false);
-    }, '', 'ol-join'),
+    }, 'gd-2', 'ol-join'),
   );
   c.appendChild(row);
   c.appendChild(noteEl());
-  c.appendChild(button('关掉', () => {
-    note = '';
-    close();
-  }, 'gd-2'));
 }
 
 function setNote(t: string): void {
@@ -196,15 +230,17 @@ function setNetDown(retry: () => void): void {
 
 /** 实盘房间：每档一个按钮，钱包不够一份的灰掉（钱包连不上时不拦，开局时带入被拒就是这个人不计输赢） */
 function pickTier(box: HTMLElement): void {
-  box.replaceChildren(el('div', { class: 'ol-tip' }, `选档位：打 ${panelVariant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副，输赢最多一份；${ROOM_STAKE_TEXT.bots}。${STAKE_TEXT.noCash}`));
-  // 斗地主多选一样发牌（0.39.0）：经典 / 不洗牌，和单机、选档页共用 ddzDeal 这个设置；选中的那个是主色，另一个是次要色
+  box.replaceChildren(el('div', { class: 'ol-tip' }, `打 ${panelVariant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副，输赢最多一份；${ROOM_STAKE_TEXT.bots}。${STAKE_TEXT.noCash}`));
+  // 斗地主多选一样发牌（0.39.0）：经典 / 不洗牌，和单机、选档页共用 ddzDeal 这个设置；选中的金底（gd-on），另一个木色
   let clump = panelVariant === 'ddz' && getSettings().ddzDeal === 'clump';
   if (panelVariant === 'ddz') {
     const pick = (v: boolean): void => {
       clump = v;
       updateSettings({ ddzDeal: v ? 'clump' : 'classic' });
-      classic.className = v ? 'gd-btn gd-2' : 'gd-btn';
-      noShuf.className = v ? 'gd-btn' : 'gd-btn gd-2';
+      classic.className = v ? 'gd-btn gd-2' : 'gd-btn gd-on';
+      noShuf.className = v ? 'gd-btn gd-on' : 'gd-btn gd-2';
+      classic.setAttribute('aria-pressed', String(!v));
+      noShuf.setAttribute('aria-pressed', String(v));
     };
     const classic = button('经典洗牌', () => pick(false), '', 'ol-deal-classic');
     const noShuf = button('不洗牌 · 炸弹多', () => pick(true), '', 'ol-deal-clump');
@@ -213,12 +249,14 @@ function pickTier(box: HTMLElement): void {
     pick(clump);
   }
   const btns = TIER_IDS.map((t) => {
-    const b = button(`${TIER_NAME[t]} ${fmtChips(TIERS[t])}`, () => void create(t, clump), '', `ol-tier-${t}`);
+    const b = button(`${TIER_NAME[t]} ${fmtChips(TIERS[t])}`, () => void create(t, clump), 'gd-2', `ol-tier-${t}`);
     box.appendChild(b);
     return [t, b] as const;
   });
   void fetchWallet().then((w) => {
     if (!w || !box.isConnected) return;
+    // 选档前先看到自己有多少筹码（选不了的档为什么灰着）
+    box.insertBefore(el('div', { class: 'ol-tip', id: 'ol-balance' }, `你有 ${fmtChips(w.balance)} 筹码`), box.firstChild);
     for (const [t, b] of btns) b.disabled = w.balance < TIERS[t];
     if (w.balance < TIERS.small) setNote(STAKE_TEXT.lowFunds);
   });
@@ -363,7 +401,7 @@ function renderRoom(): void {
   }
   if (s.status !== 'open' || !s.room) {
     c.appendChild(el('div', { class: 'ol-tip' }, s.status === 'reconnecting' ? s.linkText() : '正在进房…'));
-    c.appendChild(button('离开', () => leave(), 'gd-2'));
+    c.appendChild(button('离开', () => leave(), 'gd-danger'));
     return;
   }
   const room = s.room;
@@ -384,11 +422,11 @@ function renderRoom(): void {
     who.appendChild(nameLine);
     who.appendChild(el('small', {}, `${seatLabel(i, s.mySeat, n)}${st.kind === 'human' && st.away ? ' · 掉线了' : ''}`));
     box.appendChild(who);
-    if (room.status === 'waiting' && st.kind === 'empty' && !match) box.appendChild(button(s.mySeat === null ? '坐这里' : '换到这', () => s.sit(i), '', `ol-sit-${i}`));
+    if (room.status === 'waiting' && st.kind === 'empty' && !match) box.appendChild(button(s.mySeat === null ? '坐这里' : '换到这', () => s.sit(i), 'gd-2', `ol-sit-${i}`));
     if (room.status === 'playing' && s.mySeat === null) {
       // 开打后座位绑人（arcade-kit 0.1.1）：坐过的人只能回自己的座位；没坐过的人只能接管没绑人的电脑座位
       if (s.bound === i) box.appendChild(button('回到我的座位', () => s.sit(i), '', `ol-sit-${i}`));
-      else if (s.bound === null && st.kind === 'ai' && !st.reserved) box.appendChild(button('接管', () => s.sit(i), '', `ol-sit-${i}`));
+      else if (s.bound === null && st.kind === 'ai' && !st.reserved) box.appendChild(button('接管', () => s.sit(i), 'gd-2', `ol-sit-${i}`));
     }
     seats.appendChild(box);
   });
@@ -415,7 +453,7 @@ function renderRoom(): void {
     c.appendChild(el('div', { class: 'ol-tip' }, match ? '这局已经打完了，再排一次吧' : '这局已经打完了，开个新房间再来'));
   }
   c.appendChild(noteEl());
-  c.appendChild(button('离开房间', () => leave(), 'gd-2', 'ol-leave'));
+  c.appendChild(button('离开房间', () => leave(), 'gd-danger', 'ol-leave'));
   const err = s.lastError;
   // 其余的（座位被占 not_your_seat / seat_reserved 等）用和牌桌上一样的大白话
   if (err) setNote(err === 'seat_taken' ? '这个座位刚被别人坐了' : errorText(err));

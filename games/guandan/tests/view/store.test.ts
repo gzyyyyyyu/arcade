@@ -112,3 +112,24 @@ describe('局长（0.25.0）', () => {
     expect(createGame('len-3').state.options.endLevel).toBe(14);
   });
 });
+
+describe('整局称号统计跟着存档走（0.40.1）', () => {
+  it('攒过的副数、头游存进 guandan.save，"继续"后接着攒；没有这两项的老存档从空的开始', async () => {
+    const { Session } = await import('../../src/view/guandan/session.ts');
+    const s = Session.fresh('log-keep');
+    s.log = { ...s.log, deals: 3, firsts: [2, 0, 1, 0] };
+    s.loggedDeal = 3;
+    s.save();
+    const back = Session.restore()!;
+    expect(back.log.deals).toBe(3);
+    expect(back.log.firsts).toEqual([2, 0, 1, 0]);
+    expect(back.loggedDeal).toBe(3);
+    const old = JSON.parse(mem.get('guandan.save')!);
+    delete old.log;
+    delete old.loggedDeal;
+    mem.set('guandan.save', JSON.stringify(old));
+    const legacy = Session.restore()!;
+    expect(legacy.log.deals).toBe(0);
+    expect(legacy.loggedDeal).toBe(0);
+  });
+});
