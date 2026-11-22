@@ -515,7 +515,7 @@ function css(): string {
 .hd-ui .hd-dialog { background:${cream}; border:3px solid ${ink}; border-radius:16px; padding:16px; width:min(100%,360px); box-shadow:0 6px 0 ${ink}; }
 .hd-ui .hd-dialog p { margin:0 0 14px; font-size:16px; text-align:center; }
 .hd-ui .hd-dialog .hd-sub { font-size:14px; margin:0; text-align:left; opacity:.8; }
-.hd-ui .hd-glitch { position:absolute; left:50%; bottom:80px; transform:translateX(-50%); z-index:70; pointer-events:auto; }
+.hd-ui .hd-glitch { position:absolute; left:0; right:0; bottom:80px; width:max-content; max-width:calc(100% - 16px); margin:0 auto; z-index:70; pointer-events:auto; }
 .hd-ui .hd-place { position:absolute; left:0; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; gap:8px; padding:8px 10px; pointer-events:none !important; }
 .hd-ui .hd-place > * { pointer-events:auto; }
 .hd-ui .hd-place .hd-row { width:min(100%,420px); }

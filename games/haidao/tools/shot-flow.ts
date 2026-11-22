@@ -20,6 +20,28 @@ export async function flow(c: ShotCtx): Promise<boolean> {
       await page.waitForTimeout(500);
       await shot('collected');
     })) &&
+    (await step('一键收取连点', async () => {
+      // 所有者 11-21：每点一次「一键收取」按钮就往右跑。连点十次（每次关掉汇总框），按钮锚点不许变
+      const fab = page.locator('.hd-claimfab.on');
+      const boxes: Array<{ x: number; w: number }> = [];
+      for (let i = 0; i < 10; i++) {
+        await fab.waitFor({ state: 'visible', timeout: 15_000 });
+        const b = await fab.boundingBox();
+        if (!b) throw new Error('一键收取没有位置');
+        boxes.push({ x: Math.round(b.x), w: Math.round(b.width) });
+        if (v.hasTouch) await fab.tap({ timeout: 8000 });
+        else await fab.click({ timeout: 8000 });
+        await page.waitForTimeout(350);
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+      }
+      console.log(`${v.name} 一键收取连点：${boxes.map((q) => `${q.x}/${q.w}`).join(' ')}`);
+      // 宽度跟着要收的数字走（多一种资源就宽一截），能变；变的是锚点才算乱跳：
+      // 手机横屏贴着右侧竖排、右边对齐，量右边；其余居中，量中线。宽度没变时左边 x 也一样（改前电脑上左边在 573 / 640 来回跳）
+      const anchor = (q: { x: number; w: number }): number => (v.name === 'phone' ? q.x + q.w : Math.round(q.x + q.w / 2));
+      if (boxes.some((q) => Math.abs(anchor(q) - anchor(boxes[0]!)) > 1)) throw new Error(`一键收取连点后位置变了：${boxes.map((q) => `${q.x}/${q.w}`).join(',')}`);
+      await shot('collect-10x');
+    })) &&
     (await step('设置面板', async () => {
       // 顶栏右上只有一个齿轮；点开设置面板，同时只有一个遮罩；关音乐后 haidao.settings 里 music=false；Esc 关掉
       if ((await page.locator('.hd-mute, .hd-feel').count()) !== 1) throw new Error('右上角不止一个设置钮');
