@@ -44,9 +44,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setWallet(r.wallet);
       setReliefTo(r.reliefTo);
       setPlaying(r.playing ?? {});
-      setLedger(r.ledger ?? []);
-      setWeek(r.week ?? {});
-      if (r.winUnits) setWinUnits(r.winUnits);
+      setLedger(r.ledger);
+      setWeek(r.week);
+      setWinUnits(r.winUnits);
       setError(null);
     } catch (e) {
       setError(e);

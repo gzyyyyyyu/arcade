@@ -63,6 +63,7 @@ export function BadgeWall({ games, selfId }: { games: StatsResponse['games']; se
       <div className="stats-badges__grid" ref={grid}>
         <Paged
           grid
+          uneven
           items={badges}
           keyOf={(b) => b.id}
           label="徽章翻页"

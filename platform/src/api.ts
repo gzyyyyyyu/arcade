@@ -437,7 +437,7 @@ export interface Wallet {
 export const api = {
   me: () => request<MeResponse>('GET', '/api/me', undefined, ME_TIMEOUT_MS),
   wallet: () =>
-    request<{ wallet: Wallet; reliefTo: number; winUnits?: number; playing?: Record<string, number>; ledger?: LedgerEntry[]; week?: Record<string, number> }>('GET', '/api/wallet'),
+    request<{ wallet: Wallet; reliefTo: number; winUnits: number; playing?: Record<string, number>; ledger: LedgerEntry[]; week: Record<string, number> }>('GET', '/api/wallet'),
   relief: () => request<{ wallet: Wallet }>('POST', '/api/wallet/relief'),
   /** who 是用户 id，或 me */
   stats: (who: string) => request<StatsResponse>('GET', `/api/stats/${encodeURIComponent(who)}`),

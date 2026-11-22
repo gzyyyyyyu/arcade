@@ -48,7 +48,7 @@ export async function walletAndSlowNet(browser: Browser): Promise<void> {
     const { ctx, page } = await newPage(browser, `钱包 ${screen}`, screen);
     await mockSession(page, {
       user: { ...FAKE_USER, displayName: '名字有八个字的人' },
-      wallet: { wallet, tiers: { small: 2_000, mid: 10_000, big: 50_000, lux: 200_000 }, reliefTo: 2_000, playing: { texas: 12, kaipan: 3 }, ledger, week: { kaipan: 9_400, texas: -1_200 } },
+      wallet: { wallet, tiers: { small: 2_000, mid: 10_000, big: 50_000, lux: 200_000 }, reliefTo: 2_000, winUnits: 10, playing: { texas: 12, kaipan: 3 }, ledger, week: { kaipan: 9_400, texas: -1_200 } },
     });
     await page.goto(`${BASE}/`);
     const badge = page.getByTestId('wallet-badge');
