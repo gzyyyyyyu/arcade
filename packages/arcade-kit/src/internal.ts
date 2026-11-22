@@ -93,3 +93,8 @@ export async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   if (!out.ok) throw out.e;
   return out.v;
 }
+
+/** 给 fetch 的 init 展开用的超时信号；老浏览器没有 AbortSignal.timeout 时不带（照旧等浏览器自己的超时），不报错。浏览器和服务端共用 */
+export function timeoutSignal(ms: number): { signal?: AbortSignal } {
+  return typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function' ? { signal: AbortSignal.timeout(ms) } : {};
+}
