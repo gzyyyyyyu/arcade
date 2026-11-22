@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { viewBetween } from '../ui/stable.ts';
-import { BALANCE, THEME_IDS, dailyBoardId, dailySetup, difficultyView, flashDays, formatMoney, liveSetup, personaView, stocksOf, weeklyBoardId, weeklyInfo, type GameState, type LiveTier, type PersonaId } from '../../core/index.ts';
+import { BALANCE, LESSON, THEME_IDS, dailyBoardId, dailySetup, difficultyView, flashDays, formatMoney, lessonDays, lessonSetup, liveSetup, personaView, stocksOf, weeklyBoardId, weeklyInfo, type GameState, type LiveTier, type PersonaId } from '../../core/index.ts';
 import { emptyProfile, isDifficultyUnlocked, isPersonaUnlocked, loadProfile, type Profile } from '../../platform/profile.ts';
 import { hasSave } from '../../platform/storage.ts';
 import { APP_VERSION } from '../../platform/version.ts';
@@ -335,15 +335,17 @@ export class TitleScene extends BaseScene {
     const can = this.canContinue();
     const quick = this.quickSetup();
     const first = !can && this.profile.runs === 0;
+    // 第一次玩、新手课还没过：大卡先推新手课
+    const lesson = first && !this.profile.lessonWon;
     const key = can ? 'continue' : 'quick';
-    const fn = can ? () => this.session.enterGame() : () => this.guardNew(() => this.startSetup(quick.persona, quick.difficulty, quick.short));
+    const fn = can ? () => this.session.enterGame() : lesson ? () => this.guardNew(() => this.startLesson()) : () => this.guardNew(() => this.startSetup(quick.persona, quick.difficulty, quick.short));
     const b = new Button(this, H.x, H.y, { width: H.w, height: H.h, label: '', variant: 'primary', onClick: fn });
     this.buttons[key] = b;
     const persona = can ? s.persona : quick.persona;
     const qd = difficultyView(quick.difficulty);
     const len = quick.short ? `短局 ${BALANCE.short.months} 个月` : '完整一年';
-    const title = can ? '继续' : first ? '开始第一局' : '快速开始';
-    const sub = can ? `${personaView(s.persona).name} · ${s.setup?.weekly !== undefined ? `本周市场第${Math.min(s.dayIndex + 1, flashDays())}天` : s.setup?.flash !== undefined ? `闪电盘第${Math.min(s.dayIndex + 1, flashDays())}天` : `${s.month}月`}${livePlaying(s) ? ' · 实盘' : ''}` : `${personaView(quick.persona).name} · ${qd.name} · ${len}`;
+    const title = can ? '继续' : lesson ? '先上一课' : first ? '开始第一局' : '快速开始';
+    const sub = lesson ? `新手课 · ${lessonDays()} 天 · 教你怎么选股` : can ? `${personaView(s.persona).name} · ${s.setup?.weekly !== undefined ? `本周市场第${Math.min(s.dayIndex + 1, flashDays())}天` : s.setup?.flash !== undefined ? `闪电盘第${Math.min(s.dayIndex + 1, flashDays())}天` : `${s.month}月`}${livePlaying(s) ? ' · 实盘' : ''}` : `${personaView(quick.persona).name} · ${qd.name} · ${len}`;
     const pw = H.h - 16;
     const tx = 16 + pw + 14;
     const parts: Phaser.GameObjects.GameObject[] = [];
@@ -535,7 +537,11 @@ export class TitleScene extends BaseScene {
 
   private startSetup(persona: PersonaId, difficulty: number, short: boolean): void {
     saveLastSetup({ persona, difficulty, short });
-    this.session.newRun(randomSeed(), funSetup({ persona, difficulty, short }));
+    this.session.newRun(randomSeed(), funSetup({ persona, difficulty, short }, this.profile.runs));
+  }
+
+  private startLesson(): void {
+    this.session.newRun(LESSON.seed, lessonSetup());
   }
 
   /** 长线界面要用 meta 图集：没好就先显示「载入中」，好了再开（失败时各控件有自己的回退画法）。 */
@@ -747,7 +753,7 @@ export class TitleScene extends BaseScene {
 
   private openCodex(tab: CodexGroup): void {
     this.withMeta(() => {
-      this.trackDialog(new CodexPanel(this, this.profile, tab));
+      this.trackDialog(new CodexPanel(this, this.profile, tab, () => this.startLesson()));
     });
   }
 

@@ -1,5 +1,6 @@
 import { chatView, topBar } from '../../core/index.ts';
 import type { Rect } from '../rect.ts';
+import type { GuideSpot } from './guide.ts';
 import { PHONE as PHONE_MODE } from '../theme.ts';
 import { OPEN, PHONE_RECT as PHONE } from '../trade/layout.ts';
 import { newbieHint } from '../hints.ts';
@@ -120,6 +121,23 @@ export class TradeHints {
         return this.s.reward?.area() ?? null;
       default:
         return null;
+    }
+  }
+
+  /** 新手课建议、心法例子指的区域。 */
+  guideSpot(at: GuideSpot): Rect | null {
+    switch (at.kind) {
+      case 'rec':
+        this.s.showTab('recs');
+        return this.s.chat.recRect(at.rec);
+      case 'sell':
+        return this.s.holdings.sellRect(at.slot);
+      case 'card': {
+        const slot = this.s.holdings.slotOf(at.stockId);
+        return slot >= 0 ? this.s.holdings.rect(slot) : null;
+      }
+      case 'open':
+        return this.s.openBtn.isEnabled() ? { ...OPEN } : null;
     }
   }
 

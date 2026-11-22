@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { REGIMES, REGIME_LABEL, codex, displayTitle, knowledgeView, type KnowledgeCard, type CodexEntry, type Regime } from '../../core/index.ts';
+import { MINDS, REGIMES, REGIME_LABEL, codex, displayTitle, knowledgeView, type KnowledgeCard, type CodexEntry, type Regime } from '../../core/index.ts';
 import type { Profile } from '../../platform/profile.ts';
 import { achFrameKey, achIconKey, avatarKey, hasArt, itemKey, stockKey } from '../assets.ts';
 import { CODEX_TABS, TIER_NAME } from '../labels.ts';
@@ -15,8 +15,8 @@ import { loadViewed, saveViewed, type CodexGroup, type Viewed } from './prefs.ts
 import { GLOSSARY, ROLE_WORD, term, type Term } from '../glossary.ts';
 import { phoneLayout } from '../viewport.ts';
 
-/** 图鉴的页签：五组收藏 + 词典 */
-type CodexTab = CodexGroup | 'segments' | 'words' | 'knowledge';
+/** 图鉴的页签：五组收藏 + 行情段、词典、小知识、心法 */
+type CodexTab = CodexGroup | 'segments' | 'words' | 'knowledge' | 'minds';
 
 const W = 1220;
 const H = 690;
@@ -102,7 +102,10 @@ export class CodexPanel extends Dialog {
   /** 手机上各页签翻到第几页 */
   private readonly pageOf: Partial<Record<CodexTab, number>> = {};
 
-  constructor(scene: Phaser.Scene, profile: Profile, tab: CodexTab = 'stocks') {
+  /** 心法页上「新手课」那张卡点下去开新手课（只有标题页给） */
+  private readonly onLesson: (() => void) | null;
+
+  constructor(scene: Phaser.Scene, profile: Profile, tab: CodexTab = 'stocks', onLesson: (() => void) | null = null) {
     const phone = phoneLayout(scene);
     const pp = phone ? phonePanel(scene) : { w: 940, h: 430 };
     super(scene, phone ? pp.w : W, phone ? pp.h : H, '图鉴', () => this.markViewed());
@@ -113,10 +116,11 @@ export class CodexPanel extends Dialog {
     this.lit = litSets(profile);
     this.viewed = loadViewed();
     this.tab = tab;
-    // 手机：八个页签挤在标题和右上角「×」之间，窄了就缩宽、缩间距
+    this.onLesson = onLesson;
+    // 手机：九个页签挤在标题和右上角「×」之间，窄了就缩宽、缩间距
     const tabStep = Math.min(98, (ui.w - 100 - 76) / CODEX_TABS.length);
     // 竖屏：标题下面两排，一排 4 个；两排隔 52（键高 40，点击区上下各撑 5，不叠）
-    const ptCols = 4;
+    const ptCols = Math.ceil(CODEX_TABS.length / 2);
     const ptW = Math.floor((ui.w - 32 - 8 * (ptCols - 1)) / ptCols);
     CODEX_TABS.forEach((t, i) => {
       const b = phone && ui.portrait
@@ -208,6 +212,10 @@ export class CodexPanel extends Dialog {
     }
     if (tab === 'knowledge') {
       this.knowledgePage();
+      return;
+    }
+    if (tab === 'minds') {
+      this.mindsPage();
       return;
     }
     const list = this.all[tab];
@@ -558,6 +566,57 @@ export class CodexPanel extends Dialog {
     });
     if (ph) this.phonePager(pg, pages, 'codex:page', (p) => this.turn('knowledge', p));
     this.helpTip(this.helpX(), '小知识', '玩着玩着遇到就会点亮。每张卡先用大白话讲，最后一行才是真实世界里的叫法。');
+  }
+
+  /** 心法：点亮集合 = 档案 minds；第一张是新手课入口（上过、没上过都能再上），后面六张心法卡，没亮的是问号。 */
+  private mindsPage(): void {
+    const s = this.scene;
+    const lit = new Set(this.profile.minds);
+    this.drawProgress(MINDS.filter((m) => lit.has(m.id)).length, MINDS.length, 0);
+    const cards: KnowledgeCard[] = MINDS.map((m) => ({ id: m.id, name: m.name, text: m.line, real: '记住了', lit: lit.has(m.id) }));
+    const ph = this.phone;
+    const cols = ph ? this.textCols() : 4;
+    const gap = 10;
+    const cw = ((ph ? this.ui.gw : GRID_W) - gap * (cols - 1)) / cols;
+    const ch = ph ? this.ui.cardH : 132;
+    const total = cards.length + (this.onLesson ? 1 : 0);
+    const per = ph ? cols * this.ui.rows : total;
+    const pages = Math.max(1, Math.ceil(total / per));
+    const pg = ph ? this.pageIndex('minds', pages) : 0;
+    for (let i = pg * per; i < Math.min(total, (pg + 1) * per); i++) {
+      const j = i - pg * per;
+      const x = (ph ? this.ui.gx : GRID_X) + (j % cols) * (cw + gap);
+      const y = (ph ? this.ui.gy : GRID_Y) + Math.floor(j / cols) * (ch + gap);
+      const c = s.add.container(x, y);
+      const k = this.onLesson ? i - 1 : i;
+      const onLesson = this.onLesson;
+      if (onLesson && i === 0) {
+        const won = this.profile.lessonWon;
+        c.add(s.add.rectangle(0, 0, cw, ch, 0xfff1c9).setOrigin(0, 0).setRounded(12).setStrokeStyle(3, COLOR.accentDark, 1));
+        c.add(addGlyph(s, 26, 26, 'star', 28));
+        c.add(addText(s, 46, 26, won ? '新手课 · 已过' : '新手课', { size: 15, bold: true, color: COLOR.accentDark, originY: 0.5 }));
+        c.add(addText(s, 12, 50, '固定行情，老师傅一步步教你选股、亏了早走。', { size: FS.xs, color: COLOR.ink, wrap: cw - 24, lineSpacing: 2 }));
+        c.add(addText(s, 12, ch - 14, won ? '再上一次 ›' : '去上课 ›', { size: 14, bold: true, color: COLOR.accentDark, originY: 0.5 }));
+        const hit = s.add.rectangle(0, 0, cw, ch, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        hit.on(Phaser.Input.Events.POINTER_UP, () => {
+          this.close();
+          onLesson();
+        });
+        c.add(hit);
+      } else {
+        const m = cards[k] as KnowledgeCard;
+        this.knowledgeCardBody(c, m, cw, ch);
+        if (ph && m.lit) {
+          const hit = s.add.rectangle(0, 0, cw, ch, 0xffffff, 0.001).setOrigin(0, 0);
+          bindTooltip(hit, () => ({ x: this.inner.x + x, y: this.inner.y + y, w: cw, h: ch }), () => ({ title: m.name, body: m.text }));
+          c.add(hit);
+        }
+      }
+      this.page?.add(c);
+      this.named[`codex:card:${i}`] = { center: () => ({ x: this.inner.x + x + cw / 2, y: this.inner.y + y + ch / 2 }) };
+    }
+    if (ph) this.phonePager(pg, pages, 'codex:page', (p) => this.turn('minds', p));
+    this.helpTip(this.helpX(), '心法', '炒股的几句老话。局里遇到当场的例子会弹出来，点「记住了」就亮在这里。上完新手课六张全亮。');
   }
 
   private knowledgeCardBody(c: Phaser.GameObjects.Container, k: KnowledgeCard, cw: number, ch: number): void {

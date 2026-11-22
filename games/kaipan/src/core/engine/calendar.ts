@@ -28,6 +28,19 @@ export function shortSetup(persona: PersonaId, difficulty: number): RunSetup {
   return { persona, difficulty: lv, short: { months, billMult, goal: goal[Math.min(lv, goal.length) - 1] as number } };
 }
 
+/** 新号前几局的开局设置：新手档短局，首付比例按 BALANCE.novice（行情段由调用方从 NOVICE_SEGMENTS 里挑） */
+export function noviceSetup(persona: PersonaId): RunSetup {
+  const s = shortSetup(persona, 1);
+  return { ...s, short: { ...(s.short as NonNullable<RunSetup['short']>), goal: BALANCE.novice.goal } };
+}
+
+/** 这局是不是 noviceSetup 开的（重玩同一局也要从同一个温和段池里抽） */
+export function isNoviceSetup(setup: Readonly<RunSetup> | null): boolean {
+  if (!setup?.persona || setup.daily || setup.flash !== undefined || setup.weekly !== undefined || setup.live || setup.lesson) return false;
+  const n = noviceSetup(setup.persona);
+  return setup.difficulty === 1 && setup.short?.goal === n.short?.goal && setup.short?.months === n.short?.months && setup.short?.billMult === n.short?.billMult;
+}
+
 /** 短局最后要交的首付（元，取整到百元）：开局资产 × 这局的首付比例；不是短局为 0。开局面板用开局设置算，局里用 shortGoal */
 export function shortGoalFor(setup: Readonly<RunSetup> | null): number {
   const g = setup?.short?.goal ?? 0;

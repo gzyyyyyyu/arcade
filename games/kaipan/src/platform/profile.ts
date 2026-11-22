@@ -4,6 +4,7 @@ import {
   FRIENDS,
   ITEMS,
   KNOWLEDGE,
+  MIND_IDS,
   MAX_DIFFICULTY,
   MIN_DIFFICULTY,
   PERSONAS,
@@ -12,6 +13,7 @@ import {
   isAchievementId,
   isDailyRun,
   isPersonaId,
+  type MindId,
   type PersonaId,
   REGIMES,
   type Regime,
@@ -80,6 +82,10 @@ export interface Profile {
   segments: Record<string, SegmentRecord>;
   /** 0.4 C：点亮过的小知识 id（按小知识表顺序） */
   knowledge: string[];
+  /** 点亮过的炒股心法（按心法表顺序）：新手课和新号前几局里当场碰到时点亮，图鉴「心法」页翻看 */
+  minds: MindId[];
+  /** 新手课过过没有（过了开始菜单不再先推新手课） */
+  lessonWon: boolean;
 }
 
 /** 图鉴里的一段行情：什么市况、玩过几次、通关几次（不记年份和日期）。 */
@@ -92,7 +98,7 @@ export interface SegmentRecord extends SeenSegment {
  * 没计入的原因：没结束、调试开局、同一局重复记、人设或难度还没解锁（真正的每日挑战除外）、
  * 每日挑战的日期晚于今天。
  */
-export type RecordIgnored = 'unfinished' | 'debug' | 'duplicate' | 'locked' | 'future' | 'flash';
+export type RecordIgnored = 'unfinished' | 'debug' | 'duplicate' | 'locked' | 'future' | 'flash' | 'lesson';
 
 export interface RecordResult {
   profile: Profile;
@@ -137,6 +143,8 @@ export function emptyProfile(): Profile {
     last: '',
     segments: {},
     knowledge: [],
+    minds: [],
+    lessonWon: false,
   };
 }
 
@@ -230,7 +238,45 @@ export function reviveProfile(raw: unknown): Profile | null {
     }
   }
   if (Array.isArray(raw.knowledge)) p.knowledge = mergeKnowledge([], raw.knowledge.filter((x): x is string => typeof x === 'string')).list;
+  if (Array.isArray(raw.minds)) p.minds = mergeMinds([], raw.minds.filter((x): x is string => typeof x === 'string')).list;
+  p.lessonWon = raw.lessonWon === true;
   return p;
+}
+
+/** 把新点亮的心法并进列表（按心法表顺序，不认识的丢掉）。 */
+function mergeMinds(old: readonly string[], ids: readonly string[]): { list: MindId[]; added: MindId[] } {
+  const all = new Set([...old, ...ids]);
+  const list = MIND_IDS.filter((id) => all.has(id));
+  return { list, added: list.filter((id) => !old.includes(id)) };
+}
+
+/** 当场碰到心法的例子就点亮（调试局不记，由调用方判断）。 */
+export function learnMinds(profile: Readonly<Profile>, ids: readonly MindId[]): { profile: Profile; added: MindId[] } {
+  const m = mergeMinds(profile.minds, ids);
+  if (m.added.length === 0) return { profile: profile as Profile, added: [] };
+  return { profile: { ...structuredClone(profile as Profile), minds: m.list }, added: m.added };
+}
+
+/** 新手课打完：过了记一笔、心法全部点亮；不进局数、成绩、图鉴、成就（ignored 为 'lesson'，调用方照样存档）。 */
+export function recordLesson(profile: Readonly<Profile>, summary: Readonly<RunSummary>): RecordResult {
+  const p = structuredClone(profile) as Profile;
+  const won = summary.ended && summary.won;
+  if (won) {
+    p.lessonWon = true;
+    p.minds = [...MIND_IDS];
+  }
+  return {
+    profile: p,
+    ignored: 'lesson',
+    newAchievements: [],
+    newPersonas: [],
+    newDifficulty: null,
+    newSeen: { stocks: [], friends: [], items: [], events: [] },
+    newBest: false,
+    newDaily: false,
+    newSegment: false,
+    newKnowledge: [],
+  };
 }
 
 /** 0.4 C：把新点亮的小知识并进列表（按小知识表顺序，不认识的丢掉）。 */
@@ -350,6 +396,8 @@ export function mergeProfile(a: Readonly<Profile>, b: Readonly<Profile>): Profil
     p.segments[k] = base;
   }
   p.knowledge = mergeKnowledge(a.knowledge, b.knowledge).list;
+  p.minds = mergeMinds(a.minds, b.minds).list;
+  p.lessonWon = a.lessonWon || b.lessonWon;
   return p;
 }
 

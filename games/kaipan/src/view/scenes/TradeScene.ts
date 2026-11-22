@@ -222,6 +222,11 @@ export class TradeScene extends BaseScene {
     this.guide = new Guide(this, {
       state: () => this.session.state,
       target: (hit) => this.hints.guideTarget(hit.step, hit.stockId),
+      spot: (at) => this.hints.guideSpot(at),
+      minds: () => loadProfile().profile.minds,
+      learnMind: (id) => {
+        this.session.learnMind(id);
+      },
       avoid: () => this.hints.clickableRects(),
       changed: () => {
         this.hints.updateHint();

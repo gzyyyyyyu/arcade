@@ -105,6 +105,10 @@ function checkSetup(setup: RunSetup | null): void {
     if (!isWeekId(setup.weekly)) throw new Error('本周市场的周号要是 YYYY-Www（如 2026-W44）');
     if (setup.daily !== undefined || setup.live !== undefined || setup.short !== undefined || setup.flash !== undefined) throw new Error('本周市场不能同时是每日挑战、实盘、短局、闪电盘');
   }
+  if (setup.lesson !== undefined) {
+    if (setup.lesson !== true || setup.short === undefined) throw new Error('新手课要是短局');
+    if (setup.daily !== undefined || setup.live !== undefined || setup.flash !== undefined || setup.weekly !== undefined) throw new Error('新手课不能同时是每日挑战、实盘、闪电盘、本周市场');
+  }
 }
 
 /** 本局登场的题材：随机 6 个（must 里的必定登场，人设用），按看板顺序（设计稿第 2.1 节的顺序）排列。 */

@@ -126,6 +126,8 @@ export interface RunSetup {
    * 另带这一周的一条限定规则（weeklyRule），榜是 week-YYYY-Www-rules。和每日挑战、实盘、短局、闪电盘互斥。
    */
   weekly?: string;
+  /** 新手课（core/lesson.ts）：固定种子和行情段的两个月短局，不进档案、排行和新号局数；一定带 short，和其余模式互斥 */
+  lesson?: true;
 }
 
 /** 0.10.0 娱乐短局这一局的规则。 */

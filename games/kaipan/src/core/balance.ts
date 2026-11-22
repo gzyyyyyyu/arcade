@@ -210,6 +210,11 @@ export interface Balance {
     /** 群友（消息和推荐）说中的概率加多少 */
     cred: readonly number[];
   };
+  /**
+   * 新号前 runs 局（娱乐、新手档短局）的照顾：行情只从 NOVICE_SEGMENTS（不含崩盘、熊市）里抽，首付比例换成 goal。
+   * 都写在开局设置和挑段里，规则核心没有另一条路径；实盘、每日挑战、闪电盘不受影响（docs/design-lesson.md 第 3 节）。
+   */
+  novice: { runs: number; goal: number };
   /** 0.10.0 娱乐短局（docs/design-balance.md）：开局时写进这局的设置（RunSetup.short） */
   short: {
     months: number;
@@ -715,6 +720,7 @@ export const BALANCE: Balance = {
   // 娱乐短局：5 个月、月供打折，最后交一笔首付（开局资产的几成，按难度）；0.10.0，实测见 docs/design-balance.md
   // 娱乐放宽（0.34.0）：各档降一级左右，新手档群里的话更准，前几局好赚；实测见 docs/design-balance.md
   ease: { bill: [0.85, 0.85, 0.9], cred: [0.12, 0.05, 0.03] },
+  novice: { runs: 3, goal: 0.85 },
   short: { months: 5, billMult: 0.25, goal: [0.9, 1, 1.05] },
   // 闪电盘：2 个月 × 5 天 = 10 个交易日，没有月供；第 4、8 个交易日收盘后各来一个事件
   flash: { months: 2, eventAfter: [4, 8] },

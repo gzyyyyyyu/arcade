@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Browser, BrowserContextOptions, Page, Route } from 'playwright-core';
 import { createRun, dispatch, type Action, type GameEvent, type GameState, type RunSetup } from '../../src/core/index.ts';
+import { PROFILE_KEY, emptyProfile } from '../../src/platform/profile.ts';
 import { LONG_PRESS_MS } from '../../src/view/ui/clickGuard.ts';
 
 // 不占任何模块登记的端口（仓库 AGENTS.md 第 3 节）：5180 是平台的，开盘的 5173 / 4173 常开着给人手动看，
@@ -55,6 +56,8 @@ export interface OpenOpts {
   touch?: boolean;
   /** 打开前写入 localStorage 的键值 */
   storage?: Record<string, string>;
+  /** 本机没有档案（真正的新号：开始菜单大卡是「先上一课」）。不传时没给档案的上下文写一份「新手课已过」的空档案，大卡照旧是普通开局 */
+  noProfile?: boolean;
   /** 教程：true 为全新进度，字符串数组为只剩这几步没看过；默认关闭 */
   guide?: boolean | string[];
   /** 记录页面发出的网络请求（不含 blob: / data:） */
@@ -86,6 +89,7 @@ export async function openPage(browser: Browser, name: string, query: string, op
   if (opts.touch) Object.assign(co, { hasTouch: true, isMobile: true });
   const context = await browser.newContext(co);
   const storage: Record<string, string> = { ...(opts.storage ?? {}) };
+  if (!opts.noProfile && !(PROFILE_KEY in storage)) storage[PROFILE_KEY] = JSON.stringify({ ...emptyProfile(), lessonWon: true });
   storage[TUTORIAL_KEY] = opts.guide === true ? tutorialProgress(TUTORIAL_STEPS) : tutorialProgress(Array.isArray(opts.guide) ? opts.guide : undefined);
   if (opts.settings) storage['kaipan.settings'] = JSON.stringify({ version: 1, ...opts.settings });
   await context.addInitScript((kv) => {

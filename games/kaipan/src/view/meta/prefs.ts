@@ -1,4 +1,4 @@
-import { MAX_DIFFICULTY, MIN_DIFFICULTY, isPersonaId, shortSetup, type GameState, type PersonaId, type RunSetup } from '../../core/index.ts';
+import { BALANCE, MAX_DIFFICULTY, MIN_DIFFICULTY, isPersonaId, noviceSetup, shortSetup, type GameState, type PersonaId, type RunSetup } from '../../core/index.ts';
 import type { Profile, RecordResult } from '../../platform/profile.ts';
 import { defaultStore, type KeyValueStore } from '../../platform/settings.ts';
 
@@ -17,8 +17,12 @@ export interface LastSetup {
   short: boolean;
 }
 
-/** 娱乐开局设置：短局按 BALANCE.short 抄进这局（shortSetup），完整一年只有人设和难度 */
-export function funSetup(s: Readonly<LastSetup>): RunSetup {
+/**
+ * 娱乐开局设置：短局按 BALANCE.short 抄进这局（shortSetup），完整一年只有人设和难度。
+ * 新号前几局（档案正式局不到 BALANCE.novice.runs 局）开新手档短局时换成 noviceSetup：首付少一点，行情段由 session 从温和段池里挑。
+ */
+export function funSetup(s: Readonly<LastSetup>, runs = Number.POSITIVE_INFINITY): RunSetup {
+  if (s.short && s.difficulty === 1 && runs < BALANCE.novice.runs) return noviceSetup(s.persona);
   return s.short ? shortSetup(s.persona, s.difficulty) : { persona: s.persona, difficulty: s.difficulty };
 }
 

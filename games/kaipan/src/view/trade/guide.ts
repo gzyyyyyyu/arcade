@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { GameState } from '../../core/index.ts';
+import { isLesson, lessonAdvice, lessonDays, mindById, mindMoment, type GameState, type LessonAdvice, type MindId, type MindMoment } from '../../core/index.ts';
 import { getSettings } from '../../platform/settings.ts';
 import type { Rect } from '../rect.ts';
 import { sound } from '../sound.ts';
@@ -31,7 +31,7 @@ const ACTION: Partial<Record<TutorialStep, string>> = { rec: '点「买入」试
 type Side = 'left' | 'right' | 'below' | 'above';
 
 /** 各步骤气泡优先放在目标的哪一侧。 */
-const SIDES: Record<TutorialStep, Side[]> = {
+const SIDES: Record<TutorialStep, readonly Side[]> = {
   goal: ['below', 'left'],
   colors: ['above', 'below'],
   chat: ['left', 'below'],
@@ -44,11 +44,44 @@ const SIDES: Record<TutorialStep, Side[]> = {
   bill: ['below', 'above'],
 };
 
+/** 新手课建议、心法例子要指的地方 */
+export type GuideSpot = { kind: 'rec'; rec: number } | { kind: 'sell'; slot: number } | { kind: 'card'; stockId: string } | { kind: 'open' };
+
+/**
+ * 气泡有三种：教程一步、新手课「老师傅」的建议（只在新手课里出，这时不出教程）、心法卡（局面里出现当场例子、这张还没亮时弹一次）。
+ * 摆放、箭头、避让只有一份（place / draw）。
+ */
+type Bubble = { kind: 'tutorial'; hit: StepHit } | { kind: 'coach'; advice: LessonAdvice } | { kind: 'mind'; moment: MindMoment };
+
+/** 气泡里画什么（三种气泡共用一个画法） */
+interface Body {
+  head: string;
+  /** 教程进度点：第 k 步 / 共 n 步 */
+  dots: [number, number] | null;
+  line: string;
+  chips: readonly { icon: string; text: string; tone?: 'up' | 'down' | 'accent' }[];
+  /** 小字补一句（心法那句话） */
+  sub: string | null;
+  /** 要玩家去点的地方（有它就不放主按钮） */
+  todo: string | null;
+  /** 主按钮 */
+  next: { label: string; onClick: () => void } | null;
+  /** 左下角的次按钮 */
+  close: { label: string; tip: string; onClick: () => void };
+  sides: readonly Side[];
+}
+
 interface GuideHost {
   /** 当前局面 */
   state(): GameState;
   /** 一步要指向的区域（世界坐标）；拿不到时返回 null（这一步先不出） */
   target(hit: StepHit): Rect | null;
+  /** 新手课建议、心法例子指的区域；拿不到返回 null */
+  spot(at: GuideSpot): Rect | null;
+  /** 档案里已经亮了的心法 */
+  minds(): readonly MindId[];
+  /** 点了「记住了」：这张心法亮起来 */
+  learnMind(id: MindId): void;
   /** 此刻可点的控件区域：气泡尽量不盖住它们 */
   avoid(): Rect[];
   /** 气泡出现 / 消失（通知自动化） */
@@ -63,6 +96,21 @@ function overlap(a: Rect, b: Rect): number {
 
 function grow(r: Rect, m: number): Rect {
   return { x: r.x - m, y: r.y - m, w: r.w + m * 2, h: r.h + m * 2 };
+}
+
+/** 新手课里点了「我自己来」的那一局（换局、读档重开画面都还记得这一局不再出建议） */
+let coachOffFor = '';
+
+const COACH_TODO: Record<LessonAdvice['kind'], string> = { buy: '点「买入」选「试一口」', sell: '点「卖出」', wait: '点「开盘」' };
+
+function bubbleKey(b: Bubble): string {
+  if (b.kind === 'tutorial') return b.hit.step;
+  if (b.kind === 'coach') return 'coach';
+  return `mind-${b.moment.id}`;
+}
+
+function adviceSpot(a: LessonAdvice): GuideSpot {
+  return a.kind === 'buy' ? { kind: 'rec', rec: a.rec } : a.kind === 'sell' ? { kind: 'sell', slot: a.slot } : { kind: 'open' };
 }
 
 /**
@@ -81,7 +129,9 @@ export class Guide {
   private arrowOn = false;
   private next: Button | null = null;
   private close: Button | null = null;
-  private current: StepHit | null = null;
+  private current: Bubble | null = null;
+  /** 这一局点过「记住了」的心法（档案存失败时也不再弹） */
+  private dismissed = new Set<MindId>();
   private placedFor = '';
   private suspended = false;
   /** 当天盘前已经冒过的步骤 */
@@ -95,47 +145,152 @@ export class Guide {
 
   /** 正在显示的步骤（自动化与截图用）。 */
   get step(): TutorialStep | null {
-    return this.root?.visible ? (this.current?.step ?? null) : null;
+    const c = this.current;
+    return this.root?.visible && c?.kind === 'tutorial' ? c.hit.step : null;
   }
 
-  /** 按局面决定显示哪一步（没有可出的就收起）。 */
+  private tutorialStep(): TutorialStep | null {
+    const c = this.current;
+    return c?.kind === 'tutorial' ? c.hit.step : null;
+  }
+
+  /** 按局面决定显示哪个气泡（没有可出的就收起）。 */
   sync(s: GameState): void {
     if (this.suspended) return;
-    const hits = eligibleSteps(s, loadTutorial());
     if (s.phase === 'premarket' && s.dayIndex !== this.day) {
       this.day = s.dayIndex;
       this.shown.clear();
     }
-    const keep = this.current ? hits.find((h) => h.step === this.current?.step) : undefined;
-    let hit: StepHit | undefined = keep;
-    if (!hit) {
-      // 「目标」「红涨绿跌」各一句话，不占每天 3 步的名额
-      const used = [...this.shown].filter((x) => !FREE.includes(x)).length;
-      hit = hits.find((h) => h.step === 'bill' || FREE.includes(h.step) || this.shown.has(h.step) || used < PER_DAY);
-    }
-    if (!hit) {
+    const picked = this.pick(s);
+    if (!picked) {
       this.clear();
       return;
     }
-    const target = this.host.target(hit);
-    if (!target) {
-      this.clear();
-      return;
-    }
-    const sig = `${hit.step}:${hit.stockId}:${Math.round(target.x)},${Math.round(target.y)},${Math.round(target.w)},${Math.round(target.h)}`;
+    const { bubble, target } = picked;
+    const key = bubbleKey(bubble);
+    const extra = bubble.kind === 'tutorial' ? bubble.hit.stockId : bubble.kind === 'coach' ? `${bubble.advice.kind}:${bubble.advice.why}` : bubble.moment.text;
+    const sig = `${key}:${extra}:${Math.round(target.x)},${Math.round(target.y)},${Math.round(target.w)},${Math.round(target.h)}`;
     if (this.root && this.placedFor === sig) {
       this.root.setVisible(true);
       this.ring?.setVisible(true);
       this.arrow?.setVisible(this.arrowOn);
       return;
     }
-    const fresh = this.current?.step !== hit.step;
-    this.current = hit;
+    const fresh = !this.current || bubbleKey(this.current) !== key;
+    this.current = bubble;
     this.placedFor = sig;
-    if (s.phase === 'premarket') this.shown.add(hit.step);
-    this.draw(hit, target);
+    if (bubble.kind === 'tutorial' && s.phase === 'premarket') this.shown.add(bubble.hit.step);
+    this.draw(this.body(bubble, s), target);
     if (fresh) sound.cue({ type: 'guide' });
     this.host.changed();
+  }
+
+  /**
+   * 新手课里不出教程：有心法的当场例子先讲心法（刚吃了亏的那一刻最该讲），再出老师傅的建议。
+   * 别的局先出教程，没有教程可出再看有没有心法的当场例子（实盘不弹）。
+   */
+  private pick(s: GameState): { bubble: Bubble; target: Rect } | null {
+    if (isLesson(s)) {
+      const mind = this.pickMind(s);
+      if (mind || coachOffFor === s.seed) return mind;
+      const advice = lessonAdvice(s);
+      const target = advice ? this.host.spot(adviceSpot(advice)) : null;
+      return advice && target ? { bubble: { kind: 'coach', advice }, target } : null;
+    }
+    const hits = eligibleSteps(s, loadTutorial());
+    const cur = this.tutorialStep();
+    let hit: StepHit | undefined = cur ? hits.find((h) => h.step === cur) : undefined;
+    if (!hit) {
+      // 「目标」「红涨绿跌」各一句话，不占每天 3 步的名额
+      const used = [...this.shown].filter((x) => !FREE.includes(x)).length;
+      hit = hits.find((h) => h.step === 'bill' || FREE.includes(h.step) || this.shown.has(h.step) || used < PER_DAY);
+    }
+    if (hit) {
+      const target = this.host.target(hit);
+      return target ? { bubble: { kind: 'tutorial', hit }, target } : null;
+    }
+    return s.setup?.live ? null : this.pickMind(s);
+  }
+
+  private pickMind(s: GameState): { bubble: Bubble; target: Rect } | null {
+    const moment = mindMoment(s);
+    if (!moment || this.dismissed.has(moment.id) || this.host.minds().includes(moment.id)) return null;
+    const target = this.host.spot(moment.stockId ? { kind: 'card', stockId: moment.stockId } : { kind: 'open' });
+    return target ? { bubble: { kind: 'mind', moment }, target } : null;
+  }
+
+  private body(b: Bubble, s: GameState): Body {
+    if (b.kind === 'tutorial') {
+      const step = b.hit.step;
+      const card = tutorialCard(step, s, b.hit.stockId, getSettings().colorScheme);
+      const k = TUTORIAL_ORDER.indexOf(step) + 1;
+      const n = TUTORIAL_ORDER.length;
+      const todo = ACTION[step] ?? null;
+      return {
+        head: `${k}/${n}`,
+        dots: [k, n],
+        line: card.line,
+        chips: card.chips,
+        sub: null,
+        todo,
+        next: todo ? null : { label: k >= n ? '知道了' : '下一步 ›', onClick: () => this.ack() },
+        // 「跳过」只写「跳过」时试玩的人以为只跳这一步：写明是全部引导（点了以后都不再出现，设置里能重开）
+        close: { label: '跳过全部引导', tip: '以后都不再弹引导。想再看一遍，在设置里重新打开。', onClick: () => this.skipAll() },
+        sides: SIDES[step],
+      };
+    }
+    if (b.kind === 'coach') {
+      const a = b.advice;
+      const mind = mindById(a.mind);
+      return {
+        head: `老师傅 · 第 ${s.dayIndex + 1}/${lessonDays()} 天`,
+        dots: null,
+        line: a.why,
+        // 试玩新人以为要赚很多才算赢：每条都带上「不亏就过」
+        chips: [{ icon: 'glyph:star', text: mind.name, tone: 'accent' }, { icon: 'glyph:house', text: '不亏就过' }],
+        sub: mind.line,
+        todo: COACH_TODO[a.kind],
+        next: null,
+        close: {
+          label: '我自己来',
+          tip: '这一局不再给建议，自己选。',
+          onClick: () => {
+            coachOffFor = s.seed;
+            this.clear();
+            this.sync(this.host.state());
+          },
+        },
+        sides: a.kind === 'buy' ? SIDES.rec : a.kind === 'sell' ? SIDES.sell : SIDES.open,
+      };
+    }
+    const m = b.moment;
+    const mind = mindById(m.id);
+    return {
+      head: `心法 · ${mind.name}`,
+      dots: null,
+      line: m.text,
+      chips: [],
+      sub: mind.line,
+      todo: null,
+      next: { label: '记住了', onClick: () => this.learn(m.id) },
+      close: { label: '以后再说', tip: '先关掉，下次遇到再讲。', onClick: () => this.dismiss(m.id) },
+      sides: m.stockId ? SIDES.sell : SIDES.open,
+    };
+  }
+
+  /** 「记住了」：心法亮起来（图鉴里能翻看），这张以后不再弹。 */
+  private learn(id: MindId): void {
+    this.dismissed.add(id);
+    this.host.learnMind(id);
+    this.clear();
+    this.sync(this.host.state());
+  }
+
+  /** 「以后再说」：这一局不再弹这张。 */
+  private dismiss(id: MindId): void {
+    this.dismissed.add(id);
+    this.clear();
+    this.sync(this.host.state());
   }
 
   /** 结算动画等期间收起（不算看过）。 */
@@ -154,7 +309,12 @@ export class Guide {
 
   /** 玩家做了某件事：对应的步骤记为完成；正显示着的说明类步骤也算看过。 */
   acted(step: TutorialStep): void {
-    const cur = this.current?.step;
+    const cur = this.tutorialStep();
+    if (!cur && this.current) {
+      // 老师傅、心法气泡：玩家动手了就收起，按新局面重判
+      this.clear();
+      return;
+    }
     if (cur && cur !== step && INFO.includes(cur) && this.root?.visible) markStep(cur);
     markStep(step);
     if (cur === step || (cur && INFO.includes(cur))) this.clear();
@@ -162,7 +322,7 @@ export class Guide {
 
   /** 「知道了」：记为看过，接着看有没有下一步。 */
   private ack(): void {
-    const cur = this.current?.step;
+    const cur = this.tutorialStep();
     if (cur) markStep(cur);
     this.clear();
     this.sync(this.host.state());
@@ -189,7 +349,7 @@ export class Guide {
   }
 
   /** 气泡的位置：按优先侧依次试，沿边滑动，选第一处不盖住目标和可点控件的；都不行取盖得最少的。 */
-  private place(step: TutorialStep, target: Rect, h: number): { x: number; y: number; side: Side; inside?: boolean } {
+  private place(prefer: readonly Side[], target: Rect, h: number): { x: number; y: number; side: Side; inside?: boolean } {
     const avoid = this.host.avoid().map((r) => grow(r, 4));
     const tgt = grow(target, 8);
     // 0.9.2 手机横屏：屏幕矮，气泡放到目标左右会压住顶栏（目标、日期、账户）和要点的卡片。
@@ -204,7 +364,7 @@ export class Guide {
     const away: Side[] = target.y + target.h / 2 < V.h / 2 ? ['below', 'above'] : ['above', 'below'];
     // 手机上只放上下：放左右再沿边滑开，气泡会和指向目标的箭头脱开
     // 0.19.0 手机世界矮到 404：目标是整块推荐列表时上下都放不下，再试左右（总比放进列表里盖住「买入」好）
-    const sides = PHONE ? [...away, 'left', 'right'] as Side[] : [...SIDES[step], ...(['left', 'right', 'below', 'above'] as Side[]).filter((x) => !SIDES[step].includes(x))];
+    const sides = PHONE ? [...away, 'left', 'right'] as Side[] : [...prefer, ...(['left', 'right', 'below', 'above'] as Side[]).filter((x) => !prefer.includes(x))];
     // 上下放时还试离目标远一点（竖屏：目标下面是群聊、上面紧贴页签，贴着放会压住页签，往上让过页签只盖空着的持仓格）
     const fars = [0, 40, 80, 120, 160];
     for (const [rank, side] of sides.entries()) {
@@ -246,28 +406,34 @@ export class Guide {
     return { x: clampX(target.x), y: clampY(target.y + target.h + GAP), side: 'below' };
   }
 
-  private draw(at: StepHit, target: Rect): void {
-    const step = at.step;
+  private draw(body: Body, target: Rect): void {
     this.root?.destroy();
     this.ring?.destroy();
     const s = this.scene;
-    const scheme = getSettings().colorScheme;
-    const card = tutorialCard(step, this.host.state(), at.stockId, scheme);
-    // 第 k/N 步：按教程顺序编号，点点表示走到哪了
-    const k = TUTORIAL_ORDER.indexOf(step) + 1;
-    const n = TUTORIAL_ORDER.length;
     const kids: Phaser.GameObjects.GameObject[] = [];
-    const pager = addText(s, 16, 12, `${k}/${n}`, { size: 12, bold: true, color: COLOR.accentDark, num: true });
-    const dots = s.add.graphics();
-    for (let i = 0; i < n; i++) {
-      dots.fillStyle(i < k ? COLOR.accent : COLOR.ink, i < k ? 1 : 0.18).fillCircle(64 + i * 11, 20, i === k - 1 ? 4 : 3);
+    const head = addText(s, 16, 12, body.head, { size: 12, bold: true, color: COLOR.accentDark, num: body.dots !== null });
+    kids.push(head);
+    if (body.dots) {
+      // 第 k/N 步：按教程顺序编号，点点表示走到哪了
+      const [k, n] = body.dots;
+      const dots = s.add.graphics();
+      for (let i = 0; i < n; i++) {
+        dots.fillStyle(i < k ? COLOR.accent : COLOR.ink, i < k ? 1 : 0.18).fillCircle(64 + i * 11, 20, i === k - 1 ? 4 : 3);
+      }
+      kids.push(dots);
     }
-    const line = addText(s, 16, 36, card.line, { size: 17, bold: true, wrap: W - 32 });
-    kids.push(pager, dots, line);
+    const line = addText(s, 16, 36, body.line, { size: 17, bold: true, wrap: W - 32 });
+    kids.push(line);
+    let below = line.y + line.height;
+    if (body.sub) {
+      const sub = addText(s, 16, Math.round(below + 6), body.sub, { size: 13, color: COLOR.muted, wrap: W - 32 });
+      kids.push(sub);
+      below = sub.y + sub.height;
+    }
     // 图标签：图标 + 数字/两三个字
     let cx = 16;
-    const cy = Math.round(line.y + line.height + 10);
-    for (const c of card.chips) {
+    const cy = Math.round(below + 10);
+    for (const c of body.chips) {
       const tone = c.tone === 'up' ? COLOR.up : c.tone === 'down' ? COLOR.down : c.tone === 'accent' ? COLOR.accentDark : COLOR.ink;
       const label = addText(s, 0, 0, c.text, { size: 13, bold: true, color: tone, num: /^[-+¥\d]/.test(c.text) });
       const w = Math.round(label.width + 40);
@@ -279,8 +445,9 @@ export class Guide {
       kids.push(pill, icon, label);
       cx += w + 6;
     }
-    const h = Math.round(cy + 28 + 12 + 34 + 12);
-    const { x, y, side, inside } = this.place(step, target, h);
+    const chipsH = body.chips.length > 0 ? 28 + 12 : 2;
+    const h = Math.round(cy + chipsH + 34 + 12);
+    const { x, y, side, inside } = this.place(body.sides, target, h);
     const bg = s.add.rectangle(0, 0, W, h, 0xfffbe8).setOrigin(0, 0).setRounded(14).setStrokeStyle(3, COLOR.ink, 1);
     const shadow = s.add.rectangle(3, 5, W, h, COLOR.ink, 0.18).setOrigin(0, 0).setRounded(14);
     // 指向目标的小三角
@@ -305,13 +472,12 @@ export class Guide {
       tri.fillTriangle(p[0], p[1], p[2], p[3], p[4], p[5]);
       tri.lineBetween(p[0], p[1], p[2], p[3]).lineBetween(p[2], p[3], p[4], p[5]);
     }
-    const last = k >= n;
-    const todo = ACTION[step];
-    this.next = todo ? null : new Button(s, W - 16 - 100, h - 46, { width: 100, height: 34, label: last ? '知道了' : '下一步 ›', variant: 'primary', fontSize: 14, onClick: () => this.ack() });
-    if (todo) kids.push(addText(s, W - 16, h - 29, `${todo} ›`, { size: 14, bold: true, color: COLOR.accentDark, originX: 1, originY: 0.5 }));
-    // 「跳过」只写「跳过」时试玩的人以为只跳这一步：写明是全部引导（点了以后都不再出现，设置里能重开）
-    this.close = new Button(s, 16, h - 43, { width: 100, height: 28, label: '跳过全部引导', variant: 'ghost', fontSize: 12, onClick: () => this.skipAll() });
-    this.close.tooltip(() => ({ title: '跳过全部引导', body: '以后都不再弹引导。想再看一遍，在设置里重新打开。' }));
+    const next = body.next;
+    this.next = next ? new Button(s, W - 16 - 100, h - 46, { width: 100, height: 34, label: next.label, variant: 'primary', fontSize: 14, onClick: next.onClick }) : null;
+    if (body.todo && !next) kids.push(addText(s, W - 16, h - 29, `${body.todo} ›`, { size: 14, bold: true, color: COLOR.accentDark, originX: 1, originY: 0.5 }));
+    const close = body.close;
+    this.close = new Button(s, 16, h - 43, { width: 100, height: 28, label: close.label, variant: 'ghost', fontSize: 12, onClick: close.onClick });
+    this.close.tooltip(() => ({ title: close.label, body: close.tip }));
     // 吞掉气泡上的点击（不穿透到下层）
     const hit = s.add.rectangle(0, 0, W, h, 0xffffff, 0.001).setOrigin(0, 0).setInteractive();
     this.root = s.add.container(x, y, [shadow, hit, bg, tri, ...kids, this.close, ...(this.next ? [this.next] : [])]).setDepth(DEPTH);
@@ -359,10 +525,10 @@ export class Guide {
   }
 
   /** 正在显示的气泡（步骤与区域）。 */
-  box(): { step: TutorialStep; rect: Rect } | null {
+  box(): { step: string; rect: Rect } | null {
     if (!this.root?.visible || !this.current) return null;
     const bg = this.root.getBounds();
-    return { step: this.current.step, rect: { x: bg.x, y: bg.y, w: bg.width, h: bg.height } };
+    return { step: bubbleKey(this.current), rect: { x: bg.x, y: bg.y, w: bg.width, h: bg.height } };
   }
 
   controls(): Record<string, { x: number; y: number }> {

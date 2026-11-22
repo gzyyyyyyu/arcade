@@ -62,6 +62,11 @@ describe('画面自己的小记录', () => {
     });
     // 高手之后的几级沿用最后一个比例
     expect(funSetup({ persona: 'newbie', difficulty: 8, short: true }).short?.goal).toBe(BALANCE.short.goal.at(-1));
+    // 新号前几局的新手档短局换成 noviceSetup；局数够了、别的难度、完整一年都不换
+    expect(funSetup({ persona: 'newbie', difficulty: 1, short: true }, 0).short?.goal).toBe(BALANCE.novice.goal);
+    expect(funSetup({ persona: 'newbie', difficulty: 1, short: true }, BALANCE.novice.runs).short?.goal).toBe(BALANCE.short.goal[0]);
+    expect(funSetup({ persona: 'newbie', difficulty: 2, short: true }, 0).short?.goal).toBe(BALANCE.short.goal[1]);
+    expect(funSetup({ persona: 'newbie', difficulty: 1, short: false }, 0)).toEqual({ persona: 'newbie', difficulty: 1 });
   });
   it('图鉴看过的：只留字符串', () => {
     const st = memStore({ 'kaipan.codex.viewed.v1': JSON.stringify({ stocks: ['a', 3], items: 'x' }) });

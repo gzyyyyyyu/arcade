@@ -309,7 +309,7 @@ export function setupLine(personaName: string, level: number, levelName: string)
   return `${personaName} · ${levelLabel(level, levelName)}`;
 }
 
-export const CODEX_TABS: { key: 'stocks' | 'friends' | 'items' | 'events' | 'achievements' | 'segments' | 'words' | 'knowledge'; label: string }[] = [
+export const CODEX_TABS: { key: 'stocks' | 'friends' | 'items' | 'events' | 'achievements' | 'segments' | 'words' | 'knowledge' | 'minds'; label: string }[] = [
   { key: 'stocks', label: '股票' },
   { key: 'friends', label: '群友' },
   { key: 'items', label: '道具' },
@@ -318,6 +318,7 @@ export const CODEX_TABS: { key: 'stocks' | 'friends' | 'items' | 'events' | 'ach
   { key: 'segments', label: '行情段' },
   { key: 'words', label: '词典' },
   { key: 'knowledge', label: '小知识' },
+  { key: 'minds', label: '心法' },
 ];
 
 /** 成就档位名 */

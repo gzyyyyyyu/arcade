@@ -62,6 +62,8 @@ export interface RunSummary {
   weekly: string | null;
   /** 正常开局（不是调试设置）：只有这样的局计入档案 */
   ranked: boolean;
+  /** 新手课（core/lesson.ts）：只记过没过，不进档案的局数和成绩 */
+  lesson: boolean;
   /** 0.10.0 娱乐短局（打几个月、最后交首付）；完整一年、实盘、每日挑战为 false */
   short: boolean;
   /** 黑天鹅 Boss 日：打到最后一天的局有（名字、给持仓带来的盈亏元、有没有中招）；没打到最后一天、没有黑天鹅的局缺省 */
@@ -207,6 +209,7 @@ export function runSummary(s: Readonly<GameState>): RunSummary {
     flash: s.setup?.flash ?? null,
     weekly: s.setup?.weekly ?? null,
     ranked: isRankedSetup(s.setup),
+    lesson: s.setup?.lesson === true,
     short: !!s.setup?.short,
     ...(s.lastDay?.swan ? { swan: { name: s.lastDay.swan.name, money: s.lastDay.swan.money, touched: s.lastDay.swan.touched } } : {}),
     live: s.setup?.live

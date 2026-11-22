@@ -70,7 +70,7 @@ export async function cloudShots(browser: Browser): Promise<void> {
     // 本机没有档案、云端有：直接用云端的，什么都不用传 → 已同步
     apiCalls.length = 0;
     presence.length = 0;
-    const ctx = await openPage(browser, 'cloud-synced', '', { api: fake('ok'), loginHint: true, touch: PHONE });
+    const ctx = await openPage(browser, 'cloud-synced', '', { noProfile: true, api: fake('ok'), loginHint: true, touch: PHONE });
     await waitFor(ctx, '云朵"已同步"', `window.__game?.cloud().state === 'synced'`);
     // 0.12.0 社交：登录了就报一次"在玩开盘"
     for (let i = 0; i < 20 && !presence.length; i++) await ctx.page.waitForTimeout(250);

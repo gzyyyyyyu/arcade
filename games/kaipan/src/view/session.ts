@@ -1,10 +1,10 @@
 import type Phaser from 'phaser';
 import { AUTOMATED } from './ui/stable.ts';
-import { createRun, dailySegmentId, dispatch, flashSegmentId, isDailyRun, isFlashRun, isWeeklyRun, liveMultipleBp, runSummary, weeklySegmentId, type Action, type GameEvent, type GameState, type Phase, type RunSetup, type Segment } from '../core/index.ts';
+import { LESSON, NOVICE_SEGMENTS, createRun, dailySegmentId, isLesson, isNoviceSetup, dispatch, flashSegmentId, hashSeed, isDailyRun, isFlashRun, isWeeklyRun, liveMultipleBp, pickSegmentId, runSummary, weeklySegmentId, type Action, type GameEvent, type GameState, type MindId, type Phase, type RunSetup, type Segment } from '../core/index.ts';
 import { ensureGameArt } from './assets.ts';
 import { segmentFor, showBanner } from './segments.ts';
 import { challengeRecordFor, submitChallengeEnd } from './challenge.ts';
-import { learnKnowledge, loadProfile, recordRun, saveProfile, type RecordResult } from '../platform/profile.ts';
+import { learnKnowledge, learnMinds, loadProfile, recordLesson, recordRun, saveProfile, type RecordResult } from '../platform/profile.ts';
 import { clearSave, writeSave } from '../platform/storage.ts';
 import { hasLoginHint } from '../platform/cloud.ts';
 import { submitRun, warmBoardUser } from './dailyBoard.ts';
@@ -130,7 +130,13 @@ export class Session {
     {
       const profile = loadProfile().profile;
       if (!this.persist || this.debugSession || isUnscored(this.state)) result = unscoredResult(profile);
-      else {
+      else if (sum.lesson) {
+        // 新手课只记过没过、点亮心法，不交分、不算好友挑战
+        result = recordLesson(profile, sum);
+        if (!saveProfile(result.profile)) console.warn('档案写入失败（存储已满或不可用）');
+        this.recorded = { runId: sum.runId, result };
+        return result;
+      } else {
         // 0.13.0 好友挑战的局照每日挑战的规矩记（人设、难度可以没解锁，不解锁、不记最好成绩）
         result = recordRun(profile, sum, dailyDate(), { challenge: challengeRecordFor(sum.seed) !== null });
         if (!result.ignored && !saveProfile(result.profile)) console.warn('档案写入失败（存储已满或不可用）');
@@ -150,6 +156,14 @@ export class Session {
     if (ids.length === 0 || !this.persist || this.debugSession || isUnscored(this.state)) return;
     const r = learnKnowledge(loadProfile().profile, ids);
     if (r.added.length > 0 && !saveProfile(r.profile)) console.warn('档案写入失败（存储已满或不可用）');
+  }
+
+  /** 当场碰到心法的例子（画面弹了卡）：点亮图鉴里的心法并写进档案（调试局不记）；返回这次新点亮的。 */
+  learnMind(id: MindId): boolean {
+    if (!this.persist || this.debugSession || isUnscored(this.state)) return false;
+    const r = learnMinds(loadProfile().profile, [id]);
+    if (r.added.length > 0 && !saveProfile(r.profile)) console.warn('档案写入失败（存储已满或不可用）');
+    return r.added.length > 0;
   }
 
   /** 局面一结束（won / lost）立即记档案、实盘局结回：玩家停在最后的账单上刷新、关页面或回主菜单都不会丢。 */
@@ -435,8 +449,13 @@ export class Session {
    * 开新局：先校验设置（不对就同步返回错误），再异步按种子抽一段真实行情（"正在挑选行情……"），
    * 抽到了用真实行情开局，下载失败就退回 0.3 的合成行情并提示一句。market 为 'synthetic' 时直接用合成行情。
    * 0.13.0 好友挑战：opts.segment 指定那一段（null 为合成行情），下载失败不退回合成行情（那就不是同一局了），调 onFail、不开局。
+   * 新号前几局（isNoviceSetup）只在温和段池 NOVICE_SEGMENTS 里按种子抽，下载失败照常退回合成行情；
+   * 新手课固定 LESSON.segment，行情没拿到就开不了（不退回合成行情，那就不是教的那一局了）。
    */
   newRun(seed: string, setup: RunSetup | null = null, opts: { segment?: string | null; onFail?: () => void } = {}): { error: string | null } {
+    if (isLesson({ setup }) && opts.segment === undefined) {
+      opts = { segment: LESSON.segment, onFail: opts.onFail ?? (() => showBanner('行情没拿到，新手课这会儿上不了，稍后再试', 4200)) };
+    }
     try {
       createRun(seed, setup, { ext: true });
     } catch (err) {
@@ -454,7 +473,8 @@ export class Session {
           const fixed = (kind: string | undefined, check: typeof isDailyRun, pick: typeof dailySegmentId): string | null =>
             kind && setup?.persona && setup.difficulty !== undefined && check(kind, seed, setup.persona, setup.difficulty) ? pick(kind) : null;
           const daily = fixed(setup?.daily, isDailyRun, dailySegmentId) ?? fixed(setup?.flash, isFlashRun, flashSegmentId) ?? fixed(setup?.weekly, isWeeklyRun, weeklySegmentId);
-          seg = await segmentFor(seed, this.market === 'real' ? daily : this.market);
+          const pooled = isNoviceSetup(setup) ? pickSegmentId(seed, NOVICE_SEGMENTS, hashSeed) : null;
+          seg = await segmentFor(seed, this.market === 'real' ? (daily ?? pooled) : this.market);
         } finally {
           close();
         }

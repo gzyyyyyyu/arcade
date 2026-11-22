@@ -1,4 +1,4 @@
-import { achievementHints, canChallenge, difficultyView, formatMoney, formatPoints, storyView, runSummary, stocksOf, stockCard, type GameState, type RunSummary } from '../../core/index.ts';
+import { achievementHints, canChallenge, difficultyView, formatMoney, runMonths, formatPoints, storyView, runSummary, stocksOf, stockCard, type GameState, type RunSummary } from '../../core/index.ts';
 import { RevealPanel } from '../meta/revealPanel.ts';
 import { onBoardChange, runBoard } from '../dailyBoard.ts';
 import { attachDomProxy } from '../ui/domProxy.ts';
@@ -79,7 +79,8 @@ export class EndScene extends BaseScene {
     const s = this.session.state;
     const sum = runSummary(s);
     const lv0 = sum.live;
-    const months = lv0?.months ?? 12;
+    // 格数 = 这局打几个月（完整一年 12、短局 5、新手课 2、实盘按档位），以前除实盘外一律画 12 格
+    const months = runMonths(s);
     this.summary = sum;
     this.result = this.session.recordEnd();
     const profile: Profile = this.result?.profile ?? loadProfile().profile;
@@ -115,7 +116,8 @@ export class EndScene extends BaseScene {
     const pillX = L + hx + (!faces ? 0 : ph ? 84 : 96);
     const who = this.add.rectangle(L + hx, hy - 28, faces ? 90 : 64, 56, 0xffffff, 0.001).setOrigin(0, 0);
     bindTooltip(who, () => ({ x: L + hx, y: hy - 28, w: faces ? 90 : 64, h: 56 }), () => ({ title: '这一局', body: setup }));
-    this.tag(pillX, hy - 10, sum.won ? '通关' : '出局', sum.won ? COLOR.accent : COLOR.danger, 64);
+    this.tag(pillX, hy - 10, sum.lesson ? (sum.won ? '过关' : '没过') : sum.won ? '通关' : '出局', sum.won ? COLOR.accent : COLOR.danger, 64);
+    if (sum.lesson) this.tag(pillX + 74, hy - 10, '新手课', COLOR.info, 90);
     if (sum.daily) this.tag(pillX + 74, hy - 10, dailyTag(sum.daily), COLOR.info, 120);
     if (lv0) this.tag(pillX + 74, hy - 10, `实盘 · ${chips(lv0.stake)}`, COLOR.accentDark, 120);
     const title = addText(this, L, y + G.titleY, sum.title, { size: G.titleSize, bold: true, color: COLOR.ink, wrap: G.leftW });
@@ -244,7 +246,7 @@ export class EndScene extends BaseScene {
     const gx = ph ? mx + gl.width + 10 : mx;
     this.rows.gains(gx, ph ? gy : gy + 34, sum, G.chipIcon, mx + G.rightW - gx);
 
-    // ---- 12 个月账单轨道（0.5.1）：还上的绿格、没还上的红格、没走到的灰格；实盘只有 6 格
+    // ---- 账单轨道（0.5.1）：每月一格，还上的绿格、没还上的红格、没走到的灰格
     // 0.18.0 屏幕材质（art-v3：数字在跳的地方用夜蓝小屏）：整条放在一块小屏上，每格上面一根这个月账户涨跌的小柱
     const ky = gy + G.dy.track;
     // 这局的经历（借钱、押跌……）：最多两条，整段在「收获」的包里；每日挑战第二条的位置给排行榜（0.5.10）
@@ -299,9 +301,14 @@ export class EndScene extends BaseScene {
     } else {
       // 最好成绩 / 今日挑战一句（0.5 只在悬停，0.5.1 放回来）
       const best = profile.best[bestKey(sum.persona, sum.difficulty, sum.short)];
-      const line = sum.daily ? `今日挑战：${dailyText(profile.daily[sum.daily])}` : `${sum.personaName}·${sum.difficulty}级${sum.short ? '短局' : ''}最好：${bestText(best)}`;
+      // 新手课不进最好成绩：这里说过没过、心法去哪看
+      const line = sum.lesson
+        ? sum.won
+          ? '新手课过了！六张心法都亮了，图鉴「心法」页能翻看'
+          : '没过。跟着老师傅的建议走，照做就不亏'
+        : sum.daily ? `今日挑战：${dailyText(profile.daily[sum.daily])}` : `${sum.personaName}·${sum.difficulty}级${sum.short ? '短局' : ''}最好：${bestText(best)}`;
       if (fits(ky + G.dy.best)) {
-        addGlyph(this, mx + 12, ky + G.dy.best + 8, 'trophy', 22);
+        addGlyph(this, mx + 12, ky + G.dy.best + 8, sum.lesson ? 'star' : 'trophy', 22);
         const lw = ph ? G.rightW - 100 : 380;
         const lt = clauseWrap(addText(this, mx + 30, ky + G.dy.best, line, { size: TYPE.label, color: COLOR.ink, lineSpacing: 2 }), lw);
         if (sum.daily ? this.result?.newDaily : this.result?.newBest) this.newTag(Math.min(mx + 30 + lt.width + 8, mx + lw + 20), ky + G.dy.best - 8);
@@ -343,15 +350,16 @@ export class EndScene extends BaseScene {
     // 实盘局只有一个「回开始菜单」：不在结束页推"再开一局"（设计稿第 5 节），同种子重玩也会开出一局没带入的实盘
     if (lv0) mk('menu', '回开始菜单', mx + (ph ? 0 : bw[0]! + 12), liveW, 'primary', () => this.session.toTitle(), 'Esc');
     else {
-      mk('retry', sum.daily ? '再挑战' : '重玩', mx, bw[0]!, 'default', () => this.session.newRun(s.seed, s.setup), 'R');
-      mk('new', '新一局', mx + bw[0]! + 12, bw[1]!, 'primary', () => this.newRun(sum, profile), '空格');
+      mk('retry', sum.lesson ? '再上一次' : sum.daily ? '再挑战' : '重玩', mx, bw[0]!, 'default', () => this.session.newRun(s.seed, s.setup), 'R');
+      mk('new', sum.lesson ? '正式一局' : '新一局', mx + bw[0]! + 12, bw[1]!, 'primary', () => this.newRun(sum, profile), '空格');
       mk('menu', '主菜单', mx + bw[0]! + bw[1]! + 24, bw[2]!, 'default', () => this.session.toTitle(), 'Esc');
     }
     const retry = this.buttons.retry;
-    if (retry) tipOnButton(retry, () => ({ x: mx, y: by, w: bw[0]!, h: G.btnH }), () => ({ title: sum.daily ? '再挑战一次' : '同一局再来', body: `这一局的编号：${s.seed}\n输入同一个编号能重玩同一局` }));
+    if (retry) tipOnButton(retry, () => ({ x: mx, y: by, w: bw[0]!, h: G.btnH }), () => ({ title: sum.lesson ? '再上一次新手课' : sum.daily ? '再挑战一次' : '同一局再来', body: `这一局的编号：${s.seed}\n输入同一个编号能重玩同一局` }));
     // 局号：竖屏一栏时按钮那一排从左边起，挪到右上角（头像标签那一行的右端）
-    if (G.single) addText(this, x + W - G.pad, y + G.headY, `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originX: 1, originY: 0.5 });
-    else addText(this, x + G.pad, y + H - (ph ? 17 : 26), `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
+    // 新手课只有一局，局号没用（竖屏右上角还会压住「新手课」标签）
+    if (!sum.lesson && G.single) addText(this, x + W - G.pad, y + G.headY, `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originX: 1, originY: 0.5 });
+    else if (!sum.lesson) addText(this, x + G.pad, y + H - (ph ? 17 : 26), `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
     // 回大厅（0.5.8）：和开始菜单一样在左上角；这局已经结束、记进档案了，点了直接走。
     // 手机横屏纸卡几乎铺满：放在纸卡的左上角（0.16.0 以前插在左栏标题行中间）
     const lobbyAt = ph ? { x: x + 10, y: y + 12 } : { x: 14, y: 10 };
@@ -433,7 +441,7 @@ export class EndScene extends BaseScene {
       short: want.short,
     } as const;
     saveLastSetup(setup);
-    this.session.newRun(randomSeed(), funSetup(setup));
+    this.session.newRun(randomSeed(), funSetup(setup, profile.runs));
   }
 
 

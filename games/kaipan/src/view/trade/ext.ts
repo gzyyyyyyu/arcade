@@ -112,7 +112,8 @@ export class BuyDialog extends Dialog {
           width: bw,
           height: 80,
           label: SIZE_LABEL[size],
-          variant: short ? 'danger' : size === 'heavy' ? 'primary' : 'buy',
+          // 「试一口」用主色、重仓不再是最显眼的那颗（新人输在一把梭：别一把梭，docs/design-lesson.md）
+          variant: short ? 'danger' : size === 'taste' ? 'primary' : 'buy',
           fontSize: TYPE.title + 2,
           hotkey: short ? undefined : `${i + 1}`,
           sound: null,
