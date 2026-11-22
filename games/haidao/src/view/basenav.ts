@@ -146,22 +146,12 @@ export function openMap(bs: BaseScene): void {
   );
 }
 
-/** 新手引导：按进度和当前界面状态，决定指哪里 */
-export function tutRefresh(bs: BaseScene): void {
-  const st = tutStep();
-  const t = bs.tut;
-  if (st >= TUT_DONE) return t.hide();
-  if (st === TUT_SAILED) {
-    // 最后一步：指一下训练营（开过面板就算看过）；有面板、海图开着时先不指
-    if (bs.sheet || bs.place || bs.stopMap || modalOpen()) return t.hide();
-    return t.show('train', '训练营：每种兵一关短教学，过关有奖励。点黄框里的「训练营」看看', () => rectOf(bs.trainBtn, bs.ui));
-  }
-  const root = bs.ui;
-  const world = (id: number): (() => Rect | null) => () => {
+/** 一座建筑在屏幕上的框（引导框它）：框住图里真正不透明的部分，不是整张图（图四周有空白） */
+function buildingRect(bs: BaseScene, id: number): () => Rect | null {
+  return () => {
     const n = bs.nodes.get(id);
     if (!n) return null;
     const im = n.img;
-    // 框住图里真正不透明的部分，不是整张图（图四周有空白）
     const bx = artBox(n.key) ?? { l: 0, t: 0, r: im.width, b: im.height };
     const x0 = im.x - (im.originX * im.displayWidth) + bx.l * im.scaleX;
     const y0 = im.y - (im.originY * im.displayHeight) + bx.t * im.scaleY;
@@ -169,6 +159,67 @@ export function tutRefresh(bs: BaseScene): void {
     const b = bs.cc.toScreen(im.x - (im.originX * im.displayWidth) + (bx.r + 1) * im.scaleX, im.y - (im.originY * im.displayHeight) + (bx.b + 1) * im.scaleY);
     return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y };
   };
+}
+
+const VAULT_HINT_KEY = 'haidao.hint.vault';
+
+/**
+ * 上一场仓库满了（结算写「仓库满了，少拿 N」）：回岛先指一次「升金库」（木材截得多就指木料仓），排在训练营那步前面。
+ * 新号 3 场就到主寨 3 级、金库还是 1 级，连着两场白丢四成掠夺（11-22 试玩）。只出一次（haidao.hint.vault），
+ * 「先不了」、升了那座、离开基地都收。新手引导前几步（还没出过海）不插队。返回 true = 这一帧金库引导占着横幅
+ */
+function vaultGuide(bs: BaseScene, st: number): boolean {
+  const on = vaultStep(bs, st);
+  if (on !== 'show') bs.vaultTut.hide();
+  return on !== 'off';
+}
+
+/** show = 横幅指着金库；yield = 还在引导，但面板等开着先让开；off = 没有金库引导 */
+function vaultStep(bs: BaseScene, st: number): 'show' | 'yield' | 'off' {
+  const cut = app.storageCut;
+  if (!cut || st < TUT_SAILED) return 'off';
+  const kind: BuildingKind = cut.gold > 0 ? 'vault' : 'woodyard';
+  const b = app.profile.base.buildings.find((q) => q.kind === kind);
+  if (!bs.vaultAt) {
+    let seen = false;
+    try {
+      seen = localStorage.getItem(VAULT_HINT_KEY) !== null;
+      if (!seen) localStorage.setItem(VAULT_HINT_KEY, '1');
+    } catch {
+      // 存储不可用：本次照样引导一次
+    }
+    if (seen || !b) {
+      app.storageCut = null;
+      return 'off';
+    }
+    bs.vaultAt = { id: b.id, level: b.level };
+  }
+  if (!b || b.id !== bs.vaultAt.id || b.level > bs.vaultAt.level) {
+    app.storageCut = null;
+    bs.vaultAt = null;
+    return 'off';
+  }
+  // 面板、摆放、海图、弹窗开着时让开（升级面板就是从这座金库点出来的，开着说明玩家已经在升了）
+  if (bs.sheet || bs.place || bs.stopMap || modalOpen()) return 'yield';
+  const lost = [cut.gold ? `${cut.gold.toLocaleString('en-US')} 金` : '', cut.wood ? `${cut.wood.toLocaleString('en-US')} 木` : ''].filter(Boolean).join('、');
+  const name = kind === 'vault' ? '金库' : '木料仓';
+  bs.vaultTut.show(`vault:${kind}`, `仓库满了，上一场少拿 ${lost}。点黄框里的${name}，升一级多装些`, buildingRect(bs, b.id));
+  return 'show';
+}
+
+/** 新手引导：按进度和当前界面状态，决定指哪里 */
+export function tutRefresh(bs: BaseScene): void {
+  const st = tutStep();
+  const t = bs.tut;
+  if (vaultGuide(bs, st)) return t.hide();
+  if (st >= TUT_DONE) return t.hide();
+  if (st === TUT_SAILED) {
+    // 最后一步：指一下训练营（开过面板就算看过）；有面板、海图开着时先不指
+    if (bs.sheet || bs.place || bs.stopMap || modalOpen()) return t.hide();
+    return t.show('train', '训练营：每种兵一关短教学，过关有奖励。点黄框里的「训练营」看看', () => rectOf(bs.trainBtn, bs.ui));
+  }
+  const root = bs.ui;
+  const world = (id: number): (() => Rect | null) => buildingRect(bs, id);
   const bld = (kind: BuildingKind): number | undefined => app.profile.base.buildings.find((b) => b.kind === kind)?.id;
   if (bs.stopMap) {
     const go = document.querySelector('.hd-map .hd-sheet .hd-btn-gold');

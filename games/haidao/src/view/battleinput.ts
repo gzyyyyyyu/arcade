@@ -200,6 +200,8 @@ function downText(bs: BattleScene): string {
 }
 
 export function afterSelect(bs: BattleScene): void {
+  // 选了船卡、技能（或机器人代打出了船）：侦察的全景推到登陆那一侧
+  if (bs.selBoat >= 0 || bs.selSkill >= 0 || bs.st.landed.some(Boolean)) bs.fit.endScout();
   bs.hoverCell = '';
   bs.beachGlow.hover = null;
   bs.hoverG.clear();
@@ -253,6 +255,12 @@ export function tap(bs: BattleScene, wx: number, wy: number): void {
     bs.pending.push({ t: s.tick, type: 'land', boat, x: ux, y: uy });
     vibrate('land');
     s.landed[boat] = true; // 先灰掉，下一拍规则核心会确认
+    bs.landAt.push(bs.W(ux, uy));
+    // 船出完：镜头平移到兵群中间（不缩放）。以前停在最后点的那片沙滩，竖屏一半是海、主寨和塔在屏外
+    if (s.landed.every(Boolean)) {
+      const n = bs.landAt.length;
+      bs.fit.panTo(bs.landAt.reduce((a, p) => a + p.x, 0) / n, bs.landAt.reduce((a, p) => a + p.y, 0) / n);
+    }
     // 这一组还有船就保持选中，否则换下一组还有船的
     if (grp.idx.every((i) => s.landed[i] === true)) bs.selBoat = bs.groups.findIndex((q) => q.idx.some((i) => s.landed[i] !== true));
     afterSelect(bs);

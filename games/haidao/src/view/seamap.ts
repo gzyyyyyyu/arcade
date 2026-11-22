@@ -1,5 +1,5 @@
 import { CAMPAIGN } from '../content/index.ts';
-import { armyCost, armyFor, capacity, hqLevel, totalStars, trimArmy } from '../core/index.ts';
+import { armyCost, armyFor, campaignGross, capacity, hqLevel, totalStars, trimArmy } from '../core/index.ts';
 import { mapDecoArt, mapIslandArt } from './art/index.ts';
 import { app } from './app.ts';
 import { lackText, roomText } from './basefeel.ts';
@@ -7,7 +7,7 @@ import { dockGain } from './battleadvice.ts';
 import { iconA } from './art.ts';
 import { button, costRow, el, img, lockIcon, toast, uiRoot } from './ui.ts';
 import { openPvp, pvpMapButton } from './pvp.ts';
-import { bountyOf } from './meta.ts';
+import { bountyGross, bountyOf } from './meta.ts';
 import { openScout } from './scout.ts';
 import { liveEntryReady, liveMapButton, openLive } from './live.ts';
 import { openEscortLive, openMapLive } from './livemore.ts';
@@ -100,11 +100,14 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
     const dockWant = Math.min(l.hq, hqLevel(p));
     const gain = locked ? null : dockGain(dockLv, dockWant);
     if (gain) el('p', 'hd-bountyline hd-dockhint', `建议船坞 ${dockWant} 级（你 ${dockLv} 级，升上去${gain}）`, d);
-    const room = locked ? '' : roomText(l.loot, p.res, capacity(p));
+    // 预计掠夺按打满（三星、100%）算，连胜加成、新星奖励都在里面，和结算的毛收入是同一个数（规则核心 campaignGross）；
+    // 以前只写关卡底数，新号第三座岛写 1,200 实拿 2,700，仓库提醒没出来、白丢 1,153 金
+    const most = bounty ? bountyGross(p) : campaignGross(p, l.id, { stars: 3, destroyedPct: 100 });
+    const room = locked ? '' : roomText(most, p.res, capacity(p));
     if (room) el('p', 'hd-bountyline', room, d);
     const row = el('div', 'hd-chips', undefined, d);
     const c = el('span', 'hd-chip', '预计掠夺 ', row);
-    c.appendChild(costRow(l.loot));
+    c.appendChild(costRow(most));
     const c2 = el('span', 'hd-chip', '出海要 ', row);
     c2.appendChild(costRow({ gold: 0, wood: cost.wood }, p.res));
     const s = el('span', 'hd-chip', '星数 ', row);

@@ -219,6 +219,7 @@ export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newSta
   // 仓库满了截掉的（以前悄悄截掉、结算不说，同一关 3 星这次少拿几百也看不出来）：写少拿多少，给一个回家就打开建造面板的入口
   const cut = cutText(extra.cut);
   if (cut && bs.d.settle) {
+    app.storageCut = extra.cut;
     const cr = el('div', 'hd-cutline', undefined, box);
     el('span', '', `仓库满了，少拿 ${cut}`, cr);
     button('去扩仓库', 'hd-btn-plain', () => {

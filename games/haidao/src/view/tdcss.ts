@@ -528,6 +528,8 @@ function tdCss(): string {
   .hd-ui .hd-td-sheet.hd-td-best > .hd-head { grid-column:1 / -1; }
   .hd-ui .hd-td-best .hd-best-waves { grid-column:1; }
   .hd-ui .hd-td-best .hd-ctr { grid-column:2; grid-row:2; margin:0; }
+  /* 390 高放不下：说明后面三个色块折成第二行，把「飞禽」那行挤出面板（+15）。表格每格本来就写着「多打一半 / 只打一半 / 打不到」，色块收起 */
+  .hd-ui .hd-td-best .hd-ctr-key i { display:none; }
 }
 
 /* 守岛 2.0 新件的皮肤（羊皮纸底，和 skin.ts 的卡片一致；比上面多一级 .hd-skin，盖过布局里的纯色底） */

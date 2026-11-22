@@ -2,7 +2,7 @@ import type Phaser from 'phaser';
 import type { LiveTier } from '../core/live.ts';
 import type { TdSetup } from '../core/tdtypes.ts';
 import type { TdGarrisonPick } from '../core/td2types.ts';
-import type { BattleSetup, Profile } from '../core/types.ts';
+import type { BattleSetup, Profile, Res } from '../core/types.ts';
 import { writeSave } from '../platform/save.ts';
 import type { Save } from '../platform/sync.ts';
 import type { MapStopHooks, PvpHooks } from './BattleScene.ts';
@@ -105,6 +105,8 @@ export const app = {
   goBase: (): void => undefined,
   /** 下次进基地先打开建造面板（结算里「仓库满了」的「去扩仓库」） */
   buildOnBase: false,
+  /** 刚打完的一场仓库满了截掉多少：回基地先引导升金库（basenav.ts 的 vaultGuide，只引导一次） */
+  storageCut: null as Res | null,
   /** 下次进基地先打开训练营（训练营结算里的「回训练营」） */
   trainOnBase: false,
   /** 训练营：开一关（src/view/training.ts 调，main 接） */
