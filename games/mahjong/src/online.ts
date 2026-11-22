@@ -10,6 +10,7 @@ import type { DownMsg, RoomInfo, You } from 'arcade-kit/protocol';
 import { MATCH_PATH } from './game/match.ts';
 import type { RoomAction, RoomOpts, RoomView } from './room/rules.ts';
 import { ROOM_TEXTS } from './view/text.ts';
+import { sleep } from './app/timing.ts';
 
 /** 页面的协议版本（房间的 minClientVersion 高于它就让刷新） */
 const CLIENT_VERSION = 1;
@@ -170,8 +171,6 @@ export class Online {
     if ((st === 'closed' || st === 'failed') && code !== undefined && code !== 1000) this.ui.ended(closeText(code, reason, ROOM_TEXTS), code);
   }
 }
-
-const sleep = (ms: number): Promise<void> => new Promise((r) => window.setTimeout(r, ms));
 
 /** 房间的 WebSocket 地址：页面在 /games/mahjong/ 下，相对路径就对 */
 export function roomUrl(code: string): string {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bindSolo, cloudPart, emptyLadder, endTable, levelOf, mergeLadder, parseLadder, quitRun, RETRIES, sameCloud, startRun, tableKey, TABLES, type LadderData } from '../src/game/ladder.ts';
+import { bindSolo, cloudPart, emptyLadder, endTable, levelOf, mergeLadder, parseLadder, quitRun, sameCloud, startRun, tableKey, TABLES, type LadderData } from '../src/game/ladder.ts';
 
 const KEY = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -14,12 +14,11 @@ describe('茶馆擂台', () => {
     expect(levels).toEqual(['easy', 'normal', 'hard']);
   });
 
-  it('每桌的牌：同一桌同一副，桌号、重打换一副', () => {
+  it('每桌的牌：同一桌同一副，换桌换一副', () => {
     const run = startRun(emptyLadder(), 'xz', KEY).run!;
     expect(tableKey(run)).toEqual(tableKey({ ...run }));
     expect(tableKey(run)).toHaveLength(8);
     expect(tableKey({ ...run, table: 1 })).not.toEqual(tableKey(run));
-    expect(tableKey({ ...run, retried: 1 })).not.toEqual(tableKey(run));
     expect(tableKey({ ...run, key: [9, 2, 3, 4, 5, 6, 7, 8] })).not.toEqual(tableKey(run));
   });
 
@@ -39,15 +38,9 @@ describe('茶馆擂台', () => {
     expect(again.titles).toEqual(['xz', 'xl']);
   });
 
-  it('输了：重打次数用完这一轮结束，最远只记赢过的', () => {
+  it('输了这一轮结束，最远只记赢过的', () => {
     let d = startRun(emptyLadder(), 'rc', KEY);
     d = endTable(d, 5).d;
-    for (let r = 0; r < RETRIES; r++) {
-      const o = endTable(d, -1);
-      expect(o.outcome).toBe('retry');
-      expect(o.d.run).toMatchObject({ table: 1, retried: r + 1 });
-      d = o.d;
-    }
     const out = endTable(d, -1);
     expect(out.outcome).toBe('out');
     expect(out.d.run).toBeUndefined();
@@ -68,13 +61,13 @@ describe('茶馆擂台', () => {
     expect(parseLadder(JSON.stringify(d))).toEqual(d);
     expect(parseLadder('{bad')).toEqual(emptyLadder());
     expect(parseLadder({ v: 2 })).toEqual(emptyLadder());
-    const bad = parseLadder({ v: 1, titles: ['xz', 'nope', 'rc', 'xz'], best: { xz: 9, xl: 2 }, run: { mode: 'xz', key: [1], table: 0, retried: 0 } });
+    const bad = parseLadder({ v: 1, titles: ['xz', 'nope', 'rc', 'xz'], best: { xz: 9, xl: 2 }, run: { mode: 'xz', key: [1], table: 0 } });
     expect(bad).toEqual({ v: 1, titles: ['xz', 'rc'], best: { xl: 2 } });
   });
 });
 
 describe('擂台的云存档合并', () => {
-  const a: LadderData = { v: 1, titles: ['rc'], best: { rc: 3, xz: 1 }, run: { mode: 'xz', key: KEY, table: 1, retried: 0, solo: 's1' } };
+  const a: LadderData = { v: 1, titles: ['rc'], best: { rc: 3, xz: 1 }, run: { mode: 'xz', key: KEY, table: 1, solo: 's1' } };
   const b = { v: 1, titles: ['xz', 'rc'], best: { xz: 3, xl: 2, rc: 1 } };
 
   it('称号取并集、最远取较大，没打完的一轮留本机的', () => {

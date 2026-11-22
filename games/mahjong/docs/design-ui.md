@@ -108,7 +108,7 @@
 
 - **每日何切**（`game/hekiri.ts`、`view/hekiri.ts`）：每天五手一样的牌（北京时间日期派生种子），选打哪张、揭晓牌效，满分 100；第一遍记成绩、交平台每日榜 `daily-YYYY-MM-DD-hekiri`，之后是练习。
 - **听牌速判**（`core/puzzles/ting.ts`、`game/ting.ts`、`view/ting.ts`）：60 秒一轮，每题一手 13 张清一色，点全听的牌才得分；只是娱乐。今日一轮每天一次（榜 `daily-YYYY-MM-DD-ting`），另有练习。
-- **茶馆擂台**（`game/ladder.ts`、`view/ladder.ts`、`app/solo-flow.ts` 的 `playLadder`）：单机连打三桌（新手 → 普通 → 高手），三桌全赢拿称号，输了从头来（`RETRIES = 0`）；四种打法 `xz`、`xl`、`x3`、`rc`。纯娱乐，称号只存本机和云存档。
+- **茶馆擂台**（`game/ladder.ts`、`view/ladder.ts`、`app/solo-flow.ts` 的 `playLadder`）：单机连打三桌（新手 → 普通 → 高手），三桌全赢拿称号，输了从头来、不给重打；四种打法 `xz`、`xl`、`x3`、`rc`。纯娱乐，称号只存本机和云存档。
 - **云存档**（`net/cloud.ts`、`app/cloud.ts`，照 `docs/platform-backend.md` 5.5）：只同步一个槽 `ladder`（称号取并集、最远取较大），其余都不同步；没有平台时不显示。
 
 ### 界面规范补充（文案和操作）

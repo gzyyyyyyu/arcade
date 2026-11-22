@@ -290,7 +290,7 @@ function verdict(box: HTMLElement, v: SoloView, names: string[], unit: string, n
   if (why) el('p', 'why', top, why);
 }
 
-/** 擂台一桌打完的下一步：赢了下一桌、能重打就重打、输了再开一轮；打通了只留"回擂台" */
+/** 擂台一桌打完的下一步：赢了下一桌、输了再开一轮；打通了只留"回擂台" */
 function ladderNext(row: HTMLElement, mode: LadderMode, outcome: string | null): void {
   const go = (label: string, f: () => Promise<void>): void => {
     button('act go big', row, label, () => {
@@ -299,7 +299,6 @@ function ladderNext(row: HTMLElement, mode: LadderMode, outcome: string | null):
     }).dataset.act = 'ladder';
   };
   if (outcome === 'next') go('下一桌', playLadder);
-  else if (outcome === 'retry') go('重打这一桌', playLadder);
   else if (outcome === 'out') go('再开一轮', () => startLadder(mode));
 }
 

@@ -148,7 +148,6 @@ export function ladderEnd(box: HTMLElement, soloId: string, mode: LadderMode, ta
   const text: Record<TableOutcome, string> = {
     next: `${tableName(table)}赢了！下一桌：${LEVEL_NAME[LADDER_LEVELS[table + 1] ?? 'hard']}`,
     clear: `三桌全赢！拿到称号「${TITLE_NAME[mode]}」`,
-    retry: `${tableName(table)}输了，这一桌换副牌重打`,
     out: `${tableName(table)}输了，这一轮擂台到此为止`,
   };
   el('b', 'le-head', line, text[r.outcome]);

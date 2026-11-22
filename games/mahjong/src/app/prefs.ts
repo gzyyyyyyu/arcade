@@ -35,27 +35,31 @@ const rulesFrom = (raw: Partial<RulesStore>): RulesStore => Object.assign({}, ..
 /** 顶栏齿轮（设置面板）管的偏好的出厂值（loadPrefs 的缺省也是它们） */
 export const SETTINGS_DEFAULTS = { sound: true, volume: 0.8, fast: false, ambience: true, safeHint: true, coach: true } as const;
 
-function loadPrefs(): Prefs {
+/** 存着的规则设置坏到某个玩法的 loadRules 抛错：只把规则回出厂值，音量、难度这些照旧 */
+function savedRules(p: Partial<Prefs>): RulesStore {
   try {
-    const p = readJson<Partial<Prefs> | null>(PREFS_KEY, null) ?? {};
-    const vol = typeof p.volume === 'number' && p.volume >= 0 && p.volume <= 1 ? p.volume : SETTINGS_DEFAULTS.volume;
-    const level = LEVELS.includes(p.level as Level) ? (p.level as Level) : 'easy';
-    return {
-      sound: p.sound !== false,
-      volume: vol,
-      fast: p.fast === true,
-      ambience: p.ambience !== false,
-      safeHint: p.safeHint !== false,
-      coach: p.coach !== false,
-      stakes: stakesOf(p.stakes)?.id ?? 'fun',
-      level,
-      ...rulesFrom(p),
-      variant: findPage(p.variant)?.id ?? DEFAULT_VARIANT,
-    };
+    return rulesFrom(p);
   } catch {
-    // 存储读写已由 storage.ts 兜住；这里接的是各玩法 loadRules 遇到存档里的怪值抛错，整份回出厂值
-    return { ...SETTINGS_DEFAULTS, stakes: 'fun', level: 'easy', ...rulesFrom({}), variant: DEFAULT_VARIANT };
+    return rulesFrom({});
   }
+}
+
+function loadPrefs(): Prefs {
+  const p = readJson<Partial<Prefs> | null>(PREFS_KEY, null) ?? {};
+  const vol = typeof p.volume === 'number' && p.volume >= 0 && p.volume <= 1 ? p.volume : SETTINGS_DEFAULTS.volume;
+  const level = LEVELS.includes(p.level as Level) ? (p.level as Level) : 'easy';
+  return {
+    sound: p.sound !== false,
+    volume: vol,
+    fast: p.fast === true,
+    ambience: p.ambience !== false,
+    safeHint: p.safeHint !== false,
+    coach: p.coach !== false,
+    stakes: stakesOf(p.stakes)?.id ?? 'fun',
+    level,
+    ...savedRules(p),
+    variant: findPage(p.variant)?.id ?? DEFAULT_VARIANT,
+  };
 }
 
 export const prefs = loadPrefs();

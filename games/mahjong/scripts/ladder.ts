@@ -1,6 +1,6 @@
 /**
  * 茶馆擂台的配平（DESIGN.md 4.1）：座位 0 是小白或普通（scripts/play.ts 的模拟玩家），按 src/game/ladder.ts 连打三桌（新手 → 普通 → 高手，娱乐的短局：川麻 1 局、立直一局），
- * 每桌的牌和三个电脑跟游戏里一样由这一轮的密钥派生。报每一桌的赢面（打完净分 ≥ 0）、不重打三桌全赢的比例、每轮能原桌重打一次时三桌全赢的比例。
+ * 每桌的牌和三个电脑跟游戏里一样由这一轮的密钥派生。报每一桌的赢面（打完净分 ≥ 0）和三桌全赢的比例（输一桌这一轮就结束，不给重打）。
  * 目标：普通模拟玩家三桌全赢约 15%–25%。
  * 用法：node scripts/ladder.ts [轮数] [xz,xl,rc，不写全跑] [小白|普通，不写两个都跑]
  */
@@ -57,28 +57,20 @@ for (const mode of MODES) {
     const proxy = who === '小白' ? NOVICE : PLAYER;
     const tried = [0, 0, 0];
     const won = [0, 0, 0];
-    let clear0 = 0;
-    let clear1 = 0;
+    let clear = 0;
     for (let i = 0; i < N; i++) {
       const key = [i, LADDER_MODES.indexOf(mode), proxy === PLAYER ? 1 : 2, 31, 10, 20, 26, 7];
-      // 一轮：最多重打一次；没用上重打就全赢的同时算进"不重打"
-      let retried = 0;
       let table = 0;
       while (table < TABLES) {
-        const net = playTable({ mode, key, table, retried }, proxy);
+        const net = playTable({ mode, key, table }, proxy);
         tried[table]!++;
-        if (winsTable(net)) {
-          won[table]!++;
-          table++;
-        } else if (retried < 1) retried++;
-        else break;
+        if (!winsTable(net)) break;
+        won[table]!++;
+        table++;
       }
-      if (table === TABLES) {
-        clear1++;
-        if (retried === 0) clear0++;
-      }
+      if (table === TABLES) clear++;
     }
     const per = LADDER_LEVELS.map((l, t) => `${l} ${pc(won[t]!, tried[t]!)}`).join('  ');
-    console.log(`${mode} ${who}  每桌赢面 ${per}  三桌全赢：不重打 ${pc(clear0, N)}、能重打一次 ${pc(clear1, N)}（${N} 轮）`);
+    console.log(`${mode} ${who}  每桌赢面 ${per}  三桌全赢 ${pc(clear, N)}（${N} 轮）`);
   }
 }

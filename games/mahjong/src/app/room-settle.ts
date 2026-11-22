@@ -78,7 +78,8 @@ function matchEndDialog(s: OnlineState, rv: RoomView, g: AnyView, names: string[
     paginate(body, 0, END_SPLIT);
   }, false);
   if (!single) showMine();
-  if (g.me) play((g.result?.seats[g.me.seat]?.net ?? 0) >= 0 ? 'win' : 'lose');
+  const net = g.me ? g.result?.seats[g.me.seat]?.net : undefined;
+  if (net !== undefined) play(net >= 0 ? 'win' : 'lose');
   void refreshWallet();
 }
 

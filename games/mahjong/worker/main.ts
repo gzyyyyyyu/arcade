@@ -174,10 +174,10 @@ async function stake(request: Request, env: Env, site: string, sub: string): Pro
         : await wallet.settle({ ...base, amount, ...(b.stats === undefined ? {} : { stats: b.stats as SettleStats }) });
   } catch (e) {
     // 连不上平台：请求可能到了，页面留着操作 id 重发
-    console.error('mahjong: wallet unreachable', e instanceof Error ? e.message : e);
+    console.error('mahjong: wallet unreachable', sub, b.session, e instanceof Error ? e.message : e);
     return json({ error: 'unavailable' }, 503, who.setCookie);
   }
-  if (r.ok && r.statsIgnored) console.error('mahjong: stats ignored', r.statsIgnored);
+  if (r.ok && r.statsIgnored) console.error('mahjong: stats ignored', sub, b.session, r.statsIgnored);
   return r.ok ? json(r, 200, who.setCookie) : json(r, STATUS[r.error] ?? 503, who.setCookie);
 }
 

@@ -1,14 +1,15 @@
-/* 成就：右上角的解锁提示和小册子里的成就页（根类名 ach-toasts / ach-page 下） */
+/* 成就：顶栏下居中的解锁提示和小册子里的成就页（根类名 ach-toasts / ach-page 下）。
+ * 提示居中、不靠右：牌桌上顶栏正下方的两角是两家的名牌（名字、分数、缺门），靠右会盖住一家；正中是对家的牌背，盖一会儿不挡信息（11-22 审查） */
 .ach-toasts {
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + var(--sp-2));
+  left: calc(env(safe-area-inset-left, 0px) + var(--sp-2));
   right: calc(env(safe-area-inset-right, 0px) + var(--sp-2));
   z-index: 95;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--sp-2);
-  max-width: calc(100vw - 2 * var(--sp-2));
   pointer-events: none;
 }
 .ach-toasts .ach-toast {
@@ -38,7 +39,7 @@
 @keyframes ach-toast-in {
   0% {
     opacity: 0;
-    transform: translateX(24px);
+    transform: translateY(-12px);
   }
   10%,
   85% {
@@ -47,7 +48,18 @@
   }
   100% {
     opacity: 0;
-    transform: translateX(24px);
+    transform: translateY(-12px);
+  }
+}
+/* 竖屏手机：缩一档，夹在左右两家名牌中间放得下 */
+@media (max-width: 480px) {
+  .ach-toasts .ach-toast {
+    padding: var(--sp-1) var(--sp-3) var(--sp-1) var(--sp-1);
+    font-size: var(--fs-sm);
+  }
+  .ach-toasts .ach-medal {
+    width: 22px;
+    height: 22px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -17,9 +17,6 @@ const isLadderMode = (m: unknown): m is LadderMode => (LADDER_MODES as readonly 
 /** 三桌的难度，按桌号 */
 export const LADDER_LEVELS: readonly Level[] = ['easy', 'normal', 'hard'];
 export const TABLES = LADDER_LEVELS.length;
-/** 一轮里输了能原桌重打几次（scripts/ladder.ts 量过，DESIGN.md 4.1） */
-export const RETRIES = 0;
-
 /** 这一桌算赢：打完不亏（净分 ≥ 0）。一局里没人点到自己、自己也没胡，也算守住了 */
 export const winsTable = (net: number): boolean => net >= 0;
 
@@ -29,8 +26,6 @@ export interface LadderRun {
   key: number[];
   /** 正在打第几桌（0 起） */
   table: number;
-  /** 这一轮已经重打过几次 */
-  retried: number;
   /** 这一桌的单机存档号：存档还是它就接着打，对不上（被别的单机盖了）就按同一副牌重开这一桌 */
   solo?: string;
 }
@@ -54,8 +49,8 @@ function parseRun(raw: unknown): LadderRun | undefined {
   const r = raw as Partial<LadderRun> | null;
   if (!r || typeof r !== 'object' || !isLadderMode(r.mode)) return undefined;
   if (!Array.isArray(r.key) || r.key.length !== 8 || !r.key.every(u32)) return undefined;
-  if (!small(r.table, TABLES - 1) || !small(r.retried, RETRIES)) return undefined;
-  return { mode: r.mode, key: [...r.key], table: r.table, retried: r.retried, ...(typeof r.solo === 'string' && r.solo.length <= 64 ? { solo: r.solo } : {}) };
+  if (!small(r.table, TABLES - 1)) return undefined;
+  return { mode: r.mode, key: [...r.key], table: r.table, ...(typeof r.solo === 'string' && r.solo.length <= 64 ? { solo: r.solo } : {}) };
 }
 
 /** 读本机记录：坏的字段丢掉，整份坏了当空 */
@@ -75,12 +70,12 @@ export function parseLadder(raw: unknown): LadderData {
 
 /** 开一轮新的（有没打完的一轮就作废它） */
 export function startRun(d: LadderData, mode: LadderMode, key: readonly number[]): LadderData {
-  return { ...d, run: { mode, key: [...key], table: 0, retried: 0 } };
+  return { ...d, run: { mode, key: [...key], table: 0 } };
 }
 
-/** 这一桌的牌局密钥：按桌号和第几次打分流，同一桌重进还是那副牌，重打换一副 */
+/** 这一桌的牌局密钥：按桌号分流，同一桌重进还是那副牌（分流名末尾的 :0 是原来「第几次重打」那一位，留着让同一密钥发的牌不变） */
 export function tableKey(run: LadderRun): number[] {
-  const rng = stream(run.key, `ladder:${run.table}:${run.retried}`);
+  const rng = stream(run.key, `ladder:${run.table}:0`);
   return Array.from({ length: 8 }, () => rng.u32());
 }
 
@@ -92,10 +87,10 @@ export function bindSolo(d: LadderData, solo: string): LadderData {
   return d.run ? { ...d, run: { ...d.run, solo } } : d;
 }
 
-export type TableOutcome = 'next' | 'clear' | 'retry' | 'out';
+export type TableOutcome = 'next' | 'clear' | 'out';
 
 /**
- * 一桌打完：赢了进下一桌，三桌都赢了拿称号、这一轮结束；输了还能重打就原桌换副牌重打，不能就这一轮结束。
+ * 一桌打完：赢了进下一桌，三桌都赢了拿称号、这一轮结束；输了这一轮结束（不给重打：能重打一次三桌全赢就超过目标，docs/balance-results.md）。
  * 最远赢到第几桌按玩法记最好的一次。
  */
 export function endTable(d: LadderData, net: number): { d: LadderData; outcome: TableOutcome } {
@@ -106,9 +101,8 @@ export function endTable(d: LadderData, net: number): { d: LadderData; outcome: 
     const won = run.table + 1;
     const best = { ...d.best, [run.mode]: Math.max(d.best[run.mode] ?? 0, won) };
     if (won >= TABLES) return { d: { ...rest, best, titles: sortModes([...d.titles, run.mode]) }, outcome: 'clear' };
-    return { d: { ...rest, best, run: { mode: run.mode, key: run.key, table: won, retried: run.retried } }, outcome: 'next' };
+    return { d: { ...rest, best, run: { mode: run.mode, key: run.key, table: won } }, outcome: 'next' };
   }
-  if (run.retried < RETRIES) return { d: { ...rest, run: { mode: run.mode, key: run.key, table: run.table, retried: run.retried + 1 } }, outcome: 'retry' };
   return { d: rest, outcome: 'out' };
 }
 

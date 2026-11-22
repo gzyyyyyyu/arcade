@@ -27,6 +27,7 @@ import { celebrate } from './fx.ts';
 import { play } from './sound.ts';
 import { tileName, tileUrl } from './tiles.ts';
 import { button, el } from './dom.ts';
+import { apiFetch } from '../net/http.ts';
 import { todayCN } from './daily.ts';
 import './hekiri.css';
 
@@ -52,7 +53,7 @@ export function hekiriToday(): { score: number | null; streak: number } {
  */
 async function submitBoard(date: string, score: number, userId: string): Promise<void> {
   try {
-    await fetch('/api/scores', {
+    await apiFetch('/api/scores', {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
