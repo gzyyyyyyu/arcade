@@ -19,7 +19,7 @@ export async function clickShare(page: Page, testId: string, shotName: string): 
   await shot(page, shotName);
   const log = await page.evaluate(() => (window as Window & { __arcadeShareLog?: string[] }).__arcadeShareLog ?? []);
   check(log.some((l) => l.includes('分享 预览')), `分享日志里该有"分享 预览"：${log.join(' | ')}`);
-  // kit 0.15.1：电脑上不弹系统共享，直接出预览，多一个"复制图片"（去微信粘贴）
+  // 电脑上不弹系统共享，直接出预览，多一个"复制图片"（去微信粘贴）
   if (shotName.endsWith('desktop')) check((await page.locator('#arcade-share-preview [data-key="share:copy-image"]').count()) === 1, '电脑上的分享预览该有"复制图片"');
   await page.locator('#arcade-share-preview [data-key="share:close"]').click();
   await page.locator('#arcade-share-preview').waitFor({ state: 'detached' });
@@ -79,7 +79,7 @@ export async function noScrollIssues(page: Page): Promise<string[]> {
  * 有意用省略号截断的文字：选择器和理由。不在这里的元素，文字放不下就算"裁字"。
  * 只量"滚不滚"抓不到按钮压按钮、字被裁一截（海岛 11-02 手机竖屏登陆战），所以 noscroll 段一起量这两样。
  */
-export const CLIP_OK: readonly (readonly [string, string])[] = [
+const CLIP_OK: readonly (readonly [string, string])[] = [
   ['.card__tagline', '大厅卡片的一句话最多两行，多的省略；完整介绍在电脑上悬停时、游戏里看'],
   ['.nudge__mid', '大厅提醒条窄屏只写"桌上"，几份加起来还放不下时省略它，游戏名和金额是单独两块、不截'],
 ];
@@ -257,7 +257,7 @@ export async function phoneIssues(page: Page, minTap = 44, minNum = 14): Promise
       const need = [...bar.querySelectorAll('.account')].reduce((w, e) => w + e.getBoundingClientRect().width, 0);
       out.push(`顶栏折成了 ${new Set(tops).size} 行（按钮共 ${Math.round(need)}，这一行宽 ${Math.round(bar.getBoundingClientRect().width)}）`);
     }
-    // 手机竖屏顶栏不挤（0.41.1）：相邻按钮之间至少空 4px；排行、动态、好友的小字离按钮内沿左右各至少 4px（以前圆按钮里字贴着边）
+    // 手机竖屏顶栏不挤：相邻按钮之间至少空 4px；排行、动态、好友的小字离按钮内沿左右各至少 4px（圆按钮里字不贴边）
     if (vw <= 560) {
       const items = [...document.querySelectorAll('.top__home, .topbar > *')].filter(visible).map((e) => [e, e.getBoundingClientRect()] as const).sort((a, b) => a[1].left - b[1].left);
       for (let i = 1; i < items.length; i++) {

@@ -15,7 +15,7 @@ export interface Tally {
 }
 
 const VARIANT_RE = /^[a-z][a-z0-9-]{0,15}$/;
-export const DUR_MAX_SEC = 86_400;
+const DUR_MAX_SEC = 86_400;
 
 /** 游戏传来的 tally → 合格的值；没带、形状不对一律 null（不报错） */
 export function parseTally(raw: unknown): Tally | null {
@@ -29,8 +29,8 @@ export function parseTally(raw: unknown): Tally | null {
   return { variant, durSec: d, ...(b.result !== undefined && { result: b.result }) };
 }
 
-export const DUR_BUCKETS = ['lt1m', '1-5m', '5-15m', '15-30m', '30-60m', 'ge60m'] as const;
-export const OUTCOME_BUCKETS = ['bust', 'lose', 'even', 'win', 'big', 'na'] as const;
+const DUR_BUCKETS = ['lt1m', '1-5m', '5-15m', '15-30m', '30-60m', 'ge60m'] as const;
+const OUTCOME_BUCKETS = ['bust', 'lose', 'even', 'win', 'big', 'na'] as const;
 export type DurBucket = (typeof DUR_BUCKETS)[number];
 export type OutcomeBucket = (typeof OUTCOME_BUCKETS)[number];
 
@@ -85,7 +85,7 @@ export function tallyCleanupStatement(db: Db, now: number, keepDays: number, max
   );
 }
 
-export interface TallyRow {
+interface TallyRow {
   game: string;
   variant: string;
   mode: string;

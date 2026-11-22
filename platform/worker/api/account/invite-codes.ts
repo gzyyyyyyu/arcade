@@ -31,7 +31,7 @@ export interface InviteRules {
 export const DEFAULT_INVITE_RULES: InviteRules = { userQuota: 3, adminQuota: 50, ttlDays: 7, perDay: 5 };
 
 /** 能调的范围：防手滑，不是业务上限 */
-export const INVITE_RULE_RANGE: Record<keyof InviteRules, readonly [number, number]> = {
+const INVITE_RULE_RANGE: Record<keyof InviteRules, readonly [number, number]> = {
   userQuota: [0, 100],
   adminQuota: [0, 1000],
   ttlDays: [1, 90],
@@ -39,7 +39,7 @@ export const INVITE_RULE_RANGE: Record<keyof InviteRules, readonly [number, numb
 };
 
 /** 单个人的额度能改到多少 */
-export const USER_QUOTA_MAX = 1000;
+const USER_QUOTA_MAX = 1000;
 
 /** 生成、注册用 current（30 秒缓存，读不到抛出）；管理页用 state、plan（core/adjustable-rules.ts） */
 export const inviteRuleSet = adjustableRules<InviteRules>('invite_rules', DEFAULT_INVITE_RULES, INVITE_RULE_RANGE);
@@ -69,7 +69,7 @@ function statusOf(r: CodeRow, now: number): Status {
 }
 
 /** 长期码"不过期"存成这个时间（列是 NOT NULL，条件照常写 expires_at > 现在）；接口里给 null */
-export const NEVER_EXPIRES = 8_640_000_000_000_000;
+const NEVER_EXPIRES = 8_640_000_000_000_000;
 const expiresJson = (t: number) => (t >= NEVER_EXPIRES ? null : t);
 
 /** 还能用：名额没满、没撤回、没过期。?2 是现在 */

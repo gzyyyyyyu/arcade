@@ -1,7 +1,7 @@
 /** "我的账号"页签的冒烟小工具：页面一屏放下后，内容按页签分开放（src/pages/me/Me.tsx），测之前先切到对应的页签。 */
 import type { Locator, Page } from 'playwright-core';
 
-export type MeTab = 'profile' | 'privacy' | 'saves' | 'invite' | 'safe';
+type MeTab = 'profile' | 'privacy' | 'saves' | 'invite' | 'safe';
 
 /** 切页签。宽屏上"隐私"并进"资料"，没有单独的页签，就停在资料 */
 export async function meTab(page: Page, id: MeTab): Promise<void> {
@@ -24,7 +24,7 @@ export async function savesRow(page: Page, id: string): Promise<Locator> {
   return row;
 }
 
-/** 原来的"折叠块"：改昵称在资料页签，其余在安全页签里选一个操作。返回装着那个表单的区域 */
+/** 账号操作：改昵称在资料页签，其余在安全页签里选一个操作。返回装着那个表单的区域 */
 export async function openMeSection(page: Page, title: '改昵称' | '改密码' | '换一个恢复码' | '退出其他设备' | '注销账号'): Promise<Locator> {
   if (title === '改昵称') {
     await meTab(page, 'profile');

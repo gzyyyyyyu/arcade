@@ -7,16 +7,16 @@ import { isPlain } from '../lib/body';
 import type { Db } from '../lib/db';
 
 /** 一桌最多报几个真人：德州一桌最多 8 个真人（28 对），再多就是报错了 */
-export const TOGETHER_MAX_PLAYERS = 8;
+const TOGETHER_MAX_PLAYERS = 8;
 const OP_RE = /^[A-Za-z0-9_-]{8,64}$/;
 const USER_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
-export interface TogetherPlayer {
+interface TogetherPlayer {
   userId: string;
   team?: number;
   win: boolean;
 }
-export interface TogetherReq {
+interface TogetherReq {
   op: string;
   players: TogetherPlayer[];
 }

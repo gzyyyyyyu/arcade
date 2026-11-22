@@ -10,11 +10,10 @@
 - 邀请制：注册开关在 D1 `settings`（`vars.REGISTRATION` 是总闸，`core/settings.ts`），注册关着时凭码（普通码、管理员的长期码，`account/invite-codes.ts`，15.20）。没登录的访客在首页不发 `/api` 请求，只有登录页问一次 `/api/me`。
 - 隐藏游戏（15.21）只经 `shared/game-prefs.ts` 算、前端只经 `session.tsx` 的 `useVisible` 过滤，别处不自己判断。
 - 管理接口 `/api/admin/*` 的两种认证（Bearer 令牌、管理员会话）和各自能做什么写在 `worker/api/ops/admin.ts` 开头；改权限时同步改那里和测试。
-- 改界面后跑相关的那段冒烟（`npm run smoke -- --only=<段>`，分段见 `docs/smoke.md`；改布局跑 `devices`），控制台零报错、没有意料外的 4xx/5xx，并亲自看截图。
+- 改界面后跑相关的那段冒烟（`npm run smoke -- --only=<段>`，分段见 `docs/smoke.md`），控制台零报错、没有意料外的 4xx/5xx，并亲自看截图。
   新 CSS 限定在所属页面的根节点下；颜色只用 `src/styles.css` 的变量（`docs/style.md`）。
 - 冒烟和 `npm run dev:api` 固定用 5181，冒烟启动前查端口，被占就失败。
-- 改动同步真受影响的文档：`README.md`、`docs/pages.md`、`docs/style.md`、根 `docs/platform-backend.md`（接口、写入行数）、`CHANGELOG.md`（带日期，分"新增 / 改动 / 修复 / 整理"）。写现状。
-- 命令：`dev`（5180）、`dev:api`（5181）、`test`、`lint`、`smoke`、`build`、`preview`（4180）；`deploy` 只给单独部署用（正式站发版见根 `CONTRIBUTING.md`）。
+- 改接口同步根 `docs/platform-backend.md`（接口、写入行数）；`CHANGELOG.md` 分"新增 / 改动 / 修复 / 整理"。命令和端口见 `README.md` 本地开发一节。
 - 测试夹具里的站点用保留的示例域名（`game.example.com`、`game.test`），不写正式域名。
 - 平台接口只增不改。游戏依赖平台，平台不依赖任何游戏，所以带接口变更的发布顺序是先迁移、再平台、后游戏。
 
@@ -23,7 +22,7 @@
 - `npm run lint` 零报告（`biome.jsonc` 是全仓统一的规则，原样从模板复制，不在模块里改）；确实有意这么写的，在那一行上面写 `// biome-ignore lint/<组>/<规则>: <理由>` 放行。
 - `npm test` 和 `npm run build` 原样跑完：`npm test` 先查 test 的类型（test 的 tsconfig 没有 DOM，单测只能引不碰 DOM 的文件，纯函数放 `*-logic.ts`），`npm run build` 查界面和 worker 的类型；只跑 vitest 不查类型，删掉、挪走的类型导出它照样跑过。
 - 改界面的跑相关的冒烟段，改布局跑 `noscroll`（重叠、裁字都要 0）。
-- 动到多个页面共用的布局（`Fit.tsx` 的 `Paged`/`PageTabs`、`.page__body`、卡片高度）时，`noscroll` 和 `phone` 两段必须跑：矮屏和手机最容易放不下（0.39.13–0.39.15 的卡片高度改动就在 844×390、360×640 上放不下）。
+- 动到多个页面共用的布局（`Fit.tsx` 的 `Paged`/`PageTabs`、`.page__body`、卡片高度）时，`noscroll` 和 `phone` 两段必须跑：矮屏（844×390）和手机（360×640）最容易放不下。
 
 ## 写接口的规矩
 

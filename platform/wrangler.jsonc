@@ -34,7 +34,7 @@
   // ADMIN_TOKEN（同样格式）给维护者的命令行工具 tools/admin.ts 用。列表和说明见 .dev.vars.example。
   // SITE_ORIGIN（站点地址，可选）：设了 /api 只认这个主机名；正式部署由工作流 --var 注入，没设按请求自己的地址（worker/env.ts）。
   // REGISTRATION：注册的紧急总闸。"switch" = 听管理员在 /admin 或 npm run admin -- registration 里的开关（D1，没设过按关）；
-  // 改成 "off"（或任何别的值）= 一定关，开关暂时不起作用。改这里要重新部署，平时开关注册用管理页就行（0.8.0）。
+  // 改成 "off"（或任何别的值）= 一定关，开关暂时不起作用。改这里要重新部署，平时开关注册用管理页就行。
   "vars": {
     "REGISTRATION": "switch",
     "LIMITS": {}

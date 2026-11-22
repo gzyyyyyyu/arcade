@@ -3,7 +3,7 @@
 # 例外只有 Cloudflare Web Analytics（维护者 2026-10-14 定"游戏站也要统计"）：站点所在的 zone 在 Cloudflare 开了自动注入，
 # Cloudflare 往 HTML 里插 static.cloudflareinsights.com 的 beacon 脚本，script-src 只多放这一个来源，不加 unsafe-inline。
 # 上报不用放：2026-10-14 线上实测自动注入上报到同源 /cdn-cgi/rum（POST 204），'self' 已含；cloudflareinsights.com 只有手动嵌入时才用，
-# 所以 connect-src 不放它（0.7.3 收回）。test/headers.test.ts 锁住。
+# 所以 connect-src 不放它。test/headers.test.ts 锁住。
 /*
   Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'
   X-Content-Type-Options: nosniff

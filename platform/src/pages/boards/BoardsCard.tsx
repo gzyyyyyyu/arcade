@@ -49,7 +49,7 @@ function boardRoom(list: HTMLElement): number {
 /** 列表最多这么多行时一定放得下（最矮的非矮屏也够），一次画完，不用量 */
 const FIT_ROWS = 3;
 
-export function PlayLink() {
+function PlayLink() {
   return (
     <Link className="btn btn--small btn--primary" href="/">
       去玩一局

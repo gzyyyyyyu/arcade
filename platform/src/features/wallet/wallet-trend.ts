@@ -14,7 +14,7 @@ const dayOf = (ms: number) => Math.floor((ms + BJ) / DAY);
 /** 这一周周一的天序号：1970-01-01 是周四，所以 (天序号 + 3) % 7 == 0 就是周一 */
 const mondayOf = (day: number) => day - ((day + 3) % 7);
 
-export interface TrendPoint {
+interface TrendPoint {
   /** 0..width */
   x: number;
   /** 0..height，越大越靠下 */
@@ -23,7 +23,7 @@ export interface TrendPoint {
   value: number;
 }
 
-export interface Trend {
+interface Trend {
   points: TrendPoint[];
   /** SVG path 的 d；点不到 2 个时为空串 */
   path: string;

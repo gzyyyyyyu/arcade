@@ -333,8 +333,8 @@ export function FeedList({ me }: { me: string }) {
   return <Paged items={items} keyOf={(i) => i.id} render={(i) => <Row item={i} me={me} onReacted={reload} />} grid fixed={few ? Number.POSITIVE_INFINITY : undefined} className={`feedlist${few ? ' feedlist--few' : ''}`} label="动态翻页" testId="feed" />;
 }
 
-/** 有没有没看过的好友动态（顶栏"动态"和宽屏侧栏的红点共用；和顶栏同一份缓存，不多发请求） */
-export function useFeedFresh(me: string): boolean {
+/** 有没有没看过的好友动态（顶栏"动态"的红点；和顶栏同一份缓存，不多发请求） */
+function useFeedFresh(me: string): boolean {
   const { items } = useFeed();
   return freshCount(items, useSeen(), me) > 0;
 }

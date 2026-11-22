@@ -19,7 +19,7 @@ export interface User {
   isAdmin?: true;
 }
 
-export interface MeResponse {
+interface MeResponse {
   user: User | null;
   service: 'ok' | 'readonly';
   saves: 'ok' | 'paused';
@@ -185,7 +185,7 @@ export interface CareerView {
 }
 
 /** 排行榜的一行（15.12、15.5） */
-export interface BoardRow {
+interface BoardRow {
   rank: number;
   userId: string;
   displayName: string;

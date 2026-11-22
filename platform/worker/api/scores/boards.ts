@@ -83,7 +83,7 @@ export function boardParams(segments: string[]): Record<string, string> {
 
 /**
  * POST /api/scores {gameId, boardId, score, userId?}：交一次分。userId 和 saves 一样，不一致 409 wrong_user、0 行。
- * 先计数（1 行，满了 0 行、429），再带条件的 UPSERT：比原来好才写。
+ * 先计数（1 行，满了 0 行、429），再带条件的 UPSERT：比已有的好才写。
  * 可选 tally {variant?, durSec, result?}（5.11）：多记 1 行对局汇总，不合格就忽略。
  * 写入：第一次上榜 1 + 2（表 + 排名索引）= 3；刷新最好成绩也是 1 + 2 = 3（改分数动了索引，实测）；没更好 1。
  */

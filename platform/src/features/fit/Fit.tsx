@@ -147,7 +147,7 @@ export function Paged<T>({
       const fit = all >= items.length ? all : perPage(full - cost, tallest, gap, step);
       // 画出来还溢出（条目高矮不一）：记一个上限再少一行；容器尺寸变了上限作废，免得两种算法来回跳。
       // 尺寸刚变的这一次不记：眼下的条数是按旧尺寸算的，溢出是因为框变矮了（比如大厅的提示条晚到），不是条目高矮不一；
-      // 原来这一下就把上限钉死，平板竖屏大厅放得下 6 张却只放 4 张
+      // 这一下不能把上限钉死：平板竖屏大厅放得下 6 张，钉死只放 4 张
       const key = `${el.clientWidth}x${full}`;
       const sameSize = cap.current.key === key;
       if (!sameSize) cap.current = { key, max: Infinity };

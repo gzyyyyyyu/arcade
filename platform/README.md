@@ -195,10 +195,12 @@ platform/
 │  │                    badges（战绩页徽章的计算和"已看过"记录）、coinfly（金币飞入钱包）、topbar（顶栏右上角和页脚声音开关）
 │  ├─ lib/              不属于单个功能的纯函数和小工具：format、next（登录后跳回的地址）、play（进游戏的地址）、gamefile（读各游戏公开的 JSON）、
 │  │                    scores（榜上分数的显示写法）、titles（称号名）、mates（搭子战绩文字）、presence（报"我在大厅"）、countup（数字滚动）、
-│  │                    enter-fx（进出游戏的封面过渡）、sound（提示音，WebAudio 合成，见 docs/style.md 声音一节）
+│  │                    enter-fx（进出游戏的封面过渡）、chips-fx 和 chips-fx-logic（回大厅时顶栏筹码的演出）、sound（提示音，WebAudio 合成，见 docs/style.md 声音一节）
 │  └─ pages/            每个页面一个目录：lobby（大厅）、auth（登录注册、找回密码）、me（我的账号）、friends、feed、wallet、stats（战绩）、boards（排行榜）、privacy（隐私说明）、admin（管理页）
 ├─ shared/              界面和 Worker 都要的纯数据、纯函数（只许引 shared 自己的文件；worker 不许引 src/，test/architecture.test.ts 守着）
 │  ├─ games.ts          游戏目录：登记即生效，钱包、云存档、分数榜、保留用户名都从它派生
+│  ├─ game-prefs.ts     隐藏游戏：管理员设的默认加每人改的，算出哪些不出现在大厅
+│  ├─ invite.ts         长期邀请码能设的次数和天数范围
 │  └─ weekly.ts         每周榜的 ISO 周和榜名
 ├─ worker/              Worker
 │  ├─ index.ts          入口：默认导出 WorkerEntrypoint（fetch、给游戏的 RPC blockedAmong、Cron）；/api/* 交给 api/router.ts；导出钱包 RPC 入口 WalletService（api/wallet/service.ts；部署工具按这个名字给游戏接 WALLET 绑定，类名和这条导出都不能改）
@@ -208,11 +210,11 @@ platform/
 │                       core/ 依赖会话的通用部分：context（每个请求的上下文）、ratelimit、time、settings（settings 表的读写）；
 │                       account/ auth、account、session、validate、reserved-names、weak-passwords、words、invite-codes；
 │                       wallet/ state（类型和纯函数的账）、parse（游戏传来的参数）、tally（真人对局统计）→ store（读写那一行、规则）→ api（浏览器和管理页接口）、service（游戏用的 RPC）；只能往箭头方向 import；
-│                       social/ friends、friends-week（好友周榜）、presence、invites、feed、challenges、mates、blocked-among（游戏房间查屏蔽，只走服务绑定）；
+│                       social/ friends、friends-week（好友周榜）、presence、invites、meetups（约局）、feed、challenges、mates、blocked-among（游戏房间查屏蔽，只走服务绑定）；
 │                       scores/ boards、leaderboard、daily（每日榜登记）、stats、saves；ops/ admin、monitor、cron（每天清理）
 ├─ migrations/          D1 迁移，只增不删
 ├─ public/              静态资源：_headers（CSP 等安全头）、covers/（游戏封面）、favicon.svg、bg.svg（底色小图案）
-├─ docs/                style.md（配色表、形状质感、动效）、pages.md（各页面怎么排、怎么用）、smoke.md（冒烟分段）、changelog-archive.md（旧版本更新日志）、media/（README 截图）
+├─ docs/                style.md（配色表、形状质感、动效）、pages.md（各页面怎么排、怎么用）、smoke.md（冒烟分段）、changelog-<版本段>.md（旧版本更新日志）、media/（README 截图）
 ├─ test/                接口测试（每个接口断言写入行数，docs/platform-backend.md 7.2）
 ├─ tools/               smoke.ts 界面冒烟的入口（分段在 smoke/sections/，公共部分在 smoke/lib/）、admin.ts 命令行工具、cover.ts 封面（covers/ 里是牌馆、雀馆、弹里个弹封面的 SVG 源文件）
 ├─ wrangler.jsonc       Worker 配置（不含域名和正式库 id）

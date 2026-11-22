@@ -48,7 +48,7 @@ export async function adminInvites(browser: Browser): Promise<void> {
         seen.set(code, { dead: await row.getByText('已注销').count(), multi: await row.getByText('能用 4/100').count() });
       }
     };
-    // 码表吃满面板剩下的高（以前一份全局样式把它变成网格，1280×800 一页只放 3 条、下面空一大块）。
+    // 码表吃满面板剩下的高（变成网格的话 1280×800 一页只放 3 条、下面空一大块）。
     // Paged 按见过的最高一条估每页条数，所以有翻页时最后一条下面最多空出不到两条高
     const fill = await table.evaluate((t) => {
       const list = t.querySelector('.paged__list')!.getBoundingClientRect();

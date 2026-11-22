@@ -10,7 +10,7 @@ const reduced = () => webdriver || (typeof matchMedia === 'function' && matchMed
 
 /**
  * 数字变化时在 600ms 内滚到新值；第一个真值直接给（不从 0 数起）。value 是 null 表示还没读到（比如钱包还在路上），
- * 读到的第一个值不滚：原来按 0 传进来，每次打开页面顶栏筹码都从 0 滚一遍、每帧重画一次。减少动效、自动化浏览器下立刻到位
+ * 读到的第一个值不滚：不然每次打开页面顶栏筹码都从 0 滚一遍、每帧重画一次。减少动效、自动化浏览器下立刻到位
  */
 export function useCountUp(value: number | null): number {
   const [shown, setShown] = useState(value ?? 0);

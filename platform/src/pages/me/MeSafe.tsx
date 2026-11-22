@@ -12,13 +12,13 @@ import { Field, FormError, RecoveryCodeCard, SubmitButton, useSubmit } from '../
 const REAUTH = { bad_credentials: '密码不对' };
 
 /** key 给冒烟用（data-testid=safe-<key>）；short 是选择按钮上的短名，title 是表单的名字（也是它的可访问名） */
-export const SAFE_ACTIONS = [
+const SAFE_ACTIONS = [
   { key: 'password', short: '改密码', title: '改密码' },
   { key: 'recovery', short: '换恢复码', title: '换一个恢复码' },
   { key: 'others', short: '其他设备', title: '退出其他设备' },
   { key: 'delete', short: '注销', title: '注销账号' },
 ] as const;
-export type SafeKey = (typeof SAFE_ACTIONS)[number]['key'];
+type SafeKey = (typeof SAFE_ACTIONS)[number]['key'];
 
 export function SafeTab() {
   const [on, setOn] = useState<SafeKey>('password');

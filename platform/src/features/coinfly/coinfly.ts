@@ -1,6 +1,6 @@
 /** 金币飞入：领补给、赢筹码时从来源飞向钱包。只动 transform/opacity，不碰布局。 */
 
-export interface Pt { x: number; y: number }
+interface Pt { x: number; y: number }
 
 const SAMPLES = 12;
 

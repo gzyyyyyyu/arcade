@@ -1,12 +1,12 @@
 /** 电脑键盘快捷键的纯逻辑：只判断"这次按键该做什么"，不碰 DOM，方便单测。 */
 
-export type HotkeyAction =
+type HotkeyAction =
   | { kind: 'game'; index: number }
   | { kind: 'go'; path: '/' | '/boards' | '/friends' | '/wallet' | '/me/stats' }
   | { kind: 'help' }
   | { kind: 'escape' };
 
-export interface HotkeyKeyEvent {
+interface HotkeyKeyEvent {
   key: string;
   ctrlKey: boolean;
   metaKey: boolean;
@@ -14,7 +14,7 @@ export interface HotkeyKeyEvent {
   shiftKey?: boolean;
 }
 
-export interface HotkeyTarget {
+interface HotkeyTarget {
   /** 焦点元素的标签名，大小写不限 */
   tag: string;
   /** 焦点元素是否 contenteditable */

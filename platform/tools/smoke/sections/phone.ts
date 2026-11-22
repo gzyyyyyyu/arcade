@@ -20,7 +20,7 @@ export async function uiPages(browser: Browser): Promise<void> {
   }
 }
 
-/** npm run smoke -- --only=devices：同一个浏览器把矩阵每个尺寸、每页过一遍通用检查（第一屏、单手够得着这些只按原来四台手机量），有问题的那页才截图 */
+/** npm run smoke -- --only=devices：同一个浏览器把矩阵每个尺寸、每页过一遍通用检查（第一屏、单手够得着这些只按 phone 段的四台量），有问题的那页才截图 */
 export async function deviceMatrix(browser: Browser): Promise<void> {
   await phoneAudit(browser, DEVICES, true);
 }

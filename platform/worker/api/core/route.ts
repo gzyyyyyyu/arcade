@@ -5,7 +5,7 @@ import type { Ctx } from './context';
  * 账号安全类预算用完后各接口怎么办（6.6）：
  * always：照做（退出、注销）；capped：只要超额封顶没用完就照做（改密码、退出其他设备，另有每人每天上限）；stop：停（换恢复码）。
  */
-export type AcctPolicy = 'always' | 'capped' | 'stop';
+type AcctPolicy = 'always' | 'capped' | 'stop';
 
 export interface Route {
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';

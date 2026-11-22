@@ -6,7 +6,7 @@ import { FAKE_USER, mockSession, FAKE_FRIENDS, FAKE_FEED, fakeFeedFiles } from '
 import { deskLayout, lobbyNoGap } from '../lib/ui.ts';
 
 /** 顶栏每一项的名字和位置（取整到像素）：换页时要一模一样（所有页面同一个顶栏，不按页面藏项、不挪位置）。
- *  导航只在顶栏一处：顶栏外不许再有指向顶栏同一页面的导航链接（以前宽屏子页左边有一列重复的侧栏） */
+ *  导航只在顶栏一处：顶栏外不许再有指向顶栏同一页面的导航链接（宽屏子页左边不放重复的侧栏） */
 async function topbarLayout(page: Page): Promise<string> {
   // 筹码数字第一次读到时会滚动一下，等它停
   await page.waitForTimeout(1_000);

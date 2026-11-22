@@ -14,14 +14,14 @@ import { readSetting, writeSettingStatement } from './settings';
 const CACHE_MS = 30_000;
 const LOG_MAX = 20;
 
-export interface RulesChange<K extends string> {
+interface RulesChange<K extends string> {
   at: number;
   by: string;
   changes: Partial<Record<K, [number, number]>>;
 }
 
 /** 管理页要的：现在的值、默认值、范围、最近的改动（新的在前） */
-export interface RulesState<R extends { [K in keyof R]: number }> {
+interface RulesState<R extends { [K in keyof R]: number }> {
   rules: R;
   defaults: R;
   range: Record<keyof R, readonly [number, number]>;

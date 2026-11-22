@@ -108,7 +108,7 @@ export async function statsPage(browser: Browser): Promise<void> {
   await mate.page.getByTestId('gstats-texas').getByText('25%').waitFor();
   await pane(mate.page, 'facts');
   await mate.page.getByTestId('together').waitFor();
-  // 不是好友的人：名片上有"加好友"，点了变成"已发请求"（原来在好友冒烟里测，好友页自己要改版，这里留一份）
+  // 不是好友的人：名片上有"加好友"，点了变成"已发请求"
   const stranger = 'D'.repeat(22);
   let sent: unknown = null;
   await mate.page.route('**/api/friends/requests', (r) => {

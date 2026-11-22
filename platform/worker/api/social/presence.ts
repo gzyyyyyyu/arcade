@@ -10,7 +10,7 @@ import type { Ctx } from '../core/context';
 import { noContent } from '../lib/http';
 import { isRecord, parseJsonColumnOr } from '../lib/json-column';
 
-export type Place = 'lobby' | 'game' | 'room';
+type Place = 'lobby' | 'game' | 'room';
 
 export interface Where {
   place: Place;
@@ -26,7 +26,7 @@ export const ROOM_RE = /^\d{6}$/;
 const SEATS_RE = /^\d{1,2}\/\d{1,2}$/;
 
 /** 请求体 → 位置；不合格 400。lobby 不带 game；game、room 要带认识的游戏；room 还要带房间码 */
-export function parseWhere(body: Record<string, unknown>): Where {
+function parseWhere(body: Record<string, unknown>): Where {
   const p = oneOf(body.place, PLACES);
   if (p === 'lobby') return { place: p };
   const game = gameId(body.game);

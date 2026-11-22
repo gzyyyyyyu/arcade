@@ -15,7 +15,7 @@ export const ORIGIN = 'https://game.test';
 const TABLES = ['users', 'sessions', 'credentials', 'friendships', 'blocks', 'saves', 'rate_counters', 'meter_hourly', 'boards', 'settings', 'wallets', 'wallet_stats', 'invites', 'feed', 'feed_reactions', 'challenges', 'challenge_results', 'mates', 'invite_codes', 'invite_code_uses', 'monitor_counts', 'play_tally', 'meetups'];
 
 /** 测试用的上限：PBKDF2 迭代降到 1,000 省时间；计量只在显式调用或本 isolate 第一次时上报，结果可预期。 */
-export const TEST_LIMITS: LimitsOverride = {
+const TEST_LIMITS: LimitsOverride = {
   pbkdf2Iterations: 1_000,
   meterFlushCalls: 1e9,
   meterFlushAnonAttempts: 1e9,
@@ -30,7 +30,7 @@ export const TEST_LIMITS: LimitsOverride = {
  */
 export const FIXED_NOW = Date.UTC(2026, 9, 14, 6, 30);
 
-export function freezeClock(): void {
+function freezeClock(): void {
   vi.useFakeTimers({ toFake: ['Date'], now: FIXED_NOW });
 }
 
@@ -66,7 +66,7 @@ resetAll.cacheOnly = async (): Promise<void> => {
   resetRateLimitCacheForTests();
 };
 
-export interface CallOptions {
+interface CallOptions {
   method?: string;
   body?: unknown;
   /** 原样作为请求体（测试坏 JSON、超大请求体）。 */

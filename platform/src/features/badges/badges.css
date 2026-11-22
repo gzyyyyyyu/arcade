@@ -58,7 +58,7 @@
 @keyframes badges-sweep {
   0% { transform: translateX(0) skewX(-20deg); opacity: 0; }
   20% { opacity: 1; }
-  /* 从 -60% 起、宽 45%：走 360% 刚好扫过整个圆片；原来走 520%，后三成时间光已经出了圆片，看着像卡了一下才结束（frames 段逐帧量出来的） */
+  /* 从 -60% 起、宽 45%：走 360% 刚好扫过整个圆片；走多了后段光已出圆片，看着像卡了一下才结束（frames 段逐帧量过） */
   100% { transform: translateX(360%) skewX(-20deg); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .badges .badge--fx .badge__disc, .badges .badge--fx .badge__disc::after { animation: none; } }

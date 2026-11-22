@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
-<!-- 弹里个弹的大厅封面（平台 0.26.4）：平台手写，照游戏的画风（绘本纸、厨房瓷砖、面团地形、萌宠、包子蒸笼和锅盖），没有外部素材。
+<!-- 弹里个弹的大厅封面：平台手写，照游戏的画风（绘本纸、厨房瓷砖、面团地形、萌宠、包子蒸笼和锅盖），没有外部素材。
      改图后在 platform 目录跑 npm run cover，参数 from=tools/covers/danli.svg、id=danli（见 ASSETS.md） -->
 <defs>
 <pattern id="tile" width="120" height="120" patternUnits="userSpaceOnUse"><rect width="120" height="120" fill="#f7efdd"/><path d="M0 0H120M0 0V120" stroke="#e6dac0" stroke-width="3"/></pattern>

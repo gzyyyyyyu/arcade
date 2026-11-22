@@ -7,7 +7,7 @@ import { isUserIdShape } from '../core/context';
 import { type Db, newStats } from '../lib/db';
 
 /** 一桌最多几个人（德州 9 人桌） */
-export const BLOCKED_AMONG_MAX = 9;
+const BLOCKED_AMONG_MAX = 9;
 
 /** 最近一次调用的读写统计，只给测试断言"只读、一条查询"用（主模块不放具名导出，见 worker/index.ts） */
 export const blockedAmongStats = { last: newStats() };

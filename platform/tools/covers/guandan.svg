@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
-<!-- 牌馆的大厅封面（平台 0.26.3）：底图是掼蛋模块原来的封面（public/covers/guandan.webp，掼蛋 tools/cover.ts 生成），
+<!-- 牌馆的大厅封面：底图是掼蛋模块的封面（public/covers/guandan.webp，掼蛋 tools/cover.ts 生成），
      右边换成平台画的招牌（"牌馆"，副标题掼蛋 · 斗地主）、两摞牌和一顶地主帽。改图后在 platform 目录跑 npm run cover，参数 from=tools/covers/guandan.svg、id=guandan（见 ASSETS.md） -->
 <defs>
   <linearGradient id="board" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a1f22"/><stop offset="1" stop-color="#5c1214"/></linearGradient>

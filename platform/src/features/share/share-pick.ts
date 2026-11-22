@@ -39,8 +39,8 @@ export function pickBadge(games: Record<string, CareerView>, nameOf: (game: stri
 
 /** 胜率进候选至少要几局：一两局的 100% 不算本事 */
 export const MIN_ROUNDS = 5;
-/** 胜率至少多少才上卡：原来的规则（5 局起、按胜率排）照样会让"雀馆 4%"上卡，晒出去不好看，再加一道门槛 */
-export const MIN_RATE = 10;
+/** 胜率至少多少才上卡：只看局数和按胜率排的话"雀馆 4%"也会上卡，晒出去不好看 */
+const MIN_RATE = 10;
 
 const rate = (c: CareerView) => Math.round((c.wins / c.rounds) * 100);
 const order = (id: string) => GAMES.findIndex((g) => g.id === id);
@@ -48,7 +48,7 @@ const order = (id: string) => GAMES.findIndex((g) => g.id === id);
 /** 卡上一行放得下的字数（kit 1080 宽、右边让出二维码，实测约 14 个字；带上引号留 2 个） */
 export const LINE_MAX = 12;
 
-export interface CardPicks {
+interface CardPicks {
   stats: { label: string; value: string }[];
   line?: string;
 }

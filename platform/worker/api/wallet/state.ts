@@ -92,7 +92,7 @@ export interface Stake {
 }
 
 /** 某个游戏当天的计数 */
-export interface GameDay {
+interface GameDay {
   /** 带入（所有模式，统计用） */
   in: number;
   /** 结回进了钱包的（所有模式，统计用） */
@@ -115,7 +115,7 @@ export interface GameDay {
 }
 
 /** 一天的计数（北京日期） */
-export interface DayCounters {
+interface DayCounters {
   day: string;
   writes: number;
   /** 新号送的 */
@@ -145,7 +145,7 @@ export interface LedgerEntry {
 }
 
 /** 一次操作的结果：重发时原样回给游戏 */
-export interface OpResult {
+interface OpResult {
   credited?: number;
   capped?: number;
   /** 结回带的小结被忽略了（钱照常结） */
@@ -175,7 +175,7 @@ export interface SettleStats {
 export type StatsError = 'too_big' | 'bad_stats';
 
 /** 一个人在一个游戏里的战绩（钱包 state 的 career[game]，对登录的人公开） */
-export interface Career {
+interface Career {
   /** 结回过几份（带不带小结都算） */
   n: number;
   /** 累计净赢：每份结回进钱包的 − 带上桌的 */

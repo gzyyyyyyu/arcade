@@ -94,7 +94,7 @@ export async function listFeed(c: Ctx): Promise<Response> {
         ),
       )
     : [];
-  // 按条归好一次（原来每条都把所有赞扫一遍）
+  // 按条归好一次，不每条都把所有赞扫一遍
   const byItem = new Map<string, { counts: Record<string, number>; mine?: string }>();
   for (const x of reactions) {
     const g = byItem.get(x.item_id) ?? { counts: {} };

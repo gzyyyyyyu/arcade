@@ -54,7 +54,7 @@ describe('钱包规则', () => {
     expect([relief.status, await errorOf(relief)]).toEqual([409, 'relief_not_needed']);
     // 单次调整上限 500
     const adj = await call('/api/admin/wallet/adjust', { body: { username: u.username, amount: 600 }, cookie: a.cookie });
-    // 文案里写现在的上限（以前前端写死 1,000,000）
+    // 文案里写现在的上限，不写死
     expect([adj.status, await adj.json()]).toEqual([400, { error: 'bad_amount', message: '数量要是不为 0 的整数，一次最多加减 500', max: 500 }]);
     expect((await call('/api/admin/wallet/adjust', { body: { username: u.username, amount: 500 }, cookie: a.cookie })).status).toBe(200);
   });

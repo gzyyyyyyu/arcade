@@ -55,7 +55,7 @@ export async function adminOverview(browser: Browser): Promise<void> {
     }
     await openTab('detail');
     const trendOld = await page.getByTestId('trend').locator('.atable__row').nth(1).locator('.atable__cell').nth(1).textContent();
-    check(trendOld === '—', `0.10.7 以前的记录应该写"—"：${trendOld}`);
+    check(trendOld === '—', `没有这个字段的旧记录应该写"—"：${trendOld}`);
     const trendGames = (await page.getByTestId('trend').locator('.atable__row').first().locator('.per-people').innerText()).replace(/\s+/g, ' ');
     check(trendGames.includes('德州扑克') && !trendGames.includes('飞驰'), `趋势表按用钱包的游戏分列，不列飞驰：${trendGames}`);
     await adminSection(page, '用户');

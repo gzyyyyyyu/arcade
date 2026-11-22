@@ -153,7 +153,7 @@ export async function viewWallet(
 // ---------- 管理员可调的规则（settings 里 wallet_rules 一行，core/adjustable-rules.ts） ----------
 
 /** 每条规则能调的范围：防手滑（比如多打几个 0），不是业务上限 */
-export const RULE_RANGE: Record<keyof WalletRules, readonly [number, number]> = {
+const RULE_RANGE: Record<keyof WalletRules, readonly [number, number]> = {
   reliefTo: [0, 1_000_000],
   winUnits: [1, 1_000],
   newBalance: [0, 10_000_000],
