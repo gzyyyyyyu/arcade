@@ -173,14 +173,14 @@ ARCADE_VARS_<Worker 名>_<变量名>=<值>
 
 ```
 ARCADE_VARS_arcade_LIMITS={"readonly":{"calls":20000000,"rowsWritten":10000000,"rowsRead":300000000,"dbBytes":20000000000},"off":{"calls":30000000,"rowsWritten":15000000,"rowsRead":450000000},"noGrowthDbBytes":15000000000,"budget":{"reg":50000,"auth":300000,"save":1000000,"social":500000,"acct":50000,"board":300000,"wallet":1000000,"live":3000000,"mon":50000,"sys":300000},"loginAllHour":5000,"regAllDay":3000,"recoverAllHour":1000}
-ARCADE_VARS_guandan_KIT_QUOTA={"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000}
-ARCADE_VARS_texas_KIT_QUOTA={"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000,"emoteMs":1000,"emoteBurst":3}
-ARCADE_VARS_mahjong_KIT_QUOTA={"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000}
-ARCADE_VARS_racing_KIT_QUOTA={"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000}
-ARCADE_VARS_danli_KIT_QUOTA={"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000}
+ARCADE_VARS_guandan_KIT_QUOTA={"roomsPerUser":1,"dailyRoomsPerUser":100,"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000}
+ARCADE_VARS_texas_KIT_QUOTA={"roomsPerUser":1,"dailyRoomsPerUser":30,"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000,"emoteMs":1000,"emoteBurst":3}
+ARCADE_VARS_mahjong_KIT_QUOTA={"roomsPerUser":1,"dailyRoomsPerUser":30,"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000}
+ARCADE_VARS_racing_KIT_QUOTA={"roomsPerUser":5,"dailyRoomsPerUser":100,"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000}
+ARCADE_VARS_danli_KIT_QUOTA={"roomsPerUser":5,"dailyRoomsPerUser":30,"dailyRooms":20000,"busyWrites":20000000,"stopWrites":30000000}
 ```
 
-- 只放宽全站总量（请求、行数、预算、每天房间数、全站每小时登录和注册）；**每人、每 IP 的限流不动**（防刷、防撞库靠它们），每人同时开几个房间、每天开房数沿用各游戏 `wrangler.jsonc` 的值。
+- 只放宽全站总量（请求、行数、预算、每天房间数、全站每小时登录和注册）；**每人、每 IP 的限流不动**（防刷、防撞库靠它们），覆盖是整份替换、不和 `wrangler.jsonc` 合并，所以每人同时开几个房间、每天开房数照抄各游戏 `wrangler.jsonc` 的值（改了游戏的值要同步改这里和线上）。
 - 熔断是给"有人刷爆"留的最后一道闸：调大以后要盯磁盘和 CPU（`/__health`、`ops/backup.sh` 的大小），真有人刷，先在管理后台关注册、封号。
 
 ## 打包
