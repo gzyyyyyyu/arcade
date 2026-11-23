@@ -6,7 +6,7 @@ import type { HandResult } from '../../src/core/table.ts';
 import { resultLines, seatName } from '../../src/view/table.ts';
 import { personaName } from '../../src/view/text.ts';
 
-const NAMES = ['你', '阿飙', '稳哥', '老好'];
+const NAMES = ['你', '阿强', '稳哥', '老好'];
 const name = (s: number): string => NAMES[s]!;
 const value = (cards: string): number => evalCards(parseCards(cards));
 const strip = (h: string): string => h.replace(/<[^>]+>/g, '');
@@ -15,7 +15,7 @@ const base = { handNo: 1, board: [], uncalled: null };
 describe('结果条', () => {
   it('大家都弃牌：谁拿下多少', () => {
     const r: HandResult = { ...base, byFold: true, shown: [], pots: [{ amount: 60, winners: [{ seat: 1, won: 60 }] }] };
-    expect(resultLines(r, name, 0).map((l) => strip(l.html))).toEqual(['大家都弃牌，阿飙 拿下 60']);
+    expect(resultLines(r, name, 0).map((l) => strip(l.html))).toEqual(['大家都弃牌，阿强 拿下 60']);
   });
 
   it('我赢了：写 +多少和牌型，标成我的', () => {

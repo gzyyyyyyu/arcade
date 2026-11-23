@@ -26,7 +26,7 @@ export const LINES: Partial<Record<Moment, string[]>>[] = [
     caught: ['难得试一次', '偶尔一回', '算我大意'],
     bigLoss: ['这把亏了', '下把稳点', '认了'],
   },
-  // 阿飙：嘴硬爱偷
+  // 阿强：嘴硬爱偷
   {
     allin: ['全推，敢跟吗？', '来！', '不敢就别跟'],
     callAllin: ['跟你玩到底', '谁怕谁', '来啊'],
@@ -89,7 +89,7 @@ export const LINES: Partial<Record<Moment, string[]>>[] = [
     caught: ['记下了', '你有点本事'],
     bigLoss: ['下次不会了', '记住这手', '小损失'],
   },
-  // 叨叨：话痨
+  // 熊猫哥：话痨
   {
     allin: ['冲冲冲！', '拼了！', '都来看啊，我全下了！'],
     callAllin: ['一起冲！', '我来我来，跟了！', '这热闹我必须跟'],
@@ -98,7 +98,7 @@ export const LINES: Partial<Record<Moment, string[]>>[] = [
     caught: ['哎呀被抓了', '你怎么看出来的', '早知道不吹了'],
     bigLoss: ['哎呀可惜了', '唉我跟你们说', '亏大了亏大了'],
   },
-  // 小白：新手
+  // 板凳儿：新手
   {
     allin: ['全下是这样按的吧？', '我试试全下！', '这个键是全下吗'],
     callAllin: ['跟了跟了', '我也要跟吗？', '那我也跟吧'],

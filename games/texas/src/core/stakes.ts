@@ -30,7 +30,7 @@ export function stakesOf(id: StakesId): Stakes {
  * 档位定的是"这一档该多强"，场地（单机、好友房）再按档位挑强弱档：SOLO_LEVEL、ROOM_LEVEL
  */
 export const LEVELS = 6;
-// 性格：稳哥、阿飙、老好、慢慢、算盘、江湖、虎子、老鹰、叨叨、小白
+// 性格：稳哥、阿强、老好、慢慢、算盘、江湖、虎子、老鹰、熊猫哥、板凳儿
 export const LEVEL_HOUSE: readonly (readonly number[])[] = [
   [1, 1, 4, 3, 1, 2, 1, 1, 4, 5],
   [1, 2, 4, 4, 1, 2, 1, 1, 4, 4],
@@ -43,7 +43,7 @@ export const LEVEL_HOUSE: readonly (readonly number[])[] = [
 /**
  * 最强档（5）补位的性格顺序，最强的在前：桌上还没有的里挑排最前的（一桌不重复，9 人桌最多 8 个电脑，所以列全 10 种）。
  * 顺序按实测（scripts/sim.ts --vs --humans=2 --level=5 --persona=<编号>：两个简单打法对一整桌同一种性格，每百手输得最多的排前面）：
- * 阿飙、稳哥、老鹰、算盘、虎子、江湖、叨叨、慢慢、老好、小白，见 docs/online.md 6.5
+ * 阿强、稳哥、老鹰、算盘、虎子、江湖、熊猫哥、慢慢、老好、板凳儿，见 docs/online.md 6.5
  */
 export const STRONG: readonly number[] = [1, 0, 7, 4, 6, 5, 8, 3, 2, 9];
 

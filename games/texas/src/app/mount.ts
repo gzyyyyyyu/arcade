@@ -10,14 +10,14 @@ import { bindPage, createLobby } from './lobby.ts';
 import { createOnline } from './online.ts';
 import { createPuzzle } from './puzzle.ts';
 import { bindShell, buildShell, createTop } from './shell.ts';
-import { createState, type App, type Fns } from './state.ts';
+import { createState, soundOn, type App, type Fns } from './state.ts';
 import { createTable, soloDeps } from './table.ts';
 import { createTakeProfit } from './takeprofit.ts';
 import { createTour } from './tour.ts';
 
 export function mount(root: HTMLElement): void {
   const s = createState();
-  setSound(s.settings.sound);
+  setSound(soundOn(s));
   setVolume(s.settings.volume);
   // 各块的函数等 ctx 建好再并进来；在那之前只有按钮的回调引用它，点的那一下才取
   const fn = {} as Fns;

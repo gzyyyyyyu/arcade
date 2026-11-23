@@ -579,7 +579,7 @@ body::before {
 .stage.tall .seat.pack.right:not(.me) .hole .card:nth-child(1) { left: -48px; }
 .stage.tall .seat.pack.right:not(.me) .hole .card:nth-child(2) { left: -36px; }
 .stage.tall .seat.pack.top .bubble { left: 50%; right: auto; top: -50px; transform: translateX(-50%); }
-/* 左边下面那几家同理：居中放头像正上方、压低到头像上沿，不压上家的名牌（0.35.x 9 人桌全下，阿飙的"全下"压到上家江湖的名牌） */
+/* 左边下面那几家同理：居中放头像正上方、压低到头像上沿，不压上家的名牌（0.35.x 9 人桌全下，阿强的"全下"压到上家江湖的名牌） */
 .stage.tall .seat.left:not(.top):not(.me):not(.shifted) .bubble { top: -46px; }
 /* 矮竖屏左边的格子离屏幕边只有 65：居中时"下注 310"这种长签左端出屏，改成从头像左沿起往右摆 */
 .stage.tall .seat.pack.left:not(.top) .bubble { left: -56px; transform: none; }

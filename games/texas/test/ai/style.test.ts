@@ -88,16 +88,16 @@ describe('性格拉开：翻牌前入池、加注，翻牌后凶不凶', () => {
     return n.map((x) => ({ vpip: (x.vpip * 100) / x.dealt, pfr: (x.pfr * 100) / x.dealt, af: x.aggr / Math.max(1, x.calls) }));
   }
 
-  it('豪华桌：松凶（阿飙、虎子）> 紧凶（稳哥、老鹰）> 跟注站（老好、叨叨、小白）的加注和凶度，跟注站入池最松；慢慢最紧最被动', () => {
+  it('豪华桌：松凶（阿强、虎子）> 紧凶（稳哥、老鹰）> 跟注站（老好、熊猫哥、板凳儿）的加注和凶度，跟注站入池最松；慢慢最紧最被动', () => {
     const p = profile(4);
     console.log(`豪华档 6 人桌 入池/加注/AF：${PERSONAS.map((x, i) => `${x.name} ${p[i]!.vpip.toFixed(0)}/${p[i]!.pfr.toFixed(0)}/${p[i]!.af.toFixed(1)}`).join('、')}`);
-    const { 稳哥, 阿飙, 老好, 慢慢, 虎子, 老鹰, 叨叨, 小白 } = NAMES as Record<string, number>;
-    for (const c of [老好!, 叨叨!, 小白!]) {
+    const { 稳哥, 阿强, 老好, 慢慢, 虎子, 老鹰, 熊猫哥, 板凳儿 } = NAMES as Record<string, number>;
+    for (const c of [老好!, 熊猫哥!, 板凳儿!]) {
       expect(p[c]!.pfr).toBeLessThan(10);
-      expect(p[c]!.af).toBeLessThan(p[阿飙!]!.af * 0.8);
+      expect(p[c]!.af).toBeLessThan(p[阿强!]!.af * 0.8);
       expect(p[c]!.vpip).toBeGreaterThan(p[稳哥!]!.vpip);
     }
-    for (const a of [阿飙!, 虎子!]) {
+    for (const a of [阿强!, 虎子!]) {
       expect(p[a]!.vpip).toBeGreaterThan(p[稳哥!]!.vpip);
       expect(p[a]!.pfr).toBeGreaterThan(p[稳哥!]!.pfr);
     }
@@ -106,10 +106,10 @@ describe('性格拉开：翻牌前入池、加注，翻牌后凶不凶', () => {
     expect(p[虎子!]!.af).toBeGreaterThan(p[老好!]!.af * 1.8);
   }, 120_000);
 
-  it('小桌：风格也拉得开，但新手档只露一部分（老好和阿飙的加注差仍在、虎子比老好凶）', () => {
+  it('小桌：风格也拉得开，但新手档只露一部分（老好和阿强的加注差仍在、虎子比老好凶）', () => {
     const p = profile(1);
-    const { 阿飙, 老好, 虎子, 慢慢 } = NAMES as Record<string, number>;
-    expect(p[阿飙!]!.pfr).toBeGreaterThan(p[老好!]!.pfr + 5);
+    const { 阿强, 老好, 虎子, 慢慢 } = NAMES as Record<string, number>;
+    expect(p[阿强!]!.pfr).toBeGreaterThan(p[老好!]!.pfr + 5);
     expect(p[虎子!]!.af).toBeGreaterThan(p[老好!]!.af);
     expect(p[老好!]!.vpip).toBeGreaterThan(p[慢慢!]!.vpip + 20);
   }, 120_000);
@@ -127,7 +127,7 @@ describe('位置和筹码深浅', () => {
     expect(rate(late)).toBeGreaterThan(rate(early) + 0.05);
   });
 
-  it('位置的分量看性格：老鹰（算位置）按钮位比前位多开的比例，大于小白（不看位置）', () => {
+  it('位置的分量看性格：老鹰（算位置）按钮位比前位多开的比例，大于板凳儿（不看位置）', () => {
     const base = collect(1200, (v) => v.board.length === 0 && v.legal!.raise && firstIn(v), { size: 9, personas: [0, 1, 2, 3, 4, 5, 6, 7, 8] });
     const late = base.filter((v) => v.me === v.button);
     const early = base.filter((v) => v.me !== v.button && (v.button - v.me! + 9) % 9 >= 5);
@@ -135,14 +135,14 @@ describe('位置和筹码深浅', () => {
       const r = (vs: View[]): number => count(vs, (v, i) => act(as(v, persona), i).t !== 'fold' && act(as(v, persona), i).t !== 'check') / vs.length;
       return r(late) - r(early);
     };
-    expect(gap(NAMES.老鹰!)).toBeGreaterThan(gap(NAMES.小白!));
+    expect(gap(NAMES.老鹰!)).toBeGreaterThan(gap(NAMES.板凳儿!));
   });
 
-  it('偷盲：前面都弃了、我在后位，凶的偷盲型（阿飙）比不偷的（老好）加注多', () => {
+  it('偷盲：前面都弃了、我在后位，凶的偷盲型（阿强）比不偷的（老好）加注多', () => {
     const spots = collect(1200, (v) => v.board.length === 0 && v.legal!.raise && firstIn(v) && (v.me === v.button || v.seats.filter((s, j) => j !== v.me && s.status === 'active').length <= 3));
     expect(spots.length).toBeGreaterThan(100);
     const r = (p: number): number => count(spots, (v, i) => aggressive(act(as(v, p), i)));
-    expect(r(NAMES.阿飙!)).toBeGreaterThan(r(NAMES.老好!) * 2);
+    expect(r(NAMES.阿强!)).toBeGreaterThan(r(NAMES.老好!) * 2);
   });
 });
 
@@ -163,8 +163,8 @@ describe('按对手的公开打法调整（只用 SeatView.seen，和底牌无�
     expect(vsNit).toBeGreaterThan(vsStation);
   });
 
-  it('不看人的性格（小白，reads 0）：对手统计变了决定一点不变', () => {
-    const diff = count(flop, (v, i) => act(as(withSeen(v, NIT), NAMES.小白!), i).t !== act(as(withSeen(v, STATION), NAMES.小白!), i).t);
+  it('不看人的性格（板凳儿，reads 0）：对手统计变了决定一点不变', () => {
+    const diff = count(flop, (v, i) => act(as(withSeen(v, NIT), NAMES.板凳儿!), i).t !== act(as(withSeen(v, STATION), NAMES.板凳儿!), i).t);
     expect(diff).toBe(0);
   });
 
@@ -178,10 +178,10 @@ describe('按对手的公开打法调整（只用 SeatView.seen，和底牌无�
     expect(tight).toBeGreaterThan(wild);
   });
 
-  it('偷盲：后面的人都很紧时，后位多开池（阿飙，豪华桌）', () => {
+  it('偷盲：后面的人都很紧时，后位多开池（阿强，豪华桌）', () => {
     const spots = collect(1200, (v) => v.board.length === 0 && v.legal!.raise && firstIn(v) && v.me === v.button);
     expect(spots.length).toBeGreaterThan(80);
-    const r = (seen: number[]): number => count(spots, (v, i) => aggressive(act(as(withSeen(v, seen), NAMES.阿飙!), i)));
+    const r = (seen: number[]): number => count(spots, (v, i) => aggressive(act(as(withSeen(v, seen), NAMES.阿强!), i)));
     expect(r([200, 30, 20, 10, 10, 20, 5])).toBeGreaterThan(r([200, 80, 30, 10, 10, 20, 5]));
   });
 });

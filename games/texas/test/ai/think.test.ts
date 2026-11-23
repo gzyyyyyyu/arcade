@@ -111,7 +111,7 @@ describe('思考时间像人：随局面和性格变', () => {
     expect(Math.max(...sample(hard, 3, 600))).toBeGreaterThan(600);
   });
 
-  it('性格拉得开：慢慢、小白比阿飙、虎子慢；阿飙、虎子常一把梭，慢慢偶尔想很久', () => {
+  it('性格拉得开：慢慢、板凳儿比阿强、虎子慢；阿强、虎子常一把梭，慢慢偶尔想很久', () => {
     const [wen, biao, , man, , , hu, , , bai] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((p) => sample(mid, p, 600));
     console.log(`中等局面平均想的时间（毫秒）：${PERSONAS.map((p, i) => `${p.name} ${Math.round(mean(sample(mid, i, 600)))}`).join('、')}`);
     expect(mean(man!)).toBeGreaterThan(mean(biao!) * 1.25);
