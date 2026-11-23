@@ -82,7 +82,7 @@ function flashStep(el: number, heavy: boolean): number {
   const u = (el - f.hold) / (f.total - f.hold);
   return Math.ceil((1 - u) * (1 - u) * FLASH_STEPS);
 }
-/** 减速（焦油）的染色：比原来的灰更黑一点，远看就是一身黑油 */
+/** 减速（焦油）的染色：比灰更黑一点，远看就是一身黑油 */
 const TINT_SLOW = 0x4c4a52;
 
 export class Rig {

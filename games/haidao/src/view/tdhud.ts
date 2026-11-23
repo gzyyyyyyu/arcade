@@ -533,11 +533,11 @@ export function banner(bs: TdScene, title: string, sub = '', boss = false): void
 export function askEnd(bs: TdScene): void {
   if (bs.ended) return;
   const msg = bs.d.escortLive
-    ? '现在撤退？商船到不了港，按已经走过的路结回筹码。'
+    ? '现在撤退？商船到不了港，按已经走过的路带回筹码。'
     : bs.d.escort
     ? '现在撤退？商船到不了港，不拿奖励。'
     : bs.d.live
-    ? '现在撤退？这局算宝藏被抢光，按撑过的波数结回筹码。'
+    ? '现在撤退？这局算宝藏被抢光，按撑过的波数带回筹码。'
     : bs.d.tide
       ? '现在撤退？这局到此为止，按撑过的波数记成绩。'
       : bs.d.home

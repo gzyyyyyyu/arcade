@@ -363,7 +363,7 @@ export function armorOrder(share: Record<TdArmor, number>): TdArmor[] {
 /** 星数怎么算（选关页、驻守台面板上写；数从规则表读） */
 export function starRule(): string {
   const [two, one] = TD2_STAR_LOST;
-  return `一枚不丢 3 星 · 丢 ≤ ${two} 枚 2 星 · 丢 ≤ ${one} 枚 1 星 · 丢 ${TD2_LOSE_AT} 枚算输`;
+  return `宝藏一枚不丢 3 星 · 丢 ≤ ${two} 枚 2 星 · 丢 ≤ ${one} 枚 1 星 · 丢 ${TD2_LOSE_AT} 枚算输`;
 }
 
 /** 叫波按钮的第二行：叫了拿多少金、英雄技能快几秒（tdCallBonus 给的拍数换成秒，向下取整） */
@@ -380,9 +380,9 @@ export function garrisonLine(o: Pick<TdGarrisonOption, 'kind' | 'baseLevel' | 't
   return `你的${towerName(o.kind)} ${o.baseLevel} 级 → 驻守 ${o.tier} 阶`;
 }
 
-/** 同一句的短写（手机竖屏、横屏开局塔头上，整句放不下）：「加农炮 7 级→3 阶」 */
+/** 同一句的短写（手机竖屏、横屏开局塔头上，整句放不下）：「加农炮 7 级→驻守 3 阶」（试玩 11-23：没有「驻守」光看「7 级→3 阶」看不懂） */
 export function garrisonShort(o: Pick<TdGarrisonOption, 'kind' | 'baseLevel' | 'tier'>): string {
-  return `${towerName(o.kind)} ${o.baseLevel} 级→${o.tier} 阶`;
+  return `${towerName(o.kind)} ${o.baseLevel} 级→驻守 ${o.tier} 阶`;
 }
 
 /** 驻守台在岛上的哪一边（岛 22×22，按台子中心离岛心的方向）：选塔面板上让人知道是哪座台 */
@@ -737,9 +737,13 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
   // 小地图和说明并排（竖屏手机上小地图占满面板上方的空当，选塔面板沉到底下，见 tdcss）
   const top = el('div', 'hd-tdgar-top', undefined, wrap);
   const markSpot = garrisonMap(lv, top, (k) => showSpot(k));
-  // 说明里拿玩家自己最高的那种塔举例（基地里没塔时只写折算），让「升基地塔 = 守岛更强」一眼看到
+  // 第一行拿玩家自己最高的那种塔举例，让「升基地塔 = 守岛更强」一眼看到，哪个尺寸都留着；折算和别的说明放得下才摆（fit）
   const best = opts.reduce<TdGarrisonOption | null>((a, o) => (!a || o.baseLevel > a.baseLevel ? o : a), null);
-  el('p', 'hd-tdgar-note', `从自己的基地带塔上岛，基地里同种塔越高，驻守越强（1–3 级 1 阶、4–6 级 2 阶、7–8 级 3 阶）${best ? `：${garrisonLine(best)}` : ''}。带上岛的塔照样能升级、能卖。金色「荐」是按这关的敌人推荐的。`, top);
+  const note = el('div', 'hd-tdgar-note', undefined, top);
+  el('p', 'hd-tdgar-lead', best ? garrisonLine(best) : '基地里还没有防御塔，驻守台只能空着', note);
+  const more = el('div', 'hd-tdgar-more', undefined, note);
+  el('p', '', '驻守塔多强，看你基地里同种塔的等级：1–3 级→1 阶，4–6 级→2 阶，7–8 级→3 阶。', more);
+  el('p', '', '带上岛的塔照样能升级、能卖；金色「荐」是按这关的敌人推荐的。', more);
   // 多座台：电脑上并排摆成几列；手机和矮屏放不下，改成顶上几个台子页签（页签上写这座台现在挑了什么），一次摆一座台的选项
   const mqTab = matchMedia('(max-width:700px), (max-height:700px)');
   const tabbed = lv.garrison.length > 1 && mqTab.matches;
@@ -753,7 +757,13 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
     tabEls.forEach((t, i) => t.classList.toggle('on', i === k));
     // 并排摆全部台子时（电脑）小地图上不单独描亮哪一座
     markSpot(tabbed || lv.garrison.length === 1 ? k : -1);
+    fit();
   };
+  // 一屏放不下（矮屏、带两档分叉的三行塔卡）：先收小地图，再收折算那两行；「你的加农炮 1 级 → 驻守 1 阶」那一行一直在
+  function fit(): void {
+    wrap.classList.remove('hd-tdgar-nomap', 'hd-tdgar-nomore');
+    for (const c of ['hd-tdgar-nomap', 'hd-tdgar-nomore']) if (wrap.scrollHeight > wrap.clientHeight + 1) wrap.classList.add(c);
+  }
   lv.garrison.forEach((spot, si) => {
     const box = el('div', 'hd-tdgar-spot', undefined, spotsBox);
     spotEls.push(box);
@@ -774,7 +784,7 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
         tab.textContent = '';
         el('b', '', `${si + 1} 号台`, tab);
         const k = picks.get(si);
-        el('small', '', k ? towerName(k) : '空着', tab);
+        el('small', '', k ? towerName(k) : '不带塔', tab);
       }
     };
     const card = (o: TdGarrisonOption | null): void => {
@@ -799,8 +809,8 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
           c.setAttribute('aria-description', '这关推荐');
         }
       } else {
-        el('b', '', '空着', c);
-        el('small', '', '开局当木台用', c);
+        el('b', '', '不带塔', c);
+        el('small', '', '空木台，打的时候再造', c);
       }
       c.addEventListener('click', () => {
         if (o) picks.set(si, o.kind);
@@ -840,8 +850,13 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
     }
   };
   window.addEventListener('keydown', key);
+  addEventListener('resize', fit);
+  // 按钮、星级说明都摆上以后再量；字体和地图第一帧可能还在排，下一帧再量一次
+  fit();
+  requestAnimationFrame(fit);
   function stop(): void {
     window.removeEventListener('keydown', key);
+    removeEventListener('resize', fit);
     wrap.remove();
   }
   return stop;
@@ -980,7 +995,7 @@ export function planCard(
   }
   box.style.display = '';
   // 三行，和改前一样高（平板竖屏顶底栏要 ≤ 22%）：① 第几波、来什么敌人（头像 × 数量）、倒数 ② 护甲全名和建议 ③ 从哪来、再下一波
-  // 头像和护甲全名替代原来只有一个「布」字的小圆章：新玩家看不出那是护甲，更不知道该造什么
+  // 头像和护甲全名不只用一个「布」字的小圆章：新玩家看不出那是护甲，更不知道该造什么
   const r1 = el('div', 'hd-plan-r1', undefined, box);
   el('b', 'hd-plan-w', p.boss ? `首领波 · ${o.title(p.wave)}` : o.title(p.wave), r1);
   const foes = el('span', 'hd-plan-foes', undefined, r1);

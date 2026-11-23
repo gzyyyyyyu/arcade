@@ -1,5 +1,5 @@
 /**
- * 海岛 Worker 的路由。两种部署由 env 决定（共用包 0.10 起）：
+ * 海岛 Worker 的路由。两种部署由 env 决定：
  * - 本站：部署工具按 tools/workers.json 补上平台绑定 ARCADE（认人）和 GATE=login；
  * - 单独部署（wrangler.jsonc 原样）：没有平台，谁打开都能玩，站点根 / 转到 /games/haidao/。
  * 首页三种写法过共用包的登录闸门 loginGate；/games/haidao/health 给平台巡检用，排在最前面：不过登录闸门、不读存储、不问平台。

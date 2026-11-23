@@ -467,7 +467,7 @@ export function matAt(bs: TdScene, x: number, y: number): LandMat {
 /** 被炸哑的塔：塔身发灰、头上冒烟；恢复了就去掉 */
 function syncJam(bs: TdScene): void {
   const s = bs.s;
-  // 顺着塔列表走、按编号取画面对象（原来对每个画面对象在塔列表里再找一遍）
+  // 顺着塔列表走、按编号取画面对象（不对每个画面对象在塔列表里再找一遍）
   for (const t of s.towers) {
     const id = t.id;
     const sp = bs.tsp.get(id);

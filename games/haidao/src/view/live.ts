@@ -66,19 +66,25 @@ function style(): void {
 .hd-ui .hd-live-card b { font-size:16px; }
 .hd-ui .hd-live-card .hd-btn { min-height:44px; min-width:72px; }
 .hd-ui .hd-live-star { color:#c98a00; letter-spacing:1px; }
+/* 筹码不够这一档：钮灰掉（还点得动，点了说差多少） */
+.hd-ui .hd-live-card .hd-btn.hd-live-short { filter:grayscale(.85); opacity:.6; }
 .hd-ui .hd-live-xbtn { min-height:44px; min-width:44px; padding:0 10px; margin-left:4px; pointer-events:auto; }
 .hd-ui .hd-live .hd-btn-wide { width:100%; min-height:44px; margin-top:8px; }
 .hd-ui .hd-live-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:8px 0; }
 .hd-ui .hd-live-tiers .hd-live-mode { margin:4px 0; }
-/* 电脑：选档四张卡排两列（一列四张在 1280×720 放不下） */
+/* 电脑：选档四张卡排两列（一列四张在 1280×720 放不下）。面板 820 宽：740 时右列卡里「电脑 ★★☆☆ · 约 2–3 分钟」不换行，
+   把列撑出面板、「娱乐」钮被切 25 像素（试玩 11-23）；列宽 minmax(0,1fr)，内容再长也不撑出面板 */
 @media (min-width:900px) and (min-height:501px) {
-  .hd-ui .hd-live.hd-live-tiers { width:min(100%,740px); }
-  .hd-ui .hd-live-tiers .hd-live-cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .hd-ui .hd-live.hd-live-tiers { width:min(100%,820px); }
+  .hd-ui .hd-live-tiers .hd-live-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 }
 /* 选档页放得下：屏高 94%，窄屏（手机竖屏）卡片收紧 */
 .hd-ui .hd-live.hd-live-tiers { max-height:94%; }
 @media (max-width:420px) {
   .hd-ui .hd-live.hd-live-tiers { padding:8px 10px; }
+  /* 兑换两栏竖着叠：360×640 也一屏放下 */
+  .hd-ui .hd-live.hd-live-x { max-height:96%; padding:8px 10px; }
+  .hd-ui .hd-live-x h2 { margin:0; }
   .hd-ui .hd-live-tiers .hd-live-cards { gap:8px; }
   .hd-ui .hd-live-card { padding:3px 8px; gap:6px; }
   .hd-ui .hd-live-card .hd-live-info { font-size:12px; line-height:1.25; }
@@ -95,7 +101,7 @@ function style(): void {
 @media (orientation:landscape) and (max-height:500px) {
   .hd-ui .hd-live { max-height:96%; padding:8px 14px; }
   .hd-ui .hd-live.hd-live-tiers { width:min(100%,740px); padding:8px 14px; }
-  .hd-ui .hd-live-tiers .hd-live-cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .hd-ui .hd-live-tiers .hd-live-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
   .hd-ui .hd-live-card { padding:4px 8px; gap:6px; }
   .hd-ui .hd-live-card .hd-live-info { font-size:12px; line-height:1.3; }
   .hd-ui .hd-live-card b { font-size:14px; }
@@ -130,11 +136,40 @@ export function dialog(opts: { tiers?: boolean; closable?: boolean; onEsc?: () =
 
 /** 选档卡里的"最多赢 / 最多输"：一行写完，数字不截断（≥ 1 万的写"万"放不下时靠整行不换行 + 字号） */
 /** 最多赢 / 最多输两段各自不折行，放不下时在中间的点处换行（手机竖屏豪华档一行放不下，不能被按钮盖住） */
-export function winLose(parent: HTMLElement, stake: number, bp3: number): void {
+/** floorBp：最差也带回几成（连闯第一座没过的保底；单场是 0，最多输整份） */
+export function winLose(parent: HTMLElement, stake: number, bp3: number, floorBp = 0): void {
   const d = el('div', 'hd-live-wl', undefined, parent);
   el('span', '', `最多赢 ${fmt(liveReturn(stake, bp3) - stake)}`, d);
   d.append(' · ');
-  el('span', '', `最多输 ${fmt(stake)}`, d);
+  el('span', '', `最多输 ${fmt(stake - liveReturn(stake, floorBp))}`, d);
+}
+
+/** 选档页量到的筹码余额，和要花筹码的那几颗钮（钱不够的灰掉） */
+export interface Purse {
+  v: number | null;
+  gated: Array<{ b: HTMLButtonElement; stake: number }>;
+}
+/** 余额写进 bal，量到后把钱不够的档的钮灰掉（还点得动：点了说差多少） */
+export function purse(bal: HTMLElement): Purse {
+  const p: Purse = { v: null, gated: [] };
+  void walletBalance().then((v) => {
+    p.v = v;
+    bal.textContent = v === null ? '筹码余额暂时看不到' : `筹码 ${fmt(v)}`;
+    for (const g of p.gated) shade(p, g);
+  });
+  return p;
+}
+const shade = (p: Purse, g: Purse['gated'][number]): void => void g.b.classList.toggle('hd-live-short', p.v !== null && p.v < g.stake);
+export function gate(p: Purse, b: HTMLButtonElement, stake: number): HTMLButtonElement {
+  const g = { b, stake };
+  p.gated.push(g);
+  shade(p, g);
+  return b;
+}
+/** 钱不够这一档：不先弹「确定带入」（试玩 11-23：先让人确认一件做不到的事），直接说手上多少、差多少；够了照常问 */
+export function buyIn(p: Purse, stake: number, tier: string, ask: () => void): void {
+  if (p.v !== null && p.v < stake) return confirmBox(`手上 ${fmt(p.v)} 筹码，${tier}档一份要 ${fmt(stake)}，还差 ${fmt(stake - p.v)}。`, '知道了', () => undefined, '');
+  ask();
 }
 
 /** 进游戏时：上次没结完的一份先收尾（中途离开按输结） */
@@ -210,6 +245,7 @@ async function finishIngot(rec: IngotRecord): Promise<number | null> {
 /** 兑换面板里「金银锭换筹码」一块：手里几锭、今天还能换多少，换 1 / 5 / 全部 */
 function ingotSection(box: HTMLElement): void {
   el('h3', 'hd-live-h3', `金银锭换筹码（1 锭 = ${INGOT_CHIPS}）`, box);
+  el('p', 'hd-live-note', '金银锭只能玩出来（三星、训练营、成就、悬赏），不能花钱买', box);
   const info = el('p', 'hd-live-bal', '', box);
   const row = el('div', 'hd-live-row', undefined, box);
   let left = Number.POSITIVE_INFINITY;
@@ -281,8 +317,7 @@ export function openLive(onClose: () => void): void {
   // 单场的说明和连闯的说明共用一行（切模式时换字），一屏放得下
   const how = el('p', 'hd-live-note', '', box);
   const bar = el('div', 'hd-live-bar', undefined, box);
-  const bal = el('p', 'hd-live-bal', '筹码 …', bar);
-  void walletBalance().then((v) => (bal.textContent = v === null ? '筹码余额暂时看不到' : `筹码 ${fmt(v)}`));
+  const wallet = purse(el('p', 'hd-live-bal', '筹码 …', bar));
   const quota = el('p', 'hd-live-note', '', bar);
   // 单场 / 连闯三座：连闯一份打三座，每座之间可以收手（DESIGN 4.6）
   let streak = false;
@@ -295,7 +330,9 @@ export function openLive(onClose: () => void): void {
     streak = v;
     single.className = `hd-btn ${v ? 'hd-btn-plain' : 'hd-btn-gold'}`;
     multi.className = `hd-btn ${v ? 'hd-btn-gold' : 'hd-btn-plain'}`;
-    how.textContent = v ? `一份连打 ${STREAK_ISLANDS} 座，${STREAK_PASS} 星以上算过；过一座可以收手，再闯没过就按保底结` : '带一份筹码打悬赏岛：星越多结回越多，最多输掉这一份。';
+    how.textContent = v
+      ? `一份连打 ${STREAK_ISLANDS} 座，${STREAK_PASS} 星以上算过；过一座可以收手，再闯没过按保底带回。比单场稳：最多赢的少，没过也退一部分`
+      : '带一份筹码打悬赏岛：星越多带回越多，最多输掉这一份。';
     for (const f of redraws) f();
   };
   const single = button('单场', 'hd-btn-gold', () => setMode(false), modes);
@@ -317,20 +354,25 @@ export function openLive(onClose: () => void): void {
     el('b', '', `${t.name}档 · 一份 ${fmt(t.stake)}`, info);
     el('div', '', '', info).append('电脑 ', el('span', 'hd-live-star', '★'.repeat(t.power) + '☆'.repeat(4 - t.power)), ' · 约 2–3 分钟');
     const top = (): number => (streak ? STREAK_LADDER[id].win[2] : t.top);
+    // 连闯最差是第一座就没过，按 fail[0] 带回（打到一半走也是按当时的保底）
+    const floor = (): number => (streak ? Math.min(...STREAK_LADDER[id].fail) : 0);
     const wl = el('div', '', undefined, info);
     redraws.push(() => {
       wl.replaceChildren();
-      winLose(wl, t.stake, top());
+      winLose(wl, t.stake, top(), floor());
     });
     const col = el('div', 'hd-live-col', undefined, c);
     // 出海是花筹码的操作：先弹一次确认（写清带入多少、最多赢输多少），点了"确定"才 buyin
-    goBtns.push(button('出海', 'hd-btn-gold', () => {
+    goBtns.push(gate(wallet, button('出海', 'hd-btn-gold', () => {
       const what = streak ? `连闯 ${STREAK_ISLANDS} 座` : '出海';
-      confirmBox(`带入 ${fmt(t.stake)} 筹码${what}。最多赢 ${fmt(liveReturn(t.stake, top()) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。确定${what}？`, '确定', () => {
-        mask.remove();
-        void (streak ? startStreak(id, onClose) : start(id, onClose));
-      }, '再想想');
-    }, col));
+      const lose = t.stake - liveReturn(t.stake, floor());
+      buyIn(wallet, t.stake, t.name, () =>
+        confirmBox(`带入 ${fmt(t.stake)} 筹码${what}。最多赢 ${fmt(liveReturn(t.stake, top()) - t.stake)}，最多输 ${fmt(lose)}${lose === t.stake ? '（就是带进去的这一份）' : ''}。确定${what}？`, '确定', () => {
+          mask.remove();
+          void (streak ? startStreak(id, onClose) : start(id, onClose));
+        }, '再想想'),
+      );
+    }, col), t.stake));
     button('娱乐', 'hd-btn-plain', () => {
       mask.remove();
       practice(id);
@@ -448,7 +490,7 @@ async function showResult(tier: LiveTier, stars: number, what: string, bp: numbe
     el('p', `hd-live-bal ${net >= 0 ? 'hd-pos' : 'hd-neg'}`, `这局筹码 ${net >= 0 ? '+' : '−'}${fmt(Math.abs(net))}`, box);
     if ((live.record?.capped ?? 0) > 0) el('p', 'hd-live-note', '今天这个游戏的进账到顶了，多出来的没进钱包。', box);
   } else if (res.why === 'offline' || res.why === 'login') {
-    el('p', 'hd-live-note', '结果记下了，连上网后会自动结回。', box);
+    el('p', 'hd-live-note', '结果记下了，连上网后会自动带回。', box);
   } else el('p', 'hd-live-note', errText(res.error), box);
   el('p', 'hd-live-note', NO_CASH, box);
   main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {
@@ -466,9 +508,8 @@ const tdErrText = (e: string): string => TD_ERR[e] ?? '钱包暂时连不上，�
 export function openTdLive(onClose: () => void): void {
   const { mask, box } = dialog({ tiers: true, onEsc: () => { mask.remove(); onClose(); } });
   el('h2', '', '悬赏守岛（实盘）', box);
-  el('p', 'hd-live-note', '带一份筹码替悬赏岛守宝藏：守得越好结回越多，最多输掉这一份。岛是固定的。', box);
-  const bal = el('p', 'hd-live-bal', '筹码 …', box);
-  void walletBalance().then((v) => (bal.textContent = v === null ? '筹码余额暂时看不到' : `筹码 ${fmt(v)}`));
+  el('p', 'hd-live-note', '带一份筹码替悬赏岛守宝藏：守得越好带回越多，最多输掉这一份。岛是固定的；没有「娱乐」试打，想练手先打守岛战役。', box);
+  const wallet = purse(el('p', 'hd-live-bal', '筹码 …', box));
   const quota = el('p', 'hd-live-note', '', box);
   const scroll = el('div', 'hd-live-scroll', undefined, box);
   const cards = el('div', 'hd-live-cards', undefined, scroll);
@@ -496,12 +537,14 @@ export function openTdLive(onClose: () => void): void {
       continue;
     }
     winLose(info, t.stake, t.top);
-    const btn = button('开守', 'hd-btn-gold', () => {
-      confirmBox(`带入 ${fmt(t.stake)} 筹码开守。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。确定开守？`, '确定开守', () => {
-        mask.remove();
-        void startTdLive(id, onClose);
-      }, '再想想');
-    }, c);
+    const btn = gate(wallet, button('开守', 'hd-btn-gold', () => {
+      buyIn(wallet, t.stake, t.name, () =>
+        confirmBox(`带入 ${fmt(t.stake)} 筹码开守。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。确定开守？`, '确定开守', () => {
+          mask.remove();
+          void startTdLive(id, onClose);
+        }, '再想想'),
+      );
+    }, c), t.stake);
     btn.dataset.tier = id;
     goBtns.push(btn);
   }
@@ -541,10 +584,10 @@ export async function showTdLiveResult(tier: LiveTier, seed: number, res: Pick<T
     const credited = tdLive.record?.credited ?? liveReturn(stake, bp);
     const net = credited - stake;
     el('p', `hd-live-bal hd-live-net ${net >= 0 ? 'hd-pos' : 'hd-neg'}`, `这局筹码 ${net >= 0 ? '+' : '−'}${fmt(Math.abs(net))}`, box);
-    el('p', 'hd-live-note', `结回 ${fmt(credited)} 筹码（带入 ${fmt(stake)}）`, box);
+    el('p', 'hd-live-note', `带回 ${fmt(credited)} 筹码（带入 ${fmt(stake)}）`, box);
     if ((tdLive.record?.capped ?? 0) > 0) el('p', 'hd-live-note', '今天这个游戏的进账到顶了，多出来的没进钱包。', box);
   } else if (r.why === 'offline' || r.why === 'login') {
-    el('p', 'hd-live-note', '结果记下了，连上网后会自动结回。', box);
+    el('p', 'hd-live-note', '结果记下了，连上网后会自动带回。', box);
   } else el('p', 'hd-live-note', tdErrText(r.error), box);
   el('p', 'hd-live-note', NO_CASH, box);
   main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {
@@ -557,7 +600,7 @@ export async function showTdLiveResult(tier: LiveTier, seed: number, res: Pick<T
 export function exchangeButton(parent: HTMLElement): void {
   if (liveState.off || !loggedIn()) return;
   style();
-  button('换', 'hd-btn-wood hd-live-xbtn', openExchange, parent);
+  button('兑换', 'hd-btn-wood hd-live-xbtn', openExchange, parent);
 }
 
 /** 兑换面板：一次一份小档的筹码，换金币或木材；单向，换不回筹码 */

@@ -64,7 +64,7 @@ export function td2TierStats(kind: TdTowerKind, tier: TdTier): TdTierStats {
 
 /**
  * 统一的敌人表：全关同一份，不再按关拧 hpPct。没有 armor 百分比和 flying（护甲在 core/td2types.ts 的 TD_ENEMY_ARMOR，飞的 = air）。
- * 初稿照搬 0.21.0 的 TD_ENEMIES 去掉减伤；铁甲不再减伤 60%，靠炮弹 1.5 / 枪弹火 0.5 的倍率体现。
+ * 铁甲不减伤，靠炮弹 1.5 / 枪弹火 0.5 的倍率体现。
  */
 export const TD2_ENEMIES: Readonly<Record<TdEnemyKind, TdEnemyDef>> = {
   sailor: { name: '水手', hp: 90, speed: 5, dmg: 12, reload: 20, reach: 90, carry: 1, gold: 5 },
@@ -80,7 +80,7 @@ export const TD2_ENEMIES: Readonly<Record<TdEnemyKind, TdEnemyDef>> = {
   shield: { name: '盾兵', hp: 240, speed: 3, dmg: 18, reload: 24, reach: 90, carry: 2, gold: 14 },
   grenadier: { name: '掷弹兵', hp: 85, speed: 4, dmg: 30, reload: 50, reach: 90, carry: 1, gold: 8, lob: { range: 300, r: 120, wallPct: 30 } },
   // 精英：4 倍血、4 倍预算点、4 倍金，一个顶四个，让后期少而精。速度和普通兵一样，搬宝比四个普通兵少一点：
-  // 初稿走得慢、只搬 2 枚，同样预算下明显好守（漏一个丢得少、挨打时间长），拟预算时得加到敌人比原来还多
+  // 走得慢、只搬 2 枚时同样预算下明显好守（漏一个丢得少、挨打时间长），拟预算时得多加敌人
   bosun: { name: '水手长', hp: 360, speed: 5, dmg: 30, reload: 20, reach: 90, carry: 3, gold: 20 },
   macaw: { name: '鹦鹉王', hp: 120, speed: 6, dmg: 15, reload: 20, reach: 80, carry: 2, gold: 16 },
   // 大副（DESIGN 10.3）：精英的另一种难法。倒下原地散成水手——本体血厚，高单发塔打它不浪费，
@@ -164,7 +164,7 @@ export const TD2_TREASURE_ROLL_TICKS = 100;
 export const TD2_MINE_REARM_TICKS = 400;
 
 /**
- * 英雄：每级 +8%（旧版 15%）；技能按"这一关每波平均"写成相对值，各关一致。
+ * 英雄：每级 +8%；技能按"这一关每波平均"写成相对值，各关一致。
  * 注意：登陆战的驻岛英雄 RAID_HERO 仍由 tdunits.ts 的 TD_HERO 派生，攻防不读这里。
  */
 export const TD2_HERO = {
@@ -241,7 +241,7 @@ export const TD2_HOME = {
   maxWaves: 20,
   /**
    * 登陆点离宝藏多远才算"够远"：登陆点到最近宝藏箱的路程，按敌人寻路的流场算（直走一格 10、斜走 14，砸墙按墙代价），
-   * 80 ≈ 8 格空路（主寨 6、7 级推荐布局原来的样子）。写死的登陆点不够远就在同一边挑一个够远的（tdhome.ts 的 homeLanes）
+   * 80 ≈ 8 格空路（主寨 6、7 级推荐布局的样子）。写死的登陆点不够远就在同一边挑一个够远的（tdhome.ts 的 homeLanes）
    */
   laneMinPath: 80,
   /**

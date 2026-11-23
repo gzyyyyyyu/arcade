@@ -202,7 +202,7 @@ function openSea(
   const cloud = coastArt('cloud');
   const nCloud = LOW_MEMORY ? 1 : 2;
   for (let i = 0; i < nCloud; i++) {
-    // 走岛外上下两条空白海面（原来横穿岛中间：电脑横屏时整片半透明盖在岛上，填充占了约 2% 帧率）
+    // 走岛外上下两条空白海面（横穿岛中间的话电脑横屏时整片半透明盖在岛上，填充约占 2% 帧率）
     const band = i === 0 ? SEA_N : SEA_S;
     const y = (band.y0 + band.y1) / 2;
     const big = 1.6 + 0.4 * frac(i, 13);

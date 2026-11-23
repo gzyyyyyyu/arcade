@@ -2,6 +2,7 @@
 // 总线：小音效 + 环境 -> 闪避增益 -> 主增益 -> 压缩器 -> 出口；大音效（倒塌、结算等）绕过闪避增益直接进主增益，
 // 响起时把闪避增益压低 300–600ms 再恢复。合成在 synth.ts，并发/闪避/变体的纯逻辑在 mix.ts，环境声在 ambience.ts。
 // 没有 AudioContext（Node、测试）时所有函数静默不做事。
+import { platformSoundOn } from 'arcade-kit/client';
 import { loadSettings, saveSettings, type Settings } from '../settings.ts';
 import { Ambience } from './ambience.ts';
 import { duckPlan, Limiter, MIN_GAP_MS, pickVariant, Throttle, variantParams, type AmbienceMode, type SfxCount } from './mix.ts';
@@ -18,6 +19,9 @@ let noiseBuf: AudioBuffer | null = null;
 let ambience: Ambience | null = null;
 let wantMode: AmbienceMode = 'off';
 let prefs: Settings = loadSettings();
+/** 大厅关了声音（arcade.sound = off）：这次打开先全静音、开关显示关；在这里再打开只管这一次，不写自己的设置，也不写平台的 key */
+const lobbyOff = !platformSoundOn();
+let live: Settings = lobbyOff ? { ...prefs, music: false, sfx: false } : prefs;
 const limiter = new Limiter();
 const throttle = new Throttle();
 
@@ -45,20 +49,26 @@ interface SfxOpts {
 }
 const lastVariant = new Map<SfxName, number>();
 
-export function isMusicOn(): boolean { return prefs.music; }
-export function isSfxOn(): boolean { return prefs.sfx; }
+export function isMusicOn(): boolean { return live.music; }
+export function isSfxOn(): boolean { return live.sfx; }
 
-/** 音乐（环境声：海浪、海风、海鸟）开关，立刻生效并记下 */
-export function setMusicOn(b: boolean): void {
-  prefs = { ...prefs, music: b };
-  ambience?.setMuted(!b);
+/** 改开关：立刻生效；大厅没静音时才记下 */
+function setLive(next: Settings): void {
+  live = next;
+  if (lobbyOff) return;
+  prefs = next;
   saveSettings(prefs);
 }
 
-/** 音效开关，立刻生效并记下 */
+/** 音乐（环境声：海浪、海风、海鸟）开关 */
+export function setMusicOn(b: boolean): void {
+  setLive({ ...live, music: b });
+  ambience?.setMuted(!b);
+}
+
+/** 音效开关 */
 export function setSfxOn(b: boolean): void {
-  prefs = { ...prefs, sfx: b };
-  saveSettings(prefs);
+  setLive({ ...live, sfx: b });
 }
 
 /** 切后台暂停整个音频（环境声也停），回来恢复；只绑一次 */
@@ -98,7 +108,7 @@ export function unlockAudio(): void {
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       ambience = new Ambience(ctx, duck);
-      ambience.setMuted(!prefs.music);
+      ambience.setMuted(!live.music);
       ambience.setMode(wantMode);
       bindVisibility();
     }
@@ -125,7 +135,7 @@ function duckDown(durSec: number): void {
 }
 
 export function sfx(name: SfxName, opts: SfxOpts = {}): void {
-  if (!prefs.sfx) return;
+  if (!live.sfx) return;
   note(name, 'req');
   if (!ctx || !master || !smallBus || !noiseBuf || ctx.state !== 'running') return note(name, 'silent');
   const meta = SFX_META[name];

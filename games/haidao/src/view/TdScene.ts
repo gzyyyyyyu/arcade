@@ -24,7 +24,7 @@ import { iso } from './iso.ts';
 import { HOME_ID } from './td-ui.ts';
 import type { HeldStep } from './td-ui.ts';
 import type { HintItem } from './tdhint.ts';
-import { fitMarks } from './tdpadguide.ts';
+import { fitMarks, garrisonTagBoxes } from './tdpadguide.ts';
 import { TdPlan } from './tdplan.ts';
 import { ensureArt } from './textures.ts';
 import { type Muzzle, Turret, turretStats, ensureTurrets } from './turret.ts';
@@ -375,7 +375,7 @@ export class TdScene extends Phaser.Scene {
       }
       return pagePoint(this.cc.toScreen(w.x, w.y));
     };
-    app.api.tdInfo = () => ({ tick: s.tick, wave: s.wave, vault: s.vault, lost: s.lost, gold: s.gold, over: s.over, slots: s.slots.map((q) => ({ x: q.x + 1, y: q.y + 1, tower: q.tower, wreck: wreckOf(this, q) !== null, garrison: q.garrison !== undefined })), flags: this.plan.flagCount, routes: this.plan.routeCount, barricades: s.barricades?.length ?? 0, hero: { x: s.hero.x / UNIT, y: s.hero.y / UNIT, goal: s.hero.goal ? { x: s.hero.goal.x / UNIT, y: s.hero.goal.y / UNIT } : null, kind: s.hero.kind, flag: !!s.hero.flag && s.tick < s.hero.flag.until, reward: !!s.hero.reward && s.tick < s.hero.reward.until }, jammed: s.towers.filter((t) => tdJammed(s, t.id)).length, skilled: (s.internal as { skilled: Set<number> }).skilled.size, objects: countObjects(this), events: s.happen?.at ?? [], dare: s.happen?.dare ?? [], raining: raining(s) });
+    app.api.tdInfo = () => ({ tick: s.tick, wave: s.wave, vault: s.vault, lost: s.lost, gold: s.gold, over: s.over, slots: s.slots.map((q) => ({ x: q.x + 1, y: q.y + 1, tower: q.tower, wreck: wreckOf(this, q) !== null, garrison: q.garrison !== undefined })), flags: this.plan.flagCount, routes: this.plan.routeCount, barricades: s.barricades?.length ?? 0, hero: { x: s.hero.x / UNIT, y: s.hero.y / UNIT, goal: s.hero.goal ? { x: s.hero.goal.x / UNIT, y: s.hero.goal.y / UNIT } : null, kind: s.hero.kind, flag: !!s.hero.flag && s.tick < s.hero.flag.until, reward: !!s.hero.reward && s.tick < s.hero.reward.until }, jammed: s.towers.filter((t) => tdJammed(s, t.id)).length, skilled: (s.internal as { skilled: Set<number> }).skilled.size, objects: countObjects(this), events: s.happen?.at ?? [], dare: s.happen?.dare ?? [], raining: raining(s), tags: garrisonTagBoxes(this) });
     app.api.units = () => s.enemies.filter((e) => e.mode === 'in' || e.mode === 'out').map((e) => ({ id: e.id, kind: e.kind, mode: e.mode, hp: e.hp, maxHp: e.maxHp, x: e.x / UNIT, y: e.y / UNIT, gx: e.gx, gy: e.gy, bounty: !!e.bounty }));
     app.api.follow = (id, z = 3) => {
       this.followT = id === null ? null : { id, z, x: 0, y: 0 };

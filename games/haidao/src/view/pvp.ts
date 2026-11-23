@@ -395,7 +395,7 @@ function opponent(s: RaidStart, revenge: boolean, onClose: () => void = () => ap
   all.appendChild(costRow(s.maxGain));
   const c2 = el('span', 'hd-pvp-chip', '出海要 ', loot);
   c2.appendChild(costRow({ gold: 0, wood: cost.wood }, app.profile.res));
-  if (s.wanderer) el('p', 'hd-sub', '港口里暂时没有段位合适的玩家，这是电脑扮的流浪海盗，掠夺由系统发。', box);
+  if (s.wanderer) el('p', 'hd-sub', '港口里暂时没有段位合适的玩家，这是电脑扮的流浪海盗：抢到的金币木材照常给你，不从别的玩家那儿扣。', box);
   else if (revenge) el('p', 'hd-sub', '复仇只拿回他抢走的那部分（最多两成，按拆掉多少算），港口不发赏金；复仇不能再被复仇。', box);
   else el('p', 'hd-sub', '打赢能抢走他仓库的一部分（最多两成，按拆掉多少算），港口另发一半赏金；他会得到护盾，能看回放、找你复仇。', box);
   if (lastMe?.shieldUntil) el('p', 'hd-sub', `你的护盾还有 ${hoursLeft(lastMe.shieldUntil)}，开打就没了。`, box);

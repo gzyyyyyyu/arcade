@@ -7,11 +7,11 @@ import { escortLiveBp, escortLiveSetup } from '../core/escortlive.ts';
 import { LIVE_STAKE, LIVE_TABLE, TIER_NAME } from '../content/livetable.ts';
 import type { EscortResult } from '../core/escorttypes.ts';
 import { LIVE_TIER_IDS, livePick, liveReturn, liveTopBp, type LiveTier } from '../core/live.ts';
-import { escortLive, escortToday, mapLive, mapToday, walletBalance } from '../net/live.ts';
+import { escortLive, escortToday, mapLive, mapToday } from '../net/live.ts';
 import { app, fmt } from './app.ts';
 import { dropStars } from './td-ui.ts';
 import { resultTitle } from './escorttext.ts';
-import { NO_CASH, dialog, errText, winLose } from './live.ts';
+import { NO_CASH, buyIn, dialog, errText, gate, purse, winLose, type Purse } from './live.ts';
 import { MAP_TIER_NOTE, escortLiveLine, netText, quotaText, readLiveRun, returnPctText } from './livemore-logic.ts';
 import { openLiveRoute } from './maproute.ts';
 import { beijingDay } from './maprules.ts';
@@ -24,16 +24,15 @@ const escortErr = (e: string): string => ESCORT_ERR[e] ?? errText(e);
 const mapErr = (e: string): string => MAP_ERR[e] ?? errText(e);
 
 /** 选档页的公共骨架：标题、说明、筹码余额、今天还剩几场、卡片区、脚（回岛） */
-function tierPage(title: string, note: string, onClose: () => void): { mask: HTMLElement; box: HTMLElement; quota: HTMLElement; cards: HTMLElement } {
+function tierPage(title: string, note: string, onClose: () => void): { mask: HTMLElement; box: HTMLElement; quota: HTMLElement; cards: HTMLElement; wallet: Purse } {
   const { mask, box } = dialog({ tiers: true, onEsc: () => { mask.remove(); onClose(); } });
   el('h2', '', title, box);
   el('p', 'hd-live-note', note, box);
-  const bal = el('p', 'hd-live-bal', '筹码 …', box);
-  void walletBalance().then((v) => (bal.textContent = v === null ? '筹码余额暂时看不到' : `筹码 ${fmt(v)}`));
+  const wallet = purse(el('p', 'hd-live-bal', '筹码 …', box));
   const quota = el('p', 'hd-live-note', '', box);
   const scroll = el('div', 'hd-live-scroll', undefined, box);
   const cards = el('div', 'hd-live-cards', undefined, scroll);
-  return { mask, box, quota, cards };
+  return { mask, box, quota, cards, wallet };
 }
 
 function tierFoot(mask: HTMLElement, box: HTMLElement, onClose: () => void): void {
@@ -49,7 +48,7 @@ function tierFoot(mask: HTMLElement, box: HTMLElement, onClose: () => void): voi
 
 /** 护航实盘选档页：四档，每档固定一关，电脑多强、约几分钟、最多赢 / 最多输、今天还剩几场 */
 export function openEscortLive(onClose: () => void): void {
-  const { mask, box, quota, cards } = tierPage('护航（实盘）', '带一份筹码护一趟商船：到港时船越完整结回越多，没到港按走过的路折算，最多输掉这一份。每档的关是固定的。', onClose);
+  const { mask, box, quota, cards, wallet } = tierPage('护航（实盘）', '带一份筹码护一趟商船：到港时船越完整带回越多，没到港按走过的路折算，最多输掉这一份。每档的关是固定的。', onClose);
   const goBtns: HTMLButtonElement[] = [];
   void escortToday().then((d) => {
     if (!d) return;
@@ -64,12 +63,14 @@ export function openEscortLive(onClose: () => void): void {
     el('b', '', `${t.name}档 · 一份 ${fmt(t.stake)}`, info);
     el('div', '', '', info).append('电脑 ', el('span', 'hd-live-star', '★'.repeat(t.power) + '☆'.repeat(4 - t.power)), ' · 约 3–5 分钟');
     winLose(info, t.stake, t.top);
-    const btn = button('开护', 'hd-btn-gold', () => {
-      confirmBox(`带入 ${fmt(t.stake)} 筹码护航。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。确定开护？`, '确定开护', () => {
-        mask.remove();
-        void startEscortLive(id, onClose);
-      }, '再想想');
-    }, c);
+    const btn = gate(wallet, button('开护', 'hd-btn-gold', () => {
+      buyIn(wallet, t.stake, t.name, () =>
+        confirmBox(`带入 ${fmt(t.stake)} 筹码护航。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。确定开护？`, '确定开护', () => {
+          mask.remove();
+          void startEscortLive(id, onClose);
+        }, '再想想'),
+      );
+    }, c), t.stake);
     btn.dataset.tier = id;
     goBtns.push(btn);
   }
@@ -106,10 +107,10 @@ export async function showEscortLiveResult(tier: LiveTier, seed: number, er: Esc
   if (r.ok) {
     const credited = escortLive.record?.credited ?? liveReturn(stake, bp);
     el('p', `hd-live-bal hd-live-net ${credited >= stake ? 'hd-pos' : 'hd-neg'}`, netText(credited, stake), box);
-    el('p', 'hd-live-note', `结回 ${fmt(credited)} 筹码（带入 ${fmt(stake)}）`, box);
+    el('p', 'hd-live-note', `带回 ${fmt(credited)} 筹码（带入 ${fmt(stake)}）`, box);
     if ((escortLive.record?.capped ?? 0) > 0) el('p', 'hd-live-note', '今天这个游戏的进账到顶了，多出来的没进钱包。', box);
   } else if (r.why === 'offline' || r.why === 'login') {
-    el('p', 'hd-live-note', '结果记下了，连上网后会自动结回。', box);
+    el('p', 'hd-live-note', '结果记下了，连上网后会自动带回。', box);
   } else el('p', 'hd-live-note', escortErr(r.error), box);
   el('p', 'hd-live-note', NO_CASH, box);
   main = button('回岛', 'hd-btn-gold hd-btn-wide', () => {
@@ -122,7 +123,7 @@ export async function showEscortLiveResult(tier: LiveTier, seed: number, er: Esc
 
 /** 航线实盘选档页：四档同一条航线，只换结回倍数；每天 1 趟；有没跑完的就先给"接着跑" */
 export function openMapLive(onClose: () => void): void {
-  const { mask, box, quota, cards } = tierPage('今日航线（实盘）', '带一份筹码跑今天的航线：同一条航线、同样的难度，拿的星越多结回越多，最多输掉这一份。', onClose);
+  const { mask, box, quota, cards, wallet } = tierPage('今日航线（实盘）', '带一份筹码跑今天的航线：同一条航线、同样的难度，拿的星越多带回越多，最多输掉这一份。', onClose);
   const goBtns: HTMLButtonElement[] = [];
   const rec = mapLive.record;
   const run = readLiveRun();
@@ -149,12 +150,14 @@ export function openMapLive(onClose: () => void): void {
     el('b', '', `${t.name}档 · 一份 ${fmt(t.stake)}`, info);
     el('div', '', MAP_TIER_NOTE, info);
     winLose(info, t.stake, t.top);
-    const btn = button('出航', 'hd-btn-gold', () => {
-      confirmBox(`带入 ${fmt(t.stake)} 筹码出航。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。今天只有这一趟，确定出航？`, '确定出航', () => {
-        mask.remove();
-        void startMapLive(id, onClose);
-      }, '再想想');
-    }, c);
+    const btn = gate(wallet, button('出航', 'hd-btn-gold', () => {
+      buyIn(wallet, t.stake, t.name, () =>
+        confirmBox(`带入 ${fmt(t.stake)} 筹码出航。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。今天只有这一趟，确定出航？`, '确定出航', () => {
+          mask.remove();
+          void startMapLive(id, onClose);
+        }, '再想想'),
+      );
+    }, c), t.stake);
     btn.dataset.tier = id;
     if (rec?.step === 'playing' && run?.state) btn.disabled = true;
     goBtns.push(btn);

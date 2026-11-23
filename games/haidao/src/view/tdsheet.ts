@@ -133,7 +133,7 @@ export function renderSheet(bs: TdScene): void {
     return;
   }
   if (!t) {
-    el('h2', '', gar ? '驻守台（空着）：当木台用' : sl.high ? '崖上高台：造一座塔' : '木台：造一座塔', head);
+    el('h2', '', gar ? '驻守台（没带塔）：造一座塔' : sl.high ? '崖上高台：造一座塔' : '木台：造一座塔', head);
     button('×', 'hd-x', () => closeSheet(bs), head).title = '关掉（Esc）';
     el('p', 'hd-desc', '从 1 阶起，能升到 3 阶；打完这局就拆。造价用局内金币。', box);
     // 被挡时核心的 build 会不声不响地拒掉，这里先说清楚为什么点不了（和 build 用同一个 tdBuildBlock）

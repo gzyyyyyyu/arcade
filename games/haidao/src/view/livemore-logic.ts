@@ -84,4 +84,4 @@ export function quotaText(kind: 'escort' | 'map', left: number, max: number): { 
 }
 
 /** 航线实盘选档卡上的说明：四档同一条航线，只换结回倍数 */
-export const MAP_TIER_NOTE = '同一条航线，档越高结回越少';
+export const MAP_TIER_NOTE = '同一条航线，档越高带回越少';

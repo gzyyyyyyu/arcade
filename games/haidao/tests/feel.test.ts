@@ -60,6 +60,9 @@ describe('哪些事件震屏', () => {
   });
   it('只有最重的几件事配较长的顿帧', () => {
     expect(BIG_EVENT.keyHit.stop).toBe(0);
+    // 出海一座接一座倒，普通建筑倒塌不能顿帧（兵会跟着停一下）；主寨、首领、宝藏照旧
+    expect(BIG_EVENT.buildingDown).toEqual({ shake: 'light', stop: 0 });
+    expect(BIG_EVENT.hqDown.stop).toBeGreaterThan(0);
     expect(BIG_EVENT.hqDown.stop).toBeGreaterThanOrEqual(BIG_EVENT.buildingDown.stop);
   });
 });

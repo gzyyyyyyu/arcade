@@ -159,7 +159,7 @@ describe('架构', () => {
   it('arch.test.ts 扫的目录里包含守岛的新文件', () => {
     const core = readdirSync(new URL('../src/core/', import.meta.url));
     const content = readdirSync(new URL('../src/content/', import.meta.url));
-    for (const f of ['td.ts', 'tdbase.ts', 'tdbot.ts', 'tdpath.ts', 'grid.ts', 'tdtypes.ts', 'td2types.ts', 'tdrun.ts', 'tdhome.ts']) expect(core).toContain(f);
+    for (const f of ['td.ts', 'tdbase.ts', 'tdbot.ts', 'grid.ts', 'tdtypes.ts', 'td2types.ts', 'tdrun.ts', 'tdhome.ts']) expect(core).toContain(f);
     for (const f of ['branches.ts', 'tdbranches.ts', 'tdunits.ts', 'td2units.ts', 'tdmaps.ts']) expect(content).toContain(f);
   });
 });

@@ -62,8 +62,7 @@ ${W} .hd-screen { inset:env(safe-area-inset-top,0px) env(safe-area-inset-right,0
 ${W} .hd-bottom, ${W} .hd-td-bottom { padding-bottom:calc(8px + env(safe-area-inset-bottom,0px)); }
 ${W} .hd-cards { padding-bottom:calc(8px + env(safe-area-inset-bottom,0px)); }
 ${W} .hd-mute { top:calc(4px + env(safe-area-inset-top,0px)); right:calc(6px + env(safe-area-inset-right,0px)); }
-${W} .hd-feel { top:calc(110px + env(safe-area-inset-top,0px)); right:calc(6px + env(safe-area-inset-right,0px)); }
-/* 守岛选关页的"回岛"让开右上角的声音钮（宽屏时再让开震动钮），别叠在一起 */
+/* 守岛选关页的"回岛"让开右上角的设置钮，别叠在一起 */
 ${W} .hd-tdsel-close { top:calc(4px + env(safe-area-inset-top,0px)); right:calc(58px + env(safe-area-inset-right,0px)); }
 
 /* 360 宽：「回岛」收窄内边距，别压住居中的「悬赏守岛（实盘）」 */
@@ -131,7 +130,7 @@ ${W} .hd-key { display:none; }
   ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat { flex:1 1 0; min-width:58px; max-width:110px; flex-direction:column; gap:0; padding:0 2px; }
   ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat .hd-img { height:20px !important; }
   ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat .hd-nm { font-size:12px; line-height:1.1; }
-  /* 出完的兵种卡只有 44 高，原来 20 的锁压在左上角正好盖住小兵；照技能钮缩到 12、挪到右上角 */
+  /* 出完的兵种卡只有 44 高，锁放左上角会盖住小兵：照技能钮缩到 12、放右上角 */
   ${W} .hd-cards .hd-hint { position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%); white-space:nowrap; }
 }
 
@@ -146,7 +145,7 @@ ${W} .hd-key { display:none; }
   ${W} .hd-base .hd-bar .hd-pill small::before { content:'/ '; }
   /* 基地顶上只有一行：大厅（只留小房子图标，点区 44×44）、金、木、船长头像、设置。主寨等级在点主寨的操作环和船长档案里看，
      训练营从岛上点主寨进（basemenu 的「训练营」项）；船长头像由 basehud 按 PORTRAIT_PHONE 挪进这一行。
-     「换」（登录才有）留在第二行，第二行并进底栏同一行右端 */
+     「兑换」（登录才有，52 宽）留在第二行，第二行并进底栏同一行右端，底栏右边让出 52 + 右边距 6 + 间距 8 */
   ${W} .hd-base .hd-hall { width:44px; min-width:44px; padding:0; justify-content:center; }
   ${W} .hd-base .hd-hall span { display:none; }
   ${W} .hd-base .hd-bar { left:58px; right:58px; max-width:none; flex-wrap:nowrap; gap:6px; }
@@ -158,7 +157,7 @@ ${W} .hd-key { display:none; }
   ${W} .hd-base .hd-bar2 { bottom:calc(8px + env(safe-area-inset-bottom,0px)); height:52px; }
   ${W} .hd-base .hd-bottom[style*="display: none"] ~ .hd-bar2 { display:none; }
   ${W} .hd-base .hd-live-xbtn { margin-left:0; }
-  ${W} .hd-base:has(.hd-live-xbtn) .hd-bottom { padding-right:58px; }
+  ${W} .hd-base:has(.hd-live-xbtn) .hd-bottom { padding-right:66px; }
   /* 矮竖屏底栏再压到 52 高 */
   @media (max-height:700px) {
   ${W} .hd-battle .hd-hall, ${W} .hd-battle .hd-bar { top:0; }
@@ -232,7 +231,6 @@ ${W} .hd-key { display:none; }
   ${W} .hd-cards .hd-hint { position:absolute; left:50%; bottom:calc(100% + 4px); transform:translateX(-50%); white-space:nowrap; }
   /* 兵种多时的紧凑卡在宽屏也要放得下「火枪手 ×16」（56 宽会把末位裁掉） */
   ${W} .hd-cards .hd-boats.hd-tight .hd-boat { flex:1 1 76px; min-width:76px; }
-  ${W} .hd-feel { top:calc(4px + env(safe-area-inset-top,0px)); right:calc(58px + env(safe-area-inset-right,0px)); }
   ${W} .hd-tdsel-close { right:calc(110px + env(safe-area-inset-right,0px)); }
   ${W} .hd-fitbtn { top:62px; }
   ${W} .hd-td-plan, ${W} .hd-td-banner, ${W} .hd-td-paused { top:calc(env(safe-area-inset-top, 0px) + 62px); }

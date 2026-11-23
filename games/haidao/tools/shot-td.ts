@@ -2,11 +2,39 @@
  * shot.ts 的守岛三条：--td（战役一关）、--tide（大潮无尽）、--tdlive（悬赏守岛实盘）。
  * 三条走同一个 TdScene，选关页、造塔、加速钮的点法相同，改守岛界面时一起对照着改。
  */
-import type { Route } from 'playwright-core';
+import type { Page, Route } from 'playwright-core';
 import { FakePvp } from './shot-fake.ts';
 import { TD_CHAPTER, TD_HQ, TD_LEVEL, TD_LV, TD_MECHANIC, TD_NAV, TD_SPEED, layoutProblems, type Hook, type ShotCtx } from './shot-lib.ts';
 
 /** --td：守岛一关 */
+/**
+ * 驻守塔白字和界面叠没叠（独立量，不用游戏自己的避让算法）：界面层里看得见、有底色 / 底图 / 边框、不到半屏的元素都算卡片和框，
+ * 字和它们重叠超过 4 平方像素、出了视口、两句字互相压着，都报
+ */
+async function tagProblems(page: Page, tags: Array<{ l: number; t: number; r: number; b: number; text: string }>): Promise<string[]> {
+  return page.evaluate((tags) => {
+    const out: string[] = [];
+    const big = 0.4 * innerWidth * innerHeight;
+    const boxes: Array<{ l: number; t: number; r: number; b: number; name: string }> = [];
+    for (const e of document.querySelectorAll<HTMLElement>('.hd-ui *')) {
+      const r = e.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1 || r.width * r.height > big) continue;
+      const cs = getComputedStyle(e);
+      if (cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) continue;
+      if (cs.backgroundColor === 'rgba(0, 0, 0, 0)' && cs.backgroundImage === 'none' && cs.borderTopWidth === '0px') continue;
+      boxes.push({ l: r.left, t: r.top, r: r.right, b: r.bottom, name: `.${[...e.classList].join('.')}` });
+    }
+    const ov = (a: { l: number; t: number; r: number; b: number }, b: { l: number; t: number; r: number; b: number }): number =>
+      Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
+    tags.forEach((g, i) => {
+      if (g.l < 0 || g.t < 0 || g.r > innerWidth || g.b > innerHeight) out.push(`驻守白字「${g.text}」出了屏幕（${Math.round(g.l)},${Math.round(g.t)}–${Math.round(g.r)},${Math.round(g.b)}）`);
+      for (const b of boxes) if (ov(g, b) > 4) out.push(`驻守白字「${g.text}」压在 ${b.name} 上 ${Math.round(ov(g, b))} 平方像素`);
+      tags.slice(i + 1).forEach((h) => ov(g, h) > 4 && out.push(`驻守白字「${g.text}」和「${h.text}」叠着`));
+    });
+    return [...new Set(out)];
+  }, tags);
+}
+
 export async function td(c: ShotCtx): Promise<boolean> {
   const { page, v, ROOT, problems, shot, tap, sceneIs, step, click, ready } = c;
   // 守岛：真人点一遍第一章第 1 关（不是机器人代打）：建临时塔 → 选分叉 → 英雄走位 → 放技能 → 提前叫波 → 打完 → 结算
@@ -73,6 +101,8 @@ export async function td(c: ShotCtx): Promise<boolean> {
       if (await page.locator('.hd-tdgar').count()) {
         await shot('garrison-pick');
         await check('驻守台选塔');
+        // 试玩 11-23：横屏、360×640 以前整块说明收起；「你的…级 → 驻守…阶」那一行哪个尺寸都要看得见
+        if (!(await page.locator('.hd-tdgar-lead').isVisible())) throw new Error('选塔页没写「你的…级 → 驻守…阶」那一行');
         const cards = page.locator('.hd-tdgar-spot').first().locator('.hd-tdgar-card');
         if ((await cards.count()) > 2) await cards.nth(1).click();
         await page.waitForTimeout(250);
@@ -85,8 +115,24 @@ export async function td(c: ShotCtx): Promise<boolean> {
         else await page.keyboard.press('Space');
       } else if (TD_LV?.garrison.length) throw new Error('这一关有驻守台，却没弹选塔面板');
       await sceneIs('td', 40_000);
-      await page.waitForTimeout(1500);
-      await shot('td-start');
+      // 驻守塔白字：倒数里隔一会儿量一次（「新敌人」卡、预告卡是陆续出来的），字要整句在屏里、不压任何界面卡片和框、互相不叠
+      if (TD_LV?.garrison.length) {
+        let seen = 0;
+        for (let i = 0; i < 6; i++) {
+          await page.waitForTimeout(i === 0 ? 300 : 700);
+          // 卡片弹出动画放完、白字跟着重摆过一轮（200ms 一次）再量：只量停稳的画面
+          await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity), null, { timeout: 5000 });
+          await page.waitForTimeout(250);
+          const tags = (await info()).tags;
+          seen = Math.max(seen, tags.length);
+          for (const p of await tagProblems(page, tags)) problems.push(`${v.name} 守岛开场 ${p}`);
+          if (i === 2) await shot('td-start');
+        }
+        if (!seen) throw new Error('驻守塔头上没写「你的…级 → 驻守…阶」');
+      } else {
+        await page.waitForTimeout(1500);
+        await shot('td-start');
+      }
       await check('守岛开场');
     })) &&
     (await step('预告和路线', async () => {
@@ -99,8 +145,11 @@ export async function td(c: ShotCtx): Promise<boolean> {
       if (!(await page.locator('.hd-td-plan .hd-plan-foes .hd-tden').count())) throw new Error(`预告卡没画本波敌人：${txt}`);
       if (!/布衣|重甲|木船|飞禽/.test(txt)) throw new Error(`预告卡没写护甲名：${txt}`);
       await shot('preview');
-      // 点卡的标题（左上角）：卡正中可能正好是「建议」徽记，点徽记弹的是伤害说明，不开图鉴
-      await page.locator('.hd-td-plan').click({ position: { x: 14, y: 12 }, timeout: 8000 });
+      // 点卡的标题（左上角）：卡正中可能正好是「建议」徽记，点徽记弹的是伤害说明，不开图鉴。
+      // 矮竖屏（360×640）预告卡只看不点（layout.ts），图鉴从顶栏「图鉴」进
+      const bestBtn = page.locator('.hd-td .hd-best-btn');
+      if (await bestBtn.isVisible()) await bestBtn.click({ timeout: 8000 });
+      else await page.locator('.hd-td-plan').click({ position: { x: 14, y: 12 }, timeout: 8000 });
       await page.waitForTimeout(400);
       if (!(await page.locator('.hd-td-best .hd-ctr-tb').isVisible())) throw new Error('敌人图鉴里没有展开的克制表');
       await shot('bestiary-counter');

@@ -290,9 +290,15 @@ ${U} .hd-seacards .hd-mapcard { animation:none; min-height:52px; }
   /* 右下角最底下是登录后的「悬赏出海（实盘）」（底边 14、高 44），找下一关叠在它上面隔 8 */
   ${U} button.hd-map-home { top:auto; bottom:calc(66px + env(safe-area-inset-bottom,0px)); }
 }
-/* 360 宽登录后航线卡旁边多一个「实盘」小钮，图标 + 字放不下：两张卡只留字 */
+/* 手机竖屏一行塞不下今日航线、实盘、护航、抢劫四样（390 上标题被挤到 20 宽、360 上护航抢劫只有 42 宽）：护航、抢劫换到第二行平分 */
+@media (max-width:559px) and (orientation:portrait) {
+  ${U} .hd-seacards { flex-wrap:wrap; }
+  ${U} .hd-seacards > .hd-mc-row { flex:1 1 100%; }
+  ${U} .hd-seacards > .hd-mapcard { flex:1 1 0; min-width:44px; }
+}
+/* 360 宽登录后航线卡旁边多一个「实盘」小钮，图标 + 字放不下：航线卡只留字 */
 @media (max-width:379px) and (orientation:portrait) {
-  ${U} .hd-seacards .hd-mapcard .hd-img { display:none; }
+  ${U} .hd-seacards .hd-mc-row .hd-mapcard .hd-img { display:none; }
 }
 .hd-ui .hd-map:has(.hd-sheet) ~ button.hd-map-home { display:none; }
 

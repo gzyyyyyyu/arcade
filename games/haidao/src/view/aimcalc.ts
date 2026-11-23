@@ -56,7 +56,7 @@ export function skillCanCast(kind: string, buildings: readonly BBuilding[], x: n
   return kind !== 'flare' || flareTarget(buildings, x, y, radius) !== undefined;
 }
 
-/** 选中技能后的提示条：说清点哪里、圈里发生什么（原来一句“点岛上任意处”，信号弹其实要点在建筑附近） */
+/** 选中技能后的提示条：说清点哪里、圈里发生什么（信号弹要点在建筑附近，不是岛上任意处） */
 export function skillHint(kind: string, name: string): string {
   if (kind === 'flare') return '点敌人的建筑，兵都先去打它';
   if (kind === 'medkit') return '点自己的兵，圈里的兵回血';

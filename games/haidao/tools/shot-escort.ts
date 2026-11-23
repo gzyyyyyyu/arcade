@@ -229,8 +229,8 @@ export async function escortLive(c: ShotCtx): Promise<boolean> {
       if (!done) {
         // 撤退：按走过的格数折算
         await click('.hd-td-bar2 button:has-text("撤退")');
-        const t = await page.locator('.hd-dialog', { hasText: '按已经走过的路结回筹码' }).count();
-        if (!t) throw new Error('撤退确认没写按走过的路结回筹码');
+        const t = await page.locator('.hd-dialog', { hasText: '按已经走过的路带回筹码' }).count();
+        if (!t) throw new Error('撤退确认没写按走过的路带回筹码');
         await click('.hd-dialog button:has-text("撤退")');
         await page.locator('.hd-live button:has-text("回岛")').waitFor({ timeout: 20_000 });
       }

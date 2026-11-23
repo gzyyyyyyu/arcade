@@ -84,7 +84,7 @@ export function onEvent(bs: BattleScene, e: BattleEvent): void {
           // 压扁回弹按当前受损阶段的缩放回去（半塌的建筑本来就矮一截）
           bs.squash.hit(b.img, bs.nowT, () => [1 / bs.r, STAGE_LOOK[b.stage].sy / bs.r]);
           if (bb) {
-            // 数字从血条上面起飘（原来按占地估高度，落在血条上被条压住看不清）
+            // 数字从血条上面起飘（按占地估高度会落在血条上被条压住）
             const z = bs.followT ? bs.followT.z : bs.cc.z;
             bs.dn.add(`b${e.id}`, e.dmg, b.img.x, artTop(b.img) - (BAR_SIZE.building[1] + 14) / z, false, heavy);
             debris(bs, b.img.x, b.img.y, bb.kind, bb.level, heavy ? 3 : 1);

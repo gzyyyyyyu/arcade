@@ -29,7 +29,7 @@ export function holdScout(c: ScoutCtx): boolean {
 export const SCOUT_LABEL = '侦察中';
 
 /** 开场俯瞰的提示合成这一条：红圈是什么、点哪里继续、什么时候开始计时；"先点船卡再点沙滩"留给俯瞰收起后的提示条，不同时出现 */
-export const SCOUT_TIP = '红圈是射程、斜线暗圈是打不到的盲区 · 点任意处开始侦察，出第一船才开始计时';
+export const SCOUT_TIP = '红圈是射程、斜线暗圈是打不到的盲区 · 先点下面的船卡，再点发光的沙滩靠岸；出第一船才开始计时';
 /** 新手第一场的开场提示：不讲盲区和计时，只说红圈危险、点一下开始 */
 export const FIRST_TIP = '这是敌人的岛，红圈里的炮会打你的兵 · 点一下开始';
 

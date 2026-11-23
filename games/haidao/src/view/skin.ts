@@ -175,7 +175,7 @@ ${W} .hd-btn.hd-btn-wood { background:${plank('#a86a38', '#774525')}; color:#fff
 ${W} .hd-btn.hd-btn-red { background:${plank('#d24a3d', '#9e2a22')}; color:#fff; text-shadow:0 1px 0 rgba(70,10,8,.6); }
 ${W} .hd-btn.sel, ${W} .hd-btn.hd-skill.sel { background:${selBg}; }
 /* 两个右上角的小开关和关闭键、回大厅 */
-${W} .hd-mute, ${W} .hd-feel, ${W} .hd-x, ${W} .hd-hall { background:${walnut}; }
+${W} .hd-mute, ${W} .hd-x, ${W} .hd-hall { background:${walnut}; }
 
 /* 顶栏胶囊：半透明深木牌，奶白字；红色提示改浅 */
 ${W} .hd-pill { border-radius:20px; padding:0 14px; ${glass} }

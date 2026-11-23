@@ -101,6 +101,12 @@ export const preSyncKey = (slot: string): string => `haidao.${slot}.pre-sync`;
 export const preSwitchKey = (slot: string, userId: string): string => `haidao.${slot}.pre-switch.${userId}`;
 export const DEBOUNCE_MS = 10_000;
 const MAX_WAIT_MS = 60_000;
+/** 平台同一个槽 10 秒内只收一次（再写回 429 too_soon）；多留 1 秒，离开页面的补传和下次打开的上传也按它隔开（记在元数据里，跨页面） */
+export const SLOT_GAP_MS = 11_000;
+/** 同一次打开里同一个槽两次普通上传至少隔这么久（平台建议隔几分钟）：一直在点的人不至于每分钟传一次、碰上每天的上限；切后台、离开、刚打开照旧马上补 */
+export const UPLOAD_GAP_MS = 2 * 60_000;
+/** 连着 429 时的退避上限（每次翻倍，至少按平台给的 retryAfter） */
+const BACKOFF_MAX_MS = 10 * 60_000;
 /** 重新确认"还是不是这个账号"的最小间隔 */
 const RECHECK_MS = 60_000;
 /** 强制确认的节流：几秒内刚问过 /api/me 就只核对磁盘，不再问（账号不一致期间每次本地改动都会触发） */
@@ -119,6 +125,7 @@ export const NOTE = {
   tooLarge: '云存档空间满了，进度先存在本机；删掉不用的存档再试',
   merged: '和别的设备上的进度合在一起了',
   storage: '这台设备的存储满了，云存档先停一停',
+  limited: '今天存档太勤了，进度先存在本机，过一会儿自动再传',
 } as const;
 
 interface Meta {
@@ -126,6 +133,8 @@ interface Meta {
   userId: string | null;
   rev: Record<string, number>;
   dirty: string[];
+  /** 每个槽上次发 PUT 的时间（毫秒）：离开时的补传和下次打开的上传隔开 SLOT_GAP_MS，别撞上平台的 10 秒限制 */
+  putAt: Record<string, number>;
 }
 
 const bytes = (s: string): number => new TextEncoder().encode(s).length;
@@ -167,10 +176,11 @@ class StorageFull extends Error {}
 
 export function loadMeta(store: KeyValueStore | null): Meta {
   const m = getJson(store, META_KEY);
-  const meta: Meta = { v: 1, userId: null, rev: {}, dirty: [] };
+  const meta: Meta = { v: 1, userId: null, rev: {}, dirty: [], putAt: {} };
   if (!isObj(m)) return meta;
   if (typeof m.userId === 'string') meta.userId = m.userId;
   if (isObj(m.rev)) for (const [k, v] of Object.entries(m.rev)) if (Number.isSafeInteger(v) && (v as number) >= 0) meta.rev[k] = v as number;
+  if (isObj(m.putAt)) for (const [k, v] of Object.entries(m.putAt)) if (Number.isSafeInteger(v)) meta.putAt[k] = v as number;
   if (Array.isArray(m.dirty)) meta.dirty = [...new Set(m.dirty.filter((x): x is string => typeof x === 'string'))];
   return meta;
 }
@@ -214,6 +224,10 @@ export class Cloud {
   private readonly timers = new Map<string, { id: unknown; first: number }>();
   /** 429 之后每个槽最早什么时候能再传（之后的改动不能把它提前） */
   private readonly retryAt = new Map<string, number>();
+  /** 每个槽连着几次 429（成功一次清零）：退避按它翻倍 */
+  private readonly limited = new Map<string, number>();
+  /** 这次打开里已经传上去的槽（被拒、没连上的不算）：再传要隔 UPLOAD_GAP_MS */
+  private readonly sent = new Set<string>();
   /** 本地改动计数：上传途中又改了，传完仍算待上传 */
   private readonly gen = new Map<string, number>();
   private readonly d: CloudDeps;
@@ -345,6 +359,7 @@ export class Cloud {
       else this.meta = disk;
       return;
     }
+    for (const [slot, at] of Object.entries(disk.putAt)) this.meta.putAt[slot] = Math.max(at, this.meta.putAt[slot] ?? at);
     let advanced = false;
     for (const [slot, rev] of Object.entries(disk.rev)) {
       if (rev <= (this.meta.rev[slot] ?? 0)) continue;
@@ -370,10 +385,14 @@ export class Cloud {
     if (!keepalive) dropTimer();
     const busy = this.inflight.get(name);
     if (!this.started || this.stopped || this.tooLarge.has(name) || busy === true || (busy === false && (!leaving || this.dups.has(name)))) return;
-    if (!this.meta.dirty.includes(name) || this.puts >= SESSION_PUTS) return;
-    const wait = (this.retryAt.get(name) ?? 0) - this.d.now();
+    // 离开页面的那次补传不受这次打开的总数限制：最后一版一定要交
+    if (!this.meta.dirty.includes(name) || (this.puts >= SESSION_PUTS && !leaving)) return;
+    // 429 之后、离上次发太近（平台 10 秒一次；这次打开里传过的隔 2 分钟）都等到点再传，切后台补传也不能抢跑。
+    // 离开页面时太近就不发：本地还是待上传，下次打开到点再传
+    // 409 冲突后重交：上一个没写进去，平台的 10 秒还没开始算，不用等
+    const gap = depth > 0 ? 0 : keepalive || !this.sent.has(name) ? SLOT_GAP_MS : UPLOAD_GAP_MS;
+    const wait = Math.max(this.retryAt.get(name) ?? 0, (this.meta.putAt[name] ?? -Infinity) + gap) - this.d.now();
     if (wait > 0) {
-      // 429 之后切后台补传也不能抢跑
       if (!keepalive) this.timers.set(name, { id: this.d.setTimer(() => void this.flush(name), wait), first: this.d.now() });
       return;
     }
@@ -399,7 +418,7 @@ export class Cloud {
       this.note = NOTE.tooLarge;
       return this.changed();
     }
-    // userId 是最近一次 /api/me 确认的账号：平台（0.7.1 起）发现和会话里的不是同一个人就回 409 wrong_user、不写库，
+    // userId 是最近一次 /api/me 确认的账号：平台发现和会话里的不是同一个人就回 409 wrong_user、不写库，
     // 堵住"刚确认完、别的标签页又换了账号"的那一小段（keepalive 补传来不及先问 /api/me，靠的也是它）
     const body = `{"baseRev":${this.meta.rev[name] ?? 0},"userId":${JSON.stringify(this.user)},"data":${data}}`;
     if (keepalive && bytes(body) > keepaliveLeft()) {
@@ -409,6 +428,9 @@ export class Cloud {
     }
     if (keepalive) dropTimer();
     this.puts += 1;
+    // 发之前先记下（keepalive 发完页面可能就没了）：下次打开据此隔开
+    this.meta.putAt[name] = this.d.now();
+    this.saveMeta();
     if (busy === false) {
       // 同一份已经有普通请求在途、页面马上要走：补一个 keepalive 就不管回话了（两份都到了的话后到的撞上 409，什么也不写；
       // 页面没走成的话，先发的那个照常处理回话，下次上传按冲突合并）
@@ -425,6 +447,8 @@ export class Cloud {
     if (res.status === 200 && typeof res.body?.rev === 'number') {
       this.meta.rev[name] = res.body.rev;
       if ((this.gen.get(name) ?? 0) === gen) this.setDirty(name, false);
+      this.limited.delete(name);
+      this.sent.add(name);
       this.note = null;
       this.saveMeta();
     } else if (res.status === 409 && err === 'wrong_user') {
@@ -447,10 +471,15 @@ export class Cloud {
       if (!this.saveMeta()) return;
       return this.flush(name, false, depth + 1);
     } else if (res.status === 429) {
+      // 按平台给的 retryAfter 等；连着被拒就翻倍（最多 10 分钟），本地一直算待上传，到点传的是那时最新的一版
+      const n = (this.limited.get(name) ?? 0) + 1;
+      this.limited.set(name, n);
       const after = typeof res.body?.retryAfter === 'number' ? res.body.retryAfter : 10;
-      const at = this.d.now() + Math.max(1, after) * 1000;
+      const at = this.d.now() + Math.max(Math.max(1, after) * 1000, Math.min(SLOT_GAP_MS * 2 ** (n - 1), BACKOFF_MAX_MS));
       this.retryAt.set(name, Math.max(at, this.retryAt.get(name) ?? 0));
-      this.timers.set(name, { id: this.d.setTimer(() => void this.flush(name), at - this.d.now()), first: this.d.now() });
+      this.timers.set(name, { id: this.d.setTimer(() => void this.flush(name), (this.retryAt.get(name) ?? at) - this.d.now()), first: this.d.now() });
+      // 10 秒那种自己会好，不说；真的超了次数（或连着被拒）才说一句
+      if (err === 'rate_limited' || n >= 3) this.note = NOTE.limited;
     } else if (res.status === 413) {
       this.tooLarge.add(name);
       this.note = NOTE.tooLarge;
@@ -586,7 +615,7 @@ export class Cloud {
     }
     // 本地清空了马上把新账号落盘（磁盘上本来是旧账号的，saveMeta 会拒绝，所以直接写）：
     // 之后哪一步失败，下次启动看到的都是"新账号"，不会把新账号的东西备份成旧账号的
-    this.meta = { v: 1, userId: id, rev: {}, dirty: [] };
+    this.meta = { v: 1, userId: id, rev: {}, dirty: [], putAt: {} };
     if (!setRaw(this.d.store, META_KEY, JSON.stringify(this.meta))) throw new StorageFull();
   }
 

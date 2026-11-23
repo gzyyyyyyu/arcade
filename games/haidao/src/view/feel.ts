@@ -26,8 +26,8 @@ export const SHAKE_COOLDOWN_MS = 300;
 export const BIG_EVENT = {
   /** 主寨被摧毁 */
   hqDown: { shake: 'heavy', stop: 80 },
-  /** 一般建筑倒塌（墙、地雷、焦油、棕榈、石头不算） */
-  buildingDown: { shake: 'medium', stop: 55 },
+  /** 一般建筑倒塌（墙、地雷、焦油、棕榈、石头不算）：出海一座接一座倒，只轻震、不顿帧，兵不停（所有者 11-23「每打掉一个建筑都卡一下」） */
+  buildingDown: { shake: 'light', stop: 0 },
   /** 主寨 / 宝藏箱挨了一记重击（不是小兵的普通攻击） */
   keyHit: { shake: 'light', stop: 0 },
   /** 大爆炸（半径 ≥ 1.5 格）：炮击技能、臼炮、地雷、火药桶；连锁时一连串，靠冷却合并 */

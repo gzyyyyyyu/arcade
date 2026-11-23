@@ -8,8 +8,8 @@ import { DEPTH } from './depth.ts';
 import { MARK_FONT, guideVisible, markScale } from './padguide.ts';
 import { tdGarrisonOptions } from '../core/index.ts';
 import { app } from './app.ts';
+import { uiRoot } from './ui.ts';
 import { garrisonLine, garrisonShort, openerLeft, towerName } from './td-ui.ts';
-import { EDGE_PAD } from './camguide.ts';
 import type { NextStep } from './td-ui.ts';
 import { slotLift } from './tdcliff.ts';
 
@@ -24,6 +24,10 @@ interface PadMark {
   /** 字本来的世界 x、底边 y（塔头正上方；金字的脉动在这上面往上点） */
   x: number;
   y: number;
+  /** 白字：字本身（摆到塔下面时箭头朝上）、塔脚的世界 y、上次摆位的时间 */
+  label: string;
+  foot: number;
+  placedAt: number;
 }
 
 /** 金字脉动往上点的幅度（addMark 的 tween） */
@@ -47,12 +51,12 @@ function addMark(bs: TdScene, slot: number, label: string, lift: number, ring = 
     .setOrigin(0.5, 1)
     .setScale(markScale(bs.cameras.main.zoom) / bs.r)
     .setDepth(DEPTH.markerTop);
-  if (feelOn()) {
-    // 脉动：圈放大淡出再回来，箭头上下点；一轮 1 秒、60 帧里都是连续的
+  if (feelOn() && ring) {
+    // 脉动（只金字：白字要按界面卡片挪位置，不跳）：圈放大淡出再回来，箭头上下点；一轮 1 秒、60 帧里都是连续的
     if (rgo) bs.tweens.add({ targets: rgo, scale: 1.18, alpha: 0.55, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
     bs.tweens.add({ targets: arrow, y: arrow.y - GOLD_BOB, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
   }
-  const m = { slot, ring: rgo, arrow, x: p.x, y: arrow.y };
+  const m = { slot, ring: rgo, arrow, x: p.x, y: arrow.y, label, foot: p.y + 6, placedAt: -Infinity };
   let set = live.get(bs);
   if (!set) live.set(bs, (set = new Set()));
   set.add(m);
@@ -66,42 +70,130 @@ function dropMark(bs: TdScene, m: PadMark): void {
   m.arrow.destroy();
 }
 
-/** 只写字的标记（驻守塔说明）贴边时离屏幕左右边留多少（CSS 像素，画布按 bs.r 倍）：让开屏边那列「+」/ 敌人箭头（圆心离边 EDGE_PAD、最大 44 宽） */
-const EDGE_PX = EDGE_PAD + 22 + 4;
 /** 手机竖屏、横屏（和选关页分页同一条线）：塔头上整句放不下，改写短句 */
 const NARROW_QUERY = '(max-width:700px), (max-height:500px)';
+/** 白字离屏幕边、卡片至少留多少（CSS 像素） */
+const TAG_PAD = 6;
+/** 白字多久重新摆一次位（要读界面卡片的位置，不每帧读） */
+const PLACE_MS = 200;
 
-/** 每帧：镜头缩放变了（双指、全景、跟拍）就把金圈的字调回屏幕上看得清的大小；只写字的标记贴着屏幕左右边不出屏 */
+/** 每帧：镜头缩放变了（双指、全景、跟拍）就把金圈的字调回屏幕上看得清的大小；白字每隔一会儿重新摆位，避开界面卡片 */
 export function fitMarks(bs: TdScene): void {
   const set = live.get(bs);
   if (!set?.size) return;
   const k = markScale(bs.cameras.main.zoom) / bs.r;
+  let white = false;
   for (const m of set) {
     // 重开一局时旧对象随场景已经没了
     if (!m.arrow.active) set.delete(m);
     else {
       if (m.arrow.scaleX !== k) m.arrow.setScale(k);
-      if (!m.ring) {
-        const v = bs.cameras.main.worldView;
-        const half = m.arrow.displayWidth / 2 + (EDGE_PX * bs.r) / bs.cameras.main.zoom;
-        m.arrow.x = v.width > 2 * half ? Math.min(Math.max(m.x, v.x + half), v.right - half) : m.x;
-        liftOverGold(set, m);
-      }
+      white ||= !m.ring;
     }
   }
-}
-/** 白字和旁边台子的金字横着撞上（窄屏两块台挨着）就把白字整块抬到金字上面（改 origin，不碰脉动 tween 管的 y） */
-function liftOverGold(set: Set<PadMark>, m: PadMark): void {
-  const t = m.arrow;
-  const h = t.height * t.scaleY;
-  let raise = 0;
-  for (const o of set) {
-    if (!o.ring || !o.arrow.active) continue;
-    const top = o.y - GOLD_BOB - o.arrow.height * o.arrow.scaleY;
-    if (Math.abs(o.arrow.x - t.x) < (t.width * t.scaleX + o.arrow.width * o.arrow.scaleX) / 2 && top < m.y && o.y > m.y - h) raise = Math.max(raise, m.y - top);
+  const now = bs.time.now;
+  if (!white || now - Math.max(...[...set].filter((m) => !m.ring).map((m) => m.placedAt)) < PLACE_MS) return;
+  const boxes = [...hudBoxes(uiRoot(), 3), ...[...set].filter((m) => m.ring).map((m) => markBox(bs, m))];
+  for (const m of set) {
+    if (m.ring) continue;
+    m.placedAt = now;
+    const b = placeTag(bs, m, boxes);
+    boxes.push(b);
   }
-  const oy = 1 + raise / h;
-  if (t.originY !== oy) t.setOrigin(0.5, oy);
+}
+
+export interface Box {
+  l: number;
+  t: number;
+  r: number;
+  b: number;
+}
+const area = (a: Box): number => Math.max(0, a.r - a.l) * Math.max(0, a.b - a.t);
+const overlap = (a: Box, b: Box): number => area({ l: Math.max(a.l, b.l), t: Math.max(a.t, b.t), r: Math.min(a.r, b.r), b: Math.min(a.b, b.b) });
+
+/**
+ * 界面层上看得见的卡片、框、按钮、提示条（CSS 像素，相对视口）：透明的外框（界面根、守岛这一页、顶栏、屏边箭头那层）往里拆，
+ * 占半屏以上的（整页遮罩、层容器）不算，看不见的（display:none、透明度 0）不算
+ */
+export function hudBoxes(root: HTMLElement, levels = 2): Box[] {
+  const out: Box[] = [];
+  const big = 0.4 * innerWidth * innerHeight;
+  const walk = (p: Element, depth: number): void => {
+    for (const c of p.children) {
+      if (!(c instanceof HTMLElement)) continue;
+      const r = c.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) continue;
+      const cs = getComputedStyle(c);
+      if (cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) continue;
+      const clear = cs.backgroundColor === 'rgba(0, 0, 0, 0)' && cs.backgroundImage === 'none' && cs.borderTopWidth === '0px';
+      if (clear || r.width * r.height > big) {
+        if (depth > 0) walk(c, depth - 1);
+        continue;
+      }
+      out.push({ l: r.left, t: r.top, r: r.right, b: r.bottom });
+    }
+  };
+  walk(root, levels);
+  return out;
+}
+
+/** 世界坐标 → 视口里的 CSS 像素 */
+function toCss(bs: TdScene, x: number, y: number): { x: number; y: number } {
+  const cam = bs.cameras.main;
+  const c = bs.game.canvas.getBoundingClientRect();
+  return { x: c.left + ((x - cam.worldView.x) * cam.zoom) / bs.r, y: c.top + ((y - cam.worldView.y) * cam.zoom) / bs.r };
+}
+
+/** 一个标记的字现在占的地方（CSS 像素）；金字算上脉动往上点的那一截 */
+export function markBox(bs: TdScene, m: PadMark): Box {
+  const t = m.arrow;
+  const z = bs.cameras.main.zoom / bs.r;
+  const w = t.displayWidth * z;
+  const h = t.displayHeight * z;
+  const p = toCss(bs, t.x, t.y);
+  const top = p.y - t.originY * h - (m.ring ? GOLD_BOB * z : 0);
+  return { l: p.x - w / 2, t: top, r: p.x + w / 2, b: top + h + (m.ring ? GOLD_BOB * z : 0) };
+}
+
+/**
+ * 白字摆位：几个位置里挑和卡片、金字、屏幕外重叠最少的（同样少挑靠前的）——塔头正上方，左右挪半句、一句，抬高一截，塔脚下面（箭头朝上）。
+ * 试玩 11-23：电脑上被「新敌人」卡盖住后半句，手机横屏塔在「第 1/8 波」框底下只露一个「阶」
+ */
+function placeTag(bs: TdScene, m: PadMark, boxes: Box[]): Box {
+  const t = m.arrow;
+  const z = bs.cameras.main.zoom / bs.r;
+  const w = t.displayWidth * z;
+  const h = t.displayHeight * z;
+  const head = toCss(bs, m.x, m.y);
+  const foot = toCss(bs, m.x, m.foot);
+  const c = bs.game.canvas.getBoundingClientRect();
+  const view: Box = { l: Math.max(c.left, 0) + TAG_PAD, t: Math.max(c.top, 0) + TAG_PAD, r: Math.min(c.right, innerWidth) - TAG_PAD, b: Math.min(c.bottom, innerHeight) - TAG_PAD };
+  const cands: Array<{ x: number; top: number; below: boolean }> = [];
+  for (const dx of [0, -w / 2, w / 2, -w, w]) cands.push({ x: head.x + dx, top: head.y - h, below: false });
+  cands.push({ x: head.x, top: head.y - 2 * h, below: false }, { x: foot.x, top: foot.y, below: true });
+  for (const dx of [-w / 2, w / 2, -w, w]) cands.push({ x: foot.x + dx, top: foot.y, below: true });
+  let best = cands[0]!;
+  let bestBox: Box | null = null;
+  let bestCost = Infinity;
+  for (const q of cands) {
+    // 先夹进屏幕里，再算压了多少
+    const x = Math.min(Math.max(q.x, view.l + w / 2), view.r - w / 2);
+    const top = Math.min(Math.max(q.top, view.t), view.b - h);
+    const box: Box = { l: x - w / 2 - TAG_PAD / 2, t: top, r: x + w / 2 + TAG_PAD / 2, b: top + h };
+    const cost = boxes.reduce((a, b) => a + overlap(box, b), 0);
+    if (cost < bestCost - 0.5) {
+      bestCost = cost;
+      best = { ...q, x, top };
+      bestBox = box;
+    }
+  }
+  const text = best.below ? `▲\n${m.label}` : `${m.label}\n▼`;
+  if (t.text !== text) t.setText(text);
+  const cam = bs.cameras.main;
+  const cv = bs.game.canvas.getBoundingClientRect();
+  t.setOrigin(0.5, 0);
+  t.setPosition(cam.worldView.x + ((best.x - cv.left) * bs.r) / cam.zoom, cam.worldView.y + ((best.top - cv.top) * bs.r) / cam.zoom);
+  return bestBox!;
 }
 interface GuideState {
   s: unknown;
@@ -153,8 +245,13 @@ export function syncPadGuide(bs: TdScene): void {
   }
 }
 
-/** 战役开局倒数里，驻守塔头上写「你的加农炮 7 级 → 驻守 3 阶」，手机上短写「加农炮 7 级→3 阶」（白字、不画圈：金字金圈是「造这里」；塔在屏外时字贴屏边、让开那列「+」，fitMarks）：基地养成在这一局里看得见；第一波开打、卖掉就收 */
+/** 战役开局倒数里，驻守塔头上写「你的加农炮 7 级 → 驻守 3 阶」，手机上短写「加农炮 7 级→驻守 3 阶」（白字、不画圈：金字金圈是「造这里」；摆位避开界面卡片、金字和屏幕边，见 placeTag）：基地养成在这一局里看得见；第一波开打、卖掉就收 */
 const tags = new WeakMap<TdScene, GuideState>();
+
+/** 现在画着的驻守塔白字占的地方（CSS 像素，相对视口）和字：冒烟拿它量和界面卡片有没有叠 */
+export function garrisonTagBoxes(bs: TdScene): Array<Box & { text: string }> {
+  return (tags.get(bs)?.marks ?? []).filter((m) => m.arrow.active).map((m) => ({ ...markBox(bs, m), text: m.label }));
+}
 
 export function syncGarrisonTags(bs: TdScene): void {
   const s = bs.s;

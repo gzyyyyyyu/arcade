@@ -141,7 +141,14 @@ function main(): void {
   addEventListener('pointerdown', unlockAudio);
   addEventListener('keydown', unlockAudio);
   const host = document.getElementById('app')!;
+  // 云存档没有常驻图标：同步说明（存得太勤、连不上、合并了……）每种这次打开只弹一次提示条
+  const told = new Set<string>();
   const cloud = startCloud({
+    onChange: (v) => {
+      if (!v.note || told.has(v.note)) return;
+      told.add(v.note);
+      toast(v.note);
+    },
     onApplied: () => {
       app.save = loadSave();
       app.reload();

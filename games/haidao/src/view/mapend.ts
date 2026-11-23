@@ -366,7 +366,7 @@ function liveLines(l: NonNullable<FinalOpts['live']>, note: HTMLElement, box: HT
       const credited = mapLive.record?.credited ?? liveReturn(stake, l.bp);
       net.className = `hd-live-net ${credited >= stake ? 'hd-pos' : 'hd-neg'}`;
       net.textContent = netText(credited, stake);
-    } else if (r.why === 'offline' || r.why === 'login') net.textContent = '结果记下了，连上网后会自动结回。';
+    } else if (r.why === 'offline' || r.why === 'login') net.textContent = '结果记下了，连上网后会自动带回。';
     else net.textContent = '钱包暂时连不上，稍后再试';
   });
 }
