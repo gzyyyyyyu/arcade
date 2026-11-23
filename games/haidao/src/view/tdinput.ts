@@ -10,6 +10,7 @@ import { toast } from './ui.ts';
 import { DEPTH } from './depth.ts';
 import { type Act, SKILL } from './tdcommon.ts';
 import { hintText, updateHud, ftx } from './tdhud.ts';
+import { rallyOk } from '../core/tdcamp.ts';
 import { closeSheet, showSlot } from './tdsheet.ts';
 import { drawSlotDiamond, slotAt } from './tdpick.ts';
 import { crateAt } from './tdworld.ts';
@@ -169,13 +170,23 @@ export function tap(bs: TdScene, wx: number, wy: number): void {
     return;
   }
   if (bs.mode === 'hook') return tapHook(bs, wx, wy, ux, uy);
+  if (bs.mode === 'muster') {
+    bs.mode = 'none';
+    hintText(bs, '');
+    if (!rallyOk(s, bs.musterSlot, ux, uy)) {
+      sfx('error');
+      return ftx(bs, wx, wy, '集结点要在营 3 格内的路面上', '#ff9a8a', 15);
+    }
+    act(bs, { type: 'muster', slot: bs.musterSlot, x: ux, y: uy });
+    return moveMark(bs, wx, wy);
+  }
   if (bs.mode !== 'none') {
     const m = bs.mode;
     bs.mode = 'none';
     bs.hintTimer?.remove();
     hintText(bs, '');
     bs.hud.hint.classList.remove('bad');
-    // 瞄着技能点到了木台：当成想造塔，退出瞄准、开面板（以前会被当成落点吞掉；敌人走路面，不会站在木台的占地格上）
+    // 瞄着技能点到了木台：当成想造塔，退出瞄准、开面板（不然会被当成落点吞掉；敌人走路面，不会站在木台的占地格上）
     // 急射旗本来就是往塔堆里插，点到木台照样插旗
     const pad = m === 'flag' ? -1 : slotFoot(bs, ux, uy);
     if (pad >= 0) {
@@ -216,7 +227,7 @@ export function tap(bs: TdScene, wx: number, wy: number): void {
     act(bs, { type: 'repair', id: wl.id });
     return;
   }
-  // 没选中英雄时点空地什么都不做：以前点哪英雄就往哪跑，所有者嫌乱
+  // 没选中英雄时点空地什么都不做：点哪英雄就往哪跑太乱
   if (!sel) return;
   heroGo(bs, ux, uy, wx, wy);
 }

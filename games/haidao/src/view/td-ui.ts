@@ -20,6 +20,10 @@ import { dayIndex } from './meta.ts';
 import { button, el, img, toast, uiRoot } from './ui.ts';
 import { injectTdCss } from './tdcss.ts';
 import { garrisonMap, islandMap } from './islemap.ts';
+import { openTalentPage } from './tdtalentpage.ts';
+import { TD_CHALLENGE_BY_ID } from '../content/tdchallenge.ts';
+import { tdPlayOpen, tdTalentPoints } from '../core/tdrun.ts';
+import type { TdPlay } from '../core/tdrun.ts';
 
 /** 守岛的 DOM 界面公共件：选关页、驻守台选塔、克制表卡、预告条、分叉选择卡（守岛局内和基地的塔面板共用）、样式 */
 
@@ -85,9 +89,12 @@ export function damageSources(d: TdDamage): string[] {
   return [...damageTowers(d).map((k) => BUILDINGS[k].name), ...DAMAGE_EXTRA.filter(([, x]) => x === d).map(([n]) => n)];
 }
 
-/** 穿这种护甲的敌人（小艇是分裂小艇分出来的，不单列） */
+/** 首领换形态后的那几段（铁潮舰长上岸、冲锋）：和第一段是同一个首领，名单只列第一段 */
+const LATER_PHASES: ReadonlySet<string> = new Set(Object.values(TD2_ENEMIES).flatMap((d) => (d.phase ? [d.phase.next] : [])));
+
+/** 穿这种护甲的敌人（小艇是分裂小艇分出来的、首领后几段是同一个首领，都不单列） */
 export function armorFoes(a: TdArmor): TdEnemyKind[] {
-  return (Object.keys(TD_ENEMY_ARMOR) as TdEnemyKind[]).filter((k) => TD_ENEMY_ARMOR[k] === a && k !== 'skiffling');
+  return (Object.keys(TD_ENEMY_ARMOR) as TdEnemyKind[]).filter((k) => TD_ENEMY_ARMOR[k] === a && k !== 'skiffling' && !LATER_PHASES.has(k));
 }
 
 /** 一种护甲吃哪些伤害多一半、哪些只打一半、哪些打不到：「火打它多一半，枪弹、炮弹照常」这种句子的原料 */
@@ -244,6 +251,10 @@ export const ENEMY_HINT: Partial<Record<TdEnemyKind, string>> = {
   medic: '军医：先打掉，狙击塔会先瞄它',
   gunboat: '炮艇：臼炮、鱼叉、火箭、狙击才够得着',
   king: '海盗王：远程塔和友军船才够得着，先打掉它就不再放人',
+  charger: '冲锋手：用减速、英雄或水手营拦，塔先打最前的',
+  drummer: '盾鼓手：先点掉它，或用溅射和火',
+  balloon: '热气球：早点打下来，落点附近要有地面火力',
+  tyrantShip: '铁潮舰：远程塔才够得着；血到六成上岸、两成半冲锋',
 };
 /** 这一波里出现的、带提醒的敌人，对应的提醒句（没有规则已写的重复） */
 export function enemyHints(p: WavePreview): string[] {
@@ -264,7 +275,7 @@ function openerKinds(op: ReadonlyArray<{ kind: TdTowerKind }>): Array<[TdTowerKi
 
 /**
  * 还没造的开局造法：只在第一波开打前给；照它造完了就返回 undefined，卡上换成「下一座造」——
- * 以前造完了卡上还写「先造：火枪塔、臼炮」，手里剩的钱不知道该造什么
+ * 不这样的话造完了卡上还写「先造：火枪塔、臼炮」，手里剩的钱不知道该造什么
  */
 export function openerLeft(s: TdState): TdLevel['opener'] {
   const left = s.wave === 0 ? s.level.opener?.filter((o) => s.slots[o.slot]!.tower < 0) : undefined;
@@ -281,7 +292,7 @@ export function openerText(op: ReadonlyArray<{ kind: TdTowerKind }>): string {
 /**
  * 预告卡的下一步：有空木台写「下一座造」哪种塔，造满了写「钱够就升级」哪座。
  * 造哪种：照建议的新手机器人挑的那座（核心的 counterKind：按下两波的护甲和每金输出挑，同种塔越多越打折，有飞的先备打飞的、
- * 有雾先备火枪）；以前只按这一波的护甲挑一种伤害，第一波几乎都是布衣，卡上永远是「火」，新手照着全造喷火就守不住
+ * 有雾先备火枪）；只按这一波的护甲挑一种伤害的话，第一波几乎都是布衣，卡上永远是「火」，新手照着全造喷火就守不住
  * （docs/balance-haidao.md 第 5 节）。升哪座：升阶最便宜的那座（并列取木台序号小的），等于先把各座都升到 2 阶再往上；
  * 试过稳机器人的挑法（离路最近的一座攒钱升满），照卡升的新手在 td18 至少一星 70 → 58，最便宜的是 78、其余关和照建议的新手差 ≤ 4。
  * 定住：只在木台上的塔变了（造、卖、升）之后才重挑，翻波、倒数里不换——跟着预告每波重算时卡会自己变，攒钱造 A 的新手看到它变成 B
@@ -301,12 +312,12 @@ export interface HeldStep {
   after: NextStep | null;
 }
 
-/** 木台上的塔（哪座、几阶）和沉船：变了才重挑下一步 */
+/** 木台上的塔（哪座、几阶）、营和沉船：变了才重挑下一步（营不在 s.towers 里，单记一个 c，不然造了营推荐还指着那块台） */
 export function stepKey(s: TdState): string {
   return s.slots
     .map((sl) => {
       const tw = sl.tower >= 0 ? s.towers.find((q) => q.id === sl.tower) : undefined;
-      return tw ? `${tw.id}.${tw.tier ?? 0}` : sl.wreck !== undefined ? 'w' : '-';
+      return tw ? `${tw.id}.${tw.tier ?? 0}` : sl.tower >= 0 ? 'c' : sl.wreck !== undefined ? 'w' : '-';
     })
     .join(',');
 }
@@ -576,6 +587,15 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
   const right = el('div', 'hd-tdsel-r', undefined, wrap);
   const head = el('div', 'hd-tdsel-head', undefined, left);
   el('h2', '', '守岛', head);
+  // 海图天赋：战役 6 星起才有点数，之前不摆。竖屏顶上一行放不下（悬赏入口占了正中），show 里挪到翻页那一行
+  let talentBtn: HTMLButtonElement | null = null;
+  if (tdTalentPoints(p) > 0) {
+    const tb = (talentBtn = button(`海图天赋 ${tdTalentPoints(p)} 点`, 'hd-btn-wood hd-tdsel-talent', () => {
+      wrap.classList.add('away');
+      openTalentPage(() => wrap.classList.remove('away'));
+    }, head));
+    tb.title = '局外天赋：战役和海盗来袭有用';
+  }
   const top = el('div', 'hd-tdsel-top', undefined, left);
   const inc = tdIncome();
   const bar = el('div', 'hd-td-income', undefined, top);
@@ -605,6 +625,7 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
   const mq2 = matchMedia(PAGED2_QUERY);
   const mq3 = matchMedia(PAGED3_QUERY);
   const mqThumb = matchMedia(THUMB_QUERY);
+  const mqTall = matchMedia(PORTRAIT_QUERY);
   let page = 0;
   let curChapter = 0;
 
@@ -638,7 +659,8 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
       tb.type = 'button';
       tb.dataset.chapter = String(c.id);
       el('b', '', c.name, tb);
-      el('small', '', `${got}/${c.levels.length * 3} 星`, tb);
+      const n = el('small', '', `${got}/${c.levels.length * 3}`, tb);
+      el('span', 'hd-tdtab-unit', ' 星', n);
       tb.addEventListener('click', () => show(k));
     });
     page = pg;
@@ -666,6 +688,9 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
       el('b', 'hd-tdname', lv.name, mid);
       const st = el('span', 'hd-stars', undefined, mid);
       for (let n = 0; n < 3; n++) st.appendChild(img(iconA(n < stars ? 'star' : 'starEmpty'), 18));
+      // 老兵徽、挑战章：拿到了才写
+      const marks = [p.td?.vet?.[lv.id] ? '老兵' : '', p.td?.chal?.[lv.id] ? '挑战' : ''].filter(Boolean);
+      if (marks.length) el('small', 'hd-tdmarks', marks.join(' · '), st);
       const b = button(locked ? '未解锁' : stars > 0 ? '再守' : '出发', locked ? 'hd-btn-plain' : 'hd-btn-gold', () => go(lv), c);
       b.disabled = locked;
       b.dataset.level = lv.id;
@@ -679,6 +704,7 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
       const nextB = button('下一页', 'hd-btn-wood hd-tdpg-next', () => show(ci, page + 1), pager);
       nextB.disabled = page >= pages - 1;
     }
+    if (talentBtn) (mqTall.matches && pages > 1 ? pager : head).appendChild(talentBtn);
     const nx = nextTdUnlock(p);
     if (nx && all.some((l) => l.id === nx.id)) el('small', 'hd-tdsel-foot', `下一关「${nx.name}」：守下前一关拿到 1 星解锁`, list);
   };
@@ -688,6 +714,7 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
   mq2.addEventListener('change', onMq);
   mq3.addEventListener('change', onMq);
   mqThumb.addEventListener('change', onMq);
+  mqTall.addEventListener('change', onMq);
   const close = button('回岛', 'hd-btn-wood hd-tdsel-close', () => {
     stop();
     onClose();
@@ -696,6 +723,7 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
     mq2.removeEventListener('change', onMq);
     mq3.removeEventListener('change', onMq);
     mqThumb.removeEventListener('change', onMq);
+    mqTall.removeEventListener('change', onMq);
     pick?.();
     wrap.remove();
     close.remove();
@@ -703,10 +731,38 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
   return stop;
 }
 
+/**
+ * 驻守台面板上的打法钮（普通 → 老兵 → 挑战，点一下换一档）：这关 3★ 才有老兵、有挑战且 ≥1★ 才有挑战，都没有不摆。
+ * 挑的写进 app.tdPlay（和驻守塔一起只对这一关有效），开局由 startTd2 再按存档判一遍
+ */
+function playSwitch(id: string, parent: HTMLElement, rule: HTMLElement): () => TdPlay {
+  const p = app.profile;
+  const plays = (['normal', 'vet', 'chal'] as const).filter((k) => tdPlayOpen(p, id, k));
+  if (plays.length <= 1) return () => 'normal';
+  let cur: TdPlay = app.tdPicksFor === id && plays.includes(app.tdPlay as never) ? app.tdPlay : 'normal';
+  const chal = TD_CHALLENGE_BY_ID.get(id);
+  const label = (k: TdPlay): string => (k === 'vet' ? '老兵' : k === 'chal' ? `挑战：${chal?.name ?? ''}` : '普通');
+  const line = (k: TdPlay): string => (k === 'vet' ? '老兵：敌人多三成、第 3 波起有精英、丢 6 枚就输；只记老兵徽，不给金币木材' : k === 'chal' ? `挑战「${chal?.name ?? ''}」：${chal?.desc ?? ''}；只记挑战章，不给金币木材` : starRule());
+  const b = button('', 'hd-btn-wood hd-tdplay', () => {
+    cur = plays[(plays.indexOf(cur as never) + 1) % plays.length]!;
+    sync();
+  }, parent);
+  const sync = (): void => {
+    b.textContent = label(cur);
+    b.classList.toggle('on', cur !== 'normal');
+    rule.textContent = line(cur);
+  };
+  b.title = '换打法：老兵、挑战只记徽章，不给金币木材';
+  sync();
+  return () => cur;
+}
+
 /** 矮小的竖屏手机：选关页一章的关卡分三页摆，每页 2 关（见 openTdSelect） */
 const PAGED2_QUERY = '(max-width:420px) and (max-height:700px)';
 /** 手机（竖屏窄、横屏矮）：一章分两页，每页 3 关 */
 const PAGED3_QUERY = '(max-width:700px), (max-height:500px)';
+/** 手机竖屏：和 tdCss 里悬赏入口挪进顶行的那条一致，海图天赋钮改放翻页行 */
+const PORTRAIT_QUERY = '(max-width:700px) and (orientation:portrait)';
 /** 电脑（宽、够高）和竖拿的平板：一章 6 关一屏摆得下还有富余，卡片顶上加这一关的岛缩略图，不让下半屏空着 */
 const THUMB_QUERY = '(min-width:960px) and (min-height:700px), (min-width:701px) and (min-height:1000px)';
 
@@ -825,7 +881,7 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
     sync();
   });
   showSpot(0);
-  el('small', 'hd-tdtheme hd-tdrule', starRule(), wrap);
+  const rule = el('small', 'hd-tdtheme hd-tdrule', starRule(), wrap);
   const btns = el('div', 'hd-td-btns hd-tdgar-btns', undefined, wrap);
   const back = (): void => {
     stop();
@@ -834,11 +890,13 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
   const start = (): void => {
     const out: TdGarrisonPick[] = [...picks.entries()].sort((a, b) => a[0] - b[0]).map(([spot, kind]) => ({ spot, kind }));
     app.tdPicksFor = lv.id;
+    app.tdPlay = play();
     stop();
     onGo(out);
   };
   button('返回', 'hd-btn-plain', back, btns).title = '返回选关（Esc）';
   heroSwitch(btns);
+  const play = playSwitch(lv.id, btns, rule);
   const go = button('开打', 'hd-btn-gold hd-tdgar-go', start, btns);
   go.title = '开打（空格）';
   const key = (e: KeyboardEvent): void => {
@@ -1036,7 +1094,7 @@ export function planCard(
       go();
     });
   }
-  // 这一波的关内事件和潮水变化单独一行、带图标（以前挤在「从哪来」那一行末尾，赏金船、落潮常被漏看）；没有就不占这一行
+  // 这一波的关内事件和潮水变化单独一行、带图标（挤在「从哪来」那一行末尾时赏金船、落潮常被漏看）；没有就不占这一行
   const evs: Array<[HTMLElement, string]> = [];
   // 战书不写在这里：那一波倒数里浮着「接 / 不接」的卷轴，同一件事只在一处说
   if (p.event && p.event !== 'dare') evs.push([img(iconA(p.event), 18), eventNote(p)]);
@@ -1048,7 +1106,7 @@ export function planCard(
     for (const [ic, t] of evs) el('span', '', undefined, ev).append(ic, t);
   }
   const lanes = p.lanes.map((l) => `${o.laneTitle(l.lane)}${l.fly ? '（飞）' : ''}`);
-  // 关卡说明和敌人打法只在图鉴里写全（点卡打开）：以前全塞进第三行，后几波长到五六行，盖住出生点和海上的炮艇
+  // 关卡说明和敌人打法只在图鉴里写全（点卡打开）：全塞进第三行的话，后几波长到五六行，盖住出生点和海上的炮艇
   const tips = !!p.note || enemyHints(p).length > 0;
   const note = [lanes.length ? `${lanes.join('、')}来` : '', tips ? '点开看打法' : ''].filter(Boolean).join(' · ');
   const q = pv[1];

@@ -1,7 +1,7 @@
 /**
  * 美术预览：把 src/view/art 里的素材渲成 PNG。
  * 用法：node tools/art-preview.ts <输出目录>
- * 输出：sheet.png（全部素材图鉴）、base.png（基地全景）、battle.png（战斗定格）。
+ * 输出：sheet.png（全部素材图鉴）、base.png（基地全景）、battle.png（战斗定格）、tdnew.png（守岛终极塔、新敌人和水兵、水手营、段位徽章）。
  * 画图用 @resvg/resvg-js；不开浏览器。
  */
 import fs from 'node:fs';
@@ -16,6 +16,10 @@ import {
 } from '../src/view/art/index.ts';
 import { badgeArt, krakenArt, scaffoldArt } from '../src/view/art/index.ts';
 import type { ArtPiece } from '../src/view/art/index.ts';
+import { tdEnemyFrames } from '../src/view/art/tdart.ts';
+import { tdBarracksAll } from '../src/view/art/tdbarracks.ts';
+import { TD_ULT_ART_IDS, tdUltArt } from '../src/view/art/tdults.ts';
+import { trophyBadgeAll } from '../src/view/art/trophybadge.ts';
 
 const out = process.argv[2];
 if (!out) {
@@ -540,6 +544,20 @@ function scaffoldSheet(): void {
   render(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="560">${body}</svg>`, 'scaffold.png', W);
 }
 
+// ================================================================= 守岛新美术（0.59.0）
+
+/** 一行终极塔、一行新敌人和水兵（走路第 1 帧）、一行水手营 + 段位徽章 */
+function tdNewSheet(): void {
+  const W = 1500;
+  let body = `<rect width="100%" height="100%" fill="${C.grass ?? '#7cc35a'}"/>`;
+  TD_ULT_ART_IDS.forEach((id, i) => { body += put(tdUltArt(id), 62 + i * 120, 230, 0.6); });
+  const foes = ['charger', 'drummer', 'balloon', 'tyrantShip', 'tyrant', 'tyrantRun', 'marine', 'marineGun', 'marineShield'] as const;
+  foes.forEach((k, i) => { body += put(tdEnemyFrames(k, 'walk')[0]!, 80 + i * 160, 420, 0.8); });
+  tdBarracksAll().forEach((p, i) => { body += put(p, 90 + i * 170, 640, 0.7); });
+  trophyBadgeAll().forEach((p, i) => { body += put(p, 900 + i * 82, 600); });
+  render(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="700">${body}</svg>`, 'tdnew.png', W);
+}
+
 // ================================================================= 主流程
 
 {
@@ -552,6 +570,7 @@ function scaffoldSheet(): void {
 }
 mapSheet();
 scaffoldSheet();
+tdNewSheet();
 sheet();
 baseScene(false);
 baseScene(true);

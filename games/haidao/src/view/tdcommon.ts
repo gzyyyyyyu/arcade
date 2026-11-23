@@ -111,10 +111,11 @@ export const RAIN_DIP = 18;
 /** 英雄攻击没有出手拍可对齐，按这个周期循环（毫秒） */
 export const ATK_MS = 640;
 /** 守岛里的船（整张图，停在海上）：画面上起伏、开炮后坐、沉没（不是倒下） */
-export const SHIP_FOES: ReadonlySet<TdEnemyKind> = new Set<TdEnemyKind>(['gunboat', 'king']);
+export const SHIP_FOES: ReadonlySet<TdEnemyKind> = new Set<TdEnemyKind>(['gunboat', 'king', 'tyrantShip']);
 
 /** 骨架的种类：鹦鹉群不是人形，用整帧图 */
-export const RIG_OF: Record<TdEnemyKind, RigKind | null> = { sailor: 'e.sailor', ironclad: 'e.ironclad', fog: 'e.fog', skiff: 'e.skiff', skiffling: 'e.skiffling', sapper: 'e.sapper', grenadier: 'e.grenadier', parrot: null, captain: 'e.captain', shield: 'e.shield', bosun: 'e.bosun', macaw: null, mate: 'e.mate', medic: 'e.medic', gunboat: null, king: null };
+export const RIG_OF: Record<TdEnemyKind, RigKind | null> = { sailor: 'e.sailor', ironclad: 'e.ironclad', fog: 'e.fog', skiff: 'e.skiff', skiffling: 'e.skiffling', sapper: 'e.sapper', grenadier: 'e.grenadier', parrot: null, captain: 'e.captain', shield: 'e.shield', bosun: 'e.bosun', macaw: null, mate: 'e.mate', medic: 'e.medic', gunboat: null, king: null,
+  charger: 'e.sailor', drummer: 'e.shield', balloon: null, tyrantShip: null, tyrant: 'e.captain', tyrantRun: 'e.captain' };
 
 export interface TSpr {
   img: Phaser.GameObjects.Image;

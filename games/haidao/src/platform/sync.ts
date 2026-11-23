@@ -1,11 +1,14 @@
 /**
  * 存档的格式和云存档要的几件事（cloud.ts 的 profileSlot 用）：本地 `haidao.save` = { profile, lastSeen }。
  * 合并：基地布局是一整套摆放，逐项并集会摆出重叠的建筑，所以整份取"进度大"的那份（战役星数 → 主寨等级 → 守岛星数 → 建筑等级合计 → 进攻次数），
- * 进度一样时取最近玩过的。另一份会被 cloud.ts 先备份到 haidao.profile.pre-sync。
+ * 进度一样时取最近玩过的。另一份会被 cloud.ts 先备份到 haidao.profile.pre-sync。守岛的老兵徽、挑战章只增不减，两份取并集并进胜出的那份。
  */
 import { ESCORT_LEVELS } from '../content/index.ts';
 import { TRAIN_BY_ID } from '../content/training.ts';
+import { TD_CHALLENGE_BY_ID } from '../content/tdchallenge.ts';
+import { talentCell } from '../content/tdtalent.ts';
 import { ingotEarned } from '../core/ingot.ts';
+import { GOALS, GOAL_BOX, GOAL_KINDS } from '../core/goals.ts';
 import { ACHIEVEMENTS, BUILDINGS, CAMPAIGN, COSMETICS, SKILLS, HERO_RESEARCH_MAX, RANKS, tdCampaign, TROOPS, canPlace, hqLevel, navUnlocked, newProfile, sanitizeBranch, tdDailyCap, totalStars } from '../core/index.ts';
 import type { Placed, Profile } from '../core/types.ts';
 import { isObj } from '../core/validate.ts';
@@ -83,7 +86,7 @@ export function reviveSave(raw: unknown): Save | null {
     lootWood: cnt(st.lootWood),
   };
   // 第二期加的计数是可选字段，旧档没有就不补（规则核心按 0 算）
-  for (const k of ['threeStars', 'bossWins', 'dailyDone', 'maxStreak', 'streak'] as const) if (st[k] !== undefined) profile.stats[k] = cnt(st[k]);
+  for (const k of ['threeStars', 'bossWins', 'dailyDone', 'maxStreak', 'streak', 'pvpThree', 'revengeWins', 'holds', 'bestTrophies'] as const) if (st[k] !== undefined) profile.stats[k] = cnt(st[k]);
   // 成就只留认识的、不重复；称号必须是已达成成就给的
   const known = new Map(ACHIEVEMENTS.map((a) => [a.id, a]));
   profile.achievements = Array.isArray(p.achievements) ? [...new Set(p.achievements.filter((a): a is string => typeof a === 'string' && known.has(a)))] : [];
@@ -99,6 +102,18 @@ export function reviveSave(raw: unknown): Save | null {
     const cap = tdDailyCap(profile);
     const got = (v: unknown, max: number): number => (isNum(v) && v >= 0 ? Math.min(max, Math.floor(v)) : 0);
     profile.td = { stars, day: isInt(p.td.day, 0, 1e7) ? p.td.day : 0, gotGold: got(p.td.gotGold, cap.gold), gotWood: got(p.td.gotWood, cap.wood) };
+    // 老兵徽、挑战章只留认识的关；天赋只留认识的格、不重复（点数够不够开局时 tdTalentPicks 再判）
+    const marks = (v: unknown, ok: (id: string) => boolean): Record<string, 1> | undefined => {
+      if (!isObj(v)) return undefined;
+      const ids = Object.keys(v).filter((id) => v[id] === 1 && ok(id));
+      return ids.length > 0 ? Object.fromEntries(ids.map((id) => [id, 1 as const])) : undefined;
+    };
+    const vet = marks(p.td.vet, (id) => tdCampaign().some((l) => l.id === id));
+    const chal = marks(p.td.chal, (id) => TD_CHALLENGE_BY_ID.has(id));
+    const talent = Array.isArray(p.td.talent) ? [...new Set(p.td.talent.filter((t): t is string => typeof t === 'string' && talentCell(t) !== null))] : [];
+    if (vet) profile.td.vet = vet;
+    if (chal) profile.td.chal = chal;
+    if (talent.length > 0) profile.td.talent = talent;
   }
   // 守岛带哪个英雄：只认航海士，而且要第一章已经通关（别的值、没解锁的都按船长，不写这个字段）
   if (p.heroPick === 'nav' && navUnlocked(profile)) profile.heroPick = 'nav';
@@ -142,6 +157,14 @@ export function reviveSave(raw: unknown): Save | null {
     const spent = isNum(p.ingot.spent) && p.ingot.spent > 0 ? Math.min(claimed, Math.floor(p.ingot.spent)) : 0;
     if (claimed > 0) profile.ingot = { claimed, spent };
   }
+  // 每日三件小事：只留认识的种类、0..要求次数；领过的只留认识的 id、不重复
+  if (isObj(p.goals) && isInt(p.goals.day, 0, 1e7)) {
+    const prog: NonNullable<Profile['goals']>['prog'] = {};
+    if (isObj(p.goals.prog)) for (const k of GOAL_KINDS) if (isInt(p.goals.prog[k], 0, GOALS[k].need)) prog[k] = p.goals.prog[k] as number;
+    const ids = new Set<string>([...GOAL_KINDS, GOAL_BOX]);
+    const got = Array.isArray(p.goals.got) ? [...new Set(p.goals.got.filter((g): g is string => typeof g === 'string' && ids.has(g)))] : [];
+    profile.goals = { day: p.goals.day, prog, got };
+  }
   return { profile, lastSeen: isNum(raw.lastSeen) && raw.lastSeen > 0 ? raw.lastSeen : 0 };
 }
 
@@ -157,10 +180,25 @@ function progress(s: Save): number[] {
 export function mergeSave(local: Save, cloud: Save): Save {
   const a = progress(local);
   const b = progress(cloud);
+  let win = local;
   for (let i = 0; i < a.length; i++) {
-    if (a[i]! !== b[i]!) return a[i]! > b[i]! ? local : cloud;
+    if (a[i]! !== b[i]!) {
+      win = a[i]! > b[i]! ? local : cloud;
+      break;
+    }
   }
-  return local;
+  return withMarks(win, win === local ? cloud : local);
+}
+
+/** 胜出的那份并上输家的老兵徽、挑战章（都没有就原样返回） */
+function withMarks(win: Save, lose: Save): Save {
+  const w = win.profile.td;
+  const l = lose.profile.td;
+  if (!w || (!l?.vet && !l?.chal)) return win;
+  const vet = { ...(l.vet ?? {}), ...(w.vet ?? {}) };
+  const chal = { ...(l.chal ?? {}), ...(w.chal ?? {}) };
+  const td = { ...w, ...(Object.keys(vet).length > 0 ? { vet } : {}), ...(Object.keys(chal).length > 0 ? { chal } : {}) };
+  return { ...win, profile: { ...win.profile, td } };
 }
 
 export function savePayload(s: Save): unknown {

@@ -8,11 +8,6 @@ import { ESCORT_BITE_PCT, ESCORT_CELL, ESCORT_PACE, ESCORT_PIN_AT } from './esco
 import type { EscortDef, EscortResult, EscortState } from './escorttypes.ts';
 import type { TdState } from './tdstate.ts';
 
-/** 船的终点位置 */
-export function escortEnd(def: EscortDef): number {
-  return Math.max(0, (def.route.length - 1) * ESCORT_CELL);
-}
-
 /** 船此刻的连续坐标（1 格 = 100 单位，格子中心为准，两格之间线性插值）和所在航线下标 */
 export function escortShip(es: EscortState): { x: number; y: number; index: number } {
   const route = es.def.route;

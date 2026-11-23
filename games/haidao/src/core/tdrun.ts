@@ -4,13 +4,17 @@
  * 首次拿到星的奖励另算、不计入上限。纯函数，不改入参。
  */
 import { BUILDINGS, HQ_LEVELS, TD_BONUS_PER_STAR, TD_CAP_RUNS, TD_RUN_REWARD, TD_STAR_PCT } from '../content/index.ts';
-import { TD2_LEVELS, TD2_LEVEL_BY_ID } from '../content/tdmaps.ts';
+import { TD2_CHAPTER_SIZE, TD2_LEVELS, TD2_LEVEL_BY_ID } from '../content/tdmaps.ts';
 import { branchOptions } from '../content/branches.ts';
+import { TD_CHALLENGE_BY_ID, vetLevel } from '../content/tdchallenge.ts';
+import { focusBonus, talentError, talentFold, talentPoints } from '../content/tdtalent.ts';
+import type { TdTalentFold } from '../content/tdtalent.ts';
+import { TD_ULT_UNLOCK } from '../content/tdults.ts';
 import { capacity, hqLevel, newProfile } from './base.ts';
 import { TD_TROPHIES } from './run.ts';
 import { heroLevel } from './tdbase.ts';
 import { TD_TOWER_KINDS, baseBonusPct, garrisonTier } from './td2types.ts';
-import type { TdGarrisonOption, TdGarrisonPick, TdGarrisonTower, TdIslandLevel, TdTowerKind } from './td2types.ts';
+import type { TdGarrisonOption, TdGarrisonPick, TdGarrisonTower, TdIslandLevel, TdTier, TdTowerKind } from './td2types.ts';
 import type { TdLevel, TdResult, TdSetup } from './tdtypes.ts';
 import { ISLAND, RULES_VERSION } from './types.ts';
 import type { Placed, Profile, Res, Result } from './types.ts';
@@ -78,7 +82,7 @@ export function tdRunReward(level: Pick<TdLevel, 'hq'>, stars: number): Res {
   return { gold: Math.floor((r.gold * pct) / 100), wood: Math.floor((r.wood * pct) / 100) };
 }
 
-export interface TdNextUnlock {
+interface TdNextUnlock {
   id: string;
   name: string;
   /** 要先在哪一关拿到 ≥ 1★ */
@@ -87,15 +91,24 @@ export interface TdNextUnlock {
 
 const starsOf = (p: Profile, id: string): number => p.td?.stars[id] ?? 0;
 
-/** 守岛第 chapter 章的关都至少 1 星：结算时送这一章的纪念装饰（TD_TROPHIES）；第四章「远洋」另在船长档案多一行「远洋通关」 */
+/** 守岛第 chapter 章的关都至少 1 星：结算时送这一章的纪念装饰（TD_TROPHIES）；第四章「远洋」另在船长档案多一行「远洋通关」。关没上齐的章不算 */
 export function tdChapterCleared(stars: Readonly<Record<string, number>>, chapter: number): boolean {
   const cs = tdCampaign().filter((l) => l.chapter === chapter);
-  return cs.length > 0 && cs.every((l) => (stars[l.id] ?? 0) >= 1);
+  return cs.length === TD2_CHAPTER_SIZE && cs.every((l) => (stars[l.id] ?? 0) >= 1);
 }
 
 /** 航海士解锁了没有：守岛第一章的关都至少 1 星 */
 export function navUnlocked(p: Profile): boolean {
   return tdChapterCleared(p.td?.stars ?? {}, 1);
+}
+
+/** 水手营教学关：从这一关起战役能造营；这关 ≥ 1★ 后之前的关和海盗来袭也能造 */
+const TD_CAMP_LEVEL = 'td32';
+
+/** 开局写进 setup 的水手营开关（campEnabled 再按模式判）：战役第 levelIndex 关在教学关及以后，或教学关已 ≥ 1★ */
+export function campOf(p: Profile, levelIndex?: number): { camp?: true } {
+  const at = TD2_LEVEL_BY_ID.get(TD_CAMP_LEVEL)?.index ?? Number.POSITIVE_INFINITY;
+  return starsOf(p, TD_CAMP_LEVEL) >= 1 || (levelIndex !== undefined && levelIndex >= at) ? { camp: true } : {};
 }
 
 /** 开局写进 setup 的英雄：存档选了航海士、已经解锁才写（不信存档里的选择），否则不写（船长） */
@@ -124,6 +137,63 @@ export function nextTdUnlock(p: Profile): TdNextUnlock | null {
     if (!tdLevelUnlocked(p, l.id)) return { id: l.id, name: l.name, after: (list[i - 1] as TdIslandLevel).id };
   }
   return null;
+}
+
+// ---------------------------------------------------------------- 终极、老兵、挑战、天赋（设计稿 td.md 批 1、批 2；局内规则在 tddeep.ts）
+
+/** 一关怎么打：普通、老兵（这关 3★ 后）、挑战（有挑战、这关 ≥1★ 后）。只在战役 */
+export type TdPlay = 'normal' | 'vet' | 'chal';
+
+/** 终极塔解锁了没有：守岛 TD_ULT_UNLOCK（第一章末关）≥ 1★ */
+export function tdUltUnlocked(p: Profile): boolean {
+  return starsOf(p, TD_ULT_UNLOCK) >= 1;
+}
+
+/** 这关能不能按 play 打 */
+export function tdPlayOpen(p: Profile, id: string, play: TdPlay): boolean {
+  if (!tdLevelUnlocked(p, id)) return false;
+  if (play === 'vet') return starsOf(p, id) >= 3 && vetLevel(id) !== undefined;
+  if (play === 'chal') return TD_CHALLENGE_BY_ID.has(id) && starsOf(p, id) >= 1;
+  return true;
+}
+
+/** 天赋点数：战役总星 ÷ 6 + 老兵徽 ÷ 3（都向下取整） */
+export function tdTalentPoints(p: Profile): number {
+  const stars = tdCampaign().reduce((s, l) => s + Math.min(3, starsOf(p, l.id)), 0);
+  return talentPoints(stars, Object.keys(p.td?.vet ?? {}).length);
+}
+
+/** 存档里点的天赋（不合法 —— 改过的档、点数被别的设备的档合并掉了 —— 当没点） */
+export function tdTalentPicks(p: Profile): string[] {
+  const ids = p.td?.talent ?? [];
+  return talentError(ids, tdTalentPoints(p)) === null ? [...ids] : [];
+}
+
+/** 改天赋（免费、随时重置）：不合法回原因 */
+export function setTdTalent(p: Profile, ids: readonly string[]): Result<Profile> {
+  const e = talentError(ids, tdTalentPoints(p));
+  if (e) return err(e);
+  const td = p.td ?? { stars: {}, day: 0, gotGold: 0, gotWood: 0 };
+  const { talent: _, ...rest } = td;
+  return ok({ ...p, td: ids.length > 0 ? { ...rest, talent: [...ids] } : rest });
+}
+
+/** 开局要写进 setup 的终极和天赋（战役、海盗来袭共用）；天赋的开局金、驻守台阶、偏爱由调用方折 */
+function deepStart(p: Profile): { fields: Pick<TdSetup, 'ult' | 'talent'>; fold: TdTalentFold } {
+  const fold = talentFold(tdTalentPicks(p));
+  const fx = Object.keys(fold.fx).length > 0 ? { talent: fold.fx } : {};
+  return { fields: { ...(tdUltUnlocked(p) ? { ult: true as const } : {}), ...fx }, fold };
+}
+
+/** 海盗来袭开局：只吃终极和天赋（开局金、偏爱折进 level.gold、bonus），不吃老兵和挑战 */
+export function tdHomeDeep(p: Profile, setup: TdSetup): TdSetup {
+  const { fields, fold } = deepStart(p);
+  return {
+    ...setup,
+    ...fields,
+    ...(fold.focus ? { bonus: focusBonus(fold.focus, setup.bonus) } : {}),
+    level: fold.gold > 0 ? { ...setup.level, gold: setup.level.gold + fold.gold } : setup.level,
+  };
 }
 
 // ---------------------------------------------------------------- 摆关卡里的东西
@@ -193,7 +263,7 @@ export function placeTdLevel(level: TdLevel | TdPlacedLevel, layout: readonly Pl
 
 // ---------------------------------------------------------------- 出海与结算
 
-export interface TdReward {
+interface TdReward {
   /** 这一局实际给的（已按每日上限截过，不含首次星奖励） */
   gold: number;
   wood: number;
@@ -223,13 +293,14 @@ export interface TdReward {
  * 结算一局守岛。dayIndex 是北京时间的天数（画面层算好传进来，和每日悬赏同一口径），换天就重新计当天已拿的。
  * 超过上限照样记星、给首次星奖励，只是不给本局的金币木材；仓库装不下的部分不给（tdGrant）。
  */
-export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex: number): Result<{ profile: Profile; reward: TdReward }> {
+export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex: number, play: TdPlay = 'normal'): Result<{ profile: Profile; reward: TdReward }> {
   const lv = TD2_LEVEL_BY_ID.get(levelId);
   if (!lv) return err('unknown');
-  if (!tdLevelUnlocked(p, levelId)) return err('locked');
+  if (!tdPlayOpen(p, levelId, play)) return err('locked');
   if (!result.over) return err('not_over');
   if (!Number.isInteger(dayIndex) || dayIndex < 0) return err('bad_day');
   const stars = Math.max(0, Math.min(3, Math.floor(result.stars)));
+  if (play !== 'normal') return ok(settleBadge(p, levelId, stars, play, dayIndex));
   const prev = starsOf(p, levelId);
   const newStars = Math.max(0, stars - prev);
   const g = tdGrant(p, tdRunReward(lv, stars), { gold: newStars * lv.hq * TD_BONUS_PER_STAR.gold, wood: newStars * lv.hq * TD_BONUS_PER_STAR.wood }, dayIndex);
@@ -237,7 +308,7 @@ export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex
   const profile: Profile = {
     ...p,
     res: g.res,
-    td: { stars: { ...(p.td?.stars ?? {}), [levelId]: Math.max(prev, stars) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
+    td: { ...p.td, stars: { ...(p.td?.stars ?? {}), [levelId]: Math.max(prev, stars) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
   };
   // 只在拿到星的这一局发：没守住的结算框里不该冒出「通关」（老存档早已全有星、还没领到的章，下一次赢了一起补发）
   const owned = p.cosmetics ?? [];
@@ -254,6 +325,21 @@ export function settleTd(p: Profile, levelId: string, result: TdResult, dayIndex
       unlocked, next, trophies,
     },
   });
+}
+
+/** 老兵、挑战局的结算：≥1★ 记老兵徽 / 挑战章，不给金币木材、不改星数、不发纪念 */
+function settleBadge(p: Profile, levelId: string, stars: number, play: 'vet' | 'chal', dayIndex: number): { profile: Profile; reward: TdReward } {
+  const g = tdGrant(p, { gold: 0, wood: 0 }, { gold: 0, wood: 0 }, dayIndex);
+  const td = p.td ?? { stars: {}, day: dayIndex, gotGold: 0, gotWood: 0 };
+  const profile: Profile = stars >= 1 ? { ...p, td: { ...td, [play]: { ...(td[play] ?? {}), [levelId]: 1 } } } : p;
+  return {
+    profile,
+    reward: {
+      gold: 0, wood: 0, bonusGold: 0, bonusWood: 0, newStars: 0, capped: false, full: false,
+      gotGold: g.got.gold, gotWood: g.got.wood, capGold: g.cap.gold, capWood: g.cap.wood,
+      unlocked: null, next: nextTdUnlock(p), trophies: [],
+    },
+  };
 }
 
 // ---------------------------------------------------------------- 守岛 2.0：驻守台、解锁、基地加成（契约，td2types.ts）
@@ -300,10 +386,16 @@ export function tdGarrisonOptions(p: Profile): TdGarrisonOption[] {
  * 没有这关回 unknown，没解锁回 locked；同一个驻守台挑两次、挑基地里没有的塔、驻守台下标越界都回 bad_garrison；
  * 没挑的驻守台空着（局内能当木台用）。
  */
-export function startTd2(p: Profile, levelId: string, seed: number, picks: readonly TdGarrisonPick[]): Result<TdSetup> {
-  const lv = TD2_LEVEL_BY_ID.get(levelId);
-  if (!lv) return err('unknown');
+export function startTd2(p: Profile, levelId: string, seed: number, picks: readonly TdGarrisonPick[], play: TdPlay = 'normal'): Result<TdSetup> {
+  const base = TD2_LEVEL_BY_ID.get(levelId);
+  if (!base) return err('unknown');
   if (!tdLevelUnlocked(p, levelId)) return err('locked');
+  if (!tdPlayOpen(p, levelId, play)) return err('play_locked');
+  const { fields, fold } = deepStart(p);
+  const chal = play === 'chal' ? TD_CHALLENGE_BY_ID.get(levelId) : undefined;
+  const lv0 = play === 'vet' ? (vetLevel(levelId) as TdIslandLevel) : base;
+  const gold = Math.floor((lv0.gold * (chal?.rule.goldPct ?? 100)) / 100) + fold.gold;
+  const lv: TdIslandLevel = gold === lv0.gold ? lv0 : { ...lv0, gold };
   const garrison: TdGarrisonTower[] = [];
   const used = new Set<number>();
   for (const pk of picks) {
@@ -312,8 +404,10 @@ export function startTd2(p: Profile, levelId: string, seed: number, picks: reado
     const opt = tdGarrisonOptions(p).find((o) => o.kind === pk.kind);
     if (!opt) return err('bad_garrison');
     used.add(pk.spot);
-    garrison.push({ spot: pk.spot, kind: opt.kind, tier: opt.tier, branch: opt.branch });
+    const tier = (fold.garrisonUp ? Math.min(3, opt.tier + 1) : opt.tier) as TdTier;
+    garrison.push({ spot: pk.spot, kind: opt.kind, tier, branch: opt.branch });
   }
+  const kinds = chal?.rule.kinds;
   return ok({
     layout: lv.layout.map((b) => ({ ...b })),
     level: lv,
@@ -322,8 +416,13 @@ export function startTd2(p: Profile, levelId: string, seed: number, picks: reado
     rules: RULES_VERSION,
     mode: 'campaign',
     garrison,
-    unlocked: tdUnlockedTowers(p),
+    unlocked: kinds ? tdUnlockedTowers(p).filter((k) => kinds.includes(k)) : tdUnlockedTowers(p),
     ...heroKindOf(p),
+    ...fields,
+    ...(fold.focus ? { bonus: focusBonus(fold.focus) } : {}),
+    ...(play === 'vet' ? { vet: true as const } : {}),
+    ...(chal ? { rule: { ...chal.rule } } : {}),
+    ...campOf(p, lv.index),
   });
 }
 
@@ -380,5 +479,9 @@ export function tdGrowthSetup(levelId: string, growth: TdGrowth, seed: number, h
   const lv = TD2_LEVEL_BY_ID.get(levelId);
   if (!lv) return err('unknown');
   const p = tdGrowthProfile(lv, growth, hero);
-  return startTd2(p, levelId, seed, tdAutoPicks(p, levelId));
+  const r = startTd2(p, levelId, seed, tdAutoPicks(p, levelId));
+  // 养成档的存档战役全 1★（含水手营教学关），可配平量的是第一次打这关：水手营只按关卡下标给
+  if (!r.ok) return r;
+  const { camp: _, ...rest } = r.value;
+  return ok({ ...rest, ...campOf(newProfile(), lv.index) });
 }

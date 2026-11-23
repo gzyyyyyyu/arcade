@@ -54,7 +54,7 @@ function scanBox(c: HTMLCanvasElement): { box: Box; clip: Box } {
 
 /**
  * 按原画布坐标读一个像素的 alpha。裁过透明边的建筑图不用自己换算：Phaser 的 getPixelAlpha 会按帧的 trim 偏移减掉，
- * 落在裁掉的边里回 null（这里当 0）。0.49.0 曾在这里再减一次偏移，塔身、建筑的像素全读成透明，只有占地格点得中
+ * 落在裁掉的边里回 null（这里当 0）。不要在这里再减一次偏移：会把塔身、建筑的像素全读成透明，只有占地格点得中
  */
 export function alphaAt(tm: Phaser.Textures.TextureManager, key: string, x: number, y: number): number {
   return tm.getPixelAlpha(x, y, key) ?? 0;

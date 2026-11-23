@@ -723,7 +723,7 @@ export function hasLoginHint(): boolean {
 }
 
 /** 存档这一槽：读写的就是 save.ts 的 `haidao.save`（用传进来的存储，测试里是内存假的） */
-export const profileSlot: SlotDef<Save> = {
+const profileSlot: SlotDef<Save> = {
   name: 'profile',
   read(store) {
     try {

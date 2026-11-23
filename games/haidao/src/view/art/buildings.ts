@@ -753,7 +753,8 @@ const gtPlat = (lv: number): number => [50, 56, 62, 68, 76, 82, 90, 96][lv - 1] 
 /** 这一级有没有顶棚（没有的那几级旗插在平台后角） */
 const gtRoofed = (lv: number): boolean => lv === 2 || lv === 4 || lv >= 6;
 /** 顶棚：撑柱顶高、檐口半径（屏幕像素）、尖顶高 */
-const gtRoof = (lv: number): { zr: number; rx: number; h: number } => {
+/** 火枪塔屋顶的檐高、半径、尖高（终极塔 tdults.ts 按它重画屋顶） */
+export const gtRoof = (lv: number): { zr: number; rx: number; h: number } => {
   const zr = gtPlat(lv) + 40;
   if (lv === 2) return { zr, rx: 30, h: 8 };
   if (lv === 4) return { zr, rx: 33, h: 26 };

@@ -1,5 +1,5 @@
 /**
- * 守岛 2.0 的 30 关（td01–td30）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
+ * 守岛 2.0 的战役关（td01–td34，第六章 td35、td36 还没做）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
  * 波次不写死个数，写"这一波的预算分给哪几组敌人"：个数 = 预算份额 ÷ 敌人点数（TD2_ENEMY_POINTS），预算见 waveBudget。
  * 这样改 TD2_BUDGET 或敌人点数，各关的强度跟着连续变；td-sim 还能用 buildLevel 的 budgetPct 量"预算 ±2% 时的三星率"。
  * 难度只来自预算、敌人种类和路数、地图，没有每关单独的血量百分比（hpPct 一律 100）。
@@ -88,10 +88,10 @@ const TD_SLUICE_USES = 3;
 /**
  * 漂流补给箱：第 3、6、9 波开打时漂来，摆在离登陆路远、离宝藏箱几步的空地上（英雄 5 到 9 秒走得到，箱子 30 秒漂走）。
  * 去捡就要离开防线一会儿，敌人压到宝藏边时去捡会漏，这就是要玩家想的事。两张图的沙滩都离英雄守的地方
- * 8 格以上，一波的倒数里来回走不完，所以都摆在宝藏箱两侧、登陆路不经过的空地上：雾港（C）在宝藏左右，潮沟（D）在宝藏东边（格子要能走：tests/td-mech.test.ts 查）
+ * 8 格以上，一波的倒数里来回走不完，所以都摆在宝藏箱两侧、登陆路不经过的空地上：雾港（C）在宝藏左右，回湾（N）在宝藏南边（格子要能走：tests/td-mech.test.ts 查）
  */
 const CRATES_C = [{ wave: 2, x: 7, y: 18 }, { wave: 5, x: 13, y: 18 }, { wave: 8, x: 7, y: 18 }];
-const CRATES_D = [{ wave: 2, x: 16, y: 9 }, { wave: 5, x: 15, y: 12 }, { wave: 8, x: 16, y: 9 }];
+const CRATES_N = [{ wave: 2, x: 17, y: 19 }, { wave: 5, x: 10, y: 19 }, { wave: 8, x: 17, y: 19 }];
 /** 黑胡子湾（I 图）的老炮台：东南角的沙滩上，离三条登陆路和落潮路都远，不挡人也不被人挡住 */
 const BATTERY_I = { x: 23, y: 18 };
 /** 关内事件挑波的范围（0 起）：第 3–7 波，开局几波先让玩家摆好塔，最后几波不打断收尾 */
@@ -110,6 +110,11 @@ const M = 'medic';
 const B = 'gunboat';
 const G = 'king';
 const D = 'shield';
+const Z = 'mate';
+const R = 'charger';
+const DR = 'drummer';
+const L = 'balloon';
+const T = 'tyrantShip';
 
 const DEFS: readonly LevelDef[] = [
   // ---------------------------------------------------------------- 第一章：登陆、铁甲、雾船、鹦鹉、首领
@@ -187,20 +192,21 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td06', name: '船长来了', index: 5, map: 'D', chapter: 1, hq: 6, gold: 335, waveTicks: 340, scale: 109, pads: 7, garrison: 2, tide: 6, crates: CRATES_D,
+    // 回湾（N）：首领只走北边的长 S 路，每一段都有木台够得着；西边短路只来小兵
+    id: 'td06', name: '船长来了', index: 5, map: 'N', chapter: 1, hq: 6, gold: 280, waveTicks: 340, scale: 125, pads: 7, wrecks: [5, 6], garrison: 2, crates: CRATES_N,
     waves: [
-      w([S, 45, 0]),
-      w([S, 35, 0], [S, 25, 1, 40]),
-      w([P, 8, 1], [I, 20, 0], [S, 40, 1]),
-      w([S, 40, 0], [K, 20, 1]),
-      w([K, 14, 0], [S, 35, 1], [I, 20, 1, 60]),
-      w([S, 45, 0], [K, 16, 1, 60]),
-      note('落潮路开了：南边多一条路', w([S, 35, 2], [I, 20, 0], [K, 15, 1, 40])),
-      w([I, 25, 2], [K, 15, 0], [S, 30, 1, 60]),
-      w([K, 25, 0], [S, 40, 2, 40]),
-      w([I, 25, 1], [S, 30, 2], [K, 15, 0, 60]),
-      w([K, 20, 2], [I, 30, 0, 60], [S, 20, 1, 100]),
-      note('船长在最后一波：先打掉他，别的敌人跑得更快', boss([C, 0, 0], [S, 30, 1, 40], [I, 30, 2, 60], [K, 10, 1, 80])),
+      w([S, 100, 0]),
+      note('西边短路也开始来人', w([S, 60, 0], [S, 40, 1, 100])),
+      w([S, 40, 0], [I, 30, 0, 120], [S, 30, 1]),
+      w([K, 40, 0], [S, 60, 1]),
+      w([S, 30, 0], [P, 20, 0, 80], [S, 50, 1]),
+      w([I, 50, 0], [S, 50, 1, 60]),
+      w([S, 40, 0], [K, 30, 0, 120], [S, 30, 1]),
+      w([P, 30, 0], [S, 40, 1], [I, 30, 1, 160]),
+      w([S, 50, 0], [I, 30, 0, 140], [S, 20, 1]),
+      w([K, 40, 0], [P, 20, 0, 100], [S, 40, 1]),
+      note('下一波船长走北边长路：塔往长路上集中', w([S, 60, 0], [I, 40, 0, 160])),
+      note('船长在最后一波：先打掉他，别的敌人跑得更快', boss([C, 0, 0], [S, 60, 0, 60], [S, 40, 1, 200])),
     ],
   },
   // ---------------------------------------------------------------- 第二章：潮水涨落、成片的雾
@@ -335,19 +341,20 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td15', name: '炸塔与绕后', index: 14, map: 'H', chapter: 3, hq: 8, gold: 490, waveTicks: 320, scale: 110, opener: [[5, 'gunTower'], [1, 'gunTower'], [0, 'gunTower']], pads: 8, wrecks: [6, 7], garrison: 2, flank: true, sapperJam: true, events: 'rain',
+    // 一关只考一件事：东边崖上飞来的鹦鹉绕到背后。工兵只走西路、份额小
+    id: 'td15', name: '炸塔与绕后', index: 14, map: 'H', chapter: 3, hq: 8, gold: 490, waveTicks: 320, scale: 140, opener: [[1, 'gunTower'], [0, 'cannon'], [8, 'gunTower']], pads: 9, wrecks: [7], garrison: 2, flank: true, sapperJam: true,
     waves: [
       w([S, 100, 0]),
-      w([X, 30, 1], [P, 30, 2], [S, 40, 0]),
-      w([I, 40, 0], [X, 30, 2], [S, 30, 1]),
-      note('工兵先炸塔，鹦鹉趁哑火的空当飞进来', w([P, 40, 2], [X, 30, 0, 60], [S, 30, 1, 40])),
-      w([K, 40, 1], [X, 30, 2], [I, 30, 0]),
-      w([P, 35, 2], [I, 40, 1], [S, 25, 0, 40]),
-      w([X, 35, 0], [P, 30, 1, 80], [K, 35, 2]),
-      w([S, 40, 1], [X, 30, 2], [I, 30, 0, 40]),
-      note('鹦鹉和工兵同时压上来', w([P, 35, 2], [X, 30, 1, 40], [I, 25, 0], [S, 10, 0, 60])),
-      w([K, 35, 2], [X, 30, 0], [P, 20, 1, 60], [I, 15, 1]),
-      w([X, 30, 1], [I, 30, 2], [P, 25, 0], [S, 15, 0, 60]),
+      note('下一波鹦鹉从东边崖上飞来，绕到箱子背后', w([S, 60, 0], [S, 40, 1, 100])),
+      w([S, 50, 0], [S, 30, 1], [P, 20, 2, 120]),
+      note('下一波东边又飞来鹦鹉', w([I, 40, 0], [S, 60, 1])),
+      w([K, 40, 0], [S, 40, 1], [P, 20, 2, 100]),
+      note('下一波东边又飞来鹦鹉', w([S, 40, 0], [S, 45, 1], [X, 15, 1, 120])),
+      w([I, 40, 0], [S, 40, 1], [P, 20, 2, 140]),
+      note('下一波东边又飞来鹦鹉', w([S, 50, 0], [I, 35, 1], [X, 15, 1, 160])),
+      w([K, 35, 0], [S, 40, 1], [P, 25, 2]),
+      note('最后一波东边还有鹦鹉', w([S, 40, 0], [I, 25, 0, 160], [S, 20, 1], [X, 15, 1, 200])),
+      w([S, 50, 0], [S, 25, 1], [P, 25, 2, 100]),
     ],
   },
   {
@@ -601,6 +608,70 @@ const DEFS: readonly LevelDef[] = [
       note('断崖船长：血过半发怒，召一批水手、炸哑身边的塔', boss([C, 0, 0], [D, 35, 0, 20], [S, 35, 1, 30], [I, 15, 2, 40], [M, 15, 0, 60])),
     ],
   },
+  // ---------------------------------------------------------------- 第六章：群岛远征（终极塔、冲锋手、盾鼓手、热气球、铁潮舰长；td35、td36 还没做）
+  {
+    // 旧炮台（O）：北口一条长路为主（第 6 波起西边沙滩也来人）、木台少、钱给得足，与其再铺一座 1 阶，不如把一座升到顶
+    id: 'td31', name: '换装', index: 30, map: 'O', chapter: 6, hq: 8, gold: 450, waveTicks: 320, scale: 255, pads: 5, garrison: 1,
+    waves: [
+      w([S, 100, 0]),
+      w([S, 100, 0]),
+      w([S, 60, 0], [I, 40, 0, 120]),
+      note('终极塔：选完两档分叉就能换，花钱换一种打法', w([K, 100, 0])),
+      note('成串的铁甲：重炮、震地的炮最管用', w([I, 60, 0], [S, 40, 1, 160])),
+      note('西边沙滩也有人上岸了', w([S, 30, 0], [P, 30, 0, 80], [S, 40, 1, 200])),
+      w([Z, 40, 1], [S, 60, 0, 100]),
+      w([I, 40, 1], [K, 40, 0, 140], [P, 20, 0, 80]),
+      note('船长带着铁甲来了', boss([C, 0, 0], [I, 40, 1, 60], [S, 30, 0, 160], [S, 30, 1, 160])),
+      w([S, 40, 1], [I, 30, 1, 120], [P, 30, 0, 200]),
+    ],
+  },
+  {
+    // 栈桥湾（P）：冲锋手在两座长栈桥上跑得飞快；挑目标保持「最前」也能过。水手营从这关起能造（tdrun.ts 的 campOf）
+    id: 'td32', name: '栈桥夜战', index: 31, map: 'P', chapter: 6, hq: 8, gold: 520, waveTicks: 320, scale: 155, pads: 6, garrison: 2,
+    waves: [
+      note('水手营：造在木台上，兵站到桥头拦住上岸的人', w([S, 100, 0])),
+      w([S, 100, 1]),
+      note('冲锋手跑得快：先打最前面的、用减速的塔', w([S, 50, 0], [R, 50, 1, 80])),
+      w([R, 40, 0], [S, 60, 1]),
+      w([I, 40, 0], [R, 30, 1], [S, 30, 1, 120]),
+      note('两座桥一起冲', w([R, 50, 0], [R, 50, 1, 60])),
+      w([K, 50, 0], [S, 50, 1]),
+      w([R, 30, 0], [I, 20, 0, 140], [R, 30, 1], [S, 20, 1, 140]),
+      w([S, 40, 0], [P, 20, 0], [R, 40, 1]),
+      w([R, 50, 0], [R, 50, 1, 40]),
+      w([I, 30, 0], [R, 20, 0, 100], [Z, 30, 1], [R, 20, 1, 160]),
+    ],
+  },
+  {
+    // 风口岬（Q）：盾鼓手护着铁甲走中路，热气球从东北直线飘向箱子；只造防空、只造地面都会漏
+    id: 'td33', name: '风口', index: 32, map: 'Q', chapter: 6, hq: 8, gold: 560, waveTicks: 320, scale: 65, pads: 9, wrecks: [7, 8], garrison: 2,
+    waves: [
+      w([S, 100, 0]),
+      w([S, 60, 0], [S, 40, 1, 100]),
+      note('盾鼓手护着身边的人：先打掉它，或用溅射、火', w([I, 40, 0], [DR, 20, 0, 60], [S, 40, 1])),
+      note('热气球：打下来会落人，飘到箱子边也会落人', w([S, 60, 0], [L, 40, 2, 100])),
+      w([I, 40, 0], [DR, 20, 0], [S, 40, 1]),
+      w([S, 40, 0], [K, 30, 1], [P, 30, 2]),
+      w([DR, 20, 0], [I, 30, 0, 60], [S, 20, 1], [L, 30, 2, 120]),
+      w([K, 40, 0], [S, 30, 1], [P, 30, 2]),
+      w([I, 40, 0], [DR, 20, 0, 80], [L, 40, 2, 160]),
+      note('船长身边跟着盾鼓手', boss([C, 0, 0], [DR, 30, 0, 40], [S, 40, 0, 120], [S, 30, 1, 200])),
+    ],
+  },
+  {
+    // 旧炮台（O）再来：铁潮舰长三段，海上炸塔、上岸带鼓手、最后扛刀冲箱子
+    id: 'td34', name: '铁潮舰长', index: 33, map: 'O', chapter: 6, hq: 8, gold: 650, waveTicks: 320, scale: 90, ease: { pct: 80, waves: 6 }, pads: 5, garrison: 2,
+    waves: [
+      w([S, 50, 0], [S, 50, 1]),
+      w([S, 50, 0], [S, 50, 1]),
+      w([S, 30, 0], [S, 30, 1], [I, 40, 0, 120]),
+      note('冲锋手从西边沙滩冲过来', w([R, 40, 1], [S, 30, 0, 100], [S, 30, 1, 100])),
+      w([L, 35, 0], [I, 35, 0, 120], [S, 30, 1, 200]),
+      w([DR, 20, 0], [I, 30, 0], [P, 15, 0, 80], [S, 35, 1, 160]),
+      w([Z, 40, 0], [R, 40, 1, 140], [L, 20, 0, 80]),
+      note('铁潮舰长：先在海上炸塔，血到六成带鼓手上岸，到两成半扛刀冲箱子', boss([T, 0, 0], [S, 40, 1, 200], [I, 30, 0, 400], [R, 30, 1, 600])),
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------- 展开成引擎吃的关卡
@@ -623,14 +694,20 @@ const SPAN: Readonly<Record<TdEnemyKind, { span: number; min: number }>> = {
   medic: { span: 280, min: 30 },
   gunboat: { span: 200, min: 60 },
   king: { span: 1, min: 1 },
+  charger: { span: 240, min: 8 },
+  drummer: { span: 300, min: 30 },
+  balloon: { span: 300, min: 60 },
+  tyrantShip: { span: 1, min: 1 },
+  tyrant: { span: 1, min: 1 },
+  tyrantRun: { span: 1, min: 1 },
 };
 
 /** 精英从第几波（0 起）出、占水手和鹦鹉份额的百分之几；精英一个顶四个（TD2_ENEMY_POINTS） */
 export const TD_ELITE = { from: 3, pct: 60 } as const;
 const ELITE_OF: Partial<Record<TdEnemyKind, TdEnemyKind>> = { sailor: 'bosun', parrot: 'macaw' };
 
-/** 首领（船长、第四章的海盗王）：一波固定 1 个，份额写 0 */
-const BOSS: ReadonlySet<TdEnemyKind> = new Set(['captain', 'king']);
+/** 首领（船长、第四章的海盗王、第六章的铁潮舰）：一波固定 1 个，份额写 0 */
+const BOSS: ReadonlySet<TdEnemyKind> = new Set(['captain', 'king', 'tyrantShip']);
 
 function everyOf(kind: TdEnemyKind, n: number): number {
   const s = SPAN[kind];
@@ -746,6 +823,9 @@ export const TD2_LEVEL_DEFS: readonly LevelDef[] = DEFS;
 export const TD2_LEVELS: readonly TdIslandLevel[] = DEFS.map((d) => buildLevel(d));
 export const TD2_LEVEL_BY_ID: ReadonlyMap<string, TdIslandLevel> = new Map(TD2_LEVELS.map((l) => [l.id, l]));
 
+/** 一章几关：没上齐的章（第六章还差 td35、td36）不算通关、不发章节纪念（tdChapterCleared） */
+export const TD2_CHAPTER_SIZE = 6;
+
 /** 选关页的章节 */
 export interface Td2ChapterInfo {
   id: TdChapterId;
@@ -760,4 +840,5 @@ export const TD2_CHAPTERS: readonly Td2ChapterInfo[] = [
   { id: 3, name: '第三章', theme: '炸塔工兵 · 绕后鹦鹉 · 首领发怒', levels: TD2_LEVELS.filter((l) => l.chapter === 3) },
   { id: 4, name: '第四章', theme: '远洋 · 军医回血 · 海上炮艇 · 友军船 · 海盗王', levels: TD2_LEVELS.filter((l) => l.chapter === 4) },
   { id: 5, name: '第五章', theme: '断崖海岸 · 崖上高台 · 盾兵', levels: TD2_LEVELS.filter((l) => l.chapter === 5) },
+  { id: 6, name: '第六章', theme: '群岛远征 · 冲锋手 · 盾鼓手 · 热气球 · 铁潮舰长', levels: TD2_LEVELS.filter((l) => l.chapter === 6) },
 ];

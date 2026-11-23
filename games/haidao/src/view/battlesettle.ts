@@ -1,5 +1,6 @@
 import { settleCampaign, type BattleResult, type Profile, type Res } from '../core/index.ts';
-import { runAchievements, settleBounty, type Ach } from './meta.ts';
+import { dayIndex, runAchievements, settleBounty, type Ach } from './meta.ts';
+import { goalTick } from '../core/goals.ts';
 
 /** 战役结算框里的附加信息：连胜、掠夺加成、安慰奖、掉落、仓库满了截掉的 */
 export interface Extra {
@@ -56,5 +57,7 @@ export function settleOutcome(profile: Profile, levelId: string, res: BattleResu
     newStars = out.newStars;
     extra = { streak: out.streak ?? 0, bonusPct: out.streakBonusPct ?? 0, consolation: out.consolation === true, cut: out.cut, drops: out.drops ?? [] };
   }
+  // 每日三件小事：战役和今日悬赏都算出海一场，拿到的星照算
+  if (opts.settle) prof = goalTick(goalTick(prof, dayIndex(), 'sail'), dayIndex(), 'star', res.stars);
   return { profile: prof, loot, newStars, bonus, fresh, extra };
 }

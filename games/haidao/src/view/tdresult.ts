@@ -22,6 +22,7 @@ import { ESCORT_DIFFS } from '../core/escorttypes.ts';
 import { closeSheet } from './tdsheet.ts';
 import { tdReason, escortReason, lostAtText, lostTreasureText, trophyText } from './tdreason.ts';
 import { tdEnd } from './endfx.ts';
+import { goalTick } from '../core/goals.ts';
 
 /** 结算框里的「原因 + 关键时刻」两行（样式限定在 .hd-td-result 下） */
 function reasonLines(bs: TdScene, box: HTMLElement, res: ReturnType<typeof tdResult>): void {
@@ -34,12 +35,12 @@ function reasonLines(bs: TdScene, box: HTMLElement, res: ReturnType<typeof tdRes
 
 // ---------------------------------------------------------------- 结算
 
-/** 收尾演出的时长（游戏时钟）：战役关、护航、悬赏、大潮、海盗来袭都先演收尾再弹窗（以前后四种直接弹，输的那一下和结算框同一帧） */
+/** 收尾演出的时长（游戏时钟）：战役关、护航、悬赏、大潮、海盗来袭都先演收尾再弹窗（直接弹的话输的那一下和结算框同一帧） */
 const END_FX_MS = 850;
 /** 按每局的规则状态记（不按场景）：Phaser 的场景实例「再守一次」、换关时复用，按场景记的话第二局起结算框永远不出 */
 const fxStarted = new WeakSet<object>();
 
-/** 结束后要先演多久收尾：TdScene 把原来结束后的等待减掉这段，弹窗总时间和以前一样 */
+/** 结束后要先演多久收尾：TdScene 把结束后的等待减掉这段，弹窗总时间不变 */
 export function endFxLead(): number {
   return feelOn() ? END_FX_MS : 0;
 }
@@ -85,9 +86,11 @@ function settle(bs: TdScene): void {
     finishHome(bs, res);
     return;
   }
-  const r = settleTd(app.profile, bs.d.levelId, res, dayIndex());
+  // 老兵、挑战局只记徽，不发金币木材（规则核心 settleTd 按 play 走）
+  const play = bs.d.setup.vet ? 'vet' : bs.d.setup.rule ? 'chal' : 'normal';
+  const r = settleTd(app.profile, bs.d.levelId, res, dayIndex(), play);
   const before = { ...app.profile.res };
-  if (r.ok) app.commit(r.value.profile);
+  if (r.ok) app.commit(goalTick(r.value.profile, dayIndex(), 'td'));
   const rw = r.ok ? r.value.reward : null;
   const win = res.stars > 0;
   const tm = resultTimes('td', res.stars, win);
@@ -112,7 +115,10 @@ function settle(bs: TdScene): void {
     el('p', 'hd-sub hd-td-line', `撑过 ${res.waves}/${res.total} 波`, box);
   }
   reasonLines(bs, box, res);
-  if (rw) {
+  if (play !== 'normal') {
+    const what = play === 'vet' ? '老兵徽' : '挑战章';
+    el('p', `hd-sub hd-td-line${res.stars >= 1 ? ' hd-pos' : ''}`, res.stars >= 1 ? `拿到这一关的${what}（老兵、挑战不给金币木材）` : `守住才有${what}`, box);
+  } else if (rw) {
     loot(bs, mask, box, before, { gold: rw.gold, wood: rw.wood }, { gold: rw.bonusGold, wood: rw.bonusWood }, tm.flyAt);
     if (rw.newStars > 0) bonusLine(bs, box, rw.bonusGold, rw.bonusWood);
     capNotes(box, rw, '今天的守岛收入已满，这局只拿星');
@@ -129,7 +135,7 @@ function settle(bs: TdScene): void {
   const camp = tdCampaign();
   const idx = camp.findIndex((l) => l.id === bs.d.levelId);
   const nx = idx >= 0 ? camp[idx + 1] : undefined;
-  // 这一局宝藏被抢光（0 星）不给"下一关"：只有这局守住了才往下走（以前的星数不算）
+  // 这一局宝藏被抢光（0 星）不给"下一关"：只有这局守住了才往下走（之前打出的星数不算）
   if (nx && r.ok && res.stars >= 1 && (r.value.profile.td?.stars[bs.d.levelId] ?? 0) >= 1) button('下一关', 'hd-btn-gold', () => app.startTdLevel(nx.id), btns);
   app.api.scene = 'result';
 }
@@ -245,7 +251,7 @@ function finishEscort(bs: TdScene, res: ReturnType<typeof tdResult>): void {
 function finishHome(bs: TdScene, res: ReturnType<typeof tdResult>): void {
   const before = { ...app.profile.res };
   const r = settleTdHome(app.profile, res, dayIndex(), bs.d.setup.home);
-  if (r.ok) app.commit(r.value.profile);
+  if (r.ok) app.commit(goalTick(r.value.profile, dayIndex(), 'td'));
   const rw = r.ok ? r.value.reward : null;
   const waves = rw?.waves ?? res.waves;
   const win = waves >= 5;

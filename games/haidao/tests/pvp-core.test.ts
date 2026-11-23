@@ -3,7 +3,7 @@ import { CAMPAIGN, RULES_VERSION, armyFor, battleFingerprint, botActions, newPro
 import type { BattleSetup, BuildingKind, Placed, Profile } from '../src/core/index.ts';
 import { canPlace } from '../src/core/base.ts';
 import { BATTLE_TICKS, ISLAND } from '../src/core/types.ts';
-import { LOOT_PCT, MAX_ACTIONS, raidGain, raidLoss, replayRaid, sanitizeActions, shieldMs, trophyDelta, wandererGain, wandererIsland } from '../src/core/pvp.ts';
+import { HQ_LOOT_PCT, LOOT_PCT, MAX_ACTIONS, lootPlan, lootTaken, raidGain, raidLoot, raidLoss, raidSetup, replayRaid, sanitizeActions, shieldMs, trophyDelta, wandererGain, wandererIsland } from '../src/core/pvp.ts';
 import { maxCapacity, validateBase } from '../src/core/validate.ts';
 import { HQ_LEVELS } from '../src/content/index.ts';
 import { sampleArmy } from '../tools/sample.ts';
@@ -99,8 +99,9 @@ describe('pvp 纯函数', () => {
     expect(a.layout.some((p, i) => p.x !== b.layout[i]!.x)).toBe(true);
     expect(wandererIsland(0, 1, 2)).toEqual(a);
     expect(wandererIsland(99999, 1, 2).hq).toBeLessThanOrEqual(2);
-    expect(wandererGain({ gold: 700, wood: 450 }, 100)).toEqual({ gold: 350, wood: 225 });
-    expect(wandererGain({ gold: 700, wood: 450 }, 0)).toEqual({ gold: 0, wood: 0 });
+    const all = a.layout.map((p) => ({ id: p.id, hp: 0, maxHp: 100, destroyed: true }));
+    expect(wandererGain({ gold: 700, wood: 450 }, a.layout, all)).toEqual({ gold: 350, wood: 225 });
+    expect(wandererGain({ gold: 700, wood: 450 }, a.layout, [])).toEqual({ gold: 0, wood: 0 });
   });
   it('sanitizeActions：只留认得的字段，不合格整串作废', () => {
     const army = armyFor(newProfile());
@@ -122,7 +123,7 @@ describe('pvp 纯函数', () => {
 
 const NOW = 1_800_000_000_000;
 function entry(over: Partial<HarborEntry> = {}): HarborEntry {
-  return { id: 'x', trophies: 100, hq: 1, shieldUntil: 0, protectUntil: 0, lockUntil: 0, activeAt: NOW - 3600_000, ...over };
+  return { id: 'x', name: '', trophies: 100, hq: 1, shieldUntil: 0, protectUntil: 0, lockUntil: 0, activeAt: NOW - 3600_000, ...over };
 }
 const Q: Omit<PickReq, 'rand' | 'self'> = { attackerId: 'me', trophies: 100, hq: 1, exclude: [], now: NOW };
 
@@ -155,7 +156,10 @@ describe('匹配排除', () => {
     expect((await h.pick({ ...Q, rand: 0.5 }, 240_000)).id).toBe('a');
     // a 锁了：放宽一档（奖杯差 ≤ 600、主寨低 2 到高 1），挑到在线的 f；e 差 800 仍挑不到
     expect((await h.pick({ ...Q, rand: 0.5 }, 240_000)).id).toBe('f');
-    expect((await h.pick({ ...Q, rand: 0.5 }, 240_000)).id).toBeNull();
+    // 三档真人都没有：第四档影子岛（不看护盾、保护、锁），不加锁
+    const sh = await h.pick({ ...Q, rand: 0.5 }, 240_000);
+    expect(sh.shadow).toBe(true);
+    expect(['a', 'b', 'd', 'e', 'f', 'g']).toContain(sh.id);
     // 锁过期后又能挑
     expect((await h.pick({ ...Q, now: NOW + 240_001, rand: 0 }, 240_000)).id).toBe('a');
     expect((await h.pick({ ...Q, exclude: ['a'], now: NOW + 999_999_999, rand: 0 }, 1)).id).not.toBe('a');
@@ -320,5 +324,56 @@ describe('validateBase', () => {
     const p = clone(newProfile());
     p.base.buildings.find((b) => b.kind === 'goldmine')!.stored = -5;
     expect(err(p)).toBe('res');
+  });
+});
+
+describe('抢的是仓库：掠夺按拆的主寨和仓库分摊（base.md 第②批）', () => {
+  const L: Placed[] = [
+    { id: 1, kind: 'hq', level: 3, x: 10, y: 10 },
+    { id: 2, kind: 'vault', level: 1, x: 2, y: 2 },
+    { id: 3, kind: 'vault', level: 3, x: 16, y: 2 },
+    { id: 4, kind: 'woodyard', level: 2, x: 2, y: 16 },
+    { id: 5, kind: 'cannon', level: 2, x: 6, y: 6 },
+  ];
+  const hit = (ids: Record<number, number>): { id: number; hp: number; maxHp: number; destroyed: boolean }[] =>
+    L.map((b) => ({ id: b.id, hp: 100 - (ids[b.id] ?? 0), maxHp: 100, destroyed: (ids[b.id] ?? 0) >= 100 }));
+  it('分摊之和 = 上限；主寨拿零头且至少 HQ_LOOT_PCT%；金库按容量分金币，木料仓分木材', () => {
+    for (const total of [{ gold: 0, wood: 0 }, { gold: 1, wood: 1 }, { gold: 999, wood: 377 }, { gold: 123457, wood: 98765 }]) {
+      const plan = lootPlan(L, total);
+      expect(plan.reduce((a, x) => a + x.gold, 0)).toBe(total.gold);
+      expect(plan.reduce((a, x) => a + x.wood, 0)).toBe(total.wood);
+      const hq = plan.find((x) => x.id === 1)!;
+      expect(hq.gold).toBeGreaterThanOrEqual(Math.floor((total.gold * HQ_LOOT_PCT) / 100));
+      expect(plan.find((x) => x.id === 4)!.gold).toBe(0);
+      expect(plan.find((x) => x.id === 2)!.wood).toBe(0);
+      expect(plan.some((x) => x.id === 5)).toBe(false);
+    }
+    const p = lootPlan(L, { gold: 10000, wood: 0 });
+    expect(p.find((x) => x.id === 3)!.gold).toBeGreaterThan(p.find((x) => x.id === 2)!.gold);
+  });
+  it('拆光 = 旧公式拆光；一座没碰 = 0；只拆主寨 = 主寨那份；打一半掉一半（向下取整）', () => {
+    const stash = { gold: 54321, wood: 12345 };
+    expect(raidLoot(L, stash, hit({ 1: 100, 2: 100, 3: 100, 4: 100, 5: 100 }))).toEqual(raidLoss(stash, 100));
+    expect(raidLoot(L, stash, hit({}))).toEqual({ gold: 0, wood: 0 });
+    expect(raidLoot(L, stash, hit({ 5: 100 }))).toEqual({ gold: 0, wood: 0 });
+    const plan = lootPlan(L, raidLoss(stash, 100));
+    const hq = plan.find((x) => x.id === 1)!;
+    expect(raidLoot(L, stash, hit({ 1: 100 }))).toEqual({ gold: hq.gold, wood: hq.wood });
+    expect(lootTaken(plan, hit({ 1: 50 }))).toEqual({ gold: Math.floor(hq.gold / 2), wood: Math.floor(hq.wood / 2) });
+  });
+  it('没有仓库全在主寨；没有主寨按仓库分', () => {
+    expect(lootPlan([L[0]!], { gold: 100, wood: 50 })).toEqual([{ id: 1, gold: 100, wood: 50 }]);
+    const p = lootPlan(L.slice(1), { gold: 100, wood: 50 });
+    expect(p.reduce((a, x) => a + x.gold, 0)).toBeLessThanOrEqual(100);
+    expect(p.find((x) => x.id === 4)!.wood).toBe(50);
+  });
+  it('重放两次结果逐位一致（整数、无新随机）', () => {
+    const p = { ...newProfile(), res: { gold: 3000, wood: 2500 } };
+    const army = armyFor({ ...newProfile(), boats: [{ troop: 'sailor' }, { troop: 'gunner' }] });
+    const setup = raidSetup(p.base.buildings, 0, army, 7);
+    const acts = botActions(setup, 'normal');
+    const a = replayRaid(setup, acts);
+    const b = replayRaid(setup, acts);
+    expect(raidLoot(setup.layout, p.res, a.buildings)).toEqual(raidLoot(setup.layout, p.res, b.buildings));
   });
 });

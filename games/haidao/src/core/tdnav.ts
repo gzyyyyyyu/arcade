@@ -20,7 +20,13 @@ export function navEnabled(setup: Pick<TdSetup, 'mode' | 'heroKind'>): boolean {
 /** 这座塔现在在急射旗的圈里（按塔中心算） */
 export function flagOn(s: TdState, t: TdTower): boolean {
   const f = s.hero.flag;
-  return !!f && s.tick < f.until && d2(tcx(t), tcy(t), f.x, f.y) <= TD2_NAV_SKILL.flag.r * TD2_NAV_SKILL.flag.r;
+  const r = flagR(s);
+  return !!f && s.tick < f.until && d2(tcx(t), tcy(t), f.x, f.y) <= r * r;
+}
+
+/** 急射旗的半径（天赋「技能范围」加大） */
+export function flagR(s: TdState): number {
+  return TD2_NAV_SKILL.flag.r + (s.deep?.talent.skillR ?? 0);
 }
 
 /** 急射旗：英雄活着、冷却好了、落点在英雄 range 内才插上；插新的就换掉旧的 */
@@ -33,7 +39,7 @@ export function castFlag(s: TdState, ev: TdEvent[], x: number, y: number): void 
   if (d2(h.x, h.y, fx, fy) > sk.range * sk.range) return;
   h.barricadeReady = s.tick + heroCd(s, sk.cd);
   h.flag = { x: fx, y: fy, until: s.tick + sk.ticks };
-  ev.push({ type: 'flag', x: fx, y: fy, r: sk.r, until: h.flag.until, ready: h.barricadeReady });
+  ev.push({ type: 'flag', x: fx, y: fy, r: flagR(s), until: h.flag.until, ready: h.barricadeReady });
   ev.push({ type: 'hero', what: 'flag' });
 }
 

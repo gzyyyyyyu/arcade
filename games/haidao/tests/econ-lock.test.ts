@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CAMPAIGN } from '../src/core/index.ts';
-import { BOUNTY_PCT, LOOT_PCT, WANDER_LOOT_PCT, wandererGain, wandererIsland } from '../src/core/pvp.ts';
+import { BOUNTY_PCT, HQ_LOOT_PCT, LOOT_PCT, WANDER_LOOT_PCT, wandererCap, wandererIsland } from '../src/core/pvp.ts';
 import { BOUNTY_CREW, LIVE_STAKE, LIVE_TABLE } from '../src/content/livetable.ts';
 import { EXCHANGE_CHIPS, EXCHANGE_GOLD, EXCHANGE_PER_DAY, EXCHANGE_WOOD, LIVE_MAX_BP } from '../src/core/live.ts';
 import { TD_LIVE_ZERO_MAX_BP } from '../src/core/tdlive.ts';
@@ -23,9 +23,9 @@ describe('收益上调不碰实盘和异步攻防', () => {
     expect(hash32(JSON.stringify(tables), 0)).toBe(757293904);
   });
   it('攻防掠夺比例不变；流浪海盗岛按关卡原始 loot 算，不乘收入倍率', () => {
-    expect([LOOT_PCT, BOUNTY_PCT, WANDER_LOOT_PCT]).toEqual([20, 50, 50]);
+    expect([LOOT_PCT, BOUNTY_PCT, WANDER_LOOT_PCT, HQ_LOOT_PCT]).toEqual([20, 50, 50, 30]);
     const w = wandererIsland(100, 6, 7);
     expect(w.loot).toEqual(CAMPAIGN.find((l) => l.id === w.levelId)!.loot);
-    expect(wandererGain({ gold: 1000, wood: 400 }, 80)).toEqual({ gold: 400, wood: 160 });
+    expect(wandererCap({ gold: 1000, wood: 400 })).toEqual({ gold: 500, wood: 200 });
   });
 });

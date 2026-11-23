@@ -65,7 +65,7 @@ export function pickReach(bs: BattleScene, gx: number, gy: number): boolean {
   return true;
 }
 
-/** 信号弹标着的建筑：头上一个呼吸的金色准星，标多久挂多久（以前只有放的那一下 2.4 秒的小旗） */
+/** 信号弹标着的建筑：头上一个呼吸的金色准星，标多久挂多久 */
 export function drawFlare(bs: BattleScene, g: Phaser.GameObjects.Graphics, time: number, z: number): void {
   const id = flareTarget(bs.st);
   if (id < 0) return;

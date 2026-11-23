@@ -17,6 +17,9 @@ import { flashWhite } from './fx.ts';
 import { put, ringOf } from './ground.ts';
 import { depthOf, footCenter, iso } from './iso.ts';
 import { Turret } from './turret.ts';
+import { TD_ULT_ART_OF, tdUltArt } from './art/tdults.ts';
+import { isBaked } from './textures.ts';
+import { tdBarracksArt } from './art/tdbarracks.ts';
 import { isTurret, type LandMat } from './aim.ts';
 import { sfx } from './audio/sfx.ts';
 import { DEPTH } from './depth.ts';
@@ -254,28 +257,32 @@ export function sync(bs: TdScene, dt: number): void {
   // 临时塔（常驻塔的图在开局就画好了）
   for (const t of s.towers) {
     if (t.slot < 0) continue;
-    const p = bTex(t.kind, t.level);
+    const ua = t.ult ? TD_ULT_ART_OF[t.ult] : undefined;
+    const p = ua && isBaked(tdUltArt(ua).key) ? tdUltArt(ua) : bTex(t.kind, t.level);
+    const br = `${t.branch.join(',')}|${t.ult ?? ''}`;
     let sp = bs.tsp.get(t.id);
     const f = footCenter(t.x, t.y, 2);
     const g = iso(f.gx, f.gy);
     const w = { x: g.x, y: g.y - slotLift(s, t.slot) };
     if (!sp) {
       const im = put(bs, bs.r, p, w.x, w.y).setDepth(depthOf(f.gx, f.gy));
-      sp = { img: im, key: p.key, baseX: w.x, baseY: w.y, br: t.branch.join(','), slot: t.slot };
+      sp = { img: im, key: p.key, baseX: w.x, baseY: w.y, br, slot: t.slot };
       if (isTurret(t.kind)) sp.tu = new Turret(bs, bs.r, bs.pt, t.kind, t.level, t.id, im, w.x, w.y);
+      if (ua) sp.tu?.setUlt(ua, p.key);
       bs.tsp.set(t.id, sp);
       bs.occ.add(t.id, im);
       bs.pt.ringBurst(w.x, w.y + 2, 2);
       padState(bs, t.slot, true);
       // 开局后造的塔从木台上升起来（motion.ts 的 towerRise：300 毫秒长高、略过头再落回），脚下扬尘、飞木屑；炮台按底座的缩放跟着长；开局就在的驻守塔不演
       if (bs.frameN > 1) riseTower(bs, im, w.x, w.y);
-    } else if (sp.key !== p.key || sp.br !== t.branch.join(',')) {
+    } else if (sp.key !== p.key || sp.br !== br) {
       // 升级 / 选路线：换图的同时白闪、放大后回弹（back 曲线 260ms）、脚下一圈光
       sp.key = p.key;
-      sp.br = t.branch.join(',');
+      sp.br = br;
       bs.tweens.killTweensOf(sp.img);
       sp.img.setTexture(p.key).setOrigin(p.ax / p.w, p.ay / p.h).setPosition(sp.baseX, sp.baseY);
-      sp.tu?.setLevel(t.level, p.key);
+      if (ua) sp.tu?.setUlt(ua, p.key);
+      else sp.tu?.setLevel(t.level, p.key);
       bs.occ.add(t.id, sp.img);
       bs.pt.ringBurst(w.x, w.y + 2, 2);
       flashWhite(bs, sp.img);
@@ -299,6 +306,7 @@ export function sync(bs: TdScene, dt: number): void {
       padState(bs, sp.slot, false);
     }
   }
+  syncCamps(bs);
   // 空木台上的"+"：够钱造最便宜的那种才亮；压着沉船的不显示
   // 能升的塔不各挂一个提示：「该升哪座」只由预告卡指的那座的金圈说（tdpadguide.ts syncGoalMark），钱多时不会满屏箭头；
   // 别的塔能不能升，点开面板看
@@ -516,4 +524,60 @@ export function litAt(bs: TdScene, x: number, y: number): boolean {
   }
   for (const l of bs.lampList) if (Math.hypot(l.x - x, l.y - y) <= l.r) return true;
   return false;
+}
+
+const CAMP_MAN: Readonly<Record<string, 'marine' | 'marineGun' | 'marineShield'>> = { 'camp.gun': 'marineGun', 'camp.wall': 'marineShield' };
+
+/** 水手营：营房图按阶和分叉换，水兵按兵的位置画（倒下的藏起来），走路 / 出手帧按时间轮，朝向按 face 翻 */
+function syncCamps(bs: TdScene): void {
+  const s = bs.s;
+  const now = bs.time.now;
+  const have = new Set<number>();
+  for (const c of s.camps ?? []) {
+    have.add(c.id);
+    const sl = s.slots[c.slot];
+    if (!sl) continue;
+    const p = tdBarracksArt(c.tier, c.tier === 3 && c.branch ? (c.branch === 'camp.gun' ? 'gun' : 'shield') : undefined);
+    let sp = bs.campSp.get(c.id);
+    if (!sp) {
+      const f = footCenter(sl.x, sl.y, 2);
+      const g = iso(f.gx, f.gy);
+      const im = put(bs, bs.r, p, g.x, g.y - slotLift(s, c.slot)).setDepth(depthOf(f.gx, f.gy));
+      sp = { img: im, key: p.key, men: [] };
+      bs.campSp.set(c.id, sp);
+      padState(bs, c.slot, true);
+      bs.pt.ringBurst(g.x, g.y + 2, 2);
+      if (bs.frameN > 1) riseTower(bs, im, g.x, g.y);
+    } else if (sp.key !== p.key) {
+      sp.key = p.key;
+      sp.img.setTexture(p.key).setOrigin(p.ax / p.w, p.ay / p.h);
+      flashWhite(bs, sp.img);
+    }
+    const kind = (c.branch && CAMP_MAN[c.branch]) || 'marine';
+    c.men.forEach((m, i) => {
+      let im = sp.men[i];
+      if (!im) {
+        const fr = tdE(kind, 'walk')[0]!;
+        im = put(bs, bs.r, fr, 0, 0);
+        sp.men[i] = im;
+      }
+      if (m.respawn >= 0) {
+        im.setVisible(false);
+        return;
+      }
+      const fighting = m.foes.length > 0 || m.cd > 0;
+      const frames = tdE(kind, fighting ? 'attack' : 'walk');
+      const fr = frames[Math.floor(now / (fighting ? 160 : 140) + i) % frames.length]!;
+      const w = W(m.x, m.y);
+      im.setVisible(true).setTexture(fr.key).setOrigin(fr.ax / fr.w, fr.ay / fr.h).setPosition(w.x, w.y).setDepth(depthOf(m.x / UNIT, m.y / UNIT) + 0.2);
+      im.setScale((m.face < 0 ? -1 : 1) / bs.r, 1 / bs.r);
+    });
+  }
+  for (const [id, sp] of bs.campSp) {
+    if (have.has(id)) continue;
+    bs.pt.splinters(sp.img.x, sp.img.y - 10, 8);
+    sp.img.destroy();
+    for (const m of sp.men) m.destroy();
+    bs.campSp.delete(id);
+  }
 }

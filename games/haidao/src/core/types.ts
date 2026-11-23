@@ -20,7 +20,7 @@ export const TICKS_PER_SEC = 20;
 /** 一场进攻最长多少拍（3 分钟） */
 export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
 /** 规则版本：规则一改就加一（服务端据此要求旧页面刷新、回放标「旧版本」）；录像和回放不保证跨版本 */
-export const RULES_VERSION = 29;
+export const RULES_VERSION = 30;
 
 export type BuildingKind =
   | 'hq' // 主寨
@@ -83,6 +83,9 @@ interface Boat {
 }
 
 /** 玩家的基地和进度（存档的规则部分；时间戳、设置这类画面层的东西不在这里） */
+/** 每日三件小事的种类（goals.ts） */
+export type GoalKind = 'sail' | 'star' | 'raid' | 'td' | 'upgrade' | 'collect' | 'duel' | 'scrim';
+
 export interface Profile {
   v: 1;
   base: { buildings: Placed[]; nextId: number };
@@ -107,6 +110,11 @@ export interface Profile {
     maxStreak?: number;
     /** 当前连胜（连续 ≥1 星的场数） */
     streak?: number;
+    /** 攻防（真人岛）：三星抢下的场数、复仇赢的场数、守住（对方 0 星）的次数（服务端记，me 回）、到过的最高奖杯 */
+    pvpThree?: number;
+    revengeWins?: number;
+    holds?: number;
+    bestTrophies?: number;
   };
   /** 收藏：掉宝得到的 `skin:<兵>:<gold|shadow|royal>`、`deco:<statue|flagpole|chest>`，守岛每章全部过关送的 `deco:<windmill|lighthouse|bonfire|wheel|lookout>`（TD_TROPHIES） */
   cosmetics: string[];
@@ -124,14 +132,19 @@ export interface Profile {
   rankFund?: Res;
   /** 每日悬赏：打到哪天、是否已完成（天数由画面按北京时间传入） */
   daily?: { day: number; done: boolean };
-  /** 守岛进度（tdrun.ts）：每关最高星数、当天（北京时间天数）已拿的资源（计入每日上限；首次拿星的奖励不计） */
-  td?: { stars: Record<string, number>; day: number; gotGold: number; gotWood: number };
+  /**
+   * 守岛进度（tdrun.ts）：每关最高星数、当天（北京时间天数）已拿的资源（计入每日上限；首次拿星的奖励不计）；
+   * vet / chal 是拿到老兵徽、挑战章的关（content/tdchallenge.ts），talent 是点了的海图天赋格（content/tdtalent.ts），没有就不写
+   */
+  td?: { stars: Record<string, number>; day: number; gotGold: number; gotWood: number; vet?: Record<string, 1>; chal?: Record<string, 1>; talent?: string[] };
   /** 护航进度（escortrun.ts）：每关（`<图>-<难度>`）最高星数；资源奖励和守岛共用 td 的每日上限 */
   escort?: { stars: Record<string, number> };
   /** 训练营（training.ts）：过了哪几关、还没领的奖励（没有待领就不写 owed） */
   train?: { done: string[]; owed?: Res };
   /** 金银锭（ingot.ts）：领了多少、换掉多少；挣了多少从存档算，没写 = 都是 0 */
   ingot?: { claimed: number; spent: number };
+  /** 每日三件小事（goals.ts）：哪天（北京时间天数）、各件做了几次、领过哪几件（含三件领完的箱子 'box'）；不进攻防快照 */
+  goals?: { day: number; prog: Partial<Record<GoalKind, number>>; got: string[] };
 }
 
 /** 规则函数的统一回话：成功给新值，失败给固定短码（界面按码出文案） */

@@ -2,6 +2,8 @@
  * 守岛（塔防）的公共类型：内容表（src/content/td*.ts、branches.ts）、规则核心（td.ts、tdbot.ts）、以后的画面层共用。
  * 坐标约定和登陆战一样：格子是整数，连续坐标 1 格 = 100 单位（types.ts 的 UNIT），海滩在岛外 BEACH 格一圈。
  */
+import type { TdPrio } from '../content/tdults.ts';
+import type { TdRule, TdTalentFx } from './tddeep.ts';
 import type { EscortAction, EscortDef, EscortEvent } from './escorttypes.ts';
 import type { BuildingKind, Placed } from './types.ts';
 import type {
@@ -11,7 +13,8 @@ import type {
 /** 守岛关内事件：赏金船、暴雨、战书（core/tdevent.ts） */
 export type TdEventKind = 'bounty' | 'rain' | 'dare';
 
-export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield' | 'bosun' | 'macaw' | 'mate' | 'medic' | 'gunboat' | 'king';
+export type TdEnemyKind = 'sailor' | 'ironclad' | 'fog' | 'skiff' | 'skiffling' | 'sapper' | 'parrot' | 'captain' | 'grenadier' | 'shield' | 'bosun' | 'macaw' | 'mate' | 'medic' | 'gunboat' | 'king'
+  | 'charger' | 'drummer' | 'balloon' | 'tyrantShip' | 'tyrant' | 'tyrantRun';
 
 export interface TdEnemyDef {
   name: string;
@@ -51,6 +54,19 @@ export interface TdEnemyDef {
   drop?: { every: number; n: number; kind: TdEnemyKind };
   /** 海盗王：血掉到一半时叫来 n 个 kind 护航（一局一次） */
   escort?: { n: number; kind: TdEnemyKind };
+  /** 冲锋手：扛着宝藏回船时的速度（不写和 speed 一样） */
+  carrySpeed?: number;
+  /** 盾鼓手：r 单位内别的同伴（不含自己、首领）挨单体直射只吃 pct%；溅射、火、爆不打折 */
+  drum?: { r: number; pct: number };
+  /**
+   * 热气球：不拿宝藏，直线飘向宝藏箱；飘到箱子 r 单位内自己落下 near 个 kind（气球没了，不算丢），
+   * 被打下时原地落下 shot 个（落在水上、墙里的挪到最近能走的格）
+   */
+  land?: { kind: TdEnemyKind; shot: number; near: number; r: number };
+  /** 多段首领：血掉到 at% 时原地换成 next（按剩余血的比例接着算），同时放下 with；中间形态不给击杀金 */
+  phase?: { at: number; next: TdEnemyKind; with?: { kind: TdEnemyKind; n: number } };
+  /** 首领：震晕减半、锚钩钩不动、狙击先打 */
+  boss?: true;
 }
 
 /** 塔的分叉加成（branches.ts）：没写的项不变 */
@@ -250,6 +266,16 @@ export interface TdSetup {
   escortAssist?: boolean;
   /** 自己的岛扩了几圈（海盗来袭按主寨等级，islandExt）；没写 = 不扩 */
   ext?: number;
+  /** 终极塔解锁了（tdrun 按存档判；只在战役、海盗来袭起作用，tddeep.ts） */
+  ult?: true;
+  /** 老兵局（只在战役；关卡已由 tdrun 换成老兵波次） */
+  vet?: true;
+  /** 关卡挑战的限制（只在战役） */
+  rule?: TdRule;
+  /** 海图天赋的局内效果（战役、海盗来袭） */
+  talent?: TdTalentFx;
+  /** 能造水手营（tdrun 按进度给；只在战役和海盗来袭起作用，tdcamp.ts 的 campEnabled） */
+  camp?: true;
 }
 
 export type TdAction =
@@ -321,6 +347,12 @@ export interface TdTower {
   tier?: TdTier;
   /** 守岛 2.0：在驻守台上（slot 是驻守台对应的木台下标） */
   garrison?: boolean;
+  /** 终极（content/tdults.ts 的 id）；没换为 undefined */
+  ult?: string;
+  /** 「先打」：玩家改过才写（默认最前） */
+  prio?: TdPrio;
+  /** 鹰眼哨：已经打了几发（每第 n 发打弱点） */
+  fired?: number;
 }
 
 export interface TdWall {

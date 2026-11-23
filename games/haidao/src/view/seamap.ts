@@ -14,6 +14,7 @@ import { openEscortLive, openMapLive } from './livemore.ts';
 import { mapCard, mapLiveChip, openRoute } from './maproute.ts';
 import { escortCard, openEscortSelect } from './escortsel.ts';
 import { TUT_SAILED, tutStep } from './tutorial.ts';
+import { goalsCard } from './goals.ts';
 
 const X = [50, 30, 68, 34, 70, 38, 64, 30, 62, 36, 68, 50];
 const STEP = 138;
@@ -101,7 +102,7 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
     const gain = locked ? null : dockGain(dockLv, dockWant);
     if (gain) el('p', 'hd-bountyline hd-dockhint', `建议船坞 ${dockWant} 级（你 ${dockLv} 级，升上去${gain}）`, d);
     // 预计掠夺按打满（三星、100%）算，连胜加成、新星奖励都在里面，和结算的毛收入是同一个数（规则核心 campaignGross）；
-    // 以前只写关卡底数，新号第三座岛写 1,200 实拿 2,700，仓库提醒没出来、白丢 1,153 金
+    // 只写关卡底数的话，新号第三座岛写 1,200 实拿 2,700，仓库提醒出不来、白丢 1,153 金
     const most = bounty ? bountyGross(p) : campaignGross(p, l.id, { stars: 3, destroyedPct: 100 });
     const room = locked ? '' : roomText(most, p.res, capacity(p));
     if (room) el('p', 'hd-bountyline', room, d);
@@ -193,8 +194,10 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
   }
   // 入口卡竖着排在一个容器里：卡的高度跟着字数变（窄屏上标题会折行），各自写死 top 会叠在一起
   const cards = el('div', 'hd-seacards', undefined, uiRoot());
-  // 寻宝航线（每日航线）：一张醒目的卡，点了关掉海图、打开航线图页（src/view/maproute.ts）
+  // 每日三件小事（src/view/goals.ts）：和今日航线并成一行
   const routeRow = el('div', 'hd-mc-row', undefined, cards);
+  const goalsOff = goalsCard(routeRow);
+  // 寻宝航线（每日航线）：一张醒目的卡，点了关掉海图、打开航线图页（src/view/maproute.ts）
   const routeOff = mapCard(() => {
     stop();
     onClose();
@@ -237,6 +240,7 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
     routeOff();
     mapLiveOff();
     escortOff();
+    goalsOff();
     cards.remove();
   }
   // 海图是可拖动的游戏地图：页面本身不滚（容器 overflow:clip），内容用 transform 平移；

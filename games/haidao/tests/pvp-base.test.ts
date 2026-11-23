@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { botActions, newProfile } from '../src/core/index.ts';
 import type { BattleAction, BattleSetup, Profile } from '../src/core/index.ts';
-import { raidGain, raidLoss, raidSetup, replayRaid, wandererIsland } from '../src/core/pvp.ts';
+import { raidGain, raidLoot, raidSetup, replayRaid, wandererIsland } from '../src/core/pvp.ts';
 import { sampleProfile } from '../tools/sample.ts';
-import { BaseCore, FIND_PER_HOUR, HOUR, LOCK_MS, PENDING_MAX, PROTECT_MS, SNAP_PER_HOUR, pieces, pushPending } from '../worker/pvp/base.ts';
+import { BaseCore, FIND_PER_HOUR, HOUR, LOCK_MS, PENDING_MAX, PROTECT_MS, SNAP_PER_HOUR, capDefenses, pieces, pushPending } from '../worker/pvp/base.ts';
 import type { BaseState, Defense, HarborEntry, Pending } from '../worker/pvp/base.ts';
 import { finishRaid } from '../worker/pvp/api.ts';
 import type { Ports } from '../worker/pvp/api.ts';
@@ -89,7 +89,8 @@ describe('掠夺封顶与待扣 / ack', () => {
     expect(out.pct).toBeGreaterThan(0);
     expect(out.lost.gold).toBeLessThanOrEqual(2000);
     expect(out.lost.wood).toBeLessThanOrEqual(1000);
-    expect(out.lost).toEqual(raidLoss({ gold: 10000, wood: 5000 }, out.pct));
+    const rec = (await w.core('d').defense(s.raidId))!;
+    expect(out.lost).toEqual(raidLoot(rec.setup.layout, { gold: 10000, wood: 5000 }, replayRaid(rec.setup, rec.actions, rec.endTick).buildings));
     const d = (await w.core('d').me(LATER + 1000)) as { pending: Pending[] };
     const a = (await w.core('a').me(LATER + 1000)) as { pending: Pending[] };
     expect(d.pending).toHaveLength(1);
@@ -172,7 +173,7 @@ describe('掠夺封顶与待扣 / ack', () => {
     expect(lk.stash).toEqual({ gold: 10000 - r1.out.lost.gold, wood: 5000 - r1.out.lost.wood });
     const r2 = await finishRaid(w.ports, 'b', s2.raidId, s2.actions, 3600, later + 1000);
     if (!r2.ok) throw new Error(r2.error);
-    expect(r2.out.lost).toEqual(raidLoss(lk.stash, r2.out.pct));
+    expect(r2.out.lost).toEqual(raidLoot(lk.setup.layout, lk.stash, replayRaid(lk.setup, s2.actions, 3600).buildings));
     expect(w.state('d').pending).toHaveLength(2);
   });
 });
@@ -382,7 +383,7 @@ describe('每步写入行数 ≤ 2', () => {
   it('HarborCore upsert / pick', async () => {
     const kv = new MemHarbor();
     const h = new HarborCore(kv);
-    const e = (id: string): HarborEntry => ({ id, trophies: 0, hq: 1, shieldUntil: 0, protectUntil: 0, lockUntil: 0, activeAt: T0 - HOUR });
+    const e = (id: string): HarborEntry => ({ id, name: '', trophies: 0, hq: 1, shieldUntil: 0, protectUntil: 0, lockUntil: 0, activeAt: T0 - HOUR });
     expect(await rows(kv, () => h.upsert([e('a')], T0))).toBe(1);
     expect(await rows(kv, () => h.upsert([e('b'), e('c')], T0))).toBe(2);
     expect(await rows(kv, () => h.upsert([e('d'), e('e'), e('f')], T0))).toBeLessThanOrEqual(2);
@@ -451,5 +452,57 @@ describe('快照已含的待领不重复加、攒满不丢', () => {
     expect(left.flatMap(pieces).map((x) => x.raidId)).toEqual([id(50)]);
     expect(left.reduce((a, p) => a + p.gold, 0)).toBe(-10);
     expect(w.state('d').snap!.res.gold).toBe(100000 - 500);
+  });
+});
+
+describe('每周奖杯、守住次数', () => {
+  it('赢了把加的奖杯记进本周，换周清零；输了不扣本周；对方 0 星防守方守住 +1', async () => {
+    const w = new World();
+    await seed(w);
+    const s = await start(w, 'a', 'd', LATER);
+    const r = await finishRaid(w.ports, 'a', s.raidId, s.actions, 3600, LATER + 1000);
+    if (!r.ok) throw new Error(r.error);
+    const a = (await w.core('a').me(LATER + 1000)) as { week: number; holds: number };
+    expect(a.week).toBe(Math.max(0, r.out.attTrophies));
+    expect(((await w.core('a').me(LATER + 8 * 86_400_000)) as { week: number }).week).toBe(0);
+    const d = (await w.core('d').me(LATER + 1000)) as { holds: number };
+    expect(d.holds).toBe(r.out.stars === 0 ? 1 : 0);
+    // 过期空打（0 星）不算守住，进攻方输了本周分不变
+    const w2 = new World();
+    await seed(w2);
+    const s2 = await start(w2, 'a', 'd', LATER);
+    const r2 = await finishRaid(w2.ports, 'a', s2.raidId, s2.actions, 3600, s2.until + 1);
+    if (!r2.ok) throw new Error(r2.error);
+    expect(((await w2.core('d').me(s2.until + 2)) as { holds: number }).holds).toBe(0);
+    expect(((await w2.core('a').me(s2.until + 2)) as { week: number }).week).toBe(0);
+  });
+});
+
+describe('防守记录截断', () => {
+  const rec = (i: number, shadow?: 'spar'): Defense => ({ raidId: `r${i}`, ...(shadow ? { shadow } : {}) }) as unknown as Defense;
+  it('超过上限先淘汰最旧的切磋 / 影子记录，不挤掉真人记录', () => {
+    const d = [rec(0, 'spar'), ...Array.from({ length: 9 }, (_, i) => rec(i + 1)), rec(10, 'spar'), rec(11)];
+    capDefenses(d);
+    expect(d.map((x) => x.raidId)).toEqual(['r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r11']);
+  });
+  it('全是真人记录时淘汰最旧的；新来的切磋挤不进满是真人的记录', () => {
+    const real = Array.from({ length: 11 }, (_, i) => rec(i));
+    capDefenses(real);
+    expect(real.map((x) => x.raidId)).toEqual(Array.from({ length: 10 }, (_, i) => `r${i}`));
+    const d = [rec(99, 'spar'), ...Array.from({ length: 10 }, (_, i) => rec(i))];
+    capDefenses(d);
+    expect(d.some((x) => x.raidId === 'r99')).toBe(false);
+    expect(d).toHaveLength(10);
+  });
+  it('note：一堆切磋记录挤不掉真人被抢的那条', async () => {
+    const kv = new MemKv();
+    const core = new BaseCore(kv, 'd');
+    // 没有 shadow 字段的算真人记录
+    await core.note({ raidId: 'real', at: T0 } as unknown as Defense);
+    for (let i = 0; i < 15; i++) await core.note({ raidId: `s${i}`, at: T0 + i, shadow: 'spar' } as unknown as Defense);
+    const d = (await kv.get<Defense[]>('d'))!;
+    expect(d).toHaveLength(10);
+    expect(d.some((x) => x.raidId === 'real')).toBe(true);
+    expect(d[0]!.raidId).toBe('s14');
   });
 });

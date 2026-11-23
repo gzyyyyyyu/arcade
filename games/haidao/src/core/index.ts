@@ -26,18 +26,17 @@ export {
 } from './base.ts';
 export { battleFingerprint, battleResult, canLand, canRecall, createBattle, flareTarget, publicLayout, runBattle, slowUntil, stepBattle } from './battle.ts';
 export { botActions } from './bot.ts';
-export { allyPlan, placeChests, reachableCells } from './fun.ts';
+export { placeChests, reachableCells } from './fun.ts';
 export { FUN } from '../content/fun.ts';
 export { ACHIEVEMENTS, checkAchievements, dailyBounty } from './meta.ts';
-export type { Achievement } from './meta.ts';
 export { presetLayout } from './preset.ts';
 export type { PresetStyle } from './preset.ts';
 export { nextUnlock, unlocksAt } from './unlock.ts';
 export type { UnlockItem } from './unlock.ts';
-export { CONSOLATION_PCT, COSMETICS, RARE_POOL, TD_TROPHIES, STAR_BONUS_GOLD, STREAK_MAX_PCT, STREAK_STEP_PCT, campaignGross, campaignSetup, equipSkin, rollDrops, settleCampaign, startCampaign } from './run.ts';
+export { COSMETICS, TD_TROPHIES, campaignGross, campaignSetup, equipSkin, rollDrops, settleCampaign, startCampaign } from './run.ts';
 export type { Drop } from './run.ts';
 export * from './tdtypes.ts';
-export { createTd, runTd, stepTd, tdBarricadeHp, tdBombDmg, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
+export { createTd, runTd, stepTd, tdBarricadeHp, tdFingerprint, tdResult, tdStars, tdUpCost } from './td.ts';
 export { TD_TIER_LEVEL, cliffOn, tdBuildCost, tdBuildRange, tdHeroStats, tdJammed, tdTowerRange } from './tdstate.ts';
 export { tdBuildBlock, tdCallBonus, tdClearCost, tdIncomingWave, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSellRefund, tdWaveLanes, tideOpenAt } from './tdquery.ts';
 export { tdSluiceCan } from './tdmech.ts';
@@ -53,34 +52,24 @@ export * from './escorttypes.ts';
 export { escortRunReward, escortSetup, escortUnlocked, settleEscort } from './escortrun.ts';
 export type { EscortReward } from './escortrun.ts';
 export { SNIPE_WARN, STUN_IMMUNE_MUL, applyStun, shieldFaces, stunned } from './combat.ts';
-export type { Stunnable } from './combat.ts';
 export { LEAD_MAX, flightTicks, inRing, keepLock, laneOffset, leadPoint, rankTargets } from './combat.ts';
-export type { Mover } from './combat.ts';
 export { heroKindOf, navUnlocked, startTd2, tdAutoPicks, tdBaseBonus, tdCampaign, tdChapterCleared, tdGarrisonOptions, tdGrowthProfile, tdGrowthSetup, tdUnlockedTowers } from './tdrun.ts';
 export type { TdGrowth, TdPlacedLevel } from './tdrun.ts';
 export { TD_BRANCH_DESC, TD_BRANCH_MOD } from '../content/tdbranches.ts';
-export type { TdBranchMod } from '../content/tdbranches.ts';
 export { settleTdHome, tdHomeGen, tdHomeHardOpen, tdHomeRawReward, tdHomeSetup, tdHomeSnapshot, tdHomeWave } from './tdhome.ts';
 export { TD2_LEVELS, TD2_LEVEL_BY_ID, TD2_MAPS } from '../content/tdmaps.ts';
 export * from '../content/td2units.ts';
 export { counterKind, freeSlotPick, tdBotActions, runTdBot } from './tdbot.ts';
 export type { TdBotKind, TdBotOpts } from './tdbot.ts';
 export { nextTdUnlock, placeTdLevel, settleTd, tdDailyCap, tdLevelUnlocked, tdRunReward } from './tdrun.ts';
-export type { TdNextUnlock, TdReward } from './tdrun.ts';
-export { TIDE_KILLS_CAP, TIDE_MAX_TICKS, TIDE_MODS_FROM, beijingIsoWeek, tideBoardId, tideDecode, tideLine, tideMap, tideMod, tidePick, tideScore, tideSeed, tideSetup, weekLabel } from './tdtide.ts';
+export { TIDE_MODS_FROM, beijingIsoWeek, tideBoardId, tideDecode, tideLine, tideMap, tideMod, tidePick, tideScore, tideSeed, tideSetup, weekLabel } from './tdtide.ts';
 export type { IsoWeek } from './tdtide.ts';
 export { TIDE_MAPS, TIDE_MODS } from '../content/tdtide.ts';
 export type { TideMap, TideModId } from '../content/tdtide.ts';
 export * from './maptypes.ts';
 export {
-  MAP_ENERGY_REGEN,
-  MAP_ENERGY_START,
-  MAP_HEAL_PCT,
-  MAP_REEF_ENERGY,
   MAP_RULES,
-  MAP_STAR_BONUS,
   MAP_STAR_PTS,
-  MAP_WIPED_PCT,
   aliveByBoat,
   finishStop,
   fleetPct,
@@ -94,14 +83,11 @@ export {
   routeOf,
   runStop,
   startMap,
-  stopArmy,
-  stopBoats,
   stopSetup,
   takeReef,
 } from './map.ts';
-export type { MapBotStyle, MapMove, StopRun } from './map.ts';
+export type { MapBotStyle } from './map.ts';
 export { MAP_BOSSES, MAP_FLEETS, MAP_ISLANDS, MAP_ISLAND_BY_ID, MAP_LAYER_POOL, MAP_REEF_PCT, mapHint } from '../content/maps.ts';
-export type { MapFleetDef } from '../content/maps.ts';
-export { escortBite, escortEnd, escortHullPct, escortMeet, escortRate, escortResult, escortResultOf, escortShip, escortStars } from './escort.ts';
+export { escortBite, escortHullPct, escortMeet, escortRate, escortResult, escortResultOf, escortShip, escortStars } from './escort.ts';
 export { escortBotActions, runEscortBot } from './escortbot.ts';
 export type { EscortBotKind } from './escortbot.ts';

@@ -33,10 +33,10 @@ function toWave(s: TdState, w: number): void {
 const EVENT_LEVELS = TD2_LEVEL_DEFS.filter((d) => d.events);
 
 describe('关内事件：开关和挑波', () => {
-  it('14 关写了事件（赏金船 5 关、暴雨 4 关、战书 5 关），赏金船的关都有两条以上登陆路（要跑到另一条）', () => {
+  it('13 关写了事件（赏金船 5 关、暴雨 3 关、战书 5 关），赏金船的关都有两条以上登陆路（要跑到另一条）', () => {
     const by = (k: string): string[] => EVENT_LEVELS.filter((d) => d.events === k).map((d) => d.id);
     expect(by('bounty')).toEqual(['td04', 'td09', 'td14', 'td20', 'td27']);
-    expect(by('rain')).toEqual(['td08', 'td10', 'td15', 'td21']);
+    expect(by('rain')).toEqual(['td08', 'td10', 'td21']);
     expect(by('dare')).toEqual(['td13', 'td16', 'td19', 'td22', 'td26']);
     for (const id of by('bounty')) expect(createTd(campaign(id)).level.lanes.length, id).toBeGreaterThanOrEqual(2);
   });

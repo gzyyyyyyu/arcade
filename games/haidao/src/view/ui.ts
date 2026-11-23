@@ -175,7 +175,7 @@ interface ModalOpts {
 
 /**
  * 打开一个弹窗，返回遮罩（往里放 .hd-dialog）。同一时间只开一个（stack 的确认框、成就弹窗除外，叠在别的弹窗上，最多两层）；
- * 进场淡入加弹起 0.18 秒，离场淡出 0.14 秒（mask.remove() 已改成演完再拿掉）；三种关法统一：Esc、点遮罩（可关的）、框里自己的按钮（直接 mask.remove() 即可）。
+ * 进场淡入加弹起 0.18 秒，离场淡出 0.14 秒（mask.remove() 演完再拿掉）；三种关法统一：Esc、点遮罩（可关的）、框里自己的按钮（直接 mask.remove() 即可）。
  */
 export function openModal(opts: ModalOpts): HTMLElement {
   const mask = el('div', `hd-mask${opts.cls ? ` ${opts.cls}` : ''}`, undefined, opts.parent ?? uiRoot());

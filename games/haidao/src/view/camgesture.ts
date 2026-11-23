@@ -29,7 +29,7 @@ interface TapCheck {
 }
 
 /** 太久的按住（长按）不算点：误触和犹豫的手指不该触发点选 */
-export const TAP_MAX_MS = 600;
+const TAP_MAX_MS = 600;
 
 /** 松手时是否触发点按 */
 export function isTap(c: TapCheck): boolean {

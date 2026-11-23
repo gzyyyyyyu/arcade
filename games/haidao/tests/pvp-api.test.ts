@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { battleFingerprint, botActions, newProfile, runBattle } from '../src/core/index.ts';
 import type { BattleSetup, Profile } from '../src/core/index.ts';
-import { replayRaid } from '../src/core/pvp.ts';
+import { replayRaid, wandererGain, wandererIsland } from '../src/core/pvp.ts';
 import { RULES_VERSION } from '../src/core/types.ts';
-import { BaseCore, FIND_PER_HOUR, HOUR, PAIR_PER_DAY, PROTECT_MS, SNAP_PER_HOUR } from '../worker/pvp/base.ts';
+import { BaseCore, FIND_PER_HOUR, HOUR, PAIR_PER_DAY, PROTECT_MS, SNAP_PER_HOUR, SPAR_PER_DAY } from '../worker/pvp/base.ts';
 import { PVP_PREFIX, SNAPSHOT_MAX, handlePvp } from '../worker/pvp/api.ts';
 import type { Ports, PvpEnv } from '../worker/pvp/api.ts';
 import { HarborCore, MemHarbor } from '../worker/pvp/harbor.ts';
@@ -64,7 +64,7 @@ interface Res {
 
 async function call(w: World, uid: string, method: string, sub: string, body?: unknown, o: Opt = {}): Promise<Res> {
   // find / revenge 默认带当前规则版本（和浏览器一样）；要测没带或带旧的，请求体里显式写 rules（undefined 表示不带）
-  if (method === 'POST' && (sub === 'find' || sub === 'revenge')) {
+  if (method === 'POST' && (sub === 'find' || sub === 'revenge' || sub === 'challenge')) {
     const b = (body ?? {}) as Record<string, unknown>;
     if (!('rules' in b)) body = { ...b, rules: RULES_VERSION };
   }
@@ -95,6 +95,13 @@ async function seeded(): Promise<World> {
   expect((await put(w, 'd', rich())).status).toBe(200);
   expect((await put(w, 'a', attacker())).status).toBe(200);
   return w;
+}
+/** uid 在港口名单里看到的、昵称为 name 的那一行的编号 */
+async function refOf(w: World, uid: string, name: string): Promise<string> {
+  const list = (await call(w, uid, 'GET', 'roster')).body.list as { ref: string; name: string }[];
+  const e = list.find((x) => x.name === name);
+  if (!e) throw new Error(`${uid} 的名单里没有 ${name}`);
+  return e.ref;
 }
 
 describe('重放一致性（完整服务端流程）', () => {
@@ -186,16 +193,28 @@ describe('匹配（接口层）', () => {
     // 锁过期后第二次找：旧的一场按空打结掉，d 因为 24 小时内打过被排除
     const f2 = await call(w, 'a', 'POST', 'find', undefined, { now: LATER + 10 * 60_000 });
     expect(f2.status).toBe(200);
+    // 真人档都排除了 d：落到影子岛（打 d 的最新快照，d 不掉东西）
     expect(f2.body.wanderer).toBe(true);
-    expect(f2.body.opponent.name).toContain('流浪海盗');
+    expect(f2.body.shadow).toBe('shadow');
+    expect(f2.body.opponent.name).toBe('影子·小王');
     const dm = (await call(w, 'd', 'GET', 'me', undefined, { now: LATER + 10 * 60_000 })).body;
     expect(dm.defenses[0].stars).toBe(0);
     // 流浪海盗岛也能结算：不扣任何人
     const actions = botActions(f2.body.setup, 'normal');
     const r = await call(w, 'a', 'POST', 'finish', { raidId: f2.body.raidId, actions }, { now: LATER + 10 * 60_000 + 1000 });
     expect(r.body.wanderer).toBe(true);
+    expect(r.body.shadow).toBe('shadow');
     expect(r.body.lost).toEqual({ gold: 0, wood: 0 });
-    expect((await call(w, 'd', 'GET', 'me')).body.pending).toEqual([]);
+    const dm2 = (await call(w, 'd', 'GET', 'me')).body;
+    expect(dm2.pending).toEqual([]);
+    // d 的防守记录多一条影子战：不能复仇、能看回放，回放和结果逐位一致
+    expect(dm2.defenses[0]).toMatchObject({ raidId: f2.body.raidId, shadow: 'shadow', revenge: false, lost: { gold: 0, wood: 0 }, trophies: 0 });
+    const rp = await call(w, 'd', 'GET', `defense/${f2.body.raidId}`);
+    expect(replayRaid(rp.body.setup, rp.body.actions, rp.body.endTick).result.destroyedPct).toBe(r.body.pct);
+    // 同一对人一天 PAIR_PER_DAY 场已满（真人一场 + 影子一场）：再找只剩流浪海盗岛
+    const f3 = await call(w, 'a', 'POST', 'find', undefined, { now: LATER + 20 * 60_000 });
+    expect(f3.body.shadow).toBeUndefined();
+    expect(f3.body.opponent.name).toContain('流浪海盗');
   });
 
   it('还在锁着时第二次找：同样不会再匹配到同一人', async () => {
@@ -325,7 +344,8 @@ describe('接口把关', () => {
     for (let i = 0; i < FIND_PER_HOUR; i++) expect((await call(w, 'a', 'POST', 'find')).status).toBe(200);
     const f = await call(w, 'a', 'POST', 'find');
     expect([f.status, f.body.error]).toEqual([429, 'rate_limited']);
-  });
+    // 1200 次找人：机器忙（负载 30–40）时单跑也要 6–7 秒
+  }, 30_000);
   it('ack 参数检查；defense 参数检查', async () => {
     const w = await seeded();
     expect((await call(w, 'a', 'POST', 'ack', { raidIds: 'x' })).status).toBe(400);
@@ -606,5 +626,117 @@ describe('GET stats：真人攻防汇总，只给平台管理员', () => {
     expect(f.body.wanderer).toBe(true);
     await call(w, 'a', 'POST', 'finish', { raidId: f.body.raidId, actions: botActions(f.body.setup as BattleSetup, 'normal') });
     expect((await call(w, 'root', 'GET', 'stats')).body).toMatchObject({ total: 0, cells: [] });
+  });
+});
+
+describe('影子岛 + 港口点名切磋（base.md 第①批）', () => {
+  it('新号保护期里的人也能当影子：掠夺按流浪海盗岛公式、奖杯减半，防守方什么都不变', async () => {
+    const w = await seeded();
+    const now = T0 + HOUR;
+    const before = (await call(w, 'd', 'GET', 'me', undefined, { now })).body;
+    const f = await call(w, 'a', 'POST', 'find', undefined, { now });
+    expect(f.body.shadow).toBe('shadow');
+    const actions = botActions(f.body.setup, 'normal');
+    const r = await call(w, 'a', 'POST', 'finish', { raidId: f.body.raidId, actions }, { now: now + 1000 });
+    const seed = f.body.setup.seed as number;
+    expect(r.body.gain).toEqual(wandererGain(wandererIsland(0, 1, seed).loot, f.body.setup.layout, replayRaid(f.body.setup, actions).buildings));
+    expect(r.body.trophies).toBe(r.body.stars > 0 ? Math.floor((10 + 5 * r.body.stars) / 2) : -5);
+    const after = (await call(w, 'd', 'GET', 'me', undefined, { now: now + 2000 })).body;
+    expect(after.trophies).toBe(before.trophies);
+    expect(after.pending).toEqual([]);
+    expect(after.protectUntil).toBe(before.protectUntil);
+    // 进攻方打影子不结束自己的新手保护
+    expect((await call(w, 'a', 'GET', 'me', undefined, { now: now + 2000 })).body.protectUntil).toBeGreaterThan(0);
+  });
+
+  it('自己不当自己的影子；只有自己时给流浪海盗岛', async () => {
+    const w = new World();
+    await put(w, 'a', attacker());
+    const f = await call(w, 'a', 'POST', 'find');
+    expect(f.body.shadow).toBeUndefined();
+    expect(f.body.opponent.name).toContain('流浪海盗');
+  });
+
+  it('港口名单：不含自己，带昵称、主寨、奖杯和随机编号，不带 userId；14 天没上传的不在', async () => {
+    const w = await seeded();
+    await put(w, 'b', attacker(), { now: T0 - 15 * 24 * HOUR });
+    const r = await call(w, 'a', 'GET', 'roster');
+    expect(r.status).toBe(200);
+    expect(r.body.list).toEqual([{ ref: expect.stringMatching(/^[0-9a-f]{16}$/), name: '小王', hq: 1, trophies: 0 }]);
+    expect(JSON.stringify(r.body)).not.toMatch(/"id"|"userId"|"d"/);
+    // 编号跟着这一行走：再上传一次不变
+    const ref = r.body.list[0].ref;
+    await put(w, 'd', rich());
+    expect((await call(w, 'a', 'GET', 'roster')).body.list[0].ref).toBe(ref);
+  });
+
+  it(`点名切磋：拿名单编号切磋；不掠夺、不动奖杯、不丢护盾；对方记一条能切磋回去；同一对人每天 ${SPAR_PER_DAY} 场`, async () => {
+    const w = await seeded();
+    const ref = await refOf(w, 'a', '小王');
+    for (let i = 0; i < SPAR_PER_DAY; i++) {
+      const t = LATER + i * 10 * 60_000;
+      const c = await call(w, 'a', 'POST', 'challenge', { ref }, { now: t });
+      expect(c.status).toBe(200);
+      expect(c.body.shadow).toBe('spar');
+      expect(c.body.opponent.name).toBe('切磋·小王');
+      expect(c.body.maxGain).toEqual({ gold: 0, wood: 0 });
+      const r = await call(w, 'a', 'POST', 'finish', { raidId: c.body.raidId, actions: botActions(c.body.setup, 'normal') }, { now: t + 1000 });
+      expect(r.body.gain).toEqual({ gold: 0, wood: 0 });
+      expect(r.body.trophies).toBe(0);
+    }
+    const over = await call(w, 'a', 'POST', 'challenge', { ref }, { now: LATER + 40 * 60_000 });
+    expect(over.status).toBe(409);
+    expect(over.body.error).toBe('spar_limit');
+    const dm = (await call(w, 'd', 'GET', 'me')).body;
+    expect(dm.defenses).toHaveLength(SPAR_PER_DAY);
+    expect(dm.defenses[0].shadow).toBe('spar');
+    expect(dm.trophies).toBe(0);
+    expect(dm.pending).toEqual([]);
+    // 切磋回去：按防守记录的 raidId，不需要知道对方 userId
+    const back = await call(w, 'd', 'POST', 'challenge', { raidId: dm.defenses[0].raidId });
+    expect(back.status).toBe(200);
+    expect(back.body.opponent.name).toBe('切磋·小李');
+    // 放弃的切磋不进对方记录
+    await call(w, 'd', 'POST', 'cancel', { raidId: back.body.raidId });
+    expect((await call(w, 'a', 'GET', 'me')).body.defenses).toEqual([]);
+  });
+
+  it('切磋参数和把关：乱填编号 400、不在名单里（含自己的编号）404、只给 userId 400、没带 rules 409 need_reload', async () => {
+    const w = await seeded();
+    const ref = await refOf(w, 'a', '小王');
+    const own = await refOf(w, 'd', '小李');
+    for (const bad of ['xyz', 'D'.repeat(16), `${ref}0`, '']) {
+      const r = await call(w, 'a', 'POST', 'challenge', { ref: bad });
+      expect([r.status, r.body.error]).toEqual([400, 'bad_ref']);
+    }
+    for (const gone of ['0123456789abcdef', own]) {
+      const r = await call(w, 'a', 'POST', 'challenge', { ref: gone });
+      expect([r.status, r.body.error]).toEqual([404, 'not_in_roster']);
+    }
+    expect((await call(w, 'a', 'POST', 'challenge', { userId: 'd' })).body.error).toBe('bad_request');
+    expect((await call(w, 'a', 'POST', 'challenge', { ref, rules: undefined })).body.error).toBe('need_reload');
+    expect((await call(w, 'a', 'POST', 'challenge', {})).body.error).toBe('bad_request');
+    expect((await call(w, 'a', 'POST', 'challenge', { raidId: 'nonexistent12' })).status).toBe(404);
+  });
+
+  it('计量说忙 → 切磋也 503 busy，不开新一场', async () => {
+    const w = await seeded();
+    const ref = await refOf(w, 'a', '小王');
+    const ports = { base: (u: string) => w.core(u), harbor: () => w.harbor, meter: { level: async () => 'busy', report: async () => undefined } } as unknown as Ports;
+    const r = await call(w, 'a', 'POST', 'challenge', { ref }, { ports });
+    expect([r.status, r.body.error]).toEqual([503, 'busy']);
+    expect((await call(w, 'd', 'GET', 'me')).body.defenses).toEqual([]);
+  });
+
+  it('切磋时开着的护盾不丢', async () => {
+    const w = await seeded();
+    // d 先被 a 打一场拿到护盾（拆了东西给 8 小时）
+    const f = await call(w, 'a', 'POST', 'find');
+    await call(w, 'a', 'POST', 'finish', { raidId: f.body.raidId, actions: botActions(f.body.setup, 'normal') });
+    const sh = (await call(w, 'd', 'GET', 'me')).body.shieldUntil;
+    expect(sh).toBeGreaterThan(0);
+    const c = await call(w, 'd', 'POST', 'challenge', { ref: await refOf(w, 'd', '小李') }, { now: LATER + 1000 });
+    expect(c.status).toBe(200);
+    expect((await call(w, 'd', 'GET', 'me', undefined, { now: LATER + 2000 })).body.shieldUntil).toBe(sh);
   });
 });

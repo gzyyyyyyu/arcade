@@ -165,7 +165,7 @@ const VAULT_HINT_KEY = 'haidao.hint.vault';
 
 /**
  * 上一场仓库满了（结算写「仓库满了，少拿 N」）：回岛先指一次「升金库」（木材截得多就指木料仓），排在训练营那步前面。
- * 新号 3 场就到主寨 3 级、金库还是 1 级，连着两场白丢四成掠夺（11-22 试玩）。只出一次（haidao.hint.vault），
+ * 新号 3 场就到主寨 3 级、金库还是 1 级，连着两场白丢四成掠夺。只出一次（haidao.hint.vault），
  * 「先不了」、升了那座、离开基地都收。新手引导前几步（还没出过海）不插队。返回 true = 这一帧金库引导占着横幅
  */
 function vaultGuide(bs: BaseScene, st: number): boolean {

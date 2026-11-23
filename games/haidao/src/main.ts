@@ -5,6 +5,7 @@ import { TRAIN_SEED, trainSetup, trainTdSetup } from './core/training.ts';
 import { reportErrors } from 'arcade-kit/report';
 import { BRANCH_LEVEL, BUILDINGS, CAMPAIGN, branchOptions } from './content/index.ts';
 import { TD_TOWER_KINDS, canPlace, produce, tdGrowthProfile, type TdTowerKind } from './core/index.ts';
+import { TD_CHALLENGE_BY_ID } from './content/tdchallenge.ts';
 import { dayIndex } from './view/meta.ts';
 import { ISLAND, type BattleSetup, type Profile } from './core/types.ts';
 import { escortLive, live, tdLive } from './net/live.ts';
@@ -329,9 +330,13 @@ function main(): void {
     // 测试辅助：给资源和星数，不写存档（volatile）
     app.volatile = true;
     app.api.dev = {
-      td: (hq, branch = false, hero) => {
+      td: (hq, branch = false, hero, deep = false) => {
         // 建议养成的存档：每种能造的塔各一座、英雄等级跟主寨，战役全部 1★；资源给够
         const g = tdGrowthProfile({ hq }, 'suggest');
+        if (deep) {
+          const ids = Object.keys(g.td!.stars);
+          g.td = { ...g.td!, stars: Object.fromEntries(ids.map((id) => [id, 3])), vet: Object.fromEntries(ids.map((id) => [id, 1 as const])), chal: Object.fromEntries(ids.filter((id) => TD_CHALLENGE_BY_ID.has(id)).map((id) => [id, 1 as const])) };
+        }
         const base = spreadTowers(g.base);
         app.save.profile = { ...app.profile, base: branch ? withBranches(base) : base, res: { gold: 5000, wood: 5000 }, tutorial: 99, stats: { ...app.profile.stats, attacks: 1 }, research: { ...app.profile.research, hero: hero ?? g.research.hero ?? 1 }, td: { ...g.td!, day: dayIndex(), gotGold: 0, gotWood: 0 } };
         app.reload();

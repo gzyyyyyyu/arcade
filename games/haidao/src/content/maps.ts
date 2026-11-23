@@ -144,7 +144,7 @@ export const MAP_LAYER_POOL: string[][] = [
 export const MAP_REEF_PCT = 50;
 
 /** 当天的船队模板：每条船的兵种、研究等级、每船人口（雇来的船，不看玩家存档），技能等级 */
-export interface MapFleetDef {
+interface MapFleetDef {
   id: string;
   name: string;
   crew: TroopKind[];

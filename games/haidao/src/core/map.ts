@@ -14,17 +14,17 @@ import { ISLAND, RULES_VERSION } from './types.ts';
 import type { ArmySetup, BattleAction, BattleResult, BattleSetup, BattleState, Placed } from './types.ts';
 
 /** 开局旗舰能量 */
-export const MAP_ENERGY_START = 8;
+const MAP_ENERGY_START = 8;
 /** 每打完一站回多少能量 */
-export const MAP_ENERGY_REGEN = 2;
+const MAP_ENERGY_REGEN = 2;
 /** 补给礁选"补能量"加多少 */
-export const MAP_REEF_ENERGY = 8;
+const MAP_REEF_ENERGY = 8;
 /** 休整、补兵恢复缺员的百分比（向下取整） */
-export const MAP_HEAL_PCT = 50;
+const MAP_HEAL_PCT = 50;
 /** 每颗星的宝分加成 */
-export const MAP_STAR_BONUS = 10;
+const MAP_STAR_BONUS = 10;
 /** 船队覆灭时宝分按百分之几计 */
-export const MAP_WIPED_PCT = 70;
+const MAP_WIPED_PCT = 70;
 /** 终局星的宝分阈值 T1 / T2 / T3（tools/map-sim.ts 配平：普通机器人平均约 1.6 星） */
 export const MAP_STAR_PTS: readonly [number, number, number] = [90, 150, 200];
 
@@ -101,7 +101,7 @@ export function restOf(s: MapState, rest: number): number {
 }
 
 /** 这一站出战的船（fleet 下标），顺序 = ArmySetup.boats 的下标 */
-export function stopBoats(s: MapState, rest: number): number[] {
+function stopBoats(s: MapState, rest: number): number[] {
   const r = restOf(s, rest);
   const out: number[] = [];
   s.fleet.forEach((b, i) => {
@@ -110,7 +110,7 @@ export function stopBoats(s: MapState, rest: number): number[] {
   return out;
 }
 
-export function stopArmy(s: MapState, rest: number): ArmySetup {
+function stopArmy(s: MapState, rest: number): ArmySetup {
   return {
     boats: stopBoats(s, rest).map((i) => {
       const b = s.fleet[i]!;
@@ -150,7 +150,7 @@ export function fleetSurvivors(s: MapState, rest: number, alive: readonly number
   return out;
 }
 
-export interface StopRun {
+interface StopRun {
   result: BattleResult;
   /** 按出战船（ArmySetup.boats）下标；用 fleetSurvivors 换成 fleet 下标再传给 finishStop */
   survivors: number[];
@@ -236,7 +236,7 @@ export const MAP_RULES: MapRules = { routeOf, startMap, stopSetup, finishStop, t
 export type MapBotStyle = 'novice' | 'normal';
 
 /** 航线上的一个决定 */
-export type MapMove = { kind: 'island'; node: number; rest: number } | { kind: 'reef'; node: number; pick: ReefPick } | { kind: 'home' };
+type MapMove = { kind: 'island'; node: number; rest: number } | { kind: 'reef'; node: number; pick: ReefPick } | { kind: 'home' };
 
 /** 船队现有人数 / 满编人数（百分比） */
 export function fleetPct(fleet: MapBoat[]): number {

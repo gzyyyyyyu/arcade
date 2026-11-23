@@ -1,4 +1,6 @@
 import type { TdScene } from './TdScene.ts';
+import { campAt, campCenter } from '../core/tdcamp.ts';
+import { TD2_CAMP } from '../content/tdcamp.ts';
 import type Phaser from 'phaser';
 import { TD2_HERO_SKILL, tdTowerRange, tdBuildRange, TD_HERO_GUARD } from '../core/index.ts';
 import { UNIT } from '../core/types.ts';
@@ -93,6 +95,20 @@ export function drawBars(bs: TdScene): void {
     const R = isoRing((bs.mode === 'keg' ? SKILL.bomb.range : SKILL.barricade.range) / UNIT);
     f.lineStyle(3, 0xffe885, 0.85).strokeEllipse(w.x, w.y, R.w, R.h);
     f.fillStyle(0xffe885, 0.12).fillEllipse(w.x, w.y, R.w, R.h);
+  }
+  // 挪集结点时画营身边能站的范围；水手营的集结旗每帧都画
+  const camp = bs.mode === 'muster' ? campAt(bs.s, bs.musterSlot) : undefined;
+  if (camp) {
+    const c = campCenter(bs.s, camp);
+    const w = W(c.x, c.y);
+    const R = isoRing(TD2_CAMP.rally / UNIT);
+    f.lineStyle(3, 0x8fd0ff, 0.85).strokeEllipse(w.x, w.y, R.w, R.h);
+    f.fillStyle(0x8fd0ff, 0.12).fillEllipse(w.x, w.y, R.w, R.h);
+  }
+  for (const k of bs.s.camps ?? []) {
+    const w = W(k.rx, k.ry);
+    f.lineStyle(2, 0x2b1a15, 0.9).lineBetween(w.x, w.y, w.x, w.y - 26);
+    f.fillStyle(0x3d7fd0, 0.95).fillTriangle(w.x, w.y - 26, w.x + 14, w.y - 21, w.x, w.y - 16);
   }
 }
 

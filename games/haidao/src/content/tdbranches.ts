@@ -10,7 +10,7 @@ import { BRANCHES } from './branches.ts';
 import type { BranchMod } from '../core/tdtypes.ts';
 
 /** 守岛里分叉的效果：BranchMod 去掉穿甲和防空开关，加上"对重甲再多几成" */
-export type TdBranchMod = Omit<BranchMod, 'pierce' | 'antiAir'> & {
+type TdBranchMod = Omit<BranchMod, 'pierce' | 'antiAir'> & {
   /** 打重甲时伤害倍率再加多少个百分点（加在克制表的倍率上） */
   heavyPct?: number;
 };

@@ -5,6 +5,7 @@
  * 只在关卡写了这些字段时建状态（s.happen）。
  */
 import { TD2_EVENT, TD2_NAV_SKILL } from '../content/td2units.ts';
+import { pctOf } from './tddeep.ts';
 import { Rng } from './rng.ts';
 import { tdWaveLanes } from './tdquery.ts';
 import { addGold, d2, inner, waveGold } from './tdstate.ts';
@@ -38,9 +39,10 @@ export function raining(s: TdState): boolean {
   return s.happen !== undefined && eventAt(s, s.wave - 1) === 'rain';
 }
 
-/** 英雄技能的冷却（大潮英雄周减半）：没有海况原样返回 */
+/** 英雄技能的冷却（大潮英雄周减半；挑战、天赋另乘）：都没有原样返回 */
 export function heroCd(s: TdState, cd: number): number {
-  const pct = s.happen ? s.level.heroCdPct : undefined;
+  // 挑战（冷却加长）、天赋（冷却缩短）只在战役、海盗来袭有（s.deep）
+  const pct = pctOf(pctOf(s.happen ? s.level.heroCdPct : undefined, s.deep?.rule.heroCdPct), s.deep?.talent.cdPct);
   return pct === undefined ? cd : Math.max(1, Math.floor((cd * pct) / 100));
 }
 

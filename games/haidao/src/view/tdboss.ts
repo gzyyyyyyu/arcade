@@ -5,7 +5,7 @@ import type { TdEnemy } from '../core/index.ts';
  * 首领：船长（光环）、海盗王（开炮、掉宝）——顶栏挂粗血条、头上宽血条加王冠；精英：水手长（4 倍血）、大副（死后分裂）——宽血条加金菱形。
  */
 export type FoeTier = 0 | 1 | 2;
-const TIER: Readonly<Partial<Record<TdEnemy['kind'], FoeTier>>> = { captain: 2, king: 2, bosun: 1, mate: 1 };
+const TIER: Readonly<Partial<Record<TdEnemy['kind'], FoeTier>>> = { captain: 2, king: 2, tyrantShip: 2, tyrant: 2, tyrantRun: 2, bosun: 1, mate: 1, drummer: 1 };
 
 export function foeTier(kind: TdEnemy['kind']): FoeTier {
   return TIER[kind] ?? 0;

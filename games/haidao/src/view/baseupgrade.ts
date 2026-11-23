@@ -8,7 +8,7 @@ import { claimIngot } from '../core/ingot.ts';
 import { claimTrain } from '../core/training.ts';
 import type { BuildingKind, TroopKind, SkillKind, Placed, Res } from '../core/types.ts';
 import { app, fmt } from './app.ts';
-import { runAchievements } from './meta.ts';
+import { dayIndex, runAchievements } from './meta.ts';
 import { ensureArt } from './textures.ts';
 import { tArt, iconA, piecesFor } from './art.ts';
 import { floatText } from './fx.ts';
@@ -27,6 +27,7 @@ import { topOf, measureSafe } from './basegeom.ts';
 import { retexture, collectFly, screenOf } from './basehud.ts';
 import { drawSel } from './basemenu.ts';
 import { rankHint } from './rankui.ts';
+import { goalTick } from '../core/goals.ts';
 
 /** 做完会涨统计的事（升级、结算）之后查一遍成就，新的弹徽章 */
 function checkAch(bs: BaseScene): void {
@@ -249,7 +250,7 @@ export function doUpgrade(bs: BaseScene, id: number, reopen = true): void {
   const before = app.profile.base.buildings.find((x) => x.id === id);
   const upgraded = r.value.base.buildings.find((x) => x.id === id);
   const prev = bs.nodes.get(id);
-  app.commit(r.value);
+  app.commit(goalTick(r.value, dayIndex(), 'upgrade'));
   if (tutStep() >= 6) tutSet(TUT_SAILED);
   const hq = upgraded?.kind === 'hq';
   if (hq) bs.celebrating = true;
@@ -295,7 +296,7 @@ export function doCollect(bs: BaseScene, id: number): void {
     }
     return;
   }
-  app.commit(r.value.profile);
+  app.commit(goalTick(r.value.profile, dayIndex(), 'collect'));
   sfx(r.value.kind === 'gold' ? 'coin' : 'wood');
   tutAdv(0);
   const n = bs.nodes.get(id);
@@ -326,7 +327,7 @@ export function claimAll(bs: BaseScene, summary = true): void {
     }
     return toast('现在没有能收的');
   }
-  app.commit(ing.profile);
+  app.commit(r.ids.length > 0 ? goalTick(ing.profile, dayIndex(), 'collect') : ing.profile);
   tutAdv(0);
   const flown = new Set<string>();
   for (const id of r.ids) {

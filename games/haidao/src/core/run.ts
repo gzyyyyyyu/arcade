@@ -8,7 +8,7 @@ import type { LevelDef } from '../content/defs.ts';
 import type { ArmySetup, BattleResult, BattleSetup, Profile, Res, Result, TroopKind } from './types.ts';
 
 /** 首次拿到一颗星奖多少金币 */
-export const STAR_BONUS_GOLD = 50;
+const STAR_BONUS_GOLD = 50;
 
 /** 出海：木材不够整支船队就自动少带兵（trimArmy，trimmed 是少带了几个），一个兵都带不起才回 no_wood。战役是娱乐局，开宝箱和援军（DESIGN 15.2） */
 export function startCampaign(p: Profile, levelId: string, seed: number): Result<{ profile: Profile; setup: BattleSetup; trimmed: number }> {
@@ -26,10 +26,10 @@ export function campaignSetup(lv: Pick<LevelDef, 'layout' | 'defPct'>, army: Arm
 }
 
 /** 连胜加成：每场 +10%，封顶 +50% */
-export const STREAK_STEP_PCT = 10;
-export const STREAK_MAX_PCT = 50;
+const STREAK_STEP_PCT = 10;
+const STREAK_MAX_PCT = 50;
 /** 0 星的安慰奖：这关掠夺的百分之几，另给一点木材 */
-export const CONSOLATION_PCT = 15;
+const CONSOLATION_PCT = 15;
 const CONSOLATION_WOOD = 10;
 
 export type Drop =
@@ -39,7 +39,7 @@ export type Drop =
 const TROOP_IDS = ['sailor', 'gunner', 'brute', 'bomber', 'captain', 'medic', 'cannoneer', 'harpooner'];
 const SKIN_NAMES = ['gold', 'shadow', 'royal'];
 /** 稀有掉落池：装饰和兵种皮肤 */
-export const RARE_POOL: string[] = [
+const RARE_POOL: string[] = [
   'deco:statue',
   'deco:flagpole',
   'deco:chest',

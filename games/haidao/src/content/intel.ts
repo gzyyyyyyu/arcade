@@ -5,7 +5,7 @@
  */
 import type { BuildingKind, TroopKind } from '../core/types.ts';
 
-export interface TroopIntel {
+interface TroopIntel {
   /** 一句话定位：干什么的、怎么用 */
   role: string;
   /** 打起来占便宜的防御 */

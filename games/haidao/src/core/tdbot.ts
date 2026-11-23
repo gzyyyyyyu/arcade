@@ -13,7 +13,9 @@ import { createTd, stepTd, tdResult, tdUpCost } from './td.ts';
 import { tdSluiceCan } from './tdmech.ts';
 import { tdDareCan } from './tdevent.ts';
 import { hookTarget } from './tdhook.ts';
-import { tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund } from './tdquery.ts';
+import { campAt, campUpCost } from './tdcamp.ts';
+import { TD2_CAMP } from '../content/tdcamp.ts';
+import { tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund, tdUltCost, tdUltOptions } from './tdquery.ts';
 import { isqrt } from './fmath.ts';
 import { cliffOn, tcx, tcy, tdBuildCost, tdBuildRange, tdHeroStats, tdTowerRange } from './tdstate.ts';
 import { inRing } from './combat.ts';
@@ -415,6 +417,30 @@ function rewardSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y: numbe
   return null;
 }
 
+/**
+ * 按预告给能换终极的塔挑一个（普通、贪机器人）：后面还有首领波挑攻城巨炮，预告里有飞的挑连珠楼，铁甲多挑震地弹；
+ * 别的挑这种塔的另一个（鹰眼哨、霰弹炮台、火雨）。没有能换的为 undefined
+ */
+function ultPick(s: TdState, slot: number, pv: WavePreview[]): string | undefined {
+  const opts = tdUltOptions(s, slot);
+  if (opts.length === 0) return undefined;
+  const o = outlook(s, pv);
+  const boss = s.level.waves.slice(s.wave).some((w) => w.boss);
+  const prefer = boss ? 'ult.siege' : o.air ? 'ult.gatling' : o.share.heavy >= 40 ? 'ult.quake' : '';
+  return (opts.find((u) => u.id === prefer) ?? opts.find((u) => u.id !== 'ult.siege' && u.id !== 'ult.gatling' && u.id !== 'ult.quake') ?? opts[0])!.id;
+}
+
+/** 照 order 的顺序找第一座能换终极、钱够的塔，回操作和价 */
+function ultBuy(s: TdState, order: readonly number[], gold: number, pick: (slot: number) => string | undefined): { slot: number; ult: string; cost: number } | undefined {
+  for (const j of order) {
+    const u = pick(j);
+    if (!u) continue;
+    const c = tdUltCost(s, u);
+    return c >= 0 && gold >= c ? { slot: j, ult: u, cost: c } : undefined;
+  }
+  return undefined;
+}
+
 export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}): TdBot {
   const pickKind = (s: TdState, pv: WavePreview[]): TdTowerKind => (opts.only && s.unlocked.includes(opts.only) ? opts.only : counterKind(s, pv));
   const rng = new Rng(seed, `td-bot-${kind}`);
@@ -475,14 +501,26 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
           gold -= tdBuildCost(s, i, k);
         }
       } else {
+        let upped = false;
+        let short = false;
         for (let j = 0; j < s.slots.length; j++) {
           const tw = towerOn(s, j);
           if (!tw || tw.tier === undefined) continue;
+          if (tw.tier < 3) short = true;
           const c = tdUpCost(tw.kind, tw.tier - 1);
           if (tw.tier < 3 && c >= 0 && gold >= c) {
             out.push({ t, type: 'up', slot: j });
             gold -= c;
+            upped = true;
             break;
+          }
+        }
+        // 全到 3 阶了：钱够就换终极（挑第一个，只在战役、海盗来袭有）
+        if (!upped && !short) {
+          const b = ultBuy(s, s.slots.map((_, j) => j), gold, (j) => tdUltOptions(s, j)[0]?.id);
+          if (b) {
+            out.push({ t, type: 'ult', slot: b.slot, ult: b.ult });
+            gold -= b.cost;
           }
         }
       }
@@ -528,6 +566,14 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
           spent = true;
         }
       }
+      // 贪：木台造满后，有钱先换终极（比升别的塔优先；木台没造满时先造，不然开局几波塔不够）
+      if (kind === 'greedy' && free.length === 0) {
+        const b = ultBuy(s, order, gold, (j) => ultPick(s, j, pv));
+        if (b) {
+          out.push({ t, type: 'ult', slot: b.slot, ult: b.ult });
+          gold -= b.cost;
+        }
+      }
       // 布局思路：focus 只在主路两边造；tall 已造的没升满就先升，最多造一半木台
       if (opts.pads && !padSet) padSet = padsFor(s, pv, opts.pads);
       const ps = padSet;
@@ -545,22 +591,46 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
         let bi = buildable[0] as number;
         for (const i of buildable) if ((sc[i] ?? 0) > (sc[bi] ?? 0)) bi = i;
         const k = pickKind(s, pv);
-        if (gold >= tdBuildCost(s, bi, k)) {
+        if (campWanted(s, pv)) {
+          if (gold >= TD2_CAMP.cost) {
+            out.push({ t, type: 'camp', slot: bi });
+            gold -= TD2_CAMP.cost;
+          }
+        } else if (gold >= tdBuildCost(s, bi, k)) {
           out.push({ t, type: 'build', slot: bi, kind: k });
           gold -= tdBuildCost(s, bi, k);
         }
         spent = true;
       }
       if (!spent) {
+        let short = false;
         for (const j of order) {
+          const camp = campAt(s, j);
+          if (camp && camp.tier < 3) {
+            const c = campUpCost(camp);
+            if (gold >= c) {
+              out.push({ t, type: 'up', slot: j });
+              gold -= c;
+            }
+            break;
+          }
           const tw = towerOn(s, j);
           if (!tw || tw.tier === undefined || tw.tier >= 3) continue;
+          short = true;
           const c = tdUpCost(tw.kind, tw.tier - 1);
           if (c >= 0 && gold >= c) {
             out.push({ t, type: 'up', slot: j });
             gold -= c;
           }
           break;
+        }
+        // 稳：木台造满、都到 3 阶了，钱够再按预告换终极
+        if (!short && kind === 'normal') {
+          const b = ultBuy(s, order, gold, (j) => ultPick(s, j, pv));
+          if (b) {
+            out.push({ t, type: 'ult', slot: b.slot, ult: b.ult });
+            gold -= b.cost;
+          }
         }
       }
       // 没空木台了：钱够就清一块沉船（多一个塔位）
@@ -569,7 +639,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
         const id = wrecked === undefined ? undefined : s.slots[wrecked]!.wreck;
         if (id !== undefined && gold >= tdClearCost(s, id) + TD2_COST.gunTower) {
           out.push({ t, type: 'clearNow', id });
-          gold -= TD2_ECON.clearGold;
+          gold -= tdClearCost(s, id);
         }
       }
       // 卖掉一座对预告里的主力打不动的塔（每波最多一次，倒数里才卖）
@@ -595,6 +665,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
         out.push({ t, type: 'repair', id: broken.id });
         gold -= TD2_ECON.repairGold;
       }
+      for (const c of s.camps ?? []) if (c.tier === 3 && !c.branch) out.push({ t, type: 'branch', slot: c.slot, branch: 'camp.wall' });
       for (let j = 0; j < s.slots.length; j++) {
         const tw = towerOn(s, j);
         if (tw?.tier !== 3) continue;
@@ -727,6 +798,17 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
     if (kind === 'greedy' && s.wave >= 1 && t - waveAt >= 100 && s.next > t + 20 && live.length <= 2 && s.piles.length === 0) out.push({ t, type: 'call' });
     return out;
   };
+}
+
+/**
+ * 普通、贪机器人要不要先造一座水手营（只在能造营的局）：已经有两座塔以后，地面敌人多的路上放一座；
+ * 预告里有冲锋手（跑得快、塔追不上）再多放一座
+ */
+function campWanted(s: TdState, pv: readonly WavePreview[]): boolean {
+  if (!s.campOn || s.towers.filter((t) => t.slot >= 0).length < 2) return false;
+  let charger = false;
+  for (const w of pv) for (const l of w.lanes) for (const e of l.enemies) if (e.kind === 'charger') charger = true;
+  return (s.camps?.length ?? 0) < (charger ? 2 : 1);
 }
 
 /** 机器人打一局：返回结果和它下过的全部操作（重放测试用） */

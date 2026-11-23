@@ -223,7 +223,7 @@ export function edgePan(mx: number, my: number, w: number, h: number, margin = 4
 export type BaseKeyAction = 'upgrade' | 'info' | 'collectAll' | 'move' | 'build' | 'train' | 'cancel';
 
 /** 基地的字母快捷键（大小写都认）；键位提示写在按钮的悬停提示里 */
-export const BASE_KEYS: Record<string, BaseKeyAction> = { u: 'upgrade', i: 'info', c: 'collectAll', m: 'move', b: 'build', t: 'train', escape: 'cancel' };
+const BASE_KEYS: Record<string, BaseKeyAction> = { u: 'upgrade', i: 'info', c: 'collectAll', m: 'move', b: 'build', t: 'train', escape: 'cancel' };
 /** 动作 → 提示里显示的键名 */
 const KEY_HINT: Record<BaseKeyAction, string> = { upgrade: 'U', info: 'I', collectAll: 'C', move: 'M', build: 'B', train: 'T', cancel: 'Esc' };
 

@@ -1,10 +1,10 @@
 import type { EscortLevel } from '../core/escorttypes.ts';
 
 /**
- * 护航实盘专用的三关（小、中档 strait-normal，大档 bays-normal，豪华档 strait-hard），从娱乐的 9 关拆出来冻结：
- * 2026-11-20（0.55.0）时 escortlevels.ts 生成好的完整定义，逐字照抄（航线图的布局仍读 escortmaps.ts）。
- * 娱乐的护航关以后随便调，不影响实盘；**改这里就是改实盘数值，要重跑 `node tools/live-sim.ts --kind escort --n 2000`、改前改后的数报主线**。
- * tests/escort-content.test.ts 用哈希锁住这份数据和拆分前完全一样。
+ * 护航实盘池里的八关（strait-normal、strait-hard、bays-easy、bays-normal、bays-hard、cape-easy、cape-normal、cape-hard），
+ * 从 escortlevels.ts 逐字照抄的冻结副本（航线图的布局仍读 escortmaps.ts）。
+ * 娱乐的护航关随便调，不影响实盘；**改这里就是改实盘数值，要重跑 `node tools/live-sim.ts --kind escort --n 2000`、改前改后的数报主线**。
+ * tests/escort-content.test.ts 用哈希锁住这份数据。
  */
 export const ESCORT_LIVE_LEVELS: readonly EscortLevel[] = [
   {

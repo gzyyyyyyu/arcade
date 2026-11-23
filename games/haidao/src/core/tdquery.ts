@@ -5,13 +5,17 @@ import { TD_WALL_COST } from '../content/tdunits.ts';
 import { TD2_ECON, TD2_ENEMIES, TD2_NAV_SKILL } from '../content/td2units.ts';
 import { INF, cellOf, cellX, cellY, nextCell } from './grid.ts';
 import { UNIT } from './types.ts';
-import { TD_ARMORS, TD_ENEMY_ARMOR } from './td2types.ts';
+import { TD2_LOSE_AT, TD_ARMORS, TD_ENEMY_ARMOR } from './td2types.ts';
+import { TD_ULT_BY_ID, ultOptions } from '../content/tdults.ts';
+import type { TdUltDef } from '../content/tdults.ts';
+import { TD_VET_LOSE_AT, pctOf, ultCost, ultError } from './tddeep.ts';
 import { escortMeet } from './escort.ts';
 import type { TdArmor, TdRouteLine, WaveLanePreview, WavePreview } from './td2types.ts';
 import type { TdLevel } from './tdtypes.ts';
 import { inner, isAir, ensureWaves, ensureGrid, treasureFlow, enemyHp, gapBefore, waveGold, slotTower } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
 import { dareCount, eventAt } from './tdevent.ts';
+import { campAt } from './tdcamp.ts';
 
 /** 第 w 波（0 起）开打时落潮路是不是开着：写了 `tideOpen` 按名单，没写就是 `tide.wave` 起一直开着 */
 export function tideOpenAt(lv: TdLevel, w: number): boolean {
@@ -233,14 +237,44 @@ export function tdBuildBlock(s: TdState, slot: number): 'enemy' | 'hero' | null 
 export function tdSellRefund(s: TdState, slot: number): number {
   const sl = s.slots[slot];
   const t = slotTower(s, slot);
-  if (!sl || !t) return -1;
-  return Math.floor(((sl.spent ?? 0) * TD2_ECON.sellPct) / 100);
+  if (!sl || (!t && !campAt(s, slot))) return -1;
+  return Math.floor(((sl.spent ?? 0) * (s.deep?.talent.sellPct ?? TD2_ECON.sellPct)) / 100);
+}
+
+/** 挑战的限制挡不挡这块木台：noPads 挡所有木台（驻守台照常）、noSlots 挡列出的木台、noHigh 挡高台；不挡为 null */
+export function tdRuleBlock(s: TdState, slot: number): 'rule' | null {
+  const r = s.deep?.rule;
+  const sl = s.slots[slot];
+  if (!r || !sl) return null;
+  if (sl.garrison !== undefined) return null;
+  if (r.noPads || r.noSlots?.includes(slot) || (r.noHigh && sl.high)) return 'rule';
+  return null;
+}
+
+/** 把这块上的塔换成终极 ult 要多少金（天赋打折后）；这一局没开终极、没有这个终极为 -1 */
+export function tdUltCost(s: TdState, ult: string): number {
+  const u = TD_ULT_BY_ID.get(ult);
+  if (!s.deep?.ult || !u) return -1;
+  return ultCost(u, s.deep.talent);
+}
+
+/** 这一局这块上的塔能换的终极（界面出终极卡、机器人挑）：没开终极、塔没到 3 阶选完分叉、已经换过的为空 */
+export function tdUltOptions(s: TdState, slot: number): TdUltDef[] {
+  const t = slotTower(s, slot);
+  if (!s.deep?.ult || !t) return [];
+  return ultOptions(t.kind).filter((u) => ultError(t, u.id) === null);
+}
+
+/** 丢到几枚算输：老兵局 TD_VET_LOSE_AT，别的 TD2_LOSE_AT */
+export function tdLoseAt(s: Pick<TdState, 'deep'>): number {
+  return s.deep?.vet ? TD_VET_LOSE_AT : TD2_LOSE_AT;
 }
 
 /** 花钱立刻清掉一块障碍（压木台的沉船、木桶）要多少金；清不了（没有、已经没了）为 -1 */
 export function tdClearCost(s: TdState, id: number): number {
   const b = s.blocks.find((q) => q.id === id);
-  return !b || b.destroyed ? -1 : TD2_ECON.clearGold;
+  const pct = s.deep?.talent.clearPct;
+  return !b || b.destroyed ? -1 : pct ? Math.floor((TD2_ECON.clearGold * pct) / 100) : TD2_ECON.clearGold;
 }
 
 /**
@@ -251,7 +285,10 @@ export function tdCallBonus(s: TdState): { gold: number; cdCut: number } {
   if (s.wave >= s.level.waves.length || s.next <= s.tick) return { gold: 0, cdCut: 0 };
   const left = s.next - s.tick;
   const total = Math.max(left, inner(s).cdTotal);
-  const gold = Math.floor((waveGold(s.level, s.wave) * left * TD2_ECON.callPct) / (total * 100));
+  let gold = Math.floor((waveGold(s.level, s.wave) * left * TD2_ECON.callPct) / (total * 100));
+  // 挑战「半饷」、天赋「叫波奖励」只在战役、海盗来袭有
+  const pct = pctOf(s.deep?.rule.callPct, s.deep?.talent.callPct);
+  if (pct !== undefined) gold = Math.floor((gold * pct) / 100);
   return {
     gold: s.hero.kind ? Math.floor((gold * TD2_NAV_SKILL.call.pct) / 100) : gold,
     cdCut: Math.floor((left * TD2_ECON.callCdPct) / 100),

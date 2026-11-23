@@ -1,6 +1,6 @@
 # 更新日志（归档，早期）
 
-0.22.0 以前的更新日志。0.23.0 到 0.30.5 见 [changelog-archive.md](changelog-archive.md)，0.31.0 起的见 [CHANGELOG.md](../CHANGELOG.md)。
+0.22.0 以前的更新日志。0.23.0 到 0.55.0 见 [changelog-archive.md](changelog-archive.md)，0.56.0 起的见 [CHANGELOG.md](../CHANGELOG.md)。
 
 ## 0.22.0（2026-10-31）
 

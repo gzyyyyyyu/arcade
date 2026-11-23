@@ -126,9 +126,8 @@ describe('护航内容：9 关', () => {
 });
 
 /**
- * 护航实盘的三关从娱乐拆出来冻结（2026-11-20，0.55.0）：哈希是拆分前 escortlevels.ts 生成的 strait-normal、bays-normal、strait-hard 完整定义（JSON）的 sha256。
+ * 护航实盘池里八关的冻结副本（src/content/escortlivelevels.ts）：哈希是整份定义（JSON）的 sha256。
  * 这条挂了说明实盘数值变了——是有意改的就重跑 live-sim --kind escort（--n 2000）、更新 DESIGN 12.1，再改这里的哈希。
- * 0.58.0（2026-11-21）关卡池加冻结 bays-easy、bays-hard、cape-easy、cape-normal、cape-hard，原来三关逐字没动（只取那三关算出来仍是 8c7a4521…1d32）。
  */
 const ESCORT_LIVE_SHA256 = '27618e9d3001f7bc7258914ac07613fdf519d83053d9b616e91f78fff5fc8a75';
 

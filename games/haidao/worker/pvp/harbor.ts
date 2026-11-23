@@ -17,6 +17,15 @@ const INACTIVE_DAYS = 14;
 export const INACTIVE_MS = INACTIVE_DAYS * 24 * 3600_000;
 /** 一次范围查询最多取几个候选 */
 export const PICK_LIMIT = 32;
+/** 港口名单一页最多几个人 */
+export const ROSTER_MAX = 20;
+
+/** 新行的名单编号：16 位十六进制随机数（不是 userId，浏览器只见到它） */
+export function newRef(): string {
+  const b = new Uint8Array(8);
+  crypto.getRandomValues(b);
+  return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
 
 export interface PickReq {
   attackerId: string;
@@ -24,6 +33,8 @@ export interface PickReq {
   hq: number;
   /** 24 小时内打过的人、这次已经试过不行的人 */
   exclude: string[];
+  /** 影子岛档只排除这些（24 小时内对打已满 PAIR_PER_DAY 的人）：对方不掉东西，护盾、保护、锁、24 小时打过都不看 */
+  shadowExclude?: string[];
   now: number;
   /** 0 ≤ rand < 1，Worker 用 crypto 给 */
   rand: number;
@@ -95,6 +106,15 @@ export function viewStats(st: PvpStats | null, now: number): unknown {
   return { ok: true, since: s.since, total: s.total, cancelled: s.cancelled, counted: s.total - s.cancelled, cells };
 }
 
+/** 近期活跃查询：近 INACTIVE_DAYS 天上传过快照、主寨在 [hqLo, hqHi]、不在 exclude 里，按最近上传排，取前 limit 个。不看护盾、保护、锁 */
+export interface RecentQuery {
+  exclude: string[];
+  hqLo: number;
+  hqHi: number;
+  now: number;
+  limit: number;
+}
+
 /** Harbor 的存储：put / remove 各算一行写入 */
 export interface HarborStore {
   put(e: HarborEntry): Promise<void>;
@@ -102,6 +122,7 @@ export interface HarborStore {
   stats(): Promise<PvpStats | null>;
   putStats(s: PvpStats): Promise<void>;
   range(r: RangeQuery): Promise<HarborEntry[]>;
+  recent(r: RecentQuery): Promise<HarborEntry[]>;
   /** 删掉最多 limit 个 activeAt < before 的旧记录，回删了几行 */
   prune(before: number, limit: number): Promise<number>;
 }
@@ -136,7 +157,7 @@ export class MemHarbor implements HarborStore {
   statsRow: PvpStats | null = null;
   async put(e: HarborEntry): Promise<void> {
     this.writes++;
-    this.rows.set(e.id, structuredClone(e));
+    this.rows.set(e.id, { ...structuredClone(e), ref: this.rows.get(e.id)?.ref ?? newRef() });
   }
   async stats(): Promise<PvpStats | null> {
     return this.statsRow ? structuredClone(this.statsRow) : null;
@@ -147,6 +168,9 @@ export class MemHarbor implements HarborStore {
   }
   async range(r: RangeQuery): Promise<HarborEntry[]> {
     return rangeOf(this.rows.values(), r);
+  }
+  async recent(r: RecentQuery): Promise<HarborEntry[]> {
+    return recentOf(this.rows.values(), r);
   }
   async prune(before: number, limit: number): Promise<number> {
     let n = 0;
@@ -169,13 +193,23 @@ function rangeOf(rows: Iterable<HarborEntry>, r: RangeQuery): HarborEntry[] {
   return list.slice(0, r.limit).map((e) => structuredClone(e));
 }
 
+/** 内存里模拟 recent：按 activeAt 降序、同时刻按 id，和 SQL 的 ORDER BY active DESC, id 一致 */
+function recentOf(rows: Iterable<HarborEntry>, r: RecentQuery): HarborEntry[] {
+  return [...rows]
+    .filter((e) => !r.exclude.includes(e.id) && e.hq >= r.hqLo && e.hq <= r.hqHi && r.now - e.activeAt < INACTIVE_MS)
+    .sort((a, b) => b.activeAt - a.activeAt || (a.id < b.id ? -1 : 1))
+    .slice(0, r.limit)
+    .map((e) => structuredClone(e));
+}
+
 /** 本地工具（tools/shot.ts 的假港口）还在用键值假存储：每人一行 `u:<id>`，查询整张读出来过滤，不删旧记录。线上不走这里 */
 function kvHarbor(kv: Kv): HarborStore {
   return {
-    put: (e) => kv.put(`u:${e.id}`, e),
+    put: async (e) => kv.put(`u:${e.id}`, { ...e, ref: (await kv.get<HarborEntry>(`u:${e.id}`))?.ref ?? newRef() }),
     stats: async () => (await kv.get<PvpStats>('stats')) ?? null,
     putStats: (st) => kv.put('stats', st),
     range: async (r) => rangeOf((await kv.list<HarborEntry>('u:')).values(), r),
+    recent: async (r) => recentOf((await kv.list<HarborEntry>('u:')).values(), r),
     prune: async () => 0,
   };
 }
@@ -204,7 +238,7 @@ export class HarborCore {
    * 主寨分三档：先找同级和低一级（防守方主寨 ≤ 进攻方，高一级的岛对进攻方太难，DESIGN.md 5.9），这一档一个都没有才给高一级，再没有放宽到 WIDE_TROPHY_RANGE、低 2 级到高 1 级。
    * 每档不扫整张表：rand 在奖杯段里定一个起点，往上取 PICK_LIMIT 个，取不到再从起点往下取，再用 rand 在取到的里面挑。
    */
-  async pick(q: PickReq, lockMs: number): Promise<{ id: string | null }> {
+  async pick(q: PickReq, lockMs: number): Promise<{ id: string | null; shadow?: true }> {
     let written = 0;
     if (q.self) {
       await this.store.put(q.self);
@@ -228,12 +262,29 @@ export class HarborCore {
       if (list.length > 0) break;
     }
     if (list.length === 0) {
+      // 第四档影子岛：近期上传过快照、主寨低一级到同级的真人，打他最新的快照（他不掉东西，所以不加锁）
+      const shadows = await this.store.recent({ exclude: [q.attackerId, ...(q.shadowExclude ?? [])], hqLo: q.hq - 1, hqHi: q.hq, now: q.now, limit: PICK_LIMIT });
       await this.tidy(written, q.now);
-      return { id: null };
+      if (shadows.length === 0) return { id: null };
+      return { id: shadows[Math.min(shadows.length - 1, Math.floor(q.rand * shadows.length))]!.id, shadow: true };
     }
     const e = list[Math.min(list.length - 1, Math.floor(q.rand * list.length))]!;
     await this.store.put({ ...e, lockUntil: q.now + lockMs });
     return { id: e.id };
+  }
+
+  /** 港口名单：近期活跃的人（不含自己），最近上传的在前，最多 ROSTER_MAX 个。只读；给 ref 不给 userId */
+  async roster(selfId: string, now: number): Promise<{ ref: string; name: string; hq: number; trophies: number }[]> {
+    return (await this.rosterRows(selfId, now)).map((e) => ({ ref: e.ref ?? '', name: e.name, hq: e.hq, trophies: e.trophies }));
+  }
+
+  /** 按名单编号找人（点名切磋）：和 roster 同一个查询，不在当前名单里回 null。只读 */
+  async rosterTarget(selfId: string, ref: string, now: number): Promise<string | null> {
+    return (await this.rosterRows(selfId, now)).find((e) => e.ref === ref)?.id ?? null;
+  }
+
+  private rosterRows(selfId: string, now: number): Promise<HarborEntry[]> {
+    return this.store.recent({ exclude: [selfId], hqLo: 0, hqHi: 99, now, limit: ROSTER_MAX });
   }
 
   /** 记一场真人攻防进汇总：读一行、写一行（1 行写入） */

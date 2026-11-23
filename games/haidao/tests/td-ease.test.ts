@@ -9,9 +9,10 @@ const count = (lv: TdLevel, i: number): number => lv.waves[i]!.groups.reduce((a,
 const eased = TD2_LEVEL_DEFS.filter((d) => d.ease);
 
 describe('关卡放宽', () => {
-  it('有几关写了 ease，都只在前三章', () => {
+  it('有几关写了 ease，都在前三章，另有第六章首领关 td34（前 6 波放宽，0.59.0 配平）', () => {
     expect(eased.length).toBeGreaterThan(0);
-    for (const d of eased) expect(d.chapter).toBeLessThanOrEqual(3);
+    for (const d of eased) if (d.id !== 'td34') expect(d.chapter).toBeLessThanOrEqual(3);
+    expect(eased.some((d) => d.id === 'td34')).toBe(true);
   });
 
   it('开局金多给 ease.gold', () => {

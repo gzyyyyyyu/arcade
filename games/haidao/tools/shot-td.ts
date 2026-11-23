@@ -217,6 +217,35 @@ export async function td(c: ShotCtx): Promise<boolean> {
       await page.waitForTimeout(400);
       if (await page.locator('.hd-td-sheet .hd-x').count()) await click('.hd-td-sheet .hd-x');
     })) &&
+    (await step('水手营', async () => {
+      // 第六章 td32 起造塔页多一颗「水手营」横钮：造一座、开营面板、进挪集结点（地上出范围圈）
+      const inf = await info();
+      const si = inf.slots.findIndex((q) => q.tower < 0 && !q.wreck);
+      if (si < 0) return;
+      const sl = inf.slots[si]!;
+      const p = await pt(sl.x, sl.y);
+      await tap(p.x, p.y);
+      await page.waitForTimeout(400);
+      if (!(await page.locator('.hd-td-campbtn').count())) {
+        if (await page.locator('.hd-td-sheet .hd-x').count()) await click('.hd-td-sheet .hd-x');
+        return;
+      }
+      await click('.hd-td-campbtn');
+      await page.waitForTimeout(600);
+      if ((await info()).slots[si]!.tower < 0) throw new Error('没造出水手营');
+      const q = await pt(sl.x, sl.y);
+      await tap(q.x, q.y);
+      await page.waitForTimeout(500);
+      if (!(await page.locator('.hd-td-sheet h3:has-text("水手营"), .hd-td-sheet :text("水手营")').count())) throw new Error('点营没开营面板');
+      await shot('camp-panel');
+      await check('水手营面板');
+      await click('.hd-td-muster');
+      await page.waitForTimeout(400);
+      await shot('camp-muster');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      if (await page.locator('.hd-td-sheet .hd-x').count()) await click('.hd-td-sheet .hd-x');
+    })) &&
     (await step('清障', async () => {
       const inf = await info();
       const wi = inf.slots.findIndex((q) => q.wreck);
