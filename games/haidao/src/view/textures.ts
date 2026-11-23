@@ -190,7 +190,9 @@ export async function withTip<T>(work: Promise<T>): Promise<T> {
   const el = document.createElement('div');
   el.className = 'hd-loading';
   el.textContent = '装船中…';
-  el.style.cssText = 'position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:60;padding:6px 14px;border-radius:14px;background:rgba(10,30,50,.82);color:#fff;font:600 14px system-ui;pointer-events:none';
+  // 手机竖屏顶栏占满一行：挂在顶栏下面，不压金币、木材（试玩 11-23）
+  const top = matchMedia('(max-width:700px) and (orientation:portrait)').matches ? 'calc(env(safe-area-inset-top, 0px) + 64px)' : '14px';
+  el.style.cssText = `position:fixed;left:50%;top:${top};transform:translateX(-50%);z-index:60;padding:6px 14px;border-radius:14px;background:rgba(10,30,50,.82);color:#fff;font:600 14px system-ui;pointer-events:none`;
   document.body.appendChild(el);
   try {
     return await work;

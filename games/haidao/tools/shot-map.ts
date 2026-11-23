@@ -229,7 +229,7 @@ export async function mapLive(c: ShotCtx): Promise<boolean> {
       await check('航线实盘选档');
       const txt = (await page.locator('.hd-live-tiers').textContent()) ?? '';
       if (!/今天还能跑 \d+ 趟/.test(txt)) throw new Error(`选档页没写今天还剩几趟：${txt}`);
-      if (!/同一条航线，档越高结回越少/.test(txt)) throw new Error('选档卡没写同一条航线');
+      if (!/同一条航线，档越高带回越少/.test(txt)) throw new Error('选档卡没写同一条航线');
       if (/电脑/.test(txt)) throw new Error('航线选档卡不该写电脑★');
     })) &&
     (await step('带入出航', async () => {

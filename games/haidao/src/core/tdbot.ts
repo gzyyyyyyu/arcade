@@ -4,7 +4,7 @@
  * - 普通（稳）：先把木台都造上，按预告补克制的塔（建议的伤害类型、飞的要枪弹、雾里要灯塔），钱多了升阶、清沉船、卖掉不对路的塔；
  *   英雄捡宝藏、追拿着宝藏回船的、守最忙的路，扎堆放拒马和炸药桶；不叫波。
  * - 贪：造塔、升阶、清沉船、卖塔、英雄都和普通一样，区别只在每波打得只剩 2 个敌人以内就立刻叫下一波（拿叫波金、抵英雄冷却）。
- *   （旧版开局只造 2 座攒到第 5 波、有钱先升阶：那是机器人自己把自己饿死，不是玩法；叫波的条件太严也几乎从不触发）
+ *   （开局只造 2 座攒钱、有钱先升阶的话机器人会把自己饿死，量不出玩法；叫波条件太严也几乎从不触发）
  */
 import { BRANCH_LEVEL, branchOptions } from '../content/branches.ts';
 import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO_SKILL, TD2_NAV_SKILL, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';

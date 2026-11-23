@@ -114,7 +114,7 @@ const ACTIONS = ['buyin', 'settle', 'refund', 'exchange', 'ingot', 'shop', 'toda
 const fail = (status: number, error: string, cookies: readonly string[] = []): Response => json({ ok: false, error }, status, cookies);
 
 /**
- * 开打 / 带入类请求（pvp find、revenge，live buyin，以后的悬赏守岛 buyin 也用）的规则版本闸门：
+ * 开打 / 带入类请求（所有实盘 buyin 和 pvp find、revenge）的规则版本闸门：
  * 部署后还开着旧页面的人，本地按旧规则演、服务端按新规则结，结果对不上；所以请求体必须带 rules，
  * 没带、不是整数或低于当前 RULES_VERSION 一律回 409 need_reload，页面提示刷新。
  * 要在钱包调用、扣奖杯、写存储之前调；通过回 null。

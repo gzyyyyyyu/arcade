@@ -131,7 +131,7 @@ type Knobs = { hull: number; scale: number; gold: number; fewer: number; waveTic
  * 每张图每档对基础旋钮的修正（配平结果）：后面的图预算本来就大、航线长，所以倍率和船血要单独调；同一张图船血新手 > 普通 > 高手（单测锁住）。
  * 新手档的倍率是放宽过的：真人照提示打三局全沉，小白机器人 83% 只代表「第 0 拍巡航 + 跟随」一种打法，
  * 换个开局（停船造塔、晚开跟随、自己加喷火）就从 100% 翻到 0%；放宽后各种说得过去的打法三张图都 ≥ 85%（.local 取证）。
- * 0.55.0 按共用难度线重配：直波海峡新手 / 普通档三星原来只有 2–3%（普通机器人几乎全 2★），高手档小白胜率 0–14%，都放宽到线上（docs/balance-haidao.md 难度曲线总表）
+ * 按共用难度线配：直波海峡新手 / 普通档三星原来只有 2–3%（普通机器人几乎全 2★），高手档小白胜率 0–14%，都放宽到线上（docs/balance-haidao.md 难度曲线总表）
  */
 const TUNE: Readonly<Record<EscortMapId, Readonly<Record<EscortDiff, Partial<Knobs>>>>> = {
   strait: { easy: { scale: 25, hull: 1400 }, normal: { scale: 60, hull: 1300, gold: 620 }, hard: { scale: 50, hull: 900 } },

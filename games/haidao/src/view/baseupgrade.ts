@@ -96,7 +96,7 @@ export function celebrate(bs: BaseScene, level: number): void {
   const go = celebrateGo(items) === 'build';
   // 新开放里有建筑：弹窗关掉（先不了、点外面、Esc）后，在岛上亮一下“建造”和主寨；点了「去建造看看」直接开列表，不用亮
   bs.newHint = go;
-  // 新开放里有建筑：主按钮直接带去建造列表（原来只是关框，还得自己再点「建造」）
+  // 新开放里有建筑：主按钮直接带去建造列表（不用关框后再点「建造」）
   button(go ? '去建造看看' : '好的', 'hd-btn-gold', () => {
     mask.remove();
     bs.newHint = false;
@@ -367,7 +367,7 @@ function claimSummary(got: Res, left: Res, badges: Array<{ name: string; desc: s
   if (train.gold) row(iconA('gold'), `+${fmt(train.gold)} 金币（训练营）`);
   if (train.wood) row(iconA('wood'), `+${fmt(train.wood)} 木材（训练营）`);
   if (trainLeft.gold + trainLeft.wood > 0) row(iconA('star'), `仓库满了，训练营奖励还留着 ${[trainLeft.gold ? `${fmt(trainLeft.gold)} 金` : '', trainLeft.wood ? `${fmt(trainLeft.wood)} 木` : ''].filter(Boolean).join('、')}`, 'left');
-  if (ingots) row(iconA('ingot'), `+${fmt(ingots)} 金银锭（「换」里换筹码）`);
+  if (ingots) row(iconA('ingot'), `+${fmt(ingots)} 金银锭（「兑换」里换筹码）`);
   for (const b of badges) row(iconA('star'), `新徽章：${b.name}`, 'badge');
   button('好', 'hd-btn-gold', () => mask.remove(), dlg, 'confirm');
 }

@@ -246,7 +246,8 @@ export function confirmBox(msg: string, okLabel: string, onOk: () => void, cance
   const box = el('div', 'hd-dialog', undefined, mask);
   el('p', '', msg, box);
   const row = el('div', 'hd-row', undefined, box);
-  button(cancelLabel, 'hd-btn-plain', cancel, row);
+  // 只是告知（没有要取消的事）：cancelLabel 传空串，只留一个钮
+  if (cancelLabel) button(cancelLabel, 'hd-btn-plain', cancel, row);
   button(okLabel, 'hd-btn-gold', () => {
     mask.remove();
     onOk();
@@ -588,7 +589,6 @@ function css(): string {
 .hd-ui .hd-node span.hd-lb { font-size:14px; background:${cream}; border:3px solid ${ink}; border-radius:12px; padding:0 8px; white-space:nowrap; display:flex; flex-direction:column; align-items:center; line-height:1.25; box-shadow:0 2px 0 ${ink}; }
 .hd-ui .hd-node.lock span.hd-lb { background:#cfd3d8; }
 .hd-ui .hd-lb small { font-size:12px; opacity:.8; }
-.hd-ui .hd-map-top { position:sticky; top:0; z-index:5; height:56px; pointer-events:none; }
 .hd-ui button.hd-live-mapbtn { top:auto; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); z-index:31; }
 .hd-ui .hd-map:has(.hd-sheet) ~ button.hd-live-mapbtn { display:none; }
 .hd-ui button.hd-live-mapbtn { right:8px; left:auto; }

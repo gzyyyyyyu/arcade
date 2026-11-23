@@ -135,7 +135,7 @@ export function box(x0: number, y0: number, x1: number, y1: number, z0: number, 
     const lc = m.line;
     const lp = (u: number, z: number): Pt => P(x0 + (x1 - x0) * u, y1, z);
     const rp = (u: number, z: number): Pt => P(x1, y1 + (y0 - y1) * u, z);
-    // 左右两面的纹线各并成一条 path（一面墙十几条线原来是十几个元素，烘焙时逐个光栅化）
+    // 左右两面的纹线各并成一条 path（一面墙十几条线各成一个元素的话，烘焙时逐个光栅化）
     const L: Array<[Pt, Pt]> = [];
     const Rr: Array<[Pt, Pt]> = [];
     const step = tex === 'v' ? 0 : tex === 'brick' ? 8 : 7;

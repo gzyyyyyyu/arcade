@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Cloud, DEBOUNCE_MS, HIDDEN_GAP_MS, META_KEY, NOTE, SESSION_PUTS, type CloudDeps, type KeyValueStore, type SlotDef, loadMeta, preSwitchKey, preSyncKey } from '../src/platform/cloud.ts';
+import { Cloud, DEBOUNCE_MS, HIDDEN_GAP_MS, META_KEY, NOTE, SESSION_PUTS, SLOT_GAP_MS, UPLOAD_GAP_MS, type CloudDeps, type KeyValueStore, type SlotDef, loadMeta, preSwitchKey, preSyncKey } from '../src/platform/cloud.ts';
 
 /**
  * 云存档（platform/cloud.ts）：内存假存储、按路由回话的假平台、手动拨的钟和定时器。
@@ -49,7 +49,7 @@ function harness(o: { who?: string | null; cloud?: { data: Doc; rev: number } | 
   const store = new Mem();
   if (o.local) store.setItem(KEY, JSON.stringify(o.local));
   if (o.userId !== undefined) store.setItem(META_KEY, JSON.stringify({ v: 1, userId: o.userId, rev: {}, dirty: [] }));
-  const srv = { who: o.who === undefined ? 'u1' : o.who, cloud: o.cloud ?? null, me: [] as Reply[], put: [] as Reply[], get: [] as Reply[] };
+  const srv = { who: o.who === undefined ? 'u1' : o.who, cloud: o.cloud ?? null, me: [] as Reply[], put: [] as Reply[], get: [] as Reply[], slotGap: false, wroteAt: -Infinity, rejected: 0 };
   const calls: Call[] = [];
   let t = 1_000_000;
   const timers = new Map<number, { at: number; fn: () => void }>();
@@ -88,6 +88,12 @@ function harness(o: { who?: string | null; cloud?: { data: Doc; rev: number } | 
       const r = pick(srv.put);
       if (r === 'down') throw new Error('offline');
       if (r) return json(r.status, r.body);
+      // 照平台：同一个槽 10 秒内只收一次
+      if (srv.slotGap && t - srv.wroteAt < 10_000) {
+        srv.rejected++;
+        return json(429, { error: 'too_soon', retryAfter: Math.ceil((srv.wroteAt + 10_000 - t) / 1000) });
+      }
+      srv.wroteAt = t;
       srv.cloud = { data: body!.data as Doc, rev: (body!.baseRev as number) + 1 };
       return json(200, { rev: srv.cloud.rev });
     },
@@ -112,7 +118,12 @@ function harness(o: { who?: string | null; cloud?: { data: Doc; rev: number } | 
   const local = (): Doc | null => slot.read(store);
   const setLocal = (d: Doc): void => store.setItem(KEY, JSON.stringify(d));
   const puts = (): Call[] => calls.filter((c) => c.method === 'PUT');
-  return { cloud, store, srv, calls, puts, views, applied: () => applied, tick, settle, local, setLocal, meta: () => loadMeta(store), timers };
+  /** 关掉这一页、在同一台设备上重新打开（同一个存储、同一个平台、同一个钟；旧页的定时器作废） */
+  const reopen = (): Cloud => {
+    timers.clear();
+    return new Cloud(deps);
+  };
+  return { cloud, store, srv, calls, puts, views, applied: () => applied, tick, settle, local, setLocal, meta: () => loadMeta(store), timers, reopen };
 }
 
 describe('云存档：打开时对一下', () => {
@@ -189,11 +200,15 @@ describe('云存档：本地改了以后', () => {
     expect(h.puts()).toHaveLength(0);
     await h.tick(1);
     expect(h.puts()).toHaveLength(1);
-    // 每 5 秒改一次：60 秒到了照样传
-    for (let i = 0; i < 12; i++) {
+    // 每 5 秒改一次：这次打开里传过了，要隔 2 分钟才传下一次（不是每分钟一次），到点照样传
+    for (let i = 0; i < 23; i++) {
       h.cloud.touch('profile');
       await h.tick(5_000);
     }
+    expect(h.puts()).toHaveLength(1);
+    h.cloud.touch('profile');
+    await h.tick(5_000);
+    await h.tick(DEBOUNCE_MS);
     expect(h.puts()).toHaveLength(2);
   });
 
@@ -269,9 +284,103 @@ describe('云存档：本地改了以后', () => {
     await h.settle();
     for (let i = 0; i < SESSION_PUTS + 5; i++) {
       h.cloud.touch('profile');
-      await h.tick(DEBOUNCE_MS);
+      await h.tick(UPLOAD_GAP_MS);
     }
     expect(h.puts()).toHaveLength(SESSION_PUTS);
+  });
+
+  it('连着换尺寸重进页面（试玩 11-23 的 429）：离开的补传、重开的上传都避开平台 10 秒限制，最后一版照样传上去', async () => {
+    const h = harness({ local: { items: ['a'] }, cloud: { data: { items: ['a'] }, rev: 1 }, userId: 'u1' });
+    h.srv.slotGap = true;
+    await h.cloud.start();
+    await h.settle();
+    h.setLocal({ items: ['a', 'b'] });
+    h.cloud.touch('profile');
+    await h.tick(DEBOUNCE_MS);
+    expect(h.puts()).toHaveLength(1);
+    // 传完 3 秒又点了一下、马上离开：离上次发不到 10 秒，不发（发了就是 429），本地记着待上传
+    h.setLocal({ items: ['a', 'b', 'c'] });
+    h.cloud.touch('profile');
+    await h.tick(3_000);
+    h.cloud.hidden(true);
+    await h.settle();
+    expect(h.puts()).toHaveLength(1);
+    expect(h.meta().dirty).toEqual(['profile']);
+    // 1 秒后重新打开：先不传，到平台允许的时候再传，传的是最新一版
+    await h.tick(1_000);
+    const page2 = h.reopen();
+    await page2.start();
+    await h.settle();
+    expect(h.puts()).toHaveLength(1);
+    await h.tick(SLOT_GAP_MS);
+    expect(h.puts()).toHaveLength(2);
+    expect(h.srv.rejected).toBe(0);
+    expect(h.srv.cloud!.data).toEqual({ items: ['a', 'b', 'c'] });
+    expect(h.meta().dirty).toEqual([]);
+  });
+
+  it('真被 429 拒了：本地进度不丢，按 retryAfter 等、连着被拒翻倍退避，说一句大白话；最后传上去的是最新一版，提示收起', async () => {
+    const h = harness({ local: { items: ['a'] }, cloud: { data: { items: ['a'] }, rev: 1 }, userId: 'u1' });
+    await h.cloud.start();
+    await h.settle();
+    for (let i = 0; i < 3; i++) h.srv.put.push({ status: 429, body: { error: 'too_soon', retryAfter: 5 } });
+    h.setLocal({ items: ['a', 'b'] });
+    h.cloud.touch('profile');
+    await h.tick(DEBOUNCE_MS);
+    expect(h.puts()).toHaveLength(1);
+    // 第 2 次：按 retryAfter 5 秒和退避 11 秒取大
+    await h.tick(SLOT_GAP_MS - 1);
+    expect(h.puts()).toHaveLength(1);
+    await h.tick(1);
+    expect(h.puts()).toHaveLength(2);
+    // 被拒期间又玩了：第 3 次隔 22 秒
+    h.setLocal({ items: ['a', 'b', 'c'] });
+    h.cloud.touch('profile');
+    await h.tick(2 * SLOT_GAP_MS - 1);
+    expect(h.puts()).toHaveLength(2);
+    await h.tick(1);
+    expect(h.puts()).toHaveLength(3);
+    // 连着 3 次被拒才说（10 秒那种自己会好）
+    expect(h.cloud.view).toEqual({ state: 'pending', note: NOTE.limited });
+    expect(h.local()).toEqual({ items: ['a', 'b', 'c'] });
+    await h.tick(4 * SLOT_GAP_MS);
+    expect(h.puts()).toHaveLength(4);
+    expect(h.srv.cloud!.data).toEqual({ items: ['a', 'b', 'c'] });
+    expect(h.cloud.view).toEqual({ state: 'synced', note: null });
+  });
+
+  it('平台说今天次数超了（rate_limited）：马上说一句，按它给的时间再传', async () => {
+    const h = harness({ local: { items: ['a'] }, cloud: { data: { items: ['a'] }, rev: 1 }, userId: 'u1' });
+    await h.cloud.start();
+    await h.settle();
+    h.srv.put.push({ status: 429, body: { error: 'rate_limited', retryAfter: 600 } });
+    h.cloud.touch('profile');
+    await h.tick(DEBOUNCE_MS);
+    expect(h.cloud.view.note).toBe(NOTE.limited);
+    await h.tick(600_000 - 1);
+    expect(h.puts()).toHaveLength(1);
+    await h.tick(1);
+    expect(h.puts()).toHaveLength(2);
+    expect(h.meta().dirty).toEqual([]);
+  });
+
+  it('这次打开传满 SESSION_PUTS 次以后点「大厅」离开：最后一版照样补传', async () => {
+    const h = harness({ local: { items: ['a'] }, cloud: { data: { items: ['a'] }, rev: 1 }, userId: 'u1' });
+    await h.cloud.start();
+    await h.settle();
+    for (let i = 0; i < SESSION_PUTS; i++) {
+      h.cloud.touch('profile');
+      await h.tick(UPLOAD_GAP_MS);
+    }
+    h.setLocal({ items: ['a', 'z'] });
+    h.cloud.touch('profile');
+    await h.tick(UPLOAD_GAP_MS);
+    expect(h.puts()).toHaveLength(SESSION_PUTS);
+    h.cloud.hidden(true);
+    await h.settle();
+    expect(h.puts()).toHaveLength(SESSION_PUTS + 1);
+    expect(h.puts().at(-1)!.keepalive).toBe(true);
+    expect(h.srv.cloud!.data).toEqual({ items: ['a', 'z'] });
   });
 
   it('切到后台：用 keepalive 补传一次，3 分钟内再切不重复传', async () => {

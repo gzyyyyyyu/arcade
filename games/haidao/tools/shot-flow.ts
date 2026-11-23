@@ -44,7 +44,7 @@ export async function flow(c: ShotCtx): Promise<boolean> {
     })) &&
     (await step('设置面板', async () => {
       // 顶栏右上只有一个齿轮；点开设置面板，同时只有一个遮罩；关音乐后 haidao.settings 里 music=false；Esc 关掉
-      if ((await page.locator('.hd-mute, .hd-feel').count()) !== 1) throw new Error('右上角不止一个设置钮');
+      if ((await page.locator('.hd-mute').count()) !== 1) throw new Error('右上角不止一个设置钮');
       await click('.hd-mute');
       await page.waitForTimeout(400);
       await shot('settings');

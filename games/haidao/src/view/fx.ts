@@ -25,7 +25,7 @@ const flashing = new WeakSet<Phaser.GameObjects.Image>();
 export function flash(scene: Phaser.Scene, img: Phaser.GameObjects.Image): void {
   if (flashing.has(img)) return;
   flashing.add(img);
-  // 加色 0x2a：浅色建筑（岩洞金矿、石墙）原来加 0x4a 会整个变成一团白，看着像贴图丢了
+  // 加色 0x2a：浅色建筑（岩洞金矿、石墙）加到 0x4a 会整个变成一团白，看着像贴图丢了
   img.setTint(0x2a2a2a).setTintMode(Phaser.TintModes.ADD);
   scene.time.delayedCall(50, () => {
     flashing.delete(img);
@@ -660,7 +660,7 @@ export class DamageNumbers {
       e.big = !e.muted && (e.big || big || e.sum >= 120);
       e.age = Math.min(e.age, HOLD_AT);
       e.bump = 1;
-      // 直接显示新的总数、只重画一次文字；原来逐帧往上滚，每帧都重画一张文字贴图（perf：传贴图次数）
+      // 直接显示新的总数、只重画一次文字：逐帧往上滚要每帧重画一张文字贴图
       e.shown = e.sum;
       this.paint(e);
       return;

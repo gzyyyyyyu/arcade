@@ -35,7 +35,7 @@ const polyPts = (a: Pt[]): string => a.map((p) => `${f1(p[0])},${f1(p[1])}`).joi
 const dot = (p: Pt, rx: number, ry: number, fill: string, op: number): string => `<ellipse cx="${f1(p[0])}" cy="${f1(p[1])}" rx="${f1(rx)}" ry="${f1(ry)}" fill="${fill}" opacity="${op}"/>`;
 
 /**
- * 同色同宽同透明度的短线、同色的色块各并成一条 path 再输出：一面墙几十条灰缝 / 板缝原来是几十个 <line>，
+ * 同色同宽同透明度的短线、同色的色块各并成一条 path 再输出：一面墙几十条灰缝 / 板缝不再是几十个 <line>，
  * 烘焙时每个元素都要单独设画笔、光栅化，合成一条后画面一样（交叉处不再叠两次透明度，更干净），元素数降一个量级
  */
 class Batch {

@@ -34,7 +34,7 @@ export const VIEWS = [
 ];
 export type View = (typeof VIEWS)[number];
 
-export type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { tick: number; wave: number; vault: number; lost: number; gold: number; over: boolean; slots: Array<{ x: number; y: number; tower: number; wreck: boolean; garrison: boolean }>; flags: number; routes: number; barricades: number; hero: { x: number; y: number; goal: { x: number; y: number } | null; kind?: 'nav'; flag: boolean; reward: boolean }; jammed: number; skilled: number }; ready?: boolean; level?: string; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void }; where?(k: string): { x: number; y: number } | null; beach?(i: number): { x: number; y: number } | null };
+export type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { tick: number; wave: number; vault: number; lost: number; gold: number; over: boolean; slots: Array<{ x: number; y: number; tower: number; wreck: boolean; garrison: boolean }>; flags: number; routes: number; barricades: number; hero: { x: number; y: number; goal: { x: number; y: number } | null; kind?: 'nav'; flag: boolean; reward: boolean }; jammed: number; skilled: number; tags: Array<{ l: number; t: number; r: number; b: number; text: string }> }; ready?: boolean; level?: string; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void }; where?(k: string): { x: number; y: number } | null; beach?(i: number): { x: number; y: number } | null };
 export const hook = (page: Page): Promise<Hook> => page.evaluate(() => ((window as unknown as { __haidao?: Hook }).__haidao ?? {}) as Hook);
 
 // ---------------------------------------------------------------- 音效触发统计（--sfx-out <文件> 写 json，控制台总是打印）
@@ -78,6 +78,15 @@ export async function layoutProblems(page: Page): Promise<string[]> {
       if (r.width === 0 && r.height === 0) continue;
       if (getComputedStyle(el).visibility === 'hidden') continue;
       if (r.width < 44 || r.height < 44) bad.push(`点击区域太小 ${Math.round(r.width)}×${Math.round(r.height)}：${el.getAttribute('aria-label') ?? el.textContent?.trim()}`);
+      // 左右被裁：最近一层裁内容的外框（overflow 不是 visible）把按钮切掉一截（上下在滚动区里是正常的，不查）
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        const cs = getComputedStyle(p);
+        if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+        const q = p.getBoundingClientRect();
+        const cut = Math.max(q.left - r.left, r.right - q.right);
+        if (cut > 1) bad.push(`按钮左右被切 ${Math.round(cut)} 像素：${el.getAttribute('aria-label') ?? el.textContent?.trim()}`);
+        break;
+      }
     }
     return bad;
   });

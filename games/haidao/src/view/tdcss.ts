@@ -182,12 +182,21 @@ function tdCss(): string {
   .hd-ui .hd-tdgar-map svg { flex:1 1 0; height:100%; }
   .hd-ui .hd-tdgar-top .hd-tdgar-note { flex:none; }
 }
-@media (max-height:700px) { .hd-ui .hd-tdgar-map { display:none; } }
-/* 横屏手机、360×640 这种矮小屏：小地图本来就不画，顶上那段阶数折算说明也收起（每张卡写着几阶、台子标题写着最高几阶、
-   悬停提示有折算），让带两档分叉的三行塔卡一屏放下 */
-@media (max-height:500px), (max-width:420px) and (max-height:700px) { .hd-ui .hd-tdgar-main .hd-tdgar-top { display:none; } }
+/* 矮屏放得下才摆：一屏放不下时 fit（td-ui.ts）先收小地图、再收折算那两行，「你的加农炮 1 级 → 驻守 1 阶」一直在
+   （试玩 11-23：横屏、360×640 以前整块收起，新手不知道「阶」是什么、1 号台在哪） */
+.hd-ui .hd-tdgar-nomap .hd-tdgar-map, .hd-ui .hd-tdgar-nomore .hd-tdgar-more { display:none; }
+.hd-ui .hd-tdgar-lead { margin:0; font-size:14px; font-weight:900; }
+.hd-ui .hd-tdgar-more p { margin:0; }
+/* 360×640 这种矮竖屏：地图在说明上面、整行宽，高度封顶 */
+@media (max-width:420px) and (max-height:700px) {
+  .hd-ui .hd-tdgar-top { flex-direction:column; align-items:stretch; gap:6px; }
+  .hd-ui .hd-tdgar-map { width:100%; }
+  .hd-ui .hd-tdgar-map svg { max-height:26vh; }
+}
+/* 横屏手机：地图在左、说明在右 */
+@media (max-height:500px) { .hd-ui .hd-tdgar-map { width:150px; } }
 /* 横屏收起说明后页签贴上来，和顶角的大厅、回岛钮至少隔 8 像素 */
-@media (max-height:500px) { .hd-ui .hd-tdgar-main .hd-tdgar-tabs { margin-top:2px; } }
+@media (max-height:500px) { .hd-ui .hd-tdgar-main .hd-tdgar-tabs { margin-top:2px; } .hd-ui .hd-tdgar-main .hd-tdgar-note { margin-bottom:4px; } }
 /* 矮的电脑屏（720–800 高）：小地图缩一号，给塔卡让出高度 */
 @media (min-width:701px) and (min-height:701px) and (max-height:800px) { .hd-ui .hd-tdgar-map { width:150px; } }
 .hd-ui .hd-tdgar-main .hd-tdgar-note { font-size:12px; line-height:1.3; }
@@ -391,7 +400,6 @@ function tdCss(): string {
 .hd-ui .hd-td-store.bump { animation:hd-tdstorebump .3s; }
 .hd-ui .hd-td-btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
 .hd-ui .hd-td-btns .hd-btn { flex:1 1 100px; }
-.hd-ui .hd-bar-branch { margin:8px 0; }
 .hd-ui .hd-td-drop { animation:hd-tddrop .38s cubic-bezier(.3,1.5,.5,1); }
 .hd-ui .hd-td-starrow { display:flex; justify-content:center; margin:4px 0; }
 .hd-ui .hd-td-paused { position:absolute; top:calc(env(safe-area-inset-top, 0px) + 110px); right:6px; z-index:31; padding:2px 10px; border:2px solid ${ink}; border-radius:12px; background:#ffe885; font-size:14px; font-weight:900; box-shadow:0 2px 0 ${ink}; pointer-events:none !important; display:none; }
@@ -427,7 +435,6 @@ function tdCss(): string {
   .hd-ui .hd-td-branch { flex-direction:row; flex-wrap:wrap; align-items:center; min-height:44px; padding:3px 8px; gap:0 8px; }
   .hd-ui .hd-td-branch b { font-size:14px; }
   .hd-ui .hd-td-sub { margin:4px 0 4px; }
-  .hd-ui .hd-bar-branch { margin:4px 0; }
   /* 预告卡占左上，"已暂停"挪到它下面一行的右边，不叠在一起 */
   .hd-ui .hd-td-paused { top:calc(env(safe-area-inset-top, 0px) + 156px); }
   .hd-ui .hd-td-plan { max-width:calc(100% - 12px); padding:3px 7px 4px; }
@@ -497,7 +504,6 @@ function tdCss(): string {
 .hd-ui.hd-skin .hd-tdgar-card.on { background:var(--hd-parch),linear-gradient(${c.goldL},${gold}); box-shadow:0 5px 0 ${ink},0 0 0 3px #fff3b0,0 0 16px rgba(255,214,90,.8); }
 
 /* 下面几条比 layout.ts 多一级选择器，盖过它 */
-.hd-ui .hd-nowrap { white-space:nowrap; }
 /* 叫波钮副文字永远单行；超出就省略号，整句在 title 里 */
 .hd-ui .hd-td-call small { white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
 /* 开着造塔 / 图鉴面板时整局暂停，预告卡收起：「已暂停」黄条在它原来的位置，不再压着文字 */
