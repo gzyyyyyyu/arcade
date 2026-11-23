@@ -31,7 +31,8 @@ describe('模式 × 可带项（CARRY）', () => {
     expect(kept(base)).toEqual(['kits', 'xinfa', 'startAlt']);
     expect(kept({ ...base, live: true })).toEqual(['xinfa', 'startAlt']);
     expect(kept({ seed: 1, mode: 'raid', danger: 0, character: 'xiaodao', raid: { template: 'teach' } })).toEqual(['xinfa', 'startAlt']);
-    expect(kept({ ...base, rush: true })).toEqual([]);
+    // 连战的心法跟着配装（rushLoadout.xinfa）走，起手配置、锦囊不带
+    expect(kept({ ...base, rush: true })).toEqual(['xinfa']);
     expect(kept({ ...base, weekly: 'coin' })).toEqual([]);
     for (const item of Object.keys(CARRY) as (keyof typeof CARRY)[]) expect(carries(item, 'daily')).toBe(false);
   });

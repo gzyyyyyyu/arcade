@@ -8,11 +8,11 @@
  * | 每日守夜 | 撑到天亮：1e6 + 击杀；没撑到：撑了多少秒（所以"天亮"都排在没撑到的前面，daily.json 能直接写成文字） |
  * | 每日夜探 | 单局撤出的宝物价值 |
  * | 本周夜事 | 同守夜总榜（vigilScore）；单独开局的挑战，只进周榜 week-<ISO 周>-vigil |
- * | 每日连战 | 全清 × 1e9 + 打倒几只 × 1e7 + 一共几只 × 1e5 + 尾数（全清：剩下的秒数；没全清：最后一关打掉的百分比），online/rush.ts |
+ * | 每日连战 | 天亮 × 1e10 + 打倒几只 × 1e8 + 咒几条 × 1e7 + 一共几只 × 1e5 + 尾数（天亮：1500 − 用时秒；没打完：最后一只打掉的百分比），online/rush.ts |
  */
 import { fmtClock } from '../content/clock.ts';
 import { dailyBoardId, dailyDateOpen, isDailySetup } from './daily.ts';
-import { decodeRush, isRushSetup, rushBoardId, rushScore } from './rush.ts';
+import { decodeRush, isRushSetup, RUSH_TAIL, rushBoardId, rushScore } from './rush.ts';
 import { weeklyBoardId, weeklyDateOpen } from './weekly.ts';
 import type { RunSummary } from './types.ts';
 import { raidOpen } from '../content/explore.ts';
@@ -80,7 +80,8 @@ export function formatScore(board: BoardKind, score: number): string {
       return score >= 1e9 ? '通关' : `${n(score)}`;
     case 'daily-rush': {
       const d = decodeRush(score);
-      return d.cleared ? `全清 ${d.down}/${d.total} · 剩 ${fmtClock(d.tail)}` : `连战 ${d.down}/${d.total} · 下一关 ${d.tail}%`;
+      const hex = d.hexes > 0 ? ` · 咒 ${d.hexes}` : '';
+      return d.cleared ? `天亮 · 用时 ${d.tail > 0 ? fmtClock(RUSH_TAIL - d.tail) : `${fmtClock(RUSH_TAIL)}+`}${hex}` : `连战 ${d.down}/${d.total}${hex} · 下一只 ${d.tail}%`;
     }
   }
 }
@@ -107,7 +108,7 @@ export function submissionsFor(r: RunSummary, today: string): Submission[] {
   const s = r.setup;
   // 收起的镇子（开发服务器里才进得去）的局不交榜，免得开发时打的分混进线上榜
   if (s.mode === 'raid' && s.raid?.template !== undefined && !raidOpen(s.raid.template, false)) return [];
-  // 首领连战只有每日这一种：只交当天的连战子榜，配置对不上（旧存档、手改）的不交
+  // 首领连战只交每日的：当天的连战子榜，配置对不上（旧存档、手改）的不交；自由连战没有 daily，不交
   if (s.rush) {
     if (!r.daily || !r.rush || !dailyDateOpen(r.daily, today) || !isRushSetup(r.daily, s)) return [];
     return [{ board: 'daily-rush', boardId: rushBoardId(r.daily), score: rushScore(r.rush) }];

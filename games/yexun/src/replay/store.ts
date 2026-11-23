@@ -3,6 +3,7 @@
  * 留什么：最近 5 局 + 每个榜自己最好的一局；总量 ≤ 300 KB，超了先删最旧的普通局，还超再删最旧的"最好"。
  * 存储不可用（隐私模式、满了）时照常能玩，只是不记得；坏数据一律丢弃，不抛错。
  */
+import { RULES_VERSION } from '../core/state.ts';
 import { decodeDirs, decodePicks, decodeSkills, type ReplayRecord } from './format.ts';
 
 export const REPLAYS_KEY = 'yexun.replays';
@@ -44,9 +45,9 @@ export function loadReplays(kv: KV | undefined = defaultKV()): ReplayRecord[] {
   }
 }
 
-/** 本机这个榜最好的一局的分数（录像按榜记着最好的那局，bestFor）；没有是 null */
+/** 本机这个榜最好的一局的分数（录像按榜记着最好的那局，bestFor）；没有，或那局是别的规则版本（分数编码可能变了，如 0.38.0 的连战）是 null */
 export function bestScore(board: string, items: readonly ReplayRecord[] = loadReplays()): number | null {
-  const r = items.find((x) => x.bestFor.includes(board));
+  const r = items.find((x) => x.bestFor.includes(board) && x.rules === RULES_VERSION);
   return r ? (r.scores[board] ?? null) : null;
 }
 
@@ -64,7 +65,8 @@ export function addReplay(list: readonly ReplayRecord[], rec: ReplayRecord): Rep
   mine.bestFor = [];
   for (const [board, score] of Object.entries(rec.scores)) {
     const holder = items.find((r, i) => i > 0 && r.bestFor.includes(board));
-    if (!holder || score > (holder.scores[board] ?? -Infinity)) {
+    // 别的规则版本的分数不拿来比（编码可能不同），新的这局直接接过
+    if (!holder || holder.rules !== rec.rules || score > (holder.scores[board] ?? -Infinity)) {
       if (holder) holder.bestFor = holder.bestFor.filter((b) => b !== board);
       mine.bestFor.push(board);
     }

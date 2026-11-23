@@ -167,3 +167,38 @@
   .yx-picks-row { width: calc(100% - 24px); max-width: 760px; }
   .yx-picks .yx-pick { flex: 1 1 0; width: auto; min-width: 0; }
 }
+
+/* ── 连战一手卡（cards.ts showRush）：5 张、稀有度卡框、每张下面锁 / 放逐两个小钮；限定在 .yx-picks.rush 下 ── */
+.yx-picks .yx-pick.t2 { border-color: #1f7f8f; background: linear-gradient(#eef8f6, #cfe6e2); }
+.yx-picks .yx-pick.t3 { border-color: #b8860b; background: linear-gradient(#fff6d0, #f0d27a); }
+.yx-picks .yx-pick-seal { display: block; box-sizing: border-box; padding: 3px; object-fit: contain; width: 64px; height: 64px; line-height: 64px; text-align: center; font-style: normal; font-family: 'YxBrush', serif; font-size: 44px; border: 3px solid #17131c; border-radius: 12px; background: #f2c94c; }
+/* 一手 5 张时每张 184 宽；许愿、精英、锁留下来到 7–9 张时按屏宽收窄，不撑出屏（跨审 11-23：1280 下 9 张溢出） */
+.yx-picks.rush .yx-picks-row { gap: 10px; width: 100%; justify-content: center; padding: 0 12px; box-sizing: border-box; }
+.yx-picks.rush .yx-pickcell { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 0 1 184px; }
+.yx-picks.rush .yx-pick { width: auto; flex: 1; min-width: 0; }
+.yx-picks.rush .yx-pickcell.locked .yx-pick { box-shadow: 0 5px 0 #17131c, 0 0 0 4px #4a7ab8; }
+.yx-picks.rush .yx-picktools { display: flex; gap: 6px; justify-content: center; }
+.yx-picks.rush .yx-picktool { min-width: 52px; min-height: 36px; padding: 0 8px; border: 2.5px solid #17131c; border-radius: 10px; background: #fbf5e4; font: inherit; font-size: var(--fs-md, 14px); color: #17131c; cursor: pointer; box-shadow: 0 3px 0 #17131c; }
+.yx-picks.rush .yx-picktool.lock.on { background: #4a7ab8; color: #fbf5e4; }
+.yx-picks.rush .yx-picktool.ban:not(:disabled):hover { background: #c8402f; color: #fbf5e4; }
+.yx-picks.rush .yx-picktool:disabled { opacity: 0.4; cursor: default; }
+@media (hover: none), (pointer: coarse) { .yx-picks.rush .yx-picktool { min-height: 44px; min-width: 56px; } }
+@media (max-height: 500px) {
+  .yx-picks.rush .yx-picks-row { display: flex; gap: 6px; padding: 0 8px; }
+  .yx-picks.rush .yx-pickcell { flex: 1 1 0; gap: 4px; }
+  .yx-picks.rush .yx-pick { width: auto; }
+  .yx-picks.rush .yx-pick-foot, .yx-picks.rush .yx-pick-nums { display: none; }
+  .yx-picks.rush .yx-pick .yx-pick-seal { position: absolute; left: 8px; top: 8px; width: 34px; height: 34px; line-height: 34px; font-size: 24px; border-width: 2px; }
+  .yx-picks.rush .yx-picktool { min-height: 44px; min-width: 0; flex: 1; padding: 0 4px; }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .yx-picks.rush .yx-picks-head { top: 64px; }
+  .yx-picks.rush .yx-picks-row { gap: 5px; }
+  .yx-picks.rush .yx-picks-row { padding: 0; }
+  .yx-picks.rush .yx-pickcell { flex-direction: row; gap: 4px; flex: 0 1 auto; }
+  .yx-picks.rush .yx-pick { width: auto; min-height: 56px; }
+  .yx-picks.rush .yx-pick-foot { display: none; }
+  .yx-picks.rush .yx-pick .yx-pick-seal { position: absolute; left: 10px; top: 8px; width: 40px; height: 40px; line-height: 40px; font-size: 28px; border-width: 2px; }
+  .yx-picks.rush .yx-picktools { flex: none; gap: 4px; align-items: stretch; }
+  .yx-picks.rush .yx-picktool { width: 44px; min-width: 44px; min-height: 44px; padding: 0; }
+}

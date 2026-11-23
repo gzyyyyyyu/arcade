@@ -498,3 +498,10 @@
 
 /* 外观「头像框」：边框换成买下的颜色，外面再描一圈深色 */
 .yx-hud .yx-avatar.yx-look { border-width: 4px; border-color: var(--lf, #f2c94c); box-shadow: 0 0 0 2px var(--lfe, #17131c), 0 3px 0 var(--lfe, #17131c); }
+/* 连战小牌（hud.ts setRush）：挂在左上血条块下面，纸钱 + 符印单字 + 这一关首领的词缀印章 */
+.yx-hud .yx-rushtag { position: absolute; left: 0; top: calc(100% + 6px); display: flex; align-items: center; gap: 6px; pointer-events: auto; white-space: nowrap; }
+.yx-hud .yx-rushtag > span { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border: 2px solid #17131c; border-radius: 10px; background: rgba(251, 245, 228, 0.92); font-size: var(--fs-md, 14px); font-weight: 700; color: #17131c; }
+.yx-hud .yx-rushtag b { color: #a3322a; }
+.yx-hud .yx-rushtag i { font-style: normal; font-family: 'YxBrush', serif; font-size: 16px; line-height: 20px; min-width: 20px; text-align: center; border-radius: 5px; }
+.yx-hud .yx-rushtag i.relic { background: #f2c94c; }
+.yx-hud .yx-rushtag i.affix { background: #a3322a; color: #fbf5e4; }

@@ -5,7 +5,7 @@ import { BINGHUN, WUMIAN } from '../../src/content/foes.ts';
 import { MAP_IDS, type MapId } from '../../src/content/maps.ts';
 import { RAID_REGIONS, VIGIL_REGIONS } from '../../src/content/regions.ts';
 import { MID_BOSS, midBossOf } from '../../src/content/waves.ts';
-import { createWorld, Drop, Ev, fingerprint, rushPlan, step, type World } from '../../src/core/index.ts';
+import { createWorld, Drop, Ev, fingerprint, step, type World } from '../../src/core/index.ts';
 import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
 import { foeHurtMul, foeSlowMul } from '../../src/core/foes/index.ts';
 import { generateMap } from '../../src/explore/mapgen.ts';
@@ -64,13 +64,6 @@ describe('2.0 中期首领按图出场', () => {
       let arrived = false;
       for (let k = 0; k < w.ev.n; k++) if (w.ev.type[k] === Ev.Arrive && w.ev.a[k] === code(kind)) arrived = true;
       expect(arrived).toBe(true);
-    }
-  });
-
-  it('首领连战第 5 关同步：按图出本图的首领', () => {
-    for (const map of MAP_IDS) {
-      const plan = rushPlan(11, map);
-      expect(plan.stages[4]).toEqual([midBossOf(map)]);
     }
   });
 });

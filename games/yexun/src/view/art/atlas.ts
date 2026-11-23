@@ -20,6 +20,7 @@ import { SPRITES14 } from './sprites-water.ts';
 import { SPRITES_GUISHI } from './sprites-guishi.ts';
 import { SPRITES_HUAPI } from './sprites-huapi.ts';
 import { SPRITES_LUANZANG } from './sprites-luanzang.ts';
+import { SPRITES_YELOU } from './sprites-yelou.ts';
 import { SPRITES_YAOZHEN, SPRITES_YAOZHEN_MOB } from './sprites-yaozhen.ts';
 import { SPRITES_ARMS } from './sprites-arms.ts';
 import { SPRITES_ARMS2 } from './sprites-arms2.ts';
@@ -109,12 +110,12 @@ export function peekMobAtlas(): Atlas | null {
   return mobCache?.atlas ?? null;
 }
 
-/** 角色的第三张小图集（小道士以外 9 个角色的对局图和头像；再加 10 个技能按钮图标）：不挤主图集的 2,048，开局就画好，对局和角色页都用 */
+/** 角色的第三张小图集（小道士以外 9 个角色的对局图和头像；再加 10 个技能按钮图标、终局首领夜漏君和它的小件，特色怪图集 res 3 已满）：不挤主图集的 2,048，开局就画好，对局和角色页都用 */
 export const HERO_TEX = 'atlasH';
 let heroCache: { res: number; atlas: Atlas } | null = null;
 export function buildHeroAtlas(res: number): Atlas {
   if (heroCache?.res === res) return heroCache.atlas;
-  heroCache = { res, atlas: pack([...HERO_SPRITES, ...CHARS2_SPRITES, ...SKILL_ICON_SPRITES], res, HERO_TEX) };
+  heroCache = { res, atlas: pack([...HERO_SPRITES, ...CHARS2_SPRITES, ...SKILL_ICON_SPRITES, ...SPRITES_YELOU], res, HERO_TEX) };
   return heroCache.atlas;
 }
 export function peekHeroAtlas(): Atlas | null {

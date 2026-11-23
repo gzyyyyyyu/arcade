@@ -6,6 +6,14 @@
 export const MAX_CIRCLES = 48;
 export const MAX_WAVES = 2;
 export const MAX_FLOES = 4;
+/** 连战带词缀的首领同时最多几只（双煞两只，留余量） */
+export const MAX_AFFIXED = 4;
+/** 地上的鬼火（词缀「火」的脚印、夜漏君月牙镰留下的冷焰） */
+export const MAX_FLAMES = 64;
+/** 夜漏君的鼓圈同时最多几圈 */
+export const MAX_DRUMS = 3;
+/** 夜漏君三更的灯笼 */
+export const MAX_LANTERNS = 3;
 
 export class FoeState {
   /** 这一局有没有用过（没用过的局指纹里不放它，别的图的金标准指纹不变） */
@@ -30,12 +38,15 @@ export class FoeState {
   readonly wEnd = new Float64Array(MAX_WAVES);
   readonly wGap = new Float64Array(MAX_WAVES);
   readonly wGapW = new Float64Array(MAX_WAVES);
+  /** 放这道浪的首领的招式倍数（w.eAtk） */
+  readonly wAtk = new Float64Array(MAX_WAVES).fill(1);
 
   // 冰魄娘娘的冰风：落下前的倒数（0 = 没有）、起点、方向表下标
   windT = 0;
   windX = 0;
   windY = 0;
   windDir = 0;
+  windAtk = 1;
   /** 冰面更滑到哪一拍 */
   slickUntil = 0;
 
@@ -59,4 +70,54 @@ export class FoeState {
   stageLeft = 0;
   stageAt = 0;
   stageGap = 0;
+
+  // 连战词缀（core/foes/affix.ts）：每只带词缀的首领占一格。aI 怪的下标（-1 空），aGen 占格时的 eGen（槽位换了怪就作废）；
+  // aSummon / aShieldT / aWind 倒数到下一次；aShield 护盾在时的血底线（eHp 掉到它就破，-1 没盾）；aDone 1 分过身 2 狂过；
+  // aPull 风还要拽几拍（负数 = 预警还剩几拍）；aHp 上一拍主角的血（吸：看是不是被它撞掉的）
+  readonly aI = new Int16Array(MAX_AFFIXED).fill(-1);
+  readonly aGen = new Int32Array(MAX_AFFIXED);
+  readonly aSummon = new Int32Array(MAX_AFFIXED);
+  readonly aShieldT = new Int32Array(MAX_AFFIXED);
+  readonly aShield = new Float64Array(MAX_AFFIXED).fill(-1);
+  readonly aWind = new Int32Array(MAX_AFFIXED);
+  readonly aPull = new Int32Array(MAX_AFFIXED);
+  readonly aDone = new Uint8Array(MAX_AFFIXED);
+  readonly aHp = new Float64Array(MAX_AFFIXED);
+
+  // 鬼火：hEnd 灭的那一拍（0 = 空），hBy 伤人记在哪种怪名下
+  readonly hEnd = new Int32Array(MAX_FLAMES);
+  readonly hX = new Float64Array(MAX_FLAMES);
+  readonly hY = new Float64Array(MAX_FLAMES);
+  readonly hR = new Float64Array(MAX_FLAMES);
+  readonly hDmg = new Float64Array(MAX_FLAMES);
+  readonly hBy = new Int32Array(MAX_FLAMES);
+
+  // 夜漏君（core/foes/yelou.ts）。鼓圈：dOn、圆心、现在的半径、两个缺口的方向（方向表下标，-1 没有）、伤害
+  readonly dOn = new Uint8Array(MAX_DRUMS);
+  readonly dX = new Float64Array(MAX_DRUMS);
+  readonly dY = new Float64Array(MAX_DRUMS);
+  readonly dR = new Float64Array(MAX_DRUMS);
+  readonly dGap0 = new Int16Array(MAX_DRUMS);
+  readonly dGap1 = new Int16Array(MAX_DRUMS);
+  readonly dDmg = new Float64Array(MAX_DRUMS);
+  /** 三更的灯笼：几盏、在哪 */
+  lN = 0;
+  readonly lX = new Float64Array(MAX_LANTERNS);
+  readonly lY = new Float64Array(MAX_LANTERNS);
+  /** 三更月蚀：夜色压下来（画面按 YELOU.sight 收看得见的半径） */
+  ylDark = 0;
+  /** 转阶段无敌到哪一拍 */
+  ylInv = 0;
+  /** 下一次更签雨、召更夫鬼的拍 */
+  ylRain = 0;
+  ylCall = 0;
+  /** 五更：夜潮的圆心、半径（0 = 没有）、下一次收的拍；滴漏到哪一拍漏尽（0 = 没开始）；漏尽后下一次加狠的拍；漏珠螺旋转到的方向 */
+  tideX = 0;
+  tideY = 0;
+  tideR = 0;
+  tideNext = 0;
+  dripEnd = 0;
+  ylRageNext = 0;
+  ylRageN = 0;
+  spiral = 0;
 }

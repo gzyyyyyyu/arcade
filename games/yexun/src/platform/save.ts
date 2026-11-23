@@ -17,6 +17,7 @@ import { emptyVault, herbalistUnlocked, normalizeVault, type VaultSave } from '.
 import { mainSchools } from '../content/pools.ts';
 import type { SchoolId } from '../content/guide.ts';
 import type { Setup } from '../core/state.ts';
+import { RUSH_HEX_IDS, RUSH_HEXES, RUSH_TOTAL, type RushHexId } from '../content/rush.ts';
 import { TRIAL_IDS, TRIAL_OPEN_NEED, TRIAL_TIERS, TRIALS, type TrialId, type TrialTier } from '../content/trials.ts';
 import { WEEK_GOAL_ALL, WEEK_GOAL_COINS, weekGoals, type WeekRun } from '../content/weekGoals.ts';
 
@@ -452,6 +453,52 @@ export function finishRun(s: Save, r: RunEnd): RunReward {
   if (askAssist) s.assistAsked = true;
   writeSave(s);
   return { coins, record, unlockedDanger, askAssist, sources };
+}
+
+/** 一局首领连战结束（每日、自由都发铜钱，实盘连战不走这里） */
+export interface RushEnd {
+  /** 这一局的 id（铜钱流水 `rush:<id>`） */
+  id: string;
+  danger: Danger;
+  /** 局内拍数（选卡、路线、驿站停拍不算） */
+  ticks: number;
+  /** 打倒几只（0–11，夜漏君算 1 只） */
+  down: number;
+  /** 打倒了夜漏君 */
+  cleared: boolean;
+  hexes: readonly RushHexId[];
+}
+
+/**
+ * 连战的铜钱明细（口径对齐 runCoins，docs/design-play.md 2.5）：局内分钟、打倒的首领（夜漏君之前的）、打倒夜漏君，都按危险档放大；
+ * 再加咒（每条按 RUSH_HEXES 的比例）。连战没有小怪、纸钱不换铜钱，所以没有击杀和捡钱两项。
+ * 同局长不超过守夜：危险 2 全清 15 分钟约 650，守夜同时长（天亮、尸王、击杀，不算捡的）约 700
+ */
+export function rushCoins(r: RushEnd): CoinSource[] {
+  const out: CoinSource[] = [];
+  const add = (label: string, n: number): void => {
+    if (n > 0) out.push({ label, coins: Math.floor(n) });
+  };
+  const k = 1 + RUN_BONUS.dangerStep * r.danger;
+  const minutes = Math.floor(r.ticks / 1800);
+  const bosses = Math.max(0, Math.min(RUSH_TOTAL - 1, Math.floor(r.down)));
+  add(`打了 ${minutes} 分钟`, minutes * RUN_BONUS.perMin * k);
+  add(`打倒 ${bosses} 只首领`, bosses * RUN_BONUS.rushBoss * k);
+  if (r.cleared) add('打倒夜漏君', RUN_BONUS.boss * k);
+  const sum = out.reduce((a, c) => a + c.coins, 0);
+  const hexes = RUSH_HEX_IDS.filter((h) => r.hexes.includes(h));
+  const rate = hexes.reduce((a, h) => a + RUSH_HEXES[h].coins, 0);
+  if (hexes.length > 0) add(`咒 ${hexes.length} 条`, sum * rate);
+  return out;
+}
+
+/** 连战结束：铜钱进流水（同一局只记一次），不加局数、不记守夜纪录和解锁（构筑不同）。返回结算页的来源行和合计 */
+export function finishRush(s: Save, r: RushEnd): { coins: number; sources: CoinSource[] } {
+  const sources = rushCoins(r);
+  const coins = sources.reduce((a, c) => a + c.coins, 0);
+  if (coins > 0) earn(s, `rush:${r.id}`, coins);
+  writeSave(s);
+  return { coins, sources };
 }
 
 /**

@@ -2,6 +2,7 @@
  * 选模式页按钮上的小图标（程序画，32×32 的设计格，按需要的像素放大后转成图片地址，画一次就缓存）：
  * - 心法：十个流派各一个圆章（颜色跟着流派的主色走，图案是该流派的招牌：剑、符、钟、雷、火、纸人、水、阵旗、鬼火、铜钱），外加「不带」的空章；
  * - 实盘档位：一堆铜钱，档越大堆得越高、越多（小一摞矮的、中一摞高的、大两摞、豪华三摞带金光）。
+ * - 连战：驿站、精英、锁、放逐、纸钱和 12 个符印的图标（文件末尾的 rushIcon）。
  * 只在 DOM 界面里用（不进图集），所以直接出 data URL。
  */
 import type { SchoolId } from '../../content/guide.ts';
@@ -143,3 +144,158 @@ const TIER_ART: Record<LiveTier, (c: Ctx) => void> = {
 
 /** 实盘档位：铜钱堆，堆越大档越大 */
 export const tierIcon = (t: LiveTier): string => paint(`t.${t}`, TIER_ART[t]);
+
+/** 连战的小图标（驿站、精英、锁、放逐、纸钱，以及 12 个符印）；键名同 design 的 RelicId，给连战界面用 */
+export type RushIconKey =
+  | 'shop' | 'event' | 'rest' | 'elite' | 'lock' | 'ban' | 'paper'
+  | 'mirror' | 'lamp' | 'tube' | 'string' | 'charm' | 'boots' | 'ruler' | 'bowl' | 'thunder' | 'cloak' | 'gourd';
+
+const GOLD = '#ffd75a';
+const GOLD_SH = '#d89a24';
+const BROWN = '#8a5a22';
+
+const RUSH_ART: Record<RushIconKey, (c: Ctx) => void> = {
+  // 商店：一只钱袋，口上一枚铜钱
+  shop: (c) => {
+    badge(c, '#e6a83a', '#b07818');
+    blob(c, (k) => { k.moveTo(12, 11); k.lineTo(20, 11); k.quadraticCurveTo(26, 17, 24, 24); k.quadraticCurveTo(16, 27, 8, 24); k.quadraticCurveTo(6, 17, 12, 11); }, '#fff2d0', '#d8c08a', 1.8, 1.2);
+    blob(c, rrect(11.5, 9, 9, 3.4, 1.2), '#c43a2a', null, 1.4);
+    blob(c, circle(16, 19, 3.6), GOLD, GOLD_SH, 1.4, 0.8);
+    blob(c, rrect(14.8, 17.8, 2.4, 2.4, 0.3), BROWN, null, 0.8);
+  },
+  // 事件：一个大问号
+  event: (c) => {
+    badge(c, '#8a5cc8', '#5e3a96');
+    stroke(c, (k) => { k.moveTo(11.5, 12.5); k.quadraticCurveTo(12, 6.5, 16.5, 6.8); k.quadraticCurveTo(21.5, 7.4, 20.6, 12); k.quadraticCurveTo(19.6, 15, 16.4, 17); k.lineTo(16.2, 20); }, 5.6, INK);
+    stroke(c, (k) => { k.moveTo(11.5, 12.5); k.quadraticCurveTo(12, 6.5, 16.5, 6.8); k.quadraticCurveTo(21.5, 7.4, 20.6, 12); k.quadraticCurveTo(19.6, 15, 16.4, 17); k.lineTo(16.2, 20); }, 3, '#fff2a8');
+    dab(c, circle(16.2, 24.4, 2.6), INK);
+    dab(c, circle(16.2, 24.4, 1.5), '#fff2a8');
+  },
+  // 休整：一团篝火上架着茶壶，简化成火苗
+  rest: (c) => {
+    badge(c, '#e0603a', '#a8381a');
+    blob(c, (k) => { k.moveTo(16, 5.5); k.quadraticCurveTo(24, 13, 22, 21); k.quadraticCurveTo(16, 27, 10, 21); k.quadraticCurveTo(8, 14, 13, 11); k.quadraticCurveTo(13.5, 14, 15.5, 15); k.quadraticCurveTo(14.5, 10, 16, 5.5); }, '#ffb02e', '#e8701a', 1.8, 1.4);
+    blob(c, (k) => { k.moveTo(16, 14); k.quadraticCurveTo(20, 18.5, 18.6, 22); k.quadraticCurveTo(16, 24.6, 13.4, 22); k.quadraticCurveTo(12.6, 18.6, 16, 14); }, '#fff0a0', null, 1.2);
+    stroke(c, (k) => { k.moveTo(8, 27); k.lineTo(24, 27); }, 3, INK);
+  },
+  // 精英：骷髅印
+  elite: (c) => {
+    badge(c, '#c8323a', '#8a1a22');
+    blob(c, (k) => { k.moveTo(8.5, 15); k.quadraticCurveTo(8.5, 6.5, 16, 6.5); k.quadraticCurveTo(23.5, 6.5, 23.5, 15); k.quadraticCurveTo(23.5, 18.5, 21, 20); k.lineTo(21, 24); k.lineTo(11, 24); k.lineTo(11, 20); k.quadraticCurveTo(8.5, 18.5, 8.5, 15); }, '#f4efe0', '#c9c0a8', 1.8, 1.2);
+    dab(c, ellipse(12.8, 15, 2.4, 2.8), INK);
+    dab(c, ellipse(19.2, 15, 2.4, 2.8), INK);
+    dab(c, poly(16, 17.6, 14.8, 20.4, 17.2, 20.4), INK);
+    stroke(c, (k) => { k.moveTo(13.5, 22); k.lineTo(13.5, 24); k.moveTo(16, 22); k.lineTo(16, 24); k.moveTo(18.5, 22); k.lineTo(18.5, 24); }, 1.1, '#8a8470');
+  },
+  // 锁：一把挂锁
+  lock: (c) => {
+    badge(c, '#5a82a8', '#385a80');
+    stroke(c, (k) => { k.moveTo(11.5, 15); k.lineTo(11.5, 11); k.quadraticCurveTo(16, 3.5, 20.5, 11); k.lineTo(20.5, 15); }, 4.6, INK);
+    stroke(c, (k) => { k.moveTo(11.5, 15); k.lineTo(11.5, 11); k.quadraticCurveTo(16, 3.5, 20.5, 11); k.lineTo(20.5, 15); }, 2.2, '#dfe6f0');
+    blob(c, rrect(8.5, 14.5, 15, 11.5, 2.4), GOLD, GOLD_SH, 2, 1.4);
+    dab(c, circle(16, 19.4, 1.9), INK);
+    dab(c, rrect(15.2, 19.6, 1.6, 3.8, 0.6), INK);
+  },
+  // 放逐：圆圈加斜杠
+  ban: (c) => {
+    badge(c, '#e8e2d0', '#c4bca0');
+    stroke(c, (k) => { k.arc(16, 16, 9, 0, Math.PI * 2); }, 5, INK);
+    stroke(c, (k) => { k.arc(16, 16, 9, 0, Math.PI * 2); }, 2.8, '#d83a3a');
+    stroke(c, (k) => { k.moveTo(9.6, 22.4); k.lineTo(22.4, 9.6); }, 5, INK);
+    stroke(c, (k) => { k.moveTo(9.6, 22.4); k.lineTo(22.4, 9.6); }, 2.8, '#d83a3a');
+  },
+  // 纸钱：一叠黄纸钱，中间一个方孔
+  paper: (c) => {
+    badge(c, '#e0c060', '#b08a28');
+    c.save();
+    c.translate(16, 16);
+    c.rotate(-0.22);
+    blob(c, rrect(-8, -7, 16, 14, 1.2), '#fff0b0', '#e0c46a', 1.8, 1.1);
+    blob(c, rrect(-2, -2, 4, 4, 0.5), '#8a6614', null, 1.1);
+    c.restore();
+  },
+  // 照胆镜：一面圆镜带柄
+  mirror: (c) => {
+    badge(c, '#6a98c8', '#3a6a9a');
+    blob(c, circle(16, 13.5, 7.6), '#e8f4ff', '#a8c8e8', 2, 1.4);
+    dab(c, ellipse(13.4, 10.8, 2.4, 1.2, -0.6), '#ffffff', 0.9);
+    blob(c, rrect(14.4, 21, 3.2, 7, 1), '#c0883a', null, 1.4);
+  },
+  // 长明灯：一盏小油灯，火苗不灭
+  lamp: (c) => {
+    badge(c, '#e8883a', '#b05a18');
+    blob(c, (k) => { k.moveTo(16, 5.5); k.quadraticCurveTo(21, 11, 19.5, 14.5); k.quadraticCurveTo(16, 16.5, 12.5, 14.5); k.quadraticCurveTo(11.5, 11, 16, 5.5); }, '#ffe27a', '#ffb02e', 1.6, 1);
+    blob(c, (k) => { k.moveTo(8.5, 17); k.lineTo(23.5, 17); k.quadraticCurveTo(22, 25, 16, 25); k.quadraticCurveTo(10, 25, 8.5, 17); }, '#c08a3a', '#8a5a1a', 1.8, 1.2);
+    stroke(c, (k) => { k.moveTo(23, 18.4); k.quadraticCurveTo(27, 18.4, 26.4, 21.6); }, 1.6, INK);
+  },
+  // 签筒：一筒竹签
+  tube: (c) => {
+    badge(c, '#6aa84a', '#3a7a28');
+    for (const [x, r] of [[12.6, -0.18], [16, 0], [19.4, 0.18]] as const) {
+      c.save();
+      c.translate(x, 11);
+      c.rotate(r);
+      blob(c, rrect(-1.3, -6, 2.6, 11, 0.8), '#f0d48a', '#c8a850', 1.2, 0.7);
+      c.restore();
+    }
+    blob(c, rrect(10, 12, 12, 14, 2.4), '#b0743a', '#80501e', 2, 1.4);
+    stroke(c, (k) => { k.moveTo(10.4, 17); k.lineTo(21.6, 17); }, 1.2, '#80501e');
+  },
+  // 纸钱串：一串铜钱
+  string: (c) => {
+    badge(c, '#c89a2a', '#8a6614');
+    stroke(c, (k) => { k.moveTo(16, 3.5); k.lineTo(16, 28); }, 1.6, INK);
+    for (const y of [8, 14.5, 21]) {
+      blob(c, circle(16, y, 3.6), GOLD, GOLD_SH, 1.4, 0.8);
+      blob(c, rrect(14.9, y - 1.1, 2.2, 2.2, 0.3), BROWN, null, 0.8);
+    }
+  },
+  // 护身符：一道黄符，朱砂「护」意的一竖一点
+  charm: (c) => {
+    badge(c, '#d8503a', '#9a2a18');
+    blob(c, rrect(10.5, 5.5, 11, 21, 1.2), '#f2d14a', '#d8b232', 1.8, 1);
+    stroke(c, (k) => { k.moveTo(16, 9.5); k.lineTo(16, 20.5); k.moveTo(13, 13); k.lineTo(19, 13); k.moveTo(13.4, 18); k.lineTo(18.6, 18); }, 1.5, '#c8281a');
+  },
+  // 疾风履：一只带风的靴
+  boots: (c) => {
+    badge(c, '#4aa8a0', '#287a74');
+    blob(c, (k) => { k.moveTo(12, 6.5); k.lineTo(19, 6.5); k.lineTo(19, 17); k.quadraticCurveTo(25, 18, 25, 23); k.lineTo(10, 23); k.quadraticCurveTo(10, 14, 12, 6.5); }, '#7a5a3a', '#4e3820', 1.9, 1.3);
+    blob(c, rrect(10, 21, 15, 3.4, 1.2), '#e8e2d0', null, 1.4);
+    stroke(c, (k) => { k.moveTo(3.5, 12); k.lineTo(9, 12); k.moveTo(5, 16.5); k.lineTo(10, 16.5); }, 1.8, '#ffffff');
+  },
+  // 镇尺：一把长方镇纸尺
+  ruler: (c) => {
+    badge(c, '#8a7a6a', '#5a4e40');
+    blob(c, rrect(5.5, 12, 21, 8, 1.6), '#a07038', '#704a1a', 2, 1.3);
+    stroke(c, (k) => { for (const x of [9, 13, 17, 21]) { k.moveTo(x, 12); k.lineTo(x, x % 8 === 1 ? 16 : 15); } }, 1.3, '#4e320e');
+  },
+  // 聚宝盆：一只盆，里头堆着元宝
+  bowl: (c) => {
+    badge(c, '#c8683a', '#8a3e18');
+    blob(c, (k) => { k.moveTo(11, 8); k.quadraticCurveTo(16, 3.5, 21, 8); k.quadraticCurveTo(22, 14, 16, 14); k.quadraticCurveTo(10, 14, 11, 8); }, GOLD, GOLD_SH, 1.6, 1);
+    blob(c, (k) => { k.moveTo(6.5, 14); k.lineTo(25.5, 14); k.quadraticCurveTo(24, 26.5, 16, 26.5); k.quadraticCurveTo(8, 26.5, 6.5, 14); }, '#c8452a', '#8a2414', 2, 1.4);
+    stroke(c, (k) => { k.moveTo(9, 19); k.lineTo(23, 19); }, 1.3, GOLD);
+  },
+  // 五雷令：一面令牌上一道闪电
+  thunder: (c) => {
+    badge(c, '#4a5aa8', '#2a3678');
+    blob(c, rrect(8.5, 5.5, 15, 21, 2), '#2c2f5c', '#191b3c', 1.9, 1.1);
+    blob(c, poly(18, 7.5, 11, 17, 15.4, 17, 13.4, 24.5, 21, 14, 16.6, 14), '#ffe04a', '#e0a82a', 1.5, 0.9);
+  },
+  // 夜行衣：一件深色短披风
+  cloak: (c) => {
+    badge(c, '#5a4a8a', '#382c62');
+    blob(c, (k) => { k.moveTo(11, 7); k.quadraticCurveTo(16, 4.5, 21, 7); k.quadraticCurveTo(26, 16, 25, 26); k.lineTo(22, 23); k.lineTo(19, 26); k.lineTo(16, 23); k.lineTo(13, 26); k.lineTo(10, 23); k.lineTo(7, 26); k.quadraticCurveTo(6, 16, 11, 7); }, '#3b4286', '#222657', 1.9, 1.3);
+    dab(c, circle(16, 8.5, 1.6), GOLD);
+  },
+  // 血葫芦：一只红葫芦
+  gourd: (c) => {
+    badge(c, '#d84a4a', '#9a2222');
+    blob(c, circle(16, 10.5, 4.6), '#ffb4a0', '#e07860', 1.8, 1.2);
+    blob(c, circle(16, 19.5, 6.6), '#ffb4a0', '#e07860', 1.9, 1.4);
+    blob(c, rrect(14.4, 3.6, 3.2, 3.6, 0.8), '#7a4818', null, 1.2);
+  },
+};
+
+/** 连战小图标：驿站三种、精英、锁、放逐、纸钱、12 个符印 */
+export const rushIcon = (id: RushIconKey): string => paint(`r.${id}`, RUSH_ART[id]);

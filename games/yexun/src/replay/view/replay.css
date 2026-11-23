@@ -5,6 +5,7 @@
 .yx-replays li .old { color: var(--red); }
 .yx-replays li .best { color: #8a6a00; }
 .yx-replays button.yx-tab { min-height: 44px; min-width: 64px; padding: 0 12px; border: 2.5px solid var(--ink); border-radius: 12px; background: var(--red); color: #fbf5e4; font: inherit; cursor: pointer; }
+.yx-replays button.yx-tab:disabled { opacity: 0.45; background: #9a9284; cursor: default; }
 .yx-replaybar {
   position: absolute; left: 50%; transform: translateX(-50%); bottom: max(10px, env(safe-area-inset-bottom, 0px)); z-index: 36;
   display: flex; gap: 8px; align-items: center; padding: 6px 10px; border: 3px solid var(--ink); border-radius: 14px; background: #fbf5e4;

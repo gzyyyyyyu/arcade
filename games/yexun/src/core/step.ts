@@ -41,13 +41,16 @@ import {
   WHITEFOX,
   type EnemyKind,
 } from '../content/enemies.ts';
-import { BOMB, CHEST, DROPS, MERCY, NOVICE, PICKUP, PLAYER, PROPS, PURSE, xpNeed } from '../content/player.ts';
+import { ARENA, BOMB, CHEST, DROPS, MERCY, NOVICE, PICKUP, PLAYER, PROPS, PURSE, xpNeed } from '../content/player.ts';
+import { FoeState } from './foes/state.ts';
+import { api as foeApi } from './foes/api.ts';
 import { RUSH } from '../content/rush.ts';
 import { MID_BOSS_KINDS, SHUIHOU } from '../content/foes.ts';
-import { bindFoeApi, foeAct, foeGhost, foeHitMul, foeHurtMul, foeInit, foeOnHit, foeOnKill, foePack, foeSlowMul, foeTick, foeUntargetable, isProp, noDrop, type FoeMv } from './foes/index.ts';
+import { affixTick, bindFoeApi, foeAct, foeGhost, foeHitMul, foeHurtMul, foeInit, foeOnHit, foeOnKill, foePack, foeSlowMul, foeTick, foeUntargetable, isProp, noDrop, type FoeMv } from './foes/index.ts';
 import { bossAct, bossPhase, huapiAct, huapiDist, lordAct } from './foes/elders.ts';
-import type { RushPlan } from './rush.ts';
-import { inRects, MAPS, pushOut, TERRAIN, type Block } from '../content/maps.ts';
+import { LOADOUT, loadoutSpare } from './rush.ts';
+import { openRoute, rushChoose, rushCharm, rushHitMul, rushInvulnMul, rushKilled, rushSetMul, rushStats, rushThunder, rushTick, type RushApi } from './rush-flow.ts';
+import { inRects, MAP_IDS, MAPS, pushOut, TERRAIN, type Block, type MapId } from '../content/maps.ts';
 import { BlockIndex, type RaidBlock } from './blocks.ts';
 import { raidHooks, type RaidPort } from './raid-port.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, vigilRegion, EMERGE_KINDS, regionKind, regionTotal, type Region } from '../content/regions.ts';
@@ -131,7 +134,7 @@ const sealDue = new Int32Array(MAX_ENEMIES);
 export function createWorld(setup: Setup): World {
   const w = new World(setup);
   if (w.rush) {
-    startRush(w, w.rush);
+    startRush(w);
     w.hp = w.stats.hpMax;
     return w;
   }
@@ -155,72 +158,113 @@ function applyKits(w: World): void {
   }
 }
 
-/** 首领连战开局：没有时间线和摆设，直接给这一局的构筑和等级（DESIGN.md 2.5） */
-function startRush(w: World, plan: RushPlan): void {
-  for (const o of plan.weapons) grantWeapon(w, o.id, o.level, o.evolved);
-  for (const p of plan.passives) w.passives[p.id] = p.level;
-  recompute(w);
+/** 首领连战开局：没有时间线和摆设，按配装给法器、被动，等级固定，先开第 1 列路线图（docs/design-play.md 2.5） */
+function startRush(w: World): void {
+  const l = w.setup.rushLoadout!;
+  grantWeapon(w, l.start, LOADOUT.startLevel);
+  if (l.second) grantWeapon(w, l.second, LOADOUT.secondLevel);
+  for (const p of l.passives) w.passives[p.id] = p.level;
   w.level = RUSH.level;
-  w.rushAt = RUSH.first;
+  recompute(w);
+  w.rerolls = has(w, 'noreroll') ? 0 : RUSH.rerolls + loadoutSpare(l);
+  w.bans = RUSH.bans;
+  w.rushHpMul = dangerDef(w.setup.mode, w.setup.danger).hpMul;
+  openRoute(w);
 }
 
-/** 首领连战的刷怪：只刷关底，一关打完喘口气再上下一关；没有常规怪 */
-function rushWaves(w: World, plan: RushPlan): void {
-  if (w.rushAt < 0 || w.tick < w.rushAt || w.rushStage >= plan.stages.length) return;
-  const kinds = plan.stages[w.rushStage]!;
-  const diff = dangerDef(w.setup.mode, w.setup.danger);
-  const min = RUSH.minute[Math.min(w.rushStage, RUSH.minute.length - 1)]!;
-  for (const kind of kinds) {
+/**
+ * 连战换图：清场（怪、敌弹和落地的弹、掉落、阵和灯、首领留在地上的东西），换地形和机关，主角放回中心
+ * （绕身的铜钱、飞剑、纸鹤、纸兵跟着挪）；发 Ev.Rush 子类 3（b = MAP_IDS 下标）
+ */
+export function rushEnterMap(w: World, map: MapId): void {
+  for (let i = 0; i < MAX_ENEMIES; i++) {
+    if (!w.eAlive[i]) continue;
+    w.eAlive[i] = 0;
+    w.eRush[i] = 0;
+    w.arms.resetEnemy(i);
+  }
+  w.eCount = 0;
+  w.bossSlot = -1;
+  w.marks = 0;
+  w.eMark.fill(0);
+  const dx = ARENA.w / 2 - w.x;
+  const dy = ARENA.h / 2 - w.y;
+  for (let i = 0; i < MAX_SHOTS; i++) {
+    if (!w.sAlive[i]) continue;
+    const k = w.sKind[i]!;
+    if (k === Shot.Coin || k === Shot.Fly || k === Shot.Crane || k === Shot.Paper) {
+      w.sX[i]! += dx;
+      w.sY[i]! += dy;
+      w.sPX[i] = w.sX[i]!;
+      w.sPY[i] = w.sY[i]!;
+    } else killShot(w, i);
+  }
+  for (let i = 0; i < MAX_DROPS; i++) if (w.dAlive[i]) w.dAlive[i] = 0;
+  w.dCount = 0;
+  w.soulCount = 0;
+  for (const list of [w.arms.zones, w.arms.lamps, w.arms.puddles, w.arms.darts, w.arms.banners, w.arms.brushJobs, w.arms.crackers] as unknown[][]) list.length = 0;
+  w.foe = new FoeState();
+  w.x = w.px = ARENA.w / 2;
+  w.y = w.py = ARENA.h / 2;
+  w.pvx = 0;
+  w.pvy = 0;
+  w.mapId = map;
+  const def = MAPS[map];
+  const blocks = def.blocks;
+  w.blocks = blocks;
+  w.allBlocks = blocks;
+  const dyn = blocks.some((b) => b.hp !== undefined);
+  w.blockHp = new Float64Array(dyn ? blocks.length : 0);
+  w.blockAt = new Int32Array(dyn ? blocks.length : 0);
+  if (dyn) blocks.forEach((b, k) => (w.blockHp[k] = b.hp ?? Infinity));
+  w.index = blocks.length > 40 ? new BlockIndex(blocks as readonly RaidBlock[], ARENA.w) : null;
+  w.water = def.water ?? [];
+  w.ice = def.ice ?? [];
+  w.incense = def.incense ?? [];
+  w.fire = def.fire ?? [];
+  w.ev.push(Ev.Rush, w.x, w.y, 3, MAP_IDS.indexOf(map));
+}
+
+/** 连战规则（core/rush-flow.ts）借用 step 里的刷怪、升级、结算；导出只给测试直接发卡用 */
+export const RUSH_API: RushApi = {
+  pool: (w) => choicePool(w),
+  spawn: (w, kind) => {
     const [x, y] = ringPoint(w, w.rSpawn.int(DIR_N), 0.8);
-    const i = spawnEnemy(w, kind, x, y);
-    if (i < 0) continue;
-    // 血和伤害按这一关对应的守夜分钟算（spawnEnemy 按开局后的真实分钟算，连战里太软）；首领按 RUSH 的几成
-    const def = ENEMY_BY_KIND[kind];
-    const hp = kind === 'boss' ? def.hp * diff.hpMul * RUSH.bossHp : MID_BOSS_KINDS.includes(kind) ? def.hp * diff.hpMul * RUSH.lordHp : def.hp * (1 + SCALE.hpPerMin * min) * diff.hpMul;
-    w.eHp[i] = hp;
-    w.eHpMax[i] = hp;
-    w.eDmg[i] = def.dmg * (1 + SCALE.dmgPerMin * min);
-    w.eRush[i] = 1;
-    w.rushLeft++;
-  }
-  w.rushAt = -1;
-  w.ev.push(Ev.Rush, w.x, w.y, 0, w.rushStage, kinds.length);
-}
-
-/** 连战的一只关底倒了：记数；一关清完就掉肉包、排下一关，全清就记下这一拍（step 末尾收工） */
-function rushDown(w: World, plan: RushPlan, code: number, x: number, y: number): void {
-  w.rushDown++;
-  w.rushLeft--;
-  w.ev.push(Ev.Rush, x, y, 1, w.rushDown, code);
-  if (w.rushLeft > 0) return;
-  w.rushStage++;
-  if (w.rushStage >= plan.stages.length) {
-    w.rushEnd = w.tick;
-    w.ev.push(Ev.Rush, w.x, w.y, 2, w.tick);
-    return;
-  }
-  w.rushAt = w.tick + RUSH.rest;
-  settleChest(w);
-  w.pendingLevels += RUSH.stagePicks;
-  w.chestPicks += RUSH.stagePicks;
-  for (let k = 0; k < RUSH.buns; k++) {
-    const a = w.rDrop.int(DIR_N);
-    addDrop(w, Drop.Bun, w.x + dcos(a) * 120, w.y + dsin(a) * 90, DROPS.bunHeal);
-  }
-}
+    return spawnEnemy(w, kind, x, y);
+  },
+  upgradeWeapon: (w, id) => upgradeWeapon(w, id),
+  upgradePassive: (w, id) => upgradePassive(w, id),
+  recompute: (w) => recompute(w),
+  settle: (w) => settleChest(w),
+  heal: (w, n) => heal(w, n),
+  buns: (w) => {
+    for (let k = 0; k < RUSH.buns; k++) {
+      const a = w.rDrop.int(DIR_N);
+      addDrop(w, Drop.Bun, w.x + dcos(a) * 120, w.y + dsin(a) * 90, DROPS.bunHeal);
+    }
+  },
+  enterMap: (w, map) => rushEnterMap(w, map),
+  swapWeapon: (w, slot, to) => {
+    for (let i = 0; i < MAX_SHOTS; i++) if (w.sAlive[i] && w.sSlot[i] === slot) killShot(w, i);
+    const o = w.weapons[slot]!;
+    w.weapons[slot] = { id: to, level: o.level, evolved: false, timer: 8, phase: 0, angle: 0, dmg: 0, kills: 0 };
+    w.eHitAt.fill(0);
+    recompute(w);
+  },
+};
 
 /** 这一档、这几条咒印下的定点事件：精英按危险档晚到、多来几只，危险 5 两只尸王；按时间重排 */
 function schedule(w: World): WaveEvent[] {
   const d = dangerDef(w.setup.mode, w.setup.danger);
   const extra = d.eliteExtra + (w.setup.curses?.includes('elites') ? 1 : 0) + (w.setup.weekly === 'elite' ? WEEKLY_FX.eliteExtra : 0);
   // 图专属精英（content/regions.ts）按时间插进定点事件；没登记的图什么都不加
-  const region = VIGIL_REGIONS[w.setup.map ?? 'snow'];
+  const region = VIGIL_REGIONS[w.mapId];
   const own = (region?.elites ?? []).map((e): WaveEvent => ({ at: e.at, kind: 'elite', enemy: e.enemy, count: e.count }));
   const out = [...EVENTS, ...own].map((e): WaveEvent => {
     // 1:45 那只（small）不跟危险档多来：开局两只白狐会把新手在第 2 分钟就打倒
     if (e.kind === 'elite') return { ...e, at: e.at + d.eliteLate, count: e.count + (e.small ? 0 : extra), bare: e.small ? 0 : d.eliteExtra };
     // 中期首领按图换（竹林、河滩、鬼市是画皮）
-    if (e.kind === 'boss' && e.enemy === 'lord') return { ...e, enemy: midBossOf(w.setup.map) };
+    if (e.kind === 'boss' && e.enemy === 'lord') return { ...e, enemy: midBossOf(w.mapId) };
     return e;
   });
   // 稳定排序：同一拍的事件保持原来的先后
@@ -242,6 +286,7 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
   w.ev.n = 0;
   if (w.phase === 'over') return;
   if (w.phase === 'choose') {
+    if (w.rush) return rushChoose(w, choice, RUSH_API);
     if (choice >= 0 && choice < w.choices.length) applyChoice(w, w.choices[choice]!);
     else if (choice === Pick.Reroll && w.rerolls > 0) {
       w.rerolls--;
@@ -347,9 +392,8 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
   const tv = w.trial ? trialVerdict(w) : 0;
   if (tv !== 0) return end(w, tv > 0);
   if (w.rush) {
-    // 连战：全清算赢，5 分钟到点还没打完算输（成绩按打倒几只算，score.ts）
+    // 连战：打倒夜漏君算赢，倒下算输（成绩按打倒几只算，online/rush.ts）；没有总限时
     if (w.rushEnd >= 0) return end(w, true);
-    if (w.tick >= RUSH.limit) return end(w, false);
   } else if (!w.setup.endless && w.tick >= DAWN_TICK) return end(w, true);
   if (w.pendingLevels > 0) openChoices(w);
 }
@@ -462,7 +506,7 @@ function mapEventOn(w: World, kind: MapEventKind): number {
 
 function mapEvents(w: World): void {
   if (w.setup.mode !== 'vigil' || w.rush) return;
-  const ev = MAP_EVENTS[w.setup.map ?? 'snow'];
+  const ev = MAP_EVENTS[w.mapId];
   const code = MAP_EVENT_KINDS.indexOf(ev.kind);
   for (let k = 0; k < MAP_EVENT_AT.length; k++) {
     const at = MAP_EVENT_AT[k]!;
@@ -618,6 +662,10 @@ function hurt(w: World, dmg: number, by = -1): void {
   // 第一局 3 分钟前不会死：血最少留 1
   if (w.setup.firstRun && w.tick < FIRST_RUN_GUARD && w.hp < 1) w.hp = 1;
   w.invuln = PLAYER.invuln;
+  if (w.rush) {
+    rushCharm(w);
+    w.invuln = Math.round(PLAYER.invuln * rushInvulnMul(w));
+  }
   w.ev.push(Ev.Hurt, w.x, w.y, d);
 }
 
@@ -677,6 +725,8 @@ function spawnEnemy(w: World, kind: EnemyKind, x: number, y: number): number {
   w.eAlive[i] = 1;
   w.eGen[i]!++;
   w.eRush[i] = 0;
+  w.eAffix[i] = 0;
+  w.eAtk[i] = 1;
   w.eKind[i] = def.code;
   w.eX[i] = clamp(x, 10, w.arenaW - 10);
   w.eY[i] = clamp(y, 10, w.arenaH - 10);
@@ -748,7 +798,7 @@ function ringPoint(w: World, a: number, scale = 1): [number, number] {
 
 function pickKind(w: World, mix: Partial<Record<EnemyKind, number>>): EnemyKind {
   // 地图偏好（义庄尸类多）乘在比例上
-  const bias = MAPS[w.setup.map ?? 'snow'].mix;
+  const bias = MAPS[w.mapId].mix;
   let total = 0;
   for (const k in mix) total += mix[k as EnemyKind]! * (bias?.[k as EnemyKind] ?? 1);
   let r = w.rSpawn.next() * total;
@@ -808,7 +858,7 @@ const spawnP = { x: 0, y: 0 };
 
 function spawnWaves(w: World): void {
   if (w.raid) return spawnRaid(w, w.raid);
-  if (w.rush) return rushWaves(w, w.rush);
+  if (w.rush) return rushTick(w, RUSH_API);
   // 定点事件
   while (w.nextEvent < w.schedule.length && w.tick >= w.schedule[w.nextEvent]!.at) {
     const e = w.schedule[w.nextEvent++]!;
@@ -887,7 +937,7 @@ function spawnWaves(w: World): void {
   w.spawnAcc += ((w.eCount < keep / 2 ? 2 : 1) * m.rate * diff.countMul * curse * calm * (w.inIncense ? TERRAIN.incenseRate : 1)) / 30;
   while (w.spawnAcc >= 1) {
     w.spawnAcc -= 1;
-    const kind = regionPick(w, vigilRegion(w.setup.map ?? 'snow'), Math.max(0, mi + diff.mixShift)) ?? pickKind(w, mix);
+    const kind = regionPick(w, vigilRegion(w.mapId), Math.max(0, mi + diff.mixShift)) ?? pickKind(w, mix);
     if (EMERGE_KINDS.has(kind)) {
       // 水鬼、竹精、溺鬼从主角附近的地里冒出来
       const [x, y] = nearPoint(w, kind);
@@ -986,6 +1036,10 @@ function moveEnemies(w: World): void {
   const rage = eliteRageEnabled(w);
   for (let i = 0; i < MAX_ENEMIES; i++) {
     if (!w.eAlive[i]) continue;
+    if (w.eAffix[i]) {
+      affixTick(w, i, foeApi);
+      if (!w.eAlive[i]) continue;
+    }
     if (w.eBind[i]! > w.tick) {
       // 被捆住：原地不动，只吃击退
       w.eX[i] = clamp(w.eX[i]! + w.eKX[i]!, 10, w.arenaW - 10);
@@ -1224,6 +1278,7 @@ function moveEnemies(w: World): void {
       case 'coffin':
       case 'crossbow':
       case 'hurrier':
+      case 'yelou':
         foeMv.vx = vx;
         foeMv.vy = vy;
         foeMv.sp = sp;
@@ -1430,7 +1485,7 @@ function mobAct(w: World, i: number, kind: EnemyKind, d: number, dx: number, dy:
         const off = w.rAi.int(DIR_N);
         for (let k = 0; k < HEBO.ring; k++) {
           const a = off + Math.floor((k * DIR_N) / HEBO.ring);
-          addShot(w, Shot.Fireball, x, y - 24, dcos(a) * HEBO.shotSpeed, dsin(a) * HEBO.shotSpeed, HEBO.shotLife, HEBO.shotDmg, 11, 0, -1, 0);
+          addShot(w, Shot.Fireball, x, y - 24, dcos(a) * HEBO.shotSpeed, dsin(a) * HEBO.shotSpeed, HEBO.shotLife, HEBO.shotDmg * w.eAtk[i]!, 11, 0, -1, 0);
         }
         surroundPlayer(w, 'drown', HEBO.drowns, HEBO.near);
       }
@@ -1471,7 +1526,7 @@ function mobAct(w: World, i: number, kind: EnemyKind, d: number, dx: number, dy:
         mv.sp = 0;
         if (--w.eS[i]! === 0) {
           w.ev.push(Ev.Mob, x, y, 9, FROSTSOUL.r);
-          if (areaHurt(w, x, y, FROSTSOUL.r, FROSTSOUL.dmg, w.eKind[i]!)) w.slowUntil = Math.max(w.slowUntil, w.tick + FROSTSOUL.slowTicks);
+          if (areaHurt(w, x, y, FROSTSOUL.r, FROSTSOUL.dmg * w.eAtk[i]!, w.eKind[i]!)) w.slowUntil = Math.max(w.slowUntil, w.tick + FROSTSOUL.slowTicks);
           if (++w.eV[i]! % 2 === 0) {
             for (let k = 0; k < FROSTSOUL.golems; k++) spawnEnemy(w, 'icegolem', x + (k === 0 ? -50 : 50), y + 20);
           }
@@ -1558,7 +1613,7 @@ function mobAct(w: World, i: number, kind: EnemyKind, d: number, dx: number, dy:
         const mid = dirIndex(dx, dy);
         for (let k = 0; k < n; k++) {
           const a = mid + (k - (n - 1) / 2) * MARKETBOSS.spread;
-          addShot(w, Shot.Fireball, x, y - 30, dcos(a) * MARKETBOSS.speed, dsin(a) * MARKETBOSS.speed, MARKETBOSS.life, MARKETBOSS.dmg, MARKETBOSS.r, MONEY_STRAIGHT, -1, 0);
+          addShot(w, Shot.Fireball, x, y - 30, dcos(a) * MARKETBOSS.speed, dsin(a) * MARKETBOSS.speed, MARKETBOSS.life, MARKETBOSS.dmg * w.eAtk[i]!, MARKETBOSS.r, MONEY_STRAIGHT, -1, 0);
         }
         if (MARKETBOSS.puppets[phase]! > 0) surroundPlayer(w, 'puppet', MARKETBOSS.puppets[phase]!, MARKETBOSS.ring);
       }
@@ -1731,8 +1786,15 @@ function hitEnemy(w: World, i: number, dmg: number, slot: number, kx: number, ky
   let vs = owner ? VS[w.eKind[i]! * WEAPON_IDS.length + WEAPON_CODE[owner.id]]! : 1;
   // 危险 5 起怪没那么怕克制（weakKeep）：只收"怕"的那部分，抵抗不变
   if (vs > 1) vs = 1 + (vs - 1) * dangerDef(w.setup.mode, w.setup.danger).weakKeep;
-  const d = Math.max(1, Math.round(dmg * bound * pinned * armsHitMul(w, i) * vs * w.stats.might * charDmgMul(w, owner?.id) * xinfaHitMul(w, owner?.id, i) * (crit ? PLAYER.critMul + w.stats.critDmg : 1) * foeHitMul(w, i)));
+  const d = Math.max(1, Math.round(dmg * bound * pinned * armsHitMul(w, i) * vs * w.stats.might * charDmgMul(w, owner?.id) * xinfaHitMul(w, owner?.id, i) * (crit ? PLAYER.critMul + w.stats.critDmg : 1) * foeHitMul(w, i) * (w.rush ? rushHitMul(w, i) : 1)));
   w.eHp[i]! -= d;
+  if (w.rush) {
+    const bolt = rushThunder(w, i);
+    if (bolt > 0) {
+      w.eHp[i]! -= bolt;
+      w.ev.push(Ev.Hit, w.eX[i]!, w.eY[i]!, Math.round(bolt), 0, i);
+    }
+  }
   // 结算页的"每件法器打了多少"：只记，不影响规则
   const owned = owner;
   if (owned) owned.dmg += d;
@@ -1844,7 +1906,7 @@ function killEnemy(w: World, i: number): void {
   if (w.rush && (def.elite || def.boss)) {
     if (w.eRush[i]) {
       w.eRush[i] = 0;
-      rushDown(w, w.rush, def.code, x, y);
+      rushKilled(w, def.code, x, y, RUSH_API);
     }
     if (def.kind === 'palanquin') {
       for (let k = 0; k < PALANQUIN.burst; k++) {
@@ -1852,7 +1914,6 @@ function killEnemy(w: World, i: number): void {
         spawnEnemy(w, 'paper', x + dcos(a) * 40, y + dsin(a) * 32);
       }
     }
-    for (let k = 0; k < 6; k++) addDrop(w, Drop.Soul, x + (w.rDrop.next() - 0.5) * 60, y + (w.rDrop.next() - 0.5) * 40, def.xp / 6);
     return;
   }
   if (def.kind === 'boss') {
@@ -2737,6 +2798,8 @@ function collect(w: World, i: number): void {
 }
 
 function gainXp(w: World, v: number): void {
+  // 连战等级固定，不吃魂
+  if (w.rush) return;
   w.xp += v * w.stats.xpMul;
   for (;;) {
     const need = xpNeed(w.level, w.raid !== null);
@@ -2938,6 +3001,7 @@ function recompute(w: World): void {
     if (n >= 3) elMul[NEXT_ELEMENT[e]] = (elMul[NEXT_ELEMENT[e]] ?? 1) + 0.1;
   }
   armsRecompute(w, s);
+  if (w.rush) rushStats(w, s);
   const grow = s.hpMax - w.stats.hpMax;
   w.stats = s;
   if (grow > 0) w.hp += grow;
@@ -2953,6 +3017,7 @@ function recompute(w: World): void {
       ws.amount += 1;
     }
     armsStats(w, d.type, ws, d.el);
+    if (w.rush) ws.dmg *= rushSetMul(w, o.id);
     return ws;
   });
 }

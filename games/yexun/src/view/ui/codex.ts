@@ -79,6 +79,8 @@ export const MONSTER_INFO: Record<EnemyKind, { tag: string; blurb: string }> = {
   troupe: { tag: '戏楼镇', blurb: '夜探戏楼镇里戏台开场时成队冒出来，锣鼓点越来越快；怕火怕符' },
   hongyi: { tag: '首领', blurb: '夜探戏楼镇守门：甩水袖扫一圈；换脸后分出假身，头顶有一缕红丝的才是真的' },
   hongyiclone: { tag: '首领', blurb: '红衣戏子换脸留下的假身，头顶没有红丝，一碰就破' },
+  yelou: { tag: '连战', blurb: '抱着更漏不放手的夜影，打倒它天就亮了；三更夜最黑，靠灯笼打' },
+  yingzi: { tag: '连战', blurb: '带「分」字的首领半血时分出的影子，只会贴身撞；本体倒了它就散' },
   shuoshu: { tag: '首领', blurb: '夜探粮仓镇守门：打洞钻地从别处冒出来，吐陈米堆成小山挡路；血少一半后带出一窝鼠妖' },
   ricepile: { tag: '粮仓镇', blurb: '硕鼠将军吐的陈米堆，挡路；打碎，或过一阵自己散' },
 };

@@ -24,7 +24,7 @@ export function bossAct(w: World, i: number, sp: number): number {
       w.ev.push(Ev.Boss, w.eX[i]!, w.eY[i]!, 1, stompR);
       const dx = w.x - w.eX[i]!;
       const dy = w.y - w.eY[i]!;
-      if (dx * dx + dy * dy < stompR * stompR) api.hurt(w, BOSS.stompDmg, w.eKind[i]!);
+      if (dx * dx + dy * dy < stompR * stompR) api.hurt(w, BOSS.stompDmg * w.eAtk[i]!, w.eKind[i]!);
       return 0;
     }
     return w.eV[i]!;
@@ -64,7 +64,7 @@ export function bossAct(w: World, i: number, sp: number): number {
       const v = BOSS.breathSpeed * (ring === 0 ? 1 : 0.7);
       for (let k = 0; k < n; k++) {
         const a = off + Math.floor((k * DIR_N) / n);
-        api.shot(w, w.eX[i]!, w.eY[i]! - 30, dcos(a) * v, dsin(a) * v, 240, BOSS.breathDmg, 12, 0, 0);
+        api.shot(w, w.eX[i]!, w.eY[i]! - 30, dcos(a) * v, dsin(a) * v, 240, BOSS.breathDmg * w.eAtk[i]!, 12, 0, 0);
       }
     }
   }
@@ -108,7 +108,7 @@ export function lordAct(w: World, i: number, dx: number, dy: number): void {
     const v = LORD.moneySpeed * (ring === 0 ? 1 : 0.8);
     for (let k = 0; k < LORD.money; k++) {
       const a = off + Math.floor((k * DIR_N) / LORD.money);
-      api.shot(w, w.eX[i]!, w.eY[i]! - 40, dcos(a) * v, dsin(a) * v, LORD.moneyLife, LORD.moneyDmg, LORD.moneyR, 2, ring);
+      api.shot(w, w.eX[i]!, w.eY[i]! - 40, dcos(a) * v, dsin(a) * v, LORD.moneyLife, LORD.moneyDmg * w.eAtk[i]!, LORD.moneyR, 2, ring);
     }
   }
 }

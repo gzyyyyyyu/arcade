@@ -1,5 +1,9 @@
 /**
  * 机器人模拟（DESIGN.md 第 8 节）：node tools/sim.ts [--n 局数] [--danger 0,2,4 | --diff easy,normal,hard] [--skill novice,normal] [--build sword,talisman,ward,wood,fire | 流派:路线，见 bots.ts ROUTES] [--map snow|yizhuang] [--char xiaodao|fushi|jianxia|pang|gengfu|caiyao] [--live 按实盘局开] [--noskill 机器人不放技能] [--pool 角色id|all 法器池] [--start alt 第二件起手=另一主修的核心件，规则 52] [--xinfa 流派|auto 心法，auto = --build 的流派，不是本角色主修就不带] [--threads N] [--json 文件] [--from 偏移]
+ * --mode rush：首领连战（docs/design-play.md 2.5），每格 = 危险 × 玩家 × 配装。缺省每日（--day 起连着 n 天，危险按每日）；--free 自由连战（种子 from+1..，--danger 0,2,4）；
+ *   --preset 0|1|2|rand（推荐配装 稳 / 猛 / 双，rand = 按种子轮流，可逗号列几套各成一格）、--hex fast,fierce（咒）、--skill novice,normal、--char、--threads（默认 4）、--json。
+ *   --live small,medium：实盘连战（platform/live.ts liveRushSetup，配装按 --preset、默认三套各 1/3），每格多报实盘期望（rushBp）。
+ *   报：全清率、平均打到第几关、第一关倒下、到终局后打倒率、局内和估真人局长、纸钱进出、每关倒下和秒数；「卡住」不为 0 说明机器人和核心的菜单对不上。
  * --trial chuye,dumu | all：试炼（content/trials.ts），每关跑 --n 局（种子 from+1..），报通关率 ± 2SE 和平均完成度；单进程，并行就分几个进程各跑几关。
  * --json：把每局的结局（赢没赢、打没打倒尸王、撑了几拍）按格存下来，第 7 步离线调实盘倍数曲线用（曲线不影响对局，改曲线不用重跑）。
  *
@@ -16,13 +20,15 @@
 import { CHARACTER_IDS, type CharacterId } from '../src/content/meta.ts';
 import { availableParallelism } from 'node:os';
 import { Worker, isMainThread, parentPort } from 'node:worker_threads';
-import { createWorld, rushResult, step, trialResult, Ev, type Setup } from '../src/core/index.ts';
+import { createWorld, Pick, rushPresets, rushResult, step, trialResult, Ev, type Setup } from '../src/core/index.ts';
+import { RUSH_HEX_IDS, RUSH_TOTAL, type RushHexId } from '../src/content/rush.ts';
 import { isTrialId, TRIAL_IDS, TRIAL_TIERS, TRIALS, type TrialId } from '../src/content/trials.ts';
-import { rushDaily } from '../src/online/rush.ts';
+import { rushDaily, rushFree, withLoadout } from '../src/online/rush.ts';
+import { liveRushSetup, type RushPreset } from '../src/platform/live.ts';
 import { shiftDate } from '../src/online/daily.ts';
 import { writeFileSync } from 'node:fs';
 import { DIFFICULTIES, type Danger } from '../src/content/waves.ts';
-import { tierOfDanger, vigilBp } from '../src/content/live.ts';
+import { LIVE_RUSH_TIERS, LIVE_TIERS, rushBp, tierOfDanger, vigilBp, type LiveTier } from '../src/content/live.ts';
 import { MAPS, type MapId } from '../src/content/maps.ts';
 import { Bot, routeDone, type Build, type Skill } from './bots.ts';
 import { RaidBot } from '../src/explore/bot.ts';
@@ -95,21 +101,87 @@ export function runRaid(seed: number, danger: Danger, who: string, build: Build,
   return { won, boss: false, seconds: w.tick / 30, firstLevel: 0, levels3: 0, levels5: 0, levels: w.level - 1, late: 0, kills: w.kills, elites: 0, ticks: w.tick, value: won ? settleRaid(w.raid!, 0).value : 0, duals: dualsOf(w), routed: false, dualTick: -1, killer: won ? -1 : w.hurtBy, bp: won && liveTier ? settleRaid(w.raid!, 0).bp : 0, coins: w.coins, coinBy: { ...w.coinBy }, coinFortune: w.coinFortune, coinSpent: w.coinSpent };
 }
 
+/** 连战一局的开法：每日（--day 起的日期，危险按每日）或自由（种子、--danger）；配装是第几套推荐（rand = 按种子轮流）；咒 */
+export interface RushOpts {
+  free: boolean;
+  /** 实盘连战（platform/live.ts liveRushSetup：小道士、三套推荐之一、不带咒，危险按档）；有它时 free、danger、hexes、char 不看 */
+  live?: LiveTier;
+  danger: Danger;
+  preset: number | 'rand';
+  hexes: RushHexId[];
+  skill: Skill;
+  char: CharacterId;
+  /** 每日：第一天；第 k 局是这天往后第 k 天 */
+  day: string;
+}
+
+export interface RushRun {
+  /** 打倒几只（双煞一关算两只）、打完几关（0–11）、全清（打倒夜漏君）、倒下 */
+  down: number;
+  stages: number;
+  cleared: boolean;
+  dead: boolean;
+  /** 局内拍数（菜单停拍不算） */
+  ticks: number;
+  /** 每关打了几拍（没打完的关是 -1）；下标 0–9 是路线图的列，10 是终局 */
+  stage: number[];
+  /** 纸钱进账、花掉 */
+  coinsIn: number;
+  coinsOut: number;
+  /** 进了几次菜单（选卡、路线、驿站；真人局长按每次约 20 秒估） */
+  menus: number;
+  /** 走了几次精英路 */
+  elites: number;
+  /** 用的第几套推荐配装 */
+  preset: number;
+  /** 实盘：结回倍数（万分比，rushBp）；娱乐 0 */
+  bp: number;
+  /** 机器人按的键核心没接受（菜单卡住）几次；整局没结束就被截断记 truncated */
+  stuck: number;
+  truncated: boolean;
+}
+
+/** 一局连战最多跑几步（菜单也算步）：20 分钟局内 + 菜单，远超正常局长 */
+const RUSH_GUARD = 30 * 60 * 25;
+
 /**
- * 首领连战一局（DESIGN.md 2.5）：用某天的每日配置，机器人按那天的流派选卡。
- * 返回打倒几只、一共几只、全清没有、用了几拍。
+ * 首领连战一局（docs/design-play.md 2.5）：机器人按推荐配装开局、按心法流派选卡，走路线图、驿站。
+ * 种子：每日是那天的种子（危险按每日固定），自由是 seed 本身。
  */
-export function runRush(date: string, skill: Skill): { down: number; total: number; cleared: boolean; ticks: number; dead: boolean } {
-  const plan = rushDaily(date);
-  const w = createWorld(plan.setup);
-  const bot = new Bot(skill, w.rush!.school, plan.setup.seed);
+export function runRush(seed: number, o: RushOpts): RushRun {
+  const preset = (o.preset === 'rand' ? seed % 3 : o.preset) as RushPreset;
+  const setup: Setup = o.live
+    ? liveRushSetup(o.live, seed, preset)
+    : withLoadout(o.free ? rushFree(seed, o.danger) : rushDaily(shiftDate(o.day, seed - 1)).setup, rushPresets(o.char)[preset], o.hexes);
+  const w = createWorld(setup);
+  const loadout = w.setup.rushLoadout!;
+  const bot = new Bot(o.skill, loadout.xinfa, seed, { skills: true });
+  const stage = new Array<number>(RUSH_TOTAL).fill(-1);
+  let coinsIn = 0;
+  let coinsOut = 0;
+  let menus = 0;
+  let elites = 0;
+  let coins = w.rushCoins;
+  let k = w.rushStage;
+  let inMenu = '';
   let guard = 0;
-  while (w.phase !== 'over' && guard++ < 50_000) {
+  while (w.phase !== 'over' && guard++ < RUSH_GUARD) {
     const a = bot.act(w);
-    step(w, a.dir, a.choice);
+    if (w.phase === 'choose' && w.menu === 'route' && a.choice >= Pick.Route && a.choice < Pick.Buy && w.rush!.layers[w.rushStage]?.[a.choice - Pick.Route]?.elite) elites++;
+    step(w, a.dir, a.choice, a.skill);
+    const menu = w.phase === 'choose' ? `${w.menu}${w.rushStage}` : '';
+    if (menu && menu !== inMenu) menus++;
+    inMenu = menu;
+    if (w.rushCoins > coins) coinsIn += w.rushCoins - coins;
+    else coinsOut += coins - w.rushCoins;
+    coins = w.rushCoins;
+    if (w.rushStage !== k) {
+      if (k < RUSH_TOTAL) stage[k] = w.tick - w.rushFrom;
+      k = w.rushStage;
+    }
   }
   const r = rushResult(w)!;
-  return { down: r.down, total: r.total, cleared: r.cleared, ticks: r.ticks, dead: w.hp <= 0 };
+  return { down: r.down, stages: Math.min(RUSH_TOTAL, w.rushStage), cleared: r.cleared, dead: w.hp <= 0, ticks: r.ticks, stage, coinsIn, coinsOut, menus, elites, preset, bp: o.live ? rushBp(o.live, r.down, r.total, r.cleared) : 0, stuck: bot.stuck, truncated: w.phase !== 'over' };
 }
 
 /**
@@ -200,9 +272,40 @@ interface Task {
   seeds: number[];
 }
 
+/** 连战的一小段活：同一格的几个种子 */
+interface RushTask {
+  id: number;
+  rush: RushOpts;
+  seeds: number[];
+}
+
+/** 用 threads 个常驻工作线程跑完所有连战任务，结果按任务 id 回填 */
+async function runRushPool(tasks: RushTask[], threads: number, done: (id: number, rs: RushRun[]) => void): Promise<void> {
+  let next = 0;
+  let left = tasks.length;
+  await new Promise<void>((resolve, reject) => {
+    if (!left) return resolve();
+    const workers: Worker[] = [];
+    for (let k = 0; k < Math.min(threads, tasks.length); k++) {
+      const wk = new Worker(new URL(import.meta.url));
+      workers.push(wk);
+      wk.on('error', reject);
+      wk.on('message', (m: { id: number; rs: RushRun[] }) => {
+        done(m.id, m.rs);
+        if (--left === 0) {
+          for (const x of workers) void x.terminate();
+          resolve();
+        } else if (next < tasks.length) wk.postMessage(tasks[next++]);
+      });
+      wk.postMessage(tasks[next++]);
+    }
+  });
+}
+
 if (!isMainThread) {
   // 常驻工作线程：每个进程只启动一次（导入核心和内容表要几百毫秒），一直接活到被关掉
-  parentPort!.on('message', (t: Task) => {
+  parentPort!.on('message', (t: Task | RushTask) => {
+    if ('rush' in t) return parentPort!.postMessage({ id: t.id, rs: t.seeds.map((s) => runRush(s, t.rush)) });
     parentPort!.postMessage({ id: t.id, rs: t.seeds.map((s) => (t.raid ? runRaid(s, t.cell.diff, t.cell.skill, t.cell.build, t.map as RaidTemplateId, t.char, t.skills, t.live ? tierOfRaidDanger(t.cell.diff) : undefined) : runOne(s, t.cell.diff, t.cell.skill as Skill, t.cell.build, t.map as MapId, t.char, t.noDual, t.tall, t.live, t.pool, t.skills, t.startAlt, t.xinfa))) });
   });
 } else if (process.argv[1]?.endsWith('sim.ts')) {
@@ -228,16 +331,96 @@ if (!isMainThread) {
     process.exit(0);
   }
   if (arg('--mode', 'vigil') === 'rush') {
-    // 首领连战：从 --day（默认 2026-11-01）起连着 n 天，每天一局（构筑和首领按那天的种子），单线程（一局最多 5 分钟、怪少，很快）
-    const day0 = arg('--day', '2026-11-01');
-    const skill = arg('--skill', 'normal') as Skill;
-    const rs = Array.from({ length: n }, (_, i) => runRush(shiftDate(day0, seedFrom + i), skill));
+    // 首领连战（docs/design-play.md 2.5、第 8 节目标）：每格 = 危险 × 玩家 × 配装；每日按 --day 起连着 n 天（危险按每日），--free 按种子 from+1.. 随机开
+    // --live small,medium：实盘连战（种子 from+1..，配装按 --preset，默认三套轮流），每格再报实盘期望
+    const liveArg = process.argv.includes('--live') ? arg('--live', '') : null;
+    const lives = liveArg === null ? [] : ((!liveArg || liveArg.startsWith('--') ? LIVE_RUSH_TIERS.join(',') : liveArg).split(',') as LiveTier[]);
+    for (const t of lives) if (!LIVE_RUSH_TIERS.includes(t)) throw new Error(`--live 只认 ${LIVE_RUSH_TIERS.join('/')}，收到 ${t}`);
+    const free = process.argv.includes('--free') || lives.length > 0;
+    const day = arg('--day', '2026-11-01');
+    const dangers = (free ? arg('--danger', '2') : String(rushDaily(day).setup.danger)).split(',').map((d) => Number(d) as Danger);
+    const skills = arg('--skill', 'novice,normal').split(',') as Skill[];
+    const presets = arg('--preset', 'rand').split(',').map((p) => (p === 'rand' ? 'rand' : Number(p))) as (number | 'rand')[];
+    for (const p of presets) if (p !== 'rand' && !(p >= 0 && p <= 2)) throw new Error(`--preset 只认 0、1、2、rand，收到 ${p}`);
+    const hexes = arg('--hex', '').split(',').filter(Boolean) as RushHexId[];
+    for (const h of hexes) if (!RUSH_HEX_IDS.includes(h)) throw new Error(`--hex 只认 ${RUSH_HEX_IDS.join('/')}，收到 ${h}`);
+    const char = arg('--char', 'xiaodao') as CharacterId;
+    if (!(CHARACTER_IDS as readonly string[]).includes(char)) throw new Error(`--char 只认 ${CHARACTER_IDS.join('/')}`);
+    const threads = Math.max(1, Number(arg('--threads', '4')));
+    const chunk = Math.max(1, Number(arg('--chunk', '4')));
+    const jsonOut = arg('--json', '');
+    const cells: RushOpts[] = [];
+    if (lives.length) for (const live of lives) for (const skill of skills) for (const preset of presets) cells.push({ free, live, danger: LIVE_TIERS[live].danger, preset, hexes: [], skill, char: 'xiaodao', day });
+    else for (const danger of dangers) for (const skill of skills) for (const preset of presets) cells.push({ free, danger, preset, hexes, skill, char, day });
+    const results: RushRun[][] = cells.map(() => new Array<RushRun>(n));
+    const tasks: RushTask[] = [];
+    const owner: { cell: number; from: number }[] = [];
+    cells.forEach((rush, ci) => {
+      for (let from = 0; from < n; from += chunk) {
+        const seeds: number[] = [];
+        for (let s = from; s < Math.min(n, from + chunk); s++) seeds.push(seedFrom + s + 1);
+        owner.push({ cell: ci, from });
+        tasks.push({ id: tasks.length, rush, seeds });
+      }
+    });
+    const t0 = Date.now();
+    await runRushPool(tasks, threads, (id, rs) => rs.forEach((r, j) => (results[owner[id]!.cell]![owner[id]!.from + j] = r)));
     const m = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
-    console.log(`首领连战 · ${skill} · ${n} 天（${shiftDate(day0, seedFrom)} 起）`);
-    console.log(`全清 ${(m(rs.map((r) => (r.cleared ? 1 : 0))) * 100).toFixed(0)}% · 平均打倒 ${m(rs.map((r) => r.down)).toFixed(1)}/${m(rs.map((r) => r.total)).toFixed(1)} · 打倒过半 ${(m(rs.map((r) => (r.down * 2 >= r.total ? 1 : 0))) * 100).toFixed(0)}% · 倒下 ${(m(rs.map((r) => (r.dead ? 1 : 0))) * 100).toFixed(0)}% · 全清平均用时 ${(m(rs.filter((r) => r.cleared).map((r) => r.ticks)) / 30).toFixed(0)} 秒`);
-    const hist = new Map<number, number>();
-    for (const r of rs) hist.set(r.down, (hist.get(r.down) ?? 0) + 1);
-    console.log(`打倒只数分布：${[...hist].sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}:${v}`).join(' ')}`);
+    const pct = (xs: boolean[]): string => {
+      const p = m(xs.map((x) => (x ? 1 : 0)));
+      return `${(p * 100).toFixed(0)}% ±${(2 * Math.sqrt((p * (1 - p)) / Math.max(1, xs.length)) * 100).toFixed(0)}`;
+    };
+    const presetName = (p: number | 'rand'): string => (p === 'rand' ? '三套轮流' : ['稳', '猛', '双'][p]!);
+    /** 每局结回 − 1 份的均值 ±2SE */
+    const ev = (rs: RushRun[]): string => {
+      const xs = rs.map((r) => r.bp / 10_000 - 1);
+      const mu = m(xs);
+      return `${mu >= 0 ? '+' : ''}${mu.toFixed(3)} ±${((2 * Math.sqrt(m(xs.map((x) => (x - mu) * (x - mu))))) / Math.sqrt(Math.max(1, xs.length))).toFixed(3)}`;
+    };
+    console.log(`首领连战 · ${lives.length ? `实盘 ${lives.join(',')}（种子 ${seedFrom + 1} 起）` : free ? `自由（种子 ${seedFrom + 1} 起）` : `每日（${shiftDate(day, seedFrom)} 起）`} · ${char}${hexes.length ? ` · 咒 ${hexes.join(',')}` : ''} · 每格 ${n} 局 · ${threads} 线程`);
+    console.log(`${lives.length ? '档位 | ' : ''}危险 | 玩家 | 配装 | 全清 ±2SE | 平均打到第几关 | 第一关倒下 | 到终局 | 到终局后打倒 | 局内 | 估真人局长 | 精英路 | 纸钱进/出 | 卡住${lives.length ? ' | 实盘期望 ±2SE（份）' : ''}`);
+    for (const [ci, c] of cells.entries()) {
+      const rs = results[ci]!;
+      const reach = rs.map((r) => Math.min(RUSH_TOTAL, r.stages + 1));
+      const final = rs.filter((r) => r.stages >= RUSH_TOTAL - 1);
+      const stuck = rs.reduce((a, r) => a + r.stuck, 0);
+      const cut = rs.filter((r) => r.truncated).length;
+      console.log(
+        [
+          ...(c.live ? [c.live] : []),
+          c.danger,
+          c.skill,
+          presetName(c.preset),
+          pct(rs.map((r) => r.cleared)),
+          m(reach).toFixed(1),
+          pct(rs.map((r) => r.dead && r.stages === 0)),
+          `${((final.length / Math.max(1, n)) * 100).toFixed(0)}%`,
+          final.length ? pct(final.map((r) => r.cleared)) : '-',
+          `${(m(rs.map((r) => r.ticks)) / 1800).toFixed(1)} 分`,
+          `${m(rs.map((r) => r.ticks / 1800 + (r.menus * 20) / 60)).toFixed(1)} 分`,
+          m(rs.map((r) => r.elites)).toFixed(1),
+          `${m(rs.map((r) => r.coinsIn)).toFixed(0)}/${m(rs.map((r) => r.coinsOut)).toFixed(0)}`,
+          stuck || cut ? `${stuck} 次${cut ? `，${cut} 局截断` : ''}` : '0',
+          ...(c.live ? [ev(rs)] : []),
+        ].join(' | '),
+      );
+      // 每关：倒在这关的局数、打完这关的平均秒数（第 11 关是夜漏君）
+      const deaths = Array.from({ length: RUSH_TOTAL }, (_, k) => rs.filter((r) => !r.cleared && r.dead && r.stages === k).length);
+      const secs = Array.from({ length: RUSH_TOTAL }, (_, k) => {
+        const xs = rs.map((r) => r.stage[k]!).filter((x) => x >= 0);
+        return xs.length ? (m(xs) / 30).toFixed(0) : '-';
+      });
+      console.log(`   每关倒下 ${deaths.map((d, k) => `${k + 1}:${d}`).join(' ')}`);
+      console.log(`   每关秒数 ${secs.map((x, k) => `${k + 1}:${x}`).join(' ')}`);
+      if (c.preset === 'rand') console.log(`   各套全清 ${[0, 1, 2].map((p) => `${presetName(p)} ${pct(rs.filter((r) => r.preset === p).map((r) => r.cleared))}${c.live ? `（期望 ${ev(rs.filter((r) => r.preset === p))}）` : ''}`).join(' · ')}`);
+    }
+    if (jsonOut) {
+      // 每局 [打倒几只, 打完几关, 全清, 倒下, 局内拍数, 菜单次数, 纸钱进, 纸钱出, 配装, 结回万分比, 每关拍数…]
+      writeFileSync(jsonOut, JSON.stringify(cells.map((c, i) => ({ ...c, mode: 'rush', from: seedFrom, runs: results[i]!.map((r) => [r.down, r.stages, r.cleared ? 1 : 0, r.dead ? 1 : 0, r.ticks, r.menus, r.coinsIn, r.coinsOut, r.preset, r.bp, ...r.stage]) }))));
+      console.log(`每局结局写到 ${jsonOut}`);
+    }
+    const total = cells.length * n;
+    console.log(`共 ${total} 局，${((Date.now() - t0) / 1000).toFixed(1)} 秒，${(total / ((Date.now() - t0) / 1000)).toFixed(2)} 局/秒`);
     process.exit(0);
   }
   // --danger 0–5；老的 --diff easy,normal,hard 照认（危险 0 / 2 / 4）

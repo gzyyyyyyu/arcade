@@ -11,7 +11,7 @@ import type { Danger } from '../content/waves.ts';
 /** 危险档当键（JSON 里是字符串） */
 export type DangerKey = `${Danger}`;
 import { MAX_WEAPON_LEVEL, MERGES, PASSIVES, WEAPONS, type MergeDef, type PassiveId, type WeaponId } from '../content/weapons.ts';
-import { ACHIEVEMENTS, trialUnlocks } from '../content/achievements.ts';
+import { ACHIEVEMENTS, RUSH_HARD, rushUnlocks, trialUnlocks } from '../content/achievements.ts';
 import { TRIAL_IDS, type TrialId } from '../content/trials.ts';
 import { Ev } from '../core/events.ts';
 import { TICKS_PER_SECOND, type World } from '../core/state.ts';
@@ -84,6 +84,11 @@ export interface Records {
   achievements: string[];
   /** 通关过的试炼（content/trials.ts） */
   trials: TrialId[];
+  /** 首领连战：打倒夜漏君几次；其中危险 2 以上、带 2 条咒的几次 */
+  rushWins: number;
+  rushHard: number;
+  /** 自由连战每个危险档的本机最好分数（online/rush.ts rushScore）；每日连战的最好看本机录像（replay/store.ts bestScore） */
+  rushBest: Partial<Record<DangerKey, number>>;
 }
 
 const DANGER_KEYS: DangerKey[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
@@ -96,7 +101,7 @@ const MERGE_IDS = MERGES.map((m) => m.id);
 const COUNT_MERGES = SHOWN_MERGES.map((m) => m.id);
 
 export function emptyRecords(): Records {
-  return { v: 1, runs: 0, wins: 0, kills: 0, seconds: 0, winsByDanger: {}, winsByMap: {}, seen: [], killed: {}, weaponsUsed: [], weaponsMaxed: [], weaponsEvolved: [], merges: [], passivesMaxed: [], achievements: [], trials: [] };
+  return { v: 1, runs: 0, wins: 0, kills: 0, seconds: 0, winsByDanger: {}, winsByMap: {}, seen: [], killed: {}, weaponsUsed: [], weaponsMaxed: [], weaponsEvolved: [], merges: [], passivesMaxed: [], achievements: [], trials: [], rushWins: 0, rushHard: 0, rushBest: {} };
 }
 
 // ───────────────────────── 从对局里摘要 ─────────────────────────
@@ -233,6 +238,24 @@ export function recordTrial(records: Records, id: TrialId): { records: Records; 
   return { records: r, unlocked };
 }
 
+/**
+ * 一局首领连战（不含实盘）：天亮了记次数、看两条连战成就；自由连战（free）刷新本危险档最好时记下。
+ * 守夜的累计和成就不碰（构筑不同）。返回新的统计、新解锁的成就、是不是刷新了本档最好
+ */
+export function recordRush(records: Records, r: { cleared: boolean; danger: number; hexes: number; score: number; free: boolean; quit: boolean }): { records: Records; unlocked: string[]; best: boolean } {
+  const out: Records = { ...records, rushBest: { ...records.rushBest } };
+  if (r.cleared && !r.quit) {
+    out.rushWins += 1;
+    if (r.danger >= RUSH_HARD.danger && r.hexes >= RUSH_HARD.hexes) out.rushHard += 1;
+  }
+  const dk = String(r.danger) as DangerKey;
+  const best = r.free && !r.quit && r.score > (out.rushBest[dk] ?? 0);
+  if (best) out.rushBest[dk] = r.score;
+  const unlocked = rushUnlocks(out).filter((a) => !out.achievements.includes(a));
+  out.achievements = [...out.achievements, ...unlocked];
+  return { records: out, unlocked, best };
+}
+
 /** 总收集度：怪见过 1 + 打倒过 1；法器用过、满级、进化各 1；合成 1；成就 1。返回已得 / 总数 / 百分比（整数） */
 export function collection(r: Records): { done: number; total: number; percent: number } {
   const total = KINDS.length * 2 + WEAPON_IDS.length * 3 + COUNT_MERGES.length + ACHIEVEMENTS.length;
@@ -281,6 +304,9 @@ function sanitize(raw: unknown): Records {
       ACHIEVEMENTS.map((a) => a.id),
     ),
     trials: pick(o.trials, TRIAL_IDS),
+    rushWins: num(o.rushWins),
+    rushHard: num(o.rushHard),
+    rushBest: counts(o.rushBest, DANGER_KEYS),
   };
 }
 

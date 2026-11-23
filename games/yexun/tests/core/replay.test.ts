@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld, fingerprint, RULES_VERSION, step, type World } from '../../src/core/index.ts';
 import type { OnlineSetup } from '../../src/online/types.ts';
-import { replayResult, replayTitle } from '../../src/replay/describe.ts';
+import { isBlocked, replayResult, replayTitle } from '../../src/replay/describe.ts';
 import { decodeDirs, decodePicks, encodeDirs, encodePicks, type ReplayRecord } from '../../src/replay/format.ts';
 import { ReplayPlayer } from '../../src/replay/player.ts';
 import { Recorder } from '../../src/replay/recorder.ts';
-import { addReplay, BUDGET_CHARS, loadReplays, RECENT_KEEP, REPLAYS_KEY, sizeOf, storeReplay, type KV } from '../../src/replay/store.ts';
+import { addReplay, bestScore, BUDGET_CHARS, loadReplays, RECENT_KEEP, REPLAYS_KEY, sizeOf, storeReplay, type KV } from '../../src/replay/store.ts';
 
 const setupOf = (seed: number): OnlineSetup => ({ seed, mode: 'vigil', danger: 2, curses: [] });
 
@@ -171,6 +171,22 @@ describe('录像存储', () => {
     list = addReplay(list, fake('c', 3, { vigil: 5 }));
     expect(list.find((r) => r.id === 'c')?.bestFor).toEqual([]);
     expect(list.find((r) => r.id === 'b')?.bestFor).toEqual(['vigil']);
+  });
+  it('别的规则版本的最好不算：本机最好读不到，新的一局直接接过（分数编码可能变了）', () => {
+    let list = addReplay([], { ...fake('old', 1, { rush: 9e10 }), rules: RULES_VERSION - 1 });
+    expect(bestScore('rush', list)).toBe(null);
+    list = addReplay(list, fake('new', 2, { rush: 5 }));
+    expect(list.find((r) => r.id === 'new')?.bestFor).toEqual(['rush']);
+    expect(bestScore('rush', list)).toBe(5);
+  });
+  it('旧版本的连战录像拦下不放；旧版本的守夜录像照放（标旧版本）', () => {
+    const rush = { ...fake('r', 1), rules: RULES_VERSION - 1, setup: { ...setupOf(1), rush: true } } as ReplayRecord;
+    expect(isBlocked(rush)).toBe(true);
+    expect(ReplayPlayer.from(rush)).toBe(null);
+    const vigil = { ...fake('v', 1), rules: RULES_VERSION - 1 };
+    expect(isBlocked(vigil)).toBe(false);
+    expect(ReplayPlayer.from(vigil)?.outdated).toBe(true);
+    expect(isBlocked({ ...rush, rules: RULES_VERSION })).toBe(false);
   });
   it('同一局重复存只留一份', () => {
     const list = addReplay(addReplay([], fake('a', 1)), fake('a', 1));

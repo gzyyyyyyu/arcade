@@ -78,10 +78,12 @@ describe('normalizeSetup', () => {
     expect(normalizeSetup({ ...base, startAlt: false }).startAlt).toBeUndefined();
     expect(normalizeSetup({ ...base, startAlt: true }).startAlt).toBe(true);
   });
-  it('首领连战两个都删', () => {
-    const s = normalizeSetup({ ...base, rush: true, startAlt: true, xinfa: 'sword' });
+  it('首领连战：起手配置删掉，心法照配装（没配装补「稳」那套）', () => {
+    const s = normalizeSetup({ ...base, rush: true, startAlt: true, xinfa: 'wood' });
     expect(s.startAlt).toBeUndefined();
-    expect(s.xinfa).toBeUndefined();
+    expect(s.rushLoadout).toBeDefined();
+    expect(s.xinfa).toBe(s.rushLoadout!.xinfa);
+    expect(normalizeSetup({ ...base, rushLoadout: s.rushLoadout, rushHexes: ['fast'] }).rushLoadout).toBeUndefined();
   });
   it('主修表非空', () => {
     expect(mainSchools('xiaodao')).toContain('sword');

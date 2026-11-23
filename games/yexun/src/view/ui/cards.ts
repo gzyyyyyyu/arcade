@@ -2,10 +2,12 @@
  * 升级三选一（DESIGN.md 2.1，手感清单第 5 条）：卡片弹入，点、按 1/2/3、方向键加回车都能选，1 秒内能选完。
  * 卡片排在屏幕中下部、左右手拇指都够得着（手感清单第 10 条）。
  */
+import { rushIcon } from '../art/sprites-selicons.ts';
 import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import { ELEMENT_SET, PASSIVES, TYPE_SETS, WEAPONS, MAX_WEAPON_LEVEL, upChanges, baseNums, type PassiveId, type StatChange, type WeaponId } from '../../content/weapons.ts';
 import { Pick, type Choice, type World } from '../../core/state.ts';
-import { SCHOOLS } from '../../content/guide.ts';
+import { SCHOOLS, type SchoolId } from '../../content/guide.ts';
+import { RUSH_RELICS, RUSH_SETS, type RelicId } from '../../content/rush.ts';
 import { CHEST_FULL, COIN_PICK } from '../../content/picks.ts';
 import { XINFA_TEXT } from '../../content/xinfa.ts';
 import { counterLine } from './counters.ts';
@@ -38,12 +40,65 @@ export interface CardView {
   set?: string;
   /** 拿了离合成 / 双修只差一步或正好凑成 */
   merge?: MergeHint;
+  /** 连战符印：图标地址（rushIcon 现画，不在图集里） */
+  seal?: string;
+  /** 连战稀有度（卡框白 / 青 / 金） */
+  tier?: 1 | 2 | 3;
 }
 
+/** 连战一手卡（view/game GameScene 按 World 填）：标题、还要挑几张、每张锁没锁、能不能放逐、跳过换多少纸钱 */
+export interface RushHand {
+  title: string;
+  sub: string;
+  rerolls: number;
+  bans: number;
+  locks: number;
+  locked: boolean[];
+  /** 符印不能放逐 */
+  banOk: boolean[];
+  skipCoins: number;
+}
+
+const TIER_TAG = ['', '', '稀有', '珍品'] as const;
+
 export function describe(w: World, c: Choice): CardView {
+  if (c.kind === 'relic') {
+    const r = RUSH_RELICS[c.id as RelicId];
+    return { icon: '', seal: rushIcon(c.id as RelicId), name: r.name, tag: '符印', text: r.text, hint: null, tier: 3 };
+  }
   const v = describeBase(w, c);
   const merge = mergeHint(w, c);
-  return merge ? { ...v, merge } : v;
+  const out: CardView = merge ? { ...v, merge } : v;
+  // 卡池抽空时核心发铜钱卡（rush-flow drawCard）：没有等级可写，不走连战小标
+  if (!w.rush || !c.tier || c.kind === 'coins') return out;
+  return { ...out, tier: c.tier, ...rushTag(w, c, c.tier), ...rushSet(w, c) };
+}
+
+/** 连战卡的等级小标：稀有度 = 一次升几级（新法器直接到这一级） */
+function rushTag(w: World, c: Choice, t: 1 | 2 | 3): { tag: string } {
+  const pre = TIER_TAG[t] ? `${TIER_TAG[t]} · ` : '';
+  if (c.kind === 'weapon') {
+    const o = w.weapons.find((x) => x.id === c.id);
+    if (!o) return { tag: t > 1 ? `${pre}新 Lv ${t}` : '新' };
+    return { tag: `${pre}Lv ${o.level}→${Math.min(MAX_WEAPON_LEVEL, o.level + t)}` };
+  }
+  const lv = w.passives[c.id as PassiveId] ?? 0;
+  const max = PASSIVES[c.id as PassiveId].max;
+  return { tag: lv === 0 && t === 1 ? '新' : `${pre}Lv ${lv}→${Math.min(max, lv + t)}` };
+}
+
+/** 连战流派套：这张在哪个流派单子上，拿了以后凑到几件（写「剑修 2/3」） */
+function rushSet(w: World, c: Choice): { set?: string } {
+  for (const sid of Object.keys(SCHOOLS) as SchoolId[]) {
+    const sc = SCHOOLS[sid];
+    const list: readonly string[] = [...sc.weapons, ...sc.passives];
+    if (!list.includes(c.id)) continue;
+    const have = list.filter((id) => w.weapons.some((o) => o.id === id) || (w.passives[id as PassiveId] ?? 0) > 0);
+    const n = have.length + (have.includes(c.id) ? 0 : 1);
+    const need = RUSH_SETS.need.find((k) => k >= n) ?? RUSH_SETS.need[RUSH_SETS.need.length - 1]!;
+    return { set: `${sc.name} ${Math.min(n, need)}/${need}${n >= need ? ` · 伤害 +${Math.round(RUSH_SETS.bonus[RUSH_SETS.need.indexOf(need)]! * 100)}%` : ''}` };
+  }
+  return {};
 }
 
 function describeBase(w: World, c: Choice): CardView {
@@ -76,7 +131,8 @@ function describeBase(w: World, c: Choice): CardView {
       icon: def.icon,
       name: def.name,
       tag: lv === 0 ? '新' : `Lv ${lv}→${lv + 1}`,
-      text: def.text,
+      // 连战等级固定、不吃魂：只涨经验的灵芝照实说它在连战里干什么（还是桃花雨进化的料）
+      text: w.rush && def.id === 'lingzhi' ? '连战里不涨经验，只给桃花雨进化用' : def.text,
       hint: pairs.length ? `${pairs.map((p) => p.name).join('、')}进化要它` : null,
     };
   }
@@ -148,6 +204,7 @@ export class Cards {
     this.banning = false;
     this.openedAt = performance.now();
     this.root.innerHTML = '';
+    this.root.classList.remove('rush');
     const head = document.createElement('div');
     head.className = 'yx-picks-head';
     head.innerHTML =
@@ -159,7 +216,7 @@ export class Cards {
     this.items = cards.map((c, i) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'yx-pick';
+      b.className = `yx-pick${c.tier ? ` t${c.tier}` : ''}`;
       b.style.animationDelay = `${i * 60}ms`;
       // 固定的几段：图标 → 名字（一行）→ 标签行（新 / Lv / 心法）→ 五行·类型 → 效果 → 底部提示；没内容的段也占位，三张卡同一套格子对齐
       const badges = (c.tag ? `<em${c.tag === '新' ? ' class="new"' : ''}>${c.tag}</em>` : '') + (c.xinfa ? `<em>${c.xinfa}</em>` : '');
@@ -174,7 +231,7 @@ export class Cards {
           (c.hint ? `<span class="yx-pick-hint">${c.hint}</span>` : '');
       b.innerHTML =
         `<span class="yx-pick-key">${i + 1}</span>` +
-        `<img alt="" src="${this.icons(c.icon)}">` +
+        (c.seal ? `<img class="yx-pick-seal" alt="" src="${c.seal}">` : `<img alt="" src="${this.icons(c.icon)}">`) +
         `<span class="yx-pick-name">${c.name}</span>` +
         `<span class="yx-pick-badges">${badges}</span>` +
         `<span class="yx-pick-tags">${c.tags ?? ''}</span>` +
@@ -210,6 +267,46 @@ export class Cards {
     this.setLeft(counts.left);
     this.setFocus(0);
     this.onShow(firstTime);
+  }
+
+  /**
+   * 连战一手卡：5 张（聚宝盆、古井更多），挑 N 张；每张右上角锁、放逐两个小钮（≥44），底栏重抽、跳过（剩下的换纸钱）。
+   * 每点一下都交给核心（锁、放逐、挑一张都是一个选择码），核心改完这手卡再弹一次
+   */
+  showRush(h: RushHand, cards: CardView[], onPick: (code: number) => void): void {
+    this.show({ stage: '' }, cards, false, false, { rerolls: h.rerolls, bans: h.bans, left: 1 }, onPick);
+    this.root.classList.add('rush');
+    const lv = this.root.querySelector<HTMLElement>('.yx-picks-lv');
+    if (lv) lv.textContent = h.title;
+    const tip = this.root.querySelector<HTMLElement>('.yx-picks-left');
+    if (tip) {
+      tip.textContent = h.sub;
+      tip.hidden = false;
+    }
+    this.items.forEach((b, i) => {
+      const cell = document.createElement('div');
+      cell.className = `yx-pickcell${h.locked[i] ? ' locked' : ''}`;
+      b.replaceWith(cell);
+      cell.append(b);
+      const tools = document.createElement('div');
+      tools.className = 'yx-picktools';
+      const lockOff = !h.locked[i] && h.locks <= 0;
+      tools.innerHTML =
+        `<button type="button" class="yx-picktool lock${h.locked[i] ? ' on' : ''}" title="${h.locked[i] ? '解锁' : '锁住，留到下一关'}"${lockOff ? ' disabled' : ''}>${h.locked[i] ? '已锁' : '锁'}</button>` +
+        `<button type="button" class="yx-picktool ban" title="放逐：这一件整局不再出现"${h.bans > 0 && h.banOk[i] ? '' : ' disabled'}>逐</button>`;
+      tools.querySelector('.lock')!.addEventListener('click', () => this.action(Pick.Lock + i));
+      tools.querySelector('.ban')!.addEventListener('click', () => this.action(Pick.Ban + i));
+      cell.append(tools);
+    });
+    const bar = this.bar;
+    if (bar) {
+      bar.style.display = '';
+      bar.querySelector('[data-a="ban"]')?.remove();
+      const rr = bar.querySelector('[data-a="reroll"]');
+      if (rr) rr.innerHTML = `<kbd>R</kbd><span>重抽 <b>${h.rerolls}</b></span><small>没挑没锁的全换</small>`;
+      const sk = bar.querySelector('[data-a="skip"]');
+      if (sk) sk.innerHTML = `<kbd>Z</kbd><span>不挑了 · 纸钱 +${h.skipCoins}</span><small>剩下没锁的每张换纸钱</small>`;
+    }
   }
 
   /**

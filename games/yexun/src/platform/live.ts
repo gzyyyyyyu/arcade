@@ -19,7 +19,8 @@
  */
 import { LIVE_CHAR_IDS, liveCharOk, LIVE_MAX_BP, LIVE_RUSH, LIVE_TIERS, isLiveTier, rushBp, vigilBp, type LiveTier } from '../content/live.ts';
 import { RUSH_TOTAL } from '../content/rush.ts';
-import { RUSH_MAPS } from '../online/rush.ts';
+import { rushFree, withLoadout } from '../online/rush.ts';
+import { rushPresets, type RushLoadout } from '../core/rush.ts';
 import type { Setup } from '../core/state.ts';
 import { RAID_LIVE, RAID_LIVE_TEMPLATES, type RaidLiveTemplate } from '../content/explore.ts';
 import type { CharacterId } from '../content/meta.ts';
@@ -50,11 +51,29 @@ export function liveSetup(tier: LiveTier, seed: number, raid?: RaidLiveTemplate,
 }
 
 /**
- * 实盘连战的开局配置（DESIGN 4.1b）：随机种子的连战，危险档照档位，小道士（构筑是给好的），图按种子从连战的图表里取；
- * 不带咒印、加成，不开降低伤害。只开 LIVE_RUSH 里有的档
+ * 实盘连战的开局配置（DESIGN 4.1b）：随机种子的连战，危险档照档位；固定小道士，配装只能是三套推荐之一（preset 0 稳 / 1 猛 / 2 双），
+ * 不带咒、加成，不开降低伤害。只开 LIVE_RUSH 里有的档
  */
-export function liveRushSetup(tier: LiveTier, seed: number): Setup {
-  return { seed, mode: 'vigil', danger: LIVE_TIERS[tier].danger, map: RUSH_MAPS[seed % RUSH_MAPS.length]!, character: 'xiaodao', perks: {}, assist: false, live: true, rush: true };
+export function liveRushSetup(tier: LiveTier, seed: number, preset: RushPreset = 0): Setup {
+  return { ...withLoadout(rushFree(seed, 0), rushPresets(LIVE_RUSH_CHAR)[preset]), danger: LIVE_TIERS[tier].danger, assist: false, live: true };
+}
+
+/** 实盘连战的推荐配装下标 */
+export type RushPreset = 0 | 1 | 2;
+const LIVE_RUSH_CHAR: CharacterId = 'xiaodao';
+
+/** 这份设置能不能当实盘连战开：小道士、配装正好是三套推荐之一、没有咒、没有加成和降低伤害、危险档对得上档位 */
+export function liveRushOk(tier: LiveTier, s: Setup): boolean {
+  if (!s.rush || !s.live || s.mode !== 'vigil' || s.assist || s.endless || !LIVE_RUSH[tier]) return false;
+  if (s.danger !== LIVE_TIERS[tier].danger || (s.character ?? 'xiaodao') !== LIVE_RUSH_CHAR) return false;
+  if ((s.rushHexes?.length ?? 0) > 0 || (s.curses?.length ?? 0) > 0 || Object.keys(s.perks ?? {}).length > 0) return false;
+  const l = s.rushLoadout;
+  return !!l && rushPresets(LIVE_RUSH_CHAR).some((p) => sameLoadout(p, l));
+}
+
+function sameLoadout(a: RushLoadout, b: RushLoadout): boolean {
+  const ps = (l: RushLoadout): string => l.passives.map((p) => `${p.id}:${p.level}`).sort().join(',');
+  return a.character === b.character && a.start === b.start && (a.second ?? '') === (b.second ?? '') && a.xinfa === b.xinfa && ps(a) === ps(b);
 }
 
 const CHARS: readonly CharacterId[] = LIVE_CHAR_IDS;
@@ -120,7 +139,7 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
 /** 中途离开的结回倍数：夜探丢包是 0，连战按打倒的只数，守夜按撑到的拍数 */
 function leftBp(r: LiveRecord): number {
   if (r.raid) return 0;
-  // 打倒尸王那一拍 down 就到 RUSH_TOTAL 了，结算页出来前关页也按全清算
+  // 打倒夜漏君那一拍 down 就到 RUSH_TOTAL 了，结算页出来前关页也按全清算
   if (r.rush) return rushBp(r.tier, r.down ?? 0, RUSH_TOTAL, (r.down ?? 0) >= RUSH_TOTAL);
   return vigilBp(r.tier, r.ticks ?? 0, false, false, r.character, r.map);
 }

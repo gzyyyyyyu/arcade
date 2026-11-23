@@ -20,3 +20,18 @@
   .yx-result-panel.rush .yx-rbest { padding: 3px 8px; }
   .yx-result-panel.rush .yx-rbest img { width: 30px; height: 30px; }
 }
+.yx-result-panel .yx-rushlist span.final { border-style: dashed; }
+.yx-result-panel .yx-rushlist span.final.down { border-style: solid; background: #e0a020; color: #17131c; }
+/* 符印：金底，排在首领后面 */
+.yx-result-panel .yx-rushlist span.relic { border-color: #17131c; color: #17131c; background: #f2c94c; }
+/* 一屏放不下（Result.fit / decorateRushResult 加 .fit1–4）：连战左栏跟着收——先藏「11 只全部打倒」那行（首领一排已看得出），再把首领小牌和两格数字收矮 */
+.yx-result-panel.rush:is(.fit1, .fit2, .fit3, .fit4) .yx-rtime small { display: none; }
+.yx-result-panel.rush:is(.fit2, .fit3, .fit4) .yx-rushlist { gap: 2px; margin: 0; }
+.yx-result-panel.rush:is(.fit2, .fit3, .fit4) .yx-rushlist span { padding: 0 5px; border-width: 1.5px; line-height: 1.25; }
+.yx-result-panel.rush:is(.fit3, .fit4) .yx-rtime b { font-size: 24px; }
+.yx-result-panel.rush:is(.fit3, .fit4) .yx-rstats > div { padding: 2px 4px; }
+.yx-result-panel.rush:is(.fit3, .fit4) .yx-rstats b { font-size: 20px; }
+.yx-result-panel.rush.fit4 .yx-rnote { margin-top: 0; }
+/* 最矮一级（手机横屏带符印和离线重试条）：「用时」和时间并成一行、标题字收小，给底下重试钮让出一行 */
+.yx-result-panel.rush.fit4 .yx-rtime { flex-direction: row; align-items: baseline; gap: 8px; }
+.yx-result-panel.rush.fit4 .yx-rhead .yx-brush { font-size: 36px; }

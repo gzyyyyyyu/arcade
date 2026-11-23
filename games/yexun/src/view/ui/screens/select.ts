@@ -7,7 +7,10 @@ import { noSchoolIcon, schoolIcon, tierIcon } from '../../art/sprites-selicons.t
 import { DANGER_IDS, DANGERS, NIGHTMARE_FROM, RAID_MAX_DANGER, type Danger } from '../../../content/waves.ts';
 import { CHARACTERS, CHIPS_NO_CASH, CURSES } from '../../../content/meta.ts';
 import { LIVE_RUSH, LIVE_TIER_IDS, LIVE_TIERS, liveCharOk, liveMapOk, type LiveTier } from '../../../content/live.ts';
-import { RUSH, RUSH_TOTAL } from '../../../content/rush.ts';
+import { RUSH_TOTAL } from '../../../content/rush.ts';
+import { WEAPONS } from '../../../content/weapons.ts';
+import { rushPresets } from '../../../core/rush.ts';
+import type { RushPreset } from '../../../platform/live.ts';
 import { RAID_LIVE, RAID_TEMPLATES, type RaidTemplateId } from '../../../content/explore.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, type Region } from '../../../content/regions.ts';
 import { RAID_PICKS, type RaidPick } from '../../../platform/save.ts';
@@ -40,6 +43,8 @@ export class Select {
   private map: MapId = 'snow';
   private tpl: RaidPick = 'guzhen';
   private endless = false;
+  /** 实盘连战的推荐配装（稳 / 猛 / 双） */
+  private preset: RushPreset = 0;
   /** 刚点了起手或心法：下一次重绘在那一行下面浮出一条说明（几秒后淡出，不占版面；触屏看不到悬停提示） */
   private ldTip = false;
   /** "更多选项"展开了没有：只在本次会话里记住，不写存储 */
@@ -69,6 +74,10 @@ export class Select {
       },
       kind: (el) => {
         this.kind = el.dataset.k as Kind;
+        this.render();
+      },
+      preset: (el) => {
+        this.preset = Number(el.dataset.v) as RushPreset;
         this.render();
       },
       tier: (el) => {
@@ -158,7 +167,7 @@ export class Select {
   private go(): void {
     const s = this.s!;
     const live = this.live.available && this.live.on;
-    if (this.kind === 'rush' && live) return this.m.onRushLive(this.rushTier());
+    if (this.kind === 'rush' && live) return this.m.onRushLive(this.rushTier(), this.preset);
     if (this.kind === 'vigil') return live ? this.m.onLive(this.live.tier, this.map) : this.m.onStart(this.diff, this.map, this.endless);
     if (s.raidFirst) return this.m.onRaid('teach', 0);
     if (live) return this.m.onRaidLive(this.live.tier, isLiveTown(this.tpl) ? this.tpl : 'guzhen');
@@ -231,7 +240,7 @@ export class Select {
       `<div class="yx-kinds${live ? ' yx-k3' : ''}">` +
       `<button type="button" class="yx-kind${this.kind === 'vigil' ? ' on' : ''}" data-a="kind" data-k="vigil"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>守夜</b><em>15 分钟 · 撑到天亮</em></span></button>` +
       `<button type="button" class="yx-kind${raid ? ' on' : ''}" data-a="kind" data-k="raid"><img class="yx-scene" alt="" src="${sceneUrl('raid', 320, 100)}"><span class="yx-kindtxt"><span class="yx-lamp"></span><b>夜探</b><em>搜宝、打怪、找门撤出</em></span></button>` +
-      (live ? `<button type="button" class="yx-kind${rush ? ' on' : ''}" data-a="kind" data-k="rush"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>连战</b><em>${RUSH.limit / 1800} 分钟 · 连打 ${RUSH_TOTAL} 只首领</em></span></button>` : '') +
+      (live ? `<button type="button" class="yx-kind${rush ? ' on' : ''}" data-a="kind" data-k="rush"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>连战</b><em>约 15 分钟 · 连打 ${RUSH_TOTAL} 只首领</em></span></button>` : '') +
       '</div>';
 
     // 地图 / 镇子大卡
@@ -277,8 +286,11 @@ export class Select {
       pick = `<div class="yx-raidnote"><b>${RAID_TEMPLATES.teach.name}</b>${RAID_TEMPLATES.teach.blurb}</div>`;
     } else if (live && rush) {
       const t = this.rushTier();
-      pick = `<div class="yx-raidnote"><b>实盘连战</b>每局随机一套给好的构筑和首领顺序：7 关一共 ${RUSH_TOTAL} 只精英和首领，最后一关是尸王，${RUSH.limit / 1800} 分钟内打完。每清一关挑一张卡。按打倒几只带回，全清另外多给；一只没打倒这一份就没了。<br>不交连战榜，也不发铜钱。</div>`;
-      note = `${have}危险 ${LIVE_TIERS[t].danger} · 固定小道士，构筑给好`;
+      const presets = rushPresets('xiaodao')
+        .map((p, i) => `<button type="button" class="yx-chip${i === this.preset ? ' on' : ''}" data-a="preset" data-v="${i}"><b>${['稳', '猛', '双'][i]}</b><small>${esc([p.start, p.second].filter((x) => x !== undefined).map((x) => WEAPONS[x!].name).join(' + '))}</small></button>`)
+        .join('');
+      pick = `<div class="yx-raidnote"><b>实盘连战</b>小道士选一套推荐配装开局，打 ${RUSH_TOTAL - 1} 只首领和终局夜漏君；每关挑卡、走路线、过驿站。按打倒几只带回，打倒夜漏君另外多给；一只没打倒这一份就没了。不带咒，不交连战榜。</div><div class="yx-chips yx-rushpresets">${presets}</div>`;
+      note = `${have}危险 ${LIVE_TIERS[t].danger} · 固定小道士、推荐配装、不带咒`;
       facts = factCards(rushLiveFacts(t), plainNote(rushLiveNote(t)));
     } else if (live) {
       if (raid) {

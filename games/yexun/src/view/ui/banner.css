@@ -99,8 +99,10 @@
 .yx-bossbar b { display: block; height: 100%; background: linear-gradient(#e7c86a, #b8861e); transition: width 0.2s; }
 /* 手机竖屏：横幅（「100 斩」等）排在顶栏和小地图下面，不压中间的主角 */
 /* 手机竖屏：右边一竖排法器栏，横幅让开它（试玩 11-22：连战第 1 关横幅被法器栏压住半截）；一行放不下就按字折 */
+/* 关底血条也往下挪，让开左上连战的纸钱、符印小牌（走查 11-23：390 竖屏两者叠在一起） */
 @media (max-width: 767px) and (orientation: portrait) {
-  .yx-banners { padding: 124px 76px 0 8px; }
+  .yx-bossbar { top: 100px; }
+  .yx-banners { padding: 150px 76px 0 8px; }
   .yx-banner { max-width: 100%; box-sizing: border-box; padding: 6px 12px; text-align: center; }
   .yx-banner .t { font-size: 28px; }
 }
