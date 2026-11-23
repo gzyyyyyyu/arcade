@@ -12,6 +12,7 @@ import { autoSkillSetting } from './view/game/autoskill.ts';
 import { buyChar, buyLook, buyPerk, dangerOpen, loadoutSetup, loadSave, mapOpen, payKits, refundPerks, saveHooks, setLoadout, settings, trialTierOpen, wearLook, weekGoalView, writeSave } from './platform/save.ts';
 import { ExchangeClient } from './platform/exchange.ts';
 import type { ExchangeView } from './view/ui/prepShop.ts';
+import { MERGE_STAGE } from './content/weapons.ts';
 import { SCHOOLS } from './content/guide.ts';
 import { hasLoginHint, startCloud } from './platform/cloud.ts';
 import { createLive, liveSetup } from './platform/live.ts';
@@ -474,7 +475,7 @@ async function boot(): Promise<void> {
         // 引导第 3 条：第一次开宝箱讲进化
         if (tipDone('chest')) return;
         markTip('chest');
-        tips.show('法器<b>满级</b> + 对应的<b>被动</b>，宝箱里会开出<b>进化</b>', 6000);
+        tips.show(`宝箱里结两件事：法器<b>满级</b> + 对应的<b>被动</b>就<b>进化</b>；一个搭配的两件都到 <b>${MERGE_STAGE.halfLevel} 级</b>就<b>合成</b>（玩法 · 合成）`, 8000);
       },
       onSkillShown: (x: World) => {
         const id = x.setup.character ?? 'xiaodao';

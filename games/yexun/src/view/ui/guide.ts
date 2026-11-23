@@ -23,7 +23,7 @@ import { altStart, mainSchools } from '../../content/pools.ts';
 import { schoolIcon } from '../art/sprites-selicons.ts';
 import { heroKey } from '../art/heroes.ts';
 import { DANGER_IDS, DANGERS, DAWN_TICK, EVENTS, MID_BOSS } from '../../content/waves.ts';
-import { ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, NEXT_ELEMENT, PASSIVES, STAT_NAME, TYPE_SETS, WEAPONS, type MergeDef, type WeaponId, type WeaponType } from '../../content/weapons.ts';
+import { ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, MERGE_STAGE, NEXT_ELEMENT, PASSIVES, STAT_NAME, TYPE_SETS, WEAPONS, type MergeDef, type WeaponId, type WeaponType } from '../../content/weapons.ts';
 import { counters } from './counters.ts';
 import { closeModal, modalChrome, openModal } from './modal.ts';
 import { PAGER_CTL, Pager } from './pager.ts';
@@ -79,7 +79,10 @@ export class Guide {
       const el = (e.target as HTMLElement).closest<HTMLElement>('[data-a]');
       if (!el || !this.root.contains(el)) return;
       if (el.dataset.a === 'close') this.onClose();
-      else if (el.dataset.a === 'tab') {
+      else if (el.dataset.a === 'mdesc') {
+        const d = this.root.querySelector<HTMLElement>('.yx-gmdesc');
+        if (d) d.textContent = el.dataset.d ?? '';
+      } else if (el.dataset.a === 'tab') {
         this.tab = el.dataset.t as GuideTab;
         this.render();
       }
@@ -120,6 +123,8 @@ export class Guide {
       '<div class="yx-panel-head"><b class="yx-brush">玩法</b></div>' +
       `<div class="yx-tabs yx-gtabs">${tabs}</div>` +
       `<div class="yx-gbody">${body}</div>` +
+      // 合成页：点哪行在这里写它做什么（放在翻页区外面，翻到哪页都看得见）
+      (this.tab === 'merge' ? '<p class="yx-gmdesc">点一行配方，这里写它做什么</p>' : '') +
       `<div class="yx-row3 yx-pgfoot">${PAGER_CTL}<button type="button" class="yx-big ghost" data-a="close">返回</button></div>` +
       '</div>';
     // 电脑（宽屏）：页内分两栏，每页一整块、一屏放下，不翻页（流派页按卡、合成页按行翻：放不下，原来合成页整块算一页，底下几行被裁掉）；手机单栏：标题、段落、列表项、配方行、快捷键表的一行各算一块，放不下的页再翻，标题跟着后面走
@@ -178,14 +183,23 @@ export class Guide {
           `<li>${this.img(SKILLS.xiaodao.icon)}<b>技能</b>每个角色一个主动技能：电脑按空格或 Q，手机点右下角的技能钮，冷却环走满就发亮。按住或悬停技能钮看它做什么，暂停页也写着。设置里的「自动技能」打开后，技能好了而且身边有怪就自动放，不用你按（默认关）。</li>` +
           `<li>${this.img('soul')}怪倒下掉魂火，走近自动吸，吸满就升级。</li>` +
           '</ul>',
-      ),
+      ) +
+        this.sec(
+          '开局怎么拿卡',
+          '<ol class="yx-glist num">' +
+            `<li>头一两张拿${ROLE_NAME.crowd}的法器（${this.w('sword')}这类，见「配合」页），先把成片的小怪清掉。</li>` +
+            `<li>盯一个搭配：卡上写「再拿 X」「凑成」的优先拿，两件料都到 ${MERGE_STAGE.halfLevel} 级，下一个宝箱就合上。</li>` +
+            '<li>精英出来就去打：它掉宝箱，进化、合成都在宝箱里结。</li>' +
+            '<li>被动先拿手上法器的进化被动。怎么一路变强见「合成」页最上面。</li>' +
+            '</ol>',
+        ),
       this.sec(
         `撑到天亮（${clock(DAWN_TICK)}）`,
         '<ul class="yx-glist">' +
           (mid ? `<li>${this.img(mid.enemy)}离天亮还剩 ${clock(DAWN_TICK - mid.at)}，${esc(ENEMY_BY_KIND[mid.enemy].name)}来闹一场。</li>` : '') +
           (mid ? `<li>${this.img('zhumu')}每张特色图这时来的首领不一样：${(Object.keys(MID_BOSS) as (keyof typeof MID_BOSS)[]).map((m) => `${MAPS[m].name}是${esc(ENEMY_BY_KIND[MID_BOSS[m]!].name)}`).join('、')}（画皮混在怪群里，头顶一缕红丝，打疼了才现形）。</li>` : '') +
           (boss ? `<li>${this.img('boss')}还剩 ${clock(DAWN_TICK - boss.at)}，${esc(ENEMY_BY_KIND.boss.name)}现身；打倒它天亮得更早，奖励也多。</li>` : '') +
-          `<li>${this.img('chest')}精英倒下掉宝箱：法器升级，凑齐了就进化。</li>` +
+          `<li>${this.img('chest')}精英倒下掉宝箱：法器升级，凑齐了就进化、合成。</li>` +
           '</ul>',
       ) +
         this.sec(
@@ -319,11 +333,20 @@ export class Guide {
   private merges(): string {
     const list = SHOWN_MERGES;
     const mine = list.filter((m) => mergeReach(m, this.char) === 'ok').length;
+    const step = (name: string, body: string): string => `<div class="yx-grstep"><b>${name}</b><span>${body}</span></div>`;
     return (
-      '<div class="yx-gmpage"><div class="yx-gmhead"><b>合成·双修</b>' +
-      `<span><em class="yx-gtag mix">合成</em>${esc(mergeHow({}))}</span>` +
-      `<span><em class="yx-gtag dual">双修</em>${esc(mergeHow({ dual: true }))}</span>` +
-      `<span class="yx-gnote">条件齐了，下一个宝箱就合上，大成才空出一格；共 ${list.length} 个，${esc(CHARACTERS[this.char].name)}凑得出 ${mine} 个（压暗的凑不出）</span></div>` +
+      '<div class="yx-gmpage"><div class="yx-gmhead"><b>一局怎么变强</b>' +
+      '<div class="yx-groute">' +
+      step('练级', `选卡、宝箱都能给法器 +1 级，${MAX_WEAPON_LEVEL} 级满`) +
+      '<i>→</i>' +
+      step('初成', `一个搭配的两件料都到 ${MERGE_STAGE.halfLevel} 级，下一个宝箱合上：效果 ${pct(MERGE_STAGE.halfPower)}，不空格`) +
+      '<i>→</i>' +
+      step('进化', '满级 + 配对的被动，下一个宝箱进化') +
+      '<i>→</i>' +
+      step('大成', '<em class="yx-gtag mix">合成</em>两件都进化　<em class="yx-gtag dual">双修</em>一件进化、一件满级；效果 100%，空出一个法器格') +
+      '</div>' +
+      '<p class="yx-gnote">合成门槛高、效果足；双修是两个流派各出一件，门槛低一档，把两种打法接上。' +
+      `共 ${list.length} 个，${esc(CHARACTERS[this.char].name)}凑得出 ${mine} 个（压暗的凑不出）。</p></div>` +
       `<div class="yx-gmlist">${list.map((m) => this.mergeRow(m)).join('')}</div></div>`
     );
   }
@@ -336,7 +359,7 @@ export class Guide {
       : n < CHARACTER_IDS.length ? `<em class="yx-gtag only">${n} 人能合</em>` : '';
     const no = mergeReach(m, this.char) !== 'ok';
     return (
-      `<div class="yx-gmrow${no ? ' no' : ''}" style="--mc:${m.color}" title="${esc(m.desc)}｜${esc(mergeHow(m))}｜${esc(whoText(m))}">` +
+      `<div class="yx-gmrow${no ? ' no' : ''}" style="--mc:${m.color}" data-a="mdesc" data-d="${esc(`${m.name}：${m.desc}（${whoText(m)}）`)}" title="${esc(m.desc)}｜${esc(mergeHow(m))}｜${esc(whoText(m))}">` +
       `${this.evo(m.a) || this.w(m.a)}<i>+</i>${m.dual ? this.w(m.b) : this.evo(m.b) || this.w(m.b)}<span class="yx-gto"><i>→</i><span class="yx-gw evo">${this.img(m.icon)}<b>${esc(m.name)}</b></span></span>` +
       `<em class="yx-gtag ${m.dual ? 'dual' : 'mix'}">${m.dual ? '双修' : '合成'}</em>${who}</div>`
     );
