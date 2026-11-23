@@ -22,7 +22,7 @@ export function decorateRushResult(root: HTMLElement, plan: RushPlan, r: RushRes
     const small = time.querySelector('small');
     if (label) label.textContent = '用时';
     if (big) big.textContent = rushClock(r.ticks);
-    if (small) small.textContent = r.cleared ? `${r.total} 只首领全部伏诛` : quit ? `认输 · 打倒 ${r.down} 只` : `连战 ${r.down}/${r.total} · 还差 ${r.total - r.down} 只`;
+    if (small) small.textContent = r.cleared ? `精英和首领 ${r.total} 只全部伏诛` : quit ? `认输 · 打倒 ${r.down} 只` : `连战 ${r.down}/${r.total} · 还差 ${r.total - r.down} 只`;
     // 这一局的首领一排：按上场的顺序，打倒的亮着
     const kinds = plan.stages.flat();
     const row = document.createElement('div');
@@ -35,4 +35,6 @@ export function decorateRushResult(root: HTMLElement, plan: RushPlan, r: RushRes
     });
     time.after(row);
   }
+  // 连战不发铜钱：结算页那一格局内铜钱不算数，拿掉免得像是拿到了
+  for (const cell of panel.querySelectorAll<HTMLElement>('.yx-rstats > div')) if (cell.querySelector('span')?.textContent === '铜钱') cell.remove();
 }

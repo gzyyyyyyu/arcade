@@ -34,9 +34,9 @@ export const WEEKLY_FX = {
 };
 
 export const WEEKLIES: Record<WeeklyId, WeeklyDef> = {
-  coin: { id: 'coin', name: '铜钱周', text: '这局铜钱多 50%' },
-  lantern: { id: 'lantern', name: '灯会周', text: '怪掉铜钱和肉包多四成' },
-  elite: { id: 'elite', name: '精英周', text: '每次精英多一只，打倒一只多给铜钱和经验' },
+  coin: { id: 'coin', name: '铜钱周', text: `这局铜钱多 ${Math.round(WEEKLY_FX.coinBonus * 100)}%` },
+  lantern: { id: 'lantern', name: '灯会周', text: `怪掉铜钱和肉包多 ${Math.round((WEEKLY_FX.lanternDrop - 1) * 100)}%` },
+  elite: { id: 'elite', name: '精英周', text: '每次精英多一只，打倒一只多给铜钱和魂珠' },
   moon: { id: 'moon', name: '月蚀周', text: '全程夜色，只看得见身边一圈' },
   chest: { id: 'chest', name: '宝箱周', text: '精英宝箱更容易开出 3 件、5 件' },
 };

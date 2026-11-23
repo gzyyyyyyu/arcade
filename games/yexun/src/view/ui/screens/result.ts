@@ -3,6 +3,7 @@ import type { TreasureTier } from '../../../content/treasures.ts';
 import { nightItems, type NightLog } from '../eventIcons.ts';
 import { esc, layer, onAction } from './shared.ts';
 import type { BuildRow } from './pause.ts';
+import { DAWN_TICK } from '../../../content/waves.ts';
 
 /** 结算页上的一件宝物 */
 export interface RaidItemView {
@@ -158,7 +159,7 @@ export class Result {
         : r.quit
           ? '收工'
           : '倒下了';
-    const dawn = r.dawnSeconds ?? 900;
+    const dawn = r.dawnSeconds ?? DAWN_TICK / 30;
     const sub = rr
       ? rr.outcome === 'escaped'
         ? '平平安安走出了镇子'
@@ -227,7 +228,7 @@ export class Result {
       srcHtml +
       '<div class="yx-row3">' +
       '<button type="button" class="yx-big ghost" data-a="home">大厅</button>' +
-      `<button type="button" class="yx-big ghost" data-a="menu">${rr ? '回菜单' : r.fixed ? '回主页' : '换难度'}</button>` +
+      `<button type="button" class="yx-big ghost" data-a="menu">${rr ? '回菜单' : r.fixed ? '回主页' : '换危险档'}</button>` +
       (rr?.teach
         ? '<button type="button" class="yx-big yx-again" data-a="big">去大镇子</button>'
         : '<button type="button" class="yx-big yx-again" data-a="again">再来一局</button>') +

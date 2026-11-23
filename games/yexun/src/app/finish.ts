@@ -1,4 +1,5 @@
 import { DANGERS, DAWN_TICK } from '../content/waves.ts';
+import { ASSIST } from '../content/meta.ts';
 import { LIVE_TIERS, type LiveTier } from '../content/live.ts';
 import type { MapId } from '../content/maps.ts';
 import { MAPS } from '../content/maps.ts';
@@ -296,7 +297,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     const advice = !w.won && !quit && !w.raid && !w.trial && !sess.dailyDate && !sess.weeklyDate ? adviceFor(save.runs, sess.tally.worstFoe) : undefined;
     result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: got.coins + achCoins + extraCoins, coinsTotal: coins(save), night: scene()?.nightLog, sources, label, ...(advice ? { advice } : {}), fixed: !!sess.dailyDate || !!(sess.weeklyDate && w.setup.weekly) || !!w.trial, record: got.record && !w.trial, build: buildRows(w) });
     if (got.askAssist)
-      confirm.ask('连着倒下好几局了。要不要把挨打的伤害降低 30%？开着时成绩不进总榜，设置里随时能关。', '降低伤害', '不用', (ok) => {
+      confirm.ask(`连着倒下好几局了。要不要把挨打的伤害降低 ${Math.round((1 - ASSIST.dmg) * 100)}%？开着时成绩不进总榜，设置里随时能关。`, '降低伤害', '不用', (ok) => {
         save.assist = ok;
         writeSave(save);
       });

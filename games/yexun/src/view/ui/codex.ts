@@ -4,7 +4,8 @@
  * 没见过的怪画成黑影加问号，没用过的法器同理。图标只用图集里已有的帧（key 找不到时 icons 自己兜底）。
  */
 import { ACHIEVEMENTS, rewardCoins } from '../../content/achievements.ts';
-import { TICKS_PER_SECOND } from '../../content/clock.ts';
+import { fmtClock, TICKS_PER_SECOND } from '../../content/clock.ts';
+import { RAID_DAWN, RAID_LATE } from '../../content/explore.ts';
 import { ENEMY_BY_KIND, ENEMIES, type EnemyKind } from '../../content/enemies.ts';
 import { BOSS_AT, MID_BOSS_AT } from '../../content/waves.ts';
 import { PASSIVES, WEAPONS, spanNums, type WeaponId } from '../../content/weapons.ts';
@@ -43,9 +44,9 @@ export const MONSTER_INFO: Record<EnemyKind, { tag: string; blurb: string }> = {
   lord: { tag: 'Boss', blurb: `撒纸钱，召纸轿；约 ${MID_MIN} 分钟现身` },
   huapi: { tag: 'Boss', blurb: `鬼市约 ${MID_MIN} 分钟混进怪群，头顶一缕红丝；打疼了才现形，甩人皮分身、身边缠丝拖慢人` },
   huapiskin: { tag: 'Boss', blurb: '画皮甩出来的分身，碰到会挨打，打两下就破' },
-  patrol: { tag: '精英', blurb: '夜探里守着铜箱和院子，看见就追；6 分钟、11 分钟还有游荡的' },
+  patrol: { tag: '精英', blurb: '夜探里守着铜箱和院子，看见就追；有的镇子半夜还有游荡的' },
   beast: { tag: 'Boss', blurb: '夜探里守着金箱，会扑、会甩尾；血少一半连扑两下' },
-  goblin: { tag: '精英', blurb: '夜探 5、10 分钟各出一只，背着宝袋见人就跑；追上打倒掉两件好宝物' },
+  goblin: { tag: '精英', blurb: `夜探倒计时 ${RAID_LATE.goblin.at.map((t) => fmtClock((RAID_DAWN - t) / 30)).join('、')} 各出一只，背着宝袋见人就跑；追上打倒掉 ${RAID_LATE.goblin.items} 件好宝物` },
   bamsprout: { tag: '竹林', blurb: '脚边先冒一圈绿影，过一会儿破土而出狠拍一下；怕火' },
   snakespirit: { tag: '竹林', blurb: '藏在竹影里慢慢游，近了猛地窜出来；怕火' },
   bambooking: { tag: '精英', blurb: '竹林的主人，隔一阵在你四周种出一圈竹精；怕火' },

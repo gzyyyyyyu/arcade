@@ -163,6 +163,9 @@ interface MobView {
 }
 
 
+
+/** 拍数写成「1 分钟」「30 秒」（夜探天亮前的提醒读规则表） */
+const spanText = (ticks: number): string => (ticks % 1800 === 0 ? `${ticks / 1800} 分钟` : `${Math.round(ticks / 30)} 秒`);
 export class GameScene extends Phaser.Scene {
   private d!: GameDeps;
   private w!: World;
@@ -366,7 +369,7 @@ export class GameScene extends Phaser.Scene {
       if (this.raid.teach) {
         // 先说清这是练手的小镇子（所有者试玩时觉得夜探太小），再说玩法
         setTimeout(() => this.d.banners.say('教学镇', 'gold', 3000, '小镇子练手，下一局是 6,400 见方的大镇子'), 500);
-        setTimeout(() => this.d.banners.say('搜宝箱 · 躲巡夜将 · 天亮前走门撤离', 'gold', 7000, '没撤出去背包全丢（教学镇例外：不丢）'), 3900);
+        setTimeout(() => this.d.banners.say('搜宝箱 · 躲巡夜将 · 天亮前走门撤出', 'gold', 7000, '没撤出去背包全丢（教学镇例外：不丢）'), 3900);
       }
     }
     this.groundPainter.scatterDecor();
@@ -930,10 +933,10 @@ export class GameScene extends Phaser.Scene {
           this.d.banners.say('撤出了', 'gold', 2400);
           break;
         case Ev.Dawn:
-          if (ev.a[i] === 0) this.d.banners.say('还剩 1 分钟天亮', 'warn', 2400, '找到开着的门，撤出去');
+          if (ev.a[i] === 0) this.d.banners.say(`还剩 ${spanText(RAID_DAWN - DAWN_WARN)}天亮`, 'warn', 2400, '找到开着的门，撤出去');
           else {
             sfx.play('heartbeat', { volume: 0.8 });
-            this.d.banners.say('最后 30 秒', 'warn', 2000, '天亮还在镇里，就迷失了');
+            this.d.banners.say(`最后 ${spanText(RAID_DAWN - DAWN_RED)}`, 'warn', 2000, '天亮还在镇里，就迷失了');
           }
           break;
         case Ev.Lost:
@@ -961,7 +964,7 @@ export class GameScene extends Phaser.Scene {
           break;
         }
         case Ev.Reroll:
-          this.d.banners.say('刷新 +1', 'gold', 1400, ev.a[i] === 0 ? '进化补一次' : ev.a[i] === 2 ? `攒满 ${CHAR_FX.huolangRerollEvery} 枚铜钱` : '打倒精英补一次');
+          this.d.banners.say('刷新 +1', 'gold', 1400, ev.a[i] === 0 ? '进化补一次' : ev.a[i] === 2 ? `攒满 ${CHAR_FX.huolangRerollEvery} 枚铜钱` : '打倒精英或首领补一次');
           break;
         case Ev.NightMarket:
           this.onNightMarket(x, y, ev.a[i]!, ev.b[i]!, ev.c[i]!);
@@ -1227,7 +1230,7 @@ export class GameScene extends Phaser.Scene {
     if (gd.gate < 0 || gd.trailN < 2) return;
     if (!this.trailHinted) {
       this.trailHinted = true;
-      this.d.banners.say(`跟着箭头去${raid.map.gates[gd.gate]!.name}撤离`, 'gold', 3200);
+      this.d.banners.say(`跟着箭头去${raid.map.gates[gd.gate]!.name}撤出`, 'gold', 3200);
     }
     const tr = gd.trail;
     const near = Math.max(0.85, Math.min(1, 1.3 - gd.dist / 1600));
@@ -1289,7 +1292,7 @@ export class GameScene extends Phaser.Scene {
 
   private onGateOpen(x: number, y: number, k: number): void {
     sfx.play('gateOpen');
-    this.d.banners.say(`${this.raid!.map.gates[k]!.name}开了`, 'gold', 2600, '站进门圈里 3 秒就能撤出去');
+    this.d.banners.say(`${this.raid!.map.gates[k]!.name}开了`, 'gold', 2600, `站进门圈里 ${GATE.hold / 30} 秒就能撤出去`);
     this.fx.spawn({ frame: 'ring', x, y, life: 900, s0: 0.5, s1: (GATE.r * 2.6) / 128, a0: 1, a1: 0, tint: 0xf2c94c, depth: 60 });
     this.fx.spawn({ frame: 'pillar', x, y, life: 1100, s0: 1, s1: 1.3, a0: 0.9, a1: 0, tint: 0xffe08a, depth: 61 });
   }
@@ -1345,7 +1348,7 @@ export class GameScene extends Phaser.Scene {
   private onRestock(x: number, y: number, c: number, n: number): void {
     if (c < 0) {
       sfx.play('chest', { volume: 0.5 });
-      this.d.banners.say(`补货了：${n} 个箱子又满了`, 'gold', 2400);
+      this.d.banners.say(`补货了：${n} 个宝箱又满了`, 'gold', 2400);
       return;
     }
     this.burst(x, y - 10, 0xffd860, 1);
