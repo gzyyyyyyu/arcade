@@ -26,14 +26,14 @@
 | PG，不落盘 | `pg` | `memory` | PostgreSQL | PostgreSQL（经 `KIT_STORE`） | 不要 |
 
 - `storage: 'memory'` 只许配 `db: 'pg'`（不然平台库重启就没了，生成器报错）。
-- 不落盘时 DO 用 workerd 的内存存储，它没有 `ctx.storage.sql`：房间状态只能靠 arcade-kit 0.21.0 起的 KitStore 走 `KIT_STORE` 进 PG。
-  有 DO 的模块用的 kit 低于 0.21.0（或 DO 不是 kit 的），重启后房间就丢；本包不查 kit 版本，由调用方拦（本仓库的 `tools/selfhost/build.mjs` 会拦）。
+- 不落盘时 DO 用 workerd 的内存存储，它没有 `ctx.storage.sql`：房间状态只能靠 KitStore（要 arcade-kit ≥ 0.21.0） 走 `KIT_STORE` 进 PG。
+  有 DO 的模块用的 kit 低于 0.21.0（没有 KitStore）（或 DO 不是 kit 的），重启后房间就丢；本包不查 kit 版本，由调用方拦（本仓库的 `tools/selfhost/build.mjs` 会拦）。
 - 两种存储之间搬平台库：SQLite 模式 `GET /d1/<库>/export` 的导出，`POST` 到 PG 模式的 `/d1/<库>/import`（见下）。房间不搬。
 
 ## 用法
 
 本包不读仓库里别的模块。本仓库里由 `tools/selfhost/` 读各模块的 `wrangler.jsonc`、按部署工具的规则叠加平台绑定、生成站点描述再调这里（见 `tools/selfhost/README.md`）。
-单独用的话：
+单独用的话（这个包不发 npm，先按本地路径装：`"arcade-host": "file:<路径>"`）：
 
 ```js
 import { generate } from 'arcade-host/src/gen/generate.ts';
