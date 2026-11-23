@@ -66,7 +66,7 @@ export interface HoldingCard extends StockCard {
   /** 持有收益（pp） */
   holdRet: number;
   /**
-   * 0.35.0 持有收益折成钱（元，四舍五入）：这一格现在的钱（占账户的比例 × 账户）× (1 − 1 / 净值倍数)。
+   * 持有收益折成钱（元，四舍五入）：这一格现在的钱（占账户的比例 × 账户）× (1 − 1 / 净值倍数)。
    * 每天按份数重新占账户，所以是按「现在这么多钱、涨跌了这么多」折算，和账户的逐日变化不完全相等。
    */
   holdMoney: number;
@@ -76,7 +76,7 @@ export interface HoldingCard extends StockCard {
   lowBuy: boolean;
   /** 这一只占账户的比例（0..1）：1/4；多开一格且拿满 5 只时 1/(4 + fx(extra_slot, share))，0.3.0 为 1/4.5；0.4 C 再乘份数 */
   weight: number;
-  /** 0.4 C：占几份（缺省 1）、押跌 */
+  /** 占几份（缺省 1）、押跌 */
   units: number;
   short: boolean;
 }

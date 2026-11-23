@@ -16,11 +16,11 @@ export interface ItemView {
   kindLabel: string;
   rarity: Rarity;
   rarityLabel: string;
-  /** 0.3.1：一行的分类，如"道具（常见）"（kindLabel 的打法 / 工具 / 人脉只建议放在提示里） */
+  /** 一行的分类，如"道具（常见）"（kindLabel 的打法 / 工具 / 人脉只建议放在提示里） */
   tag: string;
   desc: string;
   flavor: string;
-  /** 0.5 卡片短版：大数字（可缺）+ 一行（≤14 字）；desc 留在悬停详情 */
+  /** 卡片短版：大数字（可缺）+ 一行（≤14 字）；desc 留在悬停详情 */
   brief: { big?: string; line: string };
 }
 
@@ -49,7 +49,7 @@ export interface RewardView {
   desc: string;
   rarity: Rarity;
   rarityLabel: string;
-  /** 0.3.1：一行的分类，如"道具（常见）""新群友（稀有）""股票（传奇）" */
+  /** 一行的分类，如"道具（常见）""新群友（稀有）""股票（传奇）" */
   tag: string;
   /** 道具卡 */
   item: ItemView | null;
@@ -57,7 +57,7 @@ export interface RewardView {
   friend: FriendView | null;
   /** 股票卡（所在风口这个月一定会要火） */
   stock: StockCard | null;
-  /** 0.5 卡片短版：大数字（可缺）+ 一行（≤14 字）；desc 留在悬停详情 */
+  /** 卡片短版：大数字（可缺）+ 一行（≤14 字）；desc 留在悬停详情 */
   brief: { big?: string; line: string };
 }
 
@@ -112,7 +112,7 @@ export interface EventView {
   name: string;
   text: string;
   options: [string, string];
-  /** 0.5 卡片短版：一行情景（≤20 字）、两个选项（≤8 字 + 大数字）；text / options 原句留在悬停详情 */
+  /** 卡片短版：一行情景（≤20 字）、两个选项（≤8 字 + 大数字）；text / options 原句留在悬停详情 */
   brief: string;
   picks: [EventPick, EventPick];
 }

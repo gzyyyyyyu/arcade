@@ -20,7 +20,7 @@ export class AboutPanel extends Dialog {
     super(scene, w, pp ? pp.h : 580, '关于《开盘》');
     const touch = isTouch();
     const built = BUILD_TIME ? BUILD_TIME.replace('T', ' ').slice(0, 16) : '开发版';
-    // 竖屏版（0.33.0）面板高、窄：和电脑一样一栏排下来（操作接在玩法下面）
+    // 竖屏版面板高、窄：和电脑一样一栏排下来（操作接在玩法下面）
     const two = !!pp && pp.w > pp.h;
     const leftW = two ? Math.round((w - 64 - 28) * 0.62) : w - 64;
     const note = addText(scene, 32, phone ? 90 : 94, '画面和声音都是程序生成的原创内容；股票、群友、公司全是虚构的。', { size: 13, color: COLOR.muted, wrap: leftW });

@@ -16,7 +16,7 @@ import { addText, fitWidth } from '../ui/text.ts';
 import { phoneLayout, viewOf } from '../viewport.ts';
 import { ellipsize } from '../../core/format.ts';
 
-/** 0.5 节奏与反馈的画面小件：本月看点卡、屏幕中部的大字（高光、连击）、盖章。文字小工具在 ../tempoText.ts。 */
+/** 节奏与反馈的画面小件：本月看点卡、屏幕中部的大字（高光、连击）、盖章。文字小工具在 ../tempoText.ts。 */
 
 // ---------------------------------------------------------------- 本月看点卡
 
@@ -90,7 +90,7 @@ export const SPEND_HEAD = '突然要花钱';
 
 /**
  * 附加说明（"名目：正文（+¥x）"）拆成短标题、金额和金额的颜色；完整原句放悬停。
- * 钱的颜色（0.36.2 统一）：花出去的钱（账单、花钱事件）用危险色、带负号；赚亏（事件结算、道具）按涨跌色。
+ * 钱的颜色：花出去的钱（账单、花钱事件）用危险色、带负号；赚亏（事件结算、道具）按涨跌色。
  */
 export function extraChip(text: string, ink: number = COLOR.ink): { head: string; money: string | null; color: number } {
   const i = text.indexOf('：');
@@ -133,8 +133,8 @@ export function monthCard(
   const mt = monthThemeView(s);
   const V = viewOf(scene);
   const ph = phoneLayout(scene);
-  // 手机横屏（0.5.5）高度不够，摆成两栏：左栏月份、开场白、目标和奖励；右栏胶囊、规则、台词、附加说明
-  // 竖屏版（0.33.0）和电脑一样一栏，宽度跟屏
+  // 手机横屏高度不够，摆成两栏：左栏月份、开场白、目标和奖励；右栏胶囊、规则、台词、附加说明
+  // 竖屏版和电脑一样一栏，宽度跟屏
   const two = ph && V.w > V.h;
   const narrow = ph && !two;
   const pad = narrow ? 20 : 30;
@@ -158,7 +158,7 @@ export function monthCard(
     const tx = month.x + month.width + 12;
     body.push(addPill(scene, tx, 32, tagT.width + 16, 22, COLOR.danger, false), tagT.setPosition(tx + 8, 43));
   }
-  // ---- 开场白（0.5.1 找回）：一条带主题图标的小纸条，讲这个月发生了什么
+  // ---- 开场白：一条带主题图标的小纸条，讲这个月发生了什么
   let y = 104;
   if (info.intro) {
     const strip = scene.add.rectangle(pad, y, colW, 34, boss ? 0x46305a : 0xfff6dc).setOrigin(0, 0).setRounded(10).setStrokeStyle(1.5, boss ? COLOR.gold : COLOR.edge, 1);
@@ -181,7 +181,7 @@ export function monthCard(
   ring.lineStyle(2.5, boss ? COLOR.gold : COLOR.ink, 1).strokeCircle(ringX, ringY, R + 1);
   const goalBig = addText(scene, ringX, ringY - 2, badge.big, { size: TYPE.big, bold: true, num: true, color: boss ? COLOR.gold : COLOR.accentDark, originX: 0.5, originY: 0.5 });
   const goalLabel = addText(scene, ringX, ringY + R + 8, badge.label, { size: TYPE.label, bold: true, color: ink, originX: 0.5 });
-  // 目标进度（0.5.1 找回）：放在奖励框下面，一行数字
+  // 目标进度：放在奖励框下面，一行数字
   const progT = g ? addText(scene, pad + 162, ringY + R + 20, goalShort(g).text, { size: TYPE.label, bold: true, num: true, color: muted, originY: 1 }) : null;
   if (progT) body.push(progT);
   const goalTarget = addGlyph(scene, ringX + R - 6, ringY - R + 8, 'target', 30);
@@ -218,7 +218,7 @@ export function monthCard(
     cx += c.w + 10;
   }
   y += 44;
-  // 规则全文（0.5.1 找回）：胶囊里是短的，这里补一行原句
+  // 规则全文：胶囊里是短的，这里补一行原句
   if (mt?.ruleShort && info.rule && info.rule !== mt.ruleShort) {
     const rt = addText(scene, col2 + 4, y - 4, info.rule, { size: TYPE.label - 1, color: muted, wrap: colW - 8 });
     body.push(rt);
@@ -293,7 +293,7 @@ export function monthCard(
 
 // ---------------------------------------------------------------- 屏幕中部大字
 
-/** 喊话标题 → 图标（0.5.1：飘字改成图标 + 数字）。 */
+/** 喊话标题 → 图标（飘字改成图标 + 数字）。 */
 function shoutGlyph(title: string): Glyph {
   if (title.includes('被轧')) return 'cry';
   if (title.includes('连续涨停')) return 'rocket';
@@ -331,7 +331,7 @@ export function shout(scene: Phaser.Scene, anim: Animator, title: string, sub: s
   t.setX(gw / 2);
   gl.setX(-(gw + t.width) / 2 + 26);
   const kids: Phaser.GameObjects.GameObject[] = [t, gl];
-  // 副行：短句照写；长句拆成名字 + 数字胶囊（0.5 是整句不写，0.5.1 找回）
+  // 副行：短句照写；长句拆成名字 + 数字胶囊
   if (sub) {
     const short = [...sub].length <= 18;
     const bits = shoutBits(sub);
@@ -389,7 +389,7 @@ export function stamp(scene: Phaser.Scene, anim: Animator, x: number, y: number,
   if (anim.instant) return;
   const color = good ? COLOR.up : 0x8d7b84;
   const t = addText(scene, 0, 0, label, { size: 22, bold: true, color, originX: 0.5, originY: 0.5 });
-  // 0.5.1：章面左边加一个小图标（涨停闪电、押对小熊、跌停哭脸……）
+  // 章面左边加一个小图标（涨停闪电、押对小熊、跌停哭脸……）
   const gl = addGlyph(scene, 0, 0, stampGlyph(label, good), 24);
   const gw = gl.visible ? 26 : 0;
   t.setX(gw / 2);

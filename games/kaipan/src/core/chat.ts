@@ -53,7 +53,7 @@ function pickWeighted<T>(rng: Rng, items: readonly T[], weight: (t: T) => number
 }
 
 /** 当前最热的题材（热度相同取看板上靠前的）。 */
-export function hottestTheme(s: Readonly<GameState>): ThemeId {
+function hottestTheme(s: Readonly<GameState>): ThemeId {
   let best = s.themeIds[0] as ThemeId;
   let heat = -1;
   for (const id of s.themeIds) {
@@ -75,7 +75,7 @@ export function topicsOf(s: Readonly<GameState>, f: Readonly<FriendState>): Them
 }
 
 /**
- * 0.7.0 群友这一局的状态（隐藏）：可信度偏移和说话权重倍数，按种子和群友 id 定，整局不变、均值为 0 / 1。
+ * 群友这一局的状态（隐藏）：可信度偏移和说话权重倍数，按种子和群友 id 定，整局不变、均值为 0 / 1。
  * 中途入群的群友也一样，不用存进存档。只在真实行情下有：合成行情只是离线兜底，不加这些。
  */
 export function friendForm(s: Readonly<GameState>, friendId: string): { cred: number; talk: number } {
@@ -111,8 +111,8 @@ function credOf(s: Readonly<GameState>, friendId: string, theme: ThemeId, rules:
   const tip = msg && isExpert && expert >= reliable && friendById(friendId).founding ? expertMsg : 0;
   // 所有加成之后封顶：只有道具（credOverride，如老王的小本本）能"必中"，否则 credibility 会泄露今天的真实方向
   const base = isExpert ? expert : other;
-  // 0.5（真实行情）：难度每高一级，所有人的准确率再低一点；
-  // 0.34.0 娱乐局（不是实盘）按难度放宽（BALANCE.ease）：只让本来不反指的人更准，群主照样反着说
+  // 真实行情：难度每高一级，所有人的准确率再低一点；
+  // 娱乐局（不是实盘）按难度放宽（BALANCE.ease）：只让本来不反指的人更准，群主照样反着说
   const ease = isEaseRun(s) && base >= 0.5 ? easeFor('cred', s.difficulty) : 0;
   const diff = s.real ? BALANCE.intel.diffStep * (Math.max(1, s.difficulty) - 1) - ease : 0;
   const form = friendForm(s, friendId).cred;
@@ -190,7 +190,7 @@ export function flipDir(d: Dir): Dir {
   return d === 'up' ? 'down' : d === 'down' ? 'up' : 'flat';
 }
 
-/** 0.7.0 这局手气：已揭晓的消息至少 min 条，说中率到 hot 算手气好、不到 cold 算手气差；chance 是消息带口气的比例。 */
+/** 这局手气：已揭晓的消息至少 min 条，说中率到 hot 算手气好、不到 cold 算手气差；chance 是消息带口气的比例。 */
 const HAND = { min: 4, hot: 0.7, cold: 0.35, chance: 0.5 };
 
 /** 群友这局的手气（只看本局公开战绩，和画面上的"说对 x/y"一致）。 */
@@ -233,7 +233,7 @@ export function makeMessages(s: Readonly<GameState>, rules: Readonly<Rules>): Me
     const target = reverse || liar ? flipDir(truth) : truth;
     const cred = reverse ? fx('fan_qunzhu', 'acc') : messageCred(s, f.id, theme, rules);
     const others = DIRS.filter((d) => d !== target);
-    // 0.4 C 空军老周：说错的时候一律唱空
+    // 空军老周：说错的时候一律唱空
     const wrong: Dir = f.id === 'kongjun' && target !== 'down' ? 'down' : (others[uWrong < 0.5 ? 0 : 1] as Dir);
     const claim: Dir = uClaim < cred ? target : wrong;
     const turn = turnTalk(claim, feelOf(t?.history ?? []));
@@ -248,7 +248,7 @@ export function makeMessages(s: Readonly<GameState>, rules: Readonly<Rules>): Me
 }
 
 /**
- * 0.7.0 推荐语：每个群友的推荐语按种子打乱、按天轮着用，同一个人隔几天又推同一只股票也不会一字不差。
+ * 推荐语：每个群友的推荐语按种子打乱、按天轮着用，同一个人隔几天又推同一只股票也不会一字不差。
  * 推荐语是推荐里最后才定的东西，不从推荐的随机流里抽，推哪只股票不受影响。
  */
 function recLine(s: Readonly<GameState>, friendId: string): string {
@@ -334,7 +334,7 @@ export function makeRecs(s: Readonly<GameState>, rules: Readonly<Rules>): Rec[] 
     let memeOnly = false;
     let shill = false;
     if (f.id === 'kongjun') {
-      // 0.4 C 空军老周：挑他觉得会跌的风口，建议押它跌（没有看跌的就挑最热的）
+      // 空军老周：挑他觉得会跌的风口，建议押它跌（没有看跌的就挑最热的）
       const cands = s.themeIds.filter((t) => availableStocks(s, t, taken).length > 0);
       if (cands.length === 0) break;
       const downs = cands.filter((t) => believe(s, f.id, t, rules, r) === 'down');
@@ -403,7 +403,7 @@ const GENERIC_LINES: Partial<Record<ReactMoment, readonly string[]>> = {
 const GENERIC_SHARE = 0.25;
 
 /**
- * 0.7.0 今天收盘群里该接哪句话：只看今天已经揭晓的结果和公开的账面，按下面的先后取第一个。
+ * 今天收盘群里该接哪句话：只看今天已经揭晓的结果和公开的账面，按下面的先后取第一个。
  * 连赚、这个月亏多了、月底钱不够这几种会连着好几天成立，按概率说，免得天天念叨。
  */
 function situation(s: Readonly<GameState>, report: Readonly<DayReport>): { moment: ReactMoment; vars: Record<string, string> } | null {
@@ -479,7 +479,7 @@ export function makeComments(s: Readonly<GameState>, report: Readonly<DayReport>
   return out;
 }
 
-// ================================================================ 0.5：情报从真实未来推算
+// ================================================================ 情报从真实未来推算
 
 /** 消息说几天（1–3）：按 BALANCE.intel.days 加权。 */
 function pickDays(u: number): number {
@@ -515,7 +515,7 @@ function wrongDir(friendId: string, truth: Dir, u: number, uFlip: number): Dir {
 }
 
 /**
- * 0.5 群聊消息：话题、说话的人、台词照 0.3；说的是"这个风口接下来 days 天（1–3）会涨 / 横 / 跌"，
+ * 群聊消息：话题、说话的人、台词照 0.3；说的是"这个风口接下来 days 天（1–3）会涨 / 横 / 跌"，
  * 真相是行情段里这个行业接下来 days 天的真实累计涨跌（放大后，横盘带 BALANCE.intel.flat）。
  * 说中的概率 = messageCred（群友靠谱程度、擅长题材、拐点、难度）；说错时群主多半反着说。
  */
@@ -593,7 +593,7 @@ function headline(s: Readonly<GameState>, real: Readonly<RealMarket>, k: number,
 }
 
 /**
- * 0.5 推荐：推荐人照 0.3 挑（权重、擅长、群主喊单、大V只推最热、空军老周押跌），
+ * 推荐：推荐人照 0.3 挑（权重、擅长、群主喊单、大V只推最热、空军老周押跌），
  * 推的那只是他"觉得接下来 days 天会涨"的：对每只候选股，以 recCredibility 的概率看对它接下来 days 天的真实方向
  * （横盘带 BALANCE.intel.stockFlat），在看涨的里面按角色权重挑。所以靠谱的人推的票大多真的涨，群主推的大多要跌。
  */

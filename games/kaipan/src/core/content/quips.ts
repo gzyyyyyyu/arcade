@@ -1,7 +1,7 @@
 import type { Mood, QuipMoment, Role } from '../types.ts';
 
 /**
- * 0.3.1 股票小人的台词：涨停、连续涨停、跌停、退市、被买入、被卖出时冒一句。
+ * 股票小人的台词：涨停、连续涨停、跌停、退市、被买入、被卖出时冒一句。
  * 抽取时把这只股票自己的台词和它角色的通用台词合在一起抽（见 quips 的抽取函数）。
  * 占位：{stock} 股票名，{n} 连续涨停的天数。全部虚构。
  */
@@ -254,7 +254,7 @@ export const STOCK_QUIPS: Record<string, Lines> = {
   },
 };
 
-/** 各角色的通用台词（每个时机都有；0.7.0 扩池：买入、卖出最常见，一局要冒几十次）。 */
+/** 各角色的通用台词（每个时机都有；买入、卖出最常见，一局要冒几十次）。 */
 export const ROLE_QUIPS: Record<Role, Record<QuipMoment, readonly string[]>> = {
   leader: {
     limitUp: ['跟我冲！', '带头大哥就是要带头。', '带头的就该站在最前面。', '大哥出手，一步到位。', '今天我说了算。', '小弟们，看好了。', '这个位置，我坐得住。', '涨停板上见。'],
@@ -308,7 +308,7 @@ export const ROLE_QUIPS: Record<Role, Record<QuipMoment, readonly string[]>> = {
 };
 
 /**
- * 0.7.0 按大盘冷暖多几句（牛市、熊市才有；平淡的时候只用上面两张表）：同一只小人在不同的行情里说法不一样，
+ * 按大盘冷暖多几句（牛市、熊市才有；平淡的时候只用上面两张表）：同一只小人在不同的行情里说法不一样，
  * 熊市里涨停和牛市里涨停不是一回事。和上面的台词合在一起抽。
  */
 export const MOOD_QUIPS: Record<Exclude<Mood, 'flat'>, Partial<Record<QuipMoment, readonly string[]>>> = {

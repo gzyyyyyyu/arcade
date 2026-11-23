@@ -29,7 +29,7 @@ export function clamp(v: number, lo: number, hi: number): number {
 
 /**
  * 音量滑条（0..1）→ 线性增益。用平方律近似人耳的对数感知：
- * 0.5 ≈ -12 dB，0.8 ≈ -1.9 dB；非有限值按 0 处理。
+ * ≈ -12 dB，0.8 ≈ -1.9 dB；非有限值按 0 处理。
  */
 export function volumeToGain(v: number): number {
   if (!Number.isFinite(v)) return 0;

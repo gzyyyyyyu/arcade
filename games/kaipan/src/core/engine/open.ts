@@ -274,7 +274,7 @@ function settleHoldings(s: GameState, em: Emitter, b: DayBase, th: ThemeStep, st
         }
       }
     };
-    // 0.4 C 押跌：它跌你赚、它涨你亏；涨停被轧亏得更狠；每天一点手续费。押跌不吃"买涨"的道具，只走自动卖出
+    // 押跌：它跌你赚、它涨你亏；涨停被轧亏得更狠；每天一点手续费。押跌不吃"买涨"的道具，只走自动卖出
     let squeeze = 0;
     if (h.short) {
       // 晴天押跌逆风、雨天押跌顺风（窗外天气就是今天的大环境）
@@ -301,7 +301,7 @@ function settleHoldings(s: GameState, em: Emitter, b: DayBase, th: ThemeStep, st
       ipo: ipoPremium.has(h.stockId) ? { value: ipoPremium.get(h.stockId) as number } : undefined,
     };
     const parts = h.short
-      ? shortParts(move.move, squeeze, itemParts, ret, pctx)
+      ? shortParts(squeeze, itemParts, ret, pctx)
       : holdingParts(rawParts.get(h.stockId) ?? [{ kind: 'noise', value: move.move }], itemParts, ret, pctx);
     const hm: HoldingMove = { slot, stockId: h.stockId, move: move.move, ret, parts, lead: leadPart(parts), amount: 0, steps, holdRet: round2((h.value - 1) * 100), sold: ctx.sell };
     if (swanToday && swanRet !== 0) hm.swan = round2(swanRet);
@@ -414,7 +414,7 @@ function settleAccount(s: GameState, em: Emitter, b: DayBase, hd: HoldingStepRes
   emit(em, { type: 'accountChanged', before, after: s.account, ret: accRet });
   // 收盘小结只讲交易带来的变化；银行收走东西另记在 report.bank 和 seized 事件里
   const afterTrade = s.account;
-  // 0.5.4：炒股本身累计赚亏（结算页按它评价，不按最后剩多少钱——账单、利息、奖励都不算在里面）
+  // 炒股本身累计赚亏（结算页按它评价，不按最后剩多少钱——账单、利息、奖励都不算在里面）
   addStat(s, 'tradeMoney', afterTrade - before);
   const bank = s.ext ? checkBank(s, em) : null;
   return { before, gross, accRet, afterTrade, effects, autoSold, weight, heldThemeCount, bank };
@@ -432,7 +432,7 @@ function judgeMessages(s: GameState, em: Emitter, b: DayBase, th: ThemeStep): Ju
       if (hit) f.hits += 1;
     }
   };
-  // 0.5（真实行情）：消息说的是风口接下来 days 天的真实累计方向；说一天的当天揭晓，说几天的到期那天收盘揭晓（report.intel）
+  // 真实行情：消息说的是风口接下来 days 天的真实累计方向；说一天的当天揭晓，说几天的到期那天收盘揭晓（report.intel）
   const track = s.real ?? null;
   const judged: MessageJudge[] = [];
   s.today.messages.forEach((m, index) => {
@@ -513,7 +513,7 @@ function buildReport(s: GameState, em: Emitter, b: DayBase, th: ThemeStep, stock
   if (track) report.intel = intel;
   report.comments = makeComments(s, report);
   for (const c of report.comments) emit(em, { type: 'comment', ...c });
-  // 0.4 C：被轧、银行打电话、东西被收走，群友接一句
+  // 被轧、银行打电话、东西被收走，群友接一句
   if (s.ext) {
     const shortWin = holdings.some((h) => h.short && moveOf.get(h.stockId)?.limitDown);
     const kind = bank?.seized.length ? 'seized' : bank?.called ? 'call' : holdings.some((h) => h.squeeze) ? 'squeeze' : shortWin ? 'shortWin' : null;
@@ -525,7 +525,7 @@ function buildReport(s: GameState, em: Emitter, b: DayBase, th: ThemeStep, stock
   report.quips = dayQuips(s, report);
   for (const q of report.quips) emit(em, { type: 'quip', ...q });
   if (crashToday) emit(em, { type: 'crashHit', day, month: s.month });
-  // 0.5：高光、连击、月度目标、平淡日（小奖励加在交易结算之后）
+  // 高光、连击、月度目标、平淡日（小奖励加在交易结算之后）
   if (s.tempo) report.tempo = tempoClose(s, report, tempoCtx(s, em));
   return report;
 }
@@ -577,7 +577,7 @@ function closeDay(s: GameState, em: Emitter, report: DayReport): void {
 }
 
 /**
- * 0.3.1：把账户当天的变化分到每格持仓（holdings[].amount，按当天收益 × 权重）和账户层效果（借钱炒股、分散投资等）。
+ * 把账户当天的变化分到每格持仓（holdings[].amount，按当天收益 × 权重）和账户层效果（借钱炒股、分散投资等）。
  * 各项取到分，零头并进金额绝对值最大的那一格（没有持仓时并进最后一项账户效果），保证总和等于 after − before。
  */
 function splitMoney(

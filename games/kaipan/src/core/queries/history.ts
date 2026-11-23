@@ -6,7 +6,7 @@ import { rngFor } from '../rng.ts';
 import { realStockPct, trackMarketRet, warmHeatSeries } from '../real.ts';
 import type { GameState, ThemeId } from '../types.ts';
 
-// ================================================================ 0.5.1 开局前的真实历史（只读）
+// ================================================================ 开局前的真实历史（只读）
 
 /** 开局前 warm 天的公开历史：大盘涨跌、个股涨跌（pp，旧 → 新）、风口热度（旧 → 新，最后一项是开局时的热度）。 */
 export interface PreHistory {

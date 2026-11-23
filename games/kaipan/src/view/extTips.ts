@@ -1,9 +1,9 @@
-import { bankView, canShortNow, chatView, extTip, holdingCards, isBusy, type GameState } from '../core/index.ts';
+import { bankView, canShortNow, chatView, extTip, holdingCards, isBusy, isLesson, type GameState } from '../core/index.ts';
 import { touched } from '../platform/localChange.ts';
 import { defaultStore, type KeyValueStore } from '../platform/settings.ts';
 
 /**
- * 0.4 C 新机制的第一次提示（仓位、手里的股票、押跌、银行、银行打电话）：每条只显示一次，记在 localStorage。
+ * 新机制的第一次提示（仓位、手里的股票、押跌、银行、银行打电话）：每条只显示一次，记在 localStorage。
  * 文案来自规则层 extTip；触发条件只看公开的局面。纯逻辑，可单测。
  */
 export type ExtTipId = 'call' | 'size' | 'holding' | 'short' | 'bank';
@@ -50,7 +50,8 @@ export function tipApplies(s: Readonly<GameState>, id: ExtTipId): boolean {
     case 'holding':
       return !isBusy(s) && holdingCards(s).some((c) => c?.canSell);
     case 'short':
-      return canShortNow(s);
+      // 新手课只教买和卖，不在课上塞反向玩法
+      return canShortNow(s) && !isLesson(s);
     case 'bank':
       return bankView(s).open;
   }

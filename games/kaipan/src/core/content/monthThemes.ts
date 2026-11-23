@@ -3,7 +3,7 @@ import type { Regime } from '../segment.ts';
 import type { GoalKind } from '../types.ts';
 
 /**
- * 0.5 月度主题（"本月看点"）：每个月一个，开局按种子、行情、难度抽好（src/core/tempo.ts 的 planTempo），一局 12 个月不重复。
+ * 月度主题（"本月看点"）：每个月一个，开局按种子、行情、难度抽好（src/core/tempo.ts 的 planTempo），一局 12 个月不重复。
  * 第 4、8 个月是中场 boss（boss: true 的池子）。主题只改规则和信息（推荐、消息、手续费、涨跌停宽窄、月供、押跌许可），不改走势。
  * goal.base 是第 1 级的目标数值，难度每高一级按 BALANCE.tempo.goalStep 加码（keep 是允许的回撤，越高越小）。
  */
@@ -227,7 +227,7 @@ export const MONTH_THEMES: readonly MonthThemeDef[] = [
     goal: { kind: 'beat', base: 2, text: '本月收益比大环境多 {n} 个百分点' },
     weight: (c) => early(c, c.mret < 0 ? 2.5 : 0.5),
   },
-  // ---------------------------------------------------------------- 0.29：两个只在真实行情普通局里出现的主题（realOnly）
+  // ---------------------------------------------------------------- 两个只在真实行情普通局里出现的主题（realOnly）
   {
     id: 'herd_month',
     name: '基金抱团月',
@@ -317,7 +317,7 @@ export const isMonthThemeId = (id: string): boolean => byId.has(id);
 export const monthThemeById = (id: string): MonthThemeDef => byId.get(id) as MonthThemeDef;
 
 /**
- * 0.5 看点卡的短版：rule 是规则的一个短标签（≤8 字），line 是一句 ≤12 字的台词。
+ * 看点卡的短版：rule 是规则的一个短标签（≤8 字），line 是一句 ≤12 字的台词。
  * 长句（intro、rule、roast）留在看点卡的悬停详情里。
  */
 export const MONTH_THEME_SHORT: Readonly<Record<string, { rule: string; line: string }>> = {

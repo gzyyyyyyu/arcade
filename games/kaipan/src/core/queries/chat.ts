@@ -68,7 +68,7 @@ export interface RecView {
   taken: boolean;
   /** 现在能不能买（放进第一个空格）；不能时给原因 */
   error: string | null;
-  /** 0.4 C：唱空的群友建议押它跌 */
+  /** 唱空的群友建议押它跌 */
   short: boolean;
   /** 本周市场「反向群聊」：这条推荐是反话 */
   liar: boolean;

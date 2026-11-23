@@ -21,7 +21,7 @@ export function daysInMonth(month: number): number {
   return BALANCE.monthDays[month - 1] ?? 0;
 }
 
-/** 0.10.0 娱乐短局的开局设置：规则从 BALANCE.short 抄进这局，首付比例按难度 */
+/** 娱乐短局的开局设置：规则从 BALANCE.short 抄进这局，首付比例按难度 */
 export function shortSetup(persona: PersonaId, difficulty: number): RunSetup {
   const { months, billMult, goal } = BALANCE.short;
   const lv = clampDifficulty(difficulty);
@@ -51,7 +51,7 @@ export function shortGoal(s: Readonly<GameState>): number {
   return shortGoalFor(s.setup);
 }
 
-/** 这一局打几个月：实盘（0.6.0）、娱乐短局（0.10.0）按开局设置，闪电盘固定（BALANCE.flash），完整一年 12 个月。 */
+/** 这一局打几个月：实盘、娱乐短局按开局设置，闪电盘固定（BALANCE.flash），完整一年 12 个月。 */
 export function runMonths(s: Readonly<GameState>): number {
   return s.setup?.live?.months ?? s.setup?.short?.months ?? (isFlash(s) ? BALANCE.flash.months : MONTHS);
 }
@@ -193,7 +193,7 @@ export function surprisePlan(seed: string, difficulty = 1, persona: PersonaId = 
   const rng = rngFor(seed, 'surprise');
   const n = Math.min(p.windows.length, p.count[0] + rng.int(p.count[1] - p.count[0] + 1));
   const pool = SURPRISE_BILLS.filter((d) => p.amounts[d.id] !== undefined);
-  // billMult：实盘的账单倍数（0.6.0），和常规月供打同样的折
+  // billMult：实盘的账单倍数，和常规月供打同样的折
   const mult = rulesFor([], difficulty, persona).surpriseMult * billMult;
   const out: { month: number; extra: BillExtra }[] = [];
   for (let k = 0; k < n && pool.length > 0; k++) {

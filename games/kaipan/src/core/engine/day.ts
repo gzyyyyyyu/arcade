@@ -38,7 +38,7 @@ export function startMonth(s: GameState, month: number, em: Emitter): void {
     s.stats.monthOpen = s.account;
     return;
   }
-  // 0.5：先定本月主题（规则表从这一刻起叠加主题的修改，月供也按它算）
+  // 先定本月主题（规则表从这一刻起叠加主题的修改，月供也按它算）
   beginMonth(s);
   const rules = rulesOf(s);
   const base = billFor(month, rules, s.nextBillMult);
@@ -52,10 +52,10 @@ export function startMonth(s: GameState, month: number, em: Emitter): void {
     const def = SURPRISE_BILLS.find((d) => d.id === CRASH_BILL_ID);
     extras.push({ id: CRASH_BILL_ID, name: def?.name ?? '借钱救急', amount: Math.round((base * BALANCE.crash.bill) / 100) * 100 });
   }
-  // 0.10.0 娱乐短局：最后一个月月底多交一笔首付（这局的最终目标，开局时就说了）
+  // 娱乐短局：最后一个月月底多交一笔首付（这局的最终目标，开局时就说了）
   const goal = shortGoal(s);
   if (goal > 0 && month === runMonths(s)) extras.push({ id: SHORT_GOAL_BILL.id, name: SHORT_GOAL_BILL.name, amount: goal });
-  // 0.11.0 实盘杠杆：每月的融资利息（开局资产的比例，取整到百元）
+  // 实盘杠杆：每月的融资利息（开局资产的比例，取整到百元）
   const interest = gearInterest(s);
   if (interest > 0) extras.push({ id: GEAR_INTEREST_BILL.id, name: GEAR_INTEREST_BILL.name, amount: interest });
   let amount = base;
@@ -92,7 +92,7 @@ export function startMonth(s: GameState, month: number, em: Emitter): void {
   s.stats.monthOpen = s.account;
 }
 
-/** 0.5：节奏模块要用的引擎能力（加钱、发道具、发事件）。 */
+/** 节奏模块要用的引擎能力（加钱、发道具、发事件）。 */
 export function tempoCtx(s: GameState, em: Emitter): TempoCtx {
   return {
     emit: (e) => emit(em, e),
@@ -107,7 +107,7 @@ export function tempoCtx(s: GameState, em: Emitter): TempoCtx {
 }
 
 /**
- * 0.5：个股照搬真实走势时的今天。大盘 = amp × 真实涨跌（日历、难度、股灾不再改大盘）；
+ * 个股照搬真实走势时的今天。大盘 = amp × 真实涨跌（日历、难度、股灾不再改大盘）；
  * 风口热度和阶段照 0.4（真实相对强弱 + 日历、直播间、震荡等加成，股灾时一起退潮）——热度只是信息，不影响个股涨跌。
  */
 function trackPlan(s: GameState, real: Readonly<RealMarket>, mr: MarketRules, crash: boolean): DayPlan {
@@ -186,7 +186,7 @@ export function startDay(s: GameState, em: Emitter): void {
   emit(em, { type: 'chat', messages: s.today.messages.map((m) => ({ ...m })), recs: s.today.recs.map((r) => ({ ...r })) });
   const ipoOpen = em.enabled ? ipoToday(s) : null;
   if (ipoOpen) emit(em, { type: 'ipoOpened', offer: { ...ipoOpen, odds: { ...ipoOpen.odds } } });
-  // 0.5：本月还没有高光，主题在月末前一天放出一条重磅情报（算一次高光）
+  // 本月还没有高光，主题在月末前一天放出一条重磅情报（算一次高光）
   const big = manufactured ? s.today.messages.find((m) => m.big) : undefined;
   if (big && s.tempo?.cur) {
     s.tempo.cur.highlights += 1;

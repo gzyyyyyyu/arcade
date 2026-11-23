@@ -48,7 +48,7 @@ export function addIpoBanner(v: ChatView3, s: GameState, offer: IpoOffer, y: num
 }
 
 /**
- * 0.36 财报横条（盘前，预告到揭晓）：第一行「财报 · 股票名」和状态（第 N 天出 / 今天收盘出 / 超预期 ↑x% / 暴雷 ↓x%），
+ * 财报横条（盘前，预告到揭晓）：第一行「财报 · 股票名」和状态（第 N 天出 / 今天收盘出 / 超预期 ↑x% / 暴雷 ↓x%），
  * 第二行群友押的方向，揭晓后写对错。只说会有大动静，不说方向。
  */
 export function addEarningsBanner(v: ChatView3, e: EarningsView, y: number): number {
@@ -93,7 +93,7 @@ export function addWatch(v: ChatView3, s: GameState, y: number): number {
     const ink = sign > 0 ? COLOR.up : sign < 0 ? COLOR.down : COLOR.muted;
     const r = addText(v.scene, CW - 8, 11, left <= 1 ? '今天揭晓' : `剩${left}天`, { size: FS.xs, bold: left <= 1, color: left <= 1 ? COLOR.accentDark : COLOR.muted, originX: 1, originY: 0.5 });
     const room = CW - 8 - r.width - 16;
-    // 0.5.1：找回「N天前」——左边灰字写哪天说的，后面是谁说哪个风口几天内往哪走
+    // 找回「N天前」——左边灰字写哪天说的，后面是谁说哪个风口几天内往哪走
     const when = addText(v.scene, 8, 11, `${ago}天前`, { size: FS.xs, color: COLOR.muted, originY: 0.5 });
     const t = addText(v.scene, 8 + when.width + 5, 11, `${name}：${themeById(w.theme).name} ${sign > 0 ? '↑' : sign < 0 ? '↓' : '→'}${w.days}天`, { size: FS.xs, bold: true, color: ink, originY: 0.5 });
     const tRoom = room - when.width - 5;

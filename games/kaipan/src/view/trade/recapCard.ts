@@ -4,11 +4,11 @@ import { formatMoney, type HoldingMove } from '../../core/index.ts';
 import { CAT_HINT_KEY, NEWS_KEY, hasArt, stockKey } from '../assets.ts';
 import type { Animator } from '../fx/anim.ts';
 import type { Rect } from '../rect.ts';
-import { breakdownOf, moveWord, shortPart, shortWord, SWING_WORD, type DayWord, type Recap, type RecapLine } from '../recap.ts';
+import { breakdownOf, shortPart, SWING_WORD, type DayWord, type Recap, type RecapLine } from '../recap.ts';
 import { pctArrow } from '../labels.ts';
 import { COLOR, FS, PHONE, TYPE, signColor } from '../theme.ts';
 import { addGlyph, addImage, addPill, addSlice } from '../ui/art.ts';
-import { addText, fitWidth } from '../ui/text.ts';
+import { addText, fitWidth, markCut } from '../ui/text.ts';
 import { touchHit } from '../ui/button.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
 import { moneyShort } from '../ui/dialog.ts';
@@ -55,7 +55,7 @@ export class RecapCard {
   private expanded = false;
   private mode: 'recap' | 'breakdown' | null = null;
   private inspected = -1;
-  /** 0.5.5 手机：小结和猫的提示共用左下角。猫有话等着时卡上挂一只小猫，点它收起小结、换猫说 */
+  /** 手机：小结和猫的提示共用左下角。猫有话等着时卡上挂一只小猫，点它收起小结、换猫说 */
   private catBadge = false;
   private catBtn: Phaser.GameObjects.GameObject | null = null;
   private catPos = { x: 0, y: 0 };
@@ -184,11 +184,9 @@ export class RecapCard {
       this.onChange?.();
       return;
     }
-    // 0.5：标题只写「名字 ↑7.9% +¥1,990」，每一项短标签 + 小条 + 数字，整句在悬停提示里
+    // 标题只写「名字 ↑7.9% +¥1,990」，每一项短标签 + 小条 + 数字，整句在悬停提示里
     const head = addText(s, x + PAD, y + 12, `${name}  ${pctArrow(h.ret)}  ${formatMoney(h.amount, { sign: true })}`, { size: 15, bold: true, color: signColor(h.short ? -h.ret : h.ret) });
     root.add(head);
-    void shortWord;
-    void moveWord;
     const max = Math.max(1, ...rows.map((r) => Math.abs(r.value)));
     // 两栏，每栏最多 4 行：说明 + 小条 + 数值
     const colW = (w - PAD * 2 - 16) / 2;
@@ -249,8 +247,8 @@ export class RecapCard {
   }
 
   /**
-   * 0.5 小结：收起时一行大字结论（钱 + 箭头百分比，最精彩的一件事配星星），下面一排「小人头像 + 箭头数字」；
-   * 点「详情」展开成原来的整句（总账、每只一行、账户层效果）。
+   * 小结：收起时一行大字结论（钱 + 箭头百分比，最精彩的一件事配星星），下面一排「小人头像 + 箭头数字」；
+   * 点「详情」展开成完整的句子（总账、每只一行、账户层效果）。
    */
   private drawRecap(): void {
     const r = this.recap;
@@ -260,11 +258,11 @@ export class RecapCard {
     const W0 = RECAP_RECT.w - PAD * 2;
     const all = [...r.lines.map((l) => `${l.head} ${l.money}：${l.why}`), ...r.effects];
     const canExpand = all.length > 0 || r.headline !== '';
-    // 0.19.0 手机上小结窄（SE 约 292）：一枚至少 96 宽，放不下的几只点「详情」看
+    // 手机上小结窄（SE 约 292）：一枚至少 96 宽，放不下的几只点「详情」看
     const chips = this.brief || this.expanded ? [] : r.lines.slice(0, RECAP_RECT.w < 600 ? Math.max(1, Math.min(4, Math.floor((W0 + 8) / 96))) : 4);
     const texts = this.expanded ? [r.headline, ...all.slice(0, 4)].map((t, i) => addText(s, 0, 0, t, { size: i === 0 ? 14 : 12, bold: i === 0, color: COLOR.ink, wrap: W0, lineSpacing: 2 })) : [];
     const bodyH = texts.reduce((n, t) => n + Math.min(t.height, 34) + 3, 0);
-    // 账户层效果（借钱、押跌利息……）：收起时变成「图标 + 金额」小签（0.5.1 找回）
+    // 账户层效果（借钱、押跌利息……）：收起时变成「图标 + 金额」小签
     const fx = this.brief || this.expanded ? [] : r.effects.slice(0, RECAP_RECT.w < 600 ? 2 : 3);
     // 手机上展开的正文往下让 10，不压左边的「今天 / 昨天」小签
     const bodyTop = RECAP_RECT.w < 600 ? 62 : 52;
@@ -272,11 +270,14 @@ export class RecapCard {
     const { root, x, y } = this.frame(h);
     const iconX = x + PAD;
     if (hasArt(s.textures, NEWS_KEY) && !(this.catOnIcon && this.catBtn)) root.add(addImage(s, iconX + 14, y + 26, NEWS_KEY, 28));
-    // 「今天 / 昨天」小签：这张小结说的是哪一天（0.5 删了标题，0.5.1 用小签找回）；只有一行时卡高 64，小签不压纸边
+    // 「今天 / 昨天」小签：这张小结说的是哪一天；只有一行时卡高 64，小签不压纸边
     root.add(addText(s, iconX + 14, y + 42, this.when, { size: 12, bold: true, color: COLOR.accentDark, originX: 0.5 }));
     // 一行大字：+¥1,990  ↑1.99%
     const tint = signColor(r.total);
-    const money = addText(s, iconX + 36, y + 12, Math.round(r.total) === 0 ? '¥0' : formatMoney(r.total, { sign: true }), { size: TYPE.big, bold: true, num: true, color: tint });
+    // 大字前的「账户」：这是整个账户一天的变化，不是哪一只（持仓卡上的「累计」是那一只买入以来的）
+    const accWord = addText(s, iconX + 36, y + 30, '账户', { size: 12, bold: true, color: COLOR.muted, originY: 0.5 });
+    root.add(accWord);
+    const money = addText(s, accWord.x + accWord.width + 4, y + 12, Math.round(r.total) === 0 ? '¥0' : formatMoney(r.total, { sign: true }), { size: TYPE.big, bold: true, num: true, color: tint });
     const pct = addText(s, money.x + money.width + 10, y + 22, pctArrow(r.ret, 2), { size: 15, bold: true, num: true, color: tint });
     // 右上角「详情」左边为止；放不下（竖屏版五位数以上）换成「+¥1.2万」，不截断
     const headRoom = x + RECAP_RECT.w - PAD - 26 - 30;
@@ -287,7 +288,7 @@ export class RecapCard {
     if (headR <= headRoom) root.add(pct);
     else pct.destroy();
     // 最精彩的一件事：星星 + 一句（放不下就截短，整句在详情里）。
-    // 0.36.3 收成一行时（电脑默认）有过山车逆着风口大跌，这一句换成它：不然要点开详情才知道为什么亏
+    // 收成一行时（电脑默认）有过山车逆着风口大跌，这一句换成它：不然要点开详情才知道为什么亏
     const swing = this.brief ? r.lines.find((l) => l.swing) : undefined;
     const note = swing ? `${swing.head.split(' ')[0]} ${SWING_WORD}` : r.star ? arrowize(r.star.replace(/^(今天|昨天)最精彩：/, '')) : '';
     if (note) {
@@ -295,13 +296,13 @@ export class RecapCard {
       const room = x + RECAP_RECT.w - PAD - 60 - (sx + 16) - (this.catBtn ? 32 : 0);
       // 窄卡上放不下四个字就不写（整句在详情里）
       if (room >= 60) {
-        root.add(addGlyph(s, sx, y + 30, swing ? 'bolt' : 'star', 22));
         const st = addText(s, sx + 16, y + 21, note, { size: 14, bold: true, color: swing ? COLOR.danger : COLOR.accentDark });
-        fitWidth(st, room, 4);
-        root.add(st);
+        // 放不下就整句不写（在详情里），不截成省略号
+        if (st.width <= room) root.add([addGlyph(s, sx, y + 30, swing ? 'bolt' : 'star', 22), st]);
+        else st.destroy();
       }
     }
-    // 每只一枚：小人头像 + 箭头数字 + 钱 + 最大原因（短签）+ 贡献小条（0.5.1 找回原因与占比）
+    // 每只一枚：小人头像 + 箭头数字 + 钱 + 最大原因（短签）+ 贡献小条
     const chipW = Math.min(220, (W0 + 8) / Math.max(1, chips.length));
     const maxAmt = Math.max(1, ...chips.map((l) => Math.abs(l.amount)));
     chips.forEach((l, i) => {
@@ -312,7 +313,7 @@ export class RecapCard {
       root.add(s.add.rectangle(cx, cy, cw, 56, 0xffffff, 0.7).setOrigin(0, 0).setRounded(10).setStrokeStyle(2, COLOR.edge, 1));
       // 手机横屏一张只有百来宽：头像缩小，只写涨跌和钱，原因放进悬停；「说对了」放在卡里底下那条的位置
       if (cw < 140) {
-        // 0.19.0 更窄（SE）时不放头像，涨跌和钱靠左（哪只看悬停）
+        // 更窄（SE）时不放头像，涨跌和钱靠左（哪只看悬停）
         const tx = cw < 110 ? cx + 8 : cx + 34;
         if (cw >= 110) root.add(addImage(s, cx + 17, cy + 26, stockKey(l.stockId, faceOf(l.ret)), 30));
         if (l.short) root.add(addGlyph(s, cw < 110 ? cx + cw - 12 : cx + 28, cy + 10, 'bear', 14));
@@ -321,7 +322,7 @@ export class RecapCard {
         if (mt.width > cx + cw - 4 - tx) mt.setText(moneyShort(l.amount, true));
         root.add(mt);
         if (l.swing) {
-          // 0.36.3 过山车逆着风口大跌：底下那条换成小签（整句在悬停）
+          // 过山车逆着风口大跌：底下那条换成小签（整句在悬停）
           const st = addText(s, tx + 3, cy + 46, '过山车', { size: 13, bold: true, color: COLOR.white, originY: 0.5 });
           root.add([addPill(s, tx - 2, cy + 37, Math.min(cw - (tx - cx) - 2, st.width + 10), 18, COLOR.danger), st]);
         } else if (l.called) {
@@ -349,12 +350,12 @@ export class RecapCard {
       root.add(pt);
       root.add(addText(s, pt.x + pt.width + 6, cy + 7, l.money, { size: FS.sm, bold: true, num: true, color: c }));
       // 按卡宽截（下面量宽度），不再统一砍到 8 个字：「大消费热度涨了 9」这种一眼要看完的不打省略号
-      // 0.36.3 过山车逆着风口大跌：原因那行直接写大白话（规则层的原因是「运气」一类，新手看了还是不懂为什么跌）
+      // 过山车逆着风口大跌：原因那行直接写大白话（规则层的原因是「运气」一类，新手看了还是不懂为什么跌）
       const why = l.swing ? SWING_WORD : shortPart(l.why.split('；')[0] ?? l.why, 16);
       const wt = addText(s, cx + 44, cy + 24, why, { size: FS.xs, bold: l.swing, color: l.swing ? COLOR.danger : COLOR.muted });
       fitWidth(wt, cw - 50, 3);
       root.add(wt);
-      // 谁说对了：单独一枚小签骑在卡片上沿右边（以前接在原因后面，窄卡里被截成"老王说…"）
+      // 谁说对了：单独一枚小签骑在卡片上沿右边（接在原因后面的话窄卡里会被截成"老王说…"）
       if (l.called) {
         const ct = addText(s, 0, cy - 5, `${l.called}说对了`, { size: FS.xs, bold: true, color: COLOR.white, originY: 0.5 });
         const pw = ct.width + 12;
@@ -396,6 +397,7 @@ export class RecapCard {
         while (t.height > 34 && cut.length > 6) {
           cut = cut.slice(0, -2);
           t.setText(`${cut.join('')}…`);
+          markCut(t);
         }
       }
       // 手机上卡片矮：放不下的后几条不画，不让字溢出卡片（每只股票的原因点持仓卡的拆解条也能看）

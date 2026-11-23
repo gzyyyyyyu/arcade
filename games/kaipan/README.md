@@ -38,8 +38,8 @@ How to play: [docs/play.md](docs/play.md) (Chinese). Contributing: see [CONTRIBU
 
 ## 屏幕
 
-电脑按 1280×720 的世界布局，窗口不是 16:9 时背景往两边或上下铺满。手机横屏和触屏平板用手机布局（世界高 404、宽随屏幕比例 718–960），
-比 iPhone SE 还矮的屏幕再抬最小字号和点击区；手机和平板竖着拿时提示「把屏幕横过来」。省内存设备（iOS、触屏）渲染倍数封顶 2。
+电脑按 1280×720 的世界布局，窗口不是 16:9 时背景往两边或上下铺满。手机和触屏平板用手机布局：开局时横着拿用横屏版（世界高 404、宽随屏幕比例 718–960），竖着拿用竖屏版（世界宽 404、高 718–960），
+比 iPhone SE 还矮的屏幕再抬最小字号和点击区；拿的方向和布局不一致时提示换一版或照样玩，电脑布局的大触屏竖着拿只提示横过来。省内存设备（iOS、触屏）渲染倍数封顶 2。
 详细做法见 `docs/mobile.md`。
 
 ## 存档和平台
@@ -59,7 +59,7 @@ npm run build:cf     # 部署用的构建：产物在 dist-cf/games/kaipan/，�
 npm run preview      # 用正式构建启动服务 0.0.0.0:4173
 npm run lint         # Biome lint，零报告才算过（npm test 会先跑）
 npm test             # 单元测试：规则与回放、内容、机器人、平台层、Worker、音频纯逻辑、架构约束
-npm run sim          # 数值模拟（参数见 tools/sim.ts 顶部：--balance 配平表、--live 实盘结回、--gear 杠杆、--set 临时改数值）
+npm run sim          # 数值模拟（参数见 tools/sim.ts 顶部：--balance 配平表、--live 实盘带回、--gear 杠杆、--set 临时改数值）
 npm run shot         # 无头 Chromium 冒烟 + 截图到 shots/（参数见 tools/shot.ts 顶部：--main、--live、--phone、--playtest 等）
 npm run audio-check  # 离线渲染所有音效与音乐，检查峰值、响度、时长、拖尾、节点泄漏
 node tools/mem-probe.ts  # 按几种手机、平板、电脑的视口和 DPR 估算显存

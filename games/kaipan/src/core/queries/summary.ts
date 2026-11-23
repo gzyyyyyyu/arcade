@@ -32,21 +32,21 @@ export interface RunSummary {
   /** 最赚的一笔（含未卖出的持仓） */
   bestTrade: { stockId: string; name: string; ret: number } | null;
   title: string;
-  /** 0.6.3 按打法给的评语：一个标签和一句话（结束页称号下面） */
+  /** 按打法给的评语：一个标签和一句话（结束页称号下面） */
   style: PlayStyle;
-  /** 0.5.4：开局本钱、账户实际付掉的账单合计、炒股本身累计赚亏 */
+  /** 开局本钱、账户实际付掉的账单合计、炒股本身累计赚亏 */
   startAccount: number;
   billMoney: number;
   tradeMoney: number;
   /**
-   * 0.5.4：其他进出（红包、事件、月度奖励、借款利息、被收走的罚款……），让 本钱 + 炒股 − 账单 + 其他 + 没还的借款 = 最后剩。
+   * 其他进出（红包、事件、月度奖励、借款利息、被收走的罚款……），让 本钱 + 炒股 − 账单 + 其他 + 没还的借款 = 最后剩。
    * 按差额算，保证几个数加得起来。
    */
   otherMoney: number;
-  /** 0.5.4：结束时还欠着银行的钱（中途出局时借来的钱还在账户里） */
+  /** 结束时还欠着银行的钱（中途出局时借来的钱还在账户里） */
   debtLeft: number;
   autoSold: Record<string, number>;
-  /** 0.3.0：档案用 */
+  /** 档案用 */
   seed: string;
   /** 去重用的唯一标识 */
   runId: string;
@@ -64,12 +64,12 @@ export interface RunSummary {
   ranked: boolean;
   /** 新手课（core/lesson.ts）：只记过没过，不进档案的局数和成绩 */
   lesson: boolean;
-  /** 0.10.0 娱乐短局（打几个月、最后交首付）；完整一年、实盘、每日挑战为 false */
+  /** 娱乐短局（打几个月、最后交首付）；完整一年、实盘、每日挑战为 false */
   short: boolean;
   /** 黑天鹅 Boss 日：打到最后一天的局有（名字、给持仓带来的盈亏元、有没有中招）；没打到最后一天、没有黑天鹅的局缺省 */
   swan?: { name: string; money: number; touched: boolean };
   /**
-   * 0.6.0 实盘：打几个月、开局资产、当前资产（账户 − 借款）、结回倍数（万分之几）、档位和一份、按倍数结回多少；
+   * 实盘：打几个月、开局资产、当前资产（账户 − 借款）、结回倍数（万分之几）、档位和一份、按倍数结回多少；
    * clean 是正常从界面开的实盘局（图鉴照记）。娱乐局为 null
    */
   live: { months: number; start: number; assets: number; bp: number; tier: LiveTier | null; stake: number; value: number; clean: boolean; /** 0.11.0 杠杆（1 / 2 / 3）和是不是跌到清零线结束的 */ gear: number; margin: boolean; /** 0.32.0 资产涨跌按几倍算进筹码（开局抄进 setup.live.lev；老局没有按 1），结束页的账本用 */ lev: number } | null;
@@ -77,11 +77,11 @@ export interface RunSummary {
   achievements: string[];
   /** 本局见过的东西（图鉴） */
   seen: SeenSets;
-  /** 0.4 重做：这局用的真实行情段（图鉴"见过的行情段"）；合成行情为 null */
+  /** 重做：这局用的真实行情段（图鉴"见过的行情段"）；合成行情为 null */
   segment: SeenSegment | null;
-  /** 0.4 C：本局点亮的小知识 id；没有新机制的局为空 */
+  /** 本局点亮的小知识 id；没有新机制的局为空 */
   knowledge: string[];
-  /** 0.4 C：本局的重仓、押跌、抵押经历（几句大白话） */
+  /** 本局的重仓、押跌、抵押经历（几句大白话） */
   recap: string[];
 }
 
@@ -107,7 +107,7 @@ function seenSegment(s: Readonly<GameState>): SeenSegment | null {
 
 /** 结束页称号：爆仓按撑到的月份，通关按最终账户。 */
 /**
- * 称号。通关的按"炒股本身赚了几倍本钱"评（0.5.4，试玩反馈：10 万剩 4.38 万也叫"惊险上岸"看不懂）：
+ * 称号。通关的按"炒股本身赚了几倍本钱"评（试玩反馈：10 万剩 4.38 万也叫"惊险上岸"看不懂）：
  * 12 个月账单合计比本钱还多，通关时剩的钱普遍只有一两万，剩多少不说明打得好不好；炒股净赚才说明。
  * 本钱不是正数（调试开局）时按最后剩的钱评。
  */
@@ -135,7 +135,7 @@ export interface PlayStyle {
 }
 
 /**
- * 0.6.3 按这一局的打法给评语：从最有特点的往下看，第一个对上的就是。只看本局统计，不看输赢（输赢在称号里）。
+ * 按这一局的打法给评语：从最有特点的往下看，第一个对上的就是。只看本局统计，不看输赢（输赢在称号里）。
  * 文案只调侃打法，不调侃人；破产也不挖苦。
  */
 export function playStyle(s: Readonly<GameState>): PlayStyle {

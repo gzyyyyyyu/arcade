@@ -1,5 +1,5 @@
 /**
- * 0.36 财报周：真实行情的普通局，3 / 6 / 9 / 12 月各一次（短局只有 3 月）。
+ * 财报周：真实行情的普通局，3 / 6 / 9 / 12 月各一次（短局只有 3 月）。
  * 月初第一个交易日盘前预告「某只在场股票这周第 N 天出财报，要有大动静」，不说方向；
  * 几位老群友各押一个方向；出财报那天收盘后揭晓「超预期 / 暴雷」和谁押对了。
  *
@@ -16,7 +16,7 @@ import { rngFor } from './rng.ts';
 import { isRegularRun } from './tempo.ts';
 import type { GameState } from './types.ts';
 
-export const EARNINGS_MONTHS: readonly number[] = [3, 6, 9, 12];
+const EARNINGS_MONTHS: readonly number[] = [3, 6, 9, 12];
 
 /** 最多几位群友押方向 */
 const BETTORS = 3;
@@ -65,7 +65,7 @@ export function earningsPlan(s: Readonly<GameState>, month: number): EarningsPla
 }
 
 /** 群友押注：开局就在群里的老群友挑几位，按各自对这个风口的靠谱度说对（隐藏的真相只用来定对错，不直接显示）。 */
-export function earningsBets(s: Readonly<GameState>, plan: Readonly<EarningsPlan>): EarningsBet[] {
+function earningsBets(s: Readonly<GameState>, plan: Readonly<EarningsPlan>): EarningsBet[] {
   const real = s.real;
   if (!real) return [];
   const up = realStockPct(real, plan.stockId, tapeIndex(real, plan.day)) > 0;

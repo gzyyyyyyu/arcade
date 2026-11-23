@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classify, detectPlatform, myName, onPlatformMode, platformInfo, platformMode, setPlatformMode, standalone } from '../../src/platform/mode.ts';
+import { classify, detectPlatform, myName, onPlatformMode, platformInfo, setPlatformMode, standalone } from '../../src/platform/mode.ts';
 
 /** 0.8.0 有没有平台：问同域 /api/me 的回话怎么下结论（和共用包 detectPlatform 的说法一致）。 */
 
@@ -38,7 +38,6 @@ describe('启动时问一次，结论变了通知一次', () => {
     expect(seen).toEqual([]);
 
     expect(await detectPlatform((async () => new Response('', { status: 404 })) as unknown as typeof fetch)).toBe('standalone');
-    expect(platformMode()).toBe('standalone');
     expect(standalone()).toBe(true);
     expect(seen).toEqual(['standalone']);
     off();

@@ -2,7 +2,7 @@ import type { Glyph } from '../assets.ts';
 import { ellipsize } from '../../core/format.ts';
 
 /**
- * 0.5.1 群聊热闹元素（纯画面装饰，不进规则层）：表情包贴纸、群友互相回复、撤回、拍一拍。
+ * 群聊热闹元素（纯画面装饰，不进规则层）：表情包贴纸、群友互相回复、撤回、拍一拍。
  *
  * - 全部用「局的 seed + 交易日编号 + 用途」做确定性随机：同一天重绘结果一样，换一天才变。
  * - 只用来填手机屏幕下面的空白；当天真消息和推荐卡永远优先（见 chat.ts 的 fillFluff）。
@@ -17,7 +17,7 @@ export type Fluff =
   | { kind: 'reply'; friendId: string; toId: string; quote: string; text: string }
   | { kind: 'recall'; friendId: string }
   | { kind: 'poke'; friendId: string; toId: string; tail: string }
-  /** 0.6.4 稀有小彩蛋：一行系统提示，{a} 换成群友名 */
+  /** 稀有小彩蛋：一行系统提示，{a} 换成群友名 */
   | { kind: 'note'; friendId: string; text: string };
 
 /** 字符串 → 32 位哈希（FNV-1a）。 */
@@ -106,7 +106,7 @@ const FAVORITE: Record<string, Partial<Record<Tone, [Glyph, string]>>> = {
 
 /** 互相回复：@对方 + 一句（{to} 是对方名字）。 */
 const REPLIES: Record<Tone, readonly string[]> = {
-  // 0.6.6 每种多几句：一天两批，原来五句没几天就听腻了
+  // 每种多几句：一天两批，五句的话没几天就听腻了
   boom: ['@{to} 你上次也这么说', '@{to} 涨了就别嘚瑟', '@{to} 发红包！', '@{to} 截图留念了', '@{to} 带带我', '@{to} 今晚加鸡腿', '@{to} 先别截图，稳住', '@{to} 这波我信你一半', '@{to} 你是不是偷偷开了天眼', '@{to} 涨成这样我有点慌'],
   crash: ['@{to} 你上次也这么说', '@{to} 说好的起飞呢', '@{to} 心态还好吗', '@{to} 我先去搬砖了', '@{to} 抱抱', '@{to} 我把软件删了又装回来了', '@{to} 没事，就当交学费', '@{to} 今晚吃点好的', '@{to} 明天会更好（吧）', '@{to} 我先去楼下走两圈'],
   flat: ['@{to} 你上次也这么说', '@{to} 有啥新消息', '@{to} 真的假的', '@{to} 先观望一下', '@{to} 收到', '@{to} 今天的风有点安静', '@{to} 就这？', '@{to} 有新消息踢我一下', '@{to} 喝口茶，等等'],
@@ -127,7 +127,7 @@ const REPLY_HABIT: Record<string, readonly string[]> = {
   zhuchang: ['@{to} 猪价都比你稳', '@{to} 喂猪去了'],
 };
 
-/** 0.6.4 稀有小彩蛋（每批大约 2% 的机会出一条，一局能碰上两三回）。 */
+/** 稀有小彩蛋（每批大约 2% 的机会出一条，一局能碰上两三回）。 */
 const RARE_NOTES = [
   '{a} 把群名改成了「今天也要上岸」',
   '{a} 发了个红包，手慢了，没抢到',

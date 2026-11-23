@@ -16,7 +16,7 @@ export const THEME_IDS: readonly ThemeId[] = THEMES.map((t) => t.id);
 
 export const ROLES: readonly Role[] = ['leader', 'follower', 'bluechip', 'meme', 'st'];
 
-/** 股票池（0.3.0：40 只，id 固定，美术按 id 出图）。全部虚构。前 26 只是 M0 的，后 14 只是 0.3.0 新增的。 */
+/** 股票池（40 只，id 固定，美术按 id 出图）。全部虚构。 */
 export const STOCKS: readonly StockDef[] = [
   { id: 'ai_leader', name: '韭菜芯片', theme: 'ai', role: 'leader' },
   { id: 'ai_follower', name: '算力搬砖', theme: 'ai', role: 'follower' },
@@ -44,7 +44,6 @@ export const STOCKS: readonly StockDef[] = [
   { id: 'pig_meme', name: '风口上的猪', theme: 'pig', role: 'meme' },
   { id: 'st_lazy', name: 'ST摆烂', theme: 'consumer', role: 'st' },
   { id: 'st_bye', name: 'ST退退退', theme: 'finance', role: 'st' },
-  // ---------------------------------------------------------------- 0.3.0 新增
   { id: 'ai_blue', name: '稳稳算力云', theme: 'ai', role: 'bluechip' },
   { id: 'ai_follower2', name: '提示词工坊', theme: 'ai', role: 'follower' },
   { id: 'ne_blue', name: '老实电池', theme: 'newenergy', role: 'bluechip' },

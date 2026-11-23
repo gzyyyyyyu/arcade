@@ -28,7 +28,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   ipo: '新股',
 };
 
-/** 今天大环境（原来的"大盘"）。 */
+/** 今天大环境（大盘）。 */
 export const MOOD_LABEL: Record<Mood, string> = {
   bull: '好',
   flat: '一般',

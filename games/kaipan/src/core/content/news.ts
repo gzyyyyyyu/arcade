@@ -1,7 +1,7 @@
 import type { ThemeId } from '../types.ts';
 
 /**
- * 0.3.1 收盘新闻：结果揭晓之后，按风口和涨跌方向抽一条，只解释已经发生的事。
+ * 收盘新闻：结果揭晓之后，按风口和涨跌方向抽一条，只解释已经发生的事。
  * 全部虚构：不涉及真实公司、人物、机构、政治、军事和真实社会事件。
  */
 export const THEME_NEWS: Record<ThemeId, { up: readonly string[]; down: readonly string[] }> = {
@@ -154,7 +154,7 @@ export const MARKET_NEWS: { up: readonly string[]; down: readonly string[] } = {
   ],
 };
 
-/** 0.5：预告类新闻（说的是接下来几天，{theme} 风口名，{n} 天数）。不一定准。 */
+/** 预告类新闻（说的是接下来几天，{theme} 风口名，{n} 天数）。不一定准。 */
 export const AHEAD_NEWS: { up: readonly string[]; down: readonly string[] } = {
   up: ['小道消息：{theme}这几天有好事要发生（{n} 天内见分晓）', '有媒体说{theme}接下来 {n} 天会被资金看上', '{theme}据说有大单子要落地，{n} 天内可能公布'],
   down: ['小道消息：{theme}这几天可能要出坏消息（{n} 天内见分晓）', '有媒体说{theme}接下来 {n} 天有人要卖', '{theme}据说要被查，{n} 天内可能有动静'],

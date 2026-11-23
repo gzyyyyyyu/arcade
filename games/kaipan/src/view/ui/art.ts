@@ -88,8 +88,8 @@ export function addPaper(scene: Phaser.Scene, x: number, y: number, w: number, h
 }
 
 /**
- * 0.16.0 木条（art-v3 的「木」材质：不会变的框架，比如对局顶栏）：深一点的木框 + 浅枫木面板 + 几道木纹，
- * 程序画，不占素材。面板色对 ink、muted 文字的对比度都 ≥ 4.5:1（muted 约 4.6:1），原来纸面上的字直接放上来。
+ * 木条（art-v3 的「木」材质：不会变的框架，比如对局顶栏）：深一点的木框 + 浅枫木面板 + 几道木纹，
+ * 程序画，不占素材。面板色对 ink、muted 文字的对比度都 ≥ 4.5:1（muted 约 4.6:1），纸面上的字直接放上来。
  */
 export function addWood(scene: Phaser.Scene, x: number, y: number, w: number, h: number): Phaser.GameObjects.Graphics {
   const g = scene.add.graphics({ x, y });
@@ -124,7 +124,7 @@ export function addPill(scene: Phaser.Scene, x: number, y: number, w: number, h:
 }
 
 /**
- * 0.5 小图标（见 assets.ts 的 GLYPHS）：(x, y) 为中心，size 为边长；tint 给箭头着涨跌色。
+ * 小图标（见 assets.ts 的 GLYPHS）：(x, y) 为中心，size 为边长；tint 给箭头着涨跌色。
  * 素材缺失时隐藏（文字标签仍在）。
  */
 export function addGlyph(scene: Phaser.Scene, x: number, y: number, g: Glyph, size: number, tint?: number): Phaser.GameObjects.Image {

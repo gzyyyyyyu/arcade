@@ -15,11 +15,11 @@ import { bindTooltip } from '../ui/tooltip.ts';
 import { BOARD } from './layout.ts';
 
 /**
- * 一行里各部件相对行顶的位置。电脑上每行 98 高；手机横屏（0.5.5）看板在右边的标签页里，6 行挤进 348 高，
+ * 一行里各部件相对行顶的位置。电脑上每行 98 高；手机横屏看板在右边的标签页里，6 行挤进 348 高，
  * 每行两排：名字 + 小脸 + 状态签；热度条 + 5 天折线（有备注时换成备注）+ 昨天变化 + 大号热度。
  */
 /**
- * 0.19.0 手机世界高 404、宽 718–960：看板高 300、宽 256–338。行高按看板高分（约 49），
+ * 手机世界高 404、宽 718–960：看板高 300、宽 256–338。行高按看板高分（约 49），
  * 第二排（热度条、折线、变化、大号热度）整体往上收；看板窄时热度条和折线变短。
  */
 function phoneRows(w: number, h: number) {
@@ -31,7 +31,7 @@ function phoneRows(w: number, h: number) {
 }
 
 /**
- * 0.33.0 竖屏版：看板占整宽（约 392），高跟着屏幕变。行高够 46 时照横屏手机的两排；矮屏（360×640 一行只有 37）改成一排：
+ * 竖屏版：看板占整宽（约 392），高跟着屏幕变。行高够 46 时照横屏手机的两排；矮屏（360×640 一行只有 37）改成一排：
  * 名字在上、热度条在下贴着左边，折线在中间，右边依次是昨天变化、大号热度、状态签。
  */
 function portraitRows(w: number, h: number) {
@@ -63,7 +63,7 @@ const HOT_DELTA = 4;
 const SHINE_W = 14;
 const SHINE_MS = 2600;
 
-/** 状态签上的两个字：0.5.3 起和全局的 FEEL_WORD 是同一套叫法（说明书、教程、提示都这么叫）。 */
+/** 状态签上的两个字：和全局的 FEEL_WORD 是同一套叫法（说明书、教程、提示都这么叫）。 */
 const FEEL_SHORT: Record<Feel, string> = FEEL_WORD;
 
 /** 每行的情绪小脸：正火 / 太火冒汗，要火开心，降温难过，冷清的分「平平」和「没人理」。 */
@@ -117,12 +117,12 @@ export class ThemeBoardView {
     this.root = scene.add.container(0, 0);
     // 手机上看板和群聊共用右边一块（标签页切换）：所有部件收进 root，切走时整块藏起来
     const before = scene.children.list.length;
-    // 0.18.0 木材质（art-v3：不会变的框架）：电脑上看板外面一圈木框；手机上看板在标签页里，不加
+    // 木材质（art-v3：不会变的框架）：电脑上看板外面一圈木框；手机上看板在标签页里，不加
     if (!PHONE) addWood(scene, BOARD.x - 6, BOARD.y - 6, BOARD.w + 12, BOARD.h + 12);
     addPaper(scene, BOARD.x, BOARD.y, BOARD.w, BOARD.h);
     // 手机上标题和那句提醒在标签页上（标签「风口」，长按看说明），这里不重复
     if (!PHONE) addText(scene, BOARD.x + 18, BOARD.y + 16, '风口', { size: TYPE.title, bold: true });
-    // 0.5.1：防误解的那句话回到标题旁（小字），细节仍在悬停提示里
+    // 防误解的那句话回到标题旁（小字），细节仍在悬停提示里
     if (!PHONE) addText(scene, RIGHT, BOARD.y + 31, '状态看走向，不看高低', { size: FS.xs, color: COLOR.muted, originX: 1, originY: 0.5 });
     const headHit = scene.add.rectangle(BOARD.x + 8, BOARD.y + 8, BOARD.w - 16, 36, 0xffffff, 0.001).setOrigin(0, 0).setVisible(!PHONE);
     bindTooltip(headHit, () => ({ x: BOARD.x, y: BOARD.y, w: BOARD.w, h: 44 }), () => ({

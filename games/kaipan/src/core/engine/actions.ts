@@ -16,7 +16,7 @@ export function buy(s: GameState, a: Extract<Action, { type: 'buy' }>, em: Emitt
   const old = closeHolding(s, slot, 'replace');
   const theme = stockById(rec.stockId).theme;
   const contra = s.today.messages.some((m) => m.friendId === 'qunzhu' && m.theme === theme && m.claim === 'down');
-  // 0.4 C：仓位（换股时那一格的钱先回来）
+  // 仓位（换股时那一格的钱先回来）
   const units = s.ext ? sizeUnits(s, a.size ?? 'taste') : 1;
   const h = newHolding(s, rec.stockId, s.today.day, 'rec', { recBy: rec.friendId, firstBuy: s.today.buys === 0, contra });
   if (s.ext) {
@@ -35,14 +35,14 @@ export function buy(s: GameState, a: Extract<Action, { type: 'buy' }>, em: Emitt
   }
   s.slots[slot] = h;
   noteUnits(s, h);
-  // 0.4 C：一次买太多，价格被自己抬高一点（多出来的每份 impact pp，按这一笔的金额算）
+  // 一次买太多，价格被自己抬高一点（多出来的每份 impact pp，按这一笔的金额算）
   let cost = 0;
   if (s.ext && units > 1) {
     const b0 = s.account;
     setAccount(s, s.account * (1 - ((units / BALANCE.slots) * BALANCE.ext.impact * (units - 1)) / 100));
     cost = round2(b0 - s.account);
   }
-  // 0.5（真实行情）：手续费（难度"熊出没"起），按这一笔的金额算
+  // 真实行情：手续费（难度"熊出没"起），按这一笔的金额算
   const fee = s.real ? rulesOf(s).buyFee : 0;
   if (fee > 0) {
     const b0 = s.account;
@@ -95,7 +95,7 @@ export function subscribe(s: GameState, size: BuySize, em: Emitter): void {
   emit(em, { type: 'subscribed', slot, size, units, offer: { ...offer, odds: { ...offer.odds } } });
 }
 
-/** 0.3.1：买入、卖出时股票小人冒一句（只发事件，不改局面）。 */
+/** 买入、卖出时股票小人冒一句（只发事件，不改局面）。 */
 export function quip(s: GameState, em: Emitter, stockId: string | null, slot: number, moment: 'bought' | 'sold', key: number): void {
   if (!stockId || !em.enabled) return;
   const text = stockQuip(s, stockId, moment, key);
@@ -111,7 +111,7 @@ export function sell(s: GameState, slot: number, em: Emitter): void {
   quip(s, em, h.stockId, slot, 'sold', s.stats.sells);
 }
 
-/** 0.4 C：加仓（+1 份，现金不够时有多少加多少）。持有收益按成本摊薄。 */
+/** 加仓（+1 份，现金不够时有多少加多少）。持有收益按成本摊薄。 */
 export function addTo(s: GameState, slot: number, em: Emitter): void {
   const h = s.slots[slot];
   if (!h || !s.ext) return;
@@ -129,7 +129,7 @@ export function addTo(s: GameState, slot: number, em: Emitter): void {
   emit(em, { type: 'added', slot, stockId: h.stockId, units: h.units });
 }
 
-/** 0.4 C：减一半（按 0.5 份取整，至少留 0.5 份）。 */
+/** 减一半（按 0.5 份取整，至少留 0.5 份）。 */
 export function trim(s: GameState, slot: number, em: Emitter): void {
   const h = s.slots[slot];
   if (!h || !s.ext) return;
@@ -167,7 +167,7 @@ export function repay(s: GameState, id: CollateralId, em: Emitter): void {
   react(s, em, 'redeem', x.log.redeemed.length);
 }
 
-/** 0.35.0 自选：加星或取消（只记标记，不发事件、不影响规则） */
+/** 自选：加星或取消（只记标记，不发事件、不影响规则） */
 export function toggleStar(s: GameState, stockId: string): void {
   const stars = s.stars ?? [];
   s.stars = stars.includes(stockId) ? stars.filter((id) => id !== stockId) : [...stars, stockId];

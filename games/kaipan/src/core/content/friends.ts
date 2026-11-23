@@ -3,7 +3,7 @@ import type { Comment, Dir, FriendDef, TurnTalk } from '../types.ts';
 /**
  * 群友（M0：开局 6 个，道具或奖励可带来 2 个）。可信度、说话频率在 BALANCE.cred / BALANCE.chat。
  * 台词全部虚构；{theme} 换成风口名，{stock} 换成股票名。
- * 0.7.0：每个池子扩到一局里不怎么撞车的大小（一个话多的群友一局要开口六七十次），口吻跟着性格走。
+ * 每个池子扩到一局里不怎么撞车的大小（一个话多的群友一局要开口六七十次），口吻跟着性格走。
  */
 export const FRIENDS: readonly FriendDef[] = [
   { id: 'xiaoli', name: '小李', title: '大学生', topics: ['ai', 'gaming'], desc: '冲！起飞！', founding: true },
@@ -14,9 +14,9 @@ export const FRIENDS: readonly FriendDef[] = [
   { id: 'dav', name: '股市小诸葛', title: '大V', topics: 'hottest', desc: '直播口头禅不离嘴', founding: true },
   { id: 'neimu', name: '内幕哥', title: '神秘人', topics: 'random2', desc: '消息看完就撤回', founding: false },
   { id: 'zhuchang', name: '猪场老板', title: '养猪大户', topics: ['pig'], desc: '最懂猪的人', founding: false },
-  // 0.4 C：能押跌之后入群；说错的时候一律唱空
+  // 能押跌之后入群；说错的时候一律唱空
   { id: 'kongjun', name: '空军老周', title: '职业唱空', topics: 'all', desc: '什么都觉得要跌', founding: false },
-  // 0.20.8：月度奖励的新群友卡，只在真实行情的非每日局里出现（realOnly）；什么风口都聊，说中率比开局的几位都低一档
+  // 月度奖励的新群友卡，只在真实行情的非每日局里出现（realOnly）；什么风口都聊，说中率比开局的几位都低一档
   { id: 'quant', name: '量化小哥', title: '量化交易员', topics: 'all', desc: '只信模型，满嘴回测', founding: false, realOnly: true },
 ];
 
@@ -361,7 +361,7 @@ export const REC_LINES: Record<string, readonly string[]> = {
 };
 
 /**
- * 0.7.0 这局手气（看本局公开战绩，见 chat.ts 的 handOf）：手气好的时候话里带点得意，手气差的时候找补一句，
+ * 这局手气（看本局公开战绩，见 chat.ts 的 handOf）：手气好的时候话里带点得意，手气差的时候找补一句，
  * 接在消息句尾（气泡只显示一行，开头要留给风口和方向）。只说口气，不改消息本身。
  */
 export const HAND_TAILS: Record<string, Record<'hot' | 'cold', readonly string[]>> = {
@@ -450,7 +450,7 @@ export const MOCK_LINES: readonly string[] = [
   '{stock}今天跌满了，明天总不会更差了吧……吧？',
 ];
 
-/** 0.3.1：今天账户大赚时的道贺（任一群友）。{amount} 是赚到的钱。 */
+/** 今天账户大赚时的道贺（任一群友）。{amount} 是赚到的钱。 */
 export const BIG_WIN_LINES: readonly string[] = [
   '今天赚了{amount}？请客请客！',
   '{amount}到手，今晚的火锅你包了',
@@ -459,7 +459,7 @@ export const BIG_WIN_LINES: readonly string[] = [
   '{amount}！你是不是偷偷报了韭菜收割机的课？',
 ];
 
-/** 0.3.1：今天账户大亏时的安慰（任一群友）。{amount} 是亏掉的钱。 */
+/** 今天账户大亏时的安慰（任一群友）。{amount} 是亏掉的钱。 */
 export const BIG_LOSS_LINES: readonly string[] = [
   '今天亏了{amount}……抱抱，明天会好的',
   '{amount}没了，就当给市场交了学费',
@@ -468,7 +468,7 @@ export const BIG_LOSS_LINES: readonly string[] = [
   '没事，亏{amount}而已，还没到月底呢',
 ];
 
-/** 0.3.1：某个风口涨疯了你一只都没有（任一群友）。 */
+/** 某个风口涨疯了你一只都没有（任一群友）。 */
 export const MISS_LINES: readonly string[] = [
   '{theme}今天涨疯了，你手里一只都没有？',
   '{theme}起飞了，你在哪儿？',
@@ -478,7 +478,7 @@ export const MISS_LINES: readonly string[] = [
 ];
 
 /**
- * 0.7.0 收盘后群里按局面接一句：谁接话看性格（只从有台词的、在群里的人里挑），说法跟着人走。
+ * 收盘后群里按局面接一句：谁接话看性格（只从有台词的、在群里的人里挑），说法跟着人走。
  * 占位：{amount} 今天赚亏的钱，{stock} 股票名，{theme} 风口名，{bill} 本月账单，{n} 翻了几倍或连赚几天。
  *   bigWin / bigLoss 今天大赚、大亏；cheer / mock 持仓涨停、跌停；miss 某个风口涨疯了你一只都没有；
  *   bill 月底前两天还不够还月供；record 账户第一次到开局的 2、3、5、10……倍；streak 连赚 3 天以上；
@@ -604,7 +604,7 @@ export const REACT_LINES: Record<ReactMoment, Partial<Record<string, readonly st
   },
 };
 
-/** 0.7.0 接话时的表情：缺省普通；幸灾乐祸的、自己也难受的单独标。 */
+/** 接话时的表情：缺省普通；幸灾乐祸的、自己也难受的单独标。 */
 export const REACT_MOOD: Partial<Record<ReactMoment, Partial<Record<string, Comment['mood']>>>> = {
   bigLoss: { xiaoli: 'awkward', qunzhu: 'smug', kongjun: 'smug' },
   mock: { xiaoli: 'awkward', qunzhu: 'smug', kongjun: 'smug' },
@@ -617,7 +617,7 @@ export const REACT_MOOD: Partial<Record<ReactMoment, Partial<Record<string, Comm
   bill: { xiaoli: 'awkward' },
 };
 
-/** 0.4 C：群友对重仓、押跌、抵押的反应（mood 对应头像表情）。 */
+/** 群友对重仓、押跌、抵押的反应（mood 对应头像表情）。 */
 export const EXT_REACT_LINES: Record<string, readonly { friendId: string; text: string; mood: 'smug' | 'awkward' | 'normal' }[]> = {
   heavy: [
     { friendId: 'xiaoli', text: '一把梭？兄弟你这是要上天台还是上天堂', mood: 'normal' },

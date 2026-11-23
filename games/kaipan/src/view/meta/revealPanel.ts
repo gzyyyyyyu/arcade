@@ -37,11 +37,11 @@ interface StoryPanelData {
   regimeWord: string;
   lines: readonly string[];
   verdict: string;
-  /** 0.5：每句是哪一类（配图标 / 小人 / 群友头像）；缺省按位置猜 */
+  /** 每句是哪一类（配图标 / 小人 / 群友头像）；缺省按位置猜 */
   marks?: readonly Mark[];
 }
 
-/** 0.18.0 这段日子的心情图：天气 + 一张脸（以前只有市况签上的小箭头，整块面板看不出是牛是熊） */
+/** 这段日子的心情图：天气 + 一张脸（只有市况签上的小箭头的话，整块面板看不出是牛是熊） */
 const REGIME_MOOD: Record<Regime, [Glyph, Glyph]> = {
   bull: ['sun', 'face_happy'],
   bubble: ['rocket', 'face_hot'],
@@ -54,8 +54,8 @@ const UP_REGIME = new Set<Regime>(['bull', 'bubble']);
 const DOWN_REGIME = new Set<Regime>(['bear', 'crash']);
 
 /**
- * 0.4 重做、0.5 美化：局末"这段日子"（真实行情局）。不揭晓年份和真身，只讲一个用花名写的小故事。
- * 0.5：每句一张小纸条，左边配图（日历、闪电、赚钱的小人、群友头像……），句子里的数字高亮成色块；
+ * 重做、0.5 美化：局末"这段日子"（真实行情局）。不揭晓年份和真身，只讲一个用花名写的小故事。
+ * 每句一张小纸条，左边配图（日历、闪电、赚钱的小人、群友头像……），句子里的数字高亮成色块；
  * 结尾一句大字吐槽和"知道了"。
  */
 export class RevealPanel extends Dialog {
@@ -69,7 +69,7 @@ export class RevealPanel extends Dialog {
     const L = 36;
     // 手机：标题和市况签上移、小一号，给故事多留一行
     const ty = phone ? 64 : 74;
-    // 竖屏版（0.33.0）：标题占一行，市况签和翻页键在下面一行
+    // 竖屏版：标题占一行，市况签和翻页键在下面一行
     const pt = !!pp && pp.h > pp.w;
     const title = addText(s, L, ty, `「${v.title}」`, { size: phone ? 20 : 24, bold: true, color: COLOR.accentDark });
     this.inner.add(pt ? fitWidth(title, pp.w - L - 64) : title);

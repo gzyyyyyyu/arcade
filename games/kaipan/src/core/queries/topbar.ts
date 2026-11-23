@@ -46,7 +46,7 @@ export interface TopBar {
   swan: SwanNotice | null;
   /** 今天没空看盘（加班事件） */
   busy: boolean;
-  /** 0.6.0 实盘：档位名、一份、按现在的资产能结回多少；娱乐局为 null */
+  /** 实盘：档位名、一份、按现在的资产能结回多少；娱乐局为 null */
   live: { tierName: string; stake: number; value: number } | null;
   /** 临时道具（id → 到几月底失效） */
   expiring: { id: string; month: number }[];
@@ -123,7 +123,7 @@ export function billView(s: Readonly<GameState>): BillView {
 }
 
 /**
- * 0.32.0 娱乐短局：到最后一个月月底还要交多少——还没交的各月账单加首付（顶栏账户下面一行、月底账单的一行收据用）。
+ * 娱乐短局：到最后一个月月底还要交多少——还没交的各月账单加首付（顶栏账户下面一行、月底账单的一行收据用）。
  * 还没交的这个月用已经公布的账单（s.bill，最后一个月里已含首付）；以后几个月的主题和突发账单要到月初才公布，不能透露，
  * 只按不带主题的规则表估常规月供（下个月乘上已经公布的 nextBillMult），所以是个估计（顶栏的悬停里说明）。不是短局为 null。
  */
@@ -148,9 +148,9 @@ export interface CalendarView {
   days: number;
   current: boolean;
   past: boolean;
-  /** 0.36 这个月的抽新股（第几天申购，1 起）；没有为 null */
+  /** 这个月的抽新股（第几天申购，1 起）；没有为 null */
   ipo: { name: string; nth: number } | null;
-  /** 0.36 这个月有财报周 */
+  /** 这个月有财报周 */
   earnings: boolean;
 }
 

@@ -1,4 +1,4 @@
-/** 0.4 C 仓位、押跌、抵押：份额计算、银行检查，以及能不能卖、是不是加班日。 */
+/** 仓位、押跌、抵押：份额计算、银行检查，以及能不能卖、是不是加班日。 */
 import { BALANCE } from '../balance.ts';
 import { EXT_REACT_LINES, collateralTerms } from '../content/index.ts';
 import { round2, rulesOf } from '../market.ts';
@@ -9,7 +9,7 @@ import { isFlash } from './calendar.ts';
 import { setAccount } from './holdings.ts';
 import { type Emitter, emit } from './shared.ts';
 
-// ================================================================ 0.4 C：仓位、押跌、抵押
+// ================================================================ 仓位、押跌、抵押
 
 /** 一格持仓占几份钱（缺省 1 份 = 0.3 的一格）。 */
 export function unitsOf(h: Readonly<Holding> | null | undefined): number {
@@ -54,9 +54,9 @@ export function shortWind(s: Readonly<GameState>, mood: GameState['mood']): numb
 }
 
 /**
- * 现在能不能押跌：真实行情的娱乐局开局就能（0.35.0）；实盘、合成行情要押跌许可证、人设、月度主题解锁，或者难度够高。
+ * 现在能不能押跌：真实行情的娱乐局开局就能；实盘、合成行情要押跌许可证、人设、月度主题解锁，或者难度够高。
  * 规则表里的 canShort 只记「解锁了」：空军老周跟着解锁进群，娱乐局开局不拉他（他什么都喊跌，开局就在群里会把跟消息的人带偏，
- * 0.35.0 模拟：普通打法 L3 通关率 72% → 63%）。
+ * 模拟：普通打法 L3 通关率 72% → 63%）。
  */
 export function canShortNow(s: Readonly<GameState>): boolean {
   return !!s.ext && (isEaseRun(s) || rulesOf(s).canShort || s.difficulty >= BALANCE.ext.shortLevel);
@@ -113,7 +113,7 @@ export function newExt(): ExtState {
   };
 }
 
-/** 0.4 C：群友对重仓、押跌、抵押的反应（只发事件，不改局面；说话的人得在群里）。 */
+/** 群友对重仓、押跌、抵押的反应（只发事件，不改局面；说话的人得在群里）。 */
 export function react(s: Readonly<GameState>, em: Emitter, kind: string, key: number): Comment | null {
   if (!em.enabled || !s.ext) return null;
   const lines = (EXT_REACT_LINES[kind] ?? []).filter((l) => s.friends.some((f) => f.id === l.friendId));

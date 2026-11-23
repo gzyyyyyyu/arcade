@@ -28,7 +28,7 @@ export interface Analysis {
   clipped: number;
 }
 
-export function analyze(buf: AudioBuffer, from = 0): Analysis {
+function analyze(buf: AudioBuffer, from = 0): Analysis {
   const sr = buf.sampleRate;
   const chans: Float32Array[] = [];
   for (let c = 0; c < buf.numberOfChannels; c++) chans.push(buf.getChannelData(c));
@@ -97,7 +97,7 @@ export function analyze(buf: AudioBuffer, from = 0): Analysis {
 }
 
 /** 离线渲染单个音效：t=0.05 起播，渲染 seconds 秒。 */
-export async function renderCue(cue: Cue, seconds = 5): Promise<Analysis & { nodesLeft: number }> {
+async function renderCue(cue: Cue, seconds = 5): Promise<Analysis & { nodesLeft: number }> {
   const ctx = new OfflineAudioContext(2, Math.floor(SR * seconds), SR);
   const engine = new AudioEngine(ctx, UNITY);
   engine.playAt(cue, 0.05);

@@ -71,7 +71,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   private async run(): Promise<void> {
-    // 字体和图集入口同时取；图集入口一到，页图、固定素材、标题主视觉就一起拉（以前是排着队一段一段等）
+    // 字体和图集入口同时取；图集入口一到，页图、固定素材、标题主视觉就一起拉，不排着队一段一段等
     const font = loadNumFont();
     await prepareArt(atlasMode());
     const stocks = stocksForThemes(this.session.state.themeIds);

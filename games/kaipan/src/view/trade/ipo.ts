@@ -37,7 +37,7 @@ export function drawWord(s: Pick<GameState, 'dayIndex'>, offer: IpoOffer): strin
 }
 
 /** 这一档冻结多少现金（和卡片上的份数同一个算法：账户 × 份数 ÷ 总份数）。 */
-export function frozenMoney(s: GameState, size: BuySize): number {
+function frozenMoney(s: GameState, size: BuySize): number {
   return Math.round((s.account * sizeUnits(s, size)) / holdingBase(s));
 }
 

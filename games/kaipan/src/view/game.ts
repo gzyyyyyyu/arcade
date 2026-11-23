@@ -24,11 +24,11 @@ export function startGame(session: Session, parent: string, opts: { toTitle: boo
     // Phaser 默认在启动和切回标签页后有 120 帧「冷却」，期间每帧时间被压到 16.7ms；
     // 低帧率设备上这会让开头十几秒的动画慢好几倍，所以缩短到 12 帧（超长帧仍按 200ms 截断）
     fps: { panicMax: 12 },
-    // 0.14.0 EXPAND：窗口不是 16:9 时画布跟着变长，不再留空条；世界的摆法见 viewport.ts 的 cameraFor
+    // EXPAND：窗口不是 16:9 时画布跟着变长，不再留空条；世界的摆法见 viewport.ts 的 cameraFor
     scale: { mode: Phaser.Scale.EXPAND, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: [new BootScene(session, opts.toTitle), new TitleScene(session), new TradeScene(session), new EndScene(session)],
   });
-  // 0.5.9：拿不到 WebGL 时 Phaser.AUTO 自己退回 Canvas；WebGL 用着用着丢了（显存吃紧时 iOS 会收回），Phaser 会等它恢复。
+  // 拿不到 WebGL 时 Phaser.AUTO 自己退回 Canvas；WebGL 用着用着丢了（显存吃紧时 iOS 会收回），Phaser 会等它恢复。
   // 共用包 arcade-kit/viewport：3 秒还没恢复才提示刷新，恢复了就收起；同一时间只有一条
   game.events.once(Phaser.Core.Events.READY, () => {
     // 右键在游戏里有用（持仓卡弹菜单、空白处取消）：只在画布上关掉浏览器自带的右键菜单，页面其他地方不动

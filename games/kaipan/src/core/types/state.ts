@@ -17,7 +17,7 @@ export interface ThemeState {
   left: number;
   /** 隐藏：这一轮萌芽不会夭折（稀有股票奖励拉起的萌芽） */
   sure: boolean;
-  /** 0.4 重做（真实行情）：当前阶段已经持续了几天（含今天）；合成行情不用 */
+  /** 重做（真实行情）：当前阶段已经持续了几天（含今天）；合成行情不用 */
   age?: number;
   /** 隐藏：股灾里被打下来的题材：这一轮退潮之后冷门很短，接着的萌芽不会夭折（报复性反弹） */
   rebound?: boolean;
@@ -68,13 +68,13 @@ export interface Holding {
   /** 隐藏：持有期间题材进入过退潮（站岗专业户用，结束页才判定） */
   sawEbb: boolean;
   /**
-   * 0.4 C 仓位：这一格占几份钱（1 份 = 账户的 1/4；缺省 1，也就是 0.3 的一格）。
+   * 仓位：这一格占几份钱（1 份 = 账户的 1/4；缺省 1，也就是 0.3 的一格）。
    * 试一口 1 份、半仓 2 份、重仓 = 剩下的全部现金；加仓 +1 份，减一半砍掉一半。
    */
   units?: number;
-  /** 0.4 C 押跌：它跌你赚、它涨你亏（缺省 false） */
+  /** 押跌：它跌你赚、它涨你亏（缺省 false） */
   short?: boolean;
-  /** 0.4 C：押跌期间它连续涨停了几天（嘴硬王用） */
+  /** 押跌期间它连续涨停了几天（嘴硬王用） */
   squeezed?: number;
   /**
    * 打新（docs/design-modes.md 第 18 节）：
@@ -101,12 +101,12 @@ export interface IpoOffer {
   odds: Record<BuySize, number>;
 }
 
-/** 0.4 C 买入时选的仓位：试一口、半仓、重仓。 */
+/** 买入时选的仓位：试一口、半仓、重仓。 */
 export type BuySize = 'taste' | 'half' | 'heavy';
-/** 0.4 C 抵押物。 */
+/** 抵押物。 */
 export type CollateralId = 'bracelet' | 'car' | 'house' | 'pension';
 
-/** 0.4 C 一笔抵押借款。 */
+/** 一笔抵押借款。 */
 export interface Loan {
   id: CollateralId;
   /** 借了多少（元） */
@@ -117,7 +117,7 @@ export interface Loan {
   month: number;
 }
 
-/** 0.4 C 本局的仓位、押跌、抵押经历（结局故事、成就、图鉴用）。 */
+/** 本局的仓位、押跌、抵押经历（结局故事、成就、图鉴用）。 */
 export interface ExtLog {
   /** 重仓买入次数 */
   heavy: number;
@@ -148,7 +148,7 @@ export interface ExtLog {
   interest: number;
 }
 
-/** 0.4 C 新机制的状态；缺省（老存档、合成行情回放基准）时新机制全部不出现。 */
+/** 新机制的状态；缺省（老存档、合成行情回放基准）时新机制全部不出现。 */
 export interface ExtState {
   loans: Loan[];
   /** 银行正在打电话（账户跌破警戒线） */
@@ -169,11 +169,11 @@ export interface Message {
   /** 反着信群主（道具）：这条是群主说的，对你来说按反方向读（公开） */
   reverse?: boolean;
   /**
-   * 0.5（真实行情）：说的是接下来几个交易日（含今天，1–3）这个风口的累计涨跌方向；缺省 1。
+   * 真实行情：说的是接下来几个交易日（含今天，1–3）这个风口的累计涨跌方向；缺省 1。
    * days > 1 的消息不在当天揭晓，到第 days 天收盘时在 report.intel 里揭晓。
    */
   days?: number;
-  /** 0.5：重磅情报（月度主题制造的高光、"提前看一天"），画面可以加大气泡 */
+  /** 重磅情报（月度主题制造的高光、"提前看一天"），画面可以加大气泡 */
   big?: boolean;
   /** 本周市场「反向群聊」：这条是反话（说涨多半跌）。claim 照他说的写，不替玩家翻 */
   liar?: boolean;
@@ -186,11 +186,11 @@ export interface Rec {
   text: string;
   /** 今天已经买过这条推荐 */
   taken: boolean;
-  /** 0.4 C：唱空的群友建议押它跌 */
+  /** 唱空的群友建议押它跌 */
   short?: boolean;
-  /** 0.5（真实行情）：推荐人说的是接下来几个交易日（含今天）会涨（押跌推荐是会跌）；缺省 1 */
+  /** 真实行情：推荐人说的是接下来几个交易日（含今天）会涨（押跌推荐是会跌）；缺省 1 */
   days?: number;
-  /** 0.5：重磅推荐（月度主题制造的高光） */
+  /** 重磅推荐（月度主题制造的高光） */
   big?: boolean;
   /** 本周市场「反向群聊」：这条推荐是反话（推的票多半要跌，唱空的反而是好票） */
   liar?: boolean;
@@ -219,7 +219,7 @@ export interface TodayState {
   /** 隐藏 */
   plan: DayPlan;
   /**
-   * 0.5：盘前是不是"平淡日"（没有重磅情报、没有新群友的消息要看、不是月初、没有传闻）——画面可以自动快进。
+   * 盘前是不是"平淡日"（没有重磅情报、没有新群友的消息要看、不是月初、没有传闻）——画面可以自动快进。
    * 收盘后另看 report.tempo.quiet。
    */
   quiet?: boolean;
@@ -276,13 +276,13 @@ export interface EventState {
   theme?: ThemeId;
   /** 年会抽奖、年终奖：金额（元）；群主卖课、买彩票、盲盒、借钱、摆摊、理财：花费或本金（元） */
   amount?: number;
-  /** 0.4 C：银行经理、丈母娘：说的是哪件抵押物 */
+  /** 银行经理、丈母娘：说的是哪件抵押物 */
   collateral?: CollateralId;
-  /** 0.20 楼下老股民：教你的那一招（战法道具 id） */
+  /** 楼下老股民：教你的那一招（战法道具 id） */
   itemId?: string;
 }
 
-/** 事件留下的延后结算（0.3.0）：某个月月初到账或扣款。玩家自己选的，公开；结果在到账时才掷。 */
+/** 事件留下的延后结算：某个月月初到账或扣款。玩家自己选的，公开；结果在到账时才掷。 */
 export interface PendingEffect {
   /** 来源事件 id */
   id: string;

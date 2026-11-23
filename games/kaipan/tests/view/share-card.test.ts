@@ -11,9 +11,9 @@ const live = (over: Partial<NonNullable<RunSummary['live']>>): RunSummary => {
 };
 
 describe('名场面：按顺序取第一条符合的', () => {
-  it('① 实盘结回 ≥ 3 倍（1× 不说杠杆）', () => {
-    expect(shareLine(live({ bp: 34_000, gear: 2 }))).toBe('杠杆 ×2，5 个月结回 ×3.40');
-    expect(shareLine(live({ bp: 30_000, gear: 1 }))).toBe('5 个月结回 ×3.00');
+  it('① 实盘带回 ≥ 3 倍（1× 不说杠杆）', () => {
+    expect(shareLine(live({ bp: 34_000, gear: 2 }))).toBe('杠杆 ×2，5 个月带回 ×3.40');
+    expect(shareLine(live({ bp: 30_000, gear: 1 }))).toBe('5 个月带回 ×3.00');
   });
   it('② 跌到清零线', () => {
     expect(shareLine({ ...live({ bp: 0, gear: 3, margin: true }), month: 2 })).toBe('杠杆 ×3，第 2 个月清零');
@@ -37,13 +37,13 @@ describe('名场面：按顺序取第一条符合的', () => {
 });
 
 describe('大数字和小数据', () => {
-  it('实盘：结回倍数（含杠杆）、还上几个月、清零写 ×0', () => {
+  it('实盘：带回倍数（含杠杆）、还上几个月、清零写 ×0', () => {
     const d = shareData(live({ bp: 34_000, gear: 2 }));
     expect(d.title).toBe('实盘小档 · 2,000');
-    expect(d.big).toEqual({ value: '×3.40', label: '杠杆 ×2 · 结回几倍' });
+    expect(d.big).toEqual({ value: '×3.40', label: '杠杆 ×2 · 带回几倍' });
     expect(d.stats).toEqual([{ label: '还上', value: '0/5 个月' }]);
     expect(shareData(live({ bp: 0, gear: 3, margin: true })).big).toEqual({ value: '×0', label: '杠杆 ×3 · 跌到清零线' });
-    expect(shareData(live({ bp: 12_000, gear: 1 })).big.label).toBe('结回几倍');
+    expect(shareData(live({ bp: 12_000, gear: 1 })).big.label).toBe('带回几倍');
   });
 
   it('娱乐：资产涨跌幅（比例，不是钱数）、结果、人设；最赚的一笔只写赚了的', () => {

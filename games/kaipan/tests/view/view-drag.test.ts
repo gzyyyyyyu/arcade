@@ -101,7 +101,7 @@ describe('快捷键一览', () => {
   });
   it('一览里有任务要求的每一类键，每行都有键和说明', () => {
     const all = KEY_ROWS.flatMap((r) => r.keys).join(' ');
-    for (const want of ['空格', 'F', '1', 'Shift + 1', '← → ↑ ↓', 'Tab', '回车', 'Esc', '右键', 'H']) expect(all, want).toContain(want);
+    for (const want of ['空格', 'F', '1', 'Shift + 数字', '← → ↑ ↓', 'Tab', '回车', 'Esc', '右键', 'H']) expect(all, want).toContain(want);
     for (const r of KEY_ROWS) {
       expect(r.keys.length).toBeGreaterThan(0);
       expect(r.what.length).toBeGreaterThan(3);

@@ -4,7 +4,7 @@ import { PORTRAIT_TOP_H } from './topBarGeo.ts';
 
 /**
  * 交易主场景的布局，见设计稿第 10 节。电脑是 1280×720 的世界；
- * 手机横屏（0.5.5 起）：持仓在左上、收盘小结在左下、开盘键在右下角旁边，
+ * 手机横屏：持仓在左上、收盘小结在左下、开盘键在右下角旁边，
  * 右边一块用标签页在「群聊」和「风口」之间切换（三块都摆开字就小得看不清）。
  */
 const DESKTOP = {
@@ -28,7 +28,7 @@ const DESKTOP = {
 } satisfies Record<string, Rect | null>;
 
 /**
- * 手机（0.19.0）：世界宽 718–960、高 404（见 theme.ts 的 phoneWorld），各块按宽度算。
+ * 手机：世界宽 718–960、高 404（见 theme.ts 的 phoneWorld），各块按宽度算。
  * 右边群聊 / 风口一块占宽度的三分之一多（256–338），左边是持仓、下面是小结和开盘键。
  */
 export function mobileLayout(W: number, H: number): typeof DESKTOP {
@@ -57,7 +57,7 @@ export function mobileLayout(W: number, H: number): typeof DESKTOP {
 }
 
 /**
- * 竖屏版（0.33.0，世界 404 × 718–960）：一栏从上往下——两行顶栏（高 92）、持仓（高 214，矮屏 204）、群聊 / 推荐 / 风口的标签和那一块（吃掉多出来的高度），
+ * 竖屏版（世界 404 × 718–960）：一栏从上往下——两行顶栏（高 92）、持仓（高 214，矮屏 204）、群聊 / 推荐 / 风口的标签和那一块（吃掉多出来的高度），
  * 最下面一排是收盘小结（左）和显示器状态条 + 开盘键（右，宽 150，拇指够得着）。
  */
 export function portraitLayout(W: number, H: number): typeof DESKTOP {
@@ -82,8 +82,8 @@ export function portraitLayout(W: number, H: number): typeof DESKTOP {
     MONITOR: { x: ox, y: lowY, w: openW, h: 46 },
     OPEN: { x: ox, y: lowY + 50, w: openW, h: lowH - 50 },
     RECAP: recap,
-    // 猫的提示比小结卡高一截（往上压住群聊那块的底边 60）：底下一排只有 230 宽，新玩法那句要折三行才放得下；提示有 ×，看完就收
-    HINT: { ...recap, y: recap.y - 60, h: recap.h + 60 },
+    // 猫的提示只占底下这一块（往上高出会在矮屏上压住第 3 张推荐卡的买入 / 押跌）；猫缩成小头像放进标题行（hintBubble 的 catInside）
+    HINT: recap,
     TABS: { x: 6, y: tabsY, w: W - 12, h: tabsH },
   };
 }
@@ -113,7 +113,7 @@ export function slotRects(n: number): Rect[] {
 }
 
 /** 竖屏：两行，行距 8（卖出键的点击区往下撑 8，不压到下一行的卡） */
-export function gridRects(n: number, area: Rect): Rect[] {
+function gridRects(n: number, area: Rect): Rect[] {
   const cols = n <= 4 ? 2 : 3;
   const rows = Math.max(1, Math.ceil(n / cols));
   const gap = 8;

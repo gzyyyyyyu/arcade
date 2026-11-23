@@ -299,21 +299,21 @@ export class DayPlayback {
       this.s.screen.setSub('收盘');
       if (!fast) {
         this.s.room.setTime('dusk', a);
-        // 0.17.0 收盘：总账数字砸一下，赚了的话金币从显示器飞进钱包（都不占节拍）
+        // 收盘：总账数字砸一下，赚了的话金币从显示器飞进钱包（都不占节拍）
         pop(a, this.s.monitor, 1.25);
         if (report.account.after - report.account.before >= 1) this.s.tfx.coinsHome({ x: this.s.monitor.x, y: this.s.monitor.y }, report.account.ret);
       }
-      // 0.5.1：房间跟着今天的结果——赚了掉金币、亏了飘乌云，大盘大涨挂彩虹
+      // 房间跟着今天的结果——赚了掉金币、亏了飘乌云，大盘大涨挂彩虹
       this.s.room.celebrate(a, report.account.ret);
       this.s.room.setRainbow(report.market.ret >= 1.5);
     }
     // ⑥ 高光、连击：屏幕中部大字（快进时也照常播，最多两条）；连击的红包让账户再跳一下；目标进度、达成、没达成。
-    // 0.36.4 大字和群聊那边（揭晓盖章 → 播报、吐槽、新闻）一起播，两边都播完才往下走：以前排队，一天多挡 1.5 秒左右
+    // 大字和群聊那边（揭晓盖章 → 播报、吐槽、新闻）一起播，两边都播完才往下走：排队的话一天多挡 1.5 秒左右
     const tempo = this.playTempo(prev, next, events, report);
     // 消息揭晓（当天的、前几天的多日消息），然后播报、吐槽和新闻
     await this.s.chat.judge(a, pick(events, 'messageJudged'), T.judge * k, next);
     await this.s.chat.judgeIntel(a, pick(events, 'intelJudged'), T.judge * k);
-    // 0.36 新股上市当天也播一条（排最前：是你手里的）
+    // 新股上市当天也播一条（排最前：是你手里的）
     const listed = pick(events, 'ipoListed').map((e) => `新股${stockById(e.stockId).name}（你手里的）上市首日 ${formatPoints(report?.stocks.find((m) => m.id === e.stockId)?.move ?? e.premium)}`);
     const ticker = [...listed, ...pick(events, 'spotted').sort((x, y) => Number(y.held) - Number(x.held)).map((e) => spottedText(e))];
     await this.s.chat.afterClose(a, pick(events, 'comment'), report?.news ?? [], T.comment * k, ticker, report ?? null);
@@ -353,10 +353,10 @@ export class DayPlayback {
       events.some((e) => e.type === 'ipoDrawn' || e.type === 'ipoListed') ||
       report?.tempo?.quiet === false ||
       !report?.tempo ||
-      // 0.19.4 摘帽 / 戴帽 / 退市只在是你拿着的那只时停（以前全市场哪只出新闻都停，平淡日几乎从不自动快进）
+      // 摘帽 / 戴帽 / 退市只在是你拿着的那只时停（全市场哪只出新闻都停的话，平淡日几乎从不自动快进）
       events.some((e) => e.type === 'eventStarted' || e.type === 'monthStarted' || e.type === 'bankCalled' || e.type === 'seized' || e.type === 'crashHit' || e.type === 'autoSold' || (e.type === 'stockNews' && e.held));
 
-    // 0.11.0 开了杠杆、收盘后跌到清零线：一张卡说清楚，点了去结束页（月底还完账单后跌到的在账单卡后面说）
+    // 开了杠杆、收盘后跌到清零线：一张卡说清楚，点了去结束页（月底还完账单后跌到的在账单卡后面说）
     const called = first(events, 'gearWiped');
     if (called && !first(events, 'billPaid')) {
       await this.s.month.playMarginCall();
@@ -376,7 +376,7 @@ export class DayPlayback {
       // 本月目标写在账单上
       const mt = monthThemeView(prev);
       const goal = mt ? { name: mt.name, done: mt.goal.done || !!first(events, 'goalDone') } : undefined;
-      // 0.32.0 短局：还上了、又不是最后一个月，账单里多一行收据：剩下的账单加首付还差多少（最后一个月的账单里已经含着首付）
+      // 短局：还上了、又不是最后一个月，账单里多一行收据：剩下的账单加首付还差多少（最后一个月的账单里已经含着首付）
       const dp = paid && paid.month < runMonths(prev) ? shortNeed(next) : null;
       const downPayment = paid && dp ? downPaymentRow(paid.after, dp.need) : undefined;
       const quick = loadViewPrefs().bill === 'quick';
@@ -435,7 +435,7 @@ export class DayPlayback {
   }
 
   /**
-   * 0.5 收盘的节奏反馈：高光 / 连击大字（按精彩程度挑两条）、连击红包让账户跳一下、顶栏目标进度跳动或盖章。
+   * 收盘的节奏反馈：高光 / 连击大字（按精彩程度挑两条）、连击红包让账户跳一下、顶栏目标进度跳动或盖章。
    * 返回今天有没有值得停下来看的事（自动快进碰到就停）。
    */
   async playTempo(prev: GameState, next: GameState, events: GameEvent[], report: { tempo?: { streak: number } } | null): Promise<boolean> {
@@ -478,7 +478,7 @@ export class DayPlayback {
     const failed = first(events, 'goalFailed');
     if (done || failed) {
       this.s.top.goalChanged(a, next, done ? 'done' : 'failed');
-      // 0.17.0 月底那天出结果的：账单上会写，不再单独飘一行字、多停 0.9 秒
+      // 月底那天出结果的：账单上会写，不再单独飘一行字、多停 0.9 秒
       const billDay = events.some((e) => e.type === 'billPaid' || e.type === 'bankrupt');
       if (failed && !done && !billDay) this.s.tfx.glyphPop('target', SHOUT_AT.x - 150, SHOUT_AT.y, 34, 800);
       if (failed && !done && !billDay) floatText(this.s, a, SHOUT_AT.x, SHOUT_AT.y, `本月目标没达成：${monthThemeView(prev)?.name ?? ''}`, COLOR.muted, { size: 20, pop: true, hold: 900, depth: 170 });

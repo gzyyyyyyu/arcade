@@ -1,6 +1,6 @@
 /**
- * 0.12.0 分享卡（docs/design-share.md，仓库根 docs/social.md 1.1）：开盘只交数据，画法和分享方式在共用包 `arcade-kit/share`。
- * 取代 0.6.5 起自己画的「晒战绩」海报，五个游戏的卡一个样子。
+ * .0 分享卡（docs/design-share.md，仓库根 docs/social.md 1.1）：开盘只交数据，画法和分享方式在共用包 `arcade-kit/share`。
+ * 五个游戏的卡一个样子。
  *
  * - 大数字用比例不用钱数：三个人设开局本钱不一样，钱数没法比；实盘就是结回倍数（和结算页、顶栏同一个数，含杠杆）。
  * - 名场面按 design-share.md 第 2 节的顺序取第一条符合的；文字是固定模板，数字和名字由代码填，不收玩家的自由文字。
@@ -35,7 +35,7 @@ const times = (bp: number): string => `×${(bp / 10_000).toFixed(2)}`;
 export function shareLine(sum: Readonly<RunSummary>): string {
   const lv = sum.live;
   const best = sum.bestTrade;
-  if (lv && lv.bp >= 30_000) return lv.gear > 1 ? `杠杆 ×${lv.gear}，${lv.months} 个月结回 ${times(lv.bp)}` : `${lv.months} 个月结回 ${times(lv.bp)}`;
+  if (lv && lv.bp >= 30_000) return lv.gear > 1 ? `杠杆 ×${lv.gear}，${lv.months} 个月带回 ${times(lv.bp)}` : `${lv.months} 个月带回 ${times(lv.bp)}`;
   if (lv?.margin) return `杠杆 ×${lv.gear}，第 ${sum.month} 个月清零`;
   if (sum.maxBoards >= 3) return `连涨 ${sum.maxBoards} 天，全程坐在车上`;
   if (best && best.ret >= 50) return `${best.name}一把赚了 ${formatPoints(best.ret, 1, false)}`;
@@ -54,7 +54,7 @@ export function shareData(sum: Readonly<RunSummary>, rank?: number | null): Shar
   if (lv) {
     const tier = lv.tier ? liveTierById(lv.tier).name : '实盘';
     title = `实盘${tier} · ${chips(lv.stake)}`;
-    big = lv.margin ? { value: '×0', label: `杠杆 ×${lv.gear} · 跌到清零线` } : { value: times(lv.bp), label: lv.gear > 1 ? `杠杆 ×${lv.gear} · 结回几倍` : '结回几倍' };
+    big = lv.margin ? { value: '×0', label: `杠杆 ×${lv.gear} · 跌到清零线` } : { value: times(lv.bp), label: lv.gear > 1 ? `杠杆 ×${lv.gear} · 带回几倍` : '带回几倍' };
     stats.push({ label: '还上', value: `${sum.billsPaid}/${lv.months} 个月` });
   } else {
     const g = growth(sum);

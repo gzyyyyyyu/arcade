@@ -40,7 +40,7 @@ const SCENE_LAYERS = [
   'sky_bull', 'sky_flat', 'sky_bear', 'city', 'haze_bear', 'rain', 'lightning', 'lightning_2', 'lightning_3',
   'wall', 'desk', 'steam', 'cat', 'cat_tail', 'cat_zzz', 'ambient_bull', 'lamp_light', 'monitor_glow',
 ] as const;
-/** 0.15.0 铺满：安全区外的墙和桌（左右各 320、上下各 108），只有对局和结束页用，进对局时再加载 */
+/** 铺满：安全区外的墙和桌（左右各 320、上下各 108），只有对局和结束页用，进对局时再加载 */
 const ROOM_STRIPS: readonly [string, number, number][] = [['room_left', 320, 936], ['room_right', 320, 936], ['room_top', 1280, 108], ['room_bottom', 1280, 108]];
 
 const FRIEND_IDS = ['xiaoli', 'laowang', 'zhangjie', 'qunzhu', 'laozhao', 'dav', 'neimu', 'zhuchang', 'kongjun', 'quant'] as const;
@@ -49,9 +49,9 @@ const AVATAR_FACES: readonly AvatarFace[] = ['normal', 'smug', 'awkward'];
 const THEME_BADGES: readonly ThemeId[] = ['ai', 'newenergy', 'consumer', 'pharma', 'finance', 'lowalt', 'gaming', 'pig'];
 const ROLES = ['leader', 'follower', 'bluechip', 'meme', 'st'] as const;
 
-/** 0.5 去文字化的小图标（tools/art/glyphs.ts）：替代界面上的说明文字。arrow_* 为白色，用时按涨跌色着色。 */
+/** 去文字化的小图标（tools/art/glyphs.ts）：替代界面上的说明文字。arrow_* 为白色，用时按涨跌色着色。 */
 export const GLYPHS = ['target', 'bank', 'house', 'wallet', 'bag', 'calendar', 'hourglass', 'gift', 'bolt', 'trophy', 'book', 'star', 'arrow_up', 'arrow_down', 'horn', 'bear',
-  // 0.5.1 丰满化：天气、贴纸、情绪脸、放大镜
+  // 丰满化：天气、贴纸、情绪脸、放大镜
   'sun', 'cloud', 'rain', 'storm', 'rainbow', 'rocket', 'cry', 'moneybag', 'leek', 'melon', 'hammer', 'face_hot', 'face_happy', 'face_calm', 'face_sad', 'face_cold', 'magnifier'] as const;
 export type Glyph = (typeof GLYPHS)[number];
 export function glyphKey(g: Glyph): string {
@@ -136,7 +136,7 @@ type GuyFrame = Face | 'blink';
 /** 道具图标的光栅化尺寸（世界坐标）：顶栏 24–32，奖励卡 76 */
 const ITEM_RASTER = 80;
 /**
- * 0.14.0 开始菜单的主视觉分层（可选，单独文件；tools/art/keyart.ts 生成）：远处城市、山坡和后排小人、小屋、六个群聊气泡、一朵云。
+ * 开始菜单的主视觉分层（可选，单独文件；tools/art/keyart.ts 生成）：远处城市、山坡和后排小人、小屋、六个群聊气泡、一朵云。
  * 世界尺寸按电脑布局（原图 × 0.8）；城市和山坡比 1280 宽（窗口不是 16:9 时露出来）。缺任何一张都退回小屋背景。
  */
 export const TITLE_ART = {
@@ -170,10 +170,10 @@ const TITLE_DEFS: readonly AssetDef[] = [
 ];
 
 /**
- * 0.3.1「看得懂」：风口五种状态的小图标、收盘新闻图标、收盘小结的纸、新手提示的猫。交易画面用，可选（没到时画面用文字）。
+ * 「看得懂」：风口五种状态的小图标、收盘新闻图标、收盘小结的纸、新手提示的猫。交易画面用，可选（没到时画面用文字）。
  * 状态图标按公开的风口状态（Feel）取。
  */
-export const STAGE_ICON: Record<'cold' | 'warming' | 'hot' | 'overheated' | 'cooling', string> = {
+const STAGE_ICON: Record<'cold' | 'warming' | 'hot' | 'overheated' | 'cooling', string> = {
   cold: 'cold',
   warming: 'warm',
   hot: 'hot',
@@ -492,7 +492,7 @@ export function atlasStatus(): Record<AtlasGroup, { status: string; ready: boole
 }
 
 /**
- * 单独光栅化的 SVG 按几倍画：一般是 RENDER_SCALE；省内存的设备上整屏的场景背景（scene:*，1280×720）按 1 倍（0.5.9）。
+ * 单独光栅化的 SVG 按几倍画：一般是 RENDER_SCALE；省内存的设备上整屏的场景背景（scene:*，1280×720）按 1 倍。
  * 显示尺寸都按纹理的实际像素换算（artRef 的 px），画几倍都不影响布局。
  */
 function rasterScale(d: AssetDef): number {
@@ -712,7 +712,7 @@ interface StockAnchors {
 }
 
 /** 股票的形象 id：新股借用同题材一只内容股的小人（`def.look ?? def.id`），别的股票就是自己。 */
-export function lookOf(id: string): string {
+function lookOf(id: string): string {
   return isStockId(id) ? (stockById(id).look ?? id) : id;
 }
 

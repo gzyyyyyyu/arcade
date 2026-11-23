@@ -1,12 +1,11 @@
 /**
- * 0.8.0 有没有平台：开盘可以不带平台单独部署（模块里的 wrangler.jsonc 原样部署到 workers.dev），这时同域没有 /api。
+ * 有没有平台：开盘可以不带平台单独部署（模块里的 wrangler.jsonc 原样部署到 workers.dev），这时同域没有 /api。
  *
- * 判断方法和共用包的 detectPlatform 一致（见共用包 README 的"两种部署方式"），自己写一份是因为它早于开盘接共用包（0.12.0 才接分享卡和社交），
- * 而且开始菜单要按结论重画、订阅它的变化：
+ * 判断方法和共用包的 detectPlatform 一致（见共用包 README 的"两种部署方式"），自己写一份是因为开始菜单要按结论重画、订阅它的变化：
  * 启动时问一次同域 GET /api/me——
  * - 2xx、JSON、里面有 user：有平台（user 为 null 是没登录），一切照旧；
  * - 404 / 405 / 410，或回的不是 JSON（单独部署时静态资源回的 404 页、或别的网页）：单独部署，没有平台；
- * - 5xx、429、断网、超时：不知道（平台可能只是抖了一下），按有平台处理，和以前一样。
+ * - 5xx、429、断网、超时：不知道（平台可能只是抖了一下），按有平台处理。
  *
  * 只有明确"没有平台"才改画面：藏起登录、云存档、排行榜、钱包和实盘，"大厅"改成回游戏首页。
  * 判断出来之前按有平台画（本站的玩家看不到任何变化），判断出来再通知重画。
@@ -21,11 +20,6 @@ let mode: PlatformMode = 'unknown';
 /** 有平台时 /api/me 回的 user（没登录为 null）：交给共用包的社交部件省它再问一次，分享卡上的昵称也从这里取 */
 let me: unknown;
 const listeners = new Set<(m: PlatformMode) => void>();
-
-/** 现在知道的结论（还没问完是 unknown）。 */
-export function platformMode(): PlatformMode {
-  return mode;
-}
 
 /** 明确是单独部署（没有平台）。不知道的时候按有平台算，返回 false。 */
 export function standalone(): boolean {

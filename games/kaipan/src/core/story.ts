@@ -1,5 +1,5 @@
 /**
- * 0.3.1「让画面说话」：收盘新闻、股票小人台词。
+ * 「让画面说话」：收盘新闻、股票小人台词。
  * 都在结果揭晓之后才抽，用各自独立的随机流（rngFor 的标签不同），不影响任何数值。
  * 只用当天已经揭晓的数（热度变化、大环境、个股涨跌），不含真实阶段。
  */
@@ -39,7 +39,7 @@ export function makeNews(s: Readonly<GameState>, report: Readonly<DayReport>): N
     const dir = t.dH > 0 ? 'up' : 'down';
     out.push({ theme: t.id, dir, value: t.dH, text: fill(pick(rng, THEME_NEWS[t.id][dir]), { theme: themeById(t.id).name }) });
   });
-  // 0.5（真实行情）：一条预告——某个风口接下来 1–3 天（从明天起）会涨还是跌，按 BALANCE.intel.news 说中
+  // 真实行情：一条预告——某个风口接下来 1–3 天（从明天起）会涨还是跌，按 BALANCE.intel.news 说中
   const real = s.real;
   if (real && report.day + 1 < real.days && s.themeIds.length > 0) {
     const r = rngFor(s.seed, 'newsAhead', report.day);
@@ -61,9 +61,9 @@ export function quipLines(stockId: string, moment: QuipMoment, mood: Mood = 'fla
 }
 
 /**
- * 0.7.0 轮着说：台词池按种子打乱，按第几次（买入、卖出的序号，收盘时按交易日和格子）轮着用。
+ * 轮着说：台词池按种子打乱，按第几次（买入、卖出的序号，收盘时按交易日和格子）轮着用。
  * 打乱按角色而不是按股票：同一个角色的通用台词几只股票共用，按股票各抽各的，几只大哥就会说同一句。
- * 原来是每次随机抽，一局里同一句能冒七八次；台词只是事件，不影响局面。
+ * 每次随机抽的话一局里同一句能冒七八次；台词只是事件，不影响局面。
  */
 function cycleLine(seed: string, stockId: string, moment: QuipMoment, lines: readonly string[], k: number): string {
   const rng = rngFor(seed, 'quip', stockById(stockId).role, moment, lines.length);

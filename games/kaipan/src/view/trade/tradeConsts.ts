@@ -23,7 +23,7 @@ export const TOAST = PHONE_MODE ? { x: SLOTS.x + SLOTS.w / 2, y: SLOTS.y + SLOTS
 export const SHOUT_AT = PHONE_MODE ? { x: SLOTS.x + SLOTS.w / 2, y: SLOTS.y + 70 } : { x: 612, y: 150 };
 export const T = {
   open: 240,
-  // 0.36.4 收紧：热度条 420→300ms、每只翻牌 255→180ms（实际用 ×0.6、×0.75，见 dayPlayback）
+  // 收紧：热度条 420→300ms、每只翻牌 255→180ms（实际用 ×0.6、×0.75，见 dayPlayback）
   themes: 500,
   reveal: 240,
   afterReveal: 240,
@@ -35,13 +35,13 @@ export const T = {
   hold: 300,
   chatGap: 120,
   monthIntro: 1900,
-  /** 0.5 本月看点卡停留（boss 月多一点；点一下或空格跳过） */
+  /** 本月看点卡停留（boss 月多一点；点一下或空格跳过） */
   monthCard: 4600,
   bossCard: 5600,
   /** 屏幕中部大字每条 */
   shout: 950,
 };
-/** 0.5 快进（平淡日）时结算节拍的倍数 */
+/** 快进（平淡日）时结算节拍的倍数 */
 export const FAST = 0.22;
 /** 自动快进前留给玩家停下的时间（毫秒） */
 export const AUTO_DELAY = 900;

@@ -14,7 +14,7 @@ export const KEY_ROWS: readonly KeyRow[] = [
   { keys: ['空格', '回车'], what: '开盘、跳过动画、继续；买卖菜单开着时，先收起菜单' },
   { keys: ['F'], what: '快进平淡日' },
   { keys: ['1', '2', '3'], what: '买第几条推荐；菜单、三选一里选第几项' },
-  { keys: ['Shift + 1–5'], what: '一步卖出第几格（全卖）' },
+  { keys: ['Shift + 数字'], what: '一步卖出对应那一格（全卖）' },
   { keys: ['← → ↑ ↓'], what: '在推荐卡、持仓卡、开盘键之间移动蓝框' },
   { keys: ['Tab', 'Shift + Tab'], what: '按顺序往后、往前移动蓝框' },
   { keys: ['回车', '空格'], what: '蓝框亮着时，按下蓝框上的那一个' },

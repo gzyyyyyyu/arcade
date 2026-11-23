@@ -16,11 +16,11 @@ import { friendCalls, preCount, stockMoves, streakOf, sumMoves, themeHeat, vsMar
 import { phoneLayout, viewOf } from '../viewport.ts';
 
 /**
- * 0.5.1 详情卡：点股票小人 / 推荐卡 / 风口行 / 群友头像打开，让玩家自己研究。
+ * 详情卡：点股票小人 / 推荐卡 / 风口行 / 群友头像打开，让玩家自己研究。
  * 打开时向场景发 DETAIL_EVENT（交易场景登记成当前对话框，自动化和快捷键都认它）。
  */
 export const DETAIL_EVENT = 'detail:open';
-/** 0.35.0 详情卡上点了「自选」：向场景发这个事件（参数是股票 id），交易场景执行加星 / 取消 */
+/** 详情卡上点了「自选」：向场景发这个事件（参数是股票 id），交易场景执行加星 / 取消 */
 export const STAR_EVENT = 'detail:star';
 
 const W = 640;
@@ -45,12 +45,12 @@ function streakWord(n: number): string {
   return n > 0 ? `连涨${n}天` : n < 0 ? `连跌${-n}天` : '昨天走平';
 }
 
-/** 0.19.0 手机世界高只有 404：详情框收到 392 高，里面各行往上收（cmp = compact） */
+/** 手机世界高只有 404：详情框收到 392 高，里面各行往上收（cmp = compact） */
 function compact(scene: Phaser.Scene): boolean {
   return phoneLayout(scene) && viewOf(scene).h < H + 12;
 }
 
-/** 0.33.0 竖屏版：详情框跟屏一样窄（约 388），左右两栏改成上下叠 */
+/** 竖屏版：详情框跟屏一样窄（约 388），左右两栏改成上下叠 */
 function portrait(scene: Phaser.Scene): boolean {
   const V = viewOf(scene);
   return phoneLayout(scene) && V.h > V.w;
@@ -185,7 +185,7 @@ export function openStockDetail(scene: Phaser.Scene, s: Readonly<GameState>, id:
   r.add([tag, tagT]);
   const role = addImage(scene, st.x + st.w - 20, st.y + 22, roleKey(c.role), 26);
   r.add(role);
-  // 0.35.0 自选：角色名同一行、靠右的按钮（Button 原点在左上），点了加星 / 取消（交易场景执行；按钮当场换字）
+  // 自选：角色名同一行、靠右的按钮（Button 原点在左上），点了加星 / 取消（交易场景执行；按钮当场换字）
   let starred = (s.stars ?? []).includes(id);
   const starBtn: Button = new Button(scene, G.roleX + G.roleW - 88, G.roleY - 6, {
     width: 88,
@@ -205,7 +205,7 @@ export function openStockDetail(scene: Phaser.Scene, s: Readonly<GameState>, id:
   const roleT = addText(scene, G.roleX, G.roleY, `${ROLE_WORD[c.role]}`, { size: 15, bold: true, color: c.role === 'st' ? COLOR.danger : COLOR.ink });
   const roleD = addText(scene, G.roleX, G.roleY + 28, term(ROLE_TERM[c.role]).explain, { size: 12, color: COLOR.muted, wrap: G.roleW, lineSpacing: 2 });
   r.add([roleT, roleD]);
-  // 0.35.0 K 线页：左边日 K + 量柱，右边昨天的分时 + 买卖力量（电脑和横屏在右上，竖屏在小人下面）
+  // K 线页：左边日 K + 量柱，右边昨天的分时 + 买卖力量（电脑和横屏在右上，竖屏在小人下面）
   const moves = stockMoves(s, id, 20);
   drawKline(scene, r, G.chart, s, id, moves);
   // 数据格

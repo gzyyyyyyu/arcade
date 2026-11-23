@@ -47,9 +47,9 @@ export interface Balance {
   buysPerDay: number;
   /** 每天推荐几只 */
   recs: number;
-  /** 0.3.1 收盘新闻（只影响文案）：最多几个风口；第二条起热度变化至少多少；全场新闻要求大环境涨跌至少多少（pp） */
+  /** 收盘新闻（只影响文案）：最多几个风口；第二条起热度变化至少多少；全场新闻要求大环境涨跌至少多少（pp） */
   news: { themes: number; minDH: number; market: number };
-  /** 0.3.1 收盘吐槽（只影响文案）：账户当天涨跌超过多少算大赚 / 大亏（pp）；风口热度涨多少而你没持有算踩空 */
+  /** 收盘吐槽（只影响文案）：账户当天涨跌超过多少算大赚 / 大亏（pp）；风口热度涨多少而你没持有算踩空 */
   talk: { bigWin: number; bigLoss: number; missDH: number };
   /** 每天群聊消息条数 [最少, 最多] */
   messages: readonly [number, number];
@@ -155,7 +155,7 @@ export interface Balance {
     /** 可信度上限（所有加成之后）：只有道具指定的可信度（credOverride，老王的小本本）能到 1，也就是"必中" */
     credMax: number;
     /**
-     * 0.7.0 每局状态：每个群友这一局的可信度在 ±cred 里浮动、说话权重乘 1 ± talk（按种子均匀抽，均值不变）。
+     * 每局状态：每个群友这一局的可信度在 ±cred 里浮动、说话权重乘 1 ± talk（按种子均匀抽，均值不变）。
      * 同一个人这局可能比平时准、也可能更不靠谱，玩家得看本局战绩，不能背表
      */
     form: { cred: number; talk: number };
@@ -188,20 +188,20 @@ export interface Balance {
   };
   /** 道具、日历、事件、难度的效果数值，键为内容 id。描述文字从这里取数，改数值不用改文案 */
   fx: Record<string, Record<string, number>>;
-  /** 0.4 重做：真实行情驱动（state.real 不为 null 时生效），见 docs/core-api-market.md 第 7 节 */
+  /** 重做：真实行情驱动（state.real 不为 null 时生效），见 docs/core-api-market.md 第 7 节 */
   real: RealParams;
-  /** 0.4 C：仓位、押跌、抵押（state.ext 不为 null 时生效），见 docs/core-api-market.md 第 8 节 */
+  /** 仓位、押跌、抵押（state.ext 不为 null 时生效），见 docs/core-api-market.md 第 8 节 */
   ext: ExtParams;
-  /** 0.5：个股照搬真实走势（真实行情的局都是），见 docs/core-api-market.md 第 7.2 节 */
+  /** 个股照搬真实走势（真实行情的局都是），见 docs/core-api-market.md 第 7.2 节 */
   track: TrackParams;
-  /** 0.5：情报从真实未来推算（真实行情 0.5 模式） */
+  /** 情报从真实未来推算（真实行情 0.5 模式） */
   intel: IntelParams;
-  /** 0.5：月度主题、中场、高光、连击（state.tempo 不为 null 时生效） */
+  /** 月度主题、中场、高光、连击（state.tempo 不为 null 时生效） */
   tempo: TempoParams;
-  /** 0.6.0 实盘模式（docs/design-live.md）：开局时写进这局的设置（RunSetup.live），之后改这里不影响已经开了的局 */
+  /** 实盘模式（docs/design-live.md）：开局时写进这局的设置（RunSetup.live），之后改这里不影响已经开了的局 */
   live: LiveParams;
   /**
-   * 0.34.0 娱乐放宽（docs/design-balance.md 第 3 节）：真实行情里不是实盘的局按难度 1..8（缺的按最后一个）再打一层折。
+   * 娱乐放宽（docs/design-balance.md 第 3 节）：真实行情里不是实盘的局按难度 1..8（缺的按最后一个）再打一层折。
    * 实盘也走难度 1..3，所以娱乐变简单只能改这里，不能动难度本身和 track。
    */
   ease: {
@@ -215,7 +215,7 @@ export interface Balance {
    * 都写在开局设置和挑段里，规则核心没有另一条路径；实盘、每日挑战、闪电盘不受影响（docs/design-lesson.md 第 3 节）。
    */
   novice: { runs: number; goal: number };
-  /** 0.10.0 娱乐短局（docs/design-balance.md）：开局时写进这局的设置（RunSetup.short） */
+  /** 娱乐短局（docs/design-balance.md）：开局时写进这局的设置（RunSetup.short） */
   short: {
     months: number;
     billMult: number;
@@ -272,20 +272,20 @@ export interface Balance {
   };
 }
 
-/** 0.6.0 实盘模式的默认规则。 */
+/** 实盘模式的默认规则。 */
 export interface LiveParams {
   /** 打几个月（从 1 月起） */
   months: number;
   /** 结回倍数的上限（economy.md：最多 3 倍） */
   cap: number;
   /**
-   * 0.10.0 各档：billMult 是常规月供和突发账单的倍数（越往上生活费越高），
+   * 各档：billMult 是常规月供和突发账单的倍数（越往上生活费越高），
    * lev 是资产涨跌算进筹码的倍数（资产涨 10%、lev 3 → 结回多 30%）。一局只有几个月，资产的起伏本来就小，
    * 不放大的话会玩和不会玩的只差零点几成，赚也赚不到哪去（docs/design-live.md 第 3 节）。
    */
   tiers: Record<'small' | 'mid' | 'big' | 'lux', { billMult: number; lev: number; gearRate: number }>;
   /**
-   * 0.11.0 玩家自己选的杠杆（稳健 1× / 进取 2× / 疯狂 3×）：结回再按 x 放大一次，封顶 cap 份；
+   * 玩家自己选的杠杆（稳健 1× / 进取 2× / 疯狂 3×）：结回再按 x 放大一次，封顶 cap 份；
    * interest 是每月的利息（按结回倍数算：每月让结回少这么多，和账单一起扣），call 是清零线（放大后的结回倍数跌到这里就强制结束、按 0 结）。
    */
   gears: readonly { x: number; cap: number; interest: number; call: number }[];
@@ -293,7 +293,7 @@ export interface LiveParams {
   warnGap: number;
 }
 
-/** 0.5：个股照搬真实走势。 */
+/** 个股照搬真实走势。 */
 export interface TrackParams {
   /** 统一的游戏放大系数：个股、风口（行业）、大盘当天涨跌 = amp × 真实涨跌（之后按涨跌停截断） */
   amp: number;
@@ -314,7 +314,7 @@ export interface TrackParams {
   follow: number;
 }
 
-/** 0.5：情报准确率（说中 = 说的方向等于接下来 days 天真实累计涨跌的方向）。 */
+/** 情报准确率（说中 = 说的方向等于接下来 days 天真实累计涨跌的方向）。 */
 export interface IntelParams {
   /** 风口消息：累计涨跌（放大后，pp）在 ±flat[days−1] 以内算"横" */
   flat: readonly number[];
@@ -339,7 +339,7 @@ export interface IntelParams {
   headline: number;
 }
 
-/** 0.5：节奏与反馈。 */
+/** 节奏与反馈。 */
 export interface TempoParams {
   /** 中场 boss 的月份 */
   bossMonths: readonly number[];
@@ -361,7 +361,7 @@ export interface TempoParams {
   bigAcc: number;
 }
 
-/** 0.4 C 的数值。 */
+/** 仓位、押跌、抵押（`ext`）的数值。 */
 export interface ExtParams {
   /** 试一口、半仓的份数（1 份 = 账户的 1/4）；重仓 = 剩下的全部 */
   taste: number;
@@ -589,7 +589,7 @@ export const BALANCE: Balance = {
     credit: { nextBillMult: 1.2 },
     // ---- 道具：人脉
     notebook: { cred: 1 },
-    // ---- 道具：0.3.0 新增
+    // ---- 道具
     hot_money: { bonus: 3 },
     value_eye: { bonus: 2 },
     fan_qunzhu: { acc: 0.7 },
@@ -717,8 +717,8 @@ export const BALANCE: Balance = {
     bigMove: 5,
     bigAcc: 3,
   },
-  // 娱乐短局：5 个月、月供打折，最后交一笔首付（开局资产的几成，按难度）；0.10.0，实测见 docs/design-balance.md
-  // 娱乐放宽（0.34.0）：各档降一级左右，新手档群里的话更准，前几局好赚；实测见 docs/design-balance.md
+  // 娱乐短局：5 个月、月供打折，最后交一笔首付（开局资产的几成，按难度）；实测见 docs/design-balance.md
+  // 娱乐放宽：各档降一级左右，新手档群里的话更准，前几局好赚；实测见 docs/design-balance.md
   ease: { bill: [0.85, 0.85, 0.9], cred: [0.12, 0.05, 0.03] },
   novice: { runs: 3, goal: 0.85 },
   short: { months: 5, billMult: 0.25, goal: [0.9, 1, 1.05] },
@@ -730,12 +730,12 @@ export const BALANCE: Balance = {
   swan: { blackout: 8, themeBust: 15, windfall: 12, flashCrash: 3, warnDays: 3 },
   // 打新：配平见 docs/design-modes.md 第 18 节（起始数值 pop 0.7、涨 15..45 时，普通机器人通关率比不打新高 4–8 个百分点，压到现在这组）
   ipo: { fromMonth: 2, odds: { taste: 0.1, half: 0.16, heavy: 0.22 }, freezeDays: 2, units: 1, pop: 0.62, up: [10, 30], down: [5, 20], carry: 0.3 },
-  // 实盘：5 个月，各档的账单和涨跌倍数（0.10.0 配平，实测见 docs/design-live.md 第 3 节）
+  // 实盘：5 个月，各档的账单和涨跌倍数（实测见 docs/design-live.md 第 3 节）
   live: {
     months: 5,
     cap: 3,
     tiers: {
-      // gearRate（0.11.0）：开杠杆的利息在这一档打几折。大档、豪华档的涨跌倍数本来就大，再叠杠杆起伏已经很猛，利息照小档收就几乎必输
+      // gearRate：开杠杆的利息在这一档打几折。大档、豪华档的涨跌倍数本来就大，再叠杠杆起伏已经很猛，利息照小档收就几乎必输
       small: { billMult: 0.17, lev: 2.8, gearRate: 1 },
       mid: { billMult: 0.18, lev: 3.5, gearRate: 0.5 },
       big: { billMult: 0.18, lev: 4, gearRate: 0.25 },
@@ -744,7 +744,7 @@ export const BALANCE: Balance = {
     gears: [
       { x: 1, cap: 3, interest: 0, call: 0 },
       { x: 2, cap: 5, interest: 0.013, call: 0.2 },
-      // 0.20.0 有了盘中减仓：3× 清零线 0.1 → 0.5、利息 0.0224 → 0.018。不减仓硬扛的（小白）更容易清零，会减仓的躲得开（design-balance.md 4.4）
+      // 有了盘中减仓：3× 清零线 0.1 → 0.5、利息 0.0224 → 0.018。不减仓硬扛的（小白）更容易清零，会减仓的躲得开（design-balance.md 4.4）
       { x: 3, cap: 7, interest: 0.018, call: 0.5 },
     ],
     warnGap: 0.3,

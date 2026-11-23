@@ -1,5 +1,5 @@
 /**
- * 长线系统（0.3.0）给画面和档案用的规则层数据：人设、难度、成就判定、图鉴条目、每日挑战。
+ * 长线系统给画面和档案用的规则层数据：人设、难度、成就判定、图鉴条目、每日挑战。
  * 全部是纯函数、确定性；档案的存取在 src/platform/profile.ts。
  */
 import { fx } from './balance.ts';
@@ -81,7 +81,7 @@ export interface DifficultyView {
   desc: string;
   /** 具体数字（画面悬停时显示）；这一级没有要补充的数字时为 null */
   detail: string | null;
-  /** 0.10.0 适合谁（新手 / 普通 / 高手三级有，后面的挑战级为 null） */
+  /** 适合谁（新手 / 普通 / 高手三级有，后面的挑战级为 null） */
   who: string | null;
   /** 1..level 全部约束（逐级叠加），按级排列 */
   all: { level: number; name: string; desc: string; detail: string | null }[];
@@ -121,7 +121,7 @@ export interface AchievementView {
   hidden: boolean;
 }
 
-export const TIER_LABEL: Record<AchievementTier, string> = { bronze: '铜', silver: '银', gold: '金' };
+const TIER_LABEL: Record<AchievementTier, string> = { bronze: '铜', silver: '银', gold: '金' };
 
 export function achievementView(id: string): AchievementView {
   const d = achievementById(id);
@@ -174,7 +174,7 @@ export interface AchievementHint {
 }
 
 /**
- * 0.6.8 结束页"下次可以试试"：这局做到一部分、档案里还没有的计数型公开成就（隐藏结局不剧透），
+ * 结束页"下次可以试试"：这局做到一部分、档案里还没有的计数型公开成就（隐藏结局不剧透），
  * 按完成度从高到低取前 n 个，同样高的按成就表的顺序。只看这局，局还没结束为空。
  */
 export function achievementHints(s: Readonly<GameState>, owned: Iterable<string>, n = 2): AchievementHint[] {

@@ -49,7 +49,7 @@ export class TradeHints {
     const st = this.s.session.state;
     if (!this.s.hint) return;
     // 教程气泡在说话时，猫先不说（别两个气泡一起说）；加班日什么都做不了，也不说
-    // 0.5.4：月底那天付完账单会跌破银行的线——不受"新手提示"开关影响，盘前就讲清楚（试玩反馈：车没了才知道）；排在新玩法提示前面，免得被当天留着的提示压住
+    // 月底那天付完账单会跌破银行的线——不受"新手提示"开关影响，盘前就讲清楚（试玩反馈：车没了才知道）；排在新玩法提示前面，免得被当天留着的提示压住
     if (!this.s.busy && !this.s.banner && st.phase === 'premarket' && !this.s.guide?.box()) {
       const r = bankRisk(st);
       if (r) {
@@ -62,7 +62,7 @@ export class TradeHints {
         return;
       }
     }
-    // 0.4 C 新机制的第一次提示：每条只说一次，不受"新手提示"开关影响（当天一直留着）
+    // 新机制的第一次提示：每条只说一次，不受"新手提示"开关影响（当天一直留着）
     if (!this.s.busy && !this.s.banner && st.phase === 'premarket' && !this.s.guide?.box() && st.ext) {
       if (!this.s.extTipNow || this.s.extTipNow.day !== st.dayIndex) {
         const tip = nextExtTip(st, loadSeenTips());

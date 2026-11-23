@@ -97,10 +97,10 @@ export class HelpPanel extends Dialog {
   /** 插图左上角（电脑上居中，手机上靠左） */
   private readonly picX: number;
   private readonly picY: number;
-  /** 0.19.0 手机世界窄了以后插图按比例缩小（SE 上约 0.79），右栏跟着插图右边走 */
+  /** 手机世界窄了以后插图按比例缩小（SE 上约 0.79），右栏跟着插图右边走 */
   private readonly picK: number;
   private readonly rx: number;
-  /** 竖屏版（0.33.0）：插图占整宽在上，一句话和要点签在图下面，翻页按钮在最下面一排、圆点夹在中间 */
+  /** 竖屏版：插图占整宽在上，一句话和要点签在图下面，翻页按钮在最下面一排、圆点夹在中间 */
   private readonly portrait: boolean;
 
   constructor(scene: Phaser.Scene, onClosed?: () => void) {
@@ -192,7 +192,7 @@ export class HelpPanel extends Dialog {
       chipY = top + (made instanceof Phaser.GameObjects.Text ? made.height : (made.getData('h') as number)) + 22;
     } else if (p.short) this.pageBox.add(addText(s, W / 2, PIC_Y + PIC_H + 40, p.short, { size: TYPE.title, bold: true, color: COLOR.ink, originX: 0.5, originY: 0.5 }));
     else this.pageBox.add(this.cycle(PIC_Y + PIC_H + 40));
-    // 0.5.1：三枚要点签（图标 + 两三个字），把悬停里的完整说明拆成能一眼看到的几点
+    // 三枚要点签（图标 + 两三个字），把悬停里的完整说明拆成能一眼看到的几点
     const pts = HELP_POINTS[p.id] ?? [];
     const made = pts.map(([g, t, c]) => iconChip(s, 0, 0, g, t, { color: c === 'up' ? COLOR.up : c === 'down' ? COLOR.danger : COLOR.ink }));
     if (this.phone) {

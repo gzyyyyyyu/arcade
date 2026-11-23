@@ -4,7 +4,7 @@ import type { SyncSlot } from './localChange.ts';
 import { keepaliveLeft, keepaliveSend } from './keepalive.ts';
 
 /**
- * 云存档（0.5.7）：把档案和教程标记同步到平台（docs/platform-backend.md 5.5、15.3）。打到一半的那一局和设置不同步。
+ * 云存档：把档案和教程标记同步到平台（docs/platform-backend.md 5.5、15.3）。打到一半的那一局和设置不同步。
  *
  * - 只在有提示 cookie __Host-arcade_li 时才调接口；先 GET /api/me（存档接口不续 last_seen，只玩开盘的人靠这一下才不会被当成一年没来），
  *   再 GET /api/saves/kaipan 一次取回所有槽，和本地合并。
@@ -213,7 +213,7 @@ export class Cloud {
       if (this.meta.userId !== id) this.switchUser(id);
       this.restoreSwitched(id);
       this.user = id;
-      // 带上刚确认的账号（平台 0.7.3）：这中间 cookie 换成别人的话回 409 wrong_user、不给数据，按换号从头来
+      // 带上刚确认的账号：这中间 cookie 换成别人的话回 409 wrong_user、不给数据，按换号从头来
       const res = await this.call('GET', `${API}?userId=${encodeURIComponent(id)}`);
       // 回包慢的时候别的标签页可能已经换成别的账号、把它的进度写进了本地：先核对磁盘，再合并（和下面的合并在同一段同步代码里）
       if ((res.status === 409 && res.body?.error === 'wrong_user') || loadMeta(this.d.store).userId !== id) {
@@ -263,7 +263,7 @@ export class Cloud {
 
   /**
    * 切到后台：只补传一个槽（最该保的排在前面），用 keepalive，页面关了也能发出去；两次之间至少隔 3 分钟。
-   * leaving：玩家点了"大厅"马上要离开这一页（0.5.8），不管隔多久，所有待上传的槽都补传；紧接着离开页面时的 visibilitychange
+   * leaving：玩家点了"大厅"马上要离开这一页，不管隔多久，所有待上传的槽都补传；紧接着离开页面时的 visibilitychange
    * 会被 3 分钟间隔挡掉，不重复传。
    */
   hidden(leaving = false): void {
@@ -326,7 +326,7 @@ export class Cloud {
       if (t) this.d.clearTimer(t.id);
       this.timers.delete(name);
     };
-    // 普通上传：就是定时器到点了（或者要马上传），先清掉。keepalive 补传真发出去了才清（0.5.12）：
+    // 普通上传：就是定时器到点了（或者要马上传），先清掉。keepalive 补传真发出去了才清：
     // 发不成（额度不够、429 还在等）的话，原来排好的普通上传照旧，页面没走成也传得上
     if (!keepalive) dropTimer();
     const busy = this.inflight.get(name);
@@ -360,7 +360,7 @@ export class Cloud {
       this.note = NOTE.tooLarge;
       return this.changed();
     }
-    // userId 是最近一次 /api/me 确认的账号：平台（0.7.1 起）发现和会话里的不是同一个人就回 409 wrong_user、不写库，
+    // userId 是最近一次 /api/me 确认的账号：平台发现和会话里的不是同一个人就回 409 wrong_user、不写库，
     // 堵住"刚确认完、别的标签页又换了账号"的那一小段（keepalive 补传来不及先问 /api/me，靠的也是它）
     const body = `{"baseRev":${this.meta.rev[name] ?? 0},"userId":${JSON.stringify(this.user)},"data":${data}}`;
     if (keepalive && bytes(body) > keepaliveLeft()) {

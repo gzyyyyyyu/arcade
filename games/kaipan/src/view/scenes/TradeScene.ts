@@ -72,7 +72,7 @@ export class TradeScene extends BaseScene {
   chat!: ChatView3;
   openBtn!: Button;
   monitor!: Phaser.GameObjects.Text;
-  /** 0.5.1 今日大盘屏 */
+  /** 今日大盘屏 */
   screen!: MarketScreen;
   reward: RewardPanel | null = null;
   event: EventPanel | null = null;
@@ -83,7 +83,7 @@ export class TradeScene extends BaseScene {
   offTutorial: (() => void) | null = null;
   /** 正在播放结算（锁住按钮） */
   busy = false;
-  /** 0.5：平淡日的"快进"按钮（F） */
+  /** 平淡日的"快进"按钮（F） */
   quietBtn!: Button;
   /** 实盘杠杆局的「减仓」按钮（开盘前，2×/3× 才出现） */
   deleverageBtn!: Button;
@@ -141,7 +141,7 @@ export class TradeScene extends BaseScene {
     this.holdings.onInspect = (slot) => this.acts.inspect(slot);
     this.holdings.onMore = (slot) => this.acts.openHolding(slot);
     this.holdings.onMenu = (slot) => this.acts.onCardMenu(slot);
-    // 0.5.1：显示器换成「今日大盘屏」（大盘走势、风口榜、跑马灯、昨天盈亏）
+    // 显示器换成「今日大盘屏」（大盘走势、风口榜、跑马灯、昨天盈亏）
     recordTape(s);
     this.screen = new MarketScreen(this, this.lively);
     this.monitor = this.screen.big;
@@ -149,12 +149,12 @@ export class TradeScene extends BaseScene {
     const onDetail = (d: Dialog): void => this.trackDialog(d);
     this.events.on(DETAIL_EVENT, onDetail);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(DETAIL_EVENT, onDetail));
-    // 0.35.0 详情卡上的「自选」
+    // 详情卡上的「自选」
     const onStar = (stockId: string): void => this.acts.act({ type: 'star', stockId });
     this.events.on(STAR_EVENT, onStar);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(STAR_EVENT, onStar));
-    // 0.18.0 开盘台：按钮下面垫一块木头（art-v3 的木材质）
-    // 手机上开盘键离画面底只有 4：木台只露出键底 4，不出画面（以前露 8，底边被裁）
+    // 开盘台：按钮下面垫一块木头（art-v3 的木材质）
+    // 手机上开盘键离画面底只有 4：木台只露出键底 4，不出画面（露 8 的话底边被裁）
     addWood(this, OPEN.x - 14, OPEN.y + OPEN.h - 24, OPEN.w + 28, PHONE_MODE ? 28 : 36);
     this.openBtn = new Button(this, OPEN.x, OPEN.y, {
       width: OPEN.w,
@@ -228,6 +228,7 @@ export class TradeScene extends BaseScene {
         this.session.learnMind(id);
       },
       avoid: () => this.hints.clickableRects(),
+      keepClear: () => (this.tabs ? [this.tabs.area()] : []),
       changed: () => {
         this.hints.updateHint();
         this.session.notify();
@@ -261,11 +262,11 @@ export class TradeScene extends BaseScene {
     }
     this.room.setMood(s.mood, null);
     this.room.setRainbow(!!s.lastDay && s.lastDay.market.ret >= 1.5);
-    // 0.11.0 开了杠杆、离清零线不远：每天盘前提醒一句（顶栏的账户同时变红闪）
+    // 开了杠杆、离清零线不远：每天盘前提醒一句（顶栏的账户同时变红闪）
     const warn = isLiveRun(s) ? marginWarn(s) : null;
     if (warn !== null && this.warnedDay !== s.dayIndex) {
       this.warnedDay = s.dayIndex;
-      this.tfx.toast(`离清零线不远了：结回只剩约 ${warn.toFixed(1)} 份，再跌一点这局就按 0 结`, 3200);
+      this.tfx.toast(`离清零线不远了：带回只剩约 ${warn.toFixed(1)} 份，再跌一点这局就按 0 结`, 3200);
     }
     this.renderMonitor(s);
     const pre = s.phase === 'premarket';
@@ -282,7 +283,7 @@ export class TradeScene extends BaseScene {
     sound.mood(pre ? s.mood : s.phase === 'reward' || s.phase === 'event' ? 'payday' : 'silent');
     // 月底面板（按 phase 常驻）
     if (s.phase === 'reward' && !this.reward) {
-      // 0.5：三选一 / 事件弹出时收起小结卡，一屏只留一个焦点
+      // 三选一 / 事件弹出时收起小结卡，一屏只留一个焦点
       this.recapCard?.clear();
       this.reward = new RewardPanel(this, s, this.anim, this.lively, (i) => this.acts.onPickReward(i), () => this.acts.onSkipReward());
     } else if (s.phase !== 'reward' && this.reward) {
@@ -333,7 +334,7 @@ export class TradeScene extends BaseScene {
   }
 
   renderMonitor(s: GameState): void {
-    // 0.5：屏幕上一行大数字（昨天的钱 + 箭头百分比），下面一个短标签
+    // 屏幕上一行大数字（昨天的钱 + 箭头百分比），下面一个短标签
     recordTape(s);
     this.screen.render(s);
     const last = s.lastDay;
@@ -377,7 +378,7 @@ export class TradeScene extends BaseScene {
     return this.recapCard?.dismiss() ?? false;
   }
 
-  /** 0.11.0 今天已经提醒过离清零线不远（一天只说一次） */
+  /** 今天已经提醒过离清零线不远（一天只说一次） */
   warnedDay = -1;
 
   toastNode: Phaser.GameObjects.Container | null = null;
@@ -442,7 +443,7 @@ export class TradeScene extends BaseScene {
     // 盘前买卖
     const bought = first(events, 'bought');
     const sold = pick(events, 'sold');
-    // 0.5.1：买入的小人从推荐卡飞进格子；卖出的格子吐金币飞回顶栏钱包（先记下飞出前的位置）
+    // 买入的小人从推荐卡飞进格子；卖出的格子吐金币飞回顶栏钱包（先记下飞出前的位置）
     const recFrom = bought ? this.chat.recRect(bought.rec) : null;
     const soldFrom = sold.map((e) => this.holdings.center(e.slot));
     this.render(next);

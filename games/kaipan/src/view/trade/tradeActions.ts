@@ -35,7 +35,7 @@ export class TradeActions {
     if (!r) return;
     const act = recAction(s, r);
     if (act.action === 'buy') {
-      // 0.4 C：选买多少（试一口 / 半仓 / 重仓），押跌解锁后还能选押跌
+      // 选买多少（试一口 / 半仓 / 重仓），押跌解锁后还能选押跌
       if (s.ext) this.openBuy(rec, undefined, short);
       else this.act({ type: 'buy', rec });
       return;
@@ -72,7 +72,7 @@ export class TradeActions {
     });
   }
 
-  /** 0.4 C：买多少的弹窗（点一个按钮就买）。 */
+  /** 买多少的弹窗（点一个按钮就买）。 */
   openBuy(rec: number, slot: number | undefined, short: boolean): void {
     if (this.s.data.get(OVERLAY_FLAG)) return;
     sound.ui('select');
@@ -110,7 +110,7 @@ export class TradeActions {
     else this.onSell(slot);
   }
 
-  /** 0.4 C：手里这只怎么办（加仓 / 减一半 / 清仓）。 */
+  /** 手里这只怎么办（加仓 / 减一半 / 清仓）。 */
   openHolding(slot: number): void {
     const s = this.s.session.state;
     if (this.s.busy || s.phase !== 'premarket' || !s.slots[slot] || this.s.data.get(OVERLAY_FLAG) || this.s.banner) return;
@@ -120,7 +120,7 @@ export class TradeActions {
     this.s.session.notify();
   }
 
-  /** 0.4 C：银行面板。 */
+  /** 银行面板。 */
   openBank(): void {
     const s = this.s.session.state;
     if (this.s.busy || s.phase !== 'premarket' || this.s.data.get(OVERLAY_FLAG) || this.s.banner) return;
@@ -167,7 +167,7 @@ export class TradeActions {
     this.act({ type: 'open' });
   }
 
-  /** 0.5：平淡日快进（按钮或 F）：这一天的结算快速翻过，只看账户跳动。 */
+  /** 平淡日快进（按钮或 F）：这一天的结算快速翻过，只看账户跳动。 */
   onFast(): void {
     const s = this.s.session.state;
     if (this.s.busy || s.phase !== 'premarket' || this.s.holdings.picking || this.s.banner || this.s.data.get(OVERLAY_FLAG)) return;
@@ -200,7 +200,7 @@ export class TradeActions {
   }
 
   /**
-   * 0.5 自动快进：设置里打开（默认开）、今天没什么事、上一天没有碰到高光 / 事件 / 目标变化时，
+   * 自动快进：设置里打开（默认开）、今天没什么事、上一天没有碰到高光 / 事件 / 目标变化时，
    * 停一小会儿（显示器上写着，点一下就停下）后自动快进开盘。教程在说话、对话框开着时不自动。
    */
   maybeAuto(): void {
@@ -284,7 +284,7 @@ export class TradeActions {
     const minX = lobby.x + lobby.w + 6;
     const cam = this.s.cameras.main;
     const maxR = cam.scrollX + this.s.scale.width / cam.zoom - 4;
-    // 竖屏版（0.33.0）：顶栏两行，提示条整宽盖在第二行（目标、账单、道具、银行）上，不碰第一行的大厅、怎么玩、设置
+    // 竖屏版：顶栏两行，提示条整宽盖在第二行（目标、账单、道具、银行）上，不碰第一行的大厅、怎么玩、设置
     const pt = PORTRAIT;
     const room = pt ? VIEW.w - 8 - 150 : maxR - minX - 150;
     for (let size = 16; t.width > room && size > MIN_TEXT_SIZE; size--) t.setFontSize(size - 1);
@@ -295,7 +295,7 @@ export class TradeActions {
     const paper = addPaper(this.s, x, y, w, 46, false);
     t.setPosition(x + 20, y + 23);
     // 竖屏版键高 34（按下沉 3，占 56–93）：点击区上撑 5、下撑 8 凑够 50，夹在第一行怎么玩、设置的点击区（到 49.5）和持仓格（102 起）中间；
-    // 以前上下各撑 8，伸进了怎么玩、设置的点击区（noscroll 390「放哪一格」）
+    // 上下各撑 8 的话会伸进怎么玩、设置的点击区（noscroll 390「放哪一格」）
     this.s.bannerCancel = new Button(this.s, x + w - 104, y + (pt ? 6 : 8), {
       width: 90,
       height: pt ? 34 : 30,
@@ -337,7 +337,7 @@ export class TradeActions {
     sound.ui('select');
     this.s.recapCard.showBreakdown(slot, stockById(h.stockId).name, hm);
     this.s.session.notify();
-    // 0.4 C：点手里的股票，顺手弹出"加仓 / 减一半 / 清仓"
+    // 点手里的股票，顺手弹出"加仓 / 减一半 / 清仓"
     if (s.ext) this.openHolding(slot);
   }
 }

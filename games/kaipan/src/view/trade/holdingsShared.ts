@@ -9,7 +9,7 @@ import { COLOR } from '../theme.ts';
 export const LOWBUY_ITEMS: readonly string[] = ['dixi'];
 
 
-/** 0.4 C：这一局有仓位玩法时，卡上要的信息（总份数、剩下的现金份数） */
+/** 这一局有仓位玩法时，卡上要的信息（总份数、剩下的现金份数） */
 export interface SlotExt {
   total: number;
   cash: number;

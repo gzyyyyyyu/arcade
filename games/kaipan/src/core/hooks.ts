@@ -72,27 +72,27 @@ export interface Rules {
   shortGainMult: number;
   /** 每天收盘后揭示一个题材的真实阶段（熬夜复盘） */
   reviewOne: boolean;
-  /** 0.4 C：能押跌（押跌许可证、人设、难度） */
+  /** 能押跌（押跌许可证、人设、难度） */
   canShort: boolean;
-  /** 0.4 C：被轧时亏损的倍数（墨镜让它小一点） */
+  /** 被轧时亏损的倍数（墨镜让它小一点） */
   squeezeMult: number;
-  /** 0.4 C：借款利息倍数（银行熟人） */
+  /** 借款利息倍数（银行熟人） */
   interestMult: number;
-  /** 0.4 C：加仓不占当天的买入次数（金字塔） */
+  /** 加仓不占当天的买入次数（金字塔） */
   freeAdd: boolean;
-  /** 0.5（真实行情）：每次买入的手续费（pp，按这一笔的金额算） */
+  /** 真实行情：每次买入的手续费（pp，按这一笔的金额算） */
   buyFee: number;
-  /** 0.5（真实行情）：涨跌停宽度倍数（所有股票；月度主题"涨跌停放宽"） */
+  /** 真实行情：涨跌停宽度倍数（所有股票；月度主题"涨跌停放宽"） */
   limitMult: number;
-  /** 0.5（真实行情）：涨停那一头再乘的倍数（强监管：涨停收窄、跌停不变） */
+  /** 真实行情：涨停那一头再乘的倍数（强监管：涨停收窄、跌停不变） */
   limitUpMult: number;
-  /** 0.5：本月只能买这些角色（考试月只能买老实股）；null = 不限 */
+  /** 本月只能买这些角色（考试月只能买老实股）；null = 不限 */
   onlyRoles: Role[] | null;
-  /** 0.5：群友推荐时某些角色的权重倍数（妖股月） */
+  /** 群友推荐时某些角色的权重倍数（妖股月） */
   recRoleBoost: Partial<Record<Role, number>>;
-  /** 0.5（真实行情）：每天额外的重磅情报条数（准确率 BALANCE.intel.headline） */
+  /** 真实行情：每天额外的重磅情报条数（准确率 BALANCE.intel.headline） */
   headlines: number;
-  /** 0.5：连击小奖励的倍数 */
+  /** 连击小奖励的倍数 */
   comboMult: number;
 }
 
@@ -205,7 +205,7 @@ export interface ItemDef {
   onGain?(ctx: GainCtx): void;
   /** 有这个道具时不再提供这些群友卡 */
   excludesFriend?: string;
-  /** 0.4 C 新道具：只在有新机制的局（state.ext）里出现 */
+  /** 新道具：只在有新机制的局（state.ext）里出现 */
   ext?: boolean;
   /**
    * 只在真实行情的非每日局进月底三选一的抽取池（同 events.ts 的 realOnly）：
@@ -222,7 +222,7 @@ export interface CalendarDef {
   name: string;
   desc: string;
   market?(r: MarketRules): void;
-  /** 0.5：真实行情下的说法（日历改走势的那部分在真实行情下不生效） */
+  /** 真实行情下的说法（日历改走势的那部分在真实行情下不生效） */
   realDesc?: string;
 }
 
@@ -245,9 +245,9 @@ export interface EventCtx {
   addPending(amount: number, month: number): void;
   /** 下一个交易日没空看盘（不能买卖） */
   skipNextDay(): void;
-  /** 0.4 C：押东西借钱（利息 × rateMult，不受"开盘前"限制）；借不了返回 false */
+  /** 押东西借钱（利息 × rateMult，不受"开盘前"限制）；借不了返回 false */
   takeLoan(id: CollateralId, rateMult: number): boolean;
-  /** 0.4 C：改一笔借款的月利息 */
+  /** 改一笔借款的月利息 */
   setLoanRate(id: CollateralId, rate: number): void;
 }
 
@@ -290,20 +290,20 @@ export interface DifficultyDef {
   detail?: string;
   rules?(r: Rules): void;
   market?(r: MarketRules, month: number): void;
-  /** 0.5：真实行情（个股照搬真实走势）下这一级改成的规则（market 那些改走势的参数在真实行情下不生效） */
+  /** 真实行情（个股照搬真实走势）下这一级改成的规则（market 那些改走势的参数在真实行情下不生效） */
   realRules?(r: Rules, short: boolean): void;
-  /** 0.5：真实行情下的 detail（缺省用 detail） */
+  /** 真实行情下的 detail（缺省用 detail） */
   realDetail?: string;
   realDesc?: string;
-  /** 0.5 去文字化：选难度时常驻的一句短话（≤12 字）；长说明仍是 desc / detail（悬停） */
+  /** 去文字化：选难度时常驻的一句短话（≤12 字）；长说明仍是 desc / detail（悬停） */
   short?: string;
-  /** 0.5：真实行情下的短话（缺省用 short） */
+  /** 真实行情下的短话（缺省用 short） */
   realShort?: string;
-  /** 0.10.0 适合谁（选难度时那一行；高手之后的几级没有） */
+  /** 适合谁（选难度时那一行；高手之后的几级没有） */
   who?: string;
 }
 
-/** 人设（0.3.0）。数值在 BALANCE.fx[id]。 */
+/** 人设。数值在 BALANCE.fx[id]。 */
 export interface PersonaDef {
   id: PersonaId;
   name: string;
@@ -312,7 +312,7 @@ export interface PersonaDef {
   /** 开局条件（一句话，从数值生成） */
   desc(): string;
   flavor: string;
-  /** 0.5 去文字化：选人设时常驻的一句短话（≤12 字）；长说明仍是 desc / flavor（悬停） */
+  /** 去文字化：选人设时常驻的一句短话（≤12 字）；长说明仍是 desc / flavor（悬停） */
   short?: string;
   /** 开局自带的道具 */
   items: readonly string[];
@@ -341,10 +341,10 @@ export interface AchievementDef {
   icon: AchievementIcon;
   /** 达成后解锁的人设 */
   unlocks?: PersonaId;
-  /** 0.6.4 隐藏结局：没达成前图鉴里只显示"？？？"，达成时结束页单独亮出来 */
+  /** 隐藏结局：没达成前图鉴里只显示"？？？"，达成时结束页单独亮出来 */
   hidden?: boolean;
   /**
-   * 0.6.8 计数型成就的进度 [这局做到多少, 要多少]（结束页"下次可以试试"用；只看这局，不跨局累计）。
+   * 计数型成就的进度 [这局做到多少, 要多少]（结束页"下次可以试试"用；只看这局，不跨局累计）。
    * 只给"一个数到了就算"的成就写；还要通关、要带某些道具的不写。
    */
   progress?(ctx: AchievementCtx): readonly [number, number];

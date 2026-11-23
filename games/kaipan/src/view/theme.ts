@@ -77,7 +77,7 @@ export const ITEM_KIND_COLOR: Record<string, number> = {
 export const FONT =
   '"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Droid Sans Fallback", "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
 /**
- * 数字用等宽数字（滚动时不抖），回退到中文字体。0.16.0 起排第一的是自带的圆体数字 Kaipan Num（只有数字和几个符号，
+ * 数字用等宽数字（滚动时不抖），回退到中文字体。排第一的是自带的圆体数字 Kaipan Num（只有数字和几个符号，
  * 万、亿、箭头这些逐字回退到后面的字体），见 numFont.ts。
  */
 export const FONT_NUM = '"Kaipan Num", "Consolas", "Menlo", "DejaVu Sans Mono", "Microsoft YaHei", "Droid Sans Fallback", monospace';
@@ -127,7 +127,7 @@ export function pickPhoneLayout(o: { w: number; h: number; search: string; coars
   const forced = new URLSearchParams(o.search).get('layout');
   if (forced === 'phone' || forced === 'portrait') return true;
   if (forced === 'desktop') return false;
-  // 0.19.5 触屏平板：电脑布局（1280×720）横过来缩小以后，11 号字到不了 12 像素（1024×768 只有 8.8、1180×820 只有 10）时也用手机布局，
+  // 触屏平板：电脑布局（1280×720）横过来缩小以后，11 号字到不了 12 像素（1024×768 只有 8.8、1180×820 只有 10）时也用手机布局，
   // 字和按钮按屏幕放大。不看方向：平板常常竖着打开再转过来，布局开局时就定了
   if (o.coarse && Math.min(Math.max(o.w, o.h) / 1280, Math.min(o.w, o.h) / 720) * 11 < 12) return true;
   if (Math.min(o.w, o.h) > 500) return false;
@@ -145,14 +145,14 @@ export const PHONE = ((): boolean => {
 })();
 
 /**
- * 0.19.0 手机世界：高固定 404，宽按屏幕横过来的长宽比算（718–960，取偶数）。
- * 以前一律 960×444，在 667×375 的 iPhone SE 上只缩到 0.695 倍，13 号字只有 9 像素、50 的点击区只有 35 像素；
- * 现在 SE 是 718×404（0.928 倍：13 号约 12.1px、50 约 46px），844×390 是 874×404（0.965 倍）。
+ * 手机世界：高固定 404，宽按屏幕横过来的长宽比算（718–960，取偶数）。
+ * 固定 960×444 的话 667×375 的 iPhone SE 上只缩到 0.695 倍，13 号字只有 9 像素、50 的点击区只有 35 像素；
+ * 按比例算 SE 是 718×404（0.928 倍：13 号约 12.1px、50 约 46px），844×390 是 874×404（0.965 倍）。
  * 比 718/404 更方的屏（很少见）宽取 718，多出来的高由 EXPAND 补背景；比 960/404 更长的屏宽取 960，多出来的宽同样补背景。
  * 开局时按当时的窗口定下来（转屏只是同一块画布换方向铺满，收放地址栏只差几个像素，由 EXPAND 吸收）。
  */
-export const PHONE_H = 404;
-export const PHONE_W = { min: 718, max: 960 } as const;
+const PHONE_H = 404;
+const PHONE_W = { min: 718, max: 960 } as const;
 export function phoneWorld(w: number, h: number, portrait = false): { w: number; h: number } {
   const long = Math.max(w, h);
   const short = Math.max(1, Math.min(w, h));
@@ -162,7 +162,7 @@ export function phoneWorld(w: number, h: number, portrait = false): { w: number;
 }
 
 /**
- * 竖屏版（0.33.0）：手机布局下开局时竖着拿（或 URL 参数 layout=portrait），世界换成竖的 404 × 718–960（phoneWorld 横竖对调），
+ * 竖屏版：手机布局下开局时竖着拿（或 URL 参数 layout=portrait），世界换成竖的 404 × 718–960（phoneWorld 横竖对调），
  * 各界面排成单列。和横屏版一样开局时定一次；中途转屏由 platform/orientation.ts 提示按新方向重排（重新载入，进度都存着）。
  * layout=phone 仍是横屏版（老的冒烟脚本靠它在任何视口里拿到横屏世界）。
  */
@@ -181,7 +181,7 @@ export const VIEW =
   PHONE && typeof window !== 'undefined' ? phoneWorld(window.innerWidth || 844, window.innerHeight || 390, PORTRAIT) : { w: GAME_WIDTH, h: GAME_HEIGHT };
 
 /**
- * 0.19.5 手机世界横过来铺到屏幕上是几倍（SE 0.93、844×390 0.97、平板 1.4 以上）。
+ * 手机世界横过来铺到屏幕上是几倍（SE 0.93、844×390 0.97、平板 1.4 以上）。
  * 比 SE 还矮的屏（640×360、780×360 是 0.89，老 SE 横屏 568×320 是 0.79）按它抬最小字号和点击区，换算到屏幕上字 ≥ 12、点击 ≥ 44 像素。
  */
 export const PHONE_SCALE = ((): number => {
@@ -193,7 +193,7 @@ export const PHONE_SCALE = ((): number => {
 })();
 
 /**
- * 0.5.9 省内存的设备：iOS（含报成 Mac 的 iPad）和触屏手机平板。iOS Safari 的网页进程内存超了会直接"网页已崩溃"，
+ * 省内存的设备：iOS（含报成 Mac 的 iPad）和触屏手机平板。iOS Safari 的网页进程内存超了会直接"网页已崩溃"，
  * 2GB 内存的老 iPhone（iOS 15）上开盘、掼蛋都打不开。这类设备渲染倍数封顶 2（图集是 2 倍烘焙的，超过 2 就不用图集、
  * 几百张 SVG 各自光栅化，实测纹理从约 380 MB 涨到 830 MB），整屏的场景背景按 1 倍光栅化（背景是柔和的插画，
  * 每张 2 倍要 15 MB、十几张就两百多 MB）。
@@ -208,7 +208,7 @@ export const LOW_MEMORY = isLowMemoryDevice();
 export const RENDER_SCALE = renderScale({ designW: Math.max(VIEW.w, VIEW.h), designH: Math.min(VIEW.w, VIEW.h), lowMemory: LOW_MEMORY });
 
 /**
- * 0.5 字号只用三级：大数字（账户、涨跌幅、效果数字）、标题（卡名、弹窗标题、结论）、标签（其余所有常驻文字）。
+ * 字号只用三级：大数字（账户、涨跌幅、效果数字）、标题（卡名、弹窗标题、结论）、标签（其余所有常驻文字）。
  * 字重：大数字与标题加粗，标签常规；强调只靠颜色（涨跌色 / accent），不再叠加粗与下划线。
  * 详情文字（悬停提示、展开的详情、怎么玩）也用 label 级。
  */
@@ -222,7 +222,7 @@ export const TYPE = { big: 28, title: 18, label: 13 } as const;
 export const FS = { xs: 12, sm: 14, md: 16, lg: 18, xl: 22, xxl: 28 } as const;
 
 /**
- * 0.9.0 间距和圆角刻度（4 的倍数）：共用组件（按钮、弹窗、提示、高亮框）从这里取，新写和改动的布局也从这里取，不再写零散数字。
+ * 间距和圆角刻度（4 的倍数）：共用组件（按钮、弹窗、提示、高亮框）从这里取，新写和改动的布局也从这里取，不再写零散数字。
  * 圆角：小标签和行高亮 sm、按钮和卡片 md、浮层 lg；九宫格素材自带圆角，不受这里管。
  */
 export const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;

@@ -137,7 +137,7 @@ export class Session {
         this.recorded = { runId: sum.runId, result };
         return result;
       } else {
-        // 0.13.0 好友挑战的局照每日挑战的规矩记（人设、难度可以没解锁，不解锁、不记最好成绩）
+        // 好友挑战的局照每日挑战的规矩记（人设、难度可以没解锁，不解锁、不记最好成绩）
         result = recordRun(profile, sum, dailyDate(), { challenge: challengeRecordFor(sum.seed) !== null });
         if (!result.ignored && !saveProfile(result.profile)) console.warn('档案写入失败（存储已满或不可用）');
       }
@@ -309,7 +309,7 @@ export class Session {
   }
 
   /**
-   * 0.5.9 显存估算（iOS 上内存超限会让页面崩溃）：纹理管理器里所有纹理源的像素、各场景文字自带画布的像素、主画布的像素。
+   * 显存估算（iOS 上内存超限会让页面崩溃）：纹理管理器里所有纹理源的像素、各场景文字自带画布的像素、主画布的像素。
    * 每像素按 4 字节算；图片在内存里通常还另有一份解码后的位图，实际占用比这还多。
    */
   memory(): { textures: number; texturePx: number; texts: number; textPx: number; canvasPx: number; top: string[] } {
@@ -448,7 +448,7 @@ export class Session {
   /**
    * 开新局：先校验设置（不对就同步返回错误），再异步按种子抽一段真实行情（"正在挑选行情……"），
    * 抽到了用真实行情开局，下载失败就退回 0.3 的合成行情并提示一句。market 为 'synthetic' 时直接用合成行情。
-   * 0.13.0 好友挑战：opts.segment 指定那一段（null 为合成行情），下载失败不退回合成行情（那就不是同一局了），调 onFail、不开局。
+   * 好友挑战：opts.segment 指定那一段（null 为合成行情），下载失败不退回合成行情（那就不是同一局了），调 onFail、不开局。
    * 新号前几局（isNoviceSetup）只在温和段池 NOVICE_SEGMENTS 里按种子抽，下载失败照常退回合成行情；
    * 新手课固定 LESSON.segment，行情没拿到就开不了（不退回合成行情，那就不是教的那一局了）。
    */
@@ -523,7 +523,7 @@ export class Session {
   market = 'real';
   /** 正在下载行情段（开局还没完成） */
   loadingMarket = false;
-  /** 0.5：平淡日自动快进的倒计时中（马上会自己开盘，自动化等它） */
+  /** 平淡日自动快进的倒计时中（马上会自己开盘，自动化等它） */
   autoPending = false;
 
   /** 当前这局标为调试局（URL 开局参数开的局），刷新后也认得出来。 */
@@ -561,7 +561,7 @@ export class Session {
   }
 
   /**
-   * 世界坐标 → 画布上的比例位置（0..1）。0.5.5 手机横屏时世界不再一律是 1280×720（适配过的场景 960×444，
+   * 世界坐标 → 画布上的比例位置（0..1）。手机横屏时世界不是 1280×720（适配过的场景 960×444，
    * 没适配的整体缩小居中），自动化按当前场景的相机换算才点得准。
    */
   toCanvas(x: number, y: number): { x: number; y: number } {

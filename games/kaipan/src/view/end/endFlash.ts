@@ -42,7 +42,7 @@ export class EndFlash {
     const start = sum.startAccount;
     const gain = final - start;
     const L = x + G.pad;
-    // 竖屏一栏（0.33.0）：「大厅」「分享」占着标题行，两枚标签挪到下面一行；资产和排名上下排、居中，像电脑上一样
+    // 竖屏一栏：「大厅」「分享」占着标题行，两枚标签挪到下面一行；资产和排名上下排、居中，像电脑上一样
     const one = !!G.single;
     const hx = one ? 0 : ph ? 104 : 0;
     const hy = y + (one ? 80 : G.headY);
@@ -131,16 +131,15 @@ export class EndFlash {
       }, '空格', 'trophy');
     }
     mk('menu', '主菜单', bx + bw[0]! + bw[1]! + 32, bw[2]!, 'default', () => this.s.session.toTitle(), 'Esc');
-    // 竖屏一栏：按钮那一排占满宽，局号挪到按钮上面
-    addText(this.s, x + G.pad, one ? by - 14 : y + H - (ph ? 17 : 26), `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
     const lobbyAt = ph ? { x: x + 10, y: y + 12 } : { x: 14, y: 10 };
     this.s.buttons.lobby = new Button(this.s, lobbyAt.x, lobbyAt.y, { width: ph ? 96 : 104, height: 42, label: lobbyLabel(), icon: 'house', fontSize: FS.md, onClick: () => goLobby() });
     attachDomProxy(this.s, this.s.buttons.lobby, standalone() ? '回首页' : '回大厅');
     this.s.shareButton(ph ? { x: x + W - 10 - 100, y: y + 12, w: 100, h: 42 } : { x: GAME_WIDTH - 14 - 132, y: 10, w: 132, h: 42 }, sum);
   }
 
+  /** 和局内、排行榜同一种写法（「¥10.38万」） */
   yuanText(v: number): string {
-    return `¥${Math.round(v).toLocaleString('en-US')}`;
+    return formatMoney(v);
   }
 
   /** 名次出来：大字弹出 + 盖章声；前三名再放烟花、响金卡音 */
@@ -179,7 +178,7 @@ export class EndFlash {
         last = step;
         sound.cue({ type: 'countUp', progress: Math.max(0, Math.min(1, p)) });
         num.setScale(1.04);
-        this.s.tweens.add({ targets: num, scale: 1, duration: 80 });
+        this.s.tweens.add({ targets: num, scale: 1, ease: 'Quad.easeOut', duration: 80 });
       }
     });
     if (!num.active) return;

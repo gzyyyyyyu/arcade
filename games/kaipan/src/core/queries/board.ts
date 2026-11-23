@@ -3,7 +3,7 @@ import { rngFor } from '../rng.ts';
 import type { DayReport, GameState, ThemeId } from '../types.ts';
 
 /**
- * 0.36 龙虎榜：一天收盘后涨得最多、跌得最多的各 3 只（只读已发生的收盘报告），
+ * 龙虎榜：一天收盘后涨得最多、跌得最多的各 3 只（只读已发生的收盘报告），
  * 带上当天谁在群里喊对了它所在的风口；有人上榜时挑一句他的得意话。
  */
 export interface BoardEntry {

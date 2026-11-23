@@ -98,7 +98,7 @@ export function warmUpReal(real: Readonly<RealMarket>, id: ThemeId): ThemeState 
   return t;
 }
 
-/** 0.5.1（画面用，只读）：和 warmUpReal 同样的预热过程，但把开局前每一天的热度都留下来（旧 → 新，最后一项是开局时的热度）。 */
+/** 画面用，只读：和 warmUpReal 同样的预热过程，但把开局前每一天的热度都留下来（旧 → 新，最后一项是开局时的热度）。 */
 export function warmHeatSeries(real: Readonly<RealMarket>, id: ThemeId): number[] {
   const base = BALANCE.real.heatBase;
   const t: ThemeState = { id, heat: base, history: [base], stage: 'cold', lastStage: 'cold', left: 0, sure: false, boost: null, age: 1 };
@@ -115,7 +115,7 @@ export function warmHeatSeries(real: Readonly<RealMarket>, id: ThemeId): number[
   return out;
 }
 
-// ================================================================ 0.5：个股照搬真实走势
+// ================================================================ 个股照搬真实走势
 
 /**
  * 真实行情的娱乐局（不是实盘）：账单按难度打折、靠谱群友更准（BALANCE.ease），带仓位玩法时开局就能押跌。
@@ -155,7 +155,7 @@ export function bandDir(x: number, band: number): 'up' | 'flat' | 'down' {
   return x >= band ? 'up' : x <= -band ? 'down' : 'flat';
 }
 
-/** 大盘天气（0.5）：最近 moodDays 天放大后的平均涨跌。 */
+/** 大盘天气：最近 moodDays 天放大后的平均涨跌。 */
 export function trackMood(real: Readonly<RealMarket>, i: number): Mood {
   let sum = 0;
   let n = 0;
@@ -182,7 +182,7 @@ export interface StockTraits {
   total: number;
 }
 
-export function stockTraits(r: readonly number[], sector: readonly number[]): StockTraits {
+function stockTraits(r: readonly number[], sector: readonly number[]): StockTraits {
   const n = Math.max(1, r.length);
   let vol = 0;
   let resid = 0;
@@ -212,7 +212,7 @@ export function stockTraits(r: readonly number[], sector: readonly number[]): St
 }
 
 /**
- * 0.5：开局按真实股票这一段的表现校正性格（只决定显示和情报口吻，不改走势）。在每个风口内把绑定的真实序列重新分给游戏股票：
+ * 开局按真实股票这一段的表现校正性格（只决定显示和情报口吻，不改走势）。在每个风口内把绑定的真实序列重新分给游戏股票：
  * 过山车 ← 相对行业残差波动最大；危险股 ← 整段跌得最多；带头大哥 ← 对行业 β 最大；老实股 ← 波动最小；其余当小弟（按 β 从大到小）。
  * 数据工具切段时已经按差不多的规则分过（tools/data/segments.ts 的 assign），这里在一局的窗口上再核一遍，大多数段不变。
  */

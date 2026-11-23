@@ -1,14 +1,14 @@
 import { friendView, stockById, type GameEvent, type GameState, type Highlight, type MonthGoalState } from '../core/index.ts';
 
 /**
- * 0.5 节奏与反馈的文字小工具（不碰 Phaser，单测直接测）：顶栏目标的短说法、开盘翻牌的档位、
+ * 节奏与反馈的文字小工具（不碰 Phaser，单测直接测）：顶栏目标的短说法、开盘翻牌的档位、
  * 屏幕中部大字的喊话、今天最精彩的事、识别出的连续涨停 / 没封住 / 过山车异动的播报、群友刷屏台词。
  */
 
 const fmt = (v: number): string => String(Math.round(v * 10) / 10);
 
 /**
- * 顶栏用的目标短说法（"涨停 0/1 次"、"本月 +1.2% / 3%"）；frac 为进度条 0..1（keep 是剩下的余量）。tight（0.36.3，竖屏顶栏放不下整句时）：短写法，进度数字一定在（以前截成「最多亏5%，已…」看不到进度）。
+ * 顶栏用的目标短说法（"涨停 0/1 次"、"本月 +1.2% / 3%"）；frac 为进度条 0..1（keep 是剩下的余量）。tight（竖屏顶栏放不下整句时）：短写法，进度数字一定在（以前截成「最多亏5%，已…」看不到进度）。
  */
 export function goalShort(g: Pick<MonthGoalState, 'kind' | 'progress' | 'target'>, tight = false): { text: string; frac: number } {
   const p = g.progress;
@@ -21,7 +21,7 @@ export function goalShort(g: Pick<MonthGoalState, 'kind' | 'progress' | 'target'
     case 'keep':
       return { text: tight ? `亏≤${fmt(t)}%·已${fmt(Math.max(0, p))}%` : `最多亏 ${fmt(t)}%，已亏 ${fmt(Math.max(0, p))}%`, frac: t > 0 ? Math.max(0, Math.min(1, 1 - p / t)) : 0 };
     case 'beat':
-      return { text: tight ? `跑赢${sp}/要${fmt(t)}` : `比大环境多 ${sp} / 要 ${fmt(t)}`, frac: ratio };
+      return { text: tight ? `跑赢${sp}%/要${fmt(t)}%` : `比大环境多赚 ${sp}% / 要 ${fmt(t)}%`, frac: ratio };
     case 'limitUp':
       return { text: tight ? `涨停 ${fmt(p)}/${fmt(t)}` : `抓涨停 ${fmt(p)}/${fmt(t)} 次`, frac: ratio };
     case 'shortWin':
@@ -127,7 +127,7 @@ export function spottedText(e: Pick<Extract<GameEvent, { type: 'spotted' }>, 'ki
   const name = stockById(e.stockId).name;
   const mine = e.held ? '（你手里的）' : '';
   const pct = `${e.move > 0 ? '+' : ''}${fmt(e.move)}%`;
-  // 0.36 新股连板单独播：「新股」打头，说上市后
+  // 新股连板单独播：「新股」打头，说上市后
   if (e.kind === 'boards') return stockById(e.stockId).role === 'ipo' ? `新股${name}${mine}上市后连续 ${e.boards} 天涨停` : `${name}${mine}连续 ${e.boards} 天涨停`;
   if (e.kind === 'blown') return `${name}${mine}昨天涨停，今天没封住：${pct}`;
   return `过山车${name}${mine}${e.move >= 0 ? '突然暴涨' : '突然暴跌'} ${pct}`;

@@ -1,5 +1,5 @@
 /**
- * 0.13.0 异步挑战：和平台的三个接口说话（docs/platform-backend.md 15.18），把回话理成几种结果；这台设备上接了哪个挑战记在 kaipan.challenge。
+ * 异步挑战：和平台的三个接口说话（docs/platform-backend.md 15.18），把回话理成几种结果；这台设备上接了哪个挑战记在 kaipan.challenge。
  * 不碰画面。fetch 从外面传进来，方便测试；回来的东西一律先校验再用（payload、别人的昵称和成绩都是外来数据）。
  *
  * - 发起每人每天 20 个、每个挑战最多 100 人、30 天过期都由平台管；过期和不存在一样回 404，开盘说同一句"打不开了"。
@@ -12,7 +12,7 @@ import { ellipsize } from '../core/format.ts';
 
 const GAME_ID = 'kaipan';
 const API = '/api/challenges';
-export const CHALLENGE_KEY = 'kaipan.challenge';
+const CHALLENGE_KEY = 'kaipan.challenge';
 const ID_RE = /^[A-Za-z0-9_-]{4,64}$/;
 
 export type Fetch = (url: string, init: RequestInit) => Promise<Response>;

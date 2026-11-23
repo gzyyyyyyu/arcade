@@ -1,6 +1,6 @@
 import { isIOSSafari, isStandalone } from 'arcade-kit/viewport';
 
-/** 0.5.9 iOS Safari 的开始菜单上提示「添加到主屏幕玩更大」（可见区适配本身在共用包 arcade-kit/viewport，见 main.ts） */
+/** iOS Safari 的开始菜单上提示「添加到主屏幕玩更大」（可见区适配本身在共用包 arcade-kit/viewport，见 main.ts） */
 const TIP_KEY = 'kaipan.homeTip.off';
 const TIP_ID = 'home-tip';
 

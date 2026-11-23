@@ -32,7 +32,7 @@ export class ChatView3 {
   recNodes: Phaser.GameObjects.Container[] = [];
   buttons: (Button | null)[] = [];
   shortButtons: (Button | null)[] = [];
-  /** 0.4 C：点了推荐卡上的"押跌" */
+  /** 点了推荐卡上的"押跌" */
   onShort: ((rec: number) => void) | null = null;
   recRects: Rect[] = [];
   /** 推荐卡上的 5 天走势（卡片冒出来时从左往右画） */
@@ -103,7 +103,7 @@ export class ChatView3 {
   }
 
   /**
-   * 0.36 增量更新：上一次整块重建时消息侧的输入（见 keyOf）。同一天里买卖、加自选只改推荐卡，
+   * 增量更新：上一次整块重建时消息侧的输入（见 keyOf）。同一天里买卖、加自选只改推荐卡，
    * 这时只重建推荐卡，消息、横条、新闻、热闹元素原样留着（每次整块重建约 150 个文字对象）。
    * 收盘盖章、吐槽、系统提示这些往群聊里加东西的方法会把它清掉，下次整块重建。
    */
@@ -178,10 +178,10 @@ export class ChatView3 {
     this.ipoRect = null;
     const ipo = s.phase === 'premarket' ? ipoToday(s) : null;
     if (ipo) y = addIpoBanner(this, s, ipo, y) + 4;
-    // 0.36 财报周：预告到揭晓，挂在打新下面
+    // 财报周：预告到揭晓，挂在打新下面
     const earn = earningsView(s);
     if (earn) y = addEarningsBanner(this, earn, y) + 4;
-    // 0.5：前几天发的、还没揭晓的多日消息（到揭晓那天收盘时盖章）
+    // 前几天发的、还没揭晓的多日消息（到揭晓那天收盘时盖章）
     this.watchNodes = [];
     this.watchPills = [];
     const yBeforeWatch = y;
@@ -220,7 +220,7 @@ export class ChatView3 {
     }
     // 昨天收盘的新闻放在最上面（解释昨天各风口为什么动）；地方不够时它先让位，今天的消息优先
     const news = premarket ? (s.lastDay?.news ?? []) : [];
-    // 0.36 龙虎榜跟昨日新闻折在一起（折着露出领涨的一只）
+    // 龙虎榜跟昨日新闻折在一起（折着露出领涨的一只）
     const board = premarket ? dragonBoard(s) : null;
     let paper = news.length > 0 || board ? newsFold(this, news, '昨日新闻', board) : null;
     const fitIn = (r: number): [number, number, boolean?] | undefined => tries.find(([size, rh, tight]) => this.estimate(v.messages, recs.length, size, rh, tight) <= r);
@@ -244,7 +244,7 @@ export class ChatView3 {
     this.recHeight = recH;
     for (const m of messages) y = addMessage(this, m, y, size) + this.gap;
     if (premarket) {
-      // 0.5.1：消息和推荐卡都排下以后，剩下的空白用群友的贴纸、互相回复、撤回、拍一拍填上（纯装饰）
+      // 消息和推荐卡都排下以后，剩下的空白用群友的贴纸、互相回复、撤回、拍一拍填上（纯装饰）
       const recsH = recs.length > 0 ? 2 + recs.length * (recH + GAP) : 0;
       y = addFluff(this, s, y, BODY_Y + BODY_H - 4 - recsH, 'pre', messages.map((m) => ({ friendId: m.friend.id, text: m.text }))).y;
       if (recs.length > 0) y += 2;
@@ -345,7 +345,7 @@ export class ChatView3 {
       for (const n of nodes) n.setAlpha(1).setY(0);
       return;
     }
-    // 总时长不变：原来按「消息 + 推荐卡」条数算的时间，均摊给多出来的热闹元素
+    // 总时长不变：按「消息 + 推荐卡」条数算的时间，均摊给多出来的热闹元素
     const base = nodes.length - fluff.size;
     // 条数多时按总时长封顶（INTRO_MAX），不让盘前冒消息拖住开盘键
     const step = Math.min(base > 0 && fluff.size > 0 ? (gap * base) / nodes.length : gap, INTRO_MAX / Math.max(1, nodes.length));
@@ -409,11 +409,11 @@ export class ChatView3 {
     }
   }
 
-  /** 0.5：等揭晓的多日消息（按发出那天 + 下标认） */
+  /** 等揭晓的多日消息（按发出那天 + 下标认） */
   watchNodes: { day: number; index: number; node: Phaser.GameObjects.Container; w: number }[] = [];
 
 
-  /** 0.5：多日消息到期揭晓——在那一行盖「说对了 / 翻车了」。 */
+  /** 多日消息到期揭晓——在那一行盖「说对了 / 翻车了」。 */
   async judgeIntel(anim: Animator, judges: MessageJudge[], gap = 90): Promise<void> {
     this.lastKey = null;
     gap = Math.min(gap, JUDGE_MAX / Math.max(1, judges.length));
@@ -460,7 +460,7 @@ export class ChatView3 {
     });
     const board = report ? dragonBoard(this.state, report) : null;
     const paper = news.length > 0 || board ? newsFold(this, news, '今日新闻', board) : null;
-    // 0.5：盘中播报（识别出的连续涨停、没封住、过山车异动），最多 2 条
+    // 盘中播报（识别出的连续涨停、没封住、过山车异动），最多 2 条
     const tick = ticker.slice(0, 2).map((text) => tickerNode(this, text));
     const need = commentH.reduce((n, h) => n + h + GAP, 0) + (paper ? paper.h + GAP : 0) + tick.reduce((n, t) => n + t.h + GAP, 0);
     this.makeRoom(need);
@@ -495,7 +495,7 @@ export class ChatView3 {
       }
       y = got.y;
     }
-    // 总时长不变：多出来的热闹元素均摊原来的间隔
+    // 总时长不变：多出来的热闹元素均摊同一段间隔
     // 条数多时按总时长封顶（AFTER_CLOSE_MAX）
     const step = Math.min(pops.size === 0 ? gap : base > 0 ? (gap * base) / items.length : 0, AFTER_CLOSE_MAX / Math.max(1, items.length));
     for (const { node, cue } of items) {

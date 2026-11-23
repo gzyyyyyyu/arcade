@@ -10,16 +10,16 @@
 | 娱乐短局 | `shortSetup(persona, difficulty)` | 只打 `BALANCE.short.months`（5）个月；账单 × `billMult`（0.25）；最后一个月月底多交一笔「首付」（突发账单 `SHORT_GOAL_BILL`，金额 = 开局资产 × `short.goal[难度]`，`shortGoal(s)`）。`runMonths(s)` 给出这局打几个月；`shortNeed(s)` 给出剩下的账单加首付一共约多少（本月用已公布的账单，以后几个月按不带主题的规则表 `rulesWithoutTheme` 估，不透露没公布的主题和突发账单） |
 | 新号短局 | `noviceSetup(persona)` | 新手档短局，首付比例换成 `BALANCE.novice.goal`（0.85）；画面在档案正式局不到 `BALANCE.novice.runs`（3）局时用它，行情段只从 `NOVICE_SEGMENTS`（不含崩盘、熊市）里按种子抽，`isNoviceSetup(setup)` 认出它（重玩同池）。规则和娱乐短局相同，进档案 |
 | 新手课 | `lessonSetup()`，种子 `LESSON.seed`、段 `LESSON.segment` | 两个月短局，账单 × 0.05，首付 = 开局资产（不亏就过）；`setup.lesson = true`，必须是短局、不和每日挑战等同开。`lessonAdvice(s)` 给盘前建议，`mindMoment(s)` 给心法的当场例子（`src/core/lesson.ts`，设计见 `design-lesson.md`）。不进档案、不交分，过关记 `Profile.lessonWon`、六张心法全亮 |
-| 实盘 | `liveSetup(tier, persona, x)` | 档位 `small / mid / big / lux`（`LIVE_TIERS`：一份 2,000 / 10,000 / 50,000 / 200,000 筹码，难度 1/2/3/3）；打 5 个月；账单 × 档位 `billMult`。结回倍数见下 |
+| 实盘 | `liveSetup(tier, persona, x)` | 档位 `small / mid / big / lux`（`LIVE_TIERS`：一份 2,000 / 10,000 / 50,000 / 200,000 筹码，难度 1/2/3/3）；打 5 个月；账单 × 档位 `billMult`。带回倍数见下 |
 | 每日挑战 | `dailySetup(date)` → `{ date, seed, setup }` | 种子 `daily-<日期>`；人设从 5 个里挑（含未解锁的）、难度 2..5（`DAILY_LEVELS`）；段在冻结池里抽，大家同一段；日期用玩家本地日期，由画面决定 |
 | 闪电盘 | `flashSetup(date)` → `{ date, seed, setup }` | 种子 `flash-<日期>`，独立的 rng 用途名；人设 5 选 1、难度 2..4（`FLASH_LEVELS`）；段 `flashSegmentId(date)` 在每日冻结池里抽。只打 `BALANCE.flash.months`（2）个月 = `flashDays()`（10）个交易日：没有月供、突发账单、股灾传闻、月度主题（`startMonth` 的 `isFlash` 分支，不发 `monthStarted`），月底不发奖励不抽事件，不会出局。开局 `phase = 'reward'`，三选一只出道具（`rollFlashRewards`，不含 `credit / crowd_fund`，rng 用途 `flashReward`），领完才 `startDay`；第 `BALANCE.flash.eventAfter`（4、8）个交易日收盘后必来一个事件，从 `FLASH_EVENTS`（当场见分晓的 9 个）里抽、不重复（`flashEvent`，rng 用途 `flashEvent`），选完直接接着打。`isFlash(s)` 判断；`flashScore(s)` 是分数。不进档案，不能发好友挑战 |
 | 本周市场 | `weeklySetup(week)` → `{ week, seed, rule, setup }` | 玩法同闪电盘（10 天、没有月供和银行、开局三选一、第 4 / 8 天事件，rng 用途 `weeklyReward` / `weeklyEvent`），种子 `weekly-<周号>`，rng 用途 `weekly`；段 `weeklySegmentId(week)`。另带一条按周号轮换的规则（`src/core/weekly.ts`：`weeklyRule` / `applyWeeklyRules` / `applyWeeklyMarket`，数值 `BALANCE.weekly`）：涨跌停放宽（`limitMult`）、反向群聊（`reverseAll`，`Message.liar` / `Rec.liar`）、题材快轮（`MarketRules.dHMult`）、满仓周（`slots` +2）、做空周（`canShort`、`shortGainMult`、`squeezeMult`）。`weeklyScore(s)` = `flashScore(s)`；榜 `weeklyBoardId(week)` = `week-<周号>-rules`。不进档案，不能发好友挑战 |
 | 好友挑战 | `challengeOf(state, version)` → payload；`challengeSetup(p)` | 把一局的开局（种子 + 人设 + 难度 + 短局规则 + 行情段 id）存成一小段 JSON，好友打开是同一个开局。只发打完的娱乐局；payload 是别人交上来的，`parseChallenge` 按白名单逐项校验 |
 
-**实盘结回**（`live.ts`、`liveTiers.ts`，Worker 也用后者）：不碰钱包，只算倍数。`liveMultipleBp(s)`（万分之几的整数，0..cap × 10000）= 1 + 档位涨跌倍数 `lev` ×（资产 ÷ 开局资产 − 1），破产为 0；
+**实盘带回**（`live.ts`、`liveTiers.ts`，Worker 也用后者）：不碰钱包，只算倍数。`liveMultipleBp(s)`（万分之几的整数，0..cap × 10000）= 1 + 档位涨跌倍数 `lev` ×（资产 ÷ 开局资产 − 1），破产为 0；
 `liveReturn(stake, bp)` = ⌊一份 × bp ÷ 10000⌋，全是整数运算，不会因小数误差少给 1 筹码。`liveValue(s)` 给顶栏小牌子用。
 **杠杆**：稳健 1× / 进取 2× / 疯狂 3×（`BALANCE.live.gears`：封顶 3 / 5 / 7 份，每月利息 0 / 1.3% / 1.8% 乘档位 `gearRate`，清零线 0 / 0.2 / 0.5）。
-结回再按 x 放大一次；放大后的结回倍数跌到清零线就爆仓（`gearWiped` + `runLost { reason: 'margin' }`，`endReason = 'margin'`）；利息作为突发账单 `GEAR_INTEREST_BILL` 随月供扣（`gearInterest(s)`），
+带回再按 x 放大一次；放大后的带回倍数跌到清零线就爆仓（`gearWiped` + `runLost { reason: 'margin' }`，`endReason = 'margin'`）；利息作为突发账单 `GEAR_INTEREST_BILL` 随月供扣（`gearInterest(s)`），
 `gearLevered(s)` 给放大后的倍数，`warnGap` 内顶栏提醒（只是画面）。
 **盘中减仓**（`deleverage`）：降一档后 `s.gearCut = { r0, v0, x }`，之后倍数 = `v0 + x × lev ×（资产比 − r0）`，利息按 x 那一档（1× 为 0），不再检查清零线；`liveMultipleBp` 同样按它算。
 
@@ -64,7 +64,7 @@
 | `Holding.buyStage / sawEbb`、`TradeLog.stage / guard` | 买入时的阶段、站岗判定。结束页复盘可以揭晓，局中不显示 |
 | `ThemeMove.stage`（`themeMoved` 事件、`report.themes`） | 当天真实阶段，局中不显示 |
 | `PendingEffect` 的结果 | 到期才掷，画面只显示本金和到期月份 |
-| `crashPlan / surprisePlan / turnOf / messageCred / themeTruth / stockTruth / forwardRet / earningsPlan / earningsBets` | 只给测试和模拟用 |
+| `crashPlan / surprisePlan / turnOf / messageCred / themeTruth / stockTruth / forwardRet / earningsPlan` | 只给测试和模拟用 |
 
 可以显示的：热度、走势、体感、大盘天气（上一个交易日）、消息与推荐、战绩、收盘后揭晓的 `truth`、连板、ST 警告、当月的 `bill.extras`、本月 `notice`、已到月份的主题与目标。
 

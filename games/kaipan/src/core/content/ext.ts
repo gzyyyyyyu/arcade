@@ -1,5 +1,5 @@
 /**
- * 0.4 C：抵押物、小知识。数值在 BALANCE.ext，这里只放名字和大白话。
+ * 抵押物、小知识。数值在 BALANCE.ext，这里只放名字和大白话。
  * 画面上一律说"押跌""借钱""银行打电话""收走"，真实世界的叫法只出现在小知识卡的 real 一行。
  */
 import { BALANCE } from '../balance.ts';
@@ -102,7 +102,7 @@ export function knowledgeById(id: string): KnowledgeDef {
 export const EXT_TIPS: Record<string, string> = {
   size: '买的时候可以选"试一口 / 半仓 / 重仓"：重仓就是把剩下的钱全压上',
   holding: '点手里的股票：可以加仓、减一半、清仓',
-  short: '你能押跌了：点推荐里的"押跌"，它跌你赚、它涨你亏，涨停时会被轧',
+  short: '你能押跌了：点推荐里的"押跌"，它跌你赚、它涨你亏，涨停那天会被轧：亏得比涨的还多',
   bank: '银行开门了：点右上角的"银行"，可以押东西借钱，赚亏都翻倍，记得每月付利息',
   call: '银行打电话了：再亏下去东西会被收走。可以卖掉一些、或者去银行还钱',
 };

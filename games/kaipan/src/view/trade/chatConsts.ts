@@ -24,10 +24,10 @@ export function vsLabel(d: number | null): { word: string; sign: number } | null
 }
 
 /**
- * 手机屏幕区域（外框内缩 14）。真手机横屏（0.5.5）上群聊在右边的标签页里：不画手机外框和群名条
+ * 手机屏幕区域（外框内缩 14）。真手机横屏上群聊在右边的标签页里：不画手机外框和群名条
  * （标签页上写群名人数），消息和推荐卡分成「群聊」「推荐」两页。
  */
-export const INSET = PHONE_MODE ? 4 : 14;
+const INSET = PHONE_MODE ? 4 : 14;
 export const SX = PHONE.x + INSET;
 export const SW = PHONE.w - INSET * 2;
 export const HEADER_H = PHONE_MODE ? 0 : 50;
@@ -39,7 +39,7 @@ export const CW = SW - PAD * 2;
 export const AVATAR = 32;
 /**
  * 逐条冒出的总时长上限（毫秒，1 倍速）：一天从按开盘到能再操作按设计时长算不超过 8 秒，
- * 群聊热闹的日子（十几条）以前单这两段就要 3 秒多。
+ * 不设上限的话，群聊热闹的日子（十几条）单这两段就要 3 秒多。
  */
 export const INTRO_MAX = 900;
 export const AFTER_CLOSE_MAX = 800;
@@ -47,7 +47,7 @@ export const AFTER_CLOSE_MAX = 800;
 export const JUDGE_MAX = 300;
 export const BUBBLE_X = CX + AVATAR + 6;
 export const BUBBLE_W = CW - AVATAR - 6;
-/** 0.5.1 推荐卡：题材顶条 + 名字角色 + 5 天走势与连涨 + 推荐人战绩 + 一句理由 */
+/** 推荐卡：题材顶条 + 名字角色 + 5 天走势与连涨 + 推荐人战绩 + 一句理由 */
 export const REC_H = 106;
 /** 推荐多（FOMO 给 4 条）、消息又多时的扁推荐卡：小人缩小，理由仍保留一行，全文在悬停提示里 */
 export const REC_H_FLAT = 68;

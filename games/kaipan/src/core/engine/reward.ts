@@ -50,7 +50,7 @@ export function rewardCandidates(s: Readonly<GameState>): Record<RewardCard['kin
   const stocks: RewardCard[] = [];
   for (const id of s.themeIds) {
     const t = s.themes[id];
-    // 0.5 真实行情：股票卡是"内部消息"——以 BALANCE.intel.headline 的概率只给接下来一个月真实走势偏强的（不看风口阶段）
+    // 真实行情：股票卡是"内部消息"——以 BALANCE.intel.headline 的概率只给接下来一个月真实走势偏强的（不看风口阶段）
     const track = s.real ?? null;
     if (!t || (!track && !(STOCK_CARD_STAGES as readonly string[]).includes(t.stage))) continue;
     for (const d of stocksOf(id)) {
@@ -119,7 +119,7 @@ export function openReward(s: GameState, em: Emitter): void {
 export function placeStock(s: GameState, stockId: string, slot: number, source: Holding['source']): string | null {
   const old = closeHolding(s, slot, 'replace');
   const h = newHolding(s, stockId, s.dayIndex - 1, source);
-  // 0.4 C：送的股票占 1 份；现金不够时有多少占多少（至少半份）
+  // 送的股票占 1 份；现金不够时有多少占多少（至少半份）
   if (s.ext) h.units = Math.max(BALANCE.ext.minUnit, Math.min(BALANCE.ext.taste, freeUnits(s)));
   s.slots[slot] = h;
   return old?.stockId ?? null;

@@ -18,9 +18,9 @@ import { APP_VERSION } from './version.ts';
  * 存档：完整的局面快照 + 写入时的版本号（format 5，对应 0.3.0 起的状态结构 GameState.version 4）。
  *
  * 读档直接使用快照，不回放：小版本调整数值后，旧存档仍按玩家当时看到的局面继续。
- * 0.3 以前和撤回的 0.4.0-alpha.1 的存档（format ≤ 4、6），以及格式 5 里 0.3.0、0.4 开发期的老局（isOldSave）读不了：
+ * 以前和撤回的 0.4.0-alpha.1 的存档（format ≤ 4、6），以及格式 5 里 0.3.0、0.4 开发期的老局（isOldSave）读不了：
  * 清掉，提示"版本大更新"后开新局。
- * 它们以前的迁移和备份在 0.6.15 删了，启动时 clearLegacyKeys 一次性清掉当年留下的备份 key。
+ * 启动时 clearLegacyKeys 一次性清掉当年留下的备份 key。
  * 存档损坏时先另存一份到 CORRUPT_KEY 再清除，便于排查。
  * 档案（成就、图鉴、解锁、各种最好成绩）在 src/platform/profile.ts，与单局存档互不影响；设置（kaipan.settings）也不受影响。
  */
@@ -43,12 +43,12 @@ interface LoadResult {
 }
 
 const KEY = 'kaipan.save';
-/** 0.4.0-alpha.1 的存档格式 */
+/** -alpha.1 的存档格式 */
 const V04A_FORMAT = 6;
 const CORRUPT_KEY = 'kaipan.save.corrupt';
 
 /**
- * 旧版本留在本机的 key（0.6.15 起不再读）：0.1 的操作序列存档、0.1～0.4a 的存档和纪录备份、0.3 找回后留的底、
+ * 旧版本留在本机的 key（都不再读）：0.1 的操作序列存档、0.1～0.4a 的存档和纪录备份、0.3 找回后留的底、
  * 0.3 的本地纪录（档案取代了它），和删掉的美股原型写的术语记录。只清这些，当前的存档、档案、设置一个都不碰（测试锁住）。
  */
 export const LEGACY_KEYS: readonly string[] = [

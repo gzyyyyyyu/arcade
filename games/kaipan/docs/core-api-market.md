@@ -17,7 +17,7 @@
 ### 7.2 真实行情怎么算（`market.ts` 的 `moveStocksTrack`、`real.ts`）
 
 - 当天涨跌 = `BALANCE.track.amp`（2，所有股票相同）× 绑定的真实股票当天总收益，再按涨跌停截断：跌停 = 角色涨跌停（10，ST 5）× `rules.limitMult`，涨停再 × `rules.limitUpMult`。
-  风口（看板）涨跌 = amp × 真实行业等权收益；大盘 = amp × 老三十。日历、难度、道具、事件、股灾都不再改大盘和个股。
+  风口（看板）涨跌 = amp × 真实行业等权收益；大盘 = amp × 老三十。日历、难度、道具、事件、股灾都不改大盘和个股。
 - 风口热度和阶段（只是信息，不影响涨跌）：行业相对「所有行业平均」的超额收益按 `real.smooth`（0.35）指数均摊，让风口有惯性；
   热度变化 = `heatGain × ex / scale − heatPull × (热度 − heatBase)` + 加成。阶段是状态机（冷 → 冒头 → 发酵 → 主升 → 高潮 → 退潮 → 冷，冒头可夭折、发酵可证伪），
   门槛在 `BALANCE.real.stage`。大盘天气看最近 `moodDays`（3）天放大后的大盘均值，≥ `track.moodBull` 晴、≤ 负值雨。
@@ -26,7 +26,7 @@
   危险股跌停记一次退市警告、有警告时涨停摘帽，真实行情下不会退市。
 - **性格校正** `fitRoles`（开局）：每个风口内按这一段（开局前 + 一局）的真实表现重新分配绑定序列：过山车 ← 相对行业残差波动最大；危险股 ← 整段跌得最多；
   带头大哥 ← 对行业 β 最大；老实股 ← 波动最小；其余当小弟。只决定显示和情报口吻。`node tools/realness.ts` 实测个股逐日相关 ≥ 0.9。
-- **股灾**（难度 6）：月份和日子对齐段内股灾可选月份里大盘真实跌得最多的一天（跌 ≥ 1.5% 才对齐，否则按种子，`real.crashReal`）；风口热度一起退潮，突发账单照旧，不再额外压大盘。
+- **股灾**（难度 6）：月份和日子对齐段内股灾可选月份里大盘真实跌得最多的一天（跌 ≥ 1.5% 才对齐，否则按种子，`real.crashReal`）；风口热度一起退潮，突发账单照旧，不额外压大盘。
   `crashPlan(seed, difficulty, real?)` 是隐藏信息（只给测试和模拟）；画面只读 `state.notice` 和收盘后的 `crashHit / report.crash`。
 - **情报从真实未来推算**（`chat.ts`）：
   - 消息：说的是风口接下来 `days` 天（含今天，1–3，权重 `intel.days` 8:3:1）的累计涨跌方向，累计在 ±`intel.flat[days−1]` 以内算「横」（`themeTruth`）。
@@ -60,7 +60,7 @@
 - **防泄漏**：玩家能在网络面板看到这些文件，所以文件名、目录、内容里都不能有年份、日期、大事原文、真实代码。`tests/repo/segments-leak.test.ts` 扫所有文件。
   id 与真实年份的对照只在 `tools/data/segments-manifest.json`（工具和测试用，不进画面包）。不存任何价格，只存相对涨跌。
 - 风口 ↔ 真实行业的对应在 `segment.ts` 的 `THEME_REAL`。`checkSegment(raw, themeIds)` 校验下载来的段，不对就退回合成行情。
-- 开局 `realFromSegment(seg, themeIds, stockIds, smooth)` 只取登场风口和绑定股票的部分存进 `state.real`（约 15KB，进存档；读档、回放不再下载），并算好每个行业的 `ex`（均摊超额）与 `scale`（归一尺度）。
+- 开局 `realFromSegment(seg, themeIds, stockIds, smooth)` 只取登场风口和绑定股票的部分存进 `state.real`（约 15KB，进存档；读档、回放不用再下载），并算好每个行业的 `ex`（均摊超额）与 `scale`（归一尺度）。
 - `pickSegmentId(seed, ids, hash)`：同一种子同一份目录抽到同一段。每日挑战只在冻结的段池 `DAILY_SEGMENTS` 里抽（`dailySegmentId(date)`），段库加了新段也不变。
 - 数据管线（`tools/data/`）在开发机上跑，产物进仓库、原始数据不进，见 `AGENTS.md` 第 5 节；段库现为 135 段，开局日两两至少隔 39 个交易日。
 
