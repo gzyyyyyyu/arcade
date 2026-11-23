@@ -200,6 +200,9 @@ function rushDown(w: World, plan: RushPlan, code: number, x: number, y: number):
     return;
   }
   w.rushAt = w.tick + RUSH.rest;
+  settleChest(w);
+  w.pendingLevels += RUSH.stagePicks;
+  w.chestPicks += RUSH.stagePicks;
   for (let k = 0; k < RUSH.buns; k++) {
     const a = w.rDrop.int(DIR_N);
     addDrop(w, Drop.Bun, w.x + dcos(a) * 120, w.y + dsin(a) * 90, DROPS.bunHeal);

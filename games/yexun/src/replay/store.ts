@@ -44,6 +44,12 @@ export function loadReplays(kv: KV | undefined = defaultKV()): ReplayRecord[] {
   }
 }
 
+/** 本机这个榜最好的一局的分数（录像按榜记着最好的那局，bestFor）；没有是 null */
+export function bestScore(board: string, items: readonly ReplayRecord[] = loadReplays()): number | null {
+  const r = items.find((x) => x.bestFor.includes(board));
+  return r ? (r.scores[board] ?? null) : null;
+}
+
 export function sizeOf(items: readonly ReplayRecord[]): number {
   return JSON.stringify({ v: 1, items }).length;
 }

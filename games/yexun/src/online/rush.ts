@@ -60,6 +60,12 @@ export function decodeRush(score: number): { cleared: boolean; down: number; tot
 }
 
 /** 用时写成分:秒 */
+/** 连战分数的短写法（结算页小格子放得下）：全清写用时，没全清写 N/M */
+export function rushShort(score: number): string {
+  const d = decodeRush(score);
+  return d.cleared ? `全清 ${fmtClock(RUSH.limit / TICKS_PER_SECOND - d.tail)}` : `${d.down}/${d.total}`;
+}
+
 export function rushClock(ticks: number): string {
   return fmtClock(Math.ceil(ticks / TICKS_PER_SECOND));
 }

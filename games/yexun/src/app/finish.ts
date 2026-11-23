@@ -22,13 +22,14 @@ import { beijingDate, isNightmareSunday } from '../online/daily.ts';
 import { weekIndex } from '../online/weekly.ts';
 import { buildShareCard } from '../online/share.ts';
 import { scoresOfRun } from '../online/score.ts';
+import { rushBoardId, rushScore, rushShort } from '../online/rush.ts';
 import { outcomeText, type createSubmitter } from '../online/submit.ts';
 import type { createSocial } from '../online/social.ts';
 import type { RunSummary } from '../online/types.ts';
 import type { createLive } from '../platform/live.ts';
 import { applyWeekRun, carryCoins, type CoinSource, coins, finishRun, finishTrial, grantCoins, recordLiveVigil, type loadSave, writeSave } from '../platform/save.ts';
 import type { Recorder } from '../replay/recorder.ts';
-import { storeReplay } from '../replay/store.ts';
+import { bestScore, storeReplay } from '../replay/store.ts';
 import { music } from '../view/audio/music.ts';
 import { treasureIconKey } from '../view/art/sprites-raid.ts';
 import type { GameScene } from '../view/game/GameScene.ts';
@@ -248,6 +249,8 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     banners.clear();
     const seconds = (w.setup.endless ? w.tick : Math.min(w.tick, DAWN_TICK)) / 30;
     const trial = trialEnd(w, quit);
+    // 连战：存录像前先记下本机今天最好，结算页拿来比
+    const rushPrev = w.rush && sess.dailyDate ? bestScore(rushBoardId(sess.dailyDate)) : null;
     const run = archive(w, quit, trial);
     // 周目标（连战不算）；试炼首通的铜钱一起报
     const extra = w.rush ? [] : [...(trial?.extra ?? []), ...weekEnd(w)];
@@ -277,8 +280,10 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     if (w.rush && run.rush) {
       // 首领连战：只交每日连战榜（archive 里交过了），不记守夜的纪录、解锁和成就（构筑是给好的，和守夜不可比），不发铜钱
       showPlay(false);
-      result.show({ won: run.rush.cleared, quit, bossKilled: false, seconds: run.rush.ticks / 30, kills: w.kills, level: w.level, coins: w.coins, label: `每日连战 · ${MAPS[w.setup.map ?? 'snow'].name} · ${SCHOOLS[w.rush.school].name}`, fixed: true, record: false, build: buildRows(w) });
-      decorateRushResult(result.root, w.rush, run.rush, quit);
+      const score = rushScore(run.rush);
+      const record = !quit && (rushPrev === null || score > rushPrev);
+      result.show({ won: run.rush.cleared, quit, bossKilled: false, seconds: run.rush.ticks / 30, kills: w.kills, level: w.level, coins: w.coins, label: `每日连战 · ${MAPS[w.setup.map ?? 'snow'].name} · ${SCHOOLS[w.rush.school].name}`, fixed: true, record, build: buildRows(w) });
+      decorateRushResult(result.root, w.rush, run.rush, quit, record ? '就是这一局' : rushPrev === null ? '—' : rushShort(rushPrev));
       return;
     }
     // 认输的局算一局、铜钱照拿，但不算纪录
