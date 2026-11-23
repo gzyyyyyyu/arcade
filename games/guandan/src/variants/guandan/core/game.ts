@@ -44,7 +44,7 @@ export const teamOf = (s: Seat): Team => s % 2;
 export const partnerOf = (s: Seat): Seat => (s + 2) % 4;
 export const nextSeat = (s: Seat): Seat => nextOf(s, 4);
 
-interface Trick {
+export interface Trick {
   /** 本轮领出的人 */
   leader: Seat;
   /** 本轮目前最大的一手；null 表示还没人出（轮到的人必须领出） */
@@ -307,12 +307,26 @@ export function seatsToAct(s: GameState): Seat[] {
   }
 }
 
-const active = (s: GameState, seat: Seat) => !s.finished.includes(seat);
+// 下面三个轮转规则 dispatch 和电脑的残局推演（ai/search.ts）共用一份
 
-function nextActive(s: GameState, seat: Seat): Seat {
+/** seat 之后下一个还没走完的人 */
+export function nextActiveSeat(finished: readonly Seat[], seat: Seat): Seat {
   let x = nextSeat(seat);
-  for (let i = 0; i < 4 && !active(s, x); i++) x = nextSeat(x);
+  for (let i = 0; i < 4 && finished.includes(x); i++) x = nextSeat(x);
   return x;
+}
+
+/** 这一轮收没收：除出牌人外没走完的都不要了，回下一轮的领出人（出牌人已走完由他对家接风）；还没收回 null */
+export function trickTaken(trick: Pick<Trick, 'last' | 'passed'>, finished: readonly Seat[]): { leader: Seat; jiefeng: boolean } | null {
+  const last = trick.last!;
+  if (!SEATS.every((x) => finished.includes(x) || x === last.seat || trick.passed[x])) return null;
+  const jiefeng = finished.includes(last.seat);
+  return { leader: jiefeng ? partnerOf(last.seat) : last.seat, jiefeng };
+}
+
+/** 这一副打完没有：三个人走完，或者同一队包揽头两名 */
+export function dealOver(finished: readonly Seat[]): boolean {
+  return finished.length === 3 || (finished.length === 2 && teamOf(finished[0]!) === teamOf(finished[1]!));
 }
 
 export function dispatch(state: GameState, action: Action): DispatchResult {
@@ -424,16 +438,15 @@ function settleTribute(s: GameState, ev: GameEvent[]): void {
 
 function afterPass(s: GameState, ev: GameEvent[], seat: Seat): void {
   const last = s.trick.last!;
-  const others = SEATS.filter((x) => active(s, x) && x !== last.seat);
-  if (others.every((x) => s.trick.passed[x])) {
-    const jiefeng = !active(s, last.seat);
-    const leader = jiefeng ? partnerOf(last.seat) : last.seat;
+  const taken = trickTaken(s.trick, s.finished);
+  if (taken) {
+    const { leader, jiefeng } = taken;
     ev.push({ type: 'trickWon', seat: last.seat, leader, jiefeng });
     s.trick = emptyTrick(leader);
     s.turn = leader;
     ev.push({ type: 'lead', seat: leader });
   } else {
-    s.turn = nextActive(s, seat);
+    s.turn = nextActiveSeat(s.finished, seat);
   }
   ev.push({ type: 'turn', seat: s.turn });
 }
@@ -443,8 +456,7 @@ function afterPlay(s: GameState, ev: GameEvent[], seat: Seat): void {
     s.finished.push(seat);
     ev.push({ type: 'finish', seat, place: s.finished.length });
     const f = s.finished;
-    const sameTeamTop2 = f.length === 2 && teamOf(f[0]!) === teamOf(f[1]!);
-    if (f.length === 3 || sameTeamTop2) {
+    if (dealOver(f)) {
       // 剩下的人按出牌顺序补到名次末尾
       let x = seat;
       while (f.length < 4) {
@@ -455,7 +467,7 @@ function afterPlay(s: GameState, ev: GameEvent[], seat: Seat): void {
       return;
     }
   }
-  s.turn = nextActive(s, seat);
+  s.turn = nextActiveSeat(s.finished, seat);
   ev.push({ type: 'turn', seat: s.turn });
 }
 

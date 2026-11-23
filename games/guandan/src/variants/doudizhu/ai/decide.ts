@@ -40,8 +40,31 @@ const NOVICE_BLUNDER = 0.32;
  * 所以娱乐单机的电脑按这张表带一点失误（docs/stake-ddz.md 第 2 节）。实盘单机靠换电脑搭配调（10.3），好友房、匹配、提示、代打我都用 decideDdz 的默认
  */
 export const DDZ_FUN_BLUNDER: Readonly<Record<DdzLevel, number>> = { novice: NOVICE_BLUNDER, normal: 0.25, pro: 0.15 };
-const ENDGAME = { total: 24, samples: 6, nodeCap: 1500 };
+const ENDGAME = { total: 24, samples: 6, nodeCap: 1500, budget: Infinity };
+/** 娱乐单机高手档的残局（deep）：剩牌更多就开始搜、分牌更多种。只给娱乐单机，实盘、好友房、匹配、提示、代打都用 ENDGAME（实盘期望不动） */
+const ENDGAME_DEEP = { total: 30, samples: 8, nodeCap: 2000, budget: 20000 };
 const ENDGAME_MING_TOTAL = 30;
+
+/**
+ * 娱乐单机里两个电脑的打法性格（名册 kit personas：稳哥好牌才进、进了就打；幺妹儿快、爱抢）。在档位常数上加减：
+ * bid 叫分线（正的更挑牌），contest 对手剩几张以内不管多伤也压，bombAt 对手剩几张以内就舍得炸。
+ * 只给娱乐单机（session 传进来），实盘、好友房、匹配、提示、代打都不带（实盘期望不动）
+ */
+export interface DdzStyle {
+  bid: number;
+  contest: number;
+  bombAt: number;
+}
+const NO_STYLE: DdzStyle = { bid: 0, contest: 0, bombAt: 0 };
+/** 按座位：0 号是我，1 号稳哥（只叫好牌），2 号幺妹儿（爱抢地主、对手快走时更肯压、更早炸）；座位和人见 view/common/labels 的 DDZ_SEAT_PERSON */
+export const DDZ_SEAT_STYLE: readonly DdzStyle[] = [NO_STYLE, { bid: 1, contest: 0, bombAt: 0 }, { bid: -1, contest: 1, bombAt: 1 }];
+
+/** decideDdz 的可选项：blunder 出牌失误率（默认新手 NOVICE_BLUNDER、其余 0），deep 娱乐高手的深残局，style 打法性格 */
+export interface DdzBotOptions {
+  blunder?: number;
+  deep?: boolean;
+  style?: DdzStyle;
+}
 
 /** 叫分的牌力：王、2、炸弹、手数 */
 export function bidStrength(hand: readonly Card[], cap = PLAN_CAP.normal): number {
@@ -111,6 +134,7 @@ interface Ctx {
   unseen: Card[] | null;
   /** 明牌了的地主手里的牌（我是农民才有），用来挑地主压不住的牌 */
   known: Card[] | null;
+  style: DdzStyle;
 }
 
 /** 出完这手以后的评分，越小越好：剩下的手数为主，再看出掉的大小（小牌先走、多张先走），炸弹要有理由才出 */
@@ -127,7 +151,7 @@ function cost(c: Ctx, p: DdzPlay): number {
   return x;
 }
 
-function makeCtx(v: DdzView, level: DdzLevel): Ctx {
+function makeCtx(v: DdzView, level: DdzLevel, style: DdzStyle = NO_STYLE): Ctx {
   const me = v.seat;
   const enemies = me === v.landlord ? [next3(me), next3(next3(me))] : [v.landlord];
   const cap = PLAN_CAP[level];
@@ -140,6 +164,7 @@ function makeCtx(v: DdzView, level: DdzLevel): Ctx {
     enemyMin: Math.min(...enemies.map((e) => v.counts[e]!)),
     unseen: level === 'pro' ? unseenOf(v) : null,
     known: level !== 'novice' && v.mingHand && me !== v.landlord ? v.mingHand : null,
+    style,
   };
 }
 
@@ -173,7 +198,7 @@ function chooseFollow(c: Ctx, rng: ReturnType<typeof rngFor>): DdzPlay | null {
     const best = normal.map((p) => ({ p, k: cost(c, p) })).sort((a, b) => a.k - b.k || a.p.v - b.p.v)[0]!.p;
     // 压了会把牌拆散（手数比"出掉一手"多出 2 手以上）而对手还早：不压。新手不算这个
     const worse = level === 'novice' ? 0 : handCount(without(c.hand, best), c.cap) - (c.baseHands - 1);
-    if (worse <= FOLLOW[level].slack || c.enemyMin <= FOLLOW[level].contest) pick = best;
+    if (worse <= FOLLOW[level].slack || c.enemyMin <= FOLLOW[level].contest + c.style.contest) pick = best;
   }
   if (!pick) {
     const bombs = options.filter(isBombish).sort((a, b) => a.v - b.v);
@@ -181,7 +206,7 @@ function chooseFollow(c: Ctx, rng: ReturnType<typeof rngFor>): DdzPlay | null {
       const b = bombs[0]!;
       const left = without(c.hand, b);
       const finishing = left.length === 0 || handCount(left, c.cap) <= 2;
-      const urgent = c.enemyMin <= BOMB_AT[level] || finishing;
+      const urgent = c.enemyMin <= BOMB_AT[level] + c.style.bombAt || finishing;
       // 不洗牌（0.35.0）：炸弹多（三家合计每副约 2.3 个），压不住对手就炸，不全攒到收尾；不然一副只炸 0.7 次，玩法的看点出不来。
       // 只看视图里公开的 noShuffle，经典玩法一点不变
       const loose = v.noShuffle === true && bombs.length >= 1;
@@ -193,11 +218,11 @@ function chooseFollow(c: Ctx, rng: ReturnType<typeof rngFor>): DdzPlay | null {
 }
 
 /** 高手的残局：剩牌不多时在公开信息下搜一遍，搜不出高下就用启发式的结果 */
-function endgame(c: Ctx, base: DdzPlay | null, lead: boolean, seed: string | number): DdzPlay | null {
+function endgame(c: Ctx, base: DdzPlay | null, lead: boolean, seed: string | number, o: typeof ENDGAME): DdzPlay | null {
   const v = c.v;
   const total = v.counts[0]! + v.counts[1]! + v.counts[2]!;
   // 地主的牌是公开的，只剩队友的牌要猜，搜得起更大的残局
-  if (total > (c.known ? ENDGAME_MING_TOTAL : ENDGAME.total)) return base;
+  if (total > (c.known ? Math.max(ENDGAME_MING_TOTAL, o.total) : o.total)) return base;
   const plays = (lead ? enumerateDdz(c.hand) : playsBeatingDdz(c.hand, v.target!.play))
     .map((p) => ({ p, k: cost(c, p) }))
     .sort((a, b) => a.k - b.k)
@@ -207,18 +232,21 @@ function endgame(c: Ctx, base: DdzPlay | null, lead: boolean, seed: string | num
   if (base && !cands.includes(base)) cands.unshift(base);
   if (!lead) cands.push(null);
   const rng = rngFor(seed, 'ddz-endgame', v.dealNo, v.seat, v.step);
-  const r = endgamePick(v, cands, base, rng, ENDGAME);
+  const r = endgamePick(v, cands, base, rng, o);
   return r === undefined ? base : r;
 }
 
 /** 轮到 v.seat 时的动作；没轮到它或这一阶段不用动回 null。同一视图同一种子结果相同 */
-export function decideDdz(v: DdzView, level: DdzLevel, seed: string | number, blunder = level === 'novice' ? NOVICE_BLUNDER : 0): DdzAction | null {
+export function decideDdz(v: DdzView, level: DdzLevel, seed: string | number, o: DdzBotOptions = {}): DdzAction | null {
+  const blunder = o.blunder ?? (level === 'novice' ? NOVICE_BLUNDER : 0);
+  const style = o.style ?? NO_STYLE;
   if (v.turn !== v.seat) return null;
   const me = v.seat;
   if (v.phase === 'bid') {
     const rng = rngFor(seed, 'ddz-bid', v.dealNo, me, v.step);
     const st = bidStrength(v.hand, PLAN_CAP[level]) + (level === 'novice' ? rng.int(5) - 2 : 0);
-    const line = BID_LINE[level];
+    const [l1, l2, l3] = BID_LINE[level];
+    const line = [l1 + style.bid, l2 + style.bid, l3 + style.bid] as const;
     let want = st >= line[2] ? 3 : st >= line[1] ? 2 : st >= line[0] ? 1 : 0;
     if (want <= v.bid) want = 0;
     return { type: 'bid', seat: me, bid: want };
@@ -226,7 +254,7 @@ export function decideDdz(v: DdzView, level: DdzLevel, seed: string | number, bl
   if (v.phase === 'show') return { type: 'show', seat: me, open: shouldShowDdz(v, level, seed) };
   if (v.phase !== 'play') return null;
   const rng = rngFor(seed, 'ddz-play', v.dealNo, me, v.step);
-  const c = makeCtx(v, level);
+  const c = makeCtx(v, level, style);
   const lead = !v.target;
   // 一手能出完就出
   const whole = enumerateDdz(c.hand).find((p) => p.cards.length === c.hand.length && (lead || beatsDdz(p, v.target!.play!)));
@@ -239,7 +267,7 @@ export function decideDdz(v: DdzView, level: DdzLevel, seed: string | number, bl
     const i = rng.int(pool.length + (lead ? 0 : 1));
     play = i < pool.length ? pool[i]! : null;
   }
-  if (level === 'pro') play = endgame(c, play, lead, seed);
+  if (level === 'pro') play = endgame(c, play, lead, seed, o.deep ? ENDGAME_DEEP : ENDGAME);
   return play ? { type: 'play', seat: me, cards: play.cards } : { type: 'pass', seat: me };
 }
 

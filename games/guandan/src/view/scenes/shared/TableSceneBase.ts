@@ -81,6 +81,9 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
   busy = false;
   protected botTimer: Phaser.Time.TimerEvent | null = null;
   protected botSeat = -1;
+  /** 电脑这一手还在后台线程里算（runBot）；cancelBot 加一代，算回来的旧结果作废 */
+  protected botWaiting = false;
+  private botGen = 0;
   overlay: Overlay = null;
   overlayModal: Modal | null = null;
   /** 好友房结算页上"还在等谁"那行字 */
@@ -137,7 +140,7 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
   }
 
   get isBusy(): boolean {
-    return this.busy || this.botTimer !== null;
+    return this.busy || this.botTimer !== null || this.botWaiting;
   }
 
   // ───────────────────────── 搭建 ─────────────────────────
@@ -346,10 +349,40 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
   }
 
   cancelBot(): void {
+    this.botGen++;
+    this.botWaiting = false;
     this.botTimer?.remove();
     this.botTimer = null;
     if (this.botSeat >= 0) this.seats[this.botSeat]?.setThinking(false);
     this.botSeat = -1;
+  }
+
+  /**
+   * 电脑想一手：plan 在后台线程里算（view/common/bot-runner.ts，画面和按钮不等它），算回来后按 thinkMs 扣掉已经花掉的时间再出（act）。
+   * 算的时候座位上照常显示"思考中"；中途 cancelBot（换副、弹层、联机重置）了，算回来的结果作废
+   */
+  protected runBot<A>(seat: number, plan: Promise<A | null>, thinkMs: (a: A) => number, act: (a: A) => void): void {
+    const gen = ++this.botGen;
+    const t0 = performance.now();
+    this.botSeat = seat;
+    this.botWaiting = true;
+    if (!this.isMe(seat)) this.seats[seat]?.setThinking(true);
+    void plan.then((a) => {
+      if (gen !== this.botGen || !this.alive) return;
+      this.botWaiting = false;
+      if (!a) {
+        this.cancelBot();
+        return;
+      }
+      const left = Math.max(0, dur(thinkMs(a)) - (performance.now() - t0));
+      this.botTimer = this.time.delayedCall(left, () => {
+        this.botTimer = null;
+        this.botSeat = -1;
+        this.seats[seat]?.setThinking(false);
+        if (!this.alive || this.busy || this.overlay !== null) return;
+        act(a);
+      });
+    });
   }
 
   /** 联机：现在这一帧先别往下播（掼蛋：弹层开着时等它关） */

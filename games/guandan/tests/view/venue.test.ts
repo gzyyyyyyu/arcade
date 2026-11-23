@@ -20,11 +20,11 @@ function midGame(seed: string, steps: number): GameState {
 }
 
 describe('场地 → 电脑（docs/ai.md）', () => {
-  it('单机娱乐三档（docs/balance.md 第 3 节）：新手档对手最弱（会手软）、搭档较强；普通四个座位一样强；高手全是最强', () => {
+  it('单机娱乐三档（docs/balance.md 第 3 节）：新手档对手最弱（会手软）、搭档较强；普通四个座位一样强；高手全是最强、对手另带残局推演', () => {
     expect(SOLO_FUN_BOTS).toEqual({
       novice: { mate: 'good', opp: 'novice' },
       normal: { mate: 'normal', opp: 'normal' },
-      pro: { mate: 'hard', opp: 'hard' },
+      pro: { mate: 'hard', opp: 'expert' },
     });
     // 设置面板、选难度按这个顺序摆，对手一档比一档强
     expect(SOLO_LEVELS).toEqual(['novice', 'normal', 'pro']);

@@ -2,11 +2,11 @@
  * 性能量测：先 `npm run build`，本脚本用 vite preview 起 dist（线上同一份产物），Chromium 打开后按段量
  *   首屏可交互（主页出现"实盘"卡的时间）、长任务（≥50 毫秒的次数、总长、最长）、帧间隔（中位、p95、超过 34 毫秒的比例），外加 dist 各文件的原始和 gzip 体积。
  *
- *   node tools/perf.ts [--runs 3] [--table 45] [--sizes desktop,phone] [--dist dist] [--out <json>] [--trace <json>] [--profile <cpuprofile>] [--census]
+ *   node tools/perf.ts [--runs 3] [--table 45] [--level normal] [--no-worker] [--sizes desktop,phone] [--dist dist] [--out <json>] [--trace <json>] [--profile <cpuprofile>] [--census]
  *
  * 两个尺寸：desktop 1280×720；phone 390×844 触屏、dpr 2（手机上渲染 2 倍），--cpu N 给手机档加 CPU 降速（CDP Emulation.setCPUThrottlingRate，默认不降）。
  * 无头 Chromium 用软件渲染（SwiftShader），帧时间和长任务里有一大块是软件 GPU，真机上没有；比改前改后主要看各段的脚本时间 scriptMs。
- * 流程：冷开主页（停 3 秒）→ 点"实盘"打开选档页（停 2 秒）→ 关掉、点"娱乐"→ 普通难度进牌桌，电脑代打 --table 秒（动画照常）。
+ * 流程：冷开主页（停 3 秒）→ 点"实盘"打开选档页（停 2 秒）→ 关掉、点"娱乐"→ --level 难度（默认普通）进牌桌，电脑代打 --table 秒（动画照常）。
  * 每个尺寸跑 --runs 次，报各数的中位。怕干扰：用 browser-slot.sh exclusive 跑。
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -27,6 +27,10 @@ const SIZES = arg('--sizes', 'desktop,phone').split(',');
 /** 手机档的 CPU 降速倍数：无头 SwiftShader 下 4 倍降速同一份产物首屏能差十倍、还会超时（11-21 实测），默认不降，比脚本时间 */
 const PHONE_CPU = Number(arg('--cpu', '1'));
 const OUT = process.argv.includes('--out') ? arg('--out', '') : '';
+/** 牌桌那一段的娱乐难度（novice / normal / pro）；高手档的对手带残局推演，量它算的时候画面冻不冻 */
+const LEVEL = arg('--level', 'normal');
+/** 把页面的 Worker 拿掉：电脑退回主线程同步算（view/common/bot-runner.ts 的兜底），和带后台线程的背靠背比 */
+const NO_WORKER = process.argv.includes('--no-worker');
 /** 第一次运行录一份 Chrome 性能追踪（DevTools 性能面板能打开），查长任务里是什么 */
 const TRACE = process.argv.includes('--trace') ? arg('--trace', '') : '';
 /** 第一次运行录 JS 的 CPU 采样（.cpuprofile，从冷开到牌桌结束），找热函数；配不压缩的构建（vite build --minify false）看得懂函数名 */
@@ -126,6 +130,7 @@ async function once(browser: Browser, base: string, size: string, trace = '', pr
     document.cookie = '__Host-arcade_li=1; Path=/; Secure; SameSite=Lax';
   });
   await ctx.addInitScript(PROBE);
+  if (NO_WORKER) await ctx.addInitScript(() => Reflect.deleteProperty(window, 'Worker'));
   const json = (body: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   await ctx.route('**/api/**', (r) => {
     const path = new URL(r.request().url()).pathname;
@@ -161,8 +166,8 @@ async function once(browser: Browser, base: string, size: string, trace = '', pr
   await page.keyboard.press('Escape');
   await until(page, "!('tier:lux' in g.controls()) && 'fun' in g.controls()");
   await tap(page, 'fun', z.touch);
-  await until(page, "'level:normal' in g.controls()");
-  await tap(page, 'level:normal', z.touch);
+  await until(page, `'level:${LEVEL}' in g.controls()`);
+  await tap(page, `level:${LEVEL}`, z.touch);
   await until(page, "g.scene === 'table'");
   await cut(page, cdp, mark);
   await page.waitForTimeout(TABLE_S * 1000);

@@ -68,6 +68,11 @@ export class PuzzleSession extends DdzSession {
     addDdzPuzzleDone(this.puzzle.id);
   }
 
+  /** 残局的农民当场算（bestReply 很快），不走后台线程 */
+  override botJob(): null {
+    return null;
+  }
+
   /** 农民走 bestReply；调试托管时我这一座按提示出 */
   override botAction(seat: number): DdzAction | null {
     if (this.state.phase !== 'play' || this.state.turn !== seat) return null;

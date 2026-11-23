@@ -11,7 +11,6 @@ import { canPass, hint, interpret, isBomb, type Action, type Card, type DealResu
 import type { Mood } from '../art/index.ts';
 import { app } from '../app.ts';
 import { audio } from '../common/audio.ts';
-import { dur } from '../common/anim.ts';
 import { PACE } from '../common/pace.ts';
 import { seatName } from '../common/labels.ts';
 import { describePlay } from '../guandan/labels.ts';
@@ -21,6 +20,8 @@ import { errorText } from '../../net/error-text.ts';
 import { thinkTime, type Situation } from '../personas.ts';
 import { showUnlocked } from '../ui/achievements.ts';
 import { ME, Session, type TableSession } from '../guandan/session.ts';
+import { runBotJob, type BotJob } from '../guandan/bot-job.ts';
+import { BotRunner } from '../common/bot-runner.ts';
 import { randomSeed } from '../common/seed.ts';
 import { payout, pointValue, rulesOf } from '../../variants/guandan/stake/index.ts';
 import type { StakeView } from '../../variants/guandan/net/stake.ts';
@@ -51,6 +52,9 @@ import { side, leaveStake, refundAndLeave, stakeLabel, showSettle, showGameOver,
 import { playEvent, animatePlay, bombFx, flyTribute, showPrevTrick, restoreTrick, talk, dealTalk, mood } from '../guandan/play-fx.ts';
 import { buildButtons, buildFun, syncFunShown, funIn, funMoment, tickSoloUrge, mySoloTurn, pulse, buildTopBar, topBarKey, refreshTopBar, buildCounter, refreshButtons } from '../guandan/table-ui.ts';
 import { judge, ensureHints, onHint, onPass, onPlay, chooseInterpretation } from '../guandan/actions.ts';
+
+/** 单机电脑在后台线程里算（残局推演一手要几百毫秒，放主线程画面会冻） */
+const botRunner = new BotRunner<BotJob, Action>(() => new Worker(new URL('../guandan/bot-worker.ts', import.meta.url), { type: 'module' }), runBotJob);
 
 export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
   ses!: TableSession;
@@ -513,7 +517,7 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
 
   /** 决定下一步：电脑行动、等玩家、或弹结算。 */
   pump(): void {
-    if (!this.alive || this.busy || this.botTimer) return;
+    if (!this.alive || this.busy || this.botTimer || this.botWaiting) return;
     if (this.pumpNet()) return;
     if (this.overlay !== null) return;
     const v = this.ses.view();
@@ -546,18 +550,16 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
     this.refreshButtons();
     if (bots.length === 0) return;
     const seat = bots[0]!;
-    // 先想好出什么（电脑的决定只看牌局和种子，早算晚算一样），再按出法给思考时间
-    const planned = this.ses.botAction(seat);
-    if (seat !== ME) this.seats[seat]!.setThinking(true);
-    this.botSeat = seat;
-    const kind = planned?.type !== 'play' ? 'pass' : isBomb(planned.as ?? interpret(planned.cards, v.level, v.options)[0] ?? { type: 'single' }) ? 'bomb' : 'play';
-    this.botTimer = this.time.delayedCall(dur(v.phase === 'play' ? this.botThink(seat, kind, !v.trick.last) : PACE.ddz.bidThink), () => {
-      this.botTimer = null;
-      this.botSeat = -1;
-      this.seats[seat]!.setThinking(false);
-      if (!this.alive || this.busy || this.overlay !== null) return;
+    // 先想好出什么（电脑的决定只看牌局和种子，早算晚算一样；单机交给后台线程算，残局推演不冻画面），再按出法给思考时间
+    const job = this.ses.botJob?.(seat) ?? null;
+    const plan = job ? botRunner.run(job) : Promise.resolve(this.ses.botAction(seat));
+    const think = (a: Action) => {
+      if (v.phase !== 'play') return PACE.ddz.bidThink;
+      const kind = a.type !== 'play' ? 'pass' : isBomb(a.as ?? interpret(a.cards, v.level, v.options)[0] ?? { type: 'single' }) ? 'bomb' : 'play';
+      return this.botThink(seat, kind, !v.trick.last);
+    };
+    this.runBot(seat, plan, think, (planned) => {
       let a = planned;
-      if (!a) return;
       let r = this.ses.apply(a);
       if (r.sent) return;
       if (r.error) {

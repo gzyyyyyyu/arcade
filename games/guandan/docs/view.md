@@ -5,7 +5,8 @@
 ## 1. 推进状态的路
 
 - 推进状态只有一条路：`Session.apply(action)`（`TableSession` 接口，单机 `guandan/session.ts`、联机 `guandan/net.ts`）→ 核心 `dispatch` → `TableScene` 拿事件按顺序 `await` 播放（`act`、`playEvents`、`pumpNet` 在两个牌桌场景共用的 `scenes/shared/TableSceneBase.ts` 里，玩法的部分由子类的钩子给） → `sync()` 按 `viewFor` 刷新 → `pump()` 决定下一步
-  （电脑"想一会儿"再出、等玩家、弹结算）。画面不自己判断牌型和大小：能否出牌用 `interpret` + `beats`，提示用 `hintList`（首条 null = 建议不要）；点了提示、没改选牌就出，按提示给的那一手出（`hintedPlay`），不弹"当作哪一手"，自己挑的牌有几种解释照旧弹；
+  （电脑"想一会儿"再出、等玩家、弹结算）。单机电脑的决定放在后台线程里算（`common/bot-runner.ts` + 各玩法的 `bot-worker.ts`，会话给纯数据的 `botJob`；没有 Worker 时当场同步算），
+  算回来按思考时间扣掉已经花掉的再出（`TableSceneBase.runBot`）：高手档的残局推演一手要上百毫秒，放主线程画面会顿。画面不自己判断牌型和大小：能否出牌用 `interpret` + `beats`，提示用 `hintList`（首条 null = 建议不要）；点了提示、没改选牌就出，按提示给的那一手出（`hintedPlay`），不弹"当作哪一手"，自己挑的牌有几种解释照旧弹；
   第一次玩、新手引导看完后的第一副，前 3 次轮到我时「提示」跳两下、状态行说"不会出？点「提示」，再点「出牌」"（`guandan/table-ui.ts` 的 `startHintGuide`，只加不拦），
 - 一副结束时的"下副谁进贡"用 `dispatch(state, nextDeal)` 推演（纯函数，不改当前状态）。
 - 轮到我进贡、还贡时先替我选好一张（规则核心的 `timeoutAction`：进贡最大、还贡最小），每一步只选一次（`TableScene.tributeStep`），点掉了不再塞回；状态行写"已挑好…，点「进贡」给 X"。
