@@ -300,9 +300,9 @@ export class World {
   get fullMerges(): number {
     return this.merges.length - this.mergeHalf.length;
   }
-  /** 实盘降难度（LIVE_EASE）：实盘守夜中档以上 */
+  /** 实盘降难度（LIVE_EASE）：实盘守夜中档以上；实盘连战不降（结回曲线按不降的局拟的，content/live.ts LIVE_RUSH） */
   get liveEase(): boolean {
-    return !!this.setup.live && this.setup.mode === 'vigil' && this.setup.danger >= LIVE_EASE.fromDanger;
+    return !!this.setup.live && this.setup.mode === 'vigil' && !this.setup.rush && this.setup.danger >= LIVE_EASE.fromDanger;
   }
   /** play：在打；choose：等升级三选一；over：结束 */
   phase: 'play' | 'choose' | 'over' = 'play';

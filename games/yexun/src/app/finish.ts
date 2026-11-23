@@ -64,7 +64,7 @@ export function adviceFor(runs: number, worst: EnemyKind | null): string | undef
 /** 一局的流转状态：开局（main 的 startRun）写，结束（下面的 finish）读写，两边共用这一份 */
 export interface Session {
   /** 这一局是实盘时记下种子（每 10 秒报一次撑到哪，结束时结回） */
-  liveRun: { seed: number } | null;
+  liveRun: { seed: number; down: number } | null;
   /** 录像（本机，DESIGN.md 5.4）和交分（5.7）：每局一个录像机 */
   rec: Recorder | null;
   /** 每日挑战那天的日期跟着这一局走 */
@@ -72,7 +72,7 @@ export interface Session {
   /** 本周夜事挑战开局那天的日期（同 dailyDate，决定交哪个周榜） */
   weeklyDate: string | null;
   /** 上一局是不是实盘、哪一档（"再来一局"照样来） */
-  lastLive: { tier: LiveTier; raid?: RaidLiveTemplate; map?: MapId } | null;
+  lastLive: { tier: LiveTier; raid?: RaidLiveTemplate; map?: MapId; rush?: true } | null;
   liveTier: LiveTier;
   /** 这一局已经结束（结算页出来了；回放里也先置上，暂停面板和结算都不出） */
   ended: boolean;
@@ -256,6 +256,16 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     const extra = w.rush ? [] : [...(trial?.extra ?? []), ...weekEnd(w)];
     social.setWhere('menu');
     offerShare(sess.liveRun ? null : run);
+    if (sess.liveRun && w.rush && run.rush) {
+      // 实盘连战：按打倒几只结回（content/live.ts rushBp），认输按当时打倒的算；不发铜钱、不交榜、不记纪录
+      const seed = sess.liveRun.seed;
+      sess.liveRun = null;
+      showPlay(false);
+      result.show({ won: run.rush.cleared, quit, bossKilled: false, seconds: run.rush.ticks / 30, kills: w.kills, level: w.level, coins: 0, label: `实盘 · 连战 · ${LIVE_TIERS[sess.liveTier].name}档`, live: '正在结回…', fixed: true, record: false, build: buildRows(w) });
+      decorateRushResult(result.root, w.rush, run.rush, quit, null);
+      void live.finishRush(seed, run.rush).then(showLiveResult);
+      return;
+    }
     if (sess.liveRun && w.raid) {
       // 夜探实盘：撤出才有钱（按带出的价值），倒下、迷失、认输都是 0
       const seed = sess.liveRun.seed;

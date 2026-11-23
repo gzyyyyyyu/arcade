@@ -10,12 +10,15 @@
  *   本页正在打的那一份（带入成功时记下 ref，结回、放弃时清掉）resume() 不碰：联网、回到前台也会调 resume()，不能把还在打的局按中途离开结掉。
  *   另一个标签页分不出那一份是不是还在别的页里打，照旧按中途离开结。
  *   夜探的一份（记录里有 raid）中途离开按丢包算，结回 0：夜探的钱只来自撤出时带出去的东西。
+ *   连战的一份（记录里有 rush）中途离开按 progress 记下的打倒只数结回（rushBp），和认输、到点一个算法。
  * - 带入时记下账号（Worker 回的 user）：结回、放弃时带上，换了账号 Worker 回 409 wrong_user，不动钱包，等换回去再发。
  * - 501（单独部署，没有钱包）：unavailable 为 true，实盘入口藏起来；带入返回 { ok:false, outcome:{kind:'unavailable'} }。
  * - 400 / 403 / 404 和钱包的未知错误码是夜巡自己的 bug：记 error、控制台留证据，不自动重试。
  * 不依赖 DOM：fetch、时钟、存储从外面传进来。
  */
-import { LIVE_CHAR_IDS, liveCharOk, LIVE_MAX_BP, LIVE_TIERS, isLiveTier, vigilBp, type LiveTier } from '../content/live.ts';
+import { LIVE_CHAR_IDS, liveCharOk, LIVE_MAX_BP, LIVE_RUSH, LIVE_TIERS, isLiveTier, rushBp, vigilBp, type LiveTier } from '../content/live.ts';
+import { RUSH_TOTAL } from '../content/rush.ts';
+import { RUSH_MAPS } from '../online/rush.ts';
 import type { Setup } from '../core/state.ts';
 import { RAID_LIVE, RAID_LIVE_TEMPLATES, type RaidLiveTemplate } from '../content/explore.ts';
 import type { CharacterId } from '../content/meta.ts';
@@ -43,6 +46,14 @@ export function liveSetup(tier: LiveTier, seed: number, raid?: RaidLiveTemplate,
     return { seed, mode: 'raid', danger: RAID_LIVE.danger[tier] as Setup['danger'], raid: { template: raid, live: tier }, character, perks: {}, assist: false, live: true, ...cfg };
   }
   return { seed, mode: 'vigil', danger: LIVE_TIERS[tier].danger, character, map, perks: {}, assist: false, live: true, ...cfg };
+}
+
+/**
+ * 实盘连战的开局配置（DESIGN 4.1b）：随机种子的连战，危险档照档位，小道士（构筑是给好的），图按种子从连战的图表里取；
+ * 不带咒印、加成，不开降低伤害。只开 LIVE_RUSH 里有的档
+ */
+export function liveRushSetup(tier: LiveTier, seed: number): Setup {
+  return { seed, mode: 'vigil', danger: LIVE_TIERS[tier].danger, map: RUSH_MAPS[seed % RUSH_MAPS.length]!, character: 'xiaodao', perks: {}, assist: false, live: true, rush: true };
 }
 
 const CHARS: readonly CharacterId[] = LIVE_CHAR_IDS;
@@ -77,6 +88,10 @@ export interface LiveRecord {
   /** 带的角色、地图（没有 = 小道士、雪原：0.3.6 以前的记录） */
   character?: CharacterId;
   map?: MapId;
+  /** 连战的一份 */
+  rush?: true;
+  /** 连战：最近一次 progress 记下的打倒只数（中途离开按它算） */
+  down?: number;
 }
 
 export type Outcome =
@@ -101,6 +116,14 @@ const UNSETTLED: readonly LiveStep[] = ['buying', 'playing', 'settling'];
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
+/** 中途离开的结回倍数：夜探丢包是 0，连战按打倒的只数，守夜按撑到的拍数 */
+function leftBp(r: LiveRecord): number {
+  if (r.raid) return 0;
+  // 打倒尸王那一拍 down 就到 RUSH_TOTAL 了，结算页出来前关页也按全清算
+  if (r.rush) return rushBp(r.tier, r.down ?? 0, RUSH_TOTAL, (r.down ?? 0) >= RUSH_TOTAL);
+  return vigilBp(r.tier, r.ticks ?? 0, false, false, r.character, r.map);
+}
+
 /** 读回本机的记录；格式不对当作没有 */
 export function reviveLive(raw: unknown): LiveRecord | null {
   if (!isObj(raw)) return null;
@@ -123,6 +146,11 @@ export function reviveLive(raw: unknown): LiveRecord | null {
   if (RAID_LIVE_TEMPLATES.includes(raw.raid as RaidLiveTemplate)) {
     if (r.tier === 'luxe') return null;
     r.raid = raw.raid as RaidLiveTemplate;
+  }
+  if (raw.rush === true) {
+    if (r.raid || !LIVE_RUSH[r.tier]) return null;
+    r.rush = true;
+    if (isNum(raw.down)) r.down = raw.down;
   }
   if (r.step === 'settling' && (!r.kind || (r.kind === 'settle' && r.bp === undefined))) return { ...r, step: 'error', error: 'bad_record' };
   return r;
@@ -195,13 +223,15 @@ export class LiveClient {
    * 带入一份开局。成功后记录是 playing，调用方再用 liveSetup(tier, seed) 开局。
    * 连不上时记录留在 buying，下次 resume() 用 refund 收回。
    */
-  async buyin(tier: LiveTier, seed: number, raid?: RaidLiveTemplate, character?: CharacterId, map?: MapId): Promise<BuyinResult> {
+  async buyin(tier: LiveTier, seed: number, raid?: RaidLiveTemplate, character?: CharacterId, map?: MapId, rush = false): Promise<BuyinResult> {
     // 只收回上次没等到回话的 buying；playing 的不动（同一页里还在打，中途离开归 resume 管）
+    // 连战只开 LIVE_RUSH 里的档、不能同时是夜探：调用方的 bug，不写记录、不发请求（不然带入了却在 reviveLive 里作废）
+    if (rush && (raid || !LIVE_RUSH[tier])) return { ok: false, outcome: { kind: 'bug', error: 'rush_tier' } };
     await this.retry();
     if (this.off) return { ok: false, outcome: { kind: 'unavailable' } };
     if (this.inflight || this.busy) return { ok: false, outcome: { kind: 'reject', error: 'pending' } };
     const now = this.d.now();
-    const rec: LiveRecord = { ref: newRef(), tier, stake: LIVE_TIERS[tier].stake, seed, at: now, until: now + LIVE_TTL_MS, step: 'buying', ...(raid ? { raid } : {}), ...(character && character !== 'xiaodao' ? { character } : {}), ...(!raid && map && map !== 'snow' ? { map } : {}) };
+    const rec: LiveRecord = { ref: newRef(), tier, stake: LIVE_TIERS[tier].stake, seed, at: now, until: now + LIVE_TTL_MS, step: 'buying', ...(raid ? { raid } : {}), ...(character && character !== 'xiaodao' ? { character } : {}), ...(!raid && !rush && map && map !== 'snow' ? { map } : {}), ...(rush ? { rush: true as const } : {}) };
     const saved = this.save(rec, rec.ref);
     if (saved === 'full') this.save(null, rec.ref);
     if (saved !== 'ok') return { ok: false, outcome: { kind: 'reject', error: saved === 'full' ? 'storage' : 'pending' } };
@@ -230,19 +260,27 @@ export class LiveClient {
     return { ok: false, outcome: o };
   }
 
-  /** 打局时每隔约 10 秒报一次撑到的拍数；中途离开按它结回 */
-  progress(seed: number, ticks: number): void {
+  /** 打局时每隔约 10 秒报一次撑到的拍数（连战还报打倒几只）；中途离开按它结回 */
+  progress(seed: number, ticks: number, down = 0): void {
     const r = this.refresh();
     if (r?.step !== 'playing' || r.seed !== seed) return;
     const t = Math.max(0, Math.floor(ticks));
-    if (t > (r.ticks ?? 0)) this.save({ ...r, ticks: t }, r.ref);
+    const n = Math.max(0, Math.floor(down));
+    if (t > (r.ticks ?? 0) || (r.rush && n > (r.down ?? 0))) this.save({ ...r, ticks: Math.max(t, r.ticks ?? 0), ...(r.rush ? { down: Math.max(n, r.down ?? 0) } : {}) }, r.ref);
   }
 
   /** 守夜打完了（倒下、天亮、尸王）：按 vigilBp 算倍数 */
   finish(seed: number, res: { ticks: number; won: boolean; bossKilled: boolean }, stats?: unknown): Promise<void> {
     const r = this.refresh();
-    if (!r || r.raid) return this.inflight ?? Promise.resolve();
+    if (!r || r.raid || r.rush) return this.inflight ?? Promise.resolve();
     return this.finishBp(seed, vigilBp(r.tier, res.ticks, res.won, res.bossKilled, r.character, r.map), stats);
+  }
+
+  /** 连战打完了（全清、倒下、到点、认输）：按打倒的只数算倍数 */
+  finishRush(seed: number, res: { down: number; total: number; cleared: boolean }, stats?: unknown): Promise<void> {
+    const r = this.refresh();
+    if (!r?.rush) return this.inflight ?? Promise.resolve();
+    return this.finishBp(seed, rushBp(r.tier, res.down, res.total, res.cleared), stats);
   }
 
   /** 夜探打完了（撤出、倒下、迷失）：倍数由 settleRaid 算好传进来（撤出才有，其余是 0） */
@@ -281,7 +319,7 @@ export class LiveClient {
     if (!r) return;
     if (r.step === 'playing' && !this.inflight && r.ref !== this.mine) {
       if (this.d.now() > r.until) this.save({ ...r, step: 'void', error: 'expired' }, r.ref);
-      else this.save({ ...r, step: 'settling', kind: 'settle', bp: r.raid ? 0 : vigilBp(r.tier, r.ticks ?? 0, false, false, r.character, r.map) }, r.ref);
+      else this.save({ ...r, step: 'settling', kind: 'settle', bp: leftBp(r) }, r.ref);
     }
     await this.retry();
   }

@@ -9,7 +9,7 @@ import type { RushPlan, RushResult } from '../../core/index.ts';
 import { rushClock } from '../../online/rush.ts';
 import './rushResult.css';
 
-export function decorateRushResult(root: HTMLElement, plan: RushPlan, r: RushResult, quit: boolean, best: string): void {
+export function decorateRushResult(root: HTMLElement, plan: RushPlan, r: RushResult, quit: boolean, best: string | null): void {
   const panel = root.querySelector<HTMLElement>('.yx-result-panel');
   if (!panel) return;
   panel.classList.toggle('won', r.cleared);
@@ -40,7 +40,8 @@ export function decorateRushResult(root: HTMLElement, plan: RushPlan, r: RushRes
   for (const cell of panel.querySelectorAll<HTMLElement>('.yx-rstats > div')) {
     const label = cell.querySelector('span');
     if (label?.textContent === '铜钱') cell.remove();
-    else if (label?.textContent === '级') {
+    // 实盘连战不交榜，没有「今天最好」，那一格照旧写级
+    else if (label?.textContent === '级' && best !== null) {
       label.textContent = '今天最好';
       const v = cell.querySelector('b');
       if (v) v.textContent = best;

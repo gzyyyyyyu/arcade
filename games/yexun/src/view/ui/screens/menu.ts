@@ -27,6 +27,7 @@ export class Menu {
   onLive: (tier: LiveTier, map: MapId, fallback?: () => void) => void = () => undefined;
   /** 夜探实盘开局（档位、镇子；角色用存档里的，不带加成） */
   onRaidLive: (tier: LiveTier, template: RaidLiveTemplate, fallback?: () => void) => void = () => undefined;
+  onRushLive: (tier: LiveTier) => void = () => undefined;
   /** 切娱乐 / 实盘、换档位（main 记进存档） */
   onLiveMode: (on: boolean, tier: LiveTier) => void = () => undefined;
   /** 打开开局准备（角色、咒印、加成） */

@@ -6,7 +6,8 @@ import { drawTownThumb } from '../../art/sprites-townmap.ts';
 import { noSchoolIcon, schoolIcon, tierIcon } from '../../art/sprites-selicons.ts';
 import { DANGER_IDS, DANGERS, NIGHTMARE_FROM, RAID_MAX_DANGER, type Danger } from '../../../content/waves.ts';
 import { CHARACTERS, CHIPS_NO_CASH, CURSES } from '../../../content/meta.ts';
-import { LIVE_TIER_IDS, LIVE_TIERS, liveCharOk, liveMapOk, type LiveTier } from '../../../content/live.ts';
+import { LIVE_RUSH, LIVE_TIER_IDS, LIVE_TIERS, liveCharOk, liveMapOk, type LiveTier } from '../../../content/live.ts';
+import { RUSH, RUSH_TOTAL } from '../../../content/rush.ts';
 import { RAID_LIVE, RAID_TEMPLATES, type RaidTemplateId } from '../../../content/explore.ts';
 import { RAID_REGIONS, VIGIL_REGIONS, type Region } from '../../../content/regions.ts';
 import { RAID_PICKS, type RaidPick } from '../../../platform/save.ts';
@@ -14,7 +15,7 @@ import { LOCK_SVG, esc, layer, onAction, type MenuState, LIVE_PICK, isLiveTown, 
 import { isZoomed } from 'arcade-kit/viewport';
 import { sceneUrl, TitleArt } from './titleArt.ts';
 import type { Menu } from './menu.ts';
-import { type LiveFact, liveFacts, liveNote, plainNote, raidLiveFacts, raidLiveNote } from './liveNote.ts';
+import { type LiveFact, liveFacts, liveNote, plainNote, raidLiveFacts, raidLiveNote, rushLiveFacts, rushLiveNote } from './liveNote.ts';
 
 /** 选模式页的设计尺寸：电脑上整块按这个可视区排好（1920×911 下正好是原来的 1.3 倍），更大的屏整体等比放大 */
 const DESIGN_W = 1476;
@@ -23,7 +24,8 @@ const K_MAX = 1.6;
 /** 地图、镇子缩略图的 CSS 边长（最大的那档；canvas 按 边长 × k × dpr 画，大屏不糊） */
 const THUMB_CSS = 64;
 
-type Kind = 'vigil' | 'raid';
+/** 连战只在实盘里有（娱乐的连战是主页「连战」那一局每日的） */
+type Kind = 'vigil' | 'raid' | 'rush';
 
 /** 夜探最高到 RAID_MAX_DANGER：选中噩梦档再切到夜探，按最高的一档算（不改选中的档，切回守夜还在） */
 export const raidDanger = (d: Danger): Danger => Math.min(d, RAID_MAX_DANGER) as Danger;
@@ -70,6 +72,7 @@ export class Select {
         this.render();
       },
       tier: (el) => {
+        if (el.getAttribute('aria-disabled') === 'true') return;
         this.live = { ...this.live, tier: el.dataset.t as LiveTier };
         this.m.onLiveMode(this.live.on, this.live.tier);
         this.render();
@@ -156,10 +159,16 @@ export class Select {
   private go(): void {
     const s = this.s!;
     const live = this.live.available && this.live.on;
+    if (this.kind === 'rush' && live) return this.m.onRushLive(this.rushTier());
     if (this.kind === 'vigil') return live ? this.m.onLive(this.live.tier, this.map) : this.m.onStart(this.diff, this.map, this.endless);
     if (s.raidFirst) return this.m.onRaid('teach', 0);
     if (live) return this.m.onRaidLive(this.live.tier, isLiveTown(this.tpl) ? this.tpl : 'guzhen');
     this.m.onRaid(this.tpl, raidDanger(this.diff));
+  }
+
+  /** 连战只开 LIVE_RUSH 里的档：选着大、豪华档切到连战，按小档开（不改选中的档，切回守夜还在） */
+  private rushTier(): LiveTier {
+    return LIVE_RUSH[this.live.tier] ? this.live.tier : 'small';
   }
 
   show(s: MenuState): void {
@@ -206,7 +215,9 @@ export class Select {
   private render(): void {
     const s = this.s!;
     const live = this.live.available && this.live.on;
+    if (this.kind === 'rush' && !live) this.kind = 'vigil';
     const raid = this.kind === 'raid';
+    const rush = this.kind === 'rush';
     const keep = this.root.scrollTop;
     const heads = (r: Region | undefined, names: boolean): string => {
       if (!r) return '<span class="yx-mobs"><em>只有常规怪</em></span>';
@@ -218,9 +229,10 @@ export class Select {
       ? `<div class="yx-chips yx-modesw yx-selfx"><button type="button" class="yx-chip${live ? '' : ' on'}" data-a="lv" data-m="fun"><b>娱乐</b><small>不花筹码</small></button><button type="button" class="yx-chip${live ? ' on' : ''}" data-a="lv" data-m="live"><b>实盘</b><small>带一份筹码</small></button></div>`
       : '';
     const kinds =
-      '<div class="yx-kinds">' +
-      `<button type="button" class="yx-kind${raid ? '' : ' on'}" data-a="kind" data-k="vigil"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>守夜</b><em>15 分钟 · 撑到天亮</em></span></button>` +
+      `<div class="yx-kinds${live ? ' yx-k3' : ''}">` +
+      `<button type="button" class="yx-kind${this.kind === 'vigil' ? ' on' : ''}" data-a="kind" data-k="vigil"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>守夜</b><em>15 分钟 · 撑到天亮</em></span></button>` +
       `<button type="button" class="yx-kind${raid ? ' on' : ''}" data-a="kind" data-k="raid"><img class="yx-scene" alt="" src="${sceneUrl('raid', 320, 100)}"><span class="yx-kindtxt"><span class="yx-lamp"></span><b>夜探</b><em>搜宝、打怪、找门撤出</em></span></button>` +
+      (live ? `<button type="button" class="yx-kind${rush ? ' on' : ''}" data-a="kind" data-k="rush"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>连战</b><em>${RUSH.limit / 1800} 分钟 · 连打 ${RUSH_TOTAL} 只首领</em></span></button>` : '') +
       '</div>';
 
     // 地图 / 镇子大卡
@@ -248,18 +260,25 @@ export class Select {
     const townGrid = `<div class="yx-pickgrid yx-towns">${townCards}</div>`;
     const mapGrid = `<div class="yx-pickgrid yx-maps" aria-label="地图">${mapCards}</div>`;
     // 档位：铜钱堆小图（堆越高档越大）+ 名字和筹码数
-    const tiers = `<div class="yx-chips yx-tiers">${LIVE_TIER_IDS.map((t) => `<button type="button" class="yx-chip yx-tierchip${t === this.live.tier ? ' on' : ''}" data-a="tier" data-t="${t}"><img alt="" src="${tierIcon(t)}"><b>${LIVE_TIERS[t].name}</b><small>${LIVE_TIERS[t].stake.toLocaleString('zh-CN')}</small></button>`).join('')}</div>`;
+    const shownTier = rush ? this.rushTier() : this.live.tier;
+    const tierOff = (t: LiveTier): boolean => rush && !LIVE_RUSH[t];
+    const tiers = `<div class="yx-chips yx-tiers">${LIVE_TIER_IDS.map((t) => `<button type="button" class="yx-chip yx-tierchip${t === shownTier ? ' on' : ''}${tierOff(t) ? ' locked' : ''}" data-a="tier" data-t="${t}"${tierOff(t) ? ' aria-disabled="true" title="连战只开小、中档"' : ''}><img alt="" src="${tierIcon(t)}"><b>${LIVE_TIERS[t].name}</b><small>${LIVE_TIERS[t].stake.toLocaleString('zh-CN')}</small></button>`).join('')}</div>`;
 
     let pick: string;
     let opts = '';
     let note = '';
-    const startLabel = raid ? '开始夜探' : '开始';
+    const startLabel = raid ? '开始夜探' : rush ? '开始连战' : '开始';
     let facts = '';
     // 实盘数字小牌：一行等宽排完（守夜 4 格，夜探 5 格），大字写数、小字写它是什么，整段细则在悬停里
     const factCards = (list: LiveFact[], tip: string): string =>
       `<div class="yx-livefacts" data-n="${list.length}" style="--fc:${list.length}" title="${esc(tip)}">${list.map((x) => `<span class="yx-fact"><b>${esc(x.big)}</b><small>${esc(x.small)}</small></span>`).join('')}</div>`;
     if (raid && s.raidFirst) {
       pick = `<div class="yx-raidnote"><b>${RAID_TEMPLATES.teach.name}</b>${RAID_TEMPLATES.teach.blurb}</div>`;
+    } else if (live && rush) {
+      const t = this.rushTier();
+      pick = `<div class="yx-raidnote"><b>实盘连战</b>每局随机一套给好的构筑和首领顺序：7 关一共 ${RUSH_TOTAL} 只精英和首领，最后一关是尸王，${RUSH.limit / 1800} 分钟内打完。每清一关挑一张卡。按打倒几只结回，全清另外多给；一只没打倒这一份就没了。<br>不交连战榜，也不发铜钱。</div>`;
+      note = `危险 ${LIVE_TIERS[t].danger} · 固定小道士，构筑给好`;
+      facts = factCards(rushLiveFacts(t), plainNote(rushLiveNote(t)));
     } else if (live) {
       if (raid) {
         const t = this.live.tier;
@@ -282,7 +301,7 @@ export class Select {
     }
     const charChip = `<button type="button" class="yx-chip yx-prep yx-prepchar" data-a="prep" data-t="char">${s.charFace ? `<img alt="" src="${s.charFace}">` : ''}<b>${CHARACTERS[s.character].name}</b><small>角色</small></button>`;
     // 角色：娱乐和实盘同一个按钮（点开角色页选人）+ 起手心法；夜探教学局不让换
-    const charLine = raid && s.raidFirst ? '' : `<div class="yx-chips yx-livechar">${charChip}${this.loadoutCtl(s)}${s.loadout && this.ldTip ? `<p class="yx-ldnote" role="status">${esc(loadoutNote(s.loadout))}</p>` : ''}</div>`;
+    const charLine = (raid && s.raidFirst) || rush ? '' : `<div class="yx-chips yx-livechar">${charChip}${this.loadoutCtl(s)}${s.loadout && this.ldTip ? `<p class="yx-ldnote" role="status">${esc(loadoutNote(s.loadout))}</p>` : ''}</div>`;
     if (!live) {
       const shown = raid ? raidDanger(this.diff) : this.diff;
       const dangerBtn = (d: Danger): string => {

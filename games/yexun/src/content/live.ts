@@ -66,6 +66,27 @@ export function isLiveTier(v: unknown): v is LiveTier {
   return typeof v === 'string' && (LIVE_TIER_IDS as readonly string[]).includes(v);
 }
 
+/**
+ * 实盘连战（DESIGN.md 4.1b）：带一份打随机种子的首领连战，危险档照 LIVE_TIERS，只开小、中两档。
+ * 连战的结果几乎二选一（前面几关基本都过，胜负看 5 分钟内打不打得倒尸王），所以只有两个数：
+ * 打到最后一关没打倒给 reach，前面倒下按打倒的只数从 0 线性升到 reach，全清给 clear（都是万分比）。
+ * 按各档 2,000 局（小白、普通各一线，种子 = 2026-11-01 起 2,000 天的连战种子）配到 4.3 的区间（主线 11-23 定：只开小中、按每局对齐）
+ */
+export const LIVE_RUSH: Partial<Record<LiveTier, { reach: number; clear: number }>> = {
+  small: { reach: 10_100, clear: 13_000 },
+  medium: { reach: 10_800, clear: 13_200 },
+};
+export const LIVE_RUSH_TIERS = LIVE_TIER_IDS.filter((t) => LIVE_RUSH[t] !== undefined);
+
+/** 实盘连战的结回倍数：down 打倒几只，total 一共几只；中途离开、认输、到点都按打倒的只数算 */
+export function rushBp(tier: LiveTier, down: number, total: number, cleared: boolean): number {
+  const c = LIVE_RUSH[tier];
+  if (!c) return 0;
+  if (cleared) return c.clear;
+  const n = Number.isFinite(down) ? Math.max(0, Math.min(Math.floor(down), total - 1)) : 0;
+  return Math.floor((c.reach * n) / Math.max(1, total - 1));
+}
+
 /** 一场最多赢 3 份（结回 ≤ 带入 × 3，economy.md 第 2 节）；倍数按万分之一传 */
 export const LIVE_MAX_BP = 30_000;
 
