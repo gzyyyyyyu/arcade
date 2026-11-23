@@ -143,6 +143,8 @@ export interface BaseState {
   snapAt: number;
   trophies: number;
   shieldUntil: number;
+  /** 新手保护提前结束的时刻：保护期里主动去打真人就到此为止（0 = 没提前结束，照 created + PROTECT_MS 算） */
+  protectEnd: number;
   lock: Lock | null;
   active: Active | null;
   pending: Pending[];
@@ -169,8 +171,14 @@ export interface BaseState {
 /** 四种实盘的场次记录（worker/live.ts 的 LiveKind） */
 type SlotKind = 'live' | 'td' | 'escort' | 'map';
 
+/** 新手保护到什么时候：还没上传过快照按现在起算 3 天；保护期里主动打过真人就到那一刻为止 */
+export function protectUntil(s: Pick<BaseState, 'created' | 'protectEnd'>, now: number): number {
+  const end = s.created ? s.created + PROTECT_MS : now + PROTECT_MS;
+  return s.protectEnd ? Math.min(end, s.protectEnd) : end;
+}
+
 function emptyState(): BaseState {
-  return { name: '', created: 0, snap: null, snapAt: 0, trophies: 0, shieldUntil: 0, lock: null, active: null, pending: [], attacked: {}, pair: {}, snapApplied: [], done: [], rate: { hour: 0, find: 0, snap: 0 }, ex: { day: '', n: 0, refs: {} }, live: { day: '', n: 0, refs: [] }, td: { day: '', n: 0, refs: [] }, escort: { day: '', n: 0, refs: [] }, map: { day: '', n: 0, refs: [] } };
+  return { name: '', created: 0, snap: null, snapAt: 0, trophies: 0, shieldUntil: 0, protectEnd: 0, lock: null, active: null, pending: [], attacked: {}, pair: {}, snapApplied: [], done: [], rate: { hour: 0, find: 0, snap: 0 }, ex: { day: '', n: 0, refs: {} }, live: { day: '', n: 0, refs: [] }, td: { day: '', n: 0, refs: [] }, escort: { day: '', n: 0, refs: [] }, map: { day: '', n: 0, refs: [] } };
 }
 
 /** 24 小时外的配对记录清掉（改 s，不存） */
@@ -262,7 +270,7 @@ export class BaseCore {
       trophies: s.trophies,
       hq: s.snap ? hqLevel(s.snap) : 1,
       shieldUntil: s.shieldUntil,
-      protectUntil: s.created ? s.created + PROTECT_MS : now + PROTECT_MS,
+      protectUntil: protectUntil(s, now),
       lockUntil: s.lock?.until ?? 0,
       activeAt: s.snapAt,
     };
@@ -315,7 +323,7 @@ export class BaseCore {
     return {
       trophies: s.trophies,
       shieldUntil: s.shieldUntil > now ? s.shieldUntil : 0,
-      protectUntil: s.created && s.created + PROTECT_MS > now ? s.created + PROTECT_MS : 0,
+      protectUntil: protectUntil(s, now) > now ? protectUntil(s, now) : 0,
       synced: s.created > 0,
       pending: s.pending,
       defenses: d.map((x) => ({
@@ -417,6 +425,8 @@ export class BaseCore {
     }
     s.active = a;
     s.shieldUntil = 0;
+    // 保护期里主动打真人：保护到此为止（界面开打前写清「抢别人会结束你的保护」）；打流浪海盗岛不算
+    if (a.defenderId && protectUntil(s, now) > now) s.protectEnd = now;
     if (a.defenderId) {
       s.attacked[a.defenderId] = now;
       prunePair(s, now);
@@ -511,7 +521,7 @@ export class BaseCore {
     if (!cur.snap) return err('no_snapshot');
     if (cur.lock && cur.lock.until >= now) return err('locked');
     if (cur.shieldUntil > now) return err('shield');
-    if (cur.created + PROTECT_MS > now) return err('protected');
+    if (protectUntil(cur, now) > now) return err('protected');
     if ((cur.pair[req.attackerId] ?? []).filter((t) => now - t < DAY).length >= PAIR_PER_DAY) return err('pair_limit');
     const s = structuredClone(cur);
     prunePair(s, now);

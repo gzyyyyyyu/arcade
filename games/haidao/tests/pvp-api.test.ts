@@ -433,17 +433,17 @@ describe('审阅修复①：两个号来回复仇刷资源', () => {
     expect(dm.defenses.find((z: { raidId: string }) => z.raidId === r1.raidId).revenge).toBe(true);
   });
 
-  it('复仇也看新号保护：被保护的新号不能被复仇', async () => {
+  it('新号保护期里主动打人，保护马上结束，对方能复仇', async () => {
     const w = new World();
     expect((await put(w, 'd', fighter())).status).toBe(200);
     // a 是刚注册的新号，保护期内主动去打老号 d
     expect((await put(w, 'a', fighter(), { now: LATER })).status).toBe(200);
+    expect((await call(w, 'a', 'GET', 'me', undefined, { now: LATER + 500 })).body.protectUntil).toBeGreaterThan(LATER);
     const r1 = await raid(w, 'a', LATER + 1000);
     expect(r1.body.opponent.name).toBe('小王');
+    expect((await call(w, 'a', 'GET', 'me', undefined, { now: LATER + 4000 })).body.protectUntil).toBe(0);
     const rv = await call(w, 'd', 'POST', 'revenge', { raidId: r1.raidId }, { now: LATER + 5000 });
-    expect([rv.status, rv.body.error]).toEqual([409, 'protected']);
-    // 被挡下的复仇没被用掉（a 保护期内一直挡着；过了 24 小时复仇作废，这期间刷不出来）
-    expect((await call(w, 'd', 'GET', 'me', undefined, { now: LATER + 6000 })).body.defenses[0].revenge).toBe(true);
+    expect(rv.status).toBe(200);
   });
 });
 

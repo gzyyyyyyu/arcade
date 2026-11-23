@@ -146,18 +146,20 @@ export const pvpApi = {
 interface Local {
   applied: string[];
   seenAt: number;
+  /** 点开过海图的抢劫卡（之前卡片挂红点、跳一跳当引导） */
+  opened: boolean;
 }
 export function readLocal(): Local {
   try {
     const v = JSON.parse(localStorage.getItem(PVP_KEY) ?? 'null') as Partial<Local> | null;
-    return { applied: Array.isArray(v?.applied) ? v.applied.filter((x): x is string => typeof x === 'string') : [], seenAt: typeof v?.seenAt === 'number' ? v.seenAt : 0 };
+    return { applied: Array.isArray(v?.applied) ? v.applied.filter((x): x is string => typeof x === 'string') : [], seenAt: typeof v?.seenAt === 'number' ? v.seenAt : 0, opened: v?.opened === true };
   } catch {
-    return { applied: [], seenAt: 0 };
+    return { applied: [], seenAt: 0, opened: false };
   }
 }
 export function writeLocal(l: Local): void {
   try {
-    localStorage.setItem(PVP_KEY, JSON.stringify({ applied: l.applied.slice(-200), seenAt: l.seenAt }));
+    localStorage.setItem(PVP_KEY, JSON.stringify({ applied: l.applied.slice(-200), seenAt: l.seenAt, opened: l.opened }));
   } catch {
     // 存不上：最坏是 ack 没送达时同一条再加 / 扣一次
   }

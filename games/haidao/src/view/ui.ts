@@ -589,9 +589,8 @@ function css(): string {
 .hd-ui .hd-node.lock span.hd-lb { background:#cfd3d8; }
 .hd-ui .hd-lb small { font-size:12px; opacity:.8; }
 .hd-ui .hd-map-top { position:sticky; top:0; z-index:5; height:56px; pointer-events:none; }
-.hd-ui button.hd-pvp-mapbtn, .hd-ui button.hd-live-mapbtn { top:auto; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); z-index:31; }
-.hd-ui .hd-map:has(.hd-sheet) ~ button.hd-pvp-mapbtn, .hd-ui .hd-map:has(.hd-sheet) ~ button.hd-live-mapbtn { display:none; }
-.hd-ui button.hd-pvp-mapbtn { left:8px; right:auto; }
+.hd-ui button.hd-live-mapbtn { top:auto; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); z-index:31; }
+.hd-ui .hd-map:has(.hd-sheet) ~ button.hd-live-mapbtn { display:none; }
 .hd-ui button.hd-live-mapbtn { right:8px; left:auto; }
 .hd-ui .hd-map-close { position:absolute; top:60px; right:6px; z-index:31; }
 .hd-ui .hd-tut-ring { position:absolute; border:4px solid ${gold}; border-radius:14px; box-shadow:0 0 0 3px ${ink}, 0 0 16px 4px rgba(248,198,48,.8); pointer-events:none; animation:hd-pulse 1s infinite; z-index:40; }
