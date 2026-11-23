@@ -137,7 +137,7 @@ export function createState(): State {
     tf: null,
     crowded: null,
     lobbyRoom: null,
-    // boot 里才建（要先问有没有平台）；类型上当它一直在，和原来模块里的 `let cloud: Cloud` 一样
+    // boot 里才建（要先问有没有平台）；类型上当它一直在
     cloud: null as unknown as Cloud,
     myName: '我',
     wallet: null,

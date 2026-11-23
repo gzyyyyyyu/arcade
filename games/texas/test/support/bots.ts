@@ -19,7 +19,7 @@ export const cpuMs = (): number => {
   return (u.user + u.system) / 1000;
 };
 
-export interface BotStats {
+interface BotStats {
   hands: number;
   actions: number;
   /** 每种性格：打了几手、净赢多少筹码（按大盲算的输赢在 sim 里换算） */
@@ -32,7 +32,7 @@ export interface BotStats {
   applyMs: number[];
 }
 
-export interface BotOptions {
+interface BotOptions {
   seed: Entropy;
   size: number;
   hands: number;

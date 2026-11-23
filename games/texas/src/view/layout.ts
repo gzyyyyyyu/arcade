@@ -20,11 +20,11 @@ const TALL_W = 540;
 const TALL_MIN_H = 810;
 const TALL_MAX_H = 1170;
 /**
- * 竖屏顶上只留顶栏的高度，桌子从这里往下：原来 150，因为顶栏下面还有一行"第几手、互动、聊天、补码、歇一手"，
- * 现在这一行搬到我的名牌和操作区之间（style.css 的 .stage.tall .hud），桌子往上多长 58，390×844 上桌面占屏高 55% 以上
+ * 竖屏顶上只留顶栏的高度，桌子从这里往下："第几手、互动、聊天、补筹码、歇一手"那一行在我的名牌和操作区之间
+ * （style.css 的 .stage.tall .hud），390×844 上桌面占屏高 55% 以上
  */
 const TALL_TOP = 92;
-/** 竖屏桌子下沿在我的座位点上面多少：底牌的上半截压在桌边上（原来 100，桌下沿和底牌之间空一条；操作区上提 24 后再收 10，桌子高度不变） */
+/** 竖屏桌子下沿在我的座位点上面多少：底牌的上半截压在桌边上 */
 const TALL_FELT_GAP = 60;
 /**
  * 竖屏底下留给操作区（加注面板展开时最高）的高度：我的名牌下沿要在它上面。
@@ -79,7 +79,7 @@ const SLOTS: Record<number, [number, number][]> = {
  * 角度 90° 是正下方（我）；别人最多从 145° 排到 395°，人少时往上收（2 人桌对面就在正上方）
  */
 /**
- * 4 个以上的角度按表排（牌桌互压检查）：原来按 250° 等分，5、8、9 人桌有一家正好在桌子左右两头、和公共牌一样高，
+ * 4 个以上的角度按表排（牌桌互压检查）：按 250° 等分的话 5、8、9 人桌有一家正好在桌子左右两头、和公共牌一样高，
  * 底牌朝桌心摆就压到公共牌。两侧只用公共牌上面（189°–351°）和下面靠近我的那一截（≤147°、≥33°），左右对称
  */
 const TALL_DEG: Record<number, number[]> = {
@@ -152,7 +152,7 @@ export function betPos(p: Pt, g: Geo, mine: boolean, packed = false): Pt {
   // 我的：底边在底牌上面一点（.bet.mine 按底边摆），往上长不碰底池
   if (mine) return { x: f.cx, y: p.y - 100 };
   // 竖屏桌子窄、座位挤：顶上的放在名牌正下方，两边的放在名牌朝桌心那一侧、底牌下面，不碰动作签、底牌和名牌（审阅）
-  // 上半边两侧的原来按座位往下 44，正好落在公共牌上；改成公共牌上方那一条，左右让开顶上座位的下注
+  // 上半边两侧的放在公共牌上方那一条（按座位往下 44 会正好落在公共牌上），左右让开顶上座位的下注
   if (g.tall) {
     if (isTop(p, g)) return { x: p.x, y: p.y + 104 };
     const dir = p.x < f.cx ? 1 : -1;
@@ -167,14 +167,14 @@ export function betPos(p: Pt, g: Geo, mine: boolean, packed = false): Pt {
   const dy = f.cy - p.y;
   const dist = Math.hypot(dx, dy);
   const d = Math.min(130, Math.max(90, dist * 0.42));
-  // 下半边两侧的再往下 8：几摞筹码里最高的那摞（比如 270 = 两枚 100、两枚 25、四枚 5）往上长，原来顶到桌心的"主池"标签（scenes 667×375 6 人桌）
+  // 下半边两侧的再往下 8：几摞筹码里最高的那摞（比如 270 = 两枚 100、两枚 25、四枚 5）往上长，会顶到桌心的"主池"标签（scenes 667×375 6 人桌）
   const low = p.y > f.cy && Math.abs(dx) > f.rx * 0.5 ? 8 : 0;
   return { x: p.x + (dx / dist) * d, y: p.y + (dy / dist) * d + 6 + low };
 }
 
 /** 庄家按钮：在下注的位置旁边偏一点 */
 export function buttonPos(p: Pt, g: Geo, mine: boolean, packed = false): Pt {
-  // 竖屏别人的：按下注摆会落到公共牌、别人的下注上；两侧的放在头像朝外的上角（底牌在朝桌心那边，动作签挂在名牌下面；原来贴在头像外侧正中，360 宽时被屏幕边裁掉一半），顶上的放名牌右下
+  // 竖屏别人的：按下注摆会落到公共牌、别人的下注上；两侧的放在头像朝外的上角（底牌在朝桌心那边，动作签挂在名牌下面；贴在头像外侧正中的话 360 宽时被屏幕边裁掉一半），顶上的放名牌右下
   // 矮竖屏顶上一排挨得近：D 放在头像朝外的一侧、名牌上面那一行（右边的家底牌在左边，所以按桌心分左右）
   if (packed && !mine && isTop(p, g)) return { x: p.x + (p.x <= felt(g).cx ? -44 : 44), y: p.y + 6 };
   if (g.tall && !mine) return isTop(p, g) ? { x: p.x + 84, y: p.y + 62 } : { x: p.x - (p.x < felt(g).cx ? 1 : -1) * 44, y: p.y - 32 };
@@ -214,13 +214,13 @@ const DEALER_ROOM_RIGHT = 112;
 
 /**
  * 竖屏公共牌那一行的中心：比桌心低一点，上面让出一条放上半边两侧座位的下注。
- * 竖屏的公共牌也缩小了（style.css 的 .stage.tall .card.board，50 宽、间距 54）：原来 5 张两头压到左右座位的名牌（10-19 截图）
+ * 竖屏的公共牌也缩小了（style.css 的 .stage.tall .card.board，50 宽、间距 54）：不缩的话 5 张两头压到左右座位的名牌
  */
 const TALL_BOARD_Y = (g: Geo): number => felt(g).cy + 16;
 /** 公共牌：5 张的中心（竖屏桌子窄，挨得近一点） */
 export const boardPos = (g: Geo, i: number): Pt =>
   g.tall ? { x: g.w / 2 + (i - 2) * 54, y: TALL_BOARD_Y(g) } : { x: g.w / 2 + (i - 2) * 66, y: felt(g).cy - 18 };
-/** 池子在公共牌下面（原来在上面，和顶上座位的下注、庄家按钮挤在一起） */
+/** 池子在公共牌下面（放上面会和顶上座位的下注、庄家按钮挤在一起） */
 export const potPos = (g: Geo): Pt => ({ x: g.w / 2, y: g.tall ? TALL_BOARD_Y(g) + 70 : felt(g).cy + 54 });
 /** 一手的结果条：公共牌和池子下面（放在上面会盖住顶上座位的庄家按钮），按上边摆；两行的结果不压我的底牌 */
 export const resultPos = (g: Geo): Pt => ({ x: g.w / 2, y: g.tall ? TALL_BOARD_Y(g) + 80 : felt(g).cy + 64 });

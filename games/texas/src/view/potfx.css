@@ -35,7 +35,7 @@
 .table.tall .fx .pfx-hand,
 .stage.tall .table .fx .pfx-hand { font-size: 30px; padding: 3px 16px 5px; }
 
-/* 摊牌：赢的五张放大一点、金边加光晕、压在别的牌上；输的牌压暗但字看得清（原来 .55 在小屏上发糊） */
+/* 摊牌：赢的五张放大一点、金边加光晕、压在别的牌上；输的牌压暗但字看得清（.55 在小屏上发糊） */
 .table.showdown .card.best {
   scale: 1.12;
   z-index: 6;
@@ -47,7 +47,7 @@
 .table.showdown .card.up:not(.best) .c-face { filter: brightness(.7) saturate(.85); }
 /* 同一个人的两张：第二张始终压在第一张上（点数在左上角，错开的那一截正好露出第一张的点数）。赢的那张被提到最上层就把另一张的点数整个盖住了 */
 .table.showdown .seat .hole .card.best { z-index: auto; }
-/* 摊牌时别人亮出来的两张拉开一点：平时只错开 16，赢的那张再放大就把另一张的点数盖得只剩一角（界面审查 1121 第 1 条）。竖屏座位挤，不动 */
+/* 摊牌时别人亮出来的两张拉开一点：平时只错开 16，赢的那张再放大就把另一张的点数盖得只剩一角。竖屏座位挤，不动 */
 .stage:not(.tall) .table.showdown .seat:not(.me):not(.right) .hole .card:nth-child(2) { left: 80px; }
 .stage:not(.tall) .table.showdown .seat.right:not(.me) .hole .card:nth-child(1) { left: -80px; }
 @keyframes pfx-win {

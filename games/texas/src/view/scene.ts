@@ -76,7 +76,7 @@ function barSvg(): string {
 
 /**
  * 省内存设备：和 AGENTS.md 手机平板那几条一样的判断（触屏且内存小），加上用户开了省流量。
- * Safari（iPhone、iPad 上所有浏览器）不报 deviceMemory：问不到就按内存小算。原来按 8 GB 算，iPhone 一律走全特效
+ * Safari（iPhone、iPad 上所有浏览器）不报 deviceMemory：问不到就按内存小算（按 8 GB 算的话 iPhone 一律走全特效）
  * （背景浮尘光斑一直在动、收池一串飞筹码、摊牌放大发光），老 iPhone 上掉帧、页面被系统杀掉
  */
 function lowMemory(): boolean {

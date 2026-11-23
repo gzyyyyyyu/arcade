@@ -38,7 +38,7 @@ export interface Session {
   held?: number;
   /** 这一场的数（离桌的结算页用；老存档没有，读的时候补上） */
   stats?: SessionStats;
-  /** 这一份的战绩（离桌结回时报给平台；老存档没有，从现在起记） */
+  /** 这一份的战绩（离桌结回时报给平台；老存档没有，按空算） */
   fame?: Fame;
   /** 全下局的今日全下（docs/features.md 13.10）：哪天的牌、这局是不是记分（一天只记第一局，重玩是练习，不上榜） */
   daily?: { date: string; scored: boolean };
@@ -134,7 +134,7 @@ export class Solo {
 
   /**
    * 补码那一笔还没得到钱包回话：请求可能已经到了钱包、扣了钱，所以牌桌停住等它（不发下一手），
-   * 用同一个操作 id 再办，钱包只扣一次。原来提示"筹码没动"、照常能打，再补码或离桌会把这一笔覆盖掉，扣了的就丢了
+   * 用同一个操作 id 再办，钱包只扣一次；照常打的话，再补筹码或离桌会把这一笔覆盖掉，扣了的就丢了
    */
   get toppingUp(): boolean {
     return this.s.pending?.t === 'buyin' && this.s.table.seats[ME]!.owner === 'player';

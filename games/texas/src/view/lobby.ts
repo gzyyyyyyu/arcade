@@ -1,7 +1,7 @@
 /**
  * 标题页（分两屏，docs/art.md 第 4 节）：左边标题和一手同花顺，右边先是主页——一个"快速开始"（按上次的设置；
  * 有没打完的一桌就是"继续上局"）、三张模式卡（娱乐 / 实盘 / 好友房，docs/economy.md 第 1 节）、钱包和战绩；
- * 点了模式卡才到选桌：档位、人数、带多少，"返回"回主页。一进来就直接选游戏方式显得太满，所以选项不再一进来就摆满。
+ * 点了模式卡才到选桌：档位、人数、带多少，"返回"回主页。一进来先选游戏方式，选项不一下全摆出来（太满）。
  * 娱乐不碰钱包、随便玩；实盘从钱包带一份上桌、离桌结回；好友房选档位和人数后开房间、输码进房。
  * 钱包常驻一行"无任何现金价值"（docs/economy.md 5.3）；钱包连不上时实盘不可选，娱乐照常。
  * 单独部署（没有平台，10.1）：藏起钱包和实盘，只有娱乐和好友房；好友房下面多一个昵称框。
@@ -239,7 +239,7 @@ export class Lobby {
       if (e.key === 'Enter' && !this.joinBtn.disabled) this.wait(this.joinBtn, () => h.joinRoom(this.codeIn.value));
     });
     this.joinBtn = button(fr, 'pill', '进房间', () => this.wait(this.joinBtn, () => h.joinRoom(this.codeIn.value)));
-    // 分界线上写清下面是什么：上面进朋友的房，下面自己开（界面审查 1121 第 10 条：原来只有一道虚线，看不出下面的档位是开房用的）
+    // 分界线上写清下面是什么：上面进朋友的房，下面自己开（只有一道虚线的话看不出下面的档位是开房用的）
     el('span', 'fr-or', fr, '或者自己开一间');
     // 单独部署时好友房里别人看到的名字（kit 的 ?name=，服务端清洗，不合格就是"游客1234"）；有平台时用平台的昵称，不显示
     this.nickRow = el('div', 'nick-row hidden', panel);
@@ -612,7 +612,7 @@ export class Lobby {
       toggle(t, 'sel', st.id === this.stakes && !(room && this.roomFun));
       const locked = !fun && !this.alone && bal !== null && bal < st.min;
       toggle(t, 'locked', locked);
-      // 灰着的档位在卡上写要多少（原来的"最多输"那一行换成它，选中后钱包够了再换回来）
+      // 灰着的档位在卡上写要多少（占"最多输"那一行，钱包够了再换回来）
       const need = t.querySelector('small');
       if (need) {
         setText(need, locked ? `要 ${chips(st.min)} 筹码` : `最多输 ${chips(st.max)}`);

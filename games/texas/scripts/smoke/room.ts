@@ -206,7 +206,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   log('chat: seen on the other screens, portrait button clear, danmaku off works');
 
   // 打到一半手机刷新：不自动进房，标题页有"回到房间"，点了回到原来的座位
-  // 带着房间记录启动页面不能报错（原来先画大厅、后建云存档，这里一刷新就是 pageerror、大厅画不出来；结尾的零报错核对会抓到）
+  // 带着房间记录启动页面不能报错（先画大厅、后建云存档的话一刷新就是 pageerror；结尾的零报错核对会抓到）
   const half = Math.max(2, Math.floor(hands / 2));
   const phone = (async () => {
     await playRoom(bp, half - 1, 'phone', new Set([1]));

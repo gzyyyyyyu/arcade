@@ -9,7 +9,7 @@ import type { HandResult, LogEntry } from './table.ts';
 
 export type FeedMoment = 'royal_flush' | 'straight_flush' | 'quads' | 'allin_comeback' | 'big_pot';
 
-/** 按这个顺序取一手里最值得说的那一个 */
+/** 全部名场面（测试拿它和 public/moments.json 的键对齐；挑哪一个由 feedMoment 的先后决定） */
 export const FEED_MOMENTS: readonly FeedMoment[] = ['royal_flush', 'straight_flush', 'quads', 'allin_comeback', 'big_pot'];
 
 /** 一手赢下的（各个池加起来）到多少个大盲算"大锅"：一份满买入就是 100 个大盲，赢下这么多等于把一整份赢过来 */

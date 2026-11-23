@@ -27,7 +27,7 @@ export function showcase(r: HandResult, log: readonly LogEntry[]): Showcase | nu
   const big = r.shown.filter((s) => categoryOf(s.value) >= QUADS).sort((a, b) => b.value - a.value)[0];
   if (big) return { kind: 'quads', seat: big.seat };
   const allin = r.shown.some((s) => log.some((e) => e.seat === s.seat && e.allin && e.act !== 'sb' && e.act !== 'bb'));
-  // 按主池的赢家写（实打：原来取"赢了任何一个池"的第一个，只平分了边池的人被写成了笑到最后）
+  // 按主池的赢家写（取"赢了任何一个池"的第一个的话，只平分了边池的人会被写成笑到最后）
   const main = r.pots[0]?.winners ?? [];
   if (!allin || !main.length) return null;
   return main.length > 1 ? { kind: 'allin', seat: must(main[0], 'main[0]').seat, split: true } : { kind: 'allin', seat: must(main[0], 'main[0]').seat };

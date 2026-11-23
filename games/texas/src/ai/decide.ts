@@ -123,7 +123,7 @@ export function decide(v: View, r: RandomStream): Action {
     let ok: boolean;
     if (raises === 0) {
       // 没人加注，只是补一个大盲（或小盲补半个）看翻牌：只看牌力和位置，不查底池赔率。
-      // 赔率按全桌的胜率算，6 人桌前面位置平跟要 400‰，5 个对手时普通牌只有 150–170‰，原来除了 JJ 以上全弃（"板凳儿一直弃牌"）
+      // 赔率按全桌的胜率算，6 人桌前面位置平跟要 400‰，5 个对手时普通牌只有 150–170‰，不放宽就除了 JJ 以上全弃
       ok = rel >= callAt - pos || (toCall * 2 <= v.bb && rel >= callAt - 200);
     } else {
       // 有人加注：要跟的钱多了，门槛按加注次数抬高、再看赔率。松的人不太把加注当回事，抬得少（loose 抵掉一部分，小桌的老好、板凳儿基本不抬）。
@@ -180,7 +180,7 @@ export function decide(v: View, r: RandomStream): Action {
     }
     return { t: 'check' };
   }
-  // 爱跟的性格（slack 为正）和 loose 一样按档的 soft 打折：小桌全用，越往上越收（中桌的板凳儿原来翻牌后照样跟到底，每百手 −150）
+  // 爱跟的性格（slack 为正）和 loose 一样按档的 soft 打折：小桌全用，越往上越收
   const slack = p.slack > 0 ? Math.floor((p.slack * k.soft) / 1000) : p.slack;
   const ok = eq >= odds - slack - k.slack - (tilt ? TILT.slack : 0);
   // 低档手软（第 0–3 档）：够跟、但只比赔率多一点的牌，偶尔就弃了

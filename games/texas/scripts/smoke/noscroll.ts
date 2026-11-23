@@ -27,7 +27,7 @@ interface ScrollHit {
 }
 /**
  * 纵、横：要滚；叠：两个可点的东西框子相交；裁：文字装不下被截（11-02：只量滚不滚抓不到按钮互压、字被裁一截）；
- * 出：面板、弹窗、按钮、名牌、牌伸出屏幕（11-21：好友房等人页电脑版底边伸出 4 像素，页面不滚所以前三样都抓不到）
+ * 出：面板、弹窗、按钮、名牌、牌伸出屏幕（页面不滚时前三样都抓不到，比如好友房等人页电脑版底边伸出 4 像素）
  */
 type Axis = '纵' | '横' | '叠' | '裁' | '出';
 
@@ -229,7 +229,7 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
       await page.locator('.friends').first().waitFor();
       await look('lobby-room');
     });
-    await step('单机牌桌 加注 帮助 设置 一手结束 补码 离桌 结算', async () => {
+    await step('单机牌桌 加注 帮助 设置 一手结束 补筹码 离桌 结算', async () => {
       await clearUnfinished();
       await enter(page, '娱乐', touch);
       // 带最少的上桌：打完一手没输光也一定有"补码"可点（带满了就没有，补码弹窗量不到）
@@ -276,7 +276,7 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
         await look('topup');
         await page.keyboard.press('Escape');
         await page.locator('.dialog').waitFor({ state: 'detached', timeout: 3_000 }).catch(async () => go('.d-btn:not(.primary)'));
-      } else if (!busted) unreached.push(`${size} 输光或补码弹窗: 补码按钮不在，这一手也没输光`);
+      } else if (!busted) unreached.push(`${size} 输光或补筹码弹窗: 补筹码按钮不在，这一手也没输光`);
       await go('.leave');
       await page.locator('.dialog').waitFor();
       await look('leave-confirm');

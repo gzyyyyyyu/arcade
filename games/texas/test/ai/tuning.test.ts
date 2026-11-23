@@ -163,7 +163,7 @@ describe('电脑的难度', () => {
   });
 
   it('小桌整体松、很少加注，性格照样拉得开：老好最松，稳哥、慢慢最紧；豪华桌收回去', () => {
-    // 原来的 6 种坐 6 人桌（每场轮换座位），6 场 × 500 手，每种性格约 3,000 手，入池比例的标准误约 ±1%。长期的数字见 docs/ai.md 4.3
+    // 最早的 6 种性格坐 6 人桌（每场轮换座位），6 场 × 500 手，每种性格约 3,000 手，入池比例的标准误约 ±1%。长期的数字见 docs/ai.md 4.3
     const six = (k: number): number[] => Array.from({ length: 6 }, (_, i) => (i + k) % 6);
     const small = style('small', 6, 6, 500, six);
     const lux = style('lux', 6, 6, 500, six);
@@ -197,7 +197,7 @@ describe('电脑的难度', () => {
     console.log(`9 人桌入池 / 翻牌前加注（%）小桌 ${fmt(small)}`);
     console.log(`                           豪华桌 ${fmt(lux)}`);
     const [wen, , laohao, manman, suanpan, jianghu, , laoying, daodao, xiaobai] = small;
-    // 板凳儿、熊猫哥原来 ≥ 17（实测 22），新的目标是松（9 人桌人多，比 6 人桌的 45–60% 低一点）
+    // 板凳儿、熊猫哥的目标是松（9 人桌人多，比 6 人桌的 45–60% 低一点）
     expect(xiaobai!.vpip).toBeGreaterThanOrEqual(40);
     expect(xiaobai!.pfr).toBeLessThanOrEqual(9);
     expect(daodao!.vpip).toBeGreaterThanOrEqual(40);
@@ -216,7 +216,7 @@ describe('电脑的难度', () => {
   });
 
   it('"板凳儿一直弃牌"：6 人桌没人加注、前面位置只补一个大盲，板凳儿一半左右会跟进看牌', () => {
-    // 原来翻牌前没人加注也查底池赔率（按 5 个对手的胜率比 400‰），除了 JJ 以上基本全弃
+    // 翻牌前没人加注时不查底池赔率（按 5 个对手的胜率比 400‰ 的话，除了 JJ 以上基本全弃）
     const spots = preflopSpots((v) => v.seats[v.me!]!.persona === 9 && v.legal!.call === v.bb && v.seats.filter((s) => s.status === 'active').length >= 5);
     const play = spots.filter((v, i) => decide(v, stream(SEED, 'spot', i)).t !== 'fold').length;
     console.log(`板凳儿没人加注、至少 5 人在：${spots.length} 个局面，跟进或加注 ${play} 次`);
@@ -308,7 +308,6 @@ describe('电脑的难度', () => {
       });
     }
     console.log(`小桌 6 人 ${hands} 手：每手平均 ${(seers / hands).toFixed(2)} 人看翻牌`);
-    // 原来约 1.5
     expect(seers / hands).toBeGreaterThan(2);
   });
 

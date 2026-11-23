@@ -320,7 +320,7 @@ export function createTour(c: App) {
     const placeOf = (k: number): number => t.places[k] ?? must(t.order, '锦标赛结束时有名次表').indexOf(k) + 1;
     const rows: TourRow[] = t.order.filter((k) => t.humans.includes(k)).map((k) => ({ name: nameOf(k), place: placeOf(k), prize: t.prizes ? (t.prizes[k] ?? 0) : null, me: k === me }));
     const played = me !== null && t.humans.includes(me);
-    // 娱乐赛的名次也进成就墙（和朋友打的主要就是好友房）；实盘锦标赛不算，和原来一样
+    // 娱乐赛的名次也进成就墙（和朋友打的主要就是好友房）；实盘锦标赛不算（成就只记娱乐的）
     if (played && t.fun) f.achRoomTour(s.code, placeOf(me));
     const champ = must(t.order[0], '整场打完一定有冠军');
     const body = tourEndBody({

@@ -54,7 +54,7 @@ export function createGuide(c: App) {
     void walkthrough(true);
   }
 
-  /** 走完之后第一次翻出公共牌轮到我：指一下底池（原来在走一遍里，现在到了场合再讲） */
+  /** 走完之后第一次翻出公共牌轮到我：指一下底池 */
   function potHint(v: View): void {
     const g = guideNow();
     if (!g.done || g.seen.includes('pot') || walking || c.asking || c.animating > 0 || v.toAct !== ME || !v.legal || !v.board.length) return;

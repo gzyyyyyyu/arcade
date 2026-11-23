@@ -85,7 +85,7 @@ type Flaw = 'overcall' | 'scared' | 'spew' | 'trap';
  */
 const SEATS: readonly (readonly [string, Play])[] = [
   ['wengge', { call: 1400, raise: 1320, bluff: 120, slack: 0, slow: 50, size: 750, loose: 60, wild: 0, raiser: 100, threebet: 40, barrel: 250, shove: 0, river: 300, trust: 1150, posX: 1300, steal: 20, openX: 900, spread: 450, mild: 850, reads: 700, flaw: 'scared', leak: 40 }],
-  // call 是"没人加注时跟进"的门槛（不再查赔率），按目标入池率重调：紧的调高，loose 只剩软桌上的放松（原来要大到抵掉赔率那一关）
+  // call 是"没人加注时跟进"的门槛（不再查赔率），按目标入池率重调：紧的调高，loose 只剩软桌上的放松
   // 阿强的 loose / wild 是 80 / 55：9 人桌后面坐的人多，再松在小桌混桌里亏太多
   ['aqiang', { call: 1250, raise: 1200, bluff: 220, slack: 0, slow: 30, size: 800, loose: 80, wild: 55, raiser: 60, threebet: 150, barrel: 350, shove: 120, river: 800, trust: 900, posX: 1100, steal: 50, openX: 1100, spread: 1100, mild: 800, reads: 500, flaw: 'spew', leak: 70 }],
   ['laohao', { call: 1100, raise: 1450, bluff: 40, slack: 30, slow: 100, size: 550, loose: 150, wild: 0, raiser: 45, threebet: 5, barrel: 80, shove: 0, river: 150, trust: 500, posX: 300, steal: 0, openX: 800, spread: 700, mild: 1000, reads: 100, flaw: 'overcall', leak: 120 }],
@@ -114,7 +114,7 @@ const SHARP_PLAY: Readonly<Record<string, Partial<Play>>> = {
 export const PERSONAS_SHARP: readonly Persona[] = PERSONAS.map((p) => ({ ...p, ...SHARP_PLAY[p.id] }));
 
 /**
- * 电脑的"功力"，按强弱档（按档，原来按档位，docs/ai.md 4.3、4.7）：同一种性格，低档松、软、不太会看人（0 新手档只给娱乐），越往上越紧、越凶、越会按对手的动作猜他的牌。
+ * 电脑的"功力"，按强弱档（docs/ai.md 4.3、4.7）：同一种性格，低档松、软、不太会看人（0 新手档只给娱乐），越往上越紧、越凶、越会按对手的动作猜他的牌。
  * 电脑从 View.level 知道是哪一档；场地按档位挑档（stakes.ts 的 SOLO_LEVEL、ROOM_LEVEL），补位时各档挑哪些性格多一些见 stakes.ts 的 LEVEL_HOUSE。
  */
 export interface Skill {
@@ -169,7 +169,7 @@ export interface Skill {
   depth: boolean;
   /**
    * 娱乐高手（只第 6 档）：人人按满成看人，对跟注站几乎不诈唬、薄打放得更宽；河牌先下注两极（大牌、空气下约四分之三池，中等牌过牌）；
-   * 不犯性格的小错；性格按 PERSONAS_SHARP。第 0–5 档是 false，走原来的路、抽的随机数一个不变（实盘期望不动）
+   * 不犯性格的小错；性格按 PERSONAS_SHARP。第 0–5 档是 false，不走这条路、抽的随机数不受影响（实盘期望不动）
    */
   sharp: boolean;
 }

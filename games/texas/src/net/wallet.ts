@@ -40,9 +40,8 @@ export const texasStakes = (w: WalletView | null, mode?: Mode): Stake[] => w?.st
 
 /**
  * 本机记着的带入（buyin）/结回（cashout）没办成时，要不要留着下次用同一个操作 id 重办（单机现金桌和单机锦标赛共用）：
- * 连不上、平台出错要留；结回回 busy（平台停服档）留着再办，带入回 busy 是平台停了带入、钱没扣，当明确拒了
- * （原来也当连不上，一整天每 15 秒重试，这期间连娱乐局都开不了）；
- * 结回时登录过期、没过 CSRF：钱包没收到，留在本机，登录后再结（原来当明确拒了，整桌筹码就丢了）
+ * 连不上、平台出错要留；结回回 busy（平台停服档）留着再办，带入回 busy 是平台停了带入、钱没扣，当明确拒了；
+ * 结回时登录过期、没过 CSRF：钱包没收到，留在本机，登录后再结（当明确拒了的话整桌筹码就丢了）
  */
 export function retryable(error: string, kind: 'buyin' | 'cashout'): boolean {
   if (error === 'offline' || error === 'unavailable' || error === 'internal') return true;

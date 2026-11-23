@@ -1,6 +1,6 @@
 /**
  * "上头"（docs/ai.md 4.6）：一手净输到 TILT_LOSS_BB（40）个大盲，接下来 TILT_HANDS（3）手 tilt 依次是 3、2、1，之后字段删掉。
- * 实打后从"25 个大盲、5 手"收到"40 个大盲、3 手"：原来桌上常有电脑一直挂着最高的 5 手，桌子偏乱。
+ * 门槛定得高、手数少：低了桌上常有电脑一直挂着上头，桌子偏乱。
  * 只由规则推出来（同种子同结果，determinism.test 覆盖），视图只给自己的座位。
  */
 import { describe, expect, it } from 'vitest';
@@ -58,7 +58,7 @@ describe('上头', () => {
     expect(JSON.stringify(t)).not.toContain('tilt');
   });
 
-  it('输得不到线不上头（输 30 个大盲也不上头，原来 25 就上头）；上头时再输一个大池重新从 3 数', () => {
+  it('输得不到线不上头（输 30 个大盲也不上头）；上头时再输一个大池重新从 3 数', () => {
     let t = setup([8000, 8000], 1);
     t = bigLoss(t, 20 * 30);
     expect('tilt' in t.seats[1]!).toBe(false);

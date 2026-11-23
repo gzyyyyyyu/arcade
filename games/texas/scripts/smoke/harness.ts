@@ -254,10 +254,10 @@ export const coveredSeats = (page: Page): Promise<number> =>
     ).length;
   });
 
-/** 座位之间互相压着的对数（头像、名牌；原来挪开的座位会压到别的座位上，上面那个检查看不出来） */
+/** 座位之间互相压着的对数（头像、名牌；挪开的座位会不会压到别的座位上，上面那个检查看不出来） */
 export const seatOverlaps = (page: Page): Promise<number> =>
   page.evaluate(() => {
-    // 连动作签一起算：挪开的座位的签原来压在上一家的名牌上
+    // 连动作签一起算：挪开的座位的签会压到上一家的名牌上
     const boxes = [...document.querySelectorAll('.seat:not(.empty)')].map((seat) =>
       [...seat.querySelectorAll(seat.classList.contains('tucked') ? '.plate' : '.avatar, .plate, .bubble.on')].map((e) => e.getBoundingClientRect()),
     );

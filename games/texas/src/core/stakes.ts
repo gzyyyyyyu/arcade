@@ -71,7 +71,7 @@ export const DIFFICULTIES: readonly Difficulty[] = ['easy', 'normal', 'hard'];
 export const FUN_STAKES: StakesId = 'small';
 export const FUN_LEVEL: Readonly<Record<Difficulty, number>> = { easy: 0, normal: 2, hard: 6 };
 export const DIFFICULTY_NAME: Readonly<Record<Difficulty, string>> = { easy: '新手', normal: '普通', hard: '高手' };
-/** 牌桌记着的强弱档是哪个娱乐难度（旧娱乐桌没记，回 null）。0.43.0 以前的高手娱乐桌记的是 4，续打照 4 打，难度照样算高手 */
+/** 牌桌记着的强弱档是哪个娱乐难度（旧娱乐桌没记，回 null）。存档里记 4 的娱乐桌按高手算、照 4 打（兼容老存档） */
 export const difficultyOf = (level: number | undefined): Difficulty | null => (level === 4 ? 'hard' : (DIFFICULTIES.find((d) => FUN_LEVEL[d] === level) ?? null));
 
 /** 配平和选档页按"一场"算（仓库根 docs/balance.md 第 2、3 节）：打这么多手，真人速度约 15–25 分钟（docs/ai.md 4.10） */
