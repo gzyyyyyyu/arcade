@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { CHEST, RAID_SUPPLY } from '../../src/content/explore.ts';
 import { TREASURES } from '../../src/content/treasures.ts';
-import { createWorld, step, type World } from '../../src/core/index.ts';
+import { createWorld, Pick, step, type World } from '../../src/core/index.ts';
+import { grantWeapon } from '../../src/core/debug.ts';
+import { MAX_WEAPON_LEVEL } from '../../src/content/weapons.ts';
 import type { Raid } from '../../src/explore/raid.ts';
 import '../../src/explore/register.ts';
 
@@ -31,6 +33,23 @@ describe('娱乐夜探的补给和成长', () => {
     step(w, 0, 0);
     expect(w.chestPicks).toBe(0);
     expect(w.level).toBe(1);
+  });
+
+  it('宝箱三选一照样结进化：开箱时已经齐了的当场进化，挑完才齐的挑完进化（精英宝箱同一口径）', () => {
+    const w = fun();
+    grantWeapon(w, 'sword', MAX_WEAPON_LEVEL);
+    w.passives.zhusha = 1;
+    raid(w).upgrades = 1;
+    step(w, 0);
+    expect(w.weapons.find((o) => o.id === 'sword')!.evolved).toBe(true);
+    const v = fun();
+    grantWeapon(v, 'sword', MAX_WEAPON_LEVEL);
+    raid(v).upgrades = 1;
+    step(v, 0);
+    expect(v.phase).toBe('choose');
+    v.passives.zhusha = 1;
+    step(v, 0, Pick.Skip);
+    expect(v.weapons.find((o) => o.id === 'sword')!.evolved).toBe(true);
   });
 
   it('宝气：珍、绝宝物加伤害，有上限', () => {

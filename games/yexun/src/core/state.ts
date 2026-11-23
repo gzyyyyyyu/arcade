@@ -21,7 +21,7 @@ import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 75;
+export const RULES_VERSION = 76;
 export { TICKS_PER_SECOND } from '../content/clock.ts';
 /**
  * 刷怪的一圈：刚好在屏幕外（横屏一屏约 1000 × 560 到 1080 × 500 单位，画面层 viewport.ts 的 worldZoom），

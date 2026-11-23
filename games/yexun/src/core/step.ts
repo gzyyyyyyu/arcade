@@ -254,11 +254,12 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
     } else if (choice === Pick.Skip) {
       // 跳过：不选，抽一样随机小奖（content/picks.ts）
       w.pendingLevels--;
-      if (w.chestPicks > 0) w.chestPicks--;
+      const chest = takeChestPick(w);
       w.choices = [];
       w.phase = 'play';
       w.bonusCard = 0;
       skipPrize(w);
+      if (chest) settleChest(w);
       if (w.pendingLevels > 0) openChoices(w);
     }
     return;
@@ -308,10 +309,11 @@ export function step(w: World, dir: number, choice = -1, skill = 0): void {
     // 夜探：撤出算赢，倒下、天亮还在镇里算输（DESIGN.md 2.3）
     const raid = w.raid;
     raid.tick(w);
-    // 娱乐夜探：铜箱、金箱的升级三选一；实盘照旧随机升一件
+    // 娱乐夜探：铜箱、金箱的升级三选一（开箱和挑完各结一次进化、合成，和 openChest 一样）；实盘照旧随机升一件
     while (raid.takeUpgrade()) {
       if (w.setup.live) openChest(w, 1);
       else {
+        settleChest(w);
         w.pendingLevels++;
         w.chestPicks++;
       }
@@ -3247,11 +3249,18 @@ function applyChoice(w: World, c: Choice): void {
     heal(w, COIN_PICK.heal);
   }
   w.pendingLevels--;
-  if (w.chestPicks > 0) w.chestPicks--;
+  if (takeChestPick(w)) settleChest(w);
   w.choices = [];
   w.phase = 'play';
   w.bonusCard = 0;
   if (w.pendingLevels > 0) openChoices(w);
+}
+
+/** 这次选卡是不是宝箱给的（娱乐夜探）：是就记掉一次，挑完要结进化、合成 */
+function takeChestPick(w: World): boolean {
+  if (w.chestPicks <= 0) return false;
+  w.chestPicks--;
+  return true;
 }
 
 /** 跳过的小奖：按 SKIP_PRIZES 的概率抽；满血时回血奖作废，在其他三样里按比例重抽 */
