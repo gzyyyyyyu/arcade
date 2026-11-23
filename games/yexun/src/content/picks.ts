@@ -22,6 +22,9 @@ export const OWN_PICKS = { ownMul: 2, ownHeldMul: 3 } as const;
 /** 法器、被动都升满后升级给的「铜钱一袋」：加多少铜钱、回多少血（卡面和选中后的横幅都读这里） */
 export const COIN_PICK = { coins: 25, heal: 20 } as const;
 
+/** 宝箱要升的那一件找不到能升的（法器、被动全满）时改给的：比升级卡那袋多，因为宝箱是打倒精英、首领换来的。实盘也走这里，改数要重拟实盘系数 */
+export const CHEST_FULL = { coins: 40, heal: 30 } as const;
+
 /** 跳过的随机小奖：0 铜钱、1 回血、2 下次升级多一张卡（不叠加）、3 刷新 +1。weight 是概率（合计 1） */
 export const SKIP_PRIZES = [
   { id: 'coins', weight: 0.35 },

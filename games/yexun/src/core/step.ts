@@ -56,7 +56,7 @@ import { ASSIST, CHAR_FX, CHARACTERS, CURSE_FX, PERK_FX, REVIVE, type CurseId, t
 import { WEEKLY_FX } from '../content/weekly.ts';
 import { TRIAL_FX } from '../content/trials.ts';
 import { trialVerdict } from './trial.ts';
-import { COIN_PICK, PICKS, FATE_PICKS, OWN_PICKS, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
+import { CHEST_FULL, COIN_PICK, PICKS, FATE_PICKS, OWN_PICKS, SKIP_FX, SKIP_PRIZES } from '../content/picks.ts';
 import { BELL_STUN, PARADE, MAP_EVENT_AT, MAP_EVENT_KINDS, MAP_EVENT_WARN, MAP_EVENTS, mapEventRound, TIDE_SLOW, WIND_PUSH, type MapEventKind } from '../content/mapEvents.ts';
 import { MARKET_GOODS, MARKET_PRICE, NIGHT_MARKET, type MarketGood } from '../content/market.ts';
 import {
@@ -3289,7 +3289,12 @@ function skipPrize(w: World): void {
     n = Math.round(w.stats.hpMax * SKIP_FX.heal);
     heal(w, n);
   } else if (id === 'card') w.bonusCard = 1;
-  else addReroll(w, -1);
+  else {
+    // 存满（或带「不许刷新」咒印）时这次补不上：n 记 0，画面照实说，不谎报「刷新 +1」
+    const before = w.rerolls;
+    addReroll(w, -1);
+    n = w.rerolls - before;
+  }
   w.ev.push(Ev.Skip, w.x, w.y, k, n);
 }
 
@@ -3551,9 +3556,9 @@ function openChest(w: World, n: number): void {
   for (let k = 0; k < n; k++) {
     w.chestUps++;
     if (!chestUpgrade(w)) {
-      w.coins += 40;
-      w.coinBy.chest += 40;
-      heal(w, 30);
+      w.coins += CHEST_FULL.coins;
+      w.coinBy.chest += CHEST_FULL.coins;
+      heal(w, CHEST_FULL.heal);
       w.ev.push(Ev.Chest, w.x, w.y, -1);
       continue;
     }

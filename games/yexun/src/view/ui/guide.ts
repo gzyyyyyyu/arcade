@@ -19,7 +19,7 @@ import { LIVE_MAP_CLOSED, LIVE_MAX_BP, LIVE_TIER_IDS, LIVE_TIERS } from '../../c
 import { SKILLS } from '../../core/skills.ts';
 import { MAP_EVENT_AT, MAP_EVENTS } from '../../content/mapEvents.ts';
 import { MAP_IDS, MAP_UNLOCK, MAPS } from '../../content/maps.ts';
-import { CHARACTER_IDS, CHARACTERS, CURSE_COIN_BONUS, MAX_CURSES, PERK_IDS, PERKS, type CharacterId } from '../../content/meta.ts';
+import { CHARACTER_IDS, carryExcept, CHARACTERS, CURSE_COIN_BONUS, MAX_CURSES, PERK_IDS, PERKS, type CharacterId } from '../../content/meta.ts';
 import { XINFA_TEXT } from '../../content/xinfa.ts';
 import { altStart, mainSchools } from '../../content/pools.ts';
 import { schoolIcon } from '../art/sprites-selicons.ts';
@@ -260,7 +260,7 @@ export class Guide {
       const k = SKILLS[id];
       return `<li>${this.img(heroKey(id), 'yx-gface', 64)}<b>${esc(c.name)}</b>技能「${esc(k.name)}」${Math.round(k.cd / 30)} 秒 · 被动「${esc(c.perkName)}」<small>${esc(c.unlock)}${c.privilege ? `；小特权：${esc(c.privilege)}` : ''}</small></li>`;
     }).join('');
-    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：这个流派多一条特色（剑修「剑意」近身更疼、镇守「不动如山」站定更硬……，流派页有全表；升级卡名字旁标着特色名），每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新。每个角色各记一份，实盘也能用；每日挑战、本周夜事、首领连战、试炼不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
+    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：这个流派多一条特色（剑修「剑意」近身更疼、镇守「不动如山」站定更硬……，流派页有全表；升级卡名字旁标着特色名），每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新。每个角色各记一份，实盘也能用；${carryExcept('xinfa')}不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
   }
 
   // ── 地图：地图、各图的事件 ──

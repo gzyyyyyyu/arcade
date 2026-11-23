@@ -11,7 +11,7 @@
  * | 每日连战 | 全清 × 1e9 + 打倒几只 × 1e7 + 一共几只 × 1e5 + 尾数（全清：剩下的秒数；没全清：最后一关打掉的百分比），online/rush.ts |
  */
 import { fmtClock } from '../content/clock.ts';
-import { dailyBoardId, dailyDateOpen } from './daily.ts';
+import { dailyBoardId, dailyDateOpen, isDailySetup } from './daily.ts';
 import { decodeRush, isRushSetup, rushBoardId, rushScore } from './rush.ts';
 import { weeklyBoardId, weeklyDateOpen } from './weekly.ts';
 import type { RunSummary } from './types.ts';
@@ -96,7 +96,7 @@ export interface Submission {
 /**
  * 这一局该往哪几个榜交什么分（空数组 = 不交）：
  * - 实盘不交；认输的不交（没打完不算成绩；无尽本来就是打到不想打为止，认输照交）；
- * - 每日挑战只交当天的每日榜（不进总榜：咒印让它和普通局不可比）；日期过了平台收的范围（昨天到明天）也不交；
+ * - 每日挑战只交当天的每日榜（不进总榜：咒印让它和普通局不可比）；日期过了平台收的范围（昨天到明天）、配置对不上（isDailySetup）都不交；
  * - 本周夜事挑战只交本周的周榜（不进总榜、不进每日榜）；隔周才结算的不交；没带挑战日期却带着本周事件的局（旧存档）什么都不交；
  * - 试炼只交这关的固定榜，只在刷新本机最好成绩时交；
  * - 开了"降低伤害"的普通局不交总榜（每日挑战是对谁都一样的固定局，没有这个开关，开了也不交）；
@@ -120,7 +120,7 @@ export function submissionsFor(r: RunSummary, today: string): Submission[] {
   }
   if (s.weekly) return [];
   if (r.daily) {
-    if (!dailyDateOpen(r.daily, today)) return [];
+    if (!dailyDateOpen(r.daily, today) || !isDailySetup(r.daily, s)) return [];
     if (s.mode === 'vigil') return [{ board: 'daily-vigil', boardId: dailyBoardId(r.daily, 'vigil'), score: dailyVigilScore(r) }];
     return r.loot > 0 ? [{ board: 'daily-raid', boardId: dailyBoardId(r.daily, 'raid'), score: raidScore(r.loot) }] : [];
   }

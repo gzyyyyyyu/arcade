@@ -3,7 +3,7 @@
  * `step` 原地修改这里的东西（主线批准的例外，见模块 AGENTS.md 第 3 节）。
  */
 import { LIVE_EASE, RAID_MAX_DANGER, type Danger, type WaveEvent } from '../content/waves.ts';
-import { CHAR_FX, CHARACTERS, CURSE_IDS, KIT_FX, KIT_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type KitId, type PerkId, CHARACTER_IDS } from '../content/meta.ts';
+import { carries, runKind, CHAR_FX, CHARACTERS, CURSE_IDS, KIT_FX, KIT_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type KitId, type PerkId, CHARACTER_IDS } from '../content/meta.ts';
 import { isWeeklyId, type WeeklyId } from '../content/weekly.ts';
 import { isTrialId, TRIALS, type TrialDef, type TrialId } from '../content/trials.ts';
 import { MAPS, type Block, type MapId, type Rect } from '../content/maps.ts';
@@ -191,15 +191,15 @@ export interface Setup {
   rush?: boolean;
   /**
    * 开局配置 A：起手法器换成「另一主修流派的核心件」（content/pools.ts altStart），而不是角色自己的起手件。
-   * 只有 true 有意义；首领连战不开（排行榜局人人一样），normalizeSetup 会把别的值和不该有的去掉
+   * 只有 true 有意义；哪种局能带照 content/meta.ts CARRY，normalizeSetup 会把别的值和不该有的去掉
    */
   startAlt?: boolean;
   /**
    * 开局配置 B：心法 = 选一个本角色的主修流派（content/pools.ts mainSchools），
-   * 这个流派单子上的法器卡和被动卡在升级三选一里权重 ×XINFA_MUL。不在主修里的值 normalizeSetup 会删掉
+   * 这个流派单子上的法器卡和被动卡在升级三选一里权重 ×XINFA_MUL。不在主修里的值和不该带的局（CARRY）normalizeSetup 会删掉
    */
   xinfa?: SchoolId;
-  /** 局前锦囊（content/meta.ts KITS）：娱乐局才有，实盘、连战、本周夜事丢掉 */
+  /** 局前锦囊（content/meta.ts KITS）：哪种局能带照 CARRY，normalizeSetup 丢掉不该有的 */
   kits?: readonly KitId[];
   /**
    * 试炼（content/trials.ts，docs/design-play.md 2.6）：人人一样的固定关。normalizeSetup 按表展开模式、地图、角色、危险、咒印、夜事，
@@ -246,13 +246,13 @@ export function normalizeSetup(raw: Setup): Setup {
   // 本周夜事只给守夜：实盘、夜探不开（每日挑战的 Setup 本来就不带它，isDailySetup 也核了）
   if (out.weekly !== undefined && (!isWeeklyId(out.weekly) || out.mode !== 'vigil' || out.live)) delete out.weekly;
   if (out.novice !== undefined && !noviceAssist(out)) delete out.novice;
-  // 开局配置：A 只认 true；B 只认本角色的主修流派；首领连战要人人一样，两个都不开
-  if (out.startAlt !== true || out.rush) delete out.startAlt;
+  // 开局配置（A 只认 true；B 只认本角色的主修流派）和锦囊（只认表里的、不重复）：哪种局能带照 content/meta.ts CARRY
+  const kind = runKind(out);
+  if (out.startAlt !== true || !carries('startAlt', kind)) delete out.startAlt;
   const pc = (CHARACTER_IDS as readonly string[]).includes(character) ? (character as CharacterId) : undefined;
-  if (out.xinfa !== undefined && (out.rush || !pc || !mainSchools(pc).includes(out.xinfa))) delete out.xinfa;
-  // 锦囊：只认表里的、不重复；实盘、连战、本周夜事要人人一样，不带
+  if (out.xinfa !== undefined && (!carries('xinfa', kind) || !pc || !mainSchools(pc).includes(out.xinfa))) delete out.xinfa;
   const kits = KIT_IDS.filter((k) => s.kits?.includes(k));
-  if (kits.length && !out.live && !out.rush && out.weekly === undefined) out.kits = kits;
+  if (kits.length && carries('kits', kind)) out.kits = kits;
   else delete out.kits;
   return out;
 }

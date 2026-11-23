@@ -64,6 +64,24 @@ describe('选卡三件套（10-20）', () => {
     for (const c of n) expect(c).toBeGreaterThan(20);
   });
 
+  it('刷新存满时跳过抽到「刷新 +1」：不加，事件记 0（画面照实说，不谎报）', () => {
+    const k = SKIP_PRIZES.findIndex((p) => p.id === 'reroll');
+    let hit = 0;
+    for (let s = 0; s < 200 && hit < 3; s++) {
+      const w = createWorld({ seed: 2000 + s, mode: 'vigil', danger: 0 });
+      w.rerolls = PICKS.rerollMax;
+      w.pendingLevels = 1;
+      step(w, 0);
+      step(w, 0, Pick.Skip);
+      const e = evs(w, Ev.Skip)[0]!;
+      if (e.a !== k) continue;
+      hit++;
+      expect(w.rerolls).toBe(PICKS.rerollMax);
+      expect(e.b).toBe(0);
+    }
+    expect(hit).toBeGreaterThan(0);
+  });
+
   it('下次多一张卡：只管下一次升级，不叠加', () => {
     const w = createWorld({ seed: 3, mode: 'vigil', danger: 0 });
     w.bonusCard = 1;
