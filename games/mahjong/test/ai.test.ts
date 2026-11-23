@@ -43,11 +43,13 @@ describe('场地', () => {
     expect(venueOf('room', 'fun')).toBe('room:fun');
   });
 
-  test('难度往上逐档变强（docs/balance.md 第 2、3 节）：娱乐新手、普通和实盘小档、中档手软、没有火锅婆婆；手软逐档变小，最难的两个手紧、火锅婆婆最多', () => {
-    for (const v of ['solo:fun:easy', 'solo:fun:normal', 'solo:small', 'solo:mid', 'room:fun']) {
-      expect(VENUES[v]!.soft).toBeGreaterThan(0);
-      expect(VENUES[v]!.weights[STRONGEST]).toBeLessThanOrEqual(1);
-    }
+  test('难度往上逐档变强（docs/balance.md 第 2、3 节）：娱乐新手、普通和实盘小档、中档手软、没有高档的人；手软逐档变小，最难的两个手紧、高档的人占大头', () => {
+    // 高档的四个（火锅婆婆、稳哥、算盘、老鹰）：单机低中档一个都不出，好友房娱乐合计权重最多 1
+    const TOP = PERSONAS.flatMap((p, i) => (p.level >= 3 ? [i] : []));
+    const top = (v: string) => TOP.reduce((a, i) => a + (VENUES[v]!.weights[i] ?? 0), 0);
+    for (const v of ['solo:fun:easy', 'solo:fun:normal', 'solo:small', 'solo:mid', 'room:fun']) expect(VENUES[v]!.soft).toBeGreaterThan(0);
+    for (const v of ['solo:fun:easy', 'solo:fun:normal', 'solo:small', 'solo:mid']) expect(top(v)).toBe(0);
+    expect(top('room:fun')).toBeLessThanOrEqual(1);
     for (const order of [
       ['solo:fun:easy', 'solo:fun:normal', 'solo:fun:hard'],
       ['solo:small', 'solo:mid', 'solo:big'],
@@ -55,18 +57,19 @@ describe('场地', () => {
       const vs = order.map((v) => VENUES[v]!);
       for (let i = 1; i < vs.length; i++) expect(vs[i]!.soft).toBeLessThan(vs[i - 1]!.soft);
     }
-    // 最难的两个（娱乐高手、实盘豪华）靠手紧和火锅婆婆变难：豪华档手软一点点是为了让认真打的人大约打平（DESIGN.md 4.1）
+    // 最难的两个（娱乐高手、实盘豪华）靠手紧和高档的四个人（火锅婆婆、稳哥、算盘、老鹰）变难，高档的人权重过半
+    const share = (v: string) => top(v) * 2 - VENUES[v]!.weights.reduce((a, w) => a + w, 0);
     for (const v of ['solo:fun:hard', 'solo:lux']) {
       expect(VENUES[v]!.sharp).toBeGreaterThan(0);
-      expect(VENUES[v]!.weights[STRONGEST]).toBe(Math.max(...VENUES[v]!.weights));
+      expect(share(v)).toBeGreaterThan(0);
       expect(VENUES[v]!.weights[BANDENG]).toBe(0);
     }
     expect(VENUES['solo:fun:easy']!.weights[BANDENG]).toBe(Math.max(...VENUES['solo:fun:easy']!.weights));
-    // 好友房实盘：最强的两个（火锅婆婆、熊猫哥），电脑最多两家、各不相同；不手软
-    const PANDA = PERSONAS.findIndex((p) => p.name === '熊猫哥');
+    // 好友房实盘：只出高档的四个，电脑最多两家、各不相同；手软一点，让两个普通真人的期望不比只有火锅婆婆、熊猫哥时更亏
+    expect(TOP).toHaveLength(4);
     for (const st of ['small', 'mid', 'big', 'lux']) {
-      expect(VENUES[`room:${st}`]!.weights.flatMap((w, i) => (w > 0 ? [i] : []))).toEqual([PANDA, STRONGEST].sort((a, b) => a - b));
-      expect(VENUES[`room:${st}`]!.soft).toBe(0);
+      expect(VENUES[`room:${st}`]!.weights.flatMap((w, i) => (w > 0 ? [i] : []))).toEqual(TOP);
+      expect(VENUES[`room:${st}`]!.soft).toBe(150);
     }
   });
 

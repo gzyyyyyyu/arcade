@@ -6,7 +6,7 @@ import { snapshotBytes } from 'arcade-kit/game';
 import type { SeatKind } from 'arcade-kit/protocol';
 import { describe, expect, test } from 'vitest';
 import type { XzState, XzView } from '../src/core/variants/sichuan-xuezhan/index.ts';
-import { PERSONAS, STRONGEST } from '../src/ai/personas.ts';
+import { PERSONAS } from '../src/ai/personas.ts';
 import { VENUES } from '../src/ai/venues.ts';
 import { EMOTES } from '../src/game/emotes.ts';
 import { roomOp, SOLO_OP, soloOp } from '../src/game/ops.ts';
@@ -199,13 +199,13 @@ describe('实盘至少两个真人', () => {
       expect(allowed(`room:${st}`, s)).toBe(true);
       expect((s.g as XzState).tunes!.every((t) => t.mood !== 0 && t.soft === VENUES[`room:${st}`]!.soft)).toBe(true);
     }
-    // 实盘桌的两家电脑一个火锅婆婆、一个熊猫哥，不管坐哪两个座位都不重名（真人坐哪儿都一样）
-    const PANDA = PERSONAS.findIndex((p) => p.name === '熊猫哥');
+    // 实盘桌的两家电脑都是高档的人，不管坐哪两个座位都不重名（真人坐哪儿都一样）
     for (const kinds of [['human', 'human', 'ai', 'ai'], ['ai', 'human', 'ai', 'human'], ['ai', 'ai', 'human', 'human']] as const) {
       for (const st of ['small', 'big']) {
         const ps = (begin([...kinds], st).g as XzState).personas;
         const bots = kinds.flatMap((k, i) => (k === 'ai' ? [ps[i]!] : []));
-        expect(bots.sort((a, b) => a - b)).toEqual([PANDA, STRONGEST].sort((a, b) => a - b));
+        expect(new Set(bots).size).toBe(2);
+        expect(bots.every((i) => PERSONAS[i]!.level >= 3)).toBe(true);
       }
     }
     expect(allowed('room:fun', begin(['human', 'human', 'ai', 'ai'], 'fun'))).toBe(true);

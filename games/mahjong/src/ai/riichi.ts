@@ -38,7 +38,7 @@ interface Traits {
   kan: number;
 }
 
-//                           幺妹儿          熊猫哥          盖碗儿          兔头哥          火锅婆婆        板凳儿
+// 下标和 PERSONAS 一致：幺妹儿、熊猫哥、盖碗儿、兔头哥、火锅婆婆、板凳儿、稳哥、算盘、老鹰
 const RC_TRAITS: readonly Traits[] = [
   { call: 900, dama: 150, fold: 350, kan: 300 },
   { call: 600, dama: 500, fold: 250, kan: 500 },
@@ -46,6 +46,9 @@ const RC_TRAITS: readonly Traits[] = [
   { call: 650, dama: 250, fold: 300, kan: 1_000 },
   { call: 500, dama: 600, fold: 750, kan: 400 },
   { call: 750, dama: 100, fold: 50, kan: 600 },
+  { call: 300, dama: 500, fold: 850, kan: 250 },
+  { call: 450, dama: 650, fold: 750, kan: 350 },
+  { call: 550, dama: 450, fold: 600, kan: 450 },
 ];
 
 /** 这一手实际用的参数：状态、手软手紧叠好，再按点数局面调 */

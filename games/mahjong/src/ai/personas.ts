@@ -49,6 +49,10 @@ const PLAY: readonly Play[] = [
   { id: 'tutou', style: '爱杠：能杠就杠，输了容易上头', defense: 300, greed: 400, kanLove: 1_000, pon: 600, slip: 60, reads: 300, level: 1, skill: 0 },
   { id: 'hgpp', style: '老练：牌效和防守都细', defense: 750, greed: 350, kanLove: 400, pon: 450, slip: 0, reads: 1_000, level: 3, skill: 1_000 },
   { id: 'bandeng', style: '新手：常打错，不太防守', defense: 50, greed: 100, kanLove: 600, pon: 700, slip: 300, reads: 0, level: 0, skill: 0 },
+  // 高档轮换的三个（名册 level 3–4）：和火锅婆婆一样不打错、读牌细，各有偏重
+  { id: 'wengge', style: '稳：好牌才做，做成了就冲', defense: 900, greed: 300, kanLove: 250, pon: 300, slip: 0, reads: 850, level: 3, skill: 800 },
+  { id: 'suanpan', style: '算：每张都算过，牌效最细', defense: 750, greed: 400, kanLove: 350, pon: 400, slip: 0, reads: 1_000, level: 3, skill: 1_000 },
+  { id: 'laoying', style: '鹰：挑准了就猛攻，攻多守少', defense: 600, greed: 550, kanLove: 500, pon: 550, slip: 0, reads: 900, level: 3, skill: 1_000 },
 ];
 
 /** 名册的性格（0–100）换成这里的千分比：上头、起伏、话多 ×10，出手快慢和互动脾气照搬 */
