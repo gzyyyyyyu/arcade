@@ -47,7 +47,7 @@ export interface FriendTable {
 }
 
 /**
- * 好友房选桌页的「加入」挑哪一桌（朋友回来玩，0.47.2）：在线、在雀馆好友房里的朋友，没坐满的在前。
+ * 好友房选桌页的「加入」挑哪一桌（朋友回来玩）：在线、在雀馆好友房里的朋友，没坐满的在前。
  * 没登录、没平台（social 没挂上）不问；好友列表取不到就当没人在打，这一钮本来就是可有可无的
  */
 export async function friendTable(): Promise<FriendTable | null> {

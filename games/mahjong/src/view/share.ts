@@ -97,7 +97,7 @@ function art(): HTMLImageElement {
 }
 
 /**
- * 结算页一出来就先把卡画好（kit 0.12.3）：iOS 只许在点击的那一下里调系统分享，点了再画就过期了、只能出预览。
+ * 结算页一出来就先把卡画好：iOS 只许在点击的那一下里调系统分享，点了再画就过期了、只能出预览。
  * "分享"的点击里直接 `void p.share()`，前面别 await。url 是游戏地址（好友房带房间码）
  */
 export function prepareCard(card: ShareCard, url: string): PreparedShare {

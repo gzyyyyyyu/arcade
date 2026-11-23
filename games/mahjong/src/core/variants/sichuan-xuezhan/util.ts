@@ -28,7 +28,7 @@ export function canWin(p: XzPlayer, hand: Tile[]): boolean {
 }
 
 /**
- * 听哪些牌（手里有缺门就是没听）。四张都在自己手里和自己碰杠里的那种不算：摸不到、也没人打得出来，胡不了的叫不算叫（0.3.9）
+ * 听哪些牌（手里有缺门就是没听）。四张都在自己手里和自己碰杠里的那种不算：摸不到、也没人打得出来，胡不了的叫不算叫
  */
 export function tenpaiKinds(p: XzPlayer): number[] {
   if (hasQue(p)) return [];

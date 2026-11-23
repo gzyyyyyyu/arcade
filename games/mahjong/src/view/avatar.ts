@@ -1,6 +1,6 @@
 /**
  * 头像：全程序生成的 SVG（素材来源见 ASSETS.md）。
- * 电脑六个性格各一张手绘风格的插画，金边；真人按名字哈希挑渐变底和花纹，中间写首字，白边。
+ * 电脑每个性格各一张手绘风格的插画（名册里的人照 kit 名册的 look 配色，用这里的画法画），金边；真人按名字哈希挑渐变底和花纹，中间写首字，白边。
  * 两边一眼分得清：电脑是画、真人是字，边框颜色也不同。
  */
 
@@ -167,6 +167,64 @@ const stool: Art = (p) =>
     BOT_RING,
   );
 
+/** 人像的脸（稳哥、算盘、老鹰共用）：圆脸、耳朵、腮红；hair 画在脸上面，face 是眉眼嘴 */
+const portrait = (p: string, bg: readonly [string, string], skin: readonly [string, string], shirt: string, hair: string, face: string, extra = ''): string =>
+  frame(
+    p,
+    bg,
+    lg(`${p}s`, skin[0], skin[1]),
+    `<path d="M9 64q2-14 23-14t23 14z" fill="${shirt}"/><path d="M26 50l6 5 6-5" ${INK} stroke="#fff" stroke-opacity=".7" stroke-width="2"/>` +
+      `<ellipse cx="18.5" cy="36" rx="3" ry="4" fill="${skin[1]}"/><ellipse cx="45.5" cy="36" rx="3" ry="4" fill="${skin[1]}"/>` +
+      `<ellipse cx="32" cy="35" rx="13.5" ry="14.5" fill="url(#${p}s)"/>` +
+      hair +
+      blush(24, 40, 41) +
+      face +
+      extra,
+    BOT_RING,
+  );
+
+/** 稳哥：短发、蓝衬衫，眉毛平平、抿嘴笑（好牌才进，进了就打） */
+const wengge: Art = (p) =>
+  portrait(
+    p,
+    ['#dfe9f5', '#4f7fae'],
+    ['#fbe1c6', '#e8b88e'],
+    '#2f5d8a',
+    `<path d="M18.5 32q-1-14 13.5-14t13.5 14q-3-7-8-8-6 3-14 2-4 2-5 4z" fill="#3a2a20"/>`,
+    `<path d="M23 31.5h6M35 31.5h6" ${INK} stroke="#3a2a20" stroke-width="2"/>` +
+      `<circle cx="26" cy="36" r="1.9" fill="#2a1a14"/><circle cx="38" cy="36" r="1.9" fill="#2a1a14"/>` +
+      `<path d="M28 43q4 2.5 8 0" ${INK} stroke="#8a3a2a" stroke-width="1.8"/>`,
+  );
+
+/** 算盘：黑短发、圆眼镜、深灰衬衫，胸前一排算盘珠（精打细算） */
+const suanpan: Art = (p) =>
+  portrait(
+    p,
+    ['#eef0e2', '#8a9a6a'],
+    ['#fbe1c6', '#e8b88e'],
+    '#3d4b5c',
+    `<path d="M18.5 31q0-13 13.5-13t13.5 13q-2-6-6-7l-1 3-3-4q-6 3-11 1-5 3-6 7z" fill="#202020"/>`,
+    `<circle cx="26" cy="36" r="4.6" fill="#fff" fill-opacity=".25" stroke="#2a2a2a" stroke-width="1.6"/><circle cx="38" cy="36" r="4.6" fill="#fff" fill-opacity=".25" stroke="#2a2a2a" stroke-width="1.6"/>` +
+      `<path d="M30.6 36h2.8" stroke="#2a2a2a" stroke-width="1.6"/><circle cx="26" cy="36" r="1.6" fill="#2a1a14"/><circle cx="38" cy="36" r="1.6" fill="#2a1a14"/>` +
+      `<path d="M29 43.5q3 1.5 6 0" ${INK} stroke="#8a3a2a" stroke-width="1.8"/>`,
+    `<rect x="18" y="51.5" width="28" height="7.5" rx="1.5" fill="#8a5a32" stroke="#5a3a1e" stroke-width="1"/><path d="M18 55.2h28" stroke="#5a3a1e" stroke-width="1"/>` +
+      `<g fill="#f3c86b" stroke="#a8742a" stroke-width=".6"><circle cx="22" cy="53.4" r="1.5"/><circle cx="27" cy="57.2" r="1.5"/><circle cx="32" cy="53.4" r="1.5"/><circle cx="37" cy="57.2" r="1.5"/><circle cx="42" cy="53.4" r="1.5"/></g>`,
+  );
+
+/** 老鹰：灰短发压一顶红帽子、墨绿外套，眉毛往下压、眼神盯人（挑准了才出手） */
+const laoying: Art = (p) =>
+  portrait(
+    p,
+    ['#e7eadf', '#6b7a5a'],
+    ['#f6d6b6', '#dca97e'],
+    '#2e3a2f',
+    `<path d="M19 33q0-6 3-9h20q3 3 3 9-3-5-13-5t-13 5z" fill="#8a8a8a"/>` +
+      `<path d="M18 26q2-12 14-12t14 12z" fill="#c0392b"/><path d="M40 25.5l12 1.5q-1 3-6 3l-7-1z" fill="#a02e22"/><path d="M22 20q4-3 9-3" ${INK} stroke="#fff" stroke-opacity=".35" stroke-width="1.5"/>`,
+    `<path d="M22.5 31l6.5 2M41.5 31l-6.5 2" ${INK} stroke="#4a4a4a" stroke-width="2.2"/>` +
+      `<path d="M23.5 36.5q2.5-1.6 5 0M35.5 36.5q2.5-1.6 5 0" ${INK} stroke="#2a1a14" stroke-width="1.6"/><circle cx="26" cy="36.8" r="1.4" fill="#2a1a14"/><circle cx="38" cy="36.8" r="1.4" fill="#2a1a14"/>` +
+      `<path d="M28.5 44h7" ${INK} stroke="#8a3a2a" stroke-width="1.8"/><path d="M35.5 44l1.5-1" ${INK} stroke="#8a3a2a" stroke-width="1.4"/>`,
+  );
+
 /** 不认识的电脑（比如房间里还没坐人的"电脑"）：一个圆头小机器人，带天线 */
 const robot: Art = (p) =>
   frame(
@@ -189,6 +247,9 @@ const PERSONA_ART: readonly (readonly [string, Art])[] = [
   ['兔头哥', rabbit],
   ['火锅婆婆', hotpot],
   ['板凳儿', stool],
+  ['稳哥', wengge],
+  ['算盘', suanpan],
+  ['老鹰', laoying],
 ];
 
 /** 真人的底纹：淡淡的白色，只是让同色的两个人也有点区别，不抢首字 */

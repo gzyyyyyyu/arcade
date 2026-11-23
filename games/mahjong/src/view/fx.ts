@@ -1,5 +1,5 @@
 /**
- * 胡、自摸、杠的大字加粒子（0.9.0「热闹一点」）。
+ * 胡、自摸、杠的大字加粒子。
  *
  * 为什么是纯 CSS 动画加几十个 span：牌桌是 DOM 渲染，没有 canvas；transform / opacity 动画走合成层，
  * 不碰 layout，也不用 filter，手机上不会卡。粒子的方向、时长用 CSS 变量传给样式，JS 只负责摆好和收尾。
@@ -77,7 +77,7 @@ export function celebrate(layer: HTMLElement, x: number, y: number, text: string
 }
 
 /**
- * 一局结算的动画（docs/art.md，0.17.2）：每家的分从 0 数到最后的数（0.6 秒），同时几枚铜钱从输家那一行飞到赢家那一行。
+ * 一局结算的动画（docs/art.md）：每家的分从 0 数到最后的数（0.6 秒），同时几枚铜钱从输家那一行飞到赢家那一行。
  * box 是 roundSummary() 画的那块（行上有 data-seat，分上有 data-n，box 上有 data-moves）。省内存、减少动态效果时只数数不飞钱。
  * 返回飞没飞钱（飞了由调用的放一声筹码响）。只动 transform / opacity；数字是改文字，一共几十次
  */

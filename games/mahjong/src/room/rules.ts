@@ -8,7 +8,7 @@
  *   开局时等所有人的带入都有回话（最多 OPENING_MS）再开始换三张，免得有人拿没到账的筹码打；
  * - 没到账、被拒了的真人座位由庄家出筹码、这里替电脑打（kit 只替电脑座位和托管出手），他看着，可以再带一次（rebuy）；
  * - 实盘一局打到一半坐下（接管电脑、离座后回来、被拒后再带一次）：这一局电脑照打、不扣钱不换人，他只能旁观（看不到这个座位的暗牌），
- *   这一局打完、下一局发牌前才带入一份、restake（waiting，0.47.3）。中途接管按那一刻的筹码算的话，旁观的人能看着公开的牌（谁碰了一手清一色）挑时机坐进去；
+ *   这一局打完、下一局发牌前才带入一份、restake（waiting）。中途接管按那一刻的筹码算的话，旁观的人能看着公开的牌（谁碰了一手清一色）挑时机坐进去；
  *   等下一局之前走了不扣钱；
  * - 真人离座：把他手上的筹码（按"最多赢 3 份"截过）连同小结结回钱包，座位交给电脑，筹码归庄家接着打；
  *   实盘一局打到一半走的，电脑替他打完这一局再结回；最后一个真人也走了，电脑替所有座位打完这一局再结回（躲不掉查叫）；
@@ -110,14 +110,14 @@ export interface RoomState {
   cut: boolean;
   /**
    * 实盘一局打到一半离座的：筹码还是他的、留在桌上，电脑替他打完这一局再结回（release）。
-   * 当场按离座那一刻结回的话，眼看这一局要输（没听牌要被查叫、别人要自摸）就走、过后再坐回来，能躲掉输（审计中危）
+   * 当场按离座那一刻结回的话，眼看这一局要输（没听牌要被查叫、别人要自摸）就走、过后再坐回来，能躲掉输
    */
   leaving: boolean[];
   /** 实盘一局打到一半坐下的：等这一局打完再带入（见文件头） */
   waiting: boolean[];
   /**
    * 带入在一局打到一半时到账（开局、局间等钱到点或者他掉线托管、先发了牌）：钱收着（inn），这一局打完才 restake 成他的，
-   * 不在一局中途换人（0.47.3 跨审）。这期间走了、整场打完、房间要关，原样结回
+   * 不在一局中途换人。这期间走了、整场打完、房间要关，原样结回
    */
   ready: boolean[];
   /** 牌局走了几步（出牌、发下一局）：钱包到账、座位换人这些不算。页面按它判断 g 里的事件是不是新的，免得同一串动画放两遍 */
@@ -159,7 +159,7 @@ export interface RoomView {
 }
 
 /**
- * 搭子战绩（docs/platform-backend.md 15.19，DESIGN.md 第 6 节）的输赢：这一场分数（净输赢）为正算赢，平和输都不算。
+ * 搭子战绩（docs/api-social.md 15.19，DESIGN.md 第 6 节）的输赢：这一场分数（净输赢）为正算赢，平和输都不算。
  * 按座位给，电脑座位也给（kit 按开打时绑的人认，没绑真人的不报）；提前收场（cut）的按收场那一刻算
  */
 export function matchWins(s: RoomState): boolean[] {
@@ -176,7 +176,7 @@ export const mahjongRoom: Rules = {
   seatCount: (o) => (o ? countOf(o.rules) : SEATS),
   rulesVersion: ROOM_RULES,
   emotes: EMOTES,
-  // 好友房聊天（kit 0.18.0，docs/chat.md）：kit 过滤、限速、只转发，不进状态和存储；电脑不读真人说的话
+  // 好友房聊天（docs/chat.md）：kit 过滤、限速、只转发，不进状态和存储；电脑不读真人说的话
   chat: true,
 
   options(raw) {
@@ -273,7 +273,7 @@ export const mahjongRoom: Rules = {
     const g = v.apply(s.g, seat, a.a);
     if (isError(g)) return g;
     // 声明窗口里真人答了、窗口还没结束（玩法没出事件）：别人什么都不该看出来。
-    // 步数不加、上一步的事件原样留着，别人的视图一点不变，kit 0.7.1 就只回给他、不广播
+    // 步数不加、上一步的事件原样留着，别人的视图一点不变，kit 就只回给他、不广播
     const ev = (g as { events?: unknown[] }).events;
     if (v.free(a.a) && ev !== undefined && ev.length === 0) return sync({ ...s, g: { ...g, events: (s.g as { events?: unknown[] }).events ?? [] } as StateOf });
     return sync({ ...s, g, n: s.n + 1 }, true);
@@ -313,7 +313,7 @@ export const mahjongRoom: Rules = {
       if (walletOf(s) && !s.opening && !v.breakPoint(s.g)) {
         s = { ...s, leaving: set(s.leaving, seat, true) };
         // 桌上一个真人都没了：kit 不推只有电脑的桌、房间就此打完（over），所以由这里替所有座位把这一局打完再结回，
-        // 不按半局的筹码结（几个人串通一起走就能躲掉查叫，第三轮审计）
+        // 不按半局的筹码结（几个人串通一起走就能躲掉查叫）
         return sync(s.kinds.includes('human') ? s : release(playOut(s), true));
       }
       s = settle(s, seat);
@@ -330,10 +330,10 @@ export const mahjongRoom: Rules = {
 
   view(s, at) {
     // 三人两房的房间按四个座位建（kit 的 seats），第 4 个座位一直空着：kit 算"别人看到什么"时会挨个座位要视图，
-    // 不在桌上的座位按旁观给，不能拿去读一个不存在的玩家（11-02：三人房真人一碰杠胡就断开）
+    // 不在桌上的座位按旁观给，不能拿去读一个不存在的玩家（三人房真人一碰杠胡就断开）
     const me = at !== null && at < s.kinds.length ? at : null;
     // 筹码是他的才给这个座位的暗牌：等下一局的、带入被拒的、钱还在路上的，座位都是庄家在打，按旁观给
-    // （不然能用聊天告诉同桌的朋友；0.47.3 跨审）。娱乐房一坐下筹码就是他的
+    // （不然能用聊天告诉同桌的朋友）。娱乐房一坐下筹码就是他的
     const seat = me !== null && s.own[me] ? me : null;
     return {
       variant: s.variant,
@@ -366,7 +366,7 @@ export const mahjongRoom: Rules = {
     if (e.kind === 'credit') return sync(next);
     if (!isOk(result)) {
       const why = errorOf(result);
-      // 钱包不够一份也不少带（0.15.1）：底分和"最多赢 3 份"都按整份，少带的人输得少、赢得一样多（第三轮审计）。
+      // 钱包不够一份也不少带：底分和"最多赢 3 份"都按整份，少带的人输得少、赢得一样多。
       // 这一份没开成（下次带入还用这个号），座位由庄家出筹码、电脑接着打
       const g = s.closed ? s.g : vOf(s).seated(s.g, e.seat, 'ai');
       return sync({ ...next, g, refused: set(s.refused, e.seat, why), sealed: set(s.sealed, e.seat, true), share: set(s.share, e.seat, s.share[e.seat]! - 1) });
@@ -416,7 +416,7 @@ const betting = (s: RoomState): number => s.kinds.filter((k, i) => s.own[i] || (
 
 /**
  * 实盘下注的真人不到两个了（有人离座、带入被拒）：这一场到此为止，下面按打完结回所有人。
- * 等下一局的人算在里面（0.47.3 跨审）：不然 C 等着、B 这一局离座，这一局打完就误判只剩一个人
+ * 等下一局的人算在里面：不然 C 等着、B 这一局离座，这一局打完就误判只剩一个人
  */
 function cutIfFew(s: RoomState): RoomState {
   return walletOf(s) && betting(s) < MIN_HUMANS ? { ...s, g: vOf(s).finish(s.g), cut: true, n: s.n + 1 } : s;
@@ -458,7 +458,7 @@ const debiting = (s: RoomState, seat: number): boolean => s.fx.some((e) => e.sea
 
 /**
  * 开局（或局间带入）时还在等钱包回话的第一个座位：只算还坐着真人的。人已经走了的那一份到账后原样结回，不用等；
- * 算上它的话 kit 把那个座位当电脑、马上代出"开打"，还坐着的人的钱就不等了（0.47.3 跨审）
+ * 算上它的话 kit 把那个座位当电脑、马上代出"开打"，还坐着的人的钱就不等了
  */
 const openingSeat = (s: RoomState): number | null => s.fx.find((e) => e.kind === 'debit' && s.kinds[e.seat] === 'human')?.seat ?? null;
 

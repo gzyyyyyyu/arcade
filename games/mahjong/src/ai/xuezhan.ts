@@ -162,7 +162,7 @@ const TENPAI_CARE = 75;
 /**
  * 这一家像不像在做清一色，是就返回那一门，不是 -1。只看公开的副露和弃牌：
  * - 明的副露全是一门（至少两组），弃牌里这一门很少；
- * - 没碰几组也看弃牌（11-20 加，读听）：缺门以外的两门，打了 8 张以上、其中一门几乎没打过（不到八分之一），他在攒那一门
+ * - 没碰几组也看弃牌（读听）：缺门以外的两门，打了 8 张以上、其中一门几乎没打过（不到八分之一），他在攒那一门
  */
 export function flushSuit(s: XzView['seats'][number]): number {
   if (s.melds.length >= 2) {
@@ -316,7 +316,7 @@ function evalDiscards(v: XzView, p: Style): Eval[] {
     if (sh >= 1 && locked.some((w) => w?.has(k)) && visible[k]! + mine[k]! < 4) {
       score -= p.defense * (sh >= 2 ? 30 : p.defense >= 600 ? 16 : 6); // 同上面的 危险度 1000 × 权重
     }
-    // 已经听了、桌上有人像听：几张都能保住听牌时挑更安全的那张（11-20 加：以前听了就闭眼打，防守型的也是）
+    // 已经听了、桌上有人像听：几张都能保住听牌时挑更安全的那张（防守型的也一样）
     if (sh === 0 && maxThreat > 700 - p.defense / 3) {
       let d = 0;
       threat.forEach((th, i) => {

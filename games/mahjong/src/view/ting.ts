@@ -117,7 +117,6 @@ export function showTing(box: HTMLElement, o: TingOpts): () => void {
   const act = (e: KeyboardEvent): void => {
     // 页面已经被换掉（比如朋友的房间链接进来）：键盘监听自己撤掉
     if (!root.isConnected) return stop();
-    if (e.key === 'Escape') return o.onExit();
     if (e.key === 'Enter' || e.key === ' ') {
       if (document.activeElement?.tagName === 'BUTTON' && e.key === ' ') return;
       if (phase === 'play') submitNow();

@@ -33,7 +33,7 @@
 ## 1. 术语
 
 - **一局**：发一次牌到这一局结束（血战：三家胡了，或者牌墙摸完；血流成河只有牌墙摸完）。
-- **一场**：坐下到散场，打固定局数或有人筹码打光。川麻实盘一场就是一局（一局一结），娱乐和好友房可选 1 / 4 / 8 / 16 局（默认 8）。实盘按"一场"带入和结回。
+- **一场**：坐下到散场，打固定局数或有人筹码打光。川麻实盘一场就是一局（一局一结），娱乐和好友房可选 1 / 4 / 8 / 16 局（默认 8）。实盘按"一场"带入和带回。
 - **一份**：实盘带进场的筹码，等于档位表的一份（`docs/economy.md` 第 2 节）。
 - **底分**：番数换算成筹码的单位，`一把 = 底分 × 2^番`。
 - **玩法**（variant）：一套完整的规则：牌集、流程、动作、和牌、计分、一场怎么结束、电脑参数。
@@ -44,11 +44,11 @@
   一炮多响、呼叫转移、查花猪、查大叫、退税、付不起按比例、封顶、一场结束、确定性（同种子同操作同结果）。
 - 架构：`src/core/`、`src/ai/` 不出现 `Math.random`、`Date.now`、`new Date`、`Math.exp/log/sin/...`；玩法之间不互相 import；`src/ai/` 不 import `rules.ts`（只用类型和纯函数）。
 - 电脑：模拟器（`npm run sim`）对打，结果写 4.1；性格强弱用 `scripts/strength.ts`（固定三家、轮换座位）。
-- 房间规则（`test/room.test.ts`）：带入、少带、被拒、离座结回、打完和关房结回、声明窗口不露人、再来一场；听牌提示（`test/ting.test.ts`）只按看得见的算。
-- Worker 和房间（workerd）：每步写入 ≤ 2、视图里没有别人的手牌和牌墙、钱包带入结回（假钱包）、stats 原样转发、开房请求体解析不了回 400。
+- 房间规则（`test/room.test.ts`）：带入、少带、被拒、离座带回、打完和关房带回、声明窗口不露人、再来一场；听牌提示（`test/ting.test.ts`）只按看得见的算。
+- Worker 和房间（workerd）：每步写入 ≤ 2、视图里没有别人的手牌和牌墙、钱包带入带回（假钱包）、stats 原样转发、开房请求体解析不了回 400。
 - 冒烟（无头浏览器，控制台零报错）：
   - `npm run smoke`：`?online=1` 入口；横屏、竖屏各打一场单机（加速），回大厅确认、听牌提示、往上拖出牌、胡牌亮牌、结算页"分享"出预览、规则表；
-  - `npm run build:cf && npm run smoke:room`：本地 wrangler dev + 假平台，两个浏览器开娱乐房（叫朋友来面板、报位置、互动、第三个人中途旁观和坐下、离座）、实盘小档房（带入、离座结回）、打完一整场"再来一场"跟进新房间；
+  - `npm run build:cf && npm run smoke:room`：本地 wrangler dev + 假平台，两个浏览器开娱乐房（叫朋友来面板、报位置、互动、第三个人中途旁观和坐下、离座）、实盘小档房（带入、离座带回）、打完一整场"再来一场"跟进新房间；
   - `npm run build:cf && npm run smoke:match`：两个浏览器排娱乐到同一张匹配桌（不摆房间号、叫朋友；选"不和陌生人"的连接不带 chat=1，自己的气泡不压手牌）、实盘小档各带一份、取消留在选桌页、一个人 15 秒转单机；
   - `npm run build:cf && npm run smoke:standalone`：模块的 `wrangler.jsonc` 原样起（没有平台），两个游客：选桌页只有娱乐、单机一局、好友房开打和扔道具；
   - 画面自查：`node scripts/capture.ts land|port|se-land|se-port` 截图并报互相压住的元素（含 iPhone SE 尺寸）。
@@ -71,7 +71,7 @@
 - `.github/workflows/game-mahjong.yml`：本模块的测试和部署流程；`tools/workers.json` 声明平台绑定 `ARCADE`、`WALLET`；
 - 页面认 `?online=1`（平台大厅"好友房"按钮的约定，同德州、掼蛋），直达开房、进房；
 - 根 `AGENTS.md` 的端口表和仓库结构登记了 `games/mahjong`（5176 / 4176）；
-- 平台 `platform/shared/games.ts` 登记"雀馆"和封面，钱包游戏表从登记派生；电脑名字进平台 `worker/api/validate.ts` 的保留昵称；
+- 平台 `platform/shared/games.ts` 登记"雀馆"和封面，钱包游戏表从登记派生；电脑名字进平台 `worker/api/account/reserved-names.ts` 的保留昵称（`RESERVED_PERSONAS`）；
 - kit 每日写入分额：`busyWrites` 8,000 / `stopWrites` 10,000（第 9 节），配在本模块 `wrangler.jsonc`。
 
 ## 13. 以后做

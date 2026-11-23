@@ -42,7 +42,7 @@ export function stopFollow(): void {
 }
 
 /**
- * 房间号放在地址栏：刷新、分享、登录跳回来都靠它（不另存）。匹配桌再带 match=1（0.21.0）：
+ * 房间号放在地址栏：刷新、分享、登录跳回来都靠它（不另存）。匹配桌再带 match=1：
  * 刷新时进房之前就知道是匹配桌，选了"不和陌生人"的连接照样不带 chat=1
  */
 export function setRoomInUrl(code: string | null, match = false): void {
@@ -109,8 +109,8 @@ const onlineUi = {
       if (s.room.seats[arrive.seat]?.kind === 'empty') session.online?.sit(arrive.seat);
       session.arrive = { ...arrive, sit: false };
     }
-    // 凭链接、房间号、好友的「加入」进来的娱乐房：多数人是来打的，直接坐下，不用再点（11-18 体检）。
-    // 还在等人坐第一个空位；已经开打了回自己坐过的座位，没坐过就接管一个电脑座位（0.47.2：以前落在旁观，还要再点「坐下」）
+    // 凭链接、房间号、好友的「加入」进来的娱乐房：多数人是来打的，直接坐下，不用再点。
+    // 还在等人坐第一个空位；已经开打了回自己坐过的座位，没坐过就接管一个电脑座位
     if (session.autoSit && s.you && s.opts) {
       session.autoSit = false;
       const seats = tableSeats(s);
@@ -192,7 +192,7 @@ export function seatMetas(s: OnlineState, g: { seats: { persona: number }[] }): 
   });
 }
 
-/** 顶栏的房间号和档位：房间号要念给朋友听，窄竖屏顶栏放不下时藏掉后面的档位（.var），不截号码（0.19.1）；iPhone SE 这么窄连"好友房"三个字也放不下，再藏掉它（.pre），只留号码 */
+/** 顶栏的房间号和档位：房间号要念给朋友听，窄竖屏顶栏放不下时藏掉后面的档位（.var），不截号码；iPhone SE 这么窄连"好友房"三个字也放不下，再藏掉它（.pre），只留号码 */
 function paintRoomTitle(s: OnlineState, rv: RoomView): void {
   const st = stakesOf(rv.stakes)!;
   title.replaceChildren();

@@ -1,10 +1,10 @@
 /**
- * 选桌页（docs/economy.md 第 1 节，各游戏一个样子）：从主页的模式卡进来（0.17.2 起只摆这个模式的东西，docs/art.md）——
+ * 选桌页（docs/economy.md 第 1 节，各游戏一个样子）：从主页的模式卡进来（只摆这个模式的东西，docs/art.md）——
  * 娱乐：三个难度 + 单机开打；实盘：四档 + 单机开打；好友房：娱乐三个难度和实盘四档都能选（房间按这个开）+ 开房间、输房间号进房。
- * 娱乐、实盘的单机开打旁边是快速匹配（0.21.0，和陌生人按这一档排）。钱包连不上时实盘不可选。单独部署（没有平台）时只有娱乐，好友房上面多一个昵称框。
- * 版面（0.41.0）：和主页一样左边茶馆的画、右边一块木框面板（竖屏画在上、面板在下）；面板里玩法、档位卡是主角，开打贴底。
- * 玩法行（0.45.0）：主页快速一局底下同一组切换项（血战到底、血流成河、三人两房、立直，各玩法的 homeChoices），娱乐、实盘、好友房三页一样，选着的和主页同一份记忆。
- * 规则细节默认收起，只露一行摘要和「改规则」（所有者 11-20：选项看不懂、默认选好就行），点开是一个弹窗，照玩法的规则表画（game/rule-spec.ts）；
+ * 娱乐、实盘的单机开打旁边是快速匹配。钱包连不上时实盘不可选。单独部署（没有平台）时只有娱乐，好友房上面多一个昵称框。
+ * 版面：和主页一样左边茶馆的画、右边一块木框面板（竖屏画在上、面板在下）；面板里玩法、档位卡是主角，开打贴底。
+ * 玩法行：主页快速一局底下同一组切换项（血战到底、血流成河、三人两房、立直，各玩法的 homeChoices），娱乐、实盘、好友房三页一样，选着的和主页同一份记忆。
+ * 规则细节默认收起，只露一行摘要和「改规则」（选项多数人看不懂，默认选好就行），点开是一个弹窗，照玩法的规则表画（game/rule-spec.ts）；
  * 档位、难度、玩法这些主选项照旧一屏摆开。
  */
 import { LEVELS, type Level } from '../ai/venues.ts';
@@ -39,11 +39,13 @@ interface LobbyProps {
   onResume(): void;
   /** 每日挑战（只在娱乐、血战到底的选桌页摆） */
   onDaily?(variant: DailyVariant): void;
+  /** 从主页「每日」胶囊进来：每日挑战那张卡闪两下，一眼找到 */
+  focusDaily?: boolean;
   onRules(): void;
   /** 好友房：没有时不显示 */
   onRoom?(stakes: StakesId, opts: AnyOpts, variant: string): Promise<void>;
   onJoin?(code: string): void;
-  /** 快速匹配（0.21.0）：按选中的档位和玩法排队，和陌生人打（这个玩法的默认规则；立直只有娱乐）；没有时不显示 */
+  /** 快速匹配：按选中的档位和玩法排队，和陌生人打（这个玩法的默认规则；立直只有娱乐）；没有时不显示 */
   onMatch?(stakes: StakesId, opts: AnyOpts, level: Level, variant: string): void;
   /** 好友房页：正在好友房里打雀馆的一个朋友（标题右边「加入」，问到了才摆；没人在打就没有） */
   friendTable?: Promise<{ name: string; room: string; seats: string } | null>;
@@ -51,7 +53,7 @@ interface LobbyProps {
   friends?: boolean;
   /** 单独部署：没有钱包和实盘；好友房里别人看到的昵称自己填 */
   standalone?: { nick: string; onNick(name: string): void };
-  /** 回游戏主页（0.17.0 起选桌页是主页点模式卡进来的第二层） */
+  /** 回游戏主页（选桌页是主页点模式卡进来的第二层） */
   onBack?(): void;
   /** 从哪张模式卡进来的（单独部署没有实盘） */
   mode: 'fun' | 'real' | 'room';
@@ -78,7 +80,7 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   const head = el('div', 'lobby-head', panel);
   el('h1', '', head, MODE_TITLE[p.mode]);
   el('div', 'variant', head, `${GAME_NAME} ${page.name(opts as { flow?: boolean; three?: boolean })}`);
-  // 有没打完的一场：标题右边一个小钮，不单占一排（0.47.1：单占一排时 1280×800 把「单机开打」挤出屏幕）
+  // 有没打完的一场：标题右边一个小钮，不单占一排（单占一排时 1280×800 把「单机开打」挤出屏幕）
   if (p.resume && p.mode !== 'room') button('act go resume', head, p.resume, p.onResume);
   // 朋友正在好友房里打：一键坐过去（和「接着打」同一个位置，好友房页不摆接着打；不占新的一行）
   void p.friendTable?.then((t) => {
@@ -99,12 +101,15 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
       const b = button(`chip${on ? ' on' : ''}`, row, homeChoiceOf(id).choice.chip, () => !on && onPick(id));
       b.setAttribute('aria-pressed', String(on));
     }
+    // 切页签只换标题和时长看不出差在哪：页签下面一句玩法区别，和主页那句同一份
+    el('div', 'variant-pitch', panel, homeChoiceOf(current).choice.pitch);
   }
 
   if (p.mode === 'fun' && p.onDaily) {
     const onDaily = p.onDaily;
     const v: DailyVariant = page.daily.variant;
     dailyEntry(panel, v, () => onDaily(v));
+    if (p.focusDaily) panel.querySelector('.daily-entry')?.classList.add('focus');
   }
 
   // 每档一张卡（docs/balance.md 第 5 节，四个游戏一样）：电脑多强（星）、一场约多久、一场最多赢 / 最多输。娱乐三个难度一排，实盘四档一排
@@ -123,11 +128,11 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   };
   const paint = (): void => {
     pick.replaceChildren();
-    // 一场多久每张卡都一样，写在每排的小标题上，卡上不重复（0.17.2）；只打一局的约 3 分钟，不按 5 分钟凑整（各玩法的规则表自己估）
-    const mins = `一场约 ${page.rules.minutes(opts)} 分钟`;
-    // 实盘一局一结（2026-10-30）：不管下面规则设置选了几局，实盘都只打一局，开打时由 app/solo-flow.ts 改（startSolo）
+    // 一场多久每张卡都一样，写在每排的小标题上，卡上不重复；只打一局的约 3 分钟，不按 5 分钟凑整（各玩法的规则表自己估）
+    const mins = `${page.lengthText(opts)} · 约 ${page.rules.minutes(opts)} 分钟`;
+    // 实盘一局一结：不管下面规则设置选了几局，实盘都只打一局，开打时由 app/solo-flow.ts 改（startSolo）
     // 好友房实盘照开房时选的局数打，只有单机实盘一局一结
-    const realMins = p.mode === 'room' ? mins : '一局一结 · 约 3 分钟';
+    const realMins = p.mode === 'room' ? mins : '只打 1 局 · 约 3 分钟';
     if (p.mode !== 'real') {
       el('div', 'stakes-label', pick, `娱乐 · 不算筹码 · ${mins}`);
       const fun = el('div', 'stakes', pick);
@@ -143,7 +148,7 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
     el('div', 'stakes-label', pick, `实盘 · 用钱包里的筹码 · ${realMins}`);
     const real = el('div', 'stakes', pick);
     for (const s of tiers) {
-      // 余额不够带进一份的档直接灰掉、写明（以前能选，点开打才报筹码不够，0.47.1 走查）
+      // 余额不够带进一份的档直接灰掉、写明（先灰掉，不让点了开打才报筹码不够）
       const off = !p.wallet || p.wallet.balance < s.share;
       const lines = p.wallet && off ? [`要 ${wan(s.share)}`, '筹码不够'] : [`最多赢 ${wan(s.share * 3)}`, `最多输 ${wan(s.share)}`];
       card(real, s.id === stakes, off, s.id, `${STAKES_NAME[s.id]}档`, STARS[s.id as TierId], lines, () => (stakes = s.id));

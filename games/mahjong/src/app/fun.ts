@@ -13,12 +13,12 @@ import type { ChatResultLike, FunSeat, FunTemper, TableFun } from 'arcade-kit/ta
 import { readRecord } from './record.ts';
 import { GAME_ID } from '../game/id.ts';
 import { session } from './session.ts';
-import { topbar } from './shell.ts';
+import { topbarTapRect } from './shell.ts';
 import { TIMING } from './timing.ts';
 
 /**
  * 牌桌重画以后让互动组件重新摆头像热区和按钮：攒到下一帧再摆，一帧最多一次。
- * 它要量头像的位置，紧跟在写 DOM 后面量会逼浏览器当场重算样式、排版（以前每一步都这样，对局里主线程最大的一块）
+ * 它要量头像的位置，紧跟在写 DOM 后面量会逼浏览器当场重算样式、排版（每一步都这样量，是对局里主线程最大的一块）
  */
 let refreshing = 0;
 export function refreshFun(): void {
@@ -84,12 +84,12 @@ export function newFun(
         const tp = temper(seat);
         return { rect: t.avatarRect(seat), plate: t.plateRect(seat), marks: t.marks(seat), name: m.name, me: seat === me(), bot: m.bot, ...(tp ? { temper: tp } : {}) };
       }),
-    // 顶栏也不能盖：上面两家的气泡往上冒会压住房间号和"离开"。
+    // 顶栏和它按钮的点按区也不能盖：上面两家的气泡往上冒会压住房间号和"离开"，头像热区会吃掉"离开"点按区的下半截。
     // 自己的手牌再多算两遍：kit 按压住的面积挑位置，竖屏自己名牌四周都有东西，只算一遍时气泡常落在左边几张手牌上（#292 截图），
     // 压手牌的代价翻三倍后挑名牌上面、右边的空处
     avoid: () => {
       const hand = t.handRect();
-      return [...t.avoidRects(), ...(hand.width > 0 ? [hand, hand] : []), topbar.getBoundingClientRect()];
+      return [...t.avoidRects(), ...(hand.width > 0 ? [hand, hand] : []), topbarTapRect()];
     },
     button: () => (me() === null ? null : t.funSlot()),
     center: () => t.centerRects(),
@@ -118,7 +118,7 @@ export function newFun(
       const v = t.view();
       const m = me();
       if (!v || m === null || v.phase !== 'turn' || v.turn === m || v.prompt) return null;
-      // 单机的头一场只学打牌：道具的提示等打完一场再冒（11-21 新手试玩：第一次轮到打牌就冒，和"点两下打出"抢眼）
+      // 单机的头一场只学打牌：道具的提示等打完一场再冒（第一次轮到打牌就冒，和"点两下打出"抢眼）
       if (session.solo && !readRecord()) return null;
       const n = v.seats.length;
       for (const s of n === 3 ? [(m + 2) % 3, (m + 1) % 3] : [(m + 2) % 4, (m + 3) % 4]) {
@@ -158,7 +158,7 @@ export function publicMoments(v: AnyView, names: string[], local: boolean): void
 }
 
 /**
- * 娱乐局里自己胡出名场面：报一条好友动态（docs/platform-backend.md 15.17 第 2 条）。实盘的由平台结回时自己生成，不报；
+ * 娱乐局里自己胡出名场面：报一条好友动态（docs/api-social.md 15.17 第 2 条）。实盘的由平台结回时自己生成，不报；
  * 没平台、没登录（social 没挂上）不报；失败不提示，丢一条动态不影响打牌
  */
 export function feed(match: object | string, v: AnyView, me: number): void {

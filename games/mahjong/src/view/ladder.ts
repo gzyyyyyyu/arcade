@@ -96,7 +96,7 @@ export function showLadder(box: HTMLElement, o: LadderPageOpts): void {
   button('ld-back', h, '‹ 主页', o.onExit);
   el('b', 'ld-title', h, '茶馆擂台');
   if (o.cloud) cloudBadge(h, o.cloud);
-  // 规矩画成一条路线（三桌 → 称号）加几个短标签，不写成一段段长句（11-22 打磨）
+  // 规矩画成一条路线（三桌 → 称号）加几个短标签，不写成一段段长句
   const intro = el('div', 'ld-intro', root);
   const steps = el('div', 'ld-steps', intro);
   LADDER_LEVELS.forEach((l, t) => {

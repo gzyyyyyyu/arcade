@@ -1,6 +1,6 @@
 /**
  * 番型 / 役种图鉴（收集册，DESIGN.md 第 7 节）：只管"记什么、怎么数"，纯函数，不碰画面和存储。
- * 只记自己和出来的那一手：别人的和牌谁都看得见，但图鉴是自己的收集进度，记别人的没有意义。
+ * 只记自己胡出来的那一手：别人的胡牌谁都看得见，但图鉴是自己的收集进度，记别人的没有意义。
  * 记录按 id 数次数，两种玩法各一张，互不串；存在哪、怎么展示是画面层的事（view/dex.ts）。
  */
 import type { RcEvent } from '../core/variants/riichi/index.ts';
@@ -12,6 +12,8 @@ import type { FanId, XzEvent } from '../core/variants/sichuan-xuezhan/index.ts';
  */
 export type DexRecord = { xz: Record<string, number>; rc: Record<string, number>; last?: string; fresh?: string[] };
 export type DexVariant = 'xz' | 'rc';
+/** 成就、图鉴页上的玩法名：川麻三种打法共用一套 */
+export const DEX_VARIANT_NAME: Readonly<Record<DexVariant, string>> = { xz: '川麻', rc: '立直' };
 
 /**
  * 图鉴里列出的番型 / 役（规则表里的那些）。"自摸加番"是算分的附加项、不是牌型，不列；
@@ -56,8 +58,8 @@ export function parseDex(raw: unknown): DexRecord {
 }
 
 /**
- * 这一手和牌后哪些是第一次和出来的（图鉴里从 0 变 1）："玩法:id"，按图鉴顺序。
- * 再和一次的、本来就和过的都不算；一手和出好几样新的，全部返回（提示合成一条）
+ * 这一手胡牌后哪些是第一次胡出来的（图鉴里从 0 变 1）："玩法:id"，按图鉴顺序。
+ * 再胡一次的、本来就胡过的都不算；一手胡出好几样新的，全部返回（提示合成一条）
  */
 export function dexNewIds(before: DexRecord, after: DexRecord): string[] {
   const out: string[] = [];
@@ -88,8 +90,8 @@ export function dexToastText(names: readonly string[]): string {
 }
 
 /**
- * 这一步里自己和牌的标识：这一场的号（单机存档号 / 房间码）+ 第几局 + 牌墙余量 + 每个和牌的牌和点炮者。
- * 都是刷新后不变的信息；这一步没有自己的和牌返回 null
+ * 这一步里自己胡牌的标识：这一场的号（单机存档号 / 房间码）+ 第几局 + 牌墙余量 + 每个胡牌的牌和点炮者。
+ * 都是刷新后不变的信息；这一步没有自己的胡牌返回 null
  */
 export function dexKey(scope: string, v: { round?: number; wind?: number; hand?: number; honba?: number; wall: number }, events: readonly (XzEvent | RcEvent)[], seat: number | null): string | null {
   if (seat === null) return null;
@@ -98,7 +100,7 @@ export function dexKey(scope: string, v: { round?: number; wind?: number; hand?:
   return [scope, v.round ?? `${v.wind}-${v.hand}-${v.honba}`, v.wall, seat, ...wins].join('|');
 }
 
-/** 这一步里自己和出来的番型 / 役各 +1，返回新记录（不改传进来的）；旁观（seat 为 null）不记 */
+/** 这一步里自己胡出来的番型 / 役各 +1，返回新记录（不改传进来的）；旁观（seat 为 null）不记 */
 export function dexFromEvents(record: DexRecord, events: readonly (XzEvent | RcEvent)[], seat: number | null): DexRecord {
   if (seat === null) return record;
   const next: DexRecord = { xz: { ...record.xz }, rc: { ...record.rc } };
@@ -111,7 +113,7 @@ export function dexFromEvents(record: DexRecord, events: readonly (XzEvent | RcE
     if (e.e === 'hu' && e.seat === seat) {
       for (const it of e.items) add('xz', it.id);
     } else if (e.e === 'win' && e.seat === seat) {
-      // 三种役牌、两种风合成一行：一手牌里有几个也只算和过一次（按"这一手和出了什么"数，不按张数）
+      // 三种役牌、两种风合成一行：一手牌里有几个也只算胡过一次（按"这一手胡出了什么"数，不按张数）
       const ids = new Set(e.score.yaku.map((y) => RC_ALIAS[y.id] ?? y.id));
       for (const id of ids) add('rc', id);
     }
@@ -119,7 +121,7 @@ export function dexFromEvents(record: DexRecord, events: readonly (XzEvent | RcE
   return hit ? next : record;
 }
 
-/** 收集进度：和过的有几种 / 一共几种（只数图鉴列出的，宝牌这类附加项不算） */
+/** 收集进度：胡过的有几种 / 一共几种（只数图鉴列出的，宝牌这类附加项不算） */
 export function dexProgress(record: DexRecord, variant: DexVariant): { got: number; total: number } {
   const ids = dexIds(variant);
   return { got: ids.filter((id) => (record[variant][id] ?? 0) > 0).length, total: ids.length };

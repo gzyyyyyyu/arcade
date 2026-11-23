@@ -31,8 +31,8 @@ function pickBefore(rng: RandomStream, weights: readonly number[], n: number): n
 }
 
 describe('接共用名册', () => {
-  test('六个人映射后的每个参数和接名册前一样', () => {
-    expect(PERSONAS).toEqual(BEFORE);
+  test('原来六个人映射后的每个参数和接名册前一样', () => {
+    expect(PERSONAS.slice(0, 6)).toEqual(BEFORE);
   });
 
   test('名字都在名册里（平台保留昵称跟着名册走）', () => {
@@ -40,8 +40,8 @@ describe('接共用名册', () => {
     expect(PERSONAS.every((p) => names.has(p.name))).toBe(true);
   });
 
-  test('每个场地、每种座位数，挑人和接名册前同种子同结果（随机流用掉的也一样多）', () => {
-    for (const v of Object.values(VENUES)) {
+  test('只出原来六个人的场地、每种座位数，挑人和接名册前同种子同结果（随机流用掉的也一样多）', () => {
+    for (const v of Object.values(VENUES).filter((x) => x.weights.slice(6).every((w) => w === 0))) {
       for (const n of [1, 2, 3, 4]) {
         for (let k = 0; k < 200; k++) {
           const key = [k, n, 7, 1, 3, 5, 9, 2];
@@ -49,6 +49,23 @@ describe('接共用名册', () => {
           const b = stream(key, 'persona');
           expect(pickPersonas(a, v.weights, n)).toEqual(pickBefore(b, v.weights, n));
           expect(a.u32()).toBe(b.u32());
+        }
+      }
+    }
+  });
+
+  test('每个场地、每种座位数：下标在名单里、权重大于 0、不重复的有 min(座位数, 能出场的人数) 个', () => {
+    for (const [name, v] of Object.entries(VENUES)) {
+      const can = v.weights.filter((w) => w > 0).length;
+      for (const n of [1, 2, 3, 4]) {
+        for (let k = 0; k < 200; k++) {
+          const got = pickPersonas(stream([k, n, 2, 7, 1, 8, 2, 8], 'persona'), v.weights, n);
+          expect(got, name).toHaveLength(n);
+          for (const i of got) {
+            expect(i, name).toBeLessThan(PERSONAS.length);
+            expect(v.weights[i], name).toBeGreaterThan(0);
+          }
+          expect(new Set(got).size, `${name} n=${n}`).toBe(Math.min(n, can));
         }
       }
     }

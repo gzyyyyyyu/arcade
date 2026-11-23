@@ -40,11 +40,11 @@ const variantIn = (s: { variant: string }): AnyVariant | null => variantOf(s.var
 
 export interface SoloSave {
   v: 1;
-  /** 这一场的号（0.3.8 起；之前的存档没有，当作就是存着的那一场） */
+  /** 这一场的号（可以没有：没有时当作就是存着的那一场） */
   id?: string;
   state: SoloState;
   stakes: StakesId;
-  /** 娱乐的难度（0.10.0 起；之前的存档没有，按新手） */
+  /** 娱乐的难度（可以没有，按新手） */
   level?: Level;
   names: string[];
   /** 实盘：钱包里这一份的号；结回的操作号和小结（先存再发，重发用同一个） */
@@ -95,7 +95,7 @@ function persist(s: SoloSave, own: boolean): void {
   else if (mine) removeKey(SOLO_KEY);
 }
 
-/** 开一场：密钥浏览器现生成（擂台的一桌用 ladder.key，按这一轮的密钥派生）；chips 是实盘带进来的（一整份，0.15.1 起不少带）；variant 是玩法 id，不给就是川麻 */
+/** 开一场：密钥浏览器现生成（擂台的一桌用 ladder.key，按这一轮的密钥派生）；chips 是实盘带进来的（一整份）；variant 是玩法 id，不给就是川麻 */
 export function newSolo(stakes: StakesId, opts: SoloOpts, myName: string, ref: string | null, chips: number, level: Level = 'easy', variant: string = DEFAULT_VARIANT, daily?: string, ladder?: { mode: LadderMode; table: number; key: number[] }): SoloSave {
   const st = stakesOf(stakes)!;
   const V = variantOf(variant)!;
@@ -126,7 +126,7 @@ const tense = (s: SoloState, seat: number): boolean =>
   (s.players as { riichi?: number; won?: unknown }[]).some((p, i) => i !== seat && (!!p.riichi || !!p.won));
 
 /**
- * 电脑这一步「想」多久（毫秒，再乘性格快慢和速度；所有者 11-20：打得太快没有博弈感）。
+ * 电脑这一步「想」多久（毫秒，再乘性格快慢和速度；太快没有博弈感）。
  * 只按公开看得到的定：这一手是不是摸了就打（摸切快）、桌上有没有人立直或胡了、牌墙还剩多少，不看电脑自己算了什么，停顿不泄露他的手牌。
  * 声明窗口里「过」不停：停了就等于告诉人家他能碰。
  */

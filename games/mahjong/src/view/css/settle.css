@@ -36,7 +36,7 @@
   font-size: var(--fs-sm);
   opacity: 0.85;
 }
-/* 横屏高度紧：颁奖牌子压矮一截（名字小一档、内边距收一档），一场的名次四行能和颁奖放在同一页（11-22 走查：1280×720 上第 4 名被挤到第二页） */
+/* 横屏高度紧：颁奖牌子压矮一截（名字小一档、内边距收一档），一场的名次四行能和颁奖放在同一页（1280×720 上第 4 名被挤到第二页） */
 [data-orient='land'] .summary.awards .award {
   padding: var(--sp-2) var(--sp-3);
 }
@@ -65,7 +65,7 @@
   box-shadow: inset 3px 0 0 var(--gold);
 }
 .summary .who {
-  /* 至少 90 宽，有空就放宽到 8 个字左右（手机竖屏原来只露"本地q…"，10-19 试玩） */
+  /* 至少 90 宽，有空就放宽到 8 个字左右（手机竖屏太窄只露"本地q…"） */
   min-width: 90px;
   max-width: 8em;
   font-weight: 700;
@@ -74,6 +74,7 @@
   white-space: nowrap;
 }
 .summary .what .how,
+.summary .what .fed,
 .summary .what .fx-total {
   white-space: nowrap;
 }
@@ -134,7 +135,7 @@
 }
 .summary .title {
   font-size: var(--fs-xs);
-  /* 手机上字号按舞台缩放放大（--fs-k），写死 20px 的行高装不下，字底被裁 2–3px（11-02 裁字检查）：行高跟着字号走，至少 20 */
+  /* 手机上字号按舞台缩放放大（--fs-k），写死 20px 的行高装不下，字底被裁 2–3px：行高跟着字号走，至少 20 */
   line-height: max(20px, 1.4em);
   background: linear-gradient(var(--gold-hi), var(--gold-lo));
   color: var(--on-gold);
@@ -163,7 +164,7 @@
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
-/* 电脑上结算弹窗宽：各家的牌放大一号，看得清胡的是什么（11-22 走查：1280 上每张只有 20 像素，一行右边还空着一截） */
+/* 电脑上结算弹窗宽：各家的牌放大一号，看得清胡的是什么（1280 上每张只有 20 像素，一行右边还空着一截） */
 [data-fit='desk'] .summary .mini {
   width: 26px;
   height: 36px;
@@ -179,7 +180,7 @@
   opacity: 0.85;
   columns: 2;
 }
-/* 手机竖屏两栏太窄，"160 分"的"分"会掉到下一行：改一栏（10-19 试玩） */
+/* 手机竖屏两栏太窄，"160 分"的"分"会掉到下一行：改一栏 */
 [data-orient='port'] .summary .flows {
   columns: 1;
 }
@@ -242,8 +243,8 @@
   /* 结算内容在翻页容器里，不是 dialog 的直接子元素：每局、每节小标题和上面的表格隔开 */
   margin-top: var(--sp-4);
 }
-/* 结算的按钮行贴在弹窗底：内容再长（一场打完的总结算、名场面），"下一局""再来一场"也不用滚到下面去找（0.16.3，1920 宽时被切掉一半） */
-/* 滚到某一行时让出贴底按钮条的高度（按钮 56 + 上下留白），最后一行不被它压住（10-19 试玩） */
+/* 结算的按钮行贴在弹窗底：内容再长（一场打完的总结算、名场面），"下一局""再来一场"也不用滚到下面去找 */
+/* 滚到某一行时让出贴底按钮条的高度（按钮 56 + 上下留白），最后一行不被它压住 */
 .end .dialog {
   scroll-padding-bottom: 104px;
 }
@@ -254,6 +255,11 @@
   padding: var(--sp-3) var(--sp-5) var(--sp-5);
   background: linear-gradient(#0f2c2200, #0f2c22 var(--sp-4));
   z-index: 1;
+}
+/* 翻页 ‹ › 下面紧挨着贴底按钮条（z-index 1），居中撑到 --tap 的点按区下半截被它盖住：抬到它上面一层 */
+.end .dialog > .pager {
+  position: relative;
+  z-index: 2;
 }
 /* 横屏高度只有 560：每家的牌并进名字那一行（名字、牌、胡了什么、分），一局的结算一屏放得下 */
 [data-orient='land'] .end .dialog {
@@ -271,6 +277,31 @@
 }
 [data-orient='land'] .summary .row:has(> .hand-line) .net {
   order: 3;
+}
+
+/* 手机横屏（舞台 560 高）：牌并进名字那行只有 14 像素宽、一页只放两家要翻 4 页。
+ * 改成两栏两行：每家照竖屏的样子（名字、胡了什么、分一行，牌在下面），牌放大一号，四家一页放下，流水在下一页 */
+.stage[data-orient='land']:not([data-fit='desk']) .end .summary:not(.final, .awards, .rc-summary) .rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-1) var(--sp-2);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .end .summary:not(.rc-summary) .row:has(> .hand-line) {
+  align-content: start;
+  row-gap: 2px;
+  padding: var(--sp-1) var(--sp-2);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .end .summary:not(.rc-summary) .row:has(> .hand-line) :is(.what, .net) {
+  order: 0;
+}
+.stage[data-orient='land']:not([data-fit='desk']) .end .summary:not(.rc-summary) .row .hand-line {
+  order: 9;
+  width: 100%;
+  gap: var(--sp-1);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .end .summary:not(.rc-summary) .mini {
+  width: 26px;
+  height: 36px;
 }
 
 /* 从平台大厅的"好友房"进来：开房、进房亮两下 */

@@ -34,13 +34,18 @@
   position: absolute;
   inset: min(0px, calc((100% - var(--tap)) / 2)) min(0px, calc((100% - var(--tap)) / 2));
 }
-/* 顶栏的按钮贴着屏幕上沿，居中撑开的点按区上面一截落在屏幕外：改成从顶栏顶上往下撑满 --tap（手机上屏幕里实打实 44 高，10-27 平台走查） */
+/* 顶栏的按钮贴着屏幕上沿，居中撑开的点按区上面一截落在屏幕外：改成从顶栏顶上往下撑满 --tap（手机上屏幕里实打实 44 高） */
 .topbar :is(.home, .pill, .icon)::after {
   top: calc(-1 * (40px - 100%) / 2);
   bottom: auto;
   height: max(40px, var(--tap));
 }
-/* 不是按钮样式、外观也小于 --tap 的几处能点的东西（0.17.5 手机审计）：头像（点了扔道具）、小册子的页签、音量滑块。
+/* 顶栏下面紧挨着页面的返回钮（选桌、何切、速判、擂台）时，两个按钮的外观只隔十来个像素：
+ * 竖屏「大厅」的点按区只伸到两者中间（44），不然点返回钮上沿会回了大厅；返回钮从这里往下撑满 --tap */
+.stage[data-orient='port']:has(.screen.lobby > .back, .hk-back, .td-back, .ld-back) .topbar .home::after {
+  height: max(40px, min(var(--tap), 44px));
+}
+/* 不是按钮样式、外观也小于 --tap 的几处能点的东西：头像（点了扔道具）、小册子的页签、音量滑块。
  * 同样用看不见的 ::after 把点按区撑到 --tap，外观不变 */
 .badge .avatar::after,
 .rules .tab::after {
@@ -49,7 +54,7 @@
   inset: min(0px, calc((100% - var(--tap)) / 2)) min(0px, calc((100% - var(--tap)) / 2));
 }
 /* 主页「我的进度」两排胶囊，排距只有 --sp-1，居中撑开上下排会互相盖住：上排往上撑、下排往下撑，
- * 中间各让一半排距（11-22 审查：竖屏手机上胶囊在屏幕上只有 22 像素高） */
+ * 中间各让一半排距（竖屏手机上胶囊在屏幕上只有 22 像素高） */
 .home-art .prog {
   position: relative;
 }
@@ -66,12 +71,23 @@
   top: calc(var(--sp-1) / -2);
   bottom: min(0px, calc(100% - var(--tap)));
 }
+/* 手机横屏插画只到屏幕底：下排胶囊往下撑的那截落在屏幕外，整块进度往上挪到下排底下还有半个 --tap（844×390 下排屏幕里只有 34 高） */
+.stage[data-orient='land']:not([data-fit='desk']) .home-art .progress {
+  bottom: max(3%, calc(var(--tap) - 32px));
+}
 @media (hover: hover) {
   :is(.act, .pill, .icon, .chip, .stake, .link, .home, .dialog .x):not(:disabled, .off):hover {
     filter: brightness(1.12);
   }
 }
-:is(.act, .pill, .icon, .chip, .stake, .home):not(:disabled, .off):active {
+/* 不在上面那组里的可点元素也要缓动着沉下去（:where 不加权重，自己写了 transition 的照旧） */
+:where(.mode, .prog, .daily-entry, .tab, .ld-back, .ld-cloud, .hk-back, .td-back, .rc-opt, .term) {
+  transition:
+    transform var(--t-fast),
+    filter var(--t-fast);
+}
+/* 按下去都要有反应：主页模式卡、进度胶囊、每日入口、页签、返回、速判键、立直吃杠选项、名词、链接、关闭 */
+:is(.act, .pill, .icon, .chip, .stake, .home, .mode, .prog, .daily-entry, .tab, .ld-back, .ld-cloud, .hk-back, .td-back, .td-key, .rc-opt, .term, .link, .dialog .x):not(:disabled, .off):active {
   transform: translateY(1px) scale(0.97);
   filter: brightness(0.95);
 }
@@ -158,7 +174,7 @@
   font-weight: 400;
   text-shadow: none;
 }
-/* 碰杠胡过按紧急程度分级（0.17.3，docs/art.md）：胡 = 灯笼红底金字、最大；杠、碰 = 暖金（杠深一点）；过 = 半透明、最小。
+/* 碰杠胡过按紧急程度分级（docs/art.md）：胡 = 灯笼红底金字、最大；杠、碰 = 暖金（杠深一点）；过 = 半透明、最小。
  * 定缺三个按钮是茶馆木色，和碰杠胡一眼分开 */
 .act.ron {
   border-color: var(--gold);

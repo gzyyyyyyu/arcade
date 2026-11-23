@@ -1,7 +1,7 @@
 /**
  * 吃碰杠胡立直的过场条：一条斜着的色带从出手那家的一侧滑进来，带着头像和大字，亮光扫过一遍，再滑出去。
  *
- * 为什么用 WAAPI 而不是 CSS 关键帧：时长随"快速档"和牌种变，用 offset 排时间轴比拼一堆 animation-delay 好改；
+ * 为什么用 WAAPI 而不是 CSS 关键帧：时长随"快速档"胡牌种变，用 offset 排时间轴比拼一堆 animation-delay 好改；
  * 只动 transform / opacity，不碰 layout。条不接指针（pointer-events: none），同一时刻只留一条，新来的顶掉旧的。
  */
 import './cutin.css';
@@ -99,7 +99,7 @@ export function showCutin(layer: HTMLElement, o: CutinOpts): number {
 
   const band = el('div', `cutin ${tier >= 3 ? 'redgold' : cutinTier(o.kind)} from-${from}${tier ? ` streak s${tier}` : ''}${lowMotion ? ' calm' : ''}`, layer);
   nodes.push(band);
-  // 连胡加码的带子更高：底边（连斜出去的那截）不过画面 64%，免得压住底部操作条（11-02 逐帧审）
+  // 连胡加码的带子更高：底边（连斜出去的那截）不过画面 64%，免得压住底部操作条
   const hPct = (h / (layer.clientHeight || 600)) * 100;
   band.style.top = `${Math.max(2, Math.min(cutinTop(o.rel), 64 - hPct))}%`;
   band.style.height = `${h}px`;

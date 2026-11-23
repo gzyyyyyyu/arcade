@@ -1,7 +1,7 @@
 /**
  * 立直的颁奖、名场面、好友动态、电脑起哄（川麻那一套见 banter.ts、feed.ts、awards.ts，规矩和频率照它们）：只判定、不碰网络和画面。
- * 只读公开的事：和了的人、放铳的人、役和番（和牌时本来就亮给全桌看）、杠；不读任何人的手牌。电脑出牌（src/ai）不读这里（test/arch.test.ts）。
- * 名场面（一个和只记最响的一个）：役满 > 三倍满以上（含累计役满） > 岭上开花 > 抢杠 > 海底摸月 / 河底捞鱼 > 立直一发；一炮双响记在放铳的人头上。
+ * 只读公开的事：胡了的人、点炮的人、役和番（胡牌时本来就亮给全桌看）、杠；不读任何人的手牌。电脑出牌（src/ai）不读这里（test/arch.test.ts）。
+ * 名场面（一个和只记最响的一个）：役满 > 三倍满以上（含累计役满） > 岭上开花 > 抢杠 > 海底摸月 / 河底捞鱼 > 立直一发；一炮双响记在点炮的人头上。
  */
 import type { FunEvent } from 'arcade-kit/fun-logic';
 import type { HandScore, RcEvent, RcWin, YakuId } from '../../core/variants/riichi/index.ts';
@@ -38,7 +38,7 @@ export function rcWinsOf(events: readonly RcEvent[]): RcWinMoment[] {
   return events.flatMap((e) => (e.e === 'win' ? [{ seat: e.seat, from: e.from, score: e.score }] : []));
 }
 
-/** 这一步里的名场面（seat 是和的人，一炮双响是放铳的人） */
+/** 这一步里的名场面（seat 是和的人，一炮双响是点炮的人） */
 export function rcHighlightsOf(wins: readonly RcWinMoment[], round: number): Highlight[] {
   const out: Highlight[] = [];
   const from = wins[0]?.from;
@@ -53,8 +53,8 @@ export function rcHighlightsOf(wins: readonly RcWinMoment[], round: number): Hig
 type FunMoment = Extract<FunEvent, { kind: 'moment' }>;
 
 /**
- * 电脑起哄（docs/table-fun.md 第 4 节，照川麻的频率）：开杠、岭上开花、跳满以上的大牌、自摸；别人放铳的普通小和不算。
- * 赢的是和、杠的人；输的是放铳的人，自摸和杠是其余三家。kans 是这一步开了杠的座位；hand 是第几局（kit 按它数"每手电脑主动最多 2 次"）。
+ * 电脑起哄（docs/table-fun.md 第 4 节，照川麻的频率）：开杠、岭上开花、跳满以上的大牌、自摸；别人点炮的普通小和不算。
+ * 赢的是和、杠的人；输的是点炮的人，自摸和杠是其余三家。kans 是这一步开了杠的座位；hand 是第几局（kit 按它数"每手电脑主动最多 2 次"）。
  */
 export function rcFunMoments(wins: readonly RcWinMoment[], kans: readonly number[], hand: number): FunMoment[] {
   const others = (seat: number): number[] => [0, 1, 2, 3].filter((i) => i !== seat);
@@ -81,7 +81,7 @@ export function rcFeedMomentsOf(events: readonly RcEvent[], me: number): FeedMom
   return out;
 }
 
-/** 颁奖用的公开小计：和了几局、自摸几次（结算里本来就公开）。立直的小计没有杠数，不评杠王 */
+/** 颁奖用的公开小计：胡了几局、自摸几次（结算里本来就公开）。立直的小计没有杠数，不评杠王 */
 export function rcTally(stats: readonly { wins: number; tsumo: number }[]): PublicTally[] {
   return stats.map((x) => ({ wins: x.wins, zimo: x.tsumo, gangs: 0 }));
 }

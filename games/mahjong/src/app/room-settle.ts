@@ -47,9 +47,9 @@ function matchEndDialog(s: OnlineState, rv: RoomView, g: AnyView, names: string[
   const prizeUnit = wallet ? ' 筹码' : ' 分';
   let single = false;
   dialog(stage, 'end', (box) => {
-    // 为什么结束、钱怎么走的放在翻页区上面：结算长了要翻页，放在里面会跟着"翻到我那一行"被翻走，第一眼看不到（11-02 冒烟）
+    // 为什么结束、钱怎么走的放在翻页区上面：结算长了要翻页，放在里面会跟着"翻到我那一行"被翻走，第一眼看不到
     if (rv.cut) el('div', 'settle-note', box, '只剩一个人在下注，实盘这一场提前结束（实盘至少要两个人）');
-    if (wallet) el('div', 'settle-note', box, '桌上的筹码已经结回钱包');
+    if (wallet) el('div', 'settle-note', box, '桌上的筹码已经带回钱包');
     else if (rv.unrated) el('div', 'settle-note', box, '实盘只有一个人，这一场不计输赢、没动钱包');
     // 内容放进翻页区，按钮行在它下面、一直看得见（view/pager.ts）
     const body = el('div', 'end-body', box);
@@ -111,7 +111,7 @@ function roundEndDialog(g: AnyView, names: string[], wallet: boolean, replay: bo
       paginate(body);
     });
   };
-  // 立直有人和了：和牌亮牌（役一条条弹出来）先摆一会儿再盖上结算（和单机一样）；这期间开了下一局或离了房就不弹
+  // 立直有人胡了：胡牌亮牌（役一条条弹出来）先摆一会儿再盖上结算（和单机一样）；这期间开了下一局或离了房就不弹
   const hold = page.roomEndMs(g);
   if (!hold) return show();
   const t = session.table;

@@ -3,7 +3,7 @@
  *
  * 房间说了算：页面只发意图（坐下、开打、出牌、离座），收到的状态整个替换本地的；断线重连拿全量快照整桌重画。
  * 电脑接着出的几手是几帧，按顺序一帧一帧播（每帧带房间给的停顿）；落下太多（切回前台、重连）就不播了，直接摆最新的。
- * 房间码只在地址栏（?room=123456）：刷新原样回到房间，不另存（平台 0.10.1：登录跳转靠 next 带回来）。
+ * 房间码只在地址栏（?room=123456）：刷新原样回到房间，不另存（登录跳转靠 next 带回来）。
  */
 import { closeText, createText, RoomClient, type ChatSendResult, type ClientStatus } from 'arcade-kit/client';
 import type { DownMsg, RoomInfo, You } from 'arcade-kit/protocol';
@@ -34,7 +34,7 @@ interface OnlineUi {
   toast(text: string): void;
   /** 有人发了短语、表情包、道具（seat 是房间的座位号） */
   emote(seat: number, id: number, to?: number): void;
-  /** 有人说了一句（kit 0.18.0；seat 是房间的座位号，和牌桌、互动用的座位号是同一套） */
+  /** 有人说了一句（seat 是房间的座位号，和牌桌、互动用的座位号是同一套） */
   chat(seat: number, text: string, masked: boolean): void;
   /** 房间拒了我说的一句（被本地挡下的不走这里，chat() 直接返回原因） */
   chatError(code: string): void;
@@ -56,7 +56,7 @@ export class Online {
   /** 主动离开了：还在路上的帧、状态变化一律不再画（不然离开后回到选桌页，排队的帧又画出一张牌桌盖上去） */
   private closed = false;
 
-  /** chat: false 时不给 onChat，连接不带 chat=1，房间就不给这个页面发聊天（匹配桌选了"不和陌生人"，0.21.0） */
+  /** chat: false 时不给 onChat，连接不带 chat=1，房间就不给这个页面发聊天（匹配桌选了"不和陌生人"） */
   constructor(code: string, ui: OnlineUi, opts: { url?: string; chat?: boolean } = {}) {
     this.ui = ui;
     this.s = { code, opts: null, status: 'connecting', room: null, you: null, view: null };
@@ -180,7 +180,7 @@ export function roomUrl(code: string): string {
   return u.toString();
 }
 
-/** 快速匹配的排队地址（0.21.0）：和房间一样在 rooms/ 下面，相对页面 */
+/** 快速匹配的排队地址：和房间一样在 rooms/ 下面，相对页面 */
 export function matchUrl(tier: string): string {
   const u = new URL(`${MATCH_PATH}/${tier}`, location.href);
   u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';

@@ -65,7 +65,7 @@ function wood(base: string, dark: string, light: string, seed: number): string {
 
 /**
  * 茶馆的板壁：竖木板（两块 56 宽一组）。fade 时往下渐渐透明（叠在呢子上不留接缝）；
- * 不 fade 的上下都能接着平铺，选桌页、等候页整页铺它（0.16.1：以前上半木墙、下半呢子硬切成两截）
+ * 不 fade 的上下都能接着平铺，选桌页、等候页整页铺它（不然上半木墙、下半呢子硬切成两截）
  */
 function wall(fade = true): string {
   const rnd = lcg(11);

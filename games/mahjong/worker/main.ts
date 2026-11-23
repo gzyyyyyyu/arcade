@@ -1,12 +1,12 @@
 /**
  * mahjong Worker：路由 <站点>/games/mahjong*，部署时注入（README 的部署一节；DESIGN.md 第 4、6 节）。
- * 两种部署（kit 0.10，由 env 决定）：本站有平台绑定 ARCADE、WALLET 和 GATE=login（部署工具补的），认平台的账号；
+ * 两种部署：本站有平台绑定 ARCADE、WALLET 和 GATE=login（部署工具补的），认平台的账号；
  * 单独部署（wrangler.jsonc 原样）没有平台：首页和开房发游客 cookie，站点根 / 转到 /games/mahjong/，没有钱包，实盘一律拒绝（no_wallet）。
- * - 首页三个路径过 kit 的登录闸门 loginGate（docs/platform-backend.md 15.8）：登录了放行；没登录 302 到 /login?next=<原路径和查询>（平台 0.10.1，5.7），
+ * - 首页三个路径过 kit 的登录闸门 loginGate（docs/api-account.md 15.8）：登录了放行；没登录 302 到 /login?next=<原路径和查询>（docs/platform-features.md 5.7），
  *   房间链接 ?room=123456 登录完原样带回来；平台不可用回 503 页；GATE=off 时不拦；
- * - /games/mahjong/api/stake/* 是单机实盘的带入、结回（client 模式）：经服务绑定 WALLET 调平台钱包；结回带的小结 stats 原样转发，不改不补（5.10）；
+ * - /games/mahjong/api/stake/* 是单机实盘的带入、结回（client 模式）：经服务绑定 WALLET 调平台钱包；结回带的小结 stats 原样转发，不改不补（docs/platform-wallet.md 5.10）；
  * - /games/mahjong/rooms（开房）、/games/mahjong/rooms/<码>/ws（进房）原样交给 kit 的 acceptCreate / acceptJoin（第 6 节）；
- *   /games/mahjong/rooms/match/<档位>（快速匹配排队，0.21.0）交给 kit 的 acceptMatch：排到了开一张匹配桌，只剩自己的转单机；
+ *   /games/mahjong/rooms/match/<档位>（快速匹配排队）交给 kit 的 acceptMatch：排到了开一张匹配桌，只剩自己的转单机；
  *   开房的请求体 { opts } 是玩法、档位和规则设置，kit 开房时校验、定下，进房的人都看得到；
  * - /games/mahjong/health 是给线上监控看的：回 {"ok":true,"version"}，不读存储、不认人，排在登录闸门前面，单独部署也能访问；
  * - 别的路径不经过这里（wrangler.jsonc 的 run_worker_first 只列了上面这些），由静态资源直接回。
@@ -44,7 +44,7 @@ interface Base {
 }
 export type WalletRpcReply = { ok: true; wallet?: unknown; credited?: number; capped?: number; dup?: boolean; statsIgnored?: string } | { ok: false; error: string; wallet?: unknown };
 
-/** 平台钱包的 RPC（5.9）：麻将用带入和结回（单机一开场就发牌、好友房按筹码结，用不上放弃） */
+/** 平台钱包的 RPC（docs/platform-wallet.md 5.9）：麻将用带入和结回（单机一开场就发牌、好友房按筹码结，用不上放弃） */
 export interface PlatformWallet {
   buyin(req: Base & { tier: TierId; amount: number; until: number }): Promise<WalletRpcReply>;
   settle(req: Base & { amount: number; stats?: unknown }): Promise<WalletRpcReply>;
@@ -57,7 +57,7 @@ export interface Env extends MeterEnv {
   /** 平台钱包：同上；没有时单机和好友房的实盘都不开 */
   WALLET?: PlatformWallet;
   ROOM: DurableObjectNamespace<MahjongRoom>;
-  /** 快速匹配的排队（0.21.0，worker/match.ts 的 Queue，每个档位一个实例）；没绑的部署排队一律 4004 */
+  /** 快速匹配的排队（worker/match.ts 的 Queue，每个档位一个实例）；没绑的部署排队一律 4004 */
   MATCH?: DurableObjectNamespace;
   /** off 以外（包括没配）都要登录 */
   GATE?: string;
@@ -70,7 +70,7 @@ const HEALTH = `${BASE}/health`;
 const STAKE = `${BASE}/api/stake/`;
 const ROOMS = `${BASE}/rooms`;
 const JOIN = /^\/games\/mahjong\/rooms\/([^/]+)\/ws$/;
-/** 快速匹配排队（0.21.0）：在 rooms/ 下面，run_worker_first 已经放行；JOIN 要以 /ws 结尾，不会撞 */
+/** 快速匹配排队：在 rooms/ 下面，run_worker_first 已经放行；JOIN 要以 /ws 结尾，不会撞 */
 const MATCH = /^\/games\/mahjong\/rooms\/match\/([^/]+)$/;
 /** 带入、结回的请求体：结回带小结（≤ 256 字节），留足余量 */
 const MAX_BODY = 1_024;
@@ -160,7 +160,7 @@ async function stake(request: Request, env: Env, site: string, sub: string): Pro
   if (!b || !id(b.op) || !id(soloOp(b.op)) || !id(b.session) || typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 0) return json({ error: 'bad_request' }, 400);
   const tier = stakesOf(b.stakes);
   if (sub === 'buyin' && (!tier?.wallet)) return json({ error: 'bad_request' }, 400);
-  // 只带整份（0.15.1）：底分和"最多赢 3 份"按整份算，少带的输得少、赢得一样多（第三轮审计）；页面也不发少带的
+  // 只带整份：底分和"最多赢 3 份"按整份算，少带的输得少、赢得一样多；页面也不发少带的
   if (sub === 'buyin' && amount !== tier!.share) return json({ error: 'bad_amount' }, 400);
   const who = await whoIs(request, env.ARCADE);
   if (!('user' in who)) return denied(who);

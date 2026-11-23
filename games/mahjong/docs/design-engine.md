@@ -98,7 +98,7 @@ interface TableView {
 核心层有 `Variant`，牌桌层有 `VariantUi`，页面和流程层（主页、选桌页、单机和好友房的结算、分享、颁奖、每日挑战、规则小册子）按玩法不同的东西收在 `VariantPage`：
 `src/view/variants/<id>/page.ts` 各实现一份，在 `src/view/variants/pages.ts` 登记，页面代码只调 `pageOf(玩法id).xxx`，不写 `variant === ...` 或 `rc ? a : b`。
 
-- 名字和入口：`name(opts)`、主页和选桌页玩法行共用的切换项 `homeChoices` / `homeId` / `homePick`、选桌页 `rules`（规则表，见上文「规则设置默认收起」）、`rulesLink`。
+- 名字和入口：`name(opts)`、主页和选桌页玩法行共用的切换项 `homeChoices` / `homeId` / `homePick`、选桌页 `rules`（规则表，见 [design-ui.md](design-ui.md)「规则设置默认收起」）、`rulesLink`。
 - 规则设置：`loadRules` / `rulesOf` / `setRules`（偏好里 `mahjong.prefs` 的 `opts`、`rc`，存储格式不变）、`realOpts`（实盘一局一结）、`quick`（主页快速一局）、`daily`（每日挑战的规则和文字）、`lengthText` / `progress`（局数文字、续局进度；房间规则一行由 `rules` 表生成）。
 - 牌桌和结算：`mountTable`、`tableView`、`roundSummary` / `matchSummary`、`soloEndMs` / `roomEndMs`（一局打完先摆多久和牌亮牌）、`tally`（颁奖的公开小计）、`shareCard`、`moments`（名场面）、`feedMoments`（好友动态）。
 - 引导：`guide`（新手引导、规则页签、图鉴和成就按哪一边算，外壳在 `view/guide.ts`）。

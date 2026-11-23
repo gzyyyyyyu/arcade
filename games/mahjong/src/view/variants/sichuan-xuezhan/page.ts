@@ -9,7 +9,7 @@ import { feedMomentsOf } from '../../../game/feed.ts';
 import { funMoments, highlightsOf, momentsOf } from '../../../game/banter.ts';
 import { realOpts } from '../../../game/stakes.ts';
 import type { RuleSpec } from '../../../game/rule-spec.ts';
-import { XZ_FIRST_OPTS, XZ_RULES } from '../../../game/xuezhan-rules.ts';
+import { playOpts, XZ_FIRST_OPTS, XZ_RULES } from '../../../game/xuezhan-rules.ts';
 import { TableUi, type CommonAct } from '../../table.ts';
 import type { AnyOpts, VariantPage } from '../page.ts';
 import { cardOf } from './card.ts';
@@ -29,9 +29,11 @@ export const xuezhanPage: VariantPage = {
 
   // 没存过的（第一次来）按新手的默认：4 局（game/xuezhan-rules.ts）
   loadRules: (raw) => ({ opts: { ...XZ_FIRST_OPTS, ...(raw.opts ?? {}) } }),
-  rulesOf: (store) => store.opts,
+  rulesOf: (store) => playOpts(store.opts),
+  // 三人两房打完存回来时 swap 是 playOpts 补的 false，留着四人局原来的选择
   setRules(store, opts) {
-    store.opts = opts as XzOpts;
+    const o = opts as XzOpts;
+    store.opts = o.three ? { ...o, swap: store.opts.swap } : o;
   },
   realOpts: (opts) => realOpts(opts as XzOpts),
   // 快速一局照上次的档位（血战、血流、三人两房都开实盘）
@@ -48,7 +50,7 @@ export const xuezhanPage: VariantPage = {
   // 血流是川麻的 opts.flow，记在 mahjong.prefs 的规则里，没有新的存储键
   homePick(store, choiceId) {
     store.variant = ID;
-    store.opts = choiceId === THREE ? { ...store.opts, three: true, swap: false, flow: false } : { ...store.opts, three: false, flow: choiceId === FLOW };
+    store.opts = { ...store.opts, three: choiceId === THREE, flow: choiceId === FLOW };
   },
   rulesLink: '规则和番型表',
   matchTag: '',
@@ -56,7 +58,7 @@ export const xuezhanPage: VariantPage = {
   lengthText: (opts) => `${(opts as XzOpts).rounds} 局`,
   progress(state, daily) {
     const s = state as XzState;
-    return `${daily ? '每日挑战 · ' : ''}第 ${Math.min(s.round + 1, s.opts.rounds)}/${s.opts.rounds} 局`;
+    return `${daily ? '每日挑战 · ' : ''}${s.opts.rounds === 1 ? '只打 1 局' : `第 ${Math.min(s.round + 1, s.opts.rounds)}/${s.opts.rounds} 局`}`;
   },
 
   mountTable: (parent, send) => new TableUi<XzView, XzAction>(parent, xuezhanUi, (a: CommonAct | XzAction) => send(a as XzAction)),

@@ -1,4 +1,4 @@
-/* ---------- 游戏主页（0.17.0，docs/art.md） ----------
+/* ---------- 游戏主页（docs/art.md） ----------
  * 横屏左边主视觉、右边店名和按钮；竖屏上面主视觉、下面按钮。一屏放下不滚动，8px 网格 */
 .screen.front {
   display: grid;
@@ -228,7 +228,7 @@
   font-size: var(--fs-xs);
   opacity: 0.45;
 }
-/* 竖屏顶家的座位贴着顶栏：章收进座位框里，不被顶栏压住（10-31 立直结算） */
+/* 竖屏顶家的座位贴着顶栏：章收进座位框里，不被顶栏压住 */
 [data-orient='port'] .badge .stamp {
   right: 2px;
   top: 2px;
@@ -245,6 +245,10 @@
 [data-orient='port'] .screen.lobby > .back {
   top: var(--sp-3);
 }
+/* 贴着顶栏：点按区上面只多 8（再往上是「大厅」的），往下撑满 --tap */
+[data-orient='port'] .screen.lobby > .back::after {
+  inset: calc(-1 * var(--sp-2)) min(0px, calc((100% - var(--tap, 44px)) / 2)) min(0px, calc(100% - var(--tap, 44px) + var(--sp-2)));
+}
 [data-orient='port'] .screen.lobby .ver {
   display: none;
 }
@@ -253,7 +257,7 @@
 .screen.lobby .lobby-head h1 {
   font-size: 44px;
 }
-/* 横屏牌桌还是 1000 宽的几何，舞台变宽时居中，两边露出茶馆的板壁（art.css，0.17.1）；竖屏同理，560 宽（iPad 竖着拿，0.18.0） */
+/* 横屏牌桌还是 1000 宽的几何，舞台变宽时居中，两边露出茶馆的板壁（art.css）；竖屏同理，560 宽（iPad 竖着拿） */
 [data-orient='port'] .table {
   inset: 0 auto 0 calc(50% - 280px);
   width: 560px;
@@ -295,8 +299,8 @@
   }
 }
 
-/* 大屏电脑（视口宽 ≥ 1600）：左边标签条所在的呢子不再渐隐（以前 80% 就开始淡，胶囊一半压在渐变上），
- * 右边入口区的副标题、小字放大一档；介绍句和模式卡标题不放大（放大后三人两房那句折两行，规则链接被挤出屏幕，11-03 量测） */
+/* 大屏电脑（视口宽 ≥ 1600）：左边标签条所在的呢子不再渐隐（80% 就开始淡的话，胶囊一半压在渐变上），
+ * 右边入口区的副标题、小字放大一档；介绍句和模式卡标题不放大（放大后三人两房那句折两行，规则链接被挤出屏幕） */
 @media (min-width: 1600px) {
   .stage[data-fit='desk'][data-orient='land'] .home-art .scene {
     -webkit-mask-image: linear-gradient(to right, #000 94%, transparent);

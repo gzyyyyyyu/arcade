@@ -133,7 +133,7 @@ html:has(.stage .fx .cutin) :is(.atf-btn, .atc-pill) {
   opacity: 0;
   pointer-events: none;
 }
-/* 竖屏第一次进牌桌的"横过来玩更舒服"（guide.ts 的 rotateTip，顶上 210px）正好落在竖屏横幅的高度，开局 3 秒内有人碰杠就叠在大字和头像上（11-03 逐帧审）。
+/* 竖屏第一次进牌桌的"横过来玩更舒服"（guide.ts 的 rotateTip，顶上 210px）正好落在竖屏横幅的高度，开局 3 秒内有人碰杠就叠在大字和头像上。
  * 它自己的淡入淡出动画管着 opacity，这里用 visibility 藏 */
 .stage:has(.fx .cutin) .rotate-tip {
   visibility: hidden;

@@ -86,7 +86,7 @@ export const xuezhanUi: VariantUi<XzView, XzAction> = {
         el('div', 'hint', bar, me ? '等别人定缺…' : '大家在定缺');
         return true;
       }
-      // 不换三张的桌也要一句：只剩三个按钮时新手不知道在干什么（0.47.1 走查）
+      // 不换三张的桌也要一句：只剩三个按钮时新手不知道在干什么
       el('div', 'hint', bar, v.swapDir !== null ? `${SWAP_DIR[v.swapDir]}，定一门不要的：` : '定一门不要的（这门打干净才能胡）：');
       const best = chooseQue(me.hand);
       const picks: HTMLButtonElement[] = [];
@@ -115,7 +115,7 @@ export const xuezhanUi: VariantUi<XzView, XzAction> = {
           play('deal');
           break;
         case 'swapped':
-          // 类名不能叫 center：会撞上中控盘的 .center 样式，画出第二个盘子（0.17.3 以前就是这样）
+          // 类名不能叫 center：会撞上中控盘的 .center 样式，画出第二个盘子
           fx.banner(v.me?.seat ?? 0, SWAP_DIR[e.dir]!, 'swap');
           play('swap');
           break;
@@ -194,7 +194,7 @@ function huCard(v: XzView, e: Extract<XzEvent, { e: 'hu' }>, name: string, how: 
     const f = el('span', 'fan', items, FAN_NAME[x.id] + (x.n && x.n > 1 ? ` ×${x.n}` : ''));
     f.style.animationDelay = `${0.3 + i * 0.18}s`;
   });
-  const total = el('span', 'total', items, `${e.fan} 番`);
+  const total = el('span', 'total', items, e.fan > 0 ? `${e.fan} 番` : '不加番');
   total.style.animationDelay = `${0.3 + list.length * 0.18 + 0.1}s`;
   return card;
 }

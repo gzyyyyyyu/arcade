@@ -47,7 +47,7 @@ export function hekiriToday(): { score: number | null; streak: number } {
   return { score: d.days[today]?.score ?? null, streak: hekiriStreak(d, today) };
 }
 
-const SHANTEN_NAME = ['听牌', '一向听', '两向听', '三向听', '四向听'];
+const SHANTEN_NAME = ['打完就听牌', '差 1 张听牌', '差 2 张听牌', '差 3 张听牌', '差 4 张听牌'];
 const EFF_MAX = 12;
 const MONTH_DAY = (date: string): string => `${Number(date.slice(5, 7))} 月 ${Number(date.slice(8, 10))} 日`;
 const reduced = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -88,7 +88,6 @@ export function showHekiri(box: HTMLElement, o: HekiriOpts): () => void {
   const key = (e: KeyboardEvent): void => {
     // 页面已经被换掉（比如朋友的房间链接进来）：键盘监听自己撤掉
     if (!root.isConnected) return document.removeEventListener('keydown', key);
-    if (e.key === 'Escape') return o.onExit();
     if (e.key === 'Enter' || e.key === ' ') {
       const b = root.querySelector<HTMLButtonElement>('.hk-main[data-act]');
       if (b && !b.disabled && document.activeElement?.tagName !== 'BUTTON') {
@@ -177,7 +176,7 @@ export function showHekiri(box: HTMLElement, o: HekiriOpts): () => void {
     dots();
     const m = markOf(s);
     const verdict = el('div', `hk-verdict ${m}`, root);
-    el('b', '', verdict, m === 'ok' ? '好牌！这就是最优打法' : m === 'near' ? '不错，向听一样，但还有更多进张的打法' : '这张打下去，离听牌更远了');
+    el('b', '', verdict, m === 'ok' ? '好牌！这就是最优打法' : m === 'near' ? '不错，离听牌一样近，但别的打法能用的牌更多' : '这张打下去，离听牌更远了');
     el('span', 'hk-pts', verdict, `+${s} 分`);
     seenStrip(p);
     const hand = el('div', 'hk-hand shown', root);
@@ -189,7 +188,7 @@ export function showHekiri(box: HTMLElement, o: HekiriOpts): () => void {
       t.dataset.n = String(n);
     });
     rows(list, kind);
-    el('div', 'hk-hint', root, '向听数越小越好（0 就是听牌），一样的再比能摸到的有效牌有几张');
+    el('div', 'hk-hint', root, '先比离听牌差几张（越少越好），一样的再比能用的牌有几张');
     const last = i === QUESTIONS - 1;
     const next = button('act go big hk-main', root, last ? '看成绩' : '下一题', last ? finish : nextQuestion);
     next.dataset.act = 'next';
@@ -202,7 +201,7 @@ export function showHekiri(box: HTMLElement, o: HekiriOpts): () => void {
 
   /**
    * 最多三行：你选的在前三就是前三名，不在就是前两名加你选的。
-   * 原来不在前三时多加一行成四行，答差了的那题大屏、横屏、小手机都放不下要滚（11-02 五尺寸量测）
+   * 原来不在前三时多加一行成四行，答差了的那题大屏、横屏、小手机都放不下要滚
    */
   function rows(list: readonly Choice[], kind: number): void {
     const box = el('div', 'hk-rows', root);
@@ -218,11 +217,11 @@ export function showHekiri(box: HTMLElement, o: HekiriOpts): () => void {
       el('b', '', line, `打 ${tileName(c.kind)}`);
       if (c.ukeire >= best.ukeire && c.shanten === best.shanten) el('em', 'hk-chip best', line, '最佳');
       if (c === mine) el('em', 'hk-chip you', line, '你选的');
-      el('div', 'hk-sub', info, `${SHANTEN_NAME[c.shanten] ?? `${c.shanten} 向听`} · 进 ${c.kinds.length} 种 ${c.ukeire} 张`);
-      // 有效牌最多摆 12 张，多的写"+N"：差的打法能进十几种，小手机上折成三行把整页撑出一屏（11-02 量测，360 宽）；种数和张数上一行写着
+      el('div', 'hk-sub', info, `${SHANTEN_NAME[c.shanten] ?? `差 ${c.shanten} 张听牌`} · ${c.kinds.length} 种 ${c.ukeire} 张能用`);
+      // 有效牌最多摆 12 张，多的写"+N"：差的打法能进十几种，小手机上折成三行把整页撑出一屏（360 宽）；种数和张数上一行写着
       const eff = el('div', 'hk-eff', row);
       for (const k of c.kinds.slice(0, EFF_MAX)) tile('mini', k, eff);
-      if (c.kinds.length > EFF_MAX) el('span', 'hk-more', eff, `+${c.kinds.length - EFF_MAX}`);
+      if (c.kinds.length > EFF_MAX) el('span', 'hk-more', eff, `还有 ${c.kinds.length - EFF_MAX} 种`);
     });
   }
 

@@ -120,7 +120,7 @@
   color: #fff;
   font-weight: 700;
   border-radius: 50%;
-  /* 直径跟着字号走：手机上 --fs-k 把字放大到 20px，写死 34 的圆装不下「自摸」，折成两行压到名字（0.47.1 走查 390 竖屏） */
+  /* 直径跟着字号走：手机上 --fs-k 把字放大到 20px，写死 34 的圆装不下「自摸」，折成两行压到名字 */
   --stamp: max(34px, 2.4em);
   width: var(--stamp);
   height: var(--stamp);
@@ -160,7 +160,7 @@
 .badge .clock {
   position: absolute;
   left: 50%;
-  /* 离名牌顶边留 4：原来 -16 正好贴着名牌的描边，自己那家的倒计时数字像压在卡片上（好友房 11-02 看图） */
+  /* 离名牌顶边留 4：-16 正好贴着名牌的描边，自己那家的倒计时数字像压在卡片上 */
   top: -20px;
   transform: translateX(-50%);
   padding: 0 var(--sp-1);
@@ -362,7 +362,7 @@
 .center .wall-label {
   margin-top: 2px;
   font-size: var(--fs-xs);
-  /* 手机上字号放大后三行要挤进盘子，两行小字行高收紧（0.17.6） */
+  /* 手机上字号放大后三行要挤进盘子，两行小字行高收紧 */
   line-height: 1.15;
   letter-spacing: 0.3em;
   text-indent: 0.3em;
@@ -471,7 +471,7 @@
 .my-hand .tile.up {
   transform: translateY(-14px);
 }
-/* 有鼠标时悬停先抬一点（0.16.2，对标雀魂），点下去再抬到选中的高度；触屏没有悬停，不受影响 */
+/* 有鼠标时悬停先抬一点，点下去再抬到选中的高度；触屏没有悬停，不受影响 */
 @media (hover: hover) and (pointer: fine) {
   .my-hand .tile:not(.off):not(.up):not(.drag):hover {
     transform: translateY(-7px);
@@ -515,7 +515,7 @@
 .my-hand .tile {
   position: relative;
 }
-/* 能点的手牌把点按区往上撑到 --tap 高（屏幕上 44）：竖屏手机上每张牌只有 25×35 像素（0.18.0 手机专项）。
+/* 能点的手牌把点按区往上撑到 --tap 高（屏幕上 44）：竖屏手机上每张牌只有 25×35 像素。
  * 宽度没法撑，14 张已经铺满一排；往上撑的那截是牌和头像、按钮之间的空呢子，不压别的东西。
  * 不能点的牌（.off）不撑；.ban 用的 ::after 只出现在不能点的牌上，不冲突 */
 .my-hand .tile:not(.off)::after {
@@ -539,7 +539,7 @@
   box-shadow: 0 0 0 3px var(--gold);
   border-radius: 5px;
 }
-/* 新摸的牌从上面落进来，落下时压一下再弹（11-20 放慢一点，有分量） */
+/* 新摸的牌从上面落进来，落下时压一下再弹（放慢一点，有分量） */
 .my-hand .tile.drawn.new {
   animation: draw-in 0.36s ease-out;
 }
@@ -579,7 +579,7 @@
   gap: var(--sp-3);
   justify-content: flex-end;
 }
-/* "再点一下打出"这类提示：一个小签贴在操作条上，不是一行飘在桌面上的灰字（0.17.3） */
+/* "再点一下打出"这类提示：一个小签贴在操作条上，不是一行飘在桌面上的灰字 */
 .bar .hint {
   font-size: var(--fs-sm);
   white-space: nowrap;
@@ -1011,7 +1011,7 @@ html .atc-dock .atc-head b { flex: none; white-space: nowrap; }
   line-height: 16px;
   animation: think-bob 0.8s ease-in-out infinite alternate;
 }
-/* 上面两家的名牌贴着牌桌顶边，泡挂上沿会顶进顶栏（0.47.1 Gemini 审查）：挂到名牌下沿 */
+/* 上面两家的名牌贴着牌桌顶边，泡挂上沿会顶进顶栏：挂到名牌下沿 */
 .table .badge.r2.thinking::after,
 .table .badge.r3.thinking::after {
   top: auto;

@@ -10,7 +10,7 @@ type CutinTier = 'gold' | 'redgold' | 'jade' | 'blue';
 
 export const CUTIN_KINDS: readonly CutinKind[] = ['pon', 'chi', 'kan', 'hu', 'zimo', 'riichi'];
 
-/** 常速下一条从滑进到滑出的总时长（毫秒）；11-20 各加约三成（所有者：一闪而过没有分量），不挡操作 */
+/** 常速下一条从滑进到滑出的总时长（毫秒）（太短一闪而过没有分量），不挡操作 */
 const BASE_MS: Record<CutinKind, number> = { pon: 650, chi: 650, kan: 850, riichi: 850, hu: 1_050, zimo: 1_050 };
 
 /** 系统"减少动态效果"时只淡入淡出一个字，不用留太久 */
@@ -64,7 +64,7 @@ export function cutinFrom(rel: number): 'left' | 'right' {
 
 /**
  * 带子在画面里的纵向位置（占高度的百分比，顶边）：对家靠上、左右在中间偏上、我自己在中间偏下。
- * 我的那条原来顶在 52%：高 22% 再斜 4°，右端底边到 80% 上下，正好压住底部的"胡""碰""换出"一排（11-02 逐帧审）。
+ * 我的那条原来顶在 52%：高 22% 再斜 4°，右端底边到 80% 上下，正好压住底部的"胡""碰""换出"一排。
  * 提到 40%，斜过去最低也在操作条上面
  */
 export function cutinTop(rel: number): number {

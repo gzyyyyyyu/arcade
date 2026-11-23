@@ -46,10 +46,11 @@
   font-size: var(--fs-sm);
   cursor: pointer;
 }
+/* 贴着顶栏：点按区不往上伸进顶栏（顶栏压在上面，伸进去也点不到），往下撑满 --tap（844×390 屏幕里只有 42 高） */
 .ladder-page .ld-back::after {
   content: '';
   position: absolute;
-  inset: min(0px, calc((100% - var(--tap, 44px)) / 2));
+  inset: calc(-1 * var(--sp-2)) min(0px, calc((100% - var(--tap, 44px)) / 2)) min(0px, calc(100% - var(--tap, 44px) + var(--sp-2)));
 }
 .ladder-page .ld-title {
   line-height: 1.2;

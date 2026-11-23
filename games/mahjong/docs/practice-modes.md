@@ -49,7 +49,7 @@
 
 ## 云存档（`net/cloud.ts`、`app/cloud.ts`）
 
-照 `docs/platform-backend.md` 5.5。只同步一个槽 `ladder`，内容是 `cloudPart`：`{ v: 1, titles, best }`。
+照 `docs/platform-features.md` 5.5。只同步一个槽 `ladder`，内容是 `cloudPart`：`{ v: 1, titles, best }`。
 - 启动：有平台、带着 `__Host-arcade_li` 才问 `/api/me`（`user.id`、`saves` 档位），再 `GET /api/saves/mahjong?userId=` 合并；合并前本机那份备份到 `mahjong.ladder.pre-sync`。`/api/me` 不是 200 或 `saves: 'paused'` 时这次打开不同步。
 - 合并（`mergeLadder`，纯函数）：称号取并集、最远取较大，没打完的一轮留本机的；交换、重复合并结果一样。
 - 上传：`writeLadder` 写完通知 `cloud.touched()`，10 秒防抖，同一个槽两次上传至少隔 5 分钟；每个 PUT 都带 `userId`。切后台（`visibilitychange`、`pagehide`）和离开牌桌时用 keepalive 补传，离上次上传不到 3 分钟就留到下次打开。

@@ -1,13 +1,19 @@
 /**
- * 快速匹配的档位（0.21.0，kit 0.20.0）：用 kit 的 matchConfigErrors 核对排队的配置和好友房的规则对得上——
+ * 快速匹配的档位：用 kit 的 matchConfigErrors 核对排队的配置和好友房的规则对得上——
  * 一桌的真人不超过座位数、每个档位的开桌选项房间的 options 都认（配错了线上就是排到了开不了桌，人人转单机）。
  */
 import { matchConfigErrors } from 'arcade-kit/game';
 import { describe, expect, it } from 'vitest';
-import { MATCH_FUN, MATCH_FUN_TIERS, MATCH_RC_FUN, MATCH_TABLE, MATCH_TIERS, MATCH_X3_FUN, MATCH_XL_FUN, tableSizeOf, matchRoomOptions, matchTierOf, stakesOfTier } from '../src/game/match.ts';
+import { MATCH_FUN_TIERS, MATCH_TABLE, MATCH_TIERS, tableSizeOf, matchRoomOptions, matchTierOf, stakesOfTier } from '../src/game/match.ts';
 import { REAL_ROUNDS, realOpts, STAKES } from '../src/game/stakes.ts';
 import { sichuanXuezhan as XZ } from '../src/core/variants/sichuan-xuezhan/index.ts';
 import { mahjongRoom } from '../src/room/rules.ts';
+
+/** 娱乐档的排队 id（上线后不改：排队按它分桌） */
+const MATCH_FUN = 'fun';
+const MATCH_RC_FUN = 'rc-fun';
+const MATCH_X3_FUN = 'x3-fun';
+const MATCH_XL_FUN = 'xl-fun';
 
 describe('快速匹配的档位', () => {
   it('每个档位开桌的人数和选项都合房间的规则', () => {

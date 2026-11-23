@@ -45,7 +45,7 @@ export function payOne(chips: number[], from: number, to: number, amount: number
 }
 
 /**
- * 给平台钱包 settle 带的小结（docs/platform-backend.md 5.10）：JSON 后 ≤ 256 字节，不合格平台整份忽略、钱照常结。
+ * 给平台钱包 settle 带的小结（docs/platform-wallet.md 5.10）：JSON 后 ≤ 256 字节，不合格平台整份忽略、钱照常结。
  * 字段的意思由游戏定：rounds 局数、wins 胡了几局、best 这一份里最大一局净赢；称号和自定义数的 key 带玩法前缀。
  */
 export interface SettleStats {
@@ -58,4 +58,3 @@ export interface SettleStats {
 }
 
 export const MAX_TITLES = 5;
-export const TITLE_ID = /^[a-z][a-z0-9_]{0,23}$/;

@@ -9,10 +9,11 @@ export function renderRules<O>(box: HTMLElement, spec: RuleSpec<O>, real: boolea
   const paint = (): void => {
     box.replaceChildren();
     const o = get();
-    for (const d of editable(spec, real)) {
+    for (const d of editable(spec, real, o)) {
       const row = el('div', 'opt', box);
       row.dataset.key = d.key;
       el('span', 'label', row, d.label);
+      if (d.hint) el('small', 'hint', row, d.hint);
       const on = chosen(d, o);
       for (const c of d.choices) {
         const b = button(`chip${c === on ? ' on' : ''}`, row, c.text, () => {

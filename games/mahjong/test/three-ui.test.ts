@@ -26,9 +26,10 @@ describe('相对座位', () => {
 
 describe('主页切换项', () => {
   const store = { variant: 'sichuan-xuezhan', opts: { ...DEFAULT_OPTS, swap: true } } as never as Parameters<typeof xuezhanPage.homePick>[0];
-  it('选三人两房：three 开、不换三张、血流关；homeId 认得出来', () => {
+  it('选三人两房：three 开、开局不换三张、血流关；homeId 认得出来', () => {
     xuezhanPage.homePick(store, 'three');
-    expect(store.opts).toMatchObject({ three: true, swap: false, flow: false });
+    expect(store.opts).toMatchObject({ three: true, flow: false });
+    expect(xuezhanPage.rulesOf(store)).toMatchObject({ three: true, swap: false });
     expect(xuezhanPage.homeId(store)).toBe('three');
     expect(xuezhanPage.name(store.opts)).toBe('川麻·三人两房');
   });
@@ -43,6 +44,22 @@ describe('主页切换项', () => {
     expect(store.opts).toMatchObject({ three: false, flow: true });
     xuezhanPage.homePick(store, 'sichuan-xuezhan');
     expect(store.opts).toMatchObject({ three: false, flow: false });
+  });
+  it('切三人两房再切回血战、血流：换三张还是原来的选择（0.47.9 以前切回来就变成不换了），单机、实盘、开房都照它', () => {
+    for (const mine of [true, false]) {
+      const s = { variant: 'sichuan-xuezhan', opts: { ...DEFAULT_OPTS, swap: mine } } as never as Parameters<typeof xuezhanPage.homePick>[0];
+      xuezhanPage.homePick(s, 'three');
+      // 三人两房里改规则、开打后存回来（带着 playOpts 补的 swap: false）也不动四人局的选择
+      xuezhanPage.setRules(s, { ...xuezhanPage.rulesOf(s), cap: 5 });
+      expect(xuezhanPage.realOpts(xuezhanPage.rulesOf(s))).toMatchObject({ three: true, swap: false });
+      for (const back of ['sichuan-xuezhan', 'flow']) {
+        xuezhanPage.homePick(s, back);
+        const o = xuezhanPage.rulesOf(s) as typeof DEFAULT_OPTS;
+        expect(o).toMatchObject({ three: false, swap: mine, cap: 5 });
+        expect(xuezhanPage.realOpts(o)).toMatchObject({ swap: mine, rounds: 1 });
+        expect(xuezhanPage.quick(s).opts).toMatchObject({ swap: mine });
+      }
+    }
   });
   it('三人两房进擂台（x3，一局一结、不换三张），血战和血流照旧', () => {
     const three = xuezhanPage.homeChoices.find((c) => c.id === 'three')!;

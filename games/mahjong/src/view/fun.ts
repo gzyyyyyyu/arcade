@@ -13,7 +13,7 @@ import { MOOD_LINES, PHRASES } from './text.ts';
 
 /** 总开关"互动：开 / 不看"：关了别人的一律不播，单机电脑也不反应 */
 const OFF_KEY = 'mahjong.comms';
-/** 聊天的开关（0.19.0 两档，0.21.0 三档，见 chatMode） */
+/** 聊天的开关（三档，见 chatMode） */
 const CHAT_OFF_KEY = 'mahjong.chatOff';
 /** 头像菜单里的 3 句点名短语："又点炮了哇""快点嘛，花儿都谢了""好牌，服了" */
 const NAMED = [3, 7, 12] as const;
@@ -29,14 +29,14 @@ interface FunWiring {
   /** 单机：电脑的反应在页面上算 */
   localBots: boolean;
   onHit?(seat: number): void;
-  /** 首次"点头像扔道具"的提示冒在哪个座位；null = 现在别冒（kit 0.17.0，过 2 秒再问） */
+  /** 首次"点头像扔道具"的提示冒在哪个座位；null = 现在别冒（过 2 秒再问） */
   hintSeat?(): number | null;
-  /** 聊天（kit 0.18.0 好友房、0.18.1 单机的 localChat） */
+  /** 聊天（好友房，单机用 kit 的 localChat） */
   chat?(text: string): ChatResultLike;
-  /** 聊天的摆放（kit 0.19.0）：中间信息区、电脑版聊天框、手机版"聊天"按钮、弹幕区 */
+  /** 聊天的摆放：中间信息区、电脑版聊天框、手机版"聊天"按钮、弹幕区 */
   center(): RectLike[];
   chatDock(): RectLike | null;
-  /** 电脑版聊天框默认收不收（kit 0.20.1）；undefined = 让 kit 自己判断（kit 读的是 h.folded?.()，undefined 和没给一样） */
+  /** 电脑版聊天框默认收不收；undefined = 让 kit 自己判断（kit 读的是 h.folded?.()，undefined 和没给一样） */
   chatFolded?(): boolean | undefined;
   chatButton(): RectLike | null;
   danmakuArea(): RectLike | null;
@@ -78,13 +78,13 @@ export function createFun(w: FunWiring): TableFun {
 }
 
 /**
- * "互动""聊天"按钮的大小（kit 0.20.1 的 buttonStyle，以前在 style.css 里硬改 .atf-btn）：按钮浮在舞台外面（屏幕像素），
+ * "互动""聊天"按钮的大小（kit 的 buttonStyle）：按钮浮在舞台外面（屏幕像素），
  * 字号跟牌桌上别的按钮的 --fs-lg 走、按舞台缩放（viewport.ts 写的 --stage-scale）换成屏幕像素，电脑上舞台放大后不是大框小字
  */
 function buttonStyle(): ButtonStyle {
   const s = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--stage-scale')) || 1;
   const fsLg = Math.max(18, 16 * Math.max(1, 1 / s));
-  // 舞台缩得很小（320 宽竖屏，约 0.57 倍）时按钮只有 64 像素宽，横排放不下"图标 + 两个字"会折成竖排：改成图标在上、字在下（10-20 多尺寸）
+  // 舞台缩得很小（320 宽竖屏，约 0.57 倍）时按钮只有 64 像素宽，横排放不下"图标 + 两个字"会折成竖排：改成图标在上、字在下
   return { row: s >= 0.65, fontSize: Math.max(13, fsLg * s), icon: Math.max(18, 24 * s) };
 }
 
@@ -101,9 +101,9 @@ export function setFunOff(off: boolean): void {
 export type ChatMode = 'on' | 'stranger' | 'off';
 
 /**
- * 聊天三档（0.21.0 快速匹配起；手机横屏的设置面板放不下再加一行，并成一个按钮轮着切）：
+ * 聊天三档（手机横屏的设置面板放不下再加一行，并成一个按钮轮着切）：
  * 开；不和陌生人（匹配桌不看也不能说，连接不带 chat=1；好友房、单机照开）；不看（别人说的都不显示，自己还能说）。
- * 存在原来的 mahjong.chatOff：'1' 是不看（0.19.0 起就这么存），'stranger' 是不和陌生人，没有是开
+ * 存在 mahjong.chatOff：'1' 是不看，'stranger' 是不和陌生人，没有是开
  */
 export function chatMode(): ChatMode {
   const v = readText(CHAT_OFF_KEY);

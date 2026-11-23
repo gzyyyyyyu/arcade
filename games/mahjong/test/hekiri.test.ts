@@ -9,7 +9,6 @@ import {
   hekiriStreak,
   markOf,
   marksString,
-  markSymbols,
   parseHekiri,
   puzzleFits,
   puzzlesOf,
@@ -131,7 +130,6 @@ describe('打分', () => {
     expect(QUESTIONS * POINTS).toBe(100);
     expect([20, 9, 0].map(markOf)).toEqual(['ok', 'near', 'bad']);
     expect(marksString([20, 9, 0, 20, 1])).toBe('onxon');
-    expect(markSymbols('onxon')).toBe('✓△✗✓△');
   });
 });
 

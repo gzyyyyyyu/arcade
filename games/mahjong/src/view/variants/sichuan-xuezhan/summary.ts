@@ -1,5 +1,5 @@
 /**
- * 结算（DESIGN.md 第 6 节）：一局打完列每家胡了什么番、钱怎么走的（点炮、自摸、杠钱、呼叫转移、退税、查花猪、查大叫）；
+ * 结算（DESIGN.md 第 6 节）：一局打完列每家胡了什么番、钱怎么走的（点炮、自摸、杠分、呼叫转移、退税、查花猪、查大叫）；
  * 一场打完再列总输赢和称号。只用公开信息。
  */
 import { kindOf } from '../../../core/tiles/index.ts';
@@ -59,8 +59,14 @@ export function roundSummary(v: XzView, names: string[], unit: string): HTMLElem
     // 没胡又没点炮才写"—"；点了炮就只写"点炮给…"，不留孤零零的破折号和分隔点
     if (!mine.length && !fed.length && h.end !== 'wall') what.textContent = '—';
     else if (!mine.length && h.end === 'wall') what.textContent = '没胡';
-    if (fed.length) what.append(`${what.textContent ? ' · ' : ''}点炮给 ${fed.join('、')}`);
+    // 「点炮给 谁」整段换行，不把名字最后一个字甩到下一行
+    if (fed.length) {
+      if (what.textContent) what.append(' · ');
+      el('span', 'fed', what, `点炮给 ${fed.join('、')}`);
+    }
     const n = h.net[seat]!;
+    // 胡了却输（被别家自摸、杠分付出去的更多）：第一页就写清进出，不用翻到流水才明白
+    if (mine.length && n < 0) el('span', 'why', what, `（${inOut(v.ledger, seat, unit)}）`);
     const net = el('span', `net ${n > 0 ? 'up' : n < 0 ? 'down' : ''}`, row, `${signed(n)}${unit}`);
     // 结算的动画（fx.ts 的 settleFx）从 0 数到这个数
     net.dataset.n = `${n}`;
@@ -81,10 +87,23 @@ export function roundSummary(v: XzView, names: string[], unit: string): HTMLElem
       const [kind, from, to] = key.split('|') as [string, string, string];
       const flow = el('div', 'flow', list);
       term(flow, PAY_KIND[kind] ?? kind);
-      flow.append(`：${names[Number(from)]} → ${names[Number(to)]} ${amount}${unit.replace(' ', '\u00a0')}`);
+      flow.append(`：${names[Number(from)]} 付给 ${names[Number(to)]} ${amount}${unit.replace(' ', '\u00a0')}`);
     }
   }
   return box;
+}
+
+/** 这一局这一家收了什么、付了什么，按种类合计：「收 胡 +80 · 付 自摸 −320」 */
+function inOut(ledger: XzView['ledger'], seat: number, unit: string): string {
+  const got = new Map<string, number>();
+  const paid = new Map<string, number>();
+  for (const p of ledger) {
+    if (p.to === seat) got.set(p.kind, (got.get(p.kind) ?? 0) + p.amount);
+    if (p.from === seat) paid.set(p.kind, (paid.get(p.kind) ?? 0) + p.amount);
+  }
+  const part = (m: Map<string, number>, sign: number): string[] => [...m].map(([k, a]) => `${PAY_KIND[k] ?? k} ${signed(sign * a)}`);
+  const u = unit.trim();
+  return [got.size ? `收 ${part(got, 1).join('、')}` : '', paid.size ? `付 ${part(paid, -1).join('、')}` : ''].filter(Boolean).join(' · ') + (u ? ` ${u}` : '');
 }
 
 /**
@@ -115,14 +134,16 @@ export function verdictWhy(v: XzView, seat: number, names: string[]): string | n
   const top = [...out.entries()].sort((a, b) => b[1].amount - a[1].amount)[0];
   if (!top) return null;
   const who = [...top[1].to].map((s) => names[s]).join('、');
+  // 血战只向还没胡的人收（胡了却也付了，是在自己胡之前）；血流胡了不下桌，每家都付
+  const still = v.opts.flow ? '每家都' : '你那时还没胡，'
   const say: Record<string, string> = {
     hu: `你打的牌正好是 ${who} 要的，被胡了（点炮）。别人碰过牌、快胡的时候，少打桌上还没人打过的牌`,
-    zimo: `${who} 自摸了，没胡的每家都要付`,
-    kan: `${who} 杠了牌，杠钱没胡的人都要付`,
+    zimo: `${who} 自摸了，${still}要付自摸的分`,
+    kan: `${who} 杠了牌，${still}要付杠分`,
     pig: '牌摸完时手里还留着缺的那门（花猪），要赔给别家',
     cha: '牌摸完时还没听牌，要赔给听了牌的人',
-    move: '你杠了以后打的牌被人胡了，杠钱转给了他（呼叫转移）',
-    tax: '牌摸完时没听牌，杠来的钱要退回去（退税）',
+    move: '你杠了以后打的牌被人胡了，杠分转给了他（呼叫转移）',
+    tax: '牌摸完时没听牌，杠来的分要退回去（退杠分）',
   };
   return say[top[0]] ?? null;
 }
@@ -156,7 +177,8 @@ function handLine(v: XzView, seat: number, row: HTMLElement): void {
 
 export function matchSummary(v: XzView, names: string[], unit: string): HTMLElement {
   const box = el('div', 'summary final');
-  el('h2', '', box, '这一场打完了');
+  // 一场只打一局时不说「这一场」，局、场不混着用
+  el('h2', '', box, v.opts.rounds === 1 ? '这一局的名次' : '整场打完了');
   const r = v.result;
   if (!r) return box;
   const order = v.seats.map((_, i) => i).sort((a, b) => r.seats[b]!.net - r.seats[a]!.net);

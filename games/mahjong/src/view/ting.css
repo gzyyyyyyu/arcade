@@ -63,10 +63,11 @@
   font-size: var(--fs-sm);
   cursor: pointer;
 }
+/* 贴着顶栏：点按区不往上伸进顶栏（顶栏压在上面，伸进去也点不到），往下撑满 --tap（844×390 屏幕里只有 42 高） */
 .ting-drill .td-back::after {
   content: '';
   position: absolute;
-  inset: min(0px, calc((100% - var(--tap, 44px)) / 2));
+  inset: calc(-1 * var(--sp-2)) min(0px, calc((100% - var(--tap, 44px)) / 2)) min(0px, calc(100% - var(--tap, 44px) + var(--sp-2)));
 }
 .ting-drill .td-title {
   line-height: 1.2;
@@ -361,7 +362,7 @@
   font-size: var(--fs-sm);
   opacity: 0.85;
 }
-/* 成绩页的三个按钮等宽（原来分享 120、再练 430、回主页 150 差太多），离上面的成绩卡留出一截 */
+/* 成绩页的三个按钮等宽（宽度差太多难看），离上面的成绩卡留出一截 */
 .ting-drill .td-acts {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

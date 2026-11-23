@@ -32,7 +32,7 @@ export const FLOW_BASE_K = 2;
 /** 底分：一份 ÷ BASE_DIV，血流成河再 ÷ FLOW_BASE_K */
 export const baseOf = (share: number, rules?: { flow?: boolean }): number => Math.max(1, Math.floor(share / (BASE_DIV * (rules?.flow ? FLOW_BASE_K : 1))));
 
-/** 川麻实盘一局一结（2026-10-30）：一次买入到结算 3–6 分钟，不再是一场 8 局的 17–19 分钟 */
+/** 川麻实盘一局一结：一次买入到结算 3–6 分钟，不再是一场 8 局的 17–19 分钟 */
 export const REAL_ROUNDS = 1;
 
 /**

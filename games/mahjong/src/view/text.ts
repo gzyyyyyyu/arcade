@@ -68,7 +68,7 @@ export const TITLE_NAME: Record<string, string> = {
   xz_capped: '封顶',
   xz_heaven: '天胡',
   xz_earth: '地胡',
-  xz_last_stand: '血战到底',
+  xz_last_stand: '最后一个胡',
   rc_yakuman: '役满',
   rc_top: '一位',
   rc_iron_wall: '铁壁',
@@ -157,9 +157,9 @@ export const signed = (n: number): string => (n > 0 ? `+${num(n)}` : n < 0 ? `�
 export const PAY_KIND: Record<string, string> = {
   hu: '点炮',
   zimo: '自摸',
-  kan: '杠钱',
+  kan: '杠分',
   move: '呼叫转移',
-  tax: '退税',
+  tax: '退杠分',
   pig: '查花猪',
   cha: '查大叫',
 };
@@ -168,10 +168,10 @@ export const PAY_KIND: Record<string, string> = {
 export const NET_FAIL = '连不上服务器，筹码没动，过一会儿再试';
 export const ERR_REFRESH = '出了点问题，筹码没动，刷新一下再试';
 /** 单机实盘离开时没结回钱包：连不上，下次打开自动再结 */
-export const NET_SETTLE_LATER = '连不上服务器，筹码这次没结回钱包。下次打开雀馆会自动再结，按你离开时手上的数，不会少。';
+export const NET_SETTLE_LATER = '连不上服务器，筹码这次没带回钱包。下次打开雀馆会自动带回，按你离开时手上的数，不会少。';
 
 /**
- * 钱包和平台的错误给玩家看的一句话（docs/platform-backend.md 15.10 的对照表）：说清出了什么事、怎么办，不只回错误码。
+ * 钱包和平台的错误给玩家看的一句话（docs/api.md 15.10 的对照表）：说清出了什么事、怎么办，不只回错误码。
  * fix 是页面可以给的办法（按钮）
  */
 export function walletError(code: string, retryAfter?: number): { text: string; fix?: 'less' | 'wallet' | 'refresh' } {
@@ -179,7 +179,7 @@ export function walletError(code: string, retryAfter?: number): { text: string; 
     case 'no_funds':
       return { text: '钱包里的筹码不够一份，换个小一点的档位，或者去大厅领补给', fix: 'less' };
     case 'limit':
-      return { text: '今天开局太多了，明早 0 点恢复；桌上的照常结回。娱乐局照常能玩' };
+      return { text: '今天开局太多了，明早 0 点恢复；桌上的照常带回。娱乐局照常能玩' };
     case 'at_table':
       return { text: '这一桌带的是别的档，换一桌再开' };
     case 'expired':
@@ -191,7 +191,7 @@ export function walletError(code: string, retryAfter?: number): { text: string; 
     case 'internal':
       return { text: NET_FAIL };
     case 'rate_limited':
-      // 限流不怪玩家「太快、太频繁」（所有者：对用户无感的限速），只说服务器忙、什么时候再来
+      // 限流不怪玩家「太快、太频繁」（限速对用户应当无感），只说服务器忙、什么时候再来
       return { text: `服务器这会儿忙，${retryAfter ? `${Math.ceil(retryAfter / 60)} 分钟后` : '过一会儿'}再试` };
     case 'login':
       return { text: '登录过期了，重新登录再来', fix: 'refresh' };
@@ -209,8 +209,8 @@ export const ROOM_TEXTS: RoomTexts = {
   has_room: '你已经开着一个房间了，先回去打完再开新的',
   daily_limit: '今天开房次数用完了，明天再来',
   bad_options: '房间设置不对，换一个再开',
-  roomClosed: '房间关了，桌上的筹码已经结回钱包',
-  quota: '今天联机的人太多了，这一局打完先散了，桌上的筹码结回钱包，单机照常玩',
+  roomClosed: '房间关了，桌上的筹码已经带回钱包',
+  quota: '今天联机的人太多了，这一局打完先散了，桌上的筹码带回钱包，单机照常玩',
   noRoom: '没有这个房间：码不对，或者房间已经散了',
 };
 

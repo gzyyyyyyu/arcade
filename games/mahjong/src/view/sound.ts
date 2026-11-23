@@ -66,7 +66,7 @@ export function unlockAudio(): void {
   }
 }
 
-// ---------- 茶馆底噪（docs/art.md，0.17.4） ----------
+// ---------- 茶馆底噪（docs/art.md） ----------
 // 很轻的一层：低处是屋里嗡嗡的人声（两层滤波噪声，一层慢慢起伏），隔十来秒一声盖碗碰茶托。
 // 走总音量（master），所以跟着"静音"和音量滑块走；设置里还能单独关（prefs.ambience）。页面切到后台就停，回来再起。
 
@@ -110,7 +110,7 @@ function startAmbience(): void {
   };
   const low = layer('lowpass', 320, 0.5, 1);
   const talk = layer('bandpass', 650, 0.8, 0.5);
-  // 人声的起伏：一个 0.13 赫兹的慢波推着中频那层的音量（0.5 ± 0.35）
+  // 人声的起伏：一个 0.13 赫兹的慢波推着中频那层的音量
   const lfo = c.createOscillator();
   lfo.frequency.value = 0.13;
   const depth = c.createGain();

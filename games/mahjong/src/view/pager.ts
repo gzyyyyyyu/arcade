@@ -29,7 +29,7 @@ export function paginate(page: HTMLElement, at = 0, split?: string): void {
   const label = el('span', 'pg-at', bar, '1 / 1');
   const next = button('chip pg-next', bar, '›', () => go(cur + 1));
   const max = page.clientHeight;
-  // 宽度也钉住：弹窗按内容收宽，全部内容摆着时最宽，切开以后窄的那页（只有几行明细）会让弹窗缩一截，翻页时忽宽忽窄（11-02 试玩，立直结算）
+  // 宽度也钉住：弹窗按内容收宽，全部内容摆着时最宽，切开以后窄的那页（只有几行明细）会让弹窗缩一截，翻页时忽宽忽窄（立直结算）
   const wide = page.getBoundingClientRect().width / scaleOf(page);
   const units = unitsOf(page, max, split);
   const starts = cut(page, units);

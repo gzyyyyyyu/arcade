@@ -76,7 +76,7 @@
   height: 20px;
 }
 /* 静音时齿轮右下角一个小「静」：声音状态不用点开也看得到。用 ::before：::after 是撑大点按区的隐形层（buttons.css），
- * 两套定位叠在一起时角标被撑成一大块红圆、盖住齿轮（11-22 走查） */
+ * 两套定位叠在一起时角标被撑成一大块红圆、盖住齿轮 */
 .icon.gear.muted::before {
   content: '静';
   position: absolute;
