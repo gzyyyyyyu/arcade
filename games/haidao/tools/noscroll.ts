@@ -51,7 +51,7 @@ if (!OUT) {
 }
 mkdirSync(OUT, { recursive: true });
 const ONLY_SCREEN = opt('--only');
-/** --group <流程名片段>：只跑名字含这段的流程（基地 / 海图 / 航线 / 护航 / 守岛选关 / 守岛局内 / 海盗来袭 / 大潮 / 登陆战 / 悬赏守岛 / 打玩家） */
+/** --group <流程名片段>：只跑名字含这段的流程（基地 / 海图 / 航线 / 护航 / 守岛选关 / 守岛深度 / 守岛局内 / 海盗来袭 / 大潮 / 登陆战 / 悬赏守岛 / 打玩家） */
 const ONLY_GROUP = opt('--group');
 
 const VIEWS = [
@@ -65,7 +65,7 @@ const VIEWS = [
 ];
 const ONLY = opt('--view')?.split(',') ?? VIEWS.map((v) => v.name);
 
-type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { slots: Array<{ x: number; y: number; tower: number; wreck: boolean }> }; ready?: boolean; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean): void; load(p: Profile): void }; where?(k: string): { x: number; y: number } | null; focusOn?(k: string, z: number): boolean };
+type Hook = { tdPt?(x: number, y: number): { x: number; y: number }; tdInfo?(): { slots: Array<{ x: number; y: number; tower: number; wreck: boolean; garrison: boolean }> }; ready?: boolean; scene?: string; dev?: { give(g: number, w: number, s: number): void; td(hq: number, branch?: boolean, hero?: number, deep?: boolean): void; load(p: Profile): void }; where?(k: string): { x: number; y: number } | null; focusOn?(k: string, z: number): boolean };
 
 // ---------------------------------------------------------------- --pvp 的假平台
 
@@ -625,10 +625,10 @@ try {
       }
     };
     /** branch：塔选上分叉（一档、两档交替），驻守台卡片上的分叉牌才量得到挤压 */
-    const fresh = async (hq = 5, q = '?dev', branch = false): Promise<void> => {
+    const fresh = async (hq = 5, q = '?dev', branch = false, deep = false): Promise<void> => {
       await page.goto(`${ROOT}${q}`, { timeout: 60_000 });
       await ready();
-      await page.evaluate(([h, br]) => (window as unknown as { __haidao: Hook }).__haidao.dev?.td(h, br), [hq, branch] as const);
+      await page.evaluate(([h, br, dp]) => (window as unknown as { __haidao: Hook }).__haidao.dev?.td(h, br, undefined, dp), [hq, branch, deep] as const);
       await page.waitForTimeout(900);
     };
     const closeSheet = async (): Promise<void> => {
@@ -800,6 +800,13 @@ try {
         await page.locator('.hd-map').first().waitFor({ timeout: 8000 });
         await snap('出海海图', 700);
       });
+      await attempt('每日三件小事', async () => {
+        await click('.hd-goals-card');
+        await page.locator('.hd-goals').first().waitFor({ timeout: 5000 });
+        await snap('每日三件小事', 400);
+        await click('.hd-goals button:has-text("关")');
+        await page.waitForTimeout(300);
+      });
       await attempt('海图岛屿面板', async () => {
         await page.locator('.hd-map .hd-node:has(.hd-num:text-is("1"))').first().dispatchEvent('click');
         await snap('海图岛屿面板', 400);
@@ -908,6 +915,58 @@ try {
         await click(`.hd-tdcard button[data-level="${GARRISON_LEVEL.id}"]`);
         await page.locator('.hd-tdgar').first().waitFor({ timeout: 8000 });
         await snap('驻守台选塔面板', 400);
+      });
+    });
+
+    // ---- 守岛深度玩法：全 3 星带徽章的存档。选关页天赋钮和「老兵 · 挑战」、天赋页、驻守台面板打法钮、塔面板终极卡
+    await group('守岛深度', async () => {
+      await fresh(10, '?dev', true, true);
+      await click('.hd-bottom button:has-text("守岛")');
+      await page.locator('.hd-tdtab').first().waitFor({ timeout: 8000 });
+      await click('.hd-tdtab[data-chapter="1"]');
+      await attempt('守岛选关页（老兵 · 挑战、天赋钮）', () => snap('守岛选关页（老兵 · 挑战、天赋钮）', 400));
+      await attempt('海图天赋页', async () => {
+        await click('.hd-tdsel-talent');
+        await page.locator('.hd-tdtalent').first().waitFor({ timeout: 5000 });
+        await snap('海图天赋页', 400);
+        await click('.hd-tdtalent button:has-text("好了")');
+        await page.waitForTimeout(300);
+      });
+      await attempt('驻守台面板（打法钮）', async () => {
+        if (!GARRISON_LEVEL) throw new Error('关卡表里没有带驻守台的关');
+        await click(`.hd-tdtab[data-chapter="${GARRISON_LEVEL.chapter}"]`);
+        await page.waitForTimeout(300);
+        for (let k = 0; k < 3 && !(await page.locator(`.hd-tdcard button[data-level="${GARRISON_LEVEL.id}"]`).count()); k++) await click('.hd-tdpg-next');
+        await click(`.hd-tdcard button[data-level="${GARRISON_LEVEL.id}"]`);
+        await page.locator('.hd-tdgar').first().waitFor({ timeout: 8000 });
+        await snap('驻守台面板（打法钮）', 400);
+      });
+      await attempt('塔面板（3 阶终极卡）', async () => {
+        // 驻守台挑一座 3 阶、两档分叉都选了的火枪塔 / 加农炮 / 臼炮，开打后点它
+        const ok = await page.evaluate(() => {
+          for (const c of document.querySelectorAll<HTMLElement>('.hd-tdgar-card')) {
+            if (!['gunTower', 'cannon', 'mortar'].includes(c.dataset.kind ?? '')) continue;
+            if (!c.querySelector('.hd-tdgar-tier')?.textContent?.includes('3 阶') || c.querySelectorAll('.hd-chip').length < 2) continue;
+            c.click();
+            return true;
+          }
+          return false;
+        });
+        if (!ok) throw new Error('驻守台没有 3 阶两档分叉的炮塔可选');
+        if (v.hasTouch) await click('.hd-tdgar-go');
+        else await page.keyboard.press('Space');
+        await sceneIs('td', 40_000);
+        await page.waitForTimeout(1500);
+        const slots = (await info()).slots;
+        for (const sl of slots) {
+          if (!sl.garrison || sl.tower < 0) continue;
+          const p = await pt(sl.x, sl.y);
+          await tap(p.x, p.y);
+          await page.waitForTimeout(500);
+          if (await page.locator('.hd-td-ult').count()) return snap('塔面板（3 阶终极卡）', 100);
+          await closeSheet();
+        }
+        throw new Error('点遍驻守塔都没出终极卡');
       });
     });
 

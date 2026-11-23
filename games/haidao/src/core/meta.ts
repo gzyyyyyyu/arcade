@@ -1,5 +1,5 @@
 /** 每日悬赏和成就：纯函数，画面传天数（北京时间的天数）和档案进来 */
-import { BUILDINGS, CAMPAIGN, income } from '../content/index.ts';
+import { BUILDINGS, CAMPAIGN, LEAGUES, income } from '../content/index.ts';
 import { hqLevel, totalStars } from './base.ts';
 import { Rng, hash32 } from './rng.ts';
 import { ISLAND } from './types.ts';
@@ -34,7 +34,7 @@ export function dailyBounty(dayIndex: number, p: Profile): { levelId: string; la
   };
 }
 
-export interface Achievement {
+interface Achievement {
   id: string;
   name: string;
   desc: string;
@@ -58,6 +58,12 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'daily_7', name: '七日悬赏', desc: '累计完成 7 次每日悬赏', title: '悬赏大师' },
   { id: 'loot_100k', name: '金山银海', desc: '累计抢到 10 万金币', title: '大财主' },
   { id: 'clear_all', name: '海盗王', desc: '30 座岛全部通关', title: '海盗王' },
+  { id: 'pvp_three', name: '洗劫一空', desc: '第一次三星抢下真人的岛', title: '劫掠者' },
+  { id: 'revenge_1', name: '以牙还牙', desc: '复仇打赢一次', title: '复仇者' },
+  { id: 'hold_5', name: '铜墙铁壁', desc: '守住 5 次（对方 0 星）', title: '守岛人' },
+  { id: 'league_2', name: '双桅船长', desc: `奖杯到 ${LEAGUES[2]!.min}（双桅段位）` },
+  { id: 'league_4', name: '战舰舰长', desc: `奖杯到 ${LEAGUES[4]!.min}（战舰段位）`, title: '战舰舰长' },
+  { id: 'league_6', name: '一方海王', desc: `奖杯到 ${LEAGUES[6]!.min}（海王段位）`, title: '一方海王' },
 ];
 
 /** 新达成的成就 id（已在 p.achievements 里的不重复返回）；stats 缺字段按 0 */
@@ -83,6 +89,12 @@ export function checkAchievements(p: Profile, stats: Profile['stats'] = p.stats)
     daily_7: (stats.dailyDone ?? 0) >= 7,
     loot_100k: stats.lootGold >= 100000,
     clear_all: cleared >= CAMPAIGN.length,
+    pvp_three: (stats.pvpThree ?? 0) >= 1,
+    revenge_1: (stats.revengeWins ?? 0) >= 1,
+    hold_5: (stats.holds ?? 0) >= 5,
+    league_2: (stats.bestTrophies ?? 0) >= LEAGUES[2]!.min,
+    league_4: (stats.bestTrophies ?? 0) >= LEAGUES[4]!.min,
+    league_6: (stats.bestTrophies ?? 0) >= LEAGUES[6]!.min,
   };
   return ACHIEVEMENTS.filter((a) => ok[a.id] && !have.has(a.id)).map((a) => a.id);
 }

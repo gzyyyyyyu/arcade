@@ -125,7 +125,7 @@ ${W} .hd-key { display:none; }
   ${W} .hd-cards .hd-skill.off::before { left:6px; right:6px; bottom:2px; height:4px; border-width:1px; }
   ${W} .hd-cards .hd-boat small { display:none; }
   ${W} .hd-cards .hd-boat .hd-img { height:26px !important; width:auto !important; }
-  /* 四种兵以上：「图标 + 火枪手 ×24」一张约 130 宽，第 4 张挤出屏外、也没有能横滑的样子。改成平分一排、图标在上字在下（12 号），
+  /* 四种兵以上：「图标 + 火枪手 ×24」一张约 130 宽，第 4 张挤出屏外、也没有能横滑的样子。所以平分一排、图标在上字在下（12 号），
      390 宽四张各约 88、360 宽五张各约 62，都放得下；再多才横滑 */
   ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat { flex:1 1 0; min-width:58px; max-width:110px; flex-direction:column; gap:0; padding:0 2px; }
   ${W} .hd-cards .hd-boats:has(> .hd-boat:nth-child(4)) .hd-boat .hd-img { height:20px !important; }
@@ -328,7 +328,7 @@ ${LAND} {
   ${W} .hd-result > * { grid-column:2; margin-top:2px; margin-bottom:2px; }
   ${W} .hd-result > h2 { grid-column:1 / -1; }
   ${W} .hd-result > .hd-stars, ${W} .hd-result > .hd-big, ${W} .hd-result > .hd-loot { grid-column:1; justify-self:center; }
-  /* 拿了什么的几行（连胜、安慰奖、满仓少拿、掉落、悬赏）也放左栏：以前只有三项在左边，右栏堆五六项（失败原因框约 130 高）超过 358，
+  /* 拿了什么的几行（连胜、安慰奖、满仓少拿、掉落、悬赏）也放左栏：都堆在右栏的话五六项（失败原因框约 130 高）超过 358，
      居中后标题顶出屏外、「回岛」被切 */
   ${W} .hd-result > :is(.hd-streak, .hd-consol, .hd-cutline, .hd-chips, .hd-bountyline) { grid-column:1; justify-self:stretch; }
   ${W} .hd-result .hd-advice { margin:2px 0; padding:6px 10px; }

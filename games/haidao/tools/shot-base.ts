@@ -189,7 +189,7 @@ export async function home(c: ShotCtx): Promise<boolean> {
       await shot('home-result');
       await check('海盗来袭结算');
       const txt = (await page.locator('.hd-home-result').textContent()) ?? '';
-      if (!/撑住 \d+ 波/.test(txt)) throw new Error(`结算页文字不对：${txt}`);
+      if (!/撑过 \d+ 波/.test(txt)) throw new Error(`结算页文字不对：${txt}`);
       if (await page.locator('.hd-home-result .hd-td-starrow').count()) throw new Error('海盗来袭不该有星星');
     })) &&
     (await step('回岛', async () => {

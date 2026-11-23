@@ -3,6 +3,8 @@
  */
 import { BUILDINGS } from '../content/index.ts';
 import { TD_BRANCH_MOD } from '../content/tdbranches.ts';
+import { TD_ULT_BY_ID } from '../content/tdults.ts';
+import type { TdUltDef } from '../content/tdults.ts';
 import { TD_HERO_LIGHT } from '../content/tdunits.ts';
 import { TD2_BOSS_EXTRA_TICKS, TD2_CLIFF, TD2_COST, TD2_ENEMIES, TD2_HERO, TD2_NAV, TD2_SHOCK_STUN, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
@@ -12,6 +14,8 @@ import { UNIT } from './types.ts';
 import type { BuildingKind } from './types.ts';
 import { TD_BURN_DAMAGE, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
 import type { EscortState } from './escorttypes.ts';
+import type { TdDeep } from './tddeep.ts';
+import type { TdCamp } from './tdcamp.ts';
 import type { TdArmor, TdBarricade, TdDamage, TdMode, TdTier, TdTowerKind } from './td2types.ts';
 import type { TdBlock, TdEnemy, TdEnemyKind, TdEvent, TdEventKind, TdHero, TdLevel, TdSlot, TdTower, TdWall } from './tdtypes.ts';
 
@@ -40,6 +44,8 @@ interface TowerStats extends Hit {
   pull: number;
   /** 震荡炮：命中震晕几拍；别的塔 0 */
   stun: number;
+  /** 换了终极（content/tdults.ts）：特色效果按这张表的 every、airSlow、bossPct、push、rain 结算 */
+  ult?: TdUltDef;
 }
 
 /** 延迟结算的命中：弹丸飞到了才算 */
@@ -67,6 +73,9 @@ export interface Pend {
   sy?: number;
   /** 从崖上的高台往下打（盾挡不住） */
   above?: true;
+  /** 终极塔：打首领的倍率、往回推几拍（td.ts 的 Blast） */
+  bossPct?: number;
+  push?: number;
 }
 
 export interface Trap {
@@ -172,6 +181,12 @@ export interface TdState {
    * at 是开局挑好的哪一波发生什么（战役），dare 是接了战书的波（0 起）
    */
   happen?: { at: Array<{ wave: number; kind: TdEventKind }>; dare: number[] };
+  /** 终极、先打、老兵、挑战、天赋（tddeep.ts）：只在战役和海盗来袭有 */
+  deep?: TdDeep;
+  /** 这一局能造水手营（tdcamp.ts 的 campEnabled） */
+  campOn?: true;
+  /** 水手营（造了第一座才有） */
+  camps?: TdCamp[];
   internal: unknown;
 }
 
@@ -213,7 +228,7 @@ function damageOf(kind: BuildingKind): TdDamage {
  * 塔的数值：局内塔（有 tier）读 td2units 的阶表，常驻塔（海盗来袭、悬赏、大潮岛上的）和陷阱读基地等级表；
  * 再加分叉（tdbranches.ts 的守岛解释）和基地加成。射程、溅射从"格"换成单位；百分比都按整数算。
  */
-export function statsOf(kind: BuildingKind, level: number, tier: TdTier | undefined, branch: readonly string[], bonusPct: number): TowerStats {
+export function statsOf(kind: BuildingKind, level: number, tier: TdTier | undefined, branch: readonly string[], bonusPct: number, ult?: string): TowerStats {
   const st: TowerStats = { ...NO_MOD, dt: damageOf(kind), branch: [...branch] };
   if (tier !== undefined && isTdTowerKind(kind)) {
     const t = td2TierStats(kind, tier);
@@ -265,14 +280,32 @@ export function statsOf(kind: BuildingKind, level: number, tier: TdTier | undefi
   st.reload = Math.max(4, Math.floor((st.reload * reloadPct) / 100));
   st.range = Math.floor((st.range * rangePct) / 100);
   if (st.slowPct > 0 && st.slowTicks === 0) st.slowTicks = 40;
+  const u = ult === undefined ? undefined : TD_ULT_BY_ID.get(ult);
+  if (u && u.tower === kind) ultMod(st, u);
   return st;
+}
+
+/** 终极：在 3 阶（含分叉）的数上再乘一层，特色效果挂在 st.ult 上由 td.ts 结算 */
+function ultMod(st: TowerStats, u: TdUltDef): void {
+  st.ult = u;
+  st.dmg = Math.floor((st.dmg * u.dmgPct) / 100);
+  if (u.reloadPct) st.reload = Math.max(4, Math.floor((st.reload * u.reloadPct) / 100));
+  if (u.rangePct) st.range = Math.floor((st.range * u.rangePct) / 100);
+  if (u.splash) st.splash = Math.max(st.splash, u.splash);
+  if (u.shots) st.shots = u.shots;
+  if (u.light) st.light = Math.max(st.light, u.light);
+  if (u.stun) st.stun = Math.max(st.stun, u.stun);
+  if (u.burn) {
+    st.burnDps = Math.max(st.burnDps, u.burn.dps);
+    st.burnTicks = Math.max(st.burnTicks, u.burn.ticks);
+  }
 }
 
 export function towerStats(s: TdState, t: TdTower): TowerStats {
   const I = inner(s);
   let st = I.stats.get(t.id);
   if (!st) {
-    st = statsOf(t.kind, t.level, t.tier, t.branch, isTdTowerKind(t.kind) ? (I.bonus[t.kind] ?? 0) : 0);
+    st = statsOf(t.kind, t.level, t.tier, t.branch, isTdTowerKind(t.kind) ? (I.bonus[t.kind] ?? 0) : 0, t.ult);
     if (onHigh(s, t)) highReach(st);
     I.stats.set(t.id, st);
   }
@@ -362,6 +395,10 @@ export function ensureGrid(s: TdState): void {
   for (const t of s.towers) {
     if (t.slot < 0) continue;
     for (let ox = 0; ox < t.size; ox++) for (let oy = 0; oy < t.size; oy++) I.occ[cellIdx(t.x + ox, t.y + oy)] = 2;
+  }
+  for (const c of s.camps ?? []) {
+    const sl = s.slots[c.slot];
+    if (sl) for (let ox = 0; ox < 2; ox++) for (let oy = 0; oy < 2; oy++) I.occ[cellIdx(sl.x + ox, sl.y + oy)] = 2;
   }
   I.flow.clear();
   I.gridVer = I.ver;

@@ -115,6 +115,11 @@ export class FakePvp {
         return r.fulfill({ status: res.status, contentType: 'application/json', body: text });
       }
       if (u.pathname === '/api/wallet') return json({ wallet: { balance: this.bank.balance } });
+      // 平台每周榜（攻防打完交本周奖杯、大潮交分）：回「交上了」，--tide 自己另拦一层核对请求体
+      if (u.pathname === '/api/scores' && req.method() === 'POST') {
+        const sc = Number((JSON.parse(req.postData() ?? '{}') as { score?: number }).score ?? 0);
+        return json({ best: sc, improved: true });
+      }
       if (u.pathname.startsWith('/api/live/') || u.pathname.startsWith('/api/td/') || u.pathname.startsWith('/api/escort/') || u.pathname.startsWith('/api/map/')) {
         const url = new URL(`/games/haidao${u.pathname}${u.search}`, u.origin);
         const body = req.postData();

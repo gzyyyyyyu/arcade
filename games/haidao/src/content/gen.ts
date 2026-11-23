@@ -277,7 +277,7 @@ export const TUNE: Tune = {
   26: { lv: 5, up: 4, lvBy: { sniper: 5, shock: 5 }, pos: 'EDGE' },
   27: { lv: 4, up: 8, lvBy: { sniper: 4, shock: 4 } },
   28: { lv: 5, up: 4, lvBy: { sniper: 5, shock: 5 }, pos: 'EDGE' },
-  // c29 少一座火箭塔：南面登陆正对两座火箭，小白从南面上岸只赢 28%，比终关 c30 还难（0.31.23，小白 59% → 74%，普通不变）
+  // c29 少一座火箭塔：南面登陆正对两座火箭，小白从南面上岸只赢 28%，比终关 c30 还难
   29: { lv: 6, up: 8, add: { sniper: 1, rocket: -1 }, lvBy: { sniper: 6, shock: 6 }, pos: 'EDGE' },
 };
 

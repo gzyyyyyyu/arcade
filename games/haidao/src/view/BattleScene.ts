@@ -8,7 +8,8 @@ import { botActions, canLand, createBattle, rankOf, stepBattle } from '../core/i
 import { MAP_LAYERS, MAP_STOP_TICKS } from '../core/maptypes.ts';
 import { FIRST_TIP, SCOUT_TIP, holdScout } from './battlescout.ts';
 import { scoutRings } from './battleranges.ts';
-import { BEACH, ISLAND, TICKS_PER_SEC, UNIT, type BattleAction, type BattleState, type BBuilding, type BUnit, type Placed, type TroopKind } from '../core/types.ts';
+import { BEACH, ISLAND, TICKS_PER_SEC, UNIT, type BattleAction, type BattleState, type BBuilding, type BUnit, type Placed, type Res, type TroopKind } from '../core/types.ts';
+import type { LootShare } from '../core/pvp.ts';
 import { app } from './app.ts';
 import { shipA, troopF } from './art.ts';
 import { bakeSome } from './textures.ts';
@@ -171,7 +172,7 @@ export class BattleScene extends Phaser.Scene {
   /** 航线站：每条船登陆时放下的兵（land 事件的 units），结束时数活着的；顶栏的站名条 */
   lands: number[][] = [];
   mapEl: { pts: HTMLElement; bar: HTMLElement; lastPct: number } | null = null;
-  lootEl: { gold: HTMLElement; wood: HTMLElement; box: HTMLElement; lastPct: number } | null = null;
+  lootEl: { gold: HTMLElement; wood: HTMLElement; box: HTMLElement; plan: LootShare[]; last: Res } | null = null;
 
   constructor() {
     super('battle');
@@ -335,7 +336,7 @@ export class BattleScene extends Phaser.Scene {
     const rs = this.st.buildings.map((b) => [Math.max(lo, b.x - BEACH), Math.max(lo, b.y - BEACH), Math.min(hi, b.x + b.size - 1 + BEACH), Math.min(hi, b.y + b.size - 1 + BEACH)] as const);
     // 主寨（外扩 1 格）必须在屏内：竖屏放大档、全景都按它保证，进场不再只露岛的左缘
     const hq = this.st.buildings.find((b) => b.kind === 'hq');
-    // 横屏和电脑也贴着内容盒（tight）：以前按含沙滩的整岛适配、缩放封顶 1.5，1280 上岛只占三成、兵二十来像素；缩出去照样看全岛
+    // 横屏和电脑也贴着内容盒（tight）：按含沙滩的整岛适配、缩放封顶 1.5 的话，1280 上岛只占三成、兵二十来像素；缩出去照样看全岛
     // 竖屏开场停在全景侦察（看得到所有红圈），选船卡时再推到登陆那一侧；航线一站本来就推得浅，训练营有自己的分步镜头，回放不用侦察
     const scoutPano = !this.d.map && !this.d.train && !this.d.pvp?.replay;
     return { box: cellsBox(rs, 0), tight: true, zCap: BATTLE_Z_CAP, scoutPano, ...(this.d.map ? { nearCap: MAP_NEAR } : {}), ...(hq ? { must: cellsBox([[hq.x, hq.y, hq.x + hq.size - 1, hq.y + hq.size - 1]], 1) } : {}) };

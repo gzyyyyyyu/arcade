@@ -10,6 +10,8 @@
  *   curve   稳机器人的三星率随预算百分比怎么变（--pcts 70,85,100,115,130），配平时找"预算差多少才对上目标"用。
  * --drop keg,hook 机器人不放这几种操作（英雄技能的操作名：barricade 拒马、keg 炸药桶、hook 锚钩、flag 急射旗、reward 重赏），法术「放 / 不放」对照用。
  * --hero nav 带航海士；每格另记经济：局末没花掉的金币占收入的比例（余金）、第几波开打时木台全都是三阶塔（升满阶，没升满的局不算，另给升满的局占比）。
+ * --vet 打老兵档（存档按全 3★）；--talent full（或逗号分隔的格 id）点上一套 22 点的天赋（炮台、英雄前 3 格，补给 4 格；存档按全 3★ + 全老兵徽）；
+ *   --noult 不开终极塔（和开了的对照；默认按 td06 有星就开，养成存档全 1★）。
  * 默认只跑 main；全部：--parts main,anti,hero,care,budget。大批量拆成每关一片在 CI 上跑（--json 出可合并的汇总），
  * 再 `node tools/td-sim.ts --merge 片1.json 片2.json …` 合并成表（本机只跑小样本，用 nice）。
  */
@@ -20,6 +22,9 @@ import type { TdArmor, TdBotKind, TdBotOpts, TdGrowth, TdSetup } from '../src/co
 import { diffTarget, offMark, progressOf } from '../src/content/difficulty.ts';
 import { buildLevel, TD2_LEVEL_DEFS } from '../src/content/td2levels.ts';
 import { argv, flag, num, opt } from './args.ts';
+import { TD2_LEVEL_BY_ID } from '../src/content/tdmaps.ts';
+import { startTd2, tdAutoPicks, tdGrowthProfile } from '../src/core/tdrun.ts';
+import type { Profile, Result } from '../src/core/types.ts';
 
 // ---------------------------------------------------------------- 参数
 
@@ -31,6 +36,11 @@ const parts = new Set((opt('--parts') ?? 'main').split(','));
 const pcts = (opt('--pcts') ?? '70,85,100,115,130').split(',').map(Number);
 const hero = opt('--hero') === 'nav' ? ('nav' as const) : undefined;
 const drop = new Set((opt('--drop') ?? '').split(',').filter(Boolean));
+const vet = flag('--vet');
+const talentOpt = opt('--talent');
+const talentFull = talentOpt !== undefined;
+const noUlt = flag('--noult');
+const FULL_TALENT = talentOpt && talentOpt !== 'full' ? talentOpt.split(',') : ['tower1', 'tower2', 'tower3', 'hero1', 'hero2', 'hero3', 'supply1', 'supply2', 'supply3', 'supply4'];
 
 // ---------------------------------------------------------------- 一局
 
@@ -74,11 +84,22 @@ function play(setup: TdSetup, kind: TdBotKind, o: TdBotOpts): Played {
 
 /** 养成三档：zero 零养成、suggest 建议养成、max 满养成（tdGrowthSetup）；预算不是 100 时换成按百分比缩放的波次 */
 function setupOf(id: string, seed: number, growth: TdGrowth, budgetPct = 100): TdSetup {
-  const r = tdGrowthSetup(id, growth, seed, hero);
+  const r = vet || talentFull ? deepSetup(id, seed, growth) : tdGrowthSetup(id, growth, seed, hero);
   if (!r.ok) throw new Error(`${id}: ${r.error}`);
+  if (noUlt) delete r.value.ult;
   if (budgetPct === 100) return r.value;
   const def = TD2_LEVEL_DEFS.find((d) => d.id === id)!;
   return { ...r.value, level: buildLevel(def, budgetPct) };
+}
+
+/** 老兵档、天赋：养成存档改成全 3★（天赋再加全老兵徽，够点数）后照 startTd2 开局 */
+function deepSetup(id: string, seed: number, growth: TdGrowth): Result<TdSetup> {
+  const lv = TD2_LEVEL_BY_ID.get(id)!;
+  const p0 = tdGrowthProfile(lv, growth, hero);
+  const all = Object.fromEntries(Object.keys(p0.td!.stars).map((k) => [k, 3]));
+  const marks = Object.fromEntries(Object.keys(p0.td!.stars).map((k) => [k, 1 as const]));
+  const p: Profile = { ...p0, td: { ...p0.td!, stars: all, ...(talentFull ? { vet: marks, talent: FULL_TALENT } : {}) } };
+  return startTd2(p, id, seed, tdAutoPicks(p, id), vet ? 'vet' : 'normal');
 }
 
 // ---------------------------------------------------------------- 汇总

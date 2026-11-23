@@ -1,13 +1,14 @@
 export * from './defs.ts';
 export { BUILDINGS, BUILDING_KINDS, DEFENSE_KINDS, isDecoKind } from './buildings.ts';
-export { TROOPS, SKILLS, SHIELD, TROOP_KINDS, SKILL_KINDS } from './troops.ts';
-export { TROOP_INTEL, defenseMatchups, type TroopIntel } from './intel.ts';
+export { TROOPS, SKILLS, SHIELD, TROOP_KINDS } from './troops.ts';
+export { TROOP_INTEL, defenseMatchups } from './intel.ts';
 export { HQ_LEVELS } from './hq.ts';
-export { RANKS, RANK_HQ, type PirateRank } from './rank.ts';
+export { RANKS, RANK_HQ } from './rank.ts';
+export { LEAGUES, type League } from './league.ts';
 export { CAMPAIGN } from './campaign.ts';
 export { INCOME_PCT, REPLAY_PCT, income } from './income.ts';
 export { TD_BONUS_PER_STAR, TD_CAP_RUNS, TD_RUN_RAIDS, TD_RUN_REWARD, TD_STAR_PCT } from './tdreward.ts';
-export { BRANCHES, BRANCH_BY_ID, BRANCH_LEVEL, ANTI_AIR, PIERCE, branchOptions } from './branches.ts';
+export { BRANCHES, BRANCH_BY_ID, BRANCH_LEVEL, branchOptions } from './branches.ts';
 export * from './tdunits.ts';
 export * from './escortmaps.ts';
 export * from './escortlevels.ts';

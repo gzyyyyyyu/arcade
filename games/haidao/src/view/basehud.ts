@@ -30,7 +30,7 @@ export function retexture(bs: BaseScene, n: Node, b: Placed): void {
   if (b.kind !== 'wall') bs.env.dress(n.img, b.kind, b.level, b.id);
 }
 
-/** 收取气泡的底（圆 + 小尖角）：按渲染倍数画一次成贴图。以前每个气泡是一个 Graphics，满配岛上十几个每帧都要重新三角化 */
+/** 收取气泡的底（圆 + 小尖角）：按渲染倍数画一次成贴图：每个气泡一个 Graphics 的话，满配岛上十几个每帧都要重新三角化 */
 const BUBBLE_O = { x: 22, y: 22, w: 44, h: 52 };
 function bubbleTex(bs: BaseScene): string {
   const key = `ui.bubble.${bs.r}`;
@@ -106,7 +106,7 @@ export function collectFly(bs: BaseScene, kind: 'gold' | 'wood', from: { x: numb
  * 花钱的反馈：顶栏的资源条抖一下，牌子下半截冒一个红色的 -N 往上飘着淡掉（升级、建造、研究都走这里；收取有自己的飞币）。
  * 不往下飘：手机竖屏顶栏两行，往下会撞在第二行的「训练营」上
  */
-export function spendFx(bs: BaseScene, kind: 'gold' | 'wood', amount: number): void {
+function spendFx(bs: BaseScene, kind: 'gold' | 'wood', amount: number): void {
   const pill = bs.hud[kind];
   pill.animate([{ transform: 'scale(1)' }, { transform: 'scale(.93)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' });
   const a = pill.getBoundingClientRect();

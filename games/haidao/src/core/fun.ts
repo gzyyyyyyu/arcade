@@ -39,7 +39,7 @@ function allyPoint(rng: Rng, ext: number): { x: number; y: number } {
 }
 
 /** 援军的规模：总血量约占玩家船队的 hpPct%，种类由流抽，等级取船队平均 */
-export function allyPlan(setup: BattleSetup, rng: Rng): AllyPlan {
+function allyPlan(setup: BattleSetup, rng: Rng): AllyPlan {
   const at = FUN.ally.atMin + rng.int(FUN.ally.atSpan);
   const p = allyPoint(rng, setup.ext ?? 0);
   const kind = FUN.ally.kinds[rng.int(FUN.ally.kinds.length)] ?? 'sailor';

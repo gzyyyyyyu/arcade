@@ -394,7 +394,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
     }
     case 'grab': {
       // 摸到宝藏箱抢走：箱子抖、飘"-N"、宝藏牌变红。整屏红闪只留给真被带走（escape）：抢走还能追回，
-      // 以前抢一下就闪一下，第 3 波以后屏幕几乎一直是红的，和红色的屏外敌人角标、伤害字混成一片
+      // 抢一下就闪一下的话，第 3 波以后屏幕几乎一直是红的，和红色的屏外敌人角标、伤害字混成一片
       sfx('error');
       const sp = bs.esp.get(e.id);
       const src = chestNear(bs, sp ? sp.px : 0, sp ? sp.py : 0);
@@ -487,7 +487,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
 }
 
 /** 结算的「原因」要用的局内记录：敌人信息趁它还在时缓存，宝藏真丢了（escape）才记一笔，护航每口咬船记一笔，英雄倒下记次数 */
-/** 炮艇的炮弹飞几拍（规则里没有飞行时间，同一拍就炸哑了塔；0.4 秒，和以前的表演一样长） */
+/** 炮艇的炮弹飞几拍（规则里没有飞行时间，同一拍就炸哑了塔；0.4 秒） */
 const SHELL_FLY = 8;
 
 /**

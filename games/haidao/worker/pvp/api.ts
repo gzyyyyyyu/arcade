@@ -10,7 +10,7 @@
 import { meUrlOf, whoIs } from 'arcade-kit/auth';
 import { isStandalone, json, readJson } from 'arcade-kit/worker';
 import { validateBase } from '../../src/core/validate.ts';
-import { APPLIED_MAX, raidGain, raidLoss, raidSetup, sanitizeActions, wandererIsland } from '../../src/core/pvp.ts';
+import { APPLIED_MAX, raidGain, raidLoss, raidSetup, sanitizeActions, wandererCap, wandererIsland } from '../../src/core/pvp.ts';
 import { islandExt } from '../../src/core/base.ts';
 import { BATTLE_TICKS } from '../../src/core/types.ts';
 import type { BattleAction } from '../../src/core/types.ts';
@@ -24,12 +24,14 @@ export const SNAPSHOT_MAX = 16 * 1024;
 const FINISH_MAX = 16 * 1024;
 const SMALL_MAX = 2048;
 const RAID_RE = /^[A-Za-z0-9_-]{8,40}$/;
+/** 港口名单编号（harbor.ts newRef） */
+const REF_RE = /^[0-9a-f]{16}$/;
 /** 找对手时最多试几个候选（候选可能刚被别人锁了、刚上了护盾） */
 const PICK_TRIES = 3;
 
 /** 浏览器能经 Worker 调到的 Base 方法（DO 的 RPC 入口按这份名单放行） */
-export const BASE_METHODS = ['upload', 'me', 'ack', 'prepare', 'begin', 'revengeTarget', 'lock', 'settle', 'lookup', 'credit', 'finishWanderer', 'defense', 'release', 'exchangeBegin', 'exchangeDone', 'exchangeUndo', 'exchangeLeft', 'slotBegin', 'slotUndo', 'slotLeft'] as const;
-export const HARBOR_METHODS = ['upsert', 'pick', 'tally', 'stats'] as const;
+export const BASE_METHODS = ['upload', 'me', 'ack', 'prepare', 'begin', 'revengeTarget', 'lock', 'settle', 'lookup', 'credit', 'finishWanderer', 'defense', 'release', 'peek', 'note', 'attackerOf', 'exchangeBegin', 'exchangeDone', 'exchangeUndo', 'exchangeLeft', 'slotBegin', 'slotUndo', 'slotLeft'] as const;
+export const HARBOR_METHODS = ['upsert', 'pick', 'tally', 'stats', 'roster', 'rosterTarget'] as const;
 
 type Async<T> = { [K in keyof T]: T[K] extends (...a: infer A) => infer R ? (...a: A) => Promise<Awaited<R>> : never };
 export type BasePort = Async<Pick<BaseCore, (typeof BASE_METHODS)[number]>>;
@@ -50,15 +52,18 @@ const fail = (status: number, error: string, cookies: readonly string[] = []): R
 
 const STATUS: Record<string, number> = {
   rate_limited: 429,
+  busy: 503,
   no_snapshot: 409,
   not_found: 404,
   no_raid: 404,
+  not_in_roster: 404,
   revenged: 409,
   too_late: 409,
   shield: 409,
   locked: 409,
   protected: 409,
   pair_limit: 409,
+  spar_limit: 409,
   self: 400,
 };
 const failErr = (e: { error: string }, cookies: readonly string[]): Response => fail(STATUS[e.error] ?? 400, e.error, cookies);
@@ -107,6 +112,14 @@ export async function finishRaid(
     const r = await me.finishWanderer(raidId, actions, endTick, now, forfeit);
     if (!r.ok) return r;
     await ports.harbor().upsert([r.entry], now);
+    // 影子岛 / 切磋：往对方防守记录记一条（只是让对方知道，记不上不挡结算）
+    if (r.note) {
+      try {
+        await ports.base(r.note.to).note(r.note.rec);
+      } catch {
+        // 对方的对象连不上：这条不记
+      }
+    }
     return { ok: true, out: r.out, trophies: r.entry.trophies, dup: false };
   }
   return settleAt(ports, userId, a.defenderId, raidId, actions, endTick, now, forfeit);
@@ -158,19 +171,26 @@ async function beginRaid(ports: Ports, userId: string, a: Active, now: number, r
 interface Start {
   raidId: string;
   wanderer: boolean;
+  /** 影子岛 / 切磋（wanderer 同时为 true：进攻方自己结算、对方不掉东西） */
+  shadow?: 'shadow' | 'spar';
   opponent: { name: string; trophies: number; hq: number; rank?: number };
   setup: ReturnType<typeof raidSetup>;
   until: number;
   maxGain: { gold: number; wood: number };
 }
 
+/** 写入计量说忙（level 非 ok）：新开一场（找对手、复仇、切磋）都先问它；计量连不上不挡（只是记账） */
+async function meterBusy(ports: Ports): Promise<boolean> {
+  try {
+    return !!ports.meter && (await ports.meter.level()) !== 'ok';
+  } catch {
+    return false;
+  }
+}
+
 /** 找对手（target 给了就是复仇：直接锁那个人，不经匹配，仍尊重护盾和锁） */
 async function startRaid(ports: Ports, userId: string, now: number, target?: { id: string; revengeOf: string }): Promise<{ ok: true; start: Start } | { ok: false; error: string }> {
-  try {
-    if (ports.meter && (await ports.meter.level()) !== 'ok') return { ok: false, error: 'busy' };
-  } catch {
-    // 计量连不上不挡（只是记账）
-  }
+  if (await meterBusy(ports)) return { ok: false, error: 'busy' };
   const me = ports.base(userId);
   const prep = await me.prepare(now);
   if (!prep.ok) return prep;
@@ -194,8 +214,13 @@ async function startRaid(ports: Ports, userId: string, now: number, target?: { i
   const exclude = [...prep.attacked];
   for (let i = 0; i < PICK_TRIES; i++) {
     const rand = randomSeed() / 0x40000000;
-    const { id } = await ports.harbor().pick({ attackerId: userId, trophies: prep.trophies, hq: prep.hq, exclude, now, rand, ...(i === 0 ? { self: prep.entry } : {}) }, LOCK_MS);
+    const { id, shadow } = await ports.harbor().pick({ attackerId: userId, trophies: prep.trophies, hq: prep.hq, exclude, shadowExclude: prep.full, now, rand, ...(i === 0 ? { self: prep.entry } : {}) }, LOCK_MS);
     if (!id) break;
+    if (shadow) {
+      const r = await startShadow(ports, userId, id, 'shadow', prep, seed, raidId, until, now);
+      if (r) return r;
+      break;
+    }
     const l = await ports.base(id).lock(lockReq, now);
     if (l.ok) {
       const b = await beginRaid(ports, userId, { raidId, defenderId: id, until: l.until, army: prep.army }, now);
@@ -209,7 +234,45 @@ async function startRaid(ports: Ports, userId: string, now: number, target?: { i
   const setup = raidSetup(w.layout, 0, prep.army, seed);
   const b = await beginRaid(ports, userId, { raidId, defenderId: null, until, army: prep.army, wander: { setup, loot: w.loot } }, now);
   if (!b.ok) return b;
-  return { ok: true, start: { raidId, wanderer: true, opponent: { name: w.name, trophies: prep.trophies, hq: w.hq }, setup, until, maxGain: { gold: Math.floor(w.loot.gold / 2), wood: Math.floor(w.loot.wood / 2) } } };
+  return { ok: true, start: { raidId, wanderer: true, opponent: { name: w.name, trophies: prep.trophies, hq: w.hq }, setup, until, maxGain: wandererCap(w.loot) } };
+}
+
+type Prep = Extract<Awaited<ReturnType<BasePort['prepare']>>, { ok: true }>;
+
+/**
+ * 影子岛 / 切磋开打：读对方最新快照（不加锁），进攻方 begin 记这场。影子岛的掠夺照流浪海盗岛（按奖杯挑的那关 × 摧毁率 × 50%），切磋没有掠夺。
+ * 对方没有快照回 null（影子岛退回流浪海盗岛）。
+ */
+async function startShadow(
+  ports: Ports,
+  userId: string,
+  targetId: string,
+  kind: 'shadow' | 'spar',
+  prep: Prep,
+  seed: number,
+  raidId: string,
+  until: number,
+  now: number,
+): Promise<{ ok: true; start: Start } | { ok: false; error: string } | null> {
+  const p = await ports.base(targetId).peek();
+  if (!p.ok) return kind === 'spar' ? p : null;
+  const setup = raidSetup(p.layout, islandExt(p.layout), prep.army, seed, p.hero);
+  const loot = kind === 'shadow' ? wandererIsland(prep.trophies, prep.hq, seed).loot : { gold: 0, wood: 0 };
+  const b = await beginRaid(ports, userId, { raidId, defenderId: null, until, army: prep.army, wander: { setup, loot, shadow: { of: targetId, kind } } }, now);
+  if (!b.ok) return b;
+  const name = `${kind === 'shadow' ? '影子' : '切磋'}·${p.opponent.name}`;
+  return { ok: true, start: { raidId, wanderer: true, shadow: kind, opponent: { ...p.opponent, name }, setup, until, maxGain: wandererCap(loot) } };
+}
+
+/** 港口点名切磋：不经匹配，打对方最新快照；不掠夺、不加减奖杯、不丢护盾，同一对人每天最多 SPAR_PER_DAY 场 */
+async function startSpar(ports: Ports, userId: string, targetId: string, now: number): Promise<{ ok: true; start: Start } | { ok: false; error: string }> {
+  if (targetId === userId) return { ok: false, error: 'self' };
+  if (await meterBusy(ports)) return { ok: false, error: 'busy' };
+  const prep = await ports.base(userId).prepare(now);
+  if (!prep.ok) return prep;
+  if (prep.prev) await finishRaid(ports, userId, prep.prev.raidId, [], 0, now, true);
+  const r = await startShadow(ports, userId, targetId, 'spar', prep, randomSeed(), randomId(), now + LOCK_MS, now);
+  return r ?? { ok: false, error: 'no_snapshot' };
 }
 
 /** 摧毁 100% 时防守方最多掉多少（给"预计掠夺"显示用） */
@@ -237,8 +300,9 @@ export async function handlePvp(req: Request, env: PvpEnv, ports: Ports | null, 
   const route =
     m === 'GET' && sub === 'me' ? 'me'
     : m === 'GET' && sub === 'stats' ? 'stats'
+    : m === 'GET' && sub === 'roster' ? 'roster'
     : m === 'GET' && sub.startsWith('defense/') ? 'defense'
-    : m === 'POST' && (sub === 'find' || sub === 'finish' || sub === 'ack' || sub === 'revenge' || sub === 'cancel') ? sub
+    : m === 'POST' && (sub === 'find' || sub === 'finish' || sub === 'ack' || sub === 'revenge' || sub === 'cancel' || sub === 'challenge') ? sub
     : m === 'PUT' && sub === 'snapshot' ? 'snapshot'
     : null;
   if (!route) return fail(404, 'not_found');
@@ -257,7 +321,7 @@ export async function handlePvp(req: Request, env: PvpEnv, ports: Ports | null, 
     // find 以前不带请求体：读不出来就当空对象，交给规则版本闸门回 need_reload；别的接口仍要求是对象
     else if (route !== 'find') return fail(400, 'bad_request');
     // 开打前先对规则版本（在认人、写存储之前）：旧页面按旧规则演，服务端按新规则结会对不上
-    if (route === 'find' || route === 'revenge') {
+    if (route === 'find' || route === 'revenge' || route === 'challenge') {
       const stale = checkRules(body);
       if (stale) return stale;
     }
@@ -277,6 +341,27 @@ export async function handlePvp(req: Request, env: PvpEnv, ports: Ports | null, 
     }
     case 'me':
       return json({ ok: true, ...((await me.me(now)) as object) }, 200, ck);
+    case 'roster':
+      return json({ ok: true, list: await ports.harbor().roster(userId, now) }, 200, ck);
+    case 'challenge': {
+      // 点名切磋：ref（港口名单编号）或 raidId（防守记录里「切磋回去」）；都不把对方 userId 发给浏览器
+      let target: string;
+      if (typeof body.raidId === 'string') {
+        if (!RAID_RE.test(body.raidId)) return fail(400, 'bad_raid', ck);
+        const t = await me.attackerOf(body.raidId);
+        if (!t.ok) return failErr(t, ck);
+        target = t.attackerId;
+      } else if (typeof body.ref === 'string') {
+        if (!REF_RE.test(body.ref)) return fail(400, 'bad_ref', ck);
+        const id = await ports.harbor().rosterTarget(userId, body.ref, now);
+        if (!id) return fail(404, 'not_in_roster', ck);
+        target = id;
+      } else return fail(400, 'bad_request', ck);
+      const r = await startSpar(ports, userId, target, now);
+      if (!r.ok) return failErr(r, ck);
+      await report(ports, 2);
+      return json({ ok: true, ...r.start }, 200, ck);
+    }
     case 'defense': {
       const raidId = sub.slice('defense/'.length);
       if (!RAID_RE.test(raidId)) return fail(400, 'bad_raid', ck);
@@ -315,7 +400,7 @@ export async function handlePvp(req: Request, env: PvpEnv, ports: Ports | null, 
         target = { id: t.attackerId, revengeOf: raidId };
       }
       const r = await startRaid(ports, userId, now, target);
-      if (!r.ok) return r.error === 'busy' ? fail(503, 'busy', ck) : failErr(r, ck);
+      if (!r.ok) return failErr(r, ck);
       await report(ports, 5);
       return json({ ok: true, ...r.start }, 200, ck);
     }
@@ -340,7 +425,7 @@ export async function handlePvp(req: Request, env: PvpEnv, ports: Ports | null, 
       if (!r.dup) await report(ports, 6);
       const o = r.out;
       return json(
-        { ok: true, raidId, stars: o.stars, pct: o.pct, gain: o.gain, lost: o.lost, trophies: o.attTrophies, total: r.trophies, wanderer: o.wanderer, expired: o.expired, dup: r.dup },
+        { ok: true, raidId, stars: o.stars, pct: o.pct, gain: o.gain, lost: o.lost, trophies: o.attTrophies, total: r.trophies, wanderer: o.wanderer, ...(o.shadow ? { shadow: o.shadow } : {}), expired: o.expired, dup: r.dup },
         200,
         ck,
       );

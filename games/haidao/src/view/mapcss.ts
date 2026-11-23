@@ -252,7 +252,7 @@ ${U} .hd-mapchip:active { transform:translateY(3px); }
 ${U} .hd-map { overflow:hidden; overflow:clip; touch-action:none; overscroll-behavior:none; user-select:none; -webkit-user-select:none; }
 ${U} .hd-map .hd-map-in { will-change:transform; }
 ${U} .hd-map .hd-map-in.glide { transition:transform .35s cubic-bezier(.2,.9,.3,1); }
-/* 横屏放不下「卡片栏（左 8–368）+ 520 宽的海图」时，海图挪到卡片栏右边：手机横屏原来当前那座岛正好躲在卡片后面，看不见也点不到
+/* 横屏放不下「卡片栏（左 8–368）+ 520 宽的海图」时，海图挪到卡片栏右边：不挪的话手机横屏当前那座岛正好躲在卡片后面，看不见也点不到
    （岛的横坐标是海图宽的百分比，挪了照样排得开；右边让出回岛 / 找下一关那一列） */
 @media (orientation:landscape) and (max-width:1271px) {
   ${U} .hd-map .hd-map-in { margin-left:376px; width:min(520px, calc(100% - 484px)); }
@@ -271,7 +271,7 @@ ${U} .hd-map .hd-node.next span.hd-lb { position:relative; z-index:1; }
 @media (prefers-reduced-motion:reduce) { ${U} .hd-map button.hd-node-go { animation:none; } }
 /* 电脑和横屏：入口卡只留图标、标题和一行状态，不再一闪一闪地抢下一关的风头 */
 ${U} .hd-seacards .hd-mapcard { animation:none; min-height:52px; }
-/* 手机竖屏：今日悬赏、今日航线、护航收成顶上一条单行小卡（只留图标 + 标题，细节点进去再看），原来三张叠起来占 31% 屏高盖住航线；
+/* 手机竖屏：今日悬赏、今日航线、护航收成顶上一条单行小卡（只留图标 + 标题，细节点进去再看），三张叠起来会占 31% 屏高盖住航线；
    回岛放到顶行大厅和设置之间的空当，找下一关沉到右下角「悬赏出海（实盘）」的上面（左下是罗盘）：以前两颗钮叠在小卡下面，右边一列 8 个控件，切掉岛名牌 */
 @media (max-width:559px) and (orientation:portrait) {
   ${U} .hd-bounty { top:58px; width:114px; max-width:none; min-height:44px; padding:2px 6px; gap:4px; }
@@ -296,8 +296,8 @@ ${U} .hd-seacards .hd-mapcard { animation:none; min-height:52px; }
   ${U} .hd-seacards > .hd-mc-row { flex:1 1 100%; }
   ${U} .hd-seacards > .hd-mapcard { flex:1 1 0; min-width:44px; }
 }
-/* 360 宽登录后航线卡旁边多一个「实盘」小钮，图标 + 字放不下：航线卡只留字 */
-@media (max-width:379px) and (orientation:portrait) {
+/* 竖屏顶上一行是「今日 N/3」「今日航线」加登录后的「实盘」小钮，390 宽每张卡也只有 90 来宽，图标 + 字放不下（字被切）：这一行的卡只留字 */
+@media (max-width:559px) and (orientation:portrait) {
   ${U} .hd-seacards .hd-mc-row .hd-mapcard .hd-img { display:none; }
 }
 .hd-ui .hd-map:has(.hd-sheet) ~ button.hd-map-home { display:none; }

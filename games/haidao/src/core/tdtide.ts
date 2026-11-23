@@ -76,7 +76,7 @@ function tideOpenList(): number[] {
 }
 
 /** 一局最多 60 分钟（拍）：防卡死，正常撑不到 */
-export const TIDE_MAX_TICKS = 60 * 60 * 20;
+const TIDE_MAX_TICKS = 60 * 60 * 20;
 
 /** 这周的图和镜像 */
 export function tideMap(w: IsoWeek): TideMap {
@@ -151,7 +151,7 @@ export function tideSetup(w: IsoWeek, mod: TideModId | null = tideMod(w)): TdSet
 // ---------------------------------------------------------------- 得分
 
 /** 击退数在得分里最多占几位（封顶 9999） */
-export const TIDE_KILLS_CAP = 9999;
+const TIDE_KILLS_CAP = 9999;
 const WAVE_UNIT = 10000;
 
 /** 得分 = 撑过的波数 × 10000 + 击退敌人数（封顶 9999）；平台 weekly.json 的 fields 按这个拆 */

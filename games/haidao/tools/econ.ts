@@ -1,9 +1,10 @@
 /**
- * 经济估算：node tools/econ.ts [--days 10] [--sessions 2] [--fights 3] [--td 0] [--quiet]
+ * 经济估算：node tools/econ.ts [--days 10] [--sessions 2] [--fights 3] [--td 0] [--goals] [--quiet]
  * 假想玩家每天上线 sessions 次，每次收资源、打 fights 场出海、守 td 局岛，再贪心地花掉：先造缺的、再升最低级的（经济、仓储、船坞、军械所、防御塔），
  * 这一级建满了才升主寨，所以升级天数看的是收入（主寨要的战役星数在这个打法下一直够）。
  * 出海的结果用经验值：前 5 关第 1 次 2 星、第 2 次 3 星；后面的关 1 星、2 星、3 星。
  * 守岛打"已解锁、建议主寨不高于自己"的最后一关，星数按 docs/balance-haidao.md 第 5 节"稳"的三星率摊开（攒够一局 3★，其余 2★）。
+ * --goals：每天最后一次上线把每日三件小事（没平台的那三件）做完、全领（含箱子，放不下的不领）。
  * 用的全是真实的基地和结算函数。最后打一张"主寨 n → n+1 用了几天、几场出海、几局守岛"的表；--quiet 只打这张表。
  */
 import {
@@ -11,6 +12,7 @@ import {
   tdCampaign, tdLevelUnlocked, totalStars, upgrade,
 } from '../src/core/index.ts';
 import type { BuildingKind, Profile } from '../src/core/index.ts';
+import { GOALS, GOAL_BOX, claimGoal, goalPicks, goalTick } from '../src/core/goals.ts';
 import { sampleProfile } from './sample.ts';
 import { flag, num, opt } from './args.ts';
 
@@ -20,6 +22,7 @@ const fights = num('--fights', 3);
 // 0 是合法值（只出海），所以不走 num 的"0 当默认"
 const tdRuns = Number(opt('--td') ?? 0);
 const quiet = flag('--quiet');
+const goals = flag('--goals');
 /** 守岛各关"稳"机器人的三星率（docs/balance-haidao-td.md，CI 每关 200 局） */
 const TD_THREE: Record<string, number> = {
   td01: 100, td02: 96, td03: 80, td04: 100, td05: 80, td06: 100, td07: 66, td08: 59, td09: 58,
@@ -156,13 +159,22 @@ for (let day = 1; day <= days; day++) {
       defenses++;
       log.push(d.tag);
     }
+    if (goals && s === sessions - 1) {
+      for (const k of goalPicks(day, false)) {
+        p = goalTick(p, day, k, GOALS[k].need);
+        const r = claimGoal(p, day, false, k);
+        if (r.ok) p = r.value.profile;
+      }
+      const box = claimGoal(p, day, false, GOAL_BOX);
+      if (box.ok) p = box.value.profile;
+    }
     p = spend(collectAll(p));
     mark(day);
   }
   const lim = capacity(p);
   if (!quiet) console.log(`${String(day).padEnd(3)} ${String(hqLevel(p)).padEnd(5)} ${String(totalStars(p)).padEnd(5)} ${p.res.gold}/${lim.gold}  ${p.res.wood}/${lim.wood}  ${log.join(' ')}`);
 }
-console.log(`主寨 n → n+1（每天 ${sessions} 次上线，每次出海 ${fights} 场、守岛 ${tdRuns} 局）：天 / 出海 / 守岛`);
+console.log(`主寨 n → n+1（每天 ${sessions} 次上线，每次出海 ${fights} 场、守岛 ${tdRuns} 局${goals ? '，每天做完三件小事' : ''}）：天 / 出海 / 守岛`);
 for (let lv = 1; lv < HQ_LEVELS.length; lv++) {
   const a = reached[lv - 1];
   const b = reached[lv];

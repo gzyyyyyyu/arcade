@@ -6,7 +6,7 @@ import type { HarborEntry } from '../worker/pvp/base.ts';
 /** 匹配池不能只增不删（审阅第 6 条）：久不上线的不进匹配、旧记录被顺手删掉，挑对手不扫整张表 */
 const NOW = 1_800_000_000_000;
 function entry(over: Partial<HarborEntry> = {}): HarborEntry {
-  return { id: 'x', trophies: 100, hq: 1, shieldUntil: 0, protectUntil: 0, lockUntil: 0, activeAt: NOW - 3600_000, ...over };
+  return { id: 'x', name: '', trophies: 100, hq: 1, shieldUntil: 0, protectUntil: 0, lockUntil: 0, activeAt: NOW - 3600_000, ...over };
 }
 const Q: Omit<PickReq, 'rand' | 'self'> = { attackerId: 'me', trophies: 100, hq: 1, exclude: [], now: NOW };
 

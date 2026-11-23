@@ -3,6 +3,7 @@ import { garrisonRecPicks } from './garrisonrec.ts';
 import type { HookFx } from './tdhookfx.ts';
 import { BUILDINGS } from '../content/index.ts';
 import { type TdState, type TdAction, type BuildingKind, type TdTowerKind, type WavePreview, createTd, raining, tdJammed, stepTd, tdBotActions, beijingIsoWeek, tideSetup, type Result, type TdSetup, tdHomeSetup, startTd2, TD_TIER_LEVEL, TD2_LEVEL_BY_ID, TD2_HERO_SKILL, hookable, hqLevel, tdHomeHardOpen } from '../core/index.ts';
+import { tdPlayOpen } from '../core/tdrun.ts';
 import { StunMarks } from './stunmarks.ts';
 import { SnipeLines } from './snipefx.ts';
 import { UNIT, ISLAND } from '../core/types.ts';
@@ -28,6 +29,7 @@ import { fitMarks, garrisonTagBoxes } from './tdpadguide.ts';
 import { TdPlan } from './tdplan.ts';
 import { ensureArt } from './textures.ts';
 import { type Muzzle, Turret, turretStats, ensureTurrets } from './turret.ts';
+import { TD_ULT_ART_OF, tdUltArt } from './art/tdults.ts';
 import { Shots } from './shots.ts';
 import { RigCap } from './rigcap.ts';
 import { FrameFx } from './framefx.ts';
@@ -95,6 +97,8 @@ export class TdScene extends Phaser.Scene {
   /** 暴雨的画面（tdrain.ts），第一次下雨才建；每局开头清掉 */
   rain: HTMLElement | null = null;
   tsp = new Map<number, TSpr>();
+  /** 水手营的营房和水兵图（按营 id） */
+  campSp = new Map<number, { img: Phaser.GameObjects.Image; key: string; men: Phaser.GameObjects.Image[] }>();
   walls = new Map<number, { img: Phaser.GameObjects.Image; level: number; x: number; y: number }>();
   wallLevel = new Map<number, number>();
   blocks = new Map<number, Phaser.GameObjects.Image>();
@@ -152,7 +156,9 @@ export class TdScene extends Phaser.Scene {
   /** 结算「原因」用的局内记录（tdevents.ts 写、tdresult.ts 读） */
   reasonLog: ReasonLog = newReasonLog();
   /** 瞄准中的技能：keg 炸药桶、barricade 拒马 */
-  mode: 'none' | 'keg' | 'barricade' | 'battery' | 'hook' | 'flag' | 'reward' = 'none';
+  mode: 'none' | 'keg' | 'barricade' | 'battery' | 'hook' | 'flag' | 'reward' | 'muster' = 'none';
+  /** 挪集结点时是哪座水手营的木台 */
+  musterSlot = -1;
   /** 正在演的锚钩（tdhookfx.ts） */
   hooks: HookFx[] = [];
   /** 友军巡航船的图（第一次出海时建，tdworld.ts 的 syncFleet 每帧摆） */
@@ -235,6 +241,7 @@ export class TdScene extends Phaser.Scene {
     this.bt = new BarTracker();
     this.heroTick = -1;
     this.tsp = new Map();
+    this.campSp = new Map();
     this.walls = new Map();
     this.wallLevel = new Map();
     this.blocks = new Map();
@@ -344,6 +351,8 @@ export class TdScene extends Phaser.Scene {
       const k = e.key.toLowerCase();
       if (k === 's') this.sheet?.querySelector<HTMLButtonElement>('.hd-td-sell')?.click();
       else if (k === 'u') this.sheet?.querySelector<HTMLButtonElement>('.hd-td-up:not(:disabled)')?.click();
+      else if (k === 'f') this.sheet?.querySelector<HTMLButtonElement>('.hd-td-prio')?.click();
+      else if (k === 'm') this.sheet?.querySelector<HTMLButtonElement>('.hd-td-muster')?.click();
       else if (k === 'c') (this.bestOpen ? closeSheet(this) : showBest(this));
       else if (k === 'h' && !this.sheet) toggleHero(this);
       else if (k === 'p') togglePause(this);
@@ -577,8 +586,11 @@ export async function prepareTd(levelId: string, tm: Phaser.Textures.TextureMana
   else {
     // 没在驻守台面板选过（测试入口、旧链接直接开打）：按这一关的敌人推荐，和面板默认选中的一样
     const lv = TD2_LEVEL_BY_ID.get(levelId);
-    const picks = app.tdPicksFor === levelId ? app.tdPicks : lv ? garrisonRecPicks(p, lv) : [];
-    st = startTd2(p, levelId, seed, picks);
+    const mine = app.tdPicksFor === levelId;
+    const picks = mine ? app.tdPicks : lv ? garrisonRecPicks(p, lv) : [];
+    // 老兵、挑战：驻守台面板上挑的，只对挑给的那一关有效；条件不够了（换了档）按普通开
+    const play = mine && tdPlayOpen(p, levelId, app.tdPlay) ? app.tdPlay : 'normal';
+    st = startTd2(p, levelId, seed, picks, play);
   }
   if (!st.ok) return { ok: false, error: st.error };
   const setup = st.value;
@@ -590,6 +602,8 @@ export async function prepareTd(levelId: string, tm: Phaser.Textures.TextureMana
   ];
   await Promise.all([ensureArt(tm, escort ? [...tdPieces(), escortShipArt()] : tdPieces(), r), ensureTurrets(tm, towers, r)]).catch(() => undefined);
   void ensureTurrets(tm, (setup.unlocked ?? TEMP_KINDS).flatMap((k) => [{ kind: k, level: TD_TIER_LEVEL[2] }, { kind: k, level: TD_TIER_LEVEL[3] }]), r).catch(() => undefined);
+  // 终极塔的整张图（换终极那一下先显示它，分件炮头烘好后再换成会转的）
+  if (setup.ult) void ensureArt(tm, Object.values(TD_ULT_ART_OF).map(tdUltArt), r).catch(() => undefined);
   const data: TdData = { levelId, setup, speed: DEV.speed };
   if (home) data.home = true;
   if (escort) data.escort = true;

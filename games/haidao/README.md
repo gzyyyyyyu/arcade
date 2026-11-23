@@ -22,7 +22,7 @@ It is one module of the Arcade monorepo, but deploys on its own too. Docs below 
 - [DESIGN.md](DESIGN.md)：设计总纲和目录，各玩法在 `docs/design-*.md`（循环、成长、防腻、经济、公平、画面、配平、分期）；模拟实测数据见 [docs/balance-haidao.md](docs/balance-haidao.md)（守岛战役各关在 [docs/balance-haidao-td.md](docs/balance-haidao-td.md)）
 - [AGENTS.md](AGENTS.md)：给开发者和代理的模块约定（规矩、坑和文档地图）；目录、命令和工具参数在 [docs/tools-haidao.md](docs/tools-haidao.md)，浏览器存储 key 清单在 [docs/ui-haidao.md](docs/ui-haidao.md)
 - [ASSETS.md](ASSETS.md)：素材来源和许可
-- [CHANGELOG.md](CHANGELOG.md)：版本记录；0.31.0 以前的见 [docs/changelog-archive.md](docs/changelog-archive.md)（0.23–0.30）和 [docs/changelog-archive-early.md](docs/changelog-archive-early.md)（0.22 及以前）
+- [CHANGELOG.md](CHANGELOG.md)：版本记录；0.56.0 以前的见 [docs/changelog-archive.md](docs/changelog-archive.md)（0.23–0.55）和 [docs/changelog-archive-early.md](docs/changelog-archive-early.md)（0.22 及以前）
 
 ## 本地开发
 

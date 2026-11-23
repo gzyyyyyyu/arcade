@@ -85,6 +85,7 @@ export function piecesFor(list: Array<{ kind: BuildingKind; level: number }>): A
 }
 
 // ---- 守岛的素材（敌人帧、木台、火药桶等）：进守岛前按需烘焙（tdPieces），不进开局的 allArt
+import { tdBarracksAll } from './art/tdbarracks.ts';
 import { tdAllArt, tdEnemyFrames, tdPropArt, type TdAnim, type TdPropKind } from './art/tdart.ts';
 export type { TdAnim, TdPropKind };
 const tdMemo = new Map<string, ArtPiece[]>();
@@ -101,6 +102,7 @@ export const tdPieces = (): ArtPiece[] => [
   ...(['cannon', 'gunTower', 'mortar', 'flame', 'harpoon', 'rocket', 'shock', 'sniper'] as const).flatMap((k) => [2, 5, 8].map((l) => bArt(k, l))),
   ...(['captain'] as const).flatMap((k) => (['idle', 'walk', 'attack'] as const).flatMap((an) => troopF(k, an))),
   bArt('treasure', 1),
+  ...tdBarracksAll(),
   // 第四章的友军巡航船就是玩家自己的旗舰（不带王阶涂装）
   shipA('flagship'),
 ];

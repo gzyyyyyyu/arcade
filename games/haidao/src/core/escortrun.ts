@@ -104,7 +104,7 @@ export function settleEscort(p: Profile, levelId: string, result: TdResult, dayI
   const profile: Profile = {
     ...p,
     res: g.res,
-    td: { stars: { ...(p.td?.stars ?? {}) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
+    td: { ...p.td, stars: { ...(p.td?.stars ?? {}) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
     escort: { stars: { ...(p.escort?.stars ?? {}), [levelId]: Math.max(prev, stars) } },
   };
   // 新开的图：这一局让前一张图第一次有了 ≥ 1★

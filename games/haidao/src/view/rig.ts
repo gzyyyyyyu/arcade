@@ -159,7 +159,7 @@ function scaleClip(clip: Clip, f: Partial<Record<PoseKey, number>>, extra?: Part
  * - 腿"出手快收手慢"：迈出去的前半步快，落脚后往回蹬的后半步慢；手臂反相，比腿晚半拍到顶，还带一点过头再回弹（1.07 → 0.96）；
  * - 头比身子滞后：头的前后点头在落脚之后才到顶；
  * - 左右两步不镜像：asym 让第二步的手臂、前倾、落脚压扁和髋沉比第一步多一点（拐一点、肩头一高一低），落脚和过渡这两个最关键的帧不动。
- * 摆幅、起伏按 WALK_SWING / WALK_BOB（主线 10-30：比上一版各放大一倍，海岛奇兵那种大步走）。
+ * 摆幅、起伏按 WALK_SWING / WALK_BOB（海岛奇兵那种大步走）。
  *
  * 步幅和步频：腿的摆幅决定一个循环（两步）走多远 stride = strideOf = 4 × 腿长 × sin(WALK_SWING × leg) × 缩放，画面按"走过的距离 / stride"推进循环，
  * 所以脚不打滑，一个循环的时间 T = stride / (速度 × 每格像素)。速度是规则的（troops.ts，格/秒），每格约 PX_PER_TILE 像素，

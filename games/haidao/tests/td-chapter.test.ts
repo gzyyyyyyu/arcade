@@ -19,9 +19,9 @@ const TD2_LEVELS = ALL_LEVELS.filter((l) => /^td\d\d$/.test(l.id));
 const ID = (i: number): string => `td${String(i + 1).padStart(2, '0')}`;
 
 describe('关卡表', () => {
-  it('5 章 30 关（每章 6 关），id td01–td30，建议主寨不降，一波 15–18 秒、8–12 波', () => {
-    expect(TD2_CHAPTERS.map((c) => c.levels.length)).toEqual([6, 6, 6, 6, 6]);
-    expect(TD2_LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 30 }, (_, i) => ID(i)));
+  it('6 章 34 关（前五章每章 6 关，第六章先 4 关），id td01–td34，建议主寨不降，一波 15–18 秒、8–12 波', () => {
+    expect(TD2_CHAPTERS.map((c) => c.levels.length)).toEqual([6, 6, 6, 6, 6, 4]);
+    expect(TD2_LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 34 }, (_, i) => ID(i)));
     TD2_LEVELS.forEach((l, i) => {
       expect(l.index).toBe(i);
       expect(l.chapter).toBe(Math.floor(i / 6) + 1);
@@ -36,17 +36,17 @@ describe('关卡表', () => {
     expect(TD2_LEVEL_BY_ID.has('td2-sample')).toBe(true);
     expect(TD2_CHAPTERS.flatMap((c) => c.levels).some((l) => l.id === 'td2-sample')).toBe(false);
   });
-  it('13 张图都用上：双滩只出一关，潮沟、双子岛、火山口、断崖湾、双崖口各出三关，其余各两关', () => {
-    expect(TD2_MAPS.map((m) => m.id)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']);
+  it('17 张图都用上：双滩、回湾、栈桥湾、风口岬只出一关，双子岛、火山口、断崖湾、双崖口各出三关，其余各两关', () => {
+    expect(TD2_MAPS.map((m) => m.id)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']);
     const count = new Map<string, number>();
     for (const l of TD2_LEVELS) count.set(l.map, (count.get(l.map) ?? 0) + 1);
     expect([...count.keys()].sort()).toEqual(TD2_MAPS.map((m) => m.id));
-    expect(TD2_MAPS.map((m) => count.get(m.id))).toEqual([2, 1, 2, 3, 2, 2, 2, 2, 2, 3, 3, 3, 3]);
+    expect(TD2_MAPS.map((m) => count.get(m.id))).toEqual([2, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 2, 1, 1]);
   });
   it('木台数和沉船、驻守台数按 DESIGN 10.7 的关卡表', () => {
-    const pads = [4, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 9, 9, 10, 9, 10, 9, 10, 10, 10, 7, 7, 8, 9, 9, 10];
-    const wrecks = [0, 0, 0, 1, 1, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    const garrison = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 2, 2, 2, 3];
+    const pads = [4, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8, 9, 9, 9, 10, 9, 10, 9, 10, 10, 10, 7, 7, 8, 9, 9, 10, 5, 6, 9, 5];
+    const wrecks = [0, 0, 0, 1, 1, 2, 0, 2, 2, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0];
+    const garrison = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 2, 2, 2, 3, 1, 2, 2, 2];
     TD2_LEVELS.forEach((l, i) => {
       expect(l.slots, l.id).toHaveLength(pads[i]!);
       expect(l.slots.filter((p) => p.wreck).length, l.id).toBe(wrecks[i]);

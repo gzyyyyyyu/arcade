@@ -104,6 +104,8 @@ function tdCss(): string {
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-l, .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-r { width:min(100%,1040px); min-width:0; display:flex; flex-direction:column; gap:6px; }
 .hd-ui.hd-skin .hd-tdsel-main :is(.hd-tdsel-head,.hd-td-income,.hd-tidecard,.hd-tdsel-live,.hd-tdtabs,.hd-tdtheme,.hd-tdsel-list,.hd-tdmodes,.hd-tdsel-top) { width:100%; margin:0; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-head { padding:0 136px 0 84px; }
+/* 宽屏回岛钮挪到 right:110（layout.ts），标题行里的海图天赋钮要让开它；离下面一行留够 8 */
+@media (min-width:560px) { .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-head { padding-right:184px; } .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-talent { margin:2px 0; } }
 .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-top { display:grid; grid-template-columns:1fr auto; gap:8px; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-td-income { padding:4px 12px; gap:2px 12px; }
 .hd-ui.hd-skin .hd-tdsel-main .hd-td-income > small:first-child { flex-basis:auto; }
@@ -134,13 +136,25 @@ function tdCss(): string {
 .hd-ui.hd-skin .hd-tdsel-main.paged .hd-tdpager { display:flex; }
 .hd-ui.hd-skin .hd-tdpager .hd-btn { min-width:88px; min-height:44px; }
 .hd-ui.hd-skin .hd-tdpager b { min-width:48px; text-align:center; color:#fff; text-shadow:0 1px 2px ${c.seaDark}; }
+/* 手机竖屏：海图天赋钮挪进翻页行（td-ui.ts 的 PORTRAIT_QUERY），三颗钮收窄才放得下 360 宽 */
+@media (max-width:700px) and (orientation:portrait) {
+  .hd-ui.hd-skin .hd-tdpager { gap:8px; }
+  .hd-ui.hd-skin .hd-tdpager .hd-btn { min-width:72px; padding-left:6px; padding-right:6px; }
+  .hd-ui.hd-skin .hd-tdpager .hd-tdsel-talent { font-size:12px; }
+}
+/* 六个章节页签在 400 宽以下各只剩 50 来宽：去掉左右内边距（间距要留 8），名字和星数不折行（折了 small 多出一行） */
+@media (max-width:400px) {
+  .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab { padding:2px 0; }
+  .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab :is(b,small) { white-space:nowrap; }
+  .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab-unit { display:none; }
+}
 @media (pointer:coarse), (max-width:959px) { .hd-ui.hd-skin .hd-tdsel-main .hd-tdnum { width:44px; height:44px; } }
 /* 手机竖屏：顶上一行本来只是给大厅、回岛、设置钮留的，悬赏入口就放进这一行正中，标题让位 */
 @media (max-width:700px) and (orientation:portrait) {
   .hd-ui.hd-skin .hd-tdsel-main { position:absolute; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-head h2 { display:none; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-live { position:absolute; top:6px; left:calc(50% - 70px); width:116px; padding:0 2px; font-size:12px; z-index:1; }
-  /* 一行放不下「今日守岛收入还剩」+ 两个「已用 / 上限」：以前硬塞一行，标题和「/ 304,800」各自折成两行；标题自己占一行，两个数各自不折 */
+  /* 一行放不下「今日守岛收入还剩」+ 两个「已用 / 上限」：硬塞一行时标题和「/ 304,800」各自折成两行；标题自己占一行，两个数各自不折 */
   .hd-ui.hd-skin .hd-tdsel-main .hd-td-income { flex-wrap:wrap; padding:3px 8px; gap:0 12px; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-td-income > small:first-child { flex-basis:100%; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-td-inc { white-space:nowrap; }
@@ -183,7 +197,7 @@ function tdCss(): string {
   .hd-ui .hd-tdgar-top .hd-tdgar-note { flex:none; }
 }
 /* 矮屏放得下才摆：一屏放不下时 fit（td-ui.ts）先收小地图、再收折算那两行，「你的加农炮 1 级 → 驻守 1 阶」一直在
-   （试玩 11-23：横屏、360×640 以前整块收起，新手不知道「阶」是什么、1 号台在哪） */
+   （试玩 11-23：横屏、360×640 整块收起时新手不知道「阶」是什么、1 号台在哪） */
 .hd-ui .hd-tdgar-nomap .hd-tdgar-map, .hd-ui .hd-tdgar-nomore .hd-tdgar-more { display:none; }
 .hd-ui .hd-tdgar-lead { margin:0; font-size:14px; font-weight:900; }
 .hd-ui .hd-tdgar-more p { margin:0; }
@@ -196,7 +210,9 @@ function tdCss(): string {
 /* 横屏手机：地图在左、说明在右 */
 @media (max-height:500px) { .hd-ui .hd-tdgar-map { width:150px; } }
 /* 横屏收起说明后页签贴上来，和顶角的大厅、回岛钮至少隔 8 像素 */
-@media (max-height:500px) { .hd-ui .hd-tdgar-main .hd-tdgar-tabs { margin-top:2px; } .hd-ui .hd-tdgar-main .hd-tdgar-note { margin-bottom:4px; } }
+/* 360×640 这类矮竖屏：带了打法钮按钮排成两行，区块间距收到 4、按钮 44 高（按钮那条在下面 48 高那条之后）才不滚 */
+@media (max-width:420px) and (max-height:700px) { .hd-ui .hd-tdgar-main { gap:4px; padding-top:2px; padding-bottom:4px; } }
+@media (max-height:500px) { .hd-ui .hd-tdgar-main { gap:4px; } .hd-ui .hd-tdgar-main .hd-tdgar-tabs { margin-top:2px; } .hd-ui .hd-tdgar-main .hd-tdgar-note { margin-bottom:4px; } }
 /* 矮的电脑屏（720–800 高）：小地图缩一号，给塔卡让出高度 */
 @media (min-width:701px) and (min-height:701px) and (max-height:800px) { .hd-ui .hd-tdgar-map { width:150px; } }
 .hd-ui .hd-tdgar-main .hd-tdgar-note { font-size:12px; line-height:1.3; }
@@ -226,6 +242,7 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-main .hd-tdgar-tab.on { background:linear-gradient(${c.goldL},${gold}); transform:translateY(2px); box-shadow:0 1px 0 ${ink}; }
 .hd-ui .hd-tdgar-main .hd-tdgar-btns { margin-top:0; }
 .hd-ui .hd-tdgar-main .hd-tdgar-btns .hd-btn { min-height:48px; }
+@media (max-width:420px) and (max-height:700px) { .hd-ui .hd-tdgar-main .hd-tdgar-btns .hd-btn { min-height:44px; } }
 /* 局内 */
 .hd-ui .hd-td-bar { position:absolute; top:6px; left:92px; right:58px; display:flex; flex-wrap:nowrap; gap:6px; pointer-events:none !important; }
 .hd-ui .hd-td-bar .hd-pill { min-width:0; }
@@ -274,6 +291,8 @@ function tdCss(): string {
 .hd-ui .hd-ctr-tb td.c-none, .hd-ui .hd-ctr-key .c-none { background:#cfcfcf; color:#5b5b5b; }
 .hd-ui .hd-ctr-tb td { font-size:12px; white-space:nowrap; }
 .hd-ui .hd-ctr-who { flex-wrap:wrap; gap:2px 10px; margin:4px 0 0; font-size:12px; }
+/* 矮屏下两组名单行距收掉、表上三个色块收起（格子里本来写着字）：第六章敌人多了，飞禽那行被挤出面板 */
+@media (max-height:700px) { .hd-ui .hd-ctr-who { row-gap:0; } .hd-ui .hd-ctr-key i { display:none; } }
 /* 图鉴里这一波每种敌人一行：护甲章 + 「水手 · 布衣：火打它多一半」 */
 .hd-ui .hd-best-foes { display:flex; flex-direction:column; gap:2px; margin:2px 0 4px; font-size:12px; font-weight:700; }
 .hd-ui .hd-best-foes span { display:flex; align-items:center; gap:4px; }
@@ -350,6 +369,9 @@ function tdCss(): string {
 .hd-ui .hd-td-sheet { position:absolute; left:0; right:0; margin:0 auto; bottom:0; width:min(100%,560px); max-height:62%; overflow:auto; z-index:36; pointer-events:auto; background:${cream}; border:3px solid ${ink}; border-bottom:0; border-radius:18px 18px 0 0; padding:10px 10px 12px; box-shadow:0 -4px 0 rgba(43,26,21,.25); }
 .hd-ui .hd-td-sheet h2 { margin:0; font-size:16px; font-weight:900; flex:1; }
 .hd-ui .hd-td-towers { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.hd-ui .hd-td-campbtn { display:flex; align-items:center; gap:6px; width:100%; min-height:44px; margin-top:8px; padding:2px 10px; font-size:14px; }
+.hd-ui .hd-td-campbtn small { font-size:12px; opacity:.85; flex:1; text-align:left; }
+.hd-ui .hd-td-campbtn.na { opacity:.55; }
 .hd-ui .hd-td-tower { display:flex; flex-direction:column; align-items:center; gap:1px; min-height:112px; padding:4px 3px; border:3px solid ${ink}; border-radius:12px; background:#fff8e6; font:inherit; color:inherit; cursor:pointer; }
 .hd-ui .hd-td-tower:disabled, .hd-ui .hd-td-tower.na { opacity:.5; filter:grayscale(.6); cursor:default; }
 .hd-ui .hd-td-tower b { font-size:14px; }
@@ -520,6 +542,19 @@ function tdCss(): string {
   .hd-ui.hd-skin .hd-mask > .hd-td-store.bump { animation:hd-tdbump .3s; }
   @media (max-width:720px) { .hd-ui.hd-skin .hd-mask > .hd-td-store { flex-direction:column; align-items:flex-start; border-radius:14px; } }
 }
+.hd-ui .hd-tdtalent { width:min(720px,96vw); max-height:96vh; display:flex; flex-direction:column; gap:6px; }
+.hd-ui .hd-tdtalent-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; min-height:0; }
+.hd-ui .hd-tdtalent-col { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.hd-ui .hd-tdtalent-head { font-size:16px; text-align:center; }
+.hd-ui .hd-tdtalent-cell { display:flex; flex-direction:column; align-items:flex-start; gap:0; min-height:44px; padding:4px 6px; text-align:left; background:${cream}; border:2px solid ${ink}; border-radius:10px; font:inherit; color:inherit; cursor:pointer; flex-shrink:0; }
+.hd-ui .hd-tdtalent-cell b { font-size:14px; }
+.hd-ui .hd-tdtalent-cell span, .hd-ui .hd-tdtalent-cell small { font-size:12px; }
+.hd-ui .hd-tdtalent-cell.on { background:#ffe08a; box-shadow:0 0 0 2px #c98a00 inset; }
+.hd-ui .hd-tdtalent-cell.na { opacity:.55; }
+.hd-ui .hd-tdmarks { font-size:12px; color:#7a4b00; font-weight:800; }
+/* 横拿的手机（高 ≤500）：格子说明和标题都收起（还剩几点在下一行写着），四行格子加按钮才放得下；360×640 这类矮竖屏收标题 */
+@media (max-height:500px) { .hd-ui .hd-tdtalent-cell span, .hd-ui .hd-tdtalent > h2 { display:none; } }
+@media (max-width:420px) and (max-height:700px) { .hd-ui .hd-tdtalent > h2 { display:none; } }
 @keyframes hd-tdbump { 40% { transform:scale(1.18); } }
 @keyframes hd-tdstorebump { 40% { transform:translateX(-50%) scale(1.18); } }
 @keyframes hd-tdflash { 0% { opacity:1; } 100% { opacity:0; } }

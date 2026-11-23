@@ -2,7 +2,7 @@
  * 异步攻防的规则部分（DESIGN.md 第 5 节）：重放结算、掠夺、奖杯、流浪海盗岛。纯函数，浏览器和服务端（worker/pvp）共用同一份，
  * 结算以服务端重放为准；浏览器只拿来显示和本地回放。时间、随机数一律由调用方传进来。
  */
-import { BUILDINGS, CAMPAIGN, RAID_HERO, SKILLS } from '../content/index.ts';
+import { BUILDINGS, CAMPAIGN, LEAGUES, RAID_HERO, SKILLS } from '../content/index.ts';
 import { battleFingerprint, battleResult, createBattle, stepBattle } from './battle.ts';
 import { BATTLE_TICKS, BEACH, EXT_MAX, ISLAND, RULES_VERSION, UNIT } from './types.ts';
 import type { ArmySetup, BattleAction, BattleResult, BattleSetup, Placed, Res, SkillKind } from './types.ts';
@@ -23,7 +23,7 @@ export const MAX_ACTIONS = 200;
  * 按"布局 + 部队 + 种子 + 操作 + 结束拍"重放。endTick 是进攻方点"结束"时的拍数（不点就打到自然结束），
  * 和 BattleScene 一样：只推进到 endTick 之前。actions 先按拍稳定排序，和 runBattle 的取法一致。
  */
-export function replayRaid(setup: BattleSetup, actions: BattleAction[], endTick = BATTLE_TICKS): { result: BattleResult; fingerprint: number; ticks: number } {
+export function replayRaid(setup: BattleSetup, actions: BattleAction[], endTick = BATTLE_TICKS): { result: BattleResult; fingerprint: number; ticks: number; buildings: HitBuilding[] } {
   const s = createBattle(setup);
   const sorted = actions.map((a, i) => ({ a, i })).sort((p, q) => p.a.t - q.a.t || p.i - q.i);
   let k = 0;
@@ -32,7 +32,7 @@ export function replayRaid(setup: BattleSetup, actions: BattleAction[], endTick 
     while (k < sorted.length && (sorted[k]?.a.t ?? 0) <= s.tick) now.push(sorted[k++]!.a);
     stepBattle(s, now);
   }
-  return { result: { ...battleResult(s), over: true }, fingerprint: battleFingerprint(s), ticks: s.tick };
+  return { result: { ...battleResult(s), over: true }, fingerprint: battleFingerprint(s), ticks: s.tick, buildings: s.buildings.map(({ id, hp, maxHp, destroyed }) => ({ id, hp, maxHp, destroyed })) };
 }
 
 const isInt = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
@@ -63,10 +63,75 @@ export function sanitizeActions(raw: unknown, army: ArmySetup): BattleAction[] |
   return out;
 }
 
-/** 防守方掉多少：仓库（快照里的资源减去还没扣的）的 LOOT_PCT%，按摧毁率折算，向下取整 */
+/** 拆光时防守方最多掉多少（掉多少按 raidLoot 分摊到建筑）：仓库 × LOOT_PCT% × pct%，向下取整 */
 export function raidLoss(stash: Res, destroyedPct: number): Res {
   const f = (v: number): number => Math.max(0, Math.floor((Math.max(0, v) * LOOT_PCT * destroyedPct) / 10000));
   return { gold: f(stash.gold), wood: f(stash.wood) };
+}
+
+/** 能抢的那份里主寨占百分之几，其余按容量分给金库（金币）、木料仓（木材）；没有仓库全在主寨 */
+export const HQ_LOOT_PCT = 30;
+
+/** 结束时一座建筑掉了多少血（结算只看这几项） */
+export interface HitBuilding {
+  id: number;
+  hp: number;
+  maxHp: number;
+  destroyed: boolean;
+}
+/** 一座建筑能抢到的那份 */
+export interface LootShare {
+  id: number;
+  gold: number;
+  wood: number;
+}
+
+/**
+ * 把能抢的总数分到主寨和仓库上（base.md 第②批）：金库分金币、木料仓分木材，按容量比例分 (100 − HQ_LOOT_PCT)%，
+ * 整数向下取整，零头都归主寨，所以拆光时合计正好等于 total。没有主寨（不该有）就全按仓库分，仓库也没有则什么都抢不到。
+ */
+export function lootPlan(layout: readonly Placed[], total: Res): LootShare[] {
+  const hq = layout.find((b) => b.kind === 'hq');
+  const capOf = (b: Placed): number => (BUILDINGS[b.kind].levels[b.level - 1] as { cap?: number } | undefined)?.cap ?? 0;
+  const out: LootShare[] = [];
+  const split = (kind: 'vault' | 'woodyard', amount: number): number => {
+    const list = layout.filter((b) => b.kind === kind && capOf(b) > 0);
+    const sum = list.reduce((a, b) => a + capOf(b), 0);
+    if (sum === 0) return 0;
+    const pool = hq ? Math.floor((amount * (100 - HQ_LOOT_PCT)) / 100) : amount;
+    let given = 0;
+    for (const b of list) {
+      const v = Math.floor((pool * capOf(b)) / sum);
+      given += v;
+      let row = out.find((x) => x.id === b.id);
+      if (!row) out.push((row = { id: b.id, gold: 0, wood: 0 }));
+      row[kind === 'vault' ? 'gold' : 'wood'] += v;
+    }
+    return given;
+  };
+  const g = split('vault', total.gold);
+  const w = split('woodyard', total.wood);
+  if (hq) out.unshift({ id: hq.id, gold: total.gold - g, wood: total.wood - w });
+  return out;
+}
+
+/** 按结束时的血量算抢到多少：拆掉的拿满那份，没拆掉的按掉血比例，向下取整 */
+export function lootTaken(plan: readonly LootShare[], buildings: readonly HitBuilding[]): Res {
+  let gold = 0;
+  let wood = 0;
+  for (const p of plan) {
+    const b = buildings.find((x) => x.id === p.id);
+    if (!b || b.maxHp <= 0) continue;
+    const lost = b.destroyed ? b.maxHp : Math.max(0, Math.min(b.maxHp, b.maxHp - b.hp));
+    gold += Math.floor((p.gold * lost) / b.maxHp);
+    wood += Math.floor((p.wood * lost) / b.maxHp);
+  }
+  return { gold, wood };
+}
+
+/** 真人岛防守方掉多少：能抢的上限（仓库 × LOOT_PCT%）按建筑分摊，按拆掉的算 */
+export function raidLoot(layout: readonly Placed[], stash: Res, buildings: readonly HitBuilding[]): Res {
+  return lootTaken(lootPlan(layout, raidLoss(stash, 100)), buildings);
 }
 
 /** 进攻方拿多少：防守方掉的 + 系统赏金 */
@@ -92,6 +157,13 @@ export function trophyDelta(att: number, def: number, stars: number, wanderer = 
   return { att: attNext - att, def: defNext - def };
 }
 
+/** 奖杯 → 第几档段位（LEAGUES 的下标，0 起） */
+export function leagueOf(trophies: number): number {
+  let i = 0;
+  while (i + 1 < LEAGUES.length && trophies >= LEAGUES[i + 1]!.min) i++;
+  return i;
+}
+
 /** 被打后的护盾（毫秒）：摧毁 ≥ 90% 给 12 小时，打掉了东西给 8 小时，一点没拆（含过期没交的空打）不给 */
 export function shieldMs(destroyedPct: number): number {
   if (destroyedPct >= 90) return 12 * 3600_000;
@@ -112,9 +184,14 @@ export function wandererIsland(trophies: number, hq: number, seed: number): { le
   return { levelId: lv.id, name: `流浪海盗·${lv.captain}`, hq: lv.hq, layout, loot: { ...lv.loot } };
 }
 
-export function wandererGain(loot: Res, destroyedPct: number): Res {
-  const f = (v: number): number => Math.floor((v * destroyedPct * WANDER_LOOT_PCT) / 10000);
-  return { gold: f(loot.gold), wood: f(loot.wood) };
+/** 流浪海盗岛、影子岛拆光最多拿多少：关卡掠夺的 WANDER_LOOT_PCT% */
+export function wandererCap(loot: Res): Res {
+  return { gold: Math.floor((loot.gold * WANDER_LOOT_PCT) / 100), wood: Math.floor((loot.wood * WANDER_LOOT_PCT) / 100) };
+}
+
+/** 流浪海盗岛、影子岛拿多少：上限按这座岛的主寨和仓库分摊，按拆掉的算（和真人岛同一个规则），系统给、不扣任何人 */
+export function wandererGain(loot: Res, layout: readonly Placed[], buildings: readonly HitBuilding[]): Res {
+  return lootTaken(lootPlan(layout, wandererCap(loot)), buildings);
 }
 
 /**

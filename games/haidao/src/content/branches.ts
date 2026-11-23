@@ -8,12 +8,6 @@ import type { BranchDef } from '../core/tdtypes.ts';
 /** 选分叉要的塔等级：tier 1 在 3 级、tier 2 在 6 级 */
 export const BRANCH_LEVEL: Record<1 | 2, number> = { 1: 3, 2: 6 };
 
-/** 不选分叉也能打飞的（DESIGN 10.2 防空）：火枪、鱼叉、火箭；加农炮、臼炮、喷火、地雷打不到 */
-export const ANTI_AIR: ReadonlySet<BuildingKind> = new Set<BuildingKind>(['gunTower', 'harpoon', 'rocket']);
-
-/** 天生穿甲的：喷火是铁甲的克星之一（DESIGN 10.3），火不看甲 */
-export const PIERCE: ReadonlySet<BuildingKind> = new Set<BuildingKind>(['flame']);
-
 export const BRANCHES: BranchDef[] = [
   // 加农炮：三条路线各克一种敌人，选错就吃亏
   // 穿甲弹只加一点伤害：主要价值是铁甲不打 4 折（等于对铁甲 2.75 倍），对别的敌人和不选差不多

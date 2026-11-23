@@ -10,7 +10,7 @@ import { Rng } from './rng.ts';
 import { waveBudget } from './td2types.ts';
 import type { TdHomeGen, TdHomeReward, TdHomeSnapshot } from './td2types.ts';
 import { heroLevel } from './tdbase.ts';
-import { heroKindOf, placeTdLevel, tdBaseBonus, tdGrant, tdRunReward, tdUnlockedTowers } from './tdrun.ts';
+import { campOf, heroKindOf, placeTdLevel, tdHomeDeep, tdBaseBonus, tdGrant, tdRunReward, tdUnlockedTowers } from './tdrun.ts';
 import type { TdPlacedLevel } from './tdrun.ts';
 import type { TdEnemyKind, TdGroup, TdResult, TdSetup, TdWave } from './tdtypes.ts';
 import { ISLAND, RULES_VERSION } from './types.ts';
@@ -41,6 +41,7 @@ const HOME_FROM: ReadonlyArray<[TdEnemyKind, number]> = [
 /** 每种敌人一组里隔几拍上一个 */
 const EVERY: Readonly<Record<TdEnemyKind, number>> = {
   sailor: 22, ironclad: 50, fog: 30, skiff: 45, skiffling: 20, sapper: 40, parrot: 18, captain: 1, grenadier: 40, shield: 45, bosun: 45, macaw: 30, mate: 45, medic: 40, gunboat: 1, king: 1,
+  charger: 22, drummer: 45, balloon: 60, tyrantShip: 1, tyrant: 1, tyrantRun: 1,
 };
 
 /** 从存档取岛快照（布局深拷贝、主寨等级、英雄等级） */
@@ -142,8 +143,9 @@ export function tdHomeSetup(p: Profile, seed: number, hard = false): Result<TdSe
     home: gen,
     ...(ext > 0 ? { ext } : {}),
     ...heroKindOf(p),
+    ...campOf(p),
   };
-  return ok({ ...setup, level: { ...setup.level, ...homeLanes(setup) } });
+  return ok(tdHomeDeep(p, { ...setup, level: { ...setup.level, ...homeLanes(setup) } }));
 }
 
 type Pt = { x: number; y: number };
@@ -206,7 +208,7 @@ export function settleTdHome(p: Profile, result: TdResult, dayIndex: number, gen
   const profile: Profile = {
     ...p,
     res: g.res,
-    td: { stars: { ...(p.td?.stars ?? {}) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
+    td: { ...p.td, stars: { ...(p.td?.stars ?? {}) }, day: dayIndex, gotGold: g.got.gold, gotWood: g.got.wood },
   };
   return ok({ profile, reward: { waves, hard, gold: g.run.gold, wood: g.run.wood, capped: g.capped, full: g.full } });
 }

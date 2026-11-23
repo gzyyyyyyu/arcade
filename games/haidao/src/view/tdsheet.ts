@@ -4,6 +4,8 @@ import { tdTowerCard } from './intel.ts';
 import type { TdScene } from './TdScene.ts';
 import { BUILDINGS } from '../content/index.ts';
 import { TD_BRANCH_DESC } from '../content/tdbranches.ts';
+import { TD_PRIOS, TD_PRIO_NAME, TD_ULT_BY_ID, ultOptions } from '../content/tdults.ts';
+import { tdRuleBlock, tdUltCost, tdUltOptions } from '../core/tdquery.ts';
 import { type TdState, tdBuildBlock, tdClearCost, TD2_ECON, type TdTowerKind, isTdTowerKind, tdUpCost, tdSellRefund } from '../core/index.ts';
 import { TICKS_PER_SEC, UNIT } from '../core/types.ts';
 import { iconA } from './art.ts';
@@ -12,10 +14,13 @@ import { bestiary, openerLeft, towerIcon, TOWER_INFO, rangeText, towerCounter, d
 import { sfx } from './audio/sfx.ts';
 import { buildSound, upgradeSound } from './audio/pick.ts';
 import { el, button, img } from './ui.ts';
-import { waveTitle, laneTitle } from './tdhud.ts';
+import { waveTitle, laneTitle, hintText } from './tdhud.ts';
 import { twoSteps } from './tdpadguide.ts';
 import { act, moveMark } from './tdinput.ts';
 import { W, TEMP_KINDS, buildCost } from './tdcommon.ts';
+import { campAt, campUpCost, type TdCamp } from '../core/tdcamp.ts';
+import { TD2_CAMP, TD2_CAMP_BRANCH, type TdCampBranch } from '../content/tdcamp.ts';
+import { tdBarracksArt } from './art/tdbarracks.ts';
 
 // ---------------------------------------------------------------- 木台面板
 
@@ -88,7 +93,7 @@ export function slotSig(bs: TdScene): string {
   const sl = s.slots[bs.openSlot];
   if (!sl) return '';
   const t = s.towers.find((q) => q.id === sl.tower);
-  return `${sl.tower}|${t?.level ?? 0}|${t?.tier ?? 0}|${t?.branch.join(',') ?? ''}|${sl.ups}|${wreckOf(bs, sl)?.id ?? -1}|${bs.sellArmed}|${Math.floor(s.gold / 10)}|${t ? '' : (tdBuildBlock(s, bs.openSlot) ?? '')}`;
+  return `${sl.tower}|${t?.level ?? 0}|${t?.tier ?? 0}|${t?.branch.join(',') ?? ''}|${sl.ups}|${wreckOf(bs, sl)?.id ?? -1}|${bs.sellArmed}|${Math.floor(s.gold / 10)}|${t ? '' : (tdBuildBlock(s, bs.openSlot) ?? '')}|${t?.ult ?? ''}|${t?.prio ?? ''}|${campSig(s, bs.openSlot)}`;
 }
 
 /** 金币标价：锤子图标 + 数字，不够时标红 */
@@ -132,11 +137,18 @@ export function renderSheet(bs: TdScene): void {
     hero.disabled = s.hero.respawn >= 0;
     return;
   }
+  const camp = campAt(s, bs.openSlot);
+  if (camp) return campSheet(bs, box, head, camp);
   if (!t) {
     el('h2', '', gar ? '驻守台（没带塔）：造一座塔' : sl.high ? '崖上高台：造一座塔' : '木台：造一座塔', head);
     button('×', 'hd-x', () => closeSheet(bs), head).title = '关掉（Esc）';
     el('p', 'hd-desc', '从 1 阶起，能升到 3 阶；打完这局就拆。造价用局内金币。', box);
     // 被挡时核心的 build 会不声不响地拒掉，这里先说清楚为什么点不了（和 build 用同一个 tdBuildBlock）
+    if (tdRuleBlock(s, bs.openSlot)) {
+      // 挑战的限制：这块台这一局造不了（选关卡片上写着这条挑战）
+      el('div', 'hd-td-block', undefined, box).append(el('b', '', '这一关的挑战：这块台不能造'));
+      return;
+    }
     const block = tdBuildBlock(s, bs.openSlot);
     if (block) {
       const nb = el('div', 'hd-td-block', undefined, box);
@@ -153,7 +165,6 @@ export function renderSheet(bs: TdScene): void {
     const can = new Set<TdTowerKind>(s.unlocked);
     const kinds = TEMP_KINDS.filter((k) => can.has(k));
     // 该造的塔描金边，和地上的金圈、预告卡说的是同一座：开局造法没造完时按这块台写的，之后按卡上「下一座造」
-    // （以前只有开局造法的台有金边，手机上面板盖住整屏，玩家得记着金圈上那两个小字）
     // 钱够两步、打开的正是第二步那块台时按第二步的塔描
     const after = twoSteps(bs);
     const step = after && !after.up && after.slot === bs.openSlot ? after : bs.next?.step;
@@ -211,8 +222,11 @@ export function renderSheet(bs: TdScene): void {
     });
     const locked = TEMP_KINDS.length - kinds.length;
     if (locked > 0) el('p', 'hd-td-note', `还有 ${locked} 种塔：主寨升级后解锁`, box);
+    // 能造水手营的局用一条横钮顶掉克制表那行提示，面板不多占一行（手机两列时第 9 张卡会多出一行）
+    // 限塔种的挑战（rule.kinds）不能造营，和核心的 camp 操作同一条
+    if (s.campOn && !gar && !s.deep?.rule.kinds) campCard(bs, box, block !== null);
     // 整张克制表在敌人图鉴里（点预告卡或按 C）；这里每张塔卡已写着克谁、打不到谁
-    el('p', 'hd-td-note', '全部克制关系：点预告卡看敌人图鉴', box);
+    else el('p', 'hd-td-note', '全部克制关系：点预告卡看敌人图鉴', box);
     return;
   }
   const tier = t.tier ?? Math.min(3, sl.ups + 1);
@@ -237,9 +251,18 @@ export function renderSheet(bs: TdScene): void {
   // 局内塔 3 阶才选分叉（先 3 级那档再 6 级那档），说明换成守岛的（TD_BRANCH_DESC）
   const pend = tier >= 3 ? pendingTier(t.kind, t.level, t.branch) : null;
   if (pend) branchCards(box, t.kind, t.level, t.branch, (id) => act(bs, { type: 'branch', slot: bs.openSlot, branch: id }), branchDamageHint, (id) => TD_BRANCH_DESC.get(id));
-  // 电脑上和造塔面板一样标键位：分叉按数字键选，升级 U、卖 S（以前只有悬停提示里写，看不到）
+  // 电脑上和造塔面板一样标键位：分叉按数字键选，升级 U、卖 S
+  else if (tier >= 3) ultCards(bs, box, t);
   box.querySelectorAll<HTMLElement>('.hd-td-branch').forEach((c, i) => keyBadge(c, i + 1));
   const acts = el('div', 'hd-td-acts', undefined, box);
+  if (s.deep && t.kind !== 'sniper') {
+    // 先打：一颗循环钮（最前 → 最强 → 最近 → 精英），只在战役、海盗来袭
+    const cur = t.prio ?? 'first';
+    const next = TD_PRIOS[(TD_PRIOS.indexOf(cur) + 1) % TD_PRIOS.length]!;
+    const pb = button(`先打：${TD_PRIO_NAME[cur]}`, 'hd-btn-wood hd-td-prio', () => act(bs, { type: 'prio', slot: bs.openSlot, prio: next }), acts);
+    pb.title = `点一下换成「${TD_PRIO_NAME[next]}」（F）`;
+    keyBadge(pb, 'F');
+  }
   const cost = tdUpCost(t.kind, tier - 1);
   if (cost < 0 || tier >= 3) el('span', 'hd-chip', '已到 3 阶', acts);
   else {
@@ -255,16 +278,146 @@ export function renderSheet(bs: TdScene): void {
     price(bs, up, cost);
     up.disabled = s.gold < cost;
   }
-  const refund = tdSellRefund(s, bs.openSlot);
+  const refund = s.deep?.rule.noSell ? -1 : tdSellRefund(s, bs.openSlot);
+  if (s.deep?.rule.noSell) el('span', 'hd-chip', '挑战：不能卖', acts);
   if (refund >= 0) {
     const armed = bs.sellArmed === bs.openSlot;
     const sell = button('', `hd-btn-wood hd-td-sell${armed ? ' arm' : ''}`, () => sellAt(bs, bs.openSlot), acts, armed ? 'confirm' : 'tap');
-    sell.title = `卖掉，退回花掉的 ${TD2_ECON.sellPct}%（S，要按两下）`;
+    sell.title = `卖掉，退回花掉的 ${s.deep?.talent.sellPct ?? TD2_ECON.sellPct}%（S，要按两下）`;
     keyBadge(sell, 'S');
     sell.append(armed ? '再点一下确认 ' : '卖掉 ');
     const pr = el('span', 'hd-td-price', undefined, sell);
     pr.appendChild(img(iconA('hammer'), 16));
     el('b', '', `+${refund}`, pr);
+  }
+}
+
+const campSig = (s: TdState, slot: number): string => {
+  const c = campAt(s, slot);
+  return c ? `c${c.tier}${c.branch ?? ''}` : '';
+};
+
+const CAMP_ART_BRANCH: Readonly<Record<TdCampBranch, 'gun' | 'shield'>> = { 'camp.gun': 'gun', 'camp.wall': 'shield' };
+
+/** 造塔页底下的水手营横钮（图、名字、一句话、价） */
+function campCard(bs: TdScene, box: HTMLElement, blocked: boolean): void {
+  const s = bs.s;
+  const c = button('', 'hd-btn-wood hd-td-campbtn', () => {
+    if (na) return;
+    sfx(buildSound(false));
+    act(bs, { type: 'camp', slot: bs.openSlot });
+    closeSheet(bs);
+  }, box, null);
+  c.dataset.kind = 'camp';
+  c.appendChild(img(tdBarracksArt(1), 28));
+  el('b', '', '水手营', c);
+  el('small', '', `${TD2_CAMP.men} 个水兵拦地面敌人`, c);
+  price(bs, c, TD2_CAMP.cost);
+  const na = s.gold < TD2_CAMP.cost || blocked;
+  c.classList.toggle('na', na);
+  c.setAttribute('aria-disabled', String(na));
+}
+
+/** 水手营的面板：阶、3 阶分叉、挪集结点、升阶、卖 */
+function campSheet(bs: TdScene, box: HTMLElement, head: HTMLElement, camp: TdCamp): void {
+  const s = bs.s;
+  const slot = bs.openSlot;
+  box.classList.remove('build');
+  el('h2', '', `水手营  ${camp.tier} 阶`, head);
+  button('×', 'hd-x', () => closeSheet(bs), head).title = '关掉（Esc）';
+  const chips = el('div', 'hd-chips', undefined, box);
+  const up = camp.men.filter((m) => m.respawn < 0).length;
+  el('span', 'hd-chip', `水兵 ${up}/${camp.men.length}`, chips);
+  if (camp.branch) el('span', 'hd-chip', `路线：${TD2_CAMP_BRANCH[camp.branch].name}`, chips);
+  if (camp.tier >= 3 && !camp.branch) {
+    el('p', 'hd-td-sub', '选一条路线，选了不能改', box);
+    const row = el('div', 'hd-td-branches', undefined, box);
+    for (const id of Object.keys(TD2_CAMP_BRANCH) as TdCampBranch[]) {
+      const b = TD2_CAMP_BRANCH[id];
+      const c = el('button', 'hd-td-branch', undefined, row);
+      c.type = 'button';
+      c.appendChild(img(tdBarracksArt(3, CAMP_ART_BRANCH[id]), 36));
+      el('b', '', b.name, c);
+      el('span', '', b.desc, c);
+      c.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sfx(upgradeSound(true));
+        act(bs, { type: 'branch', slot, branch: id });
+      });
+    }
+    box.querySelectorAll<HTMLElement>('.hd-td-branch').forEach((c, i) => keyBadge(c, i + 1));
+  }
+  const acts = el('div', 'hd-td-acts', undefined, box);
+  const mv = button('挪集结点', 'hd-btn-wood hd-td-muster', () => {
+    closeSheet(bs);
+    bs.mode = 'muster';
+    bs.musterSlot = slot;
+    hintText(bs, '点营旁边 3 格内的路面，水兵站过去');
+  }, acts);
+  mv.title = '挪集结点（M）';
+  keyBadge(mv, 'M');
+  const cost = campUpCost(camp);
+  if (cost < 0) el('span', 'hd-chip', '已到 3 阶', acts);
+  else {
+    const ub = button('', 'hd-btn-gold hd-td-up', () => {
+      sfx(upgradeSound(camp.tier >= 2));
+      act(bs, { type: 'up', slot });
+      if (camp.tier + 1 < 3) closeSheet(bs);
+    }, acts);
+    ub.title = '升级（U）';
+    keyBadge(ub, 'U');
+    ub.append(`升到 ${camp.tier + 1} 阶  `);
+    price(bs, ub, cost);
+    ub.disabled = s.gold < cost;
+  }
+  const refund = s.deep?.rule.noSell ? -1 : tdSellRefund(s, slot);
+  if (refund >= 0) {
+    const armed = bs.sellArmed === slot;
+    const sell = button('', `hd-btn-wood hd-td-sell${armed ? ' arm' : ''}`, () => sellAt(bs, slot), acts, armed ? 'confirm' : 'tap');
+    sell.title = '卖掉（S，要按两下）';
+    keyBadge(sell, 'S');
+    sell.append(armed ? '再点一下确认 ' : '卖掉 ');
+    const pr = el('span', 'hd-td-price', undefined, sell);
+    pr.appendChild(img(iconA('hammer'), 16));
+    el('b', '', `+${refund}`, pr);
+  }
+}
+
+/**
+ * 3 阶两档分叉选完后的终极卡（同一时刻只有分叉卡或终极卡一组）：换过的写一行；这一局没开终极的写为什么
+ */
+function ultCards(bs: TdScene, box: HTMLElement, t: TdState['towers'][number]): void {
+  const s = bs.s;
+  if (t.ult) {
+    const u = TD_ULT_BY_ID.get(t.ult);
+    if (u) el('p', 'hd-td-sub', `终极：${u.name}（${u.desc}）`, box);
+    return;
+  }
+  if (ultOptions(t.kind).length === 0 || t.branch.length < 2) return;
+  if (!s.deep) {
+    el('p', 'hd-td-note', '悬赏守岛不开放终极', box);
+    return;
+  }
+  if (!s.deep.ult) {
+    el('p', 'hd-td-note', '第一章通关后解锁终极', box);
+    return;
+  }
+  el('p', 'hd-td-sub', '终极：选一个，选了不能改', box);
+  const row = el('div', 'hd-td-branches', undefined, box);
+  for (const u of tdUltOptions(s, bs.openSlot)) {
+    const cost = tdUltCost(s, u.id);
+    const c = el('button', 'hd-td-branch hd-td-ult', undefined, row);
+    c.type = 'button';
+    el('b', '', u.name, c);
+    el('span', '', u.desc, c);
+    price(bs, c, cost);
+    c.disabled = s.gold < cost;
+    c.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (c.disabled) return;
+      sfx(upgradeSound(true));
+      act(bs, { type: 'ult', slot: bs.openSlot, ult: u.id });
+    });
   }
 }
 

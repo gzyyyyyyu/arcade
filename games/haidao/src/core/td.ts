@@ -17,7 +17,7 @@ import { branchError, sanitizeBranch } from './tdbase.ts';
 import { GRID, INF, cellIdx, cellOf, cellX, cellY, inGrid, inIsle, nextCell } from './grid.ts';
 import { ISLAND, UNIT } from './types.ts';
 import type { BuildingKind } from './types.ts';
-import { TD2_LOSE_AT, TD2_STAR_LOST, TD_ENEMY_ARMOR, TD_TOWER_KINDS, isTdTowerKind } from './td2types.ts';
+import { TD2_STAR_LOST, TD_ENEMY_ARMOR, TD_TOWER_KINDS, isTdTowerKind } from './td2types.ts';
 import { ESCORT_CELL, ESCORT_MEND, ESCORT_SHIP_R } from './escorttypes.ts';
 import type { EscortState } from './escorttypes.ts';
 import { escortBite, escortHullPct, escortRate, escortResult, escortShip } from './escort.ts';
@@ -26,10 +26,15 @@ import type { TdAction, TdBlock, TdEnemy, TdEnemyDef, TdEnemyKind, TdEvent, TdHe
 import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower, barricadeAt, cliffOn, onHigh, tdBuildCost } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
 import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, stepFleet, toggleSluice } from './tdmech.ts';
-import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus } from './tdquery.ts';
+import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus, tdRuleBlock, tdUltCost, tdLoseAt } from './tdquery.ts';
+import { deepOf, ultError } from './tddeep.ts';
+import { TD_PRIOS, TD_PRIO_ELITE, TD_ULTS, TD_ULT_BOSS, TD_ULT_BY_ID } from '../content/tdults.ts';
+import type { TdPrio } from '../content/tdults.ts';
 import { placeHero, stepHero, offSlot } from './tdhero.ts';
 import { castHook, hookEnabled, stepHooked } from './tdhook.ts';
 import { castFlag, castReward, flagOn, navEnabled } from './tdnav.ts';
+import { HIT_SOLDIER, campAt, campEnabled, campPrint, campUpCost, heldBy, hitSoldier, newCamp, rallyOk, refitCamp, stepCamps } from './tdcamp.ts';
+import { TD2_CAMP, TD2_CAMP_BRANCH } from '../content/tdcamp.ts';
 import { dareCount, heroCd, initHappen, killGold, payBounty, queueBounty, raining, toggleDare } from './tdevent.ts';
 
 /** 敌人在格子里按 id 散开的步长（单位）：同一条路上的敌人错开成几列，不叠成一个点 */
@@ -240,8 +245,11 @@ export function createTd(setup: TdSetup): TdState {
     fires: [],
     barricades: [],
     over: false,
+    ...(campEnabled(setup) ? { campOn: true as const } : {}),
     internal,
   };
+  const deep = deepOf(setup);
+  if (deep) s.deep = deep;
   if (level.escort) {
     // 护航：船停在起点（要玩家定速度），没有宝藏箱
     // 娱乐护航照顾新手：开局英雄就跟着船（不跟随时普通机器人新手档三张图全沉，新手又找不到这个开关）；
@@ -308,11 +316,91 @@ function faceShield(e: TdEnemy, dx: number, dy: number): void {
  * 盾挡不挡只判这一处：从崖上高台往下打的（p.above）挡不住；被锚钩钩住的在拖动和定住期间算震晕，盾放下，挡不住。
  */
 function guardedHit(s: TdState, ev: TdEvent[], e: TdEnemy, p: Pend): number {
+  const dmg = drummed(s, e, p);
+  if (dmg !== p.dmg) return dmg;
   if (e.kind !== 'shield' || p.sx === undefined || p.sy === undefined || p.above || stunned(e, s.tick)) return p.dmg;
   if (p.hit.dt !== 'shot' && p.hit.dt !== 'shell') return p.dmg;
   if (!shieldFaces(e.gx ?? 0, e.gy ?? 0, e.x, e.y, p.sx, p.sy)) return p.dmg;
   ev.push({ type: 'guard', id: e.id, x: e.x + Math.round(((e.gx ?? 0) * 40) / 100), y: e.y + Math.round(((e.gy ?? 0) * 40) / 100) });
   return Math.floor((p.dmg * SHIELD.frontPct) / 100);
+}
+
+/**
+ * 盾鼓手：直射（塔都写 sx；英雄的枪只在断崖关写）的枪弹、炮弹打到它身边 drum.r 内的同伴（不含它自己、首领），只吃 drum.pct%；
+ * 几个鼓手不叠加。溅射、火、爆不走这里
+ */
+function drummed(s: TdState, e: TdEnemy, p: Pend): number {
+  if (p.sx === undefined || (p.hit.dt !== 'shot' && p.hit.dt !== 'shell')) return p.dmg;
+  const me = TD2_ENEMIES[e.kind];
+  if (me.drum || me.boss) return p.dmg;
+  for (const o of s.enemies) {
+    const dr = TD2_ENEMIES[o.kind].drum;
+    if (!dr || (o.mode !== 'in' && o.mode !== 'out') || d2(o.x, o.y, e.x, e.y) > dr.r * dr.r) continue;
+    return Math.floor((p.dmg * dr.pct) / 100);
+  }
+  return p.dmg;
+}
+
+/** 落人的位置：这一格能走就原地，不然（水面、墙、建筑里）按一圈圈往外找最近能走的格（格中心），同一圈按先行后列；4 圈内都找不到就原地 */
+function landAt(s: TdState, x: number, y: number): { x: number; y: number } {
+  ensureGrid(s);
+  const occ = inner(s).occ;
+  const cx = Math.floor(x / UNIT);
+  const cy = Math.floor(y / UNIT);
+  if (inGrid(s.ext, cx, cy) && occ[cellIdx(cx, cy)] === 0) return { x, y };
+  for (let r = 1; r <= 4; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const nx = cx + dx;
+        const ny = cy + dy;
+        if (inGrid(s.ext, nx, ny) && occ[cellIdx(nx, ny)] === 0) return { x: nx * UNIT + 50, y: ny * UNIT + 50 };
+      }
+    }
+  }
+  return { x, y };
+}
+
+/** 热气球落人：n 个 kind 围着 (x, y) 按编号排成一圈（不用随机），每个都挪到能走的格 */
+function dropCrew(s: TdState, ev: TdEvent[], e: TdEnemy, kind: TdEnemyKind, n: number): void {
+  const I = inner(s);
+  for (let i = 0; i < n; i++) {
+    const o = laneOffset(e.id * 7 + i, 30);
+    const p = landAt(s, e.x + o.x, e.y + o.y);
+    I.waveLeft[e.wave] = (I.waveLeft[e.wave] ?? 0) + 1;
+    spawnEnemy(s, ev, kind, p.x, p.y, e.hx, e.hy, e.wave);
+  }
+}
+
+/**
+ * 多段首领换形态：原地换成 next（新 id，血按旧形态剩下的比例折，至少 1），带上 with；旧形态不算打死、不给金、不掉东西。
+ * 推 phase 事件给画面演变身
+ */
+function shiftPhase(s: TdState, ev: TdEvent[], e: TdEnemy, ph: NonNullable<TdEnemyDef['phase']>): void {
+  const I = inner(s);
+  const ratio = Math.max(1, e.hp);
+  const from = e.maxHp;
+  // 扛着宝藏回船的途中换段，新形态接着回船（不折返再抢）
+  const mode = e.mode;
+  e.mode = 'dead';
+  e.hp = 0;
+  I.waveLeft[e.wave] = (I.waveLeft[e.wave] ?? 0) + 1;
+  // 海上的一段换到岸上：落在登陆点（它本来就停在登陆点外）；岸上的一段原地换
+  const at = TD2_ENEMIES[e.kind].shell ? landAt(s, e.hx, e.hy) : { x: e.x, y: e.y };
+  const n = spawnEnemy(s, ev, ph.next, at.x, at.y, e.hx, e.hy, e.wave);
+  n.hp = Math.max(1, Math.floor((n.maxHp * ratio) / from));
+  n.carry = e.carry;
+  if (mode === 'out') n.mode = 'out';
+  ev.push({ type: 'phase', id: e.id, next: n.id, kind: ph.next });
+  if (ph.with) {
+    for (let i = 0; i < ph.with.n; i++) {
+      const o = laneOffset(n.id * 5 + i, 60);
+      const p = landAt(s, at.x + o.x, at.y + o.y);
+      I.waveLeft[e.wave] = (I.waveLeft[e.wave] ?? 0) + 1;
+      spawnEnemy(s, ev, ph.with.kind, p.x, p.y, e.hx, e.hy, e.wave);
+    }
+  }
+  resolveEnemy(s, e);
 }
 
 function damageEnemy(s: TdState, ev: TdEvent[], e: TdEnemy, dmg: number, h: Hit): void {
@@ -325,6 +413,10 @@ function damageEnemy(s: TdState, ev: TdEvent[], e: TdEnemy, dmg: number, h: Hit)
   const d = Math.floor((Math.floor((dmg * wet) / 100) * m) / 100);
   e.hp -= d;
   ev.push({ type: 'hit', id: e.id, dmg: d });
+  if (def.phase && e.hp * 100 <= e.maxHp * def.phase.at) {
+    shiftPhase(s, ev, e, def.phase);
+    return;
+  }
   if (e.hp > 0) return;
   e.hp = 0;
   e.mode = 'dead';
@@ -337,6 +429,7 @@ function damageEnemy(s: TdState, ev: TdEvent[], e: TdEnemy, dmg: number, h: Hit)
     ev.push({ type: 'drop', x: e.x, y: e.y, n: e.carry });
     e.carry = 0;
   }
+  if (def.land) dropCrew(s, ev, e, def.land.kind, def.land.shot);
   if (def.split) {
     const I = inner(s);
     for (let i = 0; i < def.split.n; i++) {
@@ -361,7 +454,8 @@ function damageHero(s: TdState, ev: TdEvent[], dmg: number): void {
   h.hp -= dmg;
   if (h.hp > 0) return;
   h.hp = 0;
-  h.respawn = s.tick + TD2_HERO.respawnTicks;
+  const rp = s.deep?.talent.respawnPct;
+  h.respawn = s.tick + (rp ? Math.floor((TD2_HERO.respawnTicks * rp) / 100) : TD2_HERO.respawnTicks);
   h.goal = null;
   h.clear = -1;
   h.aim = -1;
@@ -392,6 +486,10 @@ interface Blast {
   slowTicks: number;
   /** 震荡炮：炸到的敌人震晕几拍 */
   stun?: number;
+  /** 攻城巨炮：炸到首领伤害 × bossPct% */
+  bossPct?: number;
+  /** 霰弹炮台：炸到的地面敌人（不含首领、海上的船）往回推 push 拍 */
+  push?: number;
 }
 
 function explode(s: TdState, ev: TdEvent[], x: number, y: number, b: Blast): void {
@@ -403,11 +501,12 @@ function explode(s: TdState, ev: TdEvent[], x: number, y: number, b: Blast): voi
     if (d2(e.x, e.y, x, y) > r2) continue;
     if (mult(b.hit, TD_ENEMY_ARMOR[e.kind]) <= 0) continue;
     if (!b.fog && !seen(s, e)) continue;
-    damageEnemy(s, ev, e, b.dmg, b.hit);
+    damageEnemy(s, ev, e, b.bossPct && TD_ULT_BOSS.has(e.kind) ? Math.floor((b.dmg * b.bossPct) / 100) : b.dmg, b.hit);
     slowEnemy(s, e, b.slowPct, b.slowTicks);
+    if (b.push && e.hp > 0 && !isAir(e.kind) && !TD_ULT_BOSS.has(e.kind) && !TD2_ENEMIES[e.kind].shell) pullBack(e, b.push);
     if (b.stun && e.hp > 0) {
       // 首领（船长）只震一半；免控中的不再震（combat.ts）
-      const until = applyStun(e, s.tick, b.stun, e.kind === 'captain');
+      const until = applyStun(e, s.tick, b.stun, e.kind === 'captain' || !!TD2_ENEMIES[e.kind].boss);
       if (until >= 0) ev.push({ type: 'stun', id: e.id, until });
     }
   }
@@ -443,7 +542,10 @@ function resolvePend(s: TdState, ev: TdEvent[]): void {
     } else if (p.kind === 'lob') {
       lobBlast(s, ev, p);
     } else if (p.kind === 'splash') {
-      explode(s, ev, p.x, p.y, { dmg: p.dmg, r: p.r, hit: p.hit, fog: false, friendly: false, blocks: false, slowPct: p.slowPct, slowTicks: p.slowTicks, ...(p.stun ? { stun: p.stun } : {}) });
+      explode(s, ev, p.x, p.y, {
+        dmg: p.dmg, r: p.r, hit: p.hit, fog: false, friendly: false, blocks: false, slowPct: p.slowPct, slowTicks: p.slowTicks,
+        ...(p.stun ? { stun: p.stun } : {}), ...(p.bossPct ? { bossPct: p.bossPct } : {}), ...(p.push ? { push: p.push } : {}),
+      });
       if (p.burnDps > 0) s.fires.push({ x: p.x, y: p.y, r: p.r, dps: p.burnDps, until: s.tick + p.burnTicks });
     } else if (p.kind === 'keg') {
       explode(s, ev, p.x, p.y, { dmg: p.dmg, r: p.r, hit: p.hit, fog: true, friendly: true, blocks: true, slowPct: 0, slowTicks: 0 });
@@ -567,7 +669,7 @@ export function tdBarricadeHp(s: TdState): number {
 }
 
 /** 炸药桶的伤害：这一关每波平均单个敌人血量 × dmgPct% */
-export function tdBombDmg(s: TdState): number {
+function tdBombDmg(s: TdState): number {
   return Math.max(1, Math.floor((levelAvg(s).unit * TD2_HERO_SKILL.bomb.dmgPct) / 100));
 }
 
@@ -613,6 +715,15 @@ function startWave(s: TdState, ev: TdEvent[], early: boolean): void {
       I.waveLeft[w] = (I.waveLeft[w] ?? 0) + 1;
     }
   }
+  // 天赋「利息」：每波开打时按当前金币给一点
+  const it = s.deep?.talent.interest;
+  if (it) {
+    const g = Math.min(it.cap, Math.floor((s.gold * it.pct) / 100));
+    if (g > 0) {
+      addGold(s, g);
+      bonus += g;
+    }
+  }
   driftCrates(s, ev, w);
   queueBounty(s, w);
   const es = s.escort;
@@ -640,6 +751,14 @@ function barricadeCell(s: TdState, x: number, y: number): { cx: number; cy: numb
   return { cx, cy };
 }
 
+/** 英雄能不能直接站到 (x, y)（单位）：岛内、这一格空着（天赋「随意站位」） */
+function heroCanStand(s: TdState, x: number, y: number): boolean {
+  ensureGrid(s);
+  const cx = Math.floor(x / UNIT);
+  const cy = Math.floor(y / UNIT);
+  return inIsle(s.ext, cx, cy) && inner(s).occ[cellIdx(cx, cy)] === 0;
+}
+
 function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
   const I = inner(s);
   const h = s.hero;
@@ -652,7 +771,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       if (!sl || sl.tower >= 0 || sl.wreck !== undefined || !isTdTowerKind(a.kind) || !s.unlocked.includes(a.kind)) return;
       const cost = tdBuildCost(s, a.slot, a.kind);
       if (s.gold < cost) return;
-      if (tdBuildBlock(s, a.slot)) return;
+      if (tdBuildBlock(s, a.slot) || tdRuleBlock(s, a.slot)) return;
       s.gold -= cost;
       const t: TdTower = { id: I.nextId++, kind: a.kind, level: TD_TIER_LEVEL[1], x: sl.x, y: sl.y, size: 2, branch: [], cd: s.tick, aim: -1, lock: -1, slot: a.slot, tier: 1 };
       s.towers.push(t);
@@ -662,8 +781,42 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       I.ver++;
       return;
     }
+    case 'camp': {
+      const sl = s.slots[a.slot];
+      if (!s.campOn || !sl || sl.tower >= 0 || sl.wreck !== undefined || sl.garrison !== undefined || s.gold < TD2_CAMP.cost || tdBuildBlock(s, a.slot) || tdRuleBlock(s, a.slot) || s.deep?.rule.kinds) return;
+      s.gold -= TD2_CAMP.cost;
+      const c = newCamp(s, I.nextId++, a.slot);
+      (s.camps ??= []).push(c);
+      sl.tower = c.id;
+      sl.ups = 0;
+      sl.spent = TD2_CAMP.cost;
+      I.ver++;
+      ev.push({ type: 'camp', camp: c.id, slot: a.slot, what: 'build' });
+      return;
+    }
+    case 'muster': {
+      const c = campAt(s, a.slot);
+      if (!c || !rallyOk(s, a.slot, a.x, a.y)) return;
+      c.rx = Math.round(a.x);
+      c.ry = Math.round(a.y);
+      for (const m of c.men) m.foes = [];
+      ev.push({ type: 'camp', camp: c.id, slot: a.slot, what: 'muster' });
+      return;
+    }
     case 'up': {
       const sl = s.slots[a.slot];
+      const camp = campAt(s, a.slot);
+      if (sl && camp) {
+        const cost = campUpCost(camp);
+        if (cost < 0 || s.gold < cost) return;
+        s.gold -= cost;
+        camp.tier = camp.tier === 1 ? 2 : 3;
+        sl.ups = camp.tier - 1;
+        sl.spent = (sl.spent ?? 0) + cost;
+        refitCamp(camp);
+        ev.push({ type: 'camp', camp: camp.id, slot: a.slot, what: 'up' });
+        return;
+      }
       const t = slotTower(s, a.slot);
       if (!sl || !t || t.tier === undefined || t.tier >= 3) return;
       const cost = tdUpCost(t.kind, t.tier - 1);
@@ -678,15 +831,60 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       return;
     }
     case 'branch': {
-      // 局内的塔到 3 阶才选分叉（先 3 级那一档，再 6 级那一档）
+      // 局内的塔到 3 阶才选分叉（先 3 级那一档，再 6 级那一档）；水手营 3 阶二选一
+      const camp = campAt(s, a.slot);
+      if (camp) {
+        if (camp.tier !== 3 || camp.branch || !Object.hasOwn(TD2_CAMP_BRANCH, a.branch)) return;
+        camp.branch = a.branch as keyof typeof TD2_CAMP_BRANCH;
+        refitCamp(camp);
+        ev.push({ type: 'camp', camp: camp.id, slot: a.slot, what: 'branch' });
+        return;
+      }
       const t = slotTower(s, a.slot);
       if (t?.tier !== 3 || typeof a.branch !== 'string' || branchError(t.kind, t.level, t.branch, a.branch) !== null) return;
+      if (s.deep?.rule.noBranch?.includes(a.branch)) return;
       t.branch = [...t.branch, a.branch];
       I.stats.delete(t.id);
       return;
     }
-    case 'sell': {
+    case 'ult': {
+      // 终极：只在战役和海盗来袭、解锁了才有（tddeep.ts）；钱按天赋打折后的价，卖塔照样按已花的退
       const sl = s.slots[a.slot];
+      const t = slotTower(s, a.slot);
+      if (!s.deep?.ult || !sl || !t || typeof a.ult !== 'string' || ultError(t, a.ult) !== null) return;
+      const cost = tdUltCost(s, a.ult);
+      if (cost < 0 || s.gold < cost) return;
+      s.gold -= cost;
+      t.ult = a.ult;
+      if (TD_ULT_BY_ID.get(a.ult)?.every) t.fired = 0;
+      sl.spent = (sl.spent ?? 0) + cost;
+      I.stats.delete(t.id);
+      ev.push({ type: 'ult', slot: a.slot, id: t.id, ult: a.ult });
+      return;
+    }
+    case 'prio': {
+      const t = slotTower(s, a.slot);
+      if (!s.deep || !t || !(TD_PRIOS as readonly string[]).includes(a.prio)) return;
+      if (a.prio === 'first') delete t.prio;
+      else t.prio = a.prio as TdPrio;
+      return;
+    }
+    case 'sell': {
+      if (s.deep?.rule.noSell) return;
+      const sl = s.slots[a.slot];
+      const camp = campAt(s, a.slot);
+      if (sl && camp) {
+        const refund = tdSellRefund(s, a.slot);
+        s.camps = (s.camps ?? []).filter((c) => c !== camp);
+        sl.tower = -1;
+        sl.ups = 0;
+        sl.spent = 0;
+        I.ver++;
+        s.gold += refund;
+        ev.push({ type: 'camp', camp: camp.id, slot: a.slot, what: 'sell' });
+        ev.push({ type: 'sell', slot: a.slot, refund });
+        return;
+      }
       const t = slotTower(s, a.slot);
       if (!sl || !t) return;
       const refund = tdSellRefund(s, a.slot);
@@ -720,6 +918,11 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       if (h.respawn >= 0 || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
       // 指到木台上就挪到台边：英雄站在台上会挡住造塔
       h.goal = offSlot(s, Math.round(a.x), Math.round(a.y));
+      // 天赋「随意站位」：第一波开打前直接摆过去（能站的格才行）
+      if (s.deep?.talent.heroDrag && s.wave === 0 && heroCanStand(s, h.goal.x, h.goal.y)) {
+        h.x = h.goal.x;
+        h.y = h.goal.y;
+      }
       inner(s).heroCmd = true;
       h.post = { ...h.goal };
       inner(s).heroAuto = false;
@@ -754,7 +957,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       if (h.kind || h.respawn >= 0 || s.tick < h.kegReady || !Number.isFinite(a.x) || !Number.isFinite(a.y)) return;
       if (d2(h.x, h.y, a.x, a.y) > sk.range * sk.range) return;
       h.kegReady = s.tick + heroCd(s, sk.cd);
-      I.pend.push({ t: s.tick + 10, kind: 'heroKeg', id: -1, dmg: tdBombDmg(s), x: Math.round(a.x), y: Math.round(a.y), r: sk.r, hit: HIT_KEG, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0 });
+      I.pend.push({ t: s.tick + 10, kind: 'heroKeg', id: -1, dmg: tdBombDmg(s), x: Math.round(a.x), y: Math.round(a.y), r: sk.r + (s.deep?.talent.skillR ?? 0), hit: HIT_KEG, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0 });
       ev.push({ type: 'hero', what: 'keg' });
       return;
     }
@@ -793,15 +996,17 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       if (s.escort) s.escort.follow = !!a.on;
       return;
     case 'sluice':
+      if (s.deep?.rule.noSluice) return;
       toggleSluice(s, ev);
       return;
     case 'pickup':
       fetchCrate(s, a.id);
       return;
     case 'battery':
-      if (s.battery) fireBattery(s, ev, a.x, a.y, tdBatteryDmg(s));
+      if (s.battery && !s.deep?.rule.noBattery) fireBattery(s, ev, a.x, a.y, tdBatteryDmg(s));
       return;
     case 'fleet':
+      if (s.deep?.rule.noFleet) return;
       callFleet(s, ev);
       return;
     case 'hook':
@@ -870,6 +1075,7 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
   // 英雄最多同时缠住 maxEngaged 个地面敌人（按数组顺序先到先缠），多的绕过去
   let engaged = 0;
   if (s.escort) s.escort.biters = 0;
+  const held = s.camps ? heldBy(s) : null;
   for (const e of s.enemies) {
     if (e.mode !== 'in' && e.mode !== 'out') continue;
     const def = TD2_ENEMIES[e.kind];
@@ -890,7 +1096,7 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
     }
     // 震晕中不走不打（stunUntil 只有震荡炮会写）
     if (stunned(e, s.tick)) continue;
-    let spd = def.speed * 100;
+    let spd = (e.mode === 'out' && e.carry > 0 && def.carrySpeed ? def.carrySpeed : def.speed) * 100;
     for (const c of captains) {
       if (c === e) continue;
       const a = TD2_ENEMIES.captain.aura;
@@ -902,6 +1108,16 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
     if (s.tick < e.slowUntil) spd = Math.floor((spd * (100 - e.slowPct)) / 100);
     if (fly && raining(s)) spd = Math.floor((spd * TD2_EVENT.rain.airPct) / 100);
     spd = Math.max(1, Math.floor(spd / 100));
+
+    // 水手营的兵缠住了：原地打兵（去抢的、回船的都拦）
+    const hb = held?.get(e.id);
+    if (hb) {
+      if (s.tick >= e.cd) {
+        e.cd = s.tick + def.reload;
+        hitSoldier(s, ev, hb.camp, hb.man, def.dmg);
+      }
+      continue;
+    }
 
     if (e.mode === 'in') {
       // 掷弹兵：英雄在 3 格内就站住往他身上扔雷（不贴脸，不算缠住）
@@ -920,6 +1136,10 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
       }
       if (s.escort) {
         escortEnemy(s, ev, e, spd);
+        continue;
+      }
+      if (def.land) {
+        floatBalloon(s, ev, e, def.land, spd);
         continue;
       }
       if (s.vault <= 0) {
@@ -984,9 +1204,40 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
   }
 }
 
-/** 炮艇：到点开走（不带宝藏、不算丢）；没震晕、装填好了就打 range 内最近的一座塔（同距离按 id），打中的哑 jamTicks 拍 */
+/** 热气球：直线飘向最近的宝藏箱（箱子空了也照飘），到 land.r 内落下 land.near 个人，气球自己没了（不算丢、不给金） */
+function floatBalloon(s: TdState, ev: TdEvent[], e: TdEnemy, land: NonNullable<TdEnemyDef['land']>, spd: number): void {
+  let tx = e.x;
+  let ty = e.y;
+  let bd = Number.POSITIVE_INFINITY;
+  for (const t of s.treasures) {
+    const d = d2(t.x * UNIT + 50, t.y * UNIT + 50, e.x, e.y);
+    if (d < bd) {
+      bd = d;
+      tx = t.x * UNIT + 50;
+      ty = t.y * UNIT + 50;
+    }
+  }
+  if (bd > land.r * land.r) {
+    moveToward(e, tx, ty, spd);
+    return;
+  }
+  e.mode = 'gone';
+  ev.push({ type: 'land', id: e.id, x: e.x, y: e.y });
+  dropCrew(s, ev, e, land.kind, land.near);
+  resolveEnemy(s, e);
+}
+
+/**
+ * 炮艇：到点开走（不带宝藏、不算丢）；多段首领（铁潮舰）到点不走、直接上岸换下一段，免得塔够不着时拖到超时白拿三星。
+ * 没震晕、装填好了就打 range 内最近的一座塔（同距离按 id），打中的哑 jamTicks 拍
+ */
 function stepGunboat(s: TdState, ev: TdEvent[], e: TdEnemy, sh: NonNullable<TdEnemyDef['shell']>): void {
   if (s.tick >= (e.until ?? INF)) {
+    const ph = TD2_ENEMIES[e.kind].phase;
+    if (ph) {
+      shiftPhase(s, ev, e, ph);
+      return;
+    }
     e.mode = 'gone';
     ev.push({ type: 'sail', id: e.id });
     resolveEnemy(s, e);
@@ -1049,7 +1300,7 @@ function stepMedics(s: TdState, ev: TdEvent[]): void {
     if (!hl || (m.mode !== 'in' && m.mode !== 'out') || stunned(m, s.tick)) continue;
     let any = false;
     for (const e of s.enemies) {
-      if (e === m || e.hp >= e.maxHp || e.kind === 'captain' || (e.mode !== 'in' && e.mode !== 'out')) continue;
+      if (e === m || e.hp >= e.maxHp || e.kind === 'captain' || TD2_ENEMIES[e.kind].boss || (e.mode !== 'in' && e.mode !== 'out')) continue;
       if (d2(e.x, e.y, m.x, m.y) > hl.r * hl.r) continue;
       e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Math.floor((e.maxHp * hl.pct) / 100)));
       any = true;
@@ -1299,6 +1550,8 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
     const urgent = (e: TdEnemy): boolean => (ship ? biting(e, ship) : e.carry > 0) || (jammer && !!TD2_ENEMIES[e.kind].bomb);
     const cls = (e: TdEnemy): number => (st.airFirst && !isAir(e.kind) ? 2 : 0) + (urgent(e) ? 0 : 1);
     const sniper = t.kind === 'sniper';
+    // 先打（玩家改过才有）：同一优先级类里换排序键；防空塔先打飞的、拿宝藏的那一类照旧排前
+    const order = (e: TdEnemy): number => prioKey(s, e, t.prio, cx, cy, memo);
     if (!ready && !sniper) {
       // 装填中：锁定的还在、没有更高一类的就接着盯（不排序，省下每拍按路程排一遍）
       const held = keepLock(cand, t.lock ?? -1, cls);
@@ -1312,7 +1565,7 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
     if (sniper) {
       // 狙击塔：优先打首领（船长）和军医（第四章：不先打掉它，后面一串都打不死），再是拿着宝藏的，其余按路程；
       // 装填完先锁定并推 aim 预警，SNIPE_WARN 拍后才开火，锁定的敌人死了或走出射程（cand 里没有）就作废重挑（DESIGN 14）
-      const sCls = (e: TdEnemy): number => doomed(e) + (e.kind === 'captain' || e.kind === 'king' || e.kind === 'medic' ? 0 : urgent(e) ? 1 : 2);
+      const sCls = (e: TdEnemy): number => doomed(e) + (e.kind === 'captain' || e.kind === 'king' || e.kind === 'medic' || e.kind === 'drummer' || TD2_ENEMIES[e.kind].boss ? 0 : urgent(e) ? 1 : 2);
       let sn = I.snipe.get(t.id);
       let tgt = sn ? cand.find((e) => e.id === sn!.target) : undefined;
       if (sn && !tgt) {
@@ -1320,7 +1573,7 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
         sn = undefined;
       }
       if (!ready || !sn) {
-        const pick = rankTargets(cand, t.lock ?? -1, (e) => [sCls(e), progressOf(s, e, memo)])[0] as TdEnemy;
+        const pick = rankTargets(cand, t.lock ?? -1, (e) => [sCls(e), order(e)])[0] as TdEnemy;
         t.lock = pick.id;
         t.aim = pick.id;
         if (ready) {
@@ -1336,7 +1589,7 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
       I.snipe.delete(t.id);
       inRange = [tgt];
     } else {
-      inRange = rankTargets(cand, t.lock ?? -1, (e) => [doomed(e) + cls(e), progressOf(s, e, memo)]);
+      inRange = rankTargets(cand, t.lock ?? -1, (e) => [doomed(e) + cls(e), order(e)]);
     }
     const best = inRange[0] as TdEnemy;
     t.lock = best.id;
@@ -1352,13 +1605,26 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
     // 多发（火箭）：按顺序一人一发，人不够就从头再轮（单挑首领时三发都打它，不白丢三分之二的伤害）
     const shots: TdEnemy[] = [];
     for (let k = 0; k < Math.max(1, st.shots); k++) shots.push(inRange[k % inRange.length] as TdEnemy);
+    const u = st.ult;
     for (const e of shots) {
       const fl = shotTicks(t.kind, cx, cy, e.x, e.y);
       // 瞄提前量：落点 = 敌人 fl 拍后的位置（直射的伤害跟着目标走，炸的按落点炸，所以炸的更要瞄准）
       const at = leadPoint(e, fl);
       ev.push({ type: 'shoot', id: t.id, x0: cx, y0: cy, x1: at.x, y1: at.y, t1: s.tick + fl, target: e.id });
+      let dmg = st.dmg;
+      let heavy = st.heavy;
+      // 鹰眼哨：每第 n 发打弱点
+      if (u?.every) {
+        t.fired = (t.fired ?? 0) + 1;
+        if (t.fired % u.every.n === 0) {
+          dmg = Math.floor((dmg * u.every.pct) / 100);
+          heavy += u.every.heavy;
+        }
+      }
+      // 连珠楼：打中的飞禽减速
+      const airSlow = u?.airSlow && isAir(e.kind) ? u.airSlow : undefined;
       const base = {
-        hit: { dt: st.dt, branch: st.branch, heavy: st.heavy }, slowPct: st.slowPct, slowTicks: st.slowTicks, burnDps: 0, burnTicks: 0, pull: 0,
+        hit: { dt: st.dt, branch: st.branch, heavy }, slowPct: airSlow ? airSlow.pct : st.slowPct, slowTicks: airSlow ? airSlow.ticks : st.slowTicks, burnDps: 0, burnTicks: 0, pull: 0,
         sx: cx,
         sy: cy,
         ...(high ? { above: true as const } : {}),
@@ -1372,13 +1638,37 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
         const ey = cy + Math.floor((dy * st.range) / len);
         for (const o of inRange) if (segD2(o.x, o.y, cx, cy, ex, ey) <= 50 * 50) I.pend.push({ ...base, t: s.tick + fl, kind: 'unit', id: o.id, dmg: st.dmg, x: o.x, y: o.y, r: 0 });
       } else if (st.splash > 0) {
-        I.pend.push({ ...base, t: s.tick + fl, kind: 'splash', id: -1, dmg: st.dmg, x: at.x, y: at.y, r: st.splash, burnDps: st.burnDps, burnTicks: st.burnTicks, ...(st.stun > 0 ? { stun: st.stun } : {}) });
+        const extra = { ...(st.stun > 0 ? { stun: st.stun } : {}), ...(u?.bossPct ? { bossPct: u.bossPct } : {}), ...(u?.push ? { push: u.push } : {}) };
+        // 火雨：一炮落 n 发，落点按敌人编号轮转（不用随机）
+        const pts = u?.rain ? rainPoints(at.x, at.y, e.id, u.rain.n, u.rain.off) : [at];
+        for (const q of pts) I.pend.push({ ...base, t: s.tick + fl, kind: 'splash', id: -1, dmg, x: q.x, y: q.y, r: st.splash, burnDps: st.burnDps, burnTicks: st.burnTicks, ...extra });
       } else {
-        I.pend.push({ ...base, t: s.tick + fl, kind: 'unit', id: e.id, dmg: st.dmg, x: e.x, y: e.y, r: 0, pull: st.pull });
-        owe(e.id, st.dmg, base.hit);
+        if (u?.bossPct && TD_ULT_BOSS.has(e.kind)) dmg = Math.floor((dmg * u.bossPct) / 100);
+        I.pend.push({ ...base, t: s.tick + fl, kind: 'unit', id: e.id, dmg, x: e.x, y: e.y, r: 0, pull: st.pull });
+        owe(e.id, dmg, base.hit);
       }
     }
   }
+}
+
+/** 「先打」的排序键（越小越先打）：最前 = 离宝藏的路程，最强 = 血多的，最近 = 离塔近的，精英 = 精英和首领先、同类按路程 */
+function prioKey(s: TdState, e: TdEnemy, prio: TdPrio | undefined, cx: number, cy: number, memo: Map<number, number>): number {
+  if (prio === 'strong') return -e.hp;
+  if (prio === 'near') return d2(e.x, e.y, cx, cy);
+  const p = progressOf(s, e, memo);
+  if (prio === 'elite') return (TD_PRIO_ELITE.has(e.kind) ? 0 : 1) * 1e9 + Math.min(p, 1e8);
+  return p;
+}
+
+/** 火雨的落点：目标点，再按编号从四个方向里轮着挑 n−1 个偏 off 单位的点 */
+const RAIN_DIRS: ReadonlyArray<readonly [number, number]> = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+function rainPoints(x: number, y: number, id: number, n: number, off: number): Array<{ x: number; y: number }> {
+  const out = [{ x, y }];
+  for (let k = 1; k < n; k++) {
+    const d = RAIN_DIRS[(id + k * 2 - 2) % 4] as readonly [number, number];
+    out.push({ x: x + d[0] * off, y: y + d[1] * off });
+  }
+  return out;
 }
 
 /** 点到线段距离的平方（整数近似：投影比例按千分之一取整） */
@@ -1485,6 +1775,7 @@ export function stepTd(s: TdState, actions: TdAction[]): TdEvent[] {
   for (const e of s.enemies) if (e.kind === 'shield') faceShield(e, e.x - (e.px ?? e.x), e.y - (e.py ?? e.y));
   stepBoss(s, ev);
   stepHero(s, ev);
+  if (s.camps) stepCamps(s, ev, (e, dmg, x, y) => soldierHit(s, ev, e, dmg, x, y));
   stepCrates(s, ev);
   if (s.fleet) stepFleet(s, ev, tdFleetDmg(s));
   stepTowers(s, ev);
@@ -1513,14 +1804,20 @@ export function stepTd(s: TdState, actions: TdAction[]): TdEvent[] {
   if (s.vault > 0 || s.piles.length > 0) I.clearedAtEmpty = -1;
   const allSpawned = !s.level.endless && s.wave >= s.level.waves.length && I.spawns.length === 0;
   const alive = s.enemies.some((e) => e.mode === 'in' || e.mode === 'out');
-  if (s.lost >= TD2_LOSE_AT || (allSpawned && !alive && I.pend.length === 0) || s.tick >= (s.level.maxTicks ?? TD_MAX_TICKS)) {
+  if (s.lost >= tdLoseAt(s) || (allSpawned && !alive && I.pend.length === 0) || s.tick >= (s.level.maxTicks ?? TD_MAX_TICKS)) {
     s.over = true;
     ev.push({ type: 'end', stars: tdResult(s).stars });
   }
   return ev;
 }
 
-/** 星数（td2types.ts 的区间）：一枚没丢 3★，丢 ≤ 3 枚 2★，丢 ≤ 10 枚 1★，再多就输（0★，丢到 TD2_LOSE_AT 枚当场结束） */
+/** 水兵的一下：近战、火枪队都按直射结算（盾、鼓照挡），立刻生效 */
+function soldierHit(s: TdState, ev: TdEvent[], e: TdEnemy, dmg: number, x: number, y: number): void {
+  const p: Pend = { t: s.tick, kind: 'unit', id: e.id, dmg, x: e.x, y: e.y, r: 0, hit: HIT_SOLDIER, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0, sx: x, sy: y };
+  damageEnemy(s, ev, e, guardedHit(s, ev, e, p), HIT_SOLDIER);
+}
+
+/** 星数（td2types.ts 的区间）：一枚没丢 3★，丢 ≤ 3 枚 2★，丢 ≤ 10 枚 1★，再多就输（0★，丢到 TD2_LOSE_AT 枚当场结束；老兵局 TD_VET_LOSE_AT，见 tdLoseAt） */
 export function tdStars(lost: number): number {
   if (lost <= 0) return 3;
   if (lost <= TD2_STAR_LOST[0]) return 2;
@@ -1544,8 +1841,9 @@ export function tdResult(s: TdState): TdResult {
     };
   }
   const I = inner(s);
-  const waves = s.lost >= TD2_LOSE_AT && I.clearedAtEmpty >= 0 ? I.clearedAtEmpty : clearedWaves(s);
-  return { over: s.over, stars: tdStars(s.lost), lost: s.lost, waves, total: s.level.waves.length, ticks: s.tick, goldEarned: s.goldEarned, kills: I.kills };
+  const lose = tdLoseAt(s);
+  const waves = s.lost >= lose && I.clearedAtEmpty >= 0 ? I.clearedAtEmpty : clearedWaves(s);
+  return { over: s.over, stars: s.lost >= lose ? 0 : tdStars(s.lost), lost: s.lost, waves, total: s.level.waves.length, ticks: s.tick, goldEarned: s.goldEarned, kills: I.kills };
 }
 
 /** 状态指纹：测试里比较两次重放是否逐位一致 */
@@ -1553,7 +1851,11 @@ export function tdFingerprint(s: TdState): number {
   const I = inner(s);
   const parts: number[] = [s.tick, s.gold, s.goldEarned, s.vault, s.lost, s.wave, s.next, s.over ? 1 : 0, I.nextId, I.pend.length, I.spawns.length, I.cdTotal, ...I.rng.snapshot()];
   for (const e of s.enemies) parts.push(e.id, e.x, e.y, e.hp, e.carry, e.mode === 'in' ? 0 : e.mode === 'out' ? 1 : 2);
-  for (const t of s.towers) parts.push(t.id, t.level, t.tier ?? 0, t.cd, t.aim, t.branch.length);
+  for (const t of s.towers) {
+    parts.push(t.id, t.level, t.tier ?? 0, t.cd, t.aim, t.branch.length);
+    // 终极、先打只在换过、改过的塔上进指纹
+    if (t.ult || t.prio) parts.push(-31, t.ult ? TD_ULTS.findIndex((u) => u.id === t.ult) : -1, t.prio ? TD_PRIOS.indexOf(t.prio) : -1, t.fired ?? -1);
+  }
   for (const sl of s.slots) parts.push(sl.tower, sl.spent ?? 0, sl.wreck ?? -1);
   for (const w of s.walls) parts.push(w.id, w.hp);
   for (const b of s.blocks) parts.push(b.id, b.hp);
@@ -1581,6 +1883,8 @@ export function tdFingerprint(s: TdState): number {
     parts.push(s.drift.chase);
     for (const c of s.drift.crates) parts.push(c.id, c.until);
   }
+  // 水手营只在造了营的局里进指纹
+  if (s.camps) parts.push(-24, ...campPrint(s));
   if (s.escort) {
     const es = s.escort;
     parts.push(es.pos, es.pace === 'hold' ? 0 : es.pace === 'sail' ? 1 : 2, es.hull, es.biters, es.mendReady, es.follow ? 1 : 0, es.gatesPassed, es.arrived ? 1 : 0, es.sunk ? 1 : 0, es.mends);

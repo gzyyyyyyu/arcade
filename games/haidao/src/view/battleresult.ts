@@ -211,7 +211,7 @@ export function showResult(bs: BattleScene, res: BattleResult, loot: Res, newSta
     const cp = el('p', 'hd-consol', '安慰奖已经放进仓库，别灰心，下一场会更好', box);
     cp.style.cssText = 'text-align:center;margin:0 0 8px;font-weight:800';
   }
-  // 仓库满了截掉的（以前悄悄截掉、结算不说，同一关 3 星这次少拿几百也看不出来）：写少拿多少，给一个回家就打开建造面板的入口
+  // 仓库满了截掉的（不说的话，同一关 3 星这次少拿几百也看不出来）：写少拿多少，给一个回家就打开建造面板的入口
   const cut = cutText(extra.cut);
   if (cut && bs.d.settle) {
     app.storageCut = extra.cut;

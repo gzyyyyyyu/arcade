@@ -1,12 +1,12 @@
 import { isqrt } from './fmath.ts';
 
 /**
- * 进攻和守岛共用的战斗规则（docs/v2.md 第 3 节）：寻敌锁定、提前量、飞行时间、同路错开。
+ * 进攻和守岛共用的战斗规则（docs/design-td.md 10.2b）：寻敌锁定、提前量、飞行时间、同路错开。
  * 只认最小接口（id 和位置），不碰各自的状态；整数运算、按 id 定序，同样的输入一定同样的输出。
  */
 
 /** 会动的东西：x、y 是这一拍的位置，px、py 是上一拍的（没有就当没动） */
-export interface Mover {
+interface Mover {
   id: number;
   x: number;
   y: number;
@@ -88,7 +88,7 @@ export function laneOffset(id: number, spread: number): { x: number; y: number }
 }
 
 /** 会被震晕的东西：stunUntil 之前不走不打，immuneUntil 之前不能再被震 */
-export interface Stunnable {
+interface Stunnable {
   stunUntil?: number;
   immuneUntil?: number;
 }

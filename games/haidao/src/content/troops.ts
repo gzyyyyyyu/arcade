@@ -131,5 +131,3 @@ export const SKILLS: Record<SkillKind, SkillDef> = {
     levels: skillLevels((l) => ({ energy: 4, radius: 3, heal: Math.floor((30 * (100 + 20 * (l - 1))) / 100), duration: 100 })),
   },
 };
-
-export const SKILL_KINDS = Object.keys(SKILLS) as SkillKind[];

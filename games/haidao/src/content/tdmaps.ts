@@ -1,6 +1,6 @@
 /**
  * 守岛 2.0 的关卡岛和战役关表的出口（契约：core/index.ts 从这里取 TD2_MAPS、TD2_LEVELS、TD2_LEVEL_BY_ID）。
- * 11 张图在 td2maps.ts，24 关的波次配方和旋钮在 td2levels.ts；这里再加一关只给单测用的样板关（不进选关页和战役关表）。
+ * 17 张图在 td2maps.ts，战役关的波次配方和旋钮在 td2levels.ts；这里再加一关只给单测用的样板关（不进选关页和战役关表）。
  */
 import type { Placed } from '../core/types.ts';
 import type { TdIslandLevel } from '../core/td2types.ts';
@@ -10,7 +10,7 @@ import { TD2_LEVELS as REAL_LEVELS } from './td2levels.ts';
 export { TD2_CHAPTERS } from './td2levels.ts';
 export type { Td2ChapterInfo } from './td2levels.ts';
 export { TD2_MAPS, TD2_MAP_BLURB } from './td2maps.ts';
-export { buildLevel, TD2_LEVEL_DEFS, levelWaves } from './td2levels.ts';
+export { buildLevel, TD2_CHAPTER_SIZE, TD2_LEVEL_DEFS, levelWaves } from './td2levels.ts';
 
 /** [敌人, 个数, 登陆路, 间隔拍, 延迟拍] */
 type G = [TdEnemyKind, number, number, number, number?];

@@ -5,6 +5,7 @@ import { troopCard } from './intel.ts';
 import { SKILLS, TROOPS } from '../content/index.ts';
 import { battleResult, canLand } from '../core/index.ts';
 import { MAP_LAYERS, MAP_STOP_TICKS } from '../core/maptypes.ts';
+import { lootPlan, lootTaken } from '../core/pvp.ts';
 import { BATTLE_TICKS, BEACH, ISLAND, TICKS_PER_SEC, UNIT, type BattleResult, type Res, type SkillKind } from '../core/types.ts';
 import { mapCss } from './mapcss.ts';
 import { app, fmt } from './app.ts';
@@ -78,7 +79,7 @@ export function buildUi(bs: BattleScene): void {
   bs.starsEl = [...stars.querySelectorAll('img')] as HTMLImageElement[];
   if (bs.d.map) mapStrip(bs, bs.d.map);
   const gain = bs.d.pvp?.replay ? undefined : bs.d.pvp?.maxGain;
-  if (gain) lootStrip(bs);
+  if (gain) lootStrip(bs, gain);
   const bar2 = el('div', 'hd-bar2', undefined, bs.ui);
   bar2.style.justifyContent = 'flex-end';
   bs.speedBtn = button(`${bs.speed}×`, 'hd-btn-wood', () => {
@@ -259,7 +260,7 @@ export function tap(bs: BattleScene, wx: number, wy: number): void {
     vibrate('land');
     s.landed[boat] = true; // 先灰掉，下一拍规则核心会确认
     bs.landAt.push(bs.W(ux, uy));
-    // 船出完：镜头平移到兵群中间（不缩放）。以前停在最后点的那片沙滩，竖屏一半是海、主寨和塔在屏外
+    // 船出完：镜头平移到兵群中间（不缩放）。停在最后点的那片沙滩的话，竖屏一半是海、主寨和塔在屏外
     if (s.landed.every(Boolean)) {
       const n = bs.landAt.length;
       bs.fit.panTo(bs.landAt.reduce((a, p) => a + p.x, 0) / n, bs.landAt.reduce((a, p) => a + p.y, 0) / n);
@@ -380,8 +381,8 @@ function mapStripTick(bs: BattleScene, m: MapStopHooks, r: BattleResult): void {
   me.pts.classList.add('pop');
 }
 
-/** 抢劫的顶栏条：已抢的金币和木材，跟着摧毁率涨（和航线站的条同一套样式） */
-function lootStrip(bs: BattleScene): void {
+/** 抢劫的顶栏条：已抢的金币和木材，按主寨和仓库各掉了多少血实时数（和结算同一个 lootPlan / lootTaken；以服务端为准） */
+function lootStrip(bs: BattleScene, max: Res): void {
   mapCss();
   const strip = el('div', 'hd-mapstrip hd-lootstrip', undefined, bs.ui);
   el('b', '', '已抢', strip);
@@ -390,20 +391,22 @@ function lootStrip(bs: BattleScene): void {
     s.appendChild(img(iconA(k), 18));
     return el('b', '', '0', s);
   };
-  bs.lootEl = { gold: part('gold'), wood: part('wood'), box: strip, lastPct: 0 };
+  bs.lootEl = { gold: part('gold'), wood: part('wood'), box: strip, plan: lootPlan(bs.d.setup.layout, max), last: { gold: 0, wood: 0 } };
 }
 
-function lootStripTick(bs: BattleScene, max: Res, pct: number): void {
+function lootStripTick(bs: BattleScene): void {
   const le = bs.lootEl!;
-  if (pct === le.lastPct) return;
-  le.lastPct = pct;
+  const now = lootTaken(le.plan, bs.st.buildings);
+  if (now.gold === le.last.gold && now.wood === le.last.wood) return;
   for (const k of ['gold', 'wood'] as const) {
+    if (now[k] === le.last[k]) continue;
     const n = le[k];
-    n.textContent = fmt(Math.floor((max[k] * pct) / 100));
+    n.textContent = fmt(now[k]);
     n.classList.remove('pop');
     void n.offsetWidth;
     n.classList.add('pop');
   }
+  le.last = now;
   sfx('coin');
 }
 
@@ -412,7 +415,7 @@ const STAR_FLY_MS = 760;
 
 /**
  * 拿到一颗星：屏幕中间先冒出一颗大金星（放大一下），再弧线飞进顶栏第 i 个星槽，槽里那颗点亮、弹一下。
- * 以前只弹一行「拿到第 N 颗星」的字，和别的提示混在一起；减少动效时直接点亮
+ * 不只弹一行字，免得和别的提示混在一起；减少动效时直接点亮
  */
 function flyStar(bs: BattleScene, slot: HTMLImageElement, i: number): void {
   const lit = (): void => {
@@ -462,7 +465,7 @@ export function updateHud(bs: BattleScene): void {
   const r = battleResult(s);
   bs.pctEl.textContent = `${r.destroyedPct}%`;
   if (bs.d.map && bs.mapEl) mapStripTick(bs, bs.d.map, r);
-  if (bs.d.pvp?.maxGain && bs.lootEl) lootStripTick(bs, bs.d.pvp.maxGain, r.destroyedPct);
+  if (bs.lootEl) lootStripTick(bs);
   for (let i = bs.lastStars; i < r.stars; i++) {
     const im = bs.starsEl[i];
     if (im) flyStar(bs, im, i);

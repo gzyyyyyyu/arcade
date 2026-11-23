@@ -4,7 +4,8 @@
  * 内存里的 state 只是缓存，对象被回收后从存储重建。时间由调用方传进来（Worker 的时钟），方便测试。
  */
 import { armyFor, heroLevel, hqLevel, islandExt, rankOf } from '../../src/core/index.ts';
-import { raidGain, raidLoss, raidSetup, replayRaid, shieldMs, trophyDelta, wandererGain } from '../../src/core/pvp.ts';
+import { raidGain, raidLoot, raidSetup, replayRaid, shieldMs, trophyDelta, wandererGain } from '../../src/core/pvp.ts';
+import { beijingIsoWeek, weekLabel } from '../../src/core/tdtide.ts';
 import type { ArmySetup, BattleAction, BattleSetup, Placed, Profile, Res } from '../../src/core/types.ts';
 import type { Kv } from './kv.ts';
 
@@ -16,13 +17,24 @@ export const LOCK_MS = 4 * 60_000;
 export const PROTECT_MS = 3 * DAY;
 /**
  * 每人每小时最多找几次对手（含复仇、「换一个」）、上传几次快照。找对手只挡脚本：
- * 实测「换一个」不看卡连点每次约 1 秒（0.58.6，假服务端），真人看卡再点约 3 秒，一小时不停也到不了 1200
+ * 实测「换一个」不看卡连点每次约 1 秒（假服务端），真人看卡再点约 3 秒，一小时不停也到不了 1200
  */
 export const FIND_PER_HOUR = 1200;
 export const SNAP_PER_HOUR = 30;
 /** 同一对玩家 24 小时内最多打几场（不分方向，含复仇、放弃、过期空打）：正常一场 + 复仇一场 */
 export const PAIR_PER_DAY = 2;
+/** 港口点名切磋：同一对人（我打他）24 小时内最多几场；切磋不掠夺、不加减奖杯 */
+export const SPAR_PER_DAY = 3;
 const DEFENSES_MAX = 10;
+
+/** 防守记录截到 DEFENSES_MAX 条：先淘汰最旧的影子岛 / 切磋记录（对方没掉东西），没有了才淘汰最旧的真人记录。原地改 */
+export function capDefenses(d: Defense[]): void {
+  while (d.length > DEFENSES_MAX) {
+    const i = d.findLastIndex((x) => x.shadow !== undefined);
+    if (i < 0) d.length = DEFENSES_MAX;
+    else d.splice(i, 1);
+  }
+}
 const DONE_MAX = 20;
 /** 兑换、实盘每日场次各记最近几个 ref（按 ref 幂等用：重发同一个 ref 不重复计） */
 const REFS_MAX = 20;
@@ -46,9 +58,13 @@ export interface Outcome {
   defTotal: number;
   defShield: number;
   wanderer: boolean;
+  /** 影子岛（自动匹配到的真人快照）/ 切磋（港口点名）：不扣对方，结果记进对方的防守记录 */
+  shadow?: ShadowKind;
   /** 过期没交、按空打结的 */
   expired: boolean;
 }
+
+export type ShadowKind = 'shadow' | 'spar';
 
 export interface Defense {
   raidId: string;
@@ -68,6 +84,8 @@ export interface Defense {
   revenged?: boolean;
   /** 这场本身是复仇：不能再被复仇回去（免得两个号来回刷） */
   fromRevenge?: boolean;
+  /** 影子岛 / 切磋：对方没掉东西，不能复仇，按钮是「切磋回去」 */
+  shadow?: ShadowKind;
 }
 
 interface Lock {
@@ -89,8 +107,11 @@ export interface Active {
   until: number;
   /** 进攻方这场带的部队（校验操作用；重放用的在防守方的锁里） */
   army: ArmySetup;
-  /** 流浪海盗岛：结算要的布局和系统掠夺（真人岛的这些在防守方的锁里） */
-  wander?: { setup: BattleSetup; loot: Res };
+  /**
+   * 进攻方自己结算的岛：结算要的布局和系统掠夺（真人岛的这些在防守方的锁里）。流浪海盗岛只有这两项；
+   * 影子岛 / 切磋另带 shadow：打的是谁、哪种（影子按流浪岛的掠夺和奖杯给，切磋什么都不给），结完往对方防守记录记一条
+   */
+  wander?: { setup: BattleSetup; loot: Res; shadow?: { of: string; kind: ShadowKind } };
 }
 
 /**
@@ -152,6 +173,8 @@ export interface BaseState {
   attacked: Record<string, number>;
   /** 24 小时内和谁打过（不分谁打谁）：userId → 每场的时间。两边的 Base 各记一份，防守方 lock 时按自己这份封顶 */
   pair: Record<string, number[]>;
+  /** 24 小时内点名切磋过谁：userId → 每场的时间（只记进攻方这边） */
+  spar: Record<string, number[]>;
   /** 最近一次上传快照时浏览器说"已经加 / 扣进存档"的待扣 / 待领 raidId：快照里的资源已经含了它们，ack 时不再加减 */
   snapApplied: string[];
   /** 作为进攻方结过的（raidId 幂等） */
@@ -166,6 +189,10 @@ export interface BaseState {
   td: { day: string; n: number; refs: string[] };
   escort: { day: string; n: number; refs: string[] };
   map: { day: string; n: number; refs: string[] };
+  /** 本周（北京时间 ISO 周，weekLabel）进攻赢到的奖杯，只加正的：每周奖杯榜的分数 */
+  week: { id: string; n: number };
+  /** 当防守方守住（对方 0 星）的次数，攻防成就用；影子岛、切磋不算 */
+  holds: number;
 }
 
 /** 四种实盘的场次记录（worker/live.ts 的 LiveKind） */
@@ -178,15 +205,17 @@ export function protectUntil(s: Pick<BaseState, 'created' | 'protectEnd'>, now: 
 }
 
 function emptyState(): BaseState {
-  return { name: '', created: 0, snap: null, snapAt: 0, trophies: 0, shieldUntil: 0, protectEnd: 0, lock: null, active: null, pending: [], attacked: {}, pair: {}, snapApplied: [], done: [], rate: { hour: 0, find: 0, snap: 0 }, ex: { day: '', n: 0, refs: {} }, live: { day: '', n: 0, refs: [] }, td: { day: '', n: 0, refs: [] }, escort: { day: '', n: 0, refs: [] }, map: { day: '', n: 0, refs: [] } };
+  return { name: '', created: 0, snap: null, snapAt: 0, trophies: 0, shieldUntil: 0, protectEnd: 0, lock: null, active: null, pending: [], attacked: {}, pair: {}, spar: {}, snapApplied: [], done: [], rate: { hour: 0, find: 0, snap: 0 }, ex: { day: '', n: 0, refs: {} }, live: { day: '', n: 0, refs: [] }, td: { day: '', n: 0, refs: [] }, escort: { day: '', n: 0, refs: [] }, map: { day: '', n: 0, refs: [] }, week: { id: '', n: 0 }, holds: 0 };
 }
 
-/** 24 小时外的配对记录清掉（改 s，不存） */
+/** 24 小时外的配对、切磋记录清掉（改 s，不存） */
 function prunePair(s: BaseState, now: number): void {
-  for (const [k, list] of Object.entries(s.pair)) {
-    const keep = list.filter((t) => now - t < DAY);
-    if (keep.length > 0) s.pair[k] = keep;
-    else delete s.pair[k];
+  for (const m of [s.pair, s.spar]) {
+    for (const [k, list] of Object.entries(m)) {
+      const keep = list.filter((t) => now - t < DAY);
+      if (keep.length > 0) m[k] = keep;
+      else delete m[k];
+    }
   }
 }
 
@@ -218,12 +247,16 @@ export function pushPending(list: Pending[], p: Pending): Pending[] {
 /** Harbor 里这个人的一行 */
 export interface HarborEntry {
   id: string;
+  /** 昵称（港口名单显示；旧行没有为空串） */
+  name: string;
   trophies: number;
   hq: number;
   shieldUntil: number;
   protectUntil: number;
   lockUntil: number;
   activeAt: number;
+  /** 港口名单里代替 id 给浏览器的随机编号：Harbor 存储第一次写这一行时生成，之后不变；上游传进来的不看 */
+  ref?: string;
 }
 
 type Err = { ok: false; error: string };
@@ -268,6 +301,7 @@ export class BaseCore {
   private entry(s: BaseState, now: number): HarborEntry {
     return {
       id: this.userId,
+      name: s.name,
       trophies: s.trophies,
       hq: s.snap ? hqLevel(s.snap) : 1,
       shieldUntil: s.shieldUntil,
@@ -327,6 +361,8 @@ export class BaseCore {
       protectUntil: protectUntil(s, now) > now ? protectUntil(s, now) : 0,
       synced: s.created > 0,
       pending: s.pending,
+      week: s.week.id === weekLabel(beijingIsoWeek(now)) ? s.week.n : 0,
+      holds: s.holds,
       defenses: d.map((x) => ({
         raidId: x.raidId,
         at: x.at,
@@ -335,8 +371,9 @@ export class BaseCore {
         pct: x.pct,
         lost: x.lost,
         trophies: x.trophies,
-        revenge: !x.revenged && !x.fromRevenge && now - x.at < DAY,
+        revenge: !x.shadow && !x.revenged && !x.fromRevenge && now - x.at < DAY,
         rules: x.setup.rules,
+        ...(x.shadow ? { shadow: x.shadow } : {}),
       })),
     };
   }
@@ -389,7 +426,7 @@ export class BaseCore {
    * attacked：匹配要排除的人（24 小时内打过的、24 小时内对打已到上限的）。
    */
   async prepare(now: number): Promise<
-    { ok: true; name: string; trophies: number; hq: number; army: ArmySetup; attacked: string[]; prev: Active | null; entry: HarborEntry } | Err
+    { ok: true; name: string; trophies: number; hq: number; army: ArmySetup; attacked: string[]; full: string[]; prev: Active | null; entry: HarborEntry } | Err
   > {
     const s = structuredClone(await this.state());
     if (!s.snap) return err('no_snapshot');
@@ -401,7 +438,7 @@ export class BaseCore {
     const entry = { ...this.entry(s, now), shieldUntil: 0 };
     const full = Object.entries(s.pair).filter(([, l]) => l.length >= PAIR_PER_DAY).map(([k]) => k);
     const attacked = [...new Set([...Object.keys(s.attacked), ...full])];
-    return { ok: true, name: s.name, trophies: s.trophies, hq: hqLevel(s.snap), army: armyFor(s.snap), attacked, prev: s.active, entry };
+    return { ok: true, name: s.name, trophies: s.trophies, hq: hqLevel(s.snap), army: armyFor(s.snap), attacked, full, prev: s.active, entry };
   }
 
   /**
@@ -411,6 +448,12 @@ export class BaseCore {
    */
   async begin(a: Active, now: number, revengeOf?: string): Promise<{ ok: true; replaced: Active | null } | Err> {
     const s = structuredClone(await this.state());
+    const sh = a.wander?.shadow;
+    if (sh?.of === this.userId) return err('self');
+    if (sh?.kind === 'spar') {
+      prunePair(s, now);
+      if ((s.spar[sh.of] ?? []).length >= SPAR_PER_DAY) return err('spar_limit');
+    }
     let d: Defense[] | undefined;
     if (revengeOf) {
       d = structuredClone(await this.defenses());
@@ -421,17 +464,24 @@ export class BaseCore {
     let replaced: Active | null = null;
     const old = s.active;
     if (old && old.raidId !== a.raidId) {
-      if (old.wander) this.applyCredit(s, this.wandererOutcome(s, old, [], 0, now, true));
+      if (old.wander) this.applyCredit(s, this.wandererOutcome(s, old, [], 0, now, true), now);
       else replaced = old;
     }
     s.active = a;
-    s.shieldUntil = 0;
+    // 点名切磋不丢护盾（对方不掉东西，也不是自动匹配）；影子岛走的是找对手，找的时候 Harbor 那行的护盾已经清了，这里一致
+    if (sh?.kind !== 'spar') s.shieldUntil = 0;
     // 保护期里主动打真人：保护到此为止（界面开打前写清「抢别人会结束你的保护」）；打流浪海盗岛不算
     if (a.defenderId && protectUntil(s, now) > now) s.protectEnd = now;
     if (a.defenderId) {
       s.attacked[a.defenderId] = now;
       prunePair(s, now);
       s.pair[a.defenderId] = [...(s.pair[a.defenderId] ?? []), now];
+    }
+    // 影子岛和真人岛共用同一对人每天的场数；切磋另记
+    if (sh) {
+      prunePair(s, now);
+      const m = sh.kind === 'spar' ? s.spar : s.pair;
+      m[sh.of] = [...(m[sh.of] ?? []), now];
     }
     await this.save(s, d);
     return { ok: true, replaced };
@@ -446,17 +496,45 @@ export class BaseCore {
     return { ok: true, attackerId: rec.attackerId };
   }
 
+  /** 切磋回去的对象：任意一条防守记录里的进攻方（真人岛、影子、切磋都行）。只读 */
+  async attackerOf(raidId: string): Promise<{ ok: true; attackerId: string } | Err> {
+    const rec = (await this.defenses()).find((x) => x.raidId === raidId);
+    return rec ? { ok: true, attackerId: rec.attackerId } : err('not_found');
+  }
+
+  /**
+   * 影子岛 / 切磋：只读取最新快照（不加锁、不看护盾和保护，对方不掉东西）。没上传过回 no_snapshot
+   */
+  async peek(): Promise<{ ok: true; layout: Placed[]; hero: number; opponent: Opponent } | Err> {
+    const s = await this.state();
+    if (!s.snap) return err('no_snapshot');
+    const layout = s.snap.base.buildings.map((b) => ({ id: b.id, kind: b.kind, level: b.level, x: b.x, y: b.y, ...(b.branch ? { branch: [...b.branch] } : {}) }));
+    return { ok: true, layout, hero: heroLevel(s.snap), opponent: { name: s.name, trophies: s.trophies, hq: hqLevel(s.snap), ...(rankOf(s.snap) > 0 ? { rank: rankOf(s.snap) } : {}) } };
+  }
+
+  /** 防守方：记一条影子岛 / 切磋的防守记录（对方没掉东西）。同一 raidId 只记一次。1 行 */
+  async note(rec: Defense): Promise<{ ok: true }> {
+    const cur = await this.defenses();
+    if (cur.some((x) => x.raidId === rec.raidId)) return { ok: true };
+    const d = [structuredClone(rec), ...cur];
+    capDefenses(d);
+    this.d = d;
+    await this.kv.put('d', d);
+    return { ok: true };
+  }
+
   /** 把锁按"布局 + 部队 + 种子 + 操作"结掉，改 s、d（不存）。expired = 过期按空打 */
   private settleLock(s: BaseState, d: Defense[], actions: BattleAction[], endTick: number, now: number, expired: boolean): Outcome {
     const lock = s.lock!;
     const acts = expired ? [] : actions;
     const end = expired ? 0 : endTick;
-    const { result } = replayRaid(lock.setup, acts, end);
-    const lost = raidLoss(lock.stash, result.destroyedPct);
+    const { result, buildings } = replayRaid(lock.setup, acts, end);
+    const lost = raidLoot(lock.setup.layout, lock.stash, buildings);
     // 复仇不给系统赏金：拿回来的只有对方掉的，两个号来回复仇刷不出新资源
     const gain = lock.revenge ? { ...lost } : raidGain(lost);
     const tr = trophyDelta(lock.attackerTrophies, s.trophies, result.stars);
     s.trophies += tr.def;
+    if (result.stars === 0 && !expired) s.holds++;
     const shield = shieldMs(result.destroyedPct);
     if (shield > 0) s.shieldUntil = Math.max(s.shieldUntil, now + shield);
     if (lost.gold > 0 || lost.wood > 0) s.pending = pushPending(s.pending, { raidId: lock.raidId, gold: -lost.gold, wood: -lost.wood });
@@ -476,7 +554,7 @@ export class BaseCore {
       endTick: end,
       ...(lock.revenge ? { fromRevenge: true } : {}),
     });
-    d.length = Math.min(d.length, DEFENSES_MAX);
+    capDefenses(d);
     return {
       raidId: lock.raidId,
       stars: result.stars,
@@ -574,8 +652,12 @@ export class BaseCore {
   }
 
   /** 记下一场的结果（奖杯、待领、结过的、清掉正在打的），改 s，不存 */
-  private applyCredit(s: BaseState, out: Outcome): void {
+  private applyCredit(s: BaseState, out: Outcome, now: number): void {
     s.trophies = Math.max(0, s.trophies + out.attTrophies);
+    if (out.attTrophies > 0) {
+      const id = weekLabel(beijingIsoWeek(now));
+      s.week = { id, n: (s.week.id === id ? s.week.n : 0) + out.attTrophies };
+    }
     if (out.gain.gold > 0 || out.gain.wood > 0) s.pending = pushPending(s.pending, { raidId: out.raidId, gold: out.gain.gold, wood: out.gain.wood });
     s.done = [out, ...s.done].slice(0, DONE_MAX);
     if (s.active?.raidId === out.raidId) s.active = null;
@@ -586,39 +668,68 @@ export class BaseCore {
     const cur = await this.state();
     if (cur.done.some((o) => o.raidId === out.raidId)) return { ok: true, trophies: cur.trophies, entry: this.entry(cur, now), dup: true };
     const s = structuredClone(cur);
-    this.applyCredit(s, out);
+    this.applyCredit(s, out, now);
     await this.save(s);
     return { ok: true, trophies: s.trophies, entry: this.entry(s, now), dup: false };
   }
 
-  /** 流浪海盗岛这一场的结果（掠夺来自系统，奖杯减半）；过期、放弃都按空打 */
+  /** 流浪海盗岛、影子岛这一场的结果（掠夺来自系统，奖杯减半）；切磋不给掠夺、不动奖杯；过期、放弃都按空打 */
   private wandererOutcome(s: BaseState, a: Active, actions: BattleAction[], endTick: number, now: number, forfeit: boolean): Outcome {
     const expired = forfeit || a.until < now;
-    const { result } = replayRaid(a.wander!.setup, expired ? [] : actions, expired ? 0 : endTick);
-    const tr = trophyDelta(s.trophies, s.trophies, result.stars, true);
+    const w = a.wander!;
+    const { result, buildings } = replayRaid(w.setup, expired ? [] : actions, expired ? 0 : endTick);
+    const spar = w.shadow?.kind === 'spar';
+    const tr = spar ? { att: 0 } : trophyDelta(s.trophies, s.trophies, result.stars, true);
     return {
       raidId: a.raidId,
       stars: result.stars,
       pct: result.destroyedPct,
       lost: { gold: 0, wood: 0 },
-      gain: wandererGain(a.wander!.loot, result.destroyedPct),
+      gain: spar ? { gold: 0, wood: 0 } : wandererGain(w.loot, w.setup.layout, buildings),
       attTrophies: tr.att,
       defTrophies: 0,
       defTotal: 0,
       defShield: 0,
       wanderer: true,
+      ...(w.shadow ? { shadow: w.shadow.kind } : {}),
       expired,
     };
   }
 
-  /** 进攻方：流浪海盗岛在自己这里重放结算。1 行 */
-  async finishWanderer(raidId: string, actions: BattleAction[], endTick: number, now: number, forfeit = false): Promise<{ ok: true; out: Outcome; entry: HarborEntry } | Err> {
+  /**
+   * 进攻方：流浪海盗岛、影子岛、切磋在自己这里重放结算。1 行。
+   * 影子岛 / 切磋真打了（没过期、没放弃）回 note：Worker 交给对方 note() 记进防守记录（回放用同一份布局、操作、结束拍）
+   */
+  async finishWanderer(
+    raidId: string,
+    actions: BattleAction[],
+    endTick: number,
+    now: number,
+    forfeit = false,
+  ): Promise<{ ok: true; out: Outcome; entry: HarborEntry; note?: { to: string; rec: Defense } } | Err> {
     const cur = await this.state();
     const a = cur.active;
     if (!a || a.raidId !== raidId || !a.wander) return err('no_raid');
     const out = this.wandererOutcome(cur, a, actions, endTick, now, forfeit);
     const r = await this.credit(out, now);
-    return { ok: true, out, entry: r.entry };
+    const sh = a.wander.shadow;
+    if (!sh || out.expired) return { ok: true, out, entry: r.entry };
+    const rec: Defense = {
+      raidId,
+      at: now,
+      attackerId: this.userId,
+      attackerName: cur.name,
+      stars: out.stars,
+      pct: out.pct,
+      lost: { gold: 0, wood: 0 },
+      trophies: 0,
+      attTrophies: out.attTrophies,
+      setup: a.wander.setup,
+      actions,
+      endTick,
+      shadow: sh.kind,
+    };
+    return { ok: true, out, entry: r.entry, note: { to: sh.of, rec } };
   }
 
   /**

@@ -8,6 +8,7 @@ import {
 } from './aim.ts';
 import { EASE, turnStep } from './motion.ts';
 import { bakeAtlas, bakeSome, isBaked } from './textures.ts';
+import { TD_ULT_ART, type TdUltArtId, tdUltBaseArt, tdUltHeadFrame, tdUltHeadPieces, tdUltHeadTex, tdUltRoofArt } from './art/tdults.ts';
 import type { Particles } from './fx.ts';
 import { DEPTH } from './depth.ts';
 import { REDUCED } from './feel.ts';
@@ -62,6 +63,39 @@ function ensureTurret(tm: Phaser.Textures.TextureManager, kind: TurretKind, leve
               fr.pivotY = (cd.ay ?? 0) / fr.height;
             }
           })).get(tex)!),
+    ]).then(() => undefined).catch(() => undefined);
+    pending.set(k, p);
+  }
+  return p;
+}
+
+/** 终极塔的分件：不带炮头的底座、屋顶（只火枪塔有）和终极炮头图集 */
+const ultPlain = (id: TdUltArtId): ArtPiece[] => {
+  const roof = tdUltRoofArt(id);
+  return roof ? [tdUltBaseArt(id), roof] : [tdUltBaseArt(id)];
+};
+const ultReady = (tm: Phaser.Textures.TextureManager, id: TdUltArtId): boolean =>
+  tm.exists(tdUltHeadTex(id)) && ultPlain(id).every((p) => isBaked(p.key)) && isBaked(flameJetArt().key);
+function ensureUlt(tm: Phaser.Textures.TextureManager, id: TdUltArtId, r: number): Promise<void> {
+  const k = `ult.${id}`;
+  let p = pending.get(k);
+  if (!p) {
+    const tex = tdUltHeadTex(id);
+    p = Promise.all([
+      bakeSome(tm, ultPlain(id), r),
+      bakeJet(tm, r),
+      tm.exists(tex)
+        ? Promise.resolve()
+        : bakeAtlas(tm, tex, tdUltHeadPieces(id), r).then(() => {
+            const t = tm.get(tex);
+            for (const name of t.getFrameNames()) {
+              const fr = t.get(name);
+              const cd = fr.customData as { ax?: number; ay?: number };
+              fr.customPivot = true;
+              fr.pivotX = (cd.ax ?? 0) / fr.width;
+              fr.pivotY = (cd.ay ?? 0) / fr.height;
+            }
+          }),
     ]).then(() => undefined).catch(() => undefined);
     pending.set(k, p);
   }
@@ -161,6 +195,8 @@ export class Turret {
   private requested = false;
   /** 震荡炮这一轮的蓄力光圈放出来了没有（开火后清零） */
   private charged = false;
+  /** 换成了哪个终极（美术 id）；没换为 null */
+  private ult: TdUltArtId | null = null;
 
   constructor(scene: Phaser.Scene, r: number, pt: Particles, kind: TurretKind, level: number, id: number, base: Phaser.GameObjects.Image, footX: number, footY: number) {
     this.scene = scene;
@@ -195,30 +231,51 @@ export class Turret {
     this.trySplit();
   }
 
+  /** 换成终极（美术 id）：底座、炮头、屋顶换终极的，外形按 8 级；攻城巨炮炮头放大，炮口跟着外移 */
+  setUlt(id: TdUltArtId, fullKey: string): void {
+    if (this.ult === id && this.split) return;
+    this.ult = id;
+    this.level = 8;
+    const g = turretGeom(this.kind, 8);
+    const head = TD_ULT_ART[id].head;
+    this.geom = { ...g, len: g.len * head, z: g.z * head };
+    this.fullKey = fullKey;
+    this.split = false;
+    this.requested = false;
+    this.tex = '';
+    this.frameName = '';
+    this.hideParts();
+    this.trySplit();
+  }
+
+  /** 炮头图集里的帧名（终极用终极图集） */
+  private frame(part: string): string {
+    return this.ult ? tdUltHeadFrame(this.ult, part) : turretFrame(this.kind, turretTier(this.kind, this.level), part);
+  }
+
   private trySplit(): void {
     const tm = this.scene.textures;
-    if (!turretReady(tm, this.kind, this.level)) {
+    if (this.ult ? !ultReady(tm, this.ult) : !turretReady(tm, this.kind, this.level)) {
       if (!this.requested) {
         this.requested = true;
-        void ensureTurret(tm, this.kind, this.level, this.r);
+        void (this.ult ? ensureUlt(tm, this.ult, this.r) : ensureTurret(tm, this.kind, this.level, this.r));
       }
       return;
     }
-    const b = turretBaseArt(this.kind, this.level);
+    const b = this.ult ? tdUltBaseArt(this.ult) : turretBaseArt(this.kind, this.level);
     this.base.setTexture(b.key).setOrigin(b.ax / b.w, b.ay / b.h);
     this.piv = TURRET_PIVOT(this.kind, this.level);
-    this.tex = turretTex(this.kind, turretTier(this.kind, this.level));
-    const mk = (): Phaser.GameObjects.Image => this.scene.add.image(0, 0, this.tex, turretFrame(this.kind, turretTier(this.kind, this.level), 'd0'));
+    this.tex = this.ult ? tdUltHeadTex(this.ult) : turretTex(this.kind, turretTier(this.kind, this.level));
+    const mk = (): Phaser.GameObjects.Image => this.scene.add.image(0, 0, this.tex, this.frame('d0'));
     this.gun ??= mk();
-    this.gun.setTexture(this.tex, turretFrame(this.kind, turretTier(this.kind, this.level), 'd0')).setVisible(true);
+    this.gun.setTexture(this.tex, this.frame('d0')).setVisible(true);
     this.frameName = '';
     if (this.kind === 'gunTower') {
-      const tier = turretTier(this.kind, this.level);
       this.body ??= mk();
-      this.body.setTexture(this.tex, turretFrame(this.kind, tier, 'body')).setVisible(true);
+      this.body.setTexture(this.tex, this.frame('body')).setVisible(true);
       this.rod ??= mk();
-      this.rod.setTexture(this.tex, turretFrame(this.kind, tier, 'rod')).setVisible(false);
-      const roof = gunTowerRoof(this.level);
+      this.rod.setTexture(this.tex, this.frame('rod')).setVisible(false);
+      const roof = this.ult ? tdUltRoofArt(this.ult) : gunTowerRoof(this.level);
       if (roof) {
         this.roof ??= this.scene.add.image(0, 0, roof.key);
         this.roof.setTexture(roof.key).setOrigin(roof.ax / roof.w, roof.ay / roof.h).setVisible(true);
@@ -441,9 +498,8 @@ export class Turret {
     const py = b.y + this.piv.dy * rel;
     const a = this.st.a;
     const i = dirIndex(a);
-    const tier = turretTier(this.kind, this.level);
     const empty = (this.kind === 'harpoon' && this.out > 0) || (this.kind === 'rocket' && o.now < this.emptyUntil);
-    const fn = turretFrame(this.kind, tier, `${empty ? 'e' : 'd'}${i}`);
+    const fn = this.frame(`${empty ? 'e' : 'd'}${i}`);
     const gun = this.gun!;
     if (fn !== this.frameName) {
       this.frameName = fn;

@@ -45,7 +45,7 @@ function addMark(bs: TdScene, slot: number, label: string, lift: number, ring = 
   const d = depthOf(f.gx, f.gy);
   const rg = isoRing(1.5);
   const rgo = ring ? bs.add.ellipse(p.x, p.y + 2, rg.w, rg.h, 0xffe885, 0.22).setStrokeStyle(4, 0xffe885, 0.95).setDepth(d - 0.4) : null;
-  // 字压在建筑、英雄、敌人上面（以前跟着木台的深度，被主寨、站在台边的英雄、登陆的人堆挡住）；圈还贴着地
+  // 字压在建筑、英雄、敌人上面（跟着木台的深度会被主寨、站在台边的英雄、登陆的人堆挡住）；圈还贴着地
   const arrow = bs.add
     .text(p.x, p.y - 30 - lift, `${label}\n▼`, { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${MARK_FONT * bs.r}px`, align: 'center', color: ring ? '#ffe885' : '#ffffff', stroke: '#2b1a15', strokeThickness: 5 * bs.r })
     .setOrigin(0.5, 1)

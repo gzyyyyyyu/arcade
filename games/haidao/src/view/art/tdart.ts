@@ -4,7 +4,8 @@ import type { ArtPiece, Pt } from './kit.ts';
 import { limb, woodShield } from './troops.ts';
 import { OUT, P, box, cyl, darken, ell, f, lighten, line, mat, path, piece, poly, rect, shadow, skull, uid } from './kit.ts';
 
-const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate', 'medic', 'gunboat', 'king'] as const;
+/** 守岛敌人的整帧种类；第六章新敌人（charger 冲锋手、drummer 盾鼓手、balloon 热气球、tyrantShip/tyrant/tyrantRun 铁潮舰长三段）和水手营的水兵（marine / marineGun 火枪队 / marineShield 重盾队）也在这里 */
+export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate', 'medic', 'gunboat', 'king', 'charger', 'drummer', 'balloon', 'tyrantShip', 'tyrant', 'tyrantRun', 'marine', 'marineGun', 'marineShield'] as const;
 export type TdEnemyKind = (typeof TD_ENEMY_KINDS)[number];
 export type TdAnim = 'walk' | 'attack';
 export type TdPropKind = 'pad' | 'padBuilt' | 'keg' | 'wreck' | 'barrel' | 'tideEdge' | 'mist' | 'jam' | 'tideWave' | 'sluiceUp' | 'sluiceDown' | 'battery' | 'crate';
@@ -637,6 +638,223 @@ function captainSpec(p: Pd, atk = false): Spec {
 }
 const captainBody = (p: Pd, atk: boolean): string => manOf(captainSpec(p, atk), p, atk);
 
+// ================================================================= 第六章的新敌人（td.md 批 3、批 4）和水兵
+
+/** 冲锋手：短打扮、光胳膊、黄头巾、腰里一把短匕；身后几道速度线，一眼看出「跑得快」 */
+function runnerSpec(p: Pd): Spec {
+  const L: Look = { skin: '#e2a06c', pants: '#6a4a2c', boot: '#3a2418', shirt: '#e8c23a', sleeve: '#e2a06c', half: 6, top: -23, head: 9.2 };
+  return { L, h: {
+    back: (pd) => {
+      let s = '';
+      for (const [dy, len] of [[-30, 14], [-22, 18], [-14, 12]] as const) s += line([pd.lean - 10, dy + pd.bob], [pd.lean - 10 - len, dy + pd.bob + 1], '#ffffff', 2.4, 0.75);
+      return s;
+    },
+    torso: (x, yt) => line([x - 6, yt + 2], [x + 5, -13 + p.bob], '#8a3a1e', 2.2) + rect(x - 6.4, -13 + p.bob, 12.8, 2.8, '#5a3a20', { sw: 1.2 }),
+    face: (cx, cy, r) => line([cx + r * 0.1, cy - 3.6], [cx + r * 0.85, cy - 2], '#1b1214', 1.6),
+    hat: (cx, cy, r) =>
+      path(`M${f(cx - r)},${f(cy - 1.6)} A${f(r)},${f(r)} 0 0 1 ${f(cx + r)},${f(cy - 2)} Q${f(cx)},${f(cy - 5.4)} ${f(cx - r)},${f(cy - 1.6)} Z`, '#f2d040', { sw: 2 }) +
+      path(`M${f(cx - r + 0.4)},${f(cy - 2.4)} q-10,-1 -14,3 q6,0 10,1 Z`, '#d8a820', { sw: 1.6 }),
+    weapon: (hd, pd) => sword(hd, pd.ang, 13, 2.6, '#e6eef6', 1.5),
+  } };
+}
+const runnerBody = (p: Pd, atk: boolean): string => {
+  // 冲锋手身子前倾、步子大：把基础步态的前倾和步幅放大
+  const q: Pd = { ...p, lean: p.lean + 3, ff: [p.ff[0] * 1.4, p.ff[1]], bf: [p.bf[0] * 1.4, p.bf[1]] };
+  return manOf(runnerSpec(q), q, atk);
+};
+
+/** 盾鼓手：铁盔、铁甲，胸前挂一面大战鼓，后手一面高塔盾；脚下一圈虚线（给身边同伴挡直射的范围示意） */
+function drummerSpec(_p: Pd, i: number): Spec {
+  const L: Look = { skin: '#d8a070', pants: '#4a4e58', boot: STEEL, shirt: '#6e7a88', sleeve: '#5e6874', half: 9.8, top: -26, head: 9.2 };
+  const beat = i % 2;
+  return { L, h: {
+    backHand: (hd) => {
+      // 高塔盾：长方、包铁边、中间一道金纹
+      const x = hd[0] - 4;
+      const y = hd[1] - 16;
+      return rect(x - 7, y, 14, 30, '#5a3a22', { sw: 2.2, r: 3 }) + rect(x - 7, y, 14, 30, 'none', { stroke: '#9aa5b2', sw: 2.2, r: 3 }) + line([x, y + 3], [x, y + 27], C.gold!, 2) + line([x - 5, y + 15], [x + 5, y + 15], C.gold!, 2);
+    },
+    torso: (x, yt) => {
+      // 胸前斜挎的鼓：鼓面朝前，红鼓身，两道绳
+      const cx = x + 4;
+      const cy = yt + 12;
+      let s = line([x - 8, yt + 2], [cx + 4, cy - 6], '#3a2418', 2.2);
+      s += rect(cx - 8, cy - 6, 16, 12, '#b8302a', { sw: 2, r: 2 });
+      s += path(`M${f(cx - 8)},${f(cy - 6)} L${f(cx)},${f(cy + 6)} L${f(cx + 8)},${f(cy - 6)}`, 'none', { stroke: '#f4ead0', sw: 1.2 });
+      s += ell(cx, cy - 6, 8, 3, '#efe2c0', { sw: 1.8 }) + ell(cx, cy + 6, 8, 3, 'none', { stroke: OUT, sw: 1.6 });
+      if (beat) s += path(`M${f(cx - 10)},${f(cy - 14)} q2,-3 4,0 M${f(cx + 6)},${f(cy - 15)} q2,-3 4,0`, 'none', { stroke: '#ffffff', sw: 1.6, op: 0.9 });
+      s += ell(x - 8.8, yt + 4, 5.4, 4.2, STEEL, { sw: 1.8 }) + ell(x + 9, yt + 4, 5.6, 4.4, '#a7b2bf', { sw: 1.8 });
+      return s;
+    },
+    hat: (cx, cy, r) =>
+      path(`M${f(cx - r - 1)},${f(cy + 2)} L${f(cx - r - 1)},${f(cy - 3)} A${f(r + 1)},${f(r + 1.2)} 0 0 1 ${f(cx + r + 1)},${f(cy - 3)} L${f(cx + r + 1)},${f(cy + 2)} Z`, '#8d98a6', { sw: 2.2 }) +
+      rect(cx - r - 2, cy - 3.4, 2 * r + 4, 3, '#5e6672', { sw: 1.2 }) +
+      path(`M${f(cx - 2)},${f(cy - r - 1)} q-2,-7 4,-9 q-1,5 2,8 Z`, '#d8402e', { sw: 1.2 }),
+    // 鼓槌：一根短木棒带球头，敲鼓时往下砸
+    weapon: (hd, pd) => {
+      const a = ((pd.ang - 30) * Math.PI) / 180;
+      const tip: Pt = [hd[0] + Math.cos(a) * 13, hd[1] + Math.sin(a) * 13];
+      return line(hd, tip, '#6a4a2a', 2.6) + ell(tip[0], tip[1], 2.8, 2.8, '#efe2c0', { sw: 1.2 });
+    },
+  } };
+}
+/** 盾鼓手脚下那一圈：示意身边 2.5 格同伴少吃直射（只是一圈虚线，范围不按比例） */
+const drumRing = (): string => ell(0, 0, 30, 13, 'none', { stroke: '#9fd0ff', sw: 2, op: 0.7 }).replace('/>', ' stroke-dasharray="6 5"/>');
+const drummerBody = (p: Pd, atk: boolean, i: number): string => drumRing() + manOf(drummerSpec(p, i), p, atk);
+
+/**
+ * 铁潮舰长（第六章首领）的两个陆上形态：
+ * - armored：二段「舰长上岸」，全身铁甲、铁盔带红缨、披风，手里一把宽背砍刀（重甲）；
+ * - !armored：三段「甩掉铁甲」，破衬衫、光脑袋扎红头巾、刀扛在肩上冲（布衣）。
+ */
+function tyrantSpec(p: Pd, armored: boolean): Spec {
+  const L: Look = armored
+    ? { skin: '#d89868', pants: '#3a3e48', boot: STEEL, shirt: '#6e7a88', sleeve: '#5e6874', half: 9.8, top: -26, head: 10 }
+    : { skin: '#d89868', pants: '#3a3240', boot: '#2a1a14', shirt: '#efe2c0', sleeve: '#d89868', half: 9, top: -26, head: 10 };
+  return { L, h: {
+    back: (pd) => {
+      if (!armored) return '';
+      const w = -(pd.ff[0] - pd.bf[0]) * 0.18;
+      return path(`M${f(pd.lean - 5)},${f(-26 + pd.bob)} Q${f(pd.lean - 19 + w)},${f(-18)} ${f(pd.lean - 17 + w)},${f(-1)} L${f(pd.lean - 8)},${f(-4 + pd.bob)} L${f(pd.lean - 2)},${f(-12 + pd.bob)} Z`, '#2a3a5a', { sw: 2 });
+    },
+    torso: (x, yt) => {
+      let s = '';
+      if (armored) {
+        // 胸甲：一块弧形铁板、三颗铆钉、金色锚纹
+        s += path(`M${f(x - 9)},${f(yt + 3)} Q${f(x)},${f(yt - 1)} ${f(x + 9.4)},${f(yt + 3)} L${f(x + 8.6)},${f(-13 + p.bob)} Q${f(x)},${f(-10 + p.bob)} ${f(x - 8.6)},${f(-13 + p.bob)} Z`, '#8d98a6', { sw: 2 });
+        s += line([x + 1, yt + 4], [x + 1, yt + 12], C.gold!, 2) + path(`M${f(x - 3)},${f(yt + 10)} q4,4 8,0`, 'none', { stroke: C.gold!, sw: 2 });
+        s += ell(x - 9.4, yt + 3.6, 6, 4.6, '#7c8794', { sw: 1.8 }) + ell(x + 9.8, yt + 3.6, 6.2, 4.8, '#a7b2bf', { sw: 1.8 });
+      } else {
+        // 撕破的衬衫、交叉的两条皮带
+        s += path(`M${f(x - 9)},${f(-13 + p.bob)} l3,-4 l3,4 l3,-4 l3,4 l3,-4 l3,4`, 'none', { stroke: '#c8b890', sw: 1.4 });
+        s += line([x - 8, yt + 2], [x + 8, -14 + p.bob], '#5a3a20', 2.4) + line([x + 8, yt + 2], [x - 8, -14 + p.bob], '#5a3a20', 2.4);
+      }
+      s += rect(x - 9.6, -13.4 + p.bob, 19.2, 3.6, '#2a1a14', { sw: 1.4 }) + rect(x - 2.4, -14 + p.bob, 4.8, 4.6, C.gold!, { sw: 1 });
+      return s;
+    },
+    face: (cx, cy, r) =>
+      path(`M${f(cx - r * 0.3)},${f(cy + 3)} Q${f(cx + r * 0.4)},${f(cy + r + 5)} ${f(cx + r + 1)},${f(cy + 2)} Q${f(cx + r * 0.4)},${f(cy + 5)} ${f(cx - r * 0.3)},${f(cy + 3)} Z`, '#5a2a1a', { sw: 1.2 }) +
+      line([cx + r * 0.05, cy - 4], [cx + r * 0.9, cy - 2.2], '#1b1214', 2) +
+      (armored ? '' : line([cx - r * 0.2, cy - 1], [cx + r * 0.1, cy + 4], '#9a4a3a', 1.2)),
+    hat: (cx, cy, r) =>
+      armored
+        ? path(`M${f(cx - r - 1.4)},${f(cy + 4)} L${f(cx - r - 1.4)},${f(cy - 3)} A${f(r + 1.4)},${f(r + 1.6)} 0 0 1 ${f(cx + r + 1.4)},${f(cy - 3)} L${f(cx + r + 1.4)},${f(cy + 1)} L${f(cx + 4)},${f(cy + 1)} L${f(cx + 4)},${f(cy - 1)} L${f(cx - 4)},${f(cy - 1)} L${f(cx - 4)},${f(cy + 4)} Z`, '#7c8794', { sw: 2.4 }) +
+          rect(cx - 4, cy - 2.6, 12, 2.6, '#1b1c22', { sw: 0 }) +
+          path(`M${f(cx - 4)},${f(cy - r - 1)} Q${f(cx - 14)},${f(cy - r - 12)} ${f(cx - 20)},${f(cy - r - 4)} Q${f(cx - 10)},${f(cy - r - 5)} ${f(cx)},${f(cy - r - 0.5)} Z`, '#c8302a', { sw: 1.6 })
+        : path(`M${f(cx - r)},${f(cy - 2.4)} A${f(r)},${f(r)} 0 0 1 ${f(cx + r)},${f(cy - 2.8)} Q${f(cx)},${f(cy - 6)} ${f(cx - r)},${f(cy - 2.4)} Z`, '#c8302a', { sw: 2 }) +
+          path(`M${f(cx - r + 0.4)},${f(cy - 3)} q-9,-1 -12,5 q5,-1 9,0 Z`, '#a02420', { sw: 1.6 }),
+    weapon: (hd, pd) => {
+      // 宽背砍刀：刀背厚、刀尖上翘
+      const ang = armored ? pd.ang : pd.ang - 40;
+      return sword(hd, ang, 34, 6, '#d8e0e8', 7, '#5a3a20');
+    },
+  } };
+}
+const tyrantBody = (p: Pd, atk: boolean, armored: boolean): string => {
+  const q: Pd = armored ? p : { ...p, lean: p.lean + 3, ff: [p.ff[0] * 1.3, p.ff[1]], bf: [p.bf[0] * 1.3, p.bf[1]] };
+  return manOf(tyrantSpec(q, armored), q, atk);
+};
+
+/**
+ * 铁潮舰（首领一段）：停在海上的铁甲船，整帧画。船身包铁板、一排铆钉，甲板中间一座带双炮的铁炮塔，
+ * 一根烟囱冒黑烟、一根桅杆挂铁灰帆（帆上一只铁锚纹），船头一只撞角；attack 是双炮冒火、船身后坐
+ */
+function tyrantShipFrame(anim: TdAnim, i: number): ArtPiece {
+  const bob = anim === 'walk' ? [0, -2, 0, 2][i]! : [0, 3, 1][i]!;
+  const fire = anim === 'attack' && i === 1;
+  const y = (v: number): string => f(v + bob);
+  let o = ell(0, 4, 88, 16, '#bfe7f2', { sw: 0, op: 0.55 }) + ell(0, 4, 70, 11, '#8fd0e6', { sw: 0, op: 0.5 });
+  const hull = `M-82,${y(-38)} Q-78,${y(-6)} -38,${y(0)} L46,${y(0)} Q74,${y(-8)} 96,${y(-30)} L84,${y(-44)} Q40,${y(-34)} -10,${y(-34)} Q-46,${y(-34)} -82,${y(-38)} Z`;
+  o += path(hull, '#4a5262', { sw: 3 });
+  o += path(`M-82,${y(-38)} Q-10,${y(-26)} 84,${y(-44)}`, 'none', { stroke: '#8d98a6', sw: 3 });
+  for (let k = 0; k < 4; k++) o += line([-60 + k * 36, -32 + bob], [-56 + k * 36, -4 + bob], '#353c4a', 1.6, 0.8);
+  for (let k = 0; k < 9; k++) o += ell(-66 + k * 17, -24 + bob + Math.abs(k - 4) * 0.6, 1.4, 1.4, '#c8d0da', { sw: 0 });
+  // 撞角
+  o += poly([[84, -30 + bob], [108, -22 + bob], [86, -14 + bob]], '#8d98a6', { sw: 2 });
+  // 烟囱 + 黑烟
+  o += rect(-48, -78 + bob, 12, 42, '#2a2c34', { sw: 2 }) + rect(-50, -80 + bob, 16, 5, C.redD!, { sw: 1.4 });
+  for (const [dx, dy, r] of [[-44, -90, 8], [-50, -104, 10], [-60, -118, 12]] as const) o += ell(dx - i * 2, dy + bob, r, r * 0.8, '#3a3a44', { sw: 0, op: 0.55 });
+  // 桅杆 + 铁灰帆（锚纹）
+  o += line([30, -36 + bob], [30, -136 + bob], C.woodDD!, 5);
+  o += path(`M2,${y(-126)} Q30,${y(-118)} 60,${y(-126)} L56,${y(-56)} Q30,${y(-50)} 6,${y(-56)} Z`, '#5e6672', { sw: 2.4 });
+  o += line([30, -112 + bob], [30, -72 + bob], '#c8d0da', 3) + path(`M18,${y(-80)} Q30,${y(-64)} 42,${y(-80)}`, 'none', { stroke: '#c8d0da', sw: 3 }) + line([22, -106 + bob], [38, -106 + bob], '#c8d0da', 3);
+  o += path(`M31,${y(-136)} L54,${y(-130)} L31,${y(-123)} Z`, '#c8302a', { sw: 1.6 });
+  // 甲板炮塔（双炮朝右），开炮后坐、冒火
+  const kick = fire ? -5 : 0;
+  o += path(`M-22,${y(-34)} L-20,${y(-52)} Q-4,${y(-60)} 14,${y(-52)} L16,${y(-34)} Z`, '#3a4250', { sw: 2.2 });
+  for (const dy of [-48, -42]) o += path(`M${f(10 + kick)},${y(dy - 2)} L${f(44 + kick)},${y(dy - 6)} L${f(44 + kick)},${y(dy)} L${f(10 + kick)},${y(dy + 3)} Z`, '#2a2c34', { sw: 1.8 });
+  if (fire) for (const dy of [-50, -44]) o += ell(52 + kick, dy + bob, 8, 5, '#ffcf5a', { sw: 0 }) + ell(58 + kick, dy - 1 + bob, 5, 3.5, '#fff1b8', { sw: 0, op: 0.9 });
+  return piece(`td.tyrantShip.${anim}.${i}`, 230, 176, 110, 156, o);
+}
+
+/**
+ * 热气球：一只打补丁的大气球，下面吊篮里挤着四个水手（露出脑袋），篮边挂两只沙袋；
+ * 影子落在地上（锚点在影子处），整只飘在半空。attack 是篮子晃一下、有人往下扔绳子
+ */
+function balloonFrame(anim: TdAnim, i: number): ArtPiece {
+  const bob = anim === 'walk' ? [0, -2, -3, -1][i]! : [0, 2, 1][i]!;
+  const sway = anim === 'attack' ? [0, 3, -2][i]! : 0;
+  let o = ell(0, 0, 26, 9, '#0b1a2a', { sw: 0, op: 0.28 });
+  const by = -58 + bob;
+  const cy = -112 + bob;
+  // 绳子
+  for (const [x0, x1] of [[-14, -11], [14, 11], [-28, -13], [28, 13]] as const) o += line([x0, cy + 26], [x1 + sway, by - 12], '#5a3a20', 1.4);
+  // 气球：三瓣颜色、两块补丁、顶上一圈
+  o += path(`M-38,${f(cy)} Q-38,${f(cy - 40)} 0,${f(cy - 42)} Q38,${f(cy - 40)} 38,${f(cy)} Q34,${f(cy + 22)} 14,${f(cy + 30)} L-14,${f(cy + 30)} Q-34,${f(cy + 22)} -38,${f(cy)} Z`, '#d8402e', { sw: 2.6 });
+  o += path(`M-14,${f(cy + 30)} Q-24,${f(cy)} -12,${f(cy - 41)} Q0,${f(cy - 42)} 12,${f(cy - 41)} Q24,${f(cy)} 14,${f(cy + 30)} Z`, '#f4ead0', { sw: 1.6 });
+  o += path(`M-4,${f(cy + 30)} Q-6,${f(cy)} -3,${f(cy - 42)} L3,${f(cy - 42)} Q6,${f(cy)} 4,${f(cy + 30)} Z`, '#d8402e', { sw: 1.2 });
+  o += rect(-30, cy - 8, 10, 9, '#8a6a3a', { sw: 1.4 }) + line([-30, cy - 8], [-20, cy + 1], '#5a3a20', 1) + rect(18, cy + 6, 9, 8, '#3f6aa8', { sw: 1.4 });
+  o += ell(-14, cy - 22, 6, 9, '#ffffff', { sw: 0, op: 0.35 });
+  o += rect(-14, cy + 28, 28, 4, '#5a3a20', { sw: 1.4 });
+  // 吊篮 + 四个脑袋 + 沙袋
+  const bx = sway;
+  for (const [hx, c] of [[-11, '#2a2c3a'], [-3, C.red!], [5, '#2a2c3a'], [12, '#f2d040']] as const) {
+    o += ell(bx + hx, by - 13, 4.6, 4.6, '#e8a878', { sw: 1.4 }) + path(`M${f(bx + hx - 4.6)},${f(by - 14)} A4.6,4.6 0 0 1 ${f(bx + hx + 4.6)},${f(by - 14)} Z`, c, { sw: 1.2 });
+  }
+  o += path(`M${f(bx - 18)},${f(by - 12)} L${f(bx + 18)},${f(by - 12)} L${f(bx + 15)},${f(by + 6)} L${f(bx - 15)},${f(by + 6)} Z`, '#a8804a', { sw: 2.2 });
+  for (let k = 0; k < 3; k++) o += line([bx - 17 + k * 0.5, by - 6 + k * 4], [bx + 17 - k * 0.5, by - 6 + k * 4], '#7a5a30', 1.2, 0.8);
+  for (const s of [-1, 1]) o += line([bx + s * 18, by - 10], [bx + s * 21, by - 2], '#5a3a20', 1.2) + ell(bx + s * 21, by + 1, 3.4, 4, '#c8b080', { sw: 1.2 });
+  if (anim === 'attack' && i > 0) o += path(`M${f(bx + 8)},${f(by + 6)} q4,10 -2,18 q-4,8 2,14`, 'none', { stroke: '#8a6a3a', sw: 2 });
+  return piece(`td.balloon.${anim}.${i}`, 110, 176, 55, 164, o);
+}
+
+/**
+ * 水兵（水手营的兵，玩家这边的）：蓝白条纹衫、蓝色水兵帽带两根飘带、短弯刀。
+ * gun = 火枪队（端一支长火枪），shield = 重盾队（前手一面包铁圆盾、个子大一圈）
+ */
+function marineSpec(p: Pd, kind: 'blade' | 'gun' | 'shield'): Spec {
+  const L: Look = { skin: '#eab07c', pants: '#f4ead0', boot: '#2e2420', shirt: '#f4ead0', sleeve: '#f4ead0', half: kind === 'shield' ? 7.6 : 6.6, top: -24, head: 9.4 };
+  return { L, h: {
+    backHand: kind === 'shield' ? (hd) => ell(hd[0] + 6, hd[1] - 4, 9, 11.5, '#2f62a8', { sw: 2.2 }) + ell(hd[0] + 6, hd[1] - 4, 5.6, 7.4, '#c8d0da', { sw: 1.4 }) + ell(hd[0] + 6, hd[1] - 4, 2, 2.6, C.gold!, { sw: 1 }) : undefined,
+    torso: (x, yt) => {
+      let s = '';
+      for (let i = 0; i < 3; i++) s += rect(x - 6.4, yt + 3.5 + i * 4.4, 12.8, 2.1, '#2f62a8', { sw: 0, op: 0.95 });
+      // 水兵领：蓝色方领搭在肩上
+      s += path(`M${f(x - 6)},${f(yt + 1)} L${f(x + 6)},${f(yt + 1)} L${f(x + 1)},${f(yt + 8)} Z`, '#1f4a91', { sw: 1.2 });
+      s += rect(x - 7, -13 + p.bob, 14, 3, '#1f2a44', { sw: 1.4 }) + rect(x - 1.5, -13.4 + p.bob, 3, 3.6, C.gold!, { sw: 0.8 });
+      return s;
+    },
+    face: (cx, cy, r) => ell(cx + r * 0.42 + 1, cy - 0.2, 1.6, 1.8, '#1b1214', { sw: 0 }) + path(`M${f(cx + r * 0.2)},${f(cy + 4)} q2,1.6 4,0`, 'none', { stroke: '#7a3a2a', sw: 1.2 }),
+    hat: (cx, cy, r) => {
+      // 圆顶水兵帽、白帽檐、两根飘带往后
+      let s = path(`M${f(cx - r * 0.9)},${f(cy - 3)} Q${f(cx)},${f(cy - r - 6)} ${f(cx + r * 0.9)},${f(cy - 3)} Z`, '#2f62a8', { sw: 1.8 });
+      s += rect(cx - r, cy - 4, 2 * r, 3, '#f4ead0', { sw: 1.4 });
+      s += path(`M${f(cx - r)},${f(cy - 2)} q-6,3 -9,9 M${f(cx - r)},${f(cy - 2)} q-3,4 -4,10`, 'none', { stroke: '#1f2a44', sw: 1.6 });
+      return s;
+    },
+    weapon:
+      kind === 'gun'
+        ? (hd, pd) => {
+            const a = ((pd.ang + 40) * Math.PI) / 180;
+            const b: Pt = [hd[0] + Math.cos(a) * 26, hd[1] + Math.sin(a) * 26];
+            const t: Pt = [hd[0] - Math.cos(a) * 8, hd[1] - Math.sin(a) * 8];
+            return line(t, hd, '#6a4a2a', 4) + line(hd, b, '#3a3e48', 2.6) + ell(b[0], b[1], 1.2, 1.2, '#14141c', { sw: 0 });
+          }
+        : (hd, pd) => sword(hd, pd.ang, 19, 3, '#e6eef6', 3),
+  } };
+}
+const marineBody = (p: Pd, atk: boolean, kind: 'blade' | 'gun' | 'shield'): string => manOf(marineSpec(p, kind), p, atk);
+
 // ================================================================= 分件骨架用的部件（art/rigparts.ts）
 
 /** 一种守岛敌人拆成部件后的样子：坐标同整张帧（脚底为原点），腿、手臂、武器是部件自己的局部坐标（锚点在原点） */
@@ -731,6 +949,15 @@ const DEF: Record<TdEnemyKind, EnemyDef> = {
   gunboat: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
   king: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
   macaw: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
+  charger: { scale: 1.4, box: { x0: -44, y0: -60, x1: 44, y1: 6 }, shadow: [20, 7] },
+  drummer: { scale: 1.85, box: { x0: -32, y0: -64, x1: 40, y1: 14 }, shadow: [26, 9] },
+  balloon: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
+  tyrantShip: { scale: 1, box: { x0: 0, y0: 0, x1: 1, y1: 1 }, shadow: [0, 0] },
+  tyrant: { scale: 2.5, box: { x0: -32, y0: -70, x1: 48, y1: 6 }, shadow: [26, 8] },
+  tyrantRun: { scale: 2.35, box: { x0: -44, y0: -72, x1: 52, y1: 6 }, shadow: [24, 8] },
+  marine: { scale: 1.45, box: { x0: -28, y0: -62, x1: 40, y1: 6 }, shadow: [22, 8] },
+  marineGun: { scale: 1.45, box: { x0: -28, y0: -62, x1: 44, y1: 6 }, shadow: [22, 8] },
+  marineShield: { scale: 1.6, box: { x0: -28, y0: -62, x1: 42, y1: 6 }, shadow: [24, 8] },
 };
 
 const ecache = new Map<string, ArtPiece[]>();
@@ -749,6 +976,10 @@ export function tdEnemyFrames(kind: TdEnemyKind, anim: TdAnim): ArtPiece[] {
     r = ps.map((_, i) => gunboatFrame(anim, i));
   } else if (kind === 'king') {
     r = ps.map((_, i) => kingFrame(anim, i));
+  } else if (kind === 'tyrantShip') {
+    r = ps.map((_, i) => tyrantShipFrame(anim, i));
+  } else if (kind === 'balloon') {
+    r = ps.map((_, i) => balloonFrame(anim, i));
   } else {
     const d = DEF[kind];
     r = ps.map((p, i) => {
@@ -765,6 +996,13 @@ export function tdEnemyFrames(kind: TdEnemyKind, anim: TdAnim): ArtPiece[] {
       else if (kind === 'bosun') body = bosunBody(p, a);
       else if (kind === 'mate') body = bosunBody(p, a, true);
       else if (kind === 'medic') body = medicBody(p, a);
+      else if (kind === 'charger') body = runnerBody(p, a);
+      else if (kind === 'drummer') body = drummerBody(p, a, i);
+      else if (kind === 'tyrant') body = tyrantBody(p, a, true);
+      else if (kind === 'tyrantRun') body = tyrantBody(p, a, false);
+      else if (kind === 'marine') body = marineBody(p, a, 'blade');
+      else if (kind === 'marineGun') body = marineBody(p, a, 'gun');
+      else if (kind === 'marineShield') body = marineBody(p, a, 'shield');
       else body = captainBody(p, a);
       return frame(`td.${kind}.${anim}.${i}`, d.scale, d.box, stdShadow(d.shadow[0] * d.scale, d.shadow[1] * d.scale), body);
     });

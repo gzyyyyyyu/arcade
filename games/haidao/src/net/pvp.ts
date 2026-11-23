@@ -55,6 +55,18 @@ export interface DefenseBrief {
   trophies: number;
   revenge: boolean;
   rules: number;
+  /** 影子岛 / 切磋：对方没掉东西，按钮是「切磋回去」 */
+  shadow?: ShadowKind;
+}
+/** 影子岛（自动匹配到的真人快照，掠夺奖杯照流浪海盗岛）/ 切磋（港口点名，什么都不给）：对方都不掉东西 */
+export type ShadowKind = 'shadow' | 'spar';
+/** 港口名单的一行 */
+export interface Sailor {
+  /** 名单编号（不是 userId），切磋时原样交回 */
+  ref: string;
+  name: string;
+  hq: number;
+  trophies: number;
 }
 export interface Me {
   trophies: number;
@@ -63,10 +75,15 @@ export interface Me {
   synced: boolean;
   pending: Pending[];
   defenses: DefenseBrief[];
+  /** 本周进攻赢到的奖杯（每周奖杯榜的分数） */
+  week: number;
+  /** 守住（对方 0 星）的次数 */
+  holds: number;
 }
 export interface RaidStart {
   raidId: string;
   wanderer: boolean;
+  shadow?: ShadowKind;
   opponent: { name: string; trophies: number; hq: number; rank?: number };
   setup: BattleSetup;
   until: number;
@@ -81,6 +98,7 @@ interface RaidResult {
   trophies: number;
   total: number;
   wanderer: boolean;
+  shadow?: ShadowKind;
   expired: boolean;
   dup: boolean;
 }
@@ -133,6 +151,9 @@ export const pvpApi = {
   // rules：服务端据此挡住还开着旧页面的人（worker/live.ts 的 checkRules）
   find: () => call<RaidStart>('POST', 'find', { rules: RULES_VERSION }),
   revenge: (raidId: string) => call<RaidStart>('POST', 'revenge', { raidId, rules: RULES_VERSION }),
+  /** 点名切磋：港口名单给 ref，防守记录「切磋回去」给 raidId */
+  challenge: (to: { ref: string } | { raidId: string }) => call<RaidStart>('POST', 'challenge', { ...to, rules: RULES_VERSION }),
+  roster: () => call<{ list: Sailor[] }>('GET', 'roster'),
   /** 只交操作和结束拍；结果以服务端重放为准 */
   finish: (raidId: string, actions: BattleAction[], endTick: number) => call<RaidResult>('POST', 'finish', { raidId, actions, endTick }),
   /** 放弃（换一个、不打了）：按空打结，记一场输（扣奖杯），防守方解锁、不掉东西 */

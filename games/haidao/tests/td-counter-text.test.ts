@@ -16,12 +16,15 @@ describe('克制表的名单', () => {
     expect(damageSources('fire')).toContain('地上的火');
   });
 
-  it('每种敌人正好穿一种护甲；精英跟着普通兵：水手长布衣、鹦鹉王飞禽；小艇不单列', () => {
+  it('每种敌人正好穿一种护甲；精英跟着普通兵：水手长布衣、鹦鹉王飞禽；小艇、首领后几段不单列', () => {
     const all = TD_ARMORS.flatMap((a) => armorFoes(a));
     expect(new Set(all).size).toBe(all.length);
     expect(armorFoes('cloth')).toEqual(expect.arrayContaining(['sailor', 'bosun']));
-    expect(armorFoes('air')).toEqual(['parrot', 'macaw']);
+    expect(armorFoes('air')).toEqual(['parrot', 'macaw', 'balloon']);
     expect(all).not.toContain('skiffling');
+    expect(all).toContain('tyrantShip');
+    expect(all).not.toContain('tyrant');
+    expect(all).not.toContain('tyrantRun');
   });
 
   it('一句话怎么打：多一半、只打一半、打不到，照常的不写', () => {

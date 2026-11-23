@@ -97,6 +97,22 @@ export const TD2_ENEMIES: Readonly<Record<TdEnemyKind, TdEnemyDef>> = {
     drop: { every: 200, n: 3, kind: 'sailor' },
     escort: { n: 2, kind: 'gunboat' },
   },
+  // 第六章（只在战役和海盗来袭的后段出现）。冲锋手：跑得是水手的两倍，扛着宝藏回程慢一半；漏一个就丢一枚
+  charger: { name: '冲锋手', hp: 60, speed: 10, dmg: 8, reload: 20, reach: 80, carry: 1, gold: 6, carrySpeed: 5 },
+  // 盾鼓手：重甲、慢；鼓声让身边同伴挨枪炮的单体直射只吃七成，溅射、火、爆照吃。狙击先打它
+  drummer: { name: '盾鼓手', hp: 200, speed: 3, dmg: 16, reload: 24, reach: 90, carry: 1, gold: 16, drum: { r: 250, pct: 70 } },
+  // 热气球：飞禽、很肉、很慢，不拿宝藏；打下来原地落 4 个水手，飘到箱子 2 格内自己落 6 个
+  balloon: { name: '热气球', hp: 500, speed: 2, dmg: 0, reload: 20, reach: 0, carry: 0, gold: 20, land: { kind: 'sailor', shot: 4, near: 6, r: 200 } },
+  // 铁潮舰长（td34，三段首领）：一段停在海上炸哑塔、放水手（木船，只有远射塔打得到）；血到 60% 或停满 60 秒带两个盾鼓手上岸（重甲）；
+  // 血到 25% 甩掉铁甲扛刀冲向宝藏（布衣、快）。三段按剩余血的比例接着算，只有最后一段给击杀金
+  tyrantShip: {
+    name: '铁潮舰', hp: 3000, speed: 0, dmg: 0, reload: 120, reach: 0, carry: 0, gold: 0, boss: true,
+    shell: { range: 1000, reload: 120, jamTicks: 60, moor: 1200 },
+    drop: { every: 240, n: 3, kind: 'sailor' },
+    phase: { at: 60, next: 'tyrant', with: { kind: 'drummer', n: 2 } },
+  },
+  tyrant: { name: '铁潮舰长', hp: 3000, speed: 3, dmg: 45, reload: 24, reach: 100, carry: 3, gold: 0, boss: true, phase: { at: 25, next: 'tyrantRun' } },
+  tyrantRun: { name: '舰长冲锋', hp: 3000, speed: 8, dmg: 40, reload: 20, reach: 100, carry: 3, gold: 150, boss: true },
 };
 
 /** 海上的目标（炮艇）只有射程不小于这么多单位的塔打得到：臼炮、鱼叉、火箭、狙击够，加农、火枪、喷火、震荡不够 */
@@ -129,6 +145,15 @@ export const TD2_ENEMY_POINTS: Readonly<Record<TdEnemyKind, number>> = {
   // 炮艇 300 血木船，近程塔打不到、还要哑塔，按等效血量加价
   gunboat: 24,
   king: 300,
+  // 冲锋手血少，但快、漏一个就丢：按 1.5 倍等效算
+  charger: 7,
+  // 盾鼓手 200 血重甲，加上给同伴的减伤
+  drummer: 20,
+  // 热气球 500 血飞禽，连落下来的水手一起算
+  balloon: 40,
+  tyrantShip: 400,
+  tyrant: 0,
+  tyrantRun: 0,
 };
 
 /** 首领波前多给的倒数（拍）：10 秒，预告条变红 */

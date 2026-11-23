@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LEAD_MAX, flightTicks, inRing, keepLock, laneOffset, leadPoint, rankTargets } from '../src/core/index.ts';
 
-/** 进攻和守岛共用的战斗规则（docs/v2.md 第 3 节、DESIGN 10.2b）：每条规则一个测试 */
+/** 进攻和守岛共用的战斗规则（docs/design-td.md 10.2b）：每条规则一个测试 */
 
 const u = (id: number, x: number, y: number, px?: number, py?: number) => ({ id, x, y, px, py });
 

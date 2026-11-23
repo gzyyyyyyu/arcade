@@ -37,7 +37,7 @@ export interface PvpHooks {
   rank?: number;
   /** 回放：按这串操作自动打，到 end 拍停；玩家点的不算 */
   replay?: { actions: BattleAction[]; end: number };
-  /** 拆光能抢多少（抢劫传，RaidStart.maxGain）：顶栏跟着摧毁率实时数「已抢」；抢到的和摧毁率成正比 */
+  /** 拆光能抢多少（抢劫传，RaidStart.maxGain）：按主寨和仓库分摊（lootPlan），顶栏跟着各座掉的血实时数「已抢」 */
   maxGain?: Res;
   /** log：实际生效的操作（t = 生效的拍），endTick：停在第几拍；local：浏览器算的结果（只作显示前的参考，以服务端为准） */
   onFinish(log: BattleAction[], endTick: number, local: BattleResult): void;

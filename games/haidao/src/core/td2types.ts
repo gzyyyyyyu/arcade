@@ -10,6 +10,7 @@
 import { TD2_BUDGET } from '../content/td2units.ts';
 import type { BuildingKind, Placed } from './types.ts';
 import type { TdEnemyKind, TdEventKind, TdLevel } from './tdtypes.ts';
+import type { TdPrio } from '../content/tdults.ts';
 
 // ---------------------------------------------------------------- 克制表
 
@@ -70,6 +71,12 @@ export const TD_ENEMY_ARMOR: Readonly<Record<TdEnemyKind, TdArmor>> = {
   gunboat: 'wood',
   king: 'heavy',
   macaw: 'air',
+  charger: 'cloth',
+  drummer: 'heavy',
+  balloon: 'air',
+  tyrantShip: 'wood',
+  tyrant: 'heavy',
+  tyrantRun: 'cloth',
 };
 
 /** 不是塔打出来的伤害：英雄普攻是枪弹；火药桶（地上的、英雄扔的）、地雷是爆破；燃烧弹、火油、火油坑留在地上的火是火 */
@@ -161,10 +168,10 @@ export interface TdPadDef {
   high?: true;
 }
 
-/** 13 张关卡岛（A–M，见 content/td2maps.ts） */
-export type TdMapId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M';
+/** 17 张关卡岛（A–Q，见 content/td2maps.ts） */
+export type TdMapId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q';
 /** 战役第几章 */
-export type TdChapterId = 1 | 2 | 3 | 4 | 5;
+export type TdChapterId = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * 一张关卡岛：地形和路线固定，两关共用一张图（关卡在上面换波次、开局金、驻守台上限）。
@@ -350,7 +357,15 @@ export type Td2Action =
   /** 航海士的急射旗：插在 (x, y)（单位），圈里的塔（木台塔、驻守台都算）打得快 */
   | { t: number; type: 'flag'; x: number; y: number }
   /** 航海士的重赏：圈的中心 (x, y)（单位） */
-  | { t: number; type: 'reward'; x: number; y: number };
+  | { t: number; type: 'reward'; x: number; y: number }
+  /** 终极塔：把这块木台（或驻守台）上 3 阶、分叉选完的塔换成终极 ult（content/tdults.ts 的 id）；只在战役和海盗来袭 */
+  | { t: number; type: 'ult'; slot: number; ult: string }
+  /** 先打：这块上的塔改挑目标的先后（最前、最强、最近、精英）；只在战役和海盗来袭 */
+  | { t: number; type: 'prio'; slot: number; prio: TdPrio }
+  /** 水手营：在这块木台上造一座（只在 setup.camp 的局里有，tdcamp.ts）；升阶、选分叉、卖照旧用 up / branch / sell */
+  | { t: number; type: 'camp'; slot: number }
+  /** 水手营：把这块木台上那座营的集结点挪到 (x, y)（单位，营 3 格内能走的格） */
+  | { t: number; type: 'muster'; slot: number; x: number; y: number };
 
 /** 守岛 2.0 新增的事件（并进 TdEvent） */
 export type Td2Event =
@@ -387,7 +402,16 @@ export type Td2Event =
   | { type: 'dare'; wave: number; on: boolean }
   /** 航海士：急射旗插在 (x, y)、重赏圈中心 (x, y)，半径 r（单位），都到 until 拍；ready 是这个技能下次能放的拍 */
   | { type: 'flag'; x: number; y: number; r: number; until: number; ready: number }
-  | { type: 'reward'; x: number; y: number; r: number; until: number; ready: number };
+  | { type: 'reward'; x: number; y: number; r: number; until: number; ready: number }
+  /** 木台 slot 上的塔 id 换成了终极 ult */
+  | { type: 'ult'; slot: number; id: number; ult: string }
+  /** 多段首领换了形态：旧的 id 没了，原地换成 next（kind 是新形态） */
+  | { type: 'phase'; id: number; next: number; kind: TdEnemyKind }
+  /** 热气球飘到箱子边落了人，气球没了 */
+  | { type: 'land'; id: number; x: number; y: number }
+  /** 水手营：造好（build，camp 是营 id）、兵倒下（down）、复活（up）；x、y 是兵的位置（单位） */
+  | { type: 'soldier'; camp: number; man: number; what: 'down' | 'up'; x: number; y: number }
+  | { type: 'camp'; camp: number; slot: number; what: 'build' | 'up' | 'branch' | 'muster' | 'sell' };
 
 /** 场上的拒马（x、y 是格子坐标，事件 barricade 里的也是）：挡住周围 3×3 格的地面敌人，血掉光或到时间就没了 */
 export interface TdBarricade {

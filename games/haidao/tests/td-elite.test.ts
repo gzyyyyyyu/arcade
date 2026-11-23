@@ -34,7 +34,9 @@ describe('哪几关、从第几波', () => {
     expect(TD2_LEVEL_DEFS.filter((d) => d.elite).map((d) => d.id)).toEqual(ELITE_LEVELS);
     for (const now of TD2_LEVELS) {
       if (!ELITE_LEVELS.includes(now.id)) {
-        expect([...kinds(now)].some((k) => ELITES.includes(k)), now.id).toBe(false);
+        // 第六章的大副是波次里直接写的（不走精英配方），只查水手长、鹦鹉王
+        const elites = now.chapter === 6 ? ELITES.filter((k) => k !== 'mate') : ELITES;
+        expect([...kinds(now)].some((k) => elites.includes(k)), now.id).toBe(false);
         continue;
       }
       const from = TD2_LEVEL_DEFS.find((d) => d.id === now.id)!.elite!.from ?? TD_ELITE.from;
@@ -77,10 +79,10 @@ describe('大副', () => {
     expect(TD_ENEMY_ARMOR.mate).toBe('cloth');
   });
 
-  it('只在 td16、第四章的 td20、td22、td23、td24 和第五章的 td29、td30，水手换大副、鹦鹉换鹦鹉王', () => {
+  it('只在 td16、第四章的 td20、td22、td23、td24、第五章的 td29、td30 和第六章波次里直接写了大副的 td31、td32、td34，水手换大副、鹦鹉换鹦鹉王', () => {
     for (const raw of TD2_LEVELS) {
       const has = kinds(raw).has('mate');
-      expect(has, raw.id).toBe(['td16', 'td20', 'td22', 'td23', 'td24', 'td29', 'td30'].includes(raw.id));
+      expect(has, raw.id).toBe(['td16', 'td20', 'td22', 'td23', 'td24', 'td29', 'td30', 'td31', 'td32', 'td34'].includes(raw.id));
     }
     const now = kinds(TD2_LEVELS.find((l) => l.id === 'td16')!);
     expect(now.has('bosun')).toBe(false);

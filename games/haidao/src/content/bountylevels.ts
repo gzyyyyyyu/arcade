@@ -1,9 +1,9 @@
 import type { LevelDef } from './defs.ts';
 
 /**
- * 悬赏出海专用的三座岛（小档 c07、中档 c10、大档和豪华档 c16），从战役拆出来冻结：2026-11-06（0.31.17）时战役这三关生成好的完整定义，逐字照抄。
- * 战役的 c07、c10、c16 以后随便调，不影响悬赏；**改这里就是改实盘数值，要重跑 live-sim 四档并更新 DESIGN 4.3**。
- * tests/bounty-levels.test.ts 用哈希锁住这份数据和拆分前完全一样。
+ * 悬赏出海池里各关的冻结副本（`livetable.ts` 的 `LIVE_TABLE.live` 用到的 c06–c10、c14–c16），逐字照抄当时战役生成好的定义。
+ * 战役的同名关随便调，不影响悬赏；**改这里就是改实盘数值，要重跑 `node tools/live-sim.ts --kind live --n 2000` 并更新 docs/balance-haidao.md 第 2 节**。
+ * tests/bounty-levels.test.ts 用哈希锁住这份数据。
  */
 export const BOUNTY_LEVELS: readonly LevelDef[] = [
   {

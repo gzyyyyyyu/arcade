@@ -31,7 +31,7 @@
 
 - DO 每个方法最多写 2 行、不用闹钟和 `setTimeout`；结算一律服务端用 `src/core/pvp.ts` 重放。改 Base / Harbor 的方法同步 `worker/pvp/api.ts` 的 `BASE_METHODS` / `HARBOR_METHODS`。
 - Worker 入口只导出 default 和 DO 类（`Base`、`Harbor`、`RoomMeter`）。
-- pvp `find` / `revenge`、live / td `buyin` 的请求体必须带 `rules`，低于当前版本回 409 `need_reload`（`worker/live.ts` 的 `checkRules`，在钱包和存储之前判）。
+- pvp `find` / `revenge` 和四种实盘（live / td / escort / map）`buyin` 的请求体必须带 `rules`，低于当前版本回 409 `need_reload`（`worker/live.ts` 的 `checkRules`，在钱包和存储之前判）。
 
 ## 5. 坑
 

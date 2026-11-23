@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import type { LiveTier } from '../core/live.ts';
 import type { TdSetup } from '../core/tdtypes.ts';
 import type { TdGarrisonPick } from '../core/td2types.ts';
+import type { TdPlay } from '../core/tdrun.ts';
 import type { BattleSetup, Profile, Res } from '../core/types.ts';
 import { writeSave } from '../platform/save.ts';
 import type { Save } from '../platform/sync.ts';
@@ -64,7 +65,7 @@ export interface Api {
   sfxStats?(): { counts: Record<string, { req: number; played: number; gap: number; cap: number; silent: number }>; recent: Array<{ name: string; at: number; ok: boolean }> };
   sfxStatsReset?(): void;
   /** 只在 ?dev 时有：直接给资源和星数（内存里改，不写存档） */
-  dev?: { give(gold: number, wood: number, stars: number): void; /** 主寨升到 hq 级，摆一座带塔、墙、宝藏箱的守岛示范岛（守岛战役各关各给 1 星，全部解锁）；branch：塔选上分叉（一档、两档交替）；hero：英雄等级（不给跟主寨，看英雄等级外观用） */ td(hq: number, branch?: boolean, hero?: number): void; /** 换成给定的整份存档（工具在 node 里造好传进来，例如 tools/sample.ts 的满配岛） */ load(p: Profile): void };
+  dev?: { give(gold: number, wood: number, stars: number): void; /** 主寨升到 hq 级，摆一座带塔、墙、宝藏箱的守岛示范岛（守岛战役各关各给 1 星，全部解锁）；branch：塔选上分叉（一档、两档交替）；hero：英雄等级（不给跟主寨，看英雄等级外观用）；deep：战役全 3 星、每关都有老兵徽和（有挑战的）挑战章，看天赋、打法钮、徽章用 */ td(hq: number, branch?: boolean, hero?: number, deep?: boolean): void; /** 换成给定的整份存档（工具在 node 里造好传进来，例如 tools/sample.ts 的满配岛） */ load(p: Profile): void };
 }
 
 /** 存档和游戏实例在 main.ts 启动时才有；之前读会抛清楚的错，而不是拿到 null 当对象用 */
@@ -120,6 +121,8 @@ export const app = {
   /** 守岛 2.0：选关页的驻守台面板挑好的塔（开局时 prepareTd 交给 startTd2；"再守一次"沿用），tdPicksFor 是挑给哪一关的 */
   tdPicks: [] as TdGarrisonPick[],
   tdPicksFor: '',
+  /** 和 tdPicks 一起挑的打法（普通 / 老兵 / 挑战，驻守台面板的钮；只对 tdPicksFor 那关有效） */
+  tdPlay: 'normal' as TdPlay,
   /** 海盗来袭选了加难档（选关页的开关，这次打开游戏内记住，"再守一次"沿用；不存档，打开游戏默认关） */
   homeHard: false,
   /** 大潮无尽：开本周这一局（图和波次所有人一样） */
