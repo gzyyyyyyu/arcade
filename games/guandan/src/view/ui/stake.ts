@@ -189,6 +189,8 @@ export function openTierPicker<S = StakeSession>(
   let mode = flow.modes.some((x) => x.value === flow.mode()) ? flow.mode() : flow.modes[0]!.value;
   const times: Phaser.GameObjects.Text[] = [];
   const lines: Phaser.GameObjects.Text[] = [];
+  // 钱包不够一份的档，show() 每次按钱包重算；切换"和电脑 / 快速匹配"时不改它们的按钮字
+  const short: Partial<Record<TierId, boolean>> = {};
   // 手机上 568 宽放不下"约 8 分钟"，写成"约 8 分"，免得被截成省略号
   const soloTime = (): string => {
     const t = flow.modes.find((x) => x.value === mode)!.time;
@@ -238,7 +240,7 @@ export function openTierPicker<S = StakeSession>(
       'solo',
       (v) => {
         matching = v === 'match';
-        for (const t of TIER_IDS) if (buttons[t]!.label.text !== '不够一份') buttons[t]!.label.setText(matching ? '匹配' : '进场');
+        for (const t of TIER_IDS) if (!short[t]) buttons[t]!.label.setText(matching ? '匹配' : '进场');
         times.forEach((t) => fitWidth(t.setText(timeOf()), t.getData('maxW') as number));
       },
       150,
@@ -322,10 +324,10 @@ export function openTierPicker<S = StakeSession>(
     const other = flow.stray(w);
     // 钱包不够一份的档：按钮写"不够一份"、那一档的"一份 …"标红，点不了也看得出为什么（以前只是变灰）
     TIER_IDS.forEach((t, i) => {
-      const short = w.balance < TIERS[t];
-      buttons[t]!.setEnabled(!busy && !short);
-      buttons[t]!.label.setText(short ? '不够一份' : matching ? '匹配' : '进场');
-      lines[i]!.setColor(css(short ? COLOR.red : COLOR.ink));
+      short[t] = w.balance < TIERS[t];
+      buttons[t]!.setEnabled(!busy && !short[t]);
+      buttons[t]!.label.setText(short[t] ? '不够一份' : matching ? '匹配' : '进场');
+      lines[i]!.setColor(css(short[t] ? COLOR.red : COLOR.ink));
     });
     if (other?.solo) {
       note.setText(msg || STAKE_TEXT.elsewhere);

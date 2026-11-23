@@ -13,7 +13,7 @@ import { LOW_MEMORY } from '../common/device.ts';
 import { COLOR, TYPE, minDrawH, minHit, phoneType, GAME_HEIGHT } from '../common/theme.ts';
 import { Button, bakeInto, iconButton, setHit, setTopHit, signedLine, text, worldW } from '../ui/kit.ts';
 import { stakeLabelParts } from './overlays.ts';
-import { ACTION_ROW, BUTTON_Y, COUNTER, FUN_UI, ME_AVATAR, PULSE, STAKE_STRIP, TOPBAR, TOPBAR_H } from '../table/layout.ts';
+import { ACTION_ROW, BUTTON_Y, COUNTER, FUN_UI, ME_AVATAR, PULSE, STAKE_STRIP, STATUS_PILL, TOPBAR, TOPBAR_H } from '../table/layout.ts';
 import { Nudges } from '../table/nudge.ts';
 import { TableFun, funItem, type FunSeat } from 'arcade-kit/table-fun';
 import { localChat } from 'arcade-kit/chat';
@@ -60,7 +60,7 @@ export function buildButtons(sc: TableScene, W: number): void {
       }).setDepth(401).setVisible(false)
     : undefined;
   sc.statusBg = sc.add.graphics().setDepth(399);
-  sc.status = text(sc, cx, BUTTON_Y - ACTION_ROW.statusDy, '', { size: TYPE.label, color: 0xfff3d6, bold: true }).setDepth(400);
+  sc.status = text(sc, cx, BUTTON_Y - rh / 2 - STATUS_PILL.halfH - STATUS_PILL.gap, '', { size: TYPE.label, color: 0xfff3d6, bold: true }).setDepth(400);
 }
 
 /**

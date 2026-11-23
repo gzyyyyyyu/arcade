@@ -22,7 +22,7 @@ import { COLOR, TYPE, minDrawH, minHit, phoneType, GAME_HEIGHT } from '../common
 import { rankName } from '../../core/cards.ts';
 import { countLeftDdz } from './counter.ts';
 import { CardView } from '../table/card.ts';
-import { BUTTON_Y as TABLE_BUTTON_Y, DDZ_BUTTON_DROP, DDZ_BUTTONS, DDZ_COUNTER, DDZ_FUN, DDZ_FUN_POLL_MS, DDZ_PUZZLE_TIP, DDZ_STAKE_BAR, DDZ_TOPBAR, DDZ_TOPMID, FUN_UI, ME_AVATAR, TOPBAR, TOPBAR_H } from '../table/layout.ts';
+import { BUTTON_Y as TABLE_BUTTON_Y, DDZ_BUTTON_DROP, DDZ_BUTTONS, DDZ_COUNTER, DDZ_FUN, DDZ_FUN_POLL_MS, DDZ_PUZZLE_TIP, DDZ_STAKE_BAR, DDZ_TOPBAR, DDZ_TOPMID, FUN_UI, ME_AVATAR, STATUS_PILL, TOPBAR, TOPBAR_H } from '../table/layout.ts';
 import { hasLayer } from '../ui/focus.ts';
 import { Button, fitWidth, iconButton, setHit, setTopHit, signedLine, text, worldW } from '../ui/kit.ts';
 import { openInvitePanel } from '../common/social.ts';
@@ -87,7 +87,7 @@ export function buildButtons(sc: DdzScene, W: number): void {
     sc.reg('sit', sc.btnSit);
   }
   sc.statusBg = sc.add.graphics().setDepth(399);
-  sc.status = text(sc, cx, BUTTON_Y - DDZ_BUTTONS.statusDy, '', { size: TYPE.label, color: 0xfff3d6, bold: true }).setDepth(400);
+  sc.status = text(sc, cx, BUTTON_Y - rh / 2 - STATUS_PILL.halfH - STATUS_PILL.gap, '', { size: TYPE.label, color: 0xfff3d6, bold: true }).setDepth(400);
 }
 
 /** 好友房（不是匹配桌）"大厅"右边摆"叫朋友来"，聊天按钮往右让一格；和掼蛋同一组数（TOPBAR、FUN_UI） */
