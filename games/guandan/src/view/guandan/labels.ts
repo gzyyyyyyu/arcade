@@ -26,9 +26,16 @@ export function playDetail(p: Play): string {
       return `三带二 ${r}带${rankName(p.extra)}`;
     case 'jokerBomb':
       return '天王炸';
+    case 'bomb':
+      return `炸弹 ${bombText(p)}`;
     default:
       return `${playLabel(p)} ${r}`;
   }
+}
+
+/** 炸弹几张几（结算"最大一炸"那行，前面已经说了是炸弹）："4 张 2"。张数和点数之间要有"张"，不然"×4 2"读成"×42" */
+export function bombText(p: Play): string {
+  return p.type === 'bomb' ? `${p.cards.length} 张 ${rankName(p.rank)}` : playDetail(p);
 }
 
 /** 级数显示：2..10、J、Q、K、A。 */

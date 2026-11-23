@@ -20,7 +20,7 @@
 - DOM 的 CSS 以 `.gd-` 类、`--gd-` 变量为本模块的命名空间（`common/theme.ts`；页面只属于本游戏，变量挂 `:root`），`--ak-` 只给 kit 部件配主题；新类都带 `gd-` 前缀。
 - 存储只在 `src/view/store.ts` 读写，key 带 `guandan.` 前缀，新 key 补进 `docs/storage.md`。
 - 联机：服务端只下发 `viewFor`；联机发牌用密钥不用种子；改了房间和页面的约定加 `src/net/version.ts` 的 `CLIENT_VERSION`。
-- 实盘的数只在各玩法的 `stake/`，改数加新版本、不改旧的（打到一半的一场按自己的版本结回）；动到实盘期望先报 2,000 局模拟。
+- 实盘的数只在各玩法的 `stake/`，改数加新版本、不改旧的（打到一半的一场按自己的版本带回）；动到实盘期望先报 2,000 局模拟。
 - 互动（`arcade-kit/table-fun`）免费、不挡操作，电脑出牌不读互动；`src/net/emotes.ts` 编号只往后加。
 - `worker/main.ts` 只导出默认导出和 Durable Object 类；`wrangler.jsonc` 不写平台绑定、路由；`ONLINE`、`GATE` 开关见 `docs/net.md`。
 

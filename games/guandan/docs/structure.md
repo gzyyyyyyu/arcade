@@ -10,9 +10,9 @@ src/variants/guandan/   掼蛋（玩法之间互不引用，tests/architecture.t
   core/     规则核心（纯函数、确定性）：cards 两副牌与级牌牌序（再导出通用层的编码）、patterns 牌型/比大小/枚举、game 状态机与玩家视角、options 规则开关
   ai/       电脑对手：plan 理牌、bot 决策、persona 强弱五档和性格/状态/局面、venue 场地 → 电脑、memory 记牌（只用公开信息）、hints "提示"按钮的轮换列表、random 随机机器人（模拟基准）
   net/      联机（房间和页面共用，纯函数）：rules 把规则核心接成 arcade-kit 的 RoomGame、rotate 视角旋转（我总在下）、
-            stake 好友房实盘的桌（开房选项、带入、每个座位的账、结回）、match 快速匹配的档位和开桌选项、fun-moments 短语表、电脑互动性格、名场面映射（接 kit 的 table-fun）、awards 结束颁奖、together 搭子战绩
-  stake/    实盘的规则（纯函数，和 core 同样的约束）：档位、每副的分、封顶、结回额、钱包 ref / op 的拼法、单机一场和好友房每个座位的账（docs/stake.md 第 1 节）；
-            titles 称号（只用公开信息，和 public/titles.json 对齐）、stats 结回时带给平台的战绩小结
+            stake 好友房实盘的桌（开房选项、带入、每个座位的账、带回）、match 快速匹配的档位和开桌选项、fun-moments 短语表、电脑互动性格、名场面映射（接 kit 的 table-fun）、awards 结束颁奖、together 搭子战绩
+  stake/    实盘的规则（纯函数，和 core 同样的约束）：档位、每副的分、封顶、带回额、钱包 ref / op 的拼法、单机一场和好友房每个座位的账（docs/stake.md 第 1 节）；
+            titles 称号（只用公开信息，和 public/titles.json 对齐）、stats 带回时带给平台的战绩小结
 src/variants/doudizhu/   斗地主（同样的分层；规则取舍见 docs/rules.md、电脑见 docs/ai.md 的"斗地主"一节）：
   core/     规则核心：patterns 牌型（ddzPatterns 是它的 PatternSet）、game 叫分 / 出牌 / 翻倍 / 结算的状态机和玩家视角
   ai/       电脑：hand 拆牌、search 残局搜索、decide 叫分和出牌（新手 / 普通 / 高手）
@@ -36,7 +36,7 @@ src/view/   画面层（Phaser 4），按玩法分目录；互相引用的规矩
   根目录     认得两个玩法的入口层文件（可以都引）：app 当前会话和启动参数、store 存储（全部 key）、online 好友房大厅、personas 电脑的台词和出手节奏、stake-stray 钱包里不在本机的掼蛋单机实盘
 src/debug/  URL 参数、调试跳转（jump）、window.__game 调试桥
 worker/     线上 Worker：main.ts 部署入口（只导出默认导出和 Durable Object 类：workerd 把入口的每个具名导出都当入口，多导出常量单独部署时起不来）、index.ts 请求处理、gate.ts 登录闸门和房间路由、room.ts 联机房间、match.ts 快速匹配的排队、
-            stake.ts 单机实盘的带入 / 结回 / 放弃（转给平台钱包 WALLET）
+            stake.ts 单机实盘的带入 / 带回 / 放弃（转给平台钱包 WALLET）
 public/     favicon、cover.png（平台封面）、titles.json（称号表，平台按 id 显示）、daily.json（掼蛋 gd、斗地主 ddz、每日残局 ddzpz 的分数怎么显示，平台读）、_headers
 tests/      vitest，按层分目录：
             core/ 掼蛋规则核心、电脑、统计；net/ 联机规则和会话、互动；stake/ 实盘；view/ 画面层的非渲染逻辑和源码检查；ddz/ 斗地主（规则、电脑、联机、实盘、残局）；

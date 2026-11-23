@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decide } from '../../src/variants/guandan/ai/index.ts';
 import { seatsToAct, viewFor } from '../../src/variants/guandan/core/index.ts';
 import { RULES_V1, SOLO_DEALS, payout, pointValue } from '../../src/variants/guandan/stake/index.ts';
-import { NET_DOWN, STAKE_ERROR, STAKE_TEXT, fillRows, fillSigned, roomLeaveText, roomWhy, settleNowText, fmtChips, fmtWan } from '../../src/view/common/stake-text.ts';
+import { NET_DOWN, STAKE_ERROR, STAKE_TEXT, fillRows, fillSigned, roomLeaveText, roomWhy, settleNowText, fmtChips } from '../../src/view/common/stake-text.ts';
 import { STAKE_KEY, StakeSession, buyinStake, clearStake, loadStake, refundStake, settleStake, stakeLeft, type StakeSave } from '../../src/view/guandan/stake.ts';
 import { strayStake } from '../../src/view/stake-stray.ts';
 import { transient } from '../../src/view/common/stake-api.ts';
@@ -225,18 +225,18 @@ describe('进场', () => {
 describe('中途结算的话写明数字（0.11.2）', () => {
   it('单机：按现在的分结回多少（带入一份加输赢，封顶）', () => {
     // 小档一份 2,000、每分 80：+6 分 → 结回 2,480
-    expect(fillSigned(settleNowText(payout('small', 6)), [6, 6 * pointValue('small')])).toBe('现在结回：按 +6 分（+480）结回 2,480 筹码');
-    expect(fillSigned(settleNowText(payout('small', -3)), [-3, -3 * pointValue('small')])).toContain('结回 1,760 筹码');
+    expect(fillSigned(settleNowText(payout('small', 6)), [6, 6 * pointValue('small')])).toBe('现在带回：按 +6 分（+480）带回 2,480 筹码');
+    expect(fillSigned(settleNowText(payout('small', -3)), [-3, -3 * pointValue('small')])).toContain('带回 1,760 筹码');
   });
   it('好友房离开：同样写出分、筹码和结回额', () => {
     const back = payout('mid', 2);
     expect(fillRows(roomLeaveText(2, 2 * pointValue('mid'), back))).toBe(
-      `离开房间？按现在的 +2 分（+${fmtChips(2 * pointValue('mid'))}）马上结回 ${fmtChips(back)} 筹码，之后电脑接着打，输赢不再算你的；回来会重新带入一份`,
+      `离开房间？按现在的 +2 分（+${fmtChips(2 * pointValue('mid'))}）马上带回 ${fmtChips(back)} 筹码，之后电脑接着打，输赢不再算你的；回来会重新带入`,
     );
     // 一副打到一半（0.12.4）：这副打完才结回，不写结回额（还不知道）
     const midRows = roomLeaveText(-2, -2 * pointValue('mid'), payout('mid', -2), true);
     const mid = fillRows(midRows);
-    expect(mid).toBe(`离开房间？这一副电脑替你打完、输赢照算，打完按那时的分结回（现在 −2 分，${fmtChips(-2 * pointValue('mid'))}）；之后输赢不再算你的，回来会重新带入一份`);
+    expect(mid).toBe(`离开房间？这一副电脑替你打完、输赢照算，打完按那时的分带回（现在 −2 分，${fmtChips(-2 * pointValue('mid'))}）；之后输赢不再算你的，回来会重新带入`);
     // 确认框一行约 16 个汉字宽（460/28）：汉字算 1、数字和符号算 0.55，数字行按最大的 7 位筹码留余量，每行 ≤16
     const em = (t: string): number => Array.from(t).reduce((n, c) => n + (/[\u2e80-\u9fff\uff00-\uffef]/.test(c) ? 1 : 0.55), 0);
     for (const r of [...midRows, ...roomLeaveText(2, 100, 2_000_000)]) expect(em(fillSigned(r.tpl, [-20, -1_600_000]))).toBeLessThanOrEqual(16);
@@ -244,22 +244,14 @@ describe('中途结算的话写明数字（0.11.2）', () => {
   });
 });
 
-describe('手机上的短数（选档页第一行）', () => {
-  it('整万写成"万"，不整万的照写千分位，不丢精度', () => {
-    expect(fmtWan(200_000)).toBe('20万');
-    expect(fmtWan(10_000)).toBe('1万');
-    expect(fmtWan(2_500)).toBe('2,500');
-    expect(fmtWan(12_500)).toBe('12,500');
-  });
-});
-
-describe('实盘文案用词统一（带入 / 结回；断网一句话）', () => {
+describe('实盘文案用词统一（带入 / 带回；断网一句话）', () => {
   const all = [...Object.values(STAKE_ERROR), ...(Object.values(STAKE_TEXT).filter((v) => typeof v === 'string') as string[]), ...['no_funds', 'limit', 'busy', 'x'].map(roomWhy)].join('\n');
-  it('没有"带上""结算过""没带"的别名', () => {
-    expect(all).not.toMatch(/带上|结算过|接着结算|没带[^入]/);
+  it('没有"带上""结算过""没带"的别名；回钱包一律叫"带回"（全站 11-23），不写没解释过的"一份""每分"', () => {
+    expect(all).not.toMatch(/带上|结算过|接着结算|没带[^入]|结回|一份|每分/);
+    expect(STAKE_TEXT.noTier(2_000)).toBe('筹码不够最低档（2,000），去大厅领补给（每天一次）');
   });
-  it('补给后面写明从哪领；断网三处同一句', () => {
-    expect(STAKE_ERROR.no_funds).toContain('补给（大厅每日领取）');
+  it('补给前面写明去哪领、后面写多久一次（不重复"大厅"）；断网三处同一句', () => {
+    expect(STAKE_ERROR.no_funds).toContain('去大厅领补给（每天一次）');
     expect(STAKE_ERROR.unavailable).toBe(NET_DOWN);
     expect(STAKE_TEXT.walletDown.startsWith(NET_DOWN)).toBe(true);
     expect(STAKE_TEXT.settleLater.startsWith(NET_DOWN)).toBe(true);

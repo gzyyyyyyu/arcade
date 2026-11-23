@@ -7,6 +7,9 @@ import { currentUserId } from './room-link.ts';
 import { standalone, timed } from './platform.ts';
 
 /** 北京时间的日期 YYYY-MM-DD */
+/** 每日挑战打到一半点"←"回首页：先问一句：这一场不保存，说清楚免得以为今天的机会用掉了 */
+export const DAILY_LEAVE = '回首页？今天的挑战这一场不保存，再进来从头打（能重打，榜上记最好的一次）';
+
 export function beijingDate(nowMs: number): string {
   const t = new Date(nowMs + 8 * 3600_000);
   const p = (n: number): string => String(n).padStart(2, '0');

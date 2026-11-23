@@ -30,7 +30,7 @@ src/view/                 画面层两个玩法共用：手牌、出牌区、座
 拆通用层时掼蛋行为一点不能变，靠金样证明，金样留下来当回归测试：
 
 - 场景在 `tests/golden-scenarios.ts`，覆盖单机（三档难度短局和完整局、单机实盘四档、地方规则全反过来）、每副的复盘名场面称号、回放、
-  房间规则层（娱乐、换人接管、实盘四档、再来一场、关房结回）。每一步的输出按固定顺序序列化后喂进 sha256，`tests/golden/guandan.json` 只存哈希和项数。
+  房间规则层（娱乐、换人接管、实盘四档、再来一场、关房带回）。每一步的输出按固定顺序序列化后喂进 sha256，`tests/golden/guandan.json` 只存哈希和项数。
 - `tests/golden.test.ts` 逐个比对；`node tools/golden.ts --dump <场景> <文件>` 导出一个场景的明细，改前改后 diff 找第一个不同的地方。
 - 有意改了掼蛋行为的 PR 用 `node tools/golden.ts --write` 重写，并在说明里写为什么；没打算改行为的 PR，`git diff origin/main -- tests/golden` 必须为空。
 
@@ -63,7 +63,7 @@ src/view/                 画面层两个玩法共用：手牌、出牌区、座
 - 主页：标题"牌馆"，下面"掼蛋 / 斗地主"切换，上次选的玩法存 `guandan.variant`（没有就是掼蛋）。
 - 斗地主的玩法说明只有一份：文字在 `src/view/doudizhu/rules.ts`（牌型 / 叫分 / 算分三页），牌型图示用 `ui/patterns.ts` 的 `DDZ_PATTERNS`，由 `openDdzRules` 打开；牌桌右上的"规则"和主页右上的"规则"（当前玩法是斗地主时）共用它，掼蛋的主页仍是掼蛋的规则。改规则要一起改这里和 `docs/rules.md`。
 - 新手引导：第一次进单机娱乐牌桌，发完牌弹 4 步（先叫分 → 地主先出 → 出牌 / 提示 / 不要 → 分怎么来），外壳与掼蛋共用；看过记在 `guandan.ddz.tutorial`（只在本机，不进云同步）。好友房、实盘、每日挑战、托管和带 `seed` 的调试开局不弹。
-- 冒烟：`npm run shot -- --only ddz`（引导、单机一整场和每日挑战）、`npm run stake-smoke -- --ddz-only`（单机实盘，加 `--clump` 走不洗牌、核对余额按 1/200 变）、`npm run stake-smoke -- --ddz-room`（好友房实盘）、`npm run online-smoke -- --ddz`（加 `--clump` 开不洗牌房间）。
+- 冒烟：`npm run shot -- --only ddz`（引导、单机一整场和每日挑战）、`npm run stake-smoke -- --ddz-only`（单机实盘，加 `--clump` 走不洗牌、核对余额按 1/200 变）、`npm run stake-smoke -- --ddz-room`（好友房实盘）、`npm run online-smoke -- --ddz`（加 `--clump` 不洗牌房间）。
 
 ## 5. 模式
 
@@ -71,10 +71,10 @@ src/view/                 画面层两个玩法共用：手牌、出牌区、座
 |---|---|
 | 单机娱乐 | 我 + 两个电脑，三档难度，6 副一场，开明牌；选难度页顶上选发牌"经典洗牌 / 不洗牌·炸弹多"（控件 `deal:0` / `deal:1`，记在设置 `ddzDeal`，快速开始和"再来一局"照它开），不洗牌时顶栏写"不洗牌 · 第 n/6 副"，封顶了的那副结算页写"封顶了，本来 X 分"；每日挑战只有经典发牌；实盘的选档页同样能选发牌（见单机实盘一行）；存档 `guandan.ddz.save`，战绩 `guandan.ddz.stats`（只在本机，不进云同步） |
 | 每日挑战 | 种子只看北京时间的日期，两个普通电脑，6 副累计分交到平台的 `daily-<日期>-ddz-v1`（`public/daily.json` 写分数怎么显示）；不存档、不记战绩，可以再打一次同一副；只在娱乐：全服同一个种子、能重打，打过一遍就知道每家的牌，能背答案，接实盘就是稳赚 |
-| 单机实盘 | 选档位 → 带入一份 → 3 副或我累计到 ±50 分 → 结回；存档 `guandan.ddz.stake`，ref 是 `solo-ddz-<档位>-<32 位十六进制>`，和掼蛋的分得开。数字、每档的电脑和模拟结果见 `docs/stake-ddz.md`；选档页顶上选发牌"经典洗牌 / 不洗牌 · 炸弹多"（控件 `seg:deal`，和娱乐共用设置 `ddzDeal`），不洗牌用规则版本 3（存档、结回请求带 `rules: 3`，`docs/stake-ddz.md` 第 5 节） |
-| 好友房 | 开房选项多一个 `variant: 'ddz'`（没有就是掼蛋，旧房间照常），3 个座位，缺人电脑补；娱乐房间开明牌（和单机娱乐一样，地主拿底牌后选"不明牌 / 明牌 ×2"，超时算不明牌，电脑按自己的判断亮），实盘房间不开；进房、选座、开局、离开、旁观、聊天、邀请链接的流程和掼蛋一样。玩法由房间信息决定，输码、邀请链接进房不靠本机设置。页面的联机会话和掼蛋共用基类 `RoomLink`（`src/view/common/room-link.ts`）。娱乐房间可以开不洗牌：斗地主面板"开不洗牌房间"（`ol-create-clump`），请求体 `{ variant: 'ddz', noShuffle: true }`（`parseHallOpts` 只认 `true`，和档位一起开回 400），房间大厅写"不洗牌 · 炸弹多，每副最多 48 分"（`ol-clump`，`room-info.ts` 的 `isNoShuffleRoom`），牌桌顶栏同单机；实盘房间也能选不洗牌（见好友房实盘一行） |
+| 单机实盘 | 选档位 → 带入一份 → 3 副或我累计到 ±50 分 → 带回；存档 `guandan.ddz.stake`，ref 是 `solo-ddz-<档位>-<32 位十六进制>`，和掼蛋的分得开。数字、每档的电脑和模拟结果见 `docs/stake-ddz.md`；选档页顶上选发牌"经典洗牌 / 不洗牌 · 炸弹多"（控件 `seg:deal`，和娱乐共用设置 `ddzDeal`），不洗牌用规则版本 3（存档、带回请求带 `rules: 3`，`docs/stake-ddz.md` 第 5 节） |
+| 好友房 | 开房选项多一个 `variant: 'ddz'`（没有就是掼蛋，旧房间照常），3 个座位，缺人电脑补；娱乐房间开明牌（和单机娱乐一样，地主拿底牌后选"不明牌 / 明牌 ×2"，超时算不明牌，电脑按自己的判断亮），实盘房间不开；进房、选座、开局、离开、旁观、聊天、邀请链接的流程和掼蛋一样。玩法由房间信息决定，输码、邀请链接进房不靠本机设置。页面的联机会话和掼蛋共用基类 `RoomLink`（`src/view/common/room-link.ts`）。娱乐房间可以开不洗牌：斗地主面板"不洗牌房间"（`ol-create-clump`），请求体 `{ variant: 'ddz', noShuffle: true }`（`parseHallOpts` 只认 `true`，和档位一起开回 400），房间大厅写"不洗牌 · 炸弹多，每副最多 48 分"（`ol-clump`，`room-info.ts` 的 `isNoShuffleRoom`），牌桌顶栏同单机；实盘房间也能选不洗牌（见好友房实盘一行） |
 | 快速匹配 | 娱乐档位 `ddz-fun`，一桌 3 人，同一个排队类（`worker/match.ts` 按档位给桌大小） |
-| 好友房实盘 | 开房请求体 `{ variant: 'ddz', stake: 档位 }`；3 副或任何一家到 ±50 分，规矩照掼蛋好友房（至少 2 个真人、离开结回、重新带入），通用部分在 `src/net/stake-table.ts`，斗地主的桌在 `src/variants/doudizhu/net/stake.ts`，ref `ddz-<16 位十六进制>`。见 `docs/stake-ddz.md` 第 4 节；"开实盘房间"里先选"经典洗牌 / 不洗牌"（`ol-deal-classic` / `ol-deal-clump`），不洗牌的请求体多 `noShuffle: true`，桌记规则版本 3 |
+| 好友房实盘 | 开房请求体 `{ variant: 'ddz', stake: 档位 }`；3 副或任何一家到 ±50 分，规矩照掼蛋好友房（至少 2 个真人、离开带回、重新带入），通用部分在 `src/net/stake-table.ts`，斗地主的桌在 `src/variants/doudizhu/net/stake.ts`，ref `ddz-<16 位十六进制>`。见 `docs/stake-ddz.md` 第 4 节；"开实盘房间"里先选"经典洗牌 / 不洗牌"（`ol-deal-classic` / `ol-deal-clump`），不洗牌的请求体多 `noShuffle: true`，桌记规则版本 3 |
 | 实盘匹配 | 档位 `ddz-real-<档位>` 四档、不洗牌 `ddz-clump-<档位>` 四档（0.39.0），一桌 3 人；选档页的"和电脑 / 快速匹配"和发牌切换一起用，排不到转同档、同发牌的单机 |
 
 - 平台那边：电脑名字稳哥、幺妹儿（和换下来的老周、王姐）登记在 `RESERVED_PERSONAS`；`games.ts` 掼蛋条目的每日子榜 `daily: [{ id: 'ddz', name: '斗地主' }]`。

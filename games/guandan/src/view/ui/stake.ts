@@ -6,7 +6,7 @@
 import type Phaser from 'phaser';
 import { SOLO_LEVELS, type SoloLevel } from '../../variants/guandan/ai/venue.ts';
 import { ROOM_DEALS, SOLO_DEALS, TIERS, TIER_IDS, pointValue, type TierId } from '../../variants/guandan/stake/index.ts';
-import { LENGTH_CARD, LEVEL_CARD, STAKE_TEXT, TIER_CARD, TIER_NAME, fmtChips, fmtWan, stakeError, stars, RETRY_LABEL } from '../common/stake-text.ts';
+import { LENGTH_CARD, LEVEL_CARD, STAKE_TEXT, TIER_CARD, TIER_NAME, fmtChips, stakeError, stars, RETRY_LABEL } from '../common/stake-text.ts';
 import { buyinStake, loadStake, type StakeSession } from '../guandan/stake.ts';
 import { strayStake } from '../stake-stray.ts';
 import { fetchWallet, refundStray, type StakeReply, type WalletView } from '../common/stake-api.ts';
@@ -104,12 +104,12 @@ export function openLevelPicker(
   // 竖屏：说明一行在上、快速匹配在下居中；横屏并排
   const by = H / 2 - (narrow ? 50 : 40);
   const tipY = narrow ? (onMatch ? by - 70 : by) : by;
-  b.add(fitWidth(text(scene, onMatch && !narrow ? -120 : 0, tipY, '随时能在设置里换难度；局长下次开局还是这个', { size: TYPE.small, color: COLOR.muted }), RW));
+  b.add(fitWidth(text(scene, onMatch && !narrow ? -120 : 0, tipY, '难度能在设置里换；下次还用这次选的长短', { size: TYPE.small, color: COLOR.muted }), RW));
   if (onMatch) {
     // 点按区 minHit() 高，居中会压到第三行"开始"的点按区：往下挪
     const mh = Math.max(52, minHit());
     const top = Math.max(by - mh / 2, firstY + 2 * P + P / 2);
-    reg(m, 'match', new Button(scene, narrow ? 0 : 300, by, 220, 52, '快速匹配', 'blue', () => {
+    reg(m, 'match', new Button(scene, narrow ? 0 : 300, by, 220, 52, '和真人匹配', 'blue', () => {
       m.close();
       onMatch();
     }, 'invite')).setHit(Math.max(220, minHit()), mh, top + mh / 2 - by);
@@ -189,19 +189,21 @@ export function openTierPicker<S = StakeSession>(
   let mode = flow.modes.some((x) => x.value === flow.mode()) ? flow.mode() : flow.modes[0]!.value;
   const times: Phaser.GameObjects.Text[] = [];
   const lines: Phaser.GameObjects.Text[] = [];
+  // 每档的"电脑 ★"：快速匹配时换成"空位电脑补"（和真人打，电脑只补空位）
+  const starTexts: Phaser.GameObjects.Text[] = [];
   // 钱包不够一份的档，show() 每次按钱包重算；切换"和电脑 / 快速匹配"时不改它们的按钮字
   const short: Partial<Record<TierId, boolean>> = {};
-  // 手机上 568 宽放不下"约 8 分钟"，写成"约 8 分"，免得被截成省略号
+  // 手机上 568 宽放不下"约 8 分钟"：去掉"约"，"分钟"不能省（"约 8 分"和同一张卡上的计分读混）
   const soloTime = (): string => {
     const t = flow.modes.find((x) => x.value === mode)!.time;
-    return phoneType() ? t.replace(/分钟$/, '分') : t;
+    return phoneType() ? t.replace(/^约 /, '') : t;
   };
   const timeOf = (): string => (matching ? `${flow.roomDeals} 副 · ${STAKE_TEXT.matchWho}` : `${flow.soloDeals} 副 · ${soloTime()}`);
-  // 实盘的钱数不截断（截成"最多输 20…"正好把能输多少藏掉了）。
-  // 手机字托底到 12 像素后，豪华档"一份 200,000 · 每分 10,000"在 568×320 上会压到右边一列的"电脑"：手机上这一行整万写成"20万"（不丢精度），第二行照旧写全数
+  // 实盘的钱数不截断（截成"最多输 20…"正好把能输多少藏掉了）；四档同一种写法（千分位），不混"万"。
+  // 手机上去掉空格省宽：豪华档"带入200,000·1分=10,000"在 568×320 上不压右边一列
   const line1Of = (tier: TierId): string => {
     const pv = flow.pointValue(tier, mode);
-    return phoneType() ? `一份 ${fmtWan(TIERS[tier])} · 每分 ${fmtWan(pv)}` : `一份 ${fmtChips(TIERS[tier])} · 每分 ${fmtChips(pv)}`;
+    return phoneType() ? `带入${fmtChips(TIERS[tier])}·1分=${fmtChips(pv)}` : `带入 ${fmtChips(TIERS[tier])} · 1 分 = ${fmtChips(pv)}`;
   };
   // 玩法那一行：竖屏在"和电脑 / 快速匹配"下面单独一行；横屏在钱包原来的位置（靠左）
   const modeY = narrow ? T + head - MODE_ROW / 2 - 6 : T + 92;
@@ -236,11 +238,12 @@ export function openTierPicker<S = StakeSession>(
       // 右边留出关闭键的点按区（弹窗右上角，手机上约 100 见方）；竖屏单独一行居中
       narrow ? -150 : 185,
       narrow ? T + 160 : T + 92,
-      [{ label: '和电脑', value: 'solo' }, { label: '快速匹配', value: 'match' }],
+      [{ label: '和电脑', value: 'solo' }, { label: '和真人', value: 'match' }],
       'solo',
       (v) => {
         matching = v === 'match';
         for (const t of TIER_IDS) if (!short[t]) buttons[t]!.label.setText(matching ? '匹配' : '进场');
+        TIER_IDS.forEach((t, i) => starTexts[i]!.setText(matching ? STAKE_TEXT.matchBots : `电脑 ${stars(TIER_CARD[t].stars)}`));
         times.forEach((t) => fitWidth(t.setText(timeOf()), t.getData('maxW') as number));
       },
       150,
@@ -267,9 +270,11 @@ export function openTierPicker<S = StakeSession>(
     const line1 = text(scene, narrow ? x0 : -270, narrow ? row(1) : y - 14, line1Of(tier), { size: TYPE.label, color: COLOR.ink, ox: 0 });
     lines.push(line1);
     b.add(line1);
-    const cap = text(scene, narrow ? x0 : -270, narrow ? row(2) : y + 16, `最多输赢 ${narrow ? fmtWan(TIERS[tier]) : share}`, { size: TYPE.small, color: COLOR.muted, ox: 0 });
+    const cap = text(scene, narrow ? x0 : -270, narrow ? row(2) : y + 16, `最多输赢 ${share}`, { size: TYPE.small, color: COLOR.muted, ox: 0 });
     b.add(cap);
-    b.add(text(scene, narrow ? x0 + 120 : 60, narrow ? row(0) : y - 14, `电脑 ${stars(TIER_CARD[tier].stars)}`, { size: TYPE.label, bold: true, color: COLOR.goldDark, ox: 0 }));
+    const starText = text(scene, narrow ? x0 + 120 : 60, narrow ? row(0) : y - 14, `电脑 ${stars(TIER_CARD[tier].stars)}`, { size: TYPE.label, bold: true, color: COLOR.goldDark, ox: 0 });
+    starTexts.push(starText);
+    b.add(starText);
     // 时间那行可以截（手机上放不下时）
     // 竖屏时间接在"最多输赢"后面，留一个字宽
     const tx = narrow ? x0 + cap.width + 24 : 60;
@@ -326,14 +331,14 @@ export function openTierPicker<S = StakeSession>(
     TIER_IDS.forEach((t, i) => {
       short[t] = w.balance < TIERS[t];
       buttons[t]!.setEnabled(!busy && !short[t]);
-      buttons[t]!.label.setText(short[t] ? '不够一份' : matching ? '匹配' : '进场');
+      buttons[t]!.label.setText(short[t] ? '筹码不够' : matching ? '匹配' : '进场');
       lines[i]!.setColor(css(short[t] ? COLOR.red : COLOR.ink));
     });
     if (other?.solo) {
       note.setText(msg || STAKE_TEXT.elsewhere);
-      stray = reg(m, 'stray', new Button(scene, 0, H / 2 - 86, 300, 50, '原样退回那一份', 'wood', () => void giveBack(other.ref)));
+      stray = reg(m, 'stray', new Button(scene, 0, H / 2 - 86, 300, 50, '退回那一场的筹码', 'wood', () => void giveBack(other.ref)));
     } else if (msg) note.setText(msg);
-    else note.setText(w.balance < TIERS.mid ? STAKE_TEXT.lowFunds : '');
+    else note.setText(w.balance < TIERS.small ? STAKE_TEXT.noTier(TIERS.small) : w.balance < TIERS.mid ? STAKE_TEXT.lowFunds : '');
   };
 
   const enter = async (tier: TierId): Promise<void> => {
@@ -360,7 +365,7 @@ export function openTierPicker<S = StakeSession>(
     const r = await flow.refundStray(ref);
     busy = false;
     if (!m.root.scene) return;
-    const msg = r.ok ? '那一份已经原样退回钱包' : r.error === 'no_stake' || r.error === 'expired' ? '那一份已经退回过了' : stakeError(r.error);
+    const msg = r.ok ? '那一场的筹码已经原样退回钱包' : r.error === 'no_stake' || r.error === 'expired' ? '那一场的筹码已经退回过了' : stakeError(r.error);
     show(r.wallet ?? (await fetchWallet()), msg);
   };
 

@@ -267,7 +267,8 @@ export function buildTopBar(sc: TableScene, W: number): void {
   });
   c.add(badge);
   c.add(text(sc, mx, TOPBAR.badgeTextY, levelName(v.level), { size: TYPE.big - 4, color: COLOR.red, bold: true, font: 'num' }));
-  if (phone) c.add(text(sc, mx - TOPBAR.dealNoPhoneDx, TOPBAR.midY, `第${v.dealNo}副`, { size: TYPE.small, color: 0xd8c6a6, ox: 1 }));
+  // 手机上"本副打"放不下：副数后面跟个"打"，连着级牌读成"第2副 打 5"
+  if (phone) c.add(text(sc, mx - TOPBAR.dealNoPhoneDx, TOPBAR.midY, `第${v.dealNo}副 打`, { size: TYPE.small, color: 0xd8c6a6, ox: 1 }));
   else c.add(text(sc, mx + TOPBAR.dealNoDx, TOPBAR.midY, `第 ${v.dealNo} 副`, { size: TYPE.small, color: 0xd8c6a6, ox: 0 }));
 
   // 右：回首页、设置、规则，加云存档（它的红点提示没同步上，收进设置就看不见了，所以留在顶栏）；图标和顺序在 TableSceneBase.buildTopIcons，两个玩法一样。
@@ -289,7 +290,7 @@ export function buildTopBar(sc: TableScene, W: number): void {
     c.add([pg, t]);
     // 单机实盘：条子能点，弹和"大厅"一样的结算确认框；右边加个"结算"小字，让人知道能点（原来找不到中途结算的入口）
     if (st && !st.over) {
-      const tag = text(sc, W - t.width - STAKE_STRIP.tagGap, TOPBAR_H + STAKE_STRIP.cy, '结回 ›', { size: TYPE.small, bold: true, color: 0xffe08a, ox: 1 });
+      const tag = text(sc, W - t.width - STAKE_STRIP.tagGap, TOPBAR_H + STAKE_STRIP.cy, '带回 ›', { size: TYPE.small, bold: true, color: 0xffe08a, ox: 1 });
       const tg = sc.add.graphics();
       tg.fillStyle(0x8a1a20, 0.92).fillRoundedRect(tag.x - tag.width - STAKE_STRIP.tagBgGap, TOPBAR_H + STAKE_STRIP.tagTop, tag.width + STAKE_STRIP.tagPadW, STAKE_STRIP.tagH, STAKE_STRIP.tagR);
       c.add([tg, tag]);
@@ -477,7 +478,7 @@ export function refreshButtons(sc: TableScene): void {
   sc.btnPlay.setEnabled(r.ok);
   if (sel.length === 0) {
     const hints = sc.ensureHints(v);
-    if (hints.length === 0) sc.setStatus('要不起，点 不要', true);
+    if (hints.length === 0) sc.setStatus('要不起，点 不要', true, true);
     else if (guideHint(sc, v)) sc.setStatus('不会出？点「提示」，再点「出牌」');
     else sc.setStatus(v.trick.last ? '轮到你：压过它，或者不要' : '轮到你出牌');
   } else sc.setStatus(r.ok ? r.label : r.reason, !r.ok);

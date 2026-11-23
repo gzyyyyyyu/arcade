@@ -7,7 +7,7 @@
  * ④ 打了几副后回标题选"现在结算"；再开一场打两副，点实盘条选"现在结算，回大厅"，结回后到大厅；
  * ⑤ 钱包说余额不够（no_funds）：进不了场、留在标题页；钱包里有一份不在本机的单机实盘：不挡开新的（平台 0.9.5 起能同时有好几份），给"原样退回那一份"。
  * ⑥ 好友房实盘（0.5.0，docs/stake.md 第 3 节）：开实盘房间选小档，大厅写着档位；一个人时开局灰掉；第二个人坐下后开局，两边都到账，
- *    电脑代打（autoplay）打完 5 副，结算页写"已经结回钱包"，两人的分正好相反。约几分钟；--no-room 跳过。
+ *    电脑代打（autoplay）打完 5 副，结算页写"已经带回钱包"，两人的分正好相反。约几分钟；--no-room 跳过。
  * 控制台零报错。浏览器的 /api/me、/api/wallet 用 Playwright 拦下来答（本地栈的掼蛋 Worker 不管 /api）。
  *
  * ⑦ 斗地主好友房实盘（牌馆 ⑥）：--ddz-room 单独跑，从斗地主面板开实盘房间选小档，两个人 + 一个电脑代打打完一场，两人的分相加为 0、都结回；
@@ -223,7 +223,7 @@ async function friendRoom(browser: Browser, stack: OnlineStack): Promise<void> {
   await shot(host, '63-room-result');
   const pts = await Promise.all([host, guest].map((p) => p.evaluate(() => window.__game!.net()!.stake!.seats[0]!.points)));
   assert(pts[0]! + pts[1]! === 0, `0、1 号是对手，分正好相反：${pts}`);
-  notes.push(`好友房实盘打完一场：两人 ${pts.join(' / ')} 分，结算页写"已经结回钱包"`);
+  notes.push(`好友房实盘打完一场：两人 ${pts.join(' / ')} 分，结算页写"已经带回钱包"`);
 }
 
 /** ⑦ 斗地主好友房实盘：两个人 + 一个电脑，电脑代打打完一场 */
@@ -282,7 +282,7 @@ async function ddzFriendRoom(browser: Browser, stack: OnlineStack): Promise<void
   const house = await host.evaluate(() => window.__game!.net()!.stake!.seats.map((s) => s.points));
   assert(Math.abs(pts[0]! + pts[1]!) <= 40, `两个真人的分合计不超过一份（电脑那家是对头）：${pts}`);
   assert(house.length === 3, '斗地主 3 个座位');
-  notes.push(`斗地主好友房实盘打完一场：两人 ${pts.join(' / ')} 分，结算页写"已经结回钱包"`);
+  notes.push(`斗地主好友房实盘打完一场：两人 ${pts.join(' / ')} 分，结算页写"已经带回钱包"`);
   await host.context().close();
   await guest.context().close();
 }
@@ -304,7 +304,7 @@ async function ddzSolo(browser: Browser, stack: OnlineStack, clump = false): Pro
   await until(page, '选档位', "'tier:small' in g.controls()");
   if (clump) {
     await click(page, 'deal:1');
-    await until(page, '切到不洗牌', "g.texts().some((t) => t.s.includes('每分 10') && !t.s.includes('每分 100'))");
+    await until(page, '切到不洗牌', "g.texts().some((t) => /1 ?分 ?= ?10(?![0-9,])/.test(t.s))");
   }
   await shot(page, clump ? '70-ddz-clump-tiers' : '70-ddz-tiers');
   await click(page, 'tier:small');
@@ -313,7 +313,7 @@ async function ddzSolo(browser: Browser, stack: OnlineStack, clump = false): Pro
   assert(ref?.startsWith('solo-ddz-small-'), `斗地主实盘的 ref：${ref}`);
   // URL 的 autoplay 只管调试开局（?seed=），从主页进的实盘局在这里开代打
   await page.evaluate(() => window.__game!.setAutoplay(true));
-  await until(page, '一场打完、结回', "g.overlay === 'gameOver' && g.texts().some((t) => t.s.includes('结回钱包'))", 240_000);
+  await until(page, '一场打完、结回', "g.overlay === 'gameOver' && g.texts().some((t) => t.s.includes('带回钱包'))", 240_000);
   await shot(page, clump ? '71-ddz-clump-settled' : '71-ddz-settled');
   assert((await page.evaluate(() => localStorage.getItem('guandan.ddz.stake'))) === null, '结回后删掉斗地主实盘存档');
   assert((await page.evaluate(() => localStorage.getItem('guandan.ddz.stats'))) === null, '实盘不记战绩');

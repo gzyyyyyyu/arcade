@@ -27,6 +27,7 @@ import { tableRules, type DdzStakeView } from '../../variants/doudizhu/net/stake
 import { DDZ_ORDER, ddzDescribe, ddzPlayDetail, ddzPlayLabel } from '../doudizhu/view.ts';
 import { DDZ_SEAT_PERSON, setTablePersons } from '../common/labels.ts';
 import { goLobby, inOnlineGame, leaveText } from '../common/lobby.ts';
+import { DAILY_LEAVE } from '../common/daily.ts';
 import { thinkTime, type Situation } from '../personas.ts';
 import { lobbyName } from '../common/platform.ts';
 import { ddzTutorialDone } from '../store.ts';
@@ -288,6 +289,14 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
       }
       return this.leaveRoom();
     }
+    if (this.ses.daily && this.inGame()) {
+      this.openOverlay('menu', confirm(this, DAILY_LEAVE, '回首页', () => this.home(), () => this.closeOverlay()));
+      return;
+    }
+    this.home();
+  }
+
+  private home(): void {
     this.cancelBot();
     this.scene.start('title');
   }
@@ -427,7 +436,7 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
     }
     const hints = this.ensureHints(v);
     if (hints.length === 0) {
-      this.setStatus('要不起，点 不要', true);
+      this.setStatus('要不起，点 不要', true, true);
       return;
     }
     const p = hints[this.hintIdx % hints.length]!;

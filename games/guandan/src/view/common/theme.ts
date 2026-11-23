@@ -250,9 +250,11 @@ export const THEME_CSS = `
 /* 危险按钮（删存档、离开好友房）：深酒红加浅字，和主按钮的亮红分得开（docs/ui.md 第 2 节） */
 .gd-btn.gd-danger { background: var(--gd-gloss), var(--gd-red-dark); color: #ffd9cf; }
 /* 弹窗右上角的 ✕：没有底，点区 44 见方（docs/ui.md 第 5 节） */
-.gd-btn.gd-x { width: var(--gd-hit); padding: 0; border: 0; background: transparent; box-shadow: none; color: var(--gd-ink); font-size: 24px; }
+/* 关闭键：和画布弹窗右上角的圆钮同一个样子（kit.ts iconButton：木色圆、金线内圈、深墨描边） */
+.gd-btn.gd-x { width: var(--gd-hit); height: var(--gd-hit); padding: 0; border: 3px solid ${css(OUTLINE.color)}; border-radius: 50%;
+  background: #6b3f20; box-shadow: inset 0 0 0 2px #6b3f20, inset 0 0 0 4px var(--gd-gold), 0 3px 0 ${css(OUTLINE.color)}; color: #ffe9c2; font-size: 20px; }
 .gd-btn.gd-x::before { display: none; }
-.gd-btn.gd-x:hover { background: rgba(43, 29, 20, 0.08); filter: none; }
+.gd-btn.gd-x:hover { background: #82502a; box-shadow: inset 0 0 0 2px #82502a, inset 0 0 0 4px var(--gd-gold-light), 0 3px 0 ${css(OUTLINE.color)}; filter: none; }
 .gd-btn.gd-big { min-height: 56px; font-size: 22px; background: var(--gd-gloss), ${css(BUTTON.green.fill)}; }
 @keyframes gd-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .gd-btn { transition: none; } .gd-btn.is-loading::after { animation-duration: 2.4s; } }

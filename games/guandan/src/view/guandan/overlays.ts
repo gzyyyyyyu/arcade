@@ -8,7 +8,7 @@ import { dur } from '../common/anim.ts';
 import { NOTICE_MS } from '../common/pace.ts';
 import { backToPicker } from '../table/again.ts';
 import { PLACE_NAMES, seatIdentity, seatName, seatPerson } from '../common/labels.ts';
-import { goalWord, levelName, playDetail } from './labels.ts';
+import { bombText, goalWord, levelName } from './labels.ts';
 import { dealPoints, payout, pointValue, rulesOf } from '../../variants/guandan/stake/index.ts';
 import { ROOM_STAKE_TEXT, STAKE_ERROR, STAKE_TEXT, TIER_NAME, fillSigned, fmtChips, roomWhy, settleNowText, signed, stakeError } from '../common/stake-text.ts';
 import { Session } from './session.ts';
@@ -61,7 +61,7 @@ export function leaveStake(sc: TableScene, st: StakeSession, to: 'lobby' | 'titl
   m.body.add(signedLine(sc, 0, -126, `这场实盘打了 ${st.stake.match.deals.length} 副，本场 {0} 分`, [st.points], { size: TYPE.title, bold: true }));
   m.body.add(signedLine(sc, 0, -76, settleNowText(payout(st.tier, st.points, rulesOf(st.stake.match.rules))), [st.points, st.points * pv], { size: TYPE.label, bold: true, color: COLOR.redDark }));
   m.body.add(text(sc, 0, -40, '先存着：24 小时内回来接着打', { size: TYPE.label, color: COLOR.muted, wrap: 600 }));
-  const now = new Button(sc, -160, 36, 290, 60, `现在结回${where}`, 'red', () => {
+  const now = new Button(sc, -160, 36, 290, 60, `现在带回${where}`, 'red', () => {
     m.close();
     sc.overlay = null;
     sc.overlayModal = null;
@@ -132,7 +132,7 @@ export function showSettle(sc: TableScene, r: DealResult): void {
   const rc = dealRecap(r, history);
   const recap = [
     `炸弹 ${sc.side(0)} ${rc.bombs[0]} · ${sc.side(1)} ${rc.bombs[1]}${sc.dealJiefeng ? ` · 接风 ${sc.dealJiefeng} 次` : ''}`,
-    rc.top ? `最大一炸 ${seatName(rc.top.seat)}：${playDetail(rc.top.play)}` : `头游 ${seatName(r.order[0]!)} ${rc.firstPlays} 手出完`,
+    rc.top ? `最大一炸：${seatName(rc.top.seat)}，${bombText(rc.top.play)}` : `头游 ${seatName(r.order[0]!)} ${rc.firstPlays} 手出完`,
   ];
   // 名场面（0.7.1）：最精彩的两条，一条一行（0.26.1：两条挤一行在 1280 上被截成"…"）。手机上字托底到 12 像素，框里一行只放得下十来个字：名场面、称号各留一条，再长的截断
   const phone = phoneType();
@@ -241,14 +241,19 @@ export function showSettle(sc: TableScene, r: DealResult): void {
   if (story > 0) boxes.fillStyle(0xfbe3d8, 1).fillRoundedRect(-378, storyY - 16, 368, (story - 1) * row + 32, 10);
   b.add(boxes);
   recap.slice(0, 2).forEach((line, i) => b.add(fitWidth(text(sc, -366, dataY + i * row, line, { size: TYPE.small, color: COLOR.ink, ox: 0 }), 344)));
-  const storyLines = [...recap.slice(2), ...titles.map((t) => sc.titleLine(t, true))];
-  storyLines.forEach((line, i) => b.add(fitWidth(text(sc, -366, storyY + i * row, line, { size: TYPE.small, bold: true, color: COLOR.redDark, ox: 0 }), 344)));
+  // 手机字大，称号的说明放不下时去掉逗号后的那半句（"憋大招"），只留数（"不要"了 19 次），不截成"…"
+  const storyLines: [string, string?][] = [...recap.slice(2).map((l): [string] => [l]), ...titles.map((t): [string, string] => [sc.titleLine(t, true), sc.titleLine({ ...t, why: t.why.split('，')[0]! }, true)])];
+  storyLines.forEach(([line, shorter], i) => {
+    const t = text(sc, -366, storyY + i * row, line, { size: TYPE.small, bold: true, color: COLOR.redDark, ox: 0 });
+    if (shorter && t.width > 344) t.setText(shorter);
+    b.add(fitWidth(t, 344));
+  });
   // 主按钮右挪，左边放"回大厅"：结算弹窗盖着顶栏的大厅按钮，任何界面两步内要能回大厅（仓库 AGENTS 第 2 节）
   const by = stakeLine || dl ? 200 : 190;
   const lobby = new Button(sc, rx - 126, by, 132, 56, lobbyName(), 'wood', () => sc.lobbyFromSettle(), 'home');
   b.add(lobby);
   b.setData('lobby', lobby);
-  const btn = new Button(sc, rx + 70, by, 210, 64, matchOver ? '结回' : net ? '继续' : '下一副', 'red', () => {
+  const btn = new Button(sc, rx + 70, by, 210, 64, matchOver ? '带回' : net ? '继续' : '下一副', 'red', () => {
     if (matchOver) {
       m.close();
       sc.overlay = null;
@@ -508,10 +513,10 @@ export function showStakeResult(sc: TableScene, toLobby = false): void {
       : Math.abs(done.points) >= rules.pps
         ? '碰到封顶，这一场提前结束'
         : done.deals < rules.soloDeals
-          ? `打了 ${done.deals} 副，按现在的分结回`
+          ? `打了 ${done.deals} 副，按现在的分带回`
           : `打满 ${rules.soloDeals} 副`;
   b.add(text(sc, 0, -66, why, { size: TYPE.label, color: COLOR.ink }));
-  const status = text(sc, 0, -14, '正在结回…', { size: TYPE.body, bold: true, color: COLOR.ink, wrap: 700 });
+  const status = text(sc, 0, -14, '正在带回…', { size: TYPE.body, bold: true, color: COLOR.ink, wrap: 700 });
   b.add(status);
   const capLine = text(sc, 0, 32, '', { size: TYPE.label, bold: true, color: COLOR.redDark, wrap: 700 });
   b.add(capLine);
@@ -528,7 +533,7 @@ export function showStakeResult(sc: TableScene, toLobby = false): void {
     if (!sc.alive || !status.scene) return;
     home.setEnabled(true);
     if (r.kind === 'done') {
-      status.setText(r.balance === null ? '已经结回钱包' : `已经结回钱包，钱包还有 ${fmtChips(r.balance)}`);
+      status.setText(r.balance === null ? '已经带回钱包' : `已经带回钱包，钱包还有 ${fmtChips(r.balance)}`);
       if (r.capped > 0) capLine.setText(STAKE_TEXT.capped(r.capped));
       again.setEnabled(true);
     } else if (r.kind === 'gone') {

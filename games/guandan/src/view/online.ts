@@ -226,7 +226,7 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
   const make = el('div', { class: 'ol-row ol-make' });
   make.appendChild(button('开个房间', () => void create(null), '', 'ol-create'));
   // 斗地主不洗牌（娱乐 0.33.0）；不洗牌的实盘房间在"开实盘房间"里选（0.39.0）
-  if (panelVariant === 'ddz') make.appendChild(button('开不洗牌房间', () => void create(null, true), 'gd-2', 'ol-create-clump'));
+  if (panelVariant === 'ddz') make.appendChild(button('不洗牌房间', () => void create(null, true), 'gd-2', 'ol-create-clump'));
   // 实盘房间（0.5.0，docs/stake.md 第 3 节）：开房时选档位，之后不能改。单独部署没有钱包，不摆
   // 点开后是选中态（金底），档位在下面一行展开
   if (!standalone()) {
@@ -269,7 +269,7 @@ function setNetDown(retry: () => void): void {
 
 /** 实盘房间：每档一个按钮，钱包不够一份的灰掉（钱包连不上时不拦，开局时带入被拒就是这个人不计输赢） */
 function pickTier(box: HTMLElement): void {
-  box.replaceChildren(el('div', { class: 'ol-tip' }, `打 ${panelVariant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副，输赢最多一份；${ROOM_STAKE_TEXT.bots}。${STAKE_TEXT.noCash}`));
+  box.replaceChildren(el('div', { class: 'ol-tip' }, `打 ${panelVariant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副，输赢最多是带入的筹码；${ROOM_STAKE_TEXT.bots}。${STAKE_TEXT.noCash}`));
   // 斗地主多选一样发牌（0.39.0）：经典 / 不洗牌，和单机、选档页共用 ddzDeal 这个设置；选中的金底（gd-on），另一个木色
   let clump = panelVariant === 'ddz' && getSettings().ddzDeal === 'clump';
   if (panelVariant === 'ddz') {
@@ -399,7 +399,7 @@ function renderRoom(): void {
   }
   const c = card();
   const match = s.match;
-  c.appendChild(el('h2', {}, match ? '快速匹配' : '好友房'));
+  c.appendChild(el('h2', {}, match ? '和真人匹配' : '好友房'));
   panelVariant = s.variant;
   if (s.status === 'closed' || s.status === 'failed') {
     // 连不上（不是平台忙）：统一一句话和"重试"，其余原因照旧说原因
@@ -434,7 +434,7 @@ function renderRoom(): void {
   if (stake) {
     const pv = s.variant === 'ddz' ? ddzPointValue(stake, ddzRules(clumpRoom)) : pointValue(stake);
     c.appendChild(
-      el('div', { class: 'ol-stake', id: 'ol-stake' }, `实盘${clumpRoom ? ' · 不洗牌' : ''} · ${TIER_NAME[stake]}（一份 ${fmtChips(TIERS[stake])}，每分 ${fmtChips(pv)}）· 打 ${s.variant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副 · ${ROOM_STAKE_TEXT.bots}`),
+      el('div', { class: 'ol-stake', id: 'ol-stake' }, `实盘${clumpRoom ? ' · 不洗牌' : ''} · ${TIER_NAME[stake]}（带入 ${fmtChips(TIERS[stake])}，1 分 = ${fmtChips(pv)}）· 打 ${s.variant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副 · ${ROOM_STAKE_TEXT.bots}`),
     );
   } else if (clumpRoom) {
     c.appendChild(el('div', { class: 'ol-stake', id: 'ol-clump' }, `不洗牌 · 炸弹多，每副最多 ${DDZ_NOSHUFFLE.dealCap} 分`));
@@ -481,7 +481,7 @@ function renderRoom(): void {
       const go = button('开局（空位电脑补）', () => s.start(), '', 'ol-start');
       go.disabled = s.mySeat === null || (stake !== null && humans < 2);
       c.appendChild(go);
-      const tip = s.mySeat === null ? '先选个座位坐下' : stake !== null && humans < 2 ? ROOM_STAKE_TEXT.needTwo : stake !== null ? '人到齐了就能开；开局时每人从钱包带一份' : '朋友进来选好座位就能开；一个人也能开，和电脑打';
+      const tip = s.mySeat === null ? '先选个座位坐下' : stake !== null && humans < 2 ? ROOM_STAKE_TEXT.needTwo : stake !== null ? '人到齐了就能开；开局时每人从钱包带入' : '朋友进来选好座位就能开；一个人也能开，和电脑打';
       c.appendChild(el('div', { class: 'ol-tip', id: 'ol-start-tip' }, tip));
     } else c.appendChild(el('div', { class: 'ol-tip' }, s.mySeat === null ? '选个座位坐下，等开房的人开局' : '等开房的人开局…'));
   } else if (room.status === 'playing' && s.mySeat === null) {
@@ -533,9 +533,9 @@ export function openMatch(stake: TierId | null, solo: () => void, variant: RoomV
   stopMatch();
   const ddz = variant === 'ddz';
   const c = card();
-  c.appendChild(el('h2', {}, '快速匹配'));
+  c.appendChild(el('h2', {}, '和真人匹配'));
   c.appendChild(
-    el('div', { class: 'ol-stake', id: 'ol-match-tier' }, ddz ? (stake ? `斗地主实盘${noShuffle ? ' · 不洗牌' : ''} · ${TIER_NAME[stake]}（一份 ${fmtChips(TIERS[stake])}）· 打 ${DDZ_ROOM_DEALS} 副` : '斗地主 · 娱乐 · 不计战绩') : stake ? `实盘 · ${TIER_NAME[stake]}（一份 ${fmtChips(TIERS[stake])}）· 打 ${ROOM_DEALS} 副` : '娱乐 · 打过 A · 不计战绩'),
+    el('div', { class: 'ol-stake', id: 'ol-match-tier' }, ddz ? (stake ? `斗地主实盘${noShuffle ? ' · 不洗牌' : ''} · ${TIER_NAME[stake]}（带入 ${fmtChips(TIERS[stake])}）· 打 ${DDZ_ROOM_DEALS} 副` : '斗地主 · 娱乐 · 不计战绩') : stake ? `实盘 · ${TIER_NAME[stake]}（带入 ${fmtChips(TIERS[stake])}）· 打 ${ROOM_DEALS} 副` : '娱乐 · 打过 A · 不计战绩'),
   );
   const wait = el('div', { class: 'ol-wait', id: 'ol-match-wait' }, '正在找人…');
   c.appendChild(wait);
