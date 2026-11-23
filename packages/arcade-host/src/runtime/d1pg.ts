@@ -224,7 +224,7 @@ function fail(e: unknown): Response {
  * PG 的报错还原成 SQLite / D1 的原文：平台按 "UNIQUE" 认重复（friends.ts），d1Trouble 按 "Network connection lost" 认可重试的写。
  * 认不出来的保留 PG 原文，加上错误码方便查。
  */
-export function sqliteMessage(e: unknown): string {
+function sqliteMessage(e: unknown): string {
   const err = e as { code?: string; message?: string; table_name?: string; column_name?: string; constraint_name?: string; detail?: string };
   const msg = err?.message ?? String(e);
   switch (err?.code) {
@@ -261,7 +261,7 @@ interface ParsedInsert {
   values: (number | string | null | Uint8Array)[];
 }
 
-export function parseInsert(line: string): ParsedInsert {
+function parseInsert(line: string): ParsedInsert {
   const m = /^INSERT INTO "((?:[^"]|"")+)" \(((?:"(?:[^"]|"")*",?)*)\) VALUES\((.*)\);$/.exec(line);
   if (!m) throw new Error(`看不懂这行备份：${line.slice(0, 120)}`);
   const columns = Array.from(m[2]!.matchAll(/"((?:[^"]|"")*)"/g), (c) => c[1]!.replace(/""/g, '"'));

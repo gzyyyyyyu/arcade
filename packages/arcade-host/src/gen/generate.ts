@@ -14,7 +14,7 @@
  *
  * DO 存储两种（部署时选定，和 db 一起见 README 的表）：
  *   - sqlite：Durable Object 存在数据目录（workerd 的 localDisk，每个类一个子目录，名字是固定的 uniqueKey）；D1 也是一个 DO，同一个目录；
- *   - memory：Durable Object 只在内存（只许配 db: pg：平台库走 D1Pg，房间状态经 KIT_STORE 写进 PG，要 arcade-kit 0.21.0 起）。
+ *   - memory：Durable Object 只在内存（只许配 db: pg：平台库走 D1Pg，房间状态经 KIT_STORE 写进 PG，要 arcade-kit ≥ 0.21.0）。
  */
 import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -30,7 +30,7 @@ export interface GenerateOptions {
   storage?: 'sqlite' | 'memory';
   /**
    * D1 的后端：sqlite（默认，DO 里的 SQLite）或 pg（PostgreSQL，连接串运行时从 ARCADE_PG_URL 取）。
-   * v2.1 的 PG 模式是 db: 'pg' + storage: 'memory'：什么都不落盘，DO 的状态经 KIT_STORE 存进 PG（kit 0.21 起）。
+   * 不落盘的 PG 模式是 db: 'pg' + storage: 'memory'：DO 的状态经 KIT_STORE 存进 PG（要 arcade-kit ≥ 0.21.0）。
    */
   db?: 'sqlite' | 'pg';
   /** 监听地址；运行时可以用 --socket-addr http=<地址> 覆盖 */
@@ -53,7 +53,7 @@ const KIT_ROLES = [
 /** 定时任务的 DO 类名：加进有 crons 的 Worker，模块自己不许有同名的导出 */
 const CRON_CLASS = 'ArcadeHostCron';
 /** 管理入口没有认证，只许听回环地址 */
-export const LOOPBACK = /^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost|\[::1\]):\d+$/;
+const LOOPBACK = /^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost|\[::1\]):\d+$/;
 /** 这些文件 wrangler 不当静态资源上传（解析进配置，或者是忽略规则本身） */
 const NOT_ASSETS = new Set(['_headers', '_redirects', '.assetsignore', '_worker.js']);
 

@@ -10,7 +10,7 @@
  *     模块拿 new URL(request.url).origin 对 Origin（CSRF、WebSocket 同源）就永远对不上。设了 SITE_ORIGIN 时把 url 的
  *     协议和主机名换成它再分发，模块看到的就是 Cloudflare 上一样的对外地址（只换地址，方法、头、body 原样）；
  *   - 真实 IP：平台和 kit 认 cf-connecting-ip。workerd 只听 127.0.0.1（或容器内网），这个头由前面的 Caddy 用真实地址覆盖，
- *     这里不再改它（Caddyfile 模板里写了，换别的反代要照做）。
+ *     这里不动它（Caddyfile 模板里写了，换别的反代要照做）。
  */
 import { publicRequest } from './origin';
 
