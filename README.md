@@ -152,7 +152,7 @@ Hard rules (the full list is in [AGENTS.md](AGENTS.md)):
 Detailed documentation is written in Chinese; the documents marked *(English)* are not. [docs/README.md](docs/README.md) lists every cross-module document with a suggested reading order.
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) *(English)* — how to propose a change; [docs/engineering.md](docs/engineering.md) — the quality standard every pull request is reviewed against
-- [AGENTS.md](AGENTS.md) — repository conventions for humans and AI coding agents (module independence, code style, mobile rules, testing)
+- [AGENTS.md](AGENTS.md) — repository conventions for humans and AI coding agents (module independence, rules vs. rendering, determinism, testing, Git and pull requests)
 - [docs/self-hosting.md](docs/self-hosting.md) *(English)* — running the whole site on your own server; [docs/deployment.md](docs/deployment.md) *(English)* — the deploy pipeline and its security model
 - [docs/project.md](docs/project.md) — what the project is, who it is for, principles and roadmap
 - [docs/architecture.md](docs/architecture.md) — overall architecture

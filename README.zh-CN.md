@@ -149,7 +149,7 @@ flowchart LR
 
 - [CONTRIBUTING.md](CONTRIBUTING.md)（英文）：怎么提改动；[docs/engineering.md](docs/engineering.md)：每个 PR 都按它审的工程质量标准
 - [docs/deployment.md](docs/deployment.md)（英文）：部署链路和它的安全设计
-- [AGENTS.md](AGENTS.md)：仓库规范，给开发者和 AI 编程代理（模块独立、代码规范、手机适配、测试）
+- [AGENTS.md](AGENTS.md)：仓库规范，给开发者和 AI 编程代理（模块独立、规则和画面分开、确定性、测试、Git 与 PR）
 - [docs/project.md](docs/project.md)：项目做什么、给谁、守什么底线、路线图
 - [docs/architecture.md](docs/architecture.md)：整体架构
 - [docs/platform-backend.md](docs/platform-backend.md)：平台后端的总体设计（云存档和好友、钱包、账号、额度防护、数据表、监控各自一篇，见 [docs/README.md](docs/README.md)）；[docs/rooms.md](docs/rooms.md)：所有游戏都要守的联机房间规范；[docs/api.md](docs/api.md)：`/api` 接口约定
