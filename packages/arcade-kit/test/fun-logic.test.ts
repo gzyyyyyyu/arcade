@@ -38,6 +38,7 @@ import {
   newBotState,
   fitMenuWidth,
   hotBox,
+  yieldBox,
   placeMenu,
   propId,
   stickerId,
@@ -473,6 +474,19 @@ describe('placeMenu', () => {
     expect(hotBox({ left: 200, top: 200, width: 60, height: 50 }, view)).toEqual({ left: 200, top: 200, width: 60, height: 50 });
     expect(hotBox({ left: 0, top: 300, width: 36, height: 36 }, view)).toEqual({ left: 0, top: 296, width: 44, height: 44 });
     expect(hotBox({ left: 339, top: 631, width: 36, height: 36 }, view)).toEqual({ left: 331, top: 623, width: 44, height: 44 });
+  });
+
+  it('头像热区让开游戏的按钮：只切撑出来的那一圈，头像本身不动；不压就原样；头像本身压着按钮就不切', () => {
+    const face = { left: 100, top: 100, width: 36, height: 36 };
+    const hot = hotBox(face, { width: 375, height: 667 }); // 96..140
+    // 按钮在头像正下方 138 起（"离开" 40 高）：底边切到 138
+    expect(yieldBox(hot, face, [{ left: 80, top: 138, width: 80, height: 40 }])).toEqual({ left: 96, top: 96, width: 44, height: 42 });
+    // 按钮在右边 139 起：右边切到 139
+    expect(yieldBox(hot, face, [{ left: 139, top: 90, width: 50, height: 60 }])).toEqual({ left: 96, top: 96, width: 43, height: 44 });
+    // 不压
+    expect(yieldBox(hot, face, [{ left: 200, top: 200, width: 40, height: 40 }])).toEqual(hot);
+    // 头像本身压着按钮：切了就会切到头像，不切
+    expect(yieldBox(hot, face, [{ left: 120, top: 120, width: 40, height: 40 }])).toEqual(hot);
   });
 
   it('窄屏（390 竖屏，0.11.2）：440 宽的面板、432 宽的菜单收窄到 100vw − 16px，左右都不伸出屏幕；宽屏照旧', () => {

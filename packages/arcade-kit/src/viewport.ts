@@ -1,8 +1,8 @@
 /**
- * 手机平板的可见区、双指放大、转屏、渲染倍数、省内存、WebGL 丢失恢复（0.25.0）。浏览器用，纯 DOM，不依赖 Phaser。
+ * 手机平板的可见区、双指放大、转屏、渲染倍数、省内存、WebGL 丢失恢复。浏览器用，纯 DOM，不依赖 Phaser。
  *
- * 规矩是仓库根 docs/ui.md 第 10 节"手机"，以最早接入的那个游戏的实现为准；默认值都取它的，另一个游戏独有的做法（钉 #app、扣安全区、
- * 省内存三档、20 秒降档）做成选项。游戏迁过来时传自己原来的值，行为不变；阈值统一另做。
+ * 规矩是仓库根 docs/ui.md 第 10 节"手机"，默认值是一套通用做法，别的做法（钉 #app、扣安全区、
+ * 省内存三档、20 秒降档）做成选项，游戏按需传。
  *
  * 判断和公式拆成纯函数（isZoomed、measureBox、insetBox、sameBox、renderScaleFor、bootLevel、createLossWatch……），
  * 单测不碰 DOM；带 DOM 的几个只在调用时才读 window，模块加载时什么都不做。
@@ -122,7 +122,7 @@ export function safeInsets(): Insets {
 export interface WatchViewportOptions {
   /** 可见区真的变了才调（判重按 x、y、w、h）；pin 模式给的是扣过安全区、钉上去的区域 */
   onChange(box: Box): void;
-  /** 双指放大的阈值：|scale − 1| 超过它就不跟（默认 0.02）；另一个游戏原来是只认放大 1.01，传 isZoomed 自定义 */
+  /** 双指放大的阈值：|scale − 1| 超过它就不跟（默认 0.02）；只认放大之类的判法传 isZoomed 自定义 */
   zoomEpsilon?: number;
   isZoomed?: (scale: number) => boolean;
   /** 每次事件之后再补算一次的延时（iOS 转屏后要过一会儿才给最终尺寸）。默认 300ms */
@@ -135,7 +135,7 @@ export interface WatchViewportOptions {
   writeAppH?: boolean;
   /** 页面被系统推上去一截时滚回顶部（默认是） */
   scrollTop?: boolean;
-  /** 也听 visualViewport 的 scroll：工具栏收放时只有偏移变（默认是；有的游戏原来就听） */
+  /** 也听 visualViewport 的 scroll：工具栏收放时只有偏移变（默认是） */
   listenScroll?: boolean;
 }
 
@@ -231,7 +231,7 @@ export interface RenderScaleInput {
 }
 
 /**
- * 只按像素比的渲染倍数（只按像素比的那类游戏原来的写法）：max(1, min(上限, dpr))，可以是小数；省内存设备的上限再取 lowMemoryCap。
+ * 只按像素比的渲染倍数（不按设计尺寸算的游戏用）：max(1, min(上限, dpr))，可以是小数；省内存设备的上限再取 lowMemoryCap。
  * 比如 cap 2、lowMemoryCap 1.5，或 cap 3、lowMemoryCap 2，或 cap 2（不分设备）
  */
 export function dprScale(i: { dpr: number; cap?: number; lowMemory?: boolean; lowMemoryCap?: number }): number {

@@ -1,5 +1,5 @@
 /**
- * 牌桌互动组件（0.11.0，仓库根 docs/table-fun.md 第 0 节）：头像菜单、互动面板、表情菜单、首次提示、冷却和护盾、连击和回敬、
+ * 牌桌互动组件（仓库根 docs/table-fun.md 第 0 节）：头像菜单、互动面板、表情菜单、首次提示、冷却和护盾、连击和回敬、
  * 电脑的反应、名场面横幅。几个牌桌游戏共用一套，外观、位置规则、动画、声音完全一样；游戏只做接线：
  * 告诉组件每个座位的头像在屏幕上的矩形、名字、是不是电脑和互动性格，哪些地方不能盖（手牌、操作按钮），怎么把东西发出去，
  * 再把收到的（好友房经房间转发的，单机自己的）交给 receive、把公开的名场面交给 moment。
@@ -25,6 +25,7 @@ import {
   newBotState,
   fitMenuWidth,
   hotBox,
+  yieldBox,
   bubbleSpot,
   padBox,
   pageChips,
@@ -56,14 +57,14 @@ export interface FunSeat {
   bot?: boolean;
   /** 电脑的互动性格，默认 normal */
   temper?: FunTemper;
-  /** 名牌、筹码数这些挂在头像旁的东西（屏幕矩形，0.18.2）：气泡避开它们，不盖住名字和钱数 */
+  /** 名牌、筹码数这些挂在头像旁的东西（屏幕矩形）：气泡避开它们，不盖住名字和钱数 */
   plate?: RectLike;
-  /** 头像旁别的小标签（缺门签、庄家、托管……，屏幕矩形，0.20.1）：和名牌一样，气泡和首次提示不盖 */
+  /** 头像旁别的小标签（缺门签、庄家、托管……，屏幕矩形）：和名牌一样，气泡和首次提示不盖 */
   marks?: readonly RectLike[];
 }
 
 /**
- * storageKey 的检查（0.13.1）：它就是游戏 id，kit 拿它拼 `<id>.hint.fun`、`<id>.fun.blocked`。同站的几个游戏和平台只靠 `<id>.` 前缀分开存储，
+ * storageKey 的检查：它就是游戏 id，kit 拿它拼 `<id>.hint.fun`、`<id>.fun.blocked`。同站的几个游戏和平台只靠 `<id>.` 前缀分开存储，
  * 所以只认游戏 id 的写法（小写字母、数字、连字符，字母或数字开头，最多 32 位）；带点（"<游戏id>." 会拼出 "<游戏id>..fun"）、大写、空串、
  * 平台自己的前缀 arcade 都不行。不合格直接抛错：同一个字符串每次都一样，开发时第一次打开牌桌就看得到，不会带到线上
  */
@@ -83,13 +84,13 @@ export interface TableFunOptions {
   named?: readonly number[];
   /** 座位：下标就是发送、收到时用的座位号；空座位给 null */
   seats(): readonly (FunSeat | null)[];
-  /** 菜单、面板不能盖的地方（手牌、操作按钮），屏幕矩形 */
+  /** 菜单、面板不能盖的地方（手牌、操作按钮），屏幕矩形；头像热区为凑 44 往外撑的部分也让开这些 */
   avoid?(): readonly RectLike[];
   /** "互动"按钮放哪（屏幕矩形，组件画按钮）；null 就不画（比如没坐下） */
   button?(): RectLike | null;
   /**
-   * "互动"按钮的样子（0.18.2，替掉游戏自己对 .atf-btn 的 CSS 覆盖）：scale 把字（13px）和图标（22px）一起放大（舞台放大了的大屏用，最小 1）；
-   * row 为 true 时图标和字横排；fontSize、icon（0.20.1，像素）直接给字号和图标边长，给了就不按 scale 算（有的游戏原来直接改 .atf-btn）。
+   * "互动"按钮的样子（替掉游戏自己对 .atf-btn 的 CSS 覆盖）：scale 把字（13px）和图标（22px）一起放大（舞台放大了的大屏用，最小 1）；
+   * row 为 true 时图标和字横排；fontSize、icon（像素）直接给字号和图标边长，给了就不按 scale 算（游戏不用再自己改 .atf-btn）。
    * 颜色、圆角走主题变量（--ak-soft、--ak-border、--ak-radius-btn）。每次 refresh 现问
    */
   buttonStyle?(): ButtonStyle;
@@ -98,39 +99,39 @@ export interface TableFunOptions {
   /** 现在能不能发（好友房：坐下了才能），默认能 */
   canSend?(): boolean;
   /**
-   * 首次提示"点头像扔道具"冒在哪个座位（0.17.0）：返回座位号，或 null = 现在不合适（比如那家的出牌区上有牌，气泡会挡住），
-   * 组件过 2 秒再问。不给就挑第一个电脑（没有就第一个别人），和以前一样
+   * 首次提示"点头像扔道具"冒在哪个座位：返回座位号，或 null = 现在不合适（比如那家的出牌区上有牌，气泡会挡住），
+   * 组件过 2 秒再问。不给就挑第一个电脑（没有就第一个别人）
    */
   hintSeat?(): number | null;
   /**
-   * 好友房聊天（0.18.0，docs/chat.md）：给了它"互动"面板才有"聊天"页。好友房传 `(text) => client.chat(text)`，返回 RoomClient.chat 的结果；
+   * 好友房聊天（docs/chat.md）：给了它"互动"面板才有"聊天"页。好友房传 `(text) => client.chat(text)`，返回 RoomClient.chat 的结果；
    * 收到的经 TableFun.chat 交进来。单机不给（单机没有聊天）
    */
   chat?(text: string): ChatResultLike;
   /** 设置里"聊天：开 / 不看"（和"互动"分开）：不看时别人说的不冒气泡、不进记录，自己也没有聊天页；默认开 */
   chatEnabled?(): boolean;
   /**
-   * 聊天的设置（弹幕开关、电脑版聊天框收没收起）存在哪个 localStorage key（0.19.0）：必须是 `<storageKey>.<名字>`，比如 '<游戏id>.chat'；
+   * 聊天的设置（弹幕开关、电脑版聊天框收没收起）存在哪个 localStorage key：必须是 `<storageKey>.<名字>`，比如 '<游戏id>.chat'；
    * 默认 `<storageKey>.chat`，游戏不用传
    */
   prefsKey?: string;
-  /** 省内存模式（0.19.0）：开着时弹幕默认关（用户自己打开了照样飘）。不给就看 navigator.deviceMemory ≤ 2 */
+  /** 省内存模式：开着时弹幕默认关（用户自己打开了照样飘）。不给就看 navigator.deviceMemory ≤ 2 */
   lite?(): boolean;
-  /** 电脑版聊天框放哪（0.19.0，用 left、top、width）：不给就在牌桌四个角里挑一个不压手牌、按钮、名牌的 */
+  /** 电脑版聊天框放哪（用 left、top、width）：不给就在牌桌四个角里挑一个不压手牌、按钮、名牌的 */
   chatDock?(): RectLike | null;
   /**
-   * 电脑版聊天框默认收不收（0.20.1）：玩家自己点过收起、展开就以玩家为准（存在 prefsKey 里）；没点过时听这个，给了 chatDock 也生效。
-   * 不给：没给 chatDock 时四个角都会压到东西才收（dockFits，0.20.0），给了 chatDock 默认展开。有的游戏原来自己往 <游戏id>.chat 写 folded
+   * 电脑版聊天框默认收不收：玩家自己点过收起、展开就以玩家为准（存在 prefsKey 里）；没点过时听这个，给了 chatDock 也生效。
+   * 不给：没给 chatDock 时四个角都会压到东西才收（dockFits），给了 chatDock 默认展开。游戏想改默认用这个选项，不自己往 <游戏id>.chat 写 folded
    */
   chatFolded?(): boolean;
   /**
-   * 弹幕在哪个区域飘（0.19.0）：不给就是屏幕 8%–58%，上沿压到最上面一排座位的头像、名牌下面；轨道自动避开手牌、按钮、名牌、头像、center
+   * 弹幕在哪个区域飘：不给就是屏幕 8%–58%，上沿压到最上面一排座位的头像、名牌下面；轨道自动避开手牌、按钮、名牌、头像、center
    */
   danmakuArea?(): RectLike | null;
-  /** 手机版"聊天"按钮放哪（0.19.0，屏幕矩形）：不给就挨着"互动"按钮，先右后左再上下挑不压东西的一侧；挤的牌桌（手机横屏）最好给 */
+  /** 手机版"聊天"按钮放哪（屏幕矩形）：不给就挨着"互动"按钮，先右后左再上下挑不压东西的一侧；挤的牌桌（手机横屏）最好给 */
   chatButton?(): RectLike | null;
   /**
-   * 牌桌中间的信息区（0.19.0）：剩余张数、底池、牌墩、出牌区、弃牌区这些，弹幕不横穿、聊天框和气泡不压。可以给几块
+   * 牌桌中间的信息区：剩余张数、底池、牌墩、出牌区、弃牌区这些，弹幕不横穿、聊天框和气泡不压。可以给几块
    */
   center?(): RectLike[];
   /** 设置里"互动：开 / 不看"，关了别人的一律不播，单机电脑也不反应；默认开 */
@@ -149,7 +150,7 @@ export interface TableFunOptions {
   log?(line: string): void;
   /** 效果图层的 z-index，菜单和热区在它上面一层；默认 50 */
   zIndex?: number;
-  /** 主题（0.16.0）：写到菜单根节点（.atf-ui）上的 `--ak-*` 变量；不传就用页面 CSS 里的变量或默认外观 */
+  /** 主题：写到菜单根节点（.atf-ui）上的 `--ak-*` 变量；不传就用页面 CSS 里的变量或默认外观 */
   theme?: KitTheme;
   /** 电脑反应的参数，默认规范的数字 */
   react?: BotReactConfig;
@@ -168,11 +169,11 @@ const DEFAULT_LINES: Record<FunMood, readonly string[]> = {
 };
 
 const HINT_TEXT = '点头像扔道具，长按连扔';
-/** 整句放不下（哪儿都会压到名牌）时的短说法（0.20.3） */
+/** 整句放不下（哪儿都会压到名牌）时的短说法 */
 const HINT_SHORT = '点头像扔道具';
 
 /** RoomClient.chat 的结果里组件要看的部分（不 import client.ts，单机的游戏也能用组件） */
-/** 聊天：气泡停多久（0.19.0 起 5 秒）、页面里记最近几条（只在内存里） */
+/** 聊天：气泡停多久（5 秒）、页面里记最近几条（只在内存里） */
 export const CHAT_UI = { bubbleMs: 5000, keep: 30 } as const;
 
 /**
@@ -223,6 +224,7 @@ const CSS = `
 .atf-cool{position:absolute;inset:0;border-radius:var(--ak-radius-btn,10px);background:rgba(0,0,0,.5);pointer-events:none}
 .atf-cool::after{content:'';position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:var(--ak-title,#f3d98b);animation:atf-spin .7s linear infinite}
 .atf-btn{position:absolute;left:0;top:0;pointer-events:auto;min-width:44px;min-height:44px;border-radius:var(--ak-radius-btn,22px);border:2px solid var(--ak-border,#d4a64a);background:var(--ak-soft,#5a3a22);color:var(--ak-fg,#fff6e0);font:inherit;font-size:13px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;padding:2px 6px;box-sizing:border-box}
+.atf-btn:active{scale:.94;filter:brightness(.85)}
 .atf-btn svg{width:var(--atf-icon,22px);height:var(--atf-icon,22px)}
 .atf-btn.atf-dot::after{content:'';position:absolute;right:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#e8323a;border:2px solid var(--ak-fg,#fff6e0)}
 .atf-say{font-weight:600}
@@ -246,7 +248,7 @@ type Rect = { left: number; top: number; width: number; height: number };
 type Tab = 'phrase' | 'sticker' | 'prop' | 'chat';
 
 /**
- * "互动" / "聊天"按钮的尺寸参数（0.18.2）：游戏没给 buttonStyle 就不写行内样式（不然会盖掉还没迁过来的游戏自己对 .atf-btn 的 CSS）
+ * "互动" / "聊天"按钮的尺寸参数：游戏没给 buttonStyle 就不写行内样式（不然会盖掉还没迁过来的游戏自己对 .atf-btn 的 CSS）
  */
 export function styleButton(b: HTMLElement, st: ButtonStyle | undefined): void {
   const k = Math.max(1, st?.scale ?? 1);
@@ -264,17 +266,17 @@ export function styleButton(b: HTMLElement, st: ButtonStyle | undefined): void {
 export interface ButtonStyle {
   scale?: number;
   row?: boolean;
-  /** 字号（像素，0.20.1） */
+  /** 字号（像素） */
   fontSize?: number;
-  /** 图标边长（像素，0.20.1） */
+  /** 图标边长（像素） */
   icon?: number;
 }
 
 /**
- * 头像旁的气泡（含首次提示"点头像扔道具"）要避开哪些地方（0.20.1）：
+ * 头像旁的气泡（含首次提示"点头像扔道具"）要避开哪些地方：
  * - 软的（压一点还行）：游戏的禁区、桌上出的牌、正在冒的别的气泡、别人的头像；
- * - 硬的（代价 ×3）：叠在气泡上面的按钮、聊天框（0.19.1，竖屏自己的气泡被"互动"按钮压住），以及各家的名牌和头像旁的标签（marks，比如缺门签）——
- *   名字和筹码数是小字，气泡底色不透明，压一点就看不清是谁、剩多少（0.18.2 当软的，提示还是会盖住对家的名牌）
+ * - 硬的（代价 ×3）：叠在气泡上面的按钮、聊天框（竖屏自己的气泡被"互动"按钮压住），以及各家的名牌和头像旁的标签（marks，比如缺门签）——
+ *   名字和筹码数是小字，气泡底色不透明，压一点就看不清是谁、剩多少（当软的话，提示会盖住对家的名牌）
  */
 export function bubbleZones(
   seats: readonly (FunSeat | null)[],
@@ -325,7 +327,7 @@ export class TableFun {
   private lastProp: PropId = 'tomato';
   private lastSticker: StickerId = 'smug';
   private timers = new Set<ReturnType<typeof setTimeout>>();
-  /** 聊天框、输入条、弹幕、记录（0.19.0，table-chat.ts） */
+  /** 聊天框、输入条、弹幕、记录（table-chat.ts） */
   private readonly cui: ChatUi;
   private chatLogEl: HTMLElement | null = null;
   /** 每个人最近的那个聊天气泡：同一个人连说两条，后一条顶掉前一条 */
@@ -423,6 +425,7 @@ export class TableFun {
   refresh(): void {
     if (this.dead) return;
     const seats = this.o.seats();
+    const avoid = this.o.avoid?.() ?? [];
     while (this.hots.length < seats.length) this.hots.push(this.makeHot(this.hots.length));
     this.hots.forEach((h, i) => {
       const s = seats[i];
@@ -431,7 +434,7 @@ export class TableFun {
         return;
       }
       h.style.display = '';
-      const b = hotBox(s.rect, { width: window.innerWidth, height: window.innerHeight });
+      const b = yieldBox(hotBox(s.rect, { width: window.innerWidth, height: window.innerHeight }), s.rect, avoid);
       h.style.width = `${b.width}px`;
       h.style.height = `${b.height}px`;
       h.style.transform = `translate(${b.left}px,${b.top}px)`;
@@ -474,7 +477,7 @@ export class TableFun {
     return out;
   }
 
-  /** 弹幕开着吗（游戏设置里显示用，0.19.0） */
+  /** 弹幕开着吗（游戏设置里显示用） */
   danmaku(): boolean {
     return this.cui.danmaku();
   }
@@ -560,7 +563,7 @@ export class TableFun {
     b.className = 'atf-box';
     b.dataset['kind'] = kind;
     if (seat !== undefined) b.dataset['seat'] = String(seat);
-    // 窄屏两边各留 8px（0.11.2，和 placeMenu 的 fitMenuWidth 一致）；收窄了的内容会折行，由 fit() 按真实高度重摆
+    // 窄屏两边各留 8px（和 placeMenu 的 fitMenuWidth 一致）；收窄了的内容会折行，由 fit() 按真实高度重摆
     b.style.width = `min(${w}px, calc(100vw - 16px))`;
     b.style.height = `${h}px`;
     const view = { width: window.innerWidth, height: window.innerHeight };
@@ -736,7 +739,7 @@ export class TableFun {
   }
 
   /**
-   * 短语多、屏幕矮时按可用高度翻页（0.24.3），不在框里滚：和聊天短语一样用 pageChips 分页（三列网格，行高取这一行最高的一条）。
+   * 短语多、屏幕矮时按可用高度翻页，不在框里滚：和聊天短语一样用 pageChips 分页（三列网格，行高取这一行最高的一条）。
    * 可用高度 = 224 和"屏幕高减去面板其余部分"里小的那个；放得下就一页、不出翻页键，放不下时底下一行 ‹ 1/3 ›
    */
   private pagePhrases(b: HTMLDivElement, r: Rect, body: HTMLDivElement, g: HTMLDivElement, chips: HTMLButtonElement[]): void {
@@ -787,7 +790,7 @@ export class TableFun {
     this.unhookViewport();
   }
 
-  // ───────────── 聊天（0.18.0） ─────────────
+  // ───────────── 聊天 ─────────────
 
   private chatOn(): boolean {
     return !!this.o.chat && (this.o.chatEnabled?.() ?? true);
@@ -925,7 +928,7 @@ export class TableFun {
       const t = to !== undefined && to !== from ? this.seat(to) : null;
       const say = `${t ? `@${t.name} ` : ''}${this.o.phrases[it.index] ?? ''}`;
       this.bubble(from, say);
-      // 短语也是说话：有聊天的时候进记录、飘弹幕（0.19.0）
+      // 短语也是说话：有聊天的时候进记录、飘弹幕
       if (this.chatOn()) this.cui.push({ seat: from, name: src.me ? '我' : src.name, text: say, me: !!src.me }, !!this.chatLogEl);
       this.o.log?.(`短语 ${from}:${it.index}`);
     } else if (it.kind === 'sticker') {
@@ -998,8 +1001,8 @@ export class TableFun {
   // ───────────── 小效果 ─────────────
 
   /**
-   * 头像旁的一句话：2.4 秒后淡出（聊天 5 秒）。字号跟着屏幕（0.19.0：电脑 18–22px、手机 ≥ 15px），最多两行折行；
-   * 位置一点都不压名牌、标签、"互动"按钮和聊天框（0.20.4 起所有气泡都这样，placeClear），尽量贴着头像、少压别人的头像。
+   * 头像旁的一句话：2.4 秒后淡出（聊天 5 秒）。字号跟着屏幕（电脑 18–22px、手机 ≥ 15px），最多两行折行；
+   * 位置一点都不压名牌、标签、"互动"按钮和聊天框（所有气泡都这样，placeClear），尽量贴着头像、少压别人的头像。
    * 实在找不到这样的位置：普通气泡退回 placeBubble 挑压得最少的一侧照样冒（话不能丢）；strict（首次提示）就不冒、回 undefined，由调用方换短句或晚点再试
    */
   bubble(seat: number, text: string, ms = 2400, cls = '', strict = false): HTMLElement | undefined {
@@ -1033,7 +1036,7 @@ export class TableFun {
   }
 
   /**
-   * 气泡放哪：硬禁区是名牌、标签、聊天框、"互动"按钮和开着的菜单（0.21.1，1920 实测菜单盖住自己的气泡），四周再让 HARD_PAD；
+   * 气泡放哪：硬禁区是名牌、标签、聊天框、"互动"按钮和开着的菜单（1920 实测菜单盖住自己的气泡），四周再让 HARD_PAD；
    * 软的是游戏的禁区、桌上的牌、别人的头像和正在冒的别的气泡（except 是要挪的那个自己）
    */
   private spot(seat: number, anchor: DOMRect | RectLike, w: number, h: number, strict: boolean, except?: HTMLElement): { left: number; top: number } | null {
@@ -1045,7 +1048,7 @@ export class TableFun {
     return bubbleSpot(anchor, w, h, { width: window.innerWidth, height: window.innerHeight }, avoid, hard.map((r) => padBox(r)), strict);
   }
 
-  /** 菜单刚打开（0.21.1）：被它盖住的气泡挪到别处（挪不开就留在原地，菜单关了自然露出来） */
+  /** 菜单刚打开：被它盖住的气泡挪到别处（挪不开就留在原地，菜单关了自然露出来） */
   private moveCovered(menu: Element): void {
     const m = menu.getBoundingClientRect();
     for (const b of this.live) {
@@ -1093,7 +1096,7 @@ export class TableFun {
     }
     const at = hintSeatFor(this.o.seats(), this.o.hintSeat);
     if (at === null || !this.canSend() || !this.enabled() || this.open) return this.later(2000, () => this.hint());
-    // 整句、短句都放不下（不压任何名牌就没地方）：先不冒，过一会儿再试（0.20.3）
+    // 整句、短句都放不下（不压任何名牌就没地方）：先不冒，过一会儿再试
     const b = this.bubble(at, HINT_TEXT, FUN_TIMING.hintMs, '', true) ?? this.bubble(at, HINT_SHORT, FUN_TIMING.hintMs, '', true);
     if (!b) return this.later(2000, () => this.hint());
     // 点屏幕任何地方就收起（docs/ui.md 第 11 条：提示不能挡人）；这一下照常生效，不吞掉

@@ -385,7 +385,7 @@ describe('等外面的事（waiting，0.3.2）', () => {
 });
 
 describe('关房前先结算（closing）', () => {
-  it('没人 10 分钟关房：先断开所有人、留着存储把桌上的筹码结回去，办完再删；关着的房间进不来', async () => {
+  it('没人 10 分钟关房：先断开所有人、留着存储把桌上的筹码带回去，办完再删；关着的房间进不来', async () => {
     const { code, host, guest } = await twoSeated();
     host.send({ t: 'start' });
     await seen(host, (v) => v.pending === 0 && v.chips[1] === 100);

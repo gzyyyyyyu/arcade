@@ -1,13 +1,13 @@
 /**
- * 分享卡（0.12.0，仓库根 docs/social.md 1.1）：结算页的"分享"按钮生成一张 1080×1350 的战绩图（Canvas 画，不经服务器，0 行写入），
+ * 分享卡（仓库根 docs/social.md 1.1）：结算页的"分享"按钮生成一张 1080×1350 的战绩图（Canvas 画，不经服务器，0 行写入），
  * 手机上支持带文件的 navigator.share 就直接调系统分享，不支持的出预览，"保存图片""复制链接"两个按钮。
  *
  * - 游戏只交数据（`ShareCard`），画法统一在这里，几个游戏风格一致；kit 不认识任何游戏，名字、图标、主题色都由游戏给。
  * - 这个文件只在调用时碰 DOM，import 时不碰（房间、测试里 import 没事）；排版的算法是纯函数，测试在 test/share.test.ts。
  * - 图上只有游戏给的数据：别人的隐藏信息（没摊的底牌、手牌）游戏自己别放进来。
- * - 右下角的二维码（0.15.0）：朋友圈里的图不能点，扫码是唯一入口。内容是运行时的 location.origin 加上 opts.url 的路径，
+ * - 右下角的二维码：朋友圈里的图不能点，扫码是唯一入口。内容是运行时的 location.origin 加上 opts.url 的路径，
  *   kit 和游戏都不写域名；编码器是 qr.ts（自己写的最小子集，不引依赖）。
- * - 微信内置浏览器（0.15.0）：没有 navigator.share，下载链接也常常不生效，预览图改用 data: URL（blob: 的图长按经常存不下来），提示改成长按。
+ * - 微信内置浏览器：没有 navigator.share，下载链接也常常不生效，预览图改用 data: URL（blob: 的图长按经常存不下来），提示改成长按。
  */
 import { qrEncode } from './qr.js';
 import { applyTheme, type KitTheme } from './theme.js';
@@ -28,7 +28,7 @@ export interface ShareCard {
   game: string;
   /** 这一张是什么：比如"实盘小档 · 8 副"、"每日挑战" */
   title: string;
-  /** 一个大数字和它的说明：守了多久、赚了多少、名次。sign 给了（输赢的分、筹码）就按正绿负红画（0.24.3），不给是白字 */
+  /** 一个大数字和它的说明：守了多久、赚了多少、名次。sign 给了（输赢的分、筹码）就按正绿负红画，不给是白字 */
   big: { value: string; label: string; sign?: number };
   /** 两三条小数据，最多 3 条；sign 同上 */
   stats?: readonly { label: string; value: string; sign?: number }[];
@@ -132,7 +132,7 @@ export function wrapLines(text: string, maxW: number, measure: (s: string) => nu
       cur = next;
       continue;
     }
-    // 收尾的引号、标点不单独起一行：把上一行最后一个字一起带下来（0.12.3）
+    // 收尾的引号、标点不单独起一行：把上一行最后一个字一起带下来
     if (!space && CLOSING.test(t)) {
       const cs = [...cur.trimEnd()];
       if (cs.length >= 2) {
@@ -190,7 +190,7 @@ export function artRect(
 }
 
 /**
- * 码里和分享出去的链接（0.15.0）：只认运行时的 origin，游戏给的 url 只取路径、查询和 # 后面的部分。
+ * 码里和分享出去的链接：只认运行时的 origin，游戏给的 url 只取路径、查询和 # 后面的部分。
  * 这样 kit 和游戏里都不写域名，单独部署的游戏（workers.dev）扫出来也是它自己
  */
 export function shareLink(url: string, origin: string): string {
@@ -198,7 +198,7 @@ export function shareLink(url: string, origin: string): string {
   return `${origin}${u.pathname}${u.search}${u.hash}`;
 }
 
-/** 系统分享的文字末尾带上链接（0.15.0）：有的 App 只取 text、不取 url */
+/** 系统分享的文字末尾带上链接：有的 App 只取 text、不取 url */
 export function shareText(text: string, link: string): string {
   return text.includes(link) ? text : `${text} ${link}`;
 }
@@ -209,7 +209,7 @@ export function isWeChat(ua: string): boolean {
 }
 
 /**
- * 调不调系统分享（0.15.1）：只给手机、平板。桌面（Windows、Mac、Linux，含触屏笔记本）的系统共享面板发不出图：
+ * 调不调系统分享：只给手机、平板。桌面（Windows、Mac、Linux，含触屏笔记本）的系统共享面板发不出图：
  * Windows Chrome 的 canShare 对文件回 true，弹出系统共享，选微信后微信 PC 版是空白窗口、再报"共享失败"。桌面一律直接出预览，复制图片去粘贴。
  * iPadOS 的 Safari 默认报桌面版 UA（Macintosh），靠多点触控认出来；微信里照旧不调（isWeChat）
  */
@@ -220,8 +220,8 @@ export function useSystemShare(ua: string, maxTouchPoints: number): boolean {
 }
 
 /**
- * 预览层怎么出（0.15.0）：微信里用 data: URL、提示长按、不给"保存图片"；
- * 桌面（0.15.1）多一个"复制图片"（浏览器支持才真的摆出来），提示去微信里粘贴；手机照旧
+ * 预览层怎么出：微信里用 data: URL、提示长按、不给"保存图片"；
+ * 桌面多一个"复制图片"（浏览器支持才真的摆出来），提示去微信里粘贴；手机照旧
  */
 export function previewMode(ua: string, maxTouchPoints = 0): { dataUrl: boolean; tip: string; save: boolean; copyImage: boolean } {
   if (isWeChat(ua)) return { dataUrl: true, tip: '长按图片 → 发送给朋友，或保存后发朋友圈', save: false, copyImage: false };
@@ -287,7 +287,7 @@ function fitFont(ctx: CanvasRenderingContext2D, text: string, weight: string, si
 }
 
 /**
- * 画一张卡。canvas 不给就新建一个 1080×1350 的。link 给了（0.15.0，prepareShare 用 shareLink 算好的）就在右下角画二维码，
+ * 画一张卡。canvas 不给就新建一个 1080×1350 的。link 给了（prepareShare 用 shareLink 算好的）就在右下角画二维码，
  * 太长编不了码就不画
  */
 export async function drawShareCard(input: ShareCard, canvas?: HTMLCanvasElement, link?: string): Promise<HTMLCanvasElement> {
@@ -445,17 +445,17 @@ export async function shareCardBlob(card: ShareCard, link?: string): Promise<Blo
 
 export interface ShareOptions {
   /**
-   * 分享出去的链接：游戏地址，好友房结算带房间码。只用它的路径、查询和 # 后面的部分，前面一律换成运行时的 location.origin（0.15.0），
+   * 分享出去的链接：游戏地址，好友房结算带房间码。只用它的路径、查询和 # 后面的部分，前面一律换成运行时的 location.origin，
    * 写相对路径（`./?room=123456`）或绝对地址都行；卡上的二维码、系统分享、"复制链接"用的都是换过的这一个
    */
   url: string;
-  /** 系统分享里的一句话，默认用卡的游戏名和大数字拼；末尾自动带上链接（0.15.0） */
+  /** 系统分享里的一句话，默认用卡的游戏名和大数字拼；末尾自动带上链接 */
   text?: string;
   /** 存图的文件名，默认 share.png */
   fileName?: string;
-  /** 预览层的 z-index，默认 11000（0.12.4 起；要比游戏的弹窗和 social 的横条、面板都高） */
+  /** 预览层的 z-index，默认 11000（要比游戏的弹窗和 social 的横条、面板都高） */
   zIndex?: number;
-  /** 主题（0.16.0）：写到预览层根节点上的 `--ak-*` 变量；不传就用页面 CSS 里的变量或默认外观。画出来的分享卡（canvas）不受它影响，颜色由游戏给的 card 决定 */
+  /** 主题：写到预览层根节点上的 `--ak-*` 变量；不传就用页面 CSS 里的变量或默认外观。画出来的分享卡（canvas）不受它影响，颜色由游戏给的 card 决定 */
   theme?: KitTheme;
   /** 冒烟、调试看的流水：`分享 系统`、`分享 预览`、`分享 保存`、`分享 复制` */
   log?(line: string): void;
@@ -466,7 +466,7 @@ export type ShareResult = 'shared' | 'preview' | 'cancelled';
 
 const PREVIEW_ID = 'arcade-share-preview';
 
-/** 先画好的卡（0.12.3）：ready 画完（失败也是 resolve，到时候 share 退回预览或报错）；share 在点击里调 */
+/** 先画好的卡：ready 画完（失败也是 resolve，到时候 share 退回预览或报错）；share 在点击里调 */
 export interface PreparedShare {
   ready: Promise<void>;
   /**
@@ -477,7 +477,7 @@ export interface PreparedShare {
 }
 
 /**
- * 结算页一出现就先画卡（0.12.3）：iOS 只允许在点击的那一下里调 navigator.share，点了才画（解码图标、toBlob 要几百毫秒）激活就过期了，
+ * 结算页一出现就先画卡：iOS 只允许在点击的那一下里调 navigator.share，点了才画（解码图标、toBlob 要几百毫秒）激活就过期了，
  * 只能退到预览。游戏在结算页出来时调它，点"分享"时调返回的 share()
  */
 export function prepareShare(card: ShareCard, opts: ShareOptions): PreparedShare {
@@ -607,7 +607,7 @@ function showPreview(blob: Blob, name: string, opts: ShareOptions): void {
     a.remove();
     opts.log?.('分享 保存');
   }, !canCopyImage);
-  // 复制图片（0.15.1，桌面）：在点击里直接写剪贴板（用户激活还在），图已经画好了
+  // 复制图片（桌面）：在点击里直接写剪贴板（用户激活还在），图已经画好了
   const copyImg = btn('复制图片', 'share:copy-image', () => {
     const done = (ok: boolean): void => {
       copyImg.textContent = ok ? '已复制' : '复制不了';

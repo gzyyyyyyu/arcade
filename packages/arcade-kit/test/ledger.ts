@@ -1,5 +1,5 @@
 /**
- * 测 0.3.0 的可选接口用的小游戏"记账桌"：开局选项（座位数、买入）、座位换人、对外的事（从假银行扣买入、把筹码结回去）、
+ * 测 0.3.0 的可选接口用的小游戏"记账桌"：开局选项（座位数、买入）、座位换人、对外的事（从假银行扣买入、把筹码带回去）、
  * 关房前结算、不轮流的操作。只在测试里用，不部署。
  */
 import { DurableObject } from 'cloudflare:workers';
@@ -113,7 +113,7 @@ export const ledgerGame: RoomGame<LedgerState, LedgerAction, LedgerView, LedgerO
     const chips = e.kind === 'debit' && ok ? s.chips.map((c, i) => (i === e.seat ? c + e.amount : c)) : s.chips;
     return { ...s, chips, pending: s.pending.filter((x) => x.id !== id), log: [...s.log, id] };
   },
-  // 关房：真人桌上的筹码都结回银行
+  // 关房：真人桌上的筹码都带回银行
   closing: (s) => {
     let out = s;
     s.owned.forEach((o, seat) => {

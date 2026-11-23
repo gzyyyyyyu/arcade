@@ -3,7 +3,7 @@
  * 时间由调用方传入（room.ts 里仍是 Date.now()），内存里的 Map、计数、日志留在房间类里；单独放是为了不起 DO 就能测这些数字。
  */
 
-/** 快捷短语的节奏（0.7.0）：每 ms 毫秒补 1 个令牌、最多攒 burst 个 */
+/** 快捷短语的节奏：每 ms 毫秒补 1 个令牌、最多攒 burst 个 */
 export interface EmoteRate {
   ms: number;
   burst: number;
@@ -28,7 +28,7 @@ export function emoteRateOf(raw: unknown, base: EmoteRate): EmoteRate {
   return { ms: ok(q.emoteMs) ? q.emoteMs : base.ms, burst: Math.max(1, ok(q.emoteBurst) ? q.emoteBurst : base.burst) };
 }
 
-/** 聊天的节奏（0.18.0）：两条至少隔 ms 毫秒，一分钟最多 perMin 条 */
+/** 聊天的节奏：两条至少隔 ms 毫秒，一分钟最多 perMin 条 */
 export interface ChatRate {
   ms: number;
   perMin: number;

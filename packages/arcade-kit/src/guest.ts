@@ -1,5 +1,5 @@
 /**
- * 独立模式（0.10.0）：游戏不带平台单独部署（Deploy to Cloudflare、fork）时，没有平台的 /api/me 可问，改认"游客"。
+ * 独立模式：游戏不带平台单独部署（Deploy to Cloudflare、fork）时，没有平台的 /api/me 可问，改认"游客"。
  *
  * 什么时候算独立模式（isStandalone）：env 里**没有** ARCADE 绑定，而且 GATE 不是 "login"。
  * - 有 ARCADE 绑定 = 本站正式环境，行为和 0.9 完全一样，游客 cookie 一律不认（防止有人带一个游客 cookie 绕过登录）；

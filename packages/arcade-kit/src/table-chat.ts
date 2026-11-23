@@ -1,6 +1,6 @@
 /**
- * 牌桌聊天的界面（0.19.0，docs/chat.md 第 5 节）：电脑上牌桌一角常驻的聊天框、手机上的"聊天"按钮和贴底输入条、弹幕、最近 30 条记录。
- * 为什么单独做：原来的聊天太简陋、不显眼，电脑上气泡太小。TableFun 建它、喂它，游戏不直接用（不进 package.json 的 exports）。
+ * 牌桌聊天的界面（docs/chat.md 第 5 节）：电脑上牌桌一角常驻的聊天框、手机上的"聊天"按钮和贴底输入条、弹幕、最近 30 条记录。
+ * 为什么单独做：聊天要显眼，电脑上气泡要够大。TableFun 建它、喂它，游戏不直接用（不进 package.json 的 exports）。
  * 和 table-fun.ts 同样的规矩：import 时不碰 DOM；动画只动 transform、opacity；量位置只在摆放（refresh）和出一条弹幕时。
  */
 import { CHAT_MAX, chatRejectText, type ChatBlockWhy } from './chat.js';
@@ -20,7 +20,7 @@ export interface ChatLine {
 interface ChatPrefs {
   /** 弹幕开关；没设过：系统要求减少动态效果、或省内存模式时默认关，其余默认开 */
   danmaku?: boolean;
-  /** 电脑版聊天框收起来了；没设过：四个角都会压到东西（dockFits）时默认收着（0.20.0），其余默认展开 */
+  /** 电脑版聊天框收起来了；没设过：四个角都会压到东西（dockFits）时默认收着，其余默认展开 */
   folded?: boolean;
   /** 电脑版聊天框的记录展开成长条 */
   long?: boolean;
@@ -51,7 +51,7 @@ export interface ChatHost {
   styleButton(b: HTMLElement): void;
   /** 游戏指定电脑版聊天框的位置（只用 left、top、width），不给就自己挑角 */
   dock?(): Box | null;
-  /** 游戏指定没点过时默认收不收（0.20.1） */
+  /** 游戏指定没点过时默认收不收 */
   folded?(): boolean;
   /** 游戏指定手机版"聊天"按钮的位置，不给就挨着"互动"按钮 */
   chatButton?(): Box | null;
@@ -115,7 +115,7 @@ function add(parent: Node, ...kids: Node[]): void {
   for (const k of kids) parent.appendChild(k);
 }
 
-/** 一组快捷短语的分页状态（0.24.0） */
+/** 一组快捷短语的分页状态 */
 interface QuickState {
   kind: 'dock' | 'bar';
   row: HTMLElement;
@@ -259,7 +259,7 @@ export class ChatUi {
   private drawDesk(view: { width: number; height: number }): void {
     const w = Math.round(this.font * 17);
     const fixed = this.h.dock?.() ?? null;
-    // 没自己收起、展开过：游戏说了默认收不收就听它的（0.20.1）；没说、也没指定位置时，四个角都会压到东西（dockFits，0.20.0）就默认收着。先排出来量真实高度再判断，不靠估
+    // 没自己收起、展开过：游戏说了默认收不收就听它的；没说、也没指定位置时，四个角都会压到东西（dockFits）就默认收着。先排出来量真实高度再判断，不靠估
     let folded = this.prefs.folded === true;
     const want = this.prefs.folded === undefined ? this.h.folded?.() : undefined;
     if (want !== undefined) folded = want;
@@ -305,7 +305,7 @@ export class ChatUi {
     d.style.width = `${fixed?.width ?? w}px`;
     const log = d.querySelector<HTMLElement>('.atc-log')!;
     const line = (this.font - 2) * 0.9 * 1.45 + 2;
-    // 按内容高度：最少一行（空的时候那句提示一行放得下；0.20.2 起快捷短语占两行，这里让出一行，框的总高度和 0.20.0 一样），最多 5 行；展开后最多半屏
+    // 按内容高度：最少一行（空的时候那句提示一行放得下；快捷短语占两行，这里让出一行），最多 5 行；展开后最多半屏
     log.style.minHeight = `${Math.round(line)}px`;
     log.style.maxHeight = `${Math.round(this.prefs.long ? Math.min(view.height * 0.5, line * ChatUi.KEEP) : line * 5)}px`;
     this.repageAll();
@@ -473,7 +473,7 @@ export class ChatUi {
   }
 
   /**
-   * 输入框上方的快捷词（点了直接按短语发，冷却和互动共用，被冷却挡住时不发）。不滚动，按可用空间分页（0.24.0）：
+   * 输入框上方的快捷词（点了直接按短语发，冷却和互动共用，被冷却挡住时不发）。不滚动，按可用空间分页：
    * 电脑版两行一页、翻页控件在下面一行；手机输入条一行一页，翻页芯片在这一行最右。只有一页时没有翻页控件。
    */
   private quick(prefix: string, kind: 'dock' | 'bar'): HTMLDivElement {
@@ -710,7 +710,7 @@ export class ChatUi {
   /** 找空轨道飞一条；没有空的返回 false */
   private fly(line: ChatLine): boolean {
     const area = this.area();
-    // 弹幕层裁在弹幕区里（0.19.1）：从区的右沿出现、左沿消失，不会飘出去擦过两边的座位
+    // 弹幕层裁在弹幕区里：从区的右沿出现、左沿消失，不会飘出去擦过两边的座位
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     this.dmLayer().style.clipPath = `inset(${Math.max(0, area.top)}px ${Math.max(0, vw - area.left - area.width)}px ${Math.max(0, vh - area.top - area.height)}px ${Math.max(0, area.left)}px)`;

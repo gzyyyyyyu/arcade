@@ -49,26 +49,26 @@ export interface Persist<S> {
    * 离座再坐下会换一个新座位，挂在座位上就会清零
    */
   joins: Record<string, number>;
-  /** 写了还没报给计量的行数（0.2.0；内存里的为准，随这一行一起存，被驱逐后接着数） */
+  /** 写了还没报给计量的行数（内存里的为准，随这一行一起存，被驱逐后接着数） */
   unmetered?: number;
-  /** 对外的事办失败了，什么时候再试（0.3.0；null 是不用等） */
+  /** 对外的事办失败了，什么时候再试（null 是不用等） */
   effectsAt?: number | null;
   /** 连着失败了几次（退避用） */
   effectTries?: number;
-  /** 正在关：人都断开了，留着存储把对外的事办完再删（0.3.0） */
+  /** 正在关：人都断开了，留着存储把对外的事办完再删 */
   ending?: { reason: string; at: number } | null;
-  /** 开房时定下的开局选项（0.4.0，RoomGame.options 校验过的）；没有就是开打时由 start 定 */
+  /** 开房时定下的开局选项（RoomGame.options 校验过的）；没有就是开打时由 start 定 */
   opts?: unknown;
   /**
-   * 快速匹配的桌（0.20.0）：排进来的人（建房时已经坐在各自的座位上）和最晚什么时候开打。
+   * 快速匹配的桌：排进来的人（建房时已经坐在各自的座位上）和最晚什么时候开打。
    * 只有这几个人能进；没有房主（host 只是第一个人，用来还名额以外不起作用），start 一律 not_host
    */
   match?: { users: string[]; joinBy: number };
 }
 
 export const TABLE = 'kit_room';
-/** PG 模式把房间码记在内存存储里的 key（0.21.0）：连接上的事件、闹钟进来时靠它找回 PG 里的行 */
-export const PG_NAME_KEY = 'kit.name';
+/** PG 模式把房间码记在内存存储里的 key：连接上的事件、闹钟进来时靠它找回 PG 里的行 */
+const PG_NAME_KEY = 'kit.name';
 
 /** owners 里"绑了、但不是任何人"：0.1.0 存下的已开打房间里的电脑座位（谁都不能接管）。userId 不会是空串 */
 export const NOBODY = '';

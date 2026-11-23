@@ -1,5 +1,5 @@
 /**
- * 牌桌互动的规则（0.11.0）：冷却、护盾、连击、回敬、电脑怎么反应、菜单放哪。纯函数和小类，不碰 DOM，时间和随机数由调用方给，
+ * 牌桌互动的规则：冷却、护盾、连击、回敬、电脑怎么反应、菜单放哪。纯函数和小类，不碰 DOM，时间和随机数由调用方给，
  * 页面（table-fun.ts）和房间（电脑在服务器上回应时）都能用，测试在 workerd 里直接跑。
  *
  * 座位用游戏自己的编号（页面上一般是"我 = 0"的画面座位，房间里是真实座位），这里不关心是哪种，只要同一个对象里一致。
@@ -294,7 +294,29 @@ export function hotBox(rect: Box, view: { width: number; height: number }, min =
   };
 }
 
-/** 菜单、面板在这么宽的屏幕上实际多宽：最多 w，两边各留 margin（0.11.2；390 竖屏上 440 宽的面板会伸出屏幕） */
+/**
+ * 热区给游戏的控件让位：hotBox 为凑够 44 往外撑的那一圈压到 avoid（游戏的按钮）时，从压到的那一边切掉，
+ * 只切撑出来的部分、头像本身（keep）不动；几种切法取剩下面积最大的。切不开（头像本身压着控件）就原样返回，那是游戏的布局要改。
+ */
+export function yieldBox(box: Box, keep: Box, avoid: readonly Box[]): Box {
+  let b = box;
+  for (const a of avoid) {
+    const ar = a.left + a.width;
+    const ab = a.top + a.height;
+    const br = b.left + b.width;
+    const bb = b.top + b.height;
+    if (a.left >= br || ar <= b.left || a.top >= bb || ab <= b.top) continue;
+    const cuts: Box[] = [];
+    if (a.left >= keep.left + keep.width) cuts.push({ ...b, width: a.left - b.left });
+    if (ar <= keep.left) cuts.push({ ...b, left: ar, width: br - ar });
+    if (a.top >= keep.top + keep.height) cuts.push({ ...b, height: a.top - b.top });
+    if (ab <= keep.top) cuts.push({ ...b, top: ab, height: bb - ab });
+    if (cuts.length) b = cuts.reduce((x, y) => (y.width * y.height > x.width * x.height ? y : x));
+  }
+  return b;
+}
+
+/** 菜单、面板在这么宽的屏幕上实际多宽：最多 w，两边各留 margin（390 竖屏上 440 宽的面板会伸出屏幕） */
 export function fitMenuWidth(w: number, viewWidth: number, margin = 8): number {
   return Math.max(0, Math.min(w, viewWidth - 2 * margin));
 }
@@ -332,10 +354,10 @@ export function placeMenu(anchor: Box, want: number, h: number, view: { width: n
 }
 
 /**
- * 头像旁的一句话（w×h）放哪（0.18.2）：先试朝屏幕中心那一侧、和头像顶边对齐（原来的样子），再试另一侧、头像上方、下方；
+ * 头像旁的一句话（w×h）放哪：先试朝屏幕中心那一侧、和头像顶边对齐，再试另一侧、头像上方、下方；
  * 夹在可见区里（留 margin），和头像本身、"互动"按钮、各家名牌筹码、禁区压得最少的那个胜出，一样少时按试的顺序。
- * 竖屏自己的气泡原来总在右边、被"互动"按钮压住半截，点头像的提示盖住对家的名字和筹码（实测）。
- * hard 是叠在气泡上面、能点的东西（"互动""聊天"按钮、聊天框，0.19.1）：压到它们气泡的字就看不见了，代价按 HARD_COST 倍算；
+ * 只朝一侧放的话，竖屏自己的气泡会被"互动"按钮压住半截，点头像的提示会盖住对家的名字和筹码（实测）。
+ * hard 是叠在气泡上面、能点的东西（"互动""聊天"按钮、聊天框）：压到它们气泡的字就看不见了，代价按 HARD_COST 倍算；
  * 名牌、手牌在气泡下面，压一点还看得见字
  */
 export function placeBubble(
@@ -374,7 +396,7 @@ export function placeBubble(
 }
 
 /**
- * 一点都不许压 hard 的位置（0.20.3 首次提示"点头像扔道具"用，0.20.4 起头像旁所有气泡都用）：先按 placeBubble 挑头像四边；四边都会压到 hard（名牌、标签、按钮、聊天框）时，
+ * 一点都不许压 hard 的位置（头像旁所有气泡都用）：先按 placeBubble 挑头像四边；四边都会压到 hard（名牌、标签、按钮、聊天框）时，
  * 在可见区里按 8 像素的网格找完全不压 hard 的位置，软的压得越少、离头像越近越好。哪儿都放不下回 null，调用方缩短字或者晚点再试。
  * 宁可离说话人远一点，也不盖住任何人的名字和筹码（看不清是谁、剩多少比离远一点糟）；离得多远由"软的压得少、离头像近"一起定
  */
@@ -411,7 +433,7 @@ export function placeClear(
 }
 
 /**
- * 头像旁气泡最终放哪（0.20.4）：先找一点都不压 hard 的位置（placeClear）；找不到时普通气泡退回 placeBubble（压得最少的一侧，话照样冒），
+ * 头像旁气泡最终放哪：先找一点都不压 hard 的位置（placeClear）；找不到时普通气泡退回 placeBubble（压得最少的一侧，话照样冒），
  * strict（首次提示）回 null，由调用方换短句或晚点再试
  */
 export function bubbleSpot(
@@ -427,7 +449,7 @@ export function bubbleSpot(
 }
 
 /**
- * 硬禁区四周再让出几像素（0.21.1，1280 实测：气泡下沿和聊天框底边贴着，算出来不相交，画出来描边和阴影压上去几像素）
+ * 硬禁区四周再让出几像素（1280 实测：气泡下沿和聊天框底边贴着，算出来不相交，画出来描边和阴影压上去几像素）
  */
 export const HARD_PAD = 4;
 
@@ -436,10 +458,10 @@ export function padBox(r: Box, n: number = HARD_PAD): Box {
   return { left: r.left - n, top: r.top - n, width: r.width + 2 * n, height: r.height + 2 * n };
 }
 
-/** 气泡压到叠在它上面的按钮、聊天框时的代价倍数（0.19.1，×3：压按钮比压牌桌更挡操作） */
+/** 气泡压到叠在它上面的按钮、聊天框时的代价倍数（×3：压按钮比压牌桌更挡操作） */
 export const HARD_COST = 3;
 
-// ---------- 聊天的版式（0.19.0，docs/chat.md 第 5 节） ----------
+// ---------- 聊天的版式（docs/chat.md 第 5 节） ----------
 
 /** 电脑版（牌桌一角常驻聊天框）还是手机版（"聊天"按钮 + 贴底输入条）：按可见区大小分，不看指针（无头浏览器报的指针不可靠） */
 export type ChatMode = 'desk' | 'phone';
@@ -447,7 +469,7 @@ export function chatMode(view: { width: number; height: number }): ChatMode {
   return view.width >= 960 && view.height >= 560 ? 'desk' : 'phone';
 }
 
-/** 气泡、弹幕、聊天框的字号：电脑 18–22px 按短边放大，手机 ≥ 15px（电脑上原来的气泡太小） */
+/** 气泡、弹幕、聊天框的字号：电脑 18–22px 按短边放大，手机 ≥ 15px（电脑上固定小字号的气泡看不清） */
 export function chatFont(view: { width: number; height: number }, mode: ChatMode = chatMode(view)): number {
   const m = Math.min(view.width, view.height);
   return mode === 'desk' ? Math.max(18, Math.min(22, Math.round(m / 48))) : m >= 480 ? 16 : 15;
@@ -527,7 +549,7 @@ export function placeDock(view: { width: number; height: number }, w: number, h:
 }
 
 /**
- * 快捷短语分页（0.24.0）：一页放得下几条就放几条，放不下就翻页，不滚动。
+ * 快捷短语分页：一页放得下几条就放几条，放不下就翻页，不滚动。
  * 排法和界面上的 flex-wrap 一致：一行放不下就换行，行高取这一行最高的一条；再换行会超出 box.h 就收页。
  * 一条比容器还宽时按容器宽算、单独占一行；每页至少一条，所以怎么小的容器也能翻完。返回每页的 [start, end)。
  */
@@ -563,7 +585,7 @@ export function pageChips(sizes: readonly { w: number; h: number }[], box: { w: 
 }
 
 /**
- * 四个角里有没有一个一点都不压禁区（0.20.0）：没有的话，玩家又没自己展开过，电脑版聊天框默认收成"聊天"小按钮。
+ * 四个角里有没有一个一点都不压禁区：没有的话，玩家又没自己展开过，电脑版聊天框默认收成"聊天"小按钮。
  * 四人牌桌 1280×720 上四个角都放不下，压得最少的左上角正好盖住左家的头像，点不到他、也看不到剩几张
  */
 export function dockFits(view: { width: number; height: number }, w: number, h: number, avoid: readonly Box[] = [], margin = 12): boolean {

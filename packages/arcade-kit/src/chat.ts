@@ -1,5 +1,5 @@
 /**
- * 好友房聊天的过滤（0.18.0，设计见 docs/chat.md 第 2 节）：纯函数，房间和页面都 import，页面发之前跑一遍给即时提示，房间收到再跑一遍（以房间为准）。
+ * 好友房聊天的过滤（设计见 docs/chat.md 第 2 节）：纯函数，房间和页面都 import，页面发之前跑一遍给即时提示，房间收到再跑一遍（以房间为准）。
  * 顺序：规整 → 判长度 → 判导流（整条拒发）→ 脏话打码（照发）。不碰 DOM、时间和随机数（只有末尾单机用的 localChat 默认读当前时间来限速）。
  * kit 里不出现任何游戏的名字和概念；词表不针对真实个人。
  */
@@ -136,7 +136,7 @@ export function chatRejectText(code: string, why?: ChatBlockWhy): string {
 }
 
 /**
- * 发一句的结果（0.18.0 起 RoomClient.chat、0.18.1 起 localChat 共用）：被挡下的 code 和房间回的一样（CHAT_ERRORS），
+ * 发一句的结果（RoomClient.chat 和 localChat 共用）：被挡下的 code 和房间回的一样（CHAT_ERRORS），
  * 多一个 chat_offline（没连上）；chat_blocked 带 why（链接还是号码，挑说法用），chat_too_fast 带 waitMs
  */
 export type ChatSendResult =
@@ -157,7 +157,7 @@ export interface LocalChatOptions {
 }
 
 /**
- * 单机聊天（0.18.1，单机也能聊）：返回一个和 RoomClient.chat 一样用法的发送函数，过滤、限速和房间同一套，
+ * 单机聊天（单机也能聊）：返回一个和 RoomClient.chat 一样用法的发送函数，过滤、限速和房间同一套，
  * 行就调 say(打码后的字, 有没有打码) 让页面在自己头像旁显示。只在本机显示自己说的，不发到任何地方、不存；
  * 电脑不读、不回（公平：电脑的决策和反应都不看真人打的字）。不碰 DOM；时间只在这里用（上面的过滤仍然是纯函数）
  */

@@ -47,7 +47,7 @@ describe('默认文案', () => {
     expect(closeText(CLOSE.unauthorized)).toBe(ROOM_TEXT.unauthorized);
     expect(closeText(CLOSE.policy)).toBe(ROOM_TEXT.other);
     expect(closeText(1006)).toBe(ROOM_TEXT.other);
-    expect(closeText(CLOSE.roomClosed, undefined, { roomClosed: '房间关了，桌上的结回去了' })).toBe('房间关了，桌上的结回去了');
+    expect(closeText(CLOSE.roomClosed, undefined, { roomClosed: '房间关了，桌上的带回去了' })).toBe('房间关了，桌上的带回去了');
   });
 });
 

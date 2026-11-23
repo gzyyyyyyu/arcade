@@ -1,15 +1,15 @@
 /**
- * 测试和本地试用的假平台钱包（0.8.0，不部署）：游戏的 workerd 测试、冒烟、本地 `wrangler dev` 里代替平台的钱包，各游戏共用这一份。
+ * 测试和本地试用的假平台钱包（不部署）：游戏的 workerd 测试、冒烟、本地 `wrangler dev` 里代替平台的钱包，各游戏共用这一份。
  *
  * 只复刻游戏碰得到的接口形状和关键规则，不复刻平台的细枝末节（计量、熔断档、流水、战绩怎么存、管理员调规则）：
  * - `WalletService`：游戏经服务绑定调的四个方法（docs/platform-backend.md 5.9"给游戏的 RPC"）。绑定的 `props.game` 必须写，
  *   参数里的 `game` 要和它一致，不然 `bad_game`。这里不维护游戏名单：平台认不认这个游戏是平台的事，假钱包只核对两边一致；
- * - `FakeBank`：一人一个 DO，存钱包（5.9"存储"的简化）。带入、结回、放弃按 `游戏:ref` 一份一份（5.9"带入""结回"）：
+ * - `FakeBank`：一人一个 DO，存钱包（5.9"存储"的简化）。带入、带回、放弃按 `游戏:ref` 一份一份（5.9"带入""带回"）：
  *   只结一次（结完再结 `no_stake`）、余额够这次才能带（`no_funds`）、同一个 `ref` 补码要同档同 mode、操作 id 按游戏去重（`dup`）、
  *   到期原样退回（`expired`）、client 模式每个游戏每天净赢最多 `WIN_UNITS` 份（`capped`）；
- * - 结回带的小结 `stats` 按 5.10 的上限检查（JSON ≤ 256 字节、必填字段、称号和自定义数的格式），不合格回 `statsIgnored`、钱照常结；
+ * - 带回带的小结 `stats` 按 5.10 的上限检查（JSON ≤ 256 字节、必填字段、称号和自定义数的格式），不合格回 `statsIgnored`、钱照常结；
  *   收下的记在 `FakeBank.stats` 里给测试核对；
- * - `together`（0.13.0，15.19 搭子战绩）：形状照平台的 parseTogether 查（op 格式、2–8 个人、userId 不重复、team 0–3 整数、win 布尔），
+ * - `together`（15.19 搭子战绩）：形状照平台的 parseTogether 查（op 格式、2–8 个人、userId 不重复、team 0–3 整数、win 布尔），
  *   每个人的 `FakeBank.together` 记一笔给测试核对；同一个游戏的同一个 op 重报不加。假钱包不管好友关系（平台只记好友之间的对），报上来的两两都算一对；
  * - `walletHttp`：浏览器的 `GET /api/wallet`、`POST /api/wallet/relief`（15.9），认平台的会话 cookie，cookie 的值就当 userId。
  *
@@ -34,7 +34,7 @@ export type Mode = 'server' | 'client';
 
 const DAY_MS = 86_400_000;
 const ID = /^[A-Za-z0-9_-]{8,64}$/;
-/** 结回最多是带上桌的加 20 份（平台只防写错） */
+/** 带回最多是带上桌的加 20 份（平台只防写错） */
 const SETTLE_EXTRA_UNITS = 20;
 
 export interface Stake {
@@ -71,7 +71,7 @@ interface State {
   /** 桌上的筹码，key 是 `游戏:ref` */
   stakes: Record<string, Stake>;
   reliefDay: string;
-  /** client 模式当天每个游戏的带入、结回（算净赢）和带入过的最高档 */
+  /** client 模式当天每个游戏的带入、带回（算净赢）和带入过的最高档 */
   day: string;
   cin: Record<string, number>;
   cout: Record<string, number>;
@@ -93,9 +93,9 @@ export class FakeBank extends DurableObject {
   /** 被调了几次、写了几次：测试数游戏调平台几次、平台写几行 */
   calls = 0;
   writes = 0;
-  /** 结回带上来的小结，按先后记在内存里；不合格的记 ignored */
+  /** 带回带上来的小结，按先后记在内存里；不合格的记 ignored */
   stats: { game: string; ref: string; stats: unknown; ignored?: StatsProblem }[] = [];
-  /** 搭子战绩（0.13.0）：报到这个人头上的每一场，按先后记在内存里（同一个游戏的同一个 op 只记一次） */
+  /** 搭子战绩：报到这个人头上的每一场，按先后记在内存里（同一个游戏的同一个 op 只记一次） */
   together: { game: string; op: string; players: TogetherPlayer[] }[] = [];
 
   /** 记一场；这个人这个 op 记过了回 false */
@@ -185,7 +185,7 @@ export class FakeBank extends DurableObject {
       if (s.expired.includes(sk)) return { ok: false, error: 'expired' };
       if (k && k.tier !== tier) return { ok: false, error: 'at_table' };
       if (k && k.mode !== c.mode) return { ok: false, error: 'bad_mode' };
-      // 新开一份、补码都只要余额够这次的数（平台 0.10.2）
+      // 新开一份、补码都只要余额够这次的数（和平台一样）
       if (s.balance < amount) return { ok: false, error: 'no_funds' };
       const until = Math.min(c.until!, now + DAY_MS);
       if (k) {
@@ -221,7 +221,7 @@ export class FakeBank extends DurableObject {
     return credited < amount ? { ok: true, credited, capped: amount - credited } : { ok: true, credited };
   }
 
-  /** 领补给（15.9）：余额加桌上的不到补给额、今天没领过，补到补给额（平台 0.10.2 起桌上有筹码也能领） */
+  /** 领补给（15.9）：余额加桌上的不到补给额、今天没领过，补到补给额（平台 桌上有筹码也能领） */
   async relief(now: number): Promise<{ status: number; body: { error?: string; wallet: WalletView } }> {
     this.calls++;
     const s = await this.load(now);

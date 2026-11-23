@@ -12,7 +12,7 @@
  * - 每个入口（fetch、RPC、webSocketMessage、webSocketClose、alarm）都包一层：先计数、再查硬限制，最后才进游戏代码；游戏代码抛错只记日志，
  *   闹钟里不往外抛（闹钟失败会自动重试最多 6 次，每次都计费，4.4）。
  * - 内存里的东西都是缓存：被驱逐后从存储重建（attachment 里只放 userId、昵称）；闹钟时间以 getAlarm() 读到的为准。
- * - 额度（0.2.0，绑了 METER 才有，见 meter.ts）：开房先向计量占名额；自己数写了几行，攒够 meterBatch 行或房间结束时报给计量；
+ * - 额度（绑了 METER 才有，见 meter.ts）：开房先向计量占名额；自己数写了几行，攒够 meterBatch 行或房间结束时报给计量；
  *   打完、关房时还房主的名额。找计量都在 entry 之外（同步的那一步做完、广播完以后）await，不影响"一步之内没有 await"。
  *   计量说今天快满了（busy）就不进新人；说满了（stop）就在这一段打完（RoomGame.breakPoint）时收场。
  */
@@ -78,7 +78,7 @@ export interface RoomLimits {
    */
   maxJoins: number;
   /**
-   * 没入座的人最多几个（来看的、还没选座位的），超了 4003。按账号算（0.14.0，以前按连接）；入座的人、房主、开打后绑过座位的人不占这个数，掉线回来总能进
+   * 没入座的人最多几个（来看的、还没选座位的），超了 4003。按账号算（一个人开几个标签页只占一个）；入座的人、房主、开打后绑过座位的人不占这个数，掉线回来总能进
    */
   extraConnections: number;
   /** 房间最长寿命 */
@@ -96,35 +96,35 @@ export interface RoomLimits {
   /** 客户端版本低于这个就 4005 让它刷新 */
   minClientVersion: number;
   /**
-   * 快捷短语的令牌桶（0.7.0 起）：每个座位每 emoteMs 补 1 个、最多攒 emoteBurst 个，没令牌回 emote_too_fast、不转发。
+   * 快捷短语的令牌桶：每个座位每 emoteMs 补 1 个、最多攒 emoteBurst 个，没令牌回 emote_too_fast、不转发。
    * 这两个是代码里的默认值；游戏 wrangler.jsonc 的 vars.KIT_QUOTA 里写了 emoteMs / emoteBurst 就以那里为准（不用发版就能调）。
    * emoteMs 为 0 表示不限速
    */
   emoteMs: number;
   emoteBurst: number;
   /**
-   * 聊天的节奏（0.18.0，RoomGame.chat）：同一个座位两条至少隔 chatMs、滚动一分钟最多 chatPerMin 条，超了回 chat_too_fast、不转发、不占数。
+   * 聊天的节奏（RoomGame.chat）：同一个座位两条至少隔 chatMs、滚动一分钟最多 chatPerMin 条，超了回 chat_too_fast、不转发、不占数。
    * 和短语一样是代码里的默认值，KIT_QUOTA 里写了 chatMs / chatPerMin 就以那里为准。chatMs 为 0 不限间隔，chatPerMin 为 0 不限条数
    */
   chatMs: number;
   chatPerMin: number;
   /**
-   * 写了多少行报一次计量（0.2.0）。计量每报一次自己写 1 行，200 就是多花 0.5%；
+   * 写了多少行报一次计量。计量每报一次自己写 1 行，200 就是多花 0.5%；
    * 太大的话计量知道得晚，满了以后房间还会多写最多这么多行才收场
    */
   meterBatch: number;
   /**
-   * 关房时还有对外的事没办完（RoomGame.effects，0.3.0）：断开所有人以后留着存储接着办，最多等这么久，
+   * 关房时还有对外的事没办完（RoomGame.effects）：断开所有人以后留着存储接着办，最多等这么久，
    * 到了还办不完就记日志照样删（办事的一方要有自己的兜底，比如钱包到期退回买入）
    */
   closingMs: number;
   /**
-   * 快速匹配的桌（0.20.0）：建好以后最多等排进来的人这么久，到了还没连上的座位由电脑代打、照样开打（人后来到了交还给他）。
+   * 快速匹配的桌：建好以后最多等排进来的人这么久，到了还没连上的座位由电脑代打、照样开打（人后来到了交还给他）。
    * 都连上了就不等，马上开
    */
   matchJoinMs: number;
   /**
-   * 半开的连接（0.26.0）：浏览器那头早没了（手机断网、休眠被杀）但关闭帧没到，房间还当他在线，掉线托管、"没人"关房都不会开始算。
+   * 半开的连接：浏览器那头早没了（手机断网、休眠被杀）但关闭帧没到，房间还当他在线，掉线托管、"没人"关房都不会开始算。
    * 闹钟醒来时，一条回过 ping 的连接（RoomClient 每 25 秒发一个，房间自动回 pong，见 setWebSocketAutoResponse）这么久没再回过就关掉，当掉线处理。
    * 从没回过 ping 的不管：不发心跳的旧页面、测试里的连接都不会被误关；代价是连上不到一个心跳就断的半开连接要等关闭帧
    */
@@ -162,9 +162,9 @@ export const DEFAULT_LIMITS: RoomLimits = {
 
 /** 闹钟里出错时，过这么久再醒来重试（不用"马上"，免得每次都出错时连着计费）。 */
 const ALARM_RETRY_MS = 60_000;
-/** setAlarm 一次最多试几回（0.13.1）：存储一时出错当场再试一次，不等下一个入口 */
+/** setAlarm 一次最多试几回：存储一时出错当场再试一次，不等下一个入口 */
 const SET_ALARM_TRIES = 2;
-/** 每个座位记住最近几个做成的 moveId（0.11.1）：客户端断线时攒着没确认的操作，重连后原样补发 */
+/** 每个座位记住最近几个做成的 moveId：客户端断线时攒着没确认的操作，重连后原样补发 */
 const RECENT_MOVES = 8;
 
 /** 计量说的门槛在内存里记多久（不进新人时用；报数、还名额时顺便更新）。 */
@@ -185,7 +185,7 @@ const ERROR_CODE_RE = /^[a-z][a-z0-9_]{0,31}$/;
 interface Attachment {
   userId: string;
   name: string;
-  /** 连接时带了 chat=1（0.18.0，新版 RoomClient 传了 onChat）：只给这样的连接发聊天，旧页面不认识这条消息 */
+  /** 连接时带了 chat=1（新版 RoomClient 传了 onChat）：只给这样的连接发聊天，旧页面不认识这条消息 */
   chat?: true;
 }
 
@@ -195,7 +195,7 @@ export type CreateOutcome =
   | { r: 'has_room'; code: string };
 
 /**
- * 匹配开桌的结果（kitCreateMatch → match.ts 的 MatchQueue，0.20.0）。refused：计量挡了某个人（has_room 带他那个房间的码），
+ * 匹配开桌的结果（kitCreateMatch → match.ts 的 MatchQueue）。refused：计量挡了某个人（has_room 带他那个房间的码），
  * userId 为 null 是全站忙（busy）；这一桌一个名额都没占，排队那边把这个人请出去再凑
  */
 export type MatchOutcome =
@@ -216,7 +216,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   protected readonly limits: RoomLimits = DEFAULT_LIMITS;
 
   /**
-   * 去外面办一笔事（0.3.0，游戏写了 effects 时房间子类实现）：比如经 DO 调用从 userId 的钱包扣买入。
+   * 去外面办一笔事（游戏写了 effects 时房间子类实现）：比如经 DO 调用从 userId 的钱包扣买入。
    * userId 是 effect.seat 绑定的人（没绑人的电脑座位是 null）。返回值原样交给 RoomGame.settled；抛错算失败，按退避重试。
    * 同一笔可能被办两次（断线、被驱逐），办事的一方按 effect.id 去重。在 entry 之外 await，不打断"一步之内没有 await"
    */
@@ -225,7 +225,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 每一步广播完之后调一次（0.10.0，可选覆盖）：state 是这一步结束时的牌局状态（服务端全量，含隐藏信息）。
+   * 每一步广播完之后调一次（可选覆盖）：state 是这一步结束时的牌局状态（服务端全量，含隐藏信息）。
    * 给"电脑也会互动"用：房间子类看这一步的**公开**事件（谁出了什么、谁赢了一把），需要时调 botEmote 让电脑座位发一句短语。
    * 同步执行、不能 await、不能写存储；抛错只记日志，不影响这一步。公平约束（游戏侧守）：电脑发不发、发什么只看公开信息，
    * 不读任何真人的短语、不读隐藏的牌。房间要收场（closing）时不调
@@ -233,7 +233,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   protected onStep(_state: S): void {}
 
   /**
-   * 真人发的短语校验通过、广播完之后调一次（0.10.1，可选覆盖）：from 是发的座位，id 是编号，to 是对象座位（没指定是 undefined）。
+   * 真人发的短语校验通过、广播完之后调一次（可选覆盖）：from 是发的座位，id 是编号，to 是对象座位（没指定是 undefined）。
    * **只许用来调 botEmote 让电脑回一句**（被点名的电脑回嘴、全桌起哄），别的什么都不做：
    * - 故意不给牌局状态：电脑的出牌决策（RoomGame.ai）绝不能读到真人的短语，游戏也不许把短语记进状态、字段或存储，留着以后喂给电脑；
    * - 同步执行、不能 await、不能写存储；抛错只记日志，不影响已经广播的那一句；
@@ -242,7 +242,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   protected onEmote(_from: number, _id: number, _to?: number): void {}
 
   /**
-   * 搭子战绩（0.13.0，平台 15.19）：一场打完时报一次同桌真人和各自输赢。players 按座位给（电脑座位直接放进来也行，这里按开打后绑的人认，
+   * 搭子战绩（平台 15.19）：一场打完时报一次同桌真人和各自输赢。players 按座位给（电脑座位直接放进来也行，这里按开打后绑的人认，
    * 没绑真人的座位不报），match 是这一场在房间里的序号（同一场重报给同一个数，平台按 op 去重）。
    * 交给 `ctx.waitUntil` 去办、不 await：一般在同步的 `onStep` 里看到一场结束时调，不能卡住广播和下一步；
    * 也不走 `effects`/`perform`：那条路办不成会退避重试、要写状态，而这件事平台忙时少记一场就算了（不重试）。
@@ -263,7 +263,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 让电脑座位发一句快捷短语（0.10.0）：广播的消息和真人发的一样（{ t: 'emote', seat, id, to? }），多带 bot: true，客户端可以不管它。
+   * 让电脑座位发一句快捷短语：广播的消息和真人发的一样（{ t: 'emote', seat, id, to? }），多带 bot: true，客户端可以不管它。
    * 只有电脑在出手的座位能发：kind 是 ai，或者真人掉线后由电脑托管（auto）。id、to 的校验和真人一样，走同一个座位的令牌桶
    * （emoteMs / emoteBurst），不写存储、不改 seq。发出去了回 true；座位是真人在打、空位、编号不对、目标不对、房间打完了、太快了，回 false 不广播
    */
@@ -283,7 +283,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   /** 内存缓存，被驱逐后从存储重建 */
   private st: Persist<S> | null | undefined;
   /**
-   * 自托管 PG 模式（0.21.0，env 里有 KIT_STORE）的内存镜像；没有 KIT_STORE 时为 null，存储照旧直接用 ctx.storage.sql，行为逐字不变。
+   * 自托管 PG 模式（env 里有 KIT_STORE）的内存镜像；没有 KIT_STORE 时为 null，存储照旧直接用 ctx.storage.sql，行为逐字不变。
    * PG 模式下这一步的 send/close 先进 outbox，flush 提交成功才发（flush 在广播之前，等于 Cloudflare 的输出门）
    */
   private readonly pg: MirrorStore | null;
@@ -296,7 +296,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   private alarmToSet: number | null = null;
   private pendingInbound = 0;
   private readonly pendingBy = new Map<string, number>();
-  /** 入站消息的令牌桶，按 userId 记（0.14.0；以前按连接，断开重连就换一个满的桶，第三轮审计） */
+  /** 入站消息的令牌桶，按 userId 记（按连接的话断开重连就换一个满的桶） */
   private readonly buckets = new Map<string, { tokens: number; at: number }>();
   /** 每个座位快捷短语的令牌桶（内存里；被驱逐就重置成满的，驱逐前至少空闲了一阵，本来也该满了） */
   private readonly emoteBuckets = new Map<number, { tokens: number; at: number }>();
@@ -316,7 +316,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   private unmetered = 0;
   /**
    * 还没还给计量的名额（打完、关房、进 idle；房主一个人，匹配桌是排进来的每个人），entry 最后去找计量；还不上留着下次接着还。
-   * 几次要还的按人取并集（queueRelease），谁也不挤掉谁。refund：匹配桌开打时没来的人（0.20.0），连当天的开房次数一起退给他（全站开房数不退，桌子开成了）
+   * 几次要还的按人取并集（queueRelease），谁也不挤掉谁。refund：匹配桌开打时没来的人，连当天的开房次数一起退给他（全站开房数不退，桌子开成了）
    */
   private release: { code: string; users: string[]; refund: string[] } | null = null;
   /** 计量最近一次说的门槛（内存；被驱逐就重新问） */
@@ -330,7 +330,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   /** 正在办的对外的事（内存；被驱逐就重新办，办事的一方按 id 去重） */
   private readonly inflight = new Set<string>();
   private effectsBusy = false;
-  /** 游戏写了 pause 没写 resume，已经记过日志（0.5.0；每个实例只记一次） */
+  /** 游戏写了 pause 没写 resume，已经记过日志（每个实例只记一次） */
   private warnedNoResume = false;
   /** 每个实例不一样（测试用来确认真的被驱逐、构造函数重跑过） */
   readonly instanceId = crypto.randomUUID();
@@ -351,7 +351,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
    * 占不到就不建房间、这个房间对象什么都不写；占到了却没建成，退回去。
    */
   async kitCreate(code: string, host: Identity, rawOpts?: unknown): Promise<CreateOutcome> {
-    // 开房就定选项（0.4.0）：不合格的不占名额、不建房间
+    // 开房就定选项：不合格的不占名额、不建房间
     const fixed = rawOpts !== undefined && this.game.options ? this.checkOpts(rawOpts) : null;
     if (fixed === undefined) return { r: 'bad_options' };
     if (!(await this.pgOpen(code))) return { r: 'unavailable' };
@@ -379,7 +379,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 快速匹配开桌（0.20.0，只有 match.ts 的排队对象经 RPC 调）：players 按排队先后，每人占一个开房名额（计量一次占齐，占不齐一个都不占），
+   * 快速匹配开桌（只有 match.ts 的排队对象经 RPC 调）：players 按排队先后，每人占一个开房名额（计量一次占齐，占不齐一个都不占），
    * 建房时把他们按 matchSeats 坐好。和 kitCreate 一样：码撞了回 exists、什么都不写；占到了却没建成就退回去。
    */
   async kitCreateMatch(code: string, players: Identity[], rawOpts?: unknown): Promise<MatchOutcome> {
@@ -412,7 +412,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 快速匹配时 n 个人坐哪几个座位（0.20.0，可选覆盖）：count 是这一局用几个座位，返回 n 个不重复的座位号（排队先后的顺序）。
+   * 快速匹配时 n 个人坐哪几个座位（可选覆盖）：count 是这一局用几个座位，返回 n 个不重复的座位号（排队先后的顺序）。
    * 默认随机（crypto，不在规则核心里）；比如两个真人要坐对家，游戏在这里给。给的不合格（重复、越界、个数不对）就按默认的随机
    */
   protected matchSeats(n: number, count: number): number[] {
@@ -427,9 +427,9 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     }
     const me = parseIdentity(request.headers.get('x-kit-user'));
     if (!me) return new Response('no identity', { status: 401 });
-    // PG 模式要知道自己的房间码才能从 PG 读（acceptJoin 在内部地址上带 code，0.21.0）；读不了按"稍后再试"
+    // PG 模式要知道自己的房间码才能从 PG 读（acceptJoin 在内部地址上带 code）；读不了按"稍后再试"
     if (this.pg && !(await this.pgOpen(url.searchParams.get('code') ?? ''))) return this.refuse(CLOSE.tryLater);
-    // 猜码超了门槛（0.14.0）：自己人照常进（断线重连不受牵连），别人不管房间在不在都回 1013，说不出房间在不在
+    // 猜码超了门槛：自己人照常进（断线重连不受牵连），别人不管房间在不在都回 1013，说不出房间在不在
     if (request.headers.has(LIMITED_HEADER) && !this.insider(me.userId)) return this.refuse(CLOSE.tryLater);
     const gate = await this.newcomerGate(me.userId);
     if (gate !== null) return this.refuse(gate);
@@ -461,7 +461,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     try {
       // 运行时叫醒我们时这个闹钟已经用掉了
       this.alarmAt = null;
-      // PG 模式读不进来（PG 一时连不上）：这次的闹钟已经用掉了，过一会儿再醒来，不然房间没人叫醒（0.21.0）
+      // PG 模式读不进来（PG 一时连不上）：这次的闹钟已经用掉了，过一会儿再醒来，不然房间没人叫醒
       if (!(await this.pgOpen())) {
         this.alarmAt = Date.now() + ALARM_RETRY_MS;
         await this.setAlarmSafely(this.alarmAt);
@@ -469,7 +469,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
       }
       await this.entry(() => this.onAlarm());
       // 出错时状态可能没走到"重设闹钟"那一步：房间还在、又没有闹钟，就过一会儿再醒来，不然房间永远没人关
-      // setAlarm 本身失败时 alarmAt 是 undefined（不知道），以存储里读到的为准（0.11.1）
+      // setAlarm 本身失败时 alarmAt 是 undefined（不知道），以存储里读到的为准
       if (this.lastStepFailed && this.load() && (this.alarmAt === undefined ? await this.ctx.storage.getAlarm() : this.alarmAt) === null) {
         this.alarmAt = Date.now() + ALARM_RETRY_MS;
         this.lastStepWrites++;
@@ -522,7 +522,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     return out;
   }
 
-  // ---------- 自托管 PG 模式（0.21.0，store.ts） ----------
+  // ---------- 自托管 PG 模式（store.ts） ----------
 
   /**
    * 把 PG 里这个房间的行读进内存镜像（没有 KIT_STORE 时什么都不做，回 true）。name 是房间码：开房、进房、kitWake 带进来，
@@ -565,7 +565,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 进程重启后宿主唤醒（0.21.0，只有 KIT_STORE 绑定能调的 RPC）：从 PG 读进来，按存着的闹钟重设（过期的马上响）。
+   * 进程重启后宿主唤醒（只有 KIT_STORE 绑定能调的 RPC）：从 PG 读进来，按存着的闹钟重设（过期的马上响）。
    * 幂等：已经醒着、闹钟已经设好的，再调一次什么都不变；没有 KIT_STORE 时什么都不做
    */
   async kitWake(name: string): Promise<void> {
@@ -579,9 +579,9 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 这一步要设的闹钟两次都没设上（0.13.1，第三轮审计）：按 getAlarm() 核对存储里还有没有闹钟（以前设的更早的那个可能还在）；
+   * 这一步要设的闹钟两次都没设上：按 getAlarm() 核对存储里还有没有闹钟（以前设的更早的那个可能还在）；
    * 有就以它为准，没有而房间还在，就补一个 ALARM_RETRY_MS 后的，醒来时 onAlarm 按状态重新算（到点的照常处理）。
-   * 以前只靠下一个入口重排：全是电脑、大家都在等时限的房间没人发消息，就一直停着，不关房、结回也不重试。
+   * 只靠下一个入口重排的话，全是电脑、大家都在等时限的房间没人发消息，就一直停着，不关房、带回也不重试。
    * 补设也失败（存储一直坏着）就只剩浏览器的看门狗（RoomClient）重连来叫醒。读不了存储时不抛（入口里不往外抛）
    */
   private async recoverAlarm(): Promise<void> {
@@ -602,7 +602,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 设闹钟；失败了不往外抛（0.11.1）。存储一时出错大多下一次就好，所以当场再试一次（0.13.1）；还不行：
+   * 设闹钟；失败了不往外抛。存储一时出错大多下一次就好，所以当场再试一次；还不行：
    * planAlarm 已经把 alarmAt 改成了新时间，失败时它就是错的，留着的话以后 planAlarm 看"已经设了更早的"一直不重设，房间就没人收场。
    * 改回"不知道"，下一个入口（任何消息、进房、闹钟）按 getAlarm() 重新读、照常重排。
    * 一直没人发消息（全是电脑在打、大家都在等时限）时，下一个入口由浏览器的看门狗给（RoomClient：时限过了很久还没有新状态就重连一次）
@@ -620,7 +620,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     return false;
   }
 
-  // ---------- 计量（0.2.0） ----------
+  // ---------- 计量 ----------
 
   /**
    * 计量的绑定：默认是 env.METER。没绑（0.1.x 的游戏还没加绑定）就不限额、不计数——这只为平滑升级，正式环境一定要绑。
@@ -759,7 +759,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     return 'created';
   }
 
-  /** 匹配桌（0.20.0）：和 create 一样建表、存一行、设闹钟，只是排进来的人都先坐好（算掉线，连上就"回来"），记下最晚开打的时间。 */
+  /** 匹配桌：和 create 一样建表、存一行、设闹钟，只是排进来的人都先坐好（算掉线，连上就"回来"），记下最晚开打的时间。 */
   private createMatch(code: string, players: Identity[], fixed: { opts: O | undefined; count: number }): 'created' | 'exists' | 'bad' {
     if (this.load()) return 'exists';
     if (!this.pg) this.writes += createTable(this.ctx.storage.sql);
@@ -794,7 +794,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     const st = this.load();
     if (!st) {
       this.closeWs(server, CLOSE.noRoom, 'no room');
-      // 告诉 acceptJoin 这是一次"码不存在"（0.14.0，进房猜码按人、按 IP 计数）；它转给浏览器前去掉这个头
+      // 告诉 acceptJoin 这是一次"码不存在"（进房猜码按人、按 IP 计数）；它转给浏览器前去掉这个头
       return new Response(null, { status: 101, webSocket: client, headers: { [MISS_HEADER]: '1' } });
     }
     if (st.ending) {
@@ -806,7 +806,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
       this.closeWs(server, CLOSE.tooOld, 'client too old');
       return done();
     }
-    // 匹配桌只认排进来的人（0.20.0）：房间码不给页面看，别人拿到码也进不来、看不了，回的和"没有这个房间"一样
+    // 匹配桌只认排进来的人：房间码不给页面看，别人拿到码也进不来、看不了，回的和"没有这个房间"一样
     if (st.match && !st.match.users.includes(me.userId)) {
       this.closeWs(server, CLOSE.noRoom, 'no room');
       return done();
@@ -816,7 +816,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     const mine = others.filter((o) => attachmentOf(o)!.userId === me.userId);
     if (seat === null && !this.ownsRoom(st, me.userId)) {
       // 没入座的单独封顶；入座的人不占这个数，旁观的再多也挡不住座位的主人回来。
-      // 0.14.0（第三轮审计）：按账号数不按连接数（一个人开几个标签页只占一个），房主和开打后绑过座位的人（离座去看的）不占也不受这个限，
+      // 按账号数不按连接数（一个人开几个标签页只占一个），房主和开打后绑过座位的人（离座去看的）不占也不受这个限，
       // 不然几个陌生账号就能占满名额，让房主的朋友连进来选座都进不来
       const watchers = new Set(others.map((o) => attachmentOf(o)!.userId).filter((u) => u !== me.userId && this.seatOf(u) === null && !this.ownsRoom(st, u)));
       if (watchers.size >= this.limits.extraConnections) {
@@ -916,9 +916,9 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 快捷短语（0.6.0）：校验编号、按座位限频，然后只广播，不写存储、不改 seq。
+   * 快捷短语：校验编号、按座位限频，然后只广播，不写存储、不改 seq。
    * 入站已经在 onMessage 里记过（占令牌桶和这个人的那一份额度），刷不出房间一生的上限以外。
-   * to（0.7.0，可选）：冲着哪个座位发（扔道具、点名嘲讽）。得是有人（真人或电脑）的别的座位，不然回 bad_target；被拒的不算这个座位的一句
+   * to（可选）：冲着哪个座位发（扔道具、点名嘲讽）。得是有人（真人或电脑）的别的座位，不然回 bad_target；被拒的不算这个座位的一句
    */
   private emote(ws: WebSocket, seat: number | null, raw: unknown, to: unknown): void {
     const st = this.st!;
@@ -941,7 +941,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 聊天（0.18.0，docs/chat.md）：校验、过滤、按座位限速，然后只转发给带了 chat=1 的连接；不写存储、不改 seq、不进快照，房间关了就没了。
+   * 聊天（docs/chat.md）：校验、过滤、按座位限速，然后只转发给带了 chat=1 的连接；不写存储、不改 seq、不进快照，房间关了就没了。
    * 入站已经在 onMessage 里记过。被拒的不占这个座位的条数。真人说的话不交给规则、onStep、onEmote（公平：电脑不读真人说的话）
    */
   private chat(ws: WebSocket, seat: number | null, raw: unknown): void {
@@ -990,7 +990,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     // 匹配桌等人时座位是排好的，不换（开打以后离座、回座照常）
     if (st.match && st.status === 'waiting') return this.reject(ws, 'seat_taken');
     if (st.status === 'waiting') {
-      // 开房时定了选项的（0.4.0）：这一局用不到的座位现在就不让坐，免得房主开打时才被 seat_closed 拒
+      // 开房时定了选项的：这一局用不到的座位现在就不让坐，免得房主开打时才被 seat_closed 拒
       if (st.opts !== undefined && raw >= this.countOf(st.opts as O)) return this.reject(ws, 'seat_closed');
       if (target.kind !== 'empty') return this.reject(ws, 'seat_taken');
       if (current !== null) st.seats[current] = emptySeat();
@@ -1038,12 +1038,12 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
 
   private start(ws: WebSocket, me: Attachment, seat: number | null, rawOpts: unknown): void {
     const st = this.st!;
-    // 房主选择开打（9.1）；匹配桌没有房主，到齐或到点自动开（0.20.0）
+    // 房主选择开打（9.1）；匹配桌没有房主，到齐或到点自动开
     if (me.userId !== st.host || st.match) return this.reject(ws, 'not_host');
     if (st.status !== 'waiting') return this.reject(ws, 'already_started');
     if (seat === null) return this.reject(ws, 'not_seated');
-    // 开局选项（0.3.0）：游戏校验；这一局用几个座位，后面的座位一直空着。
-    // 开房时定了的（0.4.0）以开房的为准，start 带的 opts 不看（大家进房时看到的就是开打时的）
+    // 开局选项：游戏校验；这一局用几个座位，后面的座位一直空着。
+    // 开房时定了的以开房的为准，start 带的 opts 不看（大家进房时看到的就是开打时的）
     const fixed = st.opts !== undefined ? { opts: st.opts as O, count: this.countOf(st.opts as O) } : null;
     const checked = fixed ?? this.checkOpts(rawOpts);
     if (!checked) return this.reject(ws, 'bad_options');
@@ -1053,7 +1053,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
 
   /**
    * 开打：空座位由电脑补满，入座的人从这一刻起绑在自己的座位上，返回要广播的帧。
-   * 匹配桌（0.20.0）到点还没连上的人：座位照样绑给他，电脑先代打（auto），他连上就交还
+   * 匹配桌到点还没连上的人：座位照样绑给他，电脑先代打（auto），他连上就交还
    */
   private beginPlay(st: Persist<S>, now: number, checked?: { opts: O | undefined; count: number }): { state: S | null; delay: number }[] {
     const { opts, count } = checked ?? { opts: st.opts as O | undefined, count: this.countOf(st.opts as O | undefined) };
@@ -1110,14 +1110,14 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     if (st.status !== 'playing') return this.reject(ws, 'not_playing', moveId);
     const action = this.game.parse(raw);
     if (action === null) return this.reject(ws, 'bad_action', moveId);
-    // 不轮流的操作（0.3.0）：不看轮没轮到、不判 stale
+    // 不轮流的操作：不看轮没轮到、不判 stale
     const free = this.game.free?.(action) === true;
     // 做决定时看到的牌局已经过时（断线前点的、在别人出牌之后才送到的）：不做，客户端看最新状态再出。
     // 按这一手（组）开始的时候算：同一组里别人先点了，后点的人照样算数
     if (!free && baseSeq < st.turnSeq) return this.reject(ws, 'stale', moveId);
     if (!free && !this.actorsOf(st.game as S).includes(seat)) return this.reject(ws, 'not_your_turn', moveId);
     const now = Date.now();
-    // 不轮流的操作有可能别人什么都看不出来（比如声明窗口里真人答"碰"，0.7.1）：先记下别人眼里的样子，做完比一比
+    // 不轮流的操作有可能别人什么都看不出来（比如声明窗口里真人答"碰"）：先记下别人眼里的样子，做完比一比
     const seen = free ? this.othersSee(seat) : null;
     const out = this.step(seat, action, now, free);
     if (out) return this.reject(ws, out, moveId);
@@ -1129,14 +1129,14 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 除了 seat 以外的人看到的一切（其他座位和没入座的人的视图、房间信息），拼成一个串用来比较（0.7.1）。
+   * 除了 seat 以外的人看到的一切（其他座位和没入座的人的视图、房间信息），拼成一个串用来比较。
    * 不只比在线的连接：掉线的人回来拿到的快照也不能和没这一步时不一样
    */
   private othersSee(seat: number): string {
     const st = this.st!;
     const game = st.game as S;
     const views: unknown[] = [this.game.view(game, null)];
-    // 只问在局的座位（0.24.2）：房间按最大座位数开（比如三人局开在 4 座房间里），多出来的空座没有玩家，
+    // 只问在局的座位：房间按最大座位数开（比如三人局开在 4 座房间里），多出来的空座没有玩家，
     // 游戏的 view 不一定接得住；空座也没人看，不用比
     const count = this.countOf(st.opts as O | undefined);
     for (let i = 0; i < Math.min(count, st.seats.length); i++) if (i !== seat && st.seats[i]!.kind !== 'empty') views.push(this.game.view(game, i));
@@ -1144,9 +1144,9 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 别人看不出来的一步（0.7.1）：照常存（和闹钟，最多 2 行），只回给出手的连接，seq 不加。
+   * 别人看不出来的一步：照常存（和闹钟，最多 2 行），只回给出手的连接，seq 不加。
    * 广播出去（哪怕内容一样）或者 seq 跳一下，别人就知道有人做了点什么——比如声明窗口里有真人能碰、杠、胡。
-   * 回给他的消息 seq 和上一条一样、带着他的 ack 和 quiet：RoomClient 0.7.1 起认这种消息，旧页面会丢掉（只是自己的画面慢一步更新）
+   * 回给他的消息 seq 和上一条一样、带着他的 ack 和 quiet：RoomClient 认这种消息，旧页面会丢掉（只是自己的画面慢一步更新）
    */
   private commitQuiet(ws: WebSocket, seat: number, moveId: string): void {
     if (!this.closing) {
@@ -1219,7 +1219,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
 
     const frames: { state: S | null; delay: number }[] = [];
     let changed = this.sweepDead(st, now);
-    // 匹配桌等够了（0.20.0）：没来的由电脑代打，照样开
+    // 匹配桌等够了：没来的由电脑代打，照样开
     if (st.match && st.status === 'waiting' && now >= st.match.joinBy) return this.commit({ frames: this.beginPlay(st, now) });
     // 掉线超过宽限：电脑托管（只在开打以后有意义，等人时不管）
     for (const s of st.status === 'playing' ? st.seats : []) {
@@ -1230,7 +1230,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     }
     if (st.status === 'playing') {
       const due = this.deadline();
-      // 停够了（0.5.0）：让游戏接着来一步，电脑在下面照常接着出
+      // 停够了：让游戏接着来一步，电脑在下面照常接着出
       if (due !== null && now >= due && this.pauseOf(st.game as S) !== null) {
         if (this.resumeStep(now)) frames.push({ state: st.game, delay: 0 });
         changed = true;
@@ -1345,7 +1345,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     const after = this.turnOf(next);
     if (this.stalled(after.seats)) return;
     const same = mover === null ? sameTurn(before, after) : sameGroup(before, mover, after);
-    // 刚进入停顿（0.5.0）一定从现在算：从等外面的事变过来（前后都没人出手）、或者游戏给了同一个组标识的，上面会当成同一手
+    // 刚进入停顿一定从现在算：从等外面的事变过来（前后都没人出手）、或者游戏给了同一个组标识的，上面会当成同一手
     const enteredPause = !wasPaused && after.seats.length === 0 && this.pauseOf(next) !== null;
     if (!same || enteredPause) {
       st.turnSeq = st.gameSeq;
@@ -1353,7 +1353,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     }
   }
 
-  /** 开打以后座位换了人（0.3.0）：告诉游戏（RoomGame.seated），和这一步一起写。游戏出错只记日志、牌局不动。 */
+  /** 开打以后座位换了人：告诉游戏（RoomGame.seated），和这一步一起写。游戏出错只记日志、牌局不动。 */
   private seatChanged(seat: number, kind: 'human' | 'ai', at: number): void {
     const st = this.st!;
     if (!this.game.seated || st.game === null) return;
@@ -1371,12 +1371,12 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   /**
    * 牌局没打完、却没有任何座位能出手：游戏出错了，房间不然会一直卡着（没人能出、也不会超时）。
    * 记日志，按打完处理（不再计时、不再驱动电脑），房间之后照常按没人、寿命到期关掉。
-   * 游戏说在等外面的事（RoomGame.waiting，0.3.2）的不算：停着等，牌局再变时重新看。
+   * 游戏说在等外面的事（RoomGame.waiting）的不算：停着等，牌局再变时重新看。
    */
   private stalled(seats: number[]): boolean {
     const st = this.st!;
     if (seats.length) return false;
-    // 在停一会儿（0.5.0）：到点由闹钟接着来，不算卡住
+    // 在停一会儿：到点由闹钟接着来，不算卡住
     if (this.pauseOf(st.game as S) !== null) return false;
     try {
       if (this.game.waiting?.(st.game as S) === true) return false;
@@ -1433,7 +1433,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
 
   /**
    * 这一手（组）的截止时间；没有在等真人（都是电脑、托管，或者没人要出）时为 null。
-   * 在停一会儿时（0.5.0）是停够的时间：nextDeadline 把它算进唯一的闹钟。
+   * 在停一会儿时是停够的时间：nextDeadline 把它算进唯一的闹钟。
    */
   private deadline(): number | null {
     const st = this.st!;
@@ -1448,7 +1448,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     return st.turnSince + this.turnMsOf(state);
   }
 
-  /** 停顿的截止时间（0.5.0）：在打、在停时才有，给 RoomInfo.pause */
+  /** 停顿的截止时间：在打、在停时才有，给 RoomInfo.pause */
   private pausedUntil(): number | null {
     const st = this.st!;
     if (st.status !== 'playing' || st.game === null || this.pauseOf(st.game) === null) return null;
@@ -1456,7 +1456,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 这一刻要停多久（0.5.0，RoomGame.pause）：没人能出手、没打完、游戏给了正的有限数才算，否则 null。
+   * 这一刻要停多久（RoomGame.pause）：没人能出手、没打完、游戏给了正的有限数才算，否则 null。
    * 只写了 pause 没写 resume 的，停了也没法接着来，当作没有停顿（行为和 0.4.0 一样），只记一次日志免得每步刷屏。
    */
   private pauseOf(state: S): number | null {
@@ -1538,7 +1538,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     return frames;
   }
 
-  // ---------- 对外的事（0.3.0，RoomGame.effects） ----------
+  // ---------- 对外的事（RoomGame.effects） ----------
 
   /** 游戏说还没办完的事；格式不对的丢掉、游戏出错当没有（都记日志）。 */
   private effectsOf(state: S): E[] {
@@ -1735,7 +1735,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
 
   /**
    * 关房间：断开所有人、删闹钟、删存储（4.1），不留任何东西；房主的名额在 entry 最后还（afterStep）。
-   * 游戏有对外的事（0.3.0）：先让游戏记下收场要办的（RoomGame.closing），还有没办完的就断开所有人、留着存储接着办（ending），
+   * 游戏有对外的事：先让游戏记下收场要办的（RoomGame.closing），还有没办完的就断开所有人、留着存储接着办（ending），
    * 办完或者到了 closingMs 再删。
    */
   private closeRoom(reason = 'room closed'): void {
@@ -1846,13 +1846,13 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     };
   }
 
-  /** 这个房间的自己人：房主、坐着的、开打后绑过座位的。猜码超限时只放他们进（0.14.0） */
+  /** 这个房间的自己人：房主、坐着的、开打后绑过座位的。猜码超限时只放他们进 */
   private insider(userId: string): boolean {
     const st = this.load();
     return !!st && (st.host === userId || this.seatOf(userId) !== null || this.boundOf(userId) !== null || !!st.match?.users.includes(userId));
   }
 
-  /** 房主，或者开打后绑过座位的人：旁观名额不算他们（0.14.0） */
+  /** 房主，或者开打后绑过座位的人：旁观名额不算他们 */
   private ownsRoom(st: Persist<S>, userId: string): boolean {
     return st.host === userId || st.owners.includes(userId);
   }
@@ -1874,7 +1874,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
       room: this.roomInfo(),
       view: st.game === null ? null : this.game.view(st.game, seat),
       now: Date.now(),
-      // 有短语的游戏告诉页面限速的节奏（0.7.0），RoomClient 按它排队，用户感觉不到限速
+      // 有短语的游戏告诉页面限速的节奏，RoomClient 按它排队，用户感觉不到限速
       ...(hasEmotes(this.game.emotes) ? { emote: this.emoteRate() } : {}),
       ...(this.game.chat === true ? { chat: { ...this.chatRate(), max: CHAT_MAX } } : {}),
     };
@@ -1923,7 +1923,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
     }
   }
 
-  /** 关一条连接；PG 模式在一步里的先排队，提交成功才关（和 send 一样，0.21.0） */
+  /** 关一条连接；PG 模式在一步里的先排队，提交成功才关（和 send 一样） */
   private closeWs(ws: WebSocket, code: number, reason: string): void {
     if (this.outbox) {
       this.outbox.push(() => {
@@ -1944,7 +1944,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
 
   /**
    * 每个人一个令牌桶（内存里；被驱逐后重置成满的，驱逐前至少空闲了一阵，本来也该满了）。
-   * 按人不按连接（0.14.0）：断开重连、多开几个标签页都还是同一个桶，刷不出新的 burst
+   * 按人不按连接：断开重连、多开几个标签页都还是同一个桶，刷不出新的 burst
    */
   private takeToken(userId: string): boolean {
     const { bucket, ok } = tokenTake(this.buckets.get(userId), Date.now(), this.limits.rateBurst, this.limits.ratePerSec);

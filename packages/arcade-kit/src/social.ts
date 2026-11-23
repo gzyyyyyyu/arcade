@@ -1,5 +1,5 @@
 /**
- * 社交第一期（0.12.0，仓库根 docs/social.md 1.2、1.3）：游戏页面开着时报"我在哪"、收好友的邀请，在页面顶上弹一条"老王叫你来打牌 [去] [不了]"。
+ * 社交第一期（仓库根 docs/social.md 1.2、1.3）：游戏页面开着时报"我在哪"、收好友的邀请，在页面顶上弹一条"老王叫你来打牌 [去] [不了]"。
  *
  * - 只在有平台、已登录时挂（`mountSocial` 先看 `detectPlatform`）：单独部署、没登录一个请求都不发。
  * - 省平台的写入：位置只在页面在前台时每 2 分钟报一次（平台再按 2 分钟节流，和 last_seen_at 一起写）；邀请每 30 秒问一次（只读）。
@@ -19,12 +19,12 @@ export interface Presence {
   game?: string;
   room?: string;
   seats?: string;
-  /** 游戏的显示名：平台在好友列表的 where 里给（0.12.4 起 kit 优先用它）；报位置时不用带 */
+  /** 游戏的显示名：平台在好友列表的 where 里给（kit 优先用它）；报位置时不用带 */
   gameName?: string;
 }
 
 /**
- * 默认的层级（0.12.4）：游戏自己的弹窗可能很高（有的游戏房间弹窗到 8500），kit 的横条、面板、分享预览默认都在 10000 以上，
+ * 默认的层级：游戏自己的弹窗可能很高（有的游戏房间弹窗到 8500），kit 的横条、面板、分享预览默认都在 10000 以上，
  * 顺序是横条 < 面板 < 预览。游戏有更高的层再用 zIndex 选项往上提
  */
 export const SOCIAL_Z = { banner: 10500, panel: 10600, preview: 11000 } as const;
@@ -40,7 +40,7 @@ export interface Invite {
 
 /**
  * 好友列表的一项。平台每项是公开资料 `{ userId, displayName, avatar }`（docs/platform-backend.md 15.4，只增不改）加 online、where
- * （对方关了"让好友看到我在哪"就没有 where）；kit 统一成 id、name（0.12.1），平台原样的字段也留着。发邀请的 `to` 用 id
+ * （对方关了"让好友看到我在哪"就没有 where）；kit 统一成 id、name，平台原样的字段也留着。发邀请的 `to` 用 id
  */
 export interface Friend {
   id: string;
@@ -220,7 +220,7 @@ export async function fetchFriends(opts: ApiOptions = {}): Promise<Friend[] | nu
 const MOMENT_ID = /^[a-z][a-z0-9_]{0,23}$/;
 
 /**
- * 报一条娱乐名场面（社交第二期的好友动态，平台 0.17.0 的 `POST /api/feed`）：只报游戏 id、编号和最多 3 个整数，文字由游戏的 `public/moments.json` 按编号给模板。
+ * 报一条娱乐名场面（社交第二期的好友动态，`POST /api/feed`）：只报游戏 id、编号和最多 3 个整数，文字由游戏的 `public/moments.json` 按编号给模板。
  * 平台超了每天 10 条、对方关了开关都静默回 204，所以返回值只说"送没送到"：HTTP 状态，0 = 没连上；编号、数字本地就不合格的不发，回 400。
  * 数字按位置写：n2 有值时 n 也要有
  */
@@ -298,7 +298,7 @@ export interface SocialOptions extends ApiOptions {
   onGo?(invite: Invite): void;
   /** 横条的 z-index，默认 10500（SOCIAL_Z.banner：盖得住游戏的弹窗，在"叫朋友来"面板和分享预览之下） */
   zIndex?: number;
-  /** 主题（0.16.0）：写到横条根节点上的 `--ak-*` 变量（`handle.openInvite` 打开的面板默认也用它）；不传就用页面 CSS 里的变量或默认外观 */
+  /** 主题：写到横条根节点上的 `--ak-*` 变量（`handle.openInvite` 打开的面板默认也用它）；不传就用页面 CSS 里的变量或默认外观 */
   theme?: KitTheme;
   /** 冒烟、调试看的流水：`位置 204`、`邀请 弹 <id>`、`邀请 去`、`邀请 不了`、`邀请 过期` */
   log?(line: string): void;
@@ -313,7 +313,7 @@ export interface SocialHandle {
   pollNow(): void;
   /** 收起横条、停掉计时、解开监听 */
   stop(): void;
-  /** 打开"叫朋友来"面板（0.12.2）：列好友、"叫他来"、复制邀请链接。游戏名用 mountSocial 给的 gameName */
+  /** 打开"叫朋友来"面板：列好友、"叫 TA 来"、复制邀请链接。游戏名用 mountSocial 给的 gameName */
   openInvite(inv: Omit<InvitePanelOptions, 'fetchImpl' | 'gameName'>): InvitePanel;
 }
 
@@ -518,13 +518,13 @@ class Social implements SocialHandle {
   }
 }
 
-// ───────────── "叫朋友来"面板（0.12.2，只在调用时碰 DOM） ─────────────
+// ───────────── "叫朋友来"面板（只在调用时碰 DOM） ─────────────
 
 export interface InvitePanelOptions extends ApiOptions {
   /** 游戏 id、房间码：叫来的就是这个房间 */
   game: string;
   room: string;
-  /** 列好友、"叫他来"（有平台、已登录时）；false 只有"复制邀请链接"（单独部署、没登录） */
+  /** 列好友、"叫 TA 来"（有平台、已登录时）；false 只有"复制邀请链接"（单独部署、没登录） */
   friends?: boolean;
   /** 邀请链接，默认 `<站点>/games/<id>/?room=<码>` */
   url?: string;
@@ -534,7 +534,7 @@ export interface InvitePanelOptions extends ApiOptions {
   gameName?(id: string): string | undefined;
   /** 默认 10600（SOCIAL_Z.panel：在游戏的弹窗、邀请横条之上，在分享预览之下）；游戏的层更高就传更大的 */
   zIndex?: number;
-  /** 主题（0.16.0）：写到面板根节点上的 `--ak-*` 变量；不传就用页面 CSS 里的变量或默认外观 */
+  /** 主题：写到面板根节点上的 `--ak-*` 变量；不传就用页面 CSS 里的变量或默认外观 */
   theme?: KitTheme;
   /** 冒烟、调试看的流水：`叫人 打开 <n>`、`叫人 <id> ok|<错误>`、`叫人 复制`、`叫人 关闭` */
   log?(line: string): void;
@@ -571,7 +571,7 @@ const PANEL_CSS = `
 .aiv-err{color:#ffb0a0}
 .aiv-foot{display:flex;align-items:center;justify-content:center;gap:12px;padding-top:10px}
 @keyframes aiv-pop{from{opacity:0;scale:.94}to{opacity:1;scale:1}}
-/* 电脑大屏（0.25.1）：手机的尺寸放到 1920 上面板只占五分之一宽、字 12–14 像素，看着像缩小了的手机界面。整体放大一档；翻页按实际行高量，行变高自己少放几个 */
+/* 电脑大屏：手机的尺寸放到 1920 上面板只占五分之一宽、字 12–14 像素，看着像缩小了的手机界面。整体放大一档；翻页按实际行高量，行变高自己少放几个 */
 @media (min-width:1280px) and (min-height:720px){
 .aiv-box{width:min(560px,calc(100vw - 16px));padding:16px}
 .aiv-title{font-size:22px;margin:4px 56px 4px 6px}
@@ -594,7 +594,7 @@ const PANEL_CSS = `
 const calledUntil = new Map<string, number>();
 
 /**
- * 打开"叫朋友来"面板：列好友（在线的在前，写在哪），每人一个"叫他来"，发出后变"已叫"、1 分钟内灰着，叫不了的换成大白话；
+ * 打开"叫朋友来"面板：列好友（在线的在前，写在哪），每人一个"叫 TA 来"，发出后变"已叫"、1 分钟内灰着，叫不了的换成大白话；
  * 底下"复制邀请链接"（能系统分享就分享）。点空白处、✕、Esc 关掉。只发平台的 `POST /api/invites`，不写别的
  */
 export function openInvite(o: InvitePanelOptions): InvitePanel {
@@ -626,7 +626,7 @@ export function openInvite(o: InvitePanelOptions): InvitePanel {
   x.dataset['key'] = 'invite:close';
   x.setAttribute('aria-label', '关闭');
   const list = el('div', 'aiv-list');
-  // 好友多、屏幕矮时翻页，不在框里滚动（0.24.1，和聊天短语同一个做法）
+  // 好友多、屏幕矮时翻页，不在框里滚动（和聊天短语同一个做法）
   const pager = el('div', 'aiv-pager');
   const prev = el('button', 'aiv-chip aiv-soft', '‹');
   const next = el('button', 'aiv-chip aiv-soft', '›');
@@ -645,7 +645,7 @@ export function openInvite(o: InvitePanelOptions): InvitePanel {
   const copy = el('button', 'aiv-chip aiv-soft', '复制邀请链接');
   copy.type = 'button';
   copy.dataset['key'] = 'invite:copy';
-  // 翻页键和复制链接同一行，不单占一行（0.24.3：844×390 上省出一行好友）
+  // 翻页键和复制链接同一行，不单占一行（844×390 上省出一行好友）
   const foot = el('div', 'aiv-foot');
   foot.appendChild(pager);
   foot.appendChild(copy);
@@ -675,7 +675,7 @@ export function openInvite(o: InvitePanelOptions): InvitePanel {
   };
   doc.addEventListener('keydown', onKey);
 
-  /** 提示一行：空着就不占地方（0.24.3），有字时出来、列表重新分页 */
+  /** 提示一行：空着就不占地方，有字时出来、列表重新分页 */
   const setNote = (msg: string, err = false): void => {
     note.textContent = msg;
     note.classList.toggle('aiv-err', err);
@@ -696,7 +696,7 @@ export function openInvite(o: InvitePanelOptions): InvitePanel {
     rows.forEach((r) => (r.style.display = ''));
     list.style.height = '';
     pager.style.display = 'none';
-    // 放不放得下按行高加起来算，不看 scrollHeight（0.24.3）：游戏给按钮加的投影、伪元素会伸出行外，算进 scrollHeight 就误判成要翻页；
+    // 放不放得下按行高加起来算，不看 scrollHeight：游戏给按钮加的投影、伪元素会伸出行外，算进 scrollHeight 就误判成要翻页；
     // 列表本身也不再是滚动框（翻页就够了），伸出去的装饰照常画
     const gap = parseFloat(getComputedStyle(list).rowGap) || 0;
     // 面板弹出动画从 0.94 倍放大，getBoundingClientRect 量的是缩放后的：除回 1 倍（offsetWidth 不受缩放影响）
@@ -756,11 +756,11 @@ export function openInvite(o: InvitePanelOptions): InvitePanel {
     }
   });
 
-  /** "叫他来"按钮的样子：叫过的 1 分钟内灰着，到点自己变回来 */
+  /** "叫 TA 来"按钮的样子：叫过的 1 分钟内灰着，到点自己变回来 */
   const paint = (b: HTMLButtonElement, id: string): void => {
     const left = (calledUntil.get(id) ?? 0) - now();
     b.disabled = left > 0;
-    b.textContent = left > 0 ? '已叫' : '叫他来';
+    b.textContent = left > 0 ? '已叫' : '叫 TA 来';
     if (left > 0) {
       const t = setTimeout(() => {
         timers.delete(t);
@@ -781,7 +781,7 @@ export function openInvite(o: InvitePanelOptions): InvitePanel {
       const who = el('div', 'aiv-who');
       who.appendChild(el('div', 'aiv-name', f.name || '好友'));
       who.appendChild(el('div', 'aiv-where', whereText(f, o.gameName)));
-      const b = el('button', 'aiv-chip', '叫他来');
+      const b = el('button', 'aiv-chip', '叫 TA 来');
       b.type = 'button';
       b.dataset['key'] = `invite:call:${f.id}`;
       paint(b, f.id);
