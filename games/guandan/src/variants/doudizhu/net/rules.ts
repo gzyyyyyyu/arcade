@@ -14,6 +14,7 @@ import type { Entropy } from 'arcade-kit/rng';
 import { ROOM_DEALS, newRules, stakeOptions, type TierId } from '../stake/index.ts';
 import { stream } from 'arcade-kit/rng';
 import type { FunBot, FunEvent, FunTemper } from 'arcade-kit/fun-logic';
+import { personById } from 'arcade-kit/personas';
 import {
   DDZ_FUN,
   DDZ_NOSHUFFLE,
@@ -79,11 +80,9 @@ export const DDZ_READY_MS = 20_000;
 export const DDZ_IDLE_AFTER = 2;
 export const DDZ_IDLE_MS = 3_000;
 
-/** 电脑的名字（登记在平台的保留名里）和互动性格：老周高冷、王姐爱闹 */
-export const DDZ_BOTS: readonly { name: string; temper: FunTemper }[] = [
-  { name: '老周', temper: 'cool' },
-  { name: '王姐', temper: 'rowdy' },
-];
+/** 电脑座位按先后坐的人（共用名册 arcade-kit/personas 的 id）：稳哥、幺妹儿；互动脾气照名册（稳哥高冷、幺妹儿爱闹） */
+export const DDZ_BOT_IDS = ['wengge', 'yaomeir'] as const;
+const DDZ_BOT_TEMPER: readonly FunTemper[] = DDZ_BOT_IDS.map((id) => personById(id).fun);
 
 const isInt = (x: unknown, lo: number, hi: number): x is number => typeof x === 'number' && Number.isInteger(x) && x >= lo && x <= hi;
 
@@ -260,14 +259,14 @@ export const ddzOver = (s: DdzNet): boolean =>
   s.stake?.over === true ||
   (s.humans !== undefined && !s.humans.some(Boolean) && !s.stake?.pending.some((e) => e.kind === 'in') && !s.stake?.leaving?.some(Boolean));
 
-/** 房间里的电脑和它们的互动性格：按电脑座位的先后依次给老周、王姐（替掉线真人代打的座位不算） */
+/** 房间里的电脑和它们的互动性格：按电脑座位的先后依次给稳哥、幺妹儿（替掉线真人代打的座位不算） */
 export function ddzFunBots(s: DdzNet): FunBot[] {
   if (!s.humans) return [];
   const out: FunBot[] = [];
   let k = 0;
   for (let seat = 0; seat < DDZ_SEATS; seat++) {
     if (s.humans[seat]) continue;
-    out.push({ seat, temper: DDZ_BOTS[k % DDZ_BOTS.length]!.temper });
+    out.push({ seat, temper: DDZ_BOT_TEMPER[k % DDZ_BOT_TEMPER.length]! });
     k++;
   }
   return out;

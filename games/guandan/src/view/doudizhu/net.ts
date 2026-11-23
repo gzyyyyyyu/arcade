@@ -1,11 +1,11 @@
 /**
  * 斗地主的联机会话（牌馆 ⑤，设计 docs/doudizhu.md 第 5 节）：连房间、排帧、出手锁到 ack 这些玩法无关的部分是 common/room-link.ts 的 RoomLink，
  * 这里只管斗地主的：把房间按真实座位发来的视图转成"我 = 0"（3 人：(s − 我 + 3) % 3；没入座是旁观，按 0 号转、座位仍是 -1）、
- * 座位上的人写进 labels.ts（电脑座位按先后依次是老周、王姐，和房间里电脑的互动性格同一个排法）、结算页的"继续"。
+ * 座位上的人写进 labels.ts（电脑座位按先后依次是稳哥、幺妹儿，和房间里电脑的互动性格同一个排法）、结算页的"继续"。
  * 电脑在房间里出，本地只在调试托管（autoplay）时替我出。
  */
 import { decideDdz, type DdzAction, type DdzEvent, type DdzView } from '../../variants/doudizhu/index.ts';
-import type { DdzNetAction, DdzNetView } from '../../variants/doudizhu/net/rules.ts';
+import { DDZ_BOT_IDS, type DdzNetAction, type DdzNetView } from '../../variants/doudizhu/net/rules.ts';
 import type { DdzTableSession } from './session.ts';
 import type { DailySubmit } from './daily.ts';
 import { RoomLink, type LinkDeps } from '../common/room-link.ts';
@@ -67,8 +67,8 @@ export function rotateDdzNetView(nv: DdzNetView, me: number): DdzNetView {
   };
 }
 
-/** 电脑座位的人物：房间按电脑座位的先后依次给老周、王姐（DDZ_BOTS） */
-const BOT_PERSON = ['laozhou', 'wangjie'] as const;
+/** 电脑座位的人物：和房间按电脑座位先后给的同一份（DDZ_BOT_IDS） */
+const BOT_PERSON = DDZ_BOT_IDS;
 
 export class DdzNetSession extends RoomLink<DdzNetAction, DdzNetView, DdzNetView> implements DdzTableSession {
   lastEvents: DdzEvent[] = [];

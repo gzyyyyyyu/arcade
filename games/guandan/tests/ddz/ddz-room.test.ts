@@ -231,7 +231,7 @@ describe('斗地主房间规则', () => {
     expect(H.apply(d, 0, { type: 'back' })).toEqual({ error: 'not_away' });
   });
 
-  it('座位换人、没真人了就结束；电脑互动：两个电脑老周、王姐', () => {
+  it('座位换人、没真人了就结束；电脑互动：两个电脑稳哥（高冷）、幺妹儿（爱闹），脾气照名册', () => {
     const s = begin(4, ['human', 'ai', 'ai']);
     expect(s.humans).toEqual([true, false, false]);
     expect(ddzFunBots(s)).toEqual([{ seat: 1, temper: 'cool' }, { seat: 2, temper: 'rowdy' }]);

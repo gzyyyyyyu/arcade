@@ -1,7 +1,9 @@
 // 掼蛋音效与背景音：全部用 WebAudio 现场合成，不依赖任何音频文件（省包体、不用管版权与加载）。
 // 所有入口都对"没有 AudioContext / 创建失败 / 未解锁"安全空转，且绝不往 console 打错误（冒烟要求控制台零报错）。
 
+import { platformSoundOn } from 'arcade-kit/client';
 import { playFunSound, type FunPhase, type PropId } from 'arcade-kit/fun';
+import { SOUND_GAIN, getSettings, updateSettings, type Settings } from '../store.ts';
 
 type Sfx =
   | 'click' | 'select' | 'deselect' | 'deal' | 'play' | 'playBig' | 'pass' | 'bomb' | 'jokerBomb'
@@ -504,3 +506,20 @@ function pluck(a: Ctx, freq: number, vol: number): void {
 }
 
 export const audio: GameAudio = new GameAudio();
+
+/**
+ * 大厅关了声音（kit docs/sound.md）：这一次打开先静音、"全部声音"显示静音。玩家在设置里打开只管这一次：
+ * 不写大厅的 arcade.sound，也不改自己存的设置，下次从静音的大厅进来照样先静音。启动时读一次。
+ */
+let lobbyMuted = !platformSoundOn();
+export const mutedNow = (s: Settings): boolean => s.muted || lobbyMuted;
+
+export function applyAudio(s: Settings = getSettings()): void {
+  audio.apply({ sfx: SOUND_GAIN[s.sfx] ?? 1, music: SOUND_GAIN[s.musicVol] ?? 1, muted: mutedNow(s) });
+}
+
+export function pickMuted(on: boolean): void {
+  if (!on) lobbyMuted = false;
+  // 只是把大厅带来的静音解开：自己存的本来就是开着，不写
+  applyAudio(on === getSettings().muted ? getSettings() : updateSettings({ muted: on }));
+}

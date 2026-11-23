@@ -18,7 +18,7 @@ export type Situation =
   /** 斗地主（牌馆 0.28.0）：叫 3 分抢地主、当上地主、不叫、春天 */
   | 'grab' | 'landlord' | 'noBid' | 'spring';
 
-/** 掼蛋三个人（PersonaId）加斗地主两个人（老周、王姐，0.28.0）；没写的情境就不说话 */
+/** 掼蛋三个人（PersonaId）加斗地主两个人（稳哥、幺妹儿，0.40.10 起，原来是老周、王姐）；没写的情境就不说话 */
 const LINES: Partial<Record<SeatId, Partial<Record<Situation, string[]>>>> = {
   laozhang: {
     bomb: ['炸！', '看我的炸弹！', '炸了再说！', '嘿，就等这一下', '憋不住了，炸！', '响一个听听'],
@@ -88,36 +88,36 @@ const LINES: Partial<Record<SeatId, Partial<Record<Situation, string[]>>>> = {
     tilt: ['气死我了，这副必须赢回来', '刚才不算！', '我不服！'],
     jiefeng: ['接风！看我的'],
   },
-  // 斗地主（牌馆 0.28.0）。老周：稳当的老牌友，话少、不慌；王姐：热情、爱抢地主、嘴快
-  laozhou: {
-    grab: ['这把我来', '三分，我拿了'],
-    landlord: ['底牌不错', '行，我当这个地主'],
-    noBid: ['不叫', '你们来'],
+  // 斗地主（0.40.10 起换成共用名册的人，arcade-kit/personas）。稳哥：好牌才进，进了就打，话少；幺妹儿：快、爱抢，嘴快，川味
+  wengge: {
+    grab: ['这把有了，三分', '三分，我拿了'],
+    landlord: ['这把有了', '行，我当这个地主'],
+    noBid: ['不叫', '这把不跟了'],
     bomb: ['炸一个', '稳稳地炸'],
     jokerBomb: ['王炸，收了'],
-    bombed: ['好嘛', '这一下狠'],
+    bombed: ['好嘛', '稳住，稳住'],
     beat: ['压住', '要了'],
-    pass: ['不要', '过'],
-    lead: ['出个小的', '慢慢来'],
+    pass: ['不要', '不跟了'],
+    lead: ['出个小的', '稳住，慢慢来'],
     fewCards: ['剩得不多了', '快了'],
     spring: ['春天，承让'],
-    win: ['还行', '运气好'],
+    win: ['稳住了', '还行'],
     lose: ['下把再来', '这把牌不好'],
   },
-  wangjie: {
-    grab: ['三分！地主是我的！', '抢了抢了！', '姐来！'],
-    landlord: ['底牌来吧！', '哈，这底牌给力'],
-    noBid: ['这把不叫了', '让给你们'],
-    bomb: ['炸！', '看姐的炸弹！', '炸你没商量'],
-    jokerBomb: ['王炸！服不服？', '两个王都在姐这儿'],
-    bombed: ['哎哟喂', '炸我？等着'],
-    beat: ['管上！', '这个我要了', '压你一手'],
-    pass: ['不要不要', '你先走'],
-    lead: ['来个顺的', '接着！'],
-    fewCards: ['姐快走完咯', '剩几张了哈'],
+  yaomeir: {
+    grab: ['三分！我先来！', '抢了抢了！', '地主我要得'],
+    landlord: ['要得！底牌来', '哈，这底牌给力'],
+    noBid: ['这把不叫了', '让给你们嘛'],
+    bomb: ['炸！', '看我的炸弹！', '炸你没商量'],
+    jokerBomb: ['王炸！服不服嘛', '两个王都在我这儿'],
+    bombed: ['哎哟喂', '炸我？等到起'],
+    beat: ['管上！', '这个我要了', '快点嘛，压你一手'],
+    pass: ['不要不要', '你先走嘛'],
+    lead: ['我先来！', '接到起！'],
+    fewCards: ['我快走完咯', '剩几张了哈'],
     spring: ['春天！一张都没让你们出', '哈哈，春天'],
-    win: ['姐赢啦！', '不好意思啦'],
-    lose: ['哼，下把赢回来', '气死我了'],
+    win: ['赢啦！要得！', '不好意思啦'],
+    lose: ['哼，下把赢回来', '快点嘛，再来一把'],
     tilt: ['刚才不算！', '这把必须拿下'],
   },
 };
@@ -140,7 +140,7 @@ export function lineFor(id: SeatId, sit: Situation, rand: () => number = Math.ra
 }
 
 /** 说话频率：老张、阿强话多，小美话少；手热、上头时话更多 */
-const TALKATIVE: Record<SeatId, number> = { me: 0, laozhang: 0.45, xiaomei: 0.22, aqiang: 0.55, laozhou: 0.3, wangjie: 0.6 };
+const TALKATIVE: Record<SeatId, number> = { me: 0, laozhang: 0.45, xiaomei: 0.22, aqiang: 0.55, wengge: 0.3, yaomeir: 0.6 };
 
 export function talkChance(id: SeatId, form: number, tilt: number): number {
   return Math.min(0.9, TALKATIVE[id] * (1 + Math.max(0, form) * 0.4 + tilt * 0.6));

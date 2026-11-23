@@ -3,8 +3,8 @@ import type Phaser from 'phaser';
 import { DEFAULT_OPTIONS, makeCard } from '../../variants/guandan/core/index.ts';
 import { app } from '../app.ts';
 import { levelName } from '../guandan/labels.ts';
-import { audio } from '../common/audio.ts';
-import { SOUND_GAIN, getDdzStats, getSettings, getStats, getVariant, resetSettings, setDdzTutorialDone, setTutorialDone, updateSettings, type Settings, type SoundLevel } from '../store.ts';
+import { applyAudio, audio, mutedNow, pickMuted } from '../common/audio.ts';
+import { getDdzStats, getSettings, getStats, getVariant, resetSettings, setDdzTutorialDone, setTutorialDone, updateSettings, type Settings, type SoundLevel } from '../store.ts';
 import { COLOR, SPACE, TYPE, css, minHit } from '../common/theme.ts';
 import { Button, modal, segmented, signedLine, text, worldH, worldW, type Modal } from './kit.ts';
 import type { SignedRow } from '../common/stake-text.ts';
@@ -12,9 +12,6 @@ import { DDZ_RULE_TABS } from '../doudizhu/rules.ts';
 import { DDZ_PATTERNS, PATTERNS, miniCards, patternTile } from './patterns.ts';
 import { SHORTCUT_HELP, hasPointerKeys } from './shortcuts.ts';
 
-export function applyAudio(s: Settings = getSettings()): void {
-  audio.apply({ sfx: SOUND_GAIN[s.sfx] ?? 1, music: SOUND_GAIN[s.musicVol] ?? 1, muted: s.muted });
-}
 
 /** 设置、规则、战绩三个弹窗的宽度（art-v3）：世界宽减两边留白，封顶 1120——两边多露出一点遮罩，点外面关得到 */
 function panelW(scene: Phaser.Scene): number {
@@ -61,7 +58,7 @@ export function openSettings(scene: Phaser.Scene, opts: { onTutorial?: () => voi
     });
     // 一下关掉全部声音：不动上面两档，取消后回到原来的档
     row(colL, rowY(2), '全部声音');
-    seg(colL, rowY(2), 120, [{ label: '开着', value: '0' }, { label: '静音', value: '1' }], s.muted ? '1' : '0', (v) => applyAudio(updateSettings({ muted: v === '1' })));
+    seg(colL, rowY(2), 120, [{ label: '开着', value: '0' }, { label: '静音', value: '1' }], mutedNow(s) ? '1' : '0', (v) => pickMuted(v === '1'));
   };
 
   const pageGame = (s: Settings): void => {

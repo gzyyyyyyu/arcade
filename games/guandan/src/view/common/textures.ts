@@ -33,7 +33,7 @@ import { text, worldW } from '../ui/kit.ts';
 export const CARD_W = 100;
 export const CARD_H = 140;
 
-const AVATARS: AvatarId[] = ['me', 'laozhang', 'xiaomei', 'aqiang', 'laozhou', 'wangjie'];
+const AVATARS: AvatarId[] = ['me', 'laozhang', 'xiaomei', 'aqiang', 'wengge', 'yaomeir'];
 /** 主页大图只给原来四个人烘焙 */
 const HOME_FIGS = ['me', 'laozhang', 'xiaomei', 'aqiang'] as const;
 const MOODS: Mood[] = ['normal', 'happy', 'sad', 'think', 'smug'];

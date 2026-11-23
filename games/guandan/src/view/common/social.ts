@@ -4,7 +4,6 @@
  * 进房、离开、房间里真人数变了马上报一次（presenceNow），不用等 2 分钟；平台同一人 10 秒内只记一次，所以 11 秒后再补报一次。
  */
 import type { Friend, Presence, SocialHandle } from 'arcade-kit/social';
-import { detectPlatform } from 'arcade-kit/client';
 import { platformInfo } from './platform.ts';
 import { seatCountOf } from '../../net/room-info.ts';
 import type { RoomLink } from './room-link.ts';
@@ -35,18 +34,14 @@ let lastWhere = '';
 let retry: ReturnType<typeof setTimeout> | undefined;
 /** 补报的间隔：平台同一人 10 秒内只记第一次（刚进房那次常被前一次挤掉），过了 10 秒再报一次才记得上 */
 export const PRESENCE_RETRY_MS = 11_000;
-/** 启动时没问出有没有平台，挂社交前再问一次的超时 */
-const SOCIAL_DETECT_RETRY_MS = 10_000;
 
 /** 启动时挂一次（main.ts 在 detectOnce 之后调）。session：现在连着的好友房会话 */
 export async function mountSocialOnce(session: () => LinkInfo | null): Promise<void> {
   try {
     if (handle) return;
-    let info = platformInfo();
-    // 启动时那一次超时（kit 默认 2.5 秒；刚启动主线程忙着烘纹理，慢手机上常见）只是"不知道"：再问一次、给足时间。
-    // 不然这一整次打开都收不到邀请、好友看不到你在哪，好友房面板也读不到"好友在打"（0.40.2 联机冒烟抓到）
-    if (info.platform === 'unknown') info = await detectPlatform({ timeoutMs: SOCIAL_DETECT_RETRY_MS });
-    if (info.platform !== true || !info.user) return;
+    const info = platformInfo();
+    // 启动时那一次没问出来（unknown：慢手机上主线程忙着烘纹理常超时）交给 kit 的 mountSocial 按 SOCIAL_DETECT_RETRY 再问
+    if (info.platform === false || (info.platform === true && !info.user)) return;
     where = session;
     const { mountSocial } = await import('arcade-kit/social');
     handle = await mountSocial({ platform: info, where: () => presenceOf(session()), gameName: (id) => GAME_NAME[id] });

@@ -165,8 +165,8 @@ describe('单独部署（没有 ARCADE，GATE 也不是 login）', () => {
     expect(e.ASSETS.calls).toEqual(['/']);
   });
 
-  it('游客昵称挡住的名字就是画面上所有电脑的名字（掼蛋三个、斗地主两个）', () => {
-    expect([...(GUEST.reserved ?? [])].sort()).toEqual(Object.values(PERSONAS).map((p) => p.name).sort());
+  it('游客昵称挡住画面上所有电脑的名字（掼蛋三个、斗地主两个），换下来的老周、王姐照挡', () => {
+    expect([...(GUEST.reserved ?? [])].sort()).toEqual([...Object.values(PERSONAS).map((p) => p.name), '老周', '王姐'].sort());
   });
 });
 
