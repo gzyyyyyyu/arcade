@@ -1,8 +1,11 @@
 /**
- * 首领连战的演出（DESIGN.md 2.5）：一关上场的横幅、打倒一只的定格 + 慢动作 + 大字 + 音效 + 震动、全清的结算大演出、顶部的关底血条。
- * 只读核心的 Ev.Rush 事件和 World 的连战字段，不算规则。DOM 挂在 HUD 根节点下，样式限定在 .yx-hud .yx-rushfx（rush.css）。
+ * 首领连战的演出（DESIGN.md 2.5）：一关上场的横幅、打倒一只的定格 + 慢动作 + 大字 + 音效 + 震动、全清的结算大演出、顶部的关底血条，
+ * 还有挨打提示：关底脚下的贴身圈（走近变亮）、重击飘字、「再挨一下就倒」的低血。
+ * 只读核心的事件和 World 的连战字段，不算规则。DOM 挂在 HUD 根节点下，样式限定在 .yx-hud .yx-rushfx（rush.css）。
  */
+import type Phaser from 'phaser';
 import { ENEMIES, ENEMY_BY_KIND } from '../../content/enemies.ts';
+import { PLAYER } from '../../content/player.ts';
 import { RUSH } from '../../content/rush.ts';
 import type { World } from '../../core/index.ts';
 import { rushClock } from '../../online/rush.ts';
@@ -23,7 +26,12 @@ export interface RushShowDeps {
   slow: (ms: number) => void;
   /** 在 (x, y) 炸一团碎屑（复用对局的 burst） */
   burst: (x: number, y: number, tint: number, size: number) => void;
+  /** 画贴身圈的地面层（在怪的影子之上、怪身之下） */
+  ground: Phaser.GameObjects.Graphics;
 }
+
+/** 贴身圈从离圈边这么远开始变亮（世界像素） */
+const RING_NEAR = 140;
 
 const nameOf = (code: number): string => ENEMIES[code]!.name;
 
@@ -33,6 +41,8 @@ export class RushShow {
   private readonly chip: HTMLDivElement;
   private barOn = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  /** 这一关挨过的最重一下（核心算好的实扣血，Ev.Hurt 的 a）；上场新一关清零 */
+  private heavy = 0;
 
   constructor(d: RushShowDeps, w: World) {
     this.d = d;
@@ -48,6 +58,7 @@ export class RushShow {
     if (this.timer) clearTimeout(this.timer);
     this.el.remove();
     this.chip.remove();
+    this.d.ground.destroy();
     this.d.banners.setBoss(null);
   }
 
@@ -71,9 +82,10 @@ export class RushShow {
     const plan = w.rush;
     if (!plan) return;
     if (a === 0) {
+      this.heavy = 0;
       const names = plan.stages[b]!.map((k) => ENEMY_BY_KIND[k].name).join(' + ');
       const last = b === plan.stages.length - 1;
-      this.d.banners.say(`${last ? '最后一关' : `第 ${b + 1} 关`} · ${names}`, 'warn', 2000, c > 1 ? `一次来 ${c} 只` : last ? '打倒它就全清' : `还剩 ${plan.stages.length - b} 关`);
+      this.d.banners.say(`${last ? '最后一关' : `第 ${b + 1} 关`} · ${names}`, 'warn', 2000, b === 0 ? '脚下红圈是贴身挨打的范围' : c > 1 ? `一次来 ${c} 只` : last ? '打倒它就全清' : `还剩 ${plan.stages.length - b} 关`);
       sfx.play(last || plan.stages[b]!.some((k) => ENEMY_BY_KIND[k].boss) ? 'boss' : 'elite');
       this.d.shake(260, 0.004);
       if (b === 0) music.start('boss');
@@ -125,6 +137,42 @@ export class RushShow {
     // 血条和小牌在同一个位置：打的时候看血条（上面写着连斩几只），喘息的时候看小牌
     if (on !== this.barOn) this.chip.style.display = on ? 'none' : '';
     this.barOn = on;
+  }
+
+  /** 挨了一下（d = 实扣的血）：记下这一关最重的一下；重的（过最大血 8%）在头上飘红字，让人知道这一下有多疼 */
+  onHurt(w: World, x: number, y: number, d: number, float: (x: number, y: number, text: string, color: string) => void): void {
+    if (d > this.heavy) this.heavy = d;
+    if (d > w.stats.hpMax * 0.08) float(x, y - 74, `-${d}`, '#ff5a4a');
+  }
+
+  /** 再挨这一关最重的那一下就倒：低血红框提早亮（固定 30% 挡不住一下掉一半的尸王） */
+  oneHitLeft(w: World): boolean {
+    return w.hp > 0 && this.heavy > 0 && w.hp <= this.heavy;
+  }
+
+  /**
+   * 关底脚下的贴身圈：半径 = 碰到主角的距离（怪的半径 + 主角半径，同核心 touchPlayer），平时淡，主角走近就变亮、贴上了跳动。
+   * inter 是拍间插值，hx、hy 是主角画面位置
+   */
+  rings(w: World, inter: (p: number, c: number) => number, hx: number, hy: number, now: number): void {
+    const g = this.d.ground;
+    g.clear();
+    if (w.phase === 'over') return;
+    for (let i = 0; i < w.eRush.length; i++) {
+      if (!w.eRush[i] || !w.eAlive[i]) continue;
+      const x = inter(w.ePX[i]!, w.eX[i]!);
+      const y = inter(w.ePY[i]!, w.eY[i]!);
+      const r = w.eR[i]! + PLAYER.r;
+      const gap = Math.hypot(hx - x, hy - y) - r;
+      const near = Math.max(0, Math.min(1, 1 - gap / RING_NEAR));
+      const beat = near >= 1 ? 0.5 + 0.5 * Math.sin(now * 0.02) : 0;
+      g.fillStyle(0xd23a2a, 0.06 + near * 0.14 + beat * 0.08);
+      g.fillCircle(x, y, r);
+      g.lineStyle(6, 0x17131c, 0.25 + near * 0.35);
+      g.strokeCircle(x, y, r);
+      g.lineStyle(3, 0xff4a3a, 0.35 + near * 0.6);
+      g.strokeCircle(x, y, r);
+    }
   }
 
   /** HUD 上的倒计时：离 5 分钟到点还有几秒 */

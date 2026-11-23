@@ -426,6 +426,7 @@ export class GameScene extends Phaser.Scene {
           freeze: (ms) => (this.freeze = Math.max(this.freeze, ms)),
           slow: (ms) => (this.slow = Math.max(this.slow, ms)),
           burst: (x, y, tint, size) => this.burst(x, y, tint, size),
+          ground: this.add.graphics().setDepth(-390),
         },
         this.w,
       );
@@ -826,6 +827,7 @@ export class GameScene extends Phaser.Scene {
             this.freeze = Math.max(this.freeze, 60);
             this.shake(110, 0.003);
           }
+          this.rushShow?.onHurt(this.w, this.w.x, this.w.y, ev.a[i]!, (fx, fy, text, color) => this.items.floatText(fx, fy, text, color));
           break;
         case Ev.ChestBig:
           // 先放光（档位由件数决定），升了什么由紧跟着的 Chest 事件收齐，循环结束后一起演
@@ -1922,6 +1924,7 @@ export class GameScene extends Phaser.Scene {
     this.shotsView.petalMarks.length = 0;
     this.bambooView.fadeOverHero(hx, hy, dt);
     this.drawMobs(inter, dt);
+    this.rushShow?.rings(w, inter, hx, hy, this.now);
     if (this.fireView) {
       const vw = cam.width / cam.zoom;
       const vh = cam.height / cam.zoom;
@@ -2563,7 +2566,7 @@ export class GameScene extends Phaser.Scene {
     });
     // 低血：屏幕边红框 + 心跳（手感清单第 9 条）
     // 夜探最后 30 秒也用这层红框和心跳催人
-    const low = ((w.hp > 0 && w.hp < w.stats.hpMax * 0.3) || (raid !== null && raid.outcome === 'none' && w.tick >= DAWN_RED)) && w.phase === 'play' && !this.paused;
+    const low = ((w.hp > 0 && w.hp < w.stats.hpMax * 0.3) || !!this.rushShow?.oneHitLeft(w) || (raid !== null && raid.outcome === 'none' && w.tick >= DAWN_RED)) && w.phase === 'play' && !this.paused;
     this.d.banners.setLow(low);
     if (low && this.now - this.lowBeat > 1000) {
       sfx.play('heartbeat', { volume: 0.7 });
