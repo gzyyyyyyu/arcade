@@ -18,7 +18,7 @@ games/texas/
 │                   online 好友房和匹配真人，fun 互动聊天和成就，guide 新手指引，takeprofit 止盈，puzzle 每日谜题；
 │                   import 进来没有副作用，模块顶层不碰 DOM、不放可变状态，之间的运行时 import 没有环（test/arch.test.ts 查）
 ├─ src/             main.ts 页面入口（找到 #app，交给 app/mount.ts），solo.ts 单机的一桌，tour-solo.ts 单机锦标赛的一场（钱包、存档），online.ts 好友房连接（kit 的 RoomClient），bot.ts 电脑的入口，store.ts 浏览器存储，site.ts 有没有平台
-├─ worker/          texas Worker：探活 /games/texas/health（回 {ok, version}，不读存储、不要登录，排在登录闸门前面）、登录闸门、单机带入结回（转平台钱包）、好友房 TexasRoom DO、匹配真人的排队 Queue DO（match.ts）
+├─ worker/          texas Worker：探活 /games/texas/health（回 {ok, version}，不读存储、不要登录，排在登录闸门前面）、登录闸门、单机带入带回（转平台钱包）、好友房 TexasRoom DO、匹配真人的排队 Queue DO（match.ts）
 ├─ test/            规则、电脑的 vitest（Node；分 core/ ai/ tour/ view/，辅助在 support/）；test/worker/ 是 Worker、钱包、房间的 vitest（workerd，配置 test/wrangler.test.jsonc）；
 │                   test/standalone/ 是单独部署的（配置 test/wrangler.standalone.jsonc，入口就是 worker/main.ts）
 ├─ scripts/         smoke.ts（冒烟入口，各段在 smoke/ 下）  sim.ts + vs.ts（模拟，vs 是多线程部分）  balance.ts（配平）  tour-sim.ts（锦标赛时长）  tour-balance.ts（锦标赛配平）  scenes.ts（牌桌互压的固定局面）  capture.ts（连拍看节奏）  gen-preflop.ts（生成翻牌前胜率表）  args.ts
@@ -41,7 +41,7 @@ games/texas/
 |---|---|---|
 | 认人 | 平台 `/api/me`（登录闸门，没登录去登录页） | kit 的游客 cookie（首页放行并补发，开房、进房认它）；昵称是页面带的 `?name=`，kit 清洗，10 个电脑的名字不许用（`GUEST.reserved`） |
 | 单机 | 娱乐、实盘 | 只有娱乐；`/games/texas/api/solo/*` 直接回 404 `no_wallet` |
-| 好友房 | 实盘，带入、结回走平台钱包 | 照常开房进房，带入直接办成、结回不办（`TexasRoom.perform` 没有 WALLET 时回 ok）：筹码不算数，离开就没了 |
+| 好友房 | 实盘，带入、带回走平台钱包 | 照常开房进房，带入直接办成、带回不办（`TexasRoom.perform` 没有 WALLET 时回 ok）：筹码不算数，离开就没了 |
 | 云存档、战绩同步、钱包、补给 | 有 | 没有（战绩只存在浏览器本地） |
 | 站点根 `/` | 平台的 | 跳到 `/games/texas/`（kit 的 `standaloneRoot`） |
 | "大厅"按钮 | 平台首页 `/` | 游戏自己的首页 `./` |

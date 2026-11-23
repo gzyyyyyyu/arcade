@@ -76,7 +76,7 @@ async function startSoakRoom(browser: Browser, base: string): Promise<SoakRoom> 
   const guest = async (): Promise<void> => {
     if (await gp.locator('.dialog').isVisible()) await gp.locator('.d-btn.primary').click();
     else if (await gp.locator('.actions.on').isVisible()) await gp.locator('.act.call').click();
-    else if ((await gp.locator('.seat.me .stack').textContent())?.trim() === '0') await gp.locator('.hud .pill', { hasText: '补码' }).click({ timeout: 1_000 });
+    else if ((await gp.locator('.seat.me .stack').textContent())?.trim() === '0') await gp.locator('.hud .pill', { hasText: '补筹码' }).click({ timeout: 1_000 });
   };
   return { ctx, gctx, page, gp, cdp, guest, sockets: () => sockets };
 }
@@ -133,7 +133,7 @@ export async function roomSoak(browser: Browser, base: string): Promise<void> {
       await page.locator('.d-btn.primary').click();
       continue;
     }
-    const topUp = page.locator('.hud .pill', { hasText: '补码' });
+    const topUp = page.locator('.hud .pill', { hasText: '补筹码' });
     if ((await topUp.isVisible()) && (await page.locator('.seat.me .stack').textContent())?.trim() === '0') {
       await topUp.click({ timeout: 2_000 }).catch(() => {});
       continue;

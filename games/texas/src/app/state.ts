@@ -30,7 +30,7 @@ import type { createTakeProfit } from './takeprofit.ts';
 import type { createTour } from './tour.ts';
 
 export const PENDING_NOTE = '钱包暂时连不上，稍后会自动重试';
-export const LOGIN_NOTE = '登录过期了：这一桌的筹码先记在本机，刷新页面登录后自动结回钱包';
+export const LOGIN_NOTE = '登录过期了：这一桌的筹码先记在本机，刷新页面登录后自动带回钱包';
 
 export interface State {
   settings: Prefs;

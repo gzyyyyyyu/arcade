@@ -217,7 +217,7 @@ export async function desktop(browser: Browser, base: string): Promise<void> {
     await page.locator('.d-btn.primary').click();
     busted = true;
   }
-  const topUp = page.locator('.hud .pill', { hasText: '补码' });
+  const topUp = page.locator('.hud .pill', { hasText: '补筹码' });
   if (busted) {
     log('topped up (busted)');
   } else if (await topUp.isVisible()) {

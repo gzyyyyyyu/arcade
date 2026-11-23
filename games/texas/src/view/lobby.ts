@@ -88,7 +88,8 @@ export class Lobby {
   private readonly fillBtn: HTMLButtonElement;
   private readonly funTile: HTMLButtonElement;
   private roomTour = false;
-  private roomFun = false;
+  /** 好友房默认娱乐（试玩 1122：默认实盘，朋友之间练手反倒要多点一下） */
+  private roomFun = true;
   private fill = true;
   private readonly slider: HTMLInputElement;
   private readonly buyAmt: HTMLSpanElement;
@@ -252,7 +253,7 @@ export class Lobby {
     for (const st of STAKES) {
       const t = button(grid, 'tile', '', () => this.pick(st.id));
       if (st.id !== 'small') t.dataset.room = st.id;
-      t.innerHTML = `<i class="mini"></i><em>${ROOM_NAME[st.id]}</em>` + card(st.name, stars(SOLO_LEVEL[st.id]), `盲注 ${chips(st.sb)}/${chips(st.bb)}`, [`最多输 ${short(st.max)}`, `很少赢过 ${short(RARE_WIN_STAKES * st.max)}`]);
+      t.innerHTML = `<i class="mini"></i><em>${ROOM_NAME[st.id]}</em>` + card(st.name, stars(SOLO_LEVEL[st.id]), `盲注 ${chips(st.sb)}/${chips(st.bb)}`, [`最多输 ${chips(st.max)}`, `通常最多赢 ${chips(RARE_WIN_STAKES * st.max)}`]);
       this.tiles.set(st.id, t);
     }
     for (const d of DIFFICULTIES) {
@@ -508,8 +509,8 @@ export class Lobby {
     const html = hands
       ? `<span class="ms-label">我的战绩</span>` +
         [
-          [chips(hands), '手'],
-          [chips(won), '赢下'],
+          [chips(hands), '打了几手'],
+          [chips(won), '赢了几手'],
           [biggestPot ? chips(biggestPot) : '—', '最大一池'],
           [best ? CATEGORY_NAMES[categoryOf(best)] : '—', '最好的牌'],
         ]
@@ -559,7 +560,7 @@ export class Lobby {
     const rd = resume?.practice ? difficultyOf(resume.level) : null;
     if (resume) setText(this.resumeText, `${resume.tour ? '锦标赛 · ' : ''}${resume.practice ? '娱乐' : '实盘'} · ${rd ? DIFFICULTY_NAME[rd] : stakesOf(resume.stakes).name} · ${resume.size} 人，${resume.waiting ? '等钱包回话' : '上次没打完'}`);
     toggle(this.orphanBox, 'hidden', !orphan || !!resume);
-    if (orphan) setText(this.orphanText, `另一台设备上还有一桌没打完（带上桌 ${chips(orphan.amount)}）：回那台设备离桌就能结回；放着不管，24 小时后原样退回钱包`);
+    if (orphan) setText(this.orphanText, `另一台设备上还有一桌没打完（带上桌 ${chips(orphan.amount)}）：回那台设备离桌就能带回钱包；放着不管，24 小时后原样退回钱包`);
 
     // 钱包连不上：实盘不可选，娱乐、好友房（进别人的房）照常
     const room = this.room();
@@ -585,7 +586,7 @@ export class Lobby {
     this.drawStats();
     setText(
       this.modeNote,
-      room ? (this.roomTour ? `锦标赛：6 人、每人 ${chips(START_STACK)} 比赛筹码打到剩一人；实盘每人交一份报名费，奖池只在真人之间按名次分` : '和朋友一桌：开个房间把房间码发给他们，或者输入朋友给的房间码') : this.alone ? '筹码不算数，随便玩' : fun ? '不碰钱包，筹码不算数，随便玩' : '从钱包带筹码上桌，离桌结回；最多输掉带上去的',
+      room ? (this.roomTour ? `锦标赛：6 人、每人 ${chips(START_STACK)} 比赛筹码打到剩一人；实盘每人交一份报名费，奖池只在真人之间按名次分` : '和朋友一桌：开个房间把房间码发给他们，或者输入朋友给的房间码') : this.alone ? '筹码不算数，随便玩' : fun ? '不碰钱包，筹码不算数，随便玩' : '最多输掉带上桌的筹码，离桌时剩下的带回钱包',
     );
     // 好友房：档位、人数照旧选，下面换成开房间、输码进房；单机的带多少、坐下开打收起来
     toggle(this.buyRow, 'hidden', room);
@@ -614,7 +615,7 @@ export class Lobby {
       // 灰着的档位在卡上写要多少（原来的"最多输"那一行换成它，选中后钱包够了再换回来）
       const need = t.querySelector('small');
       if (need) {
-        setText(need, locked ? `要 ${short(st.min)} 筹码` : `最多输 ${short(st.max)}`);
+        setText(need, locked ? `要 ${chips(st.min)} 筹码` : `最多输 ${chips(st.max)}`);
         toggle(need, 'need', locked);
       }
       toggle(t, 'hidden', fun);
@@ -640,6 +641,8 @@ export class Lobby {
     setText(this.buyAmt, ok ? chips(Number(this.slider.value)) : `钱包要有 ${chips(st.min)}`);
     // 本机一次只摆一桌单机（没打完的先接着打）；钱包里别处还有德州的份不影响（可以同时有好几份）
     this.startBtn.disabled = busy || !ok || !!resume;
+    // 灰着要说为什么（试玩 1122：有一桌没打完时只灰着，在实盘页签以为是钱不够）；「接着打」就在这一页顶上的横幅里
+    must(this.startBtn.firstChild, '坐下开打的字').textContent = resume ? '上一桌还没打完' : '坐下开打';
     // 娱乐档不碰钱包，单独部署也有；实盘档没钱包（连不上）不给，钱包够这一档的最少买入才能排（不够一整份的，坐下时少带一点，和好友房一样）
     toggle(must(this.matchBtn.parentElement, 'this.matchBtn.parentElement'), 'hidden', !fun && (this.alone || !wallet));
     this.matchBtn.disabled = busy || !ok;
@@ -650,7 +653,7 @@ export class Lobby {
     this.tourBtn.disabled = busy || !!resume || !tourOk;
     // 灰着的按钮在自己下面写原因（按上面 disabled 的条件，一条一条对）
     this.setNote(this.tourBtn, resume ? RESUME_FIRST : tourOk ? null : this.alone ? '只有娱乐' : !wallet ? '钱包连不上' : `要 ${chips(st.max)} 筹码`);
-    this.tourBtn.title = tourOk ? `报名费 ${chips(st.max)}（这一档的一份）：${TOUR_FULL[this.tourFmt]}` : `报名要一整份 ${chips(st.max)}`;
+    this.tourBtn.title = tourOk ? `报名费 ${chips(st.max)}：${TOUR_FULL[this.tourFmt]}` : `报名要一整份 ${chips(st.max)}`;
     // 灰着的按钮要说为什么（实打：钱包不够一整份时只灰、没说要多少）
     setText(
       this.tourNote,
@@ -701,15 +704,15 @@ export function topBuyIn(st: { min: number; max: number; bb: number }, bal: numb
 const FORMAT_LABEL: Record<TourFormat, string> = { sng: '经典', turbo: '极速赛', nine: '9 人赛' };
 /** 一行说明（挤在赛制按钮后面）；完整规则在锦标赛按钮的 title 里 */
 const TOUR_RULES: Record<TourFormat, string> = {
-  sng: '6 人 · 前四名拿 3 / 1.2 / 1 / 0.9 份报名费',
-  turbo: '6 人 · 涨盲快一倍 · 前四名拿 3.3 / 1 / 0.9 / 0.9 份',
-  nine: '9 人 · 前四名拿 4 / 1.4 / 1.3 / 1.2 份',
+  sng: '6 人桌 · 前 4 名有奖，第一名拿回 3 倍报名费',
+  turbo: '6 人桌 · 涨盲快一倍 · 第一名拿回 3.3 倍报名费',
+  nine: '9 人桌 · 前 4 名有奖，第一名拿回 4 倍报名费',
 };
 /** 完整规则（按钮提示用）：每人 1,500 比赛筹码、打到剩一人 */
 const TOUR_FULL: Record<TourFormat, string> = {
-  sng: `6 人、每人 ${chips(START_STACK)} 比赛筹码、打到剩一人，前四名拿奖 3 / 1.2 / 1 / 0.9 份报名费（一份 = 这一档的报名费）`,
-  turbo: `极速赛：6 人、每人 ${chips(START_STACK)} 比赛筹码、每 3 手涨一次盲注（经典是 6 手），约一半时间打完，前四名拿奖 3.3 / 1 / 0.9 / 0.9 份报名费`,
-  nine: `9 人赛：9 人、每人 ${chips(START_STACK)} 比赛筹码、打到剩一人，约经典赛的 1.3 倍时间，前四名拿奖 4 / 1.4 / 1.3 / 1.2 份报名费`,
+  sng: `6 人、每人 ${chips(START_STACK)} 比赛筹码、打到剩一人，前 4 名分奖：报名费的 3 倍、1.2 倍、1 倍、0.9 倍`,
+  turbo: `极速赛：6 人、每人 ${chips(START_STACK)} 比赛筹码、每 3 手涨一次盲注（经典是 6 手），约一半时间打完，前 4 名分奖：报名费的 3.3 倍、1 倍、0.9 倍、0.9 倍`,
+  nine: `9 人赛：9 人、每人 ${chips(START_STACK)} 比赛筹码、打到剩一人，约经典赛的 1.3 倍时间，前 4 名分奖：报名费的 4 倍、1.4 倍、1.3 倍、1.2 倍`,
 };
 const tourRule = (f: TourFormat): string => TOUR_RULES[f];
 /** 单机有一桌没打完时，别的单机玩法都灰着 */
@@ -735,9 +738,6 @@ function button(parent: HTMLElement, cls: string, text: string, onClick: () => v
   b.addEventListener('click', onClick);
   return b;
 }
-
-/** 格子窄，一万以上写成"4万" */
-const short = (n: number): string => (n >= 10_000 && n % 10_000 === 0 ? `${n / 10_000}万` : chips(n));
 
 /** 电脑多强（1–4 颗星，四个游戏一样的画法）：就是这一桌电脑的强弱档（实盘 SOLO_LEVEL、娱乐 FUN_LEVEL），新手的 0 档也画 1 颗 */
 /** 四颗星封顶：娱乐高手（第 6 档）和豪华桌一样满星 */

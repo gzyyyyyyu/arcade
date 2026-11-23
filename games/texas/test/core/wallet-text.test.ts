@@ -9,8 +9,8 @@ describe('钱包错误的说法', () => {
     expect(walletError('busy', undefined, 'api')).toBe('服务器今天有点忙，先只能看、不能改，明早恢复');
   });
 
-  it('limit：好友房里不提娱乐模式，"桌上的照常结回"留着', () => {
-    expect(walletError('limit', undefined, 'room')).toBe('今天开局太多了，明早 0 点恢复；桌上的照常结回');
+  it('limit：好友房里不提娱乐模式，"桌上的照常带回钱包"留着', () => {
+    expect(walletError('limit', undefined, 'room')).toBe('今天开局太多了，明早 0 点恢复；桌上的照常带回钱包');
     expect(walletError('limit')).toContain('娱乐模式照常玩');
   });
 });

@@ -101,7 +101,7 @@ export function walletError(e: string, retryAfter?: number, where: 'solo' | 'roo
     case 'no_funds':
       return '钱包不够，少带一点，或者去大厅领补给';
     case 'limit':
-      return where === 'room' ? '今天开局太多了，明早 0 点恢复；桌上的照常结回' : '今天开局太多了，明早 0 点恢复；桌上的照常结回，娱乐模式照常玩';
+      return where === 'room' ? '今天开局太多了，明早 0 点恢复；桌上的照常带回钱包' : '今天开局太多了，明早 0 点恢复；桌上的照常带回钱包，娱乐模式照常玩';
     case 'busy':
       if (where === 'api') return '服务器今天有点忙，先只能看、不能改，明早恢复';
       return where === 'room' ? '服务器今天有点忙，先不能带筹码上桌，明早恢复' : '服务器今天有点忙，先不能带筹码开局；娱乐模式照常玩，明早恢复';

@@ -165,13 +165,13 @@ export function createLobby(c: App) {
     const rooms = texasStakes(c.wallet, 'server');
     const inRoom = rooms.length ? { amount: rooms.reduce((a, x) => a + x.amount, 0) } : null;
     const back = inRoom ? (f.savedRoom() ?? f.lastRoom()) : f.savedRoom();
-    const settle = '在房间里点"离开房间"马上结回；直接关了页面的话，房间里没人以后约 10 分钟自动结回';
+    const settle = '在房间里点「离桌」马上带回钱包；直接关了页面的话，房间里没人以后约 10 分钟自动带回钱包';
     window.clearTimeout(stakeTimer);
     if (inRoom && !stage.classList.contains('at-table') && !c.online) stakeTimer = window.setTimeout(() => void refreshWallet().then(drawLobby), 10_000);
     lobby.update({
       wallet: c.wallet,
       // 本机不知道是哪个房间（别的设备进的）：没有按钮，只说一句
-      note: c.walletNote ?? (inRoom && !back ? `好友房那一桌还没结回钱包（带上桌 ${chips(inRoom.amount)}）。${settle}` : null),
+      note: c.walletNote ?? (inRoom && !back ? `好友房那一桌还没带回钱包（带上桌 ${chips(inRoom.amount)}）。${settle}` : null),
       resume: s
         ? { stakes: s.table.stakes, size: s.table.seats.length, practice: s.practice, level: s.table.level, waiting: s.pending !== null }
         : ts

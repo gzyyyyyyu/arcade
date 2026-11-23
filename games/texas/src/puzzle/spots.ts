@@ -86,7 +86,7 @@ function drawSetup(r: RandomStream, p: DrawParts, o: { allIn?: boolean; situatio
     hero: p.hero,
     board: shuffle(p.board, r),
     range,
-    rangeText: '对手手里至少有一对（他在下注，多半成了牌）',
+    rangeText: '对手手里至少有一对（他在下注，多半已经有牌了）',
     situation: o.situation,
     flavor: o.flavor,
     sizing: o.allIn ? 'allin' : 'normal',
@@ -104,7 +104,7 @@ function flushDraw(len: 3 | 4, allIn: boolean) {
     return drawSetup(r, { hero: [card(rk[0]!, s), card(rk[1]!, s)], board }, {
       allIn,
       situation: `${STREET_TEXT[len]}，你手里两张同花色，桌上还有两张同花色，差一张就成同花。对手${allIn ? '全下' : '下注'}。`,
-      flavor: '你在听同花，',
+      flavor: '你差一张成同花，',
     });
   };
 }
@@ -122,7 +122,7 @@ function openEnder(len: 3 | 4) {
     if (maxSuit(all) >= 3) return null;
     return drawSetup(r, { hero, board }, {
       situation: `${STREET_TEXT[len]}，你手里两张连着，桌上又接着两张，两头都能补成顺子。对手下注。`,
-      flavor: '你在听两头顺，',
+      flavor: '你差两头任一张成顺子，',
     });
   };
 }
@@ -143,7 +143,7 @@ function gutshot(len: 3 | 4) {
     if (maxSuit([...hero, ...board]) >= 3) return null;
     return drawSetup(r, { hero, board }, {
       situation: `${STREET_TEXT[len]}，你的牌和桌上的牌连成四张，但中间缺一张，只有一种点数能补成顺子。对手下注。`,
-      flavor: '你只在听卡顺，',
+      flavor: '你只差中间一张成顺子，',
     });
   };
 }
@@ -179,9 +179,9 @@ function comboDraw(len: 3 | 4, allIn: boolean) {
       hero,
       board: shuffle(board, r),
       range,
-      rangeText: '对手手里至少有一对（他在下注，多半成了牌）',
+      rangeText: '对手手里至少有一对（他在下注，多半已经有牌了）',
       situation: `${STREET_TEXT[len]}，你有一对，同时还在听同花。对手${allIn ? '全下' : '下注'}。`,
-      flavor: '你有一对还带同花听牌，',
+      flavor: '你有一对，还差一张成同花，',
       sizing: allIn ? 'allin' : 'normal',
     };
   };
@@ -331,16 +331,16 @@ const mixT = (id: string, name: string, stage: Stage, spec: MixSpec): Template =
 const T = (id: string, name: string, stage: Stage, deal: Template['deal']): Template => ({ id, name, kind: stage === 'pre' ? 'pre' : 'draw', stage, deal });
 
 export const TEMPLATES: readonly Template[] = [
-  T('fd-flop', '同花听牌 · 翻牌圈', 'flop', flushDraw(3, false)),
-  T('fd-turn', '同花听牌 · 转牌圈', 'turn', flushDraw(4, false)),
-  T('fd-turn-allin', '同花听牌 · 转牌被全下', 'turn', flushDraw(4, true)),
-  T('oesd-flop', '两头顺听牌 · 翻牌圈', 'flop', openEnder(3)),
-  T('oesd-turn', '两头顺听牌 · 转牌圈', 'turn', openEnder(4)),
-  T('gutshot-flop', '卡顺听牌 · 翻牌圈', 'flop', gutshot(3)),
-  T('gutshot-turn', '卡顺听牌 · 转牌圈', 'turn', gutshot(4)),
+  T('fd-flop', '差一张成同花 · 翻牌圈', 'flop', flushDraw(3, false)),
+  T('fd-turn', '差一张成同花 · 转牌圈', 'turn', flushDraw(4, false)),
+  T('fd-turn-allin', '差一张成同花 · 转牌被全下', 'turn', flushDraw(4, true)),
+  T('oesd-flop', '顺子差两头一张 · 翻牌圈', 'flop', openEnder(3)),
+  T('oesd-turn', '顺子差两头一张 · 转牌圈', 'turn', openEnder(4)),
+  T('gutshot-flop', '顺子差中间一张 · 翻牌圈', 'flop', gutshot(3)),
+  T('gutshot-turn', '顺子差中间一张 · 转牌圈', 'turn', gutshot(4)),
   T('overcards-flop', '两张大牌 · 翻牌圈', 'flop', overcards),
-  T('combo-flop', '一对加同花听牌', 'flop', comboDraw(3, false)),
-  T('combo-turn-allin', '一对加同花听牌 · 被全下', 'turn', comboDraw(4, true)),
+  T('combo-flop', '一对加差一张成同花', 'flop', comboDraw(3, false)),
+  T('combo-turn-allin', '一对加差一张成同花 · 被全下', 'turn', comboDraw(4, true)),
   mixT('tp-flop', '顶对 · 翻牌圈', 'flop', {
     len: 3, pred: PRED.topPair, sizing: 'normal', suitCap: 2,
     situation: '翻牌圈，你有顶对（和桌上最大的牌配对）。对手下注。', flavor: '你有顶对，',

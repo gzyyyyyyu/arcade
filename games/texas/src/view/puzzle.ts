@@ -156,8 +156,8 @@ export function openPuzzle(parent: HTMLElement, v: PuzzleView, date: string = be
       const fill = el('div', 'pz-fill', bar);
       const need = el('div', 'pz-need', bar);
       need.style.left = `${p.need}%`;
-      el('span', '', need, `${preflop ? '不亏要' : '要'} ${p.need}%`);
-      el('span', 'pz-eq', bar, `${preflop ? '被跟时' : '你'} ${p.equity}%`);
+      el('span', '', need, `${preflop ? '不亏要' : '至少要'} ${p.need}%`);
+      el('span', 'pz-eq', bar, `${preflop ? '被跟时' : '你的胜率'} ${p.equity}%`);
       // 先 0 再长到真值，揭晓时条是长出来的
       fill.style.width = fresh ? '0%' : `${p.equity}%`;
       fill.classList.toggle('above', p.equity > p.need);
@@ -166,7 +166,7 @@ export function openPuzzle(parent: HTMLElement, v: PuzzleView, date: string = be
 
       // 抽一次看看：补满公共牌、亮出他的牌
       const sample = el('div', 'pz-sample', reveal);
-      el('span', 'pz-s-cap', sample, '抽一次看看');
+      el('span', 'pz-s-cap', sample, '模拟发完一次：对手的牌');
       const vc = el('span', 'pz-s-cards', sample);
       for (const c of p.sample.villain) vc.appendChild(upCard(c, 'small'));
       el('span', `pz-s-res ${p.sample.result}`, sample, p.sample.result === 'win' ? '这次你赢了' : p.sample.result === 'lose' ? '这次你输了' : '这次平分');

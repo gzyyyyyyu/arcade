@@ -107,6 +107,11 @@
 /* 竖屏一排放五个玩法会挤得字压字（"匹配真人""锦标赛 · 免费"连成一串）：折成三个、两个两排 */
 .stage.tall .lobby .plays { flex-wrap: wrap; row-gap: var(--s-2); }
 .stage.tall .lobby .plays .play { flex: 1 1 30%; }
+/* 竖屏一屏放不下按钮下面那行小字（两排玩法各多一行，被下一排压住下半截）：小字叠进按钮里当第二行，按钮字往上让。
+   小字仍是按钮外面的兄弟节点，按钮灰掉时原因不跟着变灰；不挡点按 */
+.stage.tall .lobby .plays .play { position: relative; }
+.stage.tall .lobby .plays .play .pill { padding-bottom: calc(var(--fs-1) * 1.2); }
+.stage.tall .lobby .plays .play-note { position: absolute; left: var(--s-1); right: var(--s-1); bottom: calc(3px * var(--ui)); pointer-events: none; color: var(--cg-ink, #2b1d14); }
 /* 灰着的档位卡：原来"最多输"那一行写要多少筹码；手机横屏收起了小字，这一行留着 */
 .lobby .tile small.need { font-weight: 800; opacity: 1; }
 .stage.tight:not(.tall) .lobby .stakes:not(.fun) .tile small.need { display: block; }
@@ -156,7 +161,8 @@
 }
 .stage:is(.tall, .tight) .lobby .front { gap: var(--s-2); }
 .stage.tight:not(.tall) .lobby :is(.panel, .front) { padding-block: var(--s-2); }
-.stage.tight:not(.tall) .lobby .qstart { height: 58px; min-height: 0; }
+/* 触屏点按区 --hit：最矮的手机横屏（568×320）上 58 只有 34 个屏幕像素，外扩又被下面的模式卡挡掉一截（多尺寸量到 42） */
+.stage.tight:not(.tall) .lobby .qstart { height: max(58px, var(--hit)); min-height: 0; }
 /* 两行字（28 号标题 + 按 --ui 放大的小字）比 58 高 2–3 个屏幕像素：上下内边距去掉、标题收到 24 */
 .stage.tight:not(.tall) .lobby .qstart { padding-block: 0; }
 .stage.tight:not(.tall) .lobby .qstart b { font-size: 24px; line-height: 1; }

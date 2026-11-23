@@ -225,8 +225,8 @@ export function createOnline(c: App) {
   /** 锦标赛里离开的说明：还在打的座位交给电脑托管，打完按名次由服务端结回；淘汰了、打完了、旁观的直接走 */
   function tourLeaveText(t: NonNullable<RoomView['tour']>, me: number | null): string {
     const playing = t.in && !t.over && me !== null && t.places[me] === null;
-    if (!playing) return '离开房间？名次和奖金不变，奖金会直接结回钱包。';
-    return t.fun ? '你的座位交给电脑接着打，打完出名次。' : '你的座位交给电脑接着打，打完按名次把奖金结回钱包，不用你在线。报名费不退；名次按电脑替你打到的算，自己打通常更好。';
+    if (!playing) return '离开房间？名次和奖金不变，奖金直接进钱包。';
+    return t.fun ? '你的座位交给电脑接着打，打完出名次。' : '你的座位交给电脑接着打，打完按名次把奖金打进钱包，不用你在线。报名费不退；名次按电脑替你打到的算，自己打通常更好。';
   }
 
   /** 离开房间：坐着的先离座（这一手弃牌，打完结回钱包），再断开。auto：止盈到了自动走，不问 */
@@ -241,7 +241,7 @@ export function createOnline(c: App) {
       const how = await dialog(
         stage,
         '网络断了',
-        '现在连不上房间，"离开"发不出去：你还坐着，掉线由电脑代打，筹码还在桌上。等连上了再点离开，筹码马上结回；先回首页也行，回来点"回到房间"再离开。',
+        '现在连不上房间，「离桌」发不出去：你还坐着，掉线由电脑代打，筹码还在桌上。等连上了再点「离桌」，筹码马上带回钱包；先回首页也行，回来点「回到房间」再离桌。',
         [
           { label: '等连上', value: 'wait', primary: true },
           { label: '先回首页', value: 'lobby' },
@@ -250,7 +250,7 @@ export function createOnline(c: App) {
       if (how !== 'lobby' || c.online !== o) return;
       o.close();
       // 不 forgetRoom：上一次进的房间留着，标题页按钱包里那一份给"回到房间"
-      exitRoom('你还坐在好友房里（掉线由电脑代打）：连上网后点"回到房间"再离开，桌上的筹码才会结回');
+      exitRoom('你还坐在好友房里（掉线由电脑代打）：连上网后点「回到房间」再离桌，桌上的筹码才会带回钱包');
       if (goHome) {
         c.cloud.flush();
         location.href = f.hall();
@@ -266,14 +266,14 @@ export function createOnline(c: App) {
             ? tourLeaveText(st.view.tour, st.you?.seat ?? null)
             : seated && playing
               ? noWallet()
-                ? '这一手弃牌，离开后座位空出来。'
-                : '这一手弃牌，桌上的筹码马上结回钱包。'
+                ? '这一手弃牌，离桌后座位空出来。'
+                : '这一手弃牌，桌上的筹码马上带回钱包。'
               : seated
-                ? '离开后座位空出来。'
+                ? '离桌后座位空出来。'
                 : '不看了？',
           [
             { label: '留下', value: 'no', cancel: true },
-            { label: '离开', value: 'yes', danger: true },
+            { label: '离桌', value: 'yes', danger: true },
           ],
         );
     if (ok !== 'yes' || c.online !== o) return;
@@ -489,7 +489,7 @@ export function createOnline(c: App) {
     if (free() < 0) return;
     if (!noWallet()) {
       const st = stakesOf(opts.stakes);
-      const how = opts.tour ? `开赛时从钱包交一份报名费 ${chips(st.max)}。` : `开打时从钱包带 ${chips(st.max)} 上桌，离桌或房间关掉时结回去。`;
+      const how = opts.tour ? `开赛时从钱包交一份报名费 ${chips(st.max)}。` : `开打时从钱包带 ${chips(st.max)} 上桌，离桌或房间关掉时，剩下的带回钱包。`;
       const ok = await dialog(stage, '坐下', `坐到朋友这一桌：${how}`, [
         { label: '先看看', value: 'no' },
         { label: '坐下', value: 'yes', primary: true },
@@ -674,7 +674,6 @@ export function createOnline(c: App) {
       setText(where, `${watching ? '旁观中 · ' : ''}锦标赛 · 第 ${t.level + 1} 级 · 盲注 ${chips(t.blinds[0])}/${chips(t.blinds[1])} · ${left}`);
       toggle(where, 'watching', watching);
       toggle(leaveBtn, 'hidden', false);
-      setText(leaveBtn, '离开');
       return;
     }
     const kind = c.online?.match ? '匹配真人' : `好友房 ${s.code}`;
@@ -683,7 +682,6 @@ export function createOnline(c: App) {
     setText(where, `${watching ? '旁观中 · ' : ''}${kind}${table}`);
     toggle(where, 'watching', watching);
     toggle(leaveBtn, 'hidden', false);
-    setText(leaveBtn, '离开');
   }
 
   /** 点了一个座位：看着的人可以接管没人的电脑座位 */
@@ -700,7 +698,7 @@ export function createOnline(c: App) {
       c.online?.sit(i);
       return f.toast(`电脑这一手弃牌，下一手起你坐这里：带 ${chips(st.max)} 上桌（筹码不算数）`);
     }
-    const ok = await dialog(stage, '接管这个座位', `电脑这一手弃牌，下一手起你坐这里：从钱包带 ${chips(st.max)} 上桌，离开时结回钱包。`, [
+    const ok = await dialog(stage, '接管这个座位', `电脑这一手弃牌，下一手起你坐这里：从钱包带 ${chips(st.max)} 上桌，离桌时剩下的带回钱包。`, [
       { label: '算了', value: 'no' },
       { label: '坐下', value: 'yes', primary: true },
     ]);
@@ -720,9 +718,9 @@ export function createOnline(c: App) {
     const later = mine?.status !== 'out' && v.phase !== 'idle' ? '，这一手打完上桌' : '';
     const to = seated ? `补到 ${chips(mine.stack + add)}` : '上桌';
     const msg = noWallet() ? `带 ${chips(add)} ${to}${later}。` : `从钱包带 ${chips(add)} ${to}${later}（钱包里有 ${c.wallet ? chips(c.wallet.balance) : '—'}）。`;
-    const ok = await dialog(stage, '补码', msg, [
+    const ok = await dialog(stage, '补筹码', msg, [
       { label: '算了', value: 'no' },
-      { label: '补码', value: 'yes', primary: true },
+      { label: '补筹码', value: 'yes', primary: true },
     ]);
     if (ok === 'yes') c.online?.act({ t: 'rebuy', ...(add < full ? { amount: add } : {}) });
   }

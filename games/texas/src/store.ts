@@ -80,7 +80,7 @@ export interface Prefs {
   fast: boolean;
   /** 单机一手打完，结果摆几秒后自己发下一手（默认关：试玩时大家要"点了才发"） */
   autoNext: boolean;
-  /** 单机桌要跟注时写"胜率约 X% · 要过 Y%"（src/fun/odds.ts；默认开，宁简勿难） */
+  /** 单机桌要跟注时写"胜率 X% · 至少要 Y%"（src/fun/odds.ts；默认开，宁简勿难） */
   hint: boolean;
 }
 

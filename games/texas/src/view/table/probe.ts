@@ -137,7 +137,7 @@ export class TableProbe {
 
   /**
    * 电脑版常驻聊天框放哪（kit 的 chatDock，屏幕坐标）：kit 自己只试屏幕四个角，德州的四个角都有座位或下注按钮（实测 1920 落在右下的按钮上）。
-   * 这里在整个屏幕上每 16×8 像素试一格，挑盖得最不要紧的：公共牌最要紧，名牌上的名字和筹码数、面前下的注、下注区其次，头像和底牌再次，空桌面不算；一样的先左后上。
+   * 这里在整个屏幕上每 16×8 像素试一格，挑盖得最不要紧的：公共牌和我的底牌最要紧，名牌上的筹码数其次，面前下的注、下注区再次，头像和底牌再次，空桌面不算；一样的先左后上。
    * 1920 上落在左边两个座位中间的空当；1280×720 的 6 人桌没有空当，落在左下那家的牌和公共牌之间。
    * 底牌、下的注、公共牌、下注区都按版式算（没发牌、没下注、没轮到我时节点藏着，量不到），同一个窗口、同一桌人只算一次：
    * kit 每次重画都来问，按当时的筹码算会让聊天框跟着下注跳来跳去。
@@ -172,11 +172,16 @@ export class TableProbe {
       [board, 30],
       ...live.flatMap((i): [DOMRect, number][] => {
         const n = must(this.c.seats[i], 'this.c.seats[i]');
-        return [[rect(n.plate), 10], [at(this.scene.betPt(i), 44, 18), 10], [rect(n.avatar), i === this.c.me ? 10 : 4], [at(this.scene.holePt(i, 0), 32, 44), 2], [at(this.scene.holePt(i, 1), 32, 44), 2]];
+        // 我的两张底牌和公共牌一样要紧：放不下时宁可盖别人的头像和底牌（试玩 1122：1280 上点开聊天框正好盖住自己两张底牌）
+        const hole = i === this.c.me ? 30 : 2;
+        // 名牌上是筹码数，不能被挡（试玩 1122 第三条）：挤的桌上宁可盖头像、底牌、空桌面
+        return [[rect(n.plate), 25], [at(this.scene.betPt(i), 44, 18), 10], [rect(n.avatar), i === this.c.me ? 10 : 4], [at(this.scene.holePt(i, 0), 32, 44), hole], [at(this.scene.holePt(i, 1), 32, 44), hole]];
       }),
       // 我的牌型（"一对 Q"，style.css 的 .seat.me .hand 以座位左边 150 为中线、上面 60 起）：没亮时量不到，按版式算（1280 上被聊天框盖住）
       // 好友房等人页还没排座位（this.c.me 不是个数、没有座位）时没有这一块：这里直接按 seatPt 算，朋友页报 reading 'NaN'
       ...(this.c.seats[this.c.me] ? [[at({ x: this.scene.seatPt(this.c.me).x - 150, y: this.scene.seatPt(this.c.me).y - 46 }, 60, 16), 10] as [DOMRect, number]] : []),
+      // 我的动作签（"小盲"，style.css 的 .seat.me .bubble 在座位左 152、上 100 起）：平时藏着，按版式算
+      ...(this.c.seats[this.c.me] ? [[at({ x: this.scene.seatPt(this.c.me).x - 112, y: this.scene.seatPt(this.c.me).y - 84 }, 44, 18), 10] as [DOMRect, number]] : []),
       // 别人的动作签（"过牌"）贴在头像旁边，平时藏着：头像四周各让出一截（1920 的 5 人桌）
       ...live.filter((i) => i !== this.c.me).map((i): [DOMRect, number] => {
         const a = rect(must(this.c.seats[i], 'this.c.seats[i]').avatar);

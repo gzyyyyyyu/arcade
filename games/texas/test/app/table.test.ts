@@ -188,7 +188,7 @@ describe('离桌结算（leave）', () => {
     await table.leave();
     expect(lastSummary().out).toBeNull();
     expect(c.solo).toBe(s);
-    expect(c.walletNote).toContain('稍后会自动结回钱包');
+    expect(c.walletNote).toContain('稍后会自动带回钱包');
     expect(store.getItem(SESSION_KEY)).not.toBeNull();
     expect(fn.settlePending).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(RETRY_MS);
@@ -196,12 +196,12 @@ describe('离桌结算（leave）', () => {
     expect(fn.drawLobby).toHaveBeenCalled();
   });
 
-  it('登录过期：结算页写"登录后自动结回"，提示刷新登录，不排自动重试', async () => {
+  it('登录过期：结算页写"登录后自动带回钱包"，提示刷新登录，不排自动重试', async () => {
     const s = await open();
     build(s);
     wallet.cashScript.push(errReply('login'));
     await table.leave();
-    expect(lastSummary()).toMatchObject({ pending: '登录后自动结回', out: null });
+    expect(lastSummary()).toMatchObject({ pending: '登录后自动带回钱包', out: null });
     expect(c.walletNote).toBe(LOGIN_NOTE);
     await vi.advanceTimersByTimeAsync(RETRY_MS * 3);
     expect(fn.settlePending).not.toHaveBeenCalled();
@@ -228,7 +228,7 @@ describe('离桌结算（leave）', () => {
     expect(c.solo).toBeNull();
   });
 
-  it('补码还在路上（钱包可能已经扣了）：先不走，弹"先等补码"，不发结回', async () => {
+  it('补码还在路上（钱包可能已经扣了）：先不走，弹"先等补筹码"，不发结回', async () => {
     const s = await open();
     build(s);
     mePatch(s, { status: 'out', stack: 0 });
@@ -238,8 +238,8 @@ describe('离桌结算（leave）', () => {
     expect(s.toppingUp).toBe(true);
     m.dialog.mockClear();
     expect(await table.leave()).toBe(false);
-    expect(m.dialog.mock.calls.at(-1)![1]).toBe('先等补码');
-    expect(m.dialog.mock.calls.at(-1)![2]).toContain('补码还在路上');
+    expect(m.dialog.mock.calls.at(-1)![1]).toBe('先等补筹码');
+    expect(m.dialog.mock.calls.at(-1)![2]).toContain('补的筹码还在路上');
     expect(wallet.cashouts).toHaveLength(0);
     expect(m.soloSummary).not.toHaveBeenCalled();
   });

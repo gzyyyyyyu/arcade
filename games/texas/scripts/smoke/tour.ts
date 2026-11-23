@@ -1,6 +1,6 @@
 /** 锦标赛（--only tour / tourfmt / tourroom）。 */
 import type { Browser, Page } from 'playwright-core';
-import { DESK_W, log, newContext, watch, shot, balance, handText, enter, openMore, settled, badgesClear, DESK_H, linkSit } from './harness.ts';
+import { DESK_W, log, newContext, watch, shot, balance, handText, enter, openMore, settled, badgesClear, DESK_H, linkSit, realRoom } from './harness.ts';
 import { IPHONE } from './solo.ts';
 
 export async function tourFlow(browser: Browser, base: string): Promise<void> {
@@ -42,7 +42,7 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
     if (await page.locator('.d-title', { hasText: '你出局了' }).isVisible()) {
       badges += await badgesClear(page);
       await shot(page, 'tour-out');
-      await page.locator('.d-btn', { hasText: '现在离开' }).click();
+      await page.locator('.d-btn', { hasText: '现在离桌' }).click();
       continue;
     }
     // 结果条里不该有"空位"（0.26.x：锦标赛电脑座位 owner 是 player，赢家名字一律显示空位）
@@ -90,7 +90,7 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
   await page.locator('.lobby .tour-btn').click();
   await page.locator('.stage.at-table').waitFor();
   await page.locator('.pill.leave').click();
-  await page.locator('.d-title', { hasText: '现在离开' }).waitFor();
+  await page.locator('.d-title', { hasText: '现在离桌' }).waitFor();
   await page.locator('.d-btn.danger').click();
   await page.locator('.tour-sum').waitFor({ timeout: 60_000 });
   const realPlace = Number(((await page.locator('.tour-sum .sum-net').textContent()) ?? '').replace(/\D/g, ''));
@@ -186,7 +186,7 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
   if (!/锦标赛 · 9 人赛 · 第 \d+ 级/.test(where) || (await page.locator('.seat:not(.empty)').count()) !== 9) throw new Error(`nine resume: ${where}`);
   const leave = async (): Promise<number> => {
     await page.locator('.pill.leave').click();
-    await page.locator('.d-title', { hasText: '现在离开' }).waitFor();
+    await page.locator('.d-title', { hasText: '现在离桌' }).waitFor();
     await page.locator('.d-btn.danger').click();
     await page.locator('.tour-sum').waitFor({ timeout: 60_000 });
     const place = Number(((await page.locator('.tour-sum .sum-net').textContent()) ?? '').replace(/\D/g, ''));
@@ -263,6 +263,7 @@ export async function tourRoomFlow(browser: Browser, base: string): Promise<void
     const cash = await hp.locator('.friends.open .pill', { hasText: '开房间' }).boundingBox();
     if (!cash || cash.y + cash.height > DESK_H) throw new Error(`cash 开房间 should stay on the first screen, got ${JSON.stringify(cash)}`);
     await shot(hp, 'tourroom-lobby-cash');
+    await realRoom(hp);
     await hp.locator('.friends.open .kind', { hasText: '锦标赛' }).click();
     if (await hp.locator('.sizes').isVisible()) throw new Error('size row should hide for a tournament');
     if (!(await hp.locator('.friends.open .fill').textContent())?.includes('开')) throw new Error('电脑补 should default on');
@@ -287,7 +288,7 @@ export async function tourRoomFlow(browser: Browser, base: string): Promise<void
     if (!/锦标赛 · 第 \d+ 级 · 盲注 [\d,]+\/[\d,]+ · /.test(where)) throw new Error(`tour room top bar: ${where}`);
     for (const p of [hp, gp]) {
       if (await p.locator('.next-hand:visible').count()) throw new Error('tournament room should not have a next-hand button');
-      for (const t of ['补码', '歇一手']) if (await p.locator('.hud .pill', { hasText: t }).isVisible()) throw new Error(`tournament room should not show ${t}`);
+      for (const t of ['补筹码', '歇一手']) if (await p.locator('.hud .pill', { hasText: t }).isVisible()) throw new Error(`tournament room should not show ${t}`);
     }
     // 打：一直跟注；被淘汰就选"看到结束"；两边的结束页都出来为止
     let tableShot = false;
@@ -330,7 +331,7 @@ export async function tourRoomFlow(browser: Browser, base: string): Promise<void
       if (!(place === 1 || place === 2)) throw new Error(`${tag}: human place should be 1 or 2: ${place}`);
       if ((await p.locator('.tour-top li').count()) !== 2) throw new Error(`${tag}: 真人名次表 should list the 2 humans`);
       const line = (await p.locator('.tour-sum .sum-mood').textContent()) ?? '';
-      if (!/^结回钱包 [\d,]+$/.test(line)) throw new Error(`${tag}: prize line: ${line}`);
+      if (!/^奖金进钱包 [\d,]+$/.test(line)) throw new Error(`${tag}: prize line: ${line}`);
       prizes.push(Number(line.replace(/\D/g, '')));
       if ((place === 1) !== (prizes.at(-1) === 4_000)) throw new Error(`${tag}: human place ${place} but prize ${line}`);
       log(tag, 'tour place', place, line);
@@ -348,6 +349,7 @@ export async function tourRoomFlow(browser: Browser, base: string): Promise<void
     log('tour room wallets', delta.join(), 'sum 0');
     // 每人同时 1 个房间：比赛打完 kit 就还了房主的名额，回大厅马上能开新房，不被 has_room 送回这一间
     await enter(hp, '好友房');
+    await realRoom(hp);
     await hp.locator('.friends.open .kind', { hasText: '现金桌' }).click();
     await hp.locator('.friends .pill', { hasText: '开房间' }).click();
     await hp.locator('.room-wait').waitFor({ timeout: 20_000 });

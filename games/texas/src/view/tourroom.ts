@@ -33,7 +33,7 @@ export function tourEndBody(i: TourEnd): HTMLElement {
   const body = el('div', 'summary tour-sum');
   // 奖金按真人之间的名次分：大字写真人里第几，全桌名次（含电脑）放小字，免得"第 5 名拿全部奖池"看着像算错
   const mine = i.rows.findIndex((r) => r.me);
-  const prize = i.played ? (i.fun ? '娱乐赛：筹码不算数' : `结回钱包 ${chips(i.prize ?? 0)}`) : '';
+  const prize = i.played ? (i.fun ? '娱乐赛：筹码不算数' : `奖金进钱包 ${chips(i.prize ?? 0)}`) : '';
   if (i.place === null || mine < 0) heroBox(body, `冠军 ${i.champion}`, 'even', prize);
   else {
     heroBox(body, i.rows.length > 1 ? `真人第 ${mine + 1} 名` : `第 ${i.place} 名`, mine === 0 || (i.prize ?? 0) > 0 ? 'win' : 'even', prize);
@@ -68,6 +68,6 @@ export function tourOutBody(o: TourOut): HTMLElement {
   heroBox(body, `第 ${o.place} 名`, 'lose', o.prize);
   if (o.hands !== undefined) sumGrid(body, [['打了', `${o.hands} 手`]]);
   lastHandBox(body, '出局那手', o.last, o.name, o.me);
-  el('p', 'sum-note', body, '现在离开也照样排名次、结奖金。');
+  el('p', 'sum-note', body, '现在离桌也照样排名次、发奖金。');
   return body;
 }

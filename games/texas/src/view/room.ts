@@ -86,12 +86,12 @@ export class RoomPanel {
       this.info,
       o && st && tour
         ? `锦标赛 · ${o.fun ? '娱乐' : st.name} · 6 人 · 每人 ${chips(START_STACK)} 比赛筹码，打到剩一人。` +
-            (o.fun || site.standalone ? '筹码不算数' : `开赛时每个坐下的人交一份报名费 ${chips(st.max)}，奖池只在真人之间按名次分，结回钱包`) +
+            (o.fun || site.standalone ? '筹码不算数' : `开赛时每个坐下的人交一份报名费 ${chips(st.max)}，奖池只在真人之间按名次分，奖金进钱包`) +
             (o.fill ? '；空位开赛时由电脑补' : '；空位不补，按坐下的人数开赛') +
             '。坐满 6 人或房主点开始就开赛，开赛后不能再坐下'
         : o && st
         ? `${o.fun ? '娱乐 · ' : ''}${st.name} · 盲注 ${chips(st.sb)}/${chips(st.bb)} · ${o.size} 人。` +
-            (site.standalone || o.fun ? `开打时每个坐下的人带 ${chips(st.max)} 上桌（筹码不算数）；空位由电脑补` : `开打时每个坐下的人从钱包带 ${chips(st.max)} 上桌，离桌或房间关掉时结回去；空位由电脑补`)
+            (site.standalone || o.fun ? `开打时每个坐下的人带 ${chips(st.max)} 上桌（筹码不算数）；空位由电脑补` : `开打时每个坐下的人从钱包带 ${chips(st.max)} 上桌（钱包不够的有多少带多少，至少 ${chips(st.min)}），离桌或房间关掉时剩下的带回钱包；至少两个真人才开打，其余空位电脑补`)
         : '',
     );
     const size = o?.size ?? SEATS;

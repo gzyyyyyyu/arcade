@@ -271,10 +271,10 @@ export type { CreateResult } from 'arcade-kit/client';
  */
 export const createRoom = (opts: RoomOpts, name?: string | null): Promise<CreateResult> => kitCreateRoom(withNickname('rooms', name), opts);
 
-/** kit 的默认说法里换掉德州自己的措辞：房间关了要说桌上的筹码结回钱包、收场是"这一手打完" */
+/** kit 的默认说法里换掉德州自己的措辞：房间关了要说桌上的筹码带回钱包、收场是"这一手打完" */
 const TEXTS: RoomTexts = {
-  roomClosed: '房间关了，桌上的筹码已经结回钱包',
-  quota: '今天联机的人太多了，这一手打完先散了，桌上的筹码结回钱包，娱乐、实盘照常玩',
+  roomClosed: '房间关了，桌上的筹码已经带回钱包',
+  quota: '今天联机的人太多了，这一手打完先散了，桌上的筹码带回钱包，娱乐、实盘照常玩',
 };
 /** 单独部署没有钱包（docs/deploy.md 10.1）：不提结回 */
 const STANDALONE_TEXTS: RoomTexts = {
@@ -303,7 +303,7 @@ function errorText(code: string): string {
     case 'not_in_tour':
       return '锦标赛里没有这个操作';
     case 'cannot_rebuy':
-      return '已经是满的了，或者补码还在路上';
+      return '已经是满的了，或者补的筹码还在路上';
     case 'room_over':
     case 'closed':
       return '房间已经散了';

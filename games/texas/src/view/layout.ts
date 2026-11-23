@@ -174,10 +174,10 @@ export function betPos(p: Pt, g: Geo, mine: boolean, packed = false): Pt {
 
 /** 庄家按钮：在下注的位置旁边偏一点 */
 export function buttonPos(p: Pt, g: Geo, mine: boolean, packed = false): Pt {
-  // 竖屏别人的：按下注摆会落到公共牌、别人的下注上；两侧的贴在头像朝外的一侧正中（底牌在朝桌心那边，动作签在正上方；上角会被弹出来的动作签碰到），顶上的放名牌右下
+  // 竖屏别人的：按下注摆会落到公共牌、别人的下注上；两侧的放在头像朝外的上角（底牌在朝桌心那边，动作签挂在名牌下面；原来贴在头像外侧正中，360 宽时被屏幕边裁掉一半），顶上的放名牌右下
   // 矮竖屏顶上一排挨得近：D 放在头像朝外的一侧、名牌上面那一行（右边的家底牌在左边，所以按桌心分左右）
   if (packed && !mine && isTop(p, g)) return { x: p.x + (p.x <= felt(g).cx ? -44 : 44), y: p.y + 6 };
-  if (g.tall && !mine) return isTop(p, g) ? { x: p.x + 84, y: p.y + 62 } : { x: p.x - (p.x < felt(g).cx ? 1 : -1) * 42, y: p.y };
+  if (g.tall && !mine) return isTop(p, g) ? { x: p.x + 84, y: p.y + 62 } : { x: p.x - (p.x < felt(g).cx ? 1 : -1) * 44, y: p.y - 32 };
   const b = betPos(p, g, mine, packed);
   // 右半边的座位，下注那摞筹码是靠右对齐、往左长的（style.css 的 .bet.from-r），放在左边会压在筹码上：改放在筹码上方
   if (!mine && p.y >= 150 && p.x > felt(g).cx) return { x: b.x - 18, y: b.y - 36 };

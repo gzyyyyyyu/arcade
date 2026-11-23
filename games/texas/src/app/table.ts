@@ -357,11 +357,11 @@ export function createTable(c: App) {
    */
   async function waitTopUp(s: Solo): Promise<void> {
     const body = document.createElement('div');
-    const msg = el('p', '', body, '钱包连不上，补码还没补上。这笔筹码可能已经从钱包扣了，所以牌桌先停在这儿等它回话：连上了自动补上、接着打，不会重复扣。');
+    const msg = el('p', '', body, '钱包连不上，补的筹码还没到。这笔筹码可能已经从钱包扣了，所以牌桌先停在这儿等它回话：连上了自动补上、接着打，不会重复扣。');
     const clock = el('p', 'sum-note', body);
     const t0 = Date.now();
     let closed = false;
-    void dialog(stage, '补码在路上', body, [{ label: '先回首页', value: 'lobby' }]).then(() => (closed = true));
+    void dialog(stage, '补的筹码在路上', body, [{ label: '先回首页', value: 'lobby' }]).then(() => (closed = true));
     let err: string | null = null;
     while (!closed && s.toppingUp && Date.now() - t0 < TOPUP_WAIT_MS) {
       setText(clock, `已经等了 ${Math.round((Date.now() - t0) / 1000)} 秒，最多等 ${TOPUP_WAIT_MS / 1000} 秒`);
@@ -373,13 +373,13 @@ export function createTable(c: App) {
       return toppedUp(s, err);
     }
     if (!closed) {
-      setText(msg, '等了一分钟，钱包还是连不上。先回首页：这一桌和这一笔补码记在本机，钱包连上后自动补上，点"接着打"回到这一桌。');
+      setText(msg, '等了一分钟，钱包还是连不上。先回首页：这一桌和这一笔补筹码记在本机，钱包连上后自动补上，点"接着打"回到这一桌。');
       setText(clock, '');
-      await dialog(stage, '补码在路上', body, [{ label: '回首页', value: 'lobby', primary: true }]);
+      await dialog(stage, '补的筹码在路上', body, [{ label: '回首页', value: 'lobby', primary: true }]);
     }
     if (c.solo !== s || !s.toppingUp) return refresh();
     stopCountdown();
-    c.walletNote = '补码还在路上：钱包连上后自动补上，点"接着打"回到这一桌';
+    c.walletNote = '补的筹码还在路上：钱包连上后自动补上，点"接着打"回到这一桌';
     window.clearTimeout(c.retryTimer);
     c.retryTimer = window.setTimeout(() => void f.settlePending().then(f.drawLobby), RETRY_MS);
     f.showLobby();
@@ -404,7 +404,7 @@ export function createTable(c: App) {
     const err = await s.leave();
     if (s.toppingUp) {
       // 补码那一笔还没回话，先不走（钱包可能已经扣了，离桌的结回会把它覆盖掉）
-      await dialog(stage, '先等补码', err === 'login' ? walletError('login') : '补码还在路上：钱包连不上，这笔筹码可能已经扣了。等它回话再离桌，这一笔才不会丢；连上后自动补上。', [{ label: '好', value: 'ok', primary: true }]);
+      await dialog(stage, '先等补筹码', err === 'login' ? walletError('login') : '补的筹码还在路上：钱包连不上，这笔筹码可能已经扣了。等它回话再离桌，这一笔才不会丢；连上后自动补上。', [{ label: '好', value: 'ok', primary: true }]);
       refresh();
       return false;
     }
@@ -419,7 +419,7 @@ export function createTable(c: App) {
       out: s.closing || err ? null : s.left - s.capped,
       left: s.left,
       // 结回没办成：登录过期的等登录后再结；钱包明确拒了的（放太久已经退回、别处结过）照实说，不显示结回了多少
-      ...(s.closing && err === 'login' ? { pending: '登录后自动结回' } : {}),
+      ...(s.closing && err === 'login' ? { pending: '登录后自动带回钱包' } : {}),
       ...(err && !s.closing ? { refused: walletError(err) } : {}),
       hands: st.hands,
       won: st.won,
@@ -431,7 +431,7 @@ export function createTable(c: App) {
     // 分享卡（仓库根 docs/social.md 1.1）：单独部署没有，还没打完一手的也不给
     await soloSummary(stage, site.standalone || !st.hands ? sum : { ...sum, share: shareIt(soloCard(sum, soloWhere(s), c.myName)) });
     if (err && s.closing) {
-      c.walletNote = err === 'login' ? LOGIN_NOTE : '钱包暂时连不上：这一桌的筹码先记在本机，稍后会自动结回钱包';
+      c.walletNote = err === 'login' ? LOGIN_NOTE : '钱包暂时连不上：这一桌的筹码先记在本机，稍后会自动带回钱包';
       if (err !== 'login') c.retryTimer = window.setTimeout(() => void f.settlePending().then(f.drawLobby), RETRY_MS);
     } else {
       c.solo = null;
