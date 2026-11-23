@@ -2,6 +2,7 @@
  * 偏好（localStorage 的 mahjong.prefs）：声音、速度、档位、难度、选着的玩法和各玩法的规则设置。
  * 各玩法的规则设置（opts、rc）怎么读、怎么改在玩法的页面钩子里（view/variants/<id>/page.ts 的 loadRules / setRules），这里只负责存取。
  */
+import { platformSoundOn } from 'arcade-kit/client';
 import { readJson, writeJson } from '../storage.ts';
 import { LEVELS, type Level } from '../ai/venues.ts';
 import { DEFAULT_VARIANT } from '../core/variants/index.ts';
@@ -64,6 +65,20 @@ function loadPrefs(): Prefs {
 
 export const prefs = loadPrefs();
 
+/** 大厅关了声音（kit docs/sound.md）：这一次打开先静音；在这里打开、关上都只管这一次，不改存着的 prefs.sound */
+const lobbyMuted = !platformSoundOn();
+
+/** 这一次打开有没有声：平时就是 prefs.sound */
+export const live = { sound: prefs.sound && !lobbyMuted };
+
+/** 静音开关：大厅静音进来的只改这一次，平时连 prefs.sound 一起存 */
+export function setLiveSound(on: boolean): void {
+  live.sound = on;
+  if (lobbyMuted) return;
+  prefs.sound = on;
+  savePrefs();
+}
+
 export function savePrefs(): void {
   // 存不上就这一次有效，不看返回值
   writeJson(PREFS_KEY, prefs);
@@ -72,7 +87,10 @@ export function savePrefs(): void {
 /** 设置面板的恢复默认：音量、静音、茶馆声、出牌速度、安全牌提示、推荐出牌回出厂值并存回（互动、聊天另存，由面板自己复位）。返回 p 方便测试 */
 export function resetSettings(p: Prefs = prefs): Prefs {
   Object.assign(p, SETTINGS_DEFAULTS);
-  if (p === prefs) savePrefs();
+  if (p === prefs) {
+    live.sound = p.sound;
+    savePrefs();
+  }
   return p;
 }
 

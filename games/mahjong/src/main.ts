@@ -19,7 +19,7 @@ import './view/pc.css';
 import { startCloud } from './app/cloud.ts';
 import { loadMe } from './app/identity.ts';
 import { installLeaveGuard } from './app/leave.ts';
-import { prefs } from './app/prefs.ts';
+import { live, prefs } from './app/prefs.ts';
 import { enterRoom } from './app/room-flow.ts';
 import { homePage, lobby, startQuick } from './app/routes.ts';
 import { session } from './app/session.ts';
@@ -28,7 +28,7 @@ import { quietUi, settleLeftover } from './app/solo-flow.ts';
 import { startSocial } from './app/social.ts';
 import { refreshWallet } from './app/wallet.ts';
 
-setSound(prefs.sound);
+setSound(live.sound);
 setVolume(prefs.volume);
 setAmbience(prefs.ambience);
 setSafeHint(prefs.safeHint);
