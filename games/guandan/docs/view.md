@@ -66,7 +66,7 @@
 ## 10. 座位
 
 - 座位：0 我（下）、1 老张（右，下家）、2 小美（上，对家）、3 阿强（左，上家）。性格只影响台词/表情（`personas.ts`）。
-- 斗地主三人桌：0 我（下）、1 老周（右，下家）、2 王姐（左，上家），布局 `table/layout.ts` 的 `seatAnchors3`；`labels.ts` 的 `setTablePersons` 换成这两个人。
+- 斗地主三人桌：0 我（下）、1 稳哥（右，下家）、2 幺妹儿（左，上家），布局 `table/layout.ts` 的 `seatAnchors3`；`labels.ts` 的 `setTablePersons` 换成这两个人。
 
 ## 11. 斗地主和每日挑战的画面
 
@@ -112,6 +112,7 @@
 - 牌桌操作区同一时间只有一个红色主按钮（出牌；斗地主叫分是"3 分"、明牌是"明牌 ×2"），"提示"用木色，"我回来了"绿、"重新带入"金；手机上按钮画出来的高度不低于 36 CSS 像素（`theme.ts` 的 `minDrawH`）。
 - 牌桌顶栏不随每一手重建：每一步走 `refreshTopBar`，按 `topBarKey`（级数、副数、倍数、实盘条的字……）没变就只重画记牌器（`counterBox`）——整条重建会让按下和松手落在新旧两个按钮上、点击丢掉（online-smoke 查一副里的 `topBuilds()` 次数）；顶栏要显示新东西时把它加进 `topBarKey`。牌桌顶栏的图标两个玩法共用 `TableSceneBase.buildTopIcons`：从右往左回首页、设置、规则（控件 `top0`–`top2`，斗地主叫 `home` / `settings` / `rules`），最左云存档；静音不单放，在设置里。手机上聊天按钮由 `chatTopStyle` 画成顶栏高度内的圆钮（kit 的按钮透明、只留点按区）。
 - 弹窗：设置、规则、战绩点弹窗外即关（`modal()` 的 `dismissOnOutside`，和 ✕、Esc 同一条关闭路径），这类弹窗同时只留一个；确认框点外不关。设置分"声音 / 对局 / 地方规则"三个页签，底下有"恢复默认"（`store.ts` 的 `resetSettings`，只动设置）。
+- 大厅静音带进来（kit `docs/sound.md`）：启动时 `platformSoundOn()` 读一次大厅的 `arcade.sound`，关了就这一次先静音、"全部声音"显示静音；在设置里打开只管这一次，不写 `arcade.sound`、不改自己存的 `muted`（`common/audio.ts` 的 `applyAudio` / `pickMuted`）。
 - 断网统一说 `stake-text.ts` 的 `NET_DOWN`（"网络不通，检查后重试"）配"重试"按钮：好友房面板（`#ol-retry`）、实盘选档页钱包连不上（钱包那行右边，控件 `tierRetry`）、实盘带入结回、出错面板。筹码的事只说"带入 / 结回"。
 - 画布里能点的一律用 `ui/kit.ts` 的 `Button`、`iconButton`、`segmented`（自带悬停、按下、禁用、加载中，登记进 `ui/focus.ts` 的键盘焦点；弹窗用 `modal()`，自带焦点层和 Esc）。
 - 点按区域至少 44 CSS 像素：`minHit()` 是按当前缩放换算的世界坐标（电脑 44、手机横屏约 82–100），按钮默认就扩到这么大；挨得近的用 `setHit` 收到间距或用它的 `dy` 挪到空着的一边（`segmented` 的 `hitDy` 同理），不许互相压着；贴着屏幕上沿的顶栏按钮用 `setTopHit`（从上沿往下算，不伸出屏幕），最右一个往里放半个点按区。弹窗（`modal()`）右上角的关闭键自己避开屏幕上沿和右沿；行数多的弹窗（选难度、选档位）按行距 `minHit()` + 2 排，多出来的高度加在弹窗上。

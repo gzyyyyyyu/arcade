@@ -1,6 +1,7 @@
 /** 斗地主牌桌上的按钮、顶栏、残局条、记牌器、互动和按钮刷新（从 DdzScene.ts 拆出，只搬家；函数接收场景实例）。 */
 import type Phaser from 'phaser';
 import { TableFun, funItem, type FunSeat } from 'arcade-kit/table-fun';
+import { personById } from 'arcade-kit/personas';
 import { localChat } from 'arcade-kit/chat';
 import { currentMult, decideDdz, sortDdz } from '../../variants/doudizhu/index.ts';
 import { MOOD_LINES, PHRASES } from '../../net/fun-text.ts';
@@ -37,8 +38,6 @@ const PAPER_INK = 0x3a2414;
 /** 叫分按钮：0 = 不叫 */
 const BIDS = [0, 1, 2, 3] as const;
 
-/** 电脑的性格对应 kit 的互动脾气：老周稳、王姐闹 */
-const TEMPER_DDZ = { laozhou: 'cool', wangjie: 'rowdy' } as const;
 
 export function buildButtons(sc: DdzScene, W: number): void {
   const cx = W / 2;
@@ -327,7 +326,7 @@ export function buildFun(sc: DdzScene, W: number): void {
           name: seatName(s),
           me: sc.isMe(s),
           bot: net ? !!seatIdentity[s] && !seatIdentity[s]!.human : s !== DDZ_ME,
-          temper: who === 'laozhou' || who === 'wangjie' ? TEMPER_DDZ[who] : 'normal',
+          temper: who === 'me' ? 'normal' : personById(who).fun,
         };
       }),
     avoid: () => [sc.worldRect(0, BUTTON_Y - DDZ_FUN.avoidAbove, W, GAME_HEIGHT - BUTTON_Y + DDZ_FUN.avoidAbove)],

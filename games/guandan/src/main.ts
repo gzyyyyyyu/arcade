@@ -30,7 +30,7 @@ import { randomSeed } from './view/common/seed.ts';
 import { EMPTY_STATS, KEYS, backupKey, SYNC_SLOTS, getSettings, getStats, loadDdzSave, loadSave, onSyncedChange, rawStore, tutorialDone, type SyncSlot } from './view/store.ts';
 import { GAME_HEIGHT, RENDER_SCALE, worldSizeFor, worldWidthFor } from './view/common/theme.ts';
 import { dropBackdrops, ensureBackdrops, titleBackdrop } from './view/common/textures.ts';
-import { applyAudio } from './view/ui/panels.ts';
+import { applyAudio } from './view/common/audio.ts';
 
 installErrorHandler();
 // 没人接住的报错报给平台（kit 0.22：只发报错文字、调用栈、路径、版本，不带账号；同一条一页只报一次）。兜底面板照旧给玩家看

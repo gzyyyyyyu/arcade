@@ -3,7 +3,7 @@
 | key | 内容 |
 |---|---|
 | `guandan.save` | 进行中的整局：`{ v, state: GameState, difficulty, counted, dealsCounted }`；整局结束即删除 |
-| `guandan.settings` | 音效档位 `sfx`、音乐档位 `musicVol`（0 关到 3 大）、全部静音 `muted`、动画速度、难度、地方规则、牌背、记牌器开关、互动开关（字段名仍是 `taunts`）、娱乐单机的局长 `length`（`short` / `full`）、快速匹配桌上和陌生人打字聊天 `strangerChat`（默认开）、斗地主娱乐的发牌 `ddzDeal`（`classic` / `clump` 不洗牌） |
+| `guandan.settings` | 音效档位 `sfx`、音乐档位 `musicVol`（0 关到 3 大）、全部静音 `muted`（大厅关了声音时这一次先静音但不写这一项，见 `common/audio.ts` 的 `applyAudio`）、动画速度、难度、地方规则、牌背、记牌器开关、互动开关（字段名仍是 `taunts`）、娱乐单机的局长 `length`（`short` / `full`）、快速匹配桌上和陌生人打字聊天 `strangerChat`（默认开）、斗地主娱乐的发牌 `ddzDeal`（`classic` / `clump` 不洗牌） |
 | `guandan.stats` | 战绩：局数、胜局、连胜、最高连胜、副数、头游次数 |
 | `guandan.tutorial` | 新手引导是否看过 |
 | `guandan.achievements` | 成就 `{ v, unlocked: id[], gdGames, ddzGames, gdStreak }`（`view/common/achievements.ts`）；坏数据当空；只在本机，不进云同步 |

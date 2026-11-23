@@ -347,7 +347,7 @@ export class TitleScene extends Phaser.Scene {
     }
     // 模式卡（和掼蛋同一种排法）：娱乐（选难度）、实盘（选档，单独部署没有钱包不摆）、好友房
     const modes: [string, string, string, ButtonStyle, string, () => void][] = [
-      ['fun', '娱乐', phone ? '随便玩' : '和老周、王姐', 'green', 'robot', () => this.pickDdz(saved)],
+      ['fun', '娱乐', phone ? '随便玩' : '和稳哥、幺妹儿', 'green', 'robot', () => this.pickDdz(saved)],
       ...(standalone() ? [] : [['stake', '实盘', phone ? '带筹码' : '带一份筹码', 'gold', 'crown', () => this.pickDdzStake()] as [string, string, string, ButtonStyle, string, () => void]]),
       // 好友房：开房时带上玩法（斗地主），3 个座位
       ['online', '好友房', '叫朋友来', 'blue', 'cards', () => openOnline('ddz')],

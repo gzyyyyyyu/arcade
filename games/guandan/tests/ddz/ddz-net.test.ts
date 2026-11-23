@@ -191,12 +191,12 @@ describe('斗地主联机会话', () => {
     ses.close();
   });
 
-  it('电脑座位按先后依次是老周、王姐；掉线接管的座位显示主人的名字', () => {
+  it('电脑座位按先后依次是稳哥、幺妹儿；掉线接管的座位显示主人的名字', () => {
     const { ses } = make();
     const st = walk(2);
     ses.handle(welcome(st[2]!, 0, room(st[2]!, ['human', 'ai', 'ai'])));
-    expect(seatName(1)).toBe('老周');
-    expect(seatName(2)).toBe('王姐');
+    expect(seatName(1)).toBe('稳哥');
+    expect(seatName(2)).toBe('幺妹儿');
     ses.close();
   });
 

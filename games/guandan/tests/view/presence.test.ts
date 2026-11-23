@@ -64,27 +64,28 @@ describe('好友在打（好友房面板那一行）', () => {
 });
 
 describe('启动时没问出平台', () => {
-  it('platform 是 unknown：挂社交前再问一次（给足时间），问出来就挂上；还是问不出就不挂', async () => {
-    for (const again of [{ platform: true, user: { id: 'u1' } }, { platform: 'unknown' }] as const) {
+  it('unknown 交给 kit 的 mountSocial 再问（SOCIAL_DETECT_RETRY）；没平台、没登录不加载社交', async () => {
+    const cases = [
+      { info: { platform: 'unknown' }, mounts: true },
+      { info: { platform: false }, mounts: false },
+      { info: { platform: true }, mounts: false },
+      { info: { platform: true, user: { id: 'u1' } }, mounts: true },
+    ] as const;
+    for (const c of cases) {
       vi.resetModules();
-      const asked: number[] = [];
-      vi.doMock('../../src/view/common/platform.ts', () => ({ platformInfo: () => ({ platform: 'unknown' }) }));
-      vi.doMock('arcade-kit/client', () => ({
-        detectPlatform: async (o: { timeoutMs: number }) => {
-          asked.push(o.timeoutMs);
-          return again;
+      const given: unknown[] = [];
+      vi.doMock('../../src/view/common/platform.ts', () => ({ platformInfo: () => c.info }));
+      vi.doMock('arcade-kit/social', () => ({
+        mountSocial: async (o: { platform: unknown }) => {
+          given.push(o.platform);
+          return null;
         },
       }));
-      const { mountSocialOnce, presenceNow } = await import('../../src/view/common/social.ts');
+      const { mountSocialOnce } = await import('../../src/view/common/social.ts');
       await mountSocialOnce(() => null);
-      expect(asked).toHaveLength(1);
-      expect(asked[0]).toBeGreaterThan(2_500);
-      // 挂上了才报得出位置
-      reported.length = 0;
-      presenceNow();
-      expect(reported).toHaveLength(again.platform === true ? 1 : 0);
+      expect(given).toEqual(c.mounts ? [c.info] : []);
     }
     vi.doUnmock('../../src/view/common/platform.ts');
-    vi.doUnmock('arcade-kit/client');
+    vi.doUnmock('arcade-kit/social');
   });
 });

@@ -65,9 +65,9 @@ font:18px/1.6 "PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;text
 
 /**
  * 单独部署时的游客：首页、开房、进房三处同一个设置。昵称不许冒充电脑（kit 按包含判断，"老张1"也挡住）；
- * 和画面上的名字（src/view/art/avatars.ts 的 PERSONAS）是同一份，tests/gate.test.ts 核对
+ * 和画面上的名字（src/view/art/avatars.ts 的 PERSONAS，取自共用名册）是同一份，tests/gate.test.ts 核对；老周、王姐（0.40.10 换成稳哥、幺妹儿）照留
  */
-export const GUEST: GuestOptions = { reserved: ['老张', '小美', '阿强', '老周', '王姐'] };
+export const GUEST: GuestOptions = { reserved: ['老张', '小美', '阿强', '稳哥', '幺妹儿', '老周', '王姐'] };
 
 const CREATE_PATH = `${ROOM_PATH}/rooms`;
 const JOIN_RE = new RegExp(`^${ROOM_PATH}/rooms/([^/]+)/ws$`);
