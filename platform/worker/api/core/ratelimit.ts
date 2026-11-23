@@ -137,7 +137,7 @@ function failStatement(db: Db, key: string, limits: Limits, now: number): D1Prep
 }
 
 /**
- * 算密码之前先占一次尝试（第三轮审计）：按失败记一次（同 failStatement），对了再由调用方清零。
+ * 算密码之前先占一次尝试：按失败记一次（同 failStatement），对了再由调用方清零。
  * 先占位再验密码：先查锁、算完 PBKDF2 再记失败的话，锁到期那一刻并发打进来的一批都过了查锁，每个都试了一次密码。
  * 占位是一条带条件的 UPSERT，锁着时写 0 行、不返回，这一次就 429；让它锁上的那一次照常往下验（算第 5 次失败）。
  */
