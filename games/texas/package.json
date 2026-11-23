@@ -2,7 +2,7 @@
   "name": "texas",
   "private": true,
   "license": "MIT",
-  "version": "0.43.3",
+  "version": "0.43.4",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -31,7 +31,7 @@
     "lint": "biome lint ."
   },
   "dependencies": {
-    "arcade-kit": "npm:@yyyu-star/arcade-kit@^0.30.0"
+    "arcade-kit": "npm:@yyyu-star/arcade-kit@^0.31.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
