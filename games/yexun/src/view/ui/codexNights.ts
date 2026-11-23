@@ -9,6 +9,7 @@ import { MAP_EVENTS, MAP_EVENT_AT, type MapEventKind } from '../../content/mapEv
 import { BLOOD_MOON, DANGERS, ELITE_RAGE, type Danger, type DangerDef } from '../../content/waves.ts';
 import { WEEKLIES, WEEKLY_ORDER, weeklyLine, type WeeklyId } from '../../content/weekly.ts';
 import { weeklyFor } from '../../online/weekly.ts';
+import { DAILY_DANGER } from '../../online/daily.ts';
 import { affixTexts, goalText, TRIALS, type TrialId } from '../../content/trials.ts';
 import { EVENT_ICON } from './eventIcons.ts';
 
@@ -59,7 +60,7 @@ export function nightData(today = ''): NightData {
     nightmare,
     curseNote: `每挂一条，这局铜钱多 ${pct(CURSE_COIN_BONUS)}%；一局最多挂 ${MAX_CURSES} 条；实盘不能挂`,
     curses: CURSE_IDS.map((id) => ({ name: CURSES[id].name, text: CURSES[id].text })),
-    weeklyNote: '每个北京时间自然周（周一起）一个，按这个顺序轮着来；只在主页「本周夜事」挑战里生效（固定地图、危险 2、小道士，成绩只进周榜），普通守夜、实盘、夜探、每日挑战不开',
+    weeklyNote: `每个北京时间自然周（周一起）一个，按这个顺序轮着来；只在主页「本周夜事」挑战里生效（固定地图、危险 ${DAILY_DANGER}、小道士，成绩只进周榜；试炼「月黑」一关也用月蚀），普通守夜、实盘、夜探、每日挑战不开`,
     weeklies: WEEKLY_ORDER.map((id) => ({ name: WEEKLIES[id].name, text: WEEKLIES[id].text, now: id === nowWeekly })),
   };
 }

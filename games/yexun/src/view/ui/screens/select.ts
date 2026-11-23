@@ -220,7 +220,7 @@ export class Select {
     const kinds =
       '<div class="yx-kinds">' +
       `<button type="button" class="yx-kind${raid ? '' : ' on'}" data-a="kind" data-k="vigil"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>守夜</b><em>15 分钟 · 撑到天亮</em></span></button>` +
-      `<button type="button" class="yx-kind${raid ? ' on' : ''}" data-a="kind" data-k="raid"><img class="yx-scene" alt="" src="${sceneUrl('raid', 320, 100)}"><span class="yx-kindtxt"><span class="yx-lamp"></span><b>夜探</b><em>搜宝、打怪、找门撤离</em></span></button>` +
+      `<button type="button" class="yx-kind${raid ? ' on' : ''}" data-a="kind" data-k="raid"><img class="yx-scene" alt="" src="${sceneUrl('raid', 320, 100)}"><span class="yx-kindtxt"><span class="yx-lamp"></span><b>夜探</b><em>搜宝、打怪、找门撤出</em></span></button>` +
       '</div>';
 
     // 地图 / 镇子大卡
@@ -268,7 +268,7 @@ export class Select {
         const town = isLiveTown(this.tpl) ? this.tpl : 'guzhen';
         const who = ok ? s.character : 'xiaodao';
         pick = townGrid;
-        note = `危险 ${RAID_LIVE.danger[t]} · 不带加成${swap}`;
+        note = `危险 ${RAID_LIVE.danger[t]} · 不带加成和咒印${swap}`;
         facts = factCards(raidLiveFacts(t, town, who), plainNote(raidLiveNote(t, town, who)));
       } else {
         pick = mapGrid;

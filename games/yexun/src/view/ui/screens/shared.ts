@@ -7,7 +7,7 @@ import type { CharacterId, CurseId } from '../../../content/meta.ts';
 import type { LiveTier } from '../../../content/live.ts';
 import { RAID_LIVE_TEMPLATES, type RaidLiveTemplate } from '../../../content/explore.ts';
 import type { Best, LastMode, RaidPick } from '../../../platform/save.ts';
-import { beijingDate, daysToNightmareSunday } from '../../../online/daily.ts';
+import { beijingDate, daysToNightmareSunday, NIGHTMARE_SUNDAY_DANGER } from '../../../online/daily.ts';
 
 /** 锁：不用表情字符（有的设备、无头浏览器没有表情字体，显示成方框） */
 export const LOCK_SVG = '<svg class="yx-lock" viewBox="0 0 12 12" aria-label="没解锁"><rect x="2" y="5.5" width="8" height="6" rx="1.2" fill="currentColor"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
@@ -85,7 +85,7 @@ export function bindToggles(root: HTMLElement, list: Toggle[]): Record<string, (
  *  以前是主页上一条单独的胶囊，主页信息块太多（docs/ui.md 第 11 节），挪成角标 */
 export function dailyButton(): string {
   const n = daysToNightmareSunday(beijingDate(Date.now()));
-  const tip = n === 0 ? `每日挑战 · 今天是噩梦日，守夜每日 ${DANGERS[6].name}` : `每日挑战 · 守夜每日，周日噩梦日还有 ${n} 天`;
+  const tip = n === 0 ? `每日挑战 · 今天是噩梦日，守夜每日 ${DANGERS[NIGHTMARE_SUNDAY_DANGER].name}` : `每日挑战 · 守夜每日，周日噩梦日还有 ${n} 天`;
   return `<button type="button" class="yx-btn yx-daily" data-a="daily" title="${tip}" aria-label="${tip}">每日${n === 0 ? '<i class="yx-dbadge">噩梦</i>' : ''}</button>`;
 }
 

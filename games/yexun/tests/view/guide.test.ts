@@ -4,6 +4,7 @@ import { PASSIVES, WEAPONS, type WeaponId } from '../../src/content/weapons.ts';
 import { CHARACTER_IDS } from '../../src/content/meta.ts';
 import { mainSchools } from '../../src/content/pools.ts';
 import { BUILD_IDS, BUILDS } from '../../tools/bots.ts';
+import { GATE_WINDOWS, GATE_WINDOWS_EARLY } from '../../src/content/explore.ts';
 
 // 玩法说明的流派单子和机器人用的是同一份打法：两边一改另一边就要跟（说明讲的就是模拟器验证过的路线）
 describe('玩法说明的数据', () => {
@@ -29,5 +30,13 @@ describe('玩法说明的数据', () => {
       expect(SCHOOLS[id].brief.length).toBeGreaterThan(4);
       expect(CHARACTER_IDS.some((c) => mainSchools(c).includes(id))).toBe(true);
     }
+  });
+});
+
+// 玩法说明夜探段只写早开那一套的第一座门：后面几座得和普通的一样，不一样就要改说明
+describe('夜探开门时段的说明', () => {
+  it('危险 0 / 教学镇只有第一座门早开', () => {
+    expect(GATE_WINDOWS_EARLY.slice(1)).toEqual(GATE_WINDOWS.slice(1));
+    expect(GATE_WINDOWS_EARLY[0]!.from).toBeLessThan(GATE_WINDOWS[0]!.from);
   });
 });

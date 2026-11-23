@@ -211,7 +211,7 @@ export const RAID_TEMPLATES: Record<RaidTemplateId, RaidTemplate> = {
   teach: {
     id: 'teach',
     name: '教学镇',
-    blurb: '第一次夜探：小镇子，第 3 分钟就开门，死了也不丢包',
+    blurb: '第一次夜探：小镇子，第 3 分钟就开门，倒下也不丢包',
     size: 2800,
     cell: 400,
     streets: [0, 3, 6],

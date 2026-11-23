@@ -7,7 +7,9 @@ import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import { fmtClock, TICKS_PER_SECOND } from '../../content/clock.ts';
 import { PICKS } from '../../content/picks.ts';
 import type { EnemyKind } from '../../content/enemies.ts';
-import { CHEST, GATE_WINDOWS, RAID_DAWN, RAID_LATE, RAID_SUPPLY } from '../../content/explore.ts';
+import { CHEST, GATE, GATE_WINDOWS, GATE_WINDOWS_EARLY, RAID_DAWN, RAID_LATE, RAID_SUPPLY } from '../../content/explore.ts';
+import { WEEKLIES, WEEKLY_ORDER } from '../../content/weekly.ts';
+import { DAILY_DANGER } from '../../online/daily.ts';
 
 const pct = (v: number): string => `${Math.round(v * 100)}%`;
 import { NIGHT_MARKET } from '../../content/market.ts';
@@ -22,7 +24,7 @@ import { XINFA_TEXT } from '../../content/xinfa.ts';
 import { altStart, mainSchools } from '../../content/pools.ts';
 import { schoolIcon } from '../art/sprites-selicons.ts';
 import { heroKey } from '../art/heroes.ts';
-import { DANGER_IDS, DANGERS, DAWN_TICK, EVENTS, MID_BOSS } from '../../content/waves.ts';
+import { DANGER_IDS, DANGERS, DAWN_TICK, EVENTS, LIVE_EASE, MID_BOSS } from '../../content/waves.ts';
 import { ELEMENT_SET, MAX_PASSIVES, MAX_WEAPON_LEVEL, MAX_WEAPONS, MERGE_STAGE, NEXT_ELEMENT, PASSIVES, STAT_NAME, TYPE_SETS, WEAPONS, type MergeDef, type WeaponId, type WeaponType } from '../../content/weapons.ts';
 import { counters } from './counters.ts';
 import { closeModal, modalChrome, openModal } from './modal.ts';
@@ -181,7 +183,7 @@ export class Guide {
           '<li><b>走位</b>电脑用 WASD 或方向键，手机按住屏幕左半边拖出摇杆，轻轻一拖慢走（摇杆头变小）、拖远全速。</li>' +
           `<li>${this.img(WEAPONS.sword.icon)}法器自己出手，不用点。最多带 ${MAX_WEAPONS} 件法器、${MAX_PASSIVES} 件被动。</li>` +
           `<li>${this.img(SKILLS.xiaodao.icon)}<b>技能</b>每个角色一个主动技能：电脑按空格或 Q，手机点右下角的技能钮，冷却环走满就发亮。按住或悬停技能钮看它做什么，暂停页也写着。设置里的「自动技能」打开后，技能好了而且身边有怪就自动放，不用你按（默认关）。</li>` +
-          `<li>${this.img('soul')}怪倒下掉魂火，走近自动吸，吸满就升级。</li>` +
+          `<li>${this.img('soul')}怪倒下掉魂珠，走近自动吸，吸满就升级。</li>` +
           '</ul>',
       ) +
         this.sec(
@@ -217,7 +219,7 @@ export class Guide {
         '<div class="yx-gcards"><span>新法器</span><span>法器升一级</span><span>被动</span></div>' +
           `<ul class="yx-glist"><li><b>刷新</b>三张都不想要，整批换掉。起步 ${PICKS.rerolls} 次，进化一件、打倒精英或首领各补 1 次（心法流派的法器进化补 2 次），最多攒 ${PICKS.rerollMax} 次。</li><li><b>封禁</b>先点它再点一张卡，这张整局不再出现。起步 ${PICKS.bans} 次。</li><li><b>跳过</b>不拿，随机拿个小奖：铜钱、回血、下次多一张卡、刷新 +1。</li>` +
           `<li><b>卡上的数</b><span class="yx-gstats">${STAT_ORDER.map((k) => `<span>${statIcon(k)}${STAT_NAME[k]}</span>`).join('')}</span><small>每件法器的叫法不一样（「几道雷」「回一层要多久」），电脑上悬停数字能看到。</small></li></ul>` +
-          '<p class="yx-gnote">卡上写着拿了以后能凑成什么，留意「凑成」「再拿 X」。手上有某个搭配的一件料，另一件更常出；带了心法，每次至少一张那个流派的卡（这两条实盘不算）。</p>',
+          '<p class="yx-gnote">卡上写着拿了以后能凑成什么，留意「凑成」「再拿 X」。手上有某个搭配的一件料，另一件更常出；带了心法，每次至少一张那个流派的卡（实盘也一样）。</p>',
       ),
       this.keys(),
     );
@@ -258,7 +260,7 @@ export class Guide {
       const k = SKILLS[id];
       return `<li>${this.img(heroKey(id), 'yx-gface', 64)}<b>${esc(c.name)}</b>技能「${esc(k.name)}」${Math.round(k.cd / 30)} 秒 · 被动「${esc(c.perkName)}」<small>${esc(c.unlock)}${c.privilege ? `；小特权：${esc(c.privilege)}` : ''}</small></li>`;
     }).join('');
-    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：这个流派多一条特色（剑修「剑意」近身更疼、镇守「不动如山」站定更硬……，流派页有全表；升级卡名字旁标着特色名），每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新。每个角色各记一份，实盘也能用；每日挑战、每周夜事、首领连战不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
+    return this.sec('角色（选角页）', `<p>每个角色的血量、移速、伤害等初始数值不同，选角页有对比条。选好角色还有两行小选择：「起手」可以在原来的起手法器和第二件之间二选一；「心法」选一个本角色的主修流派：这个流派多一条特色（剑修「剑意」近身更疼、镇守「不动如山」站定更硬……，流派页有全表；升级卡名字旁标着特色名），每次升级至少出一张这个流派的卡，它的法器进化多补一次刷新。每个角色各记一份，实盘也能用；每日挑战、本周夜事、首领连战、试炼不带。</p><ul class="yx-glist yx-gtwo">${chars}</ul>`);
   }
 
   // ── 地图：地图、各图的事件 ──
@@ -401,7 +403,9 @@ export class Guide {
   private modeSecs(): string[] {
     const left = (t: number): string => clock(RAID_DAWN - t);
     // 屏幕上是"离天亮"倒计时，所以按倒计时写：倒计时从 A 走到 B 这段时间里开门
-    const gates = GATE_WINDOWS.map((g) => `倒计时 ${left(g.from)} 到 ${left(g.to)}${g.all ? ' 四门全开' : ' 开一座门'}`).join('；');
+    const gateText = (ws: typeof GATE_WINDOWS): string => ws.map((g) => `倒计时 ${left(g.from)} 到 ${left(g.to)}${g.all ? ' 四门全开' : ' 开一座门'}`).join('；');
+    const e0 = GATE_WINDOWS_EARLY[0]!;
+    const gates = `${gateText(GATE_WINDOWS)}（危险 0 和教学镇第一座门开得早：倒计时 ${left(e0.from)} 到 ${left(e0.to)}）`;
     const tiers = LIVE_TIER_IDS.map((t) => `${LIVE_TIERS[t].name}档 ${LIVE_TIERS[t].stake.toLocaleString('zh-CN')}`).join('、');
     const closed = LIVE_MAP_CLOSED.map((m) => MAPS[m].name).join('、');
     const s = [
@@ -409,16 +413,16 @@ export class Guide {
         `<p><b>夜市</b>开打后第 ${NIGHT_MARKET.at.map((t) => Math.round(t / 1800)).join('、')} 分钟，货郎在你附近摆 ${NIGHT_MARKET.stalls} 个摊，开 ${NIGHT_MARKET.open / 30} 秒，屏幕边的箭头指路；站在摊前一会儿就用局里的铜钱买下：回血、刷新、封禁、临时增益、法器升一级（升离满级最近的那件）、求签（下次升级必出离凑成最近的搭配缺的料）。第二次贵一些，怪照样来。</p>`),
       this.sec(
         '本周夜事',
-        '<p>主页的「本周夜事」按钮单独开一局：每周换一个事件（铜钱周、灯会周、精英周、月蚀周、宝箱周轮着来），地图每周也换，危险固定 2、固定小道士，不带加成和咒印。</p>' +
+        `<p>主页的「本周夜事」按钮单独开一局：每周换一个事件（${WEEKLY_ORDER.map((id) => WEEKLIES[id].name).join('、')}轮着来），地图每周也换，危险固定 ${DAILY_DANGER}、固定小道士，不带加成、咒印和锦囊。</p>` +
           '<p>一周可以打很多次，成绩只进排行里的「本周夜事」周榜，不进守夜总榜；周一零点换周，当天还能交上周的成绩。</p>',
       ),
       this.sec(
-        '夜探：搜宝、打怪、找门撤离',
+        '夜探：搜宝、打怪、找门撤出',
         '<ul class="yx-glist">' +
-          `<li>${this.img('chest')}进镇子开宝箱（站在箱子边读条），宝物放进背包。</li>` +
+          `<li>${this.img('chest')}进镇子开宝箱（站在宝箱边读条），宝物放进背包。</li>` +
           `<li><b>娱乐局</b>开箱回血：木箱 ${pct(CHEST.wood.heal)}、铜箱 ${pct(CHEST.copper.heal)}、金箱 ${pct(CHEST.gold.heal)}；铜箱、金箱再给一次三选一（实盘是随机升一件）。</li>` +
           `<li><b>宝气</b>（娱乐局）背包里每件珍品伤害 +${pct(RAID_SUPPLY.boost[2]!)}、绝品 +${pct(RAID_SUPPLY.boost[3]!)}，最多 +${pct(RAID_SUPPLY.boostMax)}：越往镇子深处搜越强，倒下跟宝物一起丢。</li>` +
-          `<li><b>撤离门</b>${gates}。站进门圈 3 秒撤出，背包带回家。</li>` +
+          `<li><b>撤离门</b>${gates}。站进门圈 ${GATE.hold / 30} 秒撤出，背包带回家。</li>` +
           `<li><b>鬼市</b>倒计时 ${left(RAID_LATE.market.from)} 到 ${left(RAID_LATE.market.to)} 镇中心摆摊，用局里的铜钱买宝物。</li>` +
           `<li><b>宝库</b>倒计时 ${left(RAID_LATE.vault.at)} 开封，要钥匙；钥匙是倒计时 ${left(RAID_LATE.vault.keyFrom)} 以后第一只倒下的精英或守卫掉的，里面 ${RAID_LATE.vault.items} 件好东西。</li>` +
           '<li>天亮还在镇里，背包全丢。屏幕边的箭头指着最近开着的门。</li>' +
@@ -427,9 +431,9 @@ export class Guide {
       this.sec(
         '首领连战：每天一局',
         '<ul class="yx-glist">' +
-          `<li>${this.img('boss')}主页点「连战」。开局直接给一套成型的法器，${RUSH_STAGES.reduce((a, s) => a + s.length, 0)} 只精英和首领一关一关上，尸王压轴。</li>` +
+          `<li>${this.img('boss')}主页点「连战」开首领连战。开局直接给一套成型的法器，${RUSH_STAGES.reduce((a, s) => a + s.length, 0)} 只精英和首领一关一关上，尸王压轴。</li>` +
           `<li>两关之间喘 ${RUSH.rest / 30} 秒、掉肉包；一局最多 ${clock(RUSH.limit)}，打完或到点收工。</li>` +
-          '<li>同一天所有人同一套构筑、同一串首领，明天换一套。上「每日连战」榜：全清的比谁快，没全清的比打倒几只。</li>' +
+          '<li>同一天所有人同一套构筑、同一串首领，明天换一套。上「每日连战榜」：全清的比谁快，没全清的比打倒几只。</li>' +
           '<li>不记守夜的纪录、不发铜钱，就是比走位。</li>' +
           '</ul>',
       ),
@@ -438,7 +442,7 @@ export class Guide {
         '<ul class="yx-glist">' +
           `<li>档位：${tiers}。撑得越久结回越多，最多 ${LIVE_MAX_BP / 10_000} 份；太早倒下就亏。</li>` +
           `<li>不带永久加成和咒印；角色和地图可以选已经解锁的，起手和心法也照选的带。` + (closed ? `${esc(closed)}暂不开放。` : '') + '</li>' +
-          `<li>守夜、夜探实盘都能放技能，纸匠、货郎、阴阳先生也都能带；升级、宝箱能抽到的法器、遇到的怪和首领都和娱乐一样。</li>` +
+          `<li>守夜、夜探实盘都能放技能，纸匠、货郎、阴阳先生也都能带；升级、宝箱能抽到的法器、遇到的怪和首领都和娱乐一样。守夜实盘危险 ${LIVE_EASE.fromDanger} 起挨打少 ${pct(1 - LIVE_EASE.dmgScale)}。</li>` +
           '<li>筹码不能买、不能换、不能转。</li>' +
           '</ul>',
       ),
