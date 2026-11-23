@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { askUser, cleanName, readBoard, submitScoreAs, type BoardDeps } from '../../src/online/api.ts';
-import { beijingDate, dailyBoardId, daysToNightmareSunday, dailyDateOpen, dailyPlan, isDailySetup, isNightmareSunday, shiftDate } from '../../src/online/daily.ts';
+import { beijingDate, DAILY_FAR_MAPS, DAILY_THEMES, DAILY_THEMES_FROM, dailyBoardId, daysToNightmareSunday, dailyDateOpen, dailyPlan, dailyTheme, isDailySetup, isNightmareSunday, shiftDate } from '../../src/online/daily.ts';
+
+const weekdayOf = (d: string): number => new Date(`${d}T00:00:00Z`).getUTCDay();
 import { buildShareCard } from '../../src/online/share.ts';
 import { createSocial } from '../../src/online/social.ts';
 import { decodeEndless, decodeVigil, endlessScore, formatScore, raidScore, scoresOfRun, submissionsFor, vigilScore } from '../../src/online/score.ts';
@@ -114,12 +116,13 @@ describe('每日挑战', () => {
     expect(dailyPlan('2026-10-17', 'vigil').setup.seed).not.toBe(dailyPlan('2026-10-18', 'vigil').setup.seed);
     expect(dailyPlan('2026-10-17', 'vigil').setup.seed).not.toBe(dailyPlan('2026-10-17', 'raid').setup.seed);
   });
-  it('咒印 1–2 条、不重复、都认识；一个月里两种数量、六种咒印、两张图都出现', () => {
+  it('花样起始日之前：咒印 1–2 条、不重复、都认识；两种数量、六种咒印、两张图都出现', () => {
     const seen = new Set<string>();
     const counts = new Set<number>();
     const maps = new Set<string | undefined>();
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 56; i++) {
       const p = dailyPlan(shiftDate('2026-10-01', i), i % 2 ? 'vigil' : 'raid');
+      expect(p.setup.mode === 'raid' || p.setup.character === 'xiaodao').toBe(true);
       expect(p.curses.length).toBeGreaterThanOrEqual(1);
       expect(p.curses.length).toBeLessThanOrEqual(2);
       expect(new Set(p.curses).size).toBe(p.curses.length);
@@ -135,6 +138,39 @@ describe('每日挑战', () => {
     expect(seen.size).toBe(6);
     expect(counts.size).toBe(2);
     expect(maps.size).toBe(2);
+  });
+  it('守夜每日按星期换花样：起始日前不变、夜探没有；每种花样改的东西对得上，都过 isDailySetup', () => {
+    // 起始日前一周：只有周日噩梦日，其余几天照老抽法
+    for (let i = 1; i <= 7; i++) {
+      const date = shiftDate(DAILY_THEMES_FROM, -i);
+      expect(dailyPlan(date, 'vigil').theme).toBe(weekdayOf(date) === 0 ? 'nightmare' : null);
+    }
+    const chars = new Set<string>();
+    const maps = new Set<string>();
+    for (let i = 0; i < 70; i++) {
+      const date = shiftDate(DAILY_THEMES_FROM, i);
+      expect(dailyTheme(date, 'raid')).toBeNull();
+      expect(dailyPlan(date, 'raid').setup.character).toBe('xiaodao');
+      const p = dailyPlan(date, 'vigil');
+      const s = p.setup;
+      expect(p.theme).toBe(DAILY_THEMES[weekdayOf(date)]!.id);
+      expect(isDailySetup(date, s)).toBe(true);
+      expect(new Set(p.curses).size).toBe(p.curses.length);
+      for (const c of p.curses) expect(DAILY_CURSE_IDS).toContain(c);
+      const swap = p.theme === 'swap' || p.theme === 'trek';
+      const far = p.theme === 'far' || p.theme === 'trek';
+      if (swap) chars.add(s.character!);
+      else expect(s.character).toBe('xiaodao');
+      if (far) {
+        expect(DAILY_FAR_MAPS).toContain(s.map);
+        maps.add(s.map!);
+      } else expect(['snow', 'yizhuang']).toContain(s.map);
+      expect(s.danger).toBe(p.theme === 'nightmare' ? 6 : p.theme === 'hard' ? 3 : 2);
+      expect(p.curses.length).toBe(p.theme === 'hard' ? 0 : p.theme === 'curse' ? 3 : p.theme === 'elite' ? 2 : p.theme === 'nightmare' ? 1 : p.curses.length);
+      if (p.theme === 'elite') expect(p.curses[0]).toBe('elites');
+    }
+    expect(chars.size).toBeGreaterThan(5);
+    expect(maps.size).toBeGreaterThan(3);
   });
   it('周日噩梦日：每个周日的守夜是危险 6、1 条咒印；其余不变', () => {
     const sun = dailyPlan('2026-11-01', 'vigil');

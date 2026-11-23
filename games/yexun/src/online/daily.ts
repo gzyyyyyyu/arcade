@@ -1,11 +1,13 @@
 /**
- * 每日挑战（DESIGN.md 5.7）：全服同一个种子、同一张图、同一组当日咒印；固定角色、不带加成。
+ * 每日挑战（DESIGN.md 5.7）：全服同一个种子、同一张图、同一组当日咒印；角色按当日花样（缺省小道士）、不带加成。
  * 全部从北京时间的日期确定性地派生（同一天所有人一样，换设备也一样），用核心的 sfc32，不碰 Math.random。
  * 守夜、夜探各一个榜：平台的子榜 vigil / raid，榜名 daily-YYYY-MM-DD-<子榜>。
+ * 守夜每日按星期换花样（DAILY_THEMES）：只改角色、图、咒印、危险档这几个 Setup 字段，规则不加东西。
  */
 import type { RaidTemplateId } from '../content/explore.ts';
 import { Rng, hash32 } from '../core/rng.ts';
-import type { MapId } from '../content/maps.ts';
+import { MAP_IDS, type MapId } from '../content/maps.ts';
+import { CHARACTER_IDS, MAX_CURSES } from '../content/meta.ts';
 import { DAILY_CURSE_IDS, type CurseId, type OnlineSetup, type RunMode } from './types.ts';
 
 /** 每日挑战统一的危险档：2 是配平的基准档（docs/balance.md），大家比的是走位，不比谁敢开高档 */
@@ -16,6 +18,27 @@ export const NIGHTMARE_SUNDAY_DANGER = 6;
 export const DAILY_MAPS: readonly MapId[] = ['snow', 'yizhuang'];
 /** 夜探每日挑战抽的模板（不抽教学镇） */
 export const DAILY_RAID: readonly RaidTemplateId[] = ['guzhen', 'dukou', 'shansi'];
+
+/** 远行日抽的特色图：除了两张常规图都算 */
+export const DAILY_FAR_MAPS: readonly MapId[] = MAP_IDS.filter((m) => !DAILY_MAPS.includes(m));
+/** 硬仗日的危险档：不加咒印，怪按危险 3 */
+export const HARD_DAY_DANGER = 3;
+
+/** 守夜每日的花样，下标是星期（0 = 周日噩梦日，规则见 isNightmareSunday） */
+export type DailyThemeId = 'nightmare' | 'swap' | 'far' | 'curse' | 'elite' | 'hard' | 'trek';
+export const DAILY_THEMES: readonly { id: DailyThemeId; name: string; text: string }[] = [
+  { id: 'nightmare', name: '噩梦', text: '噩梦 1，咒印只 1 条' },
+  { id: 'swap', name: '换人', text: '今天换一位角色上场，没解锁的也能玩' },
+  { id: 'far', name: '远行', text: '今天去一张特色图' },
+  { id: 'curse', name: '重咒', text: `咒印 ${MAX_CURSES} 条` },
+  { id: 'elite', name: '精英', text: '必带「精英更多」，再抽 1 条咒印' },
+  { id: 'hard', name: '硬仗', text: `不带咒印，危险 ${HARD_DAY_DANGER}` },
+  { id: 'trek', name: '奇遇', text: '换一位角色、去一张特色图' },
+];
+/**
+ * 花样从这天（北京日期）起生效：之前的日子照老抽法。同一天的榜不能混进两种局，所以起始日要在发布之后。
+ */
+export const DAILY_THEMES_FROM = '2026-11-26';
 
 /** 北京日期 YYYY-MM-DD（每日、每周、连战共用） */
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -40,11 +63,24 @@ export function dailyDateOpen(date: string, today: string): boolean {
   return date >= shiftDate(today, -1) && date <= shiftDate(today, 1);
 }
 
-/** 这一天、这个模式是不是周日噩梦日（按日期串本身算星期，不看时区；字符串比较够用，格式固定） */
+/** 日期串的星期（0 = 周日；按日期串本身算，不看时区） */
+function weekday(date: string): number {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/** 这一天、这个模式是不是周日噩梦日（字符串比较够用，格式固定） */
 export function isNightmareSunday(date: string, mode: RunMode): boolean {
   if (mode !== 'vigil' || !DATE_RE.test(date)) return false;
-  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
-  return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 0;
+  return weekday(date) === 0;
+}
+
+/** 这一天守夜每日的花样；起始日之前、夜探都没有（周日噩梦日一直有） */
+export function dailyTheme(date: string, mode: RunMode): (typeof DAILY_THEMES)[number] | null {
+  if (mode !== 'vigil' || !DATE_RE.test(date)) return null;
+  const day = weekday(date);
+  if (day !== 0 && date < DAILY_THEMES_FROM) return null;
+  return DAILY_THEMES[day]!;
 }
 
 /** 离下一个守夜噩梦日还有几天（按北京日期串算；0 = 今天就是） */
@@ -57,8 +93,10 @@ export interface DailyPlan {
   date: string;
   mode: RunMode;
   setup: OnlineSetup;
-  /** 当日咒印（1–2 条，不重复） */
+  /** 当日咒印（0–3 条，不重复） */
   curses: CurseId[];
+  /** 当日花样（守夜才有） */
+  theme: DailyThemeId | null;
   boardId: string;
 }
 
@@ -80,15 +118,51 @@ export function dailyPlan(date: string, mode: RunMode): DailyPlan {
   const pool = [...DAILY_CURSE_IDS];
   const curses: CurseId[] = [];
   for (let i = 0; i < n; i++) curses.push(pool.splice(rng.int(pool.length), 1)[0]!);
-  // 周日噩梦日：抽法照旧（图和第一条咒印不变），只留第一条，难度已经够高
-  const nightmare = isNightmareSunday(date, mode);
-  if (nightmare) curses.length = 1;
-  // 夜探的模板最后抽：守夜那天的图和咒印不受影响（快照测试锁着）。固定小道士、不带加成（DESIGN.md 5.7）
+  // 花样在老抽法之后另开一条流改：老日子、周日噩梦日的图和咒印照旧（快照测试锁着）
+  const theme = dailyTheme(date, mode);
+  let character: OnlineSetup['character'] = 'xiaodao';
+  let danger: OnlineSetup['danger'] = DAILY_DANGER;
+  let dayMap = map;
+  const tr = new Rng(seed, 'daily-theme');
+  const otherCurse = (): CurseId => {
+    const rest = DAILY_CURSE_IDS.filter((c) => !curses.includes(c));
+    return rest[tr.int(rest.length)]!;
+  };
+  switch (theme?.id) {
+    case 'nightmare':
+      // 噩梦日：只留第一条咒印，难度已经够高
+      curses.length = 1;
+      danger = NIGHTMARE_SUNDAY_DANGER;
+      break;
+    case 'swap':
+      character = CHARACTER_IDS[tr.int(CHARACTER_IDS.length)]!;
+      break;
+    case 'far':
+      dayMap = DAILY_FAR_MAPS[tr.int(DAILY_FAR_MAPS.length)]!;
+      break;
+    case 'curse':
+      while (curses.length < MAX_CURSES) curses.push(otherCurse());
+      break;
+    case 'elite':
+      curses.length = 0;
+      curses.push('elites');
+      curses.push(otherCurse());
+      break;
+    case 'hard':
+      curses.length = 0;
+      danger = HARD_DAY_DANGER;
+      break;
+    case 'trek':
+      character = CHARACTER_IDS[tr.int(CHARACTER_IDS.length)]!;
+      dayMap = DAILY_FAR_MAPS[tr.int(DAILY_FAR_MAPS.length)]!;
+      break;
+  }
+  // 夜探的模板最后抽：守夜那天的图和咒印不受影响（快照测试锁着）。不带加成（DESIGN.md 5.7）；角色缺省小道士，换人日按花样抽
   const setup: OnlineSetup =
     mode === 'raid'
       ? { seed, mode, danger: DAILY_DANGER, curses, character: 'xiaodao', perks: {}, raid: { template: DAILY_RAID[rng.int(DAILY_RAID.length)]! } }
-      : { seed, mode, map, danger: nightmare ? NIGHTMARE_SUNDAY_DANGER : DAILY_DANGER, curses, character: 'xiaodao', perks: {} };
-  return { date, mode, setup, curses, boardId: dailyBoardId(date, mode) };
+      : { seed, mode, map: dayMap, danger, curses, character, perks: {} };
+  return { date, mode, setup, curses, theme: theme?.id ?? null, boardId: dailyBoardId(date, mode) };
 }
 
 /**
