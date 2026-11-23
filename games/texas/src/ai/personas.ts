@@ -1,13 +1,24 @@
+import { type Person, personById } from 'arcade-kit/personas';
+
 /**
- * 电脑的性格（docs/ai.md 4.3；参数和取舍见 4.6）。名字是化名，不对应真人；平台的昵称保留名单要有这几个名字。
+ * 电脑的性格（docs/ai.md 4.3；参数和取舍见 4.6）。人从共用名册来（名字是化名，不对应真人，平台的昵称保留名单跟着名册）。
  * 个数要等于规则里的 PERSONA_COUNT（test/ai.test.ts 核对）。
  * 门槛都用"相对强度"：胜率 ×（对手数 + 1），千分数，1000 = 这一桌的平均水平。参数由 scripts/sim.ts 的机器人对打调。
  */
 
-export interface Persona {
+/** 一个电脑位：名册里的人 + 德州的打法 */
+export interface Persona extends Play {
+  /** 名册 id */
+  id: string;
   name: string;
-  /** 一句话风格（界面上的小字） */
+  /** 一句人设（界面上的小字） */
   style: string;
+  /** 牌桌互动的脾气 */
+  fun: Person['fun'];
+}
+
+/** 德州的打法参数 */
+interface Play {
   /** 翻牌前跟进的相对强度门槛 */
   call: number;
   /** 加注的相对强度门槛 */
@@ -22,7 +33,7 @@ export interface Persona {
   slow: number;
   /** 翻牌后下注占池子的比例（‰） */
   size: number;
-  /** 软桌上翻牌前跟进门槛再放低多少（相对强度，按档的 SKILL.soft 打折）：让老好、阿飙在小桌像真人那样松 */
+  /** 软桌上翻牌前跟进门槛再放低多少（相对强度，按档的 SKILL.soft 打折）：让老好、阿强在小桌像真人那样松 */
   loose: number;
   /** 同上，加注门槛再放低多少 */
   wild: number;
@@ -54,7 +65,7 @@ export interface Persona {
   spread: number;
   /** 低档"不敢先打、多跟少加"（功力的 shy / passive）对这个性格起几成：凶的人少受压，胆小的人多受压 */
   mild: number;
-  /** 看对手打法用几成（乘功力的 adapt）：算盘、老鹰会调整，老好、小白几乎不看 */
+  /** 看对手打法用几成（乘功力的 adapt）：算盘、老鹰会调整，老好、板凳儿几乎不看 */
   reads: number;
   /** 这个性格爱犯的小错（见 Flaw）和每次碰到那种局面时犯的概率（‰；高档只剩一半）。不写 = 不犯 */
   flaw?: Flaw;
@@ -68,21 +79,30 @@ export interface Persona {
  */
 type Flaw = 'overcall' | 'scared' | 'spew' | 'trap';
 
-export const PERSONAS: readonly Persona[] = [
-  { name: '稳哥', style: '好牌才进，进了就打', call: 1400, raise: 1320, bluff: 120, slack: 0, slow: 50, size: 750, loose: 60, wild: 0, raiser: 100, threebet: 40, barrel: 250, shove: 0, river: 300, trust: 1150, posX: 1300, steal: 20, openX: 900, spread: 450, mild: 850, reads: 700, flaw: 'scared', leak: 40 },
+/**
+ * 德州的电脑位：下标是座位上记的 persona 编号（存档、房间状态、成就按它认人，只往后加）。人（名字、人设、头像、互动脾气）
+ * 来自共用名册 arcade-kit/personas，这里是德州的打法翻译；名册合并掉的阿飙、小白由阿强、板凳儿接位，叨叨的位子给熊猫哥，打法照旧
+ */
+const SEATS: readonly (readonly [string, Play])[] = [
+  ['wengge', { call: 1400, raise: 1320, bluff: 120, slack: 0, slow: 50, size: 750, loose: 60, wild: 0, raiser: 100, threebet: 40, barrel: 250, shove: 0, river: 300, trust: 1150, posX: 1300, steal: 20, openX: 900, spread: 450, mild: 850, reads: 700, flaw: 'scared', leak: 40 }],
   // call 是"没人加注时跟进"的门槛（不再查赔率），按目标入池率重调：紧的调高，loose 只剩软桌上的放松（原来要大到抵掉赔率那一关）
-  // 阿飙的 loose / wild 是 80 / 55：9 人桌后面坐的人多，再松在小桌混桌里亏太多
-  { name: '阿飙', style: '爱加注，常偷盲', call: 1250, raise: 1200, bluff: 220, slack: 0, slow: 30, size: 800, loose: 80, wild: 55, raiser: 60, threebet: 150, barrel: 350, shove: 120, river: 800, trust: 900, posX: 1100, steal: 50, openX: 1100, spread: 1100, mild: 800, reads: 500, flaw: 'spew', leak: 70 },
-  { name: '老好', style: '爱跟注，很难被吓走', call: 1100, raise: 1450, bluff: 40, slack: 30, slow: 100, size: 550, loose: 150, wild: 0, raiser: 45, threebet: 5, barrel: 80, shove: 0, river: 150, trust: 500, posX: 300, steal: 0, openX: 800, spread: 700, mild: 1000, reads: 100, flaw: 'overcall', leak: 120 },
-  { name: '慢慢', style: '很少加注，好牌爱装弱', call: 1290, raise: 1700, open: 1500, bluff: 20, slack: -30, slow: 300, size: 500, loose: 0, wild: 0, raiser: 100, threebet: 0, barrel: 100, shove: 0, river: 30, trust: 1350, posX: 800, steal: 0, openX: 1000, spread: 500, mild: 1000, reads: 400, flaw: 'scared', leak: 90 },
-  { name: '算盘', style: '严格按赔率算', call: 1230, raise: 1300, bluff: 180, slack: -10, slow: 60, size: 700, loose: 0, wild: 0, raiser: 100, threebet: 50, barrel: 300, shove: 20, river: 400, trust: 1000, posX: 1400, steal: 40, openX: 1000, spread: 300, mild: 900, reads: 1000 },
-  { name: '江湖', style: '爱慢打，偶尔过牌加注', call: 1230, raise: 1300, bluff: 250, slack: 10, slow: 250, size: 800, loose: 0, wild: 0, raiser: 100, threebet: 60, barrel: 300, shove: 40, river: 650, trust: 900, posX: 1000, steal: 30, openX: 1000, spread: 1600, mild: 800, reads: 800, flaw: 'trap', leak: 100 },
+  // 阿强的 loose / wild 是 80 / 55：9 人桌后面坐的人多，再松在小桌混桌里亏太多
+  ['aqiang', { call: 1250, raise: 1200, bluff: 220, slack: 0, slow: 30, size: 800, loose: 80, wild: 55, raiser: 60, threebet: 150, barrel: 350, shove: 120, river: 800, trust: 900, posX: 1100, steal: 50, openX: 1100, spread: 1100, mild: 800, reads: 500, flaw: 'spew', leak: 70 }],
+  ['laohao', { call: 1100, raise: 1450, bluff: 40, slack: 30, slow: 100, size: 550, loose: 150, wild: 0, raiser: 45, threebet: 5, barrel: 80, shove: 0, river: 150, trust: 500, posX: 300, steal: 0, openX: 800, spread: 700, mild: 1000, reads: 100, flaw: 'overcall', leak: 120 }],
+  ['manman', { call: 1290, raise: 1700, open: 1500, bluff: 20, slack: -30, slow: 300, size: 500, loose: 0, wild: 0, raiser: 100, threebet: 0, barrel: 100, shove: 0, river: 30, trust: 1350, posX: 800, steal: 0, openX: 1000, spread: 500, mild: 1000, reads: 400, flaw: 'scared', leak: 90 }],
+  ['suanpan', { call: 1230, raise: 1300, bluff: 180, slack: -10, slow: 60, size: 700, loose: 0, wild: 0, raiser: 100, threebet: 50, barrel: 300, shove: 20, river: 400, trust: 1000, posX: 1400, steal: 40, openX: 1000, spread: 300, mild: 900, reads: 1000 }],
+  ['jianghu', { call: 1230, raise: 1300, bluff: 250, slack: 10, slow: 250, size: 800, loose: 0, wild: 0, raiser: 100, threebet: 60, barrel: 300, shove: 40, river: 650, trust: 900, posX: 1000, steal: 30, openX: 1000, spread: 1600, mild: 800, reads: 800, flaw: 'trap', leak: 100 }],
   // （9 人桌最多 8 个电脑、一桌不重复）
-  { name: '虎子', style: '爱诈唬，下注又大又猛', call: 1210, raise: 1200, bluff: 200, slack: 0, slow: 20, size: 850, loose: 40, wild: 40, raiser: 100, threebet: 220, barrel: 360, shove: 140, river: 950, trust: 850, posX: 600, steal: 30, openX: 1100, spread: 1400, mild: 850, reads: 250, flaw: 'spew', leak: 120 },
-  { name: '老鹰', style: '挑牌进池，一进就加，翻牌后也凶', call: 1270, raise: 1190, bluff: 220, slack: 10, slow: 30, size: 750, loose: 0, wild: 0, raiser: 100, threebet: 100, barrel: 400, shove: 60, river: 600, trust: 1050, posX: 1500, steal: 70, openX: 1000, spread: 500, mild: 750, reads: 1000 },
-  { name: '叨叨', style: '话多，爱凑热闹跟一手', call: 1150, raise: 1400, bluff: 100, slack: 15, slow: 80, size: 600, loose: 180, wild: 0, raiser: 45, threebet: 15, barrel: 120, shove: 0, river: 500, trust: 700, posX: 400, steal: 0, openX: 900, spread: 1200, mild: 1000, reads: 200, flaw: 'overcall', leak: 100 },
-  { name: '小白', style: '刚学会，什么牌都想看看', call: 1150, raise: 1500, bluff: 30, slack: 40, slow: 120, size: 500, loose: 200, wild: 0, raiser: 40, threebet: 0, barrel: 50, shove: 0, river: 250, trust: 500, posX: 0, steal: 0, openX: 700, spread: 1000, mild: 1000, reads: 0, flaw: 'overcall', leak: 150 },
+  ['huzi', { call: 1210, raise: 1200, bluff: 200, slack: 0, slow: 20, size: 850, loose: 40, wild: 40, raiser: 100, threebet: 220, barrel: 360, shove: 140, river: 950, trust: 850, posX: 600, steal: 30, openX: 1100, spread: 1400, mild: 850, reads: 250, flaw: 'spew', leak: 120 }],
+  ['laoying', { call: 1270, raise: 1190, bluff: 220, slack: 10, slow: 30, size: 750, loose: 0, wild: 0, raiser: 100, threebet: 100, barrel: 400, shove: 60, river: 600, trust: 1050, posX: 1500, steal: 70, openX: 1000, spread: 500, mild: 750, reads: 1000 }],
+  ['xiongmao', { call: 1150, raise: 1400, bluff: 100, slack: 15, slow: 80, size: 600, loose: 180, wild: 0, raiser: 45, threebet: 15, barrel: 120, shove: 0, river: 500, trust: 700, posX: 400, steal: 0, openX: 900, spread: 1200, mild: 1000, reads: 200, flaw: 'overcall', leak: 100 }],
+  ['bandeng', { call: 1150, raise: 1500, bluff: 30, slack: 40, slow: 120, size: 500, loose: 200, wild: 0, raiser: 40, threebet: 0, barrel: 50, shove: 0, river: 250, trust: 500, posX: 0, steal: 0, openX: 700, spread: 1000, mild: 1000, reads: 0, flaw: 'overcall', leak: 150 }],
 ];
+
+export const PERSONAS: readonly Persona[] = SEATS.map(([id, play]) => {
+  const p = personById(id);
+  return { id, name: p.name, style: p.bio, fun: p.fun, ...play };
+});
 
 /**
  * 电脑的"功力"，按强弱档（按档，原来按档位，docs/ai.md 4.3、4.7）：同一种性格，低档松、软、不太会看人（0 新手档只给娱乐），越往上越紧、越凶、越会按对手的动作猜他的牌。

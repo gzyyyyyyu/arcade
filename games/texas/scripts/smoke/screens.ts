@@ -505,6 +505,19 @@ export async function settingsFlow(browser: Browser, base: string): Promise<void
     if (reset.sound !== true || reset.fast !== false || reset.volume !== 0.8) throw new Error(`[${tag}] reset did not restore defaults: ${JSON.stringify(reset)}`);
     await click('.settings .st-x');
     await page.locator('.settings').waitFor({ state: 'detached' });
+    // 大厅关了声音（平台的 arcade.sound = off）：进来音效开关显示关；在游戏里打开只管这一次，不写平台的、自己存的仍是开
+    await page.evaluate(() => localStorage.setItem('arcade.sound', 'off'));
+    await page.reload();
+    await page.locator('.w-balance').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
+    await click('.topbar .gear');
+    await page.locator('.settings .st-box').waitFor();
+    if ((await page.locator('.settings [data-key="sfx-off"]').getAttribute('aria-pressed')) !== 'true') throw new Error(`[${tag}] lobby muted: 音效 should show 关`);
+    await click('.settings [data-key="sfx-on"]');
+    if ((await page.locator('.settings [data-key="sfx-on"]').getAttribute('aria-pressed')) !== 'true') throw new Error(`[${tag}] 音效 should turn on in game`);
+    const muted = await page.evaluate(() => [localStorage.getItem('arcade.sound'), (JSON.parse(localStorage.getItem('texas.settings') ?? '{}') as { sound?: boolean }).sound]);
+    if (muted[0] !== 'off' || muted[1] !== true) throw new Error(`[${tag}] turning 音效 on must not touch arcade.sound / change saved pref: ${JSON.stringify(muted)}`);
+    await click('.settings .st-x');
+    await page.evaluate(() => localStorage.removeItem('arcade.sound'));
     await ctx.close();
   }
 }

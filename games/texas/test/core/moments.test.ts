@@ -3,7 +3,7 @@ import { botReact, funIdCount, newBotState } from 'arcade-kit/fun-logic';
 import { describe, expect, it } from 'vitest';
 import { PERSONAS } from '../../src/ai/personas.ts';
 import type { HandResult, LogEntry } from '../../src/core/table.ts';
-import { CHATTY, FUN_TEMPER, momentOf, temperOf } from '../../src/fun/moments.ts';
+import { CHATTY, momentOf, temperOf } from '../../src/fun/moments.ts';
 import { TAUNTS } from '../../src/fun/taunts.ts';
 import { EMOTE_COUNT, TAUNT_COUNT } from '../../src/room/rules.ts';
 
@@ -20,10 +20,11 @@ const shown = [0, 1, 2, 3].map((seat) => ({ seat, value: (seat === 0 ? 5 : 1) <<
 const r = { handNo: 1, board: [], shown, pots: [{ amount: 8000, winners: [{ seat: 0, won: 8000 }] }], uncalled: null, byFold: false } as unknown as HandResult;
 
 describe('德州的互动接线', () => {
-  it('每个性格都有互动性格和话多不多；编号表 = 短语 + kit 的 12 表情 + 8 道具，短语只往后加', () => {
-    expect(FUN_TEMPER.length).toBe(PERSONAS.length);
+  it('每个性格都有话多不多、互动性格取名册；编号表 = 短语 + kit 的 12 表情 + 8 道具，短语只往后加', () => {
     expect(CHATTY.length).toBe(PERSONAS.length);
+    // 互动性格取名册：阿强爱闹、慢慢高冷，编号外的按普通
     expect(temperOf(1)).toBe('rowdy');
+    expect(temperOf(99)).toBe('normal');
     expect(temperOf(3)).toBe('cool');
     expect(TAUNTS.length).toBe(TAUNT_COUNT);
     expect(EMOTE_COUNT).toBe(funIdCount(TAUNTS.length));

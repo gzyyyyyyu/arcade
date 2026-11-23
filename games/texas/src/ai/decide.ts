@@ -72,7 +72,7 @@ export function decide(v: View, r: RandomStream): Action {
   const pos = positionOf(v, me, yet.length, p, k, k.depth ? eff : 0);
   const tilt = v.tilt > 0;
   const jit = r.below(2 * JITTER + 1) - JITTER;
-  // 这一档的翻牌前门槛：功力的 tight 加上性格在软桌上放松的部分（老好更爱跟、阿飙更爱加，见 personas.ts 的 loose / wild）；
+  // 这一档的翻牌前门槛：功力的 tight 加上性格在软桌上放松的部分（老好更爱跟、阿强更爱加，见 personas.ts 的 loose / wild）；
   // loose 同时把面对加注时的底池赔率放宽 ¼，否则赔率这一关挡住，松不起来
   // 局面：领先放开、落后看性格；对手的打法；筹码深浅
   const lead = standing(v, seat, p);
@@ -106,23 +106,23 @@ export function decide(v: View, r: RandomStream): Action {
     const slow = eq >= 800 && v.board.length < 5 && r.below(1000) < p.slow;
     // 多跟少加（低档）：有人下注、加注时只跟
     // 不敢先打（低档）：没人下注时只过牌、翻牌前只平跟
-    // 凶的性格（mild 小）少受这层压：低档里也看得出阿飙、虎子爱打
+    // 凶的性格（mild 小）少受这层压：低档里也看得出阿强、虎子爱打
     const meek = k.passive > 0 && raises > 0 ? r.below(1000) < mild(k.passive, p, k) : k.shy > 0 && raises === 0 && r.below(1000) < mild(k.shy, p, k);
     if (!slow && !meek) return raise(v, p, k, eq, raises, r);
     if (meek) return lg.check ? { t: 'check' } : { t: 'call' };
   }
 
   if (pre) {
-    // 再加注：凶的人（阿飙、虎子）面对一次加注，能跟的牌偶尔再加一手，不只拿大牌再加
+    // 再加注：凶的人（阿强、虎子）面对一次加注，能跟的牌偶尔再加一手，不只拿大牌再加
     if (lg.raise && raises === 1 && rel >= callAt - pos && r.below(1000) < Math.floor((p.threebet * (1000 + 3 * form[1]!)) / 1000)) return raise(v, p, k, eq, raises, r);
     if (lg.check) return { t: 'check' };
     let ok: boolean;
     if (raises === 0) {
       // 没人加注，只是补一个大盲（或小盲补半个）看翻牌：只看牌力和位置，不查底池赔率。
-      // 赔率按全桌的胜率算，6 人桌前面位置平跟要 400‰，5 个对手时普通牌只有 150–170‰，原来除了 JJ 以上全弃（"小白一直弃牌"）
+      // 赔率按全桌的胜率算，6 人桌前面位置平跟要 400‰，5 个对手时普通牌只有 150–170‰，原来除了 JJ 以上全弃（"板凳儿一直弃牌"）
       ok = rel >= callAt - pos || (toCall * 2 <= v.bb && rel >= callAt - 200);
     } else {
-      // 有人加注：要跟的钱多了，门槛按加注次数抬高、再看赔率。松的人不太把加注当回事，抬得少（loose 抵掉一部分，小桌的老好、小白基本不抬）。
+      // 有人加注：要跟的钱多了，门槛按加注次数抬高、再看赔率。松的人不太把加注当回事，抬得少（loose 抵掉一部分，小桌的老好、板凳儿基本不抬）。
       // 胜率按"真的掏了钱的人"算（后面没说话的多半会弃），不按全桌
       const eqIn = preflopEquity(v.hole[0]!, v.hole[1]!, voluntary(v, me));
       // 已经投了钱（平跟过、在盲注位）的再放低一点：真人很少平跟完又被一加就弃
@@ -140,7 +140,7 @@ export function decide(v: View, r: RandomStream): Action {
       const river = v.board.length === 5;
       let chance: number;
       if (mine && v.board.length > 3) {
-        // 上一轮是我下的注：接着打第二枪、第三枪（虎子、阿飙爱这样连着诈唬），对手越多越收着
+        // 上一轮是我下的注：接着打第二枪、第三枪（虎子、阿强爱这样连着诈唬），对手越多越收着
         chance = Math.floor((p.barrel * k.bluff * bluffX) / 1_000_000) - 60 * Math.max(0, opp - 1);
       } else {
         // 没人下注：偶尔诈唬，对手越少越敢；翻牌前自己加过注的，翻牌上常"接着打"（持续下注）
@@ -174,7 +174,7 @@ export function decide(v: View, r: RandomStream): Action {
     }
     return { t: 'check' };
   }
-  // 爱跟的性格（slack 为正）和 loose 一样按档的 soft 打折：小桌全用，越往上越收（中桌的小白原来翻牌后照样跟到底，每百手 −150）
+  // 爱跟的性格（slack 为正）和 loose 一样按档的 soft 打折：小桌全用，越往上越收（中桌的板凳儿原来翻牌后照样跟到底，每百手 −150）
   const slack = p.slack > 0 ? Math.floor((p.slack * k.soft) / 1000) : p.slack;
   const ok = eq >= odds - slack - k.slack - (tilt ? TILT.slack : 0);
   // 低档手软（第 0–3 档）：够跟、但只比赔率多一点的牌，偶尔就弃了
@@ -186,7 +186,7 @@ export function decide(v: View, r: RandomStream): Action {
 }
 
 /**
- * 领先、落后：比坐下时多一半以上的，放开一点、多诈唬一点；少了一半以上的，爱赌的（阿飙、虎子这类）更松更凶，
+ * 领先、落后：比坐下时多一半以上的，放开一点、多诈唬一点；少了一半以上的，爱赌的（阿强、虎子这类）更松更凶，
  * 稳的收紧、少诈唬。连同这一手已经投进去的一起算，一手打到一半不会变来变去
  */
 function standing(v: View, seat: View['seats'][number], p: Persona): { loose: number; bluff: number } {
@@ -364,7 +364,7 @@ function lastPreflopRaiser(v: View): number {
 
 /**
  * 按翻牌前的动作猜每个对手的底牌范围（给蒙特卡洛的下限，见 equity.ts）：加过注的最紧，跟过加注的次之，平跟的再松一点。
- * 加注的人按这一档和性格里紧的那个猜（第 0–3 档本身不猜，只有性格里写了的阿飙、老好、叨叨、小白猜：他们翻牌前跟得松，翻牌后不看人会输穿）。
+ * 加注的人按这一档和性格里紧的那个猜（第 0–3 档本身不猜，只有性格里写了的阿强、老好、熊猫哥、板凳儿猜：他们翻牌前跟得松，翻牌后不看人会输穿）。
  * 都不猜时返回 undefined，蒙特卡洛按随机牌算
  */
 function ranges(v: View, others: readonly number[], k: Skill, p: Persona): number[] | undefined {
@@ -415,7 +415,7 @@ function raise(v: View, p: Persona, k: Skill, eq: number, raises: number, r: Ran
     // 翻牌前：开池 2.5–3.5 个大盲（前面每有一个跟进的多加 1 个），再加注约 2.5–3.5 倍
     const limpers = v.log.filter((e) => e.act === 'call').length;
     const x = 5 + r.below(3);
-    // 性格的加注大小（openX）：阿飙、虎子加得大，小白、老好只加一点点
+    // 性格的加注大小（openX）：阿强、虎子加得大，板凳儿、老好只加一点点
     to = Math.floor(((raises === 0 ? Math.floor((x * v.bb) / 2) : Math.floor((x * v.currentBet) / 2)) * styled(p.openX, k)) / 1000) + (raises === 0 ? limpers * v.bb : 0);
   } else {
     // 翻牌后：性格的基本尺度乘 0.7–1.3（五档随机挑，不总是同一个数）；很大的牌再大一点

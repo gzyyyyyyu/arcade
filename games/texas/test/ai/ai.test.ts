@@ -1,3 +1,4 @@
+import { personById } from 'arcade-kit/personas';
 import { stream } from 'arcade-kit/rng';
 import { describe, expect, it } from 'vitest';
 import { mcIters } from '../../src/ai/decide.ts';
@@ -40,6 +41,14 @@ describe('胜率', () => {
 describe('电脑', () => {
   it('性格的个数和规则里的一致', () => {
     expect(PERSONAS.length).toBe(PERSONA_COUNT);
+  });
+
+  it('每个电脑位是共用名册里的人、不重复：名字、人设、互动脾气取名册', () => {
+    expect(new Set(PERSONAS.map((p) => p.id)).size).toBe(PERSONAS.length);
+    for (const p of PERSONAS) {
+      const r = personById(p.id);
+      expect([p.name, p.style, p.fun]).toEqual([r.name, r.bio, r.fun]);
+    }
   });
 
   it('CPU：单次决策 p99 < 2 ms，一批（真人两次说话之间）p99 < 10 ms', () => {

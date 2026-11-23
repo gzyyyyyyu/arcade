@@ -27,7 +27,7 @@ export interface Def {
 }
 
 /** 电脑性格的名字（和 ai/personas.ts 的顺序一致；成就是纯逻辑，不引电脑的包，test/achievements.test.ts 核对） */
-export const PERSONA_NAMES = ['稳哥', '阿飙', '老好', '慢慢', '算盘', '江湖', '虎子', '老鹰', '叨叨', '小白'] as const;
+export const PERSONA_NAMES = ['稳哥', '阿强', '老好', '慢慢', '算盘', '江湖', '虎子', '老鹰', '熊猫哥', '板凳儿'] as const;
 
 const personaDefs: Def[] = PERSONA_NAMES.map((n, i) => ({
   id: `beat_${i}`,

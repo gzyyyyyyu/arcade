@@ -184,7 +184,7 @@ describe('电脑的难度', () => {
     expect(laohao!.vpip).toBeGreaterThan(wen!.vpip + 20);
     expect(manman!.pfr).toBeGreaterThanOrEqual(2);
     expect(manman!.pfr).toBeLessThanOrEqual(7);
-    // 松只在软桌：豪华桌的老好、阿飙明显收紧
+    // 松只在软桌：豪华桌的老好、阿强明显收紧
     expect(lux[2]!.vpip).toBeLessThan(laohao!.vpip - 8);
     expect(lux[1]!.vpip).toBeLessThan(abiao!.vpip);
   });
@@ -197,7 +197,7 @@ describe('电脑的难度', () => {
     console.log(`9 人桌入池 / 翻牌前加注（%）小桌 ${fmt(small)}`);
     console.log(`                           豪华桌 ${fmt(lux)}`);
     const [wen, , laohao, manman, suanpan, jianghu, , laoying, daodao, xiaobai] = small;
-    // 小白、叨叨原来 ≥ 17（实测 22），新的目标是松（9 人桌人多，比 6 人桌的 45–60% 低一点）
+    // 板凳儿、熊猫哥原来 ≥ 17（实测 22），新的目标是松（9 人桌人多，比 6 人桌的 45–60% 低一点）
     expect(xiaobai!.vpip).toBeGreaterThanOrEqual(40);
     expect(xiaobai!.pfr).toBeLessThanOrEqual(9);
     expect(daodao!.vpip).toBeGreaterThanOrEqual(40);
@@ -215,11 +215,11 @@ describe('电脑的难度', () => {
     expect(lux[9]!.vpip).toBeLessThan(xiaobai!.vpip - 6);
   });
 
-  it('"小白一直弃牌"：6 人桌没人加注、前面位置只补一个大盲，小白一半左右会跟进看牌', () => {
+  it('"板凳儿一直弃牌"：6 人桌没人加注、前面位置只补一个大盲，板凳儿一半左右会跟进看牌', () => {
     // 原来翻牌前没人加注也查底池赔率（按 5 个对手的胜率比 400‰），除了 JJ 以上基本全弃
     const spots = preflopSpots((v) => v.seats[v.me!]!.persona === 9 && v.legal!.call === v.bb && v.seats.filter((s) => s.status === 'active').length >= 5);
     const play = spots.filter((v, i) => decide(v, stream(SEED, 'spot', i)).t !== 'fold').length;
-    console.log(`小白没人加注、至少 5 人在：${spots.length} 个局面，跟进或加注 ${play} 次`);
+    console.log(`板凳儿没人加注、至少 5 人在：${spots.length} 个局面，跟进或加注 ${play} 次`);
     expect(spots.length).toBeGreaterThanOrEqual(150);
     expect(play).toBeGreaterThanOrEqual(spots.length * 0.4);
   });
@@ -328,7 +328,7 @@ describe('电脑的难度', () => {
     // 稳哥 + 算盘 对 老好 + 慢慢
     expect(small[2]! + small[3]!).toBeGreaterThan(2 * (small[0]! + small[4]!));
     expect(lux[0]! + lux[4]!).toBeGreaterThan(3 * (lux[2]! + lux[3]!));
-    // 叨叨 + 小白 对 虎子 + 老鹰
+    // 熊猫哥 + 板凳儿 对 虎子 + 老鹰
     expect(small[8]! + small[9]!).toBeGreaterThan(2 * (small[6]! + small[7]!));
     expect(lux[6]! + lux[7]!).toBeGreaterThan(3 * (lux[8]! + lux[9]!));
     for (const w of LEVEL_HOUSE) expect(w.length).toBe(PERSONA_COUNT);

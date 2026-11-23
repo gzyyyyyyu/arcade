@@ -27,7 +27,7 @@ import { TableView } from '../view/table.ts';
 import { chips } from '../view/text.ts';
 import { Tally } from '../view/titles.ts';
 import { watchViewport, type Fit } from '../view/viewport.ts';
-import { pace, type App, type Fns, type State } from './state.ts';
+import { pace, soundOn, type App, type Fns, type State } from './state.ts';
 import { must } from '../must.ts';
 
 /** 顶栏的齿轮（设置）和问号（怎么玩）；图标都是线条，跟着字色 */
@@ -267,7 +267,7 @@ export function createTop(c: App) {
     // 锦标赛里没有止盈；坐在桌上时看止盈旗子显不显示（好友房锦标赛也藏），不在桌上都有
     const tp = c.tour || (atTable && (!c.tf || c.online?.state.view?.tour)) ? null : takeProfitLabel(c.takeProfit, chips).replace('止盈：', '');
     return {
-      prefs: c.settings,
+      prefs: { ...c.settings, sound: soundOn(c) },
       fun: !c.funOff,
       chat,
       takeProfit: tp,
@@ -281,8 +281,9 @@ export function createTop(c: App) {
     openSettings(stage, {
       view: settingsView,
       prefs: (p) => {
+        if (p.sound) c.lobbyMuted = false;
         Object.assign(c.settings, p);
-        setSound(c.settings.sound);
+        setSound(soundOn(c));
         setVolume(c.settings.volume);
         savePrefs(c.settings);
         if (p.sound) play('tap');
@@ -301,7 +302,7 @@ export function createTop(c: App) {
       reset: () => {
         resetSettings();
         Object.assign(c.settings, DEFAULT_PREFS);
-        setSound(c.settings.sound);
+        setSound(soundOn(c));
         setVolume(c.settings.volume);
         c.chatOff = false;
         c.strangerChat = true;

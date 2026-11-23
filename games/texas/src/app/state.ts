@@ -3,6 +3,7 @@
  * 只在一块里用的（那一块自己的计时器、去重标记）放在那一块的闭包里，不放这里。
  * 各块之间互相调用走 ctx.fn：mount 把每一块返回的函数并进去，模块之间只有类型引用，没有运行时的循环 import。
  */
+import { platformSoundOn } from 'arcade-kit/client';
 import type { SocialHandle } from 'arcade-kit/social';
 import type { TableFun } from 'arcade-kit/table-fun';
 import type { AchState } from '../achievements.ts';
@@ -33,6 +34,11 @@ export const LOGIN_NOTE = '登录过期了：这一桌的筹码先记在本机�
 
 export interface State {
   settings: Prefs;
+  /**
+   * 大厅关了声音（kit 的 platformSoundOn，docs/screens.md 音效那条）：这一次打开先静音、开关显示关；在游戏里打开音效只清掉它，
+   * 不写平台的设置，也不改自己存的偏好。启动时读一次
+   */
+  lobbyMuted: boolean;
   /** 系统设了减少动画 */
   reduced: boolean;
   /** 好友房追上最新状态（切回前台、重连）时剩下的动画瞬间走完：节奏取 0 */
@@ -111,10 +117,14 @@ export type Fns = ReturnType<typeof createTop> &
 /** 交给各块的 ctx：状态、骨架上的元素、单机和锦标赛的依赖、别的块的函数 */
 export type App = State & { ui: Ui; fn: Fns; deps: SoloDeps; tourDeps: TourDeps };
 
+/** 现在响不响：自己的音效开着、这一次没被大厅静音 */
+export const soundOn = (s: State): boolean => s.settings.sound && !s.lobbyMuted;
+
 export function createState(): State {
   const raw = readSettings();
   return {
     settings: readPrefs(),
+    lobbyMuted: !platformSoundOn(),
     reduced: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
     skipAnim: false,
     ffSkip: -1,
