@@ -167,7 +167,7 @@ export const PAY_KIND: Record<string, string> = {
 /** 连不上、服务器出错的固定说法（全模块只用这两句；钱包错误对照表见 walletError） */
 export const NET_FAIL = '连不上服务器，筹码没动，过一会儿再试';
 export const ERR_REFRESH = '出了点问题，筹码没动，刷新一下再试';
-/** 单机实盘离开时没结回钱包：连不上，下次打开自动再结 */
+/** 单机实盘离开时没带回钱包：连不上，下次打开自动再结 */
 export const NET_SETTLE_LATER = '连不上服务器，筹码这次没带回钱包。下次打开雀馆会自动带回，按你离开时手上的数，不会少。';
 
 /**

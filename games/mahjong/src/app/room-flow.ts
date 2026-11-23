@@ -166,7 +166,7 @@ function drawWaiting(s: OnlineState): void {
     onSit: (seat) => session.online?.sit(seat),
     onStart: () => session.online?.start(),
     onShare: () => share(),
-    // 等人页离开：先离座再断开（只断开的话 kit 只记掉线、座位还占着，房主开打会照样从他钱包带一份，自审 C4）
+    // 等人页离开：先离座再断开（只断开的话 kit 只记掉线、座位还占着，房主开打会照样从他钱包带一份）
     onLeave: () => {
       if (s.you?.seat !== null && s.you?.seat !== undefined) session.online?.leaveSeat();
       lobby(false, roomBack());
@@ -245,7 +245,7 @@ function drawRoomTable(s: OnlineState, rv: RoomView, fresh: boolean): void {
     timer: turn?.deadline ? { seats: turn.seats ?? [turn.seat], until: turn.deadline } : pause ? { seats: [], until: pause.until } : null,
   });
   const seat = s.you?.seat ?? null;
-  // 带入到账、结回了：顶栏的钱包跟着变
+  // 带入到账、带回了：顶栏的钱包跟着变
   const mine = seat !== null && rv.own[seat] === true;
   if (mine !== session.ownShown) void refreshWallet();
   session.ownShown = mine;

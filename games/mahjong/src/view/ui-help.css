@@ -1,4 +1,4 @@
-/* 术语说明、声音面板分组、键盘提示（docs/ui.md）。类名都限定在所属界面根节点下 */
+/* 术语说明、设置面板分组、键盘提示（docs/ui.md）。类名都限定在所属界面根节点下 */
 .summary .term {
   all: unset;
   cursor: pointer;

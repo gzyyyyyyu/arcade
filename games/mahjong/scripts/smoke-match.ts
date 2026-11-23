@@ -284,7 +284,7 @@ try {
   await leaveRoom(pb);
   // 选桌页记住了立直：实盘页也有快速匹配，排立直实盘小档
   t = Date.now();
-  // 前面实盘桌留下的那一份可能正在结回，余额会动；数"带进雀馆实盘桌的份"多了一份
+  // 前面实盘桌留下的那一份可能正在带回，余额会动；数"带进雀馆实盘桌的份"多了一份
   const held = (w: Wallet): number => w.stakes.filter((x) => x.game === 'mahjong' && x.mode === 'server' && x.tier === 'small').length;
   const rcBefore = [held(await wallet(pa)), held(await wallet(pb))];
   await queue(pa, base, 'real');

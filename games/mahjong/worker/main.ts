@@ -4,14 +4,14 @@
  * 单独部署（wrangler.jsonc 原样）没有平台：首页和开房发游客 cookie，站点根 / 转到 /games/mahjong/，没有钱包，实盘一律拒绝（no_wallet）。
  * - 首页三个路径过 kit 的登录闸门 loginGate（docs/api-account.md 15.8）：登录了放行；没登录 302 到 /login?next=<原路径和查询>（docs/platform-features.md 5.7），
  *   房间链接 ?room=123456 登录完原样带回来；平台不可用回 503 页；GATE=off 时不拦；
- * - /games/mahjong/api/stake/* 是单机实盘的带入、结回（client 模式）：经服务绑定 WALLET 调平台钱包；结回带的小结 stats 原样转发，不改不补（docs/platform-wallet.md 5.10）；
+ * - /games/mahjong/api/stake/* 是单机实盘的带入、带回（client 模式）：经服务绑定 WALLET 调平台钱包；带回带的小结 stats 原样转发，不改不补（docs/platform-wallet.md 5.10）；
  * - /games/mahjong/rooms（开房）、/games/mahjong/rooms/<码>/ws（进房）原样交给 kit 的 acceptCreate / acceptJoin（第 6 节）；
  *   /games/mahjong/rooms/match/<档位>（快速匹配排队）交给 kit 的 acceptMatch：排到了开一张匹配桌，只剩自己的转单机；
  *   开房的请求体 { opts } 是玩法、档位和规则设置，kit 开房时校验、定下，进房的人都看得到；
  * - /games/mahjong/health 是给线上监控看的：回 {"ok":true,"version"}，不读存储、不认人，排在登录闸门前面，单独部署也能访问；
  * - 别的路径不经过这里（wrangler.jsonc 的 run_worker_first 只列了上面这些），由静态资源直接回。
  *
- * 带入、结回要过两道：CSRF（X-Arcade: 1 且 Origin 是本站：设了 SITE_ORIGIN 按它，没设按请求自己的 origin）、登录；额度、每日上限、写入次数都由平台钱包管（docs/economy.md 第 3、4 节）。
+ * 带入、带回要过两道：CSRF（X-Arcade: 1 且 Origin 是本站：设了 SITE_ORIGIN 按它，没设按请求自己的 origin）、登录；额度、每日上限、写入次数都由平台钱包管（docs/economy.md 第 3、4 节）。
  */
 import { whoIs, type WhoIs } from 'arcade-kit/auth';
 import type { MeterEnv } from 'arcade-kit/meter';
@@ -44,7 +44,7 @@ interface Base {
 }
 export type WalletRpcReply = { ok: true; wallet?: unknown; credited?: number; capped?: number; dup?: boolean; statsIgnored?: string } | { ok: false; error: string; wallet?: unknown };
 
-/** 平台钱包的 RPC（docs/platform-wallet.md 5.9）：麻将用带入和结回（单机一开场就发牌、好友房按筹码结，用不上放弃） */
+/** 平台钱包的 RPC（docs/platform-wallet.md 5.9）：麻将用带入和带回（单机一开场就发牌、好友房按筹码结，用不上放弃） */
 export interface PlatformWallet {
   buyin(req: Base & { tier: TierId; amount: number; until: number }): Promise<WalletRpcReply>;
   settle(req: Base & { amount: number; stats?: unknown }): Promise<WalletRpcReply>;
@@ -72,9 +72,9 @@ const ROOMS = `${BASE}/rooms`;
 const JOIN = /^\/games\/mahjong\/rooms\/([^/]+)\/ws$/;
 /** 快速匹配排队：在 rooms/ 下面，run_worker_first 已经放行；JOIN 要以 /ws 结尾，不会撞 */
 const MATCH = /^\/games\/mahjong\/rooms\/match\/([^/]+)$/;
-/** 带入、结回的请求体：结回带小结（≤ 256 字节），留足余量 */
+/** 带入、带回的请求体：带回带小结（≤ 256 字节），留足余量 */
 const MAX_BODY = 1_024;
-/** 单机那一份的到期退回：平台最长 24 小时（一直没结回来的原样退回） */
+/** 单机那一份的到期退回：平台最长 24 小时（一直没带回来的原样退回） */
 const SOLO_HOLD_MS = 24 * 3_600_000;
 
 /** 单独部署时的游客：开房、进房、首页三处同一个设置；昵称不许冒充电脑（"火锅婆婆1"这种带编号的也挡住） */
@@ -146,7 +146,7 @@ async function roomOpts(request: Request): Promise<unknown> {
   return (b as { opts?: unknown }).opts;
 }
 
-/** 单机的带入（开场）、结回（一场打完或中途离开）：浏览器算的结果，平台按 client 模式记、每天的净赢有上限 */
+/** 单机的带入（开场）、带回（一场打完或中途离开）：浏览器算的结果，平台按 client 模式记、每天的净赢有上限 */
 async function stake(request: Request, env: Env, site: string, sub: string): Promise<Response> {
   if (sub !== 'buyin' && sub !== 'settle') return json({ error: 'not_found' }, 404);
   if (request.method !== 'POST') return json({ error: 'method' }, 405);

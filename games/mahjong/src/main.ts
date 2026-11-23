@@ -71,7 +71,7 @@ void (async () => {
   // 平台大厅的"好友房"按钮直接到开房、进房那一页；平常进主页
   if (friends) lobby(true, 'room');
   else homePage();
-  // 上一场单机实盘离开时没结上：打开就自动再结一次（自审 C2）
+  // 上一场单机实盘离开时没结上：打开就自动再结一次
   const left = loadSolo();
   if (left?.settle && !left.done) void settleLeftover(new Solo(left, quietUi));
   // 说明按主页上选着的玩法弹：选着立直却弹川麻的"不能吃"，说的和要打的对不上。

@@ -17,7 +17,7 @@ interface Prefs extends RulesStore {
   /** 总音量 0–1（静音另算：sound 关着时一点声音都不出） */
   volume: number;
   fast: boolean;
-  /** 茶馆底噪：默认开、很轻，跟着静音和音量走，声音面板里能单独关 */
+  /** 茶馆底噪：默认开、很轻，跟着静音和音量走，设置面板里能单独关 */
   ambience: boolean;
   /** 安全牌提示（立直）：别家立直后手牌上标安全程度，默认开 */
   safeHint: boolean;

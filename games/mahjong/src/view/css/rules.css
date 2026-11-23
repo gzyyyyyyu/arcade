@@ -48,7 +48,7 @@
   grid-template-columns: 1fr 1fr;
 }
 /* 每行自己定列宽，不用 subgrid：subgrid 的名字、番数列取全表最宽那个，翻页切的时候所有行都摆着、说明栏被挤窄，
-   量出来一行有一页高；翻到那页只剩一行时列又变窄，结果 844 横屏图鉴每页只摆一行、31 页（0.47.1 走查）。名字、番数给最小宽度，上下行大致对齐 */
+   量出来一行有一页高；翻到那页只剩一行时列又变窄，结果 844 横屏图鉴每页只摆一行、31 页。名字、番数给最小宽度，上下行大致对齐 */
 [data-orient='land'] .rules .paged table:not(.keys) tr {
   display: grid;
   grid-template-columns: minmax(4.5em, max-content) minmax(3em, max-content) minmax(0, 1fr);
@@ -63,7 +63,7 @@
   border-bottom: 0;
 }
 /* 手机横屏（舞台矮，844×390 这类）：两栏时说明挤成三四行，一页只摆两条、下面空一大半。改一栏，说明和「还没和过」排一行、牌例另起一行：
-   844 上立直图鉴 19→9 页、血战图鉴 6→4 页（0.47.2 量测）。电脑照旧两栏 */
+   这样 844 上立直图鉴 9 页、血战图鉴 4 页。电脑两栏 */
 .stage[data-orient='land']:not([data-fit='desk']) .rules .paged table:not(.keys) {
   grid-template-columns: minmax(0, 1fr);
 }

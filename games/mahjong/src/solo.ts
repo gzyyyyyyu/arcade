@@ -2,9 +2,9 @@
  * 单机（DESIGN.md 4、5 节）：在浏览器里对三个电脑打一场，不连房间、不占任何额度。
  * - 电脑一步一步出，每步停一下给画面播动画（声明窗口里电脑的回答不停）；
  * - 每一步存进 mahjong.solo，关了页面回来接着打；
- * - 实盘（client 模式）：开场经 Worker 从钱包带入，一场打完（或中途离开）带着小结结回；带入、结回的操作号都先存下来，
+ * - 实盘（client 模式）：开场经 Worker 从钱包带入，一场打完（或中途离开）带着小结带回；带入、带回的操作号都先存下来，
  *   断网、刷新后用同一个号重发，平台按号去重，不会多扣多给。
- * - 存档只有一份（mahjong.solo），每一场有自己的号（id）：已经停下的旧一场（晚到的结回）只改、只删自己那份，不碰新开的一场（自审 C1）。
+ * - 存档只有一份（mahjong.solo），每一场有自己的号（id）：已经停下的旧一场（晚到的带回）只改、只删自己那份，不碰新开的一场。
  * - 玩法按状态里的 variant 走（core/variants 的登记表、ai 的 AIS）：川麻、立直共用这一套流程；
  *   存档里的玩法 id 和规则版本就是 state.variant、state.v，规则版本对不上的旧存档不接着打（loadSolo）。
  */
@@ -47,7 +47,7 @@ export interface SoloSave {
   /** 娱乐的难度（可以没有，按新手） */
   level?: Level;
   names: string[];
-  /** 实盘：钱包里这一份的号；结回的操作号和小结（先存再发，重发用同一个） */
+  /** 实盘：钱包里这一份的号；带回的操作号和小结（先存再发，重发用同一个） */
   ref: string | null;
   settle: { op: string; amount: number; stats: SettleStats } | null;
   /** 实盘带入还没确认：先存再发，没回话（断网、刷新）下次用同一个操作号重发 */
@@ -56,7 +56,7 @@ export interface SoloSave {
   daily?: string;
   /** 茶馆擂台的一桌（game/ladder.ts）：哪种打法、第几桌（0 起）；一场打完按它记擂台。没有就是普通单机 */
   ladder?: { mode: LadderMode; table: number };
-  /** 已经结回（或者娱乐局打完） */
+  /** 已经带回（或者娱乐局打完） */
   done: boolean;
 }
 
@@ -65,7 +65,7 @@ interface SoloUi {
   frame(v: SoloView, names: string[]): void;
   /** 一局打完（停在结算）或一场打完 */
   roundEnd(v: SoloView, names: string[]): void;
-  /** 结回的结果（实盘） */
+  /** 带回的结果（实盘） */
   settled(r: WalletReply): void;
   /** 电脑开始想这一手（单机的思考时间，ms 已乘快慢和速度）：牌桌上画想的样子，下一帧自己消失 */
   think?(seat: number, ms: number): void;
@@ -77,14 +77,14 @@ export function loadSolo(): SoloSave | null {
   return s && s.v === 1 && v && s.state.v === v.rulesVersion ? s : null;
 }
 
-/** 实盘、还没结回钱包的存档：开新的一场前要先把它结了（自审 C1） */
+/** 实盘、还没带回钱包的存档：开新的一场前要先把它结了 */
 export function unsettled(s: SoloSave | null): boolean {
   return !!s && !s.done && !!s.ref && !!stakesOf(s.stakes)?.wallet;
 }
 
 /**
  * 存档。own 是"这一场正在打"：正在打的那一场总能写；已经停下的（离开了、换成了新的一场）只在存着的还是自己时才改、才删，
- * 免得晚到的结回把新一场的存档删掉或者盖掉。
+ * 免得晚到的带回把新一场的存档删掉或者盖掉。
  */
 function persist(s: SoloSave, own: boolean): void {
   const cur = readJson<SoloSave | null>(SOLO_KEY, null)?.id;
@@ -186,7 +186,7 @@ export class Solo {
   }
 
   /**
-   * 实盘带入：先把"带入中"（ref、操作号）存下来再发（自审 C3）。成了就清掉；平台明确拒了（没扣）就丢掉这一场；
+   * 实盘带入：先把"带入中"（ref、操作号）存下来再发。成了就清掉；平台明确拒了（没扣）就丢掉这一场；
    * 没回话、平台暂时不行（可能扣了）就留着，下次用同一个操作号重发，平台按号去重，不会多扣
    */
   async buyin(): Promise<WalletReply> {
@@ -203,7 +203,7 @@ export class Solo {
   /** 画当前的局面，接着让电脑出（回来接着打时也从这里开始） */
   /** play 为 false 时只画出来、电脑先不动（第一次进桌的说明开着时，app/solo-flow.ts） */
   resume(play = true): void {
-    // 已经离开、结回没成的（存着结回的数）：不再接着打，只把结回再办一次（自审 C2）
+    // 已经离开、带回没成的（存着带回的数）：不再接着打，只把带回再办一次
     if (this.s.settle) {
       this.ui.frame(this.view, this.s.names);
       void this.finish();
@@ -273,8 +273,8 @@ export class Solo {
   }
 
   /**
-   * 实盘结回（一场打完，或者中途离开）：先把操作号和小结存下来再发，失败了下次用同一个号重发。
-   * 带入还没确认的也走这里：没扣成的平台回 no_stake，算结完。返回结回的回话（娱乐局是 null）
+   * 实盘带回（一场打完，或者中途离开）：先把操作号和小结存下来再发，失败了下次用同一个号重发。
+   * 带入还没确认的也走这里：没扣成的平台回 no_stake，算结完。返回带回的回话（娱乐局是 null）
    */
   async finish(): Promise<WalletReply | null> {
     const st = stakesOf(this.s.stakes)!;

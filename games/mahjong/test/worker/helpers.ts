@@ -27,7 +27,7 @@ export function get(path: string, sid: string | null): Promise<Response> {
   return exports.default.fetch(`${BASE}${path}`, { headers: cookie(sid), redirect: 'manual' });
 }
 
-/** 单机的带入、结回，默认带齐 CSRF 头 */
+/** 单机的带入、带回，默认带齐 CSRF 头 */
 export function post(path: string, sid: string | null, body: unknown, headers: Record<string, string> = {}): Promise<Response> {
   return exports.default.fetch(`${BASE}/api/${path}`, {
     method: 'POST',

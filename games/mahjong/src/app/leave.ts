@@ -11,7 +11,7 @@ import { home, stage } from './shell.ts';
 import { showError } from './wallet.ts';
 import { sleep, TIMING } from './timing.ts';
 
-/** 好友房里离开：开打了先确认（实盘这一局由电脑替他打完再结回），座位交给电脑 */
+/** 好友房里离开：开打了先确认（实盘这一局由电脑替他打完再带回），座位交给电脑 */
 export async function leaveRoom(): Promise<void> {
   const s = session.online!.state;
   const back = roomBack();
@@ -22,7 +22,7 @@ export async function leaveRoom(): Promise<void> {
     const ok = await confirmBox(stage, wallet ? '现在离开，这一局由电脑替你打完（输赢照算），打完这一局把筹码带回钱包。离开吗？' : '离开后座位交给电脑接着打。离开吗？', '离开', '接着打');
     if (!ok) return;
     session.online!.leaveSeat();
-    // 等房间收到离座再断开（结回由房间办，断开也不影响）
+    // 等房间收到离座再断开（带回由房间办，断开也不影响）
     await sleep(TIMING.leaveSeatGraceMs);
   }
   lobby(false, back);
@@ -42,7 +42,7 @@ export async function leave(): Promise<void> {
     if (!ok) return;
     await solo.leave();
     lobby();
-    // 结回没成（断网、平台忙）：说清楚下次会自动再结（自审 C2）
+    // 带回没成（断网、平台忙）：说清楚下次会自动再结
     if (st.wallet && !solo.save.done) showError(NET_SETTLE_LATER);
     return;
   }

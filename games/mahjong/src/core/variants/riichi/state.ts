@@ -158,7 +158,7 @@ export interface RcState {
   kinds: SeatKind[];
   personas: number[];
   tunes?: Tune[];
-  /** 筹码只在一场结束时动：chips 是带进来的，结束时换成结回去的 */
+  /** 筹码只在一场结束时动：chips 是带进来的，结束时换成带回去的 */
   chips: number[];
   stake: number[];
   points: number[];

@@ -48,7 +48,7 @@ export interface MatchSetup {
 
 /** 一场打完，每个座位的结果 */
 export interface SeatResult {
-  /** 最后手上的筹码（实盘按它结回钱包；已按"最多赢 3 份"截过） */
+  /** 最后手上的筹码（实盘按它带回钱包；已按"最多赢 3 份"截过） */
   chips: number;
   /** 净输赢 = chips - 带进来的 */
   net: number;

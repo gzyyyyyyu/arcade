@@ -54,7 +54,7 @@ function rememberChoice(stakes: StakesId, opts: AnyOpts, level: Level, variant: 
   savePrefs();
 }
 
-/** 上一场实盘还没结回钱包：先结了再开，不然新的一场会盖掉它的存档（自审 C1）；false 是不开了（没同意、没结上） */
+/** 上一场实盘还没带回钱包：先结了再开，不然新的一场会盖掉它的存档；false 是不开了（没同意、没结上） */
 async function settleBeforeNew(): Promise<boolean> {
   const old = loadSolo();
   if (!unsettled(old)) return true;
@@ -78,7 +78,7 @@ export async function startSolo(stakes: StakesId, opts: AnyOpts, level: Level = 
   if (!st.wallet) return playSolo(new Solo(newSolo(stakes, opts, session.myName, null, chips, level, variant, daily), soloUi));
   // 实盘只带整份：底分和"最多赢 3 份"按整份算，少带等于输得少、赢得一样多
   if (!(await checkFunds(chips))) return;
-  // 带入前先存"带入中"（ref、操作号），回包丢了下次用同一个号重发（自审 C3）
+  // 带入前先存"带入中"（ref、操作号），回包丢了下次用同一个号重发
   const save = newSolo(stakes, opts, session.myName, randomId(), chips, 'easy', variant);
   save.buying = { op: randomId(), amount: chips };
   const s = new Solo(save, soloUi);
@@ -88,7 +88,7 @@ export async function startSolo(stakes: StakesId, opts: AnyOpts, level: Level = 
   playSolo(s);
 }
 
-/** 选桌页"接着打上一场"：带入还没确认的先确认；已经离开、只差结回的只结回、不接着打（自审 C2、C3） */
+/** 选桌页"接着打上一场"：带入还没确认的先确认；已经离开、只差带回的只带回、不接着打 */
 export async function resumeSolo(): Promise<void> {
   const save = loadSolo();
   if (!save) return;
@@ -107,7 +107,7 @@ export async function resumeSolo(): Promise<void> {
   playSolo(s);
 }
 
-/** 上一场已经离开、结回没成：再结一次，成了说一声 */
+/** 上一场已经离开、带回没成：再结一次，成了说一声 */
 export async function settleLeftover(s: Solo): Promise<void> {
   const r = await s.finish();
   if (screen.classList.contains('lobby')) lobby(false, session.lobbyMode);
@@ -116,7 +116,7 @@ export async function settleLeftover(s: Solo): Promise<void> {
   else if (r) toast(`上一场的筹码还没结上：${walletError(r.error).text}`);
 }
 
-/** 不画牌桌的单机（结旧的一场用）：结回的结果由调用的人说 */
+/** 不画牌桌的单机（结旧的一场用）：带回的结果由调用的人说 */
 export const quietUi = {
   frame(): void {},
   roundEnd(): void {},
@@ -169,7 +169,7 @@ function startAgain(stakes: StakesId, variant: string, level: Level = prefs.leve
 
 // ---------- 牌桌 ----------
 
-/** 单机牌桌的画面回调：每一步重画、一局打完弹结算、实盘结回后提示 */
+/** 单机牌桌的画面回调：每一步重画、一局打完弹结算、实盘带回后提示 */
 const soloUi = {
   think(seat: number, ms: number): void {
     session.table?.think(seat, ms);
@@ -187,7 +187,7 @@ const soloUi = {
   },
   roundEnd(v: SoloView, names: string[]): void {
     const unit = stakesOf(session.solo?.stakes)?.wallet ? '' : ' 分';
-    // 停一下再弹结算：这期间回了选桌、又开了新的一场，就不弹到新牌桌上（自审 C8）
+    // 停一下再弹结算：这期间回了选桌、又开了新的一场，就不弹到新牌桌上
     const mine = session.solo;
     // 立直有人胡了时，胡牌亮牌（役一条条弹出来）要多摆一会儿再弹结算
     const wait = pageOf(v.variant).soloEndMs(v);
@@ -203,14 +203,14 @@ const soloUi = {
     const text: string = r.ok
       ? `已带回钱包${r.credited !== undefined ? ` ${num(r.credited)}` : ''}${r.capped ? `；今天单机实盘赢够了，多出的 ${num(r.capped)} 没进钱包，好友房不限` : ''}`
       : walletError(r.error).text;
-    // 钱包常常比结算弹窗先回话（弹窗要等亮牌演完）：记下来，弹窗画的时候直接用，不然那行一直停在"正在结回"
+    // 钱包常常比结算弹窗先回话（弹窗要等亮牌演完）：记下来，弹窗画的时候直接用，不然那行一直停在"正在带回"
     if (session.solo) SETTLED.set(session.solo, text);
     if (box) box.textContent = text;
     void refreshWallet().then(syncAgain);
   },
 };
 
-/** 这一场钱包结回的那句（settled 先到、结算弹窗后画时用） */
+/** 这一场钱包带回的那句（settled 先到、结算弹窗后画时用） */
 const SETTLED = new WeakMap<Solo, string>();
 
 /** 一局打完（一场还没完）：结算加"下一局" */
@@ -233,7 +233,7 @@ function matchEndDialog(mine: Solo, v: SoloView, names: string[], unit: string):
   let single = false;
   dialog(stage, 'end', (box) => {
     // 内容放进翻页区，按钮行在它下面、一直看得见（view/pager.ts）
-    // 钱包结回的那句放在翻页区上面，哪一页都看得见；等钱包回话才有准话，先占一行，不然字来了把翻页区挤矮
+    // 钱包带回的那句放在翻页区上面，哪一页都看得见；等钱包回话才有准话，先占一行，不然字来了把翻页区挤矮
     if (stakesOf(mine.stakes)?.wallet) el('div', 'settle-note', box, SETTLED.get(mine) ?? '正在带回钱包……');
     verdict(box, v, names, unit, net);
     const body = el('div', 'end-body', box);
@@ -304,7 +304,7 @@ function ladderNext(row: HTMLElement, mode: LadderMode, outcome: string | null):
 
 /**
  * 一场打完后的"再来一局"：同玩法、同档位、同难度、同规则，一键开新的（走和主页开打同一个 startSolo，实盘照样先带入一份）。
- * 钱包不够一份时按钮灰掉，底下写原因；结回钱包后余额刷新（settled → syncAgain）会重新判断。电脑上按回车也能开
+ * 钱包不够一份时按钮灰掉，底下写原因；带回钱包后余额刷新（settled → syncAgain）会重新判断。电脑上按回车也能开
  */
 function againButton(box: HTMLElement, row: HTMLElement, mine: Solo): void {
   const save = mine.save;

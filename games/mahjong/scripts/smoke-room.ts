@@ -9,7 +9,7 @@
  *    B 离开并确认，A 继续打、牌桌还在动；
  *    中途 C 凭链接进来直接接管电脑座位（不落在旁观），离开再进来直接回到自己的座位；
  * 2. 实盘小档房：A 一个人时"开打"灰着、有"至少要两个人"的提示；A、B 进房开打，检查假钱包各扣 2,000、stakes 里各有 mahjong 的 server 模式一份；
- *    B 一局打到一半离开：这一局由电脑替他打完、那一份先还在；A 打完这一局，只剩 A 一个人在下注：这一场结束，两个人的那一份都结回、余额加回结回的数，A 的结算上写着提前结束。
+ *    B 一局打到一半离开：这一局由电脑替他打完、那一份先还在；A 打完这一局，只剩 A 一个人在下注：这一场结束，两个人的那一份都带回、余额加回带回的数，A 的结算上写着提前结束。
  * 3. 血流成河娱乐房：A 在选桌页的玩法行点"血流成河"再开房，等人页写着血流成河；两边自动打到有人胡第二次（名牌上"胡×2"），
  *    其间胡过的真人手里能点的牌最多一张（锁手牌）。
  * 4. 三人两房娱乐房（`--only three` 只跑这一段）：A 在玩法行点"三人两房"再开房，等人页只有 3 个座位；A 一个真人加两个电脑打完一局，
@@ -279,7 +279,7 @@ try {
     await pa.waitForSelector('.room-code');
     hasRoomStep = false;
     check(((await pa.textContent('.room-code')) ?? '').trim() === code, `A 已经开着房间 ${code} 再开房，弹"回到你的房间"，点了回到原房间`);
-    // 等人页"离开房间"先离座（自审 C4）：B 坐下再离开，A 这边那个座位要空出来（只断开的话 kit 只记掉线、座位还占着）
+    // 等人页"离开房间"先离座：B 坐下再离开，A 这边那个座位要空出来（只断开的话 kit 只记掉线、座位还占着）
     await pb.goto(`${base}/games/mahjong/?room=${code}`);
     await pb.waitForSelector('.room-code');
     await pb.waitForSelector('.room-seat.me');
@@ -437,12 +437,12 @@ try {
     check(wc.stakes.length === 1 && wc0.balance - wc.balance === 2_000, `下一局开始 C 才带入一份（余额 ${wc0.balance} → ${wc.balance}）`);
     await pc2.waitForFunction(() => document.querySelectorAll('.my-hand .tile[title]').length >= 13, null, { timeout: 15_000 });
     check(true, 'C 到账以后手牌亮出来');
-    // 下一局真打起来再走（C 到账那一刻还停在局间：这时离座按规则马上结回，下面"一局打到一半离开"就测不到了）
+    // 下一局真打起来再走（C 到账那一刻还停在局间：这时离座按规则马上带回，下面"一局打到一半离开"就测不到了）
     const d1 = B.discards;
     await playUntil([A, B], () => B.discards >= d1 + 2, 120_000, '实盘房下一局先打几张');
     await leaveRoom(pc2, 'C');
     await leaveRoom(pb, 'B');
-    // 一局打到一半走的：这一局由电脑替他打完（输赢照算），那一份还在；A 接着打完这一局才结回
+    // 一局打到一半走的：这一局由电脑替他打完（输赢照算），那一份还在；A 接着打完这一局才带回
     let w2 = await wallet(pb);
     check(w2.stakes.length === 1, 'B 一局打到一半离开：这一局还没完，那一份还在（电脑替他打完）');
     for (let i = 0; i < 900 && w2.stakes.length > 0; i++) {
@@ -451,24 +451,24 @@ try {
       if (i % 4 === 0) w2 = await wallet(pb);
     }
     log('B 离开后钱包', w2.balance, JSON.stringify(w2.stakes));
-    check(w2.stakes.length === 0, 'A 打完这一局，B 的那一份结回了');
+    check(w2.stakes.length === 0, 'A 打完这一局，B 的那一份带回了');
     let wc2 = await wallet(pc2);
     for (let i = 0; i < 25 && wc2.stakes.length > 0; i++) {
       await sleep(200);
       wc2 = await wallet(pc2);
     }
-    check(wc2.stakes.length === 0, `C 那一份也只结回一次就没了（余额 ${wc.balance} → ${wc2.balance}）`);
+    check(wc2.stakes.length === 0, `C 那一份也只带回一次就没了（余额 ${wc.balance} → ${wc2.balance}）`);
     await pc2.close();
     pages.splice(pages.indexOf(pc2), 1);
     await ctxC2.close();
-    check(w2.balance >= w1.b.balance, `B 余额加回结回的数：${w1.b.balance} → ${w2.balance}（结回 ${w2.balance - w1.b.balance}）`);
-    // 只剩 A 一个人在下注：这一场当场结束，A 的那一份也马上结回（实盘至少两个真人）
+    check(w2.balance >= w1.b.balance, `B 余额加回带回的数：${w1.b.balance} → ${w2.balance}（带回 ${w2.balance - w1.b.balance}）`);
+    // 只剩 A 一个人在下注：这一场当场结束，A 的那一份也马上带回（实盘至少两个真人）
     let wa = await wallet(pa);
     for (let i = 0; i < 25 && wa.stakes.length > 0; i++) {
       await sleep(200);
       wa = await wallet(pa);
     }
-    check(wa.stakes.length === 0 && wa.balance > w1.a.balance, `B 走后只剩 A：这一场提前结束，A 的那一份也结回了（余额 ${w1.a.balance} → ${wa.balance}）`);
+    check(wa.stakes.length === 0 && wa.balance > w1.a.balance, `B 走后只剩 A：这一场提前结束，A 的那一份也带回了（余额 ${w1.a.balance} → ${wa.balance}）`);
     await pa.waitForSelector('.mask.end .settle-note:has-text("提前结束")', { timeout: 10_000 });
     check(true, 'A 的结算上写着"实盘这一场提前结束"');
     await pb.screenshot({ path: join(SHOTS, 'room-stake-b.png') });

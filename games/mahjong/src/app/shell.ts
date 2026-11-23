@@ -1,7 +1,7 @@
 /**
- * 页面骨架和顶栏：大厅入口、标题、钱包、速度、声音面板（音量、静音、茶馆声、安全牌提示、推荐出牌、互动、聊天、弹幕）、规则、叫朋友、离开，
+ * 页面骨架和顶栏：大厅入口、标题、钱包、设置面板（顶栏齿轮：音量、静音、出牌速度、茶馆声、安全牌提示、推荐出牌、互动、聊天、弹幕）、规则、叫朋友、离开，
  * 以及中间放选桌页 / 牌桌的 screen 和提示条 toast。
- * 骨架在加载这个模块时一次画好（子节点的先后顺序有讲究：顶栏、声音面板、screen），别的文件 import 这里的节点来用。
+ * 骨架在加载这个模块时一次画好（子节点的先后顺序有讲究：顶栏、设置面板、screen），别的文件 import 这里的节点来用。
  */
 import { chatMode, funOff, setChatMode, setFunOff, type ChatMode } from '../view/fun.ts';
 import { button, el } from '../view/dom.ts';
@@ -184,7 +184,7 @@ export function topbarTapRect(): DOMRect {
 }
 watchScreen(screen);
 
-/** 顶栏、声音面板里各按钮的字和显隐，跟着现在在打单机、好友房还是没开局 */
+/** 顶栏、设置面板里各按钮的字和显隐，跟着现在在打单机、好友房还是没开局 */
 export function paintTop(): void {
   // 写的是现在的速度
   speedBtn.textContent = prefs.fast ? '速度：快' : '速度：常速';

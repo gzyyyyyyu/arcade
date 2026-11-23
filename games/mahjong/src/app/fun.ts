@@ -112,7 +112,7 @@ export function newFun(
     scope: () => scope,
     localBots,
     // 首次提示冒在对家头像上（离手牌和操作条最远），对家空着就上家（左上）；右下那家贴着碰杠胡过的按钮，不挑。
-    // 换三张、定缺、轮到我打、碰杠胡过的按钮在（v.prompt）时先不冒——以前 kit 挑第一个电脑，常是右下那家，
+    // 换三张、定缺、轮到我打、碰杠胡过的按钮在（v.prompt）时先不冒——不然 kit 挑第一个电脑，常是右下那家，
     // 气泡压住"缺条""过"和那家的名字（#249 截图）
     hintSeat: () => {
       const v = t.view();
@@ -158,7 +158,7 @@ export function publicMoments(v: AnyView, names: string[], local: boolean): void
 }
 
 /**
- * 娱乐局里自己胡出名场面：报一条好友动态（docs/api-social.md 15.17 第 2 条）。实盘的由平台结回时自己生成，不报；
+ * 娱乐局里自己胡出名场面：报一条好友动态（docs/api-social.md 15.17 第 2 条）。实盘的由平台带回时自己生成，不报；
  * 没平台、没登录（social 没挂上）不报；失败不提示，丢一条动态不影响打牌
  */
 export function feed(match: object | string, v: AnyView, me: number): void {

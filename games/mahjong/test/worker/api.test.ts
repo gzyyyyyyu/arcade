@@ -1,5 +1,5 @@
 /**
- * Worker 这一层（DESIGN.md 第 4 节）：登录闸门带 next、单机带入结回的 CSRF / 登录 / 请求体检查、转给平台钱包（client 模式）、小结原样转发。
+ * Worker 这一层（DESIGN.md 第 4 节）：登录闸门带 next、单机带入带回的 CSRF / 登录 / 请求体检查、转给平台钱包（client 模式）、小结原样转发。
  * 平台的 /api/me 和钱包都换成假的（只在这个文件里），直接调 Worker 的 fetch；跑在 workerd 里（vitest.worker.config.ts），
  * 因为 Worker 引用了 kit 的房间（cloudflare:workers），Node 里加载不了。真的房间和钱包见 room.test.ts。
  */
@@ -111,7 +111,7 @@ describe('登录闸门', () => {
   });
 });
 
-describe('单机带入、结回', () => {
+describe('单机带入、带回', () => {
   const buy = { op: 'op-000001', session: 'session-0001', stakes: 'small', amount: 2_000 };
 
   it('带入：client 模式、按档位、24 小时到期，转给平台钱包', async () => {
@@ -133,7 +133,7 @@ describe('单机带入、结回', () => {
     expect((await post('/api/stake/buyin', e, { ...buy, op: 'x'.repeat(64) })).status).toBe(400);
   });
 
-  it('只带整份：少带、多带都 400 bad_amount，不调平台（第三轮审计：底分和封顶按整份，少带的输得少、赢得一样多）；被拒按状态码回、带上钱包', async () => {
+  it('只带整份：少带、多带都 400 bad_amount，不调平台（底分和封顶按整份，少带的输得少、赢得一样多）；被拒按状态码回、带上钱包', async () => {
     const e = env();
     for (const [stakes, amount] of [['small', 1], ['small', 500], ['small', 2_001], ['lux', 1]] as const) {
       const r = await post('/api/stake/buyin', e, { ...buy, stakes, amount });
@@ -146,7 +146,7 @@ describe('单机带入、结回', () => {
     expect(await res.json()).toEqual({ ok: false, error: 'no_funds', wallet: { balance: 5 } });
   });
 
-  it('结回：小结原样转发，不改不补', async () => {
+  it('带回：小结原样转发，不改不补', async () => {
     const e = env();
     const stats = { rounds: 8, wins: 3, best: 400, titles: ['xz_qing'], max: { xz_fan: 2 }, sum: { xz_gang: 1, xz_zimo: 1 }, extra: 'x' };
     const res = await post('/api/stake/settle', e, { op: 'op-000002', session: 'session-0001', amount: 2_400, stats });

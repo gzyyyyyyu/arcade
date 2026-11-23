@@ -106,7 +106,7 @@ export class Online {
   chat(text: string): ChatSendResult {
     return this.client.chat(text);
   }
-  /** 离座：电脑接着替这个座位打；实盘手上的筹码在这一局打完时结回钱包 */
+  /** 离座：电脑接着替这个座位打；实盘手上的筹码在这一局打完时带回钱包 */
   leaveSeat(): void {
     this.client.leave();
   }

@@ -1,5 +1,5 @@
 /**
- * 单机实盘的钱（自审 C1–C3）：带入先存再发、回包丢了用同一个号重发；离开后只差结回的回来只结回；
+ * 单机实盘的钱：带入先存再发、回包丢了用同一个号重发；离开后只差带回的回来只带回；
  * 晚到的旧一场不碰新一场的存档。浏览器的 localStorage、fetch 用桩代替。
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -41,7 +41,7 @@ function wallet(): SoloSave {
   return s;
 }
 
-describe('带入（C3）', () => {
+describe('带入', () => {
   test('回包丢了：存着"带入中"，刷新后用同一个操作号重发，成了才清掉', async () => {
     const s = wallet();
     replies = ['lost'];
@@ -80,8 +80,8 @@ test('0.15.1 以前少带开的、带入一直没确认的存档：重发被 bad
   expect(loadSolo()).toBeNull();
 });
 
-describe('结回（C2）', () => {
-  test('离开时结回没成：存着结回的数和号；回来只结回、不接着打，用同一个号', async () => {
+describe('带回', () => {
+  test('离开时带回没成：存着带回的数和号；回来只带回、不接着打，用同一个号', async () => {
     const s = wallet();
     s.buying = null;
     const a = new Solo(s, ui);
@@ -110,8 +110,8 @@ describe('结回（C2）', () => {
   });
 });
 
-describe('存档只改自己那份（C1）', () => {
-  test('旧一场的结回晚到：成了也不删新一场的存档，没成也不盖掉', async () => {
+describe('存档只改自己那份', () => {
+  test('旧一场的带回晚到：成了也不删新一场的存档，没成也不盖掉', async () => {
     const old = wallet();
     old.buying = null;
     const a = new Solo(old, ui);
@@ -121,7 +121,7 @@ describe('存档只改自己那份（C1）', () => {
     const fresh = wallet();
     await new Solo(fresh, ui).buyin();
     expect(loadSolo()!.id).toBe(fresh.id);
-    // 旧那场的结回这时候才回来：没成（写不进新一场的位置），成了（删不掉新一场的）
+    // 旧那场的带回这时候才回来：没成（写不进新一场的位置），成了（删不掉新一场的）
     replies = ['lost'];
     await a.finish();
     expect(loadSolo()!.id).toBe(fresh.id);
@@ -159,7 +159,7 @@ describe('立直单机', () => {
     expect(newSolo('fun', DEFAULT_OPTS, '我', null, 2_000).state.variant).toBe('sichuan-xuezhan');
   });
 
-  test('实盘：打完按一场的结果结回钱包，小结带 rc_ 前缀的统计', async () => {
+  test('实盘：打完按一场的结果带回钱包，小结带 rc_ 前缀的统计', async () => {
     const s = wallet2();
     const solo = new Solo(s, ui);
     // 直接收场（好友房实盘只剩一个真人时也是这样），不用电脑出牌
@@ -173,7 +173,7 @@ describe('立直单机', () => {
     expect(solo.save.done).toBe(true);
   });
 
-  test('中途离开：按点数差结回，不算马和头名奖（起家一开局就走，原样拿回一份，拿不到头名奖）', async () => {
+  test('中途离开：按点数差带回，不算马和头名奖（起家一开局就走，原样拿回一份，拿不到头名奖）', async () => {
     let s = wallet2();
     for (let i = 0; i < 40 && (s.state as RcState).first !== 0; i++) s = wallet2();
     expect((s.state as RcState).first).toBe(0);

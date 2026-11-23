@@ -10,20 +10,20 @@
  * - 实盘一局打到一半坐下（接管电脑、离座后回来、被拒后再带一次）：这一局电脑照打、不扣钱不换人，他只能旁观（看不到这个座位的暗牌），
  *   这一局打完、下一局发牌前才带入一份、restake（waiting）。中途接管按那一刻的筹码算的话，旁观的人能看着公开的牌（谁碰了一手清一色）挑时机坐进去；
  *   等下一局之前走了不扣钱；
- * - 真人离座：把他手上的筹码（按"最多赢 3 份"截过）连同小结结回钱包，座位交给电脑，筹码归庄家接着打；
- *   实盘一局打到一半走的，电脑替他打完这一局再结回；最后一个真人也走了，电脑替所有座位打完这一局再结回（躲不掉查叫）；
- * - 整场打完、桌上没真人了、房间要关：所有还在桌上的人结回。
+ * - 真人离座：把他手上的筹码（按"最多赢 3 份"截过）连同小结带回钱包，座位交给电脑，筹码归庄家接着打；
+ *   实盘一局打到一半走的，电脑替他打完这一局再带回；最后一个真人也走了，电脑替所有座位打完这一局再带回（躲不掉查叫）；
+ * - 整场打完、桌上没真人了、房间要关：所有还在桌上的人带回。
  *
  * 实盘至少两个真人（DESIGN.md 第 4 节）：好友房是来和朋友打的，不是来赢电脑的（电脑座位的钱归庄家）。
  * - 开局时坐着的真人不到 2 个（旧页面、脚本绕过了页面的"开打"）：整场不计输赢、不碰钱包，按娱乐打（unrated）；
- * - 开打以后还在下注的真人（筹码是他的、或者带入在路上）不到 2 个：这一场当场结束，桌上的筹码按那一刻的数结回（cut），
+ * - 开打以后还在下注的真人（筹码是他的、或者带入在路上）不到 2 个：这一场当场结束，桌上的筹码按那一刻的数带回（cut），
  *   不会变成一个人对电脑赢实盘；
  * - 实盘桌的电脑是最强的两个（src/ai/venues.ts 的 room:<档>），几家电脑各不相同，每个座位的状态各自浮动。
  *
- * 再来一场：整场打完（结回已经排上）房间停 REMATCH_MS 等人点。谁点了，他的页面先开好新房间，把房间号发过来（next），
+ * 再来一场：整场打完（带回已经排上）房间停 REMATCH_MS 等人点。谁点了，他的页面先开好新房间，把房间号发过来（next），
  * 这一间就算打完，所有人的页面跟过去；到点没人点也算打完。整场一打完（idle）kit 就还开房名额，不等这几分钟。实盘的新房间不替谁扣：各人自己坐下、房主开打才带入。
  * 钱包的事记在状态里（effects），房间去办、办完写回（settled）；同一笔可能办两次，钱包按操作 id 去重。
- * 平台钱包一份（ref）只结回一次，所以每个座位同一时间只办排第一的那笔（先扣后结），结过的那份封上，再坐下开新的一份。
+ * 平台钱包一份（ref）只带回一次，所以每个座位同一时间只办排第一的那笔（先扣后结），结过的那份封上，再坐下开新的一份。
  *
  * 声明窗口的公平（DESIGN.md 6.2）在玩法里：真人的回答是 free（不改名单、期限），电脑的回答带 bot、答完离开名单。
  */
@@ -60,7 +60,7 @@ export interface RoomOpts {
 
 const DEFAULT_OPTS: RoomOpts = { variant: DEFAULT_VARIANT, stakes: 'fun', rules: VARIANTS[DEFAULT_VARIANT].defaults };
 
-/** 要去钱包办的一笔：debit 带入，credit 结回；ref 是钱包里"桌上那一份"的号：房间号 + s 座位 + n 第几份 */
+/** 要去钱包办的一笔：debit 带入，credit 带回；ref 是钱包里"桌上那一份"的号：房间号 + s 座位 + n 第几份 */
 export interface Pending extends RoomEffect {
   kind: 'debit' | 'credit';
   amount: number;
@@ -88,7 +88,7 @@ export interface RoomState {
   share: number[];
   /** 这一份带进来多少（到账的；0 是钱包里没有这一份） */
   inn: number[];
-  /** 这一份已经结回（或者排上了）：再坐下开新的一份 */
+  /** 这一份已经带回（或者排上了）：再坐下开新的一份 */
   sealed: boolean[];
   /** 这个座位上一次带入被钱包拒了的原因 */
   refused: (string | null)[];
@@ -96,9 +96,9 @@ export interface RoomState {
   nextId: number;
   /** 开局等带入回话 */
   opening: boolean;
-  /** 整场打完、结回已经排上 */
+  /** 整场打完、带回已经排上 */
   done: boolean;
-  /** 房间要关了：不再动牌局，只等结回 */
+  /** 房间要关了：不再动牌局，只等带回 */
   closed: boolean;
   /** 再来一场：谁（座位）开好了哪个新房间 */
   next: { code: string; by: number } | null;
@@ -109,15 +109,15 @@ export interface RoomState {
   /** 实盘开打以后下注的真人不到 MIN_HUMANS，这一场当场结束了 */
   cut: boolean;
   /**
-   * 实盘一局打到一半离座的：筹码还是他的、留在桌上，电脑替他打完这一局再结回（release）。
-   * 当场按离座那一刻结回的话，眼看这一局要输（没听牌要被查叫、别人要自摸）就走、过后再坐回来，能躲掉输
+   * 实盘一局打到一半离座的：筹码还是他的、留在桌上，电脑替他打完这一局再带回（release）。
+   * 当场按离座那一刻带回的话，眼看这一局要输（没听牌要被查叫、别人要自摸）就走、过后再坐回来，能躲掉输
    */
   leaving: boolean[];
   /** 实盘一局打到一半坐下的：等这一局打完再带入（见文件头） */
   waiting: boolean[];
   /**
    * 带入在一局打到一半时到账（开局、局间等钱到点或者他掉线托管、先发了牌）：钱收着（inn），这一局打完才 restake 成他的，
-   * 不在一局中途换人。这期间走了、整场打完、房间要关，原样结回
+   * 不在一局中途换人。这期间走了、整场打完、房间要关，原样带回
    */
   ready: boolean[];
   /** 牌局走了几步（出牌、发下一局）：钱包到账、座位换人这些不算。页面按它判断 g 里的事件是不是新的，免得同一串动画放两遍 */
@@ -290,8 +290,8 @@ export const mahjongRoom: Rules = {
   // 整场打完停着等"再来一场"，到点 resume 就收场
   pause: (s) => (s.done ? REMATCH_MS : s.opening || s.closed ? null : vOf(s).pause(s.g)),
   resume: (s) => (s.done ? { ...s, ended: true } : sync({ ...s, g: vOf(s).resume(s.g), n: s.n + 1 }, true)),
-  // 有人开了新房间、等到点了、房间要关，或者桌上没有真人了（离开的都马上结回了）也没有带入在路上：房间就算打完，kit 办完结回再关
-  // 真人都走了（含这一局里离座、还没结回的）：kit 桌上没真人时不再推电脑，等这一局打完只会空等到关房，所以马上收场、按那一刻结回（closing）
+  // 有人开了新房间、等到点了、房间要关，或者桌上没有真人了（离开的都马上带回了）也没有带入在路上：房间就算打完，kit 办完带回再关
+  // 真人都走了（含这一局里离座、还没带回的）：kit 桌上没真人时不再推电脑，等这一局打完只会空等到关房，所以马上收场、按那一刻带回（closing）
   over: (s) => s.closed || s.ended || s.next !== null || (!s.kinds.includes('human') && !s.fx.some((e) => e.kind === 'debit')),
   breakPoint: (s) => s.opening || s.done || vOf(s).breakPoint(s.g),
   // 整场打完只等"再来一场"：kit 先还开房名额（每人同时 1 个房间，房主点再来一场、回选桌开新房、匹配再排都不被挡回这一桌）；done 只会从假变真
@@ -305,21 +305,21 @@ export const mahjongRoom: Rules = {
     if (s.closed || s.done) return s;
     const v = vOf(s);
     if (kind === 'ai') {
-      // 离座：他的那一份结回（筹码按"最多赢 3 份"截过，带上这一场的小结），座位交给电脑、筹码归庄家接着打。
-      // 实盘一局打到一半走的，这一局照算：电脑替他打完这一局再结回（leaving，见 RoomState）
+      // 离座：他的那一份带回（筹码按"最多赢 3 份"截过，带上这一场的小结），座位交给电脑、筹码归庄家接着打。
+      // 实盘一局打到一半走的，这一局照算：电脑替他打完这一局再带回（leaving，见 RoomState）
       // 筹码不是他的（含等下一局的）：不碰钱包，记号清掉
       if (s.ready[seat]) return sync(refund(s, seat));
       if (!s.own[seat]) return sync(s.waiting[seat] ? { ...s, waiting: set(s.waiting, seat, false) } : s);
       if (walletOf(s) && !s.opening && !v.breakPoint(s.g)) {
         s = { ...s, leaving: set(s.leaving, seat, true) };
-        // 桌上一个真人都没了：kit 不推只有电脑的桌、房间就此打完（over），所以由这里替所有座位把这一局打完再结回，
+        // 桌上一个真人都没了：kit 不推只有电脑的桌、房间就此打完（over），所以由这里替所有座位把这一局打完再带回，
         // 不按半局的筹码结（几个人串通一起走就能躲掉查叫）
         return sync(s.kinds.includes('human') ? s : release(playOut(s), true));
       }
       s = settle(s, seat);
       return sync({ ...s, g: v.seated(s.g, seat, 'ai') });
     }
-    // 这一局还没结回就回来了：筹码本来就是他的，接着打，不另开一份
+    // 这一局还没带回就回来了：筹码本来就是他的，接着打，不另开一份
     if (s.leaving[seat]) s = { ...s, leaving: set(s.leaving, seat, false) };
     if (s.own[seat] || debiting(s, seat)) return sync(s);
     const st = stakesOf(s.stakes)!;
@@ -362,7 +362,7 @@ export const mahjongRoom: Rules = {
     const e = s.fx.find((x) => x.id === id);
     if (!e) return s;
     const next: RoomState = { ...s, fx: s.fx.filter((x) => x !== e) };
-    // 结回的：钱包收了（或者那一份已经到期退过）都算办完；要重办的房间那边抛错，不会到这里
+    // 带回的：钱包收了（或者那一份已经到期退过）都算办完；要重办的房间那边抛错，不会到这里
     if (e.kind === 'credit') return sync(next);
     if (!isOk(result)) {
       const why = errorOf(result);
@@ -372,7 +372,7 @@ export const mahjongRoom: Rules = {
       return sync({ ...next, g, refused: set(s.refused, e.seat, why), sealed: set(s.sealed, e.seat, true), share: set(s.share, e.seat, s.share[e.seat]! - 1) });
     }
     const inn = set(s.inn, e.seat, s.inn[e.seat]! + e.amount);
-    // 到账时人已经走了、牌局打完了、房间要关了：原样结回去
+    // 到账时人已经走了、牌局打完了、房间要关了：原样带回去
     if (s.closed || s.done || s.kinds[e.seat] !== 'human') return sync(credit({ ...next, inn }, e.seat, e.amount));
     // 一局打到一半到账：先收着，这一局打完再算他的（admit）
     if (midRound(next)) return sync({ ...next, inn, ready: set(next.ready, e.seat, true) });
@@ -381,7 +381,7 @@ export const mahjongRoom: Rules = {
     return sync({ ...next, inn, g, own: set(s.own, e.seat, true) });
   },
 
-  // 牌局不再动，所有人桌上的筹码结回钱包
+  // 牌局不再动，所有人桌上的筹码带回钱包
   closing(s) {
     let next: RoomState = { ...s, closed: true, opening: false, leaving: noOne(s.kinds.length) };
     for (let i = 0; i < next.kinds.length; i++) if (next.own[i]) next = settle(next, i);
@@ -411,11 +411,11 @@ function errorOf(r: unknown): string {
 /** 这一桌碰钱包：实盘档，而且开局时真人够数 */
 const walletOf = (s: RoomState): boolean => stakesOf(s.stakes)!.wallet && !s.unrated;
 
-/** 还在下注的真人：筹码是他的（含离座了、这一局还没结回的），或者带入在路上、到账了收着，或者坐着等下一局带入 */
+/** 还在下注的真人：筹码是他的（含离座了、这一局还没带回的），或者带入在路上、到账了收着，或者坐着等下一局带入 */
 const betting = (s: RoomState): number => s.kinds.filter((k, i) => s.own[i] || (k === 'human' && (debiting(s, i) || s.waiting[i] || s.ready[i]))).length;
 
 /**
- * 实盘下注的真人不到两个了（有人离座、带入被拒）：这一场到此为止，下面按打完结回所有人。
+ * 实盘下注的真人不到两个了（有人离座、带入被拒）：这一场到此为止，下面按打完带回所有人。
  * 等下一局的人算在里面：不然 C 等着、B 这一局离座，这一局打完就误判只剩一个人
  */
 function cutIfFew(s: RoomState): RoomState {
@@ -424,12 +424,12 @@ function cutIfFew(s: RoomState): RoomState {
 
 const noOne = (n: number): boolean[] => new Array<boolean>(n).fill(false);
 
-/** 桌上没真人了：电脑替所有座位（含离座、这一局还没结回的）把这一局打到结算；事件只留最后一步的（没人在打，旁观的不用看整局的动画） */
+/** 桌上没真人了：电脑替所有座位（含离座、这一局还没带回的）把这一局打到结算；事件只留最后一步的（没人在打，旁观的不用看整局的动画） */
 function playOut(s: RoomState): RoomState {
   const v = vOf(s);
   const ai = aiOf(s);
   let g = s.g;
-  // 上限同 sync：一局几百步就到结算，推不完（不该发生）就按这一刻结回
+  // 上限同 sync：一局几百步就到结算，推不完（不该发生）就按这一刻带回
   for (let k = 0; k < 2_000 && !v.breakPoint(g) && !v.over(g); k++) {
     const seat = v.actors(g)?.seats[0];
     if (seat === undefined) break;
@@ -440,7 +440,7 @@ function playOut(s: RoomState): RoomState {
   return { ...s, g, n: s.n + 1 };
 }
 
-/** 一局打完了（停在结算），或者 now（桌上没真人了）：这一局里离座的人现在结回，座位交给电脑 */
+/** 一局打完了（停在结算），或者 now（桌上没真人了）：这一局里离座的人现在带回，座位交给电脑 */
 function release(s0: RoomState, now = false): RoomState {
   if (!s0.leaving.some(Boolean)) return s0;
   const v = vOf(s0);
@@ -457,7 +457,7 @@ function release(s0: RoomState, now = false): RoomState {
 const debiting = (s: RoomState, seat: number): boolean => s.fx.some((e) => e.seat === seat && e.kind === 'debit');
 
 /**
- * 开局（或局间带入）时还在等钱包回话的第一个座位：只算还坐着真人的。人已经走了的那一份到账后原样结回，不用等；
+ * 开局（或局间带入）时还在等钱包回话的第一个座位：只算还坐着真人的。人已经走了的那一份到账后原样带回，不用等；
  * 算上它的话 kit 把那个座位当电脑、马上代出"开打"，还坐着的人的钱就不等了
  */
 const openingSeat = (s: RoomState): number | null => s.fx.find((e) => e.kind === 'debit' && s.kinds[e.seat] === 'human')?.seat ?? null;
@@ -492,7 +492,7 @@ function admit(s0: RoomState): RoomState {
   return openingSeat(s) !== null ? { ...s, opening: true } : s;
 }
 
-/** 收着的那一份原样结回（钱到了、还没算他的，人就走了或者这一场完了） */
+/** 收着的那一份原样带回（钱到了、还没算他的，人就走了或者这一场完了） */
 function refund(s: RoomState, seat: number): RoomState {
   return credit({ ...s, ready: set(s.ready, seat, false) }, seat, s.inn[seat]!);
 }
@@ -513,13 +513,13 @@ function buy(s: RoomState, seat: number, amount: number): RoomState {
   };
 }
 
-/** 这一份结回 amount 并封上 */
+/** 这一份带回 amount 并封上 */
 function credit(s: RoomState, seat: number, amount: number, stats?: SettleStats): RoomState {
   const e: Pending = { id: `c${s.nextId}`, seat, kind: 'credit', amount, ref: `${s.ref}s${seat}n${s.share[seat]}`, ...(stats ? { stats } : {}) };
   return { ...s, fx: [...s.fx, e], nextId: s.nextId + 1, sealed: set(s.sealed, seat, true), own: set(s.own, seat, false) };
 }
 
-/** 这个座位的人带着桌上的筹码走：实盘结回（娱乐只是不再是他的） */
+/** 这个座位的人带着桌上的筹码走：实盘带回（娱乐只是不再是他的） */
 function settle(s: RoomState, seat: number): RoomState {
   if (!walletOf(s) || s.inn[seat] === 0) return { ...s, own: set(s.own, seat, false) };
   const r = vOf(s).result(s.g).seats[seat]!;
@@ -528,7 +528,7 @@ function settle(s: RoomState, seat: number): RoomState {
 
 /**
  * 每一步之后：开局的带入都有回话了就开打；真人坐着、筹码不是他的座位由这里替电脑打（kit 不替真人座位出手）；
- * 整场打完了，桌上的真人都结回。这里连着出的几步，玩法的事件接在一起（页面按事件放动画）
+ * 整场打完了，桌上的真人都带回。这里连着出的几步，玩法的事件接在一起（页面按事件放动画）
  */
 function sync(s0: RoomState, moving = false): RoomState {
   let s = s0;
@@ -558,7 +558,7 @@ function sync(s0: RoomState, moving = false): RoomState {
     s = cutIfFew(release(s));
     if (!v.over(s.g)) return admit(s);
   }
-  // 打完了：桌上的筹码（含离座了、还没结回的）一起结回
+  // 打完了：桌上的筹码（含离座了、还没带回的）一起带回
   s = { ...s, done: true, leaving: noOne(s.kinds.length), waiting: noOne(s.kinds.length) };
   for (let i = 0; i < s.kinds.length; i++) if (s.own[i]) s = settle(s, i);
   for (let i = 0; i < s.kinds.length; i++) if (s.ready[i]) s = refund(s, i);
