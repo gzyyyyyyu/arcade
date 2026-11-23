@@ -6,7 +6,7 @@
  *
  * - DOM 实现：头像上盖一块透明的热区接点按和长按（画布游戏把世界坐标换成屏幕矩形传进来就行），菜单和面板是普通的 DOM，点按区 ≥ 44px；
  *   效果（表情、道具、污渍）走 fun.ts 的图层，点击穿透。这个文件只在调用时碰 DOM，import 时不碰（房间、测试里 import 没事）。
- * - 动画只动 transform、opacity；量位置（getBoundingClientRect）只在开菜单、给冒烟报控件时。
+ * - 动画只动 transform、opacity；摆位置只用独立的 `translate` 属性（按下态的 `scale` 不会把位置一起缩）；量位置（getBoundingClientRect）只在开菜单、给冒烟报控件时。
  * - 公平：人人一样、免费；只是画面和声音，不停计时、不改规则；电脑的出牌不读这些。电脑的反应只在画面层（单机）或房间的互动钩子里算。
  * - kit 不认识任何游戏：短语表、名场面的映射、电脑人物都由游戏给。
  */
@@ -437,7 +437,7 @@ export class TableFun {
       const b = yieldBox(hotBox(s.rect, { width: window.innerWidth, height: window.innerHeight }), s.rect, avoid);
       h.style.width = `${b.width}px`;
       h.style.height = `${b.height}px`;
-      h.style.transform = `translate(${b.left}px,${b.top}px)`;
+      h.style.translate = `${b.left}px ${b.top}px`;
     });
     const r = this.o.button?.() ?? null;
     if (!r) {
@@ -460,7 +460,7 @@ export class TableFun {
       styleButton(this.btn, this.o.buttonStyle?.());
       this.btn.style.width = `${Math.max(44, r.width)}px`;
       this.btn.style.height = `${Math.max(44, r.height)}px`;
-      this.btn.style.transform = `translate(${r.left}px,${r.top}px)`;
+      this.btn.style.translate = `${r.left}px ${r.top}px`;
     }
     this.cui.refresh(this.chatOn());
   }
@@ -568,7 +568,7 @@ export class TableFun {
     b.style.height = `${h}px`;
     const view = { width: window.innerWidth, height: window.innerHeight };
     const at = placeMenu(anchor, w, h, view, this.o.avoid?.() ?? []);
-    b.style.transform = `translate(${at.left}px,${at.top}px)`;
+    b.style.translate = `${at.left}px ${at.top}px`;
     b.addEventListener('pointerdown', (e) => e.stopPropagation());
     const wrap = this.doc.createElement('div');
     wrap.dataset['kind'] = kind;
@@ -653,7 +653,7 @@ export class TableFun {
   private fit(b: HTMLDivElement, anchor: Rect, w: number): void {
     b.style.height = 'auto';
     const at = placeMenu(anchor, w, b.offsetHeight, { width: window.innerWidth, height: window.innerHeight }, this.o.avoid?.() ?? []);
-    b.style.transform = `translate(${at.left}px,${at.top}px)`;
+    b.style.translate = `${at.left}px ${at.top}px`;
   }
 
   /** 点自己头像：12 个表情 */
@@ -816,7 +816,7 @@ export class TableFun {
 
   /**
    * iOS 键盘弹出时会盖住下半屏、页面不一定跟着滚：按 visualViewport 把面板整个往上挪到键盘上面，记录区限在可见高度的 60% 以内。
-   * 只动这个面板的 top（transform 里是 placeMenu 摆的位置），收起菜单时摘掉
+   * 只动这个面板的 top（translate 里是 placeMenu 摆的位置），收起菜单时摘掉
    */
   private hookViewport(b: HTMLDivElement): void {
     const vv = window.visualViewport;
@@ -1023,7 +1023,7 @@ export class TableFun {
       b.remove();
       return undefined;
     }
-    b.style.transform = `translate(${at.left}px,${at.top}px)`;
+    b.style.translate = `${at.left}px ${at.top}px`;
     b.dataset['seat'] = String(seat);
     this.live.add(b);
     void anim(b, [{ opacity: 0 }, { opacity: 1 }], 160)
@@ -1057,7 +1057,7 @@ export class TableFun {
       const s = this.seat(Number(b.dataset['seat']));
       if (!s) continue;
       const at = this.spot(Number(b.dataset['seat']), s.rect, r.width, r.height, true, b);
-      if (at) b.style.transform = `translate(${at.left}px,${at.top}px)`;
+      if (at) b.style.translate = `${at.left}px ${at.top}px`;
     }
   }
 

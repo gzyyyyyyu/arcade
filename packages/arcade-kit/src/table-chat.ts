@@ -287,7 +287,7 @@ export class ChatUi {
       this.pill.classList.toggle('atf-dot', this.unread);
       const pw = this.pill.offsetWidth || 110;
       const at = fixed ? { left: fixed.left, top: fixed.top } : placeDock(view, pw, 48, this.h.blocked());
-      this.pill.style.transform = `translate(${at.left}px,${at.top}px)`;
+      this.pill.style.translate = `${at.left}px ${at.top}px`;
       return;
     }
     this.layoutDock(view, w, fixed);
@@ -312,7 +312,7 @@ export class ChatUi {
     const input = d.querySelector<HTMLInputElement>('.atc-input');
     if (input) input.disabled = !this.h.canSend();
     const at = fixed ? { left: fixed.left, top: fixed.top } : placeDock(view, w, d.offsetHeight || 260, this.h.blocked());
-    d.style.transform = `translate(${at.left}px,${at.top}px)`;
+    d.style.translate = `${at.left}px ${at.top}px`;
     log.scrollTop = log.scrollHeight;
     return d;
   }
@@ -385,7 +385,7 @@ export class ChatUi {
       b.style.width = `${Math.max(44, own.width)}px`;
       b.style.height = `${Math.max(44, own.height)}px`;
     }
-    b.style.transform = `translate(${at.left}px,${at.top}px)`;
+    b.style.translate = `${at.left}px ${at.top}px`;
     if (this.bar) this.placeBar();
   }
 
@@ -431,7 +431,7 @@ export class ChatUi {
     // 键盘弹起：可见区变矮，输入条跟着站到键盘上面
     const vv = window.visualViewport;
     if (vv && this.doc.activeElement?.classList.contains('atc-input')) bottom = Math.min(bottom, vv.offsetTop + vv.height - 6);
-    bar.style.transform = `translateY(${Math.max(4, bottom - h)}px)`;
+    bar.style.translate = `0 ${Math.max(4, bottom - h)}px`;
   }
 
   private hookViewport(): void {

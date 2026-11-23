@@ -3,6 +3,8 @@
  * 组件本身要 DOM，在 demo/table-fun.html 里看；这里只测纯函数（import 时不碰 DOM，Node 里能直接引）
  */
 import { describe, expect, it } from 'vitest';
+import tableChatSrc from '../src/table-chat.ts?raw';
+import tableFunSrc from '../src/table-fun.ts?raw';
 import { placeBubble } from '../src/fun-logic.ts';
 import { CHAT_CSS } from '../src/table-chat.ts';
 import { bubbleZones, checkPrefsKey, checkStorageKey, hintSeatFor, styleButton, tapDismiss, type FunSeat } from '../src/table-fun.ts';
@@ -201,5 +203,17 @@ describe('聊天坞的芯片点按区（0.21.2）', () => {
     const ext = -Number(/inset:(-?\d+)px/.exec(rules.find((r) => r.sel === '.atc-dock .atc-quick .atf-chip::before')!.body)![1]);
     expect(Number(/row-gap:(\d+)px/.exec(q)![1])).toBeGreaterThanOrEqual(2 * ext);
     expect(q).toContain(`padding:${ext}px 0`);
+  });
+});
+
+describe('按下态不挪位置', () => {
+  // 独立的 scale 和 transform 叠在一起时 translate 也被缩：按住"互动"按钮会跳开（1280 下 245,512→232,490），松手落在牌桌上 click 不触发
+  it('摆位置只写 style.translate，不写 transform 的 translate；按下态和弹出动画用独立的 scale', () => {
+    for (const [name, src] of [['table-fun.ts', tableFunSrc], ['table-chat.ts', tableChatSrc]] as const) {
+      expect(src.match(/\.style\.transform\s*=\s*`translate/g), name).toBeNull();
+    }
+    expect(tableFunSrc).toContain('.atf-btn:active{scale:.94;');
+    expect(tableFunSrc).toMatch(/this\.btn\.style\.translate = `\$\{r\.left\}px \$\{r\.top\}px`/);
+    expect(tableChatSrc).toMatch(/b\.style\.translate = `\$\{at\.left\}px \$\{at\.top\}px`/);
   });
 });
