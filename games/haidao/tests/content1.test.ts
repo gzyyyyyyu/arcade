@@ -166,12 +166,13 @@ describe('克制', () => {
     const r = tdGrowthSetup('td10', 'suggest', 1);
     if (!r.ok) throw new Error(r.error);
     const waves: TdWave[] = [];
-    for (let w = 0; w < 8; w++) waves.push({ hpPct: 220 + 10 * w, groups: [{ enemy: 'grenadier', n: 6 + w, lane: 0, every: 24 }, { enemy: 'grenadier', n: 5 + w, lane: 1, every: 24, delay: 60 }] });
+    for (let w = 0; w < 8; w++) waves.push({ hpPct: 200 + 10 * w, groups: [{ enemy: 'grenadier', n: 6 + w, lane: 0, every: 24 }, { enemy: 'grenadier', n: 5 + w, lane: 1, every: 24, delay: 60 }] });
     let flame = 0;
     let none = 0;
     for (const seed of [1, 2, 3]) {
       for (const k of ['gunTower', 'cannon'] as const) {
-        const setup: TdSetup = { ...r.value, seed, level: { ...r.value.level, waves } };
+        // 驻守塔压在 2 阶（驻守台不封顶后 3 阶驻守塔自己就守得住，量不出木台上塔种的差别）
+        const setup: TdSetup = { ...r.value, seed, garrison: r.value.garrison?.map((g) => ({ ...g, tier: 2 as const })), level: { ...r.value.level, waves } };
         none += runTdBot({ ...setup, unlocked: [k] }, 'normal').result.lost;
         flame += runTdBot({ ...setup, unlocked: [k, 'flame'] }, 'normal').result.lost;
       }

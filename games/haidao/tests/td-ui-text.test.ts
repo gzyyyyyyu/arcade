@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COUNTER, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_TOWER_DAMAGE, TD_TOWER_KINDS, counterKind, createTd, freeSlotPick, stepTd, tdGrowthSetup, tdPreview, tdUpCost } from '../src/core/index.ts';
 import {
-  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, campaignChapters, cardLine, chapterLines, laneName, levelIntro, pctText, pctTier, spotSide, starRule, nextStep, nextStepText, stepLine, openerLeft, tdVerdict, towerCounter,
+  ARMOR_NAME, DAMAGE_NAME, armorOrder, branchDamageHint, callBonusText, campaignChapters, garrisonLine, garrisonShort, cardLine, chapterLines, laneName, levelIntro, pctText, pctTier, spotSide, starRule, nextStep, nextStepText, stepLine, openerLeft, tdVerdict, towerCounter,
 } from '../src/view/td-ui.ts';
 import { TD2_COST } from '../src/content/td2units.ts';
 
@@ -130,6 +130,10 @@ describe('叫波按钮、驻守台', () => {
     expect(callBonusText(40, 160)).toBe('+40 金 · 技能快 8 秒');
     expect(callBonusText(12, 10)).toBe('+12 金');
     expect(callBonusText(0, 0)).toBe('');
+  });
+  it('驻守的那一句：基地等级 → 驻守阶', () => {
+    expect(garrisonLine({ kind: 'cannon', baseLevel: 7, tier: 3 })).toBe('你的加农炮 7 级 → 驻守 3 阶');
+    expect(garrisonShort({ kind: 'gunTower', baseLevel: 6, tier: 2 })).toBe('火枪塔 6 级→2 阶');
   });
   it('驻守台在岛的哪一边', () => {
     expect(spotSide({ x: 12, y: 2 })).toBe('北边');

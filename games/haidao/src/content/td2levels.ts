@@ -5,7 +5,7 @@
  * 难度只来自预算、敌人种类和路数、地图，没有每关单独的血量百分比（hpPct 一律 100）。
  */
 import type { TdEnemyKind, TdEventKind, TdGroup, TdWave } from '../core/tdtypes.ts';
-import type { TdChapterId, TdGarrisonSpot, TdIslandLevel, TdMapId, TdPadDef, TdTier, TdTowerKind } from '../core/td2types.ts';
+import type { TdChapterId, TdGarrisonSpot, TdIslandLevel, TdMapId, TdPadDef, TdTowerKind } from '../core/td2types.ts';
 import { waveBudget } from '../core/td2types.ts';
 import { TD2_ECON, TD2_ENEMY_POINTS } from './td2units.ts';
 import { TD2_MAPS, TD2_MAP_SPECS, mapLayout } from './td2maps.ts';
@@ -42,8 +42,8 @@ interface LevelDef {
   /** 用几个木台、其中哪几个（下标）被沉船压着 */
   pads: number;
   wrecks?: number[];
-  /** 每个驻守台的上限阶 */
-  garrison: TdTier[];
+  /** 用几个驻守台（地图的前几个） */
+  garrison: number;
   /** 起作用的雾区（TdMapDef.fogZones 的下标） */
   fog?: number[];
   /** 落潮路：从第几波（0 起）开始一直开着；或只在列出的这些波开着 */
@@ -114,7 +114,7 @@ const D = 'shield';
 const DEFS: readonly LevelDef[] = [
   // ---------------------------------------------------------------- 第一章：登陆、铁甲、雾船、鹦鹉、首领
   {
-    id: 'td01', name: '初上岛滩', index: 0, map: 'A', chapter: 1, hq: 2, gold: 380, waveTicks: 360, scale: 180, ease: { pct: 70, waves: 3 }, pads: 4, garrison: [1],
+    id: 'td01', name: '初上岛滩', index: 0, map: 'A', chapter: 1, hq: 2, gold: 380, waveTicks: 360, scale: 180, ease: { pct: 70, waves: 3 }, pads: 4, garrison: 1,
     waves: [
       w([S, 100, 0]),
       w([S, 100, 0]),
@@ -127,7 +127,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td02', name: '铁甲登陆', index: 1, map: 'A', chapter: 1, hq: 3, gold: 300, waveTicks: 360, scale: 280, pads: 4, garrison: [1],
+    id: 'td02', name: '铁甲登陆', index: 1, map: 'A', chapter: 1, hq: 3, gold: 300, waveTicks: 360, scale: 280, pads: 4, garrison: 1,
     waves: [
       w([S, 15, 0]),
       w([S, 20, 0], [S, 10, 0, 140]),
@@ -141,7 +141,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td03', name: '双滩汇流', index: 2, map: 'B', chapter: 1, hq: 4, gold: 355, waveTicks: 360, scale: 125, ease: { pct: 75, waves: 5 }, pads: 5, garrison: [2],
+    id: 'td03', name: '双滩汇流', index: 2, map: 'B', chapter: 1, hq: 4, gold: 355, waveTicks: 360, scale: 120, ease: { pct: 75, waves: 5 }, pads: 5, garrison: 1,
     waves: [
       w([S, 100, 0]),
       w([S, 60, 0], [S, 40, 1, 40]),
@@ -156,7 +156,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td04', name: '雾港分路', index: 3, map: 'C', chapter: 1, hq: 5, gold: 300, waveTicks: 360, scale: 130, pads: 6, wrecks: [5], garrison: [2], events: 'bounty',
+    id: 'td04', name: '雾港分路', index: 3, map: 'C', chapter: 1, hq: 5, gold: 300, waveTicks: 360, scale: 105, pads: 6, wrecks: [5], garrison: 1, events: 'bounty',
     waves: [
       w([S, 45, 0]),
       w([S, 35, 0], [S, 25, 1, 40]),
@@ -171,7 +171,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td05', name: '鹦鹉礁', index: 4, map: 'C', chapter: 1, hq: 5, gold: 300, waveTicks: 360, scale: 128, pads: 6, wrecks: [5], garrison: [2], crates: CRATES_C,
+    id: 'td05', name: '鹦鹉礁', index: 4, map: 'C', chapter: 1, hq: 5, gold: 300, waveTicks: 360, scale: 116, pads: 6, wrecks: [5], garrison: 1, crates: CRATES_C,
     waves: [
       w([S, 45, 0]),
       w([S, 35, 0], [S, 25, 1, 40]),
@@ -187,7 +187,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td06', name: '船长来了', index: 5, map: 'D', chapter: 1, hq: 6, gold: 335, waveTicks: 340, scale: 120, pads: 7, garrison: [2, 2], tide: 6, crates: CRATES_D,
+    id: 'td06', name: '船长来了', index: 5, map: 'D', chapter: 1, hq: 6, gold: 335, waveTicks: 340, scale: 109, pads: 7, garrison: 2, tide: 6, crates: CRATES_D,
     waves: [
       w([S, 45, 0]),
       w([S, 35, 0], [S, 25, 1, 40]),
@@ -205,7 +205,7 @@ const DEFS: readonly LevelDef[] = [
   },
   // ---------------------------------------------------------------- 第二章：潮水涨落、成片的雾
   {
-    id: 'td07', name: '潮起潮落', index: 6, map: 'D', chapter: 2, hq: 6, gold: 550, waveTicks: 340, scale: 280, elite: { from: 5 }, opener: [[6, 'mortar'], [1, 'mortar'], [0, 'gunTower']], pads: 7, garrison: [2, 2], tide: [1, 2, 5, 6, 9, 10],
+    id: 'td07', name: '潮起潮落', index: 6, map: 'D', chapter: 2, hq: 6, gold: 650, waveTicks: 340, scale: 270, elite: { from: 5 }, opener: [[6, 'mortar'], [1, 'mortar'], [0, 'gunTower']], pads: 7, garrison: 2, tide: [1, 2, 5, 6, 9, 10],
     waves: [
       w([S, 100, 0]),
       note('南边的落潮路开着：预告条会提前一波告诉你', w([S, 60, 2], [I, 40, 1])),
@@ -222,7 +222,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td08', name: '薄雾渐起', index: 7, map: 'E', chapter: 2, hq: 6, gold: 450, waveTicks: 340, scale: 94, ease: { pct: 60 }, pads: 7, wrecks: [5, 6], garrison: [2, 2], fog: [0], events: 'rain',
+    id: 'td08', name: '薄雾渐起', index: 7, map: 'E', chapter: 2, hq: 6, gold: 450, waveTicks: 340, scale: 94, ease: { pct: 60 }, pads: 7, wrecks: [5, 6], garrison: 2, fog: [0], events: 'rain',
     waves: [
       w([S, 100, 0]),
       note('北路罩在雾里：雾里的敌人要灯塔或英雄照亮才打得中', w([S, 60, 0], [I, 40, 1])),
@@ -238,7 +238,7 @@ const DEFS: readonly LevelDef[] = [
   },
   {
     // 开局金不能多：钱太多时"少造升满"的守法第一波就把塔造完、种类按头两波定死，后面守不住（850 守住 100%，920 只剩 3%）
-    id: 'td09', name: '雾锁浅滩', index: 8, map: 'E', chapter: 2, hq: 7, gold: 850, waveTicks: 340, scale: 100, ease: { pct: 60 }, pads: 7, wrecks: [5, 6], garrison: [2, 2], fog: [0, 1], tide: [1, 2, 4, 5, 7, 8, 10], events: 'bounty',
+    id: 'td09', name: '雾锁浅滩', index: 8, map: 'E', chapter: 2, hq: 7, gold: 900, waveTicks: 340, scale: 100, ease: { pct: 60 }, pads: 7, wrecks: [5, 6], garrison: 2, fog: [0, 1], tide: [1, 2, 4, 5, 7, 8, 10], events: 'bounty',
     waves: [
       w([S, 100, 0]),
       w([S, 60, 2], [I, 40, 1]),
@@ -254,7 +254,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td10', name: '浓雾锁港', index: 9, map: 'F', chapter: 2, hq: 7, gold: 300, waveTicks: 340, scale: 149, elite: {}, pads: 8, garrison: [2, 2], fog: [0, 1], events: 'rain',
+    id: 'td10', name: '浓雾锁港', index: 9, map: 'F', chapter: 2, hq: 7, gold: 300, waveTicks: 340, scale: 149, elite: {}, pads: 8, garrison: 2, fog: [0, 1], events: 'rain',
     waves: [
       w([S, 100, 0]),
       w([S, 70, 0], [S, 30, 0, 80]),
@@ -270,7 +270,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td11', name: '潮雾夹击', index: 10, map: 'F', chapter: 2, hq: 7, gold: 275, waveTicks: 340, scale: 133, ease: { pct: 50 }, opener: [[7, 'gunTower'], [6, 'mortar']], pads: 8, garrison: [2, 2], fog: [0], tide: [1, 3, 4, 6, 8, 9, 11], sluice: TD_SLUICE_USES,
+    id: 'td11', name: '潮雾夹击', index: 10, map: 'F', chapter: 2, hq: 7, gold: 275, waveTicks: 340, scale: 133, ease: { pct: 50 }, opener: [[7, 'gunTower'], [6, 'mortar']], pads: 8, garrison: 2, fog: [0], tide: [1, 3, 4, 6, 8, 9, 11], sluice: TD_SLUICE_USES,
     waves: [
       w([S, 100, 0]),
       w([S, 60, 0], [X, 40, 1]),
@@ -287,7 +287,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td12', name: '暴潮之夜', index: 11, map: 'D', chapter: 2, hq: 7, gold: 600, waveTicks: 330, scale: 120, ease: { pct: 80 }, opener: [[6, 'mortar'], [1, 'rocket'], [7, 'harpoon']], pads: 8, garrison: [2, 2], tide: [1, 2, 4, 5, 7, 8, 10, 11], sluice: TD_SLUICE_USES,
+    id: 'td12', name: '暴潮之夜', index: 11, map: 'D', chapter: 2, hq: 7, gold: 600, waveTicks: 330, scale: 120, ease: { pct: 80 }, opener: [[6, 'mortar'], [1, 'rocket'], [7, 'harpoon']], pads: 8, garrison: 2, tide: [1, 2, 4, 5, 7, 8, 10, 11], sluice: TD_SLUICE_USES,
     waves: [
       w([S, 100, 0]),
       w([S, 60, 2], [I, 40, 1]),
@@ -305,7 +305,7 @@ const DEFS: readonly LevelDef[] = [
   },
   // ---------------------------------------------------------------- 第三章：炸塔工兵、绕后鹦鹉、首领发怒
   {
-    id: 'td13', name: '工兵营', index: 12, map: 'G', chapter: 3, hq: 7, gold: 300, waveTicks: 320, scale: 140, ease: { gold: 300 }, pads: 8, garrison: [2, 2], sapperJam: true, events: 'dare',
+    id: 'td13', name: '工兵营', index: 12, map: 'G', chapter: 3, hq: 7, gold: 300, waveTicks: 320, scale: 140, ease: { gold: 300 }, pads: 8, garrison: 2, sapperJam: true, events: 'dare',
     waves: [
       w([S, 100, 0]),
       note('工兵会炸哑 3 格内的塔：先打工兵，塔别扎堆', w([X, 35, 0], [S, 65, 1])),
@@ -320,7 +320,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td14', name: '绕后的鹦鹉', index: 13, map: 'H', chapter: 3, hq: 8, gold: 780, waveTicks: 320, scale: 175, elite: {}, opener: [[5, 'gunTower'], [1, 'gunTower'], [6, 'gunTower']], pads: 8, garrison: [2, 2], flank: true, events: 'bounty',
+    id: 'td14', name: '绕后的鹦鹉', index: 13, map: 'H', chapter: 3, hq: 8, gold: 780, waveTicks: 320, scale: 175, elite: {}, opener: [[5, 'gunTower'], [1, 'gunTower'], [6, 'gunTower']], pads: 8, garrison: 2, flank: true, events: 'bounty',
     waves: [
       w([S, 100, 0]),
       w([P, 20, 2], [S, 80, 1]),
@@ -335,7 +335,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td15', name: '炸塔与绕后', index: 14, map: 'H', chapter: 3, hq: 8, gold: 490, waveTicks: 320, scale: 110, opener: [[5, 'gunTower'], [1, 'gunTower'], [0, 'gunTower']], pads: 8, wrecks: [6, 7], garrison: [2, 2], flank: true, sapperJam: true, events: 'rain',
+    id: 'td15', name: '炸塔与绕后', index: 14, map: 'H', chapter: 3, hq: 8, gold: 490, waveTicks: 320, scale: 110, opener: [[5, 'gunTower'], [1, 'gunTower'], [0, 'gunTower']], pads: 8, wrecks: [6, 7], garrison: 2, flank: true, sapperJam: true, events: 'rain',
     waves: [
       w([S, 100, 0]),
       w([X, 30, 1], [P, 30, 2], [S, 40, 0]),
@@ -351,7 +351,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td16', name: '船长的怒火', index: 15, map: 'G', chapter: 3, hq: 8, gold: 360, waveTicks: 320, scale: 185, elite: { kind: 'mate' }, pads: 9, garrison: [3, 3, 3], bossSkill: true, events: 'dare',
+    id: 'td16', name: '船长的怒火', index: 15, map: 'G', chapter: 3, hq: 8, gold: 360, waveTicks: 320, scale: 166, elite: { kind: 'mate' }, pads: 9, garrison: 3, bossSkill: true, events: 'dare',
     waves: [
       w([S, 100, 0]),
       w([I, 40, 1], [S, 60, 0]),
@@ -367,7 +367,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td17', name: '海盗联军', index: 16, map: 'I', chapter: 3, hq: 8, gold: 525, waveTicks: 320, scale: 130, opener: [[6, 'gunTower'], [5, 'gunTower'], [4, 'gunTower']], pads: 9, wrecks: [7, 8], garrison: [3, 3, 3], flank: true, sapperJam: true, bossSkill: true, battery: BATTERY_I,
+    id: 'td17', name: '海盗联军', index: 16, map: 'I', chapter: 3, hq: 8, gold: 525, waveTicks: 320, scale: 130, opener: [[6, 'gunTower'], [5, 'gunTower'], [4, 'gunTower']], pads: 9, wrecks: [7, 8], garrison: 3, flank: true, sapperJam: true, bossSkill: true, battery: BATTERY_I,
     waves: [
       w([S, 100, 0]),
       w([I, 40, 1], [P, 30, 2], [S, 30, 0]),
@@ -385,7 +385,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td18', name: '黑胡子', index: 17, map: 'I', chapter: 3, hq: 8, gold: 860, waveTicks: 320, scale: 98, opener: [[6, 'gunTower'], [4, 'gunTower'], [3, 'mortar'], [5, 'rocket']], pads: 10, garrison: [3, 3, 3], fog: [0, 1], tide: [1, 2, 5, 6, 9, 10],
+    id: 'td18', name: '黑胡子', index: 17, map: 'I', chapter: 3, hq: 8, gold: 860, waveTicks: 320, scale: 98, opener: [[6, 'gunTower'], [4, 'gunTower'], [3, 'mortar'], [5, 'rocket']], pads: 10, garrison: 3, fog: [0, 1], tide: [1, 2, 5, 6, 9, 10],
     flank: true, sapperJam: true, bossSkill: true, battery: BATTERY_I,
     waves: [
       w([S, 100, 0]),
@@ -405,7 +405,7 @@ const DEFS: readonly LevelDef[] = [
   },
   // ---------------------------------------------------------------- 第四章「远洋」：主寨已经到顶，难度走平台期（DESIGN 10.6e）
   {
-    id: 'td19', name: '双子初登', index: 18, map: 'J', chapter: 4, hq: 8, gold: 520, waveTicks: 320, scale: 165, opener: [[0, 'mortar'], [1, 'rocket'], [3, 'harpoon']], pads: 9, garrison: [3, 3, 3], events: 'dare',
+    id: 'td19', name: '双子初登', index: 18, map: 'J', chapter: 4, hq: 8, gold: 520, waveTicks: 320, scale: 148, opener: [[0, 'mortar'], [1, 'rocket'], [3, 'harpoon']], pads: 9, garrison: 3, events: 'dare',
     waves: [
       w([S, 100, 0]),
       w([S, 60, 1], [I, 40, 0]),
@@ -420,7 +420,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td20', name: '断桥', index: 19, map: 'J', chapter: 4, hq: 8, gold: 560, waveTicks: 320, scale: 198, elite: { kind: 'mate' }, pads: 10, garrison: [3, 3, 3], events: 'bounty',
+    id: 'td20', name: '断桥', index: 19, map: 'J', chapter: 4, hq: 8, gold: 560, waveTicks: 320, scale: 178, elite: { kind: 'mate' }, pads: 10, garrison: 3, events: 'bounty',
     waves: [
       w([S, 100, 0]),
       w([S, 50, 2], [I, 50, 0]),
@@ -437,7 +437,7 @@ const DEFS: readonly LevelDef[] = [
   },
   {
     // 火山口小、狙击塔在哪都够得着全岛：铁甲少放，多放成群的水手和分裂小艇，只造狙击守不住（溅射要有）
-    id: 'td21', name: '炮艇来袭', index: 20, map: 'K', chapter: 4, hq: 8, gold: 600, waveTicks: 320, scale: 112, pads: 9, garrison: [3, 3, 3], events: 'rain',
+    id: 'td21', name: '炮艇来袭', index: 20, map: 'K', chapter: 4, hq: 8, gold: 600, waveTicks: 320, scale: 112, pads: 9, garrison: 3, events: 'rain',
     waves: [
       w([S, 100, 0]),
       w([S, 60, 1], [I, 40, 2]),
@@ -452,7 +452,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td22', name: '四面楚歌', index: 21, map: 'K', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 200, elite: { kind: 'mate' }, pads: 10, garrison: [3, 3, 3], events: 'dare',
+    id: 'td22', name: '四面楚歌', index: 21, map: 'K', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 180, elite: { kind: 'mate' }, pads: 10, garrison: 3, events: 'dare',
     waves: [
       w([S, 100, 0]),
       w([S, 50, 1], [I, 50, 2]),
@@ -470,7 +470,7 @@ const DEFS: readonly LevelDef[] = [
   {
     // 友军巡航船第一次出现：炮艇比前两关多，叫船去清海面；后岛那一路照旧。
     // 炮艇从第 4 波才来：第 3 波就来时，机器人看到预告提前改造远程塔，第 2 波北边的水手漏过去（三星 24–32%，对预算不敏感）
-    id: 'td23', name: '远洋舰队', index: 22, map: 'J', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 160, elite: { kind: 'mate' }, pads: 10, garrison: [3, 3, 3],
+    id: 'td23', name: '远洋舰队', index: 22, map: 'J', chapter: 4, hq: 8, gold: 640, waveTicks: 320, scale: 160, elite: { kind: 'mate' }, pads: 10, garrison: 3,
     fleet: true,
     waves: [
       w([S, 100, 0]),
@@ -490,7 +490,7 @@ const DEFS: readonly LevelDef[] = [
     // 终局：海盗王停在北边海上，只有远程塔和友军船够得着；它放下的人和护航炮艇是这关的压力。
     // 前四波是铺垫波（份额 50% / 60% / 80% / 80%）：整关预算要撑住最后的海盗王，前几波照满份额会在开局一分钟里压上五六十个水手；
     // 只放轻前两波时，三星率随预算乱跳（147 / 149 / 150% 是 69 / 84 / 49%，丢宝全在第 3、4 波，看机器人先造了哪种塔），四波都放轻后考验落在后半段
-    id: 'td24', name: '海盗王', index: 23, map: 'K', chapter: 4, hq: 8, gold: 680, waveTicks: 320, scale: 161, elite: { kind: 'mate' }, opener: [[4, 'mortar'], [2, 'rocket'], [0, 'harpoon']], pads: 10, garrison: [3, 3, 3],
+    id: 'td24', name: '海盗王', index: 23, map: 'K', chapter: 4, hq: 8, gold: 680, waveTicks: 320, scale: 152, elite: { kind: 'mate' }, opener: [[4, 'mortar'], [2, 'rocket'], [0, 'harpoon']], pads: 10, garrison: 3,
     fleet: true,
     waves: [
       w([S, 50, 0]),
@@ -508,7 +508,7 @@ const DEFS: readonly LevelDef[] = [
   // ---------------------------------------------------------------- 第五章「断崖海岸」：崖上高台（打得远、崖脚下打不到）、盾兵（正面挡枪炮）。
   // 按宁简勿难，起点放回第四章中段的难度（DESIGN 10.6h），逐关小台阶
   {
-    id: 'td25', name: '断崖初登', index: 24, map: 'L', chapter: 5, hq: 8, gold: 450, waveTicks: 320, scale: 130, pads: 7, garrison: [3],
+    id: 'td25', name: '断崖初登', index: 24, map: 'L', chapter: 5, hq: 8, gold: 450, waveTicks: 320, scale: 140, pads: 7, garrison: 2,
     waves: [
       w([S, 100, 0]),
       w([S, 60, 1], [I, 40, 0]),
@@ -523,7 +523,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td26', name: '盾墙', index: 25, map: 'L', chapter: 5, hq: 8, gold: 450, waveTicks: 320, scale: 80, pads: 7, garrison: [3], events: 'dare',
+    id: 'td26', name: '盾墙', index: 25, map: 'L', chapter: 5, hq: 8, gold: 450, waveTicks: 320, scale: 72, pads: 7, garrison: 1, events: 'dare',
     waves: [
       w([S, 100, 1]),
       w([S, 50, 0], [D, 50, 1]),
@@ -539,7 +539,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td27', name: '双崖口', index: 26, map: 'M', chapter: 5, hq: 8, gold: 480, waveTicks: 320, scale: 95, pads: 8, garrison: [3, 3], events: 'bounty',
+    id: 'td27', name: '双崖口', index: 26, map: 'M', chapter: 5, hq: 8, gold: 480, waveTicks: 320, scale: 95, pads: 8, garrison: 2, events: 'bounty',
     waves: [
       w([S, 100, 0]),
       w([S, 50, 1], [S, 50, 2]),
@@ -554,7 +554,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td28', name: '峡谷军医', index: 27, map: 'M', chapter: 5, hq: 8, gold: 480, waveTicks: 320, scale: 105, pads: 9, garrison: [3, 3],
+    id: 'td28', name: '峡谷军医', index: 27, map: 'M', chapter: 5, hq: 8, gold: 480, waveTicks: 320, scale: 94, pads: 9, garrison: 2,
     waves: [
       w([S, 100, 0]),
       w([S, 35, 2], [D, 50, 1], [S, 15, 3]),
@@ -570,7 +570,7 @@ const DEFS: readonly LevelDef[] = [
     ],
   },
   {
-    id: 'td29', name: '崖下夜袭', index: 28, map: 'L', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 85, elite: { kind: 'mate' }, pads: 9, garrison: [3, 3],
+    id: 'td29', name: '崖下夜袭', index: 28, map: 'L', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 80, elite: { kind: 'mate' }, pads: 9, garrison: 2,
     waves: [
       w([S, 100, 0]),
       w([S, 50, 1], [I, 50, 0]),
@@ -587,7 +587,7 @@ const DEFS: readonly LevelDef[] = [
   },
   {
     // 第五章终局：船长发怒（召一批水手、炸哑身边的塔），盾兵和大副成批来
-    id: 'td30', name: '断崖船长', index: 29, map: 'M', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 85, elite: { kind: 'mate' }, pads: 10, garrison: [3, 3], bossSkill: true,
+    id: 'td30', name: '断崖船长', index: 29, map: 'M', chapter: 5, hq: 8, gold: 500, waveTicks: 320, scale: 110, elite: { kind: 'mate' }, pads: 10, garrison: 3, bossSkill: true,
     waves: [
       w([S, 60, 0]),
       w([S, 55, 1], [D, 30, 2], [S, 15, 3]),
@@ -694,14 +694,14 @@ function cliffsFor(cliffs: ReadonlyArray<{ x: number; y: number }>, pads: readon
 
 /**
  * 造一关。budgetPct：波次预算再乘多少百分比，配平和 td-sim 的"预算 ±2%"用，正式关卡是 100。
- * 木台取地图的前 pads 个，wrecks 里的下标压着沉船；驻守台取前 garrison.length 个，封顶阶按关卡写。
+ * 木台取地图的前 pads 个，wrecks 里的下标压着沉船；驻守台取前 garrison 个。
  */
 export function buildLevel(def: LevelDef, budgetPct = 100): TdIslandLevel {
   const spec = TD2_MAP_SPECS.get(def.map);
   const map = TD2_MAPS.find((m) => m.id === def.map);
   if (!spec || !map) throw new Error(`没有这张图：${def.map}`);
   const pads: TdPadDef[] = map.pads.slice(0, def.pads).map((p, i) => ({ ...p, ...(def.wrecks?.includes(i) ? { wreck: { hp: TD2_ECON.wreckHp } } : {}) }));
-  const garrison: TdGarrisonSpot[] = def.garrison.map((cap, i) => ({ ...(map.garrison[i] as TdGarrisonSpot), cap }));
+  const garrison: TdGarrisonSpot[] = map.garrison.slice(0, def.garrison).map((g) => ({ ...g }));
   const tideLane = map.tide as { x: number; y: number } | undefined;
   const open = Array.isArray(def.tide) ? def.tide : undefined;
   const lv: TdIslandLevel = {

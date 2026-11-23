@@ -30,7 +30,8 @@ function platform(mode: 'ok' | 'down' = 'ok'): PvpEnv['ARCADE'] {
 class World {
   cores = new Map<string, BaseCore>();
   kvs = new Map<string, MemKv>();
-  harbor = new HarborCore(new MemHarbor());
+  store = new MemHarbor();
+  harbor = new HarborCore(this.store);
   ports = { base: (u: string) => this.core(u), harbor: () => this.harbor } as unknown as Ports;
   env: PvpEnv = { ARCADE: platform() };
   core(u: string): BaseCore {
@@ -442,6 +443,8 @@ describe('审阅修复①：两个号来回复仇刷资源', () => {
     const r1 = await raid(w, 'a', LATER + 1000);
     expect(r1.body.opponent.name).toBe('小王');
     expect((await call(w, 'a', 'GET', 'me', undefined, { now: LATER + 4000 })).body.protectUntil).toBe(0);
+    // 匹配索引在结算时（credit 回的 entry）就跟上，不等 a 下次上传快照
+    expect(w.store.rows.get('a')!.protectUntil).toBeLessThanOrEqual(LATER + 4000);
     const rv = await call(w, 'd', 'POST', 'revenge', { raidId: r1.raidId }, { now: LATER + 5000 });
     expect(rv.status).toBe(200);
   });

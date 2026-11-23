@@ -6,7 +6,10 @@ import { EASE } from './motion.ts';
 import { feelOn } from './feel.ts';
 import { DEPTH } from './depth.ts';
 import { MARK_FONT, guideVisible, markScale } from './padguide.ts';
-import { openerLeft, towerName } from './td-ui.ts';
+import { tdGarrisonOptions } from '../core/index.ts';
+import { app } from './app.ts';
+import { garrisonLine, garrisonShort, openerLeft, towerName } from './td-ui.ts';
+import { EDGE_PAD } from './camguide.ts';
 import type { NextStep } from './td-ui.ts';
 import { slotLift } from './tdcliff.ts';
 
@@ -16,34 +19,40 @@ import { slotLift } from './tdcliff.ts';
  */
 interface PadMark {
   slot: number;
-  ring: Phaser.GameObjects.Ellipse;
+  ring: Phaser.GameObjects.Ellipse | null;
   arrow: Phaser.GameObjects.Text;
+  /** 字本来的世界 x、底边 y（塔头正上方；金字的脉动在这上面往上点） */
+  x: number;
+  y: number;
 }
+
+/** 金字脉动往上点的幅度（addMark 的 tween） */
+const GOLD_BOB = 12;
 
 /** 每个场景现在画着的金圈（开局造法和卡片目标两套共用），fitMarks 每帧按镜头缩放调字 */
 const live = new WeakMap<TdScene, Set<PadMark>>();
 
-/** 金圈加头上的字，开局造法的木台和卡片指的那块木台 / 那座塔同一个样子 */
-function addMark(bs: TdScene, slot: number, label: string, lift: number): PadMark {
+/** 金圈加头上的字，开局造法的木台和卡片指的那块木台 / 那座塔同一个样子；ring 为 false 只写白字（驻守塔的说明，不是「造这里」） */
+function addMark(bs: TdScene, slot: number, label: string, lift: number, ring = true): PadMark {
   const sl = bs.s.slots[slot]!;
   const f = footCenter(sl.x, sl.y, 2);
   const g = iso(f.gx, f.gy);
   const p = { x: g.x, y: g.y - slotLift(bs.s, slot) };
   const d = depthOf(f.gx, f.gy);
   const rg = isoRing(1.5);
-  const ring = bs.add.ellipse(p.x, p.y + 2, rg.w, rg.h, 0xffe885, 0.22).setStrokeStyle(4, 0xffe885, 0.95).setDepth(d - 0.4);
+  const rgo = ring ? bs.add.ellipse(p.x, p.y + 2, rg.w, rg.h, 0xffe885, 0.22).setStrokeStyle(4, 0xffe885, 0.95).setDepth(d - 0.4) : null;
   // 字压在建筑、英雄、敌人上面（以前跟着木台的深度，被主寨、站在台边的英雄、登陆的人堆挡住）；圈还贴着地
   const arrow = bs.add
-    .text(p.x, p.y - 30 - lift, `${label}\n▼`, { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${MARK_FONT * bs.r}px`, align: 'center', color: '#ffe885', stroke: '#2b1a15', strokeThickness: 5 * bs.r })
+    .text(p.x, p.y - 30 - lift, `${label}\n▼`, { fontFamily: 'system-ui', fontStyle: '900', fontSize: `${MARK_FONT * bs.r}px`, align: 'center', color: ring ? '#ffe885' : '#ffffff', stroke: '#2b1a15', strokeThickness: 5 * bs.r })
     .setOrigin(0.5, 1)
     .setScale(markScale(bs.cameras.main.zoom) / bs.r)
     .setDepth(DEPTH.markerTop);
   if (feelOn()) {
     // 脉动：圈放大淡出再回来，箭头上下点；一轮 1 秒、60 帧里都是连续的
-    bs.tweens.add({ targets: ring, scale: 1.18, alpha: 0.55, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
-    bs.tweens.add({ targets: arrow, y: arrow.y - 12, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
+    if (rgo) bs.tweens.add({ targets: rgo, scale: 1.18, alpha: 0.55, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
+    bs.tweens.add({ targets: arrow, y: arrow.y - GOLD_BOB, duration: 500, yoyo: true, repeat: -1, ease: EASE.recover });
   }
-  const m = { slot, ring, arrow };
+  const m = { slot, ring: rgo, arrow, x: p.x, y: arrow.y };
   let set = live.get(bs);
   if (!set) live.set(bs, (set = new Set()));
   set.add(m);
@@ -52,12 +61,17 @@ function addMark(bs: TdScene, slot: number, label: string, lift: number): PadMar
 
 function dropMark(bs: TdScene, m: PadMark): void {
   live.get(bs)?.delete(m);
-  bs.tweens.killTweensOf([m.ring, m.arrow]);
-  m.ring.destroy();
+  bs.tweens.killTweensOf(m.ring ? [m.ring, m.arrow] : [m.arrow]);
+  m.ring?.destroy();
   m.arrow.destroy();
 }
 
-/** 每帧：镜头缩放变了（双指、全景、跟拍）就把金圈的字调回屏幕上看得清的大小 */
+/** 只写字的标记（驻守塔说明）贴边时离屏幕左右边留多少（CSS 像素，画布按 bs.r 倍）：让开屏边那列「+」/ 敌人箭头（圆心离边 EDGE_PAD、最大 44 宽） */
+const EDGE_PX = EDGE_PAD + 22 + 4;
+/** 手机竖屏、横屏（和选关页分页同一条线）：塔头上整句放不下，改写短句 */
+const NARROW_QUERY = '(max-width:700px), (max-height:500px)';
+
+/** 每帧：镜头缩放变了（双指、全景、跟拍）就把金圈的字调回屏幕上看得清的大小；只写字的标记贴着屏幕左右边不出屏 */
 export function fitMarks(bs: TdScene): void {
   const set = live.get(bs);
   if (!set?.size) return;
@@ -65,8 +79,29 @@ export function fitMarks(bs: TdScene): void {
   for (const m of set) {
     // 重开一局时旧对象随场景已经没了
     if (!m.arrow.active) set.delete(m);
-    else if (m.arrow.scaleX !== k) m.arrow.setScale(k);
+    else {
+      if (m.arrow.scaleX !== k) m.arrow.setScale(k);
+      if (!m.ring) {
+        const v = bs.cameras.main.worldView;
+        const half = m.arrow.displayWidth / 2 + (EDGE_PX * bs.r) / bs.cameras.main.zoom;
+        m.arrow.x = v.width > 2 * half ? Math.min(Math.max(m.x, v.x + half), v.right - half) : m.x;
+        liftOverGold(set, m);
+      }
+    }
   }
+}
+/** 白字和旁边台子的金字横着撞上（窄屏两块台挨着）就把白字整块抬到金字上面（改 origin，不碰脉动 tween 管的 y） */
+function liftOverGold(set: Set<PadMark>, m: PadMark): void {
+  const t = m.arrow;
+  const h = t.height * t.scaleY;
+  let raise = 0;
+  for (const o of set) {
+    if (!o.ring || !o.arrow.active) continue;
+    const top = o.y - GOLD_BOB - o.arrow.height * o.arrow.scaleY;
+    if (Math.abs(o.arrow.x - t.x) < (t.width * t.scaleX + o.arrow.width * o.arrow.scaleX) / 2 && top < m.y && o.y > m.y - h) raise = Math.max(raise, m.y - top);
+  }
+  const oy = 1 + raise / h;
+  if (t.originY !== oy) t.setOrigin(0.5, oy);
 }
 interface GuideState {
   s: unknown;
@@ -116,6 +151,36 @@ export function syncPadGuide(bs: TdScene): void {
     clear(bs, st);
     st.done = true;
   }
+}
+
+/** 战役开局倒数里，驻守塔头上写「你的加农炮 7 级 → 驻守 3 阶」，手机上短写「加农炮 7 级→3 阶」（白字、不画圈：金字金圈是「造这里」；塔在屏外时字贴屏边、让开那列「+」，fitMarks）：基地养成在这一局里看得见；第一波开打、卖掉就收 */
+const tags = new WeakMap<TdScene, GuideState>();
+
+export function syncGarrisonTags(bs: TdScene): void {
+  const s = bs.s;
+  if (s.mode !== 'campaign') return;
+  let st = tags.get(bs);
+  if (!st || st.s !== s) {
+    st = { s, marks: [], done: false };
+    tags.set(bs, st);
+  }
+  if (st.done) return;
+  if (!guideVisible(s.wave, s.tick, s.next, s.over, 1)) {
+    clear(bs, st);
+    st.done = true;
+    return;
+  }
+  if (st.marks.length === 0) {
+    const opts = tdGarrisonOptions(app.profile);
+    for (const t of s.towers) {
+      const o = t.garrison && t.slot !== undefined ? opts.find((q) => q.kind === t.kind) : undefined;
+      if (o && t.slot !== undefined) st.marks.push(addMark(bs, t.slot, (matchMedia(NARROW_QUERY).matches ? garrisonShort : garrisonLine)({ ...o, tier: t.tier ?? o.tier }), 72, false));
+    }
+    if (st.marks.length === 0) st.done = true;
+  }
+  const keep = st.marks.filter((m) => s.slots[m.slot]!.tower >= 0);
+  for (const m of st.marks) if (!keep.includes(m)) dropMark(bs, m);
+  st.marks = keep;
 }
 
 /**

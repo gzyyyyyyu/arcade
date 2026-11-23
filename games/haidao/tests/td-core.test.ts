@@ -457,7 +457,7 @@ describe('守岛：木台、驻守台、卖塔、清障', () => {
   });
 
   it('驻守台：setup.garrison 的塔按给的阶和分叉摆上去，能升、能卖（按同阶木台塔的花费退）；没挑的驻守台能当木台用', () => {
-    const level = lvl({ gold: 1000, slots: [{ x: 1, y: 1 }], garrison: [{ x: 4, y: 1, cap: 2 }, { x: 7, y: 1, cap: 3 }], first: 100000, waves: [{ groups: [] }] });
+    const level = lvl({ gold: 1000, slots: [{ x: 1, y: 1 }], garrison: [{ x: 4, y: 1 }, { x: 7, y: 1 }], first: 100000, waves: [{ groups: [] }] });
     const s = createTd(setup(base(), level, 1, { garrison: [{ spot: 0, kind: 'cannon', tier: 2, branch: ['cannon.pierce'] }] }));
     expect(s.slots.map((q) => q.garrison)).toEqual([undefined, 0, 1]);
     const t = s.towers.find((q) => q.garrison)!;

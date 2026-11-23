@@ -293,7 +293,7 @@ function defOf(m: MapSpec): TdMapDef {
     ...(m.tide ? { tide: { x: m.tide[0], y: m.tide[1] } } : {}),
     ...(m.fog ? { fogZones: m.fog.map((z) => ({ ...z })) } : {}),
     pads: m.pads.map(([x, y]): TdPadDef => ({ x, y, ...(onCliff(m, [x, y]) ? { high: true as const } : {}) })),
-    garrison: m.garrison.map(([x, y]): TdGarrisonSpot => ({ x, y, cap: 3 })),
+    garrison: m.garrison.map(([x, y]): TdGarrisonSpot => ({ x, y })),
     kegs: m.kegs.map(([x, y]) => ({ x, y })),
     ...(m.water ? { water: m.water.flatMap(rectCells).map(([x, y]) => ({ x, y })) } : {}),
     ...(m.bridges ? { bridges: m.bridges.map(([x, y]) => ({ x, y })) } : {}),

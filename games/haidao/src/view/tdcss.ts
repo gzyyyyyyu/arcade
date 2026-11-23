@@ -94,7 +94,6 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-card:disabled { opacity:.5; filter:grayscale(.7); cursor:default; }
 @media (hover:hover) and (pointer:fine) { .hd-ui .hd-tdgar-card:hover:not(:disabled) { filter:brightness(1.08); } }
 .hd-ui .hd-tdgar-tier strong { font-size:14px; font-weight:900; color:${c.grassDD}; }
-.hd-ui .hd-tdgar-bonus { color:${c.grassDD}; font-weight:800; }
 .hd-ui .hd-tdgar-empty { display:block; margin-top:6px; color:${redD}; font-weight:800; }
 .hd-ui .hd-tdgar-btns { width:min(100%,560px); margin:12px auto 0; }
 .hd-ui .hd-tdgar-btns .hd-btn { min-height:52px; font-size:16px; }
@@ -199,7 +198,7 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-main .hd-tdgar-row { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
 .hd-ui .hd-tdgar-main .hd-tdgar-card { display:grid; grid-template-columns:minmax(0,1fr); align-content:center; justify-items:start; text-align:left; gap:0 6px; min-height:48px; padding:3px 6px; }
 /* 塔卡：第 1 行名字 | 阶数（都不折行，第 2 列吃剩下的宽、第 3 列按阶数宽）；下面是一个跨两列、能换行的容器，
-   伤害类型、加成、台子封顶、分叉牌依次排开（以前分叉牌在第 2 列、加成在第 3 列，分叉牌溢进第 3 列压住加成） */
+   伤害类型、分叉牌依次排开 */
 .hd-ui .hd-tdgar-main .hd-tdgar-card:has(> img) { grid-template-columns:32px minmax(0,1fr) auto; min-height:44px; }
 .hd-ui .hd-tdgar-main .hd-tdgar-card > b { white-space:nowrap; }
 .hd-ui .hd-tdgar-main h2 > span { display:inline-block; }
@@ -211,7 +210,6 @@ function tdCss(): string {
 /* 后期每座塔两档分叉，窄卡要折成三行：行高收紧，整面板在 720 高的电脑、手机上也一屏放下 */
 .hd-ui .hd-tdgar-main .hd-tdgar-card { line-height:1.15; }
 .hd-ui .hd-tdgar-main .hd-tdgar-meta .hd-chip { font-size:12px; padding:0 5px; line-height:1.3; }
-.hd-ui .hd-tdgar-main .hd-tdgar-cap { color:${redD}; font-weight:800; }
 .hd-ui .hd-tdgar-main .hd-tdgar-tabs { display:flex; gap:8px; }
 .hd-ui .hd-tdgar-main .hd-tdgar-tab { flex:1 1 0; min-width:0; min-height:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2px 4px; font:inherit; color:inherit; cursor:pointer; background:#fff8e6; border:3px solid ${ink}; border-radius:12px; box-shadow:0 3px 0 ${ink}; }
 .hd-ui .hd-tdgar-main .hd-tdgar-tab b { font-size:14px; font-weight:900; }

@@ -64,5 +64,6 @@ export function garrisonRec(waves: readonly TdWave[], spots: ReadonlyArray<reado
 
 /** 每座驻守台都挑推荐的那种（没进驻守台面板就直接开打时用，和面板默认选中的同一套） */
 export function garrisonRecPicks(p: Profile, lv: TdIslandLevel): TdGarrisonPick[] {
-  return [...garrisonRec(lv.waves, lv.garrison.map((sp) => tdGarrisonOptions(p, sp.cap)))].map(([spot, kind]) => ({ spot, kind }));
+  const opts = tdGarrisonOptions(p);
+  return [...garrisonRec(lv.waves, lv.garrison.map(() => opts))].map(([spot, kind]) => ({ spot, kind }));
 }

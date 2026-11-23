@@ -20,7 +20,7 @@ export const TICKS_PER_SEC = 20;
 /** 一场进攻最长多少拍（3 分钟） */
 export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
 /** 规则版本：规则一改就加一（服务端据此要求旧页面刷新、回放标「旧版本」）；录像和回放不保证跨版本 */
-export const RULES_VERSION = 28;
+export const RULES_VERSION = 29;
 
 export type BuildingKind =
   | 'hq' // 主寨

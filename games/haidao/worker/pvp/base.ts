@@ -174,7 +174,7 @@ type SlotKind = 'live' | 'td' | 'escort' | 'map';
 /** 新手保护到什么时候：还没上传过快照按现在起算 3 天；保护期里主动打过真人就到那一刻为止 */
 export function protectUntil(s: Pick<BaseState, 'created' | 'protectEnd'>, now: number): number {
   const end = s.created ? s.created + PROTECT_MS : now + PROTECT_MS;
-  return s.protectEnd ? Math.min(end, s.protectEnd) : end;
+  return s.protectEnd > 0 ? Math.min(end, s.protectEnd) : end;
 }
 
 function emptyState(): BaseState {
@@ -247,6 +247,7 @@ export class BaseCore {
     this.userId = userId;
   }
 
+  /** 存储里的旧状态缺后来加的字段（如 protectEnd）：在这一处用 emptyState 的默认值补齐，别处不再判有没有 */
   private async state(): Promise<BaseState> {
     if (!this.s) this.s = { ...emptyState(), ...((await this.kv.get<BaseState>('s')) ?? {}) };
     return this.s;

@@ -235,7 +235,7 @@ export interface TdSetup {
   mode: TdMode;
   /** 守岛 2.0：驻守台上的塔（tdrun 按存档算好阶和分叉） */
   garrison?: TdGarrisonTower[];
-  /** 守岛 2.0：基地加成（每种塔的伤害加成百分比，baseBonusPct 算好） */
+  /** 守岛 2.0 海盗来袭：基地加成（每种塔的伤害加成百分比，baseBonusPct 算好）；战役不带 */
   bonus?: Partial<Record<TdTowerKind, number>>;
   /** 守岛 2.0：木台上能造哪些塔（基地已解锁的种类）；没写 = 全部 */
   unlocked?: TdTowerKind[];

@@ -8,7 +8,7 @@ import { TD2_HOME } from '../content/td2units.ts';
 import {
   COUNTER, TD2_LEVELS, TD2_LOSE_AT, TD2_STAR_LOST, TD_ARMORS, TD_BRANCH_DAMAGE, TD_BURN_DAMAGE, TD_DAMAGES, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE,
   TD_TOWER_DAMAGE, TD_TOWER_KINDS,
-  TIDE_MODS, beijingIsoWeek, branchError, garrisonTier, hqLevel, navUnlocked, nextTdUnlock, tdDailyCap, tdGarrisonOptions, tdLevelUnlocked, tideLine, tideMap, tideMod, weekLabel,
+  TIDE_MODS, beijingIsoWeek, branchError, hqLevel, navUnlocked, nextTdUnlock, tdDailyCap, tdGarrisonOptions, tdLevelUnlocked, tideLine, tideMap, tideMod, weekLabel,
 } from '../core/index.ts';
 import { tideBest } from '../net/tide.ts';
 import { garrisonRec } from './garrisonrec.ts';
@@ -375,6 +375,16 @@ export function callBonusText(gold: number, cdCutTicks: number): string {
   return parts.join(' · ');
 }
 
+/** 基地养成带进守岛的那一句：选塔卡、驻守台说明、开局塔头上都用（「你的加农炮 7 级 → 驻守 3 阶」） */
+export function garrisonLine(o: Pick<TdGarrisonOption, 'kind' | 'baseLevel' | 'tier'>): string {
+  return `你的${towerName(o.kind)} ${o.baseLevel} 级 → 驻守 ${o.tier} 阶`;
+}
+
+/** 同一句的短写（手机竖屏、横屏开局塔头上，整句放不下）：「加农炮 7 级→3 阶」 */
+export function garrisonShort(o: Pick<TdGarrisonOption, 'kind' | 'baseLevel' | 'tier'>): string {
+  return `${towerName(o.kind)} ${o.baseLevel} 级→${o.tier} 阶`;
+}
+
 /** 驻守台在岛上的哪一边（岛 22×22，按台子中心离岛心的方向）：选塔面板上让人知道是哪座台 */
 export function spotSide(spot: Pick<TdGarrisonSpot, 'x' | 'y'>): string {
   const c = (ISLAND - 2) / 2;
@@ -701,20 +711,20 @@ const PAGED3_QUERY = '(max-width:700px), (max-height:500px)';
 const THUMB_QUERY = '(min-width:960px) and (min-height:700px), (min-width:701px) and (min-height:1000px)';
 
 /**
- * 驻守台选塔面板（开局前）：每座台一排卡片，卡上是基地里这种塔折出来的阶、带进来的分叉、伤害加成；"空着"也是一项。
- * 阶、分叉、加成都读 tdGarrisonOptions（规则核心按存档算，开局时 startTd2 再算一遍，不信界面）。
+ * 驻守台选塔面板（开局前）：每座台一排卡片，卡上是基地里这种塔折出来的阶、带进来的分叉；"空着"也是一项。
+ * 阶、分叉都读 tdGarrisonOptions（规则核心按存档算，开局时 startTd2 再算一遍，不信界面）。
  * 返回关掉面板的函数。键盘：空格 / 回车开打、Esc 返回。
  */
 function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => void, onBack: () => void): () => void {
   injectTdCss();
   const p = app.profile;
-  const optsOf = (cap: TdGarrisonSpot['cap']): TdGarrisonOption[] => tdGarrisonOptions(p, cap);
+  const opts = tdGarrisonOptions(p);
   // 上次给这一关挑过的（再守一次时）优先，否则按规则核心的推荐（tdAutoPicks）
   const prev = app.tdPicksFor === lv.id ? app.tdPicks : null;
   const picks = new Map<number, TdTowerKind>();
   // 按这一关的敌人推荐（garrisonrec.ts：克制、够不够得着海上的船、几座台不重样），卡上挂「这关推荐」，默认就挑它；
   // 再守一次沿用上次的挑法，推荐照样标出来
-  const rec = garrisonRec(lv.waves, lv.garrison.map((sp) => optsOf(sp.cap)));
+  const rec = garrisonRec(lv.waves, lv.garrison.map(() => opts));
   if (prev) for (const pk of prev) picks.set(pk.spot, pk.kind);
   else for (const [spot, kind] of rec) picks.set(spot, kind);
   const wrap = el('div', 'hd-tdsel hd-tdgar hd-tdgar-main hd-tdpage', undefined, uiRoot());
@@ -727,7 +737,9 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
   // 小地图和说明并排（竖屏手机上小地图占满面板上方的空当，选塔面板沉到底下，见 tdcss）
   const top = el('div', 'hd-tdgar-top', undefined, wrap);
   const markSpot = garrisonMap(lv, top, (k) => showSpot(k));
-  el('p', 'hd-tdgar-note', '从自己的基地带塔上岛：阶数按基地里同种塔的最高等级折算（1–3 级 1 阶、4–6 级 2 阶、7–8 级 3 阶），不超过台子的上限。带上岛的塔照样能升级、能卖。金色「荐」是按这关的敌人推荐的。', top);
+  // 说明里拿玩家自己最高的那种塔举例（基地里没塔时只写折算），让「升基地塔 = 守岛更强」一眼看到
+  const best = opts.reduce<TdGarrisonOption | null>((a, o) => (!a || o.baseLevel > a.baseLevel ? o : a), null);
+  el('p', 'hd-tdgar-note', `从自己的基地带塔上岛，基地里同种塔越高，驻守越强（1–3 级 1 阶、4–6 级 2 阶、7–8 级 3 阶）${best ? `：${garrisonLine(best)}` : ''}。带上岛的塔照样能升级、能卖。金色「荐」是按这关的敌人推荐的。`, top);
   // 多座台：电脑上并排摆成几列；手机和矮屏放不下，改成顶上几个台子页签（页签上写这座台现在挑了什么），一次摆一座台的选项
   const mqTab = matchMedia('(max-width:700px), (max-height:700px)');
   const tabbed = lv.garrison.length > 1 && mqTab.matches;
@@ -753,9 +765,8 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
     }
     const title = el('div', 'hd-tdgar-title', undefined, box);
     el('b', '', `${si + 1} 号台`, title);
-    el('small', '', `${spotSide(spot)} · 最高 ${spot.cap} 阶`, title);
+    el('small', '', spotSide(spot), title);
     const row = el('div', 'hd-tdgar-row', undefined, box);
-    const opts = optsOf(spot.cap);
     const cards: HTMLButtonElement[] = [];
     const sync = (): void => {
       for (const c of cards) c.classList.toggle('on', (c.dataset.kind ?? '') === (picks.get(si) ?? ''));
@@ -775,15 +786,13 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
         el('b', '', towerName(o.kind), c);
         const t = el('span', 'hd-tdgar-tier', undefined, c);
         el('strong', '', `${o.tier} 阶`, t);
-        // 名字下面一行排开：伤害类型、加成、台子封顶、带进来的分叉；同一个能换行的容器，宽卡一行放下，窄卡折行，谁也压不住谁
+        // 名字下面一行排开：伤害类型、带进来的分叉；同一个能换行的容器，宽卡一行放下，窄卡折行，谁也压不住谁
         const meta = el('span', 'hd-tdgar-meta', undefined, c);
         const dm = el('small', 'hd-tdgar-dmg', undefined, meta);
         dmgBadge(TD_TOWER_DAMAGE[o.kind], dm);
         el('span', '', DAMAGE_NAME[TD_TOWER_DAMAGE[o.kind]], dm);
-        if (o.bonusPct > 0) el('small', 'hd-tdgar-bonus', `伤害 +${o.bonusPct}%`, meta);
-        if (o.tier < garrisonTier(o.baseLevel, 3)) el('small', 'hd-tdgar-cap', '台子封顶', meta);
         for (const b of o.branch) el('small', 'hd-chip', branchName(b), meta);
-        c.title = `${towerName(o.kind)}：基地最高 ${o.baseLevel} 级 → ${o.tier} 阶`;
+        c.title = garrisonLine(o);
         // 「荐」：压在卡片左上角的金色圆章（绝对定位、不占卡里的高度——写成一行字会把卡撑高，电脑上整页多出一截要滚；左上角是卡里唯一空着的地方）
         if (rec.get(si) === o.kind) {
           el('small', 'hd-tdgar-rec', '荐', c).title = '这关推荐';

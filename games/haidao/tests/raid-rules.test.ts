@@ -106,7 +106,7 @@ const styleOf = (key: string): 'normal' | 'novice' => (key.startsWith('hq') ? 'n
 
 describe('攻防金标准', () => {
   it('每一场的指纹、星数、摧毁率逐位不变', () => {
-    expect(RULES_VERSION).toBe(28);
+    expect(RULES_VERSION).toBe(29);
     for (const key of Object.keys(GOLDEN)) {
       const setup = goldenSetup(key);
       const r = replayRaid(setup, botActions(setup, styleOf(key)));
