@@ -140,14 +140,14 @@ export function createTour(c: App) {
     t.view.places.forEach((p, i) => {
       if (p !== null && !c.outShown.has(i)) {
         c.outShown.add(i);
-        // 打完了（含现在离开时一口气跑完）不再一个个弹，结束页上有名次；不然最后一条会挂到回大厅以后
+        // 打完了（含现在离桌时一口气跑完）不再一个个弹，结束页上有名次；不然最后一条会挂到回大厅以后
         if (i !== ME && !t.over) f.toast(`${personaName(t.table.seats[i]!.persona)} 出局，第 ${p} 名`);
       }
     });
     f.drawTop();
   }
 
-  /** 我淘汰了：看到结束，还是现在离开（直接跑完出结算，名次和奖金不变） */
+  /** 我淘汰了：看到结束，还是现在离桌（直接跑完出结算，名次和奖金不变） */
   async function askEliminated(): Promise<void> {
     const t = c.tour;
     if (!t || c.asking) return;
@@ -157,14 +157,14 @@ export function createTour(c: App) {
     const v0 = t.view;
     const body = tourOutBody({
       place,
-      prize: t.session.practice ? '娱乐赛，筹码不算数' : prize > 0 ? `奖金 ${chips(prize)}，打完结回钱包` : `没进前 ${formatInfo(t.state.format).pay.length} 名，没有奖金`,
+      prize: t.session.practice ? '娱乐赛，筹码不算数' : prize > 0 ? `奖金 ${chips(prize)}，打完进钱包` : `没进前 ${formatInfo(t.state.format).pay.length} 名，没有奖金`,
       hands: t.myHands,
       last: v0.lastHand,
       name: (i) => f.nameAt(v0, i, ME),
       me: ME,
     });
     const v = await dialog(stage, '你出局了', body, [
-      { label: '现在离开', value: 'leave' },
+      { label: '现在离桌', value: 'leave' },
       { label: '看到结束', value: 'watch', primary: true },
     ], true);
     c.asking = false;
@@ -187,14 +187,14 @@ export function createTour(c: App) {
     }
   }
 
-  /** 离开：打着的时候问一次；淘汰后选了"现在离开"（out）不再问。剩下的电脑托管跑完，按名次结 */
+  /** 离开：打着的时候问一次；淘汰后选了"现在离桌"（out）不再问。剩下的电脑托管跑完，按名次结 */
   async function leaveTour(out = false): Promise<boolean> {
     const t = c.tour;
     if (!t || ending) return true;
     if (!out && !t.over && !t.closing && !t.eliminated) {
-      const ok = await dialog(stage, '现在离开？', t.session.practice ? '你的座位交给电脑接着打，直接跑完出名次。' : '你的座位交给电脑接着打，直接跑完按名次结奖金。报名费不退，想拿奖就坚持到底。', [
+      const ok = await dialog(stage, '现在离桌？', t.session.practice ? '你的座位交给电脑接着打，直接跑完出名次。' : '你的座位交给电脑接着打，直接跑完按名次发奖金。报名费不退，想拿奖就坚持到底。', [
         { label: '接着打', value: 'no', cancel: true },
-        { label: '离开', value: 'yes', danger: true },
+        { label: '离桌', value: 'yes', danger: true },
       ]);
       if (ok !== 'yes') return false;
     }
@@ -206,7 +206,7 @@ export function createTour(c: App) {
       const err = await t.leave();
       if (!abandoned) f.achTour(t);
       if (t.session.pending?.t === 'buyin') {
-        await dialog(stage, '先等报名', err === 'login' ? walletError('login') : '报名那一笔还没回话，报名费可能已经扣了。等它回话再离开，这一场才不会丢。', [{ label: '好', value: 'ok', primary: true }]);
+        await dialog(stage, '先等报名', err === 'login' ? walletError('login') : '报名那一笔还没回话，报名费可能已经扣了。等它回话再离桌，这一场才不会丢。', [{ label: '好', value: 'ok', primary: true }]);
         refreshTour();
         return false;
       }
@@ -225,9 +225,9 @@ export function createTour(c: App) {
     const body = el('div', 'summary tour-sum');
     let line: string;
     if (practice) line = '娱乐赛：筹码不算数';
-    else if (err && t.closing) line = err === 'login' ? `奖金 ${chips(prize)}，登录后自动结回` : `奖金 ${chips(prize)}，钱包暂时连不上，稍后自动结回`;
+    else if (err && t.closing) line = err === 'login' ? `奖金 ${chips(prize)}，登录后自动进钱包` : `奖金 ${chips(prize)}，钱包暂时连不上，稍后自动进钱包`;
     else if (err) line = `没结成：${walletError(err)}`;
-    else if (prize > 0) line = `奖金 ${chips(prize)}，结回钱包${t.capped ? `（今天进账到顶，其中 ${chips(t.capped)} 没进钱包）` : ''}`;
+    else if (prize > 0) line = `奖金 ${chips(prize)}，进钱包${t.capped ? `（今天进账到顶，其中 ${chips(t.capped)} 没进钱包）` : ''}`;
     else line = `没进前 ${formatInfo(t.state.format).pay.length} 名，这次没有奖金`;
     heroBox(body, `第 ${place} 名`, place === 1 || prize > 0 ? 'win' : 'even', line);
     if (place === 1) play('cele2');
@@ -263,7 +263,7 @@ export function createTour(c: App) {
       ...(dly ? [{ label: '再练一场', value: 'again', primary: true }] : []),
     ], true);
     if (err && t.closing) {
-      c.walletNote = err === 'login' ? LOGIN_NOTE : '钱包暂时连不上：奖金先记在本机，稍后会自动结回钱包';
+      c.walletNote = err === 'login' ? LOGIN_NOTE : '钱包暂时连不上：奖金先记在本机，稍后会自动进钱包';
       if (err !== 'login') c.retryTimer = window.setTimeout(() => void settleTour().then(f.drawLobby), RETRY_MS);
     } else c.tour = null;
     f.showLobby();
@@ -293,12 +293,12 @@ export function createTour(c: App) {
     const v = must(s.view, '出局时房间一定发过视图');
     const how = await dialog(stage, '你出局了', tourOutBody({
       place,
-      prize: v.tour?.fun ? '娱乐赛，筹码不算数' : '打完按名次结奖金，直接结回钱包',
+      prize: v.tour?.fun ? '娱乐赛，筹码不算数' : '打完按名次发奖金，直接进钱包',
       last: v.lastHand,
       name: (i) => f.nameAt(v, i, me),
       me,
     }), [
-      { label: '现在离开', value: 'leave' },
+      { label: '现在离桌', value: 'leave' },
       { label: '看到结束', value: 'watch', primary: true },
     ], true);
     c.asking = false;
@@ -307,7 +307,7 @@ export function createTour(c: App) {
     c.roomWatch = true;
   }
 
-  /** 整场打完：我的名次、奖金（实盘"结回钱包 X"，娱乐"筹码不算数"）和真人名次表；点"回首页"离开房间 */
+  /** 整场打完：我的名次、奖金（实盘"奖金 X，进钱包"，娱乐"筹码不算数"）和真人名次表；点"回首页"离开房间 */
   async function roomTourEnd(s: OnlineState): Promise<void> {
     const o = c.online;
     const v = s.view;

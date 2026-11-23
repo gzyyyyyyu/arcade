@@ -25,7 +25,7 @@
 
 - 隐藏信息：`view` 只放这个座位能看到的，别人没亮的牌、牌堆、种子一律不下发（第 2 节）。
 - 筹码：钱包是平台的（服务绑定 `WALLET`，`props.game = "texas"`），单机 client 模式经 `worker/main.ts` 转、好友房 server 模式由 `TexasRoom.perform` 调；
-  一份一个 ref、只结回一次，操作 id 平台去重；不能买、不能兑换、不能转让，界面写明"无任何现金价值"（docs/economy.md 第 5 节）。
+  一份一个 ref、只带回一次，操作 id 平台去重；不能买、不能兑换、不能转让，界面写明"无任何现金价值"（docs/economy.md 第 5 节）。
 
 ## 部署和测试
 

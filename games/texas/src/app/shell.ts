@@ -104,7 +104,7 @@ export function buildShell(app: HTMLElement, s: State, fn: Fns) {
   helpBtn.type = 'button';
   helpBtn.setAttribute('aria-label', '怎么玩');
   helpBtn.title = '怎么玩';
-  const topUpBtn = el('button', 'pill', hud, '补码');
+  const topUpBtn = el('button', 'pill', hud, '补筹码');
   topUpBtn.type = 'button';
   const sitBtn = el('button', 'pill', hud, '歇一手');
   sitBtn.type = 'button';

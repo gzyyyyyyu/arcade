@@ -53,7 +53,7 @@ export function soloSummary(parent: HTMLElement, s: SoloSummary): Promise<unknow
   hero(body, net, s.hands > 0);
   const grid = el('div', 'sum-grid', body);
   row(grid, '带上桌', chips(s.buyin));
-  row(grid, s.practice ? '剩下' : '结回钱包', s.refused ? '没结上' : s.out === null ? `${chips(s.left)}（${s.pending ?? '连上后自动结回'}）` : chips(s.practice ? s.left : s.out));
+  row(grid, s.practice ? '剩下' : '带回钱包', s.refused ? '没带回钱包' : s.out === null ? `${chips(s.left)}（${s.pending ?? '连上后自动带回钱包'}）` : chips(s.practice ? s.left : s.out));
   row(grid, '打了', s.hands ? `${s.hands} 手，赢了 ${s.won} 手` : '还没打完一手');
   if (s.best) row(grid, '最大的一手', `${s.best.value === null ? '别人都弃牌' : handName(s.best.value)}，赢 ${chips(s.best.won)}`);
   const notes: string[] = [];

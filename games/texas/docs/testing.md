@@ -14,7 +14,7 @@
 | 大场面（`test/core/climax.test.ts`） | 补牌胜率：缺一张穷举、河牌后 1000/0 和平分、翻牌前抽样同局面同数；庆祝档次（葫芦 1 档，四条、同花顺、皇家 2 档，同花顺子不庆祝、弃牌赢和输家大牌不触发）；被逆转（转牌领先 ≥ 80% 才算，领先的赢了、平分、弃牌、没发河牌都不算）；池子分档的门槛 |
 | 电脑 CPU | 单次决策和一批的 p50 / p99，超过预算（豪华桌单次 p99 2 ms、一批 p99 10 ms）测试失败 |
 | 架构 | `src/core/`、`src/ai/` 里没有 `Math.random`、`Date`、平台相关的数学函数；`src/ai/` 不引用完整状态；浏览器存储的键都以 `texas.` 开头；核心不引用 DOM 和网络 |
-| 钱包（vitest + workerd，对着假平台 `arcade-kit/testing`） | 单机每个操作调平台几次、平台写几行如实断言（带入 1/1、重发 1/0、结回 1/1）；CSRF、请求体不对、没登录的不调平台；平台连不上 503；进账到顶 `capped`；好友房的 ref、重办只认一次、结回忙时重办；随机漫步核对每一份正好结回一次 |
+| 钱包（vitest + workerd，对着假平台 `arcade-kit/testing`） | 单机每个操作调平台几次、平台写几行如实断言（带入 1/1、重发 1/0、带回 1/1）；CSRF、请求体不对、没登录的不调平台；平台连不上 503；进账到顶 `capped`；好友房的 ref、重办只认一次、带回忙时重办；随机漫步核对每一份正好带回一次 |
 | 房间（workerd） | 每步 ≤ 2 行；德州的批量出手 CPU；结算失败重试、关房前先结算；挂机的桌每小时写入上限；接管电脑座位"下一手换买入" |
 | 锦标赛、止盈（vitest） | `test/tour/tour.test.ts` 规则（盲注表、淘汰、名次、奖金）；`test/tour/tour-solo.test.ts`、`test/tour/tour-room.test.ts`、`test/worker/tour-room.test.ts`（14.2、14.3）；`test/core/takeprofit.test.ts` 止盈的目标和判定（8.13） |
 | 配平、互动（vitest） | `test/ai/tuning.test.ts` 娱乐新手档小白平均赢、高手档平均输（4.10）；`test/ai/levels.test.ts` 场地和难度到强弱档的映射；`test/core/moments.test.ts` 名场面怎么认、电脑的互动性格（13.7） |

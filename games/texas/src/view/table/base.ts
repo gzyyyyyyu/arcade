@@ -80,6 +80,7 @@ export class TableScene {
       const sideBet = i !== this.c.me && !isTop(p, g) && (!g.tall || packed || p.y >= f.cy);
       s.bet.classList.toggle('from-l', sideBet && p.x < w / 2);
       s.bet.classList.toggle('from-r', sideBet && p.x > w / 2);
+      s.bet.classList.toggle('from-t', i !== this.c.me && !g.tall && isTop(p, g));
       // 别人的底牌放在头像朝桌子中间的那一侧，不压名牌
       const side = p.x > w / 2 + 1 ? 'right' : p.x < w / 2 - 1 ? 'left' : 'mid';
       s.root.classList.toggle('left', side === 'left');
@@ -405,7 +406,31 @@ export class TableScene {
         n.betChips.dataset.k = key;
         n.betChips.innerHTML = chipPile(s.bet);
       }
+      this.fitBet(n.bet, i);
     }
+  }
+
+  /**
+   * 下注是一排筹码加金额，全下时四摞加金额能有一百多宽：9 人桌两侧中间那家伸到第一张公共牌上盖住点数（1920 实测「1,160」压住 Q），
+   * 竖屏左上那家伸到右上那家的头像底下、金额被盖住（390×844）。横排会碰到公共牌或别家的头像、名牌时金额改放在筹码下面（.amt-below），宽度少一半
+   */
+  private fitBet(bet: HTMLElement, seat: number): void {
+    bet.classList.remove('amt-below');
+    const box = this.c.root.getBoundingClientRect();
+    const k = box.width / this.c.g.w || 1;
+    const b0 = boardPos(this.c.g, 0);
+    const b4 = boardPos(this.c.g, 4);
+    const board = new DOMRect(box.left + (b0.x - 32) * k, box.top + (b0.y - 44) * k, (b4.x - b0.x + 64) * k, 88 * k);
+    const others = this.c.seats.flatMap((n, i) => (i === seat || n.root.classList.contains('empty') ? [] : [n.avatar.getBoundingClientRect(), n.plate.getBoundingClientRect()]));
+    const covered = (): number => {
+      const r = bet.getBoundingClientRect();
+      return [board, ...others].reduce((sum, o) => sum + Math.max(0, Math.min(r.right, o.right) - Math.max(r.left, o.left)) * Math.max(0, Math.min(r.bottom, o.bottom) - Math.max(r.top, o.top)), 0);
+    };
+    const inline = covered();
+    if (inline === 0) return;
+    // 竖下来也会碰（往下伸到公共牌）：哪样盖得少用哪样
+    bet.classList.add('amt-below');
+    if (covered() >= inline) bet.classList.remove('amt-below');
   }
 
   /** 名牌上的数：变了就跳着走过去（涨绿跌红闪一下），全下时写"全下" */

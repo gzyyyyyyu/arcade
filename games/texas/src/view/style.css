@@ -38,6 +38,8 @@
   /* 多尺寸：手机上舞台缩小后，16、18、20 的字缩到 10 上下；下限按屏幕上 13–14 算（小屏才起作用） */
   --fs-4: max(16px, calc(13px * var(--ui)));
   --fs-5: max(18px, calc(13.5px * var(--ui)));
+  /* 别人名牌的下沿离座位点多远，见 .seat .hand */
+  --plate-bottom: calc(34px + 1.15 * (var(--fs-4) + var(--fs-5)));
   --fs-6: max(20px, calc(14px * var(--ui)));
   --fs-8: 30px;
   --fs-9: 40px;
@@ -526,9 +528,11 @@ body::before {
 /* 好友房：没人的电脑座位可以点来接管 */
 .seat.takeable { cursor: pointer; }
 .seat.takeable .avatar { box-shadow: 0 0 0 3px #7fd0ff, 0 0 16px rgba(127, 208, 255, .6); animation: pulse 1.6s ease-in-out infinite; }
+/* 名牌下沿（--plate-bottom，定义在 :root）：上沿 26 + 上下内边距和边框 8 + 两行字（名字那行赢了会换成 --fs-4，按大的算）。小屏 --ui 放大字号、名牌跟着变高，
+   挂在名牌下面的东西按它算，不写死（0.43.1 试玩：矮屏摊牌"一对"压住名牌上的筹码数） */
 .seat .hand {
   position: absolute;
-  left: 50%; top: 66px;
+  left: 50%; top: calc(var(--plate-bottom) + 2px);
   transform: translateX(-50%);
   padding: var(--s-0) var(--s-3);
   border-radius: var(--r-3);
@@ -577,18 +581,22 @@ body::before {
 /* 顶上一排桌心右边的：底牌在头像左边，动作签放到头像右边（外侧），不和左边那家的底牌、自己的底牌挤在一起（竖屏 7 人桌） */
 .seat.top.right .bubble { right: auto; left: 38px; }
 .seat.top.edge .bubble { left: 50%; right: auto; top: -64px; transform: translateX(-50%); }
-/* 竖屏右边下面那两家挨得近：动作签放头像正上方会压住上家名牌，又不能放外侧（出屏）。往外偏一点、压低到头像上沿，刚好让开上家名牌 */
-.stage.tall .seat.right:not(.top):not(.me):not(.shifted) .bubble { left: calc(50% + 22px); top: -46px; }
 /* 矮竖屏的格子（layout.ts 的 isCompact）：别人的底牌只露出一半，顶上一排的动作签放头像正上方（左右都是邻居） */
 .stage.tall .seat.pack:not(.me) .hole .card:nth-child(1) { left: 36px; }
 .stage.tall .seat.pack:not(.me) .hole .card:nth-child(2) { left: 48px; }
 .stage.tall .seat.pack.right:not(.me) .hole .card:nth-child(1) { left: -48px; }
 .stage.tall .seat.pack.right:not(.me) .hole .card:nth-child(2) { left: -36px; }
 .stage.tall .seat.pack.top .bubble { left: 50%; right: auto; top: -50px; transform: translateX(-50%); }
-/* 左边下面那几家同理：居中放头像正上方、压低到头像上沿，不压上家的名牌（0.35.x 9 人桌全下，阿强的"全下"压到上家江湖的名牌） */
-.stage.tall .seat.left:not(.top):not(.me):not(.shifted) .bubble { top: -46px; }
-/* 矮竖屏左边的格子离屏幕边只有 65：居中时"下注 310"这种长签左端出屏，改成从头像左沿起往右摆 */
-.stage.tall .seat.pack.left:not(.top) .bubble { left: -56px; transform: none; }
+/* 上面是顶栏、再高就压按钮：签收矮一点，只搭到头像额头（不到 1/4） */
+.stage.tall .seat.pack.top .bubble { line-height: 1.15; padding-top: 1px; padding-bottom: 1px; }
+
+/* 竖屏两侧的座位：动作签挂在名牌正下方。头像上方挨着上家的名牌、外侧是屏幕边，原来压低搭在头像上沿，盖住小半张脸（试玩 1122：要点头像扔道具时头像被挡）。
+   摊牌时动作签清空、名牌下面换成牌型签；有徽章（暂离、没筹码）的放到徽章下面 */
+.stage.tall .seat:not(.top):not(.me):not(.shifted) .bubble { left: 50%; top: calc(var(--plate-bottom) + 2px); transform: translateX(-50%); }
+.stage.tall .seat.badged:not(.top):not(.me):not(.shifted) .bubble { top: calc(var(--plate-bottom) + 22px); }
+/* 靠外侧对齐名牌边：居中的话宽一点的签会伸到下一家朝桌心的底牌上（竖屏 9 人桌） */
+.stage.tall .seat.left:not(.top):not(.me):not(.shifted) .bubble { left: -54px; transform: none; }
+.stage.tall .seat.right:not(.top):not(.me):not(.shifted) .bubble { left: auto; right: -54px; transform: none; }
 
 /* 我：底牌在上、名牌在下、头像在名牌左边，三样不叠（座位的点在名牌上沿往上一点） */
 .seat.me .avatar { left: -142px; top: 6px; width: 56px; height: 56px; }
@@ -635,6 +643,12 @@ body::before {
 .bet.mine { transform: translate(-50%, -100%); }
 .bet.from-l { transform: translate(-30px, -50%); }
 .bet.from-r { transform: translate(calc(30px - 100%), -50%); }
+/* 横屏顶上一排：下注在名牌正下方，layout.ts 按电脑上的名牌（下沿 73）摆；手机上字放大名牌变高，金额顶到名牌下沿（844×390 压 5），跟着往下挪 */
+.bet.from-t { transform: translate(-50%, calc(-50% + max(0px, var(--plate-bottom) - 73px))); }
+/* 横排会压到公共牌、别家头像或名牌的下注（base.ts 的 fitBet）：金额放到筹码下面；两侧的贴着靠座位那头，其余居中 */
+.bet.amt-below { flex-direction: column; align-items: center; }
+.bet.from-l.amt-below { align-items: flex-start; }
+.bet.from-r.amt-below { align-items: flex-end; }
 .bet-chips, .fly-chips { display: flex; align-items: flex-end; gap: var(--s-0); }
 .bet-amt {
   font-size: var(--fs-4);
@@ -707,8 +721,8 @@ body::before {
 .stage:not(.tall) .actions .odds { white-space: nowrap; }
 .actions .odds .need { margin-left: var(--s-2); font-size: var(--fs-1); }
 .stage.narrow .actions .odds .need { display: none; }
-/* 跟注提示（单机桌，src/fun/odds.ts）："胜率约 X% · 要过 Y% · 划算"，赔率条不伸到我的底牌上、不把座位挤开（scenes 1920×1080 和 667×375 量出来的）；
-   手机横屏矮、平板窄舞台再收起"要过 Y%"，颜色照样分够不够 */
+/* 跟注提示（单机桌，src/fun/odds.ts）："胜率 X% · 至少要 Y% · 划算"，赔率条不伸到我的底牌上、不把座位挤开（scenes 1920×1080 和 667×375 量出来的）；
+   手机横屏矮、平板窄舞台再收起"至少要 Y%"，颜色照样分够不够 */
 .actions .odds .hint { margin-left: var(--s-2); font-size: var(--fs-1); }
 .stage:is(.narrow, .tight):not(.tall) .actions .odds.with-hint .h-need { display: none; }
 .act {
@@ -822,6 +836,8 @@ body::before {
   z-index: 20;
 }
 .hand-no { font-size: var(--fs-2); color: var(--muted); margin-right: var(--s-1); }
+/* "补码"改叫"补筹码"后这一排宽了一个字，摊牌时"歇一手"顶到我的头像（scenes 1280、1920 压 11）：按钮左右内边距收一点 */
+.stage:not(.tall) .hud > .pill { padding: 0 var(--s-3); }
 /* 好友房嘲讽：按钮、顺手提示在左下，面板从左下弹出；都不压我的底牌（正下方）和操作区（右下） */
 /* kit 画的"互动"按钮的位置：hud 里占一个和原来按钮一样大的空位，矩形交给 TableFun */
 .fun-slot { width: calc(88px * var(--ui)); height: var(--hit); flex: none; }
@@ -1105,6 +1121,8 @@ body::before {
 /* 缩小了或收窄了的横版牌桌（手机横屏、平板竖拿）：左下那一排变宽，"歇一手"压到我的头像（多尺寸）——占位按竖屏的宽度、按钮留白收窄、第几手收起 */
 :is(.stage.tight, .stage.narrow):not(.tall) .hud .fun-slot { width: calc(64px * var(--ui)); }
 :is(.stage.tight, .stage.narrow):not(.tall) .hud > .pill { padding: 0 var(--s-2); }
+/* 手机横屏同理（667×375 压 6） */
+.stage.tight:not(.tall) .hud > .pill { padding: 0 var(--s-1); }
 :is(.stage.tight, .stage.narrow):not(.tall) .hud .hand-no { display: none; }
 /* 两手之间多一个"补码"，那一排再长一截就碰到我的头像（牌桌互压检查，667×375）：按钮之间收紧 */
 .stage.tight:not(.tall) .hud { gap: var(--s-1); left: var(--s-2); }
@@ -1290,11 +1308,12 @@ body::before {
   animation: rise .18s ease-out;
 }
 .d-title { font-size: var(--fs-5); font-weight: 900; color: var(--gold); }
-/* 右上角 ✕：看得见 32、点区按 --hit 外扩到 44（仓库根 docs/ui.md 第 2、5 节）；标题右边留出它的位置 */
+/* 右上角 ✕：贴着弹窗右上角，按钮本身就是点按区（至少 40，触屏 --hit = 44 个屏幕像素），字居中、底透明，看着还是一个 ✕。
+   不靠 ::before 外扩：外扩伸出弹窗被裁掉（多尺寸量到只剩 37–41），还让弹窗横向多滚 6（不滚动检查）。标题右边留出它的位置 */
 :where(#app, .coach-layer) .dialog { position: relative; }
-:where(#app, .coach-layer) .dialog:has(> .d-x) > .d-title { padding-right: 36px; }
-.d-x { position: absolute; top: var(--s-2); right: var(--s-2); width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: max(18px, calc(14px * var(--ui))); font-weight: 700; line-height: 1; cursor: pointer; }
-.d-x::before { content: ''; position: absolute; inset: -6px; }
+:where(#app, .coach-layer) .dialog:has(> .d-x) > .d-title { padding-right: max(36px, calc(var(--hit) - var(--s-2))); }
+.d-x { position: absolute; top: 0; right: 0; width: max(40px, var(--hit)); height: max(40px, var(--hit)); padding: 0; border: 0; border-radius: 0 var(--r-3) 0 var(--r-3); background: transparent; color: var(--muted); font-size: max(18px, calc(14px * var(--ui))); font-weight: 700; line-height: 1; cursor: pointer; }
+:where(#app, .coach-layer) .d-x::before { content: none; }
 .d-x:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .d-body { margin-top: var(--s-2); font-size: var(--fs-4); line-height: 1.6; color: var(--ink); }
 .d-buttons { display: flex; justify-content: flex-end; gap: var(--s-3); margin-top: var(--s-4); }
@@ -1341,6 +1360,8 @@ body.texas-raising-tall .atf-btn { visibility: hidden; }
 
 /* 竖屏我的动作气泡（"小盲 10"）：放在头像左边，不压右边的底牌 */
 .stage.tall .seat.me .bubble { left: -150px; top: 22px; transform: translateX(-100%); }
+/* 竖屏我凑成的牌（"一对 10"）：放名牌右边。底牌左上方挨着左下那家名牌下的动作签 */
+.stage.tall .seat.me .hand { left: 76px; top: 22px; transform: none; }
 .stage.tall .where { display: none; }
 /* 竖屏桌心窄，下注筹码会压到水印上：不画水印 */
 .stage.tall .felt-mark { display: none; }
@@ -1378,8 +1399,8 @@ body.texas-raising-tall .atf-btn { visibility: hidden; }
 .stage.tall .between { justify-content: flex-end; }
 .stage.tall .rebuy-cta { bottom: calc(300px + var(--lift)); }
 /* 别人的座位徽章（没筹码、暂离、离桌）挂在名牌下面，不盖头像；名牌下沿约 72。摊牌的牌型小签也在这一带，同时有就让到徽章下面 */
-.stage.tall .seat:not(.me) .badge { top: 74px; }
-.stage.tall .seat.badged:not(.me) .hand { top: 94px; }
+.stage.tall .seat:not(.me) .badge { top: calc(var(--plate-bottom) + 2px); }
+.stage.tall .seat.badged:not(.me) .hand { top: calc(var(--plate-bottom) + 22px); }
 /* 竖屏摊牌的结果条几个池子就几行，往下长到下面两侧那两家：字小一号、头像小一号、行距收紧（牌桌互压检查） */
 .stage.tall .result { font-size: var(--fs-3); line-height: 1.2; padding: var(--s-0) var(--s-3); }
 .stage.tall .result .r-face { width: 32px; height: 32px; }

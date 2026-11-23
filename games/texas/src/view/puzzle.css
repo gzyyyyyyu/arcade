@@ -58,6 +58,8 @@
 .pz-slot .card { position: absolute; left: -2px; top: -2px; }
 .pz-slot:has(.card) { border-color: transparent; }
 .pz-slot.runout:has(.card) { border-color: var(--cg-gold, #f7c43a); }
+/* 揭晓时补出来的公共牌是模拟发的，不是题目本来就有的（试玩 1122：看着像题目有 5 张）：角上标「模拟」 */
+.pz-slot.runout:has(.card)::after { content: '模拟'; position: absolute; left: 50%; bottom: -4px; transform: translate(-50%, 100%); font-size: var(--fs-1); font-weight: 800; color: var(--cg-gold, #f7c43a); white-space: nowrap; }
 .pz-cap { font-size: var(--fs-2); opacity: .85; }
 .pz-info { font-size: var(--fs-3); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
 .pz-range { margin: 0; font-size: var(--fs-3); color: var(--muted); line-height: 1.5; font-weight: 700; }

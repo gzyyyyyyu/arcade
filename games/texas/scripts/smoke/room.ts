@@ -1,6 +1,6 @@
 /** 好友房（--only room）和匹配真人（--only match）。 */
 import type { Browser, Page } from 'playwright-core';
-import { HANDS, DESK_W, allowed409, log, newContext, watch, shot, balance, enter, openMore, PHONE, handNo, settled, linkSit } from './harness.ts';
+import { HANDS, DESK_W, allowed409, log, newContext, watch, shot, balance, enter, openMore, PHONE, handNo, settled, linkSit, realRoom } from './harness.ts';
 
 /** 好友房两手之间停了多久（看到倒计时 → 下一手发出来），按页面记 */
 const roomPauses: Record<string, number[]> = {};
@@ -40,7 +40,7 @@ export async function playRoom(page: Page, hands: number, tag: string, shotAt: S
       continue;
     }
     // 桌上不满一份就能补：按钮常亮着，只在输光了才补（像真人一样），按钮刚好收起了就不等
-    const topUp = page.locator('.hud .pill', { hasText: '补码' });
+    const topUp = page.locator('.hud .pill', { hasText: '补筹码' });
     if ((await topUp.isVisible()) && (await page.locator('.seat.me .stack').textContent())?.trim() === '0') {
       await topUp.click({ timeout: 2_000 }).catch(() => {});
       continue;
@@ -98,6 +98,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   }
 
   // 房主选 4 人桌开房：自己坐 1 号
+  await realRoom(hp);
   await hp.locator('.size', { hasText: /^4$/ }).click();
   await hp.locator('.friends .pill', { hasText: '开房间' }).click();
   await hp.locator('.room-wait').waitFor();
@@ -276,6 +277,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   // 都离开了：房间没有真人就结束，标题页不给"回到房间"；房主再点"开房间"开出一个新的，不会 409、不会回到原来的房间
   if (await hp.locator('.banner.room').isVisible()) throw new Error('left the room: no "back to room" banner');
   await enter(hp, '好友房');
+  await realRoom(hp);
   await hp.locator('.friends .pill', { hasText: '开房间' }).click();
   await hp.locator('.room-wait').waitFor({ timeout: 20_000 });
   const code2 = ((await hp.locator('.rw-code').textContent()) ?? '').replace(/\D/g, '');
@@ -288,6 +290,7 @@ async function roomFlow(browser: Browser, base: string, pages: [Page, string][])
   watch(hp2, 'room-host-again', true);
   await hp2.goto(`${base}/games/texas/`);
   await enter(hp2, '好友房');
+  await realRoom(hp2);
   await hp2.locator('.friends .pill', { hasText: '开房间' }).click();
   await hp2.locator('.room-wait').waitFor({ timeout: 20_000 });
   const code3 = ((await hp2.locator('.rw-code').textContent()) ?? '').replace(/\D/g, '');

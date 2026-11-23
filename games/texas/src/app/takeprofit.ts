@@ -23,7 +23,7 @@ export function createTakeProfit(c: App) {
   async function pickTakeProfit(): Promise<void> {
     let pick: TakeProfit | null = null;
     const body = el('div', 'tp-pick');
-    el('div', 'tp-note', body, '这一桌净赢到这么多，一手打完就自动起身、结回钱包（娱乐桌只是离桌）');
+    el('div', 'tp-note', body, '这一桌净赢到这么多，一手打完就自动起身，筹码带回钱包（娱乐桌只是离桌）');
     const row = el('div', 'tp-opts', body);
     const opts: [string, TakeProfit][] = [['关', TP_OFF], ...TP_PCTS.map((p): [string, TakeProfit] => [`赢 ${p}%`, { kind: 'pct', pct: p }])];
     for (const [label, tp] of opts) {

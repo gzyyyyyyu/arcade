@@ -137,7 +137,7 @@ async function playDailyTour(page: Page, tag: string, panelShot: boolean): Promi
       throw new Error(`[${tag}] daily tour never ended`);
     }
     if (await page.locator('.d-title', { hasText: '你出局了' }).isVisible()) {
-      await page.locator('.d-btn', { hasText: '现在离开' }).click();
+      await page.locator('.d-btn', { hasText: '现在离桌' }).click();
       continue;
     }
     if (await page.locator('.dialog').isVisible()) {

@@ -269,7 +269,7 @@ export async function noScrollFlow(browser: Browser, base: string): Promise<void
       }
       await page.locator('.result.on').waitFor({ timeout: 5_000 });
       await look('hand-end');
-      const topUp = page.locator('.hud .pill', { hasText: '补码' });
+      const topUp = page.locator('.hud .pill', { hasText: '补筹码' });
       if (await topUp.isVisible()) {
         await topUp.evaluate((e) => (e as HTMLElement).click());
         await page.locator('.dialog').waitFor({ timeout: 5_000 });

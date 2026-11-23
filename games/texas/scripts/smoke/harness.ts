@@ -276,6 +276,11 @@ export async function enter(page: Page, mode: '娱乐' | '实盘' | '好友房',
   await (tap ? target.tap() : target.click());
 }
 
+/** 好友房默认娱乐：开实盘房的流程先点小桌档（选桌第一张实盘卡） */
+export async function realRoom(page: Page): Promise<void> {
+  await page.locator('.stakes .tile:not(.room-fun)').first().click();
+}
+
 /**
  * 按朋友的链接（?room=）进了还没开打的好友房：页面替他坐第一个空位；实盘房先问一句"坐下"（开打时从钱包带入），点了才坐
  */

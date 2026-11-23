@@ -127,7 +127,7 @@ export async function askTopUp(parent: HTMLElement, opts: { min: number; max: nu
   // 输光了的时候"不补"就是离桌结算：不让点到遮罩就走了，只认按钮
   const v = await dialog(
     parent,
-    opts.busted ? '输光了' : '补码',
+    opts.busted ? '输光了' : '补筹码',
     wrap,
     [
       opts.busted ? { label: '离桌', value: 'no', danger: true } : { label: '算了', value: 'no', cancel: true },

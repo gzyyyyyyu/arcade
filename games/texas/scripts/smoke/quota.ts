@@ -1,5 +1,5 @@
 import type { Browser, Page } from 'playwright-core';
-import { allowed409, enter, log, newContext, openMore, watch, linkSit } from './harness.ts';
+import { allowed409, enter, log, newContext, openMore, watch, linkSit, realRoom } from './harness.ts';
 import { playRoom } from './room.ts';
 
 /**
@@ -25,6 +25,7 @@ export async function quotaFlow(browser: Browser, base: string): Promise<void> {
   };
   const openRoom = async (p: Page): Promise<void> => {
     await enter(p, '好友房');
+    await realRoom(p);
     await p.locator('.friends .pill', { hasText: '开房间' }).click();
     await p.locator('.stage.in-room').waitFor({ timeout: 20_000 });
   };
@@ -44,6 +45,7 @@ export async function quotaFlow(browser: Browser, base: string): Promise<void> {
   const hp = await page('smoke-qh', 'quota-host', true);
   const ap = await page('smoke-qa', 'quota-a');
   await enter(hp, '好友房');
+  await realRoom(hp);
   await hp.locator('.size', { hasText: /^4$/ }).click();
   await hp.locator('.friends .pill', { hasText: '开房间' }).click();
   await hp.locator('.rw-seat.me').waitFor();

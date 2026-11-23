@@ -85,6 +85,16 @@ export function createFun(c: App) {
         });
       },
       avoid: () => tableView.keepOut(),
+      // 首次「点头像扔道具」提示冒在最靠上的电脑旁边：kit 默认挑第一个电脑，矮屏上是左下那家，提示条横着盖住上面那家的头像（试玩 1122）。
+      // 顶上那家上面是桌边、下面是空桌面，提示放得下
+      hintSeat: () => {
+        const v = curView();
+        const tops = (v?.seats ?? []).flatMap((s, i) => {
+          const r = s.owner === 'house' ? tableView.avatarRect(i) : null;
+          return r ? [{ i, top: r.top }] : [];
+        });
+        return tops.sort((a, b) => a.top - b.top)[0]?.i ?? null;
+      },
       // 聊天：中间的公共牌、底池弹幕不横穿；省内存的设备弹幕默认关（scene.ts 判断，根上的 .lowfx）
       center: () => tableView.centerRects(),
       lite: () => document.documentElement.classList.contains('lowfx'),

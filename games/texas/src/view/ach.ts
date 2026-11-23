@@ -59,7 +59,7 @@ export class AchToasts {
 export async function achPanel(parent: HTMLElement, s: AchState): Promise<void> {
   const body = el('div', 'ach-panel');
   const got = DEFS.filter((d) => s.got.includes(d.id)).length;
-  el('div', 'ach-sum', body, `已解锁 ${got} / ${DEFS.length}`);
+  el('div', 'ach-sum', body, `已解锁 ${got} / ${DEFS.length} · 只记在这台设备上`);
   const grid = el('div', 'ach-grid', body);
   const order = [...DEFS].sort((a, b) => Number(s.got.includes(b.id)) - Number(s.got.includes(a.id)));
   for (const d of order) {

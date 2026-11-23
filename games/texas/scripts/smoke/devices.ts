@@ -55,6 +55,40 @@ async function audit(page: Page, where: string, touch: boolean): Promise<string[
       if (r.left < -1 || r.right > W + 1 || ((r.top < -1 || r.bottom > H + 1) && !scrolls(e))) out.push(`伸出屏幕 ${label(e)} ${Math.round(r.left)},${Math.round(r.top)}-${Math.round(r.right)},${Math.round(r.bottom)}`);
       // 点击区：按钮自己或外面一圈能点的（::before 扩出来的不算，量不到）
       if (small(e) && (r.width < min - 0.5 || r.height < min - 0.5)) out.push(`点击区小 ${label(e)} ${Math.round(r.width)}×${Math.round(r.height)}`);
+      // 按钮的 ::before 外扩量不到框，但点得到：过中心横竖各量一条，逐像素看点下去是不是这个按钮，连着点得到的长度不到 min 就报。
+      // 落进邻居外扩出来的缝里算共用（缝里谁后画归谁），只有落到别的东西上（被外层裁掉、被盖住、进了另一个按钮自己画出来的框）才算断
+      if (touch && touchCss && (e.tagName === 'BUTTON' || e.classList.contains('home')) && (r.width < min - 0.5 || r.height < min - 0.5)) {
+        const cx = (r.left + r.right) / 2;
+        const cy = (r.top + r.bottom) / 2;
+        const stop: string[] = [];
+        const reach = (dx: number, dy: number): number => {
+          let n = 0;
+          for (let k = 1; k <= min; k++) {
+            const px = cx + dx * k;
+            const py = cy + dy * k;
+            if (px < 0 || py < 0 || px > W - 1 || py > H - 1) return min; // 屏幕边上：手指按到边也算
+            const hit = document.elementFromPoint(px, py);
+            if (hit && e.contains(hit)) {
+              n = k;
+              continue;
+            }
+            const other = hit?.closest('button, a[href], input, select, [role="button"]');
+            if (other) {
+              const o = other.getBoundingClientRect();
+              if (px < o.left || px > o.right || py < o.top || py > o.bottom) {
+                n = k;
+                continue;
+              }
+            }
+            stop.push(hit ? label(hit) : '空');
+            break;
+          }
+          return n;
+        };
+        const tall = reach(0, -1) + reach(0, 1) + 1;
+        const wide = reach(-1, 0) + reach(1, 0) + 1;
+        if (tall < min - 0.5 || wide < min - 0.5) out.push(`点按区不到 ${min} ${label(e)} 画 ${Math.round(r.width)}×${Math.round(r.height)} 点得到 ${wide}×${tall}，挡住的 ${[...new Set(stop)].join('、')}`);
+      }
     }
     // 关键元素两两不压（同一个元素里套着的不算）
     const KEY = '.seat .plate, .seat .avatar, .seat.me .bubble.on, .seat.me .card, .card.board, .actions .act, .actions .preset, .actions .qbet, .actions .odds, .hud > :not(.hidden), .topbar > :not(.spacer), .atc-pill, .atf-btn, .lobby .start, .lobby .tour-btn, .lobby .mcard';
@@ -209,13 +243,72 @@ async function tableHits(page: Page, where: string): Promise<string[]> {
         const dx = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
         const dy = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
         const at = (r: DOMRect): string => `${Math.round(r.left)},${Math.round(r.top)}–${Math.round(r.right)},${Math.round(r.bottom)}`;
+        // 座位（名牌、头像、底牌）画在下注上面（.seat 的 z-index 比 .bet 高）：全下的高摞筹码顶塞到名牌下沿、底牌角底下不挡字，
+        // 只查下注的金额有没有被盖住（390×844 9 人桌「1,160」伸到右上那家头像底下）
+        const bet = a.e.classList.contains('bet') ? a : b.e.classList.contains('bet') ? b : null;
+        const seated = bet === a ? b : a;
+        if (bet && seated.seat) {
+          const amt = bet.e.querySelector('.bet-amt')?.getBoundingClientRect();
+          const ax = amt ? Math.min(seated.r.right, amt.right) - Math.max(seated.r.left, amt.left) : 0;
+          const ay = amt ? Math.min(seated.r.bottom, amt.bottom) - Math.max(seated.r.top, amt.top) : 0;
+          if (ax > 4 && ay > 4) out.push(`${where}: 座位盖住下注金额 ${label(seated.e)} ${at(seated.r)} × ${label(bet.e)} ${at(bet.r)} ${Math.round(ax)}×${Math.round(ay)}`);
+          continue;
+        }
         if (dx > 2 && dy > 2) out.push(`${where}: 压住 ${label(a.e)} ${at(a.r)} × ${label(b.e)} ${at(b.r)} ${Math.round(dx)}×${Math.round(dy)}`);
       }
+    // 同一个座位里互相挨着可以，但筹码数不许被盖（试玩 1122：矮屏摊牌的牌型签盖住「1,560」）；动作签盖头像不超过头像高的 1/4（盖住半张脸）
+    for (const seat of document.querySelectorAll('.seat')) {
+      const stack = seat.querySelector('.plate .stack');
+      const sr = stack && shown(stack);
+      const av = seat.querySelector('.avatar');
+      const ar = av && shown(av);
+      for (const e of seat.querySelectorAll('.hand.on, .bubble.on, .hole .card:not(.hidden), .badge.on')) {
+        const r = shown(e);
+        if (!r) continue;
+        const at = (q: DOMRect): string => `${Math.round(q.left)},${Math.round(q.top)}–${Math.round(q.right)},${Math.round(q.bottom)}`;
+        if (sr) {
+          const dx = Math.min(r.right, sr.right) - Math.max(r.left, sr.left);
+          const dy = Math.min(r.bottom, sr.bottom) - Math.max(r.top, sr.top);
+          if (dx > 2 && dy > 2) out.push(`${where}: 盖住筹码数 ${label(e)} ${at(r)} × ${label(stack)} ${at(sr)} ${Math.round(dx)}×${Math.round(dy)}`);
+        }
+        if (ar && e.classList.contains('bubble')) {
+          const dx = Math.min(r.right, ar.right) - Math.max(r.left, ar.left);
+          const dy = Math.min(r.bottom, ar.bottom) - Math.max(r.top, ar.top);
+          if (dx > ar.width / 4 && dy > ar.height / 4) out.push(`${where}: 动作签盖住头像 ${label(e)} ${at(r)} × 头像 ${at(ar)} ${Math.round(dx)}×${Math.round(dy)}`);
+        }
+      }
+    }
     // 出屏：只查两两互压发现不了被屏幕边缘切掉的部分
     for (const { e, r } of items)
       if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) out.push(`${where}: 出屏 ${label(e)} ${Math.round(r.left)},${Math.round(r.top)}–${Math.round(r.right)},${Math.round(r.bottom)}`);
     return out;
   }, [where] as const);
+}
+
+/**
+ * 电脑版聊天框收着时玩家自己点开（试玩 1122：1280 上点开正好盖住自己两张底牌和「小盲」）：放不下时它总得盖点什么，
+ * 但不许盖我的底牌和动作签、任何一家的名牌（名字、筹码数）、公共牌、底池、下注区。查完删掉 kit 记的展开设置，不影响同一尺寸后面的局面
+ */
+async function openedDockHits(page: Page, path: string): Promise<string[]> {
+  const pill = page.locator('[data-key="chat:open"]');
+  if (!(await pill.count())) return [];
+  await pill.click();
+  await page.locator('.atc-dock').waitFor();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path });
+  const out = await page.evaluate(() => {
+    const dock = document.querySelector('.atc-dock')?.getBoundingClientRect();
+    if (!dock) return ['chat: 点了「聊天」没展开'];
+    const KEEP = '.seat.me .hole .card:not(.hidden), .seat.me .bubble.on, .seat .plate, .card.board:not(.hidden), .pot-main:not(.hidden), .actions .act, .actions .preset, .actions .qbet, .actions .odds';
+    return [...document.querySelectorAll(KEEP)].flatMap((e) => {
+      const r = e.getBoundingClientRect();
+      const dx = Math.min(r.right, dock.right) - Math.max(r.left, dock.left);
+      const dy = Math.min(r.bottom, dock.bottom) - Math.max(r.top, dock.top);
+      return r.width > 0 && dx > 2 && dy > 2 ? [`chat: 点开的聊天框压住 ${e.className.toString().slice(0, 30)}「${(e.textContent ?? '').trim().slice(0, 8)}」 ${Math.round(dx)}×${Math.round(dy)}`] : [];
+    });
+  });
+  await page.evaluate(() => localStorage.removeItem('texas.chat'));
+  return out;
 }
 
 /** 牌桌的几种局面（scripts/scenes.ts）：2–9 人，一个、两个边池，有人全下，摊牌；每个尺寸每个局面截一张、查互压 */
@@ -290,7 +383,10 @@ export async function scenesFlow(browser: Browser, base: string): Promise<void> 
           if (d0 && d1 && Math.max(Math.abs(d0[0]! - d1[0]!), Math.abs(d0[1]! - d1[1]!)) > 1) found.push(`after: D 移动了 ${d0.map(Math.round)} → ${d1.map(Math.round)}`);
           // 电脑们接着走：等到又轮到我或这手打完再截，别截在半路（半路停在哪一家取决于计时）
           await page.locator('.actions.on, .result.on').first().waitFor({ timeout: 20_000 }).catch(() => undefined);
+          // 停下来的这一刻再查一遍：0.9 秒那次电脑可能还没下注（9 人桌左中那家全下的「1,160」压住公共牌，只在它先下了注的那轮报）
+          found.push(...(await tableHits(page, 'settled')));
           if (!(await stableShot(page, join(SHOTS, `scene-${tag}-after.png`)))) found.push('shot-after: 截图到时没落定');
+          if (!d.touch) found.push(...(await openedDockHits(page, join(SHOTS, `scene-${tag}-chat.png`))));
         } else {
           await page.locator('.result.on').waitFor({ timeout: 15_000 });
           await page.waitForTimeout(700);
