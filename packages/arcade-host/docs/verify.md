@@ -1,6 +1,6 @@
 # 和 Cloudflare 的对照（实测）
 
-> 实测环境：workerd 1.20261006.1（和平台 `node_modules` 里的同一版）、wrangler 4.151.0（和 `tools/deployer` 钉死的同一版，对照用）、Node 24（只是实测时用的版本，项目要求见 `.nvmrc`）、
+> 实测环境：workerd 1.20261023.1（和游戏 `node_modules` 里最新的同一版）、wrangler 4.151.0（和 `tools/deployer` 钉死的同一版，对照用）、Node 24（只是实测时用的版本，项目要求见 `.nvmrc`）、
 > PostgreSQL 17（CI）。升 workerd 时这里的版本跟着改，下面每一条都写成了测试（`test/runtime.test.ts`、`test/assets-parity.test.ts`、`test/pg.test.ts`），CI 会重新验一遍；
 > "站点"指拿平台 + 德州跑 `tools/selfhost/smoke.mjs`（CI 的 selfhost.yml）。
 
