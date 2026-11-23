@@ -1,6 +1,6 @@
 # 平台更新日志 0.39.5–0.40.0（归档）
 
-这一段的版本记录，从 [CHANGELOG.md](../CHANGELOG.md) 挪来。更新的在 CHANGELOG.md，更早的在 [changelog-0.33-0.39.md](changelog-0.33-0.39.md)。
+这一段的版本记录，从 [CHANGELOG.md](../CHANGELOG.md) 挪来。更新的在 [CHANGELOG.md](../CHANGELOG.md)，更早的在 [changelog-0.33-0.39.md](changelog-0.33-0.39.md)。
 
 ## 0.40.0 — 2026-11-20
 
