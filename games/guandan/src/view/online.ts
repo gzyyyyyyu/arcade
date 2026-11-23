@@ -1,8 +1,8 @@
 /**
  * 好友房的大厅（DOM 层，输房间码用原生输入框，手机上好打字）：开房、输码进房、选座、房主开局；牌桌上的"重连中"横条。
- * 标题页一直有"好友房"（0.3.0 起）；?online=1 启动后直接打开这个面板（平台大厅的入口）。房间、牌局都在服务端，这里只发意图、照房间的信息画。
+ * 标题页一直有"好友房"；?online=1 启动后直接打开这个面板（平台大厅的入口）。房间、牌局都在服务端，这里只发意图、照房间的信息画。
  * 每天的额度（arcade-kit 0.2.0）：已经有房间给"回到房间"，今天开房次数用完、今天人太多都说成一句话，单机照常。
- * 快速匹配（0.26.0，kit 0.20.0 的 MatchClient，设计在 kit 的 docs/match.md）：排队也画在这张卡上；排到了照好友房进房，只是不给房间码、邀请、开局。
+ * 快速匹配（kit 0.20.0 的 MatchClient，设计在 kit 的 docs/match.md）：排队也画在这张卡上；排到了照好友房进房，只是不给房间码、邀请、开局。
  */
 import { MATCH_TEXT, MatchClient, type MatchSoloWhy } from 'arcade-kit/client';
 import { CLOSE } from 'arcade-kit/protocol';
@@ -95,7 +95,7 @@ function style(): void {
   #online .ol-note { min-height: 0; }
   #online .ol-row #ol-share { min-height: 48px; font-size: 19px; }
 }
-/* 电脑和平板（又宽又高）：面板放大成游戏里的一块牌匾，不像网页小弹窗——字、按钮、房间码输入框都放大，开房一排按钮等分（0.40.5） */
+/* 电脑和平板（又宽又高）：面板放大成游戏里的一块牌匾，不像网页小弹窗——字、按钮、房间码输入框都放大，开房一排按钮等分 */
 @media (min-width: 900px) and (min-height: 600px) {
   #online .ol-card { width: min(720px, calc(100vw - var(--gd-s6))); padding: var(--gd-s6) var(--gd-s8); gap: var(--gd-s4); }
   #online h2 { font-size: 32px; letter-spacing: 6px; }
@@ -199,7 +199,7 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
   void myRoom().then((back) => {
     if (back && slot.isConnected) slot.appendChild(button(`回到刚才的房间 ${back.code}`, () => join(back.code, back.host, null, false, back.variant ?? 'guandan'), 'gd-2', 'ol-back'));
   });
-  // 好友在打（0.40.2）：在牌馆好友房里的好友，一点"加入"就进那一桌（等人时自动坐空位，开打了接管电脑或旁观）；没人在打这块不显示
+  // 好友在打：在牌馆好友房里的好友，一点"加入"就进那一桌（等人时自动坐空位，开打了接管电脑或旁观）；没人在打这块不显示
   const friends = el('div', { id: 'ol-friends' });
   c.appendChild(friends);
   void fetchFriendTables().then((list) => {
@@ -213,7 +213,7 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
       friends.appendChild(row);
     });
   });
-  // 单独部署（0.8.0）没有账号：别人看到的名字自己填，开房、进房的地址上带着（不填就叫"游客"加数字）
+  // 单独部署没有账号：别人看到的名字自己填，开房、进房的地址上带着（不填就叫"游客"加数字）
   if (standalone()) {
     const row = el('label', { class: 'ol-row' });
     row.appendChild(el('span', {}, '你的昵称'));
@@ -225,9 +225,9 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
   }
   const make = el('div', { class: 'ol-row ol-make' });
   make.appendChild(button('开个房间', () => void create(null), '', 'ol-create'));
-  // 斗地主不洗牌（娱乐 0.33.0）；不洗牌的实盘房间在"开实盘房间"里选（0.39.0）
+  // 斗地主不洗牌（娱乐 0.33.0）；不洗牌的实盘房间在"开实盘房间"里选
   if (panelVariant === 'ddz') make.appendChild(button('不洗牌房间', () => void create(null, true), 'gd-2', 'ol-create-clump'));
-  // 实盘房间（0.5.0，docs/stake.md 第 3 节）：开房时选档位，之后不能改。单独部署没有钱包，不摆
+  // 实盘房间（docs/stake.md 第 3 节）：开房时选档位，之后不能改。单独部署没有钱包，不摆
   // 点开后是选中态（金底），档位在下面一行展开
   if (!standalone()) {
     const sb = button('开实盘房间', () => {
@@ -270,7 +270,7 @@ function setNetDown(retry: () => void): void {
 /** 实盘房间：每档一个按钮，钱包不够一份的灰掉（钱包连不上时不拦，开局时带入被拒就是这个人不计输赢） */
 function pickTier(box: HTMLElement): void {
   box.replaceChildren(el('div', { class: 'ol-tip' }, `打 ${panelVariant === 'ddz' ? DDZ_ROOM_DEALS : ROOM_DEALS} 副，输赢最多是带入的筹码；${ROOM_STAKE_TEXT.bots}。${STAKE_TEXT.noCash}`));
-  // 斗地主多选一样发牌（0.39.0）：经典 / 不洗牌，和单机、选档页共用 ddzDeal 这个设置；选中的金底（gd-on），另一个木色
+  // 斗地主多选一样发牌：经典 / 不洗牌，和单机、选档页共用 ddzDeal 这个设置；选中的金底（gd-on），另一个木色
   let clump = panelVariant === 'ddz' && getSettings().ddzDeal === 'clump';
   if (panelVariant === 'ddz') {
     const pick = (v: boolean): void => {
@@ -301,7 +301,7 @@ function pickTier(box: HTMLElement): void {
   });
 }
 
-/** 开房：每人同时 1 个房间（0.38.0），已经有一个开着的（kit 回 has_room 带码）就带他回那个房间 */
+/** 开房：每人同时 1 个房间，已经有一个开着的（kit 回 has_room 带码）就带他回那个房间 */
 let creating = false;
 async function create(stake: TierId | null, noShuffle = false): Promise<void> {
   // 转圈只挡住点的那个按钮：等回话时再点另一个开房按钮（经典 / 不洗牌 / 实盘）也会开出第二个房间
@@ -330,7 +330,7 @@ async function createOnce(stake: TierId | null, noShuffle: boolean): Promise<voi
   if ('code' in r) {
     note = '';
     join(r.code, true, null, false, panelVariant);
-    // 开完房直接弹"叫朋友来"（0.40.2）：少点一下。没好友（单独部署、没登录、还没加好友）不弹，房间面板上照样有"叫朋友来"
+    // 开完房直接弹"叫朋友来"：少点一下。没好友（单独部署、没登录、还没加好友）不弹，房间面板上照样有"叫朋友来"
     const name = panelVariant === 'ddz' ? '斗地主' : '掼蛋';
     void hasFriends().then((yes) => {
       if (yes && ses?.code === r.code) void openInvitePanel(r.code, name);
@@ -348,7 +348,7 @@ async function createOnce(stake: TierId | null, noShuffle: boolean): Promise<voi
 
 /**
  * 叫朋友来：手机上弹系统分享（微信、短信……），不支持的复制链接；朋友点开链接就进这个房间（没登录的先登录、登录完回来），
- * 开打了就接管电脑的座位。返回要给人看的一句话（弹了系统分享、或者自己关掉了分享面板时没有）。大厅和牌桌（0.6.1）共用
+ * 开打了就接管电脑的座位。返回要给人看的一句话（弹了系统分享、或者自己关掉了分享面板时没有）。大厅和牌桌共用
  */
 
 /**
@@ -525,7 +525,7 @@ function stopMatch(): void {
 }
 
 /**
- * 快速匹配（0.26.0）：stake 是档位（娱乐 null），solo 是转同档单机（标题页给：娱乐按现在的设置开一局、实盘按这一档带入）。
+ * 快速匹配：stake 是档位（娱乐 null），solo 是转同档单机（标题页给：娱乐按现在的设置开一局、实盘按这一档带入）。
  * 排队连接只建一条、不轮询；人数变了服务端推一次（带剩余毫秒数），倒计时页面自己数。15 秒只剩自己、联机忙、今天局数用完都转单机；
  * 排到了用好友房同一套进房（match = true）
  */

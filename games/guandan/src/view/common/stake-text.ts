@@ -12,7 +12,7 @@ export function stars(n: number): string {
 }
 
 /**
- * 娱乐三档的卡（docs/ai.md 第 2 节）：电脑多强、一局多久、适合谁，随时存档。time 是完整（打过 A），short 是短局（打到 10，0.25.0）。
+ * 娱乐三档的卡（docs/ai.md 第 2 节）：电脑多强、一局多久、适合谁，随时存档。time 是完整（打过 A），short 是短局（打到 10）。
  * 时长按 `ai-sim length` 的中位数（0.25.0 的出牌节奏，我每手 4 秒估）：完整 新手 7 副约 20 分钟、普通高手 11–12 副约 30 分钟；
  * 短局 新手 4 副约 11 分钟、普通高手 5 副约 14 分钟
  */
@@ -22,7 +22,7 @@ export const LEVEL_CARD = {
   pro: { name: '高手', stars: 4, time: '一局约 30 分钟，随时存档', short: '一局约 15 分钟，随时存档', who: '老手，电脑全记牌、残局会算' },
 } as const;
 
-/** 局长（0.25.0）：娱乐单机开局时选，记在设置里；每档多久看上面卡的 time / short */
+/** 局长：娱乐单机开局时选，记在设置里；每档多久看上面卡的 time / short */
 export const LENGTH_CARD = {
   short: { name: '短局', goal: '升到 10' },
   full: { name: '完整', goal: '打过 A' },
@@ -44,7 +44,7 @@ export const RETRY_LABEL = '重试';
 const SUPPLY = '补给（每天一次）';
 
 /**
- * 钱包被拒、没连上时页面说的话（按 error）：照平台的错误码对照表（docs/platform-backend.md 15.10，0.10.2），
+ * 钱包被拒、没连上时页面说的话（按 error）：照平台的错误码对照表（docs/platform-backend.md 15.10），
  * 每句都说清楚出了什么事、怎么办。掼蛋一份的大小跟档位走，"少带一点"就是换小一点的档
  */
 export const STAKE_ERROR: Record<string, string> = {
@@ -73,7 +73,7 @@ export const STAKE_TEXT = {
   matchWho: '和真人打',
   /** 快速匹配时星级那一列（电脑只补空位） */
   matchBots: '空位电脑补',
-  /** 掼蛋选档页里切换的位置（0.39.0）：娱乐有短局，实盘没有，说清为什么 */
+  /** 掼蛋选档页里切换的位置：娱乐有短局，实盘没有，说清为什么 */
   fixedDeals: '实盘固定打 3 副',
   walletDown: `${NET_DOWN}。实盘先开不了，娱乐局照常玩`,
   lowFunds: `钱包里的筹码不够的档灰掉了：选小一点的档，或者去大厅领${SUPPLY}`,
@@ -107,7 +107,7 @@ export const ROOM_STAKE_TEXT = {
   pending: '带入在办，到账之前的分归庄家',
 } as const;
 
-/** 中途结算那一行（0.11.2）：按现在的分结回多少（back = 带入的一份加输赢，调用方用 stake 的 payout 算） */
+/** 中途结算那一行：按现在的分结回多少（back = 带入的一份加输赢，调用方用 stake 的 payout 算） */
 /** 模板里 {0} 是分、{1} 是筹码（画面用 signedLine 红绿，fillSigned 拼成整句） */
 export function settleNowText(back: number): string {
   return `现在带回：按 {0} 分（{1}）带回 ${fmtChips(back)} 筹码`;
@@ -120,7 +120,7 @@ export interface SignedRow {
 }
 
 /**
- * 好友房实盘离开：把数字写出来。两副之间（结算页）当场结回（0.6.0）；一副打到一半走的，这一副电脑替他打完、输赢照算，打完按那时的分结回（0.12.4）。
+ * 好友房实盘离开：把数字写出来。两副之间（结算页）当场结回；一副打到一半走的，这一副电脑替他打完、输赢照算，打完按那时的分结回。
  * 拆成短行：确认框里一行放不下一整句（signedLine 不换行），每行 ≤14 字，带输赢的那一行单独成行好上色；fillSigned 逐行拼起来就是原来的整句
  */
 export function roomLeaveText(points: number, chips: number, back: number, midDeal = false): SignedRow[] {

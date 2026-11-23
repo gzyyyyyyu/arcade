@@ -46,7 +46,7 @@ interface GameBridge {
   /** 主要控件（页面 CSS 坐标） */
   controls(): Record<string, Pt & { enabled?: boolean; visible?: boolean }>;
   /**
-   * 现在点得到的东西的点按区域（页面 CSS 坐标的矩形，0.9.0）：冒烟查有没有小于 44 CSS 像素、有没有互相压着的。
+   * 现在点得到的东西的点按区域（页面 CSS 坐标的矩形）：冒烟查有没有小于 44 CSS 像素、有没有互相压着的。
    * 只列看得见、开着输入的；整屏挡点击的遮罩（和画面一样大）不算。
    */
   hits(): { x: number; y: number; w: number; h: number; kind: string }[];
@@ -54,7 +54,7 @@ interface GameBridge {
   topBuilds(): number;
   /** 看得见的文字和它在页面上的字号（CSS 像素，按字号的竖直跨度折算）：手机审计查"字 ≥ 12px"用 */
   texts(): { s: string; px: number; x: number; y: number }[];
-  /** 键盘焦点停在哪（页面 CSS 坐标的中心），没在用键盘时是 null（0.9.0） */
+  /** 键盘焦点停在哪（页面 CSS 坐标的中心），没在用键盘时是 null */
   focused(): Pt | null;
   /** 手牌某张牌露出部分的中心（页面 CSS 坐标） */
   cardPoint(c: Card): Pt | null;
@@ -83,7 +83,7 @@ interface GameBridge {
     queue: number;
     pending: boolean;
     stake: StakeView | null;
-    /** 快速匹配的桌（0.26.0）、这条连接收不收打字聊天 */
+    /** 快速匹配的桌、这条连接收不收打字聊天 */
     match: boolean;
     chat: boolean;
   } | null;

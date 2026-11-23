@@ -1,5 +1,5 @@
 /**
- * 结算页的"分享"（0.13.0，仓库根 docs/social.md 1.1）：画和分享由 kit 的 `arcade-kit/share` 做，两个玩法共用；结算页出来时才去碰 kit 的画布和 DOM。
+ * 结算页的"分享"（仓库根 docs/social.md 1.1）：画和分享由 kit 的 `arcade-kit/share` 做，两个玩法共用；结算页出来时才去碰 kit 的画布和 DOM。
  * 卡上的数据（掼蛋）由 guandan/share-card.ts 拼，只有公开的东西，不画任何人的手牌。
  */
 import type { PreparedShare, ShareCard } from 'arcade-kit/share';
@@ -40,7 +40,7 @@ export function shareUrl(origin: string, path: string, room: string | null): str
 let icon: HTMLImageElement | null = null;
 
 /**
- * 结算页一出来就先画卡（0.13.1，kit 0.12.3 的 prepareShare）：iOS 只许在点击的那一下里调系统分享，点了再画就过期了、只能出预览。
+ * 结算页一出来就先画卡（kit 0.12.3 的 prepareShare）：iOS 只许在点击的那一下里调系统分享，点了再画就过期了、只能出预览。
  * 返回"分享"按钮的点击处理：卡画好了就在点击里同步调系统分享，还没画好等画完再试（调不起来 kit 退回预览）。
  * 图标用 favicon（同源，画进画布不污染）；没加载好 kit 跳过图标照常出卡
  */

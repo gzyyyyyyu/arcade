@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeCard } from '../../src/core/cards.ts';
-import { type DdzPlay, type DdzType, beatsDdz, chooseDdz, ddzPatterns, enumerateDdz, interpretDdz, playsBeatingDdz } from '../../src/variants/doudizhu/core/index.ts';
+import { type DdzPlay, type DdzType, beatsDdz, chooseDdz, enumerateDdz, interpretDdz, isBombish, playsBeatingDdz } from '../../src/variants/doudizhu/core/index.ts';
 
 /** 按点数造牌（2..14，16 小王，17 大王），同点数的牌用不同花色 */
 function cs(...ranks: number[]): number[] {
@@ -126,12 +126,12 @@ describe('四带二与炸弹', () => {
     expect(types(5, 5, 5, 5, SJ, 3)).toEqual(['four2']);
     expect(types(5, 5, 5, 5, 3)).toEqual([]);
     const p = one(5, 5, 5, 5, 3, 4);
-    expect(ddzPatterns.isBomb(p)).toBe(false);
+    expect(isBombish(p)).toBe(false);
   });
   it('王炸', () => {
     expect(types(SJ, BJ)).toEqual(['rocket']);
-    expect(ddzPatterns.isBomb(one(SJ, BJ))).toBe(true);
-    expect(ddzPatterns.isBomb(one(5, 5, 5, 5))).toBe(true);
+    expect(isBombish(one(SJ, BJ))).toBe(true);
+    expect(isBombish(one(5, 5, 5, 5))).toBe(true);
   });
 });
 
@@ -173,12 +173,12 @@ describe('比大小', () => {
   });
 });
 
-describe('PatternSet：choose 和 enumerate', () => {
+describe('choose 和 enumerate', () => {
   it('首出取第一种读法、跟牌取第一个压得上的', () => {
     const opts = interpretDdz(cs(3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6));
     expect(opts.length).toBeGreaterThan(1); // 飞机 4 个，或 3 个带一排三张当翅膀
-    expect(ddzPatterns.choose(opts, null)).toBe(opts[0]);
-    expect(ddzPatterns.choose([], null)).toBeNull();
+    expect(chooseDdz(opts, null)).toBe(opts[0]);
+    expect(chooseDdz([], null)).toBeNull();
     const t3 = one(3, 3, 3, 4, 4, 4, 5, 6);
     const small = interpretDdz(cs(5, 5, 5, 6, 6, 6, 3, 4));
     expect(chooseDdz(small, t3)?.type).toBe('plane1');

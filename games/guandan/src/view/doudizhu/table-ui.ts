@@ -103,7 +103,7 @@ export function buildTopBar(sc: DdzScene, W: number): void {
   setTopHit(lobby, DDZ_TOPBAR.lobbyW, deep);
   c.add(lobby);
   sc.reg('lobby', lobby);
-  // 好友房开打以后也能叫朋友（0.40.2，掼蛋 0.6.1 就有）：中途进来的人接管电脑的座位
+  // 好友房开打以后也能叫朋友（掼蛋 0.6.1 就有）：中途进来的人接管电脑的座位
   const net = sc.net;
   if (net && !net.match) {
     const lp = Math.max(FUN_UI.iconMinW, minHit());
@@ -144,8 +144,8 @@ export function buildTopBar(sc: DdzScene, W: number): void {
 }
 
 /**
- * 顶栏里除了记牌器以外的东西都由这些决定：没变就不重建。记牌器每出一手都变，单独放在 counterBox 里重画——
- * 以前每出一手都整个重建顶栏，按下时还是旧按钮、抬起时已经换成新按钮，"大厅""设置"等偶尔点了没反应（和掼蛋同一个毛病）。
+ * 顶栏里除了记牌器以外的东西都由这些决定：没变就不重建。记牌器每出一手都变，单独放在 counterBox 里重画。
+ * 按下和抬起必须落在同一个按钮上：每出一手都重建顶栏的话，"大厅""设置"会点了没反应。
  */
 export function topBarKey(sc: DdzScene, W: number): string {
   const v = sc.ses.view();

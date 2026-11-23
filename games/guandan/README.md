@@ -3,7 +3,7 @@
 Guandan (掼蛋) — the four-player, two-deck partnership climbing game, from level 2 up to A. One of the games on the Arcade mini-game site, running on Cloudflare Workers.
 
 - **Full rules** in a pure, deterministic rules core (`src/variants/guandan/core/`): every pattern including wild cards, tribute / refusal / return, *jiefeng*, level-ups and the A round; same seed + same actions = same game.
-- **Solo play** against three computer players with personalities, entirely in the browser: three fun difficulties (beginner / normal / expert) and four real-chip tables, tuned against two simulated player models (`docs/ai.md`). The computer only reads its own hand and public information.
+- **Solo play** against three computer players with personalities, entirely in the browser: three fun difficulties (beginner / normal / pro) and four real-chip tables, tuned against two simulated player models (`docs/ai.md`). The computer only reads its own hand and public information.
 - **Friend rooms** via a six-digit code or an invite link (built on the shared `arcade-kit` room): reconnects, auto-play when someone is away, "play again"; the server never sends anyone else's cards.
 - **Table fun** — props, stickers and phrases, with computer players that react — from the shared `arcade-kit/table-fun` component.
 - **Play chips only**: chips live in the platform wallet and have no cash value; they cannot be bought, exchanged or transferred.
@@ -183,13 +183,13 @@ CI 用仓库的部署工具（`tools/deployer/deploy.mjs`，按 `tools/workers.j
 
 ```
 src/core/    牌馆通用层：牌的编码、随机数、座位环、牌型识别框架（不引用任何玩法）
-src/variants/doudizhu/   斗地主：core 规则核心、ai 电脑、net 房间规则、好友房实盘的桌和匹配档位、stake 实盘的规则（同样的分层）
+src/variants/doudizhu/   斗地主：core 规则核心、ai 电脑、puzzles 残局闯关、net 房间规则、好友房实盘的桌和匹配档位、stake 实盘的规则（同样的分层）
 src/variants/guandan/
   core/      规则核心（纯函数、确定性）
   ai/        电脑对手
   net/       联机规则（房间和页面共用）、视角旋转、实盘的桌
   stake/     实盘的计分、档位、称号、战绩小结
-src/net/     玩法无关的联机部分：页面版本、互动编号表
+src/net/     玩法无关的联机部分：牌馆房间规则 hall、好友房实盘的桌、页面版本、互动编号和短语表、房间信息、拒绝码文字
 src/view/    画面层（Phaser 4）：场景、牌桌部件、界面、程序生成的美术、合成音效、存储
 src/debug/   URL 参数、调试跳转、调试桥
 worker/      线上 Worker：登录闸门、开房进房、联机房间、单机实盘接口
@@ -217,7 +217,7 @@ SIL Open Font License 1.1，可商用；版权声明和许可原文在 `src/view
 - `docs/stake.md` 实盘设计；`docs/stake-sim.md` 实盘模拟的命令和展开的表（数字由 `node tools/stake-sim.ts` 量出）
 - `docs/view.md` 画面层的约定；`docs/net.md` 联机和实盘的约定
 - `docs/art.md` 主页和牌桌的美术现状、字体子集的生成；`docs/doudizhu.md` 牌馆（掼蛋 + 斗地主）的分层、掼蛋金样和斗地主各模式的现状
-- `CHANGELOG.md` 更新日志；`docs/changelog-archive*.md` 0.30.0 之前的归档（三份）
+- `CHANGELOG.md` 更新日志；`docs/changelog-archive*.md` 0.38.1 及以前的归档（四份）
 
 ## 许可证
 

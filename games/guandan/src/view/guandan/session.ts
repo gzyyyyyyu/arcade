@@ -13,7 +13,7 @@ import { emptyMatchLog, type MatchLog } from '../../variants/guandan/stake/title
 export const ME = 0;
 
 /**
- * 单机电脑拿到的随机数：按用途从牌局种子派生（0.8.1，AI 公平审计），和好友房的 aiSeed、formSeed（src/net/rules.ts）同一个做法。
+ * 单机电脑拿到的随机数：按用途从牌局种子派生（AI 公平审计），和好友房的 aiSeed、formSeed（src/net/rules.ts）同一个做法。
  * 牌局种子能重算发牌（rngFor(种子, 'deal', 第几副)），交给电脑就说不清它有没有借此看别人的牌；派生出来的数和发牌、首出的流毫不相干。
  * ai：出牌的随机流（电脑再按座位、步数分流）；form：这一场的状态；hint：给我的"提示"排序
  */
@@ -88,7 +88,7 @@ export class Session implements TableSession {
 
   static fresh(seed: string, options?: Partial<Options>, difficulty?: SoloLevel): Session {
     const s = getSettings();
-    // 局长（0.25.0）只管娱乐单机：实盘的 stake.ts 自己用默认规则开，不经这里
+    // 局长只管娱乐单机：实盘的 stake.ts 自己用默认规则开，不经这里
     const { state, events } = createGame(seed, options ?? { ...s.rules, ...(s.length === 'short' ? { endLevel: SHORT_END_LEVEL } : {}) });
     const ses = new Session(state, events, difficulty ?? s.difficulty);
     ses.save();

@@ -65,7 +65,7 @@ export function payout(tier: TierId, points: number, rules: StakeRules = CURRENT
 // ───────────── 钱包的 ref 和 op（平台 5.9：8–64 位的 [A-Za-z0-9_-]） ─────────────
 
 /**
- * 单机 ref：`solo-<档位>-<32 位十六进制>`（0.12.2 起把档位编进去）。ref 由 Worker 生成，结回时按 ref 里的档位算结回额，
+ * 单机 ref：`solo-<档位>-<32 位十六进制>`。ref 由 Worker 生成，结回时按 ref 里的档位算结回额，
  * 不信页面带来的档位——否则小档带入、报豪华档结回会按豪华档算（钱包另有"不超过带入 + 20 份"兜着）。
  */
 const SOLO_REF = /^solo-(small|mid|big|lux)-[0-9a-f]{32}$/;

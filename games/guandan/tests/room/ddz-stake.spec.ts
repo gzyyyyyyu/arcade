@@ -9,7 +9,7 @@ import { decideDdz } from '../../src/variants/doudizhu/ai/index.ts';
 import type { DdzNet, DdzNetAction, DdzNetView } from '../../src/variants/doudizhu/net/rules.ts';
 import { ROOMS, SITE, advance, cookie, fireDueAlarms, freezeClock, join, truth, type Conn } from './helpers.ts';
 import { bank } from './wallet.ts';
-import { CURRENT_RULES, DDZ_ROOM_OPTS, ROOM_DEALS, RULES_CLUMP, pointValue, stakeOptions } from '../../src/variants/doudizhu/stake/index.ts';
+import { CURRENT_RULES, ROOM_DEALS, RULES_CLUMP, pointValue, stakeOptions } from '../../src/variants/doudizhu/stake/index.ts';
 
 beforeEach(() => freezeClock());
 
@@ -158,7 +158,7 @@ describe('斗地主好友房实盘', () => {
     expect(users.map((u) => b.balances[u])).toEqual([START - SMALL, START - SMALL]);
     expect(b.log.indexOf(`view:${users[0]}`)).toBeLessThan(b.log.indexOf(`buyin:${st.ref}-s0-in`));
     // 进房的人看得到这是实盘房间；打满 3 副（或有人到 ±一份）
-    expect((await rowOf(t.code)).game!.g.opts).toEqual(DDZ_ROOM_OPTS);
+    expect((await rowOf(t.code)).game!.g.opts).toEqual(stakeOptions(ROOM_DEALS));
 
     await t.playToEnd();
     const end = await waitStake(t.code, (s) => s.over && s.out[0]! && s.out[1]!, '结回办完');

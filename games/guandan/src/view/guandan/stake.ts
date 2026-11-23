@@ -29,7 +29,7 @@ export interface StakeSave {
   state: GameState;
   /** 要结回的数：一场结束或者选了"现在结算"时记下，结回成功后存档删掉 */
   settle: { points: number; deals: number } | null;
-  /** 这一份攒的战绩，结回时报给平台（0.6.0，平台 0.10.0）；0.6.0 以前的存档没有，就不报 */
+  /** 这一份攒的战绩，结回时报给平台（平台 0.10.0）；0.6.0 以前的存档没有，就不报 */
   tally?: Tally;
 }
 

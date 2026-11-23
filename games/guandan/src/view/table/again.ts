@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import type { TitleScene } from '../scenes/TitleScene.ts';
-import { toast, worldH, worldW } from '../ui/kit.ts';
+import { worldH, worldW } from '../ui/kit.ts';
+import { toast } from '../ui/bubble.ts';
 
 /**
  * 实盘"再来一场"带入没成：回标题页并直接打开选档页，把原因弹在上面。

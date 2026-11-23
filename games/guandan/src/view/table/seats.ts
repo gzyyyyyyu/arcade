@@ -5,7 +5,8 @@ import { dur, tweenP } from '../common/anim.ts';
 import { audio } from '../common/audio.ts';
 import { PLACE_NAMES, isWatching, seatIdentity, seatName, seatPerson } from '../common/labels.ts';
 import { COLOR, TYPE } from '../common/theme.ts';
-import { bakeInto, bubble, text, type BubbleTone } from '../ui/kit.ts';
+import { bakeInto, text } from '../ui/kit.ts';
+import { bubble, type BubbleTone } from '../ui/bubble.ts';
 import { burst, shockwave } from './fx.ts';
 import type { SeatAnchor } from './layout.ts';
 import { texOr } from '../common/textures.ts';
@@ -42,7 +43,7 @@ export class SeatView {
     this.seat = seat;
     this.a = a;
     this.root = scene.add.container(a.ax, a.ay).setDepth(50);
-    // 下面那个座位是我自己（旁观时是别人：要名牌、剩余张数，0.13.0）
+    // 下面那个座位是我自己（旁观时是别人：要名牌、剩余张数）
     this.self = seat === 0 && !isWatching();
     const r = a.size / 2;
     this.ring = scene.add.graphics();
@@ -119,7 +120,7 @@ export class SeatView {
   }
 
   /**
-   * 名牌、剩余张数、托管小字那一块（世界坐标，0.24.0）：kit 的气泡、弹幕、聊天按钮避开它，不盖住名字和张数。
+   * 名牌、剩余张数、托管小字那一块（世界坐标）：kit 的气泡、弹幕、聊天按钮避开它，不盖住名字和张数。
    * 我自己没有名牌和张数，返回 null
    */
   plateBox(): { x: number; y: number; w: number; h: number } | null {

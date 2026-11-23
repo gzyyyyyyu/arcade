@@ -1,5 +1,5 @@
 /**
- * 牌桌互动接 arcade-kit/table-fun（0.12.0，仓库根 docs/table-fun.md 第 0 节）：掼蛋只管两件事——电脑的互动性格、
+ * 牌桌互动接 arcade-kit/table-fun（仓库根 docs/table-fun.md 第 0 节）：掼蛋只管两件事——电脑的互动性格、
  * 把自己的公开事件认成 kit 的名场面。电脑怎么反应（概率、冷却、回扔）全在 kit 的 botReact，页面（单机）和房间（好友房）共用这一份。
  *
  * 只看公开事件（谁出了什么、压了谁、谁出完了、是不是双下）；电脑的出牌决策（src/ai）完全不读这里。
@@ -50,7 +50,7 @@ export function dealMoment(r: DealResult): Moment | null {
 
 /** 单机：我想了多久以后，爱闹的电脑可能扔个"催促炸弹"过来 */
 export const URGE_AFTER_MS = 8000;
-/** 爱闹的电脑到点扔的概率（0.11.x 以前 banter 的 min(0.95, 1 × 1.5)） */
+/** 爱闹的电脑到点几乎一定扔（留一点不扔，免得太机械） */
 export const URGE_P = 0.95;
 
 /**

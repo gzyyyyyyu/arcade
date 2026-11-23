@@ -1,6 +1,6 @@
 /**
- * 电脑的决定放到 Web Worker 里算（掼蛋、斗地主各一个 worker，见各自的 bot-worker.ts）：残局推演一手要几百毫秒，
- * 放在主线程上画面会冻住；放进 worker，出牌动画、按钮照常响应。
+ * 电脑的决定放到 Web Worker 里算（掼蛋、斗地主各一个 worker，见各自的 bot-worker.ts）：残局推演一手偶尔上百毫秒（docs/ai.md 第 6 节），
+ * 手机上更慢，放在主线程上画面会卡；放进 worker，出牌动画、按钮照常响应。
  * 没有 Worker（vitest、极老的浏览器）或者 worker 出错时当场同步算，结果一样（电脑只看传过去的视图和种子）。
  */
 interface Pending<J, A> {

@@ -58,7 +58,7 @@ function body(name: IconName, c: string): string {
     case 'chat':
       return `<path d="M12 12H52C55 12 57 14 57 17V40C57 43 55 45 52 45H28L16 55V45H12C9 45 7 43 7 40V17C7 14 9 12 12 12Z" ${lite} ${s}/>` +
         `<circle cx="21" cy="29" r="3.5" fill="${c}"/><circle cx="32" cy="29" r="3.5" fill="${c}"/><circle cx="43" cy="29" r="3.5" fill="${c}"/>`;
-    // 互动（0.11.0）：笑脸
+    // 互动：笑脸
     case 'smile':
       return `<circle cx="32" cy="32" r="24" ${lite} ${s}/><circle cx="23" cy="27" r="3.5" fill="${c}"/><circle cx="41" cy="27" r="3.5" fill="${c}"/>` +
         `<path d="M20 37Q32 49 44 37" fill="none" ${s}/>`;

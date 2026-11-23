@@ -33,7 +33,7 @@ export interface SavedRoom {
   at: number;
   /** 是谁的房间（平台 /api/me 的 user.id）；进房后才问得到，问到之前是 null。同一台设备换了账号就不能给新账号看（host 也不能被带走） */
   userId: string | null;
-  /** 快速匹配排到的桌（0.26.0）：刷新接回去时也按设置"聊天：不和陌生人"决定带不带 chat=1 */
+  /** 快速匹配排到的桌：刷新接回去时也按设置"聊天：不和陌生人"决定带不带 chat=1 */
   match?: true;
   /** 斗地主的房间（牌馆 ⑤）：刷新接回去时直接用斗地主的会话；没有这一项是掼蛋（房间信息到了会再核对） */
   variant?: 'ddz';
@@ -87,9 +87,9 @@ export function autoSeat(room: RoomInfo, you: { seat: number | null; bound?: num
   if (you.seat !== null) return null;
   if (you.bound !== undefined && you.bound !== null) return room.status === 'playing' ? you.bound : null;
   if (isStakeRoom(room)) return null;
-  // 再来一场跟过来的（0.6.2）：先坐和上一场一样的相对位置（开房的人在 0 号），队友还是那个人
+  // 再来一场跟过来的：先坐和上一场一样的相对位置（开房的人在 0 号），队友还是那个人
   if (prefer !== null && room.status === 'waiting' && room.seats[prefer]?.kind === 'empty') return prefer;
-  // 已经开打的不替人接管电脑座位：先旁观，想打自己点"坐下"（0.13.0，docs/social.md 1.4）
+  // 已经开打的不替人接管电脑座位：先旁观，想打自己点"坐下"（docs/social.md 1.4）
   const i = room.status === 'waiting' ? room.seats.slice(0, seatCountOf(room)).findIndex((s) => s.kind === 'empty') : -1;
   return i >= 0 ? i : null;
 }
@@ -195,7 +195,7 @@ export async function createRoom(
 ): Promise<{ code: string } | { error: string; login?: boolean; quota?: CreateError; room?: string }> {
   let res: Response;
   try {
-    // 实盘房间（0.5.0）：开房时就定档位（arcade-kit 0.4.0 的开房选项），之后不能改
+    // 实盘房间：开房时就定档位（arcade-kit 0.4.0 的开房选项），之后不能改
     // 斗地主房间（牌馆 ⑤⑥）：请求体带 variant: 'ddz'，实盘再带 stake；不洗牌再带 noShuffle（娱乐 0.33.0、实盘 0.39.0）
     const body = variant ? { variant, ...(stake ? { stake } : {}), ...(noShuffle ? { noShuffle: true } : {}) } : stake ? { stake } : null;
     const init: RequestInit = body
@@ -233,7 +233,7 @@ export interface LinkDeps<A, R> {
   whoAmI?: () => Promise<string | null>;
   setTimer?: RoomClientOptions<R>['setTimer'];
   clearTimer?: RoomClientOptions<R>['clearTimer'];
-  /** 快速匹配排到的桌（0.26.0）：不给就看本机记着的这个房间是不是 */
+  /** 快速匹配排到的桌：不给就看本机记着的这个房间是不是 */
   match?: boolean;
 }
 export interface LinkFrame<V> {
@@ -332,7 +332,7 @@ export abstract class RoomLink<A, R, V> {
   protected abstract seatToReal(view: number): number;
   /** 把座位上的人写进 labels.ts */
   protected abstract identities(): void;
-  /** 我走开了、房间在快速替我出（0.6.3）：画面座位 0 是我 */
+  /** 我走开了、房间在快速替我出：画面座位 0 是我 */
   abstract get afk(): boolean;
 
   /** 快速匹配的桌（kit 0.20.0 的 RoomInfo.match）：没有房间码、邀请、房主开局，人到齐自动开打 */
@@ -483,7 +483,7 @@ export abstract class RoomLink<A, R, V> {
   }
 
   /**
-   * 能进牌桌了：开打了、手上有局面（已经显示过的，或者开局时排着还没播的第一帧）。没坐下的人也进，是旁观（0.13.0）：
+   * 能进牌桌了：开打了、手上有局面（已经显示过的，或者开局时排着还没播的第一帧）。没坐下的人也进，是旁观：
    * 房间给没入座的只下发公开视图（座位 -1，没有任何人的手牌）
    */
   get canEnterTable(): boolean {

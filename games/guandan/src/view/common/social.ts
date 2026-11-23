@@ -1,5 +1,5 @@
 /**
- * 报位置、收邀请（0.13.0，仓库根 docs/social.md 1.2、1.3）：用 kit 的 `arcade-kit/social`，只在有平台、已登录时挂（单独部署、没登录一个请求都不发）。
+ * 报位置、收邀请（仓库根 docs/social.md 1.2、1.3）：用 kit 的 `arcade-kit/social`，只在有平台、已登录时挂（单独部署、没登录一个请求都不发）。
  * 掼蛋只告诉它"我在哪"：好友房里报 place: room、房间码和真人几个（"3/4"），别的时候报 place: game。
  * 进房、离开、房间里真人数变了马上报一次（presenceNow），不用等 2 分钟；平台同一人 10 秒内只记一次，所以 11 秒后再补报一次。
  */
@@ -55,13 +55,13 @@ let settle: () => void = () => {};
 const settled = new Promise<void>((r) => (settle = r));
 
 /**
- * "叫朋友来"面板的层级（0.13.2）：要盖住房间弹窗 #online（8500，online.ts），不然面板在 DOM 里却看不见、点不到（0.13.1 线上补验）；
+ * "叫朋友来"面板的层级：要盖住房间弹窗 #online（8500，online.ts），不然面板在 DOM 里却看不见、点不到（0.13.1 线上补验）；
  * 又要在"请横过来"（9000，orientation.ts）和出错面板（9500，errors.ts）之下。tests/view/share-card.test.ts 从源码里核对这几个数
  */
 export const INVITE_Z = 8800;
 
 /**
- * 房间里的"叫朋友来"（0.13.1）：kit 的面板，列好友、"叫他来"、复制邀请链接。没挂上（单独部署、没登录）时只有复制链接。
+ * 房间里的"叫朋友来"：kit 的面板，列好友、"叫 TA 来"、复制邀请链接。没挂上（单独部署、没登录）时只有复制链接。
  * 链接按现在的页面地址拼（单独部署时站点不一样），点开就进这个房间
  */
 export async function openInvitePanel(code: string, name = '掼蛋'): Promise<void> {
@@ -75,7 +75,7 @@ export async function openInvitePanel(code: string, name = '掼蛋'): Promise<vo
 }
 
 /**
- * 报一条名场面到好友动态（0.15.0，feed.ts 挑的）：只有挂上了 social（有平台、已登录）才报，不然一个请求都不发。
+ * 报一条名场面到好友动态（feed.ts 挑的）：只有挂上了 social（有平台、已登录）才报，不然一个请求都不发。
  * 平台超了每天 10 条也静默 204，结果不用管
  */
 export function postFeed(m: { moment: string; n?: number }): void {

@@ -38,7 +38,8 @@ import { DDZ_BUTTONS, DDZ_CLOSED_MODAL, DDZ_SETTLE_WAIT, seatAnchors3 } from '..
 import { SeatView } from '../table/seats.ts';
 import { TrickView } from '../table/trick.ts';
 import { mountShortcuts } from '../ui/shortcuts.ts';
-import { Button, modal, text, toast, worldW } from '../ui/kit.ts';
+import { Button, modal, text, worldW } from '../ui/kit.ts';
+import { toast } from '../ui/bubble.ts';
 import { confirm, openDdzRules, openSettings } from '../ui/panels.ts';
 import { openPuzzlePicker } from '../ui/puzzles.ts';
 import { showPuzzleResult, showDailyWin, showSettle, showGameOver, showNetStakeResult, showStakeResult, stakeAgain } from '../doudizhu/overlays.ts';

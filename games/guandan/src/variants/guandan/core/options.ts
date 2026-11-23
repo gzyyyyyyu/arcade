@@ -16,7 +16,7 @@ export interface Options {
   /** 双下时两人合计两张大王也算抗贡（默认 true，单人有两张大王一定抗贡）。 */
   antiTributeCombined: boolean;
   /**
-   * 打到几结束（0.25.0，单机娱乐的"短局"）：14（A，默认）是标准打法，要打 A 时拿头游、对家不是末游才算过 A；
+   * 打到几结束（单机娱乐的"短局"）：14（A，默认）是标准打法，要打 A 时拿头游、对家不是末游才算过 A；
    * 小于 14 时一副打完某队升到这一级（或更高）就赢下整局，不用"过"。短局是 10（约 10 分钟）。好友房一律按默认；
    * 实盘也不开短局（0.39.0 所有者定）：实盘本来就固定 3 副、按名次计分，比短局还短，3 副最多升 9 级，打到 10 套上去也不起作用
    */
@@ -32,7 +32,7 @@ export const DEFAULT_OPTIONS: Readonly<Options> = Object.freeze({
   endLevel: 14,
 });
 
-/** 短局的终点（0.25.0）：升到 10 就赢 */
+/** 短局的终点：升到 10 就赢 */
 export const SHORT_END_LEVEL = 10;
 
 export function resolveOptions(partial?: Partial<Options>): Options {

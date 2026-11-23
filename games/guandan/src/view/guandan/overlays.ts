@@ -21,7 +21,8 @@ import { AWARD_NAME, matchAwards, winnerOf, type Award } from '../../variants/gu
 import { getStats } from '../store.ts';
 import { COLOR, TYPE, phoneType, signColor } from '../common/theme.ts';
 import { goLobby } from '../common/lobby.ts';
-import { Button, fitWidth, iconButton, modal, signedLine, text, toast, worldH, worldW } from '../ui/kit.ts';
+import { Button, fitWidth, iconButton, modal, signedLine, text, worldH, worldW } from '../ui/kit.ts';
+import { toast } from '../ui/bubble.ts';
 import { confirm } from '../ui/panels.ts';
 import { burst, rain, rays } from '../table/fx.ts';
 import { dealHighlights, highlightText, storyPicks } from './highlights.ts';
@@ -41,7 +42,7 @@ export function side(sc: TableScene, team: number): string {
 
 /**
  * 实盘中途离开（2.2）：第一副还没打完就原样退回；打了几副就给三个选择——现在结算、先存着、接着打，默认先存着，不强迫人结束。
- * 左上"大厅"、实盘条（0.11.2，原来找不到中途结算的入口）去大厅；右上"←"回标题。结算写明按现在的分结回多少。
+ * 左上"大厅"、实盘条（原来找不到中途结算的入口）去大厅；右上"←"回标题。结算写明按现在的分结回多少。
  */
 export function leaveStake(sc: TableScene, st: StakeSession, to: 'lobby' | 'title'): void {
   const go = (): void => {
@@ -134,7 +135,7 @@ export function showSettle(sc: TableScene, r: DealResult): void {
     `炸弹 ${sc.side(0)} ${rc.bombs[0]} · ${sc.side(1)} ${rc.bombs[1]}${sc.dealJiefeng ? ` · 接风 ${sc.dealJiefeng} 次` : ''}`,
     rc.top ? `最大一炸：${seatName(rc.top.seat)}，${bombText(rc.top.play)}` : `头游 ${seatName(r.order[0]!)} ${rc.firstPlays} 手出完`,
   ];
-  // 名场面（0.7.1）：最精彩的两条，一条一行（0.26.1：两条挤一行在 1280 上被截成"…"）。手机上字托底到 12 像素，框里一行只放得下十来个字：名场面、称号各留一条，再长的截断
+  // 名场面：最精彩的两条，一条一行（0.26.1：两条挤一行在 1280 上被截成"…"）。手机上字托底到 12 像素，框里一行只放得下十来个字：名场面、称号各留一条，再长的截断
   const phone = phoneType();
   // 同一个人的同一件事（炸弹次数、双下）名场面和称号各写一遍，先去重再封顶（storyPicks）
   const { hl, titles } = storyPicks(dealHighlights(r, history), dealTitles(r, history), phone);
@@ -146,7 +147,7 @@ export function showSettle(sc: TableScene, r: DealResult): void {
   const storyY = dataY + row + 16 + 12 + 16;
   const story = recap.length - 2 + titles.length;
   const lastY = story > 0 ? storyY + (story - 1) * row : dataY + row;
-  // 内容从 -280（标题飘带上沿）排到 lastY + 46：故事行多了弹窗往下长，内容整体上移，不在飘带下面空出一大块（0.26.1）
+  // 内容从 -280（标题飘带上沿）排到 lastY + 46：故事行多了弹窗往下长，内容整体上移，不在飘带下面空出一大块
   const H = Math.max(560, lastY + 46 + 280);
   const lift = 280 - H / 2;
   const m = modal(sc, 820, H, `第 ${r.dealNo} 副 结束`, { closeBtn: false });
@@ -234,7 +235,7 @@ export function showSettle(sc: TableScene, r: DealResult): void {
   if (matchOver) tribLine = '这一场打完了';
   b.add(text(sc, rx, stakeLine || dl ? 78 : 90, tribLine, { size: TYPE.body, bold: true, color: COLOR.ink }));
   const net = sc.net;
-  // 左下：这一副的复盘和称号（0.6.1，只看公开的出牌、名次和播过的接风）
+  // 左下：这一副的复盘和称号（只看公开的出牌、名次和播过的接风）
   sc.logMatch();
   const boxes = sc.add.graphics();
   boxes.fillStyle(0xf3e6c9, 1).fillRoundedRect(-378, dataY - 16, 368, row + 32, 10);
@@ -307,7 +308,7 @@ export function showGameOver(sc: TableScene): void {
   sc.openOverlay('gameOver', m);
   m.root.once('destroy', stop);
   const b = m.body;
-  // 好友房一场打完（0.14.0）：颁奖代替四个头像那一排和称号那一行；0.14.0 以前开的房间没有记录，照旧
+  // 好友房一场打完：颁奖代替四个头像那一排和称号那一行；0.14.0 以前开的房间没有记录，照旧
   const awards = sc.roomAwards(v.winner);
   if (awards) sc.addAwards(b, -95, awards);
   // 两队四人
@@ -335,8 +336,8 @@ export function showGameOver(sc: TableScene): void {
     return;
   }
   if (sc.net) {
-    // 好友房不计战绩。再来一场（0.6.2）：开个新房间，这一桌的人自动跟过去、坐回原来的座位
-    // 匹配桌（0.26.0）也能再来一场：这一桌的人一起换到一个新开的好友房
+    // 好友房不计战绩。再来一场：开个新房间，这一桌的人自动跟过去、坐回原来的座位
+    // 匹配桌也能再来一场：这一桌的人一起换到一个新开的好友房
     const tip = text(sc, 0, 154, `${sc.net.match ? '匹配桌' : '好友房'}不计战绩 · 点"再来一场"，这一桌一起换到新房间`, { size: TYPE.label, color: COLOR.ink });
     b.add(tip);
     b.setData('againTip', tip);
@@ -400,7 +401,7 @@ function matchCells(sc: TableScene, y: number, watch: boolean): Phaser.GameObjec
 }
 
 /**
- * 结算页右上角的"分享"（0.13.0，docs/social.md 1.1）：画一张战绩图，手机上调系统分享，不支持的出预览。只用公开的结果，不画手牌
+ * 结算页右上角的"分享"（docs/social.md 1.1）：画一张战绩图，手机上调系统分享，不支持的出预览。只用公开的结果，不画手牌
  */
 export function addShare(sc: TableScene, b: Phaser.GameObjects.Container, x: number, y: number, k: ShareKind, awards: readonly Award[] | null = null, labelW = 0): void {
   sc.logMatch();
@@ -425,7 +426,7 @@ export function myShareName(sc: TableScene): string | null {
 }
 
 /**
- * 一副打完：挑一条和我有关的名场面报到好友动态（0.15.0，src/view/guandan/feed.ts）。只报娱乐（实盘结回时平台自己会生成），旁观、调试代打不报；
+ * 一副打完：挑一条和我有关的名场面报到好友动态（src/view/guandan/feed.ts）。只报娱乐（实盘结回时平台自己会生成），旁观、调试代打不报；
  * 没平台、没登录时 postFeed 什么都不发
  */
 export function feedDeal(sc: TableScene, r: DealResult): void {
@@ -458,7 +459,7 @@ export function titleLine(sc: TableScene, t: Title, why: boolean): string {
 }
 
 /**
- * 好友房这一场的奖（0.14.0，src/net/awards.ts）：按房间下发的公开记录算，画面座位。单机、0.14.0 以前开的房间、一副都没打完时是 null。
+ * 好友房这一场的奖（src/net/awards.ts）：按房间下发的公开记录算，画面座位。单机、0.14.0 以前开的房间、一副都没打完时是 null。
  * gameWinner 是过了 A 的队，没人过 A 时是 -1（按赢的副数算）
  */
 export function roomAwards(sc: TableScene, gameWinner: number): Award[] | null {
@@ -606,7 +607,7 @@ export function showNetStakeResult(sc: TableScene): void {
   const v = sc.ses.view();
   audio.music('off');
   audio.sfx(me.paid === 'yes' && me.points > 0 ? 'levelUp' : 'pass');
-  // 颁奖（0.14.0）：有奖时弹窗加高，奖那一排插在"为什么结束"和每个人的分之间，下面整体往下挪
+  // 颁奖：有奖时弹窗加高，奖那一排插在"为什么结束"和每个人的分之间，下面整体往下挪
   const awards = sc.roomAwards(v.phase === 'gameOver' ? v.winner : -1);
   const dy = awards ? 170 : 0;
   const top = awards ? -80 : 0;

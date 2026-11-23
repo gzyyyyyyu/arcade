@@ -1,5 +1,5 @@
 /**
- * 快速匹配的档位（0.26.0，kit 0.20.0 的 MatchQueue，设计在 kit 的 docs/match.md）：Worker 的排队类和页面共用，纯函数。
+ * 快速匹配的档位（kit 0.20.0 的 MatchQueue，设计在 kit 的 docs/match.md）：Worker 的排队类和页面共用，纯函数。
  * 娱乐一个档位 fun（好友房的娱乐规则，打到过 A）；实盘每档一个 real-<档位>（好友房实盘的规则，一场 3 副；docs/stake.md 3.5）。
  * 一桌最多 4 个真人，空位电脑补；座位由房间随机排（kit 默认）。
  */
