@@ -18,7 +18,7 @@ export const KEY_ROWS: readonly KeyRow[] = [
   { keys: ['← → ↑ ↓'], what: '在推荐卡、持仓卡、开盘键之间移动蓝框' },
   { keys: ['Tab', 'Shift + Tab'], what: '按顺序往后、往前移动蓝框' },
   { keys: ['回车', '空格'], what: '蓝框亮着时，按下蓝框上的那一个' },
-  { keys: ['Esc'], what: '关掉菜单、弹窗，取消选格子' },
+  { keys: ['Esc'], what: '关掉菜单、弹窗，取消选格子，收起复盘' },
   { keys: ['右键'], what: '持仓卡上：打开加仓 / 卖出菜单；空白处：取消' },
   { keys: ['H', '?'], what: '打开这张快捷键一览' },
 ];

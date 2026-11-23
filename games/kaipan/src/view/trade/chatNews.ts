@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { sound } from '../sound.ts';
 import { formatPoints, themeById, type BoardEntry, type DragonBoard, type NewsItem } from '../../core/index.ts';
 import { NEWS_KEY, hasArt } from '../assets.ts';
 import { COLOR, FS, signColor } from '../theme.ts';
@@ -34,6 +35,7 @@ export function newsFold(v: ChatView3, list: NewsItem[], heading: string, board:
   const hit = touchHit(s, CX + CW / 2, h / 2, CW, h);
   hit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
     ev.stopPropagation();
+    sound.ui('toggle');
     toggleNews(v);
   });
   node.add([card, ...icon, title, ...lead, more, hit]);
@@ -65,6 +67,7 @@ export function toggleNews(v: ChatView3): void {
   const hit = v.scene.add.rectangle(CX, 0, CW, full.h, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
   hit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
     ev.stopPropagation();
+    sound.ui('toggle');
     toggleNews(v);
   });
   full.node.add(addText(v.scene, CX + CW - 12, 13, '收起 ▴', { size: FS.xs, bold: true, color: COLOR.white, originX: 1, originY: 0.5, stroke: COLOR.ink, strokeWidth: 3 }));

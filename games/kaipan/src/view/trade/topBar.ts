@@ -10,7 +10,7 @@ import { sound } from '../sound.ts';
 import { COLOR, FS, ITEM_KIND_COLOR, PHONE, PORTRAIT, TYPE, VIEW, signColor, textOn } from '../theme.ts';
 import { hasArt, itemKey } from '../assets.ts';
 import { addGlyph, addImage, addPill, addWood } from '../ui/art.ts';
-import { Button } from '../ui/button.ts';
+import { Button, HIT_MIN } from '../ui/button.ts';
 import { addText, fitWidth, setColor } from '../ui/text.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
 import { MOOD_WORD, term } from '../glossary.ts';
@@ -266,8 +266,10 @@ export class TopBarView {
     });
 
     this.items = scene.add.container(ITEMS_X, TB.itemsY).setDepth(d);
-    this.settings = new Button(scene, TB.settings.x, TB.settings.y, { width: TB.settings.w, height: TB.settings.h, label: '', hitPadX: { left: 0 }, onClick: onSettings });
-    this.help = new Button(scene, TB.help.x, TB.help.y, { width: TB.help.w, height: TB.help.h, label: '?', fontSize: 20, hitPadX: { right: 0 }, onClick: onHelp });
+    // 触屏：点击区往上撑到屏幕顶，往下只补够 HIT_MIN（上下平分会伸到 52，压住竖屏「放哪一格」提示条上「取消」的点击区）
+    const topPad = (b: { y: number; h: number }): { top: number; bottom: number } => ({ top: b.y, bottom: Math.max(0, HIT_MIN - (b.h + 3) - b.y) });
+    this.settings = new Button(scene, TB.settings.x, TB.settings.y, { width: TB.settings.w, height: TB.settings.h, label: '', hitPadX: { left: 0 }, hitPad: topPad(TB.settings), onClick: onSettings });
+    this.help = new Button(scene, TB.help.x, TB.help.y, { width: TB.help.w, height: TB.help.h, label: '?', fontSize: 20, hitPadX: { right: 0 }, hitPad: topPad(TB.help), onClick: onHelp });
     this.help.setDepth(d);
     this.help.tooltip(() => ({ title: '怎么玩', body: '三页图看懂这个游戏：风口怎么轮流火、什么时候买、什么时候卖。' }));
     this.settings.setDepth(d);
@@ -339,8 +341,11 @@ export class TopBarView {
     // 金额不截：放不下就换手机上的短说法「首付差¥x」
     const accRoom = TB.accHit.x + (this.tempo ? ACC_W : TB.accWideW) - this.accLabel.x - 4;
     if (dp && this.accLabel.width > accRoom) this.accLabel.setText(downPaymentLine(s.account, need?.need ?? 0, true).text);
-    // 竖屏顶栏窄（右边是「怎么玩」「设置」）：放不下就省掉人设名（在悬停里），实盘省掉杠杆
-    else if (!dp && this.accLabel.width > accRoom) this.accLabel.setText(lv ? `实盘${lv.tierName} → 约 ${chips(lv.value)}` : `Lv${t.difficulty}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
+    // 放不下就省掉人设名（在悬停里）；实盘先换短写法、保住杠杆（电脑上有月度主题时这一格只有约 190 宽，完整那句放不下），还放不下才省掉杠杆
+    else if (!dp && this.accLabel.width > accRoom) {
+      if (lv && !PHONE) this.accLabel.setText(`实盘${lv.tierName}×${gx} → 约 ${chips(lv.value)}`);
+      if (!lv || this.accLabel.width > accRoom) this.accLabel.setText(lv ? `实盘${lv.tierName} → 约 ${chips(lv.value)}` : `Lv${t.difficulty}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
+    }
     // 闪电盘最后三天：日期变红
     setColor(this.day, t.flash && flashFinal(t.flash) ? COLOR.danger : COLOR.ink);
     this.renderDanger(lv ? marginWarn(s) : null);

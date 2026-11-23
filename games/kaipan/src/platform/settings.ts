@@ -3,6 +3,8 @@
  * 运行时通过 getSettings / updateSettings / onSettingsChange 使用。
  */
 
+import { platformSoundOn } from 'arcade-kit/client';
+
 /** 动画速度倍率；0 表示关闭动画。 */
 export type AnimSpeed = 0 | 1 | 2 | 4;
 /** 涨跌配色：cn 红涨绿跌（A 股习惯），intl 绿涨红跌。 */
@@ -110,10 +112,22 @@ export function saveSettings(s: Settings, store: KeyValueStore | null = defaultS
 }
 
 let current: Settings | null = null;
+/** 大厅关了声音时，存着的「静音」偏好（这一次打开不改它）；大厅开着时为 null */
+let storedMuted: boolean | null = null;
 const listeners = new Set<(s: Settings) => void>();
 
+/**
+ * 当前设置。第一次读档时看一眼大厅的声音开关（kit `platformSoundOn`，只读）：大厅关了就这一次先静音、开关显示关；
+ * 玩家在游戏里打开只管这一次，存档里的「静音」保持原样，也不写大厅的 key。
+ */
 export function getSettings(): Settings {
-  current ??= loadSettings();
+  if (current) return current;
+  const stored = loadSettings();
+  if (platformSoundOn()) current = stored;
+  else {
+    storedMuted = stored.muted;
+    current = { ...stored, muted: true };
+  }
   return current;
 }
 
@@ -121,7 +135,7 @@ export function getSettings(): Settings {
 export function updateSettings(patch: Partial<Omit<Settings, 'version'>>): Settings {
   const next = sanitizeSettings({ ...getSettings(), ...patch });
   current = next;
-  saveSettings(next);
+  saveSettings(storedMuted === null ? next : { ...next, muted: storedMuted });
   for (const fn of listeners) fn(next);
   return next;
 }

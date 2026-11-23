@@ -367,12 +367,14 @@ export class TradeScene extends BaseScene {
 
   drag: TradeDrag | null = null;
 
-  /** 右键点在空白处：先关弹窗，再取消选格子。 */
+  /** 右键点在空白处：先关弹窗，再取消选格子，最后收起复盘卡（和 Esc 一样）。 */
   protected override onRightClick(): boolean {
     if (super.onRightClick()) return true;
-    if (!this.banner || !this.bannerCancel) return false;
-    this.bannerCancel.press();
-    return true;
+    if (this.banner && this.bannerCancel) {
+      this.bannerCancel.press();
+      return true;
+    }
+    return this.recapCard?.dismiss() ?? false;
   }
 
   /** 0.11.0 今天已经提醒过离清零线不远（一天只说一次） */
