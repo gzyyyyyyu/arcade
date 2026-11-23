@@ -27,7 +27,7 @@
 - 存成 `pbkdf2-sha256$<迭代次数>$<pepper kid>$<盐>$<哈希>`。迭代次数或 pepper 变了，用户登录成功时透明地重新哈希（多写 1 行），不用迁移。
 - **免费版 CPU 上限 10 ms，10 万次迭代的 PBKDF2 压在这条线上**：线上登录一次 CPU p99 约 39–55 ms、p50 约 2.7 ms，0 错误（线上实测）；文档说 isolate 允许"偶尔"超过 10 ms、"持续"超才被终止（1102）。
   只发生在注册、登录、找回、再验证这几个低频接口。迭代次数保持 10 万，维护者定期看 Cloudflare 统计里 arcade 的 errors 和 1102；持续出现（连着几天，或一天里成批）就开 PR 把 `pbkdf2Iterations` 设成 50000（本地约 8 ms），老哈希登录时自动升级。
-  开付费版（CPU 上限 30 秒）后再透明重哈希回 10 万。这是现在开付费版的唯一理由（project.md 第 6 节）。
+  开付费版（CPU 上限 30 秒）后再透明重哈希回 10 万。这是现在开付费版的唯一理由（platform-backend.md 第 12 节）。
 
 **恢复码、会话令牌、IP**：都只存 HMAC-SHA256，各用各的 pepper（Secret `PEPPER_RC`、`PEPPER_SID`、`PEPPER_IP`）。
 - Secret 的值写成 `<kid>:<随机串>`，库里每个哈希都记着 kid。换 pepper 时把旧值放进对应的 `*_PREV`，按 kid 选用：密码在下次登录成功时换新；会话令牌的 `PEPPER_SID_PREV` 至少保留 400 天（会话最长寿命）；
@@ -72,7 +72,7 @@
   - 唯一的外站来源是 Cloudflare Web Analytics 的脚本（站点所在 zone 自动注入）；上报走同源 `POST /cdn-cgi/rum`，`connect-src` 不放外站。
   - 界面和构建产物都没有内联脚本和内联 style，所以 `style-src` 不放 `'unsafe-inline'`，以后也不要为了省事加；`img-src` 放 `data: blob:` 是因为恢复码"存成图片"在浏览器里用 canvas 现画。
   - `_headers` 只作用于静态资源，`/api` 的响应由 Worker 自己回；`wrangler dev` 下同样生效，所以冒烟是在正式 CSP 下跑的，并监听 `securitypolicyviolation`。
-  - 游戏自己的 `_headers` 里目前只有缓存规则、没有 CSP；以后游戏加 CSP 时按平台这一份来，同样要放行 `static.cloudflareinsights.com` 的脚本。
+  - 游戏的 CSP 各自管：开盘、雀馆写在静态资源的 `_headers` 里，德州由 Worker 按请求的主机名拼（要放行 `wss:`），其余游戏只有缓存规则。游戏加 CSP 时以平台这一份为底，同样放行 `static.cloudflareinsights.com` 的脚本。
 - **日志**：不记 cookie、请求体和 `Authorization`；密码和恢复码只走请求体，不进 URL。线上 Workers Logs 开着（`observability.enabled: true`），接口只记路径和错误类型、浏览器报错只记截断的报错和不带查询串的路径（[monitoring.md](monitoring.md)）；
   实时排查用 `wrangler tail`（它把 `cookie`、`authorization` 头显示成 `REDACTED`，但 `cf-connecting-ip` 是原文；只是实时流，不保存）。
 

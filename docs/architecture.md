@@ -65,7 +65,7 @@ https://<站点>/games/<id>/*     → 各游戏的 Worker（路径路由；静�
   - **游戏小榜**：每个游戏一个页签，放这个游戏的本周输赢，加上最多 1 个最能代表这个游戏的每日榜（游戏在 `platform/shared/games.ts` 的登记里指定是哪一个）。
     游戏可以登记更多每日或每周子榜（游戏里自己显示、留着数据），但排行页只列这一个。没有筹码输赢（没接钱包）、也没指定代表性每日榜的游戏不开页签（海岛接了钱包，开页签只放本周输赢）。
   - 大厅首页不放排行（大厅保持干净，ui.md 第 11 节）。
-- 钱包在平台，游戏的服务端经 `WALLET` 服务绑定带入、结回（[economy.md](economy.md)）。
+- 钱包在平台，游戏的服务端经 `WALLET` 服务绑定带入、带回（[economy.md](economy.md)）。
 - 每个游戏的联机房间放在它自己的 Worker 里（Durable Objects，休眠写法，SQLite 后端）。开房进房的路径各游戏不同，以各游戏的 `wrangler.jsonc` 里 `run_worker_first` 为准。
 - 共用代码放进共用包 `packages/arcade-kit`，所有游戏必须遵守其中的房间规范；开房进房靠 `/api/me` 认人、不发入场票，取舍见 [accounts.md](accounts.md) 5.3，房间额度见 [rooms.md](rooms.md) 4.6。
 - 牌桌游戏的互动统一做成 kit 里的组件，规范见 [table-fun.md](table-fun.md)；社交部件（分享、在线、邀请、旁观）见 [social.md](social.md)；各游戏的难度和筹码收益按 [balance.md](balance.md) 配平，档位和钱包见 [economy.md](economy.md)。
