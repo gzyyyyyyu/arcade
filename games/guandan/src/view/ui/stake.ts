@@ -10,7 +10,7 @@ import { LENGTH_CARD, LEVEL_CARD, STAKE_TEXT, TIER_CARD, TIER_NAME, fmtChips, fm
 import { buyinStake, loadStake, type StakeSession } from '../guandan/stake.ts';
 import { strayStake } from '../stake-stray.ts';
 import { fetchWallet, refundStray, type StakeReply, type WalletView } from '../common/stake-api.ts';
-import { COLOR, TYPE, minHit, phoneType } from '../common/theme.ts';
+import { COLOR, TYPE, css, minHit, phoneType } from '../common/theme.ts';
 import { Button, fitWidth, modal, segmented, text, worldW, type Modal } from './kit.ts';
 import type { GameLength } from '../store.ts';
 
@@ -238,7 +238,7 @@ export function openTierPicker<S = StakeSession>(
       'solo',
       (v) => {
         matching = v === 'match';
-        for (const t of TIER_IDS) buttons[t]!.label.setText(matching ? '匹配' : '进场');
+        for (const t of TIER_IDS) if (buttons[t]!.label.text !== '不够一份') buttons[t]!.label.setText(matching ? '匹配' : '进场');
         times.forEach((t) => fitWidth(t.setText(timeOf()), t.getData('maxW') as number));
       },
       150,
@@ -320,7 +320,13 @@ export function openTierPicker<S = StakeSession>(
     balance.setText(`钱包 ${fmtChips(w.balance)}`);
     // 别的设备上开的单机那一份不挡开新的（平台 0.9.5 起能同时有好几份），给个原样退回的办法；好友房的不归这里管
     const other = flow.stray(w);
-    for (const t of TIER_IDS) buttons[t]!.setEnabled(!busy && w.balance >= TIERS[t]);
+    // 钱包不够一份的档：按钮写"不够一份"、那一档的"一份 …"标红，点不了也看得出为什么（以前只是变灰）
+    TIER_IDS.forEach((t, i) => {
+      const short = w.balance < TIERS[t];
+      buttons[t]!.setEnabled(!busy && !short);
+      buttons[t]!.label.setText(short ? '不够一份' : matching ? '匹配' : '进场');
+      lines[i]!.setColor(css(short ? COLOR.red : COLOR.ink));
+    });
     if (other?.solo) {
       note.setText(msg || STAKE_TEXT.elsewhere);
       stray = reg(m, 'stray', new Button(scene, 0, H / 2 - 86, 300, 50, '原样退回那一份', 'wood', () => void giveBack(other.ref)));
