@@ -7,7 +7,7 @@ import { WALLET_ID } from '../../src/core/stake.ts';
 import { createDdz, decideDdz, viewDdz } from '../../src/variants/doudizhu/index.ts';
 import * as gd from '../../src/variants/guandan/stake/index.ts';
 import {
-  DDZ_SOLO_BOTS, DDZ_SOLO_BOTS_CLUMP, DDZ_SOLO_OPTS, POINTS_PER_SHARE, RULES_CLUMP, RULES_V1, RULES_V2, SOLO_DEALS, newRules, soloBots, rulesOf, stakeOptions, TIER_IDS, TIERS, isSoloRef, payout, pointValue, soloOp, soloRef, soloRefTier, validSoloResult,
+  DDZ_SOLO_BOTS, DDZ_SOLO_BOTS_CLUMP, POINTS_PER_SHARE, RULES_CLUMP, RULES_V1, RULES_V2, SOLO_DEALS, newRules, soloBots, rulesOf, stakeOptions, TIER_IDS, TIERS, isSoloRef, payout, pointValue, soloOp, soloRef, soloRefTier, validSoloResult,
 } from '../../src/variants/doudizhu/stake/index.ts';
 import {
   DdzStakeSession, buyinDdzStake, ddzStakeRules, clearDdzStakeSave, ddzStakeLeft, loadDdzStakeSave, settleDdzStake, strayDdzStake, type DdzStakeSave,
@@ -73,7 +73,7 @@ describe('规则里的数', () => {
   });
 
   it('实盘选项：3 副、每副封顶 24、累计 ±50 结束；每副封顶不超过一份', () => {
-    expect(DDZ_SOLO_OPTS).toEqual({ deals: 3, dealCap: 24, cap: 50 });
+    expect(stakeOptions(SOLO_DEALS)).toEqual({ deals: 3, dealCap: 24, cap: 50 });
     expect(SOLO_DEALS).toBe(3);
     expect(RULES_V2.dealCap).toBeLessThanOrEqual(RULES_V2.pps);
   });
@@ -114,7 +114,7 @@ describe('规则里的数', () => {
     expect(newRules(false)).toBe(RULES_V2);
     expect(newRules(true)).toBe(RULES_CLUMP);
     expect(stakeOptions(3, RULES_CLUMP)).toEqual({ deals: 3, dealCap: 48, cap: 200, noShuffle: true });
-    expect(stakeOptions(3, RULES_V2)).toEqual(DDZ_SOLO_OPTS);
+    expect(stakeOptions(3, RULES_V2)).toEqual(stakeOptions(SOLO_DEALS));
     expect(TIER_IDS.map((t) => pointValue(t, RULES_CLUMP))).toEqual([10, 50, 250, 1000]);
     for (const t of TIER_IDS) expect(Number.isInteger(TIERS[t] / RULES_CLUMP.pps)).toBe(true);
     expect(payout('small', 200, RULES_CLUMP)).toBe(4_000);
@@ -140,7 +140,7 @@ describe('实盘牌局', () => {
     expect(mem.has(KEYS.ddzStake)).toBe(true);
     expect(mem.has(KEYS.ddzSave)).toBe(false);
     expect(loadDdzStakeSave()!.ref).toBe(REF);
-    expect(ses.state.opts).toEqual(DDZ_SOLO_OPTS);
+    expect(ses.state.opts).toEqual(stakeOptions(SOLO_DEALS));
   });
 
   it('打到一场结束：记下要结的数（我的累计、副数），不写战绩；结束后不再接受动作', () => {

@@ -5,7 +5,8 @@ import { audio } from '../common/audio.ts';
 import { playDetail, playLabel } from './labels.ts';
 import { ME } from './session.ts';
 import { COLOR } from '../common/theme.ts';
-import { Button, modal, toast, worldW } from '../ui/kit.ts';
+import { Button, modal, worldW } from '../ui/kit.ts';
+import { toast } from '../ui/bubble.ts';
 import { CHOOSE, TOAST_Y } from '../table/layout.ts';
 import type { TableScene } from '../scenes/TableScene.ts';
 

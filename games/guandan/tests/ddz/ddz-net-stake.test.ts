@@ -7,7 +7,7 @@ import type { DdzResult } from '../../src/variants/doudizhu/core/index.ts';
 import { hallRoom as H } from '../../src/net/hall.ts';
 import { ddzView } from '../../src/variants/doudizhu/net/rules.ts';
 import { canRebuy, parseStake, shareRef, stakeBegin, stakeDeal, stakeFinish, stakeRebuy, stakeRef, stakeSeated, stakeSettled, stakeView, type DdzStakeTable } from '../../src/variants/doudizhu/net/stake.ts';
-import { DDZ_ROOM_OPTS, RULES_V1, RULES_V2, ROOM_DEALS, WALLET_ID, payout, roomRef, stakeOptions } from '../../src/variants/doudizhu/stake/index.ts';
+import { RULES_V1, RULES_V2, ROOM_DEALS, WALLET_ID, payout, roomRef, stakeOptions } from '../../src/variants/doudizhu/stake/index.ts';
 import { testKey } from '../../src/variants/guandan/net/rules.ts';
 
 const KEY = testKey('ddz-net-stake');
@@ -36,8 +36,8 @@ describe('开房选项', () => {
     expect(fun.stake).toBeUndefined();
     expect(fun.g.opts).toEqual({ deals: 6, dealCap: 0, cap: 0, mingpai: true }); // 娱乐房间开明牌（0.34.0），实盘不开
     const real = H.begin!(KEY, H.rulesVersion, { opts: { variant: 'ddz', stake: 'small' }, seats: ['human', 'human', 'ai'] } as never) as { g: { opts: unknown }; stake?: DdzStakeTable };
-    expect(real.g.opts).toEqual(DDZ_ROOM_OPTS);
-    expect(DDZ_ROOM_OPTS).toEqual({ deals: 3, dealCap: 24, cap: 50 });
+    expect(real.g.opts).toEqual(stakeOptions(ROOM_DEALS));
+    expect(stakeOptions(ROOM_DEALS)).toEqual({ deals: 3, dealCap: 24, cap: 50 });
     expect(real.stake!.rules).toBe(2);
     expect(real.stake!.tier).toBe('small');
   });

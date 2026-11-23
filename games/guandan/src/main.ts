@@ -102,7 +102,7 @@ window.addEventListener('pagehide', () => cloud.flushOnHide());
 void platform.then(() => {
   if (standalone()) setRotateLobbyLabel(lobbyName());
   else void cloud.start();
-  // 报位置、收好友邀请（0.13.0）：单独部署、没登录 mountSocialOnce 自己不挂（也要调：好友房面板读好友列表等它有结论）
+  // 报位置、收好友邀请：单独部署、没登录 mountSocialOnce 自己不挂（也要调：好友房面板读好友列表等它有结论）
   void mountSocialOnce(() => app.net ?? app.ddzNet ?? lobbySession());
 });
 
@@ -110,7 +110,7 @@ applyAudio();
 const unlock = (): void => audio.unlock();
 window.addEventListener('pointerdown', unlock, true);
 // DOM 层（好友房面板、kit 的叫人面板、出错面板……）上的按下不冒到 window：Phaser 在 window 上收到"目标不是画布"的按下也照坐标点画布
-// （为了拖出画布外也收得到抬起，抬起照常冒），点 DOM 按钮会连带点到正下方的画布按钮——手机横屏好友房的"加入"压在"快速开始"上，点了开出单机（0.40.2）
+// （为了拖出画布外也收得到抬起，抬起照常冒），点 DOM 按钮会连带点到正下方的画布按钮——手机横屏好友房的"加入"压在"快速开始"上，点了开出单机
 for (const t of ['mousedown', 'touchstart'] as const) {
   document.addEventListener(t, (e) => {
     if (e.target !== app.game?.canvas) e.stopPropagation();

@@ -123,9 +123,9 @@ export function rotateNetView(nv: NetView, me: number): NetView {
   if (m.places) log.places = r.bySeat(m.places);
   if (m.score) log.score = r.byTeam(m.score as [number, number]);
   const out: NetView = { view: rotateView(nv.view, r), events: nv.events.map((e) => rotateEvent(e, r)), next: rotatePreview(nv.next, r), ready: nv.ready ? r.bySeat(nv.ready) : null } as NetView;
-  // 实盘的每个座位的账（0.5.0）：和 ready 一样按座位排
+  // 实盘的每个座位的账：和 ready 一样按座位排
   if (nv.stake) out.stake = { ...nv.stake, seats: r.bySeat(nv.stake.seats) };
-  // 再来一场（0.6.2）：谁点的换成画面座位，房间码不动
+  // 再来一场：谁点的换成画面座位，房间码不动
   if (nv.again !== undefined) out.again = nv.again && { code: nv.again.code, by: r.seat(nv.again.by) };
   if (nv.afk) out.afk = r.bySeat(nv.afk);
   // log 放最后：字段顺序和以前一致，金样按字节比

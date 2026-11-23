@@ -1,5 +1,5 @@
 /**
- * 顺手提示（0.6.0）：公开事件发生时，在"互动"按钮旁冒 1–2 句合适的嘲讽（`table/nudge.ts` 画），一点就发。
+ * 顺手提示：公开事件发生时，在"互动"按钮旁冒 1–2 句合适的嘲讽（`table/nudge.ts` 画），一点就发。
  * 只看公开信息（这一手是谁出的、压了谁、谁出完了），不看任何人的手牌；画面座位，我 = 0、对家 = 2。
  */
 import { isBomb, type GameEvent } from '../../variants/guandan/core/index.ts';

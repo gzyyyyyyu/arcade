@@ -44,7 +44,7 @@ export function buildButtons(sc: TableScene, W: number): void {
   sc.btnClear = new Button(sc, cx + ACTION_ROW.sideDx, BUTTON_Y + ACTION_ROW.subDy, ACTION_ROW.clearW, sh, '重选', 'quiet', () => sc.onClear(), 'undo');
   sc.btnPrev = new Button(sc, cx + ACTION_ROW.prevDx, BUTTON_Y + ACTION_ROW.subDy, ACTION_ROW.prevW, sh,'上一墩', 'quiet', () => sc.showPrevTrick());
   for (const b of [sc.btnPass, sc.btnHint, sc.btnPlay, sc.btnSort, sc.btnClear, sc.btnPrev]) b.setDepth(400);
-  // 连着两手没自己出，房间每手几秒就替我出（0.6.3）：点一下恢复 30 秒；自己出一手也一样
+  // 连着两手没自己出，房间每手几秒就替我出：点一下恢复 30 秒；自己出一手也一样
   const net = sc.net;
   sc.btnBack = net
     ? new Button(sc, cx, BUTTON_Y - ACTION_ROW.backDy, ACTION_ROW.wideW, ACTION_ROW.wideH, '我回来了', 'green', () => {
@@ -52,7 +52,7 @@ export function buildButtons(sc: TableScene, W: number): void {
         sc.btnBack?.setVisible(false);
       }).setDepth(401).setVisible(false)
     : undefined;
-  // 旁观（0.13.0，docs/social.md 1.4）：有能坐的座位时出"坐下"，坐下后会话换座位、牌桌整个重画
+  // 旁观（docs/social.md 1.4）：有能坐的座位时出"坐下"，坐下后会话换座位、牌桌整个重画
   sc.btnSit = net
     ? new Button(sc, cx, BUTTON_Y, ACTION_ROW.wideW, ACTION_ROW.wideH, '坐下', 'red', () => {
         const seat = net.freeSeat();
@@ -64,7 +64,7 @@ export function buildButtons(sc: TableScene, W: number): void {
 }
 
 /**
- * 牌桌互动接 arcade-kit/table-fun（0.12.0，docs/table-fun.md 第 0 节）：菜单、面板、提示、冷却、电脑反应都在 kit 的 DOM 层里，
+ * 牌桌互动接 arcade-kit/table-fun（docs/table-fun.md 第 0 节）：菜单、面板、提示、冷却、电脑反应都在 kit 的 DOM 层里，
  * 这里只给头像的屏幕矩形、名字、谁是电脑、性格、不能盖的地方（操作按钮和手牌）和发送通道。
  * 好友房经房间转发（电脑在房间里按同一份 botReact 反应）；单机在本地播，电脑由 kit 按性格反应
  */
@@ -104,7 +104,7 @@ export function buildFun(sc: TableScene): void {
     // 桌上各家出的牌：弹幕不横穿、气泡不压（kit 0.19.0）
     center: () => sc.trick.boxes().map((b) => sc.worldRect(b.x, b.y, b.w, b.h)),
     button: () => (seated() ? sc.worldRect(left, FUN_UI.btnCy - bh / 2, bw, bh) : null),
-    // 按钮框按世界坐标跟着画面放大，kit 的字和图标是固定像素：1920 宽上成了大框小字（0.26.1），按画面的缩放放大（手机上 ≤ 1 就是原样）
+    // 按钮框按世界坐标跟着画面放大，kit 的字和图标是固定像素：1920 宽上成了大框小字，按画面的缩放放大（手机上 ≤ 1 就是原样）
     buttonStyle: () => ({ scale: sc.worldRect(0, 0, 100, 100).width / 100 }),
     // 手机上的"聊天"按钮放顶栏左边（"大厅"和邀请后面的空处）：牌桌左下已经挤着我的头像、"互动"和"理牌"，
     // kit 默认挨着"互动"放会把我自己的气泡挤到按钮底下（kit 0.19.0 截图）
@@ -133,7 +133,7 @@ export function buildFun(sc: TableScene): void {
     // 首次提示"点头像扔道具"冒在右家或左家头像旁，气泡朝桌心伸，那家刚出的牌还在就会被盖住：等它的出牌区空了再冒
     hintSeat: () => [1, 3].find((v) => !sc.isMe(v) && !sc.trick.occupied(v)) ?? null,
     enabled: () => getSettings().taunts,
-    // 聊天：好友房走房间（0.22.0）；单机（0.23.0，单机也能聊）用 kit 的 localChat，同一套过滤和限速，只在自己头像旁冒、不发不存，电脑不读
+    // 聊天：好友房走房间；单机（单机也能聊）用 kit 的 localChat，同一套过滤和限速，只在自己头像旁冒、不发不存，电脑不读
     chat: net
       ? (t: string) => net.chat(t)
       : localChat((t, masked) => {
@@ -243,10 +243,10 @@ export function buildTopBar(sc: TableScene, W: number): void {
   const deep = Math.max(TOPBAR.hitDeep, minHit());
   setTopHit(sc.lobbyBtn, TOPBAR.lobbyW, deep);
   c.add(sc.lobbyBtn);
-  // 好友房开打以后也能叫朋友（0.6.1）：紧挨"大厅"，中途进来的人接管电脑的座位
+  // 好友房开打以后也能叫朋友：紧挨"大厅"，中途进来的人接管电脑的座位
   const net = sc.net;
   const lp = Math.max(FUN_UI.iconMinW, minHit());
-  // 快速匹配的桌（0.26.0）只给排到的人进，不摆邀请
+  // 快速匹配的桌只给排到的人进，不摆邀请
   sc.inviteBtn = net && !net.match ? iconButton(sc, TOPBAR.lobbyRight + lp / 2 + TOPBAR.inviteGap, TOPBAR.midY, 'invite', () => void openInvitePanel(net.code), TOPBAR.inviteSize, '邀请') : null;
   if (sc.inviteBtn) {
     setTopHit(sc.inviteBtn, lp, deep);
@@ -255,7 +255,10 @@ export function buildTopBar(sc: TableScene, W: number): void {
 
   // 中：两队的级夹着"本副打几"（级牌放大成一张小牌），坐庄的一队描金边
   const mx = W / 2;
-  team(mx - TOPBAR.usDx, sc.side(0), v.levels[0], COLOR.teamUs, v.declarer === 0, v.aFails[0]);
+  // 手机上"第N副 打"的字放大了，会贴上我方胶囊：胶囊按字的实际宽度往左让，留 dealNoPhoneGap
+  const dealTag = phone ? text(sc, mx - TOPBAR.dealNoPhoneDx, TOPBAR.midY, `第${v.dealNo}副 打`, { size: TYPE.small, color: 0xd8c6a6, ox: 1 }) : null;
+  const usX = dealTag ? Math.min(mx - TOPBAR.usDx, dealTag.x - dealTag.width - TOPBAR.dealNoPhoneGap - TOPBAR.teamW) : mx - TOPBAR.usDx;
+  team(usX, sc.side(0), v.levels[0], COLOR.teamUs, v.declarer === 0, v.aFails[0]);
   team(mx + TOPBAR.themDx, sc.side(1), v.levels[1], COLOR.teamThem, v.declarer === 1, v.aFails[1]);
   // 手机上两队的胶囊和级牌之间只剩 70 多，放不下"本副打"和"第 N 副"两段：删掉"本副打"（级牌本身就是），"第N副"挪到左边
   if (!phone) c.add(text(sc, mx - TOPBAR.playLabelDx, TOPBAR.midY, '本副打', { size: TYPE.label, color: 0xf0dfc0, ox: 1 }));
@@ -268,7 +271,7 @@ export function buildTopBar(sc: TableScene, W: number): void {
   c.add(badge);
   c.add(text(sc, mx, TOPBAR.badgeTextY, levelName(v.level), { size: TYPE.big - 4, color: COLOR.red, bold: true, font: 'num' }));
   // 手机上"本副打"放不下：副数后面跟个"打"，连着级牌读成"第2副 打 5"
-  if (phone) c.add(text(sc, mx - TOPBAR.dealNoPhoneDx, TOPBAR.midY, `第${v.dealNo}副 打`, { size: TYPE.small, color: 0xd8c6a6, ox: 1 }));
+  if (dealTag) c.add(dealTag);
   else c.add(text(sc, mx + TOPBAR.dealNoDx, TOPBAR.midY, `第 ${v.dealNo} 副`, { size: TYPE.small, color: 0xd8c6a6, ox: 0 }));
 
   // 右：回首页、设置、规则，加云存档（它的红点提示没同步上，收进设置就看不见了，所以留在顶栏）；图标和顺序在 TableSceneBase.buildTopIcons，两个玩法一样。
@@ -305,7 +308,7 @@ export function buildTopBar(sc: TableScene, W: number): void {
       c.addAt(z, 0);
       sc.stakeStrip = { x: zx + STAKE_STRIP.stripDx, y: TOPBAR_H + STAKE_STRIP.cy };
     } else sc.stakeStrip = null;
-    // 好友房带入被拒（或者走了又回来、再带入被拒）：条子左边一个"重新带入"（0.6.0）
+    // 好友房带入被拒（或者走了又回来、再带入被拒）：条子左边一个"重新带入"
     const me = ns?.seats[0];
     if (ns && me && !ns.over && (me.paid === 'refused' || me.paid === 'left') && ns.why !== 'need_two') {
       sc.rebuyBtn = new Button(sc, W - t.width - STAKE_STRIP.rebuyGap, TOPBAR_H + STAKE_STRIP.cy, STAKE_STRIP.rebuyW, STAKE_STRIP.rebuyH, '重新带入', 'gold',() => sc.net?.rebuy(), 'restart');
@@ -320,8 +323,8 @@ export function buildTopBar(sc: TableScene, W: number): void {
 }
 
 /**
- * 顶栏里除了记牌器以外的东西都由这些决定：没变就不重建。记牌器每出一手都变，单独放在 counterBox 里重画——
- * 以前每一帧都整个重建顶栏，按下时还是旧按钮、抬起时已经换成新按钮，"大厅""邀请""设置"偶尔点了没反应。
+ * 顶栏里除了记牌器以外的东西都由这些决定：没变就不重建。记牌器每出一手都变，单独放在 counterBox 里重画。
+ * 按下和抬起必须落在同一个按钮上：每帧重建顶栏的话，"大厅""邀请""设置"会点了没反应。
  */
 export function topBarKey(sc: TableScene, W: number): string {
   const v = sc.ses.view();

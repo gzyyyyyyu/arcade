@@ -31,18 +31,18 @@
 
 - 闲着时降帧（`idle.ts`）：4 秒没有点按、按键，牌桌不忙（`isBusy`），也没有一次性补间在播，帧率上限降到 31；一秒看一次，不要改成每帧看（会拖住场景时钟）。
 - `repeat: -1` 的装饰循环按 31 帧播，别在里面做重活。要 await 的动画一律走 `anim.ts` 的 `tweenP`、`wait`，或者自己包一层 `settle`：最多等"时长 + 500 毫秒"就当播完，动画出岔子也不卡牌局。
-- 不变的形状不用常驻的 Graphics：WebGL 下 Graphics 每帧都重新拆点、三角化（每段圆弧固定 100 个点），0.39.0 时牌桌上一半多的脚本时间耗在这里。按钮底板、牌影、名牌、顶栏胶囊这类画好就不变的，用 `ui/kit.ts` 的 `bakeInto` 烘成纹理（Canvas 2D 按 RENDER_SCALE 画、同 key 共用，key 要包含所有影响画法的参数），每帧只贴一张图；只在动画里变形、或宽度随字变且种类多的才留 Graphics。调试桥 `__game.graphics()` 清点看得见的 Graphics，`tools/perf.ts --census` 每段打一次。
+- 不变的形状不用常驻的 Graphics：WebGL 下 Graphics 每帧都重新拆点、三角化（每段圆弧固定 100 个点），量过：常驻 Graphics 能占牌桌一半多的脚本时间。按钮底板、牌影、名牌、顶栏胶囊这类画好就不变的，用 `ui/kit.ts` 的 `bakeInto` 烘成纹理（Canvas 2D 按 RENDER_SCALE 画、同 key 共用，key 要包含所有影响画法的参数），每帧只贴一张图；只在动画里变形、或宽度随字变且种类多的才留 Graphics。调试桥 `__game.graphics()` 清点看得见的 Graphics，`tools/perf.ts --census` 每段打一次。
 - 动画时长一律经 `anim.ts` 的 `dur()`（设置里的速度、URL `anim=0` 瞬间完成）；冒烟靠 `anim=0` 和 `autoplay=1` 快速推进。
 
 ## 5. 内存
 
-- 内存（老 iPhone 只有 2GB，超了 WebKit 直接杀页面）：手机平板（iOS 或触屏）上 `RENDER_SCALE` 封顶 2（0.36.1 起安卓触屏也封），iOS 2 倍时关 WebGL 多重采样；背景大图按世界宽度烘焙，
+- 内存（老 iPhone 只有 2GB，超了 WebKit 直接杀页面）：手机平板（iOS 或触屏，含安卓）上 `RENDER_SCALE` 封顶 2，iOS 2 倍时关 WebGL 多重采样；背景大图按世界宽度烘焙，
 - 换宽度后 `dropBackdrops` 删旧的；`guandan.boot` 记"前台开着"，被杀后下次自动降档（1 倍 → Canvas 渲染），换版本重置。
 - 量内存用 `node tools/mem.ts`（模拟 iPhone 8 / 8 Plus 横屏）；新加大纹理先跑一遍它；冒烟 `viewport` 一段覆盖可见区、工具栏遮挡、降档和 Canvas 渲染。
 
 ## 6. 布局数字（layout.ts）
 
-- 牌桌的布局数字（位置、尺寸、间距、偏移，以及没经过 `dur()` 的定时毫秒）集中在 `src/view/table/layout.ts`，按"两个玩法共用 / 掼蛋 / 斗地主"分三段（`TOPBAR`、`ACTION_ROW`、`COUNTER`、`STAKE_STRIP`、`DDZ_BUTTONS`、`HAND_LAYOUT`、`KING_BOMB`……），场景、`table-ui`、`play-fx`、`hand.ts` 从这里取，不再写裸数字；调布局改这里。弹窗内部的排版（`overlays.ts`）留在各自文件；降帧的 4 秒、31 帧在 `idle.ts` 顶上。没经过 `dur()` 的毫秒只是起了名，不跟设置里的速度走（套上会改行为）。
+- 牌桌的布局数字（位置、尺寸、间距、偏移，以及没经过 `dur()` 的定时毫秒）集中在 `src/view/table/layout.ts`，按"两个玩法共用 / 掼蛋 / 斗地主"分三段（`TOPBAR`、`ACTION_ROW`、`COUNTER`、`STAKE_STRIP`、`DDZ_BUTTONS`、`HAND_LAYOUT`、`KING_BOMB`……），场景、`table-ui`、`play-fx`、`hand.ts` 从这里取，不写裸数字；调布局改这里。弹窗内部的排版（`overlays.ts`）留在各自文件；降帧的 4 秒、31 帧在 `idle.ts` 顶上。没经过 `dur()` 的毫秒只是起了名，不跟设置里的速度走（套上会改行为）。
 
 ## 7. 牌局节奏（PACE）
 
@@ -108,7 +108,7 @@
 ## 15. 界面的刻度和按钮
 
 - 标题字体是内嵌的宋体子集（`fonts.ts`，README 素材一节）：新加的大字、横幅、弹窗标题如果用了字表里没有的字，`tests/view/view.test.ts` 会报缺字。
-- 界面的刻度和按钮：间距、圆角、投影、按钮配色和光影只从 `theme.ts` 取（`SPACE`、`RADIUS`、`SHADOW`、`BUTTON`、`LIGHT`、`TIER`），
+- 界面的刻度和按钮：间距、圆角、投影、按钮配色和光影只从 `theme.ts` 取（`SPACE`、`RADIUS`、`OUTLINE`、`BUTTON`、`LIGHT`、`TIER`；投影色在 `LIGHT.shadow`），
 - 按钮分三档：主（`red`，一屏一个）、次（金绿蓝木）、弱（`quiet`：不要、重选、理牌），调用处只传颜色名、档位由 `BUTTON_TIER` 推出，不自己画高光阴影（`docs/art.md` 第 9 节），DOM 用 `THEME_CSS` 的 `--gd-` 变量和 `.gd-btn`（`tests/view/ui-theme.test.ts` 查 DOM 按钮）。
 - 牌桌操作区同一时间只有一个红色主按钮（出牌；斗地主叫分是"3 分"、明牌是"明牌 ×2"），"提示"用木色，"我回来了"绿、"重新带入"金；手机上按钮画出来的高度不低于 36 CSS 像素（`theme.ts` 的 `minDrawH`）。
 - 牌桌顶栏不随每一手重建：每一步走 `refreshTopBar`，按 `topBarKey`（级数、副数、倍数、实盘条的字……）没变就只重画记牌器（`counterBox`）——整条重建会让按下和松手落在新旧两个按钮上、点击丢掉（online-smoke 查一副里的 `topBuilds()` 次数）；顶栏要显示新东西时把它加进 `topBarKey`。牌桌顶栏的图标两个玩法共用 `TableSceneBase.buildTopIcons`：从右往左回首页、设置、规则（控件 `top0`–`top2`，斗地主叫 `home` / `settings` / `rules`），最左云存档；静音不单放，在设置里。手机上聊天按钮由 `chatTopStyle` 画成顶栏高度内的圆钮（kit 的按钮透明、只留点按区）。

@@ -309,6 +309,16 @@ async function click(ctx: Ctx, key: string, touch = false): Promise<void> {
   else await ctx.page.mouse.click(c.x, c.y);
 }
 
+/** 牌桌上看得见、能点的按钮，中心点最上层不能是 kit 头像热区（.atf-hot）：热区撑到 44 时要让开 avoid() 里的按钮（kit 0.31.0）。 */
+async function notUnderAvatar(ctx: Ctx): Promise<void> {
+  const cs = await controls(ctx);
+  const hit = await ctx.page.evaluate((list) => list.filter(([, c]) => {
+    const el = document.elementFromPoint(c.x, c.y);
+    return !!el?.closest('.atf-hot');
+  }).map(([k]) => k), Object.entries(cs).filter(([k, c]) => !k.startsWith('fun:') && c.enabled !== false && c.visible !== false));
+  assert(hit.length === 0, `按钮被头像热区挡住：${hit.join('、')}`);
+}
+
 function assert(cond: unknown, msg: string): void {
   if (!cond) throw new Error(`断言失败：${msg}`);
 }
@@ -383,6 +393,7 @@ async function smokeDesktop(browser: Browser): Promise<void> {
   // 真实鼠标：等轮到我，点提示 → 出牌
   await until(ctx, '轮到我', "g.idle && g.view().toAct.includes(0) && g.overlay === null");
   await shot(ctx, '04-table-myturn');
+  await notUnderAvatar(ctx);
   // 引导看完的第一副：轮到我时状态行指着「提示」（要不起的那步照旧说"点 不要"）
   const guide = await page.evaluate(() => window.__game!.texts().some((t) => /不会出？点「提示」|要不起/.test(t.s)));
   assert(guide, '引导后第一副轮到我要指着「提示」');
@@ -664,6 +675,7 @@ async function smokeDdz(browser: Browser): Promise<void> {
   const bidAt = await page.evaluate(() => window.__game!.ddzView()!.phase);
   assert(bidAt === 'bid', `第一个轮到我是叫分，实际 ${bidAt}`);
   await shot(ctx, '31-ddz-bid');
+  await notUnderAvatar(ctx);
   await click(ctx, 'rules');
   await until(ctx, '规则弹窗', "g.overlay === 'menu'");
   await shot(ctx, '31b-ddz-rules');
@@ -1255,6 +1267,7 @@ async function gallerySize(browser: Browser, z: GallerySize): Promise<void> {
     await until(ctx, '轮到我', 'g.scene === \'table\' && g.idle && g.view().toAct.includes(0) && g.overlay === null', 120_000);
     await page.waitForTimeout(500);
     await shot(ctx, `${p}-04-table-myturn`);
+    await notUnderAvatar(ctx);
     // 随机发的牌：要不起（提示选不出牌）就点"不要"，等下一次轮到我再出
     for (let tries = 0; ; tries++) {
       await ck(ctx, 'hint');
@@ -1363,6 +1376,7 @@ async function galleryMore(browser: Browser, z: GallerySize): Promise<void> {
     await until(d, '叫分', "g.scene === 'ddz' && g.idle && g.ddzView()?.phase === 'bid'", 60_000);
     await d.page.waitForTimeout(500);
     await shot(d, `${p}-20-ddz-bid`);
+    await notUnderAvatar(d);
   });
   await step('斗地主结算和整局', async () => {
     // 代打会自己点掉结算框：一看到就停代打，没赶上（已经进了下一副）就再打到下一次结算

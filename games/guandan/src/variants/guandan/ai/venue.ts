@@ -1,5 +1,5 @@
 /**
- * 场地 → 电脑（0.7.0，docs/ai.md）：每种场地每个座位坐什么强弱、什么性格，都从这里取，页面、房间、模拟器不各写一份。
+ * 场地 → 电脑（docs/ai.md）：每种场地每个座位坐什么强弱、什么性格，都从这里取，页面、房间、模拟器不各写一份。
  *
  * - 单机娱乐：设置里的"电脑难度"选场地（新手 / 普通 / 高手，第一次玩默认新手）；
  * - 单机实盘：档位越高越难（docs/stake.md 1.3 的表，数字按 tools/ai-sim.ts 量）；
@@ -10,11 +10,11 @@
 import type { TierId } from '../stake/index.ts';
 import { SEAT_PERSONA, type Difficulty, type PersonaId } from './persona.ts';
 
-/** 单机娱乐的难度（0.12.1 起统一成三档，仓库 docs/balance.md 第 3 节）：新手、普通、高手 */
+/** 单机娱乐的难度三档（仓库 docs/balance.md 第 3 节）：新手、普通、高手 */
 export type SoloLevel = 'novice' | 'normal' | 'pro';
 export const SOLO_LEVELS: readonly SoloLevel[] = ['novice', 'normal', 'pro'];
 
-/** 0.12.0 以前存下的四档 → 现在的三档（设置、存档里的旧值） */
+/** 设置、存档里的旧四档值（easy / good / hard）映射到三档 */
 export function soloLevelOf(v: unknown): SoloLevel | null {
   if (v === 'novice' || v === 'normal' || v === 'pro') return v;
   if (v === 'easy') return 'novice';

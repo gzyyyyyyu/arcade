@@ -301,7 +301,7 @@ export class CloudSync {
     const who = this.userId!;
     for (const s of SLOT_ORDER) this.busy.add(s);
     this.refresh();
-    // userId：平台核对是不是当前会话的账号（0.7.3），不是就 409 wrong_user、不给数据——cookie 在问 /api/me 和拉取之间换了时，不会把别人的存档拉进来
+    // userId：平台核对是不是当前会话的账号，不是就 409 wrong_user、不给数据——cookie 在问 /api/me 和拉取之间换了时，不会把别人的存档拉进来
     const r = await this.call('GET', `/api/saves/guandan?userId=${encodeURIComponent(who)}`);
     for (const s of SLOT_ORDER) this.busy.delete(s);
     if (this.userId !== who) return this.refresh();

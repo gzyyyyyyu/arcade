@@ -118,7 +118,7 @@ export function parseDdzAction(raw: unknown): DdzNetAction | null {
 export function ddzBegin(entropy: Entropy, setup?: { seats: ('empty' | 'human' | 'ai')[]; opts?: { stake?: TierId | null; noShuffle?: true } }): DdzNet {
   const tier = setup?.opts?.stake ?? null;
   const noShuffle = setup?.opts?.noShuffle === true;
-  // 娱乐房间和单机娱乐一样开明牌（0.34.0），实盘按不明牌配平过、不开。不洗牌：娱乐叠 DDZ_NOSHUFFLE，实盘用它自己的一套数（版本 3，0.39.0）
+  // 娱乐房间和单机娱乐一样开明牌，实盘按不明牌配平过、不开。不洗牌：娱乐叠 DDZ_NOSHUFFLE，实盘用它自己的一套数（版本 3）
   const rules = newRules(noShuffle);
   const fun = { ...DDZ_FUN, mingpai: true, ...(noShuffle ? DDZ_NOSHUFFLE : {}) };
   const { state, events } = createDdzKeyed(entropy, tier ? stakeOptions(ROOM_DEALS, rules) : fun);

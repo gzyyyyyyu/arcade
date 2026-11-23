@@ -31,7 +31,7 @@ export interface SeatIdentity {
   away: boolean;
   /** 掉线太久，电脑在代打 */
   auto: boolean;
-  /** 人还连着但走开了，房间每手几秒就替他出（0.6.3） */
+  /** 人还连着但走开了，房间每手几秒就替他出 */
   afk?: boolean;
   /** 电脑座位：是哪个人物 */
   persona?: GdPersonaId;
@@ -41,7 +41,7 @@ export interface SeatIdentity {
 export const seatIdentity: (SeatIdentity | null)[] = [null, null, null, null];
 
 /**
- * 旁观（0.13.0，docs/social.md 1.4）：好友房开打后没坐下的人看牌桌，画面座位 0 是真实的 0 号座位上的人，不是"你"。
+ * 旁观（docs/social.md 1.4）：好友房开打后没坐下的人看牌桌，画面座位 0 是真实的 0 号座位上的人，不是"你"。
  * 由联机会话跟着座位更新；单机一直是 false
  */
 let watching = false;

@@ -33,7 +33,7 @@ export const RULES_V1: StakeRules = { v: 1, pps: 40, dealCap: 24, soloDeals: 8, 
 export const RULES_V2: StakeRules = { v: 2, pps: 50, dealCap: 24, soloDeals: 3, roomDeals: 3 };
 export const CURRENT_RULES = RULES_V2;
 /**
- * 不洗牌实盘（0.39.0，和版本 2 并列，开一场时选发牌）：成团发牌炸弹多，照经典的每分 1/50、每副封顶 24 会有 13–23% 的场碰到一份封顶、
+ * 不洗牌实盘（和版本 2 并列，开一场时选发牌）：成团发牌炸弹多，照经典的每分 1/50、每副封顶 24 会有 13–23% 的场碰到一份封顶、
  * 小档普通玩家每场 +0.27 份。每副封顶放到 48（和娱乐的不洗牌一样）、每分 1/200（10 / 50 / 250 / 1,000），每小时期望和经典差不多（docs/stake-ddz.md 第 5 节）
  */
 export const RULES_CLUMP: StakeRules = { v: 3, pps: 200, dealCap: 48, soloDeals: 3, roomDeals: 3, noShuffle: true };
@@ -64,8 +64,6 @@ export function pointValue(tier: TierId, rules: StakeRules = CURRENT_RULES): num
 export function stakeOptions(deals: number, rules: StakeRules = CURRENT_RULES): DdzOptions {
   return { deals, dealCap: rules.dealCap, cap: rules.pps, ...(rules.noShuffle ? { noShuffle: true } : {}) };
 }
-export const DDZ_SOLO_OPTS: DdzOptions = stakeOptions(SOLO_DEALS);
-export const DDZ_ROOM_OPTS: DdzOptions = stakeOptions(ROOM_DEALS);
 
 /**
  * 结回额：带进去的一份加上输赢。不再截断：核心已经保证一家的累计在 ±pps 分内，Worker 另用 validSoloResult 查一遍，

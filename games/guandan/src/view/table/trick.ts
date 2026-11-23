@@ -52,7 +52,7 @@ export class TrickView<P extends PlayBase> {
     return !!this.slots[seat];
   }
 
-  /** 桌上现在每一家出的牌（或"不要"）占的地方（世界坐标，0.24.0）：kit 的弹幕不横穿、气泡不压 */
+  /** 桌上现在每一家出的牌（或"不要"）占的地方（世界坐标）：kit 的弹幕不横穿、气泡不压 */
   boxes(): { x: number; y: number; w: number; h: number }[] {
     return this.slots.flatMap((c) => {
       if (!c) return [];

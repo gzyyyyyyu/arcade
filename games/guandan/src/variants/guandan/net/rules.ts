@@ -47,11 +47,11 @@ export interface NetState {
   next: NextPreview | null;
   /** 一副结束时各座位（真实座位）点没点"继续"；其他时候 null */
   ready: boolean[] | null;
-  /** 实盘房间的桌（0.5.0，src/net/stake.ts）；娱乐房间没有 */
+  /** 实盘房间的桌（src/net/stake.ts）；娱乐房间没有 */
   stake?: StakeTable;
   /** 每个真实座位现在是不是真人（一个真人都没了就结束房间）；开局不带座位（只有测试直接调 begin）时没有 */
   humans?: boolean[];
-  /** 娱乐房间打完一整场后"再来一场"（0.6.2）：谁开了哪个新房间；没人点、停够了是 null；还在等是 undefined */
+  /** 娱乐房间打完一整场后"再来一场"：谁开了哪个新房间；没人点、停够了是 null；还在等是 undefined */
   again?: Again | null;
   /** 每个真实座位连着被房间代出了几手：到 IDLE_AFTER 就算走开了、每手只等 IDLE_MS；自己出一手或者点"我回来了"清零。和 humans 一起有 */
   idle?: number[];
@@ -65,7 +65,7 @@ export interface Again {
   by: number;
 }
 
-/** idle：这一手是房间到点代出的（只有 timeout 会带；浏览器发来的经过 parse 不会有），用来数"连着几手没自己出"（0.6.3） */
+/** idle：这一手是房间到点代出的（只有 timeout 会带；浏览器发来的经过 parse 不会有），用来数"连着几手没自己出" */
 export type NetAction = (
   | { type: 'play'; cards: Card[]; as?: { type: PlayType; rank: number; extra?: number } }
   | { type: 'pass' }
@@ -73,11 +73,11 @@ export type NetAction = (
   | { type: 'return'; card: Card }
   /** 结算页上点"继续"：我准备好打下一副了 */
   | { type: 'ready' }
-  /** 实盘房间带入被拒以后点"重新带入"（0.6.0，不轮流的操作） */
+  /** 实盘房间带入被拒以后点"重新带入"（不轮流的操作） */
   | { type: 'buyin' }
-  /** 娱乐房间打完一整场：我开好了新房间，叫大家一起过去（0.6.2，不轮流的操作） */
+  /** 娱乐房间打完一整场：我开好了新房间，叫大家一起过去（不轮流的操作） */
   | { type: 'again'; code: string }
-  /** 托管中点"我回来了"（0.6.3，不轮流的操作） */
+  /** 托管中点"我回来了"（不轮流的操作） */
   | { type: 'back' }
 ) & { idle?: true };
 
@@ -90,7 +90,7 @@ export interface NetView {
   ready: boolean[] | null;
   /** 实盘房间：每个座位的分和到账情况（被拒的原因只给自己）；娱乐房间没有 */
   stake?: StakeView;
-  /** 再来一场（0.6.2）：同 NetState.again；不是在等再来一场时没有 */
+  /** 再来一场：同 NetState.again；不是在等再来一场时没有 */
   again?: Again | null;
   /** 每个座位是不是走开了、房间在替他快速代出（公开：大家看得到他为什么出得快）；和 NetState.idle 一起有 */
   afk?: boolean[];
@@ -105,7 +105,7 @@ export const TURN_MS = 30_000;
 /** 娱乐房间打完一整场后等"再来一场"多久：没人点就结束房间、还开房名额 */
 export const AGAIN_MS = 180_000;
 /**
- * 人还连着、但走开了（0.6.3）：连着 IDLE_AFTER 手到点被代出，之后轮到他每手只等 IDLE_MS 就代出，别的三个人不用每手干等 30 秒。
+ * 人还连着、但走开了：连着 IDLE_AFTER 手到点被代出，之后轮到他每手只等 IDLE_MS 就代出，别的三个人不用每手干等 30 秒。
  * 他自己出一手、或者点"我回来了"马上恢复。掉线的人由房间另算（60 秒宽限后电脑托管）
  */
 export const IDLE_AFTER = 2;
@@ -405,7 +405,7 @@ export const guandanRoom: Omit<RoomGame<NetState, NetAction, NetView, RoomOpts, 
         return { seats: [], group: 'over' };
     }
   },
-  // 这一手（组）要等的人都走开了：只等 IDLE_MS（0.6.3）
+  // 这一手（组）要等的人都走开了：只等 IDLE_MS
   turnMs: (s) => {
     const seats = guandanRoom.actors(s).seats;
     if (seats.length && seats.every((x) => isAfk(s, x))) return IDLE_MS;
@@ -427,7 +427,7 @@ export const guandanRoom: Omit<RoomGame<NetState, NetAction, NetView, RoomOpts, 
     const t = timeoutAction(viewFor(s.g, seat));
     return t ? withoutSeat(t) : { type: 'pass' };
   },
-  // 到点代出的都带 idle 记号（0.6.3），apply 拿它数"连着几手没自己出"
+  // 到点代出的都带 idle 记号，apply 拿它数"连着几手没自己出"
   timeout: (s, seat) => {
     if (s.g.phase === 'dealEnd') return { type: 'ready', idle: true };
     const t = timeoutAction(viewFor(s.g, seat));
@@ -435,8 +435,8 @@ export const guandanRoom: Omit<RoomGame<NetState, NetAction, NetView, RoomOpts, 
   },
   // 实盘房间：一场（5 副、过 A、到账的都封顶）打完就结束，结回由 effects 接着办。
   // 真人都点了"离开"（0.6.0 起没真人就结束）：也算打完，kit 马上还开房名额；带入还在路上的等它办完再算（到账了要原样结回）。
-  // 只是掉线的人座位还是真人的，不算没人（房间按 noHumanMs 另算）。一副打到一半走的要等电脑把这副打完、按打完的分结回（0.12.4），也先不算完
-  // 娱乐房间打完一整场先不算完（0.6.2）：停 AGAIN_MS 等人点"再来一场"，点了或者停够了才算
+  // 只是掉线的人座位还是真人的，不算没人（房间按 noHumanMs 另算）。一副打到一半走的要等电脑把这副打完、按打完的分结回，也先不算完
+  // 娱乐房间打完一整场先不算完：停 AGAIN_MS 等人点"再来一场"，点了或者停够了才算
   over: (s) =>
     (s.g.phase === 'gameOver' && !waitingAgain(s)) || s.stake?.over === true || (s.humans !== undefined && !s.humans.some(Boolean) && !s.stake?.pending.some((e) => e.kind === 'in') && !s.stake?.leaving?.some(Boolean)),
   // 等"再来一场"时谁也不用出手：由房间停着计时（kit 0.5.0），电脑、托管的座位不会被代出

@@ -1,9 +1,9 @@
 /**
- * 斗地主的牌型（牌馆 PR ②，设计 docs/doudizhu.md 第 3 节，规则细节 docs/rules.md「斗地主」一节）。
- * 实现牌馆通用层的 PatternSet（ctx 不需要，传 undefined）。牌的编码沿用 core/cards.ts，只用第一副 0..53。
+ * 斗地主的牌型（设计 docs/doudizhu.md 第 3 节，规则细节 docs/rules.md「斗地主」一节）：识别、比大小、选读法、枚举。
+ * 牌的编码沿用 core/cards.ts，只用第一副 0..53。
  */
 import { BIG_JOKER, type Card, SMALL_JOKER, rankOf, suitOf } from '../../../core/cards.ts';
-import type { PatternSet, PlayBase } from '../../../core/play.ts';
+import type { PlayBase } from '../../../core/play.ts';
 
 /** 比大小用的点数：3..13，A 14，2 记 15，小王 16，大王 17 */
 export function ddzValue(c: Card): number {
@@ -195,14 +195,6 @@ export function enumerateDdz(hand: readonly Card[]): DdzPlay[] {
   seq(3, 2);
   return out;
 }
-
-export const ddzPatterns: PatternSet<DdzPlay, undefined> = {
-  interpret: (cards) => interpretDdz(cards),
-  beats: beatsDdz,
-  isBomb: isBombish,
-  choose: chooseDdz,
-  enumerate: (hand) => enumerateDdz(hand),
-};
 
 /** 手里能压住 target 的（首出时 target 为 null，就是全部） */
 export function playsBeatingDdz(hand: readonly Card[], target: DdzPlay | null): DdzPlay[] {

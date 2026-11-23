@@ -8,7 +8,7 @@ import { parseHallOpts } from '../../src/net/hall.ts';
 import { ddzBegin, ddzView } from '../../src/variants/doudizhu/net/rules.ts';
 import { testKey } from '../../src/variants/guandan/net/rules.ts';
 import { tableRules } from '../../src/variants/doudizhu/net/stake.ts';
-import { DDZ_ROOM_OPTS, ROOM_DEALS, RULES_CLUMP, RULES_V2, stakeOptions } from '../../src/variants/doudizhu/stake/index.ts';
+import { ROOM_DEALS, RULES_CLUMP, RULES_V2, stakeOptions } from '../../src/variants/doudizhu/stake/index.ts';
 
 const SEATS = ['human', 'human', 'human'] as const;
 const OPEN = { seats: [...SEATS], opts: { stake: null, noShuffle: true as const } };
@@ -65,7 +65,7 @@ describe('ddzBegin（不洗牌房间开局）', () => {
     expect(s.stake!.rules).toBe(3);
     expect(tableRules(s.stake!)).toBe(RULES_CLUMP);
     const c = ddzBegin(testKey(3), { seats: [...SEATS], opts: { stake: 'small' } });
-    expect(c.g.opts).toEqual(DDZ_ROOM_OPTS);
+    expect(c.g.opts).toEqual(stakeOptions(ROOM_DEALS));
     expect(c.stake!.rules).toBe(RULES_V2.v);
   });
 

@@ -1,5 +1,5 @@
 /**
- * 掼蛋结算页的分享卡数据（0.13.0，仓库根 docs/social.md 1.1）：把这一局 / 这一场的结果整理成 kit 分享卡要的数据（纯函数，tests/view/share-card.test.ts）。
+ * 掼蛋结算页的分享卡数据（仓库根 docs/social.md 1.1）：把这一局 / 这一场的结果整理成 kit 分享卡要的数据（纯函数，tests/view/share-card.test.ts）。
  * 卡上只有公开的东西（胜负、名次、炸了几次、称号、实盘的分），不画任何人的手牌；那句话从模板拼，不收玩家的自由文字。
  * 画和分享在 common/share-card.ts（斗地主也用）。
  */
@@ -12,7 +12,7 @@ import { TIER_NAME, signed } from '../common/stake-text.ts';
 /** 这一张分享的是什么 */
 export type ShareKind =
   /** 娱乐：整局打完（单机或好友房） */
-  | { kind: 'game'; win: boolean; room: string | null; /** 赢下整局要做到的（labels.ts 的 goalWord，0.25.0）；不给是"过 A" */ goal?: string }
+  | { kind: 'game'; win: boolean; room: string | null; /** 赢下整局要做到的（labels.ts 的 goalWord）；不给是"过 A" */ goal?: string }
   /** 实盘：一场结算（单机或好友房）；points 是这一场的分，chips 是折成的筹码 */
   | { kind: 'stake'; tier: keyof typeof TIER_NAME; points: number; chips: number; deals: number; room: string | null };
 
@@ -29,7 +29,7 @@ function lineOf(k: ShareKind, log: MatchLog, title: Title | null): string {
   return k.points > 0 ? '赢了一场实盘' : k.points < 0 ? '这场手气差了点' : '不输不赢，打了个平手';
 }
 
-/** 好友房一场的颁奖（0.14.0）：奖（画面座位）和按座位取名字 */
+/** 好友房一场的颁奖：奖（画面座位）和按座位取名字 */
 interface ShareAwards {
   awards: readonly Award[];
   name: (seat: number) => string;

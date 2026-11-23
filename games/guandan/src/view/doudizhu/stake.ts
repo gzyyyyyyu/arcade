@@ -57,7 +57,7 @@ export async function settleDdzStake(s: DdzStakeSave, deps: Deps = {}): Promise<
   return settleWith({ ...VARIANT, ref: s.ref, tier: s.tier, points: st.points, deals: st.deals, ...(rules.v > 1 ? { rules: rules.v } : {}) }, st.points, () => clearDdzStakeSave(s.ref), deps);
 }
 
-/** 进场：认人、带入一份，成功就开一场（noShuffle：不洗牌那套数，0.39.0）。带入不重试：ref 由 Worker 生成，重发是另一份 */
+/** 进场：认人、带入一份，成功就开一场（noShuffle：不洗牌那套数）。带入不重试：ref 由 Worker 生成，重发是另一份 */
 export async function buyinDdzStake(tier: TierId, fetcher: typeof fetch = fetch, noShuffle = false): Promise<{ ok: true; ses: DdzStakeSession } | { ok: false; error: string; wallet?: WalletView }> {
   const userId = await currentUserId(fetcher);
   if (!userId) return { ok: false, error: 'login' };

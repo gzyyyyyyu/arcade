@@ -26,7 +26,8 @@ import { startBackgroundBake, startWhenReady, titleBackdrop, upgradeTitleBackdro
 import { join, openMatch, openOnline } from '../online.ts';
 import { currentUserId, myRoom } from '../common/room-link.ts';
 import { cloudButton } from '../ui/cloud.ts';
-import { Button, ModeCard, fitWidth, iconButton, modal, segmented, setHit, setTopHit, signedLine, text, toast, vGradient, worldH, worldW, type ButtonStyle, type Modal } from '../ui/kit.ts';
+import { Button, ModeCard, fitWidth, iconButton, modal, segmented, setHit, setTopHit, signedLine, text, vGradient, worldH, worldW, type ButtonStyle, type Modal } from '../ui/kit.ts';
+import { toast } from '../ui/bubble.ts';
 import { confirm, openDdzRules, openRules, openSettings, openStats } from '../ui/panels.ts';
 import { openAchievements } from '../ui/achievements.ts';
 import { openLevelPicker, openTierPicker } from '../ui/stake.ts';
@@ -158,7 +159,7 @@ export class TitleScene extends Phaser.Scene {
 
     const save = loadSave();
     // 单机实盘的存档（只在这台设备上）：过了 24 小时钱包已经原样退回，删掉说一句；没过就把主按钮换成"接着打实盘"
-    // 单独部署（0.8.0）没有钱包：不摆实盘（本来也不会有实盘存档，存档跟着站点走）
+    // 单独部署没有钱包：不摆实盘（本来也不会有实盘存档，存档跟着站点走）
     let stake = standalone() ? null : loadStake();
     if (stake && stakeExpired(stake)) {
       clearStake(stake.ref);
@@ -543,7 +544,7 @@ export class TitleScene extends Phaser.Scene {
         updateSettings({ difficulty, length });
         fresh();
       },
-      // 快速匹配（0.26.0）：排不到就按现在的难度、局长开一局单机
+      // 快速匹配：排不到就按现在的难度、局长开一局单机
       () => openMatch(null, () => this.scene.isActive() && fresh()),
     );
   }

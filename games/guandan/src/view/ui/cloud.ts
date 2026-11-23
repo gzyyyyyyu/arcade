@@ -2,7 +2,8 @@
 import Phaser from 'phaser';
 import { app } from '../app.ts';
 import { tapAction, type CloudNote, type CloudStatus } from '../common/cloud.ts';
-import { iconButton, toast, worldW } from './kit.ts';
+import { iconButton, worldW } from './kit.ts';
+import { toast } from './bubble.ts';
 
 /**
  * 去登录，登录完回到 search 指的这一页（平台 0.10.1 的 next，docs/platform-backend.md 5.7：查询原样带回，比如 ?room= 房间码）。

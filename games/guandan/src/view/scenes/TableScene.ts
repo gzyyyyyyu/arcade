@@ -37,7 +37,8 @@ import { COLOR, TYPE, css, minHit, GAME_HEIGHT } from '../common/theme.ts';
 import { goLobby, inGame, inOnlineGame, leaveText } from '../common/lobby.ts';
 import { DAILY_LEAVE } from '../common/daily.ts';
 import { join } from '../online.ts';
-import { Button, modal, text, toast, worldW, type Modal } from '../ui/kit.ts';
+import { Button, modal, text, worldW, type Modal } from '../ui/kit.ts';
+import { toast } from '../ui/bubble.ts';
 import { confirm, openRules, openSettings } from '../ui/panels.ts';
 import { runTutorial } from '../guandan/tutorial.ts';
 import { HandView } from '../table/hand.ts';
@@ -61,9 +62,9 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
   ses!: TableSession;
   trick!: TrickView<Play>;
   btnPrev!: Button;
-  /** 好友房里我走开了、房间在快速替我出时的"我回来了"（0.6.3） */
+  /** 好友房里我走开了、房间在快速替我出时的"我回来了" */
   btnBack: Button | undefined;
-  /** 旁观时的"坐下"（0.13.0） */
+  /** 旁观时的"坐下" */
   btnSit: Button | undefined;
   /** 记牌器（或收起后的小签）的中心，冒烟点它 */
   counterAt: { x: number; y: number } | null = null;
@@ -75,7 +76,7 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
   private botEmotes: { from: number; id: number; to: number | undefined }[] = [];
   /** 整局称号用：攒到第几副了（场景重开不清，新的一局从第 1 副重新攒） */
   matchLog = emptyMatchLog();
-  /** 这一局已经报到好友动态的名场面编号（0.15.0，feed.ts）：一局最多两条、同一种一次 */
+  /** 这一局已经报到好友动态的名场面编号（feed.ts）：一局最多两条、同一种一次 */
   feedPosted: string[] = [];
   /** 这一副播过几次接风（结算页的复盘用；重连后只算之后看到的） */
   dealJiefeng = 0;
@@ -250,7 +251,7 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
     if (this.watching) return this.leaveRoom();
     if (net && net.room?.status === 'playing') {
       // 好友房：离开就把座位交给电脑（不判输），先问一句
-      // 我是最后一个真人：房间就此结束（0.6.0），说清楚
+      // 我是最后一个真人：房间就此结束，说清楚
       const others = net.room.seats.some((s, i) => s.kind === 'human' && i !== net.mySeat);
       const ns = this.netStake;
       const me = ns?.seats[0];
@@ -287,7 +288,7 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
   }
 
   /**
-   * 好友房打完一整场，点"再来一场"（0.6.2）：我来开新房间，再告诉这个房间新房间的码，大家看到了一起过去（followAgain）。
+   * 好友房打完一整场，点"再来一场"：我来开新房间，再告诉这个房间新房间的码，大家看到了一起过去（followAgain）。
    * 这个房间已经不等了（停够了、关了），就自己先过去，进了再叫朋友
    */
   async again(btn: Button): Promise<void> {
@@ -373,7 +374,7 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
     }
     for (const sv of this.seats) sv.refreshIdentity();
     const net = this.net!;
-    // 再来一场（0.6.2）：有人开好了新房间。我这边结束页已经出来了就一起过去；还在播最后一副的，等结束页出来再走（openGameOver 里）
+    // 再来一场：有人开好了新房间。我这边结束页已经出来了就一起过去；还在播最后一副的，等结束页出来再走（openGameOver 里）
     const again = net.againInfo;
     if (again && this.overlay === 'gameOver') {
       this.followAgain(again);

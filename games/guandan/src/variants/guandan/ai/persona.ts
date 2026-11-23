@@ -1,5 +1,5 @@
 /**
- * 电脑的性格、每场的状态、随局面的调整（0.7.0 起，docs/ai.md）。
+ * 电脑的性格、每场的状态、随局面的调整（docs/ai.md）。
  *
  * 强弱（Difficulty）定"会不会打"：记牌、配合、失误；性格定"爱怎么打"：爱不爱炸、抢不抢出牌权、细不细心、输了上不上头。
  * 两者叠起来才是一个电脑这一手的参数，按三层算：
@@ -44,12 +44,12 @@ export interface Tuning {
   search: boolean;
 }
 
-/** 强弱预设。easy / normal / hard 的数是 0.1.3 起按 npm run sim 校准的；novice、good 是 0.7.0 加的两头 */
+/** 强弱预设，数按 npm run sim 校准（docs/ai.md 第 1 节） */
 export const TUNING: Record<Difficulty, Tuning> = {
   // 新手场：不记牌、不配合、常犯小错，对手快走完时还常常手软
   novice: { recall: 'none', teamwork: false, threat: 2, breakTolerance: 1.2, slip: 0.35, feedAt: 0, chase: 0.3, lastChance: 0.05, bombLove: 0, soft: 0.7, jitter: 0, rush: 0, search: false },
-  // 失误率按 npm run sim 校准（0.1.3）：简单对普通整局胜率约 2 成多，困难对普通约 7 成。
-  // 失误不再拆炸弹/同花顺、不压队友以后（0.2.x），一次失误亏得少了，按同样目标重调：简单 0.13 → 0.25，普通 0.05 → 0.1
+  // 失误率按 npm run sim 校准：简单对普通整局胜率约 2 成多，困难对普通约 7 成。
+  // 失误不拆炸弹 / 同花顺、不压队友，一次失误亏得少，所以失误率偏高：简单 0.25、普通 0.1
   easy: { recall: 'none', teamwork: false, threat: 2, breakTolerance: 1.2, slip: 0.25, feedAt: 0, chase: 0.6, lastChance: 0.2, bombLove: 0, soft: 0, jitter: 0, rush: 0, search: false },
   normal: { recall: 'high', teamwork: true, threat: 6, breakTolerance: 0.6, slip: 0.1, feedAt: 6, chase: 1.6, lastChance: 0.5, bombLove: 0, soft: 0, jitter: 0, rush: 0, search: false },
   // 普通和困难之间：全记牌，偶尔失误（单机实盘中档的对手）
@@ -148,7 +148,7 @@ export function styleOf(view: PlayerView, difficulty: Difficulty, persona: Perso
 
 /**
  * 这一手的参数：强弱预设 + 性格 + 状态 + 局面。
- * 没给性格时就是强弱预设本身（聪明提示、代打、模拟里的"真人"都用这个），和 0.7.0 以前一模一样。
+ * 没给性格时就是强弱预设本身（聪明提示、代打、模拟里的"真人"都用这个），不加性格修正。
  */
 export function tuningFor(view: PlayerView, difficulty: Difficulty, persona?: PersonaId, match?: string | number): Tuning {
   const base = TUNING[difficulty];

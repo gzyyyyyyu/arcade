@@ -24,7 +24,7 @@ export function tableSide(W: number): number {
 export const BUTTON_Y = 412;
 
 /**
- * partnerMinX：对家头像中心最少在哪（手机上顶栏左边的云朵、邀请按钮要 44 CSS 像素宽，头像得让开，0.10.0）。
+ * partnerMinX：对家头像中心最少在哪（手机上顶栏左边的云朵、邀请按钮要 44 CSS 像素宽，头像得让开）。
  * 对家的气泡放在头像左边（尾巴朝右）：右边是剩余张数和记牌条，放右边会把记牌条最左几列盖住。
  * 头像让开以后离桌心近了，名牌会压住居中摆的出牌，这时出牌改成从头像右边往右排。
  */
@@ -354,6 +354,8 @@ export const TOPBAR = {
   playLabelDx: 34,
   dealNoDx: 36,
   dealNoPhoneDx: 32,
+  /** 手机版"第N副 打"左缘和我方胶囊右缘至少隔多少 */
+  dealNoPhoneGap: 12,
   /** 级牌徽章：左缘离中线、纵坐标、宽、高、圆角、金边粗细；级牌字的纵坐标 */
   badgeX: 26,
   badgeY: 4,

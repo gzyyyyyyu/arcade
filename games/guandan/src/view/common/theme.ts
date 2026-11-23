@@ -127,7 +127,7 @@ export const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 /** 圆角刻度：小件（标签、小按钮）、按钮、面板内框、面板外框；胶囊形写高度的一半 */
 export const RADIUS = { sm: 8, md: 12, lg: 14, xl: 22 } as const;
 /**
- * 卡通描边（0.27.0，仓库统一的卡通风格，配色表在 docs/art.md 第 9 节）：按钮、面板、名牌一律深墨色描边、实色下沿，下沿按下时下沉。
+ * 卡通描边（仓库统一的卡通风格，配色表在 docs/art.md 第 9 节）：按钮、面板、名牌一律深墨色描边、实色下沿，下沿按下时下沉。
  * 0.27.1（卡通第二版）：表面补回上亮下暗的轻渐变和顶边高光，下面再垫一层柔和的环境投影，不再是平涂贴纸
  */
 export const OUTLINE = { color: 0x2b1d14, width: 3, ledge: 4 } as const;

@@ -207,7 +207,7 @@ function chooseFollow(c: Ctx, rng: ReturnType<typeof rngFor>): DdzPlay | null {
       const left = without(c.hand, b);
       const finishing = left.length === 0 || handCount(left, c.cap) <= 2;
       const urgent = c.enemyMin <= BOMB_AT[level] + c.style.bombAt || finishing;
-      // 不洗牌（0.35.0）：炸弹多（三家合计每副约 2.3 个），压不住对手就炸，不全攒到收尾；不然一副只炸 0.7 次，玩法的看点出不来。
+      // 不洗牌：炸弹多（三家合计每副约 2.3 个），压不住对手就炸，不全攒到收尾；不然一副只炸 0.7 次，玩法的看点出不来。
       // 只看视图里公开的 noShuffle，经典玩法一点不变
       const loose = v.noShuffle === true && bombs.length >= 1;
       if (level === 'novice' ? rng.int(3) === 0 : urgent || loose) pick = b;

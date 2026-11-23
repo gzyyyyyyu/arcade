@@ -43,7 +43,7 @@ export function levelName(lv: number): string {
   return rankName(lv);
 }
 
-/** 赢下整局要做到的（0.25.0）：完整是"过 A"，短局是"打到 10"（终点按规则核心的 endLevelOf） */
+/** 赢下整局要做到的：完整是"过 A"，短局是"打到 10"（终点按规则核心的 endLevelOf） */
 export function goalWord(endLevel: number): string {
   return endLevel >= 14 ? '过 A' : `打到 ${levelName(endLevel)}`;
 }

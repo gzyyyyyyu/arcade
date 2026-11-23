@@ -23,7 +23,8 @@ import type { HandView } from '../../table/hand.ts';
 import { CLOCK_TICK_MS, DEAL_BACK, DEAL_FLY, ERROR_TOAST_DY, STATUS_PILL, TOP_ICONS, TOPBAR_H } from '../../table/layout.ts';
 import type { SeatView } from '../../table/seats.ts';
 import { cloudButton } from '../../ui/cloud.ts';
-import { iconButton, setTopHit, toast, worldW, type Button, type Modal } from '../../ui/kit.ts';
+import { iconButton, setTopHit, worldW, type Button, type Modal } from '../../ui/kit.ts';
+import { toast } from '../../ui/bubble.ts';
 import { releaseExtraBake } from '../../common/textures.ts';
 
 /** 弹层的种类（两个玩法的并集；null = 没有弹层） */

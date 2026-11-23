@@ -53,7 +53,7 @@ export function transient(error: string): boolean {
 /** 重试的间隔（毫秒）：第一次失败后等 1 秒、再失败等 3 秒，共试 3 次 */
 const RETRY_MS = [1_000, 3_000];
 
-export async function withRetry(call: () => Promise<StakeReply>, sleep: (ms: number) => Promise<void>): Promise<StakeReply> {
+async function withRetry(call: () => Promise<StakeReply>, sleep: (ms: number) => Promise<void>): Promise<StakeReply> {
   let r = await call();
   for (const ms of RETRY_MS) {
     if (r.ok || !transient(r.error)) return r;
@@ -63,7 +63,7 @@ export async function withRetry(call: () => Promise<StakeReply>, sleep: (ms: num
   return r;
 }
 
-export const realSleep = (ms: number): Promise<void> => new Promise((ok) => setTimeout(ok, ms));
+const realSleep = (ms: number): Promise<void> => new Promise((ok) => setTimeout(ok, ms));
 
 export type SettleOutcome =
   | { kind: 'done'; points: number; credited: number; capped: number; balance: number | null }

@@ -45,7 +45,7 @@ export class NetSession extends RoomLink<NetAction, NetView, NetView> implements
     if (!room) return;
     const me = this.mySeat ?? 0;
     setWatching(this.watching);
-    // 走开了的（0.6.3）：看收到的最新一帧（已经按我的座位转过，下标是画面座位）
+    // 走开了的：看收到的最新一帧（已经按我的座位转过，下标是画面座位）
     const afk = (this.queue[this.queue.length - 1]?.nv ?? this.shown)?.afk;
     const list: (SeatIdentity | null)[] = [];
     for (let shown = 0; shown < 4; shown++) {
@@ -110,7 +110,7 @@ export class NetSession extends RoomLink<NetAction, NetView, NetView> implements
     return !!(this.queue[this.queue.length - 1]?.nv ?? this.shown)?.afk?.[0];
   }
 
-  /** 再来一场（0.6.2）：新房间我已经开好了，叫这一桌的人一起过去（不轮流的操作） */
+  /** 再来一场：新房间我已经开好了，叫这一桌的人一起过去（不轮流的操作） */
   again(code: string): void {
     this.client.act({ type: 'again', code });
   }

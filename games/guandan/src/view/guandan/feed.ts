@@ -1,5 +1,5 @@
 /**
- * 好友动态里的名场面（0.15.0，仓库根 docs/social.md 第 2 节、docs/platform-backend.md 15.17）：一副打完时从已有的名场面（highlights.ts，只用公开信息）里挑和我有关的，
+ * 好友动态里的名场面（仓库根 docs/social.md 第 2 节、docs/platform-backend.md 15.17）：一副打完时从已有的名场面（highlights.ts，只用公开信息）里挑和我有关的，
  * 经 kit 的 `postMoment` 报给平台；平台按 `public/moments.json` 的模板拼成"老王炸上炸，压住了对面的炸弹"给好友看。
  * 只报编号和数字（不报名字以外的任何东西，名字平台按账号填）；一局（打到 A 或者一场好友房）最多报 FEED_MAX 条、同一种只报一次。
  * 挑哪条是纯函数（tests/view/feed.test.ts）；发不发（有平台、已登录、娱乐、不是旁观）由调用方管。
