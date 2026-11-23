@@ -10,8 +10,8 @@ import { raidCharCoef } from '../../src/content/explore.ts';
 const make = (o: Partial<Setup> = {}): World => createWorld({ seed: 7, mode: 'vigil', danger: 0, character: 'baidu', ...o });
 
 describe('摆渡人', () => {
-  it('初始数值：伤害 1，出手 −5% 留着当短板', () => {
-    expect(CHARACTERS.baidu.base).toMatchObject({ might: 1, cd: 1.05, hp: 1.05, speed: 1.1, area: 1.05 });
+  it('初始数值：伤害 1.05，出手 −5% 留着当短板', () => {
+    expect(CHARACTERS.baidu.base).toMatchObject({ might: 1.05, cd: 1.05, hp: 1.05, speed: 1.1, area: 1.05 });
   });
 
   it('顺水：水类法器伤害 ×baiduWater', () => {

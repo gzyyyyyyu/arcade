@@ -114,7 +114,7 @@ export const RAID_REGIONS: Partial<Record<RaidTemplateId, Region>> = {
   liangcang: { mobs: [{ kind: 'ratdemon', share: [[1, 0.25], [5, 0.4]] }] },
   guzhen: { mobs: [{ kind: 'nightwatch', share: [[2, 0.1], [6, 0.15]] }] },
   dukou: { mobs: [{ kind: 'drown', share: [[2, 0.12], [6, 0.18]] }] },
-  shansi: { mobs: [{ kind: 'stonemonk', share: [[3, 0.12], [7, 0.18]] }] },
+  shansi: { mobs: [{ kind: 'stonemonk', share: [[3, 0.08], [7, 0.12]] }] },
   // 窑镇：陶俑（扛刀剑、怕水），窑口是火区
   yaozhen: { mobs: [{ kind: 'taoyong', share: [[2, 0.12], [6, 0.18]] }] },
 };
