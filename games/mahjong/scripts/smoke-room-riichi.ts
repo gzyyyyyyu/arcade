@@ -6,7 +6,7 @@
  *
  * 1. 娱乐房：A 在好友房选桌页选"立直"开房，等人页写着立直的规则；B 凭 ?room= 进来坐下，A 开打；
  *    两边都是立直牌桌，自动打到一局结算出来（能和就和、不然过、打最右边那张），再打到下一局开始；
- * 2. 实盘小档房：A、B 开打，假钱包各扣 2,000；打完第一局后两个人都离开：房间按"没打完"结回，两边的那一份都结掉、余额加回结回的数。
+ * 2. 实盘小档房：A、B 开打，假钱包各扣 2,000；打完第一局后两个人都离开：房间按"没打完"带回，两边的那一份都结掉、余额加回带回的数。
  * 两边控制台零报错。端口由系统分配。
  */
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -217,8 +217,8 @@ try {
     w2 = { a: await wallet(pa), b: await wallet(pb) };
   }
   const settled = !w2.a.stakes.some((x) => x.game === 'mahjong') && !w2.b.stakes.some((x) => x.game === 'mahjong');
-  check(settled, `两人都离开后实盘结回：A ${w1.a.balance}→${w2.a.balance}，B ${w1.b.balance}→${w2.b.balance}`);
-  check(w2.a.balance + w2.b.balance <= w0.a.balance + w0.b.balance + 4 * 2_000, '结回的数在"最多赢 3 份"以内');
+  check(settled, `两人都离开后实盘带回：A ${w1.a.balance}→${w2.a.balance}，B ${w1.b.balance}→${w2.b.balance}`);
+  check(w2.a.balance + w2.b.balance <= w0.a.balance + w0.b.balance + 4 * 2_000, '带回的数在"最多赢 3 份"以内');
 
   if (errors.length) {
     console.log(`控制台报错 ${errors.length} 条：\n${[...new Set(errors)].join('\n')}`);

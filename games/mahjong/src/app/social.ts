@@ -59,7 +59,7 @@ export async function friendTable(): Promise<FriendTable | null> {
   return tables.find((t) => !full(t)) ?? tables[0] ?? null;
 }
 
-/** 点邀请的"去"：打到一半先照常确认离开（实盘的结回照旧），取消了就留下 */
+/** 点邀请的"去"：打到一半先照常确认离开（实盘的带回照旧），取消了就留下 */
 async function goInvite(inv: Invite): Promise<void> {
   const unfinishedSolo = (): boolean => !!session.solo && session.solo.save.state.phase !== 'over';
   if (session.online) await leaveRoom();

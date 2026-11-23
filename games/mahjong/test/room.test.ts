@@ -1,5 +1,5 @@
 /**
- * 好友房的规则（src/room/rules.ts）：开局带入、少带、被拒由庄家打、离座马上结回、打完和关房结回、隐藏信息。
+ * 好友房的规则（src/room/rules.ts）：开局带入、少带、被拒由庄家打、离座马上带回、打完和关房带回、隐藏信息。
  * 房间（kit）、钱包 DO 在 workerd 里的部分在 test/worker/room.test.ts。
  */
 import { snapshotBytes } from 'arcade-kit/game';
@@ -115,8 +115,8 @@ describe('开局和带入', () => {
     expect(G.view(s, null).inn).toBe(0);
   });
 
-  test('钱包不够一份：不少带（底分和"最多赢 3 份"都按整份，少带的输得少、赢得一样多，第三轮审计），按被拒算', () => {
-    // 豪华档两个真人，一个钱包只有 1：他进不去，只剩一个人下注，这一场当场结束，另一个人的那一份原样结回
+  test('钱包不够一份：不少带（底分和"最多赢 3 份"都按整份，少带的输得少、赢得一样多），按被拒算', () => {
+    // 豪华档两个真人，一个钱包只有 1：他进不去，只剩一个人下注，这一场当场结束，另一个人的那一份原样带回
     const lux = stakesOf('lux')!.share;
     let s = G.settled!(begin(['human', 'human', 'ai', 'ai'], 'lux'), 'b1', OK);
     s = G.settled!(s, 'b0', { ok: false, error: 'no_funds', balance: 1 });
@@ -212,11 +212,11 @@ describe('实盘至少两个真人', () => {
     expect((begin(['human', 'ai', 'ai', 'ai'], 'lux').g as XzState).tunes![1]!.soft).toBe(VENUES['room:fun']!.soft);
   });
 
-  test('开打以后只剩一个真人在下注：这一局打完时这一场结束，所有人桌上的筹码按那一刻结回（一局打到一半走的，这一局照算）', () => {
+  test('开打以后只剩一个真人在下注：这一局打完时这一场结束，所有人桌上的筹码按那一刻带回（一局打到一半走的，这一局照算）', () => {
     let s = settleAll(begin(['human', 'human', 'ai', 'ai']));
     s = drive(s, 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
     s = G.seated!(s, 1, 'ai');
-    // 这一局还没完：他的筹码还在桌上、算下注的，电脑替他打，不结回、不提前收场
+    // 这一局还没完：他的筹码还在桌上、算下注的，电脑替他打，不带回、不提前收场
     expect([s.cut, s.done, fx(s), s.own[1], s.leaving?.[1]]).toEqual([false, false, [], true, true]);
     s = drive(s, 2_000, (x) => !!x.done);
     const chips = g(s, null).seats.map((x) => x.chips);
@@ -232,7 +232,7 @@ describe('实盘至少两个真人', () => {
     expect(G.apply(s, 0, { t: 'rebuy' })).toEqual({ error: 'closed' });
   });
 
-  test('开局有人被拒、只剩一个人在下注：当场结束，到账的那一份原样结回', () => {
+  test('开局有人被拒、只剩一个人在下注：当场结束，到账的那一份原样带回', () => {
     let s = begin(['human', 'human', 'ai', 'ai']);
     s = G.settled!(G.settled!(s, 'b0', OK), 'b1', { ok: false, error: 'no_funds', balance: 0 });
     expect(s.cut).toBe(true);
@@ -241,8 +241,8 @@ describe('实盘至少两个真人', () => {
   });
 });
 
-describe('离座和结回', () => {
-  test('离座：电脑替他打完这一局，这一局结束时带着筹码和小结结回，座位交给电脑接着打；回来再坐开新的一份', () => {
+describe('离座和带回', () => {
+  test('离座：电脑替他打完这一局，这一局结束时带着筹码和小结带回，座位交给电脑接着打；回来再坐开新的一份', () => {
     // 三个真人：走一个还剩两个在下注，接着打
     let s = settleAll(begin(['human', 'human', 'human', 'ai']));
     s = drive(s, 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
@@ -250,7 +250,7 @@ describe('离座和结回', () => {
     // 一局打到一半走的：这一局照算（不然眼看要输就走，能躲掉查叫和别人的自摸）
     expect([fx(s), s.own[0], s.leaving?.[0]]).toEqual([[], true, true]);
     s = drive(s, 2_000, (x) => fx(x).length > 0);
-    // 结回排在这一局的结算上（停在 end），不是离座那一刻
+    // 带回排在这一局的结算上（停在 end），不是离座那一刻
     expect(g(s, null).phase).toBe('end');
     const chips = g(s, null).seats[0]!.chips;
     const c = fx(s);
@@ -268,7 +268,7 @@ describe('离座和结回', () => {
     expect(g(s, 0).seats[0]!.chips).toBe(SHARE);
   });
 
-  test('一局打到一半离座、这一局没完又坐回来：筹码本来就是他的，接着打，不结回、不另开一份', () => {
+  test('一局打到一半离座、这一局没完又坐回来：筹码本来就是他的，接着打，不带回、不另开一份', () => {
     let s = settleAll(begin(['human', 'human', 'human', 'ai']));
     s = drive(s, 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
     const before = { share: s.share[0], chips: g(s, 0).seats[0]!.chips };
@@ -287,14 +287,14 @@ describe('离座和结回', () => {
     expect([f.own[0], !!f.leaving?.[0]]).toEqual([false, false]);
   });
 
-  test('真人在一局中途一起走了：电脑替所有座位把这一局打完（查叫、查花猪、退税照算）再结回，房间就算打完（第三轮审计）', () => {
+  test('真人在一局中途一起走了：电脑替所有座位把这一局打完（查叫、查花猪、退税照算）再带回，房间就算打完', () => {
     let dodged = 0;
     for (let k = 0; k < 12; k++) {
       let s = settleAll(begin(['human', 'human', 'ai', 'ai'], 'small', KEY.map((x, i) => (i === 0 ? x + k : x))));
       s = drive(s, 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
       const mid = g(s, null).seats.map((x) => x.chips);
       s = G.seated!(G.seated!(s, 0, 'ai'), 1, 'ai');
-      // kit 桌上没真人时不推电脑：这一局在这一步里就打到了结算，两个人按结算后的筹码结回、马上收场
+      // kit 桌上没真人时不推电脑：这一局在这一步里就打到了结算，两个人按结算后的筹码带回、马上收场
       const x = s.g as XzState;
       expect(['end', 'over']).toContain(x.phase);
       expect(G.over(s)).toBe(true);
@@ -307,7 +307,7 @@ describe('离座和结回', () => {
     expect(dodged).toBeGreaterThan(0);
   });
 
-  test('带入还在路上人就走了：到账后原样结回', () => {
+  test('带入还在路上人就走了：到账后原样带回', () => {
     let s = G.settled!(G.settled!(begin(['human', 'human', 'human', 'ai']), 'b1', OK), 'b2', OK);
     s = G.seated!(s, 0, 'ai');
     expect(G.over(s)).toBe(false);
@@ -316,7 +316,7 @@ describe('离座和结回', () => {
     expect(s.done).toBe(false);
   });
 
-  test('一场打完：桌上每个真人各结回一笔（按"最多赢 3 份"截过，带小结）；电脑的归庄家', () => {
+  test('一场打完：桌上每个真人各带回一笔（按"最多赢 3 份"截过，带小结）；电脑的归庄家', () => {
     let s = settleAll(begin(['human', 'human', 'ai', 'ai']));
     s = drive(s);
     expect(G.over(s)).toBe(true);
@@ -332,7 +332,7 @@ describe('离座和结回', () => {
     expect(G.apply(s, 0, { t: 'rebuy' })).toEqual({ error: 'closed' });
   });
 
-  test('房间要关：所有人桌上的筹码结回，牌局不再动', () => {
+  test('房间要关：所有人桌上的筹码带回，牌局不再动', () => {
     let s = drive(settleAll(begin(['human', 'human', 'ai', 'ai'])), 200, (x) => x.n > 40);
     s = G.closing!(s);
     expect(fx(s).map((e) => [e.seat, e.kind])).toEqual([
@@ -363,7 +363,7 @@ describe('实盘一局打到一半坐下：这一局电脑照打，下一局才�
     expect([g(a, null).phase, a.own[2], xz(a).kinds[2]]).toEqual(['end', false, 'ai']);
   });
 
-  test('下一局发牌前扣一份（像开局一样等钱包回话），到账才是他的、从一份算；整场打完只结回一次', () => {
+  test('下一局发牌前扣一份（像开局一样等钱包回话），到账才是他的、从一份算；整场打完只带回一次', () => {
     let s = toRoundEnd(G.seated!(midRound(), 2, 'human'));
     expect(fx(s).map(strip)).toEqual([{ id: expect.any(String), seat: 2, kind: 'debit', amount: SHARE }]);
     expect(fx(s)[0]!.ref).toBe(`${s.ref}s2n1`);
@@ -431,7 +431,7 @@ describe('实盘中途坐下、离座、局间坐下的边角', () => {
     expect([s.opening, fx(s).filter((e) => e.kind === 'debit').map((e) => e.seat)]).toEqual([true, [2, 3]]);
     s = G.seated!(s, 2, 'ai');
     expect(seatsOf(s)).toEqual([3]);
-    // 走了的那一份到账：原样结回
+    // 走了的那一份到账：原样带回
     const b2 = fx(s).find((e) => e.seat === 2 && e.kind === 'debit')!;
     s = G.settled!(s, b2.id, OK);
     expect([s.opening, s.own[2], fx(s).find((e) => e.seat === 2)?.kind]).toEqual([true, false, 'credit']);
@@ -453,7 +453,7 @@ describe('实盘中途坐下、离座、局间坐下的边角', () => {
     expect([s.own[2], g(s, 2).seats[2]!.chips]).toEqual([true, SHARE]);
   });
 
-  test('第 4 条②续：钱收着、还没接手时走了：那一份原样结回一次，座位还是电脑的', () => {
+  test('第 4 条②续：钱收着、还没接手时走了：那一份原样带回一次，座位还是电脑的', () => {
     let s = toRoundEnd(G.seated!(midRound(), 2, 'human'));
     s = act(s, 2, G.ai(s, 2));
     s = drive(s, 400, (x) => g(x, null).phase === 'turn' && x.n > 5);
@@ -564,7 +564,7 @@ describe('隐藏信息和大小', () => {
 describe('再来一场', () => {
   const done = () => drive(settleAll(begin(['human', 'human', 'ai', 'ai'])), 100_000, (x) => x.done);
 
-  test('打完先结回，房间停着等人点，不算打完', () => {
+  test('打完先带回，房间停着等人点，不算打完', () => {
     const s = done();
     expect(s.done).toBe(true);
     expect(fx(s).every((e) => e.kind === 'credit')).toBe(true);
@@ -671,7 +671,7 @@ describe('钱包操作 id（src/game/ops.ts，审计高危）', () => {
     expect(soloOp('op-000001')).toBe('solo-op-000001');
     expect(soloOp('solo-op-000001')).toBe('solo-op-000001');
     expect(soloOp('r0123456789abcdef-b0')).toBe('solo-r0123456789abcdef-b0');
-    // 好友房里会出现的每一种：开局带入、被拒再带、离座结回、回来开新的一份、打完结回，几个房间号
+    // 好友房里会出现的每一种：开局带入、被拒再带、离座带回、回来开新的一份、打完带回，几个房间号
     const ops: string[] = [];
     const record = (e: WalletEffect) => {
       ops.push(roomOp(e));

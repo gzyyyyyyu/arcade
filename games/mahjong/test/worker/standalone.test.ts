@@ -96,7 +96,7 @@ describe('单独部署（没有平台）', () => {
     expect(bs.t === 'state' && bs.room.seats[1]!.name).toBe('阿花');
   });
 
-  it('没有钱包：实盘房、单机带入结回一律 no_wallet', async () => {
+  it('没有钱包：实盘房、单机带入带回一律 no_wallet', async () => {
     const me = await guest();
     const room = await create(me, { ...FUN, stakes: 'small' });
     expect(room.status).toBe(409);

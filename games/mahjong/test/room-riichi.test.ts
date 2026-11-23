@@ -1,5 +1,5 @@
 /**
- * 好友房的立直（src/room/rules.ts 接 src/core/variants/riichi）：开房选项、实盘打完一场的结回、一局打到一半离座的结算、
+ * 好友房的立直（src/room/rules.ts 接 src/core/variants/riichi）：开房选项、实盘打完一场的带回、一局打到一半离座的结算、
  * 隐藏信息和快照大小、声明窗口里真人答了不露人。房间这一层不认识玩法，这里只验证立直接上以后这些规矩照样成立。
  */
 import { snapshotBytes } from 'arcade-kit/game';
@@ -76,7 +76,7 @@ describe('开房选项', () => {
 });
 
 describe('实盘', () => {
-  test('东风战打完：每个真人各结回一笔（按"最多赢 3 份"截过、带 rc_ 小结），四家筹码按得分换', () => {
+  test('东风战打完：每个真人各带回一笔（按"最多赢 3 份"截过、带 rc_ 小结），四家筹码按得分换', () => {
     let s = settleAll(begin(['human', 'human', 'ai', 'ai']));
     s = drive(s);
     expect(G.over(s)).toBe(true);
@@ -93,7 +93,7 @@ describe('实盘', () => {
     expect((s.g as RcState).final!.score.reduce((a, b) => a + b, 0)).toBe(0);
   });
 
-  test('一局打到一半离座：电脑替他打完这一局再结回，按那一刻"没打完"算（只算点数差，不是原样退回）', () => {
+  test('一局打到一半离座：电脑替他打完这一局再带回，按那一刻"没打完"算（只算点数差，不是原样退回）', () => {
     let s = settleAll(begin(['human', 'human', 'human', 'ai']));
     // 打到有人输了点数、而且正在一局中间
     s = drive(s, 20_000, (x) => {
@@ -106,7 +106,7 @@ describe('实盘', () => {
     expect(g(s, null).phase === 'end' || g(s, null).phase === 'over').toBe(true);
     const c = fx(s).find((e) => e.seat === 0)!;
     expect(c.kind).toBe('credit');
-    // 结回的数 = 结算那一刻按没打完算的结果（他点数低于起始，拿回的少于一份）
+    // 带回的数 = 结算那一刻按没打完算的结果（他点数低于起始，拿回的少于一份）
     expect(c.amount).toBe(RC.result(s.g as RcState).seats[0]!.chips);
     // 一局结束时（不是整场打完）按没打完算：只看点数差
     const st = s.g as RcState;
@@ -201,7 +201,7 @@ describe('立直房里电脑起哄', () => {
   });
 });
 
-describe('局间坐下到账马上走，一张牌没打，结回的正好是带进来的一份', () => {
+describe('局间坐下到账马上走，一张牌没打，带回的正好是带进来的一份', () => {
   // 带入到账时 entry 按含马的得分记，局间离座按"没打完"（不含马）结：两种算法差出来的马由庄家补，坐下就走能白拿（Gemini 跨审第 1 条）
   for (const length of ['hanchan', 'tonpuu'] as const)
     test(`${length}：东一局打完停在结算，两个电脑座位各坐下、到账、马上离开`, () => {

@@ -2,7 +2,7 @@
  * 好友房（DESIGN.md 第 6 节）：kit 的房间 + 麻将的房间规则（src/room/rules.ts）。这里做两件事：把规则记下的钱包的事交给平台钱包办（server 模式），
  * 一场打完把同桌真人的输赢报给平台的搭子战绩（kit 的 reportMatch）；
  * 每一步之后让电脑按公开的事发个表情、真人冲电脑发了东西让它回一句（src/room/talk.ts，不碰牌局、不写存储）。
- * 带入、结回经服务绑定调平台，平台按操作 id 去重，房间重办不会多扣多给；每个座位同一时间只有一笔、一份只结回一次（规则保证）。
+ * 带入、带回经服务绑定调平台，平台按操作 id 去重，房间重办不会多扣多给；每个座位同一时间只有一笔、一份只带回一次（规则保证）。
  */
 import { DEFAULT_LIMITS, GameRoom, type RoomLimits } from 'arcade-kit/room';
 import { roomOp } from '../src/game/ops.ts';
@@ -18,7 +18,7 @@ import type { Env } from './main.ts';
 const ROOM_LIMITS: RoomLimits = { ...DEFAULT_LIMITS, aiDelayMs: AI_DELAY_MS, maxAiBatch: 60, maxLifeMs: 4 * 3_600_000, maxInbound: 4_000 };
 /** 钱包里"桌上那一份"的到期退回：晚于房间最长能活多久再多 1 小时，正常的房间一定先结算（平台最长 24 小时） */
 const HOLD_MS = ROOM_LIMITS.maxLifeMs + ROOM_LIMITS.closingMs + 3_600_000;
-/** 平台暂时办不了：结回要重办（抛错，房间按退避再来，同一个操作 id） */
+/** 平台暂时办不了：带回要重办（抛错，房间按退避再来，同一个操作 id） */
 const RETRY = new Set(['busy', 'internal']);
 
 export class MahjongRoom extends GameRoom<RoomState, RoomAction, RoomView, Env, RoomOpts, WalletEffect> {
@@ -59,8 +59,8 @@ export class MahjongRoom extends GameRoom<RoomState, RoomAction, RoomView, Env, 
       if (r.statsIgnored) console.error('mahjong room: stats ignored', e.ref, r.statsIgnored);
       return { ok: true };
     }
-    // 平台暂时办不了（busy、internal）：带入、结回都重办（同一个操作 id，平台去重）；
-    // 结回时那一份已经没了（到期退回过 expired，或者没有 no_stake）也算办完
+    // 平台暂时办不了（busy、internal）：带入、带回都重办（同一个操作 id，平台去重）；
+    // 带回时那一份已经没了（到期退回过 expired，或者没有 no_stake）也算办完
     if (RETRY.has(r.error)) throw new Error(`wallet ${r.error}`);
     if (e.kind === 'credit' && r.error !== 'expired') console.error('mahjong room: settle refused', e.ref, r.error);
     // 带入被拒告诉他本人（钱不够一份不少带，规则不看余额）

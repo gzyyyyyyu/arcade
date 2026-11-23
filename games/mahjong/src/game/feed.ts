@@ -1,7 +1,7 @@
 /**
  * 好友动态里的娱乐名场面（docs/api-social.md 15.17 第 2 条，DESIGN.md 第 6 节）：只判定、不碰网络，画面层读事件后经 kit 的 postMoment 报。
  * 只报自己胡的、真正值得炫的（一把只取最响的那个），数是这一把的番；文字模板在 public/moments.json（平台按编号拼，这里只给编号和数）。
- * 一炮多响记在点炮的人头上，不报；实盘的由平台在结回时自己生成，这里只管娱乐局。
+ * 一炮多响记在点炮的人头上，不报；实盘的由平台在带回时自己生成，这里只管娱乐局。
  */
 import type { FanId, XzEvent } from '../core/variants/sichuan-xuezhan/index.ts';
 import type { RcHighlightId } from './riichi/fun.ts';

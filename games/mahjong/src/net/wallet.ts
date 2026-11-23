@@ -1,5 +1,5 @@
 /**
- * 浏览器这头的钱包（DESIGN.md 第 4 节）：看钱包、领补给走平台的 /api/wallet；单机的带入、结回走本模块 Worker 的 api/stake/*（相对路径，
+ * 浏览器这头的钱包（DESIGN.md 第 4 节）：看钱包、领补给走平台的 /api/wallet；单机的带入、带回走本模块 Worker 的 api/stake/*（相对路径，
  * 页面在 /games/mahjong/ 下，就是 /games/mahjong/api/stake/*），Worker 经服务绑定转给平台钱包（client 模式）。
  * 出错一律带错误码，页面按 view/text.ts 的对照表说人话（docs/api.md 15.10）。
  */
@@ -46,11 +46,11 @@ const post = (kind: string, body: unknown): Promise<WalletReply> =>
 /** 单机带入：session 是这一场的号（钱包里"桌上那一份"的 ref），op 是这个动作的号（平台按它去重，重发不会多扣） */
 export const soloBuyin = (b: { op: string; session: string; stakes: TierId; amount: number }): Promise<WalletReply> => post('buyin', b);
 
-/** 单机结回：带这一场的小结（docs/platform-wallet.md 5.10，Worker 原样转发） */
+/** 单机带回：带这一场的小结（docs/platform-wallet.md 5.10，Worker 原样转发） */
 export const soloSettle = (b: { op: string; session: string; amount: number; stats?: SettleStats }): Promise<WalletReply> => post('settle', b);
 
 /**
- * 带入、结回失败时，钱包那边是不是可能已经办了：平台明确拒的（钱不够、上限、参数不对、没登录……）一定没办；
+ * 带入、带回失败时，钱包那边是不是可能已经办了：平台明确拒的（钱不够、上限、参数不对、没登录……）一定没办；
  * 没回话、平台暂时不行、认不出来的都当"可能办了"，留着操作号以后重发（平台按号去重）
  */
 const REFUSED = new Set(['no_funds', 'limit', 'at_table', 'no_stake', 'expired', 'bad_mode', 'bad_amount', 'bad_until', 'bad_request', 'login', 'forbidden', 'rate_limited']);

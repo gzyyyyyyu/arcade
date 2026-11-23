@@ -1,6 +1,6 @@
 /**
  * 好友房跑在本地 workerd 里（DESIGN.md 第 6 节）：真的房间 DO（kit + 麻将的房间规则）、真的（假平台的）钱包 DO。
- * 覆盖开房、实盘开局的带入、隐藏信息不下发、每步写入 ≤ 2 行、离座马上结回、钱包不够一份时不少带、一场打完报搭子战绩、好友房聊天的转发和过滤。
+ * 覆盖开房、实盘开局的带入、隐藏信息不下发、每步写入 ≤ 2 行、离座马上带回、钱包不够一份时不少带、一场打完报搭子战绩、好友房聊天的转发和过滤。
  * 不打整场（牌局本身在 node 单测里）；不等真实计时，只停在开局后的换三张阶段。
  */
 import { runInDurableObject } from 'cloudflare:test';
@@ -204,7 +204,7 @@ describe('实盘开局', () => {
     expect(host.raw.some((r) => r.includes('"key"'))).toBe(false);
   });
 
-  it('一局打到一半离座：这一局照算（电脑替他打完）；房主也走了就收场，两个人的那一份都结回钱包', async () => {
+  it('一局打到一半离座：这一局照算（电脑替他打完）；房主也走了就收场，两个人的那一份都带回钱包', async () => {
     const { ids, host, guest } = await table();
     await guest.see((x) => x.own[1]! && !x.opening);
     guest.send({ t: 'leave' });
@@ -214,14 +214,14 @@ describe('实盘开局', () => {
     expect((await walletOf(ids[1]!)).stakes).toHaveLength(1);
     const mid = await host.see((x) => !x.own[0] || x.own[1]!);
     expect(mid).toMatchObject({ cut: false, done: false, own: [true, true, false, false] });
-    // 房主也走：桌上没真人了，房间收场（kit 不推只有电脑的桌），两个人按那一刻的筹码结回
+    // 房主也走：桌上没真人了，房间收场（kit 不推只有电脑的桌），两个人按那一刻的筹码带回
     host.send({ t: 'leave' });
     for (let i = 0; i < 150 && ((await walletOf(ids[0]!)).stakes.length > 0 || (await walletOf(ids[1]!)).stakes.length > 0); i++) await sleep(20);
     expect((await walletOf(ids[0]!)).stakes).toEqual([]);
     expect((await walletOf(ids[1]!)).stakes).toEqual([]);
   });
 
-  it('钱包只有 500：不少带，按被拒算（第三轮审计）；只剩一个人下注，这一场当场结束，另一个人的那一份原样结回', async () => {
+  it('钱包只有 500：不少带，按被拒算；只剩一个人下注，这一场当场结束，另一个人的那一份原样带回', async () => {
     const { ids, host, guest } = await table({ 1: 500 });
     const v = await guest.see((x) => x.refused !== null);
     expect([v.refused, v.inn, v.own[1]]).toEqual(['no_funds', 0, false]);

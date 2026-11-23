@@ -39,7 +39,7 @@ describe('听牌提示', () => {
   });
 });
 
-describe('自审 C7', () => {
+describe('边角情况', () => {
   it('四张都在自己手里和碰杠里的那种不提示听', () => {
     const s = RON();
     const k5 = kinds('5p')[0]!;
