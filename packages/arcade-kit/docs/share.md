@@ -14,7 +14,7 @@ import { shareCard } from 'arcade-kit/share';
 const r = await shareCard(
   {
     game: '游戏名', title: '实盘小档 · 8 副', accent: '#b03a2e',
-    big: { value: '+3.5', label: '份筹码', sign: 1 },   // sign：输赢的数按正绿负红画（白描边），不给是白字（0.24.3）
+    big: { value: '+3.5', label: '份筹码', sign: 1 },   // sign：输赢的数按正绿负红画（白描边），不给是白字
     stats: [{ label: '头游', value: '4 次' }, { label: '炸弹', value: '6 个' }],   // 最多 3 条，多的不画
     line: '最后一手四个 A 炸穿全场',                                               // 模板拼的，不收玩家自由文字
     art: { image: atlasImg, crop: { x: 128, y: 0, w: 128, h: 128 }, fit: 'contain' },
@@ -67,7 +67,7 @@ social?.presenceNow(true);                          // 进房、换房时马上�
   （`{"double_down": {"text": "{name}和搭档双下了对面"}}`，只认 `{name}`、`{n}`、`{n2}`、`{n3}`，≤ 40 字）。返回 HTTP 状态，平台超了每天 10 条也回 204，游戏不用管；
   编号要字母开头、1–24 位 `[a-z0-9_]`，不合格的本地就不发（回 400）。只在真有看头的时候报（一局一两条），平台每人每天 10 条是所有游戏合计。
 - **"叫朋友来"面板**：`social.openInvite({ game, room })`（`social` 是 `mountSocial` 的返回值；没挂上时用导出的 `openInvite({ game, room, friends: false })`，只有"复制邀请链接"）。
-  列好友（在线的在前，写在哪），每人一个"叫他来"，发出后 1 分钟内是灰的"已叫"，叫不了的写成大白话；底下"复制邀请链接"（能系统分享就分享）。
+  列好友（在线的在前，写在哪），每人一个"叫 TA 来"，发出后 1 分钟内是灰的"已叫"，叫不了的写成大白话；底下"复制邀请链接"（能系统分享就分享）。
   好友多、屏幕矮时按列表的可用高度翻页（`‹ 1/3 ›` 和"复制邀请链接"同一行，翻页键 44 像素见方，`data-key` 是 `invite:prev` / `invite:next`），不在框里滚动；列表高度钉在最满那一页，面板不留空白；提示那一行没字时不占地方；窗口变了重新分页。
   电脑大屏（宽 ≥ 1280、高 ≥ 720）上整体放大一档：面板宽 560，好友名 19 像素、按钮高 52；手机、平板是宽 420、按钮高 44。颜色要和游戏自己的弹窗一致，传主题（见 [theme.md](theme.md)）。
   样式和 table-fun 一样，z-index 默认 10600（`SOCIAL_Z.panel`，横条是 10500；游戏自己的弹窗更高时传 `zIndex`）；好友"在哪"先用平台给的 `where.gameName`，没有再用 `gameName` 回调，都没有说"在玩游戏"；按钮的 `data-key` 是 `invite:call:<好友 id>`、`invite:copy`、`invite:close`、`invite:prev`、`invite:next`，`log` 给 `叫人 打开 <n>`、`叫人 <id> ok|limit|blocked|…`、`叫人 复制`、`叫人 关闭`。

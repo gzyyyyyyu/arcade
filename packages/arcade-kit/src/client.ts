@@ -2,18 +2,18 @@
  * 浏览器端连接器（docs/platform-backend.md 4.5）：
  * - 断线后按指数退避加随机抖动重连；房间每次都回全量快照（welcome），客户端整桌重画，不做增量修补；
  * - 页面从后台切回来（document 的 visibilitychange、window 的 pageshow）、网络恢复（window 的 online）时立刻检查连接：iOS Safari、微信切后台会挂起连接；
- *   从往返缓存（bfcache，pageshow 带 persisted）回来的页面，旧连接一律作废、马上重连（0.11.1）；
- * - 静默死掉的连接（0.11.1）：iOS 锁屏、切 App 以后 socket 常常还是 OPEN、也不触发 close，发出去的石沉大海。
+ *   从往返缓存（bfcache，pageshow 带 persisted）回来的页面，旧连接一律作废、马上重连；
+ * - 静默死掉的连接：iOS 锁屏、切 App 以后 socket 常常还是 OPEN、也不触发 close，发出去的石沉大海。
  *   每次心跳（和切回前台）发 "ping" 以后等 PONG_WAIT_MS，这期间什么都没收到（连房间自动回的 "pong" 都没有）就判它死了：
  *   不等 close，直接扔掉、按断线重连。建连卡在 CONNECTING 超过 CONNECT_MS 也一样。只看"收到过没有"，不比时钟，后台节流的计时器晚跑也不会误判；
  * - 收到 1008、1009 或 4000 段关闭码时不重连（违规、房间关了、被别处顶掉、版本太旧、没登录 4401、别的网站 4403）；
  * - 平台暂时不可用（1013）照常按退避重连；
  * - 连着 maxFailures 次（默认 20 次，约 4 分钟）都没进得了房间（没收到 welcome）就停下，状态变成 failed，由界面提示"连不上"、让用户点 retry()。
  *   失败次数在收到 welcome 时清零，不在 onopen：被拒的连接也会先 open 再关，按 onopen 清零就会一直快速重连；
- *   退避要进了房间、连着待够 STABLE_MS 再断才清零（0.26.0）：连上就断的链路（弱网、代理掐连接）照样越等越久，不会每次半秒就重连；
+ *   退避要进了房间、连着待够 STABLE_MS 再断才清零：连上就断的链路（弱网、代理掐连接）照样越等越久，不会每次半秒就重连；
  * - 下行消息按 seq 去重，旧的丢掉；上行操作带 moveId 和 baseSeq（做决定时看到的 seq），没收到 ack 的在重连后原样重发：
  *   房间认得出重复的 moveId；牌局在那之后变过的，房间回 stale，不会把旧操作套到新的一手上。
- *   重发有分寸（0.26.0）：最多留 PENDING_MAX 个、超过 PENDING_TTL_MS 的丢掉，一次先发 RESEND_BATCH 个、其余等前面的有了回音再发，
+ *   重发有分寸：最多留 PENDING_MAX 个、超过 PENDING_TTL_MS 的丢掉，一次先发 RESEND_BATCH 个、其余等前面的有了回音再发，
  *   免得一下子撞上房间的令牌桶被当成违规（1008）断开；
  * - 心跳发纯文本 "ping"，房间由运行时自动回 "pong"（setWebSocketAutoResponse），不唤醒房间。
  *
@@ -33,21 +33,21 @@ export interface RoomClientOptions<V> {
   onMessage(msg: DownMsg<V>): void;
   /**
    * 连接状态变化。closeCode：closed、failed 时是让它停下的那个关闭码；reconnecting 时是刚断开的那条连接的关闭码
-   * （1006 网络断了、1013 平台暂时认不了人……，0.1.1 起才带）；connecting、open 时没有。
-   * reason：closed 时房间给的关闭原因（0.2.0）；4000 带 CLOSE_REASON.quota 是今天联机额度满了、房间收场，其他时候一般不用看
+   * （1006 网络断了、1013 平台暂时认不了人……，才带）；connecting、open 时没有。
+   * reason：closed 时房间给的关闭原因；4000 带 CLOSE_REASON.quota 是今天联机额度满了、房间收场，其他时候一般不用看
    */
   onStatus?(status: ClientStatus, closeCode?: number, reason?: string): void;
   /**
-   * 有人发了快捷短语（0.6.0，见 RoomGame.emotes）：seat 是房间的座位号，id 是短语编号。不传就丢掉。
-   * to（0.7.0）：冲着哪个座位发的，没指定时是 undefined；bot（0.10.0）：电脑座位发的（GameRoom.botEmote）是 true，一般不用区分
+   * 有人发了快捷短语（见 RoomGame.emotes）：seat 是房间的座位号，id 是短语编号。不传就丢掉。
+   * to：冲着哪个座位发的，没指定时是 undefined；bot：电脑座位发的（GameRoom.botEmote）是 true，一般不用区分
    */
   onEmote?(seat: number, id: number, to?: number, bot?: boolean): void;
   /**
-   * 有人说了一句（0.18.0，见 RoomGame.chat 和 docs/chat.md）：seat 是房间的座位号，text 是房间过滤、打码后的字，masked 表示打过码。
+   * 有人说了一句（见 RoomGame.chat 和 docs/chat.md）：seat 是房间的座位号，text 是房间过滤、打码后的字，masked 表示打过码。
    * 传了它连接时才带 chat=1，房间才会给这个页面发聊天；不传就收不到、也别调 chat()
    */
   onChat?(seat: number, text: string, masked: boolean): void;
-  /** 房间拒了一条聊天（0.18.0，CHAT_ERRORS 里聊天专有的那几个）：本地已经先挡过一遍，一般只在节奏刚调过、刚重连时出现 */
+  /** 房间拒了一条聊天（CHAT_ERRORS 里聊天专有的那几个）：本地已经先挡过一遍，一般只在节奏刚调过、刚重连时出现 */
   onChatError?(code: string): void;
   /** 下面这些是给测试注入的；浏览器里不用传 */
   WebSocketImpl?: { new (url: string): WebSocketLike };
@@ -81,20 +81,20 @@ const OPEN = 1;
 const BASE_MS = 500;
 const MAX_MS = 15_000;
 const HEARTBEAT_MS = 25_000;
-/** 发了 ping 以后等多久没收到任何东西就判连接死了（0.11.1）。房间的自动回 pong 不经过游戏代码，正常几十毫秒就到 */
+/** 发了 ping 以后等多久没收到任何东西就判连接死了。房间的自动回 pong 不经过游戏代码，正常几十毫秒就到 */
 export const PONG_WAIT_MS = 8_000;
-/** 建连最多等多久（0.11.1）：卡在 CONNECTING 的按一次失败算，重连 */
+/** 建连最多等多久：卡在 CONNECTING 的按一次失败算，重连 */
 export const CONNECT_MS = 10_000;
-/** 进了房间连着待够这么久再断，退避才清零（0.26.0） */
+/** 进了房间连着待够这么久再断，退避才清零 */
 export const STABLE_MS = 30_000;
-/** 没确认的操作最多留几个（0.26.0）：和房间记得的 moveId 一样多（room.ts 的 RECENT_MOVES），更早的房间认不出是重发，补发可能做两遍 */
+/** 没确认的操作最多留几个：和房间记得的 moveId 一样多（room.ts 的 RECENT_MOVES），更早的房间认不出是重发，补发可能做两遍 */
 export const PENDING_MAX = 8;
-/** 没确认的操作留多久（0.26.0）：断了这么久，牌局早变了，补发只会被回 stale */
+/** 没确认的操作留多久：断了这么久，牌局早变了，补发只会被回 stale */
 export const PENDING_TTL_MS = 60_000;
-/** 重连后一次先补发几个（0.26.0）：房间给每个人的令牌桶最多攒 10 个（还要留给 ping、进房后的消息） */
+/** 重连后一次先补发几个：房间给每个人的令牌桶最多攒 10 个（还要留给 ping、进房后的消息） */
 export const RESEND_BATCH = 4;
 /**
- * 看门狗（0.13.1）：房间说的出手时限（或停顿的结束时间）过了 STALL_GRACE_MS 再加最多 STALL_JITTER_MS 的随机抖动，还没有新状态，
+ * 看门狗：房间说的出手时限（或停顿的结束时间）过了 STALL_GRACE_MS 再加最多 STALL_JITTER_MS 的随机抖动，还没有新状态，
  * 就当房间的闹钟没设上（存储出错、没人发消息时房间不会自己醒），重连一次把房间叫醒：进房是房间的一个入口，它会按 getAlarm() 重排闹钟、
  * 把过期的那一手照常处理。同一个 seq 只踢一次；抖动让一桌人里先到的那个去踢，别人收到新状态就不踢了
  */
@@ -109,7 +109,7 @@ export function backoffMs(attempt: number, random: () => number = Math.random): 
   return Math.round(cap * (0.5 + random() / 2));
 }
 
-// chat() 的结果类型 0.18.1 起定义在 chat.ts（单机的 localChat 也用），这里照旧导出，旧代码不用改
+// chat() 的结果类型定义在 chat.ts（单机的 localChat 也用），这里再导出一份，客户端一处 import 就够
 export type { ChatSendResult };
 
 /** 聊天专有的拒绝码：不交给 onMessage（not_seated、room_over 和短语共用，照旧走 onMessage） */
@@ -128,11 +128,11 @@ export class RoomClient<A = unknown, V = unknown> {
   private lastSeq = -1;
   private retryTimer: unknown = null;
   private beatTimer: unknown = null;
-  /** 探活（0.11.1）：发了 ping 还没收到任何东西；到点还是 true 就判死 */
+  /** 探活：发了 ping 还没收到任何东西；到点还是 true 就判死 */
   private probing = false;
   private probeTimer: unknown = null;
   private connectTimer: unknown = null;
-  /** 看门狗（0.13.1）：到点还停在 watchSeq 就重连一次；kickedSeq 是踢过的，不再踢 */
+  /** 看门狗：到点还停在 watchSeq 就重连一次；kickedSeq 是踢过的，不再踢 */
   private watchTimer: unknown = null;
   private kickedSeq = -1;
   /** 没收到 ack 的操作：重连后按原 moveId 重发（Map 按放进去的先后排，最早的在前） */
@@ -140,14 +140,14 @@ export class RoomClient<A = unknown, V = unknown> {
   /** 重连后还没补发的 moveId：前面的有了回音（ack 或被拒）再发下一个 */
   private resendQueue: string[] = [];
   private moveCounter = 0;
-  /** 快捷短语的本地令牌桶（0.7.0）：节奏按房间 welcome 里给的，没收到前按默认 1 秒 1 个、攒 3 个 */
+  /** 快捷短语的本地令牌桶：节奏按房间 welcome 里给的，没收到前按默认 1 秒 1 个、攒 3 个 */
   private emoteRate: { ms: number; burst: number } = { ...EMOTE_RATE };
   private emoteTokens: number = EMOTE_RATE.burst;
   private emoteAt = 0;
   /** 太快时排着的（只留最后 EMOTE_QUEUE 个），到下一个令牌时发 */
   private emoteQueue: { id: number; to?: number }[] = [];
   private emoteTimer: unknown = null;
-  /** 聊天的节奏（0.18.0，welcome.chat）和本地记的最近一分钟发出去的时间；没收到 welcome 前按 kit 的默认 */
+  /** 聊天的节奏（welcome.chat）和本地记的最近一分钟发出去的时间；没收到 welcome 前按 kit 的默认 */
   private chatRate: { ms: number; perMin: number } = { ...CHAT_RATE };
   private chatTimes: number[] = [];
   private readonly opts: Required<Pick<RoomClientOptions<V>, 'random' | 'setTimer' | 'clearTimer'>> & RoomClientOptions<V>;
@@ -166,7 +166,7 @@ export class RoomClient<A = unknown, V = unknown> {
       ...opts,
     };
     this.doc = opts.events ?? (typeof document !== 'undefined' ? document : undefined);
-    // pageshow、online 只在 window 上派发，挂在 document 上永远收不到（0.11.0 以前就是这样）
+    // pageshow、online 只在 window 上派发，挂在 document 上永远收不到
     this.win = opts.windowEvents ?? opts.events ?? (typeof window !== 'undefined' ? window : undefined);
     this.doc?.addEventListener('visibilitychange', this.onWake);
     this.win?.addEventListener('pageshow', this.onPageShow);
@@ -192,13 +192,13 @@ export class RoomClient<A = unknown, V = unknown> {
     this.trySend({ t: 'leave' });
   }
 
-  /** 房主开局；opts 是开局选项（0.3.0，游戏校验），不带就和以前一样 */
+  /** 房主开局；opts 是开局选项（游戏校验），可不带 */
   start(opts?: unknown): void {
     this.trySend(opts === undefined ? { t: 'start' } : { t: 'start', opts });
   }
 
   /**
-   * 说一句（0.18.0）：先在本地过一遍房间同样的检查（字数、导流、节奏），不行就不发、直接告诉页面为什么（chatRejectText 给说法）；
+   * 说一句：先在本地过一遍房间同样的检查（字数、导流、节奏），不行就不发、直接告诉页面为什么（chatRejectText 给说法）；
    * 行就发出去，房间转发回来的经 onChat 交给页面（发的人自己也收到）。没连上不存着重发。waitMs 是太快时还要等多久
    */
   chat(text: string, now = Date.now()): ChatSendResult {
@@ -225,8 +225,8 @@ export class RoomClient<A = unknown, V = unknown> {
   }
 
   /**
-   * 快捷短语（0.6.0）：发游戏短语表里的编号；to（0.7.0）是冲着哪个座位（扔道具、点名嘲讽），不带就是对全桌。
-   * 0.7.0 起本地按房间的节奏（welcome.emote）排队：太快的排到下一个令牌，只留最后 2 个，不提示用户。没连上就丢掉，不存着重发（过时的短语没意义）；
+   * 快捷短语：发游戏短语表里的编号；to是冲着哪个座位（扔道具、点名嘲讽），不带就是对全桌。
+   * 本地按房间的节奏（welcome.emote）排队：太快的排到下一个令牌，只留最后 2 个，不提示用户。没连上就丢掉，不存着重发（过时的短语没意义）；
    * 房间转发回来的 { t: 'emote', seat, id } 经 onEmote 交给页面（不进 onMessage），发的人自己也会收到
    */
   emote(id: number, to?: number): void {
@@ -342,7 +342,7 @@ export class RoomClient<A = unknown, V = unknown> {
       } else if (msg.t === 'state') {
         const mine = msg.ack !== undefined && this.pending.delete(msg.ack);
         if (mine) this.resendNext();
-        // 旧的、重复的丢掉（ack 已经处理过了）。例外：别人看不出来的一步（0.7.1，quiet），房间只回给我、seq 不加，第一次收到要交给页面
+        // 旧的、重复的丢掉（ack 已经处理过了）。例外：别人看不出来的一步（quiet），房间只回给我、seq 不加，第一次收到要交给页面
         if (msg.seq < this.lastSeq || (msg.seq === this.lastSeq && !(mine && msg.quiet === true))) return;
         this.lastSeq = msg.seq;
         this.watch(ws, msg);
@@ -505,7 +505,7 @@ export class RoomClient<A = unknown, V = unknown> {
 
 export { PROTOCOL_VERSION };
 
-// ---------- 开房和给玩家看的默认文案（0.8.0） ----------
+// ---------- 开房和给玩家看的默认文案 ----------
 
 /** 开房的结果：成功回房间码；失败回 acceptCreate 的错误码，网络断了是 offline。has_room 带那个房间的码 */
 export type CreateResult = { code: string } | { error: CreateError | 'offline'; code?: string };
@@ -531,7 +531,7 @@ export async function createRoom(url: string | URL, opts: unknown, fetchImpl: ty
 
 /**
  * 开房失败、和房间断开时给玩家看的话（docs/platform-backend.md 15.10 的口径：大白话、说清能做什么）。只写各游戏都通用的说法，
- * 游戏按 key 换掉个别措辞（比如"这一手""这一局"、"桌上的筹码结回钱包"），没换的用默认：
+ * 游戏按 key 换掉个别措辞（比如"这一手""这一局"、"桌上的筹码带回钱包"），没换的用默认：
  * - 开房失败：key 是 createRoom 的错误码（login、has_room、daily_limit、busy、bad_options、forbidden、unavailable、offline），不认识的按 unavailable；
  * - 断开：key 是 CLOSE 里的名字（roomClosed、noRoom、replaced……），另有 quota（4000 带 quota 原因：今天额度快满、房间收场）和 other（没列出的关闭码）。
  */
@@ -580,7 +580,7 @@ export function closeText(code: number, reason?: string, overrides: RoomTexts = 
   return overrides[key] ?? ROOM_TEXT[key];
 }
 
-// ---------- 快速匹配（0.20.0，docs/match.md） ----------
+// ---------- 快速匹配（docs/match.md） ----------
 
 export type { MatchSoloWhy };
 
@@ -601,7 +601,7 @@ export interface MatchClientOptions {
 }
 
 /**
- * 兜底（安全审阅 0.20.0）：排队那边到点了还没给结果（平台、房间卡住，或者连接静默死掉），再多等这么久就自己转单机（unavailable），
+ * 兜底：排队那边到点了还没给结果（平台、房间卡住，或者连接静默死掉），再多等这么久就自己转单机（unavailable），
  * 不让页面一直停在"等待中"
  */
 export const MATCH_GRACE_MS = 10_000;
@@ -697,7 +697,7 @@ export class MatchClient {
   }
 }
 
-// ---------- 大厅声音（0.30.0） ----------
+// ---------- 大厅声音 ----------
 
 /**
  * 大厅的声音开关（平台对游戏公开的唯一一个存储约定，docs/sound.md）：平台把关掉记成 localStorage `arcade.sound` = 'off'。
@@ -712,7 +712,7 @@ export function platformSoundOn(): boolean {
   }
 }
 
-// ---------- 有没有平台（0.10.0，独立部署时页面降级用） ----------
+// ---------- 有没有平台（独立部署时页面降级用） ----------
 
 /**
  * 页面所在站点有没有平台：
@@ -754,7 +754,7 @@ export async function detectPlatform(opts: DetectPlatformOptions = {}): Promise<
 }
 
 /**
- * 独立模式下给开房、进房的地址带上昵称（`?name=`，0.10.0）：`createRoom(withNickname('rooms', name), opts)`、
+ * 独立模式下给开房、进房的地址带上昵称（`?name=`）：`createRoom(withNickname('rooms', name), opts)`、
  * `new RoomClient({ url: withNickname(wsUrl, name), … })`。服务端会严格清洗（guest.ts 的 cleanNickname），不合格就用默认的"游客1234"；
  * 有平台时服务端不看它，昵称以平台为准。name 空的原样返回
  */

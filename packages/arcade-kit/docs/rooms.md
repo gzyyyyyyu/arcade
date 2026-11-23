@@ -4,7 +4,7 @@
 
 ## 游戏怎么接（详细）
 
-1. `package.json` 加依赖：仓库外 `npm i arcade-kit@npm:@yyyu-star/arcade-kit`（npm 上的包名是 `@yyyu-star/arcade-kit`，装成别名 `arcade-kit`，代码里照旧 `arcade-kit/room`）；仓库内的游戏也一样按别名装（`"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.25.1"`）。
+1. `package.json` 加依赖：仓库外 `npm i arcade-kit@npm:@yyyu-star/arcade-kit`（npm 上的包名是 `@yyyu-star/arcade-kit`，装成别名 `arcade-kit`，代码里照旧 `arcade-kit/room`）；仓库内的游戏也一样按别名装（`"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.30.0"`）。
 2. 写规则：实现 `RoomGame<S, A, V, O, E>`（`seats`、`rulesVersion`、`begin`、`parse`、`apply`、`turn`、`view`、`ai`、`timeout`、`over`，其余都是可选），都是纯函数，浏览器和房间共用。
    - **开局用 `begin(entropy, rulesVersion, setup)`**：`entropy` 是房间现生成的 256 位熵（8 个 u32），当 `arcade-kit/rng` 的密钥发牌，
      后面每一副从同一把密钥分出的流里取：`shuffle(deck, stream(key, 'deal', 第几副))`。密钥放在自己的状态里（只在服务端），`view` 绝不能带上它。
@@ -35,7 +35,7 @@
    "vars": { "KIT_QUOTA": { "dailyRooms": 300 } }                                     // 可选：只写要改的门槛，见本文"每天的额度"
    ```
    已经上线过 v1 的游戏不能改 v1，另加一条 `{ "tag": "v2", "new_sqlite_classes": ["RoomMeter"] }`。
-   **正式环境一定要绑 `METER`**：没绑时不限额、不计数，只是为了老游戏升级 kit 时不至于一下子开不了房。
+   **正式环境一定要绑 `METER`**：没绑时不限额、不计数（只给本地开发和测试）。
 5. 游戏 Worker 的路由（`test/worker.ts` 是完整例子），只接这两个，不要自己把浏览器的请求转给房间：
    - 开房：`POST …/rooms` → `acceptCreate(request, env)`：成功 201 `{ code }`；失败回 JSON `{ error, code? }`（`protocol.ts` 的 `CreateError`）：
 
@@ -74,31 +74,31 @@
      监听 `document` 的 `visibilitychange`、`window` 的 `pageshow` 和 `online`：网络恢复、切回前台时别等退避；从往返缓存（bfcache，`pageshow` 带 `persisted`）回来的页面旧连接一律作废。
      测试和非浏览器环境可以传 `events`、`windowEvents` 注入事件源。
    - 房间那头也清半开的连接：闹钟醒来时，回过 ping、之后 `RoomLimits.deadSocketMs`（默认 90 秒）没再回过的连接关掉（1001，客户端照常重连；从没回过 ping 的不管：不发心跳的旧页面、测试连接不会被误关；ctx 没有 `getWebSocketAutoResponseTimestamp` 的假 ctx、旧运行时也当没回过），
-     当掉线处理（座位记 away、开始算"没人"），和这一步的其他改动一起提交。以前浏览器那头没了、关闭帧又没到时，房间一直当他在线，掉线托管和"没人"关房都不开始算。
+     当掉线处理（座位记 away、开始算"没人"），和这一步的其他改动一起提交。不这样做的话，浏览器那头没了、关闭帧又没到时，房间会一直当他在线，掉线托管和"没人"关房都不开始算。
 
 ## 登录闸门、开房、默认文案、假钱包
 
 几个游戏各抄一份的通用部分收在 kit 里，测试见 `test/gate.test.ts`、`test/create.test.ts`、`test/testing.test.ts`。
 
-- **登录闸门** `loginGate(request, env, { downPage? })`（docs/platform-backend.md 5.8、15.8）：游戏 Worker 把首页（`/games/<id>/`、`/games/<id>/index.html`）交给它。
+- **登录闸门** `loginGate(request, env, { downPage? })`（仓库根 docs/platform-features.md 5.8、docs/api-account.md 15.8）：游戏 Worker 把首页（`/games/<id>/`、`/games/<id>/index.html`）交给它。
   `env` 要有 `ASSETS`、`ARCADE`，`GATE` 写 `"off"` 时不拦。处理分四种：
   - 登录了：回页面，带上平台续期的 `Set-Cookie`，不缓存；
   - 没登录：302 到 `/login?next=<原路径和查询参数>`（好友房链接的 `?room=` 原样带回），同样带 `Set-Cookie`；
   - 平台不可用：503 整页，`Retry-After: 30`；
   - 默认的 503 页不带游戏名，游戏可以传自己的 `downPage`（标题、配色）。
 
-  游戏自己的接口（单机带入结回之类）用 `whoIs` 认人，回话用 `json(body, status, setCookie)`。认人之前读请求体用 `readJson(request, 最多几字节)`：
+  游戏自己的接口（单机带入带回之类）用 `whoIs` 认人，回话用 `json(body, status, setCookie)`。认人之前读请求体用 `readJson(request, 最多几字节)`：
   不带 content-length 或超长的一律不读。
 - **开房** `createRoom(url, opts)`：POST `{ opts }` 带 `X-Arcade: 1`，回 `{ code }` 或 `{ error, code? }`。401 当 `login`，回话不是 JSON 当 `unavailable`，网络断了是 `offline`。
   游戏 Worker 那边从请求体的 `opts` 取开局选项交给 `acceptCreate` 的 `options`。
 - **默认文案** `createText(error, overrides?)`、`closeText(code, reason?, overrides?)`：开房失败、断开时给玩家看的话，只写各游戏通用的说法（表在 `ROOM_TEXT`）。
-  游戏按 key 换掉个别措辞，比如 `{ roomClosed: '房间关了，桌上的筹码已经结回钱包', quota: '……这一手打完先散了……' }`。
+  游戏按 key 换掉个别措辞，比如 `{ roomClosed: '房间关了，桌上的筹码已经带回钱包', quota: '……这一手打完先散了……' }`。
   key 有两类：开房错误码，以及 `CLOSE` 里的名字，外加 `quota`、`other`。房间拒了某个操作（`ErrorMsg`）的话跟游戏规则走，不在这里。
 - **假平台钱包** `arcade-kit/testing`：只给游戏的 workerd 测试、冒烟和本地 `wrangler dev` 用，不进线上代码（它依赖 `cloudflare:workers`，也不能进浏览器包）。
-  - 复刻的范围：平台钱包的接口形状和关键规则，即带入、结回、放弃、只结一次、余额够这次才能带、操作 id 去重、按 `ref` 分份（同一个游戏可以同时有好几份）、到期退回、client 每天净赢上限（`WIN_UNITS`）、小结 `stats` 的上限、补给（余额加桌上的，桌上有筹码也能领）、搭子战绩 `together`（5.9、5.10、15.9、15.19）。
+  - 复刻的范围：平台钱包的接口形状和关键规则，即带入、带回、放弃、只结一次、余额够这次才能带、操作 id 去重、按 `ref` 分份（同一个游戏可以同时有好几份）、到期退回、client 每天净赢上限（`WIN_UNITS`）、小结 `stats` 的上限、补给（余额加桌上的，桌上有筹码也能领）、搭子战绩 `together`（仓库根 docs/platform-wallet.md 5.9、5.10，docs/api-boards.md 15.9，docs/api-social.md 15.19）。
     计量、熔断档、流水、战绩怎么存这些不复刻。不维护游戏名单，只核对 `props.game` 和参数一致。
   - 规则数取平台默认值（`NEW_BALANCE`、`RELIEF_TO`、`WIN_UNITS`、`TIERS`）；钱包档位 id 是 `small`、`mid`、`big`、`lux`。
-  - 测试辅助：`FakeBank` 的 `calls`、`writes` 数调了几次、写了几次；`stats` 记结回成功带的小结（含 `game`）；`together` 记搭子战绩；`setBalance` 造余额。
+  - 测试辅助：`FakeBank` 的 `calls`、`writes` 数调了几次、写了几次；`stats` 记带回成功时带的小结（含 `game`）；`together` 记搭子战绩；`setBalance` 造余额。
   - **平台改了钱包接口，平台 PR 的描述里写"影响 kit/testing"，由维护者安排 kit 跟上**（一个 PR 只改一个模块）。
   - 接法：测试 Worker 的主模块 `export { FakeBank, WalletService } from 'arcade-kit/testing'`，wrangler 配置加 DO 绑定 `FAKE_BANK`（`FakeBank`）。
     `WALLET` 绑回这个测试 Worker 自己：
@@ -109,7 +109,7 @@
 
 ## 搭子战绩（reportTogether）
 
-好友房打完一场，房间的服务端把同桌真人和各自输赢报给平台（[docs/platform-backend.md](https://github.com/gzyyyyyyu/arcade/blob/main/docs/platform-backend.md) 15.19），平台给其中已经是好友的每一对累计"一起打了几场、谁赢了几场、做搭档几场"。
+好友房打完一场，房间的服务端把同桌真人和各自输赢报给平台（[docs/api-social.md](https://github.com/gzyyyyyyu/arcade/blob/main/docs/api-social.md) 15.19），平台给其中已经是好友的每一对累计"一起打了几场、谁赢了几场、做搭档几场"。
 只走钱包服务绑定 `WALLET` 的 `together()`，浏览器碰不到；娱乐、实盘都报，单机不报。
 
 ```ts
@@ -136,8 +136,8 @@ export class CardRoom extends GameRoom<State, Action, View, Env> {
 游戏入口里调一次，线上出了没人接住的报错平台就能收到：
 
 ```ts
-import { reportErrors } from '@yyyu-star/arcade-kit/report';
-reportErrors({ game: 'kaipan', version: __APP_VERSION__ }); // 返回卸载函数
+import { reportErrors } from 'arcade-kit/report';
+reportErrors({ game: 'mygame', version: __APP_VERSION__ }); // 返回卸载函数
 ```
 
 - **报什么**：`window` 的 `error` 和 `unhandledrejection`。每条 `{game, ver, msg, stack, path}`：msg 截 200 字，stack 截 1000 字，path 是 `location.pathname`（不带 query 和 hash，里面可能有房间码）。不带账号、昵称、cookie。
@@ -183,7 +183,7 @@ reportErrors({ game: 'kaipan', version: __APP_VERSION__ }); // 返回卸载函�
   也不能由同伙先占掉你的原座位、把你变成"没绑座位"的人。
 - **只有房主能开局**（9.1）：房主是开房的人，别人发 `start` 回 `not_host`。
 - **认人**：不做 Ed25519 入场票。进房时游戏 Worker 经服务绑定问一次平台 `/api/me`（只转发 Cookie 和 cf-connecting-ip，3 秒超时），
-  拿不到身份就拒绝。请求里根本没有平台的会话 cookie（`__Host-sid`，名字只在 `src/internal.ts` 定义一处）就直接 4401，不问平台。好友小范围开房，多问的这一次不贵，也不用管签名密钥；等开房要走平台登记和配额（5.3）再换入场票。
+  拿不到身份就拒绝。请求里根本没有平台的会话 cookie（`__Host-sid`，名字只在 `src/internal.ts` 定义一处）就直接 4401，不问平台。好友小范围开房，多问的这一次不贵，也不用管签名密钥；等开房要走平台登记和配额（仓库根 docs/accounts.md 5.3）再换入场票。
   - "没登录"（200 且 user 为 null）和"平台暂时不可用"（其他状态码、不是 JSON、缺字段、超时、没有绑定）分开：两种都拒绝（fail-closed），
     前者 4401 不重连，后者 1013 让客户端稍后重连，平台抖一下不会把正在打牌的人踢走；
   - 身份只经 `acceptJoin` 拼的内部请求（主机名 `KIT_HOST`）交给房间；房间不认别的地址，游戏把浏览器的原始请求转进来会被 400 拒掉，
@@ -192,7 +192,7 @@ reportErrors({ game: 'kaipan', version: __APP_VERSION__ }); // 返回卸载函�
 
 ## 每天的额度
 
-免费版 Durable Object 每天整个账户 10 万行写入（docs/platform-backend.md 4.7），所有游戏共用，UTC 0 点重置。每个游戏 Worker 有一个计量 `RoomMeter`
+免费版 Durable Object 每天整个账户 10 万行写入（仓库根 docs/rooms.md 4.7），所有游戏共用，UTC 0 点重置。每个游戏 Worker 有一个计量 `RoomMeter`
 （全局只有一个实例），房间自己数写了几行报给它，开房先向它占名额：
 
 | 门槛（`KIT_QUOTA` 里的字段） | 默认 | 到了以后 |
@@ -209,7 +209,7 @@ reportErrors({ game: 'kaipan', version: __APP_VERSION__ }); // 返回卸载函�
 
 - **改门槛**：在游戏的 `wrangler.jsonc` 里写 `"vars": { "KIT_QUOTA": { "busyWrites": 50000 } }`（对象或 JSON 字符串都行），只写要改的字段，部署后生效；
   不认识的字段、不是非负整数的值记日志后忽略，用默认值。门槛按每个游戏各算各的，有几个联机游戏就要分一分（见本文"多个游戏怎么分额度"）。
-- **名额什么时候还**：整场打完（`over`）、房间关掉（没人、到寿命、消息总数到了、收场）时房间去还；游戏写了 `idle`（0.27.0，比如一整场打完停着等"再来一场"）的，进入 idle 那一步就先还，房间照常开着。还不上（计量连不上、房间被驱逐时出错）也不会一直卡住：
+- **名额什么时候还**：整场打完（`over`）、房间关掉（没人、到寿命、消息总数到了、收场）时房间去还；游戏写了 `idle`（比如一整场打完停着等"再来一场"）的，进入 idle 那一步就先还，房间照常开着。还不上（计量连不上、房间被驱逐时出错）也不会一直卡住：
   每个名额记着"开房时间 + 房间寿命 + 1 分钟"，到点自动作废。房间打完了但还开着的时候还没还上的，下次有事件（重试间隔 60 秒）接着还。
 - **怎么报写入**：房间每一步都数自己写了几行（`setAlarm`、关房也算），攒够 `RoomLimits.meterBatch`（默认 200）行报一次，打完、关房时把剩下的随还名额一起报。
   计量每报一次写 1 行，200 行一报摊下来多花 0.5%；开房（这个人一行、当天一行）、还名额（同样两行）另算，也都记进当天的数。
@@ -222,15 +222,15 @@ reportErrors({ game: 'kaipan', version: __APP_VERSION__ }); // 返回卸载函�
 
 ### 多个游戏怎么分额度
 
-各游戏的额度在自己的 `wrangler.jsonc` 的 `KIT_QUOTA` 里，总账见仓库根 [docs/platform-backend.md](https://github.com/gzyyyyyyu/arcade/blob/main/docs/platform-backend.md) 4.7。
+各游戏的额度在自己的 `wrangler.jsonc` 的 `KIT_QUOTA` 里，总账见仓库根 [docs/rooms.md](https://github.com/gzyyyyyyu/arcade/blob/main/docs/rooms.md) 4.7。
 
 ## 还没做的（以后按需加）
 
-- 人机验证；跨游戏的统一房间登记（5.3）。开房名额现在由每个游戏的计量各管各的（本文"每天的额度"），开放注册前看一眼门槛够不够紧；
-- Ed25519 入场票；观战（没入座的人现在能连、只看公开信息，最多 4 条连接）；
+- 人机验证；跨游戏的统一房间登记（仓库根 docs/accounts.md 5.3）。开房名额现在由每个游戏的计量各管各的（本文"每天的额度"），开放注册前看一眼门槛够不够紧；
+- Ed25519 入场票；观战（没入座的人现在能连、只看公开信息，最多 4 个账号）；
 - 回放记录、终局导出；
 - 好友房聊天接平台的屏蔽名单；
-- 用 `ctx.abort()` 强制正在打的房间换新代码；`cpu_ms` 要按各游戏的规则在房间里实测再定（4.4）。
+- 用 `ctx.abort()` 强制正在打的房间换新代码；`cpu_ms` 要按各游戏的规则在房间里实测再定（仓库根 docs/rooms.md 4.4）。
 
 ## 目录结构
 

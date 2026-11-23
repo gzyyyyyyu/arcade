@@ -50,7 +50,7 @@ const fun = new TableFun({
     plate: plateRect(i),                         // 可选：名字和筹码那一块，气泡不盖它
     marks: tagRects(i),                          // 可选：头像旁的小标签（缺门、庄家……），气泡和首次提示不盖
   })),
-  avoid: () => [handRect(), actionBarRect()],    // 菜单、面板尽量不盖；放不下时选盖得最少的位置
+  avoid: () => [handRect(), actionBarRect()],    // 菜单、面板尽量不盖；放不下时选盖得最少的位置；头像热区凑 44 撑出来的那圈也让开（头像旁的按钮要放进来）
   button: () => funButtonRect(),                 // "互动"按钮放哪；null 不画（没坐下）
   buttonStyle: () => ({ scale: stageScale, row: true }),  // 可选：按钮字和图标跟着牌桌放大（≥ 1），row = 图标和字横排；也可直接给 fontSize、icon（像素，优先于 scale）；别再覆盖 .atf-btn
   send: (id, to) => (online ? client.emote(id, to) : fun.receive(0, id, to)),
@@ -62,7 +62,7 @@ const fun = new TableFun({
   sound: (prop, phase) => muted || playFunSound(ac, sfxBus, prop, phase),
   onHit: (seat) => shakeAvatar(seat),
 });
-client.onEmote = (m) => fun.receive(m.from, m.id, m.to);   // 好友房收到的（自己发的也是从这里回来）
+// 好友房收到的（自己发的也是从这里回来）：RoomClient 的构造选项 onEmote: (seat, id, to) => fun.receive(seat, id, to)
 ```
 
 - **画布游戏**（Phaser 等）：`rect` 传头像换算到屏幕后的矩形，算法是 `canvas.getBoundingClientRect()` 的左上角加上"世界坐标 × 画布在屏幕上的缩放"。
@@ -76,7 +76,7 @@ client.onEmote = (m) => fun.receive(m.from, m.id, m.to);   // 好友房收到的
 - **冒烟**：`fun.controls()` 给每个能点的东西的屏幕中心和大小（`fun:button`、`fun:seat<i>`、菜单里的 `fun:prop<k>`、`fun:named<k>`、`fun:block`、
   表情菜单 `fun:sticker<k>`、面板 `fun:tab:phrase|sticker|prop`、`fun:phrase<i>`（短语多、屏幕矮时分页，翻页 `fun:phrases-prev` / `fun:phrases-next`，不在页上的短语按钮隐藏）、`fun:psticker<k>`、`fun:pprop<k>`、`fun:target<i>`、`fun:blockAll`）；
   `log` 选项给一行行流水（`道具 0>1:tomato ×2 回敬`、`电脑 1:angry`、`护盾 1`、`提示 头像`），断言用它。
-- 演示页 `demo/table-fun.html`（`npx vite` 后打开 `/demo/table-fun.html`）：我加三个不同性格的电脑，单机接法。
+- 演示页 `demo/table-fun.html`（`npx vite` 后打开 `/demo/table-fun.html`）：我和三家不同性格的电脑，单机接法。
 
 ### 房间里的电脑（好友房）
 
@@ -100,4 +100,4 @@ protected override onEmote(from: number, id: number, to?: number): void {
   其中四分之一同类回扔（鸡蛋回拖鞋；同一个电脑 20 秒最多回扔 2 次）；名场面输的一方 40% 冲赢家、赢的一方 30% 得意；每手最多主动 2 次；两次反应至少隔 1 秒。
   数字都在 `BOT_REACT`，第六个参数能整个换掉。
 - 电脑的反应只是画面，**出牌决策绝不读它**；真人的短语、道具不记进牌局状态（见 [room-options.md](room-options.md) 里 `onEmote` 的规矩）。
-- 其他纯函数：`stickerMood`（表情对应的情绪）、`FunCooldown`（冷却）、`FunTally`（护盾、连击、回敬）、`placeMenu`（菜单放哪，避开禁区；窄屏按 `fitMenuWidth` 收窄到屏幕宽减 16px）、`hotBox`（头像点按热区：至少 44 见方、夹在可见区里）、`funItem`/`stickerId`/`propId`（编号换算），测试在 `test/fun-logic.test.ts`。
+- 其他纯函数：`stickerMood`（表情对应的情绪）、`FunCooldown`（冷却）、`FunTally`（护盾、连击、回敬）、`hotBox` / `yieldBox`（头像热区至少 44 见方、撑出来的部分让开 `avoid`）、`placeMenu`（菜单放哪，避开禁区；窄屏按 `fitMenuWidth` 收窄到屏幕宽减 16px）、`hotBox`（头像点按热区：至少 44 见方、夹在可见区里）、`funItem`/`stickerId`/`propId`（编号换算），测试在 `test/fun-logic.test.ts`。

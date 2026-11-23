@@ -43,7 +43,7 @@ describe('假钱包的 RPC（5.9）', () => {
     expect(await buyin(u, id('ref'), 100, { tier: 'toString' })).toEqual({ ok: false, error: 'bad_request' });
   });
 
-  it('带入扣余额、结回进余额，只结一次；同一个 op 再来回第一次的结果、不写', async () => {
+  it('带入扣余额、带回进余额，只结一次；同一个 op 再来回第一次的结果、不写', async () => {
     const u = user();
     const ref = id('ref');
     const b = await buyin(u, ref, 1_500);
@@ -76,7 +76,7 @@ describe('假钱包的 RPC（5.9）', () => {
     expect(await buyin(u, id('ref'), 0)).toMatchObject({ ok: false, error: 'bad_amount' });
   });
 
-  it('到期原样退回，之后这个 ref 来结回、补码都回 expired；放弃是原样退回', async () => {
+  it('到期原样退回，之后这个 ref 来带回、补码都回 expired；放弃是原样退回', async () => {
     const u = user();
     const ref = id('ref');
     await buyin(u, ref, 1_000, { until: Date.now() + 60_000 });
@@ -88,7 +88,7 @@ describe('假钱包的 RPC（5.9）', () => {
     expect(await env.WALLET.refund({ userId: u, game: 'toy', ref: again, mode: 'client', op: id('op') })).toMatchObject({ ok: true, credited: 700, wallet: { balance: NEW_BALANCE } });
   });
 
-  it(`client 模式每个游戏每天净赢最多 ${WIN_UNITS} 份，多的在 capped 里；server 模式不限；结回超过带入加 20 份是 bad_amount`, async () => {
+  it(`client 模式每个游戏每天净赢最多 ${WIN_UNITS} 份，多的在 capped 里；server 模式不限；带回超过带入加 20 份是 bad_amount`, async () => {
     const u = user();
     const cap = WIN_UNITS * TIERS.small;
     const ref = id('ref');
@@ -104,7 +104,7 @@ describe('假钱包的 RPC（5.9）', () => {
     expect(await settle(u, room, 2_000 + 20 * TIERS.small, { mode: 'server' })).toMatchObject({ ok: true, credited: 2_000 + 20 * TIERS.small });
   });
 
-  it('结回带的小结（5.10）：合格的记下；超过 256 字节、形状不对整份忽略（statsIgnored），钱照常结；重复的 op 不记两次', async () => {
+  it('带回带的小结（5.10）：合格的记下；超过 256 字节、形状不对整份忽略（statsIgnored），钱照常结；重复的 op 不记两次', async () => {
     const u = user();
     const ok = { rounds: 3, wins: 1, best: 200, titles: ['lucky'], max: { score: 9 }, sum: { bombs: -1 } };
     const r1 = id('ref');

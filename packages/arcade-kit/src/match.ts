@@ -1,5 +1,5 @@
 /**
- * 快速匹配的排队（0.20.0，设计 docs/match.md）：游戏 Worker 里的 Durable Object 继承它，填上一桌几个真人，就能按档位排队凑桌。
+ * 快速匹配的排队（设计 docs/match.md）：游戏 Worker 里的 Durable Object 继承它，填上一桌几个真人，就能按档位排队凑桌。
  * 每个档位一个实例（matchStub 按档位取），浏览器经 worker.ts 的 acceptMatch 连进来，连接本身就是"排着"。
  *
  * 守的规矩（和房间同一套，docs/platform-backend.md 第 4 节）：
@@ -39,7 +39,7 @@ const FORM_ROUNDS = 8;
 /** 平台屏蔽名单一次最多问几个人（平台 blockedAmong 的上限，最多 9 人一桌） */
 const BLOCK_MAX = 9;
 /**
- * 凑桌时找平台、找房间最多等多久（毫秒，安全审阅 0.20.0）：凑桌持着"正在凑"的锁，平台或房间卡住时整个档位都会一直"等待中"。
+ * 凑桌时找平台、找房间最多等多久（毫秒）：凑桌持着"正在凑"的锁，平台或房间卡住时整个档位都会一直"等待中"。
  * 超时的屏蔽名单按空的算，建房按 unavailable（这一桌的人转单机）
  */
 export const MATCH_CALL_MS = 3_000;
@@ -67,7 +67,7 @@ export abstract class MatchQueue<Env extends MatchEnv = MatchEnv> extends Durabl
   }
 
   /**
-   * 这几个人之间谁屏蔽了谁（平台 0.25.0 的 ARCADE.blockedAmong，最多 9 人，只读）。没有平台（单独部署）、出错都当没有，回 []。
+   * 这几个人之间谁屏蔽了谁（ARCADE.blockedAmong，最多 9 人，只读）。没有平台（单独部署）、出错都当没有，回 []。
    * 测试覆盖它换成假名单
    */
   protected async blockedAmong(userIds: string[]): Promise<[string, string][]> {
@@ -99,7 +99,7 @@ export abstract class MatchQueue<Env extends MatchEnv = MatchEnv> extends Durabl
   private readonly hourly = new Map<string, number[]>();
 
   /**
-   * 自托管 PG 模式（0.21.0，env 里有 KIT_STORE）：排队不存表，只把闹钟记进 PG，进程重启后宿主按它 kitWake；
+   * 自托管 PG 模式（env 里有 KIT_STORE）：排队不存表，只把闹钟记进 PG，进程重启后宿主按它 kitWake；
    * 没有 KIT_STORE 时为 null，行为不变
    */
   private readonly pg: MirrorStore | null;
@@ -124,7 +124,7 @@ export abstract class MatchQueue<Env extends MatchEnv = MatchEnv> extends Durabl
   }
 
   /**
-   * 进程重启后宿主唤醒（0.21.0，只有 KIT_STORE 绑定能调）：按 PG 里存的闹钟重设（过期的马上响，醒来凑桌时队里没人就什么都不做）。
+   * 进程重启后宿主唤醒（只有 KIT_STORE 绑定能调）：按 PG 里存的闹钟重设（过期的马上响，醒来凑桌时队里没人就什么都不做）。
    * 幂等：闹钟已经设着的不动；没有 KIT_STORE 时什么都不做
    */
   async kitWake(name: string): Promise<void> {

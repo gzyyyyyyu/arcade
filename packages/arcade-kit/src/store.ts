@@ -1,9 +1,9 @@
 /**
- * 可插拔的存储（0.21.0，自托管 PostgreSQL 模式用）。
+ * 可插拔的存储（自托管 PostgreSQL 模式用）。
  *
  * 两种实现，按 env 里有没有 KIT_STORE 绑定选（和 ARCADE 决定平台 / 独立模式一样，游戏代码、wrangler.jsonc 不用改）：
  * - 没有：kit 照旧直接用 ctx.storage.sql、ctx.storage 的 KV 和闹钟，同表同列、同样的 SQL，Cloudflare 和自托管 SQLite 模式逐字不变。
- *   这条路不经过本文件（房间、计量里原来的代码原样留着），零退化靠的就是"根本没换"；
+ *   这条路不经过本文件（房间、计量里直接用 ctx.storage），零退化靠的就是"根本没换"；
  * - 有（自托管 PG 模式，workerd 的内存存储下 ctx.storage.sql 直接抛错，进程重启内存全清）：用 MirrorStore。
  *   同步读写全打内存镜像，"一步之内没有 await"的规矩不变；这一步写的脏行和对象当前的闹钟在 flush 时经 KIT_STORE 一次事务提交，
  *   flush 在广播之前（房间把这一步的 send/close 排队，提交成功才发出去，等于 Cloudflare 输出门的语义）。
@@ -29,7 +29,7 @@ export interface KitStoreRpc {
 
 export type StoreRole = 'room' | 'meter' | 'match';
 
-/** env 里的 KIT_STORE；没有（或不像）就是 null，走原来的 ctx.storage */
+/** env 里的 KIT_STORE；没有（或不像）就是 null，走默认的 ctx.storage */
 export function kitStoreOf(env: unknown): KitStoreRpc | null {
   const s = (env as { KIT_STORE?: Partial<KitStoreRpc> } | undefined)?.KIT_STORE;
   return s && typeof s.load === 'function' && typeof s.commit === 'function' && typeof s.wipe === 'function' ? (s as KitStoreRpc) : null;

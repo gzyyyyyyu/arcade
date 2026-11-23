@@ -33,7 +33,7 @@ export interface QuotaLimits {
   /** 当天写入到这么多行：在打的房间这一段打完收场 */
   stopWrites: number;
   /**
-   * 进房猜码（0.14.0，第三轮审计）：每个人每小时最多几次"房间码不存在"、每个 IP 每小时最多几次。超了这一小时里进任何房间都回 1013，
+   * 进房猜码（第三轮审计）：每个人每小时最多几次"房间码不存在"、每个 IP 每小时最多几次。超了这一小时里进任何房间都回 1013，
    * 存在的房间也一样（不然 1013 和 welcome 的差别照样说出房间在不在）。房间码只有 6 位，不限就能一个个试出谁开着房
    */
   joinMissesPerUser: number;
@@ -51,7 +51,7 @@ export const DEFAULT_QUOTA: QuotaLimits = {
   joinMissesPerIp: 60,
 };
 
-/** KIT_QUOTA 里由房间读的字段（0.7.0）：emoteMs 每多少毫秒补一个短语令牌（0 不限速），emoteBurst 最多攒几个 */
+/** KIT_QUOTA 里由房间读的字段：emoteMs 每多少毫秒补一个短语令牌（0 不限速），emoteBurst 最多攒几个 */
 export const ROOM_QUOTA_FIELDS: readonly string[] = ['emoteMs', 'emoteBurst'];
 
 /** 计量的绑定名和环境变量名固定（和 ROOM、ARCADE 一样）。 */
@@ -66,14 +66,14 @@ export type MeterLevel = 'ok' | 'busy' | 'stop';
 
 export type Reserve = { ok: true } | { ok: false; error: 'has_room'; code: string } | { ok: false; error: 'daily_limit' | 'busy' };
 
-/** 几个人一起占（0.20.0）：被挡时 userId 是第一个被挡的人；全站忙（busy）不是哪一个人的事，userId 为 null */
+/** 几个人一起占：被挡时 userId 是第一个被挡的人；全站忙（busy）不是哪一个人的事，userId 为 null */
 export type ReserveMany =
   | { ok: true }
   | { ok: false; userId: string; error: 'has_room'; code: string }
   | { ok: false; userId: string; error: 'daily_limit' }
   | { ok: false; userId: null; error: 'busy' };
 
-/** kitPeek 的结果（0.20.0）：room 是这个人开着的房间码，daily 是今天的开房次数用完了 */
+/** kitPeek 的结果：room 是这个人开着的房间码，daily 是今天的开房次数用完了 */
 export interface Peek {
   room: string | null;
   daily: boolean;
@@ -96,7 +96,7 @@ interface UserRow {
   live: { code: string; until: number }[];
 }
 
-/** PG 模式里 miss 那个 KV 记在哪张"表"（0.21.0，宿主那边按 (game, ns, name, table, key) 存） */
+/** PG 模式里 miss 那个 KV 记在哪张"表"（宿主那边按 (game, ns, name, table, key) 存） */
 const KV_TABLE = 'kv';
 
 function missCount(r: { h: number; n: number } | null, h: number): number {
@@ -119,8 +119,8 @@ export class RoomMeter extends DurableObject<MeterEnv> {
   private ready = false;
   private limitsCache: QuotaLimits | null = null;
   /**
-   * 自托管 PG 模式（0.21.0，env 里有 KIT_STORE）的内存镜像：kit_day、kit_user 两张表和进房猜码的 miss 都打镜像，
-   * 每次调用末尾一次事务提交（miss 原来是 KV 的 get、put 中间隔着 await，镜像里同步读改写，顺手没了丢更新的窗口）。
+   * 自托管 PG 模式（env 里有 KIT_STORE）的内存镜像：kit_day、kit_user 两张表和进房猜码的 miss 都打镜像，
+   * 每次调用末尾一次事务提交（镜像里同步读改写，没有丢更新的窗口）。
    * 没有 KIT_STORE 时为 null，照旧用 ctx.storage.sql 和 KV，行为不变
    */
   private readonly pg: MirrorStore | null;
@@ -133,7 +133,7 @@ export class RoomMeter extends DurableObject<MeterEnv> {
 
   /**
    * 一次调用：PG 模式先把这个实例读进镜像，同步做完，再提交（提交失败往外抛，房间当计量连不上）；
-   * 默认模式直接跑（fn 是同步的，和原来写在 async 方法里一样）。name 是 idFromName 用的名字（全站那一个，或 kit-miss:<key>）
+   * 默认模式直接跑（fn 是同步的）。name 是 idFromName 用的名字（全站那一个，或 kit-miss:<key>）
    */
   private async run<T>(name: string, fn: () => T): Promise<T> {
     const pg = this.pg;
@@ -144,7 +144,7 @@ export class RoomMeter extends DurableObject<MeterEnv> {
     return out;
   }
 
-  /** 进程重启后宿主唤醒（0.21.0）：计量没有闹钟，只把镜像读进来；幂等。没有 KIT_STORE 时什么都不做 */
+  /** 进程重启后宿主唤醒：计量没有闹钟，只把镜像读进来；幂等。没有 KIT_STORE 时什么都不做 */
   async kitWake(name: string): Promise<void> {
     if (this.pg) await this.pg.open(name);
   }
@@ -156,7 +156,7 @@ export class RoomMeter extends DurableObject<MeterEnv> {
   }
 
   /**
-   * 一张桌给几个人一起占名额（0.20.0，快速匹配）：要么都占上，要么一个都不占，占不上的回第一个被挡的人。
+   * 一张桌给几个人一起占名额（快速匹配）：要么都占上，要么一个都不占，占不上的回第一个被挡的人。
    * 全站开房数只记 1（一张桌一个房间）。一次写 1 + 人数 行（每人那一行加当天那一行），写在计量里、记进当天的数，不算房间的"每步 ≤ 2 行"
    */
   async kitReserveMany(userIds: readonly string[], code: string, until: number): Promise<ReserveMany> {
@@ -189,8 +189,8 @@ export class RoomMeter extends DurableObject<MeterEnv> {
   }
 
   /**
-   * 一张桌的几个人一起还（0.20.0）。cancel：开房次数也退回；room：全站开房数也退 1（默认跟着 cancel：整桌没建成）。
-   * 匹配桌开打时没来的人（0.20.0）是 cancel 但不退全站数：桌子开成了，只是他的那一份退给他
+   * 一张桌的几个人一起还。cancel：开房次数也退回；room：全站开房数也退 1（默认跟着 cancel：整桌没建成）。
+   * 匹配桌开打时没来的人是 cancel 但不退全站数：桌子开成了，只是他的那一份退给他
    */
   async kitReleaseMany(userIds: readonly string[], code: string, writes: number, cancel = false, room = cancel): Promise<MeterLevel> {
     return this.run(METER_NAME, () => {
@@ -215,7 +215,7 @@ export class RoomMeter extends DurableObject<MeterEnv> {
   }
 
   /**
-   * 只读（0.20.0，快速匹配入队前问）：这个人现在开着的房间（没有为 null）、今天的开房次数用完没有、全站的门槛。
+   * 只读（快速匹配入队前问）：这个人现在开着的房间（没有为 null）、今天的开房次数用完没有、全站的门槛。
    * 入队前就挡掉"有房间""今天用完了""联机忙"的人，不让他们白等 15 秒
    */
   async kitPeek(userId: string): Promise<Peek> {
@@ -253,7 +253,7 @@ export class RoomMeter extends DurableObject<MeterEnv> {
   }
 
   /**
-   * 进房猜码（0.14.0）：这两个方法用在 missStub 按人、按 IP 取的小实例上（不是全站那一个），不碰 SQL 表，只存一个 { 第几个小时, 几次 }。
+   * 进房猜码：这两个方法用在 missStub 按人、按 IP 取的小实例上（不是全站那一个），不碰 SQL 表，只存一个 { 第几个小时, 几次 }。
    * kitMissBlocked 只读，进房前问（门槛在这里按 KIT_QUOTA 算，worker.ts 不用在运行时引用本文件：它要能在普通 Node 里加载）；
    * kitMiss 记一次（1 行），只有真的进了一个不存在的房间才调，超了门槛的人进不到这一步，所以一小时最多写门槛那么多行
    */
@@ -263,7 +263,7 @@ export class RoomMeter extends DurableObject<MeterEnv> {
   }
 
   /**
-   * 只读：这一小时记了几次（给测试看）。key（0.21.0）是 missStub 用的那个（u:<userId>、ip:<地址>）：
+   * 只读：这一小时记了几次（给测试看）。key是 missStub 用的那个（u:<userId>、ip:<地址>）：
    * PG 模式靠它找到 PG 里这个小实例的行（kit-miss:<key>）；默认模式不看它
    */
   async kitMisses(key?: string): Promise<number> {
@@ -372,7 +372,7 @@ export class RoomMeter extends DurableObject<MeterEnv> {
 }
 
 /**
- * 房间以外的 DO（比如游戏自己的钱包）把写了几行记进当天的数，回现在的门槛（0.3.0）。
+ * 房间以外的 DO（比如游戏自己的钱包）把写了几行记进当天的数，回现在的门槛。
  * 计量每收一次报数自己写 1 行，所以只适合写得少的地方（钱包一次操作报一次，就是每次多 1 行）；房间自己会攒一批再报，不用它。
  * 没绑 METER 时什么都不做、回 ok（和房间一样，只为平滑升级）。连不上时抛错，调用方决定怎么办
  */
@@ -381,7 +381,7 @@ export async function meterReport(env: MeterEnv, writes: number): Promise<MeterL
   return (meterStub(env.METER) as DurableObjectStub<RoomMeter>).kitReport(writes);
 }
 
-/** 只读：现在的门槛（0.3.0；写之前问一下，stop 时就别写了）。没绑 METER 回 ok，连不上抛错。 */
+/** 只读：现在的门槛（写之前问一下，stop 时就别写了）。没绑 METER 回 ok，连不上抛错。 */
 export async function meterLevel(env: MeterEnv): Promise<MeterLevel> {
   if (!env.METER) return 'ok';
   return (meterStub(env.METER) as DurableObjectStub<RoomMeter>).kitLevel();
@@ -405,7 +405,7 @@ export function parseQuota(raw: unknown): QuotaLimits {
     return out;
   }
   for (const [k, n] of Object.entries(v)) {
-    // 房间自己读的字段（0.7.0：快捷短语的节奏），计量不管
+    // 房间自己读的字段（快捷短语的节奏），计量不管
     if (ROOM_QUOTA_FIELDS.includes(k)) continue;
     if (!(k in DEFAULT_QUOTA)) console.error('KIT_QUOTA unknown field', k);
     else if (typeof n !== 'number' || !Number.isInteger(n) || n < 0) console.error('KIT_QUOTA bad value for', k);

@@ -16,7 +16,7 @@ export interface SeatState {
   /** 这个座位最后一次做成的操作的 moveId（重发去重） */
   lastMoveId: string | null;
   /**
-   * 最近做成的几个 moveId，新的在后（0.11.1，最多 RECENT_MOVES 个；旧房间的状态里没有，读到时当空的）。
+   * 最近做成的几个 moveId，新的在后（最多 RECENT_MOVES 个；旧房间的状态里没有，读到时当空的）。
    * 只记最后一个不够：连发 A、B，A 的 ack 丢了，重连后补发 A，lastMoveId 已经是 B，不轮流的操作（free）就会被做第二遍
    */
   recentMoves?: string[];

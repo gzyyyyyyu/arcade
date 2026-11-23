@@ -58,7 +58,7 @@ export function roomStub(ns: DurableObjectNamespace, code: string): DurableObjec
 /** 计量的名字：每个游戏 Worker 只有这一个实例（meter.ts）。 */
 export const METER_NAME = 'kit-meter';
 
-/** 进房猜码的计数（0.14.0）：按人（u:<userId>）、按 IP（ip:<地址>）各一个小实例，和全站的计量同一个类、不同名字，不挤一个热点 */
+/** 进房猜码的计数：按人（u:<userId>）、按 IP（ip:<地址>）各一个小实例，和全站的计量同一个类、不同名字，不挤一个热点 */
 export function missStub(ns: DurableObjectNamespace, key: string): DurableObjectStub {
   return ns.get(ns.idFromName(`kit-miss:${key}`), { locationHint: 'apac' });
 }
@@ -74,7 +74,7 @@ export function meterStub(ns: DurableObjectNamespace): DurableObjectStub {
   return ns.get(ns.idFromName(METER_NAME), { locationHint: 'apac' });
 }
 
-/** 快速匹配的排队（0.20.0）：每个档位一个实例，和房间一样放在亚太 */
+/** 快速匹配的排队：每个档位一个实例，和房间一样放在亚太 */
 export function matchStub(ns: DurableObjectNamespace, tier: string): DurableObjectStub {
   return ns.get(ns.idFromName(`kit-match:${tier}`), { locationHint: 'apac' });
 }

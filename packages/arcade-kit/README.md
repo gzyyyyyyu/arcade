@@ -16,7 +16,7 @@ To keep imports short (`arcade-kit/room` instead of `@yyyu-star/arcade-kit/room`
 npm i arcade-kit@npm:@yyyu-star/arcade-kit
 ```
 
-`package.json` then reads `"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.25.1"`. ESM only; each subpath ships compiled JavaScript plus `.d.ts`. Node ≥ 22.
+`package.json` then reads `"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.30.0"`. ESM only; each subpath ships compiled JavaScript plus `.d.ts`. Node ≥ 22.
 
 ## Minimal example
 
@@ -126,7 +126,7 @@ if (!('error' in made)) {
 | `report` | `reportErrors`：把没人接住的页面报错报给平台 `/api/client-error` | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) |
 | `testing` | 假平台钱包（`WalletService`、`FakeBank`、`walletHttp`），只给测试和本地开发 | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) 的"假钱包" |
 
-内部地址和身份头（`src/internal.ts`）不在 `exports` 里，游戏引用不到。房间规范见仓库根 [docs/platform-backend.md](https://github.com/gzyyyyyyu/arcade/blob/main/docs/platform-backend.md) 第 4 节。
+内部地址和身份头（`src/internal.ts`）不在 `exports` 里，游戏引用不到。房间规范见仓库根 [docs/rooms.md](https://github.com/gzyyyyyyu/arcade/blob/main/docs/rooms.md) 第 4 节。
 
 ## 游戏怎么接
 
@@ -149,7 +149,7 @@ if (!('error' in made)) {
 - npm 上发编译好的 `dist/`（JS + `.d.ts`）；包里带 `dist`、`src` 和 `CHANGELOG.md`，不带 `docs/`、`AGENTS.md`、测试。
 - 仓库里 `package.json` 的 `exports` 指向 `src/*.ts`，模块内的测试和开发直接用源码；`prepack` 构建 `dist` 并把 `exports` 换成 dist 版，`postpack` 换回来（`scripts/manifest.mjs`）。
   所以不要手改 `exports` 成 dist，新加入口照 `"./x": "./src/x.ts"` 写。
-- 仓库里的游戏和发布后的用法一样，都按 npm 别名装（`"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.25.1"`）。
+- 仓库里的游戏和发布后的用法一样，都按 npm 别名装（`"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.30.0"`）。
 - `src/` 里相互引用写 `.js` 扩展名（`./auth.js`），编出来的 JS 原样能被 Node 原生 ESM 解析；vite、esbuild、tsc 对源码会映射回 `.ts`。
 
 ## 本地开发
