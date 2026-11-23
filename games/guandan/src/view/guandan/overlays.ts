@@ -298,7 +298,7 @@ export function showGameOver(sc: TableScene): void {
     rays(sc, W / 2, 200);
     burst(sc, W / 2, 200, 'coin', 40, { speed: [200, 600], life: 1600, gravity: 600 });
   }
-  const m = modal(sc, 760, 540, watch ? '整局结束' : win ? '胜利！' : '惜败', { closeBtn: false, depth: 5000 });
+  const m = modal(sc, 760, 600, watch ? '整局结束' : win ? '胜利！' : '惜败', { closeBtn: false, depth: 5000 });
   sc.openOverlay('gameOver', m);
   m.root.once('destroy', stop);
   const b = m.body;
@@ -309,32 +309,34 @@ export function showGameOver(sc: TableScene): void {
   if (!awards) [0, 2, 1, 3].forEach((seat, i) => {
     const x = -255 + i * 170;
     const mood: Mood = teamOf(seat) === v.winner ? 'happy' : 'sad';
-    const img = sc.add.image(x, -120, texOr(sc, `avatar:${seatPerson(seat)}:${mood}`)).setDisplaySize(110, 110);
+    const img = sc.add.image(x, -150, texOr(sc, `avatar:${seatPerson(seat)}:${mood}`)).setDisplaySize(110, 110);
     b.add(img);
-    if (teamOf(seat) === v.winner) sc.tweens.add({ targets: img, y: -134, duration: dur(420), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    b.add(text(sc, x, -48, seatName(seat), { size: TYPE.label, bold: true, color: teamOf(seat) === 0 ? COLOR.teamUs : COLOR.teamThem }));
+    if (teamOf(seat) === v.winner) sc.tweens.add({ targets: img, y: -164, duration: dur(420), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    b.add(text(sc, x, -78, seatName(seat), { size: TYPE.label, bold: true, color: teamOf(seat) === 0 ? COLOR.teamUs : COLOR.teamThem }));
   });
   const goal = goalWord(endLevelOf(v));
-  b.add(text(sc, 0, 18, watch ? `${sc.side(v.winner)}先${goal}，赢下整局` : win ? `我方先${goal}，赢下整局！` : `对方先${goal === '过 A' ? '过了 A' : goal}，下局再来`, { size: TYPE.title, bold: true, color: win ? COLOR.red : COLOR.muted, font: 'title' }));
+  b.add(text(sc, 0, -14, watch ? `${sc.side(v.winner)}先${goal}，赢下整局` : win ? `我方先${goal}，赢下整局！` : `对方先${goal === '过 A' ? '过了 A' : goal}，下局再来`, { size: TYPE.title, bold: true, color: win ? COLOR.red : COLOR.muted, font: 'title' }));
   // 整局的称号：一行排开，按钮上方
   sc.logMatch();
   const titles = matchTitles(sc.matchLog);
+  // 这一局的数：四格一排，数字逐格从 0 滚上去（好友房颁奖那一块占了位置，就不摆）
+  if (!awards && sc.matchLog.deals > 0) b.add(matchCells(sc, 58, watch));
   // 分享（art-v3）：按钮行正中带字的"晒战绩"，不再是右上角一个小图标
-  if (!watch) sc.addShare(b, 0, 170, { kind: 'game', win, room: sc.shareRoom(), goal }, awards, 200);
-  if (titles.length && !awards) b.add(text(sc, 0, 114, titles.map((t) => sc.titleLine(t, false)).join('    '), { size: TYPE.small, bold: true, color: COLOR.redDark }));
+  if (!watch) sc.addShare(b, 0, 206, { kind: 'game', win, room: sc.shareRoom(), goal }, awards, 200);
+  if (titles.length && !awards) b.add(text(sc, 0, 128, titles.map((t) => sc.titleLine(t, false)).join('    '), { size: TYPE.small, bold: true, color: COLOR.redDark }));
   if (sc.net && watch) {
     // 旁观的人：看完结果回首页（"再来一场"是这一桌的人一起换房间，不带旁观的）
-    b.add(new Button(sc, 0, 170, 240, 64, '回首页', 'red', () => sc.leaveRoom(), 'back'));
+    b.add(new Button(sc, 0, 206, 240, 64, '回首页', 'red', () => sc.leaveRoom(), 'back'));
     return;
   }
   if (sc.net) {
     // 好友房不计战绩。再来一场（0.6.2）：开个新房间，这一桌的人自动跟过去、坐回原来的座位
     // 匹配桌（0.26.0）也能再来一场：这一桌的人一起换到一个新开的好友房
-    const tip = text(sc, 0, 74, `${sc.net.match ? '匹配桌' : '好友房'}不计战绩 · 点"再来一场"，这一桌一起换到新房间`, { size: TYPE.label, color: COLOR.ink });
+    const tip = text(sc, 0, 154, `${sc.net.match ? '匹配桌' : '好友房'}不计战绩 · 点"再来一场"，这一桌一起换到新房间`, { size: TYPE.label, color: COLOR.ink });
     b.add(tip);
     b.setData('againTip', tip);
-    const home = new Button(sc, -230, 170, 200, 64, '回首页', 'wood', () => sc.leaveRoom(), 'back');
-    const again = new Button(sc, 230, 170, 200, 64, '再来一场', 'red', () => void sc.again(again), 'restart');
+    const home = new Button(sc, -230, 206, 200, 64, '回首页', 'wood', () => sc.leaveRoom(), 'back');
+    const again = new Button(sc, 230, 206, 200, 64, '再来一场', 'red', () => void sc.again(again), 'restart');
     b.add([home, again]);
     b.setData('again', again);
     b.setData('home', home);
@@ -347,13 +349,49 @@ export function showGameOver(sc: TableScene): void {
   const st = getStats();
   if (st.games > 0) {
     const rate = Math.round((st.wins / st.games) * 100);
-    b.add(text(sc, 0, 74, `战绩 ${st.wins}/${st.games}  胜率 ${rate}%  连胜 ${st.streak}（最高 ${st.bestStreak}）`, { size: TYPE.label, color: COLOR.ink }));
+    b.add(text(sc, 0, 154, `战绩 ${st.wins}/${st.games}  胜率 ${rate}%  连胜 ${st.streak}（最高 ${st.bestStreak}）`, { size: TYPE.label, color: COLOR.ink }));
   }
-  b.add(new Button(sc, -230, 170, 200, 64, '回首页', 'wood', () => sc.scene.start('title'), 'back'));
+  b.add(new Button(sc, -230, 206, 200, 64, '回首页', 'wood', () => sc.scene.start('title'), 'back'));
   // 再来一局：直接开同难度、同规则、同局长的新局，不回主页（残局之外的单机娱乐都走这里）
-  const again = new Button(sc, 230, 170, 200, 64, '再来一局', 'red', () => sc.newGame(), 'restart');
+  const again = new Button(sc, 230, 206, 200, 64, '再来一局', 'red', () => sc.newGame(), 'restart');
   b.add(again);
   b.setData('again', again);
+}
+
+/** 整局结束页的四格：打了几副、两队各赢几副（左边是我方 / 一队）、我（旁观时一队）拿头游几次、我方（一队）炸弹几个 */
+function matchCells(sc: TableScene, y: number, watch: boolean): Phaser.GameObjects.Container {
+  const lg = sc.matchLog;
+  const who = watch ? seatName(0) : '你';
+  const cells: [string, number, number | null][] = [
+    ['打了几副', lg.deals, null],
+    ['两队赢的副数', lg.wins[0]!, lg.wins[1]!],
+    [`${who}拿头游`, lg.firsts[0]!, null],
+    [`${sc.side(0)}炸弹`, lg.bombs[0]! + lg.bombs[2]!, null],
+  ];
+  const c = sc.add.container(0, y);
+  const cw = 156;
+  const gap = 12;
+  const still = dur(1) === 0;
+  cells.forEach(([label, n, m], i) => {
+    const x = (i - 1.5) * (cw + gap);
+    const g = sc.add.graphics();
+    g.fillStyle(0xf3e6c9, 1).fillRoundedRect(x - cw / 2, -38, cw, 76, 12);
+    g.lineStyle(2, 0xd8c39a, 1).strokeRoundedRect(x - cw / 2, -38, cw, 76, 12);
+    c.add(g);
+    // t 从 0 走到 1：两个数（两队胜副）一起滚，谁是 0 都不影响另一个
+    const fmt = (t: number): string => (m === null ? String(Math.round(t * n)) : `${Math.round(t * n)} : ${Math.round(t * m)}`);
+    const num = text(sc, x, -10, fmt(still ? 1 : 0), { size: TYPE.title, bold: true, font: 'num', color: i === 1 ? COLOR.ink : COLOR.redDark });
+    c.add(num);
+    c.add(fitWidth(text(sc, x, 22, label, { size: TYPE.small, color: COLOR.muted }), cw - 12));
+    if (still) return;
+    const roll = { t: 0 };
+    sc.tweens.add({
+      targets: roll, t: 1, duration: dur(520), delay: dur(300 + i * 140), ease: 'Cubic.easeOut',
+      onUpdate: () => { if (num.scene) num.setText(fmt(roll.t)); },
+      onComplete: () => { if (num.scene) num.setText(fmt(1)); },
+    });
+  });
+  return c;
 }
 
 /**
