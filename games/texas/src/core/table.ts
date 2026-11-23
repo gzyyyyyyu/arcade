@@ -765,11 +765,11 @@ function putHouse(t: Table, seat: number): void {
   const r = stream(t.seed, RNG.house, t.opSeq++);
   const used = new Set(t.seats.filter((s) => s.owner === 'house').map((s) => s.persona));
   const free = Array.from({ length: PERSONA_COUNT }, (_, i) => i).filter((i) => !used.has(i));
-  // 按这一桌电脑的强弱档的权重挑（stakes.ts 的 LEVEL_HOUSE）；最强档按 STRONG 的顺序挑桌上还没有的最强的。随机数照样取，后面的筹码、状态一样分流
+  // 按这一桌电脑的强弱档的权重挑（stakes.ts 的 LEVEL_HOUSE）；最强档（5）按 STRONG 的顺序挑桌上还没有的最强的。随机数照样取，后面的筹码、状态一样分流
   const lv = levelOf(t);
   const w = LEVEL_HOUSE[lv] ?? LEVEL_HOUSE[0]!;
   let x = r.below(free.reduce((a, i) => a + w[i]!, 0));
-  const persona = lv >= 5 ? STRONG.find((i) => !used.has(i))! : free.find((i) => (x -= w[i]!) < 0)!;
+  const persona = lv === 5 ? STRONG.find((i) => !used.has(i))! : free.find((i) => (x -= w[i]!) < 0)!;
   // 随机数照样取，后面的状态分流不变；全下或弃牌的全下局一律带 PF_STACK_BB 个大盲
   const deep = t.bb * (HOUSE_MIN_BB + r.below(HOUSE_MAX_BB - HOUSE_MIN_BB + 1));
   const stack = t.pushFold ? t.bb * PF_STACK_BB : deep;

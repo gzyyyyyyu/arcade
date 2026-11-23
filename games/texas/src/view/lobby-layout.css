@@ -151,10 +151,15 @@
   .stage.tight:not(.tall) .lobby .tile > * { flex: 1 0 100%; }
   .stage.tight:not(.tall) .lobby .tile > :is(b, .stars) { flex: 0 0 auto; }
   .stage:is(.tall, .tight) .lobby .go-row > .start { min-height: var(--hit); }
+  /* 带上桌的滑杆：上面电脑版压到 32，优先级比 style.css 里触屏的 .slider 高，平板上只剩 31–38 个屏幕像素（多尺寸）；这里同样的优先级放回 --hit */
+  .stage:not(.tall):not(.tight) .lobby .buyin .slider { height: var(--hit); }
 }
 .stage:is(.tall, .tight) .lobby .front { gap: var(--s-2); }
 .stage.tight:not(.tall) .lobby :is(.panel, .front) { padding-block: var(--s-2); }
 .stage.tight:not(.tall) .lobby .qstart { height: 58px; min-height: 0; }
+/* 两行字（28 号标题 + 按 --ui 放大的小字）比 58 高 2–3 个屏幕像素：上下内边距去掉、标题收到 24 */
+.stage.tight:not(.tall) .lobby .qstart { padding-block: 0; }
+.stage.tight:not(.tall) .lobby .qstart b { font-size: 24px; line-height: 1; }
 /* 手机横屏主页：各行的缝和上下内边距收到 4、战绩条矮一点，主页一屏放下（审计：多出 3–40） */
 .stage.tight:not(.tall) .lobby .front { gap: var(--s-1); padding-block: var(--s-0); }
 .stage.tight:not(.tall) .lobby .mystats { min-height: 0; padding-block: var(--s-1); }

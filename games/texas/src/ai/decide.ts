@@ -7,7 +7,7 @@ import type { Action } from '../core/table.ts';
 import type { View } from '../core/view.ts';
 import { categoryOf, evalCards, HIGH_CARD } from '../core/eval.ts';
 import { equity } from './equity.ts';
-import { PERSONAS, SKILL, type Persona, type Skill } from './personas.ts';
+import { PERSONAS, PERSONAS_SHARP, SKILL, type Persona, type Skill } from './personas.ts';
 import { preflopEquity, TOP } from './preflop.ts';
 
 /**
@@ -35,14 +35,18 @@ export const SHORT_BB = 12;
 const DEEP_BB = 150;
 /** 对手发到牌这么多手以后才看他的打法（样本太少不准） */
 const READ_HANDS = 15;
+/** 河牌两极（功力的 sharp）：先下注的牌相对强度不到这儿算中等，过牌摊牌；下注的（大牌、空气）尺度至少这么多（‰，乘 0.6–1.0 的浮动，约四分之三池） */
+const POLAR = 1600;
+const POLAR_SIZE = 950;
 
 export function decide(v: View, r: RandomStream): Action {
   const me = v.me;
   const lg = v.legal;
   if (me === null || !lg) throw new Error('decide: not my turn');
   const seat = v.seats[me]!;
-  const p: Persona = PERSONAS[seat.persona] ?? PERSONAS[DEFAULT_PERSONA]!;
   const k = SKILL[v.level] ?? SKILL[0]!;
+  const cast = k.sharp ? PERSONAS_SHARP : PERSONAS;
+  const p: Persona = cast[seat.persona] ?? cast[DEFAULT_PERSONA]!;
   // 这一场的状态：松紧、激进、诈唬、快慢在性格的范围里浮动（坐下时抽好的，规则的 SeatState.form）
   const form = v.form ?? NO_FORM;
   const others = v.seats.flatMap((s, i) => (i !== me && (s.status === 'active' || s.status === 'allin') ? [i] : []));
@@ -51,10 +55,10 @@ export function decide(v: View, r: RandomStream): Action {
   const pre = v.board.length === 0;
   const raw = pre ? preflopEquity(v.hole[0]!, v.hole[1]!, opp) : equity(v.hole, v.board, opp, mcIters(opp), r, ranges(v, others, k, p));
   // 看对手（只用公开的统计，按功力和性格的 reads 打折）：谁还没说话、这一轮最后下注的人是谁
-  const adapt = Math.min(1000, Math.floor((k.adapt * p.reads) / 1000));
+  const adapt = k.sharp ? 1000 : Math.min(1000, Math.floor((k.adapt * p.reads) / 1000));
   const yet = yetToAct(v, me);
   const bettor = raises > 0 ? lastAggressor(v, [streetStart(v), v.log.length]) : -1;
-  const opp2 = adapt ? readOpponents(v, others, yet, bettor) : NO_READ;
+  const opp2 = adapt ? readOpponents(v, others, yet, bettor, k.sharp) : NO_READ;
   // 有人这一轮下注、加注时他的牌通常更好，每有一次打一个折扣（翻牌前的门槛另按加注次数抬高）
   // 按次数连乘：随机牌、空气碰到下注就该弃，不每手跟到摊牌
   let eq = raw;
@@ -156,6 +160,7 @@ export function decide(v: View, r: RandomStream): Action {
         if (third) return { t: 'check' };
         if (k.slip && r.below(1000) < k.slip) return { t: 'check' };
         if (k.shy && r.below(1000) < mild(k.shy, p, k)) return { t: 'check' };
+        if (k.sharp && river && rel < POLAR) return { t: 'check' };
         chance = Math.max(chance, THIN_BET + p.bluff - 80 * (opp - 1));
         size = Math.floor((p.size * k.value) / 1000);
       }
@@ -166,6 +171,7 @@ export function decide(v: View, r: RandomStream): Action {
       // 小错：凶的人没牌也手痒（spew）；爱慢打的人河牌大牌装过了头，忘了收钱（trap）
       if (p.flaw === 'spew' && !pre) chance += flawRate(p, k) / 2;
       if (p.flaw === 'trap' && river && eq >= 900 && r.below(1000) < flawRate(p, k)) return { t: 'check' };
+      if (k.sharp && river) size = Math.max(size, POLAR_SIZE);
       if (r.below(1000) < chance) {
         // 河牌上连着打过来的，偶尔全下吓人（筹码不到池子 3 倍才推，不然下 1.25 池的重注）
         if (river && mine && k.value >= 1000 && r.below(1000) < p.shove) return seat.stack <= 3 * v.pot ? { t: 'allin' } : betTo(v, Math.floor((v.pot * 1250) / 1000));
@@ -220,7 +226,7 @@ const sampled = (seen: readonly number[] | undefined): seen is readonly number[]
  * 入池 ≤ 22% 算紧；入池 ≥ 45%、翻牌后下注加注不到跟注的六成算跟注站；翻牌前加注 ≥ 20% 算爱加注；
  * 看到翻牌的手里打到摊牌 ≥ 38% 算"一路看到底"（诈唬打不走），≤ 18% 算"爱弃牌"（诈唬、偷盲有用）
  */
-function readOpponents(v: View, others: readonly number[], yet: readonly number[], bettor: number): Read {
+function readOpponents(v: View, others: readonly number[], yet: readonly number[], bettor: number, sharp: boolean): Read {
   let tight = others.length > 0;
   let station = false;
   let sticky = false;
@@ -254,9 +260,10 @@ function readOpponents(v: View, others: readonly number[], yet: readonly number[
   }
   // 等着说话的人（多半是盲注位）都很紧：偷
   const blindsTight = yet.length > 0 && yet.every((s) => sampled(v.seats[s]!.seen) && rate(v.seats[s]!.seen![1], v.seats[s]!.seen![0]) <= 240);
+  // sharp（娱乐高手）下手更狠：对跟注站几乎不诈唬、薄打更宽，对紧的人多偷
   return {
-    bluff: station ? 500 : sticky ? 700 : tight || folder ? 1300 : 1000,
-    thin: station || sticky ? 100 : 0,
+    bluff: sharp ? (station ? 150 : sticky ? 400 : tight || folder ? 1500 : 1000) : station ? 500 : sticky ? 700 : tight || folder ? 1300 : 1000,
+    thin: station || sticky ? (sharp ? 180 : 100) : 0,
     raiserLoose: loud ? 60 : 0,
     bettor: bet,
     steal: blindsTight ? 60 : 0,
@@ -277,8 +284,8 @@ function yetToAct(v: View, me: number): number[] {
 const mild = (x: number, p: Persona, k: Skill): number => Math.min(1000, Math.floor((x * styled(p.mild, k)) / 1000));
 /** 性格的风格项按这一档的 style 往 1000（标准）靠：低档只露一部分 */
 const styled = (x: number, k: Skill): number => 1000 + Math.floor(((x - 1000) * k.style) / 1000);
-/** 小错每次的概率（‰）：高档的电脑少犯一半 */
-const flawRate = (p: Persona, k: Skill): number => Math.floor(((p.leak ?? 0) * (2000 - k.adapt)) / 2000);
+/** 小错每次的概率（‰）：高档的电脑少犯一半，娱乐高手不犯 */
+const flawRate = (p: Persona, k: Skill): number => (k.sharp ? 0 : Math.floor(((p.leak ?? 0) * (2000 - k.adapt)) / 2000));
 
 /** 有效筹码（大盲数）：我和这一手里还在的对手里最深的那个，取小的 */
 function effectiveBb(v: View, me: number, others: readonly number[]): number {

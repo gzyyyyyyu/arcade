@@ -45,7 +45,9 @@ async function audit(page: Page, where: string, touch: boolean): Promise<string[
     const clickable = [...document.querySelectorAll('button, a[href], input, select, [role="button"]')].filter((e) => !(e as HTMLButtonElement).disabled);
     // 触屏上 button 和"大厅"用 ::before 把能点的范围撑到 44 个屏幕像素（style.css 的 --hit，无头浏览器不认 pointer: coarse，量不到）；
     // 电脑用鼠标，不查点按区
-    const small = (e: Element): boolean => touch && !(e.tagName === 'BUTTON' || e.classList.contains('home'));
+    // 滑杆在触屏条件（pointer: coarse 或宽 < 960）下直接做到 --hit：宽 ≥ 960 的平板在无头浏览器里两样都不命中，量的是电脑版的高度，不算；窄的照量
+    const touchCss = matchMedia('(pointer: coarse), (max-width: 959px)').matches;
+    const small = (e: Element): boolean => touch && !(e.tagName === 'BUTTON' || e.classList.contains('home')) && (touchCss || (e as HTMLInputElement).type !== 'range');
     const min = W <= 320 ? 40 : 44;
     for (const e of clickable) {
       const r = shown(e);
@@ -173,7 +175,10 @@ export async function devicesFlow(browser: Browser, base: string): Promise<void>
 async function tableHits(page: Page, where: string): Promise<string[]> {
   return page.evaluate(async ([where]) => {
     // 筹码落进名牌时名牌鼓一下（scale 1.1，0.4 秒）：量到鼓起的那一刻会多报几像素，等它放完再量
-    await Promise.all(document.getAnimations().filter((a) => (a.effect as KeyframeEffect | null)?.target?.classList.contains('plate')).map((a) => a.finished.catch(() => {})));
+    // 名牌的动画、座位让位的平移（.seat 的 translate 过渡）都等落定再量：半路上量到的位置截图里看不到。
+    // 只等有终点的（循环的永远等不完），最多等 2 秒
+    const moving = document.getAnimations().filter((a) => (a.effect as KeyframeEffect | null)?.target?.closest('.seat') && Number.isFinite(a.effect?.getComputedTiming().endTime));
+    await Promise.race([Promise.all(moving.map((a) => a.finished.catch(() => {}))), new Promise((ok) => setTimeout(ok, 2000))]);
     const PARTS = '.seat .plate, .seat .avatar, .seat .hole .card:not(.hidden), .seat .bubble.on, .seat .hand.on, .bet:not(.hidden), .dealer:not(.hidden), .card.board:not(.hidden), .pot-main:not(.hidden), .pot-sides > *, .result.on, .actions .act, .actions .preset, .actions .qbet, .actions .odds, .hud > :not(.hidden), .topbar > :not(.spacer), .atc-dock';
     const shown = (e: Element): DOMRect | null => {
       const r = e.getBoundingClientRect();
@@ -199,7 +204,8 @@ async function tableHits(page: Page, where: string): Promise<string[]> {
         if ((d(a.e) && bb(b.e)) || (bb(a.e) && d(b.e))) continue;
         const dx = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
         const dy = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
-        if (dx > 2 && dy > 2) out.push(`${where}: 压住 ${label(a.e)} × ${label(b.e)} ${Math.round(dx)}×${Math.round(dy)}`);
+        const at = (r: DOMRect): string => `${Math.round(r.left)},${Math.round(r.top)}–${Math.round(r.right)},${Math.round(r.bottom)}`;
+        if (dx > 2 && dy > 2) out.push(`${where}: 压住 ${label(a.e)} ${at(a.r)} × ${label(b.e)} ${at(b.r)} ${Math.round(dx)}×${Math.round(dy)}`);
       }
     // 出屏：只查两两互压发现不了被屏幕边缘切掉的部分
     for (const { e, r } of items)

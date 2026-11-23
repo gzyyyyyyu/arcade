@@ -740,7 +740,8 @@ function button(parent: HTMLElement, cls: string, text: string, onClick: () => v
 const short = (n: number): string => (n >= 10_000 && n % 10_000 === 0 ? `${n / 10_000}万` : chips(n));
 
 /** 电脑多强（1–4 颗星，四个游戏一样的画法）：就是这一桌电脑的强弱档（实盘 SOLO_LEVEL、娱乐 FUN_LEVEL），新手的 0 档也画 1 颗 */
-const stars = (level: number): number => Math.max(1, level);
+/** 四颗星封顶：娱乐高手（第 6 档）和豪华桌一样满星 */
+const stars = (level: number): number => Math.min(4, Math.max(1, level));
 const FOR_WHOM: Readonly<Record<Difficulty, string>> = { easy: '刚学会，先赢几把', normal: '会看牌、会弃牌', hard: '想和最强的电脑过招' };
 
 /**
