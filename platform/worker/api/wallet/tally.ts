@@ -1,7 +1,7 @@
 /**
- * 真人对局统计（docs/platform-backend.md 5.11）：游戏结回、交分时可以多带一个 `tally`，平台只给
+ * 真人对局统计（docs/platform-backend.md 5.11）：游戏带回、交分时可以多带一个 `tally`，平台只给
  * （天, 游戏, 玩法, mode, 档位, 时长段, 结果段）这个组合加 1，不存哪一局、哪个人。只有管理员在 /admin 看得到。
- * 没带或带得不合格就什么都不记，结回、交分照常（不合格的 tally 不能让筹码回不来）。
+ * 没带或带得不合格就什么都不记，带回、交分照常（不合格的 tally 不能让筹码回不来）。
  */
 import { isCount, isPlain } from '../lib/body';
 import type { Db } from '../lib/db';
@@ -46,7 +46,7 @@ export function durBucket(sec: number): DurBucket {
 const RESULT_BUCKET = { win: 'win', lose: 'lose', draw: 'even' } as const;
 
 /**
- * 结回的结果段：got 是进钱包的、stake 是桌上那一份。got = 0 输光；净值 < 0 输；= 0 持平；
+ * 带回的结果段：got 是进钱包的、stake 是桌上那一份。got = 0 输光；净值 < 0 输；= 0 持平；
  * 0 < 净值 < stake 赢；净值 ≥ stake（翻倍以上）大赢。带入是 0 时没法比，用游戏报的 result，没有就算持平。
  */
 export function settleOutcome(stake: number, got: number, result?: Tally['result']): OutcomeBucket {

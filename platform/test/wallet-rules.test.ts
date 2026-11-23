@@ -47,7 +47,7 @@ describe('钱包规则', () => {
     expect(await walletOf(u.cookie)).toMatchObject({ wallet: { balance: 3_000, canRelief: true }, reliefTo: 5_000, winUnits: 2 });
     const ref = id('ref');
     await kaipan.buyin({ userId: u.user.id, game: 'kaipan', ref, tier: 'small', amount: 2_000, until: Date.now() + 3_600_000, mode: 'client', op: id('op') });
-    // 单机上限 2 份：带入 2,000 结回 10,000，只进 6,000（净赢 4,000）
+    // 单机上限 2 份：带入 2,000 带回 10,000，只进 6,000（净赢 4,000）
     expect(await kaipan.settle({ userId: u.user.id, game: 'kaipan', ref, amount: 10_000, mode: 'client', op: id('op') })).toMatchObject({ ok: true, credited: 6_000, capped: 4_000 });
     // 余额 7,000 ≥ 补给额 5,000：领不了
     const relief = await call('/api/wallet/relief', { body: {}, cookie: u.cookie });

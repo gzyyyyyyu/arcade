@@ -23,7 +23,7 @@ async function play(userId: string, game: string, amount: number, back: number, 
 }
 
 describe('管理后台', () => {
-  it('今日概况：碰过钱包的人、来过的人、各游戏人数和带入结回、补给人数；前几天从统计里取；写 0 行', async () => {
+  it('今日概况：碰过钱包的人、来过的人、各游戏人数和带入带回、补给人数；前几天从统计里取；写 0 行', async () => {
     const a = await admin();
     const [u, v] = [await registerUser(), await registerUser()];
     await play(u.user.id, 'kaipan', 2_000, 3_000);
@@ -59,7 +59,7 @@ describe('管理后台', () => {
     expect(users.find((x) => x.id === a.user.id)!.wallet).toEqual({ balance: null, onTable: 0, played: {} });
   });
 
-  it('查人带战绩和钱包流水（新的在前）：新号送的、带入、结回（到顶没进的另写）、放弃、到期退回、补给、管理员调整', async () => {
+  it('查人带战绩和钱包流水（新的在前）：新号送的、带入、带回（到顶没进的另写）、放弃、到期退回、补给、管理员调整', async () => {
     const a = await admin();
     const u = await registerUser();
     await play(u.user.id, 'kaipan', 2_000, 30_000, { rounds: 1, wins: 1, best: 28_000 });

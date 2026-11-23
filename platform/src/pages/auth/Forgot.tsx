@@ -36,7 +36,7 @@ export function ForgotPage() {
         <FormError text={error} />
         <SubmitButton busy={busy}>重设密码</SubmitButton>
         <p className="note">
-          恢复码也丢了？那就找不回来了，只能 <Link href="/login?tab=register">重新注册</Link>。
+          恢复码也丢了就找不回了，找邀请你的朋友再要一个邀请码，<Link href="/login?tab=register">重新注册</Link>。
         </p>
       </form>
     </Panel>

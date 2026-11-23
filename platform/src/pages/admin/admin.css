@@ -95,7 +95,7 @@
 .game-today .paged__list--grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: var(--s-2); }
 .game-today__item { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--s-3); padding: var(--s-2) var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--white); align-content: start; }
 .game-today__item > span:not(.tnum), .game-today__item > small { grid-column: 1 / -1; color: var(--muted); font-size: var(--fs-xs); }
-/* 触屏上数字至少 14px：这一行里有带入、结回的数 */
+/* 触屏上数字至少 14px：这一行里有带入、带回的数 */
 @media (pointer: coarse), (max-width: 959px) { .game-today__item > span:not(.tnum), .game-today__item > small { font-size: var(--fs-sm); } }
 .game-today .nowrap { white-space: nowrap; }
 .game-today__item > .game-today__flow { display: flex; flex-wrap: wrap; column-gap: var(--s-3); }

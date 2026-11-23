@@ -17,7 +17,7 @@ import { relativeTime } from '../../features/recent/recent-logic.ts';
 import { LobbyTour } from '../../features/lobby-tour/LobbyTour.tsx';
 
 /**
- * last：这是最近玩的那个游戏时，上次玩的时间（卡上写"上次玩 · 多久以前"，按钮写"继续玩"）。
+ * last：这是最近玩的那个游戏时，上次玩的时间（卡上写"上次玩 · 多久以前"（手机写"多久以前玩过"），按钮写"继续玩"）。
  * main：这张卡的按钮是大厅唯一的主按钮（实心橙，docs/ui.md 第 2 节一屏一个），别的卡是次按钮
  */
 function GameCard({ game, last = null, main = false }: { game: GameEntry; last?: number | null; main?: boolean }) {
@@ -68,6 +68,7 @@ function GameCard({ game, last = null, main = false }: { game: GameEntry; last?:
           <span className="card__kicker" data-testid={`last-${game.id}`}>
             <span className="card__kicker-label">上次玩 · </span>
             {relativeTime(last, Date.now())}
+            <span className="card__kicker-tail">玩过</span>
           </span>
         )}
         <h2 className="card__title">
@@ -99,10 +100,9 @@ function GameCard({ game, last = null, main = false }: { game: GameEntry; last?:
           </a>
         ) : (
           // 测试期要登录才能玩（游戏那边也会挡）：登录后直接回这个游戏
-          <Link className="card__play" href={`/login?from=${game.id}`} aria-label="登录后才能玩">
-            <span>
-              登录<span className="card__play-more">后才能玩</span>
-            </span>
+          // 手机上也写全"登录后玩"：只写"登录"的话一屏八张卡加顶栏九个一样的按钮，像没做完
+          <Link className="card__play" href={`/login?from=${game.id}`}>
+            登录后玩
           </Link>
         )}
       </div>

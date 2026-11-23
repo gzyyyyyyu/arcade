@@ -31,7 +31,7 @@ export async function adminOverview(browser: Browser): Promise<void> {
     const ov = page.getByTestId('overview');
     await ov.getByText('14').waitFor();
     const texasToday = (await page.locator('.game-today__item', { hasText: '德州扑克' }).innerText()).replace(/\s+/g, ' ');
-    check(texasToday.includes('6 人') && texasToday.includes('带入 24,000') && texasToday.includes('结回 21,000'), `今天各游戏里德州那行不对：${texasToday}`);
+    check(texasToday.includes('6 人') && texasToday.includes('带入 24,000') && texasToday.includes('带回 21,000'), `今天各游戏里德州那行不对：${texasToday}`);
     check(await page.locator('.panel__head').getByTestId('admin-chips-open').isVisible(), '"管理筹码"应该在"今天"的标题行里');
     await shot(page, `admin-console-${screen}`);
     // 管理后台在 1280、1920 宽也不是窄列、不横着滑
@@ -66,7 +66,7 @@ export async function adminOverview(browser: Browser): Promise<void> {
     await user.getByTestId('user-tab-ledger').click();
     const ledger = user.getByTestId('ledger');
     await seek(ledger, ledger.getByText('到顶没进 8,000'));
-    await seek(ledger, ledger.locator('.ledger__kind--settle').getByText('结回'));
+    await seek(ledger, ledger.locator('.ledger__kind--settle').getByText('带回'));
     await seek(ledger, ledger.locator('.ledger__amount.up', { hasText: '+22,000' }));
     await shot(page, `admin-overview-${screen}`);
     await ctx.close();

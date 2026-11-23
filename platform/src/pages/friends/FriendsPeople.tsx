@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, ApiFail, errorText, type FriendLists, type Profile, type Where } from '../../api.ts';
 import { gameName } from '../../lib/format.ts';
-import { togetherText } from '../../lib/mates.ts';
+import { togetherLines } from '../../lib/mates.ts';
 import { BlockIcon, TrashIcon } from '../../icons.tsx';
 import { Link } from '../../router.tsx';
 import { playError, playSuccess } from '../../lib/sound.ts';
@@ -124,8 +124,9 @@ export function Incoming({ p, onChanged }: { p: Profile; onChanged: () => void }
         })}>
         拒绝
       </button>
-      <button className="btn btn--small people__icon-btn" type="button" title="屏蔽" aria-label="屏蔽" disabled={!writable} aria-expanded={blocking} onClick={() => setBlocking(!blocking)}>
+      <button className="btn btn--small people__icon-btn" type="button" disabled={!writable} aria-expanded={blocking} onClick={() => setBlocking(!blocking)}>
         <BlockIcon />
+        <span className="people__icon-label">屏蔽</span>
       </button>
     </Person>
   );
@@ -145,8 +146,12 @@ export function Friend({ p, best, onChanged }: { p: FriendLists['friends'][numbe
       mates={
         p.together && (
           <span className="people__mates" data-testid="together">
-            {best && <span className="people__best">最佳搭档</span>}
-            {togetherText(p.together)}
+            {togetherLines(p.together).map((l, i) => (
+              <span key={l} className="people__mates-line">
+                {best && i === 0 && <span className="people__best">最佳搭档</span>}
+                {l}
+              </span>
+            ))}
           </span>
         )
       }
@@ -164,12 +169,14 @@ export function Friend({ p, best, onChanged }: { p: FriendLists['friends'][numbe
           加入
         </a>
       )}
-      {/* 删好友、屏蔽常显（不藏进菜单），做成灰色小图标，不扎眼；点了还要在原地勾确认 */}
-      <button className="btn btn--small people__icon-btn" type="button" title="删好友" aria-label="删好友" disabled={!writable} aria-expanded={open === 'remove'} onClick={() => toggle('remove')}>
+      {/* 删好友、屏蔽常显（不藏进菜单）：灰色小图标下面带短字，第一次来也分得清；不用红字，点了还要在原地勾确认 */}
+      <button className="btn btn--small people__icon-btn" type="button" disabled={!writable} aria-expanded={open === 'remove'} onClick={() => toggle('remove')}>
         <TrashIcon />
+        <span className="people__icon-label">删好友</span>
       </button>
-      <button className="btn btn--small people__icon-btn" type="button" title="屏蔽" aria-label="屏蔽" disabled={!writable} aria-expanded={open === 'block'} onClick={() => toggle('block')}>
+      <button className="btn btn--small people__icon-btn" type="button" disabled={!writable} aria-expanded={open === 'block'} onClick={() => toggle('block')}>
         <BlockIcon />
+        <span className="people__icon-label">屏蔽</span>
       </button>
     </Person>
   );

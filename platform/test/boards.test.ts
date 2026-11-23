@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { fixedBoards, GAMES } from '../shared/games';
 import { acceptsScore, FIXED_BOARD_RE, isKnownBoard } from '../worker/api/scores/boards';
 import { beijingDate } from '../worker/api/core/time';
-import { beijingIsoWeek, weeklyBoardId } from '../shared/weekly';
+import { beijingIsoWeek } from '../shared/weekly';
+
+/** 每周挑战榜的榜名：week-<周>-<子榜> */
+const weeklyBoardId = (ms: number, sub: string) => `week-${beijingIsoWeek(ms)}-${sub}`;
 import { runCleanup } from '../worker/api/ops/cron';
 import { advance, call, count, env, errorOf, FIXED_NOW, registerUser, resetAll, rowsBy, rowsRead, rowsWritten } from './helpers';
 
@@ -268,7 +271,6 @@ describe('榜单 ID', () => {
     expect(beijingIsoWeek(Date.UTC(2027, 0, 1, 4))).toBe('2026-W53');
     expect(beijingIsoWeek(Date.UTC(2021, 0, 3, 4))).toBe('2020-W53');
     expect(beijingIsoWeek(Date.UTC(2024, 11, 30, 4))).toBe('2025-W01');
-    expect(weeklyBoardId(FIXED_NOW, 'tide')).toBe('week-2026-W42-tide');
   });
 
   it('每周榜：子榜登记了才收，只收这周，跨周一 0 点后一天内还收上周；读榜认任何一周', () => {

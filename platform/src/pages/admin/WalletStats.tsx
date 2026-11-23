@@ -7,7 +7,7 @@ import { num, gameName } from './common.ts';
 import { AdminTable, type Col } from './AdminLayout.tsx';
 
 /**
- * 全站筹码统计（docs/economy.md 第 6 节）：Cron 每天凌晨记一次前一天的。"庄家"是带入 − 结回 − 退回：
+ * 全站筹码统计（docs/economy.md 第 6 节）：Cron 每天凌晨记一次前一天的。"庄家"是带入 − 带回 − 退回：
  * 正数是玩家输给电脑的（筹码的去处），负数是赢电脑的（来源）。总量涨太快就调数值。
  */
 export function WalletStats() {
@@ -45,7 +45,7 @@ export function WalletStats() {
               <li key={g}>
                 <b>{gameName(g)}</b>{' '}
                 <span>
-                  <span>带入 {num(x.in)}</span> · <span>结回 {num(x.out)}</span> · <span>退回 {num(x.back)}</span>
+                  <span>带入 {num(x.in)}</span> · <span>带回 {num(x.out)}</span> · <span>退回 {num(x.back)}</span>
                   {x.ex ? <> · <span>兑换 {num(x.ex)}</span></> : null}
                 </span>
               </li>

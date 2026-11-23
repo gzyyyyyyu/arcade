@@ -1,6 +1,6 @@
 # 平台更新日志 0.10.20–0.22.1（归档）
 
-这一段的版本记录，从 [CHANGELOG.md](../CHANGELOG.md) 挪来。更新的在 [changelog-0.23-0.32.md](changelog-0.23-0.32.md)。再早的版本没有单独的更新日志：各版本做了什么，见仓库根 `docs/platform-backend.md` 各节里的版本标注。
+这一段的版本记录，从 [CHANGELOG.md](../CHANGELOG.md) 挪来。更新的在 [changelog-0.23-0.32.md](changelog-0.23-0.32.md)。再早的版本没有单独的更新日志，见 git 历史。
 
 ## 0.22.1
 

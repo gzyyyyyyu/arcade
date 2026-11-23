@@ -12,8 +12,8 @@ export async function mobile(browser: Browser): Promise<void> {
   await page.goto(`${BASE}/`);
   await page.locator('.account').waitFor();
   await shot(page, 'mobile-home');
-  const playBox = await page.getByRole('link', { name: '登录后才能玩' }).first().boundingBox();
-  check(playBox && playBox.height >= 44, `"登录后才能玩"不到 44 高（${playBox?.height ?? 0}）`);
+  const playBox = await page.getByRole('link', { name: '登录后玩' }).first().boundingBox();
+  check(playBox && playBox.height >= 44, `"登录后玩"不到 44 高（${playBox?.height ?? 0}）`);
   await Promise.all([page.waitForResponse(`${BASE}/api/me`), page.goto(`${BASE}/login`)]);
   await page.getByText('现在只对受邀的朋友开放').waitFor();
   await shot(page, 'mobile-login');
@@ -30,7 +30,7 @@ export async function mobile(browser: Browser): Promise<void> {
   check(await seen(/^我们不放广告，也不卖你的数据；除了上面"访问统计"页签/), '隐私说明里没有"不放广告"');
   check(await seen(/^排行榜：每个榜只留你最好的一次成绩/), '隐私说明里没有排行榜一条');
   check(await seen(/^我们用 Cloudflare 的网站统计，看有多少次访问/), '隐私说明里没有访问统计');
-  // 注册开着、关着都成立的说法；不再说"只对受邀的朋友开放"
+  // 注册开着、关着都成立的说法
   check(await seen('有账号、登录后才能玩。注册不一定一直开着，没开的时候，凭朋友给的邀请码注册，或者由管理员给朋友建账号。'), '隐私说明里没有注册那句');
   check((await privacyCount(page, /受邀/, false)) === 0, '隐私说明不该再说"受邀"');
   // 积分和筹码那段（维护者 2026-10-14 定）：免费没充值、没有现金价值、不涉及线下财物、可能清零、包括德州扑克
@@ -136,7 +136,7 @@ export async function mobile(browser: Browser): Promise<void> {
     const box = await t.boundingBox();
     check(box && box.height >= 44, `好友页的按钮不到 44 高：${await t.textContent()}（${box?.height ?? 0}）`);
   }
-  // 好友动态在动态页，入口只在顶栏（好友页不重复放）。结回的按平台模板拼、称号读 titles.json；名场面按游戏的模板拼；模板不合格的那条不显示
+  // 好友动态在动态页，入口只在顶栏（好友页不重复放）。带回的按平台模板拼、称号读 titles.json；名场面按游戏的模板拼；模板不合格的那条不显示
   check((await fr.page.getByTestId('feed').count()) === 0, '好友页不该再铺动态列表');
   check((await fr.page.getByTestId('feed-entry').count()) === 0, '好友页不该再有动态入口（顶栏有）');
   await fr.page.goto(`${BASE}/feed`);

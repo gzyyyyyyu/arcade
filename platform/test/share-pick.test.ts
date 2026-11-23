@@ -44,7 +44,7 @@ describe('小格挑亮眼的', () => {
     const { stats, line } = pickStats(card);
     expect(stats).toEqual([
       { label: '德州扑克胜率', value: '23% · 22局' },
-      { label: '最大一把', value: '30' },
+      { label: '最大一把赢', value: '30 筹码' },
       { label: '称号', value: '1 个' },
     ]);
     expect(line).toBeUndefined();
@@ -53,7 +53,7 @@ describe('小格挑亮眼的', () => {
   it('只有一个能上的胜率：补最大一把和称号数', () => {
     expect(pickStats({ texas: card.texas, mahjong: career({ n: 1, rounds: 3, wins: 1, titles: [{ id: 'a', at: 1 }, { id: 'b', at: 2 }] }) }).stats).toEqual([
       { label: '德州扑克胜率', value: '23% · 22局' },
-      { label: '最大一把', value: '30' },
+      { label: '最大一把赢', value: '30 筹码' },
       { label: '称号', value: '2 个' },
     ]);
   });
@@ -66,8 +66,8 @@ describe('小格挑亮眼的', () => {
     };
     const { stats, line } = pickStats(three);
     expect(stats.map((s) => s.label)).toEqual(['牌馆胜率', '德州扑克胜率', '雀馆胜率']);
-    expect(line).toBe('最大一把 18,400');
+    expect(line).toBe('最大一把赢 18,400');
     expect(Array.from(line!).length).toBeLessThanOrEqual(LINE_MAX);
-    expect(pickStats({ ...three, texas: career({ rounds: 40, wins: 20, best: 30 }) }).line).toBe('德州扑克最大一把 30');
+    expect(pickStats({ ...three, texas: career({ rounds: 40, wins: 20, best: 30 }) }).line).toBe('最大一把赢 30 筹码');
   });
 });

@@ -136,7 +136,7 @@ export async function mockAdmin(page: Page, registration: object = { open: true,
 export async function fakeAdmin(page: Page): Promise<void> {
   await mockAdmin(page);
   await page.goto(`${BASE}/admin?s=stats`);
-  await page.getByTestId('wallet-stats').locator('.per-game li', { hasText: '德州扑克 带入 50,000 · 结回 38,000 · 退回 2,000' }).waitFor();
+  await page.getByTestId('wallet-stats').locator('.per-game li', { hasText: '德州扑克 带入 50,000 · 带回 38,000 · 退回 2,000' }).waitFor();
   // 打开后会话还会再读一次、可能把选中的分区重置：等网络静下来再点
   await page.waitForLoadState('networkidle');
   await adminSection(page, '用户');
@@ -154,7 +154,7 @@ export const FAKE_FRIENDS = {
 };
 
 /** 用模拟的登录状态打开好友页（不占真实登录次数）。 */
-/** 好友动态的样子：结回生成的（带称号）、游戏报的名场面（模板读游戏的 moments.json）、模板不合格的（不显示） */
+/** 好友动态的样子：带回生成的（带称号）、游戏报的名场面（模板读游戏的 moments.json）、模板不合格的（不显示） */
 export const FAKE_FEED = [
   { id: '00000000aAAAAAAAAAAAA', user: { userId: 'f1', displayName: '小明', avatar: null }, game: 'guandan', kind: 'settle', at: Date.now() - 5 * 60_000, data: { tier: 'small', units: 16, titles: ['double_down'] }, reactions: { like: 2 } },
   { id: '00000000bAAAAAAAAAAAA', user: { userId: 'f3', displayName: '阿花', avatar: null }, game: 'guandan', kind: 'moment', at: Date.now() - 3 * 3_600_000, data: { m: 'four_bombs', n: [4] }, reactions: {}, mine: 'tomato' },

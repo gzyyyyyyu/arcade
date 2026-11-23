@@ -9,7 +9,7 @@ import './ledger.css';
 const KINDS: Record<LedgerEntry['t'], { text: string; icon: string }> = {
   grant: { text: '新号送的', icon: 'M12 8v13M4 8h16v4H4zM6 12h12v9H6zM12 8c-2-4-6-4-6-1s4 1 6 1c2 0 6 2 6-1s-4-3-6 1' },
   buyin: { text: '带入', icon: 'M12 4v12m0 0l-5-5m5 5l5-5M5 20h14' },
-  settle: { text: '结回', icon: 'M12 20V8m0 0l-5 5m5-5l5 5M5 4h14' },
+  settle: { text: '带回', icon: 'M12 20V8m0 0l-5 5m5-5l5 5M5 4h14' },
   refund: { text: '放弃退回', icon: 'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3' },
   expire: { text: '到期退回', icon: 'M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z' },
   relief: { text: '领补给', icon: 'M12 5v14M5 12h14' },

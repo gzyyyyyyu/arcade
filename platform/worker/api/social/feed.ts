@@ -1,9 +1,9 @@
 /**
  * 好友动态（docs/social.md 第 2 节；接口见 docs/platform-backend.md 15.17）。写入记在"在线"类。
  *
- * - 两个来源：实盘结回时平台自己生成（feedFromSettle，钱包 RPC 结回成功后调），游戏页报的娱乐名场面（POST /api/feed）。
+ * - 两个来源：实盘带回时平台自己生成（feedFromSettle，钱包 RPC 带回成功后调），游戏页报的娱乐名场面（POST /api/feed）。
  *   每人每天（北京时间）合计 feedPerDay 条，超了静默不写；本人关了 show_feed 也不写。数和插入在同一条语句里。
- * - 只存编号和数字，文字在浏览器里拼：结回的按平台的模板，名场面按游戏的 /games/<id>/moments.json。
+ * - 只存编号和数字，文字在浏览器里拼：带回的按平台的模板，名场面按游戏的 /games/<id>/moments.json。
  * - 只给好友看（和本人），保留 feedKeepMs；关了开关的人，已经生成的好友也看不到。
  * - 赞和扔道具：每条每人一次；不是好友的、自己的、过期的、不存在的一律 404，看不出是哪种。
  */
@@ -41,7 +41,7 @@ async function insert(db: Db, userId: string, game: string, kind: 'settle' | 'mo
   return (meta.changes ?? 0) > 0;
 }
 
-/** 钱包结回成功后调（wallet/service.ts）：db 要已经切到"在线"类。出错由调用方吞掉，结回不受影响 */
+/** 钱包带回成功后调（wallet/service.ts）：db 要已经切到"在线"类。出错由调用方吞掉，带回不受影响 */
 export function feedFromSettle(db: Db, userId: string, ev: SettleFeed, now: number, limits: Limits): Promise<boolean> {
   return insert(db, userId, ev.game, 'settle', { tier: ev.tier, units: ev.units, titles: ev.titles }, now, limits);
 }

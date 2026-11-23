@@ -1,8 +1,8 @@
 /**
  * 晒战绩卡挑什么：纯函数，不碰 DOM，测试在 test/share-pick.test.ts。三条规则：
  * - 昵称旁的称号挑体面的：titles.json 没有分级、没有正负（2026-10-17 核对过四个游戏），只能把自嘲类的排除掉，剩下的挑最近拿到的；
- * - 三个小格挑亮眼的：至少 5 局、胜率至少 10% 的游戏才按胜率进候选，不够三项用"最大一把""称号 N 个"补；
- * - 底下那句短一点、不在词中间断：kit 按字折行，一行大约 14 个字，所以只写一句"最大一把"，放不下就去掉游戏名。
+ * - 三个小格挑亮眼的：至少 5 局、胜率至少 10% 的游戏才按胜率进候选，不够三项用"最大一把赢""称号 N 个"补；
+ * - 底下那句短一点、不在词中间断：kit 按字折行，一行大约 14 个字，所以只写一句"最大一把赢 N 筹码"，放不下先去掉游戏名、再去掉"筹码"。
  */
 import type { CareerView } from '../../api.ts';
 import { gameName, num } from '../../lib/format.ts';
@@ -53,6 +53,9 @@ interface CardPicks {
   line?: string;
 }
 
+/** 放得下 max 个字就用长的，不然用短的（发给朋友看，对方没有上下文，能带"筹码"就带上） */
+const fit = (long: string, short: string, max: number) => (Array.from(long).length <= max ? long : short);
+
 /**
  * 三个小格和底下一句。kit 的限制：标签最多 8 个字、值最多 10 个字，超了截掉；一句话按字折行。
  */
@@ -72,14 +75,13 @@ export function pickStats(games: Record<string, CareerView>): CardPicks {
   // 不够三项：先补最大一把（补进小格了，底下那句就不再重复），再补称号数
   let bestInStats = false;
   if (stats.length < 3 && best) {
-    stats.push({ label: '最大一把', value: num(best[1]) });
+    stats.push({ label: '最大一把赢', value: fit(`${num(best[1])} 筹码`, num(best[1]), 10) });
     bestInStats = true;
   }
   if (stats.length < 3 && titles > 0) stats.push({ label: '称号', value: `${titles} 个` });
   let line: string | undefined;
   if (best && !bestInStats) {
-    const full = `${gameName(best[0])}最大一把 ${num(best[1])}`;
-    line = Array.from(full).length <= LINE_MAX ? full : `最大一把 ${num(best[1])}`;
+    line = fit(`${gameName(best[0])}最大一把赢 ${num(best[1])} 筹码`, fit(`最大一把赢 ${num(best[1])} 筹码`, `最大一把赢 ${num(best[1])}`, LINE_MAX), LINE_MAX);
   }
   return { stats, ...(line ? { line } : {}) };
 }

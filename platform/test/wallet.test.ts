@@ -1,5 +1,5 @@
 /**
- * 钱包（docs/platform-backend.md 5.9、docs/economy.md 第 3、4、6 节）：游戏经 RPC 带入、结回、放弃；浏览器只能看和领补给。
+ * 钱包（docs/platform-backend.md 5.9、docs/economy.md 第 3、4、6 节）：游戏经 RPC 带入、带回、放弃；浏览器只能看和领补给。
  * 每个用例断言写入行数：成功 1 行，被拒、重复 0 行。
  */
 import { exports } from 'cloudflare:workers';
@@ -87,7 +87,7 @@ describe('看钱包、新号', () => {
     expect(await count('SELECT COUNT(*) AS n FROM wallets')).toBe(0);
   });
 
-  it('浏览器 GET /api/wallet：看自己的，带档位表；没登录 401；/api 里没有带入、结回、放弃的路', async () => {
+  it('浏览器 GET /api/wallet：看自己的，带档位表；没登录 401；/api 里没有带入、带回、放弃的路', async () => {
     const u = await registerUser();
     const res = await call('/api/wallet', { cookie: u.cookie });
     expect(res.status).toBe(200);
@@ -116,7 +116,7 @@ describe('看钱包、新号', () => {
   });
 });
 
-describe('带入、结回、放弃', () => {
+describe('带入、带回、放弃', () => {
   it('带入：每次 1 到一份；余额够这次带入就行（不要求整份）；被拒 0 行', async () => {
     const u = await registerUser();
     const uid = u.user.id;
@@ -153,7 +153,7 @@ describe('带入、结回、放弃', () => {
     expect(r.wallet!.stakes.map((s) => s.game).sort()).toEqual(['kaipan', 'texas']);
   });
 
-  it('同一个游戏可以同时有好几份：单机一桌没离桌，照样能进好友房带入；各按 ref 结回、放弃，互不影响', async () => {
+  it('同一个游戏可以同时有好几份：单机一桌没离桌，照样能进好友房带入；各按 ref 带回、放弃，互不影响', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     await buyin(uid, { game: 'texas', ref: 'solo-0001', amount: 2_000 });
@@ -176,7 +176,7 @@ describe('带入、结回、放弃', () => {
     expect((await state(u.user.id)).stakes['kaipan:ref-000001']!.until).toBe(Date.now() + 24 * HOUR);
   });
 
-  it('结回：清掉那一份、钱进余额，1 行；同一个操作 id 重发只算一次（0 行，回当时的结果）', async () => {
+  it('带回：清掉那一份、钱进余额，1 行；同一个操作 id 重发只算一次（0 行，回当时的结果）', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     await buyin(uid, { mode: 'server' });
@@ -213,7 +213,7 @@ describe('带入、结回、放弃', () => {
     expect(again.wallet.stakes).toEqual([expect.not.objectContaining({ ops: expect.anything() })]);
   });
 
-  it('结回被拒（0 行）：没有那一份、ref 不对、模式不对、金额离谱', async () => {
+  it('带回被拒（0 行）：没有那一份、ref 不对、模式不对、金额离谱', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     expect(await settle(uid)).toMatchObject({ ok: false, error: 'no_stake' });
@@ -225,7 +225,7 @@ describe('带入、结回、放弃', () => {
     expect(await settle(uid, { amount: 0 })).toMatchObject({ ok: true, credited: 0, wallet: { balance: 8_000 } });
   });
 
-  it('放弃：那一份原样退回（1 行）；之后同一个 ref 再结回是 no_stake', async () => {
+  it('放弃：那一份原样退回（1 行）；之后同一个 ref 再带回是 no_stake', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     await buyin(uid, { amount: 1_500 });
@@ -324,7 +324,7 @@ describe('带入、结回、放弃', () => {
       expect(wrote()).toBe(0);
     }
     expect(await buyin(uid, { op })).toMatchObject({ ok: true, dup: true, wallet: { balance: 8_000 } });
-    // 结回、放弃也核指纹：同一个 op 换个 ref 重发不是重复
+    // 带回、放弃也核指纹：同一个 op 换个 ref 重发不是重复
     await buyin(uid, { ref: 'ref-000003', mode: 'server' });
     const sop = id('op');
     expect(await settle(uid, { ref: 'ref-000003', mode: 'server', amount: 1_000, op: sop })).toMatchObject({ ok: true });
@@ -462,7 +462,7 @@ describe('兑换（游戏内货币换筹码，5.9）', () => {
 });
 
 describe('到期退回', () => {
-  it('过了到期时间：下次碰钱包时原样退回、记下 ref（看钱包也写这 1 行）；之后这个 ref 再结回、再带入都拒绝', async () => {
+  it('过了到期时间：下次碰钱包时原样退回、记下 ref（看钱包也写这 1 行）；之后这个 ref 再带回、再带入都拒绝', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     await buyin(uid, { game: 'texas', ref: 'room-0009', mode: 'server', amount: 2_000, until: Date.now() + HOUR });
@@ -494,11 +494,11 @@ describe('到期退回', () => {
 });
 
 describe('client 模式的每日上限（economy.md 第 4 节）', () => {
-  it('净赢 = 当天 client 结回 − 带入，最多 10 份；超出的不进钱包，回话带 capped；带上桌的那一份总能拿回来', async () => {
+  it('净赢 = 当天 client 带回 − 带入，最多 10 份；超出的不进钱包，回话带 capped；带上桌的那一份总能拿回来', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     await buyin(uid);
-    // 一份 2,000：带入 2,000、结回 30,000，净赢 28,000 > 20,000，只进 22,000（净赢正好 20,000）
+    // 一份 2,000：带入 2,000、带回 30,000，净赢 28,000 > 20,000，只进 22,000（净赢正好 20,000）
     expect(await settle(uid, { amount: 30_000 })).toMatchObject({ ok: true, credited: 22_000, capped: 8_000, wallet: { balance: 30_000, caps: { kaipan: { net: 20_000, cap: 20_000 } } } });
     // 到顶以后再赢：只拿回带上桌的那一份
     await buyin(uid, { ref: 'ref-000002' });
@@ -518,7 +518,7 @@ describe('client 模式的每日上限（economy.md 第 4 节）', () => {
     await buyin(uid, { tier: 'mid', amount: 1 });
     await settle(uid, { amount: 1 });
     await buyin(uid, { tier: 'mid', ref: 'ref-000002', amount: 10_000 });
-    // 最大的一份是带满的中档 10,000：上限 100,000；带入 10,001、结回 1，最多再进 110,000
+    // 最大的一份是带满的中档 10,000：上限 100,000；带入 10,001、带回 1，最多再进 110,000
     expect(await settle(uid, { ref: 'ref-000002', amount: 150_000 })).toMatchObject({ credited: 110_000, capped: 40_000 });
     await buyin(uid, { game: 'texas', ref: 'room-0001', mode: 'server' });
     expect(await settle(uid, { game: 'texas', ref: 'room-0001', mode: 'server', amount: 40_000 })).toMatchObject({ credited: 40_000 });
@@ -569,14 +569,14 @@ describe('client 模式的每日上限（economy.md 第 4 节）', () => {
     expect(await settle(uid, { amount: 9_000 })).toMatchObject({ credited: 2_000, capped: 7_000 });
   });
 
-  it('跨零点结回：昨天带上桌的 client 那一份算进今天的带入，本金不会被当成赢的（正好到上限也全进）', async () => {
+  it('跨零点带回：昨天带上桌的 client 那一份算进今天的带入，本金不会被当成赢的（正好到上限也全进）', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     advance(9 * HOUR + 20 * 60_000); // 北京时间 23:50
     await buyin(uid, { until: Date.now() + 2 * HOUR });
     advance(20 * 60_000); // 00:10，换日
     expect(await wallet.view(uid)).toMatchObject({ wallet: { caps: { kaipan: { net: -2_000, cap: 20_000 } } } });
-    // 带入 2,000、结回 22,000：净赢 20,000，正好到上限
+    // 带入 2,000、带回 22,000：净赢 20,000，正好到上限
     expect(await settle(uid, { amount: 22_000 })).toMatchObject({ ok: true, credited: 22_000, wallet: { balance: 30_000, caps: { kaipan: { net: 20_000, cap: 20_000 } } } });
     const g = (await state(uid)).today.games.kaipan!;
     expect([g.cin, g.cout, g.capped]).toEqual([2_000, 22_000, 0]);
@@ -623,7 +623,7 @@ describe('client 模式的每日上限（economy.md 第 4 节）', () => {
 });
 
 describe('写入上限、补给', () => {
-  it('每人每天 1,000 次：到了不能带入、不能领补给；结回、放弃照收', async () => {
+  it('每人每天 1,000 次：到了不能带入、不能领补给；带回、放弃照收', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     await buyin(uid, { amount: 100 });
@@ -689,7 +689,7 @@ describe('写入上限、补给', () => {
 });
 
 describe('熔断档位与预算（6.6 的"钱包"类）', () => {
-  it('钱包类预算用完：停带入和领补给；结回、放弃、看钱包照常', async () => {
+  it('钱包类预算用完：停带入和领补给；带回、放弃、看钱包照常', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     await buyin(uid);
@@ -705,7 +705,7 @@ describe('熔断档位与预算（6.6 的"钱包"类）', () => {
     expect(await wallet.view(uid)).toMatchObject({ ok: true });
   });
 
-  it('只读档：停带入；结回、放弃照收（桌上的筹码总要能回来）；停服档全停', async () => {
+  it('只读档：停带入；带回、放弃照收（桌上的筹码总要能回来）；停服档全停', async () => {
     const u = await registerUser();
     const uid = u.user.id;
     await buyin(uid);
@@ -828,7 +828,7 @@ describe('管理员调整筹码', () => {
     const again = await adjust(a.cookie, { username: u.username, amount: -1 });
     expect([again.status, await errorOf(again)]).toEqual([409, 'no_change']);
     expect(rowsWritten()).toBe(0);
-    // 不算进实盘净赢：结回照常按自己的带入算
+    // 不算进实盘净赢：带回照常按自己的带入算
     expect(await settle(u.user.id, { amount: 8_000 })).toMatchObject({ credited: 8_000 });
   });
 
@@ -867,7 +867,7 @@ describe('管理员调整筹码', () => {
   });
 });
 
-describe('战绩（5.10）：结回带小结，累加进 career，不多写行', () => {
+describe('战绩（5.10）：带回带小结，累加进 career，不多写行', () => {
   const career = async (uid: string, game = 'kaipan') => (await state(uid)).career?.[game];
 
   it('带小结：局数、赢的局数、最大一把、称号、自定义数累加；净赢、本周净赢按钱算；钱包还是写 1 行', async () => {
@@ -904,7 +904,7 @@ describe('战绩（5.10）：结回带小结，累加进 career，不多写行',
     expect(await career(uid, 'texas')).toMatchObject({ n: 1, net: 3_000, wnet: 3_000, rounds: 0, titles: {} });
   });
 
-  it('局数超过 1,000 截断、赢的局数截到局数、最大一把截到这一份结回的钱', async () => {
+  it('局数超过 1,000 截断、赢的局数截到局数、最大一把截到这一份带回的钱', async () => {
     const uid = (await registerUser()).user.id;
     await buyin(uid, { game: 'texas', ref: 'room-0001', mode: 'server' });
     const r = await settle(uid, { game: 'texas', ref: 'room-0001', mode: 'server', amount: 4_000, stats: { rounds: 1_500, wins: 1_200, best: 999_999 } });

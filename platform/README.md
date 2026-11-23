@@ -38,7 +38,7 @@ The rest of this README, the code comments and the API contract (`docs/platform-
 - **账号**：注册、登录、找回密码（恢复码）、改昵称和密码、换恢复码、退出其他设备、注销。
 - **邀请制**：不登录不能玩；注册默认关着，管理员在 `/admin` 或命令行工具随时开关（存在 D1），`vars.REGISTRATION` 是紧急总闸。注册关着时凭邀请码注册（`/i/<码>`）：普通码一码一人，用码注册的人和邀请人自动成为好友；管理员还能建长期码（一码多人，默认 100 次、不过期）。
 - **好友和动态**：好友码和链接、请求、屏蔽；在线状态和一键加入好友的房间；好友动态（赞、扔道具）；好友房打完记搭子战绩。
-- **钱包**（`/wallet`）：一个余额通用所有游戏，领补给、看桌上的筹码、这周输赢和最近进出。带入、结回、放弃和兑换（游戏内货币换筹码，每人每游戏每天有上限）只能由游戏的服务端经 `WalletService` RPC 调。
+- **钱包**（`/wallet`）：一个余额通用所有游戏，领补给、看桌上的筹码、这周输赢和最近进出。带入、带回、放弃和兑换（游戏内货币换筹码，每人每游戏每天有上限）只能由游戏的服务端经 `WalletService` RPC 调。
 - **战绩和排行榜**：战绩页有徽章墙和各游戏概览；排行榜总榜是本周净赢（只排赢了的）加各游戏的周榜和代表性每日榜；异步挑战链接；晒战绩出图。
 - **云存档**：`/api/saves/<游戏>/<槽>`，游戏白名单就是 `shared/games.ts`。
 - **隐藏游戏**：管理员设默认隐藏哪些游戏，每个人在 我的账号 → 偏好 里逐个改（存在服务端）；隐藏了的不出现在大厅、继续玩、排行页签、动态里，游戏地址照常能玩。
@@ -175,7 +175,7 @@ npm run admin -- registration open|close|status
 
 ## 加一个新游戏
 
-见仓库根 `AGENTS.md` 第 2 节。在 `shared/games.ts` 登记后，云存档、分数榜、钱包的游戏白名单和保留用户名就都认它了（都从 `GAMES` 派生，`GAME_IDS`）；
+见仓库根 `docs/new-game.md`。在 `shared/games.ts` 登记后，云存档、分数榜、钱包的游戏白名单和保留用户名就都认它了（都从 `GAMES` 派生，`GAME_IDS`）；
 用钱包的游戏，服务绑定上写 `props.game`（`docs/platform-backend.md` 5.9）。有每日挑战榜的登记 `daily: true`，分数怎么显示由游戏自己的 `daily.json` 给（15.12）；有每周挑战榜的登记 `weekly: [{ id, name }]`（榜名 `week-<YYYY>-W<ww>-<子榜>`，北京时间的 ISO 周，`shared/weekly.ts`），分数写法放 `weekly.json`。
 想先接钱包、存档，再正式上大厅：先登记成 `status: 'coming'`（大厅显示"即将上线"，进不去），上线时改成 `'playable'`。
 有电脑人物的，把名字补进 `worker/api/account/reserved-names.ts` 的 `RESERVED_PERSONAS`（按游戏 id 分组；没有电脑也要写一组空的，测试会查）。

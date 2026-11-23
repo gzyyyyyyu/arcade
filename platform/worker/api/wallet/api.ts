@@ -1,6 +1,6 @@
 /**
  * 钱包的 HTTP 接口（docs/platform-backend.md 15.9）：浏览器看钱包、领补给；管理页的概况、统计和给人加减筹码。
- * 带入、结回、放弃不在这里，只有游戏经 RPC 调（service.ts）。
+ * 带入、带回、放弃不在这里，只有游戏经 RPC 调（service.ts）。
  */
 import { isInt, optStr, str } from '../lib/body';
 import type { Ctx } from '../core/context';

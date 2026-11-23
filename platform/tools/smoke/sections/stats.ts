@@ -70,7 +70,7 @@ export async function statsPage(browser: Browser): Promise<void> {
     check(unlocked === '10', `徽章应解锁 10 个：${unlocked}`);
     await showBadge(page, 'regular');
     await page.getByTestId('badge-regular').click();
-    await page.getByTestId('badge-tip').getByText('打满 50、200、1000 局').waitFor();
+    await page.getByTestId('badge-tip').getByText('所有游戏加起来打满：50 局铜、200 局银、1,000 局金').waitFor();
     check((await page.getByTestId('badge-regular').getAttribute('data-tier')) === '3', '常客应该是金档');
     await showBadge(page, 'sharp');
     check((await page.getByTestId('badge-sharp').getAttribute('data-tier')) === '0', '神机妙算（胜率 20%）应该没拿到');
@@ -81,6 +81,34 @@ export async function statsPage(browser: Browser): Promise<void> {
     check(!over.x && !over.y, `战绩页应一屏放下：${JSON.stringify(over)}`);
     await shot(page, `stats-badges-${screen}`);
     await clickShare(page, 'share-stats', `stats-share-${screen}`);
+    await ctx.close();
+  }
+  // 照 11-22 试玩的测试号：三个游戏上过桌、上桌 18 次、最大一把 30，进度说法都是长的那种
+  const real = { texas: career({ n: 18, net: 0, rounds: 48, wins: 6, best: 30 }), guandan: career({ n: 1, net: 0, rounds: 1 }), mahjong: career({ n: 1, net: 0, rounds: 1 }) };
+  const sizes = [
+    ['390×844', 'portrait', {}, 8],
+    ['360×640', 'portrait', { viewport: { width: 360, height: 640 } }, 6],
+    ['844×390', 'landscape', {}, 6],
+  ] as const;
+  for (const [size, screen, extra, want] of sizes) {
+    console.log(`徽章墙 ${size}：字长的真号战绩（进度两行）一页至少 ${want} 枚，点一枚看说明、收起后还能翻页`);
+    const { ctx, page } = await newPage(browser, `徽章墙真号 ${size}`, screen, extra);
+    await mockSession(page);
+    await page.route('**/api/stats/me', (r) => r.fulfill(json({ user: { userId: FAKE_USER.id, displayName: FAKE_USER.displayName, avatar: null }, relation: 'self', week: '2026-10-12', games: real })));
+    await page.route('**/games/*/titles.json', (r) => r.fulfill(json({})));
+    await page.goto(`${BASE}/me/stats`);
+    await pane(page, 'badges');
+    await page.getByTestId('badge-tour').click();
+    const perPage = await page.locator('.badge').count();
+    check(perPage >= want, `${size} 徽章墙一页应放 ${want} 枚，只有 ${perPage}`);
+    const tiny = await page.locator('.badge').evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().height < 44).length);
+    check(tiny === 0, `${size} 徽章点击区应不小于 44px，有 ${tiny} 个更小`);
+    // 手机小屏说明条盖在翻页条上：收起后翻页条按得到（矮屏说明条不显示、没有收起）
+    const close = page.getByTestId('badge-tip').getByRole('button', { name: '收起' });
+    if (await close.isVisible()) await close.click();
+    await page.getByTestId('badges').getByRole('button', { name: '下一页' }).click();
+    await page.getByTestId('badges-paged-at').getByText(/^2 \//).waitFor();
+    await shot(page, `stats-badges-real-${size}`);
     await ctx.close();
   }
   console.log('别人的战绩：/u/<id>，没战绩时说"还没有战绩"');

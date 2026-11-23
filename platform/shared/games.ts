@@ -37,7 +37,7 @@ export interface GameEntry {
    * 有每日挑战榜（daily-YYYY-MM-DD，规则改版时加 -v<n>，15.5）：排行榜页给它一个"<名字>每日"标签页，显示今天版本最大的那个榜。
    * 分数怎么显示由游戏自己的 /games/<id>/daily.json 给（src/lib/scores.ts），平台不知道各游戏的分数怎么编码。
    * 一天有几个每日榜的（比如夜巡的守夜、夜探）写子榜列表：榜名是 daily-YYYY-MM-DD-<子榜 id>[-v<n>]，
-   * 每个子榜一个"<名字>每日·<子榜名>"标签，daily.json 里按子榜给显示方式（boards.<子榜 id>）。写了子榜的游戏不再收不带子榜的每日榜。
+   * 每个子榜一个"<名字>每日·<子榜名>"标签，daily.json 里按子榜给显示方式（boards.<子榜 id>）。写了子榜的游戏只收带子榜的每日榜。
    */
   daily?: true | readonly DailySub[];
   /**
@@ -153,7 +153,7 @@ export const GAMES: readonly GameEntry[] = [
     ],
   },
   {
-    // 外部贡献者的游戏（先登记成"即将上线"，游戏线上验证后改成能玩）
+    // 外部贡献者的游戏
     id: 'racing',
     name: '飞驰',
     tagline: '回合制卡牌赛车：换挡、控热、抢弯道',
