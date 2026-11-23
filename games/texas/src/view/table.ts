@@ -77,10 +77,10 @@ export class TableView {
   centerRects(): DOMRect[] {
     return this.probe.centerRects();
   }
-  chatDock(w: number, h: number, extra: readonly DOMRect[]): { left: number; top: number; width: number; height: number } {
+  chatDock(w: number, h: number, extra: readonly Element[]): { left: number; top: number; width: number; height: number } {
     return this.probe.chatDock(w, h, extra);
   }
-  dockFits(w: number, h: number, extra: readonly DOMRect[]): boolean {
+  dockFits(w: number, h: number, extra: readonly Element[]): boolean {
     return this.probe.dockFits(w, h, extra);
   }
   keepOut(): DOMRect[] {

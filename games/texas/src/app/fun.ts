@@ -69,13 +69,6 @@ export function createFun(c: App) {
     const online = c.online;
     // 单机这时牌桌已经摆好，量得出挤不挤；好友房还在等人页，等座位坐满再量（drawRoom）
     c.crowded = online ? null : !dockFitsNow();
-    // 进桌时牌桌在放大入场（skin.css 的 table-in），上面量的是缩放中的位置：入场完了再量一次、让 kit 重摆
-    // （1920 的 8 人桌、2000×950 的 6 人桌，聊天框按缩放中的位置摆，压住左下那家的名牌）
-    void Promise.all(screen.getAnimations().map((a) => a.finished)).then(() => {
-      if (c.online || !c.tf) return;
-      c.crowded = !dockFitsNow();
-      c.tf.refresh();
-    }, () => undefined);
     c.tf = new TableFun({
       storageKey: 'texas',
       phrases: TAUNTS,
@@ -178,8 +171,8 @@ export function createFun(c: App) {
   }
 
   /** 聊天框要躲的：顶栏、左下"互动"那一排、两手之间那一栏 */
-  function dockAvoid(): DOMRect[] {
-    return [top, betweenBar, ...hud.children].map((e) => e.getBoundingClientRect());
+  function dockAvoid(): Element[] {
+    return [top, betweenBar, ...hud.children];
   }
 
   /** 电脑版聊天框现在是收着的（玩家自己点过的以 kit 记的设置 texas.chat 为准，没点过看 crowded）：收着时只给小按钮找位置 */

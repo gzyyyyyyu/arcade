@@ -140,15 +140,27 @@ export class TableProbe {
    * 这里在整个屏幕上每 16×8 像素试一格，挑盖得最不要紧的：公共牌最要紧，名牌上的名字和筹码数、面前下的注、下注区其次，头像和底牌再次，空桌面不算；一样的先左后上。
    * 1920 上落在左边两个座位中间的空当；1280×720 的 6 人桌没有空当，落在左下那家的牌和公共牌之间。
    * 底牌、下的注、公共牌、下注区都按版式算（没发牌、没下注、没轮到我时节点藏着，量不到），同一个窗口、同一桌人只算一次：
-   * kit 每次重画都来问，按当时的筹码算会让聊天框跟着下注跳来跳去
+   * kit 每次重画都来问，按当时的筹码算会让聊天框跟着下注跳来跳去。
+   * extra 是另外要躲的元素（顶栏、两手之间那栏、左下一排）。牌桌在 .screen 里，进桌那 0.45 秒 .screen 绕中心放大入场（skin.css 的 table-in）：
+   * 量到的是放大中的位置，按当时的 scale 折回去，算出来就是入场完的位置（不折的话 2000×950 的 5 人桌落在左下、压住那家的名牌，入场完再跳回左上）
    */
-  chatDock(w: number, h: number, extra: readonly DOMRect[]): { left: number; top: number; width: number; height: number } {
+  chatDock(w: number, h: number, extra: readonly Element[]): { left: number; top: number; width: number; height: number } {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const live = this.c.seats.flatMap((n, i) => (n.root.classList.contains('empty') ? [] : [i]));
     const key = `${vw}x${vh}:${w}x${h}:${this.c.me}:${live.join(',')}`;
     if (this.c.dockAt?.key === key) return this.c.dockAt.at;
-    const box = this.c.root.getBoundingClientRect();
+    const screen = this.c.root.parentElement;
+    const scale = screen ? Number.parseFloat(getComputedStyle(screen).scale) : Number.NaN;
+    const z = scale > 0 ? scale : 1;
+    const mid = screen?.getBoundingClientRect();
+    const cx = mid ? mid.left + mid.width / 2 : 0;
+    const cy = mid ? mid.top + mid.height / 2 : 0;
+    const rect = (e: Element): DOMRect => {
+      const r = e.getBoundingClientRect();
+      return z === 1 || !screen?.contains(e) ? r : new DOMRect(cx + (r.left - cx) / z, cy + (r.top - cy) / z, r.width / z, r.height / z);
+    };
+    const box = rect(this.c.root);
     const k = box.width / this.c.g.w;
     const at = (c: Pt, hw: number, hh: number): DOMRect => new DOMRect(box.left + (c.x - hw) * k, box.top + (c.y - hh) * k, 2 * hw * k, 2 * hh * k);
     const b0 = boardPos(this.c.g, 0);
@@ -156,7 +168,6 @@ export class TableProbe {
     const board = at({ x: (b0.x + b4.x) / 2, y: b0.y }, (b4.x - b0.x) / 2 + 36, 48);
     // 右下的下注区（赔率条、快捷下注、三个大按钮）
     const bets = new DOMRect(box.left + box.width / 2 + 100 * k, box.bottom - 190 * k, box.width / 2 - 100 * k, 190 * k);
-    const rect = (e: Element): DOMRect => e.getBoundingClientRect();
     const block: [DOMRect, number][] = [
       [board, 30],
       ...live.flatMap((i): [DOMRect, number][] => {
@@ -173,7 +184,7 @@ export class TableProbe {
       }),
       // 摊牌时名牌下面的牌型（.seat .hand，座位下面 66 起）
       ...live.filter((i) => i !== this.c.me).map((i): [DOMRect, number] => [at({ x: this.scene.seatPt(i).x, y: this.scene.seatPt(i).y + 80 }, 44, 14), 3]),
-      ...[bets, ...extra].map((r): [DOMRect, number] => [r, 10]),
+      ...[bets, ...extra.map(rect)].map((r): [DOMRect, number] => [r, 10]),
     ];
     const live2 = block.filter(([r]) => r.width > 0 && r.height > 0);
     const hit = (l: number, t: number): number =>
@@ -184,14 +195,12 @@ export class TableProbe {
         const cost = hit(left, top);
         if (cost < best.cost) best = { left, top, cost };
       }
-    // 进桌那 0.45 秒牌桌在放大入场（skin.css 的 table-in），这时量的位置是缩放中的，不记住：下次来问再量
-    const moving = this.c.root.parentElement?.getAnimations().some((a) => a.playState === 'running') ?? false;
-    this.c.dockAt = { key: moving ? '' : key, cost: best.cost, at: { left: best.left, top: best.top, width: w, height: h } };
+    this.c.dockAt = { key, cost: best.cost, at: { left: best.left, top: best.top, width: w, height: h } };
     return this.c.dockAt.at;
   }
 
   /** 这么大的聊天框有没有一个什么都不盖的地方（chatDock 算过的） */
-  dockFits(w: number, h: number, extra: readonly DOMRect[]): boolean {
+  dockFits(w: number, h: number, extra: readonly Element[]): boolean {
     this.chatDock(w, h, extra);
     return must(this.c.dockAt, 'this.c.dockAt').cost === 0;
   }
