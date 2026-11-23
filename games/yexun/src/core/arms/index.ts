@@ -279,7 +279,7 @@ function castChain(w: World, g: Grid, k: number, wp: OwnedWeapon, s: WeaponStats
   // 位置变了，格子重建一次，后面的查询才找得到
   g.build(w);
   // 锁魂幡：先记下再打（这一下打死的也算）
-  // 规则 63 的初成：锁魂是开关，按 mergePower 的概率记（大成每只都记，不抽随机数）
+  // 初成：锁魂是开关，按 mergePower 的概率记（大成每只都记，不抽随机数）
   if (w.merges.includes('suohun')) {
     const p = w.mergePower('suohun');
     for (let r = 0; r < got; r++) if (p === 1 || w.rWeapon.next() < p) w.arms.souled[pulled[r]!] = 1;
@@ -483,7 +483,7 @@ function combos(w: World, g: Grid, api: ArmApi): void {
           api.hitEnemy(w, i, dmg * C.qiankun.mul * w.mergePower('qiankun'), -1, w.eX[i]! - w.x, w.eY[i]! - w.y, 26, 0, k);
         }
       }
-      // 规则 63 的初成：挡弹幕的圈小一半（挡弹幕是开关，只能缩范围）
+      // 初成：挡弹幕的圈小一半（挡弹幕是开关，只能缩范围）
       const br = C.qiankun.blockR * w.mergePower('qiankun');
       const b2 = br * br;
       for (let q = 0; q < MAX_SHOTS; q++) {

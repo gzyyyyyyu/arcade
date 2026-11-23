@@ -1,4 +1,4 @@
-// 选模式页点起手、心法后浮出的说明：写心法特色（规则 70）、保底和补刷新（规则 60；实盘规则 64 起一样）
+// 选模式页点起手、心法后浮出的说明：写心法特色、保底和补刷新（实盘一样）
 import { describe, expect, it } from 'vitest';
 import { loadoutNote } from '../../src/view/ui/screens/shared.ts';
 

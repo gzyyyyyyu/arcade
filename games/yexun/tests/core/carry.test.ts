@@ -38,7 +38,7 @@ describe('模式 × 可带项（CARRY）', () => {
 
   it('文案从表拼，顺序固定', () => {
     expect(carryExcept('kits')).toBe(Object.values(RUN_KIND_NAMES).join('、'));
-    expect(carryExcept('xinfa')).toBe('每日挑战、本周夜事、首领连战、试炼');
+    expect(carryExcept('xinfa')).toBe('每日守夜、本周夜事、首领连战、试炼');
   });
 
   it('每日挑战开出来的局能过交榜核对，带了不该带的不过', () => {

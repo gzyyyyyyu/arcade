@@ -204,7 +204,7 @@ export class Result {
       : '';
     const nightItems_ = rr ? [] : nightItems(r.night);
     const nightHtml = nightItems_.length
-      ? `<div class="yx-rnight"><small>今晚</small>${nightItems_.map((it) => `<span class="ev-${it.kind === 'rage' ? 'rage' : it.kind}"><i>${it.icon}</i>×${it.n}</span>`).join('')}</div>`
+      ? `<div class="yx-rnight"><small>今晚</small>${nightItems_.map((it) => `<span class="ev-${it.kind}"><i>${it.icon}</i>×${it.n}</span>`).join('')}</div>`
       : '';
     this.root.innerHTML =
       `<div class="yx-panel yx-result-panel${r.won ? ' won' : ''}${rr ? ' raid' : ''}">` +

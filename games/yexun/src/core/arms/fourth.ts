@@ -1,6 +1,6 @@
 /**
  * 第四批搭配（DESIGN 3.3e）：剑走偏锋、笔走龙蛇、判阵、寒钟（锁魂幡挂在勾魂锁和怪死的地方，见 index.ts castChain、second.ts killsTick）。
- * 给搭配少的剑侠、阴阳先生、胖师叔补跨流派的搭配，料用他们池里原来没人拿的件。
+ * 给搭配少的剑侠、阴阳先生、胖师叔补跨流派的搭配，料用他们池里别人不拿的件。
  * 能不能合由宝箱（core/step.ts mergeOpen）把关，所以这里只看 w.merges。
  * 和前几批一样只用四则运算，不用随机。
  */
@@ -105,7 +105,7 @@ function judge(w: World, g: Grid, api: ArmApi, kb: number): void {
   const A = w.arms;
   // 易伤和勾魂锁、钟鼓齐鸣共用一份：倍数大的、时间长的留着，不把别人的盖低
   const end = w.tick + M.ticks;
-  // 规则 63 的初成：伤害和多出来的易伤都打折
+  // 初成：伤害和多出来的易伤都打折
   const p = w.mergePower('panzhen');
   const vm = p === 1 ? M.vuln : 1 + (M.vuln - 1) * p;
   if (A.vulnUntil[best]! <= w.tick || A.vulnMul[best]! < vm) A.vulnMul[best] = vm;

@@ -98,7 +98,7 @@ function bellCombos(w: World, g: Grid, api: ArmApi, r: number): void {
   }
   if (has(w, 'zhonggu') && inZone(w, w.x, w.y)) {
     const M = COMBO55.zhonggu;
-    // 规则 63 的初成：只打折多出来的那部分（+40% → +20%），大成原样
+    // 初成：只打折多出来的那部分（+40% → +20%），大成原样
     const p = w.mergePower('zhonggu');
     const mul = p === 1 ? M.mul : 1 + (M.mul - 1) * p;
     for (let j = 0; j < n; j++) vuln(w, tmp[j]!, mul, M.ticks);

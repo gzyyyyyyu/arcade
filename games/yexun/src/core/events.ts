@@ -135,7 +135,7 @@ export const Ev = {
 } as const;
 export type Ev = (typeof Ev)[keyof typeof Ev];
 
-export const EV_CAP = 4096;
+const EV_CAP = 4096;
 
 export class Events {
   n = 0;

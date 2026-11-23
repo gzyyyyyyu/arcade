@@ -182,7 +182,7 @@
   .yx-prep .yx-plook { display: none; }
 }
 @media (orientation: portrait) and (min-height: 760px) and (max-width: 999px) {
-  /* 390×844：技能说明长的角色（小道士五行）原来把「出战」按钮挤出详情卡，字 14、行距和内边距收一档 */
+  /* 390×844：技能说明长的角色（小道士五行）会把「出战」按钮挤出详情卡，字 14、行距和内边距收一档 */
   .yx-prep .yx-pchars { --yx-pdf: 14px; --yx-pdn: 22px; --yx-pdfs: 56px; --yx-pdsk: 34px; --yx-pdw: 24px; --yx-pdr: 8px; --yx-pdp: 10px 12px; --yx-pfs: 36px; --yx-pcg: 6px; --yx-pbg: 6px; }
   .yx-prep .yx-pchar { padding: 6px 1px; column-gap: 4px; }
   .yx-prep .yx-pbt { display: block; }

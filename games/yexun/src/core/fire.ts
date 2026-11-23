@@ -16,7 +16,7 @@ export const FIRE_WARN = 1;
 export const FIRE_BURN = 2;
 
 /** 火区烫伤主角时记的来源（死因统计用） */
-export const FIRE_BY = 2000;
+const FIRE_BY = 2000;
 
 const FEAR = new Uint8Array(ENEMIES.length);
 for (const k of FIRE_FEAR) FEAR[ENEMY_BY_KIND[k].code] = 1;

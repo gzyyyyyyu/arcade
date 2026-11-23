@@ -60,9 +60,9 @@ export function mapEventRound(tick: number, setup: { mode: string; rush?: boolea
 }
 
 /** HUD 倒计时小牌开始出现的提前量（拍） */
-export const MAP_EVENT_HUD_LEAD = 60 * S;
+const MAP_EVENT_HUD_LEAD = 60 * S;
 /** 小牌变红脉动的提前量（拍） */
-export const MAP_EVENT_HUD_URGENT = 10 * S;
+const MAP_EVENT_HUD_URGENT = 10 * S;
 
 /**
  * 离下一次地图事件还有几拍、是哪种；没有（夜探、三次都过了、事件已经开始）回 null。条件同 core/step.ts 的 mapEvents，

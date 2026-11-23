@@ -3,7 +3,7 @@
 export type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 
 /** 请求超时：外部依赖卡住时按断网处理，各调用方自己决定重试还是提示 */
-export const FETCH_TIMEOUT_MS = 10_000;
+const FETCH_TIMEOUT_MS = 10_000;
 
 export const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 

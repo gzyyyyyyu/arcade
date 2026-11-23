@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-/** 夜探的规则代码和核心一样（模块 AGENTS.md 第 3 节）：src/explore/ 里除了 view/ 都不许用随机、时间、平台数学和浏览器接口 */
+/** 夜探的规则代码和核心一样（模块 AGENTS.md「规则核心」一节）：src/explore/ 里除了 view/ 都不许用随机、时间、平台数学和浏览器接口 */
 function files(dir: string): string[] {
   const root = new URL(`../../${dir}/`, import.meta.url).pathname;
   const out: string[] = [];

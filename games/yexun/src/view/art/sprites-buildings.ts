@@ -17,11 +17,11 @@ import { HOUSE_OV, HOUSE_RIDGE, HOUSE_Z, WALL_H_PERIOD, WALL_OV, WALL_RIDGE, WAL
 import { INK, artRng, blob, circle, dab, ellipse, poly, rrect, stroke, type Ctx } from './draw.ts';
 
 export type Style = 'town' | 'temple' | 'hut';
-export const STYLES: readonly Style[] = ['town', 'temple', 'hut'];
+const STYLES: readonly Style[] = ['town', 'temple', 'hut'];
 
 /** 竖墙平铺贴图的左右边（相对墙脚印的 x） */
-export const WALL_V_X0 = -9;
-export const WALL_V_X1 = 9;
+const WALL_V_X0 = -9;
+const WALL_V_X1 = 9;
 
 const SNOW = '#f6f9fd';
 const SNOW_D = '#c9d5e6';
@@ -204,7 +204,7 @@ function inkPath(c: Ctx, path: (k: Ctx) => void, w = 2.2, closed = true): void {
 
 /**
  * 一排排瓦垄：每条线是一垄筒瓦（亮的一条带高光）和旁边的板瓦沟（暗）。lines 给每垄的起止点（屏幕坐标），
- * side 是高光偏哪边（垂直于线的方向上的偏移）。茅草顶改成一缕缕草。
+ * side 是高光偏哪边（垂直于线的方向上的偏移）。茅草顶画成一缕缕草。
  */
 function tileRows(c: Ctx, st: Style, p: Pal, lines: [number, number, number, number][], s: number, hx: number, hy: number): void {
   if (st === 'hut') {

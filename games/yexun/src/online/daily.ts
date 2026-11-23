@@ -15,19 +15,19 @@ export const DAILY_DANGER = 2;
 /** 周日噩梦日：北京时间周日的守夜每日挑战改为噩梦 1（危险 6）、咒印只抽 1 条 */
 export const NIGHTMARE_SUNDAY_DANGER = 6;
 
-export const DAILY_MAPS: readonly MapId[] = ['snow', 'yizhuang'];
+const DAILY_MAPS: readonly MapId[] = ['snow', 'yizhuang'];
 /** 夜探每日挑战抽的模板（不抽教学镇） */
 export const DAILY_RAID: readonly RaidTemplateId[] = ['guzhen', 'dukou', 'shansi'];
 
 /** 远行日抽的特色图：除了两张常规图都算 */
 export const DAILY_FAR_MAPS: readonly MapId[] = MAP_IDS.filter((m) => !DAILY_MAPS.includes(m));
 /** 硬仗日的危险档：不加咒印，怪按危险 3 */
-export const HARD_DAY_DANGER = 3;
+const HARD_DAY_DANGER = 3;
 
 /** 守夜每日的花样，下标是星期（0 = 周日噩梦日，规则见 isNightmareSunday） */
 export type DailyThemeId = 'nightmare' | 'swap' | 'far' | 'curse' | 'elite' | 'hard' | 'trek';
 export const DAILY_THEMES: readonly { id: DailyThemeId; name: string; text: string }[] = [
-  { id: 'nightmare', name: '噩梦', text: '噩梦 1，咒印只 1 条' },
+  { id: 'nightmare', name: '噩梦', text: '噩梦 1，额外规矩只 1 条' },
   { id: 'swap', name: '换人', text: '今天换一位角色上场，没解锁的也能玩' },
   { id: 'far', name: '远行', text: '今天去一张特色图' },
   { id: 'curse', name: '重咒', text: `咒印 ${MAX_CURSES} 条` },

@@ -33,7 +33,7 @@ export interface LiveEnv {
 }
 
 export const WALLET_TIMEOUT_MS = 5000;
-export const ME_TIMEOUT_MS = 3000;
+const ME_TIMEOUT_MS = 3000;
 const BODY_MAX = 2048;
 const BUYIN_TTL_MS = 24 * 3600 * 1000;
 /** 钱包只收 8–64 位；最长的后缀 -refund 占 7 位，所以 ref 最长 57 */
@@ -71,7 +71,7 @@ export async function readBody(req: Request): Promise<Record<string, unknown> | 
 /**
  * 问平台这个请求的人是谁；任何异常都算平台不可用（down）。cookies 是平台在 /api/me 里顺手下发的 Set-Cookie（会话续期），原样带回给浏览器。
  */
-export async function whoIs(req: Request, env: LiveEnv, timeoutMs = ME_TIMEOUT_MS): Promise<{ verdict: 'in' | 'out' | 'down'; cookies: string[]; userId: string | null }> {
+async function whoIs(req: Request, env: LiveEnv, timeoutMs = ME_TIMEOUT_MS): Promise<{ verdict: 'in' | 'out' | 'down'; cookies: string[]; userId: string | null }> {
   const down = { verdict: 'down' as const, cookies: [], userId: null };
   const arcade = env.ARCADE;
   if (!arcade || typeof arcade.fetch !== 'function') return down;

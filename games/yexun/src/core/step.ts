@@ -1647,7 +1647,7 @@ function playerSlowMul(w: World): number {
 }
 
 /**
- * 挤开的力度：每次推的比例。原来每拍推 0.5，现在隔一拍推一次，补成 2 倍（平均力度不变：实测对局里重叠对数、重叠深度和每拍推 0.5 时一致）。
+ * 挤开的力度：每次推的比例。隔一拍推一次，所以是 2 倍（和每拍推 0.5 的平均力度一样：实测对局里重叠对数、重叠深度一致）。
  * 两只怪互相推的份额加起来正好是重叠的深度，所以 1.0 一次最多推到刚好不重叠，不会过冲。
  */
 const SEP_PUSH = 1.0;
@@ -2863,7 +2863,7 @@ function recompute(w: World): void {
   s.might = 1 + 0.1 * p('zhusha') + w.raidBoost;
   s.cdMul = 1 - 0.08 * p('xianglu');
   s.speed = PLAYER.speed * (1 + 0.1 * p('caoxie'));
-  // 仙桃每级血上限 +15、每秒回 0.25（原来 +20、0.3：满级血翻倍还每秒回 1.5，是最强的一件被动，见 CHANGELOG）
+  // 仙桃每级血上限 +15、每秒回 0.25（再高满级血翻倍还每秒回 1.5，会是最强的一件被动）
   s.hpMax = PLAYER.hp + 15 * p('xiantao');
   s.regen = 0.25 * p('xiantao');
   s.magnet = PLAYER.magnet * (1 + 0.3 * p('luopan'));

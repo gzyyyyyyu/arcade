@@ -53,6 +53,7 @@ export function createMenuViews(save: ReturnType<typeof loadSave>, live: ReturnT
       on: save.liveOn,
       tier: save.liveTier,
       offWhy: !LIVE_OPEN ? '实盘暂停开放' : !hasLoginHint() ? '没登录' : live.unavailable ? '这里没有钱包' : undefined,
+      chips: live.chips,
     },
   });
   return { prepState, menuState };

@@ -46,7 +46,7 @@ describe('鬼市', () => {
     expect(ENEMY_BY_KIND.peddler.name).toBe('鬼贩');
     expect(ENEMY_BY_KIND.marketboss.name).toBe('鬼市主');
     expect(ACHIEVEMENT_BY_ID.dawn_guishi).toBeTruthy();
-    expect(liveMapOk('guishi')).toBe(true); // 0.17.7 拟好系数后开实盘
+    expect(liveMapOk('guishi')).toBe(true); // 拟好系数后开实盘
     // 新怪只在鬼市刷：别的图的特色怪表里没有它们
     for (const id of MAP_IDS) if (id !== 'guishi') for (const m of VIGIL_REGIONS[id]?.mobs ?? []) expect(['puppet', 'peddler']).not.toContain(m.kind);
   });

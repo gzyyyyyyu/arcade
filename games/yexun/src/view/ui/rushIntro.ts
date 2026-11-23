@@ -1,6 +1,6 @@
 /**
  * 首领连战开局前的「今日连战」卡（DESIGN.md 2.5）：今天的图、流派和给好的构筑、9 只关底按上场顺序、怎么玩三句、本机今天最好。
- * 点「开始」才开局（以前点主页「连战」直接开打，不知道今天打什么）。构筑和关卡由调用方按当天种子算好传进来，这里只画。
+ * 点「开始」才开局（先看今天打什么）。构筑和关卡由调用方按当天种子算好传进来，这里只画。
  */
 import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import { SCHOOLS } from '../../content/guide.ts';
@@ -55,9 +55,9 @@ export class RushIntro {
       .join('');
     this.root.innerHTML =
       '<div class="yx-panel yx-rushintro">' +
-      `<div class="yx-panel-head"><b class="yx-brush">今日连战</b><em>${esc(v.date)} · ${esc(MAPS[v.map].name)} · 人人同一套</em></div>` +
+      `<div class="yx-panel-head"><b class="yx-brush">每日连战</b><em>${esc(v.date)} · ${esc(MAPS[v.map].name)} · 人人同一套</em></div>` +
       `<div class="yx-ri-body"><section class="yx-ri-build"><h3>${esc(school.name)} · ${esc(school.brief)}</h3><ul class="yx-ri-gear">${gear}</ul></section>` +
-      `<section class="yx-ri-stages"><h3>${plan.total} 只关底，按顺序上</h3><ol>${stages}</ol></section></div>` +
+      `<section class="yx-ri-stages"><h3>${plan.stages.length} 关，共 ${plan.total} 只精英和首领，按顺序上</h3><ol>${stages}</ol></section></div>` +
       `<p class="yx-ri-how">限时 ${Math.round(RUSH.limit / 30 / 60)} 分钟；每清一关挑一张卡，凑齐了当场进化、合成；全清比用时，没全清比打倒几只。</p>` +
       `<p class="yx-ri-best">${v.best ? `本机今天最好：${esc(v.best)}` : '今天还没打过'}</p>` +
       '<div class="yx-row2"><button type="button" class="yx-big ghost" data-a="close">返回</button><button type="button" class="yx-big" data-a="go">开始</button></div>' +

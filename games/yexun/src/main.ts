@@ -4,8 +4,8 @@
  * 调试参数：?seed=123 固定种子，?danger=0–8，?play 跳过菜单直接开局，?auto 让机器人代打、?warp=9000 先快进到第 9000 拍、&choose 停在选卡、?give=mirror:8,gourd:8 开局换法器（这几个只在开发服务器里有，冒烟截图用），?sheet 看图集。
  */
 import type Phaser from 'phaser';
-import { DAWN_TICK, type Danger } from './content/waves.ts';
-import { carries, COIN_EXCHANGE, runKind, CURSE_IDS, LOOKS, MAX_CURSES } from './content/meta.ts';
+import { DANGERS, DAWN_TICK, type Danger } from './content/waves.ts';
+import { carries, COIN_EXCHANGE, runKind, CURSE_IDS, CURSES, LOOKS, MAX_CURSES } from './content/meta.ts';
 import { NOVICE } from './content/player.ts';
 import type { Setup, World } from './core/index.ts';
 import { autoSkillSetting } from './view/game/autoskill.ts';
@@ -29,7 +29,7 @@ import { BoardsPanel } from './online/view/boards.ts';
 import { createSocial } from './online/social.ts';
 import { mountSocial } from 'arcade-kit/social';
 import { createSubmitter } from './online/submit.ts';
-import { beijingDate, dailyPlan } from './online/daily.ts';
+import { beijingDate, dailyPlan, dailyTheme } from './online/daily.ts';
 import { weekDaysLeft, weekIndex } from './online/weekly.ts';
 import { FriendBests } from './online/trials.ts';
 import { TrialsPanel } from './view/ui/trials.ts';
@@ -41,7 +41,7 @@ import { rushPlan } from './core/rush.ts';
 import { formatScore } from './online/score.ts';
 import { RUSH } from './content/rush.ts';
 import { Prep } from './view/ui/prep.ts';
-import type { MapId } from './content/maps.ts';
+import { MAPS, type MapId } from './content/maps.ts';
 import { buildAtlas, buildGround, buildHeroAtlas, buildMobAtlas, buildRaidAtlas, HERO_TEX, MOB_TEX } from './view/art/atlas.ts';
 import { Vault } from './view/ui/vault.ts';
 import { closeTopModal, modalOpen } from './view/ui/modal.ts';
@@ -60,7 +60,7 @@ import { skillFirstTip, skillTipHtml } from './view/ui/skillInfo.ts';
 import { LOW_MEMORY, TOUCH, renderScale, worldZoom } from './view/viewport.ts';
 import { reportErrors } from 'arcade-kit/report';
 import { watchViewport } from 'arcade-kit/viewport';
-import { createFinisher, type Session } from './app/finish.ts';
+import { createFinisher, type Session, settleOnLeave } from './app/finish.ts';
 import { buildRows, setLines } from './app/buildRows.ts';
 import { mountFpsMeter } from './app/fpsMeter.ts';
 import { iconMaker } from './app/icons.ts';
@@ -133,8 +133,9 @@ async function boot(): Promise<void> {
   });
   saveHooks.onWrite = () => cloud.touch('profile');
   // 实盘（DESIGN.md 第 4 节）：进行中那一份记在 yexun.live；上次没结完的（中途关页面）开页时按输结回
-  const live = createLive();
-  void live.resume();
+  // 结的进度、钱包读到的筹码变了：菜单开着就照新状态重画（停在原来那一屏）
+  const live = createLive({ onChange: () => menu.visible && menu.show(menuState()) });
+  void live.resume().then(() => (hasLoginHint() ? live.readWallet() : undefined));
   addEventListener('online', () => void live.resume());
   // 铜钱换筹码（DESIGN 3.8a）：没结的（铜钱先扣着）开页、联网、回到前台时用同一个 op 重发
   const xc = new ExchangeClient({ save, fetch: (u, i) => fetch(u, i) });
@@ -153,7 +154,7 @@ async function boot(): Promise<void> {
   // 好友在线和邀请横条（kit 的 arcade-kit/social）：没平台、没登录就不挂。打到一半点"去"先确认
   const social = createSocial({
     mount: mountSocial,
-    confirmLeave: (go) => confirm.ask('这一局不会保存，确定离开吗？', '离开', '接着打', (ok) => ok && go()),
+    confirmLeave: (go) => askLeave('这一局不会保存，确定离开吗？', '离开', go),
   });
   const toggles: Toggle[] = [
     { key: 'sfx', label: '音效', get: () => sfx.enabled, set: (on) => sfx.setEnabled(on) },
@@ -161,7 +162,7 @@ async function boot(): Promise<void> {
     { key: 'shake', label: TOUCH ? '震屏震动' : '震屏', get: () => settings.shake, set: (on) => (settings.shake = on) },
   ];
   // 连死以后开的"降低伤害"（13.2）：设置里随时能关，开着时成绩不进总榜
-  toggles.push({ key: 'assist', label: '降低伤害', get: () => save.assist, set: (on) => { save.assist = on; writeSave(save); } });
+  toggles.push({ key: 'assist', label: '挨打减伤', get: () => save.assist, set: (on) => { save.assist = on; writeSave(save); } });
   toggles.push({ key: 'autoSkill', label: '自动技能', get: () => autoSkillSetting.on, set: (on) => (autoSkillSetting.on = on) });
   if (TOUCH) toggles.push({ key: 'stick', label: '固定摇杆', get: () => settings.fixedStick, set: (on) => { settings.fixedStick = on; input.setFixed(on); } });
   input.setFixed(TOUCH && settings.fixedStick);
@@ -196,7 +197,7 @@ async function boot(): Promise<void> {
     refreshPrep();
   };
   prep.onBuyChar = (c) => {
-    if (buyChar(save, c, nonce())) sfx.play('click');
+    if (buyChar(save, c, nonce())) sfx.play('coin');
     refreshPrep();
   };
   prep.onToggleCurse = (c) => {
@@ -204,7 +205,7 @@ async function boot(): Promise<void> {
     refreshPrep();
   };
   prep.onBuyPerk = (id) => {
-    if (buyPerk(save, id, nonce())) sfx.play('click');
+    if (buyPerk(save, id, nonce())) sfx.play('coin');
     refreshPrep();
   };
   prep.onToggleKit = (k) => {
@@ -212,7 +213,7 @@ async function boot(): Promise<void> {
     refreshPrep();
   };
   prep.onBuyLook = (id) => {
-    if (buyLook(save, id, nonce())) sfx.play('click');
+    if (buyLook(save, id, nonce())) sfx.play('coin');
     refreshPrep();
   };
   prep.onWearLook = (id) => {
@@ -238,7 +239,10 @@ async function boot(): Promise<void> {
         if (r.left !== null && xcView.quota) xcView.quota = { ...xcView.quota, left: r.left };
       }
       xcView.msg = xcMsg(r);
-      if (r.kind === 'ok' && r.credited > 0) sfx.play('click');
+      if (r.kind === 'ok' && r.credited > 0) {
+        sfx.play('coin');
+        void live.readWallet();
+      }
       refreshPrep();
     });
   };
@@ -274,7 +278,12 @@ async function boot(): Promise<void> {
     guideFromMenu = true;
     guide.show(undefined, menuState().character);
   };
-  menu.onClick = () => sfx.play('click');
+  // 按钮声只在这一处：点到能用的按钮才响（点空白不响）；选卡的卡（choose）、技能钮（技能声）自己有声，不叠
+  document.addEventListener('click', (e) => {
+    const b = (e.target as Element | null)?.closest?.<HTMLElement>('button, [data-a]');
+    if (!b || (b as HTMLButtonElement).disabled || b.getAttribute('aria-disabled') === 'true' || b.closest('.yx-picks-row, .yx-skill')) return;
+    sfx.play('click');
+  });
 
   /**
    * 画面引擎（Phaser）等主页画出来再起：动态 import，下载、解析、开 WebGL 都不挡首屏；开局、回放先等它好
@@ -343,38 +352,69 @@ async function boot(): Promise<void> {
     const ctx = sfx.ctx;
     if (ctx) void (on ? ctx.suspend() : ctx.resume()).catch(() => undefined);
   };
+  /** 确认离开以后、实盘那一份结完跳走之前：不再开暂停、不能继续或认输，也不再问第二遍 */
+  let leaving = false;
   const openPause = (): void => {
-    if (!world || sess.ended || pause.open || confirm.open) return;
+    if (leaving || !world || sess.ended || pause.open || confirm.open) return;
     setPaused(true);
     tips.hide();
-    pause.show(buildRows(world), Math.max(0, ((world.rush ? RUSH.limit : DAWN_TICK) - world.tick) / 30), setLines(world), tonightRules(world.setup), world.setup.character ?? 'xiaodao', world.xinfa ? SCHOOLS[world.xinfa].name : undefined);
+    pause.show(buildRows(world), Math.max(0, ((world.rush ? RUSH.limit : DAWN_TICK) - world.tick) / 30), setLines(world), tonightRules(world.setup), world.setup.character ?? 'xiaodao', world.xinfa ? SCHOOLS[world.xinfa].name : undefined, world.rush ? '剩余' : undefined);
   };
   pause.onResume = () => {
+    if (leaving) return;
     pause.hide();
     setPaused(false);
   };
-  const askHome = (): void => {
+  /** 实盘局接不上（夜巡不存打到一半的局）：先把最新进度记下，离开前说清这一份按什么带回、带回多少 */
+  const liveLeaveText = (w: World, seed: number): string => {
+    live.progress(seed, w.tick, w.rushDown);
+    const n = (live.leaveChips(seed) ?? 0).toLocaleString('zh-CN');
+    if (w.raid) return '实盘夜探接不上：现在离开，背包里的东西带不出来，这一份带回 0。确定离开吗？';
+    if (w.rush) return `实盘连战接不上：现在离开，按打倒 ${w.rushDown} 只带回 ${n} 筹码。确定离开吗？`;
+    return `实盘守夜接不上：现在离开，按撑到的时间带回 ${n} 筹码。确定离开吗？`;
+  };
+  const settleLiveRun = (): Promise<void> => settleOnLeave(sess, world, live, finish);
+  /** 局里离开（回大厅、好友邀请的「去」）：实盘写明带回多少；局已打完不问，按终局结完再走 */
+  const askLeave = (plain: string, okLabel: string, go: () => void): void => {
+    if (leaving) return;
+    const leave = (): void => {
+      leaving = true;
+      setPaused(true);
+      void settleLiveRun().finally(go);
+    };
+    const run = world && !sess.ended ? sess.liveRun : null;
+    if (run && world?.phase === 'over') return leave();
     if (!pause.open) setPaused(true);
-    confirm.ask('这一局不会保存，确定回大厅吗？', '回大厅', '接着打', (ok) => {
-      if (ok) {
-        // 离开前把待上传的云存档补传一次（keepalive，页面走了也能发完）
-        cloud.hidden(true);
-        location.href = '/';
-      } else if (!pause.open) setPaused(false);
+    confirm.ask(run && world ? liveLeaveText(world, run.seed) : plain, okLabel, '接着打', (ok) => {
+      if (ok) leave();
+      else if (!pause.open) setPaused(false);
     });
   };
+  const askHome = (): void =>
+    askLeave('这一局不会保存，确定回大厅吗？', '回大厅', () => {
+      // 离开前把待上传的云存档补传一次（keepalive，页面走了也能发完）
+      cloud.hidden(true);
+      location.href = '/';
+    });
+  // 关页、浏览器后退：实盘那一份当场结（同上）。从往返缓存退回来时这一份已经结了，或已点过离开，重开页面
+  addEventListener('pagehide', () => void settleLiveRun());
+  addEventListener('pageshow', (e) => {
+    if (e.persisted && (leaving || (sess.liveRun && !sess.ended && live.leaveChips(sess.liveRun.seed) === null))) location.reload();
+  });
   pause.onHome = askHome;
   pause.onGuide = () => {
     guideFromMenu = false;
     guide.show(undefined, world?.setup.character);
   };
-  pause.onQuit = () =>
+  pause.onQuit = () => {
+    if (leaving) return;
     confirm.ask('认输就算这一局结束，确定吗？', '认输', '接着打', (ok) => {
       if (ok && world) {
         pause.hide();
-        finish(world, true);
+        void finish(world, true);
       }
     });
+  };
   hud.pauseBtn.addEventListener('click', openPause);
   hud.homeBtn.addEventListener('click', askHome);
   // 切到后台自动暂停（手机来电、切应用）
@@ -384,9 +424,10 @@ async function boot(): Promise<void> {
   window.addEventListener('keydown', (e) => {
     const typing = (document.activeElement as HTMLElement | null)?.matches('input, textarea, select, [contenteditable]');
     if (e.key === 'Escape') {
-      // Esc 只关最上面一层：确认框 → 主页面板 → 设置层 → 暂停；什么都没开又不在对局中就不动（不能借 Esc 离开游戏，docs/ui.md 第 1 节）
+      // Esc 只关最上面一层：确认框 → 主页面板 → 角色、加成、锦囊、兑筹码面板 → 设置层 → 暂停；什么都没开又不在对局中就不动（不能借 Esc 离开游戏，docs/ui.md 第 1 节）
       if (confirm.open) confirm.close(false);
       else if (closeTopModal()) return;
+      else if (prep.open) prep.onClose();
       else if (menu.closeSettings()) return;
       else if (pause.open) pause.onResume();
       else openPause();
@@ -537,7 +578,15 @@ async function boot(): Promise<void> {
     const plan = dailyPlan(beijingDate(Date.now()), 'vigil');
     return startRun(plan.setup.danger, plan.setup.map ?? 'snow', true, plan.setup, 'daily');
   };
-  menu.onDaily = () => void startDaily();
+  // 主页「每日守夜」先说清今天打什么（试玩 11-22：点了直接开打，想先看看的人被扔进局里），点开始才开局
+  menu.onDaily = () => {
+    const date = beijingDate(Date.now());
+    const s = dailyPlan(date, 'vigil').setup;
+    const theme = dailyTheme(date, 'vigil');
+    const rules = (s.curses ?? []).map((c) => CURSES[c].text);
+    const text = `今日守夜：${MAPS[s.map ?? 'snow'].name}，${DANGERS[s.danger].name}${rules.length ? `，额外规矩 ${rules.length} 条：${rules.join('；')}` : ''}。${theme ? `今天${theme.name}日：${theme.text}。` : ''}人人同一套配置，当天能反复打，上每日守夜榜算最好一局。`;
+    confirm.ask(text, '开始', '回菜单', (ok) => ok && void startDaily());
+  };
   // 本周夜事挑战（DESIGN.md 5.8）：固定配置（本周事件、轮到的图、危险 2、小道士），种子每局随机，成绩只交周榜
   const startWeekly = (): Promise<void> => {
     const plan = weeklyPlan(beijingDate(Date.now()), (Math.random() * 0x100000000) >>> 0);
@@ -650,7 +699,7 @@ async function boot(): Promise<void> {
     // 实盘带已解锁的角色和地图（0.3.6），没解锁的退回小道士、雪原；加成、咒印照旧不带
     const picked = menuState().character;
     const map = !raid && pickMap && mapOpen(save, pickMap) && liveMapOk(pickMap) ? pickMap : 'snow';
-    const character = liveCharOk(tier, picked, map, !!raid) ? picked : 'xiaodao';
+    const character = liveCharOk(picked) ? picked : 'xiaodao';
     const seed = (Math.random() * 0x100000000) >>> 0;
     // 先等引擎再买入：引擎起不来就不扣筹码；买入期间占着开局，别的「开始」点了不算。
     // 买到了紧接着同步进 startRun（中间不让出线程），那里的 ready() 拿到已好的引擎，这局一定开出来
@@ -673,9 +722,19 @@ async function boot(): Promise<void> {
       const danger = raid ? (RAID_LIVE.danger[tier] as Danger) : LIVE_TIERS[tier].danger;
       return startRun(danger, map, true, liveSetup(tier, seed, raid, character, map, loadoutSetup(save, character)), 'live');
     }
-    const why = buyinWhy(r.outcome);
-    // 主页一键开的：说明原因，给一个"按娱乐开"
-    if (fallback) return confirm.ask(`${why}，这次按娱乐开吧`, '按娱乐开', '回菜单', (ok) => (ok ? fallback() : menu.show(menuState())));
+    return buyinFailed(r.outcome, tier, fallback);
+  };
+  /** 带入没成：说清为什么。筹码不够的写手上多少、差多少，给「去钱包」（每天能领补给）；主页一键开的给「按娱乐开」 */
+  const buyinFailed = async (o: Parameters<typeof buyinWhy>[0], tier: LiveTier, fallback?: () => void): Promise<void> => {
+    const poor = o.kind === 'reject' && o.error === 'no_funds';
+    if (poor) await live.readWallet();
+    const why = buyinWhy(o, { tier, chips: live.chips });
+    if (fallback) return confirm.ask(`${why}。这次按娱乐开吧`, '按娱乐开', '回菜单', (ok) => (ok ? fallback() : menu.show(menuState())));
+    if (poor)
+      return confirm.ask(why, '去钱包', '回菜单', (ok) => {
+        if (ok) location.href = '/wallet';
+        else menu.show(menuState());
+      });
     confirm.ask(why, '知道了', '回菜单', () => menu.show(menuState()));
   };
   // 实盘连战（docs/design-live.md 4.1b）：每局随机种子，固定小道士、不带加成；只开 LIVE_RUSH 里有的档
@@ -695,9 +754,7 @@ async function boot(): Promise<void> {
       const setup = liveRushSetup(tier, seed);
       return startRun(setup.danger, setup.map ?? 'snow', true, setup, 'live');
     }
-    const why = buyinWhy(r.outcome);
-    if (fallback) return confirm.ask(`${why}，这次按娱乐开吧`, '按娱乐开', '回菜单', (ok) => (ok ? fallback() : menu.show(menuState())));
-    confirm.ask(why, '知道了', '回菜单', () => menu.show(menuState()));
+    return buyinFailed(r.outcome, tier, fallback);
   };
   menu.onLive = (tier, map, fallback) => void startLive(tier, undefined, map, fallback);
   menu.onRushLive = (tier) => void startLiveRush(tier);

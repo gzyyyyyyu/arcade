@@ -81,6 +81,23 @@ export interface Session {
   tally: RunTally;
 }
 
+/**
+ * 离开页面前结掉本页的实盘那一份（回大厅、好友邀请的「去」、关页；请求都带 keepalive）。
+ * 局已打完、结算页还没出（GameScene 停 0.9–1.2 秒）时按终局结：不然撤出、斩尸王会被当成中途离开结成 0 或少结，服务端按 ref 只认第一次
+ */
+export function settleOnLeave(
+  sess: Session,
+  w: World | null,
+  live: Pick<ReturnType<typeof createLive>, 'progress' | 'leave'>,
+  finish: (w: World, quit: boolean, keepalive: boolean) => Promise<void>,
+): Promise<void> {
+  const run = sess.liveRun;
+  if (!run || !w || sess.ended) return Promise.resolve();
+  if (w.phase === 'over') return finish(w, false, true);
+  live.progress(run.seed, w.tick, w.rushDown);
+  return live.leave(run.seed);
+}
+
 export interface FinishDeps {
   sess: Session;
   save: ReturnType<typeof loadSave>;
@@ -99,7 +116,7 @@ export interface FinishDeps {
 }
 
 /** 一局打完以后的事：存录像、交分、记纪录和成就、出结算页；实盘和夜探各有结回的走法 */
-export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolean) => void } {
+export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolean, keepalive?: boolean) => Promise<void> } {
   const { sess, save, live, submitter, social, result, confirm, tips, banners, toast, scene, setPaused, showPlay, nonce } = d;
 
   /** 撑到了天亮：无尽局过了天亮再倒下也算（解锁、战绩按这个） */
@@ -196,7 +213,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
   };
 
   /** 夜探结算：撤出全带走、换铜钱；倒下 / 迷失丢包，铜钱剩一半（教学镇不丢）；宝物记进藏宝阁 */
-  const finishRaid = (w: World, quit: boolean, seconds: number, liveSeed: number | null = null, extra: readonly CoinSource[] = [], trialName = ''): void => {
+  const finishRaid = (w: World, quit: boolean, seconds: number, liveSeed: number | null = null, extra: readonly CoinSource[] = [], trialName = '', keepalive = false): Promise<void> | undefined => {
     const raid = w.raid!;
     const st = settleRaid(raid, carryCoins(w));
     const rr = recordRaid(save.vault, st);
@@ -223,13 +240,13 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       coins: st.coins,
       coinsTotal: coins(save),
       label: trialName ? `试炼 · ${trialName}` : liveSeed === null ? `夜探 · ${RAID_TEMPLATES[tpl].name}${raid.teach ? '' : ` · ${DANGERS[w.setup.danger].name}`}` : `实盘 · 夜探 · ${RAID_TEMPLATES[tpl].name} · ${LIVE_TIERS[sess.liveTier].name}档`,
-      ...(liveSeed === null ? {} : { live: '正在结回…' }),
+      ...(liveSeed === null ? {} : { live: '正在带回…' }),
       record: false,
       build: buildRows(w),
       raid: { outcome: st.outcome === 'escaped' || st.outcome === 'lost' ? st.outcome : 'dead', teach: raid.teach, kept: st.kept.map(view), lost: st.lost.map(view), value: st.value },
     });
     tellExtra(extra);
-    if (liveSeed !== null) void live.finishRaid(liveSeed, st.bp).then(showLiveResult);
+    if (liveSeed !== null) return live.finishRaid(liveSeed, st.bp, undefined, keepalive).then(showLiveResult);
   };
   /** 实盘结回完：结算页写结果，结完的记录清掉 */
   const showLiveResult = (): void => {
@@ -238,9 +255,11 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     if (lrec?.step === 'done') {
       live.markTold();
       live.clearFinished();
+      void live.readWallet();
     }
   };
-  const finish = (w: World, quit: boolean): void => {
+  /** 实盘那一份的结算返回 Promise（回大厅等它结完再走）；keepalive：打完马上离开页面 */
+  const end = (w: World, quit: boolean, keepalive: boolean): Promise<void> | undefined => {
     if (sess.ended) return;
     sess.ended = true;
     setPaused(true);
@@ -261,16 +280,15 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       const seed = sess.liveRun.seed;
       sess.liveRun = null;
       showPlay(false);
-      result.show({ won: run.rush.cleared, quit, bossKilled: false, seconds: run.rush.ticks / 30, kills: w.kills, level: w.level, coins: 0, label: `实盘 · 连战 · ${LIVE_TIERS[sess.liveTier].name}档`, live: '正在结回…', fixed: true, record: false, build: buildRows(w) });
+      result.show({ won: run.rush.cleared, quit, bossKilled: false, seconds: run.rush.ticks / 30, kills: w.kills, level: w.level, coins: 0, label: `实盘 · 连战 · ${LIVE_TIERS[sess.liveTier].name}档`, live: '正在带回…', fixed: true, record: false, build: buildRows(w) });
       decorateRushResult(result.root, w.rush, run.rush, quit, null);
-      void live.finishRush(seed, run.rush).then(showLiveResult);
-      return;
+      return live.finishRush(seed, run.rush, undefined, keepalive).then(showLiveResult);
     }
     if (sess.liveRun && w.raid) {
       // 夜探实盘：撤出才有钱（按带出的价值），倒下、迷失、认输都是 0
       const seed = sess.liveRun.seed;
       sess.liveRun = null;
-      return finishRaid(w, quit, seconds, seed, extra);
+      return finishRaid(w, quit, seconds, seed, extra, '', keepalive);
     }
     if (sess.liveRun) {
       // 实盘：不记纪录（固定配置，和娱乐分开），按撑到的时间结回；认输按当时撑到的算。
@@ -278,13 +296,12 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       const seed = sess.liveRun.seed;
       sess.liveRun = null;
       grantCoins(save, `live:${seed.toString(36)}`, carryCoins(w));
-      // 撑过的时间照样解锁地图、更夫，天亮了照样开下一危险档（以前实盘分支不记，撑到天亮竹林还锁着）
+      // 撑过的时间照样解锁地图、更夫，天亮了照样开下一危险档（实盘也记，不然撑到天亮竹林还锁着）
       recordLiveVigil(save, { danger: w.setup.danger, won: dawned(w), ticks: Math.min(w.tick, DAWN_TICK), market: w.mkBuys });
       showPlay(false);
-      result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: carryCoins(w), coinsTotal: coins(save), night: scene()?.nightLog, label: `实盘 · ${LIVE_TIERS[sess.liveTier].name}档`, live: '正在结回…', record: false, build: buildRows(w) });
+      result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: carryCoins(w), coinsTotal: coins(save), night: scene()?.nightLog, label: `实盘 · ${LIVE_TIERS[sess.liveTier].name}档`, live: '正在带回…', record: false, build: buildRows(w) });
       tellExtra(extra);
-      void live.finish(seed, { ticks: w.won ? DAWN_TICK : w.tick, won: w.won, bossKilled: w.bossKilled }).then(showLiveResult);
-      return;
+      return live.finish(seed, { ticks: w.won ? DAWN_TICK : w.tick, won: w.won, bossKilled: w.bossKilled }, undefined, keepalive).then(showLiveResult);
     }
     if (w.raid) return finishRaid(w, quit, seconds, null, extra, w.trial ? `${w.trial.name} · ${goalText(w.trial.goal)}` : '');
     if (w.rush && run.rush) {
@@ -293,7 +310,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       const score = rushScore(run.rush);
       const record = !quit && (rushPrev === null || score > rushPrev);
       result.show({ won: run.rush.cleared, quit, bossKilled: false, seconds: run.rush.ticks / 30, kills: w.kills, level: w.level, coins: w.coins, label: `每日连战 · ${MAPS[w.setup.map ?? 'snow'].name} · ${SCHOOLS[w.rush.school].name}`, fixed: true, record, build: buildRows(w) });
-      decorateRushResult(result.root, w.rush, run.rush, quit, record ? '就是这一局' : rushPrev === null ? '—' : rushShort(rushPrev));
+      decorateRushResult(result.root, w.rush, run.rush, quit, record ? '就是这局' : rushPrev === null ? '—' : rushShort(rushPrev));
       return;
     }
     // 认输的局算一局、铜钱照拿，但不算纪录
@@ -309,15 +326,15 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     // 不弹顶上的成就横幅：结算页一出来横幅正好盖住标题（新手第一局一次解锁三四个，盖十来秒），成就名写在上面那条铜钱明细里
     showPlay(false);
     const dayTheme = sess.dailyDate && !w.setup.rush ? dailyTheme(sess.dailyDate, w.setup.mode) : null;
-    const label = w.trial ? `试炼 · ${w.trial.name} · ${goalText(w.trial.goal)}` : `${sess.dailyDate ? '每日挑战 · ' : ''}${sess.weeklyDate && w.setup.weekly ? `本周夜事 · ${WEEKLIES[w.setup.weekly].name} · ` : ''}${w.setup.endless ? '无尽 · ' : ''}${DANGERS[w.setup.danger].name}${dayTheme ? (dayTheme.id === 'nightmare' ? ' · 周日噩梦日' : ` · ${dayTheme.name}日`) : ''}${w.setup.curses?.length ? ` · 咒印 ${w.setup.curses.length}` : ''}${w.setup.assist ? ' · 降低伤害' : ''}`;
+    const label = w.trial ? `试炼 · ${w.trial.name} · ${goalText(w.trial.goal)}` : `${sess.dailyDate ? '每日守夜 · ' : ''}${sess.weeklyDate && w.setup.weekly ? `本周夜事 · ${WEEKLIES[w.setup.weekly].name} · ` : ''}${w.setup.endless ? '无尽 · ' : ''}${DANGERS[w.setup.danger].name}${dayTheme ? (dayTheme.id === 'nightmare' ? ' · 周日噩梦日' : ` · ${dayTheme.name}日`) : ''}${w.setup.curses?.length ? (sess.dailyDate ? ` · 额外规矩 ${w.setup.curses.length} 条` : ` · 咒印 ${w.setup.curses.length}`) : ''}${w.setup.assist ? ' · 挨打减伤' : ''}`;
     const advice = !w.won && !quit && !w.raid && !w.trial && !sess.dailyDate && !sess.weeklyDate ? adviceFor(save.runs, sess.tally.worstFoe) : undefined;
     result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: got.coins + achCoins + extraCoins, coinsTotal: coins(save), night: scene()?.nightLog, sources, label, ...(advice ? { advice } : {}), fixed: !!sess.dailyDate || !!(sess.weeklyDate && w.setup.weekly) || !!w.trial, record: got.record && !w.trial, build: buildRows(w) });
     if (got.askAssist)
-      confirm.ask(`连着倒下好几局了。要不要把挨打的伤害降低 ${Math.round((1 - ASSIST.dmg) * 100)}%？开着时成绩不进总榜，设置里随时能关。`, '降低伤害', '不用', (ok) => {
+      confirm.ask(`连着倒下好几局了。要不要把挨打的伤害降低 ${Math.round((1 - ASSIST.dmg) * 100)}%？开着时成绩不进总榜，设置里随时能关。`, '挨打减伤', '不用', (ok) => {
         save.assist = ok;
         writeSave(save);
       });
   };
 
-  return { finish };
+  return { finish: (w, quit, keepalive = false) => end(w, quit, keepalive) ?? Promise.resolve() };
 }

@@ -186,6 +186,8 @@ export class GameScene extends Phaser.Scene {
   /** 开局头上冒一次的台词气泡（角色的 line）；到点收掉 */
   private bubble: Phaser.GameObjects.Text | null = null;
   private bubbleUntil = 0;
+  /** 台词气泡从这一刻才出：开局横幅（教学镇两条、连战第 1 关）先说完，不叠在一起（试玩 11-22） */
+  private bubbleFrom = 0;
   private heroShadow!: Phaser.GameObjects.Image;
   private lookAura: LookAura | null = null;
   private aura!: Phaser.GameObjects.Image;
@@ -369,7 +371,7 @@ export class GameScene extends Phaser.Scene {
       // 第一次夜探（教学镇）：开局一句话说清要干什么，几秒后自己收起
       if (this.raid.teach) {
         // 先说清这是练手的小镇子（所有者试玩时觉得夜探太小），再说玩法
-        setTimeout(() => this.d.banners.say('教学镇', 'gold', 3000, '小镇子练手，下一局是 6,400 见方的大镇子'), 500);
+        setTimeout(() => this.d.banners.say('教学镇', 'gold', 3000, '小镇子练手，下一局的镇子大得多'), 500);
         setTimeout(() => this.d.banners.say('搜宝箱 · 躲巡夜将 · 天亮前走门撤出', 'gold', 7000, '没撤出去背包全丢（教学镇例外：不丢）'), 3900);
       }
     }
@@ -433,7 +435,7 @@ export class GameScene extends Phaser.Scene {
       this.rushShow = show;
       this.events.once(Phaser.Scenes.Events.DESTROY, () => show.destroy());
     }
-    // 本周夜事挑战：计时下面挂一块小牌，打着的时候也看得出是挑战局、这周是什么规矩（原来只有暂停面板里写）
+    // 本周夜事挑战：计时下面挂一块小牌，打着的时候也看得出是挑战局、这周是什么规矩
     const weekly = this.w.setup.weekly;
     if (weekly) {
       const chip = document.createElement('div');
@@ -455,7 +457,9 @@ export class GameScene extends Phaser.Scene {
       .text(0, 0, line, { fontFamily: 'system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#2a1f14', backgroundColor: '#fff6dc', padding: { x: 8, y: 5 }, wordWrap: { width: 160, useAdvancedWrap: true }, align: 'center' })
       .setOrigin(0.5, 1)
       .setDepth(9300);
-    this.bubbleUntil = this.now + 3600;
+    this.bubbleFrom = this.now + (this.raid?.teach ? 10_900 : this.w.rush ? 2_000 : 0);
+    this.bubbleUntil = this.bubbleFrom + 3600;
+    this.bubble.setVisible(this.bubbleFrom <= this.now);
     this.d.hud.setFace(this.d.icon(faceKey(this.w.setup.character ?? 'xiaodao')));
     // 金钟罩：有护盾时罩在主角身上（半透明，前面）
     this.shieldImg = this.img('goldbell', 0, 0, 1).setVisible(false);
@@ -698,7 +702,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     this.d.cards.show(
-      w.chestPicks > 0 ? (w.rush ? 'stage' : 'chest') : w.level - (w.pendingLevels - w.chestPicks) + 1,
+      w.chestPicks > 0 ? (w.rush ? { stage: `${w.rushDown}/${w.rush.total}` } : 'chest') : w.level - (w.pendingLevels - w.chestPicks) + 1,
       w.choices.map((c) => describe(w, c)),
       this.d.firstRun && !this.cardsSeen,
       !!w.setup.firstRun,
@@ -818,7 +822,7 @@ export class GameScene extends Phaser.Scene {
         case Ev.Hurt:
           sfx.play('hurt');
           this.haptics.hurt();
-          // 被围时每隔一会儿就挨一下，震屏会变成一直抖；改成主角红闪 + 屏幕边缘红晕
+          // 被围时每隔一会儿就挨一下，震屏会变成一直抖；所以用主角红闪 + 屏幕边缘红晕
           this.d.banners.hurt();
           this.hero.setTint(0xff5a4a);
           this.time.delayedCall(150, () => this.hero.clearTint());
@@ -1847,7 +1851,7 @@ export class GameScene extends Phaser.Scene {
     const alpha = Math.min(1, this.acc / TICK_MS);
     const inter = (p: number, c: number): number => p + (c - p) * alpha;
     // 主角：始终在核心给的上一拍和这一拍之间插值，和怪、弹幕同一套时间轴。
-    // 以前移动时用"预测"（现在的输入往前推）、停下时用插值，起停那一帧两套结果差约一拍，看上去一顿一跳；
+    // 不在移动时用"预测"（现在的输入往前推）：和停下时的插值在起停那一帧差约一拍，看上去一顿一跳；
     // 代价是比输入晚最多一拍（33 ms），换整条运动曲线连续
     const moving = !this.paused && !this.d.cards.open && this.freeze <= 0 && this.hold <= 0 && w.phase === 'play';
     const dir = moving ? (this.d.autopilot ? 0 : this.d.input.dir()) : 0;
@@ -1885,7 +1889,7 @@ export class GameScene extends Phaser.Scene {
       if (this.now > this.bubbleUntil || this.w.phase === 'choose') {
         this.bubble.destroy();
         this.bubble = null;
-      } else this.bubble.setPosition(hx, hy - 82).setAlpha(Math.min(1, (this.bubbleUntil - this.now) / 500));
+      } else this.bubble.setPosition(hx, hy - 82).setVisible(this.now >= this.bubbleFrom).setAlpha(Math.min(1, (this.bubbleUntil - this.now) / 500));
     }
     // 被冰锥、水鬼拖慢：脚下冒冰屑
     if (slowed && !LOW_MEMORY && (this.frost += dt) > 90) {
@@ -1914,7 +1918,7 @@ export class GameScene extends Phaser.Scene {
         this.ground.spawn({ frame: 'footprint', x: hx + px, y: hy + py + 2, life: 3200, a0: 0.8, a1: 0, rot: Math.atan2(SIN[w.face]!, COS[w.face]!), ground: true });
       }
     }
-    // 镜头：紧跟主角（幸存者类的标准做法）。以前每帧追 15% 并朝面向方向前瞻 40px：追的快慢跟帧率有关，
+    // 镜头：紧跟主角（幸存者类的标准做法）。不用每帧追一截加前瞻：追的快慢跟帧率有关，
     // 转向时前瞻点一跳镜头就荡一下；主角本身已经按拍插值，镜头直接钉在他身上，屏幕上主角就不会晃
     const cam = this.cameras.main;
     cam.centerOn(hx, hy - 20);

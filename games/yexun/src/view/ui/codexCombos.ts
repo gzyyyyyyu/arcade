@@ -79,7 +79,7 @@ function pool(st: CombosState, icons: (k: string) => string): string {
   const p = CHARACTER_POOLS[st.char];
   const schools = p.schools.map((s) => `<b>${esc(SCHOOLS[s].name)}</b>`).join('、');
   const sets = p.schools.filter((s) => s in SCHOOL_SETS).map((s) => `${SCHOOLS[s].name}套件：${SCHOOL_SETS[s as keyof typeof SCHOOL_SETS].join('；')}`);
-  // 每格写清所属流派和一句作用：角色池页原先只有图标加名字，下面空四成；信息放进格子里，由共用翻页按高度切页
+  // 每格写清所属流派和一句作用：只有图标加名字的话角色池页下面空四成；信息放进格子里，由共用翻页按高度切页
   const schoolsOf = (w: string): string => {
     const hit = SCHOOL_IDS.filter((s) => SCHOOLS[s].weapons.includes(w as never)).map((s) => SCHOOLS[s].name);
     return hit.length ? hit.join('·') : '散件';

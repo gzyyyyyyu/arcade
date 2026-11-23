@@ -5,6 +5,7 @@
  * 局外成长（DESIGN.md 3.7、3.8）：铜钱只在游戏里，和筹码完全分开。铜钱不存一个总数，存"流水"（每局赚的、每次花的各一条，带 id）：
  * 两台设备各玩各花，合并时按 id 取并集再加总，不会因为"取较大的那个总数"白送或者扣成负数（5.5）。
  */
+import { platformSoundOn } from 'arcade-kit/client';
 import { fmtClock } from '../content/clock.ts';
 import { DANGER_IDS, type Danger, type Difficulty } from '../content/waves.ts';
 import { MAP_UNLOCK, type MapId } from '../content/maps.ts';
@@ -247,7 +248,7 @@ export function reviveSave(o: unknown): Save | null {
     }
   }
   s.bought = CHARACTER_IDS.filter((c) => strs(r.bought).includes(c));
-  // 纸匠、阴阳先生 0.34.0 前一开始就有。没有这个字段的是老存档：打过局的两人都留（存档没按角色记过局数，分不出谁玩过谁，宁可多给不收回）
+  // 纸匠、阴阳先生在早期版本里一开始就有。没有这个字段的是老存档：打过局的两人都留（存档没按角色记过局数，分不出谁玩过谁，宁可多给不收回）
   s.legacy = Array.isArray(r.legacy) ? LEGACY_CHARS.filter((c) => strs(r.legacy).includes(c)) : s.runs > 0 ? [...LEGACY_CHARS] : [];
   if (Array.isArray(r.ledger)) {
     const seen = new Set<string>();
@@ -482,13 +483,13 @@ export function mapOpen(s: Save, id: MapId): boolean {
   return !u || s.maxSeconds >= u.seconds;
 }
 
-/** 0.34.0 起要解锁、老存档照留的角色 */
+/** 要解锁、但老存档照留的角色 */
 const LEGACY_CHARS: readonly CharacterId[] = ['zhijiang', 'yinyang'];
 
 /**
  * 角色解锁（3.7）：小道士、符师、剑侠一开始就有；纸匠守夜撑过 4 分钟；胖师叔花铜钱；更夫守夜撑过 8 分钟；采药女夜探撤出 1 次；
  * 摆渡人夜探撤出 1 次后守夜撑过 6 分钟；货郎夜市买过 3 次东西；阴阳先生守夜撑到天亮 1 次。
- * 老条件（危险 2 通关、藏宝阁 20 件、0.34.0 前打过局的纸匠和阴阳先生）照认：老存档已经解锁的不会被收回。
+ * 老条件（危险 2 通关、藏宝阁 20 件、早期版本里打过局的纸匠和阴阳先生）照认：老存档已经解锁的不会被收回。
  */
 export function charOpen(s: Save, c: CharacterId): boolean {
   switch (c) {
@@ -571,7 +572,7 @@ function spend(s: Save, id: string, n: number): boolean {
 }
 
 /** 下一级的价格；满级为 null */
-export function perkPrice(s: Save, id: PerkId): number | null {
+function perkPrice(s: Save, id: PerkId): number | null {
   return PERKS[id].cost[s.perks[id] ?? 0] ?? null;
 }
 
@@ -758,7 +759,13 @@ export function savePayload(s: Save): Omit<Save, 'difficulty' | 'map' | 'danger'
   return rest;
 }
 
-export const SETTINGS_KEY = 'yexun.settings';
+const SETTINGS_KEY = 'yexun.settings';
+
+/**
+ * 大厅关了声音（kit 的 platformSoundOn，平台对游戏公开的唯一存储约定，只读）：这一次打开音效、音乐先静音、开关显示关；
+ * 玩家在游戏里打开只管这一次，不写 yexun.settings 里自己的偏好（下次大厅开着声音时照旧按自己的）
+ */
+export const LOBBY_MUTED = !platformSoundOn();
 
 /** 读设置里的一个布尔字段；存储不可用、内容损坏都当没有，用默认值。 */
 export function readFlag(field: string, def: boolean): boolean {
@@ -808,7 +815,7 @@ export const settings = {
 // ───────────────────────── 试炼、周目标（docs/design-play.md 2.6） ─────────────────────────
 
 /** 这一关通关过没有 */
-export const trialCleared = (s: Pick<Save, 'trials'>, id: TrialId): boolean => (s.trials[id] ?? 0) >= 1e9;
+const trialCleared = (s: Pick<Save, 'trials'>, id: TrialId): boolean => (s.trials[id] ?? 0) >= 1e9;
 
 /** 这一档开了没有：入门一直开；往后要前一档通过 TRIAL_OPEN_NEED 关 */
 export function trialTierOpen(s: Pick<Save, 'trials'>, tier: TrialTier): boolean {

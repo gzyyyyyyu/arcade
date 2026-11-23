@@ -7,15 +7,14 @@ import type { CharacterId } from './meta.ts';
 import type { Danger } from './waves.ts';
 
 /**
- * 实盘开没开（守夜）。第 7 步按模拟器每格 2,000 局把四档的天亮倍数配进 balance.md 的区间后打开（2026-10-17）。
+ * 实盘开没开（紧急开关）。
  * 关掉时菜单不显示实盘，Worker 拒绝带入（直接调接口也带不进去）；结回、退回照常，免得万一有挂着的一份结不掉。
- * 夜探实盘另做（基准价值要先模拟），菜单上先写"很快开放"。
  */
 export const LIVE_OPEN = true;
 
 /**
  * 实盘暂不开放的守夜图：新图要先按 LIVE_MAP_BP 同一套方法拟合系数、偏离同档平均 ±0.15 份以内才开（DESIGN 8.1，主线 10-20）。
- * 菜单上这几张图在实盘里灰着；直接调带入也会退回雪原（main.ts startLive）。现在没有（鬼市 0.17.7 开放）。
+ * 菜单上这几张图在实盘里灰着；直接调带入也会退回雪原（main.ts startLive）。现在没有。
  */
 export const LIVE_MAP_CLOSED: readonly MapId[] = [];
 export const liveMapOk = (m: MapId): boolean => !LIVE_MAP_CLOSED.includes(m);
@@ -24,7 +23,7 @@ export type LiveTier = 'small' | 'medium' | 'large' | 'luxe';
 export const LIVE_TIER_IDS: readonly LiveTier[] = ['small', 'medium', 'large', 'luxe'];
 
 /** 平台钱包的档位名（docs/economy.md：small / mid / big / lux）。夜巡自己叫 medium / large / luxe，带入时要换成钱包的名字，
- *  不换钱包回 bad_request（0.3.8 修：0.3.0 起中、大、豪华档一直带不进去，只有小档两边同名） */
+ *  不换钱包回 bad_request（只有小档两边同名） */
 export type WalletTier = 'small' | 'mid' | 'big' | 'lux';
 
 /** 中途倒下的形状：点是 [秒, 占天亮倍数的万分比]，逐拍插值；第一个点之前为 0 */
@@ -47,14 +46,14 @@ export interface LiveTierDef {
 }
 
 /**
- * 形状：小档从 3:00 起平滑上升（第 12 轮全量拟合：中途回得少、天亮给得多，小白和普通才拉得开）；
- * 中档以上 0.17.0 按带技能的模拟拟合（技能让中途撑得更久，从 2:00 起回、天亮前回得多一些），豪华档中途回得更多。
+ * 形状：小档从 3:00 起平滑上升（中途回得少、天亮给得多，小白和普通才拉得开）；
+ * 中档以上按带技能的模拟拟合（技能让中途撑得更久，从 2:00 起回、天亮前回得多一些），豪华档中途回得更多。
  */
 const SHAPE_SMALL: LiveShape = [[180, 0], [300, 560], [600, 2_200], [840, 2_880], [900, 10_000]];
 const SHAPE_MID: LiveShape = [[120, 0], [300, 1_120], [600, 4_400], [840, 5_760], [900, 10_000]];
 const SHAPE_LUXE: LiveShape = [[120, 0], [300, 1_932], [600, 7_590], [840, 9_936], [900, 10_000]];
 
-// dawnBp：规则 68 危险档变难后，中、大、豪华档按小道士雪原同种子各 2,000 局重拟，普通线期望回到改前
+// dawnBp：中、大、豪华档按小道士雪原同种子各 2,000 局拟合
 export const LIVE_TIERS: Record<LiveTier, LiveTierDef> = {
   small: { id: 'small', wallet: 'small', name: '小', stake: 2_000, danger: 0, dawnBp: 11_800, shape: SHAPE_SMALL, bossAdd: 2_000 },
   medium: { id: 'medium', wallet: 'mid', name: '中', stake: 10_000, danger: 2, dawnBp: 14_100, shape: SHAPE_MID, bossAdd: 2_000 },
@@ -90,10 +89,10 @@ export function rushBp(tier: LiveTier, down: number, total: number, cleared: boo
 /** 一场最多赢 3 份（结回 ≤ 带入 × 3，economy.md 第 2 节）；倍数按万分之一传 */
 export const LIVE_MAX_BP = 30_000;
 
-/** 实盘能选的角色：娱乐里能选的都能（0.17.10 起新三人各档、各图、夜探都开；摆渡人 0.30.0 放出，同时进实盘） */
+/** 实盘能选的角色：娱乐里能选的都能（各档、各图、夜探都开） */
 export const LIVE_CHAR_IDS: readonly CharacterId[] = ['xiaodao', 'fushi', 'jianxia', 'pang', 'gengfu', 'caiyao', 'zhijiang', 'baidu', 'huolang', 'yinyang'];
-/** 这个角色能不能带进实盘（档位、地图、守夜 / 夜探都不再限；参数留着给界面） */
-export function liveCharOk(_tier: LiveTier, character: CharacterId, _map: MapId = 'snow', _raid = false): boolean {
+/** 这个角色能不能带进实盘（档位、地图、守夜 / 夜探都不分） */
+export function liveCharOk(character: CharacterId): boolean {
   return LIVE_CHAR_IDS.includes(character);
 }
 

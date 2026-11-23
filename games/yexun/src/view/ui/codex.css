@@ -3,7 +3,7 @@
 .yx-codex-panel { width: min(760px, 100%); height: 100%; overflow: hidden; }
 .yx-cbar { height: 10px; border: 2px solid var(--ink); border-radius: 6px; background: #d9ccaa; overflow: hidden; flex: none; }
 .yx-cbar i { display: block; height: 100%; background: var(--red); }
-/* 标签的底样式在 screens.css（几个面板共用）；平分一排只是图鉴和藏宝阁（根也带 .yx-codex）的排法，原来裸写在这里，串到排行榜把"全部"和第二排标签拉得很宽 */
+/* 标签的底样式在 screens.css（几个面板共用）；平分一排只是图鉴和藏宝阁（根也带 .yx-codex）的排法，限定在 .yx-codex 下，不然串到排行榜把"全部"和第二排标签拉得很宽 */
 .yx-codex .yx-tab { flex: 1; }
 .yx-cbody { flex: 1; min-height: 0; overflow: hidden; align-content: start; }
 .yx-csub { font-size: var(--fs-md, 14px); color: #5a4a3a; margin: 0; flex: none; }

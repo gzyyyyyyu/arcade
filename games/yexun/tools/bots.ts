@@ -445,7 +445,7 @@ export class Bot {
     let crit = false;
     cs.forEach((c, i) => {
       if (this.critical(w, c)) crit = true;
-      // 认得合成配方（和卡上的提示同一个纯函数）：正好凑成的先拿，差一步的往前排（1.1，双修以前机器人很少凑得齐）
+      // 认得合成配方（和卡上的提示同一个纯函数）：正好凑成的先拿，差一步的往前排（不这样机器人很少凑得齐双修）
       const h = mergeHint(w, c);
       const s = this.score(w, c, plan) + (h ? (h.ready ? 30 : 12) : 0) + this.dualPartner(w, c);
       if (s > bs) {

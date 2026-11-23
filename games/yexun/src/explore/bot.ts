@@ -173,7 +173,7 @@ export class RaidBot {
 }
 
 /** 向量 → 输入方向 1–32 */
-export function toward(dx: number, dy: number): number {
+function toward(dx: number, dy: number): number {
   if (dx === 0 && dy === 0) return 0;
   return (Math.round(dirIndex(dx, dy) / 8) % 32) + 1;
 }

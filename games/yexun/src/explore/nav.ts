@@ -7,7 +7,7 @@ import type { RaidBlock } from './blocks.ts';
 
 export const NAV_CELL = 32;
 /** 格子中心离块多近算堵：主角半径 14 再留 10（贴墙走的路线一拐弯就会被墙角卡住，沿路走的机器人和脚印都离墙远一点） */
-export const NAV_CLEAR = 24;
+const NAV_CLEAR = 24;
 export const NAV_INF = 0x3fffffff;
 
 const KEY = 1 << 20;

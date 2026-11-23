@@ -23,7 +23,7 @@ export type SfxName = BaseSfxName | ArmSfxName | Arm2SfxName | FoeSfxName;
 
 import type { FoeSfxName } from './sfx-foes.ts';
 import { installFoeSfx } from './sfx-foes.ts';
-import { readFlag, writeFlag } from '../../platform/save.ts';
+import { LOBBY_MUTED, readFlag, writeFlag } from '../../platform/save.ts';
 
 // ---------- 音频环境 ----------
 let ctx: AudioContext | null = null;
@@ -434,7 +434,7 @@ const FREQUENT = new Set<SfxName>([
 ]);
 
 const frame = new Map<SfxName, { t: number; n: number }>();
-let enabled = readFlag('sfx', true);
+let enabled = readFlag('sfx', true) && !LOBBY_MUTED;
 
 export const sfx = {
   unlock(): void {
@@ -476,7 +476,7 @@ export const sfx = {
   },
   setEnabled(on: boolean): void {
     enabled = on;
-    writeFlag('sfx', on);
+    if (!LOBBY_MUTED) writeFlag('sfx', on);
   },
   get enabled(): boolean { return enabled; },
   get ctx(): AudioContext | null { return ctx; },

@@ -12,7 +12,7 @@ src/content/   内容表（法器、怪、波次、地图、角色、夜探、�
 src/explore/   夜探规则    src/app/  main.ts 拆出的块    src/meta/  成就图鉴统计
 src/view/      画面：art/ 程序画图集、game/ 对局、audio/、ui/ DOM、viewport.ts 适配
 src/platform/  存档、云存档、实盘端    src/online/  排行榜、每日、每周夜事、分享
-src/replay/    本地录像    worker/  闸门、根路径、实盘带入结回、health（自带 tsconfig）
+src/replay/    本地录像    worker/  闸门、根路径、实盘带入带回、铜钱换筹码、health（自带 tsconfig）
 tools/         截图冒烟、模拟、回归、耗时、手感等    tests/  按层分 core content explore view platform arch
 ```
 
@@ -47,7 +47,7 @@ tools/         截图冒烟、模拟、回归、耗时、手感等    tests/  �
 | `npm run sim:starts` | 起手回归（约 20 分钟，不进 test）；改起手、法器池、流派单后跑 |
 | `node tools/sim-merge.ts <目录>` | 拼分片的 `sim --json` 结果 |
 | `npm run bench -- <种子> <难度>` / `-- --worst` | 核心每拍耗时 |
-| `node tools/parity.ts run --root <模块目录> --out <结果>`、`diff <旧> <新>` | 核心对拍：两份代码跑同一批种子（娱乐、实盘的守夜和夜探），比终局拍数、魂、铜钱、击杀、胜负、结回额和指纹；搬家、重构核心后交审前跑（用法见文件头） |
+| `node tools/parity.ts run --root <模块目录> --out <结果>`、`diff <旧> <新>` | 核心对拍：两份代码跑同一批种子（娱乐、实盘的守夜和夜探），比终局拍数、魂、铜钱、击杀、胜负、带回额和指纹；搬家、重构核心后交审前跑（用法见文件头） |
 | `npm run shot -- --out <目录>` | 截图并查点击区、控制台；`--flow` 走全界面，`--query` 带开发参数 |
 | `?fps`（页面参数） | 显示帧率、最长帧、怪数，不写存储 |
 | `node tools/feel.ts` | 手感测量 |

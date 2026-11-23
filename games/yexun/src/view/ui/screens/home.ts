@@ -54,7 +54,6 @@ export class Home {
       },
     });
     this.root.addEventListener('click', (e) => {
-      this.m.onClick();
       // 点设置面板外面也关（齿轮自己有切换，不在这里处理）
       // 用事件路径判断：点"恢复默认"会重画设置面板，target 已脱离文档，closest 找不到祖先
       const inside = e.composedPath().some((n) => n instanceof HTMLElement && (n.classList.contains('yx-settings') || n.dataset.a === 'settings'));

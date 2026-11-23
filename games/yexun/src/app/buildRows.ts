@@ -6,7 +6,7 @@ import { upgradeNeed } from '../view/ui/mergeHint.ts';
 import type { BuildRow } from '../view/ui/screens.ts';
 
 /** 进化还差什么（13.4：卡片和暂停页写清"还差哪个被动"） */
-export function evolveHint(w: World, o: OwnedWeapon): string | undefined {
+function evolveHint(w: World, o: OwnedWeapon): string | undefined {
   const evo = WEAPONS[o.id].evolve;
   if (!evo || o.evolved) return undefined;
   const has = (w.passives[evo.with] ?? 0) > 0;

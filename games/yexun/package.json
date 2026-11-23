@@ -1,7 +1,7 @@
 {
   "name": "yexun",
   "private": true,
-  "version": "0.37.10",
+  "version": "0.37.12",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -24,7 +24,7 @@
     "lint": "biome lint ."
   },
   "dependencies": {
-    "arcade-kit": "npm:@yyyu-star/arcade-kit@^0.27.0",
+    "arcade-kit": "npm:@yyyu-star/arcade-kit@^0.30.0",
     "phaser": "^4.2.1"
   },
   "devDependencies": {

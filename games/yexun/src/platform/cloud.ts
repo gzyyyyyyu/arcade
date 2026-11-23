@@ -104,17 +104,17 @@ export const META_KEY = 'yexun.cloud';
 export const preSyncKey = (slot: string): string => `yexun.${slot}.pre-sync`;
 export const preSwitchKey = (slot: string, userId: string): string => `yexun.${slot}.pre-switch.${userId}`;
 export const DEBOUNCE_MS = 10_000;
-export const MAX_WAIT_MS = 60_000;
+const MAX_WAIT_MS = 60_000;
 /** 重新确认"还是不是这个账号"的最小间隔 */
-export const RECHECK_MS = 60_000;
+const RECHECK_MS = 60_000;
 /** 强制确认的节流：几秒内刚问过 /api/me 就只核对磁盘，不再问（账号不一致期间每次本地改动都会触发） */
-export const FORCE_GAP_MS = 5_000;
+const FORCE_GAP_MS = 5_000;
 /** 切到后台补传的最小间隔：手机上每局都切出去的人，不至于很快用完每天 100 次 */
-export const HIDDEN_GAP_MS = 3 * 60_000;
+const HIDDEN_GAP_MS = 3 * 60_000;
 /** 每槽 data ≤ 48 KB（平台的上限，5.5） */
 const SLOT_BYTES = 48 * 1024;
 /** 一次打开最多 PUT 几次：平台每人每天 100 次，正常玩一局只有几次，这里兜住失控的循环 */
-export const SESSION_PUTS = 40;
+const SESSION_PUTS = 40;
 const API = '/api/saves/yexun';
 
 export const NOTE = {
@@ -135,7 +135,7 @@ interface Meta {
 const bytes = (s: string): number => new TextEncoder().encode(s).length;
 
 /** 键排好序的 JSON：比较"内容一样不一样"用 */
-export function stable(v: unknown): string {
+function stable(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
   if (isObj(v))
     return `{${Object.keys(v)
@@ -169,7 +169,7 @@ function setRaw(store: KeyValueStore | null, key: string, value: string | null):
 /** 备份、写本地失败（配额满了）：这一轮不再动本地和元数据，免得备份没存上就把本地清掉、或者 rev 记成云端的而本地没合进去 */
 class StorageFull extends Error {}
 
-export function loadMeta(store: KeyValueStore | null): Meta {
+function loadMeta(store: KeyValueStore | null): Meta {
   const m = getJson(store, META_KEY);
   const meta: Meta = { v: 1, userId: null, rev: {}, dirty: [] };
   if (!isObj(m)) return meta;
@@ -397,7 +397,7 @@ export class Cloud {
       this.note = NOTE.tooLarge;
       return this.changed();
     }
-    // userId 是最近一次 /api/me 确认的账号：平台（0.7.1 起）发现和会话里的不是同一个人就回 409 wrong_user、不写库，
+    // userId 是最近一次 /api/me 确认的账号：平台发现和会话里的不是同一个人就回 409 wrong_user、不写库，
     // 堵住"刚确认完、别的标签页又换了账号"的那一小段（keepalive 补传来不及先问 /api/me，靠的也是它）
     const body = `{"baseRev":${this.meta.rev[name] ?? 0},"userId":${JSON.stringify(this.user)},"data":${data}}`;
     if (keepalive && bytes(body) > keepaliveLeft()) {
@@ -703,7 +703,7 @@ export const profileSlot: SlotDef<Save> = {
 };
 
 /** 浏览器里的默认依赖。 */
-export function browserDeps(hooks: Pick<CloudDeps, 'onChange' | 'onApplied'> = {}): CloudDeps {
+function browserDeps(hooks: Pick<CloudDeps, 'onChange' | 'onApplied'> = {}): CloudDeps {
   return {
     store: defaultStore(),
     fetch: (url, init) => globalThis.fetch(url, init),

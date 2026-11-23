@@ -88,7 +88,7 @@ describe('纸兵', () => {
   it('实盘局和娱乐局的卡池里都有纸兵和剪刀（同一个角色比；规则 51 起实盘也按角色法器池）', () => {
     const pool = (live: boolean): Set<string> => {
       const ids = new Set<string>();
-      // 0.4.5 前几次升级偏向角色初始法器那一类，开局的卡换了一批：多跑几个种子、每局多一分钟
+      // 前几次升级偏向角色初始法器那一类，开局的卡不稳定：多跑几个种子、每局多一分钟
       for (let seed = 1; seed <= 32; seed++) {
         const w = createWorld(live ? liveSetup('medium', seed, undefined, 'caiyao') : { seed, mode: 'vigil', danger: 2, character: 'caiyao' });
         for (let t = 0; t < 30 * 120 && w.phase !== 'over'; t++) {

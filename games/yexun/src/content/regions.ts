@@ -1,7 +1,7 @@
 /**
  * 各地区的特色怪（DESIGN.md 3.5）：哪张守夜图、哪个夜探镇有哪些特色怪、从第几分钟起占多少刷怪、图专属精英什么时候出。
  * 特色怪是"从原来的刷怪里分一块出来"，不额外加量：每次补怪先按本分钟的合计占比抽一次，抽中了刷特色怪，没抽中走原来的分钟表，
- * 所以总量和节奏不变。没登记的地图一次额外的随机数都不抽，刷怪和以前逐位相同（2.0 起雪原、义庄也各有一种，只剩教学场景之类没登记）。
+ * 所以总量和节奏不变。没登记的地图一次额外的随机数都不抽（雪原、义庄也各有一种，只剩教学场景之类没登记）。
  * 怪的行为在 `core/step.ts` 的 mobAct，数值在 `enemies.ts`。
  */
 import { TICKS_PER_SECOND } from './clock.ts';
@@ -122,7 +122,7 @@ export const RAID_REGIONS: Partial<Record<RaidTemplateId, Region>> = {
 /**
  * 河滩、荒庙另加的两种特色怪（DESIGN 3.5）：克制站桩近身控场的镇守流派。刷怪时接在 VIGIL_REGIONS 的原表后面（选图页只列原表的）
  */
-export const VIGIL_REGIONS_55: Partial<Record<MapId, readonly RegionMob[]>> = {
+const VIGIL_REGIONS_55: Partial<Record<MapId, readonly RegionMob[]>> = {
   riverbank: [
     { kind: 'crossbow', share: [[2, 0.06], [6, 0.09]] },
     { kind: 'hurrier', share: [[3, 0.075], [7, 0.105]] },

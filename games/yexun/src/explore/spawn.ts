@@ -15,13 +15,13 @@ export function raidMinute(tick: number): Minute {
 }
 
 /** 深度：0 镇边 – 1 镇中心 */
-export function raidDepth(map: RaidMap, x: number, y: number): number {
+function raidDepth(map: RaidMap, x: number, y: number): number {
   const d = 1 - dist(x - map.center, y - map.center) / map.center;
   return d < 0 ? 0 : Math.min(d, 1);
 }
 
 /** 深度倍数（复用一个对象，热路径不分配）：hp、dmg 按怪刷出来的位置，count 按主角站的位置 */
-export const ZONE_MUL = { hp: 1, dmg: 1, count: 1 };
+const ZONE_MUL = { hp: 1, dmg: 1, count: 1 };
 export function raidZoneMul(map: RaidMap, x: number, y: number): typeof ZONE_MUL {
   const d = raidDepth(map, x, y);
   ZONE_MUL.hp = 1 + RAID_ZONE.hp * d;

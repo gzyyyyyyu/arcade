@@ -601,7 +601,7 @@ function secondCombos(w: World, g: Grid, api: ArmApi): void {
   // 阴兵借道：纸兵倒下时变成一个冤魂
   if (hasMerge(w, 'yinbing')) {
     const ks = slotOf(w, 'banner');
-    // 规则 63 的初成：变冤魂是开关，按 mergePower 的概率（大成每只都变，不抽随机数）
+    // 初成：变冤魂是开关，按 mergePower 的概率（大成每只都变，不抽随机数）
     const p = w.mergePower('yinbing');
     if (ks >= 0) {
       for (let q = 0; q < w.ev.n; q++) {

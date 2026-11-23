@@ -12,7 +12,7 @@
 | 3（开头）、3.1–3.3 | 内容表总则、法器、被动、进化和合成（含 3.3b–3.3f） | [docs/design-content-1.md](docs/design-content-1.md) |
 | 3.4–3.6 | 套装和流派、怪物和 Boss、地图 | [docs/design-content-2.md](docs/design-content-2.md) |
 | 3.7–3.10 | 角色、局外成长、选卡三件套、守夜夜市 | [docs/design-content-3.md](docs/design-content-3.md) |
-| 4 | 实盘：规则、结回倍数、角色和地图系数、配平目标 | [docs/design-live.md](docs/design-live.md) |
+| 4 | 实盘：规则、带回倍数、角色和地图系数、配平目标 | [docs/design-live.md](docs/design-live.md) |
 | 5、6 | 架构（核心、内容、画面、输入录像、平台、Worker、排行榜、每周夜事）、性能预算 | [docs/design-arch.md](docs/design-arch.md) |
 | 7、8、9 | 画风和声音、机器人和配平工具（含 8.1）、测试 | [docs/design-art-tools.md](docs/design-art-tools.md) |
 | 10–14 | 登记和跨模块约定、内容规模、已知问题、验收标准、和平台的关系 | [docs/design-misc.md](docs/design-misc.md) |

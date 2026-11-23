@@ -129,7 +129,7 @@ export class Guide {
       (this.tab === 'merge' ? '<p class="yx-gmdesc">点一行配方，这里写它做什么</p>' : '') +
       `<div class="yx-row3 yx-pgfoot">${PAGER_CTL}<button type="button" class="yx-big ghost" data-a="close">返回</button></div>` +
       '</div>';
-    // 电脑（宽屏）：页内分两栏，每页一整块、一屏放下，不翻页（流派页按卡、合成页按行翻：放不下，原来合成页整块算一页，底下几行被裁掉）；手机单栏：标题、段落、列表项、配方行、快捷键表的一行各算一块，放不下的页再翻，标题跟着后面走
+    // 电脑（宽屏）：页内分两栏，每页一整块、一屏放下，不翻页（流派页按卡、合成页按行翻：合成页整块算一页放不下，底下几行会被裁掉）；手机单栏：标题、段落、列表项、配方行、快捷键表的一行各算一块，放不下的页再翻，标题跟着后面走
     this.pager = new Pager({
       body: this.root.querySelector<HTMLElement>('.yx-gbody')!,
       ctl: this.root.querySelector<HTMLElement>('.yx-pager')!,
@@ -440,10 +440,10 @@ export class Guide {
       this.sec(
         '实盘：带一份筹码',
         '<ul class="yx-glist">' +
-          `<li>档位：${tiers}。撑得越久结回越多，最多 ${LIVE_MAX_BP / 10_000} 份；太早倒下就亏。</li>` +
+          `<li>档位：${tiers}。撑得越久带回越多，最多 ${LIVE_MAX_BP / 10_000} 份；太早倒下就亏。</li>` +
           `<li>不带永久加成和咒印；角色和地图可以选已经解锁的，起手和心法也照选的带。` + (closed ? `${esc(closed)}暂不开放。` : '') + '</li>' +
           `<li>守夜、夜探实盘都能放技能，纸匠、货郎、阴阳先生也都能带；升级、宝箱能抽到的法器、遇到的怪和首领都和娱乐一样。守夜实盘危险 ${LIVE_EASE.fromDanger} 起挨打少 ${pct(1 - LIVE_EASE.dmgScale)}。</li>` +
-          `<li>实盘页还有「连战」（只开${LIVE_RUSH_TIERS.map((t) => LIVE_TIERS[t].name).join('、')}档）：每局随机一套构筑，按打倒几只结回，全清另外多给；挨打不减，中途离开按已打倒的只数算。</li>` +
+          `<li>实盘页还有「连战」（只开${LIVE_RUSH_TIERS.map((t) => LIVE_TIERS[t].name).join('、')}档）：每局随机一套构筑，按打倒几只带回，全清另外多给；挨打不减，中途离开按已打倒的只数算。</li>` +
           '<li>筹码不能买、不能换、不能转。</li>' +
           '</ul>',
       ),

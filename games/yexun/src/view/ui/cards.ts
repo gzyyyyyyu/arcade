@@ -14,7 +14,7 @@ import { statChip } from './statIcons.ts';
 import './cards.css';
 
 /** 「铜钱一袋」卡面和选中后横幅共用的一句 */
-export const COIN_PICK_TEXT = `铜钱 +${COIN_PICK.coins}，回 ${COIN_PICK.heal} 点血`;
+const COIN_PICK_TEXT = `铜钱 +${COIN_PICK.coins}，回 ${COIN_PICK.heal} 点血`;
 /** 宝箱全满时那袋（核心 openChest 给的数） */
 export const CHEST_FULL_TEXT = `都升满了：铜钱 +${CHEST_FULL.coins}，回 ${CHEST_FULL.heal} 点血`;
 
@@ -141,7 +141,8 @@ export class Cards {
    * simple：这台设备的第一局。卡上只留名字、说明和数，不写克制、套件、合成（新手实录：第一次选卡三张卡十几行小字）；
    * 3 级以前也不摆刷新、封禁、跳过（快捷键照样能用）
    */
-  show(level: number | 'chest' | 'stage', cards: CardView[], firstTime: boolean, simple: boolean, counts: { rerolls: number; bans: number; left: number }, onPick: (i: number) => void): void {
+  /** level：升到几级；'chest' 宝箱；{ stage } 连战过关（第几关 / 共几只，写进大字） */
+  show(level: number | 'chest' | { stage: string }, cards: CardView[], firstTime: boolean, simple: boolean, counts: { rerolls: number; bans: number; left: number }, onPick: (i: number) => void): void {
     this.onPick = onPick;
     this.counts = counts;
     this.banning = false;
@@ -150,7 +151,7 @@ export class Cards {
     const head = document.createElement('div');
     head.className = 'yx-picks-head';
     head.innerHTML =
-      `<span class="yx-picks-lv${typeof level === 'number' ? '' : ' chest'}">${level === 'chest' ? '宝箱 · 挑一件' : level === 'stage' ? '过关 · 挑一件' : `升到 ${level} 级`}</span><span class="yx-picks-tip yx-picks-left" hidden></span>` +
+      `<span class="yx-picks-lv${typeof level === 'number' ? '' : ' chest'}">${level === 'chest' ? '宝箱 · 挑一件' : typeof level === 'object' ? `过关 ${level.stage} · 挑一件` : `升到 ${level} 级`}</span><span class="yx-picks-tip yx-picks-left" hidden></span>` +
       (firstTime ? '<span class="yx-picks-tip">挑一个：新法器、法器升级，或者被动</span>' : '');
     this.root.appendChild(head);
     const row = document.createElement('div');
@@ -163,7 +164,8 @@ export class Cards {
       // 固定的几段：图标 → 名字（一行）→ 标签行（新 / Lv / 心法）→ 五行·类型 → 效果 → 底部提示；没内容的段也占位，三张卡同一套格子对齐
       const badges = (c.tag ? `<em${c.tag === '新' ? ' class="new"' : ''}>${c.tag}</em>` : '') + (c.xinfa ? `<em>${c.xinfa}</em>` : '');
       // 数写成「图标 + 数」（叫法在悬停提示里）；第一局的简版卡图标后面还写叫法，先认图标
-      const nums = c.nums?.length ? `<span class="yx-pick-nums${c.tag === '新' ? ' base' : ''}">${c.nums.map((n) => statChip(n, simple)).join('')}</span>` : '';
+      // 新法器卡第一次见这些数，图标后写上叫法（试玩 11-22：「24 · 2.33 秒 · 1」看不出 24 是伤害）；升级卡只写变化
+      const nums = c.nums?.length ? `<span class="yx-pick-nums${c.tag === '新' ? ' base' : ''}">${c.nums.map((n) => statChip(n, simple || c.tag === '新')).join('')}</span>` : '';
       const foot = simple
         ? ''
         : (c.counter ? `<span class="yx-pick-counter">${c.counter}</span>` : '') +

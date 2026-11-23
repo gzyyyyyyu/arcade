@@ -10,6 +10,10 @@ export class Confirm {
       yes: () => this.close(true),
       no: () => this.close(false),
     });
+    // 点遮罩 = 取消，和其他面板一样；取消总是不丢进度的那边
+    this.root.addEventListener('click', (e) => {
+      if (e.target === this.root && this.open) this.close(false);
+    });
   }
 
   get open(): boolean {

@@ -2,7 +2,7 @@
 // 用 AudioContext 时钟提前调度（lookahead），不依赖帧率，切后台也不会拖拍。
 // 与 sfx.ts 共用同一个 AudioContext 和压缩器总线，所以音乐不会和音效一起把声音顶爆。
 
-import { readFlag, writeFlag } from '../../platform/save.ts';
+import { LOBBY_MUTED, readFlag, writeFlag } from '../../platform/save.ts';
 import { audioBus, audioWarnOnce, onAudioReady } from './sfx.ts';
 
 type TrackName = 'night' | 'boss' | 'raid';
@@ -236,7 +236,7 @@ function scheduleStep(name: TrackName, e: Env, step: number, t: number, stepDur:
 const LOOKAHEAD = 0.25;   // 提前调度多少秒
 const TICK_MS = 60;
 
-let enabled = readFlag('music', true);
+let enabled = readFlag('music', true) && !LOBBY_MUTED;
 let wanted: TrackName | null = null;     // 想播的曲目（即使暂时没解锁/被关掉也记着）
 let current: { name: TrackName; env: Env } | null = null;
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -318,7 +318,7 @@ export const music = {
   },
   setEnabled(on: boolean): void {
     enabled = on;
-    writeFlag('music', on);
+    if (!LOBBY_MUTED) writeFlag('music', on);
     if (on) {
       onAudioReady(begin);
     } else {

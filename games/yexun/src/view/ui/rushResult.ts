@@ -7,7 +7,19 @@
 import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import type { RushPlan, RushResult } from '../../core/index.ts';
 import { rushClock } from '../../online/rush.ts';
+import { RUSH } from '../../content/rush.ts';
 import './rushResult.css';
+
+/** 没打完的那一关还剩多少血（试玩 11-22：「最后一关打掉 82%」看不懂）：写这一关还没倒的首领名 */
+function stageLeft(plan: RushPlan, r: RushResult): string {
+  let end = 0;
+  for (const st of plan.stages) {
+    end += st.length;
+    if (end > r.down) break;
+  }
+  const names = plan.stages.flat().slice(r.down, end).map((k) => ENEMY_BY_KIND[k].name).join('、');
+  return `${names}还剩 ${Math.max(1, Math.round((1 - r.progress) * 100))}% 血`;
+}
 
 export function decorateRushResult(root: HTMLElement, plan: RushPlan, r: RushResult, quit: boolean, best: string | null): void {
   const panel = root.querySelector<HTMLElement>('.yx-result-panel');
@@ -23,7 +35,7 @@ export function decorateRushResult(root: HTMLElement, plan: RushPlan, r: RushRes
     const small = time.querySelector('small');
     if (label) label.textContent = '用时';
     if (big) big.textContent = rushClock(r.ticks);
-    if (small) small.textContent = r.cleared ? `精英和首领 ${r.total} 只全部伏诛` : quit ? `认输 · 打倒 ${r.down} 只` : `还差 ${r.total - r.down} 只，最后一关打掉 ${Math.round(r.progress * 100)}%`;
+    if (small) small.textContent = r.cleared ? `精英和首领 ${r.total} 只全部伏诛` : quit ? `认输 · 打倒 ${r.down} 只` : `${r.ticks >= RUSH.limit ? '时间到' : '倒下了'} · 还差 ${r.total - r.down} 只，${stageLeft(plan, r)}`;
     // 这一局的首领一排：按上场的顺序，打倒的亮着
     const kinds = plan.stages.flat();
     const row = document.createElement('div');

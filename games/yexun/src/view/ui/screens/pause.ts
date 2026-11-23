@@ -54,7 +54,8 @@ export class Pause {
   }
 
   /** sets：凑成的套装说明（"剑 2 件 · 暴击 +8%"） */
-  show(build: BuildRow[], left: number, sets: string[] = [], rules: TonightRules | null = null, hero: CharacterId | null = null, xinfa?: string): void {
+  /** clock：顶上倒计时叫什么（连战没有天亮，写「剩余」，和 HUD 一样） */
+  show(build: BuildRow[], left: number, sets: string[] = [], rules: TonightRules | null = null, hero: CharacterId | null = null, xinfa?: string, clock = '离天亮'): void {
     this.rows = build;
     this.hero = hero ? this.heroDetail(hero, xinfa) : '';
     const cell = (r: BuildRow, i: number): string =>
@@ -65,7 +66,7 @@ export class Pause {
       '<div class="yx-panel yx-pause-panel">' +
       `<div class="yx-panel-head"><b class="yx-brush">暂停</b>` +
       (hero ? `<button type="button" class="yx-cell yx-phcell sel" data-i="-1" aria-label="${esc(CHARACTERS[hero].name)}的技能和被动"><img alt="" src="${this.icons(skillInfo(hero).icon)}"></button>` : '') +
-      `<em>离天亮 ${fmtClock(left)}</em></div>` +
+      `<em>${clock} ${fmtClock(left)}</em></div>` +
       '<div class="yx-pause-body">' +
       '<div class="yx-build">' +
       `<div class="yx-bline"><label>法器</label><div class="yx-grid">${weapons || '<span class="yx-none">还没有</span>'}</div></div>` +

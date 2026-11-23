@@ -11,12 +11,12 @@ export function raidLiveNote(tier: RaidLiveTier, tpl: RaidLiveTemplate, characte
   const c = raidCharCoef(character, tier, tpl) ?? 10_000;
   const base = Math.round((RAID_LIVE.base[tier][tpl] * 10_000) / c);
   const floor = Math.max(1, Math.floor(RAID_LIVE.floor[tier] * c) / 10_000);
-  return `危险 ${RAID_LIVE.danger[tier]} · 不带加成<br>撤出来至少拿回 1 份，待满 ${RAID_LIVE.floorRamp[tier] / 1800} 分钟再撤保底 ${Number(floor.toFixed(2))} 份；带出 ${base.toLocaleString('zh-CN')} 铜钱的宝物算 1 份，最多 ${RAID_LIVE.cap} 份；没撤出这一份就没了`;
+  return `危险 ${RAID_LIVE.danger[tier]} · 不能用加成<br>撤出来至少拿回 1 份，待满 ${RAID_LIVE.floorRamp[tier] / 1800} 分钟再撤保底 ${Number(floor.toFixed(2))} 份；带出 ${base.toLocaleString('zh-CN')} 铜钱的宝物算 1 份，最多 ${RAID_LIVE.cap} 份；没撤出这一份就没了`;
 }
 
 /** 守夜实盘说明：按选的角色、地图算（各有实盘系数）；还写明能放技能、选的角色能不能带进来（带不进来的按小道士出战，直说，不悄悄换） */
 export function liveNote(tier: LiveTier, picked: CharacterId, map: MapId): string {
-  const ok = liveCharOk(tier, picked, map);
+  const ok = liveCharOk(picked);
   const character = ok ? picked : 'xiaodao';
   const dawn = vigilBp(tier, 0, true, false, character, map);
   const boss = vigilBp(tier, 0, true, true, character, map);
@@ -26,14 +26,16 @@ export function liveNote(tier: LiveTier, picked: CharacterId, map: MapId): strin
   // 各档的曲线回钱起点不同（小档 3 分钟，中档以上 2 分钟）
   const from = LIVE_TIERS[tier].shape[0]![0] / 60;
   const swap = ok ? '' : ` · <b class="yx-livewarn">${CHARACTERS[picked].name}带不进来，按小道士出战</b>`;
-  return `撑过 <b>${from}</b> 分钟开始回钱，越久越多：${top}；最多输这一份<br>能放技能${swap}`;
+  return `撑过 <b>${from}</b> 分钟才开始拿回筹码，越久越多：${top}；最多输这一份<br>技能照常能放${swap}`;
 }
 
-/** 电脑宽屏右栏的实盘数字小牌：大字写数，小字写它是什么；细则放进悬停（title，就是上面那段说明去掉标签） */
+/** 电脑宽屏右栏的实盘数字小牌：大字写数，小字写它是什么；细则放进悬停（title，就是上面那段说明去掉标签）。
+ *  拿回多少直接写筹码数（试玩 11-22：「1.01 份」看不懂），未扣每天的上限 */
 export interface LiveFact {
   big: string;
   small: string;
 }
+const chips = (tier: LiveTier, bp: number): string => Math.floor((LIVE_TIERS[tier].stake * bp) / 10_000).toLocaleString('zh-CN');
 export const plainNote = (html: string): string => html.replace(/<br>/g, '；').replace(/<[^>]+>/g, '');
 
 export function raidLiveFacts(tier: RaidLiveTier, tpl: RaidLiveTemplate, character: CharacterId): LiveFact[] {
@@ -41,25 +43,24 @@ export function raidLiveFacts(tier: RaidLiveTier, tpl: RaidLiveTemplate, charact
   const base = Math.round((RAID_LIVE.base[tier][tpl] * 10_000) / c);
   const floor = Math.max(1, Math.floor(RAID_LIVE.floor[tier] * c) / 10_000);
   return [
-    { big: '1 份', small: '撤出至少' },
-    { big: `${Number(floor.toFixed(2))} 份`, small: `待满 ${RAID_LIVE.floorRamp[tier] / 1800} 分钟再撤` },
-    { big: base.toLocaleString('zh-CN'), small: '铜钱宝物算 1 份' },
-    { big: `${RAID_LIVE.cap} 份`, small: '最多' },
-    { big: '能', small: '放技能' },
+    { big: chips(tier, 10_000), small: '撤出至少拿回' },
+    { big: chips(tier, Math.round(floor * 10_000)), small: `待满 ${RAID_LIVE.floorRamp[tier] / 1800} 分钟再撤` },
+    { big: base.toLocaleString('zh-CN'), small: `铜钱宝物换 ${chips(tier, 10_000)}` },
+    { big: chips(tier, RAID_LIVE.cap * 10_000), small: '最多拿回' },
+    { big: '技能', small: '照常能放' },
   ];
 }
 
 export function liveFacts(tier: LiveTier, picked: CharacterId, map: MapId): LiveFact[] {
-  const ok = liveCharOk(tier, picked, map);
+  const ok = liveCharOk(picked);
   const character = ok ? picked : 'xiaodao';
   const dawn = vigilBp(tier, 0, true, false, character, map);
   const boss = vigilBp(tier, 0, true, true, character, map);
-  const f = (bp: number): string => `${Number((bp / 10_000).toFixed(2))} 份`;
   const from = LIVE_TIERS[tier].shape[0]![0] / 60;
-  const out: LiveFact[] = [{ big: `${from} 分钟`, small: '后开始回钱' }];
-  if (dawn >= LIVE_MAX_BP) out.push({ big: f(dawn), small: '天亮封顶' });
-  else out.push({ big: f(dawn), small: '天亮' }, { big: f(boss), small: '打倒尸王' });
-  out.push({ big: '能', small: '放技能' });
+  const out: LiveFact[] = [{ big: `${from} 分钟`, small: '撑过才开始拿回' }];
+  if (dawn >= LIVE_MAX_BP) out.push({ big: chips(tier, dawn), small: '天亮拿回（封顶）' });
+  else out.push({ big: chips(tier, dawn), small: '天亮拿回' }, { big: chips(tier, boss), small: '打倒尸王拿回' });
+  out.push({ big: '技能', small: '照常能放' });
   return out;
 }
 
@@ -67,12 +68,12 @@ export function liveFacts(tier: LiveTier, picked: CharacterId, map: MapId): Live
 const share = (bp: number): string => `${Number((bp / 10_000).toFixed(2))} 份`;
 export function rushLiveFacts(tier: LiveTier): LiveFact[] {
   return [
-    { big: share(rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false)), small: '打到尸王' },
-    { big: share(rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true)), small: '全清' },
-    { big: '按只数', small: '没全清时' },
+    { big: chips(tier, rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true)), small: '全清拿回' },
+    { big: chips(tier, rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false)), small: '打到尸王拿回' },
+    { big: `约 ${chips(tier, rushBp(tier, 1, RUSH_TOTAL, false))}`, small: '没全清每只拿回' },
     { big: `${RUSH.limit / 1800} 分钟`, small: '一局最多' },
   ];
 }
 export function rushLiveNote(tier: LiveTier): string {
-  return `危险 ${LIVE_TIERS[tier].danger} · 固定小道士、构筑给好<br>没全清按打倒几只折算，打到尸王（前 ${RUSH_TOTAL - 1} 只都打倒）${share(rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false))}，全清 ${share(rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true))}；一只没打倒这一份就没了；中途离开按已打倒的只数结回`;
+  return `危险 ${LIVE_TIERS[tier].danger} · 固定小道士、构筑给好<br>没全清按打倒几只折算，打到尸王（前 ${RUSH_TOTAL - 1} 只都打倒）${share(rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false))}，全清 ${share(rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true))}；一只没打倒这一份就没了；中途离开按已打倒的只数带回`;
 }

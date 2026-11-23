@@ -76,7 +76,7 @@ export class TrialsPanel {
       const best = v.best[id];
       const open = v.open[t.tier];
       const status = !open
-        ? `前一档通 ${TRIAL_OPEN_NEED} 关解锁`
+        ? `${TRIAL_TIERS[t.tier - 1]!.name}里通 ${TRIAL_OPEN_NEED} 关解锁`
         : best === undefined
           ? `第一次通关 +${n(tier.coins)} 铜钱`
           : `最好：${trialScoreText(t, best)}${best < 1e9 ? ` · 通关 +${n(tier.coins)}` : ''}`;

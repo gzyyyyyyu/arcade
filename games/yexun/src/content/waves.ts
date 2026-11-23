@@ -151,7 +151,7 @@ export interface DangerDef {
   twinBoss: boolean;
   /**
    * 精英不吃镇守的减速：主角带两件以上镇类法器（ELITE_NO_WARD_PIECES）时，精英不被镇 3 件和镇魂铃减速（危险 4 起）。
-   * 镇守靠减速把怪留在近身，混搭火葫芦时扇面多烧几轮，焚天金钟危险 5 胜率改前 59.5% 超标；按 8.1 加克制的怪，不砍法器（DESIGN 8.1、12）
+   * 镇守靠减速把怪留在近身，混搭火葫芦时扇面多烧几轮，焚天金钟危险 5 胜率会超标；按 8.1 加克制的怪，不砍法器（DESIGN 8.1、12）
    */
   eliteNoWard: boolean;
   /** 噩梦档：精英掉到半血以下发狂，走得快、撞得疼（ELITE_RAGE，危险 6 起） */
@@ -222,7 +222,7 @@ export const RAID_DANGERS: Record<Danger, DangerDef> = {
   8: { ...DANGERS[3], id: 8, name: '危险 5' },
 };
 /**
- * 实盘稍微降一点难度（所有者 11-04，规则版本 50 起，只管守夜危险 ≥ fromDanger，即中档以上）：
+ * 实盘稍微降一点难度（所有者 11-04，只管守夜危险 ≥ fromDanger，即中档以上）：
  * 全覆盖测量里中档以上难图小白的头号死因是敌人远程弹（灯笼鬼火球、尸王尸气、雪魅冰锥、纸扎老爷纸钱，占小白死亡的 35～50%），
  * 普通会躲、小白不会，所以远程弹的伤害倍数封顶 shotDmgCap；只压远程弹时小白换个死法、总死亡率几乎不变（试跑荒庙大档 84% → 79%），
  * 再把所有受到的伤害乘 dmgScale。娱乐局、夜探不受影响
@@ -238,7 +238,7 @@ export function dangerDef(mode: 'vigil' | 'raid', d: Danger): DangerDef {
 }
 
 /**
- * 击杀掉落跟怪数脱钩（规则 68，所有者 11-20「难度越高怪越多，资源反而更多，更好过关」）：
+ * 击杀掉落跟怪数脱钩（所有者 11-20「难度越高怪越多，资源反而更多，更好过关」）：
  * 每只怪的魂珠经验和掉率是固定的，刷怪量却乘 countMul，怪多一成，升级、肉包、铜钱就多一成。
  * 刷怪量超过 LOOT_CAP 的档，普通怪的魂珠和掉率按 LOOT_CAP / countMul 打折，每分钟的资源停在危险 2 的水平；危险 0、1 不变。
  */
@@ -250,7 +250,7 @@ export function lootMul(d: DangerDef): number {
 /** 两只尸王时每只的血 */
 export const TWIN_BOSS_HP = 0.75;
 
-/** 菜单上的三档（第 5 步选档界面做完以前沿用）：新手 / 普通 / 高手 = 危险 0 / 2 / 4，balance.md 第 3 节按这三档量 */
+/** 三档叫法（老存档的 best、模拟器 --diff、bench 用）：新手 / 普通 / 高手 = 危险 0 / 2 / 4，balance.md 第 3 节按这三档量 */
 export type Difficulty = 'easy' | 'normal' | 'hard';
 export const DIFFICULTIES: Record<Difficulty, { id: Difficulty; name: string; stars: number; danger: Danger; blurb: string }> = {
   easy: { id: 'easy', name: '新手', stars: 1, danger: 0, blurb: '第一次玩选这个' },

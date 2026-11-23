@@ -159,7 +159,7 @@ describe('实盘选角色、地图：liveSetup 与记录', () => {
   it('不传 = 小道士、雪原；传了就带上，仍无咒印、加成', () => {
     expect(liveSetup('small', 1)).toMatchObject({ mode: 'vigil', character: 'xiaodao', map: 'snow', perks: {}, assist: false });
     expect(liveSetup('large', 1, undefined, 'fushi', 'icelake')).toMatchObject({ mode: 'vigil', danger: 3, character: 'fushi', map: 'icelake', perks: {}, assist: false });
-    // 0.17.10 起新三人、0.30.0 起摆渡人各档、各图、夜探都能带
+    // 所有角色各档、各图、夜探都能带
     for (const c of ['zhijiang', 'baidu', 'huolang', 'yinyang'] as const)
       for (const t of LIVE_TIER_IDS) for (const m of MAP_IDS) expect(liveSetup(t, 1, undefined, c, m).character, `${t} ${m} ${c}`).toBe(c);
     expect(liveSetup('small', 1, 'guzhen', 'yinyang').character).toBe('yinyang');
