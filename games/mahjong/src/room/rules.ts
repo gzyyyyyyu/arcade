@@ -171,7 +171,7 @@ const countOf = (rules: unknown): number => seatsOf((rules ?? {}) as { three?: b
 
 type Rules = RoomGame<RoomState, RoomAction, RoomView, RoomOpts, WalletEffect>;
 
-const rules: Rules = {
+export const mahjongRoom: Rules = {
   seats: SEATS,
   seatCount: (o) => (o ? countOf(o.rules) : SEATS),
   rulesVersion: ROOM_RULES,
@@ -389,20 +389,6 @@ const rules: Rules = {
     return next;
   },
 };
-
-/**
- * 0.47.3 开的房间存下的状态没有 leaving、waiting、ready（当时读的时候按"都没有"补），房间最长活 3 小时多：
- * 发 0.47.5 那一刻还开着的老房间一读就会碰到缺的字段（实盘押注卡住）。kit 没有读状态的钩子，所以拿房间状态的入口都从这里过一遍、缺了按都没有补上。
- * 0.47.5 上线满 3 小时后的下一批删（连同 OldRoom、fillOld、STATELESS，mahjongRoom 直接等于 rules；test/room.test.ts「0.47.3 的老房间」一起删）
- */
-type OldRoom = Omit<RoomState, 'leaving' | 'waiting' | 'ready'> & Partial<Pick<RoomState, 'leaving' | 'waiting' | 'ready'>>;
-const fillOld = (s: OldRoom): RoomState =>
-  s.leaving && s.waiting && s.ready ? (s as RoomState) : { ...s, leaving: s.leaving ?? noOne(s.kinds.length), waiting: s.waiting ?? noOne(s.kinds.length), ready: s.ready ?? noOne(s.kinds.length) };
-/** 第一个参数不是房间状态的几个（开房、解析、选项、座位数、是否免排队） */
-const STATELESS = new Set(['begin', 'start', 'parse', 'options', 'seatCount', 'free']);
-export const mahjongRoom: Rules = Object.fromEntries(
-  Object.entries(rules).map(([k, f]) => [k, typeof f === 'function' && !STATELESS.has(k) ? (s: OldRoom, ...rest: unknown[]) => (f as (...a: unknown[]) => unknown)(fillOld(s), ...rest) : f]),
-) as Rules;
 
 // ---------- 内部 ----------
 

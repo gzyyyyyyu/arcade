@@ -141,6 +141,43 @@ describe('开房', () => {
   });
 });
 
+describe('等人页离开（kit 0.28.0）', () => {
+  // 测试配置每人同时最多 5 间（wrangler.test.jsonc 的 roomsPerUser）：先占满 4 间，第 5 间还没还就开不出第 6 间
+  const fill = async (id: string) => {
+    for (let i = 0; i < 4; i++) await openRoom(id);
+  };
+
+  it('房主在等人页离座离开、没别人连着：房间当场关、名额还回来，马上能再开一间', async () => {
+    const id = user();
+    await fill(id);
+    const code = await openRoom(id);
+    const host = await join(code, id);
+    expect(host.last?.you.seat).toBe(0);
+    host.send({ t: 'leave' });
+    for (let i = 0; i < 150 && host.closed === null; i++) await sleep(20);
+    expect(host.closed).toBe(4000);
+    const again = await createRoom(id, JSON.stringify({ opts: OPTS }));
+    expect(again.status).toBe(201);
+  });
+
+  it('还有人连着：房间不关，房主再开会被挡回原房间', async () => {
+    const [a, b] = [user(), user()];
+    await fill(a);
+    const code = await openRoom(a);
+    const host = await join(code, a);
+    const guest = await join(code, b);
+    expect(host.last?.you.seat).toBe(0);
+    host.send({ t: 'leave' });
+    await host.until((m) => m.t === 'state' && m.you.seat === null);
+    await sleep(100);
+    expect(host.closed).toBeNull();
+    expect(guest.closed).toBeNull();
+    const again = await createRoom(a, JSON.stringify({ opts: OPTS }));
+    expect(again.status).not.toBe(201);
+    expect((await again.json()) as { error: string }).toMatchObject({ error: 'has_room' });
+  });
+});
+
 describe('实盘开局', () => {
   it('两个真人各扣一份，座位变成他们的；开局等带入的标记收起；每一步写 ≤ 2 行', async () => {
     const { code, ids, host, guest } = await table();

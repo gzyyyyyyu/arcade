@@ -16,7 +16,7 @@ import { pageOf } from '../view/variants/pages.ts';
 import { setSafeHint } from '../view/variants/riichi/ui.ts';
 import { leave } from './leave.ts';
 import { coachAllowed } from '../game/coach.ts';
-import { activeVariant, prefs, resetSettings, savePrefs } from './prefs.ts';
+import { activeVariant, live, prefs, resetSettings, savePrefs, setLiveSound } from './prefs.ts';
 import { inMatch, session } from './session.ts';
 import { share } from './social.ts';
 import { TIMING } from './timing.ts';
@@ -72,8 +72,8 @@ volRange.setAttribute('aria-label', '音量');
 volRange.addEventListener('input', () => {
   prefs.volume = Number(volRange.value) / 100;
   setVolume(prefs.volume);
-  if (prefs.volume > 0 && !prefs.sound) {
-    prefs.sound = true;
+  if (prefs.volume > 0 && !live.sound) {
+    setLiveSound(true);
     setSound(true);
   }
   paintTop();
@@ -83,9 +83,8 @@ volRange.addEventListener('change', () => {
   play('button');
 });
 const muteBtn = button('act soft', gVol, '', () => {
-  prefs.sound = !prefs.sound;
-  setSound(prefs.sound);
-  savePrefs();
+  setLiveSound(!live.sound);
+  setSound(live.sound);
   paintTop();
 });
 const ambBtn = button('act soft', gAmb, '', () => {
@@ -146,7 +145,7 @@ button('act soft reset', volBox, '恢复默认', () => {
   resetSettings();
   applySpeed();
   setVolume(prefs.volume);
-  setSound(prefs.sound);
+  setSound(live.sound);
   setAmbience(prefs.ambience);
   setSafeHint(prefs.safeHint);
   applyCoach();
@@ -170,8 +169,8 @@ export function paintTop(): void {
   // 写的是现在的速度（以前常速时写"慢"，像是在说电脑慢）
   speedBtn.textContent = prefs.fast ? '速度：快' : '速度：常速';
   setCutinFast(prefs.fast);
-  soundBtn.classList.toggle('muted', !(prefs.sound && prefs.volume > 0));
-  muteBtn.textContent = prefs.sound ? '静音' : '开声';
+  soundBtn.classList.toggle('muted', !(live.sound && prefs.volume > 0));
+  muteBtn.textContent = live.sound ? '静音' : '开声';
   funBtn.textContent = funOff() ? '互动：不看' : '互动：开';
   ambBtn.textContent = prefs.ambience ? '茶馆声：开' : '茶馆声：关';
   safeBtn.textContent = prefs.safeHint ? '安全牌提示：开' : '安全牌提示：关';

@@ -14,6 +14,7 @@
 | `mahjong.cloud` | 云存档的元数据：JSON `{ userId, rev, dirty, at }`（这台设备同步的账号、槽 `ladder` 的版本、有没有待传、上次上传成功的时刻）；读不出来当没同步过 |
 | `mahjong.ladder.pre-sync` | 云存档合并前本机擂台记录的备份（只留最近一次） |
 | `mahjong.ladder.pre-switch.<账号>` | 换号前这个账号在本机的擂台称号和最远几桌；登录回这个账号后并回来，传上去以后改名 `.restored` |
+| `arcade.sound` | 平台的，只读不写：启动读一次（kit `platformSoundOn`），大厅关了声音（`off`）就这一次先静音；在游戏里打开只管这一次，不改 `mahjong.prefs` |
 | `mahjong.prefs` | 声音、茶馆底噪、安全牌提示（立直，默认开）、推荐出牌（单机娱乐新手、实盘小档，默认开）、振动、速度、上次选的档位、娱乐难度和玩法 |
 | `mahjong.comms` | 互动的总开关关着（"不看"） |
 | `mahjong.chatOff` | 聊天三档：没有是开，`1` 是"不看"，`stranger` 是"不和陌生人"（匹配桌不收不说） |

@@ -34,7 +34,7 @@ Before a pull request run `npm run lint`, `npm test` and `npm run smoke`. Contri
 
 ## 本地开发
 
-需要 Node 22（见 `.nvmrc`）。共用包从 npm 装（`"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.25.1"`，代码里照旧写 `arcade-kit/...`），直接 `npm ci` 就行。
+需要 Node 22（见 `.nvmrc`）。共用包从 npm 装（`arcade-kit` 是 `@yyyu-star/arcade-kit` 的别名，版本见 `package.json`，代码里照旧写 `arcade-kit/...`），直接 `npm ci` 就行。
 
 提 PR 前跑 `npm run lint`、`npm test` 和 `npm run smoke`；改了好友房、匹配或 Worker，再跑对应的 `smoke:room`、`smoke:match`、`smoke:standalone`（先 `npm run build:cf`）。
 CI 在每个 PR 上跑独立性检查、`npm test` 和 `npm run build:cf`；冒烟、模拟和配平不在 CI 里，按下面的说明本地跑。
