@@ -45,7 +45,7 @@ const TD2_SAMPLE_LEVEL: TdIslandLevel = {
   lanes: [{ x: 10, y: -2 }, { x: -2, y: 11 }],
   tide: { wave: 5, lane: { x: 11, y: 23 } },
   slots: [{ x: 5, y: 7 }, { x: 15, y: 7 }, { x: 2, y: 12, wreck: { hp: 220 } }, { x: 15, y: 15 }, { x: 11, y: 19 }],
-  garrison: [{ x: 12, y: 6, cap: 2 }],
+  garrison: [{ x: 12, y: 6 }],
   kegs: [{ x: 10, y: 0 }, { x: 11, y: 0 }, { x: 0, y: 10 }],
   obstacles: [],
   waves: [

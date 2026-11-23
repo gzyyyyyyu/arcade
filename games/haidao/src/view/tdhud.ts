@@ -21,7 +21,7 @@ import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFl
 import { closeSheet, showBest } from './tdsheet.ts';
 import { SKILL } from './tdcommon.ts';
 import { finish } from './tdresult.ts';
-import { panToGoal, syncGoalMark, syncPadGuide, twoSteps } from './tdpadguide.ts';
+import { panToGoal, syncGarrisonTags, syncGoalMark, syncPadGuide, twoSteps } from './tdpadguide.ts';
 import { syncSluice } from './tdworld.ts';
 import { bossOf } from './tdboss.ts';
 
@@ -332,6 +332,7 @@ export function updateHud(bs: TdScene, force = false): void {
   syncBossBar(bs);
   refreshPlan(bs);
   syncPadGuide(bs);
+  syncGarrisonTags(bs);
   syncGoalMark(bs);
   trainTdRefresh(bs);
   bs.esc?.refresh(bs.pv);

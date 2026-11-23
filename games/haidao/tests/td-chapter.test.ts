@@ -46,12 +46,11 @@ describe('关卡表', () => {
   it('木台数和沉船、驻守台数按 DESIGN 10.7 的关卡表', () => {
     const pads = [4, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 9, 9, 10, 9, 10, 9, 10, 10, 10, 7, 7, 8, 9, 9, 10];
     const wrecks = [0, 0, 0, 1, 1, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    const garrison = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1, 2, 2, 2, 2];
+    const garrison = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 2, 2, 2, 3];
     TD2_LEVELS.forEach((l, i) => {
       expect(l.slots, l.id).toHaveLength(pads[i]!);
       expect(l.slots.filter((p) => p.wreck).length, l.id).toBe(wrecks[i]);
       expect(l.garrison, l.id).toHaveLength(garrison[i]!);
-      for (const g of l.garrison) expect([1, 2, 3]).toContain(g.cap);
     });
   });
   it('波里的登陆路下标都有效；写了 tideOpen 就必须有 tide；有首领技能的关有首领波；东路关有三条路', () => {

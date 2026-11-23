@@ -111,23 +111,21 @@ export function bestDamageVs(armor: TdArmor): TdDamage {
 /** 局内塔的阶：木台上造出来是 1 阶，升两次到 3 阶；3 阶选分叉 */
 export type TdTier = 1 | 2 | 3;
 
-/** 基地同类塔最高等级 → 驻守台上的阶：1–3 级 1 阶，4–6 级 2 阶，7–8 级 3 阶，再封顶到驻守台的 cap */
-export function garrisonTier(baseLevel: number, cap: TdTier): TdTier {
-  const t: TdTier = baseLevel >= 7 ? 3 : baseLevel >= 4 ? 2 : 1;
-  return t < cap ? t : cap;
+/** 基地同类塔最高等级 → 驻守台上的阶：1–3 级 1 阶，4–6 级 2 阶，7–8 级 3 阶，不封顶 */
+export function garrisonTier(baseLevel: number): TdTier {
+  return baseLevel >= 7 ? 3 : baseLevel >= 4 ? 2 : 1;
 }
 
-/** 基地加成：同类塔最高等级每级 +2% 伤害，封顶 +10% */
+/** 基地加成：同类塔最高等级每级 +2% 伤害，封顶 +10%。只有海盗来袭用（守的是自己的岛）；战役改成基地塔的阶直接带进来（garrisonTier） */
 export const TD_BASE_BONUS = { perLevelPct: 2, maxPct: 10 } as const;
 export function baseBonusPct(baseLevel: number): number {
   return Math.max(0, Math.min(TD_BASE_BONUS.maxPct, Math.floor(baseLevel) * TD_BASE_BONUS.perLevelPct));
 }
 
-/** 关卡写死的驻守台：2×2 左上角格子、能带进来的最高阶 */
+/** 关卡写死的驻守台：2×2 左上角格子 */
 export interface TdGarrisonSpot {
   x: number;
   y: number;
-  cap: TdTier;
 }
 
 /** 开局玩家给一个驻守台挑的塔（界面只交 spot 和 kind；阶、分叉由 tdrun 按存档算，不信界面） */
@@ -136,13 +134,12 @@ export interface TdGarrisonPick {
   kind: TdTowerKind;
 }
 
-/** 选塔面板的一项：基地里这种塔的最高等级、折出来的阶、带进来的分叉（基地那座已选的）、伤害加成 */
+/** 选塔面板的一项：基地里这种塔的最高等级、折出来的阶、带进来的分叉（基地那座已选的） */
 export interface TdGarrisonOption {
   kind: TdTowerKind;
   baseLevel: number;
   tier: TdTier;
   branch: string[];
-  bonusPct: number;
 }
 
 /** 规则核心实际收到的驻守塔（tdrun 算好后放进 TdSetup.garrison） */
@@ -196,7 +193,7 @@ export interface TdMapDef {
  * 战役的一关（守岛 2.0）：就是一份 TdLevel（引擎照旧吃它）加上关卡岛的部分。
  * - 战役 hpPct 一律 100（难度只来自 waveBudget、敌人种类、地图）；悬赏守岛和大潮靠 hpPct 调整敌人血量；
  * - slots 写木台（TdPadDef，可带 wreck），obstacles 只放不压木台的装饰障碍（木桶等）；
- * - garrison 是驻守台（1–3 个），cap 是这一关的上限阶；
+ * - garrison 是驻守台（1–3 个），摆基地同类塔折出来的阶（garrisonTier），不封顶；
  * - index 是战役里的下标（0 起），进难度公式；bossExtra 是首领波前多给的倒数（拍，默认 TD2_BOSS_EXTRA_TICKS）。
  */
 export interface TdIslandLevel extends TdLevel {

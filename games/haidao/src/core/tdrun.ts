@@ -10,7 +10,7 @@ import { capacity, hqLevel, newProfile } from './base.ts';
 import { TD_TROPHIES } from './run.ts';
 import { heroLevel } from './tdbase.ts';
 import { TD_TOWER_KINDS, baseBonusPct, garrisonTier } from './td2types.ts';
-import type { TdGarrisonOption, TdGarrisonPick, TdGarrisonTower, TdIslandLevel, TdTier, TdTowerKind } from './td2types.ts';
+import type { TdGarrisonOption, TdGarrisonPick, TdGarrisonTower, TdIslandLevel, TdTowerKind } from './td2types.ts';
 import type { TdLevel, TdResult, TdSetup } from './tdtypes.ts';
 import { ISLAND, RULES_VERSION } from './types.ts';
 import type { Placed, Profile, Res, Result } from './types.ts';
@@ -283,20 +283,20 @@ export function tdBaseBonus(p: Profile): Partial<Record<TdTowerKind, number>> {
   return out;
 }
 
-/** 某个上限阶的驻守台能挑哪些塔：基地里有的每种塔一项（按 TD_TOWER_KINDS 的顺序），阶按 garrisonTier 折、封顶 cap */
-export function tdGarrisonOptions(p: Profile, cap: TdTier): TdGarrisonOption[] {
+/** 驻守台能挑哪些塔：基地里有的每种塔一项（按 TD_TOWER_KINDS 的顺序），阶按 garrisonTier 折 */
+export function tdGarrisonOptions(p: Profile): TdGarrisonOption[] {
   const best = bestTowers(p);
   const out: TdGarrisonOption[] = [];
   for (const k of TD_TOWER_KINDS) {
     const b = best.get(k);
     if (!b) continue;
-    out.push({ kind: k, baseLevel: b.level, tier: garrisonTier(b.level, cap), branch: b.branch, bonusPct: baseBonusPct(b.level) });
+    out.push({ kind: k, baseLevel: b.level, tier: garrisonTier(b.level), branch: b.branch });
   }
   return out;
 }
 
 /**
- * 守岛 2.0 出海：关卡岛（TD2_LEVEL_BY_ID）+ 玩家给驻守台挑的塔（阶、分叉由存档算，不信界面）+ 基地加成 + 能造的塔。
+ * 守岛 2.0 出海：关卡岛（TD2_LEVEL_BY_ID）+ 玩家给驻守台挑的塔（阶、分叉由存档算，不信界面）+ 能造的塔。
  * 没有这关回 unknown，没解锁回 locked；同一个驻守台挑两次、挑基地里没有的塔、驻守台下标越界都回 bad_garrison；
  * 没挑的驻守台空着（局内能当木台用）。
  */
@@ -309,7 +309,7 @@ export function startTd2(p: Profile, levelId: string, seed: number, picks: reado
   for (const pk of picks) {
     const spot = lv.garrison[pk.spot];
     if (!spot || used.has(pk.spot)) return err('bad_garrison');
-    const opt = tdGarrisonOptions(p, spot.cap).find((o) => o.kind === pk.kind);
+    const opt = tdGarrisonOptions(p).find((o) => o.kind === pk.kind);
     if (!opt) return err('bad_garrison');
     used.add(pk.spot);
     garrison.push({ spot: pk.spot, kind: opt.kind, tier: opt.tier, branch: opt.branch });
@@ -322,7 +322,6 @@ export function startTd2(p: Profile, levelId: string, seed: number, picks: reado
     rules: RULES_VERSION,
     mode: 'campaign',
     garrison,
-    bonus: tdBaseBonus(p),
     unlocked: tdUnlockedTowers(p),
     ...heroKindOf(p),
   });
@@ -336,9 +335,10 @@ export function tdAutoPicks(p: Profile, levelId: string): TdGarrisonPick[] {
   const lv = TD2_LEVEL_BY_ID.get(levelId);
   if (!lv) return [];
   const out: TdGarrisonPick[] = [];
-  lv.garrison.forEach((spot, i) => {
+  const opts = tdGarrisonOptions(p);
+  lv.garrison.forEach((_, i) => {
     let best: TdGarrisonOption | undefined;
-    for (const o of tdGarrisonOptions(p, spot.cap)) if (!best || o.tier > best.tier || (o.tier === best.tier && o.baseLevel > best.baseLevel)) best = o;
+    for (const o of opts) if (!best || o.tier > best.tier || (o.tier === best.tier && o.baseLevel > best.baseLevel)) best = o;
     if (best) out.push({ spot: i, kind: best.kind });
   });
   return out;

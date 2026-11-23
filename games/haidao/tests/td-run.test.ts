@@ -60,23 +60,20 @@ describe('战役关表和解锁', () => {
 });
 
 describe('驻守台、基地加成、能造的塔', () => {
-  it('折阶：基地 1–3 级 1 阶、4–6 级 2 阶、7–8 级 3 阶，再封顶驻守台的上限', () => {
-    expect([1, 2, 3, 4, 5, 6, 7, 8].map((l) => garrisonTier(l, 3))).toEqual([1, 1, 1, 2, 2, 2, 3, 3]);
-    expect([1, 4, 8].map((l) => garrisonTier(l, 2))).toEqual([1, 2, 2]);
-    expect(garrisonTier(8, 1)).toBe(1);
+  it('折阶：基地 1–3 级 1 阶、4–6 级 2 阶、7–8 级 3 阶，不封顶', () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8].map(garrisonTier)).toEqual([1, 1, 1, 2, 2, 2, 3, 3]);
   });
-  it('基地加成：同类塔最高等级每级 +2%，封顶 +10%', () => {
+  it('基地加成（只有海盗来袭用）：同类塔最高等级每级 +2%，封顶 +10%', () => {
     expect([0, 1, 3, 5, 6, 8].map(baseBonusPct)).toEqual([0, 2, 6, 10, 10, 10]);
     expect(TD_BASE_BONUS.maxPct).toBe(10);
     expect(tdBaseBonus(withHq(8, [tower(101, 'cannon', 2), tower(102, 'cannon', 7), tower(103, 'flame', 1)]))).toEqual({ cannon: 10, flame: 2 });
   });
   it('选塔面板：基地里有的每种塔一项，按那种塔最高的一座折阶、带它的分叉', () => {
     const p = withHq(8, [tower(101, 'cannon', 4, ['cannon.grape']), tower(102, 'cannon', 2), tower(103, 'gunTower', 8, ['gunTower.marksman', 'gunTower.keen'])]);
-    expect(tdGarrisonOptions(p, 3)).toEqual([
-      { kind: 'cannon', baseLevel: 4, tier: 2, branch: ['cannon.grape'], bonusPct: 8 },
-      { kind: 'gunTower', baseLevel: 8, tier: 3, branch: ['gunTower.marksman', 'gunTower.keen'], bonusPct: 10 },
+    expect(tdGarrisonOptions(p)).toEqual([
+      { kind: 'cannon', baseLevel: 4, tier: 2, branch: ['cannon.grape'] },
+      { kind: 'gunTower', baseLevel: 8, tier: 3, branch: ['gunTower.marksman', 'gunTower.keen'] },
     ]);
-    expect(tdGarrisonOptions(p, 2).map((o) => o.tier)).toEqual([2, 2]);
     expect(tdAutoPicks(p, SAMPLE)).toEqual([{ spot: 0, kind: 'gunTower' }]);
     expect(tdAutoPicks(tdGrowthProfile(sampleLv, 'zero'), SAMPLE)).toEqual([]);
   });
@@ -87,21 +84,21 @@ describe('驻守台、基地加成、能造的塔', () => {
 });
 
 describe('出海 startTd2', () => {
-  it('关卡岛 + 驻守台（阶、分叉按存档算，不信界面）+ 基地加成 + 能造的塔；不改存档', () => {
+  it('关卡岛 + 驻守台（阶、分叉按存档算，不信界面）+ 能造的塔；不带基地加成；不改存档', () => {
     const p = { ...withHq(5, [tower(101, 'cannon', 8, ['cannon.pierce', 'cannon.heavy'])]), research: { hero: 3 as const } };
     const before = JSON.stringify(p);
     const r = startTd2(p, SAMPLE, 7, [{ spot: 0, kind: 'cannon' }]);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(JSON.stringify(p)).toBe(before);
-    const cap = sampleLv.garrison[0]!.cap;
-    expect(r.value).toMatchObject({ seed: 7, hero: 3, mode: 'campaign', bonus: { cannon: 10 }, unlocked: tdUnlockedTowers(p) });
-    expect(r.value.garrison).toEqual([{ spot: 0, kind: 'cannon', tier: garrisonTier(8, cap), branch: ['cannon.pierce', 'cannon.heavy'] }]);
+    expect(r.value).toMatchObject({ seed: 7, hero: 3, mode: 'campaign', unlocked: tdUnlockedTowers(p) });
+    expect(r.value.bonus).toBeUndefined();
+    expect(r.value.garrison).toEqual([{ spot: 0, kind: 'cannon', tier: 3, branch: ['cannon.pierce', 'cannon.heavy'] }]);
     expect(r.value.layout).toEqual(sampleLv.layout);
     expect(r.value.layout).not.toBe(sampleLv.layout);
     // 规则核心把它摆上去
     const s = createTd(r.value);
-    expect(s.towers.find((t) => t.garrison)).toMatchObject({ kind: 'cannon', tier: garrisonTier(8, cap) });
+    expect(s.towers.find((t) => t.garrison)).toMatchObject({ kind: 'cannon', tier: 3 });
   });
   it('拒绝：没有这关、驻守台下标越界、同一个台挑两次、挑基地里没有的塔', () => {
     const p = withHq(5, [tower(101, 'cannon', 3)]);
@@ -126,11 +123,11 @@ describe('养成档位（配平用）', () => {
     const zero = tdGrowthProfile(sampleLv, 'zero');
     const sug = tdGrowthProfile(sampleLv, 'suggest');
     const max = tdGrowthProfile(sampleLv, 'max');
-    expect(tdGarrisonOptions(zero, 3)).toEqual([]);
+    expect(tdGarrisonOptions(zero)).toEqual([]);
     expect(zero.research.hero).toBe(1);
-    expect(tdGarrisonOptions(sug, 3).map((o) => [o.kind, o.baseLevel])).toEqual(tdUnlockedTowers(sug).map((k) => [k, Math.min(BUILDINGS[k].maxLevel, sampleLv.hq)]));
+    expect(tdGarrisonOptions(sug).map((o) => [o.kind, o.baseLevel])).toEqual(tdUnlockedTowers(sug).map((k) => [k, Math.min(BUILDINGS[k].maxLevel, sampleLv.hq)]));
     expect(sug.research.hero).toBe(sampleLv.hq);
-    expect(tdGarrisonOptions(max, 3).map((o) => [o.kind, o.tier, o.branch.length])).toEqual(TD_TOWER_KINDS.map((k) => [k, 3, 2]));
+    expect(tdGarrisonOptions(max).map((o) => [o.kind, o.tier, o.branch.length])).toEqual(TD_TOWER_KINDS.map((k) => [k, 3, 2]));
     expect(max.research.hero).toBe(8);
     for (const l of tdCampaign()) expect(tdLevelUnlocked(zero, l.id)).toBe(true);
   });
@@ -139,7 +136,7 @@ describe('养成档位（配平用）', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.value.garrison).toHaveLength(sampleLv.garrison.length);
-    expect(r.value.garrison![0]!.tier).toBe(sampleLv.garrison[0]!.cap);
+    expect(r.value.garrison![0]!.tier).toBe(3);
     expect(tdGrowthSetup('nope', 'zero', 1)).toEqual({ ok: false, error: 'unknown' });
   });
 });

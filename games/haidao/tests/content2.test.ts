@@ -327,7 +327,8 @@ describe('克制', () => {
     let gun = 0;
     let splash = 0;
     for (const seed of [1, 2, 3]) {
-      const setup: TdSetup = { ...r.value, seed, rules: RULES_VERSION, level: { ...r.value.level, waves } };
+      // 驻守塔压在 2 阶（驻守台不封顶后 3 阶驻守塔自己就守得住，量不出木台上塔种的差别）
+      const setup: TdSetup = { ...r.value, seed, rules: RULES_VERSION, garrison: r.value.garrison?.map((g) => ({ ...g, tier: 2 as const })), level: { ...r.value.level, waves } };
       gun += runTdBot({ ...setup, unlocked: ['gunTower'] }, 'normal').result.lost;
       splash += runTdBot({ ...setup, unlocked: ['gunTower', 'mortar'] }, 'normal').result.lost;
     }
