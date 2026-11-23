@@ -147,7 +147,9 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
     const subSize = Math.max(MIN_TEXT_SIZE, Math.round(fs * 0.72));
     const lift = look.slice ? -2 : 0;
     const labelY = opts.subLabel !== undefined ? opts.height / 2 - subSize / 2 - 1 + lift : opts.height / 2 + lift;
-    this.label = addText(scene, opts.width / 2, labelY, opts.label, { size: fs, bold: true, align: 'center', originX: 0.5, originY: 0.5 });
+    // 一开始就用 redraw 会设的颜色和描边画：不然每个新按钮的字都要再整张重画、重传一次纹理
+    const stroke = look.slice ? { stroke: 0x3a2634, strokeWidth: 3 } : {};
+    this.label = addText(scene, opts.width / 2, labelY, opts.label, { size: fs, bold: true, align: 'center', originX: 0.5, originY: 0.5, color: this.labelColor(), ...stroke });
     // 图标和文字作为一组居中
     const iconSize = Math.round(fs * 1.5);
     const icon = opts.icon ? addGlyph(scene, opts.width / 2 - this.label.width / 2 - 3, labelY, opts.icon, iconSize) : null;
@@ -155,7 +157,7 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
     if (icon) this.label.x += iconSize / 2 + 3;
     this.sub =
       opts.subLabel !== undefined
-        ? addText(scene, opts.width / 2, labelY + fs / 2 + 2, opts.subLabel, { size: subSize, align: 'center', originX: 0.5 })
+        ? addText(scene, opts.width / 2, labelY + fs / 2 + 2, opts.subLabel, { size: subSize, align: 'center', originX: 0.5, color: look.slice ? 0xffffff : COLOR.muted })
         : null;
     this.key = hotkey
       ? addText(scene, opts.width - 7, opts.height / 2 + lift, hotkey, { size: FS.xs, bold: true, color: look.slice ? 0xffffff : COLOR.dim, originX: 1, originY: 0.5 })

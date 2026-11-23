@@ -56,7 +56,8 @@ export async function liveShots(browser: Browser): Promise<void> {
     expect(!!buy && buy.body.ref === r?.ref && buy.body.tier === 'mid' && buy.xArcade === '1' && Object.keys(buy.body).sort().join() === 'ref,tier', `带入只传 ref 和 tier、带 X-Arcade（${JSON.stringify(buy)}）`);
     const st = await state<GameState>(ctx, 'window.__game.state()');
     expect(st.seed === r?.seed && st.setup?.live?.months === BALANCE.live.months && st.setup.live.tier === 'mid' && st.setup.live.gear?.x === 2 && st.difficulty === 2, `中档打 ${BALANCE.live.months} 个月、难度 2（${JSON.stringify(st.setup)}）`);
-    await waitFor(ctx, '顶栏的实盘小牌子', `g.displayList().some((t) => t === 'text:${PHONE ? '实盘中档×2 → 约 10,000' : '实盘 · 中档 10,000 · 杠杆×2 → 约 10,000'}')`);
+    // 电脑上有月度主题时这一格窄，写短的「实盘中档×2 → 约 10,000」；杠杆和约值都得在
+    await waitFor(ctx, '顶栏的实盘小牌子', "g.displayList().some((t) => t === 'text:实盘中档×2 → 约 10,000' || t === 'text:实盘 · 中档 10,000 · 杠杆×2 → 约 10,000')");
     await shot(ctx, 'l2-trade-badge');
     const end = finished(st);
     const bp = runSummary(end).live?.bp ?? -1;

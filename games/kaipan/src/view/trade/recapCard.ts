@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { sound } from '../sound.ts';
 import { formatMoney, type HoldingMove } from '../../core/index.ts';
 import { CAT_HINT_KEY, NEWS_KEY, hasArt, stockKey } from '../assets.ts';
 import type { Animator } from '../fx/anim.ts';
@@ -124,6 +125,7 @@ export class RecapCard {
     const hit = s.add.rectangle(x, y, w, h, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     hit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
       ev.stopPropagation();
+      sound.ui('toggle');
       this.expandBadge();
     });
     bindTooltip(hit, () => ({ x, y, w, h }), () => ({ title: `${this.when}的小结`, body: `${formatMoney(r.total, { sign: true })}，点一下展开` }));
@@ -217,6 +219,15 @@ export class RecapCard {
       this.drawRecap();
       this.onChange?.();
     } else this.hide();
+  }
+
+  /** 关闭按钮和 Esc：拆解条退回小结，小结收起；没在显示返回 false。 */
+  dismiss(): boolean {
+    if (!this.root) return false;
+    sound.ui('close');
+    if (this.mode === 'breakdown' && this.recap) this.back();
+    else this.hide();
+    return true;
   }
 
   /** 开盘时收起，并忘掉昨天的小结。 */
@@ -403,6 +414,7 @@ export class RecapCard {
       const hit = touchHit(s, btn.x - btn.width / 2, btn.y + btn.height / 2, btn.width + 12, btn.height + 8);
       hit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
         ev.stopPropagation();
+        sound.ui('toggle');
         this.expanded = !this.expanded;
         this.drawRecap();
       });
@@ -441,8 +453,7 @@ export class RecapCard {
     const closeHit = touchHit(s, close.x - close.width / 2, close.y + close.height / 2, close.width + 12, close.height + 4);
     closeHit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
       ev.stopPropagation();
-      if (this.mode === 'breakdown' && this.recap) this.back();
-      else this.hide();
+      this.dismiss();
     });
     root.add([close, closeHit]);
     this.catBtn = null;
@@ -457,6 +468,7 @@ export class RecapCard {
       const hit = s.add.circle(cx, cy, 22, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
         ev.stopPropagation();
+        sound.ui('close');
         this.hide();
       });
       bindTooltip(hit, () => ({ x: cx - 22, y: cy - 22, w: 44, h: 44 }), () => ({ title: '猫有话说', body: '点一下收起小结，看猫今天的建议' }));

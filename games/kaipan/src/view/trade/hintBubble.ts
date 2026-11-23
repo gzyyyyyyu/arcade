@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { sound } from '../sound.ts';
 import { CAT_HINT_KEY, hasArt } from '../assets.ts';
 import type { Animator } from '../fx/anim.ts';
 import type { Rect } from '../rect.ts';
@@ -58,6 +59,7 @@ export class HintBubble {
     const close = addText(s, x + w - 10, by + 4, '×', { size: 18, color: COLOR.muted, originX: 1 }).setInteractive({ useHandCursor: true });
     close.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
       ev.stopPropagation();
+      sound.ui('close');
       this.closedDay = day;
       this.hide();
       this.onClose?.();

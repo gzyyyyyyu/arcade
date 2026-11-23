@@ -65,7 +65,7 @@ export class TradeInput {
         this.s.bannerCancel?.press();
         return true;
       }
-      return false;
+      return this.s.recapCard?.dismiss() ?? false;
     }
     if (code === 'Space' || code === 'Enter' || code === 'NumpadEnter') {
       if (this.s.anim.playing) {

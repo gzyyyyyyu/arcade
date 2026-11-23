@@ -20,6 +20,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core';
 import { preview } from 'vite';
+import { PROFILE_KEY, emptyProfile } from '../src/platform/profile.ts';
 
 const arg = (k: string, d: string): string => {
   const i = process.argv.indexOf(`--${k}`);
@@ -192,12 +193,14 @@ async function round(browser: Browser, p: Profile, cpuprofile = ''): Promise<Rou
     deviceScaleFactor: p.dpr,
     ...(p.touch ? { hasTouch: true, isMobile: true } : {}),
   });
-  await context.addInitScript(() => {
+  await context.addInitScript(([key, profile]) => {
     if (sessionStorage.getItem('__seeded')) return;
     sessionStorage.setItem('__seeded', '1');
     localStorage.clear();
     localStorage.setItem('kaipan.tutorial.v3', JSON.stringify({ v: 1, off: true, done: [] }));
-  });
+    // 新手课已过：开始菜单大卡是普通开局（全新档案的大卡是「先上一课」）；要完整档案，缺字段会被当坏档重建
+    localStorage.setItem(key, profile);
+  }, [PROFILE_KEY, JSON.stringify({ ...emptyProfile(), lessonWon: true })] as [string, string]);
   await context.addInitScript(probe, [WHO, SEG] as [boolean, string]);
   // 按单独部署量：没有平台接口（/api/me 回 404，开盘按「没有平台」画）
   await context.route('**/api/**', (r) => r.fulfill({ status: 404, body: '' }));

@@ -283,6 +283,8 @@ export class ChatView3 {
 
   /** 气泡文字的高度（键 = 字号 + 文字）：估高度要按好几档字号各试一遍，每试一次都新建一个文字对象（画一遍、传一张纹理），同一条消息只量一次 */
   private textH = new Map<string, number>();
+  /** 量气泡高度用的不显示文字，按字号各一个 */
+  private readonly meters = new Map<number, Phaser.GameObjects.Text>();
 
   private bubbleTextH(text: string, size: number): number {
     const line = bubbleLine(text, size);
@@ -290,9 +292,13 @@ export class ChatView3 {
     let h = this.textH.get(k);
     if (h === undefined) {
       if (this.textH.size > 400) this.textH.clear();
-      const t = addText(this.scene, 0, 0, line, { size, wrap: BUBBLE_W - 20, lineSpacing: 2 });
-      h = t.height;
-      t.destroy();
+      // 复用一个不显示的量高文字：每条新消息新建再销毁一个文字对象，就要多建、多传一张纹理
+      let meter = this.meters.get(size);
+      if (!meter?.active) {
+        meter = addText(this.scene, 0, 0, '', { size, wrap: BUBBLE_W - 20, lineSpacing: 2 }).setVisible(false);
+        this.meters.set(size, meter);
+      }
+      h = meter.setText(line).height;
       this.textH.set(k, h);
     }
     return h;

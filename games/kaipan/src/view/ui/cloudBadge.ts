@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { sound } from '../sound.ts';
 import type { CloudState, CloudView } from '../../platform/cloud.ts';
 import { cloudView, onCloudChange } from '../cloudSync.ts';
 import { COLOR, FS, css } from '../theme.ts';
@@ -51,6 +52,7 @@ export class CloudBadge extends Phaser.GameObjects.Container {
       // 长按是看说明，不算点
       if (p.wasTouch && p.getDuration() >= 400) return;
       ev.stopPropagation();
+      sound.ui('select');
       if (this.view.state === 'out') globalThis.location?.assign(LOGIN_PATH);
       else pinTooltip(hit, rect(), tip());
     });

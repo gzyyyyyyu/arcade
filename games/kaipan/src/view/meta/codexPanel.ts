@@ -598,7 +598,13 @@ export class CodexPanel extends Dialog {
         c.add(addText(s, 12, 50, '固定行情，老师傅一步步教你选股、亏了早走。', { size: FS.xs, color: COLOR.ink, wrap: cw - 24, lineSpacing: 2 }));
         c.add(addText(s, 12, ch - 14, won ? '再上一次 ›' : '去上课 ›', { size: 14, bold: true, color: COLOR.accentDark, originY: 0.5 }));
         const hit = s.add.rectangle(0, 0, cw, ch, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-        hit.on(Phaser.Input.Events.POINTER_UP, () => {
+        // 和 Button 一样：按下下沉 2 像素、移出复位，左键松手才算
+        hit.on(Phaser.Input.Events.POINTER_DOWN, () => c.setY(y + 2));
+        hit.on(Phaser.Input.Events.POINTER_OUT, () => c.setY(y));
+        hit.on(Phaser.Input.Events.POINTER_UP, (p: Phaser.Input.Pointer) => {
+          c.setY(y);
+          if (p.button !== 0) return;
+          sound.ui('click');
           this.close();
           onLesson();
         });

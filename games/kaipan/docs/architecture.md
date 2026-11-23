@@ -47,6 +47,7 @@
 `kaipan.extTips.v1`、`kaipan.codex.viewed.v1`、`kaipan.soundboard`、`kaipan.errors`、`kaipan.run.unscored`、`kaipan.cloud`（云同步元数据）、`kaipan.homeTip.off`（关掉了「添加到主屏幕」提示）、`kaipan.live`（实盘这一局的筹码走到哪一步，见 `src/platform/live.ts`）、`kaipan.challenge`（这台设备接下的好友挑战，见 `src/platform/challenge.ts`）；
 云同步备份类：`kaipan.<槽>.pre-sync`、`kaipan.<槽>.pre-switch.<userId>`、`kaipan.<槽>.pre-switch.<userId>.restored`（槽是 `profile`、`tutorial`；key 由 `src/platform/cloud.ts` 的 `preSwitchKey` 拼接、并回后在末尾加 `.restored`，不是固定常量）；
 `kaipan.profile.corrupt`。
+只读不写的平台 key：`arcade.sound`（大厅的声音开关，经 kit `platformSoundOn()` 读）。启动读一次，是 `'off'` 就这一次先静音、设置里的开关显示关；在游戏里打开只管这一次，不写它，`kaipan.settings` 里存的静音偏好也不变（`src/platform/settings.ts`）。
 启动时清掉（`src/platform/storage.ts` 的 `LEGACY_KEYS`）：`kaipan.records`（旧版本地纪录，档案取代了它）、`kaipan.save.v1`、`kaipan.save.v0.1/v0.2/v0.3/v0.3a/v0.4a/v0.3.restored`、
 `kaipan.records.v0.2/v0.3/v0.4a/v0.3.restored`、`kaipan.terms.v04`。新增、删除 key 都改这张表。
 
