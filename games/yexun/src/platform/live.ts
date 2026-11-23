@@ -7,6 +7,8 @@
  * - 中途离开（局没打完就关页面、刷新、崩溃）算输：夜巡不存打到一半的局，没法接着打，所以重开页面时 resume() 把 playing 的那一份按
  *   "最后一次 progress 记下的拍数" 结回（vigilBp(tier, ticks, false, false)：撑过 3:00 才有钱，没记过拍数就是 0）。
  *   这样关页面既不能躲掉损失，也不会比留在局里多拿：main.ts 打局时每隔约 10 秒调一次 progress。
+ *   本页正在打的那一份（带入成功时记下 ref，结回、放弃时清掉）resume() 不碰：联网、回到前台也会调 resume()，不能把还在打的局按中途离开结掉。
+ *   另一个标签页分不出那一份是不是还在别的页里打，照旧按中途离开结。
  *   夜探的一份（记录里有 raid）中途离开按丢包算，结回 0：夜探的钱只来自撤出时带出去的东西。
  * - 带入时记下账号（Worker 回的 user）：结回、放弃时带上，换了账号 Worker 回 409 wrong_user，不动钱包，等换回去再发。
  * - 501（单独部署，没有钱包）：unavailable 为 true，实盘入口藏起来；带入返回 { ok:false, outcome:{kind:'unavailable'} }。
@@ -160,6 +162,8 @@ export class LiveClient {
   private rec: LiveRecord | null;
   private inflight: Promise<void> | null = null;
   private off = false;
+  /** 本页正在打的那一份的 ref：resume() 跳过它 */
+  private mine: string | null = null;
   private readonly d: LiveDeps;
 
   constructor(d: LiveDeps) {
@@ -215,6 +219,7 @@ export class LiveClient {
     if (o.kind === 'ok') {
       const playing: LiveRecord = { ...rec, step: 'playing', ...(user ? { user } : {}) };
       this.save(playing, rec.ref);
+      this.mine = rec.ref;
       return { ok: true, record: playing };
     }
     // 连不上说不准有没有扣：留着 buying 下次收回
@@ -252,6 +257,7 @@ export class LiveClient {
     const r = this.refresh();
     if (r?.step !== 'playing' || r.seed !== seed) return this.inflight ?? Promise.resolve();
     const bp = Math.max(0, Math.min(LIVE_MAX_BP, Math.floor(rawBp)));
+    this.mine = null;
     this.save({ ...r, step: 'settling', kind: 'settle', bp, ...(stats === undefined ? {} : { stats }) }, r.ref);
     return this.retry();
   }
@@ -260,19 +266,20 @@ export class LiveClient {
   abandon(seed: number): Promise<void> {
     const r = this.refresh();
     if (r?.step !== 'playing' || r.seed !== seed) return this.inflight ?? Promise.resolve();
+    this.mine = null;
     this.save({ ...r, step: 'settling', kind: 'refund' }, r.ref);
     return this.retry();
   }
 
   /**
    * 启动、回到前台、联网时调：
-   * playing（页面重开，局没了）→ 过期的作废，没过期的按中途离开结回；settling 重发；buying 收回。
+   * playing（页面重开，局没了）→ 过期的作废，没过期的按中途离开结回（本页正在打的那一份除外）；settling 重发；buying 收回。
    * 返回时已发完（或停在等重试）。
    */
   async resume(): Promise<void> {
     const r = this.refresh();
     if (!r) return;
-    if (r.step === 'playing' && !this.inflight) {
+    if (r.step === 'playing' && !this.inflight && r.ref !== this.mine) {
       if (this.d.now() > r.until) this.save({ ...r, step: 'void', error: 'expired' }, r.ref);
       else this.save({ ...r, step: 'settling', kind: 'settle', bp: r.raid ? 0 : vigilBp(r.tier, r.ticks ?? 0, false, false, r.character, r.map) }, r.ref);
     }

@@ -367,3 +367,65 @@ describe('夜探实盘（记录里有 raid）', () => {
     expect(reviveLive({ ref: 'yexun-abcdef12', tier: 'small', stake: 1, seed: 1, at: 1, until: 1, step: 'playing', raid: 'teach' })?.raid).toBeUndefined();
   });
 });
+
+describe('本页正在打时触发 resume（联网、回到前台）', () => {
+  it('打着时 resume 不结这一份；打完照常按结果结', async () => {
+    const { c, calls, store } = rig();
+    await c.buyin('small', 5);
+    c.progress(5, 6000);
+    await c.resume(); // 模拟 online 事件
+    expect(calls).toHaveLength(1);
+    expect(saved(store).step).toBe('playing');
+    await c.finish(5, { ticks: 27_000, won: true, bossKilled: false });
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.url).toBe('api/live/settle');
+    expect(calls[1]!.body.bp).toBe(vigilBp('small', 27_000, true, false));
+    expect(saved(store).step).toBe('done');
+  });
+
+  it('夜探打着时 resume 也不结（不按丢包给 0）；撤出照常按传进来的倍数结', async () => {
+    const { c, calls, store } = rig();
+    await c.buyin('medium', 6, 'guzhen');
+    await c.resume();
+    expect(saved(store).step).toBe('playing');
+    await c.finishRaid(6, 15_000);
+    expect(calls.at(-1)!.body.bp).toBe(15_000);
+  });
+
+  it('结完以后本页再带入下一份：新的一份照样不被 resume 结', async () => {
+    const { c, calls, store } = rig();
+    await c.buyin('small', 5);
+    await c.finish(5, { ticks: 27_000, won: true, bossKilled: false });
+    c.clearFinished();
+    await c.buyin('small', 7);
+    const n = calls.length;
+    await c.resume();
+    expect(calls).toHaveLength(n);
+    expect(saved(store)).toMatchObject({ seed: 7, step: 'playing' });
+  });
+
+  it('放弃以后 resume 只重发退回，不再当成正在打', async () => {
+    const { c, calls, store } = rig((r) => (r.url.endsWith('refund') ? res(503, { error: 'busy' }) : res(200, OK)));
+    await c.buyin('small', 5);
+    await c.abandon(5);
+    expect(saved(store)).toMatchObject({ step: 'settling', kind: 'refund' });
+    await c.resume();
+    expect(calls.filter((x) => x.url.endsWith('refund'))).toHaveLength(2);
+  });
+
+  it('两个标签页：A 正在打，A 自己 resume 不结；B 打开时分不出 A 还在打，照旧按中途离开结，A 打完的 finish 什么都不做', async () => {
+    const store = mem();
+    const a = rig(undefined, store);
+    await a.c.buyin('small', 5);
+    a.c.progress(5, 6000);
+    await a.c.resume();
+    expect(saved(store).step).toBe('playing');
+    const b = rig(undefined, store);
+    await b.c.resume();
+    expect(b.calls[0]!.url).toBe('api/live/settle');
+    expect(b.calls[0]!.body.bp).toBe(vigilBp('small', 6000, false, false));
+    expect(saved(store).step).toBe('done');
+    await a.c.finish(5, { ticks: 27_000, won: true, bossKilled: false });
+    expect(a.calls).toHaveLength(1);
+  });
+});
