@@ -121,5 +121,5 @@
 | 牌馆（掼蛋、斗地主） | [games/guandan/docs/stake.md](../games/guandan/docs/stake.md)（单机实盘、斗地主实盘两节） |
 | 德州 | [games/texas/docs/ai.md](../games/texas/docs/ai.md) 4.10；单机锦标赛见 [tournament.md](../games/texas/docs/tournament.md) |
 | 雀馆 | [games/mahjong/docs/balance-results.md](../games/mahjong/docs/balance-results.md) |
-| 夜巡 | [games/yexun/docs/design-live.md](../games/yexun/docs/design-live.md)、[balance-live.md](../games/yexun/docs/balance-live.md) |
+| 夜巡 | [games/yexun/docs/design-live.md](../games/yexun/docs/design-live.md) |
 | 海岛 | [games/haidao/docs/design-live.md](../games/haidao/docs/design-live.md)（第 4 节实盘）、[DESIGN.md](../games/haidao/DESIGN.md) 第 7 节、[balance-haidao.md](../games/haidao/docs/balance-haidao.md) |
