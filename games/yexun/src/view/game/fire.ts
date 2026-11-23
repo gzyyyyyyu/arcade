@@ -75,6 +75,13 @@ export class FireView {
     this.g = h.scene.add.graphics().setDepth(-870);
   }
 
+  /** 连战换图时拆掉（焦土底图由场景按场地对象一起拆） */
+  destroy(): void {
+    this.g.destroy();
+    for (const o of this.flames) o.destroy();
+    for (const o of this.embers) o.destroy();
+  }
+
   /** 焦土：一张不规则的暗色斑，深边，上面几道裂缝和余烬点；同尺寸只画一次 */
   private soil(z: Rect): void {
     const key = `firesoil-${this.pal.flame}-${Math.round(z.w)}x${Math.round(z.h)}`;

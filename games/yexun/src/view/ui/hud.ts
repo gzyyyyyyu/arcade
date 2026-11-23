@@ -34,9 +34,20 @@ export interface HudState {
   /** 夜探：顶上换成天亮倒计时（label 是"离天亮"或"天亮"，level 1 = 14:00 起醒目，2 = 最后 30 秒变红），右上多一个背包件数 */
   /** 守夜：下一次地图事件的倒计时小牌（mapEvents.ts 的 nextMapEvent；没有就不给） */
   event?: { kind: string; name: string; left: number; urgent: boolean } | null;
-  /** 首领连战：顶上写"剩余"，隐藏夜市小字 */
-  rush?: boolean;
+  /** 首领连战：计时换成离发狂（软限时），左上多一块纸钱、符印、这一关的词缀印章 */
+  rush?: HudRush | null;
   raid?: { label: string; level: 0 | 1 | 2; bag: number; value: number; boost: number };
+}
+
+/** 连战的小牌（view/game/rush.ts 每帧给） */
+export interface HudRush {
+  /** 计时位：小字、秒数（-1 = 不走秒，写 short）、要不要红（view/game/rush.ts rushTimer） */
+  timer: { label: string; left: number; short: string; red: boolean };
+  coins: number;
+  /** 带着的符印：单字 + 名字和说明（悬停看） */
+  relics: { char: string; tip: string }[];
+  /** 这一关首领的词缀：单字 + 说明 */
+  affixes: { char: string; tip: string }[];
 }
 
 /** 技能按钮的状态（对局里每帧给；show 为 false 整个收起） */
@@ -113,6 +124,8 @@ export class Hud {
   private evKey = '';
   private raidOn = false;
   private rushOn = false;
+  private rushTag: HTMLDivElement;
+  private rushSig = '';
   private kills: HTMLSpanElement;
   private coins: HTMLSpanElement;
   private slotEls: { box: HTMLDivElement; cd: HTMLDivElement; lv: HTMLSpanElement }[] = [];
@@ -186,6 +199,8 @@ export class Hud {
     this.lv = el('span', 'yx-lv', av, '1');
     this.yy = el('span', 'yx-yy', av);
     const bars = el('div', 'yx-bars', card);
+    this.rushTag = el('div', 'yx-rushtag', tl);
+    this.rushTag.style.display = 'none';
     const hp = el('div', 'yx-bar yx-hp', bars);
     this.hpFill = el('div', 'yx-fill', hp);
     const hpText = el('span', 'yx-bar-text', hp);
@@ -287,6 +302,21 @@ export class Hud {
     el('span', 'yx-combo-word', this.combo, '连斩!');
   }
 
+  private setRush(r: HudRush): void {
+    const t = r.timer;
+    this.tlabel.textContent = t.label;
+    if (t.left < 0) this.time.textContent = t.short;
+    this.timer.classList.toggle('red', t.red);
+    const sig = `${r.coins}|${r.relics.map((x) => x.char).join('')}|${r.affixes.map((x) => x.char).join('')}`;
+    if (sig === this.rushSig) return;
+    this.rushSig = sig;
+    const seal = (x: { char: string; tip: string }, cls: string): string => `<i class="${cls}" title="${x.tip.replace(/"/g, '&quot;')}">${x.char}</i>`;
+    this.rushTag.innerHTML =
+      `<span class="yx-rt-coins" title="纸钱：驿站里买东西用，只在这一局">纸钱 <b>${r.coins}</b></span>` +
+      (r.relics.length ? `<span class="yx-rt-relics">${r.relics.map((x) => seal(x, 'relic')).join('')}</span>` : '') +
+      (r.affixes.length ? `<span class="yx-rt-affix">${r.affixes.map((x) => seal(x, 'affix')).join('')}</span>` : '');
+  }
+
   update(s: HudState): void {
     this.setEvent(s.event ?? null);
     this.hpFill.style.width = `${(100 * s.hp) / s.hpMax}%`;
@@ -308,11 +338,16 @@ export class Hud {
     this.xpFill.style.width = `${Math.round(s.xp * 100)}%`;
     const left = Math.max(0, Math.ceil(s.left));
     this.time.textContent = `${pad2(Math.floor(left / 60))}:${pad2(left % 60)}`;
-    // 连战：5 分钟倒计时，没有夜市，不写"离天亮"和铜钱去向
+    // 连战：计时是离首领发狂（每关软限时），没有夜市
     if (!!s.rush !== this.rushOn) {
       this.rushOn = !!s.rush;
-      this.tlabel.textContent = this.rushOn ? '剩余' : '离天亮';
+      this.rushTag.style.display = this.rushOn ? '' : 'none';
+      if (!this.rushOn) {
+        this.tlabel.textContent = '离天亮';
+        this.timer.classList.remove('red');
+      }
     }
+    if (s.rush) this.setRush(s.rush);
     if (s.raid) {
       this.tlabel.textContent = s.raid.label;
       this.timer.classList.toggle('warn', s.raid.level === 1);

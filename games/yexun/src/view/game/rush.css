@@ -34,3 +34,14 @@
 .yx-hud .yx-rushchip span, .yx-hud .yx-weekchip span { font-size: max(var(--fs-md, 14px), calc(var(--fs-xl, 18px) * var(--s, 1))); color: #ffd23a; }
 /* 本周夜事的小牌：蓝底和连战的红底区分 */
 .yx-hud .yx-weekchip { background: rgba(43, 62, 107, 0.9); }
+.yx-hud .yx-rushfx.phase b { font-size: calc(88px * var(--s, 1)); color: #d9c8ff; text-shadow: 0 0 30px rgba(120, 90, 220, 0.8); }
+/* 手机竖屏：64 像素的「白狐 伏诛」已超出 390 宽，按屏宽缩（走查 11-23） */
+@media (max-width: 767px) and (orientation: portrait) {
+  .yx-hud .yx-rushfx b { font-size: clamp(36px, 11vw, 64px); }
+  .yx-hud .yx-rushfx.clear b { font-size: clamp(48px, 16vw, 96px); letter-spacing: 6px; }
+  .yx-hud .yx-rushfx.phase b { font-size: clamp(48px, 16vw, 88px); }
+}
+/* 天亮：盖一层由暗转晨光的渐变（只改画面），停在半透明，结算页接上 */
+.yx-hud .yx-rushdawn { position: absolute; inset: 0; z-index: 23; pointer-events: none; opacity: 0; background: linear-gradient(to top, rgba(255, 196, 120, 0.55), rgba(255, 236, 190, 0.25) 55%, rgba(40, 50, 90, 0.35)); }
+.yx-hud .yx-rushdawn.on { animation: yx-rushdawn 2.4s ease-out forwards; }
+@keyframes yx-rushdawn { 0% { opacity: 0; background-color: rgba(10, 12, 30, 0.6); } 40% { opacity: 1; background-color: rgba(10, 12, 30, 0.3); } 100% { opacity: 1; background-color: rgba(10, 12, 30, 0); } }

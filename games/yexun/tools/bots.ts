@@ -3,6 +3,10 @@
  * - 小白：每 10 拍才重新决定方向，躲得粗、带噪声，见什么捡什么；升级挑"看起来最强"的（不看配方）。
  * - 普通：每 3 拍决定一次，按"怪的推力 + 魂珠的拉力 + 离墙的推力"走（势场），会躲火球；升级按流派挑，奔着进化去。
  * 流派（普通玩家选卡的偏好）：剑阵、符箓、镇守、木（五雷）、火，见 DESIGN.md 3.4；普通玩家三张都不想要时先刷新，刷新用完再跳过。
+ * 首领连战（docs/design-play.md 2.5）另有路线、驿站、锁卡（rushChoose）：
+ * - 路线：小白永远走普通、血 < 50% 选带休整的；普通血 > 70% 且第 ≤ 7 列走精英，否则普通、优先带商店。
+ * - 商店：血 < 60% 先买回血，再买最贵买得起的卡或符印；事件：小白选稳的，普通按 RUSH_EVENT_PICK；休整：血低回血，否则升级。
+ * - 选卡：小白不锁、不放逐，每关第一手三成概率随手重抽一次；普通挑最后一张前锁住分数第二的那张。
  */
 import { ENEMIES } from '../src/content/enemies.ts';
 import { ARENA } from '../src/content/player.ts';
@@ -13,6 +17,7 @@ import { skillReady } from '../src/core/skills.ts';
 import { FIRE_IDLE, FIRE_WARN, fireAll, fireStage } from '../src/core/fire.ts';
 import { Drop, MAX_DROPS, MAX_ENEMIES, MAX_PROPS, MAX_SHOTS, Pick, Shot, type Choice, type World } from '../src/core/index.ts';
 import { Rng } from '../src/core/rng.ts';
+import type { RelicId, RushEventId } from '../src/content/rush.ts';
 import { mergeHint } from '../src/view/ui/mergeHint.ts';
 
 export type Skill = 'novice' | 'normal';
@@ -136,7 +141,7 @@ export class Bot {
     r.skill = 0;
     if (w.phase === 'choose') {
       r.dir = 0;
-      r.choice = this.choose(w);
+      r.choice = w.rush ? this.rushChoose(w) : this.choose(w);
       return r;
     }
     r.choice = -1;
@@ -250,6 +255,24 @@ export class Bot {
         if (d > 110 || d < 1) continue;
         fx += (dx / d) * (40 / Math.max(10, d));
         fy += (dy / d) * (40 / Math.max(10, d));
+      }
+    }
+    // 连战场上只有首领：没贴身危险时往最近的首领靠到 70 以内（近身法器朝面前出手，离远了打不着，真人也会贴上去）
+    if (w.rush && threat === 0) {
+      let ni = -1;
+      let nd = Infinity;
+      for (let i = 0; i < MAX_ENEMIES; i++) {
+        if (!w.eAlive[i] || !w.eRush[i]) continue;
+        const d = Math.hypot(w.eX[i]! - w.x, w.eY[i]! - w.y) - w.eR[i]!;
+        if (d < nd) {
+          nd = d;
+          ni = i;
+        }
+      }
+      if (ni >= 0 && nd > 70) {
+        const n = Math.max(1, Math.hypot(w.eX[ni]! - w.x, w.eY[ni]! - w.y));
+        fx += ((w.eX[ni]! - w.x) / n) * 0.6;
+        fy += ((w.eY[ni]! - w.y) / n) * 0.6;
       }
     }
     // 魂珠、宝箱、肉包的拉力：挑"近而且路上不挤"的（宝箱、肉包算得更近）
@@ -424,6 +447,100 @@ export class Bot {
     return 1 + (((Math.round((a / (Math.PI * 2)) * 32) % 32) + 32) % 32);
   }
 
+  /** 连战：同一个菜单状态下又要按同一个键（核心没接受这一步）就记一次卡住，换退路键，模拟器看 stuck 报出来 */
+  stuck = 0;
+  private lastKey = '';
+  /** 每关只做一次的事：锁卡、小白随手重抽（记的是关数） */
+  private lockedAt = -1;
+  private rerolledAt = -1;
+
+  private rushChoose(w: World): number {
+    const pick = w.menu === 'route' ? this.rushRoute(w) : w.menu === 'stop' ? this.rushStop(w) : this.rushCards(w);
+    const key = `${w.menu}|${pick}|${w.rushStage}|${w.rushCoins}|${w.hp}|${w.choices.map((c) => c.id).join(',')}|${w.stopGoods.filter((g) => g.sold).length}|${w.rushTake}|${w.rerolls}|${w.rushLocks}`;
+    if (key !== this.lastKey) {
+      this.lastKey = key;
+      return pick;
+    }
+    this.stuck++;
+    this.lastKey = '';
+    return w.menu === 'route' ? Pick.Route : w.menu === 'stop' ? Pick.Leave : 0;
+  }
+
+  /** 路线图这一列挑哪条路（Pick.Route + 第几条） */
+  private rushRoute(w: World): number {
+    const col = w.rush!.layers[w.rushStage] ?? [];
+    const hp = w.hp / w.stats.hpMax;
+    const idx = col.map((_, i) => i);
+    const normal = idx.filter((i) => !col[i]!.elite);
+    const find = (from: number[], ok: (i: number) => boolean): number | undefined => from.find(ok);
+    if (this.skill === 'novice') {
+      const at = (hp < 0.5 ? find(normal, (i) => col[i]!.stop === 'rest') : undefined) ?? normal[this.rng.int(Math.max(1, normal.length))] ?? 0;
+      return Pick.Route + at;
+    }
+    if (hp > 0.7 && w.rushStage <= 6) {
+      const e = find(idx, (i) => col[i]!.elite);
+      if (e !== undefined) return Pick.Route + e;
+    }
+    const at = (hp < 0.5 ? find(normal, (i) => col[i]!.stop === 'rest') : undefined) ?? find(normal, (i) => col[i]!.stop === 'shop') ?? normal[0] ?? 0;
+    return Pick.Route + at;
+  }
+
+  /** 驿站：商店买东西 / 离开，事件挑一项，休整二选一 */
+  private rushStop(w: World): number {
+    const hp = w.hp / w.stats.hpMax;
+    if (w.stop === 'shop') {
+      const goods = w.stopGoods;
+      const can = (i: number): boolean => !goods[i]!.sold && goods[i]!.price <= w.rushCoins;
+      if (hp < 0.6) {
+        const h = goods.findIndex((g, i) => g.kind === 'heal' && can(i));
+        if (h >= 0) return Pick.Buy + h;
+      }
+      let best = -1;
+      goods.forEach((g, i) => {
+        if ((g.kind === 'card' || g.kind === 'relic') && can(i) && (best < 0 || g.price > goods[best]!.price)) best = i;
+      });
+      return best >= 0 ? Pick.Buy + best : Pick.Leave;
+    }
+    if (w.stop === 'rest') {
+      // 升级只挑没满级、没进化的法器（核心不接受满级的），都升不了就回血
+      const up = w.weapons.findIndex((o) => !o.evolved && o.level < MAX_WEAPON_LEVEL);
+      return Pick.Rest + (hp < (this.skill === 'novice' ? 0.7 : 0.5) || up < 0 ? REST_HEAL : REST_LEVEL + up);
+    }
+    const cs = w.stopChoices;
+    if (!cs.length || !w.stopEvent) return Pick.Leave;
+    const want = this.skill === 'novice' ? RUSH_EVENT_SAFE[w.stopEvent] : RUSH_EVENT_PICK[w.stopEvent](hp, w.rushCoins);
+    let i = cs.findIndex((c) => c.option === want && !c.trade);
+    // 老货郎：普通玩家换一件流派单子上更靠前的同级法器
+    if (w.stopEvent === 'peddler' && this.skill === 'normal') {
+      const rank = (id: WeaponId): number => {
+        const r = this.plan.weapons.indexOf(id);
+        return r < 0 ? 99 : r;
+      };
+      const t = cs.findIndex((c) => c.trade && rank(c.trade.to) < rank(c.trade.from));
+      if (t >= 0) i = t;
+    }
+    return Pick.Event + (i >= 0 ? i : cs.length - 1);
+  }
+
+  /** 连战选卡：先看要不要锁、要不要随手重抽，其余照守夜的打分（多挑几张就多走几遍） */
+  private rushCards(w: World): number {
+    const cs = w.choices;
+    if (this.skill === 'novice') {
+      if (this.rerolledAt !== w.rushStage && w.rerolls > 0) {
+        this.rerolledAt = w.rushStage;
+        if (this.rng.next() < 0.3) return Pick.Reroll;
+      }
+      return this.choose(w);
+    }
+    if (this.lockedAt !== w.rushStage && w.rushTake === 1 && w.rushLocks > 0 && cs.length >= 2) {
+      this.lockedAt = w.rushStage;
+      const order = cs.map((c, i) => ({ i, s: this.score(w, c, this.plan) })).sort((a, b) => b.s - a.s);
+      const second = order[1]!;
+      if (second.s >= 12 && !w.rushLocked.some((c) => c.kind === cs[second.i]!.kind && c.id === cs[second.i]!.id)) return Pick.Lock + second.i;
+    }
+    return this.choose(w);
+  }
+
   private choose(w: World): number {
     const cs = w.choices;
     if (this.skill === 'novice') {
@@ -493,6 +610,11 @@ export class Bot {
 
   private score(w: World, c: Choice, plan: { weapons: WeaponId[]; passives: PassiveId[] }): number {
     if (c.kind === 'coins') return 0;
+    if (c.kind === 'relic') return RELIC_SCORE[c.id as RelicId] ?? 30;
+    return this.cardScore(w, c, plan) + ((c.tier ?? 1) - 1) * 8;
+  }
+
+  private cardScore(w: World, c: Choice, plan: { weapons: WeaponId[]; passives: PassiveId[] }): number {
     if (this.critical(w, c)) return CRIT_SCORE + (c.kind === 'weapon' ? 8 - (w.weapons.find((x) => x.id === c.id)?.level ?? 0) : 0);
     if (c.kind === 'weapon') {
       const id = c.id as WeaponId;
@@ -509,10 +631,33 @@ export class Bot {
   }
 }
 
+/** 普通玩家眼里符印值多少（和法器、被动的分同一把尺子：流派头号件约 50） */
+const RELIC_SCORE: Record<RelicId, number> = { mirror: 50, lamp: 45, charm: 45, gourd: 40, thunder: 40, boots: 35, cloak: 35, ruler: 30, tube: 30, bowl: 30, string: 25, lock: 20 };
+
+/** 休整的两项：回血、手上一件法器升级（Pick.Rest + 第几项） */
+const REST_HEAL = 0;
+const REST_LEVEL = 1;
+
+/** 事件里稳的那项（RUSH_EVENTS[id].options 的下标）：小白选它 */
+const RUSH_EVENT_SAFE: Record<RushEventId, number> = { blood: 1, gamble: 1, well: 0, effigy: 1, dark: 1, peddler: 0, incense: 0, stele: 1 };
+/** 普通玩家按期望选：血够才拿血换卡、加词缀换卡；赌坊期望为零不赌；古井血不低就要手牌 */
+const RUSH_EVENT_PICK: Record<RushEventId, (hp: number, coins: number) => number> = {
+  blood: (hp) => (hp > 0.6 ? 0 : 1),
+  gamble: () => 1,
+  well: (hp) => (hp < 0.7 ? 0 : 1),
+  effigy: (hp) => (hp > 0.6 ? 0 : 1),
+  dark: () => 0,
+  peddler: () => 0,
+  incense: () => 0,
+  stele: () => 1,
+};
+
 /** 小白眼里的"强"：新法器 > 升级手上的法器 > 写着伤害、数量、冷却的被动 > 其余被动 */
 const LOOKS_STRONG: Partial<Record<PassiveId, number>> = { zhusha: 16, lingpai: 16, xianglu: 12, nianzhu: 10, xiantao: 8, daopao: 6 };
 function looksStrong(w: World, c: Choice): number {
   if (c.kind === 'coins') return 0;
+  if (c.kind === 'relic') return 22;
+  if (c.tier && c.tier > 1) return (c.kind === 'weapon' ? 24 : 10) + (c.tier - 1) * 6;
   if (c.kind === 'weapon') return w.weapons.some((x) => x.id === c.id) ? 20 : 24;
   return LOOKS_STRONG[c.id as PassiveId] ?? 2;
 }

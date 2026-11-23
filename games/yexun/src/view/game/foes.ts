@@ -2,12 +2,16 @@
  * 2.0 首领和特色怪的画面（规则在 core/foes/）：Ev.Foe 的特效和声音、地上的竹浪 / 冰风 / 浮冰 / 香炉全灭，
  * 无面佛的四尊小佛、潜水的涟漪、红衣戏子头顶的红丝。只读核心的状态和事件，不算规则。
  * 圈的预警走 GameScene 的 telegraphs（和石兽、冰魄一样的圆圈）。
+ * 首领连战：词缀（金盾圈、风的拽线、鬼火）和夜漏君（鼓圈、月牙镰红线、灯笼、月蚀压暗、夜潮）也在这里画。
  */
 import Phaser from 'phaser';
 import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import { WUMIAN, ZHUMU } from '../../content/foes.ts';
+import { YELOU } from '../../content/rushFoes.ts';
+import { CURSE_FX } from '../../content/meta.ts';
 import { dcos, dsin } from '../../core/fmath.ts';
-import { MAX_WAVES } from '../../core/foes/state.ts';
+import { affixPull, affixShieldLeft, yelouDrip } from '../../core/foes/index.ts';
+import { MAX_DRUMS, MAX_FLAMES, MAX_WAVES } from '../../core/foes/state.ts';
 import type { World } from '../../core/index.ts';
 import { sfx, type SfxName } from '../audio/sfx.ts';
 import type { Fx } from './fx.ts';
@@ -24,16 +28,21 @@ export interface FoeHost {
 }
 
 /** 圈的样子（Ev.Foe 子类个位）→ 预警色 */
-const VIS_COLOR = [0x3fae5a, 0x3a8fd0, 0x6fc4f0, 0xe8b830, 0x9a7a4a, 0xd0302a];
-const VIS_STRIKE: SfxName[] = ['bambooPop', 'monkeyPounce', 'iceSpike', 'goldChime', 'ratBurrow', 'sleeveSweep'];
+const VIS_COLOR = [0x3fae5a, 0x3a8fd0, 0x6fc4f0, 0xe8b830, 0x9a7a4a, 0xd0302a, 0xb8862a];
+const VIS_STRIKE: SfxName[] = ['bambooPop', 'monkeyPounce', 'iceSpike', 'goldChime', 'ratBurrow', 'sleeveSweep', 'signRain'];
 /** 落下时碎屑的颜色 */
-const VIS_SHARD = [0x7fc45a, 0x7fd0f0, 0xcdeeff, 0xf3d36a, 0xb08a58, 0xe0384a];
+const VIS_SHARD = [0x7fc45a, 0x7fd0f0, 0xcdeeff, 0xf3d36a, 0xb08a58, 0xe0384a, 0xd8c08a];
+const VIS_N = VIS_COLOR.length;
 const KIND_NAME: Record<number, string> = {};
 for (const k of ['zhumu', 'shuihou', 'binghun', 'wumian', 'hongyi', 'shuoshu'] as const) KIND_NAME[ENEMY_BY_KIND[k].code] = k;
 const CODE = (k: keyof typeof ENEMY_BY_KIND): number => ENEMY_BY_KIND[k].code;
 
 export class FoeView {
   private readonly g: Phaser.GameObjects.Graphics;
+  /** 压在怪和主角上面的一层：月蚀的夜色、夜潮、灯笼、镰刀红线 */
+  private readonly top: Phaser.GameObjects.Graphics;
+  /** 上一次滴漏响是第几秒 */
+  private dripSec = -1;
   private readonly statues: Phaser.GameObjects.Image[] = [];
   private readonly ripples: Phaser.GameObjects.Image[] = [];
   private thread: Phaser.GameObjects.Image | null = null;
@@ -42,6 +51,7 @@ export class FoeView {
   constructor(h: FoeHost) {
     this.h = h;
     this.g = h.scene.add.graphics().setDepth(-250);
+    this.top = h.scene.add.graphics().setDepth(6900);
   }
 
   /** 事件：Ev.Foe 的一条（子类见 core/events.ts） */
@@ -52,17 +62,17 @@ export class FoeView {
       if (h.lowMem) return;
       for (let k = 0; k < n; k++) h.fx.spawn({ frame: 'shard', x, y, vx: (Math.random() - 0.5) * 220, vy: -80 - Math.random() * 120, g: 420, life: 560, s0: 1.4, s1: 0.6, tint, rot: Math.random() * 6, spin: 8 });
     };
-    if (a >= 30 && a <= 35) {
+    if (a >= 30 && a < 30 + VIS_N) {
       // 预警圈：b 半径、c 预警拍数
       h.telegraph(x, y, b, c, VIS_COLOR[a - 30]!);
       return;
     }
-    if (a >= 50 && a <= 55) {
+    if (a >= 50 && a < 50 + VIS_N) {
       const v = a - 50;
       ring(b, VIS_COLOR[v]!);
       h.burst(x, y - 8, VIS_COLOR[v]!, 1.1);
       shards(VIS_SHARD[v]!, v === 0 || v === 2 ? 8 : 4);
-      sfx.play(VIS_STRIKE[v]!, { volume: v === 4 ? 0.6 : 0.8 });
+      sfx.play(VIS_STRIKE[v]!, { volume: v === 4 || v === 6 ? 0.6 : 0.8 });
       if (v === 1 || v === 3) h.shake(160, 0.007);
       return;
     }
@@ -174,6 +184,70 @@ export class FoeView {
         h.shake(420, 0.01);
         break;
       }
+      // ---- 首领连战：词缀 ----
+      case 60:
+        sfx.play('affixShield');
+        ring(90, 0xe8b830, 600);
+        break;
+      case 61:
+        sfx.play('shieldBreak');
+        shards(0xf3d36a, 10);
+        break;
+      case 62:
+        sfx.play('shadowSplit');
+        h.burst(x, y - 30, 0x5a4a8a, 2);
+        break;
+      case 63:
+        sfx.play('spiritSummon', { volume: 0.7 });
+        ring(150, 0x9a7a4a);
+        break;
+      case 64:
+        sfx.play('rageRoar');
+        h.burst(x, y - 30, 0xd0302a, 2);
+        h.shake(260, 0.008);
+        break;
+      case 65:
+        sfx.play('windHowl', { volume: 0.7 });
+        break;
+      case 67:
+        sfx.play('leechSip', { volume: 0.6 });
+        h.burst(x, y - 30, 0xd0302a, 1.2);
+        break;
+      case 68:
+        h.burst(x, y - 20, 0x2a2438, 1.2);
+        break;
+      // ---- 夜漏君 ----
+      case 70:
+        sfx.play('nightDrum');
+        h.shake(120, 0.004);
+        break;
+      case 72:
+        sfx.play('troupeAppear', { volume: 0.5 });
+        ring(170, 0x46598c);
+        break;
+      case 74:
+        sfx.play('scytheSwish');
+        break;
+      case 77:
+      case 78:
+        sfx.play('tideSurge', { volume: 0.7 });
+        break;
+      case 79:
+        sfx.play('rageRoar');
+        h.say('发狂了', '滴漏漏尽，夜漏君越打越狠，快打');
+        h.shake(400, 0.01);
+        break;
+      case 80:
+        sfx.play('nightGong');
+        h.shake(500, 0.012);
+        ring(220, 0xe8b830, 800);
+        break;
+      case 81:
+        sfx.play('yelouDown');
+        h.burst(x, y - 60, 0xfff1c0, 3);
+        shards(0xcfe4f0, 18);
+        h.shake(700, 0.014);
+        break;
       default:
         break;
     }
@@ -257,7 +331,146 @@ export class FoeView {
       g.lineStyle(7, 0xe8b830, 0.55 + Math.sin(now * 0.006) * 0.25);
       for (const r of w.incense) g.strokeRect(r.x, r.y, r.w, r.h);
     }
+    this.drawFlames(w, now);
+    this.drawRush(w, now, inter);
     this.attach(w, now, inter);
+  }
+
+  /** 鬼火（词缀「火」的脚印、月牙镰的冷焰）：快灭的淡下去 */
+  private drawFlames(w: World, now: number): void {
+    const f = w.foe;
+    const g = this.g;
+    for (let k = 0; k < MAX_FLAMES; k++) {
+      const left = f.hEnd[k]! - w.tick;
+      if (left <= 0) continue;
+      const a = Math.min(1, left / 20);
+      const r = f.hR[k]! * (0.92 + Math.sin(now * 0.012 + k) * 0.08);
+      g.fillStyle(0x1f5a8a, 0.45 * a);
+      g.fillCircle(f.hX[k]!, f.hY[k]!, r);
+      g.fillStyle(0x7fe0ff, 0.55 * a);
+      g.fillCircle(f.hX[k]!, f.hY[k]! - 4, r * 0.55);
+    }
+  }
+
+  /** 连战：首领身上的词缀表现和夜漏君的场面 */
+  private drawRush(w: World, now: number, inter: (p: number, c: number) => number): void {
+    const f = w.foe;
+    const g = this.g;
+    const t = this.top;
+    t.clear();
+    const view = this.h.scene.cameras.main.worldView;
+    const yelouC = CODE('yelou');
+    let yl = -1;
+    for (let i = 0; i < w.eAlive.length; i++) {
+      if (!w.eAlive[i]) continue;
+      if (w.eKind[i] === yelouC) yl = i;
+      if (!w.eAffix[i]) continue;
+      const x = inter(w.ePX[i]!, w.eX[i]!);
+      const y = inter(w.ePY[i]!, w.eY[i]!);
+      const r = w.eR[i]! * 1.6;
+      // 护：金圈，越薄越快碎
+      const sh = affixShieldLeft(w, i);
+      if (sh > 0) {
+        const k = Math.min(1, sh / (w.eHpMax[i]! * 0.08));
+        t.lineStyle(4 + 6 * k, 0xe8b830, 0.55 + 0.3 * k);
+        t.strokeCircle(x, y - w.eR[i]!, r);
+        t.lineStyle(2, 0x6a4a10, 0.8);
+        t.strokeCircle(x, y - w.eR[i]!, r + 5 + 3 * k);
+      }
+      // 风：预警时一条虚线，拽人时实线
+      const p = affixPull(w, i);
+      if (p !== 0) {
+        const px = inter(w.px, w.x);
+        const py = inter(w.py, w.y);
+        t.lineStyle(p < 0 ? 3 : 7, 0xcdeeff, p < 0 ? 0.5 + Math.sin(now * 0.03) * 0.3 : 0.85);
+        t.lineBetween(x, y - 20, px, py - 20);
+      }
+    }
+    // 鼓圈：环上空出缺口，缺口两端描金
+    const D = YELOU.drum;
+    const step = (Math.PI * 2) / 256;
+    for (let k = 0; k < MAX_DRUMS; k++) {
+      if (!f.dOn[k]) continue;
+      const cx = f.dX[k]!;
+      const cy = f.dY[k]!;
+      const R = f.dR[k]!;
+      const gaps = [f.dGap0[k]!, f.dGap1[k]!].filter((v) => v >= 0).sort((a, b) => a - b);
+      const arcs: [number, number][] = [];
+      let from = gaps.length ? gaps[gaps.length - 1]! + D.gapHalf - 256 : 0;
+      for (const gp of gaps) {
+        arcs.push([from, gp - D.gapHalf]);
+        from = gp + D.gapHalf;
+      }
+      if (!gaps.length) arcs.push([0, 256]);
+      g.lineStyle(D.thick, 0x2a2236, 0.75);
+      for (const [a0, a1] of arcs) {
+        g.beginPath();
+        g.arc(cx, cy, R, a0 * step, a1 * step);
+        g.strokePath();
+      }
+      g.lineStyle(D.thick * 0.35, 0xb8a0e0, 0.8);
+      for (const [a0, a1] of arcs) {
+        g.beginPath();
+        g.arc(cx, cy, R, a0 * step, a1 * step);
+        g.strokePath();
+      }
+      g.lineStyle(D.thick + 4, 0xf3c84a, 0.95);
+      for (const gp of gaps)
+        for (const e of [gp - D.gapHalf, gp + D.gapHalf]) {
+          g.beginPath();
+          g.arc(cx, cy, R, (e - 2) * step, (e + 2) * step);
+          g.strokePath();
+        }
+    }
+    const px = w.x;
+    const py = w.y;
+    // 月蚀：主角四周留一圈看得见，其余压暗；灯笼在夜色上面亮着。连战事件「灯下黑」（w.rushDark）和咒「暗」同样压暗，看得近一点
+    if (f.ylDark || w.rushDark || w.setup.curses?.includes('dark')) {
+      const sight = Math.min(view.width, view.height) * 0.5 * (f.ylDark ? YELOU.sight : CURSE_FX.darkView);
+      const far = Math.max(view.width, view.height) * 1.5;
+      t.lineStyle(far, 0x05040c, 0.62);
+      t.strokeCircle(px, py, sight + far / 2);
+      t.lineStyle(60, 0x05040c, 0.3);
+      t.strokeCircle(px, py, sight - 10);
+    }
+    for (let k = 0; k < f.lN; k++) {
+      const lx = f.lX[k]!;
+      const ly = f.lY[k]!;
+      const near = (px - lx) ** 2 + (py - ly) ** 2 <= YELOU.lantern.r ** 2;
+      t.fillStyle(0xffb84a, near ? 0.22 : 0.12);
+      t.fillCircle(lx, ly, YELOU.lantern.r);
+      t.lineStyle(3, 0xf3c84a, near ? 0.9 : 0.5);
+      t.strokeCircle(lx, ly, YELOU.lantern.r);
+      t.fillStyle(0xd0302a, 1);
+      t.fillRoundedRect(lx - 14, ly - 62, 28, 36, 10);
+      t.fillStyle(0xffd36a, 0.7 + Math.sin(now * 0.008 + k) * 0.2);
+      t.fillRoundedRect(lx - 8, ly - 56, 16, 24, 6);
+    }
+    // 夜潮：圈外一片暗潮，边上一道浪
+    if (f.tideR > 0) {
+      const far = Math.max(view.width, view.height) * 2;
+      t.lineStyle(far, 0x0b1430, 0.5);
+      t.strokeCircle(f.tideX, f.tideY, f.tideR + far / 2);
+      t.lineStyle(10, 0x5a7ad0, 0.7 + Math.sin(now * 0.01) * 0.2);
+      t.strokeCircle(f.tideX, f.tideY, f.tideR);
+    }
+    if (yl >= 0) {
+      // 月牙镰预警：沿冲的方向一道半透明红线
+      if (w.eS[yl] === 1 && w.ePhase[yl] === 1) {
+        const x = w.eX[yl]!;
+        const y = w.eY[yl]!;
+        const L = YELOU.scythe.dash * YELOU.scythe.speed;
+        t.lineStyle(w.eR[yl]! * 2, 0xd0302a, 0.28 + Math.sin(now * 0.04) * 0.12);
+        t.lineBetween(x, y, x + w.eAX[yl]! * L, y + w.eAY[yl]! * L);
+        t.lineStyle(3, 0xff6a5a, 0.9);
+        t.lineBetween(x, y, x + w.eAX[yl]! * L, y + w.eAY[yl]! * L);
+      }
+      // 滴漏：五更每 3 秒滴一声
+      const drip = yelouDrip(w);
+      const sec = drip > 0 ? Math.floor(drip / 90) : -1;
+      if (sec >= 0 && sec !== this.dripSec) sfx.play('waterDrip', { volume: 0.5 });
+      this.dripSec = sec;
+    }
   }
 
   private attach(w: World, now: number, inter: (p: number, c: number) => number): void {

@@ -5,6 +5,8 @@
 import { raidHooks } from './raid-port.ts';
 import { MERGES } from '../content/weapons.ts';
 import { CHAR_FX } from '../content/meta.ts';
+import { MAP_IDS } from '../content/maps.ts';
+import { RELIC_IDS } from '../content/rush.ts';
 import type { World } from './state.ts';
 
 function mix(h: number, v: number): number {
@@ -41,8 +43,15 @@ export function fingerprint(w: World): number {
   if (w.raid) h = num(h, raidHooks().fingerprint(w.raid));
   // 首领连战的进度：只在连战局进指纹（别的局的金标准指纹不变）
   if (w.rush) {
-    for (const v of [w.rushStage, w.rushAt, w.rushLeft, w.rushDown, w.rushEnd]) h = num(h, v);
-    h = arr(h, w.eRush);
+    for (const v of [w.rushStage, w.rushAt, w.rushLeft, w.rushDown, w.rushEnd, w.rushRest, w.rushFrom, w.rushRage, w.rushCoins, w.rushTake, w.rushLocks, MAP_IDS.indexOf(w.mapId), ...w.rushPath]) h = num(h, v);
+    for (const r of w.rushRelics) h = mix(h, RELIC_IDS.indexOf(r));
+    for (const r of w.rRush.snapshot()) h = mix(h, r >>> 0);
+    h = arr(arr(arr(h, w.eRush), w.eAffix), w.eAtk);
+    // 词缀格、鬼火、夜漏君（core/foes/affix.ts、yelou.ts）：只有连战局有
+    const f = w.foe;
+    for (const a of [f.aI, f.aGen, f.aSummon, f.aShieldT, f.aShield, f.aWind, f.aPull, f.aDone, f.aHp, f.hEnd, f.hX, f.hY, f.hR, f.hDmg, f.hBy]) h = arr(h, a);
+    for (const a of [f.dOn, f.dX, f.dY, f.dR, f.dGap0, f.dGap1, f.dDmg, f.lX, f.lY]) h = arr(h, a);
+    for (const v of [f.lN, f.ylDark, f.ylInv, f.ylRain, f.ylCall, f.tideX, f.tideY, f.tideR, f.tideNext, f.dripEnd, f.ylRageNext, f.ylRageN, f.spiral]) h = num(h, v);
   }
   // 2.0 第一批法器的状态：只在用上的局进指纹（别的局的金标准指纹不变）
   if (w.arms.live()) {

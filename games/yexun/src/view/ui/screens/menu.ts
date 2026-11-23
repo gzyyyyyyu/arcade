@@ -2,6 +2,7 @@ import type { SchoolId } from '../../../content/guide.ts';
 import type { MapId } from '../../../content/maps.ts';
 import type { Danger } from '../../../content/waves.ts';
 import type { LiveTier } from '../../../content/live.ts';
+import type { RushPreset } from '../../../platform/live.ts';
 import type { RaidLiveTemplate, RaidTemplateId } from '../../../content/explore.ts';
 import { type Toggle, type MenuState, quickLive } from './shared.ts';
 import { Home } from './home.ts';
@@ -27,7 +28,7 @@ export class Menu {
   onLive: (tier: LiveTier, map: MapId, fallback?: () => void) => void = () => undefined;
   /** 夜探实盘开局（档位、镇子；角色用存档里的，不带加成） */
   onRaidLive: (tier: LiveTier, template: RaidLiveTemplate, fallback?: () => void) => void = () => undefined;
-  onRushLive: (tier: LiveTier) => void = () => undefined;
+  onRushLive: (tier: LiveTier, preset: RushPreset) => void = () => undefined;
   /** 切娱乐 / 实盘、换档位（main 记进存档） */
   onLiveMode: (on: boolean, tier: LiveTier) => void = () => undefined;
   /** 打开开局准备（角色、咒印、加成） */

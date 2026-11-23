@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENEMY_BY_KIND, HUAPI } from '../../src/content/enemies.ts';
 import { MAP_IDS } from '../../src/content/maps.ts';
 import { midBossOf } from '../../src/content/waves.ts';
-import { createWorld, Ev, fingerprint, rushPlan, step, type World } from '../../src/core/index.ts';
+import { createWorld, Ev, fingerprint, step, type World } from '../../src/core/index.ts';
 import { grantWeapon, spawnNow } from '../../src/core/debug.ts';
 
 const HUAPI_MAPS = ['guishi'] as const;
@@ -137,17 +137,6 @@ describe('画皮：混迹与现形', () => {
 });
 
 describe('画皮：连战与确定性', () => {
-  it('连战第 5 关：按图出本图的中期首领（鬼市画皮，其余见 foes.test.ts）；横幅名有画皮', () => {
-    for (const map of MAP_IDS) {
-      for (let seed = 1; seed <= 5; seed++) {
-        const p = rushPlan(seed, map);
-        expect(p.stages[4]).toEqual([midBossOf(map)]);
-        expect(p.stages[6]).toEqual(['boss']);
-      }
-    }
-    expect(ENEMY_BY_KIND.huapi.name).toBe('画皮');
-  });
-
   it('同种子同输入：逐拍指纹相同', () => {
     const make = (): World => {
       const w = createWorld({ seed: 21, mode: 'vigil', danger: 2, map: 'guishi' });

@@ -32,13 +32,13 @@ function shareTitle(r: RunSummary): string {
 }
 
 export function buildShareCard(r: RunSummary, player?: { name: string; badge?: string }): ShareCardData {
-  // 首领连战：大字写"全清"或 N/M，下面写用时
+  // 首领连战（每日或自由）：大字写「天亮」或 N/M，下面写用时；自由连战写危险档
   if (r.rush) {
     const x = r.rush;
     return {
       game: '夜巡',
-      title: '每日连战',
-      big: x.cleared ? { value: '全清', label: `${x.total} 只首领 · 用时 ${rushClock(x.ticks)}` } : { value: `${x.down}/${x.total}`, label: '连战' },
+      title: r.daily ? '每日连战' : `自由连战 · 危险${r.setup.danger}`,
+      big: x.cleared ? { value: '天亮', label: `${x.total} 只首领 · 用时 ${rushClock(x.ticks)}` } : { value: `${x.down}/${x.total}`, label: '连战' },
       stats: [
         { label: '连战', value: `${x.down}/${x.total}` },
         { label: '用时', value: rushClock(x.ticks) },

@@ -66,7 +66,7 @@ export class GroundPainter {
 
   /** 河、冰、桥、落叶这类整张场地的地形叠层：一张 canvas，缩小存（省内存设备更小） */
   paintTerrainLayer(): void {
-    const def = MAPS[this.w.setup.map ?? 'snow'];
+    const def = MAPS[this.w.mapId];
     const scale = LOW_MEMORY ? 0.34 : 0.5;
     const cv = paintTerrain(def, this.w.setup.seed, scale);
     if (!cv) return;
@@ -80,7 +80,7 @@ export class GroundPainter {
   scatterDecor(): void {
     const r = artRng(this.w.setup.seed);
     const blocks = this.w.blocks;
-    const mdef = MAPS[this.w.setup.map ?? 'snow'];
+    const mdef = MAPS[this.w.mapId];
     const water = mdef.water ?? [];
     const ice = mdef.ice ?? [];
     const bridges = mdef.bridges ?? [];
@@ -116,7 +116,7 @@ export class GroundPainter {
     put('puddle', Math.round(26 * dense), true);
     put('slabs', Math.round(30 * dense), true);
     put('grass', Math.round(220 * (this.raid ? dense / 2 : dense)), true);
-    const yz = !this.raid && this.w.setup.map === 'yizhuang';
+    const yz = !this.raid && this.w.mapId === 'yizhuang';
     // 山寺的树都是古松（Town 里摆），不再撒枯树
     // 竹林里本来就是竹子，不再撒枯树；冰湖上雪堆多一点
     if (this.raid?.setup.template !== 'shansi' && mdef.tone !== 'bamboo') put('tree', Math.round((yz ? 26 : mdef.tone === 'ice' ? 24 : 46) * dense), false);

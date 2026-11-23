@@ -167,14 +167,11 @@ describe('鬼市', () => {
 });
 
 describe('新地图不改动已开打的挑战', () => {
-  it('连战、本周夜事用自己写死的图表：鬼市加进守夜后，某天的连战图、某周的本周夜事图不变', async () => {
-    const { RUSH_MAPS, rushDaily } = await import('../../src/online/rush.ts');
+  it('本周夜事用自己写死的图表：鬼市加进守夜后，某周的本周夜事图不变（连战的图跟着路线图走，见 core/rush.ts rushRoute）', async () => {
     const { WEEKLY_MAPS, weeklyPlan } = await import('../../src/online/weekly.ts');
     const six = ['snow', 'bamboo', 'icelake', 'riverbank', 'yizhuang', 'temple'];
-    expect(RUSH_MAPS).toEqual(six);
     expect(WEEKLY_MAPS).toEqual(six);
-    // 这两天在鬼市加进来之前就已经有人打过榜
-    expect(six).toContain(rushDaily('2026-10-31').setup.map);
+    // 这一天在鬼市加进来之前就已经有人打过榜
     expect(six).toContain(weeklyPlan('2026-10-31').setup.map);
   });
 });

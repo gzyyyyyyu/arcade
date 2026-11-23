@@ -66,7 +66,7 @@ export class Pause {
       '<div class="yx-panel yx-pause-panel">' +
       `<div class="yx-panel-head"><b class="yx-brush">暂停</b>` +
       (hero ? `<button type="button" class="yx-cell yx-phcell sel" data-i="-1" aria-label="${esc(CHARACTERS[hero].name)}的技能和被动"><img alt="" src="${this.icons(skillInfo(hero).icon)}"></button>` : '') +
-      `<em>${clock} ${fmtClock(left)}</em></div>` +
+      `<em>${left < 0 ? clock : `${clock} ${fmtClock(left)}`}</em></div>` +
       '<div class="yx-pause-body">' +
       '<div class="yx-build">' +
       `<div class="yx-bline"><label>法器</label><div class="yx-grid">${weapons || '<span class="yx-none">还没有</span>'}</div></div>` +

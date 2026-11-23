@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { LIVE_KEY, LiveClient, classify, liveRushSetup, liveSetup, reviveLive } from '../../src/platform/live.ts';
+import { LIVE_KEY, LiveClient, classify, liveRushOk, liveRushSetup, liveSetup, reviveLive } from '../../src/platform/live.ts';
 import { LIVE_MAX_BP, LIVE_RUSH, LIVE_RUSH_TIERS, LIVE_TIER_IDS, LIVE_TIERS, rushBp, vigilBp } from '../../src/content/live.ts';
 import { RUSH_TOTAL } from '../../src/content/rush.ts';
 import { createWorld } from '../../src/core/step.ts';
-import { RUSH_MAPS } from '../../src/online/rush.ts';
+import { rushPresets, rushRoute } from '../../src/core/rush.ts';
 import { normalizeSetup } from '../../src/core/state.ts';
 import { RAID_LIVE } from '../../src/content/explore.ts';
 
@@ -455,11 +455,14 @@ describe('实盘连战（记录里有 rush）', () => {
     }
   });
 
-  it('开局配置：守夜连战、危险按档、固定小道士、不带加成咒印、图从连战表里抽；守夜实盘的降难度不生效', () => {
+  it('开局配置：守夜连战、危险按档、固定小道士、三套推荐配装之一、不带加成咒；图是路线图第一条路的；守夜实盘的降难度不生效', () => {
     for (const t of LIVE_RUSH_TIERS) {
       const s = liveRushSetup(t, 12345);
-      expect(s).toMatchObject({ mode: 'vigil', rush: true, live: true, danger: LIVE_TIERS[t].danger, character: 'xiaodao', perks: {}, assist: false });
-      expect(RUSH_MAPS).toContain(s.map);
+      expect(s).toMatchObject({ mode: 'vigil', rush: true, live: true, danger: LIVE_TIERS[t].danger, character: 'xiaodao', perks: {}, assist: false, rushHexes: [] });
+      expect(s.map).toBe(rushRoute(12345).layers[0]![0]!.map);
+      expect(s.rushLoadout).toEqual(rushPresets('xiaodao')[0]);
+      expect(liveRushSetup(t, 12345, 2).rushLoadout).toEqual(rushPresets('xiaodao')[2]);
+      for (const p of [0, 1, 2] as const) expect(liveRushOk(t, normalizeSetup(liveRushSetup(t, 7, p)))).toBe(true);
       const n = normalizeSetup(s);
       expect(n.curses ?? []).toEqual([]);
       expect(Object.keys(n.perks ?? {})).toEqual([]);
@@ -467,6 +470,20 @@ describe('实盘连战（记录里有 rush）', () => {
     }
     // 对照：同档守夜实盘照旧降难度
     expect(createWorld(liveSetup('medium', 12345)).liveEase).toBe(true);
+  });
+
+  it('实盘连战拒自定义配装、咒、别的角色、对不上的危险档', () => {
+    const ok = liveRushSetup('small', 99);
+    const [steady] = rushPresets('xiaodao');
+    expect(liveRushOk('small', ok)).toBe(true);
+    // 合法但不是推荐的配装：稳那套的被动降成 1 级
+    expect(liveRushOk('small', { ...ok, rushLoadout: { ...steady, passives: steady.passives.map((p) => ({ ...p, level: 1 as const })) } })).toBe(false);
+    expect(liveRushOk('small', { ...ok, rushHexes: ['dark'] })).toBe(false);
+    expect(liveRushOk('small', { ...ok, curses: ['dark'] })).toBe(false);
+    expect(liveRushOk('small', { ...ok, character: 'jianxia', rushLoadout: rushPresets('jianxia')[0] })).toBe(false);
+    expect(liveRushOk('small', { ...ok, danger: 4 })).toBe(false);
+    expect(liveRushOk('large', liveRushSetup('large', 99))).toBe(false);
+    expect(liveRushOk('small', { ...ok, rushLoadout: undefined })).toBe(false);
   });
 
   it('带入记下 rush；守夜的 finish 不管它，finishRush 按只数结', async () => {
@@ -498,12 +515,12 @@ describe('实盘连战（记录里有 rush）', () => {
     expect(saved(store).step).toBe('done');
   });
 
-  it('局里回大厅：leave() 当场按打倒只数结（小档打倒 1 只 = 2,000 × 1.01 份 / 8 = 252），不留给下次开页', async () => {
+  it('局里回大厅：leave() 当场按打倒只数结（小档打倒 1 关 = 2,000 × 1.00 份 / 10 = 200），不留给下次开页', async () => {
     const { c, calls, store } = rig();
     await c.buyin('small', 5, undefined, 'xiaodao', undefined, true);
     expect(LIVE_TIERS.small.stake).toBe(2000);
     c.progress(5, 900, 1);
-    expect(c.leaveChips(5)).toBe(252);
+    expect(c.leaveChips(5)).toBe(200);
     await c.leave(5);
     expect(calls.at(-1)!.url).toBe('api/live/settle');
     expect(calls.at(-1)!.body.bp).toBe(Math.floor((LIVE_RUSH.small!.reach * 1) / (RUSH_TOTAL - 1)));

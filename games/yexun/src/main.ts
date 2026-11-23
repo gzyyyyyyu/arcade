@@ -8,19 +8,21 @@ import { DANGERS, DAWN_TICK, type Danger } from './content/waves.ts';
 import { carries, COIN_EXCHANGE, runKind, CURSE_IDS, CURSES, LOOKS, MAX_CURSES } from './content/meta.ts';
 import { NOVICE } from './content/player.ts';
 import type { Setup, World } from './core/index.ts';
+import { normalizeSetup } from './core/state.ts';
 import { autoSkillSetting } from './view/game/autoskill.ts';
-import { buyChar, buyLook, buyPerk, dangerOpen, loadoutSetup, loadSave, mapOpen, payKits, refundPerks, saveHooks, setLoadout, settings, trialTierOpen, wearLook, weekGoalView, writeSave } from './platform/save.ts';
+import { buyChar, buyLook, buyPerk, charOpen, dangerOpen, loadoutSetup, loadSave, mapOpen, payKits, refundPerks, saveHooks, setLoadout, settings, trialTierOpen, wearLook, weekGoalView, writeSave } from './platform/save.ts';
 import { ExchangeClient } from './platform/exchange.ts';
 import type { ExchangeView } from './view/ui/prepShop.ts';
 import { MERGE_STAGE } from './content/weapons.ts';
 import { SCHOOLS } from './content/guide.ts';
 import { hasLoginHint, startCloud } from './platform/cloud.ts';
-import { createLive, liveRushSetup, liveSetup } from './platform/live.ts';
+import { createLive, liveRushOk, liveRushSetup, liveSetup, type RushPreset } from './platform/live.ts';
 import { liveCharOk, LIVE_TIERS, liveMapOk, type LiveTier } from './content/live.ts';
 import { loadRecords, RunTally } from './meta/records.ts';
 import { AchievementToast, Codex, MONSTER_INFO } from './view/ui/codex.ts';
 import { Guide } from './view/ui/guide.ts';
 import { Recorder } from './replay/recorder.ts';
+import { isBlocked } from './replay/describe.ts';
 import { bestScore, loadReplays } from './replay/store.ts';
 import { ReplayList } from './replay/view/list.ts';
 import { ReplayBar } from './replay/view/bar.ts';
@@ -33,13 +35,13 @@ import { beijingDate, dailyPlan, dailyTheme } from './online/daily.ts';
 import { weekDaysLeft, weekIndex } from './online/weekly.ts';
 import { FriendBests } from './online/trials.ts';
 import { TrialsPanel } from './view/ui/trials.ts';
-import { RushIntro } from './view/ui/rushIntro.ts';
+import { RushIntro, type RushStart } from './view/ui/rushIntro.ts';
 import { goalText, isTrialId, TRIALS, type TrialId } from './content/trials.ts';
 import { weeklyPlan } from './online/weekly.ts';
-import { rushDaily } from './online/rush.ts';
-import { rushPlan } from './core/rush.ts';
+import { rushDaily, rushFree, withLoadout } from './online/rush.ts';
+import { rushPresets, rushRoute } from './core/rush.ts';
 import { formatScore } from './online/score.ts';
-import { RUSH } from './content/rush.ts';
+import { rushFinal, rushTimer } from './view/game/rush.ts';
 import { Prep } from './view/ui/prep.ts';
 import { MAPS, type MapId } from './content/maps.ts';
 import { buildAtlas, buildGround, buildHeroAtlas, buildMobAtlas, buildRaidAtlas, HERO_TEX, MOB_TEX } from './view/art/atlas.ts';
@@ -358,7 +360,8 @@ async function boot(): Promise<void> {
     if (leaving || !world || sess.ended || pause.open || confirm.open) return;
     setPaused(true);
     tips.hide();
-    pause.show(buildRows(world), Math.max(0, ((world.rush ? RUSH.limit : DAWN_TICK) - world.tick) / 30), setLines(world), tonightRules(world.setup), world.setup.character ?? 'xiaodao', world.xinfa ? SCHOOLS[world.xinfa].name : undefined, world.rush ? '剩余' : undefined);
+    const rt = world.rush ? rushTimer(world) : null;
+    pause.show(buildRows(world), rt ? (rt.left < 0 ? -1 : rt.left) : Math.max(0, (DAWN_TICK - world.tick) / 30), setLines(world), tonightRules(world.setup), world.setup.character ?? 'xiaodao', world.xinfa ? SCHOOLS[world.xinfa].name : undefined, rt ? (rt.left < 0 && rushFinal(world) ? '不限时' : rt.label) : undefined);
   };
   pause.onResume = () => {
     if (leaving) return;
@@ -453,7 +456,7 @@ async function boot(): Promise<void> {
   const { finish } = createFinisher({ sess, save, live, submitter, social, result, confirm, tips, banners, toast, scene: () => scene, setPaused, showPlay, nonce });
 
   /** fixed：实盘、每日挑战用固定配置（kind 说是哪一种）；别的按菜单选的来 */
-  const startRun = async (picked: Danger, map: MapId = save.map, debug = false, fixed?: Setup, kind: 'live' | 'daily' | 'weekly' | 'rush' | 'trial' | null = null): Promise<void> => {
+  const startRun = async (picked: Danger, map: MapId = save.map, debug = false, fixed?: Setup, kind: 'live' | 'daily' | 'weekly' | 'rush' | 'rushFree' | 'trial' | null = null): Promise<void> => {
     const e = await ready();
     if (!e) return;
     const { game: g, GameScene, createWorld } = e;
@@ -490,7 +493,9 @@ async function boot(): Promise<void> {
     autopilot = undefined;
     social.setWhere(w.raid ? 'raid' : 'vigil');
     // 调试参数改过开局、快进过的局不录（录像要从第 0 拍逐拍记）
-    sess.rec = q.has('give') || q.has('warp') ? null : new Recorder(w.setup, Date.now());
+    // ?rushfinal 跳过了前 10 关：不录、不交榜、不记纪录（finish.ts devRun）
+    sess.devRun = import.meta.env.DEV && !!w.rush && q.has('rushfinal');
+    sess.rec = q.has('give') || q.has('warp') || sess.devRun ? null : new Recorder(w.setup, Date.now());
     // 调试开局只在开发服务器里动态加载：它静态引 core/debug → step，静态 import 会把整个规则核心拖进首屏
     const dbg = import.meta.env.DEV ? await import('./app/debugStart.ts') : null;
     autopilot = dbg ? await dbg.applyDebugStart(q, w, sess.tally, seed) : undefined;
@@ -593,20 +598,33 @@ async function boot(): Promise<void> {
     return startRun(plan.setup.danger, plan.setup.map ?? 'snow', true, plan.setup, 'weekly');
   };
   menu.onWeekly = () => void startWeekly();
-  // 每日首领连战（DESIGN.md 2.5）：今天的构筑和首领顺序全服一样
-  const startRush = (): Promise<void> => {
-    const plan = rushDaily(beijingDate(Date.now()));
-    return startRun(plan.setup.danger, plan.setup.map ?? 'snow', true, plan.setup, 'rush');
+  // 首领连战（docs/design-play.md 2.5）：连战页选每日 / 自由和配装，点开始开局；每日同一天全服同一张路线图（种子），配装和咒各人自己选
+  let rushLast: RushStart | null = null;
+  const startRush = (p: RushStart): Promise<void> => {
+    rushLast = p;
+    // 自由连战只开到已解锁的危险（页面也夹，这里再挡一次：上一局的 rushLast 可能是别的号留下的）
+    const danger = Math.min(p.danger, 4, dangerOpen(save)) as Danger;
+    const setup = p.free ? withLoadout(rushFree((Math.random() * 0x100000000) >>> 0, danger), p.loadout, p.hexes) : withLoadout(rushDaily(beijingDate(Date.now())).setup, p.loadout, p.hexes);
+    return startRun(setup.danger, 'snow', true, setup, p.free ? 'rushFree' : 'rush');
   };
-  // 主页「连战」先弹今日连战卡（今天的构筑、关卡、本机最好），点开始才开局；结算页「再来一局」直接开
-  const rushIntro = new RushIntro(stage, icon, { onStart: () => void startRush(), onClose: () => menu.show(menuState()) });
+  const rushIntro = new RushIntro(stage, icon, { onStart: (p) => void startRush(p), onClose: () => menu.show(menuState()) });
   menu.onRush = () => {
     const date = beijingDate(Date.now());
     const plan = rushDaily(date);
-    const map = plan.setup.map ?? 'snow';
     const best = bestScore(plan.boardId);
     menu.hide();
-    rushIntro.show({ date, map, plan: rushPlan(plan.setup.seed, map), best: best === null ? null : formatScore('daily-rush', best) });
+    rushIntro.show({
+      date,
+      daily: rushRoute(plan.setup.seed),
+      bestDaily: best === null ? null : formatScore('daily-rush', best),
+      bestFree: (d) => {
+        const s = sess.records.rushBest[`${d}`];
+        return s === undefined ? null : formatScore('daily-rush', s);
+      },
+      open: (c) => charOpen(save, c),
+      last: rushLast,
+      maxDanger: Math.min(4, dangerOpen(save)) as Danger,
+    });
   };
   // 试炼（docs/design-play.md 2.6）：配置按表展开（核心 normalizeSetup），种子每局随机；好友最好每次打开页读一次
   const startTrial = (id: TrialId): Promise<void> => {
@@ -643,7 +661,7 @@ async function boot(): Promise<void> {
     g.loop.wake();
     const player = ReplayPlayer.from(record);
     if (!player) {
-      confirm.ask('这段录像坏了，放不了', '知道了', '回菜单', () => menu.show(menuState()));
+      confirm.ask(isBlocked(record) ? '这段连战录像是旧版本的，规则变了，放不了' : '这段录像坏了，放不了', '知道了', '回菜单', () => menu.show(menuState()));
       return;
     }
     menu.hide();
@@ -738,8 +756,11 @@ async function boot(): Promise<void> {
     confirm.ask(why, '知道了', '回菜单', () => menu.show(menuState()));
   };
   // 实盘连战（docs/design-live.md 4.1b）：每局随机种子，固定小道士、不带加成；只开 LIVE_RUSH 里有的档
-  const startLiveRush = async (tier: LiveTier, fallback?: () => void): Promise<void> => {
+  const startLiveRush = async (tier: LiveTier, preset: RushPreset, fallback?: () => void): Promise<void> => {
     const seed = (Math.random() * 0x100000000) >>> 0;
+    // 实盘连战只开三套推荐、不带咒、档位对得上的局（倍数按这个量的）；对不上不买入
+    const setup = liveRushSetup(tier, seed, preset);
+    if (!liveRushOk(tier, normalizeSetup(setup))) return menu.show(menuState());
     if (!(await ready())) return;
     starting = true;
     let r: Awaited<ReturnType<typeof live.buyin>>;
@@ -750,14 +771,13 @@ async function boot(): Promise<void> {
     }
     if (r.ok) {
       sess.liveTier = tier;
-      sess.lastLive = { tier, rush: true };
-      const setup = liveRushSetup(tier, seed);
+      sess.lastLive = { tier, rush: true, preset };
       return startRun(setup.danger, setup.map ?? 'snow', true, setup, 'live');
     }
     return buyinFailed(r.outcome, tier, fallback);
   };
   menu.onLive = (tier, map, fallback) => void startLive(tier, undefined, map, fallback);
-  menu.onRushLive = (tier) => void startLiveRush(tier);
+  menu.onRushLive = (tier, preset) => void startLiveRush(tier, preset);
   menu.onRaidLive = (tier, tpl, fallback) => void startLive(tier, tpl, undefined, fallback);
   // 夜探（第 6 步）：第一次固定教学镇、危险 0；之后选模板和危险档。带角色和加成，不带咒印
   menu.onRaid = (template: RaidTemplateId, picked: Danger) => {
@@ -782,11 +802,11 @@ async function boot(): Promise<void> {
     vault.show();
   };
   result.onAgain = () => {
-    if (sess.lastLive?.rush) return void startLiveRush(sess.lastLive.tier);
+    if (sess.lastLive?.rush) return void startLiveRush(sess.lastLive.tier, sess.lastLive.preset ?? 0);
     if (sess.lastLive) return void startLive(sess.lastLive.tier, sess.lastLive.raid, sess.lastLive.map);
     if (world?.setup.trial) return void startTrial(world.setup.trial);
     if (world?.setup.mode === 'raid') return menu.onRaid(world.setup.raid?.template ?? 'guzhen', world.setup.danger);
-    if (world?.setup.rush) return void startRush();
+    if (world?.setup.rush) return rushLast ? void startRush(rushLast) : menu.onRush();
     if (sess.dailyDate) return void startDaily();
     if (sess.weeklyDate) return void startWeekly();
     wantEndless = !!world?.setup.endless;
@@ -811,8 +831,9 @@ async function boot(): Promise<void> {
   // ?raid=guzhen|dukou|shansi|xilou|teach 直接开一局夜探（冒烟截图用；可带 &auto 机器人代打）。只开娱乐：实盘必须在菜单里选档位。
   // 线上只认 RAID_OPEN 里的镇子（raidOpen）
   const qr = q.get('raid');
-  // ?rush 直接开今天的首领连战（冒烟截图用；可带 &auto）
-  if (q.has('rush')) void startRush();
+  // ?rush 直接开今天的首领连战（「稳」配装，冒烟截图用；可带 &auto，&rushfinal 直接打夜漏君）；?rushpick 打开连战页
+  if (q.has('rush')) void startRush({ free: false, loadout: rushPresets('xiaodao')[0], hexes: [], danger: 2 });
+  else if (q.has('rushpick')) menu.onRush();
   // ?trial=<id> 直接开这关试炼；?trials 打开试炼页（冒烟截图用）
   else if (isTrialId(q.get('trial'))) void startTrial(q.get('trial') as TrialId);
   else if (q.has('trials')) menu.onTrials();

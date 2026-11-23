@@ -2,6 +2,8 @@
  * 2.0 的首领和特色怪的行为入口（DESIGN.md 3.5）。step.ts 只留最少的挂钩：
  * 出场初始化 foeInit、每只怪每拍 foeAct、每拍收尾 foeTick（圈落下、浪、风、浮冰、摆设、戏台）、
  * 倒下 foeOnKill、挨打 foeOnHit / foeGhost / foeHitMul、主角受伤和走路的倍数 foeHurtMul / foeSlowMul。
+ * 首领连战：词缀在 affix.ts（连战调 affixInit / affixTick），终局首领夜漏君在 yelou.ts（这里分发）；地上的圈和鬼火的写法在 ground.ts。
+ * 招式伤害都乘出手那只的 w.eAtk（守夜、夜探恒 1；连战按第几关重设）。
  * 技能的数值在 content/foes.ts，状态记在怪的 eT / eS / eV / eAX / eAY 和 World.foe（state.ts）。
  */
 import { ENEMY_BY_KIND, type EnemyKind } from '../../content/enemies.ts';
@@ -12,9 +14,14 @@ import { dcos, dirIndex, dsin, fsqrt } from '../fmath.ts';
 import { Ev } from '../events.ts';
 import { MAX_ENEMIES, type World } from '../state.ts';
 import { api } from './api.ts';
-import { MAX_CIRCLES, MAX_FLOES, MAX_WAVES } from './state.ts';
+import { shadowOrphan } from './affix.ts';
+import { addCircle } from './ground.ts';
+import { MAX_CIRCLES, MAX_FLAMES, MAX_FLOES, MAX_WAVES } from './state.ts';
+import { yelouAct, yelouDown, yelouHitMul, yelouInit, yelouShielded } from './yelou.ts';
 
 export { bindFoeApi } from './api.ts';
+export { affixInit, affixList, affixPull, affixShieldLeft, affixTick, AFFIX_BIT } from './affix.ts';
+export { rushSkipToFinal, yelouDrip } from './yelou.ts';
 
 /** 怪这一拍对方向和速度的改动（moveEnemies 先填进来，foeAct 改完再取走） */
 export interface FoeMv {
@@ -34,6 +41,8 @@ const HONGYI_C = CODE('hongyi');
 const CLONE_C = CODE('hongyiclone');
 const SHUOSHU_C = CODE('shuoshu');
 const PILE_C = CODE('ricepile');
+const YELOU_C = CODE('yelou');
+const SHADOW_C = CODE('yingzi');
 const COFFIN_C = CODE('coffin');
 const SPROUT_C = CODE('bamsprout');
 const PROP_CODES: ReadonlySet<number> = new Set(PROP_KINDS.map(CODE));
@@ -45,25 +54,28 @@ export function isProp(code: number): boolean {
 }
 /** 倒下不掉东西、不记击杀的（摆设和红衣戏子的假身） */
 export function noDrop(code: number): boolean {
-  return PROP_CODES.has(code) || code === CLONE_C;
+  return PROP_CODES.has(code) || code === CLONE_C || code === SHADOW_C;
 }
-/** 是不是 2.0 新增的首领（中期的四个和夜探守门的两个）：出场不报"精英"横幅、倒下发 Ev.Foe 23 */
+/** 是不是 2.0 新增的首领（中期的四个、夜探守门的两个、连战终局夜漏君）：出场放自己的音、倒下发 Ev.Foe 23（夜漏君发 81） */
 export function isFoeBoss(code: number): boolean {
-  return code === ZHUMU_C || code === SHUIHOU_C || code === BINGHUN_C || code === WUMIAN_C || code === HONGYI_C || code === SHUOSHU_C;
+  return code === YELOU_C || code === ZHUMU_C || code === SHUIHOU_C || code === BINGHUN_C || code === WUMIAN_C || code === HONGYI_C || code === SHUOSHU_C;
 }
 
 /** 潜水、钻地时：打不到、碰不到、武器不瞄 */
 export function foeGhost(w: World, i: number): boolean {
   const k = w.eKind[i]!;
+  if (k === YELOU_C) return yelouShielded(w);
   return (k === SHUIHOU_C || k === SHUOSHU_C) && w.eS[i] === 1;
 }
 /** 武器不瞄它：潜水钻地的首领和摆设 */
 export function foeUntargetable(w: World, i: number): boolean {
   return isProp(w.eKind[i]!) || foeGhost(w, i);
 }
-/** 挨打的倍数：无面佛眩晕时 */
+/** 挨打的倍数：无面佛眩晕时；夜漏君三更站在灯笼旁 */
 export function foeHitMul(w: World, i: number): number {
-  return w.eKind[i] === WUMIAN_C && w.eS[i] === 3 ? WUMIAN.stunHit : 1;
+  const k = w.eKind[i]!;
+  if (k === YELOU_C) return yelouHitMul(w);
+  return k === WUMIAN_C && w.eS[i] === 3 ? WUMIAN.stunHit : 1;
 }
 /** 被火打中的雪童子现形 */
 export function foeOnHit(w: World, i: number, fire: boolean): void {
@@ -113,6 +125,9 @@ export function foeInit(w: World, i: number, kind: EnemyKind): void {
     case 'hongyiclone':
       w.eT[i] = HONGYI.cloneLife;
       break;
+    case 'yelou':
+      yelouInit(w, i);
+      break;
     case 'crossbow':
       // 刚出场先错开一阵，一群不同时放箭
       w.eT[i] = CROSSBOW.every + w.rAi.int(40);
@@ -141,30 +156,14 @@ export function foeOnKill(w: World, i: number, x: number, y: number): void {
       w.eT[j] = GUANDING.coffinLife;
       w.ev.push(Ev.Foe, x, y, 16, 0, j);
     }
-  } else if (isFoeBoss(k)) {
+  } else if (k === YELOU_C) yelouDown(w, x, y, i);
+  else if (isFoeBoss(k)) {
     w.ev.push(Ev.Foe, x, y, 23, k, i);
     if (k === WUMIAN_C) w.foe.dark = 0;
   }
 }
 
 // ───────────────────────── 圈、浪、风、浮冰 ─────────────────────────
-
-/** 地上落一个圈：warn 拍后 (x, y) 半径 r 里的主角挨 dmg（slow > 0 再慢那么多拍）；vis 是圈的样子 */
-function addCircle(w: World, x: number, y: number, r: number, warn: number, dmg: number, vis: number, slow = 0): void {
-  const f = w.foe;
-  for (let k = 0; k < MAX_CIRCLES; k++) {
-    if (f.cT[k]! > 0) continue;
-    f.cT[k] = warn;
-    f.cX[k] = x;
-    f.cY[k] = y;
-    f.cR[k] = r;
-    f.cDmg[k] = dmg;
-    f.cVis[k] = vis;
-    f.cSlow[k] = slow;
-    w.ev.push(Ev.Foe, x, y, 30 + vis, r, warn);
-    return;
-  }
-}
 
 function ringCircles(w: World, cx: number, cy: number, ring: number, n: number, r: number, warn: number, dmg: number, vis: number): void {
   const off = w.rAi.int(DIR_N);
@@ -174,7 +173,7 @@ function ringCircles(w: World, cx: number, cy: number, ring: number, n: number, 
   }
 }
 
-function addWave(w: World, axis: number, dir: number, start: number, end: number, gap: number): void {
+function addWave(w: World, axis: number, dir: number, start: number, end: number, gap: number, atk: number): void {
   const f = w.foe;
   for (let k = 0; k < MAX_WAVES; k++) {
     if (f.wOn[k]) continue;
@@ -186,6 +185,7 @@ function addWave(w: World, axis: number, dir: number, start: number, end: number
     f.wEnd[k] = end;
     f.wGap[k] = gap;
     f.wGapW[k] = ZHUMU.waveGapW;
+    f.wAtk[k] = atk;
     return;
   }
 }
@@ -238,7 +238,7 @@ export function foeTick(w: World): void {
     const perp = f.wAxis[k] === 0 ? w.y : w.x;
     const half = ZHUMU.waveThick / 2 + PLAYER.r;
     const gh = f.wGapW[k]! / 2;
-    if (Math.abs(along - pos) < half && Math.abs(perp - f.wGap[k]!) > gh) api.hurt(w, ZHUMU.waveDmg, ZHUMU_C);
+    if (Math.abs(along - pos) < half && Math.abs(perp - f.wGap[k]!) > gh) api.hurt(w, ZHUMU.waveDmg * f.wAtk[k]!, ZHUMU_C);
   }
   if (f.windT > 0 && --f.windT === 0) {
     const c = dcos(f.windDir);
@@ -247,16 +247,31 @@ export function foeTick(w: World): void {
     const px = -(w.x - f.windX) * s + (w.y - f.windY) * c;
     f.slickUntil = w.tick + BINGHUN.slick;
     if (ax > 0 && ax < BINGHUN.windLen && Math.abs(px) < BINGHUN.windHalf + PLAYER.r) {
-      api.hurt(w, BINGHUN.windDmg, BINGHUN_C);
+      api.hurt(w, BINGHUN.windDmg * f.windAtk, BINGHUN_C);
       w.x += c * BINGHUN.windPush;
       w.y += s * BINGHUN.windPush;
       api.fixPlayer(w);
     }
   }
   if (f.fN > 0 && w.tick >= f.floeUntil) f.fN = 0;
+  // 鬼火：踩进去挨烧（受伤后的无敌拍照常挡）
+  for (let k = 0; k < MAX_FLAMES; k++) {
+    if (f.hEnd[k]! <= w.tick) continue;
+    const dx = w.x - f.hX[k]!;
+    const dy = w.y - f.hY[k]!;
+    const rr = f.hR[k]! + PLAYER.r;
+    if (dx * dx + dy * dy < rr * rr) api.hurt(w, f.hDmg[k]!, f.hBy[k]!);
+  }
   for (let i = 0; i < MAX_ENEMIES; i++) {
     if (!w.eAlive[i]) continue;
     const k = w.eKind[i]!;
+    // 词缀「分」的影子：本体倒了就散（不掉东西、不记击杀）
+    if (k === SHADOW_C && shadowOrphan(w, i)) {
+      w.eAlive[i] = 0;
+      w.eCount--;
+      w.ev.push(Ev.Foe, w.eX[i]!, w.eY[i]!, 68, 0, i);
+      continue;
+    }
     if (k !== PILE_C && k !== COFFIN_C) continue;
     // 摆设：寿命到了散掉；主角走不过去
     if (--w.eT[i]! <= 0) {
@@ -344,6 +359,8 @@ export function foeAct(w: World, i: number, kind: EnemyKind, d: number, dx: numb
       return crossbowAct(w, i, d, dx, dy, mv);
     case 'hurrier':
       return hurrierAct(w, i, mv);
+    case 'yelou':
+      return yelouAct(w, i, d, dx, dy, mv);
     default:
       return;
   }
@@ -360,7 +377,7 @@ function zhumuAct(w: World, i: number, dx: number, dy: number): void {
   if (skill === 0) {
     // 竹笋：朝主角排一行，一个比一个晚冒
     w.ev.push(Ev.Foe, x, y, 3, 0, 0);
-    for (let k = 1; k <= ZHUMU.shoots; k++) addCircle(w, x + dx * ZHUMU.gap * k, y + dy * ZHUMU.gap * k, ZHUMU.shootR, ZHUMU.warn + ZHUMU.stagger * k, ZHUMU.shootDmg, 0);
+    for (let k = 1; k <= ZHUMU.shoots; k++) addCircle(w, x + dx * ZHUMU.gap * k, y + dy * ZHUMU.gap * k, ZHUMU.shootR, ZHUMU.warn + ZHUMU.stagger * k, ZHUMU.shootDmg * w.eAtk[i]!, 0);
   } else if (skill === 1) {
     // 竹浪：四个方向轮流，空隙落在主角现在站的地方附近
     const c = w.eAX[i]!++ & 3;
@@ -369,7 +386,7 @@ function zhumuAct(w: World, i: number, dx: number, dy: number): void {
     const p0 = axis === 0 ? w.x : w.y;
     const perp = axis === 0 ? w.y : w.x;
     const gap = perp + (w.rAi.next() - 0.5) * 2 * ZHUMU.waveJitter;
-    addWave(w, axis, dir, p0 - dir * ZHUMU.waveReach, p0 + dir * ZHUMU.waveReach, gap);
+    addWave(w, axis, dir, p0 - dir * ZHUMU.waveReach, p0 + dir * ZHUMU.waveReach, gap, w.eAtk[i]!);
     w.ev.push(Ev.Foe, w.x, w.y, 2, c, 0);
   } else {
     // 召一圈竹精（场上太多就不召）
@@ -394,7 +411,7 @@ function shuihouAct(w: World, i: number, d: number, dx: number, dy: number, mv: 
     if (w.eT[i] === S.warn) {
       w.eAX[i] = w.x;
       w.eAY[i] = w.y;
-      addCircle(w, w.x, w.y, S.pounceR, S.warn, S.pounceDmg, 1);
+      addCircle(w, w.x, w.y, S.pounceR, S.warn, S.pounceDmg * w.eAtk[i]!, 1);
     }
     if (--w.eT[i]! <= 0) {
       w.eS[i] = 0;
@@ -440,7 +457,7 @@ function shuihouAct(w: World, i: number, d: number, dx: number, dy: number, mv: 
     w.ev.push(Ev.Foe, w.eX[i]!, w.eY[i]!, 6, a0, i);
     for (let k = -1; k <= 1; k++) {
       const a = a0 + k * S.whipSpread;
-      api.shot(w, w.eX[i]!, w.eY[i]! - 20, dcos(a) * S.whipSpeed, dsin(a) * S.whipSpeed, S.whipLife, S.whipDmg, S.whipR, 4);
+      api.shot(w, w.eX[i]!, w.eY[i]! - 20, dcos(a) * S.whipSpeed, dsin(a) * S.whipSpeed, S.whipLife, S.whipDmg * w.eAtk[i]!, S.whipR, 4);
     }
   }
 }
@@ -461,10 +478,11 @@ function binghunAct(w: World, i: number, dx: number, dy: number): void {
     f.windX = x;
     f.windY = y;
     f.windDir = dirIndex(dx, dy);
+    f.windAtk = w.eAtk[i]!;
     w.ev.push(Ev.Foe, x, y, 8, f.windDir, BINGHUN.windWarn);
   } else {
-    ringCircles(w, x, y, BINGHUN.spikeRing, BINGHUN.spikes, BINGHUN.spikeR, BINGHUN.spikeWarn, BINGHUN.spikeDmg, 2);
-    if (ph === 1) ringCircles(w, x, y, BINGHUN.ring2, BINGHUN.ring2Spikes, BINGHUN.spikeR, BINGHUN.spikeWarn + 8, BINGHUN.spikeDmg, 2);
+    ringCircles(w, x, y, BINGHUN.spikeRing, BINGHUN.spikes, BINGHUN.spikeR, BINGHUN.spikeWarn, BINGHUN.spikeDmg * w.eAtk[i]!, 2);
+    if (ph === 1) ringCircles(w, x, y, BINGHUN.ring2, BINGHUN.ring2Spikes, BINGHUN.spikeR, BINGHUN.spikeWarn + 8, BINGHUN.spikeDmg * w.eAtk[i]!, 2);
   }
 }
 
@@ -495,7 +513,7 @@ function wumianAct(w: World, i: number, dx: number, dy: number, mv: FoeMv): void
       const idx = (n + k * 2) & 3;
       const sx = f.homeX + (idx === 0 || idx === 3 ? -1 : 1) * WUMIAN.statue * 0.8;
       const sy = f.homeY + (idx < 2 ? -1 : 1) * WUMIAN.statue * 0.55;
-      addCircle(w, w.x, w.y, WUMIAN.ringR, WUMIAN.ringWarn, WUMIAN.ringDmg, 3);
+      addCircle(w, w.x, w.y, WUMIAN.ringR, WUMIAN.ringWarn, WUMIAN.ringDmg * w.eAtk[i]!, 3);
       w.ev.push(Ev.Foe, sx, sy, 20, idx, 0);
     }
     return;
@@ -662,7 +680,7 @@ function hongyiAct(w: World, i: number, d: number, dx: number, dy: number, mv: F
   } else {
     w.eS[i] = 1;
     w.eAY[i] = HONGYI.warn;
-    addCircle(w, w.eX[i]!, w.eY[i]!, HONGYI.sleeveR, HONGYI.warn, HONGYI.sleeveDmg, 5);
+    addCircle(w, w.eX[i]!, w.eY[i]!, HONGYI.sleeveR, HONGYI.warn, HONGYI.sleeveDmg * w.eAtk[i]!, 5);
   }
   void d;
 }
@@ -677,7 +695,7 @@ function shuoshuAct(w: World, i: number, d: number, dx: number, dy: number, mv: 
       const a = w.rAi.int(DIR_N);
       w.eAX[i] = w.x + dcos(a) * S.dist;
       w.eAY[i] = w.y + dsin(a) * S.dist * 0.8;
-      addCircle(w, w.eAX[i]!, w.eAY[i]!, S.popR, S.warn, S.popDmg, 4);
+      addCircle(w, w.eAX[i]!, w.eAY[i]!, S.popR, S.warn, S.popDmg * w.eAtk[i]!, 4);
     }
     if (--w.eT[i]! <= 0) {
       w.eS[i] = 0;

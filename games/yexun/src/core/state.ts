@@ -15,13 +15,14 @@ import { Rng } from './rng.ts';
 import { raidHooks, type RaidPort } from './raid-port.ts';
 import type { RaidSetup } from './raid-host.ts';
 import { BlockIndex, type RaidBlock } from './blocks.ts';
-import { rushPlan, type RushPlan } from './rush.ts';
+import { loadoutOk, rushPresets, rushRoute, type RushEventChoice, type RushGood, type RushLoadout, type RushRoute } from './rush.ts';
+import { MAX_RUSH_HEXES, RUSH_HEX_IDS, type RelicId, type RushEventId, type RushHexId, type RushStopKind } from '../content/rush.ts';
 import { altStart, mainSchools } from '../content/pools.ts';
 import type { SchoolId } from '../content/guide.ts';
 import { ArmsState } from './arms/state.ts';
 import { FoeState } from './foes/state.ts';
 
-export const RULES_VERSION = 78;
+export const RULES_VERSION = 79;
 export { TICKS_PER_SECOND } from '../content/clock.ts';
 /**
  * 刷怪的一圈：刚好在屏幕外（横屏一屏约 1000 × 560 到 1080 × 500 单位，画面层 viewport.ts 的 worldZoom），
@@ -129,11 +130,20 @@ export const Pick = {
   /** + 第几张 */
   Ban: 200,
   Skip: 300,
+  /** 连战（core/rush.ts）：+ 第几张锁、+ 第几条路、+ 第几格货、离开驿站、+ 事件第几项、+ 休整第几项 */
+  Lock: 400,
+  Route: 500,
+  Buy: 600,
+  Leave: 700,
+  Event: 800,
+  Rest: 900,
 } as const;
 
 export interface Choice {
-  kind: 'weapon' | 'passive' | 'coins';
-  id: WeaponId | PassiveId | 'coins';
+  kind: 'weapon' | 'passive' | 'coins' | 'relic';
+  id: WeaponId | PassiveId | 'coins' | RelicId;
+  /** 连战的稀有度：普通 1 / 稀有 2 / 珍品 3 = 一次升几级（新法器直接到这一级）；守夜没有 */
+  tier?: 1 | 2 | 3;
 }
 
 export interface Setup {
@@ -189,6 +199,10 @@ export interface Setup {
    * 构筑和关卡都从种子算（core/rush.ts），录像照常重放
    */
   rush?: boolean;
+  /** 连战的配装（core/rush.ts loadoutOk）；连战局没有或不合法时 normalizeSetup 补「稳」那套，别的局删掉 */
+  rushLoadout?: RushLoadout;
+  /** 连战的咒（最多 MAX_RUSH_HEXES 条）；别的局删掉 */
+  rushHexes?: readonly RushHexId[];
   /**
    * 开局配置 A：起手法器换成「另一主修流派的核心件」（content/pools.ts altStart），而不是角色自己的起手件。
    * 只有 true 有意义；哪种局能带照 content/meta.ts CARRY，normalizeSetup 会把别的值和不该有的去掉
@@ -246,6 +260,21 @@ export function normalizeSetup(raw: Setup): Setup {
   // 本周夜事只给守夜：实盘、夜探不开（每日挑战的 Setup 本来就不带它，isDailySetup 也核了）
   if (out.weekly !== undefined && (!isWeeklyId(out.weekly) || out.mode !== 'vigil' || out.live)) delete out.weekly;
   if (out.novice !== undefined && !noviceAssist(out)) delete out.novice;
+  if (out.rush && out.mode === 'vigil') {
+    const pc = (CHARACTER_IDS as readonly string[]).includes(character) ? (character as CharacterId) : 'xiaodao';
+    const l = out.rushLoadout;
+    out.rushLoadout = l && l.character === pc && loadoutOk(l) ? l : rushPresets(pc)[0];
+    out.rushHexes = RUSH_HEX_IDS.filter((h) => s.rushHexes?.includes(h)).slice(0, MAX_RUSH_HEXES);
+    // 连战的心法、起手跟着配装走，守夜的开局配置和锦囊不带
+    out.xinfa = out.rushLoadout.xinfa;
+    // 和守夜咒印同名的四条（疾、枯、定、暗）直接按咒印生效；凶、贫只在连战规则里看 rushHexes
+    out.curses = CURSE_IDS.filter((c) => (out.rushHexes as readonly string[]).includes(c));
+    delete out.startAlt;
+    delete out.kits;
+    return out;
+  }
+  delete out.rushLoadout;
+  delete out.rushHexes;
   // 开局配置（A 只认 true；B 只认本角色的主修流派）和锦囊（只认表里的、不重复）：哪种局能带照 content/meta.ts CARRY
   const kind = runKind(out);
   if (out.startAlt !== true || !carries('startAlt', kind)) delete out.startAlt;
@@ -286,6 +315,7 @@ export class World {
   /** 起手法器：开局配置 A（startAlt）开了就是另一主修的核心件，否则是角色自己的起手件 */
   get startWeapon(): WeaponId {
     const id = this.setup.character ?? 'xiaodao';
+    if (this.setup.rushLoadout) return this.setup.rushLoadout.start;
     return this.setup.startAlt ? altStart(id) : CHARACTERS[id].start;
   }
   /** 心法（开局配置 B） */
@@ -417,18 +447,18 @@ export class World {
   /** 挡路的块：守夜是地图的，夜探是镇子生成的（推挤走 raid.map.index，分桶） */
   blocks: readonly (Block | RaidBlock)[];
   /** 地图的全部块（竹子倒了 blocks 里就没有它，这里还在）和每块的血（不会倒的是 Infinity）、上次受伤的拍；没有竹子时 blockHp 为空 */
-  readonly allBlocks: readonly Block[];
-  readonly blockHp: Float64Array;
-  readonly blockAt: Int32Array;
+  allBlocks: readonly Block[];
+  blockHp: Float64Array;
+  blockAt: Int32Array;
   /** 地形：水区、冰区（夜探没有） */
   /** 块多的守夜图（竹林）也走分桶的索引，竹子倒了重建 */
   index: BlockIndex | null = null;
-  readonly water: readonly Rect[];
-  readonly ice: readonly Rect[];
+  water: readonly Rect[];
+  ice: readonly Rect[];
   /** 香火区（荒庙） */
-  readonly incense: readonly Rect[];
+  incense: readonly Rect[];
   /** 火区（乱葬岗的磷火地、窑镇的窑口；core/fire.ts） */
-  readonly fire: readonly Rect[];
+  fire: readonly Rect[];
   /** 主角这一拍在不在香火区里（每拍开头按位置算，画面层拿来亮光圈） */
   inIncense = false;
   /** 主角在冰上的速度（冰上才用；离开冰面就按输入直接走） */
@@ -442,7 +472,7 @@ export class World {
   /** 画皮的缠丝：到这一拍之前主角走路再乘 HUAPI.silkSlow（画皮每拍在圈里就续上） */
   silkUntil = 0;
   /** 2.0 首领留在地上的圈、竹浪、冰风、浮冰等（core/foes/） */
-  readonly foe = new FoeState();
+  foe = new FoeState();
   /** 收获期：到这一拍之前少刷怪、多掉东西 */
   calmUntil = 0;
   /** 受伤补偿：下一个补偿肉包最早在这一拍 */
@@ -567,20 +597,65 @@ export class World {
   /** 胖师叔：这一拍挨了打，下一拍震开身边 */
   quake = false;
 
-  // 首领连战（setup.rush）：不是连战时 rush 为 null，下面几项不动
-  readonly rush: RushPlan | null;
-  /** 正在打 / 下一个要上的是第几关 */
+  /** 现在这张图：守夜、夜探是 setup.map（缺省雪原），连战按路线换（core/step.ts rushEnterMap） */
+  mapId: MapId;
+
+  // 首领连战（setup.rush，core/rush.ts）：不是连战时 rush 为 null，下面几项不动
+  readonly rush: RushRoute | null;
+  /** 正在打 / 下一个要上的是第几关（0–9 是路线图的列，10 = 终局） */
   rushStage = 0;
-  /** 下一关上场的拍；-1 = 这一关正在打 */
+  /** 下一关上场的拍；-1 = 这一关正在打或在菜单里 */
   rushAt = 0;
+  /** 这一关走的是这一列的第几条路（终局 -1） */
+  rushPath: number[] = [];
+  /** 这一关上场的拍（软限时从这里算） */
+  rushFrom = 0;
+  /** 发狂到第几档（0 = 没发狂；每档 RUSH.enrage.every 拍） */
+  rushRage = 0;
+  /** 纸钱（局内货币，不进存档、不换铜钱） */
+  rushCoins = 0;
+  /** 带着的符印 */
+  rushRelics: RelicId[] = [];
+  /** 这一手还要挑几张 */
+  rushTake = 0;
+  /** 这一轮还能锁几张；锁住留到下一手的卡 */
+  rushLocks = 0;
+  rushLocked: Choice[] = [];
+  /** 下一关的手牌多几张、挑卡多几张、首领多几条词缀、更黑（事件给的，上场时用掉） */
+  readonly rushNext = { hand: 0, take: 0, affix: 0, dark: false, gold: 0 };
+  /** 这一关夜更黑（咒「暗」以外的：灯下黑事件） */
+  rushDark = false;
+  /** 清完一关喘口气：到这一拍开选卡（-1 = 没在喘） */
+  rushRest = -1;
+  /** 刚清完的那一关是精英路（选卡多挑） */
+  rushElite = false;
+  /** 首领血的危险档倍数（开局定） */
+  rushHpMul = 1;
+  /** 五雷令：每只关底还剩几成血没落雷 */
+  readonly rushBolt = new Uint8Array(MAX_ENEMIES);
+  /** 护身符这一关用过了 */
+  rushCharm = false;
+  /** 菜单：选卡、路线图、驿站（phase 为 choose 时看它） */
+  menu: 'cards' | 'route' | 'stop' = 'cards';
+  /** 正在路过的驿站、事件和商店的货（menu = 'stop'） */
+  stop: RushStopKind | null = null;
+  stopEvent: RushEventId | null = null;
+  stopGoods: RushGood[] = [];
+  stopChoices: RushEventChoice[] = [];
+  /** 连战专用的随机流（路线以外：卡的稀有度、符印、商店、事件） */
+  readonly rRush: Rng;
   /** 这一关还剩几只没倒 */
   rushLeft = 0;
-  /** 一共打倒了几只 */
+  /** 清完几关（双煞两只都倒才算一关） */
   rushDown = 0;
   /** 全部打倒的那一拍（-1 = 还没打完） */
   rushEnd = -1;
   /** 哪些怪是连战的关底（召出来的小怪、纸轿不算） */
   readonly eRush = new Uint8Array(MAX_ENEMIES);
+  /** 连战首领身上的词缀（AFFIX_IDS 下标的位掩码；core/foes/affix.ts 读写） */
+  readonly eAffix = new Uint16Array(MAX_ENEMIES);
+  /** 招式伤害的倍数（连战按关数压首领的招式；守夜都是 1） */
+  readonly eAtk = new Float64Array(MAX_ENEMIES);
 
   constructor(raw: Setup) {
     const setup = normalizeSetup(raw);
@@ -598,11 +673,12 @@ export class World {
     }
     this.revives = perk('fuhuo') * PERK_FX.fuhuo;
     this.cardCount = 3 + perk('kapian') * PERK_FX.kapian;
-    this.rush = setup.rush && setup.mode === 'vigil' ? rushPlan(setup.seed, setup.map ?? 'snow') : null;
+    this.rush = setup.rush && setup.mode === 'vigil' ? rushRoute(setup.seed) : null;
+    this.mapId = this.rush ? this.rush.layers[0]![0]!.map : (setup.map ?? 'snow');
     this.raid = setup.mode === 'raid' && setup.raid ? raidHooks().create({ ...setup.raid, seed: setup.seed, danger: setup.danger, character: setup.character }) : null;
     this.arenaW = this.raid ? this.raid.map.size : ARENA.w;
     this.arenaH = this.raid ? this.raid.map.size : ARENA.h;
-    const def = MAPS[setup.map ?? 'snow'];
+    const def = MAPS[this.mapId];
     const mapBlocks = def.blocks;
     this.blocks = this.raid ? this.raid.map.blocks : mapBlocks;
     this.allBlocks = this.raid ? [] : mapBlocks;
@@ -630,6 +706,7 @@ export class World {
     this.rProp = new Rng(s, 'prop');
     this.rSkip = new Rng(s, 'skip');
     this.rMarket = new Rng(s, 'market');
+    this.rRush = new Rng(s, 'rush');
     this.stats = baseStats();
   }
 }

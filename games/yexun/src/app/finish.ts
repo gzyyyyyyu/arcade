@@ -1,11 +1,8 @@
 import { DANGERS, DAWN_TICK } from '../content/waves.ts';
-import { ASSIST } from '../content/meta.ts';
+import { ASSIST, CHARACTERS } from '../content/meta.ts';
 import { LIVE_TIERS, type LiveTier } from '../content/live.ts';
 import type { MapId } from '../content/maps.ts';
-import { MAPS } from '../content/maps.ts';
 import { RAID_TEMPLATES, type RaidLiveTemplate, type RaidTemplateId } from '../content/explore.ts';
-import { RUSH } from '../content/rush.ts';
-import { SCHOOLS } from '../content/guide.ts';
 import { TREASURES } from '../content/treasures.ts';
 import { WEEKLIES } from '../content/weekly.ts';
 import { rewardCoins, rewardLine } from '../content/achievements.ts';
@@ -17,7 +14,7 @@ import type { WeekRun } from '../content/weekGoals.ts';
 import { WEAPONS } from '../content/weapons.ts';
 import { settleRaid } from '../explore/settle.ts';
 import { recordRaid } from '../explore/vault.ts';
-import { applyRun, recordTrial, type RunTally, saveRecords, summarize } from '../meta/records.ts';
+import { applyRun, recordRush, recordTrial, type RunTally, saveRecords, summarize } from '../meta/records.ts';
 import { beijingDate, dailyTheme } from '../online/daily.ts';
 import { weekIndex } from '../online/weekly.ts';
 import { buildShareCard } from '../online/share.ts';
@@ -26,8 +23,8 @@ import { rushBoardId, rushScore, rushShort } from '../online/rush.ts';
 import { outcomeText, type createSubmitter } from '../online/submit.ts';
 import type { createSocial } from '../online/social.ts';
 import type { RunSummary } from '../online/types.ts';
-import type { createLive } from '../platform/live.ts';
-import { applyWeekRun, carryCoins, type CoinSource, coins, finishRun, finishTrial, grantCoins, recordLiveVigil, type loadSave, writeSave } from '../platform/save.ts';
+import type { createLive, RushPreset } from '../platform/live.ts';
+import { applyWeekRun, carryCoins, type CoinSource, coins, finishRun, finishRush, finishTrial, grantCoins, recordLiveVigil, type loadSave, writeSave } from '../platform/save.ts';
 import type { Recorder } from '../replay/recorder.ts';
 import { bestScore, storeReplay } from '../replay/store.ts';
 import { music } from '../view/audio/music.ts';
@@ -67,12 +64,14 @@ export interface Session {
   liveRun: { seed: number; down: number } | null;
   /** 录像（本机，DESIGN.md 5.4）和交分（5.7）：每局一个录像机 */
   rec: Recorder | null;
-  /** 每日挑战那天的日期跟着这一局走 */
+  /** 开发入口跳过关卡的局（?rushfinal）：不录、不交榜、不记纪录和铜钱，只出结算页 */
+  devRun?: boolean;
+  /** 每日挑战那天的日期跟着这一局走（每日连战也用它；自由连战是 null） */
   dailyDate: string | null;
   /** 本周夜事挑战开局那天的日期（同 dailyDate，决定交哪个周榜） */
   weeklyDate: string | null;
   /** 上一局是不是实盘、哪一档（"再来一局"照样来） */
-  lastLive: { tier: LiveTier; raid?: RaidLiveTemplate; map?: MapId; rush?: true } | null;
+  lastLive: { tier: LiveTier; raid?: RaidLiveTemplate; map?: MapId; rush?: true; preset?: RushPreset } | null;
   liveTier: LiveTier;
   /** 这一局已经结束（结算页出来了；回放里也先置上，暂停面板和结算都不出） */
   ended: boolean;
@@ -142,8 +141,13 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     }
     return { score: r.score, best: got.best, won: r.won, extra };
   };
-  /** 周目标：守夜、夜探、实盘、试炼的局都算（连战、回放不进 finish 的这条路），新完成的发铜钱 */
+  /** 周目标：守夜、夜探、实盘、试炼、连战的局都算（回放不进 finish 的这条路），新完成的发铜钱。连战只算打倒的首领（content/weekGoals.ts） */
   const weekEnd = (w: World): CoinSource[] => {
+    if (w.rush) {
+      const down = Math.min(w.rushDown, w.rush.foes.length);
+      const run: WeekRun = { mode: 'rush', won: false, danger: w.setup.danger, kills: 0, elites: w.rushDown, boss: w.rush.foes.slice(0, down).includes('boss'), evolves: 0, treasures: 0 };
+      return applyWeekRun(save, weekIndex(beijingDate(Date.now())), run);
+    }
     const escaped = !!w.raid && w.raid.outcome === 'escaped';
     const run: WeekRun = {
       mode: w.raid ? 'raid' : 'vigil',
@@ -168,7 +172,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     won: w.raid ? w.raid.outcome === 'escaped' : w.rush ? w.won : dawned(w),
     quit,
     bossKilled: w.bossKilled,
-    seconds: Math.floor((w.setup.endless ? w.tick : Math.min(w.tick, w.rush ? RUSH.limit : DAWN_TICK)) / 30),
+    seconds: Math.floor((w.setup.endless ? w.tick : w.rush ? (rushResult(w)?.ticks ?? w.tick) : Math.min(w.tick, DAWN_TICK)) / 30),
     ...(w.rush ? { rush: rushResult(w)! } : {}),
     kills: w.kills,
     level: w.level,
@@ -196,7 +200,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       const failed = outs.some((o) => o.result.kind === 'offline' || o.result.kind === 'busy');
       result.setNote(outs.map(outcomeText).join('；'), failed ? () => void submitter.retry(run).then(note) : null);
     };
-    void submitter.submit(run).then(note);
+    if (!sess.devRun) void submitter.submit(run).then(note);
     return run;
   };
   /**
@@ -268,11 +272,11 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     banners.clear();
     const seconds = (w.setup.endless ? w.tick : Math.min(w.tick, DAWN_TICK)) / 30;
     const trial = trialEnd(w, quit);
-    // 连战：存录像前先记下本机今天最好，结算页拿来比
+    // 每日连战：存录像前先记下本机今天最好，结算页拿来比
     const rushPrev = w.rush && sess.dailyDate ? bestScore(rushBoardId(sess.dailyDate)) : null;
     const run = archive(w, quit, trial);
-    // 周目标（连战不算）；试炼首通的铜钱一起报
-    const extra = w.rush ? [] : [...(trial?.extra ?? []), ...weekEnd(w)];
+    // 周目标（实盘连战不算）；试炼首通的铜钱一起报
+    const extra = w.rush && sess.liveRun ? [] : [...(trial?.extra ?? []), ...weekEnd(w)];
     social.setWhere('menu');
     offerShare(sess.liveRun ? null : run);
     if (sess.liveRun && w.rush && run.rush) {
@@ -281,7 +285,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
       sess.liveRun = null;
       showPlay(false);
       result.show({ won: run.rush.cleared, quit, bossKilled: false, seconds: run.rush.ticks / 30, kills: w.kills, level: w.level, coins: 0, label: `实盘 · 连战 · ${LIVE_TIERS[sess.liveTier].name}档`, live: '正在带回…', fixed: true, record: false, build: buildRows(w) });
-      decorateRushResult(result.root, w.rush, run.rush, quit, null);
+      decorateRushResult(result.root, w.rush, run.rush, quit, null, w.rushRelics);
       return live.finishRush(seed, run.rush, undefined, keepalive).then(showLiveResult);
     }
     if (sess.liveRun && w.raid) {
@@ -305,12 +309,32 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     }
     if (w.raid) return finishRaid(w, quit, seconds, null, extra, w.trial ? `${w.trial.name} · ${goalText(w.trial.goal)}` : '');
     if (w.rush && run.rush) {
-      // 首领连战：只交每日连战榜（archive 里交过了），不记守夜的纪录、解锁和成就（构筑是给好的，和守夜不可比），不发铜钱
+      // 首领连战（每日、自由）：每日的交榜在 archive 里交过了；发铜钱、记连战的纪录和两条连战成就，守夜的纪录、解锁和成就不碰（构筑不同）
+      const r = run.rush;
+      const daily = sess.dailyDate !== null;
+      const hexes = w.setup.rushHexes ?? [];
+      if (sess.devRun) {
+        showPlay(false);
+        result.show({ won: r.cleared, quit, bossKilled: false, seconds: r.ticks / 30, kills: w.kills, level: w.level, coins: 0, label: '开发 · 直接打终局（不记）', fixed: true, record: false, build: buildRows(w) });
+        decorateRushResult(result.root, w.rush, r, quit, null, w.rushRelics);
+        return;
+      }
+      const score = rushScore(r);
+      const got = finishRush(save, { id: `${w.setup.seed.toString(36)}-${nonce()}`, danger: w.setup.danger, ticks: r.ticks, down: r.down, cleared: r.cleared, hexes });
+      const rr = recordRush(sess.records, { cleared: r.cleared, danger: w.setup.danger, hexes: r.hexes, score, free: !daily, quit });
+      sess.records = rr.records;
+      saveRecords(sess.records);
+      for (const id of rr.unlocked) grantCoins(save, `ach:${id}`, rewardCoins([id]));
+      const achCoins = rewardCoins(rr.unlocked);
+      const sources = [...got.sources, ...(achCoins > 0 ? [{ label: rewardLine(rr.unlocked), coins: achCoins }] : []), ...extra];
+      const total = got.coins + achCoins + extra.reduce((a, x) => a + x.coins, 0);
+      const record = daily ? !quit && (rushPrev === null || score > rushPrev) : rr.best;
+      const who = CHARACTERS[w.setup.character ?? 'xiaodao'].name;
+      const label = `${daily ? '每日连战' : `自由连战 · ${DANGERS[w.setup.danger].name}`} · ${who}${hexes.length ? ` · 咒 ${hexes.length} 条` : ''}`;
       showPlay(false);
-      const score = rushScore(run.rush);
-      const record = !quit && (rushPrev === null || score > rushPrev);
-      result.show({ won: run.rush.cleared, quit, bossKilled: false, seconds: run.rush.ticks / 30, kills: w.kills, level: w.level, coins: w.coins, label: `每日连战 · ${MAPS[w.setup.map ?? 'snow'].name} · ${SCHOOLS[w.rush.school].name}`, fixed: true, record, build: buildRows(w) });
-      decorateRushResult(result.root, w.rush, run.rush, quit, record ? '就是这局' : rushPrev === null ? '—' : rushShort(rushPrev));
+      result.show({ won: r.cleared, quit, bossKilled: false, seconds: r.ticks / 30, kills: w.kills, level: w.level, coins: total, coinsTotal: coins(save), sources, label, fixed: true, record, build: buildRows(w) });
+      const prevText = daily ? (rushPrev === null ? '—' : rushShort(rushPrev)) : null;
+      decorateRushResult(result.root, w.rush, r, quit, record ? '就是这局' : prevText, w.rushRelics);
       return;
     }
     // 认输的局算一局、铜钱照拿，但不算纪录

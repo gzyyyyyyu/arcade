@@ -32,7 +32,9 @@ export type EnemyKind =
   // 规则 55：克制站桩近身控场（镇守流派）的两种怪——放风筝的纸弩手、盯着不动的人就加速的催命鬼；只在河滩、荒庙刷
   | 'crossbow' | 'hurrier'
   // 乱葬岗：掘墓鬼（脚边土里钻出来，怕火）；夜探窑镇：陶俑（烧过的泥胎，扛刀剑，怕水）
-  | 'juemu' | 'taoyong';
+  | 'juemu' | 'taoyong'
+  // 首领连战：终局首领夜漏君、词缀「分」分出的影子（只贴身）
+  | 'yelou' | 'yingzi';
 
 export interface EnemyDef {
   kind: EnemyKind;
@@ -141,6 +143,9 @@ export const ENEMIES: readonly EnemyDef[] = [
   { kind: 'juemu', code: 54, name: '掘墓鬼', tint: 0x5e5848, hp: 28, speed: 1.7, dmg: 10, r: 14, xp: 2, steady: 0.1, vs: { 火: 1.5, 镇: 1.2 } },
   // 陶俑：硬，慢，刀剑砍上去 ×0.6，水泡软了 ×1.6
   { kind: 'taoyong', code: 55, name: '陶俑', tint: 0xb8643a, hp: 42, speed: 0.95, dmg: 10, r: 17, xp: 3, steady: 0.6, vs: { 剑: 0.6, 水: 1.6, 镇: 1.15, 火: 0.8 } },
+  // 首领连战（content/rushFoes.ts）：血和贴身伤害由连战按第几关重设，这里的只是底数
+  { kind: 'yelou', code: 56, name: '夜漏君', tint: 0x3a3a6a, hp: 36000, speed: 1.05, dmg: 22, r: 46, xp: 0, steady: 0.98, boss: true, vs: { 火: 1.1, 镇: 1.1 } },
+  { kind: 'yingzi', code: 57, name: '首领的影子', tint: 0x2a2438, hp: 100, speed: 1.5, dmg: 10, r: 24, xp: 0, steady: 0.6 },
 ];
 
 export const ENEMY_BY_KIND: Record<EnemyKind, EnemyDef> = Object.fromEntries(ENEMIES.map((e) => [e.kind, e])) as Record<EnemyKind, EnemyDef>;

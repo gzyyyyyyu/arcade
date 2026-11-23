@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS, ACHIEVEMENT_BY_ID, rewardCoins, rewardLine } from '../../src/content/achievements.ts';
 import { ENEMIES } from '../../src/content/enemies.ts';
 import { MAX_WEAPON_LEVEL, MERGES, PASSIVES, WEAPONS, type PassiveId, type WeaponId } from '../../src/content/weapons.ts';
-import { RECORDS_KEY, applyRun, collection, emptyRecords, loadRecords, recordTrial, saveRecords, type Records, type RunSummary } from '../../src/meta/records.ts';
+import { RECORDS_KEY, applyRun, collection, emptyRecords, loadRecords, recordRush, recordTrial, saveRecords, type Records, type RunSummary } from '../../src/meta/records.ts';
 import { TRIAL_IDS } from '../../src/content/trials.ts';
 
 const WEAPON_IDS = Object.keys(WEAPONS) as WeaponId[];
@@ -41,14 +41,15 @@ function unlockAll(): Records {
   let rec = emptyRecords();
   for (let i = 0; i < 30; i++) for (const run of godRuns()) rec = applyRun(rec, run).records;
   for (const id of TRIAL_IDS) rec = recordTrial(rec, id).records;
+  rec = recordRush(rec, { cleared: true, danger: 2, hexes: 2, score: 1, free: false, quit: false }).records;
   return rec;
 }
 
 describe('成就数据', () => {
-  it('正好 73 个，id 和名字都不重复', () => {
-    expect(ACHIEVEMENTS.length).toBe(73);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(73);
-    expect(new Set(ACHIEVEMENTS.map((a) => a.name)).size).toBe(73);
+  it('正好 75 个，id 和名字都不重复', () => {
+    expect(ACHIEVEMENTS.length).toBe(75);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(75);
+    expect(new Set(ACHIEVEMENTS.map((a) => a.name)).size).toBe(75);
     for (const a of ACHIEVEMENTS) {
       expect(a.coins).toBeGreaterThan(0);
       expect(a.desc.length).toBeGreaterThan(0);

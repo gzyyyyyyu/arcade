@@ -1,7 +1,7 @@
 import type { MapId } from '../../../content/maps.ts';
 import { CHARACTERS, type CharacterId } from '../../../content/meta.ts';
 import { LIVE_MAX_BP, LIVE_TIERS, liveCharOk, rushBp, vigilBp, type LiveTier } from '../../../content/live.ts';
-import { RUSH, RUSH_TOTAL } from '../../../content/rush.ts';
+import { RUSH_TOTAL } from '../../../content/rush.ts';
 import { RAID_LIVE, raidCharCoef, type RaidLiveTemplate, type RaidLiveTier } from '../../../content/explore.ts';
 
 /** 实盘守夜的一句话说明：天亮、尸王各结回几份按这一档的 dawnBp 算（倍数按档拟合，四档不同） */
@@ -64,16 +64,17 @@ export function liveFacts(tier: LiveTier, picked: CharacterId, map: MapId): Live
   return out;
 }
 
-/** 实盘连战：按打倒几只结回（rushBp），全清另给；照实写数，打到尸王没打倒也有 */
+/** 实盘连战：按打倒几只结回（rushBp），打倒夜漏君另给；照实写数，打到终局没打倒也有 */
 const share = (bp: number): string => `${Number((bp / 10_000).toFixed(2))} 份`;
 export function rushLiveFacts(tier: LiveTier): LiveFact[] {
   return [
-    { big: chips(tier, rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true)), small: '全清拿回' },
-    { big: chips(tier, rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false)), small: '打到尸王拿回' },
-    { big: `约 ${chips(tier, rushBp(tier, 1, RUSH_TOTAL, false))}`, small: '没全清每只拿回' },
-    { big: `${RUSH.limit / 1800} 分钟`, small: '一局最多' },
+    // 小牌四格要在 390 竖屏、844 横屏放下：小字最多四个字，细说写在下面的说明里（走查 11-23 截字）
+    { big: chips(tier, rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true)), small: '天亮拿回' },
+    { big: chips(tier, rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false)), small: '打到终局' },
+    { big: chips(tier, rushBp(tier, 1, RUSH_TOTAL, false)), small: '每只约' },
+    { big: '15 分', small: '一局约' },
   ];
 }
 export function rushLiveNote(tier: LiveTier): string {
-  return `危险 ${LIVE_TIERS[tier].danger} · 固定小道士、构筑给好<br>没全清按打倒几只折算，打到尸王（前 ${RUSH_TOTAL - 1} 只都打倒）${share(rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false))}，全清 ${share(rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true))}；一只没打倒这一份就没了；中途离开按已打倒的只数带回`;
+  return `危险 ${LIVE_TIERS[tier].danger} · 固定小道士、推荐配装<br>没打倒夜漏君按打倒几只折算，打到终局（前 ${RUSH_TOTAL - 1} 只都打倒）${share(rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false))}，天亮 ${share(rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true))}；一只没打倒这一份就没了；中途离开按已打倒的只数带回`;
 }

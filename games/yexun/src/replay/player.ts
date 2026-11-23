@@ -4,6 +4,7 @@
  * 规则版本和现在不一样的录像照放，但标 `outdated`（"旧版本，可能放不对"）；放完（或放歪了）用最后的状态指纹对一下，`exact` 告诉你放得对不对。
  */
 import { createWorld, fingerprint, RULES_VERSION, step, TICKS_PER_SECOND, type World } from '../core/index.ts';
+import { isBlocked } from './describe.ts';
 import { decodeDirs, decodePicks, decodeSkills, type ReplayRecord } from './format.ts';
 import '../explore/register.ts';
 
@@ -46,8 +47,9 @@ export class ReplayPlayer {
     this.world = createWorld(record.setup);
   }
 
-  /** 录像坏了（方向串解不开）返回 null */
+  /** 录像坏了（方向串解不开）或是旧版本的连战录像（describe.ts isBlocked）返回 null */
   static from(record: ReplayRecord): ReplayPlayer | null {
+    if (isBlocked(record)) return null;
     const dirs = decodeDirs(record.dirs, record.ticks);
     const picks = decodePicks(record.picks);
     const skills = decodeSkills(record.skills);

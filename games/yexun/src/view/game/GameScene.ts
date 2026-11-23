@@ -32,6 +32,8 @@ import { MERGES, PASSIVE_IDS, PASSIVES, WEAPON_IDS, WEAPONS } from '../../conten
 import { autoSkillSetting, wantAutoSkill } from './autoskill.ts';
 import { BOSS_TIP, ELITE_TIP, PHASE_BANNER } from './banners.ts';
 import { Drop, Ev, MAX_ENEMIES, MERGE_CODE, skillCooldown, skillOf, skillReady, step, TICKS_PER_SECOND, yinyangSide, type World } from '../../core/index.ts';
+import { type Choice, Pick } from '../../core/state.ts';
+import { RUSH, RUSH_TOTAL } from '../../content/rush.ts';
 import { COS, SIN } from '../../core/dirs.ts';
 import { HERO_TEX, MOB_TEX, RAID_TEX, makeIcons, peekHeroAtlas, type Atlas, type Frame } from '../art/atlas.ts';
 import { faceKey, heroKey } from '../art/heroes.ts';
@@ -64,7 +66,9 @@ import { isFoeBoss } from '../../core/foes/index.ts';
 import { weaponLook } from './look.ts';
 import { Town } from './town.ts';
 import { FireView } from './fire.ts';
-import { RushShow } from './rush.ts';
+import { RushShow, rushTimer } from './rush.ts';
+import { RushRoutePanel } from '../ui/rushRoute.ts';
+import { RushStopPanel } from '../ui/rushStop.ts';
 import { Bump, drawArenaWall } from './wall.ts';
 import type { Input } from './input.ts';
 
@@ -198,6 +202,11 @@ export class GameScene extends Phaser.Scene {
   private bambooView!: BambooView;
   /** 义庄的棺材：第几块 → 它的图（打碎了删） */
   private readonly coffins = new Map<number, Phaser.GameObjects.Image>();
+  /** 场地的图（地面、地形、围墙、障碍、点缀、焦土）：连战换图时整批拆掉重画 */
+  private mapObjs: Phaser.GameObjects.GameObject[] = [];
+  /** 连战的路线图、驿站面板（不是连战为 null） */
+  private rushRoute: RushRoutePanel | null = null;
+  private rushStop: RushStopPanel | null = null;
   /** 怪的死亡余势（paint-ghosts.ts） */
   private readonly ghosts = new DeathGhosts(this);
   private fx!: Fx;
@@ -351,7 +360,8 @@ export class GameScene extends Phaser.Scene {
     // 雪地：一张可平铺的贴图铺满场地，四周一圈压暗当边界
     const gtex = this.textures.get('ground').getSourceImage() as HTMLCanvasElement;
     // 夜探的街和院子全由 Town 铺满，不再多铺一层雪地（少一次全屏绘制，镇子外圈露出背景的雪色）
-    const mapDef = MAPS[this.w.setup.map ?? 'snow'];
+    const mapDef = MAPS[this.w.mapId];
+    const beforeMap = new Set(this.children.list);
     this.groundPainter = new GroundPainter(this, this.w, this.raid, this.arenaW, this.arenaH, { img: (k, x, y, sc) => this.img(k, x, y, sc), hasFrame: (k) => this.frames.has(k), onStreet: (x, y) => this.town?.onStreet(x, y) ?? false });
     this.bambooView = new BambooView(this, this.w);
     // 省内存设备（手机 GPU 弱）上有地形的图：雪地和地形先合成一张不透明的图，整屏只画一遍；其余照旧平铺雪地 + 地形叠层
@@ -379,6 +389,7 @@ export class GameScene extends Phaser.Scene {
     this.drawBlocks();
     // 火区（乱葬岗的磷火地、窑镇的窑口）：没有火区的局不建
     if (this.w.fire.length) this.fireView = new FireView({ scene: this, frame: (k) => this.frame(k), lowMem: LOW_MEMORY }, this.w, this.raid ? 'kiln' : 'ghost');
+    this.mapObjs = this.children.list.filter((o) => !beforeMap.has(o) && o !== this.rg);
 
     this.ground = new Fx(this, this.d.atlas, LOW_MEMORY ? 60 : 140);
     this.fx = new Fx(this, this.d.atlas, LOW_MEMORY ? 180 : 420);
@@ -433,7 +444,16 @@ export class GameScene extends Phaser.Scene {
         this.w,
       );
       this.rushShow = show;
-      this.events.once(Phaser.Scenes.Events.DESTROY, () => show.destroy());
+      const host = this.d.hud.root.parentElement ?? this.d.hud.root;
+      const route = new RushRoutePanel(host, this.d.icon);
+      const stop = new RushStopPanel(host, this.d.icon);
+      this.rushRoute = route;
+      this.rushStop = stop;
+      this.events.once(Phaser.Scenes.Events.DESTROY, () => {
+        show.destroy();
+        route.destroy();
+        stop.destroy();
+      });
     }
     // 本周夜事挑战：计时下面挂一块小牌，打着的时候也看得出是挑战局、这周是什么规矩
     const weekly = this.w.setup.weekly;
@@ -611,7 +631,7 @@ export class GameScene extends Phaser.Scene {
     this.now += dt;
     if (this.d.drive) {
       if (!this.paused && this.w.phase !== 'over') this.d.drive(dt, () => this.readEvents());
-    } else if (!this.paused && !this.d.cards.open) {
+    } else if (!this.paused && !this.menuOpen()) {
       if (this.freeze > 0) this.freeze -= dt;
       else if (this.hold > 0) this.hold -= dt;
       else if (this.w.phase === 'play') {
@@ -630,7 +650,7 @@ export class GameScene extends Phaser.Scene {
       } else if (this.w.phase === 'choose') this.openCards();
     }
     // 选卡开着时还剩几次可能变（选的那一拍又吸到魂火）：标题跟着改
-    if (this.d.cards.open) this.d.cards.setLeft(this.w.pendingLevels);
+    if (this.d.cards.open && !this.w.rush) this.d.cards.setLeft(this.w.pendingLevels);
     this.draw(dt);
   }
 
@@ -656,7 +676,8 @@ export class GameScene extends Phaser.Scene {
     }
     if (this.w.phase === 'over') {
       music.stop();
-      this.time.delayedCall(this.w.won ? 1200 : 900, () => this.d.onEnd(this.w));
+      // 连战全清：天亮的晨光（定格 0.4 秒 + 慢放 2.2 秒，rush.ts）播完再出结算
+      this.time.delayedCall(this.w.won ? (this.w.rush ? 3000 : 1200) : 900, () => this.d.onEnd(this.w));
     }
   }
 
@@ -692,7 +713,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private openCards(): void {
-    if (this.d.cards.open) return;
+    if (this.menuOpen()) return;
     // 选卡时按下的技能键作废（不然关了卡片立刻放出去）
     this.d.input.takeSkill();
     const w = this.w;
@@ -701,8 +722,9 @@ export class GameScene extends Phaser.Scene {
       this.readEvents();
       return;
     }
+    if (w.rush) return this.openRushMenu();
     this.d.cards.show(
-      w.chestPicks > 0 ? (w.rush ? { stage: `${w.rushDown}/${w.rush.total}` } : 'chest') : w.level - (w.pendingLevels - w.chestPicks) + 1,
+      w.chestPicks > 0 ? 'chest' : w.level - (w.pendingLevels - w.chestPicks) + 1,
       w.choices.map((c) => describe(w, c)),
       this.d.firstRun && !this.cardsSeen,
       !!w.setup.firstRun,
@@ -714,6 +736,70 @@ export class GameScene extends Phaser.Scene {
         this.readEvents();
       },
     );
+  }
+
+  /** 选卡、连战路线图、驿站开着（不推拍、不走动） */
+  private menuOpen(): boolean {
+    return this.d.cards.open || !!this.rushRoute?.open || !!this.rushStop?.open;
+  }
+
+  /** 连战的菜单：按 w.menu 弹路线图、驿站或一手卡；每个选择码交给核心，核心改完状态还在菜单里就再弹一次 */
+  private openRushMenu(): void {
+    const w = this.w;
+    const pick = (code: number): void => {
+      sfx.play('choose');
+      // 赌坊押了：开打前报一句输赢（核心只改纸钱，不发事件）
+      const bet = w.menu === 'stop' && w.stop === 'event' && w.stopEvent === 'gamble' && code === Pick.Event ? w.rushCoins : -1;
+      this.advance(0, code);
+      this.readEvents();
+      if (bet >= 0 && w.rushCoins !== bet) {
+        const d = w.rushCoins - bet;
+        this.d.banners.say(`纸钱 ${d > 0 ? '+' : ''}${d}`, d > 0 ? 'gold' : 'warn', 1800, d > 0 ? '赌坊：押中了，翻倍' : '赌坊：没押中');
+      }
+    };
+    if (w.menu === 'route') return this.rushRoute!.show(w, pick);
+    if (w.menu === 'stop') return this.rushStop!.show(w, pick);
+    const k = Math.max(0, w.rushStage - 1);
+    const same = (a: Choice, b: Choice): boolean => a.kind === b.kind && a.id === b.id;
+    const final = w.rushStage >= RUSH.stages;
+    this.d.cards.showRush(
+      {
+        title: final ? '终局前 · 挑卡' : `第 ${k + 1} 关 · 挑 ${w.rushTake} 张`,
+        sub: `还要挑 ${w.rushTake} 张 · 锁的留到下关 · 逐的整局不出`,
+        rerolls: w.rerolls,
+        bans: w.bans,
+        locks: w.rushLocks,
+        locked: w.choices.map((c) => w.rushLocked.some((l) => same(l, c))),
+        banOk: w.choices.map((c) => c.kind === 'weapon' || c.kind === 'passive'),
+        skipCoins: w.choices.filter((c) => !w.rushLocked.some((l) => same(l, c))).length * RUSH.coins.skip,
+      },
+      w.choices.map((c) => describe(w, c)),
+      pick,
+    );
+  }
+
+  /** 连战换图（Ev.Rush 3）：核心已换好地形和机关，这里拆掉旧场地的图、按 w.mapId 重画 */
+  private rebuildMap(): void {
+    for (const o of this.mapObjs) o.destroy();
+    this.fireView?.destroy();
+    this.fireView = null;
+    this.coffins.clear();
+    const before = new Set(this.children.list);
+    const mapDef = MAPS[this.w.mapId];
+    const gtex = this.textures.get('ground').getSourceImage() as HTMLCanvasElement;
+    this.groundPainter = new GroundPainter(this, this.w, null, this.arenaW, this.arenaH, { img: (k, x, y, sc) => this.img(k, x, y, sc), hasFrame: (k) => this.frames.has(k), onStreet: () => false });
+    this.bambooView = new BambooView(this, this.w);
+    if (!(LOW_MEMORY && this.groundPainter.paintBakedGround(gtex, mapDef))) {
+      this.add.tileSprite(this.arenaW / 2, this.arenaH / 2, this.arenaW + 400, this.arenaH + 400, 'ground').setTileScale(512 / gtex.width).setDepth(-1000).setTint(GROUND_TINT[mapDef.tone ?? 'snow']);
+      this.groundPainter.paintTerrainLayer();
+    }
+    drawArenaWall(this, this.arenaW, this.arenaH, mapDef);
+    this.groundPainter.scatterDecor();
+    this.drawBlocks();
+    if (this.w.fire.length) this.fireView = new FireView({ scene: this, frame: (k) => this.frame(k), lowMem: LOW_MEMORY }, this.w, 'ghost');
+    this.mapObjs = this.children.list.filter((o) => !before.has(o));
+    this.renderX = this.w.x;
+    this.renderY = this.w.y;
   }
 
   // ───────────────────────── 事件 → 特效和声音 ─────────────────────────
@@ -914,6 +1000,7 @@ export class GameScene extends Phaser.Scene {
           if (!this.raid && !this.w.rush) this.onArrive(ev.a[i]!);
           break;
         case Ev.Rush:
+          if (ev.a[i] === 3) this.rebuildMap();
           this.rushShow?.onEvent(this.w, x, y, ev.a[i]!, ev.b[i]!, ev.c[i]!);
           break;
         case Ev.Huapi:
@@ -971,6 +1058,8 @@ export class GameScene extends Phaser.Scene {
           break;
         }
         case Ev.Reroll:
+          // 连战打倒首领补的刷新不报：和「伏诛」「天亮了」大字抢同一块屏（走查 11-23），过关选卡上看得到次数
+          if (this.w.rush && ev.a[i] === 1) break;
           this.d.banners.say('刷新 +1', 'gold', 1400, ev.a[i] === 0 ? '进化补一次' : ev.a[i] === 2 ? `攒满 ${CHAR_FX.huolangRerollEvery} 枚铜钱` : '打倒精英或首领补一次');
           break;
         case Ev.NightMarket:
@@ -1036,7 +1125,7 @@ export class GameScene extends Phaser.Scene {
             if (ev.a[i] !== 1) {
               sfx.play('death');
               this.haptics.down();
-              this.d.banners.say(this.w.hp <= 0 ? '倒下了' : '时间到', 'warn', 2400, `连战 ${this.w.rushDown}/${this.w.rush.total}`);
+              this.d.banners.say('倒下了', 'warn', 2400, `连战 ${this.w.rushDown}/${RUSH_TOTAL}`);
             }
             break;
           }
@@ -1679,7 +1768,7 @@ export class GameScene extends Phaser.Scene {
   /** 地图事件：预告用横幅（名字 · 一句话），开始时震一下；白毛风、涨潮进行中给天气层 */
   private onMapEvent(a: number, b: number, c: number): void {
     const kind = MAP_EVENT_KINDS[b];
-    const def = kind ? MAP_EVENTS[this.w.setup.map ?? 'snow'] : undefined;
+    const def = kind ? MAP_EVENTS[this.w.mapId] : undefined;
     if (!kind || !def) return;
     if (a === 0) {
       this.d.banners.say(`${def.name} · ${def.blurb}`, 'warn', 2800, undefined, kind);
@@ -1853,7 +1942,7 @@ export class GameScene extends Phaser.Scene {
     // 主角：始终在核心给的上一拍和这一拍之间插值，和怪、弹幕同一套时间轴。
     // 不在移动时用"预测"（现在的输入往前推）：和停下时的插值在起停那一帧差约一拍，看上去一顿一跳；
     // 代价是比输入晚最多一拍（33 ms），换整条运动曲线连续
-    const moving = !this.paused && !this.d.cards.open && this.freeze <= 0 && this.hold <= 0 && w.phase === 'play';
+    const moving = !this.paused && !this.menuOpen() && this.freeze <= 0 && this.hold <= 0 && w.phase === 'play';
     const dir = moving ? (this.d.autopilot ? 0 : this.d.input.dir()) : 0;
     const slowed = w.tick < w.slowUntil;
     this.renderX = inter(w.px, w.x);
@@ -2552,14 +2641,14 @@ export class GameScene extends Phaser.Scene {
     this.drawSkillButton();
     this.d.hud.setBuffs(raid ? this.xinfaText() : this.buffText());
     this.d.hud.update({
-      rush: !!w.rush,
+      rush: w.rush ? RushShow.hud(w) : null,
       hp: Math.max(0, w.hp),
       hpMax: w.stats.hpMax,
       shield: w.shield,
       shieldMax: w.shieldMax,
       level: w.level,
       xp: w.xp / xpNeed(w.level, !!w.raid),
-      left: w.rush ? RushShow.left(w) : ((raid ? RAID_DAWN : DAWN_TICK) - w.tick) / 30,
+      left: w.rush ? Math.max(0, rushTimer(w).left) : ((raid ? RAID_DAWN : DAWN_TICK) - w.tick) / 30,
       event: raid || w.rush ? null : nextMapEvent(w.tick, w.setup),
       raid: raid ? { label: w.tick >= DAWN_WARN ? '天亮' : '离天亮', level: w.tick >= DAWN_RED ? 2 : w.tick >= DAWN_WARN ? 1 : 0, bag: raid.bag.length, value: raid.bag.reduce((a, id) => a + TREASURES[id]!.value, 0), boost: w.raidBoost } : undefined,
       kills: w.kills,

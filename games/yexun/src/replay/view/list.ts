@@ -2,7 +2,7 @@
  * 录像列表（DOM）：最近的几局和每榜最好的一局，点"回放"进入回放。
  * 主代理接进菜单：`const list = new ReplayList(root, { onPlay: (rec) => startReplay(rec), onClose })`，菜单上"回放"按钮调 `list.show(loadReplays())`。
  */
-import { isOutdated, OUTDATED_TEXT, replayResult, replayTitle } from '../describe.ts';
+import { BLOCKED_TEXT, isBlocked, isOutdated, OUTDATED_TEXT, replayResult, replayTitle } from '../describe.ts';
 import type { ReplayRecord } from '../format.ts';
 import { closeModal, openModal } from '../../view/ui/modal.ts';
 import { PAGER_CTL, Pager } from '../../view/ui/pager.ts';
@@ -61,7 +61,7 @@ export class ReplayList {
       if (isOutdated(r)) {
         const o = document.createElement('span');
         o.className = 'old';
-        o.textContent = ` · ${OUTDATED_TEXT}`;
+        o.textContent = ` · ${isBlocked(r) ? BLOCKED_TEXT : OUTDATED_TEXT}`;
         small.appendChild(o);
       }
       text.appendChild(small);
@@ -69,6 +69,7 @@ export class ReplayList {
       play.type = 'button';
       play.className = 'yx-tab';
       play.textContent = '回放';
+      play.disabled = isBlocked(r);
       play.onclick = () => {
         this.hide();
         this.opts.onPlay(r);

@@ -1,5 +1,7 @@
 import { WEAPONS, type WeaponId } from '../content/weapons.ts';
-import { step, type World } from '../core/index.ts';
+import { RUSH } from '../content/rush.ts';
+import { rushSkipToFinal } from '../core/foes/index.ts';
+import { rushEnterMap, step, type World } from '../core/index.ts';
 import { grantWeapon, openEliteChestNow } from '../core/debug.ts';
 import { TREASURES_BY_TIER } from '../content/treasures.ts';
 import type { Raid } from '../explore/raid.ts';
@@ -9,10 +11,17 @@ export type Autopilot = (w: World) => { dir: number; choice: number };
 
 /**
  * 开发服务器里的调试开局参数（截图、机器人代打用，线上构建整段被摘掉）：
- * ?give 换开局法器、?auto 机器人代打、?warp 快进到某一拍、?at 挪主角、夜探 ?loot / ?chest。返回代打函数（没开 auto 就是 undefined）
+ * ?give 换开局法器、?auto 机器人代打、?warp 快进到某一拍、?at 挪主角、夜探 ?loot / ?chest、连战 ?rushfinal 直接打夜漏君。返回代打函数（没开 auto 就是 undefined）
  */
 export async function applyDebugStart(q: URLSearchParams, w: World, tally: RunTally, seed: number): Promise<Autopilot | undefined> {
   let autopilot: Autopilot | undefined;
+  if (import.meta.env.DEV && q.has('rushfinal') && w.rush) {
+    // ?rush&rushfinal：选第 1 条路、离开驿站，换到终局图直接上夜漏君（截终局画面用）
+    step(w, 0, 500);
+    if (w.phase === 'choose') step(w, 0, 700);
+    rushEnterMap(w, w.rush.finalMap);
+    rushSkipToFinal(w, RUSH.stages);
+  }
   if (import.meta.env.DEV && q.has('give')) {
     // ?give=mirror:8,gourd:8e：开局换成这几件法器（等级后面带 e 是直接进化），再加 &merge 当场开宝箱合成
     w.weapons.length = 0;

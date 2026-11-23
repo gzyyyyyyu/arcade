@@ -26,3 +26,10 @@ export function isOutdated(r: ReplayRecord): boolean {
 }
 
 export const OUTDATED_TEXT = '旧版本，可能放不对';
+
+/** 旧规则版本的连战录像不放：选择码和菜单随版本变，放歪了会停在菜单里出不来 */
+export function isBlocked(r: ReplayRecord): boolean {
+  return !!r.setup.rush && isOutdated(r);
+}
+
+export const BLOCKED_TEXT = '版本不同，放不了';

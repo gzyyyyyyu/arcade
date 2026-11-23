@@ -1,0 +1,114 @@
+/* 连战的路线图（rushRoute.ts）和驿站（rushStop.ts）：同一块宣纸面板，盖在对局上；一屏放下不滚动 */
+.yx-rushmenu {
+  position: absolute; inset: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  padding: max(8px, env(safe-area-inset-top, 0px)) 10px max(8px, env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at 50% 55%, rgba(20, 24, 40, 0.55), rgba(20, 24, 40, 0.72));
+  font: 700 15px/1.3 system-ui, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; color: #17131c;
+}
+.yx-rushmenu button { font: inherit; color: inherit; cursor: pointer; }
+.yx-rushmenu button:disabled { opacity: 0.45; cursor: default; }
+.yx-rushmenu .yx-rushmenu-panel {
+  display: flex; flex-direction: column; gap: 10px; width: min(1000px, 100%); max-height: 100%; box-sizing: border-box; overflow: hidden;
+  padding: 12px 16px 14px; border: 3px solid #17131c; border-radius: 16px; background: linear-gradient(#fbf5e4, #ecdfbe); box-shadow: 0 6px 0 #17131c;
+}
+.yx-rushmenu .yx-rushmenu-head { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.yx-rushmenu .yx-rushmenu-head .yx-brush { font-family: 'YxBrush', serif; font-weight: 400; font-size: 36px; line-height: 1; flex: none; }
+.yx-rushmenu .yx-rushmenu-head span { font-size: var(--fs-lg, 16px); min-width: 0; }
+.yx-rushmenu .yx-rushmenu-head em { margin-left: auto; font-style: normal; font-size: var(--fs-md, 14px); color: #5a4a3a; white-space: nowrap; }
+
+/* 路线图：11 格进度 */
+.yx-rushroute .yx-rr-track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
+.yx-rushroute .yx-rr-track li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 1px; border: 2px solid rgba(23, 19, 28, 0.4); border-radius: 8px; background: rgba(23, 19, 28, 0.08); min-width: 0; }
+.yx-rushroute .yx-rr-track li img { width: 36px; height: 36px; object-fit: contain; filter: grayscale(0.6) opacity(0.7); }
+.yx-rushroute .yx-rr-track li i { position: absolute; left: 3px; top: 1px; font-style: normal; font-size: 12px; }
+.yx-rushroute .yx-rr-track li small { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.yx-rushroute .yx-rr-track li.done { background: #c8402f; border-color: #17131c; color: #fbf5e4; }
+.yx-rushroute .yx-rr-track li.done img { filter: none; }
+.yx-rushroute .yx-rr-track li.now { border: 3px solid #f2c94c; background: #fff6dc; box-shadow: 0 0 0 2px #17131c; }
+.yx-rushroute .yx-rr-track li.now img { filter: none; }
+.yx-rushroute .yx-rr-track li.final { background: #2a2a3a; border-color: #17131c; color: #fbf5e4; justify-content: center; }
+.yx-rushroute .yx-rr-track li.final b { font-size: 24px; line-height: 36px; }
+/* 路卡 */
+.yx-rushroute .yx-rr-opts { display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); gap: 10px; }
+.yx-rushroute .yx-rr-opts[data-n='2'] { --n: 2; }
+.yx-rushroute .yx-rr-opt {
+  position: relative; display: flex; gap: 10px; align-items: stretch; text-align: left; padding: 8px;
+  border: 3px solid #17131c; border-radius: 14px; background: #fbf5e4; box-shadow: 0 5px 0 #17131c; min-height: 112px;
+}
+.yx-rushroute .yx-rr-opt:hover { transform: translateY(-3px); box-shadow: 0 8px 0 #17131c, 0 0 0 4px #f2c94c; }
+.yx-rushroute .yx-rr-opt.elite { background: linear-gradient(#f6e0d8, #e8c6b8); }
+.yx-rushroute .yx-rr-opt canvas { width: 96px; height: 96px; flex: none; border: 2px solid #17131c; border-radius: 8px; align-self: center; }
+.yx-rushroute .yx-rr-key { position: absolute; right: 6px; top: 4px; width: 22px; height: 22px; border-radius: 6px; background: #17131c; color: #f6efdc; font-size: 14px; line-height: 22px; text-align: center; }
+.yx-rushroute .yx-rr-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.yx-rushroute .yx-rr-info > b { font-size: 20px; }
+.yx-rushroute .yx-rr-tags { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+.yx-rushroute .yx-rr-tags em { font-style: normal; font-size: 14px; padding: 1px 6px; border-radius: 6px; background: #4a7a5a; color: #fbf5e4; }
+.yx-rushroute .yx-rr-tags em.elite { background: #17131c; }
+.yx-rushroute .yx-rr-tags small { font-size: 12px; color: #7a6a52; }
+.yx-rushmenu i.affix { font-style: normal; font-family: 'YxBrush', serif; font-size: 16px; line-height: 22px; min-width: 22px; text-align: center; border-radius: 5px; background: #a3322a; color: #fbf5e4; }
+.yx-rushroute .stop { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; }
+.yx-rushroute .stop img { width: 26px; height: 26px; }
+.yx-rushroute .stop.none { color: #7a6a52; font-size: 14px; }
+.yx-rushroute .yx-rr-reward { font-size: 14px; color: #7a4a20; margin-top: auto; }
+
+/* 驿站 */
+.yx-rushstop .yx-rushmenu-panel { width: min(860px, 100%); }
+.yx-rushstop .yx-rs-goods { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.yx-rushstop .yx-rs-good, .yx-rushstop .yx-rs-w, .yx-rushstop .yx-rs-heal {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px; min-height: 44px;
+  border: 3px solid #17131c; border-radius: 12px; background: #fbf5e4; box-shadow: 0 4px 0 #17131c; text-align: center;
+}
+.yx-rushstop .yx-rs-good img, .yx-rushstop .yx-rs-w img, .yx-rushstop .yx-rs-heal img { width: 48px; height: 48px; object-fit: contain; }
+.yx-rushstop .yx-rs-good b, .yx-rushstop .yx-rs-w b { font-size: 14px; }
+.yx-rushstop .yx-rs-good small, .yx-rushstop .yx-rs-w small, .yx-rushstop .yx-rs-heal small { font-size: 12px; color: #5a4a3a; }
+.yx-rushstop .yx-rs-good .price { margin-top: auto; padding: 1px 8px; border-radius: 8px; background: #17131c; color: #ffd23a; font-size: 14px; }
+.yx-rushstop .yx-rs-good.t2 { border-color: #2a8a9a; }
+.yx-rushstop .yx-rs-good.t3, .yx-rushstop .yx-rs-good.relic { border-color: #c89a20; background: linear-gradient(#fff3c8, #f2d98a); }
+.yx-rushstop .yx-rs-good .seal { box-sizing: border-box; padding: 2px; width: 48px; height: 48px; border-radius: 10px; background: #f2c94c; border: 2px solid #17131c; }
+.yx-rushstop .yx-rs-row { display: flex; justify-content: center; }
+.yx-rushstop .yx-big { min-height: 48px; padding: 0 22px; border: 3px solid #17131c; border-radius: 12px; background: #c8402f; color: #fbf5e4; font-size: 16px; box-shadow: 0 4px 0 #17131c; }
+.yx-rushstop .yx-rs-rest { display: grid; grid-template-columns: 200px 1fr; gap: 12px; }
+.yx-rushstop .yx-rs-heal { justify-content: center; background: #e6f2dc; }
+.yx-rushstop .yx-rs-heal b { font-size: 20px; }
+.yx-rushstop .yx-rs-train h4 { margin: 0 0 6px; font-size: 14px; }
+.yx-rushstop .yx-rs-ws { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; }
+.yx-rushstop .yx-rs-opts { display: flex; flex-direction: column; gap: 8px; }
+.yx-rushstop .yx-rs-opt { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 14px; border: 3px solid #17131c; border-radius: 12px; background: #fbf5e4; box-shadow: 0 4px 0 #17131c; font-size: 16px; text-align: left; }
+.yx-rushstop .yx-rs-opt i { font-style: normal; width: 24px; height: 24px; line-height: 24px; text-align: center; border-radius: 6px; background: #17131c; color: #f6efdc; font-size: 14px; flex: none; }
+/* 数字角标是键盘提示，触屏没有键盘 */
+@media (hover: none), (pointer: coarse) { .yx-rushstop .yx-rs-opt i { display: none; } }
+.yx-rushstop .yx-rs-opt[disabled] { opacity: 0.5; }
+
+/* 手机横屏（矮） */
+@media (max-height: 500px) {
+  .yx-rushmenu .yx-rushmenu-panel { padding: 6px 10px 8px; gap: 6px; }
+  .yx-rushmenu .yx-rushmenu-head .yx-brush { font-size: 26px; }
+  .yx-rushroute .yx-rr-track li img { width: 26px; height: 26px; }
+  .yx-rushroute .yx-rr-track li.final b { line-height: 26px; }
+  .yx-rushroute .yx-rr-opt { min-height: 0; padding: 6px; gap: 6px; }
+  .yx-rushroute .yx-rr-opt canvas { width: 64px; height: 64px; }
+  .yx-rushroute .yx-rr-info { gap: 2px; }
+  .yx-rushroute .yx-rr-info > b { font-size: 16px; }
+  .yx-rushstop .yx-rs-good img, .yx-rushstop .yx-rs-w img, .yx-rushstop .yx-rs-heal img { width: 32px; height: 32px; }
+  .yx-rushstop .yx-rs-good .seal { width: 32px; height: 32px; }
+  .yx-rushstop .yx-rs-goods { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
+}
+/* 手机竖屏：11 格分两行（6 + 5），路卡竖排 */
+@media (orientation: portrait) and (max-width: 700px) {
+  .yx-rushmenu .yx-rushmenu-head { flex-wrap: wrap; row-gap: 2px; }
+  .yx-rushmenu .yx-rushmenu-head em { margin-left: 0; flex-basis: 100%; }
+  .yx-rushroute .yx-rr-track { grid-template-columns: repeat(6, 1fr); }
+  .yx-rushroute .yx-rr-track li img { width: 30px; height: 30px; }
+  .yx-rushroute .yx-rr-opts, .yx-rushroute .yx-rr-opts[data-n='2'] { grid-template-columns: 1fr; gap: 8px; }
+  .yx-rushroute .yx-rr-opt { min-height: 0; padding: 6px; }
+  .yx-rushroute .yx-rr-opt canvas { width: 72px; height: 72px; }
+  .yx-rushstop .yx-rs-goods { grid-template-columns: repeat(2, 1fr); }
+  .yx-rushstop .yx-rs-rest { grid-template-columns: 1fr; }
+}
+@media (orientation: portrait) and (max-width: 700px) and (max-height: 700px) {
+  .yx-rushroute .yx-rr-track li small { display: none; }
+  .yx-rushroute .yx-rr-opt canvas { width: 56px; height: 56px; }
+  .yx-rushroute .yx-rr-info { gap: 1px; }
+}

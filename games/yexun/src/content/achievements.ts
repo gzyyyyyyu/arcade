@@ -11,6 +11,8 @@ import { TRIAL_IDS, TRIAL_TIERS, TRIALS, type TrialTier } from './trials.ts';
 /** 试炼某一档的 4 关都通过了 */
 const trialTierDone = (c: Records, t: TrialTier): boolean => TRIAL_IDS.filter((id) => TRIALS[id].tier === t).every((id) => c.trials.includes(id));
 
+const RUSH_HARD_DANGER = 2;
+
 /** 危险 d 及以上一共撑到天亮几次 */
 function winsFrom(c: Records, d: number): number {
   let n = 0;
@@ -130,11 +132,20 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   { id: 'nightmare_kills', group: '斩妖', name: '血月下的千斩', desc: '在噩梦 3（危险 8）一局斩 3,000 只', coins: 300, test: (r) => r.danger >= 8 && r.kills >= 3000 },
   // 试炼各档全通：称号为主（大头铜钱在每关首通时给过了），成就照例带一点铜钱
   ...([0, 1, 2] as const).map((t): Achievement => ({ id: `trial_${t}`, group: '挑战', name: `试炼${TRIAL_TIERS[t]!.name}全通`, desc: `试炼${TRIAL_TIERS[t]!.name}的 4 关都通过`, coins: [100, 200, 300][t]!, title: TRIAL_TIERS[t]!.title, test: (_r, c) => trialTierDone(c, t) })),
+  // 首领连战：只经 records.ts recordRush 判（连战局不走守夜的 applyRun），条件只看累计统计
+  { id: 'rush_dawn', group: '挑战', name: '更漏碎了', desc: '首领连战打倒夜漏君', coins: 150, test: (_r, c) => c.rushWins >= 1 },
+  { id: 'rush_hard', group: '挑战', name: '十殿过尽', desc: `危险 ${RUSH_HARD_DANGER} 或更高、带 2 条咒打倒夜漏君`, coins: 300, test: (_r, c) => c.rushHard >= 1 },
 ];
 export const ACHIEVEMENT_BY_ID: Readonly<Record<string, Achievement>> = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));
 
 /** 试炼全通的成就里，按累计统计已经达成的 id（records.ts recordTrial 用） */
 export const trialUnlocks = (c: Records): string[] => ([0, 1, 2] as const).filter((t) => trialTierDone(c, t)).map((t) => `trial_${t}`);
+
+/** 连战成就「十殿过尽」的门槛 */
+export const RUSH_HARD = { danger: RUSH_HARD_DANGER, hexes: 2 } as const;
+
+/** 连战成就里，按累计统计已经达成的 id（records.ts recordRush 用） */
+export const rushUnlocks = (c: Records): string[] => [...(c.rushWins >= 1 ? ['rush_dawn'] : []), ...(c.rushHard >= 1 ? ['rush_hard'] : [])];
 
 /** 一批新解锁的成就一共给多少铜钱 */
 export const rewardCoins = (ids: readonly string[]): number => ids.reduce((s, id) => s + (ACHIEVEMENT_BY_ID[id]?.coins ?? 0), 0);

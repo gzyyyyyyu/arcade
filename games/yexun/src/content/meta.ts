@@ -197,7 +197,8 @@ export const FIRST_RUN_COINS = 100;
  * 撑的时间、击杀、天亮、打倒尸王四项按危险档放大（每档 +dangerStep）；每日首胜一天一次（按北京时间的日期）。
  * 量级：危险 2 撑到天亮约 600–900 枚一局，最便宜的加成 100 枚，一套加成十几局攒齐。
  */
-export const RUN_BONUS = { perMin: 10, killsPer: 40, dawn: 120, boss: 200, dangerStep: 0.2, dailyWin: 150 };
+/** rushBoss：首领连战每打倒一只（夜漏君之前的 10 只）给几枚，再乘危险档；连战的分钟、夜漏君沿用 perMin、boss（platform/save.ts rushCoins） */
+export const RUN_BONUS = { perMin: 10, killsPer: 40, dawn: 120, boss: 200, dangerStep: 0.2, dailyWin: 150, rushBoss: 12 };
 
 /** 复活：站起来时的血和无敌拍数，身边的怪震开 */
 export const REVIVE = { hp: 0.5, invuln: 90, area: 260, knock: 90 };

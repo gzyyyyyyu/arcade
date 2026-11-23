@@ -13,6 +13,9 @@ const FOE_SFX_NAMES = [
   'snowChildDash', 'snowChildReveal', 'coffinOpen', 'nailShot', 'coffinSmash',
   'stageGong', 'troupeAppear', 'sleeveSweep', 'faceChange', 'hongyiArrive', 'hongyiDown',
   'ratSkitter', 'ratBurrow', 'ricePile', 'shuoshuArrive', 'shuoshuDown',
+  // 首领连战：终局夜漏君和词缀
+  'yelouArrive', 'yelouDown', 'nightDrum', 'nightGong', 'signRain', 'waterDrip', 'scytheSwish', 'tideSurge',
+  'affixShield', 'shieldBreak', 'shadowSplit', 'windHowl', 'leechSip',
 ] as const;
 
 export type FoeSfxName = (typeof FOE_SFX_NAMES)[number];
@@ -257,6 +260,59 @@ function build(): Record<FoeSfxName, Voice> {
       tone(600, t, 0.5, { type: 'sawtooth', f1: 160, vol: 0.1, vib: [24, 80], attack: 0.01 });
       [0.25, 0.4, 0.5, 0.65].forEach((d, i) => metal(1300 + i * 230, t + d, 0.3, [1, 1.7, 2.9], 0.05));
       tone(50, t + 0.2, 0.8, { f1: 30, vol: 0.4 });
+    },
+    // ---- 首领连战：夜漏君（更鼓、更锣、滴漏）和词缀 ----
+    yelouArrive: (t) => { // 远处三声更锣 + 低鼓 + 一声滴水
+      [0, 0.45, 0.9].forEach((d, i) => metal(220 - i * 18, t + d, 1.1, [1, 1.48, 2.31, 3.1], 0.12));
+      tone(48, t + 0.2, 1.4, { f1: 36, vol: 0.5, attack: 0.05 });
+      tone(1400, t + 1.5, 0.12, { f1: 520, vol: 0.12, attack: 0.004 });
+    },
+    yelouDown: (t) => { // 漏壶碎：瓷裂 + 水泼出 + 晨钟
+      noise(t, 0.35, { f0: 3200, q: 1.5, vol: 0.3 });
+      [0.05, 0.12, 0.2, 0.31].forEach((d, i) => metal(2400 + i * 330, t + d, 0.25, [1, 1.6, 2.7], 0.06));
+      noise(t + 0.2, 0.9, { f0: 900, f1: 300, q: 1, vol: 0.14 });
+      metal(392, t + 0.8, 2.2, [1, 2.01, 2.76, 4.07], 0.14);
+    },
+    nightDrum: (t) => { // 更鼓：一沉一闷
+      tone(70, t, 0.35, { f1: 44, vol: 0.55, attack: 0.004 });
+      noise(t, 0.08, { f0: 260, q: 1.2, vol: 0.18 });
+    },
+    nightGong: (t) => { // 转更的锣
+      metal(180, t, 1.6, [1, 1.47, 2.09, 2.83], 0.16);
+      tone(60, t, 0.8, { f1: 50, vol: 0.3 });
+    },
+    signRain: (t) => { // 竹签落地：一串细碎的木声
+      [0, 0.04, 0.09, 0.15, 0.2].forEach((d, i) => crack(t + d, 1800 + i * 140, 0.12));
+    },
+    waterDrip: (t) => { // 滴漏一滴
+      tone(1500, t, 0.1, { f1: 600, vol: 0.13, attack: 0.003 });
+      bubble(t + 0.06, 700, 0.06);
+    },
+    scytheSwish: (t) => { // 月牙镰划过：高频噪声扫一刀
+      noise(t, 0.3, { f0: 1800, f1: 6000, q: 3, vol: 0.2, attack: 0.02 });
+      tone(900, t, 0.25, { type: 'sawtooth', f1: 300, vol: 0.05 });
+    },
+    tideSurge: (t) => { // 夜潮往里收一截
+      noise(t, 0.9, { f0: 220, f1: 520, q: 0.8, vol: 0.18, attack: 0.25 });
+      tone(55, t, 0.9, { f1: 42, vol: 0.25, attack: 0.2 });
+    },
+    affixShield: (t) => { // 金盾套上
+      metal(880, t, 0.5, [1, 1.5, 2.01], 0.09);
+      tone(pent(2, 440), t + 0.05, 0.3, { vol: 0.08 });
+    },
+    shieldBreak: (t) => { // 金盾碎
+      noise(t, 0.25, { f0: 4200, q: 2, vol: 0.22 });
+      [0.03, 0.09, 0.16].forEach((d, i) => metal(1900 - i * 260, t + d, 0.22, [1, 1.7], 0.06));
+    },
+    shadowSplit: (t) => { // 分身：一声撕开的低吟
+      tone(320, t, 0.5, { type: 'sawtooth', f1: 140, vol: 0.08, vib: [9, 30] });
+      noise(t, 0.4, { f0: 700, f1: 200, q: 2, vol: 0.1 });
+    },
+    windHowl: (t) => { // 风拽人：呼啸
+      noise(t, 1.2, { f0: 400, f1: 1400, q: 6, vol: 0.14, attack: 0.3 });
+    },
+    leechSip: (t) => { // 吸血：短促吸一口
+      tone(260, t, 0.18, { f1: 520, vol: 0.09, attack: 0.01 });
     },
   };
 }
