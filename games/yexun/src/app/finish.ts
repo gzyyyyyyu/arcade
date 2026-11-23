@@ -18,7 +18,7 @@ import { WEAPONS } from '../content/weapons.ts';
 import { settleRaid } from '../explore/settle.ts';
 import { recordRaid } from '../explore/vault.ts';
 import { applyRun, recordTrial, type RunTally, saveRecords, summarize } from '../meta/records.ts';
-import { beijingDate, isNightmareSunday } from '../online/daily.ts';
+import { beijingDate, dailyTheme } from '../online/daily.ts';
 import { weekIndex } from '../online/weekly.ts';
 import { buildShareCard } from '../online/share.ts';
 import { scoresOfRun } from '../online/score.ts';
@@ -298,7 +298,8 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     const extraCoins = extra.reduce((a, x) => a + x.coins, 0);
     // 不弹顶上的成就横幅：结算页一出来横幅正好盖住标题（新手第一局一次解锁三四个，盖十来秒），成就名写在上面那条铜钱明细里
     showPlay(false);
-    const label = w.trial ? `试炼 · ${w.trial.name} · ${goalText(w.trial.goal)}` : `${sess.dailyDate ? '每日挑战 · ' : ''}${sess.weeklyDate && w.setup.weekly ? `本周夜事 · ${WEEKLIES[w.setup.weekly].name} · ` : ''}${w.setup.endless ? '无尽 · ' : ''}${DANGERS[w.setup.danger].name}${sess.dailyDate && isNightmareSunday(sess.dailyDate, w.setup.mode) ? ' · 周日噩梦日' : ''}${w.setup.curses?.length ? ` · 咒印 ${w.setup.curses.length}` : ''}${w.setup.assist ? ' · 降低伤害' : ''}`;
+    const dayTheme = sess.dailyDate && !w.setup.rush ? dailyTheme(sess.dailyDate, w.setup.mode) : null;
+    const label = w.trial ? `试炼 · ${w.trial.name} · ${goalText(w.trial.goal)}` : `${sess.dailyDate ? '每日挑战 · ' : ''}${sess.weeklyDate && w.setup.weekly ? `本周夜事 · ${WEEKLIES[w.setup.weekly].name} · ` : ''}${w.setup.endless ? '无尽 · ' : ''}${DANGERS[w.setup.danger].name}${dayTheme ? (dayTheme.id === 'nightmare' ? ' · 周日噩梦日' : ` · ${dayTheme.name}日`) : ''}${w.setup.curses?.length ? ` · 咒印 ${w.setup.curses.length}` : ''}${w.setup.assist ? ' · 降低伤害' : ''}`;
     const advice = !w.won && !quit && !w.raid && !w.trial && !sess.dailyDate && !sess.weeklyDate ? adviceFor(save.runs, sess.tally.worstFoe) : undefined;
     result.show({ won: w.won, quit, bossKilled: w.bossKilled, seconds, kills: w.kills, level: w.level, coins: got.coins + achCoins + extraCoins, coinsTotal: coins(save), night: scene()?.nightLog, sources, label, ...(advice ? { advice } : {}), fixed: !!sess.dailyDate || !!(sess.weeklyDate && w.setup.weekly) || !!w.trial, record: got.record && !w.trial, build: buildRows(w) });
     if (got.askAssist)
