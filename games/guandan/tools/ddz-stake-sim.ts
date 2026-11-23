@@ -20,7 +20,7 @@ import { spawn } from 'node:child_process';
 import { thinkTime } from '../src/view/personas.ts';
 import { PACE, bannerMs, dealInMs, wordMs } from '../src/view/common/pace.ts';
 import { rngFor } from '../src/core/rng.ts';
-import { DDZ_FUN, DDZ_FUN_BLUNDER, DDZ_NOSHUFFLE, createDdz, decideDdz, dispatchDdz, enumerateDdz, interpretDdz, isBombish, playsBeatingDdz, viewDdz, type DdzAction, type DdzEvent, type DdzLevel, type DdzView } from '../src/variants/doudizhu/index.ts';
+import { DDZ_FUN, DDZ_FUN_BLUNDER, DDZ_NOSHUFFLE, DDZ_SEAT_STYLE, createDdz, decideDdz, dispatchDdz, enumerateDdz, interpretDdz, isBombish, playsBeatingDdz, viewDdz, type DdzAction, type DdzEvent, type DdzLevel, type DdzView } from '../src/variants/doudizhu/index.ts';
 import { CURRENT_RULES, DDZ_SOLO_BOTS, TIER_IDS, stakeOptions, type TierId } from '../src/variants/doudizhu/stake/index.ts';
 
 function arg(name: string, def: string): string {
@@ -152,7 +152,7 @@ function playMatch(seed: string, me: Me, bots: readonly [DdzLevel, DdzLevel]): O
     const lv = levels[seat]!;
     const view = viewDdz(state, seat);
     // 我（0 号）是玩家模型，不带电脑的失误；1、2 号是电脑，按上面的 BLUNDER
-    const a = lv === 'newbie' ? newbieDecide(view, `${seed}-ai${seat}`) : decideDdz(view, lv, `${seed}-ai${seat}`, seat === 0 ? 0 : BLUNDER[lv]);
+    const a = lv === 'newbie' ? newbieDecide(view, `${seed}-ai${seat}`) : decideDdz(view, lv, `${seed}-ai${seat}`, seat === 0 ? { blunder: 0 } : { blunder: BLUNDER[lv], ...(FUN ? { deep: true, style: DDZ_SEAT_STYLE[seat] } : {}) });
     if (!a) throw new Error(`没有动作：${seed} phase=${state.phase} turn=${seat}`);
     const r = dispatchDdz(state, a);
     if (r.error) throw new Error(`非法动作 ${r.error}：${seed}`);

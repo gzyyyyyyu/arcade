@@ -2,7 +2,8 @@
  * 一局游戏的会话：持有 GameState，所有推进都走核心的 dispatch，并负责存档和战绩。
  * 画面层（TableScene）只通过它推进状态，拿到事件后自己播放动画。
  */
-import { decide, styleOf, type PersonaId } from '../../variants/guandan/ai/index.ts';
+import { styleOf, type PersonaId } from '../../variants/guandan/ai/index.ts';
+import { runBotJob, type BotJob } from './bot-job.ts';
 import { botFor, type SoloLevel, type Venue } from '../../variants/guandan/ai/venue.ts';
 import { ACE, SHORT_END_LEVEL, createGame, dispatch, eventsFor, hashSeed, previewNext, viewFor, type Action, type DealResult, type GameEvent, type GameState, type NextPreview, type Options, type PlayerView } from '../../variants/guandan/core/index.ts';
 import { recordAch, type AchSummary } from '../common/achievements.ts';
@@ -39,6 +40,8 @@ export interface TableSession {
   /** 这个座位要不要由本地的电脑出（联机时电脑在房间里出，只有托管我自己时才在本地算） */
   isBot(seat: number): boolean;
   botAction(seat: number): Action | null;
+  /** 电脑这一手要算的东西（纯数据，能交给 worker 算，见 bot-worker.ts）；null = 只能当场同步算（联机托管） */
+  botJob?(seat: number): BotJob | null;
   /** "提示"排序用的种子（联机时拿不到牌局种子；单机也不直接给，见 soloSeeds） */
   hintSeed(): string | number;
   /** 一副结束时下一副谁进贡 */
@@ -172,10 +175,14 @@ export class Session implements TableSession {
 
   /** 电脑（或代打时的我）在这个座位的决定。 */
   botAction(seat: number): Action | null {
+    return runBotJob(this.botJob(seat));
+  }
+
+  botJob(seat: number): BotJob {
     // 代打时的我：最强、没性格；电脑按场地（docs/ai.md）：搭档、对手的强弱和性格，状态按这一局的种子
     const bot = seat === ME ? { difficulty: 'hard' as const } : botFor(this.venue(), seat);
     const s = soloSeeds(this.state.seed);
-    return decide(viewFor(this.state, seat), { seed: s.ai, match: s.form, ...bot });
+    return { view: viewFor(this.state, seat), cfg: { seed: s.ai, match: s.form, ...bot } };
   }
 
   /** 单机娱乐按设置里的难度；实盘按档位（StakeSession） */

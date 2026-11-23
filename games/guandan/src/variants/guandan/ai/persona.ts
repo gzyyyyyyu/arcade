@@ -11,8 +11,8 @@
 import { rngFor, teamOf, type PlayerView } from '../core/index.ts';
 import type { Recall } from './memory.ts';
 
-export type Difficulty = 'novice' | 'easy' | 'normal' | 'good' | 'hard';
-export const DIFFICULTIES: readonly Difficulty[] = ['novice', 'easy', 'normal', 'good', 'hard'];
+export type Difficulty = 'novice' | 'easy' | 'normal' | 'good' | 'hard' | 'expert';
+export const DIFFICULTIES: readonly Difficulty[] = ['novice', 'easy', 'normal', 'good', 'hard', 'expert'];
 
 /** 一个电脑这一手的全部参数。 */
 export interface Tuning {
@@ -40,19 +40,23 @@ export interface Tuning {
   jitter: number;
   /** 急：领出时不把王、级牌、最大的牌留到后面，跟牌时也舍得拿它们抢出牌权（每次按这个概率） */
   rush: number;
+  /** 残局抽样推演（ai/search.ts）：牌少时把几个候选推演到这一副打完再挑 */
+  search: boolean;
 }
 
 /** 强弱预设。easy / normal / hard 的数是 0.1.3 起按 npm run sim 校准的；novice、good 是 0.7.0 加的两头 */
 export const TUNING: Record<Difficulty, Tuning> = {
   // 新手场：不记牌、不配合、常犯小错，对手快走完时还常常手软
-  novice: { recall: 'none', teamwork: false, threat: 2, breakTolerance: 1.2, slip: 0.35, feedAt: 0, chase: 0.3, lastChance: 0.05, bombLove: 0, soft: 0.7, jitter: 0, rush: 0 },
+  novice: { recall: 'none', teamwork: false, threat: 2, breakTolerance: 1.2, slip: 0.35, feedAt: 0, chase: 0.3, lastChance: 0.05, bombLove: 0, soft: 0.7, jitter: 0, rush: 0, search: false },
   // 失误率按 npm run sim 校准（0.1.3）：简单对普通整局胜率约 2 成多，困难对普通约 7 成。
   // 失误不再拆炸弹/同花顺、不压队友以后（0.2.x），一次失误亏得少了，按同样目标重调：简单 0.13 → 0.25，普通 0.05 → 0.1
-  easy: { recall: 'none', teamwork: false, threat: 2, breakTolerance: 1.2, slip: 0.25, feedAt: 0, chase: 0.6, lastChance: 0.2, bombLove: 0, soft: 0, jitter: 0, rush: 0 },
-  normal: { recall: 'high', teamwork: true, threat: 6, breakTolerance: 0.6, slip: 0.1, feedAt: 6, chase: 1.6, lastChance: 0.5, bombLove: 0, soft: 0, jitter: 0, rush: 0 },
+  easy: { recall: 'none', teamwork: false, threat: 2, breakTolerance: 1.2, slip: 0.25, feedAt: 0, chase: 0.6, lastChance: 0.2, bombLove: 0, soft: 0, jitter: 0, rush: 0, search: false },
+  normal: { recall: 'high', teamwork: true, threat: 6, breakTolerance: 0.6, slip: 0.1, feedAt: 6, chase: 1.6, lastChance: 0.5, bombLove: 0, soft: 0, jitter: 0, rush: 0, search: false },
   // 普通和困难之间：全记牌，偶尔失误（单机实盘中档的对手）
-  good: { recall: 'full', teamwork: true, threat: 7, breakTolerance: 0.6, slip: 0.03, feedAt: 6, chase: 1.6, lastChance: 0.5, bombLove: 0, soft: 0, jitter: 0, rush: 0 },
-  hard: { recall: 'full', teamwork: true, threat: 8, breakTolerance: 0.6, slip: 0, feedAt: 6, chase: 1.6, lastChance: 0.5, bombLove: 0, soft: 0, jitter: 0, rush: 0 },
+  good: { recall: 'full', teamwork: true, threat: 7, breakTolerance: 0.6, slip: 0.03, feedAt: 6, chase: 1.6, lastChance: 0.5, bombLove: 0, soft: 0, jitter: 0, rush: 0, search: false },
+  hard: { recall: 'full', teamwork: true, threat: 8, breakTolerance: 0.6, slip: 0, feedAt: 6, chase: 1.6, lastChance: 0.5, bombLove: 0, soft: 0, jitter: 0, rush: 0, search: false },
+  // 困难 + 残局推演：只给单机娱乐高手档的两个对手（实盘、好友房、提示、代打都不用，实盘期望不动）
+  expert: { recall: 'full', teamwork: true, threat: 8, breakTolerance: 0.6, slip: 0, feedAt: 6, chase: 1.6, lastChance: 0.5, bombLove: 0, soft: 0, jitter: 0, rush: 0, search: true },
 };
 
 export type PersonaId = 'laozhang' | 'xiaomei' | 'aqiang';
@@ -91,7 +95,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
  * 越强的电脑性格露得越少（性格、状态、上头的幅度都乘这个数）：高手也有自己的路数，但不会为了路数白送；
  * 新手场的电脑性格最鲜明，输赢也最不讲究
  */
-const STYLE_SCALE: Record<Difficulty, number> = { novice: 1, easy: 1, normal: 1, good: 0.5, hard: 0.35 };
+const STYLE_SCALE: Record<Difficulty, number> = { novice: 1, easy: 1, normal: 1, good: 0.5, hard: 0.35, expert: 0.35 };
 
 /**
  * 联机房间里每个真实座位坐的电脑是谁（单机我坐 0，1、2、3 就是老张、小美、阿强）。

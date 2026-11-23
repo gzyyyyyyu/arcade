@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeCard } from '../../src/core/cards.ts';
 import {
-  type DdzLevel, type DdzView, bidStrength, createDdz, decideDdz, dispatchDdz, handCount, hintDdz, interpretDdz, leadPlays, planHand, viewDdz,
+  DDZ_SEAT_STYLE, type DdzLevel, type DdzView, bidStrength, createDdz, decideDdz, dispatchDdz, handCount, hintDdz, interpretDdz, leadPlays, planHand, viewDdz,
 } from '../../src/variants/doudizhu/index.ts';
 import { rngFor } from '../../src/core/rng.ts';
 import { beatsDdz } from '../../src/variants/doudizhu/core/index.ts';
@@ -215,5 +215,27 @@ describe('确定性与不看牌', () => {
         s = r.state;
       }
     }
+  });
+});
+
+describe('娱乐单机两个电脑的打法性格（DDZ_SEAT_STYLE）', () => {
+  it('0 号不带性格；稳哥叫得比不带性格的少、幺妹儿叫得多，都真拉开了', () => {
+    expect(DDZ_SEAT_STYLE[0]).toEqual({ bid: 0, contest: 0, bombAt: 0 });
+    const bidOf = (v: DdzView, seat: number) => {
+      const a = decideDdz(v, 'normal', 'b', { style: DDZ_SEAT_STYLE[seat] });
+      return a?.type === 'bid' ? a.bid : -1;
+    };
+    let less = 0, more = 0;
+    for (let i = 0; i < 300; i++) {
+      const st = createDdz(`style${i}`).state;
+      const v = viewDdz(st, st.turn);
+      const plain = bidOf(v, 0);
+      expect(bidOf(v, 1)).toBeLessThanOrEqual(plain);
+      expect(bidOf(v, 2)).toBeGreaterThanOrEqual(plain);
+      if (bidOf(v, 1) < plain) less++;
+      if (bidOf(v, 2) > plain) more++;
+    }
+    expect(less).toBeGreaterThan(10);
+    expect(more).toBeGreaterThan(10);
   });
 });

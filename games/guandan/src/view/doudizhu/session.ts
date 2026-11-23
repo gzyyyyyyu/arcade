@@ -5,10 +5,11 @@
  */
 import { hashSeed } from '../../core/rng.ts';
 import {
-  DDZ_FUN_BLUNDER, DDZ_NOSHUFFLE, createDdz, decideDdz, dispatchDdz, viewDdz,
+  DDZ_FUN_BLUNDER, DDZ_NOSHUFFLE, DDZ_SEAT_STYLE, createDdz, dispatchDdz, viewDdz,
   type DdzAction, type DdzEvent, type DdzLevel, type DdzOptions, type DdzState, type DdzView,
 } from '../../variants/doudizhu/index.ts';
 import type { DailySubmit } from './daily.ts';
+import { runDdzBotJob, type DdzBotJob } from './bot-job.ts';
 import { recordAch, type AchSummary } from '../common/achievements.ts';
 import { type DdzDeal, clearDdzSave, loadDdzSave, recordDdzDeal, recordDdzGame, writeDdzSave } from '../store.ts';
 
@@ -35,6 +36,8 @@ export interface DdzTableSession {
   /** 这个座位要不要由本地的电脑出（联机时电脑在房间里出，只有托管我自己时才在本地算） */
   isBot(seat: number): boolean;
   botAction(seat: number): DdzAction | null;
+  /** 电脑这一手要算的东西（纯数据，能交给 worker 算，见 bot-worker.ts）；null = 只能当场同步算（残局、联机托管） */
+  botJob?(seat: number): DdzBotJob | null;
 }
 
 /**
@@ -146,10 +149,16 @@ export class DdzSession implements DdzTableSession {
     return seat !== DDZ_ME || this.autoplay;
   }
 
-  /** 电脑（或代打的我）在这个座位的决定：代打的我按最强 */
+  /** 电脑（或代打的我）在这个座位的决定：代打的我按最强；电脑高手档用娱乐专属的深残局（decideDdz 的 deep） */
   botAction(seat: number): DdzAction | null {
+    const job = this.botJob(seat);
+    return job ? runDdzBotJob(job) : null;
+  }
+
+  botJob(seat: number): DdzBotJob | null {
     const level: DdzLevel = seat === DDZ_ME ? 'pro' : this.level;
-    return decideDdz(this.view(seat), level, `${ddzSeeds(this.state.seed).ai}|${seat}|${this.state.step}`, seat === DDZ_ME ? 0 : DDZ_FUN_BLUNDER[level]);
+    const opts = seat === DDZ_ME ? { blunder: 0 } : { blunder: DDZ_FUN_BLUNDER[level], deep: true, style: DDZ_SEAT_STYLE[seat] };
+    return { view: this.view(seat), level, seed: `${ddzSeeds(this.state.seed).ai}|${seat}|${this.state.step}`, opts };
   }
 
   save(): void {

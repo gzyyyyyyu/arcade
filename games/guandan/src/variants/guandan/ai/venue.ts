@@ -38,12 +38,12 @@ export interface SoloBots {
 
 /**
  * 单机娱乐三档（docs/ai.md 第 2 节，按 docs/balance.md 第 3 节量）：新手档照顾"小白"（对手手软、搭档较强，小白也赢六成以上），
- * 普通档四个座位一样强，高手档全是最强
+ * 普通档四个座位一样强，高手档全是最强、两个对手另带残局推演
  */
 export const SOLO_FUN_BOTS: Readonly<Record<SoloLevel, SoloBots>> = {
   novice: { mate: 'good', opp: 'novice' },
   normal: { mate: 'normal', opp: 'normal' },
-  pro: { mate: 'hard', opp: 'hard' },
+  pro: { mate: 'hard', opp: 'expert' },
 };
 
 /**

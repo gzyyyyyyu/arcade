@@ -539,15 +539,24 @@ describe('电脑不看别人的牌（反事实）', () => {
   const DEALS = 2;
   const fresh = (): Tally => ({ points: 0, changed: 0, mismatch: 0 });
 
-  it('单机（娱乐三档、实盘豪华档）：几百个决策点，换掉别人的牌，电脑的决定一次都不变', () => {
+  it('单机（娱乐新手档、实盘豪华档）：几百个决策点，换掉别人的牌，电脑的决定一次都不变', () => {
     const t = fresh();
     walkSolo(solo('novice'), 'cf-novice', t);
-    walkSolo(solo('pro'), 'cf-pro', t);
     walkSolo((st) => new StakeLike(st), 'cf-lux', t);
-    expect(t.points).toBeGreaterThan(300);
+    expect(t.points).toBeGreaterThan(200);
     // 平行世界真的换了牌（只剩几张、全被看见时才会一样）
     expect(t.changed / t.points).toBeGreaterThan(0.9);
     expect(t.mismatch).toBe(0);
+  });
+
+  // 高手档的对手带残局推演（ai/search.ts）：推演按"没出现的牌"随机分，平行世界里必须分出一样的牌、推出一样的结果
+  it('单机娱乐高手档（对手带残局推演）：同样一次都不变', { timeout: 300_000 }, () => {
+    const t = fresh();
+    walkSolo(solo('pro'), 'cf-pro', t);
+    expect(t.mismatch).toBe(0);
+    expect(t.points).toBeGreaterThan(100);
+    // 只有这一档时残局占的比例大，牌被看光、没得换的决策点多一些
+    expect(t.changed / t.points).toBeGreaterThan(0.7);
   });
 
   it('好友房（guandanRoom.ai：房间里的电脑带性格，替掉线真人代打的不带）：同样一次都不变', () => {

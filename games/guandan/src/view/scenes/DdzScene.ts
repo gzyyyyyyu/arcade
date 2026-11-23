@@ -8,10 +8,11 @@ import { TableSceneBase } from './shared/TableSceneBase.ts';
 import { chooseDdz, type DdzAction, interpretDdz, isBombish, hintDdz, sortDdz, type DdzEvent, type DdzPlay, type DdzResult, type DdzView } from '../../variants/doudizhu/index.ts';
 import { app } from '../app.ts';
 import { audio } from '../common/audio.ts';
-import { dur } from '../common/anim.ts';
 import { PACE } from '../common/pace.ts';
 import { showUnlocked } from '../ui/achievements.ts';
 import { DDZ_ME, DdzSession, type DdzTableSession } from '../doudizhu/session.ts';
+import { runDdzBotJob, type DdzBotJob } from '../doudizhu/bot-job.ts';
+import { BotRunner } from '../common/bot-runner.ts';
 import { DdzNetSession } from '../doudizhu/net.ts';
 import type { DdzNetView } from '../../variants/doudizhu/net/rules.ts';
 import { DailyPuzzleSession, PUZZLE_LOST_HINT, PuzzleSession, startDailyPuzzle, startPuzzle } from '../doudizhu/puzzle.ts';
@@ -42,6 +43,9 @@ import { openPuzzlePicker } from '../ui/puzzles.ts';
 import { showPuzzleResult, showDailyWin, showSettle, showGameOver, showNetStakeResult, showStakeResult, stakeAgain } from '../doudizhu/overlays.ts';
 import { playEvent, animatePlay, bombFx, springSeal, talk, placeHat, drawOpenHands } from '../doudizhu/play-fx.ts';
 import { BUTTON_Y, buildButtons, buildTopBar, topBarKey, refreshTopBar, dailyTopText, tickDailyClock, shownMult, buildTopMid, buildPuzzle, buildNetStake, buildCounter, funBox, buildFun, funIn, refreshButtons } from '../doudizhu/table-ui.ts';
+
+/** 单机电脑在后台线程里算（高手的深残局一手要几百毫秒，放主线程画面会冻） */
+const ddzBotRunner = new BotRunner<DdzBotJob, DdzAction>(() => new Worker(new URL('../doudizhu/bot-worker.ts', import.meta.url), { type: 'module' }), runDdzBotJob);
 
 export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
   ses!: DdzTableSession;
@@ -456,7 +460,7 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
 
   /** 决定下一步：电脑行动、等我、或者弹结算 */
   pump(): void {
-    if (!this.alive || this.busy || this.botTimer || this.overlay !== null) return;
+    if (!this.alive || this.busy || this.botTimer || this.botWaiting || this.overlay !== null) return;
     if (this.pumpNet()) return;
     const v = this.ses.view();
     if (v.phase === 'dealEnd' || (v.phase === 'gameOver' && !this.lastSettleSeen)) {
@@ -472,21 +476,19 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
     if (seat < 0 || !this.ses.isBot(seat)) return;
     // 联机只有调试托管会走到这里：等上一手有了回音、轮到我再出
     if (this.net && !this.net.canAct()) return;
-    const planned = this.ses.botAction(seat);
-    if (!planned) return;
-    if (seat !== DDZ_ME) this.seats[seat]!.setThinking(true);
-    this.botSeat = seat;
+    // 先想好出什么（单机交给后台线程算，深残局不冻画面），再按出法给思考时间
+    const job = this.ses.botJob?.(seat) ?? null;
+    const plan = job ? ddzBotRunner.run(job) : Promise.resolve(this.ses.botAction(seat));
     const lead = !v.target || v.target.seat === seat;
-    const kind = planned.type === 'play' ? (isBombish(interpretDdz(planned.cards)[0] ?? { type: 'single' }) ? 'bomb' : 'play') : 'pass';
     // 连着几家不要：这一墩里已经有几个 pass（target 之后的）
     let passes = 0;
     for (let i = v.trick.length - 1; i >= 0 && v.trick[i]!.play === null; i--) passes++;
-    const ms = v.phase === 'bid' || v.phase === 'show' ? PACE.ddz.bidThink : thinkTime({ kind, lead, passes, tense: v.counts.some((n, s) => s !== seat && n <= 2) });
-    this.botTimer = this.time.delayedCall(dur(ms), () => {
-      this.botTimer = null;
-      this.botSeat = -1;
-      this.seats[seat]?.setThinking(false);
-      if (!this.alive || this.busy || this.overlay !== null) return;
+    const think = (a: DdzAction) => {
+      if (v.phase === 'bid' || v.phase === 'show') return PACE.ddz.bidThink;
+      const kind = a.type === 'play' ? (isBombish(interpretDdz(a.cards)[0] ?? { type: 'single' }) ? 'bomb' : 'play') : 'pass';
+      return thinkTime({ kind, lead, passes, tense: v.counts.some((n, s) => s !== seat && n <= 2) });
+    };
+    this.runBot(seat, plan, think, (planned) => {
       const r = this.ses.apply(planned);
       if (r.sent) return;
       if (r.error) {

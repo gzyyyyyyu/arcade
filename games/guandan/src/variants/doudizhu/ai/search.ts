@@ -71,6 +71,8 @@ function solve(n: Node, c: Ctx): number {
 interface EndgameOptions {
   samples: number;
   nodeCap: number;
+  /** 整次搜索的节点总上限：超了就用已搜完的那几轮，单次耗时有界 */
+  budget: number;
 }
 
 /**
@@ -94,7 +96,8 @@ export function endgamePick(v: DdzView, candidates: readonly (DdzPlay | null)[],
 
   const wins = candidates.map(() => 0);
   const c: Ctx = { landlord: v.landlord, mineIsLandlord: me === v.landlord, nodes: 0, cap: 0 };
-  for (let k = 0; k < o.samples; k++) {
+  let used = 0;
+  for (let k = 0; k < o.samples && used < o.budget; k++) {
     const deal = rng.shuffle(pool.slice());
     const hands: Card[][] = [[], [], []];
     hands[me] = v.hand.slice();
@@ -108,6 +111,7 @@ export function endgamePick(v: DdzView, candidates: readonly (DdzPlay | null)[],
       c.nodes = 0;
       c.cap = o.nodeCap;
       wins[i] = wins[i]! + (typeof r === 'number' ? r : solve(r, c));
+      used += Math.min(c.nodes, c.cap);
     });
   }
   let top = 0;

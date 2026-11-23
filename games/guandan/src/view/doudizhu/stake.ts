@@ -6,7 +6,8 @@
  * 我坐 0 号，1、2 号电脑不碰钱包；我的累计分就是结回额，不另记一份（核心状态里的 scores[0]）。
  * 不计战绩、不写 guandan.ddz.save（会话把 persist 关掉，存档由这里写）。
  */
-import { createDdz, decideDdz, type DdzAction, type DdzEvent, type DdzLevel } from '../../variants/doudizhu/index.ts';
+import type { DdzBotJob } from './bot-job.ts';
+import { createDdz, type DdzAction, type DdzEvent, type DdzLevel } from '../../variants/doudizhu/index.ts';
 import {
   CURRENT_RULES, ROOM_DEALS, SOLO_DEALS, TIERS, isSoloRef, newRules, pointValue, rulesOf, soloBots, soloPoints, stakeOptions, type StakeRules, type TierId,
 } from '../../variants/doudizhu/stake/index.ts';
@@ -143,10 +144,10 @@ export class DdzStakeSession extends DdzSession {
   }
 
   /** 电脑按档位：1、2 号各一档；我自己（调试代打）走基类 */
-  override botAction(seat: number): DdzAction | null {
-    if (seat === DDZ_ME) return super.botAction(seat);
+  override botJob(seat: number): DdzBotJob | null {
+    if (seat === DDZ_ME) return super.botJob(seat);
     const level: DdzLevel = soloBots(this.tier, this.rules)[seat - 1]!;
-    return decideDdz(this.view(seat), level, `${ddzSeeds(this.state.seed).ai}|${seat}|${this.state.step}`);
+    return { view: this.view(seat), level, seed: `${ddzSeeds(this.state.seed).ai}|${seat}|${this.state.step}`, opts: {} };
   }
 
   override save(): void {

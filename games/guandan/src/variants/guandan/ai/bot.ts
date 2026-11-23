@@ -31,11 +31,12 @@ import {
 } from '../core/index.ts';
 import { buildMemory, bombPossible, isTop, type Memory } from './memory.ts';
 import { groupToPlay, isBombType, planHand, type Group, type HandPlan } from './plan.ts';
+import { endgamePick } from './search.ts';
 import { TUNING, tuningFor, type Difficulty, type PersonaId, type Tuning } from './persona.ts';
 
 export type { Difficulty, PersonaId, Tuning };
 
-interface BotConfig {
+export interface BotConfig {
   seed: string | number;
   difficulty?: Difficulty;
   /** 性格（persona.ts）：不给就是难度预设本身 */
@@ -122,16 +123,41 @@ function choosePlay(view: PlayerView, tune: Tuning, rng: Rng): Play | null {
   const finisher = plays.find((p) => p.cards.length === view.hand.length);
   if (finisher) return finisher;
   const ctx = makeCtx(view, tune, rng);
-  const last = view.trick.last;
   // 新手错只在不要紧的时候犯：有人一两张就能走时还乱出，看起来就是"蠢"，不是"弱"
   if (tune.slip > 0 && rng.next() < tune.slip && ctx.oppMin > 2) {
     const s = slipPlay(ctx, plays);
     if (s !== undefined) return s;
   }
+  const p = heuristicPlay(ctx, plays);
+  return tune.search ? searched(ctx, plays, p) : p;
+}
+
+function heuristicPlay(ctx: Ctx, plays: Play[]): Play | null {
+  const last = ctx.view.trick.last;
   if (!last) return chooseLead(ctx);
-  const p = teamOf(last.seat) === teamOf(view.seat) ? followPartner(ctx, plays) : followOpponent(ctx, plays);
+  const p = teamOf(last.seat) === teamOf(ctx.view.seat) ? followPartner(ctx, plays) : followOpponent(ctx, plays);
   if (p) return p;
-  return canPass(view) ? null : plays[0]!;
+  return canPass(ctx.view) ? null : plays[0]!;
+}
+
+/** 残局推演的设置：四家剩牌合计 ≤ total 才推演；每个候选推演 samples 种分牌（budget 见 search.ts）；候选最多 cands 个普通出法 + 最小的炸弹 + 不要 */
+const ENDGAME = { total: 18, samples: 24, cands: 4, budget: 10000 };
+
+/** 牌少时把启发式的出法和几个别的候选各推演到这一副打完，挑平均得分高的（ai/search.ts）；推演里四家都按困难的启发式打 */
+function searched(ctx: Ctx, plays: Play[], base: Play | null): Play | null {
+  const { view } = ctx;
+  if (view.counts.reduce((a, b) => a + b, 0) > ENDGAME.total) return base;
+  const scored = evalPlays(ctx, plays, plays.length);
+  const normal = scored.filter((c) => !isBomb(c.p)).sort((a, b) => a.delta - b.delta).slice(0, ENDGAME.cands).map((c) => c.p);
+  const bomb = scored.filter((c) => isBomb(c.p)).sort((a, b) => bombRank(a.p) - bombRank(b.p))[0]?.p;
+  const cands: (Play | null)[] = [...normal, ...(bomb ? [bomb] : []), ...(canPass(view) ? [null] : [])];
+  const same = (a: Play | null, b: Play | null) => a === b || (!!a && !!b && a.type === b.type && a.rank === b.rank && a.cards.length === b.cards.length && a.cards.every((c) => b.cards.includes(c)));
+  const baseline = cands.find((c) => same(c, base)) ?? base;
+  if (!cands.includes(baseline)) cands.unshift(baseline);
+  const rng = rngFor(ctx.rng.next(), 'bot-endgame', view.seat, view.step);
+  const policy = (v: PlayerView) => heuristicPlay(makeCtx(v, TUNING.hard, rng), legalPlays(v));
+  const r = endgamePick(view, cands, baseline, policy, rng, ENDGAME);
+  return r === undefined ? base : r;
 }
 
 /**
