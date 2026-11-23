@@ -697,7 +697,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     this.d.cards.show(
-      w.chestPicks > 0 ? 'chest' : w.level - (w.pendingLevels - w.chestPicks) + 1,
+      w.chestPicks > 0 ? (w.rush ? 'stage' : 'chest') : w.level - (w.pendingLevels - w.chestPicks) + 1,
       w.choices.map((c) => describe(w, c)),
       this.d.firstRun && !this.cardsSeen,
       !!w.setup.firstRun,

@@ -4,7 +4,9 @@ import { createWorld, Ev, fingerprint, rushPlan, rushResult, step, type World } 
 import { RUSH } from '../../src/content/rush.ts';
 import { midBossOf } from '../../src/content/waves.ts';
 import { shiftDate } from '../../src/online/daily.ts';
-import { decodeRush, isRushSetup, rushBoardId, rushDaily, rushScore } from '../../src/online/rush.ts';
+import { decodeRush, isRushSetup, rushBoardId, rushDaily, rushScore, rushShort } from '../../src/online/rush.ts';
+import { bestScore } from '../../src/replay/store.ts';
+import type { ReplayRecord } from '../../src/replay/format.ts';
 import { formatScore, submissionsFor } from '../../src/online/score.ts';
 import { buildShareCard } from '../../src/online/share.ts';
 import type { RunSummary } from '../../src/online/types.ts';
@@ -103,6 +105,30 @@ describe('首领连战：规则', () => {
     expect(w.schedule.length).toBe(0);
   });
 
+  it('每清完一关挑一张卡（宝箱口径，不升级）；最后一关清完不挑', () => {
+    const s = rushDaily(DAY).setup;
+    const bot = new Bot('normal', 'sword', s.seed);
+    const w = createWorld(s);
+    let picks = 0;
+    let stage = 0;
+    while (w.phase !== 'over' && w.tick < RUSH.limit + 600) {
+      if (w.rushStage > stage) {
+        stage = w.rushStage;
+        if (w.rushEnd < 0) {
+          // 刚清完一关：进了挑卡，标成宝箱给的（不加等级）
+          expect(w.phase).toBe('choose');
+          expect(w.chestPicks).toBe(RUSH.stagePicks);
+        }
+      }
+      if (w.phase === 'choose') picks++;
+      const a = bot.act(w);
+      step(w, a.dir, w.phase === 'choose' ? a.choice : -1);
+    }
+    expect(stage).toBeGreaterThanOrEqual(2);
+    expect(picks).toBe(Math.min(stage, 6) * RUSH.stagePicks + (w.level - RUSH.level));
+    expect(w.chestPicks).toBe(0);
+  });
+
   it('普通机器人能打倒几只；全清的局算赢、尸王倒了不提前天亮', () => {
     let any = false;
     for (let i = 0; i < 12 && !any; i++) {
@@ -170,6 +196,15 @@ describe('首领连战：分数和榜', () => {
     expect(submissionsFor({ ...run, daily: null }, DAY)).toEqual([]);
     expect(submissionsFor(run, shiftDate(DAY, 3))).toEqual([]);
     expect(submissionsFor({ ...run, setup: { ...setup, seed: setup.seed + 1 } }, DAY)).toEqual([]);
+  });
+
+  it('结算页的「今天最好」短写法；本机最好按录像记的 bestFor 取', () => {
+    expect(rushShort(rushScore({ down: 9, total: 9, cleared: true, ticks: 150 * 30, progress: 1 }))).toBe('全清 2:30');
+    expect(rushShort(rushScore({ down: 7, total: 9, cleared: false, ticks: RUSH.limit, progress: 0.4 }))).toBe('7/9');
+    const b = rushBoardId(DAY);
+    const recs = [{ bestFor: [], scores: { [b]: 5 } }, { bestFor: [b], scores: { [b]: 9 } }] as unknown as ReplayRecord[];
+    expect(bestScore(b, recs)).toBe(9);
+    expect(bestScore('daily-2020-01-01-rush', recs)).toBeNull();
   });
 
   it('分享卡写连战 N/M 和用时', () => {

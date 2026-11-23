@@ -141,7 +141,7 @@ export class Cards {
    * simple：这台设备的第一局。卡上只留名字、说明和数，不写克制、套件、合成（新手实录：第一次选卡三张卡十几行小字）；
    * 3 级以前也不摆刷新、封禁、跳过（快捷键照样能用）
    */
-  show(level: number | 'chest', cards: CardView[], firstTime: boolean, simple: boolean, counts: { rerolls: number; bans: number; left: number }, onPick: (i: number) => void): void {
+  show(level: number | 'chest' | 'stage', cards: CardView[], firstTime: boolean, simple: boolean, counts: { rerolls: number; bans: number; left: number }, onPick: (i: number) => void): void {
     this.onPick = onPick;
     this.counts = counts;
     this.banning = false;
@@ -150,7 +150,7 @@ export class Cards {
     const head = document.createElement('div');
     head.className = 'yx-picks-head';
     head.innerHTML =
-      `<span class="yx-picks-lv${level === 'chest' ? ' chest' : ''}">${level === 'chest' ? '宝箱 · 挑一件' : `升到 ${level} 级`}</span><span class="yx-picks-tip yx-picks-left" hidden></span>` +
+      `<span class="yx-picks-lv${typeof level === 'number' ? '' : ' chest'}">${level === 'chest' ? '宝箱 · 挑一件' : level === 'stage' ? '过关 · 挑一件' : `升到 ${level} 级`}</span><span class="yx-picks-tip yx-picks-left" hidden></span>` +
       (firstTime ? '<span class="yx-picks-tip">挑一个：新法器、法器升级，或者被动</span>' : '');
     this.root.appendChild(head);
     const row = document.createElement('div');

@@ -21,7 +21,7 @@ import { loadRecords, RunTally } from './meta/records.ts';
 import { AchievementToast, Codex, MONSTER_INFO } from './view/ui/codex.ts';
 import { Guide } from './view/ui/guide.ts';
 import { Recorder } from './replay/recorder.ts';
-import { loadReplays } from './replay/store.ts';
+import { bestScore, loadReplays } from './replay/store.ts';
 import { ReplayList } from './replay/view/list.ts';
 import { ReplayBar } from './replay/view/bar.ts';
 import type { ReplayRecord } from './replay/format.ts';
@@ -33,9 +33,12 @@ import { beijingDate, dailyPlan } from './online/daily.ts';
 import { weekDaysLeft, weekIndex } from './online/weekly.ts';
 import { FriendBests } from './online/trials.ts';
 import { TrialsPanel } from './view/ui/trials.ts';
+import { RushIntro } from './view/ui/rushIntro.ts';
 import { goalText, isTrialId, TRIALS, type TrialId } from './content/trials.ts';
 import { weeklyPlan } from './online/weekly.ts';
 import { rushDaily } from './online/rush.ts';
+import { rushPlan } from './core/rush.ts';
+import { formatScore } from './online/score.ts';
 import { RUSH } from './content/rush.ts';
 import { Prep } from './view/ui/prep.ts';
 import type { MapId } from './content/maps.ts';
@@ -542,7 +545,16 @@ async function boot(): Promise<void> {
     const plan = rushDaily(beijingDate(Date.now()));
     return startRun(plan.setup.danger, plan.setup.map ?? 'snow', true, plan.setup, 'rush');
   };
-  menu.onRush = () => void startRush();
+  // 主页「连战」先弹今日连战卡（今天的构筑、关卡、本机最好），点开始才开局；结算页「再来一局」直接开
+  const rushIntro = new RushIntro(stage, icon, { onStart: () => void startRush(), onClose: () => menu.show(menuState()) });
+  menu.onRush = () => {
+    const date = beijingDate(Date.now());
+    const plan = rushDaily(date);
+    const map = plan.setup.map ?? 'snow';
+    const best = bestScore(plan.boardId);
+    menu.hide();
+    rushIntro.show({ date, map, plan: rushPlan(plan.setup.seed, map), best: best === null ? null : formatScore('daily-rush', best) });
+  };
   // 试炼（docs/design-play.md 2.6）：配置按表展开（核心 normalizeSetup），种子每局随机；好友最好每次打开页读一次
   const startTrial = (id: TrialId): Promise<void> => {
     const t = TRIALS[id];
