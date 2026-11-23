@@ -100,6 +100,8 @@ export interface Drama {
 /** 庄家按钮 D 依次试的位置（相对 buttonPos，placeDealer）：原处、上、下、隔开那摞筹码的右边、更左、右上、右下 */
 export const DEALER_TRY: readonly (readonly [number, number])[] = [[0, 0], [0, -32], [0, 32], [128, 0], [-36, 0], [64, -32], [64, 32]];
 export const KEEP_OUT = '.actions .buttons, .actions .raise-panel, .actions .quick, .actions .odds, .pre';
+/** 挨着头像的按钮（顶栏、牌桌左下那一排）：kit 的头像热区为凑够 44 往外撑时让开它们（keepOut 报给 avoid） */
+export const BESIDE_SEATS = '.topbar a, .topbar button, .hud button';
 
 /** 倒计时圈的周长（半径 34） */
 export const CLOCK_LEN = 214;

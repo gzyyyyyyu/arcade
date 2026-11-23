@@ -85,7 +85,7 @@ const KEYS_TABLE: [string, string, string][] = [
 ];
 
 /**
- * 走一遍的步骤：3 步；有鼠标的设备从"?"打开时多一页快捷键。底池、谁赢、加注怎么选都改成到了那个场合再弹的情境提示（HINT_TEXT），
+ * 走一遍的步骤：3 步；有鼠标的设备从"?"打开时多一页快捷键。底池、谁赢、加注怎么选是到了那个场合再弹的情境提示（HINT_TEXT），
  * 不放在开局前
  */
 export const STEPS: readonly Step[] = [

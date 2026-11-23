@@ -86,7 +86,7 @@ export class TableMotion {
     place(
       e,
       // 两边的贴着名牌往里摆：头像上面要放赢了多少（float），旁边是亮出来的牌
-      // 我自己的放在头像左上（原来和头像一样高，盖住左下角的"歇一手""嘲讽"）
+      // 我自己的放在头像左上（和头像一样高会盖住左下角的"歇一手""嘲讽"）
       seat === this.c.me ? { x: p.x - 196, y: p.y - 30 } : side === 'below' ? { x: p.x, y: p.y + 92 } : { x: p.x + (side === 'right' ? 80 : -80), y: p.y + 58 },
     );
     after();
@@ -150,7 +150,7 @@ export class TableMotion {
 
   /**
    * 全下以后补发公共牌：先把所有人的底牌翻开（规则：全下比牌，底牌马上亮），每家标上现在的胜率，
-   * 再一张一张补牌，每发一张胜率就跳一次。只用摊牌结果里真亮出来的牌。好友房（quick）不加停顿，时长和以前一样
+   * 再一张一张补牌，每发一张胜率就跳一次。只用摊牌结果里真亮出来的牌。好友房（quick）不加停顿
    */
   async runOut(f: Frame, r: HandResult): Promise<void> {
     const quick = this.c.opts.quick?.() === true;

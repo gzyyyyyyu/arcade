@@ -35,7 +35,7 @@ games/texas/
 ### 10.1 单独部署
 
 不需要平台也能部署单个游戏：别人 fork 或点 Deploy to Cloudflare，就能把德州原样部署到自己的 `texas.<子域>.workers.dev`。
-同一份代码两种部署，由 env 决定（kit 0.10 的 `isStandalone`：没有 ARCADE、GATE 不是 login），代码里不分支部署目标：
+同一份代码两种部署，由 env 决定（kit 的 `isStandalone`：没有 ARCADE、GATE 不是 login），代码里不分支部署目标：
 
 | | 本站（有平台） | 单独部署 |
 |---|---|---|

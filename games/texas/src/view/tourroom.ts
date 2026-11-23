@@ -52,7 +52,7 @@ export function tourEndBody(i: TourEnd): HTMLElement {
 }
 
 /** 我被淘汰了（打完前）：大字名次、奖金那句、打了几手和出局那一手；问看到结束还是现在离开（单机、好友房共用） */
-export interface TourOut {
+interface TourOut {
   place: number;
   /** 大字下面那一句：娱乐赛筹码不算数 / 奖金多少 / 没进奖励圈 */
   prize: string;

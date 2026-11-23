@@ -4,7 +4,7 @@ No-limit Texas Hold'em for 2–9 players: solo against computer players, Sit & G
 To run it: `npm ci && npm run dev` (page on :5175), `npm test` for type check, unit and workerd tests, `npm run smoke` for the headless browser test (after `npm run build:cf`); all commands are listed under "本地开发" below.
 Design lives in [DESIGN.md](DESIGN.md) (overview) and [docs/](docs/) (rules, AI, online, screens, scenes, economy, tournament, testing, deploy, art); module conventions in [AGENTS.md](AGENTS.md).
 
-- **Solo play** against 1–5 computer players, entirely in the browser: ten personalities, three fun difficulties (beginner / normal / expert) and four real-chip tables tuned against simulated players.
+- **Solo play** against 1–8 computer players, entirely in the browser: ten personalities, three fun difficulties (beginner / normal / expert) and four real-chip tables tuned against simulated players.
 - **Sit & Go tournaments** (solo: classic 6-player, turbo 6-player with blinds rising twice as fast, or 9-player with top-3 payouts; friend rooms: classic 6-player) and **quick match** (queue for a table of real players).
 - **Friend rooms** with a six-digit code or an invite link (built on the shared `arcade-kit` room); empty seats are filled by the computer, and the server never sends anyone else's hole cards.
 - **Table fun** — props, stickers and taunts, with computer players that react — from the shared `arcade-kit/table-fun` component.
@@ -31,7 +31,7 @@ The rest of this README, the design document (`DESIGN.md`) and the code comments
 
 ## 功能
 
-- **单机**：对 1–5 个电脑，10 种性格，每种有自己的风格（松凶、紧凶、跟注站、爱诈唬……入池、加注、下注大小、爱犯的小错都不一样），高档的会按位置、筹码深浅和对手的公开打法调整，想多久随局面和性格变但不透露牌力（docs/ai.md 4.3、4.11）；娱乐分新手、普通、高手三个难度，实盘四档（docs/ai.md 4.3、4.10）。娱乐桌不碰钱包，实盘从平台钱包带一份上桌、离桌带回。要跟注时赔率条写"胜率约 X% · 要过 Y%"（跟注提示，只在单机桌，设置里能关，docs/screens.md 8.2）。牌局存在浏览器里，刷新接着打。
+- **单机**：对 1–8 个电脑（一桌 2–9 人），10 种性格，每种有自己的风格（松凶、紧凶、跟注站、爱诈唬……入池、加注、下注大小、爱犯的小错都不一样），高档的会按位置、筹码深浅和对手的公开打法调整，想多久随局面和性格变但不透露牌力（docs/ai.md 4.3、4.11）；娱乐分新手、普通、高手三个难度，实盘四档（docs/ai.md 4.3、4.10）。娱乐桌不碰钱包，实盘从平台钱包带一份上桌、离桌带回。要跟注时赔率条写"胜率约 X% · 要过 Y%"（跟注提示，只在单机桌，设置里能关，docs/screens.md 8.2）。牌局存在浏览器里，刷新接着打。
 - **好友房**：六位房间码或邀请链接，空位电脑补，服务端说了算、不下发别人的底牌（docs/online.md 6）。现金桌和锦标赛开房时都可选实盘四档或娱乐：实盘现金桌至少两个真人才发牌，娱乐现金桌一个人也能开打（空位电脑补，筹码不算数）；锦标赛至少两个真人（第 14 节）。**匹配真人**排队凑一桌，有实盘四档和一个娱乐档，娱乐档开的是筹码不算数的娱乐房间（docs/online.md 6.11）。
 - **锦标赛**（Sit & Go）：打到剩一人；单机有经典 6 人、极速赛（6 人、涨盲快一倍）和 9 人赛，娱乐、实盘都有，好友房是经典 6 人（第 14 节）。**止盈**：赢够自动起身（8.13）。
 - **全下局 · 全下或弃牌**（只有娱乐）：6 人、每人 10 个大盲，只点“全下 / 弃牌”（面对全下是“跟注全下 / 弃牌”），翻牌前定胜负，15 手或输光一局，几十秒一手；电脑版 A 全下、F 弃牌；结果卡记在浏览器本地最好成绩；另有**今日全下**：每天同一副牌，一天记一次分上平台每日榜（docs/features.md 13.10）。
@@ -51,7 +51,7 @@ The rest of this README, the design document (`DESIGN.md`) and the code comments
 npm ci
 npm run dev           # 页面（vite，5175）；钱包连不上时娱乐照常，设 TEXAS_WORKER=<本地 Worker 端口> 把 api/、/api/wallet* 转给 Worker
 npm run build:cf      # 页面打包到 dist-cf/games/texas/（Worker 的静态资源），并把 _headers（assets 长缓存）拷到 dist-cf/
-npm run smoke         # 冒烟：先 build:cf；本地起 Worker + 无头 Chromium，跑单机（打满 30 手、补码、离桌结算、回大厅）、手机横屏、双指放大、竖屏、好友房、匹配真人，
+npm run smoke         # 冒烟：先 build:cf；本地起 Worker + 无头 Chromium，跑单机（打满 30 手、补筹码、离桌结算、回大厅）、手机横屏、双指放大、竖屏、好友房、匹配真人，
                       # 再用原样的 wrangler.jsonc 起一个单独部署的 Worker 跑单机和游客好友房；
                       # --only desktop|mobile|portrait|room|match|standalone 只跑一段，tall|guide|tp|tour|tourfmt|tourroom|devices|scenes|noscroll|lobbyui|settings|dialogs|ach|puzzle|pushfold|dailytour|bigmoments|roomsoak|roomweak|quota 只能单独指定（docs/testing.md 第 9 节；devices 是 27 个尺寸的多尺寸检查，加 --lobby 只查主页和选桌页；scenes 是牌桌各种局面的互压检查，8.2；roomsoak 好友房长跑量内存和连接、roomweak 后台和弱网后恢复，第 6 节）
 npm run capture -- [--device desk|phone|both] [--every 250] [--secs 40] [--auto] [--out 目录]

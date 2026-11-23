@@ -2,7 +2,7 @@
 import { el, toggle } from '../dom.ts';
 import { boardPos, felt, isTop, type Pt } from '../layout.ts';
 import { personaStyle } from '../text.ts';
-import { KEEP_OUT, type SeatNodes } from './types.ts';
+import { BESIDE_SEATS, KEEP_OUT, type SeatNodes } from './types.ts';
 import { place, union } from './nodes.ts';
 import type { TableCtx } from './context.ts';
 import type { TableScene } from './base.ts';
@@ -11,6 +11,8 @@ import { must } from '../../must.ts';
 export class TableProbe {
   private readonly c: TableCtx;
   private readonly scene: TableScene;
+  /** 对手资料卡开着时收它的监听（点哪里、Esc），收卡时一起撤 */
+  private cardOff: AbortController | null = null;
 
   constructor(c: TableCtx, scene: TableScene) {
     this.c = c;
@@ -21,7 +23,7 @@ export class TableProbe {
    * 加注面板打开时，被它盖住的座位挪开（r 是操作区在屏幕上的位置），收起时放回去。
    * 按实际位置算：不同人数、不同屏幕宽，盖住的是哪个座位不一样。先试整个座位往上挪到面板上方，再试往左挪到面板左边，
    * 都放不下就只留名牌（名字和筹码）塞到面板上方（.tucked，头像、底牌、动作签先藏起来）。挪过去不许压到别的座位、出舞台
-   * （原来只往上挪，6 人桌右下的座位叠到右上那个上面）
+   * （只往上挪的话 6 人桌右下的座位叠到右上那个上面）
    */
   avoid(r: DOMRect | null): void {
     const stage = this.c.root.getBoundingClientRect();
@@ -211,17 +213,18 @@ export class TableProbe {
   }
 
   /**
-   * 互动菜单、面板不许盖的地方（kit 的 TableFun 的 avoid，仓库根 docs/table-fun.md 第 1 节）：我的底牌和操作区，屏幕矩形。
-   * 头像菜单是 kit 画的，这里只报位置
+   * 互动菜单、面板不许盖的地方（kit 的 TableFun 的 avoid，仓库根 docs/table-fun.md 第 1 节）：我的底牌、操作区、头像旁的按钮，屏幕矩形。
+   * 头像菜单和热区是 kit 画的，这里只报位置
    */
   keepOut(): DOMRect[] {
     const mine = this.c.seats[this.c.me]?.cards.filter((c) => !c.classList.contains('hidden')) ?? [];
-    const parts = [...mine, ...(this.c.root.parentElement?.querySelectorAll<HTMLElement>(KEEP_OUT) ?? [])];
+    const stage = this.c.root.closest('.stage') ?? this.c.root.parentElement;
+    const parts = [...mine, ...(this.c.root.parentElement?.querySelectorAll<HTMLElement>(KEEP_OUT) ?? []), ...(stage?.querySelectorAll<HTMLElement>(BESIDE_SEATS) ?? [])];
     return parts.map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0);
   }
 
   /**
-   * 看对手：点名牌弹一张小卡，名字、风格、这一场的数；放在座位往桌心那一侧，点别处或 5 秒后收起。
+   * 看对手：点名牌弹一张小卡，名字、风格、这一场的数；放在座位往桌心那一侧，点别处、按 Esc 或 5 秒后收起。
    * tag 是按这一场的数给的标签，电脑再加上它的性格那一句。点头像是 kit 的互动菜单，这张卡只放数（docs/experience.md 13.7）
    */
   showCard(seat: number, tag: string, rows: string[]): void {
@@ -241,8 +244,11 @@ export class TableProbe {
     this.clearOf(card);
     this.c.card = card;
     this.c.cardTimer = window.setTimeout(() => this.hideCard(), 5_000);
-    // 下一次点哪里都收起（这一次的点击已经冒泡完了）
-    window.setTimeout(() => window.addEventListener('pointerdown', () => this.hideCard(), { once: true }), 0);
+    // 下一次点哪里、按 Esc 都收起（和弹窗、加注面板一样；这一次的点击已经冒泡完了）
+    const off = new AbortController();
+    this.cardOff = off;
+    window.setTimeout(() => window.addEventListener('pointerdown', () => this.hideCard(), { signal: off.signal }), 0);
+    window.addEventListener('keydown', (e) => e.key === 'Escape' && this.hideCard(), { signal: off.signal });
   }
 
   /** 卡片不许盖操作按钮、加注那一行和预选（规范 1 节）：压到了就整张往上挪，挪到舞台顶为止 */
@@ -262,6 +268,8 @@ export class TableProbe {
   }
 
   hideCard(): void {
+    this.cardOff?.abort();
+    this.cardOff = null;
     window.clearTimeout(this.c.cardTimer);
     this.c.card?.remove();
     this.c.card = null;

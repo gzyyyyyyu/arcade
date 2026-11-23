@@ -245,8 +245,7 @@ export class TableScene {
     const key = pots.join(',');
     if (this.c.potEl.dataset.k === key) return;
     this.c.potEl.dataset.k = key;
-    // 有边池时不写总数，换成一排小标签：主池、边池（一、二……），各带一枚筹码，宽度按字（原来标签的 class 叫 side，
-    // 撞上选桌页右栏的 .side，被撑成 430 宽、竖排的两条，横在桌心压住手牌，主池的数字也挤没了）
+    // 有边池时不写总数，换成一排小标签：主池、边池（一、二……），各带一枚筹码，宽度按字（class 不叫 side：会撞上选桌页右栏的 .side）
     const multi = pots.length > 1;
     this.c.potMain.innerHTML = total && !multi ? `<span class="pile">${chipPile(total)}</span><span class="pot-label">底池</span><b>${chips(total)}</b>` : '';
     toggle(this.c.potMain, 'hidden', multi);
@@ -283,7 +282,7 @@ export class TableScene {
     const half = (this.c.dealer.offsetWidth || 26) / 2;
     const hits = (q: Pt): boolean => {
       const d = at(q, half, half);
-      // 出了牌桌区域（竖屏右侧座位的外侧）也算压：以前靠动作签把 D 挤回来，现在得自己躲
+      // 出了牌桌区域（竖屏右侧座位的外侧）也算压：D 自己躲
       if (d.left < box.left || d.right > box.right || d.top < box.top || d.bottom > box.bottom) return true;
       return blockers.some((r) => Math.min(d.right, r.right) - Math.max(d.left, r.left) > 1 && Math.min(d.bottom, r.bottom) - Math.max(d.top, r.top) > 1);
     };

@@ -144,7 +144,7 @@
 .stage.tall .pz-body { grid-template-columns: 1fr; gap: var(--s-3); }
 .stage.tall .pz-felt { padding: var(--s-2); }
 
-/* 手机横屏、矮竖屏（360×640）：牌桌上的公共牌和我的两张牌排成一行（原来两行），牌小一点；"你的牌"和底池说明各占一行放在下面，
+/* 手机横屏、矮竖屏（360×640）：牌桌上的公共牌和我的两张牌排成一行，牌小一点；"你的牌"和底池说明各占一行放在下面，
    揭晓页一屏放下（审计：横屏多出 19–21、360×640 多出 80） */
 @media (max-height: 700px) {
   .stage:is(.tall, .tight) .pz { --cw: 46px; --ch: 64px; }

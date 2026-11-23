@@ -73,7 +73,7 @@ html, body, body::before { background: var(--night); }
   box-shadow: inset 0 2px 1px rgba(255, 225, 170, .55), inset 0 -4px 7px rgba(0, 0, 0, .65), 0 14px 26px rgba(0, 0, 0, .65), 0 0 0 2px #120a04;
 }
 .felt::after {
-  /* 缝线：虚线金边，压在边的中间（原来的噪点纹理换成上面的织纹渐变） */
+  /* 缝线：虚线金边，压在边的中间 */
   content: '';
   position: absolute;
   inset: -9px;
@@ -440,7 +440,7 @@ html, body, body::before { background: var(--night); }
   --ak-soft: #ead29a;
   --ak-title: #a85a00;
 }
-/* kit 的灰按钮（聊天"收起"等）底色写死 #3a3a3a、字跟 --ak-fg：上面把 --ak-fg 换成深棕后成了黑底黑字（界面审查 1121 第 4 条）。kit 是运行时插的样式，加 :root 压过它 */
+/* kit 的灰按钮（聊天"收起"等）底色写死 #3a3a3a、字跟 --ak-fg：上面把 --ak-fg 换成深棕后成了黑底黑字。kit 是运行时插的样式，加 :root 压过它 */
 :root .atf-chip.atf-grey { color: #fff6e0; }
 html, body, body::before { background: #d9bf85; }
 #app { background: #d9bf85; }
@@ -724,7 +724,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
   background-position: right 5px top 5px, 0 0;
   background-size: 12px 12px, 100% 100%;
 }
-/* 窄按钮（"经典""现金桌""6"）里放不下勾，压字（界面审查 1121 第 5 条）：勾改成挂在右上角外面的小圆章，按钮里只留描边 */
+/* 窄按钮（"经典""现金桌""6"）里放不下勾，压字：勾改成挂在右上角外面的小圆章，按钮里只留描边 */
 .stage .sel:is(.pill, .size, .preset, .pre-btn, .auto-next, .icon) { background-image: var(--cg-sheen); background-size: 100% 100%; }
 .stage .sel:is(.pill, .size, .preset, .pre-btn, .auto-next, .icon):not(.loading)::after {
   content: ''; position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%;
@@ -756,11 +756,11 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 .stage :is(.read-card, :where(#app, .coach-layer) .toast, .result) { background-image: var(--cg-sheen); box-shadow: 0 4px 0 var(--cg-ink), var(--cg-hi), 0 12px 20px rgba(43, 29, 20, .3); }
 .stage .result.mine { background-image: linear-gradient(rgba(255, 255, 255, .4), rgba(255, 255, 255, 0) 50%, rgba(120, 60, 0, .15)); box-shadow: 0 4px 0 var(--cg-ink), var(--cg-hi), 0 12px 20px rgba(43, 29, 20, .3); }
 .stage :is(.banner, .fun-hint, .rw-seat) { background-image: var(--cg-sheen); }
-/* 手数：电脑版压在深棕的底边上，只靠描边看不清（界面审查 1121 第 7 条）→ 奶油底深字小胶囊 */
+/* 手数：电脑版压在深棕的底边上，只靠描边看不清→ 奶油底深字小胶囊 */
 .stage .hand-no { padding: 1px 10px; border-radius: 999px; background: var(--cg-cream); box-shadow: 0 0 0 1.5px var(--cg-ink); white-space: nowrap; }
 .stage .lobby .title { color: #f7c43a; -webkit-text-fill-color: #f7c43a; }
 
-/* 卡通第二版补：结束页说明字和锦标赛名次行原来按深色弹窗配（浅字、白色半透明底），奶油弹窗上看不清 */
+/* 结束页说明字和锦标赛名次行配奶油弹窗（按深色弹窗配的浅字、白色半透明底在奶油上看不清） */
 :where(#app, .coach-layer) .mask .dialog .sum-note { color: #6b5338; }
 :where(#app, .coach-layer) .mask .dialog .tour-top li { background: rgba(43, 29, 20, .07); }
 
@@ -903,7 +903,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
   box-shadow: 0 0 0 var(--cg-ink), inset 0 2px 6px rgba(0, 0, 0, .32);
 }
 
-/* ---------- 快速开始：内沿光，字上下留够气（两行字原来贴着按钮边） ---------- */
+/* ---------- 快速开始：内沿光，字上下留够气 ---------- */
 .stage .lobby .qstart {
   height: auto;
   min-height: 84px;
@@ -913,7 +913,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 }
 .stage .lobby .qstart small { opacity: .78; }
 
-/* ---------- 三张模式卡：纸面渐变 + 绿呢圆章图标（原来是白盒子配黑图标） ---------- */
+/* ---------- 三张模式卡：纸面渐变 + 绿呢圆章图标 ---------- */
 .stage .lobby .mcard {
   background-color: #fffdf6;
   background-image: linear-gradient(rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 40%, rgba(185, 130, 40, .16)), var(--lb-grain);
@@ -944,7 +944,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 .stage .lobby .wallet { padding-bottom: var(--s-1); border-bottom: 2px solid rgba(168, 90, 0, .22); }
 .stage .lobby .w-balance { text-shadow: 0 1px 0 rgba(255, 255, 255, .7); }
 
-/* ---------- 战绩条：一块小毡面记分牌（原来是灰褐半透明，像停用的） ---------- */
+/* ---------- 战绩条：一块小毡面记分牌（别做成灰褐半透明，像停用的） ---------- */
 .stage .lobby .mystats {
   gap: var(--s-2);
   padding: var(--s-2) var(--s-3);
@@ -962,7 +962,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 .stage .lobby .mystats .ms b { color: #fff3c4; text-shadow: 0 1px 0 rgba(0, 0, 0, .4); }
 .stage .lobby .mystats .ms small { color: rgba(245, 230, 192, .85); }
 
-/* ---------- 成就条、今日谜题：木色皮革条 + 缝线（成就带金色进度），一看就是能点的；谜题原来发灰像禁用（界面审查 1121 第 14 条） ---------- */
+/* ---------- 成就条、今日谜题：木色皮革条 + 缝线（成就带金色进度），一看就是能点的；谜题不能发灰（像禁用） ---------- */
 .stage .lobby :is(.ach-open, .pz-open) {
   --ach: 0;
   gap: var(--s-2);

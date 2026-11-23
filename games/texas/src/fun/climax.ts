@@ -129,7 +129,7 @@ export function badBeat(r: HandResult): BadBeat | null {
 }
 
 /**
- * 池子多大：0 小（十个大盲以内）、1 中、2 大（四十个大盲以上，和原来"哗啦"的门槛一样）、3 特大（一百五十个大盲以上）。
+ * 池子多大：0 小（十个大盲以内）、1 中、2 大（四十个大盲以上）、3 特大（一百五十个大盲以上）。
  * 筹码声按它换：小的叮一下，大的一串哗啦，特大的再加低频的堆叠声
  */
 export function potTier(total: number, bb: number): 0 | 1 | 2 | 3 {
