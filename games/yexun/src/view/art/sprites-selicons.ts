@@ -145,9 +145,9 @@ const TIER_ART: Record<LiveTier, (c: Ctx) => void> = {
 /** 实盘档位：铜钱堆，堆越大档越大 */
 export const tierIcon = (t: LiveTier): string => paint(`t.${t}`, TIER_ART[t]);
 
-/** 连战的小图标（驿站、精英、锁、放逐、纸钱，以及 12 个符印）；键名同 design 的 RelicId，给连战界面用 */
+/** 连战的小图标（驿站、精英、锁、重抽、放逐、纸钱，以及 12 个符印）；键名同 design 的 RelicId，给连战界面用 */
 export type RushIconKey =
-  | 'shop' | 'event' | 'rest' | 'elite' | 'lock' | 'ban' | 'paper'
+  | 'shop' | 'event' | 'rest' | 'elite' | 'lock' | 'reroll' | 'ban' | 'paper'
   | 'mirror' | 'lamp' | 'tube' | 'string' | 'charm' | 'boots' | 'ruler' | 'bowl' | 'thunder' | 'cloak' | 'gourd';
 
 const GOLD = '#ffd75a';
@@ -195,6 +195,41 @@ const RUSH_ART: Record<RushIconKey, (c: Ctx) => void> = {
     blob(c, rrect(8.5, 14.5, 15, 11.5, 2.4), GOLD, GOLD_SH, 2, 1.4);
     dab(c, circle(16, 19.4, 1.9), INK);
     dab(c, rrect(15.2, 19.6, 1.6, 3.8, 0.6), INK);
+  },
+  // 重抽：两道首尾相接的循环箭头
+  reroll: (c) => {
+    badge(c, '#38a898', '#227468');
+    c.save();
+    c.translate(16, 16);
+    const arrow = (color: string, w: number, outline: boolean): void => {
+      for (const rot of [0, Math.PI]) {
+        c.save();
+        c.rotate(rot);
+        c.beginPath();
+        c.arc(0, 0, 7.2, -Math.PI * 0.82, -Math.PI * 0.22);
+        c.lineWidth = w;
+        c.lineCap = 'round';
+        c.strokeStyle = color;
+        c.stroke();
+        c.beginPath();
+        c.moveTo(7.78, -1.89);
+        c.lineTo(7.78, -6.44);
+        c.lineTo(3.32, -2.74);
+        c.closePath();
+        c.fillStyle = color;
+        c.fill();
+        if (outline) {
+          c.lineWidth = 2.4;
+          c.lineJoin = 'round';
+          c.strokeStyle = color;
+          c.stroke();
+        }
+        c.restore();
+      }
+    };
+    arrow(INK, 4.8, true);
+    arrow('#fff6d8', 2.4, false);
+    c.restore();
   },
   // 放逐：圆圈加斜杠
   ban: (c) => {

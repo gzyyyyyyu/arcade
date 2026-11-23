@@ -33,3 +33,8 @@ export function isBlocked(r: ReplayRecord): boolean {
 }
 
 export const BLOCKED_TEXT = '版本不同，放不了';
+
+/** 列表里要不要标「最好的一局」：被拦的旧版连战录像不挂最好标记 */
+export function showBest(r: ReplayRecord): boolean {
+  return r.bestFor.length > 0 && !isBlocked(r);
+}
