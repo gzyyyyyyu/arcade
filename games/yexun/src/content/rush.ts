@@ -51,5 +51,7 @@ export const RUSH_MAP_SPECIAL: Partial<Record<MapId, EnemyKind>> = { bamboo: 'ba
 export const RUSH_STAGES: readonly (readonly ('b' | 's' | 'lord' | 'boss')[])[] = [['b'], ['b'], ['s'], ['b', 'b'], ['lord'], ['s', 'b'], ['boss']];
 
 /** 构筑：主法器到几级（进化的概率）、副法器、第三件；第四件有一定概率带 */
+/** 连战一共几只（骨架定死，和种子无关；实盘中途离开按只数结回、实盘页说明要用） */
+export const RUSH_TOTAL = RUSH_STAGES.reduce((a, st) => a + st.length, 0);
 export const RUSH_BUILD = { main: 8, evolve: 0.5, second: [6, 7] as const, third: [4, 5] as const, fourth: 0.4, fourthLevel: 3, passive: [2, 3] as const };
 

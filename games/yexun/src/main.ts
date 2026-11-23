@@ -15,7 +15,7 @@ import type { ExchangeView } from './view/ui/prepShop.ts';
 import { MERGE_STAGE } from './content/weapons.ts';
 import { SCHOOLS } from './content/guide.ts';
 import { hasLoginHint, startCloud } from './platform/cloud.ts';
-import { createLive, liveSetup } from './platform/live.ts';
+import { createLive, liveRushSetup, liveSetup } from './platform/live.ts';
 import { liveCharOk, LIVE_TIERS, liveMapOk, type LiveTier } from './content/live.ts';
 import { loadRecords, RunTally } from './meta/records.ts';
 import { AchievementToast, Codex, MONSTER_INFO } from './view/ui/codex.ts';
@@ -417,7 +417,7 @@ async function boot(): Promise<void> {
     if (!e) return;
     const { game: g, GameScene, createWorld } = e;
     g.loop.wake();
-    sess.liveRun = kind === 'live' && fixed ? { seed: fixed.seed } : null;
+    sess.liveRun = kind === 'live' && fixed ? { seed: fixed.seed, down: 0 } : null;
     if (kind !== 'live') sess.lastLive = null;
     // 每日连战也是"今天的"一局：日期跟着走，交每日连战榜
     sess.dailyDate = kind === 'daily' || kind === 'rush' ? beijingDate(Date.now()) : null;
@@ -500,7 +500,11 @@ async function boot(): Promise<void> {
           tips.show(`<b>跳尸</b>一扑掉 ${Math.round(js)} 血：${MONSTER_INFO.jiangshi.blurb}`, 6000);
         }
         dbg?.lateMerge(q, x);
-        if (sess.liveRun && x.tick % 300 === 0) live.progress(sess.liveRun.seed, x.tick);
+        // 实盘连战打倒一只就报（中途离开按只数结回，不能晚 10 秒少算一只）
+        if (sess.liveRun && (x.tick % 300 === 0 || (x.rush && x.rushDown !== sess.liveRun.down))) {
+          sess.liveRun.down = x.rushDown;
+          live.progress(sess.liveRun.seed, x.tick, x.rushDown);
+        }
       },
     });
     scene = g.scene.getScene('game') as unknown as GameScene;
@@ -674,7 +678,29 @@ async function boot(): Promise<void> {
     if (fallback) return confirm.ask(`${why}，这次按娱乐开吧`, '按娱乐开', '回菜单', (ok) => (ok ? fallback() : menu.show(menuState())));
     confirm.ask(why, '知道了', '回菜单', () => menu.show(menuState()));
   };
+  // 实盘连战（docs/design-live.md 4.1b）：每局随机种子，固定小道士、不带加成；只开 LIVE_RUSH 里有的档
+  const startLiveRush = async (tier: LiveTier, fallback?: () => void): Promise<void> => {
+    const seed = (Math.random() * 0x100000000) >>> 0;
+    if (!(await ready())) return;
+    starting = true;
+    let r: Awaited<ReturnType<typeof live.buyin>>;
+    try {
+      r = await live.buyin(tier, seed, undefined, 'xiaodao', undefined, true);
+    } finally {
+      starting = false;
+    }
+    if (r.ok) {
+      sess.liveTier = tier;
+      sess.lastLive = { tier, rush: true };
+      const setup = liveRushSetup(tier, seed);
+      return startRun(setup.danger, setup.map ?? 'snow', true, setup, 'live');
+    }
+    const why = buyinWhy(r.outcome);
+    if (fallback) return confirm.ask(`${why}，这次按娱乐开吧`, '按娱乐开', '回菜单', (ok) => (ok ? fallback() : menu.show(menuState())));
+    confirm.ask(why, '知道了', '回菜单', () => menu.show(menuState()));
+  };
   menu.onLive = (tier, map, fallback) => void startLive(tier, undefined, map, fallback);
+  menu.onRushLive = (tier) => void startLiveRush(tier);
   menu.onRaidLive = (tier, tpl, fallback) => void startLive(tier, tpl, undefined, fallback);
   // 夜探（第 6 步）：第一次固定教学镇、危险 0；之后选模板和危险档。带角色和加成，不带咒印
   menu.onRaid = (template: RaidTemplateId, picked: Danger) => {
@@ -699,6 +725,7 @@ async function boot(): Promise<void> {
     vault.show();
   };
   result.onAgain = () => {
+    if (sess.lastLive?.rush) return void startLiveRush(sess.lastLive.tier);
     if (sess.lastLive) return void startLive(sess.lastLive.tier, sess.lastLive.raid, sess.lastLive.map);
     if (world?.setup.trial) return void startTrial(world.setup.trial);
     if (world?.setup.mode === 'raid') return menu.onRaid(world.setup.raid?.template ?? 'guzhen', world.setup.danger);

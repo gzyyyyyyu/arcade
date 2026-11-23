@@ -15,7 +15,7 @@ const pct = (v: number): string => `${Math.round(v * 100)}%`;
 import { NIGHT_MARKET } from '../../content/market.ts';
 import { RUSH, RUSH_STAGES } from '../../content/rush.ts';
 import { GUIDE_EXAMPLES, ROLE_NAME, ROLE_TIP, SCHOOL_IDS, SCHOOLS, WEAPON_ROLE, type Role, type SchoolId } from '../../content/guide.ts';
-import { LIVE_MAP_CLOSED, LIVE_MAX_BP, LIVE_TIER_IDS, LIVE_TIERS } from '../../content/live.ts';
+import { LIVE_MAP_CLOSED, LIVE_MAX_BP, LIVE_RUSH_TIERS, LIVE_TIER_IDS, LIVE_TIERS } from '../../content/live.ts';
 import { SKILLS } from '../../core/skills.ts';
 import { MAP_EVENT_AT, MAP_EVENTS } from '../../content/mapEvents.ts';
 import { MAP_IDS, MAP_UNLOCK, MAPS } from '../../content/maps.ts';
@@ -434,7 +434,7 @@ export class Guide {
           `<li>${this.img('boss')}主页点「连战」先看今天的构筑和首领，点开始开局。开局直接给一套成型的法器，${RUSH_STAGES.reduce((a, s) => a + s.length, 0)} 只精英和首领一关一关上，尸王压轴。</li>` +
           `<li>每清一关挑 ${RUSH.stagePicks} 张卡，凑齐了当场进化、合成；两关之间喘 ${RUSH.rest / 30} 秒、掉肉包；一局最多 ${clock(RUSH.limit)}，打完或到点收工。</li>` +
           '<li>同一天所有人同一套构筑、同一串首领，明天换一套，当天能反复打。上「每日连战榜」：全清的比谁快，没全清的比打倒几只。</li>' +
-          '<li>不记守夜的纪录、不发铜钱，比的是走位和挑卡。</li>' +
+          '<li>不记守夜的纪录、不发铜钱，比的是走位和挑卡。实盘的连战每局随机一套，见下一段。</li>' +
           '</ul>',
       ),
       this.sec(
@@ -443,6 +443,7 @@ export class Guide {
           `<li>档位：${tiers}。撑得越久结回越多，最多 ${LIVE_MAX_BP / 10_000} 份；太早倒下就亏。</li>` +
           `<li>不带永久加成和咒印；角色和地图可以选已经解锁的，起手和心法也照选的带。` + (closed ? `${esc(closed)}暂不开放。` : '') + '</li>' +
           `<li>守夜、夜探实盘都能放技能，纸匠、货郎、阴阳先生也都能带；升级、宝箱能抽到的法器、遇到的怪和首领都和娱乐一样。守夜实盘危险 ${LIVE_EASE.fromDanger} 起挨打少 ${pct(1 - LIVE_EASE.dmgScale)}。</li>` +
+          `<li>实盘页还有「连战」（只开${LIVE_RUSH_TIERS.map((t) => LIVE_TIERS[t].name).join('、')}档）：每局随机一套构筑，按打倒几只结回，全清另外多给；挨打不减，中途离开按已打倒的只数算。</li>` +
           '<li>筹码不能买、不能换、不能转。</li>' +
           '</ul>',
       ),

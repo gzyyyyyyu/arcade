@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { LIVE_KEY, LiveClient, classify, liveSetup, reviveLive } from '../../src/platform/live.ts';
-import { LIVE_MAX_BP, LIVE_TIER_IDS, LIVE_TIERS, vigilBp } from '../../src/content/live.ts';
+import { LIVE_KEY, LiveClient, classify, liveRushSetup, liveSetup, reviveLive } from '../../src/platform/live.ts';
+import { LIVE_MAX_BP, LIVE_RUSH, LIVE_RUSH_TIERS, LIVE_TIER_IDS, LIVE_TIERS, rushBp, vigilBp } from '../../src/content/live.ts';
+import { RUSH_TOTAL } from '../../src/content/rush.ts';
+import { createWorld } from '../../src/core/step.ts';
+import { RUSH_MAPS } from '../../src/online/rush.ts';
 import { normalizeSetup } from '../../src/core/state.ts';
 import { RAID_LIVE } from '../../src/content/explore.ts';
 
@@ -427,5 +430,115 @@ describe('本页正在打时触发 resume（联网、回到前台）', () => {
     expect(saved(store).step).toBe('done');
     await a.c.finish(5, { ticks: 27_000, won: true, bossKilled: false });
     expect(a.calls).toHaveLength(1);
+  });
+});
+
+describe('实盘连战（记录里有 rush）', () => {
+  it('只开小、中档；结回曲线：按只数线性到打到尸王，全清另给，都是整数、不超上限', () => {
+    expect(LIVE_RUSH_TIERS).toEqual(['small', 'medium']);
+    expect(rushBp('large', 5, RUSH_TOTAL, false)).toBe(0);
+    for (const t of LIVE_RUSH_TIERS) {
+      const c = LIVE_RUSH[t]!;
+      expect(rushBp(t, 0, RUSH_TOTAL, false)).toBe(0);
+      expect(rushBp(t, RUSH_TOTAL - 1, RUSH_TOTAL, false)).toBe(c.reach);
+      expect(rushBp(t, RUSH_TOTAL, RUSH_TOTAL, true)).toBe(c.clear);
+      expect(c.clear).toBeGreaterThan(c.reach);
+      expect(c.clear).toBeLessThanOrEqual(LIVE_MAX_BP);
+      let prev = -1;
+      for (let n = 0; n < RUSH_TOTAL; n++) {
+        const b = rushBp(t, n, RUSH_TOTAL, false);
+        expect(Number.isInteger(b) && b > prev).toBe(true);
+        prev = b;
+      }
+      // 没全清时打倒数不会到 total：夹到打到尸王那一格
+      expect(rushBp(t, RUSH_TOTAL, RUSH_TOTAL, false)).toBe(c.reach);
+    }
+  });
+
+  it('开局配置：守夜连战、危险按档、固定小道士、不带加成咒印、图从连战表里抽；守夜实盘的降难度不生效', () => {
+    for (const t of LIVE_RUSH_TIERS) {
+      const s = liveRushSetup(t, 12345);
+      expect(s).toMatchObject({ mode: 'vigil', rush: true, live: true, danger: LIVE_TIERS[t].danger, character: 'xiaodao', perks: {}, assist: false });
+      expect(RUSH_MAPS).toContain(s.map);
+      const n = normalizeSetup(s);
+      expect(n.curses ?? []).toEqual([]);
+      expect(Object.keys(n.perks ?? {})).toEqual([]);
+      expect(createWorld(s).liveEase).toBe(false);
+    }
+    // 对照：同档守夜实盘照旧降难度
+    expect(createWorld(liveSetup('medium', 12345)).liveEase).toBe(true);
+  });
+
+  it('带入记下 rush；守夜的 finish 不管它，finishRush 按只数结', async () => {
+    const { c, calls, store } = rig();
+    await c.buyin('medium', 8, undefined, 'xiaodao', undefined, true);
+    expect(saved(store)).toMatchObject({ tier: 'medium', rush: true, step: 'playing' });
+    expect(saved(store).map).toBeUndefined();
+    expect(Object.keys(calls[0]!.body).sort()).toEqual(['ref', 'tier']);
+    await c.finish(8, { ticks: 27000, won: true, bossKilled: true });
+    expect(calls).toHaveLength(1);
+    await c.finishRush(8, { down: RUSH_TOTAL, total: RUSH_TOTAL, cleared: true });
+    expect(calls.at(-1)!.body).toMatchObject({ tier: 'medium', bp: LIVE_RUSH.medium!.clear });
+    expect(saved(store).step).toBe('done');
+  });
+
+  it('打到一半关页面：按最后报的打倒只数结回（只往大记，别的局不记）', async () => {
+    const store = mem();
+    const a = rig(undefined, store);
+    await a.c.buyin('small', 5, undefined, 'xiaodao', undefined, true);
+    a.c.progress(5, 300, 1);
+    a.c.progress(5, 900, 4);
+    a.c.progress(5, 600, 2); // 只往大记
+    a.c.progress(9, 999, 8); // 别的局的不记
+    expect(saved(store).down).toBe(4);
+    const b = rig(undefined, store);
+    await b.c.resume();
+    expect(b.calls[0]!.url).toBe('api/live/settle');
+    expect(b.calls[0]!.body.bp).toBe(rushBp('small', 4, RUSH_TOTAL, false));
+    expect(saved(store).step).toBe('done');
+  });
+
+  it('打到一半关页面且一只没打倒：bp 为 0（输掉这一份，不按撑的时间折算）', async () => {
+    const store = mem();
+    const a = rig(undefined, store);
+    await a.c.buyin('medium', 5, undefined, 'xiaodao', undefined, true);
+    a.c.progress(5, 6000, 0);
+    const b = rig(undefined, store);
+    await b.c.resume();
+    expect(b.calls[0]!.body.bp).toBe(0);
+  });
+
+  it('坏记录：大、豪华档不能是连战；连战和夜探不能同时有', () => {
+    const base = { ref: 'yexun-abcdef12', stake: 1, seed: 1, at: 1, until: 1, step: 'playing' as const, rush: true };
+    expect(reviveLive({ ...base, tier: 'large' })).toBeNull();
+    expect(reviveLive({ ...base, tier: 'luxe' })).toBeNull();
+    expect(reviveLive({ ...base, tier: 'small', raid: 'guzhen' })).toBeNull();
+    expect(reviveLive({ ...base, tier: 'medium', down: 3 })).toMatchObject({ rush: true, down: 3 });
+  });
+
+  it('打倒尸王那一拍已记到 9 只、结算页出来前关页：按全清结，不按打到尸王', async () => {
+    const store = mem();
+    const a = rig(undefined, store);
+    await a.c.buyin('medium', 5, undefined, 'xiaodao', undefined, true);
+    a.c.progress(5, 4000, RUSH_TOTAL);
+    const b = rig(undefined, store);
+    await b.c.resume();
+    expect(b.calls[0]!.body.bp).toBe(LIVE_RUSH.medium!.clear);
+  });
+
+  it('带入时档不在 LIVE_RUSH 或同时是夜探：回 bug，不写记录、不发请求', async () => {
+    for (const [tier, raid] of [['large', undefined], ['luxe', undefined], ['small', 'guzhen']] as const) {
+      const { c, calls, store } = rig();
+      const r = await c.buyin(tier, 5, raid, 'xiaodao', undefined, true);
+      expect(r).toEqual({ ok: false, outcome: { kind: 'bug', error: 'rush_tier' } });
+      expect(calls).toHaveLength(0);
+      expect(store.m.size).toBe(0);
+    }
+  });
+
+  it('rushBp：只数不是有限数按 0，小数往下取整', () => {
+    for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) expect(rushBp('small', bad, RUSH_TOTAL, false)).toBe(0);
+    expect(rushBp('small', 3.9, RUSH_TOTAL, false)).toBe(rushBp('small', 3, RUSH_TOTAL, false));
+    expect(rushBp('small', -2, RUSH_TOTAL, false)).toBe(0);
   });
 });

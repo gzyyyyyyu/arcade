@@ -1,6 +1,7 @@
 import type { MapId } from '../../../content/maps.ts';
 import { CHARACTERS, type CharacterId } from '../../../content/meta.ts';
-import { LIVE_MAX_BP, LIVE_TIERS, liveCharOk, vigilBp, type LiveTier } from '../../../content/live.ts';
+import { LIVE_MAX_BP, LIVE_TIERS, liveCharOk, rushBp, vigilBp, type LiveTier } from '../../../content/live.ts';
+import { RUSH, RUSH_TOTAL } from '../../../content/rush.ts';
 import { RAID_LIVE, raidCharCoef, type RaidLiveTemplate, type RaidLiveTier } from '../../../content/explore.ts';
 
 /** 实盘守夜的一句话说明：天亮、尸王各结回几份按这一档的 dawnBp 算（倍数按档拟合，四档不同） */
@@ -60,4 +61,18 @@ export function liveFacts(tier: LiveTier, picked: CharacterId, map: MapId): Live
   else out.push({ big: f(dawn), small: '天亮' }, { big: f(boss), small: '打倒尸王' });
   out.push({ big: '能', small: '放技能' });
   return out;
+}
+
+/** 实盘连战：按打倒几只结回（rushBp），全清另给；照实写数，打到尸王没打倒也有 */
+const share = (bp: number): string => `${Number((bp / 10_000).toFixed(2))} 份`;
+export function rushLiveFacts(tier: LiveTier): LiveFact[] {
+  return [
+    { big: share(rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false)), small: '打到尸王' },
+    { big: share(rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true)), small: '全清' },
+    { big: '按只数', small: '没全清时' },
+    { big: `${RUSH.limit / 1800} 分钟`, small: '一局最多' },
+  ];
+}
+export function rushLiveNote(tier: LiveTier): string {
+  return `危险 ${LIVE_TIERS[tier].danger} · 固定小道士、构筑给好<br>没全清按打倒几只折算，打到尸王（前 ${RUSH_TOTAL - 1} 只都打倒）${share(rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false))}，全清 ${share(rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true))}；一只没打倒这一份就没了；中途离开按已打倒的只数结回`;
 }
