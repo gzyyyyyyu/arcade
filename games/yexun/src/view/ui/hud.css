@@ -85,7 +85,7 @@
 .yx-hud .yx-yy:empty { display: none; }
 .yx-hud .yx-yy.yang { background: #d9482a; color: #fff; }
 .yx-hud .yx-yy.yin { background: #2b2640; color: #e8e4ff; }
-/* 阴阳互换炸了一圈（规则 66）：字放大、亮一下 */
+/* 阴阳互换炸了一圈：字放大、亮一下 */
 .yx-hud .yx-yy.flip { animation: yx-yy-flip 0.9s ease-out; }
 @keyframes yx-yy-flip { 0% { transform: translateX(-50%) scale(1); } 20% { transform: translateX(-50%) scale(1.7); box-shadow: 0 0 14px #c0b4ff; } 100% { transform: translateX(-50%) scale(1); } }
 .yx-bars { display: flex; flex-direction: column; gap: 4px; }
@@ -209,7 +209,7 @@
 }
 .yx-pass img { position: absolute; inset: 6%; width: 88%; height: 88%; }
 .yx-pass .yx-slot-lv { left: -5px; bottom: -5px; font-size: var(--fs-xs, 12px); line-height: 13px; min-width: 14px; padding: 0 2px; }
-/* 规则 63 的初成搭配：虚线框 + 右上角「初」角标，和大成一眼分开 */
+/* 初成搭配：虚线框 + 右上角「初」角标，和大成一眼分开 */
 .yx-hud .yx-slot.half { border-style: dashed; }
 .yx-hud .yx-slot-stage {
   position: absolute; right: -6px; top: -6px;
@@ -260,7 +260,7 @@
 .yx-ink { position: absolute; border-radius: 50%; background: var(--ink); }
 .yx-ink-a { width: 10px; height: 10px; left: -10px; top: 6px; box-shadow: 14px -8px 0 -2px var(--ink), -6px 18px 0 -3px var(--ink); }
 .yx-ink-b { width: 7px; height: 7px; right: -14px; bottom: 4px; box-shadow: 10px -12px 0 -2px var(--ink); }
-/* 动画名全局共用：原来和结算面板（screens.css）的 yx-pop 重名，后加载的那份把这边的盖掉，连斩数字每次都从全透明淡入，打得快时整个看不见 */
+/* 动画名全局共用：不能和结算面板（screens.css）的 yx-pop 重名，否则后加载的那份把这边的盖掉，连斩数字每次都从全透明淡入，打得快时整个看不见 */
 @keyframes yx-combo-pop {
   0% { transform: scale(1.5); }
   60% { transform: scale(0.92); }
@@ -288,12 +288,12 @@
   background: rgba(251, 245, 228, 0.9); box-shadow: 0 2px 0 var(--ink); max-width: calc(100% - 16px);
 }
 #stage .yx-tip span { font-size: var(--fs-sm, 13px); }
-/* 技能提示有两行长：允许折行、宽度不超过屏幕，"不再提示"留在条里（原来一行到底，手机竖屏伸出屏幕） */
+/* 技能提示有两行长：允许折行、宽度不超过屏幕，"不再提示"留在条里（一行到底的话手机竖屏伸出屏幕） */
 #stage .yx-tip { white-space: normal; box-sizing: border-box; width: max-content; }
 #stage .yx-tip span { flex: 1 1 auto; min-width: 0; padding: 4px 0; line-height: 1.4; }
 #stage .yx-tip button { flex: none; white-space: nowrap; }
 #stage .yx-tip button { font-size: var(--fs-xs, 12px); background: none; }
-/* 提示条还在时，关卡横幅整体下移到它下面（连战第一关的横幅原来压住 WASD 提示） */
+/* 提示条还在时，关卡横幅整体下移到它下面（不然连战第一关的横幅压住 WASD 提示） */
 #stage:has(.yx-tip) .yx-banners { padding-top: 200px; }
 @media (max-width: 767px) and (orientation: portrait) {
   #stage:has(.yx-tip) .yx-banners { padding-top: 260px; }
@@ -408,7 +408,7 @@
 @keyframes yx-evpulse { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.06); } }
 @media (prefers-reduced-motion: reduce) { .yx-hud .yx-evtag.urgent { animation: none; } }
 
-/* ── 排版整理（2026-10-30）：HUD 按钮三态；电脑顶栏摊宽一点，不缩在中间一条 ── */
+/* ── 排版：HUD 按钮三态；电脑顶栏摊宽一点，不缩在中间一条 ── */
 .yx-hud .yx-btn { transition: transform 0.08s ease-out, filter 0.12s, box-shadow 0.08s; -webkit-tap-highlight-color: transparent; }
 @media (hover: hover) {
   .yx-hud .yx-btn:not(:disabled):hover { transform: translateY(-1px); filter: brightness(1.06); }

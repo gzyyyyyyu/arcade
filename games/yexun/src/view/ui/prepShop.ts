@@ -87,7 +87,7 @@ export function exchangeHtml(s: ShopState): string {
     .map((r) => `<li><span>${r.at === null ? '更早' : stamp(r.at)}</span><b>+${fmt(r.chips)} 筹码</b><span>${coin(r.coins)}${r.pending ? ' · 还没到账' : ''}</span></li>`)
     .join('');
   return (
-    `<div class="yx-pnote">${rate} 铜钱换 1 筹码；筹码进平台钱包，各个游戏通用。每天额度按北京时间算。${CHIPS_NO_CASH}。</div>` +
+    `<div class="yx-pnote">${rate} 铜钱兑 1 筹码；铜钱是在夜巡里玩出来的，不能花钱买。筹码进平台钱包，各个游戏通用。每天额度按北京时间算。${CHIPS_NO_CASH}。</div>` +
     `<div class="yx-pxchead"><b>${head}</b>${x.pending ? `<span>有 ${x.pending} 笔还没到账，铜钱先扣着，会自动重发</span>` : ''}</div>` +
     `<div class="yx-pgrid yx-pxcs">${btns}${all}</div>` +
     (x.msg ? `<div class="yx-pxcmsg" role="status">${x.msg}</div>` : '') +

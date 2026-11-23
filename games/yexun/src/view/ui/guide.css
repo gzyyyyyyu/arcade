@@ -12,7 +12,7 @@
 .yx-guide .yx-glist { margin: 2px 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-md, 14px); line-height: 1.45; }
 .yx-guide .yx-glist.num { padding-left: 1.4em; list-style: decimal; }
 .yx-guide .yx-glist.two { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; }
-/* 条目按普通行内排：原来是换行的 flex，图标或开头的粗体后面那一整段字是一个弹性项，窄屏放不下就整段掉到下一行，图标、"走位"孤零零占一行 */
+/* 条目按普通行内排，不用换行的 flex：那样图标或开头的粗体后面那一整段字是一个弹性项，窄屏放不下就整段掉到下一行，图标、"走位"孤零零占一行 */
 .yx-guide .yx-glist li { display: block; }
 .yx-guide .yx-glist.num li { display: list-item; }
 .yx-guide .yx-glist li b { color: var(--ink, #17131c); }
@@ -72,7 +72,7 @@
 .yx-guide .yx-gsi u { width: 1.5px; height: 18px; margin: 0 4px; background: rgba(23, 19, 28, 0.35); }
 .yx-guide .yx-gbadge { width: 28px; height: 28px; }
 .yx-guide .yx-gsr { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; font-size: var(--fs-xs, 12px); }
-/* 心法说明不小于 12（原来 small 默认缩到 10） */
+/* 心法说明不小于 12（small 默认会缩到 10） */
 .yx-guide .yx-gsr small { font-size: var(--fs-xs, 12px); }
 .yx-guide .yx-gsr > i { font-style: normal; color: #6a5a48; }
 .yx-guide .yx-gsr > i:not(:first-child) { margin-left: 8px; }

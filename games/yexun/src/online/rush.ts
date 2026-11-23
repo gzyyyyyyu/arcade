@@ -11,7 +11,7 @@ import { DAILY_DANGER, DATE_RE, dailyBoardId } from './daily.ts';
 import type { OnlineSetup } from './types.ts';
 
 /** 平台每日榜的子榜 id */
-export const RUSH_SUB = 'rush' as const;
+const RUSH_SUB = 'rush' as const;
 
 export function rushBoardId(date: string): string {
   return dailyBoardId(date, RUSH_SUB);
@@ -44,7 +44,7 @@ export function isRushSetup(date: string | null | undefined, s: OnlineSetup): bo
  * 所以先比全清没有，再比打倒几只，全清的比快、没全清的比最后一关打掉多少。一共几只同一天都一样，只为榜上能写成 N/M。
  * 平台按字段拆开显示（daily.json 的 boards.rush）。
  */
-export const RUSH_CLEAR = 1e9;
+const RUSH_CLEAR = 1e9;
 export function rushScore(r: RushResult): number {
   const down = Math.max(0, Math.min(99, Math.trunc(r.down)));
   const total = Math.max(0, Math.min(99, Math.trunc(r.total)));

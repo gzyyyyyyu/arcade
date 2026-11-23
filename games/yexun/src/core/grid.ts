@@ -4,7 +4,7 @@
  */
 import { MAX_ENEMIES, type World } from './state.ts';
 
-export const CELL = 64;
+const CELL = 64;
 const INV = 1 / CELL;
 
 export class Grid {

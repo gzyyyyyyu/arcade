@@ -114,7 +114,7 @@ export const ENEMIES: readonly EnemyDef[] = [
   // 鬼市主：扛刀剑和火（一身铜钱褂子），怕符怕铃，给符和镇守一个主场
   { kind: 'marketboss', code: 36, name: '鬼市主', tint: 0xb8902e, hp: 640, speed: 1.1, dmg: 14, r: 32, xp: 30, steady: 0.88, elite: true, vs: { 剑: 0.7, 火: 0.85, 符: 1.3, 镇: 1.2 } },
   // 画皮：混在怪群里的首领，速度和纸扎老爷一样；血和撞人比纸扎老爷少（多了分身和缠丝两手）。
-  // 混迹时机器人和玩家都认不出它、不躲，原来快一档、撞 14 时竹林河滩鬼市危险 2 通关率比纸扎老爷低 4–10 个点（DESIGN 8.1）
+  // 混迹时机器人和玩家都认不出它、不躲，再快一档、撞 14 时竹林河滩鬼市危险 2 通关率比纸扎老爷低 4–10 个点（DESIGN 8.1）
   { kind: 'huapi', code: 37, name: '画皮', tint: 0x79b9a2, hp: 5600, speed: 1.15, dmg: 10, r: 30, xp: 60, steady: 0.92, boss: true, vs: { 火: 1.1, 符: 1.15 } },
   // 人皮分身：一碰就破的皮，血量在 HUAPI.cloneHp（刷出来时覆盖）
   { kind: 'huapiskin', code: 38, name: '人皮', tint: 0xf6cfc4, hp: 80, speed: 1.9, dmg: 8, r: 14, xp: 1, steady: 0.1, vs: { 火: 1.4 } },

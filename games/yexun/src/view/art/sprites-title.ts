@@ -15,7 +15,7 @@ const ROOF_L = '#2c3150';
 const SNOW = '#f2f6fc';
 
 /** 灯笼（挂绳在 (0,0)，往下 50）：朱红灯身、金边、穗子 */
-export function drawLanternHang(c: Ctx, glow = 1): void {
+function drawLanternHang(c: Ctx, glow = 1): void {
   stroke(c, (k) => { k.moveTo(0, 0); k.lineTo(0, 9); }, 2, INK);
   const g = c.createRadialGradient(0, 28, 2, 0, 28, 46);
   g.addColorStop(0, `rgba(255,200,110,${0.55 * glow})`);
@@ -93,15 +93,15 @@ export interface Lamp { x: number; y: number; s: number; ph: number }
  * 主页的版面：道士、灯笼放在界面按钮和文字让出来的空处，不压按钮（所有者 10-30：手机上灯笼压按钮、角色被裁）。
  * padTop 是菜单内容（标题）的起点，竖屏时灯笼挂在它下面、标题两侧；不传按 108 估。
  */
-export function titleLayout(w: number, h: number, padTop = 118, select = false): { mode: 'portrait' | 'phone' | 'desk'; hero: { x: number; y: number; s: number }; lamps: Lamp[] } {
+function titleLayout(w: number, h: number, padTop = 118, select = false): { mode: 'portrait' | 'phone' | 'desk'; hero: { x: number; y: number; s: number }; lamps: Lamp[] } {
   if (h > w * 1.1 && w < 700) {
-    // 手机竖屏：道士整个站在底部正中（原来贴着左边被裁掉半个），高度约 22%、脚贴近底边，头顶（约 76% 处）在战绩卡下面，不被卡片遮住；灯笼挂在标题两侧
+    // 手机竖屏：道士整个站在底部正中（贴左边会被裁掉半个），高度约 22%、脚贴近底边，头顶（约 76% 处）在战绩卡下面，不被卡片遮住；灯笼挂在标题两侧
     const s = (h * 0.22) / 70;
     const ls = Math.min(0.8, Math.max(0.6, w / 480));
     return { mode: 'portrait', hero: { x: w * 0.5, y: h * 0.98, s }, lamps: select ? [] : [{ x: w * 0.06, y: padTop + 4, s: ls, ph: 0 }, { x: w * 0.94, y: padTop + 4, s: ls, ph: 2.4 }] };
   }
   if (h < 500) {
-    // 手机横屏：左边是"大厅"和一列按钮（原来道士躲在按钮后面）、右上是齿轮；道士站右下的空处，灯笼挂在按钮列和标题之间的屋檐下
+    // 手机横屏：左边是"大厅"和一列按钮（道士不能躲在按钮后面）、右上是齿轮；道士站右下的空处，灯笼挂在按钮列和标题之间的屋檐下
     if (select) return { mode: 'phone', hero: { x: w * 0.075, y: h * 0.93, s: (h * 0.4) / 70 }, lamps: [] };
     const s = (h * 0.36) / 70;
     return { mode: 'phone', hero: { x: w * 0.9, y: h * 0.96, s }, lamps: [{ x: w * 0.2, y: h * 0.03, s: 0.8, ph: 0 }, { x: w * 0.28, y: h * 0.02, s: 0.8, ph: 1.7 }] };
@@ -173,7 +173,7 @@ export function drawTitleStill(c: Ctx, w: number, h: number, padTop?: number, se
   c.save();
   c.translate(hero.x, hero.y);
   c.scale(hs, hs);
-  // 画当前出战的角色（11-15：原来固定小道士，换了人主页看不出这局是谁）；小道士在主图集，别人在角色图集，画法同一份
+  // 画当前出战的角色（换了人主页要看得出这局是谁）；小道士在主图集，别人在角色图集，画法同一份
   const def = character === 'xiaodao' ? SPRITES.find((d) => d.key === 'hero')! : [...HERO_SPRITES, ...CHARS2_SPRITES].find((d) => d.key === heroKey(character))!;
   c.translate(-def.w / 2, -66.5);
   def.draw(c);

@@ -259,7 +259,7 @@ export const CHEST: Record<ChestTier, { items: number; weights: readonly [number
  * 娱乐夜探的补给和成长（实盘不带：动了撤出率就动结回期望，实盘要跟先报数）：
  * - 开箱回血：按血上限的比例（`CHEST.heal`，木 15% / 铜 25% / 金 40%）；
  * - 肉包掉率 × bun：夜探怪少（同一分钟击杀约是守夜的三分之一），肉包跟着少，挨了打补不回来；
- * - 铜箱、金箱给的升级改成三选一（实盘仍是随机升一件）；
+ * - 铜箱、金箱给的升级三选一（实盘是随机升一件）；
  * - 宝气：背包里每件珍品伤害 +3%、绝品 +8%，最多 +40%；死了宝物丢光，宝气跟着没了。越往深处搜越强。
  */
 export const RAID_SUPPLY = { bun: 2.5, boost: [0, 0, 0.03, 0.08] as readonly number[], boostMax: 0.4 };
@@ -387,7 +387,7 @@ export const ROAM_SPEED = 0.6;
  * 实盘结回（DESIGN.md 4.2）：撤出时倍数 = clamp(带出的宝物价值 ÷ 基准价值, 保底, 封顶)；死亡、迷失、认输为 0。结回 = 带入 × 倍数 向下取整，按万分之一传。
  * 基准按"档位 × 镇子"各一个：三个镇子同一档的平均带出价值差三成（模拟器第 3 轮），只按一个数会有"挑镇子赚钱"的空子。
  * 保底（1.1）：按撤出时刻从 1 涨到满额，按档分开定（见下面 floor / floorRamp）；不按镇子分开：保底一高，手熟的人"开门就走"就比认真搜还赚。
- * 档位 → 危险：小 0、中 1、大 2（主线 2026-10-17 同意放低一档）；夜探的危险 1、2 走 waves.ts 的 RAID_DANGERS（比守夜缓），0.2.0 起三档都开。
+ * 档位 → 危险：小 0、中 1、大 2（主线 2026-10-17 同意放低一档）；夜探的危险 1、2 走 waves.ts 的 RAID_DANGERS（比守夜缓）。
  * 基准是 1.1 全量模拟（每格 2,000 局）拟合的：普通玩家落在区间里、且比开门就走至少多 0.15 份，见 DESIGN.md 4.2。
  */
 export const RAID_LIVE = {
@@ -396,7 +396,7 @@ export const RAID_LIVE = {
    * 保底满额和几拍给满：撤出越早给得越少，从 1.0 线性涨到满额（1.1：认真搜要比开门就走多拿 ≥ 0.15 份）。
    * 按档分开：中、大档第一座门 5 分钟才开，开门就走也在 6 分钟左右，同样的保底在那里就等于白送，所以中档给满拖到 10 分钟、大档满额压到 1.25。
    */
-  // 豪华档（规则 64 开）照大档的思路：8 分钟给满，满额比大档低（豪华档目标带低一截），数值是拟出来的（DESIGN 4.2）
+  // 豪华档照大档的思路：8 分钟给满，满额比大档低（豪华档目标带低一截），数值是拟出来的（DESIGN 4.2）
   floor: { small: 1.6, medium: 1.6, large: 1.25, luxe: 1.2 } as Record<RaidLiveTier, number>,
   floorRamp: { small: 5 * 60 * 30, medium: 10 * 60 * 30, large: 8 * 60 * 30, luxe: 8 * 60 * 30 } as Record<RaidLiveTier, number>,
   // 戏楼镇、粮仓镇（0.17.6）：小道士每格 300 局，普通锚区间中点，两条线期望 + 2SE 不超上限（DESIGN.md 4.2）
@@ -405,7 +405,7 @@ export const RAID_LIVE = {
     small: { guzhen: 250, dukou: 182, shansi: 220, xilou: 176, liangcang: 246, yaozhen: 219 },
     medium: { guzhen: 211, dukou: 241, shansi: 153, xilou: 184, liangcang: 224, yaozhen: 170 },
     large: { guzhen: 175, dukou: 153, shansi: 98, xilou: 135, liangcang: 210, yaozhen: 123 },
-    // 规则 68 危险档变难后按古镇小道士同种子各 2,000 局重拟，五镇同比例 ÷1.26（原 139 / 121 / 45 / 79 / 164）
+    // 按古镇小道士同种子各 2,000 局拟，五镇同比例
     luxe: { guzhen: 111, dukou: 96, shansi: 36, xilou: 63, liangcang: 130, yaozhen: 70 },
   } as Record<RaidLiveTier, Record<RaidLiveTemplate, number>>,
   danger: { small: 0, medium: 1, large: 2, luxe: 3 } as Record<RaidLiveTier, number>,
@@ -414,9 +414,9 @@ export const RAID_LIVE = {
    * 某角色同档的实盘期望比最高、最低的差出 0.15 份以上才单独给，按档写，不改角色本身的数值。
    */
   charBp: {
-    // 0.27.0（规则 64 的内容进实盘）：45 个「角色 × 镇子」小、中、大三档 sim --stop 重量（最多 2,000 局），豪华档每格 2,000 局。
+    // 45 个「角色 × 镇子」小、中、大三档 sim --stop 量（最多 2,000 局），豪华档每格 2,000 局。
     // 口径「宁简勿难」：只压超过多发线（带上限 + 0.15）的，压到普通回到带上限、小白不超多发线；普通低于带下限的抬到带上限（最多 2 倍）；其余照旧。
-    // 豪华档的基准把小道士普通锚到 +0.40（主线 11-17：往多给提，但不到大档带上限 +0.45），角色系数按同一个锚压。逐格的拟出值和之前的历史见 docs/balance-live.md
+    // 豪华档的基准把小道士普通锚到 +0.40（主线 11-17：往多给提，但不到大档带上限 +0.45），角色系数按同一个锚压
     xiaodao: { medium: { guzhen: 10_000, dukou: 11_400, shansi: 10_000, xilou: 10_000, liangcang: 10_000, yaozhen: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 9_200, xilou: 10_000, liangcang: 10_000, yaozhen: 10_000 } },
     fushi: { small: { guzhen: 8_800, dukou: 9_400, shansi: 9_600, xilou: 9_200, liangcang: 8_900, yaozhen: 8_800 }, medium: { guzhen: 8_400, dukou: 10_000, shansi: 8_300, xilou: 10_100, liangcang: 8_400, yaozhen: 8_400 }, large: { guzhen: 8_100, dukou: 8_600, shansi: 7_300, xilou: 8_700, liangcang: 8_500, yaozhen: 8_100 }, luxe: { guzhen: 8_200, dukou: 8_300, shansi: 7_000, xilou: 8_300, liangcang: 7_900, yaozhen: 8_200 } },
     jianxia: { small: { guzhen: 8_300, dukou: 8_200, shansi: 9_400, xilou: 8_200, liangcang: 8_200, yaozhen: 8_300 }, medium: { guzhen: 7_900, dukou: 9_100, shansi: 7_700, xilou: 8_400, liangcang: 7_900, yaozhen: 7_900 }, large: { guzhen: 6_700, dukou: 8_100, shansi: 6_800, xilou: 7_900, liangcang: 7_100, yaozhen: 6_700 }, luxe: { guzhen: 7_200, dukou: 7_900, shansi: 7_100, xilou: 7_300, liangcang: 6_400, yaozhen: 7_200 } },
@@ -427,7 +427,7 @@ export const RAID_LIVE = {
     huolang: { small: { guzhen: 11_300, dukou: 11_700, shansi: 10_600, xilou: 11_000, liangcang: 11_000, yaozhen: 11_300 }, medium: { guzhen: 10_400, dukou: 10_500, shansi: 9_900, xilou: 10_400, liangcang: 10_400, yaozhen: 10_400 }, large: { guzhen: 10_200, dukou: 11_400, shansi: 9_200, xilou: 9_600, liangcang: 11_300, yaozhen: 10_200 }, luxe: { guzhen: 10_000, dukou: 10_000, shansi: 6_800, xilou: 7_800, liangcang: 9_500, yaozhen: 8_300 } },
     yinyang: { small: { guzhen: 10_000, dukou: 10_000, shansi: 11_000, xilou: 12_200, liangcang: 11_300, yaozhen: 10_000 }, medium: { guzhen: 10_000, dukou: 10_000, shansi: 11_300, xilou: 12_100, liangcang: 10_000, yaozhen: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 10_700, xilou: 10_000, liangcang: 11_800, yaozhen: 10_000 }, luxe: { guzhen: 9_300, dukou: 10_000, shansi: 9_500, xilou: 9_300, liangcang: 10_000, yaozhen: 8_000 } },
     // 窑镇（0.32.0）：各角色照古镇系数，四档两线各 150–450 局筛查，两线 ±2SE 明确多发的只有豪华档胖师叔、货郎、阴阳先生，压到普通 +0.40（DESIGN 4.2a）
-    // 摆渡人 0.30.0 放出才进实盘（之前的局里没有他）：五个镇子小、中、大三档默认线各 150 局，普通低于带下限的抬到带上限（最多 2 倍；山寺中档按配对的小白不超多发线收一点）；古镇小档普通和小道士配对正好贴多发线，压 1%；豪华档照默认
+    // 摆渡人：五个镇子小、中、大三档默认线各 150 局，普通低于带下限的抬到带上限（最多 2 倍；山寺中档按配对的小白不超多发线收一点）；古镇小档普通和小道士配对正好贴多发线，压 1%；豪华档照默认
     baidu: { small: { guzhen: 9_900, dukou: 10_000, shansi: 11_700, xilou: 10_000, liangcang: 10_000, yaozhen: 9_900 }, medium: { guzhen: 10_000, dukou: 12_000, shansi: 14_200, xilou: 10_000, liangcang: 10_000, yaozhen: 10_000 }, large: { guzhen: 10_000, dukou: 13_200, shansi: 20_000, xilou: 14_300, liangcang: 12_900, yaozhen: 10_000 } },
   } as Partial<Record<CharacterId, Partial<Record<RaidLiveTier, RaidCharCoef>>>>,
 };

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-/** 规则核心和内容表的架构约束（模块 AGENTS.md 第 3 节）：扫源码 */
+/** 规则核心和内容表的架构约束（模块 AGENTS.md「规则核心」一节）：扫源码 */
 function files(dir: string): string[] {
   const root = new URL(`../../${dir}/`, import.meta.url).pathname;
   const out: string[] = [];

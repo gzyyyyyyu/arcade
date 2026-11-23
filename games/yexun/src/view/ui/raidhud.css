@@ -18,7 +18,7 @@
 /* 镇门石兽的血条在顶上时，目标条让到它下面 */
 .yx-rs.lower { top: calc(128px * var(--s, 1)); }
 
-/* 背包按钮：原来只是个计数，现在可点（≥ 44 像素），展开看装了什么 */
+/* 背包按钮：可点（≥ 44 像素），展开看装了什么 */
 .yx-bag { pointer-events: auto; cursor: pointer; min-height: 44px; font: inherit; color: var(--ink); }
 .yx-bag:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
 .yx-bagpanel {

@@ -59,7 +59,7 @@ const CORNER = 150;
 const T = 26;
 
 /**
- * 院墙四角各留一个缺口、门洞放宽（0.17.3）：小白被怪追着贴墙跑，原来在四角和长墙上卡住、被灯笼鬼的火球点死，
+ * 院墙四角各留一个缺口、门洞放宽：小白被怪追着贴墙跑，封死的话会在四角和长墙上卡住、被灯笼鬼的火球点死，
  * 义庄小白倒下的局一半多是最后 10 秒几乎没挪动的（雪原一成）。
  */
 function yard(): Block[] {
@@ -343,7 +343,6 @@ const coffin = (x: number, y: number): Block => ({ x: x - 34, y: y - 12, w: 68, 
 
 export const MAPS: Record<MapId, MapDef> = {
   snow: { id: 'snow', name: '雪原', blurb: '开阔的雪地，往哪儿跑都行', blocks: [], tone: 'snow' },
-  // 0.2.0 的三张新图（骨架：地形和特色怪由各自的 PR 填）
   bamboo: { id: 'bamboo', name: '竹林', blurb: '竹子挡路，打几下就倒', blocks: grove(), tone: 'bamboo' },
   riverbank: { id: 'riverbank', name: '河滩', blurb: '两条河把地分开，桥是要道，水里走不快', blocks: RB.blocks, water: RB.water, bridges: RB.bridges, tone: 'river' },
   icelake: { id: 'icelake', name: '冰湖', blurb: '冰面打滑，停不住脚', blocks: IL.blocks, ice: IL.ice, tone: 'ice' },

@@ -119,7 +119,7 @@ try {
         await click('.yx-rshare');
         await page.getByText(/保存图片|复制图片|长按/).first().waitFor({ timeout: 8000 });
         await snap('share');
-        await page.getByRole('button', { name: '关闭' }).click();
+        await page.getByRole('button', { name: '关闭' }).last().click(); // kit 的分享框右上还有一个 aria-label 同名的 ✕
       }
       await click('[data-a="menu"]');
       await snap('menu');

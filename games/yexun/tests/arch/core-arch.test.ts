@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-/** 依赖方向是 explore → core（模块 AGENTS.md 第 2 节）：src/core 里任何文件（含类型 import）都不许指向 explore；核心只经 core/raid-port.ts 的钩子碰夜探 */
+/** 依赖方向是 explore → core（模块 AGENTS.md「规则核心」一节）：src/core 里任何文件（含类型 import）都不许指向 explore；核心只经 core/raid-port.ts 的钩子碰夜探 */
 function files(dir: string): string[] {
   const out: string[] = [];
   const walk = (d: string): void => {

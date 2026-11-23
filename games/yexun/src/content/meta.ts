@@ -57,7 +57,7 @@ export interface CharacterDef {
   line: string;
   /** 初始数值（所有者 10-20：以小道士为 1 的倍数；运气是加数）。角色页画成 6 根条 */
   base: CharBase;
-  /** 小特权，一句话（0.15.0 起的新角色没有，他们的特色都在主动技能和被动里） */
+  /** 小特权，一句话（后加的角色没有，他们的特色都在主动技能和被动里） */
   privilege?: string;
 }
 
@@ -218,7 +218,7 @@ export const CHIPS_NO_CASH = '筹码只在游戏厅里用，无任何现金价�
 
 /** 局的种类：能带什么按它分（runKind 从开局设置认；每日挑战认不出，交榜前 online/daily.ts isDailySetup 核） */
 export type RunKind = 'play' | 'live' | 'daily' | 'weekly' | 'rush' | 'trial' | 'teach';
-export const RUN_KIND_NAMES: Record<Exclude<RunKind, 'play'>, string> = { live: '实盘', daily: '每日挑战', weekly: '本周夜事', rush: '首领连战', trial: '试炼', teach: '教学镇' };
+export const RUN_KIND_NAMES: Record<Exclude<RunKind, 'play'>, string> = { live: '实盘', daily: '每日守夜', weekly: '本周夜事', rush: '首领连战', trial: '试炼', teach: '教学镇' };
 
 /**
  * 各种局能带的局前选择（normalizeSetup、开局扣锦囊、说明文案都读这张表）：

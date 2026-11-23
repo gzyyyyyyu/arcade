@@ -1,7 +1,7 @@
 /**
- * 开局时把所有精灵用 Canvas 画进一张图集（≤ 2048 × 2048），再交给 Phaser。
+ * 开局时把所有精灵用 Canvas 画进四张图集（主、夜探、特色怪、角色，每张 ≤ 2048 × 2048），再交给 Phaser。
  * 不带任何图片文件：首包小、换色改形只改代码（DESIGN.md 第 7.2 节）。
- * 雪地是单独的一张可平铺贴图，按 1 倍画（整屏大图按 1 倍光栅化，AGENTS.md 第 4 节）。
+ * 雪地是单独的一张可平铺贴图，按 1 倍画（整屏大图按 1 倍光栅化，AGENTS.md「画面」一节）。
  */
 import { SPRITES, type SpriteDef } from './sprites.ts';
 import { SPRITES2 } from './sprites-mobs.ts';
@@ -131,7 +131,7 @@ export function buildRaidAtlas(res: number): Atlas {
 }
 
 /** 画好的夜探图集（没画过回 null） */
-export function peekRaidAtlas(): Atlas | null {
+function peekRaidAtlas(): Atlas | null {
   return raidCache?.atlas ?? null;
 }
 

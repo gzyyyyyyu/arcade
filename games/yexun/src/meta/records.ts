@@ -258,7 +258,7 @@ function counts<T extends string>(v: unknown, keys: readonly T[]): Partial<Recor
 }
 
 /** 把读出来的任何东西洗成合法的 Records：认不得的字段丢掉，坏数据整体退回空 */
-export function sanitize(raw: unknown): Records {
+function sanitize(raw: unknown): Records {
   if (!raw || typeof raw !== 'object') return emptyRecords();
   const o = raw as Record<string, unknown>;
   return {

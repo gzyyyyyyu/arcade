@@ -98,7 +98,12 @@
 .yx-bossbar div { width: min(52vw, 520px); height: 14px; border: 3px solid #17131c; border-radius: 7px; background: #2a2030; overflow: hidden; }
 .yx-bossbar b { display: block; height: 100%; background: linear-gradient(#e7c86a, #b8861e); transition: width 0.2s; }
 /* 手机竖屏：横幅（「100 斩」等）排在顶栏和小地图下面，不压中间的主角 */
-@media (max-width: 767px) and (orientation: portrait) { .yx-banners { padding-top: 124px; } }
+/* 手机竖屏：右边一竖排法器栏，横幅让开它（试玩 11-22：连战第 1 关横幅被法器栏压住半截）；一行放不下就按字折 */
+@media (max-width: 767px) and (orientation: portrait) {
+  .yx-banners { padding: 124px 76px 0 8px; }
+  .yx-banner { max-width: 100%; box-sizing: border-box; padding: 6px 12px; text-align: center; }
+  .yx-banner .t { font-size: 28px; }
+}
 @media (max-height: 500px) { .yx-bossbar { top: 58px; } .yx-banners { padding-top: 14vh; } .yx-banner .t { font-size: 26px; } }
 
 /* WebGL 上下文丢了超过 3 秒的刷新提示：盖在最上层，整条可点（≥44 高） */

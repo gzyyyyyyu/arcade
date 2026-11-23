@@ -30,7 +30,7 @@ describe('噩梦档（危险 6–8）', () => {
   });
 
   it('逐档只加不减：机制叠上去，噩梦档之间数值不降', () => {
-    // 规则 68 起噩梦 1 的血和伤害也比危险 5 高（胜率逐档降）；危险 5 的机制噩梦档都有
+    // 噩梦 1 的血和伤害也比危险 5 高（胜率逐档降）；危险 5 的机制噩梦档都有
     for (let d = NIGHTMARE_FROM; d <= 8; d++) {
       const a = DANGERS[(d - 1) as 5], b = DANGERS[d as 6];
       expect(b.hpMul).toBeGreaterThan(a.hpMul);
@@ -106,7 +106,7 @@ describe('地图事件', () => {
     };
     expect(drift(0, false)).toBeGreaterThan(10);
     expect(drift(1, false)).toBeLessThan(-10);
-    // 实盘守夜也有地图事件（DESIGN 3.4、4.2：实盘系数按带事件的全量模拟拟合）；原来预告照出、风却不吹
+    // 实盘守夜也有地图事件（DESIGN 3.4、4.2：实盘系数按带事件的全量模拟拟合）；预告出了风也要吹
     expect(drift(0, true)).toBe(drift(0, false));
     expect(drift(1, true)).toBe(drift(1, false));
   });

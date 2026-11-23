@@ -17,9 +17,9 @@ import { weeklyBoardId, weeklyDateOpen } from './weekly.ts';
 import type { RunSummary } from './types.ts';
 import { raidOpen } from '../content/explore.ts';
 
-export const VIGIL_FULL_SECONDS = 900;
-export const BOSS_BONUS_SECONDS = 100;
-export const DAILY_WIN_BASE = 1_000_000;
+const VIGIL_FULL_SECONDS = 900;
+const BOSS_BONUS_SECONDS = 100;
+const DAILY_WIN_BASE = 1_000_000;
 const KILL_CAP = 9_999;
 const ENDLESS_SECOND_CAP = 99_999;
 
@@ -53,7 +53,7 @@ export function raidScore(loot: number): number {
 }
 
 /** 每日守夜 */
-export function dailyVigilScore(o: { won: boolean; seconds: number; kills: number }): number {
+function dailyVigilScore(o: { won: boolean; seconds: number; kills: number }): number {
   return o.won ? DAILY_WIN_BASE + Math.min(DAILY_WIN_BASE - 1, nat(o.kills)) : Math.min(DAILY_WIN_BASE - 1, nat(o.seconds));
 }
 

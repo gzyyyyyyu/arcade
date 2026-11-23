@@ -498,6 +498,72 @@ describe('实盘连战（记录里有 rush）', () => {
     expect(saved(store).step).toBe('done');
   });
 
+  it('局里回大厅：leave() 当场按打倒只数结（小档打倒 1 只 = 2,000 × 1.01 份 / 8 = 252），不留给下次开页', async () => {
+    const { c, calls, store } = rig();
+    await c.buyin('small', 5, undefined, 'xiaodao', undefined, true);
+    expect(LIVE_TIERS.small.stake).toBe(2000);
+    c.progress(5, 900, 1);
+    expect(c.leaveChips(5)).toBe(252);
+    await c.leave(5);
+    expect(calls.at(-1)!.url).toBe('api/live/settle');
+    expect(calls.at(-1)!.body.bp).toBe(Math.floor((LIVE_RUSH.small!.reach * 1) / (RUSH_TOTAL - 1)));
+    expect(calls.at(-1)!.init.keepalive).toBe(true);
+    expect(saved(store).step).toBe('done');
+    // 已经结了：再回来 resume、再 leave 都不重发
+    await c.resume();
+    await c.leave(5);
+    expect(calls.filter((x) => x.url === 'api/live/settle')).toHaveLength(1);
+    expect(c.leaveChips(5)).toBeNull();
+  });
+
+  it('leave() 一律带 keepalive；守夜按撑到的拍数、夜探按 0，和 resume 同一个算法', async () => {
+    const a = rig();
+    await a.c.buyin('medium', 6);
+    a.c.progress(6, 9000);
+    await a.c.leave(6);
+    expect(a.calls.at(-1)!.init.keepalive).toBe(true);
+    expect(a.calls.at(-1)!.body.bp).toBe(vigilBp('medium', 9000, false, false));
+    const b = rig();
+    await b.c.buyin('small', 7, 'guzhen');
+    await b.c.leave(7);
+    expect(b.calls.at(-1)!.body.bp).toBe(0);
+  });
+
+  it('终局到结算页之间离开：按终局结（连战全清、夜探撤出的倍数）且带 keepalive，之后 leave 不再按中途离开重结', async () => {
+    const a = rig();
+    await a.c.buyin('small', 8, undefined, 'xiaodao', undefined, true);
+    a.c.progress(8, 900, RUSH_TOTAL);
+    await a.c.finishRush(8, { down: RUSH_TOTAL, total: RUSH_TOTAL, cleared: true }, undefined, true);
+    await a.c.leave(8);
+    const settles = a.calls.filter((x) => x.url === 'api/live/settle');
+    expect(settles).toHaveLength(1);
+    expect(settles[0]!.body.bp).toBe(rushBp('small', RUSH_TOTAL, RUSH_TOTAL, true));
+    expect(settles[0]!.init.keepalive).toBe(true);
+    const b = rig();
+    await b.c.buyin('small', 9, 'guzhen');
+    await b.c.finishRaid(9, 15_000, undefined, true);
+    expect(b.calls.at(-1)!.body.bp).toBe(15_000);
+    expect(b.calls.at(-1)!.init.keepalive).toBe(true);
+    // 平常打完（结算页出来时）不带
+    const v = rig();
+    await v.c.buyin('small', 10);
+    await v.c.finish(10, { ticks: 9000, won: true, bossKilled: true });
+    expect(v.calls.at(-1)!.init.keepalive).toBe(false);
+  });
+
+  it('leave() 只结本页带入的那一份：别的标签页开的、种子对不上的都不动', async () => {
+    const store = mem();
+    const a = rig(undefined, store);
+    await a.c.buyin('small', 5, undefined, 'xiaodao', undefined, true);
+    const other = rig(undefined, store);
+    await other.c.leave(5);
+    expect(other.c.leaveChips(5)).toBeNull();
+    await a.c.leave(99);
+    expect(other.calls).toHaveLength(0);
+    expect(a.calls).toHaveLength(1);
+    expect(saved(store).step).toBe('playing');
+  });
+
   it('打到一半关页面且一只没打倒：bp 为 0（输掉这一份，不按撑的时间折算）', async () => {
     const store = mem();
     const a = rig(undefined, store);

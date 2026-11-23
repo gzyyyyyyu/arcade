@@ -7,7 +7,7 @@ import { type Toggle, type MenuState, quickLive } from './shared.ts';
 import { Home } from './home.ts';
 import { raidDanger, Select } from './select.ts';
 
-/** 主页 → 选模式/地图 → 对局。对外的回调和以前的一页菜单一样，main.ts 只接线 */
+/** 主页 → 选模式/地图 → 对局。对外只有回调，main.ts 只接线 */
 export class Menu {
   onStart: (d: Danger, map: MapId, endless: boolean) => void = () => undefined;
   onBoards: () => void = () => undefined;
@@ -34,7 +34,6 @@ export class Menu {
   onPrep: (tab: 'char' | 'curse' | 'perk') => void = () => undefined;
   /** 选模式屏上点起手（alt）或心法（xinfa，null = 不带）：main 记进当前角色的配置后重绘 */
   onLoadout: (patch: { alt?: boolean; xinfa?: SchoolId | null }) => void = () => undefined;
-  onClick: () => void = () => undefined;
   /** 图鉴和成就 */
   onCodex: () => void = () => undefined;
   onGuide: () => void = () => undefined;

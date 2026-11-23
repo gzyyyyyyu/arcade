@@ -168,7 +168,7 @@ export class Prep {
         ['perk', '加成'],
         ['kit', '锦囊'],
         ['look', '外观'],
-        ['xc', '换筹码'],
+        ['xc', '铜钱兑筹码'],
       ] as [PrepTab, string][]
     )
       .map(([t, n]) => `<button type="button" class="yx-ptab${t === this.tab ? ' on' : ''}" data-a="tab" data-t="${t}">${n}</button>`)
@@ -197,7 +197,7 @@ export class Prep {
       rows
         .map(([name, v]) => {
           const pct = Math.round((v - 1) * 100);
-          const txt = pct === 0 ? '—' : `${pct > 0 ? '+' : '−'}${Math.abs(pct)}%`;
+          const txt = pct === 0 ? '持平' : `${pct > 0 ? '+' : '−'}${Math.abs(pct)}%`;
           // 条满长对应 2 倍；基准在 50%，差的那一段按方向上色
           const lo = Math.max(0, Math.min(100, Math.min(v, 1) * 50));
           const hi = Math.max(0, Math.min(100, Math.max(v, 1) * 50));
@@ -223,7 +223,7 @@ export class Prep {
       const afford = canBuy && s.coins >= st.price!;
       if (st.open) return { foot: id === s.character ? '出战中' : '选他', attrs: `data-a="char" data-id="${id}"` };
       if (canBuy) {
-        const foot = afford ? `<span class="yx-coin"></span>${st.price} 请他` : `<span class="yx-coin"></span>${st.price}<span class="yx-pgap">（还差 ${st.price! - s.coins}）</span>`;
+        const foot = afford ? `<span class="yx-coin"></span>${st.price} 请他` : `<span class="yx-coin"></span>${st.price}<span class="yx-pgap">（还差 ${st.price! - s.coins} 铜钱）</span>`;
         return { foot, attrs: `data-a="buychar" data-id="${id}"${afford ? '' : ' aria-disabled="true"'}` };
       }
       return { foot: `${LOCK_SVG}<span class="yx-plt">没解锁</span>`, attrs: `data-a="peek" data-id="${id}"` };
@@ -234,7 +234,8 @@ export class Prep {
       const a = act(id);
       const mark = st.open ? (id === s.character ? '<em class="yx-pnow">出战</em>' : '') : `<em>${a.foot}</em>`;
       return (
-        `<button type="button" class="yx-pchar${id === sel ? ' on' : ''}${st.open ? '' : ' locked'}${mark ? ' st' : ''}" ${a.attrs}${id === sel ? ' aria-pressed="true"' : ''}>` +
+        // 没请的点卡先看详情（试玩 11-22：铜钱不够时点了没反应），请他在详情区的按钮上
+        `<button type="button" class="yx-pchar${id === sel ? ' on' : ''}${st.open ? '' : ' locked'}${mark ? ' st' : ''}" ${st.open ? a.attrs : `data-a="peek" data-id="${id}"`}${id === sel ? ' aria-pressed="true"' : ''}>` +
         `<span class="yx-pface"><img alt="" src="${this.icons(heroKey(id), 128)}"></span>` +
         `<b>${esc(CHARACTERS[id].name)}</b><span class="yx-pcsk">${esc(sk.name)}</span>${mark}</button>`
       );

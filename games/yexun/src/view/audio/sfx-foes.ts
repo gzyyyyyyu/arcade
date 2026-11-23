@@ -3,7 +3,7 @@
 // 每个音各有辨识度：首领按「出场低沉有分量、倒下带解脱感」，技能按各自的材质（竹、水、冰、金、香火）。
 import { metal, noise, pent, registerVoices, tone } from './sfx.ts';
 
-export const FOE_SFX_NAMES = [
+const FOE_SFX_NAMES = [
   'zhumuArrive', 'zhumuDown', 'shuihouArrive', 'shuihouDown',
   'binghunArrive', 'binghunDown', 'wumianArrive', 'wumianDown',
   'bambooPop', 'bambooWave', 'spiritSummon',

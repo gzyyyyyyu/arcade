@@ -87,7 +87,7 @@
 .yx-menu { padding-left: max(18vw, env(safe-area-inset-left, 0px)); }
 .yx-menu .yx-home { position: absolute; left: max(10px, env(safe-area-inset-left, 0px)); top: max(10px, env(safe-area-inset-top, 0px)); }
 .yx-menu .yx-more { position: absolute; right: calc(max(10px, env(safe-area-inset-right, 0px)) + 56px); top: max(10px, env(safe-area-inset-top, 0px)); display: flex; gap: 6px; }
-/* 大厅、返回、每日……同一套：44 高，图标加文字排一行（"大厅"以前被挤成竖着两行，所有者 10-18） */
+/* 大厅、返回、每日……同一套：44 高，图标加文字排一行（"大厅"不能挤成竖着两行，所有者 10-18） */
 .yx-menu .yx-home, .yx-menu .yx-more .yx-btn { min-height: 44px; min-width: 44px; padding: 0 12px; gap: 6px; font-size: var(--fs-lg, 16px); white-space: nowrap; }
 .yx-menu .yx-home svg { width: 20px; height: 20px; flex: none; }
 /* 窄屏：四个按钮挪到回大厅的下面一排，不压标题 */
@@ -134,9 +134,13 @@
 .yx-chip.locked { opacity: 0.5; cursor: default; }
 .yx-dangers .yx-chip { min-width: 44px; min-height: 46px; }
 .yx-dangers { gap: 4px; }
+/* 行首「危险」两字（试玩 11-22：一排数字不知道是什么） */
+.yx-selscreen .yx-dangers .yx-rowlabel { flex: none; align-self: center; font-style: normal; font-weight: 700; font-size: var(--fs-xs, 12px); color: #5a4a3a; writing-mode: vertical-rl; letter-spacing: 1px; }
 .yx-lock { width: 12px; height: 12px; vertical-align: -1px; }
 .yx-dangers .yx-chip b { font-size: var(--fs-xl, 18px); line-height: 1; }
 .yx-chip.yx-prep { min-height: 46px; }
+/* 窄屏一排四个时「铜钱 12,345」放不下一行：在空格处折成两行，和同排三行高的噩梦格一样高（不缩字、不截断） */
+.yx-selscreen .yx-preps .yx-chip.yx-prep small { white-space: normal; word-break: keep-all; letter-spacing: 0; line-height: 1.15; }
 .yx-chip.yx-prep b { display: flex; align-items: center; gap: 4px; font-size: var(--fs-md, 14px); }
 .yx-chip.yx-prep.hot { border-color: #b8322a; color: #b8322a; }
 .yx-coin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); background: radial-gradient(circle, transparent 2.5px, #f2c94c 3px); flex: none; }
@@ -174,7 +178,7 @@
 .yx-cell.evo { background: #ffe0d8; border-color: var(--red); }
 .yx-cell.evo em, .yx-cell.max em { background: var(--red); color: #fbf5e4; }
 .yx-cell.sel { transform: translateY(-2px); background: #fff; }
-/* 规则 63 的初成搭配：和 HUD 一样虚线框 + 右上角「初」 */
+/* 初成搭配：和 HUD 一样虚线框 + 右上角「初」 */
 .yx-cell.half { border-style: dashed; }
 .yx-cell i {
   position: absolute; right: -6px; top: -6px; min-width: 18px; padding: 0 3px; box-sizing: border-box;
@@ -215,12 +219,12 @@
 .yx-rhead .yx-brush { font-size: 72px; line-height: 1; color: var(--ink); }
 .yx-result-panel.won .yx-rhead .yx-brush { color: var(--red); }
 .yx-rtags { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
-/* 只在"·"两边的空格处折行：手机竖屏上"本周夜事 · 宝箱周 · 危险 2"原来从"危""险"中间断开 */
+/* 只在"·"两边的空格处折行：手机竖屏上"本周夜事 · 宝箱周 · 危险 2"不从"危""险"中间断开 */
 .yx-rtags em { min-width: 0; word-break: keep-all; }
 .yx-rshare { min-height: 44px; min-width: 44px; padding: 0 14px; font-size: 15px; flex: none; white-space: nowrap; }
 .yx-rtags em { font-style: normal; font-size: var(--fs-md, 14px); color: #5a4a3a; }
 .yx-record {
-  /* 不折行：390 宽原来折成「新纪」「录」两行 */
+  /* 不折行：390 宽会折成「新纪」「录」两行 */
   flex: none; white-space: nowrap;
   position: relative; overflow: hidden; padding: 6px 14px; border: 2.5px solid var(--ink); border-radius: 10px;
   background: var(--gold); color: var(--ink); font-size: var(--fs-xl, 18px); transform: rotate(-4deg); box-shadow: 0 3px 0 var(--ink);
@@ -431,7 +435,7 @@
 @media (max-height: 500px) and (orientation: landscape) {
   .yx-menu:not(.yx-selscreen) .yx-more { display: grid; grid-template-columns: repeat(2, auto); }
 }
-/* 手机竖屏（≤ 460 宽）：0.4.1 加了"玩法"以后五个按钮一行放不下，齿轮被挤出屏幕（10-20 多尺寸矩阵 320–375 宽），390–430 宽"玩法"压在齿轮上；
+/* 手机竖屏（≤ 460 宽）：五个按钮一行放不下，齿轮被挤出屏幕（10-20 多尺寸矩阵 320–375 宽），390–430 宽"玩法"压在齿轮上；
    五个按钮挪到大厅和齿轮下面单独一行，内容整体再往下让一行 */
 @media (orientation: portrait) and (max-width: 460px) {
   /* 只管主页：选模式屏顶上只有"返回"一个，放得下 */
@@ -450,7 +454,7 @@
   .yx-title, .yx-quick, .yx-stats, .yx-go { zoom: 1.3; }
   /* 顶上的按钮跟着放大；设置面板挪到放大后的齿轮下面 */
   .yx-menu .yx-home, .yx-menu .yx-more, .yx-menu .yx-gear { zoom: 1.3; }
-  /* "本周夜事"小牌也跟着放大（原来漏了，夹在放大后的按钮中间显得特别小） */
+  /* "本周夜事"小牌也跟着放大（不然夹在放大后的按钮中间显得特别小） */
   .yx-menu .yx-mweekly { zoom: 1.3; }
   .yx-settings { top: calc(max(10px, env(safe-area-inset-top, 0px)) + 72px); }
   /* 结算、角色、藏宝阁、图鉴、暂停这些面板也跟着放大，1920 上不缩成中间一小块 */
@@ -468,7 +472,7 @@
 .yx-quick .yx-go small { font-size: var(--fs-md, 14px); font-weight: 600; opacity: 0.92; letter-spacing: 1px; }
 :where(.yx-quick) .yx-pick { display: flex; align-items: center; justify-content: center; min-width: 260px; min-height: 48px; font-size: var(--fs-lg, 16px); }
 .yx-quick .yx-mwhy { color: #f4f0e6; font-size: var(--fs-sm, 13px); text-shadow: 0 1px 3px #000; text-align: center; }
-/* 每日挑战的看点（周日噩梦日）改成顶栏"每日"按钮右上角的小红牌，主页不再单占一条信息块 */
+/* 每日守夜的看点（周日噩梦日）是顶栏"每日守夜"按钮右上角的小红牌，主页不单占一条信息块 */
 .yx-menu .yx-daily { position: relative; }
 .yx-menu .yx-dbadge { position: absolute; top: -8px; right: -6px; padding: 1px 6px; border: 1.5px solid #fbf5e4; border-radius: 999px; background: #c8402f; color: #fff; font-style: normal; font-size: var(--fs-xs, 12px); font-weight: 800; line-height: 1.25; letter-spacing: 1px; pointer-events: none; }
 .yx-stats {
@@ -516,7 +520,7 @@
 .yx-kindtxt em { font-style: normal; font-size: var(--fs-sm, 13px); color: #5a4a3a; width: 100%; }
 .yx-kind:not(.on) { filter: brightness(0.86) saturate(0.85); }
 .yx-kind.on { border-color: var(--red); box-shadow: 0 4px 0 var(--ink), 0 0 0 3px var(--gold); }
-/* 锁定的卡不再整体变透明（淡了以后说明小字对米色底不到 4.5:1），改成去色 */
+/* 锁定的卡去色，不整体变透明（淡了以后说明小字对米色底不到 4.5:1） */
 
 .yx-pickgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
 .yx-mcard {
@@ -526,7 +530,7 @@
 .yx-mcard .yx-thumb { width: 64px; height: 64px; flex: none; border-radius: 8px; border: 2px solid var(--ink); display: block; }
 .yx-cardtxt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .yx-cardtxt b { font-family: 'YxBrush', serif; font-weight: 400; font-size: var(--fs-2xl, 22px); line-height: 1.1; letter-spacing: 2px; }
-/* 地图说明折行时别让最后一行只剩一个字（1280 雪原「往哪儿跑都行」原来折出「行」） */
+/* 地图说明折行时别让最后一行只剩一个字（1280 雪原「往哪儿跑都行」会折出「行」） */
 .yx-cardtxt small { font-size: var(--fs-md, 14px); line-height: 1.3; color: #5a4a3a; text-wrap: pretty; }
 .yx-unlock { display: block; font-style: normal; font-size: var(--fs-sm, 13px); line-height: 1.3; color: #9c2a22; }
 .yx-unlock .yx-ushort { display: none; }
@@ -669,7 +673,7 @@
 .yx-selscreen .yx-dangers .yx-chip.yx-nm.on small { color: #ff9aa8; }
 .yx-selscreen .yx-nmoon { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: radial-gradient(circle at 68% 38%, transparent 44%, currentColor 47%); }
 
-/* ───────────── 排版整理（2026-10-30）：页面切换过渡、按钮三态、暂停竖屏、电脑主页两栏均衡 ───────────── */
+/* ───────────── 排版：页面切换过渡、按钮三态、暂停竖屏、电脑主页两栏均衡 ───────────── */
 /* 页面切换：整屏淡入、面板和主页内容上滑 8 像素，≤ 200 ms；系统要求减少动效时全关 */
 @keyframes yx-scr-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes yx-scr-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -680,6 +684,8 @@
   .yx-screen:not(.yx-result), .yx-screen > .yx-panel:not(.yx-result-panel), .yx-menu > .yx-menu-ui > :is(.yx-quick, .yx-sel, .yx-title, .yx-stats) { animation: none; }
 }
 
+/* 按下下沉对所有设备都生效：触屏没有悬停，下沉是唯一看得见的按下反馈；有鼠标时下面两段同权重、写在后面，覆盖这里 */
+.yx-screen :is(.yx-tab, .yx-ptab, .yx-pcard, .yx-cell, .yx-pchar, .yx-pgbtn, .yx-setreset, .yx-pd-act, .yx-kind, .yx-toggle, .yx-mcard, .yx-setclose):not(:disabled, [aria-disabled='true']):active { transform: translateY(1px); filter: brightness(0.94); }
 /* 按钮三态：悬停（只在有鼠标的设备上）微抬 + 提亮，按下下沉（上面已有），禁用变淡、不抬、不能点 */
 .yx-screen :is(.yx-chip, .yx-mcard, .yx-kind, .yx-big, .yx-btn, .yx-toggle, .yx-cell) { transition: transform 0.08s ease-out, filter 0.12s, box-shadow 0.08s; -webkit-tap-highlight-color: transparent; }
 @media (hover: hover) and (pointer: fine) {
@@ -729,11 +735,11 @@
   .yx-menu .yx-settings .yx-toggle { padding: 0 8px; font-size: var(--fs-md, 14px); white-space: nowrap; }
 }
 
-/* 电脑、平板横屏主页：道士在左三分之一偏中，内容放右边那块的正中（以前内容居中偏右、右边一大片空、道士贴边） */
+/* 电脑、平板横屏主页：道士在左三分之一偏中，内容放右边那块的正中 */
 @media (min-width: 1000px) and (min-height: 501px) {
   .yx-menu.yx-homescreen { padding-left: max(26vw, env(safe-area-inset-left, 0px)); }
 }
-/* 暂停：电脑上别硬撑 60% 屏高（右边按钮和左边内容之间空一大截），开关一格放得下"降低伤害" */
+/* 暂停：电脑上别硬撑 60% 屏高（右边按钮和左边内容之间空一大截），开关一格放得下"挨打减伤" */
 @media (min-width: 701px) and (min-height: 501px) {
   .yx-pause-panel { min-height: 0; width: min(70vw, 900px); }
   .yx-pause-side { width: 280px; justify-content: flex-start; }
@@ -742,7 +748,7 @@
   .yx-bdetail { margin-top: 0; }
 }
 
-/* 暂停：手机竖屏。原来左右两栏硬挤在 390 宽里，法器格压住开关、字竖着排。
+/* 暂停：手机竖屏。左右两栏挤在 390 宽里会让法器格压住开关、字竖着排，
    改成上下排：继续、认输/回大厅放在最上面（先看见），下面构筑、今晚规矩，最后开关；整块能滑 */
 @media (orientation: portrait) and (max-width: 700px) {
   .yx-pause-panel { width: 100%; min-width: 0; min-height: 0; gap: 8px; padding: 12px 12px 14px; }
@@ -757,7 +763,7 @@
   .yx-build { flex: none; gap: 10px; }
   .yx-bline { align-items: flex-start; }
   .yx-bline label { padding-top: 14px; }
-  /* 6 件法器一行放得下（52 宽时 390 折成两行）；开关排三列：带咒印、技能说明长的角色（剑侠）原来高出屏幕 24px */
+  /* 6 件法器一行放得下（52 宽时 390 折成两行）；开关排三列：带咒印、技能说明长的角色（剑侠）排两列会高出屏幕 24px */
   .yx-cell { width: 46px; height: 46px; }
   .yx-grid { gap: 6px; }
   .yx-pause-side .yx-toggles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -776,7 +782,11 @@
   .yx-pause-side .yx-pguide { grid-row: 2; grid-column: 1; min-height: 44px; margin: 10px 12px 0 0; font-size: var(--fs-md, 14px); }
   .yx-pause-side .yx-row2 > .yx-big { grid-row: 2; min-height: 44px; margin-top: 10px; }
   .yx-pause-side .yx-toggles { grid-row: 3; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .yx-pause-side .yx-toggle { padding: 0 5px; gap: 4px; font-size: var(--fs-xs, 12px); }
+  /* 一个词不拆两行（试玩 11-22：「降低伤/害」「自动技/能」）：开关小一号，字不折 */
+  .yx-pause-side .yx-toggle { padding: 0 4px; gap: 3px; font-size: var(--fs-xs, 12px); white-space: nowrap; }
+  .yx-pause-side .yx-toggle i { width: 24px; height: 14px; }
+  .yx-pause-side .yx-toggle i::after { width: 10px; height: 10px; }
+  .yx-pause-side .yx-toggle.on i::after { left: 12px; }
   .yx-build { gap: 6px; }
   .yx-cell { width: 44px; height: 44px; }
   .yx-grid { min-height: 44px; gap: 6px; }
@@ -919,7 +929,7 @@
 .yx-sel .yx-livechar { flex-wrap: nowrap; align-items: center; gap: 10px; }
 .yx-sel .yx-aside .yx-livechar > .yx-chip { flex: 0 0 auto; padding: 0 10px; }
 @media (min-width: 701px) and (min-height: 501px) {
-  /* 说明行多了起手心法（32 高）、实盘多了一行数字小牌：行距 10 → 8，面板总高和原来一样 */
+  /* 说明行多了起手心法（32 高）、实盘多了一行数字小牌：行距 8，面板总高不变 */
   .yx-sel .yx-opts { row-gap: 8px; }
 }
 /* 档位：铜钱堆小图在左，名字和筹码数两行在右 */
@@ -928,7 +938,7 @@
 .yx-selscreen .yx-tierchip { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; column-gap: 3px; padding: 0 2px; }
 .yx-selscreen .yx-tierchip img { grid-column: 1; grid-row: 1 / span 2; width: 22px; height: 22px; pointer-events: none; }
 .yx-selscreen .yx-tierchip > :is(b, small) { grid-column: 2; text-align: center; }
-/* 实盘数字小牌：放在原来三行说明的位置，一行等宽排完；大字写数，小字写它是什么 */
+/* 实盘数字小牌：一行等宽排完；大字写数，小字写它是什么 */
 .yx-sel .yx-livefacts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(var(--fc, 4), minmax(0, 1fr)); gap: 6px; }
 .yx-sel .yx-fact {
   display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; padding: 1px 4px; box-sizing: border-box;
@@ -964,4 +974,6 @@
   .yx-selscreen .yx-sel .yx-startbar { padding: 3px; }
   .yx-selscreen .yx-sel .yx-startbar .yx-big { min-height: 46px; }
   .yx-selscreen .yx-sel .yx-kind { min-height: 44px; }
+  /* 实盘三张模式卡并排：图标和名字排一行，不折成两行，「开始」才放得下（试玩 11-23：按钮下沿到 660） */
+  .yx-selscreen .yx-sel .yx-kindtxt { flex-wrap: nowrap; gap: 6px; padding: 4px 8px; }
 }

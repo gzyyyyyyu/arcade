@@ -18,7 +18,7 @@ function bare(s: Partial<Setup> = {}): World {
   w.spawnAcc = -1e9;
   return w;
 }
-/** 走真宝箱的路（规则 57 起 openChest57 一箱结完），0 件升级：只结进化、合成 */
+/** 走真宝箱的路（step.ts 的 openChest 一箱结完），0 件升级：只结进化、合成 */
 const settle = (w: World): void => openEliteChestNow(w, 0);
 const mergeEvents = (w: World): number[] => {
   const out: number[] = [];

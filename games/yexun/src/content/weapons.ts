@@ -201,7 +201,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     el: '金',
     type: '镇',
     stat: { area: '光环多大' },
-    // 1.1：镇流派中、大档最弱（前期清怪慢），1、2 级光环 66 → 73，3 级起和原来一样（第一次变大只 +5）
+    // 1.1：镇流派中、大档最弱（前期清怪慢），1、2 级光环 73，3 级起照常（第一次变大只 +5）
     base: { dmg: 12, cd: 15, area: 70, amount: 1, speed: 0, duration: 0, knock: 1, rehit: 1 },
     ups: [
       { text: '光环变大', delta: { area: 5 } },
@@ -729,7 +729,7 @@ export const WEAPON_CODE: Record<WeaponId, number> = Object.fromEntries(WEAPON_I
 export const WARD_SET_HIT = 1.25;
 /**
  * 火葫芦烧飞来的弹，要带几件火法器（火葫芦自己算一件）。烧弹是烈火顶远程怪的办法（烈火没有飞剑、铜钱）；
- * 别的流派单带火葫芦也烧弹，镇守混搭火葫芦就补上了没有的防远程，焚天金钟危险 5 胜率改前 59.5%（这一条约占 6.5 点，DESIGN 12）
+ * 别的流派单带火葫芦也烧弹，镇守混搭火葫芦就补上了没有的防远程，不加这条焚天金钟危险 5 胜率高约 6.5 点（DESIGN 12）
  */
 export const GOURD_BURN_FIRES = 2;
 /** 带几件镇类法器起，危险 4 起的精英不吃减速（waves.ts eliteNoWard） */

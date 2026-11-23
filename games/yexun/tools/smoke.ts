@@ -457,7 +457,7 @@ try {
         const ctx = await browser.newContext({ viewport: sz.viewport, ...(sz.touch ? { deviceScaleFactor: 2, isMobile: true, hasTouch: true } : {}) });
         // __Host- 前缀的 cookie 必须 https 才设得进去，本机是 http，所以直接让页面读到登录提示
         await ctx.addInitScript(() => Object.defineProperty(Document.prototype, 'cookie', { get: () => '__Host-arcade_li=1', set: () => {}, configurable: true }));
-        // 全解锁档把角色设成 zhijiang：0.17.10 起新三人各档各图都能带，选中档冰湖时不该出「带不进来」的红字
+        // 全解锁档把角色设成 zhijiang：角色各档各图都能带，选中档冰湖时不该出「带不进来」的红字
         if (save) await ctx.addInitScript((s) => localStorage.getItem('yexun.save') || localStorage.setItem('yexun.save', s), JSON.stringify({ ...JSON.parse(save), character: 'zhijiang' }));
         const page = await ctx.newPage();
         page.on('pageerror', (e) => errs.push(`未捕获异常：${e.message}`));

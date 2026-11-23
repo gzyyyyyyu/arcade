@@ -30,7 +30,7 @@ export interface WeekGoalDef {
 const dawn = (r: WeekRun): number => (r.mode === 'vigil' && r.won ? 1 : 0);
 
 /** 三个池子：第 n 条从第 n 个池子轮，奖励随之 300 / 500 / 800 */
-export const WEEK_GOAL_POOLS: readonly (readonly WeekGoalDef[])[] = [
+const WEEK_GOAL_POOLS: readonly (readonly WeekGoalDef[])[] = [
   [
     { id: 'dawn1', text: '守夜撑到天亮 1 次', need: 1, gain: dawn },
     { id: 'kill3k', text: '一共打倒 3,000 只怪', need: 3000, gain: (r) => r.kills },

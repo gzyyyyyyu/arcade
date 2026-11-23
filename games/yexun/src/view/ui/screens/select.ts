@@ -17,7 +17,7 @@ import { sceneUrl, TitleArt } from './titleArt.ts';
 import type { Menu } from './menu.ts';
 import { type LiveFact, liveFacts, liveNote, plainNote, raidLiveFacts, raidLiveNote, rushLiveFacts, rushLiveNote } from './liveNote.ts';
 
-/** 选模式页的设计尺寸：电脑上整块按这个可视区排好（1920×911 下正好是原来的 1.3 倍），更大的屏整体等比放大 */
+/** 选模式页的设计尺寸：电脑上整块按这个可视区排好（1920×911 下正好是 1.3 倍），更大的屏整体等比放大 */
 const DESIGN_W = 1476;
 const DESIGN_H = 700;
 const K_MAX = 1.6;
@@ -43,7 +43,7 @@ export class Select {
   /** 刚点了起手或心法：下一次重绘在那一行下面浮出一条说明（几秒后淡出，不占版面；触屏看不到悬停提示） */
   private ldTip = false;
   /** "更多选项"展开了没有：只在本次会话里记住，不写存储 */
-  private live: MenuState['live'] = { available: false, on: false, tier: 'small' };
+  private live: MenuState['live'] = { available: false, on: false, tier: 'small', chips: null };
   private s: MenuState | null = null;
   /** 从主页点进来时按存档重新取"上次的模式和地图"；在这一屏里点来点去、开角色页再回来不重置 */
   private fresh = true;
@@ -108,7 +108,6 @@ export class Select {
       vault: () => this.m.onVault(),
       go: () => this.go(),
     });
-    this.root.addEventListener('click', () => this.m.onClick());
     // 电脑上整块的放大倍数 --k（screens.css「选模式 · 电脑按可视区放大」）：转屏、收放地址栏都重算；双指放大着不改
     window.addEventListener('resize', () => this.fitScale());
     window.visualViewport?.addEventListener('resize', () => this.fitScale());
@@ -269,6 +268,8 @@ export class Select {
     let note = '';
     const startLabel = raid ? '开始夜探' : rush ? '开始连战' : '开始';
     let facts = '';
+    // 实盘写手上多少筹码（读到钱包的话；试玩 11-22：选档页看不到手上有多少，点了才说不够）
+    const have = this.live.chips === null ? '' : `手上 ${this.live.chips.toLocaleString('zh-CN')} · `;
     // 实盘数字小牌：一行等宽排完（守夜 4 格，夜探 5 格），大字写数、小字写它是什么，整段细则在悬停里
     const factCards = (list: LiveFact[], tip: string): string =>
       `<div class="yx-livefacts" data-n="${list.length}" style="--fc:${list.length}" title="${esc(tip)}">${list.map((x) => `<span class="yx-fact"><b>${esc(x.big)}</b><small>${esc(x.small)}</small></span>`).join('')}</div>`;
@@ -276,24 +277,24 @@ export class Select {
       pick = `<div class="yx-raidnote"><b>${RAID_TEMPLATES.teach.name}</b>${RAID_TEMPLATES.teach.blurb}</div>`;
     } else if (live && rush) {
       const t = this.rushTier();
-      pick = `<div class="yx-raidnote"><b>实盘连战</b>每局随机一套给好的构筑和首领顺序：7 关一共 ${RUSH_TOTAL} 只精英和首领，最后一关是尸王，${RUSH.limit / 1800} 分钟内打完。每清一关挑一张卡。按打倒几只结回，全清另外多给；一只没打倒这一份就没了。<br>不交连战榜，也不发铜钱。</div>`;
-      note = `危险 ${LIVE_TIERS[t].danger} · 固定小道士，构筑给好`;
+      pick = `<div class="yx-raidnote"><b>实盘连战</b>每局随机一套给好的构筑和首领顺序：7 关一共 ${RUSH_TOTAL} 只精英和首领，最后一关是尸王，${RUSH.limit / 1800} 分钟内打完。每清一关挑一张卡。按打倒几只带回，全清另外多给；一只没打倒这一份就没了。<br>不交连战榜，也不发铜钱。</div>`;
+      note = `${have}危险 ${LIVE_TIERS[t].danger} · 固定小道士，构筑给好`;
       facts = factCards(rushLiveFacts(t), plainNote(rushLiveNote(t)));
     } else if (live) {
       if (raid) {
         const t = this.live.tier;
-        const ok = liveCharOk(t, s.character, 'snow', true);
+        const ok = liveCharOk(s.character);
         const swap = ok ? '' : ` · <b class="yx-livewarn">${CHARACTERS[s.character].name}带不进来，按小道士出战</b>`;
         const town = isLiveTown(this.tpl) ? this.tpl : 'guzhen';
         const who = ok ? s.character : 'xiaodao';
         pick = townGrid;
-        note = `危险 ${RAID_LIVE.danger[t]} · 不带加成和咒印${swap}`;
+        note = `${have}危险 ${RAID_LIVE.danger[t]} · 不能用加成${swap}`;
         facts = factCards(raidLiveFacts(t, town, who), plainNote(raidLiveNote(t, town, who)));
       } else {
         pick = mapGrid;
-        const ok = liveCharOk(this.live.tier, s.character, this.map);
+        const ok = liveCharOk(s.character);
         const swap = ok ? '' : ` · <b class="yx-livewarn">${CHARACTERS[s.character].name}带不进来，按小道士出战</b>`;
-        note = `危险 ${LIVE_TIERS[this.live.tier].danger} · 不带加成和咒印${swap}`;
+        note = `${have}危险 ${LIVE_TIERS[this.live.tier].danger} · 不能用加成${swap}`;
         facts = factCards(liveFacts(this.live.tier, s.character, this.map), plainNote(liveNote(this.live.tier, s.character, this.map)));
       }
     } else {
@@ -307,27 +308,27 @@ export class Select {
       const dangerBtn = (d: Danger): string => {
         const locked = d > s.dangerOpen;
         const nm = d >= NIGHTMARE_FROM;
-        // 噩梦档：深红描边 + 小月亮，按钮上写「噩1」；普通档写数字和星
-        const label = nm ? `噩${d - NIGHTMARE_FROM + 1}` : `${d}`;
+        // 噩梦档：深红描边 + 小月亮，按钮上写「噩梦1」（试玩 11-22：「噩1」看不懂）；普通档写数字和星
+        const label = nm ? `噩梦${d - NIGHTMARE_FROM + 1}` : `${d}`;
         const sub = locked ? LOCK_SVG : nm ? '<i class="yx-nmoon"></i>' : '★'.repeat(DANGERS[d].stars);
         return `<button type="button" class="yx-chip yx-danger${nm ? ' yx-nm' : ''}${d === shown ? ' on' : ''}${locked ? ' locked' : ''}" data-a="diff" data-d="${d}"${locked ? ' aria-disabled="true" title="撑到天亮解锁下一档"' : ` title="${DANGERS[d].name}"`}><b>${label}</b><small>${sub}</small></button>`;
       };
       const ids = raid ? DANGER_IDS.filter((d) => d <= RAID_MAX_DANGER) : DANGER_IDS;
       // 和实盘同一个排法（所有者 11-09：以实盘为准）：第一行 危险 0–5 | 角色按钮 + 起手心法；第二行噩梦档、咒印、加成、无尽；第三行最好成绩
-      const dangers = `<div class="yx-chips yx-dangers" aria-label="危险档">${ids.filter((d) => d < NIGHTMARE_FROM).map(dangerBtn).join('')}</div>`;
+      const dangers = `<div class="yx-chips yx-dangers" aria-label="危险档"><i class="yx-rowlabel">危险</i>${ids.filter((d) => d < NIGHTMARE_FROM).map(dangerBtn).join('')}</div>`;
       const nmList = raid && s.raidFirst ? '' : ids.filter((d) => d >= NIGHTMARE_FROM).map(dangerBtn).join('');
       const nmChips = nmList;
       const curse = s.curses.length ? s.curses.map((c) => CURSES[c].name).join('') : '无';
       const prep =
         (s.cursesOpen && !raid ? `<button type="button" class="yx-chip yx-prep${s.curses.length ? ' hot' : ''}" data-a="prep" data-t="curse"><b>${curse}</b><small>咒印</small></button>` : '') +
-        `<button type="button" class="yx-chip yx-prep" data-a="prep" data-t="perk"><b><span class="yx-coin"></span>${s.coins.toLocaleString('zh-CN')}</b><small>加成</small></button>`;
+        `<button type="button" class="yx-chip yx-prep" data-a="prep" data-t="perk"><b>加成</b><small>铜钱 ${s.coins.toLocaleString('zh-CN')}</small></button>`;
       const endless = s.cursesOpen && !raid ? `<button type="button" class="yx-chip yx-map${this.endless ? ' on' : ''}" data-a="endless"><b>无尽</b><small>不收工</small></button>` : '';
       const dg = raid && s.raidFirst ? '' : dangers;
       const bt = bestText(s.best[this.diff]);
       const best = raid ? '' : `<div class="yx-best">${s.best[this.diff] ? `最好：${bt.big} · ${bt.small}` : `${DANGERS[this.diff].blurb} · 还没玩过`}</div>`;
       opts = `${dg}${charLine}<div class="yx-chips yx-preps">${nmChips}${prep}${endless}</div>${best}`;
     } else {
-      // 第一行 档位 | 角色 + 起手心法；第二行危险档一句；第三行数字小牌（原来三行长句的位置）
+      // 第一行 档位 | 角色 + 起手心法；第二行危险档一句；第三行数字小牌
       // 实盘能换已解锁的角色和地图（各自有实盘系数，DESIGN 4.2a），加成、咒印不带
       opts = `${tiers}${charLine}<div class="yx-livenote">${note}<span class="yx-nocash">${CHIPS_NO_CASH}</span></div>${facts}`;
     }

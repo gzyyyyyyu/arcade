@@ -4,7 +4,7 @@ import { XINFA_TEXT } from '../../../content/xinfa.ts';
 import type { MapId } from '../../../content/maps.ts';
 import { DANGERS, type Danger } from '../../../content/waves.ts';
 import type { CharacterId, CurseId } from '../../../content/meta.ts';
-import type { LiveTier } from '../../../content/live.ts';
+import { LIVE_TIERS, type LiveTier } from '../../../content/live.ts';
 import { RAID_LIVE_TEMPLATES, type RaidLiveTemplate } from '../../../content/explore.ts';
 import type { Best, LastMode, RaidPick } from '../../../platform/save.ts';
 import { beijingDate, dailyTheme, daysToNightmareSunday, NIGHTMARE_SUNDAY_DANGER } from '../../../online/daily.ts';
@@ -12,7 +12,7 @@ import { beijingDate, dailyTheme, daysToNightmareSunday, NIGHTMARE_SUNDAY_DANGER
 /** 锁：不用表情字符（有的设备、无头浏览器没有表情字体，显示成方框） */
 export const LOCK_SVG = '<svg class="yx-lock" viewBox="0 0 12 12" aria-label="没解锁"><rect x="2" y="5.5" width="8" height="6" rx="1.2" fill="currentColor"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 
-export const HOME_SVG =
+const HOME_SVG =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10.5V20h12v-9.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg><span>大厅</span>';
 
 export const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -21,7 +21,7 @@ export const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&
  * 入场上滑只在切换页面时播：整屏从隐藏变显示时浏览器重播根节点的淡入（yx-scr-in），借它的开始 / 结束给根节点挂摘 yx-entering，
  * 里面的面板只在挂着时上滑。点卡片、切标签是整块 innerHTML 重画，新建的面板如果自带入场动画，每点一下都从透明重播一遍，看着就是闪一下黑。
  */
-export let enterWired = false;
+let enterWired = false;
 export function wireEnter(): void {
   if (enterWired) return;
   enterWired = true;
@@ -81,17 +81,16 @@ export function bindToggles(root: HTMLElement, list: Toggle[]): Record<string, (
 
 // ───────────────────────── 开始菜单 ─────────────────────────
 
-/** 顶栏"每日"按钮：周日噩梦日（今天守夜每日打噩梦 1）右上角挂红牌"噩梦"，平时不挂，倒数天数放进 title / aria-label。
- *  以前是主页上一条单独的胶囊，主页信息块太多（docs/ui.md 第 11 节），挪成角标 */
+/** 顶栏"每日守夜"按钮：周日噩梦日（今天守夜每日打噩梦 1）右上角挂红牌"噩梦"，平时不挂，倒数天数放进 title / aria-label；不在主页单占一条（docs/ui.md 第 11 节） */
 export function dailyButton(): string {
   const date = beijingDate(Date.now());
   const n = daysToNightmareSunday(date);
   const theme = dailyTheme(date, 'vigil');
   const tip =
     n === 0
-      ? `每日挑战 · 今天是噩梦日，守夜每日 ${DANGERS[NIGHTMARE_SUNDAY_DANGER].name}`
-      : `每日挑战 · ${theme ? `今天${theme.name}日：${theme.text}；` : '守夜每日，'}周日噩梦日还有 ${n} 天`;
-  return `<button type="button" class="yx-btn yx-daily" data-a="daily" title="${tip}" aria-label="${tip}">每日${theme ? `<i class="yx-dbadge">${theme.name}</i>` : ''}</button>`;
+      ? `每日守夜 · 今天是噩梦日，打 ${DANGERS[NIGHTMARE_SUNDAY_DANGER].name}`
+      : `每日守夜 · ${theme ? `今天${theme.name}日：${theme.text}；` : ''}周日噩梦日还有 ${n} 天`;
+  return `<button type="button" class="yx-btn yx-daily" data-a="daily" title="${tip}" aria-label="${tip}">每日守夜${theme ? `<i class="yx-dbadge">${theme.name}</i>` : ''}</button>`;
 }
 
 /** 设置里"恢复默认"用的默认值（和 sfx.ts / music.ts / save.ts 里 readFlag 的兜底一致；没列的开关不动） */
@@ -121,7 +120,8 @@ export interface MenuState {
   /** 咒印开了没有（撑到过一次天亮） */
   cursesOpen: boolean;
   /** 实盘能不能选（有平台钱包）、上次是不是在实盘、选的档位 */
-  live: { available: boolean; on: boolean; tier: LiveTier; offWhy?: string };
+  /** chips：平台钱包里手上的筹码（读不到是 null） */
+  live: { available: boolean; on: boolean; tier: LiveTier; offWhy?: string; chips: number | null };
   /** 每张图开了没有（MAP_UNLOCK） */
   maps: Record<MapId, boolean>;
   /** 夜探：还没进过夜探（第一次固定教学镇，只有一个开始按钮） */
@@ -148,9 +148,12 @@ export const bestText = (b: Best | undefined): { big: string; small: string } =>
 
 // ───────────────────────── 主页 ─────────────────────────
 
+/** 读到了钱包、手上不够这一档一份（试玩 11-22：主按钮写着开实盘，点了才说不够） */
+export const livePoor = (s: MenuState): boolean => s.live.chips !== null && s.live.chips < LIVE_TIERS[s.live.tier].stake;
+
 /** 主页一键开的实盘：上次选了实盘、现在开得了，夜探还要过了教学镇、选的是能开实盘的镇子；否则 null（按娱乐开） */
 export function quickLive(s: MenuState): { tier: LiveTier; raid?: RaidLiveTemplate } | null {
-  if (!s.live.on || !s.live.available) return null;
+  if (!s.live.on || !s.live.available || livePoor(s)) return null;
   if (s.lastMode !== 'raid') return { tier: s.live.tier };
   return !s.raidFirst && isLiveTown(s.raidTpl) ? { tier: s.live.tier, raid: s.raidTpl } : null;
 }
@@ -158,6 +161,7 @@ export function quickLive(s: MenuState): { tier: LiveTier; raid?: RaidLiveTempla
 /** 上次选了实盘、这次却按娱乐开的原因（主页按钮下面那行字） */
 export function quickOffWhy(s: MenuState): string {
   if (!s.live.available) return s.live.offWhy ?? '现在开不了实盘';
+  if (livePoor(s)) return `手上 ${s.live.chips!.toLocaleString('zh-CN')} 筹码，不够带${LIVE_TIERS[s.live.tier].name}档一份`;
   if (s.raidFirst) return '第一次夜探先走教学镇';
   return '教学镇不开实盘';
 }

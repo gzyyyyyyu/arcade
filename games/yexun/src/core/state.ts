@@ -1,6 +1,6 @@
 /**
  * 一局的全部状态（DESIGN.md 5.1）：怪、子弹、掉落物用定长的并列数组，空位用空闲表复用，热路径不分配对象。
- * `step` 原地修改这里的东西（主线批准的例外，见模块 AGENTS.md 第 3 节）。
+ * `step` 原地修改这里的东西（主线批准的例外，见模块 AGENTS.md「规则核心」一节）。
  */
 import { LIVE_EASE, RAID_MAX_DANGER, type Danger, type WaveEvent } from '../content/waves.ts';
 import { carries, runKind, CHAR_FX, CHARACTERS, CURSE_IDS, KIT_FX, KIT_IDS, MAX_CURSES, PERK_FX, PERKS, type CharacterId, type CurseId, type KitId, type PerkId, CHARACTER_IDS } from '../content/meta.ts';
@@ -258,7 +258,7 @@ export function normalizeSetup(raw: Setup): Setup {
 }
 
 /** 心法特色的每拍状态（core/xinfa.ts 读写） */
-export class XinfaState {
+class XinfaState {
   /** 连续站定 / 连续走动了几拍 */
   still = 0;
   move = 0;

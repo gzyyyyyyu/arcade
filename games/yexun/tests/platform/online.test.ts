@@ -318,7 +318,7 @@ describe('平台接口', () => {
 describe('分享卡和 social', () => {
   it('分享卡：守夜撑到天亮、夜探、咒印和尸王都写进卡里，字段在 kit 的限制内', () => {
     const win = buildShareCard(run({ won: true, seconds: 900, bossKilled: true, daily: '2026-10-17', setup: { curses: ['fast', 'dark'] } }));
-    expect(win.title).toBe('每日挑战 · 守夜');
+    expect(win.title).toBe('每日守夜');
     expect(win.big.value).toBe('天亮');
     expect(win.line).toBe('咒印：怪更快、夜更黑；斩了尸王');
     expect(win.stats!.length).toBeLessThanOrEqual(3);

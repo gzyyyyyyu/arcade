@@ -22,9 +22,9 @@ export interface ShareCardData {
 
 const n = (x: number): string => x.toLocaleString('zh-CN');
 
-export function shareTitle(r: RunSummary): string {
+function shareTitle(r: RunSummary): string {
   const s = r.setup;
-  if (r.daily) return `每日挑战 · ${s.mode === 'raid' ? '夜探' : '守夜'}`;
+  if (r.daily) return s.mode === 'raid' ? '每日夜探' : '每日守夜';
   // 本周夜事是固定危险档的挑战局，卡上写"守夜 · 危险2"看不出来，和结算页那行一样写这周的事件
   if (r.weekly && s.weekly) return `本周夜事 · ${WEEKLIES[s.weekly].name}`;
   if (s.mode === 'raid') return `夜探 · 危险${s.danger}`;

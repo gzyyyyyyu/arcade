@@ -1,7 +1,7 @@
 /**
  * 守夜新地图的地面和地形画法（DESIGN.md 3.6）：竹林、河滩、冰湖，外加菜单里地图卡的缩略图。
  * 全是程序画的：整张场地的地形叠层一次画到一张 canvas（河、冰、桥、芦苇、落叶），竹丛单独画成小贴图。
- * 雪地很亮（AGENTS.md 第 4 节）：水和冰都用偏深、饱和的蓝，带深色边，才压得住白底。
+ * 雪地很亮（AGENTS.md「画面」一节）：水和冰都用偏深、饱和的蓝，带深色边，才压得住白底。
  */
 import type { Block, MapDef, Rect } from '../../content/maps.ts';
 import { ARENA } from '../../content/player.ts';
@@ -20,7 +20,7 @@ export const GROUND_TINT: Record<NonNullable<MapDef['tone']>, number> = {
 };
 
 /** 这张图要不要画地形叠层 */
-export function hasTerrainLayer(def: MapDef): boolean {
+function hasTerrainLayer(def: MapDef): boolean {
   return def.tone === 'bamboo' || def.tone === 'river' || def.tone === 'ice' || def.tone === 'temple' || def.tone === 'market' || def.tone === 'grave';
 }
 
@@ -54,7 +54,7 @@ export function paintTerrain(def: MapDef, seed: number, scale: number): HTMLCanv
 
 /**
  * 乱葬岗：雪被踩成一块块灰褐的泥地，坟包四周一圈翻过的土，零星撒着纸钱、枯草；磷火地本身由 view/game/fire.ts 画（守夜、夜探共用）。
- * 泥地偏暗、带深边，亮雪地上分得出来（AGENTS.md 第 4 节）。
+ * 泥地偏暗、带深边，亮雪地上分得出来（AGENTS.md「画面」一节）。
  */
 function paintGrave(c: Ctx, def: MapDef, r: () => number): void {
   // 大块的泥地斑
@@ -105,7 +105,7 @@ function paintGrave(c: Ctx, def: MapDef, r: () => number): void {
 
 /**
  * 鬼市：正中空场和南北大街铺青石板，每排摊子前后是踩实的土巷；摊子之间挂一串红灯笼（只画在地上的光斑，
- * 真灯笼在摊子贴图上），纸钱零星撒在巷子里。光斑偏暗红、带深边，亮雪地上也压得住（AGENTS.md 第 4 节）。
+ * 真灯笼在摊子贴图上），纸钱零星撒在巷子里。光斑偏暗红、带深边，亮雪地上也压得住（AGENTS.md「画面」一节）。
  */
 function paintMarket(c: Ctx, def: MapDef, r: () => number): void {
   const C = ARENA.w / 2;

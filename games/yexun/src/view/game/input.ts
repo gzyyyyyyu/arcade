@@ -192,7 +192,7 @@ const KEYMAP: Record<string, [number, number]> = {
 };
 
 /** 向量 → 32 向（1–32；1 朝右，按顺时针，屏幕坐标 y 向下）。画面层可以用 Math.atan2 */
-export function toDir(dx: number, dy: number): number {
+function toDir(dx: number, dy: number): number {
   const a = Math.atan2(dy, dx);
   return 1 + ((Math.round((a / (Math.PI * 2)) * 32) % 32) + 32) % 32;
 }

@@ -4,6 +4,7 @@
  *
  * - 带入前先把记录写成 buying：回话丢了也知道那个 ref 可能已经带入，下次 resume() 先 refund 收回（没带入则钱包回 no_stake，清掉）。
  * - 结回、放弃先写成 settling 再发，连不上就停在 settling，之后每次打开、回到前台、联网时重发；操作 id 按 ref 固定，重发钱包只算一次。
+ * - 局里回大厅、关页时 leave() 当场按中途离开结（带 keepalive），钱包里不留一份「桌上」的筹码，大厅就不会叫人回来接着打；局已打完的按终局结（finish* 的 keepalive）。
  * - 中途离开（局没打完就关页面、刷新、崩溃）算输：夜巡不存打到一半的局，没法接着打，所以重开页面时 resume() 把 playing 的那一份按
  *   "最后一次 progress 记下的拍数" 结回（vigilBp(tier, ticks, false, false)：撑过 3:00 才有钱，没记过拍数就是 0）。
  *   这样关页面既不能躲掉损失，也不会比留在局里多拿：main.ts 打局时每隔约 10 秒调一次 progress。
@@ -38,7 +39,7 @@ const API = 'api/live/';
  */
 export function liveSetup(tier: LiveTier, seed: number, raid?: RaidLiveTemplate, picked: CharacterId = 'xiaodao', map: MapId = 'snow', loadout: Pick<Setup, 'startAlt' | 'xinfa'> = {}): Setup {
   // 带不进这一档、这张图的（LIVE_CHAR_IDS 之外的）传进来也退回小道士
-  const character = liveCharOk(tier, picked, map, !!raid) ? picked : 'xiaodao';
+  const character = liveCharOk(picked) ? picked : 'xiaodao';
   // 开局配置（起手、心法）实盘也带，和娱乐对齐；换成小道士时不带上原角色的心法（流派不属于小道士的会被核心丢掉，这里先收干净）
   const cfg = character === picked ? loadout : {};
   if (raid) {
@@ -85,7 +86,7 @@ export interface LiveRecord {
   user?: string;
   /** 夜探的一份：哪个镇子（没有 = 守夜） */
   raid?: RaidLiveTemplate;
-  /** 带的角色、地图（没有 = 小道士、雪原：0.3.6 以前的记录） */
+  /** 带的角色、地图（没有 = 小道士、雪原：老记录没有这两个字段） */
   character?: CharacterId;
   map?: MapId;
   /** 连战的一份 */
@@ -204,6 +205,19 @@ export class LiveClient {
     return this.off;
   }
 
+  /** 平台钱包里手上的筹码（上次 readWallet 读到的；没读到、没登录是 null）：选档页写「手上多少」，不够一份时主页不一键开实盘 */
+  chips: number | null = null;
+
+  /** 读一次平台钱包（同域 GET /api/wallet，公开接口）；读不到就保持 null，不报错。读到了回调 onChange 让界面重画 */
+  async readWallet(): Promise<void> {
+    const { status, body } = await requestJson(this.d.fetch, 'GET', '/api/wallet');
+    const w = status === 200 && isObj(body) && isObj(body.wallet) ? body.wallet : null;
+    const n = w && isNum(w.balance) && w.balance >= 0 ? Math.floor(w.balance) : null;
+    if (n === this.chips) return;
+    this.chips = n;
+    this.d.onChange?.();
+  }
+
   private refresh(): LiveRecord | null {
     if (this.d.store) this.rec = loadLive(this.d.store);
     return this.rec;
@@ -270,34 +284,54 @@ export class LiveClient {
   }
 
   /** 守夜打完了（倒下、天亮、尸王）：按 vigilBp 算倍数 */
-  finish(seed: number, res: { ticks: number; won: boolean; bossKilled: boolean }, stats?: unknown): Promise<void> {
+  finish(seed: number, res: { ticks: number; won: boolean; bossKilled: boolean }, stats?: unknown, keepalive = false): Promise<void> {
     const r = this.refresh();
     if (!r || r.raid || r.rush) return this.inflight ?? Promise.resolve();
-    return this.finishBp(seed, vigilBp(r.tier, res.ticks, res.won, res.bossKilled, r.character, r.map), stats);
+    return this.finishBp(seed, vigilBp(r.tier, res.ticks, res.won, res.bossKilled, r.character, r.map), stats, keepalive);
   }
 
   /** 连战打完了（全清、倒下、到点、认输）：按打倒的只数算倍数 */
-  finishRush(seed: number, res: { down: number; total: number; cleared: boolean }, stats?: unknown): Promise<void> {
+  finishRush(seed: number, res: { down: number; total: number; cleared: boolean }, stats?: unknown, keepalive = false): Promise<void> {
     const r = this.refresh();
     if (!r?.rush) return this.inflight ?? Promise.resolve();
-    return this.finishBp(seed, rushBp(r.tier, res.down, res.total, res.cleared), stats);
+    return this.finishBp(seed, rushBp(r.tier, res.down, res.total, res.cleared), stats, keepalive);
   }
 
   /** 夜探打完了（撤出、倒下、迷失）：倍数由 settleRaid 算好传进来（撤出才有，其余是 0） */
-  finishRaid(seed: number, bp: number, stats?: unknown): Promise<void> {
+  finishRaid(seed: number, bp: number, stats?: unknown, keepalive = false): Promise<void> {
     const r = this.refresh();
     if (!r?.raid) return this.inflight ?? Promise.resolve();
-    return this.finishBp(seed, bp, stats);
+    return this.finishBp(seed, bp, stats, keepalive);
   }
 
-  /** 记成 settling 再发。对不上这局（种子不同）或已在结，什么都不做 */
-  private finishBp(seed: number, rawBp: number, stats?: unknown): Promise<void> {
+  /** 记成 settling 再发。对不上这局（种子不同）或已在结，什么都不做。keepalive：打完马上离开页面（终局到结算页之间回大厅、关页） */
+  private finishBp(seed: number, rawBp: number, stats?: unknown, keepalive = false): Promise<void> {
     const r = this.refresh();
     if (r?.step !== 'playing' || r.seed !== seed) return this.inflight ?? Promise.resolve();
     const bp = Math.max(0, Math.min(LIVE_MAX_BP, Math.floor(rawBp)));
     this.mine = null;
     this.save({ ...r, step: 'settling', kind: 'settle', bp, ...(stats === undefined ? {} : { stats }) }, r.ref);
-    return this.retry();
+    return this.retry(keepalive);
+  }
+
+  /**
+   * 本页的局中途回大厅、关页：当场按中途离开结（leftBp，和下次开页 resume() 结的同一个算法），不留到下次开页。
+   * 不然钱包里这一份一直算在桌上，大厅会提示回来接着打，可夜巡的局接不上。keepalive：离开就是页面要走，请求一律带 keepalive 发完。
+   * 局已打完（终局到结算页之间）不走这里，走终局结算（app/finish.ts）。
+   */
+  leave(seed: number): Promise<void> {
+    const r = this.refresh();
+    if (r?.step !== 'playing' || r.seed !== seed || r.ref !== this.mine) return this.inflight ?? Promise.resolve();
+    this.mine = null;
+    this.save({ ...r, step: 'settling', kind: 'settle', bp: leftBp(r) }, r.ref);
+    return this.retry(true);
+  }
+
+  /** 现在离开能带回多少筹码（未扣每天的上限）；不是本页正在打的那一份就是 null */
+  leaveChips(seed: number): number | null {
+    const r = this.refresh();
+    if (r?.step !== 'playing' || r.seed !== seed || r.ref !== this.mine) return null;
+    return Math.floor((r.stake * Math.max(0, Math.min(LIVE_MAX_BP, leftBp(r)))) / 10_000);
   }
 
   /** 放弃：局还没开始打（开局失败、选档后反悔）原样退回 */
@@ -324,11 +358,11 @@ export class LiveClient {
     await this.retry();
   }
 
-  retry(): Promise<void> {
+  retry(keepalive = false): Promise<void> {
     if (this.inflight) return this.inflight;
     const r = this.refresh();
     if (!r || (r.step !== 'settling' && r.step !== 'buying') || this.off) return Promise.resolve();
-    this.inflight = (r.step === 'buying' ? this.refundBuying(r) : this.settle(r)).finally(() => {
+    this.inflight = (r.step === 'buying' ? this.refundBuying(r) : this.settle(r, keepalive)).finally(() => {
       this.inflight = null;
     });
     return this.inflight;
@@ -358,10 +392,10 @@ export class LiveClient {
     }
   }
 
-  private async settle(r: LiveRecord): Promise<void> {
+  private async settle(r: LiveRecord, keepalive = false): Promise<void> {
     const who = r.user ? { user: r.user } : {};
     const body = r.kind === 'refund' ? { ref: r.ref, ...who } : { ref: r.ref, tier: r.tier, bp: r.bp, ...who, ...(r.stats === undefined ? {} : { stats: r.stats }) };
-    const { outcome: o } = await this.post(r.kind === 'refund' ? 'refund' : 'settle', body);
+    const { outcome: o } = await this.post(r.kind === 'refund' ? 'refund' : 'settle', body, keepalive);
     const cur = this.refresh();
     if (cur?.ref !== r.ref || cur.step !== 'settling') return;
     if (o.kind === 'ok') {
@@ -380,8 +414,8 @@ export class LiveClient {
     }
   }
 
-  private async post(action: 'buyin' | 'settle' | 'refund', body: unknown): Promise<{ outcome: Outcome; user: string | null }> {
-    const { status, body: json } = await requestJson(this.d.fetch, 'POST', `${API}${action}`, JSON.stringify(body));
+  private async post(action: 'buyin' | 'settle' | 'refund', body: unknown, keepalive = false): Promise<{ outcome: Outcome; user: string | null }> {
+    const { status, body: json } = await requestJson(this.d.fetch, 'POST', `${API}${action}`, JSON.stringify(body), keepalive);
     const outcome = classify(status, json);
     if (outcome.kind === 'unavailable') this.off = true;
     return { outcome, user: isObj(json) && typeof json.user === 'string' ? json.user : null };

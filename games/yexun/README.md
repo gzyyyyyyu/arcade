@@ -10,17 +10,17 @@ It is one module of the Arcade monorepo, but deploys on its own too. Chips are p
 《夜巡》：道士夜巡雪夜古镇。只管走位，法器自动出手，升级三选一、法器进化，成群的跳尸纸人扑上来。
 **守夜**撑到天亮，**夜探**进镇搜宝、趁撤离门开着撤出去。
 
-已上线可玩：7 张守夜地图、5 个夜探镇子加教学镇、24 件法器和 10 个流派（每个角色按自己的法器池抽卡）、10 个角色（每人一个主动技能，开局可以换第二件起手法器、带心法）、危险 0–5 六档加噩梦 1–3（危险 6–8，每档多一种机制）、每张图一种地图事件（白毛风、竹浪、冰凌雨、涨潮、起尸、晨钟、百鬼夜行）、咒印、局外成长、成就图鉴、
-每日挑战（守夜、夜探、5 分钟的首领连战）、每周夜事挑战和排行榜、浏览器本地录像回放、游戏内的玩法说明；接了平台的钱包就能开实盘（守夜、夜探各四档；地图、镇子、角色、卡池、怪、技能、开局配置都和娱乐一样）。
+已上线可玩：8 张守夜地图、6 个夜探镇子加教学镇、24 件法器和 10 个流派（每个角色按自己的法器池抽卡）、10 个角色（每人一个主动技能，开局可以换第二件起手法器、带心法）、危险 0–5 六档加噩梦 1–3（危险 6–8，每档多一种机制）、每张图一种地图事件（白毛风、竹浪、冰凌雨、涨潮、起尸、晨钟、百鬼夜行、鬼火齐燃）、咒印、局外成长、成就图鉴、
+每日守夜、每日连战（5 分钟的首领连战）、每周夜事挑战和排行榜、浏览器本地录像回放、游戏内的玩法说明；接了平台的钱包就能开实盘（守夜、夜探各四档；地图、镇子、角色、卡池、怪、技能、开局配置都和娱乐一样）。
 
 ## 文档
 
 - [DESIGN.md](DESIGN.md)：设计正本（玩法、内容、实盘、架构、配平口径、验收标准）
 - [AGENTS.md](AGENTS.md)：给开发者的模块约定（目录、命令、存储 key、发布）
 - [ASSETS.md](ASSETS.md)：素材来源和许可
-- [docs/balance-live.md](docs/balance-live.md)：实盘系数的拟合记录；[docs/balance-play.md](docs/balance-play.md)：全流派配平的量测数据
+- [docs/balance-play.md](docs/balance-play.md)：全流派配平的量测数据
 - [docs/palette.md](docs/palette.md)：界面配色；[docs/art.md](docs/art.md)：界面流程和各尺寸布局规则
-- [CHANGELOG.md](CHANGELOG.md)：版本记录（0.19.8 及更早的在 [docs/changelog-archive.md](docs/changelog-archive.md)）
+- [CHANGELOG.md](CHANGELOG.md)：版本记录（0.34.0 及更早的在 [docs/changelog-archive.md](docs/changelog-archive.md) 起的四份归档）
 
 ## 本地开发
 
@@ -37,7 +37,7 @@ npm run dev   # 打开 http://localhost:5178/
 | `npm test` | 类型检查（页面和 Worker 两份）+ vitest |
 | `npm run lint` | Biome lint，提交前要过；放行用 biome-ignore 写理由 |
 | `npm run build` / `npm run build:cf` | 构建 / 部署用的构建（产物在 `dist-cf/games/yexun/`） |
-| `npm run smoke` | 仓库硬规范的冒烟（主流程零报错、省内存设备、双指放大、WebGL 丢失恢复、回大厅、选模式页在八个尺寸下一屏放下含实盘） |
+| `npm run smoke` | 仓库硬规范的冒烟（主流程零报错、省内存设备、双指放大、WebGL 丢失恢复、回大厅、选模式页在九个尺寸下一屏放下含实盘） |
 | `npm run shot -- --out <目录>` | 无头浏览器截图并检查按钮 ≥ 44 像素、控制台零报错；`--flow` 走一遍全部界面 |
 | `npm run sim -- --n 200 --danger 2 --build sword` | 机器人模拟，出胜率和节奏表（配平用） |
 | `npm run bench -- --worst` | 规则核心满载每拍耗时 |
@@ -47,7 +47,7 @@ npm run dev   # 打开 http://localhost:5178/
 | `node tools/feel.ts [--hz 60,120]` | 测移动手感：用虚拟时钟逐帧记录主角和镜头位置，看有没有后退、抖动、镜头来回荡 |
 | `node tools/sim-merge.ts <目录或 json>...` | 把拆成几片跑的 `sim.ts --json` 结果按格拼成一张表（重叠或缺口会报错） |
 
-截图和冒烟要 `playwright-core` 和 chromium-headless-shell（`npx playwright-core install chromium-headless-shell`），系统要有中文字体。更多选项见 AGENTS.md 第 5 节。
+截图和冒烟要 `playwright-core` 和 chromium-headless-shell（`npx playwright-core install chromium-headless-shell`），系统要有中文字体。更多选项见 AGENTS.md「命令」一节。
 
 ## 目录
 
@@ -59,7 +59,7 @@ src/view/      Phaser 画面层 + DOM 界面 + 程序合成的图和声音
 src/platform/  本地存档、云存档、实盘的浏览器端
 src/online/    排行榜、每日挑战、每周夜事、分享、社交部件
 src/replay/    浏览器本地录像
-worker/        Worker：登录闸门、实盘带入结回、巡检用的 /games/yexun/health
+worker/        Worker：登录闸门、实盘带入带回、铜钱换筹码、巡检用的 /games/yexun/health
 tools/         冒烟、截图、模拟器、机器人、封面、字体子集
 tests/         vitest，分 core/ content/ explore/ view/ platform/ arch/ 子目录
 ```

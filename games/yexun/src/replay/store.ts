@@ -87,7 +87,7 @@ export function trim(items: readonly ReplayRecord[]): ReplayRecord[] {
   return keep;
 }
 
-export function saveReplays(items: readonly ReplayRecord[], kv: KV | undefined = defaultKV()): boolean {
+function saveReplays(items: readonly ReplayRecord[], kv: KV | undefined = defaultKV()): boolean {
   try {
     kv?.setItem(REPLAYS_KEY, JSON.stringify({ v: 1, items } satisfies Disk));
     return kv !== undefined;

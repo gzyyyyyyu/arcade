@@ -40,6 +40,7 @@ export class RushShow {
   private readonly el: HTMLDivElement;
   private readonly chip: HTMLDivElement;
   private barOn = false;
+  private chipOff = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   /** 这一关挨过的最重一下（核心算好的实扣血，Ev.Hurt 的 a）；上场新一关清零 */
   private heavy = 0;
@@ -102,7 +103,7 @@ export class RushShow {
       this.d.banners.whiteFlash();
       this.d.haptics.big();
       sfx.play('chestGold');
-      this.stamp('down', `${nameOf(c)} 伏诛`, `连战 ${b}/${plan.total}`, 1300);
+      this.stamp('down', `${nameOf(c)} 伏诛`, `已打倒 ${b}/${plan.total} 只`, 1300);
       this.setChip(w);
       return;
     }
@@ -132,10 +133,13 @@ export class RushShow {
     const on = max > 0 && w.phase !== 'over';
     if (on) {
       const st = Math.min(w.rushStage, plan.stages.length - 1);
-      this.d.banners.setBoss(`${plan.stages[st]!.map((k) => ENEMY_BY_KIND[k].name).join(' + ')} · 连斩 ${w.rushDown}/${plan.total}`, hp / max);
+      this.d.banners.setBoss(`第 ${Math.min(w.rushDown + 1, plan.total)}/${plan.total} 只 · ${plan.stages[st]!.map((k) => ENEMY_BY_KIND[k].name).join(' + ')}`, hp / max);
     } else if (this.barOn) this.d.banners.setBoss(null);
-    // 血条和小牌在同一个位置：打的时候看血条（上面写着连斩几只），喘息的时候看小牌
-    if (on !== this.barOn) this.chip.style.display = on ? 'none' : '';
+    // 血条和小牌在同一个位置：打的时候看血条（上面写着第几只），喘息的时候看小牌
+    // 选卡时也收起：选卡大字（「过关 1/9 · 挑一件」）已写着进度，小牌压在大字下面看不清（试玩 11-22）
+    const chipOff = on || w.phase === 'choose';
+    if (chipOff !== this.chipOff) this.chip.style.display = chipOff ? 'none' : '';
+    this.chipOff = chipOff;
     this.barOn = on;
   }
 

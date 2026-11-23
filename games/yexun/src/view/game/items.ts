@@ -204,7 +204,7 @@ export class Items {
         fx.spawn({ frame: 'spark', x, y: y - 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 380, life: 800, s0: 1.4, s1: 0.3, a0: 1, a1: 0, tint: k % 2 ? 0xffd23a : 0xffffff, rot: Math.random() * 3, depth: 7100 });
       }
     } else {
-      // 一件：和以前一样的普通光，不抢戏
+      // 一件：普通光，不抢戏
       fx.spawn({ frame: 'ring', x, y: y - 10, life: 420, s0: 0.3, s1: 2, a0: 1, a1: 0, tint: 0xffe08a, depth: 7000 });
       fx.spawn({ frame: 'pillar', x, y: y + 8, life: 500, s0: 0.7, s1: 1, a0: 0.9, a1: 0, depth: 7000 });
     }
