@@ -202,6 +202,10 @@ async function tableHits(page: Page, where: string): Promise<string[]> {
         const d = (e: Element): boolean => e.classList.contains('dealer');
         const bb = (e: Element): boolean => e.classList.contains('bubble');
         if ((d(a.e) && bb(b.e)) || (bb(a.e) && d(b.e))) continue;
+        // 正在飞向落点的牌（.fly）和落点那张重合是发牌途中；摊牌时赢的五张放大 1.12 倍、压在相邻的公共牌上是设计（potfx.css 的 .card.best）
+        if (a.e.classList.contains('fly') || b.e.classList.contains('fly')) continue;
+        const board = (e: Element): boolean => e.classList.contains('board');
+        if (board(a.e) && board(b.e) && (a.e.classList.contains('best') || b.e.classList.contains('best'))) continue;
         const dx = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
         const dy = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
         const at = (r: DOMRect): string => `${Math.round(r.left)},${Math.round(r.top)}–${Math.round(r.right)},${Math.round(r.bottom)}`;
