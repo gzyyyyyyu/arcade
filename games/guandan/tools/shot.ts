@@ -710,9 +710,17 @@ async function smokeDdz(browser: Browser): Promise<void> {
   await until(ctx, '再按 H', 'g.selected().length > 0');
   await page.keyboard.press('Space');
   await until(ctx, '空格出了一手', 'g.ddzView().hand.length < 20');
-  await page.evaluate(() => window.__game!.setAutoplay(true));
-  await until(ctx, '一副结束', "g.overlay === 'settle'", 120_000);
+  // 代打会自己点掉结算框：一看到就停代打，没赶上（负载高时常见）就再打到下一次结算；截完点"下一副"接着代打
+  for (let tries = 0; ; tries++) {
+    await page.evaluate(() => window.__game!.setAutoplay(true));
+    await until(ctx, '一副结束', "g.overlay === 'settle'", 120_000);
+    await page.evaluate(() => window.__game!.setAutoplay(false));
+    if ((await page.evaluate(() => window.__game!.overlay)) === 'settle' || tries >= 3) break;
+  }
+  await page.waitForTimeout(800);
   await shot(ctx, '33-ddz-settle');
+  await click(ctx, 'settle:next');
+  await page.evaluate(() => window.__game!.setAutoplay(true));
   await until(ctx, '整局结束', "g.overlay === 'gameOver'", 240_000);
   await shot(ctx, '34-ddz-gameover');
   const st = await page.evaluate(() => window.__game!.ddzState()!);

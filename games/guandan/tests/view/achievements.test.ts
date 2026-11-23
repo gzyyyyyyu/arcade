@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ACHIEVEMENTS, EMPTY_ACH, evaluate, loadAch, recordAch, sanitize, type AchState, type AchSummary } from '../../src/view/common/achievements.ts';
+import { ACHIEVEMENTS, EMPTY_ACH, achProgress, evaluate, loadAch, recordAch, sanitize, type AchState, type AchSummary } from '../../src/view/common/achievements.ts';
 import { DdzSession } from '../../src/view/doudizhu/session.ts';
 import { Session } from '../../src/view/guandan/session.ts';
 
@@ -137,5 +137,15 @@ describe('存储', () => {
     expect(loadAch().ddzGames).toBe(1);
     expect(ses.takeUnlocked().length).toBe(loadAch().unlocked.length);
     expect(ses.takeUnlocked()).toEqual([]);
+  });
+});
+
+describe('成就进度', () => {
+  it('能数的给现在几 / 要几，封顶；一次就成的没有', () => {
+    const s = { ...EMPTY_ACH, unlocked: [], gdGames: 4, ddzGames: 12, gdStreak: 2 };
+    expect(achProgress('gd-games10', s)).toEqual({ n: 4, of: 10 });
+    expect(achProgress('ddz-games10', s)).toEqual({ n: 10, of: 10 });
+    expect(achProgress('gd-streak3', s)).toEqual({ n: 2, of: 3 });
+    expect(achProgress('ddz-rocket', s)).toBeNull();
   });
 });

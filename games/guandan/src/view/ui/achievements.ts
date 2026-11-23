@@ -1,10 +1,10 @@
 /** 成就的画面：解锁时牌桌上的小横幅，和主页的成就墙。数据和判断在 ../achievements.ts，这里只画。 */
 import Phaser from 'phaser';
-import { ACHIEVEMENTS, achDef, loadAch, type AchDef, type AchGroup } from '../common/achievements.ts';
+import { ACHIEVEMENTS, achDef, achProgress, loadAch, type AchDef, type AchGroup } from '../common/achievements.ts';
 import { audio } from '../common/audio.ts';
 import { COLOR, SPACE, TYPE, minHit } from '../common/theme.ts';
 import { hasLayer } from './focus.ts';
-import { fitWidth,modal, segmented, text, worldH, worldW, type Modal } from './kit.ts';
+import { fitWidth, modal, segmented, text, worldH, worldW, type Modal } from './kit.ts';
 
 /** 一枚奖章：金圆章 + 星（程序画）；没解锁的是灰章。原点在章心 */
 function medal(scene: Phaser.Scene, x: number, y: number, r: number, lit: boolean): Phaser.GameObjects.Graphics {
@@ -59,7 +59,8 @@ export function openAchievements(scene: Phaser.Scene, group: AchGroup = 'gd'): M
   const PH = Math.min(worldH(scene) - 40, 600);
   const m = modal(scene, PW, PH, '成就');
   const b = m.body;
-  const unlocked = new Set(loadAch().unlocked);
+  const ach = loadAch();
+  const unlocked = new Set(ach.unlocked);
   const top = -PH / 2 + 84;
   // 计数跟着页签走：这一页几个解锁了 / 这一页一共几个（以前写两个玩法的总数 0/16，一页只摆 8 张，像是藏了 8 个）
   const count = text(scene, -PW / 2 + 40, top + 22, '', { size: TYPE.title, bold: true, color: COLOR.ink, ox: 0 });
@@ -80,9 +81,18 @@ export function openAchievements(scene: Phaser.Scene, group: AchGroup = 'gd'): M
       const x = -PW / 2 + 40 + (i % cols) * (cw + gap);
       const y = top + 70 + Math.floor(i / cols) * (ch + gap);
       const bg = scene.add.graphics();
-      bg.fillStyle(lit ? 0xf3e6c9 : 0xdcd3c3, 1).fillRoundedRect(x, y, cw, ch, 14);
-      bg.lineStyle(2, lit ? COLOR.gold : 0xb3a995, 1).strokeRoundedRect(x, y, cw, ch, 14);
+      // 没解锁的用浅纸色（不是一墙灰），解锁的金边暖底；能数的（连胜、累计场数）底下一条进度
+      bg.fillStyle(lit ? 0xfbe7b8 : 0xeee5d3, 1).fillRoundedRect(x, y, cw, ch, 14);
+      bg.lineStyle(lit ? 3 : 2, lit ? COLOR.gold : 0xc9bda5, 1).strokeRoundedRect(x, y, cw, ch, 14);
       grid.add(bg);
+      const prog = lit ? null : achProgress(a.id, ach);
+      if (prog) {
+        const bw = cw - 80;
+        const by = y + ch - 24;
+        bg.fillStyle(0xd8cdb6, 1).fillRoundedRect(x + 20, by - 6, bw, 12, 6);
+        if (prog.n > 0) bg.fillStyle(COLOR.gold, 1).fillRoundedRect(x + 20, by - 6, Math.max(12, (bw * prog.n) / prog.of), 12, 6);
+        grid.add(text(scene, x + cw - 16, by, `${prog.n}/${prog.of}`, { size: TYPE.small, bold: true, font: 'num', color: COLOR.ink, ox: 1 }));
+      }
       grid.add(medal(scene, x + cw / 2, y + 32, 22, lit));
       grid.add(fitWidth(text(scene, x + cw / 2, y + 74, a.name, { size: TYPE.label, bold: true, color: lit ? COLOR.ink : COLOR.muted }), cw - 16));
       grid.add(text(scene, x + cw / 2, y + 96, a.desc, { size: TYPE.small, color: lit ? COLOR.ink : COLOR.muted, wrap: cw - 20, align: 'center', oy: 0 }));
