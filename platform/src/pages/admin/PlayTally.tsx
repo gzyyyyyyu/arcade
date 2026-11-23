@@ -1,5 +1,5 @@
 /**
- * 管理页：真人对局统计（docs/platform-backend.md 5.11）。游戏结回、交分时带 tally，平台只按天累计汇总，
+ * 管理页：真人对局统计（docs/platform-backend.md 5.11）。游戏带回、交分时带 tally，平台只按天累计汇总，
  * 这里把近几天的汇总按游戏、玩法、mode、档位列出：局数，时长各段的局数，输赢各段的局数。看不到是谁打的。
  */
 import { useEffect, useState } from 'react';
@@ -86,7 +86,7 @@ export function PlayTally() {
               )
             }
           >
-            这段时间还没有记录：游戏结回、交分时带上 tally 才会记。
+            这段时间还没有记录：游戏带回、交分时带上 tally 才会记。
           </Empty>
         )}
         {data && data.rows.length > 0 && <AdminTable cols={cols} rows={data.rows} keyOf={(r) => [r.game, r.variant, r.mode, r.tier].join('|')} label="真人对局" testId="tally-table" />}

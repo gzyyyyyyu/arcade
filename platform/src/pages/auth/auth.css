@@ -83,3 +83,5 @@
   .auth-page .form { gap: 2px var(--s-3); }
   .auth-page .form-error { padding-block: 2px; }
 }
+/* 说明里的链接（用恢复码找回、用邀请码注册、重新注册）点按区 44 高：撑高这一行，不用负外边距往上伸（会压住上面按钮的底边） */
+.auth-page .note a { display: inline-flex; align-items: center; min-height: var(--tap); }

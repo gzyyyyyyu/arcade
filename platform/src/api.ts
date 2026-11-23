@@ -56,7 +56,7 @@ export interface FeedItem {
 }
 
 /** 给我的邀请（docs/social.md 1.3）：until 是过期时间（毫秒） */
-export interface Invite {
+interface Invite {
   id: string;
   from: { id: string; name: string };
   game: string;
@@ -171,7 +171,7 @@ export type Relation = 'none' | 'pending_out' | 'pending_in' | 'friends' | 'self
 
 /** 一个游戏的战绩（15.11 的 GET /api/stats/<id>）：对登录的人公开 */
 export interface CareerView {
-  /** 结回过几份 */
+  /** 带回过几份 */
   n: number;
   net: number;
   /** 本周净赢（北京时间周一清零） */

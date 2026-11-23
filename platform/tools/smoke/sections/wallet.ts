@@ -85,7 +85,7 @@ export async function walletAndSlowNet(browser: Browser): Promise<void> {
     await page.getByTestId('relief-why').getByText('钱包加桌上的还有 22,320').waitFor();
     await page.getByTestId('stakes').getByText('回房间点“离开房间”').waitFor();
     await tab('week');
-    await page.getByText('开盘：今天实盘赢了 2,400，还能再赢 3,600。').waitFor();
+    await page.getByText('开盘今天实盘净赢 2,400；今天最多还能赢 3,600。').waitFor();
     // 这周的输赢：合计 + 每个游戏一根条
     await page.getByTestId('week-summary').getByText('+8,200').waitFor();
     check((await page.locator('.week-bars__row').count()) === 2, '这周的输赢该有开盘、德州两根条');

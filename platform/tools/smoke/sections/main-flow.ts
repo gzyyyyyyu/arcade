@@ -8,7 +8,7 @@ import { cardButtonsFit } from '../lib/ui.ts';
 import { GAMES } from '../../../shared/games.ts';
 
 export async function anonymous(browser: Browser): Promise<void> {
-  console.log('没登录：首页一个 /api 请求都不发，游戏卡片是"登录后才能玩"；各页面带 CSP');
+  console.log('没登录：首页一个 /api 请求都不发，游戏卡片是"登录后玩"；各页面带 CSP');
   const { ctx, page } = await newPage(browser, '没登录');
   const calls = apiCalls(page);
   const res = await page.goto(`${BASE}/`);
@@ -17,8 +17,8 @@ export async function anonymous(browser: Browser): Promise<void> {
     check(csp.includes(part), `首页的 CSP 缺 ${part}：${csp || '（没有 CSP 头）'}`);
   }
   await page.getByRole('heading', { name: '开盘' }).waitFor();
-  const play = page.locator('.card', { hasText: '开盘' }).getByRole('link', { name: '登录后才能玩' });
-  check((await play.getAttribute('href')) === '/login?from=kaipan', '"登录后才能玩"应该去 /login?from=kaipan');
+  const play = page.locator('.card', { hasText: '开盘' }).getByRole('link', { name: '登录后玩' });
+  check((await play.getAttribute('href')) === '/login?from=kaipan', '"登录后玩"应该去 /login?from=kaipan');
   check((await page.getByRole('link', { name: '进入游戏' }).count()) === 0, '没登录时不该有"进入游戏"');
   check((await page.locator('.account').textContent()) === '登录', '没登录时右上角是"登录"');
   check((await page.getByRole('link', { name: '管理' }).count()) === 0, '没登录时不该有"管理"');
@@ -37,7 +37,7 @@ export async function anonymous(browser: Browser): Promise<void> {
   await page.getByText('朋友邀请你来街机厅。现在是邀请制，找 TA 要个邀请就能玩。').waitFor();
   await page.getByText('登录后回到「开盘」').waitFor();
   await page.getByRole('link', { name: '用邀请码注册' }).waitFor();
-  check(new URL(page.url()).search === '?from=kaipan', `点"登录后才能玩"应该带上 from：${page.url()}`);
+  check(new URL(page.url()).search === '?from=kaipan', `点"登录后玩"应该带上 from：${page.url()}`);
   // 有一个"用邀请码注册"的链接；没有的是"注册"页签和注册表单
   check((await page.getByRole('link', { name: '注册', exact: true }).count()) === 0, '注册关着时登录页不该有"注册"页签');
   check((await page.getByRole('heading', { name: '注册' }).count()) === 0, '注册关着时登录页不该有注册表单');
@@ -94,7 +94,7 @@ export async function adminFlow(browser: Browser, adminPw: string): Promise<void
   const stats = page.getByTestId('wallet-stats');
   await stats.getByText('10-14').waitFor();
   await stats.getByText('1,234,567').waitFor();
-  await stats.locator('.per-game li', { hasText: '开盘 带入 4,000 · 结回 6,000 · 退回 0' }).waitFor();
+  await stats.locator('.per-game li', { hasText: '开盘 带入 4,000 · 带回 6,000 · 退回 0' }).waitFor();
   expectHttp(409, '/api/wallet/relief');
   expectHttp(404, '/api/wallet/buyin');
   const wallet = await page.evaluate(async () => {
@@ -646,7 +646,7 @@ async function friendFlow(browser: Browser, ctx: BrowserContext, page: Page, pw1
   await page.getByText('账号已经注销').waitFor();
   check(!page.url().includes('deleted'), `注销提示显示后应该把 ?deleted=1 从网址里去掉：${page.url()}`);
   check((await page.locator('.account').textContent()) === '登录', '注销后右上角回到"登录"');
-  check((await page.getByRole('link', { name: '登录后才能玩' }).count()) > 0, '注销后游戏卡片回到"登录后才能玩"');
+  check((await page.getByRole('link', { name: '登录后玩' }).count()) > 0, '注销后游戏卡片回到"登录后玩"');
   await shot(page, 'deleted');
   await page.reload();
   await page.getByRole('heading', { name: '开盘' }).waitFor();

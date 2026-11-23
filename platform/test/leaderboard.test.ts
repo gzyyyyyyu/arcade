@@ -12,7 +12,7 @@ const boundTo = (game: string) => (exports as unknown as { WalletService: (o: { 
 let n = 0;
 const id = (p: string) => `${p}-${String(++n).padStart(6, '0')}`;
 
-/** 带 2,000 上桌、结回 amount（好友房 server 模式，不受单机上限影响） */
+/** 带 2,000 上桌、带回 amount（好友房 server 模式，不受单机上限影响） */
 async function play(userId: string, game: string, amount: number, titles: string[] = []) {
   const base = { userId, game, ref: id('ref'), mode: 'server' };
   await boundTo(game).buyin({ ...base, tier: 'small', amount: 2_000, until: Date.now() + 3_600_000, op: id('op') });
@@ -68,7 +68,7 @@ describe('GET /api/leaderboard', () => {
     expect(body.boards.titles!.me).toEqual({ rank: 1, value: 1 });
   });
 
-  it('只看好友：我和我的好友；读走 5 分钟缓存，过了才看到新结回的；换周后本周榜清零、称号榜还在', async () => {
+  it('只看好友：我和我的好友；读走 5 分钟缓存，过了才看到新带回的；换周后本周榜清零、称号榜还在', async () => {
     const [a, b, c] = [await registerUser(), await registerUser(), await registerUser()];
     expect((await call('/api/friends/requests', { body: { friendCode: b.user.friendCode }, cookie: a.cookie })).status).toBe(200);
     expect((await call(`/api/friends/${a.user.id}/accept`, { body: {}, cookie: b.cookie })).status).toBe(200);

@@ -6,7 +6,7 @@ import { noScrollIssues } from '../lib/ui.ts';
 import { FAKE_USER, FAKE_WALLET, mockSession } from '../lib/fakes.ts';
 
 /**
- * 大厅最近玩的排第一张卡：卡上写"上次玩 · 多久以前"、按钮是"继续玩"（原来的继续玩横幅和卡重复，已并进卡里）。
+ * 大厅最近玩的排第一张卡：卡上写"上次玩 · 多久以前"、按钮是"继续玩"。
  * 本地记录和钱包流水合并后取最新；另一个账号的本地记录不算。
  * 第一屏验收（电脑 1280×720、手机）：顶栏以下常驻信息条最多 1 条，至少 2 张游戏卡的标题整个看得到；整页不滚。
  */
@@ -22,6 +22,10 @@ export async function recentGames(browser: Browser): Promise<void> {
     await mockSession(page, { me: { notice: null }, wallet: () => ({ ...FAKE_WALLET, ledger }) });
     await page.goto(`${BASE}/`);
     await page.getByTestId('last-racing').getByText('上次玩 · 刚刚').waitFor();
+    // 手机上"上次玩 ·"只留给读屏（视觉上藏起来，innerText 里还在），看得见的是"刚刚玩过"
+    const kicker = (await page.getByTestId('last-racing').innerText()).replace(/\s+/g, ' ').trim();
+    const want = screen === 'desktop' ? '上次玩 · 刚刚' : '刚刚玩过';
+    check(screen === 'desktop' ? kicker === want : kicker.endsWith(want), `"上次玩"角标该是"${want}"：${kicker}`);
     const order = await page.locator('.lobby-grid .card').evaluateAll((els) => els.slice(0, 4).map((e) => e.getAttribute('data-game')));
     check(order.join() === 'racing,texas,kaipan,mahjong', `最近玩过的该排前面：${order}`);
     const first = page.locator('.lobby-grid .card[data-game="racing"] .card__play');

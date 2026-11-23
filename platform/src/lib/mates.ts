@@ -1,11 +1,14 @@
 /** 搭子战绩（docs/platform-backend.md 15.19）的文字和"最佳搭档"怎么挑：好友页和战绩页共用。 */
 import type { Together } from '../api.ts';
 
-/** "一起打了 23 场 · 你赢 12 · 他赢 9"；做过搭档的加上"搭档 8 场赢 6" */
-export function togetherText(t: Together): string {
-  const parts = [`一起打了 ${t.n} 场`, `你赢 ${t.wins}`, `TA 赢 ${t.theirWins}`];
-  if (t.teamN > 0) parts.push(`搭档 ${t.teamN} 场赢 ${t.teamWins}`);
-  return parts.join(' · ');
+/**
+ * 两行："一起打了 23 场：你赢 12 场、TA 赢 9 场"，做过搭档的再加"其中做搭档 8 场，赢了 6 场"。
+ * 你赢、TA 赢数的是这些场里各自赢了几场，做搭档时两人一起赢也各算一场，所以不写成"对打"。
+ */
+export function togetherLines(t: Together): string[] {
+  const lines = [`一起打了 ${t.n} 场：你赢 ${t.wins} 场、TA 赢 ${t.theirWins} 场`];
+  if (t.teamN > 0) lines.push(`其中做搭档 ${t.teamN} 场，赢了 ${t.teamWins} 场`);
+  return lines;
 }
 
 /** 做搭档至少几场才评"最佳搭档"：一两场看不出来 */

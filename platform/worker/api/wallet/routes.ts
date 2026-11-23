@@ -3,7 +3,7 @@ import type { Route } from '../core/route';
 import { adminAdjust, adminLookup, adminOverview, adminPlayTally, adminRecentAdjustments, claimRelief, getWallet, listWalletStats } from './api';
 
 export const WALLET_ROUTES: Route[] = [
-  // 钱包（5.9）：浏览器只能看和领补给；带入、结回、放弃只有游戏的服务端经 RPC 能调（service.ts），这里没有这几条路
+  // 钱包（5.9）：浏览器只能看和领补给；带入、带回、放弃只有游戏的服务端经 RPC 能调（service.ts），这里没有这几条路
   { method: 'GET', path: '/api/wallet', cat: 'wallet', auth: 'user', handler: getWallet },
   { method: 'POST', path: '/api/wallet/relief', cat: 'wallet', auth: 'user', handler: claimRelief },
   // 管理页的统计和别的管理接口一样记在账号安全类（令牌认证的那几行也在那里）

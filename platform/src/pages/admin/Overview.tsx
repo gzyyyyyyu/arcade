@@ -74,13 +74,13 @@ function OverviewBody({ data }: { data: AdminOverview }) {
               <div className="game-today__item">
                 <strong>{gameName(g)}</strong>
                 <span className="tnum">{dash(x.players)} 人</span>
-                {/* 带入、结回各自不断行，放不下就整段换行（不用"·"隔开：折行时点会悬在行尾） */}
+                {/* 带入、带回各自不断行，放不下就整段换行（不用"·"隔开：折行时点会悬在行尾） */}
                 <span className="game-today__flow">
                   <span className="nowrap">
                     带入 <b className="tnum">{num(x.in)}</b>
                   </span>
                   <span className="nowrap">
-                    结回 <b className="tnum">{num(x.out)}</b>
+                    带回 <b className="tnum">{num(x.out)}</b>
                   </span>
                 </span>
                 {x.capped ? <small>到顶没进 {num(x.capped)}</small> : null}
@@ -118,14 +118,14 @@ function OverviewBody({ data }: { data: AdminOverview }) {
   return <AdminTabs tabs={tabs} label="概览分页" />;
 }
 
-/** 每天一行：日期、玩过、带入、结回、补给，第二行是各游戏当天的人数 */
+/** 每天一行：日期、玩过、带入、带回、补给，第二行是各游戏当天的人数 */
 function DetailTable({ days }: { days: WalletDayStats[] }) {
   const rows = days.map((d, i) => ({ d, i }));
   const cols: Col<(typeof rows)[number]>[] = [
     { key: 'day', label: '日期', cell: ({ d, i }) => (i === 0 ? '今天' : d.day.slice(5)), w: 'minmax(3em, 0.8fr)' },
     { key: 'active', label: '玩过', num: true, cell: ({ d }) => dash(d.active) },
     { key: 'in', label: '带入', num: true, cell: ({ d }) => num(sum(d, 'in')) },
-    { key: 'out', label: '结回', num: true, cell: ({ d }) => num(sum(d, 'out')) },
+    { key: 'out', label: '带回', num: true, cell: ({ d }) => num(sum(d, 'out')) },
     { key: 'relief', label: '补给', num: true, cell: ({ d }) => num(d.relief) },
     {
       key: 'games',
@@ -166,7 +166,7 @@ function niceStep(max: number): number {
 }
 
 /**
- * 近 7 天的带入、结回（并排的柱，左边刻度）和玩过筹码局的人数（柱顶的小数字）：手写 SVG，不加图表库。
+ * 近 7 天的带入、带回（并排的柱，左边刻度）和玩过筹码局的人数（柱顶的小数字）：手写 SVG，不加图表库。
  * 悬停一天，整列高亮，上面浮一张当天的数字。
  */
 function TrendChart({ days }: { days: Day[] }) {
@@ -185,7 +185,7 @@ function TrendChart({ days }: { days: Day[] }) {
   const h = hover === null ? null : days[hover]!;
   return (
     <figure className="chart" onMouseLeave={() => setHover(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`近 7 天带入、结回和玩过的人数：${days.map((d, i) => `${label(d, i)} 带入 ${num(d.in)} 结回 ${num(d.out)} ${d.people} 人`).join('；')}`}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`近 7 天带入、带回和玩过的人数：${days.map((d, i) => `${label(d, i)} 带入 ${num(d.in)} 带回 ${num(d.out)} ${d.people} 人`).join('；')}`}>
         {[1, 2, 3].map((k) => (
           <g key={k}>
             <line x1={pad.l} x2={W - pad.r} y1={y(step * k)} y2={y(step * k)} className="chart__grid" />
@@ -216,13 +216,13 @@ function TrendChart({ days }: { days: Day[] }) {
         <div className="chart__tip" style={{ left: `${(cx(hover) / W) * 100}%` }} role="status">
           <strong>{label(h, hover)}</strong>
           <span>带入 {num(h.in)}</span>
-          <span>结回 {num(h.out)}</span>
+          <span>带回 {num(h.out)}</span>
           <span>玩过 {h.people} 人</span>
         </div>
       )}
       <figcaption className="chart__legend">
         <span className="chart__key chart__key--in">带入</span>
-        <span className="chart__key chart__key--out">结回</span>
+        <span className="chart__key chart__key--out">带回</span>
         <span className="chart__key chart__key--people">柱顶数字：玩过筹码局的人</span>
       </figcaption>
     </figure>

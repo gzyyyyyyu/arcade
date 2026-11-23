@@ -34,7 +34,7 @@ export function parseCmd(t: 'buyin' | 'settle' | 'refund' | 'exchange', raw: unk
       return { t, ...base, tier: b.tier, amount: b.amount, until: b.until };
     case 'settle': {
       if (!isChips(b.amount)) return 'bad_request';
-      // tally 不合格就当没带：不能因为它让结回失败
+      // tally 不合格就当没带：不能因为它让带回失败
       const tally = parseTally(b.tally);
       const withTally = tally ? { tally } : {};
       if (b.stats === undefined || b.stats === null) return { t, ...base, amount: b.amount, ...withTally };

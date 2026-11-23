@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { CareerView, StatsResponse } from '../../api.ts';
 import { dateText, num, signed, tone } from '../../lib/format.ts';
 import { PageTabs, Paged } from '../../features/fit/Fit.tsx';
-import { togetherText } from '../../lib/mates.ts';
+import { togetherLines } from '../../lib/mates.ts';
 import { loadTitles, type TitleCatalog } from '../../lib/titles.ts';
 import { rateText } from './stats-logic.ts';
 
@@ -89,7 +89,7 @@ export function GameTab({ game, c, together }: { game: string; c: CareerView; to
               {together && (
                 // 搭子战绩：只有好友、两边都开着、一起打过才有
                 <p className="stats-together" data-testid="together">
-                  <strong>和我一起</strong> {togetherText(together)}
+                  <strong>和我一起</strong> {togetherLines(together).join('；')}
                 </p>
               )}
             </section>

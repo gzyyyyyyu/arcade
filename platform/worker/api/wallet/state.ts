@@ -7,7 +7,7 @@
  *
  * - 账是纯函数（apply）：输入这一行的状态、一条操作、现在的时间，输出新状态或者拒绝的理由。
  *   操作 id 幂等、到期退回、记下退回过的 ref；每个游戏可以同时有几份在桌上。
- * - 带入、结回、放弃、兑换只由游戏的服务端经 RPC 调（service.ts）；浏览器只能看钱包、领补给（api.ts）。
+ * - 带入、带回、放弃、兑换只由游戏的服务端经 RPC 调（service.ts）；浏览器只能看钱包、领补给（api.ts）。
  *
  * 筹码只是游戏积分：没有转给别人、买、换成现金或实物的路（docs/project.md 第 3 节、economy.md 第 0 节）。
  * 唯一的"换入"是兑换：游戏里攒的游戏内货币按游戏定的比例换成筹码，每人每游戏每天有上限（exchangeCap）。
@@ -24,19 +24,19 @@ export type TierId = keyof typeof TIERS;
 /** 余额封顶：安全整数以内 */
 export const MAX_BALANCE = 1_000_000_000_000;
 /**
- * 每人每天最多写几次（各游戏合计）。到了上限不能再带入、领补给；结回、放弃、到期退回不受限（economy.md 第 4 节）。
+ * 每人每天最多写几次（各游戏合计）。到了上限不能再带入、领补给；带回、放弃、到期退回不受限（economy.md 第 4 节）。
  * 从 200 放到 1,000（维护者定）：只防脚本，正常玩碰不到；全站的钱包预算才是兜底
  */
 export const DAILY_WRITES = 1_000;
 /** 桌上那一份最长放多久（游戏给 until，超过的按这个算） */
 const MAX_HOLD_MS = 24 * HOUR;
-/** 一次结回最多 = 带上桌的 + 这么多份：只防写错（比如多乘了个 100），不防作弊。好友房一桌最多几个人，赢走全桌也到不了 */
+/** 一次带回最多 = 带上桌的 + 这么多份：只防写错（比如多乘了个 100），不防作弊。好友房一桌最多几个人，赢走全桌也到不了 */
 const SETTLE_SLACK_UNITS = 20;
 /** 记住最近几次操作的 id 和结果：游戏重发、补发都在这个范围里 */
 const RECENT_OPS = 32;
 /** 每一份记住最近几次带入的操作 id */
 const STAKE_OPS = 16;
-/** 记住最近几个到期退回过的 ref（"游戏:ref"）：它们再来结回就拒绝，买入已经退过了 */
+/** 记住最近几个到期退回过的 ref（"游戏:ref"）：它们再来带回就拒绝，买入已经退过了 */
 const RECENT_EXPIRED = 16;
 /** 每个钱包留最近几次管理员调整 */
 const ADMIN_LOG = 20;
@@ -95,7 +95,7 @@ export interface Stake {
 interface GameDay {
   /** 带入（所有模式，统计用） */
   in: number;
-  /** 结回进了钱包的（所有模式，统计用） */
+  /** 带回进了钱包的（所有模式，统计用） */
   out: number;
   /** 放弃、到期退回的 */
   back: number;
@@ -103,7 +103,7 @@ interface GameDay {
   capped: number;
   /** client 模式带入的（放弃、到期退回时减回去，不低于 0）：算净赢用 */
   cin: number;
-  /** client 模式结回的：净赢 = cout − cin */
+  /** client 模式带回的：净赢 = cout − cin */
   cout: number;
   /**
    * 当天在这个游戏"一份"的大小，取带入过的各份里最大的那个；每一份按 min(档位的一份, 这一份实际带上桌的) 算（stakeUnit）。
@@ -135,7 +135,7 @@ export interface AdminAdjust {
   by: string;
 }
 
-/** 一条流水：什么时候、哪种动作、哪个游戏、余额变了多少（带入是负的）；结回到顶没进钱包的在 capped */
+/** 一条流水：什么时候、哪种动作、哪个游戏、余额变了多少（带入是负的）；带回到顶没进钱包的在 capped */
 export interface LedgerEntry {
   at: number;
   t: 'grant' | 'buyin' | 'settle' | 'refund' | 'expire' | 'relief' | 'admin' | 'exchange';
@@ -148,13 +148,13 @@ export interface LedgerEntry {
 interface OpResult {
   credited?: number;
   capped?: number;
-  /** 结回带的小结被忽略了（钱照常结） */
+  /** 带回带的小结被忽略了（钱照常结） */
   statsIgnored?: StatsError;
   /** 兑换：这次之后今天在这个游戏还能换多少 */
   left?: number;
 }
 
-/** 结回值得发的一条好友动态（15.17）：哪一档、净赢几份（乘 10 取整）、这一份里第一次拿到的称号 */
+/** 带回值得发的一条好友动态（15.17）：哪一档、净赢几份（乘 10 取整）、这一份里第一次拿到的称号 */
 export interface SettleFeed {
   game: string;
   tier: string;
@@ -162,7 +162,7 @@ export interface SettleFeed {
   titles: string[];
 }
 
-/** 结回时可选带的这一份小结（5.10）。游戏那边照抄文档里的同名类型 */
+/** 带回时可选带的这一份小结（5.10）。游戏那边照抄文档里的同名类型 */
 export interface SettleStats {
   rounds: number;
   wins: number;
@@ -176,9 +176,9 @@ export type StatsError = 'too_big' | 'bad_stats';
 
 /** 一个人在一个游戏里的战绩（钱包 state 的 career[game]，对登录的人公开） */
 interface Career {
-  /** 结回过几份（带不带小结都算） */
+  /** 带回过几份（带不带小结都算） */
   n: number;
-  /** 累计净赢：每份结回进钱包的 − 带上桌的 */
+  /** 累计净赢：每份带回进钱包的 − 带上桌的 */
   net: number;
   /** 本周（北京时间这周一的日期）和本周净赢；读的时候 wk 不是这周就当 0 */
   wk: string;
@@ -209,7 +209,7 @@ export interface WalletState {
   adminLog?: AdminAdjust[];
   /** 钱包流水（管理页看）：最近 LEDGER 条余额变动；之前的状态里没有 */
   ledger?: LedgerEntry[];
-  /** 各游戏的战绩；之前的状态里没有，第一次结回时建 */
+  /** 各游戏的战绩；之前的状态里没有，第一次带回时建 */
   career?: Record<string, Career>;
   createdAt: number;
 }
@@ -292,7 +292,7 @@ export function careerView(c: Career, week: string): CareerView {
   };
 }
 
-/** 一份结回记进战绩：净赢按钱算（不靠小结），小结里的局数、称号这些另加 */
+/** 一份带回记进战绩：净赢按钱算（不靠小结），小结里的局数、称号这些另加 */
 function addCareer(s: WalletState, game: string, net: number, paid: number, stats: SettleStats | undefined, now: number): void {
   const c = careerOf(s, game);
   c.n++;
@@ -306,7 +306,7 @@ function addCareer(s: WalletState, game: string, net: number, paid: number, stat
   if (!stats) return;
   c.rounds += stats.rounds;
   c.wins += stats.wins;
-  // 最大一把不超过这一份结回的钱：防游戏写错（比如多乘了个 100）
+  // 最大一把不超过这一份带回的钱：防游戏写错（比如多乘了个 100）
   c.best = Math.max(c.best, Math.min(stats.best, paid));
   for (const t of stats.titles ?? []) {
     if (!Object.hasOwn(c.titles, t) && Object.keys(c.titles).length < CAREER_TITLES) c.titles[t] = now;
@@ -390,7 +390,7 @@ export function normalize(s0: WalletState, now: number): { s: WalletState; expir
   if (s.today.day !== day) {
     if (s.today.writes || s.today.grant || s.today.admin) s.prev = s.today;
     s.today = emptyDay(day);
-    // 跨零点还在桌上的 client 那一份算进新一天的带入和最高档：否则结回时本金被当成赢的、挤占上限；
+    // 跨零点还在桌上的 client 那一份算进新一天的带入和最高档：否则带回时本金被当成赢的、挤占上限；
     // 放弃、到期退回减 cin 时也才对得上
     for (const st of Object.values(s.stakes)) {
       if (st.mode !== 'client') continue;
@@ -476,10 +476,10 @@ export function apply(
   }
   // 下面要改它：normalize 没改时给的是 s0 本身，复制一份，s0 留给调用方回原样
   const s = structuredClone(normalize(s0, now).s);
-  // 结回、放弃不受每天的次数管：桌上的筹码总要能回来（次数由带入那头管住）
+  // 带回、放弃不受每天的次数管：桌上的筹码总要能回来（次数由带入那头管住）
   if ((cmd.t === 'buyin' || cmd.t === 'relief' || cmd.t === 'exchange') && s.today.writes >= DAILY_WRITES) return { error: 'limit' };
   const before = s.balance;
-  // 结回前记下那一份和这个游戏已有的称号：结回成功后看值不值得生成一条好友动态
+  // 带回前记下那一份和这个游戏已有的称号：带回成功后看值不值得生成一条好友动态
   const stake = cmd.t === 'settle' ? s.stakes[stakeKey(cmd.game, cmd.ref)] : undefined;
   const hadTitles = cmd.t === 'settle' ? new Set(Object.keys(s.career?.[cmd.game]?.titles ?? {})) : undefined;
   const out = step(s, cmd, now, rules);
@@ -499,7 +499,7 @@ export function apply(
   return { state: s, result: out, ...(feed && { feed }), ...(tally && { tally }) };
 }
 
-/** 结回成功后要记的一局（5.11）：mode、档位用桌上那一份的，结果段按进钱包的和带入比 */
+/** 带回成功后要记的一局（5.11）：mode、档位用桌上那一份的，结果段按进钱包的和带入比 */
 export interface SettleTally {
   variant: string;
   mode: Mode;
@@ -513,7 +513,7 @@ function settleTally(t: Tally, st: Stake, credited: number): SettleTally {
 }
 
 /**
- * 结回值不值得发一条好友动态（docs/platform-backend.md 15.17）：净赢 ≥ 半份，或者第一次拿到某个称号；输了一律不发。
+ * 带回值不值得发一条好友动态（docs/platform-backend.md 15.17）：净赢 ≥ 半份，或者第一次拿到某个称号；输了一律不发。
  * 份按 stakeUnit 算（和每日上限同一个"一份"）。units 是净赢的份数乘 10 取整，titles 是这一份里第一次拿到的（最多 3 个）。
  */
 function settleFeed(s: WalletState, game: string, st: Stake, credited: number, hadTitles: ReadonlySet<string>): SettleFeed | undefined {
@@ -548,7 +548,7 @@ function step(s: WalletState, cmd: Cmd, now: number, rules: WalletRules): OpResu
         st.until = Math.max(st.until, until);
         st.ops = [...(st.ops ?? []), cmd.op].slice(-STAKE_OPS);
       } else {
-        // 这个 ref 已经到期退回过：再用它开一份，之后的结回就分不清是哪一份了
+        // 这个 ref 已经到期退回过：再用它开一份，之后的带回就分不清是哪一份了
         if (s.expired.includes(key)) return { error: 'expired' };
         // 余额够这次带入就行（去掉了"钱包 ≥ 一整份"的进场要求，economy.md 第 2 节）
         if (s.balance < cmd.amount) return { error: 'no_funds' };
@@ -572,7 +572,7 @@ function step(s: WalletState, cmd: Cmd, now: number, rules: WalletRules): OpResu
       const g = gameDay(s, cmd.game);
       let credited = cmd.amount;
       if (cmd.mode === 'client') {
-        // 结回后净赢（cout − cin）不超过 winUnits 份；份按今天带入过的最大一份（隔天结回的那一份也算上它自己），
+        // 带回后净赢（cout − cin）不超过 winUnits 份；份按今天带入过的最大一份（隔天带回的那一份也算上它自己），
         // 每一份是 min(档位的一份, 实际带上桌的)，上限跟着真冒的风险走。带上桌的那一份总能拿回来，上限只管赢的部分
         const cap = rules.winUnits * Math.max(g.top, stakeUnit(st));
         const room = Math.max(st.amount, cap + g.cin - g.cout);

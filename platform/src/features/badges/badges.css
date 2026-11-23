@@ -12,11 +12,14 @@
 .badges .badge { transition: transform var(--ease), box-shadow var(--ease); }
 .badges .badge:active { transform: translateY(2px) scale(0.97); box-shadow: none; }
 .badges .badge:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
-.badges .badge[aria-pressed="true"] { border-width: var(--bw); }
+/* 点到的那一枚加选中框：说明在墙下面，手机上离得远，靠这个框看出点的是哪一枚 */
+.badges .badge[aria-pressed="true"] { border-width: var(--bw); border-color: var(--accent-deep); box-shadow: 0 0 0 2px var(--accent); }
 .badges .badge__name { font-weight: 700; font-size: var(--fs-sm); line-height: 1.2; overflow-wrap: anywhere; text-align: center; }
 .badges .badge__tier { text-align: center; overflow-wrap: anywhere; font-size: var(--fs-xs); color: var(--muted); }
 .badges__tip { margin: var(--s-3) 0 0; padding: var(--s-2) var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--highlight); font-size: var(--fs-sm); overflow-wrap: anywhere; }
 .badges__tip strong { margin-right: var(--s-2); }
+/* 收起：只在说明条盖在翻页条上时（战绩页手机小屏）露出来，别处说明条在墙下面占自己的一行，不用收 */
+.badges .badges__close { display: none; }
 
 /* 奖章：径向渐变做球面感，再叠一层顶部高光；外描边用档位暗色，内圈一道亮边 */
 /* 上下各留 4px：金牌的外光环画在圆盘外 4px，不留会压住下面的名字；各档留一样多，同一行卡片一样高 */

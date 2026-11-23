@@ -160,11 +160,10 @@
 /* 安全页签常驻（Me.tsx）：显示时这层包装不占位，里面照旧是 .me-body 的直接一块 */
 .me-page .me-keep:not([hidden]) { display: contents; }
 
-/* 触屏："去好友页"这类行内链接看着小，按得到的范围透明外扩到 44 高，不改排版 */
-@media (pointer: coarse) {
-  .me-page .inline-link { position: relative; }
-  .me-page .inline-link::after { content: ''; position: absolute; left: 0; right: 0; top: min(0px, calc(50% - var(--tap) / 2)); bottom: min(0px, calc(50% - var(--tap) / 2)); }
-}
+/* "去好友页"这类行内链接看着小（矮屏只有 28 高）：按得到的范围透明外扩到 44 高，不改排版。
+   不只限触屏：无头浏览器和一些平板报的是 fine，量出来照样不到 44 */
+.me-page .inline-link { position: relative; }
+.me-page .inline-link::after { content: ''; position: absolute; left: 0; right: 0; top: min(0px, calc(50% - var(--tap) / 2)); bottom: min(0px, calc(50% - var(--tap) / 2)); }
 /* 偏好：游戏开关排两列，手机也放得下九个 */
 .me-page .game-prefs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s-3); }
 .me-page .game-prefs .check { min-height: 36px; gap: var(--s-2); }

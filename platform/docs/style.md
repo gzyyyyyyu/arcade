@@ -30,7 +30,7 @@
   - 战绩页：新拿到、升档的徽章翻一下、扫一道光（`badges.css` 的 `badge--fx`）。等第一枚新徽章 80% 进了视口才开演、演了才记进 `src/features/badges/badge-seen.ts`，手机上徽章在首屏下面也不会白播。
   - 排行页：前三名的领奖台依次升起，台子到位后头像和名字落下，总长 ≤ 900ms（`boards.css` 的 `.podium`）。
   - 钱包页：领补给成功后，8 枚金币沿确定的弧线从按钮飞进顶栏筹码牌子，落地后牌子弹一下，余额再滚动加上（`src/features/coinfly/coinfly.ts`、`coinfly.css`）。飞的时候按钮保持"请稍等"，连点只发一次；请求失败不飞；中途换页，金币层照样清掉。
-- 顶栏筹码数字变化时在 600ms 内滚到新值（`src/lib/countup.ts` 的 `useCountUp`），第一次显示直接是当前值；格式仍是 `num()`，最终文字等于格式化后的余额。
+- 顶栏筹码数字变化时在 600ms 内滚到新值（`src/lib/countup.ts` 的 `useCountUp`），第一次显示直接是当前值；格式用 `num()`，最终文字等于格式化后的余额。
 - `prefers-reduced-motion: reduce`：所有动画和过渡关闭，数字立刻到位。
 - 自动化浏览器（`navigator.webdriver`）：给 `<html>` 加 `no-motion` 类，效果同上，冒烟和截图结果稳定。
 

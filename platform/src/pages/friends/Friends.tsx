@@ -215,6 +215,7 @@ function MyCode() {
           换一个好友码
         </button>
       </div>
+      <p className="note">换好友码以后旧链接作废，已经加上的好友不受影响。</p>
       {copy === 'failed' && <p className="form-error">复制不了，长按上面的链接手动复制</p>}
       <Modal open={renew} title="换一个好友码" onClose={() => setRenew(false)} className="modal__box--narrow" testId="renew-code">
         <div className="form">

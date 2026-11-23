@@ -1,6 +1,6 @@
 /**
  * 每周挑战榜（docs/platform-backend.md 15.5）：榜名 week-<YYYY>-W<ww>-<子榜>[-v<n>]，按北京时间的 ISO 周（周一 0 点换周）。
- * 排行页（浏览器）和交分、Cron（Worker）都要算"这是第几周"，所以放在 src 下两边共用，只用纯算术、不读时区设置。
+ * 交分和 Cron（Worker）要算"这是第几周"；放在 shared/，界面也从这里取 `DAY`。只用纯算术、不读时区设置。
  * 年份和周号补零后按字典序就是按时间排：Cron 按 board_id 范围删旧榜，和每日榜同一个办法。
  */
 // 这个文件不 import 别的：Worker、浏览器、冒烟工具三套 tsconfig 对引用后缀的要求不一样
@@ -19,11 +19,6 @@ export function beijingIsoWeek(ms: number): string {
   const jan1 = Math.floor(Date.UTC(year, 0, 1) / DAY);
   const week = Math.floor((thursday - jan1) / 7) + 1;
   return `${year}-W${String(week).padStart(2, '0')}`;
-}
-
-/** 某个时刻所在那周、某个子榜的榜名 */
-export function weeklyBoardId(ms: number, sub: string): string {
-  return `week-${beijingIsoWeek(ms)}-${sub}`;
 }
 
 /** 每周榜的周、子榜、版本号（没有版本号是 0）；不是每周榜的形式时为 null */

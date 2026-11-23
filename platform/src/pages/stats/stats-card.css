@@ -159,7 +159,7 @@ html.no-motion .pcard { animation: none; }
 .stats-page .stats-badges .paged__list--grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: var(--s-2); }
 .stats-page .badges .badge { height: 100%; }
 .stats-page .badges__tip { flex: none; margin: 0; padding: var(--s-1) var(--s-3); font-size: var(--fs-xs); }
-/* 手机竖屏徽章缝收到 4、上下内边距收到 2：390×844 第 4 排（三行字的徽章约 62 高）才放得下 */
+/* 手机竖屏徽章缝收到 4、上下内边距收到 2：390×844 第 4 排才放得下（见下面横排那段的手机竖屏部分） */
 @media (max-width: 560px) {
   .stats-page .stats-badges .paged__list--grid { gap: var(--s-1); }
   .stats-page .badges.stats-badges .badge { padding-block: 2px; }
@@ -239,4 +239,54 @@ html.no-motion .stats-page .ov-row { transition: none; }
   .stats-page .stats-tabs { flex-wrap: wrap; overflow: visible; }
   /* 横排小徽章在 390 宽排两列（按 150 只排得下一列，一页还是 3 枚） */
   .stats-page .stats-badges .paged__list--grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  /* 两列时字那一栏要宽到不让"铜牌 · 再上桌 80 次升银牌"折三行：奖章缩到 30、内边距收到上下 1 左右 4、行距 1.1，字那栏宽到约 100，多数两行；进度条收起（那一行字已经写了还差多少）。
+     列表区 209 高，4 排要每排 ≤49：这样一排约 47 */
+  .stats-page .badges.stats-badges .badge { padding: 1px 4px; column-gap: 6px; }
+  .stats-page .badges .badge__disc { width: 30px; height: 30px; }
+  .stats-page .badges .badge__name, .stats-page .badges .badge__tier { line-height: 1.1; }
+  .stats-page .badges .badge__bar { display: none; }
+}
+
+/* 手机小屏竖屏（360×640 这种）：游戏页签折成两行、说明条单占一行，徽章墙一页只剩 1 排 2 枚。
+   页签左右内边距收到 12，四个页签一行放得下；说明条不占位：点了一枚才浮出来盖在翻页条上，带「收起」，没点时不显示提示 */
+@media (max-height: 700px) and (max-width: 560px) {
+  .stats-page .stats-tabs button { padding-inline: var(--s-3); }
+  .stats-page .stats-badges { position: relative; }
+  .stats-page .badges__tip { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; min-height: var(--tap); display: flex; align-items: center; gap: var(--s-2); box-shadow: var(--sh-sm); }
+  .stats-page .badges__how { flex: 1; min-width: 0; }
+  .stats-page .badges__tip--idle { display: none; }
+  .stats-page .badges .badges__close { flex: none; display: inline-flex; min-height: 32px; }
+}
+
+/* 手机横屏（只有 390 高）：徽章墙的翻页条挪到卡片标题那一行，下面的高全给徽章（Paged 量到翻页条不在列表下面就不给它留高）；
+   翻页按钮看着 32 高，触屏按得到的范围透明外扩到 44 */
+@media (max-height: 420px) {
+  .stats-page .scard--badges { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); align-items: center; column-gap: var(--s-3); }
+  .stats-page .scard--badges > .stats-badges, .stats-page .scard--badges .stats-badges__grid, .stats-page .scard--badges .paged { display: contents; }
+  .stats-page .scard--badges > .scard__title { grid-column: 1; grid-row: 1; }
+  .stats-page .scard--badges .paged__list { grid-column: 1 / -1; grid-row: 2; align-self: stretch; }
+  .stats-page .scard--badges .paged__bar { grid-column: 2; grid-row: 1; gap: var(--s-2); }
+  .stats-page .scard--badges .paged__bar .btn { height: 28px; min-height: 28px; min-width: 40px; padding-block: 0; position: relative; }
+  .stats-page .scard--badges .paged__bar .btn::after {
+    content: ''; position: absolute;
+    top: min(0px, calc(50% - var(--tap) / 2)); bottom: min(0px, calc(50% - var(--tap) / 2));
+    left: min(0px, calc(50% - var(--tap) / 2)); right: min(0px, calc(50% - var(--tap) / 2));
+  }
+  /* 两栏里徽章栏放宽、一排三枚，名片和卡片上下内边距再收，游戏页签看着 36 高（点按区透明外扩到 44，外框上下各留 4 不裁掉）：
+     列表区约 106 高，放得下两排 50 高的 6 枚，徽章上下各留 2，名字不贴卡片上沿 */
+  .stats-page .pcard { padding-block: 4px 2px; }
+  .stats-page .stats-tabs { padding-block: 4px; }
+  .stats-page .stats-tabs button { min-height: 36px; position: relative; }
+  .stats-page .stats-tabs button::after {
+    content: ''; position: absolute;
+    top: min(0px, calc(50% - var(--tap) / 2)); bottom: min(0px, calc(50% - var(--tap) / 2));
+    left: min(0px, calc(50% - var(--tap) / 2)); right: min(0px, calc(50% - var(--tap) / 2));
+  }
+  .stats-page .scard { padding-block: var(--s-1); }
+  .stats-page .ptabs--wide .ptabs__pane:first-child { flex: 1.6 1 0; }
+  /* 概览栏因此窄了：行的左右内边距和列缝收一点，「+12,000」这种净赢不伸出框 */
+  .stats-page .ov-row { gap: var(--s-1); padding-inline: var(--s-2); }
+  .stats-page .scard--badges .paged__list--grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px var(--s-1); }
+  .stats-page .badges.stats-badges .badge { padding: 2px 4px; column-gap: 6px; }
+  .stats-page .badges .badge__name, .stats-page .badges .badge__tier { line-height: 1.1; }
 }

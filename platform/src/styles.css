@@ -1,5 +1,5 @@
 /*
- * 平台界面的样式。改版①：颜色、间距、字号、圆角、阴影都收进下面的变量，组件里只用变量，不再到处写死数字；
+ * 平台界面的样式：颜色、间距、字号、圆角、阴影都收进下面的变量，组件里只用变量；
  * 间距按 4/8 的倍数，能点的东西至少 44 px 高（手机上点得着）。
  * 整体是"贴纸"风：深色描边加错开的实心阴影；按下时往阴影方向压下去。
  */
@@ -149,7 +149,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .top__home:active .logo-mark { transform: rotate(0deg) scale(0.94); transition-duration: 0.06s; }
 .foot a:active, .foot__sound:active, .people__link:active { opacity: 0.6; }
 .top__sub { margin: 0; color: var(--muted); }
-/* 页脚一行（一屏放下，不再在手机上竖排成四行）：链接看着 24 高，点击区用透明的 ::after 外扩到 44 */
+/* 页脚一行（一屏放下，手机上也不竖排）：链接看着 24 高，点击区用透明的 ::after 外扩到 44 */
 .foot { margin-top: var(--s-2); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; column-gap: 0; text-align: center; color: var(--muted); font-size: var(--fs-xs); line-height: 1.4; }
 .foot > span + span::before { content: '·'; margin: 0 var(--s-1); }
 /* 窄屏页脚折成两行：分隔点会落到第二行开头孤零零一个，改成只靠间距分开 */
@@ -494,6 +494,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .card__body > .card__title { grid-area: title; }
 .card__body > .card__tagline { grid-area: tagline; }
 /* "上次玩 · 多久以前"：压在封面左下角里面（骑在分界线上会压住游戏名的字头） */
+.card__kicker-tail { display: none; }
 .card__kicker {
   position: absolute; bottom: calc(100% + var(--bw) + var(--s-2)); left: var(--s-3);
   padding: 2px var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-pill); background: var(--accent); color: var(--white);
@@ -518,7 +519,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .card__playing .icon { width: 16px; height: 16px; color: var(--accent-deep); }
 /*
  * 手机（≤599）：一行一张的短卡——左边封面缩略图、中间名字和一句话、右边"进入"。一张约 68 高（一句话折两行时；
- * 封面不再撑到 76、上下内边距 3、一句话行高 1.3、卡间 6），360×640 带"回去接着打"也一页 5 张，
+ * 封面不撑到 76、上下内边距 3、一句话行高 1.3、卡间 6），360×640 带"回去接着打"也一页 5 张，
  * 390×844 第一屏在今日挑战和继续玩下面还能看到 3–4 个游戏的入口
  */
 @media (max-width: 599px), (max-height: 500px) {
@@ -538,6 +539,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   /* 封面只有 112 宽："上次玩 ·"只留给读屏，角标只写"36 天前"，不伸出封面压住标题（天数一长就会压到） */
   .lobby-grid .card .card__kicker { top: 4px; bottom: auto; left: calc(-112px + 4px); max-width: calc(112px - 8px); padding: 0 6px; font-size: 12px; white-space: nowrap; }
   .lobby-grid .card .card__kicker-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .lobby-grid .card .card__kicker-tail { display: inline; }
   .lobby-grid .card .card__play-more { display: none; }
   /* "今天 N 人玩过"：手机短卡上改成压在封面左下角的小牌子 */
   .lobby-grid .card .card__playing { top: auto; bottom: 4px; right: auto; left: calc(-112px + 4px); padding: 0 6px; font-size: 11px; }
@@ -621,7 +623,8 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .people__text { display: flex; flex-direction: column; min-width: 0; }
 .people__name { font-weight: 700; overflow-wrap: anywhere; }
 .people__sub { color: var(--muted); font-size: var(--fs-sm); }
-.people__link { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+/* 名字链接的点按区电脑上也做到 44 高：上下加内边距、再用负外边距抵掉，行高不变 */
+.people__link { display: inline-block; min-width: var(--tap); padding-block: 10px; margin-block: -10px; color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
 .people__confirm, .users__panel { border-top: var(--bw-thin) dashed var(--dashed); padding-top: var(--s-3); }
 .people .btn--small, .user-panel .btn--small { min-height: var(--tap); }
 
@@ -680,14 +683,13 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .week-bars__value { justify-self: end; font-weight: 800; font-variant-numeric: tabular-nums; }
 /*
  * 手机和平板（触屏，手机界面专项）：能点的东西至少 44×44、表格里的数字至少 14px。
- * 触屏上、或者窗口窄到 960 以下时放大（宽度兜底：无头浏览器模拟手机时启动参数写死 primaryPointerType=4，报的是 fine，只看 coarse 冒烟量不出来）；宽的电脑窗口里小圆片、小按钮照旧紧凑。名字链接用"加内边距、再用负外边距抵掉"的办法放大点击区，行高不变
+ * 触屏上、或者窗口窄到 960 以下时放大（宽度兜底：无头浏览器模拟手机时启动参数写死 primaryPointerType=4，报的是 fine，只看 coarse 冒烟量不出来）；宽的电脑窗口里小圆片、小按钮照旧紧凑。排行的名字链接用"加内边距、再用负外边距抵掉"的办法放大点击区，行高不变
  */
 @media (pointer: coarse), (max-width: 959px) {
   .top__home { display: inline-flex; align-items: center; min-height: var(--tap); }
   .seg button, .chips button, .btn--small { min-height: var(--tap); }
   .btn--small, .inline-link { min-width: var(--tap); justify-content: center; }
-  .rank__name, .people__link { min-width: var(--tap); padding-block: 10px; margin-block: -10px; }
-  .people__link { display: inline-block; }
+  .rank__name { min-width: var(--tap); padding-block: 10px; margin-block: -10px; }
 }
 /*
  * 桌上还有筹码的提示条（首屏顶栏以下唯一的一条）：手机上压成一行、放在页面顶上（做过底部固定条，单手够得着但和顶上那条重复，已并回顶部）。

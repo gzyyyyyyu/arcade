@@ -21,9 +21,9 @@ describe('badgesOf', () => {
     const all = badgesOf({}, LIST);
     expect(all).toHaveLength(BADGE_COUNT);
     expect(unlockedCount(all)).toBe(0);
-    expect(pick({}, 'regular').progress).toBe('还差 50 局');
-    expect(pick({}, 'steady').progress).toBe('还差 20 局');
-    expect(pick({}, 'all').progress).toBe('还差 3 个游戏');
+    expect(pick({}, 'regular').line).toBe('再打 50 局就拿到');
+    expect(pick({}, 'steady').line).toBe('再打 20 局就拿到');
+    expect(pick({}, 'all').line).toBe('再在 3 个游戏里各赢一次就拿到');
   });
 
   it('档位线：刚到线拿到，差一点不算；满档不再有进度', () => {
@@ -35,8 +35,17 @@ describe('badgesOf', () => {
     expect(at(999).tier).toBe(2);
     expect(at(1000).tier).toBe(3);
     expect(at(1000).left).toBeNull();
-    expect(at(1000).progress).toBe('');
+    expect(at(1000).line).toBe('金牌');
+    expect(at(60).line).toBe('铜牌 · 再打 140 局升银牌');
     expect(at(60).left).toBe(140);
+  });
+
+  it('卡上那一行带单位和下一档；说明写每档要多少', () => {
+    expect(pick({ a: career({ n: 20 }) }, 'seat').line).toBe('铜牌 · 再上桌 80 次升银牌');
+    expect(pick({ a: career({ best: 30 }) }, 'big').line).toBe('单把赢到 10,000 就拿到');
+    expect(pick({ a: career({ wnet: 0 }) }, 'hot').line).toBe('本周净赢再多 1 就拿到');
+    expect(pick({}, 'seat').how).toBe('带筹码上桌：20 次铜、100 次银、500 次金');
+    expect(pick({}, 'sharp').how).toBe('打满 30 局后，总胜率达到：30%铜、40%银、50%金');
   });
 
   it('跨游戏相加；最大一把取各游戏里最大的；称号数相加', () => {
@@ -68,12 +77,13 @@ describe('badgesOf', () => {
     expect(pick({ a: career({ rounds: 20, net: 0 }) }, 'steady').tier).toBe(1);
     const losing = pick({ a: career({ rounds: 30, net: -2_500 }) }, 'steady');
     expect(losing.tier).toBe(0);
-    expect(losing.progress).toBe('总账还差 2,500 筹码回本');
+    expect(losing.line).toBe('总账再赢回 2,500 筹码就拿到');
   });
 
   it('神机妙算：局数不够不算比例；够了按总胜率取整', () => {
     expect(pick({ a: career({ rounds: 10, wins: 10 }) }, 'sharp').tier).toBe(0);
-    expect(pick({ a: career({ rounds: 10, wins: 10 }) }, 'sharp').progress).toBe('还差 20 局才开始算');
+    expect(pick({ a: career({ rounds: 10, wins: 10 }) }, 'sharp').line).toBe('再打 20 局才开始算胜率');
+    expect(pick({ a: career({ rounds: 100, wins: 35 }) }, 'sharp').line).toBe('铜牌 · 胜率再高 5 个百分点升银牌');
     expect(pick({ a: career({ rounds: 100, wins: 29 }) }, 'sharp').tier).toBe(0);
     expect(pick({ a: career({ rounds: 100, wins: 40 }) }, 'sharp').tier).toBe(2);
     expect(pick({ a: career({ rounds: 100, wins: 50 }) }, 'sharp').tier).toBe(3);
@@ -92,7 +102,7 @@ describe('badgesOf', () => {
   it('全能选手：每个能带筹码的游戏都赢过；不能用钱包的和还没上线的不要求', () => {
     // a、b、c 要求；d（不用钱包）、e（即将上线）不要求
     expect(pick({ a: career({ wins: 1 }), b: career({ best: 5 }) }, 'all').tier).toBe(0);
-    expect(pick({ a: career({ wins: 1 }), b: career({ best: 5 }) }, 'all').progress).toBe('还差 1 个游戏');
+    expect(pick({ a: career({ wins: 1 }), b: career({ best: 5 }) }, 'all').line).toBe('再在 1 个游戏里各赢一次就拿到');
     expect(pick({ a: career({ wins: 1 }), b: career({ best: 5 }), c: career({ wins: 2 }) }, 'all').tier).toBe(1);
     expect(pick({ a: career({ n: 3 }), b: career({ n: 3 }), c: career({ n: 3 }) }, 'all').tier).toBe(0);
   });

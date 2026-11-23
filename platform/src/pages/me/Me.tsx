@@ -29,9 +29,9 @@ const TABS = {
     { id: 'profile', name: '资料' },
     { id: 'privacy', name: '隐私' },
     { id: 'prefs', name: '偏好' },
-    // 窄屏六个页签：两字一个，360 宽也放得下
-    { id: 'saves', name: '存档' },
-    { id: 'invite', name: '邀请' },
+    // 窄屏六个页签和电脑同名（跟人说"去云存档页签"对得上）；宽屏隐私并进资料，所以多一个"隐私"
+    { id: 'saves', name: '云存档' },
+    { id: 'invite', name: '邀请码' },
     { id: 'safe', name: '安全' },
   ],
 } as const;

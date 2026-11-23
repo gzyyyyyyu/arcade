@@ -20,7 +20,7 @@ interface Player {
   userId: string;
   displayName: string;
   avatar: unknown;
-  /** 各游戏本周净赢（只有这周结回过的游戏） */
+  /** 各游戏本周净赢（只有这周带回过的游戏） */
   week: Record<string, number>;
   titles: number;
 }

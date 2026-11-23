@@ -62,7 +62,7 @@
   .friends-page .people__btns { justify-content: flex-end; flex-wrap: nowrap; }
   .friends-page .people__item > .form-error { grid-column: 1 / -1; }
 }
-/* 好友那一栏右边只有"加入"和两个图标：手机上也放在名字同一行，不再单占一行 */
+/* 好友那一栏右边只有"加入"和两个图标：手机上也放在名字同一行 */
 .friends-page .friends-list .people__item:not(.people__item--confirm) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s-3); }
 .friends-page .friends-list .people__btns { flex-wrap: nowrap; }
 .friends-page .friends-list .people__item > .form-error { grid-column: 1 / -1; }
@@ -77,7 +77,8 @@
 .friends-page .people__confirm .form-error { flex: 1 1 100%; }
 .friends-page .people__confirm-btns { margin: 0; gap: var(--s-2); flex: none; }
 /* 删好友、屏蔽的灰色图标按钮：不抢"加入"的眼，按下照常下沉 */
-.friends-page .people__icon-btn { min-width: var(--tap); padding-inline: 0; justify-content: center; color: var(--muted); background: transparent; border-color: transparent; box-shadow: none; }
+.friends-page .people__icon-btn { min-width: var(--tap); padding-inline: 2px; flex-direction: column; justify-content: center; gap: 0; color: var(--muted); background: transparent; border-color: transparent; box-shadow: none; }
+.friends-page .people__icon-label { font-size: 12px; font-weight: 400; line-height: 1.1; white-space: nowrap; }
 @media (hover: hover) { .friends-page .people__icon-btn:not(:disabled):hover { color: var(--danger); background: var(--highlight-warm); } }
 .friends-page .paged__bar .btn { min-height: 36px; }
 @media (pointer: coarse) { .friends-page .paged__bar .btn { min-height: var(--tap); } }
@@ -117,6 +118,7 @@
 .friends-page .people__sub--online { color: #2f8a4b; font-weight: 700; }
 /* 搭子战绩：昵称下面第二行小字；最佳搭档是一个小牌子 */
 .friends-page .people__mates { display: block; font-size: 0.85em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.friends-page .people__mates-line { display: block; }
 .friends-page .people__best { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 999px; background: #f6c445; color: #3a2a00; font-weight: 700; }
 
 /* 约局（Meetups.tsx）：卡片头上"约一局"和"动态"并排；列表顶上一两条约局，到点的暖色底 */

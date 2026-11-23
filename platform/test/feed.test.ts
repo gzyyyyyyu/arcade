@@ -1,5 +1,5 @@
 /**
- * 好友动态（docs/platform-backend.md 15.17）：游戏报的名场面、实盘结回自动生成（门槛：净赢 ≥ 半份或第一次拿到称号，输的不发）、
+ * 好友动态（docs/platform-backend.md 15.17）：游戏报的名场面、实盘带回自动生成（门槛：净赢 ≥ 半份或第一次拿到称号，输的不发）、
  * 每人每天 10 条（第 11 条静默丢）、只给好友看、开关、赞和扔道具每条每人一次、7 天过期、注销和 Cron 清理。
  * 测试时间是北京时间 2026-10-14 14:30。
  */
@@ -42,7 +42,7 @@ async function pair(): Promise<[U, U]> {
 type Stub = { buyin(req: unknown): Promise<WalletReply>; settle(req: unknown): Promise<WalletReply> };
 const kaipan = (exports as unknown as { WalletService: (o: { props: { game: string } }) => Stub }).WalletService({ props: { game: 'kaipan' } });
 let opSeq = 0;
-/** 小档带一份 2,000，结回 amount，带上小结 */
+/** 小档带一份 2,000，带回 amount，带上小结 */
 async function playOnce(u: U, amount: number, stats: unknown = { rounds: 1, wins: 1, best: 0 }): Promise<WalletReply> {
   const ref = `ref-${String(++opSeq).padStart(6, '0')}`;
   expect(await kaipan.buyin({ userId: u.user.id, game: 'kaipan', ref, tier: 'small', amount: 2_000, until: Date.now() + 3_600_000, mode: 'server', op: `b-${ref}` })).toMatchObject({ ok: true });
@@ -100,7 +100,7 @@ describe('游戏报的名场面', () => {
   });
 });
 
-describe('实盘结回自动生成', () => {
+describe('实盘带回自动生成', () => {
   it('净赢 ≥ 半份：生成一条，记档位、份数（乘 10）、第一次拿到的称号；钱包照常 1 行', async () => {
     const [a, b] = await pair();
     expect(await playOnce(a, 5_200, { rounds: 1, wins: 1, best: 3_200, titles: ['first_win'] })).toMatchObject({ ok: true, credited: 5_200 });
@@ -121,7 +121,7 @@ describe('实盘结回自动生成', () => {
     expect(await feedOf(b)).toHaveLength(1);
   });
 
-  it('不带小结、小结不合格、重复的 op 都不生成；结回照常', async () => {
+  it('不带小结、小结不合格、重复的 op 都不生成；带回照常', async () => {
     const [a, b] = await pair();
     const ref = 'ref-dup001';
     await kaipan.buyin({ userId: a.user.id, game: 'kaipan', ref, tier: 'small', amount: 2_000, until: Date.now() + 3_600_000, mode: 'server', op: 'b-dup001' });
@@ -134,7 +134,7 @@ describe('实盘结回自动生成', () => {
     expect(await feedOf(b)).toHaveLength(1);
   });
 
-  it('关了"好友动态"：不生成，结回照常；打开以后新的照常', async () => {
+  it('关了"好友动态"：不生成，带回照常；打开以后新的照常', async () => {
     const [a, b] = await pair();
     expect((await call('/api/me', { method: 'PATCH', body: { showFeed: false }, cookie: a.cookie })).status).toBe(200);
     expect(await playOnce(a, 6_000)).toMatchObject({ ok: true, credited: 6_000 });
@@ -142,7 +142,7 @@ describe('实盘结回自动生成', () => {
     expect(await feedOf(b)).toEqual([]);
   });
 
-  it('"在线"类预算用完：不生成，结回照常', async () => {
+  it('"在线"类预算用完：不生成，带回照常', async () => {
     await resetAll({ budget: { live: 1 } });
     const [a, b] = await pair();
     await moment(a, { game: 'kaipan', moment: 'm' });

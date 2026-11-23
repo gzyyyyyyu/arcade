@@ -1,4 +1,4 @@
-/** 真人对局统计（docs/platform-backend.md 5.11）：分段函数、结回和交分带 tally 的写入、管理接口、清理。 */
+/** 真人对局统计（docs/platform-backend.md 5.11）：分段函数、带回和交分带 tally 的写入、管理接口、清理。 */
 import { exports } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { runCleanup } from '../worker/api/ops/cron';
@@ -35,7 +35,7 @@ describe('分段函数', () => {
     ]);
   });
 
-  it('结回的结果：拿回 0 输光、净值负输、0 持平、不到一份赢、一份以上大赢；带入是 0 看 result', () => {
+  it('带回的结果：拿回 0 输光、净值负输、0 持平、不到一份赢、一份以上大赢；带入是 0 看 result', () => {
     expect([settleOutcome(2_000, 0), settleOutcome(2_000, 1_500), settleOutcome(2_000, 2_000), settleOutcome(2_000, 3_999), settleOutcome(2_000, 4_000)]).toEqual([
       'bust', 'lose', 'even', 'win', 'big',
     ]);
@@ -56,7 +56,7 @@ describe('分段函数', () => {
   });
 });
 
-describe('结回带 tally', () => {
+describe('带回带 tally', () => {
   it('带了：钱包 1 行 + 统计 1 行 = 2 行，同一类（钱包）；再来一局同一格加 1', async () => {
     const u = await registerUser();
     const a = await round(u.user.id, { back: 5_000, tally: { variant: 'riichi', durSec: 400 } });
@@ -75,7 +75,7 @@ describe('结回带 tally', () => {
     expect(await count('SELECT COUNT(*) AS n FROM play_tally')).toBe(0);
   });
 
-  it('不合格的 tally 忽略：结回照常成功，只写 1 行', async () => {
+  it('不合格的 tally 忽略：带回照常成功，只写 1 行', async () => {
     const u = await registerUser();
     for (const bad of ['x', { durSec: 999_999 }, { variant: 'BAD', durSec: 5 }]) {
       const a = await round(u.user.id, { back: 1_000, tally: bad });
@@ -85,7 +85,7 @@ describe('结回带 tally', () => {
     expect(await count('SELECT COUNT(*) AS n FROM play_tally')).toBe(0);
   });
 
-  it('重发同一个 op 是 dup：不写、不重复计数；被拒的结回（没有这一份）也不记', async () => {
+  it('重发同一个 op 是 dup：不写、不重复计数；被拒的带回（没有这一份）也不记', async () => {
     const u = await registerUser();
     const op = id('op');
     const base = { userId: u.user.id, game: 'kaipan', ref: id('ref'), mode: 'server' };

@@ -11,7 +11,7 @@ const boundTo = (game: string) => (exports as unknown as { WalletService: (o: { 
 let n = 0;
 const op = () => `op-stats-${String(++n).padStart(6, '0')}`;
 
-/** 带一份上桌再结回：game 的 client 模式，带 2,000 回 amount */
+/** 带一份上桌再带回：game 的 client 模式，带 2,000 回 amount */
 async function play(userId: string, game: string, amount: number, stats?: unknown) {
   const ref = `ref-st-${String(++n).padStart(6, '0')}`;
   const base = { userId, game, ref, mode: 'client' };

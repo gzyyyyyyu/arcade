@@ -106,9 +106,9 @@ export async function runOp(
     if ('error' in out) return { ok: false, error: out.error, wallet: viewOf(normalize(s0, now).s, !row, rules) };
     if (!row && !opts.create) return { ok: false, error: 'busy' };
     if (await writeRow(db, userId, row, out.state, now, 'op' in cmd)) {
-      // 钱已经结完了才发动态：动态写不进去（预算、出错）不影响结回，由 onFeed 自己兜
+      // 钱已经结完了才发动态：动态写不进去（预算、出错）不影响带回，由 onFeed 自己兜
       if (out.feed && opts.onFeed) await opts.onFeed(out.feed);
-      // 对局统计同理：只在结回真的写进去之后记，写不进去只记日志（onTally 自己兜）
+      // 对局统计同理：只在带回真的写进去之后记，写不进去只记日志（onTally 自己兜）
       if (out.tally && opts.onTally) await opts.onTally(out.tally);
       return { ok: true, wallet: viewOf(out.state, false, rules), ...out.result };
     }
@@ -212,7 +212,7 @@ export interface DayStats {
   reliefCount?: number;
   /** 兑换进来的合计（各游戏的 ex 加起来；早期记录里没有） */
   exchange?: number;
-  /** 各游戏当天：带入、结回进钱包的、放弃和到期退回的、超出每日上限没进钱包的、兑换进来的；players 是带筹码上过桌的人数（早期记录里没有 players、ex） */
+  /** 各游戏当天：带入、带回进钱包的、放弃和到期退回的、超出每日上限没进钱包的、兑换进来的；players 是带筹码上过桌的人数（早期记录里没有 players、ex） */
   games: Record<string, { in: number; out: number; back: number; capped: number; ex?: number; players?: number }>;
 }
 

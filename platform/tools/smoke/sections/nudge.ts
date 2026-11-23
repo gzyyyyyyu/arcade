@@ -33,7 +33,7 @@ export async function lobbyNudge(browser: Browser): Promise<void> {
   await toTable.getByText('德州扑克桌上 1,000').waitFor();
   const href = await toTable.getByRole('link', { name: '回去接着打' }).getAttribute('href');
   check(href === '/games/texas/', `"回去接着打"指错了：${href}`);
-  // 领补给不再占大厅一条提示：首屏只有"桌上还有"这一条，筹码牌子上亮红点，到钱包页领
+  // 领补给不占大厅提示：首屏只有"桌上还有"这一条，筹码牌子上亮红点，到钱包页领
   check((await page.getByTestId('nudge-relief').count()) === 0, '大厅不该再有领补给提示条');
   await page.getByTestId('wallet-badge').getByTestId('relief-dot').waitFor();
   await shot(page, 'lobby-nudge');

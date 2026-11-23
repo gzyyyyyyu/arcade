@@ -255,7 +255,7 @@ export function StatsPage() {
                 id: 'badges',
                 name: '徽章墙',
                 body: (
-                  <section className="scard">
+                  <section className="scard scard--badges">
                     <h3 className="scard__title">徽章墙</h3>
                     <BadgeWall games={data.games} selfId={who === 'me' ? user.id : undefined} />
                   </section>

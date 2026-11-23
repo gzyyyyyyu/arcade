@@ -5,7 +5,7 @@ import type { StatsResponse } from '../../api.ts';
 import { GAMES } from '../../../shared/games.ts';
 import { Paged } from '../../features/fit/Fit.tsx';
 import { playSuccess } from '../../lib/sound.ts';
-import { badgesOf, TIER_NAMES, type Badge } from '../../features/badges/badges.ts';
+import { badgesOf, type Badge } from '../../features/badges/badges.ts';
 import { BadgeGlyph } from '../../icons.tsx';
 import '../../features/badges/badges.css';
 
@@ -16,8 +16,6 @@ function ratio(b: Badge): number | null {
   const from = b.tier > 0 ? b.tiers[b.tier - 1]! : 0;
   return next > from ? Math.min(1, Math.max(0, (b.value - from) / (next - from))) : null;
 }
-
-const label = (b: Badge) => (b.tier > 0 ? `${TIER_NAMES[b.tier - 1]}牌` : b.progress);
 
 /** 街机厅徽章（从战绩现算，不存）：拿到的带铜银金环，没拿到的灰着写还差多少；点一个看怎么拿 */
 export function BadgeWall({ games, selfId }: { games: StatsResponse['games']; selfId?: string }) {
@@ -82,7 +80,7 @@ export function BadgeWall({ games, selfId }: { games: StatsResponse['games']; se
                 <BadgeGlyph name={b.glyph} />
               </span>
               <span className="badge__name">{b.name}</span>
-              <span className="badge__tier">{b.tier > 0 && b.tier < b.max ? `${label(b)} · ${b.progress}` : label(b)}</span>
+              <span className="badge__tier">{b.line}</span>
               {ratio(b) !== null && (
                 <span className="badge__bar" role="progressbar" aria-label="离下一档" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio(b)! * 100)}>
                   <span className="badge__fill" style={{ width: `${Math.round(ratio(b)! * 100)}%` }} />
@@ -92,11 +90,16 @@ export function BadgeWall({ games, selfId }: { games: StatsResponse['games']; se
           )}
         />
       </div>
-      <p className="badges__tip" aria-live="polite" data-testid="badge-tip">
+      <p className={`badges__tip${cur ? '' : ' badges__tip--idle'}`} aria-live="polite" data-testid="badge-tip">
         {cur ? (
           <>
-            <strong>{cur.name}</strong>
-            {cur.how}
+            <span className="badges__how">
+              <strong>{cur.name}</strong>
+              {cur.how}
+            </span>
+            <button type="button" className="btn btn--small badges__close" onClick={() => setOpen(null)}>
+              收起
+            </button>
           </>
         ) : (
           '点一枚徽章，看怎么拿。'

@@ -161,7 +161,7 @@ export async function deskLayout(page: Page, name: string): Promise<void> {
       const cs = getComputedStyle(shell);
       const mr = document.querySelector('main')!.getBoundingClientRect();
       const inner = shell.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      // 左边不再有侧栏：主区从外框内沿开始，宽度还给内容区
+      // 没有侧栏：主区从外框内沿开始，宽度还给内容区
       const indent = mr.left - shell.getBoundingClientRect().left - parseFloat(cs.paddingLeft);
       return { main: mr.width, inner, indent, scroll: document.documentElement.scrollWidth - window.innerWidth };
     });
@@ -288,7 +288,7 @@ export async function phoneIssues(page: Page, minTap = 44, minNum = 14): Promise
 }
 
 /**
- * 手机大厅（有桌上筹码时）："回去接着打"是页面顶上的一条（不再是底部固定条），按钮够大，游戏名和数字没被省略，页面里只有这一条；
+ * 手机大厅（有桌上筹码时）："回去接着打"是页面顶上的一条，按钮够大，游戏名和数字没被省略，页面里只有这一条；
  * 竖屏首屏至少 2 张游戏卡的标题整个看得到（横屏 390 高放不下横幅加两张卡，不查）；顶栏排行、动态、好友图标下面有 12px 常驻文字（全站最小字号）、点击区 ≥44
  */
 export async function lobbyTopIssues(page: Page, viewport: { width: number; height: number }): Promise<string[]> {

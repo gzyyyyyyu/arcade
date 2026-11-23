@@ -11,7 +11,7 @@
  *   props 只能由部署那个游戏的人写进它自己的配置，游戏代码在运行时改不了，所以一个游戏的代码写错了也冒充不了别的游戏。
  *   账号里的 Worker 都经 PR 审阅后由 CI 部署，信任边界就是这个账号。
  * - 计量和熔断和 /api 一样：每次调用算平台 1 次调用；写入记在"钱包"类。停服档全停；只读档、钱包类预算用完时停带入、兑换（和领补给），
- *   结回、放弃照收：桌上的筹码总要能回来。停增长档不建新钱包。
+ *   带回、放弃照收：桌上的筹码总要能回来。停增长档不建新钱包。
  * - 业务上的拒绝都用返回值（{ ok: false, error }），不抛异常：RPC 抛出去的异常只保证 name 和 message。
  */
 import { feedFromSettle } from '../social/feed';
@@ -39,7 +39,7 @@ export let lastWalletStats: RequestStats = newStats();
 /** together() 的回话：记上了几对 */
 export type TogetherReply = { ok: true; pairs: number } | { ok: false; error: 'bad_request' | 'bad_game' | 'busy' | 'internal' };
 
-/** 带入（和兑换）：带入让筹码离开余额、兑换让筹码进来，都按只读档、钱包预算停；回：结回、放弃，任何时候都收（停服档除外）；看：不停；
+/** 带入（和兑换）：带入让筹码离开余额、兑换让筹码进来，都按只读档、钱包预算停；回：带回、放弃，任何时候都收（停服档除外）；看：不停；
  *  搭子：搭子战绩，记在排行榜类，只在正常档、排行榜类预算没用完时写 */
 type Kind = 'view' | 'stake' | 'return' | 'mates';
 
@@ -58,7 +58,7 @@ export class WalletService extends WorkerEntrypoint<Env, Props> {
     return this.#op('buyin', req, 'stake');
   }
 
-  /** 结回 { userId, game, ref, amount, mode, op, stats? }：回话里 credited 是进了钱包的，capped 是超出 client 模式每日上限、没进钱包的；
+  /** 带回 { userId, game, ref, amount, mode, op, stats? }：回话里 credited 是进了钱包的，capped 是超出 client 模式每日上限、没进钱包的；
    *  stats 是这一份的战绩小结（docs/platform-backend.md 5.10），不合格时整份忽略、回 statsIgnored，钱照常结 */
   async settle(req: unknown): Promise<WalletReply> {
     return this.#op('settle', req, 'return');
@@ -103,7 +103,7 @@ export class WalletService extends WorkerEntrypoint<Env, Props> {
     return this.#run(kind, (db, now, tier) =>
       runOp(db, userId, cmd, now, {
         create: tier === 'normal',
-        // 真人对局统计（5.11）记在钱包类，和结回同一类预算；写出错只记日志，结回照常
+        // 真人对局统计（5.11）记在钱包类，和带回同一类预算；写出错只记日志，带回照常
         onTally: async (t) => {
           try {
             await db.run(tallyStatement(db, now, { game: (cmd as { game: string }).game, ...t }));
@@ -111,7 +111,7 @@ export class WalletService extends WorkerEntrypoint<Env, Props> {
             console.error('tally from settle failed', e instanceof Error ? e.name : 'unknown');
           }
         },
-        // 好友动态记在"在线"类：只读档、在线类预算用完就不发；写出错只记日志，结回照常
+        // 好友动态记在"在线"类：只读档、在线类预算用完就不发；写出错只记日志，带回照常
         onFeed: async (feed) => {
           const limits = limitsOf(this.env);
           if (tier !== 'normal' || meter.exhausted('live', limits, now)) return;

@@ -6,7 +6,7 @@
  * - 交分写入单独记在"排行榜"类（预算从存档里分出来）：刷榜只停排行榜，不连累云存档；每人每天 scorePerDay 次。
  * - 榜单 ID 只收两种形式，别的一律不收，免得随便开榜把库撑大：
  *   每日榜 daily-YYYY-MM-DD（规则大改时可带 -v<n>），交分时日期只能是北京时间的昨天、今天、明天（时区差和跨零点的一局）；
- *   一天几个每日榜的游戏（games.ts 的 daily 写了子榜）是 daily-YYYY-MM-DD-<子榜>[-v<n>]，子榜要登记过，不再收不带子榜的；
+ *   一天几个每日榜的游戏（games.ts 的 daily 写了子榜）是 daily-YYYY-MM-DD-<子榜>[-v<n>]，子榜要登记过，只收带子榜的；
  *   每周榜 week-<YYYY>-W<ww>-<子榜>[-v<n>]（北京时间的 ISO 周，shared/weekly.ts），子榜要在 games.ts 的 weekly 里登记，只收这周的（跨周一 0 点留一天交上周）；
  *   固定榜（如 endless）要在 shared/games.ts 的 boards 里登记。
  *   日期、周放在版本号前面：同一个游戏的每日榜、每周榜按 board_id 排序时就按时间排，Cron 按范围删旧榜只读要删的行。

@@ -11,7 +11,7 @@ import { gameName, num, timeText } from './common.ts';
 const KIND_TEXT: Record<LedgerEntry['t'], string> = {
   grant: '新号送的',
   buyin: '带入',
-  settle: '结回',
+  settle: '带回',
   refund: '放弃退回',
   expire: '到期退回',
   relief: '领补给',

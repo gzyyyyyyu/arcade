@@ -60,18 +60,20 @@ function StakeRow({ s }: { s: Stake }) {
       <p className="note">
         {timeText(s.at)} 带上桌。
         {room
-          ? '回房间点“离开房间”结回；直接关页面，房间没人约 10 分钟后自动结回。'
+          ? '回房间点“离开房间”，筹码带回钱包；直接关了页面的，房间没人约 10 分钟后自动带回。'
           : `回那一桌离桌；放着不管，${timeText(s.until)} 原样退回。`}
       </p>
     </div>
   );
 }
 
-/** 今天各游戏实盘的净赢和上限，一句话一个游戏 */
+/** 今天各游戏实盘的净赢和上限，一句话一个游戏：cap 是这个游戏每天实盘净赢的上限，超出的不进钱包 */
 function capsText(game: string, c: { net: number; cap: number }): string {
   const left = Math.max(0, c.cap - c.net);
-  const today = c.net >= 0 ? `赢了 ${num(c.net)}` : `输了 ${num(-c.net)}`;
-  return left > 0 ? `${gameName(game)}：今天实盘${today}，还能再赢 ${num(left)}。` : `${gameName(game)}：今天实盘${today}，到顶了，明天再来赢。`;
+  const today = c.net >= 0 ? `净赢 ${num(c.net)}` : `净输 ${num(-c.net)}`;
+  return left > 0
+    ? `${gameName(game)}今天实盘${today}；今天最多还能赢 ${num(left)}。`
+    : `${gameName(game)}今天实盘${today}，到了今天的上限：再赢的不进钱包，明天再来。`;
 }
 
 /**
@@ -220,7 +222,7 @@ export function WalletPage() {
         {blocked ? (
           <p className="wcard__note" data-testid="relief-why">{blocked}</p>
         ) : (
-          <p className="wcard__note" data-testid="relief-hint">每天一次，连桌上的补到 {num(reliefTo)}</p>
+          <p className="wcard__note" data-testid="relief-hint">每天能领一次：手上加桌上不到 {num(reliefTo)} 时补到 {num(reliefTo)}</p>
         )}
         <FormError text={relief.error} />
         <p className="wcard__note">筹码没有现金价值：不能买、不能换、不能转。</p>
