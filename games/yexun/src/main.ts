@@ -5,7 +5,7 @@
  */
 import type Phaser from 'phaser';
 import { DAWN_TICK, type Danger } from './content/waves.ts';
-import { COIN_EXCHANGE, CURSE_IDS, LOOKS, MAX_CURSES } from './content/meta.ts';
+import { carries, COIN_EXCHANGE, runKind, CURSE_IDS, LOOKS, MAX_CURSES } from './content/meta.ts';
 import { NOVICE } from './content/player.ts';
 import type { Setup, World } from './core/index.ts';
 import { autoSkillSetting } from './view/game/autoskill.ts';
@@ -438,9 +438,10 @@ async function boot(): Promise<void> {
     const ms = menuState();
     // 竖屏开的局刷怪圈转 90°（Setup.tall），录进录像；实盘、每日挑战的固定配置也按这台设备补上
     const tall = css().h > css().w ? { tall: true } : {};
-    // 局前锦囊：只有菜单开的娱乐守夜、夜探带（实盘、每日、本周夜事、连战、教学镇不带），开局这一下扣铜钱
-    const kits = kind === null && !debug && fixed?.raid?.template !== 'teach' && save.kits.length ? payKits(save, fixed?.seed ?? seed, nonce()) : [];
-    const w = createWorld({ ...(fixed ?? { seed, mode: 'vigil', danger, map, firstRun: save.runs === 0, novice: save.runs < NOVICE.runs, character: ms.character, ...loadoutSetup(save, ms.character), curses: ms.curses, perks: save.perks, assist: save.assist, ...(wantEndless ? { endless: true } : {}) }), ...(kits.length ? { kits } : {}), ...tall });
+    const base: Setup = fixed ?? { seed, mode: 'vigil', danger, map, firstRun: save.runs === 0, novice: save.runs < NOVICE.runs, character: ms.character, ...loadoutSetup(save, ms.character), curses: ms.curses, perks: save.perks, assist: save.assist, ...(wantEndless ? { endless: true } : {}) };
+    // 局前锦囊：菜单开的局（kind 为空，每日挑战不算）里照 CARRY 能带的才带，开局这一下扣铜钱
+    const kits = kind === null && !debug && carries('kits', runKind(base)) && save.kits.length ? payKits(save, base.seed, nonce()) : [];
+    const w = createWorld({ ...base, ...(kits.length ? { kits } : {}), ...tall });
     world = w;
     autopilot = undefined;
     social.setWhere(w.raid ? 'raid' : 'vigil');

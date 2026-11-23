@@ -91,9 +91,14 @@ export function dailyPlan(date: string, mode: RunMode): DailyPlan {
   return { date, mode, setup, curses, boardId: dailyBoardId(date, mode) };
 }
 
-/** 这一局的设置是不是货真价实的某天挑战：种子、图、咒印、危险档都对得上（交每日榜前核一次，防旧存档 / 手滑） */
+/**
+ * 这一局的设置是不是货真价实的某天挑战（交每日榜前核一次，防旧存档 / 手滑）：种子、图、咒印、危险档、角色对得上，
+ * 没带加成、心法、起手、锦囊、降低伤害、新手照顾，也不是夜事、连战、试炼、实盘、无尽（每日挑战人人一样，content/meta.ts CARRY）
+ */
 export function isDailySetup(date: string | null | undefined, s: OnlineSetup): boolean {
   if (!date || !DATE_RE.test(date)) return false;
   const p = dailyPlan(date, s.mode).setup;
-  return p.seed === s.seed && p.map === s.map && p.danger === s.danger && !s.endless && (p.curses ?? []).join() === (s.curses ?? []).join() && p.raid?.template === s.raid?.template && !s.assist && !s.novice && !s.weekly && Object.keys(s.perks ?? {}).length === 0;
+  const same = p.seed === s.seed && p.map === s.map && p.danger === s.danger && (s.character ?? 'xiaodao') === p.character && (p.curses ?? []).join() === (s.curses ?? []).join() && p.raid?.template === s.raid?.template;
+  const extras = s.endless || s.assist || s.novice || s.weekly || s.rush || s.live || s.trial !== undefined || s.xinfa !== undefined || s.startAlt || (s.kits?.length ?? 0) > 0 || Object.keys(s.perks ?? {}).length > 0;
+  return same && !extras;
 }

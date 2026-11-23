@@ -216,7 +216,41 @@ export const COIN_EXCHANGE = { rate: 3, dailyCap: 2_000, steps: [100, 500, 1_000
 /** 换筹码、实盘带入处写明（仓库根 AGENTS.md 第 4 节「不碰真钱」） */
 export const CHIPS_NO_CASH = '筹码只在游戏厅里用，无任何现金价值';
 
-/** 局前锦囊：开局前选上，开局时扣铜钱，只管这一局；娱乐守夜、夜探能带，实盘、每日挑战、连战、本周夜事不带（core normalizeSetup 也挡） */
+/** 局的种类：能带什么按它分（runKind 从开局设置认；每日挑战认不出，交榜前 online/daily.ts isDailySetup 核） */
+export type RunKind = 'play' | 'live' | 'daily' | 'weekly' | 'rush' | 'trial' | 'teach';
+export const RUN_KIND_NAMES: Record<Exclude<RunKind, 'play'>, string> = { live: '实盘', daily: '每日挑战', weekly: '本周夜事', rush: '首领连战', trial: '试炼', teach: '教学镇' };
+
+/**
+ * 各种局能带的局前选择（normalizeSetup、开局扣锦囊、说明文案都读这张表）：
+ * 排行榜局（每日、本周夜事、连战、试炼）人人一样，都不带；实盘带起手和心法（实盘系数按带着配的），不带锦囊；教学镇倒下不丢包，不收锦囊的铜钱
+ */
+export const CARRY = {
+  kits: ['play'],
+  xinfa: ['play', 'live', 'teach'],
+  startAlt: ['play', 'live', 'teach'],
+} as const satisfies Record<string, readonly RunKind[]>;
+export type CarryItem = keyof typeof CARRY;
+
+/** 这一局是哪种；每日挑战的 Setup 和普通局长得一样，这里认作 play，不带的东西由开局不给、交榜前 isDailySetup 核（参数只取认种类要的几个字段，首屏不引核心） */
+export function runKind(s: { mode: string; live?: boolean; rush?: boolean; weekly?: string; trial?: string; raid?: { template?: string } }): Exclude<RunKind, 'daily'> {
+  if (s.trial !== undefined) return 'trial';
+  if (s.rush) return 'rush';
+  if (s.live) return 'live';
+  if (s.weekly !== undefined) return 'weekly';
+  if (s.mode === 'raid' && s.raid?.template === 'teach') return 'teach';
+  return 'play';
+}
+
+export function carries(item: CarryItem, kind: RunKind): boolean {
+  return (CARRY[item] as readonly RunKind[]).includes(kind);
+}
+
+/** 不带这一项的局，按 RUN_KIND_NAMES 的顺序用顿号连起来（「实盘、每日挑战…」） */
+export function carryExcept(item: CarryItem): string {
+  return (Object.keys(RUN_KIND_NAMES) as Exclude<RunKind, 'play'>[]).filter((k) => !carries(item, k)).map((k) => RUN_KIND_NAMES[k]).join('、');
+}
+
+/** 局前锦囊：开局前选上，开局时扣铜钱，只管这一局；哪些局能带见 CARRY */
 export type KitId = 'reroll' | 'start2' | 'passive';
 export const KIT_IDS: readonly KitId[] = ['reroll', 'start2', 'passive'];
 export const KITS: Record<KitId, { name: string; text: string; cost: number }> = {

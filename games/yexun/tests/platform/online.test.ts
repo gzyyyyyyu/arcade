@@ -91,12 +91,14 @@ describe('该交哪几个榜', () => {
     expect(submissionsFor(run({ quit: true }), today)).toEqual([]);
     expect(submissionsFor(run({ quit: true, setup: { endless: true } }), today).map((s) => s.boardId)).toEqual(['endless']);
   });
-  it('每日挑战只交当天的每日榜，不进总榜；日期过期不交', () => {
-    const d = run({ daily: '2026-10-17', won: true, kills: 321 });
+  it('每日挑战只交当天的每日榜，不进总榜；日期过期、配置对不上不交', () => {
+    const dv = dailyPlan('2026-10-17', 'vigil').setup;
+    const d = run({ daily: '2026-10-17', won: true, kills: 321, setup: dv });
     expect(submissionsFor(d, today)).toEqual([{ board: 'daily-vigil', boardId: 'daily-2026-10-17-vigil', score: 1_000_321 }]);
-    expect(submissionsFor(run({ daily: '2026-10-17', setup: { mode: 'raid' }, loot: 80 }), today)[0]?.boardId).toBe('daily-2026-10-17-raid');
-    expect(submissionsFor(run({ daily: '2026-10-10' }), today)).toEqual([]);
-    expect(submissionsFor(run({ daily: '2026-10-17', reducedDamage: true }), today)).toEqual([]);
+    expect(submissionsFor(run({ daily: '2026-10-17', setup: dailyPlan('2026-10-17', 'raid').setup, loot: 80 }), today)[0]?.boardId).toBe('daily-2026-10-17-raid');
+    expect(submissionsFor(run({ daily: '2026-10-10', setup: dailyPlan('2026-10-10', 'vigil').setup }), today)).toEqual([]);
+    expect(submissionsFor(run({ daily: '2026-10-17', setup: dv, reducedDamage: true }), today)).toEqual([]);
+    expect(submissionsFor(run({ daily: '2026-10-17', setup: { ...dv, perks: { liliang: 1 } } }), today)).toEqual([]);
   });
   it('榜名符合平台的写法', () => {
     for (const b of [dailyBoardId('2026-10-17', 'vigil'), dailyBoardId('2026-10-17', 'raid')]) {

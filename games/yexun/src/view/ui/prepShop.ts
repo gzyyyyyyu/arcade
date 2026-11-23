@@ -1,7 +1,7 @@
 /**
  * 开局准备里花铜钱的三页（DESIGN 3.8a）：锦囊（下一局带）、外观（买下永久有）、换筹码。只画，状态由 main.ts 给，点击回给 prep.ts。
  */
-import { CHIPS_NO_CASH, COIN_EXCHANGE, KIT_IDS, KITS, LOOK_IDS, LOOKS, type KitId, type LookId, type LookSlot } from '../../content/meta.ts';
+import { carryExcept, CHIPS_NO_CASH, COIN_EXCHANGE, KIT_IDS, KITS, LOOK_IDS, LOOKS, type KitId, type LookId, type LookSlot } from '../../content/meta.ts';
 import type { XcLogRow } from '../../platform/save.ts';
 
 /** 换筹码页的状态：quota 为 null 是拿不到今天的额度（没登录、连不上），按 COIN_EXCHANGE.dailyCap 写 */
@@ -32,7 +32,7 @@ const coin = (n: number): string => `<span class="yx-coin"></span>${n.toLocaleSt
 export function kitsHtml(s: ShopState): string {
   const total = s.kits.reduce((a, k) => a + KITS[k].cost, 0);
   return (
-    `<div class="yx-pnote">下一局带上，开局时扣铜钱、只管这一局；娱乐守夜、夜探能带（实盘、每日挑战、首领连战、本周夜事、试炼、教学镇不带）。现在选了 ${s.kits.length} 个，开局扣 ${total.toLocaleString('zh-CN')}</div>` +
+    `<div class="yx-pnote">下一局带上，开局时扣铜钱、只管这一局；娱乐守夜、夜探能带（${carryExcept('kits')}不带）。现在选了 ${s.kits.length} 个，开局扣 ${total.toLocaleString('zh-CN')}</div>` +
     '<div class="yx-pgrid yx-pkits">' +
     KIT_IDS.map((id) => {
       const k = KITS[id];

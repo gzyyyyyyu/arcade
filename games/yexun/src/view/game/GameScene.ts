@@ -16,6 +16,7 @@ import Phaser from 'phaser';
 import { DROWN, ENEMIES, ENEMY_BY_KIND, HOP_AIR, HOP_PERIOD, HUAPI, JUEMU, SPROUT, WATER } from '../../content/enemies.ts';
 import { CHAR_FX, CHARACTERS } from '../../content/meta.ts';
 import { ARENA, xpNeed } from '../../content/player.ts';
+import { PICKS } from '../../content/picks.ts';
 import { MAPS } from '../../content/maps.ts';
 import { BEAST, DAWN_RED, DAWN_WARN, GATE, RAID_DAWN, RAID_LATE } from '../../content/explore.ts';
 import { MARKET_GOODS, MARKET_NAME, NIGHT_MARKET } from '../../content/market.ts';
@@ -43,7 +44,7 @@ import { sfx, type SfxName } from '../audio/sfx.ts';
 import '../audio/sfx-skills.ts';
 import { browserHaptics } from '../haptics.ts';
 import type { Banners } from '../ui/banner.ts';
-import { COIN_PICK_TEXT, type Cards, describe } from '../ui/cards.ts';
+import { CHEST_FULL_TEXT, type Cards, describe } from '../ui/cards.ts';
 import { upgradeNeed } from '../ui/mergeHint.ts';
 import type { Hud, HudArrow, HudSlot } from '../ui/hud.ts';
 import { RaidHud } from '../ui/raidhud.ts';
@@ -959,7 +960,7 @@ export class GameScene extends Phaser.Scene {
         case Ev.Skip: {
           // 跳过选卡拿到的小奖飘一句（content/picks.ts 的顺序）
           const n = ev.b[i]!;
-          const say = [`铜钱 +${n}`, `回血 +${n}`, '下次升级多一张卡', '刷新 +1'][ev.a[i]!];
+          const say = [`铜钱 +${n}`, `回血 +${n}`, '下次升级多一张卡', n > 0 ? '刷新 +1' : this.w.setup.curses?.includes('noreroll') ? '禁用刷新，这次没加' : `刷新已存满 ${PICKS.rerollMax} 次，这次没加`][ev.a[i]!];
           if (say) this.d.banners.say(say, 'gold', 1600, '跳过的小奖');
           break;
         }
@@ -1163,7 +1164,7 @@ export class GameScene extends Phaser.Scene {
       if (evo && def.evolve) return { icon: def.evolve.icon, title: def.evolve.name, sub: `进化！${def.evolve.desc}`, kind: 'evo' };
       return { icon: def.icon, title: def.name, sub: o?.evolved ? '升了一级' : `升到 Lv ${o?.level ?? 1}`, kind: 'up' };
     }
-    return { icon: 'coin', title: '铜钱一袋', sub: COIN_PICK_TEXT, kind: 'up' };
+    return { icon: 'coin', title: '铜钱一袋', sub: CHEST_FULL_TEXT, kind: 'up' };
   }
 
   /**

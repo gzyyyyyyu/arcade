@@ -6,7 +6,7 @@ import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import { ELEMENT_SET, PASSIVES, TYPE_SETS, WEAPONS, MAX_WEAPON_LEVEL, upChanges, baseNums, type PassiveId, type StatChange, type WeaponId } from '../../content/weapons.ts';
 import { Pick, type Choice, type World } from '../../core/state.ts';
 import { SCHOOLS } from '../../content/guide.ts';
-import { COIN_PICK } from '../../content/picks.ts';
+import { CHEST_FULL, COIN_PICK } from '../../content/picks.ts';
 import { XINFA_TEXT } from '../../content/xinfa.ts';
 import { counterLine } from './counters.ts';
 import { mergeHint, type MergeHint } from './mergeHint.ts';
@@ -15,6 +15,8 @@ import './cards.css';
 
 /** 「铜钱一袋」卡面和选中后横幅共用的一句 */
 export const COIN_PICK_TEXT = `铜钱 +${COIN_PICK.coins}，回 ${COIN_PICK.heal} 点血`;
+/** 宝箱全满时那袋（核心 openChest 给的数） */
+export const CHEST_FULL_TEXT = `都升满了：铜钱 +${CHEST_FULL.coins}，回 ${CHEST_FULL.heal} 点血`;
 
 export interface CardView {
   icon: string;
