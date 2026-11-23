@@ -1,5 +1,5 @@
 /**
- * 云存档（docs/platform-backend.md 5.5，AGENTS.md 写了同步哪些槽）：雀馆只同步一个槽 `ladder`，茶馆擂台的称号和最远几桌（game/ladder.ts 的 cloudPart）。
+ * 云存档（docs/platform-features.md 5.5，AGENTS.md 写了同步哪些槽）：雀馆只同步一个槽 `ladder`，茶馆擂台的称号和最远几桌（game/ladder.ts 的 cloudPart）。
  * 没打完的一轮、打到一半的牌局、设置都不同步。平台只存不透明的 JSON 和 rev，合并在这里：称号取并集、最远取较大（mergeLadder）。
  *
  * - 元数据 `mahjong.cloud`：{ userId, rev, dirty, at }（at 是上次上传成功的时刻）。每次都从存储里读，几个标签页自然共用一份。
@@ -185,7 +185,7 @@ export class CloudSync {
     return true;
   }
 
-  /** 拉云端的合并进本机；再把以前留给这个账号的换号备份并回来 */
+  /** 拉云端的合并进本机；再把留给这个账号的换号备份并回来 */
   private async pull(): Promise<void> {
     const uid = this.uid;
     if (!uid) return;

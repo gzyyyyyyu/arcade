@@ -104,7 +104,7 @@ function fits(list: readonly Choice[], spec: Spec | null, fullHand: number[]): b
   // 至少一个诱人的错误选项：向听一样、进张更少
   const same = list.filter((c) => c.shanten === best.shanten);
   if (!same.some((c) => c.ukeire < best.ukeire && c.ukeire > 0)) return false;
-  // 打之前不能已经和了
+  // 打之前不能已经胡了
   if (shanten(fullHand, 0, RULES) < 0) return false;
   if (best.shanten > 2 || best.ukeire === 0) return false;
   if (!spec) return true;
@@ -119,7 +119,7 @@ function fits(list: readonly Choice[], spec: Spec | null, fullHand: number[]): b
 export const puzzleFits = (p: Puzzle, i: number): boolean => fits(evaluate(p), SPECS[i]!, countOf(p.hand));
 
 /** 日期 → 种子（8 个 32 位数，和每日挑战同一个形状，盐不同所以两件事互不影响） */
-export function hekiriKey(date: string): number[] {
+function hekiriKey(date: string): number[] {
   return Array.from({ length: 8 }, (_, i) => {
     let h = 0x811c9dc5;
     for (const c of `mahjong-hekiri:${date}:${i}`) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
@@ -193,8 +193,6 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const isDate = (s: unknown): s is string => typeof s === 'string' && DATE.test(s) && !Number.isNaN(dayNo(s));
 const MARK_CODE: Record<Mark, string> = { ok: 'o', near: 'n', bad: 'x' };
 export const marksString = (scores: readonly number[]): string => scores.map((s) => MARK_CODE[markOf(s)]).join('');
-/** 存的评价字符 → 显示用的符号 */
-export const markSymbols = (marks: string): string => [...marks].map((c) => (c === 'o' ? '✓' : c === 'n' ? '△' : '✗')).join('');
 
 /** 读出来的东西不对（坏数据）当空 */
 export function parseHekiri(raw: unknown): HekiriData {

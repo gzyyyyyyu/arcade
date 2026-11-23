@@ -1,5 +1,5 @@
 /* ---------- 弹窗 ---------- */
-/* 遮罩从顶栏下面开始：任何弹窗开着（第一次进来的"怎么胡"、规则、结算）都能直接点"大厅"回去，不用先关框（10-27 平台走查） */
+/* 遮罩从顶栏下面开始：任何弹窗开着（第一次进来的"怎么胡"、规则、结算）都能直接点"大厅"回去，不用先关框 */
 .mask {
   position: absolute;
   inset: 40px 0 0 0;
@@ -21,25 +21,22 @@
 }
 .dialog .x {
   position: absolute;
-  right: var(--sp-2);
-  top: var(--sp-2);
-  /* 压在弹窗内容上面：说明的"1 / 4"、标题带入场动画（transform）时会叠到 × 上，点 × 没反应（11-01 亲手玩） */
+  /* 贴着弹窗右上角、整块都是点按区：手机上 × 只有 25 像素见方，伸出去的隐形点按区又被弹窗边裁掉。
+   * 盒子放大到 --tap，× 字居中，看上去还在原来的位置 */
+  right: 0;
+  top: 0;
+  /* 压在弹窗内容上面：说明的"1 / 4"、标题带入场动画（transform）时会叠到 × 上，点 × 没反应 */
   z-index: 2;
-  width: 36px;
-  height: 36px;
+  width: max(52px, var(--tap));
+  height: max(52px, var(--tap));
   border: 0;
-  border-radius: 50%;
+  border-radius: 0 var(--r-lg) 0 50%;
   background: none;
   font-size: var(--fs-2xl);
   opacity: 0.7;
 }
-/* 手机上舞台缩小，--tap 换算出来比 36 大好多：居中撑开的点按区右、上会伸出弹窗边，弹窗跟着横滚几像素（11-02 五尺寸量）。伸出最多到弹窗边为止 */
-.dialog .x::after {
-  top: max(calc((100% - var(--tap)) / 2), calc(-1 * var(--sp-2)));
-  right: max(calc((100% - var(--tap)) / 2), calc(-1 * var(--sp-2)));
-}
 .dialog h2 {
-  margin: 0 var(--sp-6) var(--sp-3) 0;
+  margin: 0 max(var(--sp-6), calc(var(--tap) - var(--sp-5))) var(--sp-3) 0;
   color: var(--gold);
   font-size: var(--fs-xl);
 }
@@ -62,7 +59,7 @@
   font-size: var(--fs-xs);
   opacity: 0.6;
 }
-/* 快速匹配的排队卡（0.21.0）：档位一条小签，下面一行大字"已有几人、还剩几秒"（数字不换行、不截） */
+/* 快速匹配的排队卡：档位一条小签，下面一行大字"已有几人、还剩几秒"（数字不换行、不截） */
 .mask.match .dialog {
   min-width: min(360px, 94%);
   text-align: center;

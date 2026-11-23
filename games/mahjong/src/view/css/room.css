@@ -97,8 +97,9 @@
   line-height: 1.25;
 }
 .screen.room .room-seat .role {
-  font-size: var(--fs-xs);
-  color: var(--gold);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--gold-hi);
 }
 .room-seat .tag {
   font-size: var(--fs-xs);
@@ -129,7 +130,7 @@
   white-space: nowrap;
 }
 /* 旁观条按钮多、比别的提示宽：放在对家手牌和中控盘之间的空处，不压顶上两家的名牌。
- * 竖屏上顶边两角就是两家的名牌，别的提示（坐下了等下一局、等人带入）也挪到这里（11-22 走查：压住了名字和分数） */
+ * 竖屏上顶边两角就是两家的名牌，别的提示（坐下了等下一局、等人带入）也挪到这里（压住了名字和分数） */
 .room-note.watch,
 .stage[data-orient='port'] .room-note {
   top: 24%;
@@ -161,7 +162,7 @@
   color: #3a2a00;
 }
 
-/* 手机横拿（不是电脑版）只有 520 高：等人页的规则一行、底下说明一行放宽到一行写完，房间号和座位卡收一点，"开打"那排按钮留在屏幕里（11-02 五尺寸量，844×390 底下按钮出界） */
+/* 手机横拿（不是电脑版）只有 520 高：等人页的规则一行、底下说明一行放宽到一行写完，房间号和座位卡收一点，"开打"那排按钮留在屏幕里（844×390 底下按钮会出界） */
 .stage[data-orient='land']:not([data-fit='desk']) .screen.room :is(.room-rules, .room-hint, .room-wait) {
   max-width: 920px;
   line-height: 1.35;

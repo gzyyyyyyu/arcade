@@ -76,3 +76,20 @@
 .daily-line .pts {
   font-variant-numeric: tabular-nums;
 }
+
+/* 从主页「每日」胶囊进来：金边亮两下，告诉人每日挑战在这儿 */
+.daily-entry.focus {
+  animation: daily-focus 0.7s ease-in-out 0.2s 2;
+}
+@keyframes daily-focus {
+  50% {
+    box-shadow: 0 0 0 4px var(--gold), 0 0 24px #f3c86b99;
+    transform: scale(1.03);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-entry.focus {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--gold);
+  }
+}

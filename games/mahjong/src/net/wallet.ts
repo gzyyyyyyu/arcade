@@ -1,7 +1,7 @@
 /**
  * 浏览器这头的钱包（DESIGN.md 第 4 节）：看钱包、领补给走平台的 /api/wallet；单机的带入、结回走本模块 Worker 的 api/stake/*（相对路径，
  * 页面在 /games/mahjong/ 下，就是 /games/mahjong/api/stake/*），Worker 经服务绑定转给平台钱包（client 模式）。
- * 出错一律带错误码，页面按 view/text.ts 的对照表说人话（docs/platform-backend.md 15.10）。
+ * 出错一律带错误码，页面按 view/text.ts 的对照表说人话（docs/api.md 15.10）。
  */
 import type { SettleStats } from '../core/match/index.ts';
 import type { TierId } from '../game/stakes.ts';
@@ -46,7 +46,7 @@ const post = (kind: string, body: unknown): Promise<WalletReply> =>
 /** 单机带入：session 是这一场的号（钱包里"桌上那一份"的 ref），op 是这个动作的号（平台按它去重，重发不会多扣） */
 export const soloBuyin = (b: { op: string; session: string; stakes: TierId; amount: number }): Promise<WalletReply> => post('buyin', b);
 
-/** 单机结回：带这一场的小结（docs/platform-backend.md 5.10，Worker 原样转发） */
+/** 单机结回：带这一场的小结（docs/platform-wallet.md 5.10，Worker 原样转发） */
 export const soloSettle = (b: { op: string; session: string; amount: number; stats?: SettleStats }): Promise<WalletReply> => post('settle', b);
 
 /**

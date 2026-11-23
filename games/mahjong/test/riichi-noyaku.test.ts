@@ -23,7 +23,7 @@ describe('无役提醒', () => {
   it('有役牌（自风刻子）的副露手不提示', () => {
     expect(noYakuOf(base('456p789s23m55z', { melds: [pon('222z')] }))).toBeNull();
   });
-  it('门清无役：别人打的和不了，自摸有役，提示可以立直', () => {
+  it('门清无役：别人打的胡不了，自摸有役，提示可以立直', () => {
     const r = noYakuOf(base('123m45667p789s55z'));
     expect(r).toBe('tsumo');
     expect(noYakuText(r!)).toBe('只能自摸，或者立直');
@@ -31,7 +31,7 @@ describe('无役提醒', () => {
   it('副露无役：自摸也没有役', () => {
     const r = noYakuOf(base('456p789s23m55z', { melds: [pon('111m')] }));
     expect(r).toBe('none');
-    expect(noYakuText(r!)).toBe('没有役，和不了');
+    expect(noYakuText(r!)).toBe('没有役，胡不了');
   });
   it('宝牌不算役', () => {
     // 指示牌 9m，宝牌是 1m：副露的 111m 全是宝牌，还是没有役

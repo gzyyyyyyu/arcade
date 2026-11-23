@@ -12,7 +12,7 @@ export interface AchRecord {
   got: Record<string, 1>;
   /** 累计：打完几场 */
   played: number;
-  /** 这一场已经和了几把（一场打完或新开一场时清零） */
+  /** 这一场已经胡了几把（一场打完或新开一场时清零） */
   wins: number;
   /** 最后判过的那一步的标识（achKey），刷新页面后同一步不再判；老数据没有这一项 */
   last?: string;
@@ -29,26 +29,26 @@ interface AchDef {
 }
 
 export const ACHIEVEMENTS: readonly AchDef[] = [
-  { id: 'first_win', name: '开张大吉', how: '第一次和牌', scope: 'all' },
-  { id: 'first_zimo', name: '自己摸来的', how: '第一次自摸和牌', scope: 'all' },
-  { id: 'kan_win', name: '杠上开花', how: '杠完补的牌正好和了', scope: 'all' },
+  { id: 'first_win', name: '开张大吉', how: '第一次胡牌', scope: 'all' },
+  { id: 'first_zimo', name: '自己摸来的', how: '第一次自摸胡牌', scope: 'all' },
+  { id: 'kan_win', name: '杠上开花', how: '杠完补的牌正好胡了', scope: 'all' },
   { id: 'last_tile', name: '海底捞月', how: '和最后一张牌（摸到的或打出的都算）', scope: 'all' },
-  { id: 'rob_kan', name: '截胡', how: '别人加杠的那张牌，你正好和了', scope: 'all' },
-  { id: 'multi_ron', name: '一炮双响', how: '同一张牌被两家以上同时和，你是其中一家', scope: 'all' },
-  { id: 'flush', name: '清一色', how: '和一手清一色（全是同一门）', scope: 'all' },
-  { id: 'seven_pairs', name: '七对', how: '和一手七个对子', scope: 'all' },
-  { id: 'wins3', name: '一场三胡', how: '一场里和 3 把', scope: 'all' },
+  { id: 'rob_kan', name: '截胡', how: '别人加杠的那张牌，你正好胡了', scope: 'all' },
+  { id: 'multi_ron', name: '一炮双响', how: '同一张牌被两家以上同时胡，你是其中一家', scope: 'all' },
+  { id: 'flush', name: '清一色', how: '胡一手清一色（全是同一门）', scope: 'all' },
+  { id: 'seven_pairs', name: '七对', how: '胡一手七个对子', scope: 'all' },
+  { id: 'wins3', name: '一场三胡', how: '一场里胡 3 把', scope: 'all' },
   { id: 'first_place', name: '一场第一', how: '一场打完，排第一（川麻看输赢最多，立直看名次）', scope: 'all' },
   { id: 'played10', name: '常客', how: '打完 10 场', scope: 'all' },
   { id: 'played50', name: '老茶客', how: '打完 50 场', scope: 'all' },
   { id: 'big_fan', name: '大牌', how: '一把和到 4 番以上', scope: 'xz' },
-  { id: 'heaven_earth', name: '天地胡', how: '和一手天胡或地胡（起手就和）', scope: 'xz' },
+  { id: 'heaven_earth', name: '天地胡', how: '胡一手天胡或地胡（起手就胡）', scope: 'xz' },
   { id: 'dex10', name: '图鉴十样', how: '图鉴里集到 10 样番型或役', scope: 'all' },
   { id: 'dex_xz', name: '川麻集齐', how: '川麻番型图鉴全部集齐', scope: 'xz' },
   { id: 'haneman', name: '跳满', how: '一把和到跳满以上（6 番起）', scope: 'rc' },
-  { id: 'yakuman', name: '役满', how: '和一手役满（含累计役满）', scope: 'rc' },
-  { id: 'ippatsu', name: '一发', how: '立直后一巡内和牌', scope: 'rc' },
-  { id: 'ura', name: '里宝牌', how: '立直和牌翻开里宝牌，里面有宝牌', scope: 'rc' },
+  { id: 'yakuman', name: '役满', how: '胡一手役满（含累计役满）', scope: 'rc' },
+  { id: 'ippatsu', name: '一发', how: '立直后一巡内胡牌', scope: 'rc' },
+  { id: 'ura', name: '里宝牌', how: '立直胡牌翻开里宝牌，里面有宝牌', scope: 'rc' },
   { id: 'dealer3', name: '连庄三次', how: '坐庄连庄到第 3 本场', scope: 'rc' },
   { id: 'dex_rc', name: '立直集齐', how: '立直役和役满图鉴全部集齐', scope: 'rc' },
 ];
@@ -84,7 +84,7 @@ const LAST = new Set(['haidi', 'haidipao', 'haitei', 'houtei']);
 const KAN_WIN = new Set(['gangkai', 'rinshan']);
 const BIG_LIMIT = new Set(['haneman', 'baiman', 'sanbaiman', 'yakuman']);
 
-/** 这一步（一份事件）里自己的每一手和牌：按"哪些 id 的番型 / 役"整理成一样的形状 */
+/** 这一步（一份事件）里自己的每一手胡牌：按"哪些 id 的番型 / 役"整理成一样的形状 */
 interface MyWin {
   ids: string[];
   tsumo: boolean;
@@ -104,7 +104,7 @@ const myWins = (events: readonly (XzEvent | RcEvent)[], seat: number): MyWin[] =
   return out;
 };
 
-/** 同一张牌被两家以上同时和（只数放铳的那种，自摸不可能多家） */
+/** 同一张牌被两家以上同时和（只数点炮的那种，自摸不可能多家） */
 const multiRon = (events: readonly (XzEvent | RcEvent)[], mine: MyWin[]): boolean =>
   mine.some((w) => w.from !== null && events.filter((e) => (e.e === 'hu' || e.e === 'win') && e.from === w.from && e.tile === w.tile).length >= 2);
 
@@ -114,7 +114,7 @@ const multiRon = (events: readonly (XzEvent | RcEvent)[], mine: MyWin[]): boolea
  */
 /**
  * 这一步的标识：场号（单机存档号 / 房间码）+ 第几局 + 牌墙余量 + 事件数和最后一个事件。都是刷新后不变的信息（和图鉴的 dexKey 同一个思路，
- * 但成就也要判没有和牌的步：发牌清零、一场打完），没有事件返回 null
+ * 但成就也要判没有胡牌的步：发牌清零、一场打完），没有事件返回 null
  */
 export function achKey(scope: string, v: { round?: number; wind?: number; hand?: number; honba?: number; wall: number }, events: readonly (XzEvent | RcEvent)[]): string | null {
   if (!events.length) return null;
@@ -128,7 +128,7 @@ export function achFromEvents(rec: AchRecord, events: readonly (XzEvent | RcEven
   const hit = new Set<string>();
   const unlock = (id: string): void => void hit.add(id);
 
-  // 新开一场：上一场没打完就放弃的和牌数作废（立直从东一局 0 本场开始，川麻从第 0 局开始）
+  // 新开一场：上一场没打完就放弃的胡牌数作废（立直从东一局 0 本场开始，川麻从第 0 局开始）
   for (const e of events) {
     if ((e.e === 'deal' && 'round' in e && e.round === 0) || (e.e === 'deal' && 'wind' in e && e.wind === 0 && e.hand === 0 && e.honba === 0)) next.wins = 0;
     if (e.e === 'deal' && 'honba' in e && e.dealer === seat && e.honba >= 3) unlock('dealer3');

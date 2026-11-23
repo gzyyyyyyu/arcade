@@ -58,7 +58,7 @@ function rememberChoice(stakes: StakesId, opts: AnyOpts, level: Level, variant: 
 async function settleBeforeNew(): Promise<boolean> {
   const old = loadSolo();
   if (!unsettled(old)) return true;
-  if (!(await confirmBox(stage, '上一场实盘还没结算完。先把上一场的筹码结回钱包，再开新的一场？', '先结算', '不了', false))) return false;
+  if (!(await confirmBox(stage, '上一场实盘还没结算完。先把上一场的筹码带回钱包，再开新的一场？', '先结算', '不了', false))) return false;
   const r = await new Solo(old!, quietUi).finish();
   if (!old!.done) {
     showError(`上一场还没结上：${walletError(r && !r.ok ? r.error : 'network').text}`);
@@ -69,14 +69,14 @@ async function settleBeforeNew(): Promise<boolean> {
 
 export async function startSolo(stakes: StakesId, opts: AnyOpts, level: Level = prefs.level, variant: string = DEFAULT_VARIANT, daily?: string, keepRules = false): Promise<void> {
   if (!daily) rememberChoice(stakes, opts, level, variant, keepRules);
-  // 实盘一局一结（2026-10-30，一次买入到结算 3–6 分钟）：川麻 1 局、立直一局，不看存着的规则设置。
+  // 实盘一局一结：川麻 1 局、立直一局，不看存着的规则设置。
   // 回来接着打的老存档（8 局、半庄）带着自己的规则，不走这里
   if (stakesOf(stakes)?.wallet) opts = pageOf(variant).realOpts(opts);
   if (!(await settleBeforeNew())) return;
   const st = stakesOf(stakes)!;
   const chips = st.share;
   if (!st.wallet) return playSolo(new Solo(newSolo(stakes, opts, session.myName, null, chips, level, variant, daily), soloUi));
-  // 实盘只带整份（0.15.1）：底分和"最多赢 3 份"按整份算，少带等于输得少、赢得一样多
+  // 实盘只带整份：底分和"最多赢 3 份"按整份算，少带等于输得少、赢得一样多
   if (!(await checkFunds(chips))) return;
   // 带入前先存"带入中"（ref、操作号），回包丢了下次用同一个号重发（自审 C3）
   const save = newSolo(stakes, opts, session.myName, randomId(), chips, 'easy', variant);
@@ -98,7 +98,7 @@ export async function resumeSolo(): Promise<void> {
     const r = await s.buyin();
     if (!r.ok) {
       lobby();
-      // 0.15.1 以前少带开的、带入一直没确认的存档：现在只收整份，重发被拒，这一场已经作废（buyin 里标了 done）。
+      // 少带开的、带入一直没确认的存档：现在只收整份，重发被拒，这一场已经作废（buyin 里标了 done）。
       // 当时要是扣了，那一份到期（24 小时）平台原样退回
       if (r.error === 'bad_amount') return showError('上一场是按旧规矩少带筹码开的，现在实盘只能带整份，那一场作废了。当时要是扣了筹码，24 小时内会原样退回钱包。重新开一局吧。');
       return buyinFailed(r);
@@ -112,7 +112,7 @@ export async function settleLeftover(s: Solo): Promise<void> {
   const r = await s.finish();
   if (screen.classList.contains('lobby')) lobby(false, session.lobbyMode);
   else if (screen.classList.contains('front')) homePage();
-  if (r?.ok) toast('上一场的筹码已经结回钱包');
+  if (r?.ok) toast('上一场的筹码已经带回钱包');
   else if (r) toast(`上一场的筹码还没结上：${walletError(r.error).text}`);
 }
 
@@ -189,7 +189,7 @@ const soloUi = {
     const unit = stakesOf(session.solo?.stakes)?.wallet ? '' : ' 分';
     // 停一下再弹结算：这期间回了选桌、又开了新的一场，就不弹到新牌桌上（自审 C8）
     const mine = session.solo;
-    // 立直有人和了时，和牌亮牌（役一条条弹出来）要多摆一会儿再弹结算
+    // 立直有人胡了时，胡牌亮牌（役一条条弹出来）要多摆一会儿再弹结算
     const wait = pageOf(v.variant).soloEndMs(v);
     window.setTimeout(() => {
       if (!session.solo || session.solo !== mine) return;
@@ -201,7 +201,7 @@ const soloUi = {
     if (r.ok) play('chips');
     const box = document.querySelector('.settle-note');
     const text: string = r.ok
-      ? `已结回钱包${r.credited !== undefined ? ` ${num(r.credited)}` : ''}${r.capped ? `；今天单机实盘赢够了，多出的 ${num(r.capped)} 没进钱包，好友房不限` : ''}`
+      ? `已带回钱包${r.credited !== undefined ? ` ${num(r.credited)}` : ''}${r.capped ? `；今天单机实盘赢够了，多出的 ${num(r.capped)} 没进钱包，好友房不限` : ''}`
       : walletError(r.error).text;
     // 钱包常常比结算弹窗先回话（弹窗要等亮牌演完）：记下来，弹窗画的时候直接用，不然那行一直停在"正在结回"
     if (session.solo) SETTLED.set(session.solo, text);
@@ -234,12 +234,12 @@ function matchEndDialog(mine: Solo, v: SoloView, names: string[], unit: string):
   dialog(stage, 'end', (box) => {
     // 内容放进翻页区，按钮行在它下面、一直看得见（view/pager.ts）
     // 钱包结回的那句放在翻页区上面，哪一页都看得见；等钱包回话才有准话，先占一行，不然字来了把翻页区挤矮
-    if (stakesOf(mine.stakes)?.wallet) el('div', 'settle-note', box, SETTLED.get(mine) ?? '正在结回钱包……');
+    if (stakesOf(mine.stakes)?.wallet) el('div', 'settle-note', box, SETTLED.get(mine) ?? '正在带回钱包……');
     verdict(box, v, names, unit, net);
     const body = el('div', 'end-body', box);
     const lad = mine.save.ladder;
     let ladder = null as ReturnType<typeof ladderEnd> | null;
-    // 每日成绩、擂台这一桌的结果夹在名次和明细中间：结算长了要翻页，放末尾会被翻到后面几页（11-02 冒烟）
+    // 每日成绩、擂台这一桌的结果夹在名次和明细中间：结算长了要翻页，放末尾会被翻到后面几页
     single = matchBody(body, v.history.length, page.matchSummary(v, names, unit), page.roundSummary(v, names, unit), () => {
       if (mine.save.daily && isDailyVariant(v.variant)) body.appendChild(dailyLine(v.variant, mine.save.daily, net, mine.save.id ?? '', userIdOf(session.platformInfo)));
       if (lad) ladder = ladderEnd(body, mine.save.id ?? '', lad.mode, lad.table, net);
@@ -276,7 +276,7 @@ function matchEndDialog(mine: Solo, v: SoloView, names: string[], unit: string):
 
 /**
  * 结算页最上面一行：第几名、赢了输了多少，底下再用一句大白话说为什么（玩法的 verdictWhy，说不清不写）。
- * 放在翻页区外面，哪一页都看得见；新手第一局最想知道的就是这两件事（11-21 新手试玩：输了只看到一屏流水）
+ * 放在翻页区外面，哪一页都看得见；新手第一局最想知道的就是这两件事（输了只看到一屏流水）
  */
 function verdict(box: HTMLElement, v: SoloView, names: string[], unit: string, net: number): void {
   const seats = v.result?.seats;
@@ -367,13 +367,16 @@ function paintSoloTitle(s: Solo): void {
   const st = stakesOf(s.stakes)!;
   title.replaceChildren();
   const variant = s.save.state.variant;
-  el('span', 'var', title, `${pageOf(variant).name((s.save.state as { opts?: { flow?: boolean } }).opts)} · `);
+  const name = pageOf(variant).name((s.save.state as { opts?: { flow?: boolean } }).opts);
+  el('span', 'var', title, `${name} · `);
+  // 竖屏放不下全名：只写「血战到底」「立直麻将」，血战、血流规则不一样，手机上也得看得出在打哪种
+  el('span', 'var-short', title, `${name.split('·').at(-1)} · `);
   if (st.wallet) title.append(`实盘 ${num(st.share)}`);
   else if (s.save.ladder) {
     title.append(ladderTitle(s.save.ladder.table));
     el('span', 'lv', title, ` · ${LEVEL_NAME[s.save.level ?? 'easy']}`);
   } else {
-    // 难度也单独一段：320 宽竖屏连"娱乐·新手"都放不下，藏掉难度只留"娱乐"（删字不截，10-20 多尺寸）
+    // 难度也单独一段：320 宽竖屏连"娱乐·新手"都放不下，藏掉难度只留"娱乐"（删字不截）
     title.append('娱乐');
     el('span', 'lv', title, ` · ${LEVEL_NAME[s.save.level ?? 'easy']}`);
   }
@@ -402,7 +405,7 @@ function playSolo(s: Solo): void {
   const kinds = s.save.state.kinds;
   const personas = s.save.state.personas;
   // 单机没有房间：自己发的直接交回组件播，电脑怎么回由组件按 kit 的 botReact 算
-  // 单机也能说话（kit 0.18.1 的 localChat：过滤、限速和房间一样，只在本地冒气泡）。我永远是 0 号座位；
+  // 单机也能说话（过滤、限速和房间一样，只在本地冒气泡）。我永远是 0 号座位；
   // 说的话只交给 TableFun 显示，不进 Solo、不给电脑（电脑不读聊天，公平）
   session.fun = newFun(
     table,

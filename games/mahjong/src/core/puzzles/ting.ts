@@ -14,9 +14,9 @@ const RULES: ShapeRules = { seven: true, sevenQuads: true, kokushi: false };
 /** 一轮多少秒（页面层计时，核心不碰时间） */
 export const ROUND_SECONDS = 60;
 /** 答对一题，听几种每种得几分 */
-export const POINTS_PER_WAIT = 10;
+const POINTS_PER_WAIT = 10;
 /** 连对加成：每个连对多 5 分，连对数最多按 6 算（封顶 30 分） */
-export const COMBO_POINTS = 5;
+const COMBO_POINTS = 5;
 export const COMBO_CAP = 6;
 
 /** 难度档：听的种数范围，和从第几题（0 起）开始 */
@@ -108,7 +108,7 @@ function waitsOf(b: Built): Kind[] {
   return handWaits(counts, 0, RULES, suitKinds(b.suit));
 }
 
-/** 听哪些牌（13 张）：测试和页面都用它，和出题是同一个算法 */
+/** 听哪些牌（13 张）：测试用，按出题同一个算法核每道题的听牌 */
 export function tingWaits(hand: readonly Kind[]): Kind[] {
   const counts = new Array<number>(KINDS).fill(0);
   for (const k of hand) counts[k]!++;

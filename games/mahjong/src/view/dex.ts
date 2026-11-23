@@ -1,12 +1,12 @@
 /**
- * 图鉴的存储和页面（规则在 game/dex.ts）。key `mahjong.dex`：{ xz, rc, last?, fresh? }，番型 / 役的 id → 和出来的次数，只记自己和出来的。
+ * 图鉴的存储和页面（规则在 game/dex.ts）。key `mahjong.dex`：{ xz, rc, last?, fresh? }，番型 / 役的 id → 胡出来的次数，只记自己胡出来的。
  * 读写走 storage.ts：隐私模式、存满了就算了，不影响打牌。
  */
 import { readJson, writeJson } from '../storage.ts';
 import type { RcEvent } from '../core/variants/riichi/index.ts';
 import type { XzEvent } from '../core/variants/sichuan-xuezhan/index.ts';
 import { YAKU_NAME, type YakuId } from '../core/variants/riichi/index.ts';
-import { dexAddFresh, dexFromEvents, dexMarkSeen, dexNewIds, dexProgress, dexToastText, emptyDex, parseDex, type DexRecord, type DexVariant } from '../game/dex.ts';
+import { DEX_VARIANT_NAME, dexAddFresh, dexFromEvents, dexMarkSeen, dexNewIds, dexProgress, dexToastText, emptyDex, parseDex, type DexRecord, type DexVariant } from '../game/dex.ts';
 import { el } from './dom.ts';
 import { BOOK, showToast } from './toast.ts';
 import { FAN_NAME } from './text.ts';
@@ -19,12 +19,12 @@ export function loadDex(): DexRecord {
 }
 
 function saveDex(r: DexRecord): void {
-  // 存不上就算了，下次和牌再记
+  // 存不上就算了，下次胡牌再记
   writeJson(DEX_KEY, r);
 }
 
 /**
- * 一步走完调一次：自己（seat）这一步和了牌就记进图鉴；seat 为 null（旁观）不记。
+ * 一步走完调一次：自己（seat）这一步胡了牌就记进图鉴；seat 为 null（旁观）不记。
  * key 是这一手的标识（dexKey）：和记录里最后一手一样就不再记——单机重画、回到牌桌、刷新页面都会拿同一手再来一遍
  */
 export function recordDex(events: readonly (XzEvent | RcEvent)[], seat: number | null, key: string | null): void {
@@ -35,7 +35,7 @@ export function recordDex(events: readonly (XzEvent | RcEvent)[], seat: number |
   if (next === cur) return;
   const ids = dexNewIds(cur, next);
   saveDex({ ...dexAddFresh({ ...next, ...(cur.fresh ? { fresh: cur.fresh } : {}) }, ids), last: key });
-  // 第一次和出来的番型 / 役：弹一条"图鉴 +N"（一手好几样新的合成一条），在页面上标"新"直到看过
+  // 第一次胡出来的番型 / 役：弹一条"图鉴 +N"（一手好几样新的合成一条），在页面上标"新"直到看过
   if (ids.length) showToast(BOOK, dexToastText(ids.map(dexName)));
 }
 
@@ -55,7 +55,7 @@ export interface DexRow {
   draw?: (parent: HTMLElement) => void;
 }
 
-/** 图鉴页：顶上一行进度，下面每个番型 / 役一行；没和过的整行变灰 */
+/** 图鉴页：顶上一行进度，下面每个番型 / 役一行；没胡过的整行变灰 */
 export function renderDex(page: HTMLElement, variant: DexVariant, groups: { title?: string; rows: DexRow[] }[]): void {
   const rec = loadDex();
   const fresh = new Set(rec.fresh ?? []);
@@ -63,8 +63,11 @@ export function renderDex(page: HTMLElement, variant: DexVariant, groups: { titl
   const seen = dexMarkSeen(rec, variant);
   if (seen !== rec) saveDex(seen);
   const { got, total } = dexProgress(rec, variant);
-  el('p', 'dex-progress', page, `这个玩法已收集 ${got} / ${total}`);
-  el('p', 'note', page, '只记你自己和出来的牌型，每和一次加一次。');
+  // 主页胶囊写的是两个玩法的合计，这里两个数都写，对得上
+  const xz = dexProgress(rec, 'xz');
+  const rc = dexProgress(rec, 'rc');
+  el('p', 'dex-progress', page, `${DEX_VARIANT_NAME[variant]}已收集 ${got} / ${total} · 全部玩法 ${xz.got + rc.got} / ${xz.total + rc.total}`);
+  el('p', 'note', page, '只记你自己胡出来的牌型，每胡一次加一次。');
   for (const g of groups) {
     if (g.title) el('h2', '', page, g.title);
     const table = el('table', 'dex', page);
@@ -76,7 +79,7 @@ export function renderDex(page: HTMLElement, variant: DexVariant, groups: { titl
       el('td', 'f', tr, r.han);
       const d = el('td', 'd', tr, r.desc);
       r.draw?.(d);
-      el('div', 'cnt', d, n > 0 ? `和过 ${n} 次` : '还没和过');
+      el('div', 'cnt', d, n > 0 ? `胡过 ${n} 次` : '还没胡过');
     }
   }
 }

@@ -1,5 +1,5 @@
 /**
- * 离开牌桌、房间的清理：停单机、断房间、拆牌桌和互动，集中在这一处（以前散在 teardown、enterRoom 里各清一遍）。
+ * 离开牌桌、房间的清理：停单机、断房间、拆牌桌和互动，集中在这一处。
  */
 import { dropFun } from './fun.ts';
 import { stopMatch } from './match-flow.ts';

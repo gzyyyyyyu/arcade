@@ -18,6 +18,10 @@ export interface RuleDef<O> {
   brief(o: O): string;
   /** 实盘不让选：实盘一局一结，局数、长度是固定的 */
   realFixed?: boolean;
+  /** 「改规则」面板里这一项底下的一句说明（第一次来的人看得懂选的是什么） */
+  hint?: string;
+  /** 这套规则里没有这一项（三人两房不换三张）：面板不摆、摘要不写 */
+  skip?(o: O): boolean;
 }
 
 export interface RuleSpec<O> {
@@ -30,9 +34,9 @@ export interface RuleSpec<O> {
 
 const field = (o: unknown, key: string): unknown => (o as Record<string, unknown>)[key];
 
-/** 这一档能选的几项：实盘把固定的藏掉 */
-export function editable<O>(spec: RuleSpec<O>, real: boolean): RuleDef<O>[] {
-  return spec.defs.filter((d) => !(real && d.realFixed));
+/** 这一档、这套规则能选的几项：实盘把固定的藏掉，这套规则里没有的也藏掉 */
+export function editable<O>(spec: RuleSpec<O>, real: boolean, o: O): RuleDef<O>[] {
+  return spec.defs.filter((d) => !(real && d.realFixed) && !d.skip?.(o));
 }
 
 /** 这一项现在选的是哪个 */
@@ -49,6 +53,6 @@ export function choose<O>(spec: RuleSpec<O>, o: O, key: string, value: RuleChoic
 
 /** 摘要的各项（「4 局 · 4 番封顶 · 自摸加底 · 换三张」）；实盘开头写「一局一结」，不写固定的那几项 */
 export function summary<O>(spec: RuleSpec<O>, o: O, real: boolean): string[] {
-  const parts = editable(spec, real).map((d) => d.brief(o));
+  const parts = editable(spec, real, o).map((d) => d.brief(o));
   return [...(real ? ['一局一结'] : []), ...parts, ...(spec.fixed ? [spec.fixed.brief] : [])].filter(Boolean);
 }

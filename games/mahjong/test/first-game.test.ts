@@ -37,14 +37,18 @@ describe('名场面的局号', () => {
 });
 
 describe('结算页头一行的"为什么"', () => {
-  const v = (net: number[], wins: unknown[], ledger: unknown[]) => ({ history: [{ round: 0, dealer: 0, net, wins, end: 'hu' }], ledger }) as unknown as XzView;
+  const v = (net: number[], wins: unknown[], ledger: unknown[]) => ({ history: [{ round: 0, dealer: 0, net, wins, end: 'hu' }], ledger, opts: {} }) as unknown as XzView;
   it('点炮输的：说打的牌被谁胡了，给一句怎么少点炮', () => {
     const why = verdictWhy(v([-240, 120, 120, 0], [], [{ kind: 'hu', from: 0, to: 1, amount: 80 }, { kind: 'hu', from: 0, to: 2, amount: 80 }, { kind: 'zimo', from: 0, to: 3, amount: 60 }]), 0, NAMES);
     expect(why).toContain('幺妹儿、板凳儿');
     expect(why).toContain('点炮');
   });
-  it('输在别人自摸上：没胡的每家都要付', () => {
-    expect(verdictWhy(v([-240, 0, 0, 240], [], [{ kind: 'zimo', from: 0, to: 3, amount: 240 }]), 0, NAMES)).toBe('兔头哥 自摸了，没胡的每家都要付');
+  it('输在别人自摸上：说清那时还没胡所以要付', () => {
+    expect(verdictWhy(v([-240, 0, 0, 240], [], [{ kind: 'zimo', from: 0, to: 3, amount: 240 }]), 0, NAMES)).toBe('兔头哥 自摸了，你那时还没胡，要付自摸的分');
+  });
+  it('血流胡了不下桌、每家都付：不说「那时还没胡」', () => {
+    const flow = { ...v([-240, 0, 0, 240], [], [{ kind: 'kan', from: 0, to: 3, amount: 240 }]), opts: { flow: true } } as unknown as XzView;
+    expect(verdictWhy(flow, 0, NAMES)).toBe('兔头哥 杠了牌，每家都要付杠分');
   });
   it('赢的：说胡了什么、几番（平胡只写胡了）', () => {
     const wins = [{ seat: 0, from: 1, fan: 3, items: [{ id: 'qidui' }, { id: 'gangpao' }] }];
@@ -67,11 +71,11 @@ describe('立直：结算页头一行的"为什么"（看整场）', () => {
   const rv = (history: unknown[]) => ({ history }) as unknown as RcView;
   it('赢的：和了几次、最大一手（役名不带宝牌）', () => {
     const why = rcWhy(rv([round([3900, -3900, 0, 0], [win(0, 1, 3900)]), round([-1000, 3000, -1000, -1000], [win(1, null, 3000)])]), 0, NAMES);
-    expect(why).toBe('和了 1 次，最大一手：立直，30 符 3 番');
+    expect(why).toBe('胡了 1 次，最大一手：立直，30 符 3 番');
   });
   it('输在放铳上：说给了谁、丢多少、怎么少放铳', () => {
     const why = rcWhy(rv([round([-8000, 8000, 0, 0], [win(1, 0, 8000)]), round([-1000, -1000, 3000, -1000], [win(2, null, 3000)])]), 0, NAMES);
-    expect(why).toContain('放铳 1 次（给 幺妹儿），共丢 8,000 点');
+    expect(why).toContain('点炮 1 次（给 幺妹儿），共丢 8,000 点');
   });
   it('流局没听丢得最多：说没听牌要赔', () => {
     const why = rcWhy(rv([round([-3000, 1000, 1000, 1000], [], [false, true, true, true])]), 0, NAMES);

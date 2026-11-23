@@ -29,7 +29,7 @@ import { session } from './session.ts';
 import { idleTitle, screen, stage, title, toast } from './shell.ts';
 import { playLadder, quitLadder, resumeSolo, startDaily, startLadder, startSolo } from './solo-flow.ts';
 
-/** 游戏主页（0.17.0，docs/art.md）：主视觉、快速一局 / 继续上局、模式卡、战绩 */
+/** 游戏主页（docs/art.md）：主视觉、快速一局 / 继续上局、模式卡、战绩 */
 export function homePage(): void {
   teardown();
   // 速判：上次没交成的今日一轮在这里补交（主页的"速判"值也按清账后的算）
@@ -45,9 +45,9 @@ export function homePage(): void {
   const { wallet, walletNote } = session;
   renderHome(screen, {
     quick: kind(quickStakes, prefs.level),
-    // 带上存档的玩法：上面标题写的是选着的玩法，和这一场可能不是一种（0.47.1 走查）
+    // 带上存档的玩法：上面标题写的是选着的玩法，和这一场可能不是一种
     resume: save ? `${saveVariant(save)} · ${kind(save.stakes, save.level)} · ${progressOf(save)}` : null,
-    // 卡上只写一行短话：原因的头一句也常折成两行，667 宽的横屏手机上把整栏撑出一屏、底下的规则链接被裁（11-22 走查）；点卡说整句
+    // 卡上只写一行短话：原因的头一句也常折成两行，667 宽的横屏手机上把整栏撑出一屏、底下的规则链接被裁；点卡说整句
     realOff: wallet
       ? wallet.balance <= 0
         ? { label: '没筹码了', why: '钱包里没有筹码了，去大厅领补给再来' }
@@ -62,7 +62,7 @@ export function homePage(): void {
     onResume: () => void resumeSolo(),
     onMode: (m) => lobby(false, m),
     onRules: () => showRules(stage, undefined, activeVariant()),
-    onProgress: (to) => (to === 'daily' ? lobby(false, 'fun') : to === 'hekiri' ? hekiriPage() : to === 'ting' ? tingPage() : to === 'ladder' ? ladderPage() : showRules(stage, to, activeVariant())),
+    onProgress: (to) => (to === 'daily' ? lobby(false, 'fun', true) : to === 'hekiri' ? hekiriPage() : to === 'ting' ? tingPage() : to === 'ladder' ? ladderPage() : showRules(stage, to, activeVariant())),
   });
 }
 
@@ -125,7 +125,7 @@ export function ladderPage(): void {
   });
 }
 
-/** 点云朵：没登录去登录（登录完回来）；别的只说一句现在怎样，不叫人去登录（docs/platform-backend.md 5.5 第 11 条） */
+/** 点云朵：没登录去登录（登录完回来）；别的只说一句现在怎样，不叫人去登录（docs/platform-features.md 5.5 第 11 条） */
 function cloudTap(s: CloudState): void {
   if (s === 'out') {
     location.href = `/login?from=mahjong`;
@@ -156,7 +156,7 @@ function progressOf(save: SoloSave): string {
  * 选桌页（主页点模式卡进来）：mode 是从哪张模式卡进来的，实盘卡进来先选中小档；从平台大厅的"好友房"来（friends）开房、进房亮一下。
  * 从牌桌"回选桌"、离开时没带 mode：按上次打的是娱乐还是实盘回到那一页
  */
-export function lobby(friends = false, mode: HomeMode | null = null): void {
+export function lobby(friends = false, mode: HomeMode | null = null, focusDaily = false): void {
   teardown();
   screen.className = 'screen lobby';
   const standalone = session.standalone;
@@ -173,11 +173,12 @@ export function lobby(friends = false, mode: HomeMode | null = null): void {
     level: prefs.level,
     rules: prefs,
     variants: variantChoices(() => lobby(false, session.lobbyMode)),
-    // 只挂在存档那种的页上：实盘页挂着娱乐局的「接着打」，点了却进娱乐局（0.47.1 走查）；主页「继续上局」照旧都有
+    // 只挂在存档那种的页上：实盘页挂着娱乐局的「接着打」，点了却进娱乐局；主页「继续上局」照旧都有
     resume: ((s) => (s && (stakesOf(s.stakes)?.wallet ? 'real' : 'fun') === m ? `接着打 · ${saveVariant(s)}` : null))(loadSolo()),
     onSolo: startSolo,
     onResume: () => void resumeSolo(),
     onDaily: (v) => void startDaily(v),
+    focusDaily,
     onRules: () => showRules(stage, undefined, activeVariant()),
     onRoom: openRoom,
     onJoin: (code) => (/^\d{6}$/.test(code) ? enterRoom(code, false) : toast('房间号是 6 位数字')),

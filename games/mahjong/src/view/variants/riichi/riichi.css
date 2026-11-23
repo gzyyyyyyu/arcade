@@ -98,7 +98,7 @@
   font-size: 26px;
 }
 .table.rc .center .rc-wall small {
-  /* 电脑上 --fs-k 是 1，最少 11px（10-27 详测）；手机上放大后本来就够大，盘子高度不变 */
+  /* 电脑上 --fs-k 是 1，最少 11px；手机上放大后本来就够大，盘子高度不变 */
   font-size: max(11px, calc(10px * var(--fs-k, 1)));
   opacity: 0.75;
 }
@@ -282,7 +282,7 @@
   gap: 2px;
 }
 /* 电脑横屏、有人和了：明细（和了谁、手牌、役种）在左、各家点数在右，一页放下不翻页，和的那手放大一号。
- * 以前上下排，点数整块挤到第二页、两页都空着一半，赢家的牌每张只有 20 像素（11-22 走查） */
+ * 上下排会让点数整块挤到第二页、两页都空着一半，赢家的牌每张只有 20 像素 */
 [data-fit='desk'] .rc-summary:has(> .rc-main > .rc-win) {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);

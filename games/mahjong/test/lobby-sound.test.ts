@@ -62,3 +62,15 @@ describe('大厅静音', () => {
     expect(live.sound).toBe(true);
   });
 });
+
+describe('换三张一次性修（0.47.10）', () => {
+  test('以前切过三人两房、存着不换三张的：读进来改回换，记下修过；修过以后自己再关的不动', async () => {
+    const { prefs, savePrefs, ls } = await open({ 'mahjong.prefs': JSON.stringify({ opts: { rounds: 4, cap: 4, swap: false, zimo: 'di', transfer: true, flow: false, three: false } }) });
+    expect(prefs.opts.swap).toBe(true);
+    expect(prefs.opts.rounds).toBe(4);
+    prefs.opts = { ...prefs.opts, swap: false };
+    savePrefs();
+    const again = await open({ 'mahjong.prefs': ls.data['mahjong.prefs']! });
+    expect(again.prefs.opts.swap).toBe(false);
+  });
+});

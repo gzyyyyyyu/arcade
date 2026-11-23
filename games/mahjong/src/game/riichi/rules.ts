@@ -6,6 +6,8 @@ import type { RuleSpec } from '../rule-spec.ts';
 
 /** 立直一场的长度名 */
 export const RC_LENGTH_NAME: Readonly<Record<RcOpts['length'], string>> = { hanchan: '半庄', tonpuu: '东风战', ikkyoku: '一局' };
+/** 选桌页摘要里的写法：日麻的长度名后面带上大约几局，第一次来的人看得懂 */
+const RC_LENGTH_BRIEF: Readonly<Record<RcOpts['length'], string>> = { hanchan: '半庄（约 8 局）', tonpuu: '东风战（约 4 局）', ikkyoku: '一局' };
 
 /**
  * 偏好里没存过时用的：东风战（约 15 分钟）。核心的 DEFAULT_OPTS（半庄）不动，好友房、每日挑战照旧；
@@ -19,11 +21,12 @@ export const RC_RULES: RuleSpec<RcOpts> = {
       key: 'length',
       label: '长度',
       choices: (['tonpuu', 'hanchan', 'ikkyoku'] as const).map((l) => ({ text: RC_LENGTH_NAME[l], value: l })),
-      brief: (o) => RC_LENGTH_NAME[o.length],
+      brief: (o) => RC_LENGTH_BRIEF[o.length],
+      hint: '东风战打一圈（约 4 局），半庄打两圈（约 8 局）',
       realFixed: true,
     },
   ],
-  fixed: { brief: '赤宝牌 3 张', note: '赤宝牌固定 3 张：5 万、5 筒、5 条各一张。' },
+  fixed: { brief: '3 张红 5 算宝牌', note: '赤宝牌固定 3 张：5 万、5 筒、5 条各一张。' },
   // 半庄按 30 分钟、东风战一半估（docs/riichi.md 第 2 节）；只打一局的约 3 分钟
   minutes: (o) => (o.length === 'ikkyoku' ? 3 : o.length === 'hanchan' ? 30 : 15),
 };

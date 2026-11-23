@@ -37,7 +37,7 @@ function fxEnv(fast: boolean): FxEnv {
 function unitsOf(summary: HTMLElement): Unit[] {
   const flag = (n: HTMLElement): { tier: BigTier; mine: boolean } => ({ tier: Number(n.dataset.tier ?? 0) as BigTier, mine: n.dataset.mine === '1' });
   const out: Unit[] = [];
-  // 立直：每次和牌一块（役种表的行、合计）
+  // 立直：每次胡牌一块（役种表的行、合计）
   summary.querySelectorAll<HTMLElement>('.rc-win').forEach((w) => {
     out.push({
       items: [...w.querySelectorAll<HTMLElement>('.rc-yaku-row')],

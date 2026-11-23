@@ -6,7 +6,7 @@ import { readJson, writeJson } from '../storage.ts';
 import './achieve.css';
 import { showToast } from './toast.ts';
 import { achFor, achFromEvents, achKey, achProgress, ACHIEVEMENTS, emptyAch, parseAch, type AchRecord } from '../game/achieve.ts';
-import type { DexVariant } from '../game/dex.ts';
+import { DEX_VARIANT_NAME, type DexVariant } from '../game/dex.ts';
 import type { RcEvent } from '../core/variants/riichi/index.ts';
 import type { XzEvent } from '../core/variants/sichuan-xuezhan/index.ts';
 import type { ViewOf } from '../core/variants/index.ts';
@@ -60,7 +60,9 @@ export function renderAch(page: HTMLElement, variant: DexVariant): void {
   const list = achFor(variant);
   const got = list.filter((a) => rec.got[a.id]).length;
   const root = el('div', 'ach-page', page);
-  el('p', 'ach-progress', root, `这个玩法已解锁 ${got} / ${list.length}`);
+  // 主页胶囊写的是全部玩法的合计，这里两个数都写，对得上
+  const all = ACHIEVEMENTS.filter((a) => rec.got[a.id]).length;
+  el('p', 'ach-progress', root, `${DEX_VARIANT_NAME[variant]}已解锁 ${got} / ${list.length} · 全部玩法 ${all} / ${ACHIEVEMENTS.length}`);
   el('p', 'note', root, '只按你自己座位的公开动作判定，解锁了就一直在。');
   const ul = el('ul', 'ach-list', root);
   for (const a of list) {

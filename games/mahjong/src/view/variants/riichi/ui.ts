@@ -1,6 +1,6 @@
 /**
  * 立直麻将挂到公共牌桌上的部分（docs/riichi.md 第 4 节）：中控盘（局名、本场、供托、剩几张、宝牌指示）、自风小签和点数、立直棒、
- * 立直宣告牌横放、操作条（吃碰杠立直荣和自摸过、九种九牌）、听牌和振听提示、动作大字和和牌亮牌。
+ * 立直宣告牌横放、操作条（吃碰杠立直胡自摸过、九种九牌）、听牌和振听提示、动作大字和胡牌亮牌。
  * 规则只读核心给的视图（prompt、事件）；这里不算役、不算点数。
  */
 import { byTile, kindOf, type Tile } from '../../../core/tiles/index.ts';
@@ -78,7 +78,7 @@ export function setSafeHint(on: boolean): void {
 }
 
 const SAFE_MARK: Record<Safety, { cls: string; text: string; title: string }> = {
-  safe: { cls: 'sf-safe', text: '安', title: '安全：打出去不会放铳（对每个立直的人都是现物）' },
+  safe: { cls: 'sf-safe', text: '安', title: '安全：打出去不会点炮（对每个立直的人都是现物）' },
   fair: { cls: 'sf-fair', text: '较', title: '较安全：筋牌、见得多的字牌这类，不是绝对安全' },
 };
 /** 同一个局面只算一次（手牌每张牌都问一遍） */
@@ -112,7 +112,7 @@ function center(v: RcTable, mid: HTMLElement, paint: Paint): void {
   wall.title = '牌墙还剩几张';
   el('span', 'wall', wall, `${v.wall}`);
   el('small', '', wall, '张');
-  // 本场、供托都不写字，各画一根点棒加数字：小手机上"本场 0 供托 0"挤出牌盒（11-02 看图审查），能用图标数字表达的不写字（AGENTS 文字一节）。
+  // 本场、供托都不写字，各画一根点棒加数字：小手机上"本场 0 供托 0"挤出牌盒，能用图标数字表达的不写字（AGENTS 文字一节）。
   // 本场是百点棒（八个小黑点），供托是立直棒（中间一个红点）。悬停看 title；手机没有悬停，点一下弹一条提示（牌盒每步重画，不在原地展开）
   const sub = el('div', 'rc-sub', mid);
   subStick(sub, 'honba', HONBA_ICON, `本场 ${honba}：${TERMS.本场}`, honba);
@@ -146,7 +146,7 @@ function tingRow(v: RcTable, bar: HTMLElement, ctx: BarCtx<RcAction>, waits: { k
   ctx.ting(bar, waits, lead);
   const me = v.me!;
   if (!furiten || !me.furiten) return;
-  // 振听：这手牌能自摸，不能荣和；原因是哪一种。放在听牌那排上面的提示条里（和"再点一下打出"同一个位置），听牌那排不折行
+  // 振听：这手牌能自摸，不能胡别人打的牌；原因是哪一种。放在听牌那排上面的提示条里（和"再点一下打出"同一个位置），听牌那排不折行
   el('div', 'hint rc-fu', bar, `振听：只能自摸（${FURITEN_WHY[me.furiten]}）`);
 }
 
@@ -156,7 +156,7 @@ function claimBar(v: RcTable, bar: HTMLElement, ctx: BarCtx<RcAction>): void {
   const tile = v.claim!.tile;
   ctx.tile(tile, 'md', el('div', 'claim-tile', bar));
   // 这张正是我听的牌，但我振听：不给"和"，说一句为什么
-  if (!c.opts.includes('ron') && me.furiten && me.waits.includes(kindOf(tile))) el('div', 'hint rc-fu', bar, `振听：这张不能和（${FURITEN_WHY[me.furiten]}）`);
+  if (!c.opts.includes('ron') && me.furiten && me.waits.includes(kindOf(tile))) el('div', 'hint rc-fu', bar, `振听：这张不能胡（${FURITEN_WHY[me.furiten]}）`);
   for (const o of CLAIM_ORDER) {
     if (!c.opts.includes(o)) continue;
     const send = (): void => ctx.act(o === 'chi' ? { t: 'claim', w: c.w, c: 'chi', low: c.chi[0]! } : { t: 'claim', w: c.w, c: o });
@@ -212,8 +212,8 @@ function turnBar(v: RcTable, bar: HTMLElement, ctx: BarCtx<RcAction>): void {
   const sel = ctx.selected[0];
   const after = sel === undefined ? null : tingOf(v, sel);
   if (after) {
-    tingRow(v, bar, ctx, after, riichiMode ? '立直听' : '打了听', false);
-    // 听了但没有役：别人打的和不了，说一句（立直宣告时、已立直不提）
+    tingRow(v, bar, ctx, after, riichiMode ? '立直听' : '打这张听', false);
+    // 听了但没有役：别人打的胡不了，说一句（立直宣告时、已立直不提）
     const seat = v.seats[me.seat]!;
     const ny = riichiMode ? null : noYakuOf({ hand: me.hand.filter((t) => t !== sel), melds: seat.melds, seatWind: seat.wind, roundWind: v.wind, indicators: v.dora, riichi: seat.riichi });
     if (ny) el('div', 'hint rc-noyaku', bar, noYakuText(ny));
@@ -254,15 +254,15 @@ function bar(v: RcTable, bar: HTMLElement, ctx: BarCtx<RcAction>): boolean {
   return true;
 }
 
-// ---------- 动作大字、音效、和牌亮牌 ----------
+// ---------- 动作大字、音效、胡牌亮牌 ----------
 
-/** 和牌亮牌摆多久：满贯以上多摆一会儿 */
+/** 胡牌亮牌摆多久：满贯以上多摆一会儿 */
 const WIN_MS = 1_800;
 const WIN_BIG_MS = 2_400;
 
 type WinEvent = Extract<RcEvent, { e: 'win' }>;
 
-/** 和牌高光：谁、怎么和的、亮出的整手（和的那张描金）、役一条条弹出来、符番和点数。只用公开的：和了的人手牌本来就亮给所有人 */
+/** 胡牌高光：谁、怎么胡的、亮出的整手（胡的那张描金）、役一条条弹出来、符番和点数。只用公开的：胡了的人手牌本来就亮给所有人 */
 function winCard(v: RcTable, e: WinEvent, name: string, how: string): HTMLElement {
   const sc = e.score;
   const s = v.seats[e.seat]!;
@@ -334,7 +334,7 @@ export const riichiUi: VariantUi<RcTable, RcAction> = {
 
   score: (v, seat) => num(v.seats[seat]!.points),
 
-  stamp: (_v, seat) => (_v.seats[seat]!.won!.from === null ? '自摸' : '荣和'),
+  stamp: (_v, seat) => (_v.seats[seat]!.won!.from === null ? '自摸' : '胡'),
 
   badge(v, seat, b) {
     const r = v.seats[seat]!.riichi;
@@ -379,7 +379,7 @@ export const riichiUi: VariantUi<RcTable, RcAction> = {
           break;
         case 'win': {
           const multi = wins.length > 1 && e.from !== null;
-          const text = e.from === null ? '自摸！' : e.rob ? '抢杠！' : multi ? (wins.length === 2 ? '一炮双响！' : '一炮三响！') : '荣和！';
+          const text = e.from === null ? '自摸！' : e.rob ? '抢杠！' : multi ? (wins.length === 2 ? '一炮双响！' : '一炮三响！') : '胡！';
           fx.celebrate(e.seat, text, e.from === null ? 'zimo' : 'hu');
           play(e.from === null ? 'zimo' : 'hu');
           // 喊完再亮牌；一炮多响一个接一个亮
@@ -391,7 +391,7 @@ export const riichiUi: VariantUi<RcTable, RcAction> = {
           break;
         }
         case 'end':
-          // 荒牌和中途流局：和了的那几种有自己的大字，其余在牌桌中间写一句
+          // 荒牌和中途流局：胡了的那几种有自己的大字，其余在牌桌中间写一句
           if (e.end !== 'ron' && e.end !== 'tsumo') fx.banner(v.me?.seat ?? 0, END_NAME[e.end], 'draw');
           break;
         default:

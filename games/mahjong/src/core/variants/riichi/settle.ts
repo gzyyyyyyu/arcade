@@ -90,7 +90,7 @@ export function ranking(points: readonly number[], first: number): number[] {
 }
 
 /** 这一局是不是最后一局（南四局、东风战东四局）或之后的延长局 */
-export function allLast(s: RcState): boolean {
+function allLast(s: RcState): boolean {
   if (s.opts.length === 'ikkyoku') return true;
   const last = s.opts.length === 'hanchan' ? 1 : 0;
   return s.wind > last || (s.wind === last && s.hand === 3);

@@ -17,7 +17,7 @@ interface Prefs extends RulesStore {
   /** 总音量 0–1（静音另算：sound 关着时一点声音都不出） */
   volume: number;
   fast: boolean;
-  /** 茶馆底噪（0.17.4）：默认开、很轻，跟着静音和音量走，声音面板里能单独关 */
+  /** 茶馆底噪：默认开、很轻，跟着静音和音量走，声音面板里能单独关 */
   ambience: boolean;
   /** 安全牌提示（立直）：别家立直后手牌上标安全程度，默认开 */
   safeHint: boolean;
@@ -28,6 +28,8 @@ interface Prefs extends RulesStore {
   level: Level;
   /** 玩法（入口收起来的玩法选不到，见 activeVariant）；各玩法的规则设置（opts、rc）见 RulesStore */
   variant: string;
+  /** 已修过换三张（见 fixSwap） */
+  swapFixed?: true;
 }
 
 /** 各玩法从存着的偏好里读自己的规则设置（缺的、坏的补默认） */
@@ -45,6 +47,15 @@ function savedRules(p: Partial<Prefs>): RulesStore {
   }
 }
 
+/**
+ * 旧版本在主页切一次三人两房，存着的换三张会被写成"不换"，切回血战、血流也一直不换（单机实盘也跟着）。
+ * 分不出哪些是自己关的，所以每台设备改回"换"一次、记下 swapFixed；自己关过的要再关一次。0.48.0 起删掉这段和 swapFixed。
+ */
+export function fixSwap(p: Prefs): Prefs {
+  if (p.swapFixed) return p;
+  return { ...p, opts: { ...p.opts, swap: true }, swapFixed: true };
+}
+
 function loadPrefs(): Prefs {
   const p = readJson<Partial<Prefs> | null>(PREFS_KEY, null) ?? {};
   const vol = typeof p.volume === 'number' && p.volume >= 0 && p.volume <= 1 ? p.volume : SETTINGS_DEFAULTS.volume;
@@ -60,10 +71,11 @@ function loadPrefs(): Prefs {
     level,
     ...savedRules(p),
     variant: findPage(p.variant)?.id ?? DEFAULT_VARIANT,
+    ...(p.swapFixed === true ? { swapFixed: true as const } : {}),
   };
 }
 
-export const prefs = loadPrefs();
+export const prefs = fixSwap(loadPrefs());
 
 /** 大厅关了声音（kit docs/sound.md）：这一次打开先静音；在这里打开、关上都只管这一次，不改存着的 prefs.sound */
 const lobbyMuted = !platformSoundOn();

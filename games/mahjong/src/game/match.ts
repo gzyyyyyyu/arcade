@@ -1,5 +1,5 @@
 /**
- * 快速匹配的档位（0.21.0，kit 0.20.0 的 MatchQueue，设计在 kit 的 docs/match.md）：Worker 的排队类和页面共用，纯函数。
+ * 快速匹配的档位（kit 的 MatchQueue，设计在 kit 的 docs/match.md）：Worker 的排队类和页面共用，纯函数。
  * 川麻：娱乐一个档位 fun，实盘每档一个 real-<档位>；立直：娱乐 rc-fun，实盘每档一个 rc-<档位>（rc-small、rc-mid、rc-big、rc-lux）。
  * 川麻三人两房（opts.three，3 个座位）：娱乐 x3-fun，实盘每档一个 x3-<档位>（x3-small、x3-mid、x3-big、x3-lux），一桌 3 个真人（tableSizeOf），开桌规则 three 开、swap 关（和主页三人两房快速一局一样），实盘再一局一结。
  * 川麻血流成河（opts.flow）：娱乐 xl-fun，实盘每档一个 xl-<档位>，开桌规则 flow 开，实盘再一局一结（底分减半由房间按 flow 算）。
@@ -27,10 +27,6 @@ type Kind = (typeof KINDS)[number];
 type MatchTier = Kind['fun'] | `${Kind['real']}-${TierId}`;
 
 const [XZ_KIND, RC_KIND, X3_KIND, XL_KIND] = KINDS;
-export const MATCH_FUN: MatchTier = XZ_KIND.fun;
-export const MATCH_RC_FUN: MatchTier = RC_KIND.fun;
-export const MATCH_X3_FUN: MatchTier = X3_KIND.fun;
-export const MATCH_XL_FUN: MatchTier = XL_KIND.fun;
 
 const TIER_IDS = STAKES.filter((s) => s.wallet).map((s) => s.id as TierId);
 

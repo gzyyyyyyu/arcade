@@ -1,6 +1,6 @@
 /**
  * 新手引导和规则（DESIGN.md 第 7 节）：第一次打开弹三屏，番型表随时能在"规则"里看。
- * 0.17.5（docs/art.md）：规则是一本宣纸小册子，分四页签（怎么胡 / 番型 / 血战规矩 / 电脑公平吗），番型带一手牌例；引导每屏配一排示意的牌。
+ * 规则（docs/art.md）：规则是一本宣纸小册子，分四页签（怎么胡 / 番型 / 血战规矩 / 电脑公平吗），番型带一手牌例；引导每屏配一排示意的牌。
  * 这里只管外壳（弹窗、翻页、页签、图鉴和成就）；各玩法讲什么在 view/variants/<id>/guide.ts，由玩法的页面钩子（VariantPage.guide）给出。
  */
 import { readText, writeText } from '../storage.ts';
@@ -13,15 +13,15 @@ import { DEFAULT_VARIANT } from '../core/variants/index.ts';
 import { pageOf } from './variants/pages.ts';
 import { paginate } from './pager.ts';
 
-/** 新手引导看过没有的记号：每个玩法一个（川麻的沿用原来的键） */
+/** 新手引导看过没有的记号：每个玩法一个 */
 export const guideKey = (variant: string): string => pageOf(variant).guide.key;
 
 /**
  * onDone：说明关掉时调（点"开打"、×、Esc、点外面都算；翻页不算）。
- * onStart：只在点最后一页的"开打"时调，关掉以后再调：主页上弹的说明靠它真的开一局，不然点了"开打"还在主页（11-18 体检）
+ * onStart：只在点最后一页的"开打"时调，关掉以后再调：主页上弹的说明靠它真的开一局，不然点了"开打"还在主页
  */
 export function showGuide(parent: HTMLElement, page = 0, onDone?: () => void, variant: string = DEFAULT_VARIANT, onStart?: () => void): void {
-  // 怎么关的都算看过（×、Esc、点外面也是）：只认"开打"的话，在主页点 × 关掉，一进牌桌又从第 1 页弹一遍（11-02 试玩）。
+  // 怎么关的都算看过（×、Esc、点外面也是）：只认"开打"的话，在主页点 × 关掉，一进牌桌又从第 1 页弹一遍。
   // 回调翻页时要是同一个（dialog.ts 认它判断是翻页还是被换掉），所以在这里做一次再往下传。存不上下次再看一遍，不看返回值
   const done = (): void => {
     writeText(guideKey(variant), '1');
@@ -95,7 +95,7 @@ export function showRules(parent: HTMLElement, tab?: Tab, variant: string = DEFA
     else if (at === '成就') renderAch(page, guide.dex);
     else if (at === '键盘') keysPage(page);
     else guide.rulesPage(page, at);
-    // 只在第一页（怎么和）摆：别的页把这一行的高度让给番型表、图鉴，少翻几页
+    // 只在第一页（怎么胡）摆：别的页把这一行的高度让给番型表、图鉴，少翻几页
     if (at === tabsOf[0]) button('act soft', box, '再看一遍新手说明', () => showGuide(parent, 0, undefined, variant));
     paginate(page);
   });

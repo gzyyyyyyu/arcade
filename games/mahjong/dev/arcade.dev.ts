@@ -2,8 +2,8 @@
  * 本地试 Worker 时代替平台的假 arcade（冒烟 scripts/smoke-room.ts），不部署：
  * cookie __Host-sid=<id> 就认作这个人，没有就是没登录；钱包用 kit 的假钱包 arcade-kit/testing（RPC 和浏览器的 /api/wallet*）；
  * 好友：问邀请收下就回（没有邀请）；好友列表 16 个、在线离线混着（叫朋友面板要翻页），后面接上报过位置的别的冒烟账号（在线、带位置，好友房页「加入」走得到）；叫谁来都回一个邀请号。
- * 云存档（docs/platform-backend.md 5.5）：读回空列表、写了就回下一个版本号，不真存（src/net/cloud.ts 不再拿到 404、控制台不报错）。
- * 快速匹配的排队经 RPC 问屏蔽名单（平台 0.25.0 的 blockedAmong），所以是 WorkerEntrypoint；这里谁也没屏蔽谁。
+ * 云存档（docs/platform-features.md 5.5）：读回空列表、写了就回下一个版本号，不真存（src/net/cloud.ts 不再拿到 404、控制台不报错）。
+ * 快速匹配的排队经 RPC 问屏蔽名单，所以是 WorkerEntrypoint；这里谁也没屏蔽谁。
  */
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { walletHttp, type FakeEnv } from 'arcade-kit/testing';
@@ -32,7 +32,7 @@ export default class Arcade extends WorkerEntrypoint<FakeEnv> {
     if (path === '/api/presence' && sid && request.method === 'POST') WHERE.set(sid, await request.json().catch(() => null));
     if (path === '/api/presence' || path === '/api/feed') return new Response(null, { status: 204 });
     if (path === '/api/invites') return request.method === 'POST' ? Response.json({ id: 'inv-smoke-1' }) : Response.json({ invites: [] });
-    // 好友十几个、在线离线混着：叫朋友面板放不下要翻页（kit 0.24.2 按可用高度分页），冒烟和五尺寸量测都走得到；老王排第一，smoke-room 点的就是他
+    // 好友十几个、在线离线混着：叫朋友面板放不下要翻页，冒烟和五尺寸量测都走得到；老王排第一，smoke-room 点的就是他
     if (path === '/api/friends') {
       const others = [...WHERE].filter(([id]) => id !== sid).map(([id, where]) => ({ userId: id, displayName: `本地${id}`, online: true, where }));
       return Response.json({ friends: [...FRIENDS, ...others] });

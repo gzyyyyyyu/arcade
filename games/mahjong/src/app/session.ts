@@ -1,5 +1,5 @@
 /**
- * 页面的会话状态：以前是 main.ts 里二十几个模块级 let，现在收进这一个对象，各文件通过它读写，离开时由 lifecycle.ts 的 dispose 一处清理。
+ * 页面的会话状态都在这一个对象里，各文件通过它读写，离开时由 lifecycle.ts 的 dispose 一处清理。
  * app/ 下的文件之间有函数级的循环 import（顶栏调离开、离开调选桌页、选桌页调开局……）：
  * 约定顶层只放声明，不在模块顶层调用别的文件的函数（只在函数体里调），这样不管谁先加载都不会读到 undefined。
  */
@@ -61,7 +61,7 @@ export const session = {
   autoSit: false,
   /** 别人开了新房间：几秒后跟过去（让大家先看清结算） */
   followTimer: 0,
-  /** 进的是快速匹配排到的桌（0.21.0）：进房时就知道（排到的、地址栏带 match=1），房间信息到了以 room.match 为准 */
+  /** 进的是快速匹配排到的桌：进房时就知道（排到的、地址栏带 match=1），房间信息到了以 room.match 为准 */
   matchJoin: false,
   /** 立直一局结算前的等待（见 room-settle.ts） */
   endTimer: 0,

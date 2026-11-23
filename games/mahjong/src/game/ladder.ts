@@ -73,7 +73,7 @@ export function startRun(d: LadderData, mode: LadderMode, key: readonly number[]
   return { ...d, run: { mode, key: [...key], table: 0 } };
 }
 
-/** 这一桌的牌局密钥：按桌号分流，同一桌重进还是那副牌（分流名末尾的 :0 是原来「第几次重打」那一位，留着让同一密钥发的牌不变） */
+/** 这一桌的牌局密钥：按桌号分流，同一桌重进还是那副牌（分流名末尾的 ":0" 那一位是留给「第几次重打」的，留着让同一密钥发的牌不变） */
 export function tableKey(run: LadderRun): number[] {
   const rng = stream(run.key, `ladder:${run.table}:0`);
   return Array.from({ length: 8 }, () => rng.u32());
@@ -112,7 +112,7 @@ export function quitRun(d: LadderData): LadderData {
   return rest;
 }
 
-/** 上云存档的那一份（docs/platform-backend.md 5.5）：只有称号和最远几桌；没打完的一轮是这台设备上的牌局，不同步 */
+/** 上云存档的那一份（docs/platform-features.md 5.5）：只有称号和最远几桌；没打完的一轮是这台设备上的牌局，不同步 */
 export function cloudPart(d: LadderData): LadderData {
   // 按打法的顺序重排，同样的内容序列化出来一样（sameCloud 靠它）
   const best: LadderData['best'] = {};

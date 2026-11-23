@@ -12,7 +12,7 @@ import { pageOf } from './variants/pages.ts';
 import { num, STAKES_NAME, walletError, wan } from './text.ts';
 
 interface WaitingProps {
-  /** 快速匹配排到的桌（0.21.0）：人已经坐好，到齐（或等满 20 秒）自动开打；不摆房间号、叫朋友、选座、开打 */
+  /** 快速匹配排到的桌：人已经坐好，到齐（或等满 20 秒）自动开打；不摆房间号、叫朋友、选座、开打 */
   match?: boolean;
   code: string;
   room: RoomInfo;
@@ -78,7 +78,7 @@ export function renderWaiting(box: HTMLElement, p: WaitingProps): void {
   const wallet = !!stakesOf(p.opts?.stakes)?.wallet;
   // 实盘至少两个真人：好友房是来和朋友打的，电脑座位的钱归庄家（房间那边也拦，这里先说清楚）
   const few = wallet && p.room.seats.filter((s) => s.kind === 'human').length < MIN_HUMANS;
-  // 几句提示并成一段：分成三段时 1280×720 上把底下的"开打""离开房间"挤出屏外（11-18 体检）
+  // 几句提示并成一段：分成三段时 1280×720 上把底下的"开打""离开房间"挤出屏外
   const hints: [string, string][] = [];
   if (watchingFull) hints.push(['旁观中：座位满了，开打后你能看桌面和出牌，看不到手牌；有人离开就能坐下。', 'watch']);
   else if (!full) hints.push(['空着的座位开打时由电脑补上；开打以后朋友也能进来接管电脑的座位。', '']);

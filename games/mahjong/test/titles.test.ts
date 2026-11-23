@@ -1,11 +1,12 @@
-/** 称号：规则里的每个 id 在 public/titles.json（平台的称号墙读它，docs/platform-backend.md 5.10）和页面上都有中文名，格式合平台的要求 */
+/** 称号：规则里的每个 id 在 public/titles.json（平台的称号墙读它，docs/platform-wallet.md 5.10）和页面上都有中文名，格式合平台的要求 */
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { TITLE_ID } from '../src/core/match/index.ts';
 import { TITLE_ORDER as RC_TITLES } from '../src/core/variants/riichi/index.ts';
 import { TITLE_ORDER as XZ_TITLES } from '../src/core/variants/sichuan-xuezhan/index.ts';
 import { TITLE_NAME } from '../src/view/text.ts';
 
+/** 平台称号 id 的格式 */
+const TITLE_ID = /^[a-z][a-z0-9_]{0,23}$/;
 const TITLE_ORDER: readonly string[] = [...XZ_TITLES, ...RC_TITLES];
 
 test('titles.json 和规则、页面对得上', () => {

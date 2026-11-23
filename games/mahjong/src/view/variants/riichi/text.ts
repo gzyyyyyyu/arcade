@@ -15,7 +15,7 @@ export const roundName = (wind: number, hand: number): string => `${RC_WIND[wind
 
 /** 一局怎么结束的（结算标题、牌桌上的大字） */
 export const END_NAME: Record<RcEnd, string> = {
-  ron: '荣和',
+  ron: '胡',
   tsumo: '自摸',
   draw: '荒牌流局',
   nagashi: '流局满贯',
@@ -23,7 +23,7 @@ export const END_NAME: Record<RcEnd, string> = {
   four_winds: '四风连打',
   four_kans: '四杠散了',
   four_riichi: '四家立直',
-  three_ron: '三家和',
+  three_ron: '三家胡',
 };
 
 /** 中途流局的原因（一句话，不用术语） */
@@ -32,7 +32,7 @@ export const ABORT_WHY: Partial<Record<RcEnd, string>> = {
   four_winds: '第一巡四家打出同一种风牌',
   four_kans: '两人以上合计开了四个杠',
   four_riichi: '四家都立直了',
-  three_ron: '三家同时和同一张牌',
+  three_ron: '三家同时胡同一张牌',
 };
 
 /** 满贯以上的叫法 */
@@ -47,7 +47,7 @@ export const LIMIT_NAME: Record<HandScore['limit'], string> = {
 
 /** 点数怎么动的（结算里的流水） */
 export const PAY_NAME: Record<string, string> = {
-  ron: '荣和',
+  ron: '胡',
   tsumo: '自摸',
   honba: '本场',
   stick: '供托',

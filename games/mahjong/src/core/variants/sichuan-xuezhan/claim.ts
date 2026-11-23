@@ -55,7 +55,7 @@ export function resolve(s: XzState): void {
     else if (s.winners === 0) s.nextDealer = r.ron[0]!;
     if (c.rob) thrower.hand.splice(thrower.hand.indexOf(c.tile), 1);
     else thrower.river[thrower.river.length - 1]!.taken = true;
-    // 一炮多响：几家的胡一起付，点炮的付不起时按应收的比例分（2.8，自审 C6；原来先胡的先拿）
+    // 一炮多响：几家的胡一起付，点炮的付不起时按应收的比例分
     const dues: { to: number; amount: number }[] = [];
     for (const seat of r.ron) {
       recordWin(s, seat, c.tile, c.from, { ...NO_CONTEXT, gangPao: c.kanRef !== null, rob: c.rob, haidi: c.haidi }, dues);

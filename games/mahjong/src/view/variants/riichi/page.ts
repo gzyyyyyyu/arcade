@@ -19,7 +19,7 @@ import { tableView } from './view.ts';
 
 const ID = 'riichi';
 
-/** 刚打完的这一局有人和了：和牌亮牌（役一条条弹出来）要多摆一会儿 */
+/** 刚打完的这一局有人胡了：胡牌亮牌（役一条条弹出来）要多摆一会儿 */
 const hasWins = (v: RcView): boolean => !!v.history.at(-1)?.wins.length;
 
 export const riichiPage: VariantPage = {
@@ -40,7 +40,7 @@ export const riichiPage: VariantPage = {
   quick: (store) => ({ opts: { ...store.rc, length: 'ikkyoku' } }),
   daily: { variant: ID, opts: () => ({ ...DEFAULT_OPTS, length: DAILY_RC_LENGTH }), lengthText: '东风战', cardName: '立直东风战' },
 
-  homeChoices: [{ id: ID, chip: '立直', name: '立直麻将', pitch: '立直、鸣牌、必须有役，门清更值钱', ladder: { mode: 'rc', opts: () => ({ ...DEFAULT_OPTS, length: 'ikkyoku' }) } }],
+  homeChoices: [{ id: ID, chip: '立直', name: '立直麻将', pitch: '日本规则，要有役才能胡，不碰不吃分更高', ladder: { mode: 'rc', opts: () => ({ ...DEFAULT_OPTS, length: 'ikkyoku' }) } }],
   homeId: () => ID,
   homePick(store) {
     store.variant = ID;
@@ -73,7 +73,7 @@ export const riichiPage: VariantPage = {
   shareCard: (v, o) => cardOf(v as RcView, o.title, o.unit, o.name),
   moments(v) {
     const x = v as RcView;
-    // 和了就结这一局，所以 round 是刚打完的这一局
+    // 胡了就结这一局，所以 round 是刚打完的这一局
     const wins = rcWinsOf(x.events);
     const round = x.history.length - (x.phase === 'end' || x.phase === 'over' ? 1 : 0);
     return { hus: wins.length, found: rcHighlightsOf(wins, round), fun: () => rcFunMoments(wins, rcKansOf(x.events), round) };
@@ -84,7 +84,7 @@ export const riichiPage: VariantPage = {
     key: 'mahjong.guide.rc',
     cls: ' rc-guide',
     pages: RC_PAGES,
-    tabs: ['怎么和', '役种', '立直和振听', '电脑公平吗', '图鉴', '成就'],
+    tabs: ['怎么胡', '役种', '立直和振听', '电脑公平吗', '图鉴', '成就'],
     dex: 'rc',
     rulesPage,
     dexPage,

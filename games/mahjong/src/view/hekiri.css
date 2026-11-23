@@ -51,10 +51,11 @@
   font-size: var(--fs-sm);
   cursor: pointer;
 }
+/* 贴着顶栏：点按区不往上伸进顶栏（顶栏压在上面，伸进去也点不到），往下撑满 --tap（844×390 屏幕里只有 42 高） */
 .hekiri .hk-back::after {
   content: '';
   position: absolute;
-  inset: min(0px, calc((100% - var(--tap, 44px)) / 2));
+  inset: calc(-1 * var(--sp-2)) min(0px, calc((100% - var(--tap, 44px)) / 2)) min(0px, calc(100% - var(--tap, 44px) + var(--sp-2)));
 }
 .hekiri .hk-title {
   font-size: var(--fs-2xl);
@@ -68,7 +69,7 @@
   font-size: var(--fs-xs);
 }
 .hekiri .hk-score {
-  /* 分数和标题同行高、同字号的大字，基线对齐（原来分数大字比标题低几像素） */
+  /* 分数和标题同行高、同字号的大字，基线对齐 */
   display: flex;
   align-items: baseline;
   gap: var(--sp-1);
@@ -166,6 +167,13 @@
 .hekiri button.hk-tile.hand {
   cursor: pointer;
   transition: transform var(--t-fast, 0.12s);
+}
+.hekiri button.hk-tile.hand:active {
+  transform: translateY(2px) scale(0.97);
+}
+/* 已抬起的那张按下去还是抬着，只缩一点，不往下掉 */
+.hekiri button.hk-tile.hand.sel:active {
+  transform: translateY(-14px) scale(0.97);
 }
 .hekiri .hk-hand {
   display: flex;
@@ -359,7 +367,7 @@
 .stage[data-orient='land'] .hekiri > .hk-verdict ~ .hk-main {
   order: -1;
 }
-/* 揭晓页一屏放下（docs/ui.md 第 11 节，11-02 五尺寸量：1280 多 52、844 横拿多 179、360 竖屏多 6）：
+/* 揭晓页一屏放下（docs/ui.md 第 11 节）：
  * 横屏收起底下那句说明、收紧间距和每种打法那一行；手机横拿（不是电脑版）再收起整排手牌，打哪张、进几张在下面几行里都有 */
 .stage[data-orient='land'] .hekiri:has(> .hk-verdict) {
   gap: var(--sp-2);

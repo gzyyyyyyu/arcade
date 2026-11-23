@@ -57,7 +57,7 @@ function mini(t: Tile, parent: HTMLElement, cls = 'mini'): HTMLElement {
   return e;
 }
 
-/** 一手牌：副露在前，手牌排好，和的那张单放最后描金 */
+/** 一手牌：副露在前，手牌排好，胡的那张单放最后描金 */
 function handLine(hand: readonly Tile[], melds: RcWin['melds'], won: Tile | null, parent: HTMLElement): void {
   const line = el('div', 'hand-line', parent);
   for (const m of melds) {
@@ -83,7 +83,7 @@ export function roundSummary(v: RcView, names: string[]): HTMLElement {
   const box = el('div', 'summary rc-summary');
   const h = v.history.at(-1);
   if (!h) return box;
-  // 明细（和了谁、手牌、役种）和各家点数分两块：电脑横屏左右两栏一页放下（riichi.css），竖屏照样上下排
+  // 明细（胡了谁、手牌、役种）和各家点数分两块：电脑横屏左右两栏一页放下（riichi.css），竖屏照样上下排
   const main = el('div', 'rc-main', box);
   const head = el('h2', '', main);
   head.append(`${roundName(h.wind, h.hand)} · ${END_NAME[h.end]}`);
@@ -94,9 +94,9 @@ export function roundSummary(v: RcView, names: string[]): HTMLElement {
   }
   const why = ABORT_WHY[h.end];
   if (why) el('p', 'fair', main, why);
-  // 电脑不看牌对玩家是看不见的（DESIGN.md 5.4），和了、听牌的人把牌亮出来，自己对得上
+  // 电脑不看牌对玩家是看不见的（DESIGN.md 5.4），胡了、听牌的人把牌亮出来，自己对得上
   // 这句每局都一样：一场的第一局讲一次就够
-  if ((h.wins.length || h.tenpai) && v.history.length <= 1) el('p', 'fair', main, '和了、听牌的人亮出手牌。电脑和你一样，看不到别人手里的牌和牌墙。');
+  if ((h.wins.length || h.tenpai) && v.history.length <= 1) el('p', 'fair', main, '胡了、听牌的人亮出手牌。电脑和你一样，看不到别人手里的牌和牌墙。');
   if (h.dora.length || h.ura.length) {
     const line = el('div', 'rc-inds', main);
     indicators('宝牌指示', h.dora, line, notes);
@@ -111,8 +111,8 @@ export function roundSummary(v: RcView, names: string[]): HTMLElement {
     el('span', 'who', row, `${RC_WIND[windOf(h.dealer, seat)]}家 ${names[seat]}`);
     const what = el('span', 'what', row);
     const win = h.wins.find((x) => x.seat === seat);
-    if (win) what.textContent = win.from === null ? '自摸' : '荣和';
-    else if (h.wins.some((x) => x.from === seat)) what.textContent = '放铳';
+    if (win) what.textContent = win.from === null ? '自摸' : '胡';
+    else if (h.wins.some((x) => x.from === seat)) what.textContent = '点炮';
     else if (h.tenpai) what.textContent = h.tenpai[seat] ? '听牌' : '没听牌';
     else what.textContent = '—';
     const d = h.delta[seat]!;
@@ -145,11 +145,11 @@ export function roundSummary(v: RcView, names: string[]): HTMLElement {
       flow.append(`：${f < 0 ? '桌上' : names[f]} → ${t < 0 ? '桌上' : names[t]} ${num(amount)} 点`);
     }
   }
-  if (v.sticks && !v.final) el('div', 'rc-sticks', side, `桌上还有 ${v.sticks} 根立直棒，留给下一个和牌的人`);
+  if (v.sticks && !v.final) el('div', 'rc-sticks', side, `桌上还有 ${v.sticks} 根立直棒，留给下一个胡牌的人`);
   return box;
 }
 
-/** 一次和牌：谁、怎么和的、亮出的整手、役种表、符番点数 */
+/** 一次胡牌：谁、怎么胡的、亮出的整手、役种表、符番点数 */
 function winBlock(v: RcView, w: RcWin, names: string[], parent: HTMLElement): void {
   const sc = w.score;
   const win = el('div', 'rc-win', parent);
@@ -158,7 +158,7 @@ function winBlock(v: RcView, w: RcWin, names: string[], parent: HTMLElement): vo
   if (w.seat === v.me?.seat) win.dataset.mine = '1';
   const who = el('div', 'rc-who', win);
   el('b', '', who, names[w.seat]);
-  who.append(w.from === null ? ' 自摸' : ` 荣和（${names[w.from]} 放铳）`);
+  who.append(w.from === null ? ' 自摸' : ` 胡（${names[w.from]} 点炮）`);
   if (w.pao !== null) el('small', '', who, ` · ${names[w.pao]} 包牌`);
   handLine(w.hand, w.melds, w.tile, win);
   const table = el('div', 'rc-yaku', win);
@@ -184,7 +184,8 @@ function winBlock(v: RcView, w: RcWin, names: string[], parent: HTMLElement): vo
 /** 一场的名次表：终局点数、顺位、马、头名奖、得分、筹码 */
 export function matchSummary(v: RcView, names: string[], unit: string): HTMLElement {
   const box = el('div', 'summary final rc-summary');
-  el('h2', '', box, `这一场打完了 · ${lengthName(v.opts.length)}`);
+  // 一局一结不说「这一场」，局、场不混着用（和川麻一样）
+  el('h2', '', box, v.opts.length === 'ikkyoku' ? '这一局的名次' : `这一场打完了 · ${lengthName(v.opts.length)}`);
   const f = v.final;
   const r = v.result;
   if (!f || !r) return box;
@@ -226,7 +227,7 @@ export function cardOf(v: RcView, title: string, unit: string, name: string): Sh
     stats: [
       { label: '顺位', value: `第 ${v.final.rank.indexOf(me) + 1} 名` },
       { label: '得分', value: scoreText(v.final.score[me]!) },
-      { label: '和了', value: `${st.wins} 局` },
+      { label: '胡了', value: `${st.wins} 局` },
     ],
     ...(badge ? { line: `这一场拿到「${badge}」` } : {}),
     player: { name, ...(badge ? { badge } : {}) },
@@ -234,7 +235,7 @@ export function cardOf(v: RcView, title: string, unit: string, name: string): Sh
 }
 
 /**
- * 结算页头一行底下那句（一场打完）：赢了说和了几次、最大的一手；输了说点数主要丢在哪种上（放铳、别人自摸、流局没听），用大白话。
+ * 结算页头一行底下那句（一场打完）：赢了说胡了几次、最大的一手；输了说点数主要丢在哪种上（点炮、别人自摸、流局没听），用大白话。
  * 只看这一场公开的每局小结（v.history）
  */
 export function verdictWhy(v: RcView, seat: number, names: string[]): string | null {
@@ -243,7 +244,7 @@ export function verdictWhy(v: RcView, seat: number, names: string[]): string | n
   if (total > 0 && mine.length) {
     const best = mine.reduce((a, w) => (w.gain > a.gain ? w : a));
     const yaku = yakuLines(best.score).filter((y) => !y.dora).map((y) => y.name);
-    return `和了 ${mine.length} 次，最大一手：${yaku.length ? `${yaku.join('、')}，` : ''}${scoreHead(best.score)}`;
+    return `胡了 ${mine.length} 次，最大一手：${yaku.length ? `${yaku.join('、')}，` : ''}${scoreHead(best.score)}`;
   }
   if (total >= 0) return null;
   // 每局丢的点按这一局为什么丢归一类，挑丢得最多的那类说
@@ -262,7 +263,7 @@ export function verdictWhy(v: RcView, seat: number, names: string[]): string | n
   const [k, x] = (Object.entries(lost) as [keyof typeof lost, (typeof lost)['dealIn']][]).sort((a, b) => b[1].pts - a[1].pts)[0]!;
   if (!x.pts) return null;
   const who = [...x.to].map((s) => names[s]).join('、');
-  if (k === 'dealIn') return `放铳 ${x.n} 次（给 ${who}），共丢 ${num(x.pts)} 点。别人立直以后，打他河里有的牌最安全`;
-  if (k === 'tsumo') return `${who} 自摸了 ${x.n} 次，没放铳也要付，共丢 ${num(x.pts)} 点`;
+  if (k === 'dealIn') return `点炮 ${x.n} 次（给 ${who}），共丢 ${num(x.pts)} 点。别人立直以后，打他河里有的牌最安全`;
+  if (k === 'tsumo') return `${who} 自摸了 ${x.n} 次，没点炮也要付，共丢 ${num(x.pts)} 点`;
   return `牌摸完时没听牌 ${x.n} 次，要赔给听了牌的人，共丢 ${num(x.pts)} 点`;
 }

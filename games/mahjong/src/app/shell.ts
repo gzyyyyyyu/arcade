@@ -42,7 +42,7 @@ export const walletChip = el('span', 'wallet-chip', topbar);
 /** 齿轮（24 格，八个齿 + 中间的孔，填充色跟着 currentColor） */
 const GEAR_SVG =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6 1.6.7 2.2-1.5 2.4 2.4-1.5 2.2.7 1.6 2.4.5v3.4l-2.6.5-.7 1.6 1.5 2.2-2.4 2.4-2.2-1.5-1.6.7-.5 2.6h-3.4l-.5-2.6-1.6-.7-2.2 1.5-2.4-2.4 1.5-2.2-.7-1.6L2 13.7v-3.4l2.6-.5.7-1.6-1.5-2.2 2.4-2.4 2.2 1.5 1.6-.7zM12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/></svg>';
-// 设置：顶栏只有一个齿轮（docs/ui.md 第 8 节；0.47.1 起出牌速度也收进来，360 宽顶栏不再挤），点开小面板，再点或点别处收起
+// 设置：顶栏只有一个齿轮（docs/ui.md 第 8 节；出牌速度也在里面，360 宽顶栏放不下单独的按钮），点开小面板，再点或点别处收起
 const soundBtn = button('icon gear', topbar, '', () => {
   volBox.hidden = !volBox.hidden;
   // 弹幕开关的字跟着这一桌的互动组件（开局才有）
@@ -62,7 +62,7 @@ const group = (title: string): HTMLElement => {
 const gVol = group('音量');
 const gAmb = group('茶馆声');
 const gSpeed = group('电脑出牌');
-const gHint = group('提示');
+const gHint = group('提示和互动');
 const volRange = el('input', '', gVol) as HTMLInputElement;
 volRange.type = 'range';
 volRange.min = '0';
@@ -127,7 +127,7 @@ const funBtn = button('act soft', gHint, '', () => {
   if (funOff()) session.fun?.closeAll();
   paintTop();
 });
-// 聊天的开关（0.19.0 好友房，0.19.2 起单机也有，0.21.0 起三档轮着切）：对局里出现。
+// 聊天的开关（好友房和单机都有，三档轮着切）：对局里出现。
 // 不看：别人说的不显示，自己还能说；不和陌生人：只管快速匹配的桌，下次进匹配桌起不收也不能说
 const CHAT_NEXT: Record<ChatMode, ChatMode> = { on: 'stranger', stranger: 'off', off: 'on' };
 const CHAT_LABEL: Record<ChatMode, string> = { on: '聊天：开', stranger: '聊天：不和陌生人', off: '聊天：不看' };
@@ -135,7 +135,7 @@ const chatBtn = button('act soft', gHint, '', () => {
   setChatMode(CHAT_NEXT[chatMode()]);
   paintTop();
 });
-// 弹幕（kit 0.19.0）：和 kit 聊天框、面板里的"弹幕"同一份开关（存在 mahjong.chat）；对局里才有
+// 弹幕：和 kit 聊天框、面板里的"弹幕"同一份开关（存在 mahjong.chat）；对局里才有
 const danBtn = button('act soft', gHint, '', () => {
   session.fun?.setDanmaku(!session.fun.danmaku());
   paintTop();
@@ -155,6 +155,20 @@ button('act soft reset', volBox, '恢复默认', () => {
   play('button');
   paintTop();
 });
+/**
+ * Esc 在页面上：设置面板开着就关面板，主页的子页（选桌、何切、速判、擂台）就回主页，和点「‹ 主页」一样。
+ * 挂在 window 上，排在弹窗（dialog.ts）和牌桌的键盘处理后面：那边处理过（preventDefault）或还有弹窗时不管
+ */
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.repeat) return;
+  if (!volBox.hidden) {
+    volBox.hidden = true;
+    soundBtn.focus({ preventScroll: true });
+    return;
+  }
+  if (document.querySelector('.mask:not(.closing)')) return;
+  screen.querySelector<HTMLButtonElement>(':scope > .pill.back, .ld-back, .hk-back, .td-back')?.click();
+});
 document.addEventListener('pointerdown', (e) => {
   if (!volBox.hidden && !volBox.contains(e.target as Node) && e.target !== soundBtn) volBox.hidden = true;
 });
@@ -162,16 +176,22 @@ button('icon', topbar, '规则', () => showRules(stage, undefined, rulesVariant(
 const shareBtn = button('pill share', topbar, '叫朋友', () => share());
 const leaveBtn = button('pill leave', topbar, '离开', () => void leave());
 export const screen = el('div', 'screen', stage);
+
+/** 顶栏连同它按钮的隐形点按区（buttons.css：从顶栏顶往下撑满 --tap，屏幕上 44）：交给 kit 让开，头像热区、气泡不压「离开」「规则」的下半截 */
+export function topbarTapRect(): DOMRect {
+  const r = topbar.getBoundingClientRect();
+  return new DOMRect(r.left, r.top, r.width, Math.max(r.height, 44));
+}
 watchScreen(screen);
 
 /** 顶栏、声音面板里各按钮的字和显隐，跟着现在在打单机、好友房还是没开局 */
 export function paintTop(): void {
-  // 写的是现在的速度（以前常速时写"慢"，像是在说电脑慢）
+  // 写的是现在的速度
   speedBtn.textContent = prefs.fast ? '速度：快' : '速度：常速';
   setCutinFast(prefs.fast);
   soundBtn.classList.toggle('muted', !(live.sound && prefs.volume > 0));
   muteBtn.textContent = live.sound ? '静音' : '开声';
-  funBtn.textContent = funOff() ? '互动：不看' : '互动：开';
+  funBtn.textContent = funOff() ? '表情道具：不看' : '表情道具：显示';
   ambBtn.textContent = prefs.ambience ? '茶馆声：开' : '茶馆声：关';
   safeBtn.textContent = prefs.safeHint ? '安全牌提示：开' : '安全牌提示：关';
   safeBtn.hidden = !session.table?.root.classList.contains('rc');
@@ -181,10 +201,12 @@ export function paintTop(): void {
   chatBtn.hidden = !session.online && !session.solo;
   danBtn.textContent = session.fun?.danmaku() ? '弹幕：开' : '弹幕：关';
   danBtn.hidden = !session.fun;
-  leaveBtn.hidden = !session.solo && !session.online;
+  // 等人页自己有「叫朋友来」「离开房间」，顶栏不再摆一套
+  const waiting = session.online?.state.room?.status === 'waiting';
+  leaveBtn.hidden = (!session.solo && !session.online) || waiting;
   gSpeed.hidden = !session.solo;
   // 匹配桌只有排进来的人能进，不摆"叫朋友"
-  shareBtn.hidden = !session.online || session.online.state.room?.status === 'over' || inMatch();
+  shareBtn.hidden = !session.online || session.online.state.room?.status === 'over' || waiting || inMatch();
 }
 
 let toastTimer = 0;

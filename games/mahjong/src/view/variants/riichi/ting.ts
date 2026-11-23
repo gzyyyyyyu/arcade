@@ -11,7 +11,7 @@ export interface Wait {
   left: number;
 }
 
-/** 桌上亮出来的牌：被拿走的河牌已经算在副露、和牌里了 */
+/** 桌上亮出来的牌：被拿走的河牌已经算在副露、胡牌里了 */
 export function visibleCounts(v: RcView): number[] {
   const c = new Array<number>(34).fill(0);
   for (const s of v.seats) {

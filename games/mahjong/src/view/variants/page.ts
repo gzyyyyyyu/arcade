@@ -70,7 +70,7 @@ export interface GuideSpec {
 
 /** 一步里的名场面（挂横幅、记进这一场、单机里让电脑起哄） */
 export interface Moments {
-  /** 这一步里和了几手（横幅等和牌的牌面放完再挂） */
+  /** 这一步里胡了几手（横幅等胡牌的牌面放完再挂） */
   hus: number;
   found: Highlight[];
   fun(): FunMoment[];
@@ -125,7 +125,7 @@ export interface VariantPage {
   verdictWhy?(v: AnyView, seat: number, names: string[]): string | null;
   /** 单机：一局打完到弹结算停多久（毫秒，未乘速度） */
   soloEndMs(v: AnyView): number;
-  /** 好友房：一局打完先摆多久和牌亮牌再盖结算（毫秒，未乘速度）；0 是马上弹 */
+  /** 好友房：一局打完先摆多久胡牌亮牌再盖结算（毫秒，未乘速度）；0 是马上弹 */
   roomEndMs(v: AnyView): number;
   /** 颁奖用的公开小计（每家的视图小计 → 胡、自摸、杠） */
   tally(v: AnyView): PublicTally[];

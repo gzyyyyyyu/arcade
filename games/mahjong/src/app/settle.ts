@@ -23,7 +23,7 @@ export function settle(box: HTMLElement, summary: HTMLElement): void {
  * 一场打完的结算正文：一场的名次和最后一局的明细，between 是夹在两者之间、要第一页就看到的（每日成绩、擂台结果）。
  * 打了好几局：名次在前（打开就看到一场的输赢），明细在后，放不下翻到下一页。
  * 只打了一局（快速一局、实盘一局一结）：名次就是这一局的输赢，明细（谁胡了什么、番型、亮出来的牌）放前面，
- * 不然第一页只有名次加自己那一行，赢家的牌要翻页才看得到（11-20 试玩）。返回是不是只打了一局，只打一局时不用 showMine 翻页。
+ * 不然第一页只有名次加自己那一行，赢家的牌要翻页才看得到。返回是不是只打了一局，只打一局时不用 showMine 翻页。
  */
 export function matchBody(body: HTMLElement, rounds: number, ranking: HTMLElement, round: HTMLElement, between: () => void = () => {}): boolean {
   const single = rounds <= 1;

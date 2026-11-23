@@ -79,7 +79,7 @@ export interface VariantUi<V extends TableView, A> {
   // 下面几个可选：玩法想改牌桌默认画法时才给（川麻都不用）
   /** 名牌上的数，默认是筹码；日麻是点数 */
   score?(v: V, seat: number): string;
-  /** 和了的人名牌上盖的章，默认自摸写"自摸"、点炮写"胡"；日麻写"荣和" */
+  /** 胡了的人名牌上盖的章，默认自摸写"自摸"、点炮写"胡"；日麻写"胡" */
   stamp?(v: V, seat: number): string;
   /** 名牌画完以后再补东西（日麻：立直棒） */
   badge?(v: V, seat: number, badge: HTMLElement): void;
@@ -148,12 +148,11 @@ const DRAG_OUT = 40;
 /** 手指动了这么多才算拖，不然还是点 */
 const DRAG_START = 8;
 /**
- * 打出的牌飞进河里多久（0.16.2 起加快，原来手感慢）：自己的 120 毫秒（以前 300），别人的 200（以前 340），牌在 72% 处落桌。
+ * 打出的牌飞进河里多久：自己的 220 毫秒、别人的 320，落桌前先压一下再弹（太快没有分量），牌在 72% 处落桌。
  * 落桌声按它们算（玩法的 ui.ts），只是画面，不改计时和规则
  */
 /** 开局发牌过场的总长（4 批 × 200 毫秒错开 + 每张 300 毫秒），不超过 1 秒（再长开局就拖） */
 const DEAL_MS = 900;
-// 11-20 放慢（所有者：一闪而过没有分量）：自己的 120 → 220、别人的 200 → 320，落桌前先压一下再弹
 const FLY_MS = { me: 220, other: 320 } as const;
 /** 落到桌上的那一刻（飞行动画 72% 处）：玩法在这时补一声落桌 */
 export const landAt = (mine: boolean): number => Math.round((mine ? FLY_MS.me : FLY_MS.other) * 0.72);
@@ -182,6 +181,8 @@ export class TableUi<V extends TableView, A> {
   private fxLayer: HTMLElement;
   private frame: Frame<V> | null = null;
   private selected: Tile[] = [];
+  /** 正拖着的那张牌弹回原位（没在拖时为空）；Esc、右键、点手牌外面都走 cancelPick */
+  private dragBack: (() => void) | null = null;
   /** 电脑上鼠标停在哪张牌上（只管看听牌，不算选中） */
   private hover: Tile | null = null;
   private hoverDraw = 0;
@@ -227,6 +228,24 @@ export class TableUi<V extends TableView, A> {
     this.fxLayer = el('div', 'fx', this.root);
     devCutin(this.fxLayer, this.root);
     document.addEventListener('keydown', this.onKey);
+    // 取消一律三种手势：Esc（onKey）、右键、点手牌和操作条以外的地方
+    this.root.addEventListener('contextmenu', (e) => {
+      if (this.cancelPick()) e.preventDefault();
+    });
+    this.root.addEventListener('pointerdown', (e) => {
+      if (!(e.target as Element).closest('.my-hand, .bar')) this.cancelPick();
+    });
+  }
+
+  /** 放下选中的牌、拖着的牌弹回去；真放下了什么才返回 true（右键没东西可放时照常弹浏览器菜单） */
+  private cancelPick(): boolean {
+    const dragging = this.dragBack;
+    if (dragging) dragging();
+    if (!this.selected.length) return !!dragging;
+    this.selected = [];
+    this.drawHand();
+    this.drawBar();
+    return true;
   }
 
   /** 开关推荐出牌（单机按档位和设置开，好友房、匹配桌从不开）；开着的时候马上把手牌重画一遍 */
@@ -237,7 +256,7 @@ export class TableUi<V extends TableView, A> {
   }
 
   /**
-   * 电脑上用键盘打（0.16.2）：← → 选牌，回车、空格、↑ 打出，Esc 放下；吃碰杠胡过：H 胡（自摸）、C 吃（立直）、P 碰、G 杠、X 过。
+   * 电脑上用键盘打：← → 选牌，回车、空格、↑ 打出，Esc 放下；吃碰杠胡过：H 胡（自摸）、C 吃（立直）、P 碰、G 杠、X 过。
    * 只在牌桌还在页面上、没有弹窗、焦点不在输入框时管；牌桌换掉了就自己摘掉
    */
   private readonly onKey = (e: KeyboardEvent): void => {
@@ -269,11 +288,7 @@ export class TableUi<V extends TableView, A> {
     } else if ((key === 'enter' || key === ' ' || key === 'arrowup') && at >= 0) {
       e.preventDefault();
       can[at]!.click();
-    } else if (key === 'escape' && this.selected.length) {
-      this.selected = [];
-      this.drawHand();
-      this.drawBar();
-    }
+    } else if (key === 'escape') this.cancelPick();
   };
 
   get me(): number {
@@ -323,14 +338,14 @@ export class TableUi<V extends TableView, A> {
 
   /**
    * 互动的菜单、面板、气泡尽量不盖的：自己的手牌和操作条，加三家的手牌和碰杠
-   * （竖屏上面两家的气泡往下冒，盖住对家大半排手牌，0.47.1 Gemini 审查 port360）
+   * （竖屏上面两家的气泡往下冒，盖住对家大半排手牌，port360）
    */
   avoidRects(): DOMRect[] {
     const opp = this.hands.slice(1).map((h) => h.parentElement!);
     return [this.myHand, this.bar, ...opp].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
   }
 
-  /** 名牌旁的小签（川麻：缺门、托管）：kit 0.20.1 的 marks，首次提示和气泡硬避开 */
+  /** 名牌旁的小签（川麻：缺门、托管）：kit 的 marks，首次提示和气泡硬避开 */
   marks(seat: number): DOMRect[] {
     return [...this.badges[this.rel(seat)]!.querySelectorAll('.tags > *')].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
   }
@@ -340,7 +355,7 @@ export class TableUi<V extends TableView, A> {
     return this.myHand.getBoundingClientRect();
   }
 
-  /** 名牌（头像、名字、筹码、缺门和状态签整块，kit 0.19.0 的 plate）：气泡、弹幕、聊天按钮都避开，自己的气泡不盖自己的筹码数 */
+  /** 名牌（头像、名字、筹码、缺门和状态签整块）：气泡、弹幕、聊天按钮都避开，自己的气泡不盖自己的筹码数 */
   plateRect(seat: number): DOMRect {
     const b = this.badges[this.rel(seat)]!;
     const r = b.getBoundingClientRect();
@@ -364,15 +379,15 @@ export class TableUi<V extends TableView, A> {
     return b;
   }
 
-  /** 牌桌中间的信息区（kit 0.19.0 的 center）：中控盘（剩余张数、局数）和四家的弃牌区；弹幕不横穿、聊天框和气泡不压 */
+  /** 牌桌中间的信息区：中控盘（剩余张数、局数）和四家的弃牌区；弹幕不横穿、聊天框和气泡不压 */
   centerRects(): DOMRect[] {
     return [this.center, ...this.rivers].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0);
   }
 
   /**
-   * 电脑版聊天框（kit 0.19.0 的 chatDock，横屏才有）：左上那家名牌下面、左家竖排手牌右边，弃牌区上面那块空呢子；
+   * 电脑版聊天框（kit 的 chatDock，横屏才有）：左上那家名牌下面、左家竖排手牌右边，弃牌区上面那块空呢子；
    * kit 自己挑角会放到左下，压住我的头像和筹码。右边界取中控盘和左家牌河里靠左的那个：
-   * 立直的左家牌河在中控盘左边（10-27 详测 1280 宽时聊天框压住了它）
+   * 立直的左家牌河在中控盘左边（1280 宽时聊天框会压住它）
    */
   chatDock(): DOMRect | null {
     if (this.root.closest<HTMLElement>('[data-orient]')?.dataset.orient !== 'land') return null;
@@ -477,6 +492,8 @@ export class TableUi<V extends TableView, A> {
       const r = this.rel(seat);
       // 大字放在这个人的牌河那边（画面坐标，舞台没缩放前的像素）
       const box = this.rivers[r]!;
+      // 自己胡：手机上两短一长震一下，和过场条的屏幕抖动同一刻（只有支持振动的设备有）
+      if (r === 0) navigator.vibrate?.([40, 50, 90]);
       showCutin(this.fxLayer, { kind, text, rel: r, avatar: this.avatarEl(seat)?.firstElementChild ?? null, shake: this.root, streak });
       // 大字由过场条出，这里只撒粒子（连胡按档加倍）
       celebrate(this.fxLayer, box.offsetLeft + box.offsetWidth / 2, box.offsetTop + box.offsetHeight / 2, text, kind, false, streak ? streakParticles(streak) : 1);
@@ -594,7 +611,7 @@ export class TableUi<V extends TableView, A> {
 
   /** 打出的牌飞进河里：自己的从手里那张的位置，别人的从他的手牌那边 */
   /**
-   * 开局发牌（docs/art.md，0.17.4）：我的手牌从中控盘飞到手里，四张一批、四批（4-4-4-1），别家的牌背跟着一批批亮出来；
+   * 开局发牌（docs/art.md）：我的手牌从中控盘飞到手里，四张一批、四批（4-4-4-1），别家的牌背跟着一批批亮出来；
    * 一共 0.9 秒，点一下桌面全部放完。只是画面：牌早就在 DOM 里、能点，不挡换三张；减少动态效果时不放。
    * 牌桌每来一个视图整桌重画（换三张时电脑几毫秒就选好，紧接着就是下一帧），所以记下开始的时刻，
    * 这 0.9 秒里每次重画都给新画的牌接着放（负的延迟 = 从中间接上）
@@ -788,6 +805,18 @@ export class TableUi<V extends TableView, A> {
       const y0 = d.clientY;
       let moved = false;
       e.setPointerCapture(d.pointerId);
+      const stop = (): void => {
+        e.removeEventListener('pointermove', move);
+        e.removeEventListener('pointerup', up);
+        e.removeEventListener('pointercancel', up);
+        this.dragBack = null;
+      };
+      const back = (): void => {
+        stop();
+        if (moved) e.dataset.dragged = '1';
+        e.classList.remove('drag', 'out');
+        e.style.transform = '';
+      };
       const move = (m: PointerEvent): void => {
         const dx = m.clientX - x0;
         const dy = Math.min(0, m.clientY - y0);
@@ -798,19 +827,17 @@ export class TableUi<V extends TableView, A> {
         e.style.transform = `translate(${dx}px, ${dy}px)`;
       };
       const up = (u: PointerEvent): void => {
-        e.removeEventListener('pointermove', move);
-        e.removeEventListener('pointerup', up);
-        e.removeEventListener('pointercancel', up);
-        if (!moved) return;
+        if (!moved) return stop();
         // 拖过以后浏览器还会补一个 click，别让它再当成"点一下"
-        e.dataset.dragged = '1';
         if (u.type === 'pointerup' && u.clientY - y0 < -DRAG_OUT) {
+          stop();
+          e.dataset.dragged = '1';
           this.discard(t, e);
           return;
         }
-        e.classList.remove('drag', 'out');
-        e.style.transform = '';
+        back();
       };
+      this.dragBack = back;
       e.addEventListener('pointermove', move);
       e.addEventListener('pointerup', up);
       e.addEventListener('pointercancel', up);
@@ -887,7 +914,7 @@ export class TableUi<V extends TableView, A> {
     }
     if (!p) {
       if (v.claim && v.me && v.claim.from !== v.me.seat) {
-        // 自己点过了（胡、碰、过）也要说一声：好友房里别家还能想几秒，按钮一收什么都不说，像没点上（11-02 试玩，三人局点胡后干等两秒）
+        // 自己点过了（胡、碰、过）也要说一声：好友房里别家还能想几秒，按钮一收什么都不说，像没点上（三人局点胡后会干等两秒）
         el('div', 'hint', bar, v.claim.answered ? '选好了，等别家决定…' : '等别人想一想…');
       }
       return;
@@ -912,7 +939,7 @@ export class TableUi<V extends TableView, A> {
     }
     if (!p.discard) return;
     const after = look.length ? this.tingMemo(v, look[0]!) : null;
-    if (after) this.drawTing(bar, after, '打了听');
+    if (after) this.drawTing(bar, after, '打这张听');
     else {
       // 没话说就不放提示条（空的提示条会剩一块深色底）
       const hint = this.selected.length ? '再点一下打出' : p.zimo || p.kan || !showPlayHint() ? '' : '点两下或往上拖打出';
@@ -929,10 +956,10 @@ export class TableUi<V extends TableView, A> {
       sum += w.left;
       const k = el('span', w.left ? 'k' : 'k none', box);
       this.tile(tileOf(w.kind, 0), 'xs', k);
-      el('small', '', k, `${w.left}`);
+      el('small', '', k, `${w.left}`).title = `还剩 ${w.left} 张`;
     }
-    // 只听一种时牌下的小数字就是总数，不再重复写「剩 N 张」（0.47.1 走查）
-    if (ws.length > 1 || !sum) el('span', 'sum', box, sum ? `剩 ${sum} 张` : '都没了');
+    // 只听一种时牌下的小数字就是总数，不再重复写「剩 N 张」
+    if (ws.length > 1 || !sum) el('span', 'sum', box, sum ? `共剩 ${sum} 张` : '都没了');
   }
 
   // ---------- 倒计时 ----------

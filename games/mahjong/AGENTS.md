@@ -15,7 +15,7 @@
 - 只搬代码、不该改行为的重构（拆文件、改名、挪函数）动了 `src/core/` 或 `src/ai/`：前后各跑 `node scripts/fingerprint.ts 40`，每一行都要逐位相同。
 - 改了牌桌布局，跑 `node scripts/capture.ts land|port 40` 看截图和"压住了"的报告（DESIGN.md 第 7 节）。
 - 筹码：钱包是平台的（服务绑定 `WALLET`，`props.game = "mahjong"`）；不能买、不能兑换、不能转让，界面写明"无任何现金价值"。
-  显示钱包、平台的错误一律按 `docs/platform-backend.md` 15.10 的对照表说人话（`src/view/text.ts`）。
+  显示钱包、平台的错误一律按 `docs/api.md` 15.10 的对照表说人话（`src/view/text.ts`）。
 - `wrangler.jsonc` 是能单独部署的独立配置：不写平台绑定（`ARCADE`、`WALLET`）和 `GATE`，本站部署时由仓库的部署工具补上（README 的部署两节）。
   没有平台时 Worker 认游客、实盘回 `no_wallet`，页面按 `detectPlatform()` 藏起钱包和实盘；`test/worker/standalone.test.ts` 覆盖。
 - 快速匹配（档位、排队、三人桌，见 DESIGN.md 6.3）：改了档位、房间的 `options` 或座位数，`test/match-tier.test.ts` 的 `matchConfigErrors` 必须还是 `[]`；Worker 入口的具名导出只有 `MahjongRoom`、`RoomMeter`、`Queue`（`test/worker/match.test.ts` 守着）。

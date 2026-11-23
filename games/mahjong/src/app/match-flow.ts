@@ -1,5 +1,5 @@
 /**
- * 快速匹配（0.21.0，kit 0.20.0 的 MatchClient，设计在 kit 的 docs/match.md）：选桌页"快速匹配"按这一档排队，
+ * 快速匹配（kit 的 MatchClient，设计在 kit 的 docs/match.md）：选桌页"快速匹配"按这一档排队，
  * 一张卡写"已有几人、还剩几秒"；排到了照好友房进房（匹配桌）。
  */
 import { MATCH_TEXT, MatchClient, type MatchSoloWhy } from 'arcade-kit/client';
