@@ -81,7 +81,7 @@
 - **危险 2 只按普通查 55–65%**（五个流派各算一格，流派之间差 ≤ 20 个点）；危险 4 普通 40–50%。
 - 帮小白靠危险 0 本身（怪少、怪弱、吸珠范围大、前几次升级先给法器）和"受伤补偿"：血低于四成时肉包掉率 ×3，补出来的肉包最多每 20 秒一个。
   规则确定、有上限，故意站着挨打不占便宜（机器人"站着挨打"的胜率远低于正常躲怪，有测试锁住）。不加"输了打折"之类的规则，也不换更聪明的机器人凑数。
-- 实盘四档固定危险档：小 = 危险 0、中 = 危险 2、大 = 危险 3、豪华 = 危险 4，期望照第 2 节两列；按撑到的时间沿一条曲线带回（小档 3 分钟、中档以上 2 分钟以前不回钱），撑到天亮按档带回、打倒尸王再多 0.2 份，最多 3 份（曲线和每档的倍数在 `games/yexun/src/content/live.ts`）。
+- 实盘四档固定危险档：小 = 危险 0、中 = 危险 2、大 = 危险 3、豪华 = 危险 4，期望照第 2 节两列；按撑到的时间沿一条曲线带回（小档 3 分钟、中档以上 2 分钟以前不回钱），撑到天亮按档带回、打倒尸王再多 0.2 份，最多 3 份；实盘连战只开小、中两档，按打倒几只带回（曲线、连战和每档的倍数在 `games/yexun/src/content/live.ts`）。
   实盘的期望不用第 2 节的表，用 4.4 的表。
 
 ### 4.4 夜巡是普通玩家每天拿筹码最有效的途径
@@ -122,4 +122,4 @@
 | 德州 | [games/texas/docs/ai.md](../games/texas/docs/ai.md) 4.10；单机锦标赛见 [tournament.md](../games/texas/docs/tournament.md) |
 | 雀馆 | [games/mahjong/docs/balance-results.md](../games/mahjong/docs/balance-results.md) |
 | 夜巡 | [games/yexun/docs/design-live.md](../games/yexun/docs/design-live.md)、[balance-live.md](../games/yexun/docs/balance-live.md) |
-| 海岛 | [games/haidao/DESIGN.md](../games/haidao/DESIGN.md) 第 4、7 节 |
+| 海岛 | [games/haidao/docs/design-live.md](../games/haidao/docs/design-live.md)（第 4 节实盘）、[DESIGN.md](../games/haidao/DESIGN.md) 第 7 节、[balance-haidao.md](../games/haidao/docs/balance-haidao.md) |
