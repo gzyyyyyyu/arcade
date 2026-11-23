@@ -103,7 +103,7 @@ export const TOP_ICONS = {
 };
 
 /** 牌桌状态条（setStatus）：圆角胶囊 */
-export const STATUS_PILL = { padX: 32, halfH: 16, h: 32, r: 16 };
+export const STATUS_PILL = { padX: 32, halfH: 16, h: 32, r: 16, /** 胶囊下沿离按钮行上沿留的空（以前写死在按钮中线上方 50，和 60 高的按钮只隔 4，手机上按钮更高就压上） */ gap: 10 };
 
 /** 出错提示浮在操作按钮上方多少 */
 export const ERROR_TOAST_DY = 92;
@@ -289,8 +289,6 @@ export const ACTION_ROW = {
   wideW: 240,
   wideH: 60,
   backDy: 104,
-  /** "轮到你"那行提示在按钮行上方多少 */
-  statusDy: 50,
 } as const;
 
 /** 牌桌互动（kit 的 TableFun）：按钮和各块避让区的尺寸、间距；手机上宽高另取 max(下面的值, minHit()) */
@@ -469,8 +467,7 @@ export const DDZ_BUTTONS = {
   backW: 240,
   backH: 60,
   backDy: 104,
-  /** 状态提示文字在按钮行上方多远；提示 toast 在按钮行上方多远 */
-  statusDy: 50,
+  /** 提示 toast 在按钮行上方多远 */
   toastDy: 92,
 } as const;
 
