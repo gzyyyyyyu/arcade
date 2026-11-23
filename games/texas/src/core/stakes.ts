@@ -25,17 +25,18 @@ export function stakesOf(id: StakesId): Stakes {
 }
 
 /**
- * 电脑的强弱档（docs/ai.md 4.7；按配平重调，4.10）：0 新手、1 小桌、2 中桌、3 大桌、4 豪华桌、5 最强（好友房）。
- * 功力（看人、诈唬、松紧、低档的"手软"）在 src/ai/personas.ts 的 SKILL；补位挑性格的权重在这里（顺序同 PERSONAS），5 按 STRONG 的顺序挑。
+ * 电脑的强弱档（docs/ai.md 4.7；按配平重调，4.10）：0 新手、1 小桌、2 中桌、3 大桌、4 豪华桌、5 最强（好友房）、6 娱乐高手（最强档再加 sharp，只给娱乐）。
+ * 功力（看人、诈唬、松紧、低档的"手软"）在 src/ai/personas.ts 的 SKILL；补位挑性格的权重在这里（顺序同 PERSONAS），5 按 STRONG 的顺序挑，6 和豪华桌一样按权重挑。
  * 档位定的是"这一档该多强"，场地（单机、好友房）再按档位挑强弱档：SOLO_LEVEL、ROOM_LEVEL
  */
-export const LEVELS = 6;
+export const LEVELS = 7;
 // 性格：稳哥、阿强、老好、慢慢、算盘、江湖、虎子、老鹰、熊猫哥、板凳儿
 export const LEVEL_HOUSE: readonly (readonly number[])[] = [
   [1, 1, 4, 3, 1, 2, 1, 1, 4, 5],
   [1, 2, 4, 4, 1, 2, 1, 1, 4, 4],
   [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
   [3, 2, 1, 1, 3, 2, 3, 3, 1, 1],
+  [4, 3, 1, 1, 4, 2, 3, 4, 1, 1],
   [4, 3, 1, 1, 4, 2, 3, 4, 1, 1],
   [4, 3, 1, 1, 4, 2, 3, 4, 1, 1],
 ];
@@ -68,10 +69,10 @@ export const ROOM_LEVEL: Readonly<Record<StakesId, number>> = { small: 5, mid: 5
 export type Difficulty = 'easy' | 'normal' | 'hard';
 export const DIFFICULTIES: readonly Difficulty[] = ['easy', 'normal', 'hard'];
 export const FUN_STAKES: StakesId = 'small';
-export const FUN_LEVEL: Readonly<Record<Difficulty, number>> = { easy: 0, normal: 2, hard: 4 };
+export const FUN_LEVEL: Readonly<Record<Difficulty, number>> = { easy: 0, normal: 2, hard: 6 };
 export const DIFFICULTY_NAME: Readonly<Record<Difficulty, string>> = { easy: '新手', normal: '普通', hard: '高手' };
-/** 牌桌记着的强弱档是哪个娱乐难度（旧娱乐桌没记，回 null） */
-export const difficultyOf = (level: number | undefined): Difficulty | null => DIFFICULTIES.find((d) => FUN_LEVEL[d] === level) ?? null;
+/** 牌桌记着的强弱档是哪个娱乐难度（旧娱乐桌没记，回 null）。0.43.0 以前的高手娱乐桌记的是 4，续打照 4 打，难度照样算高手 */
+export const difficultyOf = (level: number | undefined): Difficulty | null => (level === 4 ? 'hard' : (DIFFICULTIES.find((d) => FUN_LEVEL[d] === level) ?? null));
 
 /** 配平和选档页按"一场"算（仓库根 docs/balance.md 第 2、3 节）：打这么多手，真人速度约 15–25 分钟（docs/ai.md 4.10） */
 export const SESSION_HANDS = 40;

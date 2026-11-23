@@ -197,7 +197,7 @@ export class ActionBar {
       this.odds.innerHTML =
         eq === null
           ? `${head}<span class="need">胜率要过 ${need}% 才划算</span>`
-          : `${head}<span class="hint ${eq >= need ? 'ok' : 'bad'}">胜率约 <b>${eq}%</b><span class="h-need"> · 要过 ${need}%</span> · ${eq >= need ? '划算' : '不太划算'}</span>`;
+          : `${head}<span class="hint ${eq >= need ? 'ok' : 'bad'}">胜率约 <b>${eq}%</b><span class="h-need"> · 要过 ${need}%</span><span class="h-say"> · ${eq >= need ? '划算' : '不太划算'}</span></span>`;
     }
     // 一键下注：每个按钮写上会下到多少；和最小加注、全下一样多的不重复给
     toggle(this.quick, 'hidden', !lg.raise);

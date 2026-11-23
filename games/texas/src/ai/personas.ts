@@ -105,6 +105,15 @@ export const PERSONAS: readonly Persona[] = SEATS.map(([id, play]) => {
 });
 
 /**
+ * 只在娱乐高手（第 6 档，功力的 sharp）换的打法：熊猫哥照名册的性格贪大，翻牌前加得大、翻牌后下得重、河牌大牌敢推，
+ * 不再软跟。实盘各档不用（期望不动）
+ */
+const SHARP_PLAY: Readonly<Record<string, Partial<Play>>> = {
+  xiongmao: { call: 1200, size: 800, openX: 1150, threebet: 80, shove: 80, barrel: 220 },
+};
+export const PERSONAS_SHARP: readonly Persona[] = PERSONAS.map((p) => ({ ...p, ...SHARP_PLAY[p.id] }));
+
+/**
  * 电脑的"功力"，按强弱档（按档，原来按档位，docs/ai.md 4.3、4.7）：同一种性格，低档松、软、不太会看人（0 新手档只给娱乐），越往上越紧、越凶、越会按对手的动作猜他的牌。
  * 电脑从 View.level 知道是哪一档；场地按档位挑档（stakes.ts 的 SOLO_LEVEL、ROOM_LEVEL），补位时各档挑哪些性格多一些见 stakes.ts 的 LEVEL_HOUSE。
  */
@@ -158,16 +167,22 @@ export interface Skill {
   adapt: number;
   /** 按筹码深浅打：剩的不到 SHORT_BB 个大盲翻牌前只推或弃，很深时多看便宜的翻牌。第 0–3 档不会 */
   depth: boolean;
+  /**
+   * 娱乐高手（只第 6 档）：人人按满成看人，对跟注站几乎不诈唬、薄打放得更宽；河牌先下注两极（大牌、空气下约四分之三池，中等牌过牌）；
+   * 不犯性格的小错；性格按 PERSONAS_SHARP。第 0–5 档是 false，走原来的路、抽的随机数一个不变（实盘期望不动）
+   */
+  sharp: boolean;
 }
 
-const LUX: Skill = { read: 240, pre: 215, raiser: 30, caller: 55, limper: 80, slack: -5, bluff: 800, tight: 40, soft: 0, slip: 0, value: 1000, third: 0, passive: 0, shy: 0, memory: 250, style: 1000, adapt: 1000, depth: true };
+const LUX: Skill = { read: 240, pre: 215, raiser: 30, caller: 55, limper: 80, slack: -5, bluff: 800, tight: 40, soft: 0, slip: 0, value: 1000, third: 0, passive: 0, shy: 0, memory: 250, style: 1000, adapt: 1000, depth: true, sharp: false };
 
-/** 下标是强弱档：0 新手、1 小桌、2 中桌、3 大桌、4 豪华桌、5 最强（功力同豪华桌，性格按 STRONG 挑最强的） */
+/** 下标是强弱档：0 新手、1 小桌、2 中桌、3 大桌、4 豪华桌、5 最强（功力同豪华桌，性格按 STRONG 挑最强的）、6 娱乐高手（最强档再加 sharp） */
 export const SKILL: readonly Skill[] = [
-  { read: 600, pre: 600, raiser: 100, caller: 100, limper: 100, slack: 150, bluff: 100, tight: -250, soft: 1000, slip: 400, value: 300, third: 1000, passive: 950, shy: 800, memory: 0, style: 300, adapt: 0, depth: false },
-  { read: 550, pre: 500, raiser: 100, caller: 100, limper: 100, slack: 120, bluff: 120, tight: -220, soft: 1000, slip: 350, value: 330, third: 1000, passive: 930, shy: 750, memory: 0, style: 600, adapt: 0, depth: false },
-  { read: 500, pre: 400, raiser: 100, caller: 100, limper: 100, slack: 40, bluff: 250, tight: -200, soft: 1000, slip: 340, value: 340, third: 1000, passive: 900, shy: 700, memory: 0, style: 500, adapt: 0, depth: false },
-  { read: 420, pre: 300, raiser: 100, caller: 100, limper: 100, slack: 30, bluff: 500, tight: -150, soft: 800, slip: 250, value: 500, third: 800, passive: 700, shy: 450, memory: 0, style: 550, adapt: 0, depth: false },
+  { read: 600, pre: 600, raiser: 100, caller: 100, limper: 100, slack: 150, bluff: 100, tight: -250, soft: 1000, slip: 400, value: 300, third: 1000, passive: 950, shy: 800, memory: 0, style: 300, adapt: 0, depth: false, sharp: false },
+  { read: 550, pre: 500, raiser: 100, caller: 100, limper: 100, slack: 120, bluff: 120, tight: -220, soft: 1000, slip: 350, value: 330, third: 1000, passive: 930, shy: 750, memory: 0, style: 600, adapt: 0, depth: false, sharp: false },
+  { read: 500, pre: 400, raiser: 100, caller: 100, limper: 100, slack: 40, bluff: 250, tight: -200, soft: 1000, slip: 340, value: 340, third: 1000, passive: 900, shy: 700, memory: 0, style: 500, adapt: 0, depth: false, sharp: false },
+  { read: 420, pre: 300, raiser: 100, caller: 100, limper: 100, slack: 30, bluff: 500, tight: -150, soft: 800, slip: 250, value: 500, third: 800, passive: 700, shy: 450, memory: 0, style: 550, adapt: 0, depth: false, sharp: false },
   { ...LUX, value: 900, passive: 150, shy: 150 },
   LUX,
+  { ...LUX, read: 200, pre: 190, memory: 400, sharp: true },
 ];

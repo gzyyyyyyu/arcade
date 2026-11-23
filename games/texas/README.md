@@ -61,7 +61,7 @@ npm run test:unit     # 只跑 vitest 单元测试（不含类型检查和 worke
 npm test              # 类型检查 + vitest（含全量 1.34 亿手的牌力测试、机器人对打 1 万手）+ workerd 里的 Worker 和好友房测试
 npm run test:worker   # 只跑 workerd 里的那部分：test/worker/（配置 test/wrangler.test.jsonc，平台和平台钱包用假的服务绑定，钱包是 arcade-kit/testing）
                       # 和 test/standalone/（单独部署，配置 test/wrangler.standalone.jsonc，没有平台）
-npm run sim [手数] [档位] [--size=2–9] [--level=0–5] [--mix-only] [--no-form]  # 性格混桌对打，打印每种性格每百手的输赢、风格（VPIP/PFR/AF/诈唬率/慢打/下注大小）和各热点的耗时；--level 钉死强弱档，--no-form 去掉每场的状态
+npm run sim [手数] [档位] [--size=2–9] [--level=0–6] [--mix-only] [--no-form]  # 性格混桌对打，打印每种性格每百手的输赢、风格（VPIP/PFR/AF/诈唬率/慢打/下注大小）和各热点的耗时；--level 钉死强弱档，--no-form 去掉每场的状态
 npm run vs -- [每格场数] [档位,...] [策略,...]                     # 每档 × 每种策略一个玩家对电脑，打印每百手大盲（等同 npm run sim -- --vs）
 npm run balance -- [每格场数]                                     # 配平（docs/ai.md 4.10，等同 npm run sim -- --balance）
 npm run tour-sim -- <场数> [--format sng|turbo|nine]              # 锦标赛模拟：平均手数、各座位名次是否均匀（docs/tournament.md）

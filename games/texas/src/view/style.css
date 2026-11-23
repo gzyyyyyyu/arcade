@@ -79,6 +79,10 @@
   /* 一键下注四个折成两行会把整块顶到右边座位的下注上：收起"⅔池"（加注面板里照样能下任意数），三个一行 */
   .stage.tight .actions .qbet[data-frac^="0.66"] { display: none; }
 }
+/* 最窄的横屏（568×320）赔率条还是压到我的第一张底牌（7 像素）："划算"两字也收起，够不够看颜色 */
+@media (orientation: landscape) and (max-height: 430px) and (max-width: 600px) {
+  .stage.tight .actions .odds .h-say { display: none; }
+}
 
 
 /* 页面级的元素规则只管德州自己的界面（#app 和挂在 body 上的指引层 .coach-layer）：kit 挂在 body 上的好友、分享面板用 kit 自己的样式。
@@ -186,6 +190,8 @@ body::before {
   padding: var(--s-1) var(--s-3);
   display: flex;
   align-items: center;
+  /* 320 宽舞台缩得小，按钮（屏幕上 34）比顶栏高：居中会往上伸出屏幕，safe 让多出来的只往下 */
+  align-items: safe center;
   /*
    * 触屏上每个按钮的可点范围撑到 --hit（button::before，44 个屏幕像素），所以看得见的按钮不小于 34 个屏幕像素，
    * 缝留到相邻两个可点范围之间 ≥ 8 个屏幕像素：缝 = 52 个屏幕像素 - 按钮宽（按钮窄于 --hit 才有外扩）
@@ -1287,7 +1293,7 @@ body::before {
 /* 右上角 ✕：看得见 32、点区按 --hit 外扩到 44（仓库根 docs/ui.md 第 2、5 节）；标题右边留出它的位置 */
 :where(#app, .coach-layer) .dialog { position: relative; }
 :where(#app, .coach-layer) .dialog:has(> .d-x) > .d-title { padding-right: 36px; }
-.d-x { position: absolute; top: var(--s-2); right: var(--s-2); width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 18px; font-weight: 700; line-height: 1; cursor: pointer; }
+.d-x { position: absolute; top: var(--s-2); right: var(--s-2); width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: max(18px, calc(14px * var(--ui))); font-weight: 700; line-height: 1; cursor: pointer; }
 .d-x::before { content: ''; position: absolute; inset: -6px; }
 .d-x:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .d-body { margin-top: var(--s-2); font-size: var(--fs-4); line-height: 1.6; color: var(--ink); }

@@ -284,7 +284,7 @@ const meanSe = (xs: number[]): [number, number, number] => {
 };
 
 /**
- * npm run sim -- --vs [每格场数] [档位,...] [策略,...] [--persona=编号] [--size=人数] [--humans=玩家数] [--level=0–5 | --room]
+ * npm run sim -- --vs [每格场数] [档位,...] [策略,...] [--persona=编号] [--size=人数] [--humans=玩家数] [--level=0–6 | --room]
  * --humans（好友房）：前几个座位都是玩家、打印他们合起来的输赢。
  * 电脑的强弱档：不给按单机的（SOLO_LEVEL），--room 按好友房的（ROOM_LEVEL），--level= 钉死一档（docs/ai.md 4.7、6.5）
  */
