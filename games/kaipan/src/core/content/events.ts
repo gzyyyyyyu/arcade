@@ -39,7 +39,7 @@ export function eventSlot(s: Readonly<GameState>): number {
 }
 
 /**
- * 0.20 新加的事件只在真实行情的非每日局进池：池子变了 rng.int(ready.length) 抽到的就变了。
+ * 新加的事件只在真实行情的非每日局进池：池子变了 rng.int(ready.length) 抽到的就变了。
  * 合成行情（离线兜底、replay-golden）会对不上旧回放；每日挑战会让上线前后打同一天的人不是同一局，榜没法比。
  */
 function realOnly(state: GameState): boolean {
@@ -65,7 +65,7 @@ function pctText(v: number): string {
 }
 
 /**
- * 0.36 消息面事件只在真实行情的普通局出现（同 isRegularRun：不是每日挑战、闪电盘、本周市场、实盘）：
+ * 消息面事件只在真实行情的普通局出现（同 isRegularRun：不是每日挑战、闪电盘、本周市场、实盘）：
  * 池子变了同种子抽到的事件就变了，排行榜和实盘期望要对得上。
  */
 function regularOnly(state: Readonly<GameState>): boolean {
@@ -102,7 +102,7 @@ function cashPrep(id: string) {
 
 const itemName = (id: string | undefined): string => ITEMS.find((d) => d.id === id)?.name ?? '？';
 
-export const NEWS_EVENTS: readonly EventDef[] = [
+const NEWS_EVENTS: readonly EventDef[] = [
   {
     id: 'policy_talk',
     name: '政策吹风会',
@@ -203,7 +203,7 @@ export const NEWS_EVENTS: readonly EventDef[] = [
 ];
 
 /**
- * 事件（0.3.0：15 个，前 6 个是 M0 的）：每月领完奖励后按概率触发一个，二选一，后果简单明确。数值在 BALANCE.fx[id]。
+ * 事件（15 个，前 6 个是 M0 的）：每月领完奖励后按概率触发一个，二选一，后果简单明确。数值在 BALANCE.fx[id]。
  * 全部虚构。延后结算的事件（借钱、摆摊、理财、量化软件续费）在 prepare 时要求 month + 2 ≤ 12。
  * 第 8 级"末日"：花费和损失 × badMult（EventCtx.addAccount 自动乘），概率类的坏结果由事件自己放大。
  */
@@ -221,7 +221,7 @@ export const EVENTS: readonly EventDef[] = [
       const memes = STOCKS.filter((d) => d.role === 'meme' && state.stocks[d.id] && !state.stocks[d.id]?.delisted && !held.has(d.id));
       if (memes.length === 0) return null;
       const good = rng.next() < fx('cousin', 'acc');
-      // 0.5 真实行情：表哥说中 = 这只接下来 3 天真的涨
+      // 真实行情：表哥说中 = 这只接下来 3 天真的涨
       const real = state.real;
       const fits = real
         ? memes.filter((d) => forwardRet(real, 'stock', d.id, state.dayIndex, 3) > 0 === good)
@@ -332,7 +332,6 @@ export const EVENTS: readonly EventDef[] = [
       return `年终奖到账 ${yuan(c.event.amount ?? 0)}。`;
     },
   },
-  // ---------------------------------------------------------------- 0.3.0 新增
   {
     id: 'landlord',
     name: '房东涨租',
@@ -414,7 +413,7 @@ export const EVENTS: readonly EventDef[] = [
       const pool = STOCKS.filter((d) => d.role === 'follower' && state.stocks[d.id] && !state.stocks[d.id]?.delisted && !held.has(d.id));
       if (pool.length === 0) return null;
       const random = pool[rng.int(pool.length)]?.id;
-      // 0.5 真实行情：猫有 BALANCE.intel.cat 的概率踩中接下来 2 天真实涨得最多的那只小弟
+      // 真实行情：猫有 BALANCE.intel.cat 的概率踩中接下来 2 天真实涨得最多的那只小弟
       const real = state.real;
       if (real && rng.next() < BALANCE.intel.cat) {
         let best = pool[0]?.id;
@@ -537,7 +536,7 @@ export const EVENTS: readonly EventDef[] = [
       return '三倍工资到账。下个交易日你在工位上，只能偷偷瞄一眼股价。';
     },
   },
-  // ---------------------------------------------------------------- 0.4 C：押跌、抵押（只在有新机制的局里出现）
+  // ---------------------------------------------------------------- 押跌、抵押（只在有新机制的局里出现）
   {
     id: 'bank_manager',
     name: '银行经理上门',
@@ -612,7 +611,7 @@ export const EVENTS: readonly EventDef[] = [
       return '爸妈沉默了一会儿："不着急还，利息就算了，你好好的就行。"';
     },
   },
-  // ---------------------------------------------------------------- 0.20：两个只在真实行情局里出现的事件（见 realOnly）
+  // ---------------------------------------------------------------- 两个只在真实行情局里出现的事件（见 realOnly）
   {
     id: 'salary_advance',
     name: '老板问要不要预支工资',
@@ -651,7 +650,7 @@ export const EVENTS: readonly EventDef[] = [
       return `一碟花生米聊到打烊，你学会了${ITEMS.find((d) => d.id === c.event.itemId)?.name ?? '一招'}。回家路上脑子还在嗡嗡响。`;
     },
   },
-  // ---------------------------------------------------------------- 0.28：两个同样只在真实行情局里出现的事件
+  // ---------------------------------------------------------------- 两个同样只在真实行情局里出现的事件
   {
     id: 'invest_group',
     name: '同事拉你进投资群',
@@ -691,7 +690,7 @@ export const EVENTS: readonly EventDef[] = [
       return `你买了一份，经理当场把抵扣券拍在桌上。下个月的账单会轻一些，这个月的钱少了 ${yuan(c.event.amount ?? 0)}。`;
     },
   },
-  // ---------------------------------------------------------------- 0.31：再两个只在真实行情局里出现的散户日常
+  // ---------------------------------------------------------------- 再两个只在真实行情局里出现的散户日常
   {
     id: 'show_off',
     name: '朋友圈晒收益',
@@ -724,18 +723,18 @@ export const EVENTS: readonly EventDef[] = [
       return `你排了三个钟头，领到一盒鸡蛋和一份礼包，折合 ${yuan(c.event.amount ?? 0)}。回到家天都黑了，行情没顾上看。`;
     },
   },
-  // ---------------------------------------------------------------- 0.36：消息面（政策、传闻、辟谣），只给情报或小钱，不改涨跌
+  // ---------------------------------------------------------------- 消息面（政策、传闻、辟谣），只给情报或小钱，不改涨跌
   ...NEWS_EVENTS,
 ];
 
-/** 0.5 事件卡上一个选项：≤8 字的按钮 + 一个大数字（代价或收益；tone 决定颜色）。 */
+/** 事件卡上一个选项：≤8 字的按钮 + 一个大数字（代价或收益；tone 决定颜色）。 */
 export interface EventPick {
   label: string;
   big?: string;
   tone?: 'gain' | 'cost' | 'plain';
 }
 
-/** 0.5 事件卡的短版：一行情景（≤20 字）+ 两个选项。长句（正文、选项原文）留在悬停详情里。 */
+/** 事件卡的短版：一行情景（≤20 字）+ 两个选项。长句（正文、选项原文）留在悬停详情里。 */
 export interface EventBrief {
   brief(e: Readonly<EventState>, s: Readonly<GameState>): string;
   picks(e: Readonly<EventState>, s: Readonly<GameState>): [EventPick, EventPick];

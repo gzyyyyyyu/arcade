@@ -22,7 +22,7 @@ interface RoomOpts {
 
 const MOODS: readonly Mood[] = ['bull', 'flat', 'bear'];
 
-/** 0.15.0 小屋的一天：盘前清晨、开盘白天、收盘傍晚、月底算账夜里（art-v3 第 5 节） */
+/** 小屋的一天：盘前清晨、开盘白天、收盘傍晚、月底算账夜里（art-v3 第 2 节） */
 export type RoomTime = 'morning' | 'day' | 'dusk' | 'night';
 const TIMES: readonly RoomTime[] = ['morning', 'day', 'dusk', 'night'];
 /** 每个时段一层整屏色调（盖在房间上、台灯和显示器光下面），台灯亮几分 */
@@ -76,7 +76,7 @@ export class Room {
   private readonly tint: Record<RoomTime, Phaser.GameObjects.Rectangle>;
   private readonly lamp: Phaser.GameObjects.Image | null;
   private time: RoomTime = 'day';
-  /** 0.17.0 开盘时灯一亮 */
+  /** 开盘时灯一亮 */
   private readonly flashRect: Phaser.GameObjects.Rectangle;
   private readonly haze: Phaser.GameObjects.Image | null;
   private readonly rain: Phaser.GameObjects.TileSprite | null;
@@ -114,7 +114,7 @@ export class Room {
     this.sky = { bull: layer('sky_bull'), flat: layer('sky_flat'), bear: layer('sky_bear') };
     layer('city');
     this.haze = layer('haze_bear');
-    // 0.5.1：窗外飘云（晴天白云、阴天灰云、雷雨天乌云），大涨日挂彩虹
+    // 窗外飘云（晴天白云、阴天灰云、雷雨天乌云），大涨日挂彩虹
     const [wx0, wy0, ww0] = WINDOW;
     this.rainbow = artRef(scene.textures, glyphKey('rainbow')) ? this.glyphImg('rainbow', wx0 + ww0 * 0.66, wy0 + 120, 210).setAlpha(0) : null;
     for (let i = 0; i < 3; i++) {
@@ -134,7 +134,7 @@ export class Room {
     }
     layer('wall');
     layer('desk');
-    // 0.15.0 铺满：安全区外的墙和桌（没加载到就露底色，和以前一样）
+    // 铺满：安全区外的墙和桌（没加载到就露底色）
     const strip = (name: string, x: number, y: number, w: number, h: number): void => {
       const ref = artRef(scene.textures, `scene:${name}`);
       if (ref) scene.add.image(x, y, ref.tex, ref.frame).setOrigin(0, 0).setDisplaySize(w, h);
@@ -213,7 +213,7 @@ export class Room {
   private rainbow: Phaser.GameObjects.Image | null = null;
   /** 手机横屏时房间的所有图层装在这里整体缩放 */
   private layer: Phaser.GameObjects.Container | null = null;
-  /** 0.19.0 手机世界宽 718–960：缩小后 960 宽的房间左右居中（窗户、台灯留在中间）；还没重排的场景是 960 宽，不挪 */
+  /** 手机世界宽 718–960：缩小后 960 宽的房间左右居中（窗户、台灯留在中间）；还没重排的场景是 960 宽，不挪 */
   private get ox(): number {
     return Math.round((viewOf(this.scene).w - 960) / 2);
   }
@@ -242,7 +242,7 @@ export class Room {
     const to = on ? 0.92 : 0;
     if (Math.abs(r.alpha - to) < 0.01) return;
     this.scene.tweens.killTweensOf(r);
-    if (this.opts.ambient) this.scene.tweens.add({ targets: r, alpha: to, duration: 900 });
+    if (this.opts.ambient) this.scene.tweens.add({ targets: r, alpha: to, ease: 'Sine.easeInOut', duration: 900 });
     else r.setAlpha(to);
   }
 
@@ -257,18 +257,18 @@ export class Room {
       for (let i = 0; i < n; i++) {
         const x = this.wx(300 + viewRandom() * 640);
         const c = this.glyphOr('fx:coin', x, -20, 22 + viewRandom() * 10).setDepth(140);
-        sc.tweens.add({ targets: c, y: this.wy(470 + viewRandom() * 90), angle: (viewRandom() - 0.5) * 360, delay: i * 70, duration: 700 + viewRandom() * 300, ease: 'Bounce.easeOut', onComplete: () => sc.tweens.add({ targets: c, alpha: 0, duration: 400, delay: 300, onComplete: () => c.destroy() }) });
+        sc.tweens.add({ targets: c, y: this.wy(470 + viewRandom() * 90), angle: (viewRandom() - 0.5) * 360, delay: i * 70, duration: 700 + viewRandom() * 300, ease: 'Bounce.easeOut', onComplete: () => sc.tweens.add({ targets: c, alpha: 0, ease: 'Sine.easeIn', duration: 400, delay: 300, onComplete: () => c.destroy() }) });
       }
       for (let i = 0; i < 6; i++) {
         const st = this.glyphImg('star', this.wx(340 + viewRandom() * 600), this.wy(80 + viewRandom() * 120), 20).setDepth(140).setAlpha(0);
-        sc.tweens.add({ targets: st, alpha: { from: 0, to: 1 }, scale: { from: st.scale * 0.4, to: st.scale * 1.2 }, yoyo: true, delay: 200 + i * 120, duration: 360, onComplete: () => st.destroy() });
+        sc.tweens.add({ targets: st, alpha: { from: 0, to: 1 }, scale: { from: st.scale * 0.4, to: st.scale * 1.2 }, yoyo: true, delay: 200 + i * 120, ease: 'Sine.easeInOut', duration: 360, onComplete: () => st.destroy() });
       }
     } else if (ret <= -0.3) {
       const [wx, wy, ww] = WINDOW;
       const cloud = this.glyphImg('storm', wx - 40, wy + 70, 120).setTint(0x8a8aa0).setAlpha(0).setDepth(2);
       // 窗外的乌云属于房间：手机上跟着房间一起缩放
       this.layer?.add(cloud);
-      sc.tweens.add({ targets: cloud, x: wx + ww * 0.55, alpha: { from: 0, to: 0.95 }, duration: 1200, ease: 'Sine.easeOut', onComplete: () => sc.tweens.add({ targets: cloud, alpha: 0, x: cloud.x + 80, duration: 1400, delay: 900, onComplete: () => cloud.destroy() }) });
+      sc.tweens.add({ targets: cloud, x: wx + ww * 0.55, alpha: { from: 0, to: 0.95 }, duration: 1200, ease: 'Sine.easeOut', onComplete: () => sc.tweens.add({ targets: cloud, alpha: 0, x: cloud.x + 80, ease: 'Sine.easeIn', duration: 1400, delay: 900, onComplete: () => cloud.destroy() }) });
     }
   }
 
@@ -322,7 +322,7 @@ export class Room {
     if (this.lamp && !LOW_MEMORY) to(this.lamp, TIME_LIGHT[time].lamp);
   }
 
-  /** 0.17.0 开盘：屋里灯一亮（一闪 0.3 秒，不占节拍）；减少动态效果时不闪。 */
+  /** 开盘：屋里灯一亮（一闪 0.3 秒，不占节拍）；减少动态效果时不闪。 */
   flashLights(anim: Animator): void {
     if (anim.calm || !this.opts.ambient) return;
     const r = this.flashRect;

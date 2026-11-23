@@ -140,7 +140,7 @@ export function bindTooltip(obj: Phaser.GameObjects.GameObject, rect: () => Rect
     timer = null;
   };
   // 触屏：手指按下开始计时，按满时长再显示，短按照常当点击。
-  // 0.9.0 按下（POINTER_DOWN）也开始计时：手指按下时 Phaser 不一定先发"移入"，只等移入的话长按不出说明、松手照样算点击
+  // 按下（POINTER_DOWN）也开始计时：手指按下时 Phaser 不一定先发"移入"，只等移入的话长按不出说明、松手照样算点击
   const arm = (p: Phaser.Input.Pointer): void => {
     if (timer) return;
     const downTime = p.downTime;

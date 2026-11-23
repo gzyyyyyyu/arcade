@@ -24,18 +24,18 @@ interface Geo {
 }
 
 /**
- * 手机横屏（0.19.1）：面板取 phonePanel（SE 上 702×392），每页 7 行从 64 起，"我"那一行在底下一排（翻页键、说明）的上面一行；
+ * 手机横屏：面板取 phonePanel（SE 上 702×392），每页 7 行从 64 起，"我"那一行在底下一排（翻页键、说明）的上面一行；
  * 比 392 高的（旧世界 430）多出来的空隙留在表和"我"之间。
  */
 function phoneUi(scene: Phaser.Scene): Geo {
   const { w, h } = phonePanel(scene);
-  // 竖屏版（0.33.0）：面板高，一页的行数按高度算（最多 15 行，行高 32）
+  // 竖屏版：面板高，一页的行数按高度算（最多 15 行，行高 32）
   if (h > w) return { w, h, per: Math.min(15, Math.floor((h - 100 - 16 - 64) / 32)), rowH: 32, top: 64, meY: h - 100, pagerY: h - 52 };
   return { w, h, per: 7, rowH: 30, top: 64, meY: h - 100, pagerY: h - 52 };
 }
 
 /**
- * 0.13.0 好友挑战的成绩表：平台给的前 50 名（每页 10 行，手机 7 行），下面单独一行"我"。
+ * 好友挑战的成绩表：平台给的前 50 名（每页 10 行，手机 7 行），下面单独一行"我"。
  * 样子跟每日排行面板走；只显示昵称、成绩和这局的称号（平台不给用户名），我那一行标亮。
  */
 export class ChallengePanel extends Dialog {
@@ -144,8 +144,8 @@ export class ChallengeLinkDialog extends Dialog {
 }
 
 /**
- * 0.18.0 打开好友挑战链接、还没打过时的卡：左边这局的人设立绘，右边发起人（头像圈写名字头一个字，平台不给头像）、
- * 难度徽记和他的成绩。以前是普通对话框里三行字，看不出是谁、玩哪个人设。
+ * 打开好友挑战链接、还没打过时的卡：左边这局的人设立绘，右边发起人（头像圈写名字头一个字，平台不给头像）、
+ * 难度徽记和他的成绩。普通对话框里三行字看不出是谁、玩哪个人设。
  */
 export class ChallengeInviteDialog extends Dialog {
   constructor(scene: Phaser.Scene, v: ChallengeView, onAccept: () => void) {

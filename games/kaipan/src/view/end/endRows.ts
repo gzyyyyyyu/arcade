@@ -8,7 +8,7 @@ import { addGlyph } from '../ui/art.ts';
 import { bindTooltip, type TipContent } from '../ui/tooltip.ts';
 import { addBadge, addPortrait } from '../meta/setupPanel.ts';
 import { Button } from '../ui/button.ts';
-import { addText, fitWidth } from '../ui/text.ts';
+import { addText, fitWidth, markCut } from '../ui/text.ts';
 import { onChallengeChange, readChallenge, retryChallengeEnd, runChallenge, startChallenge } from '../challenge.ts';
 import { ChallengeLinkDialog, ChallengePanel } from '../meta/challengePanel.ts';
 import type { ChallengeFail } from '../../platform/challenge.ts';
@@ -22,21 +22,20 @@ export class EndRows {
     this.s = s;
   }
 
-  /** 「下次可以试试」一行：星星 + 成就名 + 这局的进度，悬停看每个成就怎么拿 */
+  /** 「差一点的成就」一行：星星 + 成就名 + 这局的进度，悬停看每个成就怎么拿 */
   hintRow(mx: number, hy: number, width: number, hints: readonly AchievementHint[]): void {
     addGlyph(this.s, mx + 12, hy + 8, 'star', 16);
-    const t = addText(this.s, mx + 30, hy, `下次可以试试：${hints.map((h) => `${h.name} ${h.have}/${h.need}`).join(' · ')}`, { size: TYPE.label - 1, color: COLOR.info });
-    let cut = Array.from(t.text);
-    while (t.width > width && cut.length > 8) {
-      cut = cut.slice(0, -2);
-      t.setText(`${cut.join('')}…`);
-    }
+    // 放不下就少列几个（整条去掉，不截成半个名字）；全部都在悬停里
+    const line = (n: number): string => `差一点的成就：${hints.slice(0, n).map((h) => `${h.name} ${h.have}/${h.need}`).join(' · ')}`;
+    let n = hints.length;
+    const t = addText(this.s, mx + 30, hy, line(n), { size: TYPE.label - 1, color: COLOR.info });
+    while (t.width > width && n > 1) t.setText(line(--n));
     t.setInteractive();
-    bindTooltip(t, () => ({ x: mx + 30, y: hy, w: t.width, h: t.height }), () => ({ title: '下次可以试试', body: hints.map((h) => `${h.name}：${h.desc}（这局 ${h.have}/${h.need}）`).join('\n') }));
+    bindTooltip(t, () => ({ x: mx + 30, y: hy, w: t.width, h: t.height }), () => ({ title: '差一点的成就', body: hints.map((h) => `${h.name}：${h.desc}（这局 ${h.have}/${h.need}）`).join('\n') }));
   }
 
   /**
-   * 每日挑战的排行榜一行（0.5.10）：交分的状态（交上了排第几、今天交太多了、连不上……）+「排行榜」；连不上时多一个「重试」。
+   * 每日挑战的排行榜一行：交分的状态（交上了排第几、今天交太多了、连不上……）+「排行榜」；连不上时多一个「重试」。
    * 交分是异步的，状态变了只重画这一行。
    */
   boardRow(x: number, y: number, w: number, runId: string, date: string): void {
@@ -68,6 +67,7 @@ export class EndRows {
       while (t.width > right - x - 34 && cut.length > 4) {
         cut = cut.slice(0, -2);
         t.setText(`${cut.join('')}…`);
+        markCut(t);
       }
       box.add(t);
     };
@@ -77,7 +77,7 @@ export class EndRows {
   }
 
   /**
-   * 0.13.0 好友挑战的一行：挑战局写交成绩的状态和「看成绩」；别的娱乐局写一句邀请和「挑战好友」（点了交给平台、拿链接）。
+   * 好友挑战的一行：挑战局写交成绩的状态和「看成绩」；别的娱乐局写一句邀请和「挑战好友」（点了交给平台、拿链接）。
    * 交成绩是异步的，状态变了只重画这一行。
    */
   challengeRow(x: number, y: number, w: number, sum: RunSummary): void {

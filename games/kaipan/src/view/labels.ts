@@ -1,6 +1,6 @@
 import {
   BALANCE,
-  baseBill,
+  BILL_NAMES,
   dailyScoreView,
   flashDays,
   formatMoney,
@@ -34,7 +34,7 @@ export function dayLabel(t: Pick<TopBar, 'month' | 'day' | 'daysInMonth'> & { fl
 }
 
 /** 闪电盘的顶栏日期：「第 4/10 天」。 */
-export function flashDayLabel(f: { day: number; days: number }): string {
+function flashDayLabel(f: { day: number; days: number }): string {
   return `第 ${f.day}/${f.days} 天`;
 }
 
@@ -53,9 +53,19 @@ export function flashTag(date: string): string {
   return `闪电盘 ${date.slice(5).replace('-', '/')}`;
 }
 
-/** 本周市场局在画面上的标记：「本周市场 W44」。 */
+/** 本周市场局在画面上的标记：「本周市场 11/23–11/29」。 */
 export function weeklyTag(week: string): string {
-  return `本周市场 ${week.slice(5)}`;
+  return `本周市场 ${weekRange(week)}`;
+}
+
+/** 周号 YYYY-Www → 这一周周一到周日「11/23–11/29」（玩家看日期，不看周号）。 */
+export function weekRange(week: string): string {
+  const m = /^(\d{4})-W(\d{2})$/.exec(week);
+  if (!m) return week;
+  const jan4 = Date.UTC(Number(m[1]), 0, 4);
+  const monday = jan4 - ((new Date(jan4).getUTCDay() + 6) % 7) * 86_400_000 + (Number(m[2]) - 1) * 7 * 86_400_000;
+  const md = (ms: number): string => { const d = new Date(ms); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`; };
+  return `${md(monday)}–${md(monday + 6 * 86_400_000)}`;
 }
 
 /** 闪电盘排行榜上的一个成绩：「¥5,468.71万」（分数就是最后的资产）。 */
@@ -64,26 +74,22 @@ export function flashScoreText(score: number): string {
 }
 
 /**
- * 0.32.0 短局的最终目标常驻：到最后一个月月底还要交的钱（剩下的账单 + 首付，core 的 shortNeed）够不够、还差多少。
- * 以前首付只写在开局面板和账户的悬停里，手机上整局看不到，玩家直到最后一天才知道够不够；只比首付也不行（新手首付是开局资产的 0.9，一开局就「够了」）。
+ * 短局的最终目标常驻：到最后一个月月底还要交的钱（剩下的账单 + 首付，core 的 shortNeed）够不够、还差多少。
+ * 只写在开局面板和账户的悬停里的话，手机上整局看不到，玩家直到最后一天才知道够不够；只比首付也不行（新手首付是开局资产的 0.9，一开局就「够了」）。
  * 顶栏账户下面一行（电脑 / 手机）；以后几个月的账单是估的，全文和「约」在悬停里。
  */
 export function downPaymentLine(account: number, need: number, phone: boolean): { text: string; enough: boolean } {
   const enough = account >= need;
   const gap = formatMoney(need - account);
-  if (phone) return { text: enough ? '首付够了' : `首付差${gap}`, enough };
-  return { text: enough ? `首付+账单 ${formatMoney(need)} · 够了` : `首付+账单 ${formatMoney(need)} · 差 ${gap}`, enough };
+  // 首付最后一个月才交：写「到期」，不让人以为今天就要交（首付和账单的明细在悬停里）
+  if (phone) return { text: enough ? '到期够交了' : `到期还差${gap}`, enough };
+  return { text: enough ? `到期共交 ${formatMoney(need)} · 够了` : `到期共交 ${formatMoney(need)} · 还差 ${gap}`, enough };
 }
 
-/** 0.32.0 月底账单上的一行收据（和「房租」「还前账户」同样排）：剩下的账单加首付还差多少，够了写「够了」。 */
+/** 月底账单上的一行收据（和「房租」「还前账户」同样排）：剩下的账单加首付还差多少，够了写「够了」。 */
 export function downPaymentRow(account: number, need: number): { label: string; value: string; enough: boolean } {
   const enough = account >= need;
   return enough ? { label: '首付和账单', value: '够了', enough } : { label: '首付和账单还差', value: formatMoney(need - account), enough };
-}
-
-/** 顶栏还款：「这个月要还 ¥15,600 · 还剩 4 天」。 */
-export function billLine(b: Pick<BillView, 'amount' | 'daysLeft'>): string {
-  return `这个月要还 ${formatMoney(b.amount)} · 还剩 ${b.daysLeft} 天`;
 }
 
 type BillStatus = 'ok' | 'tight' | 'short' | 'credit';
@@ -130,7 +136,7 @@ export function todayText(ret: number | null, boughtToday = true, _when: '今天
   return pctArrow(ret);
 }
 
-/** 0.5 涨跌一律「箭头 + 数字」：↑5.2% / ↓3.0% / 0.0%（颜色由画面按 signColor 上）。ret 为百分点。 */
+/** 涨跌一律「箭头 + 数字」：↑5.2% / ↓3.0% / 0.0%（颜色由画面按 signColor 上）。ret 为百分点。 */
 export function pctArrow(ret: number, digits = 1): string {
   if (Math.abs(ret) < 0.05) return formatPoints(0, digits, false);
   return `${ret > 0 ? '↑' : '↓'}${formatPoints(Math.abs(ret), digits, false)}`;
@@ -162,13 +168,13 @@ export function sellKey(i: number): string {
   return `Shift+${i + 1}`;
 }
 
-/** 0.18.1 炒股合计按正负叫「净赚」或「净亏」（以前亏了也写「炒股净赚 −¥325万」，和副标题的「炒股净亏」对不上） */
+/** 炒股合计按正负叫「净赚」或「净亏」（不写「炒股净赚 −¥325万」，和副标题的「炒股净亏」对得上） */
 export function tradeWord(tradeMoney: number): string {
   return tradeMoney >= 0 ? '炒股净赚' : '炒股净亏';
 }
 
 /**
- * 0.5.4：一本加得起来的账——本钱 + 炒股净赚 − 账单 + 其他 (+ 没还的借款) = 最后剩。
+ * 一本加得起来的账——本钱 + 炒股净赚 − 账单 + 其他 (+ 没还的借款) = 最后剩。
  */
 export function ledgerRows(s: RunSummary): [string, string][] {
   return [
@@ -196,6 +202,12 @@ export function ipoLine(ipo: { subs: number; wins: number; money: number } | und
   return `抽新股：抽中 ${ipo.wins} 次 / 申购 ${ipo.subs} 次，赚亏 ${formatMoney(ipo.money, { sign: true })}`;
 }
 
+/** 结束页「最赚的一笔」的叫法：只买过一次写「这局唯一一笔」（只有一笔说「最少」别扭），亏了写「亏得最少的一笔」。 */
+export function bestTradeLabel(ret: number, buys: number): string {
+  if (buys === 1) return '这局唯一一笔';
+  return ret < 0 ? '亏得最少的一笔' : '最赚的一笔';
+}
+
 /** 结束页小结的行：[标题, 数值]。 */
 export function summaryRows(s: RunSummary): [string, string][] {
   return [
@@ -206,12 +218,12 @@ export function summaryRows(s: RunSummary): [string, string][] {
     ['最长连续涨停', s.maxBoards > 1 ? `${s.maxBoards} 天` : '没有'],
     ['大哥带小弟', `${s.chains} 次`],
     ...(swanLine(s) ? ([['黑天鹅', swanLine(s)?.replace(/^黑天鹅「[^」]*」：/, '') ?? '']] as [string, string][]) : []),
-    [s.bestTrade && s.bestTrade.ret < 0 ? '亏得最少的一笔' : '最赚的一笔', s.bestTrade ? `${s.bestTrade.name} ${formatPoints(s.bestTrade.ret)}` : '没有交易'],
+    [s.bestTrade ? bestTradeLabel(s.bestTrade.ret, s.buys) : '最赚的一笔', s.bestTrade ? `${s.bestTrade.name} ${formatPoints(s.bestTrade.ret)}` : '没有交易'],
   ];
 }
 
 /**
- * 结束页副标题：讲清三件事——还了多少账单、炒股净赚多少、最后剩多少（0.5.4）。
+ * 结束页副标题：讲清三件事——还了多少账单、炒股净赚多少、最后剩多少。
  */
 export function endSubtitle(s: RunSummary): string {
   const trade = `${tradeWord(s.tradeMoney)} ${formatMoney(Math.abs(s.tradeMoney))}`;
@@ -226,13 +238,13 @@ export function aboutRules(): string[] {
     `你是刚开始炒股的普通人。开局账户 ${formatMoney(BALANCE.startAccount)}，能同时拿 ${BALANCE.slots} 只股票。一局 12 个月（短局 5 个月），一个月只有大约 ${Math.round(totalDays() / 12)} 个交易日。`,
     `风口会轮流火：${FEEL_CYCLE}。热度涨，这个风口的股票就涨；热度跌，就跌。`,
     '每天开盘前看看群聊和推荐，买一只放进空格，或者卖掉手里的（今天买的明天才能卖）。然后点「开盘」，看今天涨还是跌。',
-    `每个月底要从账户里还一笔钱（1 月 ${formatMoney(baseBill(1))}，越往后越多），还不上，游戏就结束。还上了可以挑一样奖励：道具、新群友或稀有股票。`,
+    `每个月底从账户里交一笔账单（1 月是${BILL_NAMES[0]}，越往后越贵）；短局的账单少，最后一个月月底再交一笔首付。交不上，游戏就结束。交上了可以挑一样奖励：道具、新群友或稀有股票。`,
   ];
 }
 
 export const ABOUT_CONTROLS: [string, string][] = [
   ['1–3（有道具时到 4）', '买对应的推荐（格子满了会让你选换掉哪只）'],
-  ['Shift + 1 – 5', '一步卖出第 1–5 格（全卖）'],
+  ['Shift + 数字', '一步卖出对应那一格（全卖）'],
   ['空格 / 回车', '开盘；动画播放时跳过；月底继续；菜单开着时先收起菜单'],
   ['F', '没什么事的日子快进'],
   ['方向键 / Tab', '在推荐卡、持仓卡、开盘键之间移动，回车按下'],
@@ -256,10 +268,10 @@ export function moneyWord(delta: number): string {
   return v > 0 ? `赚了 ${formatMoney(v)}` : `亏了 ${formatMoney(-v)}`;
 }
 
-// ================================================================ 0.3.0 长线：人设、难度、每日挑战、图鉴、成就、档案
+// ================================================================ 长线：人设、难度、每日挑战、图鉴、成就、档案
 
 /**
- * 每日挑战的日期 YYYY-MM-DD：按北京时间（0.5.10 起，排行榜按北京日期分榜；之前是玩家本地日期，国内一样）。
+ * 每日挑战的日期 YYYY-MM-DD：按北京时间（排行榜按北京日期分榜）。
  * 本机时区不对也没关系，大家同一时刻看到的是同一天。
  */
 export function dailyDate(d: Date = new Date()): string {
@@ -338,7 +350,7 @@ export function dailyText(d: { attempts: number; won: boolean; bestAccount: numb
 }
 
 /**
- * 开始菜单「每日挑战」按钮角上的小牌子（0.6.9）：今天没打过写「新题」，打过写今天全站第几名（读不到名次写「已打」）。
+ * 开始菜单「每日挑战」按钮角上的小牌子：今天没打过写「新题」，打过写今天全站第几名（读不到名次写「已打」）。
  * 排行榜上线后没人打完过每日挑战（入口只是第二排的小按钮），牌子让它被看见；只说今天的题和名次，不催。
  */
 export function dailyBadgeView(rec: { attempts: number } | undefined, rank?: number | null): { text: string; fresh: boolean } {
@@ -367,7 +379,7 @@ export function boardLine(b: RunBoard, kind: 'classic' | 'flash' | 'weekly' = 'c
     if (r.improved) return { text: rank ? `新纪录！${rank}` : '新纪录！成绩交上了', good: true, retry: false };
     return plain(`${rank ? `${rank} · ` : ''}榜上最好：${show(r.best)}`);
   }
-  // 0.6.5 照平台的错误码对照表（15.10）说清怎么办
+  // 照平台的错误码对照表（15.10）说清怎么办
   // 自动补交过一次还是被限：照实说没交上，不提快慢
   if (r.kind === 'limit') return plain('这局成绩没交上');
   if (r.kind === 'busy') return plain('服务器今天有点忙，成绩先交不上，明早恢复');
@@ -408,7 +420,7 @@ export function shortHint(text: string): string {
 
 /**
  * 盘前"还能买几只"的说法：次数用完说「今天买够了」；有仓位玩法、现金一份都不剩时说「没现金了」
- * （以前现金 ¥0 也写「今天还能买 2 只」，点了又买不了）。
+ * （现金 ¥0 时不写「今天还能买 2 只」，免得点了又买不了）。
  */
 export function buysText(buysLeft: number, cashUnits: number | null): { text: string; can: boolean } {
   if (buysLeft <= 0) return { text: '今天买够了', can: false };

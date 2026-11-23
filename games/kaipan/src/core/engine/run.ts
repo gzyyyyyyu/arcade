@@ -127,10 +127,10 @@ export function pickThemes(seed: string, must: readonly ThemeId[] = []): ThemeId
 /** 开局选项：segment 是抽中的真实行情段（缺省或 null = 0.3 的合成行情）。 */
 export interface CreateOptions {
   segment?: Readonly<Segment> | null;
-  /** 0.4 C：打开仓位、押跌、抵押（正式游戏都开；缺省关 = 不带仓位玩法的基础规则，合成行情回放基准用） */
+  /** 打开仓位、押跌、抵押（正式游戏都开；缺省关 = 不带仓位玩法的基础规则，合成行情回放基准用） */
   ext?: boolean;
   /**
-   * 0.5：月度主题、中场、高光、连击。缺省：有行情段时打开、合成行情关闭。
+   * 月度主题、中场、高光、连击。缺省：有行情段时打开、合成行情关闭。
    * 回放要带同样的值：replay(seed, actions, setup, { segment, ext: !!state.ext, tempo: !!state.tempo })。
    */
   tempo?: boolean;
@@ -148,7 +148,7 @@ export function createRun(seed: string, setup: RunSetup | null = null, opts: Cre
   const seg = opts.segment ?? null;
   if (seg && seg.days < totalDays()) throw new Error(`行情段 ${seg.id} 只有 ${seg.days} 天，一局要 ${totalDays()} 天`);
   const real = seg ? realFromSegment(seg, themeIds, Object.keys(stocks), BALANCE.real.smooth) : null;
-  // 0.5：个股照搬真实走势；开局按这一段的真实表现校正性格（只决定显示和情报口吻）
+  // 个股照搬真实走势；开局按这一段的真实表现校正性格（只决定显示和情报口吻）
   if (real) {
     fitRoles(real, themeIds, (t) => stocksOf(t));
   }
@@ -206,7 +206,7 @@ export function createRun(seed: string, setup: RunSetup | null = null, opts: Cre
   }
   // 本周市场「满仓周」：多给的持仓格开局就有
   if (s.setup?.weekly !== undefined) syncSlots(s);
-  // 0.4 C：人设、难度一开局就能押跌时，空军老周直接在群里
+  // 人设、难度一开局就能押跌时，空军老周直接在群里
   if (s.ext && rulesOf(s).canShort) addFriend(s, 'kongjun', em);
   em.events = [];
   startMonth(s, 1, em);

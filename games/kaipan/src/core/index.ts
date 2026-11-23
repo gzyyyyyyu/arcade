@@ -3,7 +3,7 @@ export { BALANCE, fx } from './balance.ts';
 export { NOVICE_SEGMENTS } from './content/noviceSegments.ts';
 export { LESSON, MINDS, MIND_IDS, friendRecord, isLesson, lessonAdvice, lessonDays, lessonSetup, mindById, mindMoment, type LessonAdvice, type MindDef, type MindId, type MindMoment } from './lesson.ts';
 export type { Balance, LiveParams, RoleParams, StageParams, ThemeParams } from './balance.ts';
-export { credibility, flipDir, friendForm, handOf, hottestTheme, recCredibility, makeComments, makeMessages, makeRecs, messageCred, topicsOf, turnTalk } from './chat.ts';
+export { credibility, flipDir, friendForm, handOf, recCredibility, makeComments, makeMessages, makeRecs, messageCred, topicsOf, turnTalk } from './chat.ts';
 export { dayQuips, makeNews, quipLines, stockQuip } from './story.ts';
 export { MARKET_NEWS, THEME_NEWS } from './content/news.ts';
 export { MOOD_QUIPS, ROLE_QUIPS, STOCK_QUIPS } from './content/quips.ts';
@@ -115,7 +115,7 @@ export {
 export type { DispatchOptions, DispatchResult } from './engine/index.ts';
 export { ipoBoundStock, ipoFirstPremium, ipoPartLabel, ipoPremiumOn, ipoSwitch, ipoWon } from './ipo.ts';
 export { SWAN_DEFS, SWAN_KINDS, swanDelta, swanShortDelta, swanSwitch, swanWarn } from './swan.ts';
-export { EARNINGS_MONTHS, earningsBets, earningsPlan, earningsView, type EarningsBet, type EarningsPlan, type EarningsView } from './earnings.ts';
+export { earningsPlan, earningsView, type EarningsBet, type EarningsPlan, type EarningsView } from './earnings.ts';
 export { END_TITLES, STYLE_TITLES, liveSettleStats, titlesJson, type SettleStats } from './career.ts';
 export { LIVE_MAX_BP, LIVE_TIERS, isCleanLiveSetup, isLive, isLiveTier, liveAssets, liveGear, liveLevered, liveMultipleBp, liveReturn, liveSetup, liveStart, liveTierById, liveTierOf, liveValue } from './live.ts';
 export type { LiveTier, LiveTierDef } from './live.ts';
@@ -142,7 +142,6 @@ export type {
 export {
   DAILY_LEVELS,
   FLASH_LEVELS,
-  TIER_LABEL,
   isDailyRun,
   isFlashRun,
   flashSetup,
@@ -187,7 +186,6 @@ export {
   baseMarketRules,
   baseRules,
   coldPull,
-  dHBonus,
   dirOf,
   effectiveDH,
   failChance,
@@ -257,14 +255,14 @@ export type * from './types.ts';
 export { REGIMES, REGIME_LABEL, THEME_REAL, checkSegment, pickSegmentId, realFromSegment } from './segment.ts';
 export type { RealMarket, Regime, Segment, SegmentEvent, SegmentIndex, SegmentIndexEntry, SegmentStats, SegmentStock, SegmentTheme } from './segment.ts';
 export { realDH, realMarketPct, realNextStage, realSectorPct, realStockPct, tapeIndex, warmUpReal } from './real.ts';
-// 0.5：个股照搬真实走势、情报从真实未来推算、月度主题与节奏
-export { bandDir, fitRoles, forwardRet, stockTraits, trackMarketRet, trackMood, trackThemeRet } from './real.ts';
+// 个股照搬真实走势、情报从真实未来推算、月度主题与节奏
+export { bandDir, fitRoles, forwardRet, trackMarketRet, trackMood, trackThemeRet } from './real.ts';
 export type { StockTraits } from './real.ts';
 export { needsHeadline, stockTruth, themeTruth } from './chat.ts';
 export { goalTarget, monthThemeView, planTempo, premarketQuiet, premarketQuiet as isQuietDay } from './tempo.ts';
 export { MONTH_THEMES, MONTH_THEME_SHORT, isMonthThemeId, monthThemeById } from './content/monthThemes.ts';
 export type { MonthThemeDef, MonthThemeCtx } from './content/monthThemes.ts';
-export { assignTitles, displayTitle, segmentTitleAt, storyView } from './reveal.ts';
+export { assignTitles, displayTitle, storyView } from './reveal.ts';
 export type { StoryView } from './reveal.ts';
 export { SEGMENT_TITLES } from './content/tales.ts';
 export {

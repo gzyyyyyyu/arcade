@@ -1,8 +1,8 @@
 /**
- * 开盘 Worker 的登录闸门（0.5.6）：测试期邀请制，打开首页前先问平台登录了没有。入口在 ./index.ts。
+ * 开盘 Worker 的登录闸门：测试期邀请制，打开首页前先问平台登录了没有。入口在 ./index.ts。
  *
  * 只有 wrangler.jsonc 里 assets.run_worker_first 列出的首页路径会先进到这里；js、图片、行情数据仍由静态资源直接回，
- * 不多一次跨 Worker 调用。GATE=off（或没配）时什么都不做，和以前一样直接回静态资源；wrangler.jsonc 里配的是 login。
+ * 不多一次跨 Worker 调用。GATE=off（或没配）时什么都不做，直接回静态资源；wrangler.jsonc 里配的是 login。
  *
  * GATE=login 时：
  * - 经服务绑定 ARCADE 问平台 GET /api/me（只带 Cookie 和 cf-connecting-ip，3 秒超时）；
@@ -11,8 +11,8 @@
  *   测试期的目标是"没受邀的人玩不到"，所以宁可暂时谁都进不去，也不放进来（fail-closed）。
  * GATE 写成 off / login 以外的值也按 login 处理：开关写错时往"关门"那边偏。
  *
- * 0.8.0 两种部署（和共用包 arcade-kit 的语义一样；开盘的 Worker 不引共用包，自己按同样的规则写）：
- * - 本站：部署工具（tools/deployer）补上 ARCADE、WALLET 绑定和 GATE=login，行为和以前一样；
+ * 两种部署（和共用包 arcade-kit 的语义一样；开盘的 Worker 不引共用包，自己按同样的规则写）：
+ * - 本站：部署工具（tools/deployer）补上 ARCADE、WALLET 绑定和 GATE=login；
  * - 单独部署（模块里的 wrangler.jsonc 原样部署）：没有 ARCADE、GATE 不是 login，谁打开都能玩，实盘接口一律拒绝（见 isStandalone）。
  *   GATE=login 却没有 ARCADE（漏了绑定）不算单独部署，照旧按平台不可用拦下（fail-closed）。
  *

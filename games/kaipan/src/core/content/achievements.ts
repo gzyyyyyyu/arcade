@@ -20,7 +20,7 @@ function wonWith(c: AchievementCtx, items: readonly string[]): boolean {
 }
 
 /**
- * 成就（0.3.0：30 个，id 固定）：铜（轻松）10、银（需要构筑）12、金（硬核）8。
+ * 成就（30 个，id 固定）：铜（轻松）10、银（需要构筑）12、金（硬核）8。
  * 只在一局结束（won / lost）后按局内统计判定，确定性、可测试（achievementsOf）。
  * 判定可以用隐藏信息（例如买入时的真实阶段），因为结束后才揭晓。
  * unlocks：达成后解锁的人设（档案层处理）。文案全部虚构。
@@ -281,7 +281,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     icon: 'shield',
     check: (c) => c.won && c.state.stats.monthRets.length >= 12 && c.state.stats.monthRets.every((r) => r > 0),
   },
-  // ---------------------------------------------------------------- 0.4 C：仓位、押跌、抵押
+  // ---------------------------------------------------------------- 仓位、押跌、抵押
   {
     id: 'all_in',
     name: '一把梭',
@@ -332,7 +332,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     check: (c) => c.won && !!c.state.ext?.log.redeemed.includes('house'),
   },
 
-  // ---------------------------------------------------------------- 0.6.4：打法和隐藏结局（只用来看，不发筹码）
+  // ---------------------------------------------------------------- 打法和隐藏结局（只用来看，不发筹码）
   {
     id: 'zen_watch',
     name: '佛系股民',
@@ -432,7 +432,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     icon: 'coin',
     check: (c) => c.won && c.trades.length >= 6 && c.trades.every((t) => t.ret >= 0),
   },
-  // ---------------------------------------------------------------- 0.20：见好就收、真实行情局的两个新事件
+  // ---------------------------------------------------------------- 见好就收、真实行情局的两个新事件
   {
     id: 'take_profit',
     name: '见好就收',
@@ -458,7 +458,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     icon: 'bill',
     check: (c) => c.won && c.state.stats.eventPicks.includes('salary_advance:0'),
   },
-  // ---------------------------------------------------------------- 0.28：抄底、早起的两个新战法，和投资群事件
+  // ---------------------------------------------------------------- 抄底、早起的两个新战法，和投资群事件
   {
     id: 'early_riser',
     name: '起得早',
@@ -483,7 +483,7 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     icon: 'coin',
     check: (c) => c.state.stats.eventPicks.includes('free_eggs:0'),
   },
-  // ---------------------------------------------------------------- 0.29：两个新月度主题（只在真实行情局里出现）
+  // ---------------------------------------------------------------- 两个新月度主题（只在真实行情局里出现）
   {
     id: 'herd_chat',
     name: '抱团刷屏',

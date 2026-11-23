@@ -35,9 +35,9 @@ export interface StockMove {
   chain: number;
   /** ST：今天摘帽 / 收到退市警告 / 退市 */
   st: 'uncap' | 'warning' | 'delisted' | null;
-  /** 0.5（真实行情）：识别出的妖股异动（过山车股单日暴涨暴跌）；真实行情下 jump 恒为 0 */
+  /** 真实行情：识别出的妖股异动（过山车股单日暴涨暴跌）；真实行情下 jump 恒为 0 */
   wild?: boolean;
-  /** 0.5（真实行情）：大哥涨停、这只小弟也跟着大涨（识别出来的，不额外加涨幅；chain 恒为 0） */
+  /** 真实行情：大哥涨停、这只小弟也跟着大涨（识别出来的，不额外加涨幅；chain 恒为 0） */
   follow?: boolean;
 }
 
@@ -51,7 +51,7 @@ export interface HoldingStep {
 }
 
 /**
- * 0.3.1 归因：一只持仓当天涨跌的一项来源（pp）。各项之和等于 HoldingMove.ret（误差 ≤ 0.01）。
+ * 归因：一只持仓当天涨跌的一项来源（pp）。各项之和等于 HoldingMove.ret（误差 ≤ 0.01）。
  * 只用当天已经揭晓的数（风口热度变化、大环境、个股消息等），不含真实阶段。
  * - theme：风口热度变化带来的涨跌（风口本身的涨跌，附 theme、dH）
  * - role：角色放大（带头大哥、过山车更猛，老实股、危险股更钝；可正可负）
@@ -106,7 +106,7 @@ export interface RetPart {
   itemId?: string;
 }
 
-/** 0.3.1：账户层的效果（不属于某一格持仓），金额为元。 */
+/** 账户层的效果（不属于某一格持仓），金额为元。 */
 export interface AccountEffect {
   /** 'leverage'（借钱炒股的放大）或道具 id（如分散投资） */
   source: string;
@@ -115,7 +115,7 @@ export interface AccountEffect {
   amount: number;
 }
 
-/** 0.3.1 收盘新闻：只解释已经发生的热度变化。theme 为 null 是全场性的新闻。 */
+/** 收盘新闻：只解释已经发生的热度变化。theme 为 null 是全场性的新闻。 */
 export interface NewsItem {
   theme: ThemeId | null;
   dir: 'up' | 'down';
@@ -123,13 +123,13 @@ export interface NewsItem {
   value: number;
   text: string;
   /**
-   * 0.5（真实行情）：预告类新闻——说的是这个风口接下来 ahead 个交易日（从明天起）的方向，dir 是新闻的说法，
+   * 真实行情：预告类新闻——说的是这个风口接下来 ahead 个交易日（从明天起）的方向，dir 是新闻的说法，
    * 按 BALANCE.intel.news 的概率说中（说错时反着说）。value 为 0。
    */
   ahead?: number;
 }
 
-/** 0.3.1 股票小人台词的时机。 */
+/** 股票小人台词的时机。 */
 export type QuipMoment = 'limitUp' | 'limitDown' | 'streak' | 'delisted' | 'bought' | 'sold';
 
 export interface StockQuip {
@@ -147,22 +147,22 @@ export interface HoldingMove {
   move: number;
   /** 这一格最终收益（pp，含道具修正） */
   ret: number;
-  /** 0.3.1：ret 的归因，各项之和等于 ret（顺序固定，见 RetPartKind） */
+  /** ret 的归因，各项之和等于 ret（顺序固定，见 RetPartKind） */
   parts: RetPart[];
-  /** 0.3.1：影响最大的一项（|value| 最大），画面挑"主要原因"用；0.3.0 的旧存档里为 null */
+  /** 影响最大的一项（|value| 最大），画面挑"主要原因"用；0.3.0 的旧存档里为 null */
   lead: RetPart | null;
-  /** 0.3.1：这一格今天给账户带来的盈亏（元，不含账户层效果）；所有格加上 account.effects 等于账户当天的变化 */
+  /** 这一格今天给账户带来的盈亏（元，不含账户层效果）；所有格加上 account.effects 等于账户当天的变化 */
   amount: number;
   steps: HoldingStep[];
   /** 结算后的持有收益（pp） */
   holdRet: number;
   /** 收盘后被自动卖出 */
   sold: AutoSellReason | null;
-  /** 0.4 C：这一格占几份（缺省 1） */
+  /** 这一格占几份（缺省 1） */
   units?: number;
-  /** 0.4 C：押跌 */
+  /** 押跌 */
   short?: boolean;
-  /** 0.4 C：押跌的股票涨停了（被轧） */
+  /** 押跌的股票涨停了（被轧） */
   squeeze?: boolean;
   /** 黑天鹅那天：这一格被黑天鹅额外改了多少（pp；> 0 赚、< 0 亏）；没被改到为缺省 */
   swan?: number;
@@ -193,9 +193,9 @@ export interface ItemTrigger {
 export interface MessageJudge {
   /** 当天消息的下标；隔天揭晓的（report.intel）是发出那天的下标 */
   index: number;
-  /** 0.5：发出那天（隔天揭晓的才有） */
+  /** 发出那天（隔天揭晓的才有） */
   day?: number;
-  /** 0.5：说的天数（缺省 1） */
+  /** 说的天数（缺省 1） */
   days?: number;
   friendId: string;
   theme: ThemeId;
@@ -231,7 +231,7 @@ export interface DayReport {
     /** 最终账户收益（pp） */
     ret: number;
     after: number;
-    /** 0.3.1：账户层效果（借钱炒股、分散投资等），金额为元 */
+    /** 账户层效果（借钱炒股、分散投资等），金额为元 */
     effects: AccountEffect[];
   };
   autoSold: { slot: number; stockId: string; reason: AutoSellReason }[];
@@ -243,15 +243,15 @@ export interface DayReport {
   rain: boolean;
   /** 今天股灾来了（第 6 级：所有题材提前退潮的那天，收盘后才揭晓） */
   crash: boolean;
-  /** 0.3.1：收盘新闻（热度变化最大的 1–2 个风口，以及全场大涨 / 大跌） */
+  /** 收盘新闻（热度变化最大的 1–2 个风口，以及全场大涨 / 大跌） */
   news: NewsItem[];
-  /** 0.5：今天揭晓的、前几天发的多日消息（说的是 2–3 天的累计方向） */
+  /** 今天揭晓的、前几天发的多日消息（说的是 2–3 天的累计方向） */
   intel?: MessageJudge[];
-  /** 0.5：节奏与反馈（月度目标进度、高光、连击、平淡日）；没有月度主题的局没有这一项 */
+  /** 节奏与反馈（月度目标进度、高光、连击、平淡日）；没有月度主题的局没有这一项 */
   tempo?: DayTempo;
-  /** 0.3.1：持仓股票小人的台词（涨停、连续涨停、跌停、退市、被自动卖出） */
+  /** 持仓股票小人的台词（涨停、连续涨停、跌停、退市、被自动卖出） */
   quips: StockQuip[];
-  /** 0.4 C：银行这一天的动作（打电话、收走抵押物）；没有为缺省 */
+  /** 银行这一天的动作（打电话、收走抵押物）；没有为缺省 */
   bank?: { called: boolean; seized: CollateralId[] };
   /** 黑天鹅 Boss 日（每局最后一天）：这一天的黑天鹅和它对持仓的影响；别的日子缺省 */
   swan?: SwanReport;

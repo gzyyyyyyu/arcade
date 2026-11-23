@@ -100,8 +100,8 @@ export class HoldingsView {
   private purse: Phaser.GameObjects.Container | null = null;
 
   /**
-   * 0.16.0 空格是桌上的「位子」（art-v3：纸垫）：每个空格一块纸垫、里面一圈虚线座位；第一块左上角是缩小的钱袋和现金数，
-   * 今天还能买时纸垫外圈发金光（代替以前的「还能买 N 只」大字），座位里写「空位」。推荐只在右栏，纸垫里不放推荐位。
+   * 空格是桌上的「位子」（art-v3：纸垫）：每个空格一块纸垫、里面一圈虚线座位；第一块左上角是缩小的钱袋和现金数，
+   * 今天还能买时纸垫外圈发金光（不写「还能买 N 只」大字），座位里写「空位」。推荐只在右栏，纸垫里不放推荐位。
    */
   private drawPurse(s: GameState, hc: readonly (HoldingCard | null)[], rects: readonly Rect[]): void {
     this.purse?.destroy();
@@ -150,7 +150,7 @@ export class HoldingsView {
       root.add(dashedBox(sc, x + (PHONE ? 8 : 14), y + (PHONE ? 60 : 52), w - (PHONE ? 16 : 28), h - (PHONE ? 74 : 70), 0xd8c3a8));
       if (k === 0) {
         // 缩小的钱袋 + 现金数（左上角）
-        // 0.19.0 手机上卡窄（SE 约 104），金额挪到钱袋下面一整行，不再截成「¥10....」
+        // 手机上卡窄（SE 约 104），金额挪到钱袋下面一整行，不再截成「¥10....」
         const bag = PHONE ? addGlyph(sc, x + 22, y + 22, 'moneybag', 26) : addGlyph(sc, x + 28, y + 28, 'moneybag', 34);
         const lbl = addText(sc, PHONE ? x + 38 : x + 50, PHONE ? y + 13 : y + 12, '现金', { size: FS.xs, bold: true, color: COLOR.muted });
         const amt = PHONE
@@ -284,7 +284,7 @@ export class HoldingsView {
     void this.rollToday(anim, slot, shown, 360);
   }
 
-  /** 0.5 开盘翻牌：盖着的牌背（按格子） */
+  /** 开盘翻牌：盖着的牌背（按格子） */
   private covers = new Map<number, Phaser.GameObjects.Container>();
 
   /** 开盘：手里每只股票先盖上牌背（揭晓时一张张翻开）；关掉动画时不盖。 */

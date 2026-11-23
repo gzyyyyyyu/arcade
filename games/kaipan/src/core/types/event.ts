@@ -57,19 +57,19 @@ export type GameEvent =
   | { type: 'pendingSettled'; id: string; amount: number; delta: number; text: string }
   | { type: 'itemExpired'; itemId: string }
   | { type: 'runLost'; reason: EndReason; month: number; account: number; bill: number }
-  /** 0.11.0 实盘杠杆爆仓：levered 是放大后的结回倍数（跌到了爆仓线） */
+  /** 实盘杠杆爆仓：levered 是放大后的结回倍数（跌到了爆仓线） */
   | { type: 'gearWiped'; month: number; account: number; levered: number }
   | { type: 'deleveraged'; levered: number; x: number }
-  /** 0.5：月初公布本月主题（"本月看点"卡），紧跟在 monthStarted 之后 */
+  /** 月初公布本月主题（"本月看点"卡），紧跟在 monthStarted 之后 */
   | { type: 'monthTheme'; goal: MonthGoalState; name: string; intro: string; rule: string; goalText: string; rewardText: string; roast: { friendId: string; text: string } }
-  /** 0.5：月度目标进度变化 / 达成 / 失败 */
+  /** 月度目标进度变化 / 达成 / 失败 */
   | { type: 'goalProgress'; goal: MonthGoalState }
   | { type: 'goalDone'; goal: MonthGoalState; cash: number; shards: number; itemId: string | null }
   | { type: 'goalFailed'; goal: MonthGoalState }
-  /** 0.5：高光时刻、连击 / 小奖励 */
+  /** 高光时刻、连击 / 小奖励 */
   | ({ type: 'highlight' } & Highlight)
   | ({ type: 'combo' } & ComboReward)
-  /** 0.5：从真实走势里识别出的连板（≥ 2）、炸板、妖股异动（只播报，不改涨跌） */
+  /** 从真实走势里识别出的连板（≥ 2）、炸板、妖股异动（只播报，不改涨跌） */
   | { type: 'spotted'; kind: 'boards' | 'blown' | 'wild'; stockId: string; move: number; boards: number; held: boolean }
-  /** 0.5：多日消息揭晓 */
+  /** 多日消息揭晓 */
   | ({ type: 'intelJudged' } & MessageJudge);

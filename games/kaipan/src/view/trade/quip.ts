@@ -29,7 +29,7 @@ export function quipBubble(scene: Phaser.Scene, anim: Animator, x: number, y: nu
   }
   scene.time.delayedCall(hold, () => {
     if (!root.active) return;
-    scene.tweens.add({ targets: root, alpha: 0, duration: 240, onComplete: () => root.destroy() });
+    scene.tweens.add({ targets: root, alpha: 0, ease: 'Sine.easeIn', duration: 240, onComplete: () => root.destroy() });
   });
   return { root, rect: { x: cx - w / 2, y: top, w, h: h + 10 } };
 }

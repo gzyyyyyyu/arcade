@@ -84,6 +84,8 @@ interface GuideHost {
   learnMind(id: MindId): void;
   /** 此刻可点的控件区域：气泡尽量不盖住它们 */
   avoid(): Rect[];
+  /** 比一般控件更不能盖的（竖屏的群聊 / 推荐 / 风口页签：引导正让人去看它们）：盖住和盖住目标一样算重 */
+  keepClear(): Rect[];
   /** 气泡出现 / 消失（通知自动化） */
   changed(): void;
 }
@@ -351,8 +353,10 @@ export class Guide {
   /** 气泡的位置：按优先侧依次试，沿边滑动，选第一处不盖住目标和可点控件的；都不行取盖得最少的。 */
   private place(prefer: readonly Side[], target: Rect, h: number): { x: number; y: number; side: Side; inside?: boolean } {
     const avoid = this.host.avoid().map((r) => grow(r, 4));
+    const keep = this.host.keepClear().map((r) => grow(r, 4));
+    const blocked = (box: Rect): number => avoid.reduce((n, r) => n + overlap(box, r), 0) + keep.reduce((n, r) => n + overlap(box, r) * 4, 0);
     const tgt = grow(target, 8);
-    // 0.9.2 手机横屏：屏幕矮，气泡放到目标左右会压住顶栏（目标、日期、账户）和要点的卡片。
+    // 手机横屏：屏幕矮，气泡放到目标左右会压住顶栏（目标、日期、账户）和要点的卡片。
     // 手机上放在目标的反方向（目标在上半屏就放下面，在下半屏就放上面），并把顶栏当成不能压的
     if (PHONE) avoid.push(grow(TOP, 2));
     const minY = 8;
@@ -363,7 +367,7 @@ export class Guide {
     let best: { x: number; y: number; side: Side; cost: number } | null = null;
     const away: Side[] = target.y + target.h / 2 < V.h / 2 ? ['below', 'above'] : ['above', 'below'];
     // 手机上只放上下：放左右再沿边滑开，气泡会和指向目标的箭头脱开
-    // 0.19.0 手机世界矮到 404：目标是整块推荐列表时上下都放不下，再试左右（总比放进列表里盖住「买入」好）
+    // 手机世界矮到 404：目标是整块推荐列表时上下都放不下，再试左右（总比放进列表里盖住「买入」好）
     const sides = PHONE ? [...away, 'left', 'right'] as Side[] : [...prefer, ...(['left', 'right', 'below', 'above'] as Side[]).filter((x) => !prefer.includes(x))];
     // 上下放时还试离目标远一点（竖屏：目标下面是群聊、上面紧贴页签，贴着放会压住页签，往上让过页签只盖空着的持仓格）
     const fars = [0, 40, 80, 120, 160];
@@ -386,7 +390,7 @@ export class Guide {
             if (y < minY || y + h > V.h - 8) continue;
           }
           const box = { x, y, w: W, h };
-          const cost = overlap(box, tgt) * 4 + avoid.reduce((n, r) => n + overlap(box, r), 0);
+          const cost = overlap(box, tgt) * 4 + blocked(box);
           const score = cost + rank * 0.5 + Math.abs(d) * 0.01 + far * 0.02;
           if (cost === 0) return { x, y, side };
           if (!best || score < best.cost) best = { x, y, side, cost: score };
@@ -398,7 +402,7 @@ export class Guide {
     let inside: { x: number; y: number; cost: number } | null = null;
     for (let y = clampY(target.y); y <= clampY(target.y + target.h - h); y += 20) {
       for (let x = clampX(target.x); x <= clampX(target.x + target.w - W); x += 20) {
-        const cost = avoid.reduce((n, r) => n + overlap({ x, y, w: W, h }, r), 0);
+        const cost = blocked({ x, y, w: W, h });
         if (!inside || cost < inside.cost) inside = { x, y, cost };
       }
     }
@@ -503,7 +507,7 @@ export class Guide {
 
   /** 目标边上的大箭头，从气泡那一侧指向目标（挂在高亮框那一层，一起销毁）。 */
   private pointer(target: Rect, side: Side, atX?: number): Phaser.GameObjects.Graphics {
-    // 0.5.1：箭头画在气泡上面一层，不会被气泡挡住
+    // 箭头画在气泡上面一层，不会被气泡挡住
     const g = this.scene.add.graphics().setDepth(DEPTH + 1);
     // 箭头朝右画在原点左侧，再按方向旋转
     g.fillStyle(COLOR.accent, 1).lineStyle(3, COLOR.ink, 1);

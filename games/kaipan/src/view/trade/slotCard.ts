@@ -28,7 +28,7 @@ export class SlotCard {
   readonly root: Phaser.GameObjects.Container;
   private readonly scene: Phaser.Scene;
   stockId: string | null;
-  /** 0.5.1：放大镜（看详情）的位置 */
+  /** 放大镜（看详情）的位置 */
   magCenter: { x: number; y: number } | null = null;
   guy: StockGuy | null = null;
   private today: Phaser.GameObjects.Text | null = null;
@@ -41,12 +41,12 @@ export class SlotCard {
   pick: Button | null = null;
   shownToday = 0;
 
-  /** 0.4 C 仓位玩法（null = 0.3 的玩法） */
+  /** 仓位玩法（null = 0.3 的玩法） */
   private readonly ext: SlotExt | null;
   /** 押跌（卡片反色、小人倒着站） */
   readonly short: boolean;
   private units: Phaser.GameObjects.Container | null = null;
-  /** 0.19.0 手机上很窄的卡（SE 上约 104 宽） */
+  /** 手机上很窄的卡（SE 上约 104 宽） */
   private tiny = false;
   /** 左边 ST / 低吸签的右边缘（连涨签让开它） */
   private stRight = 0;
@@ -88,7 +88,7 @@ export class SlotCard {
       return;
     }
     const small = w < 150;
-    // 0.19.0 手机世界变小以后，SE 上一张卡只有约 104 宽（844×390 上约 129）：小人、走势框收窄，
+    // 手机世界变小以后，SE 上一张卡只有约 104 宽（844×390 上约 129）：小人、走势框收窄，
     // 「跑赢 / 跑输」挪进卡身的悬停说明，累计那条只写数字（「累计」两个字在悬停里）
     const tiny = PHONE && w < 120;
     this.tiny = tiny;
@@ -121,7 +121,7 @@ export class SlotCard {
     if (this.short) this.guy.setScale(1, -1);
     const bx = x + w - (tiny ? 46 : ext ? 56 : small ? 50 : 62);
     const bw = tiny ? 40 : ext ? 50 : small ? 44 : 56;
-    // 0.5.2：框里不再写"近10天"（小字把半个框占了、柱子挤得看不清；卡身的悬停说明里有最近几天）；柱高按这只自己的涨跌幅缩放
+    // 框里不再写"近10天"（小字把半个框占了、柱子挤得看不清；卡身的悬停说明里有最近几天）；柱高按这只自己的涨跌幅缩放
     const chartBg = scene.add.rectangle(bx, y + 56, bw, 46, COLOR.screen, 0.9).setOrigin(0, 0).setRounded(7);
     this.spark = addSpark(scene, bx + 5, y + 61, bw - 10, 36, [], { kind: 'bars', capMin: 3, axis: true });
     this.vs = addText(scene, bx + bw / 2, y + 112, '', { size: 12, bold: true, originX: 0.5, originY: 0.5 }).setVisible(!PHONE);
@@ -161,7 +161,7 @@ export class SlotCard {
     this.today = addText(scene, x + w / 2, y + 143 + (PHONE ? -11 : 0), '', { size: small ? 19 : 22, bold: true, num: true, originX: 0.5 });
     // 持有盈亏色块
     // 手机：卖出键加高到 34，累计条往上挪 4、矮 2，两者不叠；卖出的点击区只往下撑（往上会盖住卡片，点卡片看拆解时误卖）
-    // 0.36.2 累计是钱：字号到金额下限（docs/ui.md 第 3 节，电脑 14；手机世界比屏幕小一圈，13 放大后也过 14）
+    // 累计是钱：字号到金额下限（docs/ui.md 第 3 节，电脑 14；手机世界比屏幕小一圈，13 放大后也过 14）
     const holdY = PHONE ? y + 158 : y + 169;
     const holdH = PHONE ? 16 : 20;
     this.holdBg = scene.add.rectangle(x + 10, holdY, w - 20, holdH, COLOR.muted, 0.16).setOrigin(0, 0).setRounded(holdH / 2);
@@ -195,7 +195,7 @@ export class SlotCard {
     this.spark.play(500, !idle);
   }
 
-  /** 竖屏版的矮卡（0.33.0）：第一行的签从这里往右排、到这里为止（放大镜在右上角） */
+  /** 竖屏版的矮卡：第一行的签从这里往右排、到这里为止（放大镜在右上角） */
   private compact = false;
   /** 矮卡累计只写钱时，钱上方（名字那一行右边）的小字「累计」 */
   private holdWord: Phaser.GameObjects.Text | null = null;
@@ -203,7 +203,7 @@ export class SlotCard {
   private row1Right = 0;
 
   /**
-   * 竖屏版的矮卡（0.33.0，约 124–190 宽、94–103 高）：第一行风口签（押跌写「押跌」）、仓位份数、连板签，右上角放大镜；
+   * 竖屏版的矮卡（约 124–190 宽、94–103 高）：第一行风口签（押跌写「押跌」）、仓位份数、连板签，右上角放大镜；
    * 左边小人，右边名字和涨跌（宽卡再写累计，只写得下钱时名字那一行右边补小字「累计」）；最下面「卖出」「加减」。走势框、热度、跑赢跑输、ST 签都在悬停和详情里。
    */
   private drawCompact(card: HoldingCard, idle: boolean, onSell: (slot: number) => void, busy: boolean, onInspect?: (slot: number) => void, ext: SlotExt | null = null, onMore?: (slot: number) => void, onMenu?: (slot: number) => void): void {
@@ -479,8 +479,8 @@ export class SlotCard {
     // 开局就在手里、还没开过盘：和其他日子开盘前一样显示"昨天"的涨跌（开局前历史的最后一天），不写"未开盘"
     const pre = c.todayRet === null && !boughtToday && this.state ? (stockMoves(this.state, c.id, 1).at(-1) ?? null) : null;
     this.setToday(c.todayRet ?? pre, boughtToday && premarket);
-    // 0.35.0 累计写百分比和钱（「累计 ↑16.4% +¥1,230」）；放不下先去掉「累计」两个字，再去掉钱（都在卡身的悬停说明里）。
-    // 0.36.1 矮卡（竖屏）：累计和当天涨跌在同一行，按当天涨跌右边剩下的宽度量；放不下整句时写「累计 + 钱」，再不行只写钱，
+    // 累计写百分比和钱（「累计 ↑16.4% +¥1,230」）；放不下先去掉「累计」两个字，再去掉钱（都在卡身的悬停说明里）。
+    // 矮卡（竖屏）：累计和当天涨跌在同一行，按当天涨跌右边剩下的宽度量；放不下整句时写「累计 + 钱」，再不行只写钱，
     // 不然两个光秃秃的百分比并排，新手分不清哪个是今天、哪个是买入以来；光秃秃的钱挨着当天涨跌，也会被当成当天赚亏
     const money = c.holdMoney === 0 ? '' : formatMoney(c.holdMoney, { sign: true });
     const hold = this.hold;
@@ -633,7 +633,7 @@ export class SlotCard {
     const label = mode.label(this.slot, card);
     if (!label) return;
     const { x, y, w, h } = this.rect;
-    // 只占卖出按钮那一条（以前 42 高，把「累计」那行盖住了）
+    // 只占卖出按钮那一条（再高会把「累计」那行盖住）
     this.pick = new Button(this.scene, x + 8, y + h - 33, { width: w - 16, height: 30, label, variant: 'primary', fontSize: 14, hotkey: `${this.slot + 1}`, onClick: () => mode.onPick(this.slot) });
     this.root.add(this.pick);
   }

@@ -23,7 +23,7 @@ interface ButtonOpts {
   hotkey?: string;
   /** 主文字下方的一行小字 */
   subLabel?: string;
-  /** 文字左边的小图标（0.5.8「大厅」） */
+  /** 文字左边的小图标（如「大厅」） */
   icon?: Glyph;
   /** 点击音效；null 表示不发声（由调用方自己发） */
   sound?: UiSound | null;
@@ -36,9 +36,9 @@ interface ButtonOpts {
 
 /**
  * 触屏上点击区至少这么大（世界单位）：手机 960×444 的世界在 844×390 上约 0.88 倍，50 ≈ 44px；
- * 0.9.0 平板走电脑布局（1280×720 的世界在 1024 宽的 iPad 上 0.8 倍），56 ≈ 45px。有鼠标的电脑上不撑。
+ * 平板走电脑布局（1280×720 的世界在 1024 宽的 iPad 上 0.8 倍），56 ≈ 45px。有鼠标的电脑上不撑。
  */
-// 0.19.5 比 SE 矮的手机按缩放再撑（568×320 是 56），换算到屏幕上不小于 44 像素
+// 比 SE 矮的手机按缩放再撑（568×320 是 56），换算到屏幕上不小于 44 像素
 export const HIT_MIN = PHONE ? Math.max(50, Math.ceil(44 / PHONE_SCALE)) : LOW_MEMORY ? 56 : 0;
 /** 电脑上 Button 的点击区至少这么大（docs/ui.md：电脑上可点区域可以小到 32）：比它矮、窄的按钮上下 / 左右各补一半，看得见的大小不变 */
 const DESK_HIT_MIN = 32;
@@ -57,7 +57,7 @@ const SINK = 2;
 const MODAL_DEPTH = 100;
 /** 悬停时往上抬多少（和按下的下沉凑成明显的三态：抬起、常态、压下） */
 const LIFT = 2;
-/** 悬停时底板上盖的白光；0.20.x 以前是 0.18，纸面按钮上几乎看不出 */
+/** 悬停时底板上盖的白光；再淡（0.18）纸面按钮上几乎看不出 */
 const HOVER_SHINE = 0.3;
 
 interface Look {
@@ -169,7 +169,7 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
       this.label.x = Math.max(this.label.width / 2 + 6, (opts.width - this.key.width - 10) / 2);
       if (this.sub) this.sub.x = this.label.x;
     }
-    // 0.19.0 更窄（手机上 5 格持仓的「卖出」）：让了还挤就不显示快捷键，文字回到正中
+    // 更窄（手机上 5 格持仓的「卖出」）：让了还挤就不显示快捷键，文字回到正中
     if (this.key && this.label.width + this.key.width + 16 > opts.width) {
       this.keyFits = false;
       this.key.setVisible(false);
@@ -234,7 +234,7 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
     });
   }
 
-  /** 0.14.0 卡片式按钮：在按钮面上加自己的内容（坐标相对按钮左上角，按下时跟着下沉）。 */
+  /** 卡片式按钮：在按钮面上加自己的内容（坐标相对按钮左上角，按下时跟着下沉）。 */
   addContent(...objs: Phaser.GameObjects.GameObject[]): this {
     this.face.add(objs);
     this.extras.push(...objs);
@@ -354,8 +354,8 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
 
   /**
    * 所在的层：弹窗、月底面板、教程气泡这些盖在整个画面上的（顶层容器 depth ≥ MODAL_DEPTH）各算一层，
-   * 其余都算同一层 0。以前直接用 depth：对局里顶栏按钮 depth 是 21、持仓卡和推荐卡是 0 到 5，
-   * Tab 只能在顶栏的几个按钮里打转，走不到卡片和开盘键。
+   * 其余都算同一层 0。不直接用 depth：对局里顶栏按钮 depth 是 21、持仓卡和推荐卡是 0 到 5，
+   * 按 depth 分层的话 Tab 只能在顶栏的几个按钮里打转，走不到卡片和开盘键。
    */
   layer(): number {
     let top: Phaser.GameObjects.Container = this;
@@ -481,7 +481,7 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
     this.label.setAlpha(this.loading ? 0.75 : 1);
     if (base.slice && this.enabled) setStroke(this.label, '#3a2634', 3);
     else setStroke(this.label, '#000000', 0);
-    // 停用时小字用停用色里最深的那档（银行「N月开」以前是浅灰字落在灰底上，看不清）
+    // 停用时小字用停用色里最深的那档（银行「N月开」浅灰字落在灰底上看不清）
     if (this.sub) setColor(this.sub, base.slice && this.enabled ? 0xffffff : this.enabled ? COLOR.muted : DISABLED.text);
     if (this.hit.input) this.hit.input.cursor = this.loading ? 'progress' : this.clickable() ? 'pointer' : 'default';
     this.key?.setVisible(this.keyFits && this.enabled && !this.locked && !this.loading);

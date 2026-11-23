@@ -44,13 +44,13 @@ export class TradeFx {
     });
   }
 
-  /** 0.5.1：飘字旁边配一个图标（弹出、停一下、淡出）；动画关闭时不放。 */
+  /** 飘字旁边配一个图标（弹出、停一下、淡出）；动画关闭时不放。 */
   glyphPop(g: Glyph, x: number, y: number, size = 34, hold = 700): void {
     if (this.s.anim.instant) return;
     const img = addGlyph(this.s, x, y, g, size).setDepth(171).setScale(0);
     const sc = (size / Math.max(1, img.width)) || 1;
     this.s.tweens.add({ targets: img, scale: { from: 0, to: sc }, duration: 200, ease: 'Back.easeOut' });
-    this.s.tweens.add({ targets: img, alpha: 0, y: y - 24, delay: 200 + hold, duration: 300, onComplete: () => img.destroy() });
+    this.s.tweens.add({ targets: img, alpha: 0, y: y - 24, delay: 200 + hold, ease: 'Sine.easeIn', duration: 300, onComplete: () => img.destroy() });
   }
 
   /** 买入：一个小人从推荐卡飞进格子，格子里的小人落地时弹一下。 */

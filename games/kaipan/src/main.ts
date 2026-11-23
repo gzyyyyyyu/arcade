@@ -7,7 +7,7 @@ import { detectPlatform, onPlatformMode, platformInfo } from './platform/mode.ts
 import { inviteUrl, mountSocial } from 'arcade-kit/social';
 import { reportErrors } from 'arcade-kit/report';
 import { APP_VERSION } from './platform/version.ts';
-import { mountRotateHint, setRotateLobbyLabel } from './platform/orientation.ts';
+import { mountRotateHint, setRotateLobbyLabel, takeRelayout } from './platform/orientation.ts';
 import { watchViewport } from 'arcade-kit/viewport';
 import { getSettings, onSettingsChange } from './platform/settings.ts';
 import { loadProfile } from './platform/profile.ts';
@@ -89,11 +89,13 @@ if (fromUrl) {
     console.info('URL 开局参数：已有存档，这一局不写存档、不计入档案');
   }
 }
-// 实盘（0.6.0）：接上这局的账、重发没发成的结回。调试会话和 URL 开局都不碰（读到的不是玩家自己的存档）
+// 实盘：接上这局的账、重发没发成的结回。调试会话和 URL 开局都不碰（读到的不是玩家自己的存档）
 if (!fromUrl && !params.debug) startLive(session.state);
 // 档案读坏了会就地备份重建，开始菜单提示一次
 session.profileNotice = loadProfile().notice === 'corrupt';
-const game = startGame(session, 'app', { toTitle: !fromUrl });
+// 「换成 X 屏版」点出来的重新载入：有没打完的局就直接回到这一局（和开始菜单的「继续」同一个条件）
+const relayout = takeRelayout() && !fromUrl && hasSave() && run.state.phase !== 'won' && run.state.phase !== 'lost';
+const game = startGame(session, 'app', { toTitle: !fromUrl && !relayout });
 throttleWhenIdle(game, session);
 // DOM 层（「大厅」的透明影子按钮、转屏提示、出错条、好友面板）上的按下不冒到 window：Phaser 在 window 上收到「目标不是画布」的按下
 // 也照坐标点画布（为了拖出画布外也收得到抬起，抬起照常冒），点影子会连带点到正下方的画布按钮，「大厅」按一次走两遍
@@ -114,7 +116,7 @@ if (LOW_MEMORY) {
 }
 // 首次触摸后才确认是触屏：重建当前场景，去掉快捷键提示
 onInputModeChange(() => session.redraw());
-// 0.8.0 有没有平台（单独部署时没有，见 platform/mode.ts）：问出来"没有"时开始菜单重画（藏起实盘、云朵、大厅），
+// 有没有平台（单独部署时没有，见 platform/mode.ts）：问出来"没有"时开始菜单重画（藏起实盘、云朵、大厅），
 // 竖屏提示的按钮改叫「首页」。开发构建不问：vite 的开发服务器对任何路径都回 index.html，问了总是"没有"；
 // 冒烟要平台时自己假一个 /api/me，要看单独部署的样子用 wrangler dev 跑构建产物
 onPlatformMode(() => {
@@ -127,7 +129,7 @@ const platformKnown = import.meta.env.DEV ? Promise.resolve('unknown' as const) 
 void platformKnown.then((m) => {
   if (params.debug || m === 'standalone') return;
   startCloudSync(() => session.sceneKey === 'title' && session.redraw());
-  // 0.13.0 好友挑战的链接（?challenge=<id>）：读这个挑战，开始菜单读到了弹卡片。读完就从地址里去掉，刷新不会再弹一次
+  // 好友挑战的链接（?challenge=<id>）：读这个挑战，开始菜单读到了弹卡片。读完就从地址里去掉，刷新不会再弹一次
   const challenge = challengeParam(location.search);
   if (challenge) {
     loadInvite(challenge);
@@ -135,7 +137,7 @@ void platformKnown.then((m) => {
     u.searchParams.delete('challenge');
     history.replaceState(history.state, '', `${u.pathname}${u.search}${u.hash}`);
   }
-  // 0.12.0 社交（共用包 arcade-kit/social）：开着开盘时每 2 分钟报一次"在玩开盘"、收好友的邀请。
+  // 社交（共用包 arcade-kit/social）：开着开盘时每 2 分钟报一次"在玩开盘"、收好友的邀请。
   // 等云存档问 /api/me 认出账号再挂（它只在有登录提示 cookie 时问），不为社交再问一次；没登录就一直不挂。
   // 点"去"走回大厅那条路（先补传云存档再跳）；这局照常存在这台设备上，点了"去"就不再问一次
   const mountWhenKnown = (): void => {

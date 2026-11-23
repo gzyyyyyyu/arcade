@@ -33,11 +33,11 @@ export function endMonth(s: GameState, em: Emitter): void {
       },
     });
   }
-  // 0.5：月度目标（还月供之前判定，奖励先到账）
+  // 月度目标（还月供之前判定，奖励先到账）
   if (s.tempo) tempoMonthEnd(s, tempoCtx(s, em));
   const monthRet = round2((s.account / Math.max(1e-9, s.stats.monthOpen) - 1) * 100);
   s.stats.monthRets.push(monthRet);
-  // 0.4 C：月供之外另付借款利息
+  // 月供之外另付借款利息
   if (s.ext && s.ext.loans.length > 0) {
     let interest = 0;
     for (const l of s.ext.loans) interest += l.amount * l.rate;
@@ -80,7 +80,7 @@ export function endMonth(s: GameState, em: Emitter): void {
   if (s.ext) checkBank(s, em, 'bill');
   if (marginCalled(s, em)) return;
   if (s.month >= runMonths(s)) {
-    // 0.4 C：一年结束，银行把没还的借款收回去（东西还给你）
+    // 一年结束，银行把没还的借款收回去（东西还给你）
     if (s.ext) {
       for (const loan of [...s.ext.loans]) {
         setAccount(s, s.account - loan.amount);

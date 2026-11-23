@@ -9,7 +9,7 @@ import { addGlyph, addImage, addPill, addSlice } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
 import { Dialog, phonePanel } from '../ui/dialog.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
-import { addText, setColor } from '../ui/text.ts';
+import { addText, markCut, setColor } from '../ui/text.ts';
 import { bindTooltip, type TipContent } from '../ui/tooltip.ts';
 import { loadViewed, saveViewed, type CodexGroup, type Viewed } from './prefs.ts';
 import { GLOSSARY, ROLE_WORD, term, type Term } from '../glossary.ts';
@@ -34,7 +34,7 @@ function phoneUi(w: number, h: number) {
   const pagerW = 84;
   const cardH = 110;
   if (h > w) {
-    // 竖屏版（0.33.0）：页签两排各 4 个在标题下面；网格每页的行数按高度算；最下面一排翻页和「关闭」，详情条单独在它上面一排、占整宽
+    // 竖屏版：页签两排各 4 个在标题下面；网格每页的行数按高度算；最下面一排翻页和「关闭」，详情条单独在它上面一排、占整宽
     const gy = 202;
     const rowY = h - 52;
     const stripY = rowY - 52;
@@ -52,6 +52,7 @@ function clipTo(t: Phaser.GameObjects.Text, maxW: number): Phaser.GameObjects.Te
   while (t.width > maxW && cut.length > 2) {
     cut = cut.slice(0, -1);
     t.setText(`${cut.join('')}…`);
+    markCut(t);
   }
   return t;
 }
@@ -141,7 +142,7 @@ export class CodexPanel extends Dialog {
     close.setHandler(() => this.close());
     this.inner.add(close);
     this.named['codex:close'] = close;
-    // 0.5.1：底部详情条——指到（或点到）哪张卡，就在这里写它的名字和一句说明（悬停提示照旧）
+    // 底部详情条——指到（或点到）哪张卡，就在这里写它的名字和一句说明（悬停提示照旧）
     this.strip = phone ? scene.add.container(ui.gx, ui.stripY) : scene.add.container(32, H - 64);
     this.inner.add(this.strip);
     this.show(tab);
@@ -173,6 +174,7 @@ export class CodexPanel extends Dialog {
       while (body.x + body.width > w - 12 && cut.length > 4) {
         cut = cut.slice(0, -2);
         body.setText(`${cut.join('')}…`);
+        markCut(body);
       }
     }
     this.strip.add([name, body]);
@@ -356,7 +358,7 @@ export class CodexPanel extends Dialog {
       const c = s.add.container(x, y);
       const lit = this.lit[g].has(e.id);
       if (!lit) {
-        // 0.9.0 没解锁的卡和解锁的一样大（以前用 120×160 的竖图，按高缩放后比解锁的窄一圈，一排卡宽窄不齐）
+        // 没解锁的卡和解锁的一样大（用 120×160 的竖图按高缩放会比解锁的窄一圈，一排卡宽窄不齐）
         c.add(lockedCard(s, cw, ch));
         c.add(addText(s, cw / 2, ch / 2 - 10, '?', { size: 44, bold: true, color: 0xb7a592, originX: 0.5, originY: 0.5 }));
         c.add(addText(s, cw / 2, ch - 22, '？？？', { size: FS.xs, bold: true, color: COLOR.muted, originX: 0.5, originY: 0.5 }));
@@ -421,7 +423,7 @@ export class CodexPanel extends Dialog {
     const ph = this.phone;
     const cols = ph ? this.cardCols() : 10;
     const cw = ph ? this.cardW(cols) : 108;
-    // 0.6.4 成就 47 个起（现 51 个，6 行，最后一行只有 1 个）：电脑上一行 10 个、排 5 行，卡片压矮一点
+    // .4 成就 47 个起（现 51 个，6 行，最后一行只有 1 个）：电脑上一行 10 个、排 5 行，卡片压矮一点
     const ch = ph ? this.ui.cardH : 90;
     const gx = ((ph ? this.ui.gw : GRID_W) - cw * cols) / (cols - 1);
     const per = ph ? cols * this.ui.rows : list.length;
@@ -458,54 +460,77 @@ export class CodexPanel extends Dialog {
 
   /** 词典第几页（一页 15 个词）。 */
   private wordPage = 0;
+  /** 词典每张卡放下整句解释要多高（按卡宽缓存）：标题 34 + 正文 + 底下「A 股叫…」一行 24 */
+  private readonly wordH = new Map<number, number[]>();
+
+  private wordHeights(cw: number): number[] {
+    const hit = this.wordH.get(cw);
+    if (hit) return hit;
+    const hs = GLOSSARY.map((t) => {
+      const body = addText(this.scene, 0, 0, t.explain, { size: FS.xs, wrap: cw - 22, lineSpacing: 2 });
+      const h = Math.ceil(34 + body.height + 24);
+      body.destroy();
+      return h;
+    });
+    this.wordH.set(cw, hs);
+    return hs;
+  }
 
   /** 词典：每个词一张卡，正文直接写一句话解释，A 股叫法放底部小字；一页 15 个，分页看。 */
   private wordGrid(): void {
     const s = this.scene;
     const ph = this.phone;
-    // 手机：一页 4 × 2 张，翻页按钮在底部一排
+    // 每张卡都放下整句解释，不截：一排的高度取这排最高的那张，排不下了就翻到下一页
     const cols = ph ? this.textCols() : 5;
     const rows = ph ? this.ui.rows : 3;
-    const per = cols * rows;
-    const pages = Math.ceil(GLOSSARY.length / per);
-    this.wordPage = Math.max(0, Math.min(pages - 1, this.wordPage));
     const gap = 10;
     const x0 = ph ? this.ui.gx : GRID_X;
     const y0 = ph ? this.ui.gy : GRID_Y;
     const gw = ph ? this.ui.gw : GRID_W;
     const cw = (gw - gap * (cols - 1)) / cols;
     const ch = ph ? this.ui.cardH : 136;
+    const bottom = ph ? (this.ui.portrait ? this.ui.stripY : this.ui.rowY) - 8 : y0 + rows * (ch + gap) - gap;
+    const need = this.wordHeights(cw);
+    const layout: { start: number; rowH: number[] }[] = [];
+    for (let i = 0; i < GLOSSARY.length; ) {
+      const pg = { start: i, rowH: [] as number[] };
+      for (let y = y0; i < GLOSSARY.length; i += cols) {
+        const h = Math.max(ch, ...need.slice(i, i + cols));
+        if (pg.rowH.length > 0 && y + h > bottom) break;
+        pg.rowH.push(h);
+        y += h + gap;
+      }
+      layout.push(pg);
+    }
+    const pages = layout.length;
+    this.wordPage = Math.max(0, Math.min(pages - 1, this.wordPage));
+    const pg = layout[this.wordPage] as { start: number; rowH: number[] };
     for (const k of Object.keys(this.named)) if (k.startsWith('codex:card:') || k.startsWith('codex:words:') || k.startsWith('codex:seg:')) delete this.named[k];
-    GLOSSARY.slice(this.wordPage * per, (this.wordPage + 1) * per).forEach((t, i) => {
-      const x = x0 + (i % cols) * (cw + gap);
-      const y = y0 + Math.floor(i / cols) * (ch + gap);
-      const c = s.add.container(x, y);
-      c.add(s.add.rectangle(0, 0, cw, ch, COLOR.paperHi).setOrigin(0, 0).setRounded(12).setStrokeStyle(2, COLOR.edge, 1));
-      const w = addText(s, 12, 10, t.word, { size: 15, bold: true, wrap: cw - 20 });
-      if (w.height > 24) w.setFontSize(13);
-      c.add(w);
-      const body = addText(s, 12, 34, t.explain, { size: FS.xs, color: COLOR.ink, wrap: cw - 22, lineSpacing: 2 });
-      // 正文最多到底部小字上面，超出的写省略号（全文在下方说明里）
-      const room = ch - 34 - 24;
-      if (body.height > room) {
-        let cut = Array.from(t.explain);
-        while (body.height > room && cut.length > 8) {
-          cut = cut.slice(0, -3);
-          body.setText(`${cut.join('')}…`);
+    let y = y0;
+    pg.rowH.forEach((rh, r) => {
+      GLOSSARY.slice(pg.start + r * cols, pg.start + (r + 1) * cols).forEach((t, j) => {
+        const i = r * cols + j;
+        const x = x0 + j * (cw + gap);
+        const cy = y;
+        const c = s.add.container(x, cy);
+        c.add(s.add.rectangle(0, 0, cw, rh, COLOR.paperHi).setOrigin(0, 0).setRounded(12).setStrokeStyle(2, COLOR.edge, 1));
+        const w = addText(s, 12, 10, t.word, { size: 15, bold: true, wrap: cw - 20 });
+        if (w.height > 24) w.setFontSize(13);
+        c.add(w);
+        c.add(addText(s, 12, 34, t.explain, { size: FS.xs, color: COLOR.ink, wrap: cw - 22, lineSpacing: 2 }));
+        if (t.original) {
+          const orig = addText(s, 12, rh - 14, t.original === t.word ? 'A 股里也这么叫' : `A 股叫「${t.original}」`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
+          if (ph) clipTo(orig, cw - 20);
+          c.add(orig);
         }
-      }
-      c.add(body);
-      if (t.original) {
-        const orig = addText(s, 12, ch - 14, t.original === t.word ? 'A 股里也这么叫' : `A 股叫「${t.original}」`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
-        if (ph) clipTo(orig, cw - 20);
-        c.add(orig);
-      }
-      const hit = s.add.rectangle(0, 0, cw, ch, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-      hit.on(Phaser.Input.Events.POINTER_UP, () => sound.ui('select'));
-      bindTooltip(hit, () => ({ x: this.inner.x + x, y: this.inner.y + y, w: cw, h: ch }), () => this.wordTip(t));
-      c.add(hit);
-      this.page?.add(c);
-      this.named[`codex:card:${i}`] = { center: () => ({ x: this.inner.x + x + cw / 2, y: this.inner.y + y + ch / 2 }) };
+        const hit = s.add.rectangle(0, 0, cw, rh, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        hit.on(Phaser.Input.Events.POINTER_UP, () => sound.ui('select'));
+        bindTooltip(hit, () => ({ x: this.inner.x + x, y: this.inner.y + cy, w: cw, h: rh }), () => this.wordTip(t));
+        c.add(hit);
+        this.page?.add(c);
+        this.named[`codex:card:${i}`] = { center: () => ({ x: this.inner.x + x + cw / 2, y: this.inner.y + cy + rh / 2 }) };
+      });
+      y += rh + gap;
     });
     if (ph) {
       this.phonePager(this.wordPage, pages, 'codex:words', (p) => {
@@ -642,6 +667,7 @@ export class CodexPanel extends Dialog {
       while (body.height > room && cut.length > 8) {
         cut = cut.slice(0, -3);
         body.setText(`${cut.join('')}…`);
+        markCut(body);
       }
     }
     c.add(body);
@@ -657,7 +683,7 @@ export class CodexPanel extends Dialog {
 
   private segPage = 0;
 
-  /** 0.4 重做：见过的行情段。不显示年份和日期，只有游戏化标题、市况和最近一局的小故事（点卡片重看）。 */
+  /** 重做：见过的行情段。不显示年份和日期，只有游戏化标题、市况和最近一局的小故事（点卡片重看）。 */
   private segmentPage(): void {
     const s = this.scene;
     const page = this.page as Phaser.GameObjects.Container;
@@ -879,7 +905,7 @@ export function achievementBadge(scene: Phaser.Scene, x: number, y: number, tier
 }
 
 /**
- * 没解锁的卡：0.18.0 改成浅一号的纸（以前深紫底，四行里两行深色压得很重）：纸色底、一层淡点、虚一点的描边。
+ * 没解锁的卡用浅一号的纸（深色底的话四行里两行深色压得很重）：纸色底、一层淡点、虚一点的描边。
  * 和解锁卡的九宫格素材对齐：素材四周留 4 的透明边，底下 8 里有一道阴影，所以卡身是 (4, 4) 起 (w-8)×(h-12)。
  */
 function lockedCard(s: Phaser.Scene, w: number, h: number): Phaser.GameObjects.Graphics {

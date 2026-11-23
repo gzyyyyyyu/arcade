@@ -84,7 +84,7 @@ function difficultyMods(level: number): typeof DIFFICULTIES {
 
 /**
  * 玩家规则表：难度 → 人设 → 道具（按获得顺序）依次修改，最后套上人设的买入上限。
- * 0.5：track（个股照搬真实走势）时难度再套 realRules；monthMod 是本月主题的规则修改（rulesOf 传入）。
+ * track（个股照搬真实走势）时难度再套 realRules；monthMod 是本月主题的规则修改（rulesOf 传入）。
  */
 export function rulesFor(
   items: readonly string[],
@@ -128,7 +128,7 @@ export function rulesWithoutTheme(s: Readonly<GameState>): Rules {
 
 function runRules(s: Readonly<GameState>, mod: Parameters<typeof rulesFor>[4]): Rules {
   const r = rulesFor(s.items, s.difficulty, s.persona, s.real ? s.real.regime : false, mod, !!s.setup?.short);
-  // 0.6.0 实盘、0.10.0 娱乐短局：常规月供整体打折（突发账单在 surprisePlan 里打同样的折）
+  // 实盘、娱乐短局：常规月供整体打折（突发账单在 surprisePlan 里打同样的折）
   r.billMult *= runBillMult(s);
   // 本周市场：这一周的限定规则最后叠加（不进别的模式）
   const wr = weeklyRuleOf(s.setup);
@@ -257,7 +257,7 @@ export function coldPull(stage: Stage, heat: number): number {
 }
 
 /** 今天热度变化的加成：日历利好、直播间跟单、冷门回落。 */
-export function dHBonus(t: Readonly<ThemeState>, mr: MarketRules): number {
+function dHBonus(t: Readonly<ThemeState>, mr: MarketRules): number {
   return (mr.themeDH[t.id] ?? 0) + (t.boost?.dH ?? 0) + coldPull(t.stage, t.heat);
 }
 
@@ -368,7 +368,7 @@ interface MoveInput {
   /** 持仓里的股票 id（连板梦只作用于持仓） */
   held: ReadonlySet<string>;
   /**
-   * 0.3.1：给出持仓股票涨跌的未取整归因（只记录，不参与计算，不改变任何结果）。
+   * 给出持仓股票涨跌的未取整归因（只记录，不参与计算，不改变任何结果）。
    * 各项之和等于取整前的涨跌；取整的零头由调用方并进"随机波动"。
    */
   partsOut?: Map<string, RawPart[]>;
@@ -495,7 +495,7 @@ export function moveStocks(inp: MoveInput): StockMove[] {
 }
 
 /**
- * 0.5：个股照搬真实走势。当天涨跌 = amp × 绑定的真实股票当天的真实涨跌，再按涨跌停（角色涨跌停 × rules.limitMult）截断。
+ * 个股照搬真实走势。当天涨跌 = amp × 绑定的真实股票当天的真实涨跌，再按涨跌停（角色涨跌停 × rules.limitMult）截断。
  * 连板、炸板、妖股异动、ST 消息、大哥带小弟都从截断后的走势里识别出来（只播报，不改涨跌）：
  * - 连板：触及涨停，boards + 1；
  * - 炸板：前一天涨停（boards > 0）、今天跌 ≤ BALANCE.track.blown；

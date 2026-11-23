@@ -38,9 +38,9 @@ class UnlockDialog extends Dialog {
     const GRID_COLS = pp ? Math.max(1, Math.min(PHONE_COLS, n, Math.floor((pp.w - 48) / PHONE_CELL))) : gridCols(n);
     const perPage = phone ? GRID_COLS * 2 : n;
     const rows = grid ? Math.ceil(Math.min(n, perPage) / GRID_COLS) : 0;
-    // 竖屏版（0.33.0）的世界只有 404 宽：单条的弹窗也不超过 phonePanel 的宽
+    // 竖屏版的世界只有 404 宽：单条的弹窗也不超过 phonePanel 的宽
     const w = grid ? (pp ? Math.min(pp.w, Math.max(W, GRID_COLS * PHONE_CELL + 48)) : gridW(n)) : pp ? Math.min(W, pp.w) : W;
-    // 0.5：格子里只放徽章 + 名字（档位看框色），条件放悬停
+    // 格子里只放徽章 + 名字（档位看框色），条件放悬停
     const rowH = phone ? PHONE_ROW_H : rows <= 2 ? 150 : 124;
     const h = grid ? (pp ? Math.min(pp.h, 150 + rows * rowH) : 160 + rows * rowH) : pp ? Math.min(H, pp.h) : H;
     super(scene, w, h, `${title}${total > 1 ? `（${index + 1}/${total}）` : ''}`, onClosed);

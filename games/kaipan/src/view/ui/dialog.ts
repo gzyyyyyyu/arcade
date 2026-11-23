@@ -20,18 +20,18 @@ export const TOP_DIALOG = 'topDialog';
  * 内容加到 inner（原点为面板左上角）。
  */
 /**
- * 手机上整屏弹窗的大小（0.19.1）：世界是 718–960×404（见 theme.ts 的 phoneWorld），弹窗最宽 940、最高 430，
+ * 手机上整屏弹窗的大小：世界是 718–960×404（见 theme.ts 的 phoneWorld），弹窗最宽 940、最高 430，
  * 四周各留一点边：SE 上 702×392，844×390 上 858×392，宽屏 940×392。
  */
 export function phonePanel(scene: Phaser.Scene): { w: number; h: number } {
   const V = viewOf(scene);
-  // 竖屏版（0.33.0，世界 404 × 718–960）：整屏面板占满高度，上下各留 12，内容按单列排（各面板自己的竖屏几何）
+  // 竖屏版（世界 404 × 718–960）：整屏面板占满高度，上下各留 12，内容按单列排（各面板自己的竖屏几何）
   if (V.h > V.w) return { w: V.w - 16, h: V.h - 24 };
   return { w: Math.min(940, V.w - 16), h: Math.min(430, V.h - 12) };
 }
 
 /**
- * 定宽弹窗的宽：竖屏版（0.33.0）世界只有 404 宽，按设计宽和「屏宽 − 16」取小。
+ * 定宽弹窗的宽：竖屏版世界只有 404 宽，按设计宽和「屏宽 − 16」取小。
  * 用到它的弹窗在变窄后自己重排（按钮均分、说明折行），不整体缩小（字号守 docs/ui.md 的下限）。
  */
 export function dialogW(scene: Phaser.Scene, w: number): number {
@@ -127,7 +127,7 @@ export class Dialog extends Phaser.GameObjects.Container {
   }
 
   /**
-   * 0.5 统一弹窗按钮：主按钮橙色在右、次按钮白色在左，贴在面板右下角。
+   * 统一弹窗按钮：主按钮橙色在右、次按钮白色在左，贴在面板右下角。
    * spec.name 给自动化脚本用（写进 named）。返回两个按钮（没给的为 null）。
    */
   protected actions(primary: ActionSpec | null, secondary?: ActionSpec | null): { primary: Button | null; secondary: Button | null } {
@@ -176,7 +176,7 @@ export class Dialog extends Phaser.GameObjects.Container {
   }
 
   /**
-   * 退场：面板淡出并缩小到 0.94（约 150 毫秒）。弹窗本身立刻销毁（按键监听、回调和以前一样马上结束），
+   * 退场：面板淡出并缩小到 0.94（约 150 毫秒）。弹窗本身立刻销毁（按键监听、回调马上结束），
    * 只把遮罩和面板摘出来交给一个临时容器播完动画：期间所有按钮锁住，不会重复触发。
    */
   private exitAnim(): boolean {
@@ -269,7 +269,7 @@ interface ActionSpec {
 const ACTION_SIZE = { primary: { w: 136, h: 46 }, secondary: { w: 112, h: 46 }, gap: 14 } as const;
 
 /**
- * 0.5 统一弹窗按钮（Dialog 之外的浮层也用）：主按钮橙色在右、次按钮白色在左。
+ * 统一弹窗按钮（Dialog 之外的浮层也用）：主按钮橙色在右、次按钮白色在左。
  * (right, bottom) 为按钮区右下角，坐标相对 parent。
  */
 export function actionButtons(

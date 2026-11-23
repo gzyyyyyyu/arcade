@@ -137,7 +137,7 @@ export function eligibleSteps(s: Readonly<GameState>, p: TutorialProgress): Step
   return out;
 }
 
-// ================================================================ 0.5.1 教程卡：一句话 + 图标数字
+// ================================================================ 教程卡：一句话 + 图标数字
 
 /** 教程卡上的小图标签：图标 + 2–4 字或数字；tone 决定着色。 */
 interface TutorialChip {
@@ -184,8 +184,8 @@ export function tutorialCard(step: TutorialStep, s: Readonly<GameState>, stockId
         ? { line: '绿涨红跌，设置里能换', chips: [{ icon: 'glyph:arrow_up', text: '涨', tone: 'up' }, { icon: 'glyph:arrow_down', text: '跌', tone: 'down' }] }
         : { line: '红涨绿跌，设置里能换', chips: [{ icon: 'glyph:arrow_up', text: '涨', tone: 'up' }, { icon: 'glyph:arrow_down', text: '跌', tone: 'down' }] };
     case 'heat': {
-      // 0.36.1：只讲「热度涨跌 → 股票跟着涨跌」这一个因果，拿昨天热度变得最多的风口举例。
-      // 以前先写自己那只的涨跌、再配别的风口的热度签，新手对不上两者的关系
+      // 只讲「热度涨跌 → 股票跟着涨跌」这一个因果，拿昨天热度变得最多的风口举例。
+      // 先写自己那只的涨跌、再配别的风口的热度签的话，新手对不上两者的关系
       const chips: TutorialChip[] = [];
       let line = '热度涨，股票就涨';
       const big = last ? [...last.themes].sort((a, b) => Math.abs(b.dH) - Math.abs(a.dH))[0] : undefined;

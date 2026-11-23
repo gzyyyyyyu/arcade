@@ -3,7 +3,7 @@ import { COLOR, FS, signColor } from '../theme.ts';
 import { addText } from './text.ts';
 
 /**
- * 0.5.1 迷你图表：折线（可带面积）、涨跌柱（以 0 为轴，红涨绿跌随配色），支持「从左往右画出来」的动画。
+ * 迷你图表：折线（可带面积）、涨跌柱（以 0 为轴，红涨绿跌随配色），支持「从左往右画出来」的动画。
  * 画在一个 Graphics 上；play() 用场景的补间推进，场景关闭时随之回收；calm（减少动态）时直接画完。
  */
 interface SparkOpts {
@@ -22,7 +22,7 @@ interface SparkOpts {
   capMin?: number;
   /** 画一条 0 轴 / 起点基准线 */
   axis?: boolean;
-  /** 0.5.1：前 pre 项是开局前的历史，画浅色（线是细虚线），和开局后分一道竖虚线 */
+  /** 前 pre 项是开局前的历史，画浅色（线是细虚线），和开局后分一道竖虚线 */
   pre?: number;
   /** 在开局前那段的左上角标「开局前」（大图用） */
   preLabel?: boolean;

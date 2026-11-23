@@ -26,9 +26,9 @@ export interface TradeLog {
   contra: boolean;
   /** 隐藏：高潮期买入，并一直拿到了退潮 */
   guard: boolean;
-  /** 0.4 C：押跌的一笔（ret 已经按押跌算：它跌你赚） */
+  /** 押跌的一笔（ret 已经按押跌算：它跌你赚） */
   short?: boolean;
-  /** 0.4 C：了结时占几份 */
+  /** 了结时占几份 */
   units?: number;
 }
 
@@ -47,15 +47,15 @@ export interface RunStats {
   chains: number;
   peakAccount: number;
   billsPaid: number;
-  /** 0.5.4：账户实际付掉的账单合计（信用卡垫的不算） */
+  /** 账户实际付掉的账单合计（信用卡垫的不算） */
   billMoney: number;
-  /** 0.5.4：炒股本身累计赚亏（每天收盘结算的账户变化之和，不含账单、利息、奖励、银行） */
+  /** 炒股本身累计赚亏（每天收盘结算的账户变化之和，不含账单、利息、奖励、银行） */
   tradeMoney: number;
   trades: TradeLog[];
   /** 选过的奖励 id */
   picked: string[];
   events: string[];
-  /** 0.20.x：事件里选了哪个选项，每项 `事件id:选项序号`（成就用；只记录、不影响规则） */
+  /** 事件里选了哪个选项，每项 `事件id:选项序号`（成就用；只记录、不影响规则） */
   eventPicks: string[];
   /** 持仓里有跌停的交易日数 */
   limitDownDays: number;
@@ -112,9 +112,9 @@ export interface RunSetup {
   difficulty?: number;
   /** 关闭群聊消息（模拟"消息有用"用；推荐照常） */
   noChat?: boolean;
-  /** 0.6.0 实盘模式：打几个月、账单倍数（开局时从 BALANCE.live 抄进来，存档自带）；娱乐局没有 */
+  /** 实盘模式：打几个月、账单倍数（开局时从 BALANCE.live 抄进来，存档自带）；娱乐局没有 */
   live?: LiveRules;
-  /** 0.10.0 娱乐短局：打几个月、账单倍数（开局时从 BALANCE.short 抄进来，存档自带）；完整一年的局、实盘、每日挑战没有 */
+  /** 娱乐短局：打几个月、账单倍数（开局时从 BALANCE.short 抄进来，存档自带）；完整一年的局、实盘、每日挑战没有 */
   short?: ShortRules;
   /**
    * 闪电盘的日期 YYYY-MM-DD（由 flashSetup 给出）：固定 10 个交易日、没有月供、开局三选一道具、第 4 / 8 天收盘后各一个事件，
@@ -130,7 +130,7 @@ export interface RunSetup {
   lesson?: true;
 }
 
-/** 0.10.0 娱乐短局这一局的规则。 */
+/** 娱乐短局这一局的规则。 */
 export interface ShortRules {
   months: number;
   billMult: number;
@@ -138,19 +138,19 @@ export interface ShortRules {
   goal: number;
 }
 
-/** 0.6.0 实盘这一局的规则。 */
+/** 实盘这一局的规则。 */
 export interface LiveRules {
   months: number;
   billMult: number;
-  /** 0.10.0：资产涨跌算进筹码的倍数；更早开的局没有，按 1 算 */
+  /** 资产涨跌算进筹码的倍数；更早开的局没有，按 1 算 */
   lev?: number;
-  /** 0.10.0：档位；更早开的局没有，按难度认（那时一档一个难度） */
+  /** 档位；更早开的局没有，按难度认（那时一档一个难度） */
   tier?: LiveTier;
-  /** 0.11.0：玩家选的杠杆（开局时从 BALANCE.live.gears 抄进来）；稳健 1× 和更早开的局没有 */
+  /** 玩家选的杠杆（开局时从 BALANCE.live.gears 抄进来）；稳健 1× 和更早开的局没有 */
   gear?: LiveGear;
 }
 
-/** 0.11.0 实盘杠杆：结回再按 x 放大、封顶 cap 份，每月扣利息（让结回少 interest），放大后的结回倍数跌到清零线 call 就按 0 结。 */
+/** 实盘杠杆：结回再按 x 放大、封顶 cap 份，每月扣利息（让结回少 interest），放大后的结回倍数跌到清零线 call 就按 0 结。 */
 export interface LiveGear {
   x: number;
   cap: number;
@@ -196,7 +196,7 @@ export interface GameState {
   lastDay: DayReport | null;
   endReason: EndReason | null;
   /**
-   * 0.20.0 盘中减仓（docs/design-live.md 2.6）：最近一次减仓那一刻的资产比 r0、放大后的结回倍数 v0 和减完的杠杆 x；
+   * 盘中减仓（docs/design-live.md 2.6）：最近一次减仓那一刻的资产比 r0、放大后的结回倍数 v0 和减完的杠杆 x；
    * 之后结回 = v0 + x × 涨跌倍数 ×（资产比 − r0），利息按 x 那一档算（1× 没有），不再有清零线。没减过仓（或老存档）为 undefined。
    */
   gearCut?: { r0: number; v0: number; x: number };
@@ -213,22 +213,22 @@ export interface GameState {
   stats: RunStats;
   /** 本局全部操作，配合 seed 与 setup 可完整回放 */
   actions: Action[];
-  /** 0.35.0 自选：加了星的股票 id（加星的先后顺序；没加过为缺省） */
+  /** 自选：加了星的股票 id（加星的先后顺序；没加过为缺省） */
   stars?: string[];
   /**
-   * 0.4 重做：这一局用的真实行情段（只含登场风口用到的部分，读档、回放不用再下载）。
+   * 重做：这一局用的真实行情段（只含登场风口用到的部分，读档、回放不用再下载）。
    * null 或缺省 = 0.3 的合成行情（离线、数据加载失败时的兜底，也是 0.3 存档的样子）。
    */
   real?: RealMarket | null;
-  /** 0.4 C：仓位、押跌、抵押（缺省 = 0.3 的玩法） */
+  /** 仓位、押跌、抵押（缺省 = 0.3 的玩法） */
   ext?: ExtState | null;
-  /** 0.5：月度主题、中场、高光、连击（缺省 = 没有；真实行情开局默认打开） */
+  /** 月度主题、中场、高光、连击（缺省 = 没有；真实行情开局默认打开） */
   tempo?: TempoState | null;
-  /** 0.5：还没揭晓的多日消息（隐藏真相，只存说法） */
+  /** 还没揭晓的多日消息（隐藏真相，只存说法） */
   watch?: WatchedIntel[];
 }
 
-/** 0.5：还没揭晓的多日消息。 */
+/** 还没揭晓的多日消息。 */
 export interface WatchedIntel {
   day: number;
   index: number;
@@ -238,7 +238,7 @@ export interface WatchedIntel {
   days: number;
 }
 
-/** 0.5：月度目标的种类（都能按局面判定）。 */
+/** 月度目标的种类（都能按局面判定）。 */
 export type GoalKind =
   /** 本月账户涨 ≥ target%（月底还钱之前算） */
   | 'gain'
@@ -268,7 +268,7 @@ export interface MonthReward {
   item: boolean;
 }
 
-/** 0.5：本月主题和目标（公开）。 */
+/** 本月主题和目标（公开）。 */
 export interface MonthGoalState {
   month: number;
   /** 主题 id（src/core/content/monthThemes.ts） */
@@ -304,14 +304,14 @@ export interface TempoState {
   bonus: number;
 }
 
-/** 0.5：一次高光。 */
+/** 一次高光。 */
 export interface Highlight {
   kind: 'limitUp' | 'limitDown' | 'bigWin' | 'bigLoss' | 'boards' | 'blown' | 'wild' | 'combo' | 'goal' | 'crash' | 'shortWin' | 'headline';
   text: string;
   stockId?: string;
 }
 
-/** 0.5：小奖励（连击、押对跌、抓到涨停）。 */
+/** 小奖励（连击、押对跌、抓到涨停）。 */
 export interface ComboReward {
   kind: 'streak' | 'shortWin' | 'limitUp' | 'shards';
   /** 连续天数、次数 */
@@ -323,7 +323,7 @@ export interface ComboReward {
   text: string;
 }
 
-/** 0.5：收盘时的节奏信息。 */
+/** 收盘时的节奏信息。 */
 export interface DayTempo {
   /** 平淡日：持仓波动小、账户几乎没动、没有事件、没有高光——画面可以快速翻过 */
   quiet: boolean;

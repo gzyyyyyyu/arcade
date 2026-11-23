@@ -75,7 +75,7 @@ interface Geo {
   /** 难度一句话的中心 y，下面一行是完整说明 */
   diffY: number;
   side: number;
-  /** 竖屏版（0.33.0）才有：单列里各排的位置 */
+  /** 竖屏版才有：单列里各排的位置 */
   pt?: PortraitGeo;
 }
 
@@ -96,7 +96,7 @@ interface PortraitGeo {
 
 const DESKTOP: Geo = { w: W, h: H, cardW: CARD_W, cardH: CARD_H, cardGap: CARD_GAP, cardsY: CARDS_Y, badge: BADGE, badgesY: BADGES_Y, personaY: CARDS_Y + CARD_H + 20, diffY: BADGES_Y + BADGE / 2 + 48, side: 32 };
 /**
- * 手机横屏（0.19.1）：面板大小取 phonePanel（SE 上 702×392，宽屏 940×392），人设卡宽按面板宽均分五张；
+ * 手机横屏：面板大小取 phonePanel（SE 上 702×392，宽屏 940×392），人设卡宽按面板宽均分五张；
  * 因为 SE 上一张卡只有 127 宽，卡改成竖的（立绘在上，名字、本钱各一行）。从上到下：标题行、卡（60–170）、人设一行、
  * 难度徽章、难度两行、底下一排按钮（开局在右下角，h-52 起）。高度比 392 多出来的（旧世界 430）匀给徽章和难度行。
  */
@@ -121,7 +121,7 @@ function phoneGeo(v: { w: number; h: number }): Geo {
 }
 
 /**
- * 竖屏版（0.33.0）：面板 388 宽、高 694（360×640）到 850 左右（390×844）。从上到下：标题行（标题 + 娱乐 | 实盘）、
+ * 竖屏版：面板 388 宽、高 694（360×640）到 850 左右（390×844）。从上到下：标题行（标题 + 娱乐 | 实盘）、
  * 短局 | 完整一年、人设卡两排、人设一行、难度徽章两排、难度两行，最下面叠加的难度一排和返回 / 开局。比 694 高出来的匀给徽章和难度行。
  */
 function portraitGeo(v: { w: number; h: number }, live: boolean): Geo {
@@ -186,7 +186,7 @@ export function addBadge(scene: Phaser.Scene, x: number, y: number, level: numbe
 }
 
 /**
- * 0.6.8 桌上还有一局没结（别的设备上开的、或者本机记录丢了）：不拦开新局，左下角提示一句，给「回去接着打」「原样退回」。
+ * 桌上还有一局没结（别的设备上开的、或者本机记录丢了）：不拦开新局，左下角提示一句，给「回去接着打」「原样退回」。
  * here = 那一份正是本机记录里作废、出错留着的，接不着打，只给「原样退回」。
  */
 export interface LiveAside {
@@ -201,15 +201,15 @@ interface SetupOpts {
   profile: Profile;
   initial: { persona: PersonaId; difficulty: number; short: boolean };
   anim: Animator;
-  /** short：0.10.0 短局（5 个月）还是完整一年 */
+  /** short：短局（5 个月）还是完整一年 */
   onStart: (persona: PersonaId, difficulty: number, short: boolean) => void;
-  /** 0.5：这一局用真实行情（难度改用 realDesc / realDetail 的说法） */
+  /** 这一局用真实行情（难度改用 realDesc / realDetail 的说法） */
   real?: boolean;
   /**
-   * 0.6.0 实盘：给了就是实盘模式，八个难度徽章换成四张档位卡，开始按钮写"带 2,000 进场"。
+   * 实盘：给了就是实盘模式，八个难度徽章换成四张档位卡，开始按钮写"带 2,000 进场"。
    * wallet 是 GET /api/wallet 看到的钱包（连不上为 null）；blocked 是开不了的原因（另一台设备上有一局、上一局还没结完……），能开为 null。
    */
-  /** gear（0.11.0）：玩家选的杠杆 1 / 2 / 3，默认稳健 1× */
+  /** gear：玩家选的杠杆 1 / 2 / 3，默认稳健 1× */
   live?: { wallet: WalletView | null; blocked: string | null; tier: LiveTier; onStart: (persona: PersonaId, tier: LiveTier, gear: number) => void; aside?: LiveAside | null };
   /** 顶上的「娱乐 | 实盘」开关：点了另一边就关掉这个面板，由调用方按那个模式重开（带上选好的人设） */
   onMode?: (mode: 'fun' | 'live', persona: PersonaId) => void;
@@ -223,14 +223,14 @@ interface SetupOpts {
 export class SetupPanel extends Dialog {
   private persona: PersonaId;
   private difficulty: number;
-  /** 0.10.0 娱乐：短局还是完整一年 */
+  /** 娱乐：短局还是完整一年 */
   private short: boolean;
   private readonly profile: Profile;
   private readonly rings = new Map<string, Phaser.GameObjects.Shape>();
   private readonly personaMoney: Phaser.GameObjects.Text;
   private readonly personaText: Phaser.GameObjects.Text;
   private readonly diffText: Phaser.GameObjects.Text;
-  /** 0.5.1：人设一句介绍、难度的完整一句、叠加的前几级小徽章（0.5 都在悬停里） */
+  /** 人设一句介绍、难度的完整一句、叠加的前几级小徽章（0.5 都在悬停里） */
   private readonly personaDesc: Phaser.GameObjects.Text;
   private readonly diffDesc: Phaser.GameObjects.Text;
   private readonly stack: Phaser.GameObjects.Container;
@@ -240,17 +240,17 @@ export class SetupPanel extends Dialog {
   private readonly cards = new Map<string, Phaser.GameObjects.Container>();
   private real = false;
   private readonly g: Geo;
-  /** 0.6.0 实盘模式（opts.live）：选中的档位、开始按钮（文字跟着档位变） */
+  /** 实盘模式（opts.live）：选中的档位、开始按钮（文字跟着档位变） */
   private readonly live: SetupOpts['live'] | null;
   private tier: LiveTier = 'small';
-  /** 0.11.0 实盘：选的杠杆，和随杠杆变的档位卡上那两行（涨跌几倍、最多赢多少） */
+  /** 实盘：选的杠杆，和随杠杆变的档位卡上那两行（涨跌几倍、最多赢多少） */
   private gear = 1;
   private readonly cardLines = new Map<LiveTier, { lev: Phaser.GameObjects.Text; win: Phaser.GameObjects.Text }>();
   private startBtn: Button | null = null;
 
   constructor(scene: Phaser.Scene, opts: SetupOpts) {
     const g = !phoneLayout(scene) ? DESKTOP : PORTRAIT ? portraitGeo(phonePanel(scene), !!opts.live) : phoneGeo(phonePanel(scene));
-    super(scene, g.w, g.h, '新一局', undefined, SOLID_BACKDROP_ALPHA);
+    super(scene, g.w, g.h, opts.live ? '实盘 · 带筹码进场' : '新一局', undefined, SOLID_BACKDROP_ALPHA);
     this.g = g;
     const W = g.w;
     const H = g.h;
@@ -306,7 +306,7 @@ export class SetupPanel extends Dialog {
     this.stack = scene.add.container(g === DESKTOP ? 176 : phoneMidX, g === DESKTOP ? H - 42 : stackY);
     this.diffStars = scene.add.container(0, g.diffY);
     this.inner.add([this.diffText, this.diffDesc, this.stack, this.diffStars]);
-    // 0.11.0 实盘：档位卡下面多了一排杠杆，杠杆的风险和钱包那两行往下挪
+    // 实盘：档位卡下面多了一排杠杆，杠杆的风险和钱包那两行往下挪
     if (this.live) {
       this.diffText.setY(g === DESKTOP ? 566 : (g.pt?.liveDiffY ?? 314)).setFontSize(g === DESKTOP ? 16 : 14);
       if (g === DESKTOP) this.diffDesc.setY(588);
@@ -328,7 +328,7 @@ export class SetupPanel extends Dialog {
       else opts.onStart(this.persona, this.difficulty, this.short);
     });
     if (this.live) start.onDenied(() => this.liveBlock());
-    // 底部一排的中线：电脑 H-43（沿用原来的坐标），手机和开局按钮对齐
+    // 底部一排的中线：电脑 H-43，手机和开局按钮对齐
     const mid = g === DESKTOP ? H - 43 : sy + sh / 2;
     const back = new Button(scene, g.side, mid - 19, { width: g === DESKTOP ? 120 : 100, height: 40, label: '返回', fontSize: 15, hotkey: 'Esc' });
     back.setHandler(() => this.close());
@@ -443,7 +443,7 @@ export class SetupPanel extends Dialog {
     const c = s.add.container(cx, BADGES_Y);
     const art = addBadge(s, 0, 0, level, BADGE);
     c.add(art);
-    // 手机：没解锁的只淡化徽章，名字用 muted 不透明（原来 dim 再叠 0.5 透明，对比度太低看不清）
+    // 手机：没解锁的只淡化徽章，名字用 muted 不透明（dim 再叠 0.5 透明的话对比度太低看不清）
     c.add(addText(s, 0, BADGE / 2 + (phone ? 8 : 12), name, { size: TYPE.label + 1, bold: true, color: unlocked ? COLOR.ink : phone ? COLOR.muted : COLOR.dim, originX: 0.5 }));
     if (!unlocked) {
       if (phone) for (const o of art) (o as Phaser.GameObjects.Image).setAlpha(0.5);
@@ -488,7 +488,7 @@ export class SetupPanel extends Dialog {
   }
 
   /**
-   * 0.10.0 娱乐：「短局 · 5 个月 | 完整一年」两段开关，放在标题行左边（标题和「娱乐 | 实盘」之间）。默认短局；
+   * 娱乐：「短局 · 5 个月 | 完整一年」两段开关，放在标题行左边（标题和「娱乐 | 实盘」之间）。默认短局；
    * 短局最后一个月月底多交一笔首付（这局的最终目标），说法在下面难度那一行。
    */
   private lengthSwitch(): void {
@@ -548,7 +548,7 @@ export class SetupPanel extends Dialog {
 
   /**
    * 实盘的四张档位卡：档位名和多难（星）、一份多少（大字）、一局约多久和涨跌按几倍算、最多赢 / 最多输（仓库根 docs/balance.md 第 5 节）。
-   * 钱包里不够这一档的变灰（0.6.5：平台只要求够这次带入；开盘一档就是一份，少带就换小一档）。
+   * 钱包里不够这一档的变灰（平台只要求够这次带入；开盘一档就是一份，少带就换小一档）。
    */
   private tierCards(anim: Animator): void {
     const s = this.scene;
@@ -596,7 +596,7 @@ export class SetupPanel extends Dialog {
         const k = tierCard(t, this.gear);
         const lines = [`一份 ${chips(t.stake)} 筹码；行情按难度「${d?.name ?? t.difficulty}」`];
         if (d) lines.push(this.levelText(d.level, d.desc, d.detail).desc);
-        lines.push(`资产涨跌按 ${k.lev} 倍算进筹码（杠杆 ×${this.gear}）：资产涨 10%，结回多 ${Math.round(Number(k.lev) * 10)}%`);
+        lines.push(`资产涨跌按 ${k.lev} 倍算进筹码（杠杆 ×${this.gear}）：资产涨 10%，带回多 ${Math.round(Number(k.lev) * 10)}%`);
         lines.push(`一局约 ${LIVE_MINUTES} 分钟；最多赢 ${k.win}，最多输 ${k.lose}（就是这一份）`);
         if (!this.affords(t.stake)) lines.push('筹码不够这一档');
         return { title: t.name, body: lines.join('\n'), color: this.affords(t.stake) ? undefined : COLOR.danger };
@@ -608,7 +608,7 @@ export class SetupPanel extends Dialog {
     });
   }
 
-  /** 0.11.0 档位卡下面一排：稳健 1× / 进取 2× / 疯狂 3×，默认稳健；风险写在下面一行 */
+  /** 档位卡下面一排：稳健 1× / 进取 2× / 疯狂 3×，默认稳健；风险写在下面一行 */
   private gearRow(): void {
     const s = this.scene;
     const desk = this.g === DESKTOP;
@@ -628,7 +628,6 @@ export class SetupPanel extends Dialog {
         btns.forEach((o, k) => o.setSelected(k === i));
         this.refresh();
       });
-      b.tooltip(() => ({ title: `杠杆 ${GEAR_NAME[x]} ${x}×`, body: gearText(liveTierById(this.tier), x) }));
       btns.push(b);
       this.inner.add(b);
       this.named[`setup:gear:${x}`] = b;
@@ -681,11 +680,10 @@ export class SetupPanel extends Dialog {
     }
     if (this.live) {
       this.refreshLive();
-      if (p) this.personaDesc.setText(ellipsize(`${p.desc}${p.flavor ? `「${p.flavor}」` : ''}`, 56));
-      this.fitPhone(this.personaDesc);
+      if (p) this.setPersonaDesc(p);
       return;
     }
-    // 0.10.0：多难（星，高手之后的几级都是满星）、适合谁、一局约多久（仓库根 docs/balance.md 第 3 节）
+    // 多难（星，高手之后的几级都是满星）、适合谁、一局约多久（仓库根 docs/balance.md 第 3 节）
     this.diffText.setText(this.levelShort(this.difficulty));
     setColor(this.diffText, COLOR.ink);
     this.diffStars.removeAll(true);
@@ -711,8 +709,8 @@ export class SetupPanel extends Dialog {
         this.stack.add(addText(s, 28, 0, '最普通的市场', { size: TYPE.label, color: COLOR.muted, originY: 0.5 }));
       }
     }
-    if (p) this.personaDesc.setText(ellipsize(`${p.desc}${p.flavor ? `「${p.flavor}」` : ''}`, 56));
-    this.fitPhone(this.personaDesc);
+    if (p) this.setPersonaDesc(p);
+    else this.fitPhone(this.personaDesc);
     const b = this.profile.best[bestKey(this.persona, this.difficulty, this.short)];
     this.best.setText(!b || b.runs === 0 ? '—' : b.wins > 0 ? `${b.wins}/${b.runs} · ${wanShort(b.bestAccount)}` : `${b.bestMonths}/${this.short ? BALANCE.short.months : 12}`);
   }
@@ -737,7 +735,10 @@ export class SetupPanel extends Dialog {
     this.diffText.setText(hard ? block : gearText(liveTierById(this.tier), this.gear));
     setColor(this.diffText, hard ? COLOR.danger : this.gear >= 3 ? COLOR.accentDark : COLOR.ink);
     const wallet = w ? `钱包 ${chips(w.balance)} 筹码（${LIVE_WALLET_NOTE}）` : '';
-    this.diffDesc.setText(block === '筹码不够这一档' ? '筹码不够这一档：换小一档少带一点，或者去大厅领补给' : [wallet, LIVE_RULE].filter(Boolean).join(' · '));
+    // 最小一档也带不起时「换小一档」走不通，只说去领补给
+    const least = Math.min(...LIVE_TIERS.map((t) => t.stake));
+    const short = this.affords(least) ? '筹码不够这一档：换小一档少带一点，或者去大厅领补给' : `筹码不够最低一档（${chips(least)}），去大厅领补给`;
+    this.diffDesc.setText(block === '筹码不够这一档' ? short : [wallet, LIVE_RULE].filter(Boolean).join(' · '));
     setColor(this.diffDesc, block === '筹码不够这一档' ? COLOR.danger : COLOR.muted);
     this.stack.removeAll(true);
     this.asideRow(l.aside ?? null);
@@ -784,6 +785,21 @@ export class SetupPanel extends Dialog {
       this.close();
       a.onRefund();
     });
+  }
+
+  /** 人设介绍一行：按「，」「；」分句，放得下几句写几句、整句不截（说明全文在悬停里），引号里那句也一样放得下才带 */
+  private setPersonaDesc(p: { desc: string; flavor?: string }): void {
+    const room = this.g === DESKTOP ? this.g.w - 84 : this.g.w - 32;
+    const parts = [...(p.desc.match(/[^，；]+[，；]?/g) ?? [p.desc]), ...(p.flavor ? [`「${p.flavor}」`] : [])];
+    let line = '';
+    for (const [i, part] of parts.entries()) {
+      const next = `${line}${part}`;
+      this.personaDesc.setText(next.replace(/[，；]$/, ''));
+      if (i > 0 && this.personaDesc.width > room) break;
+      line = next;
+    }
+    this.personaDesc.setText(line.replace(/[，；]$/, ''));
+    this.fitPhone(this.personaDesc);
   }
 
   /** 手机：一行小字放不下面板就截断（说明全文在悬停里） */

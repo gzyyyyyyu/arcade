@@ -37,7 +37,7 @@ export function newbieHint(s: Readonly<GameState>): Hint | null {
   const tail = TAILS[s.dayIndex % TAILS.length] ?? TAILS[0]!;
   const board = themeBoard(s);
   const byId = new Map(board.map((c) => [c.id, c]));
-  // 0. 0.36.3：手里的过山车股昨天逆着风口大跌（风口热度没降）：先讲清楚为什么，不然新手以为「热度涨就该涨」被骗了
+  // 0. 手里的过山车股昨天逆着风口大跌（风口热度没降）：先讲清楚为什么，不然新手以为「热度涨就该涨」被骗了
   for (const c of holdingCards(s)) {
     if (c?.role !== 'meme' || c.short || c.todayRet === null || c.todayRet > -SWING_DROP) continue;
     const t = byId.get(c.theme);

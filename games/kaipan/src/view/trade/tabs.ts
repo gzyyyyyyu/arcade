@@ -15,7 +15,7 @@ const TABS: { id: PanelTab; label: string; tip: { title: string; body: string } 
 ];
 
 /**
- * 0.5.5 手机横屏的标签页条（电脑上三块都摆开，没有它）。
+ * 手机横屏的标签页条（电脑上三块都摆开，没有它）。
  * 每页一个按钮，当前页是白底深字；推荐页上带一个数字角标（今天还有几只能买）。
  */
 export class PanelTabs {

@@ -20,8 +20,8 @@ function cheng(x: number): string {
 }
 
 /**
- * 道具（0.3.0：24 个，id 固定，美术按 id 出图）。每个道具只改规则表的一格。
- * 数值在 BALANCE.fx[id]，desc() 从那里取数。前 16 个是 M0 的，后 8 个是 0.3.0 新增的。
+ * 道具（id 固定，美术按 id 出图）。每个道具只改规则表的一格。
+ * 数值在 BALANCE.fx[id]，desc() 从那里取数。按进哪个抽取池分段：打法、工具、人脉是基础池，后面几段只在有新机制或真实行情的局里出现。
  */
 export const ITEMS: readonly ItemDef[] = [
   // ---------------------------------------------------------------- 打法
@@ -47,7 +47,7 @@ export const ITEMS: readonly ItemDef[] = [
       `大哥涨停时，你手里同风口的小弟本来会多涨 ${BALANCE.chain}%，现在变成多涨 ${Math.round(BALANCE.chain * fx('genfeng', 'mult') * 10) / 10}%`,
     flavor: '大哥吃肉，我喝汤，汤要两碗。',
     onHolding(c) {
-      // 0.5 真实行情：小弟不再被大哥"带"着多涨（chain 恒为 0），改成识别出的跟涨（follow）那天直接多赚 chain × mult
+      // 真实行情：小弟不再被大哥"带"着多涨（chain 恒为 0），改成识别出的跟涨（follow）那天直接多赚 chain × mult
       if (c.move.follow && c.move.chain <= 0) {
         const extra = BALANCE.chain * fx('genfeng', 'mult');
         c.ret += extra;
@@ -98,7 +98,7 @@ export const ITEMS: readonly ItemDef[] = [
       r.momentumMult *= fx('lianban', 'momentumMult');
       r.blowMult *= fx('lianban', 'blowMult');
     },
-    // 0.5 真实行情：走势不能改，改成结算规则——连续涨停（第 2 个起）+realBonus，炸板 −realBlow
+    // 真实行情：走势不能改，改成结算规则——连续涨停（第 2 个起）+realBonus，炸板 −realBlow
     onHolding(c) {
       if (!c.state.real) return;
       if (c.move.limitUp && c.move.boards >= 2) {
@@ -243,7 +243,6 @@ export const ITEMS: readonly ItemDef[] = [
       r.revealStages = true;
     },
   },
-  // ---------------------------------------------------------------- 0.3.0 新增
   {
     id: 'hot_money',
     name: '大户专座',
@@ -344,7 +343,7 @@ export const ITEMS: readonly ItemDef[] = [
       r.extraMessages += fx('rumor_mill', 'messages');
     },
   },
-  // ---------------------------------------------------------------- 0.4 C：押跌、抵押、仓位（只在有新机制的局里出现）
+  // ---------------------------------------------------------------- 押跌、抵押、仓位（只在有新机制的局里出现）
   {
     id: 'short_permit',
     name: '押跌许可证',
@@ -396,7 +395,7 @@ export const ITEMS: readonly ItemDef[] = [
       r.freeAdd = true;
     },
   },
-  // ---------------------------------------------------------------- 0.20.7 新增（只在真实行情的非每日局进抽取池）
+  // ---------------------------------------------------------------- 只在真实行情的非每日局进抽取池
   {
     id: 'contrarian',
     name: '逆势而上',
@@ -425,7 +424,7 @@ export const ITEMS: readonly ItemDef[] = [
       c.trigger(`${c.stock.name}拿满 ${n('hold_tight', 'days')} 天，每天再 +${n('hold_tight', 'bonus')}%`);
     },
   },
-  // ---------------------------------------------------------------- 0.28 新增（同样只在真实行情的非每日局进抽取池）
+  // ---------------------------------------------------------------- 同样只在真实行情的非每日局进抽取池
   {
     id: 'dip_buyer',
     name: '抄底侠',
@@ -458,7 +457,7 @@ export const ITEMS: readonly ItemDef[] = [
 ];
 
 /**
- * 0.5 道具卡的短版：一个大数字（可缺）+ 一行（≤14 字）。三选一、图鉴卡片默认显示短版，desc() 原句留在悬停详情里。
+ * 道具卡的短版：一个大数字（可缺）+ 一行（≤14 字）。三选一、图鉴卡片默认显示短版，desc() 原句留在悬停详情里。
  */
 export const ITEM_BRIEF: Readonly<Record<string, () => { big?: string; line: string }>> = {
   longtou: () => ({ big: `+${n('longtou', 'bonus')}%`, line: '大哥涨停，同风口的再多涨' }),

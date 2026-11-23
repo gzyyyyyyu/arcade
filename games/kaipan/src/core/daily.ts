@@ -1,5 +1,5 @@
 /**
- * 每日挑战（0.3.0）：按日期给出确定的种子、人设和难度。单独成模块，成就判定也要用（避免循环引用）。
+ * 每日挑战：按日期给出确定的种子、人设和难度。单独成模块，成就判定也要用（避免循环引用）。
  */
 import { DAILY_SEGMENTS } from './content/dailySegments.ts';
 import { PERSONA_IDS } from './content/personas.ts';

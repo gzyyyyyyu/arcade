@@ -1,5 +1,5 @@
 /**
- * 0.5.10 每日挑战排行榜：一局每日挑战结束、记进档案时交一次分，结束页读这里的状态显示一行；
+ * 每日挑战排行榜：一局每日挑战结束、记进档案时交一次分，结束页读这里的状态显示一行；
  * 开始菜单的每日挑战面板、结束页的「排行榜」按钮读榜。交分和读榜的细节在 platform/board.ts。
  * 每日榜按子榜分：经典每日挑战 `daily-日期-classic`，闪电盘 `daily-日期-flash`（闪电盘不进档案，结束时直接交）。
  * 本周市场（也不进档案、结束时直接交）的周榜是 `week-YYYY-Www-rules`，只收当周。
@@ -143,7 +143,7 @@ export function runBoard(runId: string): RunBoard {
 
 /** 一局记进档案后调用（Session.recordEnd，每局只调一次）：能上榜就交分。 */
 export function submitRun(runId: string, state: Readonly<GameState>, sum: Readonly<RunSummary>, result: Readonly<RecordResult> | null, today: string, thisWeek?: string): void {
-  // 0.8.0 单独部署没有排行榜：不交分，结束页也就没有这一行
+  // 单独部署没有排行榜：不交分，结束页也就没有这一行
   if (runs.has(runId) || standalone()) return;
   const b = boardCheck(state, sum, result, today, thisWeek);
   set(runId, b);

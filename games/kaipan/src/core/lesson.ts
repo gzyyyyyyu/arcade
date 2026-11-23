@@ -113,7 +113,7 @@ export function lessonAdvice(s: Readonly<GameState>): LessonAdvice | null {
   const held = s.slots.filter((h) => h !== null).length;
   if (swanDown) return { kind: 'wait', mind: 'kongcang', why: '大事要来，今天不买' };
   if (busy || s.today.buysLeft <= 0 || s.today.ops >= 2 || held >= LESSON.maxHold || !s.slots.includes(null)) {
-    return { kind: 'wait', mind: held >= LESSON.maxHold ? 'yibasuo' : 'kongcang', why: '今天不用动' };
+    return held > 0 ? { kind: 'wait', mind: 'yibasuo', why: `拿着别动：今天不用再买，${held === 1 ? '手里这只' : '手里的'}先拿着` } : { kind: 'wait', mind: 'kongcang', why: '今天不用动' };
   }
   const heldThemes = new Set(s.slots.flatMap((h) => (h ? [stockById(h.stockId).theme] : [])));
   let best = -1;
@@ -130,7 +130,8 @@ export function lessonAdvice(s: Readonly<GameState>): LessonAdvice | null {
       best = i;
     }
   });
-  if (best < 0) return { kind: 'wait', mind: 'kongcang', why: '没有合适的，空仓等着' };
+  // 「空仓也是一种仓位」只在真空仓时说；手里有股票就是拿着别动
+  if (best < 0) return held > 0 ? { kind: 'wait', mind: 'yibasuo', why: `拿着别动：今天没有新的好机会，${held === 1 ? '手里这只' : '手里的'}先拿着` } : { kind: 'wait', mind: 'kongcang', why: '没有合适的，空仓等着' };
   const r = s.today.recs[best];
   const rec = r ? friendRecord(s, r.friendId) : null;
   const name = r ? stockById(r.stockId).name : '';

@@ -10,8 +10,8 @@ import { bindTooltip } from '../ui/tooltip.ts';
 import { MONITOR } from './layout.ts';
 import { SENTIMENT_WORDS, marketMoves, preCount, sectorMoves, sentimentOf, sumMoves, toLevels } from './tape.ts';
 
-/** 0.5.1 中央显示器「今日大盘屏」的位置（压在背景显示器上） */
-/** 手机横屏（0.5.5）：开盘键上面一块小屏，只写天气、大环境涨跌和一个大数字；走势、风口榜、跑马灯在「风口」页和详情里 */
+/** 中央显示器「今日大盘屏」的位置（压在背景显示器上） */
+/** 手机横屏：开盘键上面一块小屏，只写天气、大环境涨跌和一个大数字；走势、风口榜、跑马灯在「风口」页和详情里 */
 const SCREEN = PHONE ? { x: MONITOR.x, y: MONITOR.y, w: MONITOR.w, h: MONITOR.h } : ({ x: 480, y: 458, w: 348, h: 118 } as const);
 
 const MOOD_GLYPH: Record<Mood, Glyph> = { bull: 'sun', flat: 'cloud', bear: 'storm' };
@@ -26,7 +26,7 @@ const themeOfStock = (id: string): ThemeId => stockById(id).theme;
 
 /**
  * 今日大盘屏：左上天气 + 大盘昨天涨跌，右上昨天账户盈亏（大字），中间大盘近 20 天走势（画出来），
- * 右边三行：大盘情绪（五格）、昨天领涨的板块、领跌的板块（0.35.0，以前是风口热度榜前三，热度在左边风口栏里本来就有）；
+ * 右边三行：大盘情绪（五格）、昨天领涨的板块、领跌的板块（不放风口热度榜：热度在左边风口栏里本来就有）；
  * 下沿行情跑马灯（涨停跌停家数、风口热度变化、连板、跌停、炸板），每 2 秒滑一格。手机上只在天气后面写情绪一个词。
  */
 export class MarketScreen {
@@ -57,7 +57,7 @@ export class MarketScreen {
     const lines = scene.add.graphics();
     lines.fillStyle(0xffffff, 0.035);
     for (let k = 4; k < h; k += 6) lines.fillRect(x + 4, y + k, w - 8, 1);
-    // 0.19.0 手机上小屏矮到 46：两行字各往上收一点
+    // 手机上小屏矮到 46：两行字各往上收一点
     const row1 = PHONE ? y + 13 : y + 16;
     this.weather = addGlyph(scene, x + 18, row1, 'sun', PHONE ? 22 : 24);
     this.mkt = addText(scene, x + 34, row1, '', { size: 13, bold: true, color: COLOR.screenText, originY: 0.5 });
@@ -95,7 +95,7 @@ export class MarketScreen {
     const mood = last ? last.market.mood : s.mood;
     const sig = `${s.seed}:${last?.day ?? -1}:${moves.length}`;
     // 天气 + 大盘
-    // 0.9.1 交易场景一天里 render 好几次（买卖、展开收起都调）：天气图标和前三名没变就不重建（每次重建都要重新栅格化几段文字）
+    // 交易场景一天里 render 好几次（买卖、展开收起都调）：天气图标和前三名没变就不重建（每次重建都要重新栅格化几段文字）
     if (mood !== this.weatherMood) {
       this.weatherMood = mood;
       this.weather.destroy();
@@ -125,7 +125,7 @@ export class MarketScreen {
     this.boardSig = bsig;
     // 跑马灯内容：风口热度变化、连板个股、大盘
     const q: { icon: string | null; text: string; color: number }[] = [];
-    // 0.35.0 自选股排最前：星 + 名字 + 昨天涨跌
+    // 自选股排最前：星 + 名字 + 昨天涨跌
     for (const id of s.stars ?? []) {
       if (!s.stocks[id]) continue;
       const sc = stockCard(s, id);
@@ -228,7 +228,7 @@ export class MarketScreen {
     const first = this.tapeItems.shift();
     if (!first) return;
     const w = first.getData('w') as number;
-    this.scene.tweens.add({ targets: first, alpha: 0, duration: 260, onComplete: () => first.destroy() });
+    this.scene.tweens.add({ targets: first, alpha: 0, ease: 'Sine.easeIn', duration: 260, onComplete: () => first.destroy() });
     for (const c of this.tapeItems) this.scene.tweens.add({ targets: c, x: c.x - w, duration: 420, ease: 'Sine.easeInOut' });
     const lastC = this.tapeItems[this.tapeItems.length - 1];
     const endX = lastC ? lastC.x - w + (lastC.getData('w') as number) : SCREEN.x + 10;
@@ -241,7 +241,7 @@ export class MarketScreen {
     }
     this.tapeNext = (this.tapeNext + 1) % this.tapeQueue.length;
     c.setAlpha(0);
-    this.scene.tweens.add({ targets: c, alpha: 1, duration: 420, delay: 200 });
+    this.scene.tweens.add({ targets: c, alpha: 1, ease: 'Sine.easeOut', duration: 420, delay: 200 });
     this.tape.add(c);
     this.tapeItems.push(c);
   }

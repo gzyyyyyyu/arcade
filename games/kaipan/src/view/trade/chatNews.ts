@@ -28,7 +28,7 @@ export function newsFold(v: ChatView3, list: NewsItem[], heading: string, board:
   const icon = hasArt(s.textures, NEWS_KEY) ? [addImage(s, CX + 20, h / 2, NEWS_KEY, 20)] : [];
   const title = addText(s, CX + (icon.length > 0 ? 36 : 12), h / 2, list.length > 0 ? `${heading} ${Math.min(3, list.length)}` : '龙虎榜', { size: 12, bold: true, color: COLOR.white, originY: 0.5, stroke: COLOR.ink, strokeWidth: 3 });
   const more = addText(s, CX + CW - 12, h / 2, '展开 ▾', { size: FS.xs, bold: true, color: COLOR.info, originX: 1, originY: 0.5 });
-  // 0.36 折着也露出龙虎榜的头名：涨得最多的一只（没有就跌得最多的）
+  // 折着也露出龙虎榜的头名：涨得最多的一只（没有就跌得最多的）
   const top = board?.up[0] ?? board?.down[0];
   const lead = top ? [leadText(addText(s, title.x + title.width + 10, h / 2, '', { size: FS.xs, bold: true, color: signColor(top.move), originY: 0.5 }), top, more.x - more.width - title.x - title.width - 20)] : [];
   // 条只有 30 高：触屏上点击区上下撑到 HIT_MIN（docs/ui.md：触屏可点区域 ≥ 44 像素）
@@ -80,7 +80,7 @@ export function toggleNews(v: ChatView3): void {
 }
 
 /** 「今日新闻」卡：报纸图标 + 每条一行标题，右边写这条对应的热度变化。 */
-export function newsNode(v: ChatView3, list: NewsItem[], heading = '今日新闻', board: DragonBoard | null = null): { node: Phaser.GameObjects.Container; h: number } {
+function newsNode(v: ChatView3, list: NewsItem[], heading = '今日新闻', board: DragonBoard | null = null): { node: Phaser.GameObjects.Container; h: number } {
   const s = v.scene;
   const node = s.add.container(0, 0).setVisible(false);
   const parts: Phaser.GameObjects.GameObject[] = [];

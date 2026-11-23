@@ -4,7 +4,7 @@ import { goalShort, stamp } from './tempoFx.ts';
 import type { Animator } from '../fx/anim.ts';
 import { flashBox, floatText, pop } from '../fx/effects.ts';
 import { sparkles } from '../fx/particles.ts';
-import { billLine, billStatus, dailyTag, dayLabel, downPaymentLine, FLASH_DAYS, FLASH_EVENT_DAYS, flashFinal, flashLeft, flashTag, levelHint, shortItemName, weeklyTag } from '../labels.ts';
+import { billStatus, dailyTag, dayLabel, downPaymentLine, FLASH_DAYS, FLASH_EVENT_DAYS, flashFinal, flashLeft, flashTag, levelHint, shortItemName, weeklyTag } from '../labels.ts';
 import type { Rect } from '../rect.ts';
 import { sound } from '../sound.ts';
 import { COLOR, FS, ITEM_KIND_COLOR, PHONE, PORTRAIT, TYPE, VIEW, signColor, textOn } from '../theme.ts';
@@ -27,10 +27,10 @@ import { standalone } from '../../platform/mode.ts';
 import { lobbyLabel } from '../lobby.ts';
 
 /**
- * 顶栏各块的位置。电脑是 1264×56 的一条；手机横屏（0.5.5）是 952×46，各块收窄、两行字往上提，字号不低于 13。
- * 0.16.0 木条：每一组都是「图标 + 大数字」一行、下面一行小字（账户的人设、Lv 也挪到数字下面），小字的中线对齐（电脑 48、手机 38）。
- * 0.9.0 账户上面那行小字离顶边留出 4 以上（以前贴着边）。
- * 0.9.2 最左边是常驻的「大厅」（小房子在上、字在下，和银行按钮一个样子），日期那一块整体右移让出位置。
+ * 顶栏各块的位置。电脑是 1264×56 的一条；手机横屏是 952×46，各块收窄、两行字往上提，字号不低于 13。
+ * 木条：每一组都是「图标 + 大数字」一行、下面一行小字（账户的人设、Lv 也挪到数字下面），小字的中线对齐（电脑 48、手机 38）。
+ * 账户上面那行小字离顶边留出 4 以上。
+ * 最左边是常驻的「大厅」（小房子在上、字在下，和银行按钮一个样子），日期那一块整体右移让出位置。
  * goalX：有月度目标时「目标 + 要还的钱」那一块的左边（账户那一列收窄到 accW）；billLeft：没有目标时那一块的左边。
  */
 const TB = PORTRAIT
@@ -51,7 +51,7 @@ const TB = PORTRAIT
 const ITEMS_X = TB.itemsX;
 const GOAL_X = TB.goalX;
 const ACC_W = TB.accHit.w;
-/** 0.4 C 银行按钮：右上角"怎么玩"左边（道具栏让出位置） */
+/** 银行按钮：右上角"怎么玩"左边（道具栏让出位置） */
 const BANK = TB.bank;
 /** 有银行按钮时道具栏让出右边一截 */
 const ITEMS_W_EXT = TB.itemsWExt;
@@ -139,7 +139,7 @@ export class TopBarView {
   private readonly billNote: Phaser.GameObjects.Text;
   private readonly billBox: Phaser.GameObjects.Rectangle;
   private billPulse: Phaser.Tweens.Tween | null = null;
-  /** 0.5：这一局有月度目标（顶栏显示目标进度） */
+  /** 这一局有月度目标（顶栏显示目标进度） */
   private readonly tempo: boolean;
   private readonly goalBar: Phaser.GameObjects.Graphics;
   private readonly goalTag: Phaser.GameObjects.Container;
@@ -157,12 +157,12 @@ export class TopBarView {
   readonly help: Button;
   shownAccount = 0;
 
-  /** 0.4 C：银行按钮（这一局有抵押玩法时才有） */
+  /** 银行按钮（这一局有抵押玩法时才有） */
   readonly bank: Button | null;
   private bankRing: Phaser.GameObjects.Rectangle | null = null;
   private bankPulse: Phaser.Tweens.Tween | null = null;
 
-  /** 0.9.2 左上角常驻的「大厅」（单独部署时是「首页」），点了由场景先确认再走 */
+  /** 左上角常驻的「大厅」（单独部署时是「首页」），点了由场景先确认再走 */
   readonly lobby: Button;
 
   constructor(scene: Phaser.Scene, s: GameState, onSettings: () => void, onHelp?: () => void, onBank?: () => void, onLobby?: () => void) {
@@ -175,7 +175,7 @@ export class TopBarView {
     this.lobby.setDepth(d + 1);
     attachDomProxy(scene, this.lobby, standalone() ? '回首页' : '回大厅');
     addGlyph(scene, L.x + L.w / 2, L.y + L.iconDy, 'house', L.iconS).setDepth(d + 2);
-    // 0.5：日历图标 + 「1月 1/5」，下面是日历事件小签和大环境箭头（说明都在悬停提示里）
+    // 日历图标 + 「1月 1/5」，下面是日历事件小签和大环境箭头（说明都在悬停提示里）
     addGlyph(scene, TB.calIcon.x, TB.calIcon.y, 'calendar', TB.calIcon.s).setDepth(d);
     this.day = addText(scene, TB.day.x, TB.day.y, '', { size: TB.day.size, bold: true }).setDepth(d);
     this.calPill = addPill(scene, TB.calPill.x, TB.calPill.y, 90, TB.calPill.h, 0xffe7a8).setDepth(d);
@@ -187,6 +187,8 @@ export class TopBarView {
 
     this.accLabel = addText(scene, TB.accLabel.x, TB.accLabel.y, '账户', { size: FS.xs, color: COLOR.muted, originY: 0.5 }).setDepth(d);
     addGlyph(scene, TB.wallet.x, TB.wallet.y, 'wallet', TB.wallet.s).setDepth(d);
+    // 钱包下面写「账户」（和「大厅」「借钱」一样图标配小字）：分清顶上这笔是账户、持仓区那笔是现金
+    addText(scene, TB.wallet.x, TB.accLabel.y, '账户', { size: FS.xs - 1, bold: true, color: COLOR.muted, originX: 0.5, originY: 0.5 }).setDepth(d);
     // 本月市场传闻（股灾预告）、今天加班：天气右边的小标签，悬停看说明
     this.flags = scene.add.container(0, 0).setDepth(d);
     this.account = addText(scene, TB.account.x, TB.account.y, '', { size: TB.account.size, bold: true, num: true }).setDepth(d);
@@ -198,10 +200,10 @@ export class TopBarView {
       const rules = this.state.setup?.live;
       const liveLine =
         lv && rules
-          ? `\n实盘：带了一份 ${chips(lv.stake)} 筹码进场，资产涨跌按 ${levText(rules.lev ?? 1)} 倍算进筹码；按现在的资产（扣掉借款）算结回约 ${chips(lv.value)}。` +
+          ? `\n实盘：带了一份 ${chips(lv.stake)} 筹码进场，资产涨跌按 ${levText(rules.lev ?? 1)} 倍算进筹码；按现在的资产（扣掉借款）算带回约 ${chips(lv.value)}。` +
             `打完 ${rules.months} 个月按最后的资产结，最多拿回 ${BALANCE.live.cap} 份，赔光就是 0。`
           : '';
-      // 0.10.0 娱乐短局：最终目标（最后一个月月底的首付）开局就说清楚
+      // 娱乐短局：最终目标（最后一个月月底的首付）开局就说清楚
       const short = this.state.setup?.short;
       const goal = shortGoal(this.state);
       const need = shortNeed(this.state);
@@ -223,7 +225,7 @@ export class TopBarView {
       };
     });
 
-    // 0.5：有月度目标时这一块变宽（账户那一列让出一截），上面一行是本月目标，下面一行是这个月要还的钱
+    // 有月度目标时这一块变宽（账户那一列让出一截），上面一行是本月目标，下面一行是这个月要还的钱
     this.tempo = !!monthThemeView(s);
     const bx = this.tempo ? GOAL_X : TB.billLeft;
     const bw = TB.billRight - bx;
@@ -295,7 +297,7 @@ export class TopBarView {
     const months = runMonths(this.state);
     const cal = calendarView(this.state).filter((c) => c.month <= months);
     const cur = cal.find((c) => c.current);
-    // 0.36 打新、财报周也列上：哪个月第几天能抽新股、哪个月有财报周
+    // 打新、财报周也列上：哪个月第几天能抽新股、哪个月有财报周
     const extra = (c: (typeof cal)[number]): string => [c.ipo ? `抽新股第${c.ipo.nth}天` : '', c.earnings ? '财报周' : ''].filter(Boolean).join(' · ');
     const lines = cal.map((c) => `${c.current ? '▶ ' : '   '}${c.month}月 ${c.name}${c.days !== 5 ? `（${c.days} 天）` : ''}${extra(c) ? ` · ${extra(c)}` : ''}`);
     const mood = topBar(this.state).mood;
@@ -315,7 +317,7 @@ export class TopBarView {
     const arrow = moodSign > 0 ? '↑' : moodSign < 0 ? '↓' : '–';
     this.weather.setText(`大环境${arrow}`);
     // 日历小签放不下（手机上让出「大厅」以后，「开春政策窗口」会顶到账户那一列）：先把天气缩成带颜色的箭头，
-    // 名字能放全就放全（0.19.1，主线要求）；还放不下才截短，全名和「大环境：xx」都在悬停里
+    // 名字能放全就放全（主线要求）；还放不下才截短，全名和「大环境：xx」都在悬停里
     const room = (): number => FLAGS_RIGHT - TB.calTextX - 16 - this.weather.width;
     this.calText.setText(t.calendar.name);
     // 只剩箭头时，平盘那道「–」单独看不出意思（Gemini 界面审查第 11 条）：不写，悬停里照样有
@@ -325,20 +327,20 @@ export class TopBarView {
     this.weather.setX(TB.calPill.x + this.calPill.width + 8);
     setColor(this.weather, moodSign > 0 ? COLOR.up : moodSign < 0 ? COLOR.down : COLOR.muted);
     // 「账户 · Lv1」：人设、难度全称在悬停提示里
-    // 0.5.1：人设名找回来（难度全称仍在悬停里）
+    // 人设名找回来（难度全称仍在悬停里）
     // 手机上顶栏窄：不写「账户」两个字（钱包图标就是账户）
-    // 0.6.0 实盘：这一行换成实盘小牌子「实盘 · 小档 2,000 → 约 2,104」（人设、难度在悬停里），跟着每天收盘更新
+    // 实盘：这一行换成实盘小牌子「实盘 · 小档 2,000 → 约 2,104」（人设、难度在悬停里），跟着每天收盘更新
     const lv = t.live && isLiveRun(s) ? t.live : null;
     // 手机上这一行右边紧挨着月度目标的图标，豪华档的数字长，省掉一份是多少（悬停里有）
-    // 0.11.0 杠杆常显：「实盘 · 小档 2,000 · 杠杆×2 → 约 2,480」
+    // 杠杆常显：「实盘 · 小档 2,000 · 杠杆×2 → 约 2,480」
     const gx = gearNow(s);
-    // 0.32.0 娱乐短局：这一行换成剩下的账单加首付还差多少（人设、难度在悬停里），够了变绿
+    // 娱乐短局：这一行换成剩下的账单加首付还差多少（人设、难度在悬停里），够了变绿
     const need = lv || t.daily || t.flash ? null : shortNeed(s);
     const dp = need ? downPaymentLine(s.account, need.need, PHONE) : null;
-    this.accLabel.setText(dp ? dp.text : lv ? (PHONE ? `实盘${lv.tierName}×${gx} → 约 ${chips(lv.value)}` : `实盘 · ${lv.tierName} ${chips(lv.stake)} · 杠杆×${gx} → 约 ${chips(lv.value)}`) : `${PHONE ? '' : '账户 · '}${t.personaName} · Lv${t.difficulty}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
+    this.accLabel.setText(dp ? dp.text : lv ? (PHONE ? `实盘${lv.tierName}×${gx} → 约 ${chips(lv.value)}` : `实盘 · ${lv.tierName} ${chips(lv.stake)} · 杠杆×${gx} → 约 ${chips(lv.value)}`) : `${t.personaName} · Lv${t.difficulty}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
     setColor(this.accLabel, dp ? (dp.enough ? COLOR.up : COLOR.accentDark) : t.daily || t.flash || lv ? COLOR.accentDark : COLOR.muted);
     this.accLabel.setFontStyle(dp ? 'bold' : '');
-    // 金额不截：放不下就换手机上的短说法「首付差¥x」
+    // 金额不截：放不下就换手机上的短说法「到期还差¥x」
     const accRoom = TB.accHit.x + (this.tempo ? ACC_W : TB.accWideW) - this.accLabel.x - 4;
     if (dp && this.accLabel.width > accRoom) this.accLabel.setText(downPaymentLine(s.account, need?.need ?? 0, true).text);
     // 放不下就省掉人设名（在悬停里）；实盘先换短写法、保住杠杆（电脑上有月度主题时这一格只有约 190 宽，完整那句放不下），还放不下才省掉杠杆
@@ -367,7 +369,7 @@ export class TopBarView {
     const alarm = b.called || b.risk !== null;
     this.bankRing?.setVisible(alarm);
     if (alarm && !this.bankPulse && this.bankRing && !(this.scene.data.get('calm') as boolean)) {
-      this.bankPulse = this.scene.tweens.add({ targets: this.bankRing, alpha: { from: 1, to: 0.2 }, duration: 500, yoyo: true, repeat: -1 });
+      this.bankPulse = this.scene.tweens.add({ targets: this.bankRing, alpha: { from: 1, to: 0.2 }, ease: 'Sine.easeInOut', duration: 500, yoyo: true, repeat: -1 });
     } else if (!alarm && this.bankPulse) {
       this.bankPulse.stop();
       this.bankPulse = null;
@@ -422,7 +424,7 @@ export class TopBarView {
     return this.flagsArea;
   }
 
-  /** 0.5.1：账户数字跳一下（卖出的金币飞回钱包时）。 */
+  /** 账户数字跳一下（卖出的金币飞回钱包时）。 */
   pulseAccount(): void {
     const t = this.account;
     t.scene.tweens.killTweensOf(t);
@@ -432,7 +434,7 @@ export class TopBarView {
 
   private flash: Phaser.Tweens.Tween | null = null;
 
-  /** 0.11.0 开了杠杆、离清零线不远：账户数字变红闪；离远了恢复 */
+  /** 开了杠杆、离清零线不远：账户数字变红闪；离远了恢复 */
   private renderDanger(warn: number | null): void {
     const on = warn !== null;
     if (on === !!this.flash) return;
@@ -440,7 +442,7 @@ export class TopBarView {
     this.flash = null;
     this.account.setAlpha(1);
     setColor(this.account, on ? COLOR.danger : COLOR.ink);
-    if (on) this.flash = this.scene.tweens.add({ targets: this.account, alpha: 0.35, duration: 380, yoyo: true, repeat: -1 });
+    if (on) this.flash = this.scene.tweens.add({ targets: this.account, alpha: 0.35, ease: 'Sine.easeInOut', duration: 380, yoyo: true, repeat: -1 });
   }
 
   setAccount(v: number): void {
@@ -470,7 +472,7 @@ export class TopBarView {
     if (PHONE) fitWidth(this.bill, TB.hourglass.x - 12 - this.bill.x, 3);
     setColor(this.bill, gain > 0 ? COLOR.up : gain < 0 ? COLOR.down : COLOR.ink);
     this.hourglass.setVisible(true);
-    this.daysLeft.setText(`${left}`).setVisible(true);
+    this.daysLeft.setText(`${left}天`).setVisible(true);
     setColor(this.daysLeft, final ? COLOR.danger : COLOR.ink);
     this.billNote.setPosition(this.billBox.x + 40, TB.billNoteY).setFontSize(12);
     this.billNote.setText(final ? (left <= 1 ? '最后一天！' : `最后 ${left} 天`) : `${s.setup?.weekly !== undefined ? '本周市场' : '闪电盘'} · 还剩 ${left} 天`);
@@ -483,7 +485,7 @@ export class TopBarView {
     this.flashLast = left;
     const want = final && s.phase === 'premarket';
     if (want && !this.billPulse && !(this.scene.data.get('calm') as boolean)) {
-      this.billPulse = this.scene.tweens.add({ targets: this.billBox, alpha: { from: 1, to: 0.45 }, duration: 700, yoyo: true, repeat: -1 });
+      this.billPulse = this.scene.tweens.add({ targets: this.billBox, alpha: { from: 1, to: 0.45 }, ease: 'Sine.easeInOut', duration: 700, yoyo: true, repeat: -1 });
     } else if (!want && this.billPulse) {
       this.billPulse.remove();
       this.billPulse = null;
@@ -514,21 +516,21 @@ export class TopBarView {
         const ring = this.scene.add.circle(GOAL_X + 24, TB.goalIconY, 15, fill, mt.goal.boss || mt.goal.done ? 0.25 : 0).setStrokeStyle(mt.goal.boss ? 2 : 0, fill, 1);
         const icon = addGlyph(this.scene, GOAL_X + 24, TB.goalIconY, 'target', PHONE ? 22 : 26);
         if (mt.goal.failed) icon.setTint(0xbbb0b6);
-        // 0.5.1：靶心下面一行小字分清「目标」和「挑战」（中场挑战）
+        // 靶心下面一行小字分清「目标」和「挑战」（中场挑战）
         const tagWord = addText(this.scene, GOAL_X + 24, TB.goalWordY, mt.goal.boss ? '挑战' : mt.goal.done ? '达成' : '目标', { size: FS.xs, bold: true, color: fill, originX: 0.5, originY: 0.5 });
         this.goalTag.add([ring, icon, tagWord]);
         this.goalTagW = 30;
       }
       this.bill.setPosition(GOAL_X + 14 + this.goalTagW, TB.billY).setFontSize(15);
       this.bill.setText(`${g.text}${state}`);
-      // 0.19.0 窄顶栏：目标一行不压到右边的沙漏和天数；0.36.3 整句放不下先换短写法（进度数字不截）
+      // 窄顶栏：目标一行不压到右边的沙漏和天数；整句放不下先换短写法（进度数字不截）
       const goalRoom = TB.hourglass.x - 12 - this.bill.x;
       if (PHONE && this.bill.width > goalRoom) this.bill.setText(goalShort(mt.goal, true).text);
       // 带小数的进度（「亏≤5%·已1.8%」）还放不下：字缩到 13（手机世界放大后仍过 12）
       if (PHONE && this.bill.width > goalRoom) this.bill.setFontSize(13);
       if (PHONE) fitWidth(this.bill, TB.hourglass.x - 12 - this.bill.x, 3);
       setColor(this.bill, mt.goal.failed ? COLOR.muted : mt.goal.done ? COLOR.up : COLOR.ink);
-      this.daysLeft.setText(`${mt.daysLeft}`).setVisible(true);
+      this.daysLeft.setText(`${mt.daysLeft}天`).setVisible(true);
       this.hourglass.setVisible(true);
       this.goalBar.clear();
       const bw = TB.goalBarW;
@@ -539,15 +541,15 @@ export class TopBarView {
       // 右半：房子图标 + 这个月要还多少（不够时变红写「差 ¥x」）
       this.houseIcon.setPosition(gx + bw + 22, TB.houseY).setVisible(true);
       this.billNote.setPosition(gx + bw + 38, TB.billNoteY).setFontSize(13);
-      // 0.5.1：名目和后果找回来——「房租 ¥6,800」「差¥x · 会出局」「差¥x · 信用卡垫」
-      // 手机上这一格只有七八十宽：只写金额（名目、后果在悬停里），以前「孩子补习班 ¥6,800」被道具图标盖住
+      // 名目和后果找回来——「房租 ¥6,800」「差¥x · 会出局」「差¥x · 信用卡垫」
+      // 手机上这一格只有七八十宽：只写金额（名目、后果在悬停里），带名目的话「孩子补习班 ¥6,800」会被道具图标盖住
       const gap = formatMoney(b.amount - b.account);
       this.billNote.setText(
         PHONE
           ? st.status === 'short' || st.status === 'credit' ? `差${gap}` : formatMoney(b.amount)
           : st.status === 'short' ? `差${gap} · 会出局` : st.status === 'credit' ? `差${gap} · 信用卡垫` : `${b.name} ${formatMoney(b.amount)}`,
       );
-      // 0.19.0 窄顶栏：放不下先换短写法（¥1.1万），再截
+      // 窄顶栏：放不下先换短写法（¥1.1万），再截
       if (PHONE && this.billNote.x + this.billNote.width > TB.billRight - 4 && !(st.status === 'short' || st.status === 'credit')) this.billNote.setText(moneyShort(b.amount));
       fitWidth(this.billNote, TB.billRight - this.billNote.x - 4);
       setColor(this.billNote, alarm ? COLOR.danger : st.status === 'tight' ? COLOR.accentDark : COLOR.ink);
@@ -556,9 +558,8 @@ export class TopBarView {
       this.houseIcon.setPosition(this.billBox.x + 22, TB.houseNoGoalY).setVisible(true);
       this.bill.setPosition(this.billBox.x + 40, TB.billY).setFontSize(TB.billTitleSize);
       this.bill.setText(formatMoney(b.amount));
-      void billLine;
       this.hourglass.setVisible(true);
-      this.daysLeft.setText(`${b.daysLeft}`).setVisible(true);
+      this.daysLeft.setText(`${b.daysLeft}天`).setVisible(true);
       const name = b.name;
       this.billNote.setPosition(this.billBox.x + 40, TB.billNoteY);
       this.billNote.setText(
@@ -574,7 +575,7 @@ export class TopBarView {
     // 快不够时闪烁提醒（减少动态效果时只变红不闪）
     const want = alarm && s.phase === 'premarket';
     if (want && !this.billPulse && !(this.scene.data.get('calm') as boolean)) {
-      this.billPulse = this.scene.tweens.add({ targets: this.billBox, alpha: { from: 1, to: 0.45 }, duration: 700, yoyo: true, repeat: -1 });
+      this.billPulse = this.scene.tweens.add({ targets: this.billBox, alpha: { from: 1, to: 0.45 }, ease: 'Sine.easeInOut', duration: 700, yoyo: true, repeat: -1 });
     } else if (!want && this.billPulse) {
       this.billPulse.remove();
       this.billPulse = null;
@@ -584,7 +585,7 @@ export class TopBarView {
 
   private goalTagW = 0;
 
-  /** 0.5：目标进度变了——刷新顶栏这一块，跳一下；达成 / 没达成时盖章、出声。 */
+  /** 目标进度变了——刷新顶栏这一块，跳一下；达成 / 没达成时盖章、出声。 */
   goalChanged(anim: Animator, s: GameState, result: 'progress' | 'done' | 'failed'): void {
     this.state = s;
     this.renderBill(s);

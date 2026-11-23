@@ -15,7 +15,7 @@ import { DONE_H, doneButton, extraChip } from './tempoFx.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
 import { Button } from '../ui/button.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
-import { addText, fitWidth } from '../ui/text.ts';
+import { addText, fitWidth, markCut, setWrap } from '../ui/text.ts';
 import { phoneLayout, viewOf } from '../viewport.ts';
 
 const DEPTH = 200;
@@ -37,11 +37,11 @@ interface BillInfo {
   credit: boolean;
   /** 突发账单明细（总额已含在 amount 里） */
   extras: { name: string; amount: number }[];
-  /** 0.4 C：月供之外另付给银行的利息（没借钱为缺省） */
+  /** 月供之外另付给银行的利息（没借钱为缺省） */
   interest?: number;
-  /** 0.17.0 有月度目标的月份：目标叫什么、达成没有（写在账单上，以前是窗户里一行小字） */
+  /** 有月度目标的月份：目标叫什么、达成没有（写在账单上） */
   goal?: { name: string; done: boolean };
-  /** 0.32.0 短局（最后一个月之外）：剩下的账单加首付还差多少，作为一行收据（labels.ts 的 downPaymentRow） */
+  /** 短局（最后一个月之外）：剩下的账单加首付还差多少，作为一行收据（labels.ts 的 downPaymentRow） */
   downPayment?: { label: string; value: string; enough: boolean };
 }
 
@@ -56,7 +56,7 @@ export async function playBill(scene: Phaser.Scene, anim: Animator, b: BillInfo,
   const H = 400;
   const V = viewOf(scene);
   // 手机横屏高度只够放下账单本身：卡片往左挪一点，印章和信用卡提示放在右边
-  // 竖屏版（0.33.0）左右没地方：卡片居中，印章骑在账单下沿（不盖「剩下」的钱），信用卡提示放在印章下面
+  // 竖屏版左右没地方：卡片居中，印章骑在账单下沿（不盖「剩下」的钱），信用卡提示放在印章下面
   const ph = phoneLayout(scene) && V.w > V.h;
   const pt = phoneLayout(scene) && !ph;
   const x = Math.round(V.w / 2 - W / 2 - (ph ? 90 : 0));
@@ -189,9 +189,9 @@ const RARITY_STARS: Record<string, number> = { common: 1, uncommon: 2, rare: 3 }
 /** 奖励卡卡面上各行的纵坐标（相对卡顶）：手机上卡矮 42，图标小一号、各行往上收 */
 const CARD_LAYOUT = {
   desktop: { icon: 98, iconS: 96, name: 160, big: 208 },
-  // 0.19.0 手机世界高 404，卡片矮到 286：图标、名字、大数字再往上收
+  // 手机世界高 404，卡片矮到 286：图标、名字、大数字再往上收
   phone: { icon: 74, iconS: 70, name: 120, big: 160 },
-  // 0.36.2 竖屏横卡（高 ROW_CARD_H）：icon 不用（图标竖直居中），name、big 是左对齐文字那一栏
+  // 竖屏横卡（高 ROW_CARD_H）：icon 不用（图标竖直居中），name、big 是左对齐文字那一栏
   row: { icon: 0, iconS: 72, name: 44, big: 88 },
 } as const;
 /** 竖屏横卡的高和右边「就要它」的宽 */
@@ -206,7 +206,7 @@ export class RewardPanel {
   private readonly buttons: Button[] = [];
   private readonly skip: Button;
   private readonly box: { x: number; y: number; w: number; h: number };
-  /** 每张卡一个外壳（原点在卡中心）：翻牌进场、悬停抬起倾斜、选中飞起、落下都转它，卡里的按钮坐标静止时和以前一样 */
+  /** 每张卡一个外壳（原点在卡中心）：翻牌进场、悬停抬起倾斜、选中飞起、落下都转它，卡里的按钮坐标静止时不变 */
   private readonly wraps: { wrap: Phaser.GameObjects.Container; cx: number; cy: number; w: number; h: number }[] = [];
   private readonly scene: Phaser.Scene;
   private readonly anim: Animator;
@@ -224,20 +224,20 @@ export class RewardPanel {
     const cards = rewardView(s);
     const V = viewOf(scene);
     const ph = phoneLayout(scene);
-    // 手机上标题贴顶、卡片矮一截（卡面排布见 CARD_LAYOUT），「都不要」和电脑一样放在卡片下方居中（0.9.2：以前在右上角，盖住顶栏的道具栏、贴着 ? 和设置）
+    // 手机上标题贴顶、卡片矮一截（卡面排布见 CARD_LAYOUT），「都不要」和电脑一样放在卡片下方居中（放右上角会盖住顶栏的道具栏、贴着 ? 和设置）
     // 电脑上本周市场的标题上移一点，给标题和卡片之间的「本周规则」一行让地方（放更上面会压住顶栏）
-    // 竖屏版（0.33.0）屏高：标题、卡片、「都不要」整组在屏幕中间，不挤在顶上
+    // 竖屏版屏高：标题、卡片、「都不要」整组在屏幕中间，不挤在顶上
     const pt = ph && V.h > V.w;
     const pt0 = pt ? Math.max(0, Math.round((V.h - 404) / 2)) : 0;
     const ty = ph ? 30 + pt0 : s.setup?.weekly !== undefined ? 94 : 104;
     const title = addText(scene, V.w / 2 + 22, ty, s.setup?.weekly !== undefined ? '本周市场开局 · 挑一样' : s.setup?.flash !== undefined ? '闪电盘开局 · 挑一样' : '挑一样', { size: TYPE.big + 6, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5, stroke: COLOR.ink, strokeWidth: 7 });
     const gift = addGlyph(scene, V.w / 2 - title.width / 2 - 14, ty, 'gift', ph ? 44 : 52);
     this.root.add([gift, title]);
-    // 竖屏版（0.36.2）只有 404 宽：三张竖卡各 118 宽，字被挤成孤字折行；改成上下三张横卡（图标在左、按钮在右）
+    // 竖屏版只有 404 宽：三张竖卡各 118 宽，字被挤成孤字折行；改成上下三张横卡（图标在左、按钮在右）
     const gap = pt ? 10 : ph ? 20 : 30;
     const n = cards.length;
     const CW = pt ? V.w - 24 : Math.min(236, Math.floor((V.w - 24 - gap * (n - 1)) / n));
-    // 0.19.0 手机世界高 404：卡片高按剩下的算（标题 58 起，下面还要放「都不要」）
+    // 手机世界高 404：卡片高按剩下的算（标题 58 起，下面还要放「都不要」）
     const CH = pt ? ROW_CARD_H : ph ? Math.min(308, V.h - 58 - 60) : 350;
     const top = pt ? Math.max(58, Math.round((V.h - (ROW_CARD_H * n + gap * (n - 1) + 60)) / 2) + 20) : ph ? 58 : 146;
     if (pt) {
@@ -342,15 +342,23 @@ export class RewardPanel {
       c.add(addImage(scene, row ? ax + L.iconS / 2 - 8 : ax + 50, iy - 30, `theme:${r.stock.theme}`, row ? 28 : 34));
     }
     const big = r.brief.big;
-    // 0.36.3 竖屏横卡（不是股票的）：大数字和名字放同一行，说明腾出两三行（以前说明只剩一行，「大哥涨停，同风口的再…」）
+    // 竖屏横卡（不是股票的）：大数字和名字放同一行，说明腾出两三行（不然说明只剩一行，「大哥涨停，同风口的再…」）
     const inline = row && !r.stock && !!big;
     const bigT = inline && big ? addText(scene, 0, y + ROW_LINE_Y, big, { size: TYPE.big, bold: true, num: true, color: COLOR.accentDark, originY: 0.5 }) : null;
-    const nameRoom = bigT ? tw - bigT.width - 10 : tw;
+    let nameRoom = bigT ? tw - bigT.width - 10 : tw;
     const nm = addText(scene, tx, inline ? y + ROW_LINE_Y : y + L.name, r.name, { size: TYPE.title + 2, bold: true, originX: ox, originY: inline ? 0.5 : 0 });
-    // 卡窄：长名字（「过山车爱好者」）先缩一号字，还放不下再截（全名在悬停里）
+    // 名字不截：先缩一号字；横卡还和大数字挤不下，大数字挪到顶上色带的右边、名字独占一行；再放不下就折成两行
     if (nm.width > nameRoom) nm.setFontSize(TYPE.title - 2);
-    c.add(fitWidth(nm, nameRoom));
-    if (bigT) c.add(bigT.setX(tx + nm.width + 10));
+    if (bigT && nm.width > nameRoom) {
+      bigT.setOrigin(1, 0.5).setPosition(x + w - 20, y + 22);
+      nameRoom = tw;
+    } else if (bigT) bigT.setX(tx + nm.width + 10);
+    if (nm.width > nameRoom) {
+      if (row) setWrap(nm, nameRoom);
+      else fitWidth(nm, nameRoom);
+    }
+    c.add(nm);
+    if (bigT) c.add(bigT);
     if (r.stock) {
       // 股票卡：风口 · 角色的色签放在大数字的位置
       const tc = THEME_COLOR[r.stock.theme];
@@ -359,11 +367,11 @@ export class RewardPanel {
       c.add(t);
     }
     if (big && !inline) c.add(addText(scene, tx, y + L.big, big, { size: TYPE.big, bold: true, num: true, color: COLOR.accentDark, originX: ox, originY: 0.5 }));
-    // 0.5.1：说明短（≤34 字）就整句写出来，长的用短句；分类标签放在顶部色带左边
+    // 说明短（≤34 字）就整句写出来，长的用短句；分类标签放在顶部色带左边
     const descShort = r.desc && [...r.desc].length <= 34 ? r.desc : r.brief.line;
-    const descY = inline ? y + ROW_LINE_Y + 22 : big || r.stock ? y + L.big + (row ? 20 : 26) : y + L.big + 4;
+    const descY = inline ? Math.max(y + ROW_LINE_Y + 22, nm.y + nm.height / 2 + 6) : big || r.stock ? y + L.big + (row ? 20 : 26) : y + L.big + 4;
     const desc = addText(scene, tx, descY, descShort, { size: TYPE.label, color: COLOR.muted, originX: ox, align: row ? 'left' : 'center', wrap: row ? tw : w - 28, lineSpacing: 2 });
-    // 0.19.0 手机上卡矮：整句放不下就换短句，还放不下就截短（全文在悬停里），不压「就要它」
+    // 手机上卡矮：整句放不下就换短句，还放不下就截短（全文在悬停里），不压「就要它」
     const room = (row ? y + h - 8 : y + h - 66) - desc.y;
     if (desc.height > room && desc.text !== r.brief.line) desc.setText(r.brief.line);
     if (desc.height > room) {
@@ -371,6 +379,7 @@ export class RewardPanel {
       while (desc.height > room && cut.length > 4) {
         cut = cut.slice(0, -2);
         desc.setText(`${cut.join('')}…`);
+        markCut(desc);
       }
     }
     c.add(desc);
@@ -382,7 +391,7 @@ export class RewardPanel {
       if (row || x + 22 + tg.width < ax - (stars - 1) * 13 - 18) c.add([addPill(scene, tagX, y + 12, tg.width + 12, 20, rc, false), tg.setX(tagX + 6)]);
       else tg.destroy();
     }
-    // 道具的一句俏皮话（0.5 只在悬停里，0.5.1 放回卡面底部，放不下就不放）
+    // 道具的一句俏皮话放在卡面底部，放不下就不放
     if (!row && r.item?.flavor && !(r.stock && s.slots.every((x2) => x2 !== null))) {
       const fy = desc.y + desc.height + 6;
       const fl = addText(scene, ax, fy, `「${r.item.flavor}」`, { size: FS.xs, color: COLOR.dim, originX: 0.5, align: 'center', wrap: w - 36 });
@@ -433,7 +442,7 @@ export class RewardPanel {
   }
 
   /**
-   * 选中后离场：选中的那张飞起放大淡出，其余落下淡出（约 0.3 秒），然后才执行原来的回调。
+   * 选中后离场：选中的那张飞起放大淡出，其余落下淡出（约 0.3 秒），然后才执行选卡的回调。
    * 关动画或快进时立即执行；减少动态效果只淡出。picked 为 -1 是「都不要」（全部落下）。
    */
   private leave(picked: number, then: () => void): void {
@@ -518,15 +527,15 @@ export class EventPanel {
     this.root = overlay(scene, 0.5);
     const V = viewOf(scene);
     const ph = phoneLayout(scene);
-    // 手机（0.5.5）：卡片放宽、头部和选项都收紧，情景原文最多两行（全文在悬停里），整张卡才放得进 444 高
+    // 手机：卡片放宽、头部和选项都收紧，情景原文最多两行（全文在悬停里），整张卡才放得进 444 高
     const L = ph
       ? { W: 720, headH: 104, storyY: 100, storyMax: 44, storyPad: 20, bottom: 16, bigY: 44, textY: 72, btnH: 46, btnUp: 58, optMin: 170, optBase: 138 }
       : { W: 560, headH: 124, storyY: 118, storyMax: 66, storyPad: 26, bottom: 32, bigY: 52, textY: 84, btnH: 54, btnUp: 70, optMin: 196, optBase: 166 };
     const W = ph ? Math.min(L.W, V.w - 12) : L.W;
-    // 0.5.1：情景原文放回卡面（一个引号框），选项下写原句；高度按内容算
+    // 情景原文放回卡面（一个引号框），选项下写原句；高度按内容算
     const story = ev.text && ev.text !== ev.brief ? addText(scene, 0, 0, ev.text, { size: TYPE.label, color: COLOR.ink, wrap: W - 120, lineSpacing: 3 }) : null;
     const storyH = story ? Math.min(L.storyMax, story.height) + L.storyPad : 0;
-    // 选项原句不截断：先量出两边原句的高度，选项卡按长的那边长高（以前两行放不下就打省略号，关键后果被截掉）
+    // 选项原句不截断：先量出两边原句的高度，选项卡按长的那边长高（固定两行的话放不下就得打省略号，关键后果被截掉）
     const cw = (W - 40 * 2 - 24) / 2;
     const optText = [0, 1].map((i) => {
       const full0 = ev.options[i] ?? '';
@@ -561,11 +570,12 @@ export class EventPanel {
       while (story.height > L.storyMax && cut.length > 10) {
         cut = cut.slice(0, -4);
         story.setText(`${cut.join('')}…`);
+        markCut(story);
       }
       story.setPosition(x + 78, sy + 8);
       this.root.add(story);
     }
-    // 两个选项：次选项（不做）白色在左，主选项（做）橙色在右；快捷键按位置从左往右 1、2（以前是左 2 右 1，看着像标反了）
+    // 两个选项：次选项（不做）白色在左，主选项（做）橙色在右；快捷键按位置从左往右 1、2（左 2 右 1 看着像标反了）
     const order = EVENT_ORDER;
     order.forEach((i, col) => {
       const pick = ev.picks[i] ?? { label: ev.options[i] ?? '' };
@@ -643,7 +653,7 @@ export function eventResult(scene: Phaser.Scene, anim: Animator, name: string, t
   root.add(addPaper(scene, x, y, W, H));
   root.add(addGlyph(scene, x + W - 70, y + H - 90, delta > 0.5 ? 'moneybag' : delta < -0.5 ? 'cry' : 'melon', 110).setAlpha(0.1));
   root.add(addGlyph(scene, x + 44, y + 42, 'bolt', 36));
-  // 0.5.1：右上角一张表情脸，赚了笑、亏了愁、没动吃瓜
+  // 右上角一张表情脸，赚了笑、亏了愁、没动吃瓜
   const face = addGlyph(scene, x + W - 46, y + 42, delta > 0.5 ? 'face_happy' : delta < -0.5 ? 'face_sad' : 'face_calm', 44);
   root.add(face);
   if (!anim.instant && !anim.calm) anim.fx({ targets: face, angle: { from: -18, to: 0 }, duration: 360, ease: 'Back.easeOut' }, () => face.setAngle(0));

@@ -48,13 +48,13 @@ describe('说话的分寸', () => {
     for (const t of texts.filter((x) => !x.includes('超过一天') && !x.includes('一天内没打完'))) expect(t).not.toMatch(/小时|分钟/);
   });
 
-  it('赚了：大字写结回多少和差额；小亏说安慰话；赔光提明天的补给和娱乐模式', () => {
-    expect(liveEndText(rec({ credited: 2_120, bp: 10_600 }), true)).toEqual({ head: '结回 2,120 筹码（+120）', body: '几个月打下来，结回是带进来那一份的 ×1.06。' });
+  it('赚了：大字写带回多少和差额；小亏说安慰话；赔光提明天的补给和娱乐模式', () => {
+    expect(liveEndText(rec({ credited: 2_120, bp: 10_600 }), true)).toEqual({ head: '带回 2,120 筹码（+120）', body: '几个月打下来，带回是带进来那一份的 ×1.06。' });
     const small = liveEndText(rec({ credited: 1_640, bp: 8_200 }), true);
-    expect(small.head).toBe('结回 1,640 筹码（−360）');
+    expect(small.head).toBe('带回 1,640 筹码（−360）');
     expect(small.body).toContain('下次换个档位或换个打法试试');
     const zero = liveEndText(rec({ credited: 0, bp: 0 }), false);
-    expect(zero.head).toBe('结回 0 筹码（−2,000）');
+    expect(zero.head).toBe('带回 0 筹码（−2,000）');
     expect(zero.body).toContain('别往心里去');
     // 补给额是平台的设置（管理员可调），文案不写死数字
     expect(zero.body).toContain('每天能领补给');
@@ -64,9 +64,9 @@ describe('说话的分寸', () => {
     for (const t of [small.body, zero.body]) expect(t).not.toMatch(/大档|豪华|更高/);
   });
 
-  it('0.11.0 结算页写「杠杆 ×N，结回 X 倍」；跌到清零线另说一句', () => {
-    expect(liveEndText(rec({ credited: 6_800, bp: 34_000 }), true, { x: 2, margin: false }).body).toBe('几个月打下来，杠杆 ×2，结回 3.40 倍。');
-    expect(liveEndText(rec({ credited: 1_640, bp: 8_200 }), true, { x: 1, margin: false }).body).toContain('小亏，杠杆 ×1，结回 0.82 倍。');
+  it('0.11.0 结算页写「杠杆 ×N，带回 X 倍」；跌到清零线另说一句', () => {
+    expect(liveEndText(rec({ credited: 6_800, bp: 34_000 }), true, { x: 2, margin: false }).body).toBe('几个月打下来，杠杆 ×2，带回 3.40 倍。');
+    expect(liveEndText(rec({ credited: 1_640, bp: 8_200 }), true, { x: 1, margin: false }).body).toContain('小亏，杠杆 ×1，带回 0.82 倍。');
     const wiped = liveEndText(rec({ credited: 0, bp: 0 }), false, { x: 3, margin: true });
     expect(wiped.body).toContain('杠杆 ×3，资产跌到清零线，这局按 0 结');
     expect(wiped.body).toContain('每天能领补给');
@@ -76,13 +76,13 @@ describe('说话的分寸', () => {
   it('到顶：大字写进了钱包的数，另说一句没进钱包的数', () => {
     const t = liveEndText(rec({ credited: 4_000, capped: 380, bp: 21_900 }), true);
     // 大字是进了钱包的数（credited），没进的另说
-    expect(t.head).toBe('结回 4,000 筹码（+2,000）');
+    expect(t.head).toBe('带回 4,000 筹码（+2,000）');
     expect(t.body).toContain('今天单机实盘赢够了：这局多出的 380 筹码没进钱包，明天再来。');
   });
 
   it('待结：按记下的倍数估；登录、联网分开说', () => {
-    expect(liveEndText(rec({ step: 'settling', bp: 10_520 }), true)).toEqual({ head: '约结回 2,104 筹码', body: '成绩记下了，联网后自动结回。' });
-    expect(liveEndText(rec({ step: 'settling', wait: 'login' }), true).body).toBe('成绩记下了，登录后自动结回。');
+    expect(liveEndText(rec({ step: 'settling', bp: 10_520 }), true)).toEqual({ head: '约带回 2,104 筹码', body: '成绩记下了，联网后自动带回。' });
+    expect(liveEndText(rec({ step: 'settling', wait: 'login' }), true).body).toBe('成绩记下了，登录后自动带回。');
   });
 
   it('数字的写法', () => {
@@ -126,7 +126,7 @@ describe('档案：实盘局只记图鉴', () => {
     expect(recordRun(emptyProfile(), ended(liveSetup('small', 'youzi')), '2026-10-15').ignored).toBe('locked');
   });
 
-  it('结算页的数：档位、一份、按倍数结回多少', () => {
+  it('结算页的数：档位、一份、按倍数带回多少', () => {
     const s = createRun('live-sum', liveSetup('big'), { ext: true }).state;
     expect(runSummary(s).live).toMatchObject({ tier: 'big', stake: 50_000, value: 50_000, bp: 10_000, clean: true });
   });

@@ -1,5 +1,5 @@
 /**
- * 0.4 重做：开局时按种子抽一段真实行情（只下载抽中的那一段）。下载失败、格式不对时返回 null，
+ * 重做：开局时按种子抽一段真实行情（只下载抽中的那一段）。下载失败、格式不对时返回 null，
  * 由 Session 退回 0.3 的合成行情并提示一句。
  */
 import { THEME_IDS, checkSegment, hashSeed, pickSegmentId, type Segment, type SegmentIndex } from '../core/index.ts';

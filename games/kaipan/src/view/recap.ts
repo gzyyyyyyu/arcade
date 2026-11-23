@@ -22,13 +22,13 @@ export interface RecapLine {
   money: string;
   /** 1–2 个最大原因 */
   why: string;
-  /** 0.5.3：当天揭晓、说对了这只所在风口方向的群友（「老王」），没有为空串——让人看到"信谁"和涨跌的因果 */
+  /** 当天揭晓、说对了这只所在风口方向的群友（「老王」），没有为空串——让人看到"信谁"和涨跌的因果 */
   called: string;
   amount: number;
-  /** 0.5：这一只当天的涨跌（百分点，押跌时为自己的赚亏方向）与是否押跌，画「头像 + 箭头数字」用 */
+  /** 这一只当天的涨跌（百分点，押跌时为自己的赚亏方向）与是否押跌，画「头像 + 箭头数字」用 */
   ret: number;
   short: boolean;
-  /** 0.36.3：过山车股逆着风口大跌（风口热度没降，它却跌了 ≥ SWING_DROP）——新手最容易「输得莫名其妙」的一种 */
+  /** 过山车股逆着风口大跌（风口热度没降，它却跌了 ≥ SWING_DROP）——新手最容易「输得莫名其妙」的一种 */
   swing: boolean;
 }
 
@@ -38,7 +38,7 @@ export const SWING_DROP = 7;
 export const SWING_WORD = '过山车：不看风口，说跌就跌';
 
 export interface Recap {
-  /** 0.5：今天最精彩的事（有高光时放在最前面；没有为空串） */
+  /** 今天最精彩的事（有高光时放在最前面；没有为空串） */
   star: string;
   /** 总账一句 */
   headline: string;
@@ -49,7 +49,7 @@ export interface Recap {
   /** 账户层效果：「借钱炒股：多赚了 ¥361」 */
   effects: string[];
   total: number;
-  /** 0.5：账户当天涨跌（百分点） */
+  /** 账户当天涨跌（百分点） */
   ret: number;
 }
 
@@ -102,7 +102,7 @@ function limitTag(r: DayReport, h: HoldingMove): string {
 }
 
 /** 过山车股逆着风口大跌：风口热度当天没降，这只却跌了 SWING_DROP 以上（押跌的不算，它跌是赚） */
-export function swingDrop(r: DayReport, h: HoldingMove): boolean {
+function swingDrop(r: DayReport, h: HoldingMove): boolean {
   const def = stockById(h.stockId);
   if (def.role !== 'meme' || h.short || h.ret > -SWING_DROP) return false;
   const t = r.themes.find((x) => x.id === def.theme);

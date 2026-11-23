@@ -1,7 +1,7 @@
 import { preHistory, type GameState, type Mood, type ThemeId } from '../../core/index.ts';
 
 /**
- * 0.5.1 行情记录仪（画面层）：把 state 里公开的近几天数据按交易日编号并进内存表，同一局越玩越长。
+ * 行情记录仪（画面层）：把 state 里公开的近几天数据按交易日编号并进内存表，同一局越玩越长。
  *
  * - 个股：state 只留最近 5 天的涨跌（stocks[id].history，最后一项是 lastDay 那天）。
  * - 风口：热度留最近 6 天（themes[id].history，最后一项是现在的热度）；开局前的预热天记为负的交易日编号。
@@ -55,7 +55,7 @@ export function recordTape(s: Readonly<GameState>): void {
   if (!tape || tape.seed !== s.seed || anchor < tape.maxDay) tape = fresh(s.seed);
   const t = tape;
   t.maxDay = anchor;
-  // 0.5.1：新记录仪先用行情段里开局前的真实历史垫底（第 -warm..-1 个交易日），第 1 天就有走势
+  // 新记录仪先用行情段里开局前的真实历史垫底（第 -warm..-1 个交易日），第 1 天就有走势
   if (!t.seeded) {
     t.seeded = true;
     const pre = preHistory(s);
@@ -204,7 +204,7 @@ export interface Sentiment {
 }
 
 /**
- * 0.35.0 大盘情绪：最近 5 天大环境合计涨跌（pp）+ 最近一天涨停家数 − 跌停家数，分五档。
+ * 大盘情绪：最近 5 天大环境合计涨跌（pp）+ 最近一天涨停家数 − 跌停家数，分五档。
  * 门槛按 40 段行情实测的五分位定（每档约两成的交易日）。只用已收盘的数据；还没开过盘为 null。
  */
 export function sentimentOf(s: Readonly<GameState>): Sentiment | null {
@@ -221,7 +221,7 @@ export function sentimentOf(s: Readonly<GameState>): Sentiment | null {
   return { level, ups, downs };
 }
 
-/** 0.35.0 板块涨跌榜：最近一个交易日各风口里股票的平均涨跌（pp），高 → 低；还没开过盘为空。 */
+/** 板块涨跌榜：最近一个交易日各风口里股票的平均涨跌（pp），高 → 低；还没开过盘为空。 */
 export function sectorMoves(s: Readonly<GameState>, themeOf: (stockId: string) => ThemeId): { id: ThemeId; move: number }[] {
   const sum = new Map<ThemeId, { v: number; n: number }>();
   for (const m of s.lastDay?.stocks ?? []) {

@@ -8,10 +8,10 @@ const phoneScenes = new WeakMap<object, { w: number; h: number }>();
 export type PhoneReady = boolean;
 
 /**
- * 相机怎么摆（0.5.5）：电脑上，或手机上适配过的场景（phoneReady），按渲染倍数 1:1 显示世界；
+ * 相机怎么摆：电脑上，或手机上适配过的场景（phoneReady），按渲染倍数 1:1 显示世界；
  * 手机上没适配的场景（1280×720）整体缩小、居中放进手机世界。
  *
- * 0.14.0（art-v3 ①）画布用 EXPAND：窗口和世界比例不同时画布在一个方向上变长（以前是两边留空条），
+ * 画布用 EXPAND：窗口和世界比例不同时画布在一个方向上变长（不留空条），
  * 相机把世界居中，多出来的边由各场景画宽一些的背景填满。
  * size 是画布的实际像素尺寸（Phaser 的 gameSize），不给时按正好是世界尺寸算。
  */

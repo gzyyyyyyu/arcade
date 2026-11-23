@@ -4,11 +4,11 @@ import { LIVE_MAX_BP, isLiveTier, liveTierById, type LiveTier } from '../core/li
 import type { KeyValueStore } from './settings.ts';
 
 /**
- * 0.6.0 实盘的账（docs/design-live.md 第 2.4、6 节）：带入、结回、放弃都经开盘自己的 Worker（同域 POST api/live/*）转给平台钱包，
+ * 实盘的账（docs/design-live.md 第 2.4、6 节）：带入、结回、放弃都经开盘自己的 Worker（同域 POST api/live/*）转给平台钱包，
  * 浏览器这边只在本机记一条 `kaipan.live`，管"这局实盘的筹码走到哪一步了"。一局的进度照旧在 kaipan.save 里。
  *
  * - 带入前先把记录写成 buying：回话丢了（断网、关页面）也知道那个 ref 可能已经带入了，下次打开先用 refund 收回来（没带入的话钱包回 no_stake，直接清掉）。
- *   不收回的话钱包里那一份放到 24 小时到期原样退回；期间照样能开新的一局，开局面板提示还有一份没结（0.6.8）。
+ *   不收回的话钱包里那一份放到 24 小时到期原样退回；期间照样能开新的一局，开局面板提示还有一份没结。
  * - 结回、放弃先写成 settling 再发：连不上、钱包忙（busy）、平台内部出错（internal）、没认出人，都停在 settling，之后每次打开、回到前台、联网时重发。
  *   操作 id 按 ref 固定（Worker 拼 `${ref}-out` / `${ref}-refund`），重发钱包只算一次。
  * - 钱包说这一份已经到期退回（expired）或没有这一份（no_stake）：这局改成不算筹码（void），接着玩不影响。
@@ -40,7 +40,7 @@ export interface LiveRecord {
   kind?: 'settle' | 'refund';
   /** 结回倍数（万分之几），settle 才有 */
   bp?: number;
-  /** 0.6.5 战绩小结（平台 5.10）：结束时算好记下，重发时原样再带；旧记录没有就不带 */
+  /** 战绩小结（平台 5.10）：结束时算好记下，重发时原样再带；旧记录没有就不带 */
   stats?: SettleStats;
   /** done：进了钱包多少、到顶没进多少 */
   credited?: number;
@@ -59,8 +59,8 @@ export interface LiveRecord {
 export interface WalletView {
   balance: number;
   /**
-   * 开盘桌上的几份（平台 0.9.5 起同一个游戏可以同时有好几份）：ref 和本机记录不同的，是在另一台设备上开的、
-   * 或者本机记录丢了的。0.6.8 起不因为这些拦着开新的一局，开局面板提示一句，给"回去接着打 / 原样退回"
+   * 开盘桌上的几份（平台允许同一个游戏同时有好几份）：ref 和本机记录不同的，是在另一台设备上开的、
+   * 或者本机记录丢了的。不因为这些拦着开新的一局，开局面板提示一句，给"回去接着打 / 原样退回"
    */
   stakes: { ref: string; tier: string; amount: number; until: number }[];
 }
@@ -92,7 +92,7 @@ const STEPS: readonly LiveStep[] = ['buying', 'playing', 'settling', 'done', 'vo
 const UNSETTLED: readonly LiveStep[] = ['buying', 'playing', 'settling'];
 
 /** 本机记录里的战绩小结：只认 SettleStats 的字段，缺项或类型不对的给缺省（数字 0、列表和表空着），多出来的字段丢掉 */
-export function reviveStats(raw: Record<string, unknown>): SettleStats {
+function reviveStats(raw: Record<string, unknown>): SettleStats {
   const nums = (v: unknown): Record<string, number> | undefined => {
     if (!isObj(v)) return undefined;
     const out: Record<string, number> = {};
@@ -210,7 +210,7 @@ export class LiveClient {
    * 等回话的这段时间占着 inflight：期间回到前台、联网触发的重试不会把这个 ref 拿去收回。
    */
   /**
-   * 0.6.8 把桌上别处的一份原样退回（开局面板上"你还有一局实盘没结"的「原样退回」）。那一份在别的设备上、或者本机记录丢了，
+   * 把桌上别处的一份原样退回（开局面板上"你还有一局实盘没结"的「原样退回」）。那一份在别的设备上、或者本机记录丢了，
    * 这台设备接不着打；放着不管一天后钱包也会原样退回（设计稿 2.5 接受的缺口），这里只是提前。
    * 本机记录正是这一份（作废、出错留着的）时，退回后清掉记录。
    */

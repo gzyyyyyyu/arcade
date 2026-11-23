@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { BALANCE, baseBill, createRun, dispatch, runSummary, titleFor, totalDays } from '../../src/core/index.ts';
+import { BALANCE, BILL_NAMES, createRun, dispatch, runSummary, titleFor, totalDays } from '../../src/core/index.ts';
 import {
   ABOUT_CONTROLS,
   TURN_LABEL,
   aboutRules,
-  billLine,
   billStatus,
   boardsText,
   buyKey,
@@ -24,10 +23,8 @@ import {
 } from '../../src/view/labels.ts';
 
 describe('画面文案：顶栏', () => {
-  it('日期与月供', () => {
+  it('日期', () => {
     expect(dayLabel({ month: 3, day: 2, daysInMonth: 5 })).toBe('3月 2/5');
-    expect(billLine({ amount: 15_600, daysLeft: 4 })).toBe('这个月要还 ¥1.56万 · 还剩 4 天');
-    expect(billLine({ amount: 3000, daysLeft: 1 })).toBe('这个月要还 ¥3,000 · 还剩 1 天');
   });
 
   it('月供状态：宽裕、偏紧、不够、信用卡兜底', () => {
@@ -117,17 +114,17 @@ describe('画面文案：结束页与关于', () => {
     const text = aboutRules().join('');
     expect(text).toContain(`大约 ${Math.round(totalDays() / 12)} 个交易日`);
     expect(text).toContain(`能同时拿 ${BALANCE.slots} 只股票`);
-    expect(text).toContain(String(Math.round(baseBill(1))).slice(0, 1));
+    expect(text).toContain(`1 月是${BILL_NAMES[0]}`);
     expect(ABOUT_CONTROLS.length).toBeGreaterThan(2);
   });
 });
 
 describe('0.32.0 短局的首付常驻', () => {
   it('顶栏：剩下的账单加首付一共多少、还差多少 / 够了（手机只写差多少）', () => {
-    expect(downPaymentLine(83_000, 95_000, false)).toEqual({ text: '首付+账单 ¥9.50万 · 差 ¥1.20万', enough: false });
-    expect(downPaymentLine(83_000, 95_000, true)).toEqual({ text: '首付差¥1.20万', enough: false });
-    expect(downPaymentLine(95_000, 95_000, false)).toEqual({ text: '首付+账单 ¥9.50万 · 够了', enough: true });
-    expect(downPaymentLine(120_000, 95_000, true).text).toBe('首付够了');
+    expect(downPaymentLine(83_000, 95_000, false)).toEqual({ text: '到期共交 ¥9.50万 · 还差 ¥1.20万', enough: false });
+    expect(downPaymentLine(83_000, 95_000, true)).toEqual({ text: '到期还差¥1.20万', enough: false });
+    expect(downPaymentLine(95_000, 95_000, false)).toEqual({ text: '到期共交 ¥9.50万 · 够了', enough: true });
+    expect(downPaymentLine(120_000, 95_000, true).text).toBe('到期够交了');
   });
   it('月底账单的一行收据', () => {
     expect(downPaymentRow(83_000, 95_000)).toEqual({ label: '首付和账单还差', value: '¥1.20万', enough: false });

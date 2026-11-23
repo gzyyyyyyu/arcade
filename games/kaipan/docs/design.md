@@ -46,3 +46,4 @@
 | 第 16 节 黑天鹅 Boss 日 | [design-modes.md](design-modes.md) |
 | 第 17 节 本周市场 | [design-modes.md](design-modes.md) |
 | 第 18 节 打新 | [design-modes.md](design-modes.md) |
+| 第 19 节 财报周和龙虎榜 | [design-modes.md](design-modes.md) |

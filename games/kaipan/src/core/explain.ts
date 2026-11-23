@@ -1,5 +1,5 @@
 /**
- * 0.3.1「看得懂」：把一天的结算拆成玩家看得懂的几项（归因、账户层效果），并给出大白话说明。
+ * 「看得懂」：把一天的结算拆成玩家看得懂的几项（归因、账户层效果），并给出大白话说明。
  * 只用当天已经揭晓的数，不含真实阶段；只记录，不参与任何计算。
  *
  * 说明的写法（小白试读的结论）：
@@ -52,7 +52,7 @@ export interface PartContext {
   marketRet: number;
   /** 开盘前已经连续涨停的天数 */
   boardsBefore: number;
-  /** 0.5 照搬真实走势：noise 不是掷出来的运气，是这只股票相对同风口的真实走势（个股自己的消息、资金） */
+  /** 照搬真实走势：noise 不是掷出来的运气，是这只股票相对同风口的真实走势（个股自己的消息、资金） */
   track?: boolean;
   /** 黑天鹅那天：这一格被额外改的涨跌（pp，已经是对这一格收益的贡献）和黑天鹅的名字 */
   swan?: { name: string; value: number };
@@ -144,8 +144,8 @@ function label(kind: RetPartKind, v: number, ret: number, c: PartContext, itemId
   }
 }
 
-/** 0.4 C：押跌那一格的归因：反过来的涨跌（含手续费）、被轧、自动卖出的道具。 */
-export function shortParts(move: number, squeeze: number, items: readonly { itemId: string; value: number }[], ret: number, c: PartContext): RetPart[] {
+/** 押跌那一格的归因：反过来的涨跌（含手续费）、被轧、自动卖出的道具。 */
+export function shortParts(squeeze: number, items: readonly { itemId: string; value: number }[], ret: number, c: PartContext): RetPart[] {
   const out: RetPart[] = [];
   let acc = 0;
   const sq = round2(squeeze);
@@ -165,7 +165,6 @@ export function shortParts(move: number, squeeze: number, items: readonly { item
     acc += sq;
   }
   out.unshift({ kind: 'short', value: round2(ret - acc), label: '' });
-  void move;
   // 黑天鹅另成一项，别的项按"没有黑天鹅时的涨跌"定方向（股票自己涨了、被黑天鹅砸成跌，不能把它的"往上冲"说成往下）
   const base = ret - (c.swan?.value ?? 0);
   for (const p of out) if (p.kind !== 'swan') p.label = label(p.kind, p.value, base, c, p.itemId);

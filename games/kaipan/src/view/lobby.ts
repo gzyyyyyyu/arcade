@@ -1,7 +1,7 @@
 /**
- * 0.5.8 回大厅：平台首页 `/` 是平台的公开地址（游戏挂在 /games/kaipan/ 下，大厅永远在域名根）。
+ * 回大厅：平台首页 `/` 是平台的公开地址（游戏挂在 /games/kaipan/ 下，大厅永远在域名根）。
  * 走之前补传一次云存档；一局里的进度本来每一步都存在本机，离开不算放弃，回来点「继续」接着玩。
- * 0.8.0 单独部署（没有平台，见 platform/mode.ts）时没有大厅：按钮叫「首页」，回游戏自己的首页 `./`（开始菜单）。
+ * 单独部署（没有平台，见 platform/mode.ts）时没有大厅：按钮叫「首页」，回游戏自己的首页 `./`（开始菜单）。
  */
 import { standalone } from '../platform/mode.ts';
 import { flushBeforeLeave } from './cloudSync.ts';
@@ -21,7 +21,7 @@ function lobbyUrl(): string {
 export function lobbyLabel(): string {
   return standalone() ? '首页' : '大厅';
 }
-/** 平台的钱包页（领补给）：0.6.5 筹码不够时给的去处（平台 15.10） */
+/** 平台的钱包页（领补给）：筹码不够时给的去处（平台 15.10） */
 export const WALLET_URL = '/wallet';
 
 /** 回大厅时离开这一局的确认说明（游戏内和竖屏提示层共用） */

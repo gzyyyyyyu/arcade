@@ -13,7 +13,7 @@ const VIEWED_KEY = 'kaipan.codex.viewed.v1';
 export interface LastSetup {
   persona: PersonaId;
   difficulty: number;
-  /** 0.10.0：短局（5 个月）还是完整一年；以前没记的、第一次玩都是短局 */
+  /** 短局（5 个月）还是完整一年；没记过的、第一次玩都是短局 */
   short: boolean;
 }
 
@@ -118,7 +118,7 @@ export function unscoredResult(profile: Profile): RecordResult {
   };
 }
 
-// ---------------------------------------------------------------- 画面偏好（0.3.1）
+// ---------------------------------------------------------------- 画面偏好
 
 const VIEW_PREFS_KEY = 'kaipan.view.prefs';
 /** 新手提示前几局默认打开 */
@@ -129,9 +129,9 @@ interface ViewPrefs {
   hints: 'auto' | 'on' | 'off';
   /** 收盘小结：full = 总账 + 每只一行；brief = 只显示总账一句 */
   recap: 'full' | 'brief';
-  /** 0.17.0 月底账单：stage = 账单舞台（每月 ≤ 2 秒，点一下跳过）；quick = 直接出账单和章 */
+  /** 月底账单：stage = 账单舞台（每月 ≤ 2 秒，点一下跳过）；quick = 直接出账单和章 */
   bill: 'stage' | 'quick';
-  /** 0.5：没什么事的日子自动快进（默认开） */
+  /** 没什么事的日子自动快进（默认开） */
   autoQuiet: boolean;
 }
 

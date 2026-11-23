@@ -20,7 +20,7 @@ export function addFluff(v: ChatView3, s: GameState, y: number, limit: number, s
   const friends = s.friends.map((f) => ({ id: f.id, name: friendView(s, f.id).name }));
   const tone = toneOf(s.lastDay ? s.lastDay.market.ret : null);
   const list = makeFluff({ seed: s.seed, day: s.today.day, salt, tone, friends, said, max: 4 });
-  // 0.6.3 群友连载：每个讲故事的月份，月底算账时先发一段（引用上一段）；盘前推荐卡多，放不下
+  // 群友连载：每个讲故事的月份，月底算账时先发一段（引用上一段）；盘前推荐卡多，放不下
   const beat = salt === 'month' ? storyBeat({ seed: s.seed, month: s.month, months: runMonths(s), friendIds: s.friends.map((x) => x.id) }) : null;
   if (beat) list.unshift({ kind: 'reply', friendId: beat.friendId, toId: beat.friendId, quote: beat.quote, text: beat.text });
   for (const f of list) {
@@ -40,7 +40,7 @@ export function addFluff(v: ChatView3, s: GameState, y: number, limit: number, s
 }
 
 /** 一条热闹元素：贴纸（大图标 + 贴纸字）、带引用条的回复、撤回 / 拍一拍的系统提示。 */
-export function fluffNode(v: ChatView3, s: GameState, f: Fluff, y: number): { node: Phaser.GameObjects.Container; h: number; pop: Phaser.GameObjects.Image | null } {
+function fluffNode(v: ChatView3, s: GameState, f: Fluff, y: number): { node: Phaser.GameObjects.Container; h: number; pop: Phaser.GameObjects.Image | null } {
   const sc = v.scene;
   const node = sc.add.container(0, 0);
   const nameOf = (id: string): string => (s.friends.some((x) => x.id === id) ? friendView(s, id).name : '群友');

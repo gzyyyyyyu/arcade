@@ -1,5 +1,5 @@
 /**
- * 0.4 重做：局末"这段日子"小故事（真实行情局才有）。
+ * 重做：局末"这段日子"小故事（真实行情局才有）。
  *
  * 不揭晓真身：不出现真实年份、日期、公司名（含化名）、代码和任何 id，只用游戏里的花名讲一个 4–8 句的小故事：
  * 开头（按市况）→ 大盘和风口概况 → 段内大事的故事版（游戏内时间，"第二个月月底"）→ 玩家自己（赚得最多、
@@ -40,7 +40,7 @@ export interface StoryView {
   lines: string[];
   /** 一句结局吐槽 */
   verdict: string;
-  /** 0.5 画面配图用：每句是哪一类（与 lines 一一对应），ref 是这句说到的股票 / 群友 id（可选） */
+  /** 画面配图用：每句是哪一类（与 lines 一一对应），ref 是这句说到的股票 / 群友 id（可选） */
   marks?: StoryMark[];
 }
 
@@ -53,7 +53,7 @@ export interface StoryMark {
 // ---------------------------------------------------------------- 标题
 
 /** 一段的标题：按市况在 SEGMENT_TITLES 里第 n 个（超过列表长度时加"第 N 季"）。 */
-export function segmentTitleAt(regime: Regime, n: number): string {
+function segmentTitleAt(regime: Regime, n: number): string {
   const list = SEGMENT_TITLES[regime];
   const base = list[n % list.length] as string;
   const season = Math.floor(n / list.length);
@@ -188,7 +188,7 @@ function stockFor(theme: ThemeId, traded: ReadonlySet<string>, key: (string | nu
   return (list.find((d) => d.role === 'leader') ?? pick(list, ...key, 'any')).name;
 }
 
-/** 0.4 C：玩家自己的仓位、押跌、抵押经历（最多两句）。 */
+/** 玩家自己的仓位、押跌、抵押经历（最多两句）。 */
 function extTales(s: Readonly<GameState>, trades: readonly TradeLog[], base: Vars, key: (...p: (string | number)[]) => (string | number)[]): string[] {
   const log = s.ext?.log;
   if (!log) return [];
@@ -294,7 +294,7 @@ export function storyView(s: Readonly<GameState>): StoryView | null {
     pv.亏股 = stockById(worst[0]).name;
     pv.亏多 = `${Math.round(-worst[1])}%`;
   }
-  // 0.4 C：仓位、押跌、抵押的经历（最多两件，放在最前面）
+  // 仓位、押跌、抵押的经历（最多两件，放在最前面）
   const ext = extTales(s, trades, pv, key);
   // 经历里已经讲过的那只（重仓、押跌），不再用最赚 / 最亏那句把同一只、同一个数字再说一遍
   const told = (name: string | undefined): boolean => !!name && ext.some((l) => l.includes(name));

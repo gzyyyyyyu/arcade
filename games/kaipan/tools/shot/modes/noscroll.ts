@@ -72,7 +72,7 @@ const smallHits = new Map<string, string>();
 /**
  * 画布里的重叠和裁字（调试桥 layout()，见 src/debug/layout.ts）：
  * - 重叠：任意两个控件的底板相交，或者点击区相交（触屏点到隔壁）；按钮被不接点击的不透明层盖住（看不见还点得到）；
- * - 裁字：文字伸出镜头（被屏幕边裁掉）、伸出自己按钮的底板、压在别的按钮底板上，或者两段文字互相压住超过小的那段的 1/4。
+ * - 裁字：文字被截成省略号（markCut）、伸出镜头（被屏幕边裁掉）、伸出自己按钮的底板、压在别的按钮底板上，或者两段文字互相压住超过小的那段的 1/4。
  * 页面上的 DOM 按钮（转屏提示等）同样量：两两相交、scrollWidth / scrollHeight 超过 client 的。
  */
 async function checkLayout(ctx: Ctx, where: string): Promise<void> {
@@ -111,6 +111,7 @@ async function checkLayout(ctx: Ctx, where: string): Promise<void> {
     for (let i = 0; i < texts.length; i++) {
       const t = texts[i] as (typeof texts)[number];
       if (okText(t.text)) continue;
+      if (t.cut) clips.push(`${where}：${q(t.text)} 被截成省略号`);
       if (sticksOut(t.box, view)) clips.push(`${where}：${q(t.text)} 伸出屏幕`);
       const own = t.owner ? boxes.find((b) => b.key === t.owner) : undefined;
       if (own && sticksOut(t.box, own.face)) clips.push(`${where}：${q(t.text)} 伸出按钮 ${own.key} 的底板`);

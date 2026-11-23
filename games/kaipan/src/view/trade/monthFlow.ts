@@ -23,7 +23,7 @@ export class MonthFlow {
     this.s = s;
   }
 
-  /** 0.11.0 开了杠杆、跌到清零线：一张卡说清楚这局按 0 结，等玩家点了再去结束页 */
+  /** 开了杠杆、跌到清零线：一张卡说清楚这局按 0 结，等玩家点了再去结束页 */
   async playMarginCall(): Promise<void> {
     sound.cue({ type: 'runLost' });
     const layer = this.s.add.container(0, 0).setDepth(300);
@@ -57,7 +57,7 @@ export class MonthFlow {
     const c = make(() => this.s.continueInput());
     this.s.continueBtn = c.button;
     this.s.session.notify();
-    // 0.5：不用点也会在几秒后自己收起（少打断一次）；点"知道了"可以马上收
+    // 不用点也会在几秒后自己收起（少打断一次）；点"知道了"可以马上收
     const timer = this.s.time.delayedCall(3200, () => this.s.continueInput());
     await this.s.waitContinue();
     timer.remove(false);
@@ -109,7 +109,7 @@ export class MonthFlow {
     const r = first(events, 'eventResolved');
     this.s.event?.destroy();
     this.s.event = null;
-    // 0.5：接着就是新月份的看点卡时，事件结果写进看点卡里（少点一次"继续"）
+    // 接着就是新月份的看点卡时，事件结果写进看点卡里（少点一次"继续"）
     if (r && next.phase === 'premarket' && first(events, 'monthStarted') && monthThemeView(next)) {
       const name = eventView(prev)?.name ?? '事件';
       sound.cue({ type: 'eventResult', delta: r.delta });
@@ -158,7 +158,7 @@ export class MonthFlow {
     ];
     if (!this.s.anim.instant) this.s.chat.hideAll();
     const all = [...lead, ...surprise, ...extras];
-    // 0.5：有月度主题时弹"本月看点"卡（主题、目标、奖励、开场白、群友吐槽 + 这个月要还的钱），没有时照旧
+    // 有月度主题时弹"本月看点"卡（主题、目标、奖励、开场白、群友吐槽 + 这个月要还的钱），没有时照旧
     const mt = monthThemeView(s);
     const ev = first(events, 'monthTheme');
     let box: Phaser.GameObjects.Container;
@@ -194,7 +194,7 @@ export class MonthFlow {
   /** 账单之后的「继续」按钮（爆仓 / 通关）。 */
   showContinue(layer: Phaser.GameObjects.Container, label: string): void {
     // 手机上账单卡偏左、高度占满，按钮放到右边印章下面
-    // 0.19.0 手机世界宽窄不定（718–960）、高 404：按群聊那一块的位置放，底边离画面下沿 8
+    // 手机世界宽窄不定（718–960）、高 404：按群聊那一块的位置放，底边离画面下沿 8
     const b = new Button(this.s, PHONE_MODE ? Math.min(VIEW.w - 8 - 220, PHONE.x + (PHONE.w - 220) / 2) : VIEW.w / 2 - 110, PHONE_MODE ? VIEW.h - 8 - 52 : 600, { width: 220, height: 52, label, variant: 'primary', fontSize: 18, hotkey: '空格', onClick: () => this.s.continueInput() });
     layer.add(b);
     this.s.continueBtn = b;

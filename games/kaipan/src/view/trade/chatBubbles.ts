@@ -59,10 +59,10 @@ export function addMessage(v: ChatView3, m: MessageView, y: number, size: number
   const raw = v.state.today.messages[m.index];
   const days = raw?.days ?? 1;
   const big = !!raw?.big;
-  // 0.5：风口图标 + 箭头 + 天数（「AI 2天内 涨」这类整句在悬停提示里）
+  // 风口图标 + 箭头 + 天数（「AI 2天内 涨」这类整句在悬停提示里）
   const dirSign = claimSign(m.reverse && m.readAs ? m.readAs : m.claim);
   const arrow = dirSign > 0 ? '↑' : dirSign < 0 ? '↓' : '→';
-  // 0.5.1：「反」看不懂，写成「反着听」（箭头已经是反过来之后的方向）
+  // 「反」看不懂，写成「反着听」（箭头已经是反过来之后的方向）
   const chipLabel = `${m.reverse && m.readAs ? '反着听' : m.liar ? '反话' : ''}${arrow}${days > 1 ? `${days}天` : ''}${m.certain ? '必中' : ''}`;
   const chipText = addText(s, 0, y + 7, chipLabel, { size: 13, bold: true, color: ink, originX: 1, originY: 0.5 });
   const chipW = chipText.width + 34;
@@ -170,7 +170,7 @@ export function tickerNode(v: ChatView3, text: string): { node: Phaser.GameObjec
 }
 
 /** 群主的名字旁边带一个「群主」小签（文案里说"群主"，群里显示的是网名）。 */
-export function ownerBadge(v: ChatView3, f: Pick<FriendView, 'title'>, x: number, y: number): { node: Phaser.GameObjects.Container; w: number } | null {
+function ownerBadge(v: ChatView3, f: Pick<FriendView, 'title'>, x: number, y: number): { node: Phaser.GameObjects.Container; w: number } | null {
   if (f.title !== '群主') return null;
   const t = addText(v.scene, 0, 0, f.title, { size: FS.xs, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5 });
   const w = t.width + 8;

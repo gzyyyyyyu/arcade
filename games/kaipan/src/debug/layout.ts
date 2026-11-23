@@ -1,5 +1,6 @@
 import type Phaser from 'phaser';
 import type { Rect } from '../view/rect.ts';
+import { isCut } from '../view/ui/text.ts';
 
 /**
  * 量画布里的布局（--noscroll 的重叠和裁字检查用）。DOM 的 scrollWidth / getBoundingClientRect 量不到画布里的按钮和文字，
@@ -7,7 +8,7 @@ import type { Rect } from '../view/rect.ts';
  * - 每个控件（调试桥 controls() 的点）落在哪个点击区上：取包含这个点、画得最靠上（显示列表里最后）的那个，和 Phaser 判定点击的顺序一致；
  *   按钮有底板时另给底板的框（看得见的那块）；
  * - 看得见的文字：超出镜头（被屏幕边裁掉）、超出所在按钮的底板，或者两段文字互相压住。
- * 开盘不用遮罩和省略号，所以画布里的"裁字"只有这几种。
+ * 开盘不用遮罩；放不下截成省略号的文字由 ui/text.ts 的 markCut 记下，这里带上 cut 标记（--noscroll 要求 0 处）。
  * 弹窗、月底面板这类盖层下面铺着一块接住点击的整屏遮罩（占镜头 40% 以上的点击区）：有遮罩时只量遮罩所在顶层及更高的层，
  * 下面被盖住的按钮点不到、文字也看不清，不算重叠和压字。
  * 不接点击的不透明层（选格子的提示条这类纸面、实心底）盖住的文字同样看不见，不算压字；被它盖住的按钮却照样点得到，单独标出来。
@@ -29,6 +30,8 @@ export interface LayoutText {
   box: Rect;
   /** 属于哪个按钮（底板容器里的字）：按钮 key；不属于任何按钮时为 null */
   owner: string | null;
+  /** 被截成了省略号（ui/text.ts 的 markCut） */
+  cut: boolean;
 }
 
 export interface Layout {
@@ -120,5 +123,5 @@ export function measureLayout(scene: Phaser.Scene | null, controls: Record<strin
     }
     return null;
   };
-  return { view: { x: v.x, y: v.y, w: v.width, h: v.height }, boxes, texts: texts.filter((t) => t.depth >= floor && !coveredAt(t.r.x + t.r.w / 2, t.r.y + t.r.h / 2, t.order, null)).map(({ o, r }) => ({ text: o.text, box: r, owner: ownerOf(o) })) };
+  return { view: { x: v.x, y: v.y, w: v.width, h: v.height }, boxes, texts: texts.filter((t) => t.depth >= floor && !coveredAt(t.r.x + t.r.w / 2, t.r.y + t.r.h / 2, t.order, null)).map(({ o, r }) => ({ text: o.text, box: r, owner: ownerOf(o), cut: isCut(o) })) };
 }

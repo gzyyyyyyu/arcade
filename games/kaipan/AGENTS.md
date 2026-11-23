@@ -26,7 +26,7 @@
 - 冒烟截图在自动化下要可复现：画面层随机走 `src/view/ui/stable.ts`，待机循环动画自动化下不播，截「播完」用 `quietShot`、截中途用 `cueShot`（`docs/architecture.md`）。
 - 文字和纹理的性能规矩见 `docs/architecture.md`「性能：文字和纹理」；量性能用 `tools/perf.ts`。
 - 无头浏览器参数 `--enable-unsafe-swiftshader --no-proxy-server --no-zygote --in-process-gpu`；中文截图要装中文字体。
-- 竖屏打开就是竖屏版（0.33.0），方向和版面不一致时才出转屏提示。
+- 竖屏打开就是竖屏版，方向和版面不一致时才出转屏提示。
 - 群友和股票小人的台词改了，用 `docs/design-chat.md` 第 7 节的口径重量重复率，不放宽测试。
 
 ## 4. 存储和数据

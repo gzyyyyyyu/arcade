@@ -7,7 +7,7 @@
 
 const ID = 'rotate-hint';
 /**
- * 0.33.0 有了竖屏版：开局时的方向定了用哪一版（theme.ts 的 PORTRAIT），拿的方向和这一版对不上时才盖这层。
+ * 有了竖屏版：开局时的方向定了用哪一版（theme.ts 的 PORTRAIT），拿的方向和这一版对不上时才盖这层。
  * 手机（横屏版、竖屏版）提示「换成 X 屏版」：重新载入按新方向排（进度每一步都存着）；电脑布局的大触屏仍只提示横过来。
  */
 export type Layout = 'desktop' | 'landscape' | 'portrait';
@@ -91,9 +91,9 @@ ${navigator.webdriver === true ? `#${ID} .rh-phone, #${ID} img.rh-art { animatio
 const HOUSE = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5" fill="none" stroke="#3a2634" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10v9.5h13V10" fill="#ff7a33" stroke="#3a2634" stroke-width="2.4" stroke-linejoin="round"/><rect x="10" y="13.5" width="4" height="6" fill="#fff6e6" stroke="#3a2634" stroke-width="1.8"/></svg>`;
 
 /**
- * 竖屏提示左上角的「大厅」（0.5.8）：竖着拿手机时游戏画面被盖住，回大厅的入口放在这一层上。
+ * 竖屏提示左上角的「大厅」：竖着拿手机时游戏画面被盖住，回大厅的入口放在这一层上。
  * inRun() 为真（一局进行中）时先在卡片里问一次（说明同 confirm），否则直接走。
- * confirm 每次问的时候现取：实盘局和娱乐局的说法不同（0.6.0）。
+ * confirm 每次问的时候现取：实盘局和娱乐局的说法不同。
  */
 interface RotateLobby {
   inRun: () => boolean;
@@ -101,7 +101,7 @@ interface RotateLobby {
   go: () => void;
 }
 
-/** 改左上角按钮的字（0.8.0 单独部署时叫「首页」）。还没挂载时什么都不做。 */
+/** 改左上角按钮的字（单独部署时叫「首页」）。还没挂载时什么都不做。 */
 export function setRotateLobbyLabel(text: string): void {
   if (typeof document === 'undefined') return;
   const span = document.querySelector(`#${ID} .rh-lobby span`);
@@ -118,6 +118,20 @@ function cardHtml(layout: Layout): string {
   return `<b>换成${to}版？</b><span>现在是按${to === '横屏' ? '竖' : '横'}着拿排的版面。<br>换一下，画面按现在的方向铺满，进度都存着。</span><button type="button" class="rh-play rh-relayout">换成${to}版</button>${keep}`;
 }
 
+/** 「换成 X 屏版」重新载入前记下的标记（sessionStorage，读一次就删） */
+export const RELAYOUT_KEY = 'kaipan.relayout';
+
+/** 这次载入是不是「换成 X 屏版」点出来的（读完就删，刷新页面不会再算） */
+export function takeRelayout(): boolean {
+  try {
+    const on = sessionStorage.getItem(RELAYOUT_KEY) === '1';
+    sessionStorage.removeItem(RELAYOUT_KEY);
+    return on;
+  } catch {
+    return false;
+  }
+}
+
 /** 挂载转屏提示（重复调用无副作用）。layout 是开局时定下的版面（theme.ts 的 PHONE / PORTRAIT）。 */
 export function mountRotateHint(layout: Layout, lobby?: RotateLobby): void {
   if (typeof document === 'undefined' || document.getElementById(ID)) return;
@@ -129,8 +143,15 @@ export function mountRotateHint(layout: Layout, lobby?: RotateLobby): void {
   el.id = ID;
   el.setAttribute('role', 'alert');
   el.innerHTML = `<div class="rh-card">${ICON}${cardHtml(layout)}<i>开盘 · 散户的一年</i></div>`;
-  // 「换成 X 屏版」：版面是开局时按方向搭的，换方向就重新载入（存档每一步都写着，回来接着这一天）
-  el.querySelector('.rh-relayout')?.addEventListener('click', () => window.location.reload());
+  // 「换成 X 屏版」：版面是开局时按方向搭的，换方向就重新载入（存档每一步都写着）；记一笔，载入后直接回到这一局，不停在开始菜单
+  el.querySelector('.rh-relayout')?.addEventListener('click', () => {
+    try {
+      sessionStorage.setItem(RELAYOUT_KEY, '1');
+    } catch {
+      // 存储不可用：载入后照常停在开始菜单
+    }
+    window.location.reload();
+  });
   // 「照样玩」：收起提示，画布本来就按看得见的区域铺（EXPAND），原来那一版的画面缩小居中放在里面（letterbox）；
   // 转回原来的方向时提示本来就不显示，同时清掉这个标记，下次再转过来仍先提示
   el.querySelector('.rh-keep')?.addEventListener('click', () => el.classList.add('skip'));

@@ -154,7 +154,7 @@ validate(state, action): string | null
 | `buyOptions(s, rec, slot?)` | 买法选项：`sizes[]`（每个带份数、`error`、重仓的冲击成本 `cost / note`）和 `short`（解锁与否、原因、是否群友建议） |
 | `positionsView(s)` / `bankView(s)` / `bankRisk(s)` | 份数与现金份数、银行（欠款、警戒线、可押物品、月息）/ 月底付账单会不会跌破线（盘前提示用） |
 | `friendsView / friendView` | 群友名、身份、战绩、擅长风口 |
-| `topBar(s)` | 顶栏：月日、账户、账单、剩余天数、天气、道具、格数、人设难度、`daily`、`flash`（闪电盘的日期、第几天、共几天、开局资产；本周市场也有，date 是周号）、`weekly`（本周市场的周号、规则 id、名字、进局一句话、说明；不是本周市场为 null）、`notice`、`busy`、`live`（实盘档位名/一份/按现在资产能结回多少）、`expiring`、`pending` |
+| `topBar(s)` | 顶栏：月日、账户、账单、剩余天数、天气、道具、格数、人设难度、`daily`、`flash`（闪电盘的日期、第几天、共几天、开局资产；本周市场也有，date 是周号）、`weekly`（本周市场的周号、规则 id、名字、进局一句话、说明；不是本周市场为 null）、`notice`、`busy`、`live`（实盘档位名/一份/按现在资产能带回多少）、`expiring`、`pending` |
 | `billView(s)` | `amount`（总额）、`base`（常规）、`extras`（突发明细）、`enough`、`credit` |
 | `calendarView / currentCalendar` | 12 个月日历；真实行情下 `desc` 自动换成 `realDesc`（老话说……涨跌照真的走）；0.36 起带 `ipo`（这个月抽新股的名字、第几天）和 `earnings`（有没有财报周） |
 | `itemView(id)` / `rewardView(s)` / `eventView(s)` | 道具（`tag`「道具（常见）」、`brief` 短版）、三选一卡、事件（`brief`、`picks`） |

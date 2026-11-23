@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { viewBetween } from '../ui/stable.ts';
-import { BALANCE, LESSON, THEME_IDS, dailyBoardId, dailySetup, difficultyView, flashDays, formatMoney, lessonDays, lessonSetup, liveSetup, personaView, stocksOf, weeklyBoardId, weeklyInfo, type GameState, type LiveTier, type PersonaId } from '../../core/index.ts';
+import { BALANCE, LESSON, THEME_IDS, dailyBoardId, dailySetup, difficultyView, flashDays, formatMoney, isLesson, lessonDays, lessonSetup, liveSetup, personaView, stocksOf, weeklyBoardId, weeklyInfo, type GameState, type LiveTier, type PersonaId } from '../../core/index.ts';
 import { emptyProfile, isDifficultyUnlocked, isPersonaUnlocked, loadProfile, type Profile } from '../../platform/profile.ts';
 import { hasSave } from '../../platform/storage.ts';
 import { APP_VERSION } from '../../platform/version.ts';
@@ -42,7 +42,7 @@ import { phoneHome, portraitHome } from '../meta/homeGeo.ts';
 import { BaseScene } from './BaseScene.ts';
 
 /**
- * 0.14.0（art-v3 ①）开始菜单改成主页：上面 Logo 和一句玩法，中间一张大卡（继续上局 / 快速开始 / 开始第一局）和几张模式卡
+ * 开始菜单是主页：上面 Logo 和一句玩法，中间一张大卡（继续上局 / 快速开始 / 开始第一局）和几张模式卡
  * （每日挑战、实盘、新一局），右上角一排小入口（怎么玩、图鉴、成就、设置、关于），左上角「大厅」。
  * 背后是分层的主视觉：天空（画面直接画）、远处城市、山坡、小屋、前排会眨眼会跳的股票小人、依次弹出的群聊气泡、慢慢飘的云；
  * 电脑上随鼠标有一点视差。窗口不是 16:9 时城市和山坡往两边铺满（EXPAND，见 viewport.ts）。
@@ -61,7 +61,7 @@ const DESK = {
   cloud: { x: 770, y: 78 },
 } as const;
 
-/** 手机横屏按世界宽度排（0.19.1）：要点的都在下半屏，见 meta/homeGeo.ts */
+/** 手机横屏按世界宽度排：要点的都在下半屏，见 meta/homeGeo.ts */
 type PhoneHome = ReturnType<typeof phoneHome>;
 
 /** 前排小人（电脑世界坐标，脚踩的位置和高度）：两边各一群，房前两只小的；窗口变宽时两边再各露出一只 */
@@ -138,7 +138,7 @@ export class TitleScene extends BaseScene {
     const off = onLiveChange(() => this.time.delayedCall(1, () => this.liveNotice()));
     this.events.once('shutdown', off);
     this.time.addEvent({ delay: 400, loop: true, callback: () => this.liveNotice() });
-    // 0.13.0 打开好友挑战的链接：读到了弹一张卡（同样等前面的提示说完、空出来再弹）
+    // 打开好友挑战的链接：读到了弹一张卡（同样等前面的提示说完、空出来再弹）
     const offC = onChallengeChange(() => this.time.delayedCall(1, () => this.challengeNotice()));
     this.events.once('shutdown', offC);
     this.time.addEvent({ delay: 400, loop: true, callback: () => this.challengeNotice() });
@@ -345,7 +345,9 @@ export class TitleScene extends BaseScene {
     const qd = difficultyView(quick.difficulty);
     const len = quick.short ? `短局 ${BALANCE.short.months} 个月` : '完整一年';
     const title = can ? '继续' : lesson ? '先上一课' : first ? '开始第一局' : '快速开始';
-    const sub = lesson ? `新手课 · ${lessonDays()} 天 · 教你怎么选股` : can ? `${personaView(s.persona).name} · ${s.setup?.weekly !== undefined ? `本周市场第${Math.min(s.dayIndex + 1, flashDays())}天` : s.setup?.flash !== undefined ? `闪电盘第${Math.min(s.dayIndex + 1, flashDays())}天` : `${s.month}月`}${livePlaying(s) ? ' · 实盘' : ''}` : `${personaView(quick.persona).name} · ${qd.name} · ${len}`;
+    // 「继续」先说是哪个模式、打到哪了，人设放最后（窄屏放不下就省掉人设，不截模式名）
+    const mode = can ? continueMode(s) : '';
+    const sub = lesson ? `新手课 · ${lessonDays()} 天 · 教你怎么选股` : can ? `${mode} · ${personaView(s.persona).name}` : `${personaView(quick.persona).name} · ${qd.name} · ${len}`;
     const pw = H.h - 16;
     const tx = 16 + pw + 14;
     const parts: Phaser.GameObjects.GameObject[] = [];
@@ -370,7 +372,8 @@ export class TitleScene extends BaseScene {
       parts.push(money);
     }
     // 右下角留给「回车」
-    if (!ph || can) fitWidth(subT, room);
+    if (can && subT.width > room) subT.setText(mode);
+    else if (!ph) fitWidth(subT, room);
     if (!PHONE) parts.push(addText(this, H.w - 16, H.h - 12, '回车', { size: FS.xs, bold: true, color: COLOR.white, originX: 1, originY: 1 }).setAlpha(0.8));
     b.addContent(...parts);
     // 人设立绘到了就换掉图标（meta 图集按需加载，开始菜单先触发一次）
@@ -436,7 +439,7 @@ export class TitleScene extends BaseScene {
     const lb = this.buttons.live;
     if (lb) {
       lb.setEnabled(this.liveWhy() === null).onDenied(() => this.liveWhy());
-      lb.tooltip(() => ({ title: '实盘', body: this.liveWhy() ?? `带一份筹码进场打 ${BALANCE.live.months} 个月（约 ${LIVE_MINUTES} 分钟），按最后的资产结回。筹码只是游戏里的分数，无任何现金价值。` }));
+      lb.tooltip(() => ({ title: '实盘', body: this.liveWhy() ?? `带一份筹码进场打 ${BALANCE.live.months} 个月（约 ${LIVE_MINUTES} 分钟），按最后的资产带回。筹码只是游戏里的分数，无任何现金价值。` }));
     }
     this.dailyBadge();
     // 「新一局」：有没打完的局时，大卡是「继续」，快速开始放在这张卡里
@@ -583,7 +586,7 @@ export class TitleScene extends BaseScene {
     if (this.canContinue() && livePlaying(this.session.state)) return this.guardNew(() => undefined);
     if (this.dialogOpen || this.opening) return;
     this.opening = true;
-    // 0.9.0 等钱包回话时实盘按钮自己转圈（以前是顶上一条「正在看钱包」）
+    // 等钱包回话时实盘按钮自己转圈（不另外在顶上挂一条「正在看钱包」）
     const btn = this.buttons.live;
     btn?.setLoading(true);
     void Promise.all([live.retry().then(() => live.wallet()), ensureMetaArt(this.textures).catch(() => undefined)]).then(([w]) => {
@@ -594,8 +597,8 @@ export class TitleScene extends BaseScene {
       const r = live.record;
       let blocked: string | null = null;
       if (w === 'login') blocked = '登录以后才能玩实盘';
-      else if (r && (r.step === 'settling' || r.step === 'buying')) blocked = '上一局实盘还没结完，联网后会自动结回';
-      // 0.6.8 桌上别处的几份（另一台设备上开的、本机记录丢了的）不拦开新局（平台 0.9.5 起同一游戏可以有好几份）：
+      else if (r && (r.step === 'settling' || r.step === 'buying')) blocked = '上一局实盘还没结完，联网后会自动带回';
+      // 桌上别处的几份（另一台设备上开的、本机记录丢了的）不拦开新局（平台允许同一游戏有好几份）：
       // 开局面板提示一句，给「回去接着打」「原样退回」。本机正在结的那份由上面的 blocked 管
       const others = (wallet?.stakes ?? []).filter((x) => !(r && x.ref === r.ref && (r.step === 'settling' || r.step === 'buying')));
       const aside: LiveAside | null =
@@ -612,7 +615,7 @@ export class TitleScene extends BaseScene {
     });
   }
 
-  /** 0.6.8 把桌上别处的几份原样退回：先确认，退完重开实盘面板（钱包里的筹码跟着变）；退不成说原因，那一份没动 */
+  /** 把桌上别处的几份原样退回：先确认，退完重开实盘面板（钱包里的筹码跟着变）；退不成说原因，那一份没动 */
   private refundOthers(refs: readonly string[], amount: number, persona?: PersonaId): void {
     const n = refs.length;
     this.openConfirm('原样退回？', `${n > 1 ? `这 ${n} 局` : '那一局'}的 ${chips(amount)} 筹码原样退回钱包，${n > 1 ? '它们' : '那局'}就不再算筹码了。`, '退回', () => {
@@ -671,7 +674,7 @@ export class TitleScene extends BaseScene {
   }
 
   /**
-   * 「每日挑战」右上角的小牌子：今天的题打没打、打了排第几（0.6.9）。
+   * 「每日挑战」右上角的小牌子：今天的题打没打、打了排第几。
    * 名次读全站榜（45 秒缓存，来回进出开始菜单不打平台）；没登录、调试局、读不到时就写「已打」。
    */
   private dailyBadge(): void {
@@ -848,3 +851,15 @@ const CHALLENGE_FAIL: Record<ChallengeFail, { title: string; body: string }> = {
   offline: { title: '没连上', body: '挑战没读到，联网后再点一次链接试试。' },
   bug: { title: '这个挑战打不开了', body: '链接看不懂，可能不完整。' },
 };
+
+/** 「继续」卡上的模式和进度：每日挑战 · 3月、闪电盘 · 第 4/10 天、新手课 · 第 2 天…… */
+function continueMode(s: GameState): string {
+  const day = s.dayIndex + 1;
+  const setup = s.setup;
+  if (isLesson(s)) return `新手课 · 第 ${Math.min(day, lessonDays())} 天`;
+  if (setup?.weekly !== undefined) return `本周市场 · 第 ${Math.min(day, flashDays())}/${flashDays()} 天`;
+  if (setup?.flash !== undefined) return `闪电盘 · 第 ${Math.min(day, flashDays())}/${flashDays()} 天`;
+  if (setup?.daily !== undefined) return `每日挑战 · ${s.month}月`;
+  if (livePlaying(s)) return `实盘 · ${s.month}月`;
+  return `${s.month}月`;
+}

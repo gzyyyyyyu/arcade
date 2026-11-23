@@ -23,12 +23,12 @@ import { COLOR, FS, PHONE_SCALE, TYPE, arrowOf, signColor } from '../theme.ts';
 import { addGlyph, addImage, addPaper } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
 import { Dialog, actionButtons, dialogW, iconChip, moneyShort } from '../ui/dialog.ts';
-import { addText, fitWidth } from '../ui/text.ts';
+import { addText } from '../ui/text.ts';
 import { bindTooltip, type TipContent } from '../ui/tooltip.ts';
 import { phoneLayout, viewOf } from '../viewport.ts';
 
 /**
- * 0.4 C 的画面：买多少（试一口 / 半仓 / 重仓 / 押跌）、手里这只怎么办（加仓 / 减一半 / 清仓）、银行（押东西借钱）、
+ * 仓位、押跌、抵押的画面：买多少（试一口 / 半仓 / 重仓 / 押跌）、手里这只怎么办（加仓 / 减一半 / 清仓）、银行（押东西借钱）、
  * 以及被轧、银行来电、东西被收走、赎回、点亮小知识的表现。数都从规则层的查询拿，这里只管画。
  */
 
@@ -66,11 +66,13 @@ export class BuyDialog extends Dialog {
     const r = chatView(s).recs[rec];
     const opts = buyOptions(s, rec, slot);
     const showShort = opts.short.unlocked;
-    // 竖屏版（0.33.0）面板窄：钱包挪到标题下面一行，三个按钮按剩下的宽度均分，整体往下让 34
+    // 竖屏版面板窄：钱包挪到标题下面一行，三个按钮按剩下的宽度均分，整体往下让 34
     const W = dialogW(scene, 560);
     const narrow = W < 560;
     const dy = narrow ? 34 : 0;
-    const H = (showShort ? 380 : 240) + dy;
+    // 窄面板每行下面的说明可能要折成两行：每行多留 18
+    const tipH = narrow ? 18 : 0;
+    const H = (showShort ? 380 + tipH * 2 : 240 + tipH) + dy;
     super(scene, W, H, `买「${r?.stock.name ?? ''}」`);
     this.spaceCloses = true;
     const pv = positionsView(s);
@@ -81,8 +83,8 @@ export class BuyDialog extends Dialog {
     const wy = narrow ? 76 : 38;
     this.inner.add(addGlyph(scene, wx, wy, 'wallet', 30));
     this.inner.add(coins(scene, wx + 22 + (Math.ceil(cash) * 14) / 2, wy, cash, 18));
-    // 0.5.1：金币后面写「剩 N/M 份」，不用悬停也知道
-    this.inner.add(addText(scene, wx + 30 + Math.ceil(cash) * 14, wy, `${cash}/${pv.total}`, { size: TYPE.label, bold: true, num: true, color: COLOR.muted, originY: 0.5 }));
+    // 金币后面写「剩 N/M 份」，不用悬停也知道
+    this.inner.add(addText(scene, wx + 30 + Math.ceil(cash) * 14, wy, `剩 ${cash}/${pv.total} 份`, { size: TYPE.label, bold: true, num: true, color: COLOR.muted, originY: 0.5 }));
     const walletHit = scene.add.rectangle(wx - 18, wy - 18, 130, 36, 0xffffff, 0.001).setOrigin(0, 0);
     this.inner.add(walletHit);
     bindTooltip(walletHit, () => {
@@ -90,7 +92,7 @@ export class BuyDialog extends Dialog {
       return { x: m.tx, y: m.ty, w: 130, h: 36 };
     }, () => ({ title: '现金', body: `钱分成 ${pv.total} 份，现在手里还有 ${unitsWord(cash)}现金${slot !== undefined ? '（换掉的那只卖了也算进来）' : ''}` }));
     const row = (y: number, short: boolean, glow: boolean): void => {
-      if (glow) this.inner.add(scene.add.rectangle(18, y - 8, W - 36, 120, 0xfff1c4).setOrigin(0, 0).setRounded(14).setStrokeStyle(3, COLOR.gold, 1));
+      if (glow) this.inner.add(scene.add.rectangle(18, y - 8, W - 36, 120 + tipH, 0xfff1c4).setOrigin(0, 0).setRounded(14).setStrokeStyle(3, COLOR.gold, 1));
       rowHead(
         scene,
         this.inner,
@@ -99,8 +101,8 @@ export class BuyDialog extends Dialog {
         !short,
         short ? '押跌' : '押涨',
         short
-          ? { title: '押跌', body: `它跌你赚，它涨你亏；涨停那天会被轧，亏得最狠${opts.short.hint ? `\n${r?.friend?.name ?? '群友'}说这只要跌，建议押跌` : ''}` }
-          : { title: '押涨', body: '普通买入：它涨你赚。试一口不多花钱；一次买得越多，价格被自己抬得越高' },
+          ? { title: '押跌', body: `它跌你赚，它涨你亏；涨停那天会被轧：亏得比涨的还多${opts.short.hint ? `\n${r?.friend?.name ?? '群友'}说这只要跌，建议押跌` : ''}` }
+          : { title: '押涨', body: '普通买入：它涨你赚。试一口按原价买；一次买得越多，成交价被自己抬得越高' },
       );
       SIZES.forEach((size, i) => {
         const o = opts.sizes.find((x) => x.size === size);
@@ -134,16 +136,19 @@ export class BuyDialog extends Dialog {
         this.inner.add(b);
         this.named[`${short ? 'short' : 'size'}:${size}`] = b;
       });
-      // 行下一句短话（0.5 只在悬停里，0.5.1 放回来）
-      const tip = short ? (opts.short.hint ? `${r?.friend?.name ?? '群友'}说它要跌 · 涨停那天会被轧` : '它跌你赚，它涨你亏 · 涨停那天会被轧') : '试一口不多花钱 · 买越多，自己把价抬越高';
+      // 行下一句短话
+      const tip = short ? (opts.short.hint ? `${r?.friend?.name ?? '群友'}说它要跌 · 涨停那天会被轧：亏得比涨的还多` : '它跌你赚，它涨你亏 · 涨停那天会被轧：亏得比涨的还多') : '试一口按原价买 · 买得越多，成交价被自己抬得越高';
       this.inner.add(addGlyph(scene, 104, y + 98, short ? 'bear' : 'magnifier', 18));
-      this.inner.add(fitWidth(addText(scene, 118, y + 98, tip, { size: TYPE.label - 1, color: short ? SHORT_COLOR : COLOR.muted, originY: 0.5 }), W - 118 - 16));
+      // 不截：一行放不下就折成两行（窄面板为此每行多留了 tipH）
+      const t = addText(scene, 118, y + 98, tip, { size: TYPE.label - 1, color: short ? SHORT_COLOR : COLOR.muted, wrap: W - 118 - 16, lineSpacing: 1, originY: 0.5 });
+      if (t.height > 24) t.setOrigin(0, 0).setY(y + 88);
+      this.inner.add(t);
     };
     row(86 + dy, false, false);
     if (showShort) {
-      row(232 + dy, true, opts.short.hint || preferShort);
+      row(232 + dy + tipH, true, opts.short.hint || preferShort);
       // 群友建议押跌：头像挂在行尾
-      if (opts.short.hint && r?.friend) this.inner.add(addImage(scene, 74, 232 + dy + 6, avatarKey(r.friend.id), 30));
+      if (opts.short.hint && r?.friend) this.inner.add(addImage(scene, 74, 232 + dy + tipH + 6, avatarKey(r.friend.id), 30));
     }
     const keys = (e: KeyboardEvent): void => {
       if (this.isClosed) return;
@@ -159,7 +164,7 @@ export class BuyDialog extends Dialog {
 export class HoldingMenu extends Dialog {
   constructor(scene: Phaser.Scene, s: GameState, slot: number, onAct: (a: Action) => void) {
     const pv = positionsView(s).slots[slot];
-    // 竖屏版（0.33.0）：三个按钮按面板宽均分
+    // 竖屏版：三个按钮按面板宽均分
     const W = dialogW(scene, 560);
     const H = 262;
     super(scene, W, H, pv?.name ?? '');
@@ -204,7 +209,7 @@ export class HoldingMenu extends Dialog {
       b.onDenied(() => err);
       b.tooltip(() => ({ title: label, body: sub }));
       this.inner.add(b);
-      // 按钮下写一句它干什么（0.5.1 找回）
+      // 按钮下写一句它干什么
       this.inner.add(addText(scene, 30 + i * step + bw / 2, 162, err ?? sub, { size: TYPE.label - 1, color: err ? COLOR.dim : COLOR.muted, originX: 0.5, align: 'center', wrap: step - 4 }));
       this.named[`hold:${key}`] = b;
     });
@@ -231,12 +236,12 @@ export class BankPanel extends Dialog {
   constructor(scene: Phaser.Scene, s: GameState, onAct: (a: Action) => void) {
     const b = bankView(s);
     const ph = phoneLayout(scene);
-    // 手机（0.5.5）摆成两栏：左栏账本、规则、安全线；右栏可以押 / 已押出。一栏竖排放不进 444 高
-    // 0.19.0 手机世界变小（718–960×404）：窄了两栏都收窄、利息挪进按钮的悬停；矮了行距收紧
+    // 手机摆成两栏：左栏账本、规则、安全线；右栏可以押 / 已押出。一栏竖排放不进 444 高
+    // 手机世界变小（718–960×404）：窄了两栏都收窄、利息挪进按钮的悬停；矮了行距收紧
     const V = viewOf(scene);
     const narrow = ph && V.w < 900;
     const short = ph && V.h < 420;
-    // 竖屏版（0.33.0）：一栏，账本、规则、安全线在上，可以押 / 已押出接在下面（和电脑一样）
+    // 竖屏版：一栏，账本、规则、安全线在上，可以押 / 已押出接在下面（和电脑一样）
     const one = ph && V.h > V.w;
     const W = ph ? Math.min(940, V.w - 16) : 720;
     const L0 = 24;
@@ -253,7 +258,7 @@ export class BankPanel extends Dialog {
     // 竖屏版一栏、屏高够：行距和电脑一样 54，按钮点击区撑满整行（约 51，360 宽上也够 44 像素）
     const step = one ? 54 : ph ? (short ? Math.max(42, Math.min(Math.ceil(44 / PHONE_SCALE), fit)) : 48) : 54;
     const lineH = step - (ph ? 6 : 8);
-    // 0.5.1：账本下加一条「安全线」小图（欠钱时）或「没欠钱」签，再加一条规则小纸条；押东西两段各有小标题
+    // 账本下加一条「安全线」小图（欠钱时）或「没欠钱」签，再加一条规则小纸条；押东西两段各有小标题
     const H = one
       ? 76 + 92 + 44 + (b.callAt !== null ? 90 : 44) + (b.open ? 2 * sectionH + btnRows * step + emptyRows * emptyH + 8 : 100) + 64
       : ph
@@ -289,7 +294,7 @@ export class BankPanel extends Dialog {
       add(addText(scene, x, boxY + 32, v, { size: narrow ? TYPE.title : TYPE.big - 4, bold: true, num: true, color: c, originX: 0.5 }));
     });
     let y = boxY + 92;
-    // 规则小纸条（0.5 只在「?」里，0.5.1 放回卡面，一行图标 + 两句）
+    // 规则小纸条放在卡面：一行图标 + 两句
     add(scene.add.rectangle(L0, y, LW, 36, 0xfff6dc).setOrigin(0, 0).setRounded(10).setStrokeStyle(1.5, COLOR.edge, 1));
     add(addGlyph(scene, 44, y + 18, 'book', 22));
     add(addText(scene, 62, y + 18, '押东西借钱，赚亏都放大；月底另付利息', { size: TYPE.label, color: COLOR.ink, originY: 0.5 }));
@@ -310,7 +315,7 @@ export class BankPanel extends Dialog {
       g.lineStyle(2, COLOR.ink, 1).strokeRoundedRect(bx, y + 14, bw, 12, 6);
       const mark = add(addGlyph(scene, px(b.account), y + 8, 'wallet', 22));
       add(addText(scene, px(b.account), y + 30, moneyShort(b.account), { size: FS.sm, bold: true, num: true, color: b.called ? COLOR.danger : COLOR.ink, originX: 0.5 }));
-      if (b.called) scene.tweens.add({ targets: mark, y: y + 4, duration: 300, yoyo: true, repeat: -1 });
+      if (b.called) scene.tweens.add({ targets: mark, y: y + 4, ease: 'Sine.easeInOut', duration: 300, yoyo: true, repeat: -1 });
       const call = iconChip(scene, L0, cy, 'horn', `${moneyShort(b.callAt)} 来电`, { color: b.called ? COLOR.danger : COLOR.ink, fill: b.called ? 0xffe2dc : COLOR.paperHi, tip: { title: '银行打电话', body: `账户跌到 ${formatMoney(b.callAt)}，银行会打电话${b.called ? '（已经打过了！）' : ''}` } });
       const seize = iconChip(scene, L0 + call.w + 10, cy, 'hourglass', `${moneyShort(b.seizeAt)} 收走`, { color: COLOR.danger, tip: { title: '收走东西', body: `账户跌到 ${formatMoney(b.seizeAt)}，押的东西就被收走` } });
       add(call.node);
@@ -469,7 +474,7 @@ export function bankCallCard(scene: Phaser.Scene, anim: Animator, debt: number, 
   return c;
 }
 
-/** 收东西的原因（0.5.4）：付完账单 / 当天亏完，账户剩多少，跌破了哪条线。 */
+/** 收东西的原因：付完账单 / 当天亏完，账户剩多少，跌破了哪条线。 */
 interface SeizeWhy {
   cause: 'trade' | 'bill';
   /** 收之前的账户 */
@@ -540,7 +545,7 @@ export function knowledgeToast(scene: Phaser.Scene, anim: Animator, ids: readonl
   // 竖屏版屏窄：一次点亮好几张时名字折行，不伸出屏
   const room = viewOf(scene).w - 16 - 86;
   const t1 = addText(scene, 0, 0, `点亮：${names}`, { size: TYPE.title, bold: true, color: COLOR.ink, wrap: room });
-  // 0.5：小知识正文留在图鉴里，这里只写一句（短的才写）
+  // 小知识正文留在图鉴里，这里只写一句（短的才写）
   const t2 = addText(scene, 0, 0, first.text.length <= 18 ? first.text : '', { size: TYPE.label, color: COLOR.muted, wrap: Math.min(380, room) });
   const w = Math.max(t1.width, t2.width) + 86;
   const h = t1.height + (t2.text ? t2.height + 4 : 0) + 24;
@@ -562,7 +567,7 @@ export function knowledgeToast(scene: Phaser.Scene, anim: Animator, ids: readonl
     anim.fx({ targets: root, alpha: 1, y: 0, duration: 260, ease: 'Back.easeOut' });
     scene.time.delayedCall(3400, () => {
       if (!root.active) return;
-      scene.tweens.add({ targets: root, alpha: 0, duration: 300, onComplete: () => root.destroy() });
+      scene.tweens.add({ targets: root, alpha: 0, ease: 'Sine.easeIn', duration: 300, onComplete: () => root.destroy() });
     });
   }
   return root;

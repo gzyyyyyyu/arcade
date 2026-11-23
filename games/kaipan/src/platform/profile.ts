@@ -25,7 +25,7 @@ import { touched } from './localChange.ts';
 import { defaultStore, type KeyValueStore } from './settings.ts';
 
 /**
- * 档案（0.3.0）：跨局的长线进度，和单局存档（storage.ts 的 kaipan.save）互不影响。
+ * 档案：跨局的长线进度，和单局存档（storage.ts 的 kaipan.save）互不影响。
  * - 图鉴：见过的股票、群友、道具、事件；
  * - 已得成就（成就判定在 core 的 achievementsOf，这里只记）；
  * - 已解锁的人设（开局 3 个 + 成就解锁）和难度（通关一级解锁下一级）；
@@ -35,7 +35,7 @@ import { defaultStore, type KeyValueStore } from './settings.ts';
  * 画面在一局结束时调用 recordRun(profile, runSummary(state))（纯函数），拿到新档案和"新达成 / 新解锁"列表，
  * 再 saveProfile 写回。调试开局（带 items / account 等字段）的局不计入。
  */
-export const PROFILE_VERSION = 1;
+const PROFILE_VERSION = 1;
 export const PROFILE_KEY = 'kaipan.profile';
 export const PROFILE_CORRUPT_KEY = 'kaipan.profile.corrupt';
 
@@ -78,9 +78,9 @@ export interface Profile {
   daily: Record<string, DailyRecord>;
   /** 最近记过的一局（runId），防止同一局重复记 */
   last: string;
-  /** 0.4 重做：见过的行情段（图鉴"行情段"页），键为段 id */
+  /** 重做：见过的行情段（图鉴"行情段"页），键为段 id */
   segments: Record<string, SegmentRecord>;
-  /** 0.4 C：点亮过的小知识 id（按小知识表顺序） */
+  /** 点亮过的小知识 id（按小知识表顺序） */
   knowledge: string[];
   /** 点亮过的炒股心法（按心法表顺序）：新手课和新号前几局里当场碰到时点亮，图鉴「心法」页翻看 */
   minds: MindId[];
@@ -116,15 +116,15 @@ export interface RecordResult {
   newBest: boolean;
   /** 刷新了当天的每日挑战纪录 */
   newDaily: boolean;
-  /** 0.4 重做：第一次见到这段行情（图鉴"行情段"新点亮） */
+  /** 重做：第一次见到这段行情（图鉴"行情段"新点亮） */
   newSegment: boolean;
-  /** 0.4 C：新点亮的小知识 */
+  /** 新点亮的小知识 */
   newKnowledge: string[];
 }
 
 const STARTERS: readonly PersonaId[] = PERSONAS.filter((d) => d.unlock === 'start').map((d) => d.id);
 
-/** 0.10.0 短局和完整一年分开记（一局几个月不一样，账户和还清几个月没法比）；老的键就是完整一年 */
+/** 短局和完整一年分开记（一局几个月不一样，账户和还清几个月没法比）；老的键就是完整一年 */
 export function bestKey(persona: PersonaId, difficulty: number, short = false): string {
   return `${persona}:${difficulty}${short ? ':short' : ''}`;
 }
@@ -227,7 +227,7 @@ export function reviveProfile(raw: unknown): Profile | null {
   p.last = typeof raw.last === 'string' ? raw.last : '';
   if (isObject(raw.segments)) {
     for (const [id, v] of Object.entries(raw.segments)) {
-      // 0.4 开发期旧档案还带 year / from / to，读进来时丢掉（新档案不存年份和日期）
+      // 开发期旧档案还带 year / from / to，读进来时丢掉（新档案不存年份和日期）
       if (!isObject(v) || typeof v.title !== 'string') continue;
       if (typeof v.regime !== 'string' || !REGIMES.includes(v.regime as Regime)) continue;
       const story = Array.isArray(v.story) && v.story.every((x) => typeof x === 'string') ? (v.story as string[]).slice(0, 12) : undefined;
@@ -279,7 +279,7 @@ export function recordLesson(profile: Readonly<Profile>, summary: Readonly<RunSu
   };
 }
 
-/** 0.4 C：把新点亮的小知识并进列表（按小知识表顺序，不认识的丢掉）。 */
+/** 把新点亮的小知识并进列表（按小知识表顺序，不认识的丢掉）。 */
 function mergeKnowledge(old: readonly string[], ids: readonly string[]): { list: string[]; added: string[] } {
   const all = new Set([...old, ...ids]);
   const list = KNOWLEDGE.filter((d) => all.has(d.id)).map((d) => d.id);
@@ -287,7 +287,7 @@ function mergeKnowledge(old: readonly string[], ids: readonly string[]): { list:
   return { list, added };
 }
 
-/** 0.4 C：局中第一次触发某个机制就点亮（不用等一局结束；调试局也算，只是图鉴）。 */
+/** 局中第一次触发某个机制就点亮（不用等一局结束；调试局也算，只是图鉴）。 */
 export function learnKnowledge(profile: Readonly<Profile>, ids: readonly string[]): { profile: Profile; added: string[] } {
   const m = mergeKnowledge(profile.knowledge ?? [], ids);
   if (m.added.length === 0) return { profile: profile as Profile, added: [] };
@@ -343,7 +343,7 @@ export function saveProfile(p: Readonly<Profile>, store: KeyValueStore | null = 
   return ok;
 }
 
-// ---------------------------------------------------------------- 云存档（0.5.7）
+// ---------------------------------------------------------------- 云存档
 
 /**
  * 两份档案合成一份（云同步冲突时用，纯函数）：集合取并集，计数取较大。
@@ -437,7 +437,7 @@ function merge(old: readonly string[], add: readonly string[], all: readonly { i
 }
 
 /**
- * 0.6.0 实盘局：规则和娱乐局不一样（半年、账单轻），只记图鉴（见过的股票、群友、道具、事件、小知识），
+ * 实盘局：规则和娱乐局不一样（半年、账单轻），只记图鉴（见过的股票、群友、道具、事件、小知识），
  * 不算局数、通关、最好成绩、成就和解锁（docs/design-live.md 第 7 节）。带调试字段的实盘局什么都不记。
  */
 function recordLive(profile: Readonly<Profile>, summary: Readonly<RunSummary>, base: RecordResult): RecordResult {
@@ -466,7 +466,7 @@ function recordLive(profile: Readonly<Profile>, summary: Readonly<RunSummary>, b
  * - 难度：非每日挑战的局通关第 N 级，解锁第 N+1 级（最高 8）。
  * - 纪录：非每日挑战记在 best[persona:difficulty]（短局另记 best[persona:difficulty:short]）；每日挑战记在 daily[date]。
  *   每日挑战要校验种子、人设、难度和 dailySetup(日期) 完全一致，不一致的按普通局记（"每日打卡"成就同样校验）。
- * - 0.13.0 好友挑战的局（opts.challenge，调用方按这台设备接下的挑战认）照每日挑战的规矩：人设、难度由发起人定，可以是还没解锁的；
+ * - 好友挑战的局（opts.challenge，调用方按这台设备接下的挑战认）照每日挑战的规矩：人设、难度由发起人定，可以是还没解锁的；
  *   不解锁难度、不记最好成绩（成绩挂在挑战下），图鉴和成就照常。
  */
 export function recordRun(profile: Readonly<Profile>, summary: Readonly<RunSummary>, today: string, opts: { challenge?: boolean } = {}): RecordResult {

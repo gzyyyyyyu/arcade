@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { FEEL_LABEL, buyError, feelOf, type GameState, type RecView, canShortNow } from '../../core/index.ts';
 import { buyKey } from '../labels.ts';
 import { ROLE_TERM, ROLE_WORD, termTip } from '../glossary.ts';
-import { COLOR, FS, THEME_COLOR, signColor, textOn } from '../theme.ts';
+import { COLOR, FS, PHONE, THEME_COLOR, signColor, textOn } from '../theme.ts';
 import { addGlyph, addImage, addPill, addSlice } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
 import { addSpark, type Spark } from '../ui/spark.ts';
@@ -28,6 +28,11 @@ export function recAction(s: GameState, r: RecView): { action: RecAction; reason
   if (replaceable && s.slots.every((h) => h !== null)) return { action: 'replace', reason: null };
   return { action: null, reason: r.error };
 }
+
+/** 电脑上「买入」「押跌」并排：每颗宽 44、底板加厚边高 44；两颗间距 4、离卡右边 6 */
+const PAIR_W = 44;
+const PAIR_GAP = 4;
+const PAIR_COL = PAIR_W * 2 + PAIR_GAP + 6;
 
 /** 手机横屏的「推荐」页：推荐卡从上往下排，放得下用大卡，放不下压扁。 */
 export function layoutRecs(v: ChatView3, s: GameState, recs: readonly RecView[], minRecH: number): void {
@@ -63,7 +68,7 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
   band.fillStyle(tc, 1).fillRoundedRect(CX + 4, y + 4, CW - 8, bandH, { tl: 13, tr: 13, bl: 0, br: 0 });
   band.fillStyle(COLOR.ink, 1).fillRect(CX + 3, y + 3 + bandH, CW - 6, 2.4);
   const who = r.friend ? `${r.friend.name}推荐` : '行情软件推荐';
-  // 顶条：左「风口名 热度 NN · 要火」，右「★ 今日推荐」（0.5.1 找回）。0.36.1：带上风口栏同款体感词，教程说「挑要火的风口」时不用再去左边对照
+  // 顶条：左「风口名 热度 NN · 要火」，右「★ 今日推荐」；带上风口栏同款体感词，教程说「挑要火的风口」时不用再去左边对照
   const by = y + 4 + bandH / 2;
   const th = s.themes[r.stock.theme];
   const heat = Math.round(th?.heat ?? 0);
@@ -86,7 +91,11 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
   root.add([guy, glass]);
 
   // 第一行：名字 + 角色图标 + 角色名（危险股红字）
-  const right = CX + CW - (flat ? 66 : 70);
+  // 押跌解锁后，买入按钮旁边多一个"押跌"（唱空群友推荐的这只，押跌按钮更醒目）
+  const canShort = !r.taken && canShortNow(s);
+  // 电脑上两颗并排、各 PAIR_W 见方（docs/ui.md 按钮点击区 44），文字区让出右边这一块；手机横屏照旧上下两颗、点击区由触屏的 HIT_MIN 撑
+  const pair = canShort && !PHONE;
+  const right = CX + CW - (pair ? PAIR_COL : flat ? 66 : 70);
   const row1 = y + bandH + (flat ? 6 : 8);
   const name = addText(sc, CX + tx, row1, r.stock.name, { size: flat ? 13 : 14, bold: true });
   const roleIcon = addImage(sc, name.x + name.width + 10, row1 + 9, `role:${r.stock.role}`, flat ? 15 : 17);
@@ -158,7 +167,7 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
   const ry = flat ? y + h - 22 : y + h - 24;
   const rx = flat ? CX + tx : CX + 10;
   // 押跌按钮在时右边那列一直到卡底，理由条让开
-  const rw = flat || (!r.taken && canShortNow(s)) ? right - rx : CW - 20;
+  const rw = flat || canShort ? right - rx : CW - 20;
   let reasonX = rx;
   if (flat && r.friend) {
     root.add(avatar(v, r.friend.id, rx, ry, 'normal', 16));
@@ -175,9 +184,10 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
   root.add(reason);
 
   // 卡身（按钮以外）：悬停看全文和数据，点一下打开股票详情
-  const hit = sc.add.rectangle(CX, y, CW - 72, h, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+  const hitW = CW - (pair ? PAIR_COL + 2 : 72);
+  const hit = sc.add.rectangle(CX, y, hitW, h, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
   const sum = moves.length > 0 ? sumMoves(moves) : null;
-  bindTooltip(hit, () => ({ x: CX, y, w: CW - 72, h }), () => ({
+  bindTooltip(hit, () => ({ x: CX, y, w: hitW, h }), () => ({
     title: `${r.stock.name}（${r.stock.themeName} · ${ROLE_WORD[r.stock.role]}）`,
     body: `${who}：${r.text}${r.liar ? '\n本周群友说的全是反话：这条推荐多半要跌。' : ''}\n${sum === null ? '' : `最近 ${moves.length} 天合计 ${sum >= 0 ? '+' : ''}${sum.toFixed(1)}%，${streakText(streak)}`}${vs ? `，${vs.word}` : ''}\n点卡片看详情。`,
   }));
@@ -190,16 +200,18 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
   root.addAt(hit, 1);
   if (spark) v.recSparks.set(root, spark);
   const act = recAction(s, r);
-  // 0.4 C：押跌解锁后，买入按钮下面多一个"押跌"（唱空群友推荐的这只，押跌按钮更醒目）
-  const canShort = !r.taken && canShortNow(s);
   const hintShort = canShort && !!r.short;
-  // 按钮列：扁卡顶条下面放得下两颗小按钮
-  const bx = CX + CW - (flat ? 62 : 66);
-  const bw = flat ? 56 : 60;
-  const buyY = canShort ? y + (flat ? 20 : 24) : y + (flat ? 25 : 32);
-  const buyH = canShort ? (flat ? 22 : 26) : flat ? 30 : 36;
-  const shortY = y + (flat ? 44 : 54);
-  const shortH = flat ? 21 : 26;
+  // 按钮列：扁卡顶条下面放得下两颗小按钮；电脑并排时在顶条下面那一列里上下居中
+  const bx = pair ? CX + CW - PAIR_COL : CX + CW - (flat ? 62 : 66);
+  const bw = pair ? PAIR_W : flat ? 56 : 60;
+  const colTop = y + (flat ? 20 : 22);
+  const pairH = Math.min(PAIR_W - 3, y + h - 2 - colTop - 3);
+  const pairY = colTop + Math.floor((y + h - 2 - colTop - pairH - 3) / 2);
+  const buyY = pair ? pairY : canShort ? y + (flat ? 20 : 24) : y + (flat ? 25 : 32);
+  const buyH = pair ? pairH : canShort ? (flat ? 22 : 26) : flat ? 30 : 36;
+  const shortX = pair ? bx + PAIR_W + PAIR_GAP : bx;
+  const shortY = pair ? pairY : y + (flat ? 44 : 54);
+  const shortH = pair ? pairH : flat ? 21 : 26;
   const btn = new Button(sc, bx, buyY, {
     width: bw,
     height: buyH,
@@ -222,7 +234,7 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
   );
   root.add(btn);
   if (canShort) {
-    const sb = new Button(sc, bx, shortY, {
+    const sb = new Button(sc, shortX, shortY, {
       width: bw,
       height: shortH,
       label: '押跌',
@@ -236,7 +248,7 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
     sb.tooltip(() => ({ title: hintShort ? `${r.friend?.name ?? '群友'}建议押跌` : '押跌', body: '押它跌：它跌你赚，它涨你亏；它涨停那天会被轧，亏得最狠。' }));
     if (hintShort) {
       // 唱空的群友推荐的：押跌按钮套一圈金边，更醒目
-      root.add(sc.add.rectangle(bx - 3, shortY - 3, bw + 6, shortH + 6, COLOR.gold, 1).setOrigin(0, 0).setRounded(9));
+      root.add(sc.add.rectangle(shortX - 3, shortY - 3, bw + 6, shortH + 6, COLOR.gold, 1).setOrigin(0, 0).setRounded(9));
     }
     root.add(sb);
     v.shortButtons[r.index] = sb;

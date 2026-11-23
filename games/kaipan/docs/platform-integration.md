@@ -17,9 +17,9 @@
   429（限流）结束页写「成绩稍后补交」，照平台给的 retryAfter（没给按 60 秒）自动补交一次，再被限写「这局成绩没交上」；busy、wrong_user 不重试，连不上给「重试」。读榜按榜和范围缓存 45 秒，交上分时作废。
 - **请求超时**（`src/platform/fetchTimeout.ts`）：排行榜、好友挑战、实盘的请求最多等 10 秒，云存档 20 秒；超时按连不上处理，走各自原来的说法和重试。
 - **实盘**（设计 `design-live.md`）：规则在开局设置 `RunSetup.live` 和 `src/core/live.ts`（四档对应难度 1/2/3/3，杠杆 1× / 2× / 3×）；
-  档位表和结回算法在 `src/core/liveTiers.ts`（Worker 也用）。钱包走浏览器 → 开盘 Worker（同域 `POST api/live/{buyin,settle,refund}`，`src/worker/live.ts`）
+  档位表和带回算法在 `src/core/liveTiers.ts`（Worker 也用）。钱包走浏览器 → 开盘 Worker（同域 `POST api/live/{buyin,settle,refund}`，`src/worker/live.ts`）
   → 服务绑定 `WALLET`；浏览器只给 `ref`、`tier`、`bp`，金额和到期时间由 Worker 定。这台设备上的账在 `kaipan.live`（`src/platform/live.ts`）：
-  带入前记 `buying`，结回或放弃先记 `settling` 再发，连不上、busy 都留着重发。结回时带战绩小结（`src/core/career.ts`），称号中文名在 `public/titles.json`。
+  带入前记 `buying`，带回或放弃先记 `settling` 再发，连不上、busy 都留着重发。带回时带战绩小结（`src/core/career.ts`），称号中文名在 `public/titles.json`。
 - **好友挑战**（设计 `design-challenge.md`）：娱乐局打完、登录了，结束页「挑战好友」把种子、开局设置、行情段和版本交给平台拿链接 `?challenge=<id>`；
   好友打开先弹挑战卡，接受就是同一个开局，打完交成绩看名次。挑战局照每日挑战的规矩记档案。
 - **分享卡**（设计 `design-share.md`）：结束页「分享」，开盘只交数据，画卡和分享在共用包 `arcade-kit/share`；链接按当前页面推出游戏地址，代码里不写站点地址。
@@ -40,7 +40,7 @@
 | 名字 | 类型 | 说明 |
 |---|---|---|
 | `ARCADE` | 服务绑定 → `arcade` | 登录闸门问平台 `/api/me` |
-| `WALLET` | 服务绑定 → `arcade` 的 `WalletService`，`props.game = kaipan` | 实盘的带入、结回、放弃 |
+| `WALLET` | 服务绑定 → `arcade` 的 `WalletService`，`props.game = kaipan` | 实盘的带入、带回、放弃 |
 | `GATE` | 变量 `login` | 登录闸门：没登录跳 `/login?from=kaipan`，平台有问题回 503 不放行 |
 
 另外关掉 `workers_dev`、`preview_urls`，注入 `<站点>/games/kaipan` 和 `<站点>/games/kaipan/*` 两条路由。独立配置里只有 `ASSETS`，没有 secret；开着 Workers 日志（`observability`）。

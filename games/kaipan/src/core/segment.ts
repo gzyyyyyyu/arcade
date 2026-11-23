@@ -1,5 +1,5 @@
 /**
- * 0.4 重做：行情段（一局用的一段真实历史行情）。
+ * 重做：行情段（一局用的一段真实历史行情）。
  *
  * 行情段由 tools/data/segments.ts 从年度包切出来，放在 public/data/segments/。开局按种子抽一段（每日挑战大家同一段），
  * 把本局登场的 6 个风口用到的部分（大盘、行业、绑定的真实股票）存进存档的 state.real，之后整局只从存档取数，
@@ -117,7 +117,7 @@ export interface SegmentIndex {
 /** 存档里的真实行情（只含本局登场的风口）。 */
 export interface RealMarket {
   segId: string;
-  /** 0.5 起新开局都写 true（个股照搬真实走势）；读档时没有它的是 0.4 开发期的旧档，提示一次后清掉（platform/storage.ts） */
+  /** 新开局都写 true（个股照搬真实走势）；读档时没有它的是 0.4 开发期的旧档，提示一次后清掉（platform/storage.ts） */
   track: true;
   regime: Regime;
   title: string;

@@ -12,7 +12,7 @@ import { phoneLayout, viewOf } from '../viewport.ts';
 interface SettingsPanelOpts {
   /** 游戏内打开时提供「返回主菜单」 */
   onMenu?: () => void;
-  /** 游戏内打开时提供「回大厅」（0.5.8：对局中回平台首页，齿轮 → 回大厅两步）；点了关闭时 onClosed 的 lobby 为 true */
+  /** 游戏内打开时提供「回大厅」（对局中回平台首页，齿轮 → 回大厅两步）；点了关闭时 onClosed 的 lobby 为 true */
   lobby?: boolean;
   /** URL 参数指定了动画速度（自动化），设置里的选择暂不生效 */
   animLocked: boolean;
@@ -20,7 +20,7 @@ interface SettingsPanelOpts {
   onClosed?: (schemeChanged: boolean, lobby: boolean) => void;
   /** 档案里玩过几局（新手提示「自动」时按它判断） */
   runs?: number;
-  /** 0.6.0 实盘局里多一个「提前收手」（点了关掉设置再调它，由它去问一次） */
+  /** 实盘局里多一个「提前收手」（点了关掉设置再调它，由它去问一次） */
   onQuitLive?: () => void;
 }
 
@@ -43,11 +43,11 @@ const HEAD_GAP = 38;
 const PHONE_UI = { w: 940, h: 430, label: 32, ctrl: 150, row: [46, 52], note: [520, 386] } as const;
 
 /**
- * 0.19.0 手机世界变小（718–960×404）后按看得见的范围算：面板最大 940×430，SE 上是 702×392。
+ * 手机世界变小（718–960×404）后按看得见的范围算：面板最大 940×430，SE 上是 702×392。
  * 矮了就收行距（音量 36、其余 44 / 46）、底下一排按钮下移；窄了音量条短一点，说明小字往左挪。
  */
 function phoneGeo(v: { w: number; h: number }) {
-  // 竖屏版（0.33.0，世界 404 宽）：面板占满高度，页签单独一排；标签窄一点、按钮从 116 起，说明小字写在按钮下面一行
+  // 竖屏版（世界 404 宽）：面板占满高度，页签单独一排；标签窄一点、按钮从 116 起，说明小字写在按钮下面一行
   if (v.h > v.w) {
     const w = v.w - 16;
     return { ...PHONE_UI, w, h: v.h - 24, label: 20, ctrl: 116, top: 136, top1: 136, volRow: 50, row: [50, 50], note: [20, 20], slider: w - 116 - 64, footY: 112, doneY: 60, portrait: true };
@@ -109,7 +109,7 @@ export class SettingsPanel extends Dialog {
     }
     let col: { label: number; ctrl: number } = phone ? P : COLS[0]!;
     let page = 0;
-    // 0.18.1 手机第一页有七行（0.17.0 加了「月底账单」），对局里底下还有「回到主菜单」「回大厅」：从 88 起、音量三行收到 38，最后一行的按钮底边 359，不再压到底下按钮（顶边 370）
+    // 手机第一页有七行（含「月底账单」），对局里底下还有「回到主菜单」「回大厅」：从 88 起、音量三行收到 38，最后一行的按钮底边 359，不再压到底下按钮（顶边 370）
     let y = phone ? P.top : HEAD_Y;
     let lastAt = y;
     const row = (label: string, pitch?: number): number => {
@@ -170,7 +170,7 @@ export class SettingsPanel extends Dialog {
       volume('主音量', 'masterVolume');
       volume('音效', 'sfxVolume');
       volume('音乐', 'musicVolume');
-      this.choice(col.ctrl, row('静音'), [[true, '开启'], [false, '关闭']], (s) => s.muted, (v) => updateSettings({ muted: v }));
+      this.choice(col.ctrl, row('声音'), [[false, '开'], [true, '关']], (s) => s.muted, (v) => updateSettings({ muted: v }));
     };
     const look = (): void => {
       heading('画面和动画');
@@ -184,7 +184,7 @@ export class SettingsPanel extends Dialog {
       y += pad;
     };
     const bill = (): void => {
-      // 0.17.0 月底账单：舞台（每月不到 2 秒，点一下跳过）/ 简短（直接出账单和章）
+      // 月底账单：舞台（每月不到 2 秒，点一下跳过）/ 简短（直接出账单和章）
       const billAt = row('月底账单');
       bb = (
         [
@@ -239,10 +239,10 @@ export class SettingsPanel extends Dialog {
       return { mode, b };
     });
     // 电脑上小结固定先收成一行（交易页一屏只留一条提示），这项只管手机；电脑上点「详情」看完整的
-    note(PHONE ? '每天收盘后讲讲今天赚亏从哪来；也可以只看一句总账' : '手机上用；电脑上收盘后先显示一句总账，点「详情」看完整的');
+    note(PHONE ? '完整：收盘把今天的明细摊开；只看总账：只写一句，点「详情」再看' : '这一项只管手机；电脑上收盘先写一句总账，点「详情」看完整的');
     y += pad;
 
-    // 0.5：没什么事的日子自动快进
+    // 没什么事的日子自动快进
     const qAt = row('平淡日');
     qb = (
       [

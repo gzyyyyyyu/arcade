@@ -5,12 +5,12 @@ import { attachDomProxy } from '../ui/domProxy.ts';
 import { goLobby, lobbyLabel } from '../lobby.ts';
 import { live, onLiveChange } from '../live.ts';
 import { chips, liveEndText, liveLedger } from '../liveText.ts';
-import { setColor } from '../ui/text.ts';
+import { markCut, setColor } from '../ui/text.ts';
 import { bestKey, isDifficultyUnlocked, isPersonaUnlocked, loadProfile, type Profile, type RecordResult } from '../../platform/profile.ts';
 import { ensureMetaArt, hasArt, queueLazy, stockKey, type Glyph } from '../assets.ts';
 import { addBackdrop, flashBox } from '../fx/effects.ts';
 import { confetti, fireworks, rainCloud, } from '../fx/particles.ts';
-import { bestText, dailyTag, dailyText, endSubtitle, ipoLine, ledgerRows, levelLabel, summaryRows, swanLine, tradeWord } from '../labels.ts';
+import { bestText, bestTradeLabel, dailyTag, dailyText, endSubtitle, ipoLine, ledgerRows, levelLabel, summaryRows, swanLine, tradeWord } from '../labels.ts';
 import { funSetup, loadLastSetup, saveLastSetup } from '../meta/prefs.ts';
 import { playUnlocks } from '../meta/unlockDialog.ts';
 import { unlocksOf, type Unlock } from '../meta/unlocks.ts';
@@ -51,7 +51,7 @@ export class EndScene extends BaseScene {
   private room: Room | null = null;
   private summary: RunSummary | null = null;
   result: RecordResult | null = null;
-  /** 0.6.0 实盘局：结算的大字和说明（结回的回话晚到时就地改字，不重建场景） */
+  /** 实盘局：结算的大字和说明（结回的回话晚到时就地改字，不重建场景） */
   private liveHead: Phaser.GameObjects.Text | null = null;
   /** 左栏「最后剩多少钱」的大字 */
   private moneyText: Phaser.GameObjects.Text | null = null;
@@ -79,7 +79,7 @@ export class EndScene extends BaseScene {
     const s = this.session.state;
     const sum = runSummary(s);
     const lv0 = sum.live;
-    // 格数 = 这局打几个月（完整一年 12、短局 5、新手课 2、实盘按档位），以前除实盘外一律画 12 格
+    // 格数 = 这局打几个月（完整一年 12、短局 5、新手课 2、实盘按档位）
     const months = runMonths(s);
     this.summary = sum;
     this.result = this.session.recordEnd();
@@ -104,7 +104,7 @@ export class EndScene extends BaseScene {
     const setup = `${sum.personaName} · ${levelLabel(lv.level, sum.difficultyName)}`;
     const L = x + G.pad;
     const hy = y + G.headY;
-    // 0.16.0 手机上「大厅」回到左上角（和别的画面一样），头像那一行往右让出它的位置
+    // 手机上「大厅」回到左上角（和别的画面一样），头像那一行往右让出它的位置
     const hx = ph ? 112 : 0;
     // 手机窄屏上一行放不下「大厅 + 头像 + 级别 + 通关 + 每日挑战/实盘」：有第二枚标签时不放头像和级别（悬停里有）
     const second = sum.daily || lv0;
@@ -123,11 +123,11 @@ export class EndScene extends BaseScene {
     const title = addText(this, L, y + G.titleY, sum.title, { size: G.titleSize, bold: true, color: COLOR.ink, wrap: G.leftW });
     title.setInteractive();
     bindTooltip(title, () => ({ x: L, y: y + G.titleY, w: title.width, h: title.height }), () => ({ title: sum.title, body: endSubtitle(sum) }));
-    // 0.5.1：副标题放回卡面（撑到几月 / 带多少钱上岸）；0.6.0 实盘局这里是"结回多少"，放在最显眼的位置
+    // 副标题放回卡面（撑到几月 / 带多少钱上岸）；实盘局这里是"带回多少"，放在最显眼的位置
     const subT = lv0
       ? (this.liveHead = addText(this, L, y + G.titleY + 6 + title.height, '', { size: TYPE.title + 2, bold: true, num: true, color: COLOR.accentDark, wrap: G.leftW }))
       : clauseWrap(addText(this, L, y + G.titleY + 6 + title.height, endSubtitle(sum), { size: TYPE.label + 1, color: COLOR.muted }), G.leftW);
-    // 0.6.3 按打法的评语：称号右边一枚标签，副标题下面一句话
+    // 按打法的评语：称号右边一枚标签，副标题下面一句话
     const st = sum.style;
     this.tag(L + title.width + 14, y + G.titleY + title.height / 2 - 11, st.tag, COLOR.info, Math.max(84, Array.from(st.tag).length * 15 + 22));
     const styleT = clauseWrap(addText(this, L, subT.y + subT.height + 4, st.line, { size: TYPE.label, color: COLOR.accentDark }), G.leftW);
@@ -146,8 +146,8 @@ export class EndScene extends BaseScene {
     addGlyph(this, L + 22, ay, 'wallet', G.wallet);
     // 有动画时从开局本金起步，过场收起后滚到终值（enter 里的 rollMoney）
     this.moneyText = addText(this, L + 52, ay, formatMoney(this.lively && !this.anim.instant ? sum.startAccount : sum.account), { size: G.moneySize, bold: true, num: true, color: COLOR.ink, originY: 0.5 });
-    // 0.5.2：「最赚的一笔」收进一块浅底卡：左边大小人，右边一列（标题、名字、涨幅、这段日子）在卡里上下居中，
-    // 以前三样各自摆在固定坐标上，和小人对不齐、底下空一大截
+    // 「最赚的一笔」收进一块浅底卡：左边大小人，右边一列（标题、名字、涨幅、这段日子）在卡里上下居中，
+    // 三样各自摆在固定坐标上的话，和小人对不齐、底下空一大截
     const boxY = ay + (ph ? 28 : 36);
     // 竖屏：卡里没有「这段日子」按钮（合成行情）时矮一截，给下面的几行让地方
     const boxH = G.single ? (s.real ? G.single.boxH : G.single.boxH - 30) : y + H - G.boxBottom - boxY;
@@ -165,8 +165,8 @@ export class EndScene extends BaseScene {
       const card = stockCard(s, sum.bestTrade.stockId);
       new StockGuy(this, guyX, guyFeet, card.id, sum.bestTrade.ret >= 0 ? 'limitup' : 'worried', guySize, { idle: this.lively });
       const ret = sum.bestTrade.ret;
-      // 0.18.1 每一笔都亏的局，不说「最赚」
-      stack.push({ h: 22, draw: (yy) => addText(this, colX, yy + 11, ret >= 0 ? '最赚的一笔' : '亏得最少的一笔', { size: TYPE.label, color: COLOR.muted, originY: 0.5 }) });
+      // 每一笔都亏的局，不说「最赚」
+      stack.push({ h: 22, draw: (yy) => addText(this, colX, yy + 11, bestTradeLabel(ret, sum.buys), { size: TYPE.label, color: COLOR.muted, originY: 0.5 }) });
       stack.push({
         h: 34,
         draw: (yy) => {
@@ -175,7 +175,7 @@ export class EndScene extends BaseScene {
         },
       });
       stack.push({ h: ph ? 40 : 46, draw: (yy) => addText(this, colX, yy + (ph ? 20 : 23), `${arrowOf(ret)}${formatPoints(Math.abs(ret), 1, false)}`, { size: ph ? TYPE.big : TYPE.big + 6, bold: true, num: true, color: signColor(ret), originY: 0.5 }) });
-      // 0.18.0 电脑上框里地方大：再写一行最亏的一笔（以前框里只有一只小人）
+      // 电脑上框里地方大：再写一行最亏的一笔
       const worst = s.stats.trades.reduce<(typeof s.stats.trades)[number] | null>((w, t) => (!w || t.ret < w.ret ? t : w), null);
       if (!ph && worst && worst.ret < -5 && worst.stockId !== sum.bestTrade.stockId) {
         const wn = stockCard(s, worst.stockId).name;
@@ -188,7 +188,7 @@ export class EndScene extends BaseScene {
       stack.push({ h: 22, draw: (yy) => addText(this, colX, yy + 11, '这局没交易', { size: TYPE.label, color: COLOR.muted, originY: 0.5 }) });
       stack.push({ h: ph ? 40 : 46, draw: (yy) => addText(this, colX, yy + (ph ? 20 : 23), '0 笔', { size: ph ? TYPE.big : TYPE.big + 6, bold: true, num: true, color: COLOR.muted, originY: 0.5 }) });
     }
-    // 0.4 重做：真实行情局可以随时再看一遍"这段日子"的小故事
+    // 重做：真实行情局可以随时再看一遍"这段日子"的小故事
     if (s.real) stack.push({ h: ph ? 52 : 56, draw: (yy) => (this.buttons.reveal = new Button(this, colX, yy + (ph ? 8 : 12), { width: 150, height: 44, label: '这段日子', variant: 'default', fontSize: 15, hotkey: 'V', onClick: () => this.openReveal() })) });
     const stackH = stack.reduce((n, it) => n + it.h, 0);
     let sy = boxY + Math.max(ph ? 6 : 12, (boxH - stackH) / 2);
@@ -209,23 +209,23 @@ export class EndScene extends BaseScene {
     // 竖排的窄格里金额写短的（「¥5479.9万」），全数在悬停
     const money = (v: number, sign = false): string => (G.stacked ? moneyShort(v, sign) : formatMoney(v, sign ? { sign: true } : undefined));
     const tiles: [Glyph, string, string, number | undefined, boolean][] = [
-      ['calendar', `${sum.billsPaid}/${months}`, '还上', sum.won ? COLOR.accentDark : undefined, false],
+      ['calendar', `${sum.billsPaid}/${months}`, '还上月数', sum.won ? COLOR.accentDark : undefined, false],
       ['wallet', money(sum.peakAccount), '最高', undefined, false],
-      ['bolt', `${sum.limitUpDays}天`, '涨停', undefined, sum.limitUpDays === 0],
-      ['arrow_up', sum.maxBoards > 1 ? `${sum.maxBoards}天` : '–', '连涨停', undefined, sum.maxBoards <= 1],
-      ['horn', `${sum.chains}次`, '带小弟', undefined, sum.chains === 0],
+      ['bolt', `${sum.limitUpDays}天`, '涨停天数', undefined, sum.limitUpDays === 0],
+      ['arrow_up', sum.maxBoards > 1 ? `${sum.maxBoards}天` : '–', '最长连涨停', undefined, sum.maxBoards <= 1],
+      ['horn', `${sum.chains}次`, '大哥带小弟', undefined, sum.chains === 0],
     ];
     tiles.forEach(([g, v, label, color, muted], i) => {
       const tx = mx + (i % cols) * (tw + tgx);
       const ty = ty0 + Math.floor(i / cols) * (th + rowGap);
       statTile(this, tx, ty, g, v, label, { w: tw, icon: G.tileIcon, size: G.tileSize, color, tint: g === 'arrow_up' ? COLOR.up : undefined, stacked: G.stacked, muted });
     });
-    // 第 6 格：炒股本身净赚多少（0.5.4：以前是"最好 0/12"，没计入档案时看不懂；最好成绩挪到下面那一行）
+    // 第 6 格：炒股本身净赚多少（不写"最好 0/12"：没计入档案时看不懂；最好成绩在下面那一行）
     {
       const tx = mx + ((tiles.length) % cols) * (tw + tgx);
       const ty = ty0 + Math.floor(tiles.length / cols) * (th + rowGap);
       const tm = sum.tradeMoney;
-      // 0.18.1 亏了写「炒股净亏 ¥325万」（以前写「炒股净赚 −¥325万」，和副标题对不上）
+      // 亏了写「炒股净亏 ¥325万」（写「炒股净赚 −¥325万」会和副标题对不上）
       const word = tradeWord(tm);
       const v = tm < 0 ? money(-tm) : money(tm, true);
       statTile(this, tx, ty, tm < 0 ? 'arrow_down' : 'arrow_up', v, word, { w: tw, icon: G.tileIcon, size: G.tileSize, color: signColor(tm), tint: signColor(tm), stacked: G.stacked });
@@ -246,12 +246,12 @@ export class EndScene extends BaseScene {
     const gx = ph ? mx + gl.width + 10 : mx;
     this.rows.gains(gx, ph ? gy : gy + 34, sum, G.chipIcon, mx + G.rightW - gx);
 
-    // ---- 账单轨道（0.5.1）：每月一格，还上的绿格、没还上的红格、没走到的灰格
-    // 0.18.0 屏幕材质（art-v3：数字在跳的地方用夜蓝小屏）：整条放在一块小屏上，每格上面一根这个月账户涨跌的小柱
+    // ---- 账单轨道：每月一格，还上的绿格、没还上的红格、没走到的灰格
+    // 屏幕材质（art-v3：数字在跳的地方用夜蓝小屏）：整条放在一块小屏上，每格上面一根这个月账户涨跌的小柱
     const ky = gy + G.dy.track;
-    // 这局的经历（借钱、押跌……）：最多两条，整段在「收获」的包里；每日挑战第二条的位置给排行榜（0.5.10）
+    // 这局的经历（借钱、押跌……）：最多两条，整段在「收获」的包里；每日挑战第二条的位置给排行榜
     const board = sum.daily ? sum.daily : null;
-    // 0.13.0 好友挑战那一行占同一个位置（挑战局不会是每日挑战）：挑战局交成绩；能发起的局（娱乐局、计入了档案、登录了）放「挑战好友」
+    // 好友挑战那一行占同一个位置（挑战局不会是每日挑战）：挑战局交成绩；能发起的局（娱乐局、计入了档案、登录了）放「挑战好友」
     const chal = !board && (runChallenge(s.seed) !== null || (canChallenge(s) && !!this.result && !this.result.ignored && cloudUserId() !== null && !standalone()));
     const row = !!board || chal;
     // 竖屏一栏（矮屏）上轨道下面这几行可能挤到按钮：排行 / 挑战那一行要能点，先保它（贴着按钮上面放），最好成绩、经历放不下的就不放。
@@ -299,7 +299,7 @@ export class EndScene extends BaseScene {
       const off = onLiveChange(() => this.updateLive());
       this.events.once('shutdown', off);
     } else {
-      // 最好成绩 / 今日挑战一句（0.5 只在悬停，0.5.1 放回来）
+      // 最好成绩 / 今日挑战一句
       const best = profile.best[bestKey(sum.persona, sum.difficulty, sum.short)];
       // 新手课不进最好成绩：这里说过没过、心法去哪看
       const line = sum.lesson
@@ -322,6 +322,7 @@ export class EndScene extends BaseScene {
       while (t.width > rw && cut.length > 6) {
         cut = cut.slice(0, -2);
         t.setText(`${cut.join('')}…`);
+        markCut(t);
       }
       addGlyph(this, mx + 12, ky + G.dy.recap + 8 + i * 22, 'bag', 16);
     });
@@ -330,7 +331,7 @@ export class EndScene extends BaseScene {
     if (board && rowFits) this.rows.boardRow(mx, rowY, ph ? G.rightW : 404, sum.runId, board);
     else if (chal && rowFits) this.rows.challengeRow(mx, rowY, ph ? G.rightW : 404, sum);
 
-    // 0.6.8 下次可以试试：离得最近的一两个成就和这局的进度。只在娱乐局放（实盘局不在筹码局里推"再来"，economy.md 第 0 节），
+    // 下次可以试试：离得最近的一两个成就和这局的进度。只在娱乐局放（实盘局不在筹码局里推"再来"，economy.md 第 0 节），
     // 只说成就进度，不提输赢和筹码；放不下（手机上经历多了）就不放
     if (!lv0) {
       const hy = row ? ky + G.dy.hint : ky + G.dy.recap + Math.min(sum.recap.length, 2) * 22;
@@ -356,16 +357,12 @@ export class EndScene extends BaseScene {
     }
     const retry = this.buttons.retry;
     if (retry) tipOnButton(retry, () => ({ x: mx, y: by, w: bw[0]!, h: G.btnH }), () => ({ title: sum.lesson ? '再上一次新手课' : sum.daily ? '再挑战一次' : '同一局再来', body: `这一局的编号：${s.seed}\n输入同一个编号能重玩同一局` }));
-    // 局号：竖屏一栏时按钮那一排从左边起，挪到右上角（头像标签那一行的右端）
-    // 新手课只有一局，局号没用（竖屏右上角还会压住「新手课」标签）
-    if (!sum.lesson && G.single) addText(this, x + W - G.pad, y + G.headY, `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originX: 1, originY: 0.5 });
-    else if (!sum.lesson) addText(this, x + G.pad, y + H - (ph ? 17 : 26), `#${s.seed}`, { size: FS.xs, color: COLOR.dim, originY: 0.5 });
-    // 回大厅（0.5.8）：和开始菜单一样在左上角；这局已经结束、记进档案了，点了直接走。
-    // 手机横屏纸卡几乎铺满：放在纸卡的左上角（0.16.0 以前插在左栏标题行中间）
+    // 回大厅：和开始菜单一样在左上角；这局已经结束、记进档案了，点了直接走。
+    // 手机横屏纸卡几乎铺满：放在纸卡的左上角
     const lobbyAt = ph ? { x: x + 10, y: y + 12 } : { x: 14, y: 10 };
     this.buttons.lobby = new Button(this, lobbyAt.x, lobbyAt.y, { width: ph ? 96 : 104, height: 42, label: lobbyLabel(), icon: 'house', fontSize: FS.md, onClick: () => goLobby() });
     attachDomProxy(this, this.buttons.lobby, standalone() ? '回首页' : '回大厅');
-    // 分享（0.6.5 起的海报位置，0.12.0 换成共用包的分享卡）：电脑上放在右上角（和「大厅」对称），手机上放在按钮那一排的最右边
+    // 分享（共用包的分享卡）：电脑上放在右上角（和「大厅」对称），手机上放在按钮那一排的最右边
     const shareAt = ph ? { x: mx + (lv0 ? liveW + 12 : bw[0]! + bw[1]! + bw[2]! + 36), y: by, w: lv0 ? 140 : shareW, h: G.btnH } : { x: GAME_WIDTH - 14 - 132, y: 10, w: 132, h: 42 };
     this.shareButton(shareAt, sum);
   }
@@ -379,8 +376,8 @@ export class EndScene extends BaseScene {
 
 
   /**
-   * 「分享」（0.12.0，docs/design-share.md）：数据交给共用包画卡、分享；手机能带图片就调系统分享，不能就出预览（存图、复制链接）。
-   * 0.12.1 起结束页一出来就先画好（共用包 prepareShare）：iOS 只许在点的那一下里调系统分享，点了再画就过期了、只能出预览。
+   * 「分享」（docs/design-share.md）：数据交给共用包画卡、分享；手机能带图片就调系统分享，不能就出预览（存图、复制链接）。
+   * 结束页一出来就先画好（共用包 prepareShare）：iOS 只许在点的那一下里调系统分享，点了再画就过期了、只能出预览。
    * 所以点击里直接调 share()，前面不能有 await。每日挑战读到名次后再画一张带名次的，画好了才换上，之前点分享的是手上那张。
    */
   shareButton(at: { x: number; y: number; w: number; h: number }, sum: RunSummary): void {
@@ -453,19 +450,19 @@ export class EndScene extends BaseScene {
   private newTag(x: number, y: number): void {
     const pill = addPill(this, x, y - 1, 56, 20, COLOR.up);
     const t = addText(this, pill.x + 28, y + 9, '新纪录', { size: FS.xs, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5 });
-    if (this.lively) this.tweens.add({ targets: [pill, t], alpha: { from: 1, to: 0.55 }, duration: 600, yoyo: true, repeat: 3 });
+    if (this.lively) this.tweens.add({ targets: [pill, t], alpha: { from: 1, to: 0.55 }, ease: 'Sine.easeInOut', duration: 600, yoyo: true, repeat: 3 });
   }
 
   protected override render(s: GameState): void {
     sound.mood(s.phase === 'won' ? 'victory' : 'defeat');
   }
 
-  /** 0.11.0 实盘结回 ≥ 3 倍：屏幕正中一行大字弹出来，两秒后收起（点哪儿都不挡） */
+  /** 实盘结回 ≥ 3 倍：屏幕正中一行大字弹出来，两秒后收起（点哪儿都不挡） */
   private celebrate(bp: number, gear: number): void {
     sound.cue({ type: 'settle', ret: 5 });
     confetti(this, this.anim);
     const V = viewOf(this);
-    const t = addText(this, V.w / 2, V.h / 2, `杠杆 ×${gear}　结回 ${(bp / 10_000).toFixed(1)} 倍！`, {
+    const t = addText(this, V.w / 2, V.h / 2, `杠杆 ×${gear}　带回 ${(bp / 10_000).toFixed(1)} 倍！`, {
       size: PHONE ? 40 : 52,
       bold: true,
       color: COLOR.accentDark,
@@ -481,7 +478,7 @@ export class EndScene extends BaseScene {
     }
     t.setScale(0.3);
     this.tweens.add({ targets: t, scale: 1, duration: 420, ease: 'Back.Out' });
-    this.tweens.add({ targets: t, alpha: 0, delay: 2200, duration: 500, onComplete: () => t.destroy() });
+    this.tweens.add({ targets: t, alpha: 0, delay: 2200, ease: 'Sine.easeIn', duration: 500, onComplete: () => t.destroy() });
   }
 
   /** 实盘结算的字：按本机的实盘记录（待结、结完、作废、出错）；说过一次就记下，开始菜单不再弹 */
@@ -493,7 +490,7 @@ export class EndScene extends BaseScene {
     const r = live.record;
     const t = r && r.seed === this.session.state.seed ? liveEndText(r, sum.won, sum.live ? { x: sum.live.gear, margin: sum.live.margin } : undefined) : { head: '这局不算筹码', body: '这局没有带入筹码（或者本金已经原样退回），只是打着玩。' };
     head.setText(t.head);
-    // 0.32.0 结回了（或正在结）：先写一行账本，讲清炒股赚的钱被生活费吃掉多少、按几倍算进筹码
+    // 结回了（或正在结）：先写一行账本，讲清炒股赚的钱被生活费吃掉多少、按几倍算进筹码
     const ledger = r && r.seed === this.session.state.seed && r.kind !== 'refund' && (r.step === 'done' || r.step === 'settling') ? liveLedger(sum) : null;
     // 每段各自按分句断行再拼起来（clauseWrap 只认一段）
     body.setText(ledger ? `${ledger}\n${t.body}` : t.body);
@@ -516,7 +513,7 @@ export class EndScene extends BaseScene {
     await this.cutscene(this.summary.won);
     await this.rollMoney(this.summary);
     if (this.summary.won) confetti(this, this.anim);
-    // 0.11.0 实盘结回 ≥ 3 倍：大字庆祝、再放一次彩带和大赚的音效
+    // 实盘结回 ≥ 3 倍：大字庆祝、再放一次彩带和大赚的音效
     const lv = this.summary.live;
     if (lv && lv.bp >= 30_000) this.celebrate(lv.bp, lv.gear);
     const list = this.session.takeUnlocks(this.summary.runId, unlocksOf(this.result));
@@ -573,7 +570,7 @@ export class EndScene extends BaseScene {
   }
 
   /**
-   * 0.17.0 结束页出场前的过场（art-v3 第 5 节）：通关放烟花、出局下雨，一行大字，1.2 秒后收起；点一下跳过。
+   * 结束页出场前的过场（art-v3 第 5 节）：通关放烟花、出局下雨，一行大字，1.2 秒后收起；点一下跳过。
    * 一局只有一次；关掉动画、「减少动态效果」时不放。过场时盖一层挡板，免得误点到下面的按钮。
    */
   private async cutscene(won: boolean): Promise<void> {

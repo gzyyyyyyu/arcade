@@ -12,7 +12,7 @@ function more(id: string, key: string): string {
 }
 
 /**
- * 难度（"市场环境"，0.3.0：1..8 级，id 固定）。0.10.0 前三级改叫新手 / 普通 / 高手（仓库根 docs/balance.md 第 3 节），后面五级是高手之后的挑战。高等级包含低等级的全部约束，引擎按 1..level 依次叠加：
+ * 难度（"市场环境"，1..8 级，id 固定）。前三级叫新手 / 普通 / 高手（仓库根 docs/balance.md 第 3 节），后面五级是高手之后的挑战。高等级包含低等级的全部约束，引擎按 1..level 依次叠加：
  * rules 改玩家规则表（月供倍数、可信度、奖励张数……），market 改每天的市场规则（偏熊、炸板率……）。
  * 第 6 级"股灾"的月份由种子决定（crashPlan），引擎在那个月月初公布传闻、在某个交易日让所有题材提前退潮。
  * 数值在 BALANCE.fx[id]。通关一级解锁下一级（档案层，见 src/platform/profile.ts）。
@@ -43,7 +43,7 @@ export const DIFFICULTIES: readonly DifficultyDef[] = [
     rules(r) {
       r.billMult *= fx('choppy', 'billMult');
     },
-    // 0.10.0 配平：真实行情下这一级就是"普通"，群里的消息也跟着乱一些，小白和会看战绩的人差得没那么远（docs/balance.md 第 3 节）。
+    // 配平：真实行情下这一级就是"普通"，群里的消息也跟着乱一些，小白和会看战绩的人差得没那么远（docs/balance.md 第 3 节）。
     // 短局只有 5 个月，会看战绩的人本来就攒不出多大优势，不再加乱（docs/design-balance.md 第 3 节）
     realRules(r, short) {
       r.billMult *= fx('choppy', 'realBill');
@@ -89,10 +89,10 @@ export const DIFFICULTIES: readonly DifficultyDef[] = [
     id: 'regulation',
     name: '强监管',
     short: '涨停更容易被砸',
-    realShort: '涨停那头收窄',
+    realShort: `涨停只涨到${Math.round(fx('regulation', 'limitUp') * 10)}成`,
     level: 5,
     desc: '涨停更容易被砸下来，危险股更容易收到退市警告',
-    realDesc: '涨停收窄：大涨的日子赚得少了，大跌照样疼',
+    realDesc: `强监管：涨停只能涨到原来的${Math.round(fx('regulation', 'limitUp') * 10)}成，大涨的日子赚得少，大跌照样疼`,
     realDetail: `所有股票涨停那一头变成原来的 ${n('regulation', 'limitUp')} 倍，跌停不变`,
     realRules(r) {
       r.limitUpMult *= fx('regulation', 'limitUp');

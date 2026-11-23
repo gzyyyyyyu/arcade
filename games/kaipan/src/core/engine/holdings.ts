@@ -106,8 +106,8 @@ export function gainItem(s: GameState, id: string, em: Emitter, taken = true, un
 }
 
 /**
- * 0.5.4：结算用的两项累计（炒股净赚、还掉的账单）。只在开局就有这两项的局里累计：
- * 0.5.3 打到一半的存档读进来时没有这两项，从半路开始记会得到半截数，宁可让结算走旧说法。
+ * 结算用的两项累计（炒股净赚、还掉的账单）。只在开局就有这两项的局里累计：
+ * 打到一半的存档读进来时没有这两项，从半路开始记会得到半截数，宁可让结算走旧说法。
  */
 export function addStat(s: GameState, key: 'tradeMoney' | 'billMoney', delta: number): void {
   const v = s.stats[key];

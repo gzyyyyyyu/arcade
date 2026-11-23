@@ -2,7 +2,7 @@ import type Phaser from 'phaser';
 import type { BoardResult, Scope } from '../../platform/board.ts';
 import { loadBoard } from '../dailyBoard.ts';
 import type { DailyKind } from '../../core/index.ts';
-import { boardScoreText, flashScoreText } from '../labels.ts';
+import { boardScoreText, flashScoreText, weekRange } from '../labels.ts';
 import { COLOR, FS, SPACE, TYPE } from '../theme.ts';
 import { Button } from '../ui/button.ts';
 import { Dialog, phonePanel } from '../ui/dialog.ts';
@@ -26,7 +26,7 @@ const DESK: Geo = { w: 600, h: 540, per: 10, rowH: 32, top: 84, meY: 418, pagerY
 const phoneGeo = (scene: Phaser.Scene): Geo => {
   const pp = phonePanel(scene);
   if (pp.h > pp.w) {
-    // 竖屏版（0.33.0）：标题占满标题行，「全部 | 好友」单独一排；一页的行数按高度算（行高 34）；
+    // 竖屏版：标题占满标题行，「全部 | 好友」单独一排；一页的行数按高度算（行高 34）；
     // 翻页一排左边放不下「只比当天」那句，它挪到翻页上面单独一行（多留 20）
     const rowH = 34;
     const top = 126;
@@ -39,7 +39,7 @@ const phoneGeo = (scene: Phaser.Scene): Geo => {
 };
 
 /**
- * 每日挑战排行（0.5.10）：全站 / 好友两页，前 50 名（每页 10 行，手机 7 行），下面单独一行"我：第几名"。
+ * 每日挑战排行：全站 / 好友两页，前 50 名（每页 10 行，手机 7 行），下面单独一行"我：第几名"。
  * 只显示昵称和成绩（平台不给用户名）；我在前 50 名里的那一行标亮。
  */
 export class BoardPanel extends Dialog {
@@ -63,7 +63,7 @@ export class BoardPanel extends Dialog {
   constructor(scene: Phaser.Scene, date: string, boardId: string, onClosed?: () => void, kind: DailyKind | 'weekly' = 'classic') {
     const ph = phoneLayout(scene);
     const G = ph ? phoneGeo(scene) : DESK;
-    super(scene, G.w, G.h, `${kind === 'weekly' ? '本周市场排行' : kind === 'flash' ? '闪电盘排行' : '每日排行'} · ${date}`, onClosed);
+    super(scene, G.w, G.h, `${kind === 'weekly' ? '本周市场排行' : kind === 'flash' ? '闪电盘排行' : '每日排行'} · ${kind === 'weekly' ? weekRange(date) : date}`, onClosed);
     this.G = G;
     this.boardId = boardId;
     this.kind = kind;
@@ -176,7 +176,7 @@ export class BoardPanel extends Dialog {
       this.named['board:next'] = next;
     }
     const one = G.h > G.w;
-    this.rows.add(addText(s, one ? G.w / 2 : 44, one ? G.pagerY - 14 : G.pagerY + 20, '只比当天，没有奖励', { size: 13, color: COLOR.dim, originX: one ? 0.5 : 0, originY: 0.5 }));
+    this.rows.add(addText(s, one ? G.w / 2 : 44, one ? G.pagerY - 14 : G.pagerY + 20, `只比${when === '本周' ? '这一周' : '当天'}，没有奖励`, { size: 13, color: COLOR.dim, originX: one ? 0.5 : 0, originY: 0.5 }));
   }
 
   private turn(d: number): void {

@@ -68,7 +68,7 @@ export async function liveShots(browser: Browser): Promise<void> {
     expect(!!settle && settle.body.ref === r?.ref && settle.body.bp === bp && settle.body.tier === 'mid', `结回应传这局的倍数 ${bp}（${JSON.stringify(settle?.body)}）`);
     const got = Math.floor((10_000 * bp) / 10_000);
     await ctx.page.waitForTimeout(400);
-    expect(await hasText(ctx, `结回 ${got.toLocaleString('en-US')} 筹码`), `结束页应写结回 ${got}（${(await texts(ctx)).join(' | ')}）`);
+    expect(await hasText(ctx, `带回 ${got.toLocaleString('en-US')} 筹码`), `结束页应写带回 ${got}（${(await texts(ctx)).join(' | ')}）`);
     const c = await controls(ctx);
     expect('menu' in c && !('retry' in c) && !('new' in c), `实盘结束页只有「回开始菜单」（${Object.keys(c).join(',')}）`);
     for (const word of ['回本', '翻本', '再来一把', '就差一点', '马上', '限时']) expect(!(await texts(ctx)).some((t) => t.includes(word)), `结束页不该出现"${word}"`);
@@ -153,7 +153,7 @@ export async function liveShots(browser: Browser): Promise<void> {
     await waitIdle(ctx, '结束页', "window.__game.scene === 'end'");
     await waitFor(ctx, '待结', "g.live()?.step === 'settling' && g.live()?.wait === 'offline'");
     await ctx.page.waitForTimeout(400);
-    expect(await hasText(ctx, '成绩记下了，联网后自动结回'), '连不上时结束页说联网后自动结回');
+    expect(await hasText(ctx, '成绩记下了，联网后自动带回'), '连不上时结束页说联网后自动带回');
     await shot(ctx, 'l7-end-settling');
     for (const f of ['busy', 'internal']) {
       w.fail.settle = f;

@@ -40,7 +40,7 @@ function atomWidth(ctx: CanvasRenderingContext2D, atom: string): number {
 /**
  * 按字符断行：中文没有空格，Phaser 自带的按单词换行不适用。
  * 英文/数字连续片段尽量不拆开，行首避开标点。
- * 0.34.0 性能：行宽先按原子宽度相加估，离换行宽度很近（wrapSlack 以内）才整行真量，断行结果和逐个整行量一样。
+ * 性能：行宽先按原子宽度相加估，离换行宽度很近（wrapSlack 以内）才整行真量，断行结果和逐个整行量一样。
  */
 function cjkWrap(text: string, obj: Phaser.GameObjects.Text, width: number): string[] {
   const ctx = obj.context;
@@ -97,12 +97,12 @@ function cjkWrap(text: string, obj: Phaser.GameObjects.Text, width: number): str
 }
 /**
  * 最小字号：再小在手机和 1 倍屏上就糊成一团（docs/ui.md 第 3 节：任何地方 ≥ 12，电脑上就是 12）。
- * 手机横屏（0.5.5）：960×444 的世界在 844×390 的屏幕上约 0.88 倍，13 号字显示出来约 11.4 像素，下面再按缩放抬到屏幕上 ≥ 12。
+ * 手机横屏：960×444 的世界在 844×390 的屏幕上约 0.88 倍，13 号字显示出来约 11.4 像素，下面再按缩放抬到屏幕上 ≥ 12。
  */
-// 0.19.5 比 SE 矮的手机按缩放再抬（640×360 是 14、568×320 是 16），见 theme.ts 的 PHONE_SCALE
+// 比 SE 矮的手机按缩放再抬（640×360 是 14、568×320 是 16），见 theme.ts 的 PHONE_SCALE
 export const MIN_TEXT_SIZE = PHONE ? Math.max(13, Math.ceil(12 / PHONE_SCALE)) : 12;
 /**
- * 0.19.0 手机上数字的最小字号：清单要数字 ≥ 14 像素，新手机世界在最小的 SE 上是 0.928 倍，16 号约 14.8px。
+ * 手机上数字的最小字号：清单要数字 ≥ 14 像素，新手机世界在最小的 SE 上是 0.928 倍，16 号约 14.8px。
  */
 export const MIN_NUM_SIZE_PHONE = Math.max(16, Math.ceil(14 / PHONE_SCALE));
 /** 只有数字、金额、涨跌符号的文字（没标 num 的也按数字算最小字号） */
@@ -137,12 +137,25 @@ export function setWrap(t: Phaser.GameObjects.Text, width: number): Phaser.GameO
   return t.setWordWrapCallback((s: string, obj: Phaser.GameObjects.Text) => cjkWrap(s, obj, width));
 }
 
+/** 被截成省略号的文字（调试桥 layout() 报出来，--noscroll 要求 0 处）：截字的地方都要 markCut */
+const cutTexts = new WeakSet<Phaser.GameObjects.Text>();
+
+/** 记下这段文字被截了（截字循环里真截了才调） */
+export function markCut(t: Phaser.GameObjects.Text): void {
+  cutTexts.add(t);
+}
+
+export function isCut(t: Phaser.GameObjects.Text): boolean {
+  return cutTexts.has(t);
+}
+
 /** 单行文字比 room 宽时从尾巴上截字、补省略号（至少留 min 个字）；没截就原样返回。 */
 export function fitWidth(t: Phaser.GameObjects.Text, room: number, min = 2): Phaser.GameObjects.Text {
   let cut = Array.from(t.text);
   while (t.width > room && cut.length > min) {
     cut = cut.slice(0, -1);
     t.setText(`${cut.join('')}…`);
+    markCut(t);
   }
   return t;
 }
@@ -157,6 +170,7 @@ export function fitKeepTail(t: Phaser.GameObjects.Text, head: string, tail: stri
   while (t.width > room && cut.length > 1) {
     cut = cut.slice(0, -1);
     t.setText(`${cut.join('')}…${tail}`);
+    markCut(t);
   }
   if (t.width > room) t.setText(tail.trimStart());
   return t;

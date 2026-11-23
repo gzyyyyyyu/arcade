@@ -70,7 +70,7 @@ export class ConfirmDialog extends Dialog {
   }
 }
 
-/** 二选一（0.6.0 实盘没打完时开别的局：继续这局 / 提前收手）：两个按钮各有去处，Esc 或 × 什么都不做；不能点遮罩关。 */
+/** 二选一（实盘没打完时开别的局：继续这局 / 提前收手）：两个按钮各有去处，Esc 或 × 什么都不做；不能点遮罩关。 */
 export class ChoiceDialog extends Dialog {
   protected override get stacksOnTop(): boolean {
     return true;

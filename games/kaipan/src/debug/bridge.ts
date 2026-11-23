@@ -49,9 +49,9 @@ interface GameBridge {
   focused(): { x: number; y: number; w: number; h: number } | null;
   /** 云存档状态（云朵显示的那个） */
   cloud(): CloudView;
-  /** 当前这局在每日排行榜上的状态（0.5.8） */
+  /** 当前这局在每日排行榜上的状态 */
   board(): RunBoard;
-  /** 0.6.0 实盘的本机记录（kaipan.live） */
+  /** 实盘的本机记录（kaipan.live） */
   live(): LiveRecord | null;
   /** 世界坐标 → 画布上的比例位置（0..1），按当前场景的相机换算（手机横屏时世界不是 1280×720） */
   toCanvas(x: number, y: number): { x: number; y: number };
@@ -80,7 +80,7 @@ interface GameBridge {
   readonly mood: Mood;
   /** 运行时统计（检查补间、纹理是否泄漏） */
   stats(): { tweens: number; textures: number; objects: number };
-  /** 0.5.9：纹理、文字画布、主画布的像素（显存估算） */
+  /** 纹理、文字画布、主画布的像素（显存估算） */
   memory(): { textures: number; texturePx: number; texts: number; textPx: number; canvasPx: number; top: string[] };
   /** 暂停 / 恢复场景更新（截动画中途用） */
   freeze(on: boolean): void;

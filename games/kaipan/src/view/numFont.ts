@@ -1,5 +1,5 @@
 /**
- * 0.16.0 数字字体（Kaipan Num，由 OFL 的 Fredoka 改出，见 public/assets/fonts/README.md）。
+ * 数字字体（Kaipan Num，由 OFL 的 Fredoka 改出，见 public/assets/fonts/README.md）。
  * Phaser 的文字画在画布上，字体没到就按回退字体画、到了也不会重画：所以启动时先等它，最多等 2 秒。
  */
 const NUM_FONT = 'Kaipan Num';

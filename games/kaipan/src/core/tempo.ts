@@ -1,5 +1,5 @@
 /**
- * 0.5 节奏与反馈：月度主题（"本月看点"）、中场 boss、月度目标、高光时刻、连击小奖励、平淡日。
+ * 节奏与反馈：月度主题（"本月看点"）、中场 boss、月度目标、高光时刻、连击小奖励、平淡日。
  *
  * - 开局 planTempo 按种子、行情段（每个月大盘的真实涨跌和最大单日跌幅）、难度把 12 个月的主题抽好，不重复；第 4、8 个月从 boss 池抽。
  * - 主题只改规则和信息（rulesOf 叠加 MonthThemeDef.rules），不改走势；目标都能按局面判定（GoalKind）。
@@ -173,7 +173,7 @@ export function monthThemeView(s: Readonly<GameState>): {
   goalText: string;
   rewardText: string;
   daysLeft: number;
-  /** 0.5 看点卡短版：主题 id、规则短标签（≤8 字）、一句 ≤12 字台词 */
+  /** 看点卡短版：主题 id、规则短标签（≤8 字）、一句 ≤12 字台词 */
   id: string;
   ruleShort: string;
   line: string;
@@ -385,7 +385,7 @@ export function tempoMonthEnd(s: GameState, ctx: TempoCtx): void {
 /**
  * 盘前是不是平淡日：不是月初、没有重磅情报、今天不是传闻月、没有能买的空格、没有人唱反你拿着的风口。
  * 画面可以据此自动开盘（玩家随时能打断）。
- * 0.19.4 放宽（以前收盘平淡的日子第二天几乎从不自动快进）：有空格但今天买不了（次数用完、推荐都买过）不算有事；
+ * 放宽（不然收盘平淡的日子第二天几乎从不自动快进）：有空格但今天买不了（次数用完、推荐都买过）不算有事；
  * 群里聊你拿着的风口，只有说反了的（拿着涨的说跌、押跌的说涨）或者说拐点的才算有事，顺着说的不用停下来看。
  */
 export function premarketQuiet(s: Readonly<GameState>): boolean {

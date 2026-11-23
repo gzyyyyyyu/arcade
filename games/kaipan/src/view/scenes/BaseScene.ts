@@ -26,7 +26,7 @@ const FADE_MS = 180;
 /**
  * 按渲染倍数设置相机，画布按实际像素绘制。
  * 手机上世界尺寸见 theme.ts 的 phoneWorld（高 404，宽 718–960）：适配过手机的场景（phoneReady）直接按这个尺寸布局；
- * 还按 1280×720 布局的场景整体缩小、居中放进来（和以前在手机上看到的一样大）。
+ * 还按 1280×720 布局的场景整体缩小、居中放进来。
  */
 export function setupCamera(scene: Phaser.Scene, phoneReady: PhoneReady = false): void {
   applyCamera(scene, phoneReady);
@@ -226,7 +226,7 @@ export abstract class BaseScene extends Phaser.Scene implements Presenter {
     });
   }
 
-  /** 0.9.2 对局里左上角的「大厅」：先确认一次（和设置里「回大厅」同一个确认框），确认了才走 */
+  /** 对局里左上角的「大厅」：先确认一次（和设置里「回大厅」同一个确认框），确认了才走 */
   protected askLobby(): void {
     if (this.dialogOpen) return;
     const c = lobbyConfirm(this.session.state);

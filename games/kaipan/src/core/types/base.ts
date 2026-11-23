@@ -20,9 +20,9 @@ export type Rarity = 'common' | 'uncommon' | 'rare';
 export type ItemKind = 'tactic' | 'tool' | 'network';
 /** premarket：盘前（买卖、开盘）；reward：月度三选一；event：事件二选一；won/lost：本局结束。 */
 export type Phase = 'premarket' | 'reward' | 'event' | 'won' | 'lost';
-/** bankrupt：账单交不上；margin（0.11.0）：实盘加了杠杆，资产跌破爆仓线被强制平仓 */
+/** bankrupt：账单交不上；margin：实盘加了杠杆，资产跌破爆仓线被强制平仓 */
 export type EndReason = 'bankrupt' | 'margin';
-/** 人设（0.3.0）：开局可选 newbie / retiree / mom，coder、youzi 由成就解锁。 */
+/** 人设：开局可选 newbie / retiree / mom，coder、youzi 由成就解锁。 */
 export type PersonaId = 'newbie' | 'retiree' | 'mom' | 'coder' | 'youzi';
 /** 成就档位：铜（轻松）、银（需要构筑）、金（硬核）。 */
 export type AchievementTier = 'bronze' | 'silver' | 'gold';

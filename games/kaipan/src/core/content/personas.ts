@@ -19,7 +19,7 @@ function credText(v: number): string {
 }
 
 /**
- * 人设（0.3.0：5 个，id 固定，美术按 id 出图）。开局通过 RunSetup.persona 选择。
+ * 人设（5 个，id 固定，美术按 id 出图）。开局通过 RunSetup.persona 选择。
  * 数值在 BALANCE.fx[id]：account 开局账户；*Cred 群友可信度加减；billMult / surpriseMult 月供倍数。
  * unlock 为 'start' 的开局可选，其余由对应成就解锁（档案层判断，见 src/platform/profile.ts）。
  * 文案全部虚构。

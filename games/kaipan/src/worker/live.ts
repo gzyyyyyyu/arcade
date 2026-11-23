@@ -1,14 +1,14 @@
 /**
- * 开盘 Worker 的实盘钱包接口（0.6.0）：POST /games/kaipan/api/live/{buyin,settle,refund}。
+ * 开盘 Worker 的实盘钱包接口：POST /games/kaipan/api/live/{buyin,settle,refund}。
  *
  * 由 ./route.ts 按路径转进来。浏览器只给 ref / tier / bp（结回倍数，万分之几）；金额和到期时间都由 Worker 定：
  * 带入的 amount 固定是这一档的一份（不能少带），until 是 Worker 时钟的现在 + 24 小时；结回的 amount 由桌上那一份的金额和 bp 算出：
- * 结回前先看一眼钱包（view），按带入时记下的金额算，不信浏览器报的档位（带小档、报豪华档就能多拿，0.11.2 审计堵上）。
+ * 结回前先看一眼钱包（view），按带入时记下的金额算，不信浏览器报的档位（带小档、报豪华档就能多拿）。
  * 浏览器从不直接碰钱包，平台的 /api 里也没有这几条路（设计稿第 6 节）。
  *
  * 认人沿用 gate.ts 的 checkLogin，而不用 arcade-kit 的 whoIs：whoIs 只在 fetch 上挂 AbortSignal.timeout，
  * 平台不理会中止信号、或响应头回来了响应体迟迟不来时会一直挂住；checkLogin 对"等响应"和"读响应体"两段都用 Promise.race 限时，
- * 有测试锁住（tests/worker/worker-gate.test.ts）。这样 Worker 也不必为此引共用包（0.12.0 起只有页面用它的分享卡和社交部件）。
+ * 有测试锁住（tests/worker/worker-gate.test.ts）。这样 Worker 也不必为此引共用包（只有页面用它的分享卡和社交部件）。
  *
  * 不管 GATE 开关都认人：钱包动的是真账户。校验顺序是 方法/路径 → 单独部署 → CSRF → 请求体 → 认人 → 钱包，前面不过就不去问平台和钱包。
  * 钱包的业务拒绝（no_funds、at_table……）是正常回话，原样 200 交给浏览器按 error 处理；钱包连不上才回 503。
@@ -23,7 +23,7 @@ type WalletReply = { ok: true; wallet: unknown; credited?: number; capped?: numb
 export interface WalletRpc {
   view(userId: string): Promise<WalletReply>;
   buyin(req: { userId: string; game: 'kaipan'; ref: string; tier: LiveTier; amount: number; until: number; mode: 'client'; op: string }): Promise<WalletReply>;
-  /** stats：0.6.5 战绩小结（平台 5.10），浏览器报什么原样转发，形状由平台校验（不合格整份忽略、钱照常结） */
+  /** stats：战绩小结（平台 5.10），浏览器报什么原样转发，形状由平台校验（不合格整份忽略、钱照常结） */
   settle(req: { userId: string; game: 'kaipan'; ref: string; amount: number; mode: 'client'; op: string; stats?: unknown }): Promise<WalletReply>;
   refund(req: { userId: string; game: 'kaipan'; ref: string; mode: 'client'; op: string }): Promise<WalletReply>;
 }
@@ -74,7 +74,7 @@ export async function handleLive(req: Request, env: Env, timeoutMs = WALLET_TIME
   const action = url.pathname.startsWith(PREFIX) ? ACTIONS.find((a) => a === url.pathname.slice(PREFIX.length)) : undefined;
   if (!action) return fail(404, 'not_found');
   if (req.method !== 'POST') return fail(405, 'method');
-  // 0.8.0 单独部署没有平台钱包，实盘根本开不了：说清楚是"这里没有"（501），不是"暂时连不上"（503），页面不会去重试
+  // 单独部署没有平台钱包，实盘根本开不了：说清楚是"这里没有"（501），不是"暂时连不上"（503），页面不会去重试
   if (isStandalone(env)) return fail(501, 'no_wallet');
   // CSRF：自定义头让跨站表单发不出来，Origin 对得上才认
   if (req.headers.get('X-Arcade') !== '1' || req.headers.get('Origin') !== url.origin) return fail(403, 'csrf');

@@ -8,7 +8,7 @@ import { bindTooltip, type TipContent } from '../ui/tooltip.ts';
 import type { Rect } from '../rect.ts';
 
 /**
- * 0.5 去文字化：长线界面（开局、结束页、图鉴、怎么玩……）共用的小零件。
+ * 去文字化：长线界面（开局、结束页、图鉴、怎么玩……）共用的小零件。
  */
 
 /** 「¥10万」「¥9.4万」「¥30万」：本钱、账户的短写法（一位小数，去掉 .0）。 */
