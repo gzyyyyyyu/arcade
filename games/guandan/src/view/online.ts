@@ -7,6 +7,7 @@
 import { MATCH_TEXT, MatchClient, type MatchSoloWhy } from 'arcade-kit/client';
 import { CLOSE } from 'arcade-kit/protocol';
 import { app } from './app.ts';
+import { audio } from './common/audio.ts';
 import { NetSession } from './guandan/net.ts';
 import { createRoom, forgetRoom, isFinalForRoom, myRoom, roomInUrl, savedRoom, socketUrl } from './common/room-link.ts';
 import { errorText } from '../net/error-text.ts';
@@ -94,6 +95,21 @@ function style(): void {
   #online .ol-note { min-height: 0; }
   #online .ol-row #ol-share { min-height: 48px; font-size: 19px; }
 }
+/* 电脑和平板（又宽又高）：面板放大成游戏里的一块牌匾，不像网页小弹窗——字、按钮、房间码输入框都放大，开房一排按钮等分（0.40.5） */
+@media (min-width: 900px) and (min-height: 600px) {
+  #online .ol-card { width: min(720px, calc(100vw - var(--gd-s6))); padding: var(--gd-s6) var(--gd-s8); gap: var(--gd-s4); }
+  #online h2 { font-size: 32px; letter-spacing: 6px; }
+  #online .ol-tip { font-size: 17px; text-align: center; }
+  #online .ol-card .gd-btn:not(.gd-x) { min-height: 60px; font-size: 21px; padding: 0 var(--gd-s6); }
+  #online .ol-make .gd-btn { flex: 1 1 0; }
+  #online .ol-make #ol-create { flex-grow: 1.4; font-size: 24px; }
+  #online input { min-height: 64px; font-size: 30px; letter-spacing: 10px; text-align: center; }
+  #online input::placeholder { font: bold 22px var(--gd-font); letter-spacing: 2px; }
+  #online .ol-friend { padding: var(--gd-s2) var(--gd-s3); border-radius: var(--gd-r-md); background: #f6e6c6; border: 2px solid var(--gd-gold); font-size: 18px; }
+  #online .ol-seat b { font-size: 18px; }
+  #online .ol-seat { min-height: 64px; }
+  #online .ol-wait { font-size: 24px; }
+}
 #net-banner { position: fixed; z-index: 8400; left: 50%; top: max(var(--gd-s2), env(safe-area-inset-top, 0px)); transform: translateX(-50%); display: none;
   padding: var(--gd-s2) var(--gd-s4); border-radius: var(--gd-r-pill); background: rgba(43, 22, 10, 0.92); border: 2px solid var(--gd-gold); color: #ffe9c2;
   font: bold 15px/1.3 var(--gd-font); pointer-events: none; }
@@ -113,7 +129,11 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string,
 /** 面板里的按钮都用 THEME_CSS 的 .gd-btn；cls 是 gd-2（次要）、gd-big（大号确认） */
 function button(label: string, onClick: () => void, cls = '', id = ''): HTMLButtonElement {
   const b = el('button', { type: 'button', class: cls ? `gd-btn ${cls}` : 'gd-btn', ...(id ? { id } : {}) }, label);
-  b.addEventListener('click', onClick);
+  // 和画布按钮一样松手出"嗒"（ui/kit.ts 的 Button）
+  b.addEventListener('click', () => {
+    audio.sfx('click');
+    onClick();
+  });
   return b;
 }
 
@@ -203,7 +223,7 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
     row.appendChild(nick);
     c.appendChild(row);
   }
-  const make = el('div', { class: 'ol-row' });
+  const make = el('div', { class: 'ol-row ol-make' });
   make.appendChild(button('开个房间', () => void create(null), '', 'ol-create'));
   // 斗地主不洗牌（娱乐 0.33.0）；不洗牌的实盘房间在"开实盘房间"里选（0.39.0）
   if (panelVariant === 'ddz') make.appendChild(button('开不洗牌房间', () => void create(null, true), 'gd-2', 'ol-create-clump'));

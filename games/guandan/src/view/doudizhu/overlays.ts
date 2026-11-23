@@ -1,6 +1,6 @@
 /** 斗地主的残局结果、每日通关、结算、整局结束和实盘结果弹窗（从 DdzScene.ts 拆出，只搬家；函数接收场景实例）。 */
 import type Phaser from 'phaser';
-import type { DdzResult } from '../../variants/doudizhu/index.ts';
+import { sortDdz, type DdzResult } from '../../variants/doudizhu/index.ts';
 import { app } from '../app.ts';
 import { audio } from '../common/audio.ts';
 import { dur } from '../common/anim.ts';
@@ -16,10 +16,11 @@ import { pointValue as ddzPointValue } from '../../variants/doudizhu/stake/index
 import { tableRules, type DdzStakeView } from '../../variants/doudizhu/net/stake.ts';
 import { dailySubmitText, ddzDailySeed, submitDdzDaily } from './daily.ts';
 import { randomSeed } from '../common/seed.ts';
-import { seatName } from '../common/labels.ts';
+import { seatName, seatPerson } from '../common/labels.ts';
+import { cardKey, texOr } from '../common/textures.ts';
 import { COLOR, TYPE, signColor } from '../common/theme.ts';
 import { burst } from '../table/fx.ts';
-import { Button, modal, signedLine, text, worldW } from '../ui/kit.ts';
+import { Button, fitWidth, modal, signedLine, text, worldW } from '../ui/kit.ts';
 import type { DdzScene } from '../scenes/DdzScene.ts';
 
 /** 过关 / 失败的弹窗；标题字体字表里没有"关、农、民、跑"，所以大字用正文字体，不开 modal 标题 */
@@ -102,6 +103,16 @@ export function showDailyWin(sc: DdzScene, pz: DailyPuzzleSession): void {
   sc.reg('puzzle:retry', again);
 }
 
+/** 头像上沿的一小块身份牌（结算页的地主帽，和牌桌上的地主帽同一个样子） */
+function roleTag(sc: DdzScene, x: number, y: number, label: string, bg: number, fg: number): Phaser.GameObjects.Container {
+  const t = text(sc, 0, 0, label, { size: TYPE.small, bold: true, color: fg, font: 'title' });
+  const w = t.width + 20;
+  const g = sc.add.graphics();
+  g.fillStyle(bg, 0.95).fillRoundedRect(-w / 2, -14, w, 28, 14);
+  g.lineStyle(2, COLOR.gold, 1).strokeRoundedRect(-w / 2, -14, w, 28, 14);
+  return sc.add.container(x, y, [g, t]);
+}
+
 export function showSettle(sc: DdzScene, r: DdzResult): void {
   if (sc.puzzle) return sc.showPuzzleResult(r);
   const v = sc.ses.view();
@@ -111,25 +122,69 @@ export function showSettle(sc: DdzScene, r: DdzResult): void {
   const m = modal(sc, 820, 560, watch ? '这一副结束了' : meWon ? '这副你赢了' : '这副你输了', { closeBtn: false });
   sc.openOverlay('settle', m);
   const b = m.body;
-  const side = r.landlordWon ? '地主赢' : '农民赢';
-  const extras = [`${r.bid} 分`, r.bombs ? `炸弹 ${r.bombs} 个` : '', r.spring === 'spring' ? '春天' : r.spring === 'anti' ? '反春' : '', r.ming ? '明牌' : '', `× ${r.mult} 倍`].filter(Boolean).join(' · ');
-  if (r.spring) sc.springSeal(b, r.spring === 'anti');
-  b.add(text(sc, 0, -190, `${side} · ${extras}`, { size: TYPE.title, bold: true, color: r.landlordWon ? COLOR.redDark : COLOR.ink }));
-  // 封顶了（不洗牌的每副封顶、实盘的一场封顶）：写明本来多少分，不让人以为算错了
-  const capNote = r.capped && r.s < r.bid * r.mult ? `（封顶了，本来 ${r.bid * r.mult} 分）` : '';
-  b.add(text(sc, 0, -146, `这副 ${r.s} 分${capNote}：地主${r.landlordWon ? '赢' : '输'} ${2 * r.s} 分，农民各${r.landlordWon ? '输' : '赢'} ${r.s} 分`, { size: TYPE.small, bold: !!capNote, color: capNote ? COLOR.redDark : COLOR.muted }));
-  // 数字列右对齐（docs/ui.md 第 9 节）：表头和数字共用同一条右边线；正绿负红、0 用墨色
-  const cols = [-300, 40, 190];
-  ['', '这副', '累计'].forEach((h, i) => h && b.add(text(sc, cols[i]!, -96, h, { size: TYPE.small, bold: true, color: COLOR.muted, ox: 1 })));
-  [0, 1, 2].forEach((s, i) => {
-    const y = -46 + i * 62;
-    const role = s === r.landlord ? '地主' : '农民';
-    b.add(text(sc, cols[0]!, y, `${seatName(s)}（${role}）`, { size: TYPE.body, bold: sc.isMe(s), color: COLOR.ink }));
+  const W = worldW(sc);
+  if (meWon && !watch) {
+    audio.sfx('levelUp');
+    burst(sc, W / 2, 180, 'petal', 30, { gravity: 200, speed: [120, 360], life: 1600 });
+  } else audio.sfx('pass');
+  // 左：三家一行一个，和掼蛋结算同一套（底色分边、头像按输赢换表情、地主头像上戴帽），右边这副大字、累计小字
+  const order = [r.landlord, ...[0, 1, 2].filter((s) => s !== r.landlord)];
+  order.forEach((s, i) => {
+    const y = -150 + i * 96;
+    const lord = s === r.landlord;
     const d = r.delta[s]!;
-    b.add(text(sc, cols[1]!, y, d > 0 ? `+${d}` : `${d}`, { size: TYPE.title, bold: true, font: 'num', color: signColor(d), ox: 1 }));
-    const t = v.scores[s]!;
-    b.add(text(sc, cols[2]!, y, t > 0 ? `+${t}` : `${t}`, { size: TYPE.body, font: 'num', color: signColor(t), ox: 1 }));
+    const g = sc.add.graphics();
+    g.fillStyle(lord ? 0xf8e0d8 : 0xdde8f4, 1).fillRoundedRect(-378, y - 40, 388, 80, 12);
+    if (sc.isMe(s)) g.lineStyle(3, COLOR.gold, 1).strokeRoundedRect(-378, y - 40, 388, 80, 12);
+    b.add(g);
+    b.add(sc.add.image(-326, y + 4, texOr(sc, `avatar:${seatPerson(s)}:${d > 0 ? 'happy' : 'sad'}`)).setDisplaySize(60, 60));
+    if (lord) b.add(roleTag(sc, -326, y - 28, '地主', COLOR.redDark, COLOR.goldLight));
+    b.add(text(sc, -284, y - 12, seatName(s), { size: TYPE.body, bold: true, color: COLOR.ink, ox: 0 }));
+    b.add(text(sc, -284, y + 20, lord ? '地主' : '农民', { size: TYPE.small, bold: true, color: lord ? COLOR.redDark : COLOR.teamThem, ox: 0 }));
+    b.add(text(sc, -6, y - 10, signed(d), { size: TYPE.title, bold: true, font: 'num', color: signColor(d), ox: 1 }));
+    b.add(signedLine(sc, -6, y + 22, '累计 {0}', [v.scores[s]!], { size: TYPE.small, color: COLOR.muted, ox: 1 }));
   });
+  // 左下：这副的底牌和谁叫的地主（顶栏的底牌会被弹窗盖住，这里再摆一遍）
+  if (v.bottom.length) {
+    const g = sc.add.graphics();
+    g.fillStyle(0xf3e6c9, 1).fillRoundedRect(-378, 112, 388, 76, 10);
+    b.add(g);
+    b.add(text(sc, -362, 150, '底牌', { size: TYPE.small, bold: true, color: COLOR.muted, ox: 0 }));
+    sortDdz(v.bottom).forEach((c, i) => b.add(sc.add.image(-272 + i * 50, 150, cardKey(c)).setDisplaySize(44, 62)));
+    b.add(text(sc, -6, 150, `${seatName(r.landlord)}叫 ${r.bid} 分`, { size: TYPE.small, bold: true, color: COLOR.ink, ox: 1 }));
+  }
+  // 右：哪边赢、我这副的分从 0 滚上去、叫分 × 倍数一颗胶囊、炸弹春天明牌一行
+  const rx = 210;
+  const sideCol = r.landlordWon ? COLOR.redDark : COLOR.teamThem;
+  b.add(text(sc, rx, -184, r.landlordWon ? '地主赢了这副' : '农民赢了这副', { size: TYPE.title, bold: true, color: sideCol }));
+  const focus = watch ? r.landlord : DDZ_ME;
+  const mineD = r.delta[focus]!;
+  b.add(text(sc, rx, -136, watch ? `${seatName(focus)}（地主）这副` : '你这副', { size: TYPE.small, bold: true, color: COLOR.muted }));
+  const big = text(sc, rx, -86, signed(dur(1) === 0 ? mineD : 0), { size: 66, bold: true, font: 'num', color: signColor(mineD) });
+  b.add(big);
+  if (dur(1) > 0 && mineD !== 0) {
+    const roll = { n: 0 };
+    sc.tweens.add({
+      targets: roll, n: mineD, duration: dur(520), delay: dur(200), ease: 'Cubic.easeOut',
+      onUpdate: () => { if (big.scene) big.setText(signed(Math.round(roll.n))); },
+      onComplete: () => {
+        if (!big.scene) return;
+        big.setText(signed(mineD)).setScale(1.25);
+        sc.tweens.add({ targets: big, scale: 1, duration: dur(180), ease: 'Back.easeOut' });
+      },
+    });
+  }
+  const pill = text(sc, rx, -18, `${r.bid} 分 × ${r.mult} 倍`, { size: TYPE.title, bold: true, color: 0xffffff });
+  const pw = pill.width + 40;
+  const pg = sc.add.graphics();
+  pg.fillStyle(sideCol, 1).fillRoundedRect(rx - pw / 2, -40, pw, 44, 22);
+  b.add([pg, pill]);
+  const extras = [r.bombs ? `炸弹 ${r.bombs} 个` : '', r.spring === 'spring' ? '春天' : r.spring === 'anti' ? '反春' : '', r.ming ? '明牌' : ''].filter(Boolean).join(' · ');
+  if (extras) b.add(text(sc, rx, 34, extras, { size: TYPE.label, bold: true, color: COLOR.redDark }));
+  if (r.spring) sc.springSeal(b, r.spring === 'anti');
+  // 封顶了（不洗牌的每副封顶、实盘的一场封顶）：写明本来多少分，不让人以为算错了
+  const capNote = r.capped && r.s < r.bid * r.mult ? `封顶了，本来 ${r.bid * r.mult} 分 · ` : '';
+  b.add(fitWidth(text(sc, rx, 74, `${capNote}地主${r.landlordWon ? '赢' : '输'} ${2 * r.s}，农民各${r.landlordWon ? '输' : '赢'} ${r.s}`, { size: TYPE.small, bold: !!capNote, color: capNote ? COLOR.redDark : COLOR.muted }), 360));
   // 好友房实盘：这一副的筹码和本场合计（只在我到账了时写）
   const ns = sc.netStake;
   const mine = ns?.seats[DDZ_ME];
@@ -137,10 +192,10 @@ export function showSettle(sc: DdzScene, r: DdzResult): void {
     const pv = ddzPointValue(ns.tier, tableRules(ns));
     const d = r.delta[DDZ_ME]!;
     // 一整句居中，只给数字着色：这一副和本场合计正负可能不同，各按各的符号
-    b.add(signedLine(sc, 0, 138, '实盘 · 这一副 {0} 筹码 · 本场 {1} 分（{2}）', [d * pv, mine.points, mine.points * pv], { size: TYPE.label, bold: true }));
+    b.add(signedLine(sc, rx, 118, '实盘 · 这副 {0} 筹码 · 本场 {1} 分（{2}）', [d * pv, mine.points, mine.points * pv], { size: TYPE.label, bold: true }));
   }
   const net = sc.net;
-  const next = new Button(sc, 160, 200, 240, 64, last ? '看总分' : net ? '继续' : '下一副', 'red', () => {
+  const next = new Button(sc, rx + 70, 196, 210, 64, last ? '看总分' : net ? '继续' : '下一副', 'red', () => {
     // 联机的"继续"：发出去，弹窗留着等人齐（refreshSettleWait 写在等谁）；房间开了下一副才收起来
     if (net && !last) {
       sc.act({ type: 'next' });
@@ -155,11 +210,11 @@ export function showSettle(sc: DdzScene, r: DdzResult): void {
       sc.pump();
     } else sc.act({ type: 'next' });
   }, last ? 'crown' : 'play');
-  const home = new Button(sc, -160, 200, 240, 64, '回首页', 'wood', () => sc.onHome(), 'back');
+  const home = new Button(sc, rx - 126, 196, 132, 56, '首页', 'wood', () => sc.onHome(), 'back');
   b.add([next, home]);
   b.setData('next', next);
   if (net && !last) {
-    sc.settleWait = text(sc, 160, 256, '', { size: TYPE.label, color: COLOR.ink });
+    sc.settleWait = text(sc, rx, 250, '', { size: TYPE.label, color: COLOR.ink });
     b.add(sc.settleWait);
     sc.refreshSettleWait();
   }
@@ -185,19 +240,40 @@ export function showGameOver(sc: DdzScene): void {
   if (me > 0 && !watch) {
     audio.sfx('win');
     burst(sc, worldW(sc) / 2, 200, 'confetti', 40, { speed: [200, 560], life: 1400, gravity: 420 });
-  }
-  b.add(text(sc, 0, -180, `打了 ${v.results.length} 副 · 你当了 ${v.results.filter((r) => r.landlord === DDZ_ME).length} 次地主`, { size: TYPE.body, color: COLOR.muted }));
+  } else if (!watch) audio.sfx('pass');
+  const top = Math.max(1, ...v.results.map((r) => r.mult));
+  b.add(text(sc, 0, -184, `打了 ${v.results.length} 副${top > 1 ? ` · 最高一副 × ${top} 倍` : ''}`, { size: TYPE.body, color: COLOR.muted }));
+  // 三家按总分一行一个（和每副结算同一套）：名次章、头像按输赢换表情、当了几次地主赢了几副，总分从 0 滚上去
   const order = [0, 1, 2].sort((x, y) => v.scores[y]! - v.scores[x]!);
+  const still = dur(1) === 0;
   order.forEach((s, i) => {
-    const y = -110 + i * 70;
+    const y = -122 + i * 86;
     const t = v.scores[s]!;
-    b.add(text(sc, -200, y, `${i + 1}. ${seatName(s)}`, { size: TYPE.title, bold: sc.isMe(s), color: COLOR.ink, ox: 0 }));
-    b.add(text(sc, 220, y, t > 0 ? `+${t}` : `${t}`, { size: TYPE.title, bold: true, font: 'num', color: t > 0 ? COLOR.green : t < 0 ? COLOR.red : COLOR.ink, ox: 1 }));
+    const g = sc.add.graphics();
+    g.fillStyle(i === 0 ? 0xf8e0d8 : 0xf3e6c9, 1).fillRoundedRect(-340, y - 36, 680, 72, 12);
+    if (sc.isMe(s)) g.lineStyle(3, COLOR.gold, 1).strokeRoundedRect(-340, y - 36, 680, 72, 12);
+    g.fillStyle(i === 0 ? COLOR.gold : COLOR.muted, 1).fillCircle(-298, y, 22);
+    b.add(g);
+    b.add(i === 0 ? sc.add.image(-298, y, texOr(sc, 'icon:crown')).setDisplaySize(30, 30) : text(sc, -298, y, String(i + 1), { size: TYPE.body, bold: true, font: 'num', color: 0xffffff }));
+    b.add(sc.add.image(-236, y, texOr(sc, `avatar:${seatPerson(s)}:${t > 0 ? 'happy' : 'sad'}`)).setDisplaySize(56, 56));
+    b.add(text(sc, -196, y - 12, seatName(s), { size: TYPE.body, bold: sc.isMe(s), color: COLOR.ink, ox: 0 }));
+    const lord = v.results.filter((r) => r.landlord === s).length;
+    const won = v.results.filter((r) => r.delta[s]! > 0).length;
+    b.add(text(sc, -196, y + 18, `当地主 ${lord} 次 · 赢 ${won} 副`, { size: TYPE.small, color: COLOR.muted, ox: 0 }));
+    const num = text(sc, 310, y, signed(still ? t : 0), { size: TYPE.title, bold: true, font: 'num', color: signColor(t), ox: 1 });
+    b.add(num);
+    if (still || t === 0) return;
+    const roll = { n: 0 };
+    sc.tweens.add({
+      targets: roll, n: t, duration: dur(640), delay: dur(160 + i * 120), ease: 'Cubic.easeOut',
+      onUpdate: () => { if (num.scene) num.setText(signed(Math.round(roll.n))); },
+      onComplete: () => { if (num.scene) num.setText(signed(t)); },
+    });
   });
   // 每日挑战：打完交一次分（重建画面再弹一次也不重交），结果写在这一行
   const daily = sc.ses.daily;
   if (daily) {
-    const line = text(sc, 0, 110, '正在交到今天的榜…', { size: TYPE.body, color: COLOR.muted });
+    const line = text(sc, 0, 124, '正在交到今天的榜…', { size: TYPE.body, color: COLOR.muted });
     b.add(line);
     if (!sc.ses.dailySent) {
       sc.ses.dailySent = true;
@@ -210,7 +286,7 @@ export function showGameOver(sc: DdzScene): void {
   // 好友房整场打完房间就结束，没有"再来一局"：只有回首页
   const solo = sc.solo;
   if (!solo) {
-    b.add(text(sc, 0, 120, '房间到这里就结束了，想再打就开个新房间', { size: TYPE.small, color: COLOR.muted }));
+    b.add(text(sc, 0, 128, '房间到这里就结束了，想再打就开个新房间', { size: TYPE.small, color: COLOR.muted }));
     const home = new Button(sc, 0, 200, 240, 64, '回首页', 'red', () => sc.leaveRoom(), 'back');
     b.add(home);
     sc.reg('over:home', home);

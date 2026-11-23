@@ -64,6 +64,14 @@ export function achDef(id: string): AchDef | undefined {
   return ACHIEVEMENTS.find((a) => a.id === id);
 }
 
+/** 能数出进度的成就（连胜、累计场数）：现在几 / 要几；一次就成的返回 null。成就墙上没解锁的画进度条 */
+export function achProgress(id: string, s: AchState): { n: number; of: number } | null {
+  const of = id === 'gd-streak3' ? 3 : id === 'gd-games10' || id === 'ddz-games10' ? 10 : 0;
+  if (!of) return null;
+  const n = id === 'gd-streak3' ? s.gdStreak : id === 'gd-games10' ? s.gdGames : s.ddzGames;
+  return { n: Math.min(n, of), of };
+}
+
 const nat = (n: unknown): number => (typeof n === 'number' && Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0);
 
 /** 把读出来的任何东西收拾成合法状态：版本不对当空，认不得的 id 丢掉，重复的去重 */
