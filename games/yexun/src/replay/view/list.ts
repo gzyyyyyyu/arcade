@@ -2,7 +2,7 @@
  * 录像列表（DOM）：最近的几局和每榜最好的一局，点"回放"进入回放。
  * 主代理接进菜单：`const list = new ReplayList(root, { onPlay: (rec) => startReplay(rec), onClose })`，菜单上"回放"按钮调 `list.show(loadReplays())`。
  */
-import { BLOCKED_TEXT, isBlocked, isOutdated, OUTDATED_TEXT, replayResult, replayTitle } from '../describe.ts';
+import { BLOCKED_TEXT, isBlocked, isOutdated, OUTDATED_TEXT, replayResult, replayTitle, showBest } from '../describe.ts';
 import type { ReplayRecord } from '../format.ts';
 import { closeModal, openModal } from '../../view/ui/modal.ts';
 import { PAGER_CTL, Pager } from '../../view/ui/pager.ts';
@@ -52,7 +52,7 @@ export class ReplayList {
       const small = document.createElement('small');
       const when = new Date(r.at);
       small.textContent = `${when.getMonth() + 1} 月 ${when.getDate()} 日 ${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`;
-      if (r.bestFor.length) {
+      if (showBest(r)) {
         const b = document.createElement('span');
         b.className = 'best';
         b.textContent = ' · 最好的一局';

@@ -75,7 +75,7 @@ export class RushStopPanel {
       name = '回血';
       text = full ? '血满了' : `回 ${Math.round(RUSH.shopHeal * 100)}% 血`;
     } else if (g.kind === 'reroll') {
-      pic = rushIcon('tube');
+      pic = rushIcon('reroll');
       name = '重抽 +1';
       text = `现在 ${w.rerolls} 次`;
     } else {

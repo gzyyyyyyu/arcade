@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld, fingerprint, RULES_VERSION, step, type World } from '../../src/core/index.ts';
 import type { OnlineSetup } from '../../src/online/types.ts';
-import { isBlocked, replayResult, replayTitle } from '../../src/replay/describe.ts';
+import { isBlocked, replayResult, replayTitle, showBest } from '../../src/replay/describe.ts';
 import { decodeDirs, decodePicks, encodeDirs, encodePicks, type ReplayRecord } from '../../src/replay/format.ts';
 import { ReplayPlayer } from '../../src/replay/player.ts';
 import { Recorder } from '../../src/replay/recorder.ts';
@@ -187,6 +187,13 @@ describe('录像存储', () => {
     expect(isBlocked(vigil)).toBe(false);
     expect(ReplayPlayer.from(vigil)?.outdated).toBe(true);
     expect(isBlocked({ ...rush, rules: RULES_VERSION })).toBe(false);
+  });
+  it('被拦的旧版连战录像不标「最好的一局」，当前版本和未拦的照常标', () => {
+    const oldRushBest = { ...fake('r', 1), rules: RULES_VERSION - 1, setup: { ...setupOf(1), rush: true }, bestFor: ['daily-rush-2026-11-22'] } as ReplayRecord;
+    expect(showBest(oldRushBest)).toBe(false);
+    expect(showBest({ ...oldRushBest, rules: RULES_VERSION })).toBe(true);
+    expect(showBest({ ...fake('v', 1), rules: RULES_VERSION - 1, bestFor: ['vigil'] })).toBe(true);
+    expect(showBest(fake('plain', 1))).toBe(false);
   });
   it('同一局重复存只留一份', () => {
     const list = addReplay(addReplay([], fake('a', 1)), fake('a', 1));
