@@ -35,6 +35,7 @@ import { emptyMatchLog, type Title } from '../../variants/guandan/stake/titles.t
 import type { Award } from '../../variants/guandan/net/awards.ts';
 import { COLOR, TYPE, css, minHit, GAME_HEIGHT } from '../common/theme.ts';
 import { goLobby, inGame, inOnlineGame, leaveText } from '../common/lobby.ts';
+import { DAILY_LEAVE } from '../common/daily.ts';
 import { join } from '../online.ts';
 import { Button, modal, text, toast, worldW, type Modal } from '../ui/kit.ts';
 import { confirm, openRules, openSettings } from '../ui/panels.ts';
@@ -260,6 +261,14 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
       return;
     }
     if (net) return this.leaveRoom();
+    if (this.dailyRun && this.dailyRun.result === null && inGame()) {
+      this.openOverlay('menu', confirm(this, DAILY_LEAVE, '回首页', () => this.home(), () => this.closeOverlay()));
+      return;
+    }
+    this.home();
+  }
+
+  private home(): void {
     this.cancelBot();
     this.scene.start('title');
   }

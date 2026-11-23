@@ -323,7 +323,7 @@ export function showNetStakeResult(sc: DdzScene, ns: DdzStakeView): void {
   b.add(text(sc, 0, -200, `斗地主好友房实盘 · ${TIER_NAME[ns.tier]}`, { size: TYPE.label, bold: true, color: COLOR.muted }));
   const head = watch ? '这一场打完了' : me.paid !== 'yes' ? '这一场不计输赢' : me.points === 0 ? '这场打平，0 分' : `这场 ${signed(me.points)} 分，${signed(me.points * pv)}`;
   b.add(text(sc, 0, -152, head, { size: TYPE.big, bold: true, color: me.paid !== 'yes' ? COLOR.ink : me.points > 0 ? COLOR.green : me.points < 0 ? COLOR.red : COLOR.ink }));
-  b.add(text(sc, 0, -100, ns.deals >= rules.roomDeals ? `打满 ${rules.roomDeals} 副` : `有人输赢到了一份（${rules.pps} 分），这一场提前结束`, { size: TYPE.label, color: COLOR.ink }));
+  b.add(text(sc, 0, -100, ns.deals >= rules.roomDeals ? `打满 ${rules.roomDeals} 副` : `有人输赢到了 ${rules.pps} 分，这一场提前结束`, { size: TYPE.label, color: COLOR.ink }));
   // 每个人：到账的写分，别的写"不计输赢"（电脑是庄家的）
   [0, 1, 2].forEach((seat, i) => {
     const s = ns.seats[seat]!;
@@ -355,9 +355,9 @@ export function showStakeResult(sc: DdzScene, ses: DdzStakeSession): void {
   const head = done.points === 0 ? '这场打平，0 分' : `这场 ${signed(done.points)} 分，${signed(done.points * pv)}`;
   b.add(text(sc, 0, -122, head, { size: TYPE.big, bold: true, color: done.points > 0 ? COLOR.green : done.points < 0 ? COLOR.red : COLOR.ink }));
   // 没打满就结束只有一种：有一家的累计到了 ±一份（核心按 cap 截）
-  const why = done.deals < rules.soloDeals ? `有人输赢到了一份（${rules.pps} 分），这一场提前结束` : `打满 ${rules.soloDeals} 副`;
+  const why = done.deals < rules.soloDeals ? `有人输赢到了 ${rules.pps} 分，这一场提前结束` : `打满 ${rules.soloDeals} 副`;
   b.add(text(sc, 0, -66, why, { size: TYPE.label, color: COLOR.ink }));
-  const status = text(sc, 0, -14, '正在结回…', { size: TYPE.body, bold: true, color: COLOR.ink, wrap: 700 });
+  const status = text(sc, 0, -14, '正在带回…', { size: TYPE.body, bold: true, color: COLOR.ink, wrap: 700 });
   b.add(status);
   const capLine = text(sc, 0, 32, '', { size: TYPE.label, bold: true, color: COLOR.redDark, wrap: 700 });
   b.add(capLine);
@@ -374,7 +374,7 @@ export function showStakeResult(sc: DdzScene, ses: DdzStakeSession): void {
     if (!sc.alive || !status.scene) return;
     home.setEnabled(true);
     if (r.kind === 'done') {
-      status.setText(r.balance === null ? '已经结回钱包' : `已经结回钱包，钱包还有 ${fmtChips(r.balance)}`);
+      status.setText(r.balance === null ? '已经带回钱包' : `已经带回钱包，钱包还有 ${fmtChips(r.balance)}`);
       if (r.capped > 0) capLine.setText(STAKE_TEXT.capped(r.capped));
       again.setEnabled(true);
     } else if (r.kind === 'gone') {

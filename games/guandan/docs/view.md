@@ -50,7 +50,7 @@
 - 牌桌（`TableScene`、`DdzScene`、`table/*.ts`）和估时间的模拟器（`ai-sim length`、`ddz-stake-sim --time`）读同一份，改节奏只改这里。电脑想多久在 `personas.ts` 的 `thinkTime`
   （不要 0.18–0.28 秒、连着有人不要时再快四分之一；跟牌 0.32–0.55；领出 0.42–0.69；炸弹前约 1 秒的犹豫是戏，不动），`tests/view/venue.test.ts` 锁着默认速度下普通出牌 ≤ 900 毫秒。
 - 设置里的慢 / 中 / 快（`SPEED_FACTOR` 0.7 / 1 / 1.7）乘在这些数上，默认"中"就是 `PACE` 的数。结算页没有强制停留，"下一副""继续"随时能点。
-- 单机"再来"都是一键直达：娱乐整局结束页的"再来一局"（控件 `again`）按这一局的难度、规则、局长直接开新局不回主页；实盘结算页的"再来一场"（控件 `again`）结回之后同档再带入一份，
+- 单机"再来"都是一键直达：娱乐整局结束页的"再来一局"（控件 `again`）按这一局的难度、规则、局长直接开新局不回主页；实盘结算页的"再来一场"（控件 `again`）带回之后同档再带入一份，
 - 带入没成就写出原因、回标题页并打开选档页（`table/again.ts` 的 `backToPicker`）；每日挑战的"再打一次"、残局的"下一关 / 重来"不变。
 
 ## 8. 手牌分列
@@ -77,7 +77,7 @@
 - 每日挑战（`doudizhu/daily.ts`）：种子只看北京时间的日期、两个普通难度电脑、6 副累计分交到平台 `daily-<日期>-ddz-v1`，不存档、不记战绩。冒烟 `npm run shot -- --only ddz`。
 - 残局闯关（`doudizhu/puzzle.ts`，规则核心在 `src/variants/doudizhu/puzzles/`，现状见 `docs/doudizhu.md` 第 6 节）：主页斗地主面板战绩条右边的"残局"（控件 `puzzles`，选关格子 `puzzle:<id>`），`PuzzleSession` 继承 `DdzSession`、农民走 `bestReply`、不存档不计战绩，进度在 `guandan.ddz.puzzles`；牌桌里农民的牌摊开，不开牌桌互动。
 - 每日残局（`puzzles/daily.ts` 生成，只看日期，求解器验过必胜；`DailyPuzzleSession` 继承 `PuzzleSession`，计时从第一手到出完，分数 `max(10, 600 − 秒 − 30×重来 − 60×提示)`，榜 `daily-<日期>-ddzpz`，入口是选关弹窗顶上的今日大卡 `puzzle:daily`；主页切到斗地主、牌桌素材烘完后先把今天的题算好）：详见 `docs/doudizhu.md` 第 6 节，记录在 `guandan.ddz.dailyPuzzle`。
-- 单机实盘（`doudizhu/stake.ts`，数字见 `docs/stake-ddz.md`）：`DdzStakeSession` 是 `DdzSession` 加一场的账，一场 3 副（老存档按它存档里的版本打完），带入、结回、放弃走掼蛋同一套接口（请求体多 `variant: 'ddz'`），选档页是同一个（`ui/stake.ts` 的 `openTierPicker` 传 `DDZ_FLOW`），选档页里有"和电脑 / 快速匹配"（匹配排不到转同档单机）；
+- 单机实盘（`doudizhu/stake.ts`，数字见 `docs/stake-ddz.md`）：`DdzStakeSession` 是 `DdzSession` 加一场的账，一场 3 副（老存档按它存档里的版本打完），带入、带回、放弃走掼蛋同一套接口（请求体多 `variant: 'ddz'`），选档页是同一个（`ui/stake.ts` 的 `openTierPicker` 传 `DDZ_FLOW`），选档页里有"和电脑 / 快速匹配"（匹配排不到转同档单机）；
   ref `solo-ddz-…` 和掼蛋的互不匹配，"别的设备上开的那一份"各认各的（`strayStake` / `strayDdzStake`）。冒烟 `npm run stake-smoke -- --ddz-only`。
 - 掼蛋每日挑战（`guandan/daily.ts`，主页战绩条右边的"每日挑战"，控件 `daily`，单独部署不摆）：`DailySession`（继承 `Session`，不存档、不计战绩）用只看北京时间日期的种子、三个普通难度电脑、默认地方规则，
 - 打满 8 副或有一队先过 A 就结束，分数是我方每副 `dealPoints` 的累计（不封顶），交到平台 `daily-<日期>-gd`；牌桌顶上写"每日 · 第 n/8 副"，结算页写这一场的分和交分结果，"再打一次"同一个种子重开。
@@ -114,7 +114,7 @@
 - 牌桌顶栏不随每一手重建：每一步走 `refreshTopBar`，按 `topBarKey`（级数、副数、倍数、实盘条的字……）没变就只重画记牌器（`counterBox`）——整条重建会让按下和松手落在新旧两个按钮上、点击丢掉（online-smoke 查一副里的 `topBuilds()` 次数）；顶栏要显示新东西时把它加进 `topBarKey`。牌桌顶栏的图标两个玩法共用 `TableSceneBase.buildTopIcons`：从右往左回首页、设置、规则（控件 `top0`–`top2`，斗地主叫 `home` / `settings` / `rules`），最左云存档；静音不单放，在设置里。手机上聊天按钮由 `chatTopStyle` 画成顶栏高度内的圆钮（kit 的按钮透明、只留点按区）。
 - 弹窗：设置、规则、战绩点弹窗外即关（`modal()` 的 `dismissOnOutside`，和 ✕、Esc 同一条关闭路径），这类弹窗同时只留一个；确认框点外不关。设置分"声音 / 对局 / 地方规则"三个页签，底下有"恢复默认"（`store.ts` 的 `resetSettings`，只动设置）。
 - 大厅静音带进来（kit `docs/sound.md`）：启动时 `platformSoundOn()` 读一次大厅的 `arcade.sound`，关了就这一次先静音、"全部声音"显示静音；在设置里打开只管这一次，不写 `arcade.sound`、不改自己存的 `muted`（`common/audio.ts` 的 `applyAudio` / `pickMuted`）。
-- 断网统一说 `stake-text.ts` 的 `NET_DOWN`（"网络不通，检查后重试"）配"重试"按钮：好友房面板（`#ol-retry`）、实盘选档页钱包连不上（钱包那行右边，控件 `tierRetry`）、实盘带入结回、出错面板。筹码的事只说"带入 / 结回"。
+- 断网统一说 `stake-text.ts` 的 `NET_DOWN`（"网络不通，检查后重试"）配"重试"按钮：好友房面板（`#ol-retry`）、实盘选档页钱包连不上（钱包那行右边，控件 `tierRetry`）、实盘带入带回、出错面板。筹码的事只说"带入 / 带回"。
 - 画布里能点的一律用 `ui/kit.ts` 的 `Button`、`iconButton`、`segmented`（自带悬停、按下、禁用、加载中，登记进 `ui/focus.ts` 的键盘焦点；弹窗用 `modal()`，自带焦点层和 Esc）。
 - 点按区域至少 44 CSS 像素：`minHit()` 是按当前缩放换算的世界坐标（电脑 44、手机横屏约 82–100），按钮默认就扩到这么大；挨得近的用 `setHit` 收到间距或用它的 `dy` 挪到空着的一边（`segmented` 的 `hitDy` 同理），不许互相压着；贴着屏幕上沿的顶栏按钮用 `setTopHit`（从上沿往下算，不伸出屏幕），最右一个往里放半个点按区。弹窗（`modal()`）右上角的关闭键自己避开屏幕上沿和右沿；行数多的弹窗（选难度、选档位）按行距 `minHit()` + 2 排，多出来的高度加在弹窗上。
 - 输赢的分和筹码一律正绿负红（`theme.ts` 的 `signColor`；深色底上用 `signColorOnDark`，亮一档）：整行都是一个数的就整行着色；数字夹在一句话里的用 `ui/kit.ts` 的 `signedLine`（模板里写 `{0}`、`{1}`，只把数字那几段换颜色，不换行、不重排整句；`stake-text.ts` 的 `fillSigned` 用同一份模板拼整句，顶栏的 `topBarKey` 靠它判断要不要重画）。放不下一行的长句拆成几行（`SignedRow[]`，`fillRows` 拼回整句），确认框 `ui/panels.ts` 的 `confirm` 收这种行数组、每行一个 `signedLine`（好友房"离开房间？"就是这样）。分享卡同样：实盘那张的筹码大字带 kit 的 `sign`（`guandan/share-card.ts`），正绿负红，不输不赢是白字。

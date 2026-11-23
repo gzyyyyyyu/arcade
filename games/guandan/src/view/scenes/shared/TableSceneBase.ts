@@ -176,7 +176,12 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
     return true;
   }
 
-  setStatus(msg: string, warn = false): void {
+  /**
+   * atPass：对着"不要"按钮摆（"要不起，点 不要"），不压桌子中间刚出的牌和牌型标签；
+   * 别的话照旧在按钮行正中上方
+   */
+  setStatus(msg: string, warn = false, atPass = false): void {
+    this.status.x = atPass ? this.btnPass.x : worldW(this) / 2;
     this.status.setText(msg);
     this.statusBg.clear();
     if (!msg) return;
@@ -468,8 +473,8 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
     const me = ns?.seats[MY_SEAT];
     // 旁观的人没有自己的账
     if (!ns || !me || this.watching) return;
-    if (me.paid === 'yes') t.setText(me.out ? '已经结回钱包' : '正在结回钱包…');
-    else if (me.paid === 'pending') t.setText('带入还没到账，到账后原样结回一份');
+    if (me.paid === 'yes') t.setText(me.out ? '已经带回钱包' : '正在带回钱包…');
+    else if (me.paid === 'pending') t.setText('带入还没到账，到账后原样带回');
     else t.setText(roomWhy(ns.why ?? ''));
   }
 

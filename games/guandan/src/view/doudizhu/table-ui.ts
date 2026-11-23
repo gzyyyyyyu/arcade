@@ -208,7 +208,8 @@ export function buildTopMid(sc: DdzScene, c: Phaser.GameObjects.Container, v: Re
  */
 export function buildPuzzle(sc: DdzScene, W: number): void {
   const p = sc.puzzle!.puzzle;
-  const t = fitWidth(text(sc, 0, 0, p.tip, { size: TYPE.label, color: COLOR.goldLight }), W - DDZ_PUZZLE_TIP.widthCut);
+  // 过关条件写在最前（只有提示时不知道怎样算过）；放不下时截的是后面的提示
+  const t = fitWidth(text(sc, 0, 0, `过关：你先出完 · ${p.tip}`, { size: TYPE.label, color: COLOR.goldLight }), W - DDZ_PUZZLE_TIP.widthCut);
   const bw = t.width + DDZ_PUZZLE_TIP.padX;
   const c = sc.add.container(W / 2, TOPBAR_H + DDZ_PUZZLE_TIP.dy).setDepth(450);
   const g = sc.add.graphics();
@@ -455,7 +456,7 @@ export function refreshButtons(sc: DdzScene): void {
   sc.btnPlay.setEnabled(r.ok);
   if (sel.length === 0) {
     const hints = sc.ensureHints(v);
-    if (!lead && hints.length === 0) sc.setStatus('要不起，点 不要', true);
+    if (!lead && hints.length === 0) sc.setStatus('要不起，点 不要', true, true);
     else sc.setStatus(lead ? (v.landlord === DDZ_ME && v.trick.length === 0 ? '你是地主，先出牌' : '轮到你出牌') : '轮到你：压过它，或者不要');
   } else sc.setStatus(r.ok ? r.label : r.reason, !r.ok);
 }

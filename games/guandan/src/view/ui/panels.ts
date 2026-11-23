@@ -72,8 +72,8 @@ export function openSettings(scene: Phaser.Scene, opts: { onTutorial?: () => voi
     row(colL, rowY(2), '牌背');
     seg(colL, rowY(2), 120, [{ label: '红', value: '0' }, { label: '绿', value: '1' }], String(s.back), (v) => updateSettings({ back: Number(v) as 0 | 1 }));
     // 别人（好友房的人、单机的电脑）的互动（短语、表情、道具，docs/table-fun.md 第 5 节）：关掉就不看也不听，单机的电脑也不发（自己照样能发）
-    row(colR, rowY(0), '互动');
-    seg(colR, rowY(0), 84, [{ label: '开', value: '1' }, { label: '不看', value: '0' }], s.taunts ? '1' : '0', (v) => updateSettings({ taunts: v === '1' }));
+    row(colR, rowY(0), '表情道具');
+    seg(colR, rowY(0), 120, [{ label: '显示', value: '1' }, { label: '不显示', value: '0' }], s.taunts ? '1' : '0', (v) => updateSettings({ taunts: v === '1' }));
     // 聊天（好友房 0.22.0、单机 0.23.0）：开 / 不和陌生人（快速匹配桌上不收不发打字，下次进匹配桌生效）/ 不看，存的还是 chat、strangerChat 两项
     row(colR, rowY(1), '聊天');
     seg(colR, rowY(1), 84, [{ label: '开', value: '1' }, { label: '不和陌生人', value: 'friends' }, { label: '不看', value: '0' }],
@@ -102,8 +102,8 @@ export function openSettings(scene: Phaser.Scene, opts: { onTutorial?: () => voi
       seg(colL, rowY(i), 600, items, cur2, pick, Math.max(104, minHit()));
     };
     rule(0, '三带二能带一对王', [{ label: '能', value: '1' }, { label: '不能', value: '0' }], rules.fullHouseJokerPair ? '1' : '0', (v) => setRule({ fullHouseJokerPair: v === '1' }));
-    rule(1, '打 A 没过几次退回打 2', [{ label: '3 次', value: '3' }, { label: '不退', value: '0' }], String(rules.aFailLimit === 0 ? 0 : 3), (v) => setRule({ aFailLimit: Number(v) }));
-    rule(2, '双下两人合计两张大王抗贡', [{ label: '算', value: '1' }, { label: '不算', value: '0' }], rules.antiTributeCombined ? '1' : '0', (v) => setRule({ antiTributeCombined: v === '1' }));
+    rule(1, '打 A 连续几次没过就退回打 2', [{ label: '3 次', value: '3' }, { label: '不退', value: '0' }], String(rules.aFailLimit === 0 ? 0 : 3), (v) => setRule({ aFailLimit: Number(v) }));
+    rule(2, '被双下时，两人合计两张大王也能抗贡', [{ label: '算', value: '1' }, { label: '不算', value: '0' }], rules.antiTributeCombined ? '1' : '0', (v) => setRule({ antiTributeCombined: v === '1' }));
     page.add(text(scene, colL, resetY, '新开一局时生效', { size: TYPE.small, color: COLOR.muted, ox: 0 }));
   };
 
@@ -192,7 +192,7 @@ export function openStats(scene: Phaser.Scene, onAchievements?: () => void): Mod
       const st = getStats();
       if (st.games === 0 && st.deals === 0) return empty('打完第一局，这里会记下你的胜率、连胜和拿头游的次数');
       cells([
-        ['局数', String(st.games), COLOR.ink],
+        ['打完整局', String(st.games), COLOR.ink],
         ['胜率', pct(st.wins, st.games), COLOR.red],
         ['最高连胜', String(st.bestStreak), COLOR.goldDark],
         ['当前连胜', String(st.streak), COLOR.ink],
@@ -204,7 +204,7 @@ export function openStats(scene: Phaser.Scene, onAchievements?: () => void): Mod
       const st = getDdzStats();
       if (st.games === 0 && st.deals === 0) return empty('打完第一局，这里会记下你的胜率、当地主和春天的次数');
       cells([
-        ['局数', String(st.games), COLOR.ink],
+        ['打完整局', String(st.games), COLOR.ink],
         ['胜率', pct(st.wins, st.games), COLOR.red],
         ['打过副数', String(st.deals), COLOR.ink],
         ['当地主', String(st.landlord), COLOR.ink],
@@ -442,9 +442,9 @@ function pageFlow(scene: Phaser.Scene, page: Phaser.GameObjects.Container, box: 
     ['组队', '你和对面的小美一队', 'cards'],
     ['出牌', '压过上家，或者不要；都不要时最后出牌的人再出', 'play'],
     ['接风', '有人出完了，大家都不要时由他的队友接着出', 'restart'],
-    ['名次', '先出完的是头游，然后二游、三游、末游', 'crown'],
+    ['名次', '先出完的是头游，然后二游、三游、末游；一队占了三游末游叫双下', 'crown'],
     ['升级', '头游那队升级：队友二游 +3，三游 +2，末游 +1', 'stats'],
-    ['进贡', '末游把最大的牌给头游，头游还一张 10 以下的；两张大王可以抗贡', 'back'],
+    ['进贡', '末游把最大的牌给头游，头游还一张 10 以下的；双下两人都进贡；手里有两张大王就不用进（抗贡）', 'back'],
     ['打 A', '打 A 时拿头游、队友不是末游才算过 A，整局获胜', 'check'],
   ];
   // 横屏一行一条（名字和说明并排）；竖屏说明换到名字下面、按宽度折行，行高跟着说明的行数走

@@ -3,6 +3,7 @@
  * 分数是我这一场的累计分，交到平台的每日榜 daily-<日期>-ddz（子榜 ddz，平台按 public/daily.json 显示）。
  * 日期、交分、结束页的话和掼蛋共用（daily.ts）。
  */
+import { DDZ_FUN } from '../../variants/doudizhu/core/game.ts';
 import { dailyBoard, submitDaily, type DailySubmit } from '../common/daily.ts';
 
 export { beijingDate, dailySubmitText, type DailySubmit } from '../common/daily.ts';
@@ -12,6 +13,9 @@ export { beijingDate, dailySubmitText, type DailySubmit } from '../common/daily.
 const DDZ_DAILY_RULES = 1;
 /** 两家电脑的难度：大家打同样的对手 */
 export const DDZ_DAILY_LEVEL = 'normal';
+
+/** 进桌前的一句（和掼蛋的 GD_DAILY_INTRO 同一个说法） */
+export const DDZ_DAILY_INTRO = `今天全站同一副牌、同样的电脑：打一场 ${DDZ_FUN.deals} 副，比你的得分，上今天的榜（能重打，记最好的一次）`;
 
 /** 这一天的种子：只和日期有关，所有人一样 */
 export function ddzDailySeed(date: string): string {

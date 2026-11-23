@@ -17,7 +17,7 @@
     双下的进贡、还贡也靠 `actors()` 两个人同时等。结算页开着时，别人点"继续"的帧（step 不变）要当场收下刷新，不然会堵住开下一副的那一帧。
   - 路由：`POST /games/guandan/room/rooms` 开房（`acceptCreate`），`GET /games/guandan/room/rooms/<6 位码>/ws` 进房（`acceptJoin`），都要登录（问平台 `/api/me`）、同源。
     页面里这些路径按页面所在目录写相对的（`ROOM_REL`、`STAKE_REL`、`MATCH_REL`，ws 地址经 `room-link.ts` 的 `socketUrl`），带挂载点的 `ROOM_PATH`、`STAKE_PATH` 只给 Worker 路由用；
-    页面发的请求都经 `platform.ts` 的 `timed()` 带 10 秒超时（`FETCH_TIMEOUT_MS`），网络挂住时开房按钮不一直转、实盘结回的重试等得到失败。
+    页面发的请求都经 `platform.ts` 的 `timed()` 带 10 秒超时（`FETCH_TIMEOUT_MS`），网络挂住时开房按钮不一直转、实盘带回的重试等得到失败。
     变量 `ONLINE`：`"on"` 开放；`"off"`（以及配错的值）开房回 404（页面说"好友房暂时关了"），进房接上就以 4004 关掉（和"没有这个房间"一样，客户端不再重连）。
     标题页一直有"好友房"，本机记着这个账号的房间时旁边还有"回到房间"；`?online=1` 是"打开就弹出好友房面板"（平台大厅的入口），邀请链接 `room=` 不带它也能进。
     房间路由不经过 `GATE`：认人由 arcade-kit 问平台，认不出就 4401。
@@ -58,26 +58,26 @@
 - 页面的联机会话基类是 `common/room-link.ts` 的 `RoomLink`（连接、座位、帧队列、出手锁到 ack、聊天、互动），掼蛋 `NetSession`、斗地主 `doudizhu/net.ts` 的 `DdzNetSession` 各自继承；`DdzScene` 经 `DdzTableSession` 接口同时用单机和联机会话，会话放在 `app.ddzNet`。
 - 玩法由房间信息 `room.opts.variant` 说了算，不看 `guandan.variant`：开房、匹配、记着的房间（`guandan.room` 的 `variant`）知道玩法就直接按它连，输码和邀请链接先当掼蛋连，发现不对就换会话重连。
 - kit 的 `RoomInfo.seats` 按最大座位数给 4 个，斗地主只用前 3 个（`seatCountOf`）。匹配档位 `ddz-fun`、`ddz-real-<档位>`、不洗牌实盘 `ddz-clump-<档位>`，一桌 3 人。冒烟 `npm run online-smoke -- --ddz`（三个浏览器，约 2 分钟）。
-- 斗地主好友房实盘：开房请求体 `{ variant: 'ddz', stake: 档位 }`（`hall.ts` 的 `parseHallOpts`），桌在 `src/variants/doudizhu/net/stake.ts`（状态 `DdzNet.stake`、视图 `DdzNetView.stake`），3 副或任何一家到 ±一份（50 分），ref `ddz-<16 位十六进制>`；一场的数按规则版本记（`StakeRules`：存档 `rules`、桌 `DdzStakeTable.rules`、结回请求体 `rules`，没有字段 = 版本 1，老的 8 副 / 6 副、每分 1/40 按老数打完），
-  带入、结回、离开、再带入的规矩和掼蛋好友房是同一份实现（`src/net/stake-table.ts`），房间的 `perform` 也是同一个；电脑暂用最强一档。房间测试 `tests/room/ddz-stake.spec.ts`，规则层 `tests/ddz/ddz-net-stake.test.ts`，冒烟 `npm run stake-smoke -- --ddz-room`。
+- 斗地主好友房实盘：开房请求体 `{ variant: 'ddz', stake: 档位 }`（`hall.ts` 的 `parseHallOpts`），桌在 `src/variants/doudizhu/net/stake.ts`（状态 `DdzNet.stake`、视图 `DdzNetView.stake`），3 副或任何一家到 ±一份（50 分），ref `ddz-<16 位十六进制>`；一场的数按规则版本记（`StakeRules`：存档 `rules`、桌 `DdzStakeTable.rules`、带回请求体 `rules`，没有字段 = 版本 1，老的 8 副 / 6 副、每分 1/40 按老数打完），
+  带入、带回、离开、再带入的规矩和掼蛋好友房是同一份实现（`src/net/stake-table.ts`），房间的 `perform` 也是同一个；电脑暂用最强一档。房间测试 `tests/room/ddz-stake.spec.ts`，规则层 `tests/ddz/ddz-net-stake.test.ts`，冒烟 `npm run stake-smoke -- --ddz-room`。
 
 ## 3. 实盘
 
 - 实盘（设计和数字在 `docs/stake.md`，钱包接口是仓库 `docs/platform-backend.md` 5.9）：
-  - 规则都在 `src/variants/guandan/stake/`（纯函数）：档位、每分 = 一份的 1/`POINTS_PER_SHARE`（现为 25，CI 模拟定）、封顶 ±一份、单机 3 副 / 好友房 3 副（实盘要 3–8 分钟）、单机每档的电脑、结回额、ref 和 op 的拼法。
+  - 规则都在 `src/variants/guandan/stake/`（纯函数）：档位、每分 = 一份的 1/`POINTS_PER_SHARE`（现为 25，CI 模拟定）、封顶 ±一份、单机 3 副 / 好友房 3 副（实盘要 3–8 分钟）、单机每档的电脑、带回额、ref 和 op 的拼法。
     Worker、页面、以后的房间都从这里取，不各算一份。
     一场用哪一套数记在状态里（`rules`：2 = 现在，没有 = 3 副之前开的 `RULES_V1`：8 副 / 5 副、每分 1/20）；旧存档、旧房间按旧的打完，改数只加新版本、不改旧的（`docs/stake.md` 1.5）。钱包的 ref、op 只能是 8–64 位的 `[A-Za-z0-9_-]`（不能带冒号），测试锁着。
   - 单机：`worker/stake.ts` 的 `POST /games/guandan/api/stake/{buyin,settle,refund}` 认人（kit 的 `whoIs`）、只认本站 Origin、查数在规则范围里，
     转给服务绑定 `WALLET`（`entrypoint: WalletService`、`props.game: guandan`，`tests/config.test.ts` 守着），`mode: client`。钱包的回话原样带回；
     业务上的拒绝走返回值（200 + `{ ok: false, error }`），HTTP 状态码只说"没到钱包"（400 / 401 / 403 / 503）。
-  - 页面：`src/view/guandan/stake.ts`（存档 `guandan.stake`、`StakeSession`、结回和放弃）、`src/view/common/stake-api.ts`（钱包和三个接口、钱包忙时重试，斗地主共用）、`src/view/ui/stake.ts`（选模式、选档位）、`src/view/common/stake-text.ts`（说的话）。
-    一场结束先把要结的数记进存档，再去结回；结回、放弃遇到 `busy` / `internal` / 连不上按同一个 op 重试，还不行留着存档下次再结；`no_stake`（结过）、`expired`（过期退回过）都算办完。
+  - 页面：`src/view/guandan/stake.ts`（存档 `guandan.stake`、`StakeSession`、带回和放弃）、`src/view/common/stake-api.ts`（钱包和三个接口、钱包忙时重试，斗地主共用）、`src/view/ui/stake.ts`（选模式、选档位）、`src/view/common/stake-text.ts`（说的话）。
+    一场结束先把要结的数记进存档，再去带回；带回、放弃遇到 `busy` / `internal` / 连不上按同一个 op 重试，还不行留着存档下次再结；`no_stake`（结过）、`expired`（过期退回过）都算办完。
     实盘不计战绩、不写 `guandan.save`、规则用默认；主页直接有"娱乐 / 实盘 / 好友房"三张卡，实盘卡进选档。冒烟 `npm run stake-smoke`（本地栈的假平台带一个内存里的假钱包 RPC）。
   - 好友房：开房请求体 `{ stake: 档位 }` → kit 的开房选项（`RoomOpts`，规则的 `options` 校验）。桌在 `src/variants/guandan/net/stake.ts`，状态里是 `NetState.stake`（娱乐房间没有这个字段，
     所有实盘的钩子对它原样返回）：`begin` 给每个真人记带入（真人不到 2 个整场不计输赢）、`seated` 管换人——
-    接管开局时就是电脑的座位记一笔带入，点"离开"的人按当时的分马上结回（一副打到一半离开的，等这副打完再结，docs/stake.md 3.3），走了又回来用新的 ref `<ref>s<座位>n<第几份>` 再带入一份，
-    带入被拒的人有"重新带入"（不轮流的 `buyin`）；每副 `stakeDeal` 记账，一场结束（3 副 / 过 A / 到账的都封顶）`over` 为真、记结回，`closing` 就地结束。
-    结回带战绩小结 `stats`（`src/variants/guandan/stake/stats.ts`）。房间的 `perform`（`worker/room.ts`）去钱包办：带入前先 `view`（钱包只记最近 32 个 op），
+    接管开局时就是电脑的座位记一笔带入，点"离开"的人按当时的分马上带回（一副打到一半离开的，等这副打完再结，docs/stake.md 3.3），走了又回来用新的 ref `<ref>s<座位>n<第几份>` 再带入一份，
+    带入被拒的人有"重新带入"（不轮流的 `buyin`）；每副 `stakeDeal` 记账，一场结束（3 副 / 过 A / 到账的都封顶）`over` 为真、记带回，`closing` 就地结束。
+    带回带战绩小结 `stats`（`src/variants/guandan/stake/stats.ts`）。房间的 `perform`（`worker/room.ts`）去钱包办：带入前先 `view`（钱包只记最近 32 个 op），
     `busy` / `internal` / 异常抛出去让 kit 退避重试，业务拒绝回 `{ ok: false, error }` 交给 `settled`。视图 `NetView.stake` 公开每个座位的分和到账，被拒原因只给自己。
     房间测试 `tests/room/stake.spec.ts` 用 `tests/room/wallet.ts` 的假钱包（测试入口 `tests/room/main.ts` 多导出 `FakeWallet` / `WalletBank`，WALLET 绑到自己）。
 

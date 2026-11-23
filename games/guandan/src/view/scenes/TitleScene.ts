@@ -8,15 +8,15 @@ import { levelName } from '../guandan/labels.ts';
 import { Session } from '../guandan/session.ts';
 import { randomSeed } from '../common/seed.ts';
 import type { TierId } from '../../variants/guandan/stake/index.ts';
-import { LENGTH_CARD, LEVEL_CARD, STAKE_ERROR, TIER_NAME, stakeError } from '../common/stake-text.ts';
+import { LENGTH_CARD, LEVEL_CARD, STAKE_ERROR, TIER_NAME, stakeError, stars } from '../common/stake-text.ts';
 import { StakeSession, buyinStake, clearStake, loadStake, stakeExpired, stakeLeft } from '../guandan/stake.ts';
 import { getDdzStats, getSettings, getStats, getVariant, loadDdzSave, loadSave, setVariant, updateSettings, type DdzDeal, type VariantId } from '../store.ts';
 import { DdzSession, ddzFunOpts } from '../doudizhu/session.ts';
 import { dailyPuzzleOf, startDailyPuzzle, startPuzzle } from '../doudizhu/puzzle.ts';
 import { openPuzzlePicker } from '../ui/puzzles.ts';
 import { DDZ_FLOW, DdzStakeSession, clearDdzStakeSave, ddzStakeExpired, ddzStakeLeft, loadDdzStakeSave } from '../doudizhu/stake.ts';
-import { DDZ_DAILY_LEVEL, beijingDate, ddzDailySeed } from '../doudizhu/daily.ts';
-import { DailySession } from '../guandan/daily.ts';
+import { DDZ_DAILY_INTRO, DDZ_DAILY_LEVEL, beijingDate, ddzDailySeed } from '../doudizhu/daily.ts';
+import { DailySession, GD_DAILY_INTRO } from '../guandan/daily.ts';
 import { COLOR, LIGHT, RADIUS, TYPE, minHit, phoneType } from '../common/theme.ts';
 import { FIGURE_SIZE, LANTERN_SIZE, homeLayout, panelRows } from '../common/home-layout.ts';
 import { LOW_MEMORY } from '../common/device.ts';
@@ -40,6 +40,8 @@ const ICON_LABEL: Record<string, string> = { rules: '规则', settings: '设置'
 // 空战绩条：右边挤着每日挑战（斗地主还有残局），话要短到 1280 宽也不用省略号截（docs/ui.md 第 10 节）
 const EMPTY_STATS_LINE = '还没打过 · 去打一局 ›';
 const EMPTY_STATS_SHORT = '去打一局 ›';
+/** 打过几副、还没打完一整局（战绩按整局算胜率）：不说"还没打过" */
+const dealsOnlyLine = (deals: number): string => `打过 ${deals} 副 · 再打一局 ›`;
 const PITCH_DDZ ='一个地主对两个农民，谁先出完谁那边赢';
 const PITCH_DDZ_SHORT = '一个地主对两个农民';
 
@@ -175,7 +177,7 @@ export class TitleScene extends Phaser.Scene {
     };
     if (stake) {
       const left = stakeLeft(stake);
-      const { btn, line } = primary('resumeStake', stake.settle ? '结回上次的实盘' : '接着打实盘', `${TIER_NAME[stake.tier]} · 打完 ${left.dealsDone}/${left.dealsTotal} 副 · {0} 分`, () => this.resumeStake(), [left.points]);
+      const { btn, line } = primary('resumeStake', stake.settle ? '带回上次的实盘' : '接着打实盘', `${TIER_NAME[stake.tier]} · 打完 ${left.dealsDone}/${left.dealsTotal} 副 · {0} 分`, () => this.resumeStake(), [left.points]);
       // 换了账号的人看不到上一个人的实盘（存档留着，那一份到期退回给原来的账号），主按钮换回"快速开始"
       const ref = stake.ref;
       const owner = stake.userId;
@@ -191,7 +193,7 @@ export class TitleScene extends Phaser.Scene {
     // 模式卡：娱乐（选难度）、实盘（选档）、好友房；单独部署没有实盘
     const modes: [string, string, string, ButtonStyle, string, () => void][] = [
       ['fun', '娱乐', '随便玩', 'green', 'robot', () => this.pickFun(saved)],
-      ...(standalone() ? [] : [['stake', '实盘', '带一份筹码', 'gold', 'crown', () => this.pickStake()] as [string, string, string, ButtonStyle, string, () => void]]),
+      ...(standalone() ? [] : [['stake', '实盘', '带筹码', 'gold', 'crown', () => this.pickStake()] as [string, string, string, ButtonStyle, string, () => void]]),
       ['online', '好友房', '叫朋友来', 'blue', 'cards', () => openOnline()],
     ];
     const gap = 16;
@@ -217,7 +219,7 @@ export class TitleScene extends Phaser.Scene {
       ? daily0
         ? `胜率 ${Math.round((st.wins / st.games) * 100)}%  ·  头游 ${st.firsts} 次`
         : `胜率 ${Math.round((st.wins / st.games) * 100)}%  ·  最高连胜 ${st.bestStreak}  ·  头游 ${st.firsts} 次`
-      : EMPTY_STATS_LINE;
+      : st.deals > 0 ? dealsOnlyLine(st.deals) : EMPTY_STATS_LINE;
     // 战绩条右边是每日挑战（全服同一副牌，打完上今天的榜；单独部署没有榜，不摆）
     const daily = !standalone();
     const lx = daily ? P.x + 24 + (inner - 176) / 2 : cx;
@@ -237,7 +239,7 @@ export class TitleScene extends Phaser.Scene {
       // 点按区往下挪到模式卡底边以下（手机横屏要 minHit() 高，居中会伸进卡里）
       const dh = Math.max(48, minHit());
       const top = Math.max(sy - dh / 2, cy + R.cardH / 2 + 1);
-      this.buttons.daily = new Button(this, P.x + 24 + inner - 88, sy, 160, 48, '每日挑战', 'gold', () => this.newGdDaily(), 'crown').setHit(160, dh, top + dh / 2 - sy).setDepth(20);
+      this.buttons.daily = new Button(this, P.x + 24 + inner - 88, sy, 160, 48, '每日挑战', 'gold', () => this.dailyIntro(GD_DAILY_INTRO, () => this.newGdDaily()), 'crown').setHit(160, dh, top + dh / 2 - sy).setDepth(20);
     }
 
     this.buildCorner(W, L.portrait);
@@ -335,7 +337,7 @@ export class TitleScene extends Phaser.Scene {
     if (stake) {
       const s = stake;
       const left = ddzStakeLeft(s);
-      this.buttons.resumeStake = new Button(this, cx, by, inner, 72, s.settle ? '结回上次的实盘' : '接着打实盘', 'red', () => this.startDdzStake(DdzStakeSession.fromSave(s)), 'play').setDepth(20);
+      this.buttons.resumeStake = new Button(this, cx, by, inner, 72, s.settle ? '带回上次的实盘' : '接着打实盘', 'red', () => this.startDdzStake(DdzStakeSession.fromSave(s)), 'play').setDepth(20);
       signedLine(this, cx, by + 52, `${TIER_NAME[s.tier]} · 打完 ${left.dealsDone}/${s.state.opts.deals} 副 · {0} 分`, [left.points], { size: TYPE.small, color: 0xf6e4c0, dark: true }).setDepth(20);
     } else {
       const btn = saved
@@ -348,7 +350,7 @@ export class TitleScene extends Phaser.Scene {
     // 模式卡（和掼蛋同一种排法）：娱乐（选难度）、实盘（选档，单独部署没有钱包不摆）、好友房
     const modes: [string, string, string, ButtonStyle, string, () => void][] = [
       ['fun', '娱乐', phone ? '随便玩' : '和稳哥、幺妹儿', 'green', 'robot', () => this.pickDdz(saved)],
-      ...(standalone() ? [] : [['stake', '实盘', phone ? '带筹码' : '带一份筹码', 'gold', 'crown', () => this.pickDdzStake()] as [string, string, string, ButtonStyle, string, () => void]]),
+      ...(standalone() ? [] : [['stake', '实盘', '带筹码', 'gold', 'crown', () => this.pickDdzStake()] as [string, string, string, ButtonStyle, string, () => void]]),
       // 好友房：开房时带上玩法（斗地主），3 个座位
       ['online', '好友房', '叫朋友来', 'blue', 'cards', () => openOnline('ddz')],
     ];
@@ -361,7 +363,7 @@ export class TitleScene extends Phaser.Scene {
     const sy = P.y + P.h - 62;
     const strip = this.add.graphics().setDepth(19);
     strip.fillStyle(0xffffff, 0.06).fillRoundedRect(P.x + 24, sy - 30, inner, 60, RADIUS.lg);
-    const line = st.games > 0 ? `赢了 ${st.wins}/${st.games} 局` : EMPTY_STATS_SHORT;
+    const line = st.games > 0 ? `赢了 ${st.wins}/${st.games} 局` : st.deals > 0 ? `打过 ${st.deals} 副 ›` : EMPTY_STATS_SHORT;
     // 战绩条右边是"残局"（明牌闯关，不用平台）和每日挑战（全服同一副牌，打完上今天的榜；单独部署没有榜，不摆），两个并排
     const daily = !standalone();
     const pw = 108;
@@ -388,7 +390,7 @@ export class TitleScene extends Phaser.Scene {
     }
     this.buttons.puzzles = new Button(this, puzzleX, sy, pw, 48, '残局', 'green', () => this.pickPuzzle(), 'cards').setHit(Math.max(pw, minHit()), dh, top + dh / 2 - sy).setDepth(20);
     if (daily) {
-      this.buttons.daily = new Button(this, right - 88, sy, 160, 48, '每日挑战', 'gold', () => this.newDdzDaily(), 'crown').setHit(160, dh, top + dh / 2 - sy).setDepth(20);
+      this.buttons.daily = new Button(this, right - 88, sy, 160, 48, '每日挑战', 'gold', () => this.dailyIntro(DDZ_DAILY_INTRO, () => this.newDdzDaily()), 'crown').setHit(160, dh, top + dh / 2 - sy).setDepth(20);
     }
   }
 
@@ -440,6 +442,11 @@ export class TitleScene extends Phaser.Scene {
     startWhenReady(this, 'ddz');
   }
 
+  /** 每日挑战进桌前先说一句比什么、打几副、记在哪，点"开始"才进 */
+  private dailyIntro(msg: string, go: () => void): void {
+    this.overlay = confirm(this, msg, '开始', go);
+  }
+
   /** 斗地主每日挑战：今天的种子、普通难度，不存档、不记战绩（不碰"继续上局"的那一局） */
   newDdzDaily(): void {
     const date = beijingDate(Date.now());
@@ -463,12 +470,18 @@ export class TitleScene extends Phaser.Scene {
       else this.newDdz(lv);
     };
     const top = -H / 2 + 90;
-    const seg = segmented(this, -120, top, [{ label: '经典洗牌', value: 'classic' }, { label: '不洗牌 · 炸弹多', value: 'clump' }], getSettings().ddzDeal, (v) => updateSettings({ ddzDeal: v as DdzDeal }), 240, Math.max(60, minHit()));
+    const seg = segmented(this, -120, top, [{ label: '经典洗牌', value: 'classic' }, { label: '不洗牌 · 炸弹多', value: 'clump' }], getSettings().ddzDeal, (v) => {
+      updateSettings({ ddzDeal: v as DdzDeal });
+      note.setText(dealNote[v as DdzDeal]);
+    }, 240, Math.max(60, minHit()));
     m.body.add(seg);
     m.body.setData('seg:deal', seg);
-    m.body.add(text(this, 0, top + 46, '不洗牌：牌成团地发，炸弹多、翻倍大，每副最多 48 分', { size: TYPE.small, color: COLOR.muted }));
+    // 说明跟着选中的页签走
+    const dealNote: Record<DdzDeal, string> = { classic: '经典洗牌：洗匀了发，和平常打的一样', clump: '不洗牌：牌成团地发，炸弹多、翻倍大，每副最多 48 分' };
+    const note = text(this, 0, top + 46, dealNote[getSettings().ddzDeal], { size: TYPE.small, color: COLOR.muted });
+    m.body.add(note);
     levels.forEach((lv, i) => {
-      const b = new Button(this, 0, top + 70 + pitch / 2 + i * pitch, 420, 72, LEVEL_CARD[lv].name, lv === getSettings().difficulty ? 'red' : 'wood', () => {
+      const b = new Button(this, 0, top + 70 + pitch / 2 + i * pitch, 420, 72, `${LEVEL_CARD[lv].name}  电脑 ${stars(LEVEL_CARD[lv].stars)}`, lv === getSettings().difficulty ? 'red' : 'wood', () => {
         m.close();
         updateSettings({ difficulty: lv });
         fresh(lv);
@@ -476,8 +489,8 @@ export class TitleScene extends Phaser.Scene {
       m.body.add(b);
       m.body.setData(`btn:level:${lv}`, b);
     });
-    // 快速匹配（牌馆 ⑤）：排 ddz-fun 档；排不到就按现在的难度开一局单机
-    const match = new Button(this, 0, top + 70 + pitch / 2 + 3 * pitch, 420, 72, '快速匹配', 'blue', () => {
+    // 和真人匹配（牌馆 ⑤）：排 ddz-fun 档；排不到就按现在的难度开一局单机
+    const match = new Button(this, 0, top + 70 + pitch / 2 + 3 * pitch, 420, 72, '和真人匹配', 'blue', () => {
       m.close();
       this.overlay = null;
       openMatch(null, () => this.scene.isActive() && fresh(getSettings().difficulty), 'ddz');
@@ -592,8 +605,10 @@ export class TitleScene extends Phaser.Scene {
         });
         continue;
       }
-      if (!k.startsWith('btn:') || !(v instanceof Button) || !v.scene || !v.enabled) continue;
-      out[k.slice(4)] = { x: body!.x + v.x, y: body!.y + v.y };
+      // 确认框（ui/panels.ts 的 confirm）的两个按钮登记成 ok、cancel，其余弹层是 btn:<名字>
+      const name = k === 'ok' || k === 'cancel' ? k : k.startsWith('btn:') ? k.slice(4) : null;
+      if (!name || !(v instanceof Button) || !v.scene || !v.enabled) continue;
+      out[name] = { x: body!.x + v.x, y: body!.y + v.y };
     }
     return out;
   }

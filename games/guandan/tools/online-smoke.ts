@@ -25,7 +25,7 @@ const OUT = ((): string => {
 })();
 const QUICK = process.argv.includes('--quick');
 const DDZ = process.argv.includes('--ddz');
-/** --ddz --clump：房主点"开不洗牌房间"，房间大厅和牌桌顶栏都要写着不洗牌，其余流程一样 */
+/** --ddz --clump：房主点"不洗牌房间"，房间大厅和牌桌顶栏都要写着不洗牌，其余流程一样 */
 const CLUMP = DDZ && process.argv.includes('--clump');
 /** 省内存标记要带当前版本号才认（device.ts：换了版本就重新试正常画质） */
 const VERSION = (JSON.parse(readFileSync(`${process.cwd()}/package.json`, 'utf8')) as { version: string }).version;
@@ -597,7 +597,7 @@ async function main(): Promise<void> {
 }
 
 /**
- * 不洗牌房间的边界（--clump，0.33.0）：手机横屏 844×390、减少动效的人开房（竖屏整个游戏都是"请横过来"，转竖再转回来房间还在）；断网时点"开不洗牌房间"给"重试"，联网后重试开成；
+ * 不洗牌房间的边界（--clump，0.33.0）：手机横屏 844×390、减少动效的人开房（竖屏整个游戏都是"请横过来"，转竖再转回来房间还在）；断网时点"不洗牌房间"给"重试"，联网后重试开成；
  * 连点经典和不洗牌两个按钮只开出一个房间；刷新后接回房间、大厅仍写着不洗牌；离开再从"回到房间"回来也一样。
  */
 async function clumpEdges(browser: Browser, stack: OnlineStack, click: (c: Client, name: string) => Promise<void>): Promise<void> {
@@ -614,7 +614,7 @@ async function clumpEdges(browser: Browser, stack: OnlineStack, click: (c: Clien
     await click(c, 'online');
     await c.page.waitForSelector('#ol-create-clump');
     const box = await c.page.locator('#ol-create-clump').boundingBox();
-    assert(box && box.x >= 0 && box.x + box.width <= 844 && box.y + box.height <= 390 && box.height >= 44, `手机横屏"开不洗牌房间"要整个在屏幕里、高 ≥ 44（${JSON.stringify(box)}）`);
+    assert(box && box.x >= 0 && box.x + box.width <= 844 && box.y + box.height <= 390 && box.height >= 44, `手机横屏"不洗牌房间"要整个在屏幕里、高 ≥ 44（${JSON.stringify(box)}）`);
     await shot(c, '59a-clump-panel-phone');
     // 断网：给"重试"，不开房
     await c.context.setOffline(true);
@@ -638,14 +638,15 @@ async function clumpEdges(browser: Browser, stack: OnlineStack, click: (c: Clien
     await c.page.reload({ timeout: 90_000 });
     await c.page.waitForSelector('#ol-clump', { timeout: 40_000 });
     assert((await c.page.textContent('#ol-room-code'))?.trim() === code, '刷新后该接回同一个房间');
-    // 转竖屏：整个游戏盖"请横过来"；转回横屏，房间大厅原样还在
+    // 转竖屏：房间大厅不在牌桌上，不盖"请横过来"（只有牌桌才盖），大厅照常能看；转回横屏，房间大厅原样还在
     await c.page.setViewportSize({ width: 390, height: 844 });
-    await c.page.waitForSelector('#rotate-hint', { state: 'visible', timeout: 10_000 });
-    await shot(c, '59c-clump-portrait-rotate');
+    await c.page.waitForTimeout(600);
+    assert(!(await c.page.isVisible('#rotate-hint')) && (await c.page.isVisible('#ol-room-code')), '竖屏的房间大厅不该盖"请横过来"，房间码该看得见');
+    await shot(c, '59c-clump-portrait-lobby');
     await c.page.setViewportSize({ width: 844, height: 390 });
-    await c.page.waitForSelector('#rotate-hint', { state: 'hidden', timeout: 10_000 });
+    await c.page.waitForTimeout(600);
     assert((await clumpLine())?.includes('不洗牌') && (await c.page.textContent('#ol-room-code'))?.trim() === code, '转回横屏后房间大厅该原样还在');
-    notes.push(`不洗牌边界：手机横屏按钮在屏内、转竖屏出"请横过来"、转回来房间还在、断网给重试、连点只发 1 个开房请求、刷新接回 ${code} 仍写着不洗牌`);
+    notes.push(`不洗牌边界：手机横屏按钮在屏内、竖屏大厅照常不盖提示、转回来房间还在、断网给重试、连点只发 1 个开房请求、刷新接回 ${code} 仍写着不洗牌`);
     await c.page.click('text=离开', { timeout: 5_000 }).catch(() => undefined);
   } finally {
     await c.context.close();

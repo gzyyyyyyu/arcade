@@ -720,7 +720,14 @@ const BUBBLE: Record<BubbleTone, { fill: number; line: number; ink: number }> = 
 export function bubble(scene: Phaser.Scene, x: number, y: number, msg: string, dir: 'left' | 'right' | 'up' | 'down', tone: BubbleTone = 'plain'): Phaser.GameObjects.Container {
   const k = BUBBLE[tone];
   const c = scene.add.container(x, y).setDepth(3000);
-  const t = text(scene, 0, 0, msg, { size: TYPE.label, color: k.ink, bold: true, wrap: 220 });
+  // 折行按整句平分到几行（每行 220 左右），不让最后一个字单独掉一行（"…赢回" / "来"）
+  const t = text(scene, 0, 0, msg, { size: TYPE.label, color: k.ink, bold: true });
+  if (t.width > 220) {
+    const full = t.width;
+    const lines = Math.ceil(full / 220);
+    const wrap = Math.ceil(full / lines + full / Array.from(msg).length);
+    t.setWordWrapCallback((m: string, obj: Phaser.GameObjects.Text) => cjkWrap(m, obj, wrap));
+  }
   const w = Math.max(56, t.width + 28);
   const h = t.height + 20;
   const g = scene.add.graphics();

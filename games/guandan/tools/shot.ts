@@ -162,6 +162,8 @@ async function open(browser: Browser, name: string, query: string, o: OpenOpts =
   const page = await context.newPage();
   page.on('console', (msg) => {
     if (msg.type() === 'error' && !(o.allowNetErrors && msg.text().startsWith('Failed to load resource'))) errors.push(`[${name}] console.error: ${msg.text()}`);
+    // 电脑在后台线程里算（BotRunner）：退回页面里算只记一条 warn，冒烟当失败，不靠人看日志
+    if (msg.type() === 'warning' && /电脑的后台线程(起不来|出错)/.test(msg.text())) errors.push(`[${name}] console.warn: ${msg.text()}`);
   });
   page.on('pageerror', (err) => errors.push(`[${name}] pageerror: ${err.message}`));
   page.on('request', (r) => {
@@ -737,6 +739,8 @@ async function smokeDdz(browser: Browser): Promise<void> {
   const d = await open(browser, '斗地主每日', 'ddz=1&debug=1&anim=0&autoplay=1', { api, storage: { 'guandan.variant': JSON.stringify('ddz') } });
   await until(d, '斗地主面板', "g.scene === 'title' && 'daily' in g.controls()");
   await click(d, 'daily');
+  await until(d, '每日挑战说明', "'ok' in g.controls()");
+  await click(d, 'ok');
   await until(d, '每日挑战打完', "g.overlay === 'gameOver'", 240_000);
   await until(d, '交上分', "g.texts().some((t) => t.s.includes('已上榜'))", 10_000);
   assert(api.scores.length === 1, `每日挑战交了 ${api.scores.length} 次分`);
@@ -1334,7 +1338,7 @@ async function gallerySize(browser: Browser, z: GallerySize): Promise<void> {
     await shot(on, `${p}-12c-online-tiers`);
   });
   await on.page.context().close();
-  // 斗地主的好友房面板多一个"开不洗牌房间"，从斗地主主页的好友房卡进
+  // 斗地主的好友房面板多一个"不洗牌房间"，从斗地主主页的好友房卡进
   const dz = await open(browser, `图集斗地主好友房${p}`, 'debug=1', { ...base, api: fakeApi(), storage: { 'guandan.variant': JSON.stringify('ddz') } });
   await step('斗地主好友房面板', async () => {
     await until(dz, '斗地主主页', "g.scene === 'title' && 'online' in g.controls()", 30_000);
@@ -1382,6 +1386,8 @@ async function galleryMore(browser: Browser, z: GallerySize): Promise<void> {
   await step('斗地主每日结束', async () => {
     await until(dd, '斗地主面板', "g.scene === 'title' && 'daily' in g.controls()", 30_000);
     await click(dd, 'daily', touch);
+    await until(dd, '每日挑战说明', "'ok' in g.controls()");
+    await click(dd, 'ok', touch);
     await until(dd, '每日挑战打完', "g.overlay === 'gameOver'", 240_000);
     await dd.page.waitForTimeout(800);
     await shot(dd, `${p}-23-ddz-daily-over`);

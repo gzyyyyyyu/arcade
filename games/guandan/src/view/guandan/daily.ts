@@ -17,6 +17,9 @@ export const GD_DAILY_LEVEL = 'normal';
 /** 一场的副数：8 副（和单机实盘不再绑在一起，实盘改成了 3 副） */
 export const GD_DAILY_DEALS = 8;
 
+/** 进桌前的一句：比什么、打几副、记在哪（不说就直接发牌，进桌的人不知道） */
+export const GD_DAILY_INTRO = `今天全站同一副牌、同样的电脑：打 ${GD_DAILY_DEALS} 副，比我方得分，上今天的榜（能重打，记最好的一次）`;
+
 /** 这一天的种子：只和日期有关，所有人一样 */
 export function gdDailySeed(date: string): string {
   return `gd-daily-${date}`;

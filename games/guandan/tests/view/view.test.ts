@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame, isWild, makeCard, parseCards } from '../../src/variants/guandan/core/index.ts';
 import { columnsFor } from '../../src/view/table/columns.ts';
 import { KEYS } from '../../src/view/store.ts';
-import { playLabel } from '../../src/view/guandan/labels.ts';
+import { bombText, playDetail, playLabel } from '../../src/view/guandan/labels.ts';
 import { interpret, DEFAULT_OPTIONS } from '../../src/variants/guandan/core/index.ts';
 import { worldWidthFor } from '../../src/view/common/theme.ts';
 
@@ -60,6 +60,16 @@ describe('存储与画面约定', () => {
   it('牌型名：炸弹带张数', () => {
     const bomb = interpret(parseCards('♠9 ♥9 ♣9 ♦9 ♠9 ♥9'), 2, DEFAULT_OPTIONS)[0]!;
     expect(playLabel(bomb)).toBe('炸弹×6');
+  });
+  it('炸弹的几张几分开写（试玩：「炸弹×4 2」读成「×42」）', () => {
+    const b4 = interpret(parseCards('♠2 ♥2 ♣2 ♦2'), 5, DEFAULT_OPTIONS)[0]!;
+    const b5 = interpret(parseCards('♠K ♥K ♣K ♦K ♠K'), 5, DEFAULT_OPTIONS)[0]!;
+    expect(bombText(b4)).toBe('4 张 2');
+    expect(bombText(b5)).toBe('5 张 K');
+    expect(playDetail(b4)).toBe('炸弹 4 张 2');
+    for (const p of [b4, b5]) expect(playDetail(p)).not.toMatch(/×\d+ ?\d/);
+    const sf = interpret(parseCards('♠3 ♠4 ♠5 ♠6 ♠7'), 5, DEFAULT_OPTIONS).find((x) => x.type === 'straightFlush')!;
+    expect(bombText(sf)).toBe(playDetail(sf));
   });
   it('世界宽度随宽高比在 1280..1720 之间', () => {
     expect(worldWidthFor(1280, 720)).toBe(1280);

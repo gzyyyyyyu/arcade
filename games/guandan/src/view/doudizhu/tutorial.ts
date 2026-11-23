@@ -49,7 +49,7 @@ export function runDdzTutorial(scene: Phaser.Scene): Promise<void> {
       p.setPosition(W / 2, 330);
       page.add(p);
       note(240, '每副的分 = 叫分 × 倍数', { bold: true, color: COLOR.red });
-      note(290, '炸弹、王炸、春天，各翻一倍');
+      note(290, '炸弹、王炸、春天（农民一手没出）各翻一倍');
       note(350, '地主赢：比如这副 3 分，地主赢 6 分，农民各输 3 分');
       note(395, '农民赢：反过来。三家加起来总是 0');
       nav(520, true);

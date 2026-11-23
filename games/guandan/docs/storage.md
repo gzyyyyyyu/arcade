@@ -13,7 +13,7 @@
 | `guandan.<槽>.pre-sync` | 云同步合并改了本地数据前的备份（槽 = `stats` / `tutorial`，只留最近一份） |
 | `guandan.<槽>.pre-switch.<旧 userId>` | 换账号清空本地前的备份，每个旧账号一份（和 pre-sync 分开）；写时和已有的合并（只会变多），写完读回核对，没存上就不清空、暂停同步；之后再登录这个账号时并回本地、补传 |
 | `guandan.boot` | iOS 防崩溃标记 `{ v, pending, low, ver }`：页面在前台时 pending=1，切后台/离开清 0；打开时还是 1 说明上次被系统杀了，low 升一档（1 = 一倍渲染，2 = 再换 Canvas 渲染）；ver 不是当前版本就整条作废（只在 iOS 上写） |
-| `guandan.stake` | 单机实盘这一场：`{ v, userId, ref, tier, share, until, match: { tier, deals }, state, settle }`；只在本机、不进云同步；结回或退回后删，过了 `until` 打开标题页时删 |
+| `guandan.stake` | 单机实盘这一场：`{ v, userId, ref, tier, share, until, match: { tier, deals }, state, settle }`；只在本机、不进云同步；带回或退回后删，过了 `until` 打开标题页时删 |
 | `guandan.a2hs` | 标题页"添加到主屏幕玩更大"提示点过 ✕（值 1） |
 | `guandan.nick` | 单独部署时好友房里的昵称（字符串；有平台时不用，昵称以平台账号为准） |
 | `guandan.chat` | 聊天的界面设置：弹幕开关、电脑版聊天框收起、记录展开（由 kit 的 table-fun 按 `storageKey: 'guandan'` 读写） |
@@ -25,7 +25,7 @@
 | `guandan.ddz.tutorial` | 斗地主单机的新手引导是否看过 `{ v, done }`（第一次进单机娱乐牌桌弹，4 步；好友房、实盘、每日、托管、带 seed 的调试开局不弹；设置里"重看引导"一并清掉；只在本机，不进云同步） |
 | `guandan.ddz.puzzles` | 斗地主残局闯关过了哪几关 `{ v: 1, done: id[] }`（id 是关卡表里的 `p01`…；坏数据当空；只在本机，不进云同步） |
 | `guandan.ddz.dailyPuzzle` | 斗地主每日残局今天的最好成绩 `{ v: 1, date, best, tries }`（`tries` 是今天打完了几次；换一天从头记；坏数据当没打过；只在本机，不进云同步） |
-| `guandan.ddz.stake` | 斗地主单机实盘这一场：`{ v, userId, ref, tier, share, until, rules?, state, settle }（rules 是规则版本，没有就是 1）`；只在本机、不进云同步；结回或退回后删 |
+| `guandan.ddz.stake` | 斗地主单机实盘这一场：`{ v, userId, ref, tier, share, until, rules?, state, settle }（rules 是规则版本，没有就是 1）`；只在本机、不进云同步；带回或退回后删 |
 | `guandan.<槽>.pre-switch.<userId>.restored` | 上面的备份并回本地、传上去之后改名到这里（安全副本），以后不再并——"当前连胜"会归零，反复并会被旧值抬回去 |
 
 新增 key 必须带前缀、只在 `src/view/store.ts` 里读写（kit 的 table-fun 按 `storageKey: 'guandan'` 自己读写的三个除外），并补进这张表。

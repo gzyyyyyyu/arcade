@@ -263,7 +263,7 @@ export const ERROR_TEXT: Record<string, string> = {
   already_seated: '你已经坐下了',
   rule_error: '出了点问题，再试一次',
   already_ready: '已经点过继续了，等其他人',
-  cannot_buyin: '现在带不了：这一场打完了，或者上一份还在办',
+  cannot_buyin: '现在带不了：这一场打完了，或者上次带入的还在办',
   cannot_again: '已经有人开了新房间，正在过去',
   not_away: '你已经回来了',
   // 开打后座位绑人（arcade-kit 0.1.1）：坐过的人只能回原座位；别人坐过的电脑座位谁也接管不了
