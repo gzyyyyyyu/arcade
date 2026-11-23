@@ -5,7 +5,8 @@ import { troopCard } from './intel.ts';
 import { SKILLS, TROOPS } from '../content/index.ts';
 import { battleResult, canLand } from '../core/index.ts';
 import { MAP_LAYERS, MAP_STOP_TICKS } from '../core/maptypes.ts';
-import { BATTLE_TICKS, BEACH, ISLAND, TICKS_PER_SEC, UNIT, type BattleResult, type SkillKind } from '../core/types.ts';
+import { BATTLE_TICKS, BEACH, ISLAND, TICKS_PER_SEC, UNIT, type BattleResult, type Res, type SkillKind } from '../core/types.ts';
+import { mapCss } from './mapcss.ts';
 import { app, fmt } from './app.ts';
 import { iconA, tArt } from './art.ts';
 import { keyBadge } from './inputs.ts';
@@ -76,6 +77,8 @@ export function buildUi(bs: BattleScene): void {
   }
   bs.starsEl = [...stars.querySelectorAll('img')] as HTMLImageElement[];
   if (bs.d.map) mapStrip(bs, bs.d.map);
+  const gain = bs.d.pvp?.replay ? undefined : bs.d.pvp?.maxGain;
+  if (gain) lootStrip(bs);
   const bar2 = el('div', 'hd-bar2', undefined, bs.ui);
   bar2.style.justifyContent = 'flex-end';
   bs.speedBtn = button(`${bs.speed}×`, 'hd-btn-wood', () => {
@@ -377,6 +380,33 @@ function mapStripTick(bs: BattleScene, m: MapStopHooks, r: BattleResult): void {
   me.pts.classList.add('pop');
 }
 
+/** 抢劫的顶栏条：已抢的金币和木材，跟着摧毁率涨（和航线站的条同一套样式） */
+function lootStrip(bs: BattleScene): void {
+  mapCss();
+  const strip = el('div', 'hd-mapstrip hd-lootstrip', undefined, bs.ui);
+  el('b', '', '已抢', strip);
+  const part = (k: 'gold' | 'wood'): HTMLElement => {
+    const s = el('span', 'hd-mapstrip-pts', undefined, strip);
+    s.appendChild(img(iconA(k), 18));
+    return el('b', '', '0', s);
+  };
+  bs.lootEl = { gold: part('gold'), wood: part('wood'), box: strip, lastPct: 0 };
+}
+
+function lootStripTick(bs: BattleScene, max: Res, pct: number): void {
+  const le = bs.lootEl!;
+  if (pct === le.lastPct) return;
+  le.lastPct = pct;
+  for (const k of ['gold', 'wood'] as const) {
+    const n = le[k];
+    n.textContent = fmt(Math.floor((max[k] * pct) / 100));
+    n.classList.remove('pop');
+    void n.offsetWidth;
+    n.classList.add('pop');
+  }
+  sfx('coin');
+}
+
 /** 星星飞进顶栏的时长（毫秒） */
 const STAR_FLY_MS = 760;
 
@@ -432,6 +462,7 @@ export function updateHud(bs: BattleScene): void {
   const r = battleResult(s);
   bs.pctEl.textContent = `${r.destroyedPct}%`;
   if (bs.d.map && bs.mapEl) mapStripTick(bs, bs.d.map, r);
+  if (bs.d.pvp?.maxGain && bs.lootEl) lootStripTick(bs, bs.d.pvp.maxGain, r.destroyedPct);
   for (let i = bs.lastStars; i < r.stars; i++) {
     const im = bs.starsEl[i];
     if (im) flyStar(bs, im, i);

@@ -285,6 +285,28 @@ describe('finish 幂等、过期、忽略浏览器字段', () => {
     expect(await w.core('d').lock(req, T0 + 1000)).toEqual({ ok: false, error: 'protected' });
     expect(await w.core('d').lock({ ...req, revenge: true }, T0 + 1000)).toEqual({ ok: false, error: 'protected' });
   });
+
+  it('保护期里打流浪海盗岛不结束保护，主动打真人就结束', async () => {
+    const w = new World();
+    await seed(w);
+    w.edit('d', (s) => {
+      s.created = T0 - PROTECT_MS - 1;
+    });
+    const now = T0 + 1000;
+    const prep = await w.core('a').prepare(now);
+    if (!prep.ok) throw new Error(prep.error);
+    const wi = wandererIsland(0, 1, 7);
+    await w.core('a').begin({ raidId: 'protwand1', defenderId: null, until: now + LOCK_MS, army: prep.army, wander: { setup: raidSetup(wi.layout, 0, prep.army, 7), loot: wi.loot } }, now);
+    expect(((await w.core('a').me(now)) as { protectUntil: number }).protectUntil).toBe(T0 + PROTECT_MS);
+    const l = await w.core('d').lock({ raidId: 'protreal1', attackerId: 'a', attackerName: 'a', attackerTrophies: 0, army: prep.army, seed: 1 }, now);
+    if (!l.ok) throw new Error(l.error);
+    await w.core('a').begin({ raidId: 'protreal1', defenderId: 'd', until: l.until, army: prep.army }, now);
+    expect(((await w.core('a').me(now + 1)) as { protectUntil: number }).protectUntil).toBe(0);
+    const prepD = await w.core('d').prepare(now + 1);
+    if (!prepD.ok) throw new Error(prepD.error);
+    const back = await w.core('a').lock({ raidId: 'protback1', attackerId: 'd', attackerName: 'd', attackerTrophies: 0, army: prepD.army, seed: 2 }, now + 1);
+    expect(back.ok).toBe(true);
+  });
 });
 
 describe('限流', () => {

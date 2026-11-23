@@ -171,6 +171,7 @@ export class BattleScene extends Phaser.Scene {
   /** 航线站：每条船登陆时放下的兵（land 事件的 units），结束时数活着的；顶栏的站名条 */
   lands: number[][] = [];
   mapEl: { pts: HTMLElement; bar: HTMLElement; lastPct: number } | null = null;
+  lootEl: { gold: HTMLElement; wood: HTMLElement; box: HTMLElement; lastPct: number } | null = null;
 
   constructor() {
     super('battle');
@@ -230,6 +231,7 @@ export class BattleScene extends Phaser.Scene {
     this.followT = null;
     this.lands = [];
     this.mapEl = null;
+    this.lootEl = null;
     app.inBattle = true;
     app.api.ready = true;
     this.cameras.main.setBackgroundColor(SEA_BG);

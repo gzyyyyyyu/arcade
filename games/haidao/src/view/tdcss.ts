@@ -175,34 +175,6 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-main .hd-tdsel-head { padding:0 136px 0 84px; }
 .hd-ui .hd-tdgar-top { display:flex; align-items:center; gap:12px; }
 .hd-ui .hd-tdgar-top .hd-tdgar-note { flex:1 1 0; margin:0; }
-.hd-ui .hd-minimap { display:flex; flex-direction:column; align-items:center; gap:2px; }
-.hd-ui .hd-minimap svg { display:block; width:100%; height:auto; min-height:0; filter:drop-shadow(0 2px 0 rgba(20,60,80,.45)); }
-.hd-ui .hd-minimap .sand { fill:#f1d89a; }
-.hd-ui .hd-minimap .land { fill:#8cc56a; }
-.hd-ui .hd-minimap .water { fill:#3fa0c4; }
-.hd-ui .hd-minimap .cliff { fill:#a86a45; }
-.hd-ui .hd-minimap .wall { fill:#6d5b4b; }
-.hd-ui .hd-minimap .hq { fill:#a0603a; }
-.hd-ui .hd-minimap .treasure { fill:${gold}; stroke:${ink}; stroke-width:.3; }
-.hd-ui .hd-minimap .pad { fill:#c9a36b; }
-.hd-ui .hd-minimap .pad.high { fill:#f3d19a; stroke:#5e321e; stroke-width:.25; }
-.hd-ui .hd-minimap .lane { fill:${red}; stroke:#fff; stroke-width:.4; }
-.hd-ui .hd-minimap .route { fill:none; stroke:#fff8e6; stroke-width:.9; stroke-dasharray:1.6 1; stroke-linecap:round; stroke-linejoin:round; }
-.hd-ui .hd-minimap .gate { fill:${redD}; stroke:#fff; stroke-width:.4; }
-.hd-ui .hd-minimap .start { fill:#fff8e6; stroke:${ink}; stroke-width:.4; }
-.hd-ui .hd-minimap .port { fill:${gold}; stroke:${ink}; stroke-width:.5; }
-.hd-ui .hd-minimap .spot { cursor:pointer; }
-.hd-ui .hd-minimap .spot circle { fill:#fff8e6; stroke:${ink}; stroke-width:.5; }
-.hd-ui .hd-minimap .spot text { font-weight:900; text-anchor:middle; fill:${ink}; pointer-events:none; }
-.hd-ui .hd-minimap .spot.on circle { fill:${gold}; stroke:#fff; stroke-width:.7; }
-.hd-ui .hd-minimap-legend { display:flex; flex-wrap:wrap; justify-content:center; gap:2px 10px; font-size:12px; font-weight:800; color:#fff; text-shadow:0 1px 2px ${c.seaDark}; }
-.hd-ui .hd-minimap-legend span::before { content:''; display:inline-block; width:10px; height:10px; margin-right:3px; border-radius:50%; border:1px solid ${ink}; vertical-align:-1px; }
-.hd-ui .hd-minimap-legend .lg-lane::before { background:${red}; }
-.hd-ui .hd-minimap-legend .lg-treasure::before { background:${gold}; border-radius:2px; }
-.hd-ui .hd-minimap-legend .lg-spot::before { background:#fff8e6; }
-.hd-ui .hd-minimap-legend .lg-start::before { background:#fff8e6; }
-.hd-ui .hd-minimap-legend .lg-gate::before { background:${redD}; }
-.hd-ui .hd-minimap-legend .lg-port::before { background:${gold}; }
 .hd-ui .hd-tdgar-map { flex:none; width:200px; }
 /* 竖屏手机：小地图吃掉面板上方的空当，选塔面板和开打钮沉到屏幕下半（拇指够得着）；矮屏（横屏手机、360×640）放不下，不画 */
 @media (max-width:700px) and (orientation:portrait) and (min-height:701px) {

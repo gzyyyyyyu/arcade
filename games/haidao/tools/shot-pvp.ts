@@ -23,7 +23,7 @@ export async function pvp(c: ShotCtx): Promise<boolean> {
   const openPanel = async (): Promise<void> => {
     await click('.hd-bottom button:has-text("出海")');
     await page.waitForTimeout(500);
-    await click('.hd-pvp-mapbtn');
+    await click('.hd-pvp-card');
     await page.locator('.hd-pvp button:has-text("找对手")').waitFor({ timeout: 10_000 });
     await page.waitForTimeout(300);
   };
@@ -34,11 +34,11 @@ export async function pvp(c: ShotCtx): Promise<boolean> {
   const ok =
     (await step('海图上的打玩家', async () => {
       await click('.hd-bottom button:has-text("出海")');
-      await page.locator('.hd-pvp-mapbtn').waitFor({ timeout: 8000 });
+      await page.locator('.hd-pvp-card').waitFor({ timeout: 8000 });
       await page.waitForTimeout(500);
       await shot('pvp-map');
       await check('海图');
-      await click('.hd-pvp-mapbtn');
+      await click('.hd-pvp-card');
       await page.locator('.hd-pvp button:has-text("找对手")').waitFor({ timeout: 10_000 });
       await page.waitForTimeout(300);
       await shot('pvp-panel');

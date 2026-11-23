@@ -7,7 +7,7 @@ import { LOOT_PCT, MAX_ACTIONS, raidGain, raidLoss, replayRaid, sanitizeActions,
 import { maxCapacity, validateBase } from '../src/core/validate.ts';
 import { HQ_LEVELS } from '../src/content/index.ts';
 import { sampleArmy } from '../tools/sample.ts';
-import { HarborCore, MemHarbor, ONLINE_MS, eligible } from '../worker/pvp/harbor.ts';
+import { HarborCore, MemHarbor, WIDE_TROPHY_RANGE, eligible } from '../worker/pvp/harbor.ts';
 import type { PickReq } from '../worker/pvp/harbor.ts';
 import type { HarborEntry } from '../worker/pvp/base.ts';
 
@@ -136,9 +136,10 @@ describe('匹配排除', () => {
     expect(eligible(entry({ protectUntil: NOW + 1 }), Q)).toBe(false);
     expect(eligible(entry({ lockUntil: NOW }), Q)).toBe(false);
     expect(eligible(entry({ lockUntil: NOW - 1 }), Q)).toBe(true);
-    expect(eligible(entry({ activeAt: NOW - ONLINE_MS + 1 }), Q)).toBe(false);
-    expect(eligible(entry({ activeAt: NOW - ONLINE_MS }), Q)).toBe(true);
+    // 在线的人也能挑（打的是快照）
+    expect(eligible(entry({ activeAt: NOW }), Q)).toBe(true);
     expect(eligible(entry({ trophies: 251 }), Q)).toBe(false);
+    expect(eligible(entry({ trophies: 100 + WIDE_TROPHY_RANGE }), { ...Q, trophyRange: WIDE_TROPHY_RANGE })).toBe(true);
     expect(eligible(entry({ trophies: 250 }), Q)).toBe(true);
     expect(eligible(entry({ trophies: 0 }), Q)).toBe(true);
     expect(eligible(entry({ hq: 3 }), Q)).toBe(false);
@@ -149,9 +150,11 @@ describe('匹配排除', () => {
     await h.upsert([entry({ id: 'a' }), entry({ id: 'b', shieldUntil: NOW + 5 })]);
     await h.upsert([entry({ id: 'c', hq: 4 }), entry({ id: 'me' })]);
     await h.upsert([entry({ id: 'd', lockUntil: NOW + 5 }), entry({ id: 'e', trophies: 900 })]);
-    await h.upsert([entry({ id: 'f', activeAt: NOW }), entry({ id: 'g', protectUntil: NOW + 5 })]);
-    const first = await h.pick({ ...Q, rand: 0.5 }, 240_000);
-    expect(first.id).toBe('a');
+    await h.upsert([entry({ id: 'f', activeAt: NOW, trophies: 500 }), entry({ id: 'g', protectUntil: NOW + 5 })]);
+    // 同段位（奖杯差 ≤ 150）先挑：只有 a
+    expect((await h.pick({ ...Q, rand: 0.5 }, 240_000)).id).toBe('a');
+    // a 锁了：放宽一档（奖杯差 ≤ 600、主寨低 2 到高 1），挑到在线的 f；e 差 800 仍挑不到
+    expect((await h.pick({ ...Q, rand: 0.5 }, 240_000)).id).toBe('f');
     expect((await h.pick({ ...Q, rand: 0.5 }, 240_000)).id).toBeNull();
     // 锁过期后又能挑
     expect((await h.pick({ ...Q, now: NOW + 240_001, rand: 0 }, 240_000)).id).toBe('a');

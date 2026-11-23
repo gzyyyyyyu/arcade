@@ -10,8 +10,8 @@ import type { Kv } from './kv.ts';
 /** 奖杯差多少以内、主寨差几级以内算一个段位 */
 export const TROPHY_RANGE = 150;
 const HQ_RANGE = 1;
-/** 最近这么久有操作（上传快照）的算在线，不进匹配 */
-export const ONLINE_MS = 3 * 60_000;
+/** 同段位挑不到人时放宽一档：奖杯差到这么多、主寨低 2 级到高 1 级（朋友圈人少，不放宽几乎全落到流浪海盗岛）。在线的人也能挑：打的是他上传的快照 */
+export const WIDE_TROPHY_RANGE = 600;
 /** 这么多天没上传过快照的人不进匹配，记录逐步删掉 */
 const INACTIVE_DAYS = 14;
 export const INACTIVE_MS = INACTIVE_DAYS * 24 * 3600_000;
@@ -106,10 +106,11 @@ export interface HarborStore {
   prune(before: number, limit: number): Promise<number>;
 }
 
-/** 候选的主寨区间：不给就是同级上下各 HQ_RANGE 级；pick 分档挑时用它收窄 */
+/** 候选的主寨区间和奖杯差：不给就是同级上下各 HQ_RANGE 级、TROPHY_RANGE；pick 分档挑时用它收窄或放宽 */
 interface HqSpan {
   hqLo?: number;
   hqHi?: number;
+  trophyRange?: number;
 }
 export const hqSpan = (q: Omit<PickReq, 'rand' | 'self'> & HqSpan): [number, number] => [q.hqLo ?? q.hq - HQ_RANGE, q.hqHi ?? q.hq + HQ_RANGE];
 
@@ -118,13 +119,12 @@ export function eligible(e: HarborEntry, q: Omit<PickReq, 'rand' | 'self'> & HqS
   return (
     e.id !== q.attackerId &&
     !q.exclude.includes(e.id) &&
-    Math.abs(e.trophies - q.trophies) <= TROPHY_RANGE &&
+    Math.abs(e.trophies - q.trophies) <= (q.trophyRange ?? TROPHY_RANGE) &&
     e.hq >= hqLo &&
     e.hq <= hqHi &&
     e.shieldUntil <= q.now &&
     e.protectUntil <= q.now &&
     e.lockUntil < q.now &&
-    q.now - e.activeAt >= ONLINE_MS &&
     q.now - e.activeAt < INACTIVE_MS
   );
 }
@@ -201,7 +201,7 @@ export class HarborCore {
 
   /**
    * 挑一个候选，先在索引里标上锁（防两个人同时挑中），回 userId；没有合适的回 null。最多 2 行（候选的锁 + 进攻方自己）。
-   * 主寨分两档：先找同级和低一级（防守方主寨 ≤ 进攻方，高一级的岛对进攻方太难，DESIGN.md 5.9），这一档一个都没有才给高一级。
+   * 主寨分三档：先找同级和低一级（防守方主寨 ≤ 进攻方，高一级的岛对进攻方太难，DESIGN.md 5.9），这一档一个都没有才给高一级，再没有放宽到 WIDE_TROPHY_RANGE、低 2 级到高 1 级。
    * 每档不扫整张表：rand 在奖杯段里定一个起点，往上取 PICK_LIMIT 个，取不到再从起点往下取，再用 rand 在取到的里面挑。
    */
   async pick(q: PickReq, lockMs: number): Promise<{ id: string | null }> {
@@ -210,17 +210,18 @@ export class HarborCore {
       await this.store.put(q.self);
       written++;
     }
-    const lo = q.trophies - TROPHY_RANGE;
-    const hi = q.trophies + TROPHY_RANGE;
-    const pivot = Math.min(hi, lo + Math.floor(q.rand * (hi - lo + 1)));
-    const tiers: [number, number][] = [
-      [q.hq - HQ_RANGE, q.hq],
-      [q.hq + 1, q.hq + HQ_RANGE],
+    const tiers: [number, number, number][] = [
+      [q.hq - HQ_RANGE, q.hq, TROPHY_RANGE],
+      [q.hq + 1, q.hq + HQ_RANGE, TROPHY_RANGE],
+      [q.hq - 2, q.hq + HQ_RANGE, WIDE_TROPHY_RANGE],
     ];
     let list: HarborEntry[] = [];
-    for (const [hqLo, hqHi] of tiers) {
+    for (const [hqLo, hqHi, trophyRange] of tiers) {
       if (hqLo > hqHi) continue;
-      const base = { attackerId: q.attackerId, trophies: q.trophies, hq: q.hq, exclude: q.exclude, now: q.now, hqLo, hqHi };
+      const lo = q.trophies - trophyRange;
+      const hi = q.trophies + trophyRange;
+      const pivot = Math.min(hi, lo + Math.floor(q.rand * (hi - lo + 1)));
+      const base = { attackerId: q.attackerId, trophies: q.trophies, hq: q.hq, exclude: q.exclude, now: q.now, hqLo, hqHi, trophyRange };
       list = await this.store.range({ lo: pivot, hi, desc: false, limit: PICK_LIMIT, q: base });
       // 往下取的是离起点最近的那些（降序），翻回升序再挑，rand 的含义两边一致
       if (list.length === 0) list = (await this.store.range({ lo, hi: pivot - 1, desc: true, limit: PICK_LIMIT, q: base })).reverse();

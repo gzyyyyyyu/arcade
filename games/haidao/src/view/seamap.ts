@@ -6,7 +6,7 @@ import { lackText, roomText } from './basefeel.ts';
 import { dockGain } from './battleadvice.ts';
 import { iconA } from './art.ts';
 import { button, costRow, el, img, lockIcon, toast, uiRoot } from './ui.ts';
-import { openPvp, pvpMapButton } from './pvp.ts';
+import { openPvp, pvpCard } from './pvp.ts';
 import { bountyGross, bountyOf } from './meta.ts';
 import { openScout } from './scout.ts';
 import { liveEntryReady, liveMapButton, openLive } from './live.ts';
@@ -207,20 +207,20 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
         openMapLive(onClose);
       }, routeRow)
     : () => undefined;
-  // 护航（商船队）：选图和难度，出发走守岛场景（src/view/escortsel.ts）
+  // 护航（商船队）：选图和难度，出发走守岛场景（src/view/escortsel.ts）；抢劫卡（打别的玩家，src/view/pvp.ts）登录了才有，和护航并成一行
+  const playRow = el('div', 'hd-mc-row', undefined, cards);
   const escortOff = escortCard(() => {
     stop();
     openEscortSelect((id) => app.startTdLevel(id), onClose, liveEntryReady() ? () => openEscortLive(onClose) : undefined);
-  }, cards);
+  }, playRow);
+  const pvpOff = pvpCard(() => {
+    stop();
+    openPvp(onClose);
+  }, playRow);
   const close = button('回岛', 'hd-btn-wood hd-map-close', () => {
     stop();
     onClose();
   }, uiRoot());
-  // 异步攻防：打别的玩家（src/view/pvp.ts）；单独部署、没登录时不显示
-  const pvpOff = pvpMapButton(() => {
-    stop();
-    openPvp(onClose);
-  });
   // 悬赏出海（实盘，src/view/live.ts）；单独部署、没登录时不显示
   const liveOff = liveMapButton(() => {
     stop();

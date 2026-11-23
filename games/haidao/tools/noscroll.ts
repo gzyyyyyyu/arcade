@@ -1013,8 +1013,8 @@ try {
       await ready();
       await page.waitForTimeout(800);
       await click('.hd-bottom button:has-text("出海")');
-      await page.locator('.hd-pvp-mapbtn').first().waitFor({ timeout: 8000 });
-      await click('.hd-pvp-mapbtn');
+      await page.locator('.hd-pvp-card').first().waitFor({ timeout: 8000 });
+      await click('.hd-pvp-card');
       await page.locator('.hd-pvp button:has-text("找对手")').first().waitFor({ timeout: 10_000 });
       await attempt('打玩家面板', () => snap('打玩家面板', 400));
       await attempt('打玩家面板（找到对手）', async () => {
@@ -1039,8 +1039,8 @@ try {
         await page.waitForTimeout(300);
       });
       await click('.hd-bottom button:has-text("出海")');
-      await page.locator('.hd-pvp-mapbtn').first().waitFor({ timeout: 8000 });
-      await click('.hd-pvp-mapbtn');
+      await page.locator('.hd-pvp-card').first().waitFor({ timeout: 8000 });
+      await click('.hd-pvp-card');
       await page.locator('.hd-pvp button:has-text("找对手")').first().waitFor({ timeout: 10_000 });
       await attempt('防守记录（空）', async () => {
         // 防守记录是打玩家面板里的一段（h2「防守记录」+ 列表），不是按钮；还没人打过时是一行空状态
@@ -1071,8 +1071,8 @@ try {
       await page.waitForTimeout(300);
       // 真实入口：基地底栏「出海」→ 海图「打玩家」→ 面板里的防守记录
       await click('.hd-bottom button:has-text("出海")');
-      await page.locator('.hd-pvp-mapbtn').first().waitFor({ timeout: 8000 });
-      await click('.hd-pvp-mapbtn');
+      await page.locator('.hd-pvp-card').first().waitFor({ timeout: 8000 });
+      await click('.hd-pvp-card');
       await page.locator('.hd-pvp .hd-pvp-item').first().waitFor({ timeout: 10_000 });
       const pages = async (): Promise<string> => (await page.locator('.hd-pvp-pager .hd-n').first().textContent({ timeout: 3000 }).catch(() => null)) ?? '';
       await attempt('防守记录（有记录）', async () => {

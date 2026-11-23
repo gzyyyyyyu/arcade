@@ -6,7 +6,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { meterLevel, meterReport, type MeterEnv } from 'arcade-kit/meter';
 import { BASE_METHODS, HARBOR_METHODS, type BasePort, type HarborPort, type Ports } from './pvp/api.ts';
 import { BaseCore } from './pvp/base.ts';
-import { HarborCore, hqSpan, INACTIVE_MS, ONLINE_MS, TROPHY_RANGE, type HarborStore, type PvpStats, type RangeQuery } from './pvp/harbor.ts';
+import { HarborCore, hqSpan, INACTIVE_MS, TROPHY_RANGE, type HarborStore, type PvpStats, type RangeQuery } from './pvp/harbor.ts';
 import type { HarborEntry } from './pvp/base.ts';
 import type { Kv } from './pvp/kv.ts';
 
@@ -63,10 +63,10 @@ function sqlHarbor(sql: SqlStorage): HarborStore {
         .exec<Row>(
           `SELECT id, trophies, hq, shield, protect, lock_until, active FROM harbor
            WHERE trophies BETWEEN ? AND ? AND id != ? AND id NOT IN (SELECT value FROM json_each(?))
-             AND hq BETWEEN ? AND ? AND shield <= ? AND protect <= ? AND lock_until < ? AND active <= ? AND active > ?
+             AND hq BETWEEN ? AND ? AND shield <= ? AND protect <= ? AND lock_until < ? AND active > ?
            ORDER BY trophies ${r.desc ? 'DESC' : 'ASC'}, id ${r.desc ? 'DESC' : 'ASC'} LIMIT ?`,
-          Math.max(r.lo, q.trophies - TROPHY_RANGE), Math.min(r.hi, q.trophies + TROPHY_RANGE), q.attackerId, JSON.stringify(q.exclude),
-          ...hqSpan(q), q.now, q.now, q.now, q.now - ONLINE_MS, q.now - INACTIVE_MS, r.limit,
+          Math.max(r.lo, q.trophies - (q.trophyRange ?? TROPHY_RANGE)), Math.min(r.hi, q.trophies + (q.trophyRange ?? TROPHY_RANGE)), q.attackerId, JSON.stringify(q.exclude),
+          ...hqSpan(q), q.now, q.now, q.now, q.now - INACTIVE_MS, r.limit,
         )
         .toArray();
       return rows.map(toEntry);

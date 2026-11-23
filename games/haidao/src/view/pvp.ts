@@ -4,11 +4,15 @@
  * 结果一律以服务端重放为准，浏览器算的只在等回话时不显示；掠夺、被扣的资源经待扣 / 待领同步进本地存档。
  */
 import { rankTitle } from './ranktext.ts';
+import { BUILDINGS, DEFENSE_KINDS } from '../content/index.ts';
+import { islandMap } from './islemap.ts';
 import { RULES_VERSION, armyCost, armyFor, heroLevel, hqLevel, islandExt, rankOf } from '../core/index.ts';
 import { raidSetup, replayRaid } from '../core/pvp.ts';
-import type { BattleAction, Res } from '../core/types.ts';
+import type { BattleAction, BuildingKind, Res } from '../core/types.ts';
 import { applyPending, pvpApi, pvpReady, pvpState, readLocal, rulesTooNew, writeLocal, type DefenseBrief, type Me, type RaidStart } from '../net/pvp.ts';
-import { app } from './app.ts';
+import { app, fmt } from './app.ts';
+import { REDUCED } from './feel.ts';
+import { sfx } from './audio/sfx.ts';
 import { lackText } from './basefeel.ts';
 import { iconA } from './art.ts';
 import { button, costRow, el, img, openModal, toast, uiRoot } from './ui.ts';
@@ -68,7 +72,12 @@ function style(): void {
   styled = true;
   const st = el('style');
   st.textContent = `
-.hd-ui .hd-pvp-mapbtn { position:absolute; top:112px; right:6px; z-index:31; }
+.hd-ui .hd-pvp-card { position:relative; }
+.hd-ui .hd-pvp-card .hd-pvp-alert { color:#b3261e; font-weight:900; }
+.hd-ui .hd-pvp-card .hd-dot { position:absolute; top:-4px; right:-4px; width:14px; height:14px; border-radius:50%; background:#e0362c; border:2px solid #fff4dc; }
+.hd-ui .hd-pvp-card.fresh { animation:hd-pvp-hop 1.2s ease-in-out 3; }
+@keyframes hd-pvp-hop { 0%,100% { transform:none; } 30% { transform:translateY(-5px); } 60% { transform:translateY(0); } }
+@media (prefers-reduced-motion:reduce) { .hd-ui .hd-pvp-card.fresh { animation:none; } }
 .hd-ui .hd-pvp { width:min(100%,420px); max-height:86%; overflow:auto; }
 .hd-ui .hd-pvp h2 { margin:0 0 8px; font-size:20px; font-weight:900; text-align:center; }
 .hd-ui .hd-pvp-stat { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 10px; }
@@ -85,6 +94,13 @@ function style(): void {
 .hd-ui .hd-pvp .hd-sub { margin:0 0 10px; }
 .hd-ui .hd-pvp-item .hd-pvp-ago { opacity:.6; font-size:12px; margin-left:6px; }
 .hd-ui .hd-pvp-chip.strong { background:#b3261e; color:#fff4dc; }
+.hd-ui .hd-pvp-gain { font-size:16px; padding:6px 14px; background:rgba(224,168,36,.25); }
+.hd-ui .hd-pvp-scout { display:flex; gap:10px; align-items:center; justify-content:center; margin:0 0 8px; }
+.hd-ui .hd-pvp-map { width:150px; flex:none; }
+.hd-ui .hd-pvp-towers { display:flex; flex-direction:column; gap:2px; font-size:14px; }
+.hd-ui .hd-pvp-tcount { font-weight:900; }
+.hd-ui .hd-pvp-tower::before { content:''; display:inline-block; width:8px; height:8px; border-radius:2px; background:#c8423a; margin-right:6px; vertical-align:middle; }
+.hd-ui .hd-pvp .hd-sub.hd-pvp-warn { color:#b3261e; font-weight:800; }
 .hd-ui .hd-pvp-tag.real { background:#2f7d4f; }
 .hd-ui .hd-pvp-replaytag { position:absolute; top:calc(env(safe-area-inset-top, 0px) + 112px); left:50%; transform:translateX(-50%); z-index:30; background:rgba(20,35,58,.82); color:#fff4dc; border-radius:10px; padding:6px 14px; font-size:14px; font-weight:800; pointer-events:none; white-space:nowrap; }
 .hd-ui .hd-pvp .hd-btn-wide { width:100%; min-height:44px; margin-top:8px; }
@@ -100,6 +116,10 @@ function style(): void {
   .hd-ui .hd-pvp-list { margin:4px 0 6px; }
   .hd-ui .hd-pvp-item .hd-row { margin-top:4px; }
   .hd-ui .hd-pvp-stat { margin:0 0 4px; }
+  .hd-ui .hd-pvp-scout { margin:0 0 4px; }
+  .hd-ui .hd-pvp-map { width:96px; }
+  .hd-ui .hd-pvp.hd-pvp-opp { width:min(100%,640px); }
+  .hd-ui .hd-pvp-towers { flex-direction:row; flex-wrap:wrap; gap:2px 12px; max-width:420px; }
   .hd-ui .hd-pvp-acts { margin:0 0 4px; }
   .hd-ui .hd-pvp .hd-pvp-h3 { margin:2px 0 0; }
   .hd-ui .hd-pvp-item { display:flex; align-items:center; gap:8px; padding:6px 10px; }
@@ -172,9 +192,20 @@ export async function checkRaided(): Promise<void> {
   const row = el('div', 'hd-pvp-stat', undefined, box);
   const c = el('span', 'hd-pvp-chip', '一共被抢 ', row);
   c.appendChild(costRow(lost)).classList.add('hd-neg');
+  if (r.data.shieldUntil) el('span', 'hd-pvp-chip', `护盾 ${hoursLeft(r.data.shieldUntil)}`, row);
+  const weak = weakestTower();
+  if (weak) el('p', 'hd-sub', `想守住：先把${BUILDINGS[weak.kind].name}从 ${weak.level} 级往上升（你岛上最低的一座塔）。`, box);
   const fit = defenseList(fresh, box, () => mask.remove());
   button('知道了', 'hd-btn-gold hd-btn-wide', () => mask.remove(), box);
   fit();
+}
+
+/** 自己岛上等级最低、现在就能升（没到满级、不超主寨）的那座防御塔（被抢提示里给一句升哪座） */
+function weakestTower(): { kind: BuildingKind; level: number } | undefined {
+  const hq = hqLevel(app.profile);
+  return app.profile.base.buildings
+    .filter((b) => DEFENSE_KINDS.has(b.kind) && b.level < BUILDINGS[b.kind].maxLevel && b.level < hq)
+    .sort((a, b) => a.level - b.level)[0];
 }
 
 function defenseList(list: DefenseBrief[], parent: HTMLElement, close: () => void): () => void {
@@ -340,6 +371,7 @@ export function trySelf(onClose: () => void = () => app.goBase()): void {
 /** 找到的对手：昵称、奖杯、主寨、预计掠夺，开打 / 换一个 */
 function opponent(s: RaidStart, revenge: boolean, onClose: () => void = () => app.goBase()): void {
   const { mask, box } = dialog({ onEsc: () => giveUp.click() });
+  box.classList.add('hd-pvp-opp');
   const h = el('h2', '', s.opponent.name, box);
   if (s.wanderer) el('span', 'hd-pvp-tag', '电脑', h);
   else el('span', 'hd-pvp-tag real', '真人', h);
@@ -354,16 +386,21 @@ function opponent(s: RaidStart, revenge: boolean, onClose: () => void = () => ap
   if (s.opponent.rank) el('span', 'hd-pvp-chip', rankTitle(s.opponent.rank), stat);
   // 对手主寨比自己高：防守方高一级时进攻方胜率很低（DESIGN.md 5.9），醒目提示一下
   if (!s.wanderer && s.opponent.hq > hqLevel(app.profile)) el('span', 'hd-pvp-chip strong', '更强', stat);
+  scout(s, box);
+  // 抢到的和拆掉多少成正比（raidLoss / wandererGain 都是线性），所以从拆光的数直接算出拆一半的
   const loot = el('div', 'hd-pvp-stat', undefined, box);
-  const c = el('span', 'hd-pvp-chip', '最多能抢 ', loot);
-  c.appendChild(costRow(s.maxGain));
+  const half = el('span', 'hd-pvp-chip', '拆一半 ', loot);
+  half.appendChild(costRow({ gold: Math.floor(s.maxGain.gold / 2), wood: Math.floor(s.maxGain.wood / 2) }));
+  const all = el('span', 'hd-pvp-chip', '拆光 ', loot);
+  all.appendChild(costRow(s.maxGain));
   const c2 = el('span', 'hd-pvp-chip', '出海要 ', loot);
   c2.appendChild(costRow({ gold: 0, wood: cost.wood }, app.profile.res));
   if (s.wanderer) el('p', 'hd-sub', '港口里暂时没有段位合适的玩家，这是电脑扮的流浪海盗，掠夺由系统发。', box);
   else if (revenge) el('p', 'hd-sub', '复仇只拿回他抢走的那部分（最多两成，按拆掉多少算），港口不发赏金；复仇不能再被复仇。', box);
   else el('p', 'hd-sub', '打赢能抢走他仓库的一部分（最多两成，按拆掉多少算），港口另发一半赏金；他会得到护盾，能看回放、找你复仇。', box);
   if (lastMe?.shieldUntil) el('p', 'hd-sub', `你的护盾还有 ${hoursLeft(lastMe.shieldUntil)}，开打就没了。`, box);
-  else if (lastMe?.protectUntil) el('p', 'hd-sub', `你还在新手保护期（${hoursLeft(lastMe.protectUntil)}），别人匹配不到你；去打别人不影响保护。`, box);
+  else if (lastMe?.protectUntil && !s.wanderer) el('p', 'hd-sub hd-pvp-warn', `抢别人会结束你的保护（还剩 ${hoursLeft(lastMe.protectUntil)}），之后别人也能来抢你。`, box);
+  else if (lastMe?.protectUntil) el('p', 'hd-sub', '打流浪海盗不影响你的新手保护。', box);
   const row = el('div', 'hd-row', undefined, box);
   if (!revenge) {
     button('换一个', 'hd-btn-wood', () => {
@@ -388,11 +425,21 @@ function opponent(s: RaidStart, revenge: boolean, onClose: () => void = () => ap
   }, box);
 }
 
+/** 侦察：岛的小地图（红点是塔）+ 最强的三座塔 */
+function scout(s: RaidStart, box: HTMLElement): void {
+  const row = el('div', 'hd-pvp-scout', undefined, box);
+  islandMap({ lv: { name: s.opponent.name, slots: [], lanes: [] }, layout: s.setup.layout, ext: s.setup.ext, towers: true }, row, 'hd-pvp-map');
+  const list = el('div', 'hd-pvp-towers', undefined, row);
+  const towers = s.setup.layout.filter((b) => DEFENSE_KINDS.has(b.kind)).sort((a, b) => b.level - a.level);
+  el('div', 'hd-pvp-tcount', `防御塔 ${towers.length} 座`, list);
+  for (const b of towers.slice(0, 3)) el('div', 'hd-pvp-tower', `${BUILDINGS[b.kind].name} ${b.level} 级`, list);
+}
+
 /** 开打：出海木材本地先扣（和战役一样），打完交操作 */
 function fight(s: RaidStart, cost: Res): void {
   const p = app.profile;
   app.commit({ ...p, res: { gold: p.res.gold - cost.gold, wood: p.res.wood - cost.wood } });
-  app.startPvp(s.setup, { rank: s.opponent.rank, onFinish: (log, end) => submit(s, log, end) });
+  app.startPvp(s.setup, { rank: s.opponent.rank, maxGain: s.maxGain, onFinish: (log, end) => submit(s, log, end) });
 }
 
 function submit(s: RaidStart, log: BattleAction[], end: number): void {
@@ -422,8 +469,9 @@ function submit(s: RaidStart, log: BattleAction[], end: number): void {
       const tc = el('span', 'hd-pvp-chip', '奖杯 ', row);
       el('span', `hd-n ${o.trophies >= 0 ? 'hd-pos' : 'hd-neg'}`, `${o.trophies >= 0 ? '+' : ''}${o.trophies}`, tc);
       const lo = el('div', 'hd-pvp-stat', undefined, box);
-      const c = el('span', 'hd-pvp-chip', '抢到 ', lo);
-      c.appendChild(costRow(o.gain)).classList.add('hd-pos');
+      const c = el('span', 'hd-pvp-chip hd-pvp-gain', '抢到 ', lo);
+      countUp(c.appendChild(costRow(o.gain)), o.gain);
+      c.classList.add('hd-pos');
       if (!o.wanderer && !revengeRaids.has(s.raidId) && (o.gain.gold || o.gain.wood)) el('p', 'hd-sub', '里面有三分之一是港口发的赏金。', box);
       // 结算显示完这一场就不用再认它是不是复仇了：Set 只留还没结算的
       revengeRaids.delete(s.raidId);
@@ -436,6 +484,22 @@ function submit(s: RaidStart, log: BattleAction[], end: number): void {
     });
   };
   go();
+}
+
+/** 战利品从 0 数到实数（0.8 秒，先快后慢），数的时候响金币声；减少动效时直接显示 */
+function countUp(row: HTMLElement, gain: Res): void {
+  const nums = [...row.querySelectorAll<HTMLElement>('.hd-n')];
+  const goal = (['gold', 'wood'] as const).filter((k) => gain[k]).map((k) => gain[k]);
+  if (REDUCED || nums.length !== goal.length || goal.every((v) => !v)) return;
+  const t0 = performance.now();
+  const step = (t: number): void => {
+    const k = Math.min(1, (t - t0) / 800);
+    const e = 1 - (1 - k) * (1 - k);
+    nums.forEach((n, i) => (n.textContent = fmt(Math.round(goal[i]! * e))));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  sfx('coin');
+  requestAnimationFrame(step);
 }
 
 /** 防守回放：同一份规则核心按记录的操作重演 */
@@ -469,10 +533,28 @@ async function watch(raidId: string, rules: number): Promise<void> {
   });
 }
 
-/** 海图上的入口按钮（单独部署、没登录时不显示）；回一个移除函数 */
-export function pvpMapButton(onOpen: () => void): () => void {
+/**
+ * 海图上的抢劫卡（单独部署、没登录时不显示）；回一个移除函数。
+ * 副标题按要紧程度挑一句：被抢了没看 → 能复仇 → 新手保护 → 奖杯。被抢没看、能复仇、从没打开过时挂红点（从没打开过的那次卡片还会跳一跳）。
+ */
+export function pvpCard(onOpen: () => void, parent: HTMLElement): () => void {
   if (pvpState.off || !pvpReady()) return () => undefined;
   style();
-  const b = button('打玩家', 'hd-btn-gold hd-pvp-mapbtn', onOpen, uiRoot());
+  const m = lastMe;
+  const unseen = unseenDefenseCount();
+  const revenge = m?.defenses.filter((d) => d.revenge).length ?? 0;
+  const fresh = !readLocal().opened;
+  const b = el('button', `hd-mapcard hd-pvp-card${fresh ? ' fresh' : ''}`, undefined, parent);
+  b.type = 'button';
+  b.appendChild(img(iconA('sword'), 36));
+  const t = el('span', 'hd-mc-t', undefined, b);
+  el('b', '', '抢劫', t);
+  el('small', unseen || revenge ? 'hd-pvp-alert' : '', unseen ? `你被抢了 ${unseen} 次` : revenge ? `能复仇 ${revenge} 次` : m?.protectUntil ? `新手保护 ${hoursLeft(m.protectUntil)}` : m ? `奖杯 ${m.trophies}` : '抢别人的金币木材', t);
+  el('span', 'hd-mc-go', '出海', b);
+  if (unseen || revenge || fresh) el('span', 'hd-dot', undefined, b);
+  b.addEventListener('click', () => {
+    writeLocal({ ...readLocal(), opened: true });
+    onOpen();
+  });
   return () => b.remove();
 }
