@@ -3,6 +3,7 @@
  * 每天 50 条和同一个好友 1 分钟 1 条（超了 429 写 0 行）、收邀请只读、"不了"、过期、删号和 Cron 清理。
  */
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { Invite } from '../src/api';
 import { runCleanup } from '../worker/api/ops/cron';
 import { advance, call, count, env, errorOf, registerUser, resetAll, rowsBy, rowsWritten } from './helpers';
 
@@ -11,13 +12,6 @@ beforeEach(() => resetAll());
 let ipSeq = 0;
 const newUser = () => registerUser(undefined, undefined, `198.51.100.${++ipSeq % 250}`);
 type U = Awaited<ReturnType<typeof newUser>>;
-interface Invite {
-  id: string;
-  from: { id: string; name: string };
-  game: string;
-  room: string;
-  until: number;
-}
 
 const invite = (from: U, to: U | string, game = 'guandan', room = '123456') =>
   call('/api/invites', { body: { to: typeof to === 'string' ? to : to.user.id, game, room }, cookie: from.cookie });

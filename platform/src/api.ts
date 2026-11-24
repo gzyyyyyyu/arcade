@@ -56,7 +56,7 @@ export interface FeedItem {
 }
 
 /** 给我的邀请（docs/social.md 1.3）：until 是过期时间（毫秒） */
-interface Invite {
+export interface Invite {
   id: string;
   from: { id: string; name: string };
   game: string;
