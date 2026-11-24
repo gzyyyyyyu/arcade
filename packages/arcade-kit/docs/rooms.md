@@ -262,6 +262,7 @@ packages/arcade-kit/
 │  ├─ share.ts       分享卡（Canvas 画战绩图、系统分享或预览）
 │  ├─ qr.ts          二维码编码器（字节模式、纠错 M、版本 1–10，纯函数，分享卡用）
 │  ├─ social.ts      报位置、收邀请的横条、好友和邀请的接口小函数
+│  ├─ personas.ts    共用电脑名册：名字、人设、头像、性格（纯函数）
 │  ├─ theme.ts       DOM 组件的主题变量
 │  ├─ report.ts      浏览器错误上报 reportErrors
 │  ├─ testing.ts     假平台钱包（只给测试和本地开发）

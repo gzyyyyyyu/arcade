@@ -3,7 +3,7 @@
 > 总规范见仓库根 `AGENTS.md`（拆成独立仓库后以本文件和 docs 为准）。房间规范见仓库根 `docs/rooms.md`，kit 的实现和规矩见本模块 `docs/rooms.md`。
 > 每版改动看 `CHANGELOG.md`；本文只写现状和规矩，括号里是守着它的测试。
 
-- 内容：联机底座，给游戏的 Worker 和页面用，不部署；文件分服务端、两边共用、浏览器三组，清单见 README「目录结构」；`testing.ts` 是假钱包。
+- 内容：联机底座，给游戏的 Worker 和页面用，不部署；文件分服务端、两边共用、浏览器三组，清单见 `docs/rooms.md`「目录结构」；`testing.ts` 是假钱包。
 - 发包：npm 发 `dist/`；仓库里 `exports` 一律指 `src/*.ts`，`prepack`/`postpack`（`scripts/manifest.mjs`）打包时换成 dist。不手改 exports、不提交 `dist/`；`src/` 里互相引用写 `.js`。游戏按 npm 别名装，发布由维护者做。
 - 部署方式：有 `ARCADE` 绑定是平台模式（不认游客 cookie）；没有且 `GATE` 不是 `"login"` 是独立模式；`GATE: "login"` 没绑 `ARCADE` 必须 fail-closed（`test/guest.test.ts`、`gate.test.ts`）。
 - 浏览器和 Node 里加载的文件不引 `room.ts`、`match.ts`、`meter.ts`（依赖 `cloudflare:workers`）；`worker.ts`、`auth.ts` 只引类型。
