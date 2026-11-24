@@ -40,6 +40,8 @@ import {
   hotBox,
   yieldBox,
   placeMenu,
+  oneRowBar,
+  topBand,
   propId,
   stickerId,
   type Box,
@@ -460,6 +462,24 @@ describe('placeMenu', () => {
     const p = placeMenu(anchor, W, H, view, [avoid]);
     expect(hits(box(p), avoid)).toBe(false);
     expect(hits(box(p), anchor)).toBe(false);
+  });
+
+  it('顶边不进顶栏那一条（屏高 9%）：手机横屏 844×390 上约 300 高的面板压不到顶栏；真放不下才退到 margin（0.31.2）', () => {
+    const land = { width: 844, height: 390 };
+    expect(topBand(land)).toBe(35);
+    for (const left of [0, 20, 400]) for (const top of [0, 150, 330]) {
+      const p = placeMenu({ left, top, width: 44, height: 44 }, 440, 296, land);
+      expect(p.top).toBeGreaterThanOrEqual(35);
+      expect(p.top + 296).toBeLessThanOrEqual(390 - 8);
+    }
+    expect(placeMenu({ left: 20, top: 150, width: 44, height: 44 }, 440, 370, land).top).toBe(8);
+  });
+
+  it('手机版输入条排成一行：只在矮的横屏（0.31.2）', () => {
+    expect(oneRowBar({ width: 844, height: 390 })).toBe(true);
+    expect(oneRowBar({ width: 667, height: 375 })).toBe(true);
+    expect(oneRowBar({ width: 390, height: 844 })).toBe(false);
+    expect(oneRowBar({ width: 560, height: 360 })).toBe(false);
   });
 
   it('四面都压时选压得最少的，不会没有结果', () => {

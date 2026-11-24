@@ -4,7 +4,7 @@
  * 和 table-fun.ts 同样的规矩：import 时不碰 DOM；动画只动 transform、opacity；量位置只在摆放（refresh）和出一条弹幕时。
  */
 import { CHAT_MAX, chatRejectText, type ChatBlockWhy } from './chat.js';
-import { DANMAKU, barBottom, pageChips, chatFont, chatMode, danmakuLanes, danmakuSpeed, dockFits, pickLane, placeBeside, placeDock, seatColor, type Box, type ChatMode } from './fun-logic.js';
+import { DANMAKU, barBottom, oneRowBar, pageChips, chatFont, chatMode, danmakuLanes, danmakuSpeed, dockFits, pickLane, placeBeside, placeDock, seatColor, topBand, type Box, type ChatMode } from './fun-logic.js';
 
 export type ChatResultLike = { ok: true } | { ok: false; code: string; why?: ChatBlockWhy; waitMs?: number };
 
@@ -61,6 +61,8 @@ export interface ChatHost {
   lite(): boolean;
   /** 手机版"记录"：打开互动面板的聊天页 */
   history(): void;
+  /** 单机（电脑不读打的字）：空记录的那句提示换成单机的说法 */
+  solo?: boolean;
   later(ms: number, fn: () => void): void;
   now(): number;
   log?(line: string): void;
@@ -68,13 +70,13 @@ export interface ChatHost {
 
 export const CHAT_CSS = `
 .atc-dock{position:absolute;left:0;top:0;pointer-events:auto;display:flex;flex-direction:column;gap:6px;background:var(--ak-bg,rgba(43,29,20,.9));border:2px solid var(--ak-border,#d4a64a);border-radius:var(--ak-radius,14px);padding:8px;box-sizing:border-box;color:var(--ak-fg,#fff6e0);box-shadow:0 6px 18px rgba(0,0,0,.4)}
-.atc-head{display:flex;align-items:center;gap:6px}
+.atc-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .atc-head b{flex:1;color:var(--ak-title,#f3d98b);font-size:1.05em}
 .atc-head .atf-chip{min-height:36px;padding:0 10px;font-size:.8em}
 .atc-head .atf-chip,.atc-dock .atc-quick .atf-chip,.atc-pager .atf-chip{position:relative;min-width:44px}
 .atc-head .atf-chip::before{content:'';position:absolute;inset:-5px 0}
 .atc-log{display:flex;flex-direction:column;gap:2px;line-height:1.45;font-size:.9em;overflow-y:auto;overscroll-behavior:contain}
-.atc-log .atf-empty{opacity:.6}
+.atc-log .atf-empty{opacity:.6;text-wrap:balance}
 .atc-log b,.atf-log b{font-weight:700;margin-right:4px}
 .atc-quick{display:flex;gap:6px;flex-shrink:0}
 .atc-quick .atf-chip{flex:none;white-space:nowrap;font-size:.8em}
@@ -89,12 +91,18 @@ export const CHAT_CSS = `
 .atc-pager .atf-chip::before{content:'';position:absolute;inset:-7px 0}
 .atc-row{display:flex;gap:6px;align-items:center}
 .atc-row .atf-input{font-size:max(16px,.85em)}
-.atc-row .atf-chip{flex:none}
+.atc-row .atf-chip{flex:none;min-width:44px}
 .atc-pill{position:absolute;left:0;top:0;pointer-events:auto;min-height:44px;display:flex;align-items:center;gap:6px;padding:0 16px;border-radius:var(--ak-radius-btn,22px);border:2px solid var(--ak-border,#d4a64a);background:var(--ak-soft,#5a3a22);color:var(--ak-fg,#fff6e0);font:inherit;font-weight:700;cursor:pointer}
+.atc-pill:active{scale:.94;filter:brightness(.85)}
 .atc-pill svg{width:1.2em;height:1.2em}
 .atc-pill.atf-dot::after{content:'';position:absolute;right:4px;top:4px;width:10px;height:10px;border-radius:50%;background:#e8323a;border:2px solid var(--ak-fg,#fff6e0)}
 .atc-dock .atf-note:empty,.atc-bar .atf-note:empty{display:none}
 .atc-bar{position:absolute;left:8px;right:8px;top:0;pointer-events:auto;display:flex;flex-direction:column;gap:6px;background:var(--ak-bg,rgba(43,29,20,.94));border:2px solid var(--ak-border,#d4a64a);border-radius:var(--ak-radius,14px);padding:6px;box-sizing:border-box;color:var(--ak-fg,#fff6e0);box-shadow:0 -4px 16px rgba(0,0,0,.4)}
+.atc-bar.atc-one{flex-direction:row;flex-wrap:wrap;align-items:center}
+.atc-one .atc-quick{flex:1 1 0;min-width:0}
+.atc-one .atc-row{flex:0 1 46%;min-width:0}
+.atc-one .atc-row .atf-input{min-width:0;flex:1}
+.atc-one .atf-note{flex-basis:100%}
 .atc-dms{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .atc-dm{position:absolute;left:0;top:0;white-space:nowrap;font-weight:700;color:#fff;padding:2px 12px;border-radius:999px;background:rgba(0,0,0,.38);text-shadow:0 1px 2px rgba(0,0,0,.8);pointer-events:none;will-change:transform}
 .atc-dm.atc-me{background:linear-gradient(#fffaf0,#f6e6c4);border:2px solid #2b1d14;color:#2b1d14;text-shadow:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 3px 8px rgba(0,0,0,.28)}
@@ -290,7 +298,7 @@ export class ChatUi {
       this.pill.style.translate = `${at.left}px ${at.top}px`;
       return;
     }
-    this.layoutDock(view, w, fixed);
+    this.layoutDock(view, w, fixed && fixed.top < topBand(view) ? { ...fixed, top: fixed.top + Math.max(44, fixed.height) + 6 } : fixed);
   }
 
   /** 排出电脑版聊天框（大小、记录高度），放到 fixed 或 placeDock 挑的角上，返回它 */
@@ -395,6 +403,8 @@ export class ChatUi {
     const bar = this.el('div', 'atc-bar');
     bar.dataset['key'] = 'chat:bar';
     bar.style.fontSize = `${this.font + 1}px`;
+    // 手机横屏矮：快捷词和输入框排成一行，少盖一半牌桌
+    bar.classList.toggle('atc-one', oneRowBar({ width: window.innerWidth, height: window.innerHeight }));
     bar.addEventListener('pointerdown', (e) => e.stopPropagation());
     const { row, note, input } = this.inputRow('chat', 'atc-input');
     add(
@@ -413,6 +423,10 @@ export class ChatUi {
     input.addEventListener('focus', () => this.hookViewport());
     this.placeBar();
     this.h.log?.('聊天 输入条');
+  }
+
+  barOpen(): boolean {
+    return !!this.bar;
   }
 
   closeBar(): void {
@@ -581,7 +595,8 @@ export class ChatUi {
     input.type = 'text';
     input.enterKeyHint = 'send';
     input.autocomplete = 'off';
-    input.placeholder = '说点什么，回车发送';
+    // 触屏键盘上是"发送"键、没有回车：手机版只写"说点什么"
+    input.placeholder = this.mode === 'desk' ? '说点什么，回车发送' : '说点什么';
     input.dataset['key'] = prefix === 'fun' ? 'fun:chatInput' : `${prefix}:input`;
     const send = this.chip('发送', prefix === 'fun' ? 'fun:chatSend' : `${prefix}:send`, () => go());
     const note = this.el('div', 'atf-note');
@@ -653,7 +668,7 @@ export class ChatUi {
 
   private renderOne(log: HTMLElement): void {
     log.replaceChildren();
-    if (this.lines.length === 0) add(log, this.el('div', 'atf-empty', '还没人说话。这里的话不保存，散了就没了'));
+    if (this.lines.length === 0) add(log, this.el('div', 'atf-empty', this.h.solo ? '电脑看不到打的字，说的话只冒在你头像旁' : '还没人说话。说的话不保存，散了就没了'));
     for (const m of this.lines) {
       const row = this.el('div', '');
       const b = this.el('b', '', `${m.name}：`);

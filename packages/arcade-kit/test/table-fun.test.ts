@@ -213,7 +213,26 @@ describe('按下态不挪位置', () => {
       expect(src.match(/\.style\.transform\s*=\s*`translate/g), name).toBeNull();
     }
     expect(tableFunSrc).toContain('.atf-btn:active{scale:.94;');
+    // 电脑版收起的"聊天"胶囊也有按下态（0.31.2）
+    expect(CHAT_CSS).toContain('.atc-pill:active{scale:.94;');
     expect(tableFunSrc).toMatch(/this\.btn\.style\.translate = `\$\{r\.left\}px \$\{r\.top\}px`/);
     expect(tableChatSrc).toMatch(/b\.style\.translate = `\$\{at\.left\}px \$\{at\.top\}px`/);
+  });
+});
+
+describe('试玩 11-23 的几处（0.31.2）', () => {
+  const rules = [...CHAT_CSS.matchAll(/([^{}]+)\{([^}]*)\}/g)].map((m) => ({ sel: m[1]!.trim(), body: m[2]! }));
+  it('输入行里的芯片（发送、记录、✕）至少 44 宽', () => {
+    expect(rules.find((r) => r.sel === '.atc-row .atf-chip')!.body).toContain('min-width:44px');
+  });
+  it('Esc 收起菜单、面板、手机输入条：挂在 document 上，销毁时摘掉；收了才吞掉', () => {
+    expect(tableFunSrc).toContain("this.doc.addEventListener('keydown', this.onKey)");
+    expect(tableFunSrc).toContain("this.doc.removeEventListener('keydown', this.onKey)");
+    expect(tableFunSrc).toMatch(/else return;\s*e\.preventDefault\(\);/);
+  });
+  it('触屏上的占位不写"回车发送"；单机的空记录不让人以为电脑会回', () => {
+    expect(tableChatSrc).toContain("this.mode === 'desk' ? '说点什么，回车发送' : '说点什么'");
+    expect(tableChatSrc).toContain('电脑看不到打的字');
+    expect(rules.find((r) => r.sel === '.atc-log .atf-empty')!.body).toContain('text-wrap:balance');
   });
 });

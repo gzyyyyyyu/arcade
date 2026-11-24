@@ -321,9 +321,19 @@ export function fitMenuWidth(w: number, viewWidth: number, margin = 8): number {
   return Math.max(0, Math.min(w, viewWidth - 2 * margin));
 }
 
-/** w 是想要的宽度，窄屏上按 fitMenuWidth 收窄后再摆（页面上的盒子也要按同样的宽度画，table-fun 用 CSS 的 min()） */
+/** 顶栏那一条：屏幕高度的 9%（几个游戏的回大厅、标题、设置都在里面，kit 不知道它们的确切位置） */
+export const TOP_BAND = 0.09;
+export function topBand(view: { height: number }, margin = 8): number {
+  return Math.max(margin, Math.round(view.height * TOP_BAND));
+}
+
+/**
+ * w 是想要的宽度，窄屏上按 fitMenuWidth 收窄后再摆（页面上的盒子也要按同样的宽度画，table-fun 用 CSS 的 min()）。
+ * 顶边不进顶栏那一条（topBand）：手机横屏 390 高、面板约 300 高也放得下；真放不下才退到 margin
+ */
 export function placeMenu(anchor: Box, want: number, h: number, view: { width: number; height: number }, avoid: readonly Box[] = [], margin = 8, gap = 10): { left: number; top: number } {
   const w = fitMenuWidth(want, view.width, margin);
+  const minTop = h <= view.height - margin - topBand(view, margin) ? topBand(view, margin) : margin;
   const cx = anchor.left + anchor.width / 2;
   const cy = anchor.top + anchor.height / 2;
   const right = { left: anchor.left + anchor.width + gap, top: cy - h / 2 };
@@ -336,7 +346,7 @@ export function placeMenu(anchor: Box, want: number, h: number, view: { width: n
   const order = Math.abs(dx) / view.width >= Math.abs(dy) / view.height ? (dx >= 0 ? [right, below, above, left] : [left, below, above, right]) : dy >= 0 ? [below, right, left, above] : [above, right, left, below];
   const clamp = (p: { left: number; top: number }): Box => ({
     left: Math.max(margin, Math.min(view.width - margin - w, p.left)),
-    top: Math.max(margin, Math.min(view.height - margin - h, p.top)),
+    top: Math.max(minTop, Math.min(view.height - margin - h, p.top)),
     width: w,
     height: h,
   });
@@ -595,7 +605,7 @@ export function dockFits(view: { width: number; height: number }, w: number, h: 
 function dockSpot(view: { width: number; height: number }, w: number, h: number, avoid: readonly Box[], margin: number): { left: number; top: number; cost: number } {
   const l = margin;
   const r = Math.max(margin, view.width - margin - w);
-  const t = Math.max(margin, Math.round(view.height * 0.09));
+  const t = topBand(view, margin);
   const b = Math.max(margin, view.height - margin - h);
   let best = { left: l, top: b };
   let bestCost = Infinity;
@@ -618,6 +628,11 @@ export function barBottom(view: { width: number; height: number }, h: number, av
   const low = avoid.filter((b) => b.top > view.height * 0.4 && b.width > 0 && b.height > 0).map((b) => b.top);
   const y = low.length ? Math.min(...low) - margin : view.height - margin;
   return y - h < view.height * 0.12 ? view.height - margin : y;
+}
+
+/** 手机版输入条排成一行（快捷词在左、输入框在右）：手机横屏矮（高 < 500、宽 ≥ 600），两行的输入条会盖住上半个牌桌 */
+export function oneRowBar(view: { width: number; height: number }): boolean {
+  return view.height < 500 && view.width >= 600;
 }
 
 /** 聊天记录、弹幕里名字的颜色：按座位号，自己另用金色高亮 */
