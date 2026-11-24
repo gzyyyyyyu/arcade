@@ -366,10 +366,6 @@ export function createFun(c: App) {
   };
   screen.addEventListener('transitionend', reseat);
   screen.addEventListener('transitioncancel', reseat);
-  // kit 的互动菜单只认点外面收起；Esc 也收（和弹窗、加注面板、对手资料卡一样，11-23 试玩）。常驻的聊天框不归它管
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && c.tf?.isOpen()) c.tf.closeAll();
-  });
 
   return { curView, mySeat, nameAt, openFun, dockFitsNow, nextChatMode, closeFun, chatOn, syncFun, handDone, funSend, flipFunOff, achHand, achTour, achRoomTour };
 }

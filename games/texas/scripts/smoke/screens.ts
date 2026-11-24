@@ -1,4 +1,4 @@
-/** 弹窗、大厅界面、成就、谜题、设置（--only dialogs / lobbyui / ach / puzzle / settings）。 */
+/** 弹窗、大厅界面、成就、谜题、设置、互动面板的 Esc（--only dialogs / lobbyui / ach / puzzle / settings / fun）。 */
 import type { Browser, Page } from 'playwright-core';
 import { opt } from '../args.ts';
 import { DESK_W, log, newContext, watch, shot, enter, openMore } from './harness.ts';
@@ -265,10 +265,25 @@ export async function puzzleFlow(browser: Browser, base: string): Promise<void> 
   };
   type Saved = { days: Record<string, { picks: string[]; scores: number[]; sent: boolean | null }>; done: number } | null;
   const saved = (page: Page): Promise<Saved> => page.evaluate(() => JSON.parse(localStorage.getItem('texas.puzzle') ?? 'null') as Saved);
+  /** 触屏按钮：看得见的 ≥32，可点范围（按钮自己加 ::before 外扩，style.css「点按区域至少 44」）≥44×44——在四边中点取 elementFromPoint 核对 */
   const bigButtons = async (page: Page, sel: string, what: string): Promise<void> => {
     for (const b of await page.locator(sel).all()) {
-      const box = await b.boundingBox();
-      if (!box || box.height < 44) throw new Error(`${what} under 44 px: ${JSON.stringify(box)}`);
+      const r = await b.evaluate((e) => {
+        const box = e.getBoundingClientRect();
+        const w = Math.max(box.width, 44);
+        const h = Math.max(box.height, 44);
+        const cx = box.x + box.width / 2;
+        const cy = box.y + box.height / 2;
+        const bad = [[-1, 0], [1, 0], [0, -1], [0, 1]]
+          .map(([dx, dy]) => [cx + dx! * (w / 2 - 1), cy + dy! * (h / 2 - 1)] as const)
+          .filter(([x, y]) => x >= 0 && y >= 0 && x <= innerWidth && y <= innerHeight)
+          .map(([x, y]) => [x, y, document.elementFromPoint(x, y)] as const)
+          .filter(([, , t]) => !t || !(t === e || e.contains(t)))
+          .map(([x, y, t]) => `${t?.tagName}.${t?.className}@${Math.round(x)},${Math.round(y)}`);
+        return { vw: box.width, vh: box.height, bad };
+      });
+      if (r.vw < 32 - 0.6 || r.vh < 32 - 0.6) throw new Error(`${what} visible part under 32: ${r.vw.toFixed(1)}x${r.vh.toFixed(1)}`);
+      if (r.bad.length) throw new Error(`${what} hit area under 44 (edge points covered by: ${r.bad.join(' | ')})`);
     }
   };
   /** 答第 n 道（1 起）：how 是键盘还是点；揭晓出来后返回本题得分 */
@@ -375,8 +390,7 @@ export async function puzzleFlow(browser: Browser, base: string): Promise<void> 
   await pp.goto(`${base}/games/texas/`);
   await pp.locator('.w-balance').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
   await inView(pp, '.pz-open', 390, 844, 'puzzle entry');
-  const eb = await pp.locator('.pz-open').boundingBox();
-  if (!eb || eb.height < 44) throw new Error(`entry too small: ${JSON.stringify(eb)}`);
+  await bigButtons(pp, '.pz-open', 'puzzle entry');
   await shot(pp, 'puzzle-title-phone');
   await pp.locator('.pz-open').tap();
   await pp.locator('.pz').waitFor();
@@ -518,6 +532,44 @@ export async function settingsFlow(browser: Browser, base: string): Promise<void
     if (muted[0] !== 'off' || muted[1] !== true) throw new Error(`[${tag}] turning 音效 on must not touch arcade.sound / change saved pref: ${JSON.stringify(muted)}`);
     await click('.settings .st-x');
     await page.evaluate(() => localStorage.removeItem('arcade.sound'));
+    await ctx.close();
+  }
+}
+
+/**
+ * 互动面板（--only fun，kit 的 TableFun）：电脑 1280×800、手机横屏 844×390、手机竖屏 390×844 各进一桌娱乐，点"互动"打开面板截图；
+ * 按 Esc 只收面板（kit 收了就吞掉这一下）：人还在牌桌上，没有弹出离桌确认、没回大厅，再按一次 Esc 也不离桌
+ */
+export async function funPanelFlow(browser: Browser, base: string): Promise<void> {
+  const SIZES: [string, number, number, boolean][] = [
+    ['desk', 1280, 800, false],
+    ['land', 844, 390, true],
+    ['phone', 390, 844, true],
+  ];
+  for (const [tag, width, height, touch] of SIZES) {
+    const ctx = await newContext(browser, base, `smoke-fun-${tag}`, touch ? { viewport: { width, height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: IPHONE } : { viewport: { width, height } });
+    await ctx.addInitScript(() => localStorage.setItem('texas.settings', JSON.stringify({ fast: true })));
+    const page = await ctx.newPage();
+    watch(page, `fun-${tag}`);
+    await page.goto(`${base}/games/texas/`);
+    await page.locator('.w-balance').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
+    await enter(page, '娱乐', touch);
+    await page.locator('.lobby .start').evaluate((e) => (e as HTMLElement).click());
+    await page.locator('.seat.me .card.up').first().waitFor({ timeout: 30_000 });
+    const btn = page.locator('.atf-btn:visible').first();
+    await btn.waitFor({ timeout: 15_000 });
+    await (touch ? btn.tap() : btn.click());
+    await page.locator('.atf-box').waitFor({ timeout: 5_000 });
+    await page.waitForTimeout(300);
+    await shot(page, `fun-panel-${tag}`);
+    for (let i = 0; i < 2; i++) {
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      if (await page.locator('.atf-box').count()) throw new Error(`[${tag}] Esc #${i + 1} should close the fun panel`);
+      if (!(await page.locator('.stage.at-table').count())) throw new Error(`[${tag}] Esc #${i + 1} left the table`);
+      if (await page.locator('.dialog:visible').count()) throw new Error(`[${tag}] Esc #${i + 1} opened a dialog: ${await page.locator('.dialog').first().textContent()}`);
+    }
+    log(`fun ${tag}: panel opened, Esc closed it and stayed at the table`);
     await ctx.close();
   }
 }

@@ -22,6 +22,7 @@
  * 今日锦标赛（--only dailytour）：电脑版从娱乐选桌点"今日锦标赛"打到结束页，加注面板展开时底池不重复、假平台只收一次分、再练一场不交分，见 dailyTourFlow。
  * 今日谜题（--only puzzle）：每天 5 道连着答、每道揭晓、答到一半刷新接着答、答完交一次每日榜、总结卡、晒一下、键盘 1/2/3 和 Esc；电脑 1280×800 和手机竖屏 390×844 各一遍（见 puzzleFlow）。
  * 顶栏和设置面板（--only settings）：见 settingsFlow 的注释。
+ * 互动面板（--only fun）：电脑 1280×800、手机横屏、竖屏各开一次互动面板截图，Esc 只收面板、不离桌（见 funPanelFlow）。
  * 新手指引（--only guide）：见 guideFlow 的注释。
  * 每人同时 1 个房间（--only quota）：房主先走再开房、匹配先走再排都回原房间并提示，朋友离桌后开出新房，见 quota.ts。
  * 好友房长跑（--only roomsoak）、后台切回和弱网（--only roomweak）：见各自函数的注释，不在默认冒烟里。
@@ -32,7 +33,7 @@ import { opt } from './args.ts';
 import { SHOTS, errors, log, PLATFORM_CONFIG, STANDALONE_CONFIG, withWorker } from './smoke/harness.ts';
 import { desktop, mobile, tall, standalone, portraitLobby } from './smoke/solo.ts';
 import { room, match } from './smoke/room.ts';
-import { dialogsFlow, lobbyUiFlow, achFlow, puzzleFlow, settingsFlow } from './smoke/screens.ts';
+import { dialogsFlow, lobbyUiFlow, achFlow, puzzleFlow, settingsFlow, funPanelFlow } from './smoke/screens.ts';
 import { takeProfitFlow, guideFlow } from './smoke/guide.ts';
 import { tourFlow, tourFormatFlow, tourRoomFlow } from './smoke/tour.ts';
 import { pushFoldFlow, dailyTourFlow } from './smoke/quick.ts';
@@ -56,6 +57,7 @@ async function main(): Promise<void> {
         if (only === 'tall') await tall(browser, base);
         if (only === 'noscroll') await noScrollFlow(browser, base);
         if (only === 'settings') await settingsFlow(browser, base);
+        if (only === 'fun') await funPanelFlow(browser, base);
         if (only === 'guide') await guideFlow(browser, base);
         if (only === 'tp') await takeProfitFlow(browser, base);
         if (only === 'lobbyui') await lobbyUiFlow(browser, base);

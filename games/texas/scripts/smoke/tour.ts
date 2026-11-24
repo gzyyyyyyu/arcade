@@ -218,7 +218,7 @@ export async function tourFormatFlow(browser: Browser, base: string): Promise<vo
     if (await page.locator('.lobby .tour-btn').isDisabled()) throw new Error(`${f} should be open in 实盘: ${await page.locator('.lobby .tour-note').textContent()}`);
   }
   const note = (await page.locator('.lobby .tour-note').textContent()) ?? '';
-  if (!note.includes('4 / 1.4 / 1.3 / 1.2')) throw new Error(`nine real note: ${note}`);
+  if (!note.includes('9 人桌') || !note.includes('第一名拿回 4 倍报名费')) throw new Error(`nine real note: ${note}`);
   await shot(page, 'tour-fmt-real-desktop');
   const before = await balance(page);
   const fee = Number(((await page.locator('.lobby .tour-btn').textContent()) ?? '').replace(/\D/g, ''));
