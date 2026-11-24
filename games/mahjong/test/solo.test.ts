@@ -70,7 +70,7 @@ describe('带入', () => {
   });
 });
 
-test('0.15.1 以前少带开的、带入一直没确认的存档：重发被 bad_amount 拒，这一场作废，不再算"接着打上一场"', async () => {
+test('少带开的、带入一直没确认的存档：重发被 bad_amount 拒，这一场作废，不再算"接着打上一场"', async () => {
   const s = wallet();
   s.buying = { op: s.buying!.op, amount: 500 };
   replies = [{ status: 400, body: { error: 'bad_amount' } }];
@@ -191,7 +191,7 @@ describe('立直单机', () => {
   }
 });
 
-describe('电脑想多久（11-20 放慢，只看公开的）', () => {
+describe('电脑想多久（只看公开的）', () => {
   // 只放 thinkMs 看的几样：这一步的事件、上一步摸到的牌、各家立直和胡了没、牌墙剩多少、阶段
   const st = (o: { events?: { e: string; tile?: number }[]; drawn?: number | null; players?: object[]; left?: number; phase?: string }) =>
     ({ events: o.events ?? [], drawn: o.drawn ?? null, players: o.players ?? [{}, {}, {}, {}], wall: { head: 0, tail: (o.left ?? 60) - 1 }, phase: o.phase ?? 'turn' }) as never;

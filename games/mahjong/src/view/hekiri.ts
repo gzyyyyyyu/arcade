@@ -201,7 +201,7 @@ export function showHekiri(box: HTMLElement, o: HekiriOpts): () => void {
 
   /**
    * 最多三行：你选的在前三就是前三名，不在就是前两名加你选的。
-   * 原来不在前三时多加一行成四行，答差了的那题大屏、横屏、小手机都放不下要滚
+   * 不多加第四行：答差了的那题大屏、横屏、小手机都放不下要滚
    */
   function rows(list: readonly Choice[], kind: number): void {
     const box = el('div', 'hk-rows', root);

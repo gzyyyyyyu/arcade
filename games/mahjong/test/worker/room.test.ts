@@ -141,7 +141,7 @@ describe('开房', () => {
   });
 });
 
-describe('等人页离开（kit 0.28.0）', () => {
+describe('等人页离开', () => {
   // 测试配置每人同时最多 5 间（wrangler.test.jsonc 的 roomsPerUser）：先占满 4 间，第 5 间还没还就开不出第 6 间
   const fill = async (id: string) => {
     for (let i = 0; i < 4; i++) await openRoom(id);
@@ -255,7 +255,7 @@ describe('搭子战绩', () => {
   });
 });
 
-describe('好友房聊天（kit 0.18.0，0.19.0）', () => {
+describe('好友房聊天', () => {
   type Said = { t: 'chat'; seat: number; text: string; masked?: true };
   const said = (c: Conn): Said[] => c.raw.map((r) => JSON.parse(r) as { t: string }).filter((m): m is Said => m.t === 'chat');
 

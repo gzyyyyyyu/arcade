@@ -45,7 +45,7 @@ describe('主页切换项', () => {
     xuezhanPage.homePick(store, 'sichuan-xuezhan');
     expect(store.opts).toMatchObject({ three: false, flow: false });
   });
-  it('切三人两房再切回血战、血流：换三张还是原来的选择（0.47.9 以前切回来就变成不换了），单机、实盘、开房都照它', () => {
+  it('切三人两房再切回血战、血流：换三张还是原来的选择，单机、实盘、开房都照它', () => {
     for (const mine of [true, false]) {
       const s = { variant: 'sichuan-xuezhan', opts: { ...DEFAULT_OPTS, swap: mine } } as never as Parameters<typeof xuezhanPage.homePick>[0];
       xuezhanPage.homePick(s, 'three');
