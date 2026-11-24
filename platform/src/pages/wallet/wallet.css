@@ -15,8 +15,8 @@
 .wallet-page .wallet-page__stakes--fit, .wallet-page .wallet-page__flow--fit { flex: 0 1 auto; min-height: 0; }
 .wallet-page .wallet-page__flow--fit > .empty { flex: none; padding: var(--s-4) 0 var(--s-3); }
 .wallet-page .wallet-page__flow--fit > .empty svg { max-height: 72px; width: auto; }
-.wallet-page .chips { flex: none; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; margin-bottom: 0; padding-bottom: 2px; }
-.wallet-page .chips::-webkit-scrollbar { display: none; }
+/* 游戏多了一行放不下就折行，不横滑（横滑时末尾的「补给和其他」看不到、半截被裁） */
+.wallet-page .chips { flex: none; flex-wrap: wrap; margin-bottom: 0; padding-bottom: 2px; }
 .wallet-page .chips button { flex: none; white-space: nowrap; min-height: 32px; }
 @media (pointer: coarse) { .wallet-page .chips button { min-height: var(--tap); } }
 .wallet-page .ptabs--wide .ptabs__pane:first-child { flex: 0 0 clamp(340px, 34%, 420px); }
@@ -80,8 +80,8 @@
   .wallet-page .paged__bar .btn::after, .wallet-page .chips button::after { content: ''; position: absolute; inset: -4px 0; }
   .wallet-page .ledger__row { min-height: 32px; padding-block: 0; }
   .wallet-page .panel { gap: var(--s-1); }
-  /* 卡里放不下走势和"补到多少"（最后一行"新号送的"被卡片切掉一截）：走势在"这周"页签里，按钮写着"领补给" */
-  .wallet-page .wcard__trend, .wallet-page .wcard__empty, .wallet-page [data-testid="relief-hint"] { display: none; }
+  /* 卡里放不下走势（最后一行"新号送的"被卡片切掉一截）：走势在"这周"页签里；"补到多少"只一行，留着，不然横屏看不到补给怎么领 */
+  .wallet-page .wcard__trend, .wallet-page .wcard__empty { display: none; }
   /* 桌上没筹码那块只剩"没有，都在钱包里"，标题收掉就不知道说的是什么：这一块留着标题 */
   .wallet-page .wallet-page__stakes--none > .panel__title { display: flex; }
 }

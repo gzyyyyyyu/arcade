@@ -89,10 +89,14 @@
 .me-page .recovery .check { min-height: 32px; }
 @media (pointer: coarse) { .me-page .recovery .check { min-height: var(--tap); } }
 
-/* 不到 400 宽：六个页签挤一行，间距收窄让每个够点（360 宽要 44、320 宽要 40） */
+/* 不到 400 宽：六个页签一行放不下「云存档」「邀请码」（字顶到圆边、和隔壁贴在一起），排成两行三个；
+   320×568 这类又矮的竖屏多一行就放不下资料页，仍挤一行、字号降一档 */
 @media (max-width: 400px) {
-  .me-page .me-tabs { gap: 2px; }
-  .me-page .me-tabs button { padding: 0; }
+  .me-page .me-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-1) var(--s-2); }
+}
+@media (max-width: 400px) and (max-height: 600px) {
+  .me-page .me-tabs { display: flex; gap: 2px; }
+  .me-page .me-tabs button { padding: 0; font-size: var(--fs-xs); }
 }
 /* 320×568 这类又窄又矮的竖屏：资料卡三块压紧，按钮变小，一屏放下 */
 @media (max-width: 400px) and (max-height: 600px) and (orientation: portrait) {

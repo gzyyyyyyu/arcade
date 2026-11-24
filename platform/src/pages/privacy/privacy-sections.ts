@@ -13,7 +13,7 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
     id: 'start',
     name: '概要',
     blocks: [
-      b('promise', '我们不放广告，也不卖你的数据；除了上面"访问统计"页签里交给 Cloudflare 的匿名统计，不给别人。', true),
+      b('promise', '我们不放广告，也不卖你的数据；除了上面"访问统计"页签里交给 Cloudflare（本站的托管服务商）的匿名统计，不给别人。', true),
       // 注册开关开着、关着这句话都要成立（管理员随时开关，这页不跟着变）
       b('login', '有账号、登录后才能玩。注册不一定一直开着，没开的时候，凭朋友给的邀请码注册，或者由管理员给朋友建账号。'),
     ],

@@ -7,6 +7,7 @@ import { InviteBar, useInvitePolling } from './features/invites/Invites.tsx';
 import { useLobbyPresence } from './lib/presence.ts';
 import { Home } from './pages/lobby/Lobby.tsx';
 import { AccountButton, SoundToggle } from './features/topbar/TopBar.tsx';
+import { Skeleton } from './ui.tsx';
 
 /**
  * 各页面按需加载：大厅首屏只带首页要用的（React 加卡片），点进哪页再下那一页的代码。
@@ -32,7 +33,7 @@ function reloadForNewVersion(): Promise<{ default: ComponentType }> {
     if (!recent) {
       sessionStorage.setItem(RELOADED_KEY, JSON.stringify({ href, at: now }));
       location.assign(href);
-      // 页面马上要换掉：一直停在"正在打开…"
+      // 页面马上要换掉：一直停在加载占位上
       return new Promise(() => {});
     }
   } catch {
@@ -49,6 +50,15 @@ function PageLoadFailed() {
         刷新
       </button>
     </p>
+  );
+}
+/** 页面代码还在下载：页面卡片的框加灰条（只有一行小字时网慢像白屏卡住） */
+function PageLoading() {
+  return (
+    <div className="panel page-loading">
+      <p className="page-loading__title">正在打开…</p>
+      <Skeleton rows={4} />
+    </div>
   );
 }
 const LoginPage = page(() => import('./pages/auth/Login.tsx'), 'LoginPage');
@@ -137,7 +147,7 @@ export function App() {
         // 管理页是控制台布局，要整页宽；其余账号页面都是中间一栏。key 跟着地址换：换页时内容区重新淡入（styles.css 的 page-in）
         <div className="solo">
           <main key={loc.pathname} className={`page-in ${loc.pathname === '/admin' ? 'wide' : isDesk(loc.pathname) ? 'narrow narrow--desk' : 'narrow'}`}>
-            <Suspense fallback={<p className="note page-loading">正在打开…</p>}>
+            <Suspense fallback={<PageLoading />}>
               <Page />
             </Suspense>
           </main>

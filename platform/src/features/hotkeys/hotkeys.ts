@@ -52,5 +52,5 @@ export const HOTKEY_HELP: readonly { keys: string; what: string }[] = [
   { keys: 'W', what: '看钱包' },
   { keys: 'S', what: '看我的战绩' },
   { keys: '?', what: '打开或关闭这个说明' },
-  { keys: 'Esc', what: '关闭弹窗，或退出输入框' },
+  { keys: 'Esc', what: '关闭弹窗；没开弹窗时回大厅' },
 ];

@@ -191,7 +191,7 @@ platform/
 │  ├─ ui.tsx、icons.tsx、styles.css  表单和恢复码卡片、手写 SVG 图标和小插画；全站样式（开头是主题变量，组件只用变量；配色表见 docs/style.md）
 │  ├─ features/         一个功能一个目录（组件、逻辑、样式放一起）：fit（一屏放下：按高度翻页、窄屏页签、一屏高的外框）、modal（弹窗：同时只开一个、Tab 循环）、
 │  │                    recent（大厅游戏的先后和"上次玩"）、lobby-tour（新人引导）、hotkeys（键盘快捷键和说明面板）、
-│  │                    wallet（钱包余额和本周走势）、ledger（流水列表）、feed（好友动态浮层）、invites（收邀请，同一次轮询带回约局和在线好友数）、meetup（约局的时间算术）、share（晒战绩卡及挑选）、
+│  │                    wallet（钱包余额和本周余额变化）、ledger（流水列表）、feed（好友动态浮层）、invites（收邀请，同一次轮询带回约局和在线好友数）、meetup（约局的时间算术）、share（晒战绩卡及挑选）、
 │  │                    badges（战绩页徽章的计算和"已看过"记录）、coinfly（金币飞入钱包）、topbar（顶栏右上角和页脚声音开关）
 │  ├─ lib/              不属于单个功能的纯函数和小工具：format、next（登录后跳回的地址）、play（进游戏的地址）、gamefile（读各游戏公开的 JSON）、
 │  │                    scores（榜上分数的显示写法）、titles（称号名）、mates（搭子战绩文字）、presence（报"我在大厅"）、countup（数字滚动）、

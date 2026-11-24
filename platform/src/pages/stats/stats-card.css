@@ -90,6 +90,10 @@
   .pcard .pcard__badges { grid-column: 1 / -1; }
   .pcard .pcard__tag { display: none; }
 }
+/* 手机竖屏：数字占掉右边，昵称那格只剩一百来宽，22 号字连 5 个字都放不下；降一档、最多折两行（昵称最长 12 个字），不打省略号 */
+@media (max-width: 560px) {
+  .stats-page .pcard .pcard__name { font-size: var(--fs-lg); white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .pcard { animation: none; }
@@ -239,9 +243,9 @@ html.no-motion .stats-page .ov-row { transition: none; }
   .stats-page .stats-tabs { flex-wrap: wrap; overflow: visible; }
   /* 横排小徽章在 390 宽排两列（按 150 只排得下一列，一页还是 3 枚） */
   .stats-page .stats-badges .paged__list--grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
-  /* 两列时字那一栏要宽到不让"铜牌 · 再上桌 80 次升银牌"折三行：奖章缩到 30、内边距收到上下 1 左右 4、行距 1.1，字那栏宽到约 100，多数两行；进度条收起（那一行字已经写了还差多少）。
-     列表区 209 高，4 排要每排 ≤49：这样一排约 47 */
-  .stats-page .badges.stats-badges .badge { padding: 1px 4px; column-gap: 6px; }
+  /* 两列时字那一栏要宽到不让"铜牌 · 再上桌 80 次升银牌"折三行：奖章缩到 30、内边距上下 2 左右 4（字不贴格子边）、行距 1.1，字那栏宽到约 100，多数两行；进度条收起（那一行字已经写了还差多少）。
+     列表区 209 高，4 排要每排 ≤49：三行字的一排约 49 */
+  .stats-page .badges.stats-badges .badge { padding: 2px 4px; column-gap: 6px; }
   .stats-page .badges .badge__disc { width: 30px; height: 30px; }
   .stats-page .badges .badge__name, .stats-page .badges .badge__tier { line-height: 1.1; }
   .stats-page .badges .badge__bar { display: none; }
@@ -289,4 +293,32 @@ html.no-motion .stats-page .ov-row { transition: none; }
   .stats-page .scard--badges .paged__list--grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px var(--s-1); }
   .stats-page .badges.stats-badges .badge { padding: 2px 4px; column-gap: 6px; }
   .stats-page .badges .badge__name, .stats-page .badges .badge__tier { line-height: 1.1; }
+}
+
+/* 手机横屏等矮屏：说明条平时不占位，点了一枚徽章才浮在徽章墙底上（带「收起」），不然横屏点了徽章看不到怎么拿 */
+@media (max-height: 600px) {
+  .stats-page .scard--badges { position: relative; }
+  .stats-page .badges__tip { position: absolute; left: var(--s-1); right: var(--s-1); bottom: var(--s-1); z-index: 1; min-height: var(--tap); display: flex; align-items: center; gap: var(--s-2); box-shadow: var(--sh-sm); }
+  .stats-page .badges__how { flex: 1; min-width: 0; }
+  .stats-page .badges__tip--idle { display: none; }
+  .stats-page .badges .badges__close { flex: none; display: inline-flex; min-height: var(--tap); }
+}
+
+/* 手机横屏（只有 390 高）：各游戏概览和徽章墙一样，翻页条挪到标题那一行，一页放得下两个游戏（标题下面单占一行只放得下 1 个）；
+   表头收着，末尾的数上面叠一行小字"本周"（并排写会把 +12,000 挤出框），不然看不出是什么 */
+@media (max-height: 420px) {
+  .stats-page .scard--ov { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); align-items: center; column-gap: var(--s-3); }
+  .stats-page .scard--ov > .paged { display: contents; }
+  .stats-page .scard--ov > .scard__title { grid-column: 1; grid-row: 1; }
+  .stats-page .scard--ov .ov-row span:nth-of-type(3)::before { content: '本周'; display: block; color: var(--muted); font-size: var(--fs-xs); line-height: 1.1; }
+  .stats-page .scard--ov .paged__list { grid-column: 1 / -1; grid-row: 2; align-self: stretch; }
+  .stats-page .scard--ov .paged__bar { grid-column: 2; grid-row: 1; gap: var(--s-2); }
+  .stats-page .scard--ov .paged__bar .btn { height: 28px; min-height: 28px; min-width: 40px; padding-block: 0; position: relative; }
+  .stats-page .scard--ov .paged__bar .btn::after {
+    content: ''; position: absolute;
+    top: min(0px, calc(50% - var(--tap) / 2)); bottom: min(0px, calc(50% - var(--tap) / 2));
+    left: min(0px, calc(50% - var(--tap) / 2)); right: min(0px, calc(50% - var(--tap) / 2));
+  }
+  /* 游戏页签的战绩数字排三列两行：两列三行时最后一格"上桌"被卡片底边切掉 */
+  .stats-page .stats-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

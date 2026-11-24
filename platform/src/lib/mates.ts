@@ -2,11 +2,11 @@
 import type { Together } from '../api.ts';
 
 /**
- * 两行："一起打了 23 场：你赢 12 场、TA 赢 9 场"，做过搭档的再加"其中做搭档 8 场，赢了 6 场"。
- * 你赢、TA 赢数的是这些场里各自赢了几场，做搭档时两人一起赢也各算一场，所以不写成"对打"。
+ * 两行："一起打了 23 场：你赢 12 场、对方赢 9 场"，做过搭档的再加"其中做搭档 8 场，赢了 6 场"。
+ * 你赢、对方赢数的是这些场里各自赢了几场，做搭档时两人一起赢也各算一场，所以不写成"对打"。
  */
 export function togetherLines(t: Together): string[] {
-  const lines = [`一起打了 ${t.n} 场：你赢 ${t.wins} 场、TA 赢 ${t.theirWins} 场`];
+  const lines = [`一起打了 ${t.n} 场：你赢 ${t.wins} 场、对方赢 ${t.theirWins} 场`];
   if (t.teamN > 0) lines.push(`其中做搭档 ${t.teamN} 场，赢了 ${t.teamWins} 场`);
   return lines;
 }

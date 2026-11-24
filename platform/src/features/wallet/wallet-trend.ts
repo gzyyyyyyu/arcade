@@ -70,4 +70,11 @@ export function weekTrend(balance: number, ledger: readonly LedgerEntry[], now: 
   return { points, path, change: (values.at(-1) ?? 0) - (values[0] ?? 0) };
 }
 
+/** 本周（北京时间周一 0 点起）领的补给合计：余额变化里含着它，和"本周净赢"（只算对局）差的就是这笔 */
+export function weekRelief(ledger: readonly LedgerEntry[], now: number): number {
+  const today = dayOf(now);
+  const start = mondayOf(today);
+  return ledger.filter((e) => e.t === 'relief' && dayOf(e.at) >= start && dayOf(e.at) <= today).reduce((t, e) => t + e.a, 0);
+}
+
 const round = (n: number) => Math.round(n * 100) / 100;
