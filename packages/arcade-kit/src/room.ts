@@ -1,5 +1,5 @@
 /**
- * 房间基类：游戏 Worker 里的 Durable Object 继承它，填上规则（RoomGame）就是一张联机桌（docs/platform-backend.md 第 4 节）。
+ * 房间基类：游戏 Worker 里的 Durable Object 继承它，填上规则（RoomGame）就是一张联机桌（docs/rooms.md 第 4 节）。
  *
  * 守的规矩（4.1–4.6），每条都有测试：
  * - 只用 ctx.acceptWebSocket（休眠），只用一个闹钟，不用 setTimeout / setInterval；心跳 ping/pong 由运行时自动应答；
@@ -623,7 +623,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   // ---------- 计量 ----------
 
   /**
-   * 计量的绑定：默认是 env.METER。没绑（0.1.x 的游戏还没加绑定）就不限额、不计数——这只为平滑升级，正式环境一定要绑。
+   * 计量的绑定：默认是 env.METER。没绑就不限额、不计数（只给本地开发和测试），正式环境一定要绑。
    * 游戏不用覆盖它；kit 的测试靠它换一个能"断线"的计量
    */
   protected meterNamespace(): DurableObjectNamespace | undefined {
@@ -1400,7 +1400,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
   }
 
   /**
-   * 这一刻能出手的座位：游戏写了 actors 用它（去掉不合法、重复的），没写就是 [turn]（和 0.1.0 一样）。
+   * 这一刻能出手的座位：游戏写了 actors 用它（去掉不合法、重复的），没写就是 [turn]。
    * group 是游戏给的组标识（没给为 null），用来判断出完一步还是不是同一组。
    */
   private turnOf(state: S): { seats: number[]; group: string | null } {
@@ -1457,7 +1457,7 @@ export abstract class GameRoom<S, A, V, Env = unknown, O = unknown, E extends Ro
 
   /**
    * 这一刻要停多久（RoomGame.pause）：没人能出手、没打完、游戏给了正的有限数才算，否则 null。
-   * 只写了 pause 没写 resume 的，停了也没法接着来，当作没有停顿（行为和 0.4.0 一样），只记一次日志免得每步刷屏。
+   * 只写了 pause 没写 resume 的，停了也没法接着来，当作没有停顿，只记一次日志免得每步刷屏。
    */
   private pauseOf(state: S): number | null {
     if (!this.game.pause) return null;

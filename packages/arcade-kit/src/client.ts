@@ -1,5 +1,5 @@
 /**
- * 浏览器端连接器（docs/platform-backend.md 4.5）：
+ * 浏览器端连接器（docs/rooms.md 4.5）：
  * - 断线后按指数退避加随机抖动重连；房间每次都回全量快照（welcome），客户端整桌重画，不做增量修补；
  * - 页面从后台切回来（document 的 visibilitychange、window 的 pageshow）、网络恢复（window 的 online）时立刻检查连接：iOS Safari、微信切后台会挂起连接；
  *   从往返缓存（bfcache，pageshow 带 persisted）回来的页面，旧连接一律作废、马上重连；
@@ -530,7 +530,7 @@ export async function createRoom(url: string | URL, opts: unknown, fetchImpl: ty
 }
 
 /**
- * 开房失败、和房间断开时给玩家看的话（docs/platform-backend.md 15.10 的口径：大白话、说清能做什么）。只写各游戏都通用的说法，
+ * 开房失败、和房间断开时给玩家看的话（docs/api.md 15.10 的口径：大白话、说清能做什么）。只写各游戏都通用的说法，
  * 游戏按 key 换掉个别措辞（比如"这一手""这一局"、"桌上的筹码带回钱包"），没换的用默认：
  * - 开房失败：key 是 createRoom 的错误码（login、has_room、daily_limit、busy、bad_options、forbidden、unavailable、offline），不认识的按 unavailable；
  * - 断开：key 是 CLOSE 里的名字（roomClosed、noRoom、replaced……），另有 quota（4000 带 quota 原因：今天额度快满、房间收场）和 other（没列出的关闭码）。

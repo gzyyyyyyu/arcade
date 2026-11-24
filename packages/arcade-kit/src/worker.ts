@@ -188,7 +188,7 @@ function answer(msg: MatchDownMsg): Response {
 }
 
 /**
- * 按人、按 IP 数"码不存在"（第三轮审计：6 位房间码能一个个试）。没绑 METER（单独部署、测试里没配）就不管，和开房额度一样。
+ * 按人、按 IP 数"码不存在"（6 位房间码能一个个试）。没绑 METER（单独部署、测试里没配）就不管，和开房额度一样。
  * 没有 IP 头（本地开发）只按人算
  */
 function missGuard(env: KitEnv, userId: string, ip: string | null): { ok(): Promise<boolean>; miss(): Promise<void> } | null {
@@ -245,7 +245,7 @@ a{color:#f3c86b}</style></head>
 <body><main><h1>平台暂时连不上</h1><p>稍等一会儿再刷新试试。</p><p><a href="/">回大厅</a></p></main></body></html>`;
 
 /**
- * 游戏首页的登录闸门（docs/platform-backend.md 5.8、15.8）：游戏 Worker 把首页（`/games/<id>/`、`index.html`）交给它。
+ * 游戏首页的登录闸门（docs/platform-features.md 5.8、api-account.md 15.8）：游戏 Worker 把首页（`/games/<id>/`、`index.html`）交给它。
  * - 登录了：放行，回 ASSETS 的页面，带上平台续期的 Set-Cookie，不缓存；
  * - 没登录：302 到 `/login?next=<原路径和查询参数>`（next，登录完整页跳回来，好友房链接的 ?room= 原样带回），同样带上 Set-Cookie；
  * - 平台不可用：503 整页（`downPage`），`Retry-After: 30`；
@@ -272,7 +272,7 @@ export async function loginGate(request: Request, env: GateEnv, opts: LoginGateO
 }
 
 /**
- * 独立部署时站点根上本该归平台的两个路径（`/api/me` 0.10.2）。只在独立模式下回话，其余回 null，游戏接着走自己的路由：
+ * 独立部署时站点根上本该归平台的两个路径（`/`、`/api/me`）。只在独立模式下回话，其余回 null，游戏接着走自己的路由：
  * - `/`：游戏挂在 `/games/<id>/`，单独部署到 workers.dev 时有人直接打开 `/`，302 到游戏首页（查询参数原样带上）；
  * - `/api/me`：页面的 `detectPlatform` 开局问一次。回 200 `{ standalone: true }`（没有 `user`，认作没有平台），
  *   不让它落到静态资源回 404：404 在浏览器控制台每次都是一条红的资源加载错误。

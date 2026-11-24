@@ -1,6 +1,6 @@
 /**
  * 进房认人（游戏 Worker 里用）：WebSocket 升级请求带着平台的登录 cookie，游戏 Worker 经服务绑定 ARCADE 问一次平台 GET /api/me，
- * 和游戏登录闸门一个做法（docs/platform-backend.md 15.8）：
+ * 和游戏登录闸门一个做法（docs/api-account.md 15.8）：
  * - 请求里没有平台的会话 cookie（SESSION_COOKIE）就直接算"没登录"，不问平台：没登录的脚本刷进房地址，不占平台的计量；
  * - 只转发 Cookie 和 cf-connecting-ip 两个头，3 秒超时；
  * - 200 且 user 不为 null 才认，拿 user.id 和昵称交给房间；200 且 user 为 null 是"没登录"；
@@ -13,7 +13,7 @@
  *
  * 有独立模式（guest.ts）：游戏不带平台单独部署时认游客，按部署方式选哪种认法的是 identify；whoIs 本身不变，只问平台。
  *
- * 作为 `arcade-kit/auth` 导出：游戏自己的接口用同一份，不再各抄一份；登录闸门 直接用 `arcade-kit/worker` 的 `loginGate`。
+ * 作为 `arcade-kit/auth` 导出：游戏自己的接口也用这一份；登录闸门用 `arcade-kit/worker` 的 `loginGate`。
  *
  * 第一版不做 Ed25519 入场票（5.3）：好友房都是熟人小范围开房，进房时多问一次 /api/me（算平台 1 次调用，带 cookie 时读 D1 一两行）
  * 换来不用管签名密钥、不用改平台；等开房要走平台登记和配额、或者进房量大到这一次调用显得贵了，再换成入场票，房间这边只是换一种认人的方式。

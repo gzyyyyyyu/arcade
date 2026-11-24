@@ -1,5 +1,5 @@
 /**
- * 房间存的那一行和读写它的 SQL / PG 算法（从 room.ts 拆出）：结构、旧版本补字段、SQLite 与 PG 镜像两条读写路径、PG 的开库和提交。
+ * 房间存的那一行和读写它的 SQL / PG 算法：结构、旧版本补字段、SQLite 与 PG 镜像两条读写路径、PG 的开库和提交。
  * 参数都显式传入（sql 句柄、MirrorStore、storage），不碰房间实例的状态；缓存、计数、写行数仍由 room.ts 的 save / load / pgCommit 管，
  * 这样存储这块的 SQL 只有一处，两条路径的语句也一眼能对上。
  */

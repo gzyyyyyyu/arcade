@@ -1,5 +1,5 @@
 /**
- * 房间基类（docs/platform-backend.md 第 4 节）：真的 Durable Object（SQLite）、真的 WebSocket 休眠接口和闹钟，跑在本地 workerd 里。
+ * 房间基类（docs/rooms.md 第 4 节）：真的 Durable Object（SQLite）、真的 WebSocket 休眠接口和闹钟，跑在本地 workerd 里。
  * 每个用例断言每一步写入 ≤ 2 行（4.2）；开房那一步如实算上建表。
  */
 import { evictDurableObject, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';

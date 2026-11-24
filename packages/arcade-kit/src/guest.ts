@@ -2,7 +2,7 @@
  * 独立模式：游戏不带平台单独部署（Deploy to Cloudflare、fork）时，没有平台的 /api/me 可问，改认"游客"。
  *
  * 什么时候算独立模式（isStandalone）：env 里**没有** ARCADE 绑定，而且 GATE 不是 "login"。
- * - 有 ARCADE 绑定 = 本站正式环境，行为和 0.9 完全一样，游客 cookie 一律不认（防止有人带一个游客 cookie 绕过登录）；
+ * - 有 ARCADE 绑定 = 本站正式环境，游客 cookie 一律不认（防止有人带一个游客 cookie 绕过登录）；
  * - 没有 ARCADE 却写了 GATE=login：说明这次部署本该接平台、只是绑定丢了（部署工具出错），按"平台不可用"拒绝（fail-closed），
  *   不悄悄退成人人可进的游客模式。
  *
