@@ -26,7 +26,7 @@ export const OUT = ((): string => {
   return dir.startsWith('/') ? dir : `${process.cwd()}/${dir}`;
 })();
 export const WAIT_MS = 120_000;
-/** 0.5.5：手机横屏模式（844×390、2 倍屏、layout=phone）。显式给了 screen 的检查（竖屏、高分屏）照旧 */
+/** 手机横屏模式（844×390、2 倍屏、layout=phone）。显式给了 screen 的检查（竖屏、高分屏）照旧 */
 export const PHONE = process.argv.includes('--phone');
 export const TUTORIAL_KEY = 'kaipan.tutorial.v3';
 export const TUTORIAL_STEPS = ['goal', 'chat', 'rec', 'open', 'colors', 'heat', 'chain', 'boards', 'sell', 'bill'];
@@ -64,16 +64,16 @@ export interface OpenOpts {
   requests?: string[];
   /** 打开前在浏览器里拦截的地址：返回内容或模拟「文件不存在」 */
   routes?: { pattern: string; body: string; type: string }[];
-  /** 0.5.7 云存档：假平台接口（/api/**），和页面能读到的登录提示 cookie */
+  /** 云存档：假平台接口（/api/**），和页面能读到的登录提示 cookie */
   api?: (route: Route) => Promise<void>;
   loginHint?: boolean;
-  /** 0.5.9：看得见的区域比屏幕小（iOS Safari 的地址栏、标签栏占掉的），给了就按它设视口 */
+  /** 看得见的区域比屏幕小（iOS Safari 的地址栏、标签栏占掉的），给了就按它设视口 */
   visible?: { width: number; height: number };
-  /** 0.5.9：浏览器 UA（模拟 iOS Safari） */
+  /** 浏览器 UA（模拟 iOS Safari） */
   userAgent?: string;
-  /** 0.5.10：这个场景故意让请求失败（模拟连不上），浏览器自己打的 "Failed to load resource" 不算报错 */
+  /** 这个场景故意让请求失败（模拟连不上），浏览器自己打的 "Failed to load resource" 不算报错 */
   netErrors?: boolean;
-  /** 0.36.5：这个场景故意把请求挂着、由冒烟自己放行：页面里的请求超时（AbortSignal.timeout）不生效，免得软件渲染慢时超时先到 */
+  /** 这个场景故意把请求挂着、由冒烟自己放行：页面里的请求超时（AbortSignal.timeout）不生效，免得软件渲染慢时超时先到 */
   holdRequests?: boolean;
 }
 
@@ -100,7 +100,7 @@ export async function openPage(browser: Browser, name: string, query: string, op
   for (const r of opts.routes ?? []) await context.route(r.pattern, (route) => route.fulfill({ status: 200, contentType: r.type, body: r.body }));
   if (opts.api) {
     await context.route('**/api/**', opts.api);
-    // 0.12.0 社交部件（共用包）：有假平台、有登录提示时它会报位置、问邀请；后注册的先匹配，这两条不进各场景的假接口
+    // 社交部件（共用包）：有假平台、有登录提示时它会报位置、问邀请；后注册的先匹配，这两条不进各场景的假接口
     await context.route('**/api/presence', async (route) => {
       presence.push(route.request().postData() ?? '');
       await route.fulfill({ status: 204 });
@@ -110,7 +110,7 @@ export async function openPage(browser: Browser, name: string, query: string, op
   if (opts.holdRequests) await context.addInitScript(() => Object.defineProperty(AbortSignal, 'timeout', { configurable: true, value: () => new AbortController().signal }));
   // __Host- cookie 只能在 https 下设，冒烟是 http：直接让页面读到提示 cookie
   if (opts.loginHint) await context.addInitScript(() => Object.defineProperty(Document.prototype, 'cookie', { configurable: true, get: () => '__Host-arcade_li=1', set: () => undefined }));
-  // 0.13.1：CSP 违规（含 Report-Only）一律记成报错，冒烟算失败。例外是没有来源文件的 eval：那是这个脚本让 Playwright
+  // CSP 违规（含 Report-Only）一律记成报错，冒烟算失败。例外是没有来源文件的 eval：那是这个脚本让 Playwright
   // 在页面里求值字符串条件（waitFor、state）造成的，游戏的包里没有 eval（正式构建下实测零违规）
   await context.addInitScript(() =>
     document.addEventListener('securitypolicyviolation', (e) => {
@@ -268,7 +268,7 @@ export async function settleEnd(ctx: Ctx, key: string): Promise<void> {
   throw new Error(`[${ctx.name}] 结束页：等不到 ${key}（弹窗关不完）`);
 }
 
-/** 0.24 起结束页不再自动弹「这段日子」：等成绩页出来，点页上的「这段日子」按钮，再等故事面板。 */
+/** 结束页不自动弹「这段日子」：等成绩页出来，点页上的「这段日子」按钮，再等故事面板。 */
 export async function openStory(ctx: Ctx): Promise<void> {
   await waitFor(ctx, '结束页的「这段日子」按钮', `g.scene === 'end' && 'reveal' in g.controls()`);
   await dismissEndDialogs(ctx);
@@ -276,7 +276,7 @@ export async function openStory(ctx: Ctx): Promise<void> {
   await waitFor(ctx, '这段日子', `'reveal:close' in g.controls()`);
 }
 
-/** 点推荐卡上的"买入"：0.4 C 的局会先弹"买多少"，这时选"试一口"（旧流程的买 1 份）。 */
+/** 点推荐卡上的"买入"：开了仓位玩法的局会先弹"买多少"，这时选"试一口"（旧流程的买 1 份）。 */
 export async function buyVia(ctx: Ctx, key: string, touch = false): Promise<void> {
   if (touch) await tap(ctx, key);
   else await click(ctx, key);

@@ -155,7 +155,7 @@ function chatSample(m: Manifest): string {
 </div>`;
 }
 
-// ---------------------------------------------------------------- 0.3.0 新素材
+// ---------------------------------------------------------------- 新素材
 
 /** 待机眨眼：calm 与 blink 两张合成图叠放，CSS 每 3.2 秒切到 blink 约 160ms */
 function blinker(s: StockM, size: number, delay = 0): string {

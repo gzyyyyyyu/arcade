@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 /**
- * 0.13.1 安全头（public/_headers 的 /* 那一段）：锁住几条底线，改 CSP 时不会不小心放宽。
+ * 安全头（public/_headers 的 /* 那一段）：锁住几条底线，改 CSP 时不会不小心放宽。
  * 实际放了哪些来源、为什么，写在 _headers 的注释里；冒烟（tools/shot.ts）照同一份文件给开发服务器加头，有违规算失败。
  */
 function pageHeaders(): Record<string, string> {

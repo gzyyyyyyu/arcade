@@ -89,7 +89,7 @@ export async function realShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
   {
-    // 行情目录拿不到：退回 0.3 的合成行情，提示一句
+    // 行情目录拿不到：退回合成行情，提示一句
     const ctx = await openPage(browser, 'real-fallback', 'anim=0');
     await ctx.page.route('**/data/segments/**', (route) => route.fulfill({ status: 404, body: 'nope' }));
     const r = await ctx.page.evaluate(() => window.__game?.newRun('real-fallback-1', { persona: 'newbie', difficulty: 1 }) ?? { error: '无' });

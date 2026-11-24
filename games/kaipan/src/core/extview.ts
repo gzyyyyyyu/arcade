@@ -32,7 +32,7 @@ export interface SizeOption {
 
 export interface BuyOptions {
   rec: number;
-  /** 有没有仓位玩法（0.3 存档没有） */
+  /** 有没有仓位玩法 */
   enabled: boolean;
   sizes: SizeOption[];
   /** 押跌：能不能押、原因；hint 为 true 表示是唱空的群友建议押跌 */

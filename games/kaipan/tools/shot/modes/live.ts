@@ -1,15 +1,15 @@
-// --live 模式：0.6.0 实盘（假钱包）。
+// --live 模式：实盘（假钱包）。
 import type { Browser } from 'playwright-core';
 import { BALANCE, gearLevered, liveSetup, replay, runSummary, type GameState } from '../../../src/core/index.ts';
 import { botByName, playRun, useExt, useMarket } from '../../bots.ts';
 import { fakeWallet, profileStorage } from '../fakes.ts';
 import { PHONE, type Ctx, type OpenOpts, click, controls, dialogOpen, dispatch2, expect, hasText, loadState, openPage, shot, state, tap, texts, waitFor, waitIdle } from '../harness.ts';
 
-// ---------------------------------------------------------------- 0.6.0 实盘
+// ---------------------------------------------------------------- 实盘
 
 /**
- * 实盘（设计稿第 8 节第 5 步）：假钱包跑一遍"带入 → 打完 → 结回"、"还没开盘就收手 → 原样退回"、"打到一半刷新 → 接着打 → 结回"、
- * "结回连不上 / 钱包忙 / 平台内部出错 → 重试"、"放太久 → 改成不算筹码"、"带入没等到回话 → 下次先收回"、"另一台设备上有一局"。
+ * 实盘（设计稿第 8 节第 5 步）：假钱包跑一遍"带入 → 打完 → 带回"、"还没开盘就收手 → 原样退回"、"打到一半刷新 → 接着打 → 带回"、
+ * "带回连不上 / 钱包忙 / 平台内部出错 → 重试"、"放太久 → 改成不算筹码"、"带入没等到回话 → 下次先收回"、"另一台设备上有一局"。
  */
 export async function liveShots(browser: Browser): Promise<void> {
   const press = (ctx: Ctx, key: string): Promise<void> => (PHONE ? tap(ctx, key) : click(ctx, key));
@@ -33,7 +33,7 @@ export async function liveShots(browser: Browser): Promise<void> {
   };
   const opts = (w: ReturnType<typeof fakeWallet>, net = false): OpenOpts => ({ storage: profileStorage('partial'), api: (r) => w.route(r), loginHint: true, touch: PHONE, netErrors: net });
 
-  // A. 带入 → 打完 → 结回
+  // A. 带入 → 打完 → 带回
   {
     const w = fakeWallet();
     const ctx = await openPage(browser, 'live-full', '', opts(w));
@@ -44,7 +44,7 @@ export async function liveShots(browser: Browser): Promise<void> {
     await press(ctx, 'setup:tier:mid');
     await ctx.page.waitForTimeout(200);
     expect(await hasText(ctx, '带 10,000 进场'), '开始按钮应写"带 10,000 进场"');
-    // 0.11.0 杠杆：默认稳健，这局选进取 ×2
+    // 杠杆：默认稳健，这局选进取 ×2
     await press(ctx, 'setup:gear:2');
     await ctx.page.waitForTimeout(200);
     await shot(ctx, 'l1-setup-live');
@@ -63,9 +63,9 @@ export async function liveShots(browser: Browser): Promise<void> {
     const bp = runSummary(end).live?.bp ?? -1;
     await loadState(ctx, end);
     await waitIdle(ctx, '结束页', "window.__game.scene === 'end'");
-    await waitFor(ctx, '结回', "g.live()?.step === 'done'");
+    await waitFor(ctx, '带回', "g.live()?.step === 'done'");
     const settle = w.calls.find((c) => c.action === 'settle');
-    expect(!!settle && settle.body.ref === r?.ref && settle.body.bp === bp && settle.body.tier === 'mid', `结回应传这局的倍数 ${bp}（${JSON.stringify(settle?.body)}）`);
+    expect(!!settle && settle.body.ref === r?.ref && settle.body.bp === bp && settle.body.tier === 'mid', `带回应传这局的倍数 ${bp}（${JSON.stringify(settle?.body)}）`);
     const got = Math.floor((10_000 * bp) / 10_000);
     await ctx.page.waitForTimeout(400);
     expect(await hasText(ctx, `带回 ${got.toLocaleString('en-US')} 筹码`), `结束页应写带回 ${got}（${(await texts(ctx)).join(' | ')}）`);
@@ -107,7 +107,7 @@ export async function liveShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
 
-  // C. 打到一半刷新 → 接着打 → 结回；开盘以后收手按现在的资产结
+  // C. 打到一半刷新 → 接着打 → 带回；开盘以后收手按现在的资产结
   {
     const w = fakeWallet();
     const ctx = await openPage(browser, 'live-resume', '', opts(w));
@@ -116,7 +116,7 @@ export async function liveShots(browser: Browser): Promise<void> {
     await ctx.page.reload();
     await waitIdle(ctx, '刷新后', "window.__game.scene === 'title'");
     await ctx.page.waitForTimeout(400);
-    // 0.14.0 大卡：标题「继续」，下面一行「实盘 · 1月 · 人设」
+    // 大卡：标题「继续」，下面一行「实盘 · 1月 · 人设」
     expect(await hasText(ctx, '实盘 · 1月'), `刷新后「继续」应写实盘（${(await texts(ctx)).join(' | ')}）`);
     await shot(ctx, 'l6-title-resume');
     // 实盘没打完时开别的局：先问继续还是收手
@@ -136,13 +136,13 @@ export async function liveShots(browser: Browser): Promise<void> {
     await waitIdle(ctx, '回开始菜单', "window.__game.scene === 'title'");
     const settle = w.calls.find((c) => c.action === 'settle');
     expect(!!settle && typeof settle.body.bp === 'number' && !w.calls.some((c) => c.action === 'refund'), `开盘以后收手走 settle（${JSON.stringify(w.calls.map((c) => c.action))}）`);
-    // 0.6.7 提前收手也带战绩小结（0.6.5 线上验证时发现漏了）
+    // 提前收手也带战绩小结
     const quitStats = (settle?.body as { stats?: { rounds?: number } } | undefined)?.stats;
-    expect(quitStats?.rounds === 1, `提前收手的结回也带战绩小结（${JSON.stringify(settle?.body)}）`);
+    expect(quitStats?.rounds === 1, `提前收手的带回也带战绩小结（${JSON.stringify(settle?.body)}）`);
     await ctx.page.context().close();
   }
 
-  // D. 结回连不上 → 钱包忙 → 平台内部出错 → 联网后结上
+  // D. 带回连不上 → 钱包忙 → 平台内部出错 → 联网后结上
   {
     const w = fakeWallet();
     const ctx = await openPage(browser, 'live-retry', '', opts(w, true));
@@ -171,9 +171,9 @@ export async function liveShots(browser: Browser): Promise<void> {
     expect(refs.size === 1, '重发的都是同一个 ref');
     await ctx.page.waitForTimeout(400);
     expect(await hasText(ctx, '实盘赢够了'), '到顶时结束页说没进钱包的数');
-    // 0.6.5 结回带着战绩小结（平台 5.10），重发时一样
+    // 带回带着战绩小结（平台 5.10），重发时一样
     const stats = w.calls.filter((c) => c.action === 'settle').map((c) => JSON.stringify((c.body as { stats?: unknown }).stats ?? null));
-    expect(stats.length > 0 && stats[0] !== 'null' && new Set(stats).size === 1, `结回带着同一份战绩小结：${stats[0]}`);
+    expect(stats.length > 0 && stats[0] !== 'null' && new Set(stats).size === 1, `带回带着同一份战绩小结：${stats[0]}`);
     await shot(ctx, 'l8-end-capped');
     await ctx.page.context().close();
   }
@@ -218,8 +218,8 @@ export async function liveShots(browser: Browser): Promise<void> {
     await press(ctx, 'live');
     await dialogOpen(ctx, 'setup:tier:small');
     expect(w.calls.some((c) => c.action === 'refund' && c.body.ref === ref) && (await rec(ctx)) === null, '再打开面板前先收回没开成的那一份');
-    // 0.6.8 桌上有别处的一份不再拦开新局：提示一句，给「回去接着打」「原样退回」
-    // 手机上底下一排窄，写短句（0.19.1）
+    // 桌上有别处的一份不再拦开新局：提示一句，给「回去接着打」「原样退回」
+    // 手机上底下一排窄，写短句
     expect(await hasText(ctx, PHONE ? '没结的实盘 2,000' : '你还有一局实盘没结（2,000 筹码）'), '另一台设备上有一局时应提示还有一局没结');
     const c0 = await controls(ctx);
     expect('setup:aside:resume' in c0 && 'setup:aside:refund' in c0, `给「回去接着打」「原样退回」（${Object.keys(c0).join(',')}）`);
@@ -269,7 +269,7 @@ export async function liveShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
 
-  // H. 0.11.0 杠杆 ×3 跌到清零线：前一天盘前顶栏变红、提醒一句；开盘后弹「清零了」，结束页说按 0 结
+  // H. 杠杆 ×3 跌到清零线：前一天盘前顶栏变红、提醒一句；开盘后弹「清零了」，结束页说按 0 结
   {
     useMarket(null);
     useExt(true);

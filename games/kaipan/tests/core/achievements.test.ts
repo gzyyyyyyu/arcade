@@ -72,7 +72,7 @@ const CASES: Record<string, () => GameState> = {
   naked: () => ended('won', () => {}, { difficulty: 3, persona: 'retiree' }),
   crash_survivor: () => ended('lost', (s) => (s.stats.crashRet = 1.5), { difficulty: 6 }),
   steady_dog: () => ended('won', (s) => (s.stats.monthRets = Array.from({ length: 12 }, () => 2))),
-  // 0.4 C
+  // 仓位玩法
   all_in: () => ended('won', (s) => s.ext && (s.ext.log.heavy = 3), null, 'ach', true),
   mouth_hard: () => ended('lost', (s) => s.ext && (s.ext.log.stubborn = 2), null, 'ach', true),
   air_force: () => ended('lost', (s) => s.ext && (s.ext.log.shortPnl = 50_000), null, 'ach', true),

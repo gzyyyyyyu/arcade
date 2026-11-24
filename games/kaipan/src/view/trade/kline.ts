@@ -5,7 +5,7 @@
  */
 
 /** 一根日 K（点位，起点 100） */
-export interface Candle {
+interface Candle {
   o: number;
   h: number;
   l: number;

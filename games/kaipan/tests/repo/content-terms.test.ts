@@ -31,7 +31,7 @@ import {
 } from '../../src/core/index.ts';
 
 /**
- * 0.3.1 文案检查：面向玩家的文案只用 docs/design-play.md 第 2 节词表左边的说法。
+ * 文案检查：面向玩家的文案只用 docs/design-play.md 第 2 节词表左边的说法。
  * 下面这些 A 股术语一律不得出现（股票名里的"ST"除外，比如"ST摆烂"）。
  */
 const BANNED = [
@@ -67,7 +67,7 @@ const BANNED = [
   '仓位',
   '满仓',
   '空仓',
-  // 0.4 C："加仓"是玩法按钮的名字（docs/design-market.md 第 6.2 节），不再禁用
+  // 仓位玩法："加仓"是玩法按钮的名字（docs/design-market.md 第 6.2 节），不再禁用
   '基本面',
   '利好',
   '利空',
@@ -79,9 +79,9 @@ const BANNED = [
   '止损',
   '止盈',
   'K线',
-  // 0.11.0："杠杆"是实盘的玩法名（稳健 1× / 进取 2× / 疯狂 3×），和"加仓"一样放开；"爆仓""融资"仍然不许，说"清零线""利息"
+  // "杠杆"是实盘的玩法名（稳健 1× / 进取 2× / 疯狂 3×），和"加仓"一样放开；"爆仓""融资"仍然不许，说"清零线""利息"
   '喊单',
-  // 0.3.1 小白试读补充
+  // 小白试读补充
   '爆仓',
   '种子',
   '随机波动',
@@ -107,7 +107,7 @@ function qunzhuInText(text: string): boolean {
 }
 const ST_OUTSIDE_NAMES = new RegExp(`ST(?!${STOCKS.filter((d) => d.name.startsWith('ST')).map((d) => d.name.slice(2)).join('|')})`);
 
-/** 0.4 C：押跌、抵押一律大白话，这些词哪儿都不能出现（小知识的"真实世界里叫……"也不行）。 */
+/** 仓位玩法：押跌、抵押一律大白话，这些词哪儿都不能出现（小知识的"真实世界里叫……"也不行）。 */
 const BANNED_C = ['保证金', '维持', 'Reg T', 'margin call', 'Margin', '融资融券', '融资', '融券', '追保', '杠杆率'];
 
 function offending(text: string): string[] {

@@ -46,7 +46,7 @@ export interface TopBar {
   swan: SwanNotice | null;
   /** 今天没空看盘（加班事件） */
   busy: boolean;
-  /** 实盘：档位名、一份、按现在的资产能结回多少；娱乐局为 null */
+  /** 实盘：档位名、一份、按现在的资产能带回多少；娱乐局为 null */
   live: { tierName: string; stake: number; value: number } | null;
   /** 临时道具（id → 到几月底失效） */
   expiring: { id: string; month: number }[];

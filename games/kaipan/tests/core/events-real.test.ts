@@ -4,7 +4,7 @@ import { createRun, dailySetup, liveSetup, eventById, eventView, fx, itemById, r
 import { SENSITIVE_WORDS } from '../../src/core/content/tales.ts';
 import { SIX, must } from '../helpers.ts';
 
-/** 0.20 的两个事件只在真实行情的非每日局里出现：合成行情的事件池不变（replay-030 逐位一致），每日挑战同一天上线前后是同一局。 */
+/** 这两个事件只在真实行情的非每日局里出现：合成行情的事件池不变（replay-030 逐位一致），每日挑战同一天上线前后是同一局。 */
 const seg = JSON.parse(readFileSync('public/data/segments/' + JSON.parse(readFileSync('public/data/segments/index.json', 'utf8')).segments[0].file, 'utf8')) as Segment;
 
 function atEvent(id: string, seed = 'evt-real'): GameState {

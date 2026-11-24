@@ -68,7 +68,7 @@ export interface Holding {
   /** 隐藏：持有期间题材进入过退潮（站岗专业户用，结束页才判定） */
   sawEbb: boolean;
   /**
-   * 仓位：这一格占几份钱（1 份 = 账户的 1/4；缺省 1，也就是 0.3 的一格）。
+   * 仓位：这一格占几份钱（1 份 = 账户的 1/4；缺省 1）。
    * 试一口 1 份、半仓 2 份、重仓 = 剩下的全部现金；加仓 +1 份，减一半砍掉一半。
    */
   units?: number;
@@ -235,7 +235,7 @@ export interface FriendState {
   topics: ThemeId[];
 }
 
-/** 突发账单（0.3 第二轮新增）：某个月月初和月供一起公布。 */
+/** 突发账单：某个月月初和月供一起公布。 */
 export interface BillExtra {
   /** 内容 id（美术按 id 出图） */
   id: string;

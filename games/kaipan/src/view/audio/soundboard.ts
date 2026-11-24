@@ -1,6 +1,6 @@
 /**
  * 试听面板（URL 带 soundboard=1 时由 createAudio 挂出）。
- * 列出每种 cue 的全部变体、每种 mood、三个音量滑条与静音，另有按 0.3 结算顺序的“模拟一天”串联播放。
+ * 列出每种 cue 的全部变体、每种 mood、三个音量滑条与静音，另有按结算顺序的“模拟一天”串联播放。
  * 纯 DOM，固定在右上角、可折叠；面板内的指针与键盘事件不会冒泡到游戏。
  */
 import { updateSettings, getSettings } from '../../platform/settings.ts';
@@ -163,7 +163,7 @@ export function mountSoundboard(host: SoundboardHost): (() => void) | null {
     for (const [k, btn] of moodButtons) btn.classList.toggle('on', k === m);
   };
   /**
-   * 0.3 的一天（设计稿第 5 节）：盘前群聊 → 买入 → 开盘钟 → 天气 → 热度 → 4 只揭晓 → 连线 → 道具 → 账户滚动
+   * 一天的顺序（docs/core-api-engine.md 第 5 节）：盘前群聊 → 买入 → 开盘钟 → 天气 → 热度 → 4 只揭晓 → 连线 → 道具 → 账户滚动
    * → 涨停烟花 / 跌停雨云 → 收益落定 → 群友吐槽与说中/说错。moves 为 4 只持仓的涨跌（百分点）。
    */
   const simulate = (to: 'bull' | 'flat' | 'bear', moves: readonly number[], chains: number, ret: number): void => {

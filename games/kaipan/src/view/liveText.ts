@@ -46,7 +46,7 @@ export function tierCard(t: Readonly<LiveTierDef>, x = 1): { stars: number; win:
 /** 三档杠杆的名字 */
 export const GEAR_NAME: Record<number, string> = { 1: '稳健', 2: '进取', 3: '疯狂' };
 
-/** 选杠杆时写清风险：输赢放大几倍、最多拿回本钱的几倍、亏到剩多少就清零、每月利息约多少筹码（不用「结回」「份」这类没解释过的词） */
+/** 选杠杆时写清风险：输赢放大几倍、最多拿回本钱的几倍、亏到剩多少就清零、每月利息约多少筹码（不用「带回」「份」这类没解释过的词） */
 export function gearText(t: Readonly<LiveTierDef>, x: number): string {
   const g = liveGear(x);
   if (g.x <= 1) return `${GEAR_NAME[1]}：不放大，最多拿回本钱的 ${g.cap} 倍，不收利息`;
@@ -76,7 +76,7 @@ export function quitConfirm(beforeOpen: boolean, stake: number, value: number): 
 
 /**
  * 带入没成的说法：标题、正文；wallet 表示给一个「去领补给」（钱包页）的按钮。
- * 照平台的错误码对照表（docs/platform-backend.md 15.10）：每种都说清出了什么事、怎么办。
+ * 照平台的错误码对照表（docs/api.md 15.10）：每种都说清出了什么事、怎么办。
  * code 是重试类（busy、internal）里钱包回的错误码。
  */
 export function buyinFailText(error: string, why?: 'offline' | 'login', code?: string): { title: string; body: string; wallet?: boolean } {
@@ -114,7 +114,7 @@ export function liveLedger(s: Pick<RunSummary, 'tradeMoney' | 'billMoney' | 'oth
   return `${parts.join('，')}；资产比开局 ${pct}${times ? `，按 ${times}算进筹码` : ''}。`;
 }
 
-/** 结算的说法：head 是一行大字（结回多少），body 是一两句话。won 是打满了（不是破产、不是提前收手）。 */
+/** 结算的说法：head 是一行大字（带回多少），body 是一两句话。won 是打满了（不是破产、不是提前收手）。 */
 export function liveEndText(r: Readonly<LiveRecord>, won: boolean, gear?: { x: number; margin: boolean }): { head: string; body: string } {
   const bp = r.bp ?? 0;
   if (r.step === 'settling' || r.step === 'playing') {
@@ -126,7 +126,7 @@ export function liveEndText(r: Readonly<LiveRecord>, won: boolean, gear?: { x: n
       ? { head: '这一份已经结过了', body: '这一份已经结过了，看看钱包里的筹码。这局可以接着玩，但不再算筹码。' }
       : { head: '本金已原样退回', body: '这一份放了超过一天，已经原样退回钱包；可以接着玩，但不再算筹码。' };
   }
-  // 结回被拒成开盘自己的 bug：那一份还在桌上，过一天钱包会原样退回
+  // 带回被拒成开盘自己的 bug：那一份还在桌上，过一天钱包会原样退回
   if (r.step === 'error' || r.step === 'buying') return { head: '结算出了点问题', body: '出了点问题，这一份筹码没动；一天后会原样退回钱包。' };
   // done
   if (r.kind === 'refund') return { head: `退回 ${chips(r.credited ?? r.stake)} 筹码`, body: '还没开盘就收手了，这一份原样退回钱包。' };
@@ -134,7 +134,7 @@ export function liveEndText(r: Readonly<LiveRecord>, won: boolean, gear?: { x: n
   const got = r.credited ?? 0;
   const capped = r.capped ?? 0;
   const head = `带回 ${chips(got)} 筹码（${chipsDiff(got - r.stake)}）`;
-  // 结算页知道这局开了几倍杠杆：写成「杠杆 ×N，结回 X 倍」；开始菜单的局外提醒不知道，照旧
+  // 结算页知道这局开了几倍杠杆：写成「杠杆 ×N，带回 X 倍」；开始菜单的局外提醒不知道，照旧
   const times = gear ? `${(bp / 10_000).toFixed(2)} 倍` : `×${(bp / 10_000).toFixed(2)}`;
   const share = gear ? `杠杆 ×${gear.x}，带回 ${times}` : `带回是带进来那一份的 ${times}`;
   const span = won ? '几个月打下来' : '这局';

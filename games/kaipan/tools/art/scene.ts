@@ -3,8 +3,8 @@
  *
  * 层序（下→上）：sky_<bull|flat|bear> → city → haze_bear（仅熊）→ rain（仅熊）→ lightning / lightning_2 / lightning_3（仅熊，随机闪一个）→ wall → desk → steam →
  *              cat → cat_tail → cat_zzz → ambient_bull → lamp_light → monitor_glow
- * 阴天、雷雨天的室内压暗（原 ambient_flat / ambient_bear）是纯色，0.15.0 起游戏里直接画矩形，连延伸出来的那圈一起盖住。
- * 铺满（0.15.0）：room_left / room_right（320×936）、room_top / room_bottom（1280×108）画安全区外的墙和桌，宽屏、16:10 时露出来。
+ * 阴天、雷雨天的室内压暗（原 ambient_flat / ambient_bear）是纯色，游戏里直接画矩形，连延伸出来的那圈一起盖住。
+ * 铺满：room_left / room_right（320×936）、room_top / room_bottom（1280×108）画安全区外的墙和桌，宽屏、16:10 时露出来。
  * 窗洞：x 420–860，y 56–336。天色、城市、雨只在窗洞里可见，但都画满全画布，方便做视差平移。
  */
 import {
@@ -433,7 +433,7 @@ function catZzz(): Frag {
 
 // ---------------------------------------------------------------- 铺满：安全区外的墙和桌
 
-/** 0.15.0 宽屏、16:10 时安全区外露出来的那圈：左右各 320、上下各 108（art-v3 第 6 节）。 */
+/** 宽屏、16:10 时安全区外露出来的那圈：左右各 320、上下各 108（art-v3 第 6 节）。 */
 export const BLEED = { x: 320, y: 108 } as const;
 type Box4 = [number, number, number, number];
 

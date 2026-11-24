@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buyPower, candles, intraday, volumes } from '../../src/view/trade/kline.ts';
 
-/** 0.35.0 K 线页的示意数据：收盘照真实涨跌，开高低、分时按「股票 + 交易日」稳定生成。 */
+/** K 线页的示意数据：收盘照真实涨跌，开高低、分时按「股票 + 交易日」稳定生成。 */
 describe('K 线示意', () => {
   const moves = [1.2, -3.4, 0, 9.8, -8.1, 2.5, -0.4, 4.4];
 

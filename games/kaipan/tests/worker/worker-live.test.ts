@@ -4,7 +4,7 @@ import type { Env, Fetcher } from '../../src/worker/gate.ts';
 import { route as handle } from '../../src/worker/route.ts';
 import { LIVE_MAX_BP } from '../../src/core/liveTiers.ts';
 
-/** 0.6.0 实盘钱包接口：平台 /api/me 和钱包 RPC 都用假的绑定代替，记录调用参数。 */
+/** 实盘钱包接口：平台 /api/me 和钱包 RPC 都用假的绑定代替，记录调用参数。 */
 
 const ORIGIN = 'https://game.example.com';
 const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -30,7 +30,7 @@ function wallet(...rest: [unknown?]): { calls: Call[]; rpc: Env['WALLET'] } {
     calls.push({ method, args });
     return result;
   };
-  // 0.11.2 结回前先看钱包：默认桌上没有这一份（按报的档位算）；view 不记进 calls，免得每个结回的测试都多一条
+  // 带回前先看钱包：默认桌上没有这一份（按报的档位算）；view 不记进 calls，免得每个带回的测试都多一条
   const view = async () => ({ ok: true, wallet: { balance: 100, stakes: [] } });
   return { calls, rpc: { view, buyin: mk('buyin'), settle: mk('settle'), refund: mk('refund') } as unknown as Env['WALLET'] };
 }
@@ -64,7 +64,7 @@ describe('三个动作的正常路径', () => {
     const before = Date.now();
     const res = await run(e, post('buyin', { ref: REF, tier: 'mid', amount: 1, until: 5, userId: 'evil' }));
     expect(res.status).toBe(200);
-    // 钱包的回话原样，另带上是谁（浏览器记下，结回时对账号）
+    // 钱包的回话原样，另带上是谁（浏览器记下，带回时对账号）
     expect(await res.json()).toEqual({ ok: true, wallet: { balance: 8000 }, dup: false, user: 'u1' });
     expect(res.headers.get('Cache-Control')).toBe('private, no-store');
     expect(res.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
@@ -104,7 +104,7 @@ describe('settle 按桌上那一份的金额算（0.11.2 审计）', () => {
     { game: 'kaipan', ref: REF, tier: 'small', amount: 2_000, mode: 'client', at: 1, until: 2 },
   ];
 
-  it('带小档、结回报豪华档：按带入的 2,000 算，最多 7 倍', async () => {
+  it('带小档、带回报豪华档：按带入的 2,000 算，最多 7 倍', async () => {
     const e = withStake({ ok: true, wallet: { balance: 0, stakes } });
     const res = await run(e, post('settle', { ref: REF, tier: 'lux', bp: LIVE_MAX_BP }));
     expect(res.status).toBe(200);
@@ -147,7 +147,7 @@ describe('settle 的金额与 bp 校验', () => {
     ['mid', 10543, 10543],
     ['big', 30000, 150000],
     ['lux', 30000, 600000],
-    // 0.11.0 疯狂 3× 封顶 7 倍
+    // 疯狂 3× 封顶 7 倍
     ['small', 70000, 14000],
   ])('%s bp=%i → %i', async (tier, bp, amount) => {
     const e = env();
@@ -275,7 +275,7 @@ describe('钱包异常', () => {
 });
 
 describe('换了账号', () => {
-  it('结回、放弃带的 user 和现在登录的不一样：409 wrong_user，不碰钱包，带回 Set-Cookie', async () => {
+  it('带回、放弃带的 user 和现在登录的不一样：409 wrong_user，不碰钱包，带回 Set-Cookie', async () => {
     for (const [action, body] of [['settle', { ref: REF, tier: 'small', bp: 10_000, user: 'someone-else' }], ['refund', { ref: REF, user: 'someone-else' }]] as const) {
       const w = wallet({ ok: true, wallet: {} });
       const e = env({ WALLET: w.rpc, ARCADE: arcade(() => { const r = json(LOGGED_IN); r.headers.append('Set-Cookie', 'sid=a'); return r; }) });

@@ -4,7 +4,7 @@ import { route } from '../../src/worker/route.ts';
 import worker from '../../src/worker/index.ts';
 
 /**
- * 0.8.0 单独部署：模块里的 wrangler.jsonc 原样部署时没有 ARCADE、WALLET，也没有 GATE。
+ * 单独部署：模块里的 wrangler.jsonc 原样部署时没有 ARCADE、WALLET，也没有 GATE。
  * 谁打开都能玩（不问平台），站点根转到游戏，实盘接口一律 501。本站的行为（GATE=login + ARCADE）见 worker-gate / worker-live 两个测试。
  */
 

@@ -107,8 +107,8 @@ export function tempoCtx(s: GameState, em: Emitter): TempoCtx {
 }
 
 /**
- * 个股照搬真实走势时的今天。大盘 = amp × 真实涨跌（日历、难度、股灾不再改大盘）；
- * 风口热度和阶段照 0.4（真实相对强弱 + 日历、直播间、震荡等加成，股灾时一起退潮）——热度只是信息，不影响个股涨跌。
+ * 个股照搬真实走势时的今天。大盘 = amp × 真实涨跌（日历、难度、股灾不改大盘）；
+ * 风口热度和阶段 = 真实相对强弱 + 日历、直播间、震荡等加成（股灾时一起退潮）——热度只是信息，不影响个股涨跌。
  */
 function trackPlan(s: GameState, real: Readonly<RealMarket>, mr: MarketRules, crash: boolean): DayPlan {
   const R = BALANCE.real;

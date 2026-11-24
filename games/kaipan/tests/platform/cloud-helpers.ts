@@ -4,7 +4,7 @@ import { PROFILE_KEY, emptyProfile, type Profile } from '../../src/platform/prof
 import type { KeyValueStore } from '../../src/platform/settings.ts';
 import { SLOTS } from '../../src/view/cloudSync.ts';
 
-/** 0.5.7 云存档测试共用：假平台按 docs/platform-backend.md 15.3 的规矩回话，计时器手动拨。 */
+/** 云存档测试共用：假平台按仓库根 docs/api-account.md 15.3 的规矩回话，计时器手动拨。 */
 
 export class MemoryStore implements KeyValueStore {
   data = new Map<string, string>();
@@ -64,12 +64,12 @@ export function platform() {
       if (url === '/api/me') return json({ user: p.user, service: 'ok', saves: p.saves });
       if (!p.user) return json({ error: 'unauthorized' }, 401);
       const q = new URL(url, 'http://x');
-      // 平台 0.7.3：拉取带了 userId 而和会话不是同一个人，409 wrong_user、不给数据
+      // 平台：拉取带了 userId 而和会话不是同一个人，409 wrong_user、不给数据
       if (c.method === 'GET' && q.pathname === '/api/saves/kaipan' && p.checkUser && q.searchParams.has('userId') && q.searchParams.get('userId') !== p.user.id) return json({ error: 'wrong_user' }, 409);
       if (c.method === 'GET' && q.pathname === '/api/saves/kaipan') return json({ saves: [...p.slots].map(([slot, v]) => ({ slot, rev: v.rev, updatedAt: 1, data: v.data })) });
       const m = /^\/api\/saves\/kaipan\/([a-z0-9-]+)$/.exec(url);
       if (c.method === 'PUT' && m && c.body) {
-        // 平台 0.7.1：带了 userId 而和会话不是同一个人，409 wrong_user、不写库
+        // 平台：带了 userId 而和会话不是同一个人，409 wrong_user、不写库
         if (p.checkUser && c.body.userId !== undefined && c.body.userId !== p.user.id) return json({ error: 'wrong_user' }, 409);
         const cur = p.slots.get(m[1]!);
         if ((cur?.rev ?? 0) !== c.body.baseRev) return json({ error: 'conflict', current: cur ? { rev: cur.rev, updatedAt: 1, data: cur.data } : null }, 409);

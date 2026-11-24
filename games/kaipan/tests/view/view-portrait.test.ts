@@ -6,7 +6,7 @@ import { PORTRAIT_TOP_H, portraitTopBar } from '../../src/view/trade/topBarGeo.t
 import { portraitHome } from '../../src/view/meta/homeGeo.ts';
 import { phoneGeo as endGeo } from '../../src/view/end/endGeo.ts';
 
-/** 0.33.0 竖屏版：判定、世界尺寸，以及主页、交易页、顶栏、结束页几何在常见竖屏上不出界、不互相压。 */
+/** 竖屏版：判定、世界尺寸，以及主页、交易页、顶栏、结束页几何在常见竖屏上不出界、不互相压。 */
 
 const overlap = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const inside = (r: Rect, W: number, H: number): boolean => r.x >= 0 && r.y >= 0 && r.x + r.w <= W && r.y + r.h <= H;

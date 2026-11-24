@@ -48,7 +48,7 @@ export async function boardShots(browser: Browser): Promise<void> {
   };
   {
     const ctx = await openPage(browser, 'board-panel', '', { storage: profileStorage('partial'), api: fake, loginHint: true, touch: PHONE });
-    // 0.6.9 今天还没打：「每日挑战」角上写「新题」，不读榜
+    // 今天还没打：「每日挑战」角上写「新题」，不读榜
     await ctx.page.waitForTimeout(400);
     expect(!calls.some((c) => c.path.startsWith('/api/boards/')), '今天没打过，开始菜单不该读榜');
     await shot(ctx, 'b0-title-fresh');
@@ -75,7 +75,7 @@ export async function boardShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
   {
-    // 0.6.9 今天打过：开始菜单读一次全站榜，角上写名次（假榜里我排 57）
+    // 今天打过：开始菜单读一次全站榜，角上写名次（假榜里我排 57）
     calls.length = 0;
     const st = profileStorage('partial');
     const prof = JSON.parse(st['kaipan.profile']!) as { daily: Record<string, unknown> };
@@ -95,7 +95,7 @@ export async function boardShots(browser: Browser): Promise<void> {
   useMarket(null);
   useExt(false);
   expect(ended.real?.segId === seg, `每日挑战局应是当天那段真实行情（${ended.real?.segId} / ${seg}）`);
-  // 结束页过场之后一个个弹成就、解锁（「这段日子」0.24 起不再自动弹，没有弹窗就别干等）
+  // 结束页过场之后一个个弹成就、解锁（「这段日子」不自动弹，没有弹窗就别干等）
   const closeUnlocks = async (ctx: Ctx): Promise<void> => {
     for (let k = 0; k < 10; k++) {
       let found = false;
@@ -161,7 +161,7 @@ export async function boardShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
   {
-    // 0.5.11 调试局（不计入档案）：不交分，排行一行写"每日排行 月/日"（0.5.12）、留「排行榜」入口
+    // 调试局（不计入档案）：不交分，排行一行写"每日排行 月/日"、留「排行榜」入口
     calls.length = 0;
     const ctx = await openPage(browser, 'board-none', 'debug=1', { storage: profileStorage('partial'), api: fake, loginHint: true, touch: PHONE });
     await loadState(ctx, ended);
@@ -176,7 +176,7 @@ export async function boardShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
   {
-    // 0.5.11 云同步没确认账号（第一次问 /api/me 时平台暂停），结束时交分还在问账号就点「大厅」：等交分发出去再走
+    // 云同步没确认账号（第一次问 /api/me 时平台暂停），结束时交分还在问账号就点「大厅」：等交分发出去再走
     calls.length = 0;
     let mes = 0;
     let releaseMe: () => void = () => undefined;
@@ -203,7 +203,7 @@ export async function boardShots(browser: Browser): Promise<void> {
     await press(ctx, 'lobby');
     await ctx.page.waitForTimeout(300);
     expect(new URL(ctx.page.url()).search !== '', '交分还在问账号时不该马上走');
-    // 等的这一会儿有"正在离开……"（0.5.12）
+    // 等的这一会儿有"正在离开……"
     expect(await ctx.page.evaluate(() => [...document.querySelectorAll('.kp-banner')].some((e) => e.textContent === '正在离开……')), '等交分时应提示正在离开');
     releaseMe();
     await ctx.page.waitForURL((u) => u.pathname === '/' && u.search === '', { timeout: 5000 });

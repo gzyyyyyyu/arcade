@@ -10,7 +10,7 @@ import { phoneLayout } from '../viewport.ts';
 
 const W = 700;
 
-/** 关于：版本、原创声明、0.3 的玩法简介、操作与快捷键（触屏设备只列点击操作）。 */
+/** 关于：版本、原创声明、玩法简介、操作与快捷键（触屏设备只列点击操作）。 */
 export class AboutPanel extends Dialog {
   constructor(scene: Phaser.Scene) {
     // 手机横屏放不下 580 高：改成两栏，左边版本和玩法，右边操作；面板取 phonePanel（SE 上 702×392），左栏宽按面板宽算

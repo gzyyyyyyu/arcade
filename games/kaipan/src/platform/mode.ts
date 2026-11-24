@@ -11,7 +11,7 @@
  * 判断出来之前按有平台画（本站的玩家看不到任何变化），判断出来再通知重画。
  */
 
-export type PlatformMode = 'platform' | 'standalone' | 'unknown';
+type PlatformMode = 'platform' | 'standalone' | 'unknown';
 
 const ME_URL = '/api/me';
 const TIMEOUT_MS = 2500;

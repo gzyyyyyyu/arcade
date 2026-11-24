@@ -1,11 +1,11 @@
-// --meta 模式：长线界面（0.3.0）——开局选择、每日挑战、图鉴、成就、结束页解锁
+// --meta 模式：长线界面——开局选择、每日挑战、图鉴、成就、结束页解锁
 import type { Browser } from 'playwright-core';
 import { chatView, createRun, topBar, type GameState, type RunSetup } from '../../../src/core/index.ts';
 import { botByName, playRun } from '../../bots.ts';
 import { advanceTo, BASIC_SETUP, click, controls, dialogOpen, dispatchNoWait, expect, hover, loadState, notes, openPage, PHONE, press, setupQuery, shot, state, step, waitFor, waitIdle } from '../harness.ts';
 import { profileStorage } from '../fakes.ts';
 
-// ---------------------------------------------------------------- 长线界面（0.3.0）
+// ---------------------------------------------------------------- 长线界面
 
 /** 开始菜单 → 开局面板 / 每日挑战 / 图鉴 / 成就；结束页的达成与解锁弹窗。截图名 8x / 9x。 */
 export async function metaShots(browser: Browser): Promise<void> {
@@ -150,7 +150,7 @@ export async function metaShots(browser: Browser): Promise<void> {
     await shot(ctx, '96-title-after-win');
     await ctx.page.context().close();
   }
-  // E. 0.3.0-alpha 的旧存档提示；档案损坏提示
+  // E. 读不了的旧存档提示；档案损坏提示
   {
     const old = JSON.stringify({ format: 4, appVersion: '0.3.0-alpha.1', savedAt: '2026-10-05T00:00:00Z', state: {} });
     const ctx = await openPage(browser, 'legacy-03a', '', { storage: { 'kaipan.save': old } });

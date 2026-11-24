@@ -8,7 +8,7 @@ import type { RecordResult } from '../../src/platform/profile.ts';
 import { BOARD_CACHE_MS, boardBeforeLeave, boardCheck, loadBoard, retryRun, runBoard, setBoardDeps, submitRun, warmBoardUser } from '../../src/view/dailyBoard.ts';
 import { boardLine, boardScoreText } from '../../src/view/labels.ts';
 
-/** 0.5.10 每日挑战排行榜：分数编码、段池、交分和读榜按平台 15.5 的回话处理、能不能上榜、结束页一行。 */
+/** 每日挑战排行榜：分数编码、段池、交分和读榜按平台 15.5 的回话处理、能不能上榜、结束页一行。 */
 
 const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -85,7 +85,7 @@ describe('分数和榜单 ID', () => {
   });
 
   it('段池锁死：这几天抽到的段写死在这里，池子或抽法一动就红（要动就加规则版本，换榜）', () => {
-    // 0.5.10 冻结时算出来的，和 0.5.9 及以前按整个段目录抽的一样
+    // 冻结时算出来的，和 0.5.9 及以前按整个段目录抽的一样
     for (const [day, id] of [
       ['2026-10-14', 'seg_4dfb09075b'],
       ['2026-10-15', 'seg_440855e0fd'],

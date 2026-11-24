@@ -114,7 +114,7 @@ export function doneButton(scene: Phaser.Scene, right: number, bottom: number, o
 }
 
 /**
- * 本月看点卡（0.5 去文字化）：主题图标 + 大字月份 + 主题名；目标进度环（目标数字居中）+ 奖励金额；
+ * 本月看点卡：主题图标 + 大字月份 + 主题名；目标进度环（目标数字居中）+ 奖励金额；
  * 规则、本月要还的钱、交易日变成图标胶囊；一句 ≤12 字台词。长句（开场白、规则原文、目标原文、附加说明）都在悬停详情里。
  * 第 4、8 个月的中场 boss 换深色底、金边、"中场挑战"红签，出场时震一下、撒金粉。
  */
@@ -300,7 +300,7 @@ export function monthCard(
 
 // ---------------------------------------------------------------- 屏幕中部大字
 
-/** 喊话标题 → 图标（飘字改成图标 + 数字）。 */
+/** 喊话标题 → 图标（飘字用图标 + 数字）。 */
 function shoutGlyph(title: string): Glyph {
   if (title.includes('被轧')) return 'cry';
   if (title.includes('连续涨停')) return 'rocket';

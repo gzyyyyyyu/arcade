@@ -56,7 +56,7 @@ export async function pagesAShots(browser: Browser): Promise<void> {
     if ('size:taste' in (await controls(ctx))) await tap(ctx, 'size:taste');
     await waitIdle(ctx, '点消息买入');
     expect((await state<number>(ctx, held)) === before + 1, '点群聊里带推荐的消息应买入一只');
-    // 0.36.1：今天买够了（或没现金）时消息上不再挂「买 ›」，和推荐卡的「买入」一致
+    // 今天买够了（或没现金）时消息上不再挂「买 ›」，和推荐卡的「买入」一致
     if ((await state<number>(ctx, 's.today.buysLeft')) <= 0) expect(!('chat:buy' in (await controls(ctx))), '今天买够了，群聊消息上不该还有「买 ›」');
     await shot(ctx, 'pa4-chat-bought');
     await dispatch2(ctx, { type: 'open' });
@@ -74,7 +74,7 @@ export async function pagesAShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
   {
-    // 0.33.0 起竖屏打开就是竖屏版、不提示；横过来版面和方向不一致才提示「换成横屏版？」，点「照样玩」收起，转回竖屏也不再提示
+    // 起竖屏打开就是竖屏版、不提示；横过来版面和方向不一致才提示「换成横屏版？」，点「照样玩」收起，转回竖屏也不再提示
     const ctx = await openPage(browser, 'pa-portrait', `seed=pre-1&anim=0&${setupQuery(BASIC_SETUP)}`, { touch: true, screen: { width: 390, height: 844, dpr: 2 } });
     await waitIdle(ctx, '竖屏首屏');
     expect(!(await ctx.page.locator('#rotate-hint').isVisible()), '竖屏打开就是竖屏版，不应有转屏提示');

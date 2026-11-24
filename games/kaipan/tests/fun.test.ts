@@ -3,7 +3,7 @@ import { ACHIEVEMENTS, achievementHints, codex, createRun } from '../src/core/in
 import { makeFluff } from '../src/view/trade/chatFluff.ts';
 import { unlocksOf } from '../src/view/meta/unlocks.ts';
 
-/** 0.6.4 隐藏结局和群聊小彩蛋（只用来看，不发筹码）。 */
+/** 隐藏结局和群聊小彩蛋（只用来看，不发筹码）。 */
 describe('隐藏结局', () => {
   it('4 个隐藏成就；图鉴条目带 hidden；结束时每个隐藏结局单独先弹', () => {
     const hidden = ACHIEVEMENTS.filter((d) => d.hidden).map((d) => d.id);

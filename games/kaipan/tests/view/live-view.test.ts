@@ -5,7 +5,7 @@ import type { LiveRecord } from '../../src/platform/live.ts';
 import { LIVE_GUARD, LIVE_LOBBY_CONFIRM, LIVE_RULE, buyinFailText, chips, chipsDiff, liveEndText, liveLedger, liveNoticeTitle, quitConfirm } from '../../src/view/liveText.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 
-/** 0.6.0 实盘在画面这一层的规矩：说话的分寸（设计稿第 5 节）、档案只记图鉴（第 7 节）。 */
+/** 实盘在画面这一层的规矩：说话的分寸（设计稿第 5 节）、档案只记图鉴（第 7 节）。 */
 
 const rec = (over: Partial<LiveRecord>): LiveRecord => ({ ref: 'kaipan-0123456789', tier: 'small', stake: 2_000, seed: 's', at: 0, until: 1, step: 'done', kind: 'settle', bp: 10_000, ...over });
 

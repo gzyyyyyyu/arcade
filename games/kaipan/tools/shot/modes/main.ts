@@ -114,7 +114,7 @@ export async function run(browser: Browser): Promise<void> {
     await ctx.page.waitForTimeout(200);
     await shot(ctx, '04-legacy-notice');
     expect('notice:ok' in (await controls(ctx)), '应弹出旧存档提示');
-    // 0.6.15：旧存档清掉、不再备份；当年留下的备份 key 启动时清掉
+    // 旧存档清掉、不再备份；当年留下的备份 key 启动时清掉
     const left = await ctx.page.evaluate(() => ['kaipan.save', 'kaipan.save.v0.2', 'kaipan.terms.v04', 'kaipan.records'].filter((k) => localStorage.getItem(k) !== null));
     expect(left.length === 0, `旧存档和旧备份 key 应清掉（还剩 ${left.join('、')}）`);
     await click(ctx, 'notice:ok');
@@ -159,7 +159,7 @@ export async function run(browser: Browser): Promise<void> {
       expect((await guideStep(ctx)) === 'open', `买入后应讲开盘（${await guideStep(ctx)}）`);
       await expectNotCovered(ctx, 'open');
     });
-    // T+1：当天买入的不能卖。0.4 起持仓按钮是"加 / 卖"（当天可以加仓），所以按钮还在，改为检查规则层的状态
+    // T+1：当天买入的不能卖。持仓按钮是"加 / 卖"（当天可以加仓），所以按钮还在，改为检查规则层的状态
     expect(await state<boolean>(ctx, 's.slots[0] && s.slots[0].boughtDay >= s.today.day'), '当天买入的不能卖（规则层应记为今天买入）');
     await click(ctx, 'open');
     await waitIdle(ctx, '开盘', 'window.__game.state().dayIndex === 1');
@@ -423,10 +423,10 @@ export async function run(browser: Browser): Promise<void> {
     await click(ctx, 'continue');
     await waitIdle(ctx, '结束页', "window.__game.scene === 'end'");
     await quietShot(ctx, '51-end-won');
-    // 0.12.0 分享卡（共用包画）：无头 Chromium 不能带文件调系统分享，出预览层；点「保存图片」存下来看一眼，再关掉
+    // 分享卡（共用包画）：无头 Chromium 不能带文件调系统分享，出预览层；点「保存图片」存下来看一眼，再关掉
     await click(ctx, 'share');
     await ctx.page.waitForSelector('[data-key="share:save"]', { timeout: 15_000 });
-    // kit 0.15.1：桌面不调系统分享、直接出预览，多一个「复制图片」（去微信里粘贴）
+    // kit 桌面不调系统分享、直接出预览，多一个「复制图片」（去微信里粘贴）
     expect((await ctx.page.locator('[data-key="share:copy-image"]').count()) === 1, '桌面的分享预览应有「复制图片」');
     // 预览图是异步塞进 img 的：等它解码完再截
     await ctx.page.waitForFunction(() => [...document.querySelectorAll('img')].some((i) => i.complete && i.naturalWidth > 0 && (i.src.startsWith('data:') || i.src.startsWith('blob:'))), null, { timeout: 15_000 });
@@ -507,7 +507,7 @@ export async function run(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
   // 12b. 竖屏打开、再横过来（微信里点开链接最常见的进法）：竖屏开局是竖屏版，横过来提示「换成横屏版」，点了重新载入，
-  // 不带 layout 参数靠自动判定也要拿到手机横屏布局（0.33.0 起的行为）
+  // 不带 layout 参数靠自动判定也要拿到手机横屏布局
   {
     const ctx = await openPage(browser, 'rotate', `seed=pre-1&anim=0&${setupQuery(BASIC_SETUP)}`, { touch: true, screen: { width: 390, height: 844, dpr: 2 } });
     await ctx.page.setViewportSize({ width: 844, height: 390 });
@@ -516,7 +516,7 @@ export async function run(browser: Browser): Promise<void> {
     await Promise.all([ctx.page.waitForEvent('load'), relayout.click()]);
     await waitIdle(ctx, '换成横屏版之后');
     await ctx.page.waitForTimeout(600);
-    // 0.19.0 手机世界高 404（宽按屏幕比例）：画布高是 404 的整数倍；电脑布局会是 720 的倍数
+    // 手机世界高 404（宽按屏幕比例）：画布高是 404 的整数倍；电脑布局会是 720 的倍数
     const ch = await ctx.page.evaluate(() => document.querySelector('canvas')?.height ?? 0);
     expect(ch > 0 && ch % 404 === 0, `竖屏打开再横过来应是手机布局（画布高 ${ch}，应是 404 的整数倍）`);
     notes.push(`竖屏打开再横过来：画布高 ${ch}`);

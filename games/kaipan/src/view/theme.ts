@@ -3,7 +3,7 @@ import type { ColorScheme } from '../platform/settings.ts';
 import { isLowMemoryDevice, renderScale } from 'arcade-kit/viewport';
 
 /**
- * 配色与字体集中在这里（0.3 纸张卡通风）。颜色按 A 股习惯：红涨绿跌；设置里可切换为绿涨红跌
+ * 配色与字体集中在这里（纸张卡通风）。颜色按 A 股习惯：红涨绿跌；设置里可切换为绿涨红跌
  * （applyColorScheme，已创建的界面需重建后生效）。
  * 承载信息的文字（ink / muted / 涨跌色）对纸面底色（paper）的对比度都 ≥ 4.5:1；
  * dim 只用于装饰性的小字（快捷键提示）。

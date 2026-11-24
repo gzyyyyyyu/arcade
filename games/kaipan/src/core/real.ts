@@ -4,7 +4,7 @@
  * - 风口热度：每天的热度变化 = heatGain × 行业相对所有行业平均的超额收益（按 smooth 均摊、按这一段的日波动归一）
  *   − heatPull × (热度 − heatBase)。行业跑赢别的行业热度就涨，跑输就跌，没人炒慢慢凉。
  * - 风口阶段：按热度和当天热度变化，用一个只能按 冷 → 冒头 → 发酵 → 主升 → 高潮 → 退潮 → 冷 走的状态机判定
- *   （冒头可以夭折回冷门，发酵可以证伪直接退潮），所以 0.3 的生命周期、拐点、群聊里的"启动、见顶、退潮"都还在，
+ *   （冒头可以夭折回冷门，发酵可以证伪直接退潮），所以生命周期、拐点、群聊里的"启动、见顶、退潮"都还在，
  *   只是什么时候发生由真实行业的强弱决定。
  * - 大盘、风口、个股：涨跌 = BALANCE.track.amp × 老三十 / 行业 / 绑定的真实股票当天的涨跌（个股再按涨跌停截断）；天气按最近几天的平均定。
  *
@@ -168,7 +168,7 @@ export function trackMood(real: Readonly<RealMarket>, i: number): Mood {
   return avg >= b ? 'bull' : avg <= -b ? 'bear' : 'flat';
 }
 
-export type RoleName = 'leader' | 'follower' | 'bluechip' | 'meme' | 'st' | 'ipo';
+type RoleName = 'leader' | 'follower' | 'bluechip' | 'meme' | 'st' | 'ipo';
 
 /** 一只真实股票这一段的"性格指标"（整段：开局前 + 一局）。 */
 export interface StockTraits {

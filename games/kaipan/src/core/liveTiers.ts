@@ -1,5 +1,5 @@
 /**
- * 实盘的档位表和结回算法：画面和 Worker 都用（docs/design-live.md 第 1、6 节）。
+ * 实盘的档位表和带回算法：画面和 Worker 都用（docs/design-live.md 第 1、6 节）。
  * 单独一个文件、运行时只依赖 balance.ts 的数，Worker 打包时不会把规则引擎带进去。
  */
 import { BALANCE } from './balance.ts';
@@ -24,7 +24,7 @@ export const LIVE_TIERS: readonly LiveTierDef[] = [
   { id: 'lux', name: '豪华档', stake: 200_000, difficulty: 3 },
 ];
 
-/** 结回倍数的上限（万分之几）：最多拿回几份（按最高一档杠杆的封顶算，Worker 用它拦写错的数） */
+/** 带回倍数的上限（万分之几）：最多拿回几份（按最高一档杠杆的封顶算，Worker 用它拦写错的数） */
 export const LIVE_MAX_BP = Math.max(BALANCE.live.cap, ...BALANCE.live.gears.map((g) => g.cap)) * 10_000;
 
 /** 杠杆 x 那一档的规则（封顶、利息、清零线）；没有这一档时按稳健 1× */
@@ -33,7 +33,7 @@ export function liveGear(x: number): LiveGear {
 }
 
 /**
- * 放大后的结回倍数（还没取整、没截断）：r = 当前资产 ÷ 开局资产，先按档位的涨跌倍数 lev 放大，
+ * 放大后的带回倍数（还没取整、没截断）：r = 当前资产 ÷ 开局资产，先按档位的涨跌倍数 lev 放大，
  * 再按玩家选的杠杆 x 放大。倍数是 1 的那一步直接用 r，免得浮点多绕一步差出 1。
  */
 export function liveLevered(r: number, lev = 1, x = 1): number {
@@ -49,7 +49,7 @@ export function liveTierById(id: LiveTier): LiveTierDef {
   return LIVE_TIERS.find((t) => t.id === id) as LiveTierDef;
 }
 
-/** 按倍数（万分之几）算结回多少筹码 */
+/** 按倍数（万分之几）算带回多少筹码 */
 export function liveReturn(stake: number, bp: number): number {
   return Math.floor((stake * bp) / 10_000);
 }

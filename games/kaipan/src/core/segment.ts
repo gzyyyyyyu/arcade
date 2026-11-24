@@ -171,7 +171,7 @@ export function checkSegment(raw: unknown, themeIds: readonly ThemeId[]): string
 /** 从行情段里取出本局要用的部分（登场的风口、绑定的股票），算好每个行业的超额收益尺度。 */
 /**
  * 行业超额收益（pp）的指数均摊：ex[i] = smooth × e[i] + (1 − smooth) × ex[i − 1]。
- * 只是把每天的超额收益摊到之后几天（总和不变，末尾没摊完的部分除外），让风口像 0.3 一样有惯性。
+ * 只是把每天的超额收益摊到之后几天（总和不变，末尾没摊完的部分除外），让风口有惯性。
  */
 function smoothExcess(sector: readonly number[], market: readonly number[], smooth: number): number[] {
   const out: number[] = [];

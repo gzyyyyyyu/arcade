@@ -15,7 +15,7 @@ export interface MonthThemeCtx {
   mret: number;
   /** 这个月大盘最大单日跌幅（放大后，pp，≤ 0） */
   mmin: number;
-  /** 开了仓位 / 押跌 / 抵押（0.4 C） */
+  /** 开了仓位 / 押跌 / 抵押 */
   ext: boolean;
 }
 
@@ -32,7 +32,7 @@ export interface MonthThemeDef {
   goal: { kind: GoalKind; base: number; text: string };
   /** 奖励：现金按当月月供 × BALANCE.tempo.cash（boss 用 bossCash）× cashMult；碎片；boss 另给一个道具 */
   reward?: { cashMult?: number; shards?: number; item?: boolean };
-  /** 需要 0.4 C 的新机制（押跌、抵押） */
+  /** 需要仓位玩法的机制（押跌、抵押） */
   needsExt?: boolean;
   /**
    * 只在真实行情的普通局进抽取池（同 events.ts 的 realOnly：不含每日挑战、闪电盘、本周市场、实盘）。

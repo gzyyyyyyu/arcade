@@ -1,5 +1,5 @@
 /**
- * 0.4.0 防泄漏：玩家在浏览器网络面板里能看到 public/data/segments 下的文件名和内容，
+ * 防泄漏：玩家在浏览器网络面板里能看到 public/data/segments 下的文件名和内容，
  * 这里不得出现真实年份、日期（YYYY-MM、YYYY-MM-DD）、大事原文和年份类字段。
  * 段 id 和真实年份的对照只在 tools/data/segments-manifest.json。
  */

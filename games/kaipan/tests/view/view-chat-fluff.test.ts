@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fluffNote, makeFluff, shortLine, toneOf, type FluffInput } from '../../src/view/trade/chatFluff.ts';
 
-/** 0.5.1 群聊热闹元素：确定性、只用在场群友、文案短，短话不硬截断。 */
+/** 群聊热闹元素：确定性、只用在场群友、文案短，短话不硬截断。 */
 const FRIENDS = [
   { id: 'xiaoli', name: '小李' },
   { id: 'laowang', name: '老王' },

@@ -13,7 +13,7 @@ import { isCut } from '../view/ui/text.ts';
  * 下面被盖住的按钮点不到、文字也看不清，不算重叠和压字。
  * 不接点击的不透明层（选格子的提示条这类纸面、实心底）盖住的文字同样看不见，不算压字；被它盖住的按钮却照样点得到，单独标出来。
  */
-export interface LayoutBox {
+interface LayoutBox {
   key: string;
   /** 点击区（世界坐标） */
   hit: Rect;
@@ -25,7 +25,7 @@ export interface LayoutBox {
   covered: boolean;
 }
 
-export interface LayoutText {
+interface LayoutText {
   text: string;
   box: Rect;
   /** 属于哪个按钮（底板容器里的字）：按钮 key；不属于任何按钮时为 null */

@@ -18,7 +18,7 @@ interface LaunchParams {
   /** URL 指定的动画参数（优先于设置） */
   anim: AnimOverride;
   debug: boolean;
-  /** ext=1：URL 开的局也打开 0.4 C 的仓位、押跌、银行（缺省按 0.3 玩法开，旧的自动化脚本不受影响） */
+  /** ext=1：URL 开的局也打开仓位、押跌、银行（缺省不开，自动化脚本照旧） */
   ext: boolean;
 }
 

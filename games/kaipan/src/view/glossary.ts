@@ -25,7 +25,7 @@ export const TURN_WORD: Record<TurnTalk, string> = {
   ebb: '他觉得：要凉了',
 };
 
-export type TermKey =
+type TermKey =
   | 'theme'
   | 'heat'
   | 'feel'

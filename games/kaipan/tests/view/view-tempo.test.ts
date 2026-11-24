@@ -3,7 +3,7 @@ import { createRun, dispatch, type GameState, type Highlight } from '../../src/c
 import { bestHighlight, cnNum, flipTone, goalShort, shoutOf, spamLines, spottedText } from '../../src/view/tempoText.ts';
 import { recapOf } from '../../src/view/recap.ts';
 
-/** 0.5 画面层的节奏文字：顶栏目标、翻牌档位、大字、播报、收盘小结第一句。 */
+/** 画面层的节奏文字：顶栏目标、翻牌档位、大字、播报、收盘小结第一句。 */
 describe('0.5 节奏文字', () => {
   it('顶栏目标短说法：X / Y 和进度条', () => {
     expect(goalShort({ kind: 'limitUp', progress: 0, target: 1 })).toEqual({ text: '抓涨停 0/1 次', frac: 0 });

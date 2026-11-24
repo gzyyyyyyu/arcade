@@ -46,7 +46,7 @@ export function easeTilt(current: number, target: number): number {
 }
 
 /** 一格的情况：有没有股票 */
-export interface DropSlot {
+interface DropSlot {
   filled: boolean;
 }
 

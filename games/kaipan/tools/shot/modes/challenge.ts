@@ -1,11 +1,11 @@
-// --challenge 模式：0.13.0 好友挑战（假平台接口）。
+// --challenge 模式：好友挑战（假平台接口）。
 import type { Browser, Route } from 'playwright-core';
 import { BALANCE, type GameState, type RunSetup } from '../../../src/core/index.ts';
 import { botByName, playRun, useExt, useMarket } from '../../bots.ts';
 import { profileStorage } from '../fakes.ts';
 import { PHONE, type Ctx, click, controls, dialogOpen, errors, expect, hasText, loadState, openPage, shot, state, texts, waitFor, waitIdle } from '../harness.ts';
 
-// ---------------------------------------------------------------- 0.13.0 好友挑战
+// ---------------------------------------------------------------- 好友挑战
 
 /**
  * 假平台上走一遍好友挑战（docs/platform-integration.md 第 5 节）：发起人打完一局点「挑战好友」→ 拿到链接；

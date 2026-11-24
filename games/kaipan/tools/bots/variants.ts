@@ -19,7 +19,7 @@ import {
 } from '../../src/core/index.ts';
 import { type Bot, emptySlot, sellableSlots, themeOfStock, buyable } from './common.ts';
 
-// ================================================================ 0.4 C：重仓派、押跌派、抵押赌徒
+// ================================================================ 仓位玩法：重仓派、押跌派、抵押赌徒
 
 
 /**

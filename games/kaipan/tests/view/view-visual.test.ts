@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { pctArrow, shortHint } from '../../src/view/labels.ts';
 import { shortPart } from '../../src/view/recap.ts';
 
-/** 0.5 去文字化：画面上的短话规则（设计稿 docs/art-v3.md 第 8 节） */
+/** 去文字化：画面上的短话规则（设计稿 docs/art-v3.md 第 8 节） */
 describe('0.5 短话', () => {
   it('猫的短话不超过 16 个字', () => {
     expect(shortHint('金融热度连涨四天，可以留意一下它的股票。我也是猜的。')).toBe('金融热度连涨四天');

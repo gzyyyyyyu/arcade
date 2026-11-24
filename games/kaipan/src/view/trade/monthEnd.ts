@@ -518,7 +518,7 @@ export function rewardSlots(s: GameState, index: number): number[] {
   return s.slots.map((_, i) => i).filter((i) => validate(s, { type: 'pickReward', index, slot: i }) === null);
 }
 
-/** 事件二选一（0.5 卡牌式）：闪电图标 + 名字 + 一行情景；两个选项各一个大数字（代价 / 收益）+ 短按钮。原文在悬停。 */
+/** 事件二选一（卡牌式）：闪电图标 + 名字 + 一行情景；两个选项各一个大数字（代价 / 收益）+ 短按钮。原文在悬停。 */
 export class EventPanel {
   readonly root: Phaser.GameObjects.Container;
   private readonly buttons: Button[] = [];

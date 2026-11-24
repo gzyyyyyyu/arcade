@@ -30,7 +30,7 @@ export function onChallengeChange(fn: () => void): () => void {
 // ---------------------------------------------------------------- 打开链接
 
 /** 打开链接接到的挑战：读的时候 loading，读到了 view，读不到 fail；shown 是开始菜单弹过了 */
-export type Invite = { id: string; loading: true } | { id: string; loading: false; view: ChallengeView } | { id: string; loading: false; fail: ChallengeFail };
+type Invite = { id: string; loading: true } | { id: string; loading: false; view: ChallengeView } | { id: string; loading: false; fail: ChallengeFail };
 
 let invite: Invite | null = null;
 let inviteShown = false;
@@ -71,7 +71,7 @@ export const versionDiffers = (v: string): boolean => v !== APP_VERSION;
 // ---------------------------------------------------------------- 挑战局打完：交成绩
 
 /** 这一局在挑战下的状态（结束页显示一行） */
-export type RunChallenge =
+type RunChallenge =
   | { state: 'sending'; id: string; owner: string; v: string }
   /** 交上了（或之前交过，already）；view 是交完再读一次的成绩表，读不到为 null */
   | { state: 'done'; id: string; owner: string; v: string; already: boolean; view: ChallengeView | null }

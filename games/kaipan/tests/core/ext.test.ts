@@ -1,4 +1,4 @@
-/** 0.4 C：仓位、押跌、抵押、小知识（规则层）。 */
+/** 仓位玩法：仓位、押跌、抵押、小知识（规则层）。 */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {

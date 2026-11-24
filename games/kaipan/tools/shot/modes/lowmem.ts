@@ -1,8 +1,8 @@
-// --lowmem 模式：0.5.9 省内存设备（iPhone 8 Plus、iPad Pro 的触屏配置）
+// --lowmem 模式：省内存设备（iPhone 8 Plus、iPad Pro 的触屏配置）
 import type { Browser } from 'playwright-core';
 import { BASIC_SETUP, controls, expect, notes, openPage, setupQuery, shot, toPage, waitIdle } from '../harness.ts';
 
-// ---------------------------------------------------------------- 0.5.9 省内存设备
+// ---------------------------------------------------------------- 省内存设备
 
 /**
  * iOS 上内存超了网页进程会崩（"网页已崩溃"）。触屏设备的渲染倍数封顶 2（用 2 倍图集）、整屏背景按 1 倍光栅化：
@@ -32,7 +32,7 @@ export async function lowMemShots(browser: Browser): Promise<void> {
     const box = await ctx.page.locator('canvas').boundingBox();
     expect(!!box && box.y >= 0 && box.y + box.height <= visible.height + 1, `画布应在看得见的区域里（${JSON.stringify(box)}）`);
     await shot(ctx, 'm-toolbar-trade');
-    // 双指放大（visualViewport.scale = 2，看得见的宽高减半）：画布不跟着缩、不抖（0.5.9 审阅）
+    // 双指放大（visualViewport.scale = 2，看得见的宽高减半）：画布不跟着缩、不抖
     const before = { box: await ctx.page.locator('canvas').boundingBox(), h: await ctx.page.evaluate(() => document.documentElement.style.getPropertyValue('--app-h')) };
     await ctx.page.evaluate(() => {
       const vv = window.visualViewport!;
@@ -46,7 +46,7 @@ export async function lowMemShots(browser: Browser): Promise<void> {
     await ctx.page.waitForTimeout(600);
     const after = { box: await ctx.page.locator('canvas').boundingBox(), h: await ctx.page.evaluate(() => document.documentElement.style.getPropertyValue('--app-h')) };
     expect(JSON.stringify(after) === JSON.stringify(before), `双指放大时画布不该变（${JSON.stringify(before)} → ${JSON.stringify(after)}）`);
-    // WebGL 上下文丢了：很快恢复就不提示；3 秒没恢复才提示一条，恢复后收起（0.5.9 审阅）
+    // WebGL 上下文丢了：很快恢复就不提示；3 秒没恢复才提示一条，恢复后收起
     const banners = (): Promise<number> => ctx.page.evaluate(() => document.querySelectorAll('.kp-banner').length);
     const lose = await ctx.page.evaluate(() => {
       const gl = document.querySelector('canvas')?.getContext('webgl2') ?? document.querySelector('canvas')?.getContext('webgl');

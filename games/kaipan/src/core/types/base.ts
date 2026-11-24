@@ -11,7 +11,7 @@ export type Mood = 'bull' | 'flat' | 'bear';
 /** 群聊消息说的方向：涨、横、跌。 */
 export type Dir = 'up' | 'flat' | 'down';
 /**
- * 消息用了哪种"拐点"说法（0.3 第二轮新增）：start 要起飞了、top 差不多到顶了、ebb 该跑了。
+ * 消息用了哪种"拐点"说法：start 要起飞了、top 差不多到顶了、ebb 该跑了。
  * 只由消息的方向和公开的体感决定（说的方向和眼下走势相反时用拐点说法），不泄露真实阶段。
  */
 export type TurnTalk = 'start' | 'top' | 'ebb';
@@ -67,7 +67,7 @@ export interface StockDef {
 }
 
 /** 群友擅长的题材：固定列表、全部、当前最热、入群时随机两个。 */
-export type FriendTopics = readonly ThemeId[] | 'all' | 'hottest' | 'random2';
+type FriendTopics = readonly ThemeId[] | 'all' | 'hottest' | 'random2';
 
 export interface FriendDef {
   id: string;

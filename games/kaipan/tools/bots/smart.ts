@@ -70,7 +70,7 @@ interface SmartOptions {
   roles?: readonly Role[];
   /** 一个道具都不拿（成就"裸考"） */
   noItems?: boolean;
-  /** 0.4 C：能押跌时也押跌（期望为负的推荐押它跌） */
+  /** 仓位玩法：能押跌时也押跌（期望为负的推荐押它跌） */
   short?: boolean;
 }
 
@@ -239,7 +239,7 @@ export class SmartBot implements Bot {
         continue;
       }
       if (s.real) {
-        // 0.4 C 重新标定（真实行情）：0.3 的阶段模型在真实行情下不成立。真实行情里风口涨跌 = 行业超额收益按 smooth 均摊，
+        // 重新标定（真实行情）：合成行情的阶段模型在真实行情下不成立。真实行情里风口涨跌 = 行业超额收益按 smooth 均摊，
         // 所以今天的期望 ≈ (1 − smooth) × 昨天的风口涨跌（一阶自回归），再按群聊方向和群友可信度加减
         const k = 1 - BALANCE.real.smooth;
         const last = s.lastDay?.themes.find((x) => x.id === id)?.ret ?? 0;
@@ -378,7 +378,7 @@ export class SmartBot implements Bot {
         // 多开的那一格：拿满之后每只的权重从 1/4 变成 1/5，新买的要比现有持仓的平均价值高才划算
         const n = holdVals.length;
         const dilute = n >= BALANCE.slots ? holdVals.reduce((a, x) => a + x.v, 0) / n : -Infinity;
-        // 0.4 C：押跌更划算时押跌（期望最负的那条推荐）
+        // 仓位玩法：押跌更划算时押跌（期望最负的那条推荐）
         if (this.opt.short && canShortNow(s) && e >= 0) {
           let sb = -1;
           let sv = -Infinity;
@@ -407,7 +407,7 @@ export class SmartBot implements Bot {
   }
 
   private reward(s: GameState): Action {
-    // 0.4 C：会押跌的先拿押跌许可证
+    // 仓位玩法：会押跌的先拿押跌许可证
     if (this.opt.short && !canShortNow(s)) {
       const k = s.reward?.cards.findIndex((c) => c.kind === 'item' && c.id === 'short_permit') ?? -1;
       if (k >= 0) return { type: 'pickReward', index: k };
@@ -452,7 +452,7 @@ export class SmartBot implements Bot {
     }
     // 量化软件只对看不到真实阶段的人有用
     if (e.id === 'quant_trial' && this.opt.oracle) return { type: 'choose', option: 1 };
-    // 0.4 C：押跌体验卡（会押跌的收下）；银行经理、爸妈的电话不借钱、说实话；丈母娘发红包
+    // 仓位玩法：押跌体验卡（会押跌的收下）；银行经理、爸妈的电话不借钱、说实话；丈母娘发红包
     if (e.id === 'bear_live') return { type: 'choose', option: this.opt.short ? 0 : 1 };
     if (e.id === 'bank_manager' || e.id === 'parents_call') return { type: 'choose', option: 1 };
     if (e.id === 'mother_in_law') return { type: 'choose', option: 0 };

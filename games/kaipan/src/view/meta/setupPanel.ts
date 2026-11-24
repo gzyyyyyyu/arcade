@@ -215,7 +215,7 @@ interface SetupOpts {
 }
 
 /**
- * 「新的一局」（0.5 去文字化）：上排 5 张人设卡（立绘 + 名字 + 本钱），下排 8 枚难度徽章（徽章 + 名字）；
+ * 「新的一局」：上排 5 张人设卡（立绘 + 名字 + 本钱），下排 8 枚难度徽章（徽章 + 名字）；
  * 选中的人设、难度各一行「一句短话」，完整说明、解锁条件都在悬停里。右下角「开局」。
  * 默认选中上次的组合，所以老玩家点「新游戏」→「开局」两下就开；新手直接用标题页的「快速开始」。
  */
@@ -229,7 +229,7 @@ export class SetupPanel extends Dialog {
   private readonly personaMoney: Phaser.GameObjects.Text;
   private readonly personaText: Phaser.GameObjects.Text;
   private readonly diffText: Phaser.GameObjects.Text;
-  /** 人设一句介绍、难度的完整一句、叠加的前几级小徽章（0.5 都在悬停里） */
+  /** 人设一句介绍、难度的完整一句、叠加的前几级小徽章（都在悬停里） */
   private readonly personaDesc: Phaser.GameObjects.Text;
   private readonly diffDesc: Phaser.GameObjects.Text;
   private readonly stack: Phaser.GameObjects.Container;

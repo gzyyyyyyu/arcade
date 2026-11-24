@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { claimArrows, focusOrder, handleKey, registerFocusable, setFocusHome, step, stepDir, unregisterFocusable, type Focusable } from '../../src/view/ui/focus.ts';
 
-/** 0.9.0 键盘焦点：只在最上面那层里按阅读顺序走；框亮着时回车按下去，框下被弹窗盖住的不按。 */
+/** 键盘焦点：只在最上面那层里按阅读顺序走；框亮着时回车按下去，框下被弹窗盖住的不按。 */
 
 interface Fake extends Focusable {
   name: string;

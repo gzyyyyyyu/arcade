@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { GATED_PATHS, LOGIN_URL, handle, type Env, type Fetcher } from '../../src/worker/gate.ts';
 import worker from '../../src/worker/index.ts';
 
-/** 0.5.6 登录闸门：平台的 /api/me 用假的服务绑定代替。 */
+/** 登录闸门：平台的 /api/me 用假的服务绑定代替。 */
 
 
 function assets(): Fetcher & { calls: Request[] } {

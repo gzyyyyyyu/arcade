@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { DAILY_WIN_BASE, dailyScore, dailyScoreView, flashScore } from '../../src/core/index.ts';
 
 /**
- * public/daily.json：平台的每日榜怎么显示开盘的分数（平台 0.10.18 起不再写死开盘的规则，照 titles.json 的路子读这个文件）。
- * 每日榜按子榜分（平台 0.16.0）：boards.classic 是经典每日挑战，boards.flash 是闪电盘，和 daily-日期-<子榜> 的榜名一一对应。
+ * public/daily.json：平台的每日榜怎么显示开盘的分数（平台起不再写死开盘的规则，照 titles.json 的路子读这个文件）。
+ * 每日榜按子榜分：boards.classic 是经典每日挑战，boards.flash 是闪电盘，和 daily-日期-<子榜> 的榜名一一对应。
  * 平台的规则：score 从上往下取第一条能用的；没写 from 的总能用，写了 from 的要分数 ≥ from；
  * {n} = 分数 − from（没 from 就是分数本身），按千分位显示。note 可选 ≤ 80 字，text ≤ 30 字，文件 ≤ 32 KB。
  */

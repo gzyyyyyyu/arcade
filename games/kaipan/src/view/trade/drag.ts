@@ -12,7 +12,7 @@ import { DRAG_THRESHOLD, dragEnded, dragStarted, easeTilt, outsideArea, pastThre
 export type DragSource = { kind: 'rec'; index: number; stockId: string; name: string; face: Face } | { kind: 'hold'; slot: number; stockId: string; name: string; face: Face };
 
 /** 场景给拖拽的接口：哪里能拖、往哪放、放下怎么办。拖拽本身不碰规则，只在放下时回调。 */
-export interface DragHost {
+interface DragHost {
   /** 现在能不能开始拖（盘前、没有弹窗、没有选格子横幅、没在播动画） */
   canDrag(): boolean;
   /** 点 (x, y) 按在哪张可拖的卡上（按在按钮上的不算）；没有返回 null */

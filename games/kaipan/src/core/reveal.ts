@@ -45,7 +45,7 @@ export interface StoryView {
 }
 
 export type StoryKind = 'open' | 'market' | 'beat' | 'ext' | 'best' | 'worst' | 'idle' | 'friend' | 'end';
-export interface StoryMark {
+interface StoryMark {
   kind: StoryKind;
   ref?: string;
 }

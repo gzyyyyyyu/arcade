@@ -11,7 +11,7 @@ export async function touchShots(browser: Browser): Promise<void> {
   // 长按永远不算点击：长按买入按钮不买；长按持仓卡弹出说明、不打开详情。说明留在屏幕上，下一次点击只收起说明（不会点到下面的开盘）
   const held = 's.slots.filter((x) => x).length';
   const before = await state<number>(ctx, held);
-  // 0.19.5 起触屏且电脑布局字太小的屏（这里 1280×720 触屏）走手机布局：推荐收在「推荐」页签里，先点开
+  // 起触屏且电脑布局字太小的屏（这里 1280×720 触屏）走手机布局：推荐收在「推荐」页签里，先点开
   if ('tab:recs' in (await controls(ctx))) {
     await tap(ctx, 'tab:recs');
     // 等页签切完再按：机器很卡时 200 毫秒后推荐卡可能还在重画，手指按在旧按钮上，长按根本没开始计时

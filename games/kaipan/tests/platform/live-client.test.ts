@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LIVE_KEY, LiveClient, classify, reviveLive, walletView, type LiveRecord } from '../../src/platform/live.ts';
 import type { KeyValueStore } from '../../src/platform/settings.ts';
 
-/** 0.6.0 实盘的本机账（src/platform/live.ts）：带入、结回、放弃、重试、作废，钱包和 Worker 用假的。 */
+/** 实盘的本机账（src/platform/live.ts）：带入、带回、放弃、重试、作废，钱包和 Worker 用假的。 */
 
 function memStore(init: Record<string, string> = {}): KeyValueStore & { data: Map<string, string> } {
   const data = new Map(Object.entries(init));
@@ -118,14 +118,14 @@ describe('带入', () => {
   });
 });
 
-describe('结回、放弃', () => {
+describe('带回、放弃', () => {
   async function playing(replies: Reply[]) {
     const t = client([OK(), ...replies]);
     await t.c.buyin('small', 'seed');
     return t;
   }
 
-  it('结回：发 ref、tier、bp；成了记 done、进钱包和到顶的数', async () => {
+  it('带回：发 ref、tier、bp；成了记 done、进钱包和到顶的数', async () => {
     const { c, store, calls } = await playing([OK({ credited: 1_500, capped: 608 })]);
     await c.finish('seed', 'settle', 10_543.9);
     expect(calls[1]!.url).toBe('api/live/settle');
@@ -325,7 +325,7 @@ describe('审阅后补的几处', () => {
     expect(saved(store)).toMatchObject({ step: 'playing', user: 'u1' });
   });
 
-  it('记下带入的账号，结回、放弃时带上；换了账号（409 wrong_user）停在 settling 等登录', async () => {
+  it('记下带入的账号，带回、放弃时带上；换了账号（409 wrong_user）停在 settling 等登录', async () => {
     const { c, store, calls } = client([{ status: 200, body: { ok: true, wallet: { balance: 1, stakes: [] }, user: 'u1' } }, { status: 409, body: { ok: false, error: 'wrong_user' } }, OK({ credited: 2_000 })]);
     await c.buyin('small', 'seed');
     await c.finish('seed', 'settle', 10_000);
@@ -335,7 +335,7 @@ describe('审阅后补的几处', () => {
     expect(saved(store)?.step).toBe('done');
   });
 
-  it('结回遇到钱包的每日写入上限（limit）：留着明天再结', async () => {
+  it('带回遇到钱包的每日写入上限（limit）：留着明天再结', async () => {
     const { c, store } = client([OK(), NO('limit')]);
     await c.buyin('small', 'seed');
     await c.finish('seed', 'settle', 10_000);

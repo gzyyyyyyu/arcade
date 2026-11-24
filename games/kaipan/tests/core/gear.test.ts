@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BALANCE, LIVE_MAX_BP, createRun, dispatch, gearInterest, gearLevered, liveGear, liveLevered, liveMultipleBp, liveSetup, replay, runSummary, validate } from '../../src/core/index.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 
-/** 0.11.0 实盘杠杆（docs/design-live.md 第 2 节）：稳健 1× 和 0.10.0 一模一样；进取、疯狂放大结回、按月付利息、跌到清零线按 0 结。 */
+/** 实盘杠杆（docs/design-live.md 第 2 节）：稳健 1× 和不带杠杆一样；进取、疯狂放大带回、按月付利息、跌到清零线按 0 结。 */
 
 describe('杠杆的开局设置', () => {
   it('稳健 1× 不写 gear（老局、新局同一套规则）；进取、疯狂把封顶、清零线抄进这局，利息按档位打折', () => {
@@ -39,7 +39,7 @@ describe('打一局带杠杆的', () => {
   useExt(true);
   useMarket(null);
 
-  it('每月账单里多一笔利息；利息、结回、清零线都随同一种子同一串操作复现', () => {
+  it('每月账单里多一笔利息；利息、带回、清零线都随同一种子同一串操作复现', () => {
     const setup = liveSetup('small', 'newbie', 2);
     const s0 = createRun('gear-int', setup).state;
     expect(gearInterest(s0)).toBe(Math.round((setup.live!.gear!.interest * 100_000) / setup.live!.lev! / 100) * 100);
@@ -57,7 +57,7 @@ describe('打一局带杠杆的', () => {
     }
   });
 
-  it('跌到清零线：这局输掉、结回 0，结算记下杠杆和清零', () => {
+  it('跌到清零线：这局输掉、带回 0，结算记下杠杆和清零', () => {
     const setup = liveSetup('small', 'newbie', 3);
     let found = false;
     for (let i = 0; i < 60 && !found; i++) {
@@ -75,7 +75,7 @@ describe('打一局带杠杆的', () => {
   });
 });
 
-/** 0.20.0 盘中减仓（docs/design-live.md 2.6、design-balance.md 4.4）：降一档、之后按新的一档放大和收利息、不再有清零线。 */
+/** 盘中减仓（docs/design-live.md 2.6、design-balance.md 4.4）：降一档、之后按新的一档放大和收利息、不再有清零线。 */
 describe('盘中减仓', () => {
   useExt(true);
   useMarket(null);
@@ -94,14 +94,14 @@ describe('盘中减仓', () => {
     expect(validate(s, { type: 'deleverage' })).toBe('已经减到不加杠杆了');
   });
 
-  it('减的那一刻结回不变；之后按新的一档放大，利息按新的一档收，1× 不收', () => {
+  it('减的那一刻带回不变；之后按新的一档放大，利息按新的一档收，1× 不收', () => {
     const setup = liveSetup('small', 'newbie', 3);
     const s0 = createRun('cut-1', setup).state;
     const before = liveMultipleBp(s0);
     const s1 = dispatch(s0, { type: 'deleverage' }).state;
     expect(liveMultipleBp(s1)).toBe(before);
     const lev = setup.live!.lev!;
-    // 资产涨 1%：3× 时结回涨 3 × lev × 1%，减到 2× 后涨 2 × lev × 1%
+    // 资产涨 1%：3× 时带回涨 3 × lev × 1%，减到 2× 后涨 2 × lev × 1%
     const up = (s: typeof s1): number => {
       const t = structuredClone(s);
       t.account += 1_000;

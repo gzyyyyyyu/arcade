@@ -195,7 +195,7 @@ export function vsWord(d: number | null): { word: string; sign: number } | null 
 /** 大盘情绪的五档说法（0 最冷 → 4 最热）。 */
 export const SENTIMENT_WORDS = ['恐慌', '谨慎', '平稳', '火热', '疯狂'] as const;
 
-export interface Sentiment {
+interface Sentiment {
   /** 0..4，见 SENTIMENT_WORDS */
   level: number;
   /** 最近一个交易日涨停 / 跌停的家数 */

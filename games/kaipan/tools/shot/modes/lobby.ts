@@ -1,10 +1,10 @@
-// --lobby 模式：0.5.8 回大厅（开始菜单、对局里、结束页、竖屏提示层）
+// --lobby 模式：回大厅（开始菜单、对局里、结束页、竖屏提示层）
 import type { Browser } from 'playwright-core';
 import { botByName, playRun } from '../../bots.ts';
 import { BASIC_SETUP, buyVia, click, controls, dialogOpen, expect, loadState, PHONE, openPage, setupQuery, shot, state, tap, waitFor, waitIdle, type Ctx } from '../harness.ts';
 import { profileStorage } from '../fakes.ts';
 
-// ---------------------------------------------------------------- 0.5.8 回大厅
+// ---------------------------------------------------------------- 回大厅
 
 /**
  * 「大厅」跳平台首页 `/`：只断言地址（拦下 / 的请求，回一页空白），不加载平台的页面。
@@ -34,7 +34,7 @@ export async function lobbyShots(browser: Browser): Promise<void> {
   {
     // 对局里：齿轮 → 回大厅 → 确认框；取消留在这局，确认才走
     const ctx = await openPage(browser, 'lobby-run', `seed=pre-1&anim=0&${setupQuery(BASIC_SETUP)}`, { touch: PHONE });
-    // 0.9.2 左上角常驻的「大厅」：同一个确认框，取消留在这局
+    // 左上角常驻的「大厅」：同一个确认框，取消留在这局
     expect('lobby' in (await controls(ctx)), '交易界面左上角应有「大厅」');
     await shot(ctx, 'l1b-trade-lobby', { x: 0, y: 0, width: PHONE ? 422 : 640, height: PHONE ? 195 : 200 });
     await press(ctx, 'lobby');
@@ -57,7 +57,7 @@ export async function lobbyShots(browser: Browser): Promise<void> {
     await buyVia(ctx, 'buy:0', PHONE);
     await waitIdle(ctx, '取消回大厅后买入');
     expect((await state<number>(ctx, held)) === before + 1, '取消回大厅后应能接着买');
-    // 改过设置（平淡日改手动，关掉设置框时要重建画面）再点回大厅：确认框也得出来（0.5.10 修的）
+    // 改过设置（平淡日改手动，关掉设置框时要重建画面）再点回大厅：确认框也得出来
     await press(ctx, 'settings');
     await dialogOpen(ctx, 'settings:lobby');
     if (!('settings:quiet-manual' in (await controls(ctx)))) await press(ctx, 'settings:tab-1');
@@ -104,7 +104,7 @@ export async function lobbyShots(browser: Browser): Promise<void> {
     await ctx.page.context().close();
   }
   if (!PHONE) {
-    // 转屏提示层：竖屏版开局后横过来（0.33.0 起竖屏打开就是竖屏版，方向和版面不一致才提示）；
+    // 转屏提示层：竖屏版开局后横过来（竖屏打开就是竖屏版，方向和版面不一致才提示）；
     // 一局进行中，点「大厅」先在卡片里问；「留下」收起，「回大厅」才走
     const ctx = await openPage(browser, 'lobby-portrait', `seed=pre-1&anim=0&${setupQuery(BASIC_SETUP)}`, { touch: true, screen: { width: 390, height: 844, dpr: 2 } });
     await ctx.page.waitForTimeout(600);

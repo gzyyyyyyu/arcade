@@ -1,9 +1,9 @@
 /**
  * 开盘 Worker 的实盘钱包接口：POST /games/kaipan/api/live/{buyin,settle,refund}。
  *
- * 由 ./route.ts 按路径转进来。浏览器只给 ref / tier / bp（结回倍数，万分之几）；金额和到期时间都由 Worker 定：
- * 带入的 amount 固定是这一档的一份（不能少带），until 是 Worker 时钟的现在 + 24 小时；结回的 amount 由桌上那一份的金额和 bp 算出：
- * 结回前先看一眼钱包（view），按带入时记下的金额算，不信浏览器报的档位（带小档、报豪华档就能多拿）。
+ * 由 ./route.ts 按路径转进来。浏览器只给 ref / tier / bp（带回倍数，万分之几）；金额和到期时间都由 Worker 定：
+ * 带入的 amount 固定是这一档的一份（不能少带），until 是 Worker 时钟的现在 + 24 小时；带回的 amount 由桌上那一份的金额和 bp 算出：
+ * 带回前先看一眼钱包（view），按带入时记下的金额算，不信浏览器报的档位（带小档、报豪华档就能多拿）。
  * 浏览器从不直接碰钱包，平台的 /api 里也没有这几条路（设计稿第 6 节）。
  *
  * 认人沿用 gate.ts 的 checkLogin，而不用 arcade-kit 的 whoIs：whoIs 只在 fetch 上挂 AbortSignal.timeout，
@@ -83,7 +83,7 @@ export async function handleLive(req: Request, env: Env, timeoutMs = WALLET_TIME
   if (!body) return fail(400, 'bad_request');
   const ref = body.ref;
   if (typeof ref !== 'string' || !REF_RE.test(ref)) return fail(400, 'bad_ref');
-  // 浏览器记着带入的账号：结回、放弃时带上，现在登录的不是他就不动钱包（换了账号不能拿新账号去结旧账号的那一份）
+  // 浏览器记着带入的账号：带回、放弃时带上，现在登录的不是他就不动钱包（换了账号不能拿新账号去结旧账号的那一份）
   const expect = body.user;
   if (expect !== undefined && (typeof expect !== 'string' || expect === '' || expect.length > 128)) return fail(400, 'bad_user');
 
@@ -128,7 +128,7 @@ export async function handleLive(req: Request, env: Env, timeoutMs = WALLET_TIME
   try {
     const res: unknown = await Promise.race([call(wallet, userId), timeout]);
     if (res === 'timeout' || res === null || typeof res !== 'object' || typeof (res as { ok?: unknown }).ok !== 'boolean') return fail(503, 'unavailable', cookies);
-    // 带上是谁：浏览器记进 kaipan.live，之后结回、放弃时带回来对账号
+    // 带上是谁：浏览器记进 kaipan.live，之后带回、放弃时带回来对账号
     return reply(200, { ...res, user: userId }, cookies);
   } catch {
     return fail(503, 'unavailable', cookies);

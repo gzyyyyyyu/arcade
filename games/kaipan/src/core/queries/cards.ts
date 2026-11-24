@@ -74,7 +74,7 @@ export interface HoldingCard extends StockCard {
   canSell: boolean;
   /** 买入时是冷门或降温（低吸大师） */
   lowBuy: boolean;
-  /** 这一只占账户的比例（0..1）：1/4；多开一格且拿满 5 只时 1/(4 + fx(extra_slot, share))，0.3.0 为 1/4.5；0.4 C 再乘份数 */
+  /** 这一只占账户的比例（0..1）：1/4；多开一格且拿满 5 只时 1/(4 + fx(extra_slot, share))；开了仓位玩法再乘份数 */
   weight: number;
   /** 占几份（缺省 1）、押跌 */
   units: number;
