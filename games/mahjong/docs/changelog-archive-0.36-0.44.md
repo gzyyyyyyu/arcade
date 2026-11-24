@@ -262,4 +262,4 @@
 ### 新增
 - 规则核心支持"三人两房"（3 人、筒条两门、不定缺，两家胡了结束），画面和入口在下一版接上；四人局不变。
 
-更早的版本（0.35.1 及以前）见 [CHANGELOG-archive.md](CHANGELOG-archive.md)。
+更早的版本（0.35.1 及以前）见 [changelog-archive-0.22-0.35.md](changelog-archive-0.22-0.35.md)。
