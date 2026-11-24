@@ -33,7 +33,7 @@ import { dropBackdrops, ensureBackdrops, titleBackdrop } from './view/common/tex
 import { applyAudio } from './view/common/audio.ts';
 
 installErrorHandler();
-// 没人接住的报错报给平台（kit 0.22：只发报错文字、调用栈、路径、版本，不带账号；同一条一页只报一次）。兜底面板照旧给玩家看
+// 没人接住的报错报给平台（kit 0.22：只发报错文字、调用栈、路径、版本，不带账号；同一条一页只报一次）。兜底面板也给玩家看
 reportErrors({ game: 'guandan', version: __APP_VERSION__ });
 // 有没有平台（单独部署时没有）：开场景、进房、云存档都等它（kit 默认最多等 2.5 秒）
 const platform = detectOnce();
@@ -252,7 +252,7 @@ game.events.once(Phaser.Core.Events.READY, () => {
 });
 
 // 跟着可见区走（kit 的 watchViewport）：每次转屏、地址栏收放、窗口变化当下把 #app 贴回可见区（扣安全区），真变了才让 Phaser 重新缩放；
-// 250 毫秒后再量一次、看要不要换世界宽度。阈值都是牌馆原来的：只认放大（> 1.01）、不 scrollTo、不写 --app-h、也听 visualViewport 的 scroll
+// 250 毫秒后再量一次、看要不要换世界宽度。阈值用牌馆自己的：只认放大（> 1.01）、不 scrollTo、不写 --app-h、也听 visualViewport 的 scroll
 watchViewport({
   pin: host,
   isZoomed: zoomedIn,

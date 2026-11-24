@@ -1,5 +1,5 @@
 /**
- * 单机实盘的页面这一半（src/view/guandan/stake.ts）：存档、结回和放弃的重试、钱包回各种话时存档怎么处理、实盘牌局的记分。
+ * 单机实盘的页面这一半（src/view/guandan/stake.ts）：存档、带回和放弃的重试、钱包回各种话时存档怎么处理、实盘牌局的记分。
  * 不起浏览器：假的 localStorage 和 fetch。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -89,7 +89,7 @@ describe('实盘牌局', () => {
     expect(stakeLeft(ses.stake).dealsTotal).toBe(SOLO_DEALS);
   });
 
-  it('旧存档（没有 rules，8 副、每分 1/20）读出来照旧：打满 8 副才结束，结回不带 rules', async () => {
+  it('旧存档（没有 rules，8 副、每分 1/20）读出来照旧：打满 8 副才结束，带回不带 rules', async () => {
     const ses = started();
     const old = { ...ses.stake, match: { tier: ses.stake.match.tier, deals: [3, 3, 3, 3] } };
     mem.set(STAKE_KEY, JSON.stringify(old));
@@ -104,7 +104,7 @@ describe('实盘牌局', () => {
     await settleStake(again.stake, { fetcher: f, sleep: noSleep });
     expect(f.calls[0]!.body).toMatchObject({ points: 12, deals: 4 });
     expect(f.calls[0]!.body).not.toHaveProperty('rules');
-    // 同样的 12 分，旧规则结回 10,000 + 12 × 500，新规则每分只有 400
+    // 同样的 12 分，旧规则带回 10,000 + 12 × 500，新规则每分只有 400
     expect(payout('mid', 12, RULES_V1)).toBe(16_000);
     expect(payout('mid', 12)).toBe(14_800);
   });
@@ -119,7 +119,7 @@ describe('实盘牌局', () => {
 
 });
 
-describe('结回、放弃', () => {
+describe('带回、放弃', () => {
   const over = (): StakeSave => {
     const ses = started();
     ses.finish();
@@ -223,17 +223,17 @@ describe('进场', () => {
 });
 
 describe('中途结算的话写明数字（0.11.2）', () => {
-  it('单机：按现在的分结回多少（带入一份加输赢，封顶）', () => {
-    // 小档一份 2,000、每分 80：+6 分 → 结回 2,480
+  it('单机：按现在的分带回多少（带入一份加输赢，封顶）', () => {
+    // 小档一份 2,000、每分 80：+6 分 → 带回 2,480
     expect(fillSigned(settleNowText(payout('small', 6)), [6, 6 * pointValue('small')])).toBe('现在带回：按 +6 分（+480）带回 2,480 筹码');
     expect(fillSigned(settleNowText(payout('small', -3)), [-3, -3 * pointValue('small')])).toContain('带回 1,760 筹码');
   });
-  it('好友房离开：同样写出分、筹码和结回额', () => {
+  it('好友房离开：同样写出分、筹码和带回额', () => {
     const back = payout('mid', 2);
     expect(fillRows(roomLeaveText(2, 2 * pointValue('mid'), back))).toBe(
       `离开房间？按现在的 +2 分（+${fmtChips(2 * pointValue('mid'))}）马上带回 ${fmtChips(back)} 筹码，之后电脑接着打，输赢不再算你的；回来会重新带入`,
     );
-    // 一副打到一半（0.12.4）：这副打完才结回，不写结回额（还不知道）
+    // 一副打到一半（0.12.4）：这副打完才带回，不写带回额（还不知道）
     const midRows = roomLeaveText(-2, -2 * pointValue('mid'), payout('mid', -2), true);
     const mid = fillRows(midRows);
     expect(mid).toBe(`离开房间？这一副电脑替你打完、输赢照算，打完按那时的分带回（现在 −2 分，${fmtChips(-2 * pointValue('mid'))}）；之后输赢不再算你的，回来会重新带入`);

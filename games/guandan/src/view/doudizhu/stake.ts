@@ -1,9 +1,9 @@
 /**
  * 斗地主单机实盘（docs/stake-ddz.md）的页面会话，不画界面：存档 guandan.ddz.stake（读写在 store.ts）、
- * 经掼蛋 Worker 的三个接口（请求体带 variant: 'ddz'）带入 / 结回 / 放弃、实盘的牌局会话。
- * 流程和掼蛋的 stake.ts 一样：一场打完先把要结的数记进存档再结回，钱包忙（busy、internal、连不上）用同一个 op 重试，
- * no_stake / expired 算办完；结回、重试、响应的处理直接用 common/stake-api.ts 里玩法无关的那一半（settleWith、refundStray）。
- * 我坐 0 号，1、2 号电脑不碰钱包；我的累计分就是结回额，不另记一份（核心状态里的 scores[0]）。
+ * 经掼蛋 Worker 的三个接口（请求体带 variant: 'ddz'）带入 / 带回 / 放弃、实盘的牌局会话。
+ * 流程和掼蛋的 stake.ts 一样：一场打完先把要结的数记进存档再带回，钱包忙（busy、internal、连不上）用同一个 op 重试，
+ * no_stake / expired 算办完；带回、重试、响应的处理直接用 common/stake-api.ts 里玩法无关的那一半（settleWith、refundStray）。
+ * 我坐 0 号，1、2 号电脑不碰钱包；我的累计分就是带回额，不另记一份（核心状态里的 scores[0]）。
  * 不计战绩、不写 guandan.ddz.save（会话把 persist 关掉，存档由这里写）。
  */
 import type { DdzBotJob } from './bot-job.ts';
@@ -48,11 +48,11 @@ export function ddzStakeLeft(s: DdzStakeSave): { dealsDone: number; points: numb
 
 // ───────────── 接口 ─────────────
 
-/** 结回这一场（存档里必须已经记了 settle）。成功、结过、过期都删存档 */
+/** 带回这一场（存档里必须已经记了 settle）。成功、结过、过期都删存档 */
 export async function settleDdzStake(s: DdzStakeSave, deps: Deps = {}): Promise<SettleOutcome> {
   const st = s.settle;
   if (!st) return { kind: 'failed', error: 'not_over' };
-  // 版本 1 的请求体和从前一字不差（没有 rules），Worker 没有这个字段就按版本 1 算
+  // 版本 1 的请求体不带 rules，Worker 没有这个字段就按版本 1 算
   const rules = ddzStakeRules(s);
   return settleWith({ ...VARIANT, ref: s.ref, tier: s.tier, points: st.points, deals: st.deals, ...(rules.v > 1 ? { rules: rules.v } : {}) }, st.points, () => clearDdzStakeSave(s.ref), deps);
 }
@@ -81,7 +81,7 @@ export function strayDdzStake(w: WalletView, local: DdzStakeSave | null): { ref:
 
 /**
  * 单机实盘的一局：规则是实盘选项（现行 3 副、每副 s 封顶、一家累计到一份就结束，核心自己截；老存档的选项在 state.opts 里，按老数），1、2 号电脑按档位和这一场的规则（soloBots），
- * 每次推进都存档。一场结束（打满、封顶）就记下要结的数，画面去结回。
+ * 每次推进都存档。一场结束（打满、封顶）就记下要结的数，画面去带回。
  */
 export class DdzStakeSession extends DdzSession {
   stake: DdzStakeSave;

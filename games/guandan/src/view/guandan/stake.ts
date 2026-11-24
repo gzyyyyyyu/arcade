@@ -2,9 +2,9 @@
  * 单机实盘（docs/stake.md 第 2 节）的页面这一半：存档 guandan.stake、和掼蛋 Worker 的三个接口打交道、实盘的牌局会话。
  *
  * - 存档单独一个 key，不碰 guandan.save，也不进云同步（只在这台设备上）；记着 userId，换了账号不显示。
- * - 一场打完（或碰到封顶、或者"现在结算"）先把要结的数记进存档（settle），再去结回：刷新、关页面、钱包一时忙，下次打开接着结，
+ * - 一场打完（或碰到封顶、或者"现在结算"）先把要结的数记进存档（settle），再去带回：刷新、关页面、钱包一时忙，下次打开接着结，
  *   同一个 op 重发钱包只算一次。
- * - 结回、放弃遇到钱包忙（busy、internal、连不上）在这里重试几次；还不行就留着存档，下次再结。
+ * - 带回、放弃遇到钱包忙（busy、internal、连不上）在这里重试几次；还不行就留着存档，下次再结。
  */
 import type { Venue } from '../../variants/guandan/ai/venue.ts';
 import { createGame, type Action, type GameEvent, type GameState } from '../../variants/guandan/core/index.ts';
@@ -27,9 +27,9 @@ export interface StakeSave {
   until: number;
   match: SoloMatch;
   state: GameState;
-  /** 要结回的数：一场结束或者选了"现在结算"时记下，结回成功后存档删掉 */
+  /** 要带回的数：一场结束或者选了"现在结算"时记下，带回成功后存档删掉 */
   settle: { points: number; deals: number } | null;
-  /** 这一份攒的战绩，结回时报给平台（平台 0.10.0）；0.6.0 以前的存档没有，就不报 */
+  /** 这一份攒的战绩，带回时报给平台（平台 0.10.0）；老存档没有，就不报 */
   tally?: Tally;
 }
 
@@ -58,7 +58,7 @@ export function stakeLeft(s: StakeSave): { dealsDone: number; dealsTotal: number
   return { dealsDone: s.match.deals.length, dealsTotal: rulesOf(s.match.rules).soloDeals, points: soloPoints(s.match) };
 }
 
-/** 结回这一场（存档里必须已经记了 settle）。成功、结过、过期都删存档 */
+/** 带回这一场（存档里必须已经记了 settle）。成功、结过、过期都删存档 */
 export async function settleStake(s: StakeSave, deps: Deps = {}): Promise<SettleOutcome> {
   const st = s.settle;
   if (!st) return { kind: 'failed', error: 'not_over' };
@@ -86,7 +86,7 @@ export async function buyinStake(tier: TierId, fetcher: typeof fetch = fetch): P
 
 /**
  * 单机实盘的一局：规则全用默认（实盘不让改规则），电脑按档位（1.3），每副记分，存进 guandan.stake；不计战绩、不写 guandan.save。
- * 一场结束（打满副数、封顶、过 A）就记下要结的数，画面去结回。
+ * 一场结束（打满副数、封顶、过 A）就记下要结的数，画面去带回。
  */
 export class StakeSession extends Session {
   stake: StakeSave;

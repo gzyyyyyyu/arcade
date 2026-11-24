@@ -30,7 +30,7 @@ export function openPuzzlePicker(scene: Phaser.Scene, opts: { onPick: (p: DdzPuz
   const w = COLS * pitch + 72;
   // 底下多一排主按钮"开始第 N 关"
   const h = rows * pitch + 236 + DAILY_H;
-  // 选了一关就直接开，不再走关闭弹窗的回调（牌桌的 onClose 会回到结果页）
+  // 选了一关就直接开，不走关闭弹窗的回调（牌桌的 onClose 会回到结果页）
   let picked = false;
   const m = modal(scene, w, h, undefined, { onClose: () => !picked && opts.onClose?.() });
   const b = m.body;
@@ -71,7 +71,7 @@ export function openPuzzlePicker(scene: Phaser.Scene, opts: { onPick: (p: DdzPuz
     b.setData(`btn:puzzle:${p.id}`, btn);
     if (st === 'locked') b.add(lock(scene, x + cell / 2 - 18, y + cell / 2 - 20).setScale(0.6));
   });
-  // 底下是主按钮"开始第 N 关"（以前只是一行字，要再去格子里找那一关）
+  // 底下是主按钮"开始第 N 关"（不用再去格子里找那一关）
   const next = status.indexOf('next');
   if (next >= 0) {
     const go = new Button(scene, 0, h / 2 - 52, Math.min(460, w - 72), 60, `开始第 ${next + 1} 关 · ${DDZ_PUZZLES[next]!.name}`, 'red', () => pick(DDZ_PUZZLES[next]!), 'play');

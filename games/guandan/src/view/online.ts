@@ -87,7 +87,7 @@ function style(): void {
 @media (max-width: 600px) { #online #ol-tiers .gd-btn { flex: 1 1 calc(50% - var(--gd-s2)); } }
 #online .ol-wait { font: bold 20px/1.4 var(--gd-font); text-align: center; }
 #online .ol-stake { padding: var(--gd-s1) var(--gd-s3); border-radius: var(--gd-r-sm); background: #f6dcc8; color: var(--gd-red-dark); font-weight: bold; }
-/* 还没填东西的占位（回到房间、实盘档位）不占一格间距；手机横屏矮，收紧间距，"关掉"不用滚就够得着（0.27.4 多尺寸） */
+/* 还没填东西的占位（回到房间、实盘档位）不占一格间距；手机横屏矮，收紧间距，"关掉"不用滚就够得着 */
 #online .ol-card > div:empty:not(.ol-note) { display: none; }
 @media (max-height: 430px) {
   #online .ol-card { gap: var(--gd-s1); padding: var(--gd-s2) var(--gd-s4); max-height: calc(100% - var(--gd-s2)); }
@@ -225,7 +225,7 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
   }
   const make = el('div', { class: 'ol-row ol-make' });
   make.appendChild(button(standalone() ? '开个房间' : '开娱乐房', () => void create(null), '', 'ol-create'));
-  // 斗地主不洗牌（娱乐 0.33.0）；不洗牌的实盘房间在"开实盘房间"里选
+  // 斗地主不洗牌（娱乐）；不洗牌的实盘房间在"开实盘房间"里选
   if (panelVariant === 'ddz') make.appendChild(button('不洗牌房间', () => void create(null, true), 'gd-2', 'ol-create-clump'));
   // 实盘房间（docs/stake.md 第 3 节）：开房时选档位，之后不能改。单独部署没有钱包，不摆
   // 点开后是选中态（金底），档位在下面一行展开
@@ -402,7 +402,7 @@ function renderRoom(): void {
   c.appendChild(el('h2', {}, match ? '和真人匹配' : '好友房'));
   panelVariant = s.variant;
   if (s.status === 'closed' || s.status === 'failed') {
-    // 连不上（不是平台忙）：统一一句话和"重试"，其余原因照旧说原因
+    // 连不上（不是平台忙）：统一一句话和"重试"，其余照实说原因
     const netDown = s.status === 'failed' && !s.platformBusy;
     c.appendChild(el('div', { class: 'ol-note' }, netDown ? NET_DOWN : s.linkText()));
     // 回不去了（房间散了、码不对、满了、在别处进了……）：地址栏里的房间码也去掉，免得刷新又撞上

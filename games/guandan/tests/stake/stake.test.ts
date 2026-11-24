@@ -74,7 +74,7 @@ describe('每副的分', () => {
     expect(dealPoints(deal(1, [3, 0, 2, 1]), 1)).toBe(1);
   });
 
-  it('封顶 ±25 分，结回额在 0 到 2 份之间', () => {
+  it('封顶 ±25 分，带回额在 0 到 2 份之间', () => {
     expect(capPoints(40)).toBe(25);
     expect(capPoints(-26)).toBe(-25);
     expect(payout('mid', 0)).toBe(10_000);
@@ -118,7 +118,7 @@ describe('钱包的 ref 和 op', () => {
     expect(isSoloRef(42)).toBe(false);
   });
 
-  it('单机 ref 里编着档位（结回按它算）；没编档位的旧格式不认', () => {
+  it('单机 ref 里编着档位（带回按它算）；没编档位的旧格式不认', () => {
     for (const t of ['small', 'mid', 'big', 'lux'] as const) expect(soloRefTier(soloRef(t, hex32))).toBe(t);
     expect(isSoloRef(`solo-${hex32}`)).toBe(false);
     expect(soloRefTier(`solo-${hex32}`)).toBeNull();

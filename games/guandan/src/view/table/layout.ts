@@ -57,7 +57,7 @@ export function seatAnchors3(W: number): SeatAnchor[] {
 
 /**
  * 掼蛋、斗地主共用的牌桌布局数字：手牌区、牌桌场景骨架（顶栏图标、状态条、发牌牌背）、两个出牌特效文件里的坐标和尺寸（世界坐标，高 720）。
- * 为什么单拎出来：这些数字原来散在 hand.ts、TableSceneBase.ts 和两个 play-fx.ts 里，两个玩法各写一遍同样的值，改一处容易漏另一处。
+ * 为什么单拎出来：hand.ts、TableSceneBase.ts 和两个 play-fx.ts 都要用同样的值，两个玩法各写一遍改一处容易漏另一处。
  * 这里只放数字，不依赖 Phaser、DOM；颜色、字号（TYPE）、节奏（PACE）不放这里。
  * 带 Ms 的是毫秒：注释里写了的才经过 dur() 换算，没写的是真实时间，不随设置里的动画速度变。
  */
@@ -103,7 +103,7 @@ export const TOP_ICONS = {
 };
 
 /** 牌桌状态条（setStatus）：圆角胶囊 */
-export const STATUS_PILL = { padX: 32, halfH: 16, h: 32, r: 16, /** 胶囊下沿离按钮行上沿留的空（以前写死在按钮中线上方 50，和 60 高的按钮只隔 4，手机上按钮更高就压上） */ gap: 10 };
+export const STATUS_PILL = { padX: 32, halfH: 16, h: 32, r: 16, /** 胶囊下沿离按钮行上沿留的空（按按钮行上沿算，手机上按钮更高也不压上） */ gap: 10 };
 
 /** 出错提示浮在操作按钮上方多少 */
 export const ERROR_TOAST_DY = 92;
@@ -238,8 +238,8 @@ export const OPEN_HAND = {
 
 /**
  * 掼蛋牌桌（TableScene、guandan/table-ui.ts、guandan/actions.ts）里的布局坐标、尺寸和时长。
- * 为什么单拎出来：这些数字原来散写在三个文件里，改一处要靠记忆找另一处；起名后同一个数字只有一个出处。
- * 只放数字，不依赖 Phaser、DOM；值与原来写死的完全一样（毫秒数没经过 dur() 的仍然不经，经过的由调用处照旧套）。
+ * 为什么单拎出来：三个文件都要用这些数字，起名后同一个数字只有一个出处，改一处不用靠记忆找另一处。
+ * 只放数字，不依赖 Phaser、DOM；毫秒数要不要经 dur() 由调用处决定。
  */
 
 /** 提示条（toast）的纵坐标：在按钮行上方 92，"没有能压过的牌""要出对子"这类一句话原因都冒在这里 */
@@ -378,7 +378,7 @@ export const STAKE_STRIP = {
   boxH: 32,
   boxR: 16,
   boxLine: 1.5,
-  /** "结回 ›"小签：右缘离文字左边、底板上沿、两边多出的宽度、高、圆角、与点按区域的间隔 */
+  /** "带回 ›"小签：右缘离文字左边、底板上沿、两边多出的宽度、高、圆角、与点按区域的间隔 */
   tagGap: 46,
   tagTop: 8,
   tagPadW: 22,

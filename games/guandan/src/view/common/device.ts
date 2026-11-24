@@ -9,7 +9,7 @@
  * 说明上次是开着的时候被杀掉的，这次降一档：先 1 倍渲染，再不行换 Canvas 渲染。只在 iOS 上记。
  * 换版本后重新试正常模式（新版本可能已经修好了）。
  *
- * 0.36.0 起判断和公式都用 arcade-kit/viewport（各游戏共用一份，默认值是开盘的）；这里传牌馆原来的阈值，行为不变。
+ * 判断和公式都用 arcade-kit/viewport（各游戏共用一份，默认值是开盘的）；这里传牌馆自己的阈值。
  */
 import { type Box, forcedScale, insetBox, isLowMemoryDevice, lowMemoryTier, measureBox, renderScaleFor, safeInsets, sameBox, webglUsable as webglAvailable } from 'arcade-kit/viewport';
 import { KEYS, rawStore } from '../store.ts';
@@ -22,7 +22,7 @@ const GAME_HEIGHT = 720;
 const MIN_WIDTH = 1280;
 
 /**
- * 双指放大的判定：牌馆只认放大（scale > 1.01），缩小不算（kit 默认是开盘的 |scale − 1| > 0.02；迁到 kit 时照旧传牌馆的，行为不变）
+ * 双指放大的判定：牌馆只认放大（scale > 1.01），缩小不算（kit 默认是开盘的 |scale − 1| > 0.02，这里传牌馆的）
  */
 export const zoomedIn = (scale: number): boolean => scale > 1.01;
 

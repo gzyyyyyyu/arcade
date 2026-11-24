@@ -1,6 +1,6 @@
 /**
- * 单机实盘的页面接口（两个玩法共用，docs/stake.md 第 2 节）：钱包余额、和 Worker 的三个实盘接口（带入 / 结回 / 放弃）打交道、
- * 钱包忙时重试、结回和放弃的公共流程。存档和实盘的牌局会话在各玩法的 stake.ts。
+ * 单机实盘的页面接口（两个玩法共用，docs/stake.md 第 2 节）：钱包余额、和 Worker 的三个实盘接口（带入 / 带回 / 放弃）打交道、
+ * 钱包忙时重试、带回和放弃的公共流程。存档和实盘的牌局会话在各玩法的 stake.ts。
  */
 import { STAKE_REL } from '../../net/version.ts';
 import { timed } from './platform.ts';
@@ -45,7 +45,7 @@ export async function postStake(action: 'buyin' | 'settle' | 'refund', body: unk
   }
 }
 
-/** 钱包暂时的毛病：busy（预算、并发）、internal（D1 一时出错）、没连上。结回、放弃遇到这些要重试（旧仓库 PR 75 审阅） */
+/** 钱包暂时的毛病：busy（预算、并发）、internal（D1 一时出错）、没连上。带回、放弃遇到这些要重试（旧仓库 PR 75 审阅） */
 export function transient(error: string): boolean {
   return error === 'busy' || error === 'internal' || error === 'unavailable';
 }
@@ -67,7 +67,7 @@ const realSleep = (ms: number): Promise<void> => new Promise((ok) => setTimeout(
 
 export type SettleOutcome =
   | { kind: 'done'; points: number; credited: number; capped: number; balance: number | null }
-  /** 已经结过（同一份只能结回一次，钱包回 no_stake）或者过期退回了（expired）：存档删掉 */
+  /** 已经结过（同一份只能带回一次，钱包回 no_stake）或者过期退回了（expired）：存档删掉 */
   | { kind: 'gone' }
   | { kind: 'expired' }
   /** 钱包一直忙：存档留着，下次接着结 */
@@ -80,7 +80,7 @@ export interface Deps {
 }
 
 /**
- * 结回的公共部分（掼蛋和斗地主共用）：发请求、钱包忙就重试，再按回话处理存档（clear 删存档）。
+ * 带回的公共部分（掼蛋和斗地主共用）：发请求、钱包忙就重试，再按回话处理存档（clear 删存档）。
  * 成功、结过（no_stake）、过期（expired）都删存档，一直忙就留着下次再结
  */
 export async function settleWith(body: Record<string, unknown>, points: number, clear: () => void, deps: Deps = {}): Promise<SettleOutcome> {
@@ -96,7 +96,7 @@ export async function settleWith(body: Record<string, unknown>, points: number, 
   return transient(r.error) ? { kind: 'later' } : { kind: 'failed', error: r.error };
 }
 
-/** 放弃的公共部分：那一份原样退回。和结回一样，退过、过期都算办完 */
+/** 放弃的公共部分：那一份原样退回。和带回一样，退过、过期都算办完 */
 export async function refundWith(body: Record<string, unknown>, clear: () => void, deps: Deps = {}): Promise<SettleOutcome> {
   const r = await withRetry(() => postStake('refund', body, deps.fetcher), deps.sleep ?? realSleep);
   if (r.ok || r.error === 'no_stake' || r.error === 'expired') {

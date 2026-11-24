@@ -27,11 +27,11 @@ export interface DdzOptions {
   dealCap: number;
   /** 一场里任何一家累计到 ±cap 就结束（0 = 不封顶）；最后那副按 s 截，仍然零和 */
   cap: number;
-  /** 明牌玩法（常见做法）：地主拿到底牌后可以选择亮出手牌换这一副翻倍。不带或 false = 经典玩法，状态、事件、视图和以前逐位相同 */
+  /** 明牌玩法（常见做法）：地主拿到底牌后可以选择亮出手牌换这一副翻倍。不带或 false = 经典玩法，状态、事件、视图和经典玩法逐位相同（金样钉着） */
   mingpai?: boolean;
   /**
    * 不洗牌玩法（欢乐斗地主的"不洗牌场"）：牌按点数成团、只切几刀、成叠发（`clumpDeck`），炸弹多。只换发牌，叫分、出牌、结算一条不改；
-   * 这时被每副封顶（dealCap）截了的那副记 `capped`。单机按种子、联机按密钥（clumpRng）；不带或 false = 经典发牌，状态、事件逐位和以前相同
+   * 这时被每副封顶（dealCap）截了的那副记 `capped`。单机按种子、联机按密钥（clumpRng）；不带或 false = 经典发牌，状态、事件和经典发牌逐位相同（金样钉着）
    */
   noShuffle?: boolean;
 }
@@ -270,7 +270,7 @@ function finishDeal(s: DdzState, winner: number, ev: DdzEvent[]): void {
   let mult = 1;
   for (let k = s.bombs + (spring ? 1 : 0) + (s.ming ? 1 : 0); k > 0; k--) mult *= 2;
   let pts = s.bid * mult;
-  // 不洗牌玩法炸弹多、倍数大：被每副封顶截了也记 capped，结算页写"封顶了"（经典玩法照旧只记一场封顶，结果和以前逐位相同）
+  // 不洗牌玩法炸弹多、倍数大：被每副封顶截了也记 capped，结算页写"封顶了"（经典玩法只记一场封顶，结果不受影响）
   let capped = false;
   if (s.opts.dealCap > 0 && pts > s.opts.dealCap) {
     pts = s.opts.dealCap;
@@ -423,7 +423,7 @@ export interface DdzView {
   bombs: number;
   /** 地主明牌了；没明牌时没有这个字段（和 mingHand 同时出现） */
   ming?: true;
-  /** 明牌后地主手里的牌（每次出牌后剩下的），所有座位包括旁观都有；没明牌时没有这个字段，别的隐藏信息照旧不给 */
+  /** 明牌后地主手里的牌（每次出牌后剩下的），所有座位包括旁观都有；没明牌时没有这个字段，别的隐藏信息一样不给 */
   mingHand?: Card[];
   scores: number[];
   dealNo: number;

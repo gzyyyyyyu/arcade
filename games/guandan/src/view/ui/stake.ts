@@ -22,7 +22,7 @@ function reg(m: Modal, key: string, b: Button): Button {
 
 /**
  * 娱乐选难度：上面一排选局长（短局打到 10 / 完整打过 A），下面新手 / 普通 / 高手每档一行（电脑多强、一局多久、适合谁）；
- * 当前设置的那档描金边，时间那行跟着局长换。给了 onMatch 右下角还有"快速匹配"（0.26.0：和真人打，娱乐好友房的规则，打过 A）
+ * 当前设置的那档描金边，时间那行跟着局长换。给了 onMatch 右下角还有"快速匹配"（和真人打，娱乐好友房的规则，打过 A）
  */
 export function openLevelPicker(
   scene: Phaser.Scene,
@@ -151,7 +151,7 @@ const GUANDAN_FLOW: TierFlow<StakeSession> = {
   roomDeals: ROOM_DEALS,
   modes: [{ value: 'classic', label: '', time: TIER_CARD.time }],
   mode: () => 'classic',
-  // 娱乐的选难度页有"短局 / 完整"，这里没有：实盘固定 3 副，比娱乐短局（打到 10）还短，没有更短的可选（0.39.0 所有者定）
+  // 娱乐的选难度页有"短局 / 完整"，这里没有：实盘固定 3 副，比娱乐短局（打到 10）还短，没有更短的可选
   note: STAKE_TEXT.fixedDeals,
   pointValue: (tier) => pointValue(tier),
   buyin: (tier) => buyinStake(tier),
@@ -265,7 +265,7 @@ export function openTierPicker<S = StakeSession>(
     // 竖屏三行：名字和星；一份、每分；最多输赢、时间
     const row = (k: number): number => y - rowH / 2 + 28 + k * 36;
     b.add(text(scene, x0, narrow ? row(0) : y, TIER_NAME[tier], { size: TYPE.title, bold: true, color: COLOR.redDark, ox: 0 }));
-    // 实盘一场最多输一份、最多赢一份（结回 0 到两份，docs/stake.md 1.1），赢输都是一份，第二行合成"最多输赢"
+    // 实盘一场最多输一份、最多赢一份（带回 0 到两份，docs/stake.md 1.1），赢输都是一份，第二行合成"最多输赢"
     const share = fmtChips(TIERS[tier]);
     const line1 = text(scene, narrow ? x0 : -270, narrow ? row(1) : y - 14, line1Of(tier), { size: TYPE.label, color: COLOR.ink, ox: 0 });
     lines.push(line1);
@@ -327,7 +327,7 @@ export function openTierPicker<S = StakeSession>(
     balance.setText(`钱包 ${fmtChips(w.balance)} 筹码`);
     // 别的设备上开的单机那一份不挡开新的（平台 0.9.5 起能同时有好几份），给个原样退回的办法；好友房的不归这里管
     const other = flow.stray(w);
-    // 钱包不够一份的档：按钮写"不够一份"、那一档的"一份 …"标红，点不了也看得出为什么（以前只是变灰）
+    // 钱包不够一份的档：按钮写"不够一份"、那一档的"一份 …"标红，点不了也看得出为什么（只变灰看不出）
     TIER_IDS.forEach((t, i) => {
       short[t] = w.balance < TIERS[t];
       buttons[t]!.setEnabled(!busy && !short[t]);

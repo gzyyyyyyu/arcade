@@ -24,7 +24,7 @@ export class Room extends GameRoom<HallState, HallAction, HallView, Env, HallOpt
   // 掼蛋和斗地主共用一个房间类：开房选项 variant: 'ddz' 开斗地主，其余是掼蛋（src/net/hall.ts）
   protected readonly game = hallRoom;
   /**
-   * 电脑的互动（0.12.0 起用 kit 的 botReact，和单机同一份规则）：冷却记录、电脑的性格只放在内存里，不写存储（房间重启了从头记，无所谓）。
+   * 电脑的互动（用 kit 的 botReact，和单机同一份规则）：冷却记录、电脑的性格只放在内存里，不写存储（房间重启了从头记，无所谓）。
    * bots 每一步按公开的牌局刷新一次，onEmote 拿它回嘴（kit 故意不给 onEmote 牌局状态）；这里绝不记任何真人短语。
    * 随机用 Math.random、时间用 Date.now：只决定画面上说什么，不碰牌局，不需要复现。房间只有一个闹钟，反应立刻发，页面晚一点播
    */
@@ -47,7 +47,7 @@ export class Room extends GameRoom<HallState, HallAction, HallView, Env, HallOpt
       if (this.bots.length) for (const m of ddzMoments(s)) this.react(m, this.bots);
       return;
     }
-    // 搭子战绩（0.16.0）：一场打完的那一步报一次同桌真人（kit 按座位绑的人认，电脑座位不报；交给 waitUntil，不卡这一步）。
+    // 搭子战绩：一场打完的那一步报一次同桌真人（kit 按座位绑的人认，电脑座位不报；交给 waitUntil，不卡这一步）。
     // 一个房间只打一场（再来一场是换新房间），场次写 1
     const end = matchEnd(s);
     if (end) this.reportMatch(end, 1);
@@ -79,13 +79,13 @@ export class Room extends GameRoom<HallState, HallAction, HallView, Env, HallOpt
     maxInbound: 8000,
     maxLifeMs: 8 * 3_600_000,
     maxAiBatch: 3,
-    // 电脑每手的播放间隔：页面按出法给 0.5～2 秒思考时间（0.5.1，打牌看得清），房间按平均 1.3 秒排，真人的出牌时限才不被播放吃掉
+    // 电脑每手的播放间隔：页面按出法给 0.5～2 秒思考时间（打牌看得清），房间按平均 1.3 秒排，真人的出牌时限才不被播放吃掉
     aiDelayMs: 1300,
     minClientVersion: CLIENT_VERSION,
   };
 
   /**
-   * 实盘的带入、结回（平台钱包，服务绑定 WALLET，mode: server）。回 { ok: true } 或 { ok: false, error }（钱包的业务拒绝），交给规则的 settled；
+   * 实盘的带入、带回（平台钱包，服务绑定 WALLET，mode: server）。回 { ok: true } 或 { ok: false, error }（钱包的业务拒绝），交给规则的 settled；
    * 钱包忙（busy、internal）、RPC 抛异常就抛出去，kit 按退避重试，同一个 op 钱包只算一次。
    */
   protected override async perform(e: StakeEffect, userId: string | null): Promise<unknown> {
@@ -107,7 +107,7 @@ export class Room extends GameRoom<HallState, HallAction, HallView, Env, HallOpt
     // 小结被平台忽略（太大、形状不对）是我们的代码写错了；钱照常结
     if (r.ok && r.statsIgnored) console.error(`实盘战绩小结被忽略 ${e.id}：${r.statsIgnored}`);
     // no_stake（结过了）、expired（拖过了到期时间，钱包已经原样退回）都算办完；别的拒绝重试也没用，记日志
-    if (!r.ok && r.error !== 'no_stake' && r.error !== 'expired') console.error(`实盘结回被拒 ${e.id}：${r.error}`);
+    if (!r.ok && r.error !== 'no_stake' && r.error !== 'expired') console.error(`实盘带回被拒 ${e.id}：${r.error}`);
     return r.ok ? { ok: true, credited: r.credited ?? 0 } : { ok: false, error: r.error };
   }
 }

@@ -46,7 +46,7 @@ export interface DdzNet {
   ready: boolean[] | null;
   /** 每个座位现在是不是真人 */
   humans?: boolean[];
-  /** 每个座位连着被房间代出了几手（走开了的判断，同掼蛋 0.6.3） */
+  /** 每个座位连着被房间代出了几手（走开了的判断，和掼蛋同一个做法） */
   idle?: number[];
   /** 实盘房间的桌（stake.ts）；娱乐房间没有 */
   stake?: DdzStakeTable;
@@ -248,12 +248,12 @@ export function ddzSeated(s: DdzNet, seat: number, kind: 'human' | 'ai'): DdzNet
   return { ...s, ev: [], humans: s.humans.map((h, i) => (i === seat ? kind === 'human' : h)), ...(stake ? { stake } : {}) };
 }
 
-/** 实盘房间的收尾：关房时还没结束的一场就地结回；钱包办完一笔记下结果 */
+/** 实盘房间的收尾：关房时还没结束的一场就地带回；钱包办完一笔记下结果 */
 export const ddzClosing = (s: DdzNet): DdzNet => (s.stake && !s.stake.over ? { ...s, ev: [], stake: stakeFinish(s.stake) } : s);
 export const ddzSettled = (s: DdzNet, id: string, result: unknown): DdzNet => (s.stake ? { ...s, ev: [], stake: stakeSettled(s.stake, id, result) } : s);
 export const ddzEffects = (s: DdzNet): DdzStakeTable['pending'] => s.stake?.pending ?? [];
 
-/** 整场打完，或者一个真人都没了（实盘房间要等在办的带入和等着结回的离开办完） */
+/** 整场打完，或者一个真人都没了（实盘房间要等在办的带入和等着带回的离开办完） */
 export const ddzOver = (s: DdzNet): boolean =>
   s.g.phase === 'gameOver' ||
   s.stake?.over === true ||

@@ -32,7 +32,7 @@ describe('一场刚打完的那一步', () => {
     expect(ends[0]).toEqual([0, 1, 2, 3].map((seat) => ({ seat, team: seat % 2, win: seat % 2 === last.g.winner })));
   }, 60_000);
 
-  it('实盘：结回记下的那一步，这一场分多的那队赢', () => {
+  it('实盘：带回记下的那一步，这一场分多的那队赢', () => {
     const all = play(42, ['human', 'human', 'ai', 'ai'], 'small');
     const idx = all.findIndex((s) => matchEnd(s) !== null);
     expect(idx).toBeGreaterThan(0);

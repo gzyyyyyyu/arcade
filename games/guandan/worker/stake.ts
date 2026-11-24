@@ -14,21 +14,21 @@ import * as ddz from '../src/variants/doudizhu/stake/index.ts';
 import { STAKE_PATH } from '../src/net/version.ts';
 import type { Fetcher } from './gate.ts';
 
-/** 请求体最多几个字节：最大的结回请求约 90 字节，带上战绩小结（平台只收 ≤ 256 字节的）不到 400，留足余量 */
+/** 请求体最多几个字节：最大的带回请求约 90 字节，带上战绩小结（平台只收 ≤ 256 字节的）不到 400，留足余量 */
 const MAX_BODY = 1024;
 const GAME = 'guandan';
 
 /**
- * 两个玩法的实盘规则（请求体的 variant：没有或 'guandan' 是掼蛋，'ddz' 是斗地主；旧页面不带，照旧是掼蛋）。
+ * 两个玩法的实盘规则（请求体的 variant：没有或 'guandan' 是掼蛋，'ddz' 是斗地主；旧页面不带，按掼蛋）。
  * 钱包里 game 都是 guandan（牌馆一个游戏），玩法靠 ref 的格式区分（斗地主 `solo-ddz-…`），所以同一时间钱包里只有一份
  */
 interface Rules {
   isSoloRef(x: unknown): x is string;
   soloRef(tier: TierId, hex: string): string;
   soloRefTier(ref: string): TierId | null;
-  /** 认得这个规则版本吗：不认识的当请求不合格，免得被当成老数结回（掼蛋 1、2；斗地主 1、2 和不洗牌的 3） */
+  /** 认得这个规则版本吗：不认识的当请求不合格，免得被当成老数带回（掼蛋 1、2；斗地主 1、2 和不洗牌的 3） */
   known(rules: unknown): boolean;
-  /** rules：请求体里这一场的规则版本（没带 = 版本 1，按老数结回）；调用前已由 known 挡掉不认识的 */
+  /** rules：请求体里这一场的规则版本（没带 = 版本 1，按老数带回）；调用前已由 known 挡掉不认识的 */
   payout(tier: TierId, points: number, rules?: unknown): number;
   validSoloResult(points: unknown, deals: unknown, rules?: unknown): boolean;
 }
@@ -122,7 +122,7 @@ async function handleStake(request: Request, env: StakeEnv, action: string): Pro
     if (!rules.isSoloRef(ref)) return reply({ ok: false, error: 'bad_request' }, 400);
     if (action === 'settle') {
       // 档位按 ref 里编的算（ref 是带入时 Worker 生成的），页面带来的不信
-      // rules：这一场用哪一套数（3 副之前开的没有，按旧的算）
+      // rules：这一场用哪一套数（没有的按版本 1 算）
       const { points, deals, stats, rules: ver } = body;
       const tier = rules.soloRefTier(ref);
       if (!isTier(tier) || !rules.known(ver) || !rules.validSoloResult(points, deals, ver)) return reply({ ok: false, error: 'bad_request' }, 400);

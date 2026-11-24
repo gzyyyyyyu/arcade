@@ -68,12 +68,12 @@ export function isPortrait(w: number, h: number): boolean {
   return w > 0 && h > w && w <= 1024;
 }
 
-/** 竖屏世界：宽 720（和横屏手机缩到同一个比例，字号、点按区的托底照旧），高按屏幕比例，夹在 1080..1600 */
+/** 竖屏世界：宽 720（和横屏手机缩到同一个比例，字号、点按区的托底同一套），高按屏幕比例，夹在 1080..1600 */
 const PORTRAIT_WIDTH = 720;
 const PORTRAIT_MIN_H = 1080;
 const PORTRAIT_MAX_H = 1600;
 
-/** 可见区 w×h 下主页用的世界尺寸：竖屏 720 × 按比例的高；横屏照旧（高 720，宽按 worldWidthFor） */
+/** 可见区 w×h 下主页用的世界尺寸：竖屏 720 × 按比例的高；横屏高 720，宽按 worldWidthFor */
 export function worldSizeFor(w: number, h: number): { w: number; h: number } {
   if (!isPortrait(w, h)) return { w: worldWidthFor(w, h), h: GAME_HEIGHT };
   const want = Math.round((PORTRAIT_WIDTH * h) / w / 4) * 4;
@@ -91,7 +91,7 @@ export const RENDER_SCALE = pickRenderScale();
 
 /**
  * 字号只用几级（世界坐标）。电脑、平板上最小的 18 也有 16 CSS 像素以上；手机横屏整张画布缩到 ×0.52–0.54，18 只剩 9–10 像素，
- * 由 typeFloor 的手机档托底（0.21.0 手机专项）。
+ * 由 typeFloor 的手机档托底。
  */
 export const TYPE = { huge: 68, big: 40, title: 28, body: 23, label: 20, small: 18 } as const;
 
@@ -122,13 +122,13 @@ export function floorFor(w: number, h: number, num: boolean): number {
   return Math.ceil((num ? TYPE_FLOOR_PX.num : TYPE_FLOOR_PX.text) / k);
 }
 
-/** 间距刻度（世界坐标，4 的倍数）：留白、间隔只用这几级，不再到处写死数字 */
+/** 间距刻度（世界坐标，4 的倍数）：留白、间隔只用这几级，不到处写死数字 */
 export const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 /** 圆角刻度：小件（标签、小按钮）、按钮、面板内框、面板外框；胶囊形写高度的一半 */
 export const RADIUS = { sm: 8, md: 12, lg: 14, xl: 22 } as const;
 /**
  * 卡通描边（仓库统一的卡通风格，配色表在 docs/art.md 第 9 节）：按钮、面板、名牌一律深墨色描边、实色下沿，下沿按下时下沉。
- * 0.27.1（卡通第二版）：表面补回上亮下暗的轻渐变和顶边高光，下面再垫一层柔和的环境投影，不再是平涂贴纸
+ * 表面有上亮下暗的轻渐变和顶边高光，下面垫一层柔和的环境投影，不像平涂贴纸
  */
 export const OUTLINE = { color: 0x2b1d14, width: 3, ledge: 4 } as const;
 
@@ -195,7 +195,7 @@ export const EDGE = { side: '#cdbb8e', base: '#a8946a', line: '#6b5530' } as con
 
 /**
  * 按钮的三档：主按钮（红，出牌、快速开始）最重，有高光渐变、深下沿和投影；
- * 次按钮（金、绿、蓝、木，提示这类）是原来的立体按钮；弱按钮（不要、重选、理牌，色 quiet）更扁、投影浅。
+ * 次按钮（金、绿、蓝、木，提示这类）是立体按钮；弱按钮（不要、重选、理牌，色 quiet）更扁、投影浅。
  * 调用处只传颜色名（red 即主、quiet 即弱，其余次），档位由 BUTTON_TIER 推出，不在各处各写。
  * 字段：ledge 实色下沿厚度；top/bottom 面的亮暗倍数；hi 顶边高光透明度；drop 投影浓度；rise 投影下移。
  */

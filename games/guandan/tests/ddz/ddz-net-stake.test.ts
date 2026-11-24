@@ -1,6 +1,6 @@
 /**
  * 斗地主好友房实盘的桌（src/variants/doudizhu/net/stake.ts）和它接进联机规则的地方：纯函数，不起房间。
- * 真房间里的带入、结回、重试、收场在 tests/room/ddz-stake.spec.ts；带入、离开这些通用规矩的细节在 tests/stake/net-stake.test.ts（掼蛋，同一份实现）。
+ * 真房间里的带入、带回、重试、收场在 tests/room/ddz-stake.spec.ts；带入、离开这些通用规矩的细节在 tests/stake/net-stake.test.ts（掼蛋，同一份实现）。
  */
 import { describe, expect, it } from 'vitest';
 import type { DdzResult } from '../../src/variants/doudizhu/core/index.ts';
@@ -85,7 +85,7 @@ describe('记账', () => {
     expect(t.book.house + t.book.seats.reduce((a, s) => a + s.points, 0)).toBe(0);
   });
 
-  it('打满 3 副或牌局本身结束（一家到 ±50）就收场：每个到账的座位记一笔结回，结回额 = 一份 + 分 × 每分', () => {
+  it('打满 3 副或牌局本身结束（一家到 ±50）就收场：每个到账的座位记一笔带回，带回额 = 一份 + 分 × 每分', () => {
     let t = settleAll(stakeBegin(KEY, 'small', HHA));
     for (let d = 1; d < ROOM_DEALS; d++) {
       t = stakeDeal(t, deal(1), d, 'dealEnd');
@@ -119,7 +119,7 @@ describe('换人、再带入', () => {
     expect(t.book.seats[0]!.paid).toBe('yes');
   });
 
-  it('两副之间离开：当场按现在的分结回；一副打到一半（叫分、出牌）离开：这副打完再结回；回来再带入一份', () => {
+  it('两副之间离开：当场按现在的分带回；一副打到一半（叫分、出牌）离开：这副打完再带回；回来再带入一份', () => {
     let t = settleAll(stakeBegin(KEY, 'small', HHA));
     t = stakeDeal(t, deal(2), 1, 'dealEnd');
     const gone = stakeSeated(t, 0, 'ai', 'dealEnd');
@@ -136,7 +136,7 @@ describe('换人、再带入', () => {
     // 回来
     const back = stakeSeated(settleAll(after), 1, 'human', 'dealEnd');
     expect(back.pending.map((e) => e.id)).toEqual([`${t.ref}s1n2-s1-in`]);
-    // 关房：每个到账的座位结回
+    // 关房：每个到账的座位带回
     expect(stakeFinish(settleAll(t)).pending.map((e) => e.kind)).toEqual(['out', 'out']);
   });
 });
@@ -175,7 +175,7 @@ describe('老房间（没有 rules 字段）按老数打完', () => {
     expect(t.over).toBe(true);
   });
 
-  it('每分按老的 1/40：结回额 = 一份 + 分 × 50；分的封顶是 ±40 不是 ±50', () => {
+  it('每分按老的 1/40：带回额 = 一份 + 分 × 50；分的封顶是 ±40 不是 ±50', () => {
     let t = legacy();
     t = { ...t, book: { ...t.book, seats: t.book.seats.map((s, i) => (i === 0 ? { ...s, points: 36 } : s)), house: t.book.house - 36 } };
     t = stakeDeal(t, deal(10), 1, 'gameOver');
@@ -185,7 +185,7 @@ describe('老房间（没有 rules 字段）按老数打完', () => {
     expect(payout('small', 50, RULES_V2)).toBe(4_000);
   });
 
-  it('老桌离开 / 关房的结回也按老的每分', () => {
+  it('老桌离开 / 关房的带回也按老的每分', () => {
     const t = stakeDeal(legacy(), deal(2), 1, 'dealEnd');
     expect(stakeFinish(t).pending.map((e) => e.amount)).toEqual([payout('small', 4, RULES_V1), payout('small', -2, RULES_V1)]);
     expect(payout('small', 4, RULES_V1)).toBe(2_200);

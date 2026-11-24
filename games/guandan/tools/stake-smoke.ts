@@ -3,18 +3,18 @@
  * ① "开始"先选娱乐 / 实盘，实盘选档位：钱包不够的档灰掉；
  * ② 进小档，第一副没打完就回标题：确认后原样退回，存档删掉；
  * ③ 再进一场，把存档换成"已经打了 7 副"的局（Node 里用规则核心推出来），回标题点"接着打实盘"，电脑代打完最后一副，
- *    结算页点"结算"，结回钱包（这个号今天已经赢满了，看到"到顶了"）；结算页"再来一场"直接开下一场；
- * ④ 打了几副后回标题选"现在结算"；再开一场打两副，点实盘条选"现在结算，回大厅"，结回后到大厅；
+ *    结算页点"结算"，带回钱包（这个号今天已经赢满了，看到"到顶了"）；结算页"再来一场"直接开下一场；
+ * ④ 打了几副后回标题选"现在结算"；再开一场打两副，点实盘条选"现在结算，回大厅"，带回后到大厅；
  * ⑤ 钱包说余额不够（no_funds）：进不了场、留在标题页；钱包里有一份不在本机的单机实盘：不挡开新的（平台 0.9.5 起能同时有好几份），给"原样退回那一份"。
  * ⑥ 好友房实盘（0.5.0，docs/stake.md 第 3 节）：开实盘房间选小档，大厅写着档位；一个人时开局灰掉；第二个人坐下后开局，两边都到账，
  *    电脑代打（autoplay）打完 5 副，结算页写"已经带回钱包"，两人的分正好相反。约几分钟；--no-room 跳过。
  * 控制台零报错。浏览器的 /api/me、/api/wallet 用 Playwright 拦下来答（本地栈的掼蛋 Worker 不管 /api）。
  *
- * ⑦ 斗地主好友房实盘（牌馆 ⑥）：--ddz-room 单独跑，从斗地主面板开实盘房间选小档，两个人 + 一个电脑代打打完一场，两人的分相加为 0、都结回；
+ * ⑦ 斗地主好友房实盘（牌馆 ⑥）：--ddz-room 单独跑，从斗地主面板开实盘房间选小档，两个人 + 一个电脑代打打完一场，两人的分相加为 0、都带回；
  *    不带 --ddz-room 的完整跑也会在最后接上。
  *
  * 用法：node tools/stake-smoke.ts [--out <截图目录>] [--no-build] [--no-room] [--ddz-only [--clump]] [--ddz-room]
- *   --ddz-only --clump：斗地主单机实盘在选档页切到不洗牌（规则版本 3），核对结回请求带 rules: 3、假钱包的余额按每分 1/200 变
+ *   --ddz-only --clump：斗地主单机实盘在选档页切到不洗牌（规则版本 3），核对带回请求带 rules: 3、假钱包的余额按每分 1/200 变
  */
 import { mkdirSync } from 'node:fs';
 import { chromium, type Browser, type Page } from 'playwright-core';
@@ -41,7 +41,7 @@ interface Wallet {
   stakes: { game: string; ref: string; tier: string; mode: string }[];
 }
 
-/** 1920×1080：实盘选档页、牌桌、一场结束的结回页（规矩要求五个尺寸都量，1280 以外的大屏在这里补） */
+/** 1920×1080：实盘选档页、牌桌、一场结束的带回页（规矩要求五个尺寸都量，1280 以外的大屏在这里补） */
 async function wide1920(browser: Browser, stack: OnlineStack): Promise<void> {
   const page = await openPage(browser, stack, 'wide-main', { balance: 10_000, stakes: [] }, { width: 1920, height: 1080 });
   await page.waitForTimeout(800);
@@ -56,14 +56,14 @@ async function wide1920(browser: Browser, stack: OnlineStack): Promise<void> {
   await until(page, '第 7 副的结算页', "g.scene === 'table' && g.overlay === 'settle'");
   await shot(page, '92-wide-deal7');
   await page.evaluate(() => window.__game!.setAutoplay(true));
-  await until(page, '打完一场、结回', "g.overlay === 'stake' && g.stake()?.outcome !== null", 180_000);
+  await until(page, '打完一场、带回', "g.overlay === 'stake' && g.stake()?.outcome !== null", 180_000);
   await shot(page, '93-wide-result');
-  notes.push('1920×1080：实盘主页、选档、第 7 副结算、结回页都没有要滚动的地方');
+  notes.push('1920×1080：实盘主页、选档、第 7 副结算、带回页都没有要滚动的地方');
   await page.context().close();
 }
 
 /**
- * --sizes 844x390,640x360：只在这些尺寸上走实盘里带输赢数字的四屏（主页"接着打实盘"下的小字、一副结算、牌桌顶上的实盘条、点它弹的"现在结回"），
+ * --sizes 844x390,640x360：只在这些尺寸上走实盘里带输赢数字的四屏（主页"接着打实盘"下的小字、一副结算、牌桌顶上的实盘条、点它弹的"现在带回"），
  * 量一屏放下、截图看红绿数字不折行。宽 < 1000 的按触屏、2 倍；尺寸按顺序轮流给正分和负分，红绿都看到
  */
 async function sizedStake(browser: Browser, stack: OnlineStack, sizes: [number, number][]): Promise<void> {
@@ -86,7 +86,7 @@ async function sizedStake(browser: Browser, stack: OnlineStack, sizes: [number, 
     await click(page, 'stakeStrip');
     await until(page, '实盘条弹出结算框', "'settleNow' in g.controls() && 'ok' in g.controls()");
     await shot(page, `${tag}-d-ask`);
-    notes.push(`${tag}：实盘主页小字、结算、顶上实盘条、现在结回框都没有要滚动的地方（${i % 2 ? '负分' : '正分'}）`);
+    notes.push(`${tag}：实盘主页小字、结算、顶上实盘条、现在带回框都没有要滚动的地方（${i % 2 ? '负分' : '正分'}）`);
     await page.context().close();
   }
 }
@@ -219,7 +219,7 @@ async function friendRoom(browser: Browser, stack: OnlineStack): Promise<void> {
   await shot(host, '62-room-table');
   notes.push(`好友房实盘：开房选档，一个人时开局灰掉；两个人开局都到账（房间 ${code}）`);
 
-  for (const p of [host, guest]) await until(p, '打完一场、结回', "g.overlay === 'stake' && g.net()?.stake?.over === true && g.net()?.stake?.seats[0]?.out === true", 900_000);
+  for (const p of [host, guest]) await until(p, '打完一场、带回', "g.overlay === 'stake' && g.net()?.stake?.over === true && g.net()?.stake?.seats[0]?.out === true", 900_000);
   await shot(host, '63-room-result');
   const pts = await Promise.all([host, guest].map((p) => p.evaluate(() => window.__game!.net()!.stake!.seats[0]!.points)));
   assert(pts[0]! + pts[1]! === 0, `0、1 号是对手，分正好相反：${pts}`);
@@ -276,7 +276,7 @@ async function ddzFriendRoom(browser: Browser, stack: OnlineStack): Promise<void
   }
   notes.push(`斗地主好友房实盘：开房选档，一个人时开局灰掉；两个人开局都到账（房间 ${code}）`);
   for (const p of [host, guest]) await p.evaluate(() => window.__game!.setAutoplay(true));
-  for (const p of [host, guest]) await until(p, '打完一场、结回', "g.overlay === 'gameOver' && g.net()?.stake?.over === true && g.net()?.stake?.seats[0]?.out === true", 900_000);
+  for (const p of [host, guest]) await until(p, '打完一场、带回', "g.overlay === 'gameOver' && g.net()?.stake?.over === true && g.net()?.stake?.seats[0]?.out === true", 900_000);
   await shot(host, '82-ddz-room-result');
   const pts = await Promise.all([host, guest].map((p) => p.evaluate(() => window.__game!.net()!.stake!.seats[0]!.points)));
   const house = await host.evaluate(() => window.__game!.net()!.stake!.seats.map((s) => s.points));
@@ -287,11 +287,11 @@ async function ddzFriendRoom(browser: Browser, stack: OnlineStack): Promise<void
   await guest.context().close();
 }
 
-/** 斗地主单机实盘（牌馆）：主页切到斗地主 → 实盘卡 → 小档进场 → 电脑代打到一场结束 → 结回钱包、存档删掉 */
+/** 斗地主单机实盘（牌馆）：主页切到斗地主 → 实盘卡 → 小档进场 → 电脑代打到一场结束 → 带回钱包、存档删掉 */
 async function ddzSolo(browser: Browser, stack: OnlineStack, clump = false): Promise<void> {
   // 不洗牌用另一个号：假钱包按号记余额，从 10,000 起
   const page = await openPage(browser, stack, clump ? 'ddz-clump' : 'ddz-a', { balance: 10_000, stakes: [] }, undefined, '&ddz=1&autoplay=1');
-  // 真链路的钱：带入、结回经本地栈的 Worker 到假平台钱包，回话里带钱包余额（页面的 /api/wallet 是拦下来答的，不算）
+  // 真链路的钱：带入、带回经本地栈的 Worker 到假平台钱包，回话里带钱包余额（页面的 /api/wallet 是拦下来答的，不算）
   const replies: { path: string; req: Record<string, unknown>; res: { credited?: number; wallet?: { balance: number } } }[] = [];
   page.on('response', async (r) => {
     const path = new URL(r.url()).pathname;
@@ -313,23 +313,23 @@ async function ddzSolo(browser: Browser, stack: OnlineStack, clump = false): Pro
   assert(ref?.startsWith('solo-ddz-small-'), `斗地主实盘的 ref：${ref}`);
   // URL 的 autoplay 只管调试开局（?seed=），从主页进的实盘局在这里开代打
   await page.evaluate(() => window.__game!.setAutoplay(true));
-  await until(page, '一场打完、结回', "g.overlay === 'gameOver' && g.texts().some((t) => t.s.includes('带回钱包'))", 240_000);
+  await until(page, '一场打完、带回', "g.overlay === 'gameOver' && g.texts().some((t) => t.s.includes('带回钱包'))", 240_000);
   await shot(page, clump ? '71-ddz-clump-settled' : '71-ddz-settled');
-  assert((await page.evaluate(() => localStorage.getItem('guandan.ddz.stake'))) === null, '结回后删掉斗地主实盘存档');
+  assert((await page.evaluate(() => localStorage.getItem('guandan.ddz.stake'))) === null, '带回后删掉斗地主实盘存档');
   assert((await page.evaluate(() => localStorage.getItem('guandan.ddz.stats'))) === null, '实盘不记战绩');
   const buyin = replies.find((x) => x.path.endsWith('/buyin'));
   const settle = replies.find((x) => x.path.endsWith('/settle'));
-  assert(!!buyin?.res.wallet && !!settle?.res.wallet, `带入、结回都经 Worker 到钱包：${JSON.stringify(replies)}`);
+  assert(!!buyin?.res.wallet && !!settle?.res.wallet, `带入、带回都经 Worker 到钱包：${JSON.stringify(replies)}`);
   const points = settle!.req.points as number;
   if (clump) {
-    assert(settle!.req.rules === 3, `不洗牌结回带 rules: 3：${JSON.stringify(settle!.req)}`);
+    assert(settle!.req.rules === 3, `不洗牌带回带 rules: 3：${JSON.stringify(settle!.req)}`);
     // 小档一份 2,000、每分 10（1/200）
-    assert(settle!.res.credited === 2_000 + points * 10, `结回额 = 2,000 + ${points} × 10：${settle!.res.credited}`);
+    assert(settle!.res.credited === 2_000 + points * 10, `带回额 = 2,000 + ${points} × 10：${settle!.res.credited}`);
   }
   const before = buyin!.res.wallet!.balance + 2_000;
   const after = settle!.res.wallet!.balance;
   assert(after === before + points * (clump ? 10 : 40), `余额 ${before} → ${after}，分 ${points}`);
-  notes.push(`斗地主单机实盘${clump ? '（不洗牌）' : ''}：小档进场、代打一场、结回钱包（余额 ${before} → ${after}，${points} 分）、存档删掉、不记战绩`);
+  notes.push(`斗地主单机实盘${clump ? '（不洗牌）' : ''}：小档进场、代打一场、带回钱包（余额 ${before} → ${after}，${points} 分）、存档删掉、不记战绩`);
   await page.context().close();
 }
 
@@ -405,14 +405,14 @@ async function guandanParts(browser: Browser, stack: OnlineStack): Promise<void>
     await until(page, '接着打：第 7 副的结算页', "g.scene === 'table' && g.overlay === 'settle'");
     await shot(page, '31-deal7');
     await page.evaluate(() => window.__game!.setAutoplay(true));
-    await until(page, '打完一场、结回', "g.overlay === 'stake' && g.stake()?.outcome !== null", 180_000);
+    await until(page, '打完一场、带回', "g.overlay === 'stake' && g.stake()?.outcome !== null", 180_000);
     const out = await page.evaluate(() => window.__game!.stake());
     const o = out!.outcome as { kind: string; capped: number; credited: number };
-    assert(o.kind === 'done', `结回：${JSON.stringify(o)}`);
+    assert(o.kind === 'done', `带回：${JSON.stringify(o)}`);
     assert(o.capped > 0 && o.credited === 2000, `今天赢满了：只退回带入的 2,000，其余到顶（${JSON.stringify(o)}）`);
-    assert(out!.save === null, '结回后存档删掉');
+    assert(out!.save === null, '带回后存档删掉');
     await shot(page, '32-result');
-    notes.push(`接着打实盘：第 8 副打完自动结算，结回 ${o.credited}、到顶 ${o.capped}，存档删掉`);
+    notes.push(`接着打实盘：第 8 副打完自动结算，带回 ${o.credited}、到顶 ${o.capped}，存档删掉`);
 
     // 结算页"再来一场"：还是小档
     await until(page, '"再来一场"可点', "g.controls().again?.enabled === true");
@@ -441,7 +441,7 @@ async function guandanParts(browser: Browser, stack: OnlineStack): Promise<void>
     await until(page, '回标题', "g.scene === 'title'");
     notes.push('打了几副回标题："先存着 / 现在结算"，现在结算按目前的分结');
 
-    // ④b 打了几副，点右上那条"实盘 · …"（和左上"大厅"同一个框，0.11.2）："现在结算，回大厅"写明结回多少，结回后去大厅
+    // ④b 打了几副，点右上那条"实盘 · …"（和左上"大厅"同一个框，0.11.2）："现在结算，回大厅"写明带回多少，带回后去大厅
     await enterTier(page, 'small');
     await inject(page, 2, [3, 3]);
     await click(page, 'resumeStake');
@@ -456,7 +456,7 @@ async function guandanParts(browser: Browser, stack: OnlineStack): Promise<void>
     const toLobby = page.waitForURL((u) => u.pathname === '/', { timeout: 30_000 });
     await click(page, 'settleNow');
     await toLobby;
-    notes.push('点实盘条：现在结算（写明结回多少）、先存着、接着打；现在结算结回后去大厅');
+    notes.push('点实盘条：现在结算（写明带回多少）、先存着、接着打；现在结算带回后去大厅');
 
     // ⑤ 钱包说不够：进不了场（手机横屏的尺寸，顺便看选档页排得下）
     const poor = await openPage(browser, stack, 'nofunds-1', { balance: 10_000, stakes: [] }, { width: 844, height: 390 });

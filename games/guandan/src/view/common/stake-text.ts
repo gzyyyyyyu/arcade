@@ -13,7 +13,7 @@ export function stars(n: number): string {
 
 /**
  * 娱乐三档的卡（docs/ai.md 第 2 节）：电脑多强、一局多久、适合谁，随时存档。time 是完整（打过 A），short 是短局（打到 10）。
- * 时长按 `ai-sim length` 的中位数（0.25.0 的出牌节奏，我每手 4 秒估）：完整 新手 7 副约 20 分钟、普通高手 11–12 副约 30 分钟；
+ * 时长按 `ai-sim length` 的中位数（我每手按 4 秒估；量时的出牌节奏比现在慢，实际会短一些）：完整 新手 7 副约 20 分钟、普通高手 11–12 副约 30 分钟；
  * 短局 新手 4 副约 11 分钟、普通高手 5 副约 14 分钟
  */
 export const LEVEL_CARD = {
@@ -37,7 +37,7 @@ export const TIER_CARD = {
   time: '约 8 分钟',
 } as const;
 
-/** 断网（连不上、fetch 失败）统一的一句和按钮字：好友房面板、实盘带入 / 结回、出错面板共用，不各写各的 */
+/** 断网（连不上、fetch 失败）统一的一句和按钮字：好友房面板、实盘带入 / 带回、出错面板共用，不各写各的 */
 export const NET_DOWN = '网络不通，检查后重试';
 export const RETRY_LABEL = '重试';
 /** 补给后面跟一句从哪领（大厅里每天领一次） */
@@ -69,7 +69,7 @@ export function stakeError(error: string): string {
 export const STAKE_TEXT = {
   /** 选档页、结算页底下的小字（economy.md 第 0 节：界面写明） */
   noCash: '筹码只在游戏里用，无任何现金价值',
-  /** 选档页切到"快速匹配"时，每档时间那行（0.26.0：好友房实盘的规则，和真人打，空位电脑补） */
+  /** 选档页切到"快速匹配"时，每档时间那行（好友房实盘的规则，和真人打，空位电脑补） */
   matchWho: '和真人打',
   /** 快速匹配时星级那一列（电脑只补空位） */
   matchBots: '空位电脑补',
@@ -79,7 +79,7 @@ export const STAKE_TEXT = {
   lowFunds: `钱包里的筹码不够的档灰掉了：选小一点的档，或者去大厅领${SUPPLY}`,
   /** 四档全灰（钱包连最低档都不够）：没有"小一点的档"可选 */
   noTier: (min: number) => `筹码不够最低档（${fmtChips(min)}），去大厅领${SUPPLY}`,
-  /** 平台 0.9.5 起同一个游戏能同时有好几份：别处那一份不挡开新的，只是给个退回的办法 */
+  /** 平台允许同一个游戏同时有好几份（平台 0.9.5 起）：别处那一份不挡开新的，只是给个退回的办法 */
   // 掼蛋和斗地主的选档页共用（各认各的那一份），不写玩法
   elsewhere: '别的设备上还有一场实盘没打完，不影响开新的',
   refundAsk: '实盘还没开始计分，现在退出会把带入的筹码原样退回',
@@ -92,7 +92,7 @@ export const STAKE_TEXT = {
 export function roomWhy(why: string): string {
   if (why === 'need_two') return '开局时真人不到两个，这一场不计输赢';
   if (why === 'left') return '你中途离开过，已经按当时的分带回钱包';
-  // 带入被拒（0.6.0 起旁边有"重新带入"）：照平台的对照表说清楚为什么、怎么办
+  // 带入被拒（旁边有"重新带入"）：照平台的对照表说清楚为什么、怎么办
   if (why === 'no_funds') return `钱包里的筹码不够这一档，没带入；去大厅领${SUPPLY}后点"重新带入"`;
   if (why === 'limit') return '今天开局太多了，没带入；明早 0 点恢复，这局照常打';
   if (why === 'busy') return '服务器今天有点忙，没带入；这局照常打，过一会儿点"重新带入"';
@@ -102,12 +102,12 @@ export function roomWhy(why: string): string {
 export const ROOM_STAKE_TEXT = {
   needTwo: '实盘好友房至少要两个人；一个人想玩实盘，去单机',
   bots: '电脑一律最强',
-  /** 0.6.0 起离开立即结算 */
+  /** 离开立即结算 */
   leave: '离开房间？按现在的分马上带回钱包，之后电脑接着打，输赢不再算你的；回来会重新带入',
   pending: '带入在办，到账之前的分归庄家',
 } as const;
 
-/** 中途结算那一行：按现在的分结回多少（back = 带入的一份加输赢，调用方用 stake 的 payout 算） */
+/** 中途结算那一行：按现在的分带回多少（back = 带入的一份加输赢，调用方用 stake 的 payout 算） */
 /** 模板里 {0} 是分、{1} 是筹码（画面用 signedLine 红绿，fillSigned 拼成整句） */
 export function settleNowText(back: number): string {
   return `现在带回：按 {0} 分（{1}）带回 ${fmtChips(back)} 筹码`;
@@ -120,8 +120,8 @@ export interface SignedRow {
 }
 
 /**
- * 好友房实盘离开：把数字写出来。两副之间（结算页）当场结回；一副打到一半走的，这一副电脑替他打完、输赢照算，打完按那时的分结回。
- * 拆成短行：确认框里一行放不下一整句（signedLine 不换行），每行 ≤14 字，带输赢的那一行单独成行好上色；fillSigned 逐行拼起来就是原来的整句
+ * 好友房实盘离开：把数字写出来。两副之间（结算页）当场带回；一副打到一半走的，这一副电脑替他打完、输赢照算，打完按那时的分带回。
+ * 拆成短行：确认框里一行放不下一整句（signedLine 不换行），每行 ≤14 字，带输赢的那一行单独成行好上色；fillSigned 逐行拼起来就是完整的一句
  */
 export function roomLeaveText(points: number, chips: number, back: number, midDeal = false): SignedRow[] {
   const nums = [points, chips];

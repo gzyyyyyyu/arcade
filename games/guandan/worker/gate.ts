@@ -9,9 +9,9 @@
  * 登录闸门只管首页。静态资源仍由 Workers 静态资源直接返回，只有首页导航的三个路径和房间接口 /games/guandan/room/*
  * （wrangler.jsonc 的 assets.run_worker_first）先经过这里，js、图片不经过、不多花请求额度。
  *
- * 首页的闸门用 arcade-kit 的 loginGate（0.6.5 起，原来自己写的一份和它做法相同）：
+ * 首页的闸门用 arcade-kit 的 loginGate（kit 0.6.5 起有）：
  * GATE = "off"：原样交给静态资源。其他值（包括没配）都要登录：经服务绑定 ARCADE 问平台的 /api/me（地址按请求的 origin 拼）。
- *   - 已登录 → 放行；未登录 → 302 到 /login?next=<请求的路径 + 查询>：登录完整页回到原链接，房间链接 ?room= 直接进房（0.6.0"叫朋友来"）；
+ *   - 已登录 → 放行；未登录 → 302 到 /login?next=<请求的路径 + 查询>：登录完整页回到原链接，房间链接 ?room= 直接进房（"叫朋友来"）；
  *   - 平台出错、超时、GATE=login 却没绑 ARCADE → 503（掼蛋自己的页面 DOWN_PAGE）。宁可暂时谁都进不去，也不能放行。
  * 没有 ARCADE、GATE 也不是 login：单独部署，放行并补发游客 cookie。
  */
@@ -37,7 +37,7 @@ export interface Env {
   GATE?: string;
   /** 联机房间（Durable Object，worker/room.ts 的 Room） */
   ROOM?: DurableObjectNamespace;
-  /** 快速匹配的排队（0.26.0，worker/match.ts 的 Queue，每个档位一个实例） */
+  /** 快速匹配的排队（worker/match.ts 的 Queue，每个档位一个实例） */
   MATCH?: DurableObjectNamespace;
   /** "on" 才开联机；其他值（含没配）开房 404、进房 4004 */
   ONLINE?: string;
@@ -47,7 +47,7 @@ export interface Env {
   METER?: DurableObjectNamespace;
   /** 计量的门槛（wrangler.jsonc 的 vars，计量自己读） */
   KIT_QUOTA?: unknown;
-  /** 平台钱包（服务绑定 RPC，入口 WalletService，props.game = guandan）：单机实盘的带入、结回、放弃（stake.ts）。单独部署没有，实盘一律 no_wallet */
+  /** 平台钱包（服务绑定 RPC，入口 WalletService，props.game = guandan）：单机实盘的带入、带回、放弃（stake.ts）。单独部署没有，实盘一律 no_wallet */
   WALLET?: WalletRpc;
 }
 
@@ -65,7 +65,7 @@ font:18px/1.6 "PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;text
 
 /**
  * 单独部署时的游客：首页、开房、进房三处同一个设置。昵称不许冒充电脑（kit 按包含判断，"老张1"也挡住）；
- * 和画面上的名字（src/view/art/avatars.ts 的 PERSONAS，取自共用名册）是同一份，tests/gate.test.ts 核对；老周、王姐（0.40.10 换成稳哥、幺妹儿）照留
+ * 和画面上的名字（src/view/art/avatars.ts 的 PERSONAS，取自共用名册）是同一份，tests/gate.test.ts 核对；斗地主电脑的旧名老周、王姐也挡着，免得冒充
  */
 export const GUEST: GuestOptions = { reserved: ['老张', '小美', '阿强', '稳哥', '幺妹儿', '老周', '王姐'] };
 
@@ -74,7 +74,7 @@ const JOIN_RE = new RegExp(`^${ROOM_PATH}/rooms/([^/]+)/ws$`);
 const MATCH_RE = new RegExp(`^${MATCH_PATH}/([^/]+)$`);
 
 /**
- * 联机房间的三个路由：开房、进房、快速匹配排队（0.26.0）（wrangler.jsonc 的 run_worker_first 放行 /games/guandan/room/*），其余交给 arcade-kit：
+ * 联机房间的三个路由：开房、进房、快速匹配排队（wrangler.jsonc 的 run_worker_first 放行 /games/guandan/room/*），其余交给 arcade-kit：
  * 查 Origin、经平台 /api/me 认人、找房间都在 acceptCreate / acceptJoin / acceptMatch 里，这里不碰浏览器的原始请求。
  * 不经过 GATE：进房本来就要登录（kit 认不出人就拒绝），GATE=off 时也一样。
  * 返回 null 表示不是房间的路径。
@@ -85,7 +85,7 @@ export function routeRoom(request: Request, env: Env): Promise<Response> | Respo
   const match = MATCH_RE.exec(path);
   if (path !== CREATE_PATH && !join && !match) return path.startsWith(`${ROOM_PATH}/`) || path === ROOM_PATH ? new Response('not found', { status: 404 }) : null;
   const on = env.ONLINE === 'on' && env.ROOM !== undefined;
-  // 整个 env 交给 kit：它要看 GATE 决定是不是独立模式（只挑 ROOM、ARCADE 时丢了 GATE，本站部署 ARCADE 掉了会退成游客放行，0.12.4 审计）。
+  // 整个 env 交给 kit：它要看 GATE 决定是不是独立模式（只挑 ROOM、ARCADE 时丢了 GATE，本站部署 ARCADE 掉了会退成游客放行）。
   // 闸门的 Fetcher 只声明了 fetch；运行时的服务绑定就是 kit 要的 Fetcher；ROOM 上面 on 已经查过
   const kitEnv = env as unknown as KitEnv;
   const opts: GateOptions = env.SITE_ORIGIN ? { siteOrigin: env.SITE_ORIGIN, guest: GUEST } : { guest: GUEST };
@@ -93,7 +93,7 @@ export function routeRoom(request: Request, env: Env): Promise<Response> | Respo
   // 联机关着：和"没有这个房间"一样，接受升级后马上 4004 关掉（浏览器的 WebSocket 拿不到 HTTP 状态码，客户端认得 4004、不再重连）
   if (!on) return refuseSocket(request, CLOSE.noRoom, 'online off');
   if (match) {
-    // 快速匹配（0.26.0）：档位不认得、没开放的，kit 回 4004。没有钱包（单独部署）只开娱乐，实盘的排不了
+    // 快速匹配：档位不认得、没开放的，kit 回 4004。没有钱包（单独部署）只开娱乐，实盘的排不了
     if (!env.MATCH) return refuseSocket(request, CLOSE.noRoom, 'no match');
     const tiers = env.WALLET ? [...MATCH_TIERS, ...MATCH_DDZ_TIERS] : [MATCH_FUN, MATCH_DDZ];
     return acceptMatch(request, { ...kitEnv, MATCH: env.MATCH }, match[1]!, { ...opts, tiers });
@@ -110,7 +110,7 @@ function refuseSocket(request: Request, code: number, reason: string): Response 
 }
 
 /**
- * 开房：请求体里带 { stake: 档位 } 的是实盘房间（docs/stake.md 3.1，kit 0.4.0 的"开房就定选项"）；没带（或没有请求体）和以前一样是娱乐房间。
+ * 开房：请求体里带 { stake: 档位 } 的是实盘房间（docs/stake.md 3.1，kit 0.4.0 的"开房就定选项"）；没带（或没有请求体）是娱乐房间。
  * 档位不认得的照样交给 kit，由规则的 options 校验后回 400 bad_options。
  */
 async function createWithOptions(request: Request, env: Env, kitEnv: KitEnv, opts: GateOptions): Promise<Response> {
@@ -127,7 +127,7 @@ async function createWithOptions(request: Request, env: Env, kitEnv: KitEnv, opt
     }
   }
   // 玩法（牌馆 ⑤）：{ variant: 'ddz' } 开斗地主房；没带是掼蛋。带了别的值、或斗地主带 stake 的，交给房间的 options 校验后回 400 bad_options。
-  // 不洗牌（0.33.0）带了就原样交过去，和档位一起、不是 true 的也由 options 拒
+  // 不洗牌带了就原样交过去，和档位一起、不是 true 的也由 options 拒
   if (variant !== undefined && variant !== null) {
     const o: Record<string, unknown> = { variant };
     if (stake !== undefined && stake !== null) o.stake = stake;

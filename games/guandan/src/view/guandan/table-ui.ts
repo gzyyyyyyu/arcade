@@ -285,20 +285,20 @@ export function buildTopBar(sc: TableScene, W: number): void {
   const ns = sc.netStake;
   const label = stakeLabelParts(sc);
   if (label.tpl) {
-    // 本场的分和筹码红绿（深色条子上用亮一档的），其余字照旧金色
+    // 本场的分和筹码红绿（深色条子上用亮一档的），其余字用金色
     const t = signedLine(sc, W - STAKE_STRIP.textRight, TOPBAR_H + STAKE_STRIP.cy, label.tpl, label.nums, { size: TYPE.small, bold: true, color: COLOR.goldLight, ox: 1, dark: true });
     const pg = sc.add.graphics();
     pg.fillStyle(0x1a0e07, 0.7).fillRoundedRect(W - t.width - STAKE_STRIP.boxLeft, TOPBAR_H + STAKE_STRIP.boxTop, t.width + STAKE_STRIP.boxPadW, STAKE_STRIP.boxH, STAKE_STRIP.boxR);
     pg.lineStyle(STAKE_STRIP.boxLine, COLOR.gold, 0.7).strokeRoundedRect(W - t.width - STAKE_STRIP.boxLeft, TOPBAR_H + STAKE_STRIP.boxTop, t.width + STAKE_STRIP.boxPadW, STAKE_STRIP.boxH, STAKE_STRIP.boxR);
     c.add([pg, t]);
-    // 单机实盘：条子能点，弹和"大厅"一样的结算确认框；右边加个"结算"小字，让人知道能点（原来找不到中途结算的入口）
+    // 单机实盘：条子能点，弹和"大厅"一样的结算确认框；右边加个"结算"小字，让人知道能点（不然找不到中途结算的入口）
     if (st && !st.over) {
       const tag = text(sc, W - t.width - STAKE_STRIP.tagGap, TOPBAR_H + STAKE_STRIP.cy, '带回 ›', { size: TYPE.small, bold: true, color: 0xffe08a, ox: 1 });
       const tg = sc.add.graphics();
       tg.fillStyle(0x8a1a20, 0.92).fillRoundedRect(tag.x - tag.width - STAKE_STRIP.tagBgGap, TOPBAR_H + STAKE_STRIP.tagTop, tag.width + STAKE_STRIP.tagPadW, STAKE_STRIP.tagH, STAKE_STRIP.tagR);
       c.add([tg, tag]);
       // 点按区域和别的控件不相交：底边停在记牌器上沿（counterY，下面设），往上够 minHit()；
-      // 手机上这么高会伸进顶栏图标往下伸的那块，那就横向让开图标那几列，只留左头"结回"小签到图标之间这段
+      // 手机上这么高会伸进顶栏图标往下伸的那块，那就横向让开图标那几列，只留左头"带回"小签到图标之间这段
       const zx = tag.x - tag.width - STAKE_STRIP.zoneGap;
       const zb = TOPBAR_H + STAKE_STRIP.bottom;
       const zt = zb - Math.max(STAKE_STRIP.hitMin, minHit());
@@ -444,7 +444,7 @@ export function refreshButtons(sc: TableScene): void {
     sc.btnHint.setVisible(false);
     const verb = t.kind === 'tribute' ? '进贡' : '还贡';
     // 先替新手挑好一张（和超时代出同一张：进贡挑最大的、还贡挑最小的），点一下就行，想换再点别的；
-    // 每一步只挑一次，玩家点掉了不再塞回去。新手不知道级牌比 A 大，以前就卡在这里不会点
+    // 每一步只挑一次，玩家点掉了不再塞回去。新手不知道级牌比 A 大，容易卡在这里不会点
     const pick = sc.tributeStep !== v.step && sel.length === 0 ? timeoutAction(v) : null;
     sc.tributeStep = v.step;
     if (pick && (pick.type === 'tribute' || pick.type === 'return')) {

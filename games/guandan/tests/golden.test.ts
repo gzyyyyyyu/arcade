@@ -22,7 +22,7 @@ describe('掼蛋金样：行为逐字节不变', () => {
       expect({ hash: o.hash, items: o.items }).toEqual(want[sc.name]);
     });
   }
-  it('覆盖面：进贡、抗贡、还贡、一局打完、再来一场、换人、带入被拒后重新带入、关房结回都走到了', () => {
+  it('覆盖面：进贡、抗贡、还贡、一局打完、再来一场、换人、带入被拒后重新带入、关房带回都走到了', () => {
     const sum = (k: string) => [...got.values()].reduce((n, o) => n + (o.seen[k] ?? 0), 0);
     for (const k of ['ev:tribute', 'ev:antiTribute', 'ev:returnCard', 'ev:gameOver', 'resume', 'seated', 'buyin', 'settled', 'closing', 'share', 'awards', 'solo']) {
       expect(sum(k), k).toBeGreaterThan(0);

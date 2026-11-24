@@ -34,10 +34,10 @@ export const CARD_W = 100;
 export const CARD_H = 140;
 
 const AVATARS: AvatarId[] = ['me', 'laozhang', 'xiaomei', 'aqiang', 'wengge', 'yaomeir'];
-/** 主页大图只给原来四个人烘焙 */
+/** 主页大图只给掼蛋的四个人烘焙 */
 const HOME_FIGS = ['me', 'laozhang', 'xiaomei', 'aqiang'] as const;
 const MOODS: Mood[] = ['normal', 'happy', 'sad', 'think', 'smug'];
-/** 主页上每个人的表情（和以前标题图里一样） */
+/** 主页上每个人的表情 */
 const HOME_MOOD: Record<(typeof HOME_FIGS)[number], Mood> = { laozhang: 'smug', xiaomei: 'normal', aqiang: 'happy', me: 'happy' };
 const ICONS: IconName[] = [
   'play', 'pass', 'hint', 'sort', 'undo', 'settings', 'rules', 'sound', 'mute', 'back',
@@ -124,7 +124,7 @@ function jobsHome(): Job[] {
   for (const i of ICONS) jobs.push({ key: `icon:${i}`, svg: () => iconSvg(i, '#ffffff'), w: 48, h: 48 });
   jobs.push({ key: 'particle:spark', svg: () => particleSvg('spark'), w: 32, h: 32 });
   for (const a of AVATARS) jobs.push({ key: `avatar:${a}:happy`, svg: () => avatarSvg(a, 'happy'), w: 128, h: 128 });
-  // 主页标题"牌馆"（0.3.0 起 logo 上不再盖"单机版"的印章）
+  // 主页标题"牌馆"（logo 上不盖印章）
   jobs.push({ key: 'logo:hall', svg: () => logoSvg(false, '牌馆'), w: 520, h: 220 });
   // 主页（art-v3）：能动的灯笼和四个人，按显示尺寸烘焙（人物显示约 1.62 倍）
   jobs.push({ key: 'home:lantern', svg: () => lanternArtSvg(), w: LANTERN_SIZE.w, h: LANTERN_SIZE.h });
@@ -241,7 +241,7 @@ let coreTotal = 1;
 /**
  * 标题页出来后在后台烘焙牌桌的素材（整套约 100 张）。只启动一次，分两段：
  * 先烘一开局就要的（jobsTableCore 加当前宽度的牌桌背景，gd:table-core），烘完就能进牌桌；再烘表情、印章、粒子（gd:table-bake），进了牌桌也接着烘。
- * 以前整套烘完才让进，主页一出来马上点开局要干等（手机无头约 10 秒，11-01 打点）。URL 带 bake=all 时照旧等整套（冒烟留着这条路）
+ * 不等整套烘完：主页一出来马上点开局的话要干等（手机无头约 10 秒）。URL 带 bake=all 时等整套（冒烟留着这条路）
  */
 export function startBackgroundBake(scene: Phaser.Scene): Promise<void> {
   if (!tablePart) {
@@ -251,7 +251,7 @@ export function startBackgroundBake(scene: Phaser.Scene): Promise<void> {
     tableTotal = coreTotal + extra.length;
     corePart = (async () => {
       await bakeJobs(scene, core, 6, (p) => (tableDone = Math.round(p * core.length)), true);
-      // 当前宽度的牌桌背景也在这里先烘：以前要等点了开局才烘这一张整屏大图，手机上素材早就烘完了还要干等 2 秒多
+      // 当前宽度的牌桌背景也在这里先烘：等点了开局才烘这一张整屏大图的话，手机上要干等 2 秒多
       await bake(scene, tableJob(tableW()));
       tableDone = coreTotal;
       performance.mark('gd:table-core');

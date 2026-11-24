@@ -26,7 +26,7 @@ export const KEYS = {
   stake: 'guandan.stake',
   /** 单独部署（没有平台）时好友房里的昵称（platform.ts、online.ts） */
   nick: 'guandan.nick',
-  /** 牌馆 0.28.0：主页上次选的玩法（掼蛋 / 斗地主） */
+  /** 主页上次选的玩法（掼蛋 / 斗地主） */
   variant: 'guandan.variant',
   /** 斗地主单机娱乐的这一局（和掼蛋的 save 分开） */
   ddzSave: 'guandan.ddz.save',
@@ -149,7 +149,7 @@ export interface Settings {
   counter: boolean;
   /** 牌桌互动开 / 不看（设置里叫"互动"）：关掉后好友房里别人的、单机电脑的短语、表情、道具都不播，电脑也不反应 */
   taunts: boolean;
-  /** 聊天开 / 不看（好友房 0.22.0、单机 0.23.0，和"互动"分开：有人想关掉嘲讽但想看朋友说话）：不看时别人说的不冒气泡、不进记录，自己也没有聊天页 */
+  /** 聊天开 / 不看（好友房、单机都有，和"互动"分开：有人想关掉嘲讽但想看朋友说话）：不看时别人说的不冒气泡、不进记录，自己也没有聊天页 */
   chat: boolean;
   /**
    * 快速匹配桌上和陌生人打字聊天（kit docs/match.md 第 5 节，默认开）：关掉时进匹配桌不带 chat=1，房间不给这条连接转聊天、自己也发不了。
@@ -190,7 +190,7 @@ export function getSettings(): Settings {
   if (settingsCache) return settingsCache;
   const s = read<Partial<Settings>>(KEYS.settings);
   settingsCache = s && s.v === 1 ? { ...DEFAULT_SETTINGS, ...s, rules: { ...(s.rules ?? {}) } } : { ...DEFAULT_SETTINGS };
-  // 难度 0.12.1 起是新手 / 普通 / 高手三档：旧版本存的四档换过来（简单→新手、较强→普通、困难→高手），认不得的按默认
+  // 难度是新手 / 普通 / 高手三档：老存档里的四档换过来（简单→新手、较强→普通、困难→高手），认不得的按默认
   settingsCache.difficulty = soloLevelOf(settingsCache.difficulty) ?? DEFAULT_SETTINGS.difficulty;
   if (settingsCache.length !== 'short' && settingsCache.length !== 'full') settingsCache.length = DEFAULT_SETTINGS.length;
   if (settingsCache.ddzDeal !== 'classic' && settingsCache.ddzDeal !== 'clump') settingsCache.ddzDeal = DEFAULT_SETTINGS.ddzDeal;
@@ -221,7 +221,7 @@ interface SaveData {
   counted: boolean;
   /** 已记入战绩的副数（同上） */
   dealsCounted: number;
-  /** 这一局攒到哪了（整局称号、晒战绩用；回大厅再"继续"不丢）。0.40.1 以前的存档没有，从接着打的那副开始攒 */
+  /** 这一局攒到哪了（整局称号、晒战绩用；回大厅再"继续"不丢）。老存档没有，从接着打的那副开始攒 */
   log?: MatchLog;
   loggedDeal?: number;
 }
@@ -229,7 +229,7 @@ interface SaveData {
 export function loadSave(): SaveData | null {
   const s = read<SaveData>(KEYS.save);
   if (s?.v !== 1 || !s.state || s.state.v !== 1 || !Array.isArray(s.state.hands)) return null;
-  // 0.1.10 及以前的存档没记规则版本，都是第 1 版规则开的
+  // 老存档没记规则版本，都是第 1 版规则开的
   if (typeof s.state.rules !== 'number') s.state.rules = 1;
   // 存档里的难度认不得就按默认接着打（同 getSettings）
   s.difficulty = soloLevelOf(s.difficulty) ?? DEFAULT_SETTINGS.difficulty;

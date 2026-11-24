@@ -11,7 +11,7 @@ import type { SeatAnchor } from './layout.ts';
 const PLAYED_W = 60;
 const STEP = 26;
 
-/** 出牌区上一手的字和要不要按炸弹的样子画（牌馆 0.28.0：由玩法给，掼蛋的是 guandan/labels.ts 的 describePlay） */
+/** 出牌区上一手的字和要不要按炸弹的样子画（由玩法给，掼蛋的是 guandan/labels.ts 的 describePlay） */
 type DescribePlay<P extends PlayBase> = (p: P) => { label: string; bomb: boolean };
 
 export class TrickView<P extends PlayBase> {

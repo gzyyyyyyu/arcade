@@ -1,6 +1,6 @@
 /**
  * 我的手牌：按点数（或按牌型）分列，同列竖着叠放，大牌在左。点选或按住滑动多选，选中上抬。
- * 斗地主（HandOrder.flat）改成横排一行，不分列。电脑上鼠标停在可选的牌上这张上浮 8 并描边；右键取消选中（点牌取消这张，点空白取消全部）。
+ * 斗地主（HandOrder.flat）横排一行，不分列。电脑上鼠标停在可选的牌上这张上浮 8 并描边；右键取消选中（点牌取消这张，点空白取消全部）。
  *
  * 手机横屏（844×390）时世界坐标缩到约 0.54 倍。叠放高度有上限（不能盖到按钮），一列 5 张时每张只露约 30（约 16 CSS 像素），
  * 4 张时露约 40（约 21 CSS 像素）。所以横向放得下时一列最多 4 张（列间距不小于 72，约 39 CSS 像素），放不下才用 5 张。
@@ -20,7 +20,7 @@ import { downAction, flatLayout } from './hand-logic.ts';
 import { DEAL_FLY, HAND_LAYOUT } from './layout.ts';
 
 /**
- * 手牌怎么理、怎么分列（牌馆 0.28.0：玩法给；不给就是掼蛋的，按级牌牌序、逢人配排在级牌后）。
+ * 手牌怎么理、怎么分列（玩法给；不给就是掼蛋的，按级牌牌序、逢人配排在级牌后）。
  * level 是掼蛋的级牌，别的玩法不用它。
  * flat：横排成一行（斗地主，最多 20 张），columns 给的每一列当"一组"，按牌型理牌时组与组之间留空隙；不给就是掼蛋的分列竖叠
  */
@@ -77,7 +77,7 @@ export class HandView {
     scene.input.on('pointerupoutside', () => (this.dragging = null));
     // 鼠标移出画布：上浮的牌归位
     scene.input.on('gameout', () => this.setHover(null));
-    // 右键是"取消选中"：画布上不弹浏览器菜单（只管画布，页面别处照旧）
+    // 右键是"取消选中"：画布上不弹浏览器菜单（只管画布，页面别处不管）
     const canvas = scene.game.canvas;
     const noMenu = (e: Event): void => e.preventDefault();
     canvas.addEventListener('contextmenu', noMenu);

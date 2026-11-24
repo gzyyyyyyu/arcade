@@ -1,6 +1,6 @@
 /**
  * 好友房实盘的桌（src/net/stake.ts）和它接进联机规则（src/net/rules.ts）的地方：纯函数，不起房间。
- * 真房间里的带入、结回、重试、收场在 tests/room/stake.spec.ts。
+ * 真房间里的带入、带回、重试、收场在 tests/room/stake.spec.ts。
  */
 import { describe, expect, it } from 'vitest';
 import type { DealResult, Seat } from '../../src/variants/guandan/core/index.ts';
@@ -95,7 +95,7 @@ describe('带入办完', () => {
 describe('中途离开（0.6.0）', () => {
   const US = [0, 2, 1, 3];
 
-  it('到账的人点"离开"：按这一刻的分马上结回，之后的分归庄家；回来用新的 ref 再带入一份，离开时照常结回', () => {
+  it('到账的人点"离开"：按这一刻的分马上带回，之后的分归庄家；回来用新的 ref 再带入一份，离开时照常带回', () => {
     let t = settleAll(stakeBegin(KEY, 'mid', HHAA));
     t = stakeDeal(t, deal(1, US), 'dealEnd');
     t = stakeSeated(t, 0, 'ai');
@@ -119,7 +119,7 @@ describe('中途离开（0.6.0）', () => {
     expect(stakeView(t, 0).seats[0]!.out).toBe(false);
     t = settleAll(t);
     t = stakeDeal(t, deal(3, [1, 3, 0, 2]), 'dealEnd');
-    // 一场结束：0 号结回的是第 2 份
+    // 一场结束：0 号带回的是第 2 份
     t = stakeFinish(t);
     expect(t.pending.find((e) => e.seat === 0)).toMatchObject({ id: `${ref2}-s0-out`, ref: ref2, amount: 10_000 - 3 * 400 });
     expect(t.book.house + (t.book.settled ?? 0) + t.book.seats.reduce((a, x) => a + x.points, 0)).toBe(0);
@@ -140,7 +140,7 @@ describe('中途离开（0.6.0）', () => {
     expect(canRebuy(stakeBegin(KEY, 'small', ['human', 'ai', 'ai', 'ai']), 0)).toBe(false);
   });
 
-  it('带入还在路上就走了：到账后原样结回一份；被拒就什么都不办', () => {
+  it('带入还在路上就走了：到账后原样带回一份；被拒就什么都不办', () => {
     let t = stakeSeated(stakeBegin(KEY, 'small', HHAA), 0, 'ai');
     expect(t.book.seats[0]!.paid).toBe('left');
     t = stakeSettled(t, `${t.ref}-s0-in`, { ok: true });
@@ -154,7 +154,7 @@ describe('中途离开（0.6.0）', () => {
 describe('一副打到一半离开（0.12.4 审计）', () => {
   const LOSE = [1, 3, 0, 2]; // 0、2 那一队被双下：-3
 
-  it('这一副电脑替他打完、输赢照算，打完按那时的分结回；躲不掉这副的输', () => {
+  it('这一副电脑替他打完、输赢照算，打完按那时的分带回；躲不掉这副的输', () => {
     let t = settleAll(stakeBegin(KEY, 'mid', HHAA));
     t = stakeSeated(t, 0, 'ai', 'play');
     expect(t.book.seats[0]!.paid).toBe('yes');
@@ -172,13 +172,13 @@ describe('一副打到一半离开（0.12.4 审计）', () => {
     expect(t.book.seats[0]!.points).toBe(pts);
   });
 
-  it('进贡、还贡也算打到一半；两副之间（结算页）离开当场结回', () => {
+  it('进贡、还贡也算打到一半；两副之间（结算页）离开当场带回', () => {
     for (const ph of ['tribute', 'return'] as const) expect(stakeSeated(settleAll(stakeBegin(KEY, 'mid', HHAA)), 0, 'ai', ph).pending).toEqual([]);
     const t = stakeSeated(settleAll(stakeBegin(KEY, 'mid', HHAA)), 0, 'ai', 'dealEnd');
     expect(t.pending.map((e) => e.kind)).toEqual(['out']);
   });
 
-  it('这一副没打完又坐回来：还是原来那一份，不结回也不再带入', () => {
+  it('这一副没打完又坐回来：还是原来那一份，不带回也不再带入', () => {
     let t = settleAll(stakeBegin(KEY, 'mid', HHAA));
     t = stakeSeated(stakeSeated(t, 0, 'ai', 'play'), 0, 'human', 'play');
     expect(t.leaving).toEqual([false, false, false, false]);
@@ -188,7 +188,7 @@ describe('一副打到一半离开（0.12.4 审计）', () => {
     expect(t.pending).toEqual([]);
   });
 
-  it('这一副正好打完一场、或者关房：只结回一笔', () => {
+  it('这一副正好打完一场、或者关房：只带回一笔', () => {
     const a = stakeDeal(stakeSeated(settleAll(stakeBegin(KEY, 'mid', HHAA)), 0, 'ai', 'play'), deal(1, LOSE), 'gameOver');
     expect(a.over).toBe(true);
     expect(a.pending.filter((e) => e.seat === 0).map((e) => e.amount)).toEqual([10_000 - 3 * 400]);
@@ -197,14 +197,14 @@ describe('一副打到一半离开（0.12.4 审计）', () => {
     expect(b.leaving).toEqual([false, false, false, false]);
   });
 
-  it('真人都在一副中间走了：等电脑打完这副再算完（不然关房时按开这副前的分结回）', () => {
+  it('真人都在一副中间走了：等电脑打完这副再算完（不然关房时按开这副前的分带回）', () => {
     let s = R.begin(KEY, 2, { opts: { stake: 'mid' }, seats: [...HHAA] });
     s = { ...s, stake: settleAll(s.stake!) };
     expect(['tribute', 'return', 'play']).toContain(s.g.phase);
     s = R.seated!(R.seated!(s, 0, 'ai'), 1, 'ai');
     expect(s.stake!.leaving).toEqual([true, true, false, false]);
     expect(R.over(s)).toBe(false);
-    // 这副打完：两人都结回，房间算完
+    // 这副打完：两人都带回，房间算完
     const done = { ...s, stake: stakeDeal(s.stake!, deal(1, LOSE), 'dealEnd') };
     expect(done.stake.pending.map((e) => e.seat).sort()).toEqual([0, 1]);
     expect(R.over(done)).toBe(true);
@@ -214,7 +214,7 @@ describe('一副打到一半离开（0.12.4 审计）', () => {
 describe('一场结束', () => {
   const US = [0, 2, 1, 3]; // 0、2 那一队双下：+3
 
-  it('旧房间（桌上没有 rules 字段，3 副之前开的）按旧的数打完：5 副、每分 1/20，结回额按旧的算', () => {
+  it('旧房间（桌上没有 rules 字段，3 副之前开的）按旧的数打完：5 副、每分 1/20，带回额按旧的算', () => {
     const fresh = settleAll(stakeBegin(KEY, 'small', ['human', 'human', 'human', 'human']));
     expect((fresh.book as GdBook).rules).toBe(2);
     expect(stakeView(fresh, 0).rules).toBe(2);
@@ -233,7 +233,7 @@ describe('一场结束', () => {
     expect(t.pending.map((e) => e.amount)).toEqual([3500, 500, 3500, 500]);
   });
 
-  it('打满 3 副结束：每个到账的座位记一笔结回（一份 + 分 × 每分）；结回办完才算 out', () => {
+  it('打满 3 副结束：每个到账的座位记一笔带回（一份 + 分 × 每分）；带回办完才算 out', () => {
     let t = settleAll(stakeBegin(KEY, 'small', ['human', 'human', 'human', 'human']));
     for (let i = 1; i <= ROOM_DEALS; i++) t = stakeDeal(t, deal(i, i === 3 ? [1, 3, 0, 2] : US), 'dealEnd');
     expect(t.over).toBe(true);
@@ -258,7 +258,7 @@ describe('一场结束', () => {
     expect(t.pending.map((e) => e.seat)).toEqual([0, 1]);
   });
 
-  it('关房时就地结束：只结到账的；还在办带入的，到账后原样结回一份', () => {
+  it('关房时就地结束：只结到账的；还在办带入的，到账后原样带回一份', () => {
     let t = stakeBegin(KEY, 'big', HHAA);
     t = stakeSettled(t, `${t.ref}-s0-in`, { ok: true });
     t = stakeDeal(t, deal(1, US), 'dealEnd');
@@ -280,7 +280,7 @@ describe('接进联机规则', () => {
     return { ...s, stake: settleAll(s.stake!) };
   }
 
-  it('over：一场结束就结束（结回交给 effects 接着办）', () => {
+  it('over：一场结束就结束（带回交给 effects 接着办）', () => {
     const s = stakeState();
     expect(R.over(s)).toBe(false);
     expect(R.over({ ...s, stake: stakeFinish(s.stake!) })).toBe(true);
@@ -306,7 +306,7 @@ describe('接进联机规则', () => {
     expect(R.settled!(fun, 'x', {})).toBe(fun);
     expect(R.closing!(fun)).toBe(fun);
     const s = stakeState();
-    // 一副打到一半离开：等这副打完再结回（0.12.4），这时还没有要办的
+    // 一副打到一半离开：等这副打完再带回（0.12.4），这时还没有要办的
     const left = R.seated!(s, 0, 'ai');
     expect(R.effects!(left)).toEqual([]);
     expect(left.stake!.leaving).toEqual([true, false, false, false]);

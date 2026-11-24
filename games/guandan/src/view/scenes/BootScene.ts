@@ -36,7 +36,7 @@ export class BootScene extends Phaser.Scene {
         performance.mark('gd:font');
         // 邀请链接、刷新时房间可能在载入过程中就接上了（app.net 已设好），载完直接进牌桌：这条路径要等牌桌素材烘完
         const target = app.net || app.session ? 'table' : app.ddzNet || app.ddz ? 'ddz' : 'title';
-        // 有没有平台（/api/me）：标题页不等，按有平台先画，问完是单独部署再重画（TitleScene）；直接进牌桌的照旧等
+        // 有没有平台（/api/me）：标题页不等，按有平台先画，问完是单独部署再重画（TitleScene）；直接进牌桌的要等问完
         if (target !== 'title') await Promise.all([detectOnce(), ensureTextures(this, (p) => bar(0.85 + p * 0.15))]);
         performance.mark('gd:textures');
         bar(1);

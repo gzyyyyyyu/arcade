@@ -58,7 +58,7 @@ describe('ddzBegin（不洗牌房间开局）', () => {
     expect('noShuffle' in off.view).toBe(false);
   });
 
-  it('带档位的不洗牌：牌局用版本 3 的实盘选项（不明牌），桌记版本 3、每分按 1/200 结回；经典实盘照旧版本 2', () => {
+  it('带档位的不洗牌：牌局用版本 3 的实盘选项（不明牌），桌记版本 3、每分按 1/200 带回；经典实盘照旧版本 2', () => {
     const s = ddzBegin(testKey(3), { seats: [...SEATS], opts: { stake: 'small', noShuffle: true } });
     expect(s.g.opts).toEqual(stakeOptions(ROOM_DEALS, RULES_CLUMP));
     expect(s.g.opts.mingpai).toBeFalsy();

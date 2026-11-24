@@ -128,7 +128,7 @@ export function rotateNetView(nv: NetView, me: number): NetView {
   // 再来一场：谁点的换成画面座位，房间码不动
   if (nv.again !== undefined) out.again = nv.again && { code: nv.again.code, by: r.seat(nv.again.by) };
   if (nv.afk) out.afk = r.bySeat(nv.afk);
-  // log 放最后：字段顺序和以前一致，金样按字节比
+  // log 放最后：字段顺序不能动：金样按字节比
   out.log = log;
   return out;
 }

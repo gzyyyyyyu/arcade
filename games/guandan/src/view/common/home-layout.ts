@@ -40,7 +40,7 @@ const PORTRAIT_LANTERN_Y = 76;
 const PORTRAIT_ART_BOTTOM = 700;
 
 /**
- * 面板里各行的纵坐标（相对面板顶）和模式卡的高：600 高时是原来的排法；
+ * 面板里各行的纵坐标（相对面板顶）和模式卡的高：600 高时是基准排法；
  * 高竖屏面板更高，多出的高度按比例分给行距和模式卡，主按钮、模式卡跟着往下铺开（docs/ui.md 第 10 节：竖屏主要内容占满）。
  */
 export function panelRows(h: number): { logo: number; seg: number; pitch: number; main: number; mainDdz: number; cards: number; cardsDdz: number; cardH: number } {

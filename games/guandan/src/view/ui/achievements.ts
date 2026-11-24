@@ -62,7 +62,7 @@ export function openAchievements(scene: Phaser.Scene, group: AchGroup = 'gd'): M
   const ach = loadAch();
   const unlocked = new Set(ach.unlocked);
   const top = -PH / 2 + 84;
-  // 计数跟着页签走：这一页几个解锁了 / 这一页一共几个（以前写两个玩法的总数 0/16，一页只摆 8 张，像是藏了 8 个）
+  // 计数跟着页签走：这一页几个解锁了 / 这一页一共几个（写两个玩法的总数的话，一页只摆 8 张，像是藏了 8 个）
   const count = text(scene, -PW / 2 + 40, top + 22, '', { size: TYPE.title, bold: true, color: COLOR.ink, ox: 0 });
   b.add(count);
   const grid = scene.add.container(0, 0);

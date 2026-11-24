@@ -1,7 +1,7 @@
 /**
- * 实盘结回时带给平台的战绩小结（平台 0.10.0，docs/platform-backend.md 5.10）：这一份打了几副、赢了几副、最大一把赢多少、拿了哪些称号，
+ * 实盘带回时带给平台的战绩小结（平台 0.10.0，docs/platform-backend.md 5.10）：这一份打了几副、赢了几副、最大一把赢多少、拿了哪些称号，
  * 外加掼蛋自己的两个累计数（炸弹、头游）。净赢、本周净赢平台按钱算，这里不报。
- * 单机（页面攒、经 /api/stake/settle 原样转发）和好友房（房间按座位攒、随结回的 effect 走 RPC）用同一份。纯函数。
+ * 单机（页面攒、经 /api/stake/settle 原样转发）和好友房（房间按座位攒、随带回的 effect 走 RPC）用同一份。纯函数。
  */
 import { teamOf, type DealResult, type PlayRecord } from '../core/index.ts';
 import { dealPoints, pointValue, rulesOf, type TierId } from './index.ts';

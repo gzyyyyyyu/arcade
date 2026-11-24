@@ -102,7 +102,7 @@ export class SeatView {
     this.nameText.setText(seatName(seat));
     const ny = this.a.size / 2 + 14;
     const nw = Math.max(64, this.nameText.width + 26);
-    // 卡通名牌（0.27.0；0.27.1 补质感）：柔和投影、深墨下沿、上半提亮一点、顶边高光、深墨描边；队色留在左边的小圆点上。烘成图（kit 的 bakeInto）
+    // 卡通名牌：柔和投影、深墨下沿、上半提亮一点、顶边高光、深墨描边；队色留在左边的小圆点上。烘成图（kit 的 bakeInto）
     const pc = id === 'me' ? team : PERSONAS[id].color;
     bakeInto(this.plate, `seatPlate:${nw}:${ny}:${pc}:${team}`, { x: -nw / 2 - 10, y: ny - 16, w: nw + 14, h: 38 }, (g) => {
       g.fillStyle(0x000000, 0.2).fillRoundedRect(-nw / 2 - 2, ny - 14 + 6, nw + 4, 28, 15);

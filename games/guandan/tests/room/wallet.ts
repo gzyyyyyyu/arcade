@@ -1,7 +1,7 @@
 /**
  * 房间测试用的假钱包：FakeWallet 是服务绑定 WALLET 的入口（和平台的 WalletService 同样四个方法、同样的回话），
- * 账记在一个 Durable Object（WalletBank）里，测试直接读它看扣了多少、结回多少、每个 op 真办了几次。
- * 只做好友房要看的：按 op 去重（dup）、同一游戏只有一份（at_table）、要够一份（no_funds）、结回清掉那一份（再来 no_stake）。
+ * 账记在一个 Durable Object（WalletBank）里，测试直接读它看扣了多少、带回多少、每个 op 真办了几次。
+ * 只做好友房要看的：按 op 去重（dup）、同一游戏只有一份（at_table）、要够一份（no_funds）、带回清掉那一份（再来 no_stake）。
  * userId 以 "poor" 开头的人余额是 0；down 不为 0 时接下来的几次调用回 busy（看房间按退避重试）。
  * 搭子战绩（0.16.0，平台 15.19 的 together）：原样记下每次报的 { op, players }，测试核对报了几次、报了谁。
  */

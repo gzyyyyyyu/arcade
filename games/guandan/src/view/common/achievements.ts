@@ -1,5 +1,5 @@
 /**
- * 成就（牌馆 0.31.0，docs/design.md「成就」）：纯函数，不碰 DOM 和 Phaser。
+ * 成就（docs/design.md「成就」）：纯函数，不碰 DOM 和 Phaser。
  * 只记在本机（guandan.achievements），不进云同步。条件都能从一副 / 一场的结果里直接判断，判断不了的不做。
  * 会话（session.ts、doudizhu/session.ts）在一副、一场结束时把摘要交给 evaluate，拿到新解锁的 id；画面层（ui/achievements.ts）负责弹提示、画成就墙。
  */

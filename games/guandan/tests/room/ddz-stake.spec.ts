@@ -1,7 +1,7 @@
 /**
  * 斗地主好友房实盘（牌馆 ⑥，docs/stake.md 第 3 节、docs/stake-ddz.md）在真房间里：开房带档位、开局带入、零和、3 副或任何一家到 ±16 封顶结束、
- * 真人不到 2 个不计输赢、带入被拒后重新带入、离开结回、关房结回。钱包是 tests/room/wallet.ts 的假钱包。
- * 掼蛋的同类用例在 stake.spec.ts；带入、结回的通用规矩两边共用 src/net/stake-table.ts，这里只验斗地主自己的座位数、记账和结束条件。
+ * 真人不到 2 个不计输赢、带入被拒后重新带入、离开带回、关房带回。钱包是 tests/room/wallet.ts 的假钱包。
+ * 掼蛋的同类用例在 stake.spec.ts；带入、带回的通用规矩两边共用 src/net/stake-table.ts，这里只验斗地主自己的座位数、记账和结束条件。
  */
 import { env, exports } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -134,21 +134,21 @@ class DdzTable {
 }
 
 describe('斗地主好友房实盘', () => {
-  it('不洗牌实盘（0.39.0）：开房带 noShuffle，牌局用版本 3 的选项；打完零和，按每分 1/200 结回', { timeout: 120_000 }, async () => {
+  it('不洗牌实盘（0.39.0）：开房带 noShuffle，牌局用版本 3 的选项；打完零和，按每分 1/200 带回', { timeout: 120_000 }, async () => {
     const t = new DdzTable('dstk-clump', 2, 'small', true);
     await t.open();
     const st = await waitStake(t.code, (s) => paid(s) === 'yes,yes,no', '两个真人到账');
     expect((await rowOf(t.code)).game!.g.opts).toEqual(stakeOptions(ROOM_DEALS, RULES_CLUMP));
     await t.playToEnd();
-    const end = await waitStake(t.code, (s) => s.over && s.out[0]! && s.out[1]!, '结回办完');
+    const end = await waitStake(t.code, (s) => s.over && s.out[0]! && s.out[1]!, '带回办完');
     expect(end.book.house + end.book.seats.reduce((a, s) => a + s.points, 0)).toBe(0);
-    const b = await waitBank((s) => s.done[`${st.ref}-s1-out`] === 1, '结回');
+    const b = await waitBank((s) => s.done[`${st.ref}-s1-out`] === 1, '带回');
     const users = [t.user(0), t.user(1)];
     expect(users.map((u) => b.balances[u])).toEqual([0, 1].map((seat) => START + end.book.seats[seat]!.points * pointValue('small', RULES_CLUMP)));
     t.close();
   });
 
-  it('两个真人 + 一个电脑：开局各带入一份；打完零和结回，每个 op 只办一次；视图公开每家的分', { timeout: 120_000 }, async () => {
+  it('两个真人 + 一个电脑：开局各带入一份；打完零和带回，每个 op 只办一次；视图公开每家的分', { timeout: 120_000 }, async () => {
     const t = new DdzTable('dstk-a', 2);
     await t.open();
     const st = await waitStake(t.code, (s) => paid(s) === 'yes,yes,no', '两个真人到账');
@@ -161,7 +161,7 @@ describe('斗地主好友房实盘', () => {
     expect((await rowOf(t.code)).game!.g.opts).toEqual(stakeOptions(ROOM_DEALS));
 
     await t.playToEnd();
-    const end = await waitStake(t.code, (s) => s.over && s.out[0]! && s.out[1]!, '结回办完');
+    const end = await waitStake(t.code, (s) => s.over && s.out[0]! && s.out[1]!, '带回办完');
     const g = (await rowOf(t.code)).game!;
     expect(g.g.phase).toBe('gameOver');
     expect(end.book.deals === 3 || g.g.scores.some((x) => Math.abs(x) >= CURRENT_RULES.pps)).toBe(true);
@@ -169,7 +169,7 @@ describe('斗地主好友房实盘', () => {
     expect(end.book.house + end.book.seats.reduce((a, s) => a + s.points, 0)).toBe(0);
     expect(g.g.scores.reduce((a, x) => a + x, 0)).toBe(0);
     expect(end.book.seats.slice(0, 2).map((s) => s.points)).toEqual(g.g.scores.slice(0, 2));
-    b = await waitBank((s) => s.done[`${st.ref}-s1-out`] === 1, '结回');
+    b = await waitBank((s) => s.done[`${st.ref}-s1-out`] === 1, '带回');
     expect(users.map((u) => b.balances[u])).toEqual([0, 1].map((seat) => START + end.book.seats[seat]!.points * PT));
     expect(Object.values(b.done).every((n) => n === 1)).toBe(true);
     expect(b.stakes).toEqual({});
@@ -208,7 +208,7 @@ describe('斗地主好友房实盘', () => {
     t.close();
   });
 
-  it('一副打到一半离座：这副打完按那时的分结回，之后的分归庄家；回来用新的 ref 再带入一份', { timeout: 120_000 }, async () => {
+  it('一副打到一半离座：这副打完按那时的分带回，之后的分归庄家；回来用新的 ref 再带入一份', { timeout: 120_000 }, async () => {
     const t = new DdzTable('dstk-leave', 2);
     await t.open();
     const st = await waitStake(t.code, (s) => paid(s) === 'yes,yes,no', '开局到账');
@@ -217,7 +217,7 @@ describe('斗地主好友房实盘', () => {
     await waitStake(t.code, (s) => s.leaving?.[0] === true && s.pending.length === 0, '离座先记下');
     t.seats.delete(0);
     await t.playDeals(1);
-    const left = await waitStake(t.code, (s) => s.book.seats[0]!.paid === 'left' && s.pending.length === 0, '这副打完，离座结回办完');
+    const left = await waitStake(t.code, (s) => s.book.seats[0]!.paid === 'left' && s.pending.length === 0, '这副打完，离座带回办完');
     expect((await snapshot()).done[`${st.ref}-s0-out`]).toBe(1);
     expect(left.book.seats[0]!.points).not.toBe(0);
     expect((await snapshot()).balances[t.user(0)]).toBe(START + left.book.seats[0]!.points * PT);
@@ -227,7 +227,7 @@ describe('斗地主好友房实盘', () => {
     t.close();
   });
 
-  it('关房（到了寿命）：按目前的分给到账的座位结回，办完才删房间', { timeout: 120_000 }, async () => {
+  it('关房（到了寿命）：按目前的分给到账的座位带回，办完才删房间', { timeout: 120_000 }, async () => {
     const t = new DdzTable('dstk-close', 2, 'mid');
     await t.open();
     await waitStake(t.code, (s) => paid(s) === 'yes,yes,no', '开局到账');
@@ -236,7 +236,7 @@ describe('斗地主好友房实盘', () => {
     expect(st.book.deals).toBe(1);
     advance(9 * 3_600_000);
     await fireDueAlarms(t.code).catch(() => 0);
-    const b = await waitBank((s) => s.done[`${st.ref}-s0-out`] === 1 && s.done[`${st.ref}-s1-out`] === 1, '收场结回');
+    const b = await waitBank((s) => s.done[`${st.ref}-s0-out`] === 1 && s.done[`${st.ref}-s1-out`] === 1, '收场带回');
     expect([0, 1].map((seat) => b.balances[t.user(seat)])).toEqual([0, 1].map((seat) => START + st.book.seats[seat]!.points * pointValue('mid')));
     t.close();
   });

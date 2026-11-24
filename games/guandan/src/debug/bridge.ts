@@ -128,7 +128,7 @@ export function mountBridge(game: Phaser.Game): void {
     const s = active();
     return s && s.scene.key === 'table' ? (s as TableScene) : null;
   };
-  // 斗地主的牌桌（牌馆 0.28.0）：忙不忙、弹层、特效记录、控件和掼蛋的牌桌一样读
+  // 斗地主的牌桌：忙不忙、弹层、特效记录、控件和掼蛋的牌桌一样读
   const ddz = (): DdzScene | null => {
     const s = active();
     return s && s.scene.key === 'ddz' ? (s as DdzScene) : null;

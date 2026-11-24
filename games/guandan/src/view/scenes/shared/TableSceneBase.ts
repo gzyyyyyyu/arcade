@@ -1,6 +1,6 @@
 /**
  * 两个牌桌场景（掼蛋 TableScene、斗地主 DdzScene）共用的流程骨架：播放事件、电脑计时器、联机帧泵、弹层、倒计时、
- * 结算页等人、坐标换算、调试用的控件表。两个场景原来各抄一份，改一处要改两处；现在这里只放"两边做法一样"的部分。
+ * 结算页等人、坐标换算、调试用的控件表。只放"两边做法一样"的部分，免得改一处要改两处。
  *
  * 规矩（tests/architecture.test.ts 守着）：这里按通用层对待，只引用 view/common、table、ui、src/net、src/core，
  * 不引用任何玩法（variants/*）和玩法的画面目录（view/guandan、view/doudizhu）。玩法才有的东西（会话类型、事件怎么播、
@@ -106,7 +106,7 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
   lastError: string | null = null;
   /** 调试：已播放的大字特效（冒烟断言用） */
   readonly fxLog: string[] = [];
-  /** 好友房实盘的结算页上"结回了没有"那行字（房间办完结回后刷新） */
+  /** 好友房实盘的结算页上"带回了没有"那行字（房间办完带回后刷新） */
   netStakeStatus: Phaser.GameObjects.Text | null = null;
   protected myNetTurn = false;
 
@@ -185,7 +185,7 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
 
   /**
    * atPass：对着"不要"按钮摆（"要不起，点 不要"），不压桌子中间刚出的牌和牌型标签；
-   * 别的话照旧在按钮行正中上方
+   * 别的话在按钮行正中上方
    */
   setStatus(msg: string, warn = false, atPass = false): void {
     this.status.x = atPass ? this.btnPass.x : worldW(this) / 2;

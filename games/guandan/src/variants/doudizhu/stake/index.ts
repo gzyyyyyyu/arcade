@@ -1,5 +1,5 @@
 /**
- * 斗地主实盘的规则（docs/stake-ddz.md）：每分多少、每副和一场的封顶、一场几副、结回额、钱包 ref 的拼法、单机每档的电脑。
+ * 斗地主实盘的规则（docs/stake-ddz.md）：每分多少、每副和一场的封顶、一场几副、带回额、钱包 ref 的拼法、单机每档的电脑。
  * 档位表、钱包 id 格式、op 的拼法是通用的，在 src/core/stake.ts。和 src/core 一样是纯函数：不碰 DOM、网络、时间、随机数
  * （ref 里的随机数由调用方给）。
  * 一场的截断（每副 s 封顶、任何一家累计到 ±一份（pps 分）就结束、最后那副截 s 仍然零和）由规则核心做（DdzOptions.dealCap / cap），
@@ -15,7 +15,7 @@ export { SOLO_HOURS, TIERS, TIER_IDS, WALLET_ID, isTier, seatOp, setPaid, soloOp
 /**
  * 一场的规则，按版本记（存档、好友房的桌里带 `rules` 字段，没有就是版本 1）：
  * 版本 1 是最早的 8 副 / 6 副、每分一份的 1/40；版本 2 把一场缩成 3 副（实盘一场要 3–6 分钟、能利用碎片时间，docs/stake-ddz.md 第 1 节），每分按比例放大。
- * 老的一场按老数打完：打到一半的存档、房间不换规则，结回额也按它自己的每分算。
+ * 老的一场按老数打完：打到一半的存档、房间不换规则，带回额也按它自己的每分算。
  */
 export interface StakeRules {
   v: number;
@@ -66,7 +66,7 @@ export function stakeOptions(deals: number, rules: StakeRules = CURRENT_RULES): 
 }
 
 /**
- * 结回额：带进去的一份加上输赢。不再截断：核心已经保证一家的累计在 ±pps 分内，Worker 另用 validSoloResult 查一遍，
+ * 带回额：带进去的一份加上输赢。不再截断：核心已经保证一家的累计在 ±pps 分内，Worker 另用 validSoloResult 查一遍，
  * 所以在 0 到 2 份之间
  */
 export function payout(tier: TierId, points: number, rules: StakeRules = CURRENT_RULES): number {
@@ -77,7 +77,7 @@ export function payout(tier: TierId, points: number, rules: StakeRules = CURRENT
 
 /**
  * 单机 ref：`solo-ddz-<档位>-<32 位十六进制>`。带 ddz 标记，和掼蛋的 `solo-<档位>-<hex>` 区分得开（互不匹配），
- * 结回时按 ref 里的档位算结回额，不信页面带来的档位。最长 15 + 32 = 47 位，拼上 `-refund` 不过 64 位
+ * 带回时按 ref 里的档位算带回额，不信页面带来的档位。最长 15 + 32 = 47 位，拼上 `-refund` 不过 64 位
  */
 const SOLO_REF = /^solo-ddz-(small|mid|big|lux)-[0-9a-f]{32}$/;
 
