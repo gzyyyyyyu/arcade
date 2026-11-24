@@ -222,7 +222,7 @@ describe('隐藏信息与金标准', () => {
   });
 
   it('金标准：固定 setup 加机器人操作的整场指纹（只锁当前规则版本，规则改了要有意更新并升 RULES_VERSION）', () => {
-    expect(RULES_VERSION).toBe(30);
+    expect(RULES_VERSION).toBe(31);
     const got: Record<string, string> = {};
     for (const [i, style] of [[0, 'normal'], [4, 'normal'], [7, 'novice'], [11, 'normal']] as const) {
       const setup = setupFor(i, 42);

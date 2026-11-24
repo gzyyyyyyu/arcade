@@ -23,9 +23,9 @@ import type { EscortState } from './escorttypes.ts';
 import { escortBite, escortHullPct, escortRate, escortResult, escortShip } from './escort.ts';
 import type { TdBarricade, TdTier, TdTowerKind } from './td2types.ts';
 import type { TdAction, TdBlock, TdEnemy, TdEnemyDef, TdEnemyKind, TdEvent, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
-import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower, barricadeAt, cliffOn, onHigh, tdBuildCost } from './tdstate.ts';
+import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower, barricadeAt, cliffOn, onHigh, tdBuildCost, onRaisedBridge, occFor } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
-import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, stepFleet, toggleSluice } from './tdmech.ts';
+import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, stepFleet, toggleDrawbridge, toggleSluice } from './tdmech.ts';
 import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus, tdRuleBlock, tdUltCost, tdLoseAt } from './tdquery.ts';
 import { deepOf, ultError } from './tddeep.ts';
 import { TD_PRIOS, TD_PRIO_ELITE, TD_ULTS, TD_ULT_BOSS, TD_ULT_BY_ID } from '../content/tdults.ts';
@@ -33,8 +33,9 @@ import type { TdPrio } from '../content/tdults.ts';
 import { placeHero, stepHero, offSlot } from './tdhero.ts';
 import { castHook, hookEnabled, stepHooked } from './tdhook.ts';
 import { castFlag, castReward, flagOn, navEnabled } from './tdnav.ts';
-import { HIT_SOLDIER, campAt, campEnabled, campPrint, campUpCost, heldBy, hitSoldier, newCamp, rallyOk, refitCamp, stepCamps } from './tdcamp.ts';
+import { HIT_CAMP_SHELL, HIT_SOLDIER, campAt, campEnabled, campPrint, campUltCost, campUltError, campUpCost, heldBy, hitSoldier, newCamp, rallyOk, refitCamp, stepCamps } from './tdcamp.ts';
 import { TD2_CAMP, TD2_CAMP_BRANCH } from '../content/tdcamp.ts';
+import type { TdCampUlt } from '../content/tdcamp.ts';
 import { dareCount, heroCd, initHappen, killGold, payBounty, queueBounty, raining, toggleDare } from './tdevent.ts';
 
 /** 敌人在格子里按 id 散开的步长（单位）：同一条路上的敌人错开成几列，不叠成一个点 */
@@ -591,18 +592,17 @@ function lob(s: TdState, ev: TdEvent[], e: TdEnemy, tx: number, ty: number): voi
 }
 
 /** 掷弹兵往前看：沿流场再走 3 格以内有挡路的墙或拒马就返回它的中心（停下扔雷），没有为 null */
-function lobAhead(s: TdState, e: TdEnemy, f: Int32Array, range: number): { x: number; y: number } | null {
-  const I = inner(s);
+function lobAhead(s: TdState, e: TdEnemy, f: Int32Array, range: number, occ: Uint8Array): { x: number; y: number } | null {
   const here = barricadeAt(s, cellOf(e.x, e.y));
   let x = e.x;
   let y = e.y;
   for (let k = 0; k < 4; k++) {
-    const n = nextCell(I.occ, s.ext, f, x, y);
+    const n = nextCell(occ, s.ext, f, x, y);
     if (n < 0) return null;
     const cx = cellX(n);
     const cy = cellY(n);
     if (d2(cx, cy, e.x, e.y) > range * range) return null;
-    if (I.occ[n] === 1) return { x: cx, y: cy };
+    if (occ[n] === 1) return { x: cx, y: cy };
     const bar = barricadeAt(s, n);
     if (bar && bar !== here) return { x: bar.x * UNIT + 50, y: bar.y * UNIT + 50 };
     x = cx;
@@ -813,7 +813,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
         camp.tier = camp.tier === 1 ? 2 : 3;
         sl.ups = camp.tier - 1;
         sl.spent = (sl.spent ?? 0) + cost;
-        refitCamp(camp);
+        refitCamp(s, camp);
         ev.push({ type: 'camp', camp: camp.id, slot: a.slot, what: 'up' });
         return;
       }
@@ -836,7 +836,7 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       if (camp) {
         if (camp.tier !== 3 || camp.branch || !Object.hasOwn(TD2_CAMP_BRANCH, a.branch)) return;
         camp.branch = a.branch as keyof typeof TD2_CAMP_BRANCH;
-        refitCamp(camp);
+        refitCamp(s, camp);
         ev.push({ type: 'camp', camp: camp.id, slot: a.slot, what: 'branch' });
         return;
       }
@@ -850,6 +850,19 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
     case 'ult': {
       // 终极：只在战役和海盗来袭、解锁了才有（tddeep.ts）；钱按天赋打折后的价，卖塔照样按已花的退
       const sl = s.slots[a.slot];
+      const camp = campAt(s, a.slot);
+      if (sl && camp) {
+        if (!s.deep?.ult || typeof a.ult !== 'string' || campUltError(camp, a.ult) !== null) return;
+        const cost = campUltCost(s, a.ult);
+        if (cost < 0 || s.gold < cost) return;
+        s.gold -= cost;
+        camp.ult = a.ult as TdCampUlt;
+        if (camp.ult === 'ult.camp.marine') camp.chargeReady = s.tick;
+        sl.spent = (sl.spent ?? 0) + cost;
+        refitCamp(s, camp);
+        ev.push({ type: 'ult', slot: a.slot, id: camp.id, ult: camp.ult });
+        return;
+      }
       const t = slotTower(s, a.slot);
       if (!s.deep?.ult || !sl || !t || typeof a.ult !== 'string' || ultError(t, a.ult) !== null) return;
       const cost = tdUltCost(s, a.ult);
@@ -1009,6 +1022,9 @@ function doAction(s: TdState, ev: TdEvent[], a: TdAction): void {
       if (s.deep?.rule.noFleet) return;
       callFleet(s, ev);
       return;
+    case 'drawbridge':
+      toggleDrawbridge(s, ev);
+      return;
     case 'hook':
       castHook(s, ev, a.id);
       return;
@@ -1053,12 +1069,12 @@ function stepSpawns(s: TdState, ev: TdEvent[]): void {
 }
 
 /** 去抢的敌人选哪个宝藏箱：走过去代价最小的（墙按代价算，所以"能走到"的都算） */
-function pickTreasure(s: TdState, e: TdEnemy, wallCost: number): { f: Int32Array; d: number } | null {
+function pickTreasure(s: TdState, e: TdEnemy, wallCost: number, bridge: 0 | 1 | -1 = -1): { f: Int32Array; d: number } | null {
   let best: Int32Array | null = null;
   let bestD = INF;
   const c = cellOf(e.x, e.y);
   for (let i = 0; i < s.treasures.length; i++) {
-    const f = treasureFlow(s, i, wallCost);
+    const f = treasureFlow(s, i, wallCost, bridge);
     const d = f[c] as number;
     if (d < bestD) {
       bestD = d;
@@ -1156,8 +1172,9 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
           ev.push({ type: 'grab', id: e.id, n: e.carry });
           continue;
         }
+        const br = fly ? -1 : onRaisedBridge(s, e.x, e.y);
         if (fly) moveToward(e, pile.x, pile.y, spd);
-        else walk(s, ev, e, cellFlow(s, cellOf(pile.x, pile.y), TD_WALL_COST), spd, pile.x, pile.y);
+        else walk(s, ev, e, cellFlow(s, cellOf(pile.x, pile.y), TD_WALL_COST, br), spd, pile.x, pile.y, occFor(s, br));
         continue;
       }
       if (fly) {
@@ -1179,13 +1196,14 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
       const sj = def.bomb ? s.level.sapperJam : undefined;
       if (sj && blastOnTower(s, ev, e, sj)) continue;
       const wc = def.bomb ? TD_SAPPER_WALL_COST : TD_WALL_COST;
-      const pick = pickTreasure(s, e, wc);
+      const br = onRaisedBridge(s, e.x, e.y);
+      const pick = pickTreasure(s, e, wc, br);
       if (!pick) continue;
       if (pick.d === 0) {
         grab(s, ev, e);
         continue;
       }
-      walk(s, ev, e, pick.f, spd, Number.NaN, Number.NaN);
+      walk(s, ev, e, pick.f, spd, Number.NaN, Number.NaN, occFor(s, br));
     } else {
       // 回船：飞的直线，走的按流场（墙、拒马照样砸）
       if (d2(e.hx, e.hy, e.x, e.y) <= 60 * 60) {
@@ -1198,8 +1216,9 @@ function stepEnemies(s: TdState, ev: TdEvent[]): void {
         resolveEnemy(s, e);
         continue;
       }
+      const br = fly ? -1 : onRaisedBridge(s, e.x, e.y);
       if (fly) moveToward(e, e.hx, e.hy, spd);
-      else walk(s, ev, e, cellFlow(s, cellOf(e.hx, e.hy), TD_WALL_COST), spd, e.hx, e.hy);
+      else walk(s, ev, e, cellFlow(s, cellOf(e.hx, e.hy), TD_WALL_COST, br), spd, e.hx, e.hy, occFor(s, br));
     }
   }
 }
@@ -1385,9 +1404,9 @@ function grab(s: TdState, ev: TdEvent[], e: TdEnemy): void {
 }
 
 /** 沿流场走一步；前面是墙就砸（工兵炸），前面是拒马就砸拒马；已经在终点格就直走到 (fx, fy)（NaN = 不用走） */
-function walk(s: TdState, ev: TdEvent[], e: TdEnemy, f: Int32Array, spd: number, fx: number, fy: number): void {
+function walk(s: TdState, ev: TdEvent[], e: TdEnemy, f: Int32Array, spd: number, fx: number, fy: number, occ: Uint8Array = inner(s).occ): void {
   const I = inner(s);
-  const n = nextCell(I.occ, s.ext, f, e.x, e.y);
+  const n = nextCell(occ, s.ext, f, e.x, e.y);
   if (n < 0) {
     if (Number.isFinite(fx)) moveToward(e, fx, fy, spd);
     return;
@@ -1395,7 +1414,7 @@ function walk(s: TdState, ev: TdEvent[], e: TdEnemy, f: Int32Array, spd: number,
   const def = TD2_ENEMIES[e.kind];
   // 掷弹兵：前面 3 格内有挡路的墙或拒马就停下扔雷，不走过去砸
   if (def.lob) {
-    const at = lobAhead(s, e, f, def.lob.range);
+    const at = lobAhead(s, e, f, def.lob.range, occ);
     if (at) {
       lob(s, ev, e, at.x, at.y);
       return;
@@ -1410,7 +1429,7 @@ function walk(s: TdState, ev: TdEvent[], e: TdEnemy, f: Int32Array, spd: number,
     }
     return;
   }
-  if (I.occ[n] === 1) {
+  if (occ[n] === 1) {
     const w = s.walls[(I.wallAt[n] ?? 0) - 1];
     if (!w) return;
     if (def.bomb) {
@@ -1493,7 +1512,7 @@ function progressOf(s: TdState, e: TdEnemy, memo: Map<number, number>): number {
     v = INF;
     for (const t of s.treasures) v = Math.min(v, Math.floor(isqrt(d2(e.x, e.y, t.x * UNIT + 50, t.y * UNIT + 50)) / 10));
   } else {
-    const p = pickTreasure(s, e, TD2_ENEMIES[e.kind].bomb ? TD_SAPPER_WALL_COST : TD_WALL_COST);
+    const p = pickTreasure(s, e, TD2_ENEMIES[e.kind].bomb ? TD_SAPPER_WALL_COST : TD_WALL_COST, onRaisedBridge(s, e.x, e.y));
     v = p ? p.d : INF;
   }
   memo.set(e.id, v);
@@ -1775,7 +1794,15 @@ export function stepTd(s: TdState, actions: TdAction[]): TdEvent[] {
   for (const e of s.enemies) if (e.kind === 'shield') faceShield(e, e.x - (e.px ?? e.x), e.y - (e.py ?? e.y));
   stepBoss(s, ev);
   stepHero(s, ev);
-  if (s.camps) stepCamps(s, ev, (e, dmg, x, y) => soldierHit(s, ev, e, dmg, x, y));
+  if (s.camps)
+    stepCamps(
+      s,
+      ev,
+      (e, dmg, x, y) => soldierHit(s, ev, e, dmg, x, y),
+      (e, dmg, splash, sx, sy, t1) => {
+        I.pend.push({ t: t1, kind: 'splash', id: -1, dmg, x: e.x, y: e.y, r: splash, hit: HIT_CAMP_SHELL, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0, sx, sy });
+      },
+    );
   stepCrates(s, ev);
   if (s.fleet) stepFleet(s, ev, tdFleetDmg(s));
   stepTowers(s, ev);
@@ -1874,6 +1901,7 @@ export function tdFingerprint(s: TdState): number {
   if (s.sluice) parts.push(s.sluice.left, ...s.sluice.shut);
   if (s.battery) parts.push(s.battery.ready);
   if (s.fleet) parts.push(s.fleet.ready, ...(s.fleet.sail ? [s.fleet.sail.p0, s.fleet.sail.t0, s.fleet.sail.next] : [-1]));
+  if (s.drawbridge) parts.push(-25, s.drawbridge.down, s.drawbridge.ready);
   // 关内事件只在有的局里进指纹
   if (s.happen) {
     parts.push(-22, ...s.happen.dare);

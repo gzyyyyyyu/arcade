@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  RULES_VERSION, TD2_BATTERY, TD2_CRATE, createTd, runTd, runTdBot, stepTd, tdFingerprint, tdGrowthSetup, tdLanes, tdNextTide, tdPreview, tdSluiceCan,
+  RULES_VERSION, TD2_BATTERY, TD2_CRATE, TD2_DRAWBRIDGE, createTd, runTd, runTdBot, stepTd, tdFingerprint, tdGrowthSetup, tdLanes, tdNextTide, tdPreview, tdRoutes, tdSluiceCan,
 } from '../src/core/index.ts';
 import type { Placed, TdAction, TdLevel, TdSetup, TdState } from '../src/core/index.ts';
-import { cellIdx } from '../src/core/grid.ts';
+import { cellIdx, cellX } from '../src/core/grid.ts';
 import { ensureGrid, inner } from '../src/core/tdstate.ts';
 
 /** 守岛章末机制（tdmech.ts）：用了逐位可重放、各自的效果 */
@@ -208,4 +208,75 @@ describe('岸防老炮', () => {
     expect(r.actions.some((a) => a.type === 'battery')).toBe(true);
     expect(tdFingerprint(runTd(st, r.actions).state)).toBe(tdFingerprint(r.state));
   }, 120_000);
+});
+
+describe('吊桥', () => {
+  // 横穿整岛的一道水道（含海滩），只留东西两座 2×2 吊桥；东桥下面有一片雾区
+  const b0 = [{ x: 4, y: 6 }, { x: 5, y: 6 }, { x: 4, y: 7 }, { x: 5, y: 7 }];
+  const b1 = [{ x: 16, y: 6 }, { x: 17, y: 6 }, { x: 16, y: 7 }, { x: 17, y: 7 }];
+  const skip = new Set([...b0, ...b1].map((c) => `${c.x},${c.y}`));
+  const water: Array<{ x: number; y: number }> = [];
+  for (let y = 6; y <= 7; y++) for (let x = -3; x < 25; x++) if (!skip.has(`${x},${y}`)) water.push({ x, y });
+  const level = lvl({
+    lanes: [{ x: 10, y: -2 }],
+    water,
+    drawbridge: [b0, b1],
+    fogZones: [{ x: 16, y: 9, r: 2.5 }],
+    waves: [{ groups: [{ enemy: 'sailor' as const, n: 1, lane: 0, every: 1 }] }],
+    waveTicks: 4000,
+  });
+
+  it('开局就能用，切换另一座放下并进 20 秒冷却；tdRoutes 和 tdPreview 立刻重算', () => {
+    const s = createTd(setup(level));
+    benchHero(s);
+    expect(s.drawbridge).toEqual({ down: 0, ready: 0 });
+    const xs = (cells: readonly number[]): number[] => cells.map((c) => Math.floor(cellX(c) / 100));
+    expect(xs(tdRoutes(s)[0]!.cells).some((x) => x <= 5)).toBe(true);
+    expect(tdPreview(s, 1)[0]!.lanes[0]!.enemies[0]!.fog).toBe(false);
+
+    // 开局（tick 0）就能切换
+    const ev = stepTd(s, [{ t: 0, type: 'drawbridge' }]);
+    expect(ev).toContainEqual({ type: 'drawbridge', down: 1, ready: TD2_DRAWBRIDGE.cd });
+    expect(s.drawbridge).toEqual({ down: 1, ready: TD2_DRAWBRIDGE.cd });
+    expect(xs(tdRoutes(s)[0]!.cells).some((x) => x >= 16)).toBe(true);
+    expect(tdPreview(s, 1)[0]!.lanes[0]!.enemies[0]!.fog).toBe(true);
+
+    // 冷却里再按没用
+    stepTd(s, [{ t: s.tick, type: 'drawbridge' }]);
+    expect(s.drawbridge!.down).toBe(1);
+
+    // 20 秒后又能切回来
+    while (s.tick < TD2_DRAWBRIDGE.cd) stepTd(s, []);
+    stepTd(s, [{ t: s.tick, type: 'drawbridge' }]);
+    expect(s.drawbridge!.down).toBe(0);
+  });
+
+  it('桥上的人不受影响：收起时已经走到桥上的敌人照走完过桥，不会卡住', () => {
+    const s = createTd(setup(level));
+    benchHero(s);
+    const onB0 = (x: number, y: number): boolean => b0.some((c) => c.x === Math.floor(x / 100) && c.y === Math.floor(y / 100));
+    // 等敌人走到 0 号桥的第一格
+    for (let i = 0; i < 600; i++) {
+      stepTd(s, []);
+      const e = s.enemies[0];
+      if (e && onB0(e.x, e.y)) break;
+    }
+    const e = s.enemies[0]!;
+    expect(onB0(e.x, e.y)).toBe(true);
+    // 把 0 号桥收起（切到 1 号桥放下）
+    stepTd(s, [{ t: s.tick, type: 'drawbridge' }]);
+    expect(s.drawbridge!.down).toBe(1);
+    // 敌人继续往前走过桥到达南岸（y >= 800）且到宝藏箱拿到宝藏
+    let crossed = false;
+    for (let i = 0; i < 600 && !s.over; i++) {
+      stepTd(s, []);
+      if (Math.floor(e.y / 100) >= 8) crossed = true;
+      if (e.mode === 'out') break;
+    }
+    expect(crossed).toBe(true);
+    expect(e.mode).toBe('out');
+    // 同一串操作重放指纹逐位一样
+    const acts: TdAction[] = [{ t: 0, type: 'drawbridge' }, { t: 400, type: 'drawbridge' }];
+    expect(tdFingerprint(runTd(setup(level), acts).state)).toBe(tdFingerprint(runTd(setup(level), acts).state));
+  });
 });

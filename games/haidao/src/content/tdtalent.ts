@@ -27,13 +27,13 @@ export const TD_TALENTS: readonly TdTalentDef[] = [
   { id: 'tower3', col: 'tower', row: 3, name: '老兵驻守', desc: '驻守台的塔高一阶（最高 3 阶）' },
   { id: 'tower4', col: 'tower', row: 4, name: '偏爱', desc: '选一种塔伤害 +8%，别的 −3%' },
   { id: 'hero1', col: 'hero', row: 1, name: '快回', desc: '英雄复活快 15%' },
-  { id: 'hero2', col: 'hero', row: 2, name: '大桶', desc: '炸药桶、急射旗范围大 0.3 格' },
+  { id: 'hero2', col: 'hero', row: 2, name: '大桶', desc: '炸药桶、急射旗范围大 0.2 格' },
   { id: 'hero3', col: 'hero', row: 3, name: '熟手', desc: '英雄技能冷却少 5%' },
   { id: 'hero4', col: 'hero', row: 4, name: '抢位', desc: '第一波前，英雄能直接摆到任意空地' },
-  { id: 'supply1', col: 'supply', row: 1, name: '家底', desc: '开局多 25 金' },
+  { id: 'supply1', col: 'supply', row: 1, name: '家底', desc: '开局多 15 金' },
   { id: 'supply2', col: 'supply', row: 2, name: '抢功', desc: '叫波奖励多 15%' },
   { id: 'supply3', col: 'supply', row: 3, name: '打捞队', desc: '清沉船便宜一半' },
-  { id: 'supply4', col: 'supply', row: 4, name: '利息', desc: '每波开打时得当前金币 2%（最多 20）' },
+  { id: 'supply4', col: 'supply', row: 4, name: '利息', desc: '每波开打时得当前金币 1%（最多 15）' },
 ];
 
 export const TD_TALENT_BY_ID: ReadonlyMap<string, TdTalentDef> = new Map(TD_TALENTS.map((t) => [t.id, t]));
@@ -41,7 +41,7 @@ export const TD_TALENT_BY_ID: ReadonlyMap<string, TdTalentDef> = new Map(TD_TALE
 /** 炮台第 4 格的加成：选的塔 +focus%，别的 +other% */
 export const TD_TALENT_FOCUS = { focus: 8, other: -3 } as const;
 /** 补给第 1 格：开局多给的金 */
-export const TD_TALENT_GOLD = 25;
+export const TD_TALENT_GOLD = 15;
 
 /** 天赋点数 */
 export function talentPoints(totalStars: number, vetBadges: number): number {
@@ -107,13 +107,13 @@ export function talentFold(ids: readonly string[]): TdTalentFold {
       case 'tower3': out.garrisonUp = true; break;
       case 'tower4': out.focus = c.focus; break;
       case 'hero1': out.fx.respawnPct = 85; break;
-      case 'hero2': out.fx.skillR = 30; break;
+      case 'hero2': out.fx.skillR = 20; break;
       case 'hero3': out.fx.cdPct = 95; break;
       case 'hero4': out.fx.heroDrag = true; break;
       case 'supply1': out.gold = TD_TALENT_GOLD; break;
       case 'supply2': out.fx.callPct = 115; break;
       case 'supply3': out.fx.clearPct = 50; break;
-      case 'supply4': out.fx.interest = { pct: 2, cap: 20 }; break;
+      case 'supply4': out.fx.interest = { pct: 1, cap: 15 }; break;
     }
   }
   return out;

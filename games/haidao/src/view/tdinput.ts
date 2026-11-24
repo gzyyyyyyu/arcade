@@ -91,6 +91,15 @@ export function pressFleet(bs: TdScene): void {
   act(bs, { type: 'fleet' });
 }
 
+/** 吊桥（4）：切换哪座吊桥放下；冷却中按了只响一声 */
+export function pressDrawbridge(bs: TdScene): void {
+  const d = bs.s.drawbridge;
+  if (bs.s.over || !d) return;
+  if (bs.s.tick < d.ready) return sfx('error');
+  sfx('tap');
+  act(bs, { type: 'drawbridge' });
+}
+
 /** 岸防老炮（4）：和炸药桶一样先进入瞄准、再点地面；全岛都够得着，不画范围圈 */
 export function pickBattery(bs: TdScene): void {
   const b = bs.s.battery;

@@ -9,7 +9,7 @@ import { UNIT } from './types.ts';
 import type { EscortState } from './escorttypes.ts';
 import { escortShip } from './escort.ts';
 import type { TdEnemy, TdEvent } from './tdtypes.ts';
-import { inner, HIT_HERO, tdHeroStats, d2, ensureGrid, cellFlow, targetable, damageBlock, moveToward, cliffOn } from './tdstate.ts';
+import { inner, HIT_HERO, tdHeroStats, d2, ensureGrid, cellFlow, targetable, damageBlock, moveToward, cliffOn, onRaisedBridge, occFor } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
 import { tdLanes, tdRoute, laneOf, laneCell } from './tdquery.ts';
 
@@ -120,17 +120,19 @@ export function stepHero(s: TdState, ev: TdEvent[]): void {
   }
   if (h.goal) {
     const goalCell = cellOf(h.goal.x, h.goal.y);
-    const f = cellFlow(s, goalCell, 0);
+    const br = onRaisedBridge(s, h.x, h.y);
+    const occ = occFor(s, br);
+    const f = cellFlow(s, goalCell, 0, br);
     const here = f[cellOf(h.x, h.y)] as number;
     if (here === 0 || here >= INF) {
       // 到了（或走不到）：在终点格里直走到点上
       const face = { x: h.x, y: h.y, face: 1 as 1 | -1 };
-      if (here === 0 && (I.occ[goalCell] ?? 0) === 0) moveToward(face, h.goal.x, h.goal.y, hl.speed);
+      if (here === 0 && (occ[goalCell] ?? 0) === 0) moveToward(face, h.goal.x, h.goal.y, hl.speed);
       h.x = face.x;
       h.y = face.y;
-      if (here >= INF || d2(h.x, h.y, h.goal.x, h.goal.y) <= 10 * 10 || (I.occ[goalCell] ?? 0) !== 0) h.goal = null;
+      if (here >= INF || d2(h.x, h.y, h.goal.x, h.goal.y) <= 10 * 10 || (occ[goalCell] ?? 0) !== 0) h.goal = null;
     } else {
-      const n = nextCell(I.occ, s.ext, f, h.x, h.y);
+      const n = nextCell(occ, s.ext, f, h.x, h.y);
       if (n >= 0) {
         const face = { x: h.x, y: h.y, face: 1 as 1 | -1 };
         moveToward(face, cellX(n), cellY(n), hl.speed);

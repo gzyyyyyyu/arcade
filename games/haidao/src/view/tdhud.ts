@@ -2,7 +2,7 @@ import type { TdScene } from './TdScene.ts';
 import { trainTdRefresh } from './trainplay.ts';
 import { TD_TREASURE } from '../content/index.ts';
 import { TD_VET_LOSE_AT } from '../core/tddeep.ts';
-import { TD2_BATTERY, TD2_ENEMIES, TD2_FLEET, TD2_HERO_SKILL } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_DRAWBRIDGE, TD2_ENEMIES, TD2_FLEET, TD2_HERO_SKILL } from '../content/td2units.ts';
 import { heroCd, hookEnabled, tdPreview, tdRoutes, tdCallBonus, tdDareCan, tdNextTide, tdSluiceCan, type WavePreview } from '../core/index.ts';
 import { TD2_EVENT } from '../content/td2units.ts';
 import { TICKS_PER_SEC } from '../core/types.ts';
@@ -18,12 +18,12 @@ import { hintCard, readSeen, takeNew } from './hintcard.ts';
 import { screen, hallButton, el, img, button, confirmBox, toast } from './ui.ts';
 import { EscortView } from './escortview.ts';
 import { injectEscortCss } from './escortcss.ts';
-import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFleet, pressDare } from './tdinput.ts';
+import { act, pickSkill, callWave, toggleHero, pressSluice, pickBattery, pressFleet, pressDare, pressDrawbridge } from './tdinput.ts';
 import { closeSheet, showBest } from './tdsheet.ts';
 import { SKILL } from './tdcommon.ts';
 import { finish } from './tdresult.ts';
 import { panToGoal, syncGarrisonTags, syncGoalMark, syncPadGuide, twoSteps } from './tdpadguide.ts';
-import { syncSluice } from './tdworld.ts';
+import { syncDrawbridge, syncSluice } from './tdworld.ts';
 import { bossOf } from './tdboss.ts';
 
 // ---------------------------------------------------------------- 界面
@@ -161,6 +161,14 @@ export function buildUi(bs: TdScene): void {
     keyBadge(mech, 4);
     mech.title = '友军巡航船：叫一艘船沿着岸边开半圈，朝身边的敌人开炮，海上的炮艇也打得到；60 秒一次（4）';
   }
+  if (bs.s.drawbridge) {
+    mech = button('', 'hd-td-skill hd-btn-wood hd-td-mech', () => pressDrawbridge(bs), bottom);
+    el('span', 'hd-cd', undefined, mech);
+    mech.appendChild(img(iconA('drawbridge'), 28));
+    el('b', '', '吊桥', mech);
+    keyBadge(mech, 4);
+    mech.title = '吊桥：切换哪座吊桥放下（另一座收起），冷却 20 秒，桥上的人照走完（4）';
+  }
   // 锚钩（英雄 8 级起、只在战役和海盗来袭，core/tdhook.ts）：排在最后，快捷键按 DOM 顺序（有机制钮是 5，没有是 4）；
   // 横屏右下角板里和章末机制钮一样排在炸药桶旁边；手机竖屏那一行没地方了，浮在行尾正上方（layout.ts 的 .hd-td-hashook）
   // 英雄不够级时（战役、海盗来袭里）钮照样摆出来但锁着，写明几级解锁，玩家知道有这个东西可盼
@@ -216,7 +224,7 @@ function refreshPlan(bs: TdScene, force = false): void {
   // 水闸关上 / 打开下一波会改路线和预告
   // 接 / 退战书改下一波的敌人个数
   // 造、卖、升了塔，卡上的下一步要重挑（木台上的塔进签名；翻波不重挑，见 nextStep）
-  const sig = `${s.wave}|${walls}|${s.over}|${s.sluice?.shut.length ?? ''}|${s.happen?.dare.length ?? ''}|${stepKey(s)}`;
+  const sig = `${s.wave}|${walls}|${s.over}|${s.sluice?.shut.length ?? ''}|${s.drawbridge?.down ?? ''}|${s.happen?.dare.length ?? ''}|${stepKey(s)}`;
   if (!force && sig === bs.planSig) return;
   const newWave = !bs.planSig.startsWith(`${s.wave}|`);
   const fresh = bs.planSig !== '' && newWave;
@@ -361,7 +369,9 @@ export function updateHud(bs: TdScene, force = false): void {
   const batCd = s.battery ? Math.max(0, s.battery.ready - s.tick) : 0;
   const fleetCd = s.fleet ? Math.max(0, s.fleet.ready - s.tick) : 0;
   const fleetOut = !!s.fleet?.sail;
-  const sig = `${nextTide}|${nowTide}|${sluice}|${dare}|${s.sluice?.left}|${batCd >> 2}|${fleetCd >> 2}|${fleetOut}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}|${hookCd >> 2}|${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
+  const dbCd = s.drawbridge ? Math.max(0, s.drawbridge.ready - s.tick) : 0;
+  const dbDown = s.drawbridge?.down ?? -1;
+  const sig = `${nextTide}|${nowTide}|${sluice}|${dare}|${s.sluice?.left}|${batCd >> 2}|${fleetCd >> 2}|${fleetOut}|${dbCd >> 2}|${dbDown}|${TD_TREASURE - s.lost}|${s.vault}|${s.wave}|${left}|${s.gold}|${cb.gold}|${cb.cdCut >> 4}|${kegCd >> 2}|${barCd >> 2}|${hookCd >> 2}|${downS}|${bs.mode}|${bs.planSig}|${bs.esc?.planSig(bs.pv) ?? ''}`;
   if (!force && sig === bs.hudSig) return;
   bs.hudSig = sig;
   const H = bs.hud;
@@ -478,6 +488,13 @@ export function updateHud(bs: TdScene, force = false): void {
     H.mech.classList.toggle('cool', fleetCd > 0 && !fleetOut);
     H.mech.classList.toggle('sel', fleetOut);
     H.mech.querySelector('b')!.textContent = fleetOut ? '出海中' : fleetCd > 0 ? `${Math.ceil(fleetCd / TICKS_PER_SEC)}秒` : '援船';
+  }
+  if (H.mech && s.drawbridge) {
+    H.mech.style.setProperty('--cd', `${Math.round((Math.min(dbCd, TD2_DRAWBRIDGE.cd) / TD2_DRAWBRIDGE.cd) * 360)}deg`);
+    H.mech.classList.toggle('cool', dbCd > 0);
+    H.mech.classList.toggle('sel', s.drawbridge.down === 1);
+    H.mech.querySelector('b')!.textContent = dbCd > 0 ? `${Math.ceil(dbCd / TICKS_PER_SEC)}秒` : '吊桥';
+    syncDrawbridge(bs);
   }
 }
 

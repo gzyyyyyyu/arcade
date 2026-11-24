@@ -5,7 +5,7 @@ import type { TdScene } from './TdScene.ts';
 import { BUILDINGS } from '../content/index.ts';
 import { TD_BRANCH_DESC } from '../content/tdbranches.ts';
 import { TD_PRIOS, TD_PRIO_NAME, TD_ULT_BY_ID, ultOptions } from '../content/tdults.ts';
-import { tdRuleBlock, tdUltCost, tdUltOptions } from '../core/tdquery.ts';
+import { tdCampUltOptions, tdRuleBlock, tdUltCost, tdUltOptions } from '../core/tdquery.ts';
 import { type TdState, tdBuildBlock, tdClearCost, TD2_ECON, type TdTowerKind, isTdTowerKind, tdUpCost, tdSellRefund } from '../core/index.ts';
 import { TICKS_PER_SEC, UNIT } from '../core/types.ts';
 import { iconA } from './art.ts';
@@ -19,8 +19,8 @@ import { twoSteps } from './tdpadguide.ts';
 import { act, moveMark } from './tdinput.ts';
 import { W, TEMP_KINDS, buildCost } from './tdcommon.ts';
 import { campAt, campUpCost, type TdCamp } from '../core/tdcamp.ts';
-import { TD2_CAMP, TD2_CAMP_BRANCH, type TdCampBranch } from '../content/tdcamp.ts';
-import { tdBarracksArt } from './art/tdbarracks.ts';
+import { TD2_CAMP, TD2_CAMP_BRANCH, TD2_CAMP_ULT, type TdCampBranch, type TdCampUlt } from '../content/tdcamp.ts';
+import { tdBarracksArt, type TdBarracksBranch } from './art/tdbarracks.ts';
 
 // ---------------------------------------------------------------- 木台面板
 
@@ -294,10 +294,11 @@ export function renderSheet(bs: TdScene): void {
 
 const campSig = (s: TdState, slot: number): string => {
   const c = campAt(s, slot);
-  return c ? `c${c.tier}${c.branch ?? ''}` : '';
+  return c ? `c${c.tier}${c.branch ?? ''}${c.ult ?? ''}` : '';
 };
 
 const CAMP_ART_BRANCH: Readonly<Record<TdCampBranch, 'gun' | 'shield'>> = { 'camp.gun': 'gun', 'camp.wall': 'shield' };
+const CAMP_ART_ULT: Readonly<Record<TdCampUlt, TdBarracksBranch>> = { 'ult.camp.marine': 'marine', 'ult.camp.cannon': 'cannon' };
 
 /** 造塔页底下的水手营横钮（图、名字、一句话、价） */
 function campCard(bs: TdScene, box: HTMLElement, blocked: boolean): void {
@@ -318,17 +319,18 @@ function campCard(bs: TdScene, box: HTMLElement, blocked: boolean): void {
   c.setAttribute('aria-disabled', String(na));
 }
 
-/** 水手营的面板：阶、3 阶分叉、挪集结点、升阶、卖 */
+/** 水手营的面板：阶、3 阶分叉、终极营、挪集结点、升阶、卖 */
 function campSheet(bs: TdScene, box: HTMLElement, head: HTMLElement, camp: TdCamp): void {
   const s = bs.s;
   const slot = bs.openSlot;
   box.classList.remove('build');
-  el('h2', '', `水手营  ${camp.tier} 阶`, head);
+  el('h2', '', camp.ult ? TD2_CAMP_ULT[camp.ult].name : `水手营  ${camp.tier} 阶`, head);
   button('×', 'hd-x', () => closeSheet(bs), head).title = '关掉（Esc）';
   const chips = el('div', 'hd-chips', undefined, box);
   const up = camp.men.filter((m) => m.respawn < 0).length;
-  el('span', 'hd-chip', `水兵 ${up}/${camp.men.length}`, chips);
+  el('span', 'hd-chip', `${camp.ult === 'ult.camp.cannon' ? '小炮' : '水兵'} ${up}/${camp.men.length}`, chips);
   if (camp.branch) el('span', 'hd-chip', `路线：${TD2_CAMP_BRANCH[camp.branch].name}`, chips);
+  if (camp.ult) el('span', 'hd-chip', `终极：${TD2_CAMP_ULT[camp.ult].name}`, chips);
   if (camp.tier >= 3 && !camp.branch) {
     el('p', 'hd-td-sub', '选一条路线，选了不能改', box);
     const row = el('div', 'hd-td-branches', undefined, box);
@@ -346,6 +348,32 @@ function campSheet(bs: TdScene, box: HTMLElement, head: HTMLElement, camp: TdCam
       });
     }
     box.querySelectorAll<HTMLElement>('.hd-td-branch').forEach((c, i) => keyBadge(c, i + 1));
+  } else if (camp.tier >= 3 && camp.branch && !camp.ult) {
+    if (!s.deep) el('p', 'hd-td-note', '悬赏守岛不开放终极', box);
+    else if (!s.deep.ult) el('p', 'hd-td-note', '第一章通关后解锁终极', box);
+    else {
+      el('p', 'hd-td-sub', '终极：选一个，选了不能改', box);
+      const row = el('div', 'hd-td-branches', undefined, box);
+      for (const u of tdCampUltOptions(s, slot)) {
+        const ucost = tdUltCost(s, u.id);
+        const c = el('button', 'hd-td-branch hd-td-ult', undefined, row);
+        c.type = 'button';
+        c.appendChild(img(tdBarracksArt(3, CAMP_ART_ULT[u.id]), 30));
+        el('b', '', u.name, c);
+        el('span', '', u.desc, c);
+        price(bs, c, ucost);
+        c.disabled = s.gold < ucost;
+        c.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (c.disabled) return;
+          sfx(upgradeSound(true));
+          act(bs, { type: 'ult', slot, ult: u.id });
+        });
+      }
+      box.querySelectorAll<HTMLElement>('.hd-td-branch').forEach((c, i) => keyBadge(c, i + 1));
+    }
+  } else if (camp.ult) {
+    el('p', 'hd-td-sub', TD2_CAMP_ULT[camp.ult].desc, box);
   }
   const acts = el('div', 'hd-td-acts', undefined, box);
   const mv = button('挪集结点', 'hd-btn-wood hd-td-muster', () => {

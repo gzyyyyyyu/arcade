@@ -4,9 +4,10 @@
  * 只在战役和海盗来袭、setup.camp 时有（campEnabled）；没造营的局不建状态、不进指纹。
  * 兵不占格、不挡流场（挡人靠「缠住」，和英雄一样），按营的 id 和兵的序号定序，全整数，不用随机。
  */
-import { TD2_CAMP, TD2_CAMP_BRANCH } from '../content/tdcamp.ts';
-import type { TdCampBranch } from '../content/tdcamp.ts';
+import { TD2_CAMP, TD2_CAMP_BRANCH, TD2_CAMP_ULT } from '../content/tdcamp.ts';
+import type { TdCampBranch, TdCampUlt } from '../content/tdcamp.ts';
 import { TD2_ENEMIES, TD2_UP_PCT } from '../content/td2units.ts';
+import { applyStun, flightTicks } from './combat.ts';
 import { cellIdx, cellX, cellY, inGrid } from './grid.ts';
 import { UNIT } from './types.ts';
 import type { TdTier } from './td2types.ts';
@@ -27,18 +28,39 @@ export interface TdSoldier {
   face: 1 | -1;
 }
 
-/** 一座水手营：在第几块木台、阶、分叉、集结点（单位）、兵 */
+/** 一座水手营：在第几块木台、阶、分叉、终极、集结点（单位）、兵 */
 export interface TdCamp {
   id: number;
   slot: number;
   tier: TdTier;
   branch?: TdCampBranch;
+  ult?: TdCampUlt;
+  /** 陆战营下一次冲锋就绪的拍 */
+  chargeReady?: number;
   rx: number;
   ry: number;
   men: TdSoldier[];
 }
 
 export const HIT_SOLDIER: Hit = { dt: 'shot', branch: [], heavy: 0 };
+export const HIT_CAMP_SHELL: Hit = { dt: 'shell', branch: [], heavy: 0 };
+
+/** 终极营价（天赋 ultPct 折后）；没解锁终极或没有这个 id 为 -1 */
+export function campUltCost(s: Pick<TdState, 'deep'>, id: string): number {
+  if (!s.deep?.ult || !Object.hasOwn(TD2_CAMP_ULT, id)) return -1;
+  const u = TD2_CAMP_ULT[id as TdCampUlt];
+  const base = Math.floor((TD2_CAMP.cost * u.costPct) / 100);
+  const pct = s.deep.talent.ultPct;
+  return pct ? Math.floor((base * pct) / 100) : base;
+}
+
+/** 能不能把这座营换成终极 ult：能为 null，不能给理由 */
+export function campUltError(c: Pick<TdCamp, 'tier' | 'branch' | 'ult'>, id: string): string | null {
+  if (!Object.hasOwn(TD2_CAMP_ULT, id)) return 'bad';
+  if (c.tier < 3 || !c.branch) return 'tier';
+  if (c.ult) return 'ult';
+  return null;
+}
 
 /** 这一局能不能造水手营：战役和海盗来袭，且开局给了（tdrun 按进度给） */
 export function campEnabled(setup: Pick<TdSetup, 'mode' | 'camp'>): boolean {
@@ -63,12 +85,13 @@ export function soldierHp(tier: TdTier, branch?: TdCampBranch): number {
 
 function soldierDmg(c: TdCamp): number {
   const d = (TD2_CAMP.tiers[c.tier - 1] as { dmg: number }).dmg;
+  if (c.ult === 'ult.camp.cannon') return Math.floor((d * TD2_CAMP_ULT['ult.camp.cannon'].dmgPct) / 100);
   return c.branch === 'camp.gun' ? Math.floor((d * TD2_CAMP_BRANCH['camp.gun'].dmgPct) / 100) : d;
 }
 
-/** 一个兵最多缠几个（远程兵 0） */
+/** 一个兵最多缠几个（火枪队 / 炮手营为 0） */
 function holdOf(c: TdCamp): number {
-  return c.branch === 'camp.gun' ? 0 : c.branch === 'camp.wall' ? TD2_CAMP_BRANCH['camp.wall'].hold : 1;
+  return c.ult === 'ult.camp.cannon' || c.branch === 'camp.gun' ? 0 : c.branch === 'camp.wall' ? TD2_CAMP_BRANCH['camp.wall'].hold : 1;
 }
 
 /** 营（木台中心，单位） */
@@ -148,14 +171,18 @@ export function newCamp(s: TdState, id: number, slot: number): TdCamp {
   return c;
 }
 
-/** 升阶、选分叉后：活着的兵按新满血补上差值 */
-export function refitCamp(c: TdCamp): void {
+/** 升阶、选分叉、换终极后：活着的兵按新满血补上差值；陆战营补到 4 人，炮手营精简成 2 门小炮 */
+export function refitCamp(s: TdState, c: TdCamp): void {
   const hp = soldierHp(c.tier, c.branch);
+  const want = c.ult ? TD2_CAMP_ULT[c.ult].men : TD2_CAMP.men;
+  if (c.men.length > want) c.men.length = want;
   for (const m of c.men) {
     if (m.respawn < 0) m.hp = Math.min(hp, m.hp + Math.max(0, hp - m.maxHp));
     m.maxHp = hp;
-    if (c.branch === 'camp.gun') m.foes = [];
+    if (holdOf(c) === 0) m.foes = [];
   }
+  const at = campCenter(s, c);
+  while (c.men.length < want) c.men.push({ x: at.x, y: at.y, hp, maxHp: hp, respawn: -1, foes: [], cd: s.tick, face: 1 });
 }
 
 /** 敌人能被兵拦吗：地面、活着、不是海上的船 */
@@ -199,15 +226,33 @@ export function hitSoldier(s: TdState, ev: TdEvent[], c: TdCamp, i: number, dmg:
 }
 
 /**
- * 每拍：复活到点的兵回集结点；近战兵挑集结点 guard 内还没被缠满的地面敌人（先挑没人缠的、离集结点近的，同距按 id），走过去缠住、每 reload 拍砍一下；
- * 火枪队站在自己的位置打 range 内最近的敌人（能打飞的）。伤害用 damage 回调（td.ts 的直射结算，盾、鼓、克制照算）
+ * 每拍：复活到点的兵回集结点；陆战营到点对集结点周围地面敌人冲锋震晕；炮手营 2 门小炮随集结点走位、远程打炮弹溅射；
+ * 近战兵挑集结点 guard 内还没被缠满的地面敌人，火枪队站在自己的位置打 range 内最近的敌人（能打飞的）。
  */
-export function stepCamps(s: TdState, ev: TdEvent[], damage: (e: TdEnemy, dmg: number, x: number, y: number) => void): void {
+export function stepCamps(
+  s: TdState,
+  ev: TdEvent[],
+  damage: (e: TdEnemy, dmg: number, x: number, y: number) => void,
+  cannonHit?: (e: TdEnemy, dmg: number, splash: number, sx: number, sy: number, t1: number) => void,
+): void {
   if (!s.camps) return;
   const claimed = new Map<number, number>();
   for (const c of s.camps) for (const m of c.men) if (m.respawn < 0) for (const id of m.foes) claimed.set(id, (claimed.get(id) ?? 0) + 1);
   const g2 = TD2_CAMP.guard * TD2_CAMP.guard;
   for (const c of s.camps) {
+    if (c.ult === 'ult.camp.marine' && s.tick >= (c.chargeReady ?? 0) && c.men.some((m) => m.respawn < 0)) {
+      const mu = TD2_CAMP_ULT['ult.camp.marine'];
+      const r2 = mu.chargeRange * mu.chargeRange;
+      const targets = s.enemies.filter((e) => (e.mode === 'in' || e.mode === 'out') && !isAir(e.kind) && !TD2_ENEMIES[e.kind].shell && d2(e.x, e.y, c.rx, c.ry) <= r2);
+      if (targets.length > 0) {
+        for (const e of targets) {
+          const until = applyStun(e, s.tick, mu.chargeStun, e.kind === 'captain' || !!TD2_ENEMIES[e.kind].boss);
+          if (until >= 0) ev.push({ type: 'stun', id: e.id, until });
+        }
+        c.chargeReady = s.tick + mu.chargeCd;
+        ev.push({ type: 'camp', camp: c.id, slot: c.slot, what: 'charge' });
+      }
+    }
     const hold = holdOf(c);
     const dmg = soldierDmg(c);
     c.men.forEach((m, i) => {
@@ -221,6 +266,29 @@ export function stepCamps(s: TdState, ev: TdEvent[], damage: (e: TdEnemy, dmg: n
         m.y = at.y;
         m.cd = s.tick;
         ev.push({ type: 'soldier', camp: c.id, man: i, what: 'up', x: m.x, y: m.y });
+      }
+      if (c.ult === 'ult.camp.cannon') {
+        if (d2(m.x, m.y, post.x, post.y) > 10 * 10) moveToward(m, post.x, post.y, TD2_CAMP.speed);
+        if (s.tick < m.cd) return;
+        const cu = TD2_CAMP_ULT['ult.camp.cannon'];
+        let tgt: TdEnemy | undefined;
+        let bd = cu.range * cu.range + 1;
+        for (const e of s.enemies) {
+          if (!targetable(s, e, HIT_CAMP_SHELL, 0)) continue;
+          const d = d2(m.x, m.y, e.x, e.y);
+          if (d < bd || (d === bd && tgt && e.id < tgt.id)) {
+            bd = d;
+            tgt = e;
+          }
+        }
+        if (!tgt) return;
+        m.cd = s.tick + cu.reload;
+        m.face = tgt.x < m.x ? -1 : 1;
+        const t1 = s.tick + Math.max(4, flightTicks(m.x, m.y, tgt.x, tgt.y, 35));
+        ev.push({ type: 'shoot', id: -200 - c.id, x0: m.x, y0: m.y, x1: tgt.x, y1: tgt.y, t1, target: tgt.id });
+        if (cannonHit) cannonHit(tgt, dmg, cu.splash, m.x, m.y, t1);
+        else damage(tgt, dmg, m.x, m.y);
+        return;
       }
       if (hold === 0) {
         // 火枪队：站位不动，打射程内最近的（同距按 id）
@@ -290,6 +358,7 @@ export function campPrint(s: TdState): number[] {
   const out: number[] = [];
   for (const c of s.camps ?? []) {
     out.push(c.id, c.slot, c.tier, c.branch === 'camp.gun' ? 1 : c.branch === 'camp.wall' ? 2 : 0, c.rx, c.ry);
+    if (c.ult) out.push(c.ult === 'ult.camp.marine' ? -21 : -22, c.chargeReady ?? -1);
     for (const m of c.men) out.push(m.x, m.y, m.hp, m.respawn, m.cd, ...m.foes, -1);
   }
   return out;

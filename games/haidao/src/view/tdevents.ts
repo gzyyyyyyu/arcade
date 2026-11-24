@@ -27,7 +27,7 @@ import { closeSheet, renderSheet } from './tdsheet.ts';
 import { W, PROJ, SHOCK_RING, SHIP_FOES } from './tdcommon.ts';
 import { matAt } from './tdsync.ts';
 import { boom } from './tdoverlay.ts';
-import { addCrate, refreshWalls, removeCrate } from './tdworld.ts';
+import { addCrate, refreshWalls, removeCrate, syncDrawbridge } from './tdworld.ts';
 import { throwKeg } from './tdinput.ts';
 import { STEP_MS } from './motion.ts';
 import { towerLift } from './tdcliff.ts';
@@ -119,6 +119,36 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
     case 'rearm':
       break;
     case 'shoot': {
+      if (e.id <= -200) {
+        // 炮手营小炮：炮弹弧线飞向目标，落地走 resolvePend splash
+        sfx('cannon');
+        const from = W(e.x0, e.y0);
+        const to = W(e.x1, e.y1);
+        const sx = from.x;
+        const sy = from.y - 12;
+        bs.pt.cannonSmoke(sx, sy, 0.7);
+        if (e.target !== undefined && e.target >= 0) bs.flash.add(e.target, bs.time.now);
+        bs.shots.start({
+          fx: 'shell', sx, sy, gx: from.x, gy: from.y, tx: to.x, ty: to.y, e1: 10, t0: s.tick - 1, t1: e.t1,
+          arc: arcHeight('cannon', Math.hypot(to.x - from.x, to.y - from.y)), aimed: false, land: 'shell', mat: matAt(bs, e.x1, e.y1), tid: e.target ?? -1,
+        });
+        break;
+      }
+      if (e.id <= -100) {
+        // 火枪队：从兵位置出子弹，不触发英雄开枪动作
+        sfx(projectileFire('bullet'));
+        const from = W(e.x0, e.y0);
+        const to = W(e.x1, e.y1);
+        const mx = from.x + (to.x < from.x ? -10 : 10);
+        const my = from.y - 24;
+        bs.pt.muzzle(mx, my);
+        if (e.target !== undefined && e.target >= 0) bs.flash.add(e.target, bs.time.now);
+        bs.shots.start({
+          fx: 'bullet', sx: mx, sy: my, gx: from.x, gy: from.y, tx: to.x, ty: to.y, e1: 10, t0: s.tick - 1, t1: e.t1,
+          arc: 0, aimed: true, land: 'bullet', mat: matAt(bs, e.x1, e.y1), tid: e.target ?? -1,
+        });
+        break;
+      }
       if (e.id < 0) {
         // 英雄开枪：攻击动作（走动中也播）、枪口火光、追踪弹（落点每帧跟着目标精灵）
         bs.heroShotAt = bs.time.now;
@@ -321,6 +351,21 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
     }
     case 'dare':
       sfx(e.on ? 'coin' : 'tap');
+      break;
+    case 'drawbridge':
+      sfx('build');
+      syncDrawbridge(bs);
+      break;
+    case 'camp':
+      if (e.what === 'charge') {
+        const c = s.camps?.find((q) => q.id === e.camp);
+        if (c) {
+          const w = W(c.rx, c.ry);
+          sfx('stun');
+          bs.pt.ringBurst(w.x, w.y, 2.8);
+          bs.pt.bloom.flash(w.x, w.y, 28, 0xffe07d, 220, 0.5);
+        }
+      }
       break;
     case 'battery': {
       // 老炮：炮口一团火光和烟、震一下，炮弹沿高弧线飞到落点，落点先画一圈红色预警（爆炸本身是 1 秒后的 explode 事件）

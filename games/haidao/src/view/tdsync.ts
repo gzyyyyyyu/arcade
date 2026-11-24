@@ -528,7 +528,7 @@ export function litAt(bs: TdScene, x: number, y: number): boolean {
 
 const CAMP_MAN: Readonly<Record<string, 'marine' | 'marineGun' | 'marineShield'>> = { 'camp.gun': 'marineGun', 'camp.wall': 'marineShield' };
 
-/** 水手营：营房图按阶和分叉换，水兵按兵的位置画（倒下的藏起来），走路 / 出手帧按时间轮，朝向按 face 翻 */
+/** 水手营：营房图按阶、分叉和终极换，水兵/小炮按位置画（倒下的藏起来），走路 / 出手帧按时间轮，朝向按 face 翻 */
 function syncCamps(bs: TdScene): void {
   const s = bs.s;
   const now = bs.time.now;
@@ -537,7 +537,8 @@ function syncCamps(bs: TdScene): void {
     have.add(c.id);
     const sl = s.slots[c.slot];
     if (!sl) continue;
-    const p = tdBarracksArt(c.tier, c.tier === 3 && c.branch ? (c.branch === 'camp.gun' ? 'gun' : 'shield') : undefined);
+    const artBranch = c.tier === 3 ? (c.ult === 'ult.camp.marine' ? 'marine' : c.ult === 'ult.camp.cannon' ? 'cannon' : c.branch === 'camp.gun' ? 'gun' : c.branch === 'camp.wall' ? 'shield' : undefined) : undefined;
+    const p = tdBarracksArt(c.tier, artBranch);
     let sp = bs.campSp.get(c.id);
     if (!sp) {
       const f = footCenter(sl.x, sl.y, 2);
@@ -553,7 +554,8 @@ function syncCamps(bs: TdScene): void {
       sp.img.setTexture(p.key).setOrigin(p.ax / p.w, p.ay / p.h);
       flashWhite(bs, sp.img);
     }
-    const kind = (c.branch && CAMP_MAN[c.branch]) || 'marine';
+    const kind = c.ult === 'ult.camp.cannon' ? 'marineCannon' : (c.branch && CAMP_MAN[c.branch]) || 'marine';
+    while (sp.men.length > c.men.length) sp.men.pop()?.destroy();
     c.men.forEach((m, i) => {
       let im = sp.men[i];
       if (!im) {

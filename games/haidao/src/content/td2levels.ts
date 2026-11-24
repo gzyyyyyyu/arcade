@@ -1,5 +1,5 @@
 /**
- * 守岛 2.0 的战役关（td01–td34，第六章 td35、td36 还没做）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
+ * 守岛 2.0 的战役关（td01–td36）：每关 = 一张关卡岛（td2maps.ts）+ 波次配方 + 开局金、驻守台上限等旋钮。
  * 波次不写死个数，写"这一波的预算分给哪几组敌人"：个数 = 预算份额 ÷ 敌人点数（TD2_ENEMY_POINTS），预算见 waveBudget。
  * 这样改 TD2_BUDGET 或敌人点数，各关的强度跟着连续变；td-sim 还能用 buildLevel 的 budgetPct 量"预算 ±2% 时的三星率"。
  * 难度只来自预算、敌人种类和路数、地图，没有每关单独的血量百分比（hpPct 一律 100）。
@@ -608,7 +608,7 @@ const DEFS: readonly LevelDef[] = [
       note('断崖船长：血过半发怒，召一批水手、炸哑身边的塔', boss([C, 0, 0], [D, 35, 0, 20], [S, 35, 1, 30], [I, 15, 2, 40], [M, 15, 0, 60])),
     ],
   },
-  // ---------------------------------------------------------------- 第六章：群岛远征（终极塔、冲锋手、盾鼓手、热气球、铁潮舰长；td35、td36 还没做）
+  // ---------------------------------------------------------------- 第六章：群岛远征（终极塔、冲锋手、盾鼓手、热气球、铁潮舰长、双桥关）
   {
     // 旧炮台（O）：北口一条长路为主（第 6 波起西边沙滩也来人）、木台少、钱给得足，与其再铺一座 1 阶，不如把一座升到顶
     id: 'td31', name: '换装', index: 30, map: 'O', chapter: 6, hq: 8, gold: 450, waveTicks: 320, scale: 255, pads: 5, garrison: 1,
@@ -670,6 +670,39 @@ const DEFS: readonly LevelDef[] = [
       w([DR, 20, 0], [I, 30, 0], [P, 15, 0, 80], [S, 35, 1, 160]),
       w([Z, 40, 0], [R, 40, 1, 140], [L, 20, 0, 80]),
       note('铁潮舰长：先在海上炸塔，血到六成带鼓手上岸，到两成半扛刀冲箱子', boss([T, 0, 0], [S, 40, 1, 200], [I, 30, 0, 400], [R, 30, 1, 600])),
+    ],
+  },
+  {
+    // 双桥海峡（R）：教两座吊桥切换分流
+    id: 'td35', name: '双桥关', index: 34, map: 'R', chapter: 6, hq: 8, gold: 360, waveTicks: 300, scale: 320, pads: 8, garrison: 2,
+    waves: [
+      note('两座吊桥只放下一座，按「吊桥」切换（冷却 20 秒）', w([S, 50, 0], [S, 50, 1])),
+      w([I, 40, 0], [S, 30, 1], [R, 30, 1, 60]),
+      note('气球直接飞过海峡，注意防空火力', w([S, 40, 0], [L, 25, 0, 40], [I, 35, 1])),
+      w([D, 35, 0], [DR, 25, 0, 40], [R, 40, 1, 60]),
+      w([K, 35, 0], [L, 30, 1, 40], [M, 15, 0, 80], [I, 20, 1]),
+      w([Z, 30, 0], [DR, 25, 0, 40], [R, 45, 1, 80]),
+      w([D, 30, 1], [M, 20, 1, 60], [L, 30, 0, 40], [I, 20, 0]),
+      w([Z, 25, 0], [R, 35, 0, 60], [DR, 20, 1, 40], [L, 20, 1, 80]),
+      w([D, 30, 0], [Z, 25, 1], [M, 15, 1, 60], [R, 30, 0, 80]),
+      note('双桥并进，盯紧哪一侧先过河', boss([C, 0, 0], [DR, 25, 0, 80], [R, 45, 1, 120], [L, 30, 1, 180])),
+    ],
+  },
+  {
+    // 双桥海峡（R）：第六章收官决战，第 5 波起带强敌头领词缀
+    id: 'td36', name: '群岛决战', index: 35, map: 'R', chapter: 6, hq: 8, gold: 540, waveTicks: 320, scale: 195, pads: 9, garrison: 3, elite: { from: 4 },
+    waves: [
+      note('群岛总攻开始，善用吊桥分流两路敌军', w([S, 40, 0], [I, 30, 1], [R, 30, 0, 60])),
+      w([D, 35, 0], [DR, 25, 0, 40], [L, 40, 1, 60]),
+      w([I, 30, 0], [M, 20, 0, 60], [R, 30, 1], [L, 20, 1, 80]),
+      w([K, 30, 0], [D, 30, 1], [DR, 20, 1, 40], [M, 20, 0, 80]),
+      note('第 5 波起强敌带头领词缀，用高优先级集火', w([Z, 35, 0], [DR, 20, 0, 40], [L, 25, 1, 60], [R, 20, 1, 80])),
+      w([D, 30, 0], [M, 20, 0, 60], [Z, 25, 1], [R, 25, 1, 80]),
+      w([L, 35, 0], [DR, 20, 1, 40], [D, 25, 1], [I, 20, 0, 80]),
+      w([Z, 30, 0], [R, 30, 0, 60], [M, 20, 1, 60], [L, 20, 1, 80]),
+      w([D, 25, 0], [DR, 20, 0, 40], [Z, 30, 1], [R, 25, 1, 80]),
+      w([L, 30, 0], [D, 25, 1], [M, 20, 1, 60], [Z, 25, 0, 80]),
+      note('决战：海盗王与船长左右压境', boss([G, 0, 0], [C, 0, 1], [DR, 20, 0, 80], [R, 40, 1, 140], [L, 40, 0, 200])),
     ],
   },
 ];
@@ -809,6 +842,7 @@ export function buildLevel(def: LevelDef, budgetPct = 100): TdIslandLevel {
     ...(def.events ? { events: [{ kind: def.events, ...EVENT_SPAN }] } : {}),
     ...(map.water ? { water: map.water.map((p) => ({ ...p })) } : {}),
     ...(map.bridges ? { bridges: map.bridges.map((p) => ({ ...p })) } : {}),
+    ...(map.drawbridges ? { drawbridge: [map.drawbridges[0].map((p) => ({ ...p })), map.drawbridges[1].map((p) => ({ ...p }))] as [Array<{ x: number; y: number }>, Array<{ x: number; y: number }>] } : {}),
     ...(map.cliffs ? { cliffs: cliffsFor(map.cliffs, pads) } : {}),
     slots: pads,
     garrison,
@@ -823,7 +857,7 @@ export const TD2_LEVEL_DEFS: readonly LevelDef[] = DEFS;
 export const TD2_LEVELS: readonly TdIslandLevel[] = DEFS.map((d) => buildLevel(d));
 export const TD2_LEVEL_BY_ID: ReadonlyMap<string, TdIslandLevel> = new Map(TD2_LEVELS.map((l) => [l.id, l]));
 
-/** 一章几关：没上齐的章（第六章还差 td35、td36）不算通关、不发章节纪念（tdChapterCleared） */
+/** 一章几关：满 6 关算通关、解锁章节纪念（tdChapterCleared） */
 export const TD2_CHAPTER_SIZE = 6;
 
 /** 选关页的章节 */
@@ -835,10 +869,10 @@ export interface Td2ChapterInfo {
 }
 
 export const TD2_CHAPTERS: readonly Td2ChapterInfo[] = [
-  { id: 1, name: '第一章', theme: '登陆、铁甲、雾船、鹦鹉、船长', levels: TD2_LEVELS.filter((l) => l.chapter === 1) },
+  { id: 1, name: '第一章', theme: '登陆 · 铁甲 · 雾船 · 鹦鹉 · 船长', levels: TD2_LEVELS.filter((l) => l.chapter === 1) },
   { id: 2, name: '第二章', theme: '潮水涨落 · 成片的雾', levels: TD2_LEVELS.filter((l) => l.chapter === 2) },
   { id: 3, name: '第三章', theme: '炸塔工兵 · 绕后鹦鹉 · 首领发怒', levels: TD2_LEVELS.filter((l) => l.chapter === 3) },
   { id: 4, name: '第四章', theme: '远洋 · 军医回血 · 海上炮艇 · 友军船 · 海盗王', levels: TD2_LEVELS.filter((l) => l.chapter === 4) },
   { id: 5, name: '第五章', theme: '断崖海岸 · 崖上高台 · 盾兵', levels: TD2_LEVELS.filter((l) => l.chapter === 5) },
-  { id: 6, name: '第六章', theme: '群岛远征 · 冲锋手 · 盾鼓手 · 热气球 · 铁潮舰长', levels: TD2_LEVELS.filter((l) => l.chapter === 6) },
+  { id: 6, name: '第六章', theme: '水手营 · 吊桥 · 冲锋手 · 盾鼓手 · 热气球 · 铁潮舰长', levels: TD2_LEVELS.filter((l) => l.chapter === 6) },
 ];

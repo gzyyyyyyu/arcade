@@ -9,8 +9,15 @@ import type { TdRule } from '../core/tddeep.ts';
 
 /** 老兵局的波次预算 × 这么多 % */
 export const TD_VET_BUDGET_PCT = 130;
-/** 个别关的老兵预算（td-sim --vet 稳机器人 ≥1★ 远低于 40% 的关单拧） */
-export const TD_VET_BUDGET_BY_ID: Readonly<Record<string, number>> = { td24: 110 };
+/** 个别关的老兵预算（td-sim --vet 稳机器人 ≥1★ 目标 40–70%，拿不准不收紧） */
+export const TD_VET_BUDGET_BY_ID: Readonly<Record<string, number>> = {
+  td01: 185,
+  td09: 185,
+  td11: 165,
+  td16: 140,
+  td23: 135,
+  td24: 115,
+};
 /** 老兵局精英从第几波起（0 起，2 = 第 3 波） */
 export const TD_VET_ELITE_FROM = 2;
 

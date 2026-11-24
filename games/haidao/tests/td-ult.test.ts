@@ -261,7 +261,7 @@ describe('开局', () => {
     expect(talentError(['tower4'], 10)).toBe('bad_talent');
     expect(talentError(['tower1', 'tower1'], 10)).toBe('dup_talent');
     const f = talentFold(['tower1', 'tower2', 'tower3', 'tower4:cannon', 'supply1', 'hero1']);
-    expect(f).toEqual({ fx: { sellPct: 80, ultPct: 90, respawnPct: 85 }, gold: 25, garrisonUp: true, focus: 'cannon' });
+    expect(f).toEqual({ fx: { sellPct: 80, ultPct: 90, respawnPct: 85 }, gold: 15, garrisonUp: true, focus: 'cannon' });
   });
 
   it('天赋折进 setup：开局金、驻守台阶、偏爱、局内效果；同种子同操作逐位一样', () => {
@@ -275,7 +275,7 @@ describe('开局', () => {
     const lowHq = { ...p, base: { ...p.base, buildings: p.base.buildings.map((b) => (b.kind === 'cannon' ? { ...b, level: 4 } : b)) } };
     const r = startTd2(lowHq, 'td10', 1, [{ spot: 0, kind: 'cannon' }]);
     if (!r.ok) throw new Error(r.error);
-    expect(r.value.level.gold).toBe(TD2_LEVEL_BY_ID.get('td10')!.gold + 25);
+    expect(r.value.level.gold).toBe(TD2_LEVEL_BY_ID.get('td10')!.gold + 15);
     expect(r.value.garrison![0]!.tier).toBe(3);
     expect(r.value.bonus?.cannon).toBe(8);
     expect(r.value.bonus?.mortar).toBe(-3);

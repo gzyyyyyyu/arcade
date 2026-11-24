@@ -6,6 +6,7 @@
  * - 贪：造塔、升阶、清沉船、卖塔、英雄都和普通一样，区别只在每波打得只剩 2 个敌人以内就立刻叫下一波（拿叫波金、抵英雄冷却）。
  *   （开局只造 2 座攒钱、有钱先升阶的话机器人会把自己饿死，量不出玩法；叫波条件太严也几乎从不触发）
  */
+import { TD_WALL_COST } from '../content/tdunits.ts';
 import { BRANCH_LEVEL, branchOptions } from '../content/branches.ts';
 import { TD2_BATTERY, TD2_COST, TD2_ECON, TD2_ENEMIES, TD2_HERO_SKILL, TD2_NAV_SKILL, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { Rng } from './rng.ts';
@@ -15,13 +16,13 @@ import { tdDareCan } from './tdevent.ts';
 import { hookTarget } from './tdhook.ts';
 import { campAt, campUpCost } from './tdcamp.ts';
 import { TD2_CAMP } from '../content/tdcamp.ts';
-import { tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund, tdUltCost, tdUltOptions } from './tdquery.ts';
+import { tdCampUltOptions, tdClearCost, tdPreview, tdRoute, tdRoutes, tdSellRefund, tdUltCost, tdUltOptions } from './tdquery.ts';
 import { isqrt } from './fmath.ts';
-import { cliffOn, tcx, tcy, tdBuildCost, tdBuildRange, tdHeroStats, tdTowerRange } from './tdstate.ts';
+import { cliffOn, ensureGrid, inner, tcx, tcy, tdBuildCost, tdBuildRange, tdHeroStats, tdTowerRange } from './tdstate.ts';
 import { inRing } from './combat.ts';
 import { SHIELD } from '../content/troops.ts';
 import type { TdState } from './tdstate.ts';
-import { cellX, cellY } from './grid.ts';
+import { INF, cellIdx, cellX, cellY, flowField, inGrid, nextCell } from './grid.ts';
 import { TD_ARMORS, TD_ENEMY_ARMOR, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
 import type { TdArmor, TdTowerKind, WavePreview } from './td2types.ts';
 import { UNIT } from './types.ts';
@@ -181,6 +182,62 @@ function sluiceWorth(s: TdState, pv: WavePreview[]): boolean {
   if (!main || !low) return false;
   const a = coverage(s, main.cells);
   return a > 0 && a * 100 >= coverage(s, low.cells) * 120;
+}
+
+/** 吊桥值不值得切换：比较「另一座放下」和「现在放下」对下波地面路的塔覆盖（没造塔时比路长） */
+function drawbridgeWorth(s: TdState, pv: WavePreview[]): boolean {
+  const db = s.drawbridge;
+  const dbl = s.level.drawbridge;
+  if (!db || !dbl || s.tick < db.ready) return false;
+  ensureGrid(s);
+  const occ = new Uint8Array(inner(s).occ);
+  const up = db.down === 0 ? 1 : 0;
+  for (const c of dbl[up]) if (inGrid(s.ext, c.x, c.y)) occ[cellIdx(c.x, c.y)] = 0;
+  for (const c of dbl[db.down]) if (inGrid(s.ext, c.x, c.y)) occ[cellIdx(c.x, c.y)] = 2;
+  const flows = s.treasures.map((tr) => flowField(occ, s.ext, [cellIdx(tr.x, tr.y)], TD_WALL_COST));
+  const altRoute = (cx: number, cy: number): number[] => {
+    const x0 = cx * UNIT + 50;
+    const y0 = cy * UNIT + 50;
+    let best: Int32Array | null = null;
+    let bd = INF;
+    for (const f of flows) {
+      const d = f[cellIdx(cx, cy)] as number;
+      if (d < bd) {
+        bd = d;
+        best = f;
+      }
+    }
+    const out: number[] = [];
+    if (!best) return out;
+    let x = x0;
+    let y = y0;
+    for (let k = 0; k < 200; k++) {
+      const n = nextCell(occ, s.ext, best, x, y);
+      if (n < 0) break;
+      out.push(n);
+      x = cellX(n);
+      y = cellY(n);
+    }
+    return out;
+  };
+  const routes = tdRoutes(s);
+  const p = pv[0];
+  const ground = p ? p.lanes.filter((l) => !l.fly).map((l) => l.lane) : routes.map((r) => r.lane);
+  let curCov = 0;
+  let altCov = 0;
+  let curLen = 0;
+  let altLen = 0;
+  for (const lane of ground) {
+    const r = routes.find((q) => q.lane === lane);
+    if (!r?.open) continue;
+    const ar = altRoute(r.x, r.y);
+    curCov += coverage(s, r.cells);
+    altCov += coverage(s, ar);
+    curLen += r.cells.length;
+    altLen += ar.length;
+  }
+  if (s.towers.length === 0) return altLen > curLen;
+  return altCov > curCov || (altCov === curCov && altLen > curLen + 2);
 }
 
 /**
@@ -422,6 +479,13 @@ function rewardSpot(s: TdState, live: readonly TdEnemy[]): { x: number; y: numbe
  * 别的挑这种塔的另一个（鹰眼哨、霰弹炮台、火雨）。没有能换的为 undefined
  */
 function ultPick(s: TdState, slot: number, pv: WavePreview[]): string | undefined {
+  const camp = campAt(s, slot);
+  if (camp) {
+    const opts = tdCampUltOptions(s, slot);
+    if (opts.length === 0) return undefined;
+    const o = outlook(s, pv);
+    return o.share.heavy >= 35 ? 'ult.camp.cannon' : 'ult.camp.marine';
+  }
   const opts = tdUltOptions(s, slot);
   if (opts.length === 0) return undefined;
   const o = outlook(s, pv);
@@ -447,6 +511,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
   // 章末机制的随机另开一条流：没有机制的关，机器人的别的决定不受它影响
   const mrng = new Rng(seed, `td-bot-mech-${kind}`);
   let sluiceAsked = -1;
+  let dbAsked = -1;
   let dareAsked = -1;
   const crateAsked = new Set<number>();
   const want = new Map<number, TdTowerKind>();
@@ -467,6 +532,10 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
       if (sluiceAsked !== s.wave && tdSluiceCan(s) === 'shut' && s.next - t < 100) {
         sluiceAsked = s.wave;
         if (mrng.int(2) === 0 && sluiceWorth(s, tdPreview(s, 1))) out.push({ t, type: 'sluice' });
+      }
+      if (dbAsked !== s.wave && s.drawbridge && t >= s.drawbridge.ready && s.next - t < 100) {
+        dbAsked = s.wave;
+        if (mrng.int(2) === 0 && drawbridgeWorth(s, tdPreview(s, 1))) out.push({ t, type: 'drawbridge' });
       }
       // 小白一半的时候想得起接战书（每波只想一次），想起来了和普通一样判断
       if (dareAsked !== s.wave && tdDareCan(s) === 'take' && s.next - t < 100) {
@@ -545,6 +614,7 @@ export function tdBotActions(kind: TdBotKind, seed: number, opts: TdBotOpts = {}
     const live = s.enemies.filter((e) => e.mode === 'in' || e.mode === 'out');
     // 开打前 5 秒再定：这时塔基本造好了，按塔的覆盖判断才准
     if (s.next - t < 100 && t % 10 === 0 && tdSluiceCan(s) === 'shut' && sluiceWorth(s, pv)) out.push({ t, type: 'sluice' });
+    if (s.drawbridge && t >= s.drawbridge.ready && t % 20 === 0 && drawbridgeWorth(s, pv)) out.push({ t, type: 'drawbridge' });
     if (s.next - t < 100 && t % 10 === 0 && tdDareCan(s) === 'take' && (kind === 'greedy' || dareWorth(s))) out.push({ t, type: 'dare' });
     if (t % 10 === 0) {
       const sc = slotScores(s, pv);

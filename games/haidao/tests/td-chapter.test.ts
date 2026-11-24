@@ -4,7 +4,7 @@ import { TD2_CHAPTERS, TD2_LEVELS as ALL_LEVELS, TD2_LEVEL_BY_ID, TD2_MAPS, buil
 import { TD2_ENEMY_POINTS } from '../src/content/td2units.ts';
 import { createTd, stepTd } from '../src/core/td.ts';
 import { tdIncomingWave, tdPreview, tdRoute, tdRoutes, tdWaveLanes } from '../src/core/tdquery.ts';
-import { tdGrowthSetup } from '../src/core/tdrun.ts';
+import { tdGrowthSetup, tdChapterCleared } from '../src/core/tdrun.ts';
 import { waveBudget } from '../src/core/td2types.ts';
 import { RULES_VERSION } from '../src/core/types.ts';
 import type { TdLevel } from '../src/core/tdtypes.ts';
@@ -19,9 +19,9 @@ const TD2_LEVELS = ALL_LEVELS.filter((l) => /^td\d\d$/.test(l.id));
 const ID = (i: number): string => `td${String(i + 1).padStart(2, '0')}`;
 
 describe('关卡表', () => {
-  it('6 章 34 关（前五章每章 6 关，第六章先 4 关），id td01–td34，建议主寨不降，一波 15–18 秒、8–12 波', () => {
-    expect(TD2_CHAPTERS.map((c) => c.levels.length)).toEqual([6, 6, 6, 6, 6, 4]);
-    expect(TD2_LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 34 }, (_, i) => ID(i)));
+  it('6 章 36 关（每章 6 关），id td01–td36，建议主寨不降，一波 15–18 秒、8–12 波', () => {
+    expect(TD2_CHAPTERS.map((c) => c.levels.length)).toEqual([6, 6, 6, 6, 6, 6]);
+    expect(TD2_LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 36 }, (_, i) => ID(i)));
     TD2_LEVELS.forEach((l, i) => {
       expect(l.index).toBe(i);
       expect(l.chapter).toBe(Math.floor(i / 6) + 1);
@@ -36,17 +36,17 @@ describe('关卡表', () => {
     expect(TD2_LEVEL_BY_ID.has('td2-sample')).toBe(true);
     expect(TD2_CHAPTERS.flatMap((c) => c.levels).some((l) => l.id === 'td2-sample')).toBe(false);
   });
-  it('17 张图都用上：双滩、回湾、栈桥湾、风口岬只出一关，双子岛、火山口、断崖湾、双崖口各出三关，其余各两关', () => {
-    expect(TD2_MAPS.map((m) => m.id)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']);
+  it('18 张图都用上：双滩、回湾、栈桥湾、风口岬只出一关，双子岛、火山口、断崖湾、双崖口各出三关，其余各两关', () => {
+    expect(TD2_MAPS.map((m) => m.id)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R']);
     const count = new Map<string, number>();
     for (const l of TD2_LEVELS) count.set(l.map, (count.get(l.map) ?? 0) + 1);
     expect([...count.keys()].sort()).toEqual(TD2_MAPS.map((m) => m.id));
-    expect(TD2_MAPS.map((m) => count.get(m.id))).toEqual([2, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 2, 1, 1]);
+    expect(TD2_MAPS.map((m) => count.get(m.id))).toEqual([2, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 2, 1, 1, 2]);
   });
   it('木台数和沉船、驻守台数按 DESIGN 10.7 的关卡表', () => {
-    const pads = [4, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8, 9, 9, 9, 10, 9, 10, 9, 10, 10, 10, 7, 7, 8, 9, 9, 10, 5, 6, 9, 5];
-    const wrecks = [0, 0, 0, 1, 1, 2, 0, 2, 2, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0];
-    const garrison = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 2, 2, 2, 3, 1, 2, 2, 2];
+    const pads = [4, 4, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 8, 9, 9, 9, 10, 9, 10, 9, 10, 10, 10, 7, 7, 8, 9, 9, 10, 5, 6, 9, 5, 8, 9];
+    const wrecks = [0, 0, 0, 1, 1, 2, 0, 2, 2, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0];
+    const garrison = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 2, 2, 2, 3, 1, 2, 2, 2, 2, 3];
     TD2_LEVELS.forEach((l, i) => {
       expect(l.slots, l.id).toHaveLength(pads[i]!);
       expect(l.slots.filter((p) => p.wreck).length, l.id).toBe(wrecks[i]);
@@ -207,5 +207,13 @@ describe('还有敌人没上岛的那一波（竖屏自动构图：没人要来�
     for (let i = 0; i < 2000 && tdIncomingWave(s) === 0; i++) stepTd(s, []);
     expect(tdIncomingWave(s)).not.toBe(0);
     expect(s.enemies.length).toBeGreaterThan(0);
+  });
+});
+
+describe('第六章 6 关齐了以后章节通关判定放开', () => {
+  it('td31–td36 全部至少 1 星时 tdChapterCleared(..., 6) 为 true，缺任一关为 false', () => {
+    const partial = { td31: 1, td32: 1, td33: 1, td34: 1, td35: 1 };
+    expect(tdChapterCleared(partial, 6)).toBe(false);
+    expect(tdChapterCleared({ ...partial, td36: 1 }, 6)).toBe(true);
   });
 });

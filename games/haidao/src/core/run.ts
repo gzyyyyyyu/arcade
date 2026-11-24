@@ -46,7 +46,7 @@ const RARE_POOL: string[] = [
   ...TROOP_IDS.flatMap((t) => SKIN_NAMES.map((n) => `skin:${t}:${n}`)),
 ];
 /** 守岛每章全部过关送的纪念装饰（章号 → 收藏 id），都会动（画面层的 envfx）；不进掉宝池 */
-export const TD_TROPHIES: Readonly<Record<number, string>> = { 1: 'deco:windmill', 2: 'deco:lighthouse', 3: 'deco:bonfire', 4: 'deco:wheel', 5: 'deco:lookout' };
+export const TD_TROPHIES: Readonly<Record<number, string>> = { 1: 'deco:windmill', 2: 'deco:lighthouse', 3: 'deco:bonfire', 4: 'deco:wheel', 5: 'deco:lookout', 6: 'deco:anchor' };
 /** 存档认得的全部收藏（掉宝池 + 纪念装饰）：读存档、校验快照按它过滤，没在这里的收藏和摆着的装饰都丢掉 */
 export const COSMETICS: readonly string[] = [...RARE_POOL, ...Object.values(TD_TROPHIES)];
 

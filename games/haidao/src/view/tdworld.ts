@@ -90,17 +90,18 @@ export function refreshWalls(bs: TdScene): void {
  * 桥（TdIslandLevel.bridges）的格子底下也铺水，上面横铺木板、两边栏杆。开局画一次，不随局面变
  */
 export function drawWater(bs: TdScene): void {
-  const lv = bs.s.level as { water?: Array<{ x: number; y: number }>; bridges?: Array<{ x: number; y: number }> };
+  const lv = bs.s.level as { water?: Array<{ x: number; y: number }>; bridges?: Array<{ x: number; y: number }>; drawbridge?: [Array<{ x: number; y: number }>, Array<{ x: number; y: number }>] };
   const water = lv.water ?? [];
   const bridges = lv.bridges ?? [];
-  if (water.length === 0 && bridges.length === 0) return;
-  const wet = new Set([...water, ...bridges].map((c) => `${c.x},${c.y}`));
+  const dbCells = lv.drawbridge ? [...lv.drawbridge[0], ...lv.drawbridge[1]] : [];
+  if (water.length === 0 && bridges.length === 0 && dbCells.length === 0) return;
+  const wet = new Set([...water, ...bridges, ...dbCells].map((c) => `${c.x},${c.y}`));
   const g = bs.add.graphics().setDepth(DEPTH.water);
   const diamond = (cx: number, cy: number, inset = 0): Phaser.Math.Vector2[] =>
     [iso(cx + inset, cy + inset), iso(cx + 1 - inset, cy + inset), iso(cx + 1 - inset, cy + 1 - inset), iso(cx + inset, cy + 1 - inset)].map((q) => new Phaser.Math.Vector2(q.x, q.y));
   // 一整片同色（每格略放大一点盖住接缝），不画每格的内框，免得看成一格格的瓷砖
   g.fillStyle(0x2f8fb4, 1);
-  for (const c of [...water, ...bridges]) g.fillPoints(diamond(c.x, c.y, -0.02), true);
+  for (const c of [...water, ...bridges, ...dbCells]) g.fillPoints(diamond(c.x, c.y, -0.02), true);
   // 挨着陆地的边：先一道宽的浅水，再一道白浪
   const edges: Array<[number, number, number, number, number, number]> = [
     [0, -1, 0, 0, 1, 0],
@@ -323,6 +324,67 @@ export function syncSluice(bs: TdScene, down: boolean): void {
   g.down = down;
   g.im.setTexture(tdP(down ? 'sluiceDown' : 'sluiceUp').key);
   bs.tweens.add({ targets: g.im, y: { from: g.im.y - 6, to: g.im.y }, duration: 180, ease: 'Quad.easeOut' });
+}
+
+/** 每局一张吊桥图形（同 SLUICE 的按状态对象认局），切换哪座放下时重画 */
+const DRAWBRIDGE = new WeakMap<object, { s: object; g: Phaser.GameObjects.Graphics; down: number }>();
+
+/** 吊桥（第六章最后两关）：放下的那座画实心木桥和绞盘柱，收起的那座只留桥墩和水面 */
+export function syncDrawbridge(bs: TdScene): void {
+  const db = bs.s.drawbridge;
+  const dbl = bs.s.level.drawbridge;
+  if (!db || !dbl) return;
+  let rec = DRAWBRIDGE.get(bs);
+  if (rec?.s !== bs.s) {
+    rec = { s: bs.s, g: bs.add.graphics().setDepth(DEPTH.bridge), down: -1 };
+    DRAWBRIDGE.set(bs, rec);
+  }
+  if (rec.down === db.down) return;
+  rec.down = db.down;
+  const g = rec.g;
+  g.clear();
+  const diamond = (cx: number, cy: number, inset = 0): Phaser.Math.Vector2[] =>
+    [iso(cx + inset, cy + inset), iso(cx + 1 - inset, cy + inset), iso(cx + 1 - inset, cy + 1 - inset), iso(cx + inset, cy + 1 - inset)].map((q) => new Phaser.Math.Vector2(q.x, q.y));
+  dbl.forEach((cells, bi) => {
+    if (cells.length === 0) return;
+    const xs = cells.map((c) => c.x);
+    const ys = cells.map((c) => c.y);
+    const x0 = Math.min(...xs);
+    const x1 = Math.max(...xs) + 1;
+    const y0 = Math.min(...ys);
+    const y1 = Math.max(...ys) + 1;
+    if (bi === db.down) {
+      for (const c of cells) {
+        g.fillStyle(0x9a6a3a, 1).fillPoints(diamond(c.x, c.y, 0.04), true);
+        g.lineStyle(2, 0x5a3a1e, 0.9);
+        for (let k = 1; k < 4; k++) {
+          const a = iso(c.x + k / 4, c.y);
+          const b = iso(c.x + k / 4, c.y + 1);
+          g.lineBetween(a.x, a.y, b.x, b.y);
+        }
+      }
+      g.lineStyle(4, 0x5a3a1e, 1);
+      for (const x of [x0, x1]) {
+        const a = iso(x, y0);
+        const b = iso(x, y1);
+        g.lineBetween(a.x, a.y - 8, b.x, b.y - 8);
+      }
+    } else {
+      // 收起的吊桥：水面上画淡白虚框提示位置，桥头立起吊起的一半桥板
+      g.lineStyle(2, 0xeffcf7, 0.45);
+      for (const c of cells) g.strokePoints(diamond(c.x, c.y, 0.08), true);
+      const a = iso(x0, y0);
+      const b = iso(x1, y0);
+      g.fillStyle(0x7c5028, 0.92).fillTriangle(a.x, a.y, b.x, b.y, (a.x + b.x) / 2, (a.y + b.y) / 2 - 26);
+      g.lineStyle(3, 0x3a2410, 1).strokeTriangle(a.x, a.y, b.x, b.y, (a.x + b.x) / 2, (a.y + b.y) / 2 - 26);
+    }
+    // 两岸桥头四根绞盘柱
+    for (const [px, py] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]] as const) {
+      const q = iso(px, py);
+      g.lineStyle(5, 0x3a2410, 1).lineBetween(q.x, q.y, q.x, q.y - 18);
+      g.fillStyle(bi === db.down ? 0xf8c630 : 0x8b95a5, 1).fillCircle(q.x, q.y - 18, 4);
+    }
+  });
 }
 
 export function drawTide(bs: TdScene, first: boolean): void {

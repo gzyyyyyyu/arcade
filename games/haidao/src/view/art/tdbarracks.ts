@@ -8,7 +8,7 @@ import type { ArtPiece, Pt } from './kit.ts';
 import { Lq, OUT, P, Rq, box, cyl, darken, ell, f, flag, hip, lighten, line, mat, piece, poly, rect, shadow } from './kit.ts';
 
 export type TdBarracksTier = 1 | 2 | 3;
-export type TdBarracksBranch = 'gun' | 'shield';
+export type TdBarracksBranch = 'gun' | 'shield' | 'marine' | 'cannon';
 
 const SIZE = 2;
 const UP = 145;
@@ -112,7 +112,7 @@ function cheval(gx: number, gy: number): string {
 function body(t: TdBarracksTier, branch?: TdBarracksBranch): string {
   const [x0, y0, x1, y1, hgt] = BODY[t];
   const wall = t === 1 ? mat(C.woodLight!, 'wood') : t === 2 ? mat(C.wood!, 'wood') : mat(C.wallMid!, 'stone');
-  const flagColor = branch === 'gun' ? C.blue! : C.red!;
+  const flagColor = branch === 'gun' ? C.blue! : branch === 'cannon' ? C.gold! : branch === 'marine' ? '#b8252a' : C.red!;
   let o = yard(t);
   // 后角的旗杆（在营房后面，先画）
   o += flag(x0 + 0.05, y0 - 0.15, 0, [70, 92, 108][t - 1]!, [20, 24, 30][t - 1]!, [13, 15, 19][t - 1]!, flagColor, false, t === 3 ? C.gold! : undefined);
@@ -127,7 +127,7 @@ function body(t: TdBarracksTier, branch?: TdBarracksBranch): string {
     o += merlons(x0, y0, x1, y1, hgt, mat(C.wallMid!, 'stone'));
     // 垛口中间一座小瞭望顶
     o += box(-0.35, -0.3, 0.15, 0.2, hgt, hgt + 16, mat(C.wallMidD!, 'stone'), 'brick', 1.4);
-    o += hip(-0.35, -0.3, 0.15, 0.2, hgt + 16, 16, mat(C.roofSlate!, 'stone'), 0.16, true);
+    o += hip(-0.35, -0.3, 0.15, 0.2, hgt + 16, 16, mat(branch === 'marine' || branch === 'cannon' ? C.gold! : C.roofSlate!, 'stone'), 0.16, true);
   }
   // 门、窗
   const z0 = t >= 2 ? 8 : 0;
@@ -135,14 +135,19 @@ function body(t: TdBarracksTier, branch?: TdBarracksBranch): string {
   o += win(x1, -0.3, 0.05, z0 + 10, z0 + 22);
   if (t >= 2) o += win(x1, y0 + 0.15, y0 + 0.45, z0 + 10, z0 + 22);
   // 门口的东西
-  if (branch === 'shield') {
+  if (branch === 'shield' || branch === 'marine') {
     o += shieldOn(x0 + 0.2, y1, hgt - 14) + shieldOn(x1 - 0.2, y1, hgt - 14);
     o += cheval(0.6, 0.95);
+    if (branch === 'marine') o += rack(P(0.85, 0.72), 'gun');
   } else {
-    o += rack(P(0.85, 0.75), branch === 'gun' ? 'gun' : 'blade');
+    o += rack(P(0.85, 0.75), branch === 'gun' || branch === 'cannon' ? 'gun' : 'blade');
   }
-  if (branch === 'gun') o += keg(-0.85, 0.75) + keg(-0.6, 0.92) + keg(-0.72, 0.82, 13);
+  if (branch === 'gun' || branch === 'cannon') o += keg(-0.85, 0.75) + keg(-0.6, 0.92) + keg(-0.72, 0.82, 13);
   else if (t >= 2) o += keg(-0.85, 0.8);
+  if (branch === 'cannon') {
+    const c0 = P(0.75, 0.95, 2);
+    o += ell(c0[0], c0[1] + 2, 7, 4, C.ironD!, { sw: 1.5 }) + rect(c0[0] - 8, c0[1] - 5, 16, 6, C.gold!, { sw: 1.4 });
+  }
   if (t === 3) o += rect(P(x1, y1, hgt)[0] - 3, P(x1, y1, hgt)[1] - 4, 6, 4, lighten(C.gold!, 0.2), { sw: 1 });
   return o;
 }
@@ -157,5 +162,13 @@ export function tdBarracksArt(tier: TdBarracksTier, branch?: TdBarracksBranch): 
   return piece(`b.barracks.${tier}${b ? `.${b}` : ''}`, w, h, w / 2, ay, all);
 }
 
-/** 水手营全部外观：1、2、3 阶 + 3 阶两种分叉 */
-export const tdBarracksAll = (): ArtPiece[] => [tdBarracksArt(1), tdBarracksArt(2), tdBarracksArt(3), tdBarracksArt(3, 'gun'), tdBarracksArt(3, 'shield')];
+/** 水手营全部外观：1、2、3 阶 + 3 阶分叉与终极营 */
+export const tdBarracksAll = (): ArtPiece[] => [
+  tdBarracksArt(1),
+  tdBarracksArt(2),
+  tdBarracksArt(3),
+  tdBarracksArt(3, 'gun'),
+  tdBarracksArt(3, 'shield'),
+  tdBarracksArt(3, 'marine'),
+  tdBarracksArt(3, 'cannon'),
+];

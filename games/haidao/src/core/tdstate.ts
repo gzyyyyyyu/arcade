@@ -9,7 +9,7 @@ import { TD_HERO_LIGHT } from '../content/tdunits.ts';
 import { TD2_BOSS_EXTRA_TICKS, TD2_CLIFF, TD2_COST, TD2_ENEMIES, TD2_HERO, TD2_NAV, TD2_SHOCK_STUN, TD_SEA_RANGE, td2TierStats } from '../content/td2units.ts';
 import { isqrt } from './fmath.ts';
 import type { Rng } from './rng.ts';
-import { cellIdx, cellX, cellY, flowField } from './grid.ts';
+import { cellIdx, cellX, cellY, flowField, inGrid } from './grid.ts';
 import { UNIT } from './types.ts';
 import type { BuildingKind } from './types.ts';
 import { TD_BURN_DAMAGE, TD_ENEMY_ARMOR, TD_HERO_DAMAGE, TD_KEG_DAMAGE, TD_MINE_DAMAGE, TD_TOWER_DAMAGE, counterPct, isTdTowerKind } from './td2types.ts';
@@ -127,6 +127,8 @@ export interface Internal {
   heroCmd?: boolean;
   /** 狙击塔 id → 正在瞄的敌人和开火拍 */
   snipe: Map<number, { target: number; fireAt: number }>;
+  /** 吊桥收起时给"已经在桥上的人"用的占格图（把那座桥暂算成能走） */
+  bridgeOcc?: [Uint8Array | null, Uint8Array | null];
 }
 
 export interface TdState {
@@ -187,6 +189,8 @@ export interface TdState {
   campOn?: true;
   /** 水手营（造了第一座才有） */
   camps?: TdCamp[];
+  /** 吊桥（关卡写了 drawbridge 才有，tdmech.ts）：哪座正放下（0 或 1），下次能切换的拍 */
+  drawbridge?: { down: 0 | 1; ready: number };
   internal: unknown;
 }
 
@@ -400,29 +404,63 @@ export function ensureGrid(s: TdState): void {
     const sl = s.slots[c.slot];
     if (sl) for (let ox = 0; ox < 2; ox++) for (let oy = 0; oy < 2; oy++) I.occ[cellIdx(sl.x + ox, sl.y + oy)] = 2;
   }
+  const db = s.drawbridge;
+  const dbl = s.level.drawbridge;
+  if (db && dbl) {
+    for (const c of dbl[db.down]) if (inGrid(s.ext, c.x, c.y) && I.occ[cellIdx(c.x, c.y)] === 2) I.occ[cellIdx(c.x, c.y)] = 0;
+    const up = dbl[db.down === 0 ? 1 : 0];
+    for (const c of up) if (inGrid(s.ext, c.x, c.y)) I.occ[cellIdx(c.x, c.y)] = 2;
+  }
+  I.bridgeOcc = undefined;
   I.flow.clear();
   I.gridVer = I.ver;
 }
 
-function flowTo(s: TdState, key: string, goals: () => number[], wallCost: number): Int32Array {
+/** 站在正收起的那座吊桥上时返回它的下标（0 或 1），不在或没有吊桥为 -1：桥上的人照走完 */
+export function onRaisedBridge(s: TdState, x: number, y: number): 0 | 1 | -1 {
+  const db = s.drawbridge;
+  const dbl = s.level.drawbridge;
+  if (!db || !dbl) return -1;
+  const up: 0 | 1 = db.down === 0 ? 1 : 0;
+  const cx = Math.floor(x / UNIT);
+  const cy = Math.floor(y / UNIT);
+  return dbl[up].some((c) => c.x === cx && c.y === cy) ? up : -1;
+}
+
+/** 占格图：普通局面用 I.occ；站在收起的吊桥上时把那座桥暂算成能走 */
+export function occFor(s: TdState, bi: 0 | 1 | -1): Uint8Array {
   ensureGrid(s);
   const I = inner(s);
-  const k = `${wallCost}|${key}`;
+  if (bi !== 0 && bi !== 1) return I.occ;
+  I.bridgeOcc ??= [null, null];
+  let occ = I.bridgeOcc[bi];
+  if (!occ) {
+    occ = new Uint8Array(I.occ);
+    for (const c of s.level.drawbridge![bi]) if (inGrid(s.ext, c.x, c.y)) occ[cellIdx(c.x, c.y)] = 0;
+    I.bridgeOcc[bi] = occ;
+  }
+  return occ;
+}
+
+function flowTo(s: TdState, key: string, goals: () => number[], wallCost: number, bridge: 0 | 1 | -1 = -1): Int32Array {
+  ensureGrid(s);
+  const I = inner(s);
+  const k = bridge >= 0 ? `${wallCost}|b${bridge}|${key}` : `${wallCost}|${key}`;
   let f = I.flow.get(k);
   if (!f) {
-    f = flowField(I.occ, s.ext, goals(), wallCost);
+    f = flowField(occFor(s, bridge), s.ext, goals(), wallCost);
     I.flow.set(k, f);
   }
   return f;
 }
 
-export function treasureFlow(s: TdState, i: number, wallCost: number): Int32Array {
+export function treasureFlow(s: TdState, i: number, wallCost: number, bridge: 0 | 1 | -1 = -1): Int32Array {
   const t = s.treasures[i] as { x: number; y: number };
-  return flowTo(s, `t${i}`, () => [cellIdx(t.x, t.y)], wallCost);
+  return flowTo(s, `t${i}`, () => [cellIdx(t.x, t.y)], wallCost, bridge);
 }
 
-export function cellFlow(s: TdState, cell: number, wallCost: number): Int32Array {
-  return flowTo(s, `c${cell}`, () => [cell], wallCost);
+export function cellFlow(s: TdState, cell: number, wallCost: number, bridge: 0 | 1 | -1 = -1): Int32Array {
+  return flowTo(s, `c${cell}`, () => [cell], wallCost, bridge);
 }
 
 

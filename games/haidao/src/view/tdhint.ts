@@ -70,7 +70,7 @@ export const MECH_KEY = 'haidao.hint.mech';
 /** 航海士技能持续几秒（提示、技能钮的悬停说明共用，跟着 TD2_NAV_SKILL 走） */
 export const navSecs = (k: 'flag' | 'reward'): number => Math.round(TD2_NAV_SKILL[k].ticks / TICKS_PER_SEC);
 /** 章末机制、关内事件、第一次带航海士和第一次见到崖上的高台共用这一套首次提示 */
-type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet' | TdEventKind | 'nav' | 'cliff';
+type MechKind = 'crate' | 'sluice' | 'battery' | 'fleet' | 'drawbridge' | TdEventKind | 'nav' | 'cliff';
 
 /** 每种章末机制一句怎么用（每章倒数第二关第一次见到时弹，和新敌人共用一张卡） */
 export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }>> = {
@@ -78,6 +78,7 @@ export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }
   sluice: { name: '潮汐水闸', text: '落潮路要开时点「水闸」关上，那条路的敌人改走主路' },
   battery: { name: '岸防老炮', text: '点「老炮」再点地面，1 秒后落一发大炸弹；打不到飞的' },
   fleet: { name: '友军巡航船', text: '点「援船」叫船沿岸边开半圈，海上的炮艇也打得到' },
+  drawbridge: { name: '吊桥', text: '点「吊桥」切换哪座放下（另一座收起），桥上的人照走完' },
   bounty: { name: '赏金船', text: '挂金旗的海盗不抢宝藏、横穿上岛就跑；打倒它多给一笔金币' },
   rain: { name: '暴雨', text: '下雨的那一波火弱两成、地上的火不烧，飞的也慢一点' },
   dare: { name: '战书', text: `开打前可以接：这一波敌人多 ${TD2_EVENT.dare.morePct}%，打倒的金币翻倍` },
@@ -87,7 +88,7 @@ export const MECH_HINT: Readonly<Record<MechKind, { name: string; text: string }
 
 /** 这一局有哪些章末机制（只看规则核心建好的状态：没有机制的关为空） */
 export function mechsOf(s: {
-  drift?: unknown; sluice?: unknown; battery?: unknown; fleet?: unknown;
+  drift?: unknown; sluice?: unknown; battery?: unknown; fleet?: unknown; drawbridge?: unknown;
   happen?: { at: ReadonlyArray<{ kind: TdEventKind }> };
   hero?: { kind?: 'nav' };
   slots?: ReadonlyArray<{ high?: true }>;
@@ -99,6 +100,7 @@ export function mechsOf(s: {
   if (s.sluice) out.push('sluice');
   if (s.battery) out.push('battery');
   if (s.fleet) out.push('fleet');
+  if (s.drawbridge) out.push('drawbridge');
   // 关内事件：这一局会发生的
   for (const a of s.happen?.at ?? []) if (!out.includes(a.kind)) out.push(a.kind);
   return out;

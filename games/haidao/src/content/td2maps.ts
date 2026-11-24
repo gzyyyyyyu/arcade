@@ -36,6 +36,8 @@ interface MapSpec {
   water?: Rect[];
   /** 桥：水面上留的能走的口子，只画木板 */
   bridges?: Pt[];
+  /** 吊桥（第六章）：两座吊桥各自占的格子（一局同时只放下一座） */
+  drawbridges?: [Pt[], Pt[]];
   /** 断崖（第五章）：矩形，挡路；整块落在崖里的木台是崖上的高台（TdPadDef.high），关卡用到的高台那几格从断崖里扣掉（td2levels.ts 的 buildLevel） */
   cliffs?: Rect[];
 }
@@ -315,6 +317,25 @@ const SPECS: readonly MapSpec[] = [
     garrison: [[8, 12], [12, 12]],
     kegs: [[4, 0], [5, 0], [0, 14]],
   },
+  {
+    id: 'R',
+    name: '双桥海峡',
+    blurb: '海峡横亘东西，两座吊桥轮流放下过岸',
+    hq: [18, 18],
+    treasures: [[10, 18]],
+    water: [[0, 9, 3, 10], [6, 9, 15, 10], [18, 9, 21, 10]],
+    drawbridges: [
+      [[4, 9], [5, 9], [4, 10], [5, 10]],
+      [[16, 9], [17, 9], [16, 10], [17, 10]],
+    ],
+    walls: [[0, 14, 8, 15], [13, 14, 21, 15]],
+    rocks: [[0, 0], [1, 19], [20, 1]],
+    palms: [[13, 1], [3, 18]],
+    lanes: [[4, -2], [16, -2]],
+    pads: [[1, 11], [7, 4], [11, 5], [14, 4], [19, 5], [6, 12], [15, 12], [7, 17], [14, 17]],
+    garrison: [[4, 7], [11, 12], [11, 16]],
+    kegs: [[5, 3], [16, 3], [3, 12], [18, 12]],
+  },
 ];
 
 const WALL_LEVEL = 3;
@@ -360,6 +381,7 @@ function defOf(m: MapSpec): TdMapDef {
     kegs: m.kegs.map(([x, y]) => ({ x, y })),
     ...(m.water ? { water: m.water.flatMap(rectCells).map(([x, y]) => ({ x, y })) } : {}),
     ...(m.bridges ? { bridges: m.bridges.map(([x, y]) => ({ x, y })) } : {}),
+    ...(m.drawbridges ? { drawbridges: [m.drawbridges[0].map(([x, y]) => ({ x, y })), m.drawbridges[1].map(([x, y]) => ({ x, y }))] as [Array<{ x: number; y: number }>, Array<{ x: number; y: number }>] } : {}),
     ...(m.cliffs ? { cliffs: m.cliffs.flatMap(rectCells).map(([x, y]) => ({ x, y })) } : {}),
   };
 }

@@ -168,7 +168,7 @@ export function lostAtText(wave: number): string {
   return `打到第 ${wave} 波时失守`;
 }
 
-const CHAPTER_DONE = ['', '第一章通关', '第二章通关', '第三章通关', '远洋通关', '第五章通关'];
+const CHAPTER_DONE = ['', '第一章通关', '第二章通关', '第三章通关', '远洋通关', '第五章通关', '第六章通关'];
 
 /** 这一局送的章节纪念装饰（settleTd 的 trophies，按章号排）：「第一章通关、第二章通关！得到装饰「小风车」「小灯塔」，在收藏里摆到岛上」 */
 export function trophyText(ids: readonly string[]): string {

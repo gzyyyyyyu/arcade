@@ -168,8 +168,8 @@ export interface TdPadDef {
   high?: true;
 }
 
-/** 17 张关卡岛（A–Q，见 content/td2maps.ts） */
-export type TdMapId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q';
+/** 18 张关卡岛（A–R，见 content/td2maps.ts） */
+export type TdMapId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R';
 /** 战役第几章 */
 export type TdChapterId = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -192,6 +192,8 @@ export interface TdMapDef {
   water?: Array<{ x: number; y: number }>;
   /** 桥（只画，能走）：水道上留的口子铺木板 */
   bridges?: Array<{ x: number; y: number }>;
+  /** 吊桥（第六章最后两关）：两座吊桥各自占的水面格，一局同时只放下一座 */
+  drawbridges?: [Array<{ x: number; y: number }>, Array<{ x: number; y: number }>];
   /** 断崖格（第五章，TdLevel.cliffs） */
   cliffs?: Array<{ x: number; y: number }>;
 }
@@ -210,6 +212,8 @@ export interface TdIslandLevel extends TdLevel {
   layout: Placed[];
   /** 桥（只画，能走，TdMapDef.bridges） */
   bridges?: Array<{ x: number; y: number }>;
+  /** 吊桥（第六章最后两关，TdMapDef.drawbridges） */
+  drawbridge?: [Array<{ x: number; y: number }>, Array<{ x: number; y: number }>];
   slots: TdPadDef[];
   garrison: TdGarrisonSpot[];
   bossExtra?: number;
@@ -365,7 +369,9 @@ export type Td2Action =
   /** 水手营：在这块木台上造一座（只在 setup.camp 的局里有，tdcamp.ts）；升阶、选分叉、卖照旧用 up / branch / sell */
   | { t: number; type: 'camp'; slot: number }
   /** 水手营：把这块木台上那座营的集结点挪到 (x, y)（单位，营 3 格内能走的格） */
-  | { t: number; type: 'muster'; slot: number; x: number; y: number };
+  | { t: number; type: 'muster'; slot: number; x: number; y: number }
+  /** 吊桥：在两座吊桥之间切换哪座放下（另一座收起），冷却 TD2_DRAWBRIDGE.cd 拍 */
+  | { t: number; type: 'drawbridge' };
 
 /** 守岛 2.0 新增的事件（并进 TdEvent） */
 export type Td2Event =
@@ -411,7 +417,9 @@ export type Td2Event =
   | { type: 'land'; id: number; x: number; y: number }
   /** 水手营：造好（build，camp 是营 id）、兵倒下（down）、复活（up）；x、y 是兵的位置（单位） */
   | { type: 'soldier'; camp: number; man: number; what: 'down' | 'up'; x: number; y: number }
-  | { type: 'camp'; camp: number; slot: number; what: 'build' | 'up' | 'branch' | 'muster' | 'sell' };
+  | { type: 'camp'; camp: number; slot: number; what: 'build' | 'up' | 'branch' | 'muster' | 'sell' | 'charge' }
+  /** 吊桥：切到第 down 座放下（0 或 1），冷却到 ready 拍 */
+  | { type: 'drawbridge'; down: 0 | 1; ready: number };
 
 /** 场上的拒马（x、y 是格子坐标，事件 barricade 里的也是）：挡住周围 3×3 格的地面敌人，血掉光或到时间就没了 */
 export interface TdBarricade {
