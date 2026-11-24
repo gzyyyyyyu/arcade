@@ -53,12 +53,45 @@ tools/      sim.ts 机器人对打；probe.ts 跟牌积极度（两者可用 `--
 docs/       structure.md 目录和命令（本文件）、storage.md 浏览器存储 key、core-api.md 规则核心的约束和接口、view.md 画面层、net.md 联机/实盘/云存档/部署、stake.md 掼蛋实盘设计、stake-ddz.md 斗地主实盘设计、stake-sim.md 实盘模拟、ai.md 电脑的场地、性格、强弱数字和改电脑的流程、design.md 设计、rules.md 规则核实、art.md 美术现状、doudizhu.md 牌馆（掼蛋 + 斗地主）的分层、掼蛋金样、斗地主的画面和各模式、changelog-archive*.md 更新日志存档（0.38.1 及以前，四份）
 ```
 
-## 2. 常用命令（在模块目录运行）
+## 2. 命令（在模块目录运行，Node 22，见 `.nvmrc`）
 
-全部命令和说明见 `README.md` 的"本地开发"，这里只列和约定直接相关的：
+```bash
+npm ci                # 装依赖
+npm run dev           # 0.0.0.0:5174（局域网里的手机也能打开）
+npm test              # vitest：牌型、比大小、流程、进贡、打 A、回放、防泄漏、电脑、架构约束
+npm run lint          # Biome
+npm run build         # 页面产物 dist/（预览 npm run preview → 4174）
+npm run typecheck     # 全量 tsc；typecheck:core 只查规则核心和电脑（不带 DOM 库）
+
+# 模拟
+npm run sim           # 机器人对打 5000 副：电脑 vs 随机；更多模式见 tools/sim.ts 顶部
+npm run ai-sim -- solo # 各场地电脑的强弱（还有 room / style / time，见 docs/ai.md）
+npm run room-sim      # 联机房间规则层批量对打
+
+# 冒烟（无头浏览器；本地栈是真 Worker 加假平台）
+npm run shot          # 冒烟 + 截图到 shots/（--playtest 真实速度鼠标试玩一副，--only desktop,mobile,viewport,… 只跑部分）
+npm run test:room     # 联机房间测试（workerd 里的真 Durable Object）
+npm run online-smoke  # 四个无头浏览器打一整副、断线重连、同号顶替（--quick 跳过 70 秒那项）
+npm run quota-smoke   # 额度调得极紧时开房、进房、收场的五种情况
+npm run stake-smoke   # 单机和好友房实盘（--no-room 跳过好友房）
+npm run match-smoke   # 快速匹配
+npm run standalone-smoke # 单独部署：原样用 wrangler.jsonc 起 wrangler dev（没有平台）
+
+# 工具与构建
+node tools/mem.ts     # 内存估算（模拟 iPhone 8 / 8 Plus 横屏，各渲染倍数的纹理和画布占用）
+node tools/perf.ts    # 性能量测（先 npm run build）；--dist 指旧产物做背靠背
+npm run art           # 美术预览图 → shots/art/
+npm run cover         # 重新生成 public/cover.png
+npm run build:cf      # 部署产物 dist-cf/games/guandan/（Worker 在 worker/，开关见 docs/net.md）
+npm run deploy        # build:cf + wrangler deploy，只给拆出去的独立仓库用
+```
+
+调试用 URL 参数：`?seed=abc`（直接开局）、`&jump=tribute`（第二副进贡）、`&jump=ace`（打 A）、`&debug=1`（挂 `window.__game`）、
+`&autoplay=1`（电脑代打我）、`&online=1`（打开就弹出好友房面板）、`&room=123456`（直接进房）、`&anim=0`、`&speed=2`、`&difficulty=pro`（`novice`、`normal`、`pro`）、`&ddz=1`（斗地主）、`&bake=all`（等整套牌桌素材烘完再进牌桌，冒烟大屏段用）。URL 开的局在已有存档时不写存档、不计战绩。
+
+按改动跑什么：
 
 - 改规则或电脑后：`npm test`、`npm run typecheck:core`、`npm run sim -- --deals 5000 --mode random`；改强弱、性格、场地表后 `npm run ai-sim -- solo|room|style|time|length`（数字写进 `docs/ai.md`，见第 2 节）。
 - 改画面后：`npm run shot`（`-- --gallery --out <目录>` 出美术图集，加 `--audit --sizes 667x375,844x390` 逐屏量字号和点按区、写 `audit.md`，`docs/art.md` 第 7 节）；内存 `node tools/mem.ts [--scales auto,1,2,3]`。
 - 改联机或实盘后：`npm run test:room`（workerd 里的真房间）、`npm run room-sim`、`npm run online-smoke`、`npm run stake-smoke`、`npm run match-smoke`；本地联机栈 `npm run online-dev`。
 - 金样：`node tools/golden.ts [--write | --dump <场景> <文件>]`（牌馆重构，`docs/doudizhu.md` 第 2 节）：重算各场景的哈希 / 有意改了掼蛋行为时重写 `tests/golden/guandan.json` / 导出一个场景的明细做 diff；试玩日志复盘 `node tools/replay-log.ts <log.jsonl>`。
-- `npm run deploy` 拆成独立仓库后才用；在总仓库里正式部署只经 PR 合并进 main 后由 CI 完成。

@@ -81,7 +81,7 @@
   ref `solo-ddz-…` 和掼蛋的互不匹配，"别的设备上开的那一份"各认各的（`strayStake` / `strayDdzStake`）。冒烟 `npm run stake-smoke -- --ddz-only`。
 - 掼蛋每日挑战（`guandan/daily.ts`，主页战绩条右边的"每日挑战"，控件 `daily`，单独部署不摆）：`DailySession`（继承 `Session`，不存档、不计战绩）用只看北京时间日期的种子、三个普通难度电脑、默认地方规则，
 - 打满 8 副或有一队先过 A 就结束，分数是我方每副 `dealPoints` 的累计（不封顶），交到平台 `daily-<日期>-gd`；牌桌顶上写"每日 · 第 n/8 副"，结算页写这一场的分和交分结果，"再打一次"同一个种子重开。
-- 日期、榜名、交分、结果文字和斗地主共用 `daily.ts`；电脑照旧只读 `viewFor`、随机按用途从种子派生（`soloSeeds`）。不弹新手引导、不报好友动态。
+- 日期、榜名、交分、结果文字和斗地主共用 `daily.ts`；电脑只读 `viewFor`、随机按用途从种子派生（`soloSeeds`）。不弹新手引导、不报好友动态。
 
 ## 12. 启动与烘焙
 
@@ -107,7 +107,7 @@
 
 ## 15. 界面的刻度和按钮
 
-- 标题字体是内嵌的宋体子集（`fonts.ts`，README 素材一节）：新加的大字、横幅、弹窗标题如果用了字表里没有的字，`tests/view/view.test.ts` 会报缺字。
+- 标题字体是内嵌的宋体子集（`fonts.ts`，来源和重新生成见 `docs/art.md` 第 2 节）：新加的大字、横幅、弹窗标题如果用了字表里没有的字，`tests/view/view.test.ts` 会报缺字。
 - 界面的刻度和按钮：间距、圆角、投影、按钮配色和光影只从 `theme.ts` 取（`SPACE`、`RADIUS`、`OUTLINE`、`BUTTON`、`LIGHT`、`TIER`；投影色在 `LIGHT.shadow`），
 - 按钮分三档：主（`red`，一屏一个）、次（金绿蓝木）、弱（`quiet`：不要、重选、理牌），调用处只传颜色名、档位由 `BUTTON_TIER` 推出，不自己画高光阴影（`docs/art.md` 第 9 节），DOM 用 `THEME_CSS` 的 `--gd-` 变量和 `.gd-btn`（`tests/view/ui-theme.test.ts` 查 DOM 按钮）。
 - 牌桌操作区同一时间只有一个红色主按钮（出牌；斗地主叫分是"3 分"、明牌是"明牌 ×2"），"提示"用木色，"我回来了"绿、"重新带入"金；手机上按钮画出来的高度不低于 36 CSS 像素（`theme.ts` 的 `minDrawH`）。

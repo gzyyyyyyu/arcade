@@ -5,7 +5,7 @@
 
 ## 1. 原则
 
-- 全部图片程序生成（`src/view/art/` 的 SVG），音效 WebAudio 合成，不引外部图片和音频；唯一的外部素材是内嵌的标题字体子集，来源见 README"素材"一节。
+- 全部图片程序生成（`src/view/art/` 的 SVG），音效和背景音由 `src/view/common/audio.ts` 用 WebAudio 合成，不引外部图片和音频；牌桌互动的表情包和道具来自共用包 `arcade-kit/table-fun`（画法和音效在 `arcade-kit/fun`，同样是手写 SVG 和 WebAudio 合成，来源见 kit 的 README）；唯一的外部素材是内嵌的标题字体子集（第 2 节）。`public/cover.png`（平台首页封面）由 `tools/cover.ts` 从同一套 SVG 渲染。
 - 宽屏多出来的宽度给主区（主页的主视觉、牌桌两侧的远景），不留空边；世界坐标高 720、宽 1280..1720（`theme.ts` 的 `worldWidthFor`）。
 - 画布和 DOM 同一套风格：好友房面板、分享预览、竖屏提示用 `THEME_CSS` 的变量和 kit 的 `--ak-*` 主题变量，和画布里的弹窗一致。
 - 不做可换装饰、头像框这类要存储和商品化的东西（和"不碰真钱"冲突的风险）。

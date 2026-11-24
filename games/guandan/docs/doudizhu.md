@@ -40,7 +40,7 @@ src/view/                 画面层两个玩法共用：手牌、出牌区、座
 
 - 选项 `DdzOptions { deals, dealCap, cap, mingpai?, noShuffle? }`：一场几副、每副封顶、一场累计封顶（到了就结束，最后那副截的是 `s`，仍然零和）、明牌玩法（默认关，规则见 `docs/rules.md` 的"明牌"）、不洗牌玩法（默认关，见下）。娱乐是 `DDZ_FUN`（6 副、不封顶、不明牌）。
 - 不洗牌（`noShuffle`，叠在娱乐上的是 `DDZ_NOSHUFFLE`：成团发牌、每副封顶 48 分）：只换发牌，叫分、出牌、结算一条不改；电脑看到视图里的 `noShuffle` 会更舍得炸（`docs/ai.md` 斗地主一节）。`clumpDeck` 把牌按点数排好，切 3 刀、随手换 6 对，再按 3–5 张一叠轮着发（流 `ddz-clump`）：单机按种子、第几副、重发次数分（`rngFor`），好友房按房间密钥（`clumpRng` 包一层 `stream(key, 'ddz-clump', …).below`，看得见的牌推不出后面的牌）。
-  被每副封顶截了的那副记 `capped`（经典玩法照旧只记一场封顶）。视图带 `noShuffle: true`，经典玩法没有这个字段。
+  被每副封顶截了的那副记 `capped`（经典玩法只记一场封顶）。视图带 `noShuffle: true`，经典玩法没有这个字段。
   量过的数：三家手里平均每副 2.30 个炸弹（含王炸；经典洗牌 0.59），没有炸弹的副 7.8%（经典 52%）。
   `ddz-stake-sim --fun --time --noshuffle` 对比 `--fun --time`，普通玩家对两个新手：一局中位 7.2 分钟（经典 8.3），超 2 分钟的一手 0.9%（经典 3.3%），胜率 82% 对 78%；6 副里至少碰一次封顶的局 23%，小白乱炸时 35%。三家都是普通档电脑时，电脑攥着炸弹不爱出，每副只炸 0.73 次，很少碰封顶。
   单机娱乐开局时页面另传 `DDZ_FUN_OPTS`（`src/view/doudizhu/session.ts`，`mingpai: true`）；每日挑战、实盘不开；好友房的娱乐房间一律开（`src/variants/doudizhu/net/rules.ts`）。
