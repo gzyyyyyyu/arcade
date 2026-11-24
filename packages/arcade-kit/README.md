@@ -1,24 +1,29 @@
-# arcade-kit
+# arcade-kit · 联机底座
 
-Multiplayer toolkit for small turn-based games on Cloudflare Workers: a Durable Object room base class, create/join entry points for your game Worker,
-a reconnecting browser client, a daily write-quota meter, a seeded ChaCha20 RNG, and platform or standalone (guest) identity.
-小游戏共用的联机底座：好友房、开房进房、浏览器连接、每天的额度，德州、牌馆、雀馆等游戏的好友房都用它。每个版本改了什么见 `CHANGELOG.md`，本文只写现状。
+Multiplayer toolkit for small turn-based games on Cloudflare Workers: a Durable Object room base class, create/join entry points, a reconnecting browser client, daily quotas, a seeded ChaCha20 RNG, and platform or guest identity.
 
-## Install
+**English** · [简体中文](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/README.zh-CN.md)
 
-```bash
-npm i @yyyu-star/arcade-kit
-```
+## Features
 
-To keep imports short (`arcade-kit/room` instead of `@yyyu-star/arcade-kit/room`), install it under the alias `arcade-kit`:
+- **Room base class** `GameRoom`: seats, host start, turn-based or simultaneous moves, per-seat filtered views, seats kept on disconnect, turn timers, bot takeover and batched bot moves.
+- **Server-authoritative**: rules are pure functions shared by room and browser; hidden information never leaves the server.
+- **Reconnecting client** `RoomClient`: backoff with jitter, dead-connection probing, sequence de-duplication and resend of unacknowledged moves.
+- **Fair dealing**: 256-bit entropy per game and ChaCha20 streams locked to the RFC 8439 test vectors.
+- **Cost guard**: a daily write and room quota meter (`RoomMeter`) with per-seat inbound limits.
+- **Two deploy modes**: identify players through the Arcade platform, or run standalone with guest cookies.
+- **Optional extras**: quick-match queue, friend-room chat filter, table emotes and props, share cards, presence and invites, theme variables.
+- **No runtime dependencies**; ESM only, compiled JavaScript plus `.d.ts`, Node ≥ 22.
+
+## Quick start
+
+Install under the alias `arcade-kit` so imports stay short (`arcade-kit/room` instead of `@yyyu-star/arcade-kit/room`):
 
 ```bash
 npm i arcade-kit@npm:@yyyu-star/arcade-kit
 ```
 
-`package.json` then reads `"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.30.0"`. ESM only; each subpath ships compiled JavaScript plus `.d.ts`. Node ≥ 22.
-
-## Minimal example
+A two-seat card game, end to end:
 
 ```ts
 // rules.ts: pure functions, shared by the room and the browser
@@ -82,100 +87,74 @@ if (!('error' in made)) {
 | `arcade-kit/auth` | `whoIs`, `identify`, `sameOrigin`: identify players through the platform or as guests |
 | `arcade-kit/guest` | Standalone mode: guest cookie, guest identity, nickname cleaning |
 | `arcade-kit/rng` | ChaCha20 (RFC 8439) streams, uniform integers, shuffle; for dealing in online rooms |
-| `arcade-kit/prng` | Small deterministic sfc32 PRNG for single-player rule cores (not secret) |
-| `arcade-kit/viewport` | Mobile visible area, render scale, low-memory and WebGL-loss handling |
+| `arcade-kit/prng` | Small deterministic sfc32 PRNG for single-player rule cores (not secret, never for online dealing) |
+| `arcade-kit/viewport` | Mobile visible area, pinch zoom, safe area, render scale, low-memory and WebGL-loss handling |
 | `arcade-kit/table-fun`, `fun`, `fun-logic` | Table interactions: avatar menu, emotes, props, bot reactions, chat UI |
-| `arcade-kit/chat` | Friend-room chat filter shared by the room and the page |
-| `arcade-kit/share` | Share card drawing and system share or preview |
+| `arcade-kit/chat` | Friend-room chat filter shared by the room and the page, plus single-player `localChat` |
+| `arcade-kit/share` | Share card drawing (with QR code) and system share or preview |
 | `arcade-kit/social` | Presence, friend invites, invite panel, feed moments |
 | `arcade-kit/personas` | Shared bot roster: names, faces, traits, style switching |
 | `arcade-kit/theme` | `--ak-*` theme variables for the DOM components |
 | `arcade-kit/report` | `reportErrors`: report uncaught page errors to the platform |
 | `arcade-kit/testing` | Fake platform wallet for tests and local dev only |
 
-- **Two modes.** With a service binding `ARCADE` to the Arcade platform, players are identified through the platform's `/api/me` (login required).
-  Without it (and `GATE` not set to `"login"`) the game runs standalone: the Worker issues a guest cookie and anyone can play. See [docs/deploy-modes.md](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/deploy-modes.md).
-- **Runtime.** `room`, `meter`, `match` and `testing` import `cloudflare:workers` and need a Workers bundler (wrangler, esbuild, `@cloudflare/vitest-plugin`);
-  every other subpath also loads in plain Node. Types reference `@cloudflare/workers-types` (optional peer dependency).
-- **Versioning.** Semver; before 1.0 a minor bump may change behaviour. The room protocol only adds fields; incompatible changes bump `PROTOCOL_VERSION` (old pages are asked to reload).
-- Source and issues: <https://github.com/gzyyyyyyu/arcade/tree/main/packages/arcade-kit>. License: MIT.
+`room`, `meter`, `match` and `testing` import `cloudflare:workers` and need a Workers bundler (wrangler, esbuild, `@cloudflare/vitest-plugin`); every other subpath also loads in plain Node. Types reference `@cloudflare/workers-types` (optional peer dependency).
 
-下面是中文说明。文档在仓库的 `docs/` 里（npm 包不带），链接都指向 GitHub。
+## Integrating a game
 
-## 功能和文档
+1. **Rules**: implement `RoomGame<S, A, V, O, E>` as pure functions. Deal in `begin(entropy, rulesVersion, setup)` using the entropy as the `rng` key, and never put it in a view; `view(state, seat)` contains only what that seat may see; `apply` returns `{ error }` with a short fixed code. Assert snapshot size with `snapshotBytes` in tests.
+2. **Room class**: `export class Room extends GameRoom<S, A, V, Env> { protected readonly game = rules; }`; override limits with `{ ...DEFAULT_LIMITS, turnMs: 20_000 }`.
+3. **Meter**: `export { RoomMeter } from 'arcade-kit/meter';`, bind `ROOM` and `METER` in `wrangler.jsonc` with `new_sqlite_classes` migrations. Always bind `METER` in production: without it there is no quota and no counting.
+4. **Worker routes**: only `acceptCreate` (`POST …/rooms`, 201 `{ code }`) and `acceptJoin` (`GET …/rooms/<code>/ws`); never forward browser requests to the room yourself.
+5. **Browser**: `new RoomClient({ url, clientVersion, onMessage, onStatus })`, then `sit`, `start` (host), `act`, `leave`, `close`. Redraw on `welcome`, play `state` frames, show a message per close code on `onStatus('closed', code)`, and offer `retry()` on `failed`.
+6. **Optional**: chat, quick match, table interactions, share cards, theme.
+7. **Deploy modes**: with a service binding `ARCADE` to the Arcade platform, players are identified through its `/api/me` (login required); without it, and `GATE` not `"login"`, the game runs standalone with guest cookies.
 
-文档目录：<https://github.com/gzyyyyyyu/arcade/tree/main/packages/arcade-kit/docs>。
+The room protocol only adds fields; incompatible changes bump `PROTOCOL_VERSION` and old pages are asked to reload. Semver; before 1.0 a minor bump may change behaviour.
 
-| 入口 | 做什么 | 细节 |
-|---|---|---|
-| `room` | 房间基类 `GameRoom`：入座离座、房主开局、轮流或同时出手、按座位过滤下发、断线保留座位、超时代出、掉线托管、电脑批量出手、硬限制；转出搭子战绩 `reportTogether` | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md)、[room-options](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/room-options.md) |
-| `worker` | `acceptCreate`、`acceptJoin`、`acceptMatch`：查 Origin、认人、找房间；`loginGate` 首页登录闸门；`standaloneRoot`、`json`、`readJson` | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) |
-| `auth`、`guest` | 经平台 `/api/me` 认人（fail-closed）、按部署方式认人、同站校验；独立模式的游客 cookie 和昵称清洗 | [deploy-modes](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/deploy-modes.md) |
-| `meter` | 计量 `RoomMeter`：每天的写入额度、每人和全站的开房名额；`meterReport`、`meterLevel` 给房间以外的 DO 用 | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) 的"每天的额度" |
-| `game` | 规则接口 `RoomGame`、快照体积 `snapshotBytes`、匹配档位检查 `matchConfigErrors` | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) |
-| `client` | `RoomClient`：退避加抖动重连、静默死连接探测、seq 去重、没确认的操作重发；`MatchClient`；`createRoom`、默认文案；`detectPlatform`；`platformSoundOn`（大厅静音带进游戏，[sound](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/sound.md)） | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) |
-| `protocol` | 消息类型、协议版本、关闭码、房间码格式 | |
-| `rng`、`prng` | 联机发牌用 ChaCha20 流；单机规则核心用 sfc32（种子 32 位、不保密，**不得用于联机发牌**） | |
-| `viewport` | 手机平板的可见区、双指放大、安全区、渲染倍数、省内存、WebGL 丢失恢复 | [viewport](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/viewport.md) |
-| `table-fun`、`fun`、`fun-logic` | 牌桌互动：头像菜单、短语、表情、道具、冷却护盾连击、电脑反应、聊天界面 | [table-fun](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/table-fun.md) |
-| `chat` | 好友房聊天过滤（链接、号码整条拒发，脏话打码）、单机 `localChat`；不落库 | [chat](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/chat.md) |
-| `match` | 快速匹配排队 `MatchQueue`：每个档位一个实例、一个闹钟，凑满或到点开桌 | [match](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/match.md) |
-| `share`、`social` | 分享卡（1080×1350，带二维码）；报位置、收好友邀请、叫朋友来、报名场面 | [share](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/share.md) |
-| `personas` | 共用电脑名册：16 个人的名字、人设、头像、性格，这一手的性格（换打法、手感、上头）、按权重挑人 | [personas](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/personas.md) |
-| `theme` | DOM 组件的主题变量 `--ak-*`，不传主题外观不变 | [theme](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/theme.md) |
-| `report` | `reportErrors`：把没人接住的页面报错报给平台 `/api/client-error` | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) |
-| `testing` | 假平台钱包（`WalletService`、`FakeBank`、`walletHttp`），只给测试和本地开发 | [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) 的"假钱包" |
-
-内部地址和身份头（`src/internal.ts`）不在 `exports` 里，游戏引用不到。房间规范见仓库根 [docs/rooms.md](https://github.com/gzyyyyyyu/arcade/blob/main/docs/rooms.md) 第 4 节。
-
-## 游戏怎么接
-
-详细版（错误码、关闭码、`RoomClient` 字段）见 [docs/rooms.md](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md)。
-
-1. 装依赖：`npm i @yyyu-star/arcade-kit`，或按别名 `arcade-kit@npm:@yyyu-star/arcade-kit` 装（仓库里的游戏都用别名，代码写 `arcade-kit/room`）。
-2. 写规则：实现 `RoomGame<S, A, V, O, E>`，都是纯函数，浏览器和房间共用。开局用 `begin(entropy, rulesVersion, setup)`，把 256 位熵当 `rng` 的密钥发牌，`view` 绝不带它；
-   `view(state, seat)` 只放这个座位看得到的；`apply` 的 `{ error }` 原样发给出手的人，只能是固定的短码。测试里用 `snapshotBytes` 断言快照上限。
-   开局选项、座位换人、对外的事、不轮流的操作、停顿、快捷短语等见 [docs/room-options.md](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/room-options.md)。
-3. 房间类：`export class Room extends GameRoom<S, A, V, Env> { protected readonly game = rules; }`，要改限制就 `{ ...DEFAULT_LIMITS, turnMs: 20_000 }`。
-4. 计量：入口文件 `export { RoomMeter } from 'arcade-kit/meter';`，`wrangler.jsonc` 绑 `ROOM`、`METER`，迁移里写 `new_sqlite_classes`。**正式环境一定要绑 `METER`**：没绑时不限额、不计数。
-5. Worker 路由只接 `acceptCreate`（`POST …/rooms`，成功 201 `{ code }`）和 `acceptJoin`（`GET …/rooms/<码>/ws`），不要自己把浏览器的请求转给房间。
-6. 浏览器：`new RoomClient({ url, clientVersion, onMessage, onStatus })`，`sit`、`start`（房主）、`act`、`leave`、`close`；收到 `welcome` 整桌重画，`state` 按 `frames` 播放；
-   `onStatus('closed', 关闭码)` 按码提示，`failed` 时让用户点重试 `retry()`。
-7. 可选再接：好友房聊天（[chat](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/chat.md)）、快速匹配（[match](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/match.md)）、牌桌互动、分享卡、主题。
-8. 不带平台也能部署成独立游戏（游客身份）：见 [docs/deploy-modes.md](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/deploy-modes.md)。
-
-## 包的两种形态
-
-- npm 上发编译好的 `dist/`（JS + `.d.ts`）；包里带 `dist`、`src` 和 `CHANGELOG.md`，不带 `docs/`、`AGENTS.md`、测试。
-- 仓库里 `package.json` 的 `exports` 指向 `src/*.ts`，模块内的测试和开发直接用源码；`prepack` 构建 `dist` 并把 `exports` 换成 dist 版，`postpack` 换回来（`scripts/manifest.mjs`）。
-  所以不要手改 `exports` 成 dist，新加入口照 `"./x": "./src/x.ts"` 写。
-- 仓库里的游戏和发布后的用法一样，都按 npm 别名装（`"arcade-kit": "npm:@yyyu-star/arcade-kit@^0.30.0"`）。
-- `src/` 里相互引用写 `.js` 扩展名（`./auth.js`），编出来的 JS 原样能被 Node 原生 ESM 解析；vite、esbuild、tsc 对源码会映射回 `.ts`。
-
-## 本地开发
+## Development
 
 ```bash
 npm ci
-npm test        # 类型检查 + vitest（本地 workerd 里跑真的 Durable Object、WebSocket 休眠接口和闹钟，默认和假 PG 各一遍）+ 构建 dist 并检查每个入口
-npm run build   # 只构建 dist/（tsconfig.build.json）
-npm pack        # prepack 构建并把 exports 换成 dist 版，打出 tgz，postpack 换回来
+npm test        # type check + vitest in workerd (real Durable Objects, hibernating WebSockets, alarms; default and fake-PG storage) + build dist and check every entry
+npm run build   # build dist/ only
+npm pack        # build, swap exports to dist, pack a tgz, swap back
 ```
 
-在本模块目录里运行。测试用的游戏 Worker 在 `test/worker.ts`（最小的"比大小"规则，是接入的完整例子；可选接口用 `test/ledger.ts` 的"记账桌"和 `test/pause.ts` 测），
-平台的 `/api/me` 用假的服务绑定代替（`vitest.config.ts`），假钱包 `WALLET` 绑回测试 Worker 自己导出的 `WalletService`。测试里的站点一律是示例域名 `game.example.com`。
-`demo/` 是能在浏览器里点的小例子（`npx vite` 后打开 `/demo/`）。
+In the repository `exports` point at `src/*.ts`; `prepack`/`postpack` (`scripts/manifest.mjs`) swap them to `dist/` for publishing. The published package contains `dist`, `src` and `CHANGELOG.md`. The test game Worker in `test/worker.ts` is a complete minimal integration. `demo/` holds clickable browser examples: serve the folder with any dev server that understands TypeScript (for example `npx vite`) and open `/demo/`.
 
-## 目录结构
+## Project layout
 
-- `src/`：每个子路径一个同名文件（`room.ts`、`worker.ts`、`client.ts`……）；`room-seats.ts`、`room-rate.ts`、`room-persist.ts` 是房间里不碰 DO 状态的部分，
-  `store.ts` 是可插拔存储，`together.ts` 是搭子战绩，`table-chat.ts` 是牌桌互动里的聊天界面，`qr.ts` 是二维码编码器，`chat-words.ts` 是打码词表，`fun-art.ts` 是手写 SVG，`internal.ts` 是内部地址和身份头（不导出）。完整注释版见 [docs/rooms.md](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) 末尾。
-- `docs/`：各子模块的用法和房间规矩；`test/`：vitest 和测试用的游戏 Worker；`demo/`：浏览器里的小例子；`scripts/manifest.mjs`：打包时换 `exports`。
+```
+arcade-kit/
+├─ src/        one file per subpath, plus internal parts (room-*.ts, store.ts, qr.ts, internal.ts …)
+├─ test/       vitest suites and the test game Workers
+├─ demo/       browser examples for table fun, share and social
+├─ docs/       usage and rules for each subpath (Chinese)
+└─ scripts/    manifest.mjs swaps exports at pack time
+```
 
-## 发布
+## Documentation
 
-kit 自己不部署、没有 Worker：发到 npm（`npm publish`，由维护者做；`publishConfig.access` 是 public），游戏把它打包进自己的 Worker 和页面。
-CI 的 `pkg-arcade-kit.yml` 只跑测试；kit 改动时依赖它的游戏的流程也会跑一遍测试。游戏要准备的绑定和变量见 [docs/deploy-modes.md](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/deploy-modes.md)。
+Design docs are in Chinese and live in the repository (not in the npm package).
 
-## 许可证
+- [rooms](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/rooms.md) — full integration guide: error and close codes, `RoomClient` fields, quotas, fake wallet, annotated source map.
+- [room-options](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/room-options.md) — optional `RoomGame` hooks: setup options, seat swaps, side effects, simultaneous moves, pauses, bot phrases.
+- [deploy-modes](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/deploy-modes.md) — platform vs standalone mode, self-hosted storage, bindings and variables a game needs.
+- [match](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/match.md) — quick-match queue.
+- [chat](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/chat.md) — friend-room chat: filtering, rate limits, UI.
+- [table-fun](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/table-fun.md) — avatar menu, emotes, props and bot reactions.
+- [share](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/share.md) — share cards, presence and invites.
+- [personas](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/personas.md) — the shared bot roster.
+- [viewport](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/viewport.md) — phone and tablet viewport handling.
+- [theme](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/theme.md) — `--ak-*` theme variables.
+- [sound](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/docs/sound.md) — carrying the lobby mute into games.
+- [CHANGELOG](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/CHANGELOG.md) — version history.
 
-MIT，见 `LICENSE`。
+## Part of Arcade
+
+This is the `packages/arcade-kit/` module of the [Arcade](https://github.com/gzyyyyyyu/arcade) repository, published to npm on its own; Arcade's games build their online rooms on it. Source and issues: <https://github.com/gzyyyyyyu/arcade/tree/main/packages/arcade-kit>.
+
+## License
+
+MIT, see [LICENSE](https://github.com/gzyyyyyyu/arcade/blob/main/packages/arcade-kit/LICENSE).
