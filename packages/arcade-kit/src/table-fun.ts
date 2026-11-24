@@ -169,6 +169,8 @@ const DEFAULT_LINES: Record<FunMood, readonly string[]> = {
 };
 
 const HINT_TEXT = '点头像扔道具，长按连扔';
+/** 首次提示开着时多久问一次游戏的 hintSeat（那家出牌了就收起） */
+const HINT_WATCH_MS = 250;
 /** 整句放不下（哪儿都会压到名牌）时的短说法 */
 const HINT_SHORT = '点头像扔道具';
 
@@ -340,6 +342,15 @@ export class TableFun {
   /** 首次提示开着时"点任何地方就收起"的监听，收起、到点、销毁时摘掉 */
   private hintOff: (() => void) | null = null;
   private readonly onResize = (): void => this.refresh();
+  /** Esc 收起开着的菜单、面板、手机输入条（收了才吞掉这一下，游戏自己的 Esc 不受影响） */
+  private readonly onKey = (e: KeyboardEvent): void => {
+    if (e.key !== 'Escape' || e.isComposing) return;
+    if (this.open) this.closeAll();
+    else if (this.cui.barOpen()) this.cui.closeBar();
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   constructor(opts: TableFunOptions) {
     // 先查 key 再碰 DOM：不合格的不留下半个界面
@@ -384,11 +395,13 @@ export class TableFun {
       area: () => this.o.danmakuArea?.() ?? null,
       lite: () => this.o.lite?.() ?? ((navigator as { deviceMemory?: number }).deviceMemory ?? 8) <= 2,
       history: () => this.openPanel('chat'),
+      solo: !!opts.localBots,
       later: (ms, fn) => this.later(ms, fn),
       now: () => this.now(),
       ...(opts.log ? { log: opts.log } : {}),
     });
     window.addEventListener('resize', this.onResize);
+    this.doc.addEventListener('keydown', this.onKey);
     this.refresh();
     this.later(1500, () => this.hint());
   }
@@ -1099,17 +1112,29 @@ export class TableFun {
     // 整句、短句都放不下（不压任何名牌就没地方）：先不冒，过一会儿再试
     const b = this.bubble(at, HINT_TEXT, FUN_TIMING.hintMs, '', true) ?? this.bubble(at, HINT_SHORT, FUN_TIMING.hintMs, '', true);
     if (!b) return this.later(2000, () => this.hint());
-    // 点屏幕任何地方就收起（docs/ui.md 第 11 条：提示不能挡人）；这一下照常生效，不吞掉
-    this.hintOff = tapDismiss(this.doc, () => {
+    const drop = (): void => {
+      this.hintOff?.();
       this.hintOff = null;
       for (const a of b.getAnimations?.() ?? []) a.cancel();
       this.live.delete(b);
       b.remove();
-    });
+    };
+    // 点屏幕任何地方就收起（docs/ui.md 第 11 条：提示不能挡人）；这一下照常生效，不吞掉
+    this.hintOff = tapDismiss(this.doc, drop);
     this.later(FUN_TIMING.hintMs + 600, () => {
       this.hintOff?.();
       this.hintOff = null;
     });
+    // 冒出来以后那家出了牌（游戏的 hintSeat 不再给这个座位）：气泡会挡住牌，立刻收起
+    if (this.o.hintSeat) {
+      const end = this.now() + FUN_TIMING.hintMs;
+      const watch = (): void => {
+        if (!b.isConnected || this.now() >= end) return;
+        if (hintSeatFor(this.o.seats(), this.o.hintSeat) !== at) return drop();
+        this.later(HINT_WATCH_MS, watch);
+      };
+      this.later(HINT_WATCH_MS, watch);
+    }
     try {
       localStorage.setItem(key, '1');
     } catch {
@@ -1156,6 +1181,7 @@ export class TableFun {
     for (const t of this.timers) clearTimeout(t);
     this.timers.clear();
     window.removeEventListener('resize', this.onResize);
+    this.doc.removeEventListener('keydown', this.onKey);
     this.ui.remove();
     this.layer.destroy();
   }

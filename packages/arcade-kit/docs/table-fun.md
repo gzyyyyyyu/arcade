@@ -55,7 +55,7 @@ const fun = new TableFun({
   buttonStyle: () => ({ scale: stageScale, row: true }),  // 可选：按钮字和图标跟着牌桌放大（≥ 1），row = 图标和字横排；也可直接给 fontSize、icon（像素，优先于 scale）；别再覆盖 .atf-btn
   send: (id, to) => (online ? client.emote(id, to) : fun.receive(0, id, to)),
   canSend: () => seated,
-  hintSeat: () => (trickEmpty(1) ? 1 : null),     // 首次提示冒在哪家头像旁；null = 现在会挡住出牌，过 2 秒再问（不给就挑第一个电脑）。提示只出一次，3 秒自己收，点屏幕任何地方立刻收（那一下照常生效）
+  hintSeat: () => (trickEmpty(1) ? 1 : null),     // 首次提示冒在哪家头像旁；null = 现在会挡住出牌，过 2 秒再问（不给就挑第一个电脑）。提示只出一次，3 秒自己收，点屏幕任何地方立刻收（那一下照常生效）；开着时每 0.25 秒再问一次，不再给这个座位（那家出牌了）就立刻收
   enabled: () => settings.fun,                   // 设置里关掉：别人的一律不播，单机电脑也不反应
   scope: () => roomCode ?? 'solo',               // "屏蔽他""全部屏蔽"按房间分开
   localBots: !online,                            // 单机：电脑的反应由组件算、在本地播
@@ -72,6 +72,7 @@ const fun = new TableFun({
 - **房间的编号数**：`RoomGame.emotes` 填 `funIdCount(PHRASES.length)`（短语 + 12 表情 + 8 道具）。
 - **名场面**：游戏从**公开事件**里认出来，调 `fun.moment({ kind: 'moment', moment: 'bomb', winners: [0], losers: [1, 3], hand: 第几手 })`，
   单机时电脑按性格冲赢家撇嘴、或得意一下；要横幅就 `fun.banner('炸弹！', '小王 炸了 老李')`。
+- **怎么关**：头像菜单、互动面板点空白处或按 Esc 收起；手机输入条按 Esc 或 ✕ 收起。Esc 挂在 `document` 上，只在真收了东西时 `preventDefault` + `stopPropagation`（游戏挂在 `window` 上的 Esc 就收不到这一下），没开东西时不碰。
 - **游戏自己的弹窗**：打开前 `fun.hide()`，关掉后 `fun.show()`（正在播的不中断）；离开牌桌 `fun.destroy()`。
 - **冒烟**：`fun.controls()` 给每个能点的东西的屏幕中心和大小（`fun:button`、`fun:seat<i>`、菜单里的 `fun:prop<k>`、`fun:named<k>`、`fun:block`、
   表情菜单 `fun:sticker<k>`、面板 `fun:tab:phrase|sticker|prop`、`fun:phrase<i>`（短语多、屏幕矮时分页，翻页 `fun:phrases-prev` / `fun:phrases-next`，不在页上的短语按钮隐藏）、`fun:psticker<k>`、`fun:pprop<k>`、`fun:target<i>`、`fun:blockAll`）；
@@ -100,4 +101,4 @@ protected override onEmote(from: number, id: number, to?: number): void {
   其中四分之一同类回扔（鸡蛋回拖鞋；同一个电脑 20 秒最多回扔 2 次）；名场面输的一方 40% 冲赢家、赢的一方 30% 得意；每手最多主动 2 次；两次反应至少隔 1 秒。
   数字都在 `BOT_REACT`，第六个参数能整个换掉。
 - 电脑的反应只是画面，**出牌决策绝不读它**；真人的短语、道具不记进牌局状态（见 [room-options.md](room-options.md) 里 `onEmote` 的规矩）。
-- 其他纯函数：`stickerMood`（表情对应的情绪）、`FunCooldown`（冷却）、`FunTally`（护盾、连击、回敬）、`hotBox` / `yieldBox`（头像热区至少 44 见方、撑出来的部分让开 `avoid`）、`placeMenu`（菜单放哪，避开禁区；窄屏按 `fitMenuWidth` 收窄到屏幕宽减 16px）、`hotBox`（头像点按热区：至少 44 见方、夹在可见区里）、`funItem`/`stickerId`/`propId`（编号换算），测试在 `test/fun-logic.test.ts`。
+- 其他纯函数：`stickerMood`（表情对应的情绪）、`FunCooldown`（冷却）、`FunTally`（护盾、连击、回敬）、`hotBox` / `yieldBox`（头像热区至少 44 见方、撑出来的部分让开 `avoid`）、`placeMenu`（菜单放哪，避开禁区，顶边不进顶栏那一条 `topBand` = 屏高 9%，真放不下才退到 8px；窄屏按 `fitMenuWidth` 收窄到屏幕宽减 16px）、`hotBox`（头像点按热区：至少 44 见方、夹在可见区里）、`funItem`/`stickerId`/`propId`（编号换算），测试在 `test/fun-logic.test.ts`。
