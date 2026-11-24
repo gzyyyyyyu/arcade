@@ -1,6 +1,6 @@
 # 更新日志归档：0.40–0.49
 
-本文件是 0.40–0.49 已移出 [CHANGELOG.md](../CHANGELOG.md) 的更新日志原文，索引见 [changelog-archive.md](changelog-archive.md)。
+本文件是 0.40–0.49 已移出 [CHANGELOG.md](../CHANGELOG.md) 的更新日志原文，索引在 [CHANGELOG.md](../CHANGELOG.md) 开头。
 
 ## 0.40.1 — 2026-11-21
 
