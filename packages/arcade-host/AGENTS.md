@@ -17,5 +17,5 @@
 - `KIT_STORE` 的接口（`load`/`commit`/`wipe`、`kitWake`、`props.game`、ns 只许 room/meter/match）和 arcade-kit 的 `src/store.ts` 是一对，改哪边都要两边的持有者一起定。
 - capnp 字符串只放 ASCII：中文变量值、迁移 SQL、静态资源清单都写进 embed 的文件（`src/gen/capnp.ts` 会拦）。
 - 测试：`npm test`（起真的 workerd，临时文件在 `os.tmpdir()`）。新加的运行时行为要有测试。提交前 `npm run lint` 要过；要放行某一处，用 `// biome-ignore <规则>: <理由>` 写在那一行上面，不改全局规则。
-- 每次修改同步更新文档（合并门槛）：行为、用法变了改 `README.md`，和 Cloudflare 的差别变了改 `docs/verify.md`，发版写 `CHANGELOG.md`；文档只写现状，过程留给 CHANGELOG。
+- 每次修改同步更新文档（合并门槛）：行为、用法变了改 `docs/usage.md`（概览变了再改两份 README），和 Cloudflare 的差别变了改 `docs/verify.md`，发版写 `CHANGELOG.md`；文档只写现状，过程留给 CHANGELOG。
 - 版本号和 `CHANGELOG.md` 各自独立；提交信息以 `arcade-host:` 开头，分支名 `host/<说明>`。
