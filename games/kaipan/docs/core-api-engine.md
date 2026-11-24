@@ -1,6 +1,30 @@
-# 《开盘》规则层接口：入口、状态、操作、事件、查询
+# 《开盘》规则层接口：总则、入口、状态、操作、事件、查询
 
-> 本文件是 [core-api.md](core-api.md) 的分册，节号和内容原样保留；总目录见 [core-api.md](core-api.md)。
+> 规则层接口分几份，节号整套统一，哪一节在哪一份见 [README.md 的节号对照](README.md#节号对照)。
+> 规则层（`src/core`）对画面层、工具和测试的接口；和代码对不上时以代码为准（先看 `src/core/index.ts` 的导出和 `src/core/types/`；`types.ts` 只做入口）。
+> 各版本加了什么见 `CHANGELOG.md`；设计依据在 `docs/design-*.md`，数值的配平记录在 `docs/design-balance.md`。
+> 画面只从 `src/core/index.ts` 引用 core；存档、档案、云同步在 `src/platform/`，不在本文范围。
+
+## 1. 总则
+
+- **纯函数、完全确定**：`createRun(seed, setup, opts)` 开局，`dispatch(state, action)` 推进，同一个种子 + 同一个行情段 + 同一串操作（`state.actions`）永远得到同一个局面；
+  `replay(seed, actions, setup, opts)` 重建。行情段、`ext`、`tempo` 三个开局选项必须和原局一致，回放才逐位相同：
+  `replay(seed, actions, setup, { segment, ext: !!state.ext, tempo: !!state.tempo })`（`segment` 要给同一个行情段，`state.real.segId` 是它的 id）。
+- **随机一律用 `rngFor(seed, 用途, …)`**（`rng.ts`，sfc32）：按用途分流，行情、情报、商店、新闻、台词各用各的流，改一处不扰动别处。
+  `hashSeed`、`createRng` 同在 `rng.ts`。
+- **禁止的 API**：`src/core` 里不许 `Math.random`、`Date.now`、`new Date`，也不许结果依赖平台的数学函数（`Math.exp/log/pow/sin/cos` 等）；
+  只用加减乘除、比较、`Math.imul` 之类。`tests/repo/architecture.test.ts` 扫源码卡这条。真实行情的映射路径同样只有四则运算。
+- **core 不依赖 DOM、Phaser、网络**；画面只读状态和事件，不自己算规则。按钮能不能点用 `validate(state, action)`（返回原因文字或 `null`），
+  或查询函数里的 `error / canSell` 字段，不要自己判断。
+- **`dispatch(state, action, opts?) → { state, events, error }`**：默认 `structuredClone` 后改副本，传入的 `state` 不动；
+  `error` 非空时 `state` 原样返回、`events` 为空。`opts.events = false` 不收集事件、`opts.inPlace = true` 原地改（模拟器提速用，画面不要用）。
+- **单位**：涨跌幅、收益都是百分点（`5.2` = +5.2%），显示用 `formatPoints`；账户、月供是元，显示用 `formatMoney`（≥1 万显示「万」）；
+  热度是 0..100 的整数；倍数用 `formatMult`；`formatPct` 在 `format.ts`。
+- **规则表只有两张**：玩家这边的 `Rules`（格数、每天买几只、杠杆、手续费、涨跌停倍数……，`rulesOf(state)`）和市场这边的 `MarketRules`
+  （当月日历与难度对合成行情的修正，`marketRulesFor`）。难度、人设、道具、月度主题各改其中几格，叠加顺序在 `market.ts` 的 `rulesFor`。
+- **数值都在 `balance.ts`**（`BALANCE`、`fx(id, key)`）。画面不要写死数字，一律从接口、查询函数或 `desc()` 取（见第 12 节）。
+- 玩家看得见的文案不含 emoji、不用 A 股术语（`tests/repo/content-text.test.ts`、`tests/repo/content-terms.test.ts` 扫描）；名字和说明可能随版本改，id 不变，
+  画面一律取 `name / desc()` / `labels.ts`。
 
 ## 2. 入口函数（`engine/`、`index.ts`）
 

@@ -380,7 +380,7 @@ export class EndScene extends BaseScene {
 
 
   /**
-   * 「分享」（docs/design-share.md）：数据交给共用包画卡、分享；手机能带图片就调系统分享，不能就出预览（存图、复制链接）。
+   * 「分享」（docs/platform-integration.md 第 4 节）：数据交给共用包画卡、分享；手机能带图片就调系统分享，不能就出预览（存图、复制链接）。
    * 结束页一出来就先画好（共用包 prepareShare）：iOS 只许在点的那一下里调系统分享，点了再画就过期了、只能出预览。
    * 所以点击里直接调 share()，前面不能有 await。每日挑战读到名次后再画一张带名次的，画好了才换上，之前点分享的是手上那张。
    */

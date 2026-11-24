@@ -1,9 +1,9 @@
 /**
- * .0 分享卡（docs/design-share.md，仓库根 docs/social.md 1.1）：开盘只交数据，画法和分享方式在共用包 `arcade-kit/share`。
+ * .0 分享卡（docs/platform-integration.md 第 4 节，仓库根 docs/social.md 1.1）：开盘只交数据，画法和分享方式在共用包 `arcade-kit/share`。
  * 五个游戏的卡一个样子。
  *
  * - 大数字用比例不用钱数：三个人设开局本钱不一样，钱数没法比；实盘就是结回倍数（和结算页、顶栏同一个数，含杠杆）。
- * - 名场面按 design-share.md 第 2 节的顺序取第一条符合的；文字是固定模板，数字和名字由代码填，不收玩家的自由文字。
+ * - 名场面按 platform-integration.md 4.2的顺序取第一条符合的；文字是固定模板，数字和名字由代码填，不收玩家的自由文字。
  *   模板压在一行放得下（约 16 个字）：卡上的引号跟着折行，长一点就剩一个引号掉到第二行。
  * - 小数据的值只放短的（共用包每格约 6 个字宽），名字放在说明那一行：人设名配难度、股票名配涨幅。
  * - 实盘的几句照结束页的规矩（design-live.md 第 5 节）：不催人再来，输了不推更高的档位。
@@ -31,7 +31,7 @@ function monthsOf(sum: Readonly<RunSummary>): number {
 
 const times = (bp: number): string => `×${(bp / 10_000).toFixed(2)}`;
 
-/** 名场面（design-share.md 第 2 节，按顺序取第一条符合的） */
+/** 名场面（platform-integration.md 4.2，按顺序取第一条符合的） */
 export function shareLine(sum: Readonly<RunSummary>): string {
   const lv = sum.live;
   const best = sum.bestTrade;

@@ -21,7 +21,7 @@ import { createChallenge, loadChallengeRecord, openChallenge, saveChallengeRecor
 import { emptyProfile, recordRun } from '../../src/platform/profile.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 
-/** 0.13.0 异步挑战（docs/design-challenge.md）：payload、成绩、和平台说话、档案。 */
+/** 0.13.0 异步挑战（docs/platform-integration.md 第 5 节）：payload、成绩、和平台说话、档案。 */
 
 describe('哪些局能发、发出去是什么', () => {
   useExt(true);

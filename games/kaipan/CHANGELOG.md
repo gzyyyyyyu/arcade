@@ -1,5 +1,11 @@
 # 更新日志
 
+## 0.39.4 — 2026-11-23（文档：中英 README、合并小文档）
+
+- 文档：README 改成英文正本 + `README.zh-CN.md` 中文版，两份同构（玩法、快速开始、目录结构、文档、属于 Arcade、许可证）；原 README 里的部署、健康检查、平台联调挪进 `docs/platform-integration.md` 第 2、3 节，屏幕说明以 `docs/mobile.md` 为准，调试 URL 参数以 `docs/core-api-modes.md` 第 14 节为准。
+- 文档：合并 5 份：`design.md` 的设计支柱并进 `design-play.md` 第 1 节、`core-api.md` 的总则并进 `core-api-engine.md` 第 1 节（两张分册目录表并进 `docs/README.md` 的节号对照）；`design-share.md`、`design-challenge.md` 并进 `platform-integration.md` 第 4、5 节；`design-visual.md` 并进 `art-v3.md` 第 8 节。代码注释里指向这几份的引用跟着改。
+- 文档：`docs/README.md` 只留节号对照和资料说明，文档列表在两份 README 的「文档」一节；新手文档去掉内部流程说法。
+
 ## 0.39.3 — 2026-11-23（试玩修复：手机实盘标题不被挡、字读得全、说法写成字、点击区够大）
 
 - 实盘选档：手机上标题只写「实盘」，不再被「娱乐 | 实盘」开关压住；档位卡写「盈亏 ×2.8」（手机「盈亏×2.8」，窄卡放不下只写「×5」），杠杆按钮写「稳健 / 进取 ×2 / 疯狂 ×3」，不再和档位倍数混成一片；筹码不够最低一档时写出钱包里有多少。

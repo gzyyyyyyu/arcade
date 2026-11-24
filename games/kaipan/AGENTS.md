@@ -1,6 +1,6 @@
 # 《开盘》模块约定
 
-> 总规范见仓库根 `AGENTS.md`（第 1、2 节优先）；本文件只写开盘特有的规矩和坑。命令见 `README.md`「本地开发」和 `tools/README.md`，文档索引 `docs/README.md`。
+> 总规范见仓库根 `AGENTS.md`（第 1、2 节优先）；本文件只写开盘特有的规矩和坑。命令见 `README.zh-CN.md`「快速开始」和 `tools/README.md`，文档列表见 `README.zh-CN.md`「文档」，节号对照见 `docs/README.md`。
 
 ## 1. 这是什么
 
@@ -36,6 +36,6 @@
 
 ## 5. 发布
 
-- 改了什么改哪份文档：规则或玩法 → `docs/design-*.md`、`docs/core-api-*.md` 和游戏里的「怎么玩」；画面或布局 → `art-v3.md` / `mobile.md`；命令、存储 key、URL 参数 → 本文件、`README.md`、`docs/architecture.md`。
-- `wrangler.jsonc` 能单独部署：不写平台绑定、`GATE`、路由和站点地址，代码里也不写站点地址（`docs/platform-integration.md`）。
+- 改了什么改哪份文档：规则或玩法 → `docs/design-*.md`、`docs/core-api-*.md` 和游戏里的「怎么玩」；画面或布局 → `art-v3.md` / `mobile.md`；命令 → `tools/README.md`，存储 key → `docs/architecture.md`，URL 参数 → `docs/core-api-modes.md` 第 14 节，部署和平台 → `docs/platform-integration.md`；README 中英两份一起改。
+- `wrangler.jsonc` 能单独部署：不写平台绑定、`GATE`、路由和站点地址，代码里也不写站点地址（`docs/platform-integration.md` 第 2 节）。
 - 上线后打开 `/games/kaipan/`：版本号、开局能加载行情段、玩一天、控制台零报错；`/games/kaipan/health` 的版本号和这次一致。

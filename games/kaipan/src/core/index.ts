@@ -1,4 +1,4 @@
-/** core 层对外接口：view、debug、tools、tests 只从这里引用。接口说明见 docs/core-api.md。 */
+/** core 层对外接口：view、debug、tools、tests 只从这里引用。接口说明见 docs/core-api-engine.md。 */
 export { BALANCE, fx } from './balance.ts';
 export { NOVICE_SEGMENTS } from './content/noviceSegments.ts';
 export { LESSON, MINDS, MIND_IDS, friendRecord, isLesson, lessonAdvice, lessonDays, lessonSetup, mindById, mindMoment, type LessonAdvice, type MindDef, type MindId, type MindMoment } from './lesson.ts';
