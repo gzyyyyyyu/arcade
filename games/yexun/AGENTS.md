@@ -6,17 +6,7 @@
 
 ## 目录
 
-```
-src/core/      模拟核心：每秒 30 拍、确定性；arms/ 是法器和套件规则
-src/content/   内容表（法器、怪、波次、地图、角色、夜探、实盘倍数等）；改数值只改这里
-src/explore/   夜探规则    src/app/  main.ts 拆出的块    src/meta/  成就图鉴统计
-src/view/      画面：art/ 程序画图集、game/ 对局、audio/、ui/ DOM、viewport.ts 适配
-src/platform/  存档、云存档、实盘端    src/online/  排行榜、每日、每周夜事、分享
-src/replay/    本地录像    worker/  闸门、根路径、实盘带入带回、铜钱换筹码、health（自带 tsconfig）
-tools/         截图冒烟、模拟、回归、耗时、手感等    tests/  按层分 core content explore view platform arch
-```
-
-文件分工写在各自文件头。
+各目录放什么见 `README.zh-CN.md`「目录结构」；另有 `src/app/`（`main.ts` 拆出的块）、`src/meta/`（成就图鉴统计）、`src/core/arms/`（法器和套件规则），`worker/` 自带 tsconfig。文件分工写在各自文件头。
 
 ## 规则核心
 
@@ -52,6 +42,9 @@ tools/         截图冒烟、模拟、回归、耗时、手感等    tests/  �
 | `?fps`（页面参数） | 显示帧率、最长帧、怪数，不写存储 |
 | `node tools/feel.ts` | 手感测量 |
 | `npm run smoke` | 主流程零报错、省内存、双指放大、WebGL 恢复、回大厅、各尺寸一屏 |
+| `node tools/subset-font.ts <字体 ttf>` | 重新生成毛笔字子集（`ASSETS.md`） |
+| `node tools/cover.ts [--out public/cover.webp]` | 生成大厅封面，改了标题页的画或字就重跑 |
+| `node tools/gen-dirs.ts` | 重新生成 `src/core/dirs.ts`（256 个方向的单位向量常数） |
 
 ## 存储 key（`yexun.` 前缀，新增补进此表）
 

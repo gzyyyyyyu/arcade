@@ -2,7 +2,7 @@
 
 > 模块 `games/yexun`（Worker 名 `yexun`，路径 `/games/yexun/`）。本文是这个游戏的设计正本：现在是什么、为什么这样设计、怎么验收、怎么配平。
 > 数值的实际值以 `src/content/` 为准，配平结果以模拟器跑出来的表为准（第 8 节）；逐版变化看 [CHANGELOG.md](CHANGELOG.md)，本文不记过程。
-> 跨模块的规范以仓库根 `AGENTS.md`、`docs/economy.md`、`docs/balance.md` 为准；冲突时以它们为准。界面流程和布局规则见 [docs/art.md](docs/art.md)，配色见 [docs/palette.md](docs/palette.md)。
+> 跨模块的规范以仓库根 `AGENTS.md`、`docs/economy.md`、`docs/balance.md` 为准；冲突时以它们为准。界面流程和布局规则见 [docs/art.md](docs/art.md)，配色见同一份的第 6 节。
 
 ## 目录（各节在哪份文件）
 

@@ -1,74 +1,76 @@
-# 夜巡 · Night Patrol (games/yexun)
+# 夜巡 · Night Patrol
 
-A survivors-like action game: a young Taoist patrols a snowy old town at night. You only steer; talismans, peach-wood swords and thunder charms fire on their own.
-Level up, pick one of three upgrades, evolve your gear, and survive the hopping-corpse hordes until dawn (**Vigil**), or sneak into the town, loot chests and
-get out while a gate is open (**Night Raid**, extraction mode). Built with TypeScript, Phaser 4 and a deterministic fixed-tick simulation; every sprite and sound is generated in code.
-It is one module of the Arcade monorepo, but deploys on its own too. Chips are play money only — they cannot be bought, cashed out or transferred. Docs below are in Chinese. MIT licensed.
+A survivors-like action game in the browser: a young Taoist patrols a snowy old town at night while talismans, peach-wood swords and thunder charms fire on their own.
 
-![夜巡](public/cover.webp)
+**English** · [简体中文](README.zh-CN.md)
 
-《夜巡》：道士夜巡雪夜古镇。只管走位，法器自动出手，升级三选一、法器进化，成群的跳尸纸人扑上来。
-**守夜**撑到天亮，**夜探**进镇搜宝、趁撤离门开着撤出去。
+![Night Patrol cover](public/cover.webp)
 
-已上线可玩：8 张守夜地图、6 个夜探镇子加教学镇、24 件法器和 10 个流派（每个角色按自己的法器池抽卡）、10 个角色（每人一个主动技能，开局可以换第二件起手法器、带心法）、危险 0–5 六档加噩梦 1–3（危险 6–8，每档多一种机制）、每张图一种地图事件（白毛风、竹浪、冰凌雨、涨潮、起尸、晨钟、百鬼夜行、鬼火齐燃）、咒印、局外成长、成就图鉴、
-每日守夜、首领连战（每日 / 自由，自己配装、10 只首领随机来、终局夜漏君）、每周夜事挑战和排行榜、浏览器本地录像回放、游戏内的玩法说明；接了平台的钱包就能开实盘（守夜、夜探各四档；地图、镇子、角色、卡池、怪、技能、开局配置都和娱乐一样）。
+## Features
 
-## 文档
+- **Two modes.** **Vigil**: survive the hopping-corpse hordes until dawn. **Night Raid**: sneak into a town, loot chests and get out while an exit gate is open.
+- **You only steer.** Gear fires on its own; level up, pick one of three upgrades, evolve and combine your gear.
+- **Lots to build.** 24 weapons, 20 passives and 10 schools; 10 characters, each with their own gear pool and an active skill.
+- **Places and threats.** 8 Vigil maps and 6 raid towns plus a tutorial town, one map event per map, bosses, elites, curses, danger levels 0–5 plus nightmare 1–3.
+- **Reasons to come back.** Daily Vigil, a boss rush (daily or free), weekly challenges with leaderboards, permanent upgrades, 70 achievements and local replays.
+- **Live mode.** With the Arcade wallet you can stake play chips in Vigil or Night Raid (four tiers each, same rules as casual). Chips are play money only: they can't be bought, cashed out or transferred.
+- **Deterministic core.** A fixed 30-tick-per-second simulation: same seed + same inputs = the same run, which replays and the bot simulator rely on.
+- **Everything generated in code.** Sprites are drawn with Canvas 2D and sounds synthesized with Web Audio; no image or audio files.
 
-- [DESIGN.md](DESIGN.md)：设计正本（玩法、内容、实盘、架构、配平口径、验收标准）
-- [AGENTS.md](AGENTS.md)：给开发者的模块约定（目录、命令、存储 key、发布）
-- [ASSETS.md](ASSETS.md)：素材来源和许可
-- [docs/balance-play.md](docs/balance-play.md)：全流派配平的量测数据
-- [docs/palette.md](docs/palette.md)：界面配色；[docs/art.md](docs/art.md)：界面流程和各尺寸布局规则
-- [CHANGELOG.md](CHANGELOG.md)：版本记录（0.34.0 及更早的在 [docs/changelog-archive.md](docs/changelog-archive.md) 起的四份归档）
+## Quick start
 
-## 本地开发
-
-需要 Node 22（见 `.nvmrc`）。共用包从 npm 装（见 `package.json` 里的 `arcade-kit` 别名）：
+Node 22 (see `.nvmrc`), in this directory:
 
 ```sh
 npm ci
-npm run dev   # 打开 http://localhost:5178/
+npm run dev       # http://localhost:5178/
+npm test          # type checks (page + Worker) + vitest
+npm run build:cf  # deploy build to dist-cf/games/yexun/
 ```
 
-| 命令 | 用途 |
-|---|---|
-| `npm run dev` / `npm run preview` | 开发 0.0.0.0:5178 / 预览 0.0.0.0:4178 |
-| `npm test` | 类型检查（页面和 Worker 两份）+ vitest |
-| `npm run lint` | Biome lint，提交前要过；放行用 biome-ignore 写理由 |
-| `npm run build` / `npm run build:cf` | 构建 / 部署用的构建（产物在 `dist-cf/games/yexun/`） |
-| `npm run smoke` | 仓库硬规范的冒烟（主流程零报错、省内存设备、双指放大、WebGL 丢失恢复、回大厅、选模式页在九个尺寸下一屏放下含实盘） |
-| `npm run shot -- --out <目录>` | 无头浏览器截图并检查按钮 ≥ 44 像素、控制台零报错；`--flow` 走一遍全部界面 |
-| `npm run sim -- --n 200 --danger 2 --build sword` | 机器人模拟，出胜率和节奏表（配平用） |
-| `npm run bench -- --worst` | 规则核心满载每拍耗时 |
-| `node tools/subset-font.ts <字体 ttf>` | 重新生成毛笔字子集（见 ASSETS.md） |
-| `node tools/cover.ts [--out public/cover.webp]` | 生成大厅封面（webp），改了标题页的画或字就重跑 |
-| `node tools/gen-dirs.ts` | 重新生成 `src/core/dirs.ts`：256 个方向的单位向量，写死成常数，保证各浏览器算出来一样 |
-| `node tools/feel.ts [--hz 60,120]` | 测移动手感：用虚拟时钟逐帧记录主角和镜头位置，看有没有后退、抖动、镜头来回荡 |
-| `node tools/sim-merge.ts <目录或 json>...` | 把拆成几片跑的 `sim.ts --json` 结果按格拼成一张表（重叠或缺口会报错） |
+Simulator, smoke tests, screenshots and other tools: the command table in [AGENTS.md](AGENTS.md). Screenshots and smoke tests need `playwright-core` with chromium-headless-shell and a Chinese font.
 
-截图和冒烟要 `playwright-core` 和 chromium-headless-shell（`npx playwright-core install chromium-headless-shell`），系统要有中文字体。更多选项见 AGENTS.md「命令」一节。
+Deploy on your own: `npm ci && npx wrangler login && npm run deploy` gives you `yexun.<your-subdomain>.workers.dev`; `/` redirects to `/games/yexun/`. Without the platform there is no login, cloud save, leaderboard or live mode; casual play works as usual.
 
-## 目录
+## Project layout
 
 ```
-src/core/      确定性模拟核心（每秒 30 拍，不碰 DOM、网络、时间、随机）
-src/content/   内容表：法器、怪、地图、角色、实盘倍数；改数值只改这里
-src/explore/   夜探的规则（地图生成、宝箱、守卫、撤离、结算）
-src/view/      Phaser 画面层 + DOM 界面 + 程序合成的图和声音
-src/platform/  本地存档、云存档、实盘的浏览器端
-src/online/    排行榜、每日挑战、每周夜事、分享、社交部件
-src/replay/    浏览器本地录像
-worker/        Worker：登录闸门、实盘带入带回、铜钱换筹码、巡检用的 /games/yexun/health
-tools/         冒烟、截图、模拟器、机器人、封面、字体子集
-tests/         vitest，分 core/ content/ explore/ view/ platform/ arch/ 子目录
+src/
+  core/       deterministic simulation (30 ticks/s, no DOM, network, clock or Math.random)
+  content/    content tables: weapons, foes, maps, characters, live-mode multipliers
+  explore/    Night Raid rules: map generation, chests, guards, exits, scoring
+  view/       Phaser scenes, DOM UI, generated art and audio
+  platform/   local save, cloud save, live mode client
+  online/     leaderboards, daily, weekly challenges, sharing
+  replay/     local replays
+worker/       the game's Worker: login gate, live buy-in and payout, coin-to-chip exchange, /health
+tools/        smoke tests, screenshots, simulator, bots, cover, font subset
+tests/        vitest, split by layer
+docs/         design docs
 ```
 
-## 单独部署这个游戏
+## Documentation
 
-`wrangler.jsonc` 是独立配置：`npm ci && npx wrangler login && npm run deploy`，得到 `yexun.<你的子域>.workers.dev`，打开 `/` 会转到 `/games/yexun/`。
-单独部署时没有登录、云存档、排行榜和实盘，单机娱乐照常（仓库根 `docs/new-game.md` 第 7 节）。
+Design docs are in Chinese. [DESIGN.md](DESIGN.md) is the index; section numbers are shared across the design files.
 
-## 参与贡献
+- [docs/design-play.md](docs/design-play.md) — the pitch, quality bar, the two modes, new-player protection, boss rush, trials and weekly goals.
+- [docs/design-content-1.md](docs/design-content-1.md) — content rules, weapons, passives, evolutions and combinations.
+- [docs/design-content-2.md](docs/design-content-2.md) — sets and schools, foes and bosses, maps.
+- [docs/design-content-3.md](docs/design-content-3.md) — characters, permanent upgrades, card picks, the night market.
+- [docs/design-live.md](docs/design-live.md) — live mode: rules, payout multipliers, character and map factors, balance targets.
+- [docs/design-arch.md](docs/design-arch.md) — architecture (core, content, view, input and replays, platform, Worker, leaderboards) and performance budgets.
+- [docs/design-art-tools.md](docs/design-art-tools.md) — art and sound style, bots and balancing tools, tests.
+- [docs/design-misc.md](docs/design-misc.md) — registrations, content scale, known issues, acceptance criteria, how it fits the platform.
+- [docs/art.md](docs/art.md) — UI flow, HUD, layouts per screen size, low-memory devices, palette.
+- [docs/balance-play.md](docs/balance-play.md) — measured balance data for every school.
+- [ASSETS.md](ASSETS.md) — where every asset comes from and its license.
+- [AGENTS.md](AGENTS.md) — module conventions: rules core, UI, commands, storage keys, release.
+- [CHANGELOG.md](CHANGELOG.md) — what changed in each version; older entries start at [docs/changelog-archive.md](docs/changelog-archive.md).
 
-欢迎提 issue 和 PR。分支、提交、审阅和发布的流程见仓库根的 `CONTRIBUTING.md`；改动前先读 [AGENTS.md](AGENTS.md) 的模块约定，改数值要附模拟器结果（DESIGN.md 第 8 节）。
+## Part of Arcade
+
+Night Patrol is one module of the Arcade mini-game arcade (`games/yexun`) and can be split out and deployed on its own; see the repository root for the platform and contribution guide.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The brush font `public/fonts/brush.woff2` is a subset of Ma Shan Zheng under SIL OFL 1.1 ([OFL.txt](public/fonts/OFL.txt)); details in [ASSETS.md](ASSETS.md).
