@@ -285,7 +285,7 @@ export function stepCamps(
         m.cd = s.tick + cu.reload;
         m.face = tgt.x < m.x ? -1 : 1;
         const t1 = s.tick + Math.max(4, flightTicks(m.x, m.y, tgt.x, tgt.y, 35));
-        ev.push({ type: 'shoot', id: -200 - c.id, x0: m.x, y0: m.y, x1: tgt.x, y1: tgt.y, t1, target: tgt.id });
+        ev.push({ type: 'shoot', by: 'shell', id: c.id, x0: m.x, y0: m.y, x1: tgt.x, y1: tgt.y, t1, target: tgt.id });
         if (cannonHit) cannonHit(tgt, dmg, cu.splash, m.x, m.y, t1);
         else damage(tgt, dmg, m.x, m.y);
         return;
@@ -307,7 +307,7 @@ export function stepCamps(
         }
         if (!tgt) return;
         m.cd = s.tick + TD2_CAMP.reload;
-        ev.push({ type: 'shoot', id: -100 - c.id, x0: m.x, y0: m.y, x1: tgt.x, y1: tgt.y, t1: s.tick + 4, target: tgt.id });
+        ev.push({ type: 'shoot', by: 'gun', id: c.id, x0: m.x, y0: m.y, x1: tgt.x, y1: tgt.y, t1: s.tick + 4, target: tgt.id });
         damage(tgt, dmg, m.x, m.y);
         return;
       }

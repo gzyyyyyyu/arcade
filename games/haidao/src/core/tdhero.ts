@@ -149,7 +149,7 @@ export function stepHero(s: TdState, ev: TdEvent[]): void {
   if (best && s.tick >= h.cd) {
     h.cd = s.tick + hl.reload;
     // 英雄的开火事件 id 记 -1（没有这座塔），画面据此播英雄的枪口火光和弹道
-    ev.push({ type: 'shoot', id: -1, x0: h.x, y0: h.y, x1: best.x, y1: best.y, t1: s.tick + 4, target: best.id });
+    ev.push({ type: 'shoot', by: 'hero', id: -1, x0: h.x, y0: h.y, x1: best.x, y1: best.y, t1: s.tick + 4, target: best.id });
     // 断崖关：英雄的枪也写出膛点，盾兵正面照样挡（td.ts 的 guardedHit），英雄不是盾兵的万能解；别的关不写
     const from = cliffOn(s) ? { sx: h.x, sy: h.y } : {};
     I.pend.push({ t: s.tick + 4, kind: 'unit', id: best.id, dmg: hl.dmg, x: best.x, y: best.y, r: 0, hit: HIT_HERO, slowPct: 0, slowTicks: 0, burnDps: 0, burnTicks: 0, pull: 0, ...from });

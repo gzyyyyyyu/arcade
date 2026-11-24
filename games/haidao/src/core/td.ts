@@ -23,7 +23,7 @@ import type { EscortState } from './escorttypes.ts';
 import { escortBite, escortHullPct, escortRate, escortResult, escortShip } from './escort.ts';
 import type { TdBarricade, TdTier, TdTowerKind } from './td2types.ts';
 import type { TdAction, TdBlock, TdEnemy, TdEnemyDef, TdEnemyKind, TdEvent, TdHero, TdLevel, TdResult, TdSetup, TdSlot, TdTower, TdWall } from './tdtypes.ts';
-import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower, barricadeAt, cliffOn, onHigh, tdBuildCost, onRaisedBridge, occFor } from './tdstate.ts';
+import { inner, HIT_KEG, HIT_BURN, TD_TIER_LEVEL, mult, isAir, statsOf, towerStats, tdHeroStats, tcx, tcy, d2, ensureWaves, ensureGrid, treasureFlow, cellFlow, seen, targetable, addGold, blockGone, damageBlock, moveToward, enemyHp, gapBefore, slotTower, barricadeAt, cliffOn, onHigh, tdBuildCost, onRaisedBridge, occFor, nearestWalkable } from './tdstate.ts';
 import type { Hit, Pend, Trap, Internal, TdState } from './tdstate.ts';
 import { callFleet, driftCrates, fetchCrate, fireBattery, forgetFetch, initMech, stepCrates, stepFleet, toggleDrawbridge, toggleSluice } from './tdmech.ts';
 import { tdTideOpen, tdBuildBlock, tdSellRefund, tdClearCost, tdCallBonus, tdRuleBlock, tdUltCost, tdLoseAt } from './tdquery.ts';
@@ -426,8 +426,10 @@ function damageEnemy(s: TdState, ev: TdEvent[], e: TdEnemy, dmg: number, h: Hit)
   addGold(s, killGold(s, e, def.gold));
   if (e.bounty) payBounty(s, ev, e);
   if (e.carry > 0) {
-    s.piles.push({ x: e.x, y: e.y, n: e.carry, at: s.tick });
-    ev.push({ type: 'drop', x: e.x, y: e.y, n: e.carry });
+    // 倒在收起的吊桥（水面）上：宝藏落到最近的岸上，不然捡的人能借这座桥过去
+    const at = onRaisedBridge(s, e.x, e.y) >= 0 ? nearestWalkable(s, e.x, e.y) : { x: e.x, y: e.y };
+    s.piles.push({ x: at.x, y: at.y, n: e.carry, at: s.tick });
+    ev.push({ type: 'drop', x: at.x, y: at.y, n: e.carry });
     e.carry = 0;
   }
   if (def.land) dropCrew(s, ev, e, def.land.kind, def.land.shot);
@@ -1629,7 +1631,7 @@ function stepTowers(s: TdState, ev: TdEvent[]): void {
       const fl = shotTicks(t.kind, cx, cy, e.x, e.y);
       // 瞄提前量：落点 = 敌人 fl 拍后的位置（直射的伤害跟着目标走，炸的按落点炸，所以炸的更要瞄准）
       const at = leadPoint(e, fl);
-      ev.push({ type: 'shoot', id: t.id, x0: cx, y0: cy, x1: at.x, y1: at.y, t1: s.tick + fl, target: e.id });
+      ev.push({ type: 'shoot', by: 'tower', id: t.id, x0: cx, y0: cy, x1: at.x, y1: at.y, t1: s.tick + fl, target: e.id });
       let dmg = st.dmg;
       let heavy = st.heavy;
       // 鹰眼哨：每第 n 发打弱点

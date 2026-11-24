@@ -119,7 +119,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
     case 'rearm':
       break;
     case 'shoot': {
-      if (e.id <= -200) {
+      if (e.by === 'shell') {
         // 炮手营小炮：炮弹弧线飞向目标，落地走 resolvePend splash
         sfx('cannon');
         const from = W(e.x0, e.y0);
@@ -134,7 +134,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
         });
         break;
       }
-      if (e.id <= -100) {
+      if (e.by === 'gun') {
         // 火枪队：从兵位置出子弹，不触发英雄开枪动作
         sfx(projectileFire('bullet'));
         const from = W(e.x0, e.y0);
@@ -149,7 +149,7 @@ export function onEvent(bs: TdScene, e: TdEvent): void {
         });
         break;
       }
-      if (e.id < 0) {
+      if (e.by === 'hero') {
         // 英雄开枪：攻击动作（走动中也播）、枪口火光、追踪弹（落点每帧跟着目标精灵）
         bs.heroShotAt = bs.time.now;
         if (e.target !== undefined && e.target >= 0) bs.flash.add(e.target, bs.time.now);
