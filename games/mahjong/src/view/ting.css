@@ -55,10 +55,12 @@
   padding: var(--sp-1) var(--sp-3);
   line-height: 1.2;
   white-space: nowrap;
-  border: 1px solid #ffffff26;
-  border-radius: var(--r-md);
-  background: var(--surface-hi);
-  color: var(--ink);
+  border: 2px solid var(--ink-dark);
+  border-radius: var(--r-pill);
+  background: linear-gradient(var(--ivory), var(--ivory-lo));
+  color: var(--ink-dark);
+  font-weight: 700;
+  box-shadow: var(--hi), 0 3px 0 var(--ink-dark);
   /* 返回钮的字比标题小一档，标题才是这一行的重点 */
   font-size: var(--fs-sm);
   cursor: pointer;
@@ -72,7 +74,9 @@
 .ting-drill .td-title {
   line-height: 1.2;
   font-size: var(--fs-2xl);
-  color: var(--gold-hi);
+  color: var(--gold-hi);  font-weight: 900;
+  -webkit-text-stroke: 1px var(--ink-dark);
+  text-shadow: 0 2px 0 var(--ink-dark);
 }
 /* 说明屏和成绩卡 */
 .ting-drill .td-card {
@@ -82,9 +86,10 @@
   gap: var(--sp-3);
   width: min(100%, 560px);
   padding: var(--sp-5) var(--sp-6);
-  border: 1px solid var(--gold-lo);
+  border: 3px solid var(--ink-dark);
   border-radius: 16px;
-  background: linear-gradient(#5a4a1a99, #2e250d99);
+  background: var(--panel);
+  box-shadow: var(--hi-dark), 0 6px 0 var(--ink-dark), 0 12px 30px #00000080;
   text-align: center;
 }
 .ting-drill .td-lead {
@@ -135,9 +140,10 @@
 }
 .ting-drill .td-time .td-bar {
   flex: 1;
-  height: 10px;
+  height: 14px;
   border-radius: var(--r-pill);
-  background: #ffffff22;
+  background: #00000048;
+  border: 2px solid var(--ink-dark);
   overflow: hidden;
 }
 .ting-drill .td-bar i {
@@ -145,10 +151,10 @@
   width: 100%;
   height: 100%;
   border-radius: var(--r-pill);
-  background: var(--gold);
+  background: linear-gradient(var(--gold-hi), var(--gold) 55%, var(--gold-lo));
 }
 .ting-drill .td-time.low .td-bar i {
-  background: #e0594b;
+  background: linear-gradient(var(--red-hi), var(--red) 60%, var(--red-lo));
 }
 .ting-drill .td-secs {
   min-width: 2ch;
@@ -220,9 +226,10 @@
   position: relative;
   min-height: max(64px, var(--tap));
   padding: 0;
-  border: 1px solid #ffffff30;
+  border: 2.5px solid var(--ink-dark);
   border-radius: var(--r-md);
-  background-color: #f6efdc;
+  background-color: #fbf3df;
+  box-shadow: var(--hi), 0 4px 0 var(--ink-dark);
   background-size: auto 78%;
   background-position: center;
   background-repeat: no-repeat;
@@ -254,6 +261,7 @@
   padding: 0 4px;
   border-radius: var(--r-pill);
   background: var(--gold);
+  border: 1.5px solid var(--ink-dark);
   color: #3a2a00;
   font-style: normal;
   font-size: var(--fs-sm);
@@ -264,7 +272,8 @@
 /* 已选：抬起 + 金色描边 + 角上一个勾 */
 .ting-drill .td-key.on {
   transform: translateY(-10px);
-  box-shadow: 0 0 0 3px var(--gold), 0 8px 14px #0006;
+  background-color: #fff3c4;
+  box-shadow: 0 0 0 3px var(--gold), 0 4px 0 var(--ink-dark), 0 12px 14px #0006;
 }
 .ting-drill .td-key.on .td-tick,
 .ting-drill .td-key.hit .td-tick,
@@ -274,7 +283,7 @@
 }
 /* 揭晓：选对（金框 + 勾）、漏了（虚线金框 + 漏）、选错（红框压暗 + ×） */
 .ting-drill .td-key.hit {
-  box-shadow: 0 0 0 3px var(--gold), 0 0 16px 4px #ffd35a88;
+  box-shadow: 0 0 0 3px var(--gold), 0 4px 0 var(--ink-dark), 0 0 16px 4px #ffd35a88;
 }
 .ting-drill .td-key.missed {
   outline: 3px dashed var(--gold);
@@ -284,7 +293,7 @@
   background: #ffffff;
 }
 .ting-drill .td-key.wrong {
-  box-shadow: 0 0 0 3px #e0594b;
+  box-shadow: 0 0 0 3px #e0594b, 0 4px 0 var(--ink-dark);
   filter: saturate(0.5) brightness(0.8);
 }
 .ting-drill .td-key.wrong .td-tick {

@@ -38,7 +38,12 @@ src/core/          engine: tiles, hand analysis, table pieces, chip ledger
 src/ai/            computer players (view only), personalities, venues
 src/game/          stakes, quick match, daily modes, achievements, collection
 src/room/          friend-room rules shared by the room and the page
-src/app/ src/view/ page flow, table (DOM + SVG), home and table-picker screens
+src/main.ts        page entry: boot, pick the first page from the URL
+src/app/           page flow: shell and settings, page routes, solo and room flows and their settlement, session state (see docs/dev.md 2.1)
+src/solo.ts        solo match: stepping, save, buy-in and cash-out
+src/online.ts      room connection: receive frames, play them in order, send actions
+src/net/           solo wallet calls, cloud save, daily boards
+src/view/          table (DOM + SVG), home, table picker and other screens
 worker/            Cloudflare Worker: login gate, real-chip API, rooms
 test/              vitest and workerd tests
 dev/ scripts/      local fake platform; smoke tests, simulators, screenshots

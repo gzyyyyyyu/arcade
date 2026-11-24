@@ -11,20 +11,63 @@
   overflow: hidden;
 }
 .stage:not([data-fit='desk']) .screen.room {
+  padding: var(--sp-3);
+}
+/* 面板外观同选桌页（lobby.css）；里面从上往下：房间号、规则、叫朋友、座位、提示、开打 */
+.screen.room .room-panel {
+  align-items: center;
+  gap: var(--sp-4);
+  flex-shrink: 0;
+  width: min(840px, 100%);
+  padding: var(--sp-4) var(--sp-6) var(--sp-5);
+}
+/* 电脑上字大一档：房间号下面的规则、提示是要读的话 */
+[data-fit='desk'] .screen.room :is(.room-label, .room-rules, .room-hint, .room-wait) {
+  font-size: var(--fs-md);
+}
+[data-fit='desk'] .screen.room .room-seat .name {
+  font-size: var(--fs-lg);
+}
+.screen.room .room-panel > * {
+  flex-shrink: 0;
+}
+.stage:not([data-fit='desk']) .screen.room .room-panel {
   gap: var(--sp-2);
-  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  padding: var(--sp-3);
+}
+[data-fit='desk'] .screen.room {
+  padding: var(--sp-4) var(--sp-5);
+}
+[data-fit='desk'] .screen.room .room-panel {
+  gap: var(--sp-2);
+}
+/* 电脑 1280×720 也要一屏放下开打：规则、提示放宽少折行 */
+[data-fit='desk'] .screen.room :is(.room-rules, .room-hint, .room-wait) {
+  max-width: 860px;
+}
+/* 手机横屏矮：面板上下内边距收到最小 */
+.stage[data-orient='land']:not([data-fit='desk']) .screen.room .room-panel {
+  gap: var(--sp-1);
+  padding-block: var(--sp-2);
+}
+.stage[data-orient='land']:not([data-fit='desk']) .screen.room {
+  padding-block: var(--sp-2);
+}
+.screen.room .room-panel .go-row {
+  margin: 0;
+  padding: 0;
 }
 .room-head {
   text-align: center;
   /* 房间号小字不贴着顶栏的木条 */
-  padding-top: var(--sp-3);
+  padding-top: var(--sp-1);
 }
 .room-label {
   font-size: var(--fs-sm);
   opacity: 0.8;
 }
 .room-code {
-  font-size: 48px;
+  font-size: 56px;
   font-weight: 800;
   letter-spacing: 12px;
   /* 字距会加在最后一个字后面，左边补一样多才居中 */
@@ -63,7 +106,8 @@
   align-items: center;
   gap: var(--sp-2);
   min-width: 0;
-  padding: var(--sp-3) var(--sp-2);
+  justify-content: center;
+  padding: var(--sp-4) var(--sp-2);
   border-radius: var(--r-md);
   background: linear-gradient(#00000020, #00000040);
   border: 2px solid #ffffff20;
@@ -72,8 +116,8 @@
   border-color: var(--gold);
 }
 .room-seat .avatar {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
 }
 .room-seat .avatar.ghost {
   display: grid;
@@ -96,14 +140,21 @@
   overflow-wrap: anywhere;
   line-height: 1.25;
 }
-.screen.room .room-seat .role {
-  font-size: var(--fs-sm);
+/* 「我 · 房主」「掉线了」是小签条：自带底色，座位卡是浅是深都看得清 */
+.screen.room .room-seat .role,
+.room-seat .tag {
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
   font-weight: 700;
-  color: var(--gold-hi);
+}
+.screen.room .room-seat .role {
+  background: var(--gold);
+  color: #2b1d14;
 }
 .room-seat .tag {
-  font-size: var(--fs-xs);
-  color: #ffb4a2;
+  background: #c4402f;
+  color: #fff;
 }
 .room-note {
   position: absolute;

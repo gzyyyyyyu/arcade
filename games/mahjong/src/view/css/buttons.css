@@ -1,6 +1,6 @@
 /* ---------- 按钮 ----------
  * 一套状态给所有能点的：常态、悬停（有鼠标时）、按下（下沉一点）、禁用、键盘焦点（金边）、加载中（转圈，aria-busy）。
- * 主按钮 .act.go（金）> 次按钮 .act（浅色玻璃）> 轻按钮 .act.soft、.pill、.chip、.link；碰杠胡按动作配色。
+ * 主按钮 .act.go（金）> 次按钮 .act（象牙）> 轻按钮 .act.soft、.pill、.chip、.link；碰杠胡按动作配色。颜色在 art.css 的组件皮肤。
  * ::after 是看不见的点按区：外观小于 --tap 的按钮，点按范围向四周撑到 --tap（屏幕上 44 像素）。 */
 .act,
 .pill,
@@ -17,9 +17,9 @@
   line-height: 1.2;
   white-space: nowrap;
   transition:
-    transform var(--t-fast),
+    transform var(--t-fast) var(--ease-out),
     filter var(--t-fast),
-    box-shadow var(--t-fast),
+    box-shadow var(--t-fast) var(--ease-out),
     background-color var(--t-fast);
 }
 .act::after,
@@ -40,9 +40,9 @@
   bottom: auto;
   height: max(40px, var(--tap));
 }
-/* 顶栏下面紧挨着页面的返回钮（选桌、何切、速判、擂台）时，两个按钮的外观只隔十来个像素：
+/* 顶栏下面紧挨着页面的返回钮（何切、速判、擂台）时，两个按钮的外观只隔十来个像素：
  * 竖屏「大厅」的点按区只伸到两者中间（44），不然点返回钮上沿会回了大厅；返回钮从这里往下撑满 --tap */
-.stage[data-orient='port']:has(.screen.lobby > .back, .hk-back, .td-back, .ld-back) .topbar .home::after {
+.stage[data-orient='port']:has(.hk-back, .td-back, .ld-back) .topbar .home::after {
   height: max(40px, min(var(--tap), 44px));
 }
 /* 不是按钮样式、外观也小于 --tap 的几处能点的东西：头像（点了扔道具）、小册子的页签、音量滑块。
@@ -99,8 +99,8 @@
   opacity: 0.4;
   cursor: default;
 }
-/* 加载中：字隐去、中间转一个圈（dom.ts 的 busy 给按钮挂 aria-busy 并禁用，等请求回来再放开） */
-.act[aria-busy='true'] {
+/* 加载中：字隐去、中间转一个圈（dom.ts 的 busy 给按钮挂 aria-busy 并禁用，等请求回来再放开）；带 .stage 才压得过组件皮肤的字色 */
+.stage .act[aria-busy='true'] {
   color: transparent;
   opacity: 1;
 }
@@ -113,108 +113,44 @@
   height: 20px;
   margin: -10px 0 0 -10px;
   border-radius: 50%;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--ink-dark);
   border-right-color: transparent;
   animation: spin 0.8s linear infinite;
-}
-.act.go[aria-busy='true']::before {
-  border-color: var(--on-gold);
-  border-right-color: transparent;
 }
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
+/* 形状和尺寸；颜色、描边、下沿统一在 art.css 末尾的「组件皮肤」（docs/style.md 第 5 节） */
 .act {
-  min-height: 44px;
-  border: 1px solid #ffffff26;
-  border-radius: var(--r-md);
+  min-height: var(--btn-h);
+  border-radius: var(--btn-r);
   padding: var(--sp-2) var(--sp-4);
   font-size: var(--fs-lg);
-  font-weight: 700;
-  background: linear-gradient(#ffffff38, #ffffff1a);
-  box-shadow:
-    inset 0 1px 0 #ffffff40,
-    0 3px 0 #0006,
-    var(--sh-1);
+  font-weight: var(--fw-bold);
   gap: var(--sp-2);
   text-decoration: none;
-  color: var(--ink);
-  text-shadow: 0 1px 0 #0004;
-}
-.act:not(:disabled):active {
-  box-shadow:
-    inset 0 1px 0 #ffffff30,
-    0 1px 0 #0006;
-}
-.act.go {
-  border-color: #fff3c4;
-  background: linear-gradient(var(--gold-hi), var(--gold-lo));
-  color: var(--on-gold);
-  text-shadow: 0 1px 0 #fff6;
 }
 .act.big {
-  min-height: 56px;
+  min-height: var(--btn-h-lg);
   font-size: var(--fs-2xl);
   padding: var(--sp-3) var(--sp-6);
   border-radius: var(--r-lg);
 }
-/* 危险按钮（离开、放弃，docs/ui.md 第 2 节）：红系，不和主按钮同色 */
-.act.danger {
-  border-color: #ffb3a8;
-  background: linear-gradient(#d9483a, #9a2318);
-  color: #fff3e8;
-  text-shadow: 0 1px 0 #5a0a06;
-}
 .act.soft {
-  border-color: transparent;
-  background: var(--surface-hi);
-  box-shadow: none;
-  font-weight: 400;
-  text-shadow: none;
+  font-weight: var(--fw-bold);
 }
-/* 碰杠胡过按紧急程度分级（docs/art.md）：胡 = 灯笼红底金字、最大；杠、碰 = 暖金（杠深一点）；过 = 半透明、最小。
- * 定缺三个按钮是茶馆木色，和碰杠胡一眼分开 */
+/* 碰杠胡过按紧急程度分级：胡最大（灯笼红底金字），杠、碰暖金，过最弱；定缺三个按钮茶馆木色（颜色在组件皮肤） */
 .act.ron {
-  border-color: var(--gold);
-  background: linear-gradient(#e8503f, #a8231a);
-  color: #ffe9a8;
-  text-shadow: 0 2px 0 #5a0a06;
   font-size: var(--fs-2xl);
-}
-.act.kan {
-  border-color: #ffe2a0;
-  background: linear-gradient(#f2b54a, #c47a12);
-  color: var(--on-gold);
-  text-shadow: 0 1px 0 #ffffff59;
-}
-.act.pon {
-  border-color: #fff0c4;
-  background: linear-gradient(var(--gold-hi), var(--gold-lo));
-  color: var(--on-gold);
-  text-shadow: 0 1px 0 #ffffff59;
-}
-.act.pass {
-  background: linear-gradient(#ffffff26, #ffffff0f);
-  border-color: #ffffff33;
-  box-shadow: none;
 }
 .act.que {
   flex-direction: column;
   gap: 0;
-  border-color: #f3c86b4d;
-  background:
-    linear-gradient(#ffffff14, transparent 45%),
-    linear-gradient(#5a2d18, #3a1a0c);
 }
 .act.que small {
   font-size: var(--fs-xs);
-  font-weight: 400;
+  font-weight: var(--fw-regular);
   opacity: 0.85;
 }
-.act.que.best {
-  outline: 2px solid var(--gold);
-  outline-offset: 2px;
-}
-

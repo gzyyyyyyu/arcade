@@ -372,11 +372,15 @@ export class TableUi<V extends TableView, A> {
   }
 
   /**
-   * 手机上的"聊天"按钮：紧挨在"互动"圆钮右边、同高（横竖屏一个位置，不进手牌和碰杠胡过那一排）。
-   * 右边碰到下家名牌（窄屏上名牌被字号撑宽）就让到名牌左边
+   * 手机上的"聊天"按钮：竖屏和"互动"左右对称（互动在左角、聊天在右角，都在名牌上方）；
+   * 横屏紧挨在"互动"圆钮右边、同高，右边碰到下家名牌就让到名牌左边
    */
   chatButtonRect(me: number): { left: number; top: number; width: number; height: number } {
     const r = this.funSlot();
+    if (this.root.closest("[data-orient='port']")) {
+      const t = this.root.getBoundingClientRect();
+      return { left: t.right - (r.left - t.left) - r.width, top: r.top, width: r.width, height: r.height };
+    }
     const b = { left: r.right + 8, top: r.top, width: r.width, height: r.height };
     const plate = this.plateRect((me + 1) % this.seatCount);
     if (b.left < plate.right && plate.left < b.left + b.width && b.top < plate.bottom && plate.top < b.top + b.height) b.left = plate.left - b.width - 8;

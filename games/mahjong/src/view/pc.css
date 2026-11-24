@@ -10,20 +10,21 @@
   .bar .act:not(:disabled) {
     cursor: pointer;
   }
-  .screen.lobby .act.go:not(:disabled):hover,
-  .bar .act.go:not(:disabled):hover {
-    filter: brightness(1.08) saturate(1.1);
+  /* 悬停：浮起 1px；主按钮再晕一圈金光。按下照组件皮肤沉 2px、缩一点 */
+  .stage .act:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+  .stage :is(.act.go, .act.quick):not(:disabled):hover {
     box-shadow:
-      inset 0 1px 0 #ffffff55,
-      0 3px 0 #0006,
-      0 0 14px #f3c86b66;
+      var(--hi),
+      var(--lift),
+      0 0 16px #e5b35480;
   }
-  .screen.lobby .act.go:not(:disabled):active,
-  .bar .act.go:not(:disabled):active {
-    filter: brightness(0.92);
+  .stage .act:not(:disabled):hover:active {
+    transform: translateY(2px) scale(0.97);
+    box-shadow: var(--hi), var(--lift-press);
   }
-  .screen.lobby .act:disabled,
-  .bar .act:disabled {
+  .stage .act:disabled {
     cursor: not-allowed;
     filter: saturate(0.4);
   }

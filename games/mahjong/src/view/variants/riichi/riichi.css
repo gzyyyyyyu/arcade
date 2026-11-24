@@ -3,14 +3,14 @@
 
 /* ---------- 名牌：自风小签（放在川麻缺门签的位置）、立直棒 ---------- */
 .table.rc .tag.rc-wind {
-  background: #ffffff26;
+  background: #4a5a54;
   min-width: 20px;
   text-align: center;
 }
 .table.rc .tag.rc-wind.w0 {
   background: linear-gradient(#f3c86b, #c8902a);
-  border-color: #fff0c4;
   color: #3a2a00;
+  text-shadow: none;
 }
 /* 立直棒：名牌正下面横着一根白棒，中间一个红点（和真牌桌的点棒一样）；双立直两个点 */
 .table.rc .badge .rc-stick {
@@ -165,8 +165,8 @@
 
 /* ---------- 操作条：立直、九种九牌、吃的选择 ---------- */
 .table.rc .bar .act.riichi {
-  border-color: #cfe4ff;
-  background: linear-gradient(#5aa0e8, #1d4f9a);
+  border-color: var(--ink-dark);
+  background: linear-gradient(#6ab0f0, #2f6fc0 60%, #1d4f9a);
   color: #fff;
   text-shadow: 0 1px 0 #0a2a5a;
 }
@@ -178,13 +178,11 @@
   min-width: 64px;
   min-height: 48px;
   font-size: var(--fs-lg);
-  background: linear-gradient(#ffffff26, #ffffff0f);
-  border-color: #ffffff33;
-  box-shadow: none;
+  background: linear-gradient(#fff6e0, #ead6ac);
+  box-shadow: 0 3px 0 var(--ink-dark);
 }
 .table.rc .bar .act.kyuu.armed {
-  border-color: var(--gold);
-  color: var(--gold);
+  background: linear-gradient(var(--gold-hi), var(--gold) 55%, var(--gold-lo));
 }
 .table.rc .bar .act.kan .tile {
   margin-left: 2px;
@@ -198,11 +196,11 @@
   max-width: 100%;
 }
 .table.rc .bar .hint.rc-noyaku {
-  color: #ffd98a;
+  color: var(--red-lo);
   font-weight: 700;
 }
 .table.rc .bar .hint.rc-fu {
-  color: #ffb4a8;
+  color: #b4441c;
   font-weight: 700;
 }
 /* 吃、杠有几种选法：弹在操作条上面一块小面板，一种一个按钮 */
@@ -219,9 +217,9 @@
   max-width: 520px;
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-lg);
-  background: linear-gradient(#1d4b3cf8, #0e2e24f8);
-  border: 2px solid #f3c86b99;
-  box-shadow: var(--sh-3);
+  background: var(--panel);
+  border: 3px solid var(--ink-dark);
+  box-shadow: var(--hi-dark), 0 5px 0 var(--ink-dark), 0 12px 28px #00000080;
   transform: translateX(-50%);
   z-index: 6;
 }
@@ -244,10 +242,11 @@
   min-width: max(var(--tap), 56px);
   min-height: max(var(--tap), 56px);
   padding: var(--sp-1) var(--sp-2);
-  border: 1px solid #ffffff3a;
+  border: 2.5px solid var(--ink-dark);
   border-radius: var(--r-md);
-  background: linear-gradient(#ffffff2e, #ffffff14);
-  box-shadow: 0 3px 0 #0006;
+  background: linear-gradient(var(--ivory), var(--ivory-lo));
+  color: var(--ink-dark);
+  box-shadow: var(--hi), 0 3px 0 var(--ink-dark);
 }
 .table.rc .bar .rc-opt small {
   align-self: center;
@@ -309,8 +308,8 @@
   margin-bottom: var(--sp-3);
   padding: var(--sp-3);
   border-radius: var(--r-md);
-  background: #ffffff0d;
-  border: 1px solid #f3c86b40;
+  background: #00000030;
+  border: 1.5px solid var(--gold);
 }
 .rc-summary .rc-who {
   font-size: var(--fs-md);
@@ -403,7 +402,7 @@
   z-index: 2;
 }
 .table.rc .my-hand .tile .mark.sf-safe {
-  background: #2f9e58;
+  background: var(--jade);
   color: #fff;
   border: 1px solid #0d3d20;
 }

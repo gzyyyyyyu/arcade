@@ -10,6 +10,12 @@
   /* 一屏放下（docs/ui.md 第 11 节）：不滚动；横屏手机矮，间距收紧（下面） */
   overflow: hidden;
   color: var(--ink);
+  /* 和主页、选桌页同一面茶馆板壁（art.css 的 --art-wall-full、--art-curtain），不再是整屏绿呢子 */
+  background:
+    var(--art-curtain, linear-gradient(transparent, transparent)) 0 0 / 24px 30px repeat-x,
+    radial-gradient(ellipse 50% 40% at 50% 30%, #ffb24d1f, transparent 70%) no-repeat,
+    linear-gradient(transparent 35%, #1a0a0499),
+    var(--art-wall-full, linear-gradient(#4a2414, #3a1a0c)) 0 0 / 112px 360px repeat;
 }
 .stage:not([data-fit='desk']) .ladder-page {
   gap: var(--sp-2);
@@ -54,8 +60,10 @@
 }
 .ladder-page .ld-title {
   line-height: 1.2;
-  font-size: var(--fs-2xl);
-  color: var(--gold-hi);
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-bold);
+  color: var(--gold);
+  text-shadow: var(--title-shadow);
 }
 /* 云朵：已同步、已合并是金色，停下了（暂停、存储满）带小红点 */
 .ladder-page .ld-cloud {
@@ -141,14 +149,21 @@
   gap: var(--sp-2);
   margin-top: var(--sp-3);
 }
+/* 规矩是几句说明，不是按钮：不画框，前面一个金点 */
 .ladder-page .ld-tag {
-  padding: 2px var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  background: #0000003d;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--fs-sm);
-  color: #f6f1e3e0;
+  color: var(--ink-2);
   white-space: nowrap;
+}
+.ladder-page .ld-tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
 }
 .ladder-page .ld-cards {
   display: grid;
@@ -212,17 +227,28 @@
   align-items: center;
   gap: var(--sp-2);
   padding: var(--sp-4);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface-hi);
+  /* 同选桌页的漆面板（docs/style.md）：拿到称号的一张加金色外圈 */
+  border: var(--outline);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  box-shadow:
+    var(--hi-dark),
+    inset 0 0 0 4px #00000030,
+    inset 0 0 0 5px var(--line-gold),
+    var(--sh-2);
   text-align: center;
 }
 .ladder-page .ld-card.got {
-  border-color: var(--gold-lo);
-  background: linear-gradient(#5a4a1a99, #2e250d99);
+  background: var(--panel);
+  box-shadow:
+    var(--hi-dark),
+    var(--glow-gold),
+    var(--sh-2);
 }
 .ladder-page .ld-name {
-  font-size: var(--fs-lg);
+  font-size: var(--fs-xl);
+  color: var(--gold-hi);
+  letter-spacing: 1px;
 }
 .ladder-page .ld-title-badge {
   font-size: var(--fs-sm);

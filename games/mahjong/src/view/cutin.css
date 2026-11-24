@@ -23,7 +23,8 @@
   background: linear-gradient(180deg, var(--c1), var(--c2));
   border-top: 3px solid var(--edge);
   border-bottom: 3px solid var(--edge);
-  box-shadow: 0 8px 22px #0009;
+  /* 色带上下各再压一道墨线，跟桌上按钮、名牌的描边一个画法 */
+  box-shadow: 0 -3px 0 var(--ink-dark), 0 3px 0 var(--ink-dark), 0 8px 22px #0009;
 }
 .fx .cutin.calm .cutin-bg { background: #0006; border-color: transparent; box-shadow: none; }
 .fx .cutin-sweep {
@@ -52,7 +53,7 @@
   border-radius: 50%;
   overflow: hidden;
   border: 3px solid var(--edge);
-  box-shadow: 0 3px 8px #0008;
+  box-shadow: 0 0 0 2.5px var(--ink-dark), 0 4px 8px #0008;
   background: #0004;
   will-change: transform, opacity;
 }

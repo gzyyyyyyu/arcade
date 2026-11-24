@@ -98,30 +98,8 @@ const onlineUi = {
   draw(s: OnlineState, fresh: boolean): void {
     paintTop();
     if (!s.room) return;
-    // 进了房间（房间信息到了才知道几个人）：马上报一次位置
-    if (session.reported !== s.code) {
-      session.reported = s.code;
-      session.social?.presenceNow(true);
-    }
-    const arrive = session.arrive;
-    if (s.room.status === 'waiting' && arrive?.sit && s.you && s.you.seat === null) {
-      // 跟过来的娱乐房：坐回和上一场一样的相对位置（被人占了就不坐，留在等人页自己挑）
-      if (s.room.seats[arrive.seat]?.kind === 'empty') session.online?.sit(arrive.seat);
-      session.arrive = { ...arrive, sit: false };
-    }
-    // 凭链接、房间号、好友的「加入」进来的娱乐房：多数人是来打的，直接坐下，不用再点。
-    // 还在等人坐第一个空位；已经开打了回自己坐过的座位，没坐过就接管一个电脑座位
-    if (session.autoSit && s.you && s.opts) {
-      session.autoSit = false;
-      const seats = tableSeats(s);
-      const seat =
-        s.room.status === 'waiting'
-          ? seats.findIndex((x) => x.kind === 'empty')
-          : s.room.status === 'playing'
-            ? (s.you.bound ?? seats.findIndex((x) => x.kind === 'ai' && !x.reserved))
-            : -1;
-      if (s.you.seat === null && !stakesOf(s.opts.stakes)?.wallet && seat >= 0) session.online?.sit(seat);
-    }
+    reportPresence(s.code);
+    sitOnArrive(s, s.room);
     if (s.room.status === 'waiting' || !s.view) return drawWaiting(s);
     drawRoomTable(s, s.view, fresh);
   },
@@ -149,6 +127,36 @@ const onlineUi = {
     }, false);
   },
 };
+
+/** 进了房间（房间信息到了才知道几个人）：马上报一次位置，同一个房间只报一次 */
+function reportPresence(code: string): void {
+  if (session.reported === code) return;
+  session.reported = code;
+  session.social?.presenceNow(true);
+}
+
+/** 刚进房时替我坐下（各只做一次）：跟着"再来一场"过来的坐回原来的相对位置，凭链接进的娱乐房坐一个空位 */
+function sitOnArrive(s: OnlineState, room: RoomInfo): void {
+  const arrive = session.arrive;
+  if (room.status === 'waiting' && arrive?.sit && s.you && s.you.seat === null) {
+    // 跟过来的娱乐房：坐回和上一场一样的相对位置（被人占了就不坐，留在等人页自己挑）
+    if (room.seats[arrive.seat]?.kind === 'empty') session.online?.sit(arrive.seat);
+    session.arrive = { ...arrive, sit: false };
+  }
+  // 凭链接、房间号、好友的「加入」进来的娱乐房：多数人是来打的，直接坐下，不用再点。
+  // 还在等人坐第一个空位；已经开打了回自己坐过的座位，没坐过就接管一个电脑座位
+  if (session.autoSit && s.you && s.opts) {
+    session.autoSit = false;
+    const seats = tableSeats(s);
+    const seat =
+      room.status === 'waiting'
+        ? seats.findIndex((x) => x.kind === 'empty')
+        : room.status === 'playing'
+          ? (s.you.bound ?? seats.findIndex((x) => x.kind === 'ai' && !x.reserved))
+          : -1;
+    if (s.you.seat === null && !stakesOf(s.opts.stakes)?.wallet && seat >= 0) session.online?.sit(seat);
+  }
+}
 
 function drawWaiting(s: OnlineState): void {
   const match = inMatch();

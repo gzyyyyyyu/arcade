@@ -2,25 +2,21 @@
 .topbar {
   position: absolute;
   inset: 0 0 auto 0;
-  height: 40px;
+  height: var(--topbar-h);
   display: flex;
   align-items: center;
   gap: var(--sp-2);
   padding: 0 var(--sp-3);
-  background: linear-gradient(#000000a0, #00000060);
-  box-shadow: 0 1px 0 #ffffff14;
-  /* 比弹窗遮罩（60）高：遮罩从顶栏下面开始，"大厅"往下撑开的点按区也要压在遮罩上面才点得到 */
-  z-index: 61;
+  /* 木色和描边在 art.css 的组件皮肤；比弹窗遮罩高：遮罩从顶栏下面开始，"大厅"往下撑开的点按区也要压在遮罩上面才点得到 */
+  z-index: var(--z-topbar);
 }
 .home {
   display: flex;
   align-items: center;
   gap: var(--sp-1);
-  height: 32px;
+  height: var(--pill-h);
   padding: 0 var(--sp-3) 0 var(--sp-2);
   border-radius: var(--r-pill);
-  background: var(--surface-hi);
-  color: var(--ink);
   text-decoration: none;
   font-size: var(--fs-md);
 }
@@ -31,7 +27,9 @@
 }
 .title {
   font-size: var(--fs-md);
-  opacity: 0.85;
+  font-weight: var(--fw-bold);
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
   white-space: nowrap;
   /* 竖屏顶栏放不下时标题让位（好友房多一个"叫朋友"按钮） */
   min-width: 0;
@@ -52,14 +50,11 @@
   flex: 1;
 }
 .wallet-chip {
-  font-size: var(--fs-sm);
-  color: var(--gold);
+  font-size: var(--fs-md);
 }
 .icon,
 .pill {
-  height: 32px;
-  border: 0;
-  background: var(--surface-hi);
+  height: var(--pill-h);
   border-radius: var(--r-pill);
   padding: 0 var(--sp-3);
   font-size: var(--fs-sm);
@@ -85,15 +80,13 @@
   padding: 0 3px;
   border-radius: var(--r-pill);
   background: var(--red);
-  color: #fff;
+  color: var(--on-red);
+  box-shadow: 0 0 0 1.5px var(--ink-dark);
   font-size: 10px;
   line-height: 14px;
 }
-.pill.leave {
-  background: #ffffff2e;
-}
 .screen {
   position: absolute;
-  inset: 40px 0 0 0;
+  inset: var(--topbar-h) 0 0 0;
 }
 

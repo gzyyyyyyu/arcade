@@ -68,6 +68,8 @@ export function renderHome(box: HTMLElement, p: HomeProps): void {
     }
   }
 
+  // 快速一局是主角；底下一道分隔写「自己选桌」，三张模式卡是第二层
+  el('div', 'home-sep', main, '自己选桌');
   const modes = el('div', 'modes', main);
   const card = (id: HomeMode, icon: 'fun' | 'lux' | 'room', name: string, line: string, off: { label: string; why: string } | null): void => {
     const b = button(`mode ${id}${off ? ' off' : ''}`, modes, '', () => (off ? p.onNote(off.why) : p.onMode(id)));
@@ -79,8 +81,9 @@ export function renderHome(box: HTMLElement, p: HomeProps): void {
   if (!p.standalone) card('real', 'lux', '实盘', '用钱包筹码', p.realOff);
   card('room', 'room', '好友房', '叫朋友一起', null);
 
-  // 没战绩又有存档时整行不画（空的一行会留一个暗色小条）
-  const rec = p.record || !p.resume ? el('div', 'record', main) : null;
+  // 面板底：左边战绩、右边规则链接，一行放下（没战绩又有存档时只剩规则链接）
+  const foot = el('div', 'home-foot', main);
+  const rec = p.record || !p.resume ? el('div', 'record', foot) : null;
   if (rec && p.record) {
     const r = p.record;
     el('span', '', rec, `打了 ${r.played} 场`);
@@ -88,7 +91,7 @@ export function renderHome(box: HTMLElement, p: HomeProps): void {
     if (r.lost >= 2) el('span', 'down', rec, `连输 ${r.lost}`);
   } else if (rec) el('span', '', rec, '还没打过：先来一场新手练练手');
   progressCard(art, p);
-  button('link', main, page.rulesLink, p.onRules);
+  button('link', foot, page.rulesLink, p.onRules);
   el('div', 'ver', box, `v${__MAHJONG_VERSION__}`);
 }
 

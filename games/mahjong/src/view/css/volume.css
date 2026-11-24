@@ -1,36 +1,87 @@
-/* ---------- 音量 ---------- */
+/* ---------- 设置面板（顶栏齿轮点开） ----------
+ * 一行一组：左边一列小标题（固定宽、和第一排按钮对齐），右边控件两列等宽排，多了往下排；组之间一道细线；「恢复默认」压在右下角。
+ * 漆面、描边、黄铜内框在 art.css 的组件皮肤。分组和按钮由 app/settings.ts 生成：.vol > .vol-group > (.vol-title + 控件)，.vol > .reset */
 .vol {
+  --vol-label: 5.2em;
   position: absolute;
   right: var(--sp-3);
-  top: 44px;
+  top: calc(var(--topbar-h) + var(--sp-2));
   /* 比竖屏「横过来玩更舒服」（70）高：刚进牌桌就点开设置时提示条不盖按钮 */
   z-index: 71;
+  width: min(540px, calc(100% - 2 * var(--sp-3)));
   display: flex;
-  align-items: flex-start;
-  gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--r-md);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  box-shadow: var(--sh-2);
+  flex-direction: column;
+  padding: var(--sp-4);
+  transform-origin: top right;
+  animation: vol-in var(--t-mid) var(--ease-out);
+}
+.stage .vol .vol-group {
+  position: relative;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) 0 var(--sp-3) var(--vol-label);
+  border-top: 1px solid var(--line);
+}
+.stage .vol .vol-group:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.stage .vol .vol-group[hidden] {
+  display: none;
+}
+/* 小标题对齐第一排控件的中线 */
+.stage .vol .vol-title {
+  position: absolute;
+  left: 0;
+  top: calc(var(--sp-3) + var(--btn-h) / 2);
+  margin: 0;
+  transform: translateY(-50%);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  color: var(--ink-2);
+  letter-spacing: 0.08em;
+  opacity: 1;
+}
+.stage .vol .vol-group:first-child .vol-title {
+  /* 音量这一排的高度由滑块定（点按区撑到 --tap） */
+  top: calc(max(44px, var(--tap)) / 2);
+}
+.stage .vol .vol-group > :not(.vol-title) {
+  flex: 0 0 calc((100% - var(--sp-2)) / 2);
+  min-width: 0;
+}
+.stage .vol .act {
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-md);
 }
 .vol input {
-  width: 160px;
   /* 滑块本身只有十来像素高，点按区撑到 --tap（屏幕上 44）。不用负外边距往上下借：手机上 --tap 大，
    * 借出去的一截压住小标题，下面的「静音」又整个盖在滑块上，滑块看不见也拖不到 */
   height: max(44px, var(--tap));
   margin: 0;
   accent-color: var(--gold);
 }
-/* 竖屏放不下一行（字号放大以后）：折成两行，滑块单独一行 */
+.stage .vol > .reset {
+  align-self: flex-end;
+  margin-top: var(--sp-3);
+}
+/* 竖屏：左右撑满舞台 */
 [data-orient='port'] .vol {
   left: var(--sp-3);
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  width: auto;
 }
-/* 滑块在竖排的分组里：撑满分组的宽，高度照上面的 --tap（flex-basis 100% 在竖排里会把高度压成十来像素） */
-[data-orient='port'] .vol input {
-  width: 100%;
+@keyframes vol-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vol {
+    animation: none;
+  }
 }
 
 /* 竖屏第一次进牌桌的"横过来玩更舒服"（view/guide.ts）：顶上居中一小条，手机图标转一下，点击穿透 */
@@ -46,7 +97,7 @@
   padding: var(--sp-2) var(--sp-4);
   border-radius: var(--r-pill);
   background: #000000c0;
-  color: #fff3d6;
+  color: var(--ink);
   font-size: var(--fs-lg);
   pointer-events: none;
   transform: translateX(-50%);

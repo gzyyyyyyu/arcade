@@ -2,8 +2,8 @@
 /* 遮罩从顶栏下面开始：任何弹窗开着（第一次进来的"怎么胡"、规则、结算）都能直接点"大厅"回去，不用先关框 */
 .mask {
   position: absolute;
-  inset: 40px 0 0 0;
-  background: #0009;
+  inset: var(--topbar-h) 0 0 0;
+  background: var(--scrim);
   display: grid;
   place-items: center;
   z-index: 60;
@@ -13,11 +13,8 @@
   max-width: min(720px, 94%);
   max-height: 92%;
   overflow-y: auto;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
   padding: var(--sp-5);
-  box-shadow: inset 0 1px 0 #ffffff1a, var(--sh-3);
+  /* 漆面、描边、黄铜内框在 art.css 的组件皮肤 */
 }
 .dialog .x {
   position: absolute;
@@ -33,16 +30,19 @@
   border-radius: 0 var(--r-lg) 0 50%;
   background: none;
   font-size: var(--fs-2xl);
-  opacity: 0.7;
+  color: var(--ink-2);
 }
 .dialog h2 {
   margin: 0 max(var(--sp-6), calc(var(--tap) - var(--sp-5))) var(--sp-3) 0;
-  color: var(--gold);
+  color: var(--gold-hi);
   font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.04em;
+  text-shadow: var(--title-shadow);
 }
 .dialog p {
   margin: var(--sp-2) 0;
-  line-height: 1.6;
+  line-height: var(--lh-body);
 }
 /* 弹窗里单独一个按钮（下一局、知道了、回选桌）居中 */
 .dialog > .act {
@@ -57,7 +57,7 @@
 }
 .dialog .step {
   font-size: var(--fs-xs);
-  opacity: 0.6;
+  color: var(--ink-3);
 }
 /* 快速匹配的排队卡：档位一条小签，下面一行大字"已有几人、还剩几秒"（数字不换行、不截） */
 .mask.match .dialog {
@@ -70,8 +70,9 @@
 .mask.match .match-tier {
   display: inline-block;
   padding: var(--sp-1) var(--sp-3);
-  border-radius: var(--r-sm);
-  background: #ffffff14;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-gold);
   color: var(--gold);
   /* 小标签条和下面的大字只差一档，不再 14 对 18 以上落差太大 */
   font-size: var(--fs-md);
@@ -79,7 +80,8 @@
 .mask.match .match-wait {
   margin: var(--sp-4) 0 var(--sp-2);
   font-size: var(--fs-lg);
-  font-weight: bold;
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
 }
 .mask.match .row {
   flex-wrap: wrap;

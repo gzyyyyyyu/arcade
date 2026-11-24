@@ -19,7 +19,7 @@ src/core/
 src/ai/          通用的电脑：牌效（向听 + 有效牌）、防守、性格；玩法给参数和专属决定（换三张、定缺）
 src/room/        把任意 Variant 接到 kit 的 RoomGame（房间按开房选项里的 variant 选玩法）
 src/view/        通用牌桌界面 + view/variants/<id>/ 按玩法挂载的组件（牌桌 VariantUi、页面层钩子 VariantPage）
-src/app/         页面和流程（主页、选桌页、单机、好友房、结算、社交），不认识具体玩法，只经 pageOf(id) 取
+src/app/         页面和流程（主页、选桌页、单机、好友房、结算、社交），不认识具体玩法，只经 pageOf(id) 取；谁管什么见 dev.md 2.1
 ```
 
 ### 3.1 牌的表示（`tiles`）

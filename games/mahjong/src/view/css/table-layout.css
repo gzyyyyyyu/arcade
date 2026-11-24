@@ -135,7 +135,11 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 [data-orient='port'] .opp-hand.r3:has(.tile) { width: 42px; }
 /* 中控盘缩小一点，让出位置给牌河：四个牌河围着它，上下两块各四张一行、左右两块各三张一行竖着往下长，横向互不重叠 */
 [data-orient='port'] .center { left: 228px; top: calc(var(--c) - 50px); width: 104px; height: 100px; }
-[data-orient='port'] .center .mid { inset: 8px; }
+/* 三行字（剩几张、剩余、第几局）收在上下方向灯条之间，不踩灯条 */
+[data-orient='port'] .center .mid { inset: 12px 8px 13px; }
+[data-orient='port'] .center .wall { font-size: 28px; }
+[data-orient='port'] .center .wall-label { margin-top: 0; }
+[data-orient='port'] .center .round { margin-top: 1px; }
 /* 竖屏中控盘离左右牌河只有 12：左右的箭头小一号、贴近一点 */
 [data-orient='port'] .center .dir.r1.on::after { margin-left: 2px; border-width: 6px 0 6px 8px; margin-top: -6px; }
 [data-orient='port'] .center .dir.r3.on::after { margin-right: 2px; border-width: 6px 8px 6px 0; margin-top: -6px; }
@@ -171,7 +175,8 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
   [data-orient='port'] .topbar > .title .lv:not(.kind + .lv) { display: none; }
 }
 /* 头像右边、手牌抬起来（离底 78）也碰不到 */
-[data-orient='port'] .fun-slot { left: 204px; bottom: 84px; }
+/* 互动在我名牌上方的左角，聊天镜像到下家名牌上方的右角（table.ts 的 chatButtonRect），底部中轴只留给碰杠胡过和手牌；名牌随 --fs-k 变高，空位跟着让 */
+[data-orient='port'] .fun-slot { left: 8px; bottom: calc(92px + 56px * var(--fs-k, 1)); }
 [data-orient='port'] .banner { font-size: 44px; }
 [data-orient='port'] .banner.r0 { left: 50%; top: 72%; }
 [data-orient='port'] .banner.r1 { left: 78%; top: 40%; }
@@ -207,11 +212,15 @@ html[data-fit='desk'] .atf-btn svg { width: 26px; height: 26px; }
 [data-hand='two'] .my-hand:has(> :nth-child(11)) { --cols: 6; }
 [data-hand='two'] .my-hand:has(> :nth-child(13)) { --cols: 7; }
 [data-hand='two'] .my-hand .tile { width: var(--hw); height: var(--hh); }
+/* 两排之间只空 12：下排选中的牌少抬一点（8），「荐」「听」角标收进一点，不压到上排的牌 */
+[data-hand='two'] .my-hand .tile.up { transform: translateY(-8px); }
+[data-hand='two'] .my-hand .tile :is(.rec-badge),
+[data-hand='two'] .my-hand .tile.ting::before { top: -6px; }
 /* 自己的碰杠在两排右边：手牌少了几张、两排变窄，右边空出来，碰杠放大一号（26 → 32，屏幕上约 22 像素）；四个杠也只比 544 宽一点 */
 [data-hand='two'] .melds.r0 .tile { width: 32px; height: 45px; }
 [data-hand='two'] .badge.r0,
-[data-hand='two'] .badge.r1,
-[data-hand='two'] .fun-slot { bottom: calc(84px + var(--e)); }
+[data-hand='two'] .badge.r1 { bottom: calc(84px + var(--e)); }
+[data-hand='two'] .fun-slot { bottom: calc(92px + 56px * var(--fs-k, 1) + var(--e)); }
 [data-hand='two'] .bar { bottom: calc(172px + var(--e)); }
 /* 窄屏对家那排紧贴名牌下沿（一排手牌时放在 150，下面空着；两排时中间一截要往上让） */
 @media (max-width: 400px) {
