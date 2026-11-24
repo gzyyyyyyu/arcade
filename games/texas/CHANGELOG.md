@@ -1,6 +1,16 @@
 # 更新日志
 
-每版按“新增 / 调整 / 修复 / 其他”分类写、只写有的，旧版见 [docs/changelog-archive.md](docs/changelog-archive.md)。
+每版按“新增 / 调整 / 修复 / 其他”分类写、只写有的，旧版在 `docs/` 下：[0.40–0.49](docs/changelog-0.40-0.49.md)、[0.30–0.39](docs/changelog-0.30-0.39.md)、[0.20–0.29](docs/changelog-0.20-0.29.md)、[0.10–0.19](docs/changelog-0.10-0.19.md)、[0.1–0.9](docs/changelog-0.1-0.9.md)。
+
+## 0.43.7（2026-11-23）
+
+文档：README 按开源门面重写，拆成英文 `README.md` 和中文 `README.zh-CN.md` 两份同构、顶部互链。规则、电脑、实盘的数和代码都不变。
+
+**其他**
+- README 只留定位、截图、功能要点、快速开始、目录、文档导航、模块说明和许可证。
+- 原 README 的全部命令、本地试 Worker、本站部署的绑定表搬进 `docs/deploy.md` 10.4、10.5；单独部署和探活本来就在 10.1，README 里重复的删掉。
+- 删掉只有一张目录的 `docs/changelog-archive.md`，存档目录写进本文件开头。
+- `docs/deploy.md`、`docs/scenes.md` 去掉"照旧"这类历史说法。
 
 ## 0.43.6（2026-11-23）
 

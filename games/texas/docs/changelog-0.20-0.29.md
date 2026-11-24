@@ -1,6 +1,6 @@
 # 更新日志归档：0.20–0.29
 
-本文件是 0.20–0.29 的更新日志原文，索引见 [changelog-archive.md](changelog-archive.md)，当前版本见 [CHANGELOG.md](../CHANGELOG.md)。
+本文件是 0.20–0.29 的更新日志原文，索引在 [CHANGELOG.md](../CHANGELOG.md) 开头，当前版本见 [CHANGELOG.md](../CHANGELOG.md)。
 
 ## 0.29.3 — 2026-10-31
 

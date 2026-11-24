@@ -1,8 +1,8 @@
-# 德州扑克：目录和部署
+# 德州扑克：目录、部署和命令
 
 > 节号沿用设计总纲的编号，各章在哪个文件见 [DESIGN.md](../DESIGN.md) 目录。
 
-## 10. 目录和部署
+## 10. 目录、部署和命令
 
 ```
 games/texas/
@@ -49,7 +49,7 @@ games/texas/
 - **页面怎么知道**：开局用 kit 的 `detectPlatform()` 问同域 `/api/me`（顺带拿平台昵称）。单独部署时 `/api/me` 由德州 Worker 经 kit 的 `standaloneRoot` 答 200 `{ standalone: true }`
   （没有 user 就算没有平台）：不回 404，免得每次打开页面控制台都冒一条红的。平台抖了一下（5xx、超时，`unknown`）按有平台算。结果记在 `src/site.ts`。
 - **安全**：本站有 ARCADE 绑定，游客 cookie 一律不认；绑定丢了（GATE=login 却没有 ARCADE）kit 按平台不可用拒绝，房间也不会因为没有 WALLET 就白给筹码（`perform` 只在单独部署时回 ok，否则回 `unavailable`）。
-- **真人至少两个**照旧（规则不分部署），说明换成不提实盘的一句。
+- **真人至少两个**（规则不分部署），说明换成不提实盘的一句。
 - 单独部署的额度照 `KIT_QUOTA`（同一份配置），计量照常。
 - **探活和报错**：`/games/texas/health` 两种部署都不要登录，回 `{ ok: true, version }`（`package.json` 的版本）；页面开局调 kit 的 `reportErrors`（`arcade-kit/report`），没人接住的报错发给平台的 `/api/client-error`，单独部署时那里回 404，kit 吞掉不重试。
 - 测试：`test/standalone/`（workerd，入口就是 `worker/main.ts`，入口多导出了具名常量时 workerd 起不来，这里先报）；冒烟 `--only standalone` 用原样的 `wrangler.jsonc` 起 `wrangler dev`。
@@ -75,3 +75,67 @@ games/texas/
 | `frame-ancestors` | `'self'` | 不许别的站点用 iframe 嵌，只许同源 |
 
 冒烟里每个页面监听 `securitypolicyviolation` 记成控制台错误，所以任何违规都会让冒烟失败。`test/worker/api.test.ts` 查首页带着这条头。
+
+### 10.4 本站部署（部署工具补什么）
+
+德州是一个 Cloudflare Worker（名字 `texas`），本站挂在平台同一个域名的 `/games/texas` 路径下，用平台的登录和钱包，用 GitHub Actions 部署：
+**先部署平台**（Worker 名 `arcade`，德州的服务绑定都指向它），再跑本模块的流程。
+
+本仓库的正式站由 `.github/workflows/game-texas.yml` 部署：改动经 PR 合并进 `main` 且涉及 `games/texas/**` 或 `packages/arcade-kit/**` 时，先跑模块独立性检查，再 `npm ci`、`npm test`、`build:cf`，
+然后由部署工具 `tools/deployer` 在 `wrangler.jsonc` 上补平台的东西：`ARCADE`、`WALLET` 两个服务绑定和 `GATE=login`（`tools/workers.json`）、
+路由 `<站点>/games/texas`、`<站点>/games/texas/*` 和变量 `SITE_ORIGIN=https://<站点>`（站点的主机名在 GitHub `production` 环境的 secret `SITE_HOST` 里，没设就失败），关掉 `workers_dev`，再部署。
+PR 上只测试不部署。在本仓库里不对正式环境手动部署（`npm run deploy` 是给单独部署用的）。
+
+本模块要的绑定、变量和 secret：
+
+| 名字 | 类型 | 说明 |
+|---|---|---|
+| `ASSETS` | 静态资源 | `dist-cf/`，由 `npm run build:cf` 生成 |
+| `ROOM` | Durable Object `TexasRoom` | 好友房 |
+| `METER` | Durable Object `RoomMeter` | kit 的每日额度计量 |
+| `MATCH` | Durable Object `Queue` | 匹配真人的排队（每档一个实例，不写存储） |
+| `ARCADE` | 服务绑定 → `arcade`（本站部署时补） | 登录闸门和认人，问平台 `/api/me`；没有就是单独部署 |
+| `WALLET` | 服务绑定 → `arcade` 的 `WalletService`，`props.game = texas`（本站部署时补） | 单机和好友房的带入、带回 |
+| `GATE` | 变量（本站部署时补） | `login`（没登录跳平台登录页；没绑 ARCADE 时拒绝，不退成游客）或 `off`（不拦，本地试页面用）；不写时看有没有 ARCADE |
+| `KIT_QUOTA` | 变量 | 每天的写入预算和每人开房数（docs/economy.md 第 7 节） |
+| `SITE_ORIGIN` | 变量（可选，部署时注入） | 开房、进房、单机带入带回只认这个 Origin；没设就认请求自己的 origin |
+| `CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`、`SITE_HOST` | GitHub `production` 环境的 secret | 部署流程用，不进 Worker |
+
+需要拆成单独仓库时，在仓库根运行 `tools/split-module.sh games/texas`。
+
+### 10.5 本地开发和命令
+```bash
+npm ci
+npm run dev           # 页面（vite，5175）；钱包连不上时娱乐照常，设 TEXAS_WORKER=<本地 Worker 端口> 把 api/、/api/wallet* 转给 Worker
+npm run build:cf      # 页面打包到 dist-cf/games/texas/（Worker 的静态资源），并把 _headers（assets 长缓存）拷到 dist-cf/
+npm run smoke         # 冒烟：先 build:cf；本地起 Worker + 无头 Chromium，跑单机（打满 30 手、补筹码、离桌结算、回大厅）、手机横屏、双指放大、竖屏、好友房、匹配真人，
+                      # 再用原样的 wrangler.jsonc 起一个单独部署的 Worker 跑单机和游客好友房；
+                      # --only desktop|mobile|portrait|room|match|standalone 只跑一段，tall|guide|tp|tour|tourfmt|tourroom|devices|scenes|noscroll|lobbyui|settings|fun|dialogs|ach|puzzle|pushfold|dailytour|bigmoments|roomsoak|roomweak|quota 只能单独指定（docs/testing.md 第 9 节；devices 是 27 个尺寸的多尺寸检查，加 --lobby 只查主页和选桌页；scenes 是牌桌各种局面的互压检查，8.2；roomsoak 好友房长跑量内存和连接、roomweak 后台和弱网后恢复，第 6 节）
+npm run capture -- [--device desk|phone|both] [--every 250] [--secs 40] [--auto] [--out 目录]
+                      # 连拍：本地起页面、娱乐桌自动打，每隔固定毫秒截一张，拼成带时间的 4×4 大图，逐帧看节奏（不进 CI）
+npm run lint         # Biome 静态检查（biome.jsonc 是统一模板，不改规则）；提交前要零报告，确需放行用 biome-ignore 并写理由
+npm run test:unit     # 只跑 vitest 单元测试（不含类型检查和 workerd）
+npm test              # 类型检查 + vitest（含全量 1.34 亿手的牌力测试、机器人对打 1 万手）+ workerd 里的 Worker 和好友房测试
+npm run test:worker   # 只跑 workerd 里的那部分：test/worker/（配置 test/wrangler.test.jsonc，平台和平台钱包用假的服务绑定，钱包是 arcade-kit/testing）
+                      # 和 test/standalone/（单独部署，配置 test/wrangler.standalone.jsonc，没有平台）
+npm run sim [手数] [档位] [--size=2–9] [--level=0–6] [--mix-only] [--no-form]  # 性格混桌对打，打印每种性格每百手的输赢、风格（VPIP/PFR/AF/诈唬率/慢打/下注大小）和各热点的耗时；--level 钉死强弱档，--no-form 去掉每场的状态
+npm run vs -- [每格场数] [档位,...] [策略,...]                     # 每档 × 每种策略一个玩家对电脑，打印每百手大盲（等同 npm run sim -- --vs）
+npm run balance -- [每格场数]                                     # 配平（docs/ai.md 4.10，等同 npm run sim -- --balance）
+npm run tour-sim -- <场数> [--format sng|turbo|nine]              # 锦标赛模拟：平均手数、各座位名次是否均匀（docs/tournament.md）
+npm run tour-balance -- [每格场数] [--format=sng,turbo,nine]      # 单机锦标赛配平，大表放 CI 上跑
+npm run scenes                                                    # 只跑冒烟里的牌局互压检查（等同 npm run smoke -- --only scenes）
+npm run gen:preflop   # 重新生成翻牌前胜率表 src/ai/preflop-table.ts（固定种子）
+```
+
+依赖共用包 arcade-kit：装的是 npm 上发布的 `@yyyu-star/arcade-kit`（`package.json` 里起别名 `arcade-kit`，源码在仓库的 `packages/arcade-kit`），只经它的包入口用：`arcade-kit/rng`、`/room`、`/client`、`/auth` 等。脚本直接用 Node 跑 TypeScript（Node 22 的类型剥离）。
+
+本地试 Worker：
+`npx wrangler dev`（用 `wrangler.jsonc`）就是单独部署的样子：游客、没有钱包。要试有平台的样子（登录、钱包），把 `wrangler.local.example.jsonc` 复制成 `wrangler.local.jsonc`（已 gitignore），
+它和一个名叫 `arcade` 的假平台 Worker（`test/arcade.dev.jsonc`：`/api/me` 和钱包，cookie `__Host-sid=<id>` 就认作这个人）一起起：
+
+```bash
+cp wrangler.local.example.jsonc wrangler.local.jsonc && npm run build:cf
+TEXAS_WORKER=8775 npm run dev:worker   # Worker 的端口取 TEXAS_WORKER，不设就由系统分配（看输出的 Ready on），不占 5175 / 4175
+TEXAS_WORKER=8775 npm run dev           # 页面在 5175，api/、/api/wallet* 转给上面的 Worker
+curl -b '__Host-sid=me' http://localhost:8775/api/wallet
+```
