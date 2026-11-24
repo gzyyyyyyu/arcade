@@ -344,7 +344,7 @@ describe('离座和带回', () => {
   });
 });
 
-describe('实盘一局打到一半坐下：这一局电脑照打，下一局才带入（0.47.3）', () => {
+describe('实盘一局打到一半坐下：这一局电脑照打，下一局才带入', () => {
   /** 两个真人在打、2 号座位是电脑；推到一局正打到一半 */
   const midRound = (): RoomState => drive(settleAll(begin(['human', 'human', 'ai', 'ai'])), 400, (x) => g(x, null).phase === 'turn' && x.n > 40);
   const toRoundEnd = (s: RoomState): RoomState => drive(s, 4_000, (x) => g(x, null).phase === 'end');
@@ -483,7 +483,7 @@ describe('实盘中途坐下、离座、局间坐下的边角', () => {
 });
 
 describe('好友房的公平和边角', () => {
-  test('声明窗口里真人答了、窗口没结束：别人的视图一点不变、步数不加（kit 0.7.1 据此不广播）；答完结束窗口的照常加', () => {
+  test('声明窗口里真人答了、窗口没结束：别人的视图一点不变、步数不加（kit 据此不广播）；答完结束窗口的照常加', () => {
     // 四个真人的娱乐房，局面换成"0 号打 5p，1、2 号都能胡"（test/xz-table.ts）
     let s: RoomState = { ...begin(['human', 'human', 'human', 'human'], 'fun'), g: RON() };
     const play = (a: unknown) => G.parse({ t: 'play', v: 'sichuan-xuezhan', a })!;

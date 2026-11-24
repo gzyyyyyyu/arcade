@@ -33,7 +33,7 @@ export const session = {
   myName: '我',
   /**
    * 单独部署（没有平台，kit 的 detectPlatform 回 false）：没有登录、钱包和实盘，"大厅"回游戏首页，好友房用游客身份（昵称自己填，存 NICK_KEY）。
-   * 平台暂时连不上（unknown）照有平台处理：实盘按钱包连不上不给选，和原来一样
+   * 平台暂时连不上（unknown）照有平台处理：实盘按钱包连不上不给选
    */
   standalone: false,
   /** detectPlatform 的结果：social 部件直接用，省一次 /api/me */

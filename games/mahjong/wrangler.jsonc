@@ -12,7 +12,7 @@
     "directory": "./dist-cf",
     "binding": "ASSETS",
     "not_found_handling": "none",
-    // 只有这些先过 Worker：健康检查（线上监控用），站点根（独立部署时转到 /games/mahjong/）、首页（登录闸门 / 发游客 cookie）、单机带入结回、开房进房；
+    // 只有这些先过 Worker：健康检查（线上监控用），站点根（独立部署时转到 /games/mahjong/）、首页（登录闸门 / 发游客 cookie）、单机带入带回、开房进房；
     // 其余静态资源直接回。/api/*（含 /api/wallet）在本站由平台的路由接，独立部署时没有
     "run_worker_first": ["/", "/api/me", "/games/mahjong", "/games/mahjong/", "/games/mahjong/index.html", "/games/mahjong/health", "/games/mahjong/api/stake/*", "/games/mahjong/rooms", "/games/mahjong/rooms/*"]
   },
@@ -22,7 +22,7 @@
     "bindings": [
       { "name": "ROOM", "class_name": "MahjongRoom" },
       { "name": "METER", "class_name": "RoomMeter" },
-      // 快速匹配的排队（0.21.0，worker/match.ts，kit 的 MatchQueue）：每个档位一个对象，凑够人用 ROOM 开桌
+      // 快速匹配的排队（worker/match.ts，kit 的 MatchQueue）：每个档位一个对象，凑够人用 ROOM 开桌
       { "name": "MATCH", "class_name": "Queue" }
     ]
   },
@@ -33,7 +33,7 @@
   ],
   "vars": {
     // 每天的 DO 写入预算（DESIGN.md 第 9 节，一房约 800 行）：到 busy 不开新房，到 stop 收场。
-    // 每人开房同时 1 个（所有者 11-20 定：长期邀请码上线后守住额度）、每天 30 个：正常一场 40 分钟起，一天开不了这么多，卡的是脚本刷房（安全审计低危）；全站上限照 kit 默认
+    // 每人开房同时 1 个（守住额度）、每天 30 个：正常一场 40 分钟起，一天开不了这么多，卡的是脚本刷房；全站上限照 kit 默认
     "KIT_QUOTA": { "busyWrites": 8000, "stopWrites": 10000, "roomsPerUser": 1, "dailyRoomsPerUser": 30 }
   }
 }

@@ -78,7 +78,7 @@ describe('部署入口 worker/main.ts', () => {
   });
 });
 
-describe('快速匹配（0.21.0）', () => {
+describe('快速匹配', () => {
   it('四个人排娱乐：凑满一桌立刻开，同一张匹配桌、娱乐规则，人到齐自动开打', async () => {
     const ids = [user(), user(), user(), user()];
     const qs = [];
