@@ -1,6 +1,6 @@
 # 平台：钱包、战绩、真人对局统计
 
-> 平台文档的分册，节号全站通用（对照表见 [README.md](README.md#节号对照)）；总体设计见 [platform-backend.md](platform-backend.md)，接口细节见 [api.md](api.md)。
+> 平台文档的分册，节号全站通用（对照表见 [README.md](README.md#section-numbers--节号对照)）；总体设计见 [platform-backend.md](platform-backend.md)，接口细节见 [api.md](api.md)。
 
 > 筹码体系的方案正本是 [economy.md](economy.md)；本文写平台这一侧的实现。
 

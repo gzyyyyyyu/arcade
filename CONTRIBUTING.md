@@ -1,8 +1,10 @@
 # Contributing to Arcade
 
+**English** · [简体中文](CONTRIBUTING.zh-CN.md)
+
 Thanks for your interest! This guide covers how changes get into `main` and onto the live site. By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 The technical rules (module independence, deterministic rules, rooms, testing, Git) are in [AGENTS.md](AGENTS.md), for people and AI agents alike;
-the quality bar is [docs/engineering.md](docs/engineering.md) and the review rules are [docs/review-policy.md](docs/review-policy.md). 中文读者：规范细节以 AGENTS.md 为准。
+the quality bar is [docs/engineering.md](docs/engineering.md) and the review rules are [docs/review-policy.md](docs/review-policy.md).
 
 ## Ground rules
 
@@ -23,7 +25,7 @@ Want to add a game? Read [docs/new-game.md](docs/new-game.md) and open an issue 
 
 - Node.js 22 (`.nvmrc`) and npm; no Cloudflare account needed (the fake wallet is in `arcade-kit/testing`).
 - No root `package.json`: inside a module run `npm ci`, then `npm run dev`, `npm test`, `npm run build`. Ports: [AGENTS.md](AGENTS.md) section 3.
-- Most docs are in Chinese; `README.md`, this file, `SECURITY.md`, `docs/deployment.md` and `docs/self-hosting.md` are in English. Issues and pull requests may be in either language.
+- The front-door files (`README`, this guide, `SECURITY.md`) and `docs/deployment.md`, `docs/self-hosting.md` are in English; design docs and `AGENTS.md` are in Chinese. Issues and pull requests may be in either language.
 
 ## Workflow
 

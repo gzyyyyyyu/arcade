@@ -1,6 +1,6 @@
 # 平台：云存档、好友、平台界面、邀请制与登录闸门
 
-> 平台文档的分册，节号全站通用（对照表见 [README.md](README.md#节号对照)）；总体设计见 [platform-backend.md](platform-backend.md)，接口细节见 [api.md](api.md)。
+> 平台文档的分册，节号全站通用（对照表见 [README.md](README.md#section-numbers--节号对照)）；总体设计见 [platform-backend.md](platform-backend.md)，接口细节见 [api.md](api.md)。
 
 ### 5.5 云存档
 
@@ -78,7 +78,7 @@
 
 - **注册开关**（改了不用重新部署）：
   - **D1 里的开关**：表 `settings` 的 `registration` 一行，值 `open` / `closed`；**没有这一行按关**，迁移不放初始数据。
-  - **紧急总闸** `wrangler.jsonc` 的 `vars.REGISTRATION`：只有 `"switch"`（不分大小写、去首尾空白）才听 D1 的开关；`"off"`、没设、写错一律**强制关**（fail-closed）。线上配的是 `"switch"`。
+  - **紧急总闸** `wrangler.jsonc` 的 `vars.REGISTRATION`：只有 `"switch"`（不分大小写、去首尾空白）才听 D1 的开关；`"off"`、没设、写错一律**强制关**（fail-closed）。仓库里的 `wrangler.jsonc` 配的是 `"switch"`。
   - **怎么改**：管理页 `/admin` 最上面的"开放注册"（点了先弹确认）、`npm run admin -- registration open|close|status`、或 `POST /api/admin/settings/registration`（15.7）。总闸关着时开关照样记下，界面和接口都说明"暂时不起作用"（`forcedOff: true`）。
   - **注册时的顺序**：IP 哈希 → isolate 内存令牌桶（超了 429、不碰 D1）→ 读开关（**每次读最新值**）→ 校验请求体 → 试邀请码 → `reg:ip`、`reg:all` 计数……关着回 403 `registration_closed`，**写 0 行**；读开关失败也按关，回 403。
   - `GET /api/me` 带 `registration`，用每个 isolate **30 秒的内存缓存**（游戏闸门每次打开首页都问，不想给每次访问加一次 D1 读）；停服档或读不到时按关。

@@ -1,8 +1,8 @@
 # 平台账号：登录、安全边界、认人、防刷
 
-> 本文是平台文档的 5.1–5.4 节，别处写的「platform-backend.md 5.1–5.4」就是这里；节号对照见 [README.md](README.md#节号对照)。
+> 本文是平台文档的 5.1–5.4 节，别处写的「platform-backend.md 5.1–5.4」就是这里；节号对照见 [README.md](README.md#section-numbers--节号对照)。
 > 数字（限额、预算、阈值）以 `platform/worker/api/lib/config.ts` 为准；本文和代码不一致时改本文。
-> 文中不带文件名的其他节号按全站编号找，对照表见 [README.md](README.md#节号对照)。
+> 文中不带文件名的其他节号按全站编号找，对照表见 [README.md](README.md#section-numbers--节号对照)。
 
 
 ## 5. 账号与登录（5.1–5.4）
