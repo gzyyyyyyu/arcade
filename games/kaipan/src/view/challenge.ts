@@ -1,5 +1,5 @@
 /**
- * 异步挑战的画面状态（docs/design-challenge.md）：打开链接接到的挑战、这台设备上接下的挑战局交成绩、结束页发起。
+ * 异步挑战的画面状态（docs/platform-integration.md 第 5 节）：打开链接接到的挑战、这台设备上接下的挑战局交成绩、结束页发起。
  * 和平台说话的细节在 platform/challenge.ts；这里管状态和通知，开始菜单、结束页订阅变化重画。
  */
 import { challengeOf, challengeScore, challengeSetup, challengeStats, isChallengeRun, type GameState, type RunSetup, type RunSummary } from '../core/index.ts';
