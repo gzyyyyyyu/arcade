@@ -83,5 +83,5 @@ export function quotaText(kind: 'escort' | 'map', left: number, max: number): { 
   return left > 0 ? { text: `今天还能跑 ${left} 趟（每天 ${max} 趟）`, full: false } : { text: `今天的航线实盘打完了（每天 ${max} 趟），明天再来`, full: true };
 }
 
-/** 航线实盘选档卡上的说明：四档同一条航线，只换结回倍数 */
-export const MAP_TIER_NOTE = '同一条航线，档越高带回越少';
+/** 航线实盘选档卡上的说明：四档同一条航线，满星都一样，星不满时高档带回的比例低（livetable 的 map 表） */
+export const MAP_TIER_NOTE = '同一条航线；档越高，没拿满星时带回的比例越低';

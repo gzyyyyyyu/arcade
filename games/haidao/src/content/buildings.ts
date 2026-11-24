@@ -64,7 +64,7 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     category: 'core',
     unlockHq: 1,
     maxLevel: 8,
-    desc: '你的老巢。升级需要战役星数，升级后开放新建筑、新兵种，旗舰能量更多。',
+    desc: '你的老巢。升级要星数，开新建筑和兵种，打岛时技能能量更多。',
     levels: HQ_COST.map((cost, i) => ({ cost, hp: Math.floor(((HQ_HP[i] ?? 0) * HP_PCT) / 100), cap: HQ_CAP[i] ?? 0 })),
   },
   goldmine: {

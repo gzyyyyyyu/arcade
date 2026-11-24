@@ -23,6 +23,7 @@ function style(): void {
 .hd-ui .hd-goals .hd-goal .hd-btn { min-width:72px; min-height:44px; flex:0 0 auto; }
 .hd-ui .hd-goals .hd-goal.done > span { opacity:.6; }
 .hd-ui .hd-goals .hd-goals-foot { margin:8px 0 0; font-size:12px; opacity:.8; }
+.hd-ui .hd-goals > .hd-btn-wide { width:100%; min-height:44px; margin-top:8px; }
 `;
   document.head.appendChild(st);
 }
@@ -104,7 +105,7 @@ function openGoals(onChange: () => void): void {
       btn.disabled = !all;
     }
     el('p', 'hd-goals-foot', '每天（北京时间）换三件；只给金币木材和收藏。', box);
-    button('关', 'hd-btn-plain hd-btn-wide', () => mask.remove(), box);
+    button('关闭', 'hd-btn-plain hd-btn-wide', () => mask.remove(), box);
   };
   draw();
 }

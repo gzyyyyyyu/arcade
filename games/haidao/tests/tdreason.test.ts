@@ -76,6 +76,7 @@ describe('tdReason', () => {
 
   it('文案：失守波数和护航', () => {
     expect(lostAtText(6)).toBe('打到第 6 波时失守');
+    expect(lostAtText(0)).toBe('还没开打就撤退了，算宝藏被抢光');
     expect(escortReason({ arrived: false, sunk: true, hullPct: 0, stars: 0 }).line).toBe('船被海盗咬沉了');
     expect(escortReason({ arrived: true, sunk: false, hullPct: 60, stars: 2 }).line).toBe('到港了，船还剩 60% 血');
     expect(escortReason({ arrived: false, sunk: false, hullPct: 100, stars: 0, retreated: true }).line).toBe('中途撤退，商船没到港');

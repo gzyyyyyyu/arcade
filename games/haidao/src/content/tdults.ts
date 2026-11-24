@@ -82,7 +82,7 @@ export const TD_ULT_BOSS: ReadonlySet<TdEnemyKind> = new Set<TdEnemyKind>(['capt
 /** 「先打」四档：最前（默认，原来的规则）、最强（血最多）、最近（离塔最近）、精英（精英和首领先） */
 export type TdPrio = 'first' | 'strong' | 'near' | 'elite';
 export const TD_PRIOS: readonly TdPrio[] = ['first', 'strong', 'near', 'elite'];
-export const TD_PRIO_NAME: Readonly<Record<TdPrio, string>> = { first: '最前', strong: '最强', near: '最近', elite: '精英' };
+export const TD_PRIO_NAME: Readonly<Record<TdPrio, string>> = { first: '走在最前的', strong: '血最多的', near: '离塔最近的', elite: '精英首领' };
 
 /** 「先打：精英」排前面的：精英、首领、军医（新敌人在这里加） */
 export const TD_PRIO_ELITE: ReadonlySet<string> = new Set<string>(['bosun', 'macaw', 'mate', 'captain', 'king', 'medic', 'drummer', 'tyrantShip', 'tyrant', 'tyrantRun']);

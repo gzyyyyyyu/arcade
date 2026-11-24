@@ -26,7 +26,7 @@ export function holdScout(c: ScoutCtx): boolean {
 }
 
 /** 计时牌在侦察期的小字（没有就返回空串，样式由调用方挂） */
-export const SCOUT_LABEL = '侦察中';
+export const SCOUT_LABEL = '待登陆';
 
 /** 开场俯瞰的提示合成这一条：红圈是什么、点哪里继续、什么时候开始计时；"先点船卡再点沙滩"留给俯瞰收起后的提示条，不同时出现 */
 export const SCOUT_TIP = '红圈是射程、斜线暗圈是打不到的盲区 · 先点下面的船卡，再点发光的沙滩靠岸；出第一船才开始计时';

@@ -451,6 +451,8 @@ function css(): string {
 .hd-ui .hd-badgetx b { font-size:14px; }
 .hd-ui .hd-badge .pop { animation:hd-pop .6s cubic-bezier(.2,1.8,.4,1); }
 .hd-ui .hd-ach { display:flex; align-items:center; gap:10px; padding:6px 8px; border:2px solid ${ink}; border-radius:12px; background:#fff8e6; margin-bottom:6px; }
+.hd-ui .hd-shop-first { display:contents; }
+.hd-ui .hd-shop-head { margin:4px 0; }
 .hd-ui .hd-ach.off { opacity:.55; filter:grayscale(.7); }
 .hd-ui .hd-ach .hd-at { flex:1; min-width:0; }
 .hd-ui .hd-ach b { display:block; }
@@ -478,8 +480,10 @@ function css(): string {
 .hd-ui .hd-chest-item.out { transition:all .6s cubic-bezier(.2,1.6,.4,1); transform:translate(-50%,-62px) scale(1.15); opacity:1; }
 @media (prefers-reduced-motion: reduce) { .hd-ui .hd-chest .hd-chest-shut, .hd-ui .hd-chest.open .hd-chest-open, .hd-ui .hd-chest.open .hd-chest-glow { animation:none; } .hd-ui .hd-chest.open .hd-chest-glow { opacity:.55; } }
 .hd-ui .hd-scout { position:absolute; inset:0; z-index:38; background:linear-gradient(#7fe6dc,#2fb8c8); display:flex; flex-direction:column; pointer-events:auto; padding:8px; gap:6px; }
-.hd-ui .hd-scout-head { display:flex; align-items:center; gap:8px; padding-left:84px; }
+.hd-ui .hd-scout-head { display:flex; align-items:center; gap:8px; padding-left:84px; padding-right:56px; }
 .hd-ui .hd-scout-head h2 { margin:0; flex:1; font-size:20px; }
+/* 窄屏：左上「大厅」只剩图标，左边少让一些；标题 16 号，带上「出发」钮也不把岛名折断 */
+@media (max-width:419px) { .hd-ui .hd-scout-head { padding-left:60px; } .hd-ui .hd-scout-head h2 { font-size:16px; } }
 .hd-ui .hd-counter { margin:0; background:#fff8e6; border:2px solid ${c.redD}; border-radius:10px; padding:6px 10px; font-weight:800; }
 .hd-ui .hd-scout-tip { margin:0; text-align:center; }
 .hd-ui .hd-scout-map { flex:1; min-height:0; border:3px solid ${ink}; border-radius:14px; background:#2fb8c8; }

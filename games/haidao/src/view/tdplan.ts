@@ -32,6 +32,8 @@ interface Flag {
   eyes: Phaser.GameObjects.Graphics[];
   x: number;
   y: number;
+  /** 旗面宽（世界坐标，含旗尾） */
+  w: number;
   ph: number;
 }
 interface Path {
@@ -180,6 +182,12 @@ export class TdPlan {
     for (let i = 0; i < this.flagCount; i++) {
       const f = this.flags[i]!;
       f.c.y = f.y - 4 * Math.abs(Math.sin(this.t * 1.6 + f.ph));
+      // 路口贴着画面边时旗子被切掉一半（竖屏镜头跟船）：露出一部分的才往里挪到整面看得见，整面在屏外的不动（屏边箭头会指）
+      const v = this.scene.cameras.main.worldView;
+      const lo = v.x + 4;
+      const hi = v.right - f.w - 4;
+      const cx = f.x < lo && f.x + f.w > v.x ? lo : f.x + f.w > v.right && f.x < hi + f.w ? Math.max(lo, hi) : f.x;
+      if (f.c.x !== cx) f.c.x = cx;
       const fa = dim ? 0.8 : 1;
       if (f.c.alpha !== fa) f.c.setAlpha(fa);
     }
@@ -237,13 +245,14 @@ export class TdPlan {
       eyes.push(eye);
       c.add([im, tx, eye]);
     }
-    return { c, bg, icons, nums, eyes, x: 0, y: 0, ph: this.flags.length * 1.3 };
+    return { c, bg, icons, nums, eyes, x: 0, y: 0, w: 0, ph: this.flags.length * 1.3 };
   }
 
   private fillFlag(f: Flag, enemies: WavePreview['lanes'][number]['enemies'], boss: boolean): void {
     const shown = enemies.slice(0, FLAG_KINDS);
     const slot = 60;
     const w = Math.max(1, shown.length) * slot + 10;
+    f.w = w + 14;
     const top = -92;
     const h = 44;
     f.bg.clear();

@@ -118,9 +118,9 @@ export function openSeaMap(onGo: (levelId: string, bounty: boolean) => void, onC
     const short = bounty ? p.res.wood < cost.wood : !trim;
     const go = button(locked ? `还差 ${l.reqStars - stars} 颗星才能上岛` : short ? (bounty ? lackText({ gold: 0, wood: cost.wood }, p.res) : '木材连一个兵都带不起') : trim?.trimmed ? `出发（少带 ${trim.trimmed} 个兵）` : '出发', 'hd-btn-gold', () => onGo(l.id, bounty), d);
     go.style.width = '100%';
-    const sc = button('侦察：看看对面怎么布防', 'hd-btn-plain', () => openScout(l), d);
-    sc.style.cssText += ';width:100%;margin-top:8px';
     go.disabled = locked || short;
+    const sc = button('侦察：看看对面怎么布防', 'hd-btn-plain', () => openScout(l, go.disabled ? undefined : () => go.click()), d);
+    sc.style.cssText += ';width:100%;margin-top:8px';
     revealIsland(i, d);
   };
 

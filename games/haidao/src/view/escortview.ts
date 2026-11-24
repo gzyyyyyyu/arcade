@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import { ESCORT_CELL, ESCORT_MEND, type EscortAction, type EscortPace } from '../core/escorttypes.ts';
 import type { TdEvent, TdState, WavePreview } from '../core/index.ts';
 import { TICKS_PER_SEC } from '../core/types.ts';
+import { TD2_COST } from '../content/td2units.ts';
 import { sfx } from './audio/sfx.ts';
 import { escortIcon, escortShipArt } from './art/escort.ts';
 import type { CamCtl } from './camctl.ts';
@@ -46,7 +47,8 @@ export class EscortView {
   private readonly shipArt = escortShipArt();
   private readonly g: Phaser.GameObjects.Graphics;
   private readonly wake: Phaser.GameObjects.Graphics;
-  private readonly ship: Phaser.GameObjects.Image;
+  /** 商船（tdpadguide 摆白字时要让开它） */
+  readonly ship: Phaser.GameObjects.Image;
   /** 船被塔楼挡住时画在塔上面的浅蓝剪影，和一直在最上层的船血条（船在哪、剩多少血任何时候看得见） */
   private readonly ghost: Phaser.GameObjects.Image;
   private readonly hbar: Phaser.GameObjects.Graphics;
@@ -136,7 +138,10 @@ export class EscortView {
   buildCtl(): void {
     // 开局船停着等造塔，试玩时有人一直不知道要点「巡航」才出发
     const e0 = this.st().escort!;
-    if (e0.pace === 'hold') toast(e0.autoSail ? '船先停着：造好塔，点「巡航」出发；不点的话第一波来时船自己开' : '船先停着：造好塔，点「巡航」出发');
+    // 开局的金币连最便宜的塔都造不起（护航新手局 10 金）就别叫人先造塔：先开船，路上打海盗攒钱
+    const broke = this.st().gold < Math.min(...Object.values(TD2_COST));
+    const first = broke ? '船先停着：点「巡航」出发，路上打海盗攒金币再造塔' : '船先停着：造好塔，点「巡航」出发';
+    if (e0.pace === 'hold') toast(e0.autoSail ? `${first}；不点的话第一波来时船自己开` : first);
     const ctl = (this.ctl = el('div', 'hd-esc-ctl', undefined, this.h.ui));
     const pace = el('div', 'hd-esc-pace', undefined, ctl);
     for (const p of PACE_ORDER) {
@@ -157,7 +162,8 @@ export class EscortView {
     el('small', '', '', m);
     m.title = `修船：花 ${ESCORT_MEND.gold} 金币，回 ${ESCORT_MEND.pct}% 的血`;
     const f = (this.follow = button('', 'hd-btn-wood hd-esc-follow', () => this.h.act({ type: 'follow', on: !this.st().escort!.follow }), right));
-    el('b', '', '跟随', f);
+    // 不写「跟随」：试玩里被读成镜头跟船，其实是英雄跟着船贴身保护
+    el('b', '', '护船', f);
     el('i', '', undefined, f);
     f.title = '英雄跟着船走，贴身保护';
     // 手机竖屏放不下速度排（顶底栏合计会超质量线）：三档并成底栏里的一颗船速钮（显示当前档，点一下换下一档），
@@ -314,11 +320,19 @@ export class EscortView {
   decoratePlan(box: HTMLElement, pv: readonly WavePreview[]): void {
     const total = this.route.length;
     const at = Math.floor(this.st().escort!.pos / ESCORT_CELL);
+    // 相邻几波说法一样就并成一行（「第 1–2 波 · 一到就咬上船」），不连写两行同一句
+    const rows: Array<{ from: number; to: number; text: string; miss: boolean }> = [];
     for (const p of pv) {
       if (p.meet === undefined) continue;
-      const row = el('div', `hd-esc-meet${p.meet < 0 ? ' miss' : ''}`, undefined, box);
+      const text = meetText(p.meet, total, at);
+      const last = rows[rows.length - 1];
+      if (last && last.text === text && last.to === p.wave) last.to = p.wave + 1;
+      else rows.push({ from: p.wave + 1, to: p.wave + 1, text, miss: p.meet < 0 });
+    }
+    for (const r of rows) {
+      const row = el('div', `hd-esc-meet${r.miss ? ' miss' : ''}`, undefined, box);
       el('i', '', undefined, row);
-      el('span', '', `第 ${p.wave + 1} 波 · ${meetText(p.meet, total, at)}`, row);
+      el('span', '', `第 ${r.from === r.to ? r.from : `${r.from}–${r.to}`} 波 · ${r.text}`, row);
     }
   }
 

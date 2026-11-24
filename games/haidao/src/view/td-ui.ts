@@ -374,7 +374,7 @@ export function armorOrder(share: Record<TdArmor, number>): TdArmor[] {
 /** 星数怎么算（选关页、驻守台面板上写；数从规则表读） */
 export function starRule(): string {
   const [two, one] = TD2_STAR_LOST;
-  return `宝藏一枚不丢 3 星 · 丢 ≤ ${two} 枚 2 星 · 丢 ≤ ${one} 枚 1 星 · 丢 ${TD2_LOSE_AT} 枚算输`;
+  return `宝藏一枚不丢 3 星，丢 ≤ ${two} 枚 2 星，丢 ≤ ${one} 枚 1 星，丢 ${TD2_LOSE_AT} 枚算输`;
 }
 
 /** 叫波按钮的第二行：叫了拿多少金、英雄技能快几秒（tdCallBonus 给的拍数换成秒，向下取整） */
@@ -393,7 +393,7 @@ export function garrisonLine(o: Pick<TdGarrisonOption, 'kind' | 'baseLevel' | 't
 
 /** 同一句的短写（手机竖屏、横屏开局塔头上，整句放不下）：「加农炮 7 级→驻守 3 阶」（试玩 11-23：没有「驻守」光看「7 级→3 阶」看不懂） */
 export function garrisonShort(o: Pick<TdGarrisonOption, 'kind' | 'baseLevel' | 'tier'>): string {
-  return `${towerName(o.kind)} ${o.baseLevel} 级→驻守 ${o.tier} 阶`;
+  return `基地 ${o.baseLevel} 级→驻守 ${o.tier} 阶`;
 }
 
 /** 驻守台在岛上的哪一边（岛 22×22，按台子中心离岛心的方向）：选塔面板上让人知道是哪座台 */
@@ -706,7 +706,8 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
     }
     if (talentBtn) (mqTall.matches && pages > 1 ? pager : head).appendChild(talentBtn);
     const nx = nextTdUnlock(p);
-    if (nx && all.some((l) => l.id === nx.id)) el('small', 'hd-tdsel-foot', `下一关「${nx.name}」：守下前一关拿到 1 星解锁`, list);
+    // 只说这一章里的下一关：切到还没开的章时，卡片上已经写了先守下哪关（试玩 11-23 第六章底下还在说第一章）
+    if (nx && ch.levels.some((l) => l.id === nx.id)) el('small', 'hd-tdsel-foot', `下一关「${nx.name}」：守下前一关拿到 1 星解锁`, list);
   };
   show(Math.max(0, startChapter));
   // 转屏、改窗口大小跨过"矮小竖屏"的界线时，重摆一遍（回到当前章第一页）
@@ -741,8 +742,10 @@ function playSwitch(id: string, parent: HTMLElement, rule: HTMLElement): () => T
   if (plays.length <= 1) return () => 'normal';
   let cur: TdPlay = app.tdPicksFor === id && plays.includes(app.tdPlay as never) ? app.tdPlay : 'normal';
   const chal = TD_CHALLENGE_BY_ID.get(id);
-  const label = (k: TdPlay): string => (k === 'vet' ? '老兵' : k === 'chal' ? `挑战：${chal?.name ?? ''}` : '普通');
-  const line = (k: TdPlay): string => (k === 'vet' ? '老兵：敌人多三成、第 3 波起有精英、丢 6 枚就输；只记老兵徽，不给金币木材' : k === 'chal' ? `挑战「${chal?.name ?? ''}」：${chal?.desc ?? ''}；只记挑战章，不给金币木材` : starRule());
+  // 钮上写「打法：当前档」，普通档的说明点明还能换哪几档，不然没人知道这颗钮能点
+  const label = (k: TdPlay): string => `打法：${k === 'vet' ? '老兵' : k === 'chal' ? '挑战' : '普通'}`;
+  const more = plays.filter((k) => k !== 'normal').map((k) => (k === 'vet' ? '老兵' : '挑战'));
+  const line = (k: TdPlay): string => (k === 'vet' ? '老兵：敌人多三成、第 3 波起有精英、丢 6 枚就输；只记老兵徽，不给金币木材' : k === 'chal' ? `挑战「${chal?.name ?? ''}」：${chal?.desc ?? ''}；只记挑战章，不给金币木材` : `${starRule()}；点「打法」换${more.join('、')}`);
   const b = button('', 'hd-btn-wood hd-tdplay', () => {
     cur = plays[(plays.indexOf(cur as never) + 1) % plays.length]!;
     sync();
@@ -788,8 +791,8 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
   // 关名和「· 驻守台」各自不拆：竖屏放不下时整段折到第二行，别把关名劈成「绕后的鹦 / 鹉」
   const h = el('h2', '', undefined, head);
   el('span', '', lv.name, h);
-  h.append(' ');
-  el('span', '', '· 驻守台', h);
+  el('span', 'hd-tdgar-dot', ' · ', h);
+  el('span', 'hd-tdgar-tag', '驻守台', h);
   // 小地图和说明并排（竖屏手机上小地图占满面板上方的空当，选塔面板沉到底下，见 tdcss）
   const top = el('div', 'hd-tdgar-top', undefined, wrap);
   const markSpot = garrisonMap(lv, top, (k) => showSpot(k));
@@ -856,7 +859,9 @@ function openGarrisonPick(lv: TdIslandLevel, onGo: (picks: TdGarrisonPick[]) => 
         const meta = el('span', 'hd-tdgar-meta', undefined, c);
         const dm = el('small', 'hd-tdgar-dmg', undefined, meta);
         dmgBadge(TD_TOWER_DAMAGE[o.kind], dm);
-        el('span', '', DAMAGE_NAME[TD_TOWER_DAMAGE[o.kind]], dm);
+        // 方章已经写了伤害类型（「炮」），旁边写它克谁，不再重复一遍「炮弹」
+        const good = towerCounter(o.kind).good;
+        el('span', '', good.length ? `克${good.map((a) => ARMOR_NAME[a]).join('、')}` : DAMAGE_NAME[TD_TOWER_DAMAGE[o.kind]], dm);
         for (const b of o.branch) el('small', 'hd-chip', branchName(b), meta);
         c.title = garrisonLine(o);
         // 「荐」：压在卡片左上角的金色圆章（绝对定位、不占卡里的高度——写成一行字会把卡撑高，电脑上整页多出一截要滚；左上角是卡里唯一空着的地方）

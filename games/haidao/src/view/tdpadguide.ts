@@ -88,18 +88,34 @@ export function fitMarks(bs: TdScene): void {
     if (!m.arrow.active) set.delete(m);
     else {
       if (m.arrow.scaleX !== k) m.arrow.setScale(k);
+      if (m.ring) clampGold(bs, m);
       white ||= !m.ring;
     }
   }
   const now = bs.time.now;
   if (!white || now - Math.max(...[...set].filter((m) => !m.ring).map((m) => m.placedAt)) < PLACE_MS) return;
-  const boxes = [...hudBoxes(uiRoot(), 3), ...[...set].filter((m) => m.ring).map((m) => markBox(bs, m))];
+  // 英雄和商船也让开（试玩 11-23：护航开局「臼炮」白字压在英雄和商船上，看不见船在哪）
+  const actors = [bs.hero?.c, bs.esc?.ship].filter((o) => o?.visible).map((o) => worldBox(bs, o!.getBounds()));
+  const boxes = [...hudBoxes(uiRoot(), 3), ...actors, ...[...set].filter((m) => m.ring).map((m) => markBox(bs, m))];
   for (const m of set) {
     if (m.ring) continue;
     m.placedAt = now;
     const b = placeTag(bs, m, boxes);
     boxes.push(b);
   }
+}
+
+/** 金字（「造这里」）靠屏幕左右边时整句挪回屏幕里，别裁成「农炮」；圈还在木台上 */
+function clampGold(bs: TdScene, m: PadMark): void {
+  const c = bs.game.canvas.getBoundingClientRect();
+  const z = bs.cameras.main.zoom / bs.r;
+  const w = m.arrow.displayWidth * z;
+  const x = toCss(bs, m.x, m.y).x;
+  const lo = Math.max(c.left, 0) + TAG_PAD + w / 2;
+  const hi = Math.min(c.right, innerWidth) - TAG_PAD - w / 2;
+  const want = lo > hi ? x : Math.min(Math.max(x, lo), hi);
+  const wx = m.x + ((want - x) * bs.r) / bs.cameras.main.zoom;
+  if (Math.abs(m.arrow.x - wx) > 0.5) m.arrow.x = wx;
 }
 
 export interface Box {
@@ -145,6 +161,13 @@ function toCss(bs: TdScene, x: number, y: number): { x: number; y: number } {
 }
 
 /** 一个标记的字现在占的地方（CSS 像素）；金字算上脉动往上点的那一截 */
+/** 世界坐标的矩形换成页面坐标的盒子 */
+function worldBox(bs: TdScene, r: Phaser.Geom.Rectangle): Box {
+  const a = toCss(bs, r.x, r.y);
+  const b = toCss(bs, r.right, r.bottom);
+  return { l: a.x, t: a.y, r: b.x, b: b.y };
+}
+
 export function markBox(bs: TdScene, m: PadMark): Box {
   const t = m.arrow;
   const z = bs.cameras.main.zoom / bs.r;
@@ -180,7 +203,8 @@ function placeTag(bs: TdScene, m: PadMark, boxes: Box[]): Box {
     const x = Math.min(Math.max(q.x, view.l + w / 2), view.r - w / 2);
     const top = Math.min(Math.max(q.top, view.t), view.b - h);
     const box: Box = { l: x - w / 2 - TAG_PAD / 2, t: top, r: x + w / 2 + TAG_PAD / 2, b: top + h };
-    const cost = boxes.reduce((a, b) => a + overlap(box, b), 0);
+    // 离塔越远越不划算（试玩 11-23：窄屏被挤到对面屏幕边，像在指另一块空台）：横挪一像素按半行字高的面积算
+    const cost = boxes.reduce((a, b) => a + overlap(box, b), 0) + Math.abs(x - head.x) * h * 0.5;
     if (cost < bestCost - 0.5) {
       bestCost = cost;
       best = { ...q, x, top };

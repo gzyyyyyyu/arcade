@@ -40,7 +40,9 @@ export function openFleet(bs: BaseScene): void {
   const cur: TroopKind = p.boats[i]?.troop ?? 'sailor';
   el('div', 'hd-boatname', `第 ${i + 1} 条船`, body);
   const row = el('div', 'hd-grid hd-fleetgrid', undefined, body);
-  for (const k of Object.keys(TROOPS) as TroopKind[]) {
+  // 按开放的主寨等级从低到高排（内容表里后加的兵种排在最后，没解锁的会倒着排）
+  const kinds = (Object.keys(TROOPS) as TroopKind[]).sort((a, b) => TROOPS[a].unlockHq - TROOPS[b].unlockHq);
+  for (const k of kinds) {
     const t = TROOPS[k];
     const locked = t.unlockHq > hq;
     // 人数和木材都用规则核心算：假设这条船换成这种兵，读 armyFor / armyCost 的结果
@@ -60,6 +62,7 @@ export function openFleet(bs: BaseScene): void {
       const each = t.levels[(app.profile.research[k] ?? 1) - 1]?.cost ?? t.levels[0]?.cost ?? 0;
       const per = el('span', 'hd-sub hd-per', undefined, c);
       per.appendChild(costRow({ gold: 0, wood: each }));
+      per.append('/个');
       per.title = `每个 ${each} 木材`;
       if (spare > 0) el('span', 'hd-sub hd-short', `空 ${spare} 格`, c);
     }

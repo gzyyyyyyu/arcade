@@ -32,6 +32,7 @@ ${U} .hd-route-pts.pop b { animation:hd-route-pop .35s cubic-bezier(.3,1.8,.5,1)
 ${U} .hd-route-home { flex:none; min-width:60px; }
 ${U} .hd-route-fleet { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; padding:6px 8px 4px; flex:none; }
 ${U} .hd-route-fleet::-webkit-scrollbar { display:none; }
+${U} .hd-route-fleet .hd-route-lbl { align-self:center; font-size:12px; font-weight:800; }
 ${U} .hd-route-crew, ${U} .hd-route-energy { flex:none; display:flex; align-items:center; gap:4px; height:38px; padding:0 9px 0 5px; border:3px solid ${ink}; border-radius:19px;
   background:var(--hd-wood,none),linear-gradient(#a86a34,#76441f); color:#fff4dc; box-shadow:inset 0 2px 0 rgba(255,238,200,.4),0 2px 0 ${ink}; position:relative; }
 ${U} .hd-route-crew b, ${U} .hd-route-energy b { font-size:14px; font-weight:900; }
@@ -79,9 +80,9 @@ ${U} .hd-route-info > b { font-size:14px; font-weight:900; white-space:nowrap; o
 ${U} .hd-route-tags { display:flex; flex-wrap:wrap; gap:3px; }
 ${U} .hd-route-tag { font-size:12px; font-weight:800; padding:0 5px; border-radius:6px; background:rgba(150,100,40,.2); white-space:nowrap; }
 ${U} .hd-route-tag.st { color:#fff; background:var(--c,#7a5a30); }
-${U} .hd-route-val { display:flex; align-items:center; gap:4px; font-size:12px; font-weight:800; white-space:nowrap; }
+${U} .hd-route-val { display:flex; flex-wrap:wrap; align-items:center; gap:0 4px; font-size:12px; font-weight:800; white-space:nowrap; }
 ${U} .hd-route-val b { font-size:14px; color:#8a4f00; }
-${U} .hd-route-risk { color:#c0392b; letter-spacing:-1px; }
+${U} .hd-route-risk { color:#c0392b; letter-spacing:-1px; white-space:nowrap; }
 ${U} .hd-route-risk s { text-decoration:none; color:rgba(43,26,21,.25); }
 ${U} .hd-route-stamp { position:absolute; right:-10px; top:-12px; min-width:34px; height:34px; padding:0 6px; border-radius:17px; border:3px solid ${ink}; background:#4caf50; color:#fff;
   display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; box-shadow:0 2px 0 ${ink}; transform:rotate(-8deg); }
