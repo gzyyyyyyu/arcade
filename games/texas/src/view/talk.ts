@@ -10,7 +10,7 @@ import { SPEAK_GAP_MS } from './timing.ts';
 
 /**
  * 自己推全下、跟别人的全下（跟到全下）、赢了大池子、诈唬成了（亮出来的，或者下了注别人都弃了）、诈唬被抓、输了大池子（投进去 40 个大盲以上没赢）。
- * 推和跟分开（实打：老好自己推全下时说"跟到底！"）
+ * 推和跟分开（不然自己推全下时会说"跟到底！"）
  */
 export type Moment = 'allin' | 'callAllin' | 'bigWin' | 'bluffWon' | 'caught' | 'bigLoss';
 
@@ -134,7 +134,7 @@ const COMMON: Record<Moment, string[]> = {
   bigLoss: ['可惜'],
 };
 
-/** 同一个电脑同一句话至少隔这么多手再说（实打："嘿"连着几手重复）；这一刻能说的都刚说过就不说 */
+/** 同一个电脑同一句话至少隔这么多手再说（不然"嘿"会连着几手重复）；这一刻能说的都刚说过就不说 */
 export const REPEAT_HANDS = 5;
 
 export class Talk {

@@ -1,5 +1,5 @@
 /*
- * 夜场牌桌皮肤（0.9.x 界面改版 A）：只管颜色、材质、渐变、阴影、边框和小动画，不动布局和字号。
+ * 夜场牌桌皮肤：只管颜色、材质、渐变、阴影、边框和小动画，不动布局和字号。
  * 在 style.css 之后加载，靠同权重靠后覆盖。全部程序生成（CSS 渐变 + 内联 SVG），不用外部资源。
  * 旧 iPhone：不用 backdrop-filter，不动画 box-shadow / filter，动画只动 transform 和 opacity。
  * 按钮上的 ::before/::after 留给点按范围和加载圈（style.css），这里不占用。
@@ -383,7 +383,7 @@ html, body, body::before { background: var(--night); }
 }
 
 /*
- * ========== 卡通换皮（2026-10-19，docs/art.md 第 1 节） ==========
+ * ========== 卡通换皮（docs/art.md 第 1 节） ==========
  * 压在上面所有夜场皮肤之上：奶油底、饱和平涂、深棕描边、按钮实色下沿。选择器都带根（.stage / .mask / .scene），权重比上面的高。
  * 描边写在 border 里（border-box），不改任何元素的外框尺寸，竖屏不遮挡的摆位不受影响。
  */
@@ -442,7 +442,7 @@ html, body, body::before { background: var(--night); }
 }
 /* kit 的灰按钮（聊天"收起"等）底色写死 #3a3a3a、字跟 --ak-fg：上面把 --ak-fg 换成深棕后成了黑底黑字。kit 是运行时插的样式，加 :root 压过它 */
 :root .atf-chip.atf-grey { color: #fff6e0; }
-/* 聊天框的「✕」收起只有一个字，kit 给的宽 38：撑到 44 好点（11-23 试玩） */
+/* 聊天框的「✕」收起只有一个字，kit 给的宽 38：撑到 44 好点 */
 :root .atf-chip.atf-grey { min-width: 44px; }
 html, body, body::before { background: #d9bf85; }
 #app { background: #d9bf85; }
@@ -624,7 +624,7 @@ body .scene {
 }
 .stage .lobby .subtitle { color: var(--cg-ink); font-weight: 700; }
 .stage .lobby .ver { color: var(--muted); }
-/* 尺寸敏感的两处（加注面板、名牌）：边框保持原来的 1px，描边用外圈阴影补到 3px，高度和宽度一点不变 */
+/* 尺寸敏感的两处（加注面板、名牌）：边框只有 1px，描边用外圈阴影补到 3px，高度和宽度一点不变 */
 .stage .raise-panel { border: 1px solid var(--cg-ink); box-shadow: 0 0 0 2px var(--cg-ink), 0 5px 0 2px var(--cg-ink); }
 .stage .seat .plate { border: 1px solid var(--cg-ink); box-shadow: 0 0 0 1.5px var(--cg-ink), 0 3px 0 1.5px var(--cg-ink); }
 .stage .seat.allin .plate, .stage .seat.acting .plate, .stage .seat.win .plate { box-shadow: 0 0 0 1.5px var(--cg-ink), 0 3px 0 1.5px var(--cg-ink); }
@@ -816,7 +816,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 .seat .hand.eq { color: #fff3c4; background: rgba(8, 16, 12, .82); border: 1px solid rgba(243, 200, 107, .55); font-variant-numeric: tabular-nums; }
 
 /*
- * ========== 标题页和大厅的质感（2026-10-30，复盘 review1030 的 C 件） ==========
+ * ========== 标题页和大厅的质感 ==========
  * 前面的卡通皮把这一页压成了平涂：白盒子模式卡、灰褐的战绩和成就条、悬停看不出。这里补回：
  * 纸面细纹和内沿光、毡面（绿呢）和皮革（木色）的暗示、悬停抬起 / 按下沉下去 / 禁用压平的整套状态。
  * 全部只用 CSS 渐变和内联 SVG；选择器都挂在 .stage .lobby 下，不写裸类名。动画只动 translate / opacity。
@@ -988,7 +988,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 .stage .lobby .pz-open[data-state='bad'] span { color: #ffc2b8; }
 .stage .lobby :is(.ach-open, .pz-open) i { font-style: normal; font-weight: 900; font-size: 1.3em; line-height: 1; margin-left: var(--s-1); opacity: .85; transition: translate .12s ease-out; }
 
-/* ---------- 手机竖屏：标题和扇形牌占满上半，面板贴在底下；不再上空四成、下留一条空带 ---------- */
+/* ---------- 手机竖屏：标题和扇形牌占满上半，面板贴在底下，上下都不留空带 ---------- */
 .stage.tall .lobby > .hero {
   flex: 1 0 auto;
   margin: 0;
@@ -1022,6 +1022,6 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 .stage.tight .lobby .fan::before { display: none; }
 .stage.tight .lobby .qstart { min-height: 64px; padding: var(--s-1) var(--s-3); }
 
-/* 互动面板"道具"页的"扔给 某某"：几个人挤一排时每个只剩 40 来宽，名字被拆成两行（11-23 试玩"扔给 板 / 凳儿"）。
+/* 互动面板"道具"页的"扔给 某某"：几个人挤一排时每个只剩 40 来宽，名字被拆成两行（"扔给 板 / 凳儿"）。
    名字不拆、按钮跟着字宽，放不下就换行（kit 的 .atf-row 本来就 wrap） */
 .atf-ui .atf-chip[data-key^='fun:target'] { flex: 1 0 auto !important; white-space: nowrap; padding: 0 8px; }

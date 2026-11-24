@@ -28,7 +28,7 @@ export interface SoloSummary {
   /** 今天德州进账到顶、没进钱包的 */
   capped: number;
   busted: boolean;
-  /** 这一场的称号（实打后单机也给；算法和好友房一样） */
+  /** 这一场的称号（单机、好友房一样给，算法相同） */
   titles?: Title[];
   /** "分享"按钮（kit 的分享卡）：不给就不出（单独部署、还没打完一手） */
   share?: () => void;

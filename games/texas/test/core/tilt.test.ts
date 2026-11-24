@@ -30,7 +30,7 @@ function bigLoss(t0: Table, to: number): Table {
 const foldHand = (t: Table): Table => must(apply(t, t.toAct!, FOLD));
 
 describe('上头', () => {
-  it('线和手数是 40 个大盲、3 手（实打后从 25、5 收的）', () => {
+  it('线和手数是 40 个大盲、3 手', () => {
     expect([TILT_LOSS_BB, TILT_HANDS]).toEqual([40, 3]);
   });
 

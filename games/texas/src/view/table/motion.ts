@@ -193,7 +193,7 @@ export class TableMotion {
 
   float(seat: number, text: string): void {
     const p = this.scene.seatPt(seat);
-    // 顶上一排：赢数写在自己名牌的名字那一行，停一会儿换回名字。头顶放会被屏幕上沿裁掉、压住标题（实打），
+    // 顶上一排：赢数写在自己名牌的名字那一行，停一会儿换回名字。头顶放会被屏幕上沿裁掉、压住标题，
     // 压在头像下沿又挡住名字，两边是邻座的牌和名牌（9 人桌只隔 190 个单位），没有空地方飘
     const n = this.c.seats[seat];
     if (seat !== this.c.me && p.y < 110 && n) {

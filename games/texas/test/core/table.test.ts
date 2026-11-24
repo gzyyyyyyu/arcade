@@ -299,7 +299,7 @@ describe('超时、暂离、离桌、补码', () => {
     t = must(apply(t, 0, { t: 'leave' }));
     expect(t.seats[0]!.status).toBe('folded');
     t = play(t, [[1, FOLD]]);
-    // 原来退回 40 给已经离桌的 0：好友房里他那一份离座时已经结回钱包，这 40 只能搁在房间里丢掉
+    // 防的是把 40 退给已经离桌的 0：好友房里他那一份离座时已经结回钱包，这 40 只能搁在房间里丢掉
     expect(t.lastHand).toMatchObject({ byFold: true, uncalled: null });
     expect(t.lastHand!.pots).toEqual([{ amount: 90, winners: [{ seat: 2, won: 90 }] }]);
     expect(t.out).toEqual([{ id: expect.any(String), seat: 0, amount: 940 }]);

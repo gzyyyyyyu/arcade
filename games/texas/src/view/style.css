@@ -135,7 +135,7 @@ html, body {
   animation: spin .7s linear infinite;
 }
 /* 触屏上按钮能点的范围撑到至少 --hit（看着的大小不变；相邻按钮的缝里谁后画归谁） */
-/* 无头浏览器和一些安卓浏览器不报 coarse，窄屏也按触屏撑（和平台一样；平台走查量到"大厅"只有 68×26） */
+/* 无头浏览器和一些安卓浏览器不报 coarse，窄屏也按触屏撑（和平台一样；不撑的话"大厅"只有 68×26） */
 @media (pointer: coarse), (max-width: 959px) {
   :where(#app, .coach-layer) button::before, :where(#app, .coach-layer) .home::before {
     content: '';
@@ -207,7 +207,7 @@ body::before {
 .topbar .icon { width: var(--tb-w); height: var(--tb-w); }
 .topbar :is(.home, .pill) { height: var(--tb-w); }
 /* 手机横屏：顶上一排座位紧贴顶栏（9 人桌），按钮收到最小的 32 个屏幕像素并贴着上沿（点范围仍是 44）；
-   地点文字只留短的一段"盲注 10/20""第 2 级 · 盲注 15/30"（11-23 试玩：手机上看不到盲注），没有短的一段就不写 */
+   地点文字只留短的一段"盲注 10/20""第 2 级 · 盲注 15/30"（手机上也要看得到盲注），没有短的一段就不写 */
 @media (orientation: landscape) and (max-height: 430px) {
   .topbar { --tb-w: max(32px, calc(32px * var(--ui))); align-items: flex-start; padding-top: 0; }
   .topbar .where:not(.split), .topbar .where .w-long { display: none; }
@@ -217,7 +217,7 @@ body::before {
 /* 聊天开关：气泡放大一些，里面写现在的档（开 / 友 / 关，fun.ts 写 data-word）；往上挪一点对准气泡中心 */
 .topbar .chat-toggle svg { width: calc(var(--tb-w) * .8); height: calc(var(--tb-w) * .8); }
 .topbar .chat-toggle::after { content: attr(data-word); position: absolute; inset: 0; display: grid; place-items: center; translate: 0 calc(var(--tb-w) * -.05); font-size: var(--fs-1); font-weight: 900; line-height: 1; pointer-events: none; }
-/* 触屏：顶栏按钮离屏幕上沿太近，点范围往上撑会伸出屏幕被切掉（0.35.x 审计：有效高度只有 38–40）。
+/* 触屏：顶栏按钮离屏幕上沿太近，点范围往上撑会伸出屏幕被切掉（有效高度只剩 38–40）。
    顶栏按钮的点范围只往下撑；不把顶栏撑高或往下挪：那样牌桌顶上一排的动作签会被按钮压住（矮竖屏几百处） */
 @media (pointer: coarse), (max-width: 959px) {
   .topbar :is(button, .home)::before { top: 0; bottom: min(0px, calc(100% - var(--hit))); }
@@ -785,7 +785,7 @@ body::before {
 .slider:disabled { opacity: .4; }
 
 /*
- * 电脑（有鼠标）：按钮角上的键位提示、悬停抬起加描边、禁用不许点（0.26.x）。
+ * 电脑（有鼠标）：按钮角上的键位提示、悬停抬起加描边、禁用不许点。
  * 全限定在操作区根节点下，比皮肤里 `.stage .act` 多一层所以压得过；按下沿用皮肤和全局的下沉，这里排除 :active 免得两边抢 translate
  */
 @media (hover: hover) and (pointer: fine) {
@@ -851,7 +851,7 @@ body::before {
 /* 竖屏 hud 紧贴在我的名牌下面，提示挂上面会压住我的头像和名牌：改挂在它下面（一手打完时操作区已收，下面只有"下一手"那一栏），横向铺满居中 */
 .stage.tall .fun-hints { left: 0; right: 0; width: auto; bottom: auto; top: calc(100% + var(--s-2)); justify-content: center; }
 .fun-hint {
-  /* 不折行（实打：电脑版挤成两个窄条、一个字一行） */
+  /* 不折行（折了电脑版会挤成两个窄条、一个字一行） */
   white-space: nowrap;
   padding: var(--s-2) var(--s-3);
   border: 1px solid rgba(243, 200, 107, .7);
@@ -1370,7 +1370,7 @@ body.texas-raising-tall .atf-btn { visibility: hidden; }
 /* 竖屏桌心窄，下注筹码会压到水印上：不画水印 */
 .stage.tall .felt-mark { display: none; }
 /* 底下的拇指区：三个主按钮铺满一行，快捷下注、赔率在上面，和主按钮之间多留一截，别误触 */
-/* 屏幕最下面有一条吧台的深色带（scene.css 的 .sc-bar，高 26vmin 里最下 60/260 = 6vmin）：整排往上提 --lift，让开它（10-31 试玩，下一手、弃牌跟注加注的下半截压在带上） */
+/* 屏幕最下面有一条吧台的深色带（scene.css 的 .sc-bar，高 26vmin 里最下 60/260 = 6vmin）：整排往上提 --lift，让开它（不然下一手、弃牌跟注加注的下半截压在带上） */
 .stage.tall { --lift: max(0px, calc(6vmin * var(--ui) - var(--s-2))); }
 .stage.tall :is(.actions, .pre, .between) { left: var(--s-3); right: var(--s-3); bottom: calc(var(--s-4) + var(--lift)); }
 .stage.tall .actions { align-items: stretch; gap: var(--s-2); }
@@ -1552,7 +1552,7 @@ body.texas-paused :where(#app, .coach-layer) *, body.texas-paused :where(#app, .
 .auto-next { height: 40px; padding: 0 var(--s-3); border-radius: var(--r-3); border: 1px solid var(--line-2); background: var(--btn-glass); font-size: var(--fs-3); color: var(--muted); }
 .room-pause { display: flex; align-items: center; gap: var(--s-2); height: 44px; padding: 0 var(--s-4) 0 var(--s-2); border-radius: var(--r-pill); background: rgba(0, 0, 0, .5); font-size: var(--fs-4); font-weight: 700; color: #f1e9d2; }
 /* 主动亮牌：两张小牌点哪张亮哪张，亮过的压暗；和倒计时同一种底 */
-/* 不占"下一手"那一排的横向位置：它挤在左边会压到舞台正中我的名牌和筹码（0.26.x 走查），改成浮在这一排的右上方（右边那个座位的名牌下面、下一手按钮上面），
+/* 不占"下一手"那一排的横向位置：它挤在左边会压到舞台正中我的名牌和筹码，所以浮在这一排的右上方（右边那个座位的名牌下面、下一手按钮上面），
    本来就空；赢了筹码的"+100"也不再落到它上面 */
 .between .show-cards { position: absolute; right: 0; bottom: calc(100% + var(--s-2)); display: flex; align-items: center; gap: var(--s-2); height: 52px; padding: 0 var(--s-2) 0 var(--s-4); border-radius: var(--r-pill); background: rgba(0, 0, 0, .5); animation: rise .25s ease-out; white-space: nowrap; }.between .sc-label { font-size: var(--fs-4); font-weight: 700; color: #f1e9d2; }
 .between .sc-card { position: relative; padding: 0; border: 0; background: none; border-radius: 4px; transition: transform .15s ease; }

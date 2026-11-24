@@ -87,7 +87,7 @@ const INFO: Record<TourFormat, FormatInfo> = {
   sng: { name: '经典 6 人', seats: TOUR_SEATS, every: HANDS_PER_LEVEL, blinds: BLINDS, pay: [30, 12, 10, 9], levels: { small: 0, mid: 1, big: 2, lux: 3 } },
   // 极速赛：一场约 5.6 分钟，按每小时对齐（小档普通每小时约 +1.1 份，和经典一样）；第 1 名压到 3.3 份（14.4）
   turbo: { name: '极速赛', seats: TOUR_SEATS, every: 3, blinds: TURBO_BLINDS, pay: [33, 10, 9, 9], levels: { small: 0, mid: 1, big: 2, lux: 3 } },
-  // 9 人赛：普通玩家四档都进区间；中、大档小白比区间低（新手吃亏、刷不了，所有者 11-21 接受，14.4）
+  // 9 人赛：普通玩家四档都进区间；中、大档小白比区间低（新手吃亏、刷不了，所有者接受，14.4）
   nine: { name: '9 人赛', seats: 9, every: HANDS_PER_LEVEL, blinds: NINE_BLINDS, pay: [40, 14, 13, 12], levels: { small: 0, mid: 1, big: 2, lux: 3 } },
 };
 export const formatInfo = (f: TourFormat | undefined): FormatInfo => INFO[f ?? DEFAULT_FORMAT] ?? INFO.sng;

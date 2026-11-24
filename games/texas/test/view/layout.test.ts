@@ -152,7 +152,7 @@ describe('横屏庄家按钮 D', () => {
   for (const w of [STAGE_MIN_W, 960, STAGE_MAX_W]) {
     const g: Geo = { w, h: 540, tall: false };
     for (let size = 3; size <= 9; size++) {
-      it(`宽 ${w}、${size} 人：两侧座位的 D 在下注筹码上方，不压筹码（0.33.x 手机横屏右下角）`, () => {
+      it(`宽 ${w}、${size} 人：两侧座位的 D 在下注筹码上方，不压筹码（手机横屏右下角最容易压）`, () => {
         for (let seat = 1; seat < size; seat++) {
           const p = seatPos(seat, 0, size, g);
           if (p.y < 150) continue;

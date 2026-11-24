@@ -85,7 +85,7 @@ type Flaw = 'overcall' | 'scared' | 'spew' | 'trap';
  */
 const SEATS: readonly (readonly [string, Play])[] = [
   ['wengge', { call: 1400, raise: 1320, bluff: 120, slack: 0, slow: 50, size: 750, loose: 60, wild: 0, raiser: 100, threebet: 40, barrel: 250, shove: 0, river: 300, trust: 1150, posX: 1300, steal: 20, openX: 900, spread: 450, mild: 850, reads: 700, flaw: 'scared', leak: 40 }],
-  // call 是"没人加注时跟进"的门槛（不再查赔率），按目标入池率重调：紧的调高，loose 只剩软桌上的放松
+  // call 是"没人加注时跟进"的门槛（不查赔率），按目标入池率重调：紧的调高，loose 只剩软桌上的放松
   // 阿强的 loose / wild 是 80 / 55：9 人桌后面坐的人多，再松在小桌混桌里亏太多
   ['aqiang', { call: 1250, raise: 1200, bluff: 220, slack: 0, slow: 30, size: 800, loose: 80, wild: 55, raiser: 60, threebet: 150, barrel: 350, shove: 120, river: 800, trust: 900, posX: 1100, steal: 50, openX: 1100, spread: 1100, mild: 800, reads: 500, flaw: 'spew', leak: 70 }],
   ['laohao', { call: 1100, raise: 1450, bluff: 40, slack: 30, slow: 100, size: 550, loose: 150, wild: 0, raiser: 45, threebet: 5, barrel: 80, shove: 0, river: 150, trust: 500, posX: 300, steal: 0, openX: 800, spread: 700, mild: 1000, reads: 100, flaw: 'overcall', leak: 120 }],

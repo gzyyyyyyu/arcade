@@ -196,7 +196,7 @@ export function createFun(c: App) {
 
   function drawChatBtn(): void {
     const m = chatMode();
-    // 气泡里直接写现在是哪一档（11-23 试玩：✓ 角标看不出意思，和左下的"聊天"按钮分不清）；字由 CSS 画（style.css .chat-toggle::after），按钮文字仍是 aria-label
+    // 气泡里直接写现在是哪一档（✓ 角标看不出意思，和左下的"聊天"按钮分不清）；字由 CSS 画（style.css .chat-toggle::after），按钮文字仍是 aria-label
     const word = m === 'off' ? '关' : m === 'friends' ? '友' : '开';
     chatBtn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4.5h18v12H10l-4.5 3.5V16.5H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
     chatBtn.dataset.word = word;

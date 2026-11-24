@@ -134,7 +134,7 @@ export interface RoomState {
   fame?: { dealt: number; noted: number; players: number[]; per: Fame[]; inn: number[] };
   /**
    * 搭子战绩（平台 15.19；docs/online.md 6.10）：n 是这个房间切出过几场，last 是最近一步切出来的那几场（房间在 onStep 里报给平台）。
-   * 0.16.x 的房间没有，从现在起记
+   * 老房间的状态里没有，从现在起记
    */
   mates?: { n: number; last: Match[] };
   /** 娱乐房间（RoomOpts.fun）：开局定下，不再变 */
@@ -343,7 +343,7 @@ export const texasRoom: RoomGame<RoomState, RoomAction, RoomView, RoomOpts, Wall
   view(s, seat) {
     const v = tableView(s.t, seat);
     // 接管电脑、中途坐下的人这一手还没坐上（桌上还是电脑或空座），名牌已经按房间座位写他的名字：筹码写他已经到账的买入，
-    // 不写电脑剩下的（那些打完收回庄家；11-21 走查「本机f-c 1,200 · 下一手上桌」看着像只带了 1,200）。只改视图，状态不动
+    // 不写电脑剩下的（那些打完收回庄家，写出来看着像他只带了那么多）。只改视图，状态不动
     v.seats = v.seats.map((c, i) => (s.kinds[i] === 'human' && c.owner !== 'player' && s.held[i]! > 0 ? { ...c, stack: s.held[i]! } : c));
     const mine = seat === null ? undefined : s.t.seats[seat];
     // 接管时电脑还在打的这一手、还没坐上桌：这个座位的牌不是他的
