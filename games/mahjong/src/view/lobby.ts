@@ -61,8 +61,9 @@ interface LobbyProps {
 
 const MODE_TITLE = { fun: '娱乐', real: '实盘', room: '好友房' } as const;
 
-/** 档位卡上的筹码数：整千的一律写成几万（2,000 → 0.2万），别的照常写满 */
-const tierWan = (n: number): string => (n % 1_000 === 0 ? `${n / 10_000}万` : num(n));
+/** 档位卡上的筹码数按口语写：满一万写几万（150,000 → 15万），不满一万的整千写几千（2,000 → 2千），别的照常写满 */
+const tierWan = (n: number): string =>
+  n % 1_000 !== 0 ? num(n) : n >= 10_000 ? `${n / 10_000}万` : `${n / 1_000}千`;
 
 export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   box.replaceChildren();
@@ -153,7 +154,7 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
     for (const s of tiers) {
       // 余额不够带进一份的档直接灰掉、写明（先灰掉，不让点了开打才报筹码不够）
       const off = !p.wallet || p.wallet.balance < s.share;
-      // 同一排一律按「万」写（0.2万、1万、5万、20万），不一会儿数字一会儿万：一眼比得出大小；写满数字 360 宽四张卡放不下
+      // 同一排一律按口语的千、万写（2千、1万、5万、20万），不一会儿数字一会儿万：一眼比得出大小；写满数字 360 宽四张卡放不下
       const lines = p.wallet && off ? [`要 ${tierWan(s.share)}`, '筹码不够'] : [`最多赢 ${tierWan(s.share * 3)}`, `最多输 ${tierWan(s.share)}`];
       card(real, s.id === stakes, off, s.id, `${STAKES_NAME[s.id]}档`, STARS[s.id as TierId], lines, () => (stakes = s.id));
     }
