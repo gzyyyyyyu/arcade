@@ -1,6 +1,6 @@
 # 平台各页面怎么排、怎么用
 
-README 的"功能"一节只写有什么；这里写每个页面的排法和细节。接口约定见仓库根的 `docs/platform-backend.md`，配色和动效见 [style.md](style.md)，界面规范见仓库根的 `docs/ui.md`。
+README 的功能一节只写有什么；这里写每个页面的排法和细节。接口约定见仓库根的 `docs/platform-backend.md`，配色和动效见 [style.md](style.md)，界面规范见仓库根的 `docs/ui.md`。
 
 ## 共同的规矩
 
