@@ -240,7 +240,7 @@ export class Select {
       `<div class="yx-kinds${live ? ' yx-k3' : ''}">` +
       `<button type="button" class="yx-kind${this.kind === 'vigil' ? ' on' : ''}" data-a="kind" data-k="vigil"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>守夜</b><em>15 分钟 · 撑到天亮</em></span></button>` +
       `<button type="button" class="yx-kind${raid ? ' on' : ''}" data-a="kind" data-k="raid"><img class="yx-scene" alt="" src="${sceneUrl('raid', 320, 100)}"><span class="yx-kindtxt"><span class="yx-lamp"></span><b>夜探</b><em>搜宝、打怪、找门撤出</em></span></button>` +
-      (live ? `<button type="button" class="yx-kind${rush ? ' on' : ''}" data-a="kind" data-k="rush"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>连战</b><em>约 15 分钟 · 连打 ${RUSH_TOTAL} 只首领</em></span></button>` : '') +
+      (live ? `<button type="button" class="yx-kind${rush ? ' on' : ''}" data-a="kind" data-k="rush"><img class="yx-scene" alt="" src="${sceneUrl('watch', 320, 100)}"><span class="yx-kindtxt"><span class="yx-moon"></span><b>连战</b><em>约 15 分钟 · ${RUSH_TOTAL - 1} 只首领 + 夜漏君</em></span></button>` : '') +
       '</div>';
 
     // 地图 / 镇子大卡
@@ -270,26 +270,30 @@ export class Select {
     // 档位：铜钱堆小图（堆越高档越大）+ 名字和筹码数
     const shownTier = rush ? this.rushTier() : this.live.tier;
     const tierOff = (t: LiveTier): boolean => rush && !LIVE_RUSH[t];
-    const tiers = `<div class="yx-chips yx-tiers">${LIVE_TIER_IDS.map((t) => `<button type="button" class="yx-chip yx-tierchip${t === shownTier ? ' on' : ''}${tierOff(t) ? ' locked' : ''}" data-a="tier" data-t="${t}"${tierOff(t) ? ' aria-disabled="true" title="连战只开小、中档"' : ''}><img alt="" src="${tierIcon(t)}"><b>${LIVE_TIERS[t].name}</b><small>${LIVE_TIERS[t].stake.toLocaleString('zh-CN')}</small></button>`).join('')}</div>`;
+    const tiers = `<div class="yx-chips yx-tiers">${LIVE_TIER_IDS.map((t) => `<button type="button" class="yx-chip yx-tierchip${t === shownTier ? ' on' : ''}${tierOff(t) ? ' locked' : ''}" data-a="tier" data-t="${t}"${tierOff(t) ? ' aria-disabled="true" title="连战只开小、中档"' : ''}><img alt="" src="${tierIcon(t)}"><b>${LIVE_TIERS[t].name}</b><small>${tierOff(t) ? '连战不开' : LIVE_TIERS[t].stake.toLocaleString('zh-CN')}</small></button>`).join('')}</div>`;
 
     let pick: string;
     let opts = '';
     let note = '';
-    const startLabel = raid ? '开始夜探' : rush ? '开始连战' : '开始';
+    // 读到钱包、手上不够这一档一份：开始钮灰掉直说（试玩 11-23：亮着能点，点了才说不够）；夜探教学镇不花筹码
+    const poor = live && !(raid && s.raidFirst) && this.live.chips !== null && this.live.chips < LIVE_TIERS[shownTier].stake;
+    const startLabel = poor ? '筹码不够这一档' : raid ? '开始夜探' : rush ? '开始连战' : '开始';
     let facts = '';
     // 实盘写手上多少筹码（读到钱包的话；试玩 11-22：选档页看不到手上有多少，点了才说不够）
-    const have = this.live.chips === null ? '' : `手上 ${this.live.chips.toLocaleString('zh-CN')} · `;
+    const have = this.live.chips === null ? '' : `手上 ${this.live.chips.toLocaleString('zh-CN')} 筹码 · `;
     // 实盘数字小牌：一行等宽排完（守夜 4 格，夜探 5 格），大字写数、小字写它是什么，整段细则在悬停里
     const factCards = (list: LiveFact[], tip: string): string =>
       `<div class="yx-livefacts" data-n="${list.length}" style="--fc:${list.length}" title="${esc(tip)}">${list.map((x) => `<span class="yx-fact"><b>${esc(x.big)}</b><small>${esc(x.small)}</small></span>`).join('')}</div>`;
     if (raid && s.raidFirst) {
       pick = `<div class="yx-raidnote"><b>${RAID_TEMPLATES.teach.name}</b>${RAID_TEMPLATES.teach.blurb}</div>`;
+      // 实盘也先走一局教学镇（不花筹码），走完才能带筹码夜探（试玩 11-23：这里只剩教学镇，不知道实盘怎么算）
+      if (live) note = '先走一局教学镇（不花筹码），走完才能带筹码夜探';
     } else if (live && rush) {
       const t = this.rushTier();
       const presets = rushPresets('xiaodao')
         .map((p, i) => `<button type="button" class="yx-chip${i === this.preset ? ' on' : ''}" data-a="preset" data-v="${i}"><b>${['稳', '猛', '双'][i]}</b><small>${esc([p.start, p.second].filter((x) => x !== undefined).map((x) => WEAPONS[x!].name).join(' + '))}</small></button>`)
         .join('');
-      pick = `<div class="yx-raidnote"><b>实盘连战</b>小道士选一套推荐配装开局，打 ${RUSH_TOTAL - 1} 只首领和终局夜漏君；每关挑卡、走路线、过驿站。按打倒几只带回，打倒夜漏君另外多给；一只没打倒这一份就没了。不带咒，不交连战榜。</div><div class="yx-chips yx-rushpresets">${presets}</div>`;
+      pick = `<div class="yx-raidnote"><b>实盘连战</b>小道士选一套推荐配装开局，打 ${RUSH_TOTAL - 1} 只首领，再打终局夜漏君；每关挑卡、走路线、过驿站。按打倒几只带回，打倒夜漏君另外多给；一只没打倒这一份就没了。不带咒，成绩不上连战榜。</div><div class="yx-chips yx-rushpresets">${presets}</div>`;
       note = `${have}危险 ${LIVE_TIERS[t].danger} · 固定小道士、推荐配装、不带咒`;
       facts = factCards(rushLiveFacts(t), plainNote(rushLiveNote(t)));
     } else if (live) {
@@ -333,7 +337,7 @@ export class Select {
       const curse = s.curses.length ? s.curses.map((c) => CURSES[c].name).join('') : '无';
       const prep =
         (s.cursesOpen && !raid ? `<button type="button" class="yx-chip yx-prep${s.curses.length ? ' hot' : ''}" data-a="prep" data-t="curse"><b>${curse}</b><small>咒印</small></button>` : '') +
-        `<button type="button" class="yx-chip yx-prep" data-a="prep" data-t="perk"><b>加成</b><small>铜钱 ${s.coins.toLocaleString('zh-CN')}</small></button>`;
+        `<button type="button" class="yx-chip yx-prep" data-a="prep" data-t="perk"><b>买加成</b><small>有 ${s.coins.toLocaleString('zh-CN')} 铜钱</small></button>`;
       const endless = s.cursesOpen && !raid ? `<button type="button" class="yx-chip yx-map${this.endless ? ' on' : ''}" data-a="endless"><b>无尽</b><small>不收工</small></button>` : '';
       const dg = raid && s.raidFirst ? '' : dangers;
       const bt = bestText(s.best[this.diff]);
@@ -342,10 +346,10 @@ export class Select {
     } else {
       // 第一行 档位 | 角色 + 起手心法；第二行危险档一句；第三行数字小牌
       // 实盘能换已解锁的角色和地图（各自有实盘系数，DESIGN 4.2a），加成、咒印不带
-      opts = `${tiers}${charLine}<div class="yx-livenote">${note}<span class="yx-nocash">${CHIPS_NO_CASH}</span></div>${facts}`;
+      opts = `${tiers}${charLine}<div class="yx-livenote">${note}<span class="yx-nocash${note ? '' : ' solo'}">${CHIPS_NO_CASH}</span></div>${facts}`;
     }
     const vault = raid && s.vault && !live ? `<button type="button" class="yx-chip yx-vaultbtn" data-a="vault"><b>藏宝阁</b><small>${s.vault.got} / ${s.vault.total}</small></button>` : '';
-    const aside = `<div class="yx-aside"><div class="yx-opts">${opts}</div><div class="yx-startbar"><button type="button" class="yx-big" data-a="go">${startLabel}</button>${vault}</div></div>`;
+    const aside = `<div class="yx-aside"><div class="yx-opts">${opts}</div><div class="yx-startbar"><button type="button" class="yx-big" data-a="go"${poor ? ' disabled' : ''}>${startLabel}</button>${vault}</div></div>`;
 
     this.ldTip = false;
     this.ui.innerHTML = `${top}<div class="yx-sel">${lvSw}${kinds}<div class="yx-pickarea">${pick}</div>${aside}</div>`;

@@ -745,7 +745,7 @@ export const TYPE_SETS: Record<WeaponType, [string, string]> = {
 };
 /** 五行相生：木生火、火生土、土生金、金生水、水生木 */
 export const NEXT_ELEMENT: Record<Element, Element> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };
-export const ELEMENT_SET: [string, string] = ['这一行伤害 +10%', '相生的下一行伤害也 +10%'];
+export const ELEMENT_SET: [string, string] = ['这一系法器伤害 +10%', '它生的那一系伤害也 +10%'];
 
 /** 某件法器在某一级（1–8）的数值；进化后用进化的数值 */
 export function weaponStats(id: WeaponId, level: number, evolved: boolean): WeaponStats {

@@ -87,9 +87,9 @@ export const RUSH_HEXES: Record<RushHexId, { name: string; text: string; coins: 
   fast: { name: '疾', text: '首领快 15%', coins: 0.25 },
   noheal: { name: '枯', text: '肉包、回血减半', coins: 0.25 },
   noreroll: { name: '定', text: '不能重抽', coins: 0.25 },
-  fierce: { name: '凶', text: '每关首领多 1 条词缀', coins: 0.35 },
+  fierce: { name: '凶', text: '每关首领多 1 种强化', coins: 0.35 },
   dark: { name: '暗', text: '夜更黑', coins: 0.25 },
-  poor: { name: '贫', text: '纸钱减半', coins: 0.25 },
+  poor: { name: '贫', text: '局内纸钱减半', coins: 0.25 },
 };
 export const RUSH_HEX_IDS = Object.keys(RUSH_HEXES) as readonly RushHexId[];
 export const MAX_RUSH_HEXES = 2;
@@ -103,7 +103,7 @@ export const RUSH_RELICS: Record<RelicId, { name: string; text: string }> = {
   string: { name: '纸钱串', text: '纸钱 +40%' },
   charm: { name: '护身符', text: '每关第一次挨致命伤留 1 血' },
   boots: { name: '疾风履', text: '走得快 10%' },
-  ruler: { name: '镇尺', text: '首领词缀效果减半' },
+  ruler: { name: '镇尺', text: '首领的强化效果减半' },
   bowl: { name: '聚宝盆', text: '手牌多 1 张' },
   thunder: { name: '五雷令', text: '首领每掉一成血落一道雷' },
   cloak: { name: '夜行衣', text: '挨打后无敌时间长一半' },
@@ -114,11 +114,11 @@ export const RELIC_FX = { mirror: 0.12, lamp: 0.25, string: 0.4, boots: 0.1, rul
 
 /** 事件：每个 2–3 个选项（文案大白话），最后一项多是「离开」；效果在 core/rush.ts */
 export const RUSH_EVENTS: Record<RushEventId, { name: string; text: string; options: readonly string[] }> = {
-  blood: { name: '血契', text: '石台上刻着字：拿血来换。', options: ['掉 25% 血，下一关过关多挑一张金框卡', '离开'] },
+  blood: { name: '血契', text: '石台上刻着字：拿血来换。', options: ['掉 25% 血，下一关过关多挑一张珍品卡', '离开'] },
   gamble: { name: '赌坊', text: '路边有人摆骰子。', options: ['押 20 纸钱，一半机会翻倍', '离开'] },
   well: { name: '古井', text: '井水清得能照见月亮。', options: ['喝一口，回满血', '许个愿，下一关多 2 张手牌'] },
-  effigy: { name: '纸人替身', text: '纸人说：让我替你挨一刀。', options: ['下一关首领多一条词缀，多挑 1 张卡', '离开'] },
-  dark: { name: '灯下黑', text: '灯笼一盏盏灭了。', options: ['下一关更黑，过关多挑一张金框卡', '离开'] },
+  effigy: { name: '纸人替身', text: '纸人说：下一位首领让我扎得凶一点，换你多挑一张卡？', options: ['下一关首领多一种强化，过关多挑 1 张卡', '离开'] },
+  dark: { name: '灯下黑', text: '灯笼一盏盏灭了。', options: ['下一关更黑，过关多挑一张珍品卡', '离开'] },
   peddler: { name: '老货郎', text: '货郎说：换一件同级的？', options: ['离开'] },
   incense: { name: '香火', text: '破庙里还有半炷香。', options: ['上香，回 40% 血'] },
   stele: { name: '无名碑', text: '碑上没有名字。', options: ['拜一拜，放逐 +2', '摸一摸，纸钱 +30'] },

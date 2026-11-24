@@ -442,6 +442,11 @@
   .yx-menu:not(.yx-selscreen) { padding-top: calc(max(10px, env(safe-area-inset-top, 0px)) + 108px); }
   .yx-menu:not(.yx-selscreen) .yx-more { left: max(10px, env(safe-area-inset-left, 0px)); top: calc(max(10px, env(safe-area-inset-top, 0px)) + 52px); }
 }
+/* ≤ 380 宽（360×640）：七个按钮一行要 378 宽，「玩法」出屏（试玩 11-23）；「每日守夜」收成「每日」、间距再收 */
+@media (orientation: portrait) and (max-width: 380px) {
+  .yx-menu .yx-more { gap: 2px; }
+  .yx-menu .yx-more .yx-dlong { display: none; }
+}
 @media (orientation: portrait) and (max-width: 700px) {
   .yx-menu .yx-more .yx-btn { padding: 0 6px; font-size: var(--fs-md, 14px); }
   .yx-title b { font-size: 64px; letter-spacing: 8px; -webkit-text-stroke-width: 6px; }
@@ -888,14 +893,15 @@
 .yx-selscreen .yx-sel .yx-livenote { line-height: 1.55; }
 .yx-selscreen .yx-sel .yx-livenote b:not(.yx-livewarn) { font-weight: 800; color: var(--ink, #17131c); font-variant-numeric: tabular-nums; }
 .yx-selscreen .yx-sel .yx-nocash { font-size: var(--fs-xs, 12px); opacity: 0.8; }
-.yx-selscreen .yx-sel .yx-livenote .yx-nocash::before { content: ' · '; }
+.yx-selscreen .yx-sel .yx-livenote .yx-nocash:not(.solo)::before { content: ' · '; }
 /* 窄屏、矮屏：「无现金价值」另起一行小字，说明行收紧行高，开始按钮不出屏（360×640 守夜实盘、844×390 夜探实盘最挤） */
 @media (max-width: 560px), (max-height: 480px) {
   .yx-selscreen .yx-sel .yx-livenote { line-height: 1.3; }
   .yx-selscreen .yx-sel .yx-livenote .yx-nocash { display: block; line-height: 1.25; }
-  .yx-selscreen .yx-sel .yx-livenote .yx-nocash::before { content: none; }
+  .yx-selscreen .yx-sel .yx-livenote .yx-nocash:not(.solo)::before { content: none; }
 }
-.yx-pausescr .yx-xftag { font-style: normal; font-size: var(--fs-xs, 12px); padding: 0 6px; border-radius: 6px; border: 1px solid var(--gold, #e8c46a); color: var(--gold, #e8c46a); white-space: nowrap; }
+/* 深底白字胶囊：浅色面板上金字看不清（试玩 11-23） */
+.yx-pausescr .yx-xftag { font-style: normal; font-size: var(--fs-xs, 12px); padding: 0 6px; border-radius: 6px; border: 1px solid var(--ink, #17131c); background: var(--ink, #17131c); color: #fbf5e4; white-space: nowrap; }
 
 /* ───────────── 选模式 · 角色按钮 + 开局配置（起手、心法）：娱乐和实盘同一行，不另占行 ─────────────
    起手二选一、心法三选一，只放图标（名字和效果在悬停提示里） */
@@ -970,7 +976,7 @@
 /* 矮的手机竖屏（360×640）：间距、开始钮、模式卡收紧，多出来的起手心法一行也一屏放下 */
 @media (max-height: 700px) and (max-width: 400px) {
   .yx-selscreen .yx-sel { gap: 4px; }
-  .yx-selscreen .yx-opts { gap: 4px; padding: 6px 8px; }
+  .yx-selscreen .yx-opts { gap: 4px; padding: 4px 8px; }
   .yx-selscreen .yx-sel .yx-startbar { padding: 3px; }
   .yx-selscreen .yx-sel .yx-startbar .yx-big { min-height: 46px; }
   .yx-selscreen .yx-sel .yx-kind { min-height: 44px; }

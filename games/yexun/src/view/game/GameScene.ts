@@ -738,6 +738,13 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  /** 局结束：收起选卡、路线图、驿站（暂停里认输时它们还开着，会露在结算页边上） */
+  closeMenus(): void {
+    this.d.cards.close();
+    this.rushRoute?.close();
+    this.rushStop?.close();
+  }
+
   /** 选卡、连战路线图、驿站开着（不推拍、不走动） */
   private menuOpen(): boolean {
     return this.d.cards.open || !!this.rushRoute?.open || !!this.rushStop?.open;
@@ -765,7 +772,7 @@ export class GameScene extends Phaser.Scene {
     this.d.cards.showRush(
       {
         title: final ? '终局前 · 挑卡' : `第 ${k + 1} 关 · 挑 ${w.rushTake} 张`,
-        sub: `还要挑 ${w.rushTake} 张 · 锁的留到下关 · 逐的整局不出`,
+        sub: `还要挑 ${w.rushTake} 张 · 能锁 ${w.rushLocks} 张留到下关 · 放逐剩 ${w.bans} 次`,
         rerolls: w.rerolls,
         bans: w.bans,
         locks: w.rushLocks,
@@ -1250,14 +1257,14 @@ export class GameScene extends Phaser.Scene {
     }
     if (code >= 100) {
       const p = PASSIVES[PASSIVE_IDS[code - 100]!];
-      return { icon: p.icon, title: p.name, sub: `Lv ${w.passives[p.id] ?? 0} · ${p.text}`, kind: 'up' };
+      return { icon: p.icon, title: p.name, sub: `${w.passives[p.id] ?? 0} 级 · ${p.text}`, kind: 'up' };
     }
     if (code >= 0) {
       const id = WEAPON_IDS[code]!;
       const o = w.weapons.find((x) => x.id === id);
       const def = WEAPONS[id];
       if (evo && def.evolve) return { icon: def.evolve.icon, title: def.evolve.name, sub: `进化！${def.evolve.desc}`, kind: 'evo' };
-      return { icon: def.icon, title: def.name, sub: o?.evolved ? '升了一级' : `升到 Lv ${o?.level ?? 1}`, kind: 'up' };
+      return { icon: def.icon, title: def.name, sub: o?.evolved ? '升了一级' : `升到 ${o?.level ?? 1} 级`, kind: 'up' };
     }
     return { icon: 'coin', title: '铜钱一袋', sub: CHEST_FULL_TEXT, kind: 'up' };
   }

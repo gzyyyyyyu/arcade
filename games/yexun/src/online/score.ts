@@ -81,7 +81,7 @@ export function formatScore(board: BoardKind, score: number): string {
     case 'daily-rush': {
       const d = decodeRush(score);
       const hex = d.hexes > 0 ? ` · 咒 ${d.hexes}` : '';
-      return d.cleared ? `天亮 · 用时 ${d.tail > 0 ? fmtClock(RUSH_TAIL - d.tail) : `${fmtClock(RUSH_TAIL)}+`}${hex}` : `连战 ${d.down}/${d.total}${hex} · 下一只 ${d.tail}%`;
+      return d.cleared ? `天亮 · 用时 ${d.tail > 0 ? fmtClock(RUSH_TAIL - d.tail) : `${fmtClock(RUSH_TAIL)}+`}${hex}` : `连战 ${d.down}/${d.total}${hex} · 第 ${d.down + 1} 只还剩 ${100 - d.tail}%`;
     }
   }
 }

@@ -95,7 +95,9 @@ export class BoardsPanel {
     const scopeBtn = document.createElement('button');
     scopeBtn.type = 'button';
     scopeBtn.className = 'yx-tab';
-    scopeBtn.textContent = this.scope === 'all' ? '全部' : '好友';
+    // 按钮写现在看的范围、点了换另一个（试玩 11-23：只写「全部」看不出是范围开关）
+    scopeBtn.textContent = this.scope === 'all' ? '看全部玩家' : '只看好友';
+    scopeBtn.title = this.scope === 'all' ? '点一下只看好友' : '点一下看全部玩家';
     scopeBtn.onclick = () => {
       this.scope = this.scope === 'all' ? 'friends' : 'all';
       this.render();

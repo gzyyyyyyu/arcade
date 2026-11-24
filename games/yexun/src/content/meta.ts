@@ -2,6 +2,7 @@
  * 开局选的东西：咒印、角色、永久加成（DESIGN.md 3.7、3.8、13.2）。规则效果在核心里按这些表算；
  * 解锁条件和铜钱怎么花在 `src/platform/save.ts`。实盘不开咒印、不带加成，角色和地图可选已解锁的（4.1）。
  */
+import { VAULT_UNLOCK } from './explore.ts';
 import type { WeaponId } from './weapons.ts';
 
 // ───────────────────────── 咒印 ─────────────────────────
@@ -91,7 +92,7 @@ export const CHARACTERS: Record<CharacterId, CharacterDef> = {
   jianxia: { id: 'jianxia', name: '剑侠', start: 'flysword', perkName: '剑不停步', perk: '走动时暴击 +12%，暴击更疼 +30%', unlock: '一开始就有', look: '青衣红围巾，背着一把长剑', line: '剑在鞘里闷得慌，边走边打。', base: { ...EVEN, hp: 1.15, speed: 1.1, might: 1.15, area: 0.95 }, privilege: '打倒精英多补 1 次刷新' },
   pang: { id: 'pang', name: '胖师叔', start: 'bell', perkName: '皮糙肉厚', perk: '挨打时震开身边的怪', unlock: `花 ${PANG_PRICE} 铜钱请他`, look: '橙袍大圆脸，手里摇着小铃', line: '吃饱了才有力气，挨两下不算啥。', base: { ...EVEN, hp: 1.45, speed: 0.9, magnet: 1.2 }, privilege: '跳过时抽中回血的机会翻倍' },
   gengfu: { id: 'gengfu', name: '更夫', start: 'shield', perkName: '三更锣', perk: '每 24 秒敲一声锣：全屏的怪被震退并受伤，金钟罩补一层', unlock: `守夜撑过 ${GENGFU_SECONDS / 60} 分钟`, look: '灰袄毡帽，一手锣一手灯笼', line: '天干物燥——小心火烛——咣！', base: { ...EVEN, hp: 0.95, area: 1, cd: 1.1 }, privilege: '夜市提前 10 秒预告、多开 5 秒' },
-  caiyao: { id: 'caiyao', name: '采药女', start: 'petals', perkName: '百草香', perk: '每秒回 0.7 血，肉包回血加倍，经验 +20%', unlock: '夜探成功撤出 1 次', look: '青裙双髻，背着药篓采药', line: '药篓里什么都有，也有给你的。', base: { ...EVEN, hp: 0.95, luck: 0.15, magnet: 1.2 }, privilege: '夜市打九折' },
+  caiyao: { id: 'caiyao', name: '采药女', start: 'petals', perkName: '百草香', perk: '每秒回 0.7 血，肉包回血加倍，经验 +20%', unlock: `夜探成功撤出 1 次，或藏宝阁收藏 ${VAULT_UNLOCK.herbalist} 件`, look: '青裙双髻，背着药篓采药', line: '药篓里什么都有，也有给你的。', base: { ...EVEN, hp: 0.95, luck: 0.15, magnet: 1.2 }, privilege: '夜市打九折' },
   zhijiang: { id: 'zhijiang', name: '纸匠', start: 'zhibing', perkName: '巧手', perk: '纸兵活得久 30%，倒下时两成概率还你一张纸兵的冷却；身边的纸兵会替你挨一下，挨完就碎', unlock: `守夜撑过 ${ZHIJIANG_SECONDS / 60} 分钟`, look: '蓝布衫挽着袖子，手里总捏着一把剪刀', line: '纸也能站岗——你信不信？', base: { ...EVEN, hp: 0.9, speed: 1.05, might: 0.95, cd: 0.95, area: 1.1, magnet: 1.1 } },
   baidu: { id: 'baidu', name: '摆渡人', start: 'pole', perkName: '顺水', perk: '水里不减速，冰面不打滑，水类法器伤害 +50%，竹篙冷却 −25%、多戳一下', unlock: `夜探撤出 1 次后，守夜撑过 ${BAIDU_SECONDS / 60} 分钟`, look: '蓑衣斗笠，肩上扛着长竹篙', line: '上船不问来路，下船不问归途。', base: { ...EVEN, hp: 1.05, speed: 1.1, might: 1.05, cd: 1.05, area: 1.05 } },
   huolang: { id: 'huolang', name: '货郎', start: 'dart', perkName: '讨价', perk: '夜市九折，局内铜钱 +15%，铜钱每满 100 枚伤害 +1%（最多 +10%）；每捡 100 枚铜钱补一次刷新', unlock: `夜市买过 ${HUOLANG_BUYS} 次东西`, look: '花布头巾，挑着一副叮当响的货担', line: '好货不贵，不好的白送。', base: { ...EVEN, hp: 1, speed: 1.05, might: 0.95, magnet: 1.3, luck: 0.1 } },

@@ -58,6 +58,13 @@ export class Menu {
     return this.home.closeSettings();
   }
 
+  /** 选模式屏开着就回主页并返回 true（main 的 Esc 用：Esc 等于「‹ 返回」） */
+  back(): boolean {
+    if (!this.select.shown || !this.state) return false;
+    this.show(this.state, 'home');
+    return true;
+  }
+
   /** 显示哪一屏；不指定就回到上次停的那一屏（角色页、图鉴关掉后回到原处） */
   show(s: MenuState, to: 'home' | 'select' = this.screen): void {
     this.state = s;

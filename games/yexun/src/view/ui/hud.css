@@ -6,6 +6,8 @@
   font-family: 'YxBrush';
   src: url('/fonts/brush.woff2') format('woff2');
   font-display: block;
+  /* 「1」不用毛笔字：马善政的 1 只是一竖，「第 1 关」「1/11」读成「丨」（试玩 11-23），落到后备字体 */
+  unicode-range: U+0000-0030, U+0032-10FFFF;
 }
 
 .yx-hud {

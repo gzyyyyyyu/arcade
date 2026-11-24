@@ -78,8 +78,10 @@ export function rushTimer(w: World): { label: string; left: number; short: strin
   }
   const up = rushFoeUp(w);
   if (w.rushRage > 0 && up) return { label: '已发狂', left: -1, short: '发狂', red: true };
-  // 这一关清完、下一关还没上场（选卡、驿站），不再挂着走完的倒计时
-  if (!up && w.rushAt < 0) return { label: '过关', left: -1, short: '过关', red: false };
+  // 路线图、驿站开着时对局停着：写明不计时（不然一直挂着「离发狂 01:30」像卡住了）
+  if (!up && w.phase === 'choose' && w.menu !== 'cards') return { label: w.menu === 'stop' ? '驿站' : '选路', left: -1, short: '不计时', red: false };
+  // 这一关清完、下一关还没上场（选卡）：小字写第几关，不和大字重复「过关」
+  if (!up && w.rushAt < 0) return { label: `第 ${Math.max(1, w.rushStage)} 关`, left: -1, short: '过关', red: false };
   return { label: '离发狂', left: rushSoftLeft(w), short: '', red: false };
 }
 

@@ -19,12 +19,16 @@ export class RushStopPanel {
   private readonly root: HTMLDivElement;
   private readonly icon: (k: string, px?: number) => string;
   private onPick: ((code: number) => void) | null = null;
-  /** 事件选项按数字键选（选项前写着 1、2…） */
+  /** 数字键按角标选（商店的货、休整的两边、事件选项前都写着 1、2…）；商店回车 = 离开，开打（空格是技能键，不占） */
   private readonly onKey = (e: KeyboardEvent): void => {
     if (!this.onPick || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    const leave = e.key === 'Enter';
     const n = Number(e.key);
-    if (!Number.isInteger(n) || n < 1 || n > 9) return;
-    const el = this.root.querySelector<HTMLElement>(`.yx-rs-opt[data-c="${Pick.Event + n - 1}"]`);
+    const el = leave
+      ? this.root.querySelector<HTMLElement>(`[data-c="${Pick.Leave}"]`)
+      : Number.isInteger(n) && n >= 1 && n <= 9
+        ? this.root.querySelector<HTMLElement>(`[data-k="${n}"]`)
+        : null;
     if (!el || el.hasAttribute('disabled')) return;
     e.preventDefault();
     this.pick(Number(el.dataset.c));
@@ -47,6 +51,12 @@ export class RushStopPanel {
     return this.onPick !== null;
   }
 
+  /** 局结束（认输、倒下）时收起，不留在结算页底下 */
+  close(): void {
+    this.onPick = null;
+    this.root.style.display = 'none';
+  }
+
   destroy(): void {
     window.removeEventListener('keydown', this.onKey);
     this.root.remove();
@@ -59,12 +69,15 @@ export class RushStopPanel {
     let name = '';
     let text = '';
     let cls = '';
+    let fx = '';
     if (g.kind === 'card' && g.card) {
       const v = describe(w, g.card);
       icon = v.icon;
       name = v.name;
       // 买了以后等级已经变了，不再按新等级预览下一级
       text = g.sold ? '已收下' : tierText(g.card.tier ?? 1, v.tag);
+      // 法器、被动也写一句干什么用（试玩 11-23：只写「道袍 · 普通 · 新」看不出买了有什么用）
+      if (!g.sold) fx = `<small class="fx">${esc(v.text)}</small>`;
       cls = `t${g.card.tier ?? 1}`;
     } else if (g.kind === 'relic' && g.relic) {
       name = RUSH_RELICS[g.relic].name;
@@ -88,7 +101,7 @@ export class RushStopPanel {
     const img = pic ? `<img class="seal" alt="" src="${pic}">` : `<img alt="" src="${this.icon(icon, 64)}">`;
     // 满血的回血核心不卖（rush-flow buy），这里灰掉
     const off = g.sold || poor || (g.kind === 'heal' && full);
-    return `<button type="button" class="yx-rs-good ${cls}${g.sold ? ' sold' : ''}" data-c="${Pick.Buy + i}"${off ? ' disabled' : ''}>${img}<b>${esc(name)}</b><small>${esc(text)}</small><span class="price">${g.sold ? '买了' : `纸钱 ${g.price}`}</span></button>`;
+    return `<button type="button" class="yx-rs-good ${cls}${g.sold ? ' sold' : ''}" data-c="${Pick.Buy + i}" data-k="${i + 1}"${off ? ' disabled' : ''}><i class="yx-rs-key">${i + 1}</i>${img}<b>${esc(name)}</b><small>${esc(text)}</small>${fx}<span class="price">${g.sold ? '买了' : `纸钱 ${g.price}`}</span></button>`;
   }
 
   show(w: World, onPick: (code: number) => void): void {
@@ -99,18 +112,20 @@ export class RushStopPanel {
     if (w.stop === 'shop') {
       title = '商店';
       sub = '每样买一次，买完点离开';
-      body = `<div class="yx-rs-goods">${w.stopGoods.map((g, i) => this.good(w, g, i)).join('')}</div><div class="yx-rs-row"><button type="button" class="yx-big" data-c="${Pick.Leave}">离开，开打</button></div>`;
+      body = `<div class="yx-rs-goods">${w.stopGoods.map((g, i) => this.good(w, g, i)).join('')}</div><div class="yx-rs-row"><button type="button" class="yx-big" data-c="${Pick.Leave}"><i class="yx-rs-key">回车</i>离开，开打</button></div>`;
     } else if (w.stop === 'rest') {
       title = '休整';
       sub = '二选一';
       const ws = w.weapons
         .map((o, j) => {
           const off = o.evolved || o.level >= MAX_WEAPON_LEVEL;
-          return `<button type="button" class="yx-rs-w" data-c="${Pick.Rest + 1 + j}"${off ? ' disabled' : ''}><img alt="" src="${this.icon(WEAPONS[o.id].icon, 64)}"><b>${esc(WEAPONS[o.id].name)}</b><small>${off ? '升满了' : `Lv ${o.level} → ${Math.min(MAX_WEAPON_LEVEL, o.level + RUSH.restLevels)}`}</small></button>`;
+          return `<button type="button" class="yx-rs-w" data-c="${Pick.Rest + 1 + j}" data-k="${j + 2}"${off ? ' disabled' : ''}><i class="yx-rs-key">${j + 2}</i><img alt="" src="${this.icon(WEAPONS[o.id].icon, 64)}"><b>${esc(WEAPONS[o.id].name)}</b><small>${off ? '升满了' : `${o.level} → ${Math.min(MAX_WEAPON_LEVEL, o.level + RUSH.restLevels)} 级`}</small></button>`;
         })
         .join('');
+      // 满血还睡就白丢了练法器（试玩 11-23）；法器全升满时留着能点，不然没得选
+      const full = w.hp >= w.stats.hpMax && w.weapons.some((o) => !o.evolved && o.level < MAX_WEAPON_LEVEL);
       body =
-        `<div class="yx-rs-rest"><button type="button" class="yx-rs-heal" data-c="${Pick.Rest}"><img alt="" src="${this.icon('bun', 64)}"><b>睡一觉</b><small>回 ${Math.round(RUSH.restHeal * 100)}% 血</small></button>` +
+        `<div class="yx-rs-rest"><button type="button" class="yx-rs-heal" data-c="${Pick.Rest}" data-k="1"${full ? ' disabled' : ''}><i class="yx-rs-key">1</i><img alt="" src="${this.icon('bun', 64)}"><b>睡一觉</b><small>${full ? '血是满的，练法器吧' : `回 ${Math.round(RUSH.restHeal * 100)}% 血`}</small></button>` +
         `<div class="yx-rs-train"><h4>或者练一件法器 +${RUSH.restLevels} 级</h4><div class="yx-rs-ws">${ws}</div></div></div>`;
     } else if (w.stop === 'event' && w.stopEvent) {
       const ev = RUSH_EVENTS[w.stopEvent];
@@ -121,7 +136,7 @@ export class RushStopPanel {
           const text = c.trade ? `把${WEAPONS[c.trade.from].name}换成${WEAPONS[c.trade.to].name}（同级）` : (RUSH_EVENTS[c.event].options[c.option] ?? '离开');
           // 押不起就灰掉（核心不收），免得点了只当离开
           const off = c.event === 'gamble' && c.option === 0 && w.rushCoins < EVENT_FX.gambleBet;
-          return `<button type="button" class="yx-rs-opt" data-c="${Pick.Event + i}"${off ? ' disabled' : ''}><i>${i + 1}</i>${esc(text)}${off ? '（纸钱不够）' : ''}</button>`;
+          return `<button type="button" class="yx-rs-opt" data-c="${Pick.Event + i}" data-k="${i + 1}"${off ? ' disabled' : ''}><i>${i + 1}</i>${esc(text)}${off ? '（纸钱不够）' : ''}</button>`;
         })
         .join('');
       body = `<div class="yx-rs-opts">${opts}</div>`;

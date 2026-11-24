@@ -41,16 +41,17 @@ export const RUSH_FOES: Record<RushFoeId, RushFoeDef> = {
 
 export const RUSH_FOE_IDS = Object.keys(RUSH_FOES) as readonly RushFoeId[];
 
-export const RUSH_AFFIXES: Record<AffixId, { char: string; name: string; text: string }> = {
-  tough: { char: '铁', name: '铁', text: '血多四分之一' },
-  swift: { char: '疾', name: '疾', text: '走得快四分之一' },
-  split: { char: '分', name: '分', text: '半血时分出两个影子' },
-  summon: { char: '招', name: '招', text: '每 12 秒叫一群小怪' },
-  rage: { char: '狂', name: '狂', text: '血少了打得更狠、走得更快' },
-  shield: { char: '护', name: '护', text: '每 15 秒套一层护盾，打破才掉血' },
-  trail: { char: '火', name: '火', text: '走过的地方留鬼火' },
-  leech: { char: '吸', name: '吸', text: '打中你自己回血' },
-  wind: { char: '风', name: '风', text: '每 10 秒把你往它身边拽' },
+/** 首领的强化（代码里叫词缀）：char 印章单字、short 路卡上跟在单字后的两三个字、text 一句说明 */
+export const RUSH_AFFIXES: Record<AffixId, { char: string; name: string; short: string; text: string }> = {
+  tough: { char: '铁', name: '铁', short: '血厚', text: '血多四分之一' },
+  swift: { char: '疾', name: '疾', short: '走得快', text: '走得快四分之一' },
+  split: { char: '分', name: '分', short: '会分身', text: '半血时分出两个影子' },
+  summon: { char: '招', name: '招', short: '叫小怪', text: '每 12 秒叫一群小怪' },
+  rage: { char: '狂', name: '狂', short: '越残越狠', text: '血少了打得更狠、走得更快' },
+  shield: { char: '护', name: '护', short: '有护盾', text: '每 15 秒套一层护盾，打破才掉血' },
+  trail: { char: '火', name: '火', short: '留鬼火', text: '走过的地方留鬼火' },
+  leech: { char: '吸', name: '吸', short: '吸血', text: '打中你自己回血' },
+  wind: { char: '风', name: '风', short: '拽人', text: '每 10 秒把你往它身边拽' },
 };
 
 export const AFFIX_IDS = Object.keys(RUSH_AFFIXES) as readonly AffixId[];

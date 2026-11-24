@@ -8,6 +8,7 @@ import { SCHOOLS, type SchoolId } from '../../content/guide.ts';
 import { CHARACTERS, type CharacterId } from '../../content/meta.ts';
 import { mainSchools, POOL_START } from '../../content/pools.ts';
 import { MAX_RUSH_HEXES, RUSH, RUSH_FOES, RUSH_HEX_IDS, RUSH_HEXES, RUSH_TOTAL, RUSH_WEAPON_COST, type RushHexId } from '../../content/rush.ts';
+import { ENEMY_BY_KIND } from '../../content/enemies.ts';
 import { DANGERS, type Danger } from '../../content/waves.ts';
 import { PASSIVES, WEAPONS, type PassiveId, type WeaponId } from '../../content/weapons.ts';
 import { LOADOUT, loadoutCost, loadoutOk, loadoutPassives, loadoutWeapons, rushPresets, type RushLoadout, type RushRoute } from '../../core/rush.ts';
@@ -47,7 +48,11 @@ export interface RushIntroOptions {
 const DAILY_DANGER = 2 as Danger;
 const FREE_MAX = 4;
 const PRESET_NAMES = ['稳', '猛', '双'] as const;
-const PRESET_TEXT = ['起手件 + 防身被动', '主修头号件 + 攻击被动', '两件法器 + 被动'] as const;
+const PRESET_TEXT = ['起手法器 + 防身被动', '主力法器 + 攻击被动', '两件法器 + 被动'] as const;
+/** 配装区底部说明的默认一句：角上红数是什么、点了会怎样、纸钱是什么（试玩 11-23 三条都没说） */
+const TIP_DEFAULT = '角上红数 = 花几个配装点；被动再点升一级，点满再点卸下；纸钱只在这局商店用';
+/** 矮竖屏（360×640）一行放得下的版本，三件事都在 */
+const TIP_SHORT = '红数 = 配装点；被动再点升级；纸钱只在本局商店用';
 const CHARS_ALL = Object.keys(CHARACTERS) as CharacterId[];
 
 export class RushIntro {
@@ -146,9 +151,19 @@ export class RushIntro {
       this.s = { ...this.s, hexes: on ? this.s.hexes.filter((h) => h !== id) : RUSH_HEX_IDS.filter((h) => h === id || this.s.hexes.includes(h)) };
       return this.render();
     }
+    if (a === 'foe') {
+      const k = Number(val);
+      const f = this.v?.daily.foes[k];
+      this.tip = f === undefined ? `终局：${ENEMY_BY_KIND[RUSH.finalKind].name}，打倒就天亮` : `第 ${k + 1} 关：${RUSH_FOES[f].name}`;
+      return this.render();
+    }
     if (a === 'char') {
       const c = val as CharacterId;
-      if (!this.v?.open(c)) return;
+      // 没解锁的点了说怎么解锁（试玩 11-23：灰着点了没反应）
+      if (!this.v?.open(c)) {
+        this.tip = `${CHARACTERS[c].name}还没解锁：${CHARACTERS[c].unlock}`;
+        return this.render();
+      }
       this.tip = null;
       return this.set(rushPresets(c)[0]);
     }
@@ -190,7 +205,7 @@ export class RushIntro {
       let next: RushLoadout = { ...l, passives: up <= LOADOUT.passiveMax ? [...rest, { id, level: up as 1 | 2 }] : rest };
       if (!loadoutOk(next)) next = { ...l, passives: rest };
       const lv = next.passives.find((p) => p.id === id)?.level ?? 0;
-      this.tip = `${PASSIVES[id].name}${lv ? `（Lv${lv}）` : ''}：${PASSIVES[id].text}`;
+      this.tip = `${PASSIVES[id].name}${lv ? `（${lv} 级）` : ''}：${PASSIVES[id].text}`;
       return this.set(next);
     }
   }
@@ -203,7 +218,7 @@ export class RushIntro {
     const spare = Math.max(0, RUSH.budget - cost);
     const chars = CHARS_ALL.map((c) => {
       const open = v.open(c);
-      return `<button type="button" class="yx-ri-char${c === l.character ? ' on' : ''}" data-a="char" data-v="${c}"${open ? '' : ' disabled'} title="${esc(CHARACTERS[c].name)}"><img alt="" src="${this.icon(faceKey(c), 64)}"><span>${esc(CHARACTERS[c].name)}</span>${open ? '' : LOCK_SVG}</button>`;
+      return `<button type="button" class="yx-ri-char${c === l.character ? ' on' : ''}" data-a="char" data-v="${c}"${open ? '' : ' aria-disabled="true"'} title="${esc(CHARACTERS[c].name)}"><img alt="" src="${this.icon(faceKey(c), 64)}"><span>${esc(CHARACTERS[c].name)}</span>${open ? '' : LOCK_SVG}</button>`;
     }).join('');
     const presets = rushPresets(l.character)
       .map((p, i) => {
@@ -236,7 +251,7 @@ export class RushIntro {
       .map((id) => {
         const lv = l.passives.find((p) => p.id === id)?.level ?? 0;
         const can = lv > 0 || loadoutOk({ ...l, passives: [...l.passives, { id, level: 1 }] });
-        return `<button type="button" class="yx-ri-p${lv ? ' on' : ''}" data-a="passive" data-v="${id}"${can ? '' : ' disabled'} title="${esc(PASSIVES[id].name)}：${esc(PASSIVES[id].text)}"><img alt="" src="${this.icon(PASSIVES[id].icon, 48)}"><i>${lv ? `Lv${lv}` : '+'}</i></button>`;
+        return `<button type="button" class="yx-ri-p${lv ? ' on' : ''}" data-a="passive" data-v="${id}"${can ? '' : ' disabled'} title="${esc(PASSIVES[id].name)}：${esc(PASSIVES[id].text)}"><img alt="" src="${this.icon(PASSIVES[id].icon, 48)}"><i>${lv ? `${lv}级` : '+'}</i></button>`;
       })
       .join('');
     const pips = Array.from({ length: RUSH.budget }, (_, i) => `<i${i < cost ? ' class="on"' : ''}></i>`).join('');
@@ -254,23 +269,22 @@ export class RushIntro {
       : '';
     const foes = free
       ? `<p class="yx-ri-foes free">首领、路线开局随机，一共 ${RUSH_TOTAL} 只</p>`
-      : `<ol class="yx-ri-foes">${v.daily.foes.map((f, i) => `<li title="${esc(RUSH_FOES[f].name)}"><img alt="${esc(RUSH_FOES[f].name)}" src="${this.icon(RUSH_FOES[f].kinds[0]!, 48)}"><i>${i + 1}</i></li>`).join('')}<li class="last" title="终局"><b>?</b></li></ol>`;
+      : `<h4 class="yx-ri-foeshead">今天的出场顺序（点头像看是谁）</h4><ol class="yx-ri-foes">${v.daily.foes.map((f, i) => `<li data-a="foe" data-v="${i}" title="${esc(RUSH_FOES[f].name)}"><img alt="${esc(RUSH_FOES[f].name)}" src="${this.icon(RUSH_FOES[f].kinds[0]!, 48)}"><i>${i + 1}</i></li>`).join('')}<li class="last" data-a="foe" data-v="${v.daily.foes.length}" title="终局"><b>?</b></li></ol>`;
     const best = free ? v.bestFree(curDanger) : v.bestDaily;
     const hexLabel = hexes.length ? hexes.map((h) => RUSH_HEXES[h].name).join(' ') : '不带';
-    const tipText = this.tip ?? '点法器或被动看名称和效果';
     this.panel.classList.toggle('hexpage', this.hexPage);
     this.inner.innerHTML =
       `<div class="yx-ri-top"><b class="yx-brush">连战</b><div class="yx-ri-mode"><button type="button" data-a="mode" data-v="daily" class="${free ? '' : 'on'}">每日 · ${esc(v.date.slice(5))}</button><button type="button" data-a="mode" data-v="free" class="${free ? 'on' : ''}">自由</button></div>` +
-      `<em>${free ? '随机种子，危险自己选' : '今天人人同一张路线图 · 危险 2'}</em></div>` +
+      `<em>${free ? '每局首领和路线随机，危险自己选' : '今天人人同一张路线图 · 危险 2'}</em></div>` +
       '<div class="yx-ri-body">' +
       `<section class="yx-ri-chars">${chars}</section>` +
       '<section class="yx-ri-build">' +
       `<div class="yx-ri-presets">${presets}</div>` +
       `<div class="yx-ri-line"><h4>心法</h4><div class="yx-ri-xs">${xinfa}</div></div>` +
-      `<div class="yx-ri-line"><h4>起手 · ${LOADOUT.startLevel} 级</h4><div class="yx-ri-ws">${startRow}</div></div>` +
-      `<div class="yx-ri-line"><h4>第二件 · ${LOADOUT.secondLevel} 级</h4><div class="yx-ri-ws">${secondRow}</div></div>` +
-      `<div class="yx-ri-line"><h4>被动 · 最多 ${LOADOUT.passives} 件</h4><div class="yx-ri-ps">${passives}</div></div>` +
-      `<p class="yx-ri-tip${this.tip ? ' on' : ''}">${esc(tipText)}</p>` +
+      `<div class="yx-ri-line"><h4>起手<small> · ${LOADOUT.startLevel} 级</small></h4><div class="yx-ri-ws">${startRow}</div></div>` +
+      `<div class="yx-ri-line"><h4>第二件<small> · ${LOADOUT.secondLevel} 级</small></h4><div class="yx-ri-ws">${secondRow}</div></div>` +
+      `<div class="yx-ri-line"><h4>被动<small> · 最多 ${LOADOUT.passives} 件</small></h4><div class="yx-ri-ps">${passives}</div></div>` +
+      (this.tip ? `<p class="yx-ri-tip on">${esc(this.tip)}</p>` : `<p class="yx-ri-tip"><span class="yx-ri-tipl">${TIP_DEFAULT}</span><span class="yx-ri-tips">${TIP_SHORT}</span></p>`) +
       '</section>' +
       '<section class="yx-ri-side">' +
       `<div class="yx-ri-cost"><span>配装点 <b>${cost} / ${RUSH.budget}</b></span><span class="yx-ri-pips">${pips}</span><small>${spare ? `剩 ${spare} 点 = 多 ${spare} 次重抽` : '点数用完了'}</small></div>` +

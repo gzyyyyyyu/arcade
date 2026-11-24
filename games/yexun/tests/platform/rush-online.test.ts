@@ -38,7 +38,7 @@ describe('连战分数', () => {
     expect(rushShort(rushScore(res({ down: 11, cleared: true, ticks: 812 * S })))).toBe('天亮 13:32');
     expect(rushShort(rushScore(res({ down: 11, cleared: true, ticks: 1600 * S })))).toBe('天亮 25:00+');
     expect(rushShort(rushScore(res({ down: 6, hexes: 2 })))).toBe('6/11 · 咒 2');
-    expect(formatScore('daily-rush', rushScore(res({ down: 6, progress: 0.3 })))).toBe('连战 6/11 · 下一只 30%');
+    expect(formatScore('daily-rush', rushScore(res({ down: 6, progress: 0.3 })))).toBe('连战 6/11 · 第 7 只还剩 70%');
   });
 });
 

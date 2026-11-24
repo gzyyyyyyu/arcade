@@ -34,7 +34,8 @@ export function decorateRushResult(root: HTMLElement, route: RushRoute, r: RushR
     if (big) big.textContent = rushClock(r.ticks);
     // 没打完的那一关写这只还剩多少血（试玩 11-22：「最后一关打掉 82%」看不懂）
     const at = names[Math.min(r.down, names.length - 1)]!;
-    const left = `${at}还剩 ${Math.max(1, Math.round((1 - r.progress) * 100))}% 血`;
+    // 和榜上同一个算法（online/rush.ts rushScore 的 tail 取整），两边不差 1%
+    const left = `${at}还剩 ${100 - Math.max(0, Math.min(99, Math.floor(r.progress * 100)))}% 血`;
     if (small) small.textContent = r.cleared ? `${r.total} 只全部打倒${r.hexes ? ` · 带咒 ${r.hexes} 条` : ''}` : quit ? `认输 · 打倒 ${r.down} 只` : `倒在第 ${r.down + 1} 关 · ${left}`;
     const row = document.createElement('div');
     row.className = 'yx-rushlist';

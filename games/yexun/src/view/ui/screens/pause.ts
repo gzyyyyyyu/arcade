@@ -119,7 +119,7 @@ export class Pause {
       return;
     }
     if (!r || !el) return;
-    const lv = r.level > 8 ? '已进化' : r.level === 8 ? '满级' : `Lv ${r.level}`;
+    const lv = r.level > 8 ? '已进化' : r.level === 8 ? '满级' : `${r.level} 级`;
     const score = r.dmg >= 0 ? ` · ${Math.round(r.dmg).toLocaleString('zh-CN')} 伤 · ${r.kills} 斩` : '';
     el.innerHTML = `<b>${esc(r.name)}</b> ${lv}${score}${r.desc ? `<br><span>${esc(r.desc)}</span>` : ''}${r.hint ? `<br><i>${esc(r.hint)}</i>` : ''}`;
     for (const c of this.root.querySelectorAll<HTMLElement>('.yx-cell')) c.classList.toggle('sel', c.dataset.i === String(i));
