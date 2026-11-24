@@ -168,7 +168,7 @@ describe('接口：读', () => {
     expect(await fetchInvites({ fetchImpl: f })).toEqual({ status: 0, invites: [] });
   });
 
-  it('好友列表：平台的真实形状 { userId, displayName, avatar }（platform-backend 15.4）统一成 id、name，原样字段留着', async () => {
+  it('好友列表：平台的真实形状 { userId, displayName, avatar }（api-social.md 15.4）统一成 id、name，原样字段留着', async () => {
     const { f } = fake(
       json({
         friends: [

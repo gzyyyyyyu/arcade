@@ -1,6 +1,6 @@
 /**
  * 假平台钱包（0.8.0，`arcade-kit/testing`）：游戏测试靠它代替平台，所以它守的那几条关键规则要和平台一致
- * （docs/platform-backend.md 5.9、5.10、15.9）：绑定和 game 一致、带入要余额够这次、只结一次、操作 id 去重、按 ref 分份、到期退回、
+ * （docs/platform-wallet.md 5.9、5.10，api-boards.md 15.9）：绑定和 game 一致、带入要余额够这次、只结一次、操作 id 去重、按 ref 分份、到期退回、
  * client 每天净赢上限、小结的上限、补给看余额加桌上的。
  */
 import { runInDurableObject } from 'cloudflare:test';

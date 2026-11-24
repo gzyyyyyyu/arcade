@@ -6,7 +6,7 @@
  *   切到后台就停，回到前台到点了马上补一次。不用 Web Push。
  * - 没有自由文字：横条上只有对方的昵称（平台的账号名）和游戏名（游戏给的表），都按纯文本放进去。
  * - 这个文件只在调用时碰 DOM，import 时不碰；接口的小函数和挑邀请的逻辑是纯的，测试在 test/social.test.ts（假 fetch）。
- * - 接口形状以 docs/platform-backend.md 为准：都要登录，写的请求带 `x-arcade: 1`、同源（平台的 CSRF 规矩）。
+ * - 接口形状以 docs/api-social.md 为准：都要登录，写的请求带 `x-arcade: 1`、同源（平台的 CSRF 规矩）。
  */
 import { detectPlatform, type PlatformInfo } from './client.js';
 import { timeoutSignal } from './internal.js';
@@ -39,7 +39,7 @@ export interface Invite {
 }
 
 /**
- * 好友列表的一项。平台每项是公开资料 `{ userId, displayName, avatar }`（docs/platform-backend.md 15.4，只增不改）加 online、where
+ * 好友列表的一项。平台每项是公开资料 `{ userId, displayName, avatar }`（docs/api-social.md 15.4，只增不改）加 online、where
  * （对方关了"让好友看到我在哪"就没有 where）；kit 统一成 id、name，平台原样的字段也留着。发邀请的 `to` 用 id
  */
 export interface Friend {

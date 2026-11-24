@@ -1,5 +1,5 @@
 /**
- * 搭子战绩上报（平台 0.19.0，docs/platform-backend.md 15.19）：好友房打完一场，房间的服务端把同桌真人和各自输赢经钱包服务绑定的 `together()` 报给平台，
+ * 搭子战绩上报（平台文档 api-social.md 15.19）：好友房打完一场，房间的服务端把同桌真人和各自输赢经钱包服务绑定的 `together()` 报给平台，
  * 平台给其中已经是好友的每一对累计"一起打了几场、谁赢了几场、做搭档几场"。浏览器碰不到这条路（只有服务绑定），所以只在房间里调。
  *
  * 不依赖 `cloudflare:workers`（纯函数加一次 RPC），`arcade-kit/room` 转出；房间子类一般用 `GameRoom.reportMatch`，它按座位认人、拼 op。
@@ -33,7 +33,7 @@ export function togetherOp(code: string, createdAt: number, match: number | stri
 
 /**
  * 报一场。players 只放真人（电脑、游客不报），同一个 userId 只留第一个；少于 2 个、超过 TOGETHER_MAX 个、op 不合格，
- * 或者没有 `env.WALLET`（单独部署）、它没有 `together`（平台还没上 0.19.0）时什么都不做，回 null。
+ * 或者没有 `env.WALLET`（单独部署）、它没有 `together`（平台版本太旧）时什么都不做，回 null。
  * 平台的回话原样返回；RPC 抛错吞掉、只记错误类型（不记 userId），也回 null。**不重试**：平台忙时回 busy，少记一场不影响打牌。
  * 只经服务绑定调，不用 setTimeout；房间在一场结束时交给 `ctx.waitUntil`（见 GameRoom.reportMatch）
  */

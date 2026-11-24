@@ -41,8 +41,8 @@ export interface RoomGame<S, A, V, O = unknown, E extends RoomEffect = RoomEffec
    */
   begin?(entropy: Entropy, rulesVersion: number, setup?: RoomSetup<O>): S;
   /**
-   * @deprecated 0.2.0：32 位种子只有约 43 亿种，玩家拿自己的手牌逐个试，几分钟就能反推出全桌的牌。新游戏写 begin；
-   * 这里只为 0.1.x 的游戏升级 kit 时照常能开局（房间会记一条警告日志），游戏都换成 begin 以后去掉。
+   * @deprecated 32 位种子只有约 43 亿种，玩家拿自己的手牌逐个试，几分钟就能反推出全桌的牌。新游戏写 begin；
+   * 这里只为还没写 begin 的游戏照常能开局（房间会记一条警告日志），游戏都换成 begin 以后去掉。
    * 已经开打的房间不会再调开局，按开局时记下的规则版本打完
    */
   start(seed: number, rulesVersion: number): S;
@@ -57,7 +57,7 @@ export interface RoomGame<S, A, V, O = unknown, E extends RoomEffect = RoomEffec
   /** 现在该谁出手；null 表示不在等任何人（比如一局打完）。写了 actors 时房间只看 actors，不再用它 */
   turn(state: S): number | null;
   /**
-   * 这一刻可以出手的座位（不写就是 [turn(state)]，和 0.1.0 一样）。多于一个时是"一组"，比如结算页大家点继续：
+   * 这一刻可以出手的座位（不写就是 [turn(state)]）。多于一个时是"一组"，比如结算页大家点继续：
    * - 电脑、托管座位由房间立刻用 ai() 代出；真人谁先发都收，不用排队；
    * - 组里有人出手不重新计时：时限从进入这组时起算，到点对还没出的真人逐个用 timeout() 代出；
    * - 组里先出手的人改了局面，后出的人照样能出（不判 stale），只有在这组开始之前做的决定才是 stale。

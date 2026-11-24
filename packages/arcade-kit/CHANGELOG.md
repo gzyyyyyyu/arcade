@@ -1,5 +1,9 @@
 # 更新日志
 
+## 0.31.4（2026-11-23）
+
+- 整理：源码注释去掉版本史（「和 0.1.0 一样」「0.x 加的」「平台还没上 0.19.0」「第三轮审计」这类），改成现状和理由；注释里指向 `docs/platform-backend.md` 节号的改成现在的文档和节（仓库根 `docs/rooms.md` 4.x、`platform-wallet.md`、`platform-features.md`、`api-account.md`、`api-social.md`、`api-boards.md`、`api.md`）。导出的接口和行为不变。
+
 ## 0.31.3（2026-11-23）
 
 - 文档：README（也是 npm 页面）改成英文一份、`README.zh-CN.md` 中文一份，结构一一对应；npm 页面上的链接都指向 GitHub。`docs/rooms.md` 的目录结构补上 `personas.ts`。代码不变。

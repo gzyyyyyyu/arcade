@@ -1,5 +1,5 @@
 /**
- * 房间和浏览器之间的消息（docs/platform-backend.md 4.3）。
+ * 房间和浏览器之间的消息（docs/rooms.md 4.3）。
  *
  * - 服务端说了算：客户端只发"我想做什么"（act 里的 action），合不合法、结果是什么都由房间算；
  * - 每条下行消息带 seq（房间这一局的步数），客户端按 seq 去重、丢掉旧的；
@@ -146,7 +146,7 @@ export interface ActMsg<A = unknown> {
 export interface EmoteMsg {
   t: 'emote';
   id: number;
-  /** 冲着哪个座位（可选）：扔道具、点名嘲讽。得是有人的别的座位，不然回 bad_target；不带就和 0.6.0 一样 */
+  /** 冲着哪个座位（可选）：扔道具、点名嘲讽。得是有人的别的座位，不然回 bad_target；不带就是不冲着谁 */
   to?: number;
 }
 /**
@@ -185,7 +185,7 @@ export interface SeatInfo {
 /**
  * 这条连接是谁：seat 是现在坐的座位（没入座为 null）；
  * bound 是这个人开打后绑定的座位（离座了也还是它，可以"回到我的座位"；还没开打、一局里没坐过为 null）。
- * bound 是 0.1.1 加的，房间总会带
+ * 房间总会带 bound
  */
 export interface You {
   seat: number | null;

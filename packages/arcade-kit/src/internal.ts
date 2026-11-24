@@ -4,7 +4,7 @@
  */
 
 /**
- * 平台会话 cookie 的名字（docs/platform-backend.md 15.8："平台只读 __Host-sid"）。kit 里只在这里写一次：
+ * 平台会话 cookie 的名字（docs/api-account.md 15.8："平台只读 __Host-sid"）。kit 里只在这里写一次：
  * 认人时请求里没有它就直接算没登录，不去问平台。
  */
 export const SESSION_COOKIE = '__Host-sid';

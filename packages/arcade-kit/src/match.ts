@@ -2,7 +2,7 @@
  * 快速匹配的排队（设计 docs/match.md）：游戏 Worker 里的 Durable Object 继承它，填上一桌几个真人，就能按档位排队凑桌。
  * 每个档位一个实例（matchStub 按档位取），浏览器经 worker.ts 的 acceptMatch 连进来，连接本身就是"排着"。
  *
- * 守的规矩（和房间同一套，docs/platform-backend.md 第 4 节）：
+ * 守的规矩（和房间同一套，docs/rooms.md 第 4 节）：
  * - 0 行存储：排着的人就是 ctx.getWebSockets()，附件里只放 userId、昵称、开始排的时间；被驱逐后名单还在；
  * - 只用一个闹钟：最早那个人等满 waitMs 的时刻，只往早了调（setAlarm 也算一行写入）；
  * - 只用 ctx.acceptWebSocket，不用 setTimeout / setInterval；排队连接只收不发，浏览器发什么都 1008 断开；
