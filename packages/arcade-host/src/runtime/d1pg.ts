@@ -1,5 +1,5 @@
 /**
- * D1 的 PostgreSQL 后端（PG 模式，v2.1：部署时和 SQLite 二选一，不留 SQLite 文件）。和 d1.ts 同一个协议（workerd 自带的 D1 客户端原样用），
+ * D1 的 PostgreSQL 后端（PG 模式：部署时和 SQLite 二选一，不留 SQLite 文件）。和 d1.ts 同一个协议（workerd 自带的 D1 客户端原样用），
  * 平台的代码一行不改：SQL 经 sql-translate.ts 机械翻译或查覆盖表（由站点给，平台模块外的数据），PG 的报错还原成 SQLite 的原文
  * （平台按 "UNIQUE" 认重复），结果里的 int8/numeric 回数字、布尔回 0/1（SQLite 没有布尔）。
  *
