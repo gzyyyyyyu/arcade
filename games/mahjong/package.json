@@ -1,7 +1,7 @@
 {
   "name": "mahjong",
   "private": true,
-  "version": "0.47.17",
+  "version": "0.47.18",
   "type": "module",
   "repository": {
     "type": "git",
