@@ -641,7 +641,7 @@ for (const [vn, cells] of Object.entries(result)) {
     curve(`curve-${vn}-${sn}.png`, `${name[vn]} / ${name[sn]}`, f);
   }
 }
-// 所有者质量线（2026-10-30）：p95 ≤ 1.5 × 中位数、没有 >50ms 长帧、手机降速 JS ≤ 8ms/帧（本机无 GPU，帧时间含软件光栅化，只看比值和 JS）
+// 所有者质量线：p95 ≤ 1.5 × 中位数、没有 >50ms 长帧、手机降速 JS ≤ 8ms/帧（本机无 GPU，帧时间含软件光栅化，只看比值和 JS）
 lines.push('', '## 质量线', '', '| 视口 | 场景 | p95 / 中位数（≤ 1.5） | >50ms 长帧（0） | JS 每帧 ms（手机 ≤ 8） |', '|---|---|---|---|---|');
 for (const [vn, cells] of Object.entries(result)) {
   for (const [sn, c] of Object.entries(cells)) {

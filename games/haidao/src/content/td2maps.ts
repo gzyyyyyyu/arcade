@@ -388,4 +388,3 @@ function defOf(m: MapSpec): TdMapDef {
 
 export const TD2_MAP_SPECS: ReadonlyMap<TdMapId, MapSpec> = new Map(SPECS.map((m) => [m.id, m]));
 export const TD2_MAPS: readonly TdMapDef[] = SPECS.map(defOf);
-export const TD2_MAP_BLURB: Readonly<Record<TdMapId, string>> = Object.fromEntries(SPECS.map((m) => [m.id, m.blurb])) as Record<TdMapId, string>;

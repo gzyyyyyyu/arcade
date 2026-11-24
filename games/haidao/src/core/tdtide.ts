@@ -87,7 +87,6 @@ export function tideMap(w: IsoWeek): TideMap {
 
 /**
  * 每周海况从 2026 年第 48 周（北京时间 11 月 23 日周一）换榜时才进大潮：周中换规则，同一周的榜前后难度不一样，不公平。
- * 0.47.0 赶不上这个周一就把它往后挪一周，代码里只这一处
  */
 export const TIDE_MODS_FROM: IsoWeek = { year: 2026, week: 48 };
 const before = (w: IsoWeek, from: IsoWeek): boolean => w.year < from.year || (w.year === from.year && w.week < from.week);

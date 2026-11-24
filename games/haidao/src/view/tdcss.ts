@@ -176,7 +176,7 @@ function tdCss(): string {
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-head { padding:0 0 0 84px; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-top, .hd-ui.hd-skin .hd-tdsel-main .hd-tdmodes { grid-template-columns:1fr; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdtabs { padding-right:176px; }
-  /* 右栏扣掉右上角的钮只剩 340 来宽，六个页签和 400 宽竖屏一样窄：同样不折行、去掉「星」字（试玩 11-23 折成「第一 / 章 / 3/18 / 星」） */
+  /* 右栏扣掉右上角的钮只剩 340 来宽，六个页签和 400 宽竖屏一样窄：同样不折行、去掉「星」字（不然会折成「第一 / 章 / 3/18 / 星」） */
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab { padding:2px 0; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab :is(b,small) { white-space:nowrap; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab-unit { display:none; }

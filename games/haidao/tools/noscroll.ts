@@ -804,7 +804,7 @@ try {
         await click('.hd-goals-card');
         await page.locator('.hd-goals').first().waitFor({ timeout: 5000 });
         await snap('每日三件小事', 400);
-        // 点框外的遮罩要能关（试玩 11-23 报过关不掉）：点左下角，关不掉就报流程错
+        // 点框外的遮罩要能关：点左下角，关不掉就报流程错
         const vp = page.viewportSize()!;
         await page.mouse.click(4, vp.height - 4);
         await page.locator('.hd-goals').first().waitFor({ state: 'detached', timeout: 3000 });

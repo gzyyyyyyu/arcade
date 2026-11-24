@@ -66,7 +66,7 @@ export function buildUi(bs: TdScene): void {
     bs.speed = bs.speed >= 4 ? 1 : bs.speed * 2;
     speed.textContent = speedTop.textContent = `${bs.speed}×`;
   };
-  // 暂停（P）：守岛压力大时停下来想一想；实盘也能停（服务端只收浏览器报的倍数、不按墙钟卡时限，见 docs/backend-haidao.md）
+  // 暂停（P）：守岛压力大时停下来想一想；实盘也能停（服务端只收浏览器报的倍数、不按墙钟卡时限，见 docs/tools-haidao.md 后端一节）
   const pause = button('暂停', 'hd-btn-wood hd-td-pause', () => togglePause(bs), bar2);
   pause.title = '暂停 / 继续（P）';
   const speed = button(`${bs.speed}×`, 'hd-btn-wood hd-td-speed', flip, bar2);

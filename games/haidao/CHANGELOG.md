@@ -1,5 +1,13 @@
 # 更新日志
 
+## 0.59.5（2026-11-23）
+
+整理：删死代码、改注释，不改行为和规则。
+
+- 删掉没人用的 `TD2_MAP_BLURB` 和它的再导出。
+- 注释去掉版本号、日期和「以前 / 这一版」的过程，只留现状和为什么（16 处）。
+- `docs/backend-haidao.md` 并进 `docs/tools-haidao.md` 的「后端」一节，删掉原文件，README、DESIGN、AGENTS、ui-haidao-td 和 `tdhud.ts` 的引用跟着改；`tools/econ.ts` 的三星率注释改指 `balance-haidao.md` 难度曲线总表。
+
 ## 0.59.4（2026-11-23）
 
 文档：整理和精简，不改代码和规则。

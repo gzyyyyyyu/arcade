@@ -179,7 +179,7 @@ const TOWER_OVER = 0.07;
 
 /**
  * 守岛造塔的升起：基地的 riseScale 是 easeOutBack，前三成时间就到原大，放在守岛 12 帧联系表里第 3 格已经长完、看不出升起；
- * 这里改成整段慢进慢出地长到 1 + TOWER_OVER，再落回 1。返回 [纵向缩放, 横向缩放, 透明度]
+ * 所以这里整段慢进慢出地长到 1 + TOWER_OVER，再落回 1。返回 [纵向缩放, 横向缩放, 透明度]
  */
 export function towerRise(k: number): [number, number, number] {
   const t = clamp01(k);
