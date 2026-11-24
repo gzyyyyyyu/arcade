@@ -362,3 +362,17 @@ export function tileName(kind: number, red = false): string {
   if (kind >= 27) return HONOR_NAME[kind - 27]!;
   return (red && hasRed(kind) ? '赤' : '') + (NUMS[kind % 9] ?? '') + (SUITS[Math.floor(kind / 9)] ?? '');
 }
+
+/**
+ * 先把牌面、牌背、牌墙的图解码好（主页空闲时调）：不然第一次进桌时浏览器要现解析几十张 SVG，手机上点了要顿一下。
+ * 只是预热，失败了进桌时照常现解。
+ */
+export function warmTileArt(): void {
+  const urls = [backUrl(), wallUrl('h'), wallUrl('v')];
+  for (let k = 0; k <= 33; k++) urls.push(tileUrl(k), ...(hasRed(k) ? [tileUrl(k, true)] : []));
+  for (const u of urls) {
+    const img = new Image();
+    img.src = u;
+    void img.decode().catch(() => undefined);
+  }
+}

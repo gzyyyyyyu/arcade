@@ -128,7 +128,7 @@ const tense = (s: SoloState, seat: number): boolean =>
 /**
  * 电脑这一步「想」多久（毫秒，再乘性格快慢和速度；太快没有博弈感）。
  * 只按公开看得到的定：这一手是不是摸了就打（摸切快）、桌上有没有人立直或胡了、牌墙还剩多少，不看电脑自己算了什么，停顿不泄露他的手牌。
- * 声明窗口里「过」不停：停了就等于告诉人家他能碰。
+ * 声明窗口里「过」不停（最后一个过关上窗口也不停）：停了就等于告诉人家他能碰。
  */
 export function thinkMs(prev: SoloState, next: SoloState, seat: number): number {
   const seen = new Set((next.events as { e: string }[]).map((e) => e.e));
@@ -141,7 +141,8 @@ export function thinkMs(prev: SoloState, next: SoloState, seat: number): number 
     if (wallLeft(prev.wall) <= LATE_WALL) ms += TIMING.thinkLateMs;
     return ms;
   }
-  if (prev.phase === 'claim' && next.phase === 'claim') return 0;
+  // 声明窗口里的「过」（包括最后一个过、窗口关上轮到下家摸牌）不停：停了就等于告诉人家刚才有人能碰
+  if (prev.phase === 'claim') return 0;
   return TIMING.thinkOtherMs;
 }
 /** 牌墙剩这么多张以内算后半段：大家都快听了，打牌要多看两眼 */

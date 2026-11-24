@@ -211,6 +211,8 @@ describe('电脑想多久（只看公开的）', () => {
     for (const e of ['pon', 'chi', 'kan', 'riichi']) expect(think({}, { events: [{ e }] })).toBe(TIMING.thinkMeldMs);
     for (const e of ['hu', 'win']) expect(think({}, { events: [{ e }] })).toBe(TIMING.thinkWinMs);
     expect(think({ phase: 'claim' }, { phase: 'claim' })).toBe(0);
+    // 最后一个过：窗口关上、下家摸牌，也不停（停了就只在有人能碰时出现，等于泄露）
+    expect(think({ phase: 'claim' }, { phase: 'turn', events: [{ e: 'draw' }] })).toBe(0);
     expect(think({ phase: 'swap' }, { phase: 'swap' })).toBe(TIMING.thinkOtherMs);
   });
 });

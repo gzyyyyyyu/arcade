@@ -9,10 +9,11 @@ import { num, walletError } from '../view/text.ts';
 import { session } from './session.ts';
 import { stage, walletChip } from './shell.ts';
 
-export async function refreshWallet(): Promise<void> {
+/** 刷新钱包；asked 是已经发出去的那一问（打开页面时和认人一起发的），不给就现问 */
+export async function refreshWallet(asked?: Promise<WalletReply>): Promise<void> {
   // 单独部署没有平台钱包：不问，实盘也不摆
   if (session.standalone) return;
-  const r = await getWallet();
+  const r = await (asked ?? getWallet());
   if (r.ok && r.wallet) {
     session.wallet = r.wallet;
     session.walletNote = null;
