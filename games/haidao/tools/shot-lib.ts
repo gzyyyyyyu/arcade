@@ -1,7 +1,6 @@
 /**
  * shot.ts 各条流程共用的部分：测试钩子的类型、视口表、几条流程都认的参数、按钮尺寸检查、音效计数，
- * 以及每个视口一份的上下文 ShotCtx。流程体是从原来 shot.ts 的大 try 块里原样搬出来的，
- * 靠函数开头解构 ShotCtx 拿回原来闭包里的那些名字，所以字段名跟着流程体走，不另起名。
+ * 以及每个视口一份的上下文 ShotCtx。各流程在函数开头解构 ShotCtx 拿到要用的名字，所以字段名跟着流程体走，不另起名。
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';

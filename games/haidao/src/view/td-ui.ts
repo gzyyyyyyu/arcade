@@ -706,7 +706,7 @@ export function openTdSelect(onGo: (levelId: string) => void, onClose: () => voi
     }
     if (talentBtn) (mqTall.matches && pages > 1 ? pager : head).appendChild(talentBtn);
     const nx = nextTdUnlock(p);
-    // 只说这一章里的下一关：切到还没开的章时，卡片上已经写了先守下哪关（试玩 11-23 第六章底下还在说第一章）
+    // 只说这一章里的下一关：切到还没开的章时，卡片上已经写了先守下哪关
     if (nx && ch.levels.some((l) => l.id === nx.id)) el('small', 'hd-tdsel-foot', `下一关「${nx.name}」：守下前一关拿到 1 星解锁`, list);
   };
   show(Math.max(0, startChapter));

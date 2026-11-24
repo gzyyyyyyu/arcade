@@ -222,7 +222,7 @@ export function tdRoutes(s: TdState): TdRouteLine[] {
 /**
  * 这块木台现在为什么造不了（只看「有人站在上面」这两条，钱、解锁、有塔由调用方另判）：
  * 'enemy' 有地面敌人站在台上（造上去会把它卡在塔里），'hero' 活着的英雄站在台上（同理），能造为 null。
- * build 和界面共用这一个函数：界面据此把塔卡画成不可点并说明原因，不自己重算规则（以前点了没反应、没有任何提示）。
+ * build 和界面共用这一个函数：界面据此把塔卡画成不可点并说明原因，不自己重算规则。
  */
 export function tdBuildBlock(s: TdState, slot: number): 'enemy' | 'hero' | null {
   const sl = s.slots[slot];

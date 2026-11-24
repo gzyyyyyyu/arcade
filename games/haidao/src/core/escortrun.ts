@@ -50,7 +50,7 @@ export function escortSetupOf(level: EscortLevel, seed: number, opts: { live?: b
     mode: 'escort',
     garrison: [],
     bonus: {},
-    // 震荡炮这一版先不进护航：护航有自己的规则版本和指纹，等单独配平
+    // 震荡炮不进护航：护航有自己的规则版本和指纹，等单独配平
     unlocked: TD_TOWER_KINDS.filter((k) => k !== 'shock' && k !== 'sniper'),
     ...(opts.live ? {} : { escortAssist: true }),
   };

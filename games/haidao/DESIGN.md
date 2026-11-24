@@ -16,7 +16,7 @@
 | 10.5–10.6h | 守岛：悬赏守岛实盘、英雄驻岛、战役数据和配平、关卡机制、断崖海岸、大潮无尽、关内事件、规则版本 | [docs/design-td-more.md](docs/design-td-more.md) |
 | 11、12 | 寻宝航线、护航（含各自实盘） | [docs/design-voyage.md](docs/design-voyage.md) |
 
-画面和界面的实现笔记在 [docs/ui-haidao.md](docs/ui-haidao.md)，配平数据在 [docs/balance-haidao.md](docs/balance-haidao.md)，后端在 [docs/backend-haidao.md](docs/backend-haidao.md)，目录和命令在 [docs/tools-haidao.md](docs/tools-haidao.md)。
+画面和界面的实现笔记在 [docs/ui-haidao.md](docs/ui-haidao.md)，配平数据在 [docs/balance-haidao.md](docs/balance-haidao.md)，目录、命令和后端在 [docs/tools-haidao.md](docs/tools-haidao.md)。
 
 ## 0. 一句话
 

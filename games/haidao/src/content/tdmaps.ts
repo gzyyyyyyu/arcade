@@ -9,7 +9,7 @@ import { TD2_LEVELS as REAL_LEVELS } from './td2levels.ts';
 
 export { TD2_CHAPTERS } from './td2levels.ts';
 export type { Td2ChapterInfo } from './td2levels.ts';
-export { TD2_MAPS, TD2_MAP_BLURB } from './td2maps.ts';
+export { TD2_MAPS } from './td2maps.ts';
 export { buildLevel, TD2_CHAPTER_SIZE, TD2_LEVEL_DEFS, levelWaves } from './td2levels.ts';
 
 /** [敌人, 个数, 登陆路, 间隔拍, 延迟拍] */

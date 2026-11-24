@@ -29,7 +29,7 @@ ${U} .hd-esc-right { display:contents; }
 ${U} .hd-esc-pace { display:flex; gap:8px; align-items:flex-end; }
 ${U} .hd-esc-ctl .hd-esc-pbtn { position:relative; min-width:56px; min-height:56px; padding:2px 4px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; font-size:14px; font-weight:900; line-height:1.1;
   border:3px solid ${INK}; border-radius:12px; background:linear-gradient(#c98f55,#8a5a30); color:#fff3dc; box-shadow:0 3px 0 ${INK}; transition:transform .16s cubic-bezier(.3,1.8,.5,1), box-shadow .16s; }
-/* 三种样子分得开：选中的金色抬起、能点的暖木色、点不了的（修船：钱不够或船是满的）灰而淡。以前没选中的船速和点不了的修船同是灰底 */
+/* 三种样子分得开：选中的金色抬起、能点的暖木色、点不了的（修船：钱不够或船是满的）灰而淡 */
 ${U} .hd-esc-ctl .hd-esc-pbtn svg { width:28px; height:28px; display:block; }
 ${U} .hd-esc-ctl .hd-esc-pbtn.on { background:linear-gradient(#ffe58a,#e0a824); color:${INK}; opacity:1; filter:none; transform:translateY(-6px); box-shadow:0 0 0 3px #fff3b0, 0 0 16px 4px rgba(255,214,90,.85), 0 3px 0 ${INK}; }
 ${U} .hd-esc-ctl .hd-esc-pbtn:active { transform:translateY(-2px); }

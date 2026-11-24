@@ -16,7 +16,7 @@ export type { LiveTier } from './live.ts';
 /** 0 星最多回 0.79 份：丢光宝藏就是输，不能比"勉强守住"更值（各档 1 星都在 0.80 份以上） */
 export const TD_LIVE_ZERO_MAX_BP = 7_900;
 
-/** 现在开放带入的档位：四档按每档 2,000 局配平后重开（0.29.1）。 */
+/** 现在开放带入的档位：四档全开（每档 2,000 局配平过）。 */
 const TD_LIVE_OPEN: readonly LiveTier[] = ['small', 'mid', 'big', 'lux'];
 export const tdLiveOpen = (t: unknown): t is LiveTier => typeof t === 'string' && (TD_LIVE_OPEN as readonly string[]).includes(t);
 

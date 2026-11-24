@@ -6,7 +6,7 @@
 
 - 设计：[DESIGN.md](DESIGN.md) 是总纲和目录，各玩法在 `docs/design-*.md`（节号沿用，「DESIGN 10.4」按目录找文件）。设计文档只写现状，版本史只进 CHANGELOG。
 - 画面和界面：[docs/ui-haidao.md](docs/ui-haidao.md)（目录、通用界面、一屏放下、浏览器存储 key）和 `docs/ui-haidao-*.md`；改对应代码时同步改。
-- 目录分工、常用命令、工具参数：[docs/tools-haidao.md](docs/tools-haidao.md)。后端：[docs/backend-haidao.md](docs/backend-haidao.md)。配平数据：[docs/balance-haidao.md](docs/balance-haidao.md)。
+- 目录分工、常用命令、工具参数、后端：[docs/tools-haidao.md](docs/tools-haidao.md)。配平数据：[docs/balance-haidao.md](docs/balance-haidao.md)。
 
 ## 2. 规则核心
 

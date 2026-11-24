@@ -56,8 +56,7 @@ Design docs are in Chinese.
 - [docs/design-voyage.md](docs/design-voyage.md): treasure route and escort.
 - [docs/design-live.md](docs/design-live.md): chips: the four chip modes, daily limits, payout tables, exchange.
 - [docs/ui-haidao.md](docs/ui-haidao.md): UI and rendering notes and index (scene split, one-screen layout, performance, storage keys); details in `docs/ui-haidao-*.md` (base, effects and rigs, look and sound, tower defense).
-- [docs/backend-haidao.md](docs/backend-haidao.md): Worker and Durable Object implementation notes.
-- [docs/tools-haidao.md](docs/tools-haidao.md): directory roles, commands and every tool's options.
+- [docs/tools-haidao.md](docs/tools-haidao.md): directory roles, commands, every tool's options, and Worker / Durable Object implementation notes.
 - [docs/balance-haidao.md](docs/balance-haidao.md), [docs/balance-haidao-td.md](docs/balance-haidao-td.md): simulation results and tuning notes.
 - [AGENTS.md](AGENTS.md): module rules and pitfalls for contributors and coding agents.
 - [ASSETS.md](ASSETS.md): asset sources and licenses.

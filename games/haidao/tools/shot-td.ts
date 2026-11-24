@@ -101,7 +101,7 @@ export async function td(c: ShotCtx): Promise<boolean> {
       if (await page.locator('.hd-tdgar').count()) {
         await shot('garrison-pick');
         await check('驻守台选塔');
-        // 试玩 11-23：横屏、360×640 以前整块说明收起；「你的…级 → 驻守…阶」那一行哪个尺寸都要看得见
+        // 「你的…级 → 驻守…阶」那一行哪个尺寸都要看得见（横屏、360×640 的说明收起时也是）
         if (!(await page.locator('.hd-tdgar-lead').isVisible())) throw new Error('选塔页没写「你的…级 → 驻守…阶」那一行');
         const cards = page.locator('.hd-tdgar-spot').first().locator('.hd-tdgar-card');
         if ((await cards.count()) > 2) await cards.nth(1).click();
@@ -167,7 +167,7 @@ export async function td(c: ShotCtx): Promise<boolean> {
       await page.waitForTimeout(400);
       await shot('build-menu');
       await check('建塔菜单');
-      // 建塔面板不放克制表（0.58.6 起整表只在敌人图鉴里），每张塔卡写着克谁
+      // 建塔面板不放克制表（整表只在敌人图鉴里），每张塔卡写着克谁
       if (await page.locator('.hd-td-sheet .hd-ctr').count()) throw new Error('建塔面板里不该再有克制表');
       if (!(await page.locator('.hd-td-tower .hd-td-ctr').count())) throw new Error('塔卡上没写克谁');
       // 电脑用数字键选塔（建塔菜单开着时 1 = 第一种），手机点卡片

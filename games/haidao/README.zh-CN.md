@@ -56,8 +56,7 @@ public/       封面、图标、排行榜显示配置
 - [docs/design-voyage.md](docs/design-voyage.md)：寻宝航线和护航。
 - [docs/design-live.md](docs/design-live.md)：筹码：四种实盘、每日上限、倍数表、兑换。
 - [docs/ui-haidao.md](docs/ui-haidao.md)：画面和界面实现笔记及目录（场景分工、一屏放下、性能、浏览器存储 key）；细节在 `docs/ui-haidao-*.md`（基地、打击感和骨架、质感和音效、守岛）。
-- [docs/backend-haidao.md](docs/backend-haidao.md)：Worker 和 Durable Object 的实现笔记。
-- [docs/tools-haidao.md](docs/tools-haidao.md)：目录分工、命令和每个工具的参数。
+- [docs/tools-haidao.md](docs/tools-haidao.md)：目录分工、命令、每个工具的参数，以及 Worker 和 Durable Object 的实现笔记。
 - [docs/balance-haidao.md](docs/balance-haidao.md)、[docs/balance-haidao-td.md](docs/balance-haidao-td.md)：模拟实测和配平记录。
 - [AGENTS.md](AGENTS.md)：给贡献者和编程代理的模块规矩和坑。
 - [ASSETS.md](ASSETS.md)：素材来源和许可。
