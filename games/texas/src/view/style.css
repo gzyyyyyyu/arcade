@@ -206,12 +206,17 @@ body::before {
 .topbar > * { pointer-events: auto; }
 .topbar .icon { width: var(--tb-w); height: var(--tb-w); }
 .topbar :is(.home, .pill) { height: var(--tb-w); }
-/* 手机横屏：顶上一排座位紧贴顶栏（9 人桌），按钮收到最小的 32 个屏幕像素并贴着上沿，地点文字不要（点范围仍是 44） */
+/* 手机横屏：顶上一排座位紧贴顶栏（9 人桌），按钮收到最小的 32 个屏幕像素并贴着上沿（点范围仍是 44）；
+   地点文字只留短的一段"盲注 10/20""第 2 级 · 盲注 15/30"（11-23 试玩：手机上看不到盲注），没有短的一段就不写 */
 @media (orientation: landscape) and (max-height: 430px) {
   .topbar { --tb-w: max(32px, calc(32px * var(--ui))); align-items: flex-start; padding-top: 0; }
-  .topbar .where { display: none; }
+  .topbar .where:not(.split), .topbar .where .w-long { display: none; }
+  .topbar .where { align-self: center; }
 }
 .topbar .icon svg { width: calc(var(--tb-w) * .56); height: calc(var(--tb-w) * .56); }
+/* 聊天开关：气泡放大一些，里面写现在的档（开 / 友 / 关，fun.ts 写 data-word）；往上挪一点对准气泡中心 */
+.topbar .chat-toggle svg { width: calc(var(--tb-w) * .8); height: calc(var(--tb-w) * .8); }
+.topbar .chat-toggle::after { content: attr(data-word); position: absolute; inset: 0; display: grid; place-items: center; translate: 0 calc(var(--tb-w) * -.05); font-size: var(--fs-1); font-weight: 900; line-height: 1; pointer-events: none; }
 /* 触屏：顶栏按钮离屏幕上沿太近，点范围往上撑会伸出屏幕被切掉（0.35.x 审计：有效高度只有 38–40）。
    顶栏按钮的点范围只往下撑；不把顶栏撑高或往下挪：那样牌桌顶上一排的动作签会被按钮压住（矮竖屏几百处） */
 @media (pointer: coarse), (max-width: 959px) {
@@ -795,7 +800,7 @@ body::before {
     font-size: 11px; font-weight: 800; line-height: 16px; text-align: center;
     pointer-events: none;
   }
-  /* 预设按钮窄，角标放在里面会压住"最小""¾池"：挂到右上角外面，实心底 */
+  /* 预设按钮窄，角标放在里面会压住"最小""⅔池"：挂到右上角外面，实心底 */
   .stage .actions .preset[data-key]::after { top: -7px; right: -5px; min-width: 14px; line-height: 14px; font-size: 10px; border-radius: 7px; background: var(--ink, #2a1d12); color: #fff; }
   .stage .actions .act.raise[data-key]::after { color: var(--gold-ink); background: rgba(0, 0, 0, .14); }
   .stage .actions :is(.act, .preset, .qbet, .step):not(:disabled):hover:not(:active) {

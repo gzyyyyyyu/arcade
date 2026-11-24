@@ -81,7 +81,8 @@ export function createFun(c: App) {
           if (!rect) return null;
           const bot = s.owner === 'house';
           const plate = tableView.plateRect(i);
-          return { rect, ...(plate ? { plate } : {}), name: i === me ? c.myName : nameAt(must(v, '画座位时已经有视图'), i, null), me: i === me, bot, ...(bot ? { temper: temperOf(s.persona) } : {}) };
+          const tag = tableView.tagRect(i);
+          return { rect, ...(plate ? { plate } : {}), ...(tag ? { marks: [tag] } : {}), name: i === me ? c.myName : nameAt(must(v, '画座位时已经有视图'), i, null), me: i === me, bot, ...(bot ? { temper: temperOf(s.persona) } : {}) };
         });
       },
       avoid: () => tableView.keepOut(),
@@ -195,18 +196,14 @@ export function createFun(c: App) {
 
   function drawChatBtn(): void {
     const m = chatMode();
-    const mark =
-      m === 'off'
-        ? '<path d="M4 4l16 16" stroke="currentColor" stroke-width="2"/>'
-        : m === 'friends'
-          ? '<circle cx="12" cy="10.5" r="1.6" fill="currentColor"/>'
-          : '<path d="M8 10.5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
-    chatBtn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v10H10l-4.5 3.5V15.5H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>${mark}</svg>`;
+    // 气泡里直接写现在是哪一档（11-23 试玩：✓ 角标看不出意思，和左下的"聊天"按钮分不清）；字由 CSS 画（style.css .chat-toggle::after），按钮文字仍是 aria-label
+    const word = m === 'off' ? '关' : m === 'friends' ? '友' : '开';
+    chatBtn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4.5h18v12H10l-4.5 3.5V16.5H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
+    chatBtn.dataset.word = word;
     const label = `${CHAT_MODE[m].label}（点一下换）`;
     chatBtn.setAttribute('aria-label', label);
     chatBtn.title = label;
     chatBtn.dataset.mode = m;
-    toggle(chatBtn, 'sel', m !== 'off');
   }
 
   /** 点了顶栏的聊天开关：换到下一档 */
@@ -369,6 +366,10 @@ export function createFun(c: App) {
   };
   screen.addEventListener('transitionend', reseat);
   screen.addEventListener('transitioncancel', reseat);
+  // kit 的互动菜单只认点外面收起；Esc 也收（和弹窗、加注面板、对手资料卡一样，11-23 试玩）。常驻的聊天框不归它管
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && c.tf?.isOpen()) c.tf.closeAll();
+  });
 
   return { curView, mySeat, nameAt, openFun, dockFitsNow, nextChatMode, closeFun, chatOn, syncFun, handDone, funSend, flipFunOff, achHand, achTour, achRoomTour };
 }

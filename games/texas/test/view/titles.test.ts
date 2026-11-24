@@ -59,6 +59,7 @@ describe('名场面', () => {
     });
     expect(showcase(side, allin)).toEqual({ kind: 'allin', seat: 2 });
     expect(showcaseText(showcase(side, allin)!, '算盘', side)).toBe('全下对决，算盘 笑到最后');
+    expect(showcaseText(showcase(side, allin)!, '你', side)).toBe('全下对决，你笑到最后');
     const chop = result([sh(0, 'Ad Qc'), sh(1, 'Ac Qd')], 0, { pots: [{ amount: 4_000, winners: [{ seat: 0, won: 2_000 }, { seat: 1, won: 2_000 }] }] });
     const heads = [e(0, 'raise', 2000, true), e(1, 'call', 2000)];
     expect(showcase(chop, heads)).toEqual({ kind: 'allin', seat: 0, split: true });

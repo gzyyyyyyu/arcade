@@ -21,6 +21,8 @@ import { must } from '../must.ts';
 
 interface LobbyState {
   wallet: WalletView | null;
+  /** 钱包还在读（还没回话、也没报错）：实盘写"正在读钱包"，不显示成不能玩 */
+  walletLoading: boolean;
   /** 钱包连不上、只读时的说明 */
   note: string | null;
   /** 本机有一桌没打完；waiting：那一笔钱包还没回话（买入在路上，或者离桌的结算还没结回去） */
@@ -38,6 +40,8 @@ interface LobbyHandlers {
   /** level：娱乐按难度给电脑的强弱档；实盘不给 */
   start(stakes: StakesId, size: number, amount: number, practice: boolean, level?: number): void;
   resume(): void;
+  /** 不打了：回到那一桌、走一遍离桌（离桌确认、结算照常） */
+  endLast(): void;
   relief(): void;
   /** 匹配真人：这一档排队找真人，一桌 6 人；只有实盘、有钱包时有 */
   /** 匹配真人：fun 是娱乐档（level 是选的难度，没排到人转单机时用） */
@@ -141,7 +145,7 @@ export class Lobby {
   private size = 6;
   /** 第一次来默认娱乐·新手（仓库根 docs/balance.md 第 3 节）；记过的按记的 */
   private mode: Mode = 'fun';
-  private s: LobbyState = { wallet: null, note: null, resume: null, orphan: null, busy: true, room: null, stats: { hands: 0, won: 0, biggestPot: 0, best: 0 } };
+  private s: LobbyState = { wallet: null, walletLoading: true, note: null, resume: null, orphan: null, busy: true, room: null, stats: { hands: 0, won: 0, biggestPot: 0, best: 0 } };
   private readonly h: LobbyHandlers;
   /** 最后点的那个要等回话的按钮：忙着的时候它转圈 */
   private pending: HTMLButtonElement | null = null;
@@ -175,6 +179,8 @@ export class Lobby {
     this.resumeBox = el('div', 'banner resume', side);
     this.resumeText = el('span', '', this.resumeBox);
     button(this.resumeBox, 'go', '接着打', () => h.resume());
+    // 想换玩法的出口（11-23 试玩：只有"接着打"，不知道怎么放下上一桌）
+    button(this.resumeBox, 'pill end-last', '不打了', () => h.endLast());
     // 另一台设备上的那一桌这里不给放弃：看不到那边还剩多少（2026-10-15 定）
     this.orphanBox = el('div', 'banner orphan', side);
     this.orphanText = el('span', '', this.orphanBox);
@@ -253,7 +259,9 @@ export class Lobby {
     for (const st of STAKES) {
       const t = button(grid, 'tile', '', () => this.pick(st.id));
       if (st.id !== 'small') t.dataset.room = st.id;
-      t.innerHTML = `<i class="mini"></i><em>${ROOM_NAME[st.id]}</em>` + card(st.name, stars(SOLO_LEVEL[st.id]), `盲注 ${chips(st.sb)}/${chips(st.bb)}`, [`最多输 ${chips(st.max)}`, `通常最多赢 ${chips(RARE_WIN_STAKES * st.max)}`]);
+      t.innerHTML = `<i class="mini"></i><em>${ROOM_NAME[st.id]}</em>` + card(st.name, stars(SOLO_LEVEL[st.id]), `盲注 ${chips(st.sb)}/${chips(st.bb)}`, [`最多输 ${chips(st.max)}`, `大赢约 ${chips(RARE_WIN_STAKES * st.max)}`]);
+      // 卡上写不下的口径放悬停：大赢是估计，规则不封顶（docs/ai.md 4.10）
+      t.title = `最多输带上桌的 ${chips(st.max)}；一场赢超过 ${chips(RARE_WIN_STAKES * st.max)} 的不到 1%，规则不封顶`;
       this.tiles.set(st.id, t);
     }
     for (const d of DIFFICULTIES) {
@@ -282,7 +290,7 @@ export class Lobby {
     this.tpBtn = button(buy, 'pill tp-pick-btn', '止盈：关', () => h.takeProfit());
     const go = (this.goRow = el('div', 'go-row', panel));
     this.startBtn = button(go, 'start', '坐下开打', () =>
-      this.wait(this.startBtn, () => (this.fun() ? this.h.start(FUN_STAKES, this.size, Number(this.slider.value), true, FUN_LEVEL[this.diff]) : this.h.start(this.stakes, this.size, Number(this.slider.value), false))),
+      this.s.resume ? this.h.resume() : this.wait(this.startBtn, () => (this.fun() ? this.h.start(FUN_STAKES, this.size, Number(this.slider.value), true, FUN_LEVEL[this.diff]) : this.h.start(this.stakes, this.size, Number(this.slider.value), false))),
     );
     // 鼠标设备上按钮角标写出回车和 ←/→ 能用（牌桌上的按钮也是这个做法）
     el('kbd', 'k-hint', this.startBtn, '回车').setAttribute('aria-hidden', 'true');
@@ -308,7 +316,7 @@ export class Lobby {
     // 锦标赛的赛制：挨着锦标赛的说明
     const fmts = (this.fmtRow = el('div', 'tour-fmts', panel));
     for (const f of FORMATS) this.fmtBtns.set(f, button(fmts, 'size tfmt', FORMAT_LABEL[f], () => this.pickFormat(f)));
-    this.tourNote = el('div', 'tour-note', fmts, tourRule(this.tourFmt));
+    this.tourNote = el('div', 'tour-note', fmts, tourRule(this.tourFmt, false));
 
     // 好友房：开房间放在"坐下开打"的位置，用上面选的档位和人数，买入固定是这一档的满买入
     const open = (this.openRow = el('div', 'friends open', panel));
@@ -375,6 +383,14 @@ export class Lobby {
   /** 回到主页（离桌、离开房间回来时） */
   home(): void {
     this.show('front');
+  }
+
+  /** 钱包连最小一档都不够：说怎么凑（11-23 试玩：四档全灰只写"要 400 筹码"，不知道去哪弄） */
+  private broke(): string | null {
+    const w = this.s.wallet;
+    const min = must(STAKES[0], 'STAKES[0]').min;
+    if (!w || w.balance >= min) return null;
+    return w.canRelief ? `筹码不够 ${chips(min)}：回首页点「领今日补给」` : `筹码不够 ${chips(min)}：先玩娱乐，补给每天能领一次`;
   }
 
   private show(screen: 'front' | 'pick'): void {
@@ -526,7 +542,7 @@ export class Lobby {
   setPuzzle(state: 'new' | 'part' | 'done', text: string, streak: number): void {
     this.pzBtn.dataset.state = state;
     const tag = text;
-    const html = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 6.6L21 9l-5 4.6L17.5 21 12 17.3 6.5 21 8 13.6 3 9l6.6-.4z"/></svg><b>今日谜题</b><span>${tag}${streak >= 2 ? ` · 连 ${streak}` : ''}</span>`;
+    const html = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 6.6L21 9l-5 4.6L17.5 21 12 17.3 6.5 21 8 13.6 3 9l6.6-.4z"/></svg><b>今日谜题</b><span>${tag}${streak >= 2 ? ` · 连 ${streak}` : ''}</span><i aria-hidden="true">›</i>`;
     if (this.pzBtn.innerHTML !== html) this.pzBtn.innerHTML = html;
   }
 
@@ -544,9 +560,9 @@ export class Lobby {
   }
 
   private draw(): void {
-    const { wallet, note, resume, orphan, busy } = this.s;
+    const { wallet, walletLoading, note, resume, orphan, busy } = this.s;
     const bal = wallet?.balance ?? null;
-    setText(this.balance, bal === null ? '—' : chips(bal));
+    setText(this.balance, bal === null ? (walletLoading ? '…' : '—') : chips(bal));
     toggle(this.reliefBtn, 'hidden', !wallet?.canRelief);
     setText(this.noteEl, note ?? '');
     toggle(this.noteEl, 'hidden', !note);
@@ -558,7 +574,7 @@ export class Lobby {
     // 主页上"继续上局"就是快速开始那个大按钮，横幅只在选桌时说明为什么开不了新的一桌
     toggle(this.resumeBox, 'hidden', !resume || !pick);
     const rd = resume?.practice ? difficultyOf(resume.level) : null;
-    if (resume) setText(this.resumeText, `${resume.tour ? '锦标赛 · ' : ''}${resume.practice ? '娱乐' : '实盘'} · ${rd ? DIFFICULTY_NAME[rd] : stakesOf(resume.stakes).name} · ${resume.size} 人，${resume.waiting ? '等钱包回话' : '上次没打完'}`);
+    if (resume) setText(this.resumeText, `${resume.tour ? '锦标赛 · ' : ''}${resume.practice ? '娱乐' : '实盘'} · ${rd ? DIFFICULTY_NAME[rd] : stakesOf(resume.stakes).name} · ${resume.size} 人${resume.waiting ? '，等钱包回话' : '没打完'}`);
     toggle(this.orphanBox, 'hidden', !orphan || !!resume);
     if (orphan) setText(this.orphanText, `另一台设备上还有一桌没打完（带上桌 ${chips(orphan.amount)}）：回那台设备离桌就能带回钱包；放着不管，24 小时后原样退回钱包`);
 
@@ -570,7 +586,11 @@ export class Lobby {
       toggle(b, 'sel', m === now);
       b.disabled = m === 'real' && !wallet;
     }
-    must(this.modeCards.get('real'), 'this.modeCards.get(real)').disabled = !wallet;
+    const realCard = must(this.modeCards.get('real'), 'this.modeCards.get(real)');
+    realCard.disabled = !wallet;
+    // 11-23 试玩：钱包慢的时候实盘直接灰着，像是没资格玩
+    setText(must(realCard.querySelector('span'), '实盘卡的说明'), wallet ? REAL_LINE : walletLoading ? '正在读钱包…' : '钱包连不上');
+    toggle(must(this.modeBtns.get('real'), 'this.modeBtns.get(real)'), 'loading', !wallet && walletLoading);
     setText(this.pickBal, bal === null ? '' : `我的筹码 ${chips(bal)}`);
     toggle(this.pickBal, 'hidden', this.alone || bal === null || room || fun);
     const qr = this.quickReal();
@@ -586,7 +606,7 @@ export class Lobby {
     this.drawStats();
     setText(
       this.modeNote,
-      room ? (this.roomTour ? `锦标赛：6 人、每人 ${chips(START_STACK)} 比赛筹码打到剩一人；实盘每人交一份报名费，奖池只在真人之间按名次分` : '和朋友一桌：开个房间把房间码发给他们，或者输入朋友给的房间码') : this.alone ? '筹码不算数，随便玩' : fun ? '不碰钱包，筹码不算数，随便玩' : '最多输掉带上桌的筹码，离桌时剩下的带回钱包',
+      room ? (this.roomTour ? `锦标赛：6 人、每人 ${chips(START_STACK)} 比赛筹码打到剩一人；实盘每人交一份报名费，奖池只在真人之间按名次分` : '和朋友一桌：开个房间把房间码发给他们，或者输入朋友给的房间码') : this.alone ? '筹码不算数，随便玩' : fun ? '不碰钱包，筹码不算数，随便玩' : this.broke() ?? '最多输掉带上桌的筹码，离桌时剩下的带回钱包',
     );
     // 好友房：档位、人数照旧选，下面换成开房间、输码进房；单机的带多少、坐下开打收起来
     toggle(this.buyRow, 'hidden', room);
@@ -640,16 +660,17 @@ export class Lobby {
     this.slider.disabled = !ok;
     setText(this.buyAmt, ok ? chips(Number(this.slider.value)) : `钱包要有 ${chips(st.min)}`);
     // 本机一次只摆一桌单机（没打完的先接着打）；钱包里别处还有德州的份不影响（可以同时有好几份）
-    this.startBtn.disabled = busy || !ok || !!resume;
-    // 灰着要说为什么（试玩 1122：有一桌没打完时只灰着，在实盘页签以为是钱不够）；「接着打」就在这一页顶上的横幅里
-    must(this.startBtn.firstChild, '坐下开打的字').textContent = resume ? '上一桌还没打完' : '坐下开打';
+    // 有一桌没打完：主按钮就是接着打那一桌（11-23 试玩：灰着的"上一桌还没打完"像卡住了）；不打了点顶上横幅的"不打了"
+    this.startBtn.disabled = busy || (!resume && !ok);
+    must(this.startBtn.firstChild, '坐下开打的字').textContent = resume ? '接着打上一桌' : '坐下开打';
     // 娱乐档不碰钱包，单独部署也有；实盘档没钱包（连不上）不给，钱包够这一档的最少买入才能排（不够一整份的，坐下时少带一点，和好友房一样）
     toggle(must(this.matchBtn.parentElement, 'this.matchBtn.parentElement'), 'hidden', !fun && (this.alone || !wallet));
     this.matchBtn.disabled = busy || !ok;
     this.setNote(this.matchBtn, ok ? null : `要 ${chips(st.min)} 筹码`);
     // 锦标赛：实盘钱包要够一整份报名费（不像现金桌能少带）；单独部署只有娱乐
     const tourOk = fun || (!this.alone && !!wallet && (bal ?? 0) >= st.max);
-    setText(this.tourBtn, fun ? '锦标赛 · 免费' : `锦标赛 · ${chips(st.max)}`);
+    // 娱乐本来就不收钱，不写"免费"：手机横屏按钮窄，"锦标赛 · 免费"撑出按钮（11-23 试玩）
+    setText(this.tourBtn, fun ? '锦标赛' : `锦标赛 · ${chips(st.max)}`);
     this.tourBtn.disabled = busy || !!resume || !tourOk;
     // 灰着的按钮在自己下面写原因（按上面 disabled 的条件，一条一条对）
     this.setNote(this.tourBtn, resume ? RESUME_FIRST : tourOk ? null : this.alone ? '只有娱乐' : !wallet ? '钱包连不上' : `要 ${chips(st.max)} 筹码`);
@@ -657,7 +678,7 @@ export class Lobby {
     // 灰着的按钮要说为什么（实打：钱包不够一整份时只灰、没说要多少）
     setText(
       this.tourNote,
-      !fun && !this.alone && wallet && !tourOk ? `钱包要有 ${chips(st.max)} 才能报名这一档的锦标赛` : tourRule(this.tourFmt),
+      !fun && !this.alone && wallet && !tourOk ? `钱包要有 ${chips(st.max)} 才能报名这一档的锦标赛` : tourRule(this.tourFmt, fun),
     );
     for (const [f, b] of this.fmtBtns) toggle(b, 'sel', f === this.tourFmt);
     toggle(this.fmtRow, 'hidden', room);
@@ -714,14 +735,21 @@ const TOUR_FULL: Record<TourFormat, string> = {
   turbo: `极速赛：6 人、每人 ${chips(START_STACK)} 比赛筹码、每 3 手涨一次盲注（经典是 6 手），约一半时间打完，前 4 名分奖：报名费的 3.3 倍、1 倍、0.9 倍、0.9 倍`,
   nine: `9 人赛：9 人、每人 ${chips(START_STACK)} 比赛筹码、打到剩一人，约经典赛的 1.3 倍时间，前 4 名分奖：报名费的 4 倍、1.4 倍、1.3 倍、1.2 倍`,
 };
-const tourRule = (f: TourFormat): string => TOUR_RULES[f];
+/** 娱乐锦标赛不收报名费，也就不提"几倍报名费" */
+const FUN_TOUR_RULES: Record<TourFormat, string> = {
+  sng: '6 人桌 · 打到剩一人，看你拿第几',
+  turbo: '6 人桌 · 涨盲快一倍，打到剩一人',
+  nine: '9 人桌 · 打到剩一人，看你拿第几',
+};
+const tourRule = (f: TourFormat, fun: boolean): string => (fun ? FUN_TOUR_RULES : TOUR_RULES)[f];
 /** 单机有一桌没打完时，别的单机玩法都灰着 */
-const RESUME_FIRST = '先打完上一桌';
+const RESUME_FIRST = '先结束上一桌';
 
 /** 主页三张模式卡：名字和一句话（话里别带别的卡的名字，冒烟按名字找卡） */
+const REAL_LINE = '带筹码上桌';
 const MODE_CARDS: readonly (readonly [Mode, string, string])[] = [
-  ['fun', '娱乐', '练手，筹码不算数'],
-  ['real', '实盘', '带筹码上桌'],
+  ['fun', '娱乐', '不算筹码'],
+  ['real', '实盘', REAL_LINE],
   ['room', '好友房', '叫朋友一起打'],
 ];
 
@@ -742,7 +770,7 @@ function button(parent: HTMLElement, cls: string, text: string, onClick: () => v
 /** 电脑多强（1–4 颗星，四个游戏一样的画法）：就是这一桌电脑的强弱档（实盘 SOLO_LEVEL、娱乐 FUN_LEVEL），新手的 0 档也画 1 颗 */
 /** 四颗星封顶：娱乐高手（第 6 档）和豪华桌一样满星 */
 const stars = (level: number): number => Math.min(4, Math.max(1, level));
-const FOR_WHOM: Readonly<Record<Difficulty, string>> = { easy: '刚学会，先赢几把', normal: '会看牌、会弃牌', hard: '想和最强的电脑过招' };
+const FOR_WHOM: Readonly<Record<Difficulty, string>> = { easy: '刚学会，先赢几把', normal: '会看牌、会弃牌', hard: '挑战最强的电脑' };
 
 /**
  * 选档卡：名字、星、一句（盲注或适合谁）、最多输赢（娱乐写不碰钱包）。不写"一场多久"：40 手只是配平模拟用的场长，实际打多久由玩家定，写了就成了没兑现的承诺。

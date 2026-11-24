@@ -170,6 +170,7 @@ export function createLobby(c: App) {
     if (inRoom && !stage.classList.contains('at-table') && !c.online) stakeTimer = window.setTimeout(() => void refreshWallet().then(drawLobby), 10_000);
     lobby.update({
       wallet: c.wallet,
+      walletLoading: !site.standalone && c.wallet === null && c.walletNote === null,
       // 本机不知道是哪个房间（别的设备进的）：没有按钮，只说一句
       note: c.walletNote ?? (inRoom && !back ? `好友房那一桌还没带回钱包（带上桌 ${chips(inRoom.amount)}）。${settle}` : null),
       resume: s

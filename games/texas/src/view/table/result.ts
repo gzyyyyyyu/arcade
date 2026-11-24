@@ -38,7 +38,8 @@ export function resultLines(r: HandResult, name: (seat: number) => string, me: n
     const head = pots.length > 1 ? `<span class="r-pot">${potName(k, pots.length)} ${chips(p.amount)}</span> ` : '';
     const hand = val(must(seats[0], 'seats[0]'));
     if (seats.length > 1) return { html: `${head}平分：<b>${who(seats)}</b> 各 <em>${chips(must(p.winners[0], 'p.winners[0]').won)}</em>${hand ? ` · ${hand}` : ''}`, mine };
-    if (mine && pots.length === 1) return { html: `你赢了 <em>+${chips(must(p.winners[0], 'p.winners[0]').won)}</em>${hand ? ` · ${hand}` : ''}`, mine };
+    // 拿到的是整个池子（含自己下的）：写"拿下"，不写"+"，免得读成净赢（11-23 试玩）
+    if (mine && pots.length === 1) return { html: `你拿下 <em>${chips(must(p.winners[0], 'p.winners[0]').won)}</em>${hand ? ` · ${hand}` : ''}`, mine };
     return { html: `${head}<b>${who(seats)}</b>${hand ? ` ${hand}` : ''} 赢 <em>${chips(must(p.winners[0], 'p.winners[0]').won)}</em>`, mine };
   });
 }

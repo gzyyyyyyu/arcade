@@ -23,7 +23,8 @@
 .settings .st-name { font-size: var(--fs-3); font-weight: 700; color: var(--ink); }
 .settings .st-hint { font-size: max(12px, var(--fs-2)); color: var(--muted); }
 /* 右边的控件一律同宽、右对齐成一列：开 / 关两个并排的宽度，单个按钮（聊天、止盈、登录）撑满这一格 */
-.settings .st-ctl { display: flex; align-items: center; justify-content: flex-end; gap: var(--s-2); flex: none; width: calc(112px + var(--s-2)); }
+/* 只给最小宽、不定死：「快速 / 正常」比「开 / 关」宽，定死时按钮往左溢出、压住左边说明的字（11-23 试玩） */
+.settings .st-ctl { display: flex; align-items: center; justify-content: flex-end; gap: var(--s-2); flex: none; min-width: calc(112px + var(--s-2)); }
 .settings .st-ctl > .pill { flex: 1; min-width: 0; white-space: nowrap; }
 .settings .st-ctl.wide { width: auto; }
 .settings .st-seg { display: flex; gap: var(--s-2); flex: 1; }

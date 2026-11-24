@@ -14,7 +14,7 @@ import { TP_OFF, takeProfitLabel } from '../core/takeprofit.ts';
 import { DEFAULT_PREFS, resetSettings, savePrefs } from '../store.ts';
 import { ActionBar } from '../view/actions.ts';
 import { AchToasts, achPanel } from '../view/ach.ts';
-import { el, setText, toggle } from '../view/dom.ts';
+import { el, setText, setWhere, toggle } from '../view/dom.ts';
 import { Lobby } from '../view/lobby.ts';
 import { Reads } from '../view/reads.ts';
 import { RoomPanel } from '../view/room.ts';
@@ -158,6 +158,11 @@ export function buildShell(app: HTMLElement, s: State, fn: Fns) {
     start: (...a) => fn.start(...a),
     howTo: () => fn.setGuide(replay()),
     resume: () => fn.resume(),
+    // 回到那一桌再走顶栏"离桌"同一条路（确认、结算、钱包都不另写一套）
+    endLast: () =>
+      void fn.resume().then(() => {
+        if (stage.classList.contains('at-table')) leaveBtn.click();
+      }),
     relief: () => fn.relief(),
     openRoom: (...a) => fn.openRoom(...a),
     match: (stakes, fun, level) => void fn.quickMatch(stakes, fun, level),
@@ -229,9 +234,9 @@ export function createTop(c: App) {
     const tour = c.tour;
     if (stage.classList.contains('at-table') && tour) {
       const v = tour.view;
-      const fmt = tour.state.format && tour.state.format !== 'sng' ? `${formatInfo(tour.state.format).name} · ` : '';
+      const fmt = tour.state.format && tour.state.format !== 'sng' ? ` · ${formatInfo(tour.state.format).name}` : '';
       const dly = tour.session.daily;
-      setText(where, `${dly ? (dly.scored ? '今日锦标赛' : '今日锦标赛（练习）') : '锦标赛'} · ${fmt}第 ${v.level + 1} 级 · 盲注 ${chips(v.blinds[0])}/${chips(v.blinds[1])}`);
+      setWhere(where, `${dly ? (dly.scored ? '今日锦标赛' : '今日锦标赛（练习）') : '锦标赛'}${fmt}`, `第 ${v.level + 1} 级 · 盲注 ${chips(v.blinds[0])}/${chips(v.blinds[1])}`);
       toggle(leaveBtn, 'hidden', false);
     } else {
       drawSoloTop();
@@ -243,7 +248,8 @@ export function createTop(c: App) {
     const at = stage.classList.contains('at-table') && solo;
     const diff = solo?.session.practice ? difficultyOf(solo.table.level) : null;
     const so = at ? must(solo, 'at 为真则在单机牌桌上') : null;
-    setText(where, so?.table.pushFold ? `${so.session.daily ? (so.session.daily.scored ? '今日全下' : '今日全下（练习）') : '全下局'} · 盲注 ${chips(so.table.sb)}/${chips(so.table.bb)}` : so ? `${so.session.practice ? `娱乐 · ${diff ? DIFFICULTY_NAME[diff] : stakesOf(so.table.stakes).name}` : stakesOf(so.table.stakes).name} · 盲注 ${chips(so.table.sb)}/${chips(so.table.bb)}` : '');
+    const blinds = so ? `盲注 ${chips(so.table.sb)}/${chips(so.table.bb)}` : '';
+    setWhere(where, so?.table.pushFold ? (so.session.daily ? (so.session.daily.scored ? '今日全下' : '今日全下（练习）') : '全下局') : so ? (so.session.practice ? `娱乐 · ${diff ? DIFFICULTY_NAME[diff] : stakesOf(so.table.stakes).name}` : stakesOf(so.table.stakes).name) : '', blinds);
     toggle(leaveBtn, 'hidden', !at);
   }
 

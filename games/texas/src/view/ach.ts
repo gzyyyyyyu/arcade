@@ -70,10 +70,10 @@ export async function achPanel(parent: HTMLElement, s: AchState): Promise<void> 
     cell.innerHTML = icon(d, has);
     el('b', 'ach-name', cell, d.name);
     // 已拿到的不再写条件；没拿到的写怎么拿，计数类后面跟着现在到几了（只写"4 / 100"看不出数的是什么）
-    // 「现在 n」不拆行：手机两栏窄，「打满 2000 手 · 现在 8」会把 8 单独挤到第三行（11-21 老号走查）
+    // 「（现在 n）」不拆行：手机两栏窄，数字会被单独挤到下一行（11-21 老号走查）；整段换行时括号起头比「· 现在」顶行首好读（11-23 试玩）
     if (!has) {
-      const how = el('small', 'ach-how', cell, d.goal ? `${d.how} ` : d.how);
-      if (d.goal) el('span', 'ach-now', how, `· 现在 ${chips(Math.min(progressOf(s, d), d.goal))}`);
+      const how = el('small', 'ach-how', cell, d.how);
+      if (d.goal) el('span', 'ach-now', how, `（现在 ${chips(Math.min(progressOf(s, d), d.goal))}）`);
       cell.classList.remove('nohow');
     }
   }

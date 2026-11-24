@@ -111,6 +111,14 @@ export class TableProbe {
     return union(parts.map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0));
   }
 
+  /** 头像旁的动作签（"大盲 20""跟注 30"）：亮着才有。kit 的气泡当名牌一样避开（11-23 试玩：首次"点头像扔道具"提示盖住顶上那家的"大盲 20"） */
+  tagRect(seat: number): DOMRect | null {
+    const n = this.c.seats[seat];
+    if (!n || n.root.classList.contains('empty') || !n.bubble.classList.contains('on')) return null;
+    const r = n.bubble.getBoundingClientRect();
+    return r.width > 0 ? r : null;
+  }
+
   /**
    * 新手指引指的那几块在屏幕上的矩形（view/coach.ts）。公共牌、底池没发牌时节点量不到，公共牌按版式算那一排的位置
    */

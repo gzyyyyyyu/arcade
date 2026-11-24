@@ -71,6 +71,9 @@ export class TableView {
   plateRect(seat: number): DOMRect | null {
     return this.probe.plateRect(seat);
   }
+  tagRect(seat: number): DOMRect | null {
+    return this.probe.tagRect(seat);
+  }
   guideRect(what: 'hole' | 'board' | 'pot' | 'result'): DOMRect | null {
     return this.probe.guideRect(what);
   }

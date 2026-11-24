@@ -21,8 +21,8 @@ describe('结果条', () => {
   it('我赢了：写 +多少和牌型，标成我的', () => {
     const shown = [{ seat: 0, value: value('Ah Ad Kc Kd 9s'), hole: [] }];
     const r = { ...base, byFold: false, shown, pots: [{ amount: 820, winners: [{ seat: 0, won: 820 }] }] } as unknown as HandResult;
-    expect(resultLines(r, name, 0)).toEqual([{ html: expect.stringContaining('你赢了'), mine: true }]);
-    expect(strip(resultLines(r, name, 0)[0]!.html)).toBe('你赢了 +820 · 两对');
+    expect(resultLines(r, name, 0)).toEqual([{ html: expect.stringContaining('你拿下'), mine: true }]);
+    expect(strip(resultLines(r, name, 0)[0]!.html)).toBe('你拿下 820 · 两对');
   });
 
   it('几个池子同一个人赢：并成一行写总数', () => {

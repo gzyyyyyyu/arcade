@@ -442,6 +442,8 @@ html, body, body::before { background: var(--night); }
 }
 /* kit 的灰按钮（聊天"收起"等）底色写死 #3a3a3a、字跟 --ak-fg：上面把 --ak-fg 换成深棕后成了黑底黑字。kit 是运行时插的样式，加 :root 压过它 */
 :root .atf-chip.atf-grey { color: #fff6e0; }
+/* 聊天框的「✕」收起只有一个字，kit 给的宽 38：撑到 44 好点（11-23 试玩） */
+:root .atf-chip.atf-grey { min-width: 44px; }
 html, body, body::before { background: #d9bf85; }
 #app { background: #d9bf85; }
 /* 背景层：平涂暖色 + 圆点，去掉暗角和灯光（主题房只换毡面和木边） */
@@ -891,7 +893,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
     box-shadow: 0 7px 0 var(--cg-ink), inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -3px 0 rgba(0, 0, 0, .12), 0 16px 22px rgba(43, 29, 20, .34);
   }
   .stage .lobby :is(.ach-open, .pz-open):not(:disabled):hover { translate: 0 -3px; box-shadow: 0 6px 0 var(--cg-ink), inset 0 1px 0 rgba(255, 235, 190, .6), inset 0 -3px 6px rgba(0, 0, 0, .3), 0 14px 18px rgba(43, 29, 20, .3); }
-  .stage .lobby .ach-open:not(:disabled):hover i { translate: 3px 0; }
+  .stage .lobby :is(.ach-open, .pz-open):not(:disabled):hover i { translate: 3px 0; }
 }
 /* 按下：放在悬停后面、权重一样，同时悬停和按下时按下赢 */
 .stage .lobby :is(.mode, .tile, .size, .pill, .p-back, .howto, .mcard, .ach-open):not(:disabled):active {
@@ -984,7 +986,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 /* 谜题分数的好坏色在木条上换浅一档（深绿深红在木纹上看不清） */
 .stage .lobby .pz-open[data-state='ok'] span { color: #b9f3c9; }
 .stage .lobby .pz-open[data-state='bad'] span { color: #ffc2b8; }
-.stage .lobby .ach-open i { font-style: normal; font-weight: 900; font-size: 1.3em; line-height: 1; margin-left: var(--s-1); opacity: .85; transition: translate .12s ease-out; }
+.stage .lobby :is(.ach-open, .pz-open) i { font-style: normal; font-weight: 900; font-size: 1.3em; line-height: 1; margin-left: var(--s-1); opacity: .85; transition: translate .12s ease-out; }
 
 /* ---------- 手机竖屏：标题和扇形牌占满上半，面板贴在底下；不再上空四成、下留一条空带 ---------- */
 .stage.tall .lobby > .hero {
@@ -1019,3 +1021,7 @@ body .scene::after { background: radial-gradient(ellipse 85% 75% at 50% 45%, tra
 /* 手机横屏（.tight）矮，不垫小牌桌：扇形牌本来就缩了 */
 .stage.tight .lobby .fan::before { display: none; }
 .stage.tight .lobby .qstart { min-height: 64px; padding: var(--s-1) var(--s-3); }
+
+/* 互动面板"道具"页的"扔给 某某"：几个人挤一排时每个只剩 40 来宽，名字被拆成两行（11-23 试玩"扔给 板 / 凳儿"）。
+   名字不拆、按钮跟着字宽，放不下就换行（kit 的 .atf-row 本来就 wrap） */
+.atf-ui .atf-chip[data-key^='fun:target'] { flex: 1 0 auto !important; white-space: nowrap; padding: 0 8px; }
