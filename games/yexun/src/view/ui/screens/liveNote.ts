@@ -69,8 +69,8 @@ export function liveFacts(tier: LiveTier, picked: CharacterId, map: MapId): Live
 const share = (bp: number): string => `${Number((bp / 10_000).toFixed(2))} 份`;
 export function rushLiveFacts(tier: LiveTier): LiveFact[] {
   return [
-    // 小牌四格要在 390 竖屏、844 横屏放下：小字最多四个字，细说写在下面的说明里（走查 11-23 截字）
-    // 试玩 11-23：「打到终局」「每只约」「一局约」读不懂，改成「打到哪、拿回多少」
+    // 小牌四格要在 390 竖屏、844 横屏放下：小字最多四个字，细说写在下面的说明里
+    // 小字写「打到哪、拿回多少」：「打到终局」「每只约」这类说法玩家读不懂
     { big: chips(tier, rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true)), small: '全清拿回' },
     { big: chips(tier, rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false)), small: '打到夜漏君' },
     { big: `+${chips(tier, rushBp(tier, 1, RUSH_TOTAL, false))}`, small: '每关约加' },

@@ -171,7 +171,7 @@ export function quickOffWhy(s: MenuState): string {
 
 /**
  * 点了起手或心法后浮出的一条说明（触屏没有悬停，图标的提示看不到）：起手是哪件、心法这局管什么用。
- * 心法保底一张主修卡、主修进化多补一次刷新（规则 60，实盘规则 64 起也有），外加一条心法特色（content/xinfa.ts）
+ * 心法保底一张主修卡、主修进化多补一次刷新（实盘也一样），外加一条心法特色（content/xinfa.ts）
  */
 export function loadoutNote(l: NonNullable<MenuState['loadout']>): string {
   const start = `起手 ${l.starts[l.alt ? 1 : 0]?.name ?? ''}`;

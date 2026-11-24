@@ -11,7 +11,7 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe('大厅静音带进夜巡（kit platformSoundOn，docs/sound.md）', () => {
+describe('大厅静音带进夜巡（kit platformSoundOn，见 arcade-kit README）', () => {
   it('大厅关了声音：这次打开音效先关；在游戏里打开只管这一次，不写 yexun.settings', async () => {
     const ls = fake({ 'arcade.sound': 'off', 'yexun.settings': JSON.stringify({ sfx: true }) });
     vi.stubGlobal('localStorage', ls);

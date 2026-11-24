@@ -97,7 +97,7 @@ export interface Save {
   perks: Partial<Record<PerkId, number>>;
   /** 花铜钱买下的角色（别的角色按成绩解锁，见 charOpen） */
   bought: CharacterId[];
-  /** 0.34.0 改成要解锁之前就能选的角色里、老存档照留的（见 reviveSave；新存档是空的） */
+  /** 现在要解锁、老存档里本来就能选的角色：照留（见 reviveSave；新存档是空的） */
   legacy: CharacterId[];
   /** 铜钱流水，太长时最旧的并进 coinBase */
   ledger: Entry[];
