@@ -57,7 +57,7 @@
 - 每场期望整体比 `docs/balance.md` 第 2 节的区间低，是有意的：一场从 8 副缩到 3 副，按区间配会让每小时期望涨约 2.5 倍；按第 2 节"每小时 +0.6～+1.2、各游戏差不超过一倍"优先，每场期望整体等比压低，各档之间的梯度不变。
 - 掼蛋的小白和普通差得最多（`docs/ai.md` 2.1），两列同时达标做不到：小档按小白调，中档往上按普通调，小白那列照实写。小档搭档用普通、不用简单（简单时小白 +0.006、赢 48%）：按「宁简勿难」让小白稳在正的、赢过半，普通玩家因此多一点（`docs/ai.md` 2）。
 - 每档都比上一档难：对手从新手到普通、普通加较强、两个困难；大档的两个对手一普通一较强，补中档和豪华档之间的断档。
-- 每小时：小档普通玩家约 +1.3 份（一场加选档、带回约 7.6 分钟）；client 模式平台的每天净赢上限（现在 10 份，管理员可调）照旧兜着庄家的总量。
+- 每小时：小档普通玩家约 +1.3 份（一场加选档、带回约 7.6 分钟）；client 模式平台的每天净赢上限（现在 10 份，管理员可调）兜着庄家的总量。
 - 好友房（3 副）：电脑用 hard 时，两个普通真人搭档坐 0、2，每人 −0.036 ± 0.010 份（按每分 1/16 量的，换每分点数只等比缩放、正负不变），满足"期望加两倍标准误 ≤ 0"。
 
 ### 1.4 时长
@@ -99,7 +99,7 @@
      `buyin({ userId, game: 'guandan', ref, tier, amount: 一份, until, mode: 'client', op: ref + '-in' })`。
    - 成功就把 `{ ref, tier, share, until }` 回给页面；被拒（`{ ok: false, error }`）把 `error` 和 `wallet` 原样回给页面，页面按 2.4 说成人话。
 3. 页面开一场实盘局，存档用单独的 `guandan.stake`，不碰 `guandan.save`，也不进云同步。
-   - 内容是：种子、ref、档位、一份多少、每副的分、到期时间。种子在浏览器里用 `crypto` 生成，单机照旧按种子发牌。
+   - 内容是：种子、ref、档位、一份多少、每副的分、到期时间。种子在浏览器里用 `crypto` 生成，单机按种子发牌。
    - 电脑难度按 1.3 的表；规则选项固定成默认，实盘不让改规则。
 4. 每副结束，结算页多一行"这一副 +2 分（+1,000）"，本场合计也一直显示着。
 5. 一场打完，或者碰到封顶，页面调 `POST /games/guandan/api/stake/settle`，带上 `{ ref, points, deals }`。Worker 做的事：
@@ -262,7 +262,7 @@ Worker 只检查数字是不是在规则允许的范围里，不在就回 400。
    "services": [{ "binding": "WALLET", "service": "arcade", "entrypoint": "WalletService", "props": { "game": "guandan" } }]
    ```
    `props.game` 必须是 `guandan`，参数里的 `game` 也必须是 `guandan`，否则四个方法一律回 `bad_game`。`tests/config.test.ts` 锁住模块里不写 `services`。
-2. **认人**：照旧，经 `ARCADE` 问 `/api/me`，或者用 `arcade-kit/auth` 的 `whoIs`，拿 `user.id` 当 `userId`。
+2. **认人**：经 `ARCADE` 问 `/api/me`，或者用 `arcade-kit/auth` 的 `whoIs`，拿 `user.id` 当 `userId`。
 3. **调用**：`view(userId)`、`buyin(req)`、`settle(req)`、`refund(req)`，`req` 是一个对象：
    - `buyin`：`userId, game, ref, tier, amount, until, mode, op`；
    - `settle`：`userId, game, ref, amount, mode, op`；

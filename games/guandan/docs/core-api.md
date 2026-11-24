@@ -11,7 +11,7 @@
 - 电脑只能读 `viewFor(state, seat)`，不能碰 `GameState`；`viewFor` 不得包含别人的手牌（防泄漏测试）。联机时下发的也是它。
   给电脑的随机种子、"这一场"的种子一律按用途派生（单机 `guandan/session.ts` 的 `soloSeeds`，房间 `rules.ts` 的 `aiSeed`、`formSeed`），不给牌局种子或密钥本身——
   拿着它就能重算发牌。守着的测试：`tests/core/ai.test.ts` 的反事实测试（单机和房间两条路径 0 不一致，外加阳性对照）、
-  `tests/architecture.test.ts`（`src/variants/guandan/ai` 不引用 `GameState`、不出现 `'deal'`/`'firstLead'`）。README"电脑不看牌"一节是给外人看的版本。
+  `tests/architecture.test.ts`（`src/variants/guandan/ai` 不引用 `GameState`、不出现 `'deal'`/`'firstLead'`）。给外人看的版本在 `docs/ai.md` 第 8 节"电脑不看牌"。
 - 联机用的核心接口（`timeoutAction`、`previewNext`、规则版本、`SeatAction`/`TableAction`）见 `docs/core-api.md` 5.1，测试在 `tests/net/online.test.ts`。
   `RULES_VERSION` 只区分两种发牌（单机按种子、联机按密钥），`dispatch` 拒绝认不得的版本；改规则直接改，不为旧版本的牌局、录像留分叉（仓库 process：回放不跨版本）。
 - 规则有出入的点先查 `docs/rules.md`；改规则要同步改该文档、`docs/core-api.md` 和测试，地方差异做成 `options.ts` 开关。
