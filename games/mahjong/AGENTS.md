@@ -16,11 +16,11 @@
 - 改了牌桌布局，跑 `node scripts/capture.ts land|port 40` 看截图和"压住了"的报告（DESIGN.md 第 7 节）。
 - 筹码：钱包是平台的（服务绑定 `WALLET`，`props.game = "mahjong"`）；不能买、不能兑换、不能转让，界面写明"无任何现金价值"。
   显示钱包、平台的错误一律按 `docs/api.md` 15.10 的对照表说人话（`src/view/text.ts`）。
-- `wrangler.jsonc` 是能单独部署的独立配置：不写平台绑定（`ARCADE`、`WALLET`）和 `GATE`，本站部署时由仓库的部署工具补上（README 的部署两节）。
+- `wrangler.jsonc` 是能单独部署的独立配置：不写平台绑定（`ARCADE`、`WALLET`）和 `GATE`，本站部署时由仓库的部署工具补上（[docs/dev.md](docs/dev.md) 第 3、4 节）。
   没有平台时 Worker 认游客、实盘回 `no_wallet`，页面按 `detectPlatform()` 藏起钱包和实盘；`test/worker/standalone.test.ts` 覆盖。
 - 快速匹配（档位、排队、三人桌，见 DESIGN.md 6.3）：改了档位、房间的 `options` 或座位数，`test/match-tier.test.ts` 的 `matchConfigErrors` 必须还是 `[]`；Worker 入口的具名导出只有 `MahjongRoom`、`RoomMeter`、`Queue`（`test/worker/match.test.ts` 守着）。
   `wrangler.jsonc` 已上线的迁移（v1、v2）不能改，加 DO 类另起一条新 tag，并同步 `test/wrangler.test.jsonc`、`dev/wrangler.smoke.jsonc`。改了排队、匹配桌，跑 `npm run build:cf && npm run smoke:match`（一次只开一个无头浏览器）。
-- 线上监控（README 的部署一节）：`/games/mahjong/health` 排在 Worker 最前面，不许读存储、认人或调平台；页面最先调 `reportErrors`。改了这块，`test/worker/api.test.ts`、`standalone.test.ts` 的健康检查一起改。
+- 线上监控（[docs/dev.md](docs/dev.md) 第 4 节）：`/games/mahjong/health` 排在 Worker 最前面，不许读存储、认人或调平台；页面最先调 `reportErrors`。改了这块，`test/worker/api.test.ts`、`standalone.test.ts` 的健康检查一起改。
 - 浏览器存储的键清单在 [docs/storage.md](docs/storage.md)。
 - 目录：`test/` 只放测试（vitest 和 `test/worker` 的 workerd 测试）；本地整套和冒烟用的假平台、开发入口、wrangler 配置在 `dev/`，都不部署。
 - 云存档（docs/practice-modes.md「云存档」）只同步擂台一个槽 `ladder`；加槽时在那里写上，合并规则写成纯函数并加单测（`test/cloud.test.ts`）。

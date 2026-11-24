@@ -1,6 +1,6 @@
 # 雀馆更新日志（存档：0.11.1–0.21.2）
 
-新的版本见 [CHANGELOG.md](../CHANGELOG.md)，存档目录见 [CHANGELOG-archive.md](../CHANGELOG-archive.md)。
+新的版本见 [CHANGELOG.md](../CHANGELOG.md)（开头有存档目录）。
 
 ## 0.21.2 — 2026-10-18
 

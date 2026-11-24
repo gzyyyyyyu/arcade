@@ -1,6 +1,16 @@
 # 雀馆（games/mahjong）更新日志
 
-最新的版本在最上面，每个版本一节，标题写 `## 版本 — 日期`，版本号和 `package.json` 一致；节里按需分「新增」「改动」「修复」「移除」，只写有的。0.45.0 之前的版本在 [CHANGELOG-archive.md](CHANGELOG-archive.md)。
+最新的版本在最上面，每个版本一节，标题写 `## 版本 — 日期`，版本号和 `package.json` 一致；节里按需分「新增」「改动」「修复」「移除」，只写有的。0.45.0 之前的版本在 `docs/` 下：[0.36.0–0.44.0](docs/changelog-archive-0.36-0.44.md)、[0.22.0–0.35.1](docs/changelog-archive-0.22-0.35.md)、[0.11.1–0.21.2](docs/changelog-archive-0.11-0.21.md)、[0.1.0–0.11.0](docs/changelog-archive-0.1-0.11.md)。
+
+## 0.47.15 — 2026-11-23
+
+文档：README 按开源门面重写，拆成英文 `README.md` 和中文 `README.zh-CN.md` 两份同构、顶部互链。规则、电脑、实盘的数和代码都不变。
+
+### 改动
+- README 只留定位、封面、功能要点、快速开始、目录、文档导航、模块说明和许可证。
+- 原 README 的全部命令、完整目录表、单独部署和本站部署、线上监控搬进新的 `docs/dev.md`，`AGENTS.md` 的引用跟着改。
+- 删掉只有一张目录的 `CHANGELOG-archive.md`，存档目录写进本文件开头；修好 0.36–0.44 存档里指错的一条链接。
+- `docs/design-ui.md` 去掉"照旧"这类历史说法。
 
 ## 0.47.14 — 2026-11-23
 
