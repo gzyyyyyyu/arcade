@@ -4,7 +4,7 @@
 
 ## 1. 文档地图
 
-- 设计：[DESIGN.md](DESIGN.md) 是总纲和目录，各玩法在 `docs/design-*.md`（节号沿用，「DESIGN 10.4」按目录找文件）。
+- 设计：[DESIGN.md](DESIGN.md) 是总纲和目录，各玩法在 `docs/design-*.md`（节号沿用，「DESIGN 10.4」按目录找文件）。设计文档只写现状，版本史只进 CHANGELOG。
 - 画面和界面：[docs/ui-haidao.md](docs/ui-haidao.md)（目录、通用界面、一屏放下、浏览器存储 key）和 `docs/ui-haidao-*.md`；改对应代码时同步改。
 - 目录分工、常用命令、工具参数：[docs/tools-haidao.md](docs/tools-haidao.md)。后端：[docs/backend-haidao.md](docs/backend-haidao.md)。配平数据：[docs/balance-haidao.md](docs/balance-haidao.md)。
 
@@ -16,7 +16,7 @@
 - `stepBattle` 原地改状态（每秒 20 拍）；回放靠「布局 + 部队 + 种子 + 操作」重算。
 - 规则一改 `RULES_VERSION`（`src/core/types.ts`）加一；不按版本分叉，golden 只锁当前版本。
 - 改守岛数值重生成 `node tools/td-golden.ts`，改护航重生成 `node tools/escort-golden.ts`；`git diff` 只许出现预期的值变化。
-- 改实盘的表或内容（悬赏出海、悬赏守岛、护航、航线），跑对应 `tools/*-live-sim.ts --n 2000`，改前改后的数报主线。
+- 改实盘的表或内容：悬赏出海、悬赏守岛、护航跑 `node tools/live-sim.ts --kind live|td|escort --n 2000`，航线跑 `node tools/map-live-sim.ts --days 2000`；交审附改前改后的数，更新 [docs/balance-haidao.md](docs/balance-haidao.md)。
 
 ## 3. 画面
 

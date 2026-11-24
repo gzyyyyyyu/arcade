@@ -28,7 +28,7 @@ tests/         vitest
 | `npm run build:cf` | 部署用构建到 `dist-cf/games/haidao/` |
 | `npm run sim -- --fun --n 200` | 机器人（小白、普通）打每一关：星数、胜率、时长、掠夺，对共用难度线（`src/content/difficulty.ts`）的目标和离群标记；`--level cNN --def N` 逐关拟合 defPct，`--drop <技能>` 做法术对照 |
 | `node tools/live-sim.ts --kind live\|td\|escort` | 悬赏出海、悬赏守岛、护航实盘的配平模拟（`--n 2000`，改 `src/content/livetable.ts` 或冻结副本后要重跑） |
-| `node tools/td-sim.ts` / `td-home-sim.ts` / `escort-sim.ts` / `td-tide-sim.ts` / `raid-sim.ts` | 守岛战役、海盗来袭、护航、大潮无尽、攻防的小样本配平（用 `nice`，大批量放 CI） |
+| `node tools/td-sim.ts` / `td-home-sim.ts` / `escort-sim.ts` / `td-tide-sim.ts` / `raid-sim.ts` | 守岛战役、海盗来袭、护航、大潮无尽、攻防的小样本配平（用 `nice`，大批量按片 `--json` 再 `--merge`） |
 | `npm run art -- <目录>` | 素材图鉴、基地全景、战斗定格渲成 PNG |
 | `npm run shot -- --out <目录>` | 无头浏览器冒烟截图（临时端口），检查控制台零报错和按钮 ≥ 44 像素；`--flow`、`--td`、`--home`、`--cam`、`--pvp`、`--tide`、`--map`、`--tdlive`、`--escort`、`--record` 分别走各条主流程或录像，参数见 docs/tools-haidao.md |
 | `node tools/noscroll.ts --out <目录>` | 量五个尺寸是否滚动、重叠、裁字和质量线；改界面后跑 |
@@ -43,7 +43,7 @@ tests/         vitest
 | 命令 | 用途 |
 |---|---|
 | `node tools/live-sim.ts --kind live\|td\|escort --n 2000 [--tier mid] [--level c10] [--from 0] [--json 文件]`、`--merge 片…`、`--fit 片…`、`--streak 片…` | 三种按种子抽关的实盘（表在 `src/content/livetable.ts`）：池里每关、每种机器人各 n 局（按顺序扫种子挑出抽到这一关的，镜像正反各半），逐关一行、每档汇总一行（池里各关平均），对照 balance.md 第 2 节；`--json` 按档拆片（用 `nice`，最多 4 个进程），`--merge` 按当前倍数表重算（改 bp 不用重跑），`--fit` 每关建议一组 bp，`--streak` 用悬赏出海的片算悬赏连闯的期望 |
-| `node tools/td-sim.ts [--level td07] [--n 200] [--parts main,anti,hero,care,budget,layouts,pads] [--json] [--hero nav]`（`--hero nav` 带航海士） | 守岛 30 关（关卡岛 + 驻守台，建议养成）：小白、稳、贪三种机器人的星数分布和三星率，另报照建议的新手（`guided`）至少 1★（新手线按它量）、局末没花的金币、升满阶（第几波所有能造的塔位都是 3 阶，没升满的局不算，另报升满的局占几成）；`anti` 全造一种塔、`hero` 英雄拆开看、`care` 零 / 建议 / 满养成、`budget` 预算 ±2%、`layouts` 三种守法（铺开 / 集中 / 先升高阶）、`pads` 断崖关只造高台 / 只造崖下同样几块（DESIGN 10.6h）、`curve` 预算百分比对稳三星率；目标列是共用难度线（`src/content/difficulty.ts`），偏出 ±20 点标 ↑↓；`--drop keg,hook` 机器人不放这几种英雄技能（法术对照）。大批量按关拆片在 CI 上跑（`--json`，再 `--merge` 合并），只跑小样本、用 `nice`；改规则或数值有意改结果时用 `node tools/td-golden.ts` 重生成指纹 |
+| `node tools/td-sim.ts [--level td07] [--n 200] [--parts main,anti,hero,care,budget,layouts,pads] [--json] [--hero nav]`（`--hero nav` 带航海士） | 守岛 30 关（关卡岛 + 驻守台，建议养成）：小白、稳、贪三种机器人的星数分布和三星率，另报照建议的新手（`guided`）至少 1★（新手线按它量）、局末没花的金币、升满阶（第几波所有能造的塔位都是 3 阶，没升满的局不算，另报升满的局占几成）；`anti` 全造一种塔、`hero` 英雄拆开看、`care` 零 / 建议 / 满养成、`budget` 预算 ±2%、`layouts` 三种守法（铺开 / 集中 / 先升高阶）、`pads` 断崖关只造高台 / 只造崖下同样几块（DESIGN 10.6h）、`curve` 预算百分比对稳三星率；目标列是共用难度线（`src/content/difficulty.ts`），偏出 ±20 点标 ↑↓；`--drop keg,hook` 机器人不放这几种英雄技能（法术对照）。大批量按关拆片跑（`--json`，再 `--merge` 合并），都用 `nice`；改规则或数值有意改结果时用 `node tools/td-golden.ts` 重生成指纹 |
 | `node tools/td-golden.ts [--workers 8]` | 重生成守岛指纹锁 `tests/td-golden.json`：按测试的 8 片开工作线程并行打（默认每核一个，约 1 分钟），按清单顺序写回，和逐局串行打的一字不差；生成后 `git diff` 只许出现预期的值变化（只锁当前规则版本，说明在 `tests/td-golden-lib.ts` 文件头） |
 | `node tools/escort-golden.ts` | 重生成护航指纹锁 `tests/escort-golden.json`（78 局，约 2 秒）：九关和实盘四档，各按种子 1–3 × 小白、普通两种机器人打完一局（只锁当前规则版本）。生成后 `git diff` 只许出现预期的值变化；`tests/escort-golden.test.ts` 还锁住实盘开局不跟随 |
 | `node tools/map-live-sim.ts --days 2000 [--from 2026-11-10] [--json 文件]`、`--merge 片…` | 寻宝航线实盘：每档两种机器人的期望（份）± 2SE、对照 balance.md 第 2 节、星数分布、0 星平均折算、时长；共用 `tools/live-fit-lib.ts`（汇总只存星分布和 0 星折算，合并时按当前 bp 重算，只改 bp 不用重跑）。改 `src/core/escortlive.ts` / `maplive.ts` 的表，或改了护航实盘的冻结副本（`escortlivelevels.ts`）、航线的岛和船队（`content/maps.ts`）都要重跑并更新 DESIGN 12.1 / 11.1；`nice -n 10`、拆片并行最多 8 片 |
