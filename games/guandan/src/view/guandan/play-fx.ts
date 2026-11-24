@@ -117,7 +117,7 @@ export async function playEvent(sc: TableScene, e: GameEvent): Promise<void> {
       await wait(sc, PACE.pass);
       break;
     case 'trickWon': {
-      // 一墩打完：停一下让人看清是谁的牌收了这一墩，再清桌（每墩都要等的：0.25.0 从 950 缩到 650，0.31.0 再到 350）
+      // 一墩打完：停一下让人看清是谁的牌收了这一墩，再清桌（每墩都要等，所以压得短）
       await wait(sc, PACE.trick.hold);
       audio.sfx('collect');
       await sc.trick.clearAll();
@@ -155,7 +155,7 @@ export async function playEvent(sc: TableScene, e: GameEvent): Promise<void> {
       sc.showUnlocked(true);
       sc.funMoment(dealMoment(e.result));
       sc.feedDeal(e.result);
-      // 最后一手和名次章留在桌上看清楚，再弹结算（1500 → 1100 → 0.31.0 的 500）
+      // 最后一手和名次章留在桌上看清楚，再弹结算（停得短，一场才能在碎片时间打完）
       await wait(sc, PACE.dealEnd);
       break;
     case 'gameOver':

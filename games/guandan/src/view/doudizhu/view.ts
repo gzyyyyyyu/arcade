@@ -1,5 +1,5 @@
 /**
- * 斗地主画面用的纯函数（牌馆 0.28.0，docs/doudizhu.md 第 4 节）：手牌怎么理、怎么分列，一手牌怎么写，牌点的名字。
+ * 斗地主画面用的纯函数（docs/doudizhu.md 第 4 节）：手牌怎么理、怎么分列，一手牌怎么写，牌点的名字。
  * 不碰 Phaser，单测直接测（tests/ddz/ddz-view.test.ts）。
  */
 import { rankName, suitOf, type Card } from '../../core/cards.ts';

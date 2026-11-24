@@ -577,7 +577,7 @@ export function vGradient(g: Phaser.GameObjects.Graphics, x: number, y: number, 
 }
 
 /**
- * 纸面面板：木框 + 金线 + 象牙纸底（卡通第二版恢复 0.27.0 前的木框，外面套统一的深墨描边、实色下沿和柔和投影），
+ * 纸面面板：木框 + 金线 + 象牙纸底（外面套统一的深墨描边、实色下沿和柔和投影），
  * 纸面上亮下暗一点、带几道极淡的横纹（程序画，纸感），可带红色标题飘带。原点在面板中心。
  */
 export function panel(scene: Phaser.Scene, w: number, h: number, title?: string): Phaser.GameObjects.Container {
@@ -587,7 +587,7 @@ export function panel(scene: Phaser.Scene, w: number, h: number, title?: string)
   g.fillStyle(OUTLINE.color, 1).fillRoundedRect(-w / 2, -h / 2 + 8, w, h, 16);
   g.fillStyle(0x6b3f20, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 16);
   g.fillStyle(0x8a5530, 1).fillRoundedRect(-w / 2, -h / 2, w, h * 0.5, { tl: 16, tr: 16, bl: 0, br: 0 });
-  // 纸面：象牙白 → 奶油 → 米黄，连续的竖向渐变。以前三块纯色叠着，交界各有一道硬边，看着像横着一条半透明色带
+  // 纸面：象牙白 → 奶油 → 米黄，连续的竖向渐变：几块纯色叠着交界会有硬边，看着像横着一条半透明色带
   vGradient(g, -w / 2 + 12, -h / 2 + 12, w - 24, h - 24, 10, [0xfffaf0, COLOR.paper, 0xf3e3c0]);
   // 纸纹：每隔 9 像素一道极淡的横线
   g.lineStyle(1, 0x8a6a40, 0.05);

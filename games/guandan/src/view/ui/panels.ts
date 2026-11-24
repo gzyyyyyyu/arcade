@@ -81,7 +81,7 @@ export function openSettings(scene: Phaser.Scene, opts: { onTutorial?: () => voi
     // 别人（好友房的人、单机的电脑）的互动（短语、表情、道具，docs/table-fun.md 第 5 节）：关掉就不看也不听，单机的电脑也不发（自己照样能发）
     row(rx, ry(0), '表情道具');
     seg(rx, ry(0), 120, [{ label: '显示', value: '1' }, { label: '不显示', value: '0' }], s.taunts ? '1' : '0', (v) => updateSettings({ taunts: v === '1' }));
-    // 聊天（好友房 0.22.0、单机 0.23.0）：开 / 不和陌生人（快速匹配桌上不收不发打字，下次进匹配桌生效）/ 不看，存的还是 chat、strangerChat 两项
+    // 聊天（好友房、单机都有）：开 / 不和陌生人（快速匹配桌上不收不发打字，下次进匹配桌生效）/ 不看，存的还是 chat、strangerChat 两项
     row(rx, ry(1), '聊天');
     seg(rx, ry(1), 84, [{ label: '开', value: '1' }, { label: '不和陌生人', value: 'friends' }, { label: '不看', value: '0' }],
       !s.chat ? '0' : s.strangerChat ? '1' : 'friends',

@@ -1,5 +1,5 @@
 /**
- * 实盘的规则核心（docs/stake.md 第 1 节）：档位、每副的分、封顶、结回额、钱包 ref / op 的拼法、单机一场和好友房每个座位的账。
+ * 实盘的规则核心（docs/stake.md 第 1 节）：档位、每副的分、封顶、带回额、钱包 ref / op 的拼法、单机一场和好友房每个座位的账。
  * 和 src/core 一样是纯函数：不碰 DOM、网络、时间、随机数（ref 里的随机数由调用方给）。Worker、页面、房间都从这里取数，
  * 不各算一份。
  */
@@ -19,8 +19,8 @@ export const SOLO_DEALS = 3;
 export const ROOM_DEALS = 3;
 
 /**
- * 一场用哪一套数。状态 / 存档里记 `rules`（2 = 现在这一套）；没有这个字段的是 3 副之前开的一场，
- * 按原来的数打完、结回（单机 8 副、好友房 5 副、每分 = 一份的 1/20、封顶 ±20 分）。以后再改数就加新版本，别改这两套
+ * 一场用哪一套数。状态 / 存档里记 `rules`（2 = 现在这一套）；没有这个字段的是版本 1，
+ * 按版本 1 的数打完、带回（单机 8 副、好友房 5 副、每分 = 一份的 1/20、封顶 ±20 分）。以后再改数就加新版本，别改这两套
  */
 export interface StakeRules {
   id: 1 | 2;
@@ -33,7 +33,7 @@ export const RULES_V1: StakeRules = { id: 1, pps: 20, soloDeals: 8, roomDeals: 5
 export const RULES_V2: StakeRules = { id: 2, pps: POINTS_PER_SHARE, soloDeals: SOLO_DEALS, roomDeals: ROOM_DEALS };
 /** 新开的一场用这一套 */
 export const CURRENT_RULES = RULES_V2;
-/** 读到的 `rules` 字段（存档、房间状态、结回请求里的）对应哪一套：没有或不认识的按旧的 */
+/** 读到的 `rules` 字段（存档、房间状态、带回请求里的）对应哪一套：没有或不认识的按版本 1 */
 export function rulesOf(id: unknown): StakeRules {
   return id === 2 ? RULES_V2 : RULES_V1;
 }
@@ -57,7 +57,7 @@ export function capPoints(p: number, rules: StakeRules = CURRENT_RULES): number 
   return Math.max(-rules.pps, Math.min(rules.pps, p));
 }
 
-/** 结回额：带进去的一份加上输赢，在 0 到 2 份之间 */
+/** 带回额：带进去的一份加上输赢，在 0 到 2 份之间 */
 export function payout(tier: TierId, points: number, rules: StakeRules = CURRENT_RULES): number {
   return TIERS[tier] + capPoints(points, rules) * pointValue(tier, rules);
 }
@@ -65,8 +65,8 @@ export function payout(tier: TierId, points: number, rules: StakeRules = CURRENT
 // ───────────── 钱包的 ref 和 op（平台 5.9：8–64 位的 [A-Za-z0-9_-]） ─────────────
 
 /**
- * 单机 ref：`solo-<档位>-<32 位十六进制>`。ref 由 Worker 生成，结回时按 ref 里的档位算结回额，
- * 不信页面带来的档位——否则小档带入、报豪华档结回会按豪华档算（钱包另有"不超过带入 + 20 份"兜着）。
+ * 单机 ref：`solo-<档位>-<32 位十六进制>`。ref 由 Worker 生成，带回时按 ref 里的档位算带回额，
+ * 不信页面带来的档位——否则小档带入、报豪华档带回会按豪华档算（钱包另有"不超过带入 + 20 份"兜着）。
  */
 const SOLO_REF = /^solo-(small|mid|big|lux)-[0-9a-f]{32}$/;
 const ROOM_REF = /^gd-[0-9a-f]{16}$/;
@@ -98,7 +98,7 @@ export function roomRef(hex: string): string {
 
 export interface SoloMatch {
   tier: TierId;
-  /** 用哪一套数（StakeRules.id）；没有的是 3 副之前开的，按旧的 */
+  /** 用哪一套数（StakeRules.id）；没有的是版本 1 */
   rules?: number;
   /** 每副我方的分（按副的先后），不封顶；合计在 soloPoints 里封顶 */
   deals: number[];
@@ -142,7 +142,7 @@ export function validSoloResult(points: unknown, deals: unknown, rulesId?: unkno
 
 // ───────────── 好友房：每个座位一本账（3.2） ─────────────
 
-/** 好友房的账多记一个用哪一套数；没有的是 3 副之前开的，按旧的 */
+/** 好友房的账多记一个用哪一套数；没有的是版本 1 */
 export type GdBook = RoomBook & { rules?: number };
 
 export function newRoomBook(tier: TierId): GdBook {

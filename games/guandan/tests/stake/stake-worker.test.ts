@@ -99,15 +99,15 @@ describe('带入', () => {
   });
 });
 
-describe('结回、放弃', () => {
-  it('结回：按档位和净分算结回额，op 是 ref-out；credited / capped / dup 原样带回', async () => {
+describe('带回、放弃', () => {
+  it('带回：按档位和净分算带回额，op 是 ref-out；credited / capped / dup 原样带回', async () => {
     const w = wallet(() => ({ ok: true, wallet: W, credited: 11_000, capped: 500, dup: true }));
     const res = await handle(post('settle', { ref: REF, tier: 'mid', points: 3, deals: 8 }), env(w));
     expect(await res.json()).toEqual({ ok: true, wallet: W, credited: 11_000, capped: 500, dup: true });
     expect(w.calls[0]).toEqual({ method: 'settle', req: { userId: 'u1', game: 'guandan', ref: REF, amount: 11_500, mode: 'client', op: `${REF}-out` } });
   });
 
-  it('结回按 ref 里的档位算，不信页面带的（安全审计：小档带入报豪华档结回）', async () => {
+  it('带回按 ref 里的档位算，不信页面带的（安全审计：小档带入报豪华档带回）', async () => {
     const w = wallet(() => ({ ok: true, wallet: W }));
     const small = `solo-small-${'cd'.repeat(16)}`;
     await handle(post('settle', { ref: small, tier: 'lux', points: 3, deals: 8 }), env(w));
@@ -149,7 +149,7 @@ describe('结回、放弃', () => {
     expect(w.calls).toHaveLength(2);
   });
 
-  it('结回的数不在规则范围里（|分| > 20、副数不对、每副超过 3 分）：400', async () => {
+  it('带回的数不在规则范围里（|分| > 20、副数不对、每副超过 3 分）：400', async () => {
     const w = wallet(() => ({ ok: true, wallet: W }));
     for (const b of [
       { ref: REF, tier: 'mid', points: 21, deals: 8 },
@@ -165,7 +165,7 @@ describe('结回、放弃', () => {
     expect(w.calls).toHaveLength(0);
   });
 
-  it('结回被拒（no_stake、expired）原样带回', async () => {
+  it('带回被拒（no_stake、expired）原样带回', async () => {
     for (const error of ['no_stake', 'expired']) {
       const res = await handle(post('settle', { ref: REF, tier: 'small', points: 0, deals: 0 }), env(wallet(() => ({ ok: false, error }))));
       expect(await res.json()).toEqual({ ok: false, error });
@@ -277,7 +277,7 @@ describe('斗地主（variant: ddz）', () => {
     for (const k of ['in', 'out', 'refund']) expect(`${ref}-${k}`).toMatch(WALLET_ID);
   });
 
-  it('结回：每分是一份的 1/40，按 ref 里的档位算，不信页面带的', async () => {
+  it('带回：每分是一份的 1/40，按 ref 里的档位算，不信页面带的', async () => {
     const w = wallet(() => ({ ok: true, wallet: W }));
     await handle(post('settle', { variant: 'ddz', ref: DDZ_REF, tier: 'lux', points: 8, deals: 8 }), env(w));
     // 中档一份 10,000、每分 250：10,000 + 2,000
@@ -288,7 +288,7 @@ describe('斗地主（variant: ddz）', () => {
     expect(w.calls[2]!.req).toMatchObject({ amount: 20_000 });
   });
 
-  it('结回带 rules: 2（3 副的现行规则）：每分是一份的 1/50；不带的老存档仍按 1/40；不认识的版本 400', async () => {
+  it('带回带 rules: 2（3 副的现行规则）：每分是一份的 1/50；不带的老存档仍按 1/40；不认识的版本 400', async () => {
     const w = wallet(() => ({ ok: true, wallet: W }));
     // 中档一份 10,000、每分 200：10,000 + 8 × 200
     await handle(post('settle', { variant: 'ddz', ref: DDZ_REF, points: 8, deals: 3, rules: 2 }), env(w));
@@ -303,7 +303,7 @@ describe('斗地主（variant: ddz）', () => {
     expect(w.calls).toHaveLength(3);
   });
 
-  it('结回带 rules: 3（不洗牌实盘，0.39.0）：每分是一份的 1/200、±200 封顶；掼蛋不认 3', async () => {
+  it('带回带 rules: 3（不洗牌实盘，0.39.0）：每分是一份的 1/200、±200 封顶；掼蛋不认 3', async () => {
     const w = wallet(() => ({ ok: true, wallet: W }));
     // 中档一份 10,000、每分 50：10,000 + 60 × 50
     await handle(post('settle', { variant: 'ddz', ref: DDZ_REF, points: 60, deals: 3, rules: 3 }), env(w));
@@ -315,7 +315,7 @@ describe('斗地主（variant: ddz）', () => {
     expect(w.calls).toHaveLength(2);
   });
 
-  it('结回的数不在规则范围里（|分| > 40、副数 > 8、一副最多动 48 分；这是不带 rules 的老存档）：400', async () => {
+  it('带回的数不在规则范围里（|分| > 40、副数 > 8、一副最多动 48 分；这是不带 rules 的老存档）：400', async () => {
     const w = wallet(() => ({ ok: true, wallet: W }));
     for (const b of [
       { ref: DDZ_REF, points: 41, deals: 8 },

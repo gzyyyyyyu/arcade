@@ -76,7 +76,7 @@ export class Session implements TableSession {
   fullGame = true;
   /** 还没弹给玩家的新成就（画面层用 takeUnlocked 取走） */
   private unlocked: string[] = [];
-  /** 这一局的称号统计（牌桌 logMatch 攒、这里跟着存档走）：以前只在牌桌场景里，回大厅再"继续"就从头攒，晒战绩少算副数、头游 */
+  /** 这一局的称号统计（牌桌 logMatch 攒、这里跟着存档走）：放在牌桌场景里的话回大厅再"继续"就从头攒，晒战绩少算副数、头游 */
   log: MatchLog = emptyMatchLog();
   loggedDeal = 0;
 

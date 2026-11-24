@@ -121,10 +121,10 @@ export class TitleScene extends Phaser.Scene {
 
     // 右边的面板：深漆底、金边
     const g = this.add.graphics().setDepth(10);
-    // 卡通风格（0.27.0；0.27.1 补质感）：柔和投影、深墨下沿、暖棕面板上亮下暗、深墨描边，里面一圈金线
+    // 卡通风格：柔和投影、深墨下沿、暖棕面板上亮下暗、深墨描边，里面一圈金线
     g.fillStyle(0x000000, 0.25).fillRoundedRect(P.x - 6, P.y + 14, P.w + 12, P.h + 4, RADIUS.xl + 4);
     g.fillStyle(0x2b1d14, 1).fillRoundedRect(P.x, P.y + 8, P.w, P.h, RADIUS.xl);
-    // 面板面：顶灯照下来，上面暖亮、下面沉到近黑（连续渐变，不再是上 35% 一块、下面一块）
+    // 面板面：顶灯照下来，上面暖亮、下面沉到近黑（连续渐变，不分块，免得交界有硬边）
     vGradient(g, P.x, P.y, P.w, P.h, RADIUS.xl, [0x5a3419, 0x34190d, 0x1a0c06]);
     // 内阴影：四边往里压一圈暗，面板像是凹进漆里的托盘，标题和主按钮落在亮处；顶边内侧一道暖白细线是光打在边上
     g.lineStyle(18, LIGHT.shadow, 0.3).strokeRoundedRect(P.x + 8, P.y + 8, P.w - 16, P.h - 16, RADIUS.xl - 4);

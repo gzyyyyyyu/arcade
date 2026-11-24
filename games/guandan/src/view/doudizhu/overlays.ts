@@ -308,7 +308,7 @@ export function showGameOver(sc: DdzScene): void {
 }
 
 /**
- * 好友房实盘一场打完（打满副数或有人到 ±一份）：我的分和筹码、每个人的输赢；结回由房间去钱包办，办完这一行字跟着房间的帧变成"已经结回钱包"。
+ * 好友房实盘一场打完（打满副数或有人到 ±一份）：我的分和筹码、每个人的输赢；带回由房间去钱包办，办完这一行字跟着房间的帧变成"已经带回钱包"。
  * 再打要重新开房（和娱乐房间打完一样）。
  */
 export function showNetStakeResult(sc: DdzScene, ns: DdzStakeView): void {
@@ -341,7 +341,7 @@ export function showNetStakeResult(sc: DdzScene, ns: DdzStakeView): void {
   b.add(text(sc, 0, 220, STAKE_TEXT.noCash, { size: TYPE.small, color: COLOR.muted }));
 }
 
-/** 单机实盘一场打完（打满副数或有人到 ±一份；数按这一场存档里的规则版本）：我的分和筹码，去钱包结回；结回的重试和存档在 doudizhu/stake.ts */
+/** 单机实盘一场打完（打满副数或有人到 ±一份；数按这一场存档里的规则版本）：我的分和筹码，去钱包带回；带回的重试和存档在 doudizhu/stake.ts */
 export function showStakeResult(sc: DdzScene, ses: DdzStakeSession): void {
   const save = ses.stake;
   const done = save.settle ?? { points: ses.points, deals: ses.dealsDone };
@@ -362,7 +362,7 @@ export function showStakeResult(sc: DdzScene, ses: DdzStakeSession): void {
   const capLine = text(sc, 0, 32, '', { size: TYPE.label, bold: true, color: COLOR.redDark, wrap: 700 });
   b.add(capLine);
   b.add(text(sc, 0, 210, STAKE_TEXT.noCash, { size: TYPE.small, color: COLOR.muted }));
-  // 再来一场：同档再带入一份（和掼蛋实盘一样，结回之后才能点），带入没成回选档页
+  // 再来一场：同档再带入一份（和掼蛋实盘一样，带回之后才能点），带入没成回选档页
   const again = new Button(sc, -140, 120, 240, 64, '再来一场', 'wood', () => void sc.stakeAgain(save.tier, status, again), 'restart');
   const home = new Button(sc, 140, 120, 240, 64, '回首页', 'wood', () => sc.scene.start('title'), 'back');
   again.setEnabled(false);

@@ -1,7 +1,7 @@
 {
   "name": "guandan",
   "private": true,
-  "version": "0.41.6",
+  "version": "0.41.7",
   "license": "MIT",
   "type": "module",
   "scripts": {

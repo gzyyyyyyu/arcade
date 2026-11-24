@@ -42,7 +42,7 @@ export function side(sc: TableScene, team: number): string {
 
 /**
  * 实盘中途离开（2.2）：第一副还没打完就原样退回；打了几副就给三个选择——现在结算、先存着、接着打，默认先存着，不强迫人结束。
- * 左上"大厅"、实盘条（原来找不到中途结算的入口）去大厅；右上"←"回标题。结算写明按现在的分结回多少。
+ * 左上"大厅"、实盘条（中途结算的入口）去大厅；右上"←"回标题。结算写明按现在的分带回多少。
  */
 export function leaveStake(sc: TableScene, st: StakeSession, to: 'lobby' | 'title'): void {
   const go = (): void => {
@@ -128,19 +128,19 @@ export function showSettle(sc: TableScene, r: DealResult): void {
   const W = worldW(sc);
   void W;
   audio.music('table');
-  // 左下的复盘和称号行数不定：弹窗按最后一行往下留出边距，免得最后一行贴着下边被截（试玩评测 0.11.1）
+  // 左下的复盘和称号行数不定：弹窗按最后一行往下留出边距，免得最后一行贴着下边被截
   const history = sc.ses.view().history;
   const rc = dealRecap(r, history);
   const recap = [
     `炸弹 ${sc.side(0)} ${rc.bombs[0]} · ${sc.side(1)} ${rc.bombs[1]}${sc.dealJiefeng ? ` · 接风 ${sc.dealJiefeng} 次` : ''}`,
     rc.top ? `最大一炸：${seatName(rc.top.seat)}，${bombText(rc.top.play)}` : `头游 ${seatName(r.order[0]!)} ${rc.firstPlays} 手出完`,
   ];
-  // 名场面：最精彩的两条，一条一行（0.26.1：两条挤一行在 1280 上被截成"…"）。手机上字托底到 12 像素，框里一行只放得下十来个字：名场面、称号各留一条，再长的截断
+  // 名场面：最精彩的两条，一条一行（两条挤一行在 1280 上会被截成"…"）。手机上字托底到 12 像素，框里一行只放得下十来个字：名场面、称号各留一条，再长的截断
   const phone = phoneType();
   // 同一个人的同一件事（炸弹次数、双下）名场面和称号各写一遍，先去重再封顶（storyPicks）
   const { hl, titles } = storyPicks(dealHighlights(r, history), dealTitles(r, history), phone);
   for (const h of hl) recap.push(`名场面：${highlightText(h, seatName)}`);
-  // 左下分两框（art-v3）：上面是数据（炸弹、最大一炸），下面是故事（名场面、称号），不再红黑混排一长串
+  // 左下分两框（art-v3）：上面是数据（炸弹、最大一炸），下面是故事（名场面、称号），不红黑混排一长串
   // 数据框从名次第四行下面留出一点开始（第四行下沿 96），行距 28
   const dataY = 124;
   const row = phone ? 32 : 28;
@@ -308,7 +308,7 @@ export function showGameOver(sc: TableScene): void {
   sc.openOverlay('gameOver', m);
   m.root.once('destroy', stop);
   const b = m.body;
-  // 好友房一场打完：颁奖代替四个头像那一排和称号那一行；0.14.0 以前开的房间没有记录，照旧
+  // 好友房一场打完：颁奖代替四个头像那一排和称号那一行；没有记录时照常画头像和称号
   const awards = sc.roomAwards(v.winner);
   if (awards) sc.addAwards(b, -95, awards);
   // 两队四人
@@ -327,7 +327,7 @@ export function showGameOver(sc: TableScene): void {
   const titles = matchTitles(sc.matchLog);
   // 这一局的数：四格一排，数字逐格从 0 滚上去（好友房颁奖那一块占了位置，就不摆）
   if (!awards && sc.matchLog.deals > 0) b.add(matchCells(sc, 58, watch));
-  // 分享（art-v3）：按钮行正中带字的"晒战绩"，不再是右上角一个小图标
+  // 分享（art-v3）：按钮行正中带字的"晒战绩"，比角上的小图标好找
   if (!watch) sc.addShare(b, 0, 206, { kind: 'game', win, room: sc.shareRoom(), goal }, awards, 200);
   if (titles.length && !awards) b.add(text(sc, 0, 128, titles.map((t) => sc.titleLine(t, false)).join('    '), { size: TYPE.small, bold: true, color: COLOR.redDark }));
   if (sc.net && watch) {
@@ -426,7 +426,7 @@ export function myShareName(sc: TableScene): string | null {
 }
 
 /**
- * 一副打完：挑一条和我有关的名场面报到好友动态（src/view/guandan/feed.ts）。只报娱乐（实盘结回时平台自己会生成），旁观、调试代打不报；
+ * 一副打完：挑一条和我有关的名场面报到好友动态（src/view/guandan/feed.ts）。只报娱乐（实盘带回时平台自己会生成），旁观、调试代打不报；
  * 没平台、没登录时 postFeed 什么都不发
  */
 export function feedDeal(sc: TableScene, r: DealResult): void {
@@ -459,7 +459,7 @@ export function titleLine(sc: TableScene, t: Title, why: boolean): string {
 }
 
 /**
- * 好友房这一场的奖（src/net/awards.ts）：按房间下发的公开记录算，画面座位。单机、0.14.0 以前开的房间、一副都没打完时是 null。
+ * 好友房这一场的奖（src/net/awards.ts）：按房间下发的公开记录算，画面座位。单机、房间没有记录、一副都没打完时是 null。
  * gameWinner 是过了 A 的队，没人过 A 时是 -1（按赢的副数算）
  */
 export function roomAwards(sc: TableScene, gameWinner: number): Award[] | null {
@@ -488,10 +488,10 @@ export function addAwards(sc: TableScene, b: Phaser.GameObjects.Container, y: nu
 }
 
 /**
- * 实盘一场的结算（2.1 第 5、6 步）：先显示这一场的分和筹码，同时去结回钱包；结回成功后写钱包还有多少，到顶了另写一句。
+ * 实盘一场的结算（2.1 第 5、6 步）：先显示这一场的分和筹码，同时去带回钱包；带回成功后写钱包还有多少，到顶了另写一句。
  * 两个按钮一样大、一样颜色，不自动开下一场，没有倒计时（第 5 节）。输了不放失败音效。
  */
-/** toLobby：中途"现在结算，回大厅"——结回了（或者记进存档等下次结）就去大厅，出错就停在这页让人看清 */
+/** toLobby：中途"现在结算，回大厅"——带回了（或者记进存档等下次结）就去大厅，出错就停在这页让人看清 */
 export function showStakeResult(sc: TableScene, toLobby = false): void {
   const st = sc.stake!;
   const save = st.stake;
@@ -595,7 +595,7 @@ export function showDailyResult(sc: TableScene): void {
 }
 
 /**
- * 好友房实盘一场的结算（3.2）：我的分和筹码、每个人的输赢；结回由房间去钱包办，办完这一行字跟着房间的帧变成"已经结回钱包"。
+ * 好友房实盘一场的结算（3.2）：我的分和筹码、每个人的输赢；带回由房间去钱包办，办完这一行字跟着房间的帧变成"已经带回钱包"。
  * 再打要重新开房（和娱乐房间打完一样）。
  */
 export function showNetStakeResult(sc: TableScene): void {

@@ -28,7 +28,7 @@ export function soloOp(ref: string, kind: 'in' | 'out' | 'refund'): string {
 
 /**
  * no：电脑座位或还没带入；pending：带入在办；yes：到账了，分算他的；refused：带入被拒，这一场不计输赢；
- * left：中途点了"离开"，按当时的分结回了，之后的分归庄家
+ * left：中途点了"离开"，按当时的分带回了，之后的分归庄家
  */
 export type Paid = 'no' | 'pending' | 'yes' | 'refused' | 'left';
 
@@ -45,7 +45,7 @@ export interface RoomBook {
   deals: number;
   /** 庄家：不归任何到账座位的分，只用来日志和统计 */
   house: number;
-  /** 离开时已经结回、后来又带入了新的一份的那些份的分；庄家 + 这个 + 各座位的分恒为 0 */
+  /** 离开时已经带回、后来又带入了新的一份的那些份的分；庄家 + 这个 + 各座位的分恒为 0 */
   settled?: number;
 }
 
@@ -53,7 +53,7 @@ export function setPaid(b: RoomBook, seat: number, paid: Paid): RoomBook {
   return { ...b, seats: b.seats.map((s, i) => (i === seat ? { ...s, paid } : s)) };
 }
 
-/** 好友房某个座位的带入 / 结回 op：`<ref>-s<座位>-in|out`，同一个 op 钱包只算一次 */
+/** 好友房某个座位的带入 / 带回 op：`<ref>-s<座位>-in|out`，同一个 op 钱包只算一次 */
 export function seatOp(ref: string, seat: number, kind: 'in' | 'out'): string {
   return `${ref}-s${seat}-${kind}`;
 }

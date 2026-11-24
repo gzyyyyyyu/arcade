@@ -1,5 +1,5 @@
 /**
- * 斗地主牌桌（牌馆 0.28.0，docs/doudizhu.md 第 4 节）：单机，我 + 稳哥（下家，右）+ 幺妹儿（上家，左）。
+ * 斗地主牌桌（docs/doudizhu.md 第 4 节）：单机，我 + 稳哥（下家，右）+ 幺妹儿（上家，左）。
  * 画面部件和掼蛋共用（手牌 HandView、出牌区 TrickView、座位 SeatView、按钮、弹窗、特效、kit 的牌桌互动），按斗地主的理牌、牌型名注入；
  * 这里只管斗地主的流程：叫分 → 地主拿底牌 → 出牌 → 每副结算 → 一局打完。推进只走 DdzSession.apply（规则核心 dispatchDdz），画面不算规则。
  */
@@ -108,7 +108,7 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
     return this.net?.shown?.stake ?? null;
   }
 
-  /** 离开房间前的确认文字：实盘房间说清楚按现在的分结回多少（打到一半的这一副打完再结） */
+  /** 离开房间前的确认文字：实盘房间说清楚按现在的分带回多少（打到一半的这一副打完再结） */
   private leaveMsg(): string | readonly SignedRow[] {
     const net = this.net!;
     const ns = this.netStake;

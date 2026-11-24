@@ -4,7 +4,7 @@
  * - GET /api/me：cookie 里 __Host-sid=<userId> 就认作这个人（昵称"玩家<userId>"），没带回 { user: null }；
  *   __Host-sid=down 回 503，用来试"平台暂时不可用"。
  * - WalletService：钱包 RPC 的假实现（掼蛋的服务绑定 WALLET），账在 Durable Object FakeWalletBank 里，只做掼蛋冒烟要看的几样：
- *   新号 10,000、带入要够一份、同一游戏只有一份（at_table）、按 op 只算一次（dup）、结回清掉那一份（再结回 no_stake）、
+ *   新号 10,000、带入要够一份、同一游戏只有一份（at_table）、按 op 只算一次（dup）、带回清掉那一份（再带回 no_stake）、
  *   client 模式每天净赢最多 3 份（超出的进 capped）。userId 以 "nofunds" 开头的人余额是 0，"busy" 开头的人一律回 busy，
  *   "capped" 开头的人今天已经赢满了（再赢的全进 capped）。
  *   线上的规则以平台为准（docs/platform-backend.md 5.9），这里不追求一样全。
@@ -34,7 +34,7 @@ type Req = { userId: string; game: string; ref: string; tier?: string; amount?: 
 
 /**
  * 账放在一个 Durable Object 里（全局一个，存进它的存储）：wrangler dev 可能换掉 Worker 的 isolate，模块里的变量会丢，
- * 冒烟里带入以后结回就会对不上（碰到过一次）。
+ * 冒烟里带入以后带回就会对不上（碰到过一次）。
  */
 export class FakeWalletBank extends DurableObject<FakeEnv> {
   private wallets: Record<string, Wallet> = {};
@@ -93,7 +93,7 @@ export class FakeWalletBank extends DurableObject<FakeEnv> {
     return { ok: true };
   }
 
-  /** 结回（settle）或放弃（refund） */
+  /** 带回（settle）或放弃（refund） */
   private close(w: Wallet, req: Req, settle: boolean): Record<string, unknown> {
     const st = w.stakes[req.game];
     if (!st || st.ref !== req.ref) return { ok: false, error: 'no_stake' };

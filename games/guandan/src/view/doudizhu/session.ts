@@ -1,5 +1,5 @@
 /**
- * 斗地主的单机会话（牌馆 0.28.0，docs/doudizhu.md 第 4、5 节）：我是 0 号，1 号下家稳哥、2 号上家幺妹儿都是电脑。
+ * 斗地主的单机会话（docs/doudizhu.md 第 4、5 节）：我是 0 号，1 号下家稳哥、2 号上家幺妹儿都是电脑。
  * 和掼蛋的 Session 同一个思路：推进只走规则核心的 dispatchDdz，事件交给画面一条条播；电脑只拿 viewDdz；
  * 电脑的随机数按这一局的种子另外派生（和发牌的流不相干，见 session.ts 的 soloSeeds）。存档、战绩在 store.ts（guandan.ddz.*）。
  */
@@ -41,7 +41,7 @@ export interface DdzTableSession {
 }
 
 /**
- * 娱乐单机开局的规则：明牌开着（地主每副选亮不亮，亮了 ×2，不想要点"不明牌"就是原来的打法）。
+ * 娱乐单机开局的规则：明牌开着（地主每副选亮不亮，亮了 ×2，不想要点"不明牌"就是经典打法）。
  * 每日挑战（大家同一套规则比分）、实盘（配平按不明牌算的）不开；好友房的娱乐房间也开（net/rules.ts 的 ddzBegin）
  */
 export const DDZ_FUN_OPTS: Partial<DdzOptions> = { mingpai: true };

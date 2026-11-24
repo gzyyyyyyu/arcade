@@ -14,7 +14,7 @@ import { Session } from './session.ts';
 const GD_DAILY_RULES = 0;
 /** 三个电脑的难度：大家打同样的对手 */
 export const GD_DAILY_LEVEL = 'normal';
-/** 一场的副数：8 副（和单机实盘不再绑在一起，实盘改成了 3 副） */
+/** 一场的副数：8 副（和单机实盘的 3 副无关） */
 export const GD_DAILY_DEALS = 8;
 
 /** 进桌前的一句：比什么、打几副、记在哪（不说就直接发牌，进桌的人不知道） */

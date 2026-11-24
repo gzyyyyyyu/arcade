@@ -1,5 +1,5 @@
 /**
- * 斗地主单机实盘（src/variants/doudizhu/stake、src/view/doudizhu/stake.ts）：规则里的数、ref、存档、结回的重试、带入、打完一场的记账。
+ * 斗地主单机实盘（src/variants/doudizhu/stake、src/view/doudizhu/stake.ts）：规则里的数、ref、存档、带回的重试、带入、打完一场的记账。
  * 不起浏览器：假的 localStorage 和 fetch。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -60,7 +60,7 @@ function playOut(ses: DdzStakeSession, stopAfter = Infinity): void {
 }
 
 describe('规则里的数', () => {
-  it('每分是一份的 1/50，各档整除；结回在 0 到 2 份之间', () => {
+  it('每分是一份的 1/50，各档整除；带回在 0 到 2 份之间', () => {
     expect(POINTS_PER_SHARE).toBe(50);
     for (const t of TIER_IDS) {
       expect(TIERS[t] % POINTS_PER_SHARE).toBe(0);
@@ -78,7 +78,7 @@ describe('规则里的数', () => {
     expect(RULES_V2.dealCap).toBeLessThanOrEqual(RULES_V2.pps);
   });
 
-  it('结回的数：|分| ≤ 50、0–3 副、整数、一副最多动 48 分', () => {
+  it('带回的数：|分| ≤ 50、0–3 副、整数、一副最多动 48 分', () => {
     expect(validSoloResult(50, 3)).toBe(true);
     expect(validSoloResult(-48, 1)).toBe(true);
     expect(validSoloResult(0, 0)).toBe(true);
@@ -198,7 +198,7 @@ describe('老存档（没有 rules 字段）按老数打完', () => {
     expect(ddzStakeRules(legacySave())).toBe(RULES_V1);
   });
 
-  it('读得回来，接着按老选项打：打满 3 副不结束，一场最多 8 副；结回额按老的每分', () => {
+  it('读得回来，接着按老选项打：打满 3 副不结束，一场最多 8 副；带回额按老的每分', () => {
     legacySave();
     const ses = DdzStakeSession.fromSave(loadDdzStakeSave()!);
     expect(ses.rules).toBe(RULES_V1);
@@ -217,7 +217,7 @@ describe('老存档（没有 rules 字段）按老数打完', () => {
     expect(pointValue('mid', RULES_V1)).toBe(250);
   }, 120_000);
 
-  it('结回请求：老存档和从前一字不差（没有 rules）；新存档带 rules: 2', async () => {
+  it('带回请求：老存档和从前一字不差（没有 rules）；新存档带 rules: 2', async () => {
     legacySave();
     const old = DdzStakeSession.fromSave(loadDdzStakeSave()!);
     old.finish();
@@ -240,7 +240,7 @@ describe('老存档（没有 rules 字段）按老数打完', () => {
   });
 });
 
-describe('结回、放弃', () => {
+describe('带回、放弃', () => {
   const over = (): DdzStakeSave => {
     const ses = started();
     ses.finish();
@@ -303,7 +303,7 @@ describe('结回、放弃', () => {
 });
 
 describe('进场', () => {
-  it('不洗牌实盘：开局按版本 3 的选项（成团发牌、每副封顶 48、±200），存档和结回请求都带 rules: 3', async () => {
+  it('不洗牌实盘：开局按版本 3 的选项（成团发牌、每副封顶 48、±200），存档和带回请求都带 rules: 3', async () => {
     const ref = `solo-ddz-lux-${'cd'.repeat(16)}`;
     const f = fakeFetch([{ body: { user: { id: 'u9' } } }, { body: { ok: true, ref, tier: 'lux', share: 200_000, until: Date.now() + 1000, wallet: { balance: 8000, stakes: [] } } }]);
     const r = await buyinDdzStake('lux', f, true);

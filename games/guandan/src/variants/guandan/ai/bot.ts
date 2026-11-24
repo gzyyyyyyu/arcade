@@ -293,7 +293,7 @@ interface Cand {
 const WILD_SPEND = 1;
 /**
  * 牌还多（15 张以上）时，拿逢人配凑三带二、对子、三张、单张去跟牌的代价：这几种牌型手里常有别的压法，
- * 逢人配留着后面凑炸弹、补顺子更值钱；困难档原来约每五副就有一次拿它配对子去跟三带二，人看着很亏。顺子类不加（补顺子本来就是它的用处）
+ * 逢人配留着后面凑炸弹、补顺子更值钱；不加这个代价时困难档约每五副就有一次拿它配对子去跟三带二，人看着很亏。顺子类不加（补顺子本来就是它的用处）
  */
 const WILD_SPEND_EARLY = 3;
 const WILD_CHEAP_TYPES: readonly string[] = ['single', 'pair', 'triple', 'fullHouse'];
@@ -502,7 +502,7 @@ function followOpponent(ctx: Ctx, plays: Play[]): Play | null {
   // 手里能炸几次：理牌里的炸弹，加上这次用的不是其中之一（比如拆顺子凑出的同花顺）
   const protect = protectedCards(base, view.level);
   const held = baseShape.bombs + (bomb.p.cards.every((c) => protect.has(c)) ? 0 : 1);
-  // 爱炸（bombLove ≥ 1）不急也肯炸、炸得早；捂炸弹（≤ -1）留到最后；中间是原来的做法
+  // 爱炸（bombLove ≥ 1）不急也肯炸、炸得早；捂炸弹（≤ -1）留到最后；中间是默认打法
   const love = tune.bombLove >= 1 ? 1 : tune.bombLove <= -1 ? -1 : 0;
   if (urgent) {
     // 对手快走完但还不至于下一手就走，而且手里炸弹只有一个（捂炸弹的人两个也留着）：最后关头再用

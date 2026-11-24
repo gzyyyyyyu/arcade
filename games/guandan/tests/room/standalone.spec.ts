@@ -76,7 +76,7 @@ describe('单独部署（没有平台）', () => {
     b.conn.ws.close();
   });
 
-  it('没有钱包：实盘房、单机带入结回放弃一律 409 no_wallet', async () => {
+  it('没有钱包：实盘房、单机带入带回放弃一律 409 no_wallet', async () => {
     const me = await guest();
     const body = JSON.stringify({ stake: 'small' });
     const room = await call(ROOMS, { method: 'POST', headers: { origin: SITE, cookie: me, 'content-type': 'application/json', 'content-length': String(body.length) }, body });

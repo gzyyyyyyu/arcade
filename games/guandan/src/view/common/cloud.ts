@@ -195,7 +195,7 @@ export class CloudSync {
   }
 
   /**
-   * 问 /api/me 确认现在是谁。问到了返回 true：同一个人照旧（没拉取过就补拉）；换了账号走换账号流程并重新拉取；
+   * 问 /api/me 确认现在是谁。问到了返回 true：同一个人就接着用（没拉取过就补拉）；换了账号走换账号流程并重新拉取；
    * 没登录当作退出。问不到（连不上、停服）返回 false，状态不动。
    */
   private async recheck(): Promise<boolean> {

@@ -12,7 +12,7 @@ import type { LaunchParams } from '../debug/params.ts';
 export const app = {
   game: null as Phaser.Game | null,
   session: null as Session | null,
-  /** 斗地主的单机会话（牌馆 0.28.0）；斗地主牌桌用它 */
+  /** 斗地主的单机会话；斗地主牌桌用它 */
   ddz: null as DdzSession | null,
   /** 联机会话（好友房）；在牌桌上时优先用它 */
   net: null as NetSession | null,

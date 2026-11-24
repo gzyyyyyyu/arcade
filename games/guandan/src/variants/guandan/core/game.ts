@@ -33,7 +33,7 @@ export function rulesSupported(rules: number): boolean {
   return rules === SEEDED_RULES_VERSION || rules === RULES_VERSION;
 }
 
-/** 状态里记的规则版本；0.1.10 及以前的存档没有这个字段，按 1 算 */
+/** 状态里记的规则版本；老存档没有这个字段，按 1 算 */
 export function rulesOf(state: Pick<GameState, 'rules'>): number {
   return (state as Partial<GameState>).rules ?? 1;
 }
@@ -471,7 +471,7 @@ function afterPlay(s: GameState, ev: GameEvent[], seat: Seat): void {
   ev.push({ type: 'turn', seat: s.turn });
 }
 
-/** 打到几结束；0.24.0 及以前的存档里 options 没有 endLevel，按 A */
+/** 打到几结束；老存档的 options 没有 endLevel，按 A */
 export function endLevelOf(s: Pick<GameState, 'options'>): number {
   const e = (s.options as Partial<Options>).endLevel;
   return typeof e === 'number' && Number.isInteger(e) && e >= 3 && e < ACE ? e : ACE;

@@ -16,7 +16,7 @@ function inlineSvg(src: string, prefix: string, x: number, y: number, w: number,
 }
 
 /** 牌桌背景：红木边框（拉长噪声做木纹）+ 渐变漆金嵌线 + 中心亮四周暗的墨绿绒面（细绒噪点）+ 极淡的墨印"掼"与金环。
- *  不再手画几十条木纹路径：一个 feTurbulence 滤镜就够，字符串小，手机按世界宽度栅格化一次也省。顶上约 58px 会被顶栏盖住，所以那里只放木色，不放细节 */
+ *  不手画几十条木纹路径：一个 feTurbulence 滤镜就够，字符串小，手机按世界宽度栅格化一次也省。顶上约 58px 会被顶栏盖住，所以那里只放木色，不放细节 */
 export function tableSvg(w: number, h: number): string {
   const B = 28;
   // 远景（art-v3）：世界比 1280 宽时桌子不跟着拉满，两边让出一截暗室和灯笼的光，像桌子摆在屋里
@@ -74,7 +74,7 @@ export function tableSvg(w: number, h: number): string {
     `<rect x="${x0}" y="${B}" width="${iw}" height="${ih}" filter="url(#fz2)" opacity=".55"/>` +
     `<rect x="${x0}" y="${B}" width="${iw}" height="${ih}" filter="url(#mt)" opacity=".22"/>` +
     `<rect x="${x0}" y="${B}" width="${iw}" height="${ih}" fill="url(#vg)"/>` +
-    // 桌上的水印：回纹圆章（tableEmblem），比以前小一圈、更淡，不和出的牌抢眼
+    // 桌上的水印：回纹圆章（tableEmblem），小而淡，不和出的牌抢眼
     `<g opacity=".7">${tableEmblem(cx, cy, R)}</g>` +
     // 内侧阴影（木沿投在绒面上）
     `<rect x="${x0}" y="${B}" width="${iw}" height="${ih}" rx="16" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="14"/>` +
@@ -151,7 +151,7 @@ function teacup(x: number, y: number, s: number): string {
 }
 
 /**
- * 主页主视觉的背景层（art-v3 PR ①）：墙、月洞窗、灯光、八仙桌、散牌、茶杯，铺满整个宽度（以前右边 40% 是空墙，宽屏在桌子尽头硬切）。
+ * 主页主视觉的背景层：墙、月洞窗、灯光、八仙桌、散牌、茶杯，铺满整个宽度（宽屏不留空墙，桌子不在尽头硬切）。
  * 四个人和灯笼是单独的纹理（homeFigureSvg、lanternArtSvg），在场景里摆、能动；位置都来自 home-layout.ts 的同一份排版
  */
 export function titleArtSvg(w: number, h: number): string {
@@ -166,7 +166,7 @@ export function titleArtSvg(w: number, h: number): string {
     lattice += `M${f(wx + o)} ${f(wy - wr)}V${f(wy + wr)}M${f(wx - wr)} ${f(wy + o)}H${f(wx + wr)}`;
   }
   const backY = L.table.back, frontY = L.table.front;
-  // 桌子横贯整个画面（右边伸到面板底下，不再半截断掉）；牌毯只铺在主视觉那一段
+  // 桌子横贯整个画面（右边伸到面板底下，不半截断掉）；牌毯只铺在主视觉那一段
   const table = `<path d="M-20 ${f(backY)}L${f(w + 20)} ${f(backY)}L${f(w + 20)} ${f(frontY)}L-20 ${f(frontY)}Z" fill="url(#tbl)" stroke="#2a1206" stroke-width="3"/>` +
     `<path d="M-20 ${f(backY + 4)}L${f(w + 20)} ${f(backY + 4)}" stroke="#d99a5a" stroke-width="2" opacity=".5"/>` +
     `<path d="M${f(A * 0.06)} ${f(backY + 18)}L${f(A * 0.94)} ${f(backY + 18)}L${f(A * 0.97)} ${f(frontY - 22)}L${f(A * 0.03)} ${f(frontY - 22)}Z" fill="url(#mat)" stroke="${C.gold}" stroke-width="2"/>` +

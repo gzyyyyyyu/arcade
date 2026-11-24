@@ -23,7 +23,7 @@ export function dur(ms: number): number {
 
 /**
  * 兜底：动画 Promise 最多等"时长 + 500 毫秒"（按真实时间）就当播完。补间被 kill 掉、场景时钟被拖住时 onComplete 不会来，
- * 牌桌的事件队列一直 await 就卡死了（0.10.1 降帧的第一版就这样卡过）；宁可画面跳一下，牌局不能停。
+ * 牌桌的事件队列一直 await 就卡死了（降帧时补间可能一直不走完）；宁可画面跳一下，牌局不能停。
  */
 export const SETTLE_SLACK_MS = 500;
 

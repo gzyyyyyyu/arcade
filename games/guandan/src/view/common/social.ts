@@ -55,7 +55,7 @@ let settle: () => void = () => {};
 const settled = new Promise<void>((r) => (settle = r));
 
 /**
- * "叫朋友来"面板的层级：要盖住房间弹窗 #online（8500，online.ts），不然面板在 DOM 里却看不见、点不到（0.13.1 线上补验）；
+ * "叫朋友来"面板的层级：要盖住房间弹窗 #online（8500，online.ts），不然面板在 DOM 里却看不见、点不到；
  * 又要在"请横过来"（9000，orientation.ts）和出错面板（9500，errors.ts）之下。tests/view/share-card.test.ts 从源码里核对这几个数
  */
 export const INVITE_Z = 8800;

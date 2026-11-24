@@ -63,7 +63,7 @@ export class PuzzleSession extends DdzSession {
     return { events: r.events, error: null };
   }
 
-  /** 地主先出完：记进度（每日残局改成记今天的成绩） */
+  /** 地主先出完：记进度（每日残局记今天的成绩） */
   protected won(): void {
     addDdzPuzzleDone(this.puzzle.id);
   }

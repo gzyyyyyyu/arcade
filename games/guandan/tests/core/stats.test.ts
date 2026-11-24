@@ -1,5 +1,5 @@
 /**
- * 实盘结回带的战绩小结（src/stake/stats.ts，平台 0.10.0 docs/platform-backend.md 5.10）和称号的名字（public/titles.json）。
+ * 实盘带回带的战绩小结（src/stake/stats.ts，平台 0.10.0 docs/platform-backend.md 5.10）和称号的名字（public/titles.json）。
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -34,7 +34,7 @@ describe('战绩小结', () => {
     expect(JSON.stringify(worst).length).toBeLessThanOrEqual(256);
   });
 
-  it('好友房：只记到账以后的副；结回的 effect 带上小结，中途离开的按那一刻的', () => {
+  it('好友房：只记到账以后的副；带回的 effect 带上小结，中途离开的按那一刻的', () => {
     const KEY = testKey('stats');
     let t: StakeTable = stakeBegin(KEY, 'small', ['human', 'human', 'ai', 'ai']);
     t = stakeSettled(t, `${t.ref}-s0-in`, { ok: true });

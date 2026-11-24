@@ -80,8 +80,8 @@ export async function currentUserId(fetcher: typeof fetch = fetch): Promise<stri
 
 /** 本机记着的、属于现在这个账号的房间（标题页"回到房间"、大厅"回到刚才的房间"、邀请链接带房主标记之前都要过这一关） */
 /**
- * 进房后自动坐哪儿（0.6.0：点开链接就能打，不用再找按钮）：回自己绑着的座位；等人时坐第一个空位；
- * 开打了先旁观（0.13.0 起不再自动接管电脑座位）。实盘房间坐下就要从钱包带入，不替人拿主意（回自己的座位除外）。null：不自动坐
+ * 进房后自动坐哪儿（点开链接就能打，不用再找按钮）：回自己绑着的座位；等人时坐第一个空位；
+ * 开打了先旁观（不自动接管电脑座位）。实盘房间坐下就要从钱包带入，不替人拿主意（回自己的座位除外）。null：不自动坐
  */
 export function autoSeat(room: RoomInfo, you: { seat: number | null; bound?: number | null }, prefer: number | null = null): number | null {
   if (you.seat !== null) return null;
@@ -196,7 +196,7 @@ export async function createRoom(
   let res: Response;
   try {
     // 实盘房间：开房时就定档位（arcade-kit 0.4.0 的开房选项），之后不能改
-    // 斗地主房间（牌馆 ⑤⑥）：请求体带 variant: 'ddz'，实盘再带 stake；不洗牌再带 noShuffle（娱乐 0.33.0、实盘 0.39.0）
+    // 斗地主房间：请求体带 variant: 'ddz'，实盘再带 stake；不洗牌再带 noShuffle（娱乐、实盘都有）
     const body = variant ? { variant, ...(stake ? { stake } : {}), ...(noShuffle ? { noShuffle: true } : {}) } : stake ? { stake } : null;
     const init: RequestInit = body
       ? { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
@@ -420,7 +420,7 @@ export abstract class RoomLink<A, R, V> {
       this.shown = msg.view ? this.project(msg.view) : null;
       this.identities();
       // 连上了（打开页面、断线重连）就说明人回来了：房间还当我走开着的话，替我点一下"我回来了"。
-      // 人一直连着、只是走开的收不到 welcome，照旧要自己点
+      // 人一直连着、只是走开的收不到 welcome，要自己点
       if (this.mySeat !== null && this.afk) this.back();
       this.emit('reset');
       // 每次进房只替人坐一次（之后换座、重连都按他自己的）

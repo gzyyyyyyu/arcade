@@ -59,7 +59,7 @@ export function shareCardOf(k: ShareKind, log: MatchLog, titles: readonly Title[
   const big =
     k.kind === 'game'
       ? { value: k.win ? '胜利' : '惜败', label: k.win ? `我方先${k.goal ?? '过 A'}` : `对方先${!k.goal || k.goal === '过 A' ? '过了 A' : k.goal}` }
-      : // 输赢的筹码正绿负红（kit 0.24.3 的 sign）；不输不赢不给，照旧白字
+      : // 输赢的筹码正绿负红（kit 0.24.3 的 sign）；不输不赢不给，用白字
         { value: signed(k.chips), label: `筹码（${signed(k.points)} 分）`, ...(Math.sign(k.chips || k.points) ? { sign: Math.sign(k.chips || k.points) } : {}) };
   return {
     game: '掼蛋',

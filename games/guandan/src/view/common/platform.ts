@@ -1,6 +1,6 @@
 /**
  * 有没有平台（kit 的 detectPlatform：问同域 /api/me）。同一份页面两种部署：
- * - 有平台（本站）：照旧，登录、云存档、钱包和实盘、"大厅"回平台首页 /；
+ * - 有平台（本站）：登录、云存档、钱包和实盘、"大厅"回平台首页 /；
  * - 单独部署（/api/me 404，kit 回 platform: false）：没有登录、云存档、钱包和实盘，"大厅"变成"首页"回游戏自己的首页 ./，
  *   好友房用游客身份（Worker 发的 cookie），昵称自己填，开房、进房的地址上带着；
  * - 不知道（5xx、429、断网、超时）：按有平台处理——平台多半只是抖了一下，实盘接口自己会报"钱包连不上"。
@@ -34,10 +34,10 @@ export function platformInfo(): PlatformInfo {
   return info;
 }
 
-/** 页面发给平台和本游戏 Worker 的请求一律有超时：网络挂住时开房按钮不一直转、实盘结回的重试等得到失败 */
+/** 页面发给平台和本游戏 Worker 的请求一律有超时：网络挂住时开房按钮不一直转、实盘带回的重试等得到失败 */
 export const FETCH_TIMEOUT_MS = 10_000;
 
-/** 老浏览器没有 AbortSignal.timeout 时不带超时（照旧等浏览器自己的），不报错 */
+/** 老浏览器没有 AbortSignal.timeout 时不带超时（等浏览器自己的），不报错 */
 export function timed(init: RequestInit = {}): RequestInit {
   if (init.signal || typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') return init;
   return { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) };

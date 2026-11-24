@@ -1,6 +1,6 @@
 /**
  * 称号：一副、一局打完时从公开出牌记录和名次算 2–3 个好玩的称号，显示在结算页、整局结束页；
- * 实盘结回时称号 id 随战绩小结报给平台（stats.ts），平台的称号墙按 public/titles.json 显示中文名。
+ * 实盘带回时称号 id 随战绩小结报给平台（stats.ts），平台的称号墙按 public/titles.json 显示中文名。
  * 只用公开信息（谁出了什么、名次），不看任何人的手牌；只说打法，不说人。
  */
 import { isBomb, teamOf, type DealResult, type PlayRecord } from '../core/index.ts';

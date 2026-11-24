@@ -192,7 +192,7 @@ const RECIPES: Record<Sfx, (a: Ctx) => void> = {
     [4, 3, 2, 0].forEach((d, i) =>
       tone(a, C4 * semi(scaleSemi(d)), 0.5, 0.2, { type: 'triangle', delay: i * 0.22, attack: 0.02, lp: 1200 }));
   },
-  // 轮到自己：清楚的一声"叮——"（0.6.0 起更亮、更长，后台标签页另有标题闪）
+  // 轮到自己：清楚的一声"叮——"（要亮、要长，人走开了也听得见；后台标签页另有标题闪）
   turn: (a) => {
     tone(a, 1568, 0.5, 0.24, { type: 'sine' });
     tone(a, 3136, 0.3, 0.07, { type: 'sine' });

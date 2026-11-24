@@ -103,7 +103,7 @@ export function buildTopBar(sc: DdzScene, W: number): void {
   setTopHit(lobby, DDZ_TOPBAR.lobbyW, deep);
   c.add(lobby);
   sc.reg('lobby', lobby);
-  // 好友房开打以后也能叫朋友（掼蛋 0.6.1 就有）：中途进来的人接管电脑的座位
+  // 好友房开打以后也能叫朋友（和掼蛋一样）：中途进来的人接管电脑的座位
   const net = sc.net;
   if (net && !net.match) {
     const lp = Math.max(FUN_UI.iconMinW, minHit());
@@ -227,7 +227,7 @@ export function buildNetStake(sc: DdzScene, c: Phaser.GameObjects.Container, W: 
   const r = tableRules(ns);
   const paid = !sc.watching && me.paid === 'yes';
   const tail = sc.watching ? '旁观' : paid ? '本场 {0} 分（{1}）' : me.paid === 'pending' ? ROOM_STAKE_TEXT.pending : roomWhy(ns.why ?? '');
-  // 本场的分和筹码红绿（深色条子上用亮一档的），其余字照旧金色
+  // 本场的分和筹码红绿（深色条子上用亮一档的），其余字用金色
   const t = signedLine(sc, W - DDZ_STAKE_BAR.right, TOPBAR_H + DDZ_STAKE_BAR.textDy, `实盘 · ${TIER_NAME[ns.tier]} · 打完 ${ns.deals}/${r.roomDeals} 副 · ${tail}`, paid ? [me.points, me.points * ddzPointValue(ns.tier, r)] : [], { size: TYPE.small, bold: true, color: COLOR.goldLight, ox: 1, dark: true });
   const pg = sc.add.graphics();
   pg.fillStyle(0x1a0e07, 0.7).fillRoundedRect(W - t.width - DDZ_STAKE_BAR.pillLeft, TOPBAR_H + DDZ_STAKE_BAR.pillDy, t.width + DDZ_STAKE_BAR.pillPadW, DDZ_STAKE_BAR.pillH, DDZ_STAKE_BAR.pillH / 2);

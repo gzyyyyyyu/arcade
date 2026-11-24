@@ -9,7 +9,7 @@ export const PLACE_NAMES = ['头游', '二游', '三游', '末游'];
 export type SeatId = AvatarId;
 /** 座位 → 人物：0 我（下）、1 下家老张（右）、2 对家小美（上）、3 上家阿强（左）。 */
 const SEAT_PERSON: readonly SeatId[] = ['me', 'laozhang', 'xiaomei', 'aqiang'];
-/** 斗地主（牌馆 0.28.0）：0 我、1 下家稳哥（右）、2 上家幺妹儿（左） */
+/** 斗地主：0 我、1 下家稳哥（右）、2 上家幺妹儿（左） */
 export const DDZ_SEAT_PERSON: readonly SeatId[] = ['me', 'wengge', 'yaomeir'];
 
 /** 这张桌子的座位 → 人物（掼蛋的牌桌用默认的，斗地主的牌桌建起来时换成 DDZ_SEAT_PERSON，离开时换回来） */
@@ -21,8 +21,8 @@ export function setTablePersons(list: readonly SeatId[] | null): void {
 
 /**
  * 联机时座位上坐的是谁（画面座位号，我 = 0）：真人用昵称、头像统一用"你"那张；电脑是老张、小美、阿强，
- * 按真实座位定（0.7.0 起，和房间里电脑的打法同一份 SEAT_PERSONA），每个人屏幕上同一个电脑叫同一个名字。
- * 单机时全是 null，照旧按固定人物。由联机会话（net.ts）在每次收到房间信息时更新。
+ * 按真实座位定（和房间里电脑的打法同一份 SEAT_PERSONA），每个人屏幕上同一个电脑叫同一个名字。
+ * 单机时全是 null，按固定人物。由联机会话（net.ts）在每次收到房间信息时更新。
  */
 export interface SeatIdentity {
   human: boolean;
