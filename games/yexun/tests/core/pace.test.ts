@@ -23,7 +23,7 @@ interface Pace {
 
 function pace(seed: number, build: (typeof BUILD_IDS)[number]): Pace {
   const w = createWorld({ seed, mode: 'vigil', danger: 2 });
-  // 1.1 第三轮起节奏验收也用会凑双修的机器人（主线 10-18）
+  // 节奏验收用会凑双修的机器人
   const bot = new Bot('normal', build, seed);
   const count: number[] = [];
   const eliteKills: number[] = [];
@@ -75,7 +75,7 @@ describe('一局节奏（13.3）', () => {
   const runs = BUILD_IDS.flatMap((b, i) => [pace(i + 1, b), pace(i + 101, b), pace(i + 201, b)]);
   const mean = (f: (p: Pace) => number): number => runs.reduce((s, p) => s + f(p), 0) / runs.length;
 
-  // 所有者 2026-10-17 试玩："打死一个怪就升级了？"——开局放慢：第一次升级 10–20 秒、前 30 秒最多 2 级，全程少一截
+  // 开局别升得太快（不能打死一个怪就升级）：第一次升级 10–20 秒、前 30 秒最多 2 级
   it('第一次升级 10–20 秒，前 30 秒最多 2 级', () => {
     expect(mean((p) => p.first)).toBeGreaterThanOrEqual(10);
     expect(mean((p) => p.first)).toBeLessThanOrEqual(20);
@@ -88,10 +88,9 @@ describe('一局节奏（13.3）', () => {
     // 上限放宽 0.5：15 局的抽样误差（0.4.2 每流派 200 局的均值 13.5，加纸兵前 13.3，都在 10–14 里）
     expect(mean((p) => p.by5)).toBeLessThanOrEqual(14 + 0.5);
   });
-  // 全局升级的验收看大样本（13.3 上限 36，主线 10-18：凑双修的机器人 2,000 局均值 35.3）。单局 16–45 级都有，
+  // 全局升级的验收看大样本（13.3 上限 36，凑双修的机器人 2,000 局均值 35.3）。单局 16–45 级都有，
   // 5 局的均值能偏出好几级（这 5 个种子是 37.4），所以这里只拦大的回退：上限多留 3 级。
-  // 0.4.4 刷新补给和跳过小奖让机器人后期多撑一会儿：这 18 局 37.8 → 39.4，前 5 分钟不变（13.8），后半段每分钟 2.10 → 2.27；
-  // 再多留 1 级。大样本还没按新机制重核（DESIGN 第 12 节）
+  // 刷新补给和跳过小奖让机器人后期多撑一会儿，再多留 1 级（这 18 局约 39.4）。
   it('全局升级 25–36 次（这里 18 局，上限放宽 4），后半段每分钟 1.5–2.5 次', () => {
     expect(mean((p) => p.total)).toBeGreaterThanOrEqual(25);
     expect(mean((p) => p.total)).toBeLessThanOrEqual(36 + 4);

@@ -13,7 +13,7 @@ import type { Danger } from './waves.ts';
 export const LIVE_OPEN = true;
 
 /**
- * 实盘暂不开放的守夜图：新图要先按 LIVE_MAP_BP 同一套方法拟合系数、偏离同档平均 ±0.15 份以内才开（DESIGN 8.1，主线 10-20）。
+ * 实盘暂不开放的守夜图：新图要先按 LIVE_MAP_BP 同一套方法拟合系数、偏离同档平均 ±0.15 份以内才开（DESIGN 8.1）。
  * 菜单上这几张图在实盘里灰着；直接调带入也会退回雪原（main.ts startLive）。现在没有。
  */
 export const LIVE_MAP_CLOSED: readonly MapId[] = [];
@@ -69,7 +69,7 @@ export function isLiveTier(v: unknown): v is LiveTier {
  * 实盘连战（DESIGN.md 4.1b）：带一份打随机种子的首领连战（10 只首领 + 终局夜漏君，一共 RUSH_TOTAL = 11 只），危险档照 LIVE_TIERS，只开小、中两档；
  * 固定小道士、只能选三套推荐配装之一、不带咒（platform/live.ts liveRushSetup），人人一样的起点才对得上按机器人解的倍数。
  * 只有两个数：打倒 n 只（n ≤ 10，10 = 打到夜漏君没打倒）给 reach × n / 10，打倒夜漏君给 clear（都是万分比），0 只给 0。
- * 数是 0.37 的 5 分钟连战配的，0.38.0 的连战总装后按各档 2,000 局（小白、普通各一线）重配、报主线同意再改（主线 11-23 定：只开小中、按每局对齐）
+ * 要重配时按各档 2,000 局（小白、普通各一线）量，报主线同意再改。
  */
 export const LIVE_RUSH: Partial<Record<LiveTier, { reach: number; clear: number }>> = {
   small: { reach: 10_000, clear: 12_000 },

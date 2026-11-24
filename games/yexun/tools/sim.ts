@@ -437,9 +437,9 @@ if (!isMainThread) {
   const maps = arg('--map', raid ? 'guzhen,dukou,shansi' : 'snow').split(',');
   const map = maps[0]!;
   const char = arg('--char', 'xiaodao') as CharacterId;
-  // 双修对照臂：同一批种子再跑一遍、双修条件满足也不合，和正常臂按种子配对比净强度（1.1 双修验收，主线 10-18）
+  // 双修对照臂：同一批种子再跑一遍、双修条件满足也不合，和正常臂按种子配对比净强度
   const noDual = process.argv.includes('--nodual');
-  // 竖屏开的局（刷怪圈转 90°，Setup.tall）：和横屏同种子对照，量横竖屏是不是一套难度（主线 10-20）
+  // 竖屏开的局（刷怪圈转 90°，Setup.tall）：和横屏同种子对照，量横竖屏是不是一套难度
   const tall = process.argv.includes('--tall');
   const live = process.argv.includes('--live');
   const poolArg = arg('--pool', '');

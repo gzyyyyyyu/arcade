@@ -1,5 +1,5 @@
 /**
- * 角色的法器池（2.0，所有者 11-01）：每个角色只会在升级三选一、宝箱、合成 / 双修里碰到自己池里的法器和被动，
+ * 角色的法器池：每个角色只会在升级三选一、宝箱、合成 / 双修里碰到自己池里的法器和被动，
  * 池里有 2–3 个主修流派的完整成套件加几件跨流派的搭配件。这样新法器不会稀释老流派，每个角色的卡池也更像这个角色。
  * 池由「主修流派的单子（content/guide.ts）+ 几件跨流派的搭配件」算出来：被动 = 池里每件法器的进化被动 + 主修流派要的被动 + 仙桃、朱砂。
  * 实盘局和娱乐局一样按池抽。
@@ -83,7 +83,7 @@ export function inPool(character: string | undefined, id: string): boolean {
   return s.w.has(id) || s.p.has(id);
 }
 
-// ───────────────────────── 开局配置（所有者 11-06 定 A + B） ─────────────────────────
+// ───────────────────────── 开局配置（A + B） ─────────────────────────
 
 /** 每个流派的核心件：流派单子上「成型要先有它」的那一件（和机器人路线 tools/bots.ts ROUTES 的第一件一致，测试锁住） */
 export const SCHOOL_CORE: Record<SchoolId, WeaponId> = {
@@ -121,7 +121,7 @@ export const ALT_START_FIX: Partial<Record<CharacterId, WeaponId>> = {
   yinyang: 'bell', // 招魂幡 4%；镇魂铃 98%、判官笔 18%、勾魂锁 23%
 };
 
-/** A：第二件起手法器 = 另一主修流派的核心件（主线 11-06：按规则定，不逐个手挑），个别换掉（ALT_START_FIX） */
+/** A：第二件起手法器 = 另一主修流派的核心件（按规则定，不逐个手挑），个别换掉（ALT_START_FIX） */
 export function altStart(id: CharacterId): WeaponId {
   return ALT_START_FIX[id] ?? SCHOOL_CORE[altSchool(id)];
 }

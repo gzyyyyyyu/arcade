@@ -337,7 +337,7 @@ export const RAID_ENEMIES: Record<RaidEnemyKind, Omit<EnemyDef, 'kind' | 'code' 
 };
 
 /**
- * 夜探后半段（DESIGN.md 2.3，主线 2026-10-17 批的 B）：所有者试玩觉得 6 分钟以后没东西可搜、只剩躲怪等门。
+ * 夜探后半段（DESIGN.md 2.3）：免得 6 分钟以后没东西可搜、只剩躲怪等门。
  * 都按夜探自己的随机流（raid-late）抽，录像和每日挑战能复现；不加"越晚撤越多倍"的倍数，多出来的价值全来自这些。
  * - restock：6:00 起每 90 秒，把 n 个已经开过的箱子重新封上、换一批东西（每一波深度 +deepStep，越晚越值钱）；
  * - goblin：5:00、10:00 各出一只宝妖，离主角 900–1,600 的路口；life 拍后钻地跑掉；打倒直接进背包 items 件（深度 1 抽）；
@@ -387,7 +387,7 @@ export const ROAM_SPEED = 0.6;
  * 实盘结回（DESIGN.md 4.2）：撤出时倍数 = clamp(带出的宝物价值 ÷ 基准价值, 保底, 封顶)；死亡、迷失、认输为 0。结回 = 带入 × 倍数 向下取整，按万分之一传。
  * 基准按"档位 × 镇子"各一个：三个镇子同一档的平均带出价值差三成（模拟器第 3 轮），只按一个数会有"挑镇子赚钱"的空子。
  * 保底（1.1）：按撤出时刻从 1 涨到满额，按档分开定（见下面 floor / floorRamp）；不按镇子分开：保底一高，手熟的人"开门就走"就比认真搜还赚。
- * 档位 → 危险：小 0、中 1、大 2（主线 2026-10-17 同意放低一档）；夜探的危险 1、2 走 waves.ts 的 RAID_DANGERS（比守夜缓）。
+ * 档位 → 危险：小 0、中 1、大 2（比守夜低一档）；夜探的危险 1、2 走 waves.ts 的 RAID_DANGERS（比守夜缓）。
  * 基准是 1.1 全量模拟（每格 2,000 局）拟合的：普通玩家落在区间里、且比开门就走至少多 0.15 份，见 DESIGN.md 4.2。
  */
 export const RAID_LIVE = {
@@ -416,7 +416,7 @@ export const RAID_LIVE = {
   charBp: {
     // 45 个「角色 × 镇子」小、中、大三档 sim --stop 量（最多 2,000 局），豪华档每格 2,000 局。
     // 口径「宁简勿难」：只压超过多发线（带上限 + 0.15）的，压到普通回到带上限、小白不超多发线；普通低于带下限的抬到带上限（最多 2 倍）；其余照旧。
-    // 豪华档的基准把小道士普通锚到 +0.40（主线 11-17：往多给提，但不到大档带上限 +0.45），角色系数按同一个锚压
+    // 豪华档的基准把小道士普通锚到 +0.40（往多给提，但不到大档带上限 +0.45），角色系数按同一个锚压
     xiaodao: { medium: { guzhen: 10_000, dukou: 11_400, shansi: 10_000, xilou: 10_000, liangcang: 10_000, yaozhen: 10_000 }, large: { guzhen: 10_000, dukou: 10_000, shansi: 9_200, xilou: 10_000, liangcang: 10_000, yaozhen: 10_000 } },
     fushi: { small: { guzhen: 8_800, dukou: 9_400, shansi: 9_600, xilou: 9_200, liangcang: 8_900, yaozhen: 8_800 }, medium: { guzhen: 8_400, dukou: 10_000, shansi: 8_300, xilou: 10_100, liangcang: 8_400, yaozhen: 8_400 }, large: { guzhen: 8_100, dukou: 8_600, shansi: 7_300, xilou: 8_700, liangcang: 8_500, yaozhen: 8_100 }, luxe: { guzhen: 8_200, dukou: 8_300, shansi: 7_000, xilou: 8_300, liangcang: 7_900, yaozhen: 8_200 } },
     jianxia: { small: { guzhen: 8_300, dukou: 8_200, shansi: 9_400, xilou: 8_200, liangcang: 8_200, yaozhen: 8_300 }, medium: { guzhen: 7_900, dukou: 9_100, shansi: 7_700, xilou: 8_400, liangcang: 7_900, yaozhen: 7_900 }, large: { guzhen: 6_700, dukou: 8_100, shansi: 6_800, xilou: 7_900, liangcang: 7_100, yaozhen: 6_700 }, luxe: { guzhen: 7_200, dukou: 7_900, shansi: 7_100, xilou: 7_300, liangcang: 6_400, yaozhen: 7_200 } },
