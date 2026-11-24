@@ -24,7 +24,7 @@
   "id": "syn-normal-d1-ext",
   "phase": "lost",
   "events": 1184,
-  "eventsHash": "b55e4141480039fb",
+  "eventsHash": "54269e7b489620ff",
   "months": [
    "1:2e90d13c4b630be9",
    "2:7383d480ab710ab0",
@@ -44,7 +44,7 @@
   "id": "syn-smart-d1",
   "phase": "won",
   "events": 1443,
-  "eventsHash": "4da0667d2051c6b0",
+  "eventsHash": "e3eb3cec920da39a",
   "months": [
    "1:61e5de014219e98e",
    "2:e2492b76760a1162",
@@ -143,7 +143,7 @@
   "id": "syn-random-d2",
   "phase": "lost",
   "events": 924,
-  "eventsHash": "47cd94bc895c68ef",
+  "eventsHash": "1ac49ef8032e979b",
   "months": [
    "1:d34f2630a59e1832",
    "2:a32c9812dd7672a3",
@@ -195,7 +195,7 @@
   "id": "syn-ipo-only",
   "phase": "lost",
   "events": 777,
-  "eventsHash": "5167ad9c8cb878c0",
+  "eventsHash": "3f292b91dfd09115",
   "months": [
    "1:6759d0fb5c2429eb",
    "2:5699e5e8c2fb8ab1",
@@ -235,7 +235,7 @@
   "id": "real0-smart-d8-ext",
   "phase": "lost",
   "events": 1775,
-  "eventsHash": "34375e0e3cd52c5c",
+  "eventsHash": "203eaadb87982629",
   "months": [
    "1:aa5abedb887c2f36",
    "2:0e2266a93061ba36",
@@ -277,7 +277,7 @@
   "id": "real1-smart-d2",
   "phase": "won",
   "events": 2025,
-  "eventsHash": "ba2a83bc2be3ae8b",
+  "eventsHash": "9349566fe4212e55",
   "months": [
    "1:f82c04f356ec2682",
    "2:6f30b5cff4a74dce",
@@ -299,7 +299,7 @@
   "id": "real2-smart-d6-ext",
   "phase": "won",
   "events": 2165,
-  "eventsHash": "56469e2a03e4f930",
+  "eventsHash": "a8ea3c9e6a20a87f",
   "months": [
    "1:ee388a05477bd450",
    "2:89033ce830f32b09",
@@ -343,7 +343,7 @@
   "id": "real1-ipo-only-half",
   "phase": "won",
   "events": 1482,
-  "eventsHash": "412d468da52d3a1a",
+  "eventsHash": "11ff96a0779ef3c6",
   "months": [
    "1:2f790d9e7b72453e",
    "2:664db64f6a0318c4",

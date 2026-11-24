@@ -1,4 +1,4 @@
-import { Cloud, META_KEY, browserDeps, type CloudView, type SlotDef } from '../platform/cloud.ts';
+import { Cloud, META_KEY, browserDeps, hasLoginHint, type CloudView, type SlotDef } from '../platform/cloud.ts';
 import { onTouched } from '../platform/localChange.ts';
 import { PROFILE_KEY, cloudProfile, mergeProfile, emptyProfile, reviveProfile, type Profile } from '../platform/profile.ts';
 import type { KeyValueStore } from '../platform/settings.ts';
@@ -98,9 +98,20 @@ export function flushBeforeLeave(): void {
   cloud?.hidden(true);
 }
 
-/** 云朵现在的样子（没启动时按未登录）。 */
+/** 这次不同步（调试会话、单独部署）：云朵按未登录。 */
+let skipped = false;
+export function skipCloudSync(): void {
+  skipped = true;
+  listeners.forEach((fn) => fn(cloudView()));
+}
+
+/**
+ * 云朵现在的样子。还没启动时（刚打开页面、还在问有没有平台）：有登录标记的按同步中，
+ * 不先显示「未登录」——那时点云朵会被送去登录页（已经登录的人看到「已经登录了」）。
+ */
 export function cloudView(): CloudView {
-  return cloud?.view ?? { state: 'out', note: null };
+  if (cloud) return cloud.view;
+  return { state: !skipped && hasLoginHint() ? 'syncing' : 'out', note: null };
 }
 
 export function onCloudChange(fn: (v: CloudView) => void): () => void {

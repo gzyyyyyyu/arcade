@@ -9,7 +9,7 @@ import { pctArrow } from '../labels.ts';
 import { COLOR, FS, PHONE, TYPE, signColor } from '../theme.ts';
 import { addGlyph, addImage, addPill, addSlice } from '../ui/art.ts';
 import { addText, fitWidth, markCut } from '../ui/text.ts';
-import { touchHit } from '../ui/button.ts';
+import { HIT_MIN, touchHit } from '../ui/button.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
 import { moneyShort } from '../ui/dialog.ts';
 import { extraChip } from './tempoFx.ts';
@@ -122,7 +122,9 @@ export class RecapCard {
     node.add(s.add.rectangle(x, y, w, h, COLOR.paperHi, 0.96).setOrigin(0, 0).setRounded(12).setStrokeStyle(2, COLOR.edge, 1));
     if (hasArt(s.textures, NEWS_KEY)) node.add(addImage(s, x + 20, y + h / 2, NEWS_KEY, 24));
     node.add(addText(s, x + 36, y + h / 2, pctArrow(r.ret, 1), { size: 14, bold: true, num: true, color: tint, originY: 0.5 }));
-    const hit = s.add.rectangle(x, y, w, h, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    // 触屏上点击区往上撑到 HIT_MIN（角标贴着卡片底边，不往下撑）
+    const up = Math.max(0, HIT_MIN - h);
+    const hit = s.add.rectangle(x, y - up, w, h + up, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     hit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
       ev.stopPropagation();
       sound.ui('toggle');
@@ -353,6 +355,8 @@ export class RecapCard {
       // 过山车逆着风口大跌：原因那行直接写大白话（规则层的原因是「运气」一类，新手看了还是不懂为什么跌）
       const why = l.swing ? SWING_WORD : shortPart(l.why.split('；')[0] ?? l.why, 16);
       const wt = addText(s, cx + 44, cy + 24, why, { size: FS.xs, bold: l.swing, color: l.swing ? COLOR.danger : COLOR.muted });
+      // 窄卡放不下「大消费整个风口比大环境强」时写「大消费比大环境强」
+      if (wt.width > cw - 50) wt.setText(why.replace('整个风口', ''));
       fitWidth(wt, cw - 50, 3);
       root.add(wt);
       // 谁说对了：单独一枚小签骑在卡片上沿右边（接在原因后面的话窄卡里会被截成"老王说…"）
@@ -460,14 +464,16 @@ export class RecapCard {
     root.add([close, closeHit]);
     this.catBtn = null;
     if (this.catBadge && this.mode === 'recap') {
-      const cx = this.catOnIcon ? x + PAD + 14 : x + w - 92;
+      // 离右上角的「详情」远一点，两块点击区不叠
+      const catR = Math.max(22, HIT_MIN / 2);
+      const cx = this.catOnIcon ? x + PAD + 14 : x + w - 104 - (catR - 22);
       const cy = this.catOnIcon ? y + 24 : y + 22;
       this.catPos = { x: cx, y: cy };
       const cat = hasArt(s.textures, CAT_HINT_KEY)
         ? addImage(s, cx, cy, CAT_HINT_KEY, 30)
         : s.add.circle(cx, cy, 13, 0xf3a54a).setStrokeStyle(2, COLOR.ink, 1);
       const dot = s.add.circle(cx + 11, cy - 10, 5, COLOR.danger).setStrokeStyle(1.5, 0xffffff, 1);
-      const hit = s.add.circle(cx, cy, 22, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      const hit = s.add.circle(cx, cy, catR, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on(Phaser.Input.Events.POINTER_UP, (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
         ev.stopPropagation();
         sound.ui('close');

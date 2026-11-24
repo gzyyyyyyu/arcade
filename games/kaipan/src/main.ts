@@ -11,7 +11,7 @@ import { mountRotateHint, setRotateLobbyLabel, takeRelayout } from './platform/o
 import { watchViewport } from 'arcade-kit/viewport';
 import { getSettings, onSettingsChange } from './platform/settings.ts';
 import { loadProfile } from './platform/profile.ts';
-import { cloudUserId, onCloudChange, startCloudSync } from './view/cloudSync.ts';
+import { cloudUserId, onCloudChange, skipCloudSync, startCloudSync } from './view/cloudSync.ts';
 import { challengeParam, loadInvite } from './view/challenge.ts';
 import { goLobby, lobbyLabel } from './view/lobby.ts';
 import { live, lobbyConfirm, startLive } from './view/live.ts';
@@ -127,7 +127,7 @@ const platformKnown = import.meta.env.DEV ? Promise.resolve('unknown' as const) 
 // 云存档：调试会话（?debug=1，看得到隐藏信息、不计档案）不同步；单独部署没有平台，也不同步。
 // 云端的进度写进本地后，开始菜单按新档案重画；别的画面不打断，下次回到开始菜单自然读到新档案
 void platformKnown.then((m) => {
-  if (params.debug || m === 'standalone') return;
+  if (params.debug || m === 'standalone') return skipCloudSync();
   startCloudSync(() => session.sceneKey === 'title' && session.redraw());
   // 好友挑战的链接（?challenge=<id>）：读这个挑战，开始菜单读到了弹卡片。读完就从地址里去掉，刷新不会再弹一次
   const challenge = challengeParam(location.search);

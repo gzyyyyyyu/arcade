@@ -6,7 +6,7 @@ import { flameBurst, iceBurst } from '../fx/particles.ts';
 import { stamp, type FlipTone } from './tempoFx.ts';
 import { buysText } from '../labels.ts';
 import type { Rect } from '../rect.ts';
-import { COLOR, FS, PHONE, PORTRAIT, TYPE, signColor } from '../theme.ts';
+import { COLOR, FS, PHONE, TYPE, signColor } from '../theme.ts';
 import { addText, fitWidth } from '../ui/text.ts';
 import { pctArrow } from '../labels.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
@@ -131,7 +131,8 @@ export class HoldingsView {
         if (this.idle) sc.tweens.add({ targets: ring, alpha: { from: 1, to: 0.35 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
       // 竖屏版的矮卡（约 100 高）：钱袋和现金一行在上，「空位」和一句引导在虚线座位里
-      const guide = glow ? (PORTRAIT ? '点下面的推荐买' : '点右边的推荐买') : buys?.text.replace(/ /g, '');
+      // 手机上推荐在「推荐」页签里（默认开着的是群聊），写明去哪个页签
+      const guide = glow ? (PHONE ? '到「推荐」里买' : '点右边的推荐买') : buys?.text.replace(/ /g, '');
       if (COMPACT_SLOTS) {
         root.add(dashedBox(sc, x + 8, y + 36, w - 16, h - 46, 0xd8c3a8));
         if (k === 0) {

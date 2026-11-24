@@ -534,7 +534,6 @@ export class EventPanel {
     const W = ph ? Math.min(L.W, V.w - 12) : L.W;
     // 情景原文放回卡面（一个引号框），选项下写原句；高度按内容算
     const story = ev.text && ev.text !== ev.brief ? addText(scene, 0, 0, ev.text, { size: TYPE.label, color: COLOR.ink, wrap: W - 120, lineSpacing: 3 }) : null;
-    const storyH = story ? Math.min(L.storyMax, story.height) + L.storyPad : 0;
     // 选项原句不截断：先量出两边原句的高度，选项卡按长的那边长高（固定两行的话放不下就得打省略号，关键后果被截掉）
     const cw = (W - 40 * 2 - 24) / 2;
     const optText = [0, 1].map((i) => {
@@ -544,6 +543,9 @@ export class EventPanel {
     });
     const textH = Math.max(36, ...optText.map((t) => t?.height ?? 0));
     const optH = Math.max(L.optMin, L.optBase + textH);
+    // 原文一般放全；只有屏幕高度不够（手机横屏）才限到 storyMax 行数，全文在悬停里
+    const storyMax = Math.max(L.storyMax, V.h - (ph ? 8 : 140) - (L.headH + L.storyPad + optH + L.bottom));
+    const storyH = story ? Math.min(storyMax, story.height) + L.storyPad : 0;
     const H = L.headH + storyH + optH + L.bottom;
     const x = V.w / 2 - W / 2;
     const y = ph ? Math.max(4, Math.round((V.h - H) / 2)) : Math.max(70, Math.round(360 - H / 2));
@@ -565,9 +567,8 @@ export class EventPanel {
       const sy = y + L.storyY;
       const box = scene.add.rectangle(x + 40, sy, W - 80, storyH - 6, 0xffffff, 0.75).setOrigin(0, 0).setRounded(12).setStrokeStyle(1.5, COLOR.edge, 1);
       this.root.add([box, addGlyph(scene, x + 60, sy + 18, 'horn', 22)]);
-      // 太长就截到三行
       let cut = Array.from(story.text);
-      while (story.height > L.storyMax && cut.length > 10) {
+      while (story.height > storyMax && cut.length > 10) {
         cut = cut.slice(0, -4);
         story.setText(`${cut.join('')}…`);
         markCut(story);

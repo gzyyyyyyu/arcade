@@ -27,7 +27,7 @@ export function phoneHome(W: number, H: number, n: number) {
     quick: { x: hero.x + hero.w - 132, y: bandY - 54, w: 132, h: 44 },
     logo: { x: pad + cardsW / 2, y: 104, size: 52 },
     tagY: 156,
-    tools: { right: W - pad, y: 8, h: 42, gap: 6, font: 14 },
+    tools: { right: W - pad, center: null as number | null, y: 8, h: 42, gap: 6, font: 14 },
     lobby: { x: pad, y: 8 },
     cloud: { x: 160, y: 30 },
     version: { x: W - pad, y: 56 },
@@ -73,7 +73,8 @@ export function portraitHome(W: number, H: number, n: number, withQuick: boolean
     quick,
     logo: { x: W / 2, y: logoY, size: 52 },
     tagY: logoY + 48,
-    tools: { right: W - pad, y: toolsY, h: 42, gap: 6, font: 14 },
+    // 竖屏这一排单独占一行：居中摆（靠右时左边空一大块）
+    tools: { right: W - pad, center: W / 2 as number | null, y: toolsY, h: 42, gap: 6, font: 14 },
     lobby: { x: pad, y: 8 },
     cloud: { x: Math.round(W / 2 + 20), y: 26 },
     version: { x: W - pad, y: 12 },

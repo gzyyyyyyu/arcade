@@ -1,4 +1,4 @@
-import { dailyBoardId, flashScore, formatMoney, formatPoints, weeklyBoardId, weeklyInfo, type GameState, type RunSummary } from '../../core/index.ts';
+import { dailyBoardId, difficultyDef, flashScore, formatMoney, formatPoints, weeklyBoardId, weeklyInfo, type GameState, type RunSummary } from '../../core/index.ts';
 import { BoardPanel } from '../meta/boardPanel.ts';
 import { onBoardChange, retryRun, runBoard } from '../dailyBoard.ts';
 import { attachDomProxy } from '../ui/domProxy.ts';
@@ -47,7 +47,7 @@ export class EndFlash {
     const hx = one ? 0 : ph ? 104 : 0;
     const hy = y + (one ? 80 : G.headY);
     this.s.tag(L + hx, hy - 10, weekly ? weeklyTag(date) : flashTag(date), weekly ? COLOR.accent : COLOR.accent, weekly ? 150 : 128);
-    const who = `${sum.personaName} · Lv${sum.difficulty}`;
+    const who = `${sum.personaName} · ${difficultyDef(sum.difficulty).name}`;
     this.s.tag(L + hx + (weekly ? 160 : 138), hy - 10, who, COLOR.info, Math.max(92, Array.from(who).length * 14 + 24));
     // 版面：电脑一列居中；手机左右两栏
     const two = ph && !one;

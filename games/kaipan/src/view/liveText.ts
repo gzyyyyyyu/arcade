@@ -49,10 +49,10 @@ export const GEAR_NAME: Record<number, string> = { 1: '稳健', 2: '进取', 3: 
 /** 选杠杆时写清风险：输赢放大几倍、最多拿回本钱的几倍、亏到剩多少就清零、每月利息约多少筹码（不用「结回」「份」这类没解释过的词） */
 export function gearText(t: Readonly<LiveTierDef>, x: number): string {
   const g = liveGear(x);
-  if (g.x <= 1) return `${GEAR_NAME[1]} 1×：不放大，最多拿回本钱的 ${g.cap} 倍，不收利息`;
+  if (g.x <= 1) return `${GEAR_NAME[1]}：不放大，最多拿回本钱的 ${g.cap} 倍，不收利息`;
   const interest = Math.floor(g.interest * BALANCE.live.tiers[t.id].gearRate * t.stake);
   const left = g.call === 0.5 ? '一半' : `${Math.round(g.call * 10)}成`;
-  return `${GEAR_NAME[g.x] ?? ''} ${g.x}×：输赢都放大 ${g.x} 倍，最多拿回本钱的 ${g.cap} 倍；放大后只剩本钱的${left}就清零；每月扣约 ${chips(interest)} 筹码利息，开盘前随时能减仓`;
+  return `${GEAR_NAME[g.x] ?? ''} ×${g.x}：输赢都放大 ${g.x} 倍，最多拿回本钱的 ${g.cap} 倍；放大后只剩本钱的${left}就清零；每月扣约 ${chips(interest)} 筹码利息，开盘前随时能减仓`;
 }
 export const LIVE_WALLET_NOTE = '无任何现金价值';
 
@@ -139,7 +139,7 @@ export function liveEndText(r: Readonly<LiveRecord>, won: boolean, gear?: { x: n
   const share = gear ? `杠杆 ×${gear.x}，带回 ${times}` : `带回是带进来那一份的 ${times}`;
   const span = won ? '几个月打下来' : '这局';
   let body: string;
-  if (got === 0 && capped === 0 && gear?.margin) body = `杠杆 ×${gear.x}，资产跌到清零线，这局按 0 结。杠杆开得越大，涨得快跌得也快；钱包每天能领补给，明天还能来玩，也可以先用稳健 1× 试试；快到清零线时，开盘前可以先减仓。`;
+  if (got === 0 && capped === 0 && gear?.margin) body = `杠杆 ×${gear.x}，资产跌到清零线，这局按 0 结。杠杆开得越大，涨得快跌得也快；钱包每天能领补给，明天还能来玩，也可以先用稳健档试试；快到清零线时，开盘前可以先减仓。`;
   else if (got === 0 && capped === 0) body = `这次本金赔光了。炒股本来就有赢有输，别往心里去。钱包每天能领补给，明天还能来玩；也可以去玩娱乐模式，不花筹码。`;
   else if (got + capped < r.stake) body = `${span}小亏，${share}。行情有起有落，下次换个档位或换个打法试试。`;
   else body = `${span}，${share}。`;

@@ -12,7 +12,7 @@ import { addGlyph, addImage, addPaper, addPill } from '../ui/art.ts';
 import { Button } from '../ui/button.ts';
 import { iconChip, moneyShort } from '../ui/dialog.ts';
 import { bindTooltip } from '../ui/tooltip.ts';
-import { addText, fitWidth } from '../ui/text.ts';
+import { addText } from '../ui/text.ts';
 import { phoneLayout, viewOf } from '../viewport.ts';
 import { ellipsize } from '../../core/format.ts';
 
@@ -161,11 +161,18 @@ export function monthCard(
   // ---- 开场白：一条带主题图标的小纸条，讲这个月发生了什么
   let y = 104;
   if (info.intro) {
-    const strip = scene.add.rectangle(pad, y, colW, 34, boss ? 0x46305a : 0xfff6dc).setOrigin(0, 0).setRounded(10).setStrokeStyle(1.5, boss ? COLOR.gold : COLOR.edge, 1);
-    const q = addGlyph(scene, pad + 18, y + 17, 'horn', 20);
-    const introT = fitWidth(addText(scene, pad + 34, y + 17, ellipsize(info.intro, 30), { size: TYPE.label, color: ink, originY: 0.5 }), colW - 42);
+    // 一行放不下（竖屏窄）就折成两行，纸条跟着变高，不截字
+    let introT = addText(scene, pad + 34, y + 17, info.intro, { size: TYPE.label, color: ink, originY: 0.5 });
+    let stripH = 34;
+    if (introT.width > colW - 42) {
+      introT.destroy();
+      introT = addText(scene, pad + 34, y + 7, info.intro, { size: TYPE.label, color: ink, wrap: colW - 42, lineSpacing: 2 });
+      stripH = Math.round(introT.height + 14);
+    }
+    const strip = scene.add.rectangle(pad, y, colW, stripH, boss ? 0x46305a : 0xfff6dc).setOrigin(0, 0).setRounded(10).setStrokeStyle(1.5, boss ? COLOR.gold : COLOR.edge, 1);
+    const q = addGlyph(scene, pad + 18, y + stripH / 2, 'horn', 20);
     body.push(strip, q, introT);
-    y += 42;
+    y += stripH + 8;
   }
   // ---- 目标环 + 奖励
   const ringX = pad + 66;

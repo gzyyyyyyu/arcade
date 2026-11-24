@@ -124,7 +124,7 @@ describe('0.32.0 短局的首付常驻', () => {
     expect(downPaymentLine(83_000, 95_000, false)).toEqual({ text: '到期共交 ¥9.50万 · 还差 ¥1.20万', enough: false });
     expect(downPaymentLine(83_000, 95_000, true)).toEqual({ text: '到期还差¥1.20万', enough: false });
     expect(downPaymentLine(95_000, 95_000, false)).toEqual({ text: '到期共交 ¥9.50万 · 够了', enough: true });
-    expect(downPaymentLine(120_000, 95_000, true).text).toBe('到期够交了');
+    expect(downPaymentLine(120_000, 95_000, true).text).toBe('到期交¥9.50万·够');
   });
   it('月底账单的一行收据', () => {
     expect(downPaymentRow(83_000, 95_000)).toEqual({ label: '首付和账单还差', value: '¥1.20万', enough: false });

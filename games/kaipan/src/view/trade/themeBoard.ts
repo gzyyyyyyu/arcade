@@ -251,6 +251,9 @@ export class ThemeBoardView {
     const room = PHONE ? RIGHT - G.deltaX - 34 - SPARK_X : RIGHT - BAR_X;
     const real = c.stage ? STAGE_WORD[c.stage] : null;
     const tries: string[][] = [
+      [real ? `实际：${real}（看板慢一拍）` : '', c.boost ? `大V带热：每天+${c.boost.dH}，还有${c.boost.days}天` : ''],
+      [real ? `实际：${real}` : '', c.boost ? `大V带热：每天+${c.boost.dH}，还有${c.boost.days}天` : ''],
+      [real ? `实际：${real}` : '', c.boost ? `大V带热 每天+${c.boost.dH} 还${c.boost.days}天` : ''],
       [real ? `实际：${real}（看板慢一拍）` : '', c.boost ? `大V带热 +${c.boost.dH}×${c.boost.days}天` : ''],
       [real ? `实际：${real}` : '', c.boost ? `大V带热 +${c.boost.dH}×${c.boost.days}天` : ''],
       [real ? `实际：${real}` : '', c.boost ? `带热+${c.boost.dH}×${c.boost.days}天` : ''],

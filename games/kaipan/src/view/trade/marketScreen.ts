@@ -103,7 +103,10 @@ export class MarketScreen {
     }
     const mret = last ? last.market.ret : (moves[moves.length - 1] ?? 0);
     const senti = sentimentOf(s);
-    this.mkt.setText(`${MOOD_NAME[mood]} ${moves.length ? pctArrow(mret) : ''}${PHONE && senti ? ` · ${SENTIMENT_WORDS[senti.level]}` : ''}`);
+    const head = `${MOOD_NAME[mood]} ${moves.length ? pctArrow(mret) : ''}`;
+    this.mkt.setText(`${head}${PHONE && senti ? ` · ${SENTIMENT_WORDS[senti.level]}` : ''}`);
+    // 窄屏（360 宽）小屏放不下情绪词：去掉（悬停里有），不让字出屏
+    if (this.mkt.x + this.mkt.width > SCREEN.x + SCREEN.w - 6) this.mkt.setText(head);
     setColor(this.mkt, moves.length ? mixLight(signColor(mret)) : COLOR.screenText);
     // 走势
     const levels = toLevels(moves);

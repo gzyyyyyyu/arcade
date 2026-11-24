@@ -39,7 +39,7 @@ export const PERSONAS: readonly PersonaDef[] = [
   {
     id: 'retiree',
     name: '退休老周',
-    short: '老王更准，开销更小',
+    short: '群友老王消息更准，开销更小',
     title: '退休大爷',
     desc: () =>
       `开局 ${wan('retiree')}，自带${item('baima')}；金融和大消费两个风口一定会出现；老王的消息${credText(fx('retiree', 'laowangCred'))}（老同事）${billText('retiree', '退休了，开销小')}`,
@@ -55,7 +55,7 @@ export const PERSONAS: readonly PersonaDef[] = [
   {
     id: 'mom',
     name: '宝妈芳姐',
-    short: '张姐更准，会过日子',
+    short: '群友张姐消息更准，会过日子',
     title: '全职宝妈',
     desc: () =>
       `开局 ${wan('mom')}，自带${item('ipo')}；张姐的消息${credText(fx('mom', 'zhangjieCred'))}（同一个妈妈群）${billText('mom', '会过日子')}`,

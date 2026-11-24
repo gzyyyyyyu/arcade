@@ -57,7 +57,7 @@ const DESK = {
   /** 模式卡一排，居中 */
   card: { y: 292, w: 196, h: 128, gap: 16 },
   /** 右上角小入口：右对齐到这里 */
-  tools: { right: 1266, y: 10, h: 40, gap: 8, font: 15 },
+  tools: { right: 1266, center: null, y: 10, h: 40, gap: 8, font: 15 },
   cloud: { x: 770, y: 78 },
 } as const;
 
@@ -484,7 +484,8 @@ export class TitleScene extends BaseScene {
       t.destroy();
       return Math.max(ph ? 56 : 64, Math.round(w + pad));
     });
-    let x = T.right - widths.reduce((a, b) => a + b, 0) - T.gap * (items.length - 1);
+    const total = widths.reduce((a, b) => a + b, 0) + T.gap * (items.length - 1);
+    let x = T.center !== null ? T.center - total / 2 : T.right - total;
     items.forEach((it, i) => {
       const w = widths[i]!;
       this.buttons[it.key] = new Button(this, x, T.y, { width: w, height: T.h, label: it.label, fontSize: T.font, onClick: it.fn });

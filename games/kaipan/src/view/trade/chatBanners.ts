@@ -59,7 +59,12 @@ export function addEarningsBanner(v: ChatView3, e: EarningsView, y: number): num
   const status = done ? `${e.beat ? '超预期' : '暴雷'} ${formatPoints(e.move ?? 0)}` : e.stage === 'today' ? '今天收盘出' : `${e.daysLeft} 天后出`;
   const st = addText(v.scene, CX + CW - 10, y + 13, status, { size: 13, bold: true, color: done ? signColor(e.move ?? 0) : COLOR.accentDark, originX: 1, originY: 0.5 });
   const t1 = fitWidth(addText(v.scene, CX + 10, y + 13, `财报 · ${e.name}`, { size: 14, bold: true, color: COLOR.ink, originY: 0.5 }), CW - 28 - st.width);
-  const bets = `押：${e.bets.map((b) => `${b.name}${b.up ? '↑' : '↓'}${b.right === undefined ? '' : b.right ? '对' : '错'}`).join('  ')}`;
+  // 「猜涨 老王、小李 · 猜跌 小诸葛」：箭头写成字，揭晓后名字后面带对错
+  const side = (up: boolean): string => {
+    const names = e.bets.filter((b) => b.up === up).map((b) => `${b.name}${b.right === undefined ? '' : b.right ? '对' : '错'}`);
+    return names.length > 0 ? `${up ? '猜涨' : '猜跌'} ${names.join('、')}` : '';
+  };
+  const bets = [side(true), side(false)].filter(Boolean).join(' · ');
   // 放不下先省掉「要有大动静 ·」（悬停里有），押注的人尽量写全
   const t2 = addText(v.scene, CX + 10, y + 32, done ? bets : `要有大动静 · ${bets}`, { size: FS.xs, color: COLOR.muted, originY: 0.5 });
   if (!done && t2.width > CW - 20) t2.setText(bets);
@@ -95,8 +100,15 @@ export function addWatch(v: ChatView3, s: GameState, y: number): number {
     const room = CW - 8 - r.width - 16;
     // 找回「N天前」——左边灰字写哪天说的，后面是谁说哪个风口几天内往哪走
     const when = addText(v.scene, 8, 11, `${ago}天前`, { size: FS.xs, color: COLOR.muted, originY: 0.5 });
-    const t = addText(v.scene, 8 + when.width + 5, 11, `${name}：${themeById(w.theme).name} ${sign > 0 ? '↑' : sign < 0 ? '↓' : '→'}${w.days}天`, { size: FS.xs, bold: true, color: ink, originY: 0.5 });
+    // 「老王说大消费 2 天内涨」写成字（「→2天」要猜是什么意思），放不下再缩
+    const theme = themeById(w.theme).name;
+    const dir = DIR_WORD[w.claim];
     const tRoom = room - when.width - 5;
+    const t = addText(v.scene, 8 + when.width + 5, 11, '', { size: FS.xs, bold: true, color: ink, originY: 0.5 });
+    for (const line of [`${name}说${theme}${w.days}天内${dir}`, `${name}：${theme}${w.days}天内${dir}`, `${name}：${theme}${w.days}天${dir}`]) {
+      t.setText(line);
+      if (t.width <= tRoom) break;
+    }
     fitWidth(t, tRoom, 3);
     const bg = v.scene.add.rectangle(0, 0, CW, 22, 0xfff3d6).setOrigin(0, 0).setRounded(8).setStrokeStyle(1.5, COLOR.gold, 1);
     const node = v.scene.add.container(CX, y, [bg, when, t, r]);

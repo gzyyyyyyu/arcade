@@ -102,6 +102,7 @@ export function addMessage(v: ChatView3, m: MessageView, y: number, size: number
   const buyRow = buyTag ? buyTagRowHeight(text.width, BUBBLE_W, buyTag.width + 14) : 0;
   const bh = text.height + v.pad + (inBubble ? 18 : 0) + buyRow;
   const bubble = addSlice(s, BUBBLE_X, y + v.head, BUBBLE_W, bh, 'bubble_left');
+  const extra = recIdx >= 0 ? buyHitExtra(v.head, bh, v.gap) : 0;
   const full = m.text;
   if (text.text !== full) {
     const hit = s.add.rectangle(BUBBLE_X, y + v.head, BUBBLE_W, bh, 0xffffff, 0.001).setOrigin(0, 0).setInteractive();
@@ -116,10 +117,11 @@ export function addMessage(v: ChatView3, m: MessageView, y: number, size: number
     const py = buyRow > 0 ? y + v.head + bh - 18 - 4 : y + v.head + Math.round((bh - 18) / 2);
     const pill = addPill(s, BUBBLE_X + BUBBLE_W - pw - 10, py, pw, 18, COLOR.up, false);
     bt.setPosition(pill.x + pw / 2, py + 9);
-    // 竖屏版气泡宽、一行就放下，只有约 29 高：点击区往上撑进名字那一行，凑够 HIT_MIN（头像在左边，不盖）
-    // 最多撑到和上一条之间空隙的一半（不盖上一条的点击区）
-    const hy = Math.max(y - v.gap / 2, y + v.head + bh - Math.max(bh, HIT_MIN));
-    const hh = y + v.head + bh - hy;
+    // 竖屏版气泡宽、一行就放下，只有约 29 高：点击区往上撑进名字那一行、往下撑进和下一条的空隙，各到空隙的一半为止（不盖邻居）；
+    // 紧凑行距下还凑不够 HIT_MIN，差的那段在这条下面多留出来（buyHitExtra，估高度时也算上）
+    const bottom = y + v.head + bh;
+    const hy = Math.max(y - v.gap / 2, bottom - Math.max(bh, HIT_MIN));
+    const hh = bottom + Math.min(v.gap / 2, Math.max(0, HIT_MIN - (bottom - hy))) + extra - hy;
     const hit = s.add.rectangle(BUBBLE_X, hy, BUBBLE_W, hh, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     hit.on(Phaser.Input.Events.POINTER_UP, (p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => {
       // 和推荐卡的「买入」一样：右键不算，拖拽刚松手落在这条消息上也不算（不然拖卡卖出时会顺手误买一笔）
@@ -153,7 +155,12 @@ export function addMessage(v: ChatView3, m: MessageView, y: number, size: number
   }
   v.content.add(root);
   v.msgs.push({ index: m.index, friendId: m.friend.id, rec, root, bubble: { x: BUBBLE_X, y: y + v.head, w: BUBBLE_W, h: bh }, top: y });
-  return y + v.head + bh;
+  return y + v.head + bh + extra;
+}
+
+/** 挂「买」的消息点击区凑不够 HIT_MIN 时，下面要多留的空（名字行 + 气泡 + 一条空隙都算上还差多少）。 */
+export function buyHitExtra(head: number, bh: number, gap: number): number {
+  return HIT_MIN > 0 ? Math.max(0, Math.ceil(HIT_MIN - (head + bh + gap))) : 0;
 }
 
 /** 盘中播报一行（红底白字的小条，不可点）。 */

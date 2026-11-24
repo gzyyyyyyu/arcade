@@ -15,7 +15,8 @@ button.${CLS}:focus-visible { opacity: 1; outline: 3px solid #3a86ff; outline-of
 button.${CLS}[hidden] { display: none; }
 `;
 
-import { worldToPage, type Box } from './domProxyGeo.ts';
+import { HIT_MIN } from './button.ts';
+import { atLeast, worldToPage, type Box } from './domProxyGeo.ts';
 
 /** 画布按钮要有这两样 */
 interface Proxied {
@@ -56,7 +57,8 @@ export function attachDomProxy(scene: Phaser.Scene, btn: Proxied, label: string)
     const cr = canvas.getBoundingClientRect();
     const g = scene.scale.gameSize;
     const cam = scene.cameras.main;
-    const p = worldToPage(btn.rect(), cam, { x: cr.left, y: cr.top, w: cr.width, h: cr.height }, { w: g.width, h: g.height });
+    // 触屏上影子按钮至少 44 CSS 像素见方（docs/ui.md：触屏可点区域 ≥ 44）；画布按钮在小屏上缩到 37 高也照样好点
+    const p = atLeast(worldToPage(btn.rect(), cam, { x: cr.left, y: cr.top, w: cr.width, h: cr.height }, { w: g.width, h: g.height }), HIT_MIN > 0 ? 44 : 0);
     el.hidden = false;
     el.style.left = `${p.x}px`;
     el.style.top = `${p.y}px`;

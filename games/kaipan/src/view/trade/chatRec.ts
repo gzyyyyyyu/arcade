@@ -4,7 +4,7 @@ import { buyKey } from '../labels.ts';
 import { ROLE_TERM, ROLE_WORD, termTip } from '../glossary.ts';
 import { COLOR, FS, PHONE, THEME_COLOR, signColor, textOn } from '../theme.ts';
 import { addGlyph, addImage, addPill, addSlice } from '../ui/art.ts';
-import { Button } from '../ui/button.ts';
+import { Button, HIT_MIN } from '../ui/button.ts';
 import { addSpark, type Spark } from '../ui/spark.ts';
 import { StockGuy } from '../ui/stockGuy.ts';
 import { addText, fitWidth } from '../ui/text.ts';
@@ -169,18 +169,33 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
   // 押跌按钮在时右边那列一直到卡底，理由条让开
   const rw = flat || canShort ? right - rx : CW - 20;
   let reasonX = rx;
-  if (flat && r.friend) {
-    root.add(avatar(v, r.friend.id, rx, ry, 'normal', 16));
-    reasonX += 20;
-  } else if (!flat) {
+  // 扁卡理由前的小头像：整句放得下才带；带上头像就要截字时让出头像的位置（说的人在悬停里）
+  const flatAvatar = flat && !!r.friend;
+  if (flatAvatar) reasonX += 20;
+  else if (!flat) {
     // 理由条：淡黄底 + 左边一道风口色竖条（像引用）
     const strip = sc.add.rectangle(rx, ry - 2, rw, 21, 0xffefc9, 1).setOrigin(0, 0).setRounded(8).setStrokeStyle(1.5, COLOR.edge, 1);
     const q = sc.add.rectangle(rx + 6, ry + 2, 4, 13, tc, 1).setOrigin(0, 0).setRounded(2);
     root.add([strip, q]);
     reasonX += 16;
   }
-  const reason = addText(sc, reasonX, ry + (flat ? 1 : 0), `${r.liar ? '【反话】' : ''}${shortLine(r.text, r.stock.name, 12)}`, { size: flat ? 11 : 12, color: COLOR.ink });
-  fitWidth(reason, rx + rw - reasonX - 4, 1);
+  // 按这张卡实际放得下的字数挑整句（电脑扁卡右边让给并排的买入、押跌，只放得下七八个字），实在没有放得下的短句才截
+  const reasonSize = flat ? 11 : 12;
+  const liar = r.liar ? '【反话】' : '';
+  const reasonText = (room: number): string => `${liar}${shortLine(r.text, r.stock.name, Math.max(4, Math.min(12, Math.floor(room / reasonSize) - Array.from(liar).length)))}`;
+  let reasonRoom = rx + rw - reasonX - 4;
+  const reason = addText(sc, reasonX, ry + (flat ? 1 : 0), reasonText(reasonRoom), { size: reasonSize, color: COLOR.ink });
+  if (flatAvatar && reason.width > reasonRoom) {
+    const wide = reasonRoom + 20;
+    reason.setText(reasonText(wide));
+    if (reason.width <= wide) {
+      reasonX = rx;
+      reasonRoom = wide;
+      reason.setX(rx);
+    } else reason.setText(reasonText(reasonRoom));
+  }
+  if (flatAvatar && reasonX > rx && r.friend) root.add(avatar(v, r.friend.id, rx, ry, 'normal', 16));
+  fitWidth(reason, reasonRoom, 1);
   root.add(reason);
 
   // 卡身（按钮以外）：悬停看全文和数据，点一下打开股票详情
@@ -212,6 +227,12 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
   const shortX = pair ? bx + PAIR_W + PAIR_GAP : bx;
   const shortY = pair ? pairY : y + (flat ? 44 : 54);
   const shortH = pair ? pairH : flat ? 21 : 26;
+  // 手机上下两颗、卡够高时：点击区从两颗中间切开，买入往上撑到卡顶、押跌往下撑到卡底，两块不叠（各自上下平分会叠住）；
+  // 矮卡放不下两块 HIT_MIN，照旧平分
+  const mid = (buyY + buyH + 3 + shortY) / 2;
+  const stack = canShort && !pair && HIT_MIN > 0 && mid - y >= HIT_MIN && y + h - mid >= HIT_MIN;
+  const buyPad = stack ? { top: buyY - y, bottom: Math.max(0, mid - (buyY + buyH + 3)) } : undefined;
+  const shortPad = stack ? { top: Math.max(0, shortY - mid), bottom: Math.max(0, y + h - (shortY + shortH + 3)) } : undefined;
   const btn = new Button(sc, bx, buyY, {
     width: bw,
     height: buyH,
@@ -221,6 +242,7 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
     fontSize: canShort ? 13 : 14,
     hotkey: canShort ? undefined : buyKey(r.index),
     sound: null,
+    hitPad: buyPad,
     onClick: () => v.onBuy(r.index),
   });
   btn.setEnabled(act.action !== null);
@@ -241,6 +263,7 @@ export function addRec(v: ChatView3, s: GameState, r: RecView, y: number, h = RE
       variant: 'danger',
       fontSize: 13,
       sound: null,
+      hitPad: shortPad,
       onClick: () => v.onShort?.(r.index),
     });
     sb.setEnabled(act.action !== null);
