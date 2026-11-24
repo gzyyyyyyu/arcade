@@ -12,7 +12,7 @@ export async function feedLine(item: Locator, who: string, where: string, tags: 
 }
 
 /** 排行榜页。本周净赢（总榜、各游戏）、开盘每日挑战（分数写法读游戏的 daily.json）、称号收集，全部 / 只看好友；我不在前 50 时单独一行。 */
-/** 点一下分享按钮。桌面无头浏览器不支持带文件的系统分享，应该出 kit 的预览层；关掉后日志里有"分享 预览" */
+/** 点一下分享按钮。桌面无头浏览器不支持带文件的系统分享，应该出 kit 的预览层；关掉后日志里有"分享 预览"、还在原页 */
 export async function clickShare(page: Page, testId: string, shotName: string): Promise<void> {
   await page.getByTestId(testId).click();
   await page.locator('#arcade-share-preview').waitFor();
@@ -21,8 +21,12 @@ export async function clickShare(page: Page, testId: string, shotName: string): 
   check(log.some((l) => l.includes('分享 预览')), `分享日志里该有"分享 预览"：${log.join(' | ')}`);
   // 电脑上不弹系统共享，直接出预览，多一个"复制图片"（去微信粘贴）
   if (shotName.endsWith('desktop')) check((await page.locator('#arcade-share-preview [data-key="share:copy-image"]').count()) === 1, '电脑上的分享预览该有"复制图片"');
-  await page.locator('#arcade-share-preview [data-key="share:close"]').click();
+  // 电脑上按 Esc 关：只收预览，不顺带回大厅（平台的 Esc 看到还开着 dialog 就不动）；手机点"关闭"
+  const at = page.url();
+  if (shotName.endsWith('desktop')) await page.keyboard.press('Escape');
+  else await page.locator('#arcade-share-preview [data-key="share:close"]').click();
   await page.locator('#arcade-share-preview').waitFor({ state: 'detached' });
+  check(page.url() === at, `关分享预览后该还在原页：${at} → ${page.url()}`);
 }
 
 /**
