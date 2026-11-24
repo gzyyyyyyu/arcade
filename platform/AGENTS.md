@@ -2,7 +2,7 @@
 
 > 总规范见仓库根的 `AGENTS.md`。
 
-- 内容：平台主界面（React + Vite，`src/`）和平台 Worker（`worker/`），Worker 名 `arcade`；两边都要的登记表和纯函数放 `shared/`，worker 不引 `src/`，shared 只引自己（`test/architecture.test.ts`）。站点域名和正式 D1 的 id 不写进仓库，部署时注入（README 的部署一节）；代码里不写死站点地址。
+- 内容：平台主界面（React + Vite，`src/`）和平台 Worker（`worker/`），Worker 名 `arcade`；两边都要的登记表和纯函数放 `shared/`，worker 不引 `src/`，shared 只引自己（`test/architecture.test.ts`）。站点域名和正式 D1 的 id 不写进仓库，部署时注入（`docs/deploy.md`）；代码里不写死站点地址。
 - `/api/*`（账号、云存档、好友、排行榜、钱包、社交）的方案和**接口约定**见仓库根的 `docs/platform-backend.md`（第 5–7 节、第 15 节）。
 - 游戏目录在 `shared/games.ts`，封面放在 `public/covers/<id>.webp`（16:9），来源写进 `ASSETS.md`。平台只负责展示和跳转，不引用任何游戏的代码。
 - 正式环境只有这一个平台 Worker：不开 workers.dev（它绕过网关限速）、不建测试 Worker。测试全在本地：`npm test`（vitest 跑在本地 workerd 里）、
@@ -13,7 +13,7 @@
 - 改界面后跑相关的那段冒烟（`npm run smoke -- --only=<段>`，分段见 `docs/smoke.md`），控制台零报错、没有意料外的 4xx/5xx，并亲自看截图。
   新 CSS 限定在所属页面的根节点下；颜色只用 `src/styles.css` 的变量（`docs/style.md`）。
 - 冒烟和 `npm run dev:api` 固定用 5181，冒烟启动前查端口，被占就失败。
-- 改接口同步根 `docs/platform-backend.md`（接口、写入行数）；`CHANGELOG.md` 分"新增 / 改动 / 修复 / 整理"。命令和端口见 `README.md` 本地开发一节。
+- 改接口同步根 `docs/platform-backend.md`（接口、写入行数）；`CHANGELOG.md` 分"新增 / 改动 / 修复 / 整理"。命令和端口见 `docs/development.md`。
 - 测试夹具里的站点用保留的示例域名（`game.example.com`、`game.test`），不写正式域名。
 - 平台接口只增不改。游戏依赖平台，平台不依赖任何游戏，所以带接口变更的发布顺序是先迁移、再平台、后游戏。
 
