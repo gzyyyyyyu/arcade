@@ -8,7 +8,7 @@
  */
 import { BIG_JOKER, type Card, SMALL_JOKER } from '../../../core/cards.ts';
 import { rngFor } from '../../../core/rng.ts';
-import { type DdzAction, type DdzPlay, type DdzView, beatsDdz, ddzValue, enumerateDdz, isBombish, next3, playsBeatingDdz } from '../core/index.ts';
+import { type DdzAction, type DdzPlay, type DdzView, beatsDdz, ddzValue, enumerateDdz, interpretDdz, isBombish, next3, playsBeatingDdz } from '../core/index.ts';
 import { handCount, leadPlays, planHand } from './hand.ts';
 import { endgamePick } from './search.ts';
 
@@ -271,16 +271,37 @@ export function decideDdz(v: DdzView, level: DdzLevel, seed: string | number, o:
   return play ? { type: 'play', seat: me, cards: play.cards } : { type: 'pass', seat: me };
 }
 
-/** "提示"：能出的牌按电脑（普通档）的评分排，电脑会出的在最前；电脑会不要时也照评分排（由画面决定要不要提醒"建议不要"） */
+/** 手里炸弹、王炸用到的点数 */
+function bombValuesOf(hand: readonly Card[]): Set<number> {
+  const k = new Map<number, number>();
+  for (const c of hand) k.set(ddzValue(c), (k.get(ddzValue(c)) ?? 0) + 1);
+  const out = new Set<number>();
+  for (const [v, n] of k) if (n === 4) out.add(v);
+  if (k.has(SMALL_JOKER) && k.has(BIG_JOKER)) out.add(SMALL_JOKER).add(BIG_JOKER);
+  return out;
+}
+
+/** 同一手牌：牌型一样，每张的点数一样（同点数的牌换哪张都算同一手） */
+function samePlay(p: DdzPlay, cards: readonly Card[]): boolean {
+  const key = (cs: readonly Card[]): string => cs.map(ddzValue).sort((x, y) => x - y).join(',');
+  return p.cards.length === cards.length && key(p.cards) === key(cards) && interpretDdz(cards).some((q) => q.type === p.type);
+}
+
+/** "提示"：能出的牌按电脑（普通档）的评分排，不当炸弹出却动了炸弹、王炸的牌（拆对子、拆三张、四带二）一律排在不拆的后面（只管提示，电脑出牌不看），电脑会出的在最前；电脑会不要时也照这个顺序排（由画面决定要不要提醒"建议不要"） */
 export function hintDdz(v: DdzView): DdzPlay[] {
   const c = makeCtx(v, 'normal');
   const lead = !v.target;
-  const opts = (lead ? enumerateDdz(v.hand) : playsBeatingDdz(v.hand, v.target!.play)).map((p) => ({ p, k: cost(c, p) })).sort((a, b) => a.k - b.k);
+  const bombValues = bombValuesOf(v.hand);
+  const breaks = (p: DdzPlay): boolean => !isBombish(p) && p.cards.some((x) => bombValues.has(ddzValue(x)));
+  const opts = (lead ? enumerateDdz(v.hand) : playsBeatingDdz(v.hand, v.target!.play))
+    .map((p) => ({ p, b: breaks(p) ? 1 : 0, k: cost(c, p) }))
+    .sort((a, b) => a.b - b.b || a.k - b.k);
   const list = opts.map((x) => x.p);
   const a = decideDdz(v, 'normal', 0);
   if (a && a.type === 'play') {
-    const i = list.findIndex((p) => p.cards.length === a.cards.length && p.cards.every((x) => a.cards.includes(x)));
-    if (i > 0) list.unshift(list.splice(i, 1)[0]!);
+    const i = list.findIndex((p) => samePlay(p, a.cards));
+    // 电脑会拆炸弹压（例：手里 5555 跟单张 4 出 5）而有不拆的压法时，提示不跟它
+    if (i > 0 && !(breaks(list[i]!) && !breaks(list[0]!))) list.unshift(list.splice(i, 1)[0]!);
   }
   return list;
 }

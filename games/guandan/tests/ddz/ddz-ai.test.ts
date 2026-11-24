@@ -4,7 +4,7 @@ import {
   DDZ_SEAT_STYLE, type DdzLevel, type DdzView, bidStrength, createDdz, decideDdz, dispatchDdz, handCount, hintDdz, interpretDdz, leadPlays, planHand, viewDdz,
 } from '../../src/variants/doudizhu/index.ts';
 import { rngFor } from '../../src/core/rng.ts';
-import { beatsDdz } from '../../src/variants/doudizhu/core/index.ts';
+import { beatsDdz, ddzValue } from '../../src/variants/doudizhu/core/index.ts';
 
 const J = 11, Q = 12, K = 13, A = 14, SJ = 16, BJ = 17;
 function cs(...ranks: number[]): number[] {
@@ -176,6 +176,29 @@ describe('提示', () => {
     const a = decideDdz(v, 'normal', 0);
     expect(a?.type).toBe('play');
     if (a?.type === 'play') expect([...hints[0]!.cards].sort()).toEqual([...a.cards].sort());
+  });
+  it('首出不拆炸弹：手里 3333 时提示第一手是电脑会出的连对，不是四带二；不拆的出法（炸弹本身以外）都排在拆的前面', () => {
+    // 试玩 11-23：地主 20 张，提示推荐「四带二 3333+8+9」
+    const hand = cs(3, 3, 3, 3, 5, 5, 6, 6, 6, 7, 7, 7, 8, 9, 10, K, A, 2, 2, SJ);
+    const v = mkView({ hand, landlord: 0, counts: [20, 17, 17] });
+    const hints = hintDdz(v);
+    const vals = (cards: readonly number[]): number[] => cards.map(ddzValue).sort((a, b) => a - b);
+    expect(hints[0]!.type).toBe('pairs');
+    expect(vals(hints[0]!.cards)).toEqual([5, 5, 6, 6, 7, 7]);
+    const a = decideDdz(v, 'normal', 0);
+    expect(a?.type === 'play' && vals(a.cards)).toEqual(vals(hints[0]!.cards));
+    const breaks = hints.filter((p) => p.type !== 'bomb').map((p) => p.cards.some((c) => ddzValue(c) === 3));
+    expect(breaks.indexOf(true)).toBeGreaterThan(breaks.lastIndexOf(false));
+  });
+  it('跟牌：提示不拆炸弹；电脑出牌不跟着变（电脑照旧拆 5555 出 5，提示给 9）', () => {
+    const hand = cs(5, 5, 5, 5, 9, J, K);
+    const target = { seat: 1, play: playOf(4) };
+    const v = mkView({ hand, seat: 0, landlord: 0, counts: [7, 12, 12], target, trick: [{ seat: 1, play: target.play }] });
+    for (const lv of ['normal', 'pro'] as const) {
+      const a = decideDdz(v, lv, 0);
+      expect(a?.type === 'play' && a.cards.map(ddzValue), lv).toEqual([5]);
+    }
+    expect(hintDdz(v)[0]!.cards.map(ddzValue)).toEqual([9]);
   });
   it('首出时提示的是整手牌的合规出法', () => {
     const hand = cs(3, 3, 4, 5, 6, 7, 9);
