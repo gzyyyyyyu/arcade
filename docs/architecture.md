@@ -69,7 +69,7 @@ https://<站点>/games/<id>/*     → 各游戏的 Worker（路径路由；静�
 - 每个游戏的联机房间放在它自己的 Worker 里（Durable Objects，休眠写法，SQLite 后端）。开房进房的路径各游戏不同，以各游戏的 `wrangler.jsonc` 里 `run_worker_first` 为准。
 - 共用代码放进共用包 `packages/arcade-kit`，所有游戏必须遵守其中的房间规范；开房进房靠 `/api/me` 认人、不发入场票，取舍见 [accounts.md](accounts.md) 5.3，房间额度见 [rooms.md](rooms.md) 4.6。
 - 牌桌游戏的互动统一做成 kit 里的组件，规范见 [table-fun.md](table-fun.md)；社交部件（分享、在线、邀请、旁观）见 [social.md](social.md)；各游戏的难度和筹码收益按 [balance.md](balance.md) 配平，档位和钱包见 [economy.md](economy.md)。
-- 额度：跑在免费版，房间有硬限制和计量（[rooms.md](rooms.md) 4.6、4.7），平台接口按免费版的日额度自计量，到线就停增长、只读或停服（[cost-guard.md](cost-guard.md) 6.6）；按账单金额熔断没有做（6.2）。
+- 额度：跑在免费版，房间有硬限制和计量（[rooms.md](rooms.md) 4.6、4.7），平台接口按免费版的日额度自计量，到线就停增长、只读或停服（[platform-backend.md](platform-backend.md#66-平台接口的最小计量与熔断) 6.6）；按账单金额熔断没有做（6.2）。
 
 ## 5. 本地开发
 
@@ -77,9 +77,5 @@ https://<站点>/games/<id>/*     → 各游戏的 Worker（路径路由；静�
 
 ## 6. 自托管：不用 Cloudflare 也能跑全站
 
-为什么做：让别人能在自己的机器上跑一整套，不依赖某个 Cloudflare 账户。做法是不改任何模块，在外面补上 Cloudflare 平台替我们做的事：
-
-- `packages/arcade-host`：一个 [workerd](https://github.com/cloudflare/workerd) 进程跑平台和所有游戏，自己实现 D1（SQLite，或 PostgreSQL）、静态资源、按路径路由、Cron、Durable Object 存储和管理入口。差别和实测结论见它的 `docs/verify.md`。
-- `tools/selfhost`：读各模块的 `wrangler.jsonc`，按部署工具同一套规则叠加平台绑定，打成发布包（裸 `workerd` 二进制 + systemd，或 Docker），带安装、升级、回滚、备份、恢复脚本。步骤见 [tools/selfhost/README.md](../tools/selfhost/README.md)。
-- 平台库用 SQLite 还是 PostgreSQL 在打包时二选一，不能共存。
-- 项目自己的站点可以跑在自托管（从 main 的源码打发布包或镜像，仓库不发布现成镜像）或 Cloudflare 上，跑哪个由维护者定；两边都从同一个 main 构建。自托管的 CI 在 `selfhost.yml`（只在 PR 改了自托管相关文件时跑）。英文的部署步骤见 [self-hosting.md](self-hosting.md)。
+不改任何模块，在外面补上 Cloudflare 替我们做的事，让别人能在自己的机器上跑一整套：`packages/arcade-host` 用一个 [workerd](https://github.com/cloudflare/workerd) 进程跑平台和所有游戏（D1 换成 SQLite 或 PostgreSQL，补上静态资源、路由、Cron 和 DO 存储），
+`tools/selfhost` 把各模块打成发布包（裸二进制 + systemd，或 Docker）。两种部署形态的差别见 [platform-backend.md](platform-backend.md#31-部署形态) 3.1，步骤见 [self-hosting.md](self-hosting.md)。

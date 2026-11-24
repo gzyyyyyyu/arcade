@@ -2,7 +2,7 @@
 
 > 本文是平台文档的第 7 节（7.1–7.5），别处写的「platform-backend.md 7.x」就是这里的 7.x。
 > 表结构以 `platform/migrations/` 为准；本文和迁移不一致时改本文。
-> 文中不带文件名的其他节号按全站编号找，对照表见 [README.md](README.md#节号对照)。
+> 文中不带文件名的其他节号按全站编号找，对照表见 [README.md](README.md#section-numbers--节号对照)。
 
 
 ## 7. 数据（平台 D1）

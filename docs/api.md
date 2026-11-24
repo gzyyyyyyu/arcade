@@ -2,8 +2,8 @@
 
 > 给平台和游戏的开发者参考。接口**只增不改**（`platform/AGENTS.md`）：已上线的字段不改含义、不删除，新能力加新字段或新路径，所以路径里不带版本号。不存在的路径返回 404 `not_found`。
 > 数字（限流、预算）以 `platform/worker/api/lib/config.ts` 为准，本文和代码不一致时改本文；限流见 15.6，写入行数以 [data.md](data.md) 7.2 为准。
-> 设计和理由：账号和防刷见 [accounts.md](accounts.md)，云存档、钱包、战绩见 [platform-backend.md](platform-backend.md) 第 5 节，写入预算见 [cost-guard.md](cost-guard.md)。
-> 接口是平台文档的第 15 节（15.1–15.22），按主题分在四个文件里；别处写的「platform-backend.md 15.x」「api.md 15.x」按下表找，其他节号见 [README.md](README.md#节号对照)。
+> 设计和理由：账号和防刷见 [accounts.md](accounts.md)，云存档、钱包、战绩见 [platform-backend.md](platform-backend.md) 第 5 节，写入预算见 [platform-backend.md](platform-backend.md#6-费用与额度防护) 第 6 节。
+> 接口是平台文档的第 15 节（15.1–15.22），按主题分在四个文件里；别处写的「platform-backend.md 15.x」「api.md 15.x」按下表找，其他节号见 [README.md](README.md#section-numbers--节号对照)。
 
 ## 15. 接口约定（`/api/*`）
 

@@ -3,7 +3,7 @@
 > 所有有好友房、快速匹配的游戏都必须遵守。这些规矩由 `packages/arcade-kit` 的 `GameRoom` 基类实现，每条都有测试和反证（把代码改坏、确认测试会失败）；
 > 游戏只写规则（`RoomGame`），不自己写房间：房间类继承 `GameRoom`，游戏 Worker 的路由只接 `acceptCreate` / `acceptJoin`（匹配用 `acceptMatch`），浏览器用 `RoomClient`；用法见 `packages/arcade-kit/README.md`。
 > 数字以代码为准：`packages/arcade-kit/src/room.ts`、`meter.ts`；本文和代码不一致时改本文。
-> 本文是平台文档的第 4 节（4.1–4.7），别处写的「platform-backend.md 4.x」就是这里的 4.x；文中不带文件名的节号按全站编号找，节号对照见 [README.md](README.md#节号对照)。
+> 本文是平台文档的第 4 节（4.1–4.7），别处写的「platform-backend.md 4.x」就是这里的 4.x；文中不带文件名的节号按全站编号找，节号对照见 [README.md](README.md#section-numbers--节号对照)。
 
 ## 4. 实时房间规范
 

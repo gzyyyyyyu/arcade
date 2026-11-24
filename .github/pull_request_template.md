@@ -1,7 +1,7 @@
 <!--
-Title starts with the module, e.g. "kaipan: fix empty row in the monthly bill" or "repo: …".
+Title starts with the module, e.g. "kaipan: fix empty row in the monthly bill"; root docs use "docs: …", other root files "repo: …".
 One PR changes one module and is one complete change; split cross-module work and state the merge order. Quality standard: docs/engineering.md
-标题以模块名开头，例如「kaipan: 修复月账单空行」「repo: …」。一个 PR 只改一个模块、是一个完整的改动；跨模块的改动拆开，并写明合并顺序。质量标准见 docs/engineering.md。
+标题以模块名开头，例如「kaipan: 修复月账单空行」；根目录文档用「docs: …」，其他根目录文件用「repo: …」。一个 PR 只改一个模块、是一个完整的改动；跨模块的改动拆开，并写明合并顺序。质量标准见 docs/engineering.md。
 -->
 
 ## What and why / 改了什么、为什么

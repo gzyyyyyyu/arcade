@@ -2,7 +2,7 @@
 
 > 本文是平台文档的第 16 节（16.1–16.3），别处写的「platform-backend.md 16.x」就是这里的 16.x。
 > 检查项和阈值以 `platform/worker/api/ops/monitor.ts` 为准；本文和代码不一致时改本文。
-> 文中不带文件名的其他节号按全站编号找，对照表见 [README.md](README.md#节号对照)。
+> 文中不带文件名的其他节号按全站编号找，对照表见 [README.md](README.md#section-numbers--节号对照)。
 
 
 ## 16. 监控和告警
