@@ -109,6 +109,8 @@ export async function statsPage(browser: Browser): Promise<void> {
     await page.getByTestId('badges').getByRole('button', { name: '下一页' }).click();
     await page.getByTestId('badges-paged-at').getByText(/^2 \//).waitFor();
     await shot(page, `stats-badges-real-${size}`);
+    // 手机横屏的晒战绩预览（电脑、竖屏在上面的循环里看过）
+    if (screen === 'landscape') await clickShare(page, 'share-stats', 'stats-share-landscape');
     await ctx.close();
   }
   console.log('别人的战绩：/u/<id>，没战绩时说"还没有战绩"');
