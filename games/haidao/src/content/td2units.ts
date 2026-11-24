@@ -253,6 +253,12 @@ export const TD2_BATTERY = { dmgPct: 250, r: 220, cd: 600, delay: 20 } as const;
 export const TD2_FLEET = { ticks: 300, cd: 1200, reload: 20, r: 400, splash: 100, dmgPct: 120, delay: 10 } as const;
 
 /**
+ * 吊桥（第六章最后两关，core/tdmech.ts）：图上有两座吊桥，点一下在两座之间切换哪座放下（另一座收起、那条路断），
+ * 开局就能用（默认 0 号放下），冷却 cd 拍（20 秒）；走到桥上的人不受影响（收起时桥上的人照走完）
+ */
+export const TD2_DRAWBRIDGE = { cd: 400 } as const;
+
+/**
  * 海盗来袭：自己的岛和布局，波次按 waveBudget(levelByHq[主寨-1], w) 现生成，打到丢 TD2_LOSE_AT 枚为止。
  * 奖励：每撑住一波给 tdRunReward(主寨, 3★) 的 perWavePct%，最多算 maxWaves 波，再照守岛的每日上限截（和战役共用一个上限）。
  * lanes / slots / kegs 是候选位置，照旧由 placeTdLevel 按玩家布局挑空的摆。

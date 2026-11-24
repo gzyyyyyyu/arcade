@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { TD2_CAMP } from '../src/content/tdcamp.ts';
-import { RULES_VERSION, createTd, stepTd, tdFingerprint } from '../src/core/index.ts';
+import { TD2_CAMP, TD2_CAMP_ULT } from '../src/content/tdcamp.ts';
+import { RULES_VERSION, createTd, stepTd, tdCampUltOptions, tdFingerprint, tdSellRefund, tdUltCost } from '../src/core/index.ts';
 import type { Placed, TdAction, TdEnemyKind, TdLevel, TdMode, TdSetup, TdState } from '../src/core/index.ts';
 import { rallyOk } from '../src/core/tdcamp.ts';
+import { stunned } from '../src/core/combat.ts';
 import { stepKey } from '../src/view/td-ui.ts';
 
 /**
@@ -172,5 +173,117 @@ describe('多段首领换形态', () => {
     expect(n?.kind).toBe('tyrantRun');
     expect(n?.mode).toBe('out');
     expect(n?.carry).toBe(3);
+  });
+});
+
+describe('终极营（陆战营、炮手营）', () => {
+  const buildBranched = (s: TdState, branch: 'camp.gun' | 'camp.wall' = 'camp.wall'): void => {
+    stepTd(s, [{ t: s.tick, type: 'camp', slot: 0 }]);
+    stepTd(s, [{ t: s.tick, type: 'up', slot: 0 }]);
+    stepTd(s, [{ t: s.tick, type: 'up', slot: 0 }]);
+    stepTd(s, [{ t: s.tick, type: 'branch', slot: 0, branch }]);
+  };
+
+  it('未解锁或未选完 3 阶分叉时不能换终极营；解锁后价 = 造价 × 200% 且吃天赋九折、卖营照退 70%', () => {
+    const noUlt = createTd(setup(lvl({ waves: one('sailor') })));
+    buildBranched(noUlt);
+    expect(tdUltCost(noUlt, 'ult.camp.marine')).toBe(-1);
+    expect(tdCampUltOptions(noUlt, 0)).toEqual([]);
+    const gLocked = noUlt.gold;
+    stepTd(noUlt, [{ t: noUlt.tick, type: 'ult', slot: 0, ult: 'ult.camp.marine' }]);
+    expect(noUlt.gold).toBe(gLocked);
+    expect(noUlt.camps![0]!.ult).toBeUndefined();
+
+    const s = createTd(setup(lvl({ waves: one('sailor') }), { ult: true }));
+    stepTd(s, [{ t: s.tick, type: 'camp', slot: 0 }]);
+    stepTd(s, [{ t: s.tick, type: 'up', slot: 0 }]);
+    stepTd(s, [{ t: s.tick, type: 'up', slot: 0 }]);
+    expect(tdCampUltOptions(s, 0)).toEqual([]);
+    stepTd(s, [{ t: s.tick, type: 'branch', slot: 0, branch: 'camp.wall' }]);
+    expect(tdCampUltOptions(s, 0).map((o) => o.id)).toEqual(['ult.camp.marine', 'ult.camp.cannon']);
+    const wantCost = Math.floor((TD2_CAMP.cost * TD2_CAMP_ULT['ult.camp.marine'].costPct) / 100);
+    expect(tdUltCost(s, 'ult.camp.marine')).toBe(wantCost);
+    const goldBefore = s.gold;
+    const ev = stepTd(s, [{ t: s.tick, type: 'ult', slot: 0, ult: 'ult.camp.marine' }]);
+    expect(s.gold).toBe(goldBefore - wantCost);
+    expect(tdCampUltOptions(s, 0)).toEqual([]);
+    expect(ev.some((e) => e.type === 'ult' && e.slot === 0 && e.ult === 'ult.camp.marine')).toBe(true);
+    expect(tdSellRefund(s, 0)).toBe(Math.floor(((s.slots[0]!.spent ?? 0) * 70) / 100));
+
+    const discounted = createTd(setup(lvl({ waves: one('sailor') }), { ult: true, talent: { ultPct: 90 } }));
+    expect(tdUltCost(discounted, 'ult.camp.cannon')).toBe(Math.floor((wantCost * 90) / 100));
+  });
+
+  it('陆战营：4 名兵，每 20 秒冲锋晕集结点 3 格地面敌人 1 秒（不晕飞的），可按操作复现', () => {
+    const runMarine = (): { fp: number; stunnedTick: number; secondChargeTick: number; menCount: number } => {
+      const s = createTd(setup(lvl({ waves: [{ groups: [{ enemy: 'ironclad', n: 3, lane: 0, every: 30, delay: 40 }, { enemy: 'balloon', n: 1, lane: 0, every: 20, delay: 40 }] }] }), { ult: true }));
+      bench(s);
+      buildBranched(s, 'camp.wall');
+      stepTd(s, [{ t: s.tick, type: 'ult', slot: 0, ult: 'ult.camp.marine' }]);
+      const menCount = s.camps![0]!.men.length;
+      let stunnedTick = -1;
+      let secondChargeTick = -1;
+      for (let i = 0; i < 1200 && !s.over; i++) {
+        const ev = stepTd(s, []);
+        for (const e of ev) {
+          if (e.type === 'camp' && e.what === 'charge') {
+            if (stunnedTick < 0) {
+              stunnedTick = s.tick;
+              for (const en of s.enemies) {
+                if (en.kind === 'balloon') expect(stunned(en, s.tick)).toBe(false);
+              }
+              expect(s.enemies.some((en) => en.kind === 'ironclad' && stunned(en, s.tick))).toBe(true);
+            } else if (secondChargeTick < 0) {
+              secondChargeTick = s.tick;
+            }
+          }
+        }
+      }
+      return { fp: tdFingerprint(s), stunnedTick, secondChargeTick, menCount };
+    };
+    const a = runMarine();
+    const b = runMarine();
+    expect(a.menCount).toBe(TD2_CAMP_ULT['ult.camp.marine'].men);
+    expect(a.stunnedTick).toBeGreaterThan(0);
+    expect(a.secondChargeTick - a.stunnedTick).toBeGreaterThanOrEqual(TD2_CAMP_ULT['ult.camp.marine'].chargeCd);
+    expect(a.fp).toBe(b.fp);
+  });
+
+  it('炮手营：换成 2 门小炮（不近战拦人），随集结点走位，发射炮弹溅射地面（不打飞的）', () => {
+    const runCannon = (): { fp: number; shots: number; explodes: number; menCount: number; heldDuringRun: boolean; shotAir: boolean } => {
+      const s = createTd(setup(lvl({ waves: [{ groups: [{ enemy: 'ironclad', n: 4, lane: 0, every: 10, delay: 40 }, { enemy: 'balloon', n: 1, lane: 0, every: 20, delay: 40 }] }] }), { ult: true }));
+      bench(s);
+      buildBranched(s, 'camp.wall');
+      stepTd(s, [{ t: s.tick, type: 'ult', slot: 0, ult: 'ult.camp.cannon' }]);
+      const menCount = s.camps![0]!.men.length;
+      const movedX = s.camps![0]!.rx + 100;
+      const movedY = s.camps![0]!.ry;
+      if (rallyOk(s, 0, movedX, movedY)) stepTd(s, [{ t: s.tick, type: 'muster', slot: 0, x: movedX, y: movedY }]);
+      let shots = 0;
+      let explodes = 0;
+      let heldDuringRun = false;
+      let shotAir = false;
+      for (let i = 0; i < 600 && !s.over; i++) {
+        const ev = stepTd(s, []);
+        if (s.camps![0]!.men.some((m) => m.foes.length > 0)) heldDuringRun = true;
+        for (const e of ev) {
+          if (e.type === 'shoot' && e.id <= -200) {
+            shots++;
+            const tgt = s.enemies.find((q) => q.id === e.target);
+            if (tgt?.kind === 'balloon') shotAir = true;
+          }
+          if (e.type === 'explode') explodes++;
+        }
+      }
+      return { fp: tdFingerprint(s), shots, explodes, menCount, heldDuringRun, shotAir };
+    };
+    const a = runCannon();
+    const b = runCannon();
+    expect(a.menCount).toBe(TD2_CAMP_ULT['ult.camp.cannon'].men);
+    expect(a.heldDuringRun).toBe(false);
+    expect(a.shotAir).toBe(false);
+    expect(a.shots).toBeGreaterThan(0);
+    expect(a.explodes).toBeGreaterThan(0);
+    expect(a.fp).toBe(b.fp);
   });
 });

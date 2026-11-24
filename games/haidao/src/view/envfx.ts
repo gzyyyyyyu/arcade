@@ -15,7 +15,7 @@ const RANK_FLAG_SCALE = 1.5;
  * 岛上环境动画（装饰，不影响规则）：棕榈摇、章节纪念装饰动、主寨旗飘、烟囱冒烟。
  * 每个场景一个 EnvAnim，所有动画由一个 update 回调推进，不新建补间、不每帧新建对象：
  * - 棕榈：不旋转、不缩放（叶子会缺块 / 变形），而是 5 张烘好的"树冠错切"帧（art 的 palmSwayFrames），按 0-1-2-3-4-3-2-1 换纹理；
- * - 章节纪念装饰（风车转、灯塔扫光、篝火跳、舵轮来回摆）：同样是整张图换帧（art 的 decoFrames），节奏见 DECO_LOOP；
+ * - 章节纪念装饰（风车转、灯塔扫光、篝火跳、舵轮来回摆、铁锚闪光）：同样是整张图换帧（art 的 decoFrames），节奏见 DECO_LOOP；
  * - 旗：主寨的静态图不带旗布（hqNoFlagArt），旗布 3 帧另贴在旗杆顶（跟着主寨的位置、缩放、显隐走）；
  * - 烟囱：隔一阵从烟口放一团小烟（走粒子池，总量吃紧时不放，手机间隔拉长）；
  * - 王旗（DESIGN 2.6）：有王阶（构造时给、或 setRank）时主寨旁立一面王旗，一张图贴在主寨精灵旁边，不改占地、不拦点击；
@@ -32,6 +32,7 @@ const DECO_LOOP: Record<DecoAnimKind, { seq: readonly number[]; ms: number }> = 
   bonfire: { seq: [0, 1, 2, 3, 1, 2], ms: 120 },
   wheel: { seq: SEQ, ms: 320 },
   lookout: { seq: SEQ, ms: 420 },
+  anchor: { seq: ring(6), ms: 260 },
 };
 
 /** 整张图换帧的循环（棕榈、章节纪念装饰） */

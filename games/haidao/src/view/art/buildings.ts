@@ -12,14 +12,14 @@ export const BUILDING_SIZE: Record<BuildingKind, number> = {
   hq: 4, goldmine: 3, sawmill: 3, vault: 3, woodyard: 3, dock: 3, armory: 3,
   cannon: 2, gunTower: 2, mortar: 2, shock: 2, sniper: 2, mine: 1, flame: 2, palm: 1, rock: 1,
   harpoon: 2, tar: 2, rocket: 2, kraken: 3, fogTower: 2,
-  wall: 1, statue: 1, flagpole: 1, chest: 1, wheel: 1, windmill: 1, lighthouse: 1, bonfire: 1, lookout: 1, treasure: 1,
+  wall: 1, statue: 1, flagpole: 1, chest: 1, wheel: 1, windmill: 1, lighthouse: 1, bonfire: 1, lookout: 1, anchor: 1, treasure: 1,
 };
 
 const UP: Record<BuildingKind, number> = {
   hq: 300, goldmine: 135, sawmill: 120, vault: 130, woodyard: 100, dock: 125, armory: 150,
   cannon: 110, gunTower: 250, mortar: 110, shock: 110, sniper: 230, mine: 50, flame: 150, palm: 118, rock: 40,
   harpoon: 120, tar: 62, rocket: 150, kraken: 130, fogTower: 190,
-  wall: 70, statue: 110, flagpole: 170, chest: 80, wheel: 120, windmill: 150, lighthouse: 170, bonfire: 70, lookout: 120, treasure: 80,
+  wall: 70, statue: 110, flagpole: 170, chest: 80, wheel: 120, windmill: 150, lighthouse: 170, bonfire: 70, lookout: 120, anchor: 110, treasure: 80,
 };
 /** 小建筑的整体放大倍数：它们的占地菱形比画出来的大，放大后才不显得空 */
 const SCALE: Partial<Record<BuildingKind, number>> = { bonfire: 1.3, cannon: 1.4, gunTower: 1.12, hq: 1.15, mortar: 1.35, shock: 1.4, sniper: 1.05, mine: 1.4, flame: 1.2, palm: 0.85, harpoon: 1.3, tar: 1.0, rocket: 1.15, fogTower: 1.1 };
@@ -1776,6 +1776,39 @@ function lookout(frame = 0): string {
   return flag(0.3, -0.3, 22, 30, 14, 9, C.red!) + o;
 }
 
+/**
+ * 铁锚（守岛第六章「群岛远征」全部过关的纪念，铁潮舰长船上的锚）：一块灰石墩上立着一只黑铁大锚，锚环挂一截铁链垂到墩边，
+ * 木横杆箍着铁箍。frame 是一道闪光的位置（DECO_FRAMES.anchor 档），从锚环沿锚杆扫到右锚爪
+ */
+function anchor(frame = 0): string {
+  let o = box(-0.36, -0.36, 0.36, 0.36, 0, 16, mat(C.stone!, 'stone'), 'brick');
+  const [x, y] = P(0, 0, 16);
+  const iron = '#4a5160';
+  const ironHi = '#7d8698';
+  const bar = (a: Pt, b: Pt, w: number): string => line(a, b, C.ink!, w + 2.4) + line(a, b, iron, w);
+  // 锚臂：一道向下弯的弧，两头三角锚爪
+  const arm = `M${f(x - 22)},${f(y - 24)} Q${f(x)},${f(y + 2)} ${f(x + 22)},${f(y - 24)}`;
+  o += path(arm, 'none', { stroke: C.ink!, sw: 8 }) + path(arm, 'none', { stroke: iron, sw: 5 });
+  for (const s of [-1, 1]) o += poly([[x + s * 22, y - 32], [x + s * 27, y - 20], [x + s * 15, y - 21]], iron, { sw: 1.4 });
+  o += bar([x, y - 8], [x, y - 64], 6);
+  o += line([x - 1.5, y - 12], [x - 1.5, y - 60], ironHi, 1.4, 0.8);
+  // 木横杆加两道铁箍
+  o += line([x - 17, y - 52], [x + 17, y - 56], C.ink!, 7) + line([x - 17, y - 52], [x + 17, y - 56], C.wood!, 4.6);
+  for (const dx of [-12, 12]) o += line([x + dx, y - 51 - dx / 6], [x + dx, y - 57 - dx / 6], iron, 2);
+  o += ell(x, y - 70, 6.4, 6.4, 'none', { stroke: C.ink!, sw: 4.4 }) + ell(x, y - 70, 6.4, 6.4, 'none', { stroke: iron, sw: 2.4 });
+  // 铁链：从锚环垂到石墩右前角
+  for (let i = 1; i <= 6; i++) {
+    const t = i / 7;
+    const cx = x + 4 + t * 22;
+    const cy = y - 70 + t * 56 + Math.sin(t * Math.PI) * 10;
+    o += ell(cx, cy, i % 2 ? 3.2 : 2, i % 2 ? 2 : 3.2, 'none', { stroke: iron, sw: 1.8 });
+  }
+  const glints: Pt[] = [[x + 5, y - 74], [x - 13, y - 53], [x - 1, y - 42], [x - 1, y - 24], [x, y - 11], [x + 22, y - 27]];
+  const [gx, gy] = glints[frame % glints.length]!;
+  o += ell(gx, gy, 4.2, 1.2, '#fffbe0', { sw: 0, op: 0.85 }) + ell(gx, gy, 1.2, 4.2, '#fffbe0', { sw: 0, op: 0.85 });
+  return o;
+}
+
 const FIRE_H = [[1, 0.8, 0.9], [0.85, 1, 0.75], [0.95, 0.75, 1], [0.8, 0.95, 0.85]] as const;
 const FIRE_SWAY = [0, 2, -1.5, 1] as const;
 /**
@@ -1926,7 +1959,7 @@ function rock(): string {
 // ================================================================= 对外
 
 const DRAW: Record<BuildingKind, (lv: number) => string> = {
-  hq, goldmine, sawmill, vault, woodyard, dock, armory, cannon, gunTower, mortar, shock, sniper, mine, flame: flameTower, harpoon, tar, rocket, fogTower, kraken: () => '', wall: () => '', statue: () => statue(), flagpole: () => flagpole(), chest: () => chest(), wheel: () => wheel(), windmill: () => windmill(), lighthouse: () => lighthouse(), bonfire: () => bonfire(), lookout: () => lookout(2),
+  hq, goldmine, sawmill, vault, woodyard, dock, armory, cannon, gunTower, mortar, shock, sniper, mine, flame: flameTower, harpoon, tar, rocket, fogTower, kraken: () => '', wall: () => '', statue: () => statue(), flagpole: () => flagpole(), chest: () => chest(), wheel: () => wheel(), windmill: () => windmill(), lighthouse: () => lighthouse(), bonfire: () => bonfire(), lookout: () => lookout(2), anchor: () => anchor(0),
   treasure: () => treasure(),
   palm: () => palm(), rock: () => rock(),
 };
@@ -2026,8 +2059,8 @@ export function palmSwayFrames(): ArtPiece[] {
   return swayCache;
 }
 
-/** 会动的章节纪念装饰：每种烘几帧（envfx 按 DECO_LOOP 轮换）。风车四片叶 90° 一循环；舵轮、瞭望台的望远镜来回摆 5 档 */
-export const DECO_FRAMES = { windmill: 6, lighthouse: 8, bonfire: 4, wheel: 5, lookout: 5 } as const;
+/** 会动的章节纪念装饰：每种烘几帧（envfx 按 DECO_LOOP 轮换）。风车四片叶 90° 一循环；舵轮、瞭望台的望远镜来回摆 5 档；铁锚一道光从锚环扫到锚爪 */
+export const DECO_FRAMES = { windmill: 6, lighthouse: 8, bonfire: 4, wheel: 5, lookout: 5, anchor: 6 } as const;
 export type DecoAnimKind = keyof typeof DECO_FRAMES;
 export const isDecoAnim = (k: BuildingKind): k is DecoAnimKind => k in DECO_FRAMES;
 const decoCache = new Map<DecoAnimKind, ArtPiece[]>();
@@ -2040,6 +2073,7 @@ export function decoFrames(kind: DecoAnimKind): ArtPiece[] {
       : kind === 'lighthouse' ? lighthouse(i)
         : kind === 'bonfire' ? bonfire(i)
           : kind === 'lookout' ? lookout(i)
+            : kind === 'anchor' ? anchor(i)
             : wheel(((i - 2) * 8 * Math.PI) / 180);
   r = Array.from({ length: DECO_FRAMES[kind] }, (_, i) => ({ ...shell(kind, draw(i), 1), key: `b.${kind}.f${i}` }));
   decoCache.set(kind, r);

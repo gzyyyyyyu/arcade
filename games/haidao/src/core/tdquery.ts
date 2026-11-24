@@ -15,7 +15,9 @@ import type { TdLevel } from './tdtypes.ts';
 import { inner, isAir, ensureWaves, ensureGrid, treasureFlow, enemyHp, gapBefore, waveGold, slotTower } from './tdstate.ts';
 import type { TdState } from './tdstate.ts';
 import { dareCount, eventAt } from './tdevent.ts';
-import { campAt } from './tdcamp.ts';
+import { campAt, campUltCost, campUltError } from './tdcamp.ts';
+import { TD2_CAMP_ULT } from '../content/tdcamp.ts';
+import type { TdCampUlt } from '../content/tdcamp.ts';
 
 /** 第 w 波（0 起）开打时落潮路是不是开着：写了 `tideOpen` 按名单，没写就是 `tide.wave` 起一直开着 */
 export function tideOpenAt(lv: TdLevel, w: number): boolean {
@@ -251,11 +253,20 @@ export function tdRuleBlock(s: TdState, slot: number): 'rule' | null {
   return null;
 }
 
-/** 把这块上的塔换成终极 ult 要多少金（天赋打折后）；这一局没开终极、没有这个终极为 -1 */
+/** 把这块上的塔或水手营换成终极 ult 要多少金（天赋打折后）；这一局没开终极、没有这个终极为 -1 */
 export function tdUltCost(s: TdState, ult: string): number {
   const u = TD_ULT_BY_ID.get(ult);
-  if (!s.deep?.ult || !u) return -1;
-  return ultCost(u, s.deep.talent);
+  if (s.deep?.ult && u) return ultCost(u, s.deep.talent);
+  return campUltCost(s, ult);
+}
+
+/** 这块木台上的水手营能换的终极（陆战营 / 炮手营）：没开终极、没到 3 阶选完分叉、已经换过的为空 */
+export function tdCampUltOptions(s: TdState, slot: number): Array<{ id: TdCampUlt } & (typeof TD2_CAMP_ULT)[TdCampUlt]> {
+  const c = campAt(s, slot);
+  if (!s.deep?.ult || !c) return [];
+  return (Object.keys(TD2_CAMP_ULT) as TdCampUlt[])
+    .filter((id) => campUltError(c, id) === null)
+    .map((id) => ({ id, ...TD2_CAMP_ULT[id] }));
 }
 
 /** 这一局这块上的塔能换的终极（界面出终极卡、机器人挑）：没开终极、塔没到 3 阶选完分叉、已经换过的为空 */

@@ -4,7 +4,7 @@ import { PALETTE as C } from './palette.ts';
 import type { ArtPiece, Pt } from './kit.ts';
 import { ell, line, path, pieceRaw as piece, poly, rect, skull as skullPic, tube } from './kit.ts';
 
-type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | 'treasure' | 'ingot' | 'sluice' | 'battery' | 'hook' | 'rain' | 'dare' | 'rushFlag' | 'reward' | SkillKind;
+type IconKind = 'gold' | 'wood' | 'star' | 'starEmpty' | 'energy' | 'hammer' | 'sword' | 'shield' | 'ship' | 'map' | 'home' | 'skull' | 'bounty' | 'trophy' | 'shieldOn' | 'replay' | 'revenge' | 'treasure' | 'ingot' | 'sluice' | 'battery' | 'hook' | 'rain' | 'dare' | 'rushFlag' | 'reward' | 'drawbridge' | SkillKind;
 
 function starPts(r1: number, r2: number): Pt[] {
   const a: Pt[] = [];
@@ -66,6 +66,13 @@ function make(kind: IconKind): string {
       return path('M-15,10 q4,-4 8,0 t8,0 t8,0 t7,0', 'none', { stroke: '#2b7fa3', sw: 4 }) + path('M-15,10 q4,-4 8,0 t8,0 t8,0 t7,0', 'none', { stroke: '#e8f8f4', sw: 1.8 }) +
         rect(-14, -14, 5, 24, C.woodD!, { sw: 2 }) + rect(9, -14, 5, 24, C.woodD!, { sw: 2 }) + rect(-9, -8, 18, 14, C.wood!, { sw: 2 }) +
         line([-9, -3], [9, -3], C.woodDD!, 1.4) + line([-9, 2], [9, 2], C.woodDD!, 1.4) + rect(-16, -16, 32, 4, C.ironD!, { sw: 1.8 });
+    case 'drawbridge':
+      // 吊桥：水面上的木桥板 + 两道拉桥的铁链和绞盘柱
+      return path('M-15,11 q4,-4 8,0 t8,0 t8,0 t7,0', 'none', { stroke: '#2b7fa3', sw: 4 }) + path('M-15,11 q4,-4 8,0 t8,0 t8,0 t7,0', 'none', { stroke: '#e8f8f4', sw: 1.8 }) +
+        poly([[-13, 6], [-4, -9], [4, -9], [13, 6]], C.wood!, { sw: 2.2 }) +
+        line([-9, 1], [9, 1], C.woodDD!, 1.6) + line([-6, -4], [6, -4], C.woodDD!, 1.6) +
+        rect(-14, -14, 4, 22, C.woodD!, { sw: 2 }) + rect(10, -14, 4, 22, C.woodD!, { sw: 2 }) +
+        line([-10, -12], [-4, -7], C.ironD!, 2.2) + line([10, -12], [4, -7], C.ironD!, 2.2);
     case 'battery':
       // 岸防老炮：石墩上一门粗短的旧铜炮，炮口冒一缕烟
       return rect(-14, 4, 26, 10, C.stone!, { sw: 2 }) + line([-14, 9], [12, 9], C.stoneD!, 1.2) +

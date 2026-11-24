@@ -43,3 +43,32 @@ export const TD2_CAMP_BRANCH = {
 } as const;
 
 export type TdCampBranch = keyof typeof TD2_CAMP_BRANCH;
+
+/**
+ * 水手营终极（3 阶分叉选完后二选一，价 = 造价 × 200%，受天赋 ultPct 折扣，仅在战役和海盗来袭且 td06 ≥1★ 解锁）：
+ * - 陆战营：4 名水兵出战；每 20 秒冲锋一次，让集结点 3 格内地面敌人晕 1 秒；
+ * - 炮手营：兵换成 2 门小炮（走位跟集结点，不拦人），每门炮射程 5 格打炮弹溅射。
+ */
+export const TD2_CAMP_ULT = {
+  'ult.camp.marine': {
+    name: '陆战营',
+    desc: '4 名水兵出战；每 20 秒冲锋晕集结点 3 格地面敌人 1 秒',
+    costPct: 200,
+    men: 4,
+    chargeCd: 400,
+    chargeRange: 300,
+    chargeStun: 20,
+  },
+  'ult.camp.cannon': {
+    name: '炮手营',
+    desc: '换成 2 门小炮（随集结点走位，不拦人），5 格炮弹溅射',
+    costPct: 200,
+    men: 2,
+    range: 500,
+    reload: 40,
+    dmgPct: 185,
+    splash: 120,
+  },
+} as const;
+
+export type TdCampUlt = keyof typeof TD2_CAMP_ULT;

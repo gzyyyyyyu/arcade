@@ -209,6 +209,8 @@ export interface TdLevel {
   battery?: { x: number; y: number };
   /** 友军巡航船（第四章最后两关）：写了就有；船沿岛外一圈开，不需要坐标 */
   fleet?: boolean;
+  /** 吊桥（第六章最后两关）：两座吊桥各自占的水面格，一局同时只放下一座（默认 0 号） */
+  drawbridge?: [Array<{ x: number; y: number }>, Array<{ x: number; y: number }>];
   /**
    * 大潮无尽（DESIGN 10.6e）：写了它，波次按波数现生成（`waves` 只是已经生成的前缀，开局和每开一波都往后补几波），打不完，宝藏丢光才结束。
    * 必须是只由波数（和写死的种子）决定的纯函数，同一个 setup 才能重放出同一局。

@@ -31,7 +31,7 @@ describe('0.59.0 新美术', () => {
   });
 
   it('新敌人和水兵：走 4 帧、打 3 帧，同种同尺寸', () => {
-    for (const kind of ['charger', 'drummer', 'balloon', 'tyrantShip', 'tyrant', 'tyrantRun', 'marine', 'marineGun', 'marineShield'] as const) {
+    for (const kind of ['charger', 'drummer', 'balloon', 'tyrantShip', 'tyrant', 'tyrantRun', 'marine', 'marineGun', 'marineShield', 'marineCannon'] as const) {
       const walk = tdEnemyFrames(kind, 'walk');
       const atk = tdEnemyFrames(kind, 'attack');
       expect(walk.length, kind).toBe(4);
@@ -43,9 +43,9 @@ describe('0.59.0 新美术', () => {
     }
   });
 
-  it('水手营 3 阶 + 两种分叉、段位徽章 7 档', () => {
+  it('水手营 3 阶 + 两种分叉 + 两种终极营、段位徽章 7 档', () => {
     const bar = tdBarracksAll();
-    expect(bar.length).toBe(5);
+    expect(bar.length).toBe(7);
     for (const p of bar) sane(p, p.key);
     uniqueKeys(bar);
     expect(new Set(bar.map((p) => `${p.w}x${p.h}|${p.ax},${p.ay}`)).size).toBe(1);

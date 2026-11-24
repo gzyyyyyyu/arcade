@@ -12,7 +12,7 @@ import { ESCORT_LEVELS } from '../src/content/escortlevels.ts';
  * 守岛精英（DESIGN 10.3 末尾）：写了 elite 的关从 elite.from 波（默认第 4 波）起水手、鹦鹉六成换成水手长、鹦鹉王。
  * 大副：写了 elite.kind = 'mate' 的关水手的份额换成大副（倒下散成 3 个水手），鹦鹉照常换鹦鹉王。
  */
-const ELITE_LEVELS = ['td07', 'td10', 'td14', 'td16', 'td20', 'td22', 'td23', 'td24', 'td29', 'td30'];
+const ELITE_LEVELS = ['td07', 'td10', 'td14', 'td16', 'td20', 'td22', 'td23', 'td24', 'td29', 'td30', 'td36'];
 const ELITES: readonly TdEnemyKind[] = ['bosun', 'macaw', 'mate'];
 const kinds = (lv: TdLevel): Set<TdEnemyKind> => new Set(lv.waves.flatMap((w) => w.groups.map((g) => g.enemy)));
 
@@ -79,10 +79,10 @@ describe('大副', () => {
     expect(TD_ENEMY_ARMOR.mate).toBe('cloth');
   });
 
-  it('只在 td16、第四章的 td20、td22、td23、td24、第五章的 td29、td30 和第六章波次里直接写了大副的 td31、td32、td34，水手换大副、鹦鹉换鹦鹉王', () => {
+  it('只在 td16、第四章的 td20、td22、td23、td24、第五章的 td29、td30 和第六章波次里直接写了大副的 td31、td32、td34、td35、td36，水手换大副、鹦鹉换鹦鹉王', () => {
     for (const raw of TD2_LEVELS) {
       const has = kinds(raw).has('mate');
-      expect(has, raw.id).toBe(['td16', 'td20', 'td22', 'td23', 'td24', 'td29', 'td30', 'td31', 'td32', 'td34'].includes(raw.id));
+      expect(has, raw.id).toBe(['td16', 'td20', 'td22', 'td23', 'td24', 'td29', 'td30', 'td31', 'td32', 'td34', 'td35', 'td36'].includes(raw.id));
     }
     const now = kinds(TD2_LEVELS.find((l) => l.id === 'td16')!);
     expect(now.has('bosun')).toBe(false);

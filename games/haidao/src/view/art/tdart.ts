@@ -5,7 +5,7 @@ import { limb, woodShield } from './troops.ts';
 import { OUT, P, box, cyl, darken, ell, f, lighten, line, mat, path, piece, poly, rect, shadow, skull, uid } from './kit.ts';
 
 /** 守岛敌人的整帧种类；第六章新敌人（charger 冲锋手、drummer 盾鼓手、balloon 热气球、tyrantShip/tyrant/tyrantRun 铁潮舰长三段）和水手营的水兵（marine / marineGun 火枪队 / marineShield 重盾队）也在这里 */
-export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate', 'medic', 'gunboat', 'king', 'charger', 'drummer', 'balloon', 'tyrantShip', 'tyrant', 'tyrantRun', 'marine', 'marineGun', 'marineShield'] as const;
+export const TD_ENEMY_KINDS = ['sailor', 'ironclad', 'fog', 'skiff', 'skiffling', 'sapper', 'grenadier', 'parrot', 'captain', 'shield', 'bosun', 'macaw', 'mate', 'medic', 'gunboat', 'king', 'charger', 'drummer', 'balloon', 'tyrantShip', 'tyrant', 'tyrantRun', 'marine', 'marineGun', 'marineShield', 'marineCannon'] as const;
 export type TdEnemyKind = (typeof TD_ENEMY_KINDS)[number];
 export type TdAnim = 'walk' | 'attack';
 export type TdPropKind = 'pad' | 'padBuilt' | 'keg' | 'wreck' | 'barrel' | 'tideEdge' | 'mist' | 'jam' | 'tideWave' | 'sluiceUp' | 'sluiceDown' | 'battery' | 'crate';
@@ -822,22 +822,22 @@ function balloonFrame(anim: TdAnim, i: number): ArtPiece {
  * 水兵（水手营的兵，玩家这边的）：蓝白条纹衫、蓝色水兵帽带两根飘带、短弯刀。
  * gun = 火枪队（端一支长火枪），shield = 重盾队（前手一面包铁圆盾、个子大一圈）
  */
-function marineSpec(p: Pd, kind: 'blade' | 'gun' | 'shield'): Spec {
+function marineSpec(p: Pd, kind: 'blade' | 'gun' | 'shield' | 'cannon'): Spec {
   const L: Look = { skin: '#eab07c', pants: '#f4ead0', boot: '#2e2420', shirt: '#f4ead0', sleeve: '#f4ead0', half: kind === 'shield' ? 7.6 : 6.6, top: -24, head: 9.4 };
   return { L, h: {
     backHand: kind === 'shield' ? (hd) => ell(hd[0] + 6, hd[1] - 4, 9, 11.5, '#2f62a8', { sw: 2.2 }) + ell(hd[0] + 6, hd[1] - 4, 5.6, 7.4, '#c8d0da', { sw: 1.4 }) + ell(hd[0] + 6, hd[1] - 4, 2, 2.6, C.gold!, { sw: 1 }) : undefined,
     torso: (x, yt) => {
       let s = '';
-      for (let i = 0; i < 3; i++) s += rect(x - 6.4, yt + 3.5 + i * 4.4, 12.8, 2.1, '#2f62a8', { sw: 0, op: 0.95 });
-      // 水兵领：蓝色方领搭在肩上
-      s += path(`M${f(x - 6)},${f(yt + 1)} L${f(x + 6)},${f(yt + 1)} L${f(x + 1)},${f(yt + 8)} Z`, '#1f4a91', { sw: 1.2 });
+      for (let i = 0; i < 3; i++) s += rect(x - 6.4, yt + 3.5 + i * 4.4, 12.8, 2.1, kind === 'cannon' ? '#b8252a' : '#2f62a8', { sw: 0, op: 0.95 });
+      // 水兵领：蓝色方领搭在肩上（炮手用红金领）
+      s += path(`M${f(x - 6)},${f(yt + 1)} L${f(x + 6)},${f(yt + 1)} L${f(x + 1)},${f(yt + 8)} Z`, kind === 'cannon' ? '#8f1b1f' : '#1f4a91', { sw: 1.2 });
       s += rect(x - 7, -13 + p.bob, 14, 3, '#1f2a44', { sw: 1.4 }) + rect(x - 1.5, -13.4 + p.bob, 3, 3.6, C.gold!, { sw: 0.8 });
       return s;
     },
     face: (cx, cy, r) => ell(cx + r * 0.42 + 1, cy - 0.2, 1.6, 1.8, '#1b1214', { sw: 0 }) + path(`M${f(cx + r * 0.2)},${f(cy + 4)} q2,1.6 4,0`, 'none', { stroke: '#7a3a2a', sw: 1.2 }),
     hat: (cx, cy, r) => {
       // 圆顶水兵帽、白帽檐、两根飘带往后
-      let s = path(`M${f(cx - r * 0.9)},${f(cy - 3)} Q${f(cx)},${f(cy - r - 6)} ${f(cx + r * 0.9)},${f(cy - 3)} Z`, '#2f62a8', { sw: 1.8 });
+      let s = path(`M${f(cx - r * 0.9)},${f(cy - 3)} Q${f(cx)},${f(cy - r - 6)} ${f(cx + r * 0.9)},${f(cy - 3)} Z`, kind === 'cannon' ? '#b8252a' : '#2f62a8', { sw: 1.8 });
       s += rect(cx - r, cy - 4, 2 * r, 3, '#f4ead0', { sw: 1.4 });
       s += path(`M${f(cx - r)},${f(cy - 2)} q-6,3 -9,9 M${f(cx - r)},${f(cy - 2)} q-3,4 -4,10`, 'none', { stroke: '#1f2a44', sw: 1.6 });
       return s;
@@ -850,10 +850,22 @@ function marineSpec(p: Pd, kind: 'blade' | 'gun' | 'shield'): Spec {
             const t: Pt = [hd[0] - Math.cos(a) * 8, hd[1] - Math.sin(a) * 8];
             return line(t, hd, '#6a4a2a', 4) + line(hd, b, '#3a3e48', 2.6) + ell(b[0], b[1], 1.2, 1.2, '#14141c', { sw: 0 });
           }
-        : (hd, pd) => sword(hd, pd.ang, 19, 3, '#e6eef6', 3),
+        : kind === 'cannon'
+          ? (hd) => {
+              const cx = hd[0] + 6;
+              const cy = Math.max(-8, hd[1] + 6);
+              return (
+                rect(cx - 8, cy - 6, 22, 9, '#3a3e48', { sw: 1.8 }) +
+                rect(cx + 8, cy - 6.5, 4, 10, C.gold!, { sw: 1.2 }) +
+                rect(cx - 10, cy + 1, 14, 5, C.woodD!, { sw: 1.4 }) +
+                ell(cx - 2, cy + 7, 5.5, 5.5, '#6a4a2a', { sw: 1.6 }) +
+                ell(cx - 2, cy + 7, 2, 2, C.gold!, { sw: 1 })
+              );
+            }
+          : (hd, pd) => sword(hd, pd.ang, 19, 3, '#e6eef6', 3),
   } };
 }
-const marineBody = (p: Pd, atk: boolean, kind: 'blade' | 'gun' | 'shield'): string => manOf(marineSpec(p, kind), p, atk);
+const marineBody = (p: Pd, atk: boolean, kind: 'blade' | 'gun' | 'shield' | 'cannon'): string => manOf(marineSpec(p, kind), p, atk);
 
 // ================================================================= 分件骨架用的部件（art/rigparts.ts）
 
@@ -958,6 +970,7 @@ const DEF: Record<TdEnemyKind, EnemyDef> = {
   marine: { scale: 1.45, box: { x0: -28, y0: -62, x1: 40, y1: 6 }, shadow: [22, 8] },
   marineGun: { scale: 1.45, box: { x0: -28, y0: -62, x1: 44, y1: 6 }, shadow: [22, 8] },
   marineShield: { scale: 1.6, box: { x0: -28, y0: -62, x1: 42, y1: 6 }, shadow: [24, 8] },
+  marineCannon: { scale: 1.5, box: { x0: -28, y0: -62, x1: 50, y1: 6 }, shadow: [24, 8] },
 };
 
 const ecache = new Map<string, ArtPiece[]>();
@@ -1003,6 +1016,7 @@ export function tdEnemyFrames(kind: TdEnemyKind, anim: TdAnim): ArtPiece[] {
       else if (kind === 'marine') body = marineBody(p, a, 'blade');
       else if (kind === 'marineGun') body = marineBody(p, a, 'gun');
       else if (kind === 'marineShield') body = marineBody(p, a, 'shield');
+      else if (kind === 'marineCannon') body = marineBody(p, a, 'cannon');
       else body = captainBody(p, a);
       return frame(`td.${kind}.${anim}.${i}`, d.scale, d.box, stdShadow(d.shadow[0] * d.scale, d.shadow[1] * d.scale), body);
     });

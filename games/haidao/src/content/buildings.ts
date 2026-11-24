@@ -312,6 +312,15 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     desc: '守岛第五章全部过关的纪念，只占格。',
     levels: [{ cost: { gold: 0, wood: 0 }, hp: 0 }],
   },
+  anchor: {
+    name: '铁锚',
+    size: 1,
+    category: 'deco',
+    unlockHq: 1,
+    maxLevel: 1,
+    desc: '守岛第六章全部过关的纪念，只占格。',
+    levels: [{ cost: { gold: 0, wood: 0 }, hp: 0 }],
+  },
   treasure: {
     name: '宝藏箱',
     size: 1,

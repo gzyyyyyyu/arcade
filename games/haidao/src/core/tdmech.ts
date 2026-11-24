@@ -2,7 +2,7 @@
  * 守岛章末机制（DESIGN 10.6d）：每章最后两关给玩家多一件工具，不用就和没有一样——
  * 漂流补给箱（第一章）、潮汐水闸（第二章）、岸防老炮（第三章）、友军巡航船（第四章）。只由关卡字段打开，没写的关一律不建、遇到操作忽略。
  */
-import { TD2_BATTERY, TD2_CRATE, TD2_ENEMIES, TD2_FLEET } from '../content/td2units.ts';
+import { TD2_BATTERY, TD2_CRATE, TD2_DRAWBRIDGE, TD2_ENEMIES, TD2_FLEET } from '../content/td2units.ts';
 import { inGrid } from './grid.ts';
 import { tideOpenAt } from './tdquery.ts';
 import { HIT_KEG, addGold, d2, inner, isAir, waveGold } from './tdstate.ts';
@@ -17,6 +17,17 @@ export function initMech(s: TdState): void {
   if (lv.battery) s.battery = { x: lv.battery.x, y: lv.battery.y, ready: 0 };
   if (lv.crates?.length) s.drift = { crates: [], chase: -1 };
   if (lv.fleet) s.fleet = { ready: 0, sail: null };
+  if (lv.drawbridge) s.drawbridge = { down: 0, ready: 0 };
+}
+
+/** 吊桥：在两座吊桥之间切换哪座放下（另一座收起、那条路断），冷却 TD2_DRAWBRIDGE.cd 拍，开局能用 */
+export function toggleDrawbridge(s: TdState, ev: TdEvent[]): void {
+  const db = s.drawbridge;
+  if (!db || s.tick < db.ready) return;
+  db.down = db.down === 0 ? 1 : 0;
+  db.ready = s.tick + TD2_DRAWBRIDGE.cd;
+  inner(s).ver++;
+  ev.push({ type: 'drawbridge', down: db.down, ready: db.ready });
 }
 
 /** 第 w 波开打：这一波写了补给箱就在沙滩上漂来一个（startWave 调） */

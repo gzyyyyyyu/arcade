@@ -20,7 +20,7 @@ export const TICKS_PER_SEC = 20;
 /** 一场进攻最长多少拍（3 分钟） */
 export const BATTLE_TICKS = 180 * TICKS_PER_SEC;
 /** 规则版本：规则一改就加一（服务端据此要求旧页面刷新、回放标「旧版本」）；录像和回放不保证跨版本 */
-export const RULES_VERSION = 30;
+export const RULES_VERSION = 31;
 
 export type BuildingKind =
   | 'hq' // 主寨
@@ -51,6 +51,7 @@ export type BuildingKind =
   | 'lighthouse' // 小灯塔（守岛第二章全部过关的纪念装饰）
   | 'bonfire' // 篝火（守岛第三章全部过关的纪念装饰）
   | 'lookout' // 瞭望台（守岛第五章全部过关的纪念装饰）
+  | 'anchor' // 铁锚（守岛第六章全部过关的纪念装饰）
   | 'treasure' // 宝藏箱（守岛里敌人来抢的目标；攻防里是普通建筑，驻岛英雄守在旁边）
   | 'shock' // 震荡炮：小溅射、命中的兵震晕（DESIGN 13）
   | 'sniper'; // 狙击塔：射程最远、单发重伤害，先打船长、船医这类后排（DESIGN 14）
@@ -116,7 +117,7 @@ export interface Profile {
     holds?: number;
     bestTrophies?: number;
   };
-  /** 收藏：掉宝得到的 `skin:<兵>:<gold|shadow|royal>`、`deco:<statue|flagpole|chest>`，守岛每章全部过关送的 `deco:<windmill|lighthouse|bonfire|wheel|lookout>`（TD_TROPHIES） */
+  /** 收藏：掉宝得到的 `skin:<兵>:<gold|shadow|royal>`、`deco:<statue|flagpole|chest>`，守岛每章全部过关送的 `deco:<windmill|lighthouse|bonfire|wheel|lookout|anchor>`（TD_TROPHIES） */
   cosmetics: string[];
   /** 装备的皮肤：兵种 → 皮肤名 */
   skins: Partial<Record<TroopKind, string>>;
