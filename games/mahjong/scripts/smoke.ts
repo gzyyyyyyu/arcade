@@ -310,8 +310,10 @@ for (const [name, viewport] of [
   await page.waitForSelector('.my-hand .tile');
   // 对局中点"大厅"：先问一次，点"接着打"留在牌桌
   await page.click('.home');
-  await page.waitForSelector('text=接着打');
-  await page.click('text=接着打');
+  // 只认确认框里的按钮：问话本身也带"接着打"（"不能接着打"），按字找会点到问话上
+  const stay = '.mask.confirm button:has-text("接着打")';
+  await page.waitForSelector(stay);
+  await page.click(stay);
   await soloFun(page, name);
   if (!(await play(page, name))) errors.push('一场里没出现过胡牌亮牌');
   await page.screenshot({ path: `${root}shots/smoke-${name}.png` });
