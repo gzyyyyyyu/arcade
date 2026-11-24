@@ -18,6 +18,11 @@
   --hk-h: 90px;
   gap: var(--sp-4);
 }
+/* 手机横屏舞台缩得小：54 宽的牌屏幕上只有 38 像素，点不准；横着放得下 14 张 64 宽（加间距 980，正好是一排的上限） */
+.stage[data-orient='land']:not([data-fit='desk']) .hekiri {
+  --hk-w: 64px;
+  --hk-h: 90px;
+}
 /* 标题和题号留在顶上，题目和按钮在剩余高度里垂直居中，不让下半屏空着（内容放不下时 auto 外边距归零，照常顶对齐） */
 .hekiri > .hk-ask,
 .hekiri > .hk-verdict,

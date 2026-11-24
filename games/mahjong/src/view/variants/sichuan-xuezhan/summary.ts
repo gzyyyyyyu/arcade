@@ -58,7 +58,12 @@ export function roundSummary(v: XzView, names: string[], unit: string): HTMLElem
     const fed = h.wins.filter((x) => x.from === seat).map((x) => names[x.seat]!);
     // 没胡又没点炮才写"—"；点了炮就只写"点炮给…"，不留孤零零的破折号和分隔点
     if (!mine.length && !fed.length && h.end !== 'wall') what.textContent = '—';
-    else if (!mine.length && h.end === 'wall') what.textContent = '没胡';
+    // 牌摸完：查大叫让没胡的人也有输有赢，在这一行写明为什么（听牌的没胡也收分，新手看不懂）
+    else if (!mine.length && h.end === 'wall') {
+      const cha = v.ledger.filter((p) => p.kind === 'cha');
+      // 只写两三个字（844 横屏两栏一格窄，字多了每页少摆一家）；谁赔谁多少在下面的「查大叫」流水里
+      what.textContent = cha.some((p) => p.to === seat) ? '没胡 · 听牌' : cha.some((p) => p.from === seat) ? '没胡 · 没听牌' : '没胡';
+    }
     // 「点炮给 谁」整段换行，不把名字最后一个字甩到下一行
     if (fed.length) {
       if (what.textContent) what.append(' · ');
@@ -137,7 +142,8 @@ export function verdictWhy(v: XzView, seat: number, names: string[]): string | n
   // 血战只向还没胡的人收（胡了却也付了，是在自己胡之前）；血流胡了不下桌，每家都付
   const still = v.opts.flow ? '每家都' : '你那时还没胡，'
   const say: Record<string, string> = {
-    hu: `你打的牌正好是 ${who} 要的，被胡了（点炮）。别人碰过牌、快胡的时候，少打桌上还没人打过的牌`,
+    // 一行放得下（844 横屏折成两行时，结算每页少摆两家）
+    hu: `点炮给了 ${who}：别人快胡时，少打桌上没人打过的牌`,
     zimo: `${who} 自摸了，${still}要付自摸的分`,
     kan: `${who} 杠了牌，${still}要付杠分`,
     pig: '牌摸完时手里还留着缺的那门（花猪），要赔给别家',

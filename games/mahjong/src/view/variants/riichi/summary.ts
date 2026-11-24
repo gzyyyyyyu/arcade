@@ -127,7 +127,7 @@ export function roundSummary(v: RcView, names: string[]): HTMLElement {
   }
   // 点数从谁那儿飞到谁那儿（settleFx 用）：只要方向，桌上的供托不算
   box.dataset.moves = JSON.stringify([...new Set(v.ledger.filter((p) => p.from >= 0 && p.to >= 0).map((p) => `${p.from}>${p.to}`))]);
-  // 点数怎么动的：本场、供托、不听罚符这些另写一行，免得和役种表里的点数对不上
+  // 点数怎么动的：本场、立直棒、没听牌罚分这些另写一行，免得和役种表里的点数对不上
   const flows = new Map<string, number>();
   for (const p of v.ledger) {
     if (p.kind === 'ron' || p.kind === 'tsumo') continue;
@@ -142,7 +142,9 @@ export function roundSummary(v: RcView, names: string[]): HTMLElement {
       const t = Number(to);
       const flow = el('div', 'flow', list);
       term(flow, PAY_NAME[kind] ?? kind);
-      flow.append(`：${f < 0 ? '桌上' : names[f]} → ${t < 0 ? '桌上' : names[t]} ${num(amount)} 点`);
+      // 和川麻的流水一个说法（「付给」），不用箭头
+      const how = t < 0 ? `${names[f]} 押到桌上` : f < 0 ? `桌上的归 ${names[t]}` : `${names[f]} 付给 ${names[t]}`;
+      flow.append(`：${how} ${num(amount)} 点`);
     }
   }
   if (v.sticks && !v.final) el('div', 'rc-sticks', side, `桌上还有 ${v.sticks} 根立直棒，留给下一个胡牌的人`);

@@ -94,8 +94,11 @@ export function pageTo(e: HTMLElement): void {
   const page = e.closest<HTMLElement>('.paged');
   if (page) PAGERS.get(page)?.show(e);
 }
-/** 一场打完的结算：名次、这一局的明细一块块小结都按行拆，第一页名次下面空着的地方接着摆明细（立直的明细和点数各包一层，也拆开） */
-export const END_SPLIT = '.summary, .summary > .rows, .rc-main, .rc-side, .rc-side > .rows';
+/**
+ * 一场打完的结算：这一局的明细一块块小结都按行拆，空着的地方接着摆（立直的明细和点数各包一层，也拆开）。
+ * 名次（.final，标题加几行）整块算一项：拆开时第一页末尾只挤进第 1 名、或者只剩个标题，2–4 名到下一页；一页放不下才照常按行拆
+ */
+export const END_SPLIT = '.summary:not(.final), .summary:not(.final) > .rows, .rc-main, .rc-side, .rc-side > .rows';
 
 const PAGERS = new WeakMap<HTMLElement, Pager>();
 const LISTENING = new WeakSet<HTMLElement>();
@@ -118,10 +121,14 @@ const unhide = (e: HTMLElement): void => {
 function unitsOf(box: HTMLElement, max: number, split?: string): HTMLElement[] {
   const out: HTMLElement[] = [];
   const walk = (parent: HTMLElement): void => {
+    let prev: HTMLElement | null = null;
     for (const c of parent.children) {
       if (!(c instanceof HTMLElement) || c.classList.contains('pager')) continue;
       const kids = c instanceof HTMLTableElement ? [...c.rows].filter((r) => r.parentElement?.tagName !== 'THEAD') : [...c.children];
-      if ((c.offsetHeight > max || (split && c.matches(split))) && kids.length > 1) {
+      // 标题加紧跟的这一块一页放不下：这一块也按行拆，标题带着前几行，不单独占一页
+      const orphan = prev !== null && /^H[1-6]$/.test(prev.tagName) && prev.offsetHeight + c.offsetHeight > max;
+      prev = c;
+      if ((c.offsetHeight > max || orphan || (split && c.matches(split))) && kids.length > 1) {
         c.dataset.pgBox = '';
         if (c instanceof HTMLTableElement) {
           for (const r of kids) out.push(r as HTMLElement);

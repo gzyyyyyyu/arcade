@@ -16,9 +16,10 @@
 }
 .vol input {
   width: 160px;
-  /* 滑块本身只有十来像素高，点按区撑到 --tap（屏幕上 44） */
+  /* 滑块本身只有十来像素高，点按区撑到 --tap（屏幕上 44）。不用负外边距往上下借：手机上 --tap 大，
+   * 借出去的一截压住小标题，下面的「静音」又整个盖在滑块上，滑块看不见也拖不到 */
   height: max(44px, var(--tap));
-  margin: calc((max(44px, var(--tap)) - 20px) / -2) 0;
+  margin: 0;
   accent-color: var(--gold);
 }
 /* 竖屏放不下一行（字号放大以后）：折成两行，滑块单独一行 */
@@ -27,8 +28,9 @@
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+/* 滑块在竖排的分组里：撑满分组的宽，高度照上面的 --tap（flex-basis 100% 在竖排里会把高度压成十来像素） */
 [data-orient='port'] .vol input {
-  flex: 1 0 100%;
+  width: 100%;
 }
 
 /* 竖屏第一次进牌桌的"横过来玩更舒服"（view/guide.ts）：顶上居中一小条，手机图标转一下，点击穿透 */

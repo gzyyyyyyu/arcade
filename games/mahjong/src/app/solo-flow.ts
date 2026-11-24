@@ -369,16 +369,18 @@ function paintSoloTitle(s: Solo): void {
   const variant = s.save.state.variant;
   const name = pageOf(variant).name((s.save.state as { opts?: { flow?: boolean } }).opts);
   el('span', 'var', title, `${name} · `);
-  // 竖屏放不下全名：只写「血战到底」「立直麻将」，血战、血流规则不一样，手机上也得看得出在打哪种
-  el('span', 'var-short', title, `${name.split('·').at(-1)} · `);
+  // 竖屏放不下全名：只写两个字「血战」「血流」「三人」「立直」，血战、血流规则不一样，手机上也得看得出在打哪种；四个字时 390 宽连难度都挤掉
+  el('span', 'var-short', title, `${name.split('·').at(-1)!.slice(0, 2)} · `);
   if (st.wallet) title.append(`实盘 ${num(st.share)}`);
   else if (s.save.ladder) {
     title.append(ladderTitle(s.save.ladder.table));
     el('span', 'lv', title, ` · ${LEVEL_NAME[s.save.level ?? 'easy']}`);
   } else {
-    // 难度也单独一段：320 宽竖屏连"娱乐·新手"都放不下，藏掉难度只留"娱乐"（删字不截）
-    title.append('娱乐');
-    el('span', 'lv', title, ` · ${LEVEL_NAME[s.save.level ?? 'easy']}`);
+    // 竖屏放不下"血战 · 娱乐 · 新手"（360 宽差 20 像素）：CSS 藏掉"娱乐"和难度前面那个点，留"血战 · 新手"（删字不截；实盘写"实盘 1,000"，分得开）
+    el('span', 'kind', title, '娱乐');
+    const lv = el('span', 'lv', title);
+    el('span', 'dot', lv, ' · ');
+    lv.append(LEVEL_NAME[s.save.level ?? 'easy']);
   }
 }
 

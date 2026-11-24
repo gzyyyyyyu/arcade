@@ -37,7 +37,7 @@ export async function leave(): Promise<void> {
   const st = stakesOf(solo.stakes)!;
   const over = solo.save.state.phase === 'over';
   if (!over) {
-    const ask = st.wallet ? '现在离开会马上结算：按手上的筹码带回钱包。离开吗？' : solo.save.ladder ? '先离开，下次在擂台接着打这一桌？' : '这一场还没打完，离开就不算了。离开吗？';
+    const ask = st.wallet ? '现在离开会马上结算：按手上的筹码带回钱包。离开吗？' : solo.save.ladder ? '先离开，下次在擂台接着打这一桌？' : '这一场还没打完，离开后作废、不能接着打。离开吗？';
     const ok = await confirmBox(stage, ask, '离开', '接着打');
     if (!ok) return;
     await solo.leave();

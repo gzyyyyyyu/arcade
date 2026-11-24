@@ -321,6 +321,10 @@
     box-shadow: 0 0 36px 12px #ffd35a00;
   }
 }
+/* 手机、平板没有键盘：牌上的数字键和提示里键盘那半句都不摆 */
+.stage:not([data-fit='desk']) .ting-drill :is(.td-num, .td-kbd) {
+  display: none;
+}
 .ting-drill .td-hint {
   max-width: 90%;
   font-size: var(--fs-sm);

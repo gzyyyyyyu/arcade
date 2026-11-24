@@ -413,6 +413,13 @@ html:has(.screen.room) body {
   color: var(--c-ink);
   text-shadow: 0 1px 0 #fff8;
 }
+/* 危险按钮（离开、放弃）：砖红，和旁边奶油白的"接着打"一眼分开（上面 .stage .act 盖掉了 buttons.css 的红） */
+.stage .act.danger {
+  background: linear-gradient(#e8705e, #c4402f 60%, #9e2a1d);
+  border-color: var(--c-ink);
+  color: #fff;
+  text-shadow: 0 1px 0 #0004;
+}
 .stage .act.ron {
   background: linear-gradient(#f56a55, #d8402e 60%, #b32e20);
   border-color: var(--c-ink);

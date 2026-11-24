@@ -115,17 +115,26 @@
   color: var(--gold);
   font-variant-numeric: tabular-nums;
 }
-/* 本场、供托：一根小点棒加数字（ui.ts 的 subStick，点一下弹说明）。按钮去掉默认外观；点按区不往外借，往上借会压住"剩几张"那行的字 */
-.table.rc .center .rc-sub button {
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
+/* 本场、供托：各一根小点棒加数字（ui.ts 的 subStick），两根合成一个按钮，点一下弹说明。按钮去掉默认外观；
+ * 点按区用看不见的 ::after 撑到 --tap（屏幕上 44），往上盖住"剩几张"那行也没关系，那行不能点 */
+.table.rc .center .rc-sub {
+  position: relative;
   padding: 0;
   border: 0;
   background: none;
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+.table.rc .center .rc-sub::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--tap)) / 2));
+}
+.table.rc .center .rc-sub > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
 }
 .table.rc .center .rc-sub .stick-ico {
   position: relative;

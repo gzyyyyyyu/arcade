@@ -50,9 +50,9 @@ export const PAY_NAME: Record<string, string> = {
   ron: '胡',
   tsumo: '自摸',
   honba: '本场',
-  stick: '供托',
+  stick: '立直棒',
   pao: '包牌',
-  noten: '不听罚符',
+  noten: '没听牌罚分',
   nagashi: '流局满贯',
 };
 

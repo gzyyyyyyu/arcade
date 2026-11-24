@@ -142,7 +142,7 @@ export function showHekiri(box: HTMLElement, o: HekiriOpts): () => void {
       // 第一下选中（抬起来），再点同一张就是打出
       t.addEventListener('click', () => (sel === n ? confirm() : pick(n)));
     });
-    el('div', 'hk-hint', root, sel === null ? '点一张牌选中，再点一次打出。摸到有用的牌越多越好' : `打 ${tileName(p.hand[sel]!)}？再点一次，或按下面的按钮`);
+    el('div', 'hk-hint', root, sel === null ? '点一张选中，再点一次打出；打完有用的牌越多越好' : `打 ${tileName(p.hand[sel]!)}？再点一次，或按下面的按钮`);
     const b = button('act go big hk-main', root, '打出这张', confirm);
     b.dataset.act = 'confirm';
     b.disabled = sel === null;

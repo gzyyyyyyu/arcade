@@ -1,8 +1,8 @@
 /* ---------- 选桌页 ---------- */
-/* 右下角的版本号：线上核对发的是哪一版 */
+/* 左下角的版本号：线上核对发的是哪一版。不放右下：面板在右边，好友房的「进房」按钮压到右下角 */
 .screen.lobby .ver {
   position: absolute;
-  right: var(--sp-4);
+  left: var(--sp-4);
   bottom: var(--sp-3);
   font-size: var(--fs-xs);
   opacity: 0.45;
@@ -344,6 +344,8 @@
   line-height: 1.3;
   opacity: 0.75;
   white-space: normal;
+  /* 说明不参与量列宽：两栏的列宽是 max-content，整句不折行算进去，右栏被撑出弹窗（竖屏整栏看不见） */
+  contain: inline-size;
 }
 .opt .label {
   /* 四个字的（呼叫转移）不折成两行 */
