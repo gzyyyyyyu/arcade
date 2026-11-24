@@ -115,7 +115,7 @@ export function openPuzzle(parent: HTMLElement, v: PuzzleView, date: string = be
       const c = p.board[k];
       if (c !== undefined) slot.appendChild(upCard(c));
     }
-    // "你的牌"和我的两张牌包在一起：矮屏上公共牌和我的牌排成一行时，字跟着我的牌走，不落到公共牌下面（11-23 试玩）
+    // "你的牌"和我的两张牌包在一起：矮屏上公共牌和我的牌排成一行时，字跟着我的牌走，不落到公共牌下面
     const mine = el('div', 'pz-mine', felt);
     const heroRow = el('div', 'pz-row pz-hero', mine);
     for (const c of p.hero) heroRow.appendChild(upCard(c, 'mine'));

@@ -35,7 +35,7 @@ export function showcase(r: HandResult, log: readonly LogEntry[]): Showcase | nu
 
 /** 横幅上的一句 */
 export function showcaseText(s: Showcase, name: string, r: HandResult): string {
-  // 人名和后面的字之间空一格好认；是"你"就不空（11-23 试玩："你 笑到最后"像多了个空格）
+  // 人名和后面的字之间空一格好认；是"你"就不空（"你 笑到最后"像多了个空格）
   const who = name === '你' ? name : `${name} `;
   if (s.kind === 'river') return `河牌逆转！${who}最后一张翻盘`;
   if (s.kind === 'allin') return s.split ? '全下对决，平分秋色' : `全下对决，${who}笑到最后`;

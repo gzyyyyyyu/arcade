@@ -45,7 +45,7 @@ export async function tourFlow(browser: Browser, base: string): Promise<void> {
       await page.locator('.d-btn', { hasText: '现在离桌' }).click();
       continue;
     }
-    // 结果条里不该有"空位"（0.26.x：锦标赛电脑座位 owner 是 player，赢家名字一律显示空位）
+    // 结果条里不该有"空位"（锦标赛电脑座位 owner 是 player，认错了赢家名字就会显示空位）
     const res = (await page.locator('.result.on').isVisible()) ? await page.locator('.result.on').textContent({ timeout: 500 }).catch(() => null) : null;
     if (res?.includes('空位')) throw new Error(`tour result bar shows 空位: ${res}`);
     if (res && !resShot) {

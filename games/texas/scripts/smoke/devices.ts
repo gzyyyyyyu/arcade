@@ -378,7 +378,7 @@ export async function scenesFlow(browser: Browser, base: string): Promise<void> 
           await page.locator('.actions .act', { hasText: /过牌|跟注/ }).first().click();
           await page.waitForTimeout(900);
           found.push(...(await tableHits(page, 'after')));
-          // 同一手、同一个庄：动作签冒出来不能把 D 顶开（0.26.x 曾出现：右下那家的 D 跟着"下注 800"跳）
+          // 同一手、同一个庄：动作签冒出来不能把 D 顶开（比如右下那家的 D 跟着"下注 800"跳）
           const d1 = await dealerRect(page);
           if (d0 && d1 && Math.max(Math.abs(d0[0]! - d1[0]!), Math.abs(d0[1]! - d1[1]!)) > 1) found.push(`after: D 移动了 ${d0.map(Math.round)} → ${d1.map(Math.round)}`);
           // 电脑们接着走：等到又轮到我或这手打完再截，别截在半路（半路停在哪一家取决于计时）

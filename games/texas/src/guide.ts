@@ -27,7 +27,7 @@ export function parseGuide(raw: unknown, legacyDone = false): GuideState {
   if (!o || typeof o !== 'object' || o.v !== 1 || typeof o.done !== 'boolean' || !Array.isArray(o.seen)) {
     return legacyDone ? { v: 1, done: true, seen: [...HINTS] } : freshGuide();
   }
-  // 底池那条是后加的情境提示：老存档走完了的，旧版的走一遍里讲过底池，照旧算看过
+  // 老存档走完了的：旧版的走一遍里讲过底池，底池提示算看过
   return { v: 1, done: o.done, seen: HINTS.filter((h) => (o.seen as unknown[]).includes(h) || (o.done === true && h === 'pot')) };
 }
 
@@ -127,7 +127,7 @@ const KEYS_STEP: Step = { id: 'keys', target: null, title: '键盘快捷键', li
 
 /**
  * 这台设备走哪几步：触屏没有键盘，不出快捷键那一页；第一次自动弹（first）也不出——新手还没出过一手，先学会打，
- * 快捷键等他点牌桌上的"?"再看（2026-11-21 新账号走查：开局连弹 4 页，最后一页是整张快捷键表）
+ * 快捷键等他点牌桌上的"?"再看（不然开局连弹 4 页，最后一页是整张快捷键表）
  */
 export const stepsFor = (touch: boolean, first = false): readonly Step[] => (touch || first ? STEPS : [...STEPS, KEYS_STEP]);
 

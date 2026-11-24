@@ -111,7 +111,7 @@ export async function desktop(browser: Browser, base: string): Promise<void> {
   await page.locator('.w-balance').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
   const before = await balance(page);
   if (before !== 10_000) throw new Error(`new wallet should have 10,000, got ${before}`);
-  // 一进来是主页，不摆选项（主页不再一进来就摆选项）；快速开始第一次是娱乐·新手·6 人，背景是分层的
+  // 一进来是主页，不摆选项；快速开始第一次是娱乐·新手·6 人，背景是分层的
   if ((await page.locator('.tile:visible').count()) !== 0) throw new Error('home should not show the stakes cards');
   const quick = (await page.locator('.qstart').textContent()) ?? '';
   if (!quick.includes('快速开始') || !quick.includes('娱乐 · 新手 · 6 人')) throw new Error(`first visit quick start: ${quick}`);

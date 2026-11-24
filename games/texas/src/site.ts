@@ -1,7 +1,7 @@
 /**
  * 这一页有没有平台（docs/deploy.md 10.1）：开局时 src/app/lobby.ts 用 kit 的 detectPlatform 问一次同域的 /api/me，之后不变。
  * 单独部署（没有平台）时没有登录、云存档、钱包和实盘：单机只有娱乐，好友房用游客身份、带上桌的筹码不记账。
- * 平台抖了一下（unknown）按有平台算，和以前一样。
+ * 平台抖了一下（unknown）按有平台算。
  */
 import { TWO_NOTE } from './room/rules.ts';
 

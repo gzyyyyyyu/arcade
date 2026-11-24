@@ -268,7 +268,7 @@ export function handBanner(layer: HTMLElement, at: Pt, text: string, pace: numbe
 
 /**
  * 把气泡挪回舞台里：返回要再移动的位移（舞台像素，已按 scale 折算前的屏幕像素差）。
- * 1920×1080 时右上座位的"跟注 20"伸出屏幕右边（0.28.x 实测），只靠 CSS 固定偏移照顾不到每个座位和每种宽度；
+ * 1920×1080 时右上座位的"跟注 20"会伸出屏幕右边，只靠 CSS 固定偏移照顾不到每个座位和每种宽度；
  * 量实际位置、超出就推回来，最后留 margin 的边。纯函数；上下左右各自夹，框比范围还大时贴左上。
  */
 export function clampShift(box: { left: number; top: number; right: number; bottom: number }, bound: { left: number; top: number; right: number; bottom: number }, margin = 6): { dx: number; dy: number } {

@@ -167,7 +167,7 @@ describe('单机', () => {
     expect(w.s.balance).toBe(balance);
   });
 
-  it('离桌时登录过期：钱包没收到，这一桌和那笔结回留在本机，登录后用同一个操作 id 再结（原来当明确拒了，整桌筹码丢了）', async () => {
+  it('离桌时登录过期：钱包没收到，这一桌和那笔结回留在本机，登录后用同一个操作 id 再结（不当明确拒了，不然整桌筹码就丢了）', async () => {
     const w = new FakeWallet();
     const d = deps(w);
     const solo = await open(d);

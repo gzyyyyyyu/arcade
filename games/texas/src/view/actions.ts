@@ -183,13 +183,13 @@ export class ActionBar {
     // 桌心已经摆着池子（翻牌后：前几轮收进去的）：加注面板展开时这条的「底池」就是重复的，样式里据此收起（style.css）
     const shown = v.pots.some((x) => x > 0);
     toggle(this.odds, 'pot-shown', shown);
-    // 能过牌（这一轮没人下注）又已经摆着池子：赔率条只剩「底池 N」，和桌心那块一模一样，不写（界面审查 1121 第 11 条）
+    // 能过牌（这一轮没人下注）又已经摆着池子：赔率条只剩「底池 N」，和桌心那块一模一样，不写
     toggle(this.odds, 'dup', shown && lg.check);
     toggle(this.odds, 'with-hint', false);
     if (lg.check) this.odds.innerHTML = `底池 <b>${chips(pot)}</b>`;
     else {
       const need = Math.round((lg.call / (pot + lg.call)) * 100);
-      // 一套大白话口径（界面审查 1121 第 13 条）：都说"胜率"，不写"赔率 2.5 : 1"这种术语；金额一个字都不截
+      // 一套大白话口径：都说"胜率"，不写"赔率 2.5 : 1"这种术语；金额一个字都不截
       const head = `${potLabel(v)} <b>${chips(pot)}</b> · 跟 <b>${chips(lg.call)}</b>`;
       const eq = hint ? this.myOdds(v) : null;
       toggle(this.odds, 'with-hint', eq !== null);
@@ -295,7 +295,7 @@ export class ActionBar {
     const all = x >= lg.maxTo;
     const what = all ? `全下 ${chips(x)}` : `${v.currentBet === 0 ? '下注' : '加到'} ${chips(x)}`;
     setText(this.amount, what);
-    // 确认键直接写下多少（11-23 试玩：只写"确认"看不出点了下多少）
+    // 确认键直接写下多少（只写"确认"看不出点了下多少）
     setText(this.raise, what);
     toggle(this.raise, 'allin', all);
     for (const b of this.presets) toggle(b, 'sel', this.presetTo(Number(b.dataset.frac)) === x);

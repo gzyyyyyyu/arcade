@@ -1,4 +1,4 @@
-/** 电脑说话（实打后）：推全下和跟全下分开说；同一个电脑同一句话至少隔 REPEAT_HANDS 手；每个性格每种时刻有几句可换 */
+/** 电脑说话：推全下和跟全下分开说；同一个电脑同一句话至少隔 REPEAT_HANDS 手；每个性格每种时刻有几句可换 */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LINES, REPEAT_HANDS, Talk, type Moment } from '../../src/view/talk.ts';
 

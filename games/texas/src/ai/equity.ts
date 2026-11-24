@@ -4,7 +4,7 @@
  * 次数见 decide.ts 的 mcIters。
  *
  * floors（可选）是每个对手底牌的下限：翻牌前的强度（preflop.ts 的 strength）不到的就重抽，
- * 用来表示"他翻牌前加注了，手里多半不是烂牌"（4.2）。不给时随机数的用法和以前一样，翻牌前胜率表不用重新生成。
+ * 用来表示"他翻牌前加注了，手里多半不是烂牌"（4.2）。不给时不重抽，随机数用法不变，翻牌前胜率表不受影响。
  */
 import type { Card } from '../core/cards.ts';
 import { evalMasks } from '../core/eval.ts';

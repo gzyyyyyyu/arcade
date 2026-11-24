@@ -15,7 +15,7 @@ const SNAP = [80, 220, 100, 20, 40, 60, 260, 90, 150, 30];
 /** 想很久的概率（‰，难的局面 ×2、顺手的局面 ×0.5）：慢慢、算盘、板凳儿、江湖爱掂量 */
 const TANK = [120, 40, 60, 250, 200, 180, 30, 100, 70, 200];
 
-/** 顺手的局面：翻牌前没人加注，只补一个大盲、过牌或者弃（实打：大家都弃的一手别磨蹭） */
+/** 顺手的局面：翻牌前没人加注，只补一个大盲、过牌或者弃（大家都弃的一手别磨蹭） */
 const EASY_MIN = 150;
 const EASY_SPAN = 150;
 
@@ -33,7 +33,7 @@ export function thinkMs(v: View, r: RandomStream): number {
   const roll = r.below(1000);
   const noise = r.below(400);
   const hardNoise = r.below(600);
-  // 7–9 人桌一圈要等七八个电脑：整体再快一档（连拍、实打量的）
+  // 7–9 人桌一圈要等七八个电脑：整体再快一档（连拍量的）
   const crowd = v.seats.filter((x) => x.owner !== 'none').length >= 7 ? 700 : 1000;
   const owe = Math.min(s.stack, v.currentBet - s.bet);
   const pre = v.board.length === 0;

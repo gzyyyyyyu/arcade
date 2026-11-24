@@ -10,7 +10,7 @@ import { view } from '../../src/core/view.ts';
 import type { Strategy } from './strategies.ts';
 
 /**
- * 这个进程到现在用掉的 CPU 时间（毫秒）。计时按 CPU 不按墙钟：机器满载时墙钟会被别的进程拉长（11-03 负载 30 时把 CPU 测试挤挂过），
+ * 这个进程到现在用掉的 CPU 时间（毫秒）。计时按 CPU 不按墙钟：机器满载时墙钟会被别的进程拉长（负载 30 时能把 CPU 测试挤挂），
  * 本进程的 CPU 时间不会。不用 threadCpuUsage：Linux 上它按调度节拍走、一跳 4 毫秒，量不了零点几毫秒的单次决策；
  * vitest 每个测试文件一个子进程（默认 forks），整个进程算也混不进别的测试。
  */
@@ -251,7 +251,7 @@ export function runVs(o: {
     }
     const s = t.toAct;
     if (s === null) throw new Error(`no one to act at hand ${t.handNo}`);
-    // 第一个玩家的随机流沿用原来的名字，原来的数字不变
+    // 第一个玩家的随机流叫 player（不带编号），老测试的数字靠它不变
     const a = s < humans ? o.strategy(view(t, s), stream(o.seed, s === 0 ? 'player' : `player${s}`, t.handNo * 0x20000 + t.log.length)) : aiAction(t, s);
     t = ok(apply(t, s, a));
     o.onStep?.(t);

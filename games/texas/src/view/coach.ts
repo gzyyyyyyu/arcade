@@ -21,7 +21,7 @@ const box = (r: DOMRect | null): Box | null => (r && r.width > 0 && r.height > 0
 
 /**
  * 桌上不许压的东西：每个座位的名牌（名字和筹码）、我的底牌、翻开的公共牌、头像和牌型名牌、操作区（弃牌、跟注、加注，亮着时），
- * 还有顶栏、底栏和两手之间的按钮、互动快捷语（提示不拦点击，压住了就点不到；11-21 手机竖屏摊牌提示压住"互动""聊天"和快捷语）。
+ * 还有顶栏、底栏和两手之间的按钮、互动快捷语（提示不拦点击，压住了就点不到）。
  * 现量 DOM，不靠调用方一个个传；量不到（没发牌、座位空着没摆出来）就自然少几块。
  * 目标自己如果是其中一块，placeCoach 贴着目标摆（留 gap），不受这里影响
  */
@@ -38,7 +38,7 @@ function tableAvoid(): Box[] {
 
 /**
  * 手机竖屏窄：说明框先试窄的几档（从 300 起步的话在 390 宽的屏上占大半个桌面）。
- * 最窄 200：再窄"跳过""下一步"两个键放不下、往框外溢，标题也被拆成单字（11-23 试玩 360×640）
+ * 最窄 200：再窄"跳过""下一步"两个键放不下、往框外溢，标题也被拆成单字（360×640）
  */
 const widthsFor = (area: Box): readonly number[] => (area.w <= 520 ? [220, 200] : [300, 240, 200]);
 
@@ -126,7 +126,7 @@ export function walk(steps: readonly Step[], rectOf: RectOf): Promise<'done' | '
         }
       }
       const row = el('div', 'c-btns', m.card);
-      // 最后一页"开打"就是收起，不再并排一个作用一样的"跳过"（11-23 试玩）；Esc 照样能跳过
+      // 最后一页"开打"就是收起，不再并排一个作用一样的"跳过"；Esc 照样能跳过
       if (!last) {
         const skip = el('button', 'c-btn', row, '跳过');
         skip.type = 'button';
@@ -161,7 +161,7 @@ export function walk(steps: readonly Step[], rectOf: RectOf): Promise<'done' | '
       if (e.key === 'Escape') finish('skip');
       e.stopPropagation();
     };
-    // 点在框亮的那块里（第 2 步的操作区）：当作看懂了，收起指引、把这一下交给底下的按钮（11-23 试玩：新手第一次点"跟注"被吞）
+    // 点在框亮的那块里（第 2 步的操作区）：当作看懂了，收起指引、把这一下交给底下的按钮（不然新手第一次点"跟注"会被吞）
     m.layer.addEventListener('click', (e) => {
       if (e.target !== m.layer || !current.target) return;
       const r = box(rectOf(current.target));

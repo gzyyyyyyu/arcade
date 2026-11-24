@@ -48,7 +48,7 @@ describe('名场面', () => {
     expect(showcase(plain, [e(1, 'bb', 20, true)])).toBeNull();
     expect(showcase(plain, [e(1, 'raise', 2000, true), e(0, 'call', 1980)])).toEqual({ kind: 'allin', seat: 0 });
   });
-  it('全下对决按主池的赢家写：只平分了边池的不算笑到最后；主池平分写"平分秋色"（实打）', () => {
+  it('全下对决按主池的赢家写：只平分了边池的不算笑到最后；主池平分写"平分秋色"', () => {
     const allin = [e(2, 'raise', 2000, true), e(0, 'call', 1980), e(1, 'call', 1980)];
     // 2 号赢了主池，0、1 号平分边池；0 号排在 shown 前面
     const side = result([sh(0, 'Ad Qc'), sh(1, 'Ac Qd'), sh(2, '7h 7c')], 2, {

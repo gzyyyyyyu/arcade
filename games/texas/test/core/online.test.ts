@@ -100,7 +100,7 @@ describe('Online 帧播放', () => {
     FakeWs.last.push(welcome(1));
     await flush();
     await release();
-    // 第一帧正在播（动画卡着），后台时又来了 4 帧（没超过 MAX_BACKLOG，原来会一帧一帧播完）
+    // 第一帧正在播（动画卡着），后台时又来了 4 帧（没超过 MAX_BACKLOG，也不该一帧一帧播完）
     FakeWs.last.push(state(2, [2]));
     await flush();
     setHidden(true);

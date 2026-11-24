@@ -282,7 +282,7 @@ export class TableHand {
     const target = frameOf(v);
     const flights: Promise<void>[] = [];
     let n = 0;
-    // 发牌总时长按两圈 12 张封顶：9 人桌 18 张照 170 毫秒一张要 3 秒多（实打嫌一手太慢）
+    // 发牌总时长按两圈 12 张封顶：9 人桌 18 张照 170 毫秒一张要 3 秒多，一手太慢
     const gap = MS.dealGap * Math.min(1, 12 / (order.length * 2));
     this.c.croupier.deal((gap * order.length * 2 + MS.dealFly) * this.c.opts.pace());
     for (let round = 0; round < 2; round++) {

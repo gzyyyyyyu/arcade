@@ -179,9 +179,9 @@ export class Lobby {
     this.resumeBox = el('div', 'banner resume', side);
     this.resumeText = el('span', '', this.resumeBox);
     button(this.resumeBox, 'go', '接着打', () => h.resume());
-    // 想换玩法的出口（11-23 试玩：只有"接着打"，不知道怎么放下上一桌）
+    // 想换玩法的出口：只有"接着打"的话，不知道怎么放下上一桌
     button(this.resumeBox, 'pill end-last', '不打了', () => h.endLast());
-    // 另一台设备上的那一桌这里不给放弃：看不到那边还剩多少（2026-10-15 定）
+    // 另一台设备上的那一桌这里不给放弃：看不到那边还剩多少
     this.orphanBox = el('div', 'banner orphan', side);
     this.orphanText = el('span', '', this.orphanBox);
     // 好友房不自动进：横幅点了才回去
@@ -385,7 +385,7 @@ export class Lobby {
     this.show('front');
   }
 
-  /** 钱包连最小一档都不够：说怎么凑（11-23 试玩：四档全灰只写"要 400 筹码"，不知道去哪弄） */
+  /** 钱包连最小一档都不够：说怎么凑（四档全灰只写"要 400 筹码"，不知道去哪弄） */
   private broke(): string | null {
     const w = this.s.wallet;
     const min = must(STAKES[0], 'STAKES[0]').min;
@@ -533,7 +533,7 @@ export class Lobby {
           .map(([v, k]) => `<span class="ms"><b>${v}</b><small>${k}</small></span>`)
           .join('')
       : '';
-    // 没打过不放一条提示（像个按钮、主页不放常驻提示条，界面审查 1121 第 14 条）：整块不出，"快速开始"本来就是最显眼的那个
+    // 没打过不放一条提示（像个按钮，主页不放常驻提示条）：整块不出，"快速开始"本来就是最显眼的那个
     this.statsEl.classList.toggle('none', !hands);
     if (this.statsHtml !== html) this.statsEl.innerHTML = this.statsHtml = html;
   }
@@ -588,7 +588,7 @@ export class Lobby {
     }
     const realCard = must(this.modeCards.get('real'), 'this.modeCards.get(real)');
     realCard.disabled = !wallet;
-    // 11-23 试玩：钱包慢的时候实盘直接灰着，像是没资格玩
+    // 钱包还在读就写"正在读钱包"：直接灰着像是没资格玩
     setText(must(realCard.querySelector('span'), '实盘卡的说明'), wallet ? REAL_LINE : walletLoading ? '正在读钱包…' : '钱包连不上');
     toggle(must(this.modeBtns.get('real'), 'this.modeBtns.get(real)'), 'loading', !wallet && walletLoading);
     setText(this.pickBal, bal === null ? '' : `我的筹码 ${chips(bal)}`);
@@ -660,7 +660,7 @@ export class Lobby {
     this.slider.disabled = !ok;
     setText(this.buyAmt, ok ? chips(Number(this.slider.value)) : `钱包要有 ${chips(st.min)}`);
     // 本机一次只摆一桌单机（没打完的先接着打）；钱包里别处还有德州的份不影响（可以同时有好几份）
-    // 有一桌没打完：主按钮就是接着打那一桌（11-23 试玩：灰着的"上一桌还没打完"像卡住了）；不打了点顶上横幅的"不打了"
+    // 有一桌没打完：主按钮就是接着打那一桌（灰着的"上一桌还没打完"像卡住了）；不打了点顶上横幅的"不打了"
     this.startBtn.disabled = busy || (!resume && !ok);
     must(this.startBtn.firstChild, '坐下开打的字').textContent = resume ? '接着打上一桌' : '坐下开打';
     // 娱乐档不碰钱包，单独部署也有；实盘档没钱包（连不上）不给，钱包够这一档的最少买入才能排（不够一整份的，坐下时少带一点，和好友房一样）
@@ -669,13 +669,13 @@ export class Lobby {
     this.setNote(this.matchBtn, ok ? null : `要 ${chips(st.min)} 筹码`);
     // 锦标赛：实盘钱包要够一整份报名费（不像现金桌能少带）；单独部署只有娱乐
     const tourOk = fun || (!this.alone && !!wallet && (bal ?? 0) >= st.max);
-    // 娱乐本来就不收钱，不写"免费"：手机横屏按钮窄，"锦标赛 · 免费"撑出按钮（11-23 试玩）
+    // 娱乐本来就不收钱，不写"免费"：手机横屏按钮窄，"锦标赛 · 免费"撑出按钮
     setText(this.tourBtn, fun ? '锦标赛' : `锦标赛 · ${chips(st.max)}`);
     this.tourBtn.disabled = busy || !!resume || !tourOk;
     // 灰着的按钮在自己下面写原因（按上面 disabled 的条件，一条一条对）
     this.setNote(this.tourBtn, resume ? RESUME_FIRST : tourOk ? null : this.alone ? '只有娱乐' : !wallet ? '钱包连不上' : `要 ${chips(st.max)} 筹码`);
     this.tourBtn.title = tourOk ? `报名费 ${chips(st.max)}：${TOUR_FULL[this.tourFmt]}` : `报名要一整份 ${chips(st.max)}`;
-    // 灰着的按钮要说为什么（实打：钱包不够一整份时只灰、没说要多少）
+    // 灰着的按钮要说为什么，比如钱包不够一整份时写要多少
     setText(
       this.tourNote,
       !fun && !this.alone && wallet && !tourOk ? `钱包要有 ${chips(st.max)} 才能报名这一档的锦标赛` : tourRule(this.tourFmt, fun),
