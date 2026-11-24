@@ -5,6 +5,7 @@ import {
 import type { Placed, TdAction, TdLevel, TdSetup, TdState } from '../src/core/index.ts';
 import { cellIdx, cellX } from '../src/core/grid.ts';
 import { ensureGrid, inner } from '../src/core/tdstate.ts';
+import { rallyOk } from '../src/core/tdcamp.ts';
 
 /** 守岛章末机制（tdmech.ts）：用了逐位可重放、各自的效果 */
 
@@ -278,5 +279,76 @@ describe('吊桥', () => {
     // 同一串操作重放指纹逐位一样
     const acts: TdAction[] = [{ t: 0, type: 'drawbridge' }, { t: 400, type: 'drawbridge' }];
     expect(tdFingerprint(runTd(setup(level), acts).state)).toBe(tdFingerprint(runTd(setup(level), acts).state));
+  });
+
+  // 收起的桥是水面：桥上不留宝藏堆、集结点、英雄守点（不然捡宝藏的人借桥过海峡、营兵和英雄站在水上）
+  const onB0 = (p: { x: number; y: number }): boolean => b0.some((c) => c.x === Math.floor(p.x / 100) && c.y === Math.floor(p.y / 100));
+  const dry = (s: TdState, p: { x: number; y: number }): boolean => {
+    ensureGrid(s);
+    return inner(s).occ[cellIdx(Math.floor(p.x / 100), Math.floor(p.y / 100))] === 0;
+  };
+
+  it('桥上的宝藏堆：收起时挪到最近的岸上，枚数不变', () => {
+    const s = createTd(setup(level));
+    benchHero(s);
+    s.piles.push({ x: 450, y: 650, n: 2, at: s.tick });
+    stepTd(s, [{ t: s.tick, type: 'drawbridge' }]);
+    expect(s.drawbridge!.down).toBe(1);
+    const p = s.piles[0]!;
+    expect(p.n).toBe(2);
+    expect(onB0(p)).toBe(false);
+    expect(dry(s, p)).toBe(true);
+    expect(Math.abs(p.x - 450) + Math.abs(p.y - 650)).toBeLessThanOrEqual(200);
+  });
+
+  it('扛宝藏的倒在收起的桥上：宝藏落在最近的岸上', () => {
+    const s = createTd(setup(level));
+    benchHero(s);
+    stepTd(s, [{ t: s.tick, type: 'drawbridge' }]);
+    while (!s.enemies.length) stepTd(s, []);
+    const e = s.enemies[0]!;
+    Object.assign(e, { x: 550, y: 750, carry: 1, mode: 'out', hp: 1, stunUntil: 1_000_000 });
+    s.hero.respawn = -1;
+    s.hero.hp = s.hero.maxHp;
+    Object.assign(s.hero, { x: 550, y: 950, goal: null, post: { x: 550, y: 950 } });
+    for (let i = 0; i < 200 && !s.piles.length; i++) stepTd(s, []);
+    expect(e.mode).toBe('dead');
+    expect(s.piles).toHaveLength(1);
+    expect(onB0(s.piles[0]!)).toBe(false);
+    expect(dry(s, s.piles[0]!)).toBe(true);
+  });
+
+  it('集结点在桥上：收起时挪到最近的岸上（还在营的范围里）', () => {
+    const lv = { ...level, gold: 2000, slots: [{ x: 6, y: 8 }] };
+    const s = createTd({ ...setup(lv), camp: true });
+    benchHero(s);
+    stepTd(s, [{ t: s.tick, type: 'camp', slot: 0 }]);
+    expect(s.camps).toHaveLength(1);
+    stepTd(s, [{ t: s.tick, type: 'muster', slot: 0, x: 550, y: 750 }]);
+    const c = s.camps![0]!;
+    expect(onB0({ x: c.rx, y: c.ry })).toBe(true);
+    stepTd(s, [{ t: s.tick, type: 'drawbridge' }]);
+    expect(onB0({ x: c.rx, y: c.ry })).toBe(false);
+    expect(dry(s, { x: c.rx, y: c.ry })).toBe(true);
+    expect(rallyOk(s, 0, c.rx, c.ry)).toBe(true);
+  });
+
+  it('玩家让英雄站到桥上：收起后自己走到岸上，不站在水上', () => {
+    const s = createTd(setup(level));
+    stepTd(s, [{ t: s.tick, type: 'move', x: 450, y: 650 }]);
+    for (let i = 0; i < 400 && !(onB0(s.hero) && !s.hero.goal); i++) stepTd(s, []);
+    expect(onB0(s.hero)).toBe(true);
+    stepTd(s, [{ t: s.tick, type: 'drawbridge' }]);
+    expect(onB0(s.hero.post!)).toBe(false);
+    for (let i = 0; i < 100; i++) stepTd(s, []);
+    expect(onB0(s.hero)).toBe(false);
+    expect(dry(s, s.hero)).toBe(true);
+  });
+
+  it('同一串操作（含桥上东西挪上岸）重放指纹逐位一样', () => {
+    const lv = { ...level, gold: 2000, slots: [{ x: 6, y: 8 }] };
+    const acts: TdAction[] = [{ t: 0, type: 'camp', slot: 0 }, { t: 1, type: 'muster', slot: 0, x: 550, y: 750 }, { t: 2, type: 'move', x: 450, y: 650 }, { t: 60, type: 'drawbridge' }];
+    const st = { ...setup(lv), camp: true as const };
+    expect(tdFingerprint(runTd(st, acts).state)).toBe(tdFingerprint(runTd(st, acts).state));
   });
 });

@@ -427,6 +427,39 @@ export function onRaisedBridge(s: TdState, x: number, y: number): 0 | 1 | -1 {
   return dbl[up].some((c) => c.x === cx && c.y === cy) ? up : -1;
 }
 
+/**
+ * 离 (x, y) 最近的能走格中心（单位）：吊桥收起时把桥上的宝藏堆、集结点、英雄守点挪上岸用。
+ * 从所在格往外一圈圈找，找到的那圈和外面一圈里取离点最近的，同样近取格下标小的；整张图都找不到就原样返回
+ */
+export function nearestWalkable(s: TdState, x: number, y: number): { x: number; y: number } {
+  ensureGrid(s);
+  const occ = inner(s).occ;
+  const cx = Math.floor(x / UNIT);
+  const cy = Math.floor(y / UNIT);
+  let best: { x: number; y: number } | null = null;
+  let bd = Number.POSITIVE_INFINITY;
+  let bi = -1;
+  let stop = Number.POSITIVE_INFINITY;
+  for (let r = 0; r <= stop && r < 64; r++) {
+    for (let gy = cy - r; gy <= cy + r; gy++) {
+      for (let gx = cx - r; gx <= cx + r; gx++) {
+        if (Math.max(Math.abs(gx - cx), Math.abs(gy - cy)) !== r || !inGrid(s.ext, gx, gy)) continue;
+        const i = cellIdx(gx, gy);
+        if (occ[i] !== 0) continue;
+        const p = { x: gx * UNIT + 50, y: gy * UNIT + 50 };
+        const d = d2(p.x, p.y, x, y);
+        if (d < bd || (d === bd && i < bi)) {
+          bd = d;
+          bi = i;
+          best = p;
+        }
+      }
+    }
+    if (best && stop === Number.POSITIVE_INFINITY) stop = r + 1;
+  }
+  return best ?? { x, y };
+}
+
 /** 占格图：普通局面用 I.occ；站在收起的吊桥上时把那座桥暂算成能走 */
 export function occFor(s: TdState, bi: 0 | 1 | -1): Uint8Array {
   ensureGrid(s);

@@ -3,6 +3,7 @@ import { TD2_CAMP, TD2_CAMP_ULT } from '../src/content/tdcamp.ts';
 import { RULES_VERSION, createTd, stepTd, tdCampUltOptions, tdFingerprint, tdSellRefund, tdUltCost } from '../src/core/index.ts';
 import type { Placed, TdAction, TdEnemyKind, TdLevel, TdMode, TdSetup, TdState } from '../src/core/index.ts';
 import { rallyOk } from '../src/core/tdcamp.ts';
+import { inner } from '../src/core/tdstate.ts';
 import { stunned } from '../src/core/combat.ts';
 import { stepKey } from '../src/view/td-ui.ts';
 
@@ -267,7 +268,7 @@ describe('终极营（陆战营、炮手营）', () => {
         const ev = stepTd(s, []);
         if (s.camps![0]!.men.some((m) => m.foes.length > 0)) heldDuringRun = true;
         for (const e of ev) {
-          if (e.type === 'shoot' && e.id <= -200) {
+          if (e.type === 'shoot' && e.by === 'shell') {
             shots++;
             const tgt = s.enemies.find((q) => q.id === e.target);
             if (tgt?.kind === 'balloon') shotAir = true;
@@ -285,5 +286,24 @@ describe('终极营（陆战营、炮手营）', () => {
     expect(a.shots).toBeGreaterThan(0);
     expect(a.explodes).toBeGreaterThan(0);
     expect(a.fp).toBe(b.fp);
+  });
+  it('营 id ≥ 100（开打几波后才造）：开火事件照来源分清，火枪队是 gun、炮手营是 shell，id 就是营 id', () => {
+    const shotsOf = (ult: boolean): Array<{ by: string; id: number }> => {
+      const s = createTd(setup(lvl({ waves: [{ groups: [{ enemy: 'ironclad', n: 4, lane: 0, every: 10, delay: 40 }] }] }), ult ? { ult: true } : {}));
+      bench(s);
+      inner(s).nextId = 150;
+      buildBranched(s, ult ? 'camp.wall' : 'camp.gun');
+      if (ult) stepTd(s, [{ t: s.tick, type: 'ult', slot: 0, ult: 'ult.camp.cannon' }]);
+      expect(s.camps![0]!.id).toBeGreaterThanOrEqual(150);
+      const out: Array<{ by: string; id: number }> = [];
+      for (let i = 0; i < 600 && !s.over; i++) for (const e of stepTd(s, [])) if (e.type === 'shoot') out.push({ by: e.by, id: e.id });
+      return out.map((q) => ({ ...q, id: q.id - s.camps![0]!.id }));
+    };
+    const gun = shotsOf(false);
+    const shell = shotsOf(true);
+    expect(gun.length).toBeGreaterThan(0);
+    expect(shell.length).toBeGreaterThan(0);
+    expect(new Set(gun.map((q) => `${q.by}:${q.id}`))).toEqual(new Set(['gun:0']));
+    expect(new Set(shell.map((q) => `${q.by}:${q.id}`))).toEqual(new Set(['shell:0']));
   });
 });

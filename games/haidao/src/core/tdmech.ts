@@ -5,7 +5,8 @@
 import { TD2_BATTERY, TD2_CRATE, TD2_DRAWBRIDGE, TD2_ENEMIES, TD2_FLEET } from '../content/td2units.ts';
 import { inGrid } from './grid.ts';
 import { tideOpenAt } from './tdquery.ts';
-import { HIT_KEG, addGold, d2, inner, isAir, waveGold } from './tdstate.ts';
+import { HIT_KEG, addGold, d2, inner, isAir, nearestWalkable, onRaisedBridge, waveGold } from './tdstate.ts';
+import { defaultRally, rallyOk } from './tdcamp.ts';
 import type { TdState } from './tdstate.ts';
 import { BEACH, ISLAND, UNIT } from './types.ts';
 import type { TdEnemy, TdEvent } from './tdtypes.ts';
@@ -27,7 +28,38 @@ export function toggleDrawbridge(s: TdState, ev: TdEvent[]): void {
   db.down = db.down === 0 ? 1 : 0;
   db.ready = s.tick + TD2_DRAWBRIDGE.cd;
   inner(s).ver++;
+  offRaisedBridge(s);
   ev.push({ type: 'drawbridge', down: db.down, ready: db.ready });
+}
+
+/**
+ * 刚收起的那座桥（水面）上不留东西：地上的宝藏堆、营的集结点挪到最近的能走格（集结点出了营的范围就回默认集结点），
+ * 英雄的守点、走向在桥上的也挪上岸；人站在桥上（没在清障）的直接走向最近的岸（照收起桥的占格图走得下来）。敌人照走完，不动
+ */
+function offRaisedBridge(s: TdState): void {
+  const up = (p: { x: number; y: number }): boolean => onRaisedBridge(s, p.x, p.y) >= 0;
+  for (const p of s.piles) {
+    if (!up(p)) continue;
+    const q = nearestWalkable(s, p.x, p.y);
+    p.x = q.x;
+    p.y = q.y;
+  }
+  for (const c of s.camps ?? []) {
+    if (!up({ x: c.rx, y: c.ry })) continue;
+    let q = nearestWalkable(s, c.rx, c.ry);
+    if (!rallyOk(s, c.slot, q.x, q.y)) q = defaultRally(s, c.slot);
+    c.rx = q.x;
+    c.ry = q.y;
+  }
+  const h = s.hero;
+  if (h.respawn >= 0) return;
+  if (h.post && up(h.post)) h.post = nearestWalkable(s, h.post.x, h.post.y);
+  if (up(h) && h.clear < 0) {
+    // 人在桥上：像玩家点了岸上一样先走下来（不先停在水上迎敌），守点也放在那里
+    h.goal = nearestWalkable(s, h.x, h.y);
+    h.post = { ...h.goal };
+    inner(s).heroAuto = false;
+  } else if (h.goal && up(h.goal)) h.goal = nearestWalkable(s, h.goal.x, h.goal.y);
 }
 
 /** 第 w 波开打：这一波写了补给箱就在沙滩上漂来一个（startWave 调） */

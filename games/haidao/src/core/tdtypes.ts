@@ -428,7 +428,12 @@ export interface TdSlot {
 export type TdEvent =
   | { type: 'wave'; wave: number; early: boolean; bonus: number; cdCut?: number }
   | { type: 'spawn'; id: number; kind: TdEnemyKind; x: number; y: number }
-  | { type: 'shoot'; /** 塔的 id；英雄开火是 -1 */ id: number; x0: number; y0: number; x1: number; y1: number; t1: number; /** 打的是哪个敌人（直射的弹道画面跟着它飞） */ target?: number }
+  | {
+      type: 'shoot';
+      /** 谁开的火：塔、英雄、水手营火枪队（gun）、炮手营小炮（shell） */
+      by: 'tower' | 'hero' | 'gun' | 'shell';
+      /** 来源自己的 id：塔 id、营 id；英雄是 -1 */
+      id: number; x0: number; y0: number; x1: number; y1: number; t1: number; /** 打的是哪个敌人（直射的弹道画面跟着它飞） */ target?: number }
   | { type: 'hit'; id: number; dmg: number }
   | { type: 'die'; id: number; kind: TdEnemyKind }
   | { type: 'explode'; x: number; y: number; r: number }
