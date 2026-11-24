@@ -63,8 +63,8 @@ export class DailyPanel extends Dialog {
     const y1 = tops[0]! + (ph ? 8 : 12);
     this.inner.add(addText(scene, R + 16, y1, p.name, { size: TYPE.title + 4, bold: true }));
     this.inner.add(addText(scene, R + 16, tops[0]! + (ph ? 42 : 46), `${wanShort(p.account)} · ${personaById(p.id).short ?? p.title}`, { size: TYPE.label + 2, color: COLOR.ink }));
-    if (!isPersonaUnlocked(profile, p.id)) this.inner.add([addPill(scene, R + RW - 88, y1, 72, 22, COLOR.accent), addText(scene, R + RW - 52, y1 + 11, '今日借用', { size: TYPE.label, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5 })]);
-    const pHit = tip(tops[0]!, hs[0]!, () => ({ title: `${p.name}（${p.title}）`, body: `${p.desc}${isPersonaUnlocked(profile, p.id) ? '' : '\n还没解锁的人设，今天借你用'}` }));
+    if (!isPersonaUnlocked(profile, p.id)) this.inner.add([addPill(scene, R + RW - 88, y1, 72, 22, COLOR.accent), addText(scene, R + RW - 52, y1 + 11, weekly ? '本周试用' : '今日试用', { size: TYPE.label, bold: true, color: COLOR.white, originX: 0.5, originY: 0.5 })]);
+    const pHit = tip(tops[0]!, hs[0]!, () => ({ title: `${p.name}（${p.title}）`, body: `${p.desc}${isPersonaUnlocked(profile, p.id) ? '' : `\n还没解锁的人设，${weekly ? '这周' : '今天'}可以先试用`}` }));
     this.inner.add(row(tops[1]!, hs[1]!));
     this.inner.add(addBadge(scene, R + 36, tops[1]! + (ph ? 33 : 36), lv.level, 48));
     this.inner.add(addText(scene, R + 72, tops[1]! + (ph ? 8 : 16), lv.name, { size: TYPE.title, bold: true }));
@@ -75,8 +75,8 @@ export class DailyPanel extends Dialog {
     this.inner.add(row(tops[2]!, hs[2]!));
     this.inner.add(addGlyph(scene, R + 36, tops[2]! + (ph ? 31 : 32), flash ? 'bolt' : 'trophy', 36));
     const played = !!rec && rec.attempts > 0;
-    this.inner.add(addText(scene, R + 72, tops[2]! + (ph ? 8 : 14), wk ? `本周规则 · ${FLASH_DAYS} 天约 5 分钟` : flash ? '今天所有人同一局 · 比谁赚得多' : `今日最好 · 12 个月约 ${FUN_MINUTES} 分钟`, { size: TYPE.label - 2, bold: true, color: COLOR.muted }));
-    const best = wk ? wk.name : flash ? `${FLASH_DAYS} 个交易日 · 约 5 分钟` : !rec || !played ? '今天还没打' : rec.won ? formatMoney(rec.bestAccount) : `撑到 ${rec.bestMonths}/12 月`;
+    this.inner.add(addText(scene, R + 72, tops[2]! + (ph ? 8 : 14), wk ? `本周规则 · ${FLASH_DAYS} 天约 5 分钟` : flash ? '今天所有人同一局 · 比谁赚得多' : `一局 12 个月 · 约 ${FUN_MINUTES} 分钟`, { size: TYPE.label - 2, bold: true, color: COLOR.muted }));
+    const best = wk ? wk.name : flash ? `${FLASH_DAYS} 个交易日 · 约 5 分钟` : !rec || !played ? '今天还没打' : rec.won ? `最好 ${formatMoney(rec.bestAccount)}` : `最好撑到 ${rec.bestMonths}/12 月`;
     this.inner.add(addText(scene, R + 72, tops[2]! + (ph ? 24 : 30), best, { size: played ? TYPE.title + 2 : TYPE.title, bold: true, num: played, color: played ? COLOR.ink : flash ? COLOR.ink : COLOR.muted }));
     const rHit = tip(tops[2]!, hs[2]!, () =>
       wk

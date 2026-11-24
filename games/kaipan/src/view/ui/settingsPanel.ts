@@ -73,7 +73,7 @@ function phoneGeo(v: { w: number; h: number }) {
 }
 
 const SPEEDS: [AnimSpeed, string][] = [
-  [0, '关闭'],
+  [0, '关'],
   [1, '1×'],
   [2, '2×'],
   [4, '4×'],
@@ -179,7 +179,7 @@ export class SettingsPanel extends Dialog {
       this.choice(col.ctrl, row('涨跌配色'), SCHEMES, (s) => s.colorScheme, (v) => updateSettings({ colorScheme: v }));
     };
     const motion = (): void => {
-      this.choice(col.ctrl, row('减少动态效果'), [[true, '开启'], [false, '关闭']], (s) => s.reduceMotion, (v) => updateSettings({ reduceMotion: v }));
+      this.choice(col.ctrl, row('减少动态效果'), [[true, '开'], [false, '关']], (s) => s.reduceMotion, (v) => updateSettings({ reduceMotion: v }));
       note('打开后不震屏、不闪电、不放烟花，小人也不再摇来摇去');
       y += pad;
     };
@@ -205,7 +205,7 @@ export class SettingsPanel extends Dialog {
       y += pad;
     };
     const help = (): void => {
-    // 新手教程：开启 = 从头再看一遍；关闭 = 不再出现（进度记在本地）
+    // 新手教程：开 = 从头再看一遍；关 = 不再出现（进度记在本地）
     tButtons = this.pair(col.ctrl, row('新手教程'), 'tutorial', (on) => {
       setTutorialOn(on);
       refreshHelp();
@@ -259,7 +259,7 @@ export class SettingsPanel extends Dialog {
       this.named[`settings:quiet-${on ? 'auto' : 'manual'}`] = b;
       return { on, b };
     });
-    note('没什么事的日子自动翻过去，碰到大涨大跌、事件、目标变化就停下（手动时按 F 快进）');
+    note('没什么事的日子自动翻过去，碰到大涨大跌、事件、目标变化就停下（手动时点「快进」，键盘按 F）');
     };
 
     if (phone) {
@@ -291,7 +291,7 @@ export class SettingsPanel extends Dialog {
       const p = loadTutorial();
       const active = tutorialActive(p);
       for (const { on, b } of tButtons) b.setSelected(on === active);
-      tNote.setText(active ? (p.done.length > 0 ? `已经看过 ${p.done.length} 步，剩下的到时候会冒出来` : '第一局里会一步步冒出来') : '点「开启」可以从头再看一遍');
+      tNote.setText(active ? (p.done.length > 0 ? `已经看过 ${p.done.length} 步，剩下的到时候会冒出来` : '第一局里会一步步冒出来') : '点「开」可以从头再看一遍');
       const vp = loadViewPrefs();
       const hon = hintsOn(vp, runs);
       for (const { on, b } of hButtons) b.setSelected(on === hon);
@@ -423,12 +423,12 @@ export class SettingsPanel extends Dialog {
     return out;
   }
 
-  /** 开启 / 关闭一对按钮（命名 settings:<name>-on / -off）。 */
+  /** 开 / 关一对按钮（命名 settings:<name>-on / -off）。 */
   private pair(x: number, y: number, name: string, set: (on: boolean) => void): { on: boolean; b: Button }[] {
     return (
       [
-        [true, '开启'],
-        [false, '关闭'],
+        [true, '开'],
+        [false, '关'],
       ] as const
     ).map(([on, label], i) => {
       const b = new Button(this.scene, x + i * 88, y - this.btnH / 2, { width: 80, height: this.btnH, label, fontSize: FS.sm, sound: 'toggle' });

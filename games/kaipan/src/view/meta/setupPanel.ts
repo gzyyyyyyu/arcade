@@ -17,7 +17,6 @@ import { bindTooltip } from '../ui/tooltip.ts';
 import { funSetup } from './prefs.ts';
 import { tipOnButton, wanShort } from './bits.ts';
 import { phoneLayout } from '../viewport.ts';
-import { ellipsize } from '../../core/format.ts';
 
 const W = 1200;
 const H = 660;
@@ -245,12 +244,13 @@ export class SetupPanel extends Dialog {
   private tier: LiveTier = 'small';
   /** 实盘：选的杠杆，和随杠杆变的档位卡上那两行（涨跌几倍、最多赢多少） */
   private gear = 1;
-  private readonly cardLines = new Map<LiveTier, { lev: Phaser.GameObjects.Text; win: Phaser.GameObjects.Text }>();
+  private readonly cardLines = new Map<LiveTier, { lev: Phaser.GameObjects.Text; win: Phaser.GameObjects.Text; stakeRight: number }>();
   private startBtn: Button | null = null;
 
   constructor(scene: Phaser.Scene, opts: SetupOpts) {
     const g = !phoneLayout(scene) ? DESKTOP : PORTRAIT ? portraitGeo(phonePanel(scene), !!opts.live) : phoneGeo(phonePanel(scene));
-    super(scene, g.w, g.h, opts.live ? '实盘 · 带筹码进场' : '新一局', undefined, SOLID_BACKDROP_ALPHA);
+    // 手机上标题行右边是「娱乐 | 实盘」开关，长标题会被压住
+    super(scene, g.w, g.h, opts.live ? (g === DESKTOP ? '实盘 · 带筹码进场' : '实盘') : '新一局', undefined, SOLID_BACKDROP_ALPHA);
     this.g = g;
     const W = g.w;
     const H = g.h;
@@ -573,13 +573,14 @@ export class SetupPanel extends Dialog {
       c.add(addStars(s, cw - 14, desk ? 22 : 17, card.stars, desk ? 18 : 14, 1));
       const sy = desk ? 42 : 35;
       c.add(addGlyph(s, 26, sy, 'moneybag', desk ? 28 : 22));
-      c.add(addText(s, 44, sy, chips(t.stake), { size: desk ? TYPE.big : TYPE.title + 2, bold: true, num: true, color: COLOR.accentDark, originY: 0.5 }));
+      const stakeT = addText(s, 44, sy, chips(t.stake), { size: desk ? TYPE.big : TYPE.title + 2, bold: true, num: true, color: COLOR.accentDark, originY: 0.5 });
+      c.add(stakeT);
       const small = { size: desk ? TYPE.label : TYPE.label - 1, color: COLOR.muted };
       // 手机上卡只有三行：涨跌倍数挪到筹码数右边，每档都一样的「约几分钟」只在悬停里
       const lev = desk ? addText(s, 14, 60, '', small) : addText(s, cw - 10, sy, '', { ...small, originX: 1, originY: 0.5 });
       const win = addText(s, 14, desk ? 78 : 52, '', small);
       c.add([lev, win]);
-      this.cardLines.set(t.id, { lev, win });
+      this.cardLines.set(t.id, { lev, win, stakeRight: stakeT.x + stakeT.width });
       if (!afford) c.setAlpha(0.5);
       const ring = s.add.rectangle(-4, -4, cw + 8, ch + 8).setOrigin(0, 0).setRounded(16).setStrokeStyle(4, COLOR.accent, 1).setVisible(false);
       c.add(ring);
@@ -608,7 +609,7 @@ export class SetupPanel extends Dialog {
     });
   }
 
-  /** 档位卡下面一排：稳健 1× / 进取 2× / 疯狂 3×，默认稳健；风险写在下面一行 */
+  /** 档位卡下面一排：稳健 / 进取 ×2 / 疯狂 ×3，默认稳健；风险写在下面一行 */
   private gearRow(): void {
     const s = this.scene;
     const desk = this.g === DESKTOP;
@@ -619,7 +620,7 @@ export class SetupPanel extends Dialog {
     const x0 = (this.g.w - (bw * 3 + gap * 2)) / 2;
     const btns: Button[] = [];
     [1, 2, 3].forEach((x, i) => {
-      const b = new Button(s, x0 + i * (bw + gap), y, { width: bw, height: bh, label: `${GEAR_NAME[x]} ${x}×`, fontSize: desk ? 15 : 13 });
+      const b = new Button(s, x0 + i * (bw + gap), y, { width: bw, height: bh, label: x === 1 ? (GEAR_NAME[x] ?? '') : `${GEAR_NAME[x]} ×${x}`, fontSize: desk ? 15 : 13 });
       b.setSelected(x === this.gear);
       b.setHandler(() => {
         if (x === this.gear) return;
@@ -694,9 +695,11 @@ export class SetupPanel extends Dialog {
       const desc = t.desc === this.levelShort(this.difficulty) ? (t.detail ?? t.desc) : t.desc;
       const goal = shortGoalFor(funSetup({ persona: this.persona, difficulty: this.difficulty, short: this.short }, this.profile.runs));
       const len = this.short ? `${BALANCE.short.months} 个月约 ${LIVE_MINUTES} 分钟 · 最后交首付 ${wanShort(goal)}` : `一年约 ${FUN_MINUTES} 分钟 · ${desc}`;
-      this.diffDesc.setText(ellipsize(`${d.who ? `适合${d.who} · ` : ''}${len}`, 56));
+      // 窄屏放不下时先去掉「适合谁」，首付金额不截
+      this.diffDesc.setText(`${d.who ? `适合${d.who} · ` : ''}${len}`);
+      if (this.g !== DESKTOP && this.diffDesc.width > this.g.w - 32) this.diffDesc.setText(len);
       this.fitPhone(this.diffDesc);
-      // 叠加的几级：一排小徽章（第 1 级时写「最普通的市场」）
+      // 叠加的几级：一排小徽章（第 1 级时写「没有叠加难度」，和后面几级的「叠加」说法对上）
       this.stack.removeAll(true);
       const s = this.scene;
       if (d.all.length > 1) {
@@ -706,13 +709,13 @@ export class SetupPanel extends Dialog {
         d.all.forEach((x, i) => this.stack.add(addBadge(s, lab.width + 22 + i * (ph ? 26 : 32), 0, x.level, ph ? 28 : 30)));
       } else {
         this.stack.add(addGlyph(s, 10, 0, 'face_calm', 24));
-        this.stack.add(addText(s, 28, 0, '最普通的市场', { size: TYPE.label, color: COLOR.muted, originY: 0.5 }));
+        this.stack.add(addText(s, 28, 0, '没有叠加难度', { size: TYPE.label, color: COLOR.muted, originY: 0.5 }));
       }
     }
     if (p) this.setPersonaDesc(p);
     else this.fitPhone(this.personaDesc);
     const b = this.profile.best[bestKey(this.persona, this.difficulty, this.short)];
-    this.best.setText(!b || b.runs === 0 ? '—' : b.wins > 0 ? `${b.wins}/${b.runs} · ${wanShort(b.bestAccount)}` : `${b.bestMonths}/${this.short ? BALANCE.short.months : 12}`);
+    this.best.setText(!b || b.runs === 0 ? '还没打过' : b.wins > 0 ? `${b.wins}/${b.runs} · ${wanShort(b.bestAccount)}` : `${b.bestMonths}/${this.short ? BALANCE.short.months : 12}`);
   }
 
   /** 实盘模式：钱包里的筹码数（或开不了的原因）、规则一句、开始按钮"带 2,000 进场"。 */
@@ -726,7 +729,9 @@ export class SetupPanel extends Dialog {
       const k = tierCard(t, this.gear);
       const lines = this.cardLines.get(t.id);
       const ph = this.g !== DESKTOP;
-      lines?.lev.setText(ph ? `×${k.lev}` : `约 ${LIVE_MINUTES} 分钟 · 涨跌 ×${k.lev}`);
+      lines?.lev.setText(ph ? `盈亏×${k.lev}` : `约 ${LIVE_MINUTES} 分钟 · 盈亏 ×${k.lev}`);
+      // 360 宽的卡上「200,000」后面放不下「盈亏×5」：只写「×5」（右对齐，左边缘不能碰到筹码数）
+      if (ph && lines && lines.lev.x - lines.lev.width < lines.stakeRight + 6) lines.lev.setText(`×${k.lev}`);
       // 手机上卡窄（SE 约 160）：赢输写短句，一万以上写成「万」，数字不截（全句在悬停里）
       lines?.win.setText(ph ? `赢≤${chipsShort(k.win)} 输≤${chipsShort(k.lose)}` : `最多赢 ${k.win} · 最多输 ${k.lose}`);
     }
@@ -737,7 +742,7 @@ export class SetupPanel extends Dialog {
     const wallet = w ? `钱包 ${chips(w.balance)} 筹码（${LIVE_WALLET_NOTE}）` : '';
     // 最小一档也带不起时「换小一档」走不通，只说去领补给
     const least = Math.min(...LIVE_TIERS.map((t) => t.stake));
-    const short = this.affords(least) ? '筹码不够这一档：换小一档少带一点，或者去大厅领补给' : `筹码不够最低一档（${chips(least)}），去大厅领补给`;
+    const short = this.affords(least) ? '筹码不够这一档：换小一档少带一点，或者去大厅领补给' : `钱包 ${chips(w?.balance ?? 0)}，不够最低一档（${chips(least)}），去大厅领补给`;
     this.diffDesc.setText(block === '筹码不够这一档' ? short : [wallet, LIVE_RULE].filter(Boolean).join(' · '));
     setColor(this.diffDesc, block === '筹码不够这一档' ? COLOR.danger : COLOR.muted);
     this.stack.removeAll(true);

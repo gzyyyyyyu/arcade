@@ -41,14 +41,15 @@ interface ButtonOpts {
 // 比 SE 矮的手机按缩放再撑（568×320 是 56），换算到屏幕上不小于 44 像素
 export const HIT_MIN = PHONE ? Math.max(50, Math.ceil(44 / PHONE_SCALE)) : LOW_MEMORY ? 56 : 0;
 /** 电脑上 Button 的点击区至少这么大（docs/ui.md：电脑上可点区域可以小到 32）：比它矮、窄的按钮上下 / 左右各补一半，看得见的大小不变 */
-const DESK_HIT_MIN = 32;
+export const DESK_HIT_MIN = 32;
 /**
  * 不是 Button 的小块可点处（小字链接、角上的 ×）垫的透明点击区：以 (cx, cy) 为中心，触屏上宽高都不小于 HIT_MIN，
- * 电脑上就是 w × h。调用方自己挂 POINTER_UP、加进容器。
+ * 电脑上不小于 DESK_HIT_MIN。调用方自己挂 POINTER_UP、加进容器。
  */
 export function touchHit(scene: Phaser.Scene, cx: number, cy: number, w: number, h: number): Phaser.GameObjects.Rectangle {
-  const hw = Math.max(w, HIT_MIN);
-  const hh = Math.max(h, HIT_MIN);
+  const min = HIT_MIN || DESK_HIT_MIN;
+  const hw = Math.max(w, min);
+  const hh = Math.max(h, min);
   return scene.add.rectangle(cx - hw / 2, cy - hh / 2, hw, hh, 0xffffff, 0.001).setOrigin(0, 0).setInteractive({ useHandCursor: true });
 }
 /** 按下时文字和底板往下沉多少（纸面按钮正好压到底边上） */

@@ -19,7 +19,8 @@ export class AboutPanel extends Dialog {
     const w = pp ? pp.w : W;
     super(scene, w, pp ? pp.h : 580, '关于《开盘》');
     const touch = isTouch();
-    const built = BUILD_TIME ? BUILD_TIME.replace('T', ' ').slice(0, 16) : '开发版';
+    // 只写构建日期（北京时间）：同一版本重新构建过时分钟数会变，写到分钟反而像版本不一致
+    const built = BUILD_TIME ? new Date(Date.parse(BUILD_TIME) + 8 * 3600_000).toISOString().slice(0, 10) : '开发版';
     // 竖屏版面板高、窄：和电脑一样一栏排下来（操作接在玩法下面）
     const two = !!pp && pp.w > pp.h;
     const leftW = two ? Math.round((w - 64 - 28) * 0.62) : w - 64;

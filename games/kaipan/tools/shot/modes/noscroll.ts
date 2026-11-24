@@ -1,6 +1,6 @@
 // --noscroll 模式：一屏放下、不用滚动（仓库根 docs/ui.md 第 11 节，所有者 2026-11-01）
 import type { Browser, Route } from 'playwright-core';
-import { BALANCE, createRun, dailyScore, dailySegmentId, dailySetup, dispatch, ipoToday, type GameState, type RunSetup } from '../../../src/core/index.ts';
+import { BALANCE, chatView, createRun, dailyScore, dailySegmentId, dailySetup, dispatch, ipoToday, type GameState, type RunSetup } from '../../../src/core/index.ts';
 import { botByName, playRun, useExt, useMarket } from '../../bots.ts';
 import { loadSegment } from '../../segments-disk.ts';
 import { beijingToday, profileStorage } from '../fakes.ts';
@@ -273,6 +273,26 @@ function extHolding(): GameState | null {
   return null;
 }
 
+/**
+ * 手机交易页最挤的那一天：有月度目标、钱不够交这个月的账（顶栏第二行写「差¥x」，金额取比实际更宽的「¥345.68万」）、
+ * 盘前还有空格、群聊消息最多（排成紧凑行距，挂「买 ›」的消息点击区最难凑够 44）。
+ * 只量 pre-1 第一天：钱都够、消息少，量不到这两处。
+ */
+function tightBillState(): GameState | null {
+  let best: { s: GameState; n: number } | null = null;
+  for (let i = 0; i < 30; i++) {
+    let s = createRun(`ns-bill-${i}`, BASIC_SETUP, { tempo: true }).state;
+    for (let k = 0; k < 60 && s.dayIndex <= 8 && s.phase !== 'won' && s.phase !== 'lost'; k++) {
+      s = step(s).state;
+      if (s.phase !== 'premarket' || s.dayIndex < 2 || s.tempo?.cur?.month !== s.month || !s.slots.some((h) => !h)) continue;
+      const v = chatView(s);
+      if (!v.recs.some((r) => r.friend)) continue;
+      if (!best || v.messages.length > best.n) best = { s, n: v.messages.length };
+    }
+  }
+  return best ? { ...best.s, bill: { ...best.s.bill, amount: Math.round(best.s.account) + 3_456_789 } } : null;
+}
+
 /** 月底：找一个三选一里有稀有股票、挑完能接上事件的种子（和 main.ts 第 8 段同一套） */
 const MONTH_SETUP: RunSetup = { themes: T6, holdings: ['ai_leader', 'ai_follower', 'pig_leader', 'con_blue'] };
 function monthSeed(): { seed: string; stockIdx: number } | null {
@@ -374,6 +394,18 @@ export async function noScrollShots(browser: Browser): Promise<void> {
           await ctx.page.waitForTimeout(300);
           await measure(ctx, `${sz.id} 交易页 · ${tab}`, bad);
         }
+      }
+      if (sz.touch) {
+        const tight = tightBillState();
+        if (tight) {
+          await loadState(ctx, tight);
+          await waitIdle(ctx, '交易页（钱不够）');
+          if ('tab:msgs' in (await controls(ctx))) await tap(ctx, 'tab:msgs');
+          await ctx.page.waitForTimeout(300);
+          if (!('chat:buy' in (await controls(ctx)))) notes.push(`${sz.id} 交易页 · 钱不够：群聊里没有挂「买」的消息，那块点击区没量`);
+          await measure(ctx, `${sz.id} 交易页 · 钱不够 + 群聊买`, bad);
+          await shot(ctx, `ns-${sz.id}-trade-tight`);
+        } else bad.push(`${sz.id} 交易页 · 钱不够：找不到有月度目标、盘前有空格的局面`);
       }
       if ('settings' in (await controls(ctx))) {
         await (sz.touch ? tap(ctx, 'settings') : click(ctx, 'settings'));

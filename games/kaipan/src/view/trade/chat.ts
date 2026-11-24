@@ -11,7 +11,7 @@ import { addText } from '../ui/text.ts';
 import { PHONE_RECT as PHONE } from './layout.ts';
 import { AFTER_CLOSE_MAX, AVATAR, BODY_H, BODY_Y, HEADER_H, BUBBLE_W, CW, CX, GAP, INTRO_MAX, JUDGE_MAX, REC_H, REC_H_FLAT, REC_H_MINI, SW, SX, bubbleLine, recShort, type MsgNode } from './chatConsts.ts';
 import { addEarningsBanner, addIpoBanner, addSysPill, addWatch, addWeeklyBanner } from './chatBanners.ts';
-import { addMessage, commentNode, tickerNode } from './chatBubbles.ts';
+import { addMessage, buyHitExtra, commentNode, tickerNode } from './chatBubbles.ts';
 import { addFluff } from './chatFluffView.ts';
 import { layoutRecs, addRec, recAction } from './chatRec.ts';
 import { newsFold, toggleNews } from './chatNews.ts';
@@ -310,7 +310,10 @@ export class ChatView3 {
     const gap = tight ? 2 : GAP;
     let h = 0;
     // 拐点消息的标签可能放进气泡第一行，按最坏情况多算 18
-    for (const m of messages) h += head + this.bubbleTextH(m.text, size) + pad + gap + (m.turn ? 18 : 0);
+    for (const m of messages) {
+      const bh = this.bubbleTextH(m.text, size) + pad + (m.turn ? 18 : 0);
+      h += head + bh + gap + (this.msgBuy.has(m.index) ? buyHitExtra(head, bh, gap) : 0);
+    }
     return h + recs * (recH + GAP) + (recs > 0 ? 6 : 0);
   }
 

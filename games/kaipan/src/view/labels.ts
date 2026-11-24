@@ -82,7 +82,8 @@ export function downPaymentLine(account: number, need: number, phone: boolean): 
   const enough = account >= need;
   const gap = formatMoney(need - account);
   // 首付最后一个月才交：写「到期」，不让人以为今天就要交（首付和账单的明细在悬停里）
-  if (phone) return { text: enough ? '到期够交了' : `到期还差${gap}`, enough };
+  // 手机上也留着要交的总数（全局最要紧的一个数），只是写短
+  if (phone) return { text: enough ? `到期交${formatMoney(need)}·够` : `到期还差${gap}`, enough };
   return { text: enough ? `到期共交 ${formatMoney(need)} · 够了` : `到期共交 ${formatMoney(need)} · 还差 ${gap}`, enough };
 }
 

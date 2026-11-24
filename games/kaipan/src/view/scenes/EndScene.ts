@@ -210,7 +210,7 @@ export class EndScene extends BaseScene {
     const money = (v: number, sign = false): string => (G.stacked ? moneyShort(v, sign) : formatMoney(v, sign ? { sign: true } : undefined));
     const tiles: [Glyph, string, string, number | undefined, boolean][] = [
       ['calendar', `${sum.billsPaid}/${months}`, '还上月数', sum.won ? COLOR.accentDark : undefined, false],
-      ['wallet', money(sum.peakAccount), '最高', undefined, false],
+      ['wallet', money(sum.peakAccount), '最高账户', undefined, false],
       ['bolt', `${sum.limitUpDays}天`, '涨停天数', undefined, sum.limitUpDays === 0],
       ['arrow_up', sum.maxBoards > 1 ? `${sum.maxBoards}天` : '–', '最长连涨停', undefined, sum.maxBoards <= 1],
       ['horn', `${sum.chains}次`, '大哥带小弟', undefined, sum.chains === 0],
@@ -219,6 +219,10 @@ export class EndScene extends BaseScene {
       const tx = mx + (i % cols) * (tw + tgx);
       const ty = ty0 + Math.floor(i / cols) * (th + rowGap);
       statTile(this, tx, ty, g, v, label, { w: tw, icon: G.tileIcon, size: G.tileSize, color, tint: g === 'arrow_up' ? COLOR.up : undefined, stacked: G.stacked, muted });
+      if (g === 'horn') {
+        const hit = this.add.rectangle(tx, ty, tw, th, 0xffffff, 0.001).setOrigin(0, 0);
+        bindTooltip(hit, () => ({ x: tx, y: ty, w: tw, h: th }), () => ({ title: '大哥带小弟', body: '带头大哥涨停时，同一个风口的小弟会额外多涨一点。这局一共发生了几次。' }));
+      }
     });
     // 第 6 格：炒股本身净赚多少（不写"最好 0/12"：没计入档案时看不懂；最好成绩在下面那一行）
     {

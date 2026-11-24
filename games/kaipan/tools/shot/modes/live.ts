@@ -116,8 +116,8 @@ export async function liveShots(browser: Browser): Promise<void> {
     await ctx.page.reload();
     await waitIdle(ctx, '刷新后', "window.__game.scene === 'title'");
     await ctx.page.waitForTimeout(400);
-    // 0.14.0 大卡：标题「继续」，下面一行「人设 · 1月 · 实盘」
-    expect(await hasText(ctx, ' · 1月 · 实盘'), `刷新后「继续」应写实盘（${(await texts(ctx)).join(' | ')}）`);
+    // 0.14.0 大卡：标题「继续」，下面一行「实盘 · 1月 · 人设」
+    expect(await hasText(ctx, '实盘 · 1月'), `刷新后「继续」应写实盘（${(await texts(ctx)).join(' | ')}）`);
     await shot(ctx, 'l6-title-resume');
     // 实盘没打完时开别的局：先问继续还是收手
     await press(ctx, 'quick');
@@ -196,7 +196,7 @@ export async function liveShots(browser: Browser): Promise<void> {
     await shot(ctx, 'l9-title-expired');
     await press(ctx, 'notice:ok');
     await ctx.page.waitForTimeout(300);
-    expect((await texts(ctx)).some((t) => t.endsWith(' · 1月')), '过期的局照样能接着玩（不再写实盘）');
+    expect((await texts(ctx)).some((t) => t.startsWith('1月 · ')), '过期的局照样能接着玩（不再写实盘）');
     await ctx.page.context().close();
   }
 

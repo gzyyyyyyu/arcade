@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BALANCE, bankView, billView, calendarView, formatMoney, fx, isFlash, itemView, monthThemeView, runMonths, shortGoal, shortNeed, topBar, type GameState, type ItemView, type Mood } from '../../core/index.ts';
+import { BALANCE, bankView, difficultyDef, billView, calendarView, formatMoney, fx, isFlash, itemView, monthThemeView, runMonths, shortGoal, shortNeed, topBar, type GameState, type ItemView, type Mood } from '../../core/index.ts';
 import { goalShort, stamp } from './tempoFx.ts';
 import type { Animator } from '../fx/anim.ts';
 import { flashBox, floatText, pop } from '../fx/effects.ts';
@@ -315,7 +315,8 @@ export class TopBarView {
     // 大环境：箭头 + 颜色（「大环境：一般」这类说明在日历的悬停提示里）
     const moodSign = MOOD_SIGN[t.mood];
     const arrow = moodSign > 0 ? '↑' : moodSign < 0 ? '↓' : '–';
-    this.weather.setText(`大环境${arrow}`);
+    // 平盘写「平」：单独一道「–」像是数字没显示出来
+    this.weather.setText(`大环境${moodSign === 0 ? '平' : arrow}`);
     // 日历小签放不下（手机上让出「大厅」以后，「开春政策窗口」会顶到账户那一列）：先把天气缩成带颜色的箭头，
     // 名字能放全就放全（主线要求）；还放不下才截短，全名和「大环境：xx」都在悬停里
     const room = (): number => FLAGS_RIGHT - TB.calTextX - 16 - this.weather.width;
@@ -326,7 +327,7 @@ export class TopBarView {
     this.calPill.setSize(this.calText.width + 16, TB.calPill.h);
     this.weather.setX(TB.calPill.x + this.calPill.width + 8);
     setColor(this.weather, moodSign > 0 ? COLOR.up : moodSign < 0 ? COLOR.down : COLOR.muted);
-    // 「账户 · Lv1」：人设、难度全称在悬停提示里
+    // 「人设 · 难度名」：难度说明在悬停提示里（不写「Lv3」，新手会当成角色等级）
     // 人设名找回来（难度全称仍在悬停里）
     // 手机上顶栏窄：不写「账户」两个字（钱包图标就是账户）
     // 实盘：这一行换成实盘小牌子「实盘 · 小档 2,000 → 约 2,104」（人设、难度在悬停里），跟着每天收盘更新
@@ -337,7 +338,7 @@ export class TopBarView {
     // 娱乐短局：这一行换成剩下的账单加首付还差多少（人设、难度在悬停里），够了变绿
     const need = lv || t.daily || t.flash ? null : shortNeed(s);
     const dp = need ? downPaymentLine(s.account, need.need, PHONE) : null;
-    this.accLabel.setText(dp ? dp.text : lv ? (PHONE ? `实盘${lv.tierName}×${gx} → 约 ${chips(lv.value)}` : `实盘 · ${lv.tierName} ${chips(lv.stake)} · 杠杆×${gx} → 约 ${chips(lv.value)}`) : `${t.personaName} · Lv${t.difficulty}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
+    this.accLabel.setText(dp ? dp.text : lv ? (PHONE ? `实盘${lv.tierName}×${gx} → 约 ${chips(lv.value)}` : `实盘 · ${lv.tierName} ${chips(lv.stake)} · 杠杆×${gx} → 约 ${chips(lv.value)}`) : `${t.personaName} · ${difficultyDef(t.difficulty).name}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
     setColor(this.accLabel, dp ? (dp.enough ? COLOR.up : COLOR.accentDark) : t.daily || t.flash || lv ? COLOR.accentDark : COLOR.muted);
     this.accLabel.setFontStyle(dp ? 'bold' : '');
     // 金额不截：放不下就换手机上的短说法「到期还差¥x」
@@ -346,7 +347,7 @@ export class TopBarView {
     // 放不下就省掉人设名（在悬停里）；实盘先换短写法、保住杠杆（电脑上有月度主题时这一格只有约 190 宽，完整那句放不下），还放不下才省掉杠杆
     else if (!dp && this.accLabel.width > accRoom) {
       if (lv && !PHONE) this.accLabel.setText(`实盘${lv.tierName}×${gx} → 约 ${chips(lv.value)}`);
-      if (!lv || this.accLabel.width > accRoom) this.accLabel.setText(lv ? `实盘${lv.tierName} → 约 ${chips(lv.value)}` : `Lv${t.difficulty}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
+      if (!lv || this.accLabel.width > accRoom) this.accLabel.setText(lv ? `实盘${lv.tierName} → 约 ${chips(lv.value)}` : `${difficultyDef(t.difficulty).name}${t.daily ? ' · 每日' : t.weekly ? ' · 本周' : t.flash ? ' · 闪电' : ''}`);
     }
     // 闪电盘最后三天：日期变红
     setColor(this.day, t.flash && flashFinal(t.flash) ? COLOR.danger : COLOR.ink);
@@ -364,7 +365,7 @@ export class TopBarView {
     const b = bankView(s);
     this.bank.setEnabled(b.open && s.phase === 'premarket');
     if (!b.open) this.bank.setEnabled(false);
-    this.bank.setSubLabel(!b.open ? `${b.openMonth}月开` : b.called ? '来电！' : b.debt > 0 ? '欠钱' : '借钱');
+    this.bank.setSubLabel(!b.open ? `${b.openMonth}月开门` : b.called ? '来电！' : b.debt > 0 ? '欠钱' : '借钱');
     // 月底付完账单会跌破银行的线时也闪（和猫的"银行提醒"一起）
     const alarm = b.called || b.risk !== null;
     this.bankRing?.setVisible(alarm);
@@ -532,25 +533,32 @@ export class TopBarView {
       setColor(this.bill, mt.goal.failed ? COLOR.muted : mt.goal.done ? COLOR.up : COLOR.ink);
       this.daysLeft.setText(`${mt.daysLeft}天`).setVisible(true);
       this.hourglass.setVisible(true);
-      this.goalBar.clear();
-      const bw = TB.goalBarW;
+      // 右半：房子图标 + 这个月要还多少（不够时变红写「差 ¥x」）
+      // 名目和后果找回来——「房租 ¥6,800」「差¥x · 会出局」「差¥x · 信用卡垫」
+      // 手机上这一格只有七八十宽：只写金额（名目、后果在悬停里），带名目的话「孩子补习班 ¥6,800」会被道具图标盖住
       const gx = GOAL_X + 44;
+      const owe = st.status === 'short' || st.status === 'credit';
+      const gap = formatMoney(b.amount - b.account);
+      this.billNote.setFontSize(13).setText(
+        PHONE
+          ? owe ? `差${gap}` : formatMoney(b.amount)
+          : st.status === 'short' ? `差${gap} · 会出局` : st.status === 'credit' ? `差${gap} · 信用卡垫` : `${b.name} ${formatMoney(b.amount)}`,
+      );
+      // 窄顶栏：要还的钱放不下先换短写法（¥1.1万）；「差¥x」的金额不缩写，先把进度条让窄（最窄 36），再降一档字号
+      const room = (bw: number): number => TB.billRight - 4 - (gx + bw + 38);
+      if (PHONE && this.billNote.width > room(TB.goalBarW) && !owe) this.billNote.setText(moneyShort(b.amount));
+      const fitBar = (): number => Math.max(36, Math.min(TB.goalBarW, TB.billRight - 4 - 38 - gx - Math.ceil(this.billNote.width)));
+      let bw = PHONE ? fitBar() : TB.goalBarW;
+      if (PHONE && this.billNote.width > room(bw)) {
+        this.billNote.setFontSize(FS.xs);
+        bw = fitBar();
+      }
+      this.goalBar.clear();
       this.goalBar.fillStyle(0xe8dccb, 1).fillRoundedRect(gx, TB.goalBarY, bw, 8, 4);
       const f = mt.goal.done ? 1 : mt.goal.failed ? 0 : g.frac;
       if (f > 0) this.goalBar.fillStyle(mt.goal.done ? COLOR.up : mt.goal.boss ? 0x6a3a8a : COLOR.accent, 1).fillRoundedRect(gx, TB.goalBarY, Math.max(8, bw * f), 8, 4);
-      // 右半：房子图标 + 这个月要还多少（不够时变红写「差 ¥x」）
       this.houseIcon.setPosition(gx + bw + 22, TB.houseY).setVisible(true);
-      this.billNote.setPosition(gx + bw + 38, TB.billNoteY).setFontSize(13);
-      // 名目和后果找回来——「房租 ¥6,800」「差¥x · 会出局」「差¥x · 信用卡垫」
-      // 手机上这一格只有七八十宽：只写金额（名目、后果在悬停里），带名目的话「孩子补习班 ¥6,800」会被道具图标盖住
-      const gap = formatMoney(b.amount - b.account);
-      this.billNote.setText(
-        PHONE
-          ? st.status === 'short' || st.status === 'credit' ? `差${gap}` : formatMoney(b.amount)
-          : st.status === 'short' ? `差${gap} · 会出局` : st.status === 'credit' ? `差${gap} · 信用卡垫` : `${b.name} ${formatMoney(b.amount)}`,
-      );
-      // 窄顶栏：放不下先换短写法（¥1.1万），再截
-      if (PHONE && this.billNote.x + this.billNote.width > TB.billRight - 4 && !(st.status === 'short' || st.status === 'credit')) this.billNote.setText(moneyShort(b.amount));
+      this.billNote.setPosition(gx + bw + 38, TB.billNoteY);
       fitWidth(this.billNote, TB.billRight - this.billNote.x - 4);
       setColor(this.billNote, alarm ? COLOR.danger : st.status === 'tight' ? COLOR.accentDark : COLOR.ink);
     } else {

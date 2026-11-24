@@ -137,7 +137,7 @@ export class BuyDialog extends Dialog {
         this.named[`${short ? 'short' : 'size'}:${size}`] = b;
       });
       // 行下一句短话
-      const tip = short ? (opts.short.hint ? `${r?.friend?.name ?? '群友'}说它要跌 · 涨停那天会被轧：亏得比涨的还多` : '它跌你赚，它涨你亏 · 涨停那天会被轧：亏得比涨的还多') : '试一口按原价买 · 买得越多，成交价被自己抬得越高';
+      const tip = short ? (opts.short.hint ? `${r?.friend?.name ?? '群友'}说它要跌 · 涨停那天会被轧：亏得比涨的还多` : '它跌你赚，它涨你亏 · 涨停那天会被轧：亏得比涨的还多') : `一枚金币一份，约 ${moneyShort(s.account / pv.total)} · 买得越多，成交价被自己抬得越高`;
       this.inner.add(addGlyph(scene, 104, y + 98, short ? 'bear' : 'magnifier', 18));
       // 不截：一行放不下就折成两行（窄面板为此每行多留了 tipH）
       const t = addText(scene, 118, y + 98, tip, { size: TYPE.label - 1, color: short ? SHORT_COLOR : COLOR.muted, wrap: W - 118 - 16, lineSpacing: 1, originY: 0.5 });

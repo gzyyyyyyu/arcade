@@ -20,7 +20,8 @@ function themeName(id: ThemeId | undefined): string {
 }
 
 function yuan(v: number): string {
-  return `¥${Math.round(v)}`;
+  // 千位加逗号，和选项上的金额（formatMoney）写法一致
+  return `¥${String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 }
 
 /** 放进来的股票会占哪一格：第一个空格；没有就换掉持有收益最低的一只（同样低时取靠后的）。 */

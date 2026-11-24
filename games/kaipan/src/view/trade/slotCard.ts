@@ -479,14 +479,14 @@ export class SlotCard {
     // 开局就在手里、还没开过盘：和其他日子开盘前一样显示"昨天"的涨跌（开局前历史的最后一天），不写"未开盘"
     const pre = c.todayRet === null && !boughtToday && this.state ? (stockMoves(this.state, c.id, 1).at(-1) ?? null) : null;
     this.setToday(c.todayRet ?? pre, boughtToday && premarket);
-    // 累计写百分比和钱（「累计 ↑16.4% +¥1,230」）；放不下先去掉「累计」两个字，再去掉钱（都在卡身的悬停说明里）。
+    // 累计写百分比和钱（「累计 ↑16.4% +¥1,230」）；放不下先去掉钱（留「累计」两个字，不然和上面当天涨跌两个光秃秃的百分比分不清），再去掉「累计」（都在卡身的悬停说明里）。
     // 矮卡（竖屏）：累计和当天涨跌在同一行，按当天涨跌右边剩下的宽度量；放不下整句时写「累计 + 钱」，再不行只写钱，
     // 不然两个光秃秃的百分比并排，新手分不清哪个是今天、哪个是买入以来；光秃秃的钱挨着当天涨跌，也会被当成当天赚亏
     const money = c.holdMoney === 0 ? '' : formatMoney(c.holdMoney, { sign: true });
     const hold = this.hold;
     const today = this.today;
     const room = this.compact && today ? this.rect.x + this.rect.w - 8 - (today.x + today.width + 8) : this.tiny ? 0 : this.rect.w - 20;
-    const tries = [`${holdText(c.holdRet)}${money ? ` ${money}` : ''}`, ...(this.compact ? [money && `累计 ${money}`, money] : [`${pctArrow(c.holdRet)}${money ? ` ${money}` : ''}`]), pctArrow(c.holdRet)].filter((t) => t !== '');
+    const tries = [`${holdText(c.holdRet)}${money ? ` ${money}` : ''}`, ...(this.compact ? [money && `累计 ${money}`, money] : [`累计 ${pctArrow(c.holdRet)}`, `${pctArrow(c.holdRet)}${money ? ` ${money}` : ''}`]), pctArrow(c.holdRet)].filter((t) => t !== '');
     for (const t of tries) {
       hold.setText(t);
       if (hold.width <= room) break;
