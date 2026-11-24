@@ -13,16 +13,13 @@
   font-weight: 900;
   letter-spacing: 3px;
   color: #ffd35a;
-  /* 先描边再填字，描边不会啃掉笔画；底下一叠 1px 的深金投影堆出厚度 */
-  -webkit-text-stroke: 4px #5a2406;
+  /* 先描边再填字，描边不会啃掉笔画；底下一道深金厚度 + 暖光，不堆阶梯影 */
+  -webkit-text-stroke: 3px #5a2406;
   paint-order: stroke fill;
   text-shadow:
-    0 1px 0 #b8741a,
-    0 2px 0 #a2600f,
     0 3px 0 #8a4e0a,
-    0 4px 0 #6e3a06,
-    0 5px 0 #5a2406,
-    0 8px 10px #000a;
+    0 6px 14px #000a,
+    0 0 28px #ffb24d80;
   transform: translate(-50%, -50%) scale(0);
   opacity: 0;
   will-change: transform, opacity;
@@ -31,7 +28,7 @@
 .celeb.hu .celeb-text { font-size: 76px; }
 .celeb.zimo .celeb-text { font-size: 92px; color: #fff0a8; animation-duration: 1.9s; }
 .celeb.kan .celeb-text { font-size: 56px; color: #d8ffe8; -webkit-text-stroke-color: #0f4a34; animation-duration: 1.5s;
-  text-shadow: 0 1px 0 #2e8a66, 0 2px 0 #1f6e50, 0 3px 0 #155a40, 0 4px 0 #0f4a34, 0 7px 8px #000a; }
+  text-shadow: 0 3px 0 #155a40, 0 6px 12px #000a, 0 0 24px #5fd3ac66; }
 [data-orient='port'] .celeb.hu .celeb-text { font-size: 58px; }
 [data-orient='port'] .celeb.zimo .celeb-text { font-size: 70px; }
 [data-orient='port'] .celeb.kan .celeb-text { font-size: 44px; }

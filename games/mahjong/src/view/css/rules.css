@@ -158,6 +158,10 @@
   border-bottom: 1px solid #8a643a55;
   row-gap: var(--sp-1);
 }
+/* 竖屏手机六个页签（「键盘」不摆）排成三个一行两行，不留 4 + 2 那样半空的第二行 */
+.stage[data-orient='port']:not([data-fit='desk']) .rules .tabs {
+  grid-template-columns: repeat(3, 1fr);
+}
 /* 横屏弹窗矮：页签只排一行（844×390 折两行时吃掉内容区快三成，图鉴一页只摆得下一排） */
 [data-orient='land'] .rules .tabs {
   grid-template-columns: none;
@@ -170,8 +174,9 @@
   min-width: 0;
   padding: 0 var(--sp-1);
   border: 0;
-  /* 每格自带底线：选中态不论在第几行都一样（下划线加浅底色） */
+  /* 每格自带底线：选中态不论在第几行都一样；选中的一格像小册子的朱红书签（下面 .on） */
   border-bottom: 3px solid #8a643a33;
+  border-radius: 8px 8px 0 0;
   background: none;
   color: var(--ink);
   opacity: 0.7;
@@ -185,8 +190,10 @@
 .rules .tab.on {
   opacity: 1;
   font-weight: 700;
-  border-bottom-color: #9a2a1a;
-  background: #9a2a1a14;
+  border-bottom-color: #6e1c10;
+  background: linear-gradient(#b8382a, #9a2a1a);
+  color: #fff6e6;
+  box-shadow: inset 0 1px 0 #ffffff40;
 }
 /* 规则弹窗定宽定高：切页签时框不跟着内容变大变小（1920 下看着在抖）；内容放不下走翻页，不滚动 */
 .mask.rules .dialog {

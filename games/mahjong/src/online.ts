@@ -10,7 +10,7 @@ import type { DownMsg, RoomInfo, You } from 'arcade-kit/protocol';
 import { MATCH_PATH } from './game/match.ts';
 import type { RoomAction, RoomOpts, RoomView } from './room/rules.ts';
 import { ROOM_TEXTS } from './view/text.ts';
-import { sleep } from './app/timing.ts';
+import { sleep } from './game/pace.ts';
 
 /** 页面的协议版本（房间的 minClientVersion 高于它就让刷新） */
 const CLIENT_VERSION = 1;
@@ -173,16 +173,14 @@ export class Online {
 }
 
 /** 房间的 WebSocket 地址：页面在 /games/mahjong/ 下，相对路径就对 */
-export function roomUrl(code: string): string {
-  const u = new URL(`rooms/${code}/ws`, location.href);
-  u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
-  u.search = '';
-  return u.toString();
-}
+export const roomUrl = (code: string): string => wsUrl(`rooms/${code}/ws`);
 
 /** 快速匹配的排队地址：和房间一样在 rooms/ 下面，相对页面 */
-export function matchUrl(tier: string): string {
-  const u = new URL(`${MATCH_PATH}/${tier}`, location.href);
+export const matchUrl = (tier: string): string => wsUrl(`${MATCH_PATH}/${tier}`);
+
+/** 相对页面地址的 WebSocket 地址（http→ws、https→wss，去掉页面的查询串） */
+function wsUrl(path: string): string {
+  const u = new URL(path, location.href);
   u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
   u.search = '';
   return u.toString();

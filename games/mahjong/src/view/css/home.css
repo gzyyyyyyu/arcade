@@ -4,8 +4,15 @@
   display: grid;
   overflow: hidden;
 }
+/* 和选桌页同一个版式：左边茶馆的画，右边木框面板（面板外观见 lobby.css 的 .lobby-panel） */
 [data-orient='land'] .screen.front {
-  grid-template-columns: 1.15fr 1fr;
+  grid-template-columns: 1fr minmax(0, 1.05fr);
+  column-gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+}
+[data-orient='port'] .screen.front {
+  row-gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
 }
 
 .home-art {
@@ -37,16 +44,20 @@
   justify-content: safe center;
   overflow: hidden;
   gap: var(--sp-4);
-  padding: var(--sp-5) var(--sp-5) var(--sp-6);
   min-height: 0;
-}
-[data-orient='port'] .home-main {
-  padding-top: 0;
 }
 /* 手机（不是电脑版）：玩法名顶栏上已经写着，这里不重复；店名小一号、行距收紧，一屏放下 */
 .stage:not([data-fit='desk']) .home-main {
   gap: var(--sp-2);
   padding: var(--sp-2) var(--sp-4) var(--sp-3);
+}
+/* 横屏手机矮：「自己选桌」分隔不画（三张卡本身就是第二层），面板上下内边距收紧 */
+.stage[data-orient='land']:not([data-fit='desk']) .home-sep {
+  display: none;
+}
+.stage[data-orient='land']:not([data-fit='desk']) .screen.front .home-main {
+  gap: var(--sp-1);
+  padding-block: var(--sp-2);
 }
 /* 横屏手机没有多余高度，仍然不写；竖屏有空，副标题写回来（玩法名顶栏上虽有，主页上没有就找不到当前选的是哪种） */
 .stage[data-orient='land']:not([data-fit='desk']) .home-head .variant {
@@ -72,12 +83,20 @@
 .stage:not([data-fit='desk']) .home-main .mode {
   padding: var(--sp-2);
 }
+/* 竖屏：面板按内容定高，插画吃剩下的高度（屏幕高矮都不挤掉面板底下的规则链接、也不在面板里空一大截） */
 [data-orient='port'] .screen.front {
-  grid-template-rows: 42% 1fr;
+  grid-template-rows: minmax(0, 1fr) auto;
 }
-/* 竖屏手机：进度胶囊整体下移、离开茶杯和窗台；底下的行距收紧，规则链接离开屏幕底边 */
+/* 竖屏手机面板高、内容少：底行跟着模式卡往下排，整组在面板里居中，不把战绩硬压到底留一大截空 */
+.stage[data-orient='port']:not([data-fit='desk']) .home-foot {
+  margin-top: var(--sp-2);
+}
+/* 竖屏手机：插画矮一截，进度胶囊排在插画下面让出的那条里，不压茶碗和窗台 */
+.stage[data-orient='port']:not([data-fit='desk']) .home-art .scene {
+  height: calc(100% - 76px);
+}
 .stage[data-orient='port']:not([data-fit='desk']) .home-art .progress {
-  bottom: 1%;
+  bottom: 0;
 }
 .stage[data-orient='port']:not([data-fit='desk']) .home-main {
   padding-bottom: var(--sp-5);
@@ -109,9 +128,15 @@
   font-size: var(--fs-lg);
   opacity: 0.85;
 }
-.pitch {
+.home-main .pitch {
   margin: 0;
-  font-size: var(--fs-lg);
+  /* 介绍句是说明不是标题：用正文字体（标题字的子集没有这句里的全部字，一半落回系统字体，粗细不一） */
+  font-family: var(--font-ui);
+  font-weight: var(--fw-bold);
+  letter-spacing: 1px;
+  color: var(--ink);
+  text-align: center;
+  font-size: var(--fs-md);
   /* 折两行时两行差不多长，不让最后一个字单独落到第二行（三人两房那句在 1920 上就这样） */
   text-wrap: balance;
 }
@@ -135,8 +160,10 @@
   justify-content: center;
   margin-top: calc(-1 * var(--sp-1));
 }
+/* 外观固定 36 高的胶囊（点按区由 buttons.css 的 ::after 撑到 --tap）：手机上 --tap 大，按它定高会撑成一个个圆球 */
 .home-main .quick-variants .chip {
-  min-height: max(36px, var(--tap, 36px));
+  height: 36px;
+  padding: 0 var(--sp-3);
 }
 .modes {
   display: grid;
@@ -163,6 +190,46 @@
 }
 .mode.off {
   opacity: 0.45;
+}
+/* 「自己选桌」：两边一道细金线，把快速一局和三张模式卡分成两层 */
+.home-sep {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  align-self: stretch;
+  font-size: var(--fs-sm);
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+.home-sep::before,
+.home-sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to var(--sep-dir, right), transparent, var(--line-gold));
+}
+.home-sep::after {
+  --sep-dir: left;
+}
+/* 面板底一行：战绩靠左、规则链接靠右 */
+.home-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  align-self: stretch;
+  margin-top: auto;
+}
+/* 竖屏手机窄：战绩和规则链接上下两行，战绩那句不折行 */
+.stage[data-orient='port']:not([data-fit='desk']) .home-foot {
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.home-foot .record {
+  white-space: nowrap;
+}
+.home-foot:not(:has(.record)) {
+  justify-content: center;
 }
 .record {
   display: flex;
@@ -223,40 +290,27 @@
 }
 .screen.front .ver {
   position: absolute;
-  right: var(--sp-4);
+  left: var(--sp-4);
   bottom: var(--sp-3);
   font-size: var(--fs-xs);
   opacity: 0.45;
+}
+/* 竖屏：版本号放在面板底下那条空隙里（右下角），不压面板边框 */
+[data-orient='port'] .screen.front .ver {
+  left: auto;
+  right: var(--sp-4);
+  bottom: 0;
+  line-height: var(--sp-3);
 }
 /* 竖屏顶家的座位贴着顶栏：章收进座位框里，不被顶栏压住 */
 [data-orient='port'] .badge .stamp {
   right: 2px;
   top: 2px;
 }
-/* 选桌页左上角回主页 */
-.screen.lobby > .back {
-  position: absolute;
-  left: var(--sp-4);
-  top: 40px;
-  z-index: 1;
-  background: #00000059;
-}
-/* 竖屏：主页按钮在左上角，和标题同一行（标题居中、两边有空），不单占一行；版本号主页还有，这里藏掉（规范 docs/ui.md 手机） */
-[data-orient='port'] .screen.lobby > .back {
-  top: var(--sp-3);
-}
-/* 贴着顶栏：点按区上面只多 8（再往上是「大厅」的），往下撑满 --tap */
-[data-orient='port'] .screen.lobby > .back::after {
-  inset: calc(-1 * var(--sp-2)) min(0px, calc((100% - var(--tap, 44px)) / 2)) min(0px, calc(100% - var(--tap, 44px) + var(--sp-2)));
-}
 [data-orient='port'] .screen.lobby .ver {
   display: none;
 }
 
-/* 选桌页的标题是模式名（娱乐 / 实盘 / 好友房），比主页的店名小一号 */
-.screen.lobby .lobby-head h1 {
-  font-size: 44px;
-}
 /* 横屏牌桌还是 1000 宽的几何，舞台变宽时居中，两边露出茶馆的板壁（art.css）；竖屏同理，560 宽（iPad 竖着拿） */
 [data-orient='port'] .table {
   inset: 0 auto 0 calc(50% - 280px);
@@ -276,11 +330,8 @@
 
 /* ---------- 主页版面修正（只管两种尺寸，别的尺寸不受影响） ---------- */
 /* 360 级窄竖屏手机（视口宽 ≤ 380）：舞台缩到约 0.64 倍，进度胶囊字放到屏幕约 15px，
- * 插画矮一截、让出两排胶囊的位置（胶囊不再压窗台和茶杯），底部多留一截安全边距。一屏放下不滚动 */
+ * 插画让出两排胶囊的位置（胶囊不压窗台和茶杯）。一屏放下不滚动 */
 @media (max-width: 380px) {
-  .stage[data-orient='port']:not([data-fit='desk']) .screen.front {
-    grid-template-rows: 40% 1fr;
-  }
   .stage[data-orient='port']:not([data-fit='desk']) .home-art .scene {
     height: calc(100% - 84px);
   }
@@ -294,7 +345,7 @@
     font-size: calc(15px * var(--fs-k, 1));
   }
   .stage[data-orient='port']:not([data-fit='desk']) .home-main {
-    padding-bottom: 36px;
+    padding-bottom: var(--sp-3);
     gap: 6px;
   }
 }

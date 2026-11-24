@@ -92,17 +92,16 @@ export function startQuick(): Promise<void> {
 }
 
 /** 每日何切（DESIGN.md 7 节）：整页接管 screen，收尾函数在下一次 teardown 前由它自己的"回主页"调 */
-function hekiriPage(): void {
-  teardown();
-  screen.className = 'screen';
-  const stop = showHekiri(screen, { onExit: () => { stop(); homePage(); }, shareUrl: `${location.origin}${location.pathname}`, userId: userIdOf(session.platformInfo) });
-}
+const hekiriPage = (): void => drillPage(showHekiri);
 
 /** 听牌速判（DESIGN.md 7 节）：同何切，整页接管 screen；只是娱乐，不碰筹码 */
-function tingPage(): void {
+const tingPage = (): void => drillPage(showTing);
+
+/** 何切、速判这类练习页共用的进出：放掉牌桌、整页交给它，它的"回主页"先收尾再回主页 */
+function drillPage(show: typeof showHekiri | typeof showTing): void {
   teardown();
   screen.className = 'screen';
-  const stop = showTing(screen, { onExit: () => { stop(); homePage(); }, shareUrl: `${location.origin}${location.pathname}`, userId: userIdOf(session.platformInfo) });
+  const stop = show(screen, { onExit: () => { stop(); homePage(); }, shareUrl: `${location.origin}${location.pathname}`, userId: userIdOf(session.platformInfo) });
 }
 
 /** 茶馆擂台（DESIGN.md 7 节）：三种打法各一张卡；开新的一轮时有没打完的一轮先问一声 */
@@ -144,10 +143,10 @@ function cloudTap(s: CloudState): void {
   toast(say[s]);
 }
 
-/** 存档打到哪了（主页"继续上局"底下那行） */
 /** 存档是哪个玩法（「血流成河」「立直麻将」）：主页、选桌页的接着打都写上，选着的玩法和存档可能不是一种 */
 const saveVariant = (save: SoloSave): string => pageOf(save.state.variant).name(save.state.opts as never).replace('川麻·', '');
 
+/** 存档打到哪了（主页"继续上局"底下那行） */
 function progressOf(save: SoloSave): string {
   return pageOf(save.state.variant).progress(save.state, save.daily);
 }

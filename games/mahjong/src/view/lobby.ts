@@ -61,6 +61,13 @@ interface LobbyProps {
 
 const MODE_TITLE = { fun: '娱乐', real: '实盘', room: '好友房' } as const;
 
+/** 档位卡一排上面的小节标题：左边模式名（金字），右边这一排的共同说明（几局、多久、算不算筹码） */
+function section(box: HTMLElement, name: string, line: string): void {
+  const h = el('div', 'stakes-label', box);
+  el('b', '', h, name);
+  el('span', '', h, line);
+}
+
 /** 档位卡上的筹码数按口语写：满一万写几万（150,000 → 15万），不满一万的整千写几千（2,000 → 2千），别的照常写满 */
 const tierWan = (n: number): string =>
   n % 1_000 !== 0 ? num(n) : n >= 10_000 ? `${n / 10_000}万` : `${n / 1_000}千`;
@@ -74,7 +81,6 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   let opts = { ...page.rulesOf(p.rules) } as AnyOpts;
   // 单机实盘一局一结（app/solo-flow.ts 套 realOpts），局数、长度不给选；好友房实盘照开房时选的打
   const real = p.mode === 'real';
-  if (p.onBack) button('pill back', box, '‹ 主页', p.onBack);
   // 主视觉：主页同一张茶馆的画（横屏左栏、竖屏顶上一条，放不下时自己藏掉）
   el('div', 'lobby-art', box).innerHTML = homeScene();
   el('div', 'ver', box, `v${__MAHJONG_VERSION__}`);
@@ -82,6 +88,8 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   // 好友房七张档位卡，面板要排紧一点（lobby.css 的 .lobby-panel.room）
   const panel = el('div', `lobby-panel ${p.mode}`, box);
   const head = el('div', 'lobby-head', panel);
+  // 回主页放在面板标题左边（不压在画上、不和顶栏的「大厅」挤一角）
+  if (p.onBack) button('pill back', head, '‹ 主页', p.onBack);
   el('h1', '', head, MODE_TITLE[p.mode]);
   el('div', 'variant', head, `${GAME_NAME} ${page.name(opts as { flow?: boolean; three?: boolean })}`);
   // 有没打完的一场：标题右边一个小钮，不单占一排（单占一排时 1280×800 把「单机开打」挤出屏幕）
@@ -138,7 +146,7 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
     // 好友房实盘照开房时选的局数打，只有单机实盘一局一结
     const realMins = p.mode === 'room' ? mins : '只打 1 局 · 约 3 分钟';
     if (p.mode !== 'real') {
-      el('div', 'stakes-label', pick, `娱乐 · 不算筹码 · ${mins}`);
+      section(pick, '娱乐', `不算筹码 · ${mins}`);
       const fun = el('div', 'stakes', pick);
       for (const l of LEVELS) {
         card(fun, stakes === 'fun' && level === l, false, 'fun', LEVEL_NAME[l], STARS[l], [LEVEL_FOR[l]], () => {
@@ -149,7 +157,7 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
     }
     const tiers = p.standalone || p.mode === 'fun' ? [] : STAKES.filter((x) => x.wallet);
     if (!tiers.length) return;
-    el('div', 'stakes-label', pick, `实盘 · 用钱包里的筹码 · ${realMins}`);
+    section(pick, '实盘', `用钱包里的筹码 · ${realMins}`);
     const real = el('div', 'stakes', pick);
     for (const s of tiers) {
       // 余额不够带进一份的档直接灰掉、写明（先灰掉，不让点了开打才报筹码不够）

@@ -2,10 +2,10 @@
 
 /* ---------- 弹窗 ---------- */
 .mask {
-  animation: mask-in 0.16s ease-out;
+  animation: mask-in var(--t-mid) var(--ease-out);
 }
 .mask > .dialog {
-  animation: dialog-in 0.2s ease-out;
+  animation: dialog-in var(--t-slow) var(--ease-back);
 }
 .mask.closing {
   pointer-events: none;
@@ -27,7 +27,7 @@
 @keyframes dialog-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: translateY(10px) scale(0.94);
   }
 }
 @keyframes dialog-out {
@@ -39,7 +39,7 @@
 
 /* ---------- 换页 ---------- */
 .screen.enter {
-  animation: screen-in 0.2s ease-out;
+  animation: screen-in var(--t-slow) var(--ease-out);
 }
 @keyframes screen-in {
   from {

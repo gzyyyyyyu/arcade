@@ -1,5 +1,6 @@
 /**
- * 单机：开局（含实盘带入）、接着打上一场、牌桌的画面回调、一局和一场打完的结算、再来一局、每日挑战、茶馆擂台的一桌。
+ * 单机：开局（含实盘带入）、接着打上一场、牌桌的画面回调、每日挑战、茶馆擂台的一桌。
+ * 一局和一场打完的结算弹窗、再来一局在 solo-settle.ts（好友房那边对应 room-flow.ts / room-settle.ts）。
  * 规则在 src/core，单机的推进在 src/solo.ts，这里把它们和画面、钱包连起来；各玩法不同的东西一律经 pageOf(玩法)。
  */
 import { readText } from '../storage.ts';
@@ -9,34 +10,29 @@ import type { Level } from '../ai/venues.ts';
 import { DEFAULT_VARIANT } from '../core/variants/index.ts';
 import { coachAllowed } from '../game/coach.ts';
 import { dexKey } from '../game/dex.ts';
-import { isDailyVariant } from '../game/daily.ts';
 import { bindSolo, levelOf, quitRun, startRun, tableKey, type LadderMode } from '../game/ladder.ts';
 import { stakesOf, type StakesId } from '../game/stakes.ts';
 import { randomId, type WalletReply } from '../net/wallet.ts';
 import { loadSolo, newSolo, Solo, unsettled, type SoloAction, type SoloView } from '../solo.ts';
-import { closeDialog, confirmBox, dialog } from '../view/dialog.ts';
+import { closeDialog, confirmBox } from '../view/dialog.ts';
 import { recordAch } from '../view/achieve.ts';
-import { dailyCard, dailyLine, todayCN } from '../view/daily.ts';
-import { button, el } from '../view/dom.ts';
-import { END_SPLIT, paginate } from '../view/pager.ts';
+import { todayCN } from '../view/daily.ts';
+import { el } from '../view/dom.ts';
 import { recordDex } from '../view/dex.ts';
 import { guideKey, rotateTip, showGuide } from '../view/guide.ts';
-import { ladderEnd, ladderTitle, readLadder, writeLadder } from '../view/ladder.ts';
-import { fameSummary } from '../view/summary.ts';
+import { ladderTitle, readLadder, writeLadder } from '../view/ladder.ts';
 import { play } from '../view/sound.ts';
 import type { SeatMeta } from '../view/table.ts';
-import { cheerLine, easierLevel, LEVEL_NAME, num, STAKES_NAME, walletError } from '../view/text.ts';
+import { LEVEL_NAME, num, walletError } from '../view/text.ts';
 import type { AnyOpts } from '../view/variants/page.ts';
 import { ladderChoiceOf, pageOf } from '../view/variants/pages.ts';
 import { alertTurn, dropFun, feed, newFun, publicMoments, refreshFun } from './fun.ts';
 import { prefs, savePrefs } from './prefs.ts';
-import { bumpRecord, recordStreak } from './record.ts';
-import { userIdOf } from './identity.ts';
 import { homePage, ladderPage, lobby } from './routes.ts';
 import { session } from './session.ts';
-import { cardButton, matchBody, settle, showMine } from './settle.ts';
 import { paintTop, screen, stage, title, toast } from './shell.ts';
 import { TIMING } from './timing.ts';
+import { matchEndDialog, noteSettled, roundEndDialog, syncAgain } from './solo-settle.ts';
 import { buyinFailed, checkFunds, refreshWallet, showError } from './wallet.ts';
 
 /** 冒烟用：?turbo 让电脑几乎不停顿（npm run smoke） */
@@ -162,11 +158,6 @@ export function startDaily(variant: string): Promise<void> {
   return startSolo('fun', pageOf(variant).daily.opts(), 'normal', variant, todayCN());
 }
 
-/** "再来一场"（降级后换低一档难度重开，见下面调用处）：同一个玩法、上次的规则设置 */
-function startAgain(stakes: StakesId, variant: string, level: Level = prefs.level): Promise<void> {
-  return startSolo(stakes, pageOf(variant).rulesOf(prefs), level, variant);
-}
-
 // ---------- 牌桌 ----------
 
 /** 单机牌桌的画面回调：每一步重画、一局打完弹结算、实盘带回后提示 */
@@ -204,161 +195,11 @@ const soloUi = {
       ? `已带回钱包${r.credited !== undefined ? ` ${num(r.credited)}` : ''}${r.capped ? `；今天单机实盘赢够了，多出的 ${num(r.capped)} 没进钱包，好友房不限` : ''}`
       : walletError(r.error).text;
     // 钱包常常比结算弹窗先回话（弹窗要等亮牌演完）：记下来，弹窗画的时候直接用，不然那行一直停在"正在带回"
-    if (session.solo) SETTLED.set(session.solo, text);
+    if (session.solo) noteSettled(session.solo, text);
     if (box) box.textContent = text;
     void refreshWallet().then(syncAgain);
   },
 };
-
-/** 这一场钱包带回的那句（settled 先到、结算弹窗后画时用） */
-const SETTLED = new WeakMap<Solo, string>();
-
-/** 一局打完（一场还没完）：结算加"下一局" */
-function roundEndDialog(v: SoloView, names: string[], unit: string): void {
-  dialog(stage, 'end', (box) => {
-    const body = el('div', 'end-body', box);
-    settle(body, pageOf(v.variant).roundSummary(v, names, unit));
-    button('act go', el('div', 'row end-acts', box), '下一局', () => {
-      closeDialog();
-      session.solo?.next();
-    });
-    paginate(body);
-  }, false);
-}
-
-/** 一场打完：这一局的结算、一场的总结算、每日成绩、名场面、连输的一句，和回选桌 / 分享 / 再来一局 */
-function matchEndDialog(mine: Solo, v: SoloView, names: string[], unit: string): void {
-  const page = pageOf(v.variant);
-  const net = v.result?.seats[v.me!.seat]?.net ?? 0;
-  let single = false;
-  dialog(stage, 'end', (box) => {
-    // 内容放进翻页区，按钮行在它下面、一直看得见（view/pager.ts）
-    // 钱包带回的那句放在翻页区上面，哪一页都看得见；等钱包回话才有准话，先占一行，不然字来了把翻页区挤矮
-    if (stakesOf(mine.stakes)?.wallet) el('div', 'settle-note', box, SETTLED.get(mine) ?? '正在带回钱包……');
-    verdict(box, v, names, unit, net);
-    const body = el('div', 'end-body', box);
-    const lad = mine.save.ladder;
-    let ladder = null as ReturnType<typeof ladderEnd> | null;
-    // 每日成绩、擂台这一桌的结果夹在名次和明细中间：结算长了要翻页，放末尾会被翻到后面几页
-    single = matchBody(body, v.history.length, page.matchSummary(v, names, unit), page.roundSummary(v, names, unit), () => {
-      if (mine.save.daily && isDailyVariant(v.variant)) body.appendChild(dailyLine(v.variant, mine.save.daily, net, mine.save.id ?? '', userIdOf(session.platformInfo)));
-      if (lad) ladder = ladderEnd(body, mine.save.id ?? '', lad.mode, lad.table, net);
-    });
-    if (session.fame.length) body.appendChild(fameSummary(session.fame, names));
-    cheer(body, mine, net);
-    const row = el('div', 'row end-acts', box);
-    button('act soft', row, lad ? '回擂台' : '回选桌', () => {
-      closeDialog();
-      if (lad) ladderPage();
-      else lobby();
-    });
-    const st = stakesOf(mine.stakes)!;
-    const kind = st.wallet ? `实盘${STAKES_NAME[st.id]}档` : `娱乐·${LEVEL_NAME[mine.save.level ?? 'easy']}`;
-    const url = `${location.origin}${location.pathname}`;
-    const dv = mine.save.daily && isDailyVariant(v.variant) ? v.variant : null;
-    if (dv) cardButton(row, dailyCard(dv, mine.save.daily!, net, mine.save.id ?? ''), url);
-    else cardButton(row, page.shareCard(v, { title: `${kind} · ${page.lengthText(v.opts)}`, unit: st.wallet ? '筹码' : '分', name: session.myName, fame: session.fame }), url);
-    // 每日局再来一场就是同一副牌练习（不计成绩），不跳成平时设置的单机
-    const daily = mine.save.daily;
-    if (lad) ladderNext(row, lad.mode, ladder?.outcome ?? null);
-    else if (daily && isDailyVariant(v.variant)) {
-      const dv2 = v.variant;
-      button('act go', row, '再练一次', () => {
-        closeDialog();
-        void startDaily(dv2);
-      });
-    } else againButton(box, row, mine);
-    paginate(body, 0, END_SPLIT);
-  }, false);
-  if (!single) showMine();
-  play(net >= 0 ? 'win' : 'lose');
-}
-
-/**
- * 结算页最上面一行：第几名、赢了输了多少，底下再用一句大白话说为什么（玩法的 verdictWhy，说不清不写）。
- * 放在翻页区外面，哪一页都看得见；新手第一局最想知道的就是这两件事（输了只看到一屏流水）
- */
-function verdict(box: HTMLElement, v: SoloView, names: string[], unit: string, net: number): void {
-  const seats = v.result?.seats;
-  const me = v.me?.seat;
-  if (!seats || me === undefined) return;
-  const rank = 1 + seats.filter((s) => s.net > net).length;
-  const top = el('div', `verdict ${net > 0 ? 'up' : net < 0 ? 'down' : ''}`, box);
-  el('b', 'rank', top, `第 ${rank} 名`);
-  el('b', 'net', top, net === 0 ? '打平' : `${net > 0 ? '赢' : '输'} ${num(Math.abs(net))}${unit}`);
-  const why = pageOf(v.variant).verdictWhy?.(v, me, names);
-  if (why) el('p', 'why', top, why);
-}
-
-/** 擂台一桌打完的下一步：赢了下一桌、输了再开一轮；打通了只留"回擂台" */
-function ladderNext(row: HTMLElement, mode: LadderMode, outcome: string | null): void {
-  const go = (label: string, f: () => Promise<void>): void => {
-    button('act go big', row, label, () => {
-      closeDialog();
-      void f();
-    }).dataset.act = 'ladder';
-  };
-  if (outcome === 'next') go('下一桌', playLadder);
-  else if (outcome === 'out') go('再开一轮', () => startLadder(mode));
-}
-
-/**
- * 一场打完后的"再来一局"：同玩法、同档位、同难度、同规则，一键开新的（走和主页开打同一个 startSolo，实盘照样先带入一份）。
- * 钱包不够一份时按钮灰掉，底下写原因；带回钱包后余额刷新（settled → syncAgain）会重新判断。电脑上按回车也能开
- */
-function againButton(box: HTMLElement, row: HTMLElement, mine: Solo): void {
-  const save = mine.save;
-  const go = (): void => {
-    document.removeEventListener('keydown', onKey);
-    closeDialog();
-    // 照这一场的规则再开（快速一局再来还是一局），不改选桌页里平时的规则设置
-    void startSolo(save.stakes, save.state.opts, save.level ?? prefs.level, save.state.variant, undefined, true);
-  };
-  const b = button('act go big again-go', row, '再来一局', go);
-  el('p', 'room-hint again-why', box).hidden = true;
-  const onKey = (e: KeyboardEvent): void => {
-    if (!b.isConnected) return document.removeEventListener('keydown', onKey);
-    const t = e.target as HTMLElement | null;
-    if (e.key !== 'Enter' || e.repeat || b.disabled || (t && /^(BUTTON|INPUT|TEXTAREA|A|SELECT)$/.test(t.tagName)) || document.querySelector('.mask.confirm')) return;
-    e.preventDefault();
-    b.click();
-  };
-  document.addEventListener('keydown', onKey);
-  syncAgain();
-}
-
-/** "再来一局"够不够钱：实盘余额不到一份就灰掉（钱包没读到不拦，开打时 startSolo 会说原因） */
-function syncAgain(): void {
-  const b = document.querySelector<HTMLButtonElement>('.again-go');
-  const why = document.querySelector<HTMLElement>('.again-why');
-  const st = stakesOf(session.solo?.stakes);
-  if (!b || !why || !st) return;
-  const short = !!st.wallet && !!session.wallet && session.wallet.balance < st.share;
-  b.disabled = short;
-  why.hidden = !short;
-  if (short) why.textContent = walletError('no_funds').text;
-}
-
-/**
- * 单机连输时结算页说一句（不嘲讽），娱乐局再给"换到轻松一档"（DESIGN.md 第 7 节）。只换难度，不改牌、不放水：
- * 每一档的电脑本来就是那么强，公平底线不动
- */
-function cheer(box: HTMLElement, s: Solo, net: number): void {
-  bumpRecord(s.save.id ?? '', net);
-  const streak = recordStreak(s.save.id ?? '', net);
-  if (!streak) return;
-  const line = cheerLine(streak.n);
-  if (!line) return;
-  const c = el('div', 'cheer', box);
-  el('p', '', c, line);
-  // 擂台每桌的难度是定的，不给换档
-  const lower = stakesOf(s.stakes)?.wallet || s.save.ladder ? null : easierLevel(s.save.level ?? 'easy');
-  if (lower)
-    button('act soft', c, `换到${LEVEL_NAME[lower]}档再来一场`, () => {
-      closeDialog();
-      void startAgain('fun', s.save.state.variant, lower);
-    });
-}
 
 // ---------- 开打 ----------
 

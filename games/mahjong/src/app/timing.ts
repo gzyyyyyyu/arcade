@@ -1,4 +1,4 @@
-/** 页面和流程层手调的“手感”时间（毫秒）。规则核心和电脑里的节奏（如 turnMs）不在这里。 */
+/** 页面和流程层手调的“手感”时间（毫秒）。单机电脑想多久和 sleep 在 game/pace.ts，规则核心和电脑里的节奏（如 turnMs）也不在这里。 */
 export const TIMING = {
   /** 提示条（toast）显示多久，到点自动收起 */
   toastMs: 2_600,
@@ -16,22 +16,4 @@ export const TIMING = {
   leaveSeatGraceMs: 300,
   /** 设置里「快速」：电脑的停顿乘这个（默认常速 ×1；快速 ×0.45） */
   fastScale: 0.45,
-  // 单机电脑「想」多久（solo.ts 的 thinkMs，再乘性格快慢和速度）：看得清是谁打的就够，不拖
-  /** 摸了就打（摸切） */
-  thinkTsumogiriMs: 400,
-  /** 从手里挑一张打 */
-  thinkDiscardMs: 650,
-  /** 别家立直或已经胡了：再加 */
-  thinkTenseMs: 350,
-  /** 牌墙后半段：再加 */
-  thinkLateMs: 200,
-  /** 碰、吃、杠、立直 */
-  thinkMeldMs: 900,
-  /** 胡、和 */
-  thinkWinMs: 1_000,
-  /** 换三张、定缺这些 */
-  thinkOtherMs: 500,
 } as const;
-
-/** 页面流程里等一会儿（单机电脑出牌节奏、房间电脑的出牌延迟、离座后等房间收到） */
-export const sleep = (ms: number): Promise<void> => new Promise((r) => window.setTimeout(r, ms));

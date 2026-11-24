@@ -114,8 +114,14 @@
   font-size: var(--fs-sm);
   overflow-wrap: anywhere;
 }
+/* 没解锁：实线浅框、奖章去色成灰剪影，字用次一级的颜色；和解锁的金底一眼分开 */
 .ach-page .ach-list li.lock {
-  opacity: 0.5;
-  background: transparent;
-  border-style: dashed;
+  background: #00000008;
+  border-color: #8a643a40;
+}
+.ach-page .ach-list li.lock .ach-medal {
+  filter: grayscale(1) opacity(0.45);
+}
+.ach-page .ach-list li.lock :is(.ach-name, .ach-how) {
+  color: #7a6450;
 }

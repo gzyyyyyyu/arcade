@@ -21,7 +21,7 @@ import { dailyKey } from './game/daily.ts';
 import type { LadderMode } from './game/ladder.ts';
 import { baseOf, stakesOf, type StakesId, type TierId } from './game/stakes.ts';
 import { maybeApplied, randomId, soloBuyin, soloSettle, type WalletReply } from './net/wallet.ts';
-import { sleep, TIMING } from './app/timing.ts';
+import { sleep, THINK_MS } from './game/pace.ts';
 
 export const SOLO_KEY = 'mahjong.solo';
 const KINDS: SeatKind[] = ['human', 'ai', 'ai', 'ai'];
@@ -132,18 +132,18 @@ const tense = (s: SoloState, seat: number): boolean =>
  */
 export function thinkMs(prev: SoloState, next: SoloState, seat: number): number {
   const seen = new Set((next.events as { e: string }[]).map((e) => e.e));
-  if (seen.has('hu') || seen.has('win')) return TIMING.thinkWinMs;
-  if (seen.has('pon') || seen.has('chi') || seen.has('kan') || seen.has('riichi')) return TIMING.thinkMeldMs;
+  if (seen.has('hu') || seen.has('win')) return THINK_MS.win;
+  if (seen.has('pon') || seen.has('chi') || seen.has('kan') || seen.has('riichi')) return THINK_MS.meld;
   const d = (next.events as { e: string; tile?: number }[]).find((e) => e.e === 'discard');
   if (d) {
-    let ms = prev.drawn !== null && d.tile === prev.drawn ? TIMING.thinkTsumogiriMs : TIMING.thinkDiscardMs;
-    if (tense(prev, seat)) ms += TIMING.thinkTenseMs;
-    if (wallLeft(prev.wall) <= LATE_WALL) ms += TIMING.thinkLateMs;
+    let ms = prev.drawn !== null && d.tile === prev.drawn ? THINK_MS.tsumogiri : THINK_MS.discard;
+    if (tense(prev, seat)) ms += THINK_MS.tense;
+    if (wallLeft(prev.wall) <= LATE_WALL) ms += THINK_MS.late;
     return ms;
   }
   // 声明窗口里的「过」（包括最后一个过、窗口关上轮到下家摸牌）不停：停了就等于告诉人家刚才有人能碰
   if (prev.phase === 'claim') return 0;
-  return TIMING.thinkOtherMs;
+  return THINK_MS.other;
 }
 /** 牌墙剩这么多张以内算后半段：大家都快听了，打牌要多看两眼 */
 const LATE_WALL = 20;

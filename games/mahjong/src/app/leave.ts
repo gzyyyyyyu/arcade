@@ -9,7 +9,8 @@ import { lobby } from './routes.ts';
 import { roomBack, session } from './session.ts';
 import { home, stage } from './shell.ts';
 import { showError } from './wallet.ts';
-import { sleep, TIMING } from './timing.ts';
+import { sleep } from '../game/pace.ts';
+import { TIMING } from './timing.ts';
 
 /** 好友房里离开：开打了先确认（实盘这一局由电脑替他打完再带回），座位交给电脑 */
 export async function leaveRoom(): Promise<void> {

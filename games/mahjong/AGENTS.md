@@ -22,6 +22,7 @@
   `wrangler.jsonc` 已上线的迁移（v1、v2）不能改，加 DO 类另起一条新 tag，并同步 `test/wrangler.test.jsonc`、`dev/wrangler.smoke.jsonc`。改了排队、匹配桌，跑 `npm run build:cf && npm run smoke:match`（一次只开一个无头浏览器）。
 - 线上监控（[docs/dev.md](docs/dev.md) 第 4 节）：`/games/mahjong/health` 排在 Worker 最前面，不许读存储、认人或调平台；页面最先调 `reportErrors`。改了这块，`test/worker/api.test.ts`、`standalone.test.ts` 的健康检查一起改。
 - 浏览器存储的键清单在 [docs/storage.md](docs/storage.md)。
+- 页面层（`src/main.ts`、`src/app/`、`src/solo.ts`、`src/online.ts`）谁管什么、状态归谁、依赖方向见 [docs/dev.md](docs/dev.md) 2.1：每类状态只有一个所有者，`view/`、`game/`、`net/`、`core/`、`ai/`、`room/` 和 `solo.ts`、`online.ts` 不 import `app/`（`test/arch.test.ts` 守着）；单机、好友房各是「流程 + 结算」两个文件（`solo-flow` / `solo-settle`、`room-flow` / `room-settle`）。
 - 目录：`test/` 只放测试（vitest 和 `test/worker` 的 workerd 测试）；本地整套和冒烟用的假平台、开发入口、wrangler 配置在 `dev/`，都不部署。
 - 云存档（docs/practice-modes.md「云存档」）只同步擂台一个槽 `ladder`；加槽时在那里写上，合并规则写成纯函数并加单测（`test/cloud.test.ts`）。
 - Biome 配置照 arcade-host 模板，不在模块里改规则；有意这么写的用 `// biome-ignore lint/<组>/<规则>: <理由>` 单行放行。tsconfig 开着未使用变量、参数的报错。

@@ -182,3 +182,22 @@ describe('页面层不按玩法分叉（棘轮，DESIGN.md 3.6）', () => {
     }
   });
 });
+
+describe('页面层的依赖方向（docs/dev.md 2.1）', () => {
+  /** app/ 在最上面：下面这些层和单机牌局、好友房连接都不 import app/（只看 import 语句，注释里提到不算） */
+  const LOWER = ['view', 'game', 'net', 'core', 'ai', 'room'].flatMap((d) => files(join(ROOT, d)));
+  const appImports = (src: string): string[] =>
+    [...src.matchAll(/(?:from\s+|import\s*\(\s*|import\s+)'([^']+)'/g)].map((m) => m[1]!).filter((i) => /(^|\/)app\//.test(i));
+
+  test('view/、game/、net/、core/、ai/、room/ 和 solo.ts、online.ts、storage.ts 不 import app/', () => {
+    for (const f of [...LOWER, join(ROOT, 'solo.ts'), join(ROOT, 'online.ts'), join(ROOT, 'storage.ts')]) expect(appImports(code(f)), relative(ROOT, f)).toEqual([]);
+  });
+
+  test('抓得住（阳性对照）：普通、仅类型、副作用、动态 import 都算', () => {
+    expect(appImports("import { x } from '../app/session.ts';")).toEqual(['../app/session.ts']);
+    expect(appImports("import type { X } from '../app/prefs.ts';")).toEqual(['../app/prefs.ts']);
+    expect(appImports("import './app/report.ts';")).toEqual(['./app/report.ts']);
+    expect(appImports("const m = await import('../app/shell.ts');")).toEqual(['../app/shell.ts']);
+    expect(appImports("import { y } from '../game/stakes.ts';")).toEqual([]);
+  });
+});

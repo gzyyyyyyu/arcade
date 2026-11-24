@@ -10,17 +10,19 @@
   min-width: 140px;
   max-width: 260px;
   padding: var(--sp-3);
-  border: 1px solid var(--gold-lo);
+  border: 2px solid var(--ink-dark);
   border-radius: var(--r-md);
-  background: #00000048;
+  background: linear-gradient(var(--ivory), var(--ivory-lo));
+  color: var(--ink-dark);
+  box-shadow: 0 3px 0 var(--ink-dark);
   text-align: center;
 }
 .summary.awards .award.mvp {
-  border-color: var(--gold);
-  box-shadow: 0 0 12px #f3c86b55;
+  background: linear-gradient(var(--gold-hi), var(--gold-lo));
+  box-shadow: 0 3px 0 var(--ink-dark), 0 0 16px #f3c86b80;
 }
 .summary.awards .award-name {
-  color: var(--gold);
+  color: var(--red-lo);
   font-size: var(--fs-sm);
   font-weight: 700;
 }
@@ -55,14 +57,15 @@
   align-items: center;
   gap: var(--sp-3);
   padding: var(--sp-2);
-  border-radius: var(--r-sm);
-  background: #ffffff0d;
+  border-radius: var(--r-md);
+  background: #00000030;
+  border: 1.5px solid #00000038;
   justify-content: flex-start;
   margin: 0;
 }
 .summary .row.me {
-  background: #f3c86b1f;
-  box-shadow: inset 3px 0 0 var(--gold);
+  background: #f3c86b26;
+  border-color: var(--gold);
 }
 .summary .who {
   /* 至少 90 宽，有空就放宽到 8 个字左右（手机竖屏太窄只露"本地q…"） */
@@ -84,20 +87,35 @@
   opacity: 0.9;
 }
 .summary .net {
-  font-weight: 700;
+  font-weight: 800;
   min-width: 80px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 #0009;
+  /* 输赢数字压在结算飞铜钱（fx.css 的 .settle-coin，z-index 2）上面，铜钱飞过不糊住数字 */
+  position: relative;
+  z-index: 3;
 }
 .summary .net.up {
-  color: var(--green);
+  color: var(--jade-hi);
 }
 .summary .net.down {
   color: var(--red-hi);
 }
+/* 名次：金色小圆牌、墨线描边 */
 .summary .rank {
   width: 22px;
-  color: var(--gold);
-  font-weight: 700;
+  height: 22px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(var(--gold-hi), var(--gold-lo));
+  border: 1.5px solid var(--ink-dark);
+  color: var(--ink-dark);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  line-height: 1;
 }
 /* 竖屏一场的名次表：名字、得分、输赢一行，"胡 1 · 自摸 0……"另起一行排在名字底下（挤在中间会折成三四行） */
 [data-orient='port'] .summary.final .row {
@@ -253,7 +271,7 @@
   bottom: calc(-1 * var(--sp-5));
   margin: var(--sp-3) calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5));
   padding: var(--sp-3) var(--sp-5) var(--sp-5);
-  background: linear-gradient(#0f2c2200, #0f2c22 var(--sp-4));
+  background: linear-gradient(transparent, var(--lacquer-lo) var(--sp-4));
   z-index: 1;
 }
 /* 翻页 ‹ › 下面紧挨着贴底按钮条（z-index 1），居中撑到 --tap 的点按区下半截被它盖住：抬到它上面一层 */

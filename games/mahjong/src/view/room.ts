@@ -49,7 +49,10 @@ function rulesParts(o: RoomOpts | null): string[] {
 
 export function renderWaiting(box: HTMLElement, p: WaitingProps): void {
   box.replaceChildren();
-  if (p.match) return matchWaiting(box, p);
+  // 和主页、选桌页同一块木框面板（lobby.css）：房间号、规则、座位、开打都装在里面
+  const panel = el('div', 'room-panel', box);
+  if (p.match) return matchWaiting(panel, p);
+  box = panel;
   const head = el('div', 'room-head', box);
   el('div', 'room-label', head, '房间号');
   el('div', 'room-code', head, p.code);

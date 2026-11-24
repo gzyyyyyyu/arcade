@@ -38,7 +38,12 @@ src/core/          引擎：牌、手牌分析、牌桌小件、筹码账
 src/ai/            电脑（只拿视图）、性格、场地
 src/game/          档位、快速匹配、每日玩法、成就、图鉴
 src/room/          好友房规则，房间和页面共用
-src/app/ src/view/ 页面流程、牌桌（DOM + SVG）、主页和选桌页
+src/main.ts        页面入口：启动、按地址栏选第一页
+src/app/           页面流程：骨架和设置、各页进出、单机和好友房的流程与结算、会话状态（谁管什么见 docs/dev.md 2.1）
+src/solo.ts        单机牌局：推进、存档、实盘带入带回
+src/online.ts      好友房连接：收帧、按顺序播、发操作
+src/net/           单机实盘的钱包、云存档、每日榜
+src/view/          牌桌（DOM + SVG）、主页、选桌页和各页的画面
 worker/            Cloudflare Worker：登录闸门、实盘接口、房间
 test/              vitest 和 workerd 测试
 dev/ scripts/      本地假平台；冒烟、模拟器、截图

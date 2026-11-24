@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { riichi as RC, type RcState } from '../src/core/variants/riichi/index.ts';
 import { DEFAULT_OPTS } from '../src/core/variants/sichuan-xuezhan/index.ts';
-import { TIMING } from '../src/app/timing.ts';
+import { THINK_MS } from '../src/game/pace.ts';
 import { thinkMs, loadSolo, newSolo, Solo, SOLO_KEY, unsettled, type SoloSave } from '../src/solo.ts';
 
 const store = new Map<string, string>();
@@ -197,23 +197,23 @@ describe('电脑想多久（只看公开的）', () => {
     ({ events: o.events ?? [], drawn: o.drawn ?? null, players: o.players ?? [{}, {}, {}, {}], wall: { head: 0, tail: (o.left ?? 60) - 1 }, phase: o.phase ?? 'turn' }) as never;
   const think = (prev: Parameters<typeof st>[0], next: Parameters<typeof st>[0], seat = 1): number => thinkMs(st(prev), st(next), seat);
   test('摸了就打快，从手里挑的慢', () => {
-    expect(think({ drawn: 5 }, { events: [{ e: 'discard', tile: 5 }] })).toBe(TIMING.thinkTsumogiriMs);
-    expect(think({ drawn: 5 }, { events: [{ e: 'discard', tile: 9 }] })).toBe(TIMING.thinkDiscardMs);
+    expect(think({ drawn: 5 }, { events: [{ e: 'discard', tile: 5 }] })).toBe(THINK_MS.tsumogiri);
+    expect(think({ drawn: 5 }, { events: [{ e: 'discard', tile: 9 }] })).toBe(THINK_MS.discard);
   });
   test('别家立直或胡了、牌墙后半段：再多想一会儿；自己立直不算', () => {
     const d = { events: [{ e: 'discard', tile: 9 }] };
-    expect(think({ drawn: 5, players: [{ riichi: 1 }, {}, {}, {}] }, d)).toBe(TIMING.thinkDiscardMs + TIMING.thinkTenseMs);
-    expect(think({ drawn: 5, players: [{}, { riichi: 1 }, {}, {}] }, d)).toBe(TIMING.thinkDiscardMs);
-    expect(think({ drawn: 5, players: [{}, {}, { won: {} }, {}] }, d)).toBe(TIMING.thinkDiscardMs + TIMING.thinkTenseMs);
-    expect(think({ drawn: 5, left: 12 }, d)).toBe(TIMING.thinkDiscardMs + TIMING.thinkLateMs);
+    expect(think({ drawn: 5, players: [{ riichi: 1 }, {}, {}, {}] }, d)).toBe(THINK_MS.discard + THINK_MS.tense);
+    expect(think({ drawn: 5, players: [{}, { riichi: 1 }, {}, {}] }, d)).toBe(THINK_MS.discard);
+    expect(think({ drawn: 5, players: [{}, {}, { won: {} }, {}] }, d)).toBe(THINK_MS.discard + THINK_MS.tense);
+    expect(think({ drawn: 5, left: 12 }, d)).toBe(THINK_MS.discard + THINK_MS.late);
   });
   test('碰杠立直、胡各有各的；声明窗口里过不停', () => {
-    for (const e of ['pon', 'chi', 'kan', 'riichi']) expect(think({}, { events: [{ e }] })).toBe(TIMING.thinkMeldMs);
-    for (const e of ['hu', 'win']) expect(think({}, { events: [{ e }] })).toBe(TIMING.thinkWinMs);
+    for (const e of ['pon', 'chi', 'kan', 'riichi']) expect(think({}, { events: [{ e }] })).toBe(THINK_MS.meld);
+    for (const e of ['hu', 'win']) expect(think({}, { events: [{ e }] })).toBe(THINK_MS.win);
     expect(think({ phase: 'claim' }, { phase: 'claim' })).toBe(0);
     // 最后一个过：窗口关上、下家摸牌，也不停（停了就只在有人能碰时出现，等于泄露）
     expect(think({ phase: 'claim' }, { phase: 'turn', events: [{ e: 'draw' }] })).toBe(0);
-    expect(think({ phase: 'swap' }, { phase: 'swap' })).toBe(TIMING.thinkOtherMs);
+    expect(think({ phase: 'swap' }, { phase: 'swap' })).toBe(THINK_MS.other);
   });
 });
 
