@@ -16,7 +16,7 @@ export async function refreshWallet(): Promise<void> {
   if (r.ok && r.wallet) {
     session.wallet = r.wallet;
     session.walletNote = null;
-    walletChip.textContent = `钱包 ${num(session.wallet.balance)}`;
+    walletChip.textContent = `钱包 ${num(session.wallet.balance)} 筹码`;
   } else {
     session.wallet = null;
     session.walletNote = r.ok ? null : `${walletError(r.error).text}。实盘先不能选，娱乐照常玩。`;

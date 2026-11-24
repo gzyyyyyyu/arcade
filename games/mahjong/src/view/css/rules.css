@@ -153,7 +153,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(4.6em, 1fr));
   gap: 0 var(--sp-1);
-  margin: 0 var(--sp-6) var(--sp-3) 0;
+  /* 右边让出 × 的整块点按区（宽 max(52px, --tap)，贴着弹窗边、弹窗内边距是 --sp-5），最右的页签不叠在 × 底下 */
+  margin: 0 calc(max(52px, var(--tap)) - var(--sp-5) + var(--sp-1)) var(--sp-3) 0;
   border-bottom: 1px solid #8a643a55;
   row-gap: var(--sp-1);
 }
@@ -176,6 +177,10 @@
   opacity: 0.7;
   font-size: var(--fs-sm);
   white-space: nowrap;
+}
+/* 手机、平板没有键盘：「键盘」页签不摆，360 宽时页签少折一行 */
+.stage:not([data-fit='desk']) .rules .tab.keys {
+  display: none;
 }
 .rules .tab.on {
   opacity: 1;

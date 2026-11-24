@@ -16,7 +16,7 @@ describe('设置面板恢复默认', () => {
 describe('结算术语说明', () => {
   it('结算里会出现的术语都有说明', () => {
     for (const w of ['本场', '供托', '跳满', '里宝指示', '退杠分']) expect(TERMS[w]).toBeTruthy();
-    for (const w of [...Object.values(PAY_NAME), ...Object.values(PAY_KIND)]) if (['本场', '供托', '退杠分', '包牌'].includes(w)) expect(TERMS[w]).toBeTruthy();
+    for (const w of [...Object.values(PAY_NAME), ...Object.values(PAY_KIND)]) if (['本场', '立直棒', '没听牌罚分', '退杠分', '包牌'].includes(w)) expect(TERMS[w]).toBeTruthy();
     for (const w of Object.values(LIMIT_NAME)) if (w) expect(TERMS[w]).toBeTruthy();
   });
 });

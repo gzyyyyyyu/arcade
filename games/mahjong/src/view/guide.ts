@@ -51,7 +51,7 @@ function guidePage(parent: HTMLElement, page: number, done: () => void, variant:
 
 /** 电脑上的快捷键（table.ts 的 onKey、ting.ts 的 act 实现的键位，改键位时两边一起改） */
 const KEYS: readonly [string[], string][] = [
-  [['H'], '胡（立直里叫「和」）'],
+  [['H'], '胡（立直里叫“和”）'],
   [['C'], '吃（只有立直能吃；能吃的不止一种时再点选哪一种）'],
   [['P'], '碰'],
   [['G'], '杠'],
@@ -86,7 +86,7 @@ export function showRules(parent: HTMLElement, tab?: Tab, variant: string = DEFA
     const tabs = el('div', 'tabs', box);
     tabs.setAttribute('role', 'tablist');
     for (const t of tabsOf) {
-      const b = button(`tab${t === at ? ' on' : ''}`, tabs, t, () => showRules(parent, t, variant));
+      const b = button(`tab${t === '键盘' ? ' keys' : ''}${t === at ? ' on' : ''}`, tabs, t, () => showRules(parent, t, variant));
       b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', String(t === at));
     }

@@ -41,7 +41,7 @@ export const xuezhanPage: VariantPage = {
   daily: { variant: ID, opts: () => ({ ...DEFAULT_OPTS, rounds: DAILY_ROUNDS }), lengthText: `${DAILY_ROUNDS} 局`, cardName: `川麻 ${DAILY_ROUNDS} 局` },
 
   homeChoices: [
-    { id: ID, chip: '血战到底', name: '川麻·血战到底', pitch: '胡了下桌，打到只剩一家或牌墙摸完', ladder: { mode: 'xz', opts: () => ({ ...DEFAULT_OPTS, rounds: 1, flow: false }) } },
+    { id: ID, chip: '血战到底', name: '川麻·血战到底', pitch: '胡了就下桌，剩下的接着打，到只剩一家或牌摸完', ladder: { mode: 'xz', opts: () => ({ ...DEFAULT_OPTS, rounds: 1, flow: false }) } },
     { id: FLOW, chip: '血流成河', name: '川麻·血流成河', pitch: '胡了不下桌，接着摸打，能连胡', ladder: { mode: 'xl', opts: () => ({ ...DEFAULT_OPTS, rounds: 1, flow: true }) } },
     // 三人两房的擂台和快速一局一样：一局一结、不换三张
     { id: THREE, chip: '三人两房', name: '川麻·三人两房', pitch: '三个人打，只有筒子和条子，不用定缺，两家胡了就结束', ladder: { mode: 'x3', opts: () => ({ ...DEFAULT_OPTS, rounds: 1, flow: false, three: true, swap: false }) } },

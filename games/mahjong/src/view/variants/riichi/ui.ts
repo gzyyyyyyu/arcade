@@ -113,16 +113,23 @@ function center(v: RcTable, mid: HTMLElement, paint: Paint): void {
   el('span', 'wall', wall, `${v.wall}`);
   el('small', '', wall, '张');
   // 本场、供托都不写字，各画一根点棒加数字：小手机上"本场 0 供托 0"挤出牌盒，能用图标数字表达的不写字（AGENTS 文字一节）。
-  // 本场是百点棒（八个小黑点），供托是立直棒（中间一个红点）。悬停看 title；手机没有悬停，点一下弹一条提示（牌盒每步重画，不在原地展开）
-  const sub = el('div', 'rc-sub', mid);
-  subStick(sub, 'honba', HONBA_ICON, `本场 ${honba}：${TERMS.本场}`, honba);
-  subStick(sub, 'sticks', STICK_ICON, `供托 ${v.sticks} 根：${TERMS.供托}`, v.sticks);
+  // 本场是百点棒（八个小黑点），供托是立直棒（中间一个红点）。悬停看 title；手机没有悬停，点一下弹提示（牌盒每步重画，不在原地展开）。
+  // 两根棒合成一个按钮：各自只有一个字高（手机上 19×10），分开做点不中；整块点一下两条说明依次弹出
+  const tips: [string, string][] = [
+    [HONBA_ICON, `本场 ${honba}：${TERMS.本场}`],
+    [STICK_ICON, `桌上的立直棒 ${v.sticks} 根：${TERMS.立直棒}`],
+  ];
+  const sub = button('rc-sub', mid, '', () => {
+    for (const [icon, tip] of tips) showToast(icon, tip);
+  });
+  sub.title = tips.map(([, t]) => t).join('\n');
+  sub.setAttribute('aria-label', sub.title);
+  subStick(sub, 'honba', honba);
+  subStick(sub, 'sticks', v.sticks);
 }
 
-function subStick(sub: HTMLElement, cls: string, icon: string, tip: string, n: number): void {
-  const s = button(cls, sub, '', () => showToast(icon, tip));
-  s.title = tip;
-  s.setAttribute('aria-label', tip);
+function subStick(sub: HTMLElement, cls: string, n: number): void {
+  const s = el('span', cls, sub);
   el('i', 'stick-ico', s);
   el('b', '', s, `${n}`);
 }

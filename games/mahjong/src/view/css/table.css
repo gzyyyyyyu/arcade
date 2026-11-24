@@ -704,6 +704,11 @@ html .atc-dock .atc-head b { flex: none; white-space: nowrap; }
   font-weight: 700;
   pointer-events: none;
 }
+/* 推荐的正好是刚换进来的牌：「换」在右上角，「荐」挪到左上角，两个不叠（360 宽的手牌只有三十来像素宽） */
+.my-hand .tile:has(.swap-badge) .rec-badge {
+  left: -4px;
+  transform: none;
+}
 .bar .ting {
   display: flex;
   align-items: center;

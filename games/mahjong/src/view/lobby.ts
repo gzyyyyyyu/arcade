@@ -19,7 +19,7 @@ import { homeChoiceOf } from './variants/pages.ts';
 import { closeDialog, dialog } from './dialog.ts';
 import { busy, button, el } from './dom.ts';
 import { renderRules } from './rule-row.ts';
-import { GAME_NAME, LEVEL_FOR, LEVEL_NAME, num, STAKES_NAME, STARS, wan } from './text.ts';
+import { GAME_NAME, LEVEL_FOR, LEVEL_NAME, num, STAKES_NAME, STARS } from './text.ts';
 
 interface LobbyProps {
   wallet: WalletView | null;
@@ -60,6 +60,9 @@ interface LobbyProps {
 }
 
 const MODE_TITLE = { fun: '娱乐', real: '实盘', room: '好友房' } as const;
+
+/** 档位卡上的筹码数：整千的一律写成几万（2,000 → 0.2万），别的照常写满 */
+const tierWan = (n: number): string => (n % 1_000 === 0 ? `${n / 10_000}万` : num(n));
 
 export function renderLobby(box: HTMLElement, p: LobbyProps): void {
   box.replaceChildren();
@@ -150,14 +153,15 @@ export function renderLobby(box: HTMLElement, p: LobbyProps): void {
     for (const s of tiers) {
       // 余额不够带进一份的档直接灰掉、写明（先灰掉，不让点了开打才报筹码不够）
       const off = !p.wallet || p.wallet.balance < s.share;
-      const lines = p.wallet && off ? [`要 ${wan(s.share)}`, '筹码不够'] : [`最多赢 ${wan(s.share * 3)}`, `最多输 ${wan(s.share)}`];
+      // 同一排一律按「万」写（0.2万、1万、5万、20万），不一会儿数字一会儿万：一眼比得出大小；写满数字 360 宽四张卡放不下
+      const lines = p.wallet && off ? [`要 ${tierWan(s.share)}`, '筹码不够'] : [`最多赢 ${tierWan(s.share * 3)}`, `最多输 ${tierWan(s.share)}`];
       card(real, s.id === stakes, off, s.id, `${STAKES_NAME[s.id]}档`, STARS[s.id as TierId], lines, () => (stakes = s.id));
     }
   };
   paint();
   const note = el('div', 'wallet-note', panel);
   if (p.mode === 'fun') note.remove();
-  else if (p.wallet) note.textContent = `钱包 ${num(p.wallet.balance)} 筹码（无任何现金价值）· 最多输掉带进去的一份，最多赢 3 份`;
+  else if (p.wallet) note.textContent = `钱包 ${num(p.wallet.balance)} 筹码（无任何现金价值）· 最多输掉带入的筹码，最多赢它的 3 倍`;
   // 钱包读不到：原因只写头一句，加上"实盘先不能选"，一行放下（docs/ui.md 第 11 节）
   else if (p.walletNote) note.textContent = `${p.walletNote.split(/[，。]/)[0]}，实盘先不能选`;
   else if (p.standalone) note.textContent = '这是单独部署的雀馆：没有账号和钱包，单机、好友房都按娱乐打。';

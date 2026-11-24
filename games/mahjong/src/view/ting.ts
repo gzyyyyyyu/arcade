@@ -245,7 +245,9 @@ export function showTing(box: HTMLElement, o: TingOpts): () => void {
     submit = button('act go big td-submit', root, '提交', submitNow);
     submit.disabled = true;
     submit.dataset.act = 'submit';
-    el('div', 'td-hint', root, '点牌选中，再点取消；电脑上按 1–9 选，回车提交');
+    // 键盘的说法只给电脑：手机上没有键盘，多出来的半句还把最后一个字挤到第二行
+    const hint = el('div', 'td-hint', root, '点牌选中，再点取消');
+    el('span', 'td-kbd', hint, '；电脑上按 1–9 选，回车提交');
   }
 
   function toggle(k: number): void {
