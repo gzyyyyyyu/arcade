@@ -270,6 +270,7 @@ export function createFinisher(d: FinishDeps): { finish: (w: World, quit: boolea
     music.stop();
     tips.hide();
     banners.clear();
+    scene()?.closeMenus();
     const seconds = (w.setup.endless ? w.tick : Math.min(w.tick, DAWN_TICK)) / 30;
     const trial = trialEnd(w, quit);
     // 每日连战：存录像前先记下本机今天最好，结算页拿来比

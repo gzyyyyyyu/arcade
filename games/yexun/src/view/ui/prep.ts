@@ -68,6 +68,8 @@ export class Prep {
     window.visualViewport?.addEventListener('resize', () => this.fit());
     this.fit();
     this.root.addEventListener('click', (e) => {
+      // 点遮罩（面板外那层）关掉，和图鉴、排行这些面板一样（试玩 11-23）
+      if (e.target === this.root) return this.onClose();
       const el = (e.target as HTMLElement).closest<HTMLElement>('[data-a]');
       if (!el || el.getAttribute('aria-disabled') === 'true') return;
       const id = el.dataset.id ?? '';
@@ -168,7 +170,7 @@ export class Prep {
         ['perk', '加成'],
         ['kit', '锦囊'],
         ['look', '外观'],
-        ['xc', '铜钱兑筹码'],
+        ['xc', '换筹码'],
       ] as [PrepTab, string][]
     )
       .map(([t, n]) => `<button type="button" class="yx-ptab${t === this.tab ? ' on' : ''}" data-a="tab" data-t="${t}">${n}</button>`)

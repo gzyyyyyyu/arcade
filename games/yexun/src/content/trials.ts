@@ -85,9 +85,10 @@ export function isTrialId(x: unknown): x is TrialId {
 /** 目标一句话（试炼卡、暂停面板、结算页共用） */
 export function goalText(g: TrialGoal): string {
   if (g.kind === 'dawn') return '撑到天亮';
-  if (g.kind === 'slay') return g.foe === 'boss' ? (g.by >= 900 ? '天亮前打倒尸王' : `${fmtClock(g.by)} 前打倒尸王`) : `${fmtClock(g.by)} 前打倒首领`;
-  if (g.kind === 'nobun') return `没有肉包，撑到 ${fmtClock(g.until)}`;
-  return `夜探撤出，宝物值 ${g.value} 以上`;
+  // 「开局几分几秒内」：守夜顶栏是倒计时，只写「8:45 前」会被当成顶栏读数（试玩 11-23）
+  if (g.kind === 'slay') return g.foe === 'boss' ? (g.by >= 900 ? '天亮前打倒尸王' : `开局 ${fmtClock(g.by)} 内打倒尸王`) : `开局 ${fmtClock(g.by)} 内打倒首领`;
+  if (g.kind === 'nobun') return `没有肉包，撑满 ${fmtClock(g.until)}`;
+  return `夜探撤出，带出的宝物值 ${g.value} 铜钱以上`;
 }
 
 /** 词缀一句一条（咒印、夜事的说明由界面按各自的表拼） */

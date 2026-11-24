@@ -57,10 +57,11 @@ export function liveFacts(tier: LiveTier, picked: CharacterId, map: MapId): Live
   const dawn = vigilBp(tier, 0, true, false, character, map);
   const boss = vigilBp(tier, 0, true, true, character, map);
   const from = LIVE_TIERS[tier].shape[0]![0] / 60;
-  const out: LiveFact[] = [{ big: `${from} 分钟`, small: '撑过才开始拿回' }];
-  if (dawn >= LIVE_MAX_BP) out.push({ big: chips(tier, dawn), small: '天亮拿回（封顶）' });
-  else out.push({ big: chips(tier, dawn), small: '天亮拿回' }, { big: chips(tier, boss), small: '打倒尸王拿回' });
-  out.push({ big: '技能', small: '照常能放' });
+  const out: LiveFact[] = [{ big: `${from} 分钟`, small: '撑过才拿回' }];
+  if (dawn >= LIVE_MAX_BP) out.push({ big: chips(tier, dawn), small: '天亮拿最多' });
+  else out.push({ big: chips(tier, dawn), small: '天亮拿回' }, { big: chips(tier, boss), small: '打倒尸王' });
+  // 这格写下注真要知道的数（试玩 11-23：「技能 照常能放」不是数），技能能放写在悬停说明里
+  out.push({ big: chips(tier, 10_000), small: '最多输' });
   return out;
 }
 
@@ -69,10 +70,11 @@ const share = (bp: number): string => `${Number((bp / 10_000).toFixed(2))} 份`;
 export function rushLiveFacts(tier: LiveTier): LiveFact[] {
   return [
     // 小牌四格要在 390 竖屏、844 横屏放下：小字最多四个字，细说写在下面的说明里（走查 11-23 截字）
-    { big: chips(tier, rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true)), small: '天亮拿回' },
-    { big: chips(tier, rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false)), small: '打到终局' },
-    { big: chips(tier, rushBp(tier, 1, RUSH_TOTAL, false)), small: '每只约' },
-    { big: '15 分', small: '一局约' },
+    // 试玩 11-23：「打到终局」「每只约」「一局约」读不懂，改成「打到哪、拿回多少」
+    { big: chips(tier, rushBp(tier, RUSH_TOTAL, RUSH_TOTAL, true)), small: '全清拿回' },
+    { big: chips(tier, rushBp(tier, RUSH_TOTAL - 1, RUSH_TOTAL, false)), small: '打到夜漏君' },
+    { big: `+${chips(tier, rushBp(tier, 1, RUSH_TOTAL, false))}`, small: '每关约加' },
+    { big: '15 分钟', small: '一局大约' },
   ];
 }
 export function rushLiveNote(tier: LiveTier): string {

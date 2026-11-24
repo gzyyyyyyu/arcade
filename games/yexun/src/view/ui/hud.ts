@@ -352,7 +352,7 @@ export class Hud {
       this.tlabel.textContent = s.raid.label;
       this.timer.classList.toggle('warn', s.raid.level === 1);
       this.timer.classList.toggle('red', s.raid.level === 2);
-      this.bag.textContent = `${s.raid.bag} 件 · ${s.raid.value}`;
+      this.bag.textContent = `${s.raid.bag} 件 · 值 ${s.raid.value}`;
       this.boost.textContent = s.raid.boost > 0 ? `宝气 +${Math.round(s.raid.boost * 100)}%` : '';
     }
     if (!!s.raid !== this.raidOn) {

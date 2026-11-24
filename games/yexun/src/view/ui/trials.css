@@ -39,3 +39,7 @@
   .yx-trials .yx-tr-week li { padding: 2px 8px; }
   .yx-trials .yx-tr-card { padding: 3px 8px; }
 }
+
+/* 不把一个字、一个数单独折到下一行（试玩 11-23：「危险 / 3」「铜 / 钱」「首 / 领」） */
+.yx-trials .yx-tr-card, .yx-trials .yx-tr-week li { text-wrap: pretty; }
+.yx-trials .yx-tr-card .nw { white-space: nowrap; }

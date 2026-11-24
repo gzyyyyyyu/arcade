@@ -74,7 +74,7 @@ export class Vault {
       const b = pr.byTier[t];
       return `<button type="button" class="yx-tab yx-vtab t-${t}${t === this.tab ? ' on' : ''}" data-a="tab" data-t="${t}"><b>${TIER_INFO[t].name}</b><small>${b.got}/${b.total}</small></button>`;
     }).join('');
-    const herb = pr.got >= VAULT_UNLOCK.herbalist ? '采药女已解锁' : `再收藏 ${VAULT_UNLOCK.herbalist - pr.got} 件解锁采药女`;
+    const herb = pr.got >= VAULT_UNLOCK.herbalist ? '采药女已解锁' : `再收藏 ${VAULT_UNLOCK.herbalist - pr.got} 件也能解锁采药女`;
     const cells = TREASURES.map((t, i) => (t.tier === this.tab ? this.cell(i, v) : '')).join('');
     this.pager?.destroy();
     this.root.innerHTML =

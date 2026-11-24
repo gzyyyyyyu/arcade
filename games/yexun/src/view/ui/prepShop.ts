@@ -32,7 +32,7 @@ const coin = (n: number): string => `<span class="yx-coin"></span>${n.toLocaleSt
 export function kitsHtml(s: ShopState): string {
   const total = s.kits.reduce((a, k) => a + KITS[k].cost, 0);
   return (
-    `<div class="yx-pnote">下一局带上，开局时扣铜钱、只管这一局；娱乐守夜、夜探能带（${carryExcept('kits')}不带）。现在选了 ${s.kits.length} 个，开局扣 ${total.toLocaleString('zh-CN')}</div>` +
+    `<div class="yx-pnote">下一局带上，开局时扣铜钱、只管这一局；娱乐守夜、夜探能带（${carryExcept('kits')}不带）。现在选了 ${s.kits.length} 个，开局扣 ${total.toLocaleString('zh-CN')} 铜钱</div>` +
     '<div class="yx-pgrid yx-pkits">' +
     KIT_IDS.map((id) => {
       const k = KITS[id];
@@ -80,8 +80,8 @@ export function exchangeHtml(s: ShopState): string {
   const max = closed || full ? 0 : Math.min(left, Math.floor(s.coins / rate));
   const why = closed ? '今天兑换关了' : full ? '今天换满了' : '铜钱不够';
   const all = max > 0
-    ? `<button type="button" class="yx-pcard yx-pxc yx-pxcall" data-a="xc" data-id="${max}"${x.busy ? ' aria-disabled="true"' : ''}><b>换满今天剩下的 ${fmt(max)} 筹码</b><em>${coin(max * rate)}</em></button>`
-    : `<button type="button" class="yx-pcard yx-pxc yx-pxcall" aria-disabled="true"><b>换满今天剩下的</b><em>${why}</em></button>`;
+    ? `<button type="button" class="yx-pcard yx-pxc yx-pxcall" data-a="xc" data-id="${max}"${x.busy ? ' aria-disabled="true"' : ''}><b>${max < left ? `手上铜钱全换：${fmt(max)} 筹码` : `换满今天剩下的 ${fmt(max)} 筹码`}</b><em>${coin(max * rate)}</em></button>`
+    : `<button type="button" class="yx-pcard yx-pxc yx-pxcall" aria-disabled="true"><b>能换多少换多少</b><em>${why}</em></button>`;
   const used = x.quota && !closed ? `<b>今天换了 ${fmt(x.quota.cap - x.quota.left)} / ${fmt(x.quota.cap)} 筹码</b>` : '';
   const rows = s.xcLog
     .map((r) => `<li><span>${r.at === null ? '更早' : stamp(r.at)}</span><b>+${fmt(r.chips)} 筹码</b><span>${coin(r.coins)}${r.pending ? ' · 还没到账' : ''}</span></li>`)

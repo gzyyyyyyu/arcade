@@ -427,11 +427,12 @@ async function boot(): Promise<void> {
   window.addEventListener('keydown', (e) => {
     const typing = (document.activeElement as HTMLElement | null)?.matches('input, textarea, select, [contenteditable]');
     if (e.key === 'Escape') {
-      // Esc 只关最上面一层：确认框 → 主页面板 → 角色、加成、锦囊、兑筹码面板 → 设置层 → 暂停；什么都没开又不在对局中就不动（不能借 Esc 离开游戏，docs/ui.md 第 1 节）
+      // Esc 只关最上面一层：确认框 → 主页面板 → 角色、加成、锦囊、兑筹码面板 → 设置层 → 选模式回主页 → 暂停；什么都没开又不在对局中就不动（不能借 Esc 离开游戏，docs/ui.md 第 1 节）
       if (confirm.open) confirm.close(false);
       else if (closeTopModal()) return;
       else if (prep.open) prep.onClose();
       else if (menu.closeSettings()) return;
+      else if (menu.back()) return;
       else if (pause.open) pause.onResume();
       else openPause();
     } else if (e.key === 'p' && !e.ctrlKey && !e.metaKey && !e.altKey && !typing) {

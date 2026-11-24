@@ -28,7 +28,11 @@
 .yx-rushintro .yx-ri-preset small { font-size: 12px; line-height: 1.2; }
 .yx-rushintro .yx-ri-preset.on small { color: #fbf5e4; }
 .yx-rushintro .yx-ri-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.yx-rushintro .yx-ri-line h4 { width: 84px; flex: none; }
+.yx-rushintro .yx-ri-line h4 { min-width: 84px; flex: none; }
+.yx-rushintro .yx-ri-line h4 small { font-size: inherit; white-space: nowrap; }
+.yx-rushintro .yx-ri-char[aria-disabled='true'] { opacity: 0.4; }
+.yx-rushintro .yx-ri-foes li[data-a] { cursor: pointer; }
+.yx-rushintro .yx-ri-foeshead { margin-top: 2px; }
 .yx-rushintro .yx-ri-xs, .yx-rushintro .yx-ri-ws, .yx-rushintro .yx-ri-ps { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
 .yx-rushintro .yx-ri-w { position: relative; display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 2px 22px 2px 4px; border: 2px solid var(--ink); border-radius: 10px; background: #fbf5e4; font-size: 14px; font-weight: 700; }
 .yx-rushintro .yx-ri-w img { width: 34px; height: 34px; }
@@ -40,6 +44,7 @@
 .yx-rushintro .yx-ri-p.on i { background: #f2c94c; color: var(--ink); }
 .yx-rushintro .yx-ri-tip { margin: 0; padding: 3px 8px; border-radius: 8px; background: rgba(23, 19, 28, 0.08); font-size: 12px; line-height: 1.3; color: #5a4a3a; }
 .yx-rushintro .yx-ri-tip.on { color: var(--ink); }
+.yx-rushintro .yx-ri-tips { display: none; }
 /* 右栏 */
 .yx-rushintro .yx-ri-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .yx-rushintro .yx-ri-cost { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; font-size: 14px; font-weight: 700; }
@@ -85,7 +90,12 @@
   /* 心法、起手、第二件并成一行（行名收起，用竖线隔开），被动和底部说明各自占满一行 */
   .yx-rushintro .yx-ri-build { flex-direction: row; flex-wrap: wrap; align-content: start; gap: 4px 10px; }
   .yx-rushintro .yx-ri-presets { flex-basis: 100%; }
-  .yx-rushintro .yx-ri-line h4 { display: none; }
+  /* 行名留短的（心法 / 起手 / 第二件 / 被动），级数、件数收起（试玩 11-23：全收掉分不清两排剑） */
+  .yx-rushintro .yx-ri-line h4 { min-width: 0; }
+  .yx-rushintro .yx-ri-line h4 small { display: none; }
+  /* 心法两颗钮自带「剑修 / 五雷」，行名省掉给第二件腾位置，三段并一行 */
+  .yx-rushintro .yx-ri-line:nth-of-type(2) h4 { display: none; }
+  .yx-rushintro .yx-ri-foeshead { display: none; }
   .yx-rushintro .yx-ri-line + .yx-ri-line { padding-left: 10px; border-left: 2px dashed rgba(23, 19, 28, 0.35); }
   .yx-rushintro .yx-ri-line:nth-of-type(5) { flex-basis: 100%; padding-left: 0; border-left: 0; }
   .yx-rushintro .yx-ri-tip { flex-basis: 100%; }
@@ -122,7 +132,8 @@
   .yx-rushintro .yx-ri-preset small { display: none; }
   .yx-rushintro .yx-ri-preset img { width: 32px; height: 32px; justify-self: end; }
   .yx-rushintro .yx-ri-line { gap: 6px; }
-  .yx-rushintro .yx-ri-line h4 { width: 58px; white-space: normal; line-height: 1.15; }
+  .yx-rushintro .yx-ri-line h4 { min-width: 0; width: 58px; white-space: normal; line-height: 1.15; }
+  .yx-rushintro .yx-ri-foeshead { display: none; }
   .yx-rushintro .yx-ri-line:nth-of-type(5) { flex-direction: column; align-items: flex-start; gap: 2px; }
   .yx-rushintro .yx-ri-line:nth-of-type(5) h4 { width: auto; }
   .yx-rushintro .yx-ri-w { padding-right: 18px; }
@@ -143,14 +154,12 @@
   .yx-rushintro .yx-ri-top em { display: none; }
   .yx-rushintro .yx-ri-char span { display: none; }
   .yx-rushintro .yx-ri-char { min-height: 44px; }
-  .yx-rushintro .yx-ri-line h4 { display: none; }
-  .yx-rushintro .yx-ri-build { flex-direction: row; flex-wrap: wrap; align-content: start; gap: 3px 8px; }
-  .yx-rushintro .yx-ri-presets { flex-basis: 100%; order: 1; }
-  .yx-rushintro .yx-ri-line:nth-of-type(2) { order: 2; }
-  .yx-rushintro .yx-ri-line:nth-of-type(4) { order: 3; padding-left: 8px; border-left: 2px dashed rgba(23, 19, 28, 0.35); }
-  .yx-rushintro .yx-ri-line:nth-of-type(3) { flex-basis: 100%; order: 4; }
-  .yx-rushintro .yx-ri-line:nth-of-type(5) { flex-basis: 100%; order: 5; }
-  .yx-rushintro .yx-ri-tip { flex-basis: 100%; order: 6; }
+  /* 矮竖屏：行名只留短的，四行按 心法、起手、第二件、被动 排（之前收掉行名又把第二件排到心法右边，分不清） */
+  .yx-rushintro .yx-ri-line h4 { width: 44px; }
+  .yx-rushintro .yx-ri-line h4 small { display: none; }
+  .yx-rushintro .yx-ri-build { gap: 3px; }
+  .yx-rushintro .yx-ri-tipl { display: none; }
+  .yx-rushintro .yx-ri-tips { display: inline; }
   .yx-rushintro .yx-ri-cost { grid-template-columns: auto 1fr auto; }
   .yx-rushintro .yx-ri-cost small { grid-column: 3; }
   .yx-rushintro .yx-ri-foes { display: none; }

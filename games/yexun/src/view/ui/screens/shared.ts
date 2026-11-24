@@ -90,7 +90,7 @@ export function dailyButton(): string {
     n === 0
       ? `每日守夜 · 今天是噩梦日，打 ${DANGERS[NIGHTMARE_SUNDAY_DANGER].name}`
       : `每日守夜 · ${theme ? `今天${theme.name}日：${theme.text}；` : ''}周日噩梦日还有 ${n} 天`;
-  return `<button type="button" class="yx-btn yx-daily" data-a="daily" title="${tip}" aria-label="${tip}">每日守夜${theme ? `<i class="yx-dbadge">${theme.name}</i>` : ''}</button>`;
+  return `<button type="button" class="yx-btn yx-daily" data-a="daily" title="${tip}" aria-label="${tip}">每日<span class="yx-dlong">守夜</span>${theme ? `<i class="yx-dbadge">${theme.name}</i>` : ''}</button>`;
 }
 
 /** 设置里"恢复默认"用的默认值（和 sfx.ts / music.ts / save.ts 里 readFlag 的兜底一致；没列的开关不动） */

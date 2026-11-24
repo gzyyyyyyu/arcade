@@ -16,7 +16,8 @@
 .yx-guide .yx-glist li { display: block; }
 .yx-guide .yx-glist.num li { display: list-item; }
 .yx-guide .yx-glist li b { color: var(--ink, #17131c); }
-.yx-guide .yx-glist li > b:first-child { margin-right: 6px; }
+/* 行头的粗字和后面的说明隔开；前面带小图（img + b）的也算（试玩 11-23：「技能每个角色」连在一起） */
+.yx-guide .yx-glist li > b:first-child, .yx-guide .yx-glist li > img + b { margin-right: 6px; }
 .yx-guide .yx-glist li > .yx-gi { margin-right: 4px; }
 .yx-guide .yx-gstats { display: inline-flex; flex-wrap: wrap; gap: 2px 10px; }
 .yx-guide .yx-gstats > span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }

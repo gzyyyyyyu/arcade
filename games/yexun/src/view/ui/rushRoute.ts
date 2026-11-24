@@ -12,12 +12,15 @@ import { drawMapThumb } from '../art/terrain.ts';
 import './rushMenu.css';
 import { esc } from './screens/shared.ts';
 
-const STOP_TEXT = { shop: '商店', rest: '休整', event: '事件' } as const;
+/** 驿站在开打之前（试玩 11-23：只写「休整」看不出先后） */
+const STOP_TEXT = { shop: '开打前 · 商店', rest: '开打前 · 休整', event: '开打前 · 事件' } as const;
 
 /** 路卡上的奖励：挑几张、纸钱多少；精英多补一次重抽 */
 function reward(o: RushOption, last: boolean): string {
   const take = o.elite || last ? RUSH.take.elite : RUSH.take.normal;
-  return `挑 ${take} 张 · 纸钱 +${o.elite ? RUSH.coins.elite : RUSH.coins.normal}${o.elite ? ' · 重抽 +1' : ''}`;
+  // 每段不拆行（「重抽 / +1」折开过）；innerHTML 里用，全是自己拼的数和字
+  const seg = (t: string): string => `<span class="nw">${t}</span>`;
+  return [seg(`挑 ${take} 张`), seg(`纸钱 +${o.elite ? RUSH.coins.elite : RUSH.coins.normal}`), ...(o.elite ? [seg('重抽 +1')] : [])].join(' · ');
 }
 
 export class RushRoutePanel {
@@ -50,6 +53,12 @@ export class RushRoutePanel {
     return this.onPick !== null;
   }
 
+  /** 局结束（认输、倒下）时收起，不留在结算页底下 */
+  close(): void {
+    this.onPick = null;
+    this.root.style.display = 'none';
+  }
+
   destroy(): void {
     window.removeEventListener('keydown', this.onKey);
     this.root.remove();
@@ -72,12 +81,13 @@ export class RushRoutePanel {
       .join('');
     const opts = col
       .map((o, i) => {
-        const affix = o.affixes.map((a) => `<i class="affix" title="${esc(RUSH_AFFIXES[a].name)}：${esc(RUSH_AFFIXES[a].text)}">${RUSH_AFFIXES[a].char}</i>`).join('');
-        const stop = o.stop ? `<span class="stop ${o.stop}"><img alt="" src="${rushIcon(o.stop)}">${o.stop === 'event' && o.event ? `事件 · ${esc(RUSH_EVENTS[o.event].name)}` : STOP_TEXT[o.stop]}</span>` : '<span class="stop none">直接开打</span>';
+        // 单字印章后跟两三个字说明（试玩 11-23：手机上没有悬停，单字看不懂）
+        const affix = o.affixes.map((a) => `<span class="afx" title="${esc(RUSH_AFFIXES[a].name)}：${esc(RUSH_AFFIXES[a].text)}"><i class="affix">${RUSH_AFFIXES[a].char}</i>${esc(RUSH_AFFIXES[a].short)}</span>`).join('');
+        const stop = o.stop ? `<span class="stop ${o.stop}"><img alt="" src="${rushIcon(o.stop)}">${o.stop === 'event' && o.event ? `开打前 · ${esc(RUSH_EVENTS[o.event].name)}` : STOP_TEXT[o.stop]}${o.stop === 'shop' && w.rushCoins < RUSH.prices.reroll ? '<small>（纸钱不够买）</small>' : ''}</span>` : '<span class="stop none">直接开打</span>';
         return (
           `<button type="button" class="yx-rr-opt${o.elite ? ' elite' : ''}" data-p="${i}">` +
           `<span class="yx-rr-key">${i + 1}</span><canvas width="96" height="96" data-thumb="${o.map}"></canvas>` +
-          `<span class="yx-rr-info"><b>${esc(MAPS[o.map].name)}</b><span class="yx-rr-tags"><em class="${o.elite ? 'elite' : ''}">${o.elite ? '精英' : '普通'}</em>${affix || '<small>没有词缀</small>'}</span>${stop}<small class="yx-rr-reward">${reward(o, last)}</small></span>` +
+          `<span class="yx-rr-info"><b>${esc(MAPS[o.map].name)}</b><span class="yx-rr-tags"><em class="${o.elite ? 'elite' : ''}">${o.elite ? '精英' : '普通'}</em>${affix || '<small>首领没加强</small>'}</span>${stop}<small class="yx-rr-reward">${reward(o, last)}</small></span>` +
           '</button>'
         );
       })

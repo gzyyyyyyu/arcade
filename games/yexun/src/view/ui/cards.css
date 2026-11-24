@@ -175,14 +175,19 @@
 /* 一手 5 张时每张 184 宽；许愿、精英、锁留下来到 7–9 张时按屏宽收窄，不撑出屏（跨审 11-23：1280 下 9 张溢出） */
 .yx-picks.rush .yx-picks-row { gap: 10px; width: 100%; justify-content: center; padding: 0 12px; box-sizing: border-box; }
 .yx-picks.rush .yx-pickcell { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 0 1 184px; }
-.yx-picks.rush .yx-pick { width: auto; flex: 1; min-width: 0; }
+/* 卡片不许被压扁（层高不够时 flex:1 + min-height:0 会把卡压短、内容盖住下面的锁 / 逐） */
+.yx-picks.rush .yx-pick { width: auto; flex: 1 0 auto; min-width: 0; }
 .yx-picks.rush .yx-pickcell.locked .yx-pick { box-shadow: 0 5px 0 #17131c, 0 0 0 4px #4a7ab8; }
+/* 6 张以上：卡上的数不列（卡片窄、不然顶到标题），说明和小标照常 */
+.yx-picks.rush.many .yx-pick-nums { display: none; }
+/* 卡多时卡窄：「稀有 · 5→7 级」+「心法·剑意」一行放不下就换行，不撑出卡 */
+.yx-picks.rush .yx-pick-badges { flex-wrap: wrap; }
 .yx-picks.rush .yx-picktools { display: flex; gap: 6px; justify-content: center; }
-.yx-picks.rush .yx-picktool { min-width: 52px; min-height: 36px; padding: 0 8px; border: 2.5px solid #17131c; border-radius: 10px; background: #fbf5e4; font: inherit; font-size: var(--fs-md, 14px); color: #17131c; cursor: pointer; box-shadow: 0 3px 0 #17131c; }
+.yx-picks.rush .yx-picktool { min-width: 52px; min-height: 44px; padding: 0 8px; border: 2.5px solid #17131c; border-radius: 10px; background: #fbf5e4; font: inherit; font-size: var(--fs-md, 14px); color: #17131c; cursor: pointer; box-shadow: 0 3px 0 #17131c; }
 .yx-picks.rush .yx-picktool.lock.on { background: #4a7ab8; color: #fbf5e4; }
 .yx-picks.rush .yx-picktool.ban:not(:disabled):hover { background: #c8402f; color: #fbf5e4; }
 .yx-picks.rush .yx-picktool:disabled { opacity: 0.4; cursor: default; }
-@media (hover: none), (pointer: coarse) { .yx-picks.rush .yx-picktool { min-height: 44px; min-width: 56px; } }
+@media (hover: none), (pointer: coarse) { .yx-picks.rush .yx-picktool { min-width: 56px; } }
 @media (max-height: 500px) {
   .yx-picks.rush .yx-picks-row { display: flex; gap: 6px; padding: 0 8px; }
   .yx-picks.rush .yx-pickcell { flex: 1 1 0; gap: 4px; }
@@ -190,6 +195,9 @@
   .yx-picks.rush .yx-pick-foot, .yx-picks.rush .yx-pick-nums { display: none; }
   .yx-picks.rush .yx-pick .yx-pick-seal { position: absolute; left: 8px; top: 8px; width: 34px; height: 34px; line-height: 34px; font-size: 24px; border-width: 2px; }
   .yx-picks.rush .yx-picktool { min-height: 44px; min-width: 0; flex: 1; padding: 0 4px; }
+  /* 卡多（6 张以上）每张才一百来宽：小标能换行、不再让图标位，不把卡撑出屏（「稀有 · 5→7 级」+「心法·剑意」一行放不下） */
+  .yx-picks.rush .yx-pickcell { min-width: 0; }
+  .yx-picks.rush.many .yx-pick-badges { padding-left: 0; }
 }
 @media (max-width: 600px) and (orientation: portrait) {
   .yx-picks.rush .yx-picks-head { top: 64px; }
@@ -201,4 +209,17 @@
   .yx-picks.rush .yx-pick .yx-pick-seal { position: absolute; left: 10px; top: 8px; width: 40px; height: 40px; line-height: 40px; font-size: 28px; border-width: 2px; }
   .yx-picks.rush .yx-picktools { flex: none; gap: 4px; align-items: stretch; }
   .yx-picks.rush .yx-picktool { width: 44px; min-width: 44px; min-height: 44px; padding: 0; }
+  /* 6 张以上：标题挪到最上沿，卡上的数不列，名字和小标并一行 */
+  .yx-picks.rush.many .yx-picks-head { top: max(8px, env(safe-area-inset-top, 0px)); }
+  /* 标题挪到最顶上会和对局顶栏叠字：顶上一段底色压深，把顶栏盖住 */
+  .yx-picks.rush.many { background: linear-gradient(rgba(20, 24, 40, 0.94) 0, rgba(20, 24, 40, 0.94) 120px, rgba(20, 24, 40, 0.65) 180px); }
+  .yx-picks.rush.many .yx-pick { display: block; }
+  .yx-picks.rush.many .yx-pick-name { display: inline; margin-right: 6px; }
+  .yx-picks.rush.many .yx-pick-badges { display: inline-flex; vertical-align: 1px; }
+  .yx-picks.rush.many .yx-pick-body { display: block; }
+  .yx-picks.rush .yx-pick { flex: 1 1 0; }
+}
+/* 矮的竖屏 7 张以上：说明也收掉，只留名字和稀有度 / 级（360×640 一屏放 8 张） */
+@media (max-width: 600px) and (max-height: 760px) and (orientation: portrait) {
+  .yx-picks.rush.crowd .yx-pick-text { display: none; }
 }
