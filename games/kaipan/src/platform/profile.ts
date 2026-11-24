@@ -40,7 +40,7 @@ export const PROFILE_KEY = 'kaipan.profile';
 export const PROFILE_CORRUPT_KEY = 'kaipan.profile.corrupt';
 
 /** 某个人设 × 难度的纪录。 */
-export interface BestRecord {
+interface BestRecord {
   runs: number;
   wins: number;
   /** 通关时的最高账户（元）；没通关过为 0 */
@@ -89,7 +89,7 @@ export interface Profile {
 }
 
 /** 图鉴里的一段行情：什么市况、玩过几次、通关几次（不记年份和日期）。 */
-export interface SegmentRecord extends SeenSegment {
+interface SegmentRecord extends SeenSegment {
   runs: number;
   wins: number;
 }
@@ -98,7 +98,7 @@ export interface SegmentRecord extends SeenSegment {
  * 没计入的原因：没结束、调试开局、同一局重复记、人设或难度还没解锁（真正的每日挑战除外）、
  * 每日挑战的日期晚于今天。
  */
-export type RecordIgnored = 'unfinished' | 'debug' | 'duplicate' | 'locked' | 'future' | 'flash' | 'lesson';
+type RecordIgnored = 'unfinished' | 'debug' | 'duplicate' | 'locked' | 'future' | 'flash' | 'lesson';
 
 export interface RecordResult {
   profile: Profile;

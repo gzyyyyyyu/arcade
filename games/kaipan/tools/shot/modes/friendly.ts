@@ -1,8 +1,8 @@
-// --friendly 模式：0.3.1 看得懂、说人话（说明书、词典、新手提示、收盘小结、拆解条、新闻、台词）
+// --friendly 模式：看得懂、说人话（说明书、词典、新手提示、收盘小结、拆解条、新闻、台词）
 import type { Browser } from 'playwright-core';
 import { BASIC_SETUP, clickAt, click, clock, controls, dialogOpen, dispatch2, dispatchNoWait, expect, findDay, LIMIT_SETUP, loadState, notes, openPage, PHONE, phoneTab, setupQuery, shot, waitIdle, WAIT_MS } from '../harness.ts';
 
-// ---------------------------------------------------------------- 0.3.1 看得懂、说人话
+// ---------------------------------------------------------------- 看得懂、说人话
 
 /** 说明书、词典、新手提示、收盘小结、拆解条、新闻、台词气泡、新设置面板。截图名 a0–a9。 */
 export async function friendlyShots(browser: Browser): Promise<void> {
@@ -12,7 +12,7 @@ export async function friendlyShots(browser: Browser): Promise<void> {
     expect('help' in (await controls(ctx)), '开始菜单应有「怎么玩」');
     await click(ctx, 'help');
     await dialogOpen(ctx, 'help:next');
-    // 0.4 C 加了第 4 页（买多少、押跌、银行）
+    // 仓位玩法加了第 4 页（买多少、押跌、银行）
     for (let i = 1; i <= 4; i++) {
       await ctx.page.waitForTimeout(250);
       await shot(ctx, i <= 3 ? `a${i}-help-page-${i}` : `a3b-help-page-${i}`);

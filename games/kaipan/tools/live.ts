@@ -1,5 +1,5 @@
 /**
- * 0.6.0 实盘模式的量测（docs/design-live.md 第 3 节）：某一档、某个机器人打 runs 局实盘，结回倍数的分布。
+ * 实盘模式的量测（docs/design-live.md 第 3 节）：某一档、某个机器人打 runs 局实盘，带回倍数的分布。
  * 真实行情，段按局号均匀覆盖（第 i 局用第 i % 段数 段），仓位 / 押跌 / 抵押都开（正式游戏都开）。
  * `npm run sim -- --live` 和 tests/tools/live-sim.test.ts 共用。
  */
@@ -54,20 +54,20 @@ export interface LiveStats {
   tier: LiveTier;
   bot: string;
   runs: number;
-  /** 平均结回（份，1 = 不赚不亏） */
+  /** 平均带回（份，1 = 不赚不亏） */
   mean: number;
   /** 标准误 */
   se: number;
   sd: number;
-  /** 赚了的局（结回 > 1 份）占比 */
+  /** 赚了的局（带回 > 1 份）占比 */
   up: number;
-  /** 结回 0 的局（破产或赔光）占比 */
+  /** 带回 0 的局（破产或赔光）占比 */
   zero: number;
-  /** 结回在 0–2 份之间（输赢 ±1 份以内）的局占比 */
+  /** 带回在 0–2 份之间（输赢 ±1 份以内）的局占比 */
   within: number;
   /** 碰到 3 倍封顶的局占比 */
   capped: number;
-  /** 0.11.0：结回 ≥ 3 份、≥ 5 份的局占比；爆仓（跌到清零线强制结束）的局占比 */
+  /** 带回 ≥ 3 份、≥ 5 份的局占比；爆仓（跌到清零线强制结束）的局占比 */
   x3: number;
   x5: number;
   margin: number;

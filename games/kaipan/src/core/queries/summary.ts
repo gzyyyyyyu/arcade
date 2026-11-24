@@ -69,10 +69,10 @@ export interface RunSummary {
   /** 黑天鹅 Boss 日：打到最后一天的局有（名字、给持仓带来的盈亏元、有没有中招）；没打到最后一天、没有黑天鹅的局缺省 */
   swan?: { name: string; money: number; touched: boolean };
   /**
-   * 实盘：打几个月、开局资产、当前资产（账户 − 借款）、结回倍数（万分之几）、档位和一份、按倍数结回多少；
+   * 实盘：打几个月、开局资产、当前资产（账户 − 借款）、带回倍数（万分之几）、档位和一份、按倍数带回多少；
    * clean 是正常从界面开的实盘局（图鉴照记）。娱乐局为 null
    */
-  live: { months: number; start: number; assets: number; bp: number; tier: LiveTier | null; stake: number; value: number; clean: boolean; /** 0.11.0 杠杆（1 / 2 / 3）和是不是跌到清零线结束的 */ gear: number; margin: boolean; /** 0.32.0 资产涨跌按几倍算进筹码（开局抄进 setup.live.lev；老局没有按 1），结束页的账本用 */ lev: number } | null;
+  live: { months: number; start: number; assets: number; bp: number; tier: LiveTier | null; stake: number; value: number; clean: boolean; /** 杠杆（1 / 2 / 3）和是不是跌到清零线结束的 */ gear: number; margin: boolean; /** 资产涨跌按几倍算进筹码（开局抄进 setup.live.lev；老局没有按 1），结束页的账本用 */ lev: number } | null;
   /** 本局达成的成就 id（结束后才判定） */
   achievements: string[];
   /** 本局见过的东西（图鉴） */

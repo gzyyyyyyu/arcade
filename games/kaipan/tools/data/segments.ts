@@ -13,7 +13,7 @@
  * 价格只存逐日总收益（基点，含拆股分红），不存真实价格，避免用价格反查年份。
  * 产物格式见 docs/core-api-market.md 第 7.3 节。
  *
- * 防泄漏（0.4.0）：段文件名和 id 是不透明的短哈希（seg_ + 10 位十六进制），文件和目录里不放年份、起止日期和大事原文，
+ * 防泄漏：段文件名和 id 是不透明的短哈希（seg_ + 10 位十六进制），文件和目录里不放年份、起止日期和大事原文，
  * 大事只留"一局里第几个交易日"和故事句（tools/data/beats.ts）。id 和真实年份、日期的对照写在
  * tools/data/segments-manifest.json（只给数据工具和测试用，不进画面包）。内部还是按"年-月-市况"的 key 排序、
  * 起标题，所以同一份年包重新生成，id、文件、标题和目录顺序都不变。
@@ -243,7 +243,7 @@ interface Cand {
   dd: number;
 }
 
-/** 0.3 股票池里每个风口要的角色（按 stocks.ts 的顺序）。 */
+/** 合成行情股票池里每个风口要的角色（按 stocks.ts 的顺序）。 */
 function slotsOf(theme: ThemeId): { id: string; role: Role }[] {
   return STOCKS.filter((d) => d.theme === theme).map((d) => ({ id: d.id, role: d.role }));
 }

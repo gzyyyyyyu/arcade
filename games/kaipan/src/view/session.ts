@@ -166,10 +166,10 @@ export class Session {
     return r.added.length > 0;
   }
 
-  /** 局面一结束（won / lost）立即记档案、实盘局结回：玩家停在最后的账单上刷新、关页面或回主菜单都不会丢。 */
+  /** 局面一结束（won / lost）立即记档案、实盘局带回：玩家停在最后的账单上刷新、关页面或回主菜单都不会丢。 */
   private settle(): void {
     if (this.state.phase === 'won' || this.state.phase === 'lost') this.recordEnd();
-    // 实盘局一结束就结回筹码（调试会话、不写存档的会话碰不到实盘）
+    // 实盘局一结束就带回筹码（调试会话、不写存档的会话碰不到实盘）
     if (this.liveOk) liveOnState(this.state);
   }
 
@@ -447,7 +447,7 @@ export class Session {
 
   /**
    * 开新局：先校验设置（不对就同步返回错误），再异步按种子抽一段真实行情（"正在挑选行情……"），
-   * 抽到了用真实行情开局，下载失败就退回 0.3 的合成行情并提示一句。market 为 'synthetic' 时直接用合成行情。
+   * 抽到了用真实行情开局，下载失败就退回合成行情并提示一句。market 为 'synthetic' 时直接用合成行情。
    * 好友挑战：opts.segment 指定那一段（null 为合成行情），下载失败不退回合成行情（那就不是同一局了），调 onFail、不开局。
    * 新号前几局（isNoviceSetup）只在温和段池 NOVICE_SEGMENTS 里按种子抽，下载失败照常退回合成行情；
    * 新手课固定 LESSON.segment，行情没拿到就开不了（不退回合成行情，那就不是教的那一局了）。
@@ -519,7 +519,7 @@ export class Session {
     this.load(run.state, run.events);
   }
 
-  /** 行情来源：'real' 按种子抽真实行情段（缺省）；'synthetic' 0.3 的合成行情；其余为指定的段 id（调试） */
+  /** 行情来源：'real' 按种子抽真实行情段（缺省）；'synthetic' 合成行情；其余为指定的段 id（调试） */
   market = 'real';
   /** 正在下载行情段（开局还没完成） */
   loadingMarket = false;

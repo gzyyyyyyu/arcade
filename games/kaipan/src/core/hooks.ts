@@ -290,7 +290,7 @@ export interface DifficultyDef {
   detail?: string;
   rules?(r: Rules): void;
   market?(r: MarketRules, month: number): void;
-  /** 真实行情（个股照搬真实走势）下这一级改成的规则（market 那些改走势的参数在真实行情下不生效） */
+  /** 真实行情（个股照搬真实走势）下这一级的规则（market 那些改走势的参数在真实行情下不生效） */
   realRules?(r: Rules, short: boolean): void;
   /** 真实行情下的 detail（缺省用 detail） */
   realDetail?: string;

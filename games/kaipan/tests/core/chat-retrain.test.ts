@@ -12,7 +12,7 @@ import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 import { loadSegment, segmentForSeed, segmentIndex } from '../../tools/segments-disk.ts';
 import { withBalance } from '../helpers.ts';
 
-/** 0.7.0 群友再打磨：每局状态、这局手气、按局面接话、股票小人按大盘说话、台词不怎么重复。 */
+/** 群友再打磨：每局状态、这局手气、按局面接话、股票小人按大盘说话、台词不怎么重复。 */
 
 const seg = loadSegment(segmentIndex().segments[0]!.id);
 const track = (seed: string): GameState => ({ seed, real: { track: true } }) as unknown as GameState;

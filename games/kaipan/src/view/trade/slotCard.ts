@@ -41,7 +41,7 @@ export class SlotCard {
   pick: Button | null = null;
   shownToday = 0;
 
-  /** 仓位玩法（null = 0.3 的玩法） */
+  /** 仓位玩法（null = 没开仓位玩法） */
   private readonly ext: SlotExt | null;
   /** 押跌（卡片反色、小人倒着站） */
   readonly short: boolean;

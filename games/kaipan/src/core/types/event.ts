@@ -15,7 +15,7 @@ export type GameEvent =
   | { type: 'repaid'; loan: Loan; account: number }
   | { type: 'interestPaid'; amount: number; before: number; after: number }
   | { type: 'bankCalled'; account: number; debt: number }
-  | { type: 'seized'; id: CollateralId; amount: number; penalty: number; before: number; after: number; /** 0.5.4：收之前的欠款、收东西的线（欠款 × seizeLine）、起因（当天亏的 / 月底付完账单） */ debt?: number; line?: number; cause?: 'trade' | 'bill' }
+  | { type: 'seized'; id: CollateralId; amount: number; penalty: number; before: number; after: number; /** 收之前的欠款、收东西的线（欠款 × seizeLine）、起因（当天亏的 / 月底付完账单） */ debt?: number; line?: number; cause?: 'trade' | 'bill' }
   | { type: 'squeezed'; slot: number; stockId: string; ret: number }
   | { type: 'learned'; id: string }
   | { type: 'sold'; slot: number; stockId: string; holdRet: number }
@@ -57,7 +57,7 @@ export type GameEvent =
   | { type: 'pendingSettled'; id: string; amount: number; delta: number; text: string }
   | { type: 'itemExpired'; itemId: string }
   | { type: 'runLost'; reason: EndReason; month: number; account: number; bill: number }
-  /** 实盘杠杆爆仓：levered 是放大后的结回倍数（跌到了爆仓线） */
+  /** 实盘杠杆爆仓：levered 是放大后的带回倍数（跌到了爆仓线） */
   | { type: 'gearWiped'; month: number; account: number; levered: number }
   | { type: 'deleveraged'; levered: number; x: number }
   /** 月初公布本月主题（"本月看点"卡），紧跟在 monthStarted 之后 */

@@ -1,11 +1,11 @@
-// 冒烟模式 --cloud：0.5.7 云存档（云朵的未登录 / 已合并 / 待上传，假平台接口）
+// 冒烟模式 --cloud：云存档（云朵的未登录 / 已合并 / 待上传，假平台接口）
 import type { Browser, Route } from 'playwright-core';
 import { emptyProfile } from '../../../src/platform/profile.ts';
 import { presetProfile } from '../../../src/debug/profiles.ts';
 import { profileStorage } from '../fakes.ts';
 import { PHONE, click, controls, expect, hover, longPress, openPage, presence, shot, tap, waitFor, type Ctx } from '../harness.ts';
 
-// ---------------------------------------------------------------- 0.5.7 云存档
+// ---------------------------------------------------------------- 云存档
 
 /**
  * 云朵的几种状态（假平台接口，不连真的平台）：
@@ -72,7 +72,7 @@ export async function cloudShots(browser: Browser): Promise<void> {
     presence.length = 0;
     const ctx = await openPage(browser, 'cloud-synced', '', { noProfile: true, api: fake('ok'), loginHint: true, touch: PHONE });
     await waitFor(ctx, '云朵"已同步"', `window.__game?.cloud().state === 'synced'`);
-    // 0.12.0 社交：登录了就报一次"在玩开盘"
+    // 社交：登录了就报一次"在玩开盘"
     for (let i = 0; i < 20 && !presence.length; i++) await ctx.page.waitForTimeout(250);
     expect(presence.some((b) => JSON.parse(b).place === 'game' && JSON.parse(b).game === 'kaipan'), `应报位置"在玩开盘"（${presence.join(' | ')}）`);
     // 冒烟打开页面时总会写一份教程进度（关着），那一槽照常传；档案不该传

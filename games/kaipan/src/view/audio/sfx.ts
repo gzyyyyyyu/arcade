@@ -738,7 +738,7 @@ interface CueVariant {
   cue: Cue;
 }
 
-/** 试听面板与测量工具用：每种 cue 的全部变体（按 0.3 流程排序：界面 → 盘前 → 开盘 → 结算 → 收盘 → 月底 → 胜负）。 */
+/** 试听面板与测量工具用：每种 cue 的全部变体（按流程排序：界面 → 盘前 → 开盘 → 结算 → 收盘 → 月底 → 胜负）。 */
 export function allCueVariants(): CueVariant[] {
   const L: CueVariant[] = [];
   const add = (key: string, label: string, cue: Cue): void => {

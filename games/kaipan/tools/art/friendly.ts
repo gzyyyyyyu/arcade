@@ -1,5 +1,5 @@
 /**
- * 0.3.1「看得懂、说人话」的素材：
+ * 「看得懂、说人话」的素材：
  *   guide/rotation.svg、guide/buy.svg、guide/sell.svg   说明书 3 张插图，520×300。上方 0–226 是画，
  *                                                        下方 y 232–296 留一条空白纸面给文字（内边距 20）。
  *   ui/stage_<cold|warm|hot|overheat|cooling>.svg      风口五种状态小图标，32×32，颜色从冷到热（降温回到冷色）

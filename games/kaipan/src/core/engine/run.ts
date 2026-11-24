@@ -124,7 +124,7 @@ export function pickThemes(seed: string, must: readonly ThemeId[] = []): ThemeId
  * 开一局。正常开局 setup 只带 persona（人设，缺省 newbie）、difficulty（1..8，缺省 1）、daily（每日挑战日期）；
  * 其余字段仅供调试、测试、模拟跳到指定局面（这样的局不计入档案）。
  */
-/** 开局选项：segment 是抽中的真实行情段（缺省或 null = 0.3 的合成行情）。 */
+/** 开局选项：segment 是抽中的真实行情段（缺省或 null = 合成行情）。 */
 export interface CreateOptions {
   segment?: Readonly<Segment> | null;
   /** 打开仓位、押跌、抵押（正式游戏都开；缺省关 = 不带仓位玩法的基础规则，合成行情回放基准用） */

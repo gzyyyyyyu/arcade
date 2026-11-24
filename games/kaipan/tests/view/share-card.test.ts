@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRun, liveSetup, runSummary, type RunSummary } from '../../src/core/index.ts';
 import { gameLink, shareData, shareLine } from '../../src/view/shareCard.ts';
 
-/** 0.12.0 分享卡写什么（docs/platform-integration.md 第 4 节）；画法在共用包，冒烟存一张图看。 */
+/** 分享卡写什么（docs/platform-integration.md 第 4 节）；画法在共用包，冒烟存一张图看。 */
 
 const base = (): RunSummary => ({ ...runSummary(createRun('share-1').state), maxBoards: 0, bestTrade: null, won: false });
 const live = (over: Partial<NonNullable<RunSummary['live']>>): RunSummary => {

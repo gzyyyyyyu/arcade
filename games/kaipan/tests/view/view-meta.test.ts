@@ -29,7 +29,7 @@ describe('长线界面的文字', () => {
     expect(bestText({ runs: 3, wins: 1, bestAccount: 120000, bestMonths: 12 })).toContain('通关 1 次');
     expect(dailyText(undefined)).toBe('今天还没挑战过');
     expect(dailyText({ attempts: 2, won: false, bestAccount: 0, bestMonths: 4 })).toContain('还清 4 个月');
-    // 0.6.9 开始菜单「每日挑战」的小牌子：没打过「新题」，打过有名次写名次，名次读不到（没读、没上榜、1 万名外）写「已打」
+    // 开始菜单「每日挑战」的小牌子：没打过「新题」，打过有名次写名次，名次读不到（没读、没上榜、1 万名外）写「已打」
     expect(dailyBadgeView(undefined)).toEqual({ text: '新题', fresh: true });
     expect(dailyBadgeView({ attempts: 0 }, 3)).toEqual({ text: '新题', fresh: true });
     expect(dailyBadgeView({ attempts: 1 }, 7)).toEqual({ text: '第7名', fresh: false });

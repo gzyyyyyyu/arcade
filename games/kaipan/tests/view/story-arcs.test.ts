@@ -4,7 +4,7 @@ import { FRIENDS } from '../../src/core/content/index.ts';
 import { STORY_ARCS, arcFor, beatAt, storyBeat } from '../../src/view/trade/storyArcs.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 
-/** 0.6.3 群友连载和按打法的评语。 */
+/** 群友连载和按打法的评语。 */
 
 describe('群友连载', () => {
   it('六段按一局的月数摊开：12 个月每两个月一段，半年每月一段，每段只讲一次', () => {

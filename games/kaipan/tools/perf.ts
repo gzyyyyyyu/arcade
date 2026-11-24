@@ -1,5 +1,5 @@
 /**
- * 性能测量（0.34.0）：同口径量一段主流程，改前改后背靠背比。浏览器类检查，按本机的浏览器排队规则运行（计时类用独占位子）。
+ * 性能测量：同口径量一段主流程，改前改后背靠背比。浏览器类检查，按本机的浏览器排队规则运行（计时类用独占位子）。
  *
  *   npm run build -- --outDir <目录>            先构建（正式构建，不量开发服务器）
  *   node tools/perf.ts --dist <目录> [--profile desktop|portrait|both] [--days 6] [--rounds 2] [--json <文件>] [--cpuprofile <前缀>] [--who] [--seg boot|start|days]

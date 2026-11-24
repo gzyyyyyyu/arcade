@@ -5,7 +5,7 @@ import {
 import { type Colors, type Recipe, line, leaf, bumpsD } from './shared.ts';
 
 export const RECIPES_B: Record<string, (c: Colors) => Recipe> = {
-  // ------------------------------------------------------------ 0.3.0 新增 14 只
+  // ------------------------------------------------------------ 新增 14 只
   /** 稳稳算力云：一朵大白云坐在机柜上，白马打领带 */
   cloudrack(c) {
     const cloud = shape(

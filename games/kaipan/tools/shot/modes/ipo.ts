@@ -104,7 +104,7 @@ interface FlowOpts {
   /** 动画开着（截摇号）；关掉时一切瞬间到位 */
   anim: boolean;
   touch: boolean;
-  /** 竖屏（0.33.0 起直接是竖屏版；万一还有转屏提示就点「照样玩」） */
+  /** 竖屏（直接是竖屏版；万一还有转屏提示就点「照样玩」） */
   portrait?: boolean;
   /** 要截的图：banner 横条、panel 申购面板、frozen 申购中的卡、draw 摇号、listed 新股持仓 */
   want: ('banner' | 'panel' | 'frozen' | 'draw' | 'listed')[];

@@ -71,7 +71,7 @@ export type RetPartKind = 'theme' | 'role' | 'market' | 'momentum' | 'chain' | '
 export type SwanKind = 'blackout' | 'themeBust' | 'windfall' | 'flashCrash';
 
 /** 黑天鹅这一天的结果（收盘后写进 DayReport.swan；结束页读最后一天的这一项）。 */
-export interface SwanReport {
+interface SwanReport {
   kind: SwanKind;
   name: string;
   /** 受影响的题材（没有题材的种类为 null） */

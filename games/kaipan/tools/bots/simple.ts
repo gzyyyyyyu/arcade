@@ -104,7 +104,7 @@ export function chaserBot(): Bot {
 }
 
 /**
- * 0.10.0 小白（docs/balance.md 第 1 节）：追最热的题材、不止损、不看消息真假。
+ * 小白（docs/balance.md 第 1 节）：追最热的题材、不止损、不看消息真假。
  * 群里谁说涨就信谁、谁说跌就卖；亏了也拿着等回本，只在题材明显凉透（降温、冷）时才卖；不押跌、不抵押、不加仓。
  */
 export function xiaobaiBot(): Bot {

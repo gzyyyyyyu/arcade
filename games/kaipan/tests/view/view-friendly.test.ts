@@ -151,7 +151,7 @@ describe('新手提示', () => {
     expect(hintsOn(loadViewPrefs(st), 10)).toBe(true);
     saveViewPrefs({ hints: 'off', recap: 'brief' }, st);
     expect(loadViewPrefs(st)).toEqual({ hints: 'off', recap: 'brief', bill: 'stage', autoQuiet: true });
-    // 0.17.0 月底账单可以改成简短，读坏的值按默认（舞台）
+    // 月底账单可以改成简短，读坏的值按默认（舞台）
     saveViewPrefs({ bill: 'quick' }, st);
     expect(loadViewPrefs(st).bill).toBe('quick');
     st.setItem('kaipan.view.prefs', JSON.stringify({ bill: 'nope' }));

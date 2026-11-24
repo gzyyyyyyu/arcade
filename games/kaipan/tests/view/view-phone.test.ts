@@ -7,7 +7,7 @@ import { mobileLayout } from '../../src/view/trade/layout.ts';
 import { phoneTopBar } from '../../src/view/trade/topBarGeo.ts';
 import { phoneHome } from '../../src/view/meta/homeGeo.ts';
 
-/** 0.5.5 手机布局：判定、相机兜底、viewOf、交易画面各区域。 */
+/** 手机布局：判定、相机兜底、viewOf、交易画面各区域。 */
 
 describe('什么时候用手机布局', () => {
   const pick = (w: number, h: number, coarse = true, search = ''): boolean => pickPhoneLayout({ w, h, coarse, search });
@@ -117,7 +117,7 @@ async function asPhone(): Promise<{ viewport: typeof import('../../src/view/view
 
 function fakeScene(): Phaser.Scene {
   const cam = { setOrigin: () => cam, setSize: () => cam, setZoom: () => cam, setScroll: () => cam };
-  // 0.14.0 applyCamera 读画布尺寸、挂窗口缩放的监听
+  // applyCamera 读画布尺寸、挂窗口缩放的监听
   return {
     cameras: { main: cam },
     scale: { gameSize: { width: 960, height: 444 }, on: () => undefined, off: () => undefined },

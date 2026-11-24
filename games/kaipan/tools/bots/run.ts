@@ -19,14 +19,14 @@ import { extBot, trackBot, dual } from './variants.ts';
 /** 这些机器人要用新机制，playRun 总是给它们打开 ext。 */
 const NEEDS_EXT = new Set(['heavy', 'shorter', 'gambler', 'gambler-smart', 'ipo-only', 'ipo-only-half', 'ipo-only-heavy', 'lesson', 'lesson-nostop', 'lesson-heavy']);
 
-/** 行情来源：缺省为 0.3 的合成行情；模拟真实行情时设成"按种子给行情段"（见 tools/segments-disk.ts）。 */
+/** 行情来源：缺省为合成行情；模拟真实行情时设成"按种子给行情段"（见 tools/segments-disk.ts）。 */
 let marketOf: ((seed: string) => Segment | null) | null = null;
 
 export function useMarket(fn: ((seed: string) => Segment | null) | null): void {
   marketOf = fn;
 }
 
-/** 0.4 C：机器人的局打不打开新机制（仓位、押跌、抵押）。缺省关（0.3 玩法）；sim --ext 打开。 */
+/** 仓位玩法：机器人的局打不打开新机制（仓位、押跌、抵押）。缺省关；sim --ext 打开。 */
 let extOn = false;
 
 export function useExt(on: boolean): void {

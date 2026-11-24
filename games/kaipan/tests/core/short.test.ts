@@ -4,7 +4,7 @@ import { recordRun, emptyProfile, bestKey } from '../../src/platform/profile.ts'
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 import { segmentForSeed } from '../../tools/segments-disk.ts';
 
-/** 0.10.0 娱乐短局（docs/design-balance.md）：5 个月、月供打折、最后一个月月底多交一笔首付。 */
+/** 娱乐短局（docs/design-balance.md）：5 个月、月供打折、最后一个月月底多交一笔首付。 */
 
 describe('短局的开局设置', () => {
   it('从 BALANCE.short 抄进这局，首付比例按难度（高手之后沿用最后一个）；算正常开局', () => {

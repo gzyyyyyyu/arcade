@@ -1,5 +1,5 @@
 /**
- * 实盘模式（docs/design-live.md）：档位、开局设置、资产和结回倍数。
+ * 实盘模式（docs/design-live.md）：档位、开局设置、资产和带回倍数。
  * 规则上的不同（只打几个月、账单打折）写在这局的开局设置 `RunSetup.live` 里，由 engine 读；这里只有纯函数。
  * 钱包、筹码的进出不在规则核心里（画面层和 Worker 管）。
  */
@@ -14,13 +14,13 @@ export { LIVE_MAX_BP, LIVE_TIERS, isLiveTier, liveGear, liveLevered, liveReturn,
 /** 实盘开局设置：难度由档位定，规则从 BALANCE.live 抄进这局（以后改默认值不影响已经开了的局）。 */
 export function liveSetup(tier: LiveTier, persona: PersonaId = 'newbie', x = 1): RunSetup {
   const { billMult, lev, gearRate } = BALANCE.live.tiers[tier];
-  // 杠杆：稳健 1× 不写（和 0.10.0 的局一模一样），进取、疯狂把封顶、利息（按档位打折）、清零线抄进这局
+  // 杠杆：稳健 1× 不写（和不带杠杆一样），进取、疯狂把封顶、利息（按档位打折）、清零线抄进这局
   const g = x > 1 ? liveGear(x) : null;
   const gear = g ? { gear: { ...g, interest: g.interest * gearRate } } : {};
   return { persona, difficulty: liveTierById(tier).difficulty, live: { months: BALANCE.live.months, billMult, lev, tier, ...gear } };
 }
 
-/** 以前一档一个难度，那时开的局没记档位，按难度认 */
+/** 老局没记档位（那时一档对应一个难度），按难度认 */
 const LEGACY_TIER: Record<number, LiveTier> = { 1: 'small', 2: 'mid', 3: 'big', 4: 'lux' };
 
 /** 这局是不是实盘 */
@@ -55,9 +55,9 @@ export function liveAssets(s: Readonly<GameState>): number {
 }
 
 /**
- * 结回倍数（万分之几的整数，0..cap × 10000）：1 + 涨跌倍数 ×（当前资产 ÷ 开局资产 − 1），向下取整到万分之一；破产为 0。
+ * 带回倍数（万分之几的整数，0..cap × 10000）：1 + 涨跌倍数 ×（当前资产 ÷ 开局资产 − 1），向下取整到万分之一；破产为 0。
  * 涨跌倍数是 1 的老局直接用资产比，免得浮点多绕一步差出 1。
- * 用整数传给 Worker，结回 = ⌊一份 × 倍数 ÷ 10000⌋ 全是整数运算，不会因为小数误差少给 1 筹码。
+ * 用整数传给 Worker，带回 = ⌊一份 × 倍数 ÷ 10000⌋ 全是整数运算，不会因为小数误差少给 1 筹码。
  */
 export function liveMultipleBp(s: Readonly<GameState>): number {
   if (s.phase === 'lost') return 0;
@@ -71,7 +71,7 @@ export function liveMultipleBp(s: Readonly<GameState>): number {
   return Math.max(0, Math.min((gear?.cap ?? BALANCE.live.cap) * 10_000, bp));
 }
 
-/** 按现在的资产，这局能结回多少筹码（顶栏小牌子、提前收手的确认框用）；不是实盘为 null */
+/** 按现在的资产，这局能带回多少筹码（顶栏小牌子、提前收手的确认框用）；不是实盘为 null */
 export function liveValue(s: Readonly<GameState>): number | null {
   const t = liveTierOf(s);
   return t ? liveReturn(t.stake, liveMultipleBp(s)) : null;

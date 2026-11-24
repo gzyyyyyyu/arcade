@@ -4,7 +4,7 @@ import { createRun, dailySetup, dispatch, fx, itemById, itemView, type GameEvent
 import { SENSITIVE_WORDS } from '../../src/core/content/tales.ts';
 import { SIX, fixedDay, must, quiet, withBalance } from '../helpers.ts';
 
-/** 0.21 的两个战法只在真实行情的非每日局进月底三选一的抽取池：合成行情的抽取不变（replay-030 逐位一致），每日挑战上线前后还是同一局。 */
+/** 这两个战法只在真实行情的非每日局进月底三选一的抽取池：合成行情的抽取不变（replay-030 逐位一致），每日挑战上线前后还是同一局。 */
 const NEW = ['contrarian', 'hold_tight', 'dip_buyer', 'early_bird'];
 const seg = JSON.parse(readFileSync('public/data/segments/' + JSON.parse(readFileSync('public/data/segments/index.json', 'utf8')).segments[0].file, 'utf8')) as Segment;
 

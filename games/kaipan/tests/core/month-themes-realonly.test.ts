@@ -5,7 +5,7 @@ import { MONTH_THEMES, MONTH_THEME_SHORT, monthThemeById } from '../../src/core/
 import { SENSITIVE_WORDS } from '../../src/core/content/tales.ts';
 import { SIX } from '../helpers.ts';
 
-/** 0.29 的两个月度主题只在真实行情的普通局进抽取池：合成行情（replay-030）、每日挑战、闪电盘、本周市场、实盘的主题抽取逐位不变。 */
+/** 这两个月度主题只在真实行情的普通局进抽取池：合成行情（replay-030）、每日挑战、闪电盘、本周市场、实盘的主题抽取逐位不变。 */
 const NEW = ['herd_month', 'flood_month'];
 const index = JSON.parse(readFileSync('public/data/segments/index.json', 'utf8')) as { segments: { file: string }[] };
 const segs = index.segments.slice(0, 12).map((e) => JSON.parse(readFileSync('public/data/segments/' + e.file, 'utf8')) as Segment);

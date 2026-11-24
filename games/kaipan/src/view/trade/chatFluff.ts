@@ -10,7 +10,7 @@ import { ellipsize } from '../../core/format.ts';
  */
 
 /** 昨天的行情给群里定的调：大涨、大跌、平淡、开张第一天。 */
-export type Tone = 'boom' | 'crash' | 'flat' | 'open';
+type Tone = 'boom' | 'crash' | 'flat' | 'open';
 
 export type Fluff =
   | { kind: 'sticker'; friendId: string; glyph: Glyph; caption: string }

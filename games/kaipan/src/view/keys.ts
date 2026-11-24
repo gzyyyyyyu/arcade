@@ -3,7 +3,7 @@
  * 单独放一个纯数据文件：面板、「怎么玩」里的操作说明和单测都读同一份，键位改了只改这里。
  */
 
-export interface KeyRow {
+interface KeyRow {
   /** 一组键帽，同一行里是「或」的关系（空格、回车）；组合键写成一个元素（'Shift + 1–5'） */
   keys: readonly string[];
   /** 这些键干什么，一句话 */

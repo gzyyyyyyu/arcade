@@ -593,7 +593,7 @@ function headline(s: Readonly<GameState>, real: Readonly<RealMarket>, k: number,
 }
 
 /**
- * 推荐：推荐人照 0.3 挑（权重、擅长、群主喊单、大V只推最热、空军老周押跌），
+ * 推荐：推荐人按角色挑（权重、擅长、群主喊单、大V只推最热、空军老周押跌），
  * 推的那只是他"觉得接下来 days 天会涨"的：对每只候选股，以 recCredibility 的概率看对它接下来 days 天的真实方向
  * （横盘带 BALANCE.intel.stockFlat），在看涨的里面按角色权重挑。所以靠谱的人推的票大多真的涨，群主推的大多要跌。
  */

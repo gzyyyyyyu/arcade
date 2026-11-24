@@ -26,12 +26,12 @@
  *   --ext                                                 打开仓位、押跌、抵押（正式游戏都开）
  *   node tools/sim.ts --real-table --runs 520 [--per-segment]   真实行情难度表 + 各市况通关率（各段均匀覆盖）
  *   node tools/sim.ts --live --runs 540 [--bots normal,random] [--tiers small,mid] [--persona id]
- *                                                         0.6.0 实盘：各档、各机器人的结回倍数分布（设计稿 docs/design-live.md 第 3.3 节）
- *   node tools/sim.ts --gear --runs 2000                 0.11.0 杠杆：四档 × 小白 / 普通 × 杠杆 1/2/3 的结回分布（≥ 3 倍、≥ 5 倍、结回 0、清零线）
- *   --cut-gap 0.3                                         0.20.0 盘中减仓：会玩的机器人离清零线不到这么多份就减仓（tools/bots.ts 的 CUT）
+ *                                                         实盘：各档、各机器人的带回倍数分布（设计稿 docs/design-live.md 第 3.3 节）
+ *   node tools/sim.ts --gear --runs 2000                 杠杆：四档 × 小白 / 普通 × 杠杆 1/2/3 的带回分布（≥ 3 倍、≥ 5 倍、带回 0、清零线）
+ *   --cut-gap 0.3                                         盘中减仓：会玩的机器人离清零线不到这么多份就减仓（tools/bots.ts 的 CUT）
  *   node tools/sim.ts --flash --runs 300 [--bots xiaobai,putong]   闪电盘：每日 10 天短局的最终资产分布和一局约几分钟（第 i 局 = 2026-01-01 起第 i 天）
  *   node tools/sim.ts --weekly 2026-W44[,2026-W45…|all] --runs 100 [--bots xiaobai,putong]   本周市场：指定周的规则（all = 五条规则各一周）加无规则对照，最终资产分布
- *   node tools/sim.ts --balance --runs 2000              0.10.0 配平：小白 / 普通在实盘四档、娱乐三档的结果和一局约几分钟（仓库根 docs/balance.md 第 6 节的表）
+ *   node tools/sim.ts --balance --runs 2000              配平：小白 / 普通在实盘四档、娱乐三档的结果和一局约几分钟（仓库根 docs/balance.md 第 6 节的表）
  */
 import {
   ACHIEVEMENTS,
@@ -66,9 +66,9 @@ import { liveStats } from './live.ts';
 import { ARCHETYPES, BOT_DESC, BOTS, CUT, botByName, playRun, setRealMsg, useExt, useMarket, type Bot, type BotFactory } from './bots.ts';
 import { loadSegment, segmentForSeed, segmentIndex } from './segments-disk.ts';
 
-/** --real：真实行情（按种子抽行情段，和画面层一样）；--segment id：所有局都用这一段。缺省是 0.3 的合成行情。 */
+/** --real：真实行情（按种子抽行情段，和画面层一样）；--segment id：所有局都用这一段。缺省是合成行情。 */
 const REAL = process.argv.includes('--real') || process.argv.includes('--segment');
-/** 0.4 C：打开仓位、押跌、抵押（正式游戏都开） */
+/** 仓位玩法：打开仓位、押跌、抵押（正式游戏都开） */
 const EXT = process.argv.includes('--ext');
 const FORCED = (() => {
   const i = process.argv.indexOf('--segment');
@@ -745,14 +745,14 @@ function ipoStats(runs: number, prefix: string): void {
   }
 }
 
-/** 0.6.0 实盘表：各档 × 机器人的结回倍数（份）。段按局号均匀覆盖，各档、各机器人用同一批种子。 */
+/** 实盘表：各档 × 机器人的带回倍数（份）。段按局号均匀覆盖，各档、各机器人用同一批种子。 */
 function liveTable(runs: number, prefix: string): void {
   const tiers = (arg('tiers') ?? 'small,mid,big,lux').split(',') as LiveTier[];
   const bots = (arg('bots') ?? 'normal,truster,smart,random,follower,heavy,gambler').split(',');
   const persona = (arg('persona') ?? 'newbie') as PersonaId;
   const pct = (x: number): string => `${(x * 100).toFixed(1)}%`;
-  console.log(`实盘（${BALANCE.live.months} 个月，各档账单和涨跌倍数见 BALANCE.live.tiers）结回倍数，每格 ${runs} 局，种子 ${prefix}-*，人设 ${persona}`);
-  console.log(`  ${pad('档位', 8)}${pad('机器人', 10)}${pad('平均', 16)}${pad('赚的局', 9)}${pad('10%/50%/90%', 21)}${pad('结回0', 8)}${pad('0–2份内', 9)}封顶`);
+  console.log(`实盘（${BALANCE.live.months} 个月，各档账单和涨跌倍数见 BALANCE.live.tiers）带回倍数，每格 ${runs} 局，种子 ${prefix}-*，人设 ${persona}`);
+  console.log(`  ${pad('档位', 8)}${pad('机器人', 10)}${pad('平均', 16)}${pad('赚的局', 9)}${pad('10%/50%/90%', 21)}${pad('带回0', 8)}${pad('0–2份内', 9)}封顶`);
   for (const tier of tiers) {
     for (const b of bots) {
       const r = liveStats(tier, b, runs, prefix, persona);

@@ -194,7 +194,7 @@ export interface Balance {
   ext: ExtParams;
   /** 个股照搬真实走势（真实行情的局都是），见 docs/core-api-market.md 第 7.2 节 */
   track: TrackParams;
-  /** 情报从真实未来推算（真实行情 0.5 模式） */
+  /** 情报从真实未来推算（真实行情） */
   intel: IntelParams;
   /** 月度主题、中场、高光、连击（state.tempo 不为 null 时生效） */
   tempo: TempoParams;
@@ -276,25 +276,25 @@ export interface Balance {
 export interface LiveParams {
   /** 打几个月（从 1 月起） */
   months: number;
-  /** 结回倍数的上限（economy.md：最多 3 倍） */
+  /** 带回倍数的上限（economy.md：最多 3 倍） */
   cap: number;
   /**
    * 各档：billMult 是常规月供和突发账单的倍数（越往上生活费越高），
-   * lev 是资产涨跌算进筹码的倍数（资产涨 10%、lev 3 → 结回多 30%）。一局只有几个月，资产的起伏本来就小，
+   * lev 是资产涨跌算进筹码的倍数（资产涨 10%、lev 3 → 带回多 30%）。一局只有几个月，资产的起伏本来就小，
    * 不放大的话会玩和不会玩的只差零点几成，赚也赚不到哪去（docs/design-live.md 第 3 节）。
    */
   tiers: Record<'small' | 'mid' | 'big' | 'lux', { billMult: number; lev: number; gearRate: number }>;
   /**
-   * 玩家自己选的杠杆（稳健 1× / 进取 2× / 疯狂 3×）：结回再按 x 放大一次，封顶 cap 份；
-   * interest 是每月的利息（按结回倍数算：每月让结回少这么多，和账单一起扣），call 是清零线（放大后的结回倍数跌到这里就强制结束、按 0 结）。
+   * 玩家自己选的杠杆（稳健 1× / 进取 2× / 疯狂 3×）：带回再按 x 放大一次，封顶 cap 份；
+   * interest 是每月的利息（按带回倍数算：每月让带回少这么多，和账单一起扣），call 是清零线（放大后的带回倍数跌到这里就强制结束、按 0 结）。
    */
   gears: readonly { x: number; cap: number; interest: number; call: number }[];
-  /** 放大后的结回倍数离清零线不到这么多份时，顶栏的账户变红闪、提醒一句（只是画面，不影响规则） */
+  /** 放大后的带回倍数离清零线不到这么多份时，顶栏的账户变红闪、提醒一句（只是画面，不影响规则） */
   warnGap: number;
 }
 
 /** 个股照搬真实走势。 */
-export interface TrackParams {
+interface TrackParams {
   /** 统一的游戏放大系数：个股、风口（行业）、大盘当天涨跌 = amp × 真实涨跌（之后按涨跌停截断） */
   amp: number;
   /** 大盘天气：最近 moodDays 天放大后大盘平均 ≥ moodBull 为晴 */
@@ -315,7 +315,7 @@ export interface TrackParams {
 }
 
 /** 情报准确率（说中 = 说的方向等于接下来 days 天真实累计涨跌的方向）。 */
-export interface IntelParams {
+interface IntelParams {
   /** 风口消息：累计涨跌（放大后，pp）在 ±flat[days−1] 以内算"横" */
   flat: readonly number[];
   /** 个股推荐：累计涨跌超过 ±stockFlat[days−1] 才算涨 / 跌 */
@@ -324,7 +324,7 @@ export interface IntelParams {
   days: readonly number[];
   /**
    * 群友的准确率 [聊擅长的风口, 聊别的]（真实行情用这张表，合成行情用 BALANCE.cred）。
-   * 消息再叠加 0.3 的加成和难度（开局靠谱群友聊擅长的 +expertMsg、拐点 +turnCred、消息失真、−diffStep × (难度 − 1)）。
+   * 消息再叠加加成和难度（开局靠谱群友聊擅长的 +expertMsg、拐点 +turnCred、消息失真、−diffStep × (难度 − 1)）。
    */
   cred: Record<string, readonly [number, number]>;
   /** 难度每高一级，所有群友的准确率 −diffStep（第 1 级不减） */
@@ -340,7 +340,7 @@ export interface IntelParams {
 }
 
 /** 节奏与反馈。 */
-export interface TempoParams {
+interface TempoParams {
   /** 中场 boss 的月份 */
   bossMonths: readonly number[];
   /** 月度目标奖励（按当月常规月供的比例）：普通月 cash、boss 月 bossCash */
@@ -362,7 +362,7 @@ export interface TempoParams {
 }
 
 /** 仓位、押跌、抵押（`ext`）的数值。 */
-export interface ExtParams {
+interface ExtParams {
   /** 试一口、半仓的份数（1 份 = 账户的 1/4）；重仓 = 剩下的全部 */
   taste: number;
   half: number;
@@ -396,7 +396,7 @@ export interface ExtParams {
 }
 
 /** 真实行情怎么推出风口的热度和阶段、大盘天气（个股和风口涨跌照搬真实走势，见 TrackParams）。 */
-export interface RealParams {
+interface RealParams {
   /** 行业超额收益的均摊系数（1 = 不均摊；0.35 = 当天只体现 35%，其余摊到之后几天）：让风口有惯性，热度和群聊说法也跟着顺 */
   smooth: number;
   /** 行业一个"平常日子"的超额收益（相对大盘，按这一段的平均绝对值归一）带来的热度变化 */
@@ -598,7 +598,7 @@ export const BALANCE: Balance = {
     night_review: {},
     crowd_fund: { billMult: 0.92 },
     rumor_mill: { messages: 1 },
-    // ---- 道具：0.21 新增（只在真实行情的普通局进抽取池）
+    // ---- 道具：只在真实行情的普通局进抽取池
     contrarian: { drop: -1, bonus: 3 },
     hold_tight: { days: 5, bonus: 0.5 },
     dip_buyer: { drop: -1, bonus: 2 },
@@ -744,7 +744,7 @@ export const BALANCE: Balance = {
     gears: [
       { x: 1, cap: 3, interest: 0, call: 0 },
       { x: 2, cap: 5, interest: 0.013, call: 0.2 },
-      // 有了盘中减仓：3× 清零线 0.1 → 0.5、利息 0.0224 → 0.018。不减仓硬扛的（小白）更容易清零，会减仓的躲得开（design-balance.md 4.4）
+      // 能盘中减仓，所以 3× 的清零线定得高、利息定得低：不减仓硬扛的（小白）更容易清零，会减仓的躲得开（design-balance.md 4.4）
       { x: 3, cap: 7, interest: 0.018, call: 0.5 },
     ],
     warnGap: 0.3,

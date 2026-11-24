@@ -13,7 +13,7 @@ export const swanSwitch = { enabled: true };
 
 export const SWAN_KINDS: readonly SwanKind[] = ['blackout', 'themeBust', 'windfall', 'flashCrash'];
 
-export interface SwanDef {
+interface SwanDef {
   kind: SwanKind;
   name: string;
   /** 是否针对某个题材（开局时按种子在这局登场的题材里挑一个） */

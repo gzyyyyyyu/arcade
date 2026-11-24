@@ -1,6 +1,6 @@
 /**
- * 0.5.1 开局前的真实历史（preHistory）：只用行情段开局前 warm 天，第 1 天画面就有走势；不偷看开局以后。
- * 0.5.2 合成行情也补上开局前走势（重放风口预跑 + 另起随机流），不改动对局。
+ * 开局前的真实历史（preHistory）：只用行情段开局前 warm 天，第 1 天画面就有走势；不偷看开局以后。
+ * 合成行情也补上开局前走势（重放风口预跑 + 另起随机流），不改动对局。
  */
 import { describe, expect, it } from 'vitest';
 import { createRun, preHistory, type GameState } from '../../src/core/index.ts';

@@ -323,7 +323,7 @@ describe('五条规则各自确实生效', () => {
     }
     expect(revN).toBeGreaterThan(100);
     expect(baseHit / baseN).toBeGreaterThan(0.45);
-    // 36 个种子实测（0.35.0）：反向周约 0.35、闪电盘约 0.49；事件池一变群里的人就变，差距跟着浮动几个点，门槛取 10 个点
+    // 36 个种子实测：反向周约 0.35、闪电盘约 0.49；事件池一变群里的人就变，差距跟着浮动几个点，门槛取 10 个点
     expect(revHit / revN).toBeLessThan(baseHit / baseN - 0.1);
     // 每条消息都带反话标记，推荐也是
     const day1 = toDay(rev);

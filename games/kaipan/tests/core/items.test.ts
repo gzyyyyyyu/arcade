@@ -54,7 +54,7 @@ describe('道具（24 + 0.4 C 4 个 + 0.21 2 个，id 固定）', () => {
       'night_review',
       'crowd_fund',
       'rumor_mill',
-      // 0.4 C（只在有新机制的局里出现）
+      // 仓位玩法（只在有新机制的局里出现）
       'short_permit',
       'sunglasses',
       'banker',

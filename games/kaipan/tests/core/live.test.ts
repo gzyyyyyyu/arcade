@@ -24,7 +24,7 @@ import {
 } from '../../src/core/index.ts';
 import { botByName, playRun, useExt, useMarket } from '../../tools/bots.ts';
 
-/** 0.6.0 实盘模式的规则（docs/design-live.md 第 1、2 节）：档位、几个月、账单打折、结回倍数（0.10.0 起按档放大涨跌）。钱包不在这里。 */
+/** 实盘模式的规则（docs/design-live.md 第 1、2 节）：档位、几个月、账单打折、带回倍数（按档放大涨跌）。钱包不在这里。 */
 
 describe('档位和开局设置', () => {
   it('四档：一份和 economy.md 第 2 节一致；难度 1–3，豪华档和大档同一套行情，靠生活费和涨跌倍数更难', () => {
@@ -116,7 +116,7 @@ describe('打完 5 个月', () => {
   });
 });
 
-describe('结回倍数', () => {
+describe('带回倍数', () => {
   const base = (): GameState => createRun('mult', liveSetup('small'), { ext: true }).state;
 
   it('1 + 涨跌倍数 ×（当前资产 ÷ 开局资产 − 1）：借款要扣掉；封顶 3 倍；破产为 0；扣成负数也是 0', () => {
@@ -149,7 +149,7 @@ describe('结回倍数', () => {
     expect(liveMultipleBp(s)).toBe(10_543);
   });
 
-  it('结回多少筹码：整数运算，向下取整', () => {
+  it('带回多少筹码：整数运算，向下取整', () => {
     expect(liveReturn(2_000, 10_000)).toBe(2_000);
     expect(liveReturn(2_000, 10_543)).toBe(2_108);
     expect(liveReturn(2_000, 9_999)).toBe(1_999);
@@ -160,7 +160,7 @@ describe('结回倍数', () => {
 });
 
 describe('顶栏和档位', () => {
-  it('开局设置里记着档位（更早的局按难度认）；顶栏的小牌子按现在的资产算结回约多少；娱乐局没有', () => {
+  it('开局设置里记着档位（更早的局按难度认）；顶栏的小牌子按现在的资产算带回约多少；娱乐局没有', () => {
     const s = createRun('bar', liveSetup('mid', 'retiree'), { ext: true }).state;
     expect(liveTierOf(s)?.id).toBe('mid');
     expect(liveTierOf(createRun('bar', liveSetup('lux'), { ext: true }).state)?.id).toBe('lux');

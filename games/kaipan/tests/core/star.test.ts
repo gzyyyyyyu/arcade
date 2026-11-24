@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createRun, dispatch, replay, validate, type Action, type GameState, type Segment } from '../../src/core/index.ts';
 
-/** 0.35.0 自选：加星 / 取消只记标记，不影响任何规则，可以回放。 */
+/** 自选：加星 / 取消只记标记，不影响任何规则，可以回放。 */
 const index = JSON.parse(readFileSync('public/data/segments/index.json', 'utf8')) as { segments: { file: string }[] };
 const seg = JSON.parse(readFileSync(`public/data/segments/${index.segments[3]?.file}`, 'utf8')) as Segment;
 

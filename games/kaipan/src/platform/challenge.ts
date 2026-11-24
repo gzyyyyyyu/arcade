@@ -1,5 +1,5 @@
 /**
- * 异步挑战：和平台的三个接口说话（docs/platform-backend.md 15.18），把回话理成几种结果；这台设备上接了哪个挑战记在 kaipan.challenge。
+ * 异步挑战：和平台的三个接口说话（docs/api-social.md 15.18），把回话理成几种结果；这台设备上接了哪个挑战记在 kaipan.challenge。
  * 不碰画面。fetch 从外面传进来，方便测试；回来的东西一律先校验再用（payload、别人的昵称和成绩都是外来数据）。
  *
  * - 发起每人每天 20 个、每个挑战最多 100 人、30 天过期都由平台管；过期和不存在一样回 404，开盘说同一句"打不开了"。
@@ -20,7 +20,7 @@ export type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 /** 出错的几种：没登录、打不开（不存在、过期、payload 不对）、人满了、今天发得太多、平台在省额度、连不上、开盘自己的 bug */
 export type ChallengeFail = 'out' | 'gone' | 'full' | 'limit' | 'busy' | 'offline' | 'bug';
 
-export interface ChallengeEntry {
+interface ChallengeEntry {
   rank: number;
   displayName: string;
   score: number;

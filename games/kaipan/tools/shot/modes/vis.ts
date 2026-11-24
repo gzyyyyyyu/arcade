@@ -6,7 +6,7 @@ import { loadSegment } from '../../segments-disk.ts';
 import { OUT, buyVia, click, clock, controls, dialogOpen, dispatch2, dispatchNoWait, expect, loadState, notes, openPage, openStory, press, shot, state, step, waitFor, waitIdle, type Ctx } from '../harness.ts';
 import { EXT_SETUP, EXT_TIPS_KEY, extToMonth, firstRec } from './ext.ts';
 
-// ---------------------------------------------------------------- 0.5 去文字化：主要画面截图 + 可见汉字数
+// ---------------------------------------------------------------- 去文字化：主要画面截图 + 可见汉字数
 
 const visCounts: { file: string; han: number; texts: number }[] = [];
 
@@ -74,7 +74,7 @@ export async function visShots(browser: Browser): Promise<void> {
     await buyVia(ctx, `buy:${rec}`);
     await waitIdle(ctx, '买入');
     await ctx.page.waitForTimeout(300);
-    // 0.5.1：持仓卡的放大镜 → 股票详情卡
+    // 持仓卡的放大镜 → 股票详情卡
     if (process.argv.includes('--vis') && 'detail:0' in (await controls(ctx))) {
       await visShot(ctx, '04a-bought');
       await click(ctx, 'detail:0');
@@ -95,7 +95,7 @@ export async function visShots(browser: Browser): Promise<void> {
     await visShot(ctx, '06-close');
     await ctx.page.context().close();
   }
-  // 0.5.1：新手教程第一步（全新进度）
+  // 新手教程第一步（全新进度）
   {
     const ctx = await openPage(browser, 'vis-guide', '', { storage: VIS_TIPS, guide: true });
     await loadState(ctx, visRun('vis-1'));

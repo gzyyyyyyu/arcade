@@ -47,7 +47,7 @@ export const ITEMS: readonly ItemDef[] = [
       `大哥涨停时，你手里同风口的小弟本来会多涨 ${BALANCE.chain}%，现在变成多涨 ${Math.round(BALANCE.chain * fx('genfeng', 'mult') * 10) / 10}%`,
     flavor: '大哥吃肉，我喝汤，汤要两碗。',
     onHolding(c) {
-      // 真实行情：小弟不再被大哥"带"着多涨（chain 恒为 0），改成识别出的跟涨（follow）那天直接多赚 chain × mult
+      // 真实行情：小弟不被大哥"带"着多涨（chain 恒为 0），而是识别出的跟涨（follow）那天直接多赚 chain × mult
       if (c.move.follow && c.move.chain <= 0) {
         const extra = BALANCE.chain * fx('genfeng', 'mult');
         c.ret += extra;
@@ -98,7 +98,7 @@ export const ITEMS: readonly ItemDef[] = [
       r.momentumMult *= fx('lianban', 'momentumMult');
       r.blowMult *= fx('lianban', 'blowMult');
     },
-    // 真实行情：走势不能改，改成结算规则——连续涨停（第 2 个起）+realBonus，炸板 −realBlow
+    // 真实行情走势不能改，所以做成结算规则——连续涨停（第 2 个起）+realBonus，炸板 −realBlow
     onHolding(c) {
       if (!c.state.real) return;
       if (c.move.limitUp && c.move.boards >= 2) {

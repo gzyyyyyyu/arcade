@@ -4,7 +4,7 @@ import { END_TITLES, STYLE_TITLES, liveSettleStats, titlesJson } from '../../src
 import { runSummary } from '../../src/core/index.ts';
 import { botByName, playRun } from '../../tools/bots.ts';
 
-/** 0.6.5 实盘结回带的战绩小结（平台 5.10）和称号文件。 */
+/** 实盘带回带的战绩小结（平台 5.10）和称号文件。 */
 describe('战绩小结', () => {
   it('public/titles.json 和代码里的称号表一致，id 合平台的格式，文件不超过 32 KB', () => {
     const raw = readFileSync('public/titles.json', 'utf8');
@@ -39,7 +39,7 @@ describe('战绩小结', () => {
     expect(st).toMatchObject({ rounds: 1, wins: 1, best: 2_000 });
   });
 
-  it('资产涨了算赢；最大一把 = 结回 − 带入，亏了为 0', () => {
+  it('资产涨了算赢；最大一把 = 带回 − 带入，亏了为 0', () => {
     const sum = runSummary(playRun('career-x', botByName('smart'), null));
     expect(liveSettleStats(sum, 10_000, 15_830)).toMatchObject({ rounds: 1, wins: 1, best: 5_830, max: { bp: 15_830 } });
     expect(liveSettleStats(sum, 10_000, 10_000)).toMatchObject({ wins: 0, best: 0 });

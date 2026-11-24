@@ -1,5 +1,11 @@
 # 更新日志
 
+## 0.39.5 — 2026-11-23（整理：收窄导出、注释去版本史、统一「带回」）
+
+- 整理：32 个只在本文件用的类型去掉 `export`（`balance.ts` 的 5 个参数表、`types/run.ts` 的 `LiveRules` 等）；行为不变。
+- 整理：注释、测试说明、工具帮助里的版本号标签和「以前 / 改成」去掉，只写现状和原因（「0.4 C」写成「仓位玩法」，「0.3 的合成行情」写成「合成行情」）；读不了哪些旧存档的说明保留版本号。指向已拆分的仓库根 `platform-backend.md` 的注释改指 `platform-wallet.md`、`platform-features.md`、`api.md`、`api-account.md`、`api-social.md`。
+- 说法：注释、测试标题、`tools/sim.ts`、`tools/balance.ts` 输出表头里的「结回」统一成「带回」（界面文字之前已改）。
+
 ## 0.39.4 — 2026-11-23（文档：中英 README、合并小文档）
 
 - 文档：README 改成英文正本 + `README.zh-CN.md` 中文版，两份同构（玩法、快速开始、目录结构、文档、属于 Arcade、许可证）；原 README 里的部署、健康检查、平台联调挪进 `docs/platform-integration.md` 第 2、3 节，屏幕说明以 `docs/mobile.md` 为准，调试 URL 参数以 `docs/core-api-modes.md` 第 14 节为准。

@@ -11,7 +11,7 @@ import { type Emitter, emit } from './shared.ts';
 
 // ================================================================ 仓位、押跌、抵押
 
-/** 一格持仓占几份钱（缺省 1 份 = 0.3 的一格）。 */
+/** 一格持仓占几份钱（缺省 1 份）。 */
 export function unitsOf(h: Readonly<Holding> | null | undefined): number {
   return h ? (h.units ?? 1) : 0;
 }

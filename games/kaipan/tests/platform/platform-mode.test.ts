@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { classify, detectPlatform, myName, onPlatformMode, platformInfo, setPlatformMode, standalone } from '../../src/platform/mode.ts';
 
-/** 0.8.0 有没有平台：问同域 /api/me 的回话怎么下结论（和共用包 detectPlatform 的说法一致）。 */
+/** 有没有平台：问同域 /api/me 的回话怎么下结论（和共用包 detectPlatform 的说法一致）。 */
 
 const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 

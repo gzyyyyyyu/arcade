@@ -4,7 +4,7 @@ import type { SyncSlot } from './localChange.ts';
 import { keepaliveLeft, keepaliveSend } from './keepalive.ts';
 
 /**
- * 云存档：把档案和教程标记同步到平台（docs/platform-backend.md 5.5、15.3）。打到一半的那一局和设置不同步。
+ * 云存档：把档案和教程标记同步到平台（docs/platform-features.md 5.5、docs/api-account.md 15.3）。打到一半的那一局和设置不同步。
  *
  * - 只在有提示 cookie __Host-arcade_li 时才调接口；先 GET /api/me（存档接口不续 last_seen，只玩开盘的人靠这一下才不会被当成一年没来），
  *   再 GET /api/saves/kaipan 一次取回所有槽，和本地合并。

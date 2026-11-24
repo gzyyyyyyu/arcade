@@ -50,7 +50,7 @@ function toMonth(s: GameState, month: number): { state: GameState; events: GameE
 
 describe('0.3.0 新增事件（9 个）', () => {
   it('文案齐全：每个事件都能摆出来，正文和两个选项都不空', () => {
-    // 0.4 C 的事件只在有新机制的局里出现，见 tests/core/ext.test.ts
+    // 仓位玩法的事件只在有新机制的局里出现，见 tests/core/ext.test.ts
     for (const d of EVENTS.filter((x) => !['bank_manager', 'bear_live', 'mother_in_law', 'parents_call', 'salary_advance', 'old_trader', 'invest_group', 'broker_tea', 'show_off', 'free_eggs', 'policy_talk', 'merger_rumor', 'debunk', 'stamp_tax', 'tv_analyst', 'fake_insider', 'rate_rumor', 'clarify'].includes(x.id))) {
       const s = atEvent(d.id, 'evt2');
       const v = eventView(s);

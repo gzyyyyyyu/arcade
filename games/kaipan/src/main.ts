@@ -75,7 +75,7 @@ sound.init();
 const run = initialRun();
 const session = new Session(run.state, run.events, view);
 session.animLocked = params.anim.anim !== null || params.anim.speed !== null;
-// 行情来源（调试）：?market=synthetic 用 0.3 的合成行情；?market=<段 id> 指定一段真实行情
+// 行情来源（调试）：?market=synthetic 用合成行情；?market=<段 id> 指定一段真实行情
 session.market = new URLSearchParams(window.location.search).get('market') ?? 'real';
 session.notice = notice;
 // 调试与计分：?debug=1 的浮层会显示隐藏信息，这个会话里的局都不计入档案；URL 开局参数开的局也不计
@@ -89,7 +89,7 @@ if (fromUrl) {
     console.info('URL 开局参数：已有存档，这一局不写存档、不计入档案');
   }
 }
-// 实盘：接上这局的账、重发没发成的结回。调试会话和 URL 开局都不碰（读到的不是玩家自己的存档）
+// 实盘：接上这局的账、重发没发成的带回。调试会话和 URL 开局都不碰（读到的不是玩家自己的存档）
 if (!fromUrl && !params.debug) startLive(session.state);
 // 档案读坏了会就地备份重建，开始菜单提示一次
 session.profileNotice = loadProfile().notice === 'corrupt';

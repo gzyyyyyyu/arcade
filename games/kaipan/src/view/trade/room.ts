@@ -23,7 +23,7 @@ interface RoomOpts {
 const MOODS: readonly Mood[] = ['bull', 'flat', 'bear'];
 
 /** 小屋的一天：盘前清晨、开盘白天、收盘傍晚、月底算账夜里（art-v3 第 2 节） */
-export type RoomTime = 'morning' | 'day' | 'dusk' | 'night';
+type RoomTime = 'morning' | 'day' | 'dusk' | 'night';
 const TIMES: readonly RoomTime[] = ['morning', 'day', 'dusk', 'night'];
 /** 每个时段一层整屏色调（盖在房间上、台灯和显示器光下面），台灯亮几分 */
 const TIME_LIGHT: Record<RoomTime, { color: number; alpha: number; lamp: number }> = {

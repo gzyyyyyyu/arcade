@@ -25,7 +25,7 @@ export interface Bot {
 export type BotFactory = () => Bot;
 
 /**
- * 0.20.0 盘中减仓（docs/design-balance.md 4.4）：会玩的（normal、putong、smart）开盘前看到放大后的结回倍数离清零线不到 CUT.gap 份就减一档；
+ * 盘中减仓（docs/design-balance.md 4.4）：会玩的（normal、putong、smart）开盘前看到放大后的带回倍数离清零线不到 CUT.gap 份就减一档；
  * 小白（balance.md：不止损）从不减仓。CUT.gap 由 sim 的 --cut-gap 调。
  */
 export const CUT = { gap: 0.3, bots: new Set(['normal', 'putong', 'smart']) };

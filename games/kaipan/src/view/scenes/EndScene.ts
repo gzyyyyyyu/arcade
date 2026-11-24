@@ -51,7 +51,7 @@ export class EndScene extends BaseScene {
   private room: Room | null = null;
   private summary: RunSummary | null = null;
   result: RecordResult | null = null;
-  /** 实盘局：结算的大字和说明（结回的回话晚到时就地改字，不重建场景） */
+  /** 实盘局：结算的大字和说明（带回的回话晚到时就地改字，不重建场景） */
   private liveHead: Phaser.GameObjects.Text | null = null;
   /** 左栏「最后剩多少钱」的大字 */
   private moneyText: Phaser.GameObjects.Text | null = null;
@@ -461,7 +461,7 @@ export class EndScene extends BaseScene {
     sound.mood(s.phase === 'won' ? 'victory' : 'defeat');
   }
 
-  /** 实盘结回 ≥ 3 倍：屏幕正中一行大字弹出来，两秒后收起（点哪儿都不挡） */
+  /** 实盘带回 ≥ 3 倍：屏幕正中一行大字弹出来，两秒后收起（点哪儿都不挡） */
   private celebrate(bp: number, gear: number): void {
     sound.cue({ type: 'settle', ret: 5 });
     confetti(this, this.anim);
@@ -494,7 +494,7 @@ export class EndScene extends BaseScene {
     const r = live.record;
     const t = r && r.seed === this.session.state.seed ? liveEndText(r, sum.won, sum.live ? { x: sum.live.gear, margin: sum.live.margin } : undefined) : { head: '这局不算筹码', body: '这局没有带入筹码（或者本金已经原样退回），只是打着玩。' };
     head.setText(t.head);
-    // 结回了（或正在结）：先写一行账本，讲清炒股赚的钱被生活费吃掉多少、按几倍算进筹码
+    // 带回了（或正在结）：先写一行账本，讲清炒股赚的钱被生活费吃掉多少、按几倍算进筹码
     const ledger = r && r.seed === this.session.state.seed && r.kind !== 'refund' && (r.step === 'done' || r.step === 'settling') ? liveLedger(sum) : null;
     // 每段各自按分句断行再拼起来（clauseWrap 只认一段）
     body.setText(ledger ? `${ledger}\n${t.body}` : t.body);
@@ -517,7 +517,7 @@ export class EndScene extends BaseScene {
     await this.cutscene(this.summary.won);
     await this.rollMoney(this.summary);
     if (this.summary.won) confetti(this, this.anim);
-    // 实盘结回 ≥ 3 倍：大字庆祝、再放一次彩带和大赚的音效
+    // 实盘带回 ≥ 3 倍：大字庆祝、再放一次彩带和大赚的音效
     const lv = this.summary.live;
     if (lv && lv.bp >= 30_000) this.celebrate(lv.bp, lv.gear);
     const list = this.session.takeUnlocks(this.summary.runId, unlocksOf(this.result));

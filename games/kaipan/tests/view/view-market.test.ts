@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createRun, dispatch, stockById, type GameState, type Segment } from '../../src/core/index.ts';
 import { SENTIMENT_WORDS, sectorMoves, sentimentOf } from '../../src/view/trade/tape.ts';
 
-/** 0.35.0 大盘屏右边三行：情绪五档、昨天领涨 / 领跌的板块，只读已收盘的那一天。 */
+/** 大盘屏右边三行：情绪五档、昨天领涨 / 领跌的板块，只读已收盘的那一天。 */
 const index = JSON.parse(readFileSync('public/data/segments/index.json', 'utf8')) as { segments: { file: string }[] };
 const seg = (i: number): Segment => JSON.parse(readFileSync(`public/data/segments/${index.segments[i]?.file}`, 'utf8')) as Segment;
 const themeOf = (id: string) => stockById(id).theme;

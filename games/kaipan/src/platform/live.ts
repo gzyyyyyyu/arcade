@@ -4,12 +4,12 @@ import { LIVE_MAX_BP, isLiveTier, liveTierById, type LiveTier } from '../core/li
 import type { KeyValueStore } from './settings.ts';
 
 /**
- * 实盘的账（docs/design-live.md 第 2.4、6 节）：带入、结回、放弃都经开盘自己的 Worker（同域 POST api/live/*）转给平台钱包，
+ * 实盘的账（docs/design-live.md 第 2.4、6 节）：带入、带回、放弃都经开盘自己的 Worker（同域 POST api/live/*）转给平台钱包，
  * 浏览器这边只在本机记一条 `kaipan.live`，管"这局实盘的筹码走到哪一步了"。一局的进度照旧在 kaipan.save 里。
  *
  * - 带入前先把记录写成 buying：回话丢了（断网、关页面）也知道那个 ref 可能已经带入了，下次打开先用 refund 收回来（没带入的话钱包回 no_stake，直接清掉）。
  *   不收回的话钱包里那一份放到 24 小时到期原样退回；期间照样能开新的一局，开局面板提示还有一份没结。
- * - 结回、放弃先写成 settling 再发：连不上、钱包忙（busy）、平台内部出错（internal）、没认出人，都停在 settling，之后每次打开、回到前台、联网时重发。
+ * - 带回、放弃先写成 settling 再发：连不上、钱包忙（busy）、平台内部出错（internal）、没认出人，都停在 settling，之后每次打开、回到前台、联网时重发。
  *   操作 id 按 ref 固定（Worker 拼 `${ref}-out` / `${ref}-refund`），重发钱包只算一次。
  * - 钱包说这一份已经到期退回（expired）或没有这一份（no_stake）：这局改成不算筹码（void），接着玩不影响。
  * - `bad_*`、`bad_request`、`unknown_game` 和 Worker 的 400 / 403 / 404 是开盘自己的 bug：记 error、控制台留证据，不自动重试。
@@ -23,7 +23,7 @@ const LIVE_TTL_MS = 24 * 3_600_000;
 const API = 'api/live/';
 const WALLET_API = '/api/wallet';
 
-export type LiveStep = 'buying' | 'playing' | 'settling' | 'done' | 'void' | 'error';
+type LiveStep = 'buying' | 'playing' | 'settling' | 'done' | 'void' | 'error';
 
 export interface LiveRecord {
   ref: string;
@@ -36,9 +36,9 @@ export interface LiveRecord {
   at: number;
   until: number;
   step: LiveStep;
-  /** settling 之后：结回（settle）还是放弃（refund，只在第一个交易日开盘前） */
+  /** settling 之后：带回（settle）还是放弃（refund，只在第一个交易日开盘前） */
   kind?: 'settle' | 'refund';
-  /** 结回倍数（万分之几），settle 才有 */
+  /** 带回倍数（万分之几），settle 才有 */
   bp?: number;
   /** 战绩小结（平台 5.10）：结束时算好记下，重发时原样再带；旧记录没有就不带 */
   stats?: SettleStats;
@@ -51,7 +51,7 @@ export interface LiveRecord {
   wait?: 'offline' | 'login';
   /** 结果已经告诉过玩家（结束页或开始菜单说过一次） */
   told?: boolean;
-  /** 带入的账号（Worker 带入成功时回的 user）：结回、放弃时带上，换了账号 Worker 回 wrong_user，不拿新账号去结 */
+  /** 带入的账号（Worker 带入成功时回的 user）：带回、放弃时带上，换了账号 Worker 回 wrong_user，不拿新账号去结 */
   user?: string;
 }
 

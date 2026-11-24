@@ -139,7 +139,7 @@ export interface ShortRules {
 }
 
 /** 实盘这一局的规则。 */
-export interface LiveRules {
+interface LiveRules {
   months: number;
   billMult: number;
   /** 资产涨跌算进筹码的倍数；更早开的局没有，按 1 算 */
@@ -150,7 +150,7 @@ export interface LiveRules {
   gear?: LiveGear;
 }
 
-/** 实盘杠杆：结回再按 x 放大、封顶 cap 份，每月扣利息（让结回少 interest），放大后的结回倍数跌到清零线 call 就按 0 结。 */
+/** 实盘杠杆：带回再按 x 放大、封顶 cap 份，每月扣利息（让带回少 interest），放大后的带回倍数跌到清零线 call 就按 0 结。 */
 export interface LiveGear {
   x: number;
   cap: number;
@@ -196,8 +196,8 @@ export interface GameState {
   lastDay: DayReport | null;
   endReason: EndReason | null;
   /**
-   * 盘中减仓（docs/design-live.md 2.6）：最近一次减仓那一刻的资产比 r0、放大后的结回倍数 v0 和减完的杠杆 x；
-   * 之后结回 = v0 + x × 涨跌倍数 ×（资产比 − r0），利息按 x 那一档算（1× 没有），不再有清零线。没减过仓（或老存档）为 undefined。
+   * 盘中减仓（docs/design-live.md 2.6）：最近一次减仓那一刻的资产比 r0、放大后的带回倍数 v0 和减完的杠杆 x；
+   * 之后带回 = v0 + x × 涨跌倍数 ×（资产比 − r0），利息按 x 那一档算（1× 没有），不再有清零线。没减过仓（或老存档）为 undefined。
    */
   gearCut?: { r0: number; v0: number; x: number };
   /** 熬夜复盘：上一个交易日收盘后揭示的题材阶段（公开；review.day === dayIndex − 1 时有效） */
@@ -217,10 +217,10 @@ export interface GameState {
   stars?: string[];
   /**
    * 重做：这一局用的真实行情段（只含登场风口用到的部分，读档、回放不用再下载）。
-   * null 或缺省 = 0.3 的合成行情（离线、数据加载失败时的兜底，也是 0.3 存档的样子）。
+   * null 或缺省 = 合成行情（离线、数据加载失败时的兜底）。
    */
   real?: RealMarket | null;
-  /** 仓位、押跌、抵押（缺省 = 0.3 的玩法） */
+  /** 仓位、押跌、抵押（缺省不开） */
   ext?: ExtState | null;
   /** 月度主题、中场、高光、连击（缺省 = 没有；真实行情开局默认打开） */
   tempo?: TempoState | null;
@@ -229,7 +229,7 @@ export interface GameState {
 }
 
 /** 还没揭晓的多日消息。 */
-export interface WatchedIntel {
+interface WatchedIntel {
   day: number;
   index: number;
   friendId: string;
@@ -259,7 +259,7 @@ export type GoalKind =
   /** 持仓单日涨 ≥ target% 一次 */
   | 'bigDay';
 
-export interface MonthReward {
+interface MonthReward {
   /** 现金（元） */
   cash: number;
   /** 道具碎片 */

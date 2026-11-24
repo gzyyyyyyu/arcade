@@ -118,7 +118,7 @@ export async function renderAllCues(): Promise<({ key: string; label: string } &
   return out;
 }
 
-export interface MoodRender extends Analysis {
+interface MoodRender extends Analysis {
   mood: Mood;
   notesPerSec: number;
   brightness: number;

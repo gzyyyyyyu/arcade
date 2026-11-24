@@ -1,4 +1,4 @@
-// --content 模式：内容包的画面（0.29 起）：顶栏里的新战法图标、新事件弹窗。真实行情的普通局开局后在页面里改状态，不走完整一局。
+// --content 模式：内容包的画面：顶栏里的新战法图标、新事件弹窗。真实行情的普通局开局后在页面里改状态，不走完整一局。
 import type { Browser } from 'playwright-core';
 import { eventById, rngFor, type GameState } from '../../../src/core/index.ts';
 import { PHONE, expect, loadState, openPage, shot, waitIdle } from '../harness.ts';

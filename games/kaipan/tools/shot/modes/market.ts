@@ -5,10 +5,10 @@ import { controls, expect, loadState, notes, openPage, shot, state, step, tap, c
 import { firstRec } from './ext.ts';
 
 /**
- * 0.35.0 --market：炒股手感那一批的画面（电脑 1280 + 手机竖屏 390×844）。
+ * --market：炒股手感那一批的画面（电脑 1280 + 手机竖屏 390×844）。
  * 真实行情的娱乐局走到第 2 个月，买一只、再开几天盘：交易页（大盘屏的情绪、领涨领跌、持仓卡的累计钱数）→
  * 持仓的股票详情（日 K、分时、买卖力量）→ 点「自选」加星（按钮换字、局面里记上）→ 推荐卡上能押跌。
- * 0.36.0：3 月财报周的盘前（群聊里的财报横条）→ 展开新闻条看龙虎榜。
+ * 3 月财报周的盘前（群聊里的财报横条）→ 展开新闻条看龙虎榜。
  */
 function midRun(seed: string): GameState {
   let s = createRun(seed, { persona: 'newbie', difficulty: 1 }, { segment: segmentForSeed(seed), ext: true }).state;

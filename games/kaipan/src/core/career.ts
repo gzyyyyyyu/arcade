@@ -1,12 +1,12 @@
 /**
- * 实盘结回时带给平台的战绩小结（docs/platform-backend.md 5.10）。
+ * 实盘带回时带给平台的战绩小结（docs/platform-wallet.md 5.10）。
  * 平台的类型照抄在这里（模块不能 import 平台的代码）。称号的中文名放在 public/titles.json，平台的称号墙去读；
  * 那个文件由 titlesJson() 生成，测试锁住两边一致。
  */
 import { liveReturn } from './liveTiers.ts';
 import type { RunSummary } from './queries.ts';
 
-/** settle 可选带的这一份小结。JSON 后 ≤ 256 字节；不合格平台整份忽略，结回照常 */
+/** settle 可选带的这一份小结。JSON 后 ≤ 256 字节；不合格平台整份忽略，带回照常 */
 export interface SettleStats {
   rounds: number;
   wins: number;
@@ -52,7 +52,7 @@ export function titlesJson(): Record<string, { name: string; desc: string }> {
 }
 
 /**
- * 一局实盘的小结：1 局；资产涨了算赢；最大一把 = 结回 − 带入（亏了为 0）；称号 = 结局称号 + 打法；
+ * 一局实盘的小结：1 局；资产涨了算赢；最大一把 = 带回 − 带入（亏了为 0）；称号 = 结局称号 + 打法；
  * 自定义数：bp（资产倍数，万分之几，取历史最大）、limitup（涨停天数，累加）。
  * quit：提前收手——不是结局，不给结局称号（第 1 个月收手不该叫"新韭菜"），只报打法称号。
  */
