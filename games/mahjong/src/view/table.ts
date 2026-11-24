@@ -153,6 +153,10 @@ const DRAG_START = 8;
  */
 /** 开局发牌过场的总长（4 批 × 200 毫秒错开 + 每张 300 毫秒），不超过 1 秒（再长开局就拖） */
 const DEAL_MS = 900;
+/** 电脑上展开的聊天框大约多高（kit 0.31.2 在 1280×800、1024×768 实测 265，留一点余量）：判断左家牌河上面放不放得下 */
+const CHAT_DOCK_HEIGHT = 280;
+/** 聊天框宽度：260 时输入框还放得下整句占位"说点什么，回车发送"；300 以上只是多盖一截左家牌河 */
+const CHAT_DOCK_WIDTH = { min: 260, max: 300 } as const;
 const FLY_MS = { me: 220, other: 320 } as const;
 /** 落到桌上的那一刻（飞行动画 72% 处）：玩法在这时补一声落桌 */
 export const landAt = (mine: boolean): number => Math.round((mine ? FLY_MS.me : FLY_MS.other) * 0.72);
@@ -385,27 +389,29 @@ export class TableUi<V extends TableView, A> {
   }
 
   /**
-   * 电脑版聊天框（kit 的 chatDock，横屏才有）：左上那家名牌下面、左家竖排手牌右边，弃牌区上面那块空呢子；
-   * kit 自己挑角会放到左下，压住我的头像和筹码。右边界取中控盘和左家牌河里靠左的那个：
-   * 立直的左家牌河在中控盘左边（1280 宽时聊天框会压住它）
+   * 电脑版聊天框（kit 的 chatDock，横屏才有）：左上那家名牌下面、左家竖排手牌右边，往右最多到对家牌河左边那块呢子。
+   * kit 自己挑角会放到左下，压住我的头像和筹码；只夹在左家手牌和左家牌河之间又太窄（1280×800 只有 146 宽，输入框只露三个字）。
+   * 对家牌河的框宽度固定、空着也有位置，拿它的左边做右边界，框不随出牌跳
    */
   chatDock(): DOMRect | null {
     if (this.root.closest<HTMLElement>('[data-orient]')?.dataset.orient !== 'land') return null;
     const top = this.badges[3]!.getBoundingClientRect();
     const side = this.hands[3]!.parentElement!.getBoundingClientRect();
     const left = side.right + 12;
-    const river = this.rivers[3]!.getBoundingClientRect();
-    const edge = river.width > 0 && river.left > left ? Math.min(river.left, this.center.getBoundingClientRect().left) : this.center.getBoundingClientRect().left;
-    return new DOMRect(left, top.bottom + 10, Math.min(340, edge - 12 - left), 0);
+    const river = this.rivers[2]!.getBoundingClientRect();
+    const edge = Math.min(river.width > 0 ? river.left : Infinity, this.center.getBoundingClientRect().left);
+    return new DOMRect(left, top.bottom + 10, Math.max(CHAT_DOCK_WIDTH.min, Math.min(CHAT_DOCK_WIDTH.max, edge - 12 - left)), 0);
   }
 
   /**
-   * 那块空呢子放不下展开的聊天框（kit 的框约 17 个字宽）：默认收成"聊天"小按钮，玩家点开过就听玩家的。
-   * 没有固定位置（竖屏）时回 undefined，照旧由 kit 看四个角放不放得下
+   * 展开的聊天框在电脑上约 265 高（kit 的标题行、一行记录、快捷短语、输入行）。左家牌河上面放不下、或者右边放不满 300 宽时，
+   * 默认收成"聊天"小按钮，免得一进桌就盖住左家牌河；玩家点开过就听玩家的。没有固定位置（竖屏）时回 undefined，由 kit 看四个角放不放得下
    */
   chatCramped(): boolean | undefined {
     const d = this.chatDock();
-    return d ? d.width < 260 : undefined;
+    if (!d) return undefined;
+    const river = this.rivers[3]!.getBoundingClientRect();
+    return d.width < CHAT_DOCK_WIDTH.max || river.top - 8 - d.top < CHAT_DOCK_HEIGHT;
   }
 
   /** 对家那一排（头像、名牌、手牌）的下沿：弹幕从这儿往下飘，不压上面两家的名牌 */
