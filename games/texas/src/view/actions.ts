@@ -1,5 +1,5 @@
 /**
- * 右下角的操作区（docs/screens.md 8.2）：弃牌 / 过牌或跟注 / 加注；加注展开滑杆和"最小、½ 池、¾ 池、1 池、全下"。
+ * 右下角的操作区（docs/screens.md 8.2）：弃牌 / 过牌或跟注 / 加注；加注展开滑杆和"最小、半池、⅔池、满池、全下"（和一键下注同一套比例）。
  * 按钮上面一行写池子多大、要跟多少、赔率（要有多大把握才值得跟），再一排一键下注（半池、⅔ 池、满池、全下，点了直接下）。
  * 不该我说话时可以预选"过牌或弃牌""跟任何注"，轮到我时自动做（只在页面里，不发消息）。
  * 桌面上有快捷键：F 弃牌、C 过牌或跟注、R 加注、回车确认、Esc 收起；展开后 1–5 选五档、←/→ 和滚轮一步一个大盲（Shift 五个）。
@@ -48,7 +48,7 @@ export class ActionBar {
     this.root = el('div', 'actions', parent);
     this.panel = el('div', 'raise-panel', this.root);
     const row = el('div', 'presets', this.panel);
-    for (const [label, frac] of [['最小', 0], ['半池', 0.5], ['¾池', 0.75], ['满池', 1], ['全下', -1]] as const) {
+    for (const [label, frac] of [['最小', 0], ['半池', 0.5], ['⅔池', 2 / 3], ['满池', 1], ['全下', -1]] as const) {
       const b = el('button', 'preset', row, label);
       b.type = 'button';
       b.dataset.frac = String(frac);
@@ -293,8 +293,10 @@ export class ActionBar {
     // 滑杆的值会按 step 取整，最大值（全下）可能不在格子上，以 x 为准
     this.slider.dataset.v = String(x);
     const all = x >= lg.maxTo;
-    setText(this.amount, all ? `全下 ${chips(x)}` : `${v.currentBet === 0 ? '下注' : '加到'} ${chips(x)}`);
-    setText(this.raise, all ? '全下' : '确认');
+    const what = all ? `全下 ${chips(x)}` : `${v.currentBet === 0 ? '下注' : '加到'} ${chips(x)}`;
+    setText(this.amount, what);
+    // 确认键直接写下多少（11-23 试玩：只写"确认"看不出点了下多少）
+    setText(this.raise, what);
     toggle(this.raise, 'allin', all);
     for (const b of this.presets) toggle(b, 'sel', this.presetTo(Number(b.dataset.frac)) === x);
   }

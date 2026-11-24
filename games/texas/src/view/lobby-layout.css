@@ -32,7 +32,8 @@
 /* 右栏上面的"上次没打完"横幅：不丢内容，只收紧——上下不留内边距、按钮矮一点（触屏的 44 由按钮自己的 ::before 外扩撑开）、和下面面板的缝收小，
    选桌面板才不被它挤出滚动条（审计：五个尺寸都多出 14–27）。只作用于看得见的横幅 */
 .lobby .side > .banner:not(.hidden) { padding-block: 0; }
-.lobby .side > .banner:not(.hidden) .go { height: 28px; }
+.lobby .side > .banner:not(.hidden) :is(.go, .end-last) { height: 28px; min-height: 0; }
+.lobby .banner .end-last { flex: none; padding: 0 var(--s-2); white-space: nowrap; }
 .lobby .side > .banner:not(.hidden) ~ :is(.panel, .front) { margin-top: calc(var(--s-2) * -1); }
 /* 手机横屏只有 470 个设计单位高，选桌面板收紧后还多 2：横幅和面板之间的缝全部吃掉 */
 .stage.tight:not(.tall) .lobby .side > .banner:not(.hidden) ~ :is(.panel, .front) { margin-top: calc(var(--s-3) * -1); }
@@ -104,7 +105,7 @@
 .lobby .plays .play .pill { flex: none; width: 100%; }
 .lobby .play-note { font-size: var(--fs-1); line-height: 1.2; text-align: center; opacity: .8; text-wrap: balance; }
 .lobby .play-note.why { opacity: 1; font-weight: 800; }
-/* 竖屏一排放五个玩法会挤得字压字（"匹配真人""锦标赛 · 免费"连成一串）：折成三个、两个两排 */
+/* 竖屏一排放五个玩法会挤得字压字（"匹配真人""锦标赛 · 2,000"连成一串）：折成三个、两个两排 */
 .stage.tall .lobby .plays { flex-wrap: wrap; row-gap: var(--s-2); }
 .stage.tall .lobby .plays .play { flex: 1 1 30%; }
 /* 竖屏一屏放不下按钮下面那行小字（两排玩法各多一行，被下一排压住下半截）：小字叠进按钮里当第二行，按钮字往上让。

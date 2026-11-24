@@ -213,8 +213,8 @@ export async function guideFlow(browser: Browser, base: string): Promise<void> {
     const full = tag === 'phone' || tag === 'desk';
     const resize = tag === 'phone' ? { w: 844, h: 390, at: 'cards' } : tag === 'desk' ? { w: 900, h: 600, at: 'buttons' } : undefined;
     if (tag === 'land2') {
-      // 跳过：记下、连提示一起关；刷新接着打不再出
-      await walkGuide(page, tag, touch, { shots: false, stopAfter: 2 });
+      // 跳过：记下、连提示一起关；刷新接着打不再出（最后一页只有"开打"，在中间那页点跳过）
+      await walkGuide(page, tag, touch, { shots: false, stopAfter: 1 });
       await press(page, '.coach-box .c-btn:not(.primary)');
       await page.waitForTimeout(300);
       const g = await guideStored(page);

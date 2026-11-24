@@ -79,9 +79,10 @@
 }
 .coach-box .c-tag.call { background: #27a862; color: #fff; }
 .coach-box .c-tag.raise { background: #f08a2e; }
-.coach-box .c-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+/* 框最窄 200（coach.ts 的 widthsFor）：两个键 72 + 缝 8 放得下 */
+.coach-box .c-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 .coach-box .c-btn {
-  min-width: 80px;
+  min-width: 72px;
   min-height: 40px;
   padding: 0 14px;
   border-radius: 12px;

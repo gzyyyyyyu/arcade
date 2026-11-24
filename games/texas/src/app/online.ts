@@ -17,7 +17,7 @@ import { site } from '../site.ts';
 import { KEYS, readJson, remove, writeJson } from '../store.ts';
 import { myTurn, notMyTurn, tickUntil } from '../view/alert.ts';
 import { closeDialog, dialog } from '../view/dialog.ts';
-import { el, setText, toggle } from '../view/dom.ts';
+import { el, setText, setWhere, toggle } from '../view/dom.ts';
 import { topBuyIn } from '../view/lobby.ts';
 import { roomCard } from '../view/share.ts';
 import { PRESENCE_RETRY_MS, ROOM_REMEMBER_MS, SHOW_MS, URGE_AFTER_MS } from '../view/timing.ts';
@@ -671,7 +671,7 @@ export function createOnline(c: App) {
     if (v?.tour) {
       const t = v.tour;
       const left = t.next ? `还有 ${t.handsLeft} 手涨` : '最后一级，不再涨';
-      setText(where, `${watching ? '旁观中 · ' : ''}锦标赛 · 第 ${t.level + 1} 级 · 盲注 ${chips(t.blinds[0])}/${chips(t.blinds[1])} · ${left}`);
+      setWhere(where, `${watching ? '旁观中 · ' : ''}锦标赛`, `第 ${t.level + 1} 级 · 盲注 ${chips(t.blinds[0])}/${chips(t.blinds[1])} · ${left}`);
       toggle(where, 'watching', watching);
       toggle(leaveBtn, 'hidden', false);
       return;
@@ -679,7 +679,9 @@ export function createOnline(c: App) {
     const kind = c.online?.match ? '匹配真人' : `好友房 ${s.code}`;
     // 娱乐房间不写档位：筹码不算数，盲注照小桌
     const table = s.opts?.tour ? ` · 锦标赛 · ${c.online?.fun ? '娱乐' : (st?.name ?? '')}` : c.online?.fun ? ' · 娱乐 · 筹码不算数' : st ? ` · ${st.name} · 盲注 ${chips(st.sb)}/${chips(st.bb)}` : '';
-    setText(where, `${watching ? '旁观中 · ' : ''}${kind}${table}`);
+    // 手机顶栏只留短的一段：现金桌写盲注，娱乐房写"娱乐"
+    if (!s.opts?.tour && st) setWhere(where, `${watching ? '旁观中 · ' : ''}${kind}${c.online?.fun ? '' : ` · ${st.name}`}`, c.online?.fun ? '娱乐 · 筹码不算数' : `盲注 ${chips(st.sb)}/${chips(st.bb)}`);
+    else setWhere(where, `${watching ? '旁观中 · ' : ''}${kind}${table}`, '');
     toggle(where, 'watching', watching);
     toggle(leaveBtn, 'hidden', false);
   }

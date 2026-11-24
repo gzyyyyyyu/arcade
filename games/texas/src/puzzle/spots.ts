@@ -248,7 +248,7 @@ function mix(spec: MixSpec) {
         hero,
         board,
         range,
-        rangeText: `对手可能是这 ${range.length} 手牌：${nA} 手比你大，${nB} 手比你小（空手诈唬或牌更差）`,
+        rangeText: `对手手里大概是 ${range.length} 种牌之一：${nA} 种比你大，${nB} 种比你小（空手诈唬或牌更差）${board.length < 5 ? '；后面还有牌没发，落后的也能追上' : ''}`,
         situation: spec.situation,
         flavor: spec.flavor,
         sizing: spec.sizing,
@@ -349,9 +349,9 @@ export const TEMPLATES: readonly Template[] = [
     len: 5, pred: PRED.topPair, sizing: 'normal', suitCap: 2,
     situation: '河牌圈，牌都发完了，你有顶对。对手下注。', flavor: '你有顶对，',
   }),
-  mixT('overpair-turn', '超对 · 转牌圈', 'turn', {
+  mixT('overpair-turn', '大对子 · 转牌圈', 'turn', {
     len: 4, pred: PRED.overpair, sizing: 'normal', suitCap: 2,
-    situation: '转牌圈，你的口袋对子比桌上所有牌都大。对手下注。', flavor: '你有超对，',
+    situation: '转牌圈，你的口袋对子比桌上所有牌都大。对手下注。', flavor: '你有大对子，',
   }),
   mixT('second-pair-river', '二对 · 河牌圈', 'river', {
     len: 5, pred: PRED.secondPair, sizing: 'normal', noRaise: true, suitCap: 2,

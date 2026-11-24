@@ -36,8 +36,11 @@ function tableAvoid(): Box[] {
   return out;
 }
 
-/** 手机竖屏窄：说明框先试窄的几档（从 300 起步的话在 390 宽的屏上占大半个桌面） */
-const widthsFor = (area: Box): readonly number[] => (area.w <= 520 ? [220, 200, 180, 160] : [300, 240, 200]);
+/**
+ * 手机竖屏窄：说明框先试窄的几档（从 300 起步的话在 390 宽的屏上占大半个桌面）。
+ * 最窄 200：再窄"跳过""下一步"两个键放不下、往框外溢，标题也被拆成单字（11-23 试玩 360×640）
+ */
+const widthsFor = (area: Box): readonly number[] => (area.w <= 520 ? [220, 200] : [300, 240, 200]);
 
 /** 层的可用区：层本身减去四边内边距（CSS 里按 safe-area 和最小边距写） */
 function usable(layer: HTMLElement): Box {
@@ -87,7 +90,7 @@ function mount(blocking: boolean): Live & { off: () => void; fit: (target: Box |
 
 /**
  * 走一遍：每步一个说明框指着真的东西；"下一步"往后，"跳过"（或 Esc）结束。返回走完（done）、跳过（skip），或被外面关了（closed：离桌，不算看过）。
- * 层盖住整个页面（点不到桌上的按钮），所以不会在讲的时候误操作
+ * 层盖住整个页面，讲的时候点不到桌上别的东西；只有点在框亮的那块里才收起指引并把这一下交下去
  */
 export function walk(steps: readonly Step[], rectOf: RectOf): Promise<'done' | 'skip' | 'closed'> {
   return new Promise((resolve) => {
@@ -123,9 +126,12 @@ export function walk(steps: readonly Step[], rectOf: RectOf): Promise<'done' | '
         }
       }
       const row = el('div', 'c-btns', m.card);
-      const skip = el('button', 'c-btn', row, '跳过');
-      skip.type = 'button';
-      skip.addEventListener('click', () => finish('skip'));
+      // 最后一页"开打"就是收起，不再并排一个作用一样的"跳过"（11-23 试玩）；Esc 照样能跳过
+      if (!last) {
+        const skip = el('button', 'c-btn', row, '跳过');
+        skip.type = 'button';
+        skip.addEventListener('click', () => finish('skip'));
+      }
       const next = el('button', 'c-btn primary', row, last ? '开打' : '下一步');
       next.type = 'button';
       next.addEventListener('click', () => {
@@ -155,6 +161,15 @@ export function walk(steps: readonly Step[], rectOf: RectOf): Promise<'done' | '
       if (e.key === 'Escape') finish('skip');
       e.stopPropagation();
     };
+    // 点在框亮的那块里（第 2 步的操作区）：当作看懂了，收起指引、把这一下交给底下的按钮（11-23 试玩：新手第一次点"跟注"被吞）
+    m.layer.addEventListener('click', (e) => {
+      if (e.target !== m.layer || !current.target) return;
+      const r = box(rectOf(current.target));
+      if (!r || e.clientX < r.x || e.clientX > r.x + r.w || e.clientY < r.y || e.clientY > r.y + r.h) return;
+      finish('done');
+      const under = document.elementFromPoint(e.clientX, e.clientY)?.closest('button');
+      if (under instanceof HTMLButtonElement && !under.disabled) under.click();
+    });
     window.addEventListener('resize', later);
     window.addEventListener('orientationchange', later);
     window.visualViewport?.addEventListener('resize', later);

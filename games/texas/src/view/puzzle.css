@@ -60,6 +60,7 @@
 .pz-slot.runout:has(.card) { border-color: var(--cg-gold, #f7c43a); }
 /* 揭晓时补出来的公共牌是模拟发的，不是题目本来就有的（试玩 1122：看着像题目有 5 张）：角上标「模拟」 */
 .pz-slot.runout:has(.card)::after { content: '模拟'; position: absolute; left: 50%; bottom: -4px; transform: translate(-50%, 100%); font-size: var(--fs-1); font-weight: 800; color: var(--cg-gold, #f7c43a); white-space: nowrap; }
+.pz-mine { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
 .pz-cap { font-size: var(--fs-2); opacity: .85; }
 .pz-info { font-size: var(--fs-3); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
 .pz-range { margin: 0; font-size: var(--fs-3); color: var(--muted); line-height: 1.5; font-weight: 700; }
@@ -149,7 +150,8 @@
 @media (max-height: 700px) {
   .stage:is(.tall, .tight) .pz { --cw: 46px; --ch: 64px; }
   .stage:is(.tall, .tight) .pz-felt { flex-flow: row wrap; justify-content: center; align-items: flex-end; column-gap: var(--s-4); }
-  .stage:is(.tall, .tight) .pz-felt > :is(.pz-cap, .pz-info) { flex: 0 0 100%; text-align: center; }
+  .stage:is(.tall, .tight) .pz-felt > .pz-info { flex: 0 0 100%; text-align: center; }
+  .stage:is(.tall, .tight) .pz-mine { gap: var(--s-1); }
   /* 横屏右栏（答案、赢面条、讲解、抽样、下一题）最高：各块的缝和上下内边距收小 */
   .stage.tight:not(.tall) .pz { gap: var(--s-2); padding-block: var(--s-2); }
   .stage.tight:not(.tall) .pz-right { gap: var(--s-2); }
