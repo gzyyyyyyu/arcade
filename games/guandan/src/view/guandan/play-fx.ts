@@ -62,7 +62,12 @@ export async function playEvent(sc: TableScene, e: GameEvent): Promise<void> {
     case 'antiTribute': {
       audio.sfx('jokerBomb');
       sc.fxLog.push('抗贡');
+      // 下面那行说明正好落在"等谁出牌"的提示条上：大字播完前先把提示条藏起来
+      sc.status.setAlpha(0);
+      sc.statusBg.setAlpha(0);
       await bigWord(sc, '抗贡！', { sub: `${e.seats.map(seatName).join('、')} 有两张大王，不用进贡`, color: COLOR.goldLight });
+      sc.status.setAlpha(1);
+      sc.statusBg.setAlpha(1);
       e.seats.forEach((s) => sc.mood(s, 'smug'));
       break;
     }
@@ -289,7 +294,7 @@ export function showPrevTrick(sc: TableScene): void {
   const rowH = Math.min(PREV_TRICK.rowMax, Math.floor(PREV_TRICK.rowsMaxH / list.length));
   const cw = Math.min(PREV_TRICK.cardMaxW, Math.floor((rowH - PREV_TRICK.rowPad) / PREV_TRICK.cardAspect));
   const h = PREV_TRICK.chromeH + rowH * list.length;
-  const m = modal(sc, PREV_TRICK.modalW, h, '上一墩', { onClose: () => sc.closeOverlay() });
+  const m = modal(sc, PREV_TRICK.modalW, h, '上一轮', { onClose: () => sc.closeOverlay() });
   const ok = new Button(sc, 0, h / 2 - PREV_TRICK.okDy, PREV_TRICK.okW, PREV_TRICK.okH, '看好了', 'red', () => m.close());
   m.body.add(ok);
   m.body.setData('ok', ok);

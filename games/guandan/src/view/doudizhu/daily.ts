@@ -15,7 +15,7 @@ const DDZ_DAILY_RULES = 1;
 export const DDZ_DAILY_LEVEL = 'normal';
 
 /** 进桌前的一句（和掼蛋的 GD_DAILY_INTRO 同一个说法） */
-export const DDZ_DAILY_INTRO = `今天全站同一副牌、同样的电脑：打一场 ${DDZ_FUN.deals} 副，比你的得分，上今天的榜（能重打，记最好的一次）`;
+export const DDZ_DAILY_INTRO = `今天全站同一副牌、同样的电脑：打一场 ${DDZ_FUN.deals} 副，按你的总得分排今天的榜（能重打，记最好的一次）`;
 
 /** 这一天的种子：只和日期有关，所有人一样 */
 export function ddzDailySeed(date: string): string {

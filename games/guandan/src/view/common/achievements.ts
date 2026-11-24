@@ -21,7 +21,7 @@ export const ACHIEVEMENTS: readonly AchDef[] = [
   { id: 'gd-pass-a', group: 'gd', name: '过 A', desc: '完整局打到 A 并赢下整场' },
   { id: 'gd-sf', group: 'gd', name: '同花顺', desc: '一副里打出同花顺' },
   { id: 'gd-bombs3', group: 'gd', name: '炸弹连连', desc: '一副里打出 3 个以上炸弹' },
-  { id: 'gd-double-down', group: 'gd', name: '双下对面', desc: '一副里我和搭档拿头游、二游' },
+  { id: 'gd-double-down', group: 'gd', name: '双下对面', desc: '和搭档包揽头游、二游' },
   { id: 'gd-games10', group: 'gd', name: '牌桌常客', desc: '掼蛋累计打完 10 场' },
   { id: 'gd-daily', group: 'gd', name: '每日一练', desc: '打完一次掼蛋每日挑战' },
   { id: 'ddz-first-win', group: 'ddz', name: '初战告捷', desc: '赢下一场斗地主' },

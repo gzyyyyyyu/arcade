@@ -170,7 +170,7 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
     this.hand = new HandView(this);
     this.hand.onChange = () => this.refreshButtons();
     this.buildButtons(W);
-    mountShortcuts(this, { play: this.btnPlay, pass: this.btnPass, hint: this.btnHint, sort: this.btnSort, clear: this.btnClear, hand: this.hand, blocked: () => this.overlay !== null });
+    mountShortcuts(this, { play: this.btnPlay, pass: this.btnPass, hint: this.btnHint, sort: this.btnSort, clear: this.btnClear, hand: this.hand, blocked: () => this.overlay !== null, closeFun: () => this.closeFun() });
     this.buildTopBar(W);
     this.buildFun();
     audio.music('table');
@@ -241,6 +241,10 @@ export class TableScene extends TableSceneBase<Action, GameEvent, NetView> {
     if (this.net ? !inOnlineGame() : !inGame()) return goLobby();
     const m = confirm(this, leaveText(), `回${lobbyName()}`, () => goLobby(), () => (this.settleConfirm = null));
     this.settleConfirm = m;
+  }
+
+  homeAsks(): boolean {
+    return (!!this.stake && !this.stake.over) || (!!this.net && !this.watching && this.net.room?.status === 'playing') || (!!this.dailyRun && this.dailyRun.result === null && inGame());
   }
 
   onHome(): void {

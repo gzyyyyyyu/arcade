@@ -42,7 +42,7 @@ export function buildButtons(sc: TableScene, W: number): void {
   const sortX = Math.max(cx - ACTION_ROW.sideDx, ME_AVATAR.x + Math.max(ME_AVATAR.size, mh) / 2 + Math.max(FUN_UI.iconMinW, mh) + Math.max(ACTION_ROW.sortW, mh) / 2);
   sc.btnSort = new Button(sc, sortX, BUTTON_Y + ACTION_ROW.subDy, ACTION_ROW.sortW, sh, '理牌', 'quiet', () => sc.onSort(), 'sort');
   sc.btnClear = new Button(sc, cx + ACTION_ROW.sideDx, BUTTON_Y + ACTION_ROW.subDy, ACTION_ROW.clearW, sh, '重选', 'quiet', () => sc.onClear(), 'undo');
-  sc.btnPrev = new Button(sc, cx + ACTION_ROW.prevDx, BUTTON_Y + ACTION_ROW.subDy, ACTION_ROW.prevW, sh,'上一墩', 'quiet', () => sc.showPrevTrick());
+  sc.btnPrev = new Button(sc, cx + ACTION_ROW.prevDx, BUTTON_Y + ACTION_ROW.subDy, ACTION_ROW.prevW, sh, '上一轮', 'quiet', () => sc.showPrevTrick());
   for (const b of [sc.btnPass, sc.btnHint, sc.btnPlay, sc.btnSort, sc.btnClear, sc.btnPrev]) b.setDepth(400);
   // 连着两手没自己出，房间每手几秒就替我出：点一下恢复 30 秒；自己出一手也一样
   const net = sc.net;

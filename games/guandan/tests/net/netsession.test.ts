@@ -266,7 +266,7 @@ describe('联机会话', () => {
     expect(await createRoom(res(409, { error: 'has_room', code: '654321' }))).toEqual({ error: QUOTA_TEXT.has_room, quota: 'has_room', room: '654321' });
     expect(await createRoom(res(429, { error: 'daily_limit' }))).toEqual({ error: QUOTA_TEXT.daily_limit, quota: 'daily_limit' });
     expect(await createRoom(res(503, { error: 'busy' }))).toEqual({ error: QUOTA_TEXT.busy, quota: 'busy' });
-    expect(await createRoom(res(503, { error: 'unavailable' }))).toEqual({ error: '房间没开成（平台一时连不上），过一会儿再点"开个房间"' });
+    expect(await createRoom(res(503, { error: 'unavailable' }))).toEqual({ error: '房间没开成（平台一时连不上），过一会儿再开一次' });
     expect(await createRoom(res(401, { error: 'login' }))).toMatchObject({ login: true });
   });
 });

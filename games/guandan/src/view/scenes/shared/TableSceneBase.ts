@@ -92,6 +92,12 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
   /** 顶栏的云存档图标（单独部署没有账号，不摆） */
   protected cloudBtn: Phaser.GameObjects.Container | null = null;
   fun: TableFun | null = null;
+  /** 快捷键的 Esc：互动面板、头像菜单开着就关掉（kit 的 DOM 层自己不接 Esc） */
+  closeFun(): boolean {
+    if (!this.fun?.isOpen()) return false;
+    this.fun.closeAll();
+    return true;
+  }
   funShown = true;
   alive = true;
   /** 画面建了几次（冒烟核对地址栏收放时没有重建） */
@@ -193,6 +199,8 @@ export abstract class TableSceneBase<A, E, V extends SceneFrame<E>> extends Phas
 
   /** 回自己的首页（箭头图标；小房子留给"回大厅"） */
   abstract onHome(): void;
+  /** 回首页要先在牌桌上确认（实盘没打完、好友房在打、每日挑战打到一半）：竖屏提示层的"回首页"这时不直接走，确认框在被盖住的画布里 */
+  abstract homeAsks(): boolean;
   /** 打开设置、规则面板（顶栏图标和快捷入口共用） */
   protected abstract showSettings(): void;
   protected abstract showRules(): void;

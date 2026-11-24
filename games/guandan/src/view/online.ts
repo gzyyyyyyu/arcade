@@ -192,7 +192,7 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
   const x = el('button', { type: 'button', class: 'gd-btn gd-x ol-x', id: 'ol-close', 'aria-label': '关掉' }, '✕');
   x.addEventListener('click', () => dismiss?.());
   c.appendChild(x);
-  c.appendChild(el('div', { class: 'ol-tip' }, variant === 'ddz' ? '开个房间把房间码发给朋友，3 个人一起打斗地主；人不够电脑补上。' : '开个房间把房间码发给朋友，4 个人一起打；人不够电脑补上。'));
+  c.appendChild(el('div', { class: 'ol-tip' }, `${variant === 'ddz' ? '开个房间把房间码发给朋友，3 个人一起打斗地主；人不够电脑补上' : '开个房间把房间码发给朋友，4 个人一起打；人不够电脑补上'}${standalone() ? '' : '（实盘房至少两个真人）'}。`));
   // 回到刚才的房间：先问平台现在是谁，是这个账号记下的才给（换了账号的人看不到）
   const slot = el('div');
   c.appendChild(slot);
@@ -224,7 +224,7 @@ export function openOnline(variant: RoomVariant = 'guandan'): void {
     c.appendChild(row);
   }
   const make = el('div', { class: 'ol-row ol-make' });
-  make.appendChild(button('开个房间', () => void create(null), '', 'ol-create'));
+  make.appendChild(button(standalone() ? '开个房间' : '开娱乐房', () => void create(null), '', 'ol-create'));
   // 斗地主不洗牌（娱乐 0.33.0）；不洗牌的实盘房间在"开实盘房间"里选
   if (panelVariant === 'ddz') make.appendChild(button('不洗牌房间', () => void create(null, true), 'gd-2', 'ol-create-clump'));
   // 实盘房间（docs/stake.md 第 3 节）：开房时选档位，之后不能改。单独部署没有钱包，不摆

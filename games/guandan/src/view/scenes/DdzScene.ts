@@ -168,7 +168,7 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
     this.hand = new HandView(this, DDZ_ORDER);
     this.hand.onChange = () => this.refreshButtons();
     this.buildButtons(W);
-    mountShortcuts(this, { play: this.btnPlay, pass: this.btnPass, hint: this.btnHint, sort: this.btnSort, clear: this.btnClear, hand: this.hand, blocked: () => this.overlay !== null });
+    mountShortcuts(this, { play: this.btnPlay, pass: this.btnPass, hint: this.btnHint, sort: this.btnSort, clear: this.btnClear, hand: this.hand, blocked: () => this.overlay !== null, closeFun: () => this.closeFun() });
     this.buildTopBar(W);
     // 残局不开牌桌互动（和每日挑战一样不嘲讽），农民的牌摊开、顶上挂关卡提示
     if (this.puzzle) this.buildPuzzle(W);
@@ -270,6 +270,10 @@ export class DdzScene extends TableSceneBase<DdzAction, DdzEvent, DdzNetView> {
   onLobby(): void {
     if (this.puzzle || (this.net ? !inOnlineGame() : !this.inGame())) return goLobby();
     this.openOverlay('menu', confirm(this, this.net ? (this.netStake ? this.leaveMsg() : leaveText()) : `回${lobbyName()}？这局会存着，回来接着打`, `回${lobbyName()}`, () => goLobby(), () => this.closeOverlay()));
+  }
+
+  homeAsks(): boolean {
+    return (!!this.net && !this.watching && this.net.room?.status === 'playing') || (!!this.ses.daily && this.inGame());
   }
 
   onHome(): void {

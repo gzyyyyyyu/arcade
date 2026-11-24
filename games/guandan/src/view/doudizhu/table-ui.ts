@@ -51,10 +51,10 @@ export function buildButtons(sc: DdzScene, W: number): void {
   const sortX = Math.max(cx - DDZ_BUTTONS.weakDx, ME_AVATAR.x + Math.max(ME_AVATAR.size, mh) / 2 + Math.max(DDZ_BUTTONS.funMinW, mh) + Math.max(DDZ_BUTTONS.weakW, mh) / 2);
   sc.btnSort = new Button(sc, sortX, BUTTON_Y + DDZ_BUTTONS.weakDy, DDZ_BUTTONS.weakW, sh, '理牌', 'quiet', () => sc.onSort(), 'sort');
   sc.btnClear = new Button(sc, cx + DDZ_BUTTONS.weakDx, BUTTON_Y + DDZ_BUTTONS.weakDy, DDZ_BUTTONS.weakW, sh,'重选', 'quiet', () => sc.onClear(), 'undo');
-  // 叫分：四个按钮一排，比当前分低的灰掉；叫分时也能理牌，整排让开"理牌"
+  // 叫分：四个按钮一排，比当前分低的灰掉；都不用红色（红色像在推荐，该叫几分看上面那行建议）；叫分时也能理牌，整排让开"理牌"
   const bid0 = Math.max(cx - 1.5 * DDZ_BUTTONS.bidStep, sortX + DDZ_BUTTONS.weakW / 2 + DDZ_BUTTONS.bidGap + DDZ_BUTTONS.bidW / 2);
   BIDS.forEach((b, i) => {
-    const btn = new Button(sc, bid0 + i * DDZ_BUTTONS.bidStep, BUTTON_Y, DDZ_BUTTONS.bidW, rh,b === 0 ? '不叫' : `${b} 分`, b === 0 ? 'wood' : b === 3 ? 'red' : 'gold', () => sc.act({ type: 'bid', seat: DDZ_ME, bid: b }));
+    const btn = new Button(sc, bid0 + i * DDZ_BUTTONS.bidStep, BUTTON_Y, DDZ_BUTTONS.bidW, rh,b === 0 ? '不叫' : `${b} 分`, b === 0 ? 'wood' : 'gold', () => sc.act({ type: 'bid', seat: DDZ_ME, bid: b }));
     sc.bidBtns.push(btn);
     sc.reg(`bid:${b}`, btn);
   });

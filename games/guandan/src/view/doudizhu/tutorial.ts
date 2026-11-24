@@ -20,7 +20,7 @@ export function runDdzTutorial(scene: Phaser.Scene): Promise<void> {
       const p = panel(scene, 860, 460, '先叫分');
       p.setPosition(W / 2, 330);
       page.add(p);
-      const chips: [string, 'wood' | 'gold' | 'red'][] = [['不叫', 'wood'], ['1 分', 'gold'], ['2 分', 'gold'], ['3 分', 'red']];
+      const chips: [string, 'wood' | 'gold'][] = [['不叫', 'wood'], ['1 分', 'gold'], ['2 分', 'gold'], ['3 分', 'gold']];
       chips.forEach(([label, kind], i) => page.add(new Button(scene, W / 2 - 285 + i * 190, 250, 160, 60, label, kind, () => undefined)));
       note(340, '轮到你就叫一个分，只能比前面的高', { bold: true });
       note(390, '叫分最高的人当地主；都不叫就重新发牌');

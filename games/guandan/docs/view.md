@@ -60,7 +60,7 @@
 
 ## 9. 电脑操作（非触屏）
 
-- 电脑操作（非触屏）：`ui/shortcuts.ts` 把按键接到牌桌按钮的 `Button.press`（空格 / 回车出牌、B 不要、H 提示、S 理牌、Esc 有选牌时取消全部），同一条路，音效和禁用状态一致；弹窗开着（焦点层）、键盘在输入框或 DOM 面板、键盘焦点框亮着（回车空格归 `ui/focus.ts`）时不接，Tab、方向键、关弹窗的 Esc 仍归 focus.ts；手牌上滚轮不滚页面。
+- 电脑操作（非触屏）：`ui/shortcuts.ts` 把按键接到牌桌按钮的 `Button.press`（空格 / 回车出牌、B 不要、H 提示、S 理牌、Esc 先关开着的互动面板、再取消全部选牌），同一条路，音效和禁用状态一致；弹窗开着（焦点层）、键盘在输入框或 DOM 面板、键盘焦点框亮着（回车空格归 `ui/focus.ts`）时不接，Tab、方向键、关弹窗的 Esc 仍归 focus.ts；手牌上滚轮不滚页面。
 - `HandView`：鼠标停在可选的牌上上浮 8 并描边（触屏不悬停）；右键从不选牌，点牌取消这张、点空白取消全部（判断在 `hand-logic.ts` 的 `downAction`，有单测），画布上不弹浏览器菜单，`Button` 也忽略右键。规则页多一页"快捷键"（`SHORTCUT_HELP`，只在 `hasPointerKeys()` 的设备上）。
 - `iconButton` 的 `label` 参数：鼠标停在圆图标上，下方冒名字小标签（触屏不冒），新加图标按钮都传一个。电脑版聊天按钮用 `chatDock` 钉在顶栏"大厅"右边（默认收起），不让 kit 自己挑角压到"大厅"。
 
@@ -112,7 +112,7 @@
 - 按钮分三档：主（`red`，一屏一个）、次（金绿蓝木）、弱（`quiet`：不要、重选、理牌），调用处只传颜色名、档位由 `BUTTON_TIER` 推出，不自己画高光阴影（`docs/art.md` 第 9 节），DOM 用 `THEME_CSS` 的 `--gd-` 变量和 `.gd-btn`（`tests/view/ui-theme.test.ts` 查 DOM 按钮）。
 - 牌桌操作区同一时间只有一个红色主按钮（出牌；斗地主叫分是"3 分"、明牌是"明牌 ×2"），"提示"用木色，"我回来了"绿、"重新带入"金；手机上按钮画出来的高度不低于 36 CSS 像素（`theme.ts` 的 `minDrawH`）。
 - 牌桌顶栏不随每一手重建：每一步走 `refreshTopBar`，按 `topBarKey`（级数、副数、倍数、实盘条的字……）没变就只重画记牌器（`counterBox`）——整条重建会让按下和松手落在新旧两个按钮上、点击丢掉（online-smoke 查一副里的 `topBuilds()` 次数）；顶栏要显示新东西时把它加进 `topBarKey`。牌桌顶栏的图标两个玩法共用 `TableSceneBase.buildTopIcons`：从右往左回首页、设置、规则（控件 `top0`–`top2`，斗地主叫 `home` / `settings` / `rules`），最左云存档；静音不单放，在设置里。手机上聊天按钮由 `chatTopStyle` 画成顶栏高度内的圆钮（kit 的按钮透明、只留点按区）。
-- 弹窗：设置、规则、战绩点弹窗外即关（`modal()` 的 `dismissOnOutside`，和 ✕、Esc 同一条关闭路径），这类弹窗同时只留一个；确认框点外不关。设置分"声音 / 对局 / 地方规则"三个页签，底下有"恢复默认"（`store.ts` 的 `resetSettings`，只动设置）。
+- 弹窗：设置、规则、战绩、成就、选难度、选档位点弹窗外即关（`modal()` 的 `dismissOnOutside`，和 ✕、Esc 同一条关闭路径），这类弹窗同时只留一个；确认框点外不关，Esc 当"算了"（`escCloses`）。设置分"声音 / 对局 / 地方规则"三个页签，底下有"恢复默认"（`store.ts` 的 `resetSettings`，只动设置）；竖屏主页弹窗窄，排成一列六行（地方规则说明在上、开关在下）。
 - 大厅静音带进来（kit `docs/sound.md`）：启动时 `platformSoundOn()` 读一次大厅的 `arcade.sound`，关了就这一次先静音、"全部声音"显示静音；在设置里打开只管这一次，不写 `arcade.sound`、不改自己存的 `muted`（`common/audio.ts` 的 `applyAudio` / `pickMuted`）。
 - 断网统一说 `stake-text.ts` 的 `NET_DOWN`（"网络不通，检查后重试"）配"重试"按钮：好友房面板（`#ol-retry`）、实盘选档页钱包连不上（钱包那行右边，控件 `tierRetry`）、实盘带入带回、出错面板。筹码的事只说"带入 / 带回"。
 - 画布里能点的一律用 `ui/kit.ts` 的 `Button`、`iconButton`、`segmented`（自带悬停、按下、禁用、加载中，登记进 `ui/focus.ts` 的键盘焦点；弹窗用 `modal()`，自带焦点层和 Esc）。

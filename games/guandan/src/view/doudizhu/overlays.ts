@@ -42,7 +42,7 @@ export function showPuzzleResult(sc: DdzScene, r: DdzResult): void {
   b.add(text(sc, 0, -120, won ? '过关！' : '农民先跑了', { size: TYPE.huge, bold: true, color: won ? COLOR.redDark : COLOR.ink }));
   b.add(text(sc, 0, -52, daily ? `今日残局 · ${p.name}` : `第 ${n} 关 · ${p.name}`, { size: TYPE.body, bold: true, color: COLOR.ink }));
   const left = DDZ_PUZZLES.length - puzzlesDone().size;
-  if (!daily) b.add(text(sc, 0, -12, won ? (left === 0 ? `${DDZ_PUZZLES.length} 关全部过完了` : `还剩 ${left} 关`) : '用"提示"看看必胜的出法，再来一次', { size: TYPE.label, color: COLOR.muted, wrap: 600 }));
+  if (!daily) b.add(text(sc, 0, -12, won ? (left === 0 ? `${DDZ_PUZZLES.length} 关全部过完了` : `还剩 ${left} 关`) : '用「提示」看看必胜的出法，再来一次', { size: TYPE.label, color: COLOR.muted, wrap: 600 }));
   const pick = new Button(sc, -160, 120, 240, 64, '选关', 'wood', () => {
     m.close();
     sc.openPicker();
@@ -184,7 +184,7 @@ export function showSettle(sc: DdzScene, r: DdzResult): void {
   if (r.spring) sc.springSeal(b, r.spring === 'anti');
   // 封顶了（不洗牌的每副封顶、实盘的一场封顶）：写明本来多少分，不让人以为算错了
   const capNote = r.capped && r.s < r.bid * r.mult ? `封顶了，本来 ${r.bid * r.mult} 分 · ` : '';
-  b.add(fitWidth(text(sc, rx, 74, `${capNote}地主${r.landlordWon ? '赢' : '输'} ${2 * r.s}，农民各${r.landlordWon ? '输' : '赢'} ${r.s}`, { size: TYPE.small, bold: !!capNote, color: capNote ? COLOR.redDark : COLOR.muted }), 360));
+  b.add(fitWidth(text(sc, rx, 74, `${capNote}地主${r.landlordWon ? '赢' : '输'} ${2 * r.s} 分，农民各${r.landlordWon ? '输' : '赢'} ${r.s} 分`, { size: TYPE.small, bold: !!capNote, color: capNote ? COLOR.redDark : COLOR.muted }), 360));
   // 好友房实盘：这一副的筹码和本场合计（只在我到账了时写）
   const ns = sc.netStake;
   const mine = ns?.seats[DDZ_ME];

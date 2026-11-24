@@ -14,14 +14,16 @@ export const describePlay = (p: Play): { label: string; bomb: boolean } => ({ la
 /** 一手牌的简短说明（选择逢人配解释时用），例如"顺子 到 7""三带二 8带5"。 */
 export function playDetail(p: Play): string {
   const r = rankName(p.rank);
+  // 连着的牌型写"从几到几"（只写"到 5"看不懂）：rank 是最大的那一级，A 在 2 前面时是 1
+  const span = (n: number): string => `${rankName(p.rank - n + 1 < 2 ? 14 : p.rank - n + 1)} 到 ${r}`;
   switch (p.type) {
     case 'straight':
     case 'straightFlush':
-      return `${playLabel(p)} 到${r}`;
+      return `${playLabel(p)} ${span(5)}`;
     case 'tube':
-      return `三连对 到${r}`;
+      return `三连对 ${span(3)}`;
     case 'plate':
-      return `钢板 到${r}`;
+      return `钢板 ${span(2)}`;
     case 'fullHouse':
       return `三带二 ${r}带${rankName(p.extra)}`;
     case 'jokerBomb':

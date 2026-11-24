@@ -39,7 +39,7 @@ export function openLevelPicker(
   const H = narrow ? 300 + 3 * P : 500 + 3 * (P - 92);
   const T = -H / 2;
   const RW = MW - 60;
-  const m = modal(scene, MW, H);
+  const m = modal(scene, MW, H, undefined, { dismissOnOutside: true });
   const b = m.body;
   const phone = phoneType();
   let len = length;
@@ -178,7 +178,7 @@ export function openTierPicker<S = StakeSession>(
   const H = narrow ? head + 4 * P + 150 : 600 + 3 * (P - 78);
   const T = -H / 2;
   const y0 = narrow ? T + head + P / 2 : T + head;
-  const m = modal(scene, MW, H);
+  const m = modal(scene, MW, H, undefined, { dismissOnOutside: true });
   const b = m.body;
   b.add(text(scene, 0, T + 50, '选档位', { size: TYPE.title, bold: true, color: COLOR.redDark }));
   // 有匹配时钱包靠左、右边放切换（竖屏切换在下一行，钱包照样靠左）；横屏有玩法切换时钱包上到标题那一行
@@ -203,7 +203,7 @@ export function openTierPicker<S = StakeSession>(
   // 手机上去掉空格省宽：豪华档"带入200,000·1分=10,000"在 568×320 上不压右边一列
   const line1Of = (tier: TierId): string => {
     const pv = flow.pointValue(tier, mode);
-    return phoneType() ? `带入${fmtChips(TIERS[tier])}·1分=${fmtChips(pv)}` : `带入 ${fmtChips(TIERS[tier])} · 1 分 = ${fmtChips(pv)}`;
+    return phoneType() ? `带入${fmtChips(TIERS[tier])}·1分=${fmtChips(pv)}` : `带入 ${fmtChips(TIERS[tier])} · 1 分 = ${fmtChips(pv)} 筹码`;
   };
   // 玩法那一行：竖屏在"和电脑 / 快速匹配"下面单独一行；横屏在钱包原来的位置（靠左）
   const modeY = narrow ? T + head - MODE_ROW / 2 - 6 : T + 92;
@@ -236,7 +236,7 @@ export function openTierPicker<S = StakeSession>(
     const seg = segmented(
       scene,
       // 右边留出关闭键的点按区（弹窗右上角，手机上约 100 见方）；竖屏单独一行居中
-      narrow ? -150 : 185,
+      narrow ? -75 : 185,
       narrow ? T + 160 : T + 92,
       [{ label: '和电脑', value: 'solo' }, { label: '和真人', value: 'match' }],
       'solo',
@@ -324,7 +324,7 @@ export function openTierPicker<S = StakeSession>(
       retry = reg(m, 'tierRetry', new Button(scene, rx, modes && !narrow ? T + 50 : T + 92, 120, 52, RETRY_LABEL, 'wood', () => void retryWallet()));
       return;
     }
-    balance.setText(`钱包 ${fmtChips(w.balance)}`);
+    balance.setText(`钱包 ${fmtChips(w.balance)} 筹码`);
     // 别的设备上开的单机那一份不挡开新的（平台 0.9.5 起能同时有好几份），给个原样退回的办法；好友房的不归这里管
     const other = flow.stray(w);
     // 钱包不够一份的档：按钮写"不够一份"、那一档的"一份 …"标红，点不了也看得出为什么（以前只是变灰）

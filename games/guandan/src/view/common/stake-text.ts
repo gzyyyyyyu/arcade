@@ -19,7 +19,7 @@ export function stars(n: number): string {
 export const LEVEL_CARD = {
   novice: { name: '新手', stars: 1, time: '一局约 20 分钟，随时存档', short: '一局约 10 分钟，随时存档', who: '刚学掼蛋，先赢几把找感觉' },
   normal: { name: '普通', stars: 2, time: '一局约 30 分钟，随时存档', short: '一局约 15 分钟，随时存档', who: '会打，想认真赢' },
-  pro: { name: '高手', stars: 4, time: '一局约 30 分钟，随时存档', short: '一局约 15 分钟，随时存档', who: '老手，电脑全记牌、残局会算' },
+  pro: { name: '高手', stars: 4, time: '一局约 30 分钟，随时存档', short: '一局约 15 分钟，随时存档', who: '老手，全记牌、会算残局' },
 } as const;
 
 /** 局长：娱乐单机开局时选，记在设置里；每档多久看上面卡的 time / short */

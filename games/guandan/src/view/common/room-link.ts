@@ -219,7 +219,7 @@ export async function createRoom(
   if (body?.error === 'busy') return { error: QUOTA_TEXT.busy, quota: 'busy' };
   if (body?.error === 'bad_options') return { error: '这个档位开不了，换一个试试' };
   // unavailable（平台、计量一时连不上）、开房码连撞：房间没开成，什么都没动
-  return { error: '房间没开成（平台一时连不上），过一会儿再点"开个房间"' };
+  return { error: '房间没开成（平台一时连不上），过一会儿再开一次' };
 }
 
 type SocketImpl = new (url: string) => WebSocketLike;

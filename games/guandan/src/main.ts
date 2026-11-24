@@ -41,6 +41,11 @@ const platform = detectOnce();
 mountRotateHint(() => {
   if ((app.net || app.ddzNet ? inOnlineGame() : savedGameInProgress()) && !window.confirm(leaveText())) return;
   goLobby();
+}, () => {
+  const sc = game.scene.getScenes(true).find((s): s is TableScene | DdzScene => s instanceof TableScene || s instanceof DdzScene);
+  if (sc?.homeAsks()) return '这一局要确认才能离开：横过来点右上角的返回';
+  sc?.onHome();
+  return null;
 });
 
 const params = parseParams(window.location.search);

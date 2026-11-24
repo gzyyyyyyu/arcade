@@ -16,6 +16,7 @@ import { dailyPuzzleOf, startDailyPuzzle, startPuzzle } from '../doudizhu/puzzle
 import { openPuzzlePicker } from '../ui/puzzles.ts';
 import { DDZ_FLOW, DdzStakeSession, clearDdzStakeSave, ddzStakeExpired, ddzStakeLeft, loadDdzStakeSave } from '../doudizhu/stake.ts';
 import { DDZ_DAILY_INTRO, DDZ_DAILY_LEVEL, beijingDate, ddzDailySeed } from '../doudizhu/daily.ts';
+import { DDZ_FUN } from '../../variants/doudizhu/core/game.ts';
 import { DailySession, GD_DAILY_INTRO } from '../guandan/daily.ts';
 import { COLOR, LIGHT, RADIUS, TYPE, minHit, phoneType } from '../common/theme.ts';
 import { FIGURE_SIZE, LANTERN_SIZE, homeLayout, panelRows } from '../common/home-layout.ts';
@@ -84,6 +85,10 @@ export class TitleScene extends Phaser.Scene {
     this.buttons = {};
     this.overlay = null;
     this.variantAt = null;
+    // 首页先画、云存档后到：合并进来的战绩让底下战绩条（"还没打过"还是胜率）过时了，没开弹窗时重画一次
+    const statsKey = (): string => JSON.stringify([getStats().deals, getStats().games, getDdzStats().deals, getDdzStats().games]);
+    const shownStats = statsKey();
+    this.time.addEvent({ delay: 1000, loop: true, callback: () => this.canRebuild() && statsKey() !== shownStats && this.scene.restart() });
     const bg = this.add.image(0, 0, titleBackdrop(this, W, worldH(this))).setOrigin(0, 0).setDisplaySize(W, worldH(this));
     upgradeTitleBackdrop(this, bg, W, worldH(this));
 
@@ -350,7 +355,7 @@ export class TitleScene extends Phaser.Scene {
     }
     // 模式卡（和掼蛋同一种排法）：娱乐（选难度）、实盘（选档，单独部署没有钱包不摆）、好友房
     const modes: [string, string, string, ButtonStyle, string, () => void][] = [
-      ['fun', '娱乐', phone ? '随便玩' : '和稳哥、幺妹儿', 'green', 'robot', () => this.pickDdz(saved)],
+      ['fun', '娱乐', '随便玩', 'green', 'robot', () => this.pickDdz(saved)],
       ...(standalone() ? [] : [['stake', '实盘', '带筹码', 'gold', 'crown', () => this.pickDdzStake()] as [string, string, string, ButtonStyle, string, () => void]]),
       // 好友房：开房时带上玩法（斗地主），3 个座位
       ['online', '好友房', '叫朋友来', 'blue', 'cards', () => openOnline('ddz')],
@@ -463,7 +468,7 @@ export class TitleScene extends Phaser.Scene {
     // 行距至少 minHit()：手机横屏上按钮的点按区要 44 CSS 像素高，行距 90 时上下压着；多出来的高度加在弹窗上
     const pitch = Math.max(90, minHit());
     const H = 600 + 3 * (pitch - 90);
-    const m = modal(this, 720, H, '选难度', { onClose: () => (this.overlay = null) });
+    const m = modal(this, 720, H, '选难度', { onClose: () => (this.overlay = null), dismissOnOutside: true });
     this.overlay = m;
     const levels: SoloLevel[] = ['novice', 'normal', 'pro'];
     const fresh = (lv: SoloLevel): void => {
@@ -498,6 +503,8 @@ export class TitleScene extends Phaser.Scene {
     }, 'cards');
     m.body.add(match);
     m.body.setData('btn:match', match);
+    // 红的是上次选的（不是推荐）；一场几副写出来，免得以为一副就完
+    m.body.add(text(this, 0, match.y + 66, `红色是上次选的 · 一场 ${DDZ_FUN.deals} 副，随时存档`, { size: TYPE.small, color: COLOR.muted }));
   }
 
   /** 主按钮：有娱乐存档时"继续上局"，没有就"快速开始"（按上次选的难度直接开一局娱乐） */

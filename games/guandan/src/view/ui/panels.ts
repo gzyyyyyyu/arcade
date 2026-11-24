@@ -11,6 +11,7 @@ import type { SignedRow } from '../common/stake-text.ts';
 import { DDZ_RULE_TABS } from '../doudizhu/rules.ts';
 import { DDZ_PATTERNS, PATTERNS, miniCards, patternTile } from './patterns.ts';
 import { SHORTCUT_HELP, hasPointerKeys } from './shortcuts.ts';
+import { cardsPending } from '../common/textures.ts';
 
 
 /** 设置、规则、战绩三个弹窗的宽度（art-v3）：世界宽减两边留白，封顶 1120——两边多露出一点遮罩，点外面关得到 */
@@ -22,15 +23,18 @@ const SOUND_ITEMS = [{ label: '关', value: '0' }, { label: '小', value: '1' },
 const SETTINGS_TABS = ['声音', '对局', '地方规则'];
 
 /**
- * 设置：三页（声音 / 对局 / 地方规则），每页最多三行，页签下面的一行永远是"恢复默认"（docs/ui.md 第 8 节）。
+ * 设置：三页（声音 / 对局 / 地方规则），每页最多三行（竖屏主页一列六行），页签下面的一行永远是"恢复默认"（docs/ui.md 第 8 节）。
  * 改了立刻生效、立刻存。手机横屏每一行至少 minHit() 高，所以分页比一屏九行排得下；点弹窗外也能关（和 ✕、Esc 同一个关闭路径）。
  * "重看引导"放在"对局"页的最后一项；"恢复默认"只重置设置，不动战绩、存档和引导。
  */
 export function openSettings(scene: Phaser.Scene, opts: { onTutorial?: () => void; onClose?: () => void } = {}): Modal {
   const P = Math.max(64, minHit());
-  // 页签一排、下面三行、再下面一排恢复默认：高度跟着行距走
-  const PH = Math.round(190 + 3.5 * P);
   const PW = Math.min(panelW(scene), 1040);
+  // 竖屏的主页弹窗只有 656 宽，放不下左右两列、也放不下"说明 + 开关"一行：改成一列六行（对局页一项一行，地方规则说明在上、开关在下）
+  const narrow = PW < 900;
+  const rows = narrow ? 6 : 3;
+  // 页签一排、下面几行、再下面一排恢复默认：高度跟着行距走
+  const PH = Math.round(190 + (rows + 0.5) * P);
   const m = modal(scene, PW, PH, '设置', { onClose: opts.onClose, dismissOnOutside: true });
   const b = m.body;
   const page = scene.add.container(0, 0);
@@ -71,16 +75,19 @@ export function openSettings(scene: Phaser.Scene, opts: { onTutorial?: () => voi
     });
     row(colL, rowY(2), '牌背');
     seg(colL, rowY(2), 120, [{ label: '红', value: '0' }, { label: '绿', value: '1' }], String(s.back), (v) => updateSettings({ back: Number(v) as 0 | 1 }));
+    // 窄的时候右列接在左列下面
+    const rx = narrow ? colL : colR;
+    const ry = (i: number): number => rowY(narrow ? i + 3 : i);
     // 别人（好友房的人、单机的电脑）的互动（短语、表情、道具，docs/table-fun.md 第 5 节）：关掉就不看也不听，单机的电脑也不发（自己照样能发）
-    row(colR, rowY(0), '表情道具');
-    seg(colR, rowY(0), 120, [{ label: '显示', value: '1' }, { label: '不显示', value: '0' }], s.taunts ? '1' : '0', (v) => updateSettings({ taunts: v === '1' }));
+    row(rx, ry(0), '表情道具');
+    seg(rx, ry(0), 120, [{ label: '显示', value: '1' }, { label: '不显示', value: '0' }], s.taunts ? '1' : '0', (v) => updateSettings({ taunts: v === '1' }));
     // 聊天（好友房 0.22.0、单机 0.23.0）：开 / 不和陌生人（快速匹配桌上不收不发打字，下次进匹配桌生效）/ 不看，存的还是 chat、strangerChat 两项
-    row(colR, rowY(1), '聊天');
-    seg(colR, rowY(1), 84, [{ label: '开', value: '1' }, { label: '不和陌生人', value: 'friends' }, { label: '不看', value: '0' }],
+    row(rx, ry(1), '聊天');
+    seg(rx, ry(1), 84, [{ label: '开', value: '1' }, { label: '不和陌生人', value: 'friends' }, { label: '不看', value: '0' }],
       !s.chat ? '0' : s.strangerChat ? '1' : 'friends',
       (v) => updateSettings(v === '0' ? { chat: false } : { chat: true, strangerChat: v === '1' }), 124);
     // 分组末尾：重看引导
-    const tb = new Button(scene, colR + 90, rowY(2), 180, 50, '重看引导', 'wood', () => {
+    const tb = new Button(scene, rx + 90, ry(2), 180, 50, '重看引导', 'wood', () => {
       setTutorialDone(false);
       setDdzTutorialDone(false);
       m.close();
@@ -97,9 +104,10 @@ export function openSettings(scene: Phaser.Scene, opts: { onTutorial?: () => voi
       updateSettings({ rules: { ...getSettings().rules, ...patch } });
     };
     const rule = (i: number, label: string, items: { label: string; value: string }[], cur2: string, pick: (v: string) => void): void => {
-      page.add(text(scene, colL, rowY(i), label, { size: TYPE.body, ox: 0, wrap: 560, align: 'left' }));
+      const ly = rowY(narrow ? i * 2 : i);
+      page.add(text(scene, colL, ly, label, { size: TYPE.body, ox: 0, wrap: narrow ? PW - 96 : 560, align: 'left' }));
       // 宽度也要 minHit()（568 宽的手机上 92 只合 41 CSS 像素）
-      seg(colL, rowY(i), 600, items, cur2, pick, Math.max(104, minHit()));
+      seg(colL, narrow ? rowY(i * 2 + 1) : ly, narrow ? 0 : 600, items, cur2, pick, Math.max(104, minHit()));
     };
     rule(0, '三带二能带一对王', [{ label: '能', value: '1' }, { label: '不能', value: '0' }], rules.fullHouseJokerPair ? '1' : '0', (v) => setRule({ fullHouseJokerPair: v === '1' }));
     rule(1, '打 A 连续几次没过就退回打 2', [{ label: '3 次', value: '3' }, { label: '不退', value: '0' }], String(rules.aFailLimit === 0 ? 0 : 3), (v) => setRule({ aFailLimit: Number(v) }));
@@ -118,7 +126,7 @@ export function openSettings(scene: Phaser.Scene, opts: { onTutorial?: () => voi
   b.add(tabRow(scene, SETTINGS_TABS, tabY, 0, show));
 
   // 恢复默认：一下回到初值，只动设置
-  const resetY = rowY(2) + P * 0.5 + 50;
+  const resetY = rowY(rows - 1) + P * 0.5 + 50;
   b.add(new Button(scene, 0, resetY, 200, 52, '恢复默认', 'quiet', () => {
     const s = resetSettings();
     applyAudio(s);
@@ -242,7 +250,7 @@ export function confirm(scene: Phaser.Scene, msg: string | readonly SignedRow[],
   const LH = 36;
   const h = rows ? Math.max(280, rows.length * LH + 170) : 280;
   const by = h / 2 - 70;
-  const m = modal(scene, 560, h, undefined, { closeBtn: false, onClose });
+  const m = modal(scene, 560, h, undefined, { closeBtn: false, escCloses: true, onClose });
   if (rows) {
     // 文字块在按钮上方居中
     const top = (-h / 2 + 30 + (by - 29 - 10)) / 2 - ((rows.length - 1) * LH) / 2;
@@ -291,7 +299,9 @@ export function openRules(scene: Phaser.Scene, onClose?: () => void, level?: num
   const page = scene.add.container(0, 0);
   b.add(page);
   const tabs = ['牌型', '谁大', '怎么打', ...(hasPointerKeys() ? ['快捷键'] : [])];
+  let cur = 0;
   const show = (i: number): void => {
+    cur = i;
     page.removeAll(true);
     if (i === 0) pagePatterns(scene, page, box, level);
     else if (i === 1) pageOrder(scene, page, box, level);
@@ -300,7 +310,13 @@ export function openRules(scene: Phaser.Scene, onClose?: () => void, level?: num
   };
   b.add(tabRow(scene, tabs, box.top - 24, 0, show));
   show(0);
+  redrawWhenCards(scene, page, () => show(cur));
   return m;
+}
+
+/** 牌面还在后台烘：烘完重画当前页（弹窗已经关了就不管） */
+function redrawWhenCards(scene: Phaser.Scene, page: Phaser.GameObjects.Container, redraw: () => void): void {
+  void cardsPending(scene)?.then(() => page.scene && redraw());
 }
 
 /** 斗地主的规则页：牌型图示 + 叫分、算分两页文字（文字在 doudizhu/rules.ts，牌桌和主页共用） */
@@ -311,7 +327,9 @@ export function openDdzRules(scene: Phaser.Scene, onClose?: () => void): Modal {
   const b = m.body;
   const page = scene.add.container(0, 0);
   b.add(page);
+  let cur = 0;
   const show = (i: number): void => {
+    cur = i;
     page.removeAll(true);
     if (i >= DDZ_RULE_TABS.length) return pageKeys(scene, page, box);
     const lines = DDZ_RULE_TABS[i]!.lines;
@@ -331,6 +349,7 @@ export function openDdzRules(scene: Phaser.Scene, onClose?: () => void): Modal {
   const tabs = [...DDZ_RULE_TABS.map((t) => t.tab), ...(hasPointerKeys() ? ['快捷键'] : [])];
   b.add(tabRow(scene, tabs, box.top - 24, 0, show));
   show(0);
+  redrawWhenCards(scene, page, () => show(cur));
   return m;
 }
 
@@ -439,7 +458,7 @@ function pageOrder(scene: Phaser.Scene, page: Phaser.GameObjects.Container, box:
 }
 function pageFlow(scene: Phaser.Scene, page: Phaser.GameObjects.Container, box: RulesBox): void {
   const items: [string, string, string][] = [
-    ['组队', '你和对面的小美一队', 'cards'],
+    ['组队', '你和坐对面的人一队（单机里是小美）', 'cards'],
     ['出牌', '压过上家，或者不要；都不要时最后出牌的人再出', 'play'],
     ['接风', '有人出完了，大家都不要时由他的队友接着出', 'restart'],
     ['名次', '先出完的是头游，然后二游、三游、末游；一队占了三游末游叫双下', 'crown'],
