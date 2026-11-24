@@ -163,6 +163,8 @@ export function tdReason(log: ReasonLog, res: ReasonRes, extra: ReasonExtra): Re
 
 /** 失败时「打到第 X 波时失守」，和顶栏「已来 N 波」对得上 */
 export function lostAtText(wave: number): string {
+  // 第 1 波还没开打就只可能是撤退
+  if (wave <= 0) return '还没开打就撤退了，算宝藏被抢光';
   return `打到第 ${wave} 波时失守`;
 }
 

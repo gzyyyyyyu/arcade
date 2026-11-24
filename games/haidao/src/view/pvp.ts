@@ -340,7 +340,7 @@ function defenseList(list: DefenseBrief[], parent: HTMLElement, close: () => voi
 function openRoster(onClose: () => void): void {
   const { mask, box } = dialog({ onEsc: () => back.click() });
   el('h2', '', '港口名单', box);
-  el('p', 'hd-sub', '和朋友切磋：打他现在的岛，不抢东西、不算奖杯，他能看回放。', box);
+  el('p', 'hd-sub', '和港口里的海盗切磋：打他现在的岛，不抢东西、不算奖杯，他能看回放。', box);
   const body = el('div', '', undefined, box);
   el('p', 'hd-pvp-empty', '正在看港口…', body);
   const back = button('返回', 'hd-btn-wood hd-btn-wide', () => {
@@ -356,7 +356,8 @@ function openRoster(onClose: () => void): void {
       const it = el('div', 'hd-pvp-item', undefined, wrap);
       const txt = el('div', 'hd-pvp-itxt', undefined, it);
       const head = el('div', '', undefined, txt);
-      el('b', '', x.name || '无名海盗', head);
+      // 没起名的用名单编号前 4 位区分（编号是随机的，不是账号）
+      el('b', '', x.name || `无名海盗 #${x.ref.slice(0, 4).toUpperCase()}`, head);
       if (x.hq !== myHq) el('span', `hd-pvp-tag${x.hq > myHq ? '' : ' real'}`, x.hq > myHq ? '更强' : '更弱', head);
       el('div', '', `主寨 ${x.hq} 级 · 奖杯 ${x.trophies} · ${leagueName(x.trophies)}`, txt);
       const row = el('div', 'hd-row', undefined, it);
@@ -379,7 +380,7 @@ export function openPvp(onClose: () => void): void {
   const close = (): void => {
     mask.remove();
   };
-  el('h2', '', '打别的海盗', box);
+  el('h2', '', '抢劫', box);
   // 试打自己的岛不走网络，接口失败时也能点；找对手接口回来后并进同一行（省一行按钮的高度，一屏放得下防守记录）
   const acts = el('div', 'hd-row hd-pvp-acts', undefined, box);
   button('试打自己的岛', 'hd-btn-plain', () => {
@@ -470,7 +471,8 @@ export function trySelf(onClose: () => void = () => app.goBase()): void {
 function opponent(s: RaidStart, revenge: boolean, onClose: () => void = () => app.goBase()): void {
   const { mask, box } = dialog({ onEsc: () => giveUp.click() });
   box.classList.add('hd-pvp-opp');
-  const h = el('h2', '', s.opponent.name, box);
+  // 服务端给影子岛、切磋的名字带了「影子·」「切磋·」前缀，旁边的标签已经说了，标题只留人名
+  const h = el('h2', '', s.shadow ? s.opponent.name.replace(/^(影子|切磋)·/, '') : s.opponent.name, box);
   const spar = s.shadow === 'spar';
   if (s.shadow) el('span', 'hd-pvp-tag real', spar ? '切磋' : '影子', h);
   else if (s.wanderer) el('span', 'hd-pvp-tag', '电脑', h);
@@ -493,13 +495,13 @@ function opponent(s: RaidStart, revenge: boolean, onClose: () => void = () => ap
     const hq = s.setup.layout.find((b) => b.kind === 'hq');
     const share = hq ? lootPlan(s.setup.layout, s.maxGain).find((p) => p.id === hq.id) : undefined;
     if (share) {
-      const h = el('span', 'hd-pvp-chip', '拆主寨 ', loot);
+      const h = el('span', 'hd-pvp-chip', '拆掉主寨能抢 ', loot);
       h.appendChild(costRow({ gold: share.gold, wood: share.wood }));
     }
-    const all = el('span', 'hd-pvp-chip', '拆光 ', loot);
+    const all = el('span', 'hd-pvp-chip', '全拆光能抢 ', loot);
     all.appendChild(costRow(s.maxGain));
   }
-  const c2 = el('span', 'hd-pvp-chip', '出海要 ', loot);
+  const c2 = el('span', 'hd-pvp-chip', '出海花 ', loot);
   c2.appendChild(costRow({ gold: 0, wood: cost.wood }, app.profile.res));
   if (spar) el('p', 'hd-sub', '切磋：打他现在的岛，不抢东西、不算奖杯，也不影响你的护盾；他能看回放、切磋回来。', box);
   else if (s.shadow) el('p', 'hd-sub', '这是他岛的影子：照他现在的布局打，他不掉东西；抢到的金币木材由港口发，奖杯减半。他能看回放。', box);
@@ -670,7 +672,7 @@ export function pvpCard(onOpen: () => void, parent: HTMLElement): () => void {
   b.appendChild(img(iconA('sword'), 36));
   const t = el('span', 'hd-mc-t', undefined, b);
   el('b', '', '抢劫', t);
-  el('small', unseen || revenge ? 'hd-pvp-alert' : '', unseen ? `你被抢了 ${unseen} 次` : revenge ? `能复仇 ${revenge} 次` : m?.protectUntil ? `新手保护 ${hoursLeft(m.protectUntil)}` : m ? `${leagueName(m.trophies)} · 奖杯 ${m.trophies}` : '抢别人的金币木材', t);
+  el('small', unseen || revenge ? 'hd-pvp-alert' : '', unseen ? `你被抢了 ${unseen} 次` : revenge ? `能复仇 ${revenge} 次` : m?.protectUntil ? `新手保护 ${hoursLeft(m.protectUntil)}` : m ? `段位 ${leagueName(m.trophies)} · 奖杯 ${m.trophies}` : '抢别人的金币木材', t);
   el('span', 'hd-mc-go', '出海', b);
   if (unseen || revenge || fresh) el('span', 'hd-dot', undefined, b);
   b.addEventListener('click', () => {

@@ -193,7 +193,8 @@ export function openBuild(bs: BaseScene, focus?: BuildingKind): void {
   const grid = el('div', 'hd-grid', undefined, body);
   bs.buildCards.clear();
   const kinds = (Object.keys(BUILDINGS) as BuildingKind[])
-    .filter((k) => CAT_ORDER.includes(BUILDINGS[k].category))
+    // 首领岛专属的（海怪、雾塔）主寨等级写的 99，玩家造不了，不进建造清单
+    .filter((k) => CAT_ORDER.includes(BUILDINGS[k].category) && BUILDINGS[k].unlockHq <= BUILDINGS.hq.maxLevel)
     .sort((a, b) => CAT_ORDER.indexOf(BUILDINGS[a].category) - CAT_ORDER.indexOf(BUILDINGS[b].category) || BUILDINGS[a].unlockHq - BUILDINGS[b].unlockHq);
   for (const k of kinds) {
     const d = BUILDINGS[k];

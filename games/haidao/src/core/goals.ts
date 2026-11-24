@@ -21,7 +21,7 @@ export const GOALS: Readonly<Record<GoalKind, GoalDef>> = {
   raid: { need: 1, text: '抢劫一次', online: true },
   td: { need: 1, text: '守岛或海盗来袭一局' },
   upgrade: { need: 2, text: '升级 2 次建筑' },
-  collect: { need: 1, text: '收一次矿' },
+  collect: { need: 1, text: '收一次金矿或伐木场（一键收取也算）' },
   duel: { need: 1, text: '切磋或复仇一次', online: true },
   scrim: { need: 1, text: '试打自己的岛一次', online: true },
 };

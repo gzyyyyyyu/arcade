@@ -61,10 +61,10 @@ export function openEscortLive(onClose: () => void): void {
     const c = el('div', 'hd-live-card', undefined, cards);
     const info = el('div', 'hd-live-info', undefined, c);
     el('b', '', `${t.name}档 · 一份 ${fmt(t.stake)}`, info);
-    el('div', '', '', info).append('电脑 ', el('span', 'hd-live-star', '★'.repeat(t.power) + '☆'.repeat(4 - t.power)), ' · 约 3–5 分钟');
+    el('div', '', '', info).append('难度 ', el('span', 'hd-live-star', '★'.repeat(t.power) + '☆'.repeat(4 - t.power)), ' · 约 3–5 分钟');
     winLose(info, t.stake, t.top);
     const btn = gate(wallet, button('开护', 'hd-btn-gold', () => {
-      buyIn(wallet, t.stake, t.name, () =>
+      buyIn(wallet, t.stake, `${t.name}档一份`, () =>
         confirmBox(`带入 ${fmt(t.stake)} 筹码护航。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。确定开护？`, '确定开护', () => {
           mask.remove();
           void startEscortLive(id, onClose);
@@ -151,7 +151,7 @@ export function openMapLive(onClose: () => void): void {
     el('div', '', MAP_TIER_NOTE, info);
     winLose(info, t.stake, t.top);
     const btn = gate(wallet, button('出航', 'hd-btn-gold', () => {
-      buyIn(wallet, t.stake, t.name, () =>
+      buyIn(wallet, t.stake, `${t.name}档一份`, () =>
         confirmBox(`带入 ${fmt(t.stake)} 筹码出航。最多赢 ${fmt(liveReturn(t.stake, t.top) - t.stake)}，最多输 ${fmt(t.stake)}（就是带进去的这一份）。今天只有这一趟，确定出航？`, '确定出航', () => {
           mask.remove();
           void startMapLive(id, onClose);

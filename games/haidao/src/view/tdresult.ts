@@ -102,7 +102,7 @@ function settle(bs: TdScene): void {
   // 入场节奏同登陆战（样式在 skin.ts，时间点和声音共用 audio/result.ts）：星星落完淡入战利品，飞进仓库之后按钮淡入
   box.style.setProperty('--sd', `${tm.sd}ms`);
   box.style.setProperty('--fin', `${tm.fin}ms`);
-  el('h2', '', tdVerdict(res.stars, res.lost), box);
+  el('h2', '', `${play === 'vet' ? '老兵局 · ' : ''}${tdVerdict(res.stars, res.lost)}`, box);
   dropStars(box, res.stars, 44, tm.starAt);
   const kept = el('div', 'hd-td-kept', undefined, box);
   kept.appendChild(img(bTex('treasure', 1), 36));
@@ -117,7 +117,7 @@ function settle(bs: TdScene): void {
   reasonLines(bs, box, res);
   if (play !== 'normal') {
     const what = play === 'vet' ? '老兵徽' : '挑战章';
-    el('p', `hd-sub hd-td-line${res.stars >= 1 ? ' hd-pos' : ''}`, res.stars >= 1 ? `拿到这一关的${what}（老兵、挑战不给金币木材）` : `守住才有${what}`, box);
+    el('p', `hd-sub hd-td-line${res.stars >= 1 ? ' hd-pos' : ''}`, res.stars >= 1 ? `拿到这一关的${what}（${play === 'vet' ? '老兵' : '挑战'}局不给金币木材）` : `守住才有${what}`, box);
   } else if (rw) {
     loot(bs, mask, box, before, { gold: rw.gold, wood: rw.wood }, { gold: rw.bonusGold, wood: rw.bonusWood }, tm.flyAt);
     if (rw.newStars > 0) bonusLine(bs, box, rw.bonusGold, rw.bonusWood);

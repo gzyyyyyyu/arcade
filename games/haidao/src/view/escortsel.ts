@@ -92,7 +92,7 @@ export function openEscortSelect(onGo: (levelId: string) => void, onClose: () =>
       if (locked) c.appendChild(lockIcon(28));
       const t = el('span', 't', undefined, c);
       el('b', '', g.title, t);
-      el('small', '', locked ? lockText(i > 0 ? (gs[i - 1]?.title ?? null) : null) : `${total} 星 / ${ESCORT_DIFFS.length * 3}`, t);
+      el('small', '', locked ? lockText(i > 0 ? (gs[i - 1]?.title ?? null) : null) : `${total}/${ESCORT_DIFFS.length * 3} 星`, t);
       c.addEventListener('click', () => {
         sfx('tap');
         if (locked) toast(lockText(i > 0 ? (gs[i - 1]?.title ?? null) : null));

@@ -18,7 +18,7 @@ import { button, costRow, el, img, toast } from './ui.ts';
 
 /** 主寨还没到 8 级时，升级说明里加一行（放在「升到 N 级开放」那块里） */
 export function rankHint(box: HTMLElement): void {
-  if (hqLevel(app.profile) < RANK_HQ) el('p', 'hd-sub hd-rank-lock', `主寨 ${RANK_HQ} 级开放海盗王阶`, box);
+  if (hqLevel(app.profile) < RANK_HQ) el('p', 'hd-sub hd-rank-lock', `主寨 ${RANK_HQ} 级开放海盗王阶：多余的金币木材献上去换王旗外观，不加战力`, box);
 }
 
 /** 主寨面板里的「海盗王阶」区；主寨没到 8 级不出现（rankHint 另给一行说明）。reopen = 献完后原位重画面板 */

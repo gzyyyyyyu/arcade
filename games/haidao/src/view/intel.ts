@@ -5,6 +5,7 @@
  */
 import { BUILDINGS, SHIELD, TROOPS, TROOP_INTEL, defenseMatchups } from '../content/index.ts';
 import { td2TierStats, TD2_SHOCK_STUN } from '../content/td2units.ts';
+import type { TdPrio } from '../content/tdults.ts';
 import { BOMBER_WALL_LOOK, GRENADE_LOOK, GRENADE_WALL_PCT, SNIPE_ORDER, WALL_BOMB_MUL, raidDefenseBase } from '../core/battle.ts';
 import type { TdTier, TdTowerKind } from '../core/td2types.ts';
 import { TICKS_PER_SEC, UNIT, type BuildingKind, type TroopKind } from '../core/types.ts';
@@ -196,7 +197,16 @@ function defenseAims(kind: BuildingKind, level: number): AimLine[] {
 const TD_KINDS: readonly TdTowerKind[] = ['cannon', 'gunTower', 'mortar', 'flame', 'harpoon', 'rocket', 'shock', 'sniper'];
 const tdMax = (f: (k: TdTowerKind) => number): number => Math.max(...TD_KINDS.map(f));
 
-export function tdTowerCard(kind: TdTowerKind, tier: TdTier): IntelCard {
+/** 「先打」各档在介绍卡和塔面板上怎么说（和 core/td.ts 的 prioKey 对上） */
+export const TD_PRIO_AIM: Readonly<Record<TdPrio, string>> = {
+  first: '先打扛着宝藏往回跑的，再打离宝藏箱最近（走在最前面）的',
+  strong: '先打射程里血最多的',
+  near: '先打离这座塔最近的',
+  elite: '先打精英和首领（军医、鼓手也算），同样的打走在最前面的',
+};
+
+/** prio：局里这座塔选的「先打」（没传按默认的最前写） */
+export function tdTowerCard(kind: TdTowerKind, tier: TdTier, prio: TdPrio = 'first'): IntelCard {
   const cur = td2TierStats(kind, tier);
   const nx = tier < 3 ? td2TierStats(kind, (tier + 1) as TdTier) : null;
   const top = (k: TdTowerKind) => td2TierStats(k, 3);
@@ -210,13 +220,15 @@ export function tdTowerCard(kind: TdTowerKind, tier: TdTier): IntelCard {
   const cc = towerCounter(kind);
   const aims: AimLine[] = [];
   if (kind === 'sniper') aims.push({ icon: 'priority', text: '先打首领和军医，再打扛着宝藏的，其余打走在最前面的；锁定 0.5 秒才开火' });
-  else aims.push({ icon: 'front', text: '先打扛着宝藏往回跑的，再打离宝藏箱最近（走在最前面）的' });
+  else aims.push({ icon: 'front', text: TD_PRIO_AIM[prio] });
   aims.push({ icon: 'lock', text: '盯住一个直到它死或走出射程；在路上的伤害已经够打死的，就换下一个' });
   if (cur.minRange > 0) aims.push({ icon: 'dead', text: `近处 ${cells(cur.minRange)} 格内打不到` });
   if (cur.shots > 1) aims.push({ icon: 'multi', text: `一次 ${cur.shots} 发，分给不同的敌人` });
   if (cur.splash > 0) aims.push({ icon: 'splash', text: `落点溅射 ${cells(cur.splash)} 格` });
   if (kind === 'shock') aims.push({ icon: 'stun', text: `命中震晕 ${secs(TD2_SHOCK_STUN)} 秒，之后一阵子震不晕，首领减半` });
-  aims.push({ icon: 'air', text: !cc.none.includes('air') ? `能打${ARMOR_NAME.air}` : kind === 'rocket' ? `打不到${ARMOR_NAME.air}，选「高射」路线才能打` : `打不到${ARMOR_NAME.air}` });
+  // 打不到飞禽的，卡片下面「打不到」那行已经写了，这里只补火箭的「高射」路线
+  if (!cc.none.includes('air')) aims.push({ icon: 'air', text: `能打${ARMOR_NAME.air}` });
+  else if (kind === 'rocket') aims.push({ icon: 'air', text: `选「高射」路线才能打${ARMOR_NAME.air}` });
   return {
     family: 'td',
     kind,

@@ -27,6 +27,7 @@ import { openMap } from './basenav.ts';
 import { rankBlock } from './rankui.ts';
 import { rankTitle } from './ranktext.ts';
 import { shopSection } from './live.ts';
+import { openTraining } from './training.ts';
 
 /** 个人面板：星数、主寨、成就和称号（顶栏只留金币木材主寨，其余收在这里） */
 export function openProfile(bs: BaseScene): void {
@@ -44,11 +45,16 @@ export function openProfile(bs: BaseScene): void {
   if (p.title) el('p', 'hd-desc', `当前称号：「${p.title}」`, body);
   if (rankOf(p) > 0) el('p', 'hd-desc hd-rank-title', rankTitle(rankOf(p)), body);
   if (tdChapterCleared(p.td?.stars ?? {}, 4)) el('p', 'hd-desc', '远洋通关：守岛第四章全部过关', body);
+  const row = el('div', 'hd-row', undefined, body);
   if (hasAchievements()) {
-    const row = el('div', 'hd-row', undefined, body);
     button('成就和称号', 'hd-btn-gold', () => openAchievements(bs, 'ach'), row);
     button('收藏', 'hd-btn-wood', () => openAchievements(bs, 'col'), row);
   }
+  // 手机竖屏顶栏放不下训练营钮（layout.ts），档案里留一个入口，哪个尺寸都有
+  button('训练营', 'hd-btn-wood', () => {
+    closeSheet(bs);
+    openTraining();
+  }, row);
 }
 
 export function reloadFromSave(bs: BaseScene): void {

@@ -1,6 +1,7 @@
 import type { TdScene } from './TdScene.ts';
 import { trainTdRefresh } from './trainplay.ts';
 import { TD_TREASURE } from '../content/index.ts';
+import { TD_VET_LOSE_AT } from '../core/tddeep.ts';
 import { TD2_BATTERY, TD2_ENEMIES, TD2_FLEET, TD2_HERO_SKILL } from '../content/td2units.ts';
 import { heroCd, hookEnabled, tdPreview, tdRoutes, tdCallBonus, tdDareCan, tdNextTide, tdSluiceCan, type WavePreview } from '../core/index.ts';
 import { TD2_EVENT } from '../content/td2units.ts';
@@ -41,6 +42,11 @@ export function buildUi(bs: TdScene): void {
   tp.appendChild(img(iconA('treasure'), 22));
   const treasure = el('b', '', '', tp);
   tp.title = '宝藏';
+  // 老兵局输的线更低，挂在宝藏旁边，别让人按普通局的线算
+  if (bs.s.deep?.vet) {
+    el('small', 'hd-td-vetline', `老兵 · 丢 ${TD_VET_LOSE_AT} 枚输`, tp);
+    tp.title = `宝藏（老兵局：丢 ${TD_VET_LOSE_AT} 枚就输）`;
+  }
   if (bs.esc) tp.style.display = 'none';
   const wp = el('div', 'hd-pill', undefined, bar);
   wp.appendChild(img(iconA('sword'), 22));
@@ -48,9 +54,10 @@ export function buildUi(bs: TdScene): void {
   bs.esc?.buildBar(bar);
   const bar2 = el('div', 'hd-td-bar2', undefined, bs.ui);
   const gp = el('div', 'hd-pill', undefined, bar2);
-  gp.appendChild(img(iconA('hammer'), 22));
+  // 局内金币用金币图标，和按钮上「+51 金」、标价一个叫法（只在这一局里用，打完不进仓库）
+  gp.appendChild(img(iconA('gold'), 22));
   const gold = el('b', '', '', gp);
-  gp.title = '局内金币';
+  gp.title = '局内金币（造塔用，这一局里有效）';
   const cp = el('div', 'hd-pill', undefined, bar2);
   const count = el('b', '', '', cp);
   const spacer = el('span', '', undefined, bar2);
@@ -404,7 +411,7 @@ export function updateHud(bs: TdScene, force = false): void {
   H.count.textContent = !endless && s.wave >= total ? '最后一波' : left >= 0 ? `下一波 ${left}秒` : '';
   H.call.disabled = !canCallNow;
   const lab = H.call.querySelector('span') ?? el('span', '', '', H.call);
-  lab.textContent = canCallNow ? (s.wave === 0 ? '开打' : '叫下一波') : s.over ? '这局结束了' : '没有更多波次';
+  lab.textContent = canCallNow ? (s.wave === 0 ? '叫第 1 波' : '叫下一波') : s.over ? '这局结束了' : '没有更多波次';
   let sub = H.call.querySelector('small');
   if (canCallNow) {
     sub ??= el('small', '', '', H.call);
@@ -562,14 +569,22 @@ export function askEnd(bs: TdScene): void {
 export function placePaused(bs: TdScene): void {
   const p = bs.hud.paused;
   p.style.top = '';
+  p.style.right = '';
   const ui = bs.ui.getBoundingClientRect();
   const r = p.getBoundingClientRect();
   let top = r.top;
-  const blocks = [bs.hud.plan, bs.ui.querySelector<HTMLElement>('.hd-fitbtn')].filter((e): e is HTMLElement => !!e?.offsetParent).map((e) => e.getBoundingClientRect());
-  // 挪到一个下面后可能又碰上另一个：最多再查一轮
-  for (let k = 0; k < 2; k++) {
+  // 电脑上塔面板摆在右上、竖屏「新敌人」卡在右上，都会盖住横幅：一起让开
+  const blocks = [bs.hud.plan, ...bs.ui.querySelectorAll<HTMLElement>('.hd-fitbtn, .hd-td-sheet, .hd-defhint')].filter((e): e is HTMLElement => !!e?.offsetParent).map((e) => e.getBoundingClientRect());
+  // 挪到一个下面后可能又碰上另一个：最多再查两轮
+  for (let k = 0; k < 3; k++) {
     for (const q of blocks) if (q.left < r.right && q.right > r.left && q.top < top + r.height && q.bottom > top) top = q.bottom + 6;
   }
-  if (top !== r.top) p.style.top = `${Math.round(top - ui.top)}px`;
+  if (top + r.height <= ui.bottom - 8) {
+    if (top !== r.top) p.style.top = `${Math.round(top - ui.top)}px`;
+    return;
+  }
+  // 下面没地方（电脑上塔面板几乎占满右侧整列）：高度不动，挪到挡住它的东西左边
+  const edge = Math.min(...blocks.filter((q) => q.top < r.bottom && q.bottom > r.top && q.left < r.right && q.right > r.left).map((q) => q.left));
+  if (Number.isFinite(edge)) p.style.right = `${Math.round(ui.right - edge + 8)}px`;
 }
 

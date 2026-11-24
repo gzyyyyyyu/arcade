@@ -24,15 +24,24 @@ function advice(layout: Placed[]): string {
 }
 
 
-/** 侦察：全屏看敌岛布局（不显示地雷），可拖动缩放；点建筑看等级、血量、射程圈；首领岛写一句解法提示 */
-export function openScout(lv: LevelDef): void {
+/**
+ * 侦察：全屏看敌岛布局（不显示地雷），可拖动缩放；点建筑看等级、血量、射程圈；首领岛写一句解法提示。
+ * onGo：能出发时传（岛面板「出发」钮同一件事），看完直接在这里出发，不用先关掉再点
+ */
+export function openScout(lv: LevelDef, onGo?: () => void): void {
   const root = el('div', 'hd-scout', undefined, uiRoot());
   const head = el('div', 'hd-scout-head', undefined, root);
   el('h2', '', `侦察：${lv.name}`, head);
-  button('×', 'hd-x', () => {
+  const close = (): void => {
     mini.destroy();
     root.remove();
-  }, head);
+  };
+  if (onGo)
+    button('出发', 'hd-btn-gold', () => {
+      close();
+      onGo();
+    }, head);
+  button('×', 'hd-x', close, head);
   if (lv.boss && lv.counter) el('p', 'hd-counter', `解法：${lv.counter}`, root);
   el('p', 'hd-sub hd-scout-tip', '拖动、双指缩放；点建筑看射程。地雷和陷阱看不见。', root);
   const host = el('div', 'hd-scout-map', undefined, root);

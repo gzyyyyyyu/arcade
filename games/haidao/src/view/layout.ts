@@ -75,9 +75,9 @@ ${W} .hd-bar, ${W} .hd-bar2, ${W} .hd-td-bar, ${W} .hd-td-bar2, ${W} .hd-boats, 
 /* 电脑：悬停态（有鼠标才有）；按下态沿用皮肤的 :active。数字键的小角标只在有鼠标时显示 */
 ${W} .hd-key { display:none; }
 @media (hover:hover) and (pointer:fine) {
-  ${W} .hd-btn:hover:not(:disabled):not(.done):not(.off), ${W} .hd-card:hover:not(.off), ${W} .hd-boat:hover:not(.done), ${W} .hd-td-tower:hover:not(:disabled), ${W} .hd-td-branch:hover:not(:disabled), ${W} .hd-tdtab:hover, ${W} .hd-tdcard:hover, ${W} .hd-node:hover { filter:brightness(1.12) saturate(1.08); cursor:pointer; }
+  ${W} .hd-btn:hover:not(:disabled):not(.done):not(.off), ${W} .hd-card:hover:not(.off), ${W} .hd-boat:hover:not(.done), ${W} .hd-td-tower:hover:not(:disabled), ${W} .hd-td-branch:hover:not(:disabled), ${W} .hd-tdtab:hover, ${W} .hd-tdcard:hover:not(.lock), ${W} .hd-node:hover { filter:brightness(1.12) saturate(1.08); cursor:pointer; }
   ${W} .hd-node:active { transform:translate(-50%,-50%) translateY(2px); }
-  ${W} .hd-tdcard:active { transform:translateY(2px); }
+  ${W} .hd-tdcard:active:not(.lock) { transform:translateY(2px); }
   ${W} .hd-key { display:block; position:absolute; left:4px; top:3px; min-width:16px; height:16px; padding:0 3px; border-radius:5px; background:rgba(43,26,21,.78); color:#fff4dc; font:800 12px/16px system-ui,sans-serif; text-align:center; pointer-events:none; }
 }
 
@@ -195,6 +195,8 @@ ${W} .hd-key { display:none; }
      （以前把间距收到 2–4 硬塞，点按区挨太近）。浮到叫波正上方、隔 8；两颗都有时锚钩在机制钮左边，也隔 8 */
   ${W} .hd-td-hasmech .hd-td-mech:not(.hd-td-hookbtn), ${W} .hd-td-hashook .hd-td-hookbtn { position:absolute; right:144px; bottom:calc(100% + 8px); }
   ${W} .hd-td-hasmech.hd-td-hashook .hd-td-hookbtn { right:196px; }
+  /* 没解锁的锚钩在竖屏只能浮在战场上，像个走丢的钮：竖屏不摆，电脑和横屏照旧摆着灰钮 */
+  ${W} .hd-td-hookbtn.hd-td-hooklock { display:none; }
   @media (max-height:700px) { ${W} .hd-tdsel.hd-tdsel-main { padding-top:4px; padding-bottom:4px; } }
   /* 矮竖屏（360×640）：预告卡只留第一行（第几波、敌人、倒数），贴着顶栏下沿、内边距收小，顶底栏才在 22% 内；
      「先造哪座」地上的金圈和塔名牌照样指着 */

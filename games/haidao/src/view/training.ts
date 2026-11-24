@@ -3,6 +3,7 @@
  */
 import { BUILDINGS, TROOPS } from '../content/index.ts';
 import { TRAIN_LESSONS, type TrainLesson } from '../content/training.ts';
+import { INGOT_EARN } from '../content/livetable.ts';
 import { nextLesson, trainDone, trainOpen } from '../core/training.ts';
 import { app, fmt } from './app.ts';
 import { bArt, iconA, tArt } from './art.ts';
@@ -26,7 +27,7 @@ export function openTraining(): void {
   button('×', 'hd-x', () => mask.remove(), dlg).title = '关掉（Esc）';
   el('h2', '', '训练营', dlg);
   const done = TRAIN_LESSONS.filter((l) => trainDone(p, l.id)).length;
-  el('p', 'hd-sub', `每关一两分钟，一步一提示；第一次过关有奖励 · 已过 ${done}/${TRAIN_LESSONS.length}`, dlg);
+  el('p', 'hd-sub', `每关一两分钟，一步一提示；第一次过关给金币和 ${INGOT_EARN.train} 个金银锭 · 已过 ${done}/${TRAIN_LESSONS.length}`, dlg);
   const grid = el('div', 'hd-train-grid', undefined, dlg);
   const nx = nextLesson(p);
   for (const l of TRAIN_LESSONS) {

@@ -346,13 +346,22 @@ export function beachPulse(bs: BattleScene): void {
   bs.tweens.add({ targets: bs.beachG, alpha: sel ? { from: 0.5, to: 1 } : { from: 0.3, to: 0.7 }, duration: sel ? 600 : 900, yoyo: true, repeat: -1 });
 }
 
+/** 撤退确认框开着的场景：再按撤退（钮、快捷键）不叠第二个 */
+const asking = new WeakSet<BattleScene>();
+
 export function askEnd(bs: BattleScene): void {
-  if (bs.ended) return;
+  if (bs.ended || asking.has(bs)) return;
   bs.paused = true;
-  confirmBox(bs.st.landed.some(Boolean) ? '现在结束？已经拆掉的算数。' : '还没登陆就撤退？出海的木材不退。', '结束', () => {
+  asking.add(bs);
+  const landed = bs.st.landed.some(Boolean);
+  confirmBox(landed ? '现在结束？已经拆掉的算数。' : '还没登陆就撤退？出海的木材不退。', landed ? '结束' : '撤退', () => {
+    asking.delete(bs);
     bs.st.over = true;
     finish(bs, 0);
-  }, '继续打', () => (bs.paused = false));
+  }, '继续打', () => {
+    asking.delete(bs);
+    bs.paused = false;
+  });
 }
 
 /** 航线站的顶栏条：第 N/4 站 · 宝分 · 倒计时条（样式在 mapcss.ts） */

@@ -133,7 +133,7 @@ describe('叫波按钮、驻守台', () => {
   });
   it('驻守的那一句：基地等级 → 驻守阶', () => {
     expect(garrisonLine({ kind: 'cannon', baseLevel: 7, tier: 3 })).toBe('你的加农炮 7 级 → 驻守 3 阶');
-    expect(garrisonShort({ kind: 'gunTower', baseLevel: 6, tier: 2 })).toBe('火枪塔 6 级→驻守 2 阶');
+    expect(garrisonShort({ kind: 'gunTower', baseLevel: 6, tier: 2 })).toBe('基地 6 级→驻守 2 阶');
   });
   it('驻守台在岛的哪一边', () => {
     expect(spotSide({ x: 12, y: 2 })).toBe('北边');

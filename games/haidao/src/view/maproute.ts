@@ -146,7 +146,7 @@ export function mapLiveChip(onOpen: () => void, parent: HTMLElement): () => void
   b.type = 'button';
   b.setAttribute('aria-label', '航线实盘');
   el('b', '', '实盘', b);
-  el('small', '', '带筹码', b);
+  el('small', '', '跑航线', b);
   b.addEventListener('click', () => {
     sfx('tap');
     onOpen();
@@ -272,7 +272,7 @@ class RoutePage {
 
     this.bottom = el('div', 'hd-route-bottom', undefined, this.root);
     this.tip = el('div', 'hd-route-tip', '', this.bottom);
-    const home = button('收航', 'hd-btn-wood', () => this.askHome(), this.bottom);
+    const home = button('提前收航', 'hd-btn-wood', () => this.askHome(), this.bottom);
     keyBadge(home, 0);
     home.querySelector('.hd-key')!.textContent = 'H';
     this.goBtn = button('出发', 'hd-btn-gold', () => void this.sail(), this.bottom, 'confirm');
@@ -405,14 +405,17 @@ class RoutePage {
     el('b', '', fmt(def.pts), v);
     const r = riskOf(def);
     const rk = el('span', 'hd-route-risk', undefined, v);
-    rk.title = `风险 ${r} 星`;
-    rk.append('★'.repeat(r));
+    rk.title = `难度 ${r} 星`;
+    // 星星前写「难度」：只有图标时会被当成奖励星
+    rk.append(`难度 ${'★'.repeat(r)}`);
     el('s', '', '★'.repeat(3 - r), rk);
   }
 
   private renderFleet(): void {
     const s = run!.s;
     this.fleetEl.textContent = '';
+    // 打头写「船队」、能量写字：只有兵的头像和数字时看不出是剩下的兵
+    el('small', 'hd-route-lbl', '船队', this.fleetEl);
     s.fleet.forEach((b, i) => {
       const c = el('div', `hd-route-crew${b.alive <= 0 ? ' gone' : b.alive < b.cap ? ' hurt' : ''}`, undefined, this.fleetEl);
       c.dataset.i = String(i);
@@ -424,7 +427,7 @@ class RoutePage {
     const e = el('div', 'hd-route-energy', undefined, this.fleetEl);
     e.title = '旗舰能量：放技能用，跨站累计';
     e.appendChild(img(iconA('energy'), 22));
-    el('b', '', `${s.energy}/${MAP_ENERGY_MAX}`, e);
+    el('b', '', `能量 ${s.energy}/${MAP_ENERGY_MAX}`, e);
     el('i', '', undefined, e).style.setProperty('--k', String(s.energy / MAP_ENERGY_MAX));
   }
 

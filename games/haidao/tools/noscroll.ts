@@ -804,8 +804,10 @@ try {
         await click('.hd-goals-card');
         await page.locator('.hd-goals').first().waitFor({ timeout: 5000 });
         await snap('每日三件小事', 400);
-        await click('.hd-goals button:has-text("关")');
-        await page.waitForTimeout(300);
+        // 点框外的遮罩要能关（试玩 11-23 报过关不掉）：点左下角，关不掉就报流程错
+        const vp = page.viewportSize()!;
+        await page.mouse.click(4, vp.height - 4);
+        await page.locator('.hd-goals').first().waitFor({ state: 'detached', timeout: 3000 });
       });
       await attempt('海图岛屿面板', async () => {
         await page.locator('.hd-map .hd-node:has(.hd-num:text-is("1"))').first().dispatchEvent('click');
@@ -856,7 +858,8 @@ try {
       await click('.hd-bottom button:has-text("出海")');
       await page.locator('.hd-mapcard').first().waitFor({ timeout: 8000 });
       await attempt('寻宝航线入口卡', () => snap('寻宝航线入口卡'));
-      await click('.hd-mapcard');
+      // 今日三件小事、护航、抢劫的卡也带 .hd-mapcard，只点今日航线那张
+      await click('.hd-mapcard:not(.hd-goals-card):not(.hd-esc-card):not(.hd-pvp-card)');
       await page.locator('.hd-route .hd-route-node.cur').first().waitFor({ timeout: 8000 });
       await attempt('寻宝航线图页（.hd-route）', () => snap('寻宝航线图页（.hd-route）', 700));
       await attempt('整备条', async () => {

@@ -1,6 +1,6 @@
 import type { TdTier } from '../core/td2types.ts';
 import { attachIntel, intelButton } from './intelcard.ts';
-import { tdTowerCard } from './intel.ts';
+import { TD_PRIO_AIM, tdTowerCard } from './intel.ts';
 import type { TdScene } from './TdScene.ts';
 import { BUILDINGS } from '../content/index.ts';
 import { TD_BRANCH_DESC } from '../content/tdbranches.ts';
@@ -96,10 +96,10 @@ export function slotSig(bs: TdScene): string {
   return `${sl.tower}|${t?.level ?? 0}|${t?.tier ?? 0}|${t?.branch.join(',') ?? ''}|${sl.ups}|${wreckOf(bs, sl)?.id ?? -1}|${bs.sellArmed}|${Math.floor(s.gold / 10)}|${t ? '' : (tdBuildBlock(s, bs.openSlot) ?? '')}|${t?.ult ?? ''}|${t?.prio ?? ''}|${campSig(s, bs.openSlot)}`;
 }
 
-/** 金币标价：锤子图标 + 数字，不够时标红 */
+/** 金币标价：金币图标 + 数字，不够时标红 */
 export function price(bs: TdScene, parent: HTMLElement, n: number): void {
   const pr = el('span', `hd-td-price${bs.s.gold < n ? ' short' : ''}`, undefined, parent);
-  pr.appendChild(img(iconA('hammer'), 16));
+  pr.appendChild(img(iconA('gold'), 16));
   el('b', 'hd-n', String(n), pr);
 }
 
@@ -187,7 +187,7 @@ export function renderSheet(bs: TdScene): void {
       const cc = towerCounter(k);
       const ctr = el('small', 'hd-td-ctr', undefined, c);
       // 伤害只留方章（「炮」「枪」），护甲写全名的带色小条：一个字的小圆章太小，「飞」「布」很容易看错；
-      // 打不到的划掉（不写「打不到」三个字，免得卡片折成两行、手机上面板放不下）
+      // 打不到的在整条斜划一道红杠（细删除线在 12 号小字上看不出来；红杠不占宽，卡片不折行、面板不变高）
       dmgBadge(cc.dmg, ctr);
       if (cc.good.length) ctr.append(' 克');
       for (const a of cc.good) el('i', `hd-armn a-${a}`, ARMOR_NAME[a], ctr);
@@ -234,7 +234,7 @@ export function renderSheet(bs: TdScene): void {
   if (isTdTowerKind(t.kind)) {
     // 介绍卡片：钮放在标题栏（放在内容里会把手机横屏的面板顶出一屏）
     const kind = t.kind;
-    intelButton('i 介绍', () => tdTowerCard(kind, tier as TdTier), head);
+    intelButton('i 介绍', () => tdTowerCard(kind, tier as TdTier, t.prio), head);
   }
   button('×', 'hd-x', () => closeSheet(bs), head).title = '关掉（Esc）';
   const chips = el('div', 'hd-chips', undefined, box);
@@ -260,7 +260,7 @@ export function renderSheet(bs: TdScene): void {
     const cur = t.prio ?? 'first';
     const next = TD_PRIOS[(TD_PRIOS.indexOf(cur) + 1) % TD_PRIOS.length]!;
     const pb = button(`先打：${TD_PRIO_NAME[cur]}`, 'hd-btn-wood hd-td-prio', () => act(bs, { type: 'prio', slot: bs.openSlot, prio: next }), acts);
-    pb.title = `点一下换成「${TD_PRIO_NAME[next]}」（F）`;
+    pb.title = `${TD_PRIO_AIM[cur]}。点一下换成「${TD_PRIO_NAME[next]}」（F）`;
     keyBadge(pb, 'F');
   }
   const cost = tdUpCost(t.kind, tier - 1);
@@ -287,7 +287,7 @@ export function renderSheet(bs: TdScene): void {
     keyBadge(sell, 'S');
     sell.append(armed ? '再点一下确认 ' : '卖掉 ');
     const pr = el('span', 'hd-td-price', undefined, sell);
-    pr.appendChild(img(iconA('hammer'), 16));
+    pr.appendChild(img(iconA('gold'), 16));
     el('b', '', `+${refund}`, pr);
   }
 }
@@ -378,7 +378,7 @@ function campSheet(bs: TdScene, box: HTMLElement, head: HTMLElement, camp: TdCam
     keyBadge(sell, 'S');
     sell.append(armed ? '再点一下确认 ' : '卖掉 ');
     const pr = el('span', 'hd-td-price', undefined, sell);
-    pr.appendChild(img(iconA('hammer'), 16));
+    pr.appendChild(img(iconA('gold'), 16));
     el('b', '', `+${refund}`, pr);
   }
 }

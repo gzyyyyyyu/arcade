@@ -176,6 +176,10 @@ function tdCss(): string {
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-head { padding:0 0 0 84px; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-top, .hd-ui.hd-skin .hd-tdsel-main .hd-tdmodes { grid-template-columns:1fr; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdtabs { padding-right:176px; }
+  /* 右栏扣掉右上角的钮只剩 340 来宽，六个页签和 400 宽竖屏一样窄：同样不折行、去掉「星」字（试玩 11-23 折成「第一 / 章 / 3/18 / 星」） */
+  .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab { padding:2px 0; }
+  .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab :is(b,small) { white-space:nowrap; }
+  .hd-ui.hd-skin .hd-tdsel-main .hd-tdtab-unit { display:none; }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdsel-list { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdcard { grid-template-columns:auto minmax(0,1fr); }
   .hd-ui.hd-skin .hd-tdsel-main .hd-tdcard .hd-tdinfo { grid-row:2; }
@@ -186,6 +190,8 @@ function tdCss(): string {
 .hd-ui .hd-tdgar-main { display:flex; flex-direction:column; align-items:center; gap:8px; padding:6px 8px 8px; }
 .hd-ui .hd-tdgar-main > * { width:min(100%,1040px); margin:0; }
 .hd-ui .hd-tdgar-main .hd-tdsel-head { padding:0 136px 0 84px; }
+/* 窄屏标题放不下一行：关名一行、「驻守台」小一号另起一行，不让「·」落到行首 */
+@media (max-width:600px) { .hd-ui .hd-tdgar-main .hd-tdgar-dot { display:none; } .hd-ui .hd-tdgar-main .hd-tdgar-tag { display:block; font-size:14px; } }
 .hd-ui .hd-tdgar-top { display:flex; align-items:center; gap:12px; }
 .hd-ui .hd-tdgar-top .hd-tdgar-note { flex:1 1 0; margin:0; }
 .hd-ui .hd-tdgar-map { flex:none; width:200px; }
@@ -259,6 +265,7 @@ function tdCss(): string {
 }
 .hd-ui .hd-td-bar2 { position:absolute; top:58px; left:6px; right:6px; display:flex; gap:6px; align-items:center; pointer-events:none !important; }
 .hd-ui .hd-td-bar2 > * { pointer-events:auto; }
+.hd-ui .hd-td-bar .hd-td-vetline { font-size:12px; font-weight:700; color:#ffd7a0; white-space:nowrap; }
 /* 克制表的小徽记：伤害（方章）、护甲（圆章），单字 + 颜色，塔卡、敌人、预告、克制表都用这一套 */
 .hd-ui .hd-dmg, .hd-ui .hd-arm { display:inline-flex; align-items:center; justify-content:center; flex:none; width:20px; height:20px; font:900 12px/1 system-ui,sans-serif; font-style:normal; color:#fff; border:2px solid ${ink}; text-shadow:0 1px 0 rgba(0,0,0,.45); vertical-align:middle; }
 .hd-ui .hd-dmg { border-radius:5px; }
@@ -380,8 +387,10 @@ function tdCss(): string {
 .hd-ui .hd-td-tower .hd-td-price.short { color:${red}; }
 .hd-ui .hd-td-tower .hd-td-ctr { display:flex; align-items:center; gap:3px; flex-wrap:wrap; justify-content:center; font-weight:800; }
 .hd-ui .hd-td-tower .hd-td-ctr .hd-armn { font:800 12px/16px system-ui,sans-serif; font-style:normal; color:#fff; padding:0 4px; margin-left:3px; border-radius:8px; text-shadow:0 1px 0 rgba(0,0,0,.45); }
-.hd-ui .hd-td-tower .hd-td-ctr .hd-armn.ng { text-decoration:line-through 2px #3b1d10; opacity:.8; }
+.hd-ui .hd-td-tower .hd-td-ctr .hd-armn.ng { opacity:.85; }
 .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-cloth { background:#b98f55; } .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-heavy { background:#66737f; } .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-wood { background:#86562b; } .hd-ui .hd-td-tower .hd-td-ctr .hd-armn.a-air { background:#3d9ad1; }
+/* 打不到的护甲：整条斜划一道红杠（不占宽、不出框；细删除线在 12 号字上看不出来） */
+.hd-ui .hd-td-tower .hd-td-ctr .hd-armn.ng { background-image:linear-gradient(to top right, transparent calc(50% - 1.5px), #e0362c calc(50% - 1.5px), #e0362c calc(50% + 1.5px), transparent calc(50% + 1.5px)); }
 .hd-ui .hd-td-tower .hd-key { left:4px; top:3px; }
 .hd-ui .hd-td-tower { position:relative; }
 .hd-ui .hd-td-tower.rec { box-shadow:0 0 0 3px #ffe885, 0 0 12px rgba(255,232,133,.8); }
