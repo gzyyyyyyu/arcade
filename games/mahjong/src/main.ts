@@ -7,7 +7,7 @@
 import { readText } from './storage.ts';
 import './app/report.ts';
 import { loadSolo, Solo } from './solo.ts';
-import { wallUrl } from './view/tiles.ts';
+import { wallUrl, warmTileArt } from './view/tiles.ts';
 import { installArt } from './view/art.ts';
 import { guideKey, showGuide } from './view/guide.ts';
 import { play, setAmbience, setSound, setVolume, unlockAudio } from './view/sound.ts';
@@ -27,6 +27,7 @@ import { app, paintTop, stage } from './app/shell.ts';
 import { quietUi, settleLeftover } from './app/solo-flow.ts';
 import { startSocial } from './app/social.ts';
 import { refreshWallet } from './app/wallet.ts';
+import { getWallet } from './net/wallet.ts';
 
 setSound(live.sound);
 setVolume(prefs.volume);
@@ -49,13 +50,14 @@ installLeaveGuard();
 
 void (async () => {
   paintTop();
-  // 先看有没有平台：单独部署时不去问钱包
+  // 认人和钱包同时问：先后问要等两个来回才画主页；单独部署时钱包那一问回 404，不用它
+  const wallet = getWallet();
   await loadMe();
   if (!session.standalone) {
     void startSocial();
     startCloud();
   }
-  await refreshWallet();
+  await refreshWallet(wallet);
   // 朋友发来的房间链接（登录后平台按 next 原样带回来）、刷新：直接进房。
   // 平台大厅的"好友房"按钮带 ?online=1：直接摆出开房、进房（用完就从地址栏去掉，刷新不再亮）
   const q = new URLSearchParams(location.search);
@@ -76,5 +78,7 @@ void (async () => {
   if (left?.settle && !left.done) void settleLeftover(new Solo(left, quietUi));
   // 说明按主页上选着的玩法弹：选着立直却弹川麻的"不能吃"，说的和要打的对不上。
   // 在主页上点"开打"就开快速一局；从平台的"好友房"进来的是来开房的，只关掉说明
+  // 主页画好后空闲时把牌面图先解出来，第一次进桌少卡一下
+  (window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 200)))(() => warmTileArt());
   if (!readText(guideKey(prefs.variant)) && !loadSolo()) showGuide(stage, 0, undefined, prefs.variant, friends ? undefined : () => void startQuick());
 })();
