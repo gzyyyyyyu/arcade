@@ -271,6 +271,16 @@ export function startBackgroundBake(scene: Phaser.Scene): Promise<void> {
   return tablePart;
 }
 
+/**
+ * 主页的规则页（牌型示例）要用牌面：一进主页就点开时后台还没烘完（大小王排在最后），先画出来的是缺纹理方块。
+ * 牌面都在了返回 null；没烘完返回烘完时兑现的 Promise，规则页等它重画一次
+ */
+export function cardsPending(scene: Phaser.Scene): Promise<void> | null {
+  if (scene.textures.exists('card:17')) return null;
+  startBackgroundBake(scene);
+  return corePart;
+}
+
 /** 后段烘焙的闸：进牌桌时关上，发牌动画走完（牌桌第一次播完一批事件）或 15 秒兜底后打开；在主页上一直开着 */
 let extraGate: Promise<void> = Promise.resolve();
 let openGate: (() => void) | null = null;

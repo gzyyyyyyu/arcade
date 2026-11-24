@@ -71,6 +71,14 @@ describe('存储与画面约定', () => {
     const sf = interpret(parseCards('♠3 ♠4 ♠5 ♠6 ♠7'), 5, DEFAULT_OPTIONS).find((x) => x.type === 'straightFlush')!;
     expect(bombText(sf)).toBe(playDetail(sf));
   });
+  it('连着的牌型写从几到几，A 在 2 前面也对', () => {
+    const st = (s: string, type: string) => interpret(parseCards(s), 5, DEFAULT_OPTIONS).find((x) => x.type === type)!;
+    expect(playDetail(st('♠3 ♥4 ♣5 ♦6 ♠7', 'straight'))).toBe('顺子 3 到 7');
+    expect(playDetail(st('♠A ♥2 ♣3 ♦4 ♠5', 'straight'))).toBe('顺子 A 到 5');
+    expect(playDetail(st('♠10 ♥J ♣Q ♦K ♠A', 'straight'))).toBe('顺子 10 到 A');
+    expect(playDetail(st('♠A ♥A ♣2 ♦2 ♠3 ♥3', 'tube'))).toBe('三连对 A 到 3');
+    expect(playDetail(st('♠7 ♥7 ♣7 ♦8 ♠8 ♥8', 'plate'))).toBe('钢板 7 到 8');
+  });
   it('世界宽度随宽高比在 1280..1720 之间', () => {
     expect(worldWidthFor(1280, 720)).toBe(1280);
     expect(worldWidthFor(844, 390)).toBeGreaterThan(1500);

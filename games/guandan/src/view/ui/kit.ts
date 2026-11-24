@@ -622,15 +622,16 @@ export interface Modal {
   close: () => void;
 }
 
-/** 开着的"可点外面关"的弹窗（设置、规则、战绩）：同一时间只留一个，新的打开时旧的先关 */
+/** 开着的"可点外面关"的弹窗（设置、规则、战绩、成就、选难度、选档位）：同一时间只留一个，新的打开时旧的先关 */
 const dismissables = new Map<Phaser.Scene, Modal[]>();
 
 /**
  * 弹窗：半透明遮罩挡住下面的点击 + 居中面板；返回 close。
- * dismissOnOutside：点弹窗外（遮罩）关闭，和点 ✕、Esc 走同一个 close；只给没有未保存内容的面板（设置、规则、战绩）用。
+ * dismissOnOutside：点弹窗外（遮罩）关闭，和点 ✕、Esc 走同一个 close；只给没有未保存内容的面板（设置、规则、战绩、成就、选难度、选档位）用。
  * 确认框、结算这类要玩家做决定的不传，点外面不关（防误关）；它们可以叠在面板上，不受"只留一个"限制。
+ * escCloses：没有 ✕ 的弹窗也让 Esc 关（确认框：Esc = 算了）。
  */
-export function modal(scene: Phaser.Scene, w: number, h: number, title?: string, opts: { closeBtn?: boolean; onClose?: () => void; depth?: number; dismissOnOutside?: boolean } = {}): Modal {
+export function modal(scene: Phaser.Scene, w: number, h: number, title?: string, opts: { closeBtn?: boolean; onClose?: () => void; depth?: number; dismissOnOutside?: boolean; escCloses?: boolean } = {}): Modal {
   const W = worldW(scene);
   const H = worldH(scene);
   const root = scene.add.container(0, 0).setDepth(opts.depth ?? 5000);
@@ -666,8 +667,8 @@ export function modal(scene: Phaser.Scene, w: number, h: number, title?: string,
     if (over > 0) setHit(cb, hit, hit, over);
     body.add(cb);
   }
-  // 键盘只在弹窗里走；能关的弹窗 Esc 关掉
-  pushLayer(root, opts.closeBtn !== false ? close : undefined);
+  // 键盘只在弹窗里走；能关的弹窗 Esc 关掉（没有 ✕ 的确认框传 escCloses，Esc 当「算了」）
+  pushLayer(root, opts.closeBtn !== false || opts.escCloses ? close : undefined);
   root.setAlpha(0);
   body.setScale(0.92);
   scene.tweens.add({ targets: root, alpha: 1, duration: 140 });

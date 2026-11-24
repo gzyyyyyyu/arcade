@@ -2,7 +2,7 @@
  * 手机、平板竖屏时在牌桌上盖一层"请横过来"的提示（纯 CSS 媒体查询控制显隐，转过来自动消失）。
  * 只盖牌桌：主页、弹窗、好友房大厅竖屏也能用（主页换竖屏排版，theme.ts 的 worldSizeFor），点开局进了牌桌才要横过来。
  * 宽到 1024 都算：iPad 竖屏牌桌只剩 820×461 也打不了，按 820 划线时 iPad Air、mini 弹、Pro 11（834）不弹，同类设备不一样。
- * 左上角留一个"大厅"按钮：竖屏时牌桌整个被盖住，不放这里就回不去平台首页。
+ * 左上角留一个"大厅"按钮：竖屏时牌桌整个被盖住，不放这里就回不去平台首页；下面再放一个"回首页"（回牌馆主页，主页竖屏能用）。
  */
 import { titleArtSvg } from '../art/index.ts';
 import { mountThemeCss } from './theme.ts';
@@ -24,7 +24,7 @@ const ICON = `
 
 const HOUSE = `<svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><path d="M14 28V55H50V28" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><path d="M7 31L32 10L57 31" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-export function mountRotateHint(onLobby: () => void): void {
+export function mountRotateHint(onLobby: () => void, onHome: () => string | null): void {
   if (document.getElementById('rotate-hint')) return;
   mountThemeCss();
   const style = document.createElement('style');
@@ -37,6 +37,7 @@ export function mountRotateHint(onLobby: () => void): void {
 @keyframes rh-turn { 0%, 18% { transform: rotate(0deg); } 52%, 80% { transform: rotate(90deg); } 100% { transform: rotate(0deg); } }
 #rh-lobby { position: absolute; top: max(var(--gd-s3), env(safe-area-inset-top, 0px)); left: max(var(--gd-s3), env(safe-area-inset-left, 0px));
   border-radius: var(--gd-r-pill); border-color: var(--gd-gold); background: #6b3f20; color: #ffe9c2; font-size: 17px; }
+#rh-home { min-height: 44px; border-radius: var(--gd-r-pill); border-color: var(--gd-gold); background: #6b3f20; color: #ffe9c2; font-size: 17px; }
 @media ${QUERY} { html.gd-at-table #rotate-hint { display: flex; } }`;
   document.head.appendChild(style);
   const el = document.createElement('div');
@@ -44,8 +45,13 @@ export function mountRotateHint(onLobby: () => void): void {
   // 和主页同一张背景（art-v3，人物和灯笼是单独的精灵、不在图里）。竖屏按高铺满后横向取 30%，正好把月洞窗留在中间；
   // CSS 背景图只在竖屏真显示出来时才栅格化
   el.style.setProperty('--rh-art', `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(titleArtSvg(1280, 720))}")`);
-  el.innerHTML = `<button id="rh-lobby" class="gd-btn" type="button">${HOUSE}大厅</button>${ICON}<div>把屏幕横过来</div><span>牌桌是横的，横屏才排得下一手牌</span>`;
+  el.innerHTML = `<button id="rh-lobby" class="gd-btn" type="button">${HOUSE}大厅</button>${ICON}<div>把屏幕横过来</div><span id="rh-note">牌桌是横的，横屏才排得下一手牌</span><button id="rh-home" class="gd-btn" type="button">← 回首页</button>`;
   el.querySelector('#rh-lobby')!.addEventListener('click', onLobby);
+  // 回牌馆主页：要先确认的局（确认框在被盖住的牌桌里）不直接走，下面那行说明换成为什么
+  el.querySelector('#rh-home')!.addEventListener('click', () => {
+    const why = onHome();
+    if (why) el.querySelector('#rh-note')!.textContent = why;
+  });
   document.body.appendChild(el);
 }
 
