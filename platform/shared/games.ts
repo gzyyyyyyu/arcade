@@ -13,7 +13,7 @@ export interface GameEntry {
   name: string;
   /** 一句话卖点 */
   tagline: string;
-  /** 两三句介绍 */
+  /** 两三句介绍，50 字上下：电脑大厅悬停时盖在封面上，长了放不下（1280 宽一张封面约三行）。外部贡献者的游戏照他们的原文，不改 */
   desc: string;
   tags: string[];
   /** 封面（平台 public/covers 下） */
@@ -75,7 +75,7 @@ export const GAMES: readonly GameEntry[] = [
     id: 'kaipan',
     name: '开盘',
     tagline: '散户的一年：看群聊、追风口、还月供',
-    desc: '每天看群里的小道消息，挑股票放进持仓，看它们跟着风口涨跌。每个月底要还上一笔钱，还不上就游戏结束。12 个月后，看你是韭菜还是股神。',
+    desc: '看小道消息挑股票，每月底还一笔钱；撑满 12 个月，看你是韭菜还是股神。',
     tags: ['模拟炒股', '肉鸽', '单人', '约 15 分钟一局'],
     cover: '/covers/kaipan.webp',
     path: '/games/kaipan/',
@@ -95,7 +95,7 @@ export const GAMES: readonly GameEntry[] = [
     id: 'guandan',
     name: '牌馆',
     tagline: '掼蛋、斗地主，凑一桌就开打',
-    desc: '两种打法一个馆。掼蛋：两副牌、四个人，对家一队，逢人配、进贡还贡一样不少，打过 A 就赢；斗地主：三个人抢地主，炸弹、春天翻倍。可以和电脑牌友打，也能开好友房，叫朋友一起来。',
+    desc: '掼蛋：两副牌四个人，对家一队，打过 A 就赢；斗地主：三人抢地主，炸弹、春天翻倍。和电脑打，也能开好友房。',
     tags: ['牌类', '掼蛋', '斗地主', '好友房'],
     // 每日挑战：斗地主、掼蛋各一套全国同样的牌；斗地主残局是每天一道固定残局，交 daily-<北京日期>-ddzpz
     featuredDaily: 'ddzpz',
@@ -114,7 +114,7 @@ export const GAMES: readonly GameEntry[] = [
     id: 'texas',
     name: '德州扑克',
     tagline: '两张底牌、五张公共牌，敢不敢全下',
-    desc: '无限注德州扑克，一桌 2 到 9 人。和稳哥、阿飙、虎子、叨叨这些性格各不相同的电脑过招，也能开好友房，叫朋友一起来。筹码来自平台钱包，只用来玩，不能买、不能换。',
+    desc: '无限注德州扑克，一桌 2 到 9 人，和性格各异的电脑过招，也能开好友房。筹码来自平台钱包，不能买、不能换。',
     tags: ['牌类', '好友房', '随时离桌'],
     cover: '/covers/texas.webp',
     coverX: 100,
@@ -135,7 +135,7 @@ export const GAMES: readonly GameEntry[] = [
     id: 'mahjong',
     name: '雀馆',
     tagline: '川麻·血战到底、立直麻将',
-    desc: '两种玩法一个馆。四川麻将血战到底：开局换三张、定缺，有人胡了接着打，打到只剩一家；立直麻将：立直、宝牌、役满，听牌前门清更值钱。和电脑搓一桌，也能开好友房，叫朋友一起搓。',
+    desc: '川麻血战到底：换三张、定缺，有人胡了接着打；立直麻将：立直、宝牌、役满。和电脑搓一桌，也能开好友房。',
     tags: ['麻将', '川麻', '立直', '好友房'],
     cover: '/covers/mahjong.webp',
     path: '/games/mahjong/',
@@ -172,7 +172,7 @@ export const GAMES: readonly GameEntry[] = [
     id: 'yexun',
     name: '夜巡',
     tagline: '雪夜古镇，只管走位，撑到天亮',
-    desc: '道士夜巡雪夜古镇：只管走位，符咒、桃木剑自己出手，升级三选一、法器进化。守夜是成群的跳尸纸人扑上来，撑到天亮；夜探是进镇搜宝，趁镇门开着撤出去。',
+    desc: '道士夜巡古镇，只管走位，符咒桃木剑自己出手；守夜撑到天亮，夜探搜宝撤出。',
     tags: ['动作', '单人', '守夜·夜探', '约 15 分钟一局'],
     cover: '/covers/yexun.webp',
     coverX: 80,
@@ -225,9 +225,8 @@ export const GAMES: readonly GameEntry[] = [
     // 接了平台钱包（和夜巡一样不写 wallet，档位走钱包的通用档位表）
     id: 'haidao',
     name: '海岛',
-    // 介绍照游戏 README
     tagline: '建自己的海盗岛，开船去抢电脑的岛',
-    desc: '海盗题材的海岛攻防：在自己的岛上摆建筑、升级，立即完成不用等，攒金币和木材；开船去打电脑海盗的岛，选海滩登陆，兵自动开打，旗舰放炮、信号弹支援，拆掉主寨拿星，抢资源回家升级。',
+    desc: '在自己的海盗岛上摆建筑、升级，攒金币和木材；开船去打电脑海盗的岛，选滩登陆、放炮支援，抢资源回家。',
     tags: ['海盗', '攻防', '建造'],
     cover: '/covers/haidao.webp',
     coverX: 0,

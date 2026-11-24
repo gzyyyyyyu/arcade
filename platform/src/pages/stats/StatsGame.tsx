@@ -60,8 +60,8 @@ export function GameTab({ game, c, together }: { game: string; c: CareerView; to
   const facts: { k: string; v: string; cls?: string }[] = [
     { k: '局数', v: c.rounds > 0 ? num(c.rounds) : '—' },
     { k: '胜率', v: rateText(c) },
-    { k: '最大一把', v: c.best > 0 ? num(c.best) : '—' },
-    { k: '本周净赢', v: signed(c.wnet), cls: tone(c.wnet) },
+    { k: '最大一把', v: c.best > 0 ? `${num(c.best)} 筹码` : '—' },
+    { k: '本周净赢', v: `${signed(c.wnet)} 筹码`, cls: tone(c.wnet) },
     { k: '上桌', v: `${num(c.n)} 次` },
   ];
   return (

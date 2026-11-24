@@ -145,7 +145,7 @@ function MeetupForm({ onDone }: { onDone: () => void }) {
           </select>
         </div>
       </fieldset>
-      <p className="note">发给全部好友。到点前 10 分钟他们头像上有个小点，好友页能一键过去；你到点在游戏里开好友房、叫人就行。每天最多约 3 次。</p>
+      <p className="note">发给全部好友。到点前 10 分钟，他们顶栏的头像上会冒个小点，在好友页点"去"就进这个游戏；你到点在游戏里开好友房、叫人就行。每天最多约 3 次。</p>
       <FormError text={error} />
       <button className="btn btn--primary" type="submit" aria-busy={busy} disabled={busy || !writable}>
         {busy ? '请稍等…' : `约 ${whenText(at, now)} 的${gameName(game)}`}

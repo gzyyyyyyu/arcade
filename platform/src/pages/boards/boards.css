@@ -87,13 +87,15 @@
 }
 html.no-motion .boards-page .podium .podium__step, html.no-motion .boards-page .podium .podium__item > :not(.podium__step) { animation: none; }
 
-/* 矮屏（手机横屏）：标题和"全部/只看好友"并进页签那一行，页签已经写了榜名，卡片不再重复标题，把高度让给名单 */
+/* 矮屏（手机横屏）：标题和"全部/只看好友"并进页签那一行；卡片头只留一行小字（排的是什么、多久清零），晒战绩等按钮收掉，把高度让给名单 */
 @media (max-height: 600px) {
   .boards-page { position: relative; gap: var(--s-1); padding-block: var(--s-2); }
   .boards-page .panel__head { position: absolute; top: var(--s-2); right: var(--s-3); z-index: 1; }
   .boards-page .panel__head .panel__title { display: none; }
   .boards-page .boards-tabs { margin-right: 160px; }
-  .boards-page .bcard__head { display: none; }
+  .boards-page .bcard__head { min-height: 0; }
+  .boards-page .bcard__head > :not(.bcard__title, .bcard__sub) { display: none; }
+  .boards-page .bcard__title, .boards-page .bcard__sub { font-size: var(--fs-xs); }
   .boards-page .ranks .rank { min-height: 36px; padding-block: 0; }
   .boards-page .paged__bar .btn { min-height: 32px; min-width: 40px; }
   .boards-page .bcard__mine .btn { min-height: 28px; }

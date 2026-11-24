@@ -99,7 +99,7 @@ export function PrivacyCard() {
       <PrivacySwitch
         field="showFeed"
         label="让好友看到我的动态（实盘赢了、新称号、游戏里的名场面）"
-        onNote="好友在好友页能看到你最近 7 天的动态，能点赞、扔道具。"
+        onNote="好友点顶栏的「动态」能看到你最近 7 天的动态，能点赞、扔道具。"
         offNote="不再生成你的动态，已有的好友也看不到。"
         save={api.setShowFeed}
         testId="show-feed"

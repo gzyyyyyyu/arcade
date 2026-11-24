@@ -129,7 +129,7 @@ function FriendAction({ userId, relation, onChange }: { userId: string; relation
 /** 总览右边的"各游戏概览"：每个玩过的游戏一行（局数、胜率、本周净赢右对齐），点一行进那个游戏的页签 */
 function Overview({ games, onPick }: { games: [string, StatsResponse['games'][string]][]; onPick: (g: string) => void }) {
   return (
-    <section className="scard" data-testid="overview">
+    <section className="scard scard--ov" data-testid="overview">
       <h3 className="scard__title">各游戏概览</h3>
       <div className="ov-head" aria-hidden="true">
         <span>游戏</span>

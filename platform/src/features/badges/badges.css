@@ -15,7 +15,8 @@
 /* 点到的那一枚加选中框：说明在墙下面，手机上离得远，靠这个框看出点的是哪一枚 */
 .badges .badge[aria-pressed="true"] { border-width: var(--bw); border-color: var(--accent-deep); box-shadow: 0 0 0 2px var(--accent); }
 .badges .badge__name { font-weight: 700; font-size: var(--fs-sm); line-height: 1.2; overflow-wrap: anywhere; text-align: center; }
-.badges .badge__tier { text-align: center; overflow-wrap: anywhere; font-size: var(--fs-xs); color: var(--muted); }
+/* pretty：折行时不把最后一个字（"就拿到"的"到"）单独甩到下一行 */
+.badges .badge__tier { text-align: center; overflow-wrap: anywhere; text-wrap: pretty; font-size: var(--fs-xs); color: var(--muted); }
 .badges__tip { margin: var(--s-3) 0 0; padding: var(--s-2) var(--s-3); border: var(--bw-thin) solid var(--line); border-radius: var(--r-md); background: var(--highlight); font-size: var(--fs-sm); overflow-wrap: anywhere; }
 .badges__tip strong { margin-right: var(--s-2); }
 /* 收起：只在说明条盖在翻页条上时（战绩页手机小屏）露出来，别处说明条在墙下面占自己的一行，不用收 */

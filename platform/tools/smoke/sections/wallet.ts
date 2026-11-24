@@ -60,8 +60,8 @@ export async function walletAndSlowNet(browser: Browser): Promise<void> {
     const order = await page.locator('.card__title').evaluateAll((els) => els.map((e) => e.firstChild?.textContent));
     // 大厅一屏放下后卡片分页，一页放几张看屏高：只比页上有的前几张
     check(order.length >= 2 && order.slice(0, 3).join() === ['德州扑克', '开盘', '牌馆'].slice(0, Math.min(3, order.length)).join(), `卡片顺序不对：${order.join()}`);
-    await page.getByTestId('week-kaipan').getByText('本周 +9,400').waitFor();
-    await page.getByTestId('week-texas').getByText('本周 -1,200').waitFor();
+    await page.getByTestId('week-kaipan').getByText('本周赢 9,400').waitFor();
+    await page.getByTestId('week-texas').getByText('本周输 1,200').waitFor();
     check((await page.getByTestId('week-guandan').count()) === 0, '牌馆这周没玩，不该有本周净赢');
     // 封面右上角的人数：有人玩的才显示
     await page.getByTestId('playing-texas').getByText('今天 12 人玩过').waitFor();

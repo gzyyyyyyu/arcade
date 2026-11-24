@@ -18,7 +18,7 @@ import { useSession } from '../../session.tsx';
 import { Empty, FormError, LoadError, Panel, Skeleton, useSubmit, useWritable } from '../../ui.tsx';
 import { useWallet } from '../../features/wallet/Wallet.tsx';
 import { CoinIcon } from '../../icons.tsx';
-import { weekTrend } from '../../features/wallet/wallet-trend.ts';
+import { weekRelief, weekTrend } from '../../features/wallet/wallet-trend.ts';
 import './wallet-card.css';
 import './wallet.css';
 
@@ -109,17 +109,18 @@ function WeekSummary({ week }: { week: Record<string, number> }) {
   );
 }
 
-/** 钱包卡里的本周走势：只用页面已有的流水倒推，不另外请求 */
+/** 钱包卡里的本周余额走势：只用页面已有的流水倒推，不另外请求。余额变化含领的补给，写明了，免得和"本周净赢"（只算对局）对不上 */
 function WeekTrend({ balance, ledger }: { balance: number; ledger: LedgerEntry[] }) {
   const t = useMemo(() => weekTrend(balance, ledger, Date.now()), [balance, ledger]);
+  const relief = useMemo(() => weekRelief(ledger, Date.now()), [ledger]);
   if (!t.path) return <p className="wcard__empty">这周还没有进出</p>;
   return (
     <div className="wcard__trend">
       <div className="wcard__trend-head">
-        <span>本周走势</span>
+        <span>本周余额变化{relief > 0 && `（含补给 +${num(relief)}）`}</span>
         <span className={tone(t.change) ?? ''}>{signed(t.change)}</span>
       </div>
-      <svg className={`wcard__svg ${tone(t.change) ?? ''}`} viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label={`本周走势，共 ${signed(t.change)}`}>
+      <svg className={`wcard__svg ${tone(t.change) ?? ''}`} viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label={`本周余额变化，共 ${signed(t.change)}`}>
         <path className="wcard__area" d={`${t.path} L100 48 L0 48 Z`} />
         <path className="wcard__line" d={t.path} />
       </svg>

@@ -9,7 +9,7 @@ import { Link } from '../../router.tsx';
 import { api, type Overtake } from '../../api.ts';
 import { useSession, useVisible } from '../../session.tsx';
 import { useWallet } from '../../features/wallet/Wallet.tsx';
-import { num, signed } from '../../lib/format.ts';
+import { num } from '../../lib/format.ts';
 import { enterGame, watchBackFx } from '../../lib/enter-fx.ts';
 import { useRecentGames } from '../../features/recent/recent.tsx';
 import { Paged, useMedia } from '../../features/fit/Fit.tsx';
@@ -74,8 +74,9 @@ function GameCard({ game, last = null, main = false }: { game: GameEntry; last?:
         <h2 className="card__title">
           {game.name}
           {wnet !== null && (
-            <span className={`card__week${wnet > 0 ? ' up' : wnet < 0 ? ' down' : ''}`} data-testid={`week-${game.id}`}>
-              本周 {signed(wnet)}
+            // 写成"本周赢/输 多少"：光写"本周 -1,748"看不出是分数、名次还是筹码
+            <span className={`card__week${wnet > 0 ? ' up' : wnet < 0 ? ' down' : ''}`} data-testid={`week-${game.id}`} title="这周带筹码的局一共输赢多少筹码">
+              {wnet > 0 ? `本周赢 ${num(wnet)}` : wnet < 0 ? `本周输 ${num(-wnet)}` : '本周持平'}
             </span>
           )}
         </h2>

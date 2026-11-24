@@ -319,7 +319,7 @@ async function friendsFlow(a: Page, b: Page): Promise<void> {
   await b.getByTestId('show-feed').uncheck();
   await b.getByText('不再生成你的动态，已有的好友也看不到。').waitFor();
   await b.getByTestId('show-feed').check();
-  await b.getByText('好友在好友页能看到你最近 7 天的动态').waitFor();
+  await b.getByText('好友点顶栏的「动态」能看到你最近 7 天的动态').waitFor();
   await b.goto(`${BASE}/friends`);
 
   console.log('管理员叫朋友来掼蛋房（真接口）：朋友顶上弹一条、"好友"带红点，点"不了"收起');

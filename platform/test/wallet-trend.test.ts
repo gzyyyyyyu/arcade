@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LedgerEntry } from '../src/api.ts';
-import { weekBalances, weekTrend } from '../src/features/wallet/wallet-trend.ts';
+import { weekBalances, weekRelief, weekTrend } from '../src/features/wallet/wallet-trend.ts';
 
 const H = 3_600_000;
 // 北京时间 2026-10-28（周三）12:00；本周一是 10-26
@@ -63,5 +63,14 @@ describe('weekTrend', () => {
     const ledger = [e(Date.UTC(2026, 9, 27, 16, 30), 10)];
     expect(weekBalances(110, ledger, NOW)).toEqual([100, 110]);
     expect(H).toBeGreaterThan(0);
+  });
+});
+
+describe('weekRelief', () => {
+  it('只合计本周的补给：上周领的、对局的不算', () => {
+    const r = (t: number, a: number): LedgerEntry => ({ at: t, t: 'relief', a });
+    const ledger = [r(at(25, 20), 400), r(at(26, 0), 315), e(at(27, 9), 300), r(at(28, 9), 100)];
+    expect(weekRelief(ledger, NOW)).toBe(415);
+    expect(weekRelief([], NOW)).toBe(0);
   });
 });

@@ -352,9 +352,10 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
   border: var(--bw-thin, 2px) solid var(--line); border-radius: 50%; background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
   color: var(--white); font-weight: 700; box-shadow: var(--hl);
 }
-.feed__head { display: flex; align-items: baseline; gap: 6px; min-width: 0; line-height: 1.3; }
-.feed__name { flex: 0 1 auto; min-width: 0; max-width: 8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.feed__game { display: inline-flex; align-items: center; gap: 4px; flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; color: var(--muted); font-size: var(--fs-sm); }
+/* 窄了放不下一行：游戏名和时间整块折到下一行，昵称和游戏名都不截（昵称最长 12 个字） */
+.feed__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; min-width: 0; line-height: 1.3; }
+.feed__name { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.feed__game { display: inline-flex; align-items: center; gap: 4px; flex: none; white-space: nowrap; color: var(--muted); font-size: var(--fs-sm); }
 .feed__thumb { flex: none; width: 20px; height: 20px; border: 1.5px solid var(--line); border-radius: 6px; object-fit: cover; }
 .feed__time { flex: none; margin-left: auto; color: var(--muted); font-size: var(--fs-sm); }
 .feed__tags { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -482,8 +483,14 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .card__more .card__desc { color: inherit; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden; line-height: 1.5; }
 .card__more .card__tags { margin: 0; padding: 0; }
 .card__more .card__tags li { color: var(--ink); }
+/* 封面窄（电脑窗口 960–1280 宽时卡片小，封面只有一百多高）：先收掉标签，再把介绍降一档字号，介绍整段放得下、不被切 */
+.card__media { container-type: inline-size; }
+@container (max-width: 289px) { .card__more .card__tags { display: none; } }
+@container (max-width: 239px) { .card__more .card__desc { font-size: var(--fs-xs); } }
 @media (hover: hover) and (min-width: 600px) {
   .card:hover .card__more, .card:focus-within .card__more { opacity: 1; transform: none; }
+  /* "上次玩"牌子压在封面左下角，介绍浮上来时让开，不盖住最后一排标签 */
+  .card:hover .card__kicker, .card:focus-within .card__kicker { opacity: 0; }
   .card:hover .card__cover { transform: scale(1.05); }
 }
 /* 正文两行：名字和按钮一排、一句话在下面；比按钮单独一行矮一截，电脑上两排卡放得下 */
@@ -601,8 +608,9 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .empty .note { max-width: 32em; }
 .load-error { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); padding: var(--s-4) 0; text-align: center; }
 .load-error .note { max-width: 32em; color: var(--bad); }
-/* 页面切换时的"正在打开…"别一闪而过就跳：淡入 */
-.page-loading { animation: fade-in 0.3s ease 0.15s both; text-align: center; }
+/* 第一次进某页、页面代码还在下载时的占位：页面卡片的框加几条灰条，像页面正在出来；淡入，快的时候不一闪 */
+.page-loading { animation: fade-in 0.3s ease 0.15s both; }
+.page-loading__title { margin: 0 0 var(--s-3); color: var(--muted); font-size: var(--fs-sm); }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 .adjusts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: var(--fs-sm); }
 .adjusts .plus { color: var(--good); font-weight: 800; }
