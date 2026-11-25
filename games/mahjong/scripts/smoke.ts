@@ -526,7 +526,8 @@ async function noScrollSmoke(): Promise<void> {
     for (const v of ['血战', '立直']) {
       await home(v);
       await page.click('.home-main .link');
-      for (const t of await page.$$eval('.rules .tab', (x) => x.map((e) => e.textContent!.trim()))) {
+      // 手机、平板上「键盘」页签藏着（rules.css），只点看得见的
+      for (const t of await page.$$eval('.rules .tab', (x) => x.filter((e) => (e as HTMLElement).offsetParent).map((e) => e.textContent!.trim()))) {
         await page.click(`.rules .tab:has-text("${t}")`);
         await noScroll(page, `${w}×${h}规则-${v}-${t}`, errors);
         // 放不下的页翻到最后一页也量一次
